@@ -74,3 +74,9 @@
 - Add a dedicated confirmation/authentication flow for toggling an already
   private Thing Folder back to public, instead of relying only on the action
   menu authentication.
+
+## 移动到文件夹 Dialog 根节点文案
+
+- 2026-06-23 复核批量/范围动作文案时发现，`MoveToThingFolderDialogFragment`
+  的根节点当前显示 `underway`（中文为“正在进行”），但它实际表示移动目标的根目录。
+  后续应确认并改为“根目录”或“所有记事”，避免与当前状态筛选混淆。

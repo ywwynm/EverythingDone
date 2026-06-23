@@ -444,7 +444,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         private fun bindTitle(rowItem: Row) {
             val folder = rowItem.folder
             if (folder == null) {
-                title.text = getString(R.string.underway)
+                title.text = getString(R.string.all_things_scope)
             } else {
                 title.text = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) }
             }

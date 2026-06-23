@@ -1,5 +1,16 @@
 # Thing Folders Sessions
 
+## 2026-06-23 - 文件夹内容删除改为按当前状态执行
+
+根据用户确认，文件夹“删除/永久删除其中记事”的内容操作不跨状态：
+
+- 正在进行状态：文件夹内容删除只把范围内正在进行的记事移入回收站，保留已完成记事不动。
+- 已完成状态：删除动作只作用于范围内已完成的记事。
+- 回收站状态：内容永久删除只作用于范围内已删除的记事。
+- 结构性“永久删除文件夹”仍是另一类动作，会删除文件夹容器及其全部内容，dialog 文案单独说明。
+
+实现上，统一文案 helper 让标题和正文都明确写出当前状态限定，例如“删除当前文件夹中所有正在进行的记事”“删除所选文件夹中所有已完成的记事”，避免与实际行为不一致。验证：`:app:assembleDebug` BUILD SUCCESSFUL。
+
 ## 2026-06-23 - 全宽缩略图文件夹卡片列数随屏幕自适应
 
 - 全宽（`SPAN_FULL`）缩略图文件夹卡片瀑布流列数由固定 3 改为“首页列表 span + 1”：`ThingsAdapter.createFolderThumbnailMasonryView` 构建时动态读 `getBoundListSpanCount()`（新增于 `BaseThingsAdapter`），随 `onConfigurationChanged` 全量重绑自旋转适应。

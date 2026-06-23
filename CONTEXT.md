@@ -188,6 +188,14 @@ _Avoid_: independent dark-mode booleans
 A local command control that represents one action without occupying an entire row or card.
 _Avoid_: full-row clickable surface, full-card clickable surface, full-row action surface
 
+**Selection**:
+用户在选择模式下一并标记的 Things 与 Thing Folders 的集合；其成员始终是当前投影里的同级兄弟，因此被选中的 Thing Folder 的后代不会同时属于这个 Selection。
+_Avoid_: selected Thing only, single highlighted card
+
+**Batch Action**:
+作用于整个 Selection 的单个动作，集合中的每一项按自身类型执行对应操作——Thing 执行状态操作，Thing Folder 执行对应的内容操作或结构操作。
+_Avoid_: Thing-only bulk action, treating a Selection as one object
+
 ## Relationships
 
 - A **Thing** has one **Thing Background**.
@@ -249,6 +257,8 @@ _Avoid_: full-row clickable surface, full-card clickable surface, full-row actio
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
 - New installs and upgrades default to light App Chrome unless the user explicitly enables follow-system or forced dark Appearance Mode.
 - Light App Chrome is compatibility-sensitive: dark-mode infrastructure must not change existing light-mode visuals.
+- A **Selection** may contain both **Things** and **Thing Folders**, all siblings within the current projection.
+- A **Batch Action** applies one action across a **Selection** by mapping each member to its own type's operation, so a **Thing Folder** member runs a content or structural operation rather than a Thing state change.
 
 ## Example Dialogue
 

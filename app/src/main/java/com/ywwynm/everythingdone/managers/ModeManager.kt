@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
+import com.ywwynm.everythingdone.helpers.HomeActionWordingHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.views.ActivityHeader
@@ -292,24 +293,21 @@ open class ModeManager(app: App?,
 
     private fun updateMenuItemStickyOnTop() {
         val item: MenuItem = mContextualToolbar!!.getMenu().findItem(R.id.act_sticky) ?: return
-        if (mThingManager!!.getSelectedCount() != 1) {
+        val things = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        val folders = mThingManager!!.getSelectedFolders().toList()
+        if (things.isEmpty() && folders.isEmpty()) {
             item.isVisible = false
-        } else {
-            item.isVisible = true
-            val entry = mThingManager!!.getSingleSelectedEntry()
-            val sticky = when (entry) {
-                is ThingListEntry.ThingEntry -> entry.thing.location < 0
-                is ThingListEntry.FolderEntry -> entry.folder.location < 0
-                else -> false
-            }
-            if (sticky) {
-                item.setIcon(R.drawable.act_cancel_sticky)
-                item.setTitle(R.string.act_cancel_sticky)
-            } else {
-                item.setIcon(R.drawable.act_sticky_on_top)
-                item.setTitle(R.string.act_sticky_on_top)
-            }
+            return
         }
+        item.isVisible = true
+        // Smart-set direction: only flip to "cancel" when every selected item is sticky.
+        val allSticky = things.all { it.location < 0 } && folders.all { it.location < 0 }
+        if (allSticky) {
+            item.setIcon(R.drawable.act_cancel_sticky)
+        } else {
+            item.setIcon(R.drawable.act_sticky_on_top)
+        }
+        item.title = HomeActionWordingHelper.stickyTitle(mApp!!, allSticky)
     }
 
     private fun updateMenuItemCustomizeCardAppearance() {
@@ -342,7 +340,9 @@ open class ModeManager(app: App?,
         if (thing.id == App.getDoingThingId()) {
             return false
         }
-        if (thing.state == Thing.FINISHED) {
+        // Card appearance is an Underway-only editor (hidden in Finished and the
+        // recycle bin, matching sticky and privacy).
+        if (mApp!!.getStatus() != Def.ThingStatus.UNDERWAY) {
             return false
         }
 
@@ -352,101 +352,105 @@ open class ModeManager(app: App?,
     private fun updateMenuItemPrivate() {
         val item: MenuItem = mContextualToolbar!!.getMenu()
                 .findItem(R.id.act_set_as_private_thing) ?: return
-        val entry = mThingManager!!.getSingleSelectedEntry()
         val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
-        when (entry) {
-            is ThingListEntry.ThingEntry -> {
-                val thing = entry.thing
-                item.isVisible = limitIsUnderway && thing.id != App.getDoingThingId()
-                item.setTitle(
-                        if (thing.isPrivate()) {
-                            R.string.act_cancel_private_thing
-                        } else {
-                            R.string.act_set_as_private_thing
+        val things = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        val folders = mThingManager!!.getSelectedFolders().toList()
+        if (!limitIsUnderway || (things.isEmpty() && folders.isEmpty())) {
+            item.isVisible = false
+            return
+        }
+        item.isVisible = true
+        // Smart-set direction: only flip to "cancel" when every selected item is private.
+        val allPrivate = things.all { it.isPrivate() } && folders.all { it.isPrivate }
+        item.title = HomeActionWordingHelper.privateTitle(mApp!!, allPrivate)
+    }
+
+    private fun updateMenuItemsForFolderSelection() {
+        val folderCount = mThingManager!!.getSelectedFolderCount()
+        val thingCount = mThingManager!!.getSelectedThingCount()
+        val hasFolder = folderCount > 0
+        val hasThing = thingCount > 0
+        val anySelected = hasFolder || hasThing
+        val singleFolderOnly = folderCount == 1 && thingCount == 0
+        val status = mApp!!.getStatus()
+        val underway = status == Def.ThingStatus.UNDERWAY
+        val deleted = status == Def.ThingStatus.DELETED
+
+        // Unified state verbs cover Things, Folders, and mixed selections. The
+        // label adapts to composition; the handler maps each member to its own
+        // type's operation (Thing state change vs Folder content op).
+        setStateVerb(
+            R.id.act_finish_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            status, Thing.FINISHED
+        )
+        setStateVerb(
+            R.id.act_delete_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            status, Thing.DELETED
+        )
+        setStateVerb(
+            R.id.act_restore_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            status, Thing.UNDERWAY
+        )
+        setStateVerb(
+            R.id.act_delete_selected_forever, anySelected, selectionTarget(hasThing, hasFolder),
+            status, Thing.DELETED_FOREVER
+        )
+
+        setMenuItemVisible(R.id.act_move_to_thing_folder, underway && anySelected)
+        // Export only handles Things; keep it for Thing-only selections.
+        setMenuItemVisible(R.id.act_export, hasThing && !hasFolder)
+
+        // Retired in selecting mode: the unified verbs above also cover the
+        // single-folder content ops, so these dedicated items stay hidden.
+        setMenuItemVisible(R.id.act_finish_thing_folder, false)
+        setMenuItemVisible(R.id.act_restore_thing_folder_content, false)
+        setMenuItemVisible(R.id.act_delete_thing_folder_content, false)
+
+        // Dissolve stays single-folder only.
+        setMenuItemVisible(R.id.act_dissolve_thing_folder, singleFolderOnly && underway)
+        // Recycle bin: structural permanent delete — destroys the selected folder
+        // containers and their entire subtree (all states/types), plus selected
+        // Things. Distinct from the content-only "永久删除…中的记事" above.
+        val deleteFolderItem = mContextualToolbar!!.menu.findItem(R.id.act_delete_thing_folder)
+        if (deleteFolderItem != null) {
+            deleteFolderItem.isVisible = hasFolder && deleted
+            if (hasFolder && deleted) {
+                deleteFolderItem.setTitle(
+                    HomeActionWordingHelper.structuralActionTitle(
+                        mApp!!,
+                        HomeActionWordingHelper.StructuralAction.DELETE_FOLDER_FOREVER,
+                        when {
+                            singleFolderOnly -> HomeActionWordingHelper.StructuralTarget.SELECTED_FOLDER
+                            !hasThing -> HomeActionWordingHelper.StructuralTarget.SELECTED_FOLDERS
+                            else -> HomeActionWordingHelper.StructuralTarget.SELECTED_ITEMS
                         }
+                    )
                 )
-            }
-            is ThingListEntry.FolderEntry -> {
-                val folder = entry.folder
-                item.isVisible = limitIsUnderway
-                item.setTitle(
-                        if (folder.isPrivate) {
-                            R.string.cancel_thing_folder_private
-                        } else {
-                            R.string.set_thing_folder_private
-                        }
-                )
-            }
-            else -> {
-                item.isVisible = false
             }
         }
     }
 
-    private fun updateMenuItemsForFolderSelection() {
-        val selectedFolderCount = mThingManager!!.getSelectedFolderCount()
-        val selectedThingCount = mThingManager!!.getSelectedThingCount()
-        val hasSelectedFolder = selectedFolderCount > 0
-        val singleFolderOnly = selectedFolderCount == 1 && selectedThingCount == 0
-        val selectedFolder = (mThingManager!!.getSingleSelectedEntry()
-                as? ThingListEntry.FolderEntry)?.folder
+    private fun setStateVerb(
+        itemId: Int,
+        visible: Boolean,
+        target: HomeActionWordingHelper.StateTarget,
+        status: Int,
+        stateAfter: Int
+    ) {
+        val item: MenuItem = mContextualToolbar!!.menu.findItem(itemId) ?: return
+        item.isVisible = visible
+        if (!visible) return
+        item.title = HomeActionWordingHelper.stateActionTitle(mApp!!, status, stateAfter, target)
+    }
 
-        setMenuItemVisible(R.id.act_finish_selected, !hasSelectedFolder)
-        setMenuItemVisible(R.id.act_delete_selected, !hasSelectedFolder)
-        setMenuItemVisible(R.id.act_delete_selected_forever, !hasSelectedFolder)
-        val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
-        val moveToFolderVisible = limitIsUnderway && (!hasSelectedFolder ||
-                (singleFolderOnly && selectedFolder?.isDeleted() != true))
-        setMenuItemVisible(R.id.act_move_to_thing_folder, moveToFolderVisible)
-        setMenuItemVisible(R.id.act_export, !hasSelectedFolder)
-
-        val restoreVisible = if (hasSelectedFolder) {
-            singleFolderOnly && selectedFolder?.isDeleted() == true
-        } else {
-            true
-        }
-        setMenuItemVisible(R.id.act_restore_selected, restoreVisible)
-
-        // Recursive "complete all things in folder" for a single underway folder.
-        setMenuItemVisible(
-            R.id.act_finish_thing_folder,
-            singleFolderOnly && limitIsUnderway && selectedFolder?.isDeleted() != true
-        )
-        // Recursive restore of a folder's content: un-finish in Finished, or
-        // restore trashed descendants for a Projection Folder (folder not itself
-        // trashed) in the recycle bin. A Trashed Folder uses act_restore_selected.
-        val statusFinished = mApp!!.getStatus() == Def.ThingStatus.FINISHED
-        val statusDeleted = mApp!!.getStatus() == Def.ThingStatus.DELETED
-        setMenuItemVisible(
-            R.id.act_restore_thing_folder_content,
-            singleFolderOnly && (statusFinished ||
-                (statusDeleted && selectedFolder?.isDeleted() != true))
-        )
-
-        val dissolveItem = mContextualToolbar!!.menu
-                .findItem(R.id.act_dissolve_thing_folder)
-        dissolveItem?.isVisible = singleFolderOnly && limitIsUnderway
-
-        // Recycle bin only: permanently delete just the folder's trashed Things
-        // (content op, does not touch the folder's Things in other status views).
-        setMenuItemVisible(
-            R.id.act_delete_thing_folder_content,
-            singleFolderOnly && statusDeleted
-        )
-
-        val deleteFolderItem = mContextualToolbar!!.menu
-                .findItem(R.id.act_delete_thing_folder)
-        if (deleteFolderItem != null) {
-            deleteFolderItem.isVisible = singleFolderOnly
-            val permanentlyDelete = selectedFolder?.isDeleted() == true ||
-                    mApp!!.getStatus() == Def.ThingStatus.DELETED
-            deleteFolderItem.setTitle(
-                    if (permanentlyDelete) {
-                        R.string.delete_thing_folder_forever
-                    } else {
-                        R.string.delete_thing_folder
-                    }
-            )
+    private fun selectionTarget(
+        hasThing: Boolean,
+        hasFolder: Boolean
+    ): HomeActionWordingHelper.StateTarget {
+        return when {
+            !hasFolder -> HomeActionWordingHelper.StateTarget.SELECTED_THINGS
+            !hasThing -> HomeActionWordingHelper.StateTarget.SELECTED_FOLDERS
+            else -> HomeActionWordingHelper.StateTarget.SELECTED_ITEMS
         }
     }
 

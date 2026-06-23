@@ -106,6 +106,7 @@ import com.ywwynm.everythingdone.helpers.AppUpdateHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.HomeActionWordingHelper
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
@@ -320,8 +321,6 @@ class ThingsActivity :
     private var mSpan: Int = 0
 
     private var mNormalSnackbar: Snackbar? = null
-    private var mUndoSnackbar: Snackbar? = null
-    private var mHabitSnackbar: Snackbar? = null
     private var mUndoThings: MutableList<Thing>? = null
     private var mUndoPositions: MutableList<Int>? = null
     private var mUndoLocations: MutableList<Long>? = null
@@ -789,13 +788,38 @@ class ThingsActivity :
 
         // Toolbar bulk actions operate on the current scope's visible status; hide
         // them when the projection has nothing to act on (e.g. an empty folder).
-        // Names stay generic ("全部完成" / "全部恢复"); the folder-scoped wording is
-        // reserved for the long-press contextual menu.
+        // Wording follows the scope: generic "全部X" at root, folder wording
+        // ("完成文件夹中所有记事" …) when inside a folder.
         val hasContent = mThingManager!!.hasVisibleProjectionContent()
-        menu.findItem(R.id.act_finish_all)?.let { it.isVisible = hasContent; it.setTitle(R.string.act_finish_all) }
-        menu.findItem(R.id.act_restore_all)?.let { it.isVisible = hasContent; it.setTitle(R.string.restore_all_things) }
-        menu.findItem(R.id.act_delete_all)?.isVisible = hasContent
-        menu.findItem(R.id.act_delete_all_forever)?.isVisible = hasContent
+        val currentTarget = if (inFolder) {
+            HomeActionWordingHelper.StateTarget.CURRENT_FOLDER
+        } else {
+            HomeActionWordingHelper.StateTarget.ROOT
+        }
+        menu.findItem(R.id.act_finish_all)?.let {
+            it.isVisible = hasContent
+            it.title = HomeActionWordingHelper.stateActionTitle(
+                this, Def.ThingStatus.UNDERWAY, Thing.FINISHED, currentTarget
+            )
+        }
+        menu.findItem(R.id.act_restore_all)?.let {
+            it.isVisible = hasContent
+            it.title = HomeActionWordingHelper.stateActionTitle(
+                this, mApp!!.getStatus(), Thing.UNDERWAY, currentTarget
+            )
+        }
+        menu.findItem(R.id.act_delete_all)?.let {
+            it.isVisible = hasContent
+            it.title = HomeActionWordingHelper.stateActionTitle(
+                this, Def.ThingStatus.FINISHED, Thing.DELETED, currentTarget
+            )
+        }
+        menu.findItem(R.id.act_delete_all_forever)?.let {
+            it.isVisible = hasContent
+            it.title = HomeActionWordingHelper.stateActionTitle(
+                this, Def.ThingStatus.DELETED, Thing.DELETED_FOREVER, currentTarget
+            )
+        }
         menu.findItem(R.id.act_sort_by_alarm)?.isVisible = hasContent
 
         // The overflow holds only structural operations on the current folder.
@@ -804,13 +828,7 @@ class ThingsActivity :
         menu.findItem(R.id.act_toggle_current_folder_private)?.let { item ->
             item.isVisible = inFolder && limitIsUnderway
             if (currentFolder != null) {
-                item.setTitle(
-                        if (currentFolder.isPrivate) {
-                            R.string.cancel_thing_folder_private
-                        } else {
-                            R.string.set_thing_folder_private
-                        }
-                )
+                item.title = HomeActionWordingHelper.privateTitle(this, currentFolder.isPrivate)
             }
         }
         menu.findItem(R.id.act_move_current_folder_to_folder)?.isVisible =
@@ -822,13 +840,20 @@ class ThingsActivity :
         // view it is omitted because the toolbar "全部删除" already covers it.
         menu.findItem(R.id.act_delete_current_folder)?.let { item ->
             item.isVisible = inFolder && (limitIsUnderway || limitIsDeleted)
-            item.setTitle(
-                    if (limitIsDeleted) {
-                        R.string.delete_thing_folder_forever
-                    } else {
-                        R.string.delete_thing_folder
-                    }
-            )
+            item.title = if (limitIsDeleted) {
+                HomeActionWordingHelper.structuralActionTitle(
+                    this,
+                    HomeActionWordingHelper.StructuralAction.DELETE_FOLDER_FOREVER,
+                    HomeActionWordingHelper.StructuralTarget.CURRENT_FOLDER
+                )
+            } else {
+                HomeActionWordingHelper.stateActionTitle(
+                    this,
+                    Def.ThingStatus.UNDERWAY,
+                    Thing.DELETED,
+                    HomeActionWordingHelper.StateTarget.CURRENT_FOLDER
+                )
+            }
         }
     }
 
@@ -1238,31 +1263,26 @@ class ThingsActivity :
         if (itemId == R.id.act_search) {
             toggleSearching(true)
         } else if (itemId == R.id.act_finish_all) {
-            // Recursively finish every underway Thing in the current scope (the
-            // current folder's whole subtree, or the entire tree at root). Toolbar
-            // action reads as the generic "全部完成".
-            confirmFinishAllThingsInScope(
-                mThingManager!!.getCurrentFolder(), R.string.act_finish_all
-            )
+            // Recursively finish every underway Thing in the current scope. Wording
+            // follows scope: "全部完成" at root, "完成文件夹中所有记事" inside a folder.
+            confirmFinishAllThingsInScope(mThingManager!!.getCurrentFolder())
         } else if (itemId == R.id.act_restore_all) {
-            // "全部恢复": Finished view restores finished Things to underway; recycle
-            // bin restores trashed Things to their pre-trash state. Current scope.
+            // Finished view restores finished Things to underway; recycle bin restores
+            // trashed Things to their pre-trash state. Current scope; folder wording
+            // inside a folder.
+            val folder = mThingManager!!.getCurrentFolder()
             if (mApp!!.getStatus() == Def.ThingStatus.DELETED) {
-                confirmRestoreTrashedThingsInScope(
-                    mThingManager!!.getCurrentFolder(), R.string.restore_all_things
-                )
+                confirmRestoreTrashedThingsInScope(folder)
             } else {
-                confirmUnfinishAllThingsInScope(
-                    mThingManager!!.getCurrentFolder(), R.string.restore_all_things
-                )
+                confirmUnfinishAllThingsInScope(folder)
             }
         } else if (itemId == R.id.act_delete_all) {
             // Finished view: recursively move every finished Thing in the current
-            // scope to the recycle bin. Toolbar action reads as "全部删除".
+            // scope to the recycle bin. "全部删除" at root, folder wording in a folder.
             confirmTrashAllFinishedInScope(mThingManager!!.getCurrentFolder())
         } else if (itemId == R.id.act_delete_all_forever) {
             // Recycle bin: recursively delete forever every trashed Thing in the
-            // current scope. Toolbar action reads as "全部永久删除".
+            // current scope. "全部永久删除" at root, folder wording in a folder.
             confirmDeleteForeverAllInScope(mThingManager!!.getCurrentFolder())
         } else if (itemId == R.id.act_sort_by_alarm) {
             finishNewItemShiningBorderAnimationIfNeeded()
@@ -1288,7 +1308,10 @@ class ThingsActivity :
             }
         } else if (itemId == R.id.act_dissolve_current_folder) {
             mThingManager!!.getCurrentFolder()?.let {
-                showDissolveThingFolderDialog(it)
+                showDissolveThingFolderDialog(
+                    it,
+                    HomeActionWordingHelper.StructuralTarget.CURRENT_FOLDER
+                )
             }
         } else if (itemId == R.id.act_delete_current_folder) {
             mThingManager!!.getCurrentFolder()?.let {
@@ -1935,8 +1958,6 @@ class ThingsActivity :
 
         val fl: FrameLayout = f(R.id.fl_things)!!
         mNormalSnackbar = Snackbar(mApp!!, Snackbar.NORMAL, fl, mFab)
-        mUndoSnackbar   = Snackbar(mApp!!, Snackbar.UNDO,   fl, mFab)
-        mHabitSnackbar  = Snackbar(mApp!!, Snackbar.UNDO,   fl, mFab)
 
         mModeManager = ModeManager(
             mApp, mDrawerLayout, mFab, mActivityHeader,
@@ -2505,7 +2526,6 @@ class ThingsActivity :
 
         setFabEvents()
         setRecyclerViewEvents()
-        setUndoSnackbarEvents()
         setSearchEvents()
         setThingCardAppearancePanelEvents()
     }
@@ -5493,7 +5513,7 @@ class ThingsActivity :
 
     private fun setFabEvents() {
         mFab!!.attachToRecyclerView(mRecyclerView!!)
-        mFab!!.bindSnackbars(mNormalSnackbar, mUndoSnackbar, mHabitSnackbar)
+        mFab!!.bindSnackbars(mNormalSnackbar)
         mFab!!.setOnClickListener {
             if (mIsRevealAnimPlaying) {
                 return@setOnClickListener
@@ -5951,125 +5971,6 @@ class ThingsActivity :
         mThingsTouchHelper!!.attachToRecyclerView(mRecyclerView)
     }
 
-    private fun setUndoSnackbarEvents() {
-        mUndoSnackbar!!.setUndoListener(View.OnClickListener {
-            if (mUndoThings!!.isEmpty()) { // occurs when click button very quickly
-                return@OnClickListener
-            }
-
-            finishNewItemShiningBorderAnimationIfNeeded()
-            val stateAfter = mUndoThings!![0].state
-            mScrollCausedByFinger = false
-
-            if (mUndoAll) {
-                mThingManager!!.undoUpdateStates(
-                    mUndoThings as List<Thing?>,
-                    mUndoPositions as List<Int?>,
-                    mUndoLocations as List<Long?>,
-                    mStateToUndoFrom, stateAfter
-                )
-                mUndoThings!!.clear()
-                mUndoPositions!!.clear()
-                mUndoLocations!!.clear()
-                if (mStateToUndoFrom == Thing.DELETED_FOREVER) {
-                    mApp!!.getThingsToDeleteForever()!!.clear()
-                }
-
-                mAdapter!!.notifyDataSetChanged()
-                mUndoAll = false
-                updateUIAfterStateUpdated(
-                    stateAfter,
-                    mRecyclerView!!.itemAnimator!!.changeDuration, true
-                )
-            } else if (!mUndoThings!!.isEmpty()) {
-                val size = mUndoThings!!.size
-                val thing = mUndoThings!![size - 1]
-                val thingIndex = mUndoPositions!![size - 1]
-                val location = mUndoLocations!![size - 1]
-                mUndoThings!!.removeAt(size - 1)
-                mUndoPositions!!.removeAt(size - 1)
-                mUndoLocations!!.removeAt(size - 1)
-
-                if (mStateToUndoFrom == Thing.DELETED_FOREVER) {
-                    mApp!!.getThingsToDeleteForever()!!.remove(thing)
-                }
-
-                val change = mThingManager!!.updateState(
-                    thing, thingIndex, location, mStateToUndoFrom, stateAfter, true, true
-                )
-
-                if (change) {
-                    mAdapter!!.notifyDataSetChanged()
-                    updateUIAfterStateUpdated(
-                        stateAfter,
-                        mRecyclerView!!.itemAnimator!!.changeDuration, true
-                    )
-                } else {
-                    val listPosition = getVisibleListPositionForUndoThing(thing)
-                    if (listPosition >= 0) {
-                        mAdapter!!.notifyItemInserted(listPosition)
-                        mRecyclerView!!.smoothScrollToPosition(listPosition)
-                    } else {
-                        mAdapter!!.notifyDataSetChanged()
-                    }
-                    updateUIAfterStateUpdated(
-                        stateAfter,
-                        mRecyclerView!!.itemAnimator!!.addDuration, true
-                    )
-                }
-            }
-            if (App.isSearching) {
-                handleSearchResults()
-            }
-            if (mUndoThings!!.isEmpty()) {
-                dismissSnackbars()
-            }
-        })
-        mHabitSnackbar!!.setUndoListener {
-            if (!mUndoHabitRecords!!.isEmpty()) {
-                finishNewItemShiningBorderAnimationIfNeeded()
-                var size = mUndoHabitRecords!!.size
-                val hr: HabitRecord = mUndoHabitRecords!![size - 1]
-                val thingIndex = mUndoPositions!![size - 1]
-                mThingsIdsToUpdateWidget!!.remove(hr.habitId)
-                mUndoHabitRecords!!.removeAt(size - 1)
-                mUndoPositions!!.removeAt(size - 1)
-
-                HabitDAO.getInstance(mApp)!!.undoFinishOneTime(hr)
-
-                if (!mUndoThings!!.isEmpty()) {
-                    size = mUndoThings!!.size
-                    val thing = mUndoThings!![size - 1]
-                    mUndoThings!!.removeAt(size - 1)
-                    mThingsIdsToUpdateWidget!!.remove(thing.id)
-                    mThingManager!!.update(thing.type, thing, thingIndex, false)
-                    mThingManager!!.getThings()!![thingIndex] = thing
-                }
-
-                val listPosition = mThingManager!!.getListPositionForThingId(hr.habitId)
-                if (listPosition >= 0) {
-                    mAdapter!!.notifyItemChanged(listPosition)
-                } else {
-                    mAdapter!!.notifyDataSetChanged()
-                }
-                mDrawerHeader!!.updateCompletionRate()
-
-                if (mUndoHabitRecords!!.isEmpty()) {
-                    mHabitSnackbar!!.dismiss()
-                    for (id in mThingsIdsToUpdateWidget!!) {
-                        AppWidgetHelper.updateSingleThingAppWidgets(this@ThingsActivity, id)
-                    }
-                    AppWidgetHelper.updateThingsListAppWidgetsForType(mApp, Thing.HABIT)
-                }
-            }
-        }
-    }
-
-    private fun getVisibleListPositionForUndoThing(thing: Thing?): Int {
-        if (thing == null) return -1
-        return mThingManager!!.getListPositionForThingId(thing.id)
-    }
-
     private fun setSearchEvents() {
         mEtSearch!!.onFocusChangeListener = View.OnFocusChangeListener { _, _ ->
             dismissSnackbars()
@@ -6468,6 +6369,209 @@ class ThingsActivity :
         mDrawer?.setSelectedKey(key)
     }
 
+    /**
+     * Selecting-mode batch state change entry. Things-only selections keep the
+     * Part A path (handleUpdateStates, which also raises the habit/goal dialog).
+     * Folder-containing selections (multi-folder or mixed) run one aggregated
+     * confirmation over the union of selected Things plus each selected Folder's
+     * in-scope content, then execute via the folder content-op batch methods.
+     */
+    private fun confirmSelectedStateChange(stateAfter: Int) {
+        val selectedThings = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        val selectedFolders = mThingManager!!.getSelectedFolders().toList()
+        if (selectedThings.isEmpty() && selectedFolders.isEmpty()) return
+        when {
+            selectedFolders.isEmpty() ->
+                confirmThingsOnlyStateChange(stateAfter, selectedThings)
+            else ->
+                confirmMixedStateChange(stateAfter, selectedThings, selectedFolders)
+        }
+    }
+
+    /**
+     * Recycle bin structural permanent delete: destroys each selected Folder's whole
+     * subtree (container + descendants of every state/type) and permanently deletes
+     * each selected trashed Thing. Distinct from the content-only "永久删除…中的记事",
+     * which leaves the folder containers in place.
+     */
+    private fun confirmDeleteSelectedStructural() {
+        val selectedFolders = mThingManager!!.getSelectedFolders().toList()
+        if (selectedFolders.isEmpty()) return
+        val selectedThings = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        if (selectedFolders.size == 1 && selectedThings.isEmpty()) {
+            showDeleteThingFolderForeverDialog(selectedFolders.first())
+            return
+        }
+        var subfolderCount = 0
+        var thingCount = selectedThings.size
+        val affected = ArrayList<Thing>(selectedThings)
+        for (folder in selectedFolders) {
+            subfolderCount += mThingManager!!.countDescendantFolders(folder)
+            thingCount += mThingManager!!.countAllDescendantThings(folder)
+            affected.addAll(mThingManager!!.getAllDescendantThings(folder))
+        }
+        val impact = folderImpactPhrase(subfolderCount, thingCount)
+        val target = if (selectedThings.isEmpty()) {
+            HomeActionWordingHelper.StructuralTarget.SELECTED_FOLDERS
+        } else {
+            HomeActionWordingHelper.StructuralTarget.SELECTED_ITEMS
+        }
+        val wording = HomeActionWordingHelper.structuralActionWording(
+            this,
+            HomeActionWordingHelper.StructuralAction.DELETE_FOLDER_FOREVER,
+            target,
+            impact,
+            hiddenScopeClauseForStructural(affected, considerStatus = true),
+            impactIsEmpty = subfolderCount == 0 && thingCount == 0
+        )
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(App.defaultAccentBackground)
+        adf.setConfirmBackground(App.defaultAccentBackground)
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                for (folder in selectedFolders) {
+                    mThingManager!!.deleteFolderForever(folder)
+                }
+                if (selectedThings.isNotEmpty()) {
+                    mThingManager!!.deleteThingsForever(selectedThings)
+                }
+                exitSelectingModeIfNeeded()
+                refreshHomeAfterFolderUpdated()
+                AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
+            }
+        })
+        adf.show(fragmentManager, AlertDialogFragment.TAG)
+    }
+
+    private fun confirmThingsOnlyStateChange(stateAfter: Int, selectedThings: List<Thing>) {
+        if (selectedThings.isEmpty()) return
+        val background = mThingManager!!.getCurrentFolder()?.getBackground()
+            ?: App.defaultAccentBackground
+        val wording = HomeActionWordingHelper.stateActionWording(
+            this,
+            mApp!!.getStatus(),
+            stateAfter,
+            HomeActionWordingHelper.StateTarget.SELECTED_THINGS,
+            selectedThings.size,
+            includesSubfolders = false
+        )
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(background)
+        adf.setConfirmBackground(background)
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                if (mApp!!.getStatus() == Def.ThingStatus.DELETED &&
+                    stateAfter == Thing.UNDERWAY
+                ) {
+                    mThingManager!!.restoreTrashedThings(selectedThings)
+                    refreshHomeAfterScopeStateChange()
+                } else {
+                    handleUpdateStates(stateAfter)
+                }
+            }
+        })
+        adf.show(fragmentManager, AlertDialogFragment.TAG)
+    }
+
+    private fun confirmMixedStateChange(
+        stateAfter: Int,
+        selectedThings: List<Thing>,
+        selectedFolders: List<ThingFolder>
+    ) {
+        val status = mApp!!.getStatus()
+        val folderContent = ArrayList<Thing>()
+        for (folder in selectedFolders) {
+            folderContent.addAll(collectFolderScopeThings(folder, status, stateAfter))
+        }
+        val union = ArrayList<Thing>(selectedThings)
+        union.addAll(folderContent)
+        if (union.isEmpty()) {
+            Toast.makeText(this, R.string.no_matching_things_in_selection, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val background = App.defaultAccentBackground
+        val foldersOnly = selectedThings.isEmpty()
+        // Subfolder reminder: shown when the affected folder content reaches into a
+        // nested subfolder (a record whose folderId is not one of the selected folders).
+        val selectedFolderIds = selectedFolders.map { it.id }.toHashSet()
+        val includesSubfolders = folderContent.any { it.folderId !in selectedFolderIds }
+        val wording = HomeActionWordingHelper.stateActionWording(
+            this,
+            status,
+            stateAfter,
+            if (foldersOnly) {
+                HomeActionWordingHelper.StateTarget.SELECTED_FOLDERS
+            } else {
+                HomeActionWordingHelper.StateTarget.SELECTED_ITEMS
+            },
+            union.size,
+            includesSubfolders,
+            mThingManager!!.getActiveTypeFilterMask()
+        )
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(background)
+        adf.setConfirmBackground(background)
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                if (stateAfter == Thing.FINISHED && union.any { Thing.isImportantType(it.type) }) {
+                    showFinishScopeHabitGoalDialog(union, background)
+                } else {
+                    applyUnionStateChange(union, status, stateAfter)
+                }
+            }
+        })
+        adf.show(fragmentManager, AlertDialogFragment.TAG)
+    }
+
+    /** In-scope Things contributed by one selected Folder for the given verb. */
+    private fun collectFolderScopeThings(
+        folder: ThingFolder, status: Int, stateAfter: Int
+    ): List<Thing> {
+        return when {
+            stateAfter == Thing.FINISHED ->
+                mThingManager!!.getUnderwayThingsInScope(folder)
+            status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
+                mThingManager!!.getUnderwayThingsInScope(folder)
+            status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
+                mThingManager!!.getFinishedThingsInScope(folder)
+            status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
+                mThingManager!!.getFinishedThingsInScope(folder)
+            status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
+                mThingManager!!.getTrashedThingsInScope(folder)
+            status == Def.ThingStatus.DELETED && stateAfter == Thing.DELETED_FOREVER ->
+                mThingManager!!.getTrashedThingsInScope(folder)
+            else -> emptyList()
+        }
+    }
+
+    private fun applyUnionStateChange(union: List<Thing>, status: Int, stateAfter: Int) {
+        finishNewItemShiningBorderAnimationIfNeeded()
+        when {
+            stateAfter == Thing.FINISHED ->
+                mThingManager!!.finishThings(union)
+            status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
+                mThingManager!!.trashThingsPreservingState(union)
+            status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
+                mThingManager!!.trashThings(union)
+            status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
+                mThingManager!!.unfinishThings(union)
+            status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
+                mThingManager!!.restoreTrashedThings(union)
+            stateAfter == Thing.DELETED_FOREVER ->
+                mThingManager!!.deleteThingsForever(union)
+        }
+        refreshHomeAfterScopeStateChange()
+    }
+
     private fun handleUpdateStates(stateAfter: Int) {
         if (mThingManager!!.isThingsEmpty()) {
             return
@@ -6629,11 +6733,6 @@ class ThingsActivity :
 
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             updateSelectingUi(shouldForceBackNormalMode)
-            if (shouldForceBackNormalMode) {
-                showUndoSnackbar(stateAfter)
-            }
-        } else {
-            showUndoSnackbar(stateAfter)
         }
     }
 
@@ -6655,79 +6754,9 @@ class ThingsActivity :
         }
     }
 
-    private fun showUndoSnackbar(stateAfter: Int) {
-        val messages: Array<String?> = getUndoMessages(stateAfter, mUndoThings!!.size)
-        mUndoSnackbar!!.setMessage(messages[0]!!)
-        mUndoSnackbar!!.setUndoText(messages[1]!!)
-        mUndoSnackbar!!.show()
-    }
-
-    private fun showHabitSnackbar() {
-        val finished = getString(R.string.sb_finish_habit)
-        mHabitSnackbar!!.setMessage(
-            finished + " " + LocaleUtil.getTimesStr(mApp, mUndoHabitRecords!!.size)
-        )
-        mHabitSnackbar!!.setUndoText(R.string.act_sb_undo_finish)
-        mHabitSnackbar!!.show()
-    }
-
-    private fun getUndoMessages(stateAfter: Int, count: Int): Array<String?> {
-        val sb = StringBuilder()
-        var updateStr = ""
-        var undoStr = ""
-        val status = mApp!!.getStatus()
-        when (stateAfter) {
-            Thing.UNDERWAY -> {
-                updateStr = getString(R.string.sb_underway)
-                if (status == Def.ThingStatus.UNDERWAY) {
-                    updateStr = getString(R.string.sb_finish)
-                    undoStr = getString(R.string.act_sb_undo_finish)
-                } else if (status == Def.ThingStatus.FINISHED) {
-                    undoStr = getString(R.string.act_sb_undo_underway)
-                } else {
-                    undoStr = getString(R.string.act_sb_undo)
-                }
-            }
-            Thing.FINISHED -> {
-                updateStr = getString(R.string.sb_finish)
-                undoStr = if (status == Def.ThingStatus.UNDERWAY) {
-                    getString(R.string.act_sb_undo_finish)
-                } else {
-                    getString(R.string.act_sb_undo)
-                }
-            }
-            Thing.DELETED -> {
-                updateStr = getString(R.string.sb_delete)
-                undoStr = getString(R.string.act_sb_undo)
-            }
-            Thing.DELETED_FOREVER -> {
-                updateStr = getString(R.string.sb_delete_forever)
-                undoStr = getString(R.string.act_sb_undo)
-            }
-            else -> {}
-        }
-        if (LocaleUtil.isChinese(mApp)) {
-            sb.append(updateStr).append(" ").append(count)
-                .append(" ").append(getString(R.string.a_thing))
-        } else {
-            var str: String = mApp!!.getString(R.string.a_thing)
-            if (count > 1) {
-                str += "s"
-            }
-            sb.append(count).append(" ").append(str).append(" ").append(updateStr)
-        }
-        return arrayOf(sb.toString(), undoStr)
-    }
-
     private fun dismissSnackbars() {
         if (mNormalSnackbar!!.isShowing()) {
             mNormalSnackbar!!.dismiss()
-        }
-        if (mUndoSnackbar!!.isShowing()) {
-            mUndoSnackbar!!.dismiss()
-        }
-        if (mHabitSnackbar!!.isShowing()) {
-            mHabitSnackbar!!.dismiss()
         }
 
         for (id in mThingsIdsToUpdateWidget!!) {
@@ -7284,7 +7313,7 @@ class ThingsActivity :
         adf.setShowCancel(false)
         adf.setTitleBackground(folder.getBackground())
         adf.setConfirmBackground(folder.getBackground())
-        adf.setTitle(getString(R.string.cannot_set_as_private_thing_folder_title))
+        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
@@ -7544,7 +7573,10 @@ class ThingsActivity :
 
     private fun showDeleteThingFolderDialogForCurrentState(folder: ThingFolder) {
         if (shouldPermanentlyDeleteFolder(folder)) {
-            showDeleteThingFolderForeverDialog(folder)
+            showDeleteThingFolderForeverDialog(
+                folder,
+                HomeActionWordingHelper.StructuralTarget.CURRENT_FOLDER
+            )
         } else {
             confirmTrashFolderContent(folder)
         }
@@ -7557,8 +7589,7 @@ class ThingsActivity :
      * three-action dialog when the set contains habits or goals.
      */
     private fun confirmFinishAllThingsInScope(
-        folder: ThingFolder?,
-        titleRes: Int = R.string.finish_all_things_in_folder
+        folder: ThingFolder?
     ) {
         val things = mThingManager!!.getUnderwayThingsInScope(folder)
         val background = folder?.getBackground() ?: App.defaultAccentBackground
@@ -7566,23 +7597,18 @@ class ThingsActivity :
             Toast.makeText(this, R.string.no_underway_things_to_finish, Toast.LENGTH_SHORT).show()
             return
         }
-        val bodyRes = if (folder == null) {
-            R.string.finish_all_things_root_confirm
-        } else {
-            R.string.finish_all_things_in_folder_confirm
-        }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.UNDERWAY,
+            Thing.FINISHED,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
         adf.setConfirmBackground(background)
-        adf.setTitle(getString(titleRes))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(bodyRes, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(titleRes))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 if (things.any { Thing.isImportantType(it.type) }) {
@@ -7640,8 +7666,7 @@ class ThingsActivity :
 
     /** Recursively restore a folder's finished Things to underway (Finished view). */
     private fun confirmUnfinishAllThingsInScope(
-        folder: ThingFolder?,
-        titleRes: Int = R.string.restore_all_things_in_folder
+        folder: ThingFolder?
     ) {
         val things = mThingManager!!.getFinishedThingsInScope(folder)
         val background = folder?.getBackground() ?: App.defaultAccentBackground
@@ -7649,23 +7674,18 @@ class ThingsActivity :
             Toast.makeText(this, R.string.no_finished_things_to_restore, Toast.LENGTH_SHORT).show()
             return
         }
-        val bodyRes = if (folder == null) {
-            R.string.restore_all_finished_root_confirm
-        } else {
-            R.string.restore_all_finished_in_folder_confirm
-        }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.FINISHED,
+            Thing.UNDERWAY,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
         adf.setConfirmBackground(background)
-        adf.setTitle(getString(titleRes))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(bodyRes, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(titleRes))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 mThingManager!!.unfinishThings(things)
@@ -7677,8 +7697,7 @@ class ThingsActivity :
 
     /** Recursively restore a folder's trashed Things to their pre-trash state (recycle bin). */
     private fun confirmRestoreTrashedThingsInScope(
-        folder: ThingFolder?,
-        titleRes: Int = R.string.restore_all_things_in_folder
+        folder: ThingFolder?
     ) {
         val things = mThingManager!!.getTrashedThingsInScope(folder)
         val background = folder?.getBackground() ?: App.defaultAccentBackground
@@ -7686,23 +7705,18 @@ class ThingsActivity :
             Toast.makeText(this, R.string.no_trashed_things_to_restore, Toast.LENGTH_SHORT).show()
             return
         }
-        val bodyRes = if (folder == null) {
-            R.string.restore_all_trashed_root_confirm
-        } else {
-            R.string.restore_all_trashed_in_folder_confirm
-        }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.DELETED,
+            Thing.UNDERWAY,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
         adf.setConfirmBackground(background)
-        adf.setTitle(getString(titleRes))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(bodyRes, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(titleRes))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 mThingManager!!.restoreTrashedThings(things)
@@ -7717,30 +7731,27 @@ class ThingsActivity :
      * current scope (the current folder's whole subtree, or the entire tree at
      * root) to the recycle bin. All types, with a confirmation and filter reminder.
      */
-    private fun confirmTrashAllFinishedInScope(folder: ThingFolder?) {
+    private fun confirmTrashAllFinishedInScope(
+        folder: ThingFolder?
+    ) {
         val things = mThingManager!!.getFinishedThingsInScope(folder)
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_finished_things_to_delete, Toast.LENGTH_SHORT).show()
             return
         }
-        val bodyRes = if (folder == null) {
-            R.string.delete_all_finished_root_confirm
-        } else {
-            R.string.delete_all_finished_in_folder_confirm
-        }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.FINISHED,
+            Thing.DELETED,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
         adf.setConfirmBackground(background)
-        adf.setTitle(getString(R.string.act_delete_all))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(bodyRes, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(R.string.act_delete_all))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 mThingManager!!.trashThings(things)
@@ -7758,8 +7769,7 @@ class ThingsActivity :
      * label to the entry point.
      */
     private fun confirmDeleteForeverAllInScope(
-        folder: ThingFolder?,
-        titleRes: Int = R.string.act_delete_all_forever
+        folder: ThingFolder?
     ) {
         val things = mThingManager!!.getTrashedThingsInScope(folder)
         val background = folder?.getBackground() ?: App.defaultAccentBackground
@@ -7769,23 +7779,18 @@ class ThingsActivity :
             ).show()
             return
         }
-        val bodyRes = if (folder == null) {
-            R.string.delete_forever_all_root_confirm
-        } else {
-            R.string.delete_forever_all_in_folder_confirm
-        }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.DELETED,
+            Thing.DELETED_FOREVER,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
         adf.setConfirmBackground(background)
-        adf.setTitle(getString(titleRes))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(bodyRes, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(titleRes))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 mThingManager!!.deleteThingsForever(things)
@@ -7800,10 +7805,34 @@ class ThingsActivity :
      * subfolder of the scope, otherwise "". [folder] is the scope root (null = the
      * home root); a Thing is "in a subfolder" when its folderId differs from it.
      */
-    private fun subfolderClause(folder: ThingFolder?, things: List<Thing>): String {
+    private fun stateActionTargetForScope(folder: ThingFolder?): HomeActionWordingHelper.StateTarget {
+        return if (folder == null) {
+            HomeActionWordingHelper.StateTarget.ROOT
+        } else {
+            HomeActionWordingHelper.StateTarget.CURRENT_FOLDER
+        }
+    }
+
+    private fun includesSubfolders(folder: ThingFolder?, things: List<Thing>): Boolean {
         val rootId = folder?.id
-        val spansSubfolders = things.any { it.folderId != rootId }
-        return if (spansSubfolders) getString(R.string.scope_includes_subfolders) else ""
+        return things.any { it.folderId != rootId }
+    }
+
+    private fun stateActionWordingForScope(
+        status: Int,
+        stateAfter: Int,
+        folder: ThingFolder?,
+        things: List<Thing>
+    ): HomeActionWordingHelper.ActionWording {
+        return HomeActionWordingHelper.stateActionWording(
+            this,
+            status,
+            stateAfter,
+            stateActionTargetForScope(folder),
+            things.size,
+            includesSubfolders(folder, things),
+            mThingManager!!.getActiveTypeFilterMask()
+        )
     }
 
     private fun folderImpactPhrase(folders: Int, things: Int): String {
@@ -7816,33 +7845,14 @@ class ThingsActivity :
 
     private fun statusNameRes(status: Int): Int = when (status) {
         Def.ThingStatus.FINISHED -> R.string.finished
-        Def.ThingStatus.DELETED -> R.string.drawer_deleted
+        Def.ThingStatus.DELETED -> R.string.thing_status_deleted
         else -> R.string.underway
     }
 
-    /**
-     * Appends a reminder line to [body] when a recursive folder operation reaches
-     * content the user cannot currently see, so the impact is broader than the
-     * current filter suggests. Returns [body] unchanged when nothing is hidden.
-     *
-     * @param affected the Things this operation will touch (the full set it covers,
-     *   regardless of the current filter).
-     * @param contentState true for content ops (finish/restore/delete/forever of
-     *   Things), which follow the active type filter — when a specific type filter
-     *   is active the reminder reassures that only that type is affected. false for
-     *   structural ops (dissolve/delete/forever/restore the folder itself), which
-     *   always span the whole subtree; there the reminder warns about content hidden
-     *   by the current status/type filter.
-     * @param considerStatus whether the status dimension can hide content. False in
-     *   the recycle-bin view, where the whole trashed subtree is already visible.
-     *   Only consulted when [contentState] is false.
-     */
-    private fun appendFilterScopeReminder(
-        body: String,
+    private fun hiddenScopeClauseForStructural(
         affected: List<Thing>,
-        contentState: Boolean,
         considerStatus: Boolean = true
-    ): String {
+    ): String? {
         val mask = mThingManager!!.getActiveTypeFilterMask()
         val typeTitle = ThingWidgetInfo.getTypeFilterTitle(this, mask)
         val normalizedMask = ThingWidgetInfo.normalizedTypeFilterMask(mask)
@@ -7851,19 +7861,13 @@ class ThingsActivity :
                 ThingWidgetInfo.typeFilterMaskForThingType(it.type)
             ) and normalizedMask == 0
         }
-        if (contentState) {
-            // Content ops follow the active filter: when a specific type filter is on,
-            // reassure that only that type is affected; "全部类型" needs no note.
-            if (typeTitle == null) return body
-            return body + "\n" + getString(R.string.folder_op_scope_only_type, typeTitle)
-        }
         val currentStatus = mApp!!.getStatus()
         val hasOtherStatus = considerStatus && affected.any {
             Thing.getStatusForState(it.state) != currentStatus
         }
-        if (!hasOtherStatus && !hasOtherType) return body
+        if (!hasOtherStatus && !hasOtherType) return null
         val statusName = getString(statusNameRes(currentStatus))
-        val clause = when {
+        return when {
             hasOtherStatus && hasOtherType ->
                 getString(R.string.folder_op_scope_both, statusName, typeTitle)
             hasOtherStatus ->
@@ -7871,29 +7875,33 @@ class ThingsActivity :
             else ->
                 getString(R.string.folder_op_scope_type, typeTitle)
         }
-        return body + "\n" + getString(R.string.folder_op_reminder_subtree, clause)
     }
 
-    private fun showDissolveThingFolderDialog(folder: ThingFolder) {
+    private fun showDissolveThingFolderDialog(
+        folder: ThingFolder,
+        target: HomeActionWordingHelper.StructuralTarget =
+            HomeActionWordingHelper.StructuralTarget.SELECTED_FOLDER
+    ) {
+        val affected = mThingManager!!.getAllDescendantThings(folder)
+        val subfolderCount = mThingManager!!.countDescendantFolders(folder)
+        val thingCount = mThingManager!!.countAllDescendantThings(folder)
+        val wording = HomeActionWordingHelper.structuralActionWording(
+            this,
+            HomeActionWordingHelper.StructuralAction.DISSOLVE_FOLDER,
+            target,
+            folderImpactPhrase(subfolderCount, thingCount),
+            hiddenScopeClauseForStructural(
+                affected,
+                considerStatus = mApp!!.getStatus() != Def.ThingStatus.DELETED
+            ),
+            impactIsEmpty = subfolderCount == 0 && thingCount == 0
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(folder.getBackground())
         adf.setConfirmBackground(folder.getBackground())
-        adf.setTitle(getString(R.string.dissolve_thing_folder))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(
-                    R.string.dissolve_thing_folder_confirm,
-                    folderImpactPhrase(
-                        mThingManager!!.countDescendantFolders(folder),
-                        mThingManager!!.countAllDescendantThings(folder)
-                    )
-                ),
-                mThingManager!!.getAllDescendantThings(folder),
-                contentState = false,
-                considerStatus = mApp!!.getStatus() != Def.ThingStatus.DELETED
-            )
-        )
-        adf.setConfirmText(getString(R.string.dissolve_thing_folder))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 if (mThingManager!!.dissolveFolder(folder)) {
@@ -7914,23 +7922,25 @@ class ThingsActivity :
      * matching Things.
      */
     private fun confirmTrashFolderContent(folder: ThingFolder) {
-        val things = mThingManager!!.getNonDeletedThingsInScope(folder)
+        // Underway view: delete only the folder's underway Things (matching what is
+        // visible here); finished Things are deleted from the Finished view instead.
+        val things = mThingManager!!.getUnderwayThingsInScope(folder)
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_things_to_delete_in_folder, Toast.LENGTH_SHORT).show()
             return
         }
+        val wording = stateActionWordingForScope(
+            Def.ThingStatus.UNDERWAY,
+            Thing.DELETED,
+            folder,
+            things
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(folder.getBackground())
         adf.setConfirmBackground(folder.getBackground())
-        adf.setTitle(getString(R.string.delete_thing_folder))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(R.string.delete_thing_folder_confirm, things.size, subfolderClause(folder, things)),
-                things,
-                contentState = true
-            )
-        )
-        adf.setConfirmText(getString(R.string.delete_thing_folder))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 mThingManager!!.trashThingsPreservingState(things)
@@ -7940,29 +7950,28 @@ class ThingsActivity :
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
 
-    private fun showDeleteThingFolderForeverDialog(folder: ThingFolder) {
+    private fun showDeleteThingFolderForeverDialog(
+        folder: ThingFolder,
+        target: HomeActionWordingHelper.StructuralTarget =
+            HomeActionWordingHelper.StructuralTarget.SELECTED_FOLDER
+    ) {
+        val affected = mThingManager!!.getAllDescendantThings(folder)
+        val subfolderCount = mThingManager!!.countDescendantFolders(folder)
+        val thingCount = mThingManager!!.countAllDescendantThings(folder)
+        val wording = HomeActionWordingHelper.structuralActionWording(
+            this,
+            HomeActionWordingHelper.StructuralAction.DELETE_FOLDER_FOREVER,
+            target,
+            folderImpactPhrase(subfolderCount, thingCount),
+            hiddenScopeClauseForStructural(affected, considerStatus = true),
+            impactIsEmpty = subfolderCount == 0 && thingCount == 0
+        )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(folder.getBackground())
         adf.setConfirmBackground(folder.getBackground())
-        adf.setTitle(getString(R.string.delete_thing_folder_forever))
-        adf.setContent(
-            appendFilterScopeReminder(
-                getString(
-                    R.string.delete_thing_folder_forever_confirm,
-                    folderImpactPhrase(
-                        mThingManager!!.countDescendantFolders(folder),
-                        mThingManager!!.countAllDescendantThings(folder)
-                    )
-                ),
-                mThingManager!!.getAllDescendantThings(folder),
-                contentState = false,
-                // Structural op: destroys the whole container including the folder's
-                // Things in other status views, so always warn about cross-status
-                // content even when triggered from the recycle bin.
-                considerStatus = true
-            )
-        )
-        adf.setConfirmText(getString(R.string.delete_thing_folder_forever))
+        adf.setTitle(wording.dialogTitle)
+        adf.setContent(wording.dialogBody)
+        adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
                 if (mThingManager!!.deleteFolderForever(folder)) {
@@ -10112,12 +10121,6 @@ class ThingsActivity :
             mNormalSnackbar!!.dismiss()
         }
 
-        if (mUndoSnackbar!!.isShowing()) {
-            if (mStateToUndoFrom != Thing.FINISHED || thingType == Thing.HABIT) {
-                dismissSnackbars()
-            }
-        }
-
         SystemNotificationUtil.cancelNotification(id, thingType, mApp)
         mThingsIdsToUpdateWidget!!.add(id)
     }
@@ -10137,15 +10140,8 @@ class ThingsActivity :
         val habit: Habit? = habitDAO.getHabitById(id)
         if (habit != null) {
             if (habit.allowFinish()) {
-                if (!mUndoHabitRecords!!.isEmpty()) {
-                    val hr: HabitRecord = mUndoHabitRecords!![mUndoHabitRecords!!.size - 1]
-                    if (hr.habitId != id) {
-                        dismissSnackbars()
-                    }
-                }
                 val thingContent: String = thingToSwipe.content!!
                 if (CheckListHelper.isCheckListStr(thingContent)) {
-                    mUndoThings!!.add(thingToSwipe)
                     val thing = Thing(thingToSwipe)
                     thing.content = thingContent.replace(
                         (CheckListHelper.SIGNAL + "1").toRegex(),
@@ -10154,9 +10150,7 @@ class ThingsActivity :
                     mThingManager!!.update(thingType, thing, thingIndex, false)
                     mThingManager!!.getThings()!![thingIndex] = thing
                 }
-                mUndoHabitRecords!!.add(habitDAO.finishOneTime(habit)!!)
-                mUndoPositions!!.add(thingIndex)
-                showHabitSnackbar()
+                habitDAO.finishOneTime(habit)
             } else {
                 dismissSnackbars()
                 if (habit.isPaused()) {
@@ -10190,16 +10184,8 @@ class ThingsActivity :
         thingIndex: Int,
         listPosition: Int
     ) {
-        if (mHabitSnackbar!!.isShowing()) {
-            dismissSnackbars()
-        }
-
         @Thing.State val state = thingToSwipe.state
         val location = thingToSwipe.location
-        mUndoThings!!.add(thingToSwipe)
-        mUndoPositions!!.add(thingIndex)
-        mUndoLocations!!.add(location)
-        mStateToUndoFrom = Thing.FINISHED
 
         if (App.getDoingThingId() == thingToSwipe.id) {
             DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
@@ -10241,6 +10227,191 @@ class ThingsActivity :
     private fun getSingleSelectedFolder(): ThingFolder? {
         return (mThingManager!!.getSingleSelectedEntry()
                 as? ThingListEntry.FolderEntry)?.folder
+    }
+
+    /**
+     * Unified "move to folder" for the current selection. Things-only and
+     * single-folder selections reuse the existing dialogs; multi-folder or mixed
+     * selections open one dialog whose forbidden targets are the union of every
+     * selected Folder and its descendants, then move Things and Folders together.
+     */
+    private fun confirmMoveSelected() {
+        val selectedThings = mThingManager!!.getSelectedThings()?.filterNotNull()
+            ?.filter { it.type in Thing.NOTE..Thing.GOAL && it.state == Thing.UNDERWAY } ?: emptyList()
+        val selectedFolders = mThingManager!!.getSelectedFolders().toList()
+        if (selectedThings.isEmpty() && selectedFolders.isEmpty()) return
+        if (selectedFolders.isEmpty()) {
+            showMoveSelectedThingsDialog()
+            return
+        }
+        if (selectedThings.isEmpty() && selectedFolders.size == 1) {
+            showMoveThingFolderDialog(selectedFolders.first())
+            return
+        }
+
+        val forbidden = HashSet<Long>()
+        for (folder in selectedFolders) {
+            forbidden.addAll(getForbiddenFolderMoveTargetIds(folder))
+        }
+        val dialog = MoveToThingFolderDialogFragment()
+        dialog.setAccentBackground(App.defaultAccentBackground)
+        dialog.setFolders(mThingManager!!.getDrawerFolders(), null, forbidden)
+        dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
+            override fun onMoveTargetConfirmed(targetFolderId: Long?) {
+                moveSelectedMixedToFolder(selectedThings, selectedFolders, targetFolderId)
+            }
+
+            override fun shouldAuthenticateBeforeExpand(folder: ThingFolder): Boolean {
+                return shouldAuthenticateTransientPrivateFolderExpansion(folder)
+            }
+
+            override fun onAuthenticateFolderExpand(
+                folder: ThingFolder,
+                onAuthenticated: () -> Unit
+            ) {
+                authenticateThingFolder(folder, R.string.expand_private_thing_folder) {
+                    onAuthenticated()
+                }
+            }
+        })
+        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
+    }
+
+    private fun moveSelectedMixedToFolder(
+        selectedThings: List<Thing>,
+        selectedFolders: List<ThingFolder>,
+        targetFolderId: Long?
+    ) {
+        val needAuth = needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId) ||
+            selectedFolders.any { needsFolderMovePrivacyAuthentication(it, targetFolderId) }
+        authenticatePrivateMoveIfNeeded(needAuth, App.defaultAccentBackground) {
+            mThingManager!!.moveSelectedThingsIntoFolder(targetFolderId)
+            for (folder in selectedFolders) {
+                if (folder.parentFolderId != targetFolderId) {
+                    mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)
+                }
+            }
+            mModeManager!!.backNormalMode(0)
+            refreshHomeAfterFolderUpdated()
+        }
+    }
+
+    /** Batch sticky for the current selection: set all sticky unless all already are. */
+    private fun toggleSelectedStickyBatch() {
+        val thingIds = mThingManager!!.getSelectedThings()?.filterNotNull()?.map { it.id } ?: emptyList()
+        val folderIds = mThingManager!!.getSelectedFolders().map { it.id }
+        if (thingIds.isEmpty() && folderIds.isEmpty()) return
+        val things = thingIds.mapNotNull { mThingManager!!.getThingById(it) }
+        val folders = folderIds.mapNotNull { mThingManager!!.getFolderById(it) }
+        val allSticky = things.all { it.location < 0 } && folders.all { it.location < 0 }
+        val targetSticky = !allSticky
+        mModeManager!!.backNormalMode(0)
+        mRecyclerView!!.postDelayed({
+            for (id in thingIds) {
+                val thingIndex = mThingManager!!.getPosition(id)
+                if (thingIndex < 0) continue
+                val thing = mThingManager!!.getThings()!![thingIndex] ?: continue
+                if ((thing.location < 0) == targetSticky) continue
+                if (targetSticky) {
+                    mThingManager!!.stickyThingOnTop(thing, thingIndex)
+                } else {
+                    mThingManager!!.cancelStickyThing(thing, thingIndex)
+                }
+            }
+            for (id in folderIds) {
+                val folder = mThingManager!!.getFolderById(id) ?: continue
+                if ((folder.location < 0) != targetSticky) {
+                    mThingManager!!.toggleFolderSticky(folder)
+                }
+            }
+            mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+            mAdapter!!.notifyDataSetChanged()
+            refreshActivitySurfaceAndHeader()
+            mDrawerHeader!!.updateTexts()
+            updateDrawerFolderItems()
+        }, 160)
+    }
+
+    /** Batch privacy for the current selection: set all private unless all already are. */
+    private fun toggleSelectedPrivateBatch() {
+        val thingIds = mThingManager!!.getSelectedThings()?.filterNotNull()?.map { it.id } ?: emptyList()
+        val folderIds = mThingManager!!.getSelectedFolders().map { it.id }
+        if (thingIds.isEmpty() && folderIds.isEmpty()) return
+        val things = thingIds.mapNotNull { mThingManager!!.getThingById(it) }
+        val folders = folderIds.mapNotNull { mThingManager!!.getFolderById(it) }
+        val allPrivate = things.all { it.isPrivate() } && folders.all { it.isPrivate }
+        val targetPrivate = !allPrivate
+        if (targetPrivate) {
+            if (!hasPrivatePassword()) {
+                val thing = things.firstOrNull()
+                if (thing != null) {
+                    warnNoPasswordForPrivateThing(thing)
+                } else {
+                    folders.firstOrNull()?.let { warnNoPasswordForPrivateFolder(it) }
+                }
+                return
+            }
+            applySelectedPrivateBatch(thingIds, folderIds, true)
+        } else {
+            val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+                .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null) ?: return
+            AuthenticationHelper.authenticate(
+                this,
+                App.defaultAccentBackground,
+                HomeActionWordingHelper.privateTitle(this, allPrivate = true),
+                cp,
+                object : AuthenticationHelper.AuthenticationCallback {
+                    override fun onAuthenticated() {
+                        applySelectedPrivateBatch(thingIds, folderIds, false)
+                    }
+
+                    override fun onCancel() {}
+                })
+        }
+    }
+
+    private fun applySelectedPrivateBatch(
+        thingIds: List<Long>,
+        folderIds: List<Long>,
+        makePrivate: Boolean
+    ) {
+        var skipped = 0
+        for (id in thingIds) {
+            val thing = mThingManager!!.getThingById(id) ?: continue
+            if (makePrivate) {
+                if (thing.isPrivate()) continue
+                if (thing.id == App.getDoingThingId()) { skipped++; continue }
+                val title = thing.getTitleToDisplay()?.trim().orEmpty()
+                if (title.isEmpty()) { skipped++; continue }
+                thing.title = Thing.PRIVATE_THING_PREFIX + title
+            } else {
+                if (!thing.isPrivate()) continue
+                thing.title = thing.getTitleToDisplay()
+            }
+            val thingIndex = mThingManager!!.getPosition(thing.id)
+            if (thingIndex >= 0) {
+                mThingManager!!.update(thing.type, thing, thingIndex, false)
+            }
+        }
+        for (id in folderIds) {
+            val folder = mThingManager!!.getFolderById(id) ?: continue
+            if (folder.isPrivate != makePrivate) {
+                mThingManager!!.updateFolderPrivate(folder, makePrivate)
+            }
+        }
+        mModeManager!!.backNormalMode(0)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        mAdapter!!.notifyDataSetChanged()
+        refreshActivitySurfaceAndHeader()
+        mDrawerHeader!!.updateTexts()
+        updateDrawerFolderItems()
+        AppWidgetHelper.updateAllThingsListAppWidgets(this)
+        SystemNotificationUtil.tryToCreateThingOngoingNotification(mApp)
+        if (skipped > 0) {
+            Toast.makeText(
+                this, getString(R.string.private_batch_skipped, skipped), Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun toggleSelectedStickyEntry() {
@@ -10334,7 +10505,7 @@ class ThingsActivity :
         AuthenticationHelper.authenticate(
             this,
             thing.getBackground(),
-            getString(R.string.act_cancel_private_thing),
+            HomeActionWordingHelper.privateTitle(this, allPrivate = true),
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
@@ -10362,7 +10533,7 @@ class ThingsActivity :
         adf.setShowCancel(false)
         adf.setTitleBackground(thing.getBackground())
         adf.setConfirmBackground(thing.getBackground())
-        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title))
+        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
@@ -10372,7 +10543,7 @@ class ThingsActivity :
         adf.setShowCancel(false)
         adf.setTitleBackground(thing.getBackground())
         adf.setConfirmBackground(thing.getBackground())
-        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title))
+        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
         adf.setContent(getString(R.string.warning_title_should_not_be_empty))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
@@ -10394,28 +10565,23 @@ class ThingsActivity :
                 mAdapter!!.notifyDataSetChanged()
                 mModeManager!!.updateMenuItems()
             } else if (itemId == R.id.act_delete_selected) {
-                handleUpdateStates(Thing.DELETED)
+                confirmSelectedStateChange(Thing.DELETED)
             } else if (itemId == R.id.act_finish_selected) {
-                handleUpdateStates(Thing.FINISHED)
+                confirmSelectedStateChange(Thing.FINISHED)
             } else if (itemId == R.id.act_restore_selected) {
                 // Folders in the recycle bin are restored via "恢复文件夹中所有记事"
                 // (act_restore_thing_folder_content); this path handles Things.
-                handleUpdateStates(Thing.UNDERWAY)
+                confirmSelectedStateChange(Thing.UNDERWAY)
             } else if (itemId == R.id.act_delete_selected_forever) {
-                handleUpdateStates(Thing.DELETED_FOREVER)
+                confirmSelectedStateChange(Thing.DELETED_FOREVER)
             } else if (itemId == R.id.act_move_to_thing_folder) {
-                val selectedFolder = getSingleSelectedFolder()
-                if (selectedFolder != null) {
-                    showMoveThingFolderDialog(selectedFolder)
-                } else {
-                    showMoveSelectedThingsDialog()
-                }
+                confirmMoveSelected()
             } else if (itemId == R.id.act_sticky) {
-                toggleSelectedStickyEntry()
+                toggleSelectedStickyBatch()
             } else if (itemId == R.id.act_customize_card_appearance) {
                 openSelectedCardAppearancePanel()
             } else if (itemId == R.id.act_set_as_private_thing) {
-                toggleSelectedPrivateEntry()
+                toggleSelectedPrivateBatch()
             } else if (itemId == R.id.act_finish_thing_folder) {
                 getSingleSelectedFolder()?.let { confirmFinishAllThingsInScope(it) }
             } else if (itemId == R.id.act_restore_thing_folder_content) {
@@ -10428,14 +10594,12 @@ class ThingsActivity :
                 }
             } else if (itemId == R.id.act_delete_thing_folder_content) {
                 getSingleSelectedFolder()?.let {
-                    confirmDeleteForeverAllInScope(
-                        it, R.string.delete_all_things_in_folder_forever
-                    )
+                    confirmDeleteForeverAllInScope(it)
                 }
             } else if (itemId == R.id.act_dissolve_thing_folder) {
                 getSingleSelectedFolder()?.let { showDissolveThingFolderDialog(it) }
             } else if (itemId == R.id.act_delete_thing_folder) {
-                getSingleSelectedFolder()?.let { showDeleteThingFolderDialogForCurrentState(it) }
+                confirmDeleteSelectedStructural()
             } else if (itemId == R.id.act_export) {
                 ThingExporter.startExporting(
                     this@ThingsActivity, App.defaultAccentBackground,

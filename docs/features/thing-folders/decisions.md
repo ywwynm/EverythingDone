@@ -1,5 +1,11 @@
 # Thing Folders Decisions
 
+## 2026-06-23 - 文件夹内容删除按当前状态执行，不再跨状态删除未删除内容
+
+“删除文件夹中所有记事”属于当前状态下的内容操作：在“正在进行”状态只删除文件夹子树中正在进行的记事；在“已完成”状态只删除文件夹子树中已完成的记事；回收站中的“永久删除文件夹中所有记事”只永久删除回收站里的记事。它仍然跟随当前类型筛选，且不移动或删除文件夹容器。
+
+这取代了此前“正在进行状态下删除文件夹中所有未删除记事（正在进行 + 已完成）”的语义。原因是用户期望状态分段彼此独立，当前状态下的内容操作不应连带影响其它状态中不可见的内容。
+
 ## 2026-06-23 - 全宽缩略图文件夹卡片的列数与缩略图数量随屏幕自适应
 
 全宽（`SPAN_FULL`）缩略图模式文件夹卡片瀑布流（`createFolderThumbnailMasonryView`）的列数不再固定为 3（原 `FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT`），改为“首页记事列表列数 + 1”。列数在构建时动态读取当前 `StaggeredGridLayoutManager.spanCount`，因此横竖屏切换后随 `onConfigurationChanged` 的 `notifyDataSetChanged` 全量重绑自动适应，无需额外监听。普通宽度（`SPAN_NORMAL`）缩略图卡片维持单列竖排、不受影响。
@@ -1487,26 +1493,25 @@ This keeps Empty Thing Folders preservable in the data model while preventing a
 filtered Things list from showing Folder Cards that have no relevant Things for
 the current projection.
 
-## 2026-06-23 - 文件夹操作确认弹窗：统一四段式 + 动态筛选提醒
+## 2026-06-23 - 文件夹操作确认弹窗：统一四段式 + 筛选提醒
 
 文件夹的所有确认弹窗（完成/恢复文件夹中所有记事、删除、解散、永久删除、还原文件夹）
 统一为「正文 + 条件提醒」结构：正文给出动作、范围（含所有子文件夹）、影响计数与去向/可
-逆性；提醒单独成行，仅在该操作实际触及当前筛选之外的内容时才出现，并点名当前筛选的具体值。
+逆性；提醒单独成行，用于说明内容操作受当前类型筛选限制，或结构操作会触及当前筛选下看不到的内容。
 
 - 计数口径分两档：内容态操作（完成/恢复记事）只报「N件记事」；结构态操作（删除/解散/永
   久删除/还原）报「X个子文件夹、Y件记事」，为 0 的段省略。数字与文字之间不留空格。
-- 提醒判定基于「受影响记事集合」的真实类型/状态分布，而非固定文案：
-  - 内容态：只可能在类型维度超出筛选，提醒为「该操作覆盖全部类型，不只当前类型筛选（X）
-    下显示的记事」，仅当存在筛选外类型的记事时显示。
-  - 结构态：类型 + 状态两维度独立判定，`considerStatus = 当前状态 != 回收站`（在回收站
-    视图里整棵子树已可见，状态维度不算「隐藏」），提醒按命中维度拼成「状态和类型筛选
+- 提醒判定按操作 family 分开：
+  - 内容态：动作跟随当前类型筛选；当存在具体类型筛选时，统一提醒「本次仅作用于当前类型筛选
+    （X）的记事，其他类型不受影响」。不再暗示会覆盖全部类型。
+  - 结构态：类型 + 状态两维度独立判定，提醒按命中维度拼成「状态和类型筛选
     （已完成、记录/目标）」/「状态筛选（…）」/「类型筛选（…）」，两维度都未超出则不显示。
 - 还原 Trashed Folder 此前无确认弹窗，本次补齐 `showRestoreThingFolderDialog`，与其它
   结构态操作一致。
-- 实现：`ThingsActivity.appendFilterScopeReminder` 统一拼接；类型名复用
-  `ThingWidgetInfo.getTypeFilterTitle`，状态名用 underway/finished/drawer_deleted；
-  受影响记事集合由新增的 `ThingFolderDAO.getAllDescendantThings` /
-  `ThingManager.getAllDescendantThings` 提供。
+- 后续统一文案模型后，实现迁移到 `HomeActionWordingHelper`：状态内容操作由
+  `stateActionWording` 生成正文、子文件夹提醒、类型筛选提醒；结构操作由
+  `structuralActionWording` 接收 `hiddenScopeClauseForStructural` 的结果后生成正文。
+  旧的 `appendFilterScopeReminder` 路径已删除。
 
 ## 2026-06-23 - 批量操作文案：工具栏「全部X」vs 长按文件夹「文件夹中所有记事」
 

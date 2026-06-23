@@ -35,6 +35,8 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `popup-picker-insets`: `docs/features/popup-picker-insets/decisions.md`
 - `project-maintenance`: `docs/features/project-maintenance/decisions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/decisions.md`
+- `selection-batch-actions`: `docs/features/selection-batch-actions/decisions.md`
+- `undo-to-confirm-dialog`: `docs/features/undo-to-confirm-dialog/decisions.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/decisions.md`
 - `thing-folders`: `docs/features/thing-folders/decisions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/decisions.md`
