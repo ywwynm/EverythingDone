@@ -176,9 +176,10 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         for ((thingIndex, thing) in mThings!!.withIndex()) {
             entries.add(ConfigEntry.ThingEntry(thing!!, thingIndex))
         }
-        for (folderEntry in folderDAO.getFolderEntriesForProjection(
-            Def.ThingStatus.UNDERWAY,
-            mCurrentFolderId
+        for (folderEntry in folderDAO.getFolderEntriesForWidgetProjection(
+            mCurrentFolderId,
+            ThingWidgetInfo.TYPE_FILTER_ALL,
+            Def.ThingStatus.UNDERWAY
         )) {
             entries.add(ConfigEntry.FolderEntry(folderEntry))
         }
@@ -203,11 +204,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         updateStatusBarAndBottomUi(true)
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
         DisplayUtil.expandStatusBarViewAboveKitkat(findViewById(R.id.view_status_bar))
-        DisplayUtil.darkStatusBar(this)
-
-        val accentBg = App.defaultAccentBackground
-        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), accentBg)
-        BackgroundUtil.applyBackground(mActionBar, accentBg)
+        applyTopChrome()
 
         mLlConfig!!.setBackgroundColor(Color.parseColor("#66000000"))
         DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
@@ -305,14 +302,68 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
     private fun updateActionbarTitle() {
         val folderId = mCurrentFolderId
-        if (folderId == null) {
-            supportActionBar?.setTitle(R.string.title_activity_thing_widget_configure)
-            return
+        val title = if (folderId == null) {
+            getString(R.string.title_activity_thing_widget_configure)
+        } else {
+            val folder = mFolderDao!!.getFolderById(folderId)
+            folder?.title?.ifEmpty {
+                getString(R.string.default_thing_folder_name)
+            } ?: getString(R.string.title_activity_thing_widget_configure)
         }
-        val folder = mFolderDao!!.getFolderById(folderId)
-        supportActionBar?.title = folder?.title?.ifEmpty {
-            getString(R.string.default_thing_folder_name)
-        } ?: getString(R.string.title_activity_thing_widget_configure)
+        supportActionBar?.title = title
+        applyTopChrome()
+    }
+
+    private fun applyTopChrome() {
+        val folderBackground = getCurrentFolderBackgroundForChrome()
+        val background = folderBackground ?: App.defaultAccentBackground
+        val foreground = getTopChromeForeground(folderBackground)
+
+        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
+        BackgroundUtil.applyBackground(mActionBar, background)
+        if (folderBackground != null && BackgroundUtil.isLight(background.representativeColor())) {
+            DisplayUtil.darkStatusBar(this)
+        } else {
+            DisplayUtil.cancelDarkStatusBar(this)
+        }
+
+        val toolbar = mActionBar ?: return
+        applyToolbarForeground(toolbar, foreground)
+        toolbar.post {
+            applyToolbarForeground(toolbar, foreground)
+        }
+    }
+
+    private fun getCurrentFolderBackgroundForChrome(): ThingBackground? {
+        val folderId = mCurrentFolderId ?: return null
+        val folder = mFolderDao?.getFolderById(folderId) ?: return null
+        return folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+    }
+
+    private fun getTopChromeForeground(folderBackground: ThingBackground?): Int {
+        if (folderBackground == null) {
+            return ContextCompat.getColor(this, R.color.white_86p)
+        }
+        return BackgroundUtil.onColor(
+            folderBackground.representativeColor(),
+            BackgroundUtil.ON_ALPHA_PRIMARY
+        )
+    }
+
+    private fun applyToolbarForeground(toolbar: Toolbar, foreground: Int) {
+        toolbar.setTitleTextColor(foreground)
+        toolbar.navigationIcon?.let { icon ->
+            toolbar.navigationIcon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
+        toolbar.overflowIcon?.let { icon ->
+            toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
+        val menu = toolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            val icon = item.icon ?: continue
+            item.icon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
+        }
     }
 
     private fun handleToolbarNavigation() {
@@ -636,7 +687,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         mRecyclerView!!.visibility = View.VISIBLE
 
         updateStatusBarAndBottomUi(true)
-        DisplayUtil.darkStatusBar(this)
+        applyTopChrome()
     }
 
     private fun endSelectThing(thing: Thing) {

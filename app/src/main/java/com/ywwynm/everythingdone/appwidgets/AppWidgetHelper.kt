@@ -81,6 +81,7 @@ object AppWidgetHelper {
     private const val WIDGET_LIST_MEDIA_BACKGROUND_MAX_BITMAP_PIXELS: Int = 240_000
     private const val WIDGET_LIST_MEDIA_HARD_MAX_HEIGHT_DP: Int = 720
     private const val WIDGET_REMOTE_BITMAP_MAX_DIMENSION_DP: Int = 720
+    private const val WIDGET_GRID_SLOT_HORIZONTAL_PADDING_DP: Int = 4
     private const val WIDGET_SIDE_MEDIA_PROJECTION_MAX_ITERATIONS: Int = 6
     private const val WIDGET_SIDE_MEDIA_PROJECTION_TOLERANCE_PX: Int = 1
 
@@ -534,6 +535,11 @@ object AppWidgetHelper {
     ): RemoteViews {
         val appContext = context!!
         val rv = RemoteViews(appContext.packageName, R.layout.app_widget_item_grid_row)
+        val contentWidthOverride = if (row.columns > 1) {
+            getThingsListWidgetGridSlotContentTargetWidth(appContext, appWidgetId, row.columns)
+        } else {
+            null
+        }
         val slotIds = intArrayOf(
             LL_WIDGET_GRID_SLOT_1,
             LL_WIDGET_GRID_SLOT_2,
@@ -551,7 +557,8 @@ object AppWidgetHelper {
                         appContext,
                         item,
                         appWidgetId,
-                        false
+                        false,
+                        contentWidthOverride
                     )
                 )
                 createThingsListWidgetFillInIntent(appContext, item, appWidgetId)?.let { fillIn ->
@@ -567,12 +574,18 @@ object AppWidgetHelper {
         context: Context?,
         item: ThingsListWidgetItem,
         appWidgetId: Int,
-        bindFillInIntent: Boolean = true
+        bindFillInIntent: Boolean = true,
+        contentWidthOverride: Int? = null
     ): RemoteViews {
         val appContext = context!!
         return when (item) {
             is ThingsListWidgetItem.ThingItem ->
-                createRemoteViewsForThingsListItem(appContext, item.thing, appWidgetId).also { rv ->
+                createRemoteViewsForThingsListItem(
+                    appContext,
+                    item.thing,
+                    appWidgetId,
+                    contentWidthOverride
+                ).also { rv ->
                     if (bindFillInIntent) {
                         rv.setOnClickFillInIntent(
                             ROOT_WIDGET_THING,
@@ -592,6 +605,25 @@ object AppWidgetHelper {
             is ThingsListWidgetItem.GridRow ->
                 createRemoteViewsForThingsListGridRow(appContext, item, appWidgetId)
         }
+    }
+
+    private fun getThingsListWidgetGridSlotContentTargetWidth(
+        context: Context,
+        appWidgetId: Int,
+        columns: Int
+    ): Int {
+        val clazz = getProviderClassForAppWidgetId(
+            context,
+            appWidgetId,
+            ThingsListWidget::class.java
+        )
+        val rowWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+        val safeColumns = max(1, columns)
+        if (safeColumns <= 1) return rowWidth
+        return max(
+            1,
+            rowWidth / safeColumns - dpToPx(WIDGET_GRID_SLOT_HORIZONTAL_PADDING_DP)
+        )
     }
 
     private fun createThingsListWidgetFillInIntent(
@@ -705,7 +737,10 @@ object AppWidgetHelper {
 
     @JvmStatic
     fun createRemoteViewsForThingsListItem(
-            context: Context?, thing: Thing?, appWidgetId: Int): RemoteViews {
+            context: Context?,
+            thing: Thing?,
+            appWidgetId: Int,
+            contentWidthOverride: Int? = null): RemoteViews {
         val remoteViews = RemoteViews(context!!.packageName,
                 R.layout.app_widget_item_thing)
         var alpha = 100
@@ -719,7 +754,7 @@ object AppWidgetHelper {
         val clazz = getProviderClassForAppWidgetId(
                 context, appWidgetId, ThingsListWidget::class.java)
         setAppearance(context, remoteViews, thing, appWidgetId,
-                clazz, alpha, style)
+                clazz, alpha, style, contentWidthOverride)
         return remoteViews
     }
 
@@ -1048,7 +1083,8 @@ object AppWidgetHelper {
 
     private fun setAppearance(
             context: Context, remoteViews: RemoteViews, thing: Thing?, appWidgetId: Int, clazz: Class<*>?,
-            alpha: Int, @ThingWidgetInfo.Style style: Int) {
+            alpha: Int, @ThingWidgetInfo.Style style: Int,
+            contentWidthOverride: Int? = null) {
         var a: Int = alpha
         a = if (a == ThingWidgetInfo.HEADER_ALPHA_0) {
             0
@@ -1058,7 +1094,7 @@ object AppWidgetHelper {
         a = (a / 100f * 255).toInt()
         applyWidgetRootClip(remoteViews)
         val mediaBackground = renderWidgetMediaBackground(
-                context, thing!!, appWidgetId, clazz, style, a)
+                context, thing!!, appWidgetId, clazz, style, a, contentWidthOverride)
         if (isThingsListWidgetClass(clazz)) {
             remoteViews.setInt(
                     ROOT_WIDGET_THING,
@@ -1086,7 +1122,7 @@ object AppWidgetHelper {
                 })
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz,
-                mediaBackground != null, a, style)
+                mediaBackground != null, a, style, contentWidthOverride)
 
         setTitleAndPrivate(context, remoteViews, thing, style)
 
@@ -1157,11 +1193,13 @@ object AppWidgetHelper {
 
     private fun renderWidgetMediaBackground(
             context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
-            @ThingWidgetInfo.Style style: Int, alpha: Int): WidgetMediaBackground? {
+            @ThingWidgetInfo.Style style: Int, alpha: Int,
+            contentWidthOverride: Int? = null): WidgetMediaBackground? {
         if (!thing.thingCardAppearance.mediaBackgroundEnabled) return null
         val mediaSource = RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing)
                 ?: return null
-        val rawTargetWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+        val rawTargetWidth = contentWidthOverride
+                ?: getWidgetContentTargetWidth(context, appWidgetId, clazz)
         val heightTarget = getWidgetMediaBackgroundTargetHeight(
                 context, thing, mediaSource, rawTargetWidth, appWidgetId, clazz, style)
         val rawTargetHeight = heightTarget.height
@@ -1489,7 +1527,8 @@ object AppWidgetHelper {
     private fun setImageAttachment(
             context: Context, remoteViews: RemoteViews, thing: Thing, appWidgetId: Int,
             clazz: Class<*>?, mediaBackgroundApplied: Boolean,
-            alpha: Int, @ThingWidgetInfo.Style style: Int) {
+            alpha: Int, @ThingWidgetInfo.Style style: Int,
+            contentWidthOverride: Int? = null) {
         hideForegroundMediaSlots(remoteViews)
         remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.GONE)
 
@@ -1512,7 +1551,8 @@ object AppWidgetHelper {
         }
 
         val placement = getRemoteImagePlacement(thing)
-        val rendered = renderImageForWidgetSlot(context, thing, appWidgetId, clazz, placement, style)
+        val rendered = renderImageForWidgetSlot(
+                context, thing, appWidgetId, clazz, placement, style, contentWidthOverride)
         if (rendered == null) {
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
             return
@@ -1604,9 +1644,11 @@ object AppWidgetHelper {
     private fun renderImageForWidgetSlot(
             context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
             @Thing.ThingCardImagePlacement placement: Int,
-            @ThingWidgetInfo.Style style: Int
+            @ThingWidgetInfo.Style style: Int,
+            contentWidthOverride: Int? = null
     ): RemoteThingCardMediaRenderer.ThumbnailRequest? {
-        val target = getWidgetMediaSlotTarget(context, thing, appWidgetId, clazz, placement, style)
+        val target = getWidgetMediaSlotTarget(
+                context, thing, appWidgetId, clazz, placement, style, contentWidthOverride)
         val presentationKey = if (isSideImagePlacement(placement)) {
             ThingCardAppearance.PRESENTATION_SIDE_PANEL
         } else {
@@ -1624,8 +1666,10 @@ object AppWidgetHelper {
     private fun getWidgetMediaSlotTarget(
             context: Context, thing: Thing, appWidgetId: Int, clazz: Class<*>?,
             @Thing.ThingCardImagePlacement placement: Int,
-            @ThingWidgetInfo.Style style: Int): WidgetMediaSlotTarget {
-        val contentWidth = getWidgetContentTargetWidth(context, appWidgetId, clazz)
+            @ThingWidgetInfo.Style style: Int,
+            contentWidthOverride: Int? = null): WidgetMediaSlotTarget {
+        val contentWidth = contentWidthOverride
+                ?: getWidgetContentTargetWidth(context, appWidgetId, clazz)
         if (placement != Thing.THING_CARD_IMAGE_PLACEMENT_LEFT
                 && placement != Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT) {
             return WidgetMediaSlotTarget(

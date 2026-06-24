@@ -2,6 +2,12 @@
 
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-24 - 列表 Widget 网格卡片按 slot 宽度投影媒体背景
+
+Things List Widget 的网格显示模式中，普通宽度 Thing Card 位于半宽或三分之一宽 slot 内。媒体背景、前景缩略图和 side media 的目标宽度应按该 slot 的实际可用宽度计算，而不是按整个 Widget 内容宽度计算。
+
+全宽卡片继续使用整行宽度。这个规则只影响列表 Widget 网格行内的普通宽度卡片，不改写 Thing Card Appearance 的持久 target ratio，也不影响单个记事 Widget 或列表 Widget 的整行显示模式。
+
 ## 2026-06-17 - Local Thing Card media crops are baked before ImageView display
 
 Local RecyclerView Thing Card media should no longer rely on

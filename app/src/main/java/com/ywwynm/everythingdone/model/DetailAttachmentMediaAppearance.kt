@@ -242,6 +242,7 @@ data class DetailAttachmentMediaAppearance(
         const val PRESENTATION_GRID: String = "grid"
         const val PRESENTATION_FULL_SPAN: String = "fullSpan"
         const val DEFAULT_TARGET_ASPECT_RATIO: Double = 1.0
+        const val DEFAULT_FULL_SPAN_TARGET_ASPECT_RATIO: Double = 4.0 / 3.0
         const val MIN_FULL_SPAN_TARGET_ASPECT_RATIO: Double = 0.5
         const val MAX_FULL_SPAN_TARGET_ASPECT_RATIO: Double = 65.0 / 24.0
         const val DEFAULT_CROP_CENTER: Double = 0.5
@@ -298,7 +299,7 @@ data class DetailAttachmentMediaAppearance(
         @JvmStatic
         fun defaultTargetAspectRatio(presentationKey: String): Double {
             return when (presentationKey) {
-                PRESENTATION_FULL_SPAN,
+                PRESENTATION_FULL_SPAN -> DEFAULT_FULL_SPAN_TARGET_ASPECT_RATIO
                 PRESENTATION_GRID -> DEFAULT_TARGET_ASPECT_RATIO
                 else -> DEFAULT_TARGET_ASPECT_RATIO
             }

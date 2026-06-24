@@ -1,5 +1,11 @@
 # Detail Attachment Media Appearance Sessions
 
+## 2026-06-24 - 单媒体默认 full-span 比例修正
+
+- 根据用户确认的产品规则，区分 Detail 附件的运行时默认展示和用户确认过的外观属性：只有一个图片或视频时默认满宽 `4:3`，但不自动写入 `Detail Attachment Media Appearance`；增加第二个媒体后，未确认设置的默认行为回退到普通网格 `1:1`。
+- `DetailAttachmentMediaAppearance.defaultTargetAspectRatio(...)` 现在对 `grid` 返回 `1:1`，对 `fullSpan` 返回 `4:3`。用户在单媒体状态下打开外观设置并确认后，当前 full-span 和比例才作为用户设置持久化。
+- 已随同 Widget 媒体几何修正通过 `:app:assembleDebug`，并发布 debug update `202606241314` 到阿里云 debug 通道。
+
 ## 2026-06-17 - Bake customized attachment crops before display
 
 - Migrated customized Detail attachment thumbnails away from

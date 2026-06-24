@@ -2,6 +2,11 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-06-24 - Widget 媒体、单个 Widget 文件夹选择和详情单媒体默认比例
+
+- 完成一次跨 feature 小修复：记事列表 Widget 网格卡片媒体背景改按 slot 宽度投影；单个记事 Widget 配置隐藏空文件夹；详情页单媒体 full-span 默认比例改为 `4:3`，并与用户确认过的设置分离。
+- 细节分别记录在 `docs/features/thing-card-media-target-geometry/sessions.md`、`docs/features/thing-folders/sessions.md` 和 `docs/features/detail-attachment-media-appearance/sessions.md`。
+
 ## 2026-06-20 - Icon spacing and Folder return restore follow-up
 
 - Completed a follow-up across Thing Folders, Thing Card Appearance, and

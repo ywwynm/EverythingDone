@@ -1,5 +1,11 @@
 # Detail Attachment Media Appearance Decisions
 
+## 2026-06-24 - 单媒体默认满宽与用户设置分离
+
+详情页只有一个图片或视频附件时，如果用户没有确认过附件外观设置，该媒体默认按满宽显示，并使用详情页既有的 `4:3` 比例。这个默认只是运行时展示行为，不应自动写入 `Detail Attachment Media Appearance`。
+
+当用户在创建或编辑时打开该媒体的外观设置并点击确认，当前满宽状态和比例才成为用户确认过的持久属性。后续如果增加第二个图片或视频，没有用户确认过的默认状态应回退为普通网格 `1:1`；如果用户删除到只剩一个媒体，则继续按默认满宽 `4:3` 显示。用户确认过宽图或比例后，则按已保存属性显示。
+
 ## 2026-06-17 - Detail attachment custom crops are baked before ImageView display
 
 Customized Detail attachment thumbnails should use the same offscreen bitmap

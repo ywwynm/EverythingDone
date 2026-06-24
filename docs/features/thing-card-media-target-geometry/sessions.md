@@ -2,6 +2,13 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-24 - 列表 Widget 网格媒体背景宽度修正
+
+- 修正 Things List Widget 网格模式中普通宽度卡片的媒体投影：`AppWidgetHelper.createRemoteViewsForThingsListGridRow` 现在按 slot 实际内容宽度向下传递 `contentWidthOverride`，媒体背景、顶部/底部缩略图和 side media 都使用该宽度计算目标尺寸。
+- 全宽卡片仍按整行宽度投影；单个记事 Widget、列表 Widget 整行模式和持久化的 Thing Card Appearance 均不受影响。
+- 同次 debug update 还包含单个记事 Widget 配置隐藏空文件夹、Detail 单媒体 full-span 默认比例改为 `4:3`。
+- 已运行 `:app:assembleDebug --console=plain --no-configuration-cache`，结果 `BUILD SUCCESSFUL`；随后通过 `:app:publishDebugUpdate -PdebugUpdateNotesFile=docs/features/thing-card-media-target-geometry/debug-updates/update-20260624211357.md --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，更新码 `202606241314`，远端 `latest.json` 为 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+
 ## 2026-06-17 - Replace local ImageView matrix crops with baked media bitmaps
 
 - After the Folder thumbnail top/bottom video issue was fixed by baking a

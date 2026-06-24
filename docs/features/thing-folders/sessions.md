@@ -1,5 +1,21 @@
 # Thing Folders Sessions
 
+## 2026-06-24 - 单个记事 Widget 配置顶部栏跟随文件夹配色
+
+`:app:assembleDebug` BUILD SUCCESSFUL。随后通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码 `202606241334`，发布日志为 `docs/features/thing-folders/debug-updates/update-20260624213401.md`。
+
+- `BaseThingWidgetConfiguration` 新增顶部 chrome 刷新逻辑，统一设置 `view_status_bar`、`Toolbar` 背景，以及标题、返回图标、overflow/menu 图标颜色。
+- 根目录继续使用 `App.defaultAccentBackground`，但标题和图标固定使用 `white_86p`，系统状态栏图标使用浅色模式。
+- 打开文件夹后使用文件夹的纯色或渐变背景，并按代表色自动选择偏白或偏黑前景；返回上级、进入文件夹、结束 Widget 预览都会恢复当前范围的顶部配色。
+
+## 2026-06-24 - 单个记事 Widget 配置隐藏空文件夹
+
+`:app:assembleDebug` BUILD SUCCESSFUL。随后随同 Widget 媒体几何修正发布到阿里云 debug 通道，更新码 `202606241314`，发布日志为 `docs/features/thing-card-media-target-geometry/debug-updates/update-20260624211357.md`。
+
+- `BaseThingWidgetConfiguration.loadCurrentFolderEntries()` 的文件夹卡片来源从普通首页投影切换为 `ThingFolderDAO.getFolderEntriesForWidgetProjection(...)`。
+- 单个记事 Widget 配置页现在只显示子树中存在正在进行记事内容的文件夹；完全为空、或当前 Widget 可选投影没有命中记事的文件夹不会显示。
+- 这只影响单个记事 Widget 的选择列表，不改变 Drawer、移动到文件夹 Dialog 和记事列表 Widget 范围选择器的稳定文件夹骨架语义。
+
 ## 2026-06-24 - 记事状态变更保留置顶状态
 
 `:app:assembleDebug` BUILD SUCCESSFUL。
