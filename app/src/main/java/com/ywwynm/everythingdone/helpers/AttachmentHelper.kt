@@ -496,6 +496,24 @@ object AttachmentHelper {
     }
 
     @JvmStatic
+    fun isAnimatedImageType(postfix: String?): Boolean {
+        val postfixes: Array<String?> = arrayOf("gif", "webp")
+        return isInsideArray(postfixes, postfix)
+    }
+
+    /**
+     * 是否按 Animated Image(GIF / 动态 WebP)走 Glide Drawable 播放分支。仅按扩展名
+     * 粗判:静态 WebP 走 Drawable 也能正确显示、不会出错,也不带 HDR gain map。见 ADR-0007。
+     */
+    @JvmStatic
+    fun isAnimatedImageCandidate(pathName: String?): Boolean {
+        if (pathName.isNullOrEmpty()) return false
+        val dot = pathName.lastIndexOf('.')
+        if (dot < 0 || dot == pathName.length - 1) return false
+        return isAnimatedImageType(pathName.substring(dot + 1).lowercase())
+    }
+
+    @JvmStatic
     fun isVideoFile(postfix: String?): Boolean {
         val postfixes: Array<String?> = arrayOf("3gp", "mp4", "webm", "mkv")
         return isInsideArray(postfixes, postfix)

@@ -224,6 +224,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         position: Int, pathName: String, iv: PhotoView,
         pb: ProgressBar, size: IntArray
     ) {
+        // Animated Image (GIF / animated WebP) carries no HDR gain map, so the
+        // asBitmap HDR path has nothing to preserve here; load it as a Drawable so
+        // Glide animates it. See ADR-0007.
+        if (AttachmentHelper.isAnimatedImageCandidate(pathName)) {
+            loadAnimatedImage(position, pathName, iv, pb, size)
+            return
+        }
         // asBitmap + dontTransform + disallowHardwareConfig: decode straight to
         // an ARGB_8888 bitmap that still carries the UltraHDR gain map, with no
         // software-Canvas transform step that would flatten it to SDR. PhotoView
@@ -260,6 +267,41 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 }
             })
             .override(size[0], size[1])
+            .into(iv)
+    }
+
+    private fun loadAnimatedImage(
+        position: Int, pathName: String, iv: PhotoView,
+        pb: ProgressBar, size: IntArray
+    ) {
+        // Load as a Drawable so GIF / animated WebP plays. These never carry a
+        // gain map, so this page is never HDR. See ADR-0007.
+        if (position in mHasGainmap.indices) {
+            mHasGainmap[position] = false
+        }
+        Glide.with(this)
+            .load(pathName)
+            .override(size[0], size[1])
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    pb.visibility = View.GONE
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    dataSource: DataSource, isFirstResource: Boolean
+                ): Boolean {
+                    pb.visibility = View.GONE
+                    if (position == mVpImage?.currentItem) {
+                        applyHdrStateForCurrentPage()
+                    }
+                    return false
+                }
+            })
             .into(iv)
     }
 

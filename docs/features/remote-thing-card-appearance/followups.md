@@ -60,3 +60,23 @@ its icon.
 **Reason deferred:** No emulator was attached in the 2026-05-27 session; only a
 physical device was listed by ADB, so the agent did not take over the user's
 launcher state for widget placement and manual-click verification.
+
+## Things-list widget image cover does not follow saved media aspect/crop (deferred 2026-06-24)
+
+**Scope:** 记事列表 widget(`ThingsListWidget`)的图片封面显示比例不符合用户在 Thing
+Card Appearance 里设置的图片属性(目标比例 / 裁切)。
+
+**Observed:** 在动图播放功能的第一轮测试中,用户报告列表 widget 里 GIF 比例不对;
+进一步隔离确认**普通 JPEG/PNG 封面同样不对**,所以这是列表 widget 既有的通用比例
+问题,与 GIF / 动图播放无关(动图改动只在应用内 Glide 路径,未触及 RemoteViews)。
+
+**Code pointers:** `ThingsListWidgetService` → `AppWidgetHelper.createRemoteViewsForThingsListEntry`
+→ `setAppearance` → `renderImageForWidgetSlot` → `getWidgetMediaSlotTarget`
+(`RemoteThingCardMediaRenderer.getThumbnailTargetHeight`,含 `maxHeight` 钳制)
+→ `RemoteThingCardMediaRenderer.renderThumbnail`。怀疑列表 widget 计算目标高度/比例
+的方式(默认 4:3 / 16:9 与 `maxHeight` 钳制)与应用内卡片 `getDefaultThingCardThumbnailTargetAspectRatio`
+不一致,导致即使用户设了比例也被 widget 侧的尺寸约束改写。需先在真机确认具体错位形态
+再定位。
+
+**Reason deferred:** 用户在 2026-06-24 明确表示先不处理;且与当时的动图播放功能无关,
+属于既有 widget 渲染问题。

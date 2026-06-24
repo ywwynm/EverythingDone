@@ -147,6 +147,9 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         loadCurrentFolderEntries()
         mThingCardAdapter = ThingCardDelegateAdapter()
         mFolderCardAdapter = FolderCardDelegateAdapter()
+        // The thing-picker list is an in-app browsing list, so it animates like the
+        // home list. The actual widget preview is rendered through RemoteViews
+        // (renderPreviewAppWidget) and is inherently static. See ADR-0007.
         mAdapter = MixedThingsAdapter()
     }
 
@@ -623,6 +626,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         adapter.setCardWidth(previewWidth)
         adapter.setFullSpanCardWidth(previewWidth)
         adapter.setThingCardSurfaceAvailableHeight(previewHeight)
+        adapter.setAnimatedPlaybackEnabled(false)
         rvPreview.adapter = adapter
     }
 

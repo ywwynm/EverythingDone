@@ -176,6 +176,14 @@ _Avoid_: wide-gamut image, bright image, edited photo
 A surface actually rendering an HDR Media's full brightness boost, as opposed to showing only its SDR base image.
 _Avoid_: HDR support as a blanket term, wide colour gamut
 
+**Animated Image**:
+一个本身就是动图的图片附件——GIF 或动态 WebP;它能否逐帧播放取决于显示它的界面。
+_Avoid_: GIF as the blanket term, video attachment
+
+**Animated Playback**:
+某个界面真的在逐帧播放一个 Animated Image,而不是只显示它的第一帧。
+_Avoid_: GIF support as a blanket term, autoplay as a file property
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -262,6 +270,9 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **HDR Media** file.
 - A single **HDR Media** may receive **HDR Display** on a surface that supports it while appearing as its SDR base on every other surface.
 - **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
+- A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
+- A single **Animated Image** may receive **Animated Playback** on a surface that supports it while appearing as its first static frame on every other surface, mirroring how an **HDR Media** receives **HDR Display** only where supported.
+- A surface that must present a fixed crop or an HDR base image shows an **Animated Image** as a single frame instead of giving it **Animated Playback**.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
@@ -286,6 +297,7 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - "WELCOME/NOTIFY_EMPTY note" can sound like user-owned content; resolved as **Legacy Placeholder Thing** when discussing the old stored rows and **Empty-List Guidance** when discussing the replacement message.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
 - "HDR support" conflates a file being high-dynamic-range (**HDR Media**) with a surface actually boosting its brightness (**HDR Display**); resolved as two distinct concepts, because one **HDR Media** is HDR-displayed on some surfaces and shown as its SDR base on others.
+- “支持 GIF 显示”混淆了文件本身是动图(**Animated Image**)与界面真的在播放它(**Animated Playback**);已解析为两个独立概念,因为同一个 Animated Image 在某些界面播放、在另一些界面只显示第一帧。
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.
 - "First attachment" can mean the first stored attachment or the card's chosen media source; resolved as **Thing Card Media Source** when discussing which attachment a Thing Card uses.

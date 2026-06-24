@@ -26,6 +26,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
+import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.bumptech.glide.signature.ObjectKey
 import kotlin.math.min
@@ -174,6 +175,8 @@ open class ImageAttachmentAdapter(
         val imageView = holder.ivImage!!
         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
         imageView.imageMatrix = null
+        val animated = type == AttachmentHelper.IMAGE &&
+                AttachmentHelper.isAnimatedImageCandidate(pathName)
         val sourceAppearance = mDetailAttachmentMediaAppearance.source(typePathName)
         val customized = isCustomizedMode()
         val presentation = if (customized) getPresentationForPosition(position) else null
@@ -216,11 +219,18 @@ open class ImageAttachmentAdapter(
             )
         }
         if (customized) {
-            request = request
-                .override(size[0], size[1])
-                .dontTransform()
-                .disallowHardwareConfig()
-                .dontAnimate()
+            request = request.override(size[0], size[1])
+            request = if (animated && presentation != null) {
+                // Animated Image: crop each frame so it animates while keeping the
+                // user's crop, instead of baking a single static frame. See ADR-0007.
+                request.transform(
+                    MediaCropTransformation(
+                        size[0], size[1], getDetailAttachmentBitmapCrop(presentation.crop)
+                    )
+                )
+            } else {
+                request.dontTransform().disallowHardwareConfig().dontAnimate()
+            }
             if (loadKey != null) {
                 request = request.signature(ObjectKey(loadKey))
             }
@@ -243,7 +253,7 @@ open class ImageAttachmentAdapter(
                 ): Boolean {
                     updateOverlayVisibility(holder)
                     holder.pbLoading!!.visibility = View.GONE
-                    if (customized && loadKey != null) {
+                    if (customized && loadKey != null && !animated) {
                         val renderRequest = imageView.getTag(
                             R.id.tag_detail_attachment_image_render_request
                         ) as? DetailAttachmentRenderRequest

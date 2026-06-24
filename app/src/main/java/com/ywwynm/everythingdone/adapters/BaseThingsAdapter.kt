@@ -51,6 +51,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
+import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
@@ -104,6 +105,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     private var mThingCardSurfaceAvailableHeightOverride: Int = 0
     private var mShouldShowPrivateContent: Boolean = false
     private var mChecklistMaxItemCount: Int = 8
+    private var mAnimatedPlaybackEnabled: Boolean = true
 
     private data class ThingCardMediaDebugInfo(
         val thingId: Long,
@@ -191,6 +193,15 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     open fun setShouldShowPrivateContent(shouldShowPrivateContent: Boolean) {
         mShouldShowPrivateContent = shouldShowPrivateContent
+    }
+
+    /**
+     * When false, Animated Image sources render a single static frame instead of
+     * playing. Used by the widget configuration preview to mirror the
+     * non-animating placed RemoteViews widget. See ADR-0007.
+     */
+    open fun setAnimatedPlaybackEnabled(enabled: Boolean) {
+        mAnimatedPlaybackEnabled = enabled
     }
 
     open fun shouldShowPrivateContent(): Boolean {
@@ -1026,6 +1037,14 @@ abstract class BaseThingsAdapter(context: Context?) :
             applyCurrentThingCardThumbnailRenderRequest(imageView)
             return
         }
+        if (mAnimatedPlaybackEnabled && videoFrameMs == null &&
+            AttachmentHelper.isAnimatedImageCandidate(pathName)
+        ) {
+            loadAnimatedThingCardThumbnail(
+                holder, imageView, pathName, imageW, imageH, crop, loadKey
+            )
+            return
+        }
         if (applyCachedThingCardMediaBitmap(
                 imageView, loadKey, R.id.tag_thing_card_image_load_key
             )
@@ -1166,6 +1185,59 @@ abstract class BaseThingsAdapter(context: Context?) :
             .into(imageView)
     }
 
+    private fun loadAnimatedThingCardThumbnail(
+        holder: BaseThingViewHolder,
+        imageView: ImageView,
+        pathName: String,
+        imageW: Int,
+        imageH: Int,
+        crop: ThingCardAppearance.ThingCardThumbnailCrop,
+        loadKey: String
+    ) {
+        // Animated Image (GIF / animated WebP) thumbnail: load as a Drawable and
+        // crop each frame with MediaCropTransformation so it animates while keeping
+        // the user's crop. Skips the baked-bitmap LruCache. See ADR-0007.
+        mImageRequestManager!!.clear(imageView)
+        imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
+        holder.pbLoading!!.visibility = View.VISIBLE
+        mImageRequestManager!!
+            .load(pathName)
+            .override(imageW, imageH)
+            .transform(
+                MediaCropTransformation(imageW, imageH, getThingCardThumbnailBitmapCrop(crop))
+            )
+            .signature(getThingCardMediaCacheSignature(loadKey))
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                        holder.pbLoading!!.visibility = View.GONE
+                        holder.flImageAttachment!!.visibility = View.GONE
+                        holder.tvImageCount!!.visibility = View.GONE
+                        holder.vImageCover!!.visibility = View.GONE
+                        holder.vPaddingBottom!!.visibility = View.VISIBLE
+                        imageView.setTag(R.id.tag_thing_card_image_render_request, null)
+                    }
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    dataSource: DataSource, isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                        holder.pbLoading!!.visibility = View.GONE
+                        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                        imageView.imageMatrix = null
+                    }
+                    return false
+                }
+            })
+            .into(imageView)
+    }
+
     private fun loadThingCardMediaBackground(
         holder: BaseThingViewHolder,
         thing: Thing,
@@ -1198,6 +1270,15 @@ abstract class BaseThingsAdapter(context: Context?) :
         )
         if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
             applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
+            return
+        }
+        if (mAnimatedPlaybackEnabled && videoFrameMs == null &&
+            AttachmentHelper.isAnimatedImageCandidate(pathName)
+        ) {
+            loadAnimatedThingCardMediaBackground(
+                holder, imageView, thing, pathName, imageW, imageH,
+                crop, sourceAspectRatio, loadKey
+            )
             return
         }
         if (applyCachedThingCardMediaBitmap(
@@ -1293,6 +1374,69 @@ abstract class BaseThingsAdapter(context: Context?) :
                 }
             })
             .dontAnimate()
+            .into(imageView)
+    }
+
+    private fun loadAnimatedThingCardMediaBackground(
+        holder: BaseThingViewHolder,
+        imageView: ImageView,
+        thing: Thing,
+        pathName: String,
+        imageW: Int,
+        imageH: Int,
+        crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
+        sourceAspectRatio: Double?,
+        loadKey: String
+    ) {
+        // Animated Image media background: animate while keeping the crop. Foreground
+        // colours use a fixed dark base in media-background mode (not sampled from the
+        // media), so animation does not affect them. Skips the LruCache. See ADR-0007.
+        mImageRequestManager!!.clear(imageView)
+        imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
+        mImageRequestManager!!
+            .load(pathName)
+            .override(imageW, imageH)
+            .transform(
+                MediaCropTransformation(
+                    imageW, imageH, getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio)
+                )
+            )
+            .signature(getThingCardMediaCacheSignature(loadKey))
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(
+                            R.id.tag_thing_card_media_background_load_key
+                        ) == loadKey
+                    ) {
+                        imageView.visibility = View.GONE
+                        holder.vMediaBackgroundMask!!.visibility = View.GONE
+                        resetThingCardMediaBackgroundOverlaySize(holder)
+                        applyThingCardForegroundColors(holder, thing, thing.getColor())
+                        imageView.setTag(
+                            R.id.tag_thing_card_media_background_render_request,
+                            null
+                        )
+                    }
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    dataSource: DataSource, isFirstResource: Boolean
+                ): Boolean {
+                    if (imageView.getTag(
+                            R.id.tag_thing_card_media_background_load_key
+                        ) == loadKey
+                    ) {
+                        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                        imageView.imageMatrix = null
+                    }
+                    return false
+                }
+            })
             .into(imageView)
     }
 

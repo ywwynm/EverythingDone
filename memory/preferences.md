@@ -54,8 +54,11 @@ When writing bilingual commit messages, do not prefix paragraphs with language
 labels such as `English:`, `EN:`, `中文：`, or `Chinese:`. Do not include Gradle
 command output or APK verification details in the commit message body. Keep the
 repository's normal Git author/committer identity, and add the collaborator
-trailer exactly in this project format:
+trailer for the collaborating model that actually did the work. The project has
+worked with both models below, so either format may appear in history (use the
+one matching the model that wrote the commit, not both):
 
+`Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
 `Co-Authored-By: GPT-5.5 gpt-5.5@openai.com`
 
 For substantive commits, follow the recent project style: use a bilingual
