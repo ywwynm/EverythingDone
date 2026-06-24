@@ -20,6 +20,13 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import android.content.ActivityNotFoundException
+import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.os.Build
 
 import com.bumptech.glide.Glide
 import android.graphics.drawable.Drawable
@@ -65,6 +72,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private var mAdapter: ImageViewerPagerAdapter? = null
     private var mTabs: MutableList<View?>? = null
 
+    /** HDR badge shown for gain-map images on API 34+. */
+    private var mTvHdrBadge: TextView? = null
+    /** Per-page: the decoded image carries a gain map (content is HDR). */
+    private var mHasGainmap: BooleanArray = BooleanArray(0)
+    /** Per-page, ephemeral: user tapped the badge to force SDR on this page. */
+    private var mForcedSdr: BooleanArray = BooleanArray(0)
+
     override fun getLayoutResource(): Int = R.layout.activity_image_viewer
 
     override fun initMembers() {
@@ -86,11 +100,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
         val size = mTypePathNames!!.size
         mTabs = ArrayList(size)
+        mHasGainmap = BooleanArray(size)
+        mForcedSdr = BooleanArray(size)
     }
 
     override fun findViews() {
         mActionbar = f(R.id.actionbar)
         mVpImage   = f(R.id.vp_image_viewer)
+        mTvHdrBadge = f(R.id.tv_hdr_badge)
     }
 
     override fun initUI() {
@@ -108,7 +125,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val videoListener: View.OnClickListener = getVideoListener()
 
         val inflater = LayoutInflater.from(this)
-        for (typePathName in mTypePathNames!!) {
+        for ((index, typePathName) in mTypePathNames!!.withIndex()) {
             @SuppressLint("InflateParams")
             val tab: View = inflater.inflate(R.layout.tab_image_attachment, null)
 
@@ -134,7 +151,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 iv.isZoomable = false
             }
 
-            loadImage(pathName, iv, pb, size)
+            loadImage(index, pathName, iv, pb, size)
 
             mTabs!!.add(tab)
         }
@@ -143,6 +160,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mVpImage!!.adapter = mAdapter
 
         mVpImage!!.currentItem = mPosition
+
+        DisplayUtil.applyTopInsetAsMargin(mTvHdrBadge)
+        mTvHdrBadge!!.setOnClickListener {
+            val pos = mVpImage?.currentItem ?: return@setOnClickListener
+            if (pos in mForcedSdr.indices) {
+                mForcedSdr[pos] = !mForcedSdr[pos]
+                applyHdrStateForCurrentPage()
+            }
+        }
     }
 
     private fun getImageSize(): IntArray {
@@ -167,33 +193,69 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
             val intent = Intent(Intent.ACTION_VIEW)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            val uri: Uri = FileProvider.getUriForFile(
-                this@ImageViewerActivity,
-                "com.ywwynm.everythingdone", file
-            )
-            intent.setDataAndType(uri, "video/" + FileUtil.getPostfix(pathName))
-            startActivity(intent)
+            // getUriForFile throws IllegalArgumentException for paths outside the
+            // FileProvider roots (e.g. a removable volume); startActivity throws
+            // ActivityNotFoundException when no player is installed. Guard both so
+            // a tap on a video can never crash the viewer.
+            try {
+                val uri: Uri = FileProvider.getUriForFile(
+                    this@ImageViewerActivity,
+                    "com.ywwynm.everythingdone", file
+                )
+                intent.setDataAndType(uri, "video/*")
+                startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Toast.makeText(
+                    this@ImageViewerActivity,
+                    R.string.image_viewer_no_video_player,
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: IllegalArgumentException) {
+                Toast.makeText(
+                    this@ImageViewerActivity,
+                    R.string.image_viewer_no_video_player,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
     private fun loadImage(
-        pathName: String, iv: PhotoView,
+        position: Int, pathName: String, iv: PhotoView,
         pb: ProgressBar, size: IntArray
     ) {
+        // asBitmap + dontTransform + disallowHardwareConfig: decode straight to
+        // an ARGB_8888 bitmap that still carries the UltraHDR gain map, with no
+        // software-Canvas transform step that would flatten it to SDR. PhotoView
+        // does its own matrix fit/zoom, so no Glide fitting transform is needed.
         Glide.with(this)
+            .asBitmap()
             .load(pathName)
-            .listener(object : RequestListener<Drawable> {
+            .dontTransform()
+            .disallowHardwareConfig()
+            .listener(object : RequestListener<Bitmap> {
                 override fun onLoadFailed(
-                    e: GlideException?, model: Any?, target: Target<Drawable>,
+                    e: GlideException?, model: Any?, target: Target<Bitmap>,
                     isFirstResource: Boolean
-                ): Boolean = false
+                ): Boolean {
+                    pb.visibility = View.GONE
+                    return false
+                }
 
                 override fun onResourceReady(
-                    resource: Drawable, model: Any, target: Target<Drawable>?,
+                    resource: Bitmap, model: Any, target: Target<Bitmap>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
-                    iv.setImageDrawable(resource)
+                    iv.setImageBitmap(resource)
                     pb.visibility = View.GONE
+                    val hdr = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                            resource.hasGainmap()
+                    if (position in mHasGainmap.indices) {
+                        mHasGainmap[position] = hdr
+                    }
+                    if (position == mVpImage?.currentItem) {
+                        applyHdrStateForCurrentPage()
+                    }
                     return true
                 }
             })
@@ -266,6 +328,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mVpImage!!.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 updateAttachmentNumber()
+                applyHdrStateForCurrentPage()
             }
         })
     }
@@ -276,6 +339,46 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val actionBar: ActionBar? = supportActionBar
         if (actionBar != null) {
             actionBar.title = "$current / $total"
+        }
+    }
+
+    /**
+     * Apply HDR for the currently visible page: switch the window to
+     * [ActivityInfo.COLOR_MODE_HDR] (API 34+) when the page's image carries a
+     * gain map and the user has not forced SDR on it, and refresh the badge.
+     * On a non-HDR display the window mode is harmless; the gain map simply
+     * isn't boosted.
+     */
+    private fun applyHdrStateForCurrentPage() {
+        val pos = mVpImage?.currentItem ?: return
+        val isHdr = pos in mHasGainmap.indices && mHasGainmap[pos]
+        val boostOn = isHdr && !(pos in mForcedSdr.indices && mForcedSdr[pos])
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val mode = if (boostOn) ActivityInfo.COLOR_MODE_HDR else ActivityInfo.COLOR_MODE_DEFAULT
+            if (window.colorMode != mode) {
+                window.colorMode = mode
+            }
+        }
+        updateHdrBadge(isHdr, boostOn)
+    }
+
+    private fun updateHdrBadge(isHdr: Boolean, boostOn: Boolean) {
+        val badge = mTvHdrBadge ?: return
+        if (!isHdr || !mSystemUiVisible) {
+            badge.visibility = View.GONE
+            return
+        }
+        badge.visibility = View.VISIBLE
+        if (boostOn) {
+            badge.setBackgroundResource(R.drawable.bg_hdr_badge_on)
+            badge.setTextColor(Color.BLACK)
+            badge.alpha = 1f
+            badge.contentDescription = getString(R.string.cd_hdr_badge_on)
+        } else {
+            badge.setBackgroundResource(R.drawable.bg_hdr_badge_off)
+            badge.setTextColor(Color.WHITE)
+            badge.alpha = 0.9f
+            badge.contentDescription = getString(R.string.cd_hdr_badge_off)
         }
     }
 
@@ -296,6 +399,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mActionbar!!.visibility = View.VISIBLE
         }
         mSystemUiVisible = !mSystemUiVisible
+        applyHdrStateForCurrentPage()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

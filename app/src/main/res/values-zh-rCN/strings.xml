@@ -1419,4 +1419,8 @@
     <string name="channel_ongoing">持续通知</string>
     <string name="channel_auto_notify">自动提醒</string>
 
+    <string name="cd_hdr_badge_on">HDR 已开启，点按以标准动态范围显示</string>
+    <string name="cd_hdr_badge_off">HDR 已关闭，点按开启 HDR 显示</string>
+    <string name="image_viewer_no_video_player">没有可播放该视频的应用</string>
+
 </resources>

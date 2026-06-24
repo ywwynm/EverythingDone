@@ -1308,4 +1308,8 @@
     <string name="home_structure_delete_folder_forever_body">將永久刪除%1$s及其全部內容，共%2$s，無法恢復。</string>
     <string name="home_structure_delete_folder_forever_empty_body">將永久刪除%1$s。該資料夾沒有內容，但資料夾本身無法恢復。</string>
     <string name="home_structure_delete_items_forever_body">將永久刪除所選項目（所選資料夾及其全部內容，以及所選記事），共%1$s，無法恢復。</string>
+
+    <string name="cd_hdr_badge_on">HDR 已開啟，點按以標準動態範圍顯示</string>
+    <string name="cd_hdr_badge_off">HDR 已關閉，點按開啟 HDR 顯示</string>
+    <string name="image_viewer_no_video_player">沒有可播放該影片的應用程式</string>
 </resources>

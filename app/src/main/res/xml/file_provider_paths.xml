@@ -5,4 +5,8 @@
     <external-files-path name="attachments" path="/" />
     <external-path name="ringtone" path="/EverythingDone/ringtone/" />
     <external-path name="legacy_files" path="/EverythingDone/" />
+    <!-- Whole external-storage root, so attachments that reference an original
+         public path (e.g. DCIM/Camera) can still be shared to an external
+         player. Longer-prefix roots above still win for app-private dirs. -->
+    <external-path name="external_storage" path="." />
 </paths>

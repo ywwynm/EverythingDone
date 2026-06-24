@@ -51,6 +51,7 @@ memory files.
 - `color-system-migration/`
 - `dark-mode/`
 - `debug-update-channel/`
+- `hdr-media-display/`
 - `detail-color-sampling/`
 - `documentation-organization/`
 - `home-card-span-mode/`

@@ -168,6 +168,14 @@ _Avoid_: Thing Card Appearance, attachment file editing
 The persistent presentation choice that determines crop center and user zoom for an image or video attachment shown inside the Detail screen attachment list.
 _Avoid_: Thing Card Media Crop, editing the attachment file
 
+**HDR Media**:
+An image or video attachment whose file carries high-dynamic-range information — for an image, an embedded gain map; for a video, an HDR transfer signal (HLG/PQ).
+_Avoid_: wide-gamut image, bright image, edited photo
+
+**HDR Display**:
+A surface actually rendering an HDR Media's full brightness boost, as opposed to showing only its SDR base image.
+_Avoid_: HDR support as a blanket term, wide colour gamut
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -251,6 +259,9 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - Hidden private **Thing Cards** do not expose **Thing Card Media**.
 - A **Thing** may have **Detail Attachment Media Appearance** for image and video attachments shown in its Detail screen.
 - **Detail Attachment Media Crop** changes Detail attachment presentation only and does not modify the underlying attachment file.
+- A **Thing Card Media** or **Detail Attachment** may be backed by an **HDR Media** file.
+- A single **HDR Media** may receive **HDR Display** on a surface that supports it while appearing as its SDR base on every other surface.
+- **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
@@ -274,6 +285,7 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - "Note folder" sounds like it only contains Note-type Things; resolved as **Thing Folder** because EverythingDone's user-created items are Things across notes, reminders, habits, and goals.
 - "WELCOME/NOTIFY_EMPTY note" can sound like user-owned content; resolved as **Legacy Placeholder Thing** when discussing the old stored rows and **Empty-List Guidance** when discussing the replacement message.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
+- "HDR support" conflates a file being high-dynamic-range (**HDR Media**) with a surface actually boosting its brightness (**HDR Display**); resolved as two distinct concepts, because one **HDR Media** is HDR-displayed on some surfaces and shown as its SDR base on others.
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.
 - "First attachment" can mean the first stored attachment or the card's chosen media source; resolved as **Thing Card Media Source** when discussing which attachment a Thing Card uses.

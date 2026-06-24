@@ -1423,4 +1423,9 @@
     <string name="channel_ongoing">Ongoing Notification</string>
     <string name="channel_auto_notify">Auto Notify</string>
 
+    <string name="hdr_badge_text" translatable="false">HDR</string>
+    <string name="cd_hdr_badge_on">HDR on, tap to show in standard range</string>
+    <string name="cd_hdr_badge_off">HDR off, tap to enable HDR</string>
+    <string name="image_viewer_no_video_player">No app can play this video</string>
+
 </resources>

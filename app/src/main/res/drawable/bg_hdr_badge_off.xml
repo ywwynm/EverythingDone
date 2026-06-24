@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HDR badge, boost-off (user forced SDR) state: outlined pill over a faint
+     dark backing so the white "HDR" text stays legible on bright images. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#66000000" />
+    <stroke
+        android:width="1.5dp"
+        android:color="#CCFFFFFF" />
+    <corners android:radius="4dp" />
+</shape>

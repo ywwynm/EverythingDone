@@ -20,4 +20,22 @@
         android:theme="@style/EverythingDoneTheme.ImageViewer.Actionbar"
         app:contentInsetStart="72dp"/>
 
+    <TextView
+        android:id="@+id/tv_hdr_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="64dp"
+        android:layout_marginEnd="16dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:background="@drawable/bg_hdr_badge_on"
+        android:text="@string/hdr_badge_text"
+        android:textColor="#000000"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"/>
+
 </merge>

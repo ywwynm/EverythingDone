@@ -109,6 +109,12 @@ standing permission for the Gradle debug update publish task in this small-bug
 workflow; still respect sandbox/escalation policy prompts if the environment
 requires them.
 
+Do not auto-install the debug APK onto the connected physical device (the
+`BYZL…` serial). The user verifies on their own device remotely: after a
+successful compile, publish a debug update to the Aliyun channel and let the
+user test there. This matters especially for features that can only be confirmed
+visually on real hardware (e.g. HDR rendering, which an emulator cannot show).
+
 ## Memory and feature documentation
 
 - Keep `memory/*.md` lightweight and cross-feature. Do not store detailed feature implementation history here.
