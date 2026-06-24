@@ -51,9 +51,10 @@ object RemoteActionHelper {
         }
 
         if (thingIndex == -1) {
+            val locationToUpdate = ThingManager.getInstance(context)!!.getLocationForStateChange(t)
             t = Thing.getSameCheckStateThing(t, Thing.UNDERWAY, Thing.FINISHED)!!
             val thingDAO: ThingDAO = ThingDAO.getInstance(context)!!
-            thingDAO.updateState(t, t.location, Thing.UNDERWAY, Thing.FINISHED,
+            thingDAO.updateState(t, locationToUpdate, Thing.UNDERWAY, Thing.FINISHED,
                     true,  /* handleNotifyEmpty  */
                     true,  /* handleCurrentLimit */
                     false, /* toUndo             */

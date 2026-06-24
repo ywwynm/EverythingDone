@@ -124,6 +124,8 @@
 
 ## Move Semantics
 
+- 移动记事或文件夹时，置顶视为条目自身状态而不是来源目录的一次性排序效果。无论通过拖拽还是 Dialog，移入其它文件夹、移回根目录、或移到其它父级目录时，都保留源条目的置顶/非置顶状态；落位到目标父级对应的置顶区或非置顶区顶部。拖拽两个记事创建文件夹时，新文件夹只要任一成员置顶就置顶，成员记事在新文件夹内也分别保留自己的置顶状态。
+- 记事完成、删除、从回收站恢复时，也应保留记事自身的置顶状态；原本置顶的记事会重新分配到同一父级置顶区顶部之前的新负数 `location`，因此后来完成/删除/恢复的置顶记事会排在更前面。原本未置顶的记事仍沿用既有行为，进入目标状态列表的非置顶区顶部。
 - When a Thing or Thing Folder is moved into a different Thing Folder, moved
   back to its previous parent, or moved back to root, it should not preserve its
   old relative order. The moved entry should become the first item in the target

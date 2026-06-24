@@ -530,9 +530,13 @@ open class ThingManager private constructor(context: Context?) {
         val thingToUpdate = if (!toUndo) {
             Thing.getSameCheckStateThing(thing, stateBefore, stateAfter)
         } else thing
-
+        val locationToUpdate = if (!toUndo && stateAfter != Thing.DELETED_FOREVER) {
+            getLocationForStateChange(thing)
+        } else {
+            location
+        }
         mExecutor!!.execute {
-            mDao!!.updateState(thingToUpdate, location, stateBefore, stateAfter,
+            mDao!!.updateState(thingToUpdate, locationToUpdate, stateBefore, stateAfter,
                     false, false, toUndo, true)
         }
 
@@ -540,7 +544,7 @@ open class ThingManager private constructor(context: Context?) {
             mThings!!.add(position, thing)
         } else {
             // used to make sure that updated thing is at first location except header
-            if (stateAfter != Thing.DELETED_FOREVER) {
+            if (stateAfter != Thing.DELETED_FOREVER && thing.location >= 0) {
                 updateHeader(1)
             }
             if (mThings!!.indexOf(thing) == position && position != -1) {
@@ -610,14 +614,17 @@ open class ThingManager private constructor(context: Context?) {
             FrequentSettings.put(ONGOING_K, -1L)
         }
 
+        val stateChangeLocations = getLocationsForStateChange(things)
+
         mExecutor!!.execute {
-            mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
+            mDao!!.updateStates(clonedThings, stateChangeLocations, stateBefore, stateAfter, false)
         }
 
         var type: Int = things[0]!!.type
 
         val size: Int = things.size
-        updateHeader(size)
+        val nonStickyCount = things.count { it != null && it.location >= 0 }
+        updateHeader(nonStickyCount)
 
         val rDao: ReminderDAO = ReminderDAO.getInstance(mContext)!!
         val positions: MutableList<Int?> = ArrayList(size)
@@ -914,13 +921,18 @@ open class ThingManager private constructor(context: Context?) {
         val folderId = mHeaderId
         val now = System.currentTimeMillis()
         val folderBackground = background ?: ThingBackground.fromRandom()
+        val folderSticky = first.location < 0 || second.location < 0
+        val folderLocation = mFolderDao!!.getFirstChildLocation(
+            mProjection.currentFolderId,
+            sticky = folderSticky
+        )
         val folder = ThingFolder(
             id = folderId,
             parentFolderId = mProjection.currentFolderId,
             title = title,
             state = Thing.UNDERWAY,
             color = folderBackground.representativeColor(),
-            location = second.location,
+            location = folderLocation,
             isPrivate = false,
             createTime = now,
             updateTime = now
@@ -1012,7 +1024,7 @@ open class ThingManager private constructor(context: Context?) {
     ): Boolean {
         val sourceFolderId = thing.folderId
         if (sourceFolderId == folderId) return false
-        val newLocation = mFolderDao!!.getFirstChildLocation(folderId, sticky = false)
+        val newLocation = mFolderDao!!.getFirstChildLocation(folderId, thing.location < 0)
         thing.folderId = folderId
         thing.location = newLocation
         mDao!!.updateFolderIdAndLocation(thing.id, folderId, newLocation)
@@ -1083,7 +1095,7 @@ open class ThingManager private constructor(context: Context?) {
         if (mFolderDao!!.isDescendantOf(parentFolderId, folder.id)) return false
         val sourceParentFolderId = folder.parentFolderId
         if (sourceParentFolderId == parentFolderId) return false
-        val newLocation = mFolderDao!!.getFirstChildLocation(parentFolderId, sticky = false)
+        val newLocation = mFolderDao!!.getFirstChildLocation(parentFolderId, folder.isSticky())
         folder.parentFolderId = parentFolderId
         folder.location = newLocation
         mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
@@ -1492,7 +1504,8 @@ open class ThingManager private constructor(context: Context?) {
             FrequentSettings.put(ongoingKey, -1L)
         }
 
-        mDao!!.updateStates(clonedThings, null, stateBefore, stateAfter, false)
+        val stateChangeLocations = getLocationsForStateChange(things)
+        mDao!!.updateStates(clonedThings, stateChangeLocations, stateBefore, stateAfter, false)
 
         val rDao = ReminderDAO.getInstance(mContext)!!
         val updateCounts = SparseIntArray()
@@ -1549,6 +1562,30 @@ open class ThingManager private constructor(context: Context?) {
         mFolderDao!!.updateLocations(arrayOf<Long?>(folder.id), arrayOf<Long?>(newLocation))
         loadThings()
         return true
+    }
+
+    open fun getLocationForStateChange(thing: Thing?): Long {
+        thing ?: return mDao!!.getMaxThingLocation()
+        if (thing.location >= 0) return thing.location
+        return mFolderDao!!.getFirstChildLocation(thing.folderId, sticky = true)
+    }
+
+    private fun getLocationsForStateChange(things: List<Thing?>): List<Long?> {
+        val nextStickyLocations = HashMap<Long?, Long>()
+        val locations = ArrayList<Long?>(things.size)
+        for (thing in things) {
+            if (thing == null || thing.location >= 0) {
+                locations.add(thing?.location)
+                continue
+            }
+            val parentFolderId = thing.folderId
+            val location = nextStickyLocations.getOrPut(parentFolderId) {
+                mFolderDao!!.getFirstChildLocation(parentFolderId, sticky = true)
+            }
+            locations.add(location)
+            nextStickyLocations[parentFolderId] = location - 1
+        }
+        return locations
     }
 
     private fun getMinCurrentEntryLocation(): Long {

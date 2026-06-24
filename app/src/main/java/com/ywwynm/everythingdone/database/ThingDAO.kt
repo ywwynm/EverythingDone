@@ -379,13 +379,17 @@ open class ThingDAO private constructor(context: Context?) {
             db!!.insert(Def.Database.TABLE_THINGS, null, values)
         } else {
             if (stateAfter != Thing.DELETED_FOREVER) {
-                // we should keep newest finished thing at the first place in Finished page.
                 if (!toUndo) {
-                    val maxLocation: Long = getMaxThingLocation()
-                    if (shouldUpdateHeader) { // this is always true if called by other classes
-                        updateHeader(1)
+                    val newLocation = if (thing.location < 0) {
+                        location
+                    } else {
+                        val maxLocation: Long = getMaxThingLocation()
+                        if (shouldUpdateHeader) { // this is always true if called by other classes
+                            updateHeader(1)
+                        }
+                        maxLocation
                     }
-                    values.put(Def.Database.COLUMN_LOCATION_THINGS, maxLocation)
+                    values.put(Def.Database.COLUMN_LOCATION_THINGS, newLocation)
                     if (stateAfter == Thing.FINISHED) {
                         values.put(Def.Database.COLUMN_FINISH_TIME_THINGS, System.currentTimeMillis())
                     }
@@ -421,10 +425,12 @@ open class ThingDAO private constructor(context: Context?) {
         try {
             val size: Int = things!!.size
             if (!toUndo) {
-                updateHeader(size)
+                val nonStickyCount = things.count { it == null || it.location >= 0 }
+                updateHeader(nonStickyCount)
                 for (i in size - 1 downTo 0) {
+                    val location = locations?.getOrNull(i) ?: -1L
                     updateState(
-                        things[i], -1, stateBefore, stateAfter, false, false,
+                        things[i], location, stateBefore, stateAfter, false, false,
                             false, false)
                 }
             } else {

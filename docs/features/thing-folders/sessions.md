@@ -1,5 +1,23 @@
 # Thing Folders Sessions
 
+## 2026-06-24 - 记事状态变更保留置顶状态
+
+`:app:assembleDebug` BUILD SUCCESSFUL。
+
+- 修正记事完成、删除、恢复时会丢失置顶的问题：`ThingManager` 在非撤销状态变更中检查原记事 `location`，负数则重新分配到当前父级置顶区顶部之前的新负数位置，再交给 `ThingDAO` 写库，不再固定写入非置顶区。
+- 非置顶记事仍沿用既有行为，状态变更后进入目标状态列表的非置顶区顶部；批量状态变更只按非置顶条目数量前移 header。
+- 状态变更落位继续放在 `ThingManager` 编排，和普通非置顶记事的状态变更流程保持一致；详情页和通知/远程动作这类直连 DAO 的边缘路径也先向 `ThingManager` 取得目标 `location`。
+- 已同步 `preferences.md` 与 `decisions.md`。此前 DAO 计算落位版本已通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码为 `202606240628`，发布日志为 `docs/features/thing-folders/debug-updates/update-20260624142807.md`；本次按用户确认把状态变更落位回迁到 `ThingManager` 后，已重新发布到阿里云 debug 通道，更新码为 `202606240642`，远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606240642.apk`，SHA-256 为 `c7d14ae45802bdcb89a31b3760513baeabe3d0d5b2de832ea71a365b8baff0ec`，发布日志为 `docs/features/thing-folders/debug-updates/update-20260624144228.md`。
+
+## 2026-06-24 - 移动与拖拽建夹保留置顶状态
+
+`:app:assembleDebug` BUILD SUCCESSFUL。随后通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码为 `202606240340`，发布日志为 `docs/features/thing-folders/debug-updates/update-20260624114005.md`。
+
+- `ThingManager.createFolderFromThings` 改为用两个成员的置顶状态共同决定新文件夹位置：任一成员置顶则新文件夹放入当前父级置顶区顶部，否则放入非置顶区顶部。
+- `moveThingIntoFolderInternal` 移动记事时按记事当前 `location < 0` 选择目标父级置顶区或非置顶区，拖拽移动与 Dialog 移动共用该规则。
+- `moveFolderIntoFolder` 移动文件夹时按 `folder.isSticky()` 选择目标父级置顶区或非置顶区，目标文件夹接收子项时自身置顶状态不变。
+- 已同步 `preferences.md` 与 `decisions.md`，并移除对应的临时 followup。
+
 ## 2026-06-24 - 根标签条件化、移动 Dialog 高度自适应、文件夹颜色信息、FAB ripple
 
 完成一组跨界面小迭代（详见 `decisions.md` 同日条目），均通过 `:app:assembleDebug`：

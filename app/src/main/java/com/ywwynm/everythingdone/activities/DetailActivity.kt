@@ -3460,10 +3460,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         if (mThingIndex == -1) {
             val stateBefore = mThing!!.state
+            val locationToUpdate = manager.getLocationForStateChange(mThing)
             mThing = Thing.getSameCheckStateThing(mThing, stateBefore, stateAfter)
             val dao: ThingDAO = ThingDAO.getInstance(mApp)!!
             dao.updateState(
-                mThing, mThing!!.location, stateBefore, stateAfter, true, true,
+                mThing, locationToUpdate, stateBefore, stateAfter, true, true,
                 false, true
             )
 
