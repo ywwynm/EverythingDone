@@ -1,0 +1,111 @@
+﻿> Task :timelytextview:preBuild UP-TO-DATE
+> Task :swirl:preBuild UP-TO-DATE
+> Task :timelytextview:preDebugBuild UP-TO-DATE
+> Task :swirl:preDebugBuild UP-TO-DATE
+> Task :timelytextview:extractDebugSupportedLocales UP-TO-DATE
+> Task :swirl:extractDebugSupportedLocales UP-TO-DATE
+> Task :timelytextview:processDebugNavigationResources UP-TO-DATE
+> Task :swirl:processDebugNavigationResources UP-TO-DATE
+> Task :timelytextview:generateDebugResources UP-TO-DATE
+> Task :swirl:generateDebugResources UP-TO-DATE
+> Task :app:prepareDebugUpdatePublish
+> Task :timelytextview:packageDebugResources UP-TO-DATE
+> Task :swirl:packageDebugResources UP-TO-DATE
+> Task :app:generateDebugUpdateValues
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :swirl:parseDebugLocalResources UP-TO-DATE
+> Task :swirl:generateDebugRFile UP-TO-DATE
+> Task :timelytextview:parseDebugLocalResources UP-TO-DATE
+> Task :timelytextview:generateDebugRFile UP-TO-DATE
+> Task :swirl:compileDebugKotlin NO-SOURCE
+> Task :swirl:javaPreCompileDebug UP-TO-DATE
+> Task :app:extractDebugSupportedLocales
+> Task :timelytextview:compileDebugKotlin NO-SOURCE
+> Task :swirl:compileDebugJavaWithJavac UP-TO-DATE
+> Task :timelytextview:javaPreCompileDebug UP-TO-DATE
+> Task :swirl:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :swirl:generateDebugAssets UP-TO-DATE
+> Task :swirl:mergeDebugAssets UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths
+> Task :swirl:processDebugJavaRes NO-SOURCE
+> Task :swirl:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :swirl:writeDebugAarMetadata UP-TO-DATE
+> Task :swirl:extractDeepLinksDebug UP-TO-DATE
+> Task :swirl:processDebugManifest UP-TO-DATE
+> Task :swirl:mapDebugSourceSetPaths UP-TO-DATE
+> Task :timelytextview:compileDebugJavaWithJavac UP-TO-DATE
+> Task :swirl:compileDebugLibraryResources UP-TO-DATE
+> Task :timelytextview:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :swirl:mergeDebugJniLibFolders UP-TO-DATE
+> Task :timelytextview:generateDebugAssets UP-TO-DATE
+> Task :timelytextview:mergeDebugAssets UP-TO-DATE
+> Task :swirl:mergeDebugNativeLibs NO-SOURCE
+> Task :swirl:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :timelytextview:processDebugJavaRes NO-SOURCE
+> Task :timelytextview:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :timelytextview:writeDebugAarMetadata UP-TO-DATE
+> Task :timelytextview:extractDeepLinksDebug UP-TO-DATE
+> Task :timelytextview:processDebugManifest UP-TO-DATE
+> Task :timelytextview:mapDebugSourceSetPaths UP-TO-DATE
+> Task :timelytextview:compileDebugLibraryResources UP-TO-DATE
+> Task :timelytextview:mergeDebugJniLibFolders UP-TO-DATE
+> Task :timelytextview:mergeDebugNativeLibs NO-SOURCE
+> Task :timelytextview:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :app:generateDebugLocaleConfig UP-TO-DATE
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:processDebugNavigationResources
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeDebugResources
+warn: removing resource com.ywwynm.everythingdone:string/restore_thing_folder without required default value.
+
+> Task :app:processDebugResources
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+> Task :app:publishDebugUpdate
+Published debug update 202606241334 to http://120.25.194.207/everythingdone-updates/debug/latest.json
+
+[Incubating] Problems report is available at: file:///E:/projects/EverythingDone/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 31s
+79 actionable tasks: 12 executed, 67 up-to-date
+"Good luck, EverythingDone v1"

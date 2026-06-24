@@ -11,6 +11,8 @@ planning or editing.**
 
 **Git提交标题和信息需要同时使用中英文，英文在前。不要使用"English:"、"中文："这样的区分，直接用中文和英文即可。**
 
+**除非明确要求，否则不得使用adb连接任何物理设备、模拟器进行操作。**
+
 ### Operational rules
 
 Tool paths, ADB invocation patterns, Gradle invocation patterns, and
