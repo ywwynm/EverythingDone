@@ -10,6 +10,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.Drawable
+import android.os.Parcelable
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.ActionBar
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -89,6 +90,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     private var mEntries: MutableList<ConfigEntry> = ArrayList()
     private var mFolderDao: ThingFolderDAO? = null
     private var mCurrentFolderId: Long? = null
+    private val mFolderScrollStates = HashMap<Long, Parcelable>()
     private val mAuthenticatedPrivateFolderIds = HashSet<Long>()
     private var mStaggeredGridLayoutManager: StaggeredGridLayoutManager? = null
 
@@ -318,6 +320,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
     private fun openParentFolder(): Boolean {
         val folderId = mCurrentFolderId ?: return false
+        saveCurrentFolderScrollState()
         val path = mFolderDao!!.getFolderPath(folderId)
         mCurrentFolderId = if (path.size <= 1) {
             null
@@ -325,13 +328,14 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             path[path.size - 2].id
         }
         trimAuthenticatedPrivateFoldersToCurrentPath()
-        reloadCurrentFolderUi()
+        reloadCurrentFolderUi(restoreScroll = true)
         return true
     }
 
     private fun openFolder(folder: ThingFolder) {
+        saveCurrentFolderScrollState()
         mCurrentFolderId = folder.id
-        reloadCurrentFolderUi()
+        reloadCurrentFolderUi(restoreScroll = false)
     }
 
     private fun previewSelectedThing(thing: Thing) {
@@ -388,12 +392,47 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         return mFolderDao!!.isEffectivelyPrivate(folderId)
     }
 
-    private fun reloadCurrentFolderUi() {
+    private fun reloadCurrentFolderUi(restoreScroll: Boolean) {
         loadCurrentFolderEntries()
         updateActionbarTitle()
         syncCardDelegateRecyclerView()
-        mRecyclerView!!.scrollToPosition(0)
         mAdapter!!.notifyDataSetChanged()
+        if (restoreScroll) {
+            restoreCurrentFolderScrollStateOrTop()
+        } else {
+            scrollToTop()
+        }
+    }
+
+    private fun scrollToTop() {
+        val layoutManager = mStaggeredGridLayoutManager
+        if (layoutManager != null) {
+            // StaggeredGridLayoutManager.scrollToPosition(0) only guarantees item 0 is
+            // visible; if it is already partially visible the current offset is kept,
+            // leaking the parent list's scroll distance into the just-opened folder.
+            // scrollToPositionWithOffset(0, 0) forces the top item to align with offset 0.
+            layoutManager.scrollToPositionWithOffset(0, 0)
+        } else {
+            mRecyclerView?.scrollToPosition(0)
+        }
+    }
+
+    private fun saveCurrentFolderScrollState() {
+        val key = mCurrentFolderId ?: ROOT_FOLDER_KEY
+        val state = mRecyclerView?.layoutManager?.onSaveInstanceState() ?: return
+        mFolderScrollStates[key] = state
+    }
+
+    private fun restoreCurrentFolderScrollStateOrTop() {
+        val recyclerView = mRecyclerView ?: return
+        val key = mCurrentFolderId ?: ROOT_FOLDER_KEY
+        val state = mFolderScrollStates[key]
+        if (state == null) {
+            scrollToTop()
+            return
+        }
+        recyclerView.layoutManager?.onRestoreInstanceState(state)
+        recyclerView.requestLayout()
     }
 
     private fun dp(value: Int): Int {
@@ -796,5 +835,6 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
     private companion object {
         const val VIEW_TYPE_THING = 0
         const val VIEW_TYPE_FOLDER = 1
+        const val ROOT_FOLDER_KEY = -1L
     }
 }
