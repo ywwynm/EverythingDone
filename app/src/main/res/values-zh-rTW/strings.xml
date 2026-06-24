@@ -170,6 +170,7 @@
     <string name="underway">正在進行</string>
     <string name="thing">記事</string>
     <string name="all_things">所有記事</string>
+    <string name="all_content">所有內容</string>
     <string name="note">記錄</string>
     <string name="reminder">提醒</string>
     <string name="habit">習慣</string>

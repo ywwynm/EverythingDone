@@ -28,7 +28,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_move_to_thing_folder"
         android:layout_width="match_parent"
-        android:layout_height="280dp"
+        android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="0dp"
         android:layout_marginRight="8dp"

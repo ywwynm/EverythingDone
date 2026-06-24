@@ -268,6 +268,11 @@ open class ThingManager private constructor(context: Context?) {
         return folders
     }
 
+    /** Whether any Thing Folder row exists in the database, including trashed ones. */
+    open fun hasAnyFolder(): Boolean {
+        return mFolderDao!!.hasAnyFolder()
+    }
+
     open fun getFolderThumbnailPreviewEntries(folder: ThingFolder): List<ThingListEntry> {
         return mFolderDao!!.getThumbnailEntriesForTypeFilterPreview(
             folder,

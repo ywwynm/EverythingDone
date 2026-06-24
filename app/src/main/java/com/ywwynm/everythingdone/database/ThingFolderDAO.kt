@@ -74,6 +74,20 @@ open class ThingFolderDAO private constructor(context: Context?) {
         return folders
     }
 
+    /** Whether the thing_folders table holds any row at all, including trashed folders. */
+    open fun hasAnyFolder(): Boolean {
+        val cursor = db!!.rawQuery(
+            "SELECT COUNT(*) FROM ${Def.Database.TABLE_THING_FOLDERS}",
+            null
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return it.getLong(0) > 0
+            }
+        }
+        return false
+    }
+
     open fun getChildFolders(parentFolderId: Long?): List<ThingFolder> {
         val folders = ArrayList<ThingFolder>()
         val cursor = db!!.query(

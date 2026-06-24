@@ -2,6 +2,15 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-06-24 - Things without a title can be made private
+
+Setting a Thing private no longer requires a non-empty title. The previous
+empty-title guards were removed from all three entry points (Detail return,
+single-select toggle, multi-select batch). Privacy stays encoded as the
+`PRIVATE_THING_PREFIX` title prefix, so a no-title private Thing simply stores
+the prefix with an empty display title. The batch "skipped" Toast now only
+covers the currently-timed (doing) Thing.
+
 ## 2026-06-18 - KeyboardUtil uses WindowInsets for IME visibility
 
 `KeyboardUtil` should control IME show/hide through AndroidX

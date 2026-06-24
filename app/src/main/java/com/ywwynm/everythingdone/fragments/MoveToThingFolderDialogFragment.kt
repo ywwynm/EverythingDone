@@ -51,6 +51,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
     private val mExpandedFolderIds = HashSet<Long>()
     private val mAuthenticatedExpandedPrivateFolderIds = HashSet<Long>()
     private var mRootExpanded = true
+    private var mHasAnyFolder = false
     private var mRecyclerView: RecyclerView? = null
     private var mTopSeparator: View? = null
     private var mBottomSeparator: View? = null
@@ -69,6 +70,11 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
 
     fun setAccentBackground(background: ThingBackground?) {
         mAccentBackground = background
+    }
+
+    /** When true, the root target node is labelled "All content" instead of "All things". */
+    fun setHasAnyFolder(value: Boolean) {
+        mHasAnyFolder = value
     }
 
     fun setListener(listener: Listener?) {
@@ -150,6 +156,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             appendFolderRows(null, 1, childrenByParent, rows)
         }
         mRows = rows
+        updatePickerHeight()
         mAdapter?.notifyDataSetChanged()
         updateScrollChrome()
     }
@@ -214,6 +221,24 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         } else {
             topSeparator.visibility = View.VISIBLE
             bottomSeparator.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Size the folder list to its content: grow row by row up to a capped height,
+     * matching the note-list widget configuration's scope picker. Beyond the cap the
+     * list scrolls and the top/bottom separators (license-dialog style) hint at it.
+     */
+    private fun updatePickerHeight() {
+        val recyclerView = mRecyclerView ?: return
+        val density = resources.displayMetrics.density
+        val rowHeight = (PICKER_ROW_HEIGHT_DP * density).toInt()
+        val target = (mRows.size.coerceAtLeast(1) * rowHeight)
+            .coerceAtMost(PICKER_MAX_VISIBLE_ROWS * rowHeight)
+        val params = recyclerView.layoutParams
+        if (params.height != target) {
+            params.height = target
+            recyclerView.layoutParams = params
         }
     }
 
@@ -444,7 +469,9 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         private fun bindTitle(rowItem: Row) {
             val folder = rowItem.folder
             if (folder == null) {
-                title.text = getString(R.string.all_things_scope)
+                title.text = getString(
+                    if (mHasAnyFolder) R.string.all_content else R.string.all_things
+                )
             } else {
                 title.text = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) }
             }
@@ -488,5 +515,9 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
 
     companion object {
         const val TAG: String = "MoveToThingFolderDialogFragment"
+        // Row height matches FolderTreeHolder's fixed 48dp item height; the list grows
+        // up to PICKER_MAX_VISIBLE_ROWS rows, then caps and scrolls.
+        private const val PICKER_ROW_HEIGHT_DP = 48
+        private const val PICKER_MAX_VISIBLE_ROWS = 6
     }
 }

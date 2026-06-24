@@ -1701,10 +1701,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
-    private fun cannotSetAsPrivateThing(): Boolean {
-        return mEtTitle!!.text.toString().isEmpty()
-    }
-
     private fun isPrivateThing(): Boolean {
         val start: Drawable? = mEtTitle!!.compoundDrawables[0]
         return start != null
@@ -1783,19 +1779,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (shouldAddToActionList) {
             mActionList!!.addAction(ThingAction(ThingAction.TOGGLE_PRIVATE, null, null))
         }
-    }
-
-    private fun alertNoTitleWhenSetPrivateThing() {
-        val adf = AlertDialogFragment()
-        adf.setShowCancel(false)
-
-        val accent: ThingBackground? = getAccentBackground()
-        adf.setTitleBackground(accent)
-        adf.setConfirmBackground(accent)
-
-        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title))
-        adf.setContent(getString(R.string.warning_title_should_not_be_empty))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun updateUndoRedoActionButtonState() {
@@ -3275,11 +3258,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun returnToThingsActivity(alertForPrivateThing: Boolean, alertForChangingAlarms: Boolean) {
         if (!prepareForReturnNormally()) {
-            return
-        }
-
-        if (alertForPrivateThing && isPrivateThing() && cannotSetAsPrivateThing()) {
-            alertNoTitleWhenSetPrivateThing()
             return
         }
 

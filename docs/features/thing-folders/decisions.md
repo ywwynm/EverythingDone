@@ -1,5 +1,17 @@
 # Thing Folders Decisions
 
+## 2026-06-24 - 根范围根标签随文件夹存在与否切换，移动 Dialog 列表高度自适应，文件夹菜单加颜色信息
+
+文件夹范围根标签（Drawer 根行、移动到文件夹 Dialog 根节点、记事列表 Widget 配置根行）统一改为条件文案：数据库 `thing_folders` 表没有任何文件夹行时显示"所有记事"（`all_things`），存在任意文件夹行时显示"所有内容"（新增 `all_content`）。判定按整张表计数（`ThingFolderDAO.hasAnyFolder()` 用 `SELECT COUNT(*)`），含已进入回收站的文件夹行，因此口径是"数据库里是否有文件夹"而非"当前是否有未删除文件夹"。
+
+这取代 2026-06-22"移动到文件夹 Dialog 根标签改为'全部记事'"：移动 Dialog 根节点不再用 `all_things_scope`（"全部记事"），改用上述条件文案；Widget 配置根行也从 `R.string.underway`（"正在进行"）改为同一条件文案，使三处一致。
+
+移动到文件夹 Dialog 的文件夹列表区域改为高度自适应：列表高度随行数增长（行高 48dp，与 `FolderTreeHolder` 一致），最多 6 行后封顶滚动，做法参照记事列表 Widget 配置的 `updateScopePickerHeight`。上下分界线沿用原有的 license Dialog 式逻辑（顶端隐藏顶线、底端隐藏底线、中间两线都显示、不可滚动时都隐藏），不改判定方式，仅去掉固定 280dp。
+
+打开文件夹后的 overflow 菜单（正在进行/已完成/回收站三套 `menu_things_*`）新增"颜色信息"项（`act_color_info`），复用记事详情页的 `ColorInfoDialogFragment`，传入当前文件夹背景（`getCurrentFolderBackgroundForChrome()`，纯色或渐变）。只在打开文件夹时可见，逻辑放在 `configureCurrentFolderMenu`。
+
+首页根目录新建记事 FAB 的触摸 ripple 不再预览随机新记事颜色：根目录（accent+accent2 渐变）固定用偏白 ripple（`0x3DFFFFFF`，即 24% 白，与文件夹分支 `onColor(..., 0.24f)` 同 alpha）；文件夹内维持按文件夹代表色 `onColor` 偏白/偏黑。原因是 accent 渐变代表色在亮度阈值上属"浅色"，`onColor` 会给偏黑，但设计上该暖色渐变配白色 ripple 更协调，故根目录直接固定偏白。这与 2026-06-20"create-Thing FAB 用文件夹背景"的方向一致，只调整 ripple 取色。
+
 ## 2026-06-23 - 文件夹内容删除按当前状态执行，不再跨状态删除未删除内容
 
 “删除文件夹中所有记事”属于当前状态下的内容操作：在“正在进行”状态只删除文件夹子树中正在进行的记事；在“已完成”状态只删除文件夹子树中已完成的记事；回收站中的“永久删除文件夹中所有记事”只永久删除回收站里的记事。它仍然跟随当前类型筛选，且不移动或删除文件夹容器。

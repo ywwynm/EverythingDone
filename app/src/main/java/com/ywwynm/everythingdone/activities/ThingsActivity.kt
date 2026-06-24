@@ -95,6 +95,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
+import com.ywwynm.everythingdone.fragments.ColorInfoDialogFragment
 import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
@@ -656,8 +657,9 @@ class ThingsActivity :
             }
         }
 
-        mFab!!.rippleColor = App.newThingColor
-        mFab!!.setForegroundRippleColor(App.newThingColor)
+        // FAB ripple/background are applied below by refreshActivitySurfaceAndHeader →
+        // applyCreateFabBackgroundForCurrentProjection, which sets a fab-colour-based
+        // ripple instead of the random new-thing colour.
         refreshActivitySurfaceAndHeader()
         if (App.isSearching) {
             updateSearchNoResult(0)
@@ -855,6 +857,9 @@ class ThingsActivity :
                 )
             }
         }
+        // Colour information for the current Folder's background mirrors the Detail
+        // overflow entry; available in every state whenever a Folder is open.
+        menu.findItem(R.id.act_color_info)?.isVisible = inFolder
     }
 
     private fun tintHomeMenuIconsForAppearance(menu: Menu) {
@@ -924,7 +929,7 @@ class ThingsActivity :
         drawerItems.add(
             createDrawerDestinationItem(
                 R.id.drawer_all_things,
-                R.string.all_things,
+                if (mThingManager!!.hasAnyFolder()) R.string.all_content else R.string.all_things,
                 R.drawable.drawer_all,
                 groupStart = true,
                 groupEnd = visibleItems.isEmpty()
@@ -1317,8 +1322,19 @@ class ThingsActivity :
             mThingManager!!.getCurrentFolder()?.let {
                 showDeleteThingFolderDialogForCurrentState(it)
             }
+        } else if (itemId == R.id.act_color_info) {
+            showCurrentFolderColorInfoDialog()
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun showCurrentFolderColorInfoDialog() {
+        // Reuse the Detail screen's colour-information dialog for the open Folder,
+        // inspecting the Folder's own pure colour or gradient background.
+        val background = getCurrentFolderBackgroundForChrome() ?: return
+        val df = ColorInfoDialogFragment()
+        df.setThingBackground(background)
+        df.show(fragmentManager, ColorInfoDialogFragment.TAG)
     }
 
     private var lastClickBack: Long = -1
@@ -2332,8 +2348,13 @@ class ThingsActivity :
         if (folderBackground == null) {
             fab.setThingBackground(App.defaultAccentBackground, appAccent)
             fab.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.black_54p))
-            fab.rippleColor = App.newThingColor
-            fab.setForegroundRippleColor(App.newThingColor)
+            // Root FAB shows the accent+accent2 gradient. Its ripple no longer previews
+            // the random new-thing colour; the gradient pairs with a light (white)
+            // overlay even though its representative colour is nominally light.
+            // 0x3DFFFFFF == onColor(dark, 0.24f), matching the folder branch's alpha.
+            val ripple = 0x3DFFFFFF
+            fab.rippleColor = ripple
+            fab.setForegroundRippleColor(ripple)
             return
         }
 
@@ -7321,6 +7342,7 @@ class ThingsActivity :
     private fun showMoveThingFolderDialog(folder: ThingFolder) {
         val dialog = MoveToThingFolderDialogFragment()
         dialog.setAccentBackground(folder.getBackground())
+        dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(
             mThingManager!!.getDrawerFolders(),
             folder.parentFolderId,
@@ -7356,6 +7378,7 @@ class ThingsActivity :
 
         val dialog = MoveToThingFolderDialogFragment()
         dialog.setAccentBackground(selectedThings.first().getBackground())
+        dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(
             mThingManager!!.getDrawerFolders(),
             getCommonSelectedThingsFolderId(selectedThings)
@@ -10255,6 +10278,7 @@ class ThingsActivity :
         }
         val dialog = MoveToThingFolderDialogFragment()
         dialog.setAccentBackground(App.defaultAccentBackground)
+        dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(mThingManager!!.getDrawerFolders(), null, forbidden)
         dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
             override fun onMoveTargetConfirmed(targetFolderId: Long?) {
@@ -10382,7 +10406,6 @@ class ThingsActivity :
                 if (thing.isPrivate()) continue
                 if (thing.id == App.getDoingThingId()) { skipped++; continue }
                 val title = thing.getTitleToDisplay()?.trim().orEmpty()
-                if (title.isEmpty()) { skipped++; continue }
                 thing.title = Thing.PRIVATE_THING_PREFIX + title
             } else {
                 if (!thing.isPrivate()) continue
@@ -10487,10 +10510,6 @@ class ThingsActivity :
                 return
             }
             val titleToDisplay = thing.getTitleToDisplay()?.trim().orEmpty()
-            if (titleToDisplay.isEmpty()) {
-                warnEmptyTitleForPrivateThing(thing)
-                return
-            }
             thing.title = Thing.PRIVATE_THING_PREFIX + titleToDisplay
             persistSelectedThingPrivateChange(thing)
             return
@@ -10535,16 +10554,6 @@ class ThingsActivity :
         adf.setConfirmBackground(thing.getBackground())
         adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
-    }
-
-    private fun warnEmptyTitleForPrivateThing(thing: Thing) {
-        val adf = AlertDialogFragment()
-        adf.setShowCancel(false)
-        adf.setTitleBackground(thing.getBackground())
-        adf.setConfirmBackground(thing.getBackground())
-        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
-        adf.setContent(getString(R.string.warning_title_should_not_be_empty))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
 

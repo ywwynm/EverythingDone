@@ -1,5 +1,15 @@
 # Thing Folders Sessions
 
+## 2026-06-24 - 根标签条件化、移动 Dialog 高度自适应、文件夹颜色信息、FAB ripple
+
+完成一组跨界面小迭代（详见 `decisions.md` 同日条目），均通过 `:app:assembleDebug`：
+
+- 根范围根标签（Drawer/移动 Dialog/Widget 配置）按数据库是否有文件夹行切换"所有记事"/"所有内容"，新增 `all_content` 字符串（en、zh-rCN/HK/TW），新增 `ThingFolderDAO.hasAnyFolder()` 与 `ThingManager.hasAnyFolder()`。
+- 移动到文件夹 Dialog 列表由固定 280dp 改为按行数自适应、6 行封顶滚动，分界线沿用原 license 式逻辑。
+- 三套 `menu_things_*` overflow 新增"颜色信息"项，复用 `ColorInfoDialogFragment` 展示当前文件夹背景。
+- 首页根目录新建记事 FAB ripple 从随机新记事色改为固定偏白（`0x3DFFFFFF`），文件夹内仍按文件夹色 `onColor`。
+- 另：移除"无标题不能设私密"限制（详见全局 `memory/decisions.md`）。
+
 ## 2026-06-23 - 文件夹内容删除改为按当前状态执行
 
 根据用户确认，文件夹“删除/永久删除其中记事”的内容操作不跨状态：

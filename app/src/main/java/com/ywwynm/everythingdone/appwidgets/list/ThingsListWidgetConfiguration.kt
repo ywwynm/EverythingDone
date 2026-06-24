@@ -427,6 +427,9 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         private val authenticatedPrivateFolderIds = HashSet<Long>()
         private val childrenByParent = HashMap<Long?, List<ThingFolder>>()
         private val visibleItems = ArrayList<ScopeItem>()
+        // Root scope label switches to "All content" once any Thing Folder row exists
+        // in the database (including trashed ones), mirroring the Drawer and dialog.
+        private val hasAnyFolder: Boolean = folderDao.hasAnyFolder()
 
         init {
             val allFolders = folderDao.getAllFolders()
@@ -545,7 +548,9 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                         )
                     )
                 }
-                holder.title.setText(R.string.underway)
+                holder.title.setText(
+                    if (hasAnyFolder) R.string.all_content else R.string.all_things
+                )
                 holder.expand.visibility = View.INVISIBLE
                 holder.expand.isClickable = false
                 holder.expand.isFocusable = false

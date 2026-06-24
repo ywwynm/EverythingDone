@@ -162,6 +162,7 @@
     <string name="underway">Underway</string>
     <string name="thing">Thing</string>
     <string name="all_things">All things</string>
+    <string name="all_content">All content</string>
     <string name="note">Note</string>
     <string name="reminder">Reminder</string>
     <string name="habit">Habit</string>
@@ -505,7 +506,7 @@
     <string name="delete_selected_folders_forever_confirm">Permanently delete the selected folders and all their contents — %1$s in total. This cannot be undone.</string>
     <string name="delete_selected_items_forever_structural_confirm">Permanently delete the selected items (the selected folders with all their contents, and the selected things) — %1$s in total. This cannot be undone.</string>
     <string name="no_matching_things_in_selection">No things to act on in the selection</string>
-    <string name="private_batch_skipped">%1$d item(s) could not be made private (empty title or being timed)</string>
+    <string name="private_batch_skipped">%1$d item(s) could not be made private (currently being timed)</string>
     <string name="act_customize_card_appearance">Adjust thing card appearance</string>
     <string name="act_customize_folder_card_appearance">Adjust folder card appearance</string>
 
