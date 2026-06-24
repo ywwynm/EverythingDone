@@ -1,5 +1,15 @@
 # Thing Card Media Target Geometry Decisions
 
+## 2026-06-24 - DoingActivity 居中 padding 必须先确定再安装底部 inset 监听
+
+`DoingActivity` 的单卡表面通过 `RecyclerView` 左右 padding 居中唯一 Thing Card。这个左右 padding 依赖当前 Thing 的单卡目标宽度，因此必须在 `initRecyclerView()` 计算并写入之后，再调用 `DisplayUtil.applyBottomInsetAsScrollPadding()`。如果先安装底部 inset 监听，监听会把左右 padding 的原始值记成 `0`，后续系统重新分发 window insets 时会把居中 padding 清掉，导致含图片/视频的正在做卡片从通知或 AppWidget 入口打开时偶发贴到屏幕左侧。
+
+## 2026-06-24 - DoingActivity 单卡媒体背景宽度由内容目标宽度约束
+
+`DoingActivity`、`NoticeableNotificationActivity` 等单卡表面的 Thing Card Media Background 宽度应由该表面的目标内容宽度决定：普通卡使用 `thing_card_single_surface_normal_width`，宽卡使用 `thing_card_single_surface_full_span_width`，并继续受屏幕横向边距上限约束。
+
+媒体背景层和遮罩层不能在 `card_thing.xml` 的根 `CardView` 为 `wrap_content` 时用 `MATCH_PARENT` 宽度参与首次测量，否则从通知或 AppWidget 等远程入口打开 `DoingActivity` 时，普通宽度的媒体背景卡可能被父容器可用宽度撑得过宽。加载/烘焙媒体背景 bitmap 时也应使用同一个目标内容宽度，而不是使用已经可能被撑宽的 `CardView.width`。
+
 Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
 ## 2026-06-24 - 列表 Widget 网格卡片按 slot 宽度投影媒体背景

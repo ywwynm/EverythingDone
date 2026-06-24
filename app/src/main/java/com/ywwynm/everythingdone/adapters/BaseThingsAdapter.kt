@@ -1705,7 +1705,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (holder == null || thing == null) return false
         val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return false
         if (thing.thingCardAppearance.mediaBackgroundEnabled) {
-            val targetW = holder.ivMediaBackground?.width?.takeIf { it > 0 }
+            val targetW = getCardContentWidthForMeasuredHolder(holder)
+                .takeIf { it > 0 }
+                ?: holder.ivMediaBackground?.width?.takeIf { it > 0 }
                 ?: holder.cv?.width
                 ?: 0
             val targetH = holder.ivMediaBackground?.height?.takeIf { it > 0 }
@@ -1719,7 +1721,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 mediaSource
             )
             val imageView = holder.ivMediaBackground ?: return false
-            setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+            setThingCardMediaBackgroundOverlaySize(holder, targetW, targetH)
             val videoFrameMs = getThingCardVideoFrameMs(thing, mediaSource)
             val loadKey = getThingCardMediaBackgroundLoadKey(
                 mediaSource.pathName,
@@ -2166,8 +2168,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         val effectiveTargetHeight = getThingCardMediaBackgroundEffectiveTargetHeight(
             holder, clampedTargetHeight
         )
+        val targetWidth = getCardContentWidth(thing)
         holder.llContent!!.minimumHeight = 0
-        setThingCardMediaBackgroundOverlayHeight(holder, effectiveTargetHeight)
+        setThingCardMediaBackgroundOverlaySize(holder, targetWidth, effectiveTargetHeight)
         holder.llContent!!.requestLayout()
         holder.cv!!.requestLayout()
 
@@ -2199,6 +2202,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 backgroundCrop,
                 backgroundSourceAspectRatio,
                 videoFrameMs,
+                targetWidth,
                 effectiveTargetHeight,
                 bindToken
         )
@@ -2213,6 +2217,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         backgroundCrop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
         backgroundSourceAspectRatio: Double?,
         videoFrameMs: Long?,
+        intendedTargetWidth: Int,
         intendedTargetHeight: Int,
         bindToken: String
     ) {
@@ -2232,12 +2237,14 @@ abstract class BaseThingsAdapter(context: Context?) :
                 }
                 if (!mediaBackground.isVisible) return true
 
-                val targetW = card.width
+                val targetW = getThingCardMediaBackgroundTargetWidth(
+                    holder, intendedTargetWidth
+                )
                 val targetH = getThingCardMediaBackgroundEffectiveTargetHeight(
                     holder, intendedTargetHeight
                 )
                 if (targetW <= 0 || targetH <= 0) return true
-                setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+                setThingCardMediaBackgroundOverlaySize(holder, targetW, targetH)
                 loadThingCardMediaBackground(
                         holder,
                         thing,
@@ -2263,12 +2270,14 @@ abstract class BaseThingsAdapter(context: Context?) :
                     return@post
                 }
                 if (!mediaBackground.isVisible) return@post
-                val targetW = card.width
+                val targetW = getThingCardMediaBackgroundTargetWidth(
+                    holder, intendedTargetWidth
+                )
                 val targetH = getThingCardMediaBackgroundEffectiveTargetHeight(
                     holder, intendedTargetHeight
                 )
                 if (targetW <= 0 || targetH <= 0) return@post
-                setThingCardMediaBackgroundOverlayHeight(holder, targetH)
+                setThingCardMediaBackgroundOverlaySize(holder, targetW, targetH)
                 loadThingCardMediaBackground(
                         holder,
                         thing,
@@ -2304,23 +2313,38 @@ abstract class BaseThingsAdapter(context: Context?) :
         )
     }
 
-    private fun setThingCardMediaBackgroundOverlayHeight(
+    private fun getThingCardMediaBackgroundTargetWidth(
         holder: BaseThingViewHolder,
-        height: Int
-    ) {
-        setThingCardMediaBackgroundOverlayHeight(holder.ivMediaBackground, height)
-        setThingCardMediaBackgroundOverlayHeight(holder.vMediaBackgroundMask, height)
+        intendedTargetWidth: Int
+    ): Int {
+        val measuredContentWidth = getCardContentWidthForMeasuredHolder(holder)
+        if (measuredContentWidth > 0) return measuredContentWidth
+        if (intendedTargetWidth > 0) return intendedTargetWidth
+        return holder.ivMediaBackground?.width?.takeIf { it > 0 }
+            ?: holder.cv?.width?.takeIf { it > 0 }
+            ?: 0
     }
 
-    private fun setThingCardMediaBackgroundOverlayHeight(
+    private fun setThingCardMediaBackgroundOverlaySize(
+        holder: BaseThingViewHolder,
+        width: Int,
+        height: Int
+    ) {
+        setThingCardMediaBackgroundOverlaySize(holder.ivMediaBackground, width, height)
+        setThingCardMediaBackgroundOverlaySize(holder.vMediaBackgroundMask, width, height)
+    }
+
+    private fun setThingCardMediaBackgroundOverlaySize(
         view: View?,
+        width: Int,
         height: Int
     ) {
         if (view == null) return
         val lp = view.layoutParams as FrameLayout.LayoutParams
+        val targetWidth = if (width > 0) width else ViewGroup.LayoutParams.MATCH_PARENT
         val targetHeight = if (height > 0) height else ViewGroup.LayoutParams.MATCH_PARENT
-        if (lp.width != ViewGroup.LayoutParams.MATCH_PARENT || lp.height != targetHeight) {
-            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        if (lp.width != targetWidth || lp.height != targetHeight) {
+            lp.width = targetWidth
             lp.height = targetHeight
             view.layoutParams = lp
         }

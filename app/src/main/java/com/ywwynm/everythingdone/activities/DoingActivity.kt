@@ -230,7 +230,6 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
         initBackground()
         initBottomButtons()
-        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
     }
 
     private fun initBackground() {
@@ -311,6 +310,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         updateTimeViews()
 
         initRecyclerView()
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
         updateBottomButtons()
 
         if (mDoingBinder!!.getTimeInMillis() == -1L) {

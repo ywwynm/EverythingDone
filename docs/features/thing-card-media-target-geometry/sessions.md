@@ -561,3 +561,20 @@ Publish:
 - Published debug update `202606051623` with
   `.\gradlew.bat :app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-update-notes.md"
   --console=plain --no-configuration-cache`.
+
+## 2026-06-24 - 修复 DoingActivity 单卡媒体背景过宽
+
+- 排查普通宽度、图片/视频作为背景的正在做记事，从通知、记事列表小组件、单一记事小组件进入 `DoingActivity` 时卡片过宽的问题。
+- 确认首页列表入口与通知/小组件入口最终都会打开当前正在做记事的 `DoingActivity`，问题不是缺少宽度类 Intent extra。
+- 定位到 `card_thing.xml` 根 `CardView` 为 `wrap_content`，媒体背景和遮罩是直接子 View 且使用 `MATCH_PARENT`，旧逻辑又用已被撑宽的 `CardView.width` 作为图片加载目标宽度，导致普通单卡在首次测量时被背景层撑宽。
+- 更新 `BaseThingsAdapter`：单卡媒体背景和遮罩使用内容目标宽度设置尺寸；背景 bitmap 加载、实时裁切刷新也改用内容目标宽度，而不是可能已经异常的卡片实测宽度。
+- 已运行 `git diff --check` 和 `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`；本次未使用 adb，也未做设备视觉验证。
+- 已发布 debug update `202606241457`，发布日志为 `docs/features/thing-card-media-target-geometry/debug-updates/update-20260624225716.md`。
+
+## 2026-06-24 - 修复 DoingActivity 单卡偶发左贴边
+
+- 排查正在做 Thing 从通知栏或 AppWidget 打开 `DoingActivity` 时，含图片/视频的卡片偶发贴到屏幕最左侧的问题。
+- 定位到 `DoingActivity.initUI()` 在设置居中 padding 之前调用 `DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)`；该工具把当时左右 padding 的原始值记为 `0`，后续系统重新分发 window insets 时会清掉 `initRecyclerView()` 后来写入的左右居中 padding。
+- 将底部 inset scroll padding 的安装时机移到 `initRecyclerView()` 之后，使工具保存已经计算好的左右居中 padding，并只在底部追加系统栏安全区。
+- 本次未使用 adb；设备视觉验证仍需后续手动确认。
+- 已运行 `git diff --check`、`.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache`，并发布 debug update `202606241507`，发布日志为 `docs/features/thing-card-media-target-geometry/debug-updates/update-20260624230624.md`。
