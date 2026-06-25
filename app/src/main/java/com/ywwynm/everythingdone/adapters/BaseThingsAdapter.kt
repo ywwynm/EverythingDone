@@ -555,7 +555,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.pbLoading!!.alpha = 1.0f
 
         val adaptiveAlpha = if (dim) {
-            if (background != null && BackgroundUtil.isLight(background.representativeColor())) {
+            if (background != null && BackgroundUtil.isLight(background)) {
                 UNSELECTED_DARK_CONTENT_ALPHA
             } else {
                 UNSELECTED_LIGHT_CONTENT_ALPHA
@@ -3039,7 +3039,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
 
         val cardIsLight = background != null
-                && BackgroundUtil.isLight(background.representativeColor())
+                && BackgroundUtil.isLight(background)
         holder.cv.foreground = ContextCompat.getDrawable(
             mContext!!,
             if (cardIsLight)

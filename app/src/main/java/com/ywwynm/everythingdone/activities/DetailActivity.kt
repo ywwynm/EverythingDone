@@ -1484,7 +1484,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
         updateUndoRedoActionButtonState()
-        tintMenuIcons(BackgroundUtil.isLight(getAccentColor()))
+        val menuAccentBg = getAccentBackground()
+        tintMenuIcons(
+            if (menuAccentBg != null) BackgroundUtil.isLight(menuAccentBg)
+            else BackgroundUtil.isLight(getAccentColor())
+        )
         return true
     }
 
@@ -2976,16 +2980,28 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun applyForegroundColors(color: Int) {
-        val primary   = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_PRIMARY)
-        val secondary = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_SECONDARY)
-        val tertiary  = BackgroundUtil.onColor(color, BackgroundUtil.ON_ALPHA_TERTIARY)
+        // 前景明暗以完整背景为准：accent 渐变（accent+accent2）代表色偏亮会被误判为浅色，
+        // isLight(ThingBackground) 已对其特判为深色背景 → 前景走白。color 仍保留原值用于
+        // ripple、checklist 等强调色。
+        val accentBg = getAccentBackground()
+        val light = if (accentBg != null) {
+            BackgroundUtil.isLight(accentBg)
+        } else {
+            BackgroundUtil.isLight(color)
+        }
+        val onRgb = if (light) 0x000000 else 0xFFFFFF
+        fun on(alpha: Float): Int =
+            (Math.round(alpha.coerceIn(0f, 1f) * 255f) shl 24) or onRgb
+        val primary   = on(BackgroundUtil.ON_ALPHA_PRIMARY)
+        val secondary = on(BackgroundUtil.ON_ALPHA_SECONDARY)
+        val tertiary  = on(BackgroundUtil.ON_ALPHA_TERTIARY)
 
         mEtTitle!!.setTextColor(primary)
         mEtTitle!!.setHintTextColor(primary)
 
         androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
             mEtTitle!!,
-            if (BackgroundUtil.isLight(color))
+            if (light)
                 android.content.res.ColorStateList.valueOf(Color.BLACK)
             else android.content.res.ColorStateList.valueOf(Color.WHITE)
         )
@@ -3002,7 +3018,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mTvMoveChecklistAsBt!!.setTextColor(tertiary)
             androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
                 mTvMoveChecklistAsBt!!,
-                if (BackgroundUtil.isLight(color))
+                if (light)
                     android.content.res.ColorStateList.valueOf(Color.BLACK)
                 else null
             )
@@ -3020,7 +3036,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             tvQuickRemind!!.setTextColor(secondary)
             val underline: Drawable? = tvQuickRemind!!.background
             if (underline != null) {
-                if (BackgroundUtil.isLight(color)) {
+                if (light) {
                     underline.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN)
                 } else {
                     underline.clearColorFilter()
@@ -3040,7 +3056,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mCheckListAdapter!!.notifyDataSetChanged()
         }
 
-        val lightAccent = BackgroundUtil.isLight(color)
+        val lightAccent = light
         val iconTint: android.content.res.ColorStateList? = if (lightAccent)
             android.content.res.ColorStateList.valueOf(Color.BLACK)
         else null
@@ -3053,7 +3069,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
         tintMenuIcons(lightAccent)
 
-        val lightBg = BackgroundUtil.isLight(color)
+        val lightBg = light
         mFlRoot!!.post {
             if (lightBg) {
                 DisplayUtil.darkStatusBar(this@DetailActivity)
@@ -4633,14 +4649,14 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         background.cornerRadius = 1000f
         textView.background = background
 
-        val representativeColor = accentBackground?.representativeColor() ?: getAccentColor()
+        val light = if (accentBackground != null) {
+            BackgroundUtil.isLight(accentBackground)
+        } else {
+            BackgroundUtil.isLight(getAccentColor())
+        }
         val foregroundColor = ContextCompat.getColor(
             this,
-            if (BackgroundUtil.isLight(representativeColor)) {
-                R.color.black_86p
-            } else {
-                R.color.white_86p
-            }
+            if (light) R.color.black_86p else R.color.white_86p
         )
         setDetailAttachmentAppearancePlainTextColor(textView, foregroundColor)
     }

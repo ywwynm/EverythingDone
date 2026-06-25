@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 
 import androidx.cardview.widget.CardView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import kotlin.math.ceil
@@ -156,12 +157,45 @@ object BackgroundUtil {
     }
 
     /**
+     * 与 [isLight] 相同的明暗判断，但接收完整的 [ThingBackground]。当背景是 App 默认强调
+     * 渐变（accent + accent2）时，无论其代表色亮度如何都按"深色背景"处理（返回 false），让
+     * 前景统一走偏白的一侧——该渐变代表色亮度恰好略高于阈值会被误判为浅色，但视觉上更适合
+     * 白色前景。其余背景仍按代表色亮度判断。
+     *
+     * 凡是"根据颜色/渐变背景自适应前景偏白或偏黑"的地方都应优先调用本重载（而不是先取
+     * [ThingBackground.representativeColor] 再调 [isLight]），否则渐变两端信息已被抹平、无法
+     * 识别 accent 渐变。
+     */
+    @JvmStatic
+    fun isLight(background: ThingBackground): Boolean {
+        if (isAccentGradient(background)) return false
+        return isLight(background.representativeColor())
+    }
+
+    /** 该背景是否为 App 默认强调渐变（accent ↔ accent2 两色，起止顺序不限）。 */
+    @JvmStatic
+    fun isAccentGradient(background: ThingBackground): Boolean {
+        if (background.mode !== ThingBackground.Mode.GRADIENT) return false
+        val accent = App.defaultAccentBackground
+        return (background.color == accent.color && background.endColor == accent.endColor) ||
+                (background.color == accent.endColor && background.endColor == accent.color)
+    }
+
+    /**
      * Foreground color to draw on top of `background`, with the requested
      * `alpha` (0~1). Returns a black-tinted color on light backgrounds and
      * a white-tinted color on dark backgrounds.
      */
     @JvmStatic
     fun onColor(background: Int, alpha: Float): Int {
+        val rgb: Int = if (isLight(background)) 0x000000 else 0xFFFFFF
+        val a: Int   = Math.round(clamp01(alpha) * 255f)
+        return (a shl 24) or rgb
+    }
+
+    /** [onColor] 的 [ThingBackground] 版：accent 渐变按深色背景处理，前景走白。 */
+    @JvmStatic
+    fun onColor(background: ThingBackground, alpha: Float): Int {
         val rgb: Int = if (isLight(background)) 0x000000 else 0xFFFFFF
         val a: Int   = Math.round(clamp01(alpha) * 255f)
         return (a shl 24) or rgb

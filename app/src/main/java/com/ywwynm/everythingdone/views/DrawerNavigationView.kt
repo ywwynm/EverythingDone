@@ -864,7 +864,7 @@ class DrawerNavigationView @JvmOverloads constructor(
             fun y(value: Float): Float = top + value / 24f * size
 
             lockPaint.shader = null
-            lockPaint.color = if (BackgroundUtil.isLight(background.representativeColor())) {
+            lockPaint.color = if (BackgroundUtil.isLight(background)) {
                 Color.BLACK
             } else {
                 Color.WHITE

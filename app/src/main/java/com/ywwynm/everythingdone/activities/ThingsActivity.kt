@@ -2208,7 +2208,7 @@ class ThingsActivity :
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = representativeColor
         }
-        if (BackgroundUtil.isLight(representativeColor)) {
+        if (BackgroundUtil.isLight(surfaceBackground)) {
             DisplayUtil.darkStatusBar(this)
         } else {
             DisplayUtil.cancelDarkStatusBar(this)
@@ -2257,14 +2257,8 @@ class ThingsActivity :
         val folderBackground = getCurrentFolderBackgroundForChrome()
         val background = folderBackground
             ?: App.defaultAccentBackground
-        val foreground = if (folderBackground == null) {
-            ContextCompat.getColor(this, R.color.black_86p)
-        } else {
-            BackgroundUtil.onColor(
-                background.representativeColor(),
-                BackgroundUtil.ON_ALPHA_PRIMARY
-            )
-        }
+        // 强调渐变（folderBackground 为空时即 accent+accent2）按深色背景处理，前景走白。
+        val foreground = BackgroundUtil.onColor(background, BackgroundUtil.ON_ALPHA_PRIMARY)
 
         statusBar.visibility = View.VISIBLE
         // Apply to header wrapper for unified gradient spanning status bar + toolbar,
@@ -2276,7 +2270,7 @@ class ThingsActivity :
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = background.representativeColor()
         }
-        if (BackgroundUtil.isLight(background.representativeColor())) {
+        if (BackgroundUtil.isLight(background)) {
             DisplayUtil.darkStatusBar(this)
         } else {
             DisplayUtil.cancelDarkStatusBar(this)
@@ -2303,14 +2297,10 @@ class ThingsActivity :
     private fun refreshContextualToolbarForeground() {
         val toolbar: Toolbar = f(R.id.contextual_toolbar)!!
         val folderBackground = getCurrentFolderBackgroundForChrome()
-        val foreground = if (folderBackground == null) {
-            ContextCompat.getColor(this, R.color.black_86p)
-        } else {
-            BackgroundUtil.onColor(
-                folderBackground.representativeColor(),
-                BackgroundUtil.ON_ALPHA_PRIMARY
-            )
-        }
+        // 根目录（folderBackground 为空）用 accent+accent2 渐变，按深色背景处理 → 前景走白；
+        // 与 applyContextualStatusBarChrome 保持一致，避免渐变下前景被硬编码成黑色。
+        val background = folderBackground ?: App.defaultAccentBackground
+        val foreground = BackgroundUtil.onColor(background, BackgroundUtil.ON_ALPHA_PRIMARY)
         applyContextualToolbarForeground(toolbar, foreground)
         // Re-tint after the next layout pass to catch menu-item icons that
         // were lazily loaded after setVisible(true) — invisible items may
@@ -3575,15 +3565,14 @@ class ThingsActivity :
         background.cornerRadius = 1000f
         textView.background = background
 
-        val representativeColor = accentBackground?.representativeColor()
-                ?: getThingCardAppearanceAccentColor()
+        val light = if (accentBackground != null) {
+                BackgroundUtil.isLight(accentBackground)
+        } else {
+                BackgroundUtil.isLight(getThingCardAppearanceAccentColor())
+        }
         val foregroundColor = ContextCompat.getColor(
                 this,
-                if (BackgroundUtil.isLight(representativeColor)) {
-                    R.color.black_86p
-                } else {
-                    R.color.white_86p
-                }
+                if (light) R.color.black_86p else R.color.white_86p
         )
         setThingCardAppearancePlainTextColor(textView, foregroundColor)
     }

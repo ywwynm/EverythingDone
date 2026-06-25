@@ -985,7 +985,7 @@ object AppWidgetHelper {
         val light: Boolean = if (mediaBackgroundForeground) {
             false
         } else {
-            BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
+            isThingBackgroundLight(thing)
         }
         val primary: Int   = if (light)
                 ContextCompat.getColor(context, R.color.black_86p)
@@ -1031,11 +1031,12 @@ object AppWidgetHelper {
         if (shouldUseMediaBackgroundForeground(thing)) {
             return false
         }
-        return BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
+        return isThingBackgroundLight(thing)
     }
 
-    private fun getThingBackgroundRepresentativeColor(thing: Thing): Int {
-        return thing.getBackground()?.representativeColor() ?: thing.getColor()
+    private fun isThingBackgroundLight(thing: Thing): Boolean {
+        val bg = thing.getBackground()
+        return if (bg != null) BackgroundUtil.isLight(bg) else BackgroundUtil.isLight(thing.getColor())
     }
 
     private fun shouldUseMediaBackgroundForeground(thing: Thing): Boolean {
@@ -2012,7 +2013,7 @@ object AppWidgetHelper {
             if (title != null) {
                 remoteViews.setViewVisibility(TV_TITLE, View.VISIBLE)
                 // Phase 8: simple-style title uses a muted tertiary tier.
-                val light: Boolean = BackgroundUtil.isLight(getThingBackgroundRepresentativeColor(thing))
+                val light: Boolean = isThingBackgroundLight(thing)
                 remoteViews.setTextColor(TV_TITLE, ContextCompat.getColor(
                         context, if (light) R.color.black_66p else R.color.white_66p))
                 remoteViews.setTextViewText(TV_TITLE, title)

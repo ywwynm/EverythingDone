@@ -118,7 +118,7 @@ open class GradientOrientationDialogFragment : BaseDialogFragment() {
         var d: Drawable =
             ContextCompat.getDrawable(activity!!, R.drawable.ic_color_picked) ?: return null
         d = d.mutate()
-        val tint: Int = if (BackgroundUtil.isLight(mAccent!!.representativeColor()))
+        val tint: Int = if (BackgroundUtil.isLight(mAccent!!))
             Color.BLACK else Color.WHITE
         d.setColorFilter(tint, PorterDuff.Mode.SRC_IN)
         return d

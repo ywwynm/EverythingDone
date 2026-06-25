@@ -321,7 +321,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
         BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
         BackgroundUtil.applyBackground(mActionBar, background)
-        if (folderBackground != null && BackgroundUtil.isLight(background.representativeColor())) {
+        if (folderBackground != null && BackgroundUtil.isLight(background)) {
             DisplayUtil.darkStatusBar(this)
         } else {
             DisplayUtil.cancelDarkStatusBar(this)

@@ -329,7 +329,7 @@ class ThingStatusSegmentedView @JvmOverloads constructor(
 
     private fun selectedForeground(): Int {
         if (scopeIsRoot) return SELECTED_FG_LIGHT
-        return if (BackgroundUtil.isLight(scopeBackground.representativeColor())) {
+        return if (BackgroundUtil.isLight(scopeBackground)) {
             SELECTED_FG_DARK
         } else {
             SELECTED_FG_LIGHT
