@@ -83,7 +83,7 @@ import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import android.graphics.Typeface
 import android.widget.SeekBar
 import android.widget.FrameLayout
-import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import com.ywwynm.everythingdone.views.RatioSlider
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -1418,67 +1418,18 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             }
         )
 
-        // Reuse the Thing Card appearance editor's ratio slider: ticks + snapping
-        // to the same presets, instead of a bare SeekBar.
-        val ratioSeekBar = SeekBar(this)
-        var ratioTicksView: ThingCardRatioTicksView? = null
-        DisplayUtil.setSeekBarBackground(ratioSeekBar, accent)
-        ratioSeekBar.max = DRAWER_HEADER_RATIO_SLIDER_MAX
-        ratioSeekBar.progress = drawerHeaderRatioToProgress(crop.ratio)
-        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                val snapped = getSnappedDrawerHeaderRatioForSeekBar(seekBar, progress)
-                ratioTicksView?.setActiveRatio(snapped)
-                cropEditorView.setTargetAspectRatio(snapped)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                if (seekBar != null) {
-                    val snapped = getSnappedDrawerHeaderRatioForSeekBar(seekBar, seekBar.progress)
-                    ratioTicksView?.setActiveRatio(snapped)
-                    cropEditorView.setTargetAspectRatio(snapped)
-                    seekBar.progress = drawerHeaderRatioToProgress(snapped)
-                }
-            }
-        })
-
-        val sliderFrame = FrameLayout(this)
-        sliderFrame.addView(
-            ratioSeekBar,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
-        val ticksView = ThingCardRatioTicksView(this)
-        ratioTicksView = ticksView
-        ticksView.setAccentBackground(
+        // 统一的比例滑条：档位 + 对数映射 + snapping 全部封装在 RatioSlider 内。
+        val ratioSlider = RatioSlider(this)
+        ratioSlider.setAccentBackground(
             accent, ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
-        ticksView.setRatios(
-            DrawerHeaderImageCrop.MIN_RATIO,
-            DrawerHeaderImageCrop.MAX_RATIO,
-            doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0),
-            arrayOf("1:2", "1:1", "4:3", "3:2", "16:9", "2:1", "65:24")
-        )
-        ticksView.setActiveRatio(
-            snapDrawerHeaderRatio(drawerHeaderRatioFromProgress(ratioSeekBar.progress))
-        )
-        ticksView.isClickable = false
-        ticksView.isFocusable = false
-        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        sliderFrame.addView(
-            ticksView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
+        ratioSlider.setRange(DrawerHeaderImageCrop.MIN_RATIO, DrawerHeaderImageCrop.MAX_RATIO)
+        ratioSlider.setRatio(DrawerHeaderImageCrop.normalizeRatio(crop.ratio))
+        ratioSlider.onRatioChanged = { snapped ->
+            cropEditorView.setTargetAspectRatio(snapped)
+        }
         root.addView(
-            sliderFrame,
+            ratioSlider,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 (density * 52).toInt()
@@ -1545,50 +1496,6 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         }
         button.setOnClickListener { onClick() }
         return button
-    }
-
-    private fun drawerHeaderRatioToProgress(ratio: Double): Int {
-        val r = DrawerHeaderImageCrop.normalizeRatio(ratio)
-        val frac = (r - DrawerHeaderImageCrop.MIN_RATIO) /
-            (DrawerHeaderImageCrop.MAX_RATIO - DrawerHeaderImageCrop.MIN_RATIO)
-        return max(
-            0,
-            min(DRAWER_HEADER_RATIO_SLIDER_MAX, (frac * DRAWER_HEADER_RATIO_SLIDER_MAX).roundToInt())
-        )
-    }
-
-    private fun drawerHeaderRatioFromProgress(progress: Int): Double {
-        val frac = progress.toDouble() / DRAWER_HEADER_RATIO_SLIDER_MAX
-        return DrawerHeaderImageCrop.MIN_RATIO +
-            frac * (DrawerHeaderImageCrop.MAX_RATIO - DrawerHeaderImageCrop.MIN_RATIO)
-    }
-
-    private fun snapDrawerHeaderRatio(ratio: Double): Double {
-        val presets = doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0)
-        var closest = ratio
-        var closestDistance = Int.MAX_VALUE
-        for (preset in presets) {
-            val distance = abs(
-                drawerHeaderRatioToProgress(preset) - drawerHeaderRatioToProgress(ratio)
-            )
-            if (distance < closestDistance) {
-                closestDistance = distance
-                closest = preset
-            }
-        }
-        return if (closestDistance <= DRAWER_HEADER_RATIO_SNAP_PROGRESS_DISTANCE) closest else ratio
-    }
-
-    private fun getSnappedDrawerHeaderRatioForSeekBar(seekBar: SeekBar?, progress: Int): Double {
-        val ratio = drawerHeaderRatioFromProgress(progress)
-        val snapped = snapDrawerHeaderRatio(ratio)
-        if (seekBar != null) {
-            val snappedProgress = drawerHeaderRatioToProgress(snapped)
-            if (snappedProgress != seekBar.progress) {
-                seekBar.progress = snappedProgress
-            }
-        }
-        return snapped
     }
 
     private fun showChooseLanguageDialog() {
@@ -2086,9 +1993,6 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
         const val DEFAULT_DRAWER_HEADER: String = "default_drawer_header"
         const val FOLLOW_SYSTEM: String = "follow_system"
-
-        private const val DRAWER_HEADER_RATIO_SLIDER_MAX: Int = 1000
-        private const val DRAWER_HEADER_RATIO_SNAP_PROGRESS_DISTANCE: Int = 28
 
         private val sKeysRingtone: Array<String> = arrayOf(
             Def.Meta.KEY_RINGTONE_REMINDER,

@@ -137,7 +137,7 @@ import com.ywwynm.everythingdone.views.Snackbar
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
-import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import com.ywwynm.everythingdone.views.RatioSlider
 import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
@@ -4683,67 +4683,21 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             )
         )
 
-        val ratioSeekBar = SeekBar(this)
-        var ratioTicksView: ThingCardRatioTicksView? = null
-        DisplayUtil.setSeekBarBackground(
-            ratioSeekBar,
-            getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+        val ratioSlider = RatioSlider(this)
+        ratioSlider.setAccentBackground(
+            getAccentBackground() ?: ThingBackground.pure(getAccentColor()),
+            ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
-        ratioSeekBar.max = DETAIL_ATTACHMENT_RATIO_SLIDER_MAX
-        ratioSeekBar.progress = getDetailAttachmentRatioProgress(initialAspectRatio)
-        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(
-                seekBar: SeekBar?,
-                progress: Int,
-                fromUser: Boolean
-            ) {
-                if (!fromUser) return
-                val snappedRatio = getSnappedDetailAttachmentRatioForSeekBar(seekBar, progress)
-                ratioTicksView?.setActiveRatio(snappedRatio)
-                cropView.setTargetAspectRatio(snappedRatio)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                if (seekBar != null) {
-                    val snappedRatio = getSnappedDetailAttachmentRatioForSeekBar(
-                        seekBar,
-                        seekBar.progress
-                    )
-                    ratioTicksView?.setActiveRatio(snappedRatio)
-                    cropView.setTargetAspectRatio(snappedRatio)
-                    seekBar.progress = getDetailAttachmentRatioProgress(snappedRatio)
-                }
-            }
-        })
-
-        val sliderFrame = FrameLayout(this)
-        sliderFrame.addView(
-            ratioSeekBar,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+        ratioSlider.setRange(
+            DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO,
+            DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO
         )
-        val ticksView = ThingCardRatioTicksView(this)
-        ratioTicksView = ticksView
-        bindDetailAttachmentRatioTicks(ticksView)
-        ticksView.setActiveRatio(
-            snapDetailAttachmentRatio(getDetailAttachmentRatioFromProgress(ratioSeekBar.progress))
-        )
-        ticksView.isClickable = false
-        ticksView.isFocusable = false
-        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        sliderFrame.addView(
-            ticksView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
+        ratioSlider.setRatio(initialAspectRatio)
+        ratioSlider.onRatioChanged = { snapped ->
+            cropView.setTargetAspectRatio(snapped)
+        }
         container.addView(
-            sliderFrame,
+            ratioSlider,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 (resources.displayMetrics.density * 52).toInt()
@@ -4752,13 +4706,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         return DetailAttachmentRatioControls(
             view = container,
             setRatio = { ratio ->
-                val progress = getDetailAttachmentRatioProgress(ratio)
-                ratioSeekBar.progress = progress
-                val activeRatio = snapDetailAttachmentRatio(
-                    getDetailAttachmentRatioFromProgress(progress)
-                )
-                ratioTicksView?.setActiveRatio(activeRatio)
-                cropView.setTargetAspectRatio(activeRatio)
+                ratioSlider.setRatio(ratio)
+                cropView.setTargetAspectRatio(ratioSlider.getRatio())
             }
         )
     }
@@ -4810,73 +4759,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         button.setPadding(padding, padding, padding, padding)
         BackgroundUtil.installAppChromeCircleRipple(button, this)
         return button
-    }
-
-    private fun bindDetailAttachmentRatioTicks(ticksView: ThingCardRatioTicksView) {
-        val accentColor = getAccentColor()
-        ticksView.setAccentBackground(
-            getAccentBackground() ?: ThingBackground.pure(accentColor),
-            ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
-        )
-        ticksView.setRatios(
-            DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO,
-            DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO,
-            doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0),
-            arrayOf("1:2", "1:1", "4:3", "3:2", "16:9", "2:1", "65:24")
-        )
-    }
-
-    private fun getDetailAttachmentRatioProgress(ratio: Double): Int {
-        val minRatio = DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO
-        val maxRatio = DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO
-        val clampedRatio = max(minRatio, min(maxRatio, ratio))
-        return (((clampedRatio - minRatio) / (maxRatio - minRatio)) *
-            DETAIL_ATTACHMENT_RATIO_SLIDER_MAX).roundToInt()
-            .coerceIn(0, DETAIL_ATTACHMENT_RATIO_SLIDER_MAX)
-    }
-
-    private fun getDetailAttachmentRatioFromProgress(progress: Int): Double {
-        val minRatio = DetailAttachmentMediaAppearance.MIN_FULL_SPAN_TARGET_ASPECT_RATIO
-        val maxRatio = DetailAttachmentMediaAppearance.MAX_FULL_SPAN_TARGET_ASPECT_RATIO
-        val clampedProgress = progress.coerceIn(0, DETAIL_ATTACHMENT_RATIO_SLIDER_MAX)
-        return minRatio + (maxRatio - minRatio) *
-            clampedProgress / DETAIL_ATTACHMENT_RATIO_SLIDER_MAX.toDouble()
-    }
-
-    private fun getSnappedDetailAttachmentRatioForSeekBar(
-        seekBar: SeekBar?,
-        progress: Int
-    ): Double {
-        val ratio = getDetailAttachmentRatioFromProgress(progress)
-        val snapped = snapDetailAttachmentRatio(ratio)
-        if (seekBar != null) {
-            val snappedProgress = getDetailAttachmentRatioProgress(snapped)
-            if (snappedProgress != seekBar.progress) {
-                seekBar.progress = snappedProgress
-            }
-        }
-        return snapped
-    }
-
-    private fun snapDetailAttachmentRatio(ratio: Double): Double {
-        val presets = doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0)
-        var closestRatio = ratio
-        var closestProgressDistance = Int.MAX_VALUE
-        for (preset in presets) {
-            val distance = abs(
-                getDetailAttachmentRatioProgress(preset) -
-                    getDetailAttachmentRatioProgress(ratio)
-            )
-            if (distance < closestProgressDistance) {
-                closestProgressDistance = distance
-                closestRatio = preset
-            }
-        }
-        return if (closestProgressDistance <= DETAIL_ATTACHMENT_RATIO_SNAP_PROGRESS_DISTANCE) {
-            closestRatio
-        } else {
-            ratio
-        }
     }
 
     private fun loadDetailAttachmentCropEditorBitmap(
@@ -5170,8 +5052,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     companion object {
         const val TAG: String = "DetailActivity"
         private const val EXTERNAL_UPDATE_REFRESH_MAX_RETRIES: Int = 3
-        private const val DETAIL_ATTACHMENT_RATIO_SLIDER_MAX: Int = 1000
-        private const val DETAIL_ATTACHMENT_RATIO_SNAP_PROGRESS_DISTANCE: Int = 28
         private const val DETAIL_ATTACHMENT_VIDEO_END_FRAME_GUARD_MS: Int = 50
 
         const val CREATE: Int = 0

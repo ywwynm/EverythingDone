@@ -12,10 +12,15 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 
-class ThingCardRatioTicksView @JvmOverloads constructor(
+/**
+ * 比例档位刻度视图：按对数位置绘制档位 tick 与 label，只画落在 [minRatio, maxRatio]
+ * 区间内的档位。供 [RatioSlider] 内部使用。
+ */
+class RatioTicksView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
@@ -91,8 +96,11 @@ class ThingCardRatioTicksView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val range = maxRatio - minRatio
-        if (width <= paddingLeft + paddingRight || range <= 0.0) return
+        if (width <= paddingLeft + paddingRight || minRatio <= 0.0) return
+        val logMin = ln(minRatio)
+        val logMax = ln(maxRatio)
+        val logRange = logMax - logMin
+        if (logRange <= 0.0) return
 
         val trackLeft = paddingLeft.toFloat()
         val trackRight = (width - paddingRight).toFloat()
@@ -113,21 +121,25 @@ class ThingCardRatioTicksView @JvmOverloads constructor(
             tickPaint.shader = null
             tickPaint.color = tickBackground.color
         }
+        var visibleIndex = 0
         for (i in ratios.indices) {
             val ratio = ratios[i]
             if (ratio < minRatio || ratio > maxRatio) continue
 
-            val fraction = ((ratio - minRatio) / range).toFloat()
+            val fraction = ((ln(ratio) - logMin) / logRange).toFloat()
             val x = trackLeft + contentWidth * fraction
             canvas.drawLine(x, tickTop, x, tickBottom, tickPaint)
-            val label = labels.getOrNull(i) ?: continue
-            drawLabel(
-                canvas,
-                label,
-                x,
-                if (i % 2 == 0) bottomLabelY else topLabelY,
-                isActiveRatio(ratio)
-            )
+            val label = labels.getOrNull(i)
+            if (label != null) {
+                drawLabel(
+                    canvas,
+                    label,
+                    x,
+                    if (visibleIndex % 2 == 0) bottomLabelY else topLabelY,
+                    isActiveRatio(ratio)
+                )
+            }
+            visibleIndex++
         }
         tickPaint.shader = null
         textPaint.shader = null

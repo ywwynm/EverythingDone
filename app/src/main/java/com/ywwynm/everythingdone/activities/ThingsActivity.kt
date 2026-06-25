@@ -149,7 +149,7 @@ import com.ywwynm.everythingdone.views.Snackbar
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
 import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
-import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import com.ywwynm.everythingdone.views.RatioSlider
 import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
 import com.ywwynm.everythingdone.views.pickers.ThingCardAppearanceSourcePicker
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
@@ -272,8 +272,7 @@ class ThingsActivity :
     private var mSeekThingCardAppearanceSideWidth: SeekBar? = null
     private var mBtThingCardAppearancePreciseCrop: TextView? = null
     private var mLlThingCardAppearanceThumbnailRatio: View? = null
-    private var mSeekThingCardAppearanceThumbnailRatio: SeekBar? = null
-    private var mVThingCardAppearanceThumbnailRatioTicks: ThingCardRatioTicksView? = null
+    private var mThingCardAppearanceRatioSlider: RatioSlider? = null
     private var mLlThingCardAppearanceBackgroundControls: View? = null
     private var mSeekThingCardAppearanceBackgroundMask: SeekBar? = null
     private var mSeekThingCardAppearanceBackgroundHeight: SeekBar? = null
@@ -300,24 +299,6 @@ class ThingsActivity :
     private var mThingCardAppearancePreviewRefreshPosted: Boolean = false
     private var mThingCardAppearanceBackgroundHeightSliderMinPercent: Int = 0
     private var mThingCardActiveRatioDragRange: ThingCardRatioRange? = null
-    private val mThingCardRatioPresetValues = doubleArrayOf(
-            1.0 / 2.0,
-            9.0 / 16.0,
-            3.0 / 4.0,
-            1.0,
-            4.0 / 3.0,
-            16.0 / 9.0,
-            2.0
-    )
-    private val mThingCardRatioPresetLabels = arrayOf(
-            "1:2",
-            "9:16",
-            "3:4",
-            "1:1",
-            "4:3",
-            "16:9",
-            "2:1"
-    )
 
     private var mSpan: Int = 0
 
@@ -1946,10 +1927,8 @@ class ThingsActivity :
         mBtThingCardAppearancePreciseCrop = f(R.id.bt_thing_card_appearance_precise_crop)
         mLlThingCardAppearanceThumbnailRatio =
                 f(R.id.ll_thing_card_appearance_thumbnail_ratio)
-        mSeekThingCardAppearanceThumbnailRatio =
-                f(R.id.seek_thing_card_appearance_thumbnail_ratio)
-        mVThingCardAppearanceThumbnailRatioTicks =
-                f(R.id.v_thing_card_appearance_thumbnail_ratio_ticks)
+        mThingCardAppearanceRatioSlider =
+                f(R.id.v_thing_card_appearance_ratio_slider)
         mLlThingCardAppearanceBackgroundControls =
                 f(R.id.ll_thing_card_appearance_background_controls)
         mSeekThingCardAppearanceBackgroundMask =
@@ -2718,37 +2697,13 @@ class ThingsActivity :
         mBtThingCardAppearancePreciseCrop!!.setOnClickListener {
             openThingCardCropEditor()
         }
-        mSeekThingCardAppearanceThumbnailRatio!!.max = THING_CARD_RATIO_SLIDER_MAX
-        mSeekThingCardAppearanceThumbnailRatio!!.setOnSeekBarChangeListener(
-                object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(
-                            seekBar: SeekBar?,
-                            progress: Int,
-                            fromUser: Boolean
-                    ) {
-                        if (!fromUser || mBindingThingCardAppearancePanel) return
-                        val snappedRatio = getSnappedThingCardRatioForSeekBar(seekBar, progress)
-                        mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(snappedRatio)
-                        updateThingCardActiveTargetAspectRatio(snappedRatio)
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                        mThingCardActiveRatioDragRange = getThingCardThumbnailRatioRange()
-                    }
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                        if (seekBar != null) {
-                            val snappedRatio = getSnappedThingCardRatioForSeekBar(
-                                    seekBar,
-                                    seekBar.progress
-                            )
-                            mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(snappedRatio)
-                            updateThingCardActiveTargetAspectRatio(snappedRatio)
-                        }
-                        mThingCardActiveRatioDragRange = null
-                    }
-                }
-        )
+        mThingCardAppearanceRatioSlider!!.setRangeProvider {
+            val range = getThingCardThumbnailRatioRange()
+            range.minRatio to range.maxRatio
+        }
+        mThingCardAppearanceRatioSlider!!.onRatioChanged = { snappedRatio ->
+            updateThingCardActiveTargetAspectRatio(snappedRatio)
+        }
         mSeekThingCardAppearanceBackgroundMask!!.max = 100
         mSeekThingCardAppearanceBackgroundMask!!.setOnSeekBarChangeListener(
                 object : SeekBar.OnSeekBarChangeListener {
@@ -3237,12 +3192,16 @@ class ThingsActivity :
                 sourceAppearance
         )
         mLlThingCardAppearanceThumbnailRatio!!.visibility = View.VISIBLE
-        bindThingCardRatioTicks(mVThingCardAppearanceThumbnailRatioTicks)
-        val ratioProgress = getThingCardRatioProgress(aspectRatio)
-        mSeekThingCardAppearanceThumbnailRatio!!.progress = ratioProgress
-        mVThingCardAppearanceThumbnailRatioTicks?.setActiveRatio(
-                snapThingCardRatio(getThingCardRatioFromProgress(ratioProgress))
-        )
+        mThingCardAppearanceRatioSlider?.let { slider ->
+            val accentBackground = getThingCardAppearanceAccentBackground()
+                    ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
+            slider.setAccentBackground(
+                    accentBackground,
+                    ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+            )
+            slider.refreshRange()
+            slider.setRatio(aspectRatio)
+        }
     }
 
     private fun bindThingCardAppearanceSideWidthControls(draft: ThingCardAppearance) {
@@ -3271,23 +3230,6 @@ class ThingsActivity :
                         getThingCardAppearanceSideMediaWidthMinPercent()
         mSeekThingCardAppearanceSideWidth!!.progress =
                 widthPercent - getThingCardAppearanceSideMediaWidthMinPercent()
-    }
-
-    private fun bindThingCardRatioTicks(ticksView: ThingCardRatioTicksView?) {
-        ticksView ?: return
-        val range = getThingCardThumbnailRatioRange()
-        val accentBackground = getThingCardAppearanceAccentBackground()
-                ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
-        ticksView.setAccentBackground(
-                accentBackground,
-                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
-        )
-        ticksView.setRatios(
-                range.minRatio,
-                range.maxRatio,
-                mThingCardRatioPresetValues,
-                mThingCardRatioPresetLabels
-        )
     }
 
     private data class ThingCardRatioRange(
@@ -3536,56 +3478,6 @@ class ThingsActivity :
         return ThingCardRatioRange(minRatio, maxRatio)
     }
 
-    private fun getThingCardRatioProgress(ratio: Double): Int {
-        val range = getThingCardThumbnailRatioRange()
-        val clampedRatio = max(range.minRatio, min(range.maxRatio, ratio))
-        val progress = ((clampedRatio - range.minRatio) /
-                (range.maxRatio - range.minRatio) * THING_CARD_RATIO_SLIDER_MAX).roundToInt()
-        return clampThingCardAppearanceSeekProgress(progress, THING_CARD_RATIO_SLIDER_MAX)
-    }
-
-    private fun getThingCardRatioFromProgress(progress: Int): Double {
-        val range = getThingCardThumbnailRatioRange()
-        val clampedProgress = clampThingCardAppearanceSeekProgress(
-                progress,
-                THING_CARD_RATIO_SLIDER_MAX
-        )
-        return range.minRatio + (range.maxRatio - range.minRatio) *
-                clampedProgress / THING_CARD_RATIO_SLIDER_MAX.toDouble()
-    }
-
-    private fun snapThingCardRatio(ratio: Double): Double {
-        val range = getThingCardThumbnailRatioRange()
-        var closestRatio = ratio
-        var closestProgressDistance = Int.MAX_VALUE
-        for (preset in mThingCardRatioPresetValues) {
-            if (preset < range.minRatio || preset > range.maxRatio) continue
-            val distance = abs(getThingCardRatioProgress(preset) - getThingCardRatioProgress(ratio))
-            if (distance < closestProgressDistance) {
-                closestProgressDistance = distance
-                closestRatio = preset
-            }
-        }
-        return if (closestProgressDistance <= THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE) {
-            closestRatio
-        } else {
-            ratio
-        }
-    }
-
-    private fun getSnappedThingCardRatioForSeekBar(
-            seekBar: SeekBar?,
-            progress: Int
-    ): Double {
-        val ratio = getThingCardRatioFromProgress(progress)
-        val snappedRatio = snapThingCardRatio(ratio)
-        val snappedProgress = getThingCardRatioProgress(snappedRatio)
-        if (seekBar != null && seekBar.progress != snappedProgress) {
-            seekBar.progress = snappedProgress
-        }
-        return snappedRatio
-    }
-
     private fun clampThingCardAppearanceSeekProgress(value: Int, maxValue: Int): Int {
         return max(0, min(maxValue, value))
     }
@@ -3716,7 +3608,6 @@ class ThingsActivity :
         listOf(
                 mSeekThingCardAppearanceVideoFrame,
                 mSeekThingCardAppearanceSideWidth,
-                mSeekThingCardAppearanceThumbnailRatio,
                 mSeekThingCardAppearanceBackgroundMask,
                 mSeekThingCardAppearanceBackgroundHeight
         ).forEach { seekBar ->
@@ -3727,6 +3618,10 @@ class ThingsActivity :
                 )
             }
         }
+        mThingCardAppearanceRatioSlider?.setAccentBackground(
+                accentBackground ?: ThingBackground.pure(accentColor),
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
 
         applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFramePrevious)
         applyThingCardAppearanceAccentText(mBtThingCardAppearanceVideoFrameNext)
@@ -4207,8 +4102,10 @@ class ThingsActivity :
         )
 
         val rawTargetAspectRatio = getThingCardCropEditorTargetAspectRatio(draft, source)
-        val targetAspectRatio =
-                getThingCardRatioFromProgress(getThingCardRatioProgress(rawTargetAspectRatio))
+        val ratioRange = getThingCardThumbnailRatioRange()
+        val targetAspectRatio = RatioSlider.quantize(
+                rawTargetAspectRatio, ratioRange.minRatio, ratioRange.maxRatio
+        )
         val initialVideoFrameMs = if (source.isVideo) {
             sourceAppearance?.videoFrameMs ?: 0L
         } else {
@@ -4600,71 +4497,23 @@ class ThingsActivity :
                 )
         )
 
-        val ratioSeekBar = SeekBar(this)
-        var ratioTicksView: ThingCardRatioTicksView? = null
         val accentBackground = getThingCardAppearanceAccentBackground()
         val accentColor = getThingCardAppearanceAccentColor()
-        DisplayUtil.setSeekBarBackground(
-                ratioSeekBar,
-                accentBackground ?: ThingBackground.pure(accentColor)
+        val ratioSlider = RatioSlider(this)
+        ratioSlider.setAccentBackground(
+                accentBackground ?: ThingBackground.pure(accentColor),
+                ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
-        ratioSeekBar.max = THING_CARD_RATIO_SLIDER_MAX
-        ratioSeekBar.progress = getThingCardRatioProgress(initialAspectRatio)
-        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-            ) {
-                if (!fromUser) return
-                val snappedRatio = getSnappedThingCardRatioForSeekBar(seekBar, progress)
-                ratioTicksView?.setActiveRatio(snappedRatio)
-                cropView.setTargetAspectRatio(snappedRatio)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                mThingCardActiveRatioDragRange = getThingCardThumbnailRatioRange()
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                if (seekBar != null) {
-                    val snappedRatio = getSnappedThingCardRatioForSeekBar(
-                            seekBar,
-                            seekBar.progress
-                    )
-                    ratioTicksView?.setActiveRatio(snappedRatio)
-                    cropView.setTargetAspectRatio(snappedRatio)
-                }
-                mThingCardActiveRatioDragRange = null
-            }
-        })
-
-        val sliderFrame = FrameLayout(this)
-        sliderFrame.addView(
-                ratioSeekBar,
-                FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                )
-        )
-        val ticksView = ThingCardRatioTicksView(this)
-        ratioTicksView = ticksView
-        bindThingCardRatioTicks(ticksView)
-        ticksView.setActiveRatio(
-                snapThingCardRatio(getThingCardRatioFromProgress(ratioSeekBar.progress))
-        )
-        ticksView.isClickable = false
-        ticksView.isFocusable = false
-        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        sliderFrame.addView(
-                ticksView,
-                FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                )
-        )
+        ratioSlider.setRangeProvider {
+            val range = getThingCardThumbnailRatioRange()
+            range.minRatio to range.maxRatio
+        }
+        ratioSlider.setRatio(initialAspectRatio)
+        ratioSlider.onRatioChanged = { snapped ->
+            cropView.setTargetAspectRatio(snapped)
+        }
         container.addView(
-                sliderFrame,
+                ratioSlider,
                 LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         (resources.displayMetrics.density * 52).toInt()
@@ -4979,7 +4828,10 @@ class ThingsActivity :
     }
 
     private fun updateThingCardBackgroundHeight(heightPercent: Int) {
-        updateThingCardActiveTargetAspectRatio(getThingCardRatioFromProgress(heightPercent))
+        val range = getThingCardThumbnailRatioRange()
+        updateThingCardActiveTargetAspectRatio(
+                RatioSlider.ratioFromProgress(heightPercent, range.minRatio, range.maxRatio)
+        )
         if (!applyCurrentThingCardMediaBackgroundHeightToVisiblePreview()) {
             requestThingCardAppearancePreviewRefresh()
         }
@@ -10770,8 +10622,6 @@ class ThingsActivity :
         // Fallback delay for revealing a freshly created Thing if the
         // scroll-into-view never reports an idle state (e.g. nothing to scroll).
         private const val NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS: Long = 1200L
-        private const val THING_CARD_RATIO_SLIDER_MAX = 1000
-        private const val THING_CARD_RATIO_SNAP_PROGRESS_DISTANCE = 28
         private const val THING_CARD_SIDE_PANEL_PROJECTION_MAX_ITERATIONS = 6
         private const val THING_CARD_SIDE_PANEL_PROJECTION_TOLERANCE_PX = 1
         private const val THING_CARD_VIDEO_END_FRAME_GUARD_MS = 50

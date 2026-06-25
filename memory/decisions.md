@@ -43,6 +43,7 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `localization`: `docs/features/localization/decisions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/decisions.md`
 - `project-maintenance`: `docs/features/project-maintenance/decisions.md`
+- `ratio-slider`: `docs/features/ratio-slider/decisions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/decisions.md`
 - `selection-batch-actions`: `docs/features/selection-batch-actions/decisions.md`
 - `undo-to-confirm-dialog`: `docs/features/undo-to-confirm-dialog/decisions.md`

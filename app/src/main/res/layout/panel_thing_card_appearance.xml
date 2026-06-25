@@ -376,24 +376,10 @@
             android:textColor="@color/app_chrome_on_surface_hint"
             android:textSize="13sp" />
 
-        <FrameLayout
+        <com.ywwynm.everythingdone.views.RatioSlider
+            android:id="@+id/v_thing_card_appearance_ratio_slider"
             android:layout_width="match_parent"
-            android:layout_height="52dp">
-
-            <SeekBar
-                android:id="@+id/seek_thing_card_appearance_thumbnail_ratio"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-            <com.ywwynm.everythingdone.views.ThingCardRatioTicksView
-                android:id="@+id/v_thing_card_appearance_thumbnail_ratio_ticks"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clickable="false"
-                android:focusable="false"
-                android:importantForAccessibility="no" />
-
-        </FrameLayout>
+            android:layout_height="52dp" />
 
     </LinearLayout>
 

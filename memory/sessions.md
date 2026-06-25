@@ -55,6 +55,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `kotlin-migration`: `docs/features/kotlin-migration/sessions.md`
 - `localization`: `docs/features/localization/sessions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/sessions.md`
+- `ratio-slider`: `docs/features/ratio-slider/sessions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/sessions.md`
 - `share-screenshot`: `docs/features/share-screenshot/sessions.md`
 - `system-bar-insets`: `docs/features/system-bar-insets/sessions.md`
