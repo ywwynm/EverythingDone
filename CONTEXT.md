@@ -16,6 +16,14 @@ _Avoid_: completed Thing
 Thing 进入回收站前的正在进行或已完成状态；从回收站恢复单个 Thing 时应回到这个状态。
 _Avoid_: always restore to underway
 
+**Doing Thing**:
+当前唯一正在被计时专注的 Thing，由全局 `App.doingThingId` 标识；进入计时（DoingActivity）时设定，停止计时时清除。它在列表中的 Thing Card 上覆盖一层"正在做"蒙层。它与位置和文件夹归属无关，移动或重排不改变其计时状态。
+_Avoid_: ongoing-notification Thing, every underway Thing, 把"正在做"当成一种状态筛选
+
+**Ongoing Thing**:
+被固定为常驻通知的 Thing，由 `KEY_ONGOING_THING_ID` 标识；它与 Doing Thing 是两个独立概念，状态变更时清理的是它的常驻通知，而不是 Doing Thing 的计时。
+_Avoid_: 把 Ongoing Thing 与 Doing Thing 混用
+
 **Thing Folder**:
 A user-created container that groups Things and may itself live inside another Thing Folder.
 _Avoid_: note folder, category, tag

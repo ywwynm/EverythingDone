@@ -59,13 +59,18 @@ object HomeActionWordingHelper {
         target: StateTarget,
         count: Int,
         includesSubfolders: Boolean,
-        typeFilterMask: Int? = null
+        typeFilterMask: Int? = null,
+        excludesDoing: Boolean = false
     ): ActionWording {
         val title = stateActionTitle(context, status, stateAfter, target)
-        val subfolderClause = if (includesSubfolders) {
-            context.getString(R.string.scope_includes_subfolders)
-        } else {
-            ""
+        // 合成数量后的括号子句：子文件夹提示与"不含正在做的记事"都在时，合进同一对括号，
+        // 避免出现连续两个括号。
+        val clause = when {
+            includesSubfolders && excludesDoing ->
+                context.getString(R.string.scope_includes_subfolders_and_excludes_doing)
+            includesSubfolders -> context.getString(R.string.scope_includes_subfolders)
+            excludesDoing -> context.getString(R.string.scope_excludes_doing)
+            else -> ""
         }
         val bodyRes = when (stateAfter) {
             Thing.UNDERWAY ->
@@ -78,7 +83,7 @@ object HomeActionWordingHelper {
             Thing.DELETED_FOREVER -> R.string.home_action_confirm_irreversible
             else -> R.string.home_action_confirm_plain
         }
-        var body = context.getString(bodyRes, title, count, subfolderClause)
+        var body = context.getString(bodyRes, title, count, clause)
         val typeTitle = typeFilterMask?.let {
             ThingWidgetInfo.getTypeFilterTitle(context, it)
         }

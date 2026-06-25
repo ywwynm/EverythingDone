@@ -215,6 +215,8 @@
     <string name="finish_all_things_in_folder_confirm">将完成%1$s的所有正在进行的记事，共%2$d件%3$s。</string>
     <string name="finish_all_things_root_confirm">将完成所有正在进行的记事，共%1$d件%2$s。</string>
     <string name="scope_includes_subfolders">（包含所有子文件夹中的记事）</string>
+    <string name="scope_excludes_doing">（不含正在做的记事）</string>
+    <string name="scope_includes_subfolders_and_excludes_doing">（包含所有子文件夹中的记事，不含正在做的记事）</string>
     <string name="scope_selected_things">所选</string>
     <string name="scope_selected_folders">所选文件夹</string>
     <string name="scope_selected_items">所选项</string>
@@ -490,7 +492,7 @@
     <string name="delete_selected_folders_forever_confirm">将永久删除所选文件夹及其全部内容，共%1$s，无法恢复。</string>
     <string name="delete_selected_items_forever_structural_confirm">将永久删除所选项（所选文件夹及其全部内容、以及所选记事），共%1$s，无法恢复。</string>
     <string name="no_matching_things_in_selection">所选范围内没有可操作的记事</string>
-    <string name="private_batch_skipped">%1$d 项未能设为私密（正在计时）</string>
+    <string name="private_batch_skipped">正在做的记事未设为私密</string>
     <string name="act_customize_card_appearance">调整记事卡片外观</string>
     <string name="act_customize_folder_card_appearance">调整文件夹卡片外观</string>
 

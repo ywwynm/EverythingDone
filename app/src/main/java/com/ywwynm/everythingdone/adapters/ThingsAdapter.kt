@@ -945,7 +945,25 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         applyFolderThumbnailPreviewScale(previewHolder.cv, style)
         reapplyFolderThumbnailPreviewMediaCrop(previewHolder, previewAdapter, thing)
         applyFolderThumbnailPreviewElevation(previewHolder.cv)
+        // 若是正在做的记事：缩略图预览不经历正常列表的测量时机，updateCardForDoing 里 post 的
+        // 蒙层缩放会在首帧之后再改一次尺寸，造成"闪一下"。这里按已知的预览宽度同步测量后立即
+        // 定好蒙层图标 / 文字缩放，使首帧即为最终尺寸，避免闪烁。
+        if (App.getDoingThingId() == thing.id) {
+            preSizeDoingCoverForPreview(view, previewHolder, style)
+        }
         return view
+    }
+
+    private fun preSizeDoingCoverForPreview(
+        card: View,
+        holder: BaseThingViewHolder,
+        style: FolderThingPreviewStyle
+    ) {
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(style.previewWidth, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        card.measure(widthSpec, heightSpec)
+        card.layout(0, 0, card.measuredWidth, card.measuredHeight)
+        holder.applyDoingCoverScale()
     }
 
     private fun createFolderSummaryPreviewView(

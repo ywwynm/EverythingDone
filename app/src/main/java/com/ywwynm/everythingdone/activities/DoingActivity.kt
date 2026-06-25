@@ -36,6 +36,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
+import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
@@ -292,6 +293,23 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         return view.height + (lp?.topMargin ?: 0)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // singleTask 被重新带到前台（点击卡片 / 通知 / 小组件）：重新取当前正在做的 Thing（可能已
+        // 切换），用数据库最新数据覆盖后重渲染卡片，使外观 / 内容改动立即生效。
+        val binder = mDoingBinder ?: return
+        mThing = binder.getThing() ?: return
+        overlayLatestThingFromDb()
+        initRecyclerView()
+    }
+
+    /** 用数据库里的最新数据覆盖当前渲染用的 mThing（id 不变），使外观 / 内容改动即时生效。 */
+    private fun overlayLatestThingFromDb() {
+        val id = mThing?.id ?: return
+        ThingDAO.getInstance(mApp)?.getThingById(id)?.let { mThing = it }
+    }
+
     private fun initAfterBindService() {
         mThing = mDoingBinder!!.getThing()
         if (mThing == null) {
@@ -300,6 +318,10 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             finishWithStoppingService()
             return
         }
+
+        // 开始做之后卡片外观 / 内容可能已在首页被修改并写入数据库，但 Service 持有的是开始计时时
+        // 的旧 Thing 对象。渲染前用数据库最新数据覆盖，使外观等改动在 DoingActivity 立即生效。
+        overlayLatestThingFromDb()
 
         if (mDoingBinder!!.isInStrictMode()) {
             Toast.makeText(this, R.string.doing_toast_already_strict_mode, Toast.LENGTH_LONG).show()

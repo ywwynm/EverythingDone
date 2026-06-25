@@ -1065,8 +1065,7 @@ open class ThingManager private constructor(context: Context?) {
     private fun canMoveThingToFolder(thing: Thing?): Boolean {
         if (thing == null) return false
         if (thing.type !in Thing.NOTE..Thing.GOAL) return false
-        if (thing.state != Thing.UNDERWAY) return false
-        return thing.id != App.getDoingThingId()
+        return thing.state == Thing.UNDERWAY
     }
 
     open fun getFolderMoveCandidates(folder: ThingFolder?): List<ThingFolder> {
@@ -1489,11 +1488,16 @@ open class ThingManager private constructor(context: Context?) {
     ): Int {
         if (things.isEmpty()) return 0
 
+        // 兜底：Doing 记事永不被任何成批 / 范围状态变更触及（与调用点的扣除互为双保险）。
+        val doingId = App.getDoingThingId()
+        val effectiveThings = if (doingId != -1L) things.filterNot { it.id == doingId } else things
+        if (effectiveThings.isEmpty()) return 0
+
         val ongoingKey = Def.Meta.KEY_ONGOING_THING_ID
         val curOngoingId = FrequentSettings.getLong(ongoingKey)
         var shouldCancelOngoing = false
         val clonedThings: MutableList<Thing?> = ArrayList()
-        for (thing in things) {
+        for (thing in effectiveThings) {
             if (thing.id == curOngoingId) shouldCancelOngoing = true
             clonedThings.add(Thing.getSameCheckStateThing(thing, stateBefore, stateAfter))
         }
@@ -1504,14 +1508,14 @@ open class ThingManager private constructor(context: Context?) {
             FrequentSettings.put(ongoingKey, -1L)
         }
 
-        val stateChangeLocations = getLocationsForStateChange(things)
+        val stateChangeLocations = getLocationsForStateChange(effectiveThings)
         mDao!!.updateStates(clonedThings, stateChangeLocations, stateBefore, stateAfter, false)
 
         val rDao = ReminderDAO.getInstance(mContext)!!
         val updateCounts = SparseIntArray()
         val habitIds = ArrayList<Long>()
         val goals = ArrayList<Reminder?>()
-        for (thing in things) {
+        for (thing in effectiveThings) {
             val type = thing.type
             if (type == Thing.HABIT) {
                 habitIds.add(thing.id)
@@ -1549,7 +1553,7 @@ open class ThingManager private constructor(context: Context?) {
         }
 
         loadThings()
-        return things.size
+        return effectiveThings.size
     }
 
     open fun toggleFolderSticky(folder: ThingFolder?): Boolean {

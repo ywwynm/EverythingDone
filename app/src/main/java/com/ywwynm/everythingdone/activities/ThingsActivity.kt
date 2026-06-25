@@ -2918,9 +2918,6 @@ class ThingsActivity :
 
     private fun openThingCardAppearancePanel() {
         val thing: Thing = getSingleSelectedThingForAppearance() ?: return
-        if (thing.id == App.getDoingThingId()) {
-            return
-        }
 
         clearFolderCardAppearanceDraft()
         mThingCardAppearanceMediaSources = ThingCardMediaHelper.getAvailableMediaSources(
@@ -6256,6 +6253,18 @@ class ThingsActivity :
      * confirmation over the union of selected Things plus each selected Folder's
      * in-scope content, then execute via the folder content-op batch methods.
      */
+    /**
+     * 从一组"待完成 / 删除"的记事里剔除 Doing 记事（受保护，不被这两类动作作用）。
+     * 返回（可操作集合, 原集合是否含 Doing）。Doing 记事天然处于正在进行，故只会在
+     * 正在进行状态的完成 / 删除路径里出现。
+     */
+    private fun excludeDoingFrom(things: List<Thing>): Pair<List<Thing>, Boolean> {
+        val doingId = App.getDoingThingId()
+        if (doingId == -1L) return things to false
+        val actionable = things.filterNot { it.id == doingId }
+        return actionable to (actionable.size != things.size)
+    }
+
     private fun confirmSelectedStateChange(stateAfter: Int) {
         val selectedThings = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
         val selectedFolders = mThingManager!!.getSelectedFolders().toList()
@@ -6329,14 +6338,20 @@ class ThingsActivity :
 
     private fun confirmThingsOnlyStateChange(stateAfter: Int, selectedThings: List<Thing>) {
         if (selectedThings.isEmpty()) return
+        val (actionable, excludesDoing) = excludeDoingFrom(selectedThings)
+        if (actionable.isEmpty()) {
+            Toast.makeText(this, R.string.no_matching_things_in_selection, Toast.LENGTH_SHORT).show()
+            return
+        }
         val background = selectionDialogBackground()
         val wording = HomeActionWordingHelper.stateActionWording(
             this,
             mApp!!.getStatus(),
             stateAfter,
             HomeActionWordingHelper.StateTarget.SELECTED_THINGS,
-            selectedThings.size,
-            includesSubfolders = false
+            actionable.size,
+            includesSubfolders = false,
+            excludesDoing = excludesDoing
         )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
@@ -6369,8 +6384,9 @@ class ThingsActivity :
         for (folder in selectedFolders) {
             folderContent.addAll(collectFolderScopeThings(folder, status, stateAfter))
         }
-        val union = ArrayList<Thing>(selectedThings)
-        union.addAll(folderContent)
+        val rawUnion = ArrayList<Thing>(selectedThings)
+        rawUnion.addAll(folderContent)
+        val (union, excludesDoing) = excludeDoingFrom(rawUnion)
         if (union.isEmpty()) {
             Toast.makeText(this, R.string.no_matching_things_in_selection, Toast.LENGTH_SHORT).show()
             return
@@ -6380,7 +6396,7 @@ class ThingsActivity :
         // Subfolder reminder: shown when the affected folder content reaches into a
         // nested subfolder (a record whose folderId is not one of the selected folders).
         val selectedFolderIds = selectedFolders.map { it.id }.toHashSet()
-        val includesSubfolders = folderContent.any { it.folderId !in selectedFolderIds }
+        val includesSubfolders = union.any { it.folderId !in selectedFolderIds }
         val wording = HomeActionWordingHelper.stateActionWording(
             this,
             status,
@@ -6392,7 +6408,8 @@ class ThingsActivity :
             },
             union.size,
             includesSubfolders,
-            mThingManager!!.getActiveTypeFilterMask()
+            mThingManager!!.getActiveTypeFilterMask(),
+            excludesDoing
         )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
@@ -6469,7 +6486,8 @@ class ThingsActivity :
         if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
             for (i in 1 until size) {
                 thing = things[i]!!
-                if (thing.isSelected()) {
+                // Doing 记事受保护：选中也不被完成 / 删除，且不计入习惯 / 目标三选项判断。
+                if (thing.isSelected() && thing.id != App.getDoingThingId()) {
                     val type = thing.type
                     if (Thing.isImportantType(type)) {
                         containsHabitOrGoal = true
@@ -6856,15 +6874,14 @@ class ThingsActivity :
                     openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
                 }
             } else {
-                if (App.getDoingThingId() != thing.id) {
-                    if (isThingCardAppearancePanelShowing()) {
-                        cancelThingCardAppearancePanel(false)
-                    }
-                    thing.selected = !thing.isSelected()
-                    mAdapter!!.notifyItemChanged(listPosition)
-                    mModeManager!!.updateSelectedCount()
-                    mModeManager!!.updateMenuItems()
+                // 选择模型 A：Doing 记事完全可选中；完成/删除/设为私密的保护在动作执行层处理。
+                if (isThingCardAppearancePanelShowing()) {
+                    cancelThingCardAppearancePanel(false)
                 }
+                thing.selected = !thing.isSelected()
+                mAdapter!!.notifyItemChanged(listPosition)
+                mModeManager!!.updateSelectedCount()
+                mModeManager!!.updateMenuItems()
             }
         }
 
@@ -6963,7 +6980,6 @@ class ThingsActivity :
             val thing: Thing = mThingManager!!.getThingAtListPosition(listPosition) ?: return false
             if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL
                 && thing.type <= Thing.NOTIFICATION_GOAL
-                && App.getDoingThingId() != thing.id
             ) {
                 mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                 if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
@@ -7477,7 +7493,7 @@ class ThingsActivity :
     private fun confirmFinishAllThingsInScope(
         folder: ThingFolder?
     ) {
-        val things = mThingManager!!.getUnderwayThingsInScope(folder)
+        val (things, excludesDoing) = excludeDoingFrom(mThingManager!!.getUnderwayThingsInScope(folder))
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_underway_things_to_finish, Toast.LENGTH_SHORT).show()
@@ -7487,7 +7503,8 @@ class ThingsActivity :
             Def.ThingStatus.UNDERWAY,
             Thing.FINISHED,
             folder,
-            things
+            things,
+            excludesDoing
         )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
@@ -7708,7 +7725,8 @@ class ThingsActivity :
         status: Int,
         stateAfter: Int,
         folder: ThingFolder?,
-        things: List<Thing>
+        things: List<Thing>,
+        excludesDoing: Boolean = false
     ): HomeActionWordingHelper.ActionWording {
         return HomeActionWordingHelper.stateActionWording(
             this,
@@ -7717,7 +7735,8 @@ class ThingsActivity :
             stateActionTargetForScope(folder),
             things.size,
             includesSubfolders(folder, things),
-            mThingManager!!.getActiveTypeFilterMask()
+            mThingManager!!.getActiveTypeFilterMask(),
+            excludesDoing
         )
     }
 
@@ -8293,7 +8312,6 @@ class ThingsActivity :
         if (thing == null) return false
         if (thing.type !in Thing.NOTE..Thing.GOAL) return false
         if (thing.state != Thing.UNDERWAY) return false
-        if (App.getDoingThingId() == thing.id) return false
         return !isThingEffectivelyPrivateInCurrentProjection(thing)
     }
 
@@ -8304,7 +8322,6 @@ class ThingsActivity :
         if (thing == null) return false
         if (thing.type !in Thing.NOTE..Thing.GOAL) return false
         if (thing.state != Thing.UNDERWAY) return false
-        if (App.getDoingThingId() == thing.id) return false
         if (thing.folderId == targetEntry.folder.id) return false
         return true
     }
@@ -8880,8 +8897,7 @@ class ThingsActivity :
         private fun canMoveThingIntoExistingFolderWith(thing: Thing?): Boolean {
             if (thing == null) return false
             if (thing.type !in Thing.NOTE..Thing.GOAL) return false
-            if (thing.state != Thing.UNDERWAY) return false
-            return App.getDoingThingId() != thing.id
+            return thing.state == Thing.UNDERWAY
         }
 
         private fun reusePendingCreateBackground(
@@ -9870,11 +9886,9 @@ class ThingsActivity :
 
                     holder.flDoing!!.visibility = View.VISIBLE
                     if (!hasSwipedRight) {
-                        val lp = holder.flDoing.layoutParams as FrameLayout.LayoutParams
-                        lp.width  = holder.cv!!.width
-                        lp.height = holder.cv.height
+                        // 铺满由 InterceptTouchCardView.onMeasure 保证；这里触发一次重测并按当前
+                        // 高度算图标 / 文字缩放。
                         holder.flDoing.requestLayout()
-                        // 右滑预览时卡片已布局，直接按高度定好图标/文字缩放，蒙层一出现即最终大小。
                         holder.applyDoingCoverScale()
                         hasSwipedRight = true
                     }
@@ -10298,7 +10312,7 @@ class ThingsActivity :
         SystemNotificationUtil.tryToCreateThingOngoingNotification(mApp)
         if (skipped > 0) {
             Toast.makeText(
-                this, getString(R.string.private_batch_skipped, skipped), Toast.LENGTH_SHORT
+                this, getString(R.string.private_batch_skipped), Toast.LENGTH_SHORT
             ).show()
         }
     }

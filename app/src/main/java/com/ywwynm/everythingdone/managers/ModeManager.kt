@@ -336,10 +336,8 @@ open class ModeManager(app: App?,
             return false
         }
 
-        val thing: Thing = selectedThings[0] ?: return false
-        if (thing.id == App.getDoingThingId()) {
-            return false
-        }
+        selectedThings[0] ?: return false
+        // Doing 记事的卡片外观可编辑（呈现偏好，不影响计时，不在受保护三项内）。
         // Card appearance is an Underway-only editor (hidden in Finished and the
         // recycle bin, matching sticky and privacy).
         if (mApp!!.getStatus() != Def.ThingStatus.UNDERWAY) {
@@ -349,13 +347,23 @@ open class ModeManager(app: App?,
         return true
     }
 
+    /** 选中集是否恰好只有正在做的那一件记事（无文件夹、无其它记事）。 */
+    private fun isOnlyDoingThingSelected(): Boolean {
+        if (mThingManager!!.getSelectedCount() != 1) return false
+        if (mThingManager!!.getSelectedFolderCount() > 0) return false
+        val thing = mThingManager!!.getSelectedThings()?.filterNotNull()?.firstOrNull() ?: return false
+        return thing.id == App.getDoingThingId()
+    }
+
     private fun updateMenuItemPrivate() {
         val item: MenuItem = mContextualToolbar!!.getMenu()
                 .findItem(R.id.act_set_as_private_thing) ?: return
         val limitIsUnderway = mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
         val things = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
         val folders = mThingManager!!.getSelectedFolders().toList()
-        if (!limitIsUnderway || (things.isEmpty() && folders.isEmpty())) {
+        if (!limitIsUnderway || (things.isEmpty() && folders.isEmpty()) ||
+            isOnlyDoingThingSelected()
+        ) {
             item.isVisible = false
             return
         }
@@ -375,24 +383,26 @@ open class ModeManager(app: App?,
         val status = mApp!!.getStatus()
         val underway = status == Def.ThingStatus.UNDERWAY
         val deleted = status == Def.ThingStatus.DELETED
+        // 选中集仅含正在做的记事时，完成 / 删除对它无效，直接隐藏这些状态动作（其它选中情况照常）。
+        val stateVerbVisible = anySelected && !isOnlyDoingThingSelected()
 
         // Unified state verbs cover Things, Folders, and mixed selections. The
         // label adapts to composition; the handler maps each member to its own
         // type's operation (Thing state change vs Folder content op).
         setStateVerb(
-            R.id.act_finish_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            R.id.act_finish_selected, stateVerbVisible, selectionTarget(hasThing, hasFolder),
             status, Thing.FINISHED
         )
         setStateVerb(
-            R.id.act_delete_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            R.id.act_delete_selected, stateVerbVisible, selectionTarget(hasThing, hasFolder),
             status, Thing.DELETED
         )
         setStateVerb(
-            R.id.act_restore_selected, anySelected, selectionTarget(hasThing, hasFolder),
+            R.id.act_restore_selected, stateVerbVisible, selectionTarget(hasThing, hasFolder),
             status, Thing.UNDERWAY
         )
         setStateVerb(
-            R.id.act_delete_selected_forever, anySelected, selectionTarget(hasThing, hasFolder),
+            R.id.act_delete_selected_forever, stateVerbVisible, selectionTarget(hasThing, hasFolder),
             status, Thing.DELETED_FOREVER
         )
 

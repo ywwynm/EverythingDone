@@ -576,6 +576,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.rlReminder!!.alpha = adaptiveAlpha
         holder.rlHabit!!.alpha = adaptiveAlpha
         holder.ivStickyOngoing!!.alpha = adaptiveAlpha
+        // "正在做"蒙层（含其内图标 / 文字）在未选中态做轻微淡化以区分选中态；但只能轻微淡，
+        // 否则蒙层会盖不住下层内容，故用比普通内容弱得多的专用透明度。
+        holder.flDoing!!.alpha = if (dim) UNSELECTED_DOING_COVER_ALPHA else 1.0f
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
@@ -2982,24 +2985,18 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun updateCardForDoing(holder: BaseThingViewHolder, thing: Thing) {
         if (App.getDoingThingId() == thing.id) {
             holder.flDoing!!.visibility = View.VISIBLE
-            // 卡片已测量（列表项复用、右滑预览等）时同步定好蒙层尺寸与图标/文字缩放，避免先
-            // 以旧尺寸闪现再跳变；只有首次绑定、卡片尚未测量时才退回 post。
-            if (holder.cv!!.height > 0) {
-                applyDoingCover(holder)
+            // 蒙层保持 match_parent，铺满由 InterceptTouchCardView.onMeasure 在卡片尺寸确定后强制
+            // 重测保证（此 RecyclerView 下 FrameLayout 第二趟 match_parent 测量不一定触发）。这里
+            // 只按卡片最终高度算图标 / 文字缩放：已稳定布局立即算，否则布局后再算。
+            val cv = holder.cv!!
+            if (cv.height > 0 && !cv.isLayoutRequested) {
+                holder.applyDoingCoverScale()
             } else {
-                holder.cv.post { applyDoingCover(holder) }
+                cv.post { holder.applyDoingCoverScale() }
             }
         } else {
             holder.flDoing!!.visibility = View.GONE
         }
-    }
-
-    private fun applyDoingCover(holder: BaseThingViewHolder) {
-        val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
-        lp.width = holder.cv!!.width
-        lp.height = holder.cv.height
-        holder.flDoing.requestLayout()
-        holder.applyDoingCoverScale()
     }
 
     private fun setCardAppearance(
@@ -3149,24 +3146,45 @@ abstract class BaseThingsAdapter(context: Context?) :
             val tv = tvDoing ?: return
             val card = cv ?: return
             val cardHeight = card.height
-            if (cardHeight <= 0) return
+            val cardWidth = card.width
+            if (cardHeight <= 0 || cardWidth <= 0) return
             val res = itemView.resources
             val density = res.displayMetrics.density
             val intrinsicIconH = 48f * density
             val intrinsicIconW = 44f * density
             val baseTextSizePx = res.getDimension(R.dimen.tv_thing_doing_text_size)
             val baseDrawablePadding = 4f * density
-            // 留白取卡片高度的比例：矮卡片留白不会过大，迷你卡片也能自适应（绝对值随之变小）。
+
+            // 高度方向：按 18% 上下留白限制图标高度，矮卡片整体缩小。
             val minVerticalPadding = cardHeight * 0.18f
             val maxIconH = cardHeight - minVerticalPadding * 2f
-            val scale = if (maxIconH > 0f && maxIconH < intrinsicIconH) {
+            val heightScale = if (maxIconH > 0f && maxIconH < intrinsicIconH) {
                 maxIconH / intrinsicIconH
             } else {
                 1f
             }
+
+            // 宽度方向：让"图标 + 间距 + 文字"在卡片宽度内一行放下、不换行、不贴边。窄卡片
+            // （如大文件夹缩略图里宽 < 高的预览卡）下这是决定因素，避免图标贴左边、文字换行，
+            // 使蒙层始终是正常列表样子的等比缩小版，而非按高度单独缩放的变形。
+            val tvMarginStart =
+                (tv.layoutParams as? ViewGroup.MarginLayoutParams)?.marginStart?.toFloat() ?: 0f
+            val measurePaint = android.text.TextPaint(tv.paint)
+            measurePaint.textSize = baseTextSizePx
+            val textWidth = measurePaint.measureText(tv.text?.toString() ?: "")
+            val intrinsicContentWidth = intrinsicIconW + baseDrawablePadding + textWidth
+            val availableWidth = cardWidth - tvMarginStart - cardWidth * 0.16f
+            val widthScale = if (intrinsicContentWidth > 0f && availableWidth < intrinsicContentWidth) {
+                (availableWidth / intrinsicContentWidth).coerceAtLeast(0f)
+            } else {
+                1f
+            }
+
+            val scale = minOf(heightScale, widthScale)
             val drawable = ContextCompat.getDrawable(itemView.context, R.drawable.vec_ic_doing_thing)
                 ?.mutate() ?: return
             drawable.setBounds(0, 0, (intrinsicIconW * scale).toInt(), (intrinsicIconH * scale).toInt())
+            tv.maxLines = 1
             tv.setCompoundDrawablesRelative(drawable, null, null, null)
             tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseTextSizePx * scale)
             tv.compoundDrawablePadding = (baseDrawablePadding * scale).toInt()
@@ -3193,6 +3211,8 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         private const val UNSELECTED_DARK_CONTENT_ALPHA = 0.32f
         private const val UNSELECTED_LIGHT_CONTENT_ALPHA = 0.64f
+        // Doing 蒙层未选中时只做轻微淡化：仍需盖住下层内容，故比普通内容淡化弱得多。
+        private const val UNSELECTED_DOING_COVER_ALPHA = 0.8f
         private const val NORMAL_TEXT_MAX_LINES = 9
         private const val FULL_SPAN_TEXT_MAX_LINES = 14
         private const val FULL_SPAN_CHECKLIST_MAX_ITEM_COUNT = 12
