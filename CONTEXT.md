@@ -188,6 +188,14 @@ _Avoid_: GIF support as a blanket term, autoplay as a file property
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
 
+**Drawer Header Image**:
+A single user-chosen image used as the header of App Chrome surfaces — both the navigation drawer and the statistic screen — sharing one crop across them. Despite the name it is not limited to the drawer.
+_Avoid_: per-surface header image, drawer-only image, attachment
+
+**Drawer Header Image Crop**:
+The single shared aspect ratio, crop center, and zoom applied to the Drawer Header Image, determining its shape and framing identically on both the navigation drawer and the statistic screen. It is one setting for the image, not a separate value per surface.
+_Avoid_: per-surface crop, Thing Card Media Crop, centerCrop
+
 **Thing Background Surface**:
 A screen whose primary visual identity comes from a Thing Background rather than App Chrome.
 _Avoid_: dark-mode screen
@@ -272,11 +280,16 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
 - A single **Animated Image** may receive **Animated Playback** on a surface that supports it while appearing as its first static frame on every other surface, mirroring how an **HDR Media** receives **HDR Display** only where supported.
-- A surface that must present a fixed crop or an HDR base image shows an **Animated Image** as a single frame instead of giving it **Animated Playback**.
+- A crop editor, a RemoteViews surface (widget preview or placed widget), an HDR base frame, or a video thumbnail shows an **Animated Image** as a single frame; an in-app view surface that applies the same crop per frame still gives it **Animated Playback**.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
+- A **Drawer Header Image** is part of **App Chrome** and appears on both the navigation drawer and the statistic screen with one shared crop.
+- A **Drawer Header Image** has at most one user-chosen image; when unset, each surface shows its own built-in default header.
+- A **Drawer Header Image** has one **Drawer Header Image Crop** that determines its shape and framing identically on both surfaces.
+- A **Drawer Header Image Crop** applies only to a user-chosen image; a built-in default header is shown at its own natural shape.
+- A **Drawer Header Image** may be backed by an **Animated Image**; as an in-app view surface it gives it **Animated Playback** with the **Drawer Header Image Crop** applied per frame, while its crop editor shows a single frame.
 - New installs and upgrades default to light App Chrome unless the user explicitly enables follow-system or forced dark Appearance Mode.
 - Light App Chrome is compatibility-sensitive: dark-mode infrastructure must not change existing light-mode visuals.
 - A **Selection** may contain both **Things** and **Thing Folders**, all siblings within the current projection.
@@ -306,3 +319,6 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - “全部记事”可能被误解为忽略状态和类型的总览；已解析为 **All Things Scope**，只表示不限定 Thing Folder，仍然受当前状态和类型筛选控制。
 - “归档”容易和“完成”形成重复概念；已解析为不引入独立归档状态，由完成语义承担从日常进行列表中收起的作用。
 - “已删除”曾同时表示代码状态和用户可见区域；用户语义中解析为 **Trash** / **Trashed Thing**，并且不能与完成语义混用。
+- “Drawer Header Image”名字听起来只作用于导航抽屉，但同一张图与同一套裁切同时驱动统计界面头部；已解析为一个跨界面共享的 **Drawer Header Image** 概念，而非每个界面各自一张头图。
+- “Drawer Header Image”的比例与裁切是否像 Thing Card Media 那样按界面各存一份，曾不明确；已解析为**单一共享**的 **Drawer Header Image Crop**，抽屉与统计强制同形，因为两者是分时查看的独立屏幕，不需要在同一处并存多种取景。
+- “需要固定裁切的界面只显示单帧”曾被读成“凡是显示裁切结果的界面都单帧”；已按 ADR-0007 收紧：单帧只针对裁切编辑器、RemoteViews、HDR 基帧、视频缩略图；应用内视图界面通过逐帧套用裁切仍然给 Animated Image 以 Animated Playback，**Drawer Header Image** 因此在抽屉与统计上会播放动图。

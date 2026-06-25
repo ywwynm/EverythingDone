@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawer Header Image "adjust crop" option icon. The 100dp box matches the
+     act_default_drawer_header / act_select_image_as_drawer_header PNGs so all
+     three cells share the same drawable bounds (aligned text), while the inner
+     <group> shrinks the crop glyph to ~31dp so its visible size matches those
+     PNGs, whose drawn content only fills the centre ~34% of their 100dp canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="0.34"
+        android:scaleY="0.34">
+        <!-- Black at 0x8A alpha to match the act_default / act_select PNGs, so the
+             shared drawableTint produces the same colour in light mode (and the
+             opaque tint keeps them consistent in dark mode). -->
+        <path
+            android:fillColor="#8A000000"
+            android:pathData="M7,17V1H5v4H1v2h4v10c0,1.1 0.9,2 2,2h10v4h2v-4h4v-2H7V17z M17,15h2V7c0,-1.1 -0.9,-2 -2,-2H9v2h8V15z" />
+    </group>
+</vector>

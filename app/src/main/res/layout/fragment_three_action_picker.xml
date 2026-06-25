@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tv_action_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:drawableTint="@color/app_chrome_control_unchecked"
+        android:background="@drawable/selectable_item_background"/>
+
+    <TextView
+        android:id="@+id/tv_action_middle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:drawableTint="@color/app_chrome_control_unchecked"
+        android:background="@drawable/selectable_item_background"/>
+
+    <TextView
+        android:id="@+id/tv_action_end"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:drawableTint="@color/app_chrome_control_unchecked"
+        android:background="@drawable/selectable_item_background"/>
+
+</LinearLayout>

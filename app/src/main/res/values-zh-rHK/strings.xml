@@ -692,6 +692,9 @@
     <!--group ui-->
     <string name="settings_change_drawer_header">抽屜頭部圖片</string>
     <string name="default_drawer_header">默認圖片</string>
+    <string name="settings_drawer_header_choose_image">選擇圖片</string>
+    <string name="settings_drawer_header_adjust_crop">調整裁切</string>
+    <string name="drawer_header_ratio">頭圖比例</string>
     <string name="settings_app_language">語言</string>
     <string name="settings_follow_system_dark_mode">跟隨系統深色模式</string>
     <string name="settings_force_dark_mode">開啟深色模式</string>

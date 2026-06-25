@@ -29,6 +29,7 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.DrawerHeaderHelper
 import com.ywwynm.everythingdone.helpers.ScreenshotHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
@@ -121,6 +122,15 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
     }
 
     private fun initHeaderUI() {
+        val screenWidth = DisplayUtil.getScreenSize(mApp).x
+        val header = DrawerHeaderHelper.resolve(this)
+        // Header height follows the shared crop's aspect ratio; default keeps the
+        // historical 16:9 (= screenWidth * 0.5625), so FAB and actionbar geometry
+        // that derive from mHeaderHeight stay pixel-identical for existing users.
+        mHeaderHeight = DrawerHeaderHelper.targetHeight(
+            screenWidth, header.cropOrDefault()
+        ).toFloat()
+
         DisplayUtil.expandLayoutToStatusBarAboveLollipop(this)
         DisplayUtil.expandStatusBarViewAboveKitkat(mStatusbar) { topInset ->
             if (mStatusBarTopInset != topInset) {
@@ -130,21 +140,11 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             }
         }
 
-        val D = SettingsActivity.DEFAULT_DRAWER_HEADER
-        val header: String = mPreferences!!.getString(Def.Meta.KEY_DRAWER_HEADER, D)!!
-        if (D == header) {
-            mIvHeader!!.setImageResource(R.drawable.drawer_header_large)
-        } else {
-            if (!File(header).exists()) {
+        when (header) {
+            is DrawerHeaderHelper.Header.Custom ->
+                DrawerHeaderHelper.loadCustomInto(mIvHeader!!, header.path, header.crop, screenWidth)
+            DrawerHeaderHelper.Header.Default ->
                 mIvHeader!!.setImageResource(R.drawable.drawer_header_large)
-                mPreferences!!.edit { putString(Def.Meta.KEY_DRAWER_HEADER, D) }
-            } else {
-                val bm: Bitmap? = BitmapUtil.decodeFileWithRequiredSize(
-                    header,
-                    (mHeaderHeight * 16 / 9).toInt(), mHeaderHeight.toInt()
-                )
-                mIvHeader!!.setImageBitmap(bm)
-            }
         }
 
         val lp = mIvHeader!!.layoutParams as LinearLayout.LayoutParams

@@ -37,6 +37,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -80,6 +81,7 @@ class DrawerNavigationView @JvmOverloads constructor(
     private val headerView: View
     private val recyclerView: RecyclerView
     private val adapter: DrawerAdapter
+    private val headerAdapter: HeaderAdapter
     private var bottomSystemInset = 0
 
     private var itemClickListener: ((DrawerItem) -> Unit)? = null
@@ -92,15 +94,16 @@ class DrawerNavigationView @JvmOverloads constructor(
         setBackgroundColor(ContextCompat.getColor(context, R.color.app_chrome_surface_elevated))
 
         headerView = LayoutInflater.from(context).inflate(R.layout.drawer_header, this, false)
-        addView(
-            headerView,
-            LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
+        // The header is no longer a fixed child: it becomes the first item of the
+        // list so it scrolls together with folders, the status/type filter panel,
+        // and the destinations below, instead of staying pinned at the top.
 
         adapter = DrawerAdapter()
+        headerAdapter = HeaderAdapter()
+        val concatConfig = ConcatAdapter.Config.Builder()
+            .setIsolateViewTypes(true)
+            .setStableIdMode(ConcatAdapter.Config.StableIdMode.ISOLATED_STABLE_IDS)
+            .build()
         recyclerView = RecyclerView(context).apply {
             layoutManager = LinearLayoutManager(context)
             setHasFixedSize(false)
@@ -112,7 +115,9 @@ class DrawerNavigationView @JvmOverloads constructor(
                 supportsChangeAnimations = false
             }
             overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-            this.adapter = this@DrawerNavigationView.adapter
+            this.adapter = ConcatAdapter(
+                concatConfig, headerAdapter, this@DrawerNavigationView.adapter
+            )
         }
         addView(
             recyclerView,
@@ -187,6 +192,35 @@ class DrawerNavigationView @JvmOverloads constructor(
         if (bottomSystemInset == bottom) return
         bottomSystemInset = bottom
         adapter.updateBottomSystemInset(bottom)
+    }
+
+    /**
+     * One-item adapter holding the shared [headerView] so it rides at the top of
+     * the same RecyclerView. Reuses the single inflated instance (ThingsActivity
+     * keeps references to its children), so it must never be re-inflated.
+     */
+    private inner class HeaderAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        init {
+            setHasStableIds(true)
+        }
+
+        override fun getItemCount(): Int = 1
+
+        override fun getItemId(position: Int): Long = HEADER_ITEM_ID
+
+        override fun getItemViewType(position: Int): Int = HEADER_VIEW_TYPE
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            (headerView.parent as? ViewGroup)?.removeView(headerView)
+            headerView.layoutParams = RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            return object : RecyclerView.ViewHolder(headerView) {}
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {}
     }
 
     private inner class DrawerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -879,6 +913,8 @@ class DrawerNavigationView @JvmOverloads constructor(
     }
 
     companion object {
+        private const val HEADER_ITEM_ID = Long.MIN_VALUE + 1
+        private const val HEADER_VIEW_TYPE = 0
         private const val DRAWER_ITEM_HEIGHT_DP = 48.0f
         private const val DRAWER_GROUP_VERTICAL_MARGIN_DP = 8.0f
         private const val DRAWER_WIDTH_DP = 320.0f

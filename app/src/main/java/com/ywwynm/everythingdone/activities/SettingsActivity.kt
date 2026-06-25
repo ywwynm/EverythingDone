@@ -75,6 +75,19 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.StringUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.UriPathConverter
+import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
+import com.ywwynm.everythingdone.fragments.ThreeOptionsDialogFragment
+import com.ywwynm.everythingdone.model.DrawerHeaderImageCrop
+import com.ywwynm.everythingdone.utils.BitmapUtil
+import com.ywwynm.everythingdone.views.ThingCardCropEditorView
+import android.graphics.Typeface
+import android.widget.SeekBar
+import android.widget.FrameLayout
+import com.ywwynm.everythingdone.views.ThingCardRatioTicksView
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 import java.io.File
 import java.io.FileOutputStream
@@ -82,13 +95,14 @@ import java.io.IOException
 import java.util.ArrayList
 
 @SuppressLint("CommitPrefEdits")
-class SettingsActivity : EverythingDoneBaseActivity() {
+class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFragment.Host {
 
     private var mPreferences: SharedPreferences? = null
 
     private var mNightModeMask: Int = 0
 
     private var mTvDrawerHeader: TextView? = null
+    private var mDrawerHeaderCrop: DrawerHeaderImageCrop = DrawerHeaderImageCrop.default()
     private var mTvLanguage: TextView? = null
     private var mCbFollowSystemDarkMode: CheckBox? = null
     private var mRlForceDarkModeAsBt: RelativeLayout? = null
@@ -238,8 +252,33 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 return
             }
 
-            val pathName: String? = UriPathConverter.getLocalPathName(this, uri)
             val root: View = f(R.id.rl_settings_root)!!
+
+            if (requestCode == Def.Communication.REQUEST_CHOOSE_IMAGE_FILE) {
+                // Reuse DetailActivity's robust pick: reference the original path, and
+                // only copy as a fallback when a content URI can't be resolved to a path.
+                // That fallback is exactly the case that used to false-report
+                // "cannot add from network". See docs/features/drawer-header-image.
+                var imagePath: String? = UriPathConverter.getLocalPathName(this, uri)
+                if (imagePath == null) {
+                    val mimePostfix: String? = FileUtil.getPostfixFromMimeType(this, uri)
+                    if (mimePostfix != null) {
+                        imagePath = FileUtil.copyUriToFile(this, uri, mimePostfix)
+                    }
+                }
+                if (imagePath == null) {
+                    Snackbar.make(root, R.string.error_cannot_add_from_network, Snackbar.LENGTH_SHORT).show()
+                    return
+                }
+                if (!AttachmentHelper.isImageFile(FileUtil.getPostfix(imagePath))) {
+                    Snackbar.make(root, R.string.error_unsupported_file_type, Snackbar.LENGTH_SHORT).show()
+                    return
+                }
+                onDrawerHeaderImagePicked(imagePath)
+                return
+            }
+
+            val pathName: String? = UriPathConverter.getLocalPathName(this, uri)
             if (pathName == null) {
                 Snackbar.make(root, R.string.error_cannot_add_from_network, Snackbar.LENGTH_SHORT).show()
                 return
@@ -251,10 +290,7 @@ class SettingsActivity : EverythingDoneBaseActivity() {
                 return
             }
 
-            if (requestCode == Def.Communication.REQUEST_CHOOSE_IMAGE_FILE) {
-                mTvDrawerHeader!!.textSize = 12f
-                mTvDrawerHeader!!.text = pathName
-            } else if (requestCode == Def.Communication.REQUEST_CHOOSE_AUDIO_FILE) {
+            if (requestCode == Def.Communication.REQUEST_CHOOSE_AUDIO_FILE) {
                 setFileRingtone(pathName)
             }
         }
@@ -625,6 +661,9 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             mTvDrawerHeader!!.textSize = 12f
             mTvDrawerHeader!!.text = header
         }
+        mDrawerHeaderCrop = DrawerHeaderImageCrop.fromJson(
+            mPreferences!!.getString(Def.Meta.KEY_DRAWER_HEADER_CROP, null)
+        )
 
         val languageCode: String = FrequentSettings.getString(
             Def.Meta.KEY_LANGUAGE_CODE, LocaleUtil.LANGUAGE_CODE_FOLLOW_SYSTEM + "_"
@@ -1222,21 +1261,31 @@ class SettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun showChangeDrawerHeaderDialog() {
-        val todf = TwoOptionsDialogFragment()
+        val todf = ThreeOptionsDialogFragment()
         todf.setStartAction(
             R.drawable.act_default_drawer_header, R.string.default_drawer_header
         ) {
             mTvDrawerHeader!!.textSize = 14f
             mTvDrawerHeader!!.setText(R.string.default_drawer_header)
+            mDrawerHeaderCrop = DrawerHeaderImageCrop.default()
             todf.dismiss()
         }
-        todf.setEndAction(
-            R.drawable.act_select_image_as_drawer_header, R.string.more
+        todf.setMiddleAction(
+            R.drawable.act_select_image_as_drawer_header, R.string.settings_drawer_header_choose_image
         ) {
             todf.dismiss()
             startChooseImageAsDrawerHeader()
         }
-        todf.show(fragmentManager, TwoOptionsDialogFragment.TAG)
+        // "Adjust crop" only when a custom image is set.
+        if (currentDrawerHeaderPath() != null) {
+            todf.setEndAction(
+                R.drawable.act_adjust_drawer_header, R.string.settings_drawer_header_adjust_crop
+            ) {
+                todf.dismiss()
+                showDrawerHeaderCropEditor()
+            }
+        }
+        todf.show(fragmentManager, ThreeOptionsDialogFragment.TAG)
     }
 
     private fun startChooseImageAsDrawerHeader() {
@@ -1246,6 +1295,300 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             Intent.createChooser(intent, getString(R.string.act_choose_image_as_drawer_header)),
             Def.Communication.REQUEST_CHOOSE_IMAGE_FILE
         )
+    }
+
+    private fun onDrawerHeaderImagePicked(pathName: String) {
+        mTvDrawerHeader!!.textSize = 12f
+        mTvDrawerHeader!!.text = pathName
+        // A newly chosen image starts from a default 16:9 crop.
+        mDrawerHeaderCrop = DrawerHeaderImageCrop.default()
+        showDrawerHeaderCropEditor()
+    }
+
+    private fun currentDrawerHeaderPath(): String? {
+        val tv = mTvDrawerHeader ?: return null
+        val str = tv.text.toString()
+        return if (str == getString(R.string.default_drawer_header)) null else str
+    }
+
+    private fun showDrawerHeaderCropEditor() {
+        if (currentDrawerHeaderPath() == null) return
+        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        MediaCropAppearanceDialogFragment.newInstance(
+            MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER
+        ).show(fragmentManager, MediaCropAppearanceDialogFragment.TAG)
+    }
+
+    override fun getMediaCropAppearanceDialogWidthPx(
+        fragment: MediaCropAppearanceDialogFragment,
+        requestKey: String,
+        position: Int
+    ): Int {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val screenWidth = DisplayUtil.getScreenSize(this).x
+        val maxWidth = resources.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width)
+        val horizontalInset = (resources.displayMetrics.density * 32).toInt()
+        return min(max(1, screenWidth - horizontalInset), maxWidth)
+    }
+
+    override fun createMediaCropAppearanceDialogContent(
+        fragment: MediaCropAppearanceDialogFragment,
+        requestKey: String,
+        position: Int
+    ): MediaCropAppearanceDialogFragment.Content? {
+        if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER) return null
+        val path = currentDrawerHeaderPath() ?: return null
+
+        val density = resources.displayMetrics.density
+        val dialogWidth = getMediaCropAppearanceDialogWidthPx(fragment, requestKey, position)
+        val contentHorizontalMargin = resources.getDimensionPixelSize(
+            R.dimen.app_chrome_dialog_title_margin_horizontal
+        )
+        val contentWidth = max(1, dialogWidth - contentHorizontalMargin * 2)
+        val screenHeight = DisplayUtil.getScreenSize(this).y
+        val bitmap = BitmapUtil.decodeFileWithRequiredSize(
+            path, contentWidth, (screenHeight * 0.52f).toInt()
+        ) ?: return null
+
+        val accent = App.defaultAccentBackground
+        val crop = mDrawerHeaderCrop.normalized()
+
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.clipChildren = false
+        root.clipToPadding = false
+        root.setBackgroundResource(R.drawable.bg_app_chrome_surface_elevated_rounded)
+
+        val title = TextView(this)
+        title.setText(R.string.settings_change_drawer_header)
+        BackgroundUtil.applyTextBackground(title, accent)
+        title.setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_PX,
+            resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
+        )
+        title.setTypeface(title.typeface, Typeface.BOLD)
+        title.includeFontPadding = false
+        root.addView(
+            title,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(
+                    contentHorizontalMargin,
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_title_margin_top),
+                    contentHorizontalMargin,
+                    0
+                )
+            }
+        )
+
+        val cropEditorView = ThingCardCropEditorView(this)
+        cropEditorView.setCropBitmap(bitmap, crop.ratio, crop.centerX, crop.centerY, crop.scale)
+        cropEditorView.setOnTouchListener { v, _ ->
+            v.parent?.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+        val rawHeight = (contentWidth * bitmap.height.toDouble() / max(1, bitmap.width).toDouble()).toInt()
+        val previewHeight = max(
+            (density * 160).toInt(),
+            min((screenHeight * 0.52f).toInt(), rawHeight)
+        )
+        root.addView(
+            cropEditorView,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, previewHeight).apply {
+                setMargins(contentHorizontalMargin, (density * 6).toInt(), contentHorizontalMargin, 0)
+            }
+        )
+
+        val ratioLabel = TextView(this)
+        ratioLabel.setText(R.string.drawer_header_ratio)
+        ratioLabel.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
+        ratioLabel.textSize = 13f
+        root.addView(
+            ratioLabel,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (density * 22).toInt()
+            ).apply {
+                setMargins(contentHorizontalMargin, (density * 6).toInt(), contentHorizontalMargin, 0)
+            }
+        )
+
+        // Reuse the Thing Card appearance editor's ratio slider: ticks + snapping
+        // to the same presets, instead of a bare SeekBar.
+        val ratioSeekBar = SeekBar(this)
+        var ratioTicksView: ThingCardRatioTicksView? = null
+        DisplayUtil.setSeekBarBackground(ratioSeekBar, accent)
+        ratioSeekBar.max = DRAWER_HEADER_RATIO_SLIDER_MAX
+        ratioSeekBar.progress = drawerHeaderRatioToProgress(crop.ratio)
+        ratioSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val snapped = getSnappedDrawerHeaderRatioForSeekBar(seekBar, progress)
+                ratioTicksView?.setActiveRatio(snapped)
+                cropEditorView.setTargetAspectRatio(snapped)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                if (seekBar != null) {
+                    val snapped = getSnappedDrawerHeaderRatioForSeekBar(seekBar, seekBar.progress)
+                    ratioTicksView?.setActiveRatio(snapped)
+                    cropEditorView.setTargetAspectRatio(snapped)
+                    seekBar.progress = drawerHeaderRatioToProgress(snapped)
+                }
+            }
+        })
+
+        val sliderFrame = FrameLayout(this)
+        sliderFrame.addView(
+            ratioSeekBar,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        val ticksView = ThingCardRatioTicksView(this)
+        ratioTicksView = ticksView
+        ticksView.setAccentBackground(
+            accent, ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
+        )
+        ticksView.setRatios(
+            DrawerHeaderImageCrop.MIN_RATIO,
+            DrawerHeaderImageCrop.MAX_RATIO,
+            doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0),
+            arrayOf("1:2", "1:1", "4:3", "3:2", "16:9", "2:1", "65:24")
+        )
+        ticksView.setActiveRatio(
+            snapDrawerHeaderRatio(drawerHeaderRatioFromProgress(ratioSeekBar.progress))
+        )
+        ticksView.isClickable = false
+        ticksView.isFocusable = false
+        ticksView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        sliderFrame.addView(
+            ticksView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        root.addView(
+            sliderFrame,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (density * 52).toInt()
+            ).apply {
+                setMargins(contentHorizontalMargin, 0, contentHorizontalMargin, 0)
+            }
+        )
+
+        val buttons = LinearLayout(this)
+        buttons.gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+        buttons.orientation = LinearLayout.HORIZONTAL
+        buttons.addView(createDrawerHeaderAppearanceButton(R.string.cancel, false) {
+            fragment.dismiss()
+        })
+        buttons.addView(createDrawerHeaderAppearanceButton(R.string.confirm, true) {
+            mDrawerHeaderCrop = DrawerHeaderImageCrop(
+                ratio = cropEditorView.getTargetAspectRatio(),
+                centerX = cropEditorView.getCropCenterX(),
+                centerY = cropEditorView.getCropCenterY(),
+                scale = cropEditorView.getCropUserScale()
+            ).normalized()
+            fragment.dismiss()
+        })
+        root.addView(
+            buttons,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_row_margin_horizontal),
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_row_margin_top),
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_row_margin_horizontal),
+                    resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_row_margin_bottom)
+                )
+            }
+        )
+
+        return MediaCropAppearanceDialogFragment.Content(root)
+    }
+
+    private fun createDrawerHeaderAppearanceButton(
+        @StringRes textRes: Int,
+        useAccent: Boolean,
+        onClick: () -> Unit
+    ): TextView {
+        val button = TextView(this)
+        button.setText(textRes)
+        button.setTextColor(
+            if (useAccent) App.defaultAccentBackground.color
+            else ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
+        )
+        button.gravity = android.view.Gravity.CENTER
+        button.includeFontPadding = false
+        button.setAllCaps(true)
+        button.setBackgroundResource(R.drawable.selectable_item_background)
+        val hPad = (resources.displayMetrics.density * 16).toInt()
+        button.setPadding(hPad, 0, hPad, 0)
+        button.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            resources.getDimensionPixelSize(R.dimen.app_chrome_dialog_action_button_height)
+        ).apply {
+            marginStart = (resources.displayMetrics.density * 8).toInt()
+        }
+        button.setOnClickListener { onClick() }
+        return button
+    }
+
+    private fun drawerHeaderRatioToProgress(ratio: Double): Int {
+        val r = DrawerHeaderImageCrop.normalizeRatio(ratio)
+        val frac = (r - DrawerHeaderImageCrop.MIN_RATIO) /
+            (DrawerHeaderImageCrop.MAX_RATIO - DrawerHeaderImageCrop.MIN_RATIO)
+        return max(
+            0,
+            min(DRAWER_HEADER_RATIO_SLIDER_MAX, (frac * DRAWER_HEADER_RATIO_SLIDER_MAX).roundToInt())
+        )
+    }
+
+    private fun drawerHeaderRatioFromProgress(progress: Int): Double {
+        val frac = progress.toDouble() / DRAWER_HEADER_RATIO_SLIDER_MAX
+        return DrawerHeaderImageCrop.MIN_RATIO +
+            frac * (DrawerHeaderImageCrop.MAX_RATIO - DrawerHeaderImageCrop.MIN_RATIO)
+    }
+
+    private fun snapDrawerHeaderRatio(ratio: Double): Double {
+        val presets = doubleArrayOf(0.5, 1.0, 4.0 / 3.0, 3.0 / 2.0, 16.0 / 9.0, 2.0, 65.0 / 24.0)
+        var closest = ratio
+        var closestDistance = Int.MAX_VALUE
+        for (preset in presets) {
+            val distance = abs(
+                drawerHeaderRatioToProgress(preset) - drawerHeaderRatioToProgress(ratio)
+            )
+            if (distance < closestDistance) {
+                closestDistance = distance
+                closest = preset
+            }
+        }
+        return if (closestDistance <= DRAWER_HEADER_RATIO_SNAP_PROGRESS_DISTANCE) closest else ratio
+    }
+
+    private fun getSnappedDrawerHeaderRatioForSeekBar(seekBar: SeekBar?, progress: Int): Double {
+        val ratio = drawerHeaderRatioFromProgress(progress)
+        val snapped = snapDrawerHeaderRatio(ratio)
+        if (seekBar != null) {
+            val snappedProgress = drawerHeaderRatioToProgress(snapped)
+            if (snappedProgress != seekBar.progress) {
+                seekBar.progress = snappedProgress
+            }
+        }
+        return snapped
     }
 
     private fun showChooseLanguageDialog() {
@@ -1484,7 +1827,14 @@ class SettingsActivity : EverythingDoneBaseActivity() {
             header = str
         }
         editor.putString(Def.Meta.KEY_DRAWER_HEADER, header)
-        if (headerBefore != header) {
+        val cropBefore: String? = mPreferences!!.getString(Def.Meta.KEY_DRAWER_HEADER_CROP, null)
+        val cropJson: String = if (header == DEFAULT_DRAWER_HEADER) {
+            DrawerHeaderImageCrop.DEFAULT_JSON
+        } else {
+            mDrawerHeaderCrop.normalized().toJson()
+        }
+        editor.putString(Def.Meta.KEY_DRAWER_HEADER_CROP, cropJson)
+        if (headerBefore != header || cropBefore != cropJson) {
             setResult(Def.Communication.RESULT_UPDATE_DRAWER_HEADER_DONE)
         }
 
@@ -1736,6 +2086,9 @@ class SettingsActivity : EverythingDoneBaseActivity() {
 
         const val DEFAULT_DRAWER_HEADER: String = "default_drawer_header"
         const val FOLLOW_SYSTEM: String = "follow_system"
+
+        private const val DRAWER_HEADER_RATIO_SLIDER_MAX: Int = 1000
+        private const val DRAWER_HEADER_RATIO_SNAP_PROGRESS_DISTANCE: Int = 28
 
         private val sKeysRingtone: Array<String> = arrayOf(
             Def.Meta.KEY_RINGTONE_REMINDER,

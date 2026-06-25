@@ -92,6 +92,7 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
         const val TAG: String = "MediaCropAppearanceDialogFragment"
         const val REQUEST_DETAIL_ATTACHMENT: String = "detail_attachment"
         const val REQUEST_THING_CARD_CROP: String = "thing_card_crop"
+        const val REQUEST_DRAWER_HEADER: String = "drawer_header"
 
         private const val ARG_REQUEST_KEY = "request_key"
         private const val ARG_POSITION = "position"

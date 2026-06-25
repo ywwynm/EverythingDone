@@ -871,6 +871,9 @@
     <!--group ui-->
     <string name="settings_change_drawer_header">Drawer Header Image</string>
     <string name="default_drawer_header">Default</string>
+    <string name="settings_drawer_header_choose_image">Choose Image</string>
+    <string name="settings_drawer_header_adjust_crop">Adjust Crop</string>
+    <string name="drawer_header_ratio">Header Ratio</string>
     <string name="settings_app_language">Language</string>
     <string name="settings_follow_system_dark_mode">Follow system dark mode</string>
     <string name="settings_force_dark_mode">Enable dark mode</string>
