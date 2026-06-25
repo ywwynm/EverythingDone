@@ -1761,3 +1761,34 @@ Verification:
   orientation action is hidden.
 - Set the camera colour action text to the app-chrome secondary foreground so
   the "pick from world" action remains readable in light mode.
+
+## 2026-06-25 - 修复裁切封面视频弹窗里视频溢出预览区
+
+- 用户反馈「调整记事卡片外观 → 裁切封面视频」弹窗里，视频除了出现在预览框，还会
+  布满弹窗上方，或上下各多出半截画面，并怀疑与上次 HDR 支持有关。
+- 排查确认与 HDR 无关：HDR commit `5417398b` 只改了 `ImageViewerActivity` 与 HDR
+  徽标资源，`COLOR_MODE_HDR` 仅作用于全屏图片查看器的 window（ADR-0006）；紧随其后
+  的动图播放 commit `c6e275ed` 也明确把裁切编辑器列为单帧、不播放，改的是 Glide 的
+  `MediaCropTransformation`。两者都未触及 `ThingCardVideoCropEditorView` 或裁切弹窗；
+  `clipChildren=false` 是更早的 `4756e2ea`（6-18）引入的。
+- 真正根因：视频版裁切预览 `ThingCardVideoCropEditorView` 用真实 `TextureView`
+  渲染，`applyVideoTransform()` 把它手动 `layout()` 到完整缩放视频尺寸，对竖屏视频或
+  拖到边缘后 `top` 为负、`bottom` 远超本 view，必然上下溢出预览框。原设计只靠
+  `OverlayView` 遮挡（仅覆盖 view 内）+ 父容器裁剪来隐藏溢出，但弹窗容器链为保留确定
+  按钮 ripple 设了 `clipChildren=false`，`TextureView` 这个硬件合成层未被可靠裁掉，
+  视频帧漏到预览区外。图片版 `ThingCardCropEditorView` 因为用 `canvas.clipPath` 软裁，
+  从来没有这个问题。
+- 修复：不动 `clipChildren`（保住 ripple），给 `ThingCardVideoCropEditorView` 自身加
+  `clipToOutline = true` + outline 设为预览框 `previewRect` 圆角矩形，并在 `onLayout`
+  里 `invalidateOutline()`。硬件层强制把所有子 view（含 TextureView）裁到预览框内，
+  无论怎么平移缩放都不外溢；按钮在该 view 之外，ripple 不受影响。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。
+- 渲染问题，未在本会话做真机验证，交由用户自测（发布说明已列出测试重点）。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-card-appearance/debug-updates/update-20260625104803.md"`
+  通过，发布 debug update `202606250250` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。

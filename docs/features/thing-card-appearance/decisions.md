@@ -43,3 +43,16 @@ Changing a Folder Card from normal size to large thumbnail size is also live
 preview state. The selected Folder Card should immediately switch to the large
 thumbnail projection and show descendant preview content before the user
 confirms.
+
+## 2026-06-25 - 视频裁切预览用 clipToOutline 强制裁剪，不关闭 clipChildren
+
+`ThingCardVideoCropEditorView` 用真实 `TextureView`（硬件合成层）渲染视频，并被
+`applyVideoTransform()` 故意撑到完整缩放视频尺寸以实现 cover-crop，因此必然上下溢出
+预览框。隐藏溢出不能依赖弹窗容器链的 `clipChildren`：紧凑弹窗为让确定按钮的触摸
+ripple 完整溢出显示，特意在 dialog content 容器与 root LinearLayout 上设了
+`clipChildren=false`，这是要保留的产品行为，不能为裁视频而关掉。
+
+因此裁剪 TextureView 由该 view 自身承担：`clipToOutline = true` + outline 设为预览框
+`previewRect` 圆角矩形（在 `onLayout` 后 `invalidateOutline()`）。这是硬件层裁剪，对
+layer-backed 的 TextureView 可靠，且作用范围限定在视频裁切控件内部，不影响其外的按钮
+ripple。图片版 `ThingCardCropEditorView` 继续用 `canvas.clipPath` 软裁，无需改动。

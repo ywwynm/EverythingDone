@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -25,6 +26,7 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.R
@@ -137,6 +139,26 @@ class ThingCardVideoCropEditorView @JvmOverloads constructor(
     init {
         isClickable = true
         isFocusable = true
+        // TextureView 是硬件合成层，会被 applyVideoTransform 手动撑到完整缩放视频尺寸，
+        // 必然向上下溢出本 view 边界。dialog 容器链为了按钮 ripple 设了 clipChildren=false，
+        // 单靠父容器裁剪无法可靠裁住这个硬件层，视频帧会漏到预览区之外。
+        // 这里给本 view 自身加 clipToOutline，把所有子 view 强制硬裁到预览框内。
+        clipToOutline = true
+        outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                if (previewRect.isEmpty) {
+                    outline.setRect(0, 0, view.width, view.height)
+                } else {
+                    outline.setRoundRect(
+                        previewRect.left.roundToInt(),
+                        previewRect.top.roundToInt(),
+                        previewRect.right.roundToInt(),
+                        previewRect.bottom.roundToInt(),
+                        cornerRadius
+                    )
+                }
+            }
+        }
         textureView.isOpaque = true
         textureView.clipToOutline = false
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
@@ -385,6 +407,7 @@ class ThingCardVideoCropEditorView @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         updateGeometry()
+        invalidateOutline()
         applyVideoTransform()
         fallbackView.layout(0, 0, width, height)
         overlayView.layout(0, 0, width, height)
