@@ -2934,3 +2934,30 @@ Publish:
   通过，发布 debug update `202606250354` 到
   `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
 - 未创建 Git 提交。
+
+## 2026-06-25 - 移动到文件夹弹窗按当前文件夹配色
+
+- 用户反馈：多选记事/文件夹点"移动到文件夹"，弹窗标题与确认按钮颜色按第一个所选项的颜色取，
+  应改为按当前所在文件夹（与"完成所选记事"确认弹窗一致）。
+- `MoveToThingFolderDialogFragment` 的标题/确认色由 `setAccentBackground(bg)`（内部
+  `?: App.defaultAccentBackground`）决定。把 `ThingsActivity` 三个移动弹窗调用点的
+  `setAccentBackground` 从"被移动文件夹背景 / 第一个所选记事背景 / defaultAccentBackground"
+  统一改为 `getCurrentFolderBackgroundForChrome()`（folder.getBackground() ?:
+  pure(folder.getColor())，根目录返回 null → 弹窗内部 fallback 到 accent 渐变）：
+  `showMoveThingFolderDialog`（含"移动当前文件夹"与批量单文件夹两个来源）、
+  `showMoveSelectedThingsDialog`、混合移动分支。
+- 未改 `ThingFolderNameDialogFragment`（文件夹改名弹窗用该文件夹自身颜色，合理）。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。交用户自测。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260625131055.md"`
+  通过，发布 debug update `202606250511` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。
+
+> 修订（2026-06-25 同日）：此版把移动弹窗**所有**入口都改成了当前文件夹色、未区分单选/多选，属
+> 理解错误。已纠正为"单选 1 项用该项颜色、多选用当前文件夹色（根目录 accent 渐变）"，权威记录见
+> [selection-batch-actions/decisions.md](../selection-batch-actions/decisions.md) 与
+> [selection-batch-actions/sessions.md](../selection-batch-actions/sessions.md) 的 2026-06-25 条目。

@@ -1,5 +1,27 @@
 # Selection Batch Actions Sessions
 
+## 2026-06-25 - 选择操作确认弹窗按单选/多选配色
+
+- 用户反馈：移动到文件夹、完成/删除/恢复等确认弹窗应区分单选/多选——单选 1 项用该项颜色，多选
+  用当前文件夹色（根目录 accent 渐变）。此前先有一版把移动弹窗的单选也改成了当前文件夹色，属理解
+  错误，用户要求纠正。
+- 新增 `ThingsActivity.selectionDialogBackground()` 统一表达规则（按当前选中数判定单/多选），接入
+  移动（`showMoveSelectedThingsDialog`、混合移动）、完成/恢复（`confirmThingsOnlyStateChange` /
+  `confirmMixedStateChange`）、结构性永久删除（`confirmDeleteSelectedStructural`）的批量确认弹窗；
+  单文件夹专属弹窗（`showMoveThingFolderDialog`、`showDeleteThingFolderForeverDialog`）保持用该文件夹
+  颜色。详见 [decisions.md](decisions.md) 同日条目。
+- 教训：上一条用户只说"多选"时，我没有逐一辨别移动弹窗各入口的单/多选语义，把单选一并改了。改这类
+  "按选择配色"的逻辑必须先分清单选/多选边界。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。交用户自测。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/selection-batch-actions/debug-updates/update-20260625142404.md"`
+  通过，发布 debug update `202606250624` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。
+
 ## 2026-06-24 - 修正回收站恢复与空文件夹结构操作文案
 
 根据 `HomeActionWordingHelper` action 文案审查，保留“选择单文件夹”与“进入文件夹后的 actionbar”当前差异不动，修正其它问题：

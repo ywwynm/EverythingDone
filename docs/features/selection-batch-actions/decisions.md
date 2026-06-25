@@ -158,3 +158,24 @@ Root scope 与直接选中记事不能套用“%1$s中所有……”模板：ro
 执行：`confirmDeleteSelectedStructural()` —— 单文件夹复用 `showDeleteThingFolderForeverDialog`；
 多文件夹/混合聚合 `countDescendantFolders`/`countAllDescendantThings` 计数后，逐个 `deleteFolderForever`
 + `deleteThingsForever(选中记事)`。这是"永久删除文件夹容器仍是单选专属"的修订：结构性永久删除现支持多选与混合。
+
+## 2026-06-25 - 选择操作确认弹窗按单选/多选配色（修订移动弹窗"混合用 accent"）
+
+选择模式下移动到文件夹、完成/恢复、（结构性）永久删除等确认弹窗的标题与确认按钮配色统一为：
+
+- 单选（只选 1 个记事或文件夹）→ 用该项自身的颜色（`getBackground() ?: pure(getColor())`）。
+- 多选（多个记事/文件夹/混合）→ 用当前所在文件夹的颜色（`getCurrentFolderBackgroundForChrome()`），
+  根目录则用 accent+accent2 渐变（`App.defaultAccentBackground`）。
+
+由 `ThingsActivity.selectionDialogBackground()` 统一表达：按当前选中数判定单/多选。移动弹窗经
+`MoveToThingFolderDialogFragment.setAccentBackground` 接收；完成/恢复（`confirmThingsOnlyStateChange`
+/ `confirmMixedStateChange`）与结构性永久删除（`confirmDeleteSelectedStructural`）经
+`AlertDialogFragment.setTitleBackground` / `setConfirmBackground` 接收。单文件夹专属弹窗
+（`showMoveThingFolderDialog`、`showDeleteThingFolderForeverDialog`）本就用该文件夹颜色，是单选分支。
+
+修订：本条取代上面 2026-06-23"批量移动到文件夹的规则"里的"弹窗强调色：混合批量用 App accent
+渐变"——混合/多选现按当前文件夹色，仅根目录退回 accent 渐变。
+
+背景：此前移动弹窗按第一个所选项配色、完成/恢复弹窗一律按当前文件夹色、结构永久删除按 accent，
+三者不一致，且单选时也未必用所选项色。先前一版改动曾错误地把移动弹窗的**单选**也改成当前文件夹
+色，本次纠正为严格区分单选/多选。

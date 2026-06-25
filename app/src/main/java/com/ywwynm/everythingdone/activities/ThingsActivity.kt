@@ -2239,6 +2239,24 @@ class ThingsActivity :
         return folder.getBackground() ?: ThingBackground.pure(folder.getColor())
     }
 
+    /**
+     * 选择模式下确认弹窗（移动 / 完成 / 删除 / 恢复等）标题与确认按钮的配色：单选 1 个记事或
+     * 文件夹时用该项自身的颜色；多选时用当前所在文件夹的颜色，根目录则用 accent+accent2 渐变。
+     */
+    private fun selectionDialogBackground(): ThingBackground {
+        val things = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        val folders = mThingManager!!.getSelectedFolders().toList()
+        if (things.size + folders.size == 1) {
+            things.firstOrNull()?.let {
+                return it.getBackground() ?: ThingBackground.pure(it.getColor())
+            }
+            folders.first().let {
+                return it.getBackground() ?: ThingBackground.pure(it.getColor())
+            }
+        }
+        return getCurrentFolderBackgroundForChrome() ?: App.defaultAccentBackground
+    }
+
     private fun refreshActivitySurfaceAndHeader() {
         if (mModeManager?.getCurrentMode() == ModeManager.SELECTING) {
             applyThingsActivitySurfaceBackground()
@@ -6286,9 +6304,10 @@ class ThingsActivity :
             hiddenScopeClauseForStructural(affected, considerStatus = true),
             impactIsEmpty = subfolderCount == 0 && thingCount == 0
         )
+        val background = selectionDialogBackground()
         val adf = AlertDialogFragment()
-        adf.setTitleBackground(App.defaultAccentBackground)
-        adf.setConfirmBackground(App.defaultAccentBackground)
+        adf.setTitleBackground(background)
+        adf.setConfirmBackground(background)
         adf.setTitle(wording.dialogTitle)
         adf.setContent(wording.dialogBody)
         adf.setConfirmText(wording.confirmText)
@@ -6310,8 +6329,7 @@ class ThingsActivity :
 
     private fun confirmThingsOnlyStateChange(stateAfter: Int, selectedThings: List<Thing>) {
         if (selectedThings.isEmpty()) return
-        val background = mThingManager!!.getCurrentFolder()?.getBackground()
-            ?: App.defaultAccentBackground
+        val background = selectionDialogBackground()
         val wording = HomeActionWordingHelper.stateActionWording(
             this,
             mApp!!.getStatus(),
@@ -6357,7 +6375,7 @@ class ThingsActivity :
             Toast.makeText(this, R.string.no_matching_things_in_selection, Toast.LENGTH_SHORT).show()
             return
         }
-        val background = App.defaultAccentBackground
+        val background = selectionDialogBackground()
         val foldersOnly = selectedThings.isEmpty()
         // Subfolder reminder: shown when the affected folder content reaches into a
         // nested subfolder (a record whose folderId is not one of the selected folders).
@@ -7182,7 +7200,10 @@ class ThingsActivity :
 
     private fun showMoveThingFolderDialog(folder: ThingFolder) {
         val dialog = MoveToThingFolderDialogFragment()
-        dialog.setAccentBackground(folder.getBackground())
+        // 单个文件夹（"移动当前文件夹"或单选 1 个文件夹）用该文件夹自身的颜色。
+        dialog.setAccentBackground(
+            folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+        )
         dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(
             mThingManager!!.getDrawerFolders(),
@@ -7218,7 +7239,8 @@ class ThingsActivity :
         if (selectedThings.isEmpty()) return
 
         val dialog = MoveToThingFolderDialogFragment()
-        dialog.setAccentBackground(selectedThings.first().getBackground())
+        // 单选 1 条记事用其颜色，多选用当前文件夹色（根目录 accent 渐变）。
+        dialog.setAccentBackground(selectionDialogBackground())
         dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(
             mThingManager!!.getDrawerFolders(),
@@ -10120,7 +10142,8 @@ class ThingsActivity :
             forbidden.addAll(getForbiddenFolderMoveTargetIds(folder))
         }
         val dialog = MoveToThingFolderDialogFragment()
-        dialog.setAccentBackground(App.defaultAccentBackground)
+        // 多选 / 混合，用当前文件夹色（根目录 accent 渐变）。
+        dialog.setAccentBackground(selectionDialogBackground())
         dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
         dialog.setFolders(mThingManager!!.getDrawerFolders(), null, forbidden)
         dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
