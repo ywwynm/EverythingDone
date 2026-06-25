@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<com.ywwynm.everythingdone.views.ScrollAwareColumn
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/thing_card_appearance_panel"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:animateLayoutChanges="true"
     android:layout_gravity="bottom|center_horizontal"
     android:layout_marginLeft="@dimen/thing_card_outer_spacing"
     android:layout_marginRight="@dimen/thing_card_outer_spacing"
@@ -80,6 +81,64 @@
             android:src="@drawable/act_change_color" />
 
     </LinearLayout>
+
+    <!-- 颜色页标题行：返回箭头 + “调整颜色”，默认隐藏，进入颜色页时显示 -->
+    <LinearLayout
+        android:id="@+id/ll_tca_color_page_title"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <ImageView
+            android:id="@+id/bt_tca_color_page_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="-8dp"
+            android:layout_marginLeft="-8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/color_editor_back"
+            android:focusable="true"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_arrow_back" />
+
+        <TextView
+            android:id="@+id/tv_tca_color_page_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/act_select_color"
+            android:textColor="@color/app_chrome_on_surface_primary"
+            android:textSize="@dimen/app_chrome_dialog_title_text_size" />
+
+    </LinearLayout>
+
+    <!-- 颜色页顶部分割线：仅颜色页可见，按滚动情况显隐 -->
+    <View
+        android:id="@+id/sep_tca_top"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginRight="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginTop="8dp"
+        android:background="@color/app_chrome_divider"
+        android:visibility="gone"
+        tools:visibility="gone" />
+
+    <!-- 外观设置主体：进入颜色页时整体隐藏 -->
+    <LinearLayout
+        android:id="@+id/ll_tca_appearance_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/ll_thing_card_appearance_source"
@@ -462,6 +521,36 @@
 
     </LinearLayout>
 
+    </LinearLayout>
+    <!-- /外观设置主体 -->
+
+    <!-- 颜色页：纯色/渐变编辑器（可滚动），默认隐藏，进入颜色页时显示 -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_tca_color_page"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <com.ywwynm.everythingdone.views.ThingBackgroundEditor
+            android:id="@+id/tbe_thing_card_appearance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- 颜色页底部分割线：仅颜色页可见，按滚动情况显隐 -->
+    <View
+        android:id="@+id/sep_tca_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginRight="@dimen/tbe_divider_bleed_margin"
+        android:background="@color/app_chrome_divider"
+        android:visibility="gone"
+        tools:visibility="gone" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -532,4 +621,4 @@
 
     </LinearLayout>
 
-</LinearLayout>
+</com.ywwynm.everythingdone.views.ScrollAwareColumn>

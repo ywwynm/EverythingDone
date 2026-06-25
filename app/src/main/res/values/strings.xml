@@ -402,6 +402,14 @@
     <string name="color_info_current">Current color</string>
     <string name="color_info_gradient_start">Gradient start</string>
     <string name="color_info_gradient_end">Gradient end</string>
+    <string name="color_editor_tab_pure">Pure</string>
+    <string name="color_editor_tab_gradient">Gradient</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="cd_random_color">Random colour</string>
+    <string name="color_editor_back">Back</string>
     <string name="color_info_representative">Representative color</string>
     <string name="color_info_name">Name</string>
     <string name="color_info_english_name">English name</string>

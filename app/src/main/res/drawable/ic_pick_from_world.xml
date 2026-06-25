@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 纯相机：标准相机机身轮廓 + 镜头。运行时由 ColorAreaView 用当前色 tint。 -->
+
+    <!-- 相机机身轮廓（Material camera_alt 机身形状） -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round"
+        android:pathData="M9,2 L7.17,4 L4,4 C2.9,4 2,4.9 2,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 L16.83,4 L15,2 Z" />
+
+    <!-- 镜头 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.7"
+        android:pathData="M12,9.8 a3.2,3.2 0 1,1 0,6.4 a3.2,3.2 0 1,1 0,-6.4 Z" />
+
+</vector>

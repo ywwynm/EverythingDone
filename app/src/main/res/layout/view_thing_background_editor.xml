@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thing Background 编辑器：纯色/渐变选项卡 + 两页内容。由 ThingBackgroundEditor
+     （竖向 LinearLayout）inflate。预置色/方向格子在代码里填充（margin 读自 dimens）。 -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:parentTag="android.widget.LinearLayout">
+
+    <!-- 自定义选项卡：胶囊 ripple、无下划线、选中态文本用当前颜色着色（代码管理）。 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tbe_tab_height"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tab_tbe_pure"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/color_editor_tab_pure"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tab_tbe_gradient"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/color_editor_tab_gradient"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <!-- 纯色页 -->
+    <LinearLayout
+        android:id="@+id/page_tbe_pure"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/tbe_section_gap"
+        android:orientation="vertical">
+
+        <GridLayout
+            android:id="@+id/grid_tbe_presets"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:columnCount="5" />
+
+        <com.ywwynm.everythingdone.views.ColorAreaView
+            android:id="@+id/area_tbe_pure"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/tbe_section_gap" />
+
+    </LinearLayout>
+
+    <!-- 渐变页 -->
+    <LinearLayout
+        android:id="@+id/page_tbe_gradient"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/tbe_section_gap"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <GridLayout
+            android:id="@+id/grid_tbe_directions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:columnCount="4" />
+
+        <TextView
+            android:id="@+id/tv_tbe_start_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/tbe_section_gap"
+            android:text="@string/color_info_gradient_start"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp" />
+
+        <com.ywwynm.everythingdone.views.ColorAreaView
+            android:id="@+id/area_tbe_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/tbe_area_row_gap" />
+
+        <TextView
+            android:id="@+id/tv_tbe_end_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/tbe_section_gap"
+            android:text="@string/color_info_gradient_end"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp" />
+
+        <com.ywwynm.everythingdone.views.ColorAreaView
+            android:id="@+id/area_tbe_end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/tbe_area_row_gap" />
+
+    </LinearLayout>
+
+</merge>

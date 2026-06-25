@@ -90,7 +90,6 @@ import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
 import com.ywwynm.everythingdone.fragments.ColorInfoDialogFragment
 import com.ywwynm.everythingdone.fragments.DateTimeDialogFragment
-import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitDetailDialogFragment
 import com.ywwynm.everythingdone.fragments.HabitRecordDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
@@ -139,7 +138,8 @@ import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import com.ywwynm.everythingdone.views.RatioSlider
 import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
-import com.ywwynm.everythingdone.views.pickers.ColorPicker
+import com.ywwynm.everythingdone.fragments.ThingBackgroundEditorBottomSheet
+import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
 import kotlin.math.abs
 import kotlin.math.max
@@ -214,7 +214,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mScrollViewHasStatusBarMarginTop: Boolean = true
 
     private var mFlRoot: FrameLayout? = null
-    private var mColorPicker: ColorPicker? = null
+    private var mBgEditorSheet: ThingBackgroundEditorBottomSheet? = null
+    private var mColorEditorBgFrom: ThingBackground? = null
+    private var mPendingWorldSlot: Int = ThingBackgroundEditor.SLOT_PURE
     private var mStatusBar: View? = null
     private var mActionbar: Toolbar? = null
     private var mIbBack: ImageButton? = null
@@ -831,7 +833,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun createEditablePickers() {
         val decorView: View = window.decorView
-        mColorPicker = ColorPicker(this, decorView, Def.PickerType.COLOR_EDIT)
         quickRemindPicker = DateTimePicker(
             this, decorView,
             Def.PickerType.AFTER_TIME, getAccentColor()
@@ -876,8 +877,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mEtTitle!!.keyListener = null
             mEtContent!!.keyListener = null
             cbQuickRemind!!.isEnabled = thingState == Thing.UNDERWAY
-        } else {
-            mColorPicker!!.pickForBackground(mThing!!.getBackground())
         }
 
         mEtTitle!!.setText(mThing!!.getTitleToDisplay())
@@ -1308,7 +1307,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
 
             setEditTextWatchers()
-            setColorPickerEvent()
             setQuickRemindEvents()
         }
 
@@ -1501,8 +1499,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else if (itemId == R.id.act_check_list) {
             toggleCheckList()
         } else if (itemId == R.id.act_change_color) {
-            mColorPicker!!.setAnchor(findViewById(R.id.act_change_color))
-            mColorPicker!!.show()
+            showThingBackgroundEditor()
         } else if (itemId == R.id.act_color_info) {
             showColorInfoDialog()
         } else if (itemId == R.id.act_set_as_private_thing) {
@@ -1833,7 +1830,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         return
                     }
                 }
-                mColorPicker!!.pickForBackground(bgTarget)
                 changeBackground(bgTarget)
             }
             ThingAction.ADD_ATTACHMENT ->
@@ -2074,11 +2070,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun handleAppearanceModeChanged() {
         val quickPickedIndex = if (mEditable) getQuickRemindPickedIndexForRecreate() else -1
-        val pickedBackground = if (mEditable) {
-            mColorPicker?.getPickedBackground() ?: getAccentBackground()
-        } else {
-            null
-        }
 
         delegate.applyDayNight()
         mActionbar?.dismissPopupMenus()
@@ -2087,9 +2078,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mEditable) {
             dismissEditableOverlays()
             createEditablePickers()
-            setColorPickerEvent()
             setQuickRemindPickerEvent()
-            mColorPicker!!.pickForBackground(pickedBackground)
             quickRemindPicker!!.pickForUI(quickPickedIndex)
             createDateTimeDialogFragment()
         }
@@ -2129,7 +2118,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun dismissEditableOverlays() {
-        mColorPicker?.dismiss()
+        mBgEditorSheet?.dismissAllowingStateLoss()
         quickRemindPicker?.dismiss()
         mNormalSnackbar?.dismiss()
     }
@@ -2145,7 +2134,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             ColorInfoDialogFragment.TAG,
             DateTimeDialogFragment.TAG,
             MediaCropAppearanceDialogFragment.TAG,
-            GradientOrientationDialogFragment.TAG,
             HabitDetailDialogFragment.TAG,
             HabitRecordDialogFragment.TAG,
             LoadingDialogFragment.TAG,
@@ -2776,49 +2764,40 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
-    private fun setColorPickerEvent() {
-        mColorPicker!!.setPickedListener {
-            val bgFrom: ThingBackground? = if (mLastAnimatedBackground != null)
-                mLastAnimatedBackground
-            else mThing!!.getBackground()
-            val bgTo: ThingBackground =
-                mColorPicker!!.getPickedBackground() ?: return@setPickedListener
-            if (bgFrom != null && bgFrom == bgTo) return@setPickedListener
-            changeBackground(bgTo)
-            if (shouldAddToActionList) {
-                mActionList!!.addAction(ThingAction(
-                    ThingAction.UPDATE_COLOR, bgFrom, bgTo
-                ))
-            }
-        }
-        mColorPicker!!.setOnChangeOrientationListener(Runnable {
-            val current: ThingBackground? = getAccentBackground()
-            if (current == null || current.mode !== ThingBackground.Mode.GRADIENT) return@Runnable
-            val df = GradientOrientationDialogFragment()
-            df.setAccent(current)
-            df.setOnPickListener(object : GradientOrientationDialogFragment.OnPickListener {
-                override fun onPicked(orientation: ThingBackground.Orientation?) {
-                    if (orientation === current.orientation) return
-                    val bgTo: ThingBackground = ThingBackground.gradient(
-                        current.color, current.endColor, orientation
-                    )
-                    val bgFrom: ThingBackground? = if (mLastAnimatedBackground != null)
-                        mLastAnimatedBackground
-                    else mThing!!.getBackground()
-                    changeBackground(bgTo)
-                    mColorPicker!!.pickForBackground(bgTo)
-                    if (shouldAddToActionList) {
-                        mActionList!!.addAction(ThingAction(
-                            ThingAction.UPDATE_COLOR, bgFrom, bgTo
-                        ))
-                    }
-                }
-            })
-            df.show(fragmentManager, GradientOrientationDialogFragment.TAG)
-        })
-        mColorPicker!!.setOnPickFromCameraListener(Runnable {
+    private fun showThingBackgroundEditor() {
+        val sheet = ThingBackgroundEditorBottomSheet()
+        mBgEditorSheet = sheet
+        // 打开时快照 bgFrom；编辑过程实时预览、不记 undo；关闭时若有变化只记一条。
+        mColorEditorBgFrom = getAccentBackground()
+        sheet.setInitialBackground(getAccentBackground())
+        sheet.setOnBackgroundChangedListener { bg -> previewColorEditorBackground(bg) }
+        sheet.setOnPickFromWorldListener { slot ->
+            mPendingWorldSlot = slot
             openCameraColorSampler()
-        })
+        }
+        sheet.setOnResult { confirmed ->
+            val from = mColorEditorBgFrom
+            if (confirmed) {
+                val finalBg = getAccentBackground()
+                if (from != null && finalBg != null && from != finalBg && shouldAddToActionList) {
+                    mActionList!!.addAction(ThingAction(ThingAction.UPDATE_COLOR, from, finalBg))
+                    updateUndoRedoActionButtonState()
+                }
+            } else {
+                // 取消/返回/点外部：回到打开时的颜色，不记 undo。
+                if (from != null) previewColorEditorBackground(from)
+            }
+            mBgEditorSheet = null
+        }
+        sheet.show(fragmentManager, ThingBackgroundEditorBottomSheet.TAG)
+    }
+
+    /** 编辑器实时预览：立即套用到屏幕背景（不带动画、不记 undo），由会话结束统一记一条。 */
+    private fun previewColorEditorBackground(bg: ThingBackground) {
+        mChangeColorTo = bg.representativeColor()
+        mChangeBackgroundTo = bg
+        mLastAnimatedBackground = bg
+        renderCameraPreviewBackground(bg)
     }
 
     private fun showColorInfoDialog() {
@@ -2844,20 +2823,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun showCameraColorSampler() {
-        val bgBefore: ThingBackground? = getAccentBackground()
         val df = CameraColorSamplingDialogFragment()
         df.setInitialColor(getAccentColor())
         df.setOnColorListener(object : CameraColorSamplingDialogFragment.OnColorListener {
             override fun onPreviewColor(color: Int) {
-                // Live sampling is shown inside the dialog; Detail commits only once.
+                // 采样过程只在相机 dialog 内预览。
             }
 
             override fun onUseColor(color: Int) {
-                commitCameraPreviewBackground(bgBefore, ThingBackground.pure(color))
+                // 回流到编辑器对应色区，再由编辑器实时预览；undo 由编辑器会话结束统一记。
+                mBgEditorSheet?.applyWorldColor(mPendingWorldSlot, color)
             }
 
             override fun onCancelColorSampling() {
-                // No Detail-side preview state needs restoring.
             }
         })
         df.show(fragmentManager, CameraColorSamplingDialogFragment.TAG)
@@ -2874,24 +2852,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         updateDescriptions(color)
         applyForegroundColors(color)
         setActionbarOverlayColor(color)
-    }
-
-    private fun commitCameraPreviewBackground(bgFrom: ThingBackground?, bgTo: ThingBackground) {
-        val from = bgFrom ?: getAccentBackground()
-        if (from != null && from == bgTo) {
-            renderCameraPreviewBackground(bgTo)
-            return
-        }
-        mChangeColorTo = bgTo.representativeColor()
-        mChangeBackgroundTo = bgTo
-        mLastAnimatedBackground = bgTo
-        mColorPicker!!.pickForBackground(bgTo)
-        renderCameraPreviewBackground(bgTo)
-        if (shouldAddToActionList) {
-            mActionList!!.addAction(ThingAction(
-                ThingAction.UPDATE_COLOR, from, bgTo
-            ))
-        }
     }
 
     private fun changeBackground(bgTo: ThingBackground?) {

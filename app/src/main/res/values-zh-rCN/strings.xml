@@ -387,6 +387,14 @@
     <string name="color_info_current">当前颜色</string>
     <string name="color_info_gradient_start">渐变起点</string>
     <string name="color_info_gradient_end">渐变终点</string>
+    <string name="color_editor_tab_pure">纯色</string>
+    <string name="color_editor_tab_gradient">渐变</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="cd_random_color">随机取色</string>
+    <string name="color_editor_back">返回</string>
     <string name="color_info_representative">代表色</string>
     <string name="color_info_name">名称</string>
     <string name="color_info_english_name">英文名称</string>

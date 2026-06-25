@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 一个色区：颜色条 + 随机/从世界取色两图标（一行）+ R/G/B/Hex（一行）。
+     由 ColorAreaView（竖向 LinearLayout）inflate。控件间距全在此 XML / dimens。 -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:parentTag="android.widget.LinearLayout">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.ywwynm.everythingdone.views.ColorSpectrumBar
+            android:id="@+id/spectrum_color_area"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/bt_color_area_random"
+            android:layout_width="@dimen/tbe_tool_icon_size"
+            android:layout_height="@dimen/tbe_tool_icon_size"
+            android:layout_marginStart="@dimen/tbe_area_row_gap"
+            android:layout_marginLeft="@dimen/tbe_area_row_gap"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_random_color"
+            android:padding="@dimen/tbe_tool_icon_padding"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_color_random" />
+
+        <ImageView
+            android:id="@+id/bt_color_area_pick_from_world"
+            android:layout_width="@dimen/tbe_tool_icon_size"
+            android:layout_height="@dimen/tbe_tool_icon_size"
+            android:layout_marginStart="@dimen/tbe_area_row_gap"
+            android:layout_marginLeft="@dimen/tbe_area_row_gap"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/act_pick_color_from_camera"
+            android:padding="@dimen/tbe_tool_icon_padding"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_pick_from_world" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tbe_field_height"
+        android:layout_marginTop="@dimen/tbe_area_vertical_gap"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="@dimen/tbe_rgb_field_width"
+            android:layout_height="match_parent">
+
+            <EditText
+                android:id="@+id/et_color_area_r"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:inputType="number"
+                android:maxLength="3"
+                android:imeOptions="actionNext"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp"
+                android:importantForAutofill="no" />
+
+            <TextView
+                android:id="@+id/tv_color_area_r"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/color_channel_r"
+                android:textSize="16sp" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="@dimen/tbe_rgb_field_width"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/tbe_field_gap"
+            android:layout_marginLeft="@dimen/tbe_field_gap">
+
+            <EditText
+                android:id="@+id/et_color_area_g"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:inputType="number"
+                android:maxLength="3"
+                android:imeOptions="actionNext"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp"
+                android:importantForAutofill="no" />
+
+            <TextView
+                android:id="@+id/tv_color_area_g"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/color_channel_g"
+                android:textSize="16sp" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="@dimen/tbe_rgb_field_width"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/tbe_field_gap"
+            android:layout_marginLeft="@dimen/tbe_field_gap">
+
+            <EditText
+                android:id="@+id/et_color_area_b"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:inputType="number"
+                android:maxLength="3"
+                android:imeOptions="actionNext"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp"
+                android:importantForAutofill="no" />
+
+            <TextView
+                android:id="@+id/tv_color_area_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/color_channel_b"
+                android:textSize="16sp" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/tbe_field_gap"
+            android:layout_marginLeft="@dimen/tbe_field_gap"
+            android:minWidth="@dimen/tbe_hex_field_width">
+
+            <EditText
+                android:id="@+id/et_color_area_hex"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:inputType="textNoSuggestions"
+                android:maxLength="7"
+                android:imeOptions="actionDone"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp"
+                android:importantForAutofill="no" />
+
+            <TextView
+                android:id="@+id/tv_color_area_hex"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/color_channel_hex"
+                android:textSize="16sp" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+</merge>

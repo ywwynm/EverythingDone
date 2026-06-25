@@ -34,6 +34,28 @@
     <dimen name="app_widget_config_type_icon_touch_target">40dp</dimen>
     <dimen name="app_widget_config_type_icon_margin">2dp</dimen>
 
+    <!-- Thing Background editor (ColorSpectrumBar / ColorAreaView / ThingBackgroundEditor) -->
+    <dimen name="tbe_spectrum_bar_height">16dp</dimen>
+    <dimen name="tbe_spectrum_bar_corner">8dp</dimen>
+    <dimen name="tbe_spectrum_handle_radius">12dp</dimen>
+    <dimen name="tbe_spectrum_handle_stroke">2dp</dimen>
+    <dimen name="tbe_spectrum_min_height">36dp</dimen>
+    <dimen name="tbe_tool_icon_size">40dp</dimen>
+    <dimen name="tbe_tool_icon_padding">8dp</dimen>
+    <dimen name="tbe_area_row_gap">8dp</dimen>
+    <dimen name="tbe_area_vertical_gap">10dp</dimen>
+    <dimen name="tbe_field_height">64dp</dimen>
+    <dimen name="tbe_field_gap">8dp</dimen>
+    <dimen name="tbe_rgb_field_width">52dp</dimen>
+    <dimen name="tbe_hex_field_width">104dp</dimen>
+    <dimen name="tbe_swatch_cell_size">40dp</dimen>
+    <dimen name="tbe_swatch_gap">8dp</dimen>
+    <dimen name="tbe_section_gap">14dp</dimen>
+    <dimen name="tbe_tab_height">44dp</dimen>
+    <!-- 负边距：抵消面板/对话框的横向内边距(app_chrome_dialog_title_margin_horizontal=20dp)，
+         让滚动分割线铺满整个面板宽度。需与该内边距保持相反数。 -->
+    <dimen name="tbe_divider_bleed_margin">-20dp</dimen>
+
     <dimen name="fab_margin">0dp</dimen>
 
     <!--Snackbar-->

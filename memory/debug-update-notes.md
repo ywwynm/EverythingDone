@@ -1,6 +1,83 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606210824`.
+Latest published debug update: `202606251528`.
+
+## 2026-06-25 - 从世界取色图标改为纯相机（去掉滴管）
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625232833.md`。
+按用户要求去掉滴管，改为纯相机：Material camera_alt 机身轮廓 + 镜头圆环（描边）。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251528`。
+
+## 2026-06-25 - 从世界取色图标退回相机版
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625231813.md`。
+按用户要求，图标退回相机版：Material camera_alt 机身轮廓 + 中间滴管。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251518`。
+
+## 2026-06-25 - 从世界取色图标：相框做大 + 滴管移右下角破框
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625231323.md`。
+照片相框做大让太阳/山峰更舒展，滴管从居中改到右下角并探出相框（破框效果）。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251513`。
+
+## 2026-06-25 - 从世界取色图标改「照片+取色」+ 详情页面板不再压暗背后
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625225555.md`。
+从世界取色图标改为「照片(相框+太阳+山峰) + 右上滴管」；详情页颜色面板清除对话框 dim，
+背后记事颜色不再变暗、显示准确。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251456`。
+
+## 2026-06-25 - 从世界取色相机图标换更清晰轮廓
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625224526.md`。
+「相机 + 中间滴管」的相机轮廓改用 Material camera_alt 标准机身（顶部居中梯形凸起），中间仍为缩放居中的滴管。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251445`。
+
+## 2026-06-25 - 从世界取色图标改为「相机+中间滴管」+ 滚动分割线铺满全宽
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625223539.md`。
+从世界取色图标改为「相机外框 + 中间滴管(Material colorize 缩放居中)」；滚动提示分割线改为铺满整个
+面板/对话框宽度（负横向边距抵消内边距 + clipToPadding=false），详情对话框与首页颜色页都已修正。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251436`。
+
+## 2026-06-25 - 从世界取色图标改为「地球+滴管」+ 详情页按钮间距再调小
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625222711.md`。
+从世界取色图标改为「地球(世界) + 滴管(取色，复用 Material colorize，缩放叠加于地球右上、笔尖指向地球)」；
+详情页进一步收紧取消/确定按钮与上方内容的间距。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251427`。
+
+## 2026-06-25 - 从世界取色图标再调整 + 收紧标题与内容间距
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625220739.md`。
+从世界取色图标改为"眼睛 + 取色瞳孔"（眼前所见的世界 + 取色，瞳孔被当前色 tint）；去掉编辑器内部多余
+顶部内边距、调小标题下分割线上边距，收紧"调整颜色"标题与下方内容间距（详情页与首页一致）。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251407`。
+
+## 2026-06-25 - 颜色面板展开/滚动行为修正 + 从世界取色图标重设计
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625215250.md`。
+要点：从世界取色图标改为"取景框 + 中心取色点"；详情页颜色面板从可拖拽 BottomSheet 改为底部固定对话框
+（打开即全展开、切 tab 不缩回）；渐变 tab 默认全展开、仅键盘弹出时中间编辑器可滚动（标题/取消确定固定）；
+详情页补取消/确定（取消放弃回到打开时颜色、确定提交）；首页颜色页返回箭头跟随当前色；详情与首页都加
+标题下/操作上滚动感知分割线（仿语言/许可证 dialog）。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251353`。
+
+## 2026-06-25 - 颜色编辑器测试反馈修正（tab/title/图标/颜色条/滚动/边距）
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625212527.md`。
+要点：tab 改自定义胶囊 ripple、无下划线、选中文本随当前色着色；"调整颜色"标题随当前色着色；
+随机=骰子、从世界取色=地球图标；修复颜色条 handle 右侧裁切；详情 BottomSheet 与首页颜色页
+用限高滚动容器（渐变页/键盘弹出可滚动）；详情 BottomSheet 加左右边距与最大宽度居中。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251325`。
+
+## 2026-06-25 - 重构改变记事颜色的编辑器（Thing Background 编辑器）
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260625205701.md`。
+要点：详情页与首页卡片外观面板改变记事颜色的 ColorPicker 重构为带「纯色/渐变」选项卡 +
+黑→彩虹→白颜色条 + RGB/Hex 一行 + 随机/从世界取色的新编辑器；详情页用淡遮罩 BottomSheet，
+首页面板就地切换颜色页；并入渐变方向、删除独立的 GradientOrientationDialogFragment。
+搜索界面的色相筛选不变。
+
+验证：`:app:assembleDebug` BUILD SUCCESSFUL；已用 `:app:publishDebugUpdate` 发布
+`202606251258` 到阿里云 debug update channel。
 
 ## 2026-06-21 - 筛选下隐藏没有匹配记事的文件夹
 

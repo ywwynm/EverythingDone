@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 骰子：随机取色。运行时由 ColorAreaView 用当前色 tint。 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.8"
+        android:pathData="M6,3 L18,3 Q21,3 21,6 L21,18 Q21,21 18,21 L6,21 Q3,21 3,18 L3,6 Q3,3 6,3 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M8,6.6 a1.4,1.4 0 1,1 0,2.8 a1.4,1.4 0 1,1 0,-2.8 Z
+                          M16,6.6 a1.4,1.4 0 1,1 0,2.8 a1.4,1.4 0 1,1 0,-2.8 Z
+                          M12,10.6 a1.4,1.4 0 1,1 0,2.8 a1.4,1.4 0 1,1 0,-2.8 Z
+                          M8,14.6 a1.4,1.4 0 1,1 0,2.8 a1.4,1.4 0 1,1 0,-2.8 Z
+                          M16,14.6 a1.4,1.4 0 1,1 0,2.8 a1.4,1.4 0 1,1 0,-2.8 Z" />
+
+</vector>

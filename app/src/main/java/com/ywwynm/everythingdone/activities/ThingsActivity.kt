@@ -96,7 +96,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
 import com.ywwynm.everythingdone.fragments.ColorInfoDialogFragment
-import com.ywwynm.everythingdone.fragments.GradientOrientationDialogFragment
+import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.MoveToThingFolderDialogFragment
@@ -292,7 +292,17 @@ class ThingsActivity :
     private var mThingCardAppearanceMediaSources: List<ThingCardMediaHelper.MediaSource> =
             emptyList()
     private var mThingCardAppearanceSourcePicker: ThingCardAppearanceSourcePicker? = null
-    private var mThingCardAppearanceColorPicker: ColorPicker? = null
+    private var mThingCardAppearanceEditor: ThingBackgroundEditor? = null
+    private var mScrollTcaColorPage: androidx.core.widget.NestedScrollView? = null
+    private var mSepTcaTop: View? = null
+    private var mSepTcaBottom: View? = null
+    private var mLlTcaAppearanceBody: View? = null
+    private var mLlTcaTitleRow: View? = null
+    private var mLlTcaColorPageTitle: View? = null
+    private var mBtTcaColorPageBack: ImageView? = null
+    private var mTcaOnColorPage: Boolean = false
+    private var mTcaPreciseCropWasVisible: Boolean = false
+    private var mTcaPendingWorldSlot: Int = ThingBackgroundEditor.SLOT_PURE
     private var mThingCardAppearanceVideoDurationCache: MutableMap<String, Int> = HashMap()
     private var mBindingThingCardAppearancePanel: Boolean = false
     private var mBindingFolderCardAppearancePanel: Boolean = false
@@ -1893,9 +1903,16 @@ class ThingsActivity :
         mEtFolderCardAppearanceName = f(R.id.et_folder_card_appearance_name)
         mBtThingCardAppearanceChangeColor =
                 f(R.id.bt_thing_card_appearance_change_color)
-        mThingCardAppearanceColorPicker =
-                ColorPicker(this, window.decorView, Def.PickerType.COLOR_EDIT)
-        mThingCardAppearanceColorPicker!!.setAutoVerticalAnchorPositioning(true)
+        mThingCardAppearanceEditor = f(R.id.tbe_thing_card_appearance)
+        mScrollTcaColorPage = f(R.id.scroll_tca_color_page)
+        mSepTcaTop = f(R.id.sep_tca_top)
+        mSepTcaBottom = f(R.id.sep_tca_bottom)
+        mLlTcaAppearanceBody = f(R.id.ll_tca_appearance_body)
+        mLlTcaTitleRow = f(R.id.ll_thing_card_appearance_title_row)
+        mLlTcaColorPageTitle = f(R.id.ll_tca_color_page_title)
+        mBtTcaColorPageBack = f(R.id.bt_tca_color_page_back)
+        mThingCardAppearanceEditor!!.setTitleView(f(R.id.tv_tca_color_page_title))
+        mThingCardAppearanceEditor!!.setTitleIcon(mBtTcaColorPageBack)
         mLlThingCardAppearanceSource = f(R.id.ll_thing_card_appearance_source)
         mTvThingCardAppearanceSource = f(R.id.tv_thing_card_appearance_source)
         mLlThingCardAppearanceVideoFrame = f(R.id.ll_thing_card_appearance_video_frame)
@@ -2543,19 +2560,26 @@ class ThingsActivity :
             showThingCardAppearanceSourceMenu()
         }
         mBtThingCardAppearanceChangeColor!!.setOnClickListener {
-            showThingCardAppearanceColorPicker()
+            showThingCardAppearanceColorPage()
         }
-        mThingCardAppearanceColorPicker!!.setPickedListener {
-            val background = mThingCardAppearanceColorPicker!!.getPickedBackground()
-                ?: return@setPickedListener
+        mBtTcaColorPageBack!!.setOnClickListener {
+            showThingCardAppearanceBodyPage()
+        }
+        mThingCardAppearanceEditor!!.onBackgroundChanged = { background ->
             updateThingCardAppearanceBackgroundDraft(background)
         }
-        mThingCardAppearanceColorPicker!!.setOnChangeOrientationListener(Runnable {
-            showThingCardAppearanceGradientOrientationDialog()
-        })
-        mThingCardAppearanceColorPicker!!.setOnPickFromCameraListener(Runnable {
+        mThingCardAppearanceEditor!!.onRequestPickFromWorld = { slot ->
+            mTcaPendingWorldSlot = slot
             openThingCardAppearanceCameraColorSampler()
-        })
+        }
+        mScrollTcaColorPage?.let { sv ->
+            sv.setOnScrollChangeListener(
+                androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+                    updateTcaSeparators()
+                }
+            )
+            sv.viewTreeObserver.addOnGlobalLayoutListener { updateTcaSeparators() }
+        }
         mEtFolderCardAppearanceName!!.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -2815,6 +2839,7 @@ class ThingsActivity :
         updateThingCardAppearancePanelWidth()
         mAdapter!!.setThingCardSurfaceAvailableHeight(0)
         bindFolderCardAppearancePanel()
+        resetThingCardAppearanceToBodyPage()
         if (panel.visibility != View.VISIBLE) {
             panel.visibility = View.VISIBLE
         }
@@ -2943,6 +2968,7 @@ class ThingsActivity :
                 getThingCardAppearancePreviewAvailableHeight()
         )
         bindThingCardAppearancePanel()
+        resetThingCardAppearanceToBodyPage()
         if (panel.visibility != View.VISIBLE) {
             panel.visibility = View.VISIBLE
         }
@@ -3672,14 +3698,64 @@ class ThingsActivity :
         button.setImageDrawable(BackgroundUtil.tintDrawable(resources, raw, background))
     }
 
-    private fun showThingCardAppearanceColorPicker() {
+    /** 进入颜色页：面板内容就地切换为编辑器（不另开面板）。 */
+    private fun showThingCardAppearanceColorPage() {
         if (!isThingCardAppearancePanelShowing()) return
-        val anchor = mBtThingCardAppearanceChangeColor ?: return
-        val picker = mThingCardAppearanceColorPicker ?: return
-        picker.setAnchor(anchor)
-        picker.pickForBackground(getThingCardAppearanceAccentBackground())
-        picker.refreshOrientationBt()
-        picker.show()
+        val editor = mThingCardAppearanceEditor ?: return
+        editor.setBackground(getThingCardAppearanceAccentBackground())
+        mTcaPreciseCropWasVisible = mBtThingCardAppearancePreciseCrop?.visibility == View.VISIBLE
+        mTcaOnColorPage = true
+        applyThingCardAppearancePageVisibility()
+        mThingCardAppearancePanel?.post {
+            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+        }
+    }
+
+    /** 返回外观设置页（页内导航，不提交，取消/确认仍代表整个面板会话）。 */
+    private fun showThingCardAppearanceBodyPage() {
+        mTcaOnColorPage = false
+        applyThingCardAppearancePageVisibility()
+        mThingCardAppearancePanel?.post {
+            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+        }
+    }
+
+    /** 开面板时复位到外观页（不动 precise crop，其可见性由 bind 决定）。 */
+    private fun resetThingCardAppearanceToBodyPage() {
+        mTcaOnColorPage = false
+        mLlTcaTitleRow?.visibility = View.VISIBLE
+        mLlTcaAppearanceBody?.visibility = View.VISIBLE
+        mLlTcaColorPageTitle?.visibility = View.GONE
+        mScrollTcaColorPage?.visibility = View.GONE
+        mSepTcaTop?.visibility = View.GONE
+        mSepTcaBottom?.visibility = View.GONE
+    }
+
+    private fun applyThingCardAppearancePageVisibility() {
+        val onColor = mTcaOnColorPage
+        mLlTcaTitleRow?.visibility = if (onColor) View.GONE else View.VISIBLE
+        mLlTcaAppearanceBody?.visibility = if (onColor) View.GONE else View.VISIBLE
+        mLlTcaColorPageTitle?.visibility = if (onColor) View.VISIBLE else View.GONE
+        mScrollTcaColorPage?.visibility = if (onColor) View.VISIBLE else View.GONE
+        if (onColor) {
+            updateTcaSeparators()
+        } else {
+            mSepTcaTop?.visibility = View.GONE
+            mSepTcaBottom?.visibility = View.GONE
+        }
+        mBtThingCardAppearancePreciseCrop?.visibility = when {
+            onColor -> View.GONE
+            mTcaPreciseCropWasVisible -> View.VISIBLE
+            else -> View.GONE
+        }
+    }
+
+    /** 颜色页顶/底分割线按滚动情况显隐（到顶隐藏顶部线，到底隐藏底部线）。 */
+    private fun updateTcaSeparators() {
+        if (!mTcaOnColorPage) return
+        val sv = mScrollTcaColorPage ?: return
+        mSepTcaTop?.visibility = if (sv.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
+        mSepTcaBottom?.visibility = if (sv.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateThingCardAppearanceBackgroundDraft(background: ThingBackground) {
@@ -3691,7 +3767,7 @@ class ThingsActivity :
             mThingCardAppearancePanel!!.post {
                 updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
             }
-            mThingCardAppearanceColorPicker?.pickForBackground(background)
+            if (mTcaOnColorPage) applyThingCardAppearancePageVisibility()
             refreshActivitySurfaceAndHeader()
             return
         }
@@ -3703,23 +3779,7 @@ class ThingsActivity :
         mThingCardAppearancePanel!!.post {
             updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
         }
-        mThingCardAppearanceColorPicker?.pickForBackground(background)
-    }
-
-    private fun showThingCardAppearanceGradientOrientationDialog() {
-        val current = getThingCardAppearanceAccentBackground()
-        if (current == null || current.mode !== ThingBackground.Mode.GRADIENT) return
-        val dialog = GradientOrientationDialogFragment()
-        dialog.setAccent(current)
-        dialog.setOnPickListener(object : GradientOrientationDialogFragment.OnPickListener {
-            override fun onPicked(orientation: ThingBackground.Orientation?) {
-                if (orientation === current.orientation) return
-                updateThingCardAppearanceBackgroundDraft(
-                    ThingBackground.gradient(current.color, current.endColor, orientation)
-                )
-            }
-        })
-        dialog.show(fragmentManager, GradientOrientationDialogFragment.TAG)
+        if (mTcaOnColorPage) applyThingCardAppearancePageVisibility()
     }
 
     private fun openThingCardAppearanceCameraColorSampler() {
@@ -3746,7 +3806,8 @@ class ThingsActivity :
             override fun onPreviewColor(color: Int) {}
 
             override fun onUseColor(color: Int) {
-                updateThingCardAppearanceBackgroundDraft(ThingBackground.pure(color))
+                // 回流到编辑器对应色区，再由编辑器回调更新草稿。
+                mThingCardAppearanceEditor?.applyWorldColor(mTcaPendingWorldSlot, color)
             }
 
             override fun onCancelColorSampling() {}
@@ -5325,7 +5386,6 @@ class ThingsActivity :
     private fun hideThingCardAppearancePanel() {
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
-        mThingCardAppearanceColorPicker?.dismiss()
         val wasShowing = isThingCardAppearancePanelShowing()
         if (isThingCardAppearancePanelShowing()) {
             KeyboardUtil.hideKeyboard(window, currentFocus ?: mEtFolderCardAppearanceName)
@@ -5353,7 +5413,6 @@ class ThingsActivity :
         mThingCardAppearanceMediaSources = emptyList()
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
-        mThingCardAppearanceColorPicker?.dismiss()
         mThingCardAppearancePreviewRefreshPosted = false
     }
 

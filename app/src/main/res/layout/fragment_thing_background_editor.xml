@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 详情页颜色面板：标题 + 可滚动编辑器 + 取消/确定，外观类似卡片外观面板。
+     ScrollAwareColumn 让内容默认全展开、仅在空间不足(键盘弹出)时收缩中间编辑器为可滚动，
+     标题与取消/确定固定不被裁切；上下分割线按滚动情况显隐。 -->
+<com.ywwynm.everythingdone.views.ScrollAwareColumn
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_app_chrome_surface_elevated_rounded"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+    android:paddingRight="@dimen/app_chrome_dialog_title_margin_horizontal"
+    android:paddingTop="@dimen/app_chrome_dialog_title_margin_top"
+    android:paddingBottom="@dimen/app_chrome_dialog_action_row_margin_bottom">
+
+    <TextView
+        android:id="@+id/tv_tbe_sheet_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/act_select_color"
+        android:textColor="@color/app_chrome_on_surface_primary"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size" />
+
+    <View
+        android:id="@+id/sep_tbe_top"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginRight="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginTop="8dp"
+        android:background="@color/app_chrome_divider"
+        android:visibility="invisible"
+        tools:visibility="visible" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_tbe_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <com.ywwynm.everythingdone.views.ThingBackgroundEditor
+            android:id="@+id/editor_tbe_sheet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="6dp" />
+
+    </androidx.core.widget.NestedScrollView>
+
+    <View
+        android:id="@+id/sep_tbe_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="@dimen/tbe_divider_bleed_margin"
+        android:layout_marginRight="@dimen/tbe_divider_bleed_margin"
+        android:background="@color/app_chrome_divider"
+        android:visibility="invisible"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="@dimen/app_chrome_dialog_action_row_overflow_margin"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_row_overflow_margin"
+        android:gravity="center_vertical|end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_cancel_as_bt_tbe"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:text="@string/cancel"
+            android:textAllCaps="true"
+            android:textColor="@color/app_chrome_dialog_cancel"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size" />
+
+        <TextView
+            android:id="@+id/tv_confirm_as_bt_tbe"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:text="@string/confirm"
+            android:textAllCaps="true"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size" />
+
+    </LinearLayout>
+
+</com.ywwynm.everythingdone.views.ScrollAwareColumn>
