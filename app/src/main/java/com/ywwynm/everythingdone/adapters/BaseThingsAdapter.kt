@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import android.util.Log
 import android.util.LruCache
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -2981,19 +2982,24 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun updateCardForDoing(holder: BaseThingViewHolder, thing: Thing) {
         if (App.getDoingThingId() == thing.id) {
             holder.flDoing!!.visibility = View.VISIBLE
-            holder.cv!!.post {
-                val lp = holder.flDoing.layoutParams as FrameLayout.LayoutParams
-                lp.width = holder.cv.width
-                lp.height = holder.cv.height
-                Log.i(
-                    TAG, "setting doing cover for thing card, " +
-                            "width[" + lp.width + ", height[" + lp.height + "]"
-                )
-                holder.flDoing.requestLayout()
+            // 卡片已测量（列表项复用、右滑预览等）时同步定好蒙层尺寸与图标/文字缩放，避免先
+            // 以旧尺寸闪现再跳变；只有首次绑定、卡片尚未测量时才退回 post。
+            if (holder.cv!!.height > 0) {
+                applyDoingCover(holder)
+            } else {
+                holder.cv.post { applyDoingCover(holder) }
             }
         } else {
             holder.flDoing!!.visibility = View.GONE
         }
+    }
+
+    private fun applyDoingCover(holder: BaseThingViewHolder) {
+        val lp = holder.flDoing!!.layoutParams as FrameLayout.LayoutParams
+        lp.width = holder.cv!!.width
+        lp.height = holder.cv.height
+        holder.flDoing.requestLayout()
+        holder.applyDoingCoverScale()
     }
 
     private fun setCardAppearance(
@@ -3073,6 +3079,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         @JvmField val ivStickyOngoing: ImageView?   = f(R.id.iv_thing_sticky_ongoing)
         @JvmField val flDoing: FrameLayout? = f(R.id.fl_thing_doing_cover)
+        @JvmField val tvDoing: TextView? = f(R.id.tv_thing_doing)
 
         @JvmField val flImageAttachment: FrameLayout? = f(R.id.fl_thing_image)
         @JvmField val ivImageAttachment: ImageView?   = f(R.id.iv_thing_image)
@@ -3130,6 +3137,39 @@ abstract class BaseThingsAdapter(context: Context?) :
                     pbLoading!!, App.defaultAccentBackground
                 )
             }
+        }
+
+        /**
+         * 按当前卡片高度，把"正在做"蒙层里的图标、文字、图文间距统一等比缩放，并按高度比例
+         * 留出上下间距，使卡片越矮内容越小且图标与文字始终协调；卡片足够高时保持原始大小。
+         * bind 与右滑预览两条路径共用：调用前卡片需已测量（cv.height > 0），蒙层一出现即为
+         * 最终大小、不再 post 后跳变。
+         */
+        fun applyDoingCoverScale() {
+            val tv = tvDoing ?: return
+            val card = cv ?: return
+            val cardHeight = card.height
+            if (cardHeight <= 0) return
+            val res = itemView.resources
+            val density = res.displayMetrics.density
+            val intrinsicIconH = 48f * density
+            val intrinsicIconW = 44f * density
+            val baseTextSizePx = res.getDimension(R.dimen.tv_thing_doing_text_size)
+            val baseDrawablePadding = 4f * density
+            // 留白取卡片高度的比例：矮卡片留白不会过大，迷你卡片也能自适应（绝对值随之变小）。
+            val minVerticalPadding = cardHeight * 0.18f
+            val maxIconH = cardHeight - minVerticalPadding * 2f
+            val scale = if (maxIconH > 0f && maxIconH < intrinsicIconH) {
+                maxIconH / intrinsicIconH
+            } else {
+                1f
+            }
+            val drawable = ContextCompat.getDrawable(itemView.context, R.drawable.vec_ic_doing_thing)
+                ?.mutate() ?: return
+            drawable.setBounds(0, 0, (intrinsicIconW * scale).toInt(), (intrinsicIconH * scale).toInt())
+            tv.setCompoundDrawablesRelative(drawable, null, null, null)
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseTextSizePx * scale)
+            tv.compoundDrawablePadding = (baseDrawablePadding * scale).toInt()
         }
     }
 

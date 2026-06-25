@@ -9863,6 +9863,8 @@ class ThingsActivity :
                         lp.width  = holder.cv!!.width
                         lp.height = holder.cv.height
                         holder.flDoing.requestLayout()
+                        // 右滑预览时卡片已布局，直接按高度定好图标/文字缩放，蒙层一出现即最终大小。
+                        holder.applyDoingCoverScale()
                         hasSwipedRight = true
                     }
 

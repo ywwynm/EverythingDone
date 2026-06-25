@@ -2861,3 +2861,76 @@ publishing was not run.
   递归查询条目按新模型重述。
 - C：plan.md 顶部加“已被取代”横幅 + DB 版本/删除模型行内标注；drawer-type-filter/decisions.md
   顶部加横幅，并修正“文件夹进入回收站从范围选择器消失”那段（纯骨架下不成立）。
+
+## 2026-06-25 - 修复大文件夹缩略图里“正在做”图标贴边
+
+- 用户反馈：大文件夹缩略图里若某条记事正在做、且内容只有一行、卡片很矮时，“正在做”蒙层
+  的图标（`vec_ic_doing_thing`，固定 48dp 高）会紧贴卡片上下边缘，不美观。
+- 根因：doing 蒙层 `fl_thing_doing_cover` 内的 TextView 垂直居中、图标 48dp 固定。矮卡片
+  内容区高度不足 48dp 时图标占满高度、上下无留白；文件夹迷你卡片再整体 `scaleX/Y` 缩放，
+  贴边更明显。纯加 margin 无效（图标本身比内容区高）。
+- 修复（改的是通用 doing 蒙层逻辑，主列表矮卡片一并受益）：`card_thing.xml` 给 doing
+  TextView 加 `tv_thing_doing` id；`BaseThingViewHolder` 加 `tvDoing`；`updateCardForDoing`
+  在卡片测量后新增 `adjustDoingCoverIconSize`，按卡片高度动态设定图标尺寸——够高保持
+  48dp，矮到放不下时压到「卡片高 − 上下各 8dp」。逻辑高度上算留白，随 scale 缩放一起保留。
+  顺手移除该方法里每次绑定都打印的 `Log.i` 调试日志。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。`BaseThingsAdapter` 仍有别处 `Log` 使用，
+  import 不受影响。
+- 纯视觉调整，未在本会话做真机验证，交用户自测（发布说明已列测试重点）。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260625111435.md"`
+  通过，发布 debug update `202606250314` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。
+
+## 2026-06-25 - 正在做提示图标与文字大小协调、矮卡片留白
+
+- 接上一条的后续反馈。上一版 `adjustDoingCoverIconSize` 只按卡片高度缩了 doing 图标，没动
+  右侧文字字号，导致图标小、文字偏大、不协调；大文件夹缩略图迷你卡片尤其明显——迷你卡片走
+  `FolderThingPreviewAdapter`（继承 `BaseThingsAdapter`，同一 `updateCardForDoing` 路径），
+  `adjustDoingCoverIconSize` 经 `cv.post` 在迷你卡片整体缩放（`applyFolderThumbnailPreviewScale`
+  → `scaleFolderThumbnailText` / `scaleFolderThumbnailCompoundDrawables`）之后执行，覆盖了图标
+  尺寸却没接管文字，于是图标按高度压小、文字仍是迷你卡片那套 0.9 缩放，比例不一致。
+- 另外用户反馈普通列表矮卡片里 doing 图标上下间距偏小。
+- 修复：把 `adjustDoingCoverIconSize` 重写为 `adjustDoingCoverScale`，按卡片高度算一个统一
+  比例，图标、文字字号（以 `tv_thing_doing_text_size` 为基准）、图文间距一起等比缩放；上下
+  留白改用卡片高度的比例（`cardHeight * 0.18`），矮卡片留白更舒适、迷你卡片也自适应。本方法
+  在迷你卡片缩放之后才跑，统一接管 doing 蒙层尺寸，图标与文字始终协调。`card_thing.xml` 的
+  `tv_thing_doing` id 与 `BaseThingViewHolder.tvDoing` 沿用上一条已加的；`BaseThingsAdapter`
+  新增 `import android.util.TypedValue`。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。
+- 纯视觉调整，未在本会话做真机验证，交用户自测。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260625114136.md"`
+  通过，发布 debug update `202606250342` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。
+
+## 2026-06-25 - 修复右滑时正在做蒙层尺寸先闪现再跳变
+
+- 用户反馈：记事右滑会预览"正在做"蒙层，但蒙层里的图标/文字先以默认大小闪现、随后才跳变
+  成最终缩放后的大小。
+- 根因：`updateCardForDoing` 把蒙层尺寸与缩放都放在 `cv.post` 回调里，而右滑预览路径
+  （`ThingsActivity` 的 `ItemTouchHelper.onChildDraw`，`dX > 0` 分支）只设了蒙层宽高、根本没调
+  缩放，于是图标/文字停留在 xml 默认大小（48dp / 16sp），要等下一次 bind 的 post 才变成缩放后
+  的大小。
+- 修复：把缩放逻辑下沉为 `BaseThingViewHolder.applyDoingCoverScale()`（用 `itemView` 取
+  context / 资源），bind 与右滑两条路径共用。`updateCardForDoing` 改为卡片已测量
+  （`cv.height > 0`）时同步调用、未测量时才 `post` 兜底；右滑预览首次显示蒙层时也同步调一次。
+  这样卡片已布局的场景蒙层一出现即最终大小，不再跳变。删除原 adapter 里的 `adjustDoingCoverScale`。
+
+Verification:
+- `:app:assembleDebug` 通过（无 error / warning）。
+- 纯视觉调整，未在本会话做真机验证，交用户自测。
+
+Publish:
+- `publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260625115345.md"`
+  通过，发布 debug update `202606250354` 到
+  `http://120.25.194.207/everythingdone-updates/debug/latest.json`。
+- 未创建 Git 提交。
