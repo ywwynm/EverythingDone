@@ -5070,6 +5070,28 @@ class ThingsActivity :
         finishNewItemShiningBorderAnimationIfNeeded()
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyItemChanged(listPosition)
+        scheduleThingCardAppearanceRatioRangeRefresh()
+    }
+
+    /**
+     * 卡片几何（normal↔full span、图片位置、是否作为背景、切换媒体源等）变化后，
+     * RecyclerView 要在后续帧重新布局 holder，比例滑条的动态范围才会随之变化。这里在
+     * 预览重新布局沉淀之后补刷一次范围，避免用户必须先拖一下滑条才更新。
+     */
+    private fun scheduleThingCardAppearanceRatioRangeRefresh() {
+        val recyclerView = mRecyclerView ?: return
+        recyclerView.postOnAnimation {
+            if (!isThingCardAppearancePanelShowing()) return@postOnAnimation
+            if (recyclerView.isComputingLayout
+                    || recyclerView.hasPendingAdapterUpdates()
+                    || recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+                scheduleThingCardAppearanceRatioRangeRefresh()
+                return@postOnAnimation
+            }
+            if (mLlThingCardAppearanceThumbnailRatio?.visibility == View.VISIBLE) {
+                mThingCardAppearanceRatioSlider?.refreshRange()
+            }
+        }
     }
 
     private fun confirmThingCardAppearancePanel() {

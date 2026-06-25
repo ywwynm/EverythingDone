@@ -40,6 +40,22 @@
 - 全局搜索确认无旧符号(`ThingCardRatioTicksView`、旧 XML id、被删函数/常量)残留。
 - 视觉/手感待实机验收。
 
-### 后续可选
+## 2026-06-25 - 修复几何变化后比例范围不自动刷新
+
+用户反馈:卡片把媒体设为背景后,从普通宽度切到"宽",比例滑条的范围不自动更新,要拖一下才更新。
+
+- 根因:`bindThingCardAppearanceCropControls` 的 `slider.refreshRange()` 在
+  `updateThingCardAppearanceDraft` 里**同步**执行,而卡片几何(`getThingCardAppearancePreviewCardWidth`
+  读 `holder.itemView.width`)要等 `requestThingCardAppearancePreviewRefresh` 的
+  `postOnAnimation → notifyItemChanged` 重新布局后才变,于是 `refreshRange` 拿到旧宽度;
+  拖动时 `onStartTrackingTouch` 重新采样才恢复正确。
+- 修复:`refreshThingCardAppearancePreviewNow` 末尾新增
+  `scheduleThingCardAppearanceRatioRangeRefresh()`,用与预览刷新一致的
+  `postOnAnimation` + 稳定性重试(`isComputingLayout/hasPendingAdapterUpdates/scrollState`)
+  在布局沉淀后补刷一次 `slider.refreshRange()`(仅当比例控件可见)。
+- span、图片位置、是否背景、切换媒体源均走同一条 draft→预览刷新路径,故一处修复全覆盖。
+- `:app:assembleDebug` BUILD SUCCESSFUL。
+
+## 后续可选
 
 - snapping 阈值 28 在对数空间的手感、10 档密度,实机后按需微调。
