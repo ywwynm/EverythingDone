@@ -1,6 +1,12 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606251528`.
+Latest published debug update: `202606251616`.
+
+## 2026-06-26 - 渐变方向顺序：斜向放第一排
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626001553.md`。
+渐变选项卡 8 个方向把 4 个斜向放第一排（更好看）、4 个正向放第二排。
+验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606251616`。此改动尚未 git 提交。
 
 ## 2026-06-25 - 从世界取色图标改为纯相机（去掉滴管）
 

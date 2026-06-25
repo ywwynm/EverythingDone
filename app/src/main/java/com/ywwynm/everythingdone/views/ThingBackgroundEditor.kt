@@ -339,16 +339,16 @@ class ThingBackgroundEditor @JvmOverloads constructor(
         const val SLOT_START = 1
         const val SLOT_END = 2
 
-        /** 行 1：4 个正向；行 2：4 个斜向。沿用 GradientOrientationDialogFragment.ORDER。 */
+        /** 行 1：4 个斜向（更好看，放第一排）；行 2：4 个正向（上下左右）。 */
         private val DIRECTION_ORDER = arrayOf(
-            ThingBackground.Orientation.L_R,
-            ThingBackground.Orientation.T_B,
-            ThingBackground.Orientation.R_L,
-            ThingBackground.Orientation.B_T,
             ThingBackground.Orientation.LT_RB,
             ThingBackground.Orientation.RT_LB,
             ThingBackground.Orientation.LB_RT,
-            ThingBackground.Orientation.RB_LT
+            ThingBackground.Orientation.RB_LT,
+            ThingBackground.Orientation.L_R,
+            ThingBackground.Orientation.T_B,
+            ThingBackground.Orientation.R_L,
+            ThingBackground.Orientation.B_T
         )
 
         private fun toGdOrientation(o: ThingBackground.Orientation): GradientDrawable.Orientation =
