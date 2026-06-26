@@ -480,6 +480,7 @@
 
     <!--ThingsActivity searching-->
     <string name="act_select_color">Select color</string>
+    <string name="act_adjust_color">Adjust color</string>
 
     <!--ThingsActivity selecting-->
     <string name="act_select_all">Select all</string>
@@ -576,7 +577,7 @@
     <string name="act_add_attachment">Add attachment</string>
     <string name="act_enable_check_list">Enable checklist</string>
     <string name="act_disable_check_list">Disable checklist</string>
-    <string name="act_change_background">Change background</string>
+    <string name="act_change_background">Adjust color</string>
     <string name="act_undo">Undo</string>
     <string name="act_redo">Redo</string>
     <string name="act_abandon_new_thing">Abandon</string>

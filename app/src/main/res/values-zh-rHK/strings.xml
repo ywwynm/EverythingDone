@@ -337,6 +337,7 @@
 
     <!--ThingsActivity searching-->
     <string name="act_select_color">選擇顏色</string>
+    <string name="act_adjust_color">調整顏色</string>
 
     <!--ThingsActivity selecting-->
     <string name="act_select_all">全選</string>
@@ -389,7 +390,7 @@
     <string name="act_add_attachment">添加附件</string>
     <string name="act_enable_check_list">啟用清單</string>
     <string name="act_disable_check_list">取消清單</string>
-    <string name="act_change_background">改變顏色</string>
+    <string name="act_change_background">調整顏色</string>
     <string name="act_undo">撤銷</string>
     <string name="act_redo">重做</string>
     <string name="act_abandon_new_thing">捨棄</string>

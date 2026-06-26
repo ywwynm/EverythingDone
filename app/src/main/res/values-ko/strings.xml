@@ -198,6 +198,7 @@
     <string name="act_clear_now">지우기</string>
     <string name="act_sort_by_alarm">알람 시간별로 정렬</string>
     <string name="act_select_color">색상 선택</string>
+    <string name="act_adjust_color">색상 조정</string>
     <string name="act_select_all">모두 선택</string>
     <string name="act_deselect_all">모두 선택 취소</string>
     <string name="act_delete_selected">선택 항목 삭제</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">첨부파일 추가</string>
     <string name="act_enable_check_list">체크리스트 활성화</string>
     <string name="act_disable_check_list">체크리스트 비활성화</string>
-    <string name="act_change_background">배경 변경</string>
+    <string name="act_change_background">색상 조정</string>
     <string name="act_undo">실행 취소</string>
     <string name="act_redo">다시 실행</string>
     <string name="act_abandon_new_thing">포기하다</string>

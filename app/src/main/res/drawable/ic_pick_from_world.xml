@@ -4,21 +4,9 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- 纯相机：标准相机机身轮廓 + 镜头。运行时由 ColorAreaView 用当前色 tint。 -->
-
-    <!-- 相机机身轮廓（Material camera_alt 机身形状） -->
+    <!-- 官方 Material Icons colorize 滴管。运行时由 ColorAreaView 用当前色 tint。 -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="1.7"
-        android:strokeLineJoin="round"
-        android:pathData="M9,2 L7.17,4 L4,4 C2.9,4 2,4.9 2,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,6 C22,4.9 21.1,4 20,4 L16.83,4 L15,2 Z" />
-
-    <!-- 镜头 -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="1.7"
-        android:pathData="M12,9.8 a3.2,3.2 0 1,1 0,6.4 a3.2,3.2 0 1,1 0,-6.4 Z" />
+        android:fillColor="#000000"
+        android:pathData="M20.71,5.63l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-3.12,3.12l-1.93,-1.91l-1.41,1.41l1.42,1.42L3,16.25V21h4.75l8.92,-8.92l1.42,1.42l1.41,-1.41l-1.92,-1.92l3.12,-3.12c0.4,-0.4 0.4,-1.03 0.01,-1.42zM6.92,19L5,17.08l8.06,-8.06l1.92,1.92L6.92,19z" />
 
 </vector>

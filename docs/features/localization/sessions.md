@@ -2,6 +2,12 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-26 - 详情颜色调整文案国际化
+
+- 将 `act_change_background` 从“改变颜色”语义改为“调整颜色”，并新增 `act_adjust_color` 给颜色编辑面板标题使用；`act_select_color` 保留“选择颜色”语义，避免影响搜索菜单。
+- 更新默认英文、简体中文、繁体中文（香港/台湾）、德语、西班牙语、法语、印地语、意大利语、日语、韩语、葡萄牙语、俄语资源，避免详情颜色入口和面板标题在非中文 locale 回退到旧语义。
+- 验证：`:app:assembleDebug --console=plain` 构建通过；随后 `:app:publishDebugUpdate` 发布 debug 更新 `202606261525`，资源键拆分后重新发布 `202606261527` 成功。
+
 ## 2026-06-15 - Card appearance action label rename
 
 - Renamed the user-visible card appearance action from "Customize card

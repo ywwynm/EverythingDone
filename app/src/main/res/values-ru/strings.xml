@@ -198,6 +198,7 @@
     <string name="act_clear_now">Очистить</string>
     <string name="act_sort_by_alarm">Сортировать по времени будильника</string>
     <string name="act_select_color">Выберите цвет</string>
+    <string name="act_adjust_color">Настроить цвет</string>
     <string name="act_select_all">Выбрать все</string>
     <string name="act_deselect_all">Отменить выбор всех</string>
     <string name="act_delete_selected">Удалить выбранное</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">Добавить вложение</string>
     <string name="act_enable_check_list">Включить контрольный список</string>
     <string name="act_disable_check_list">Отключить контрольный список</string>
-    <string name="act_change_background">Изменить фон</string>
+    <string name="act_change_background">Настроить цвет</string>
     <string name="act_undo">Отменить</string>
     <string name="act_redo">Повторить</string>
     <string name="act_abandon_new_thing">Отказаться</string>

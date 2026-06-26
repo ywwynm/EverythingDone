@@ -198,6 +198,7 @@
     <string name="act_clear_now">Chiaro</string>
     <string name="act_sort_by_alarm">Ordina per ora della sveglia</string>
     <string name="act_select_color">Seleziona il colore</string>
+    <string name="act_adjust_color">Regola il colore</string>
     <string name="act_select_all">Seleziona tutto</string>
     <string name="act_deselect_all">Deseleziona tutto</string>
     <string name="act_delete_selected">Elimina selezionato</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">Aggiungi allegato</string>
     <string name="act_enable_check_list">Abilita lista di controllo</string>
     <string name="act_disable_check_list">Disattiva la lista di controllo</string>
-    <string name="act_change_background">Cambia sfondo</string>
+    <string name="act_change_background">Regola il colore</string>
     <string name="act_undo">Annulla</string>
     <string name="act_redo">Rifare</string>
     <string name="act_abandon_new_thing">Abbandonare</string>

@@ -198,6 +198,7 @@
     <string name="act_clear_now">Klar</string>
     <string name="act_sort_by_alarm">Nach Weckzeit sortieren</string>
     <string name="act_select_color">Farbe auswählen</string>
+    <string name="act_adjust_color">Farbe anpassen</string>
     <string name="act_select_all">Alles auswählen</string>
     <string name="act_deselect_all">Alle abwählen</string>
     <string name="act_delete_selected">Ausgewählte löschen</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">Anhang hinzufügen</string>
     <string name="act_enable_check_list">Checkliste aktivieren</string>
     <string name="act_disable_check_list">Checkliste deaktivieren</string>
-    <string name="act_change_background">Hintergrund ändern</string>
+    <string name="act_change_background">Farbe anpassen</string>
     <string name="act_undo">Rückgängig machen</string>
     <string name="act_redo">Wiederholen</string>
     <string name="act_abandon_new_thing">Aufgeben</string>

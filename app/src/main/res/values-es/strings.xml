@@ -198,6 +198,7 @@
     <string name="act_clear_now">Borrar</string>
     <string name="act_sort_by_alarm">Ordenar por hora de alarma</string>
     <string name="act_select_color">Seleccionar color</string>
+    <string name="act_adjust_color">Ajustar color</string>
     <string name="act_select_all">Seleccionar todo</string>
     <string name="act_deselect_all">Deseleccionar todo</string>
     <string name="act_delete_selected">Eliminar seleccionado</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">Agregar archivo adjunto</string>
     <string name="act_enable_check_list">Habilitar lista de verificación</string>
     <string name="act_disable_check_list">Desactivar lista de verificación</string>
-    <string name="act_change_background">Cambiar fondo</string>
+    <string name="act_change_background">Ajustar color</string>
     <string name="act_undo">Deshacer</string>
     <string name="act_redo">Rehacer</string>
     <string name="act_abandon_new_thing">abandonar</string>

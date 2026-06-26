@@ -198,6 +198,7 @@
     <string name="act_clear_now">クリア</string>
     <string name="act_sort_by_alarm">アラーム時刻で並べ替える</string>
     <string name="act_select_color">色を選択してください</string>
+    <string name="act_adjust_color">色を調整</string>
     <string name="act_select_all">すべて選択</string>
     <string name="act_deselect_all">すべての選択を解除します</string>
     <string name="act_delete_selected">選択したものを削除</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">添付ファイルを追加する</string>
     <string name="act_enable_check_list">チェックリストを有効にする</string>
     <string name="act_disable_check_list">チェックリストを無効にする</string>
-    <string name="act_change_background">背景を変更する</string>
+    <string name="act_change_background">色を調整</string>
     <string name="act_undo">元に戻す</string>
     <string name="act_redo">やり直し</string>
     <string name="act_abandon_new_thing">放棄する</string>

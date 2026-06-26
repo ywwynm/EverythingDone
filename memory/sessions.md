@@ -55,6 +55,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `dark-mode`: `docs/features/dark-mode/sessions.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/sessions.md`
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/sessions.md`
+- `detail-color-sampling`: `docs/features/detail-color-sampling/sessions.md`
 - `documentation-organization`: `docs/features/documentation-organization/sessions.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/sessions.md`
 - `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/sessions.md`

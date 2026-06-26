@@ -198,6 +198,7 @@
     <string name="act_clear_now">स्पष्ट</string>
     <string name="act_sort_by_alarm">अलार्म समय के अनुसार क्रमबद्ध करें</string>
     <string name="act_select_color">रंग चुनें</string>
+    <string name="act_adjust_color">रंग समायोजित करें</string>
     <string name="act_select_all">सभी का चयन करें</string>
     <string name="act_deselect_all">सभी का चयन रद्द करें</string>
     <string name="act_delete_selected">चयनित हटाएँ</string>
@@ -210,7 +211,7 @@
     <string name="act_add_attachment">अनुलग्नक जोड़ें</string>
     <string name="act_enable_check_list">चेकलिस्ट सक्षम करें</string>
     <string name="act_disable_check_list">चेकलिस्ट अक्षम करें</string>
-    <string name="act_change_background">पृष्ठभूमि बदलें</string>
+    <string name="act_change_background">रंग समायोजित करें</string>
     <string name="act_undo">पूर्ववत करें</string>
     <string name="act_redo">पुनः करें</string>
     <string name="act_abandon_new_thing">छोड़ दो</string>
