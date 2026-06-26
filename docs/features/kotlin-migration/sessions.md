@@ -2,6 +2,12 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-27 - 将 kotlin 分支合并到 master
+
+- 按用户要求将 `kotlin` 分支 fast-forward 合并到 `master`，合并前确认 `master` 是 `kotlin` 的祖先，因此没有生成额外 merge commit，也没有冲突。
+- 合并后 `master` 与 `kotlin` 都指向 `790df597f720eedb4c6857b5ea6153dc81063859`。
+- `Everything-Android/` 在两个分支中都不是受跟踪目录，本次合并未处理该未跟踪目录。
+
 ## 2026-05-21 — Post-migration Kotlin cleanup (full session)
 
 Completed IDE inspection cleanup on the `kotlin` branch after the 17-group
