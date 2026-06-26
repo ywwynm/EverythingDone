@@ -251,7 +251,9 @@ open class CheckListAdapter(
                     for (i in boundary until size) {
                         mItems!!.removeAt(boundary)
                     }
-                    val newItem = "1" + getFinishedItemsCountStr(finishedCount)
+                    // 汇总行用新格式：状态位 '1'(已完成) + 层级位 '1' + 文本；否则渲染时 textOf 的
+                    // substring(2) 会吃掉文本首字符，且首字符若是 1/2/3 还会被误当层级。
+                    val newItem = "11" + getFinishedItemsCountStr(finishedCount)
                     mItems!!.add(newItem)
                 }
             }
@@ -430,8 +432,15 @@ open class CheckListAdapter(
                 holder.ivState.setImageResource(R.drawable.checklist_finished)
                 holder.ivState.isClickable = false
 
+                // 只统计分隔线以下的底部已完成区（'4' 头部之后才是已完成区）；顶部就地完成的二/三级项
+                // 状态位也是 '1'，但不计入。见 decisions.md（已完成头部只统计底部已完成区）。
                 var finishedCount = 0
-                for (item in mItems!!) if (item!![0] == '1') finishedCount++
+                val headerIdx = mItems!!.indexOf("4")
+                if (headerIdx != -1) {
+                    for (i in (headerIdx + 1) until mItems!!.size) {
+                        if (CheckListHelper.isFinished(mItems!![i])) finishedCount++
+                    }
+                }
                 val finishedItemsCountStr = getFinishedItemsCountStr(finishedCount) + " "
                 holder.ivState.contentDescription = finishedItemsCountStr
                 params.width = LinearLayout.LayoutParams.WRAP_CONTENT

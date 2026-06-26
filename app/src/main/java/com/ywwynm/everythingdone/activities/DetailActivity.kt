@@ -1711,7 +1711,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             before = content
             val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, true)
             var focusFirst = false
-            if (items.size == 2 && items[0]!! == "0") {
+            // 空清单 = 一个空项 + 添加行；空项新格式是 "01"（状态位+层级位），用 isEmptyItem 判断而非旧的 "0"。
+            if (items.size == 2 && CheckListHelper.isEmptyItem(items[0])) {
                 focusFirst = true
             }
 

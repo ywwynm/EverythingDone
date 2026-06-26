@@ -208,3 +208,21 @@ MOVE 时已用"手指相对 RecyclerView 的新坐标"重算、其中**已含父
 扣 `et.totalPaddingRight/Top/Bottom`）的 padding 统一为 `basePad + inset`——右=`textVisualRight+padX`、
 下=`max(iconVisualBottom,textVisualBottom)+padY`，左/上沿用（经控件留白天然得到同值）。发布日志
 `debug-updates/update-20260626183907.md`。
+
+## 2026-06-26 - 代码审查修复：四处旧格式假设（update 202606261122）
+
+外部审查（GPT）发现四处在“状态位+层级位+文本”迁移后未更新的旧格式假设，逐一核实属实并修复：
+
+- **SIMPLE_FCLI 汇总行**（`CheckListAdapter` 第 ~254）：`"1"+文本` → `"11"+文本`（补层级位），否则
+  渲染 `textOf` 的 `substring(2)` 丢首字符、首字符为 1/2/3 还被误当层级。
+- **详情页“N 项已完成”头部统计**（`CheckListAdapter` 第 ~433）：原数整列表 `[0]=='1'`，会含顶部就地
+  完成的二/三级项；改为只数 `"4"` 头部之后（底部已完成区）的 `isFinished` 项。
+- **截图控制行恢复**（`ScreenshotHelper` 第 ~402）：`getLastUnfinishedItemIndex+1` 在“未完成父+就地完成
+  子”结构上会把 `"2"/"3"` 插到父与已完成子之间、错位分界；改用分隔标记 `"3"`/`"4"` 定位（与截图前移除
+  对称）。`getLastUnfinishedItemIndex` 用于判断“有无未完成项”的 line 332 语义仍对、未动。
+- **空文本转清单聚焦**（`DetailActivity` 第 ~1714）：`items[0]=="0"` → `CheckListHelper.isEmptyItem(items[0])`
+  （空项新格式 `"01"`），恢复空清单自动聚焦首项。
+
+另排查同类模式（`startsWith("0"/"1")`、`substring(1)`、`[0]=='0'`）确认无其他遗漏（其余命中为附件 type
+前缀、状态渲染判断、迁移转换 `migrateToLeveledFormat`，均正确）。发布日志
+`debug-updates/update-20260626192133.md`。

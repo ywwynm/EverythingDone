@@ -399,11 +399,21 @@ object ScreenshotHelper {
                 }
                 UPDATE_CHECKLIST -> { // must be editable if go here
                     val items: MutableList<String?> = checkListAdapter!!.getItems()!!
-                    val index: Int = CheckListHelper.getLastUnfinishedItemIndex(items) + 1
-                    items.add(index, "2")
-                    if (index + 1 >= 0 && index + 1 < items.size
-                            && !items[index + 1].equals("3")) {
-                        items.add(index + 1, "3")
+                    // 用控制标记（分隔线 "3" / 已完成头部 "4"）定位恢复"添加行"("2")与分隔线，而不是"最后一个
+                    // 未完成项之后"——新模型顶部可能出现"未完成父项 + 就地完成的已完成子项"，旧定位会把控制行
+                    // 插到父项与已完成子项之间、错位已完成分界。与截图前的移除逻辑对称：
+                    // 有未完成区 → "3" 保留，把 "2" 插回分隔线前；无未完成区 → "2"/"3" 都被移除，插回已完成头部前。
+                    val sepIndex: Int = items.indexOf("3")
+                    if (sepIndex != -1) {
+                        items.add(sepIndex, "2")
+                    } else {
+                        val headerIndex: Int = items.indexOf("4")
+                        if (headerIndex != -1) {
+                            items.add(headerIndex, "2")
+                            items.add(headerIndex + 1, "3")
+                        } else {
+                            items.add("2")
+                        }
                     }
                     checkListAdapter.notifyDataSetChanged()
                     llMoveChecklist!!.visibility = View.VISIBLE
