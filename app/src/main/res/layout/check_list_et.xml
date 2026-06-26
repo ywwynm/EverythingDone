@@ -25,20 +25,41 @@
         android:id="@+id/iv_check_list_state"
         android:layout_width="36dp"
         android:layout_height="36dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
         android:scaleType="center"
         android:background="@drawable/selectable_item_background_light"
         tools:ignore="ContentDescription"/>
 
+    <!-- 反缩进按钮：锚定父起点与顶部，运行时由 applyLevelStyle 设置 marginStart/topMargin。 -->
     <ImageView
-        android:id="@+id/iv_check_list_delete"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:id="@+id/iv_check_list_outdent"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_checklist_outdent"
+        android:background="@drawable/selectable_item_background_light"
+        android:contentDescription="@string/cd_checklist_outdent"
+        android:visibility="invisible"
+        android:clickable="false"/>
+
+    <ImageView
+        android:id="@+id/iv_check_list_indent"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:src="@drawable/delete_image_checklist"
-        android:scaleType="center"
+        android:layout_alignParentTop="true"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_checklist_indent"
         android:background="@drawable/selectable_item_background_light"
-        android:contentDescription="@string/cd_delete_checklist_item"
+        android:contentDescription="@string/cd_checklist_indent"
         android:visibility="invisible"
         android:clickable="false"/>
 
@@ -47,15 +68,15 @@
         android:layout_height="wrap_content"
         android:layout_toEndOf="@id/iv_check_list_state"
         android:layout_toRightOf="@id/iv_check_list_state"
-        android:layout_toStartOf="@id/iv_check_list_delete"
-        android:layout_toLeftOf="@id/iv_check_list_delete"
+        android:layout_toStartOf="@id/iv_check_list_indent"
+        android:layout_toLeftOf="@id/iv_check_list_indent"
+        android:layout_alignParentTop="true"
         android:orientation="horizontal">
 
         <EditText
             android:id="@+id/et_check_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
             android:layout_marginStart="8dp"
             android:layout_marginLeft="8dp"
             android:textColorHint="#5CFFFFFF"

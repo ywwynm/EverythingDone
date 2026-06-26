@@ -118,7 +118,7 @@ object SystemNotificationUtil {
         var style = 0
 
         if (CheckListHelper.isCheckListStr(content)) {
-            contentText = CheckListHelper.toContentStr(content, "X  ", "√  ")
+            contentText = CheckListHelper.toContentStr(content, "- [ ] ", "- [x] ")
         }
 
         if (title.isEmpty() && content.isEmpty()) {
@@ -425,7 +425,7 @@ object SystemNotificationUtil {
             var thingContent: String = thing.content!!
             if (!thingContent.isEmpty()) {
                 if (CheckListHelper.isCheckListStr(thingContent)) {
-                    thingContent = CheckListHelper.toContentStr(thingContent, "X ", "√ ")
+                    thingContent = CheckListHelper.toContentStr(thingContent, "- [ ] ", "- [x] ")
                     thingContent = thingContent.replace("\n".toRegex(), "\n  ")
                 }
                 nTitle.append(thingContent)

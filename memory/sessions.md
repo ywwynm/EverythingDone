@@ -2,6 +2,13 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-06-26 - 多级清单项设计追问与文档
+
+- 为“最多三级的多级清单项”做了一轮 grill-with-docs，敲定数据模型、存储编码、完成语义、缩进/拖拽
+  交互、分级排版与各显示界面。新增功能目录 `docs/features/multi-level-checklist/`、ADR
+  `docs/adr/0010-checklist-item-level-encoding.md`，并在根 `CONTEXT.md` 补入清单相关术语。
+- 主干设计已定、尚未实现；细节见 `docs/features/multi-level-checklist/`。
+
 ## 2026-06-24 - Widget 媒体、单个 Widget 文件夹选择和详情单媒体默认比例
 
 - 完成一次跨 feature 小修复：记事列表 Widget 网格卡片媒体背景改按 slot 宽度投影；单个记事 Widget 配置隐藏空文件夹；详情页单媒体 full-span 默认比例改为 `4:3`，并与用户确认过的设置分离。

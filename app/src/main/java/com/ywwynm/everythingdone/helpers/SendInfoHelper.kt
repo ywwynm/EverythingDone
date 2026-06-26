@@ -163,7 +163,7 @@ object SendInfoHelper {
         }
         if (!content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {
-                sb.append(CheckListHelper.toContentStr(content, "X  ", "√  "))
+                sb.append(CheckListHelper.toContentStr(content, "- [ ] ", "- [x] "))
             } else {
                 sb.append(content)
             }

@@ -228,6 +228,30 @@ _Avoid_: selected Thing only, single highlighted card
 作用于整个 Selection 的单个动作，集合中的每一项按自身类型执行对应操作——Thing 执行状态操作，Thing Folder 执行对应的内容操作或结构操作。
 _Avoid_: Thing-only bulk action, treating a Selection as one object
 
+**Checklist**:
+一个 Thing 的内容被表达为一列可勾选完成的条目时的整体形态；它存储在 Thing 自身的内容里，而不是独立实体。
+_Avoid_: 把清单当成独立于 Thing 的对象、todo list 作为泛称
+
+**Checklist Item**:
+清单中的一个可完成条目，包含自己的文本、完成状态和层级。
+_Avoid_: note line, 把控制行（添加项、分隔、已完成头部）当成 Checklist Item
+
+**Checklist Item Level**:
+逐项显式存储的缩进深度，取值一级、二级或三级；由用户通过缩进/反缩进直接编辑，是清单项自身的属性而非由归属推导。缩进按钮带门控，只在该项存在“同级的上一个兄弟”时才启用——从而既禁止没有归属的二/三级项（孤儿），也禁止“层级跳空”（如一级项直接管着三级项）。反缩进、删除等操作产生的跳空，会被层级归一化自动收回到合法层级。
+_Avoid_: 由父子关系反推层级、无限层级、孤儿二三级项、层级跳空
+
+**Checklist Item Owner**:
+某个清单项的派生父项——它上方最近的、层级严格更浅的清单项；不存父指针，完全由位置加层级算出。二、三级项必有 owner，且 owner **恰好浅一级**（不允许层级跳空）；一级项没有 owner，即为组根。
+_Avoid_: 存储的父 ID、把归属当成持久关系、owner 浅不止一级、层级跳空
+
+**Checklist Group Root**:
+没有归属（owner）的清单项。由于禁止孤儿，组根恒等于一级项。整组是下沉到底部已完成区还是停在上方，由组根的完成态决定。
+_Avoid_: 把组根当成可以是孤儿深层项、把连续两个一级项当成同一组
+
+**Checklist Item Group**:
+一个组根（即一个一级项）连同它逐层归属下的所有清单项构成的整体；它是完成迁移、拖拽这类整组操作的单位。两个相邻的一级项属于各自独立的组。
+_Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判断迁移
+
 ## Relationships
 
 - A **Thing** has one **Thing Background**.
@@ -302,6 +326,14 @@ _Avoid_: Thing-only bulk action, treating a Selection as one object
 - Light App Chrome is compatibility-sensitive: dark-mode infrastructure must not change existing light-mode visuals.
 - A **Selection** may contain both **Things** and **Thing Folders**, all siblings within the current projection.
 - A **Batch Action** applies one action across a **Selection** by mapping each member to its own type's operation, so a **Thing Folder** member runs a content or structural operation rather than a Thing state change.
+- A **Thing** whose content is a **Checklist** owns an ordered list of **Checklist Items**.
+- A **Checklist Item** has one **Checklist Item Level** of one, two, or three.
+- A **Checklist Item** may have one **Checklist Item Owner**, derived as the nearest preceding item of a shallower level; a level-two or level-three item always has one because indenting is only enabled when a same-level previous sibling exists.
+- A **Checklist Item Owner** is exactly one level shallower than the item it owns; level gaps (a level-one item owning a level-three item) are not allowed and are removed by level normalization.
+- A **Checklist Item** with no **Checklist Item Owner** is a **Checklist Group Root**, which is therefore always a level-one item.
+- A **Checklist Item Group** consists of one **Checklist Group Root** plus every **Checklist Item** it transitively owns.
+- A **Checklist Item Group** sits in the finished area when its **Checklist Group Root** is finished, and in the unfinished area otherwise; finishing or unfinishing a non-root item never relocates the group on its own.
+- A finished **Checklist Item** always has all of its descendants finished; if it gains an unfinished descendant (by indenting one under it, unfinishing one of its subitems, or a delete that re-parents one under it), it and its finished ancestor chain revert to unfinished, while non-ancestor finished items keep their state.
 
 ## Example Dialogue
 

@@ -1219,6 +1219,8 @@
     <string name="cd_checklist_unfinished_item_clickable">未完成的清单项，点击即可完成</string>
     <string name="cd_checklist_finished_item_clickable">已完成的清单项，点击取消完成</string>
     <string name="cd_checklist_move">点击并拖拽即可移动该清单项</string>
+    <string name="cd_checklist_indent">将该清单项向右移动一个层级</string>
+    <string name="cd_checklist_outdent">将该清单项向左移动一个层级</string>
     <string name="cd_checklist_expand_finished_items">展开已完成的清单项</string>
     <string name="cd_expand_thing_folder">展开文件夹</string>
     <string name="cd_collapse_thing_folder">收起文件夹</string>

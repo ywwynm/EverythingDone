@@ -904,10 +904,17 @@ object AppWidgetHelper {
             rv.setInt(LL_CHECK_LIST_ITEM_ROOT, "setBackgroundResource", 0)
         }
 
-        rv.setViewPadding(LL_CHECK_LIST_ITEM_ROOT, (-6 * screenDensity).toInt(), 0, 0, 0)
-
         val state: Char = item!![0]
-        val text: String = item.substring(1, item.length)
+        val level: Int = CheckListHelper.levelOf(item)
+        // 各级缩进（dp），逐级独立、便于单独微调。
+        val indentDp = when (level) { 2 -> 19f; 3 -> 38f; else -> 0f }
+        val indentPx: Int = Math.round(indentDp * screenDensity)
+        rv.setViewPadding(LL_CHECK_LIST_ITEM_ROOT, (-6 * screenDensity).toInt() + indentPx, 0, 0, 0)
+        // 状态图标下移：一级 +2.5dp，二级 +1.5dp，三级 +0.5dp。
+        val iconTopPadDp = when (level) { 1 -> 2.5f; 2 -> 1.5f; else -> 0.5f }
+        rv.setViewPadding(IV_STATE_CHECK_LIST, 0, Math.round(iconTopPadDp * screenDensity), 0, 0)
+
+        val text: String = CheckListHelper.textOf(item)
         val textColor: Int
         if (state == '0') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, false))
@@ -922,7 +929,7 @@ object AppWidgetHelper {
             textColor = if (thing != null)
                     checklistItemTextColor(context, thing, false)
             else ContextCompat.getColor(context, R.color.white_76p)
-            rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor)
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, CheckListHelper.colorForLevel(textColor, level, false))
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, text)
         } else if (state == '1') {
             rv.setImageViewResource(IV_STATE_CHECK_LIST, checklistIconResource(thing, true))
@@ -937,21 +944,24 @@ object AppWidgetHelper {
             textColor = if (thing != null)
                     checklistItemTextColor(context, thing, true)
             else Color.parseColor("#80FFFFFF")
-            rv.setTextColor(TV_CONTENT_CHECK_LIST, textColor)
+            rv.setTextColor(TV_CONTENT_CHECK_LIST, CheckListHelper.colorForLevel(textColor, level, true))
             val spannable = SpannableString(text)
             spannable.setSpan(StrikethroughSpan(), 0, text.length,
                     Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
             rv.setTextViewText(TV_CONTENT_CHECK_LIST, spannable)
         }
 
+        val levelSizeRatio = CheckListHelper.sizeRatioForLevel(level)
+        // 文字相对状态图标略微下压，使第一行视觉居中（之前偏上一点）。
+        val textTopNudge = (3 * screenDensity).toInt()
         if (itemsSize >= 8) {
-            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 14f)
-            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (screenDensity * 2).toInt(), 0, 0)
+            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, 14f * levelSizeRatio)
+            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, (screenDensity * 2).toInt() + textTopNudge, 0, 0)
         } else {
             val textSize: Float = -4 * itemsSize / 7f + 130f / 7
-            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, textSize)
+            rv.setTextViewTextSize(TV_CONTENT_CHECK_LIST, TypedValue.COMPLEX_UNIT_SP, textSize * levelSizeRatio)
             val mt: Float = -2 * textSize / 3 + 34f / 3
-            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, mt.toInt(), 0, 0)
+            rv.setViewPadding(TV_CONTENT_CHECK_LIST, 0, mt.toInt() + textTopNudge, 0, 0)
         }
         return rv
     }

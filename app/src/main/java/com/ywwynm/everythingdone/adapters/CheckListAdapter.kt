@@ -19,6 +19,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.App
@@ -26,6 +27,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ChecklistCompletion
 import com.ywwynm.everythingdone.helpers.LineSpacingHelper
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
@@ -36,6 +38,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
 /**
  * Created by ywwynm on 2015/9/17.
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
+ * Multi-level support added by ywwynm and Claude Opus 4.8 on 2026/6/26.
  * Adapter for check list.
  */
 open class CheckListAdapter(
@@ -231,18 +234,22 @@ open class CheckListAdapter(
             mItems!!.remove("4")
 
             if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
-                var firstFinishedIndex = -1
+                // 只折叠"分隔线以下"的底部已完成区，即从第一个已完成组根起。顶部就地完成的
+                // 深层项不折叠。见 decisions.md（SIMPLE_FCLI）。
+                var boundary = -1
                 val size = mItems!!.size
                 for (i in 0 until size) {
-                    if (mItems!![i]!!.startsWith("1")) {
-                        firstFinishedIndex = i
+                    if (CheckListHelper.isFinished(mItems!![i])
+                        && CheckListHelper.ownerIndexOf(mItems, i) == -1
+                    ) {
+                        boundary = i
                         break
                     }
                 }
-                if (firstFinishedIndex != -1) {
-                    val finishedCount = size - firstFinishedIndex
-                    for (i in firstFinishedIndex until size) {
-                        mItems!!.removeAt(firstFinishedIndex)
+                if (boundary != -1) {
+                    val finishedCount = size - boundary
+                    for (i in boundary until size) {
+                        mItems!!.removeAt(boundary)
                     }
                     val newItem = "1" + getFinishedItemsCountStr(finishedCount)
                     mItems!!.add(newItem)
@@ -272,12 +279,15 @@ open class CheckListAdapter(
                 holder.tv.contentDescription =
                     mContext!!.getString(R.string.cd_checklist_more_items)
                 params.setMargins((density * 8).toInt(), 0, 0, params.bottomMargin)
+                setCardItemIndent(holder, 1)
                 setEventForTextViewItemMore(holder)
             } else {
                 holder.iv!!.visibility = View.VISIBLE
                 val flag = holder.tv.paintFlags
                 val stateContent: String = mItems!![position]!!
                 val state = stateContent[0]
+                val level = CheckListHelper.levelOf(stateContent)
+                val finished = state == '1'
                 if (state == '0') {
                     holder.iv.setImageResource(
                         if (dark)
@@ -286,7 +296,9 @@ open class CheckListAdapter(
                     )
                     holder.iv.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_unfinished_item)
-                    holder.tv.setTextColor(textColorSecondary())
+                    holder.tv.setTextColor(
+                        CheckListHelper.colorForLevel(textColorSecondary(), level, false)
+                    )
                     holder.tv.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
                 } else if (state == '1') {
                     holder.iv.setImageResource(
@@ -296,7 +308,9 @@ open class CheckListAdapter(
                     )
                     holder.iv.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_finished_item)
-                    holder.tv.setTextColor(textColorFinished())
+                    holder.tv.setTextColor(
+                        CheckListHelper.colorForLevel(textColorFinished(), level, true)
+                    )
                     if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
                         holder.tv.paintFlags = flag and Paint.STRIKE_THRU_TEXT_FLAG.inv()
                     } else {
@@ -307,21 +321,23 @@ open class CheckListAdapter(
 
                 val size = mItems!!.size
                 val fixedTextSize = mFixedTextSize
+                val baseSize: Float
                 if (fixedTextSize != null) {
-                    holder.tv.textSize = fixedTextSize
+                    baseSize = fixedTextSize
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
                 } else if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
-                    holder.tv.textSize = 14f
+                    baseSize = 14f
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
                 } else {
-                    val textSize = -4 * size / 7f + 130f / 7
-                    holder.tv.textSize = textSize
-                    val mt = -2 * textSize / 3 + 34f / 3
+                    baseSize = -4 * size / 7f + 130f / 7
+                    val mt = -2 * baseSize / 3 + 34f / 3
                     params.setMargins(0, mt.toInt(), 0, params.bottomMargin)
                 }
+                holder.tv.textSize = baseSize * CheckListHelper.sizeRatioForLevel(level)
 
-                holder.tv.text = stateContent.substring(1, stateContent.length)
-                params.setMargins(0, params.topMargin, 0, params.bottomMargin)
+                holder.tv.text = CheckListHelper.textOf(stateContent)
+                alignCardRow(holder, params.topMargin, params.bottomMargin, level)
+                setCardItemIndent(holder, level)
 
                 setEventForTextViewItem(holder)
             }
@@ -330,7 +346,10 @@ open class CheckListAdapter(
             holder.flSeparator!!.visibility = View.GONE
             holder.ivState!!.visibility = View.VISIBLE
             holder.ivState.isClickable = true
-            holder.ivDelete!!.visibility = View.INVISIBLE
+            holder.ivIndent!!.visibility = View.INVISIBLE
+            holder.ivIndent.isClickable = false
+            holder.ivOutdent!!.visibility = View.INVISIBLE
+            holder.ivOutdent.isClickable = false
             holder.ivExpandShrink!!.visibility = View.GONE
 
             holder.et!!.isEnabled = true
@@ -342,17 +361,20 @@ open class CheckListAdapter(
 
             holder.et.textSize = 20f
             holder.et.hint = ""
+            holder.resetIndent()
 
             val params = holder.et.layoutParams as LinearLayout.LayoutParams
             params.width = LinearLayout.LayoutParams.MATCH_PARENT
-            params.topMargin = (density * 3).toInt()
+            params.topMargin = 0
 
             mWatchEditTextChange = false
             tintRowIcon(holder.ivState)
-            tintRowIcon(holder.ivDelete)
+            tintRowIcon(holder.ivIndent)
+            tintRowIcon(holder.ivOutdent)
             tintRowIcon(holder.ivExpandShrink)
             installIconRipple(holder.ivState)
-            installIconRipple(holder.ivDelete)
+            installIconRipple(holder.ivIndent)
+            installIconRipple(holder.ivOutdent)
             installIconRipple(holder.ivExpandShrink)
             val stateContent: String = mItems!![position]!!
             val state = stateContent[0]
@@ -366,8 +388,8 @@ open class CheckListAdapter(
                     holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et.setTextColor(textColorSecondary())
-                holder.et.setText(stateContent.substring(1, stateContent.length))
+                holder.et.setText(CheckListHelper.textOf(stateContent))
+                holder.applyLevelStyle(stateContent)
             } else if (state == '1') {
                 if (!mDragging) {
                     holder.ivState.setImageResource(R.drawable.checklist_checked_detail)
@@ -378,9 +400,9 @@ open class CheckListAdapter(
                     holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et.setTextColor(textColorFinished())
                 holder.et.paintFlags = flags or Paint.STRIKE_THRU_TEXT_FLAG
-                holder.et.setText(stateContent.substring(1, stateContent.length))
+                holder.et.setText(CheckListHelper.textOf(stateContent))
+                holder.applyLevelStyle(stateContent)
             } else if (state == '2') {
                 params.topMargin = (density * 4).toInt()
                 holder.ivState.setImageResource(R.drawable.checklist_add)
@@ -391,7 +413,8 @@ open class CheckListAdapter(
                 holder.et.setText("")
             } else if (state == '3') {
                 holder.ivState.visibility = View.GONE
-                holder.ivDelete.visibility = View.GONE
+                holder.ivIndent.visibility = View.GONE
+                holder.ivOutdent.visibility = View.GONE
                 holder.et.visibility = View.GONE
                 holder.flSeparator.visibility = View.VISIBLE
                 val sep: View? = holder.flSeparator.getChildAt(0)
@@ -432,6 +455,65 @@ open class CheckListAdapter(
                 holder.et.paint.textSkewX = -0.20f
             }
             mWatchEditTextChange = true
+        }
+    }
+
+    /**
+     * 卡片各级在"图标相对基准"上的额外缩进(dp)，逐级独立、便于单独微调。
+     * 想精细调首页卡片的 L2 / L3，直接改这里的 `2 -> Xf`（L2）和 `3 -> Yf`（L3）即可，互不影响。
+     */
+    private fun cardIndentExtraDp(level: Int): Float = when (level) {
+        2 -> 4f
+        3 -> 7.5f
+        else -> 0f
+    }
+
+    /** 卡片（TextView）行的按级左缩进：基准随图标宽，叠加每级独立的额外缩进。 */
+    private fun setCardItemIndent(holder: TextViewHolder, level: Int) {
+        val ll = holder.llClickable ?: return
+        val lp = ll.layoutParams as? LinearLayout.LayoutParams ?: return
+        val iconW = holder.iv?.let { iv ->
+            val w = iv.layoutParams?.width ?: 0
+            if (w > 0) w else (iv.drawable?.intrinsicWidth ?: 0)
+        } ?: 0
+        val baseStep = if (iconW > 0) (iconW * 0.63f).toInt() else (12 * density).toInt()
+        lp.leftMargin = (level - 1).coerceAtLeast(0) * baseStep +
+                Math.round(cardIndentExtraDp(level) * density)
+        ll.layoutParams = lp
+    }
+
+    /** 卡片行：状态图标与文字第一行视觉中心对齐（多行也只对齐第一行）。 */
+    private fun alignCardRow(holder: TextViewHolder, baseTop: Int, bottom: Int, level: Int) {
+        val tv = holder.tv ?: return
+        val iv = holder.iv ?: return
+        val iconH = (iv.layoutParams?.height?.takeIf { it > 0 }) ?: (iv.drawable?.intrinsicHeight ?: 0)
+        val (iconTopRaw, textTop) = firstLineAlign(tv, iconH, baseTop)
+        // 二、三级状态图标上移 0.5dp（T2/T3 −0.5dp）。
+        val iconTop = if (level >= 2) (iconTopRaw - Math.round(0.5f * density)).coerceAtLeast(0) else iconTopRaw
+        (iv.layoutParams as? LinearLayout.LayoutParams)?.let {
+            it.topMargin = iconTop
+            iv.layoutParams = it
+        }
+        (tv.layoutParams as LinearLayout.LayoutParams).let {
+            it.topMargin = textTop
+            it.bottomMargin = bottom
+            tv.layoutParams = it
+        }
+    }
+
+    /**
+     * 让一个高 [iconH] 的图标与 [tv] 第一行文字的**视觉中心**（按字体度量，而非行高几何中点）
+     * 在 y 方向对齐，二者至少留 [baseTop] 的上边距。返回 (图标上边距, 文字上边距)。
+     */
+    private fun firstLineAlign(tv: TextView, iconH: Int, baseTop: Int): Pair<Int, Int> {
+        val fm = tv.paint.fontMetrics
+        // 从文字内容顶端到首行字形视觉中心的距离。
+        val glyphCenter = tv.paddingTop + (-fm.top) + (fm.ascent + fm.descent) / 2f
+        val d = iconH / 2f - glyphCenter   // 文字需比图标多下移的量
+        return if (d >= 0) {
+            Pair(baseTop, baseTop + d.toInt())
+        } else {
+            Pair(baseTop + (-d).toInt(), baseTop)
         }
     }
 
@@ -491,14 +573,9 @@ open class CheckListAdapter(
 
     private fun getVisibleEditTextItemCount(size: Int): Int {
         if (mExpanded) return size
-
-        val firstFinishedItemIndex = CheckListHelper.getFirstFinishedItemIndex(mItems)
-        val collapsedHeaderIndex = mItems!!.indexOf("4")
-        return if (firstFinishedItemIndex != -1 && collapsedHeaderIndex in 0 until firstFinishedItemIndex) {
-            firstFinishedItemIndex
-        } else {
-            size
-        }
+        // 收起时显示到"已完成头部"(4)为止，隐藏底部已完成区的全部项。
+        val headerIndex = mItems!!.indexOf("4")
+        return if (headerIndex != -1) headerIndex + 1 else size
     }
 
     private fun notifyChecklistStructureChanged() {
@@ -518,7 +595,8 @@ open class CheckListAdapter(
         val flSeparator: FrameLayout? = f(R.id.fl_check_list_separator)
         val ivState: ImageView?       = f(R.id.iv_check_list_state)
         @JvmField val et: EditText?   = f(R.id.et_check_list)
-        val ivDelete: ImageView?      = f(R.id.iv_check_list_delete)
+        val ivIndent: ImageView?      = f(R.id.iv_check_list_indent)
+        val ivOutdent: ImageView?     = f(R.id.iv_check_list_outdent)
         val ivExpandShrink: ImageView? = f(R.id.iv_check_list_expand_shrink)
 
         init {
@@ -546,6 +624,141 @@ open class CheckListAdapter(
             }
         }
 
+        /** 把状态图标的左缩进清零（控制标记行用）。 */
+        fun resetIndent() {
+            val lp = ivState!!.layoutParams as RelativeLayout.LayoutParams
+            lp.marginStart = 0
+            lp.leftMargin = 0
+            ivState.layoutParams = lp
+        }
+
+        /** 对一个真实项应用按级缩进、字号、颜色、与首行垂直居中。 */
+        fun applyLevelStyle(item: String) {
+            val level = CheckListHelper.levelOf(item)
+            val finished = CheckListHelper.isFinished(item)
+
+            // 字号 / 颜色（按级）。先设字号，lineHeight 才反映新字号。
+            et!!.textSize = 20f * CheckListHelper.sizeRatioForLevel(level)
+            val base = if (finished) textColorFinished() else textColorSecondary()
+            et.setTextColor(CheckListHelper.colorForLevel(base, level, finished))
+
+            val stateMargin = Math.round(detailIndentDp(level) * density)
+            val stateH = ivState!!.layoutParams.height.takeIf { it > 0 } ?: (36 * density).toInt()
+
+            // 状态图标与文字第一行"视觉中心"对齐（用字体度量，多行也只对齐第一行）。
+            val baseTop = (3 * density).toInt()
+            val (stateTopRaw, textTop) = firstLineAlign(et, stateH, baseTop)
+            // 各级状态图标上下微调：一、二级 0，三级 −0.5dp。
+            val iconNudgeDp = if (level >= 3) -0.5f else 0f
+            val stateTop = (stateTopRaw + Math.round(iconNudgeDp * density)).coerceAtLeast(0)
+
+            val sLp = ivState.layoutParams as RelativeLayout.LayoutParams
+            sLp.marginStart = stateMargin
+            sLp.leftMargin = stateMargin
+            sLp.topMargin = stateTop
+            ivState.layoutParams = sLp
+
+            val etLp = et.layoutParams as LinearLayout.LayoutParams
+            etLp.topMargin = textTop
+            et.layoutParams = etLp
+
+            // 缩进 / 反缩进箭头：跟随该级"清单项"颜色（已完成用已完成色，含分级透明度），与状态图标垂直居中。
+            val arrowTint = CheckListHelper.colorForLevel(
+                if (finished) textColorFinished() else textColorSecondary(), level, finished
+            )
+            val stateCenter = stateTop + stateH / 2
+
+            val outLp = ivOutdent!!.layoutParams as RelativeLayout.LayoutParams
+            val outW = ivOutdent.layoutParams.width.takeIf { it > 0 } ?: (28 * density).toInt()
+            val outH = ivOutdent.layoutParams.height.takeIf { it > 0 } ?: (28 * density).toInt()
+            val stateW = ivState.layoutParams.width.takeIf { it > 0 } ?: (36 * density).toInt()
+            // 反缩进箭头与"上一级"状态图标列在 x 方向对齐：把箭头控件居中到父级状态图标控件列。
+            val parentStateMargin = Math.round(detailIndentDp(level - 1) * density)
+            val outMargin = (parentStateMargin + (stateW - outW) / 2).coerceAtLeast(0)
+            outLp.marginStart = outMargin
+            outLp.leftMargin = outMargin
+            outLp.topMargin = (stateCenter - outH / 2).coerceAtLeast(0)
+            ivOutdent.layoutParams = outLp
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                ivOutdent, android.content.res.ColorStateList.valueOf(arrowTint)
+            )
+
+            val inLp = ivIndent!!.layoutParams as RelativeLayout.LayoutParams
+            val inH = ivIndent.layoutParams.height.takeIf { it > 0 } ?: (28 * density).toInt()
+            inLp.topMargin = (stateCenter - inH / 2).coerceAtLeast(0)
+            ivIndent.layoutParams = inLp
+            androidx.core.widget.ImageViewCompat.setImageTintList(
+                ivIndent, android.content.res.ColorStateList.valueOf(arrowTint)
+            )
+
+            // 聚焦中的行（含缩进后保持焦点、或重新绑定时）刷新缩进/反缩进按钮的可见性。
+            if (et.isFocused) refreshIndentOutdent() else hideIndentOutdent()
+        }
+
+        /** 详情页各级缩进（dp），逐级独立、便于单独微调。 */
+        private fun detailIndentDp(level: Int): Float = when (level) {
+            2 -> 36.5f
+            3 -> 72f
+            else -> 0f
+        }
+
+        /** 聚焦时按层级/边界刷新缩进、反缩进按钮的可见性。 */
+        fun refreshIndentOutdent() {
+            val pos = adapterPosition
+            if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size
+                || !CheckListHelper.isItem(mItems!![pos]) || mDragging
+            ) {
+                hideIndentOutdent()
+                return
+            }
+            val canIndent = CheckListHelper.canIndent(mItems, pos)
+            ivIndent!!.visibility = if (canIndent) View.VISIBLE else View.INVISIBLE
+            ivIndent.isClickable = canIndent
+            val canOutdent = CheckListHelper.canOutdent(mItems, pos)
+            ivOutdent!!.visibility = if (canOutdent) View.VISIBLE else View.INVISIBLE
+            ivOutdent.isClickable = canOutdent
+        }
+
+        fun hideIndentOutdent() {
+            ivIndent!!.visibility = View.INVISIBLE
+            ivIndent.isClickable = false
+            ivOutdent!!.visibility = View.INVISIBLE
+            ivOutdent.isClickable = false
+        }
+
+        private fun changeLevel(delta: Int) {
+            val pos = adapterPosition
+            if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return
+            val item = mItems!![pos] ?: return
+            if (!CheckListHelper.isItem(item)) return
+            if (delta > 0 && !CheckListHelper.canIndent(mItems, pos)) return
+            if (delta < 0 && !CheckListHelper.canOutdent(mItems, pos)) return
+
+            val before = CheckListHelper.toCheckListStr(mItems)
+            val snapshot = ArrayList(mItems!!)
+            val newLevel = (CheckListHelper.levelOf(item) + delta).coerceIn(1, CheckListHelper.MAX_LEVEL)
+            mItems!![pos] = CheckListHelper.withLevel(item, newLevel)
+            // 反缩进父项等会让子项需要重新归一化层级（消除跳空/孤儿）。
+            CheckListHelper.normalizeLevels(mItems!!)
+            // 缩进把未完成项移到已完成项下时，已完成祖先链改回未完成（维持完成态不变量）。
+            CheckListHelper.normalizeCompletion(mItems!!)
+
+            // 当前项以外是否有项被改动：有则整列重绘，没有则只更新当前行以保住焦点（缩进的常见情况）。
+            var structural = mItems!!.size != snapshot.size
+            if (!structural) {
+                for (i in mItems!!.indices) {
+                    if (i != pos && mItems!![i] != snapshot[i]) { structural = true; break }
+                }
+            }
+            if (structural) {
+                notifyChecklistStructureChanged()
+            } else {
+                applyLevelStyle(mItems!![pos]!!)
+                refreshIndentOutdent()
+            }
+            mActionCallback?.onAction(before, CheckListHelper.toCheckListStr(mItems))
+        }
+
         private fun setupIvListeners() {
             ivState!!.setOnTouchListener { _, event ->
                 val pos = adapterPosition
@@ -563,14 +776,11 @@ open class CheckListAdapter(
             }
 
             ivState.setOnClickListener {
-                val before: String = CheckListHelper.toCheckListStr(mItems)
-
                 var pos = adapterPosition
                 if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@setOnClickListener
-                val posAfter: Int
 
                 val item: String = mItems!![pos]!!
-                var state = item[0]
+                val state = item[0]
                 if (mDragging && state != '2') {
                     return@setOnClickListener
                 }
@@ -580,57 +790,37 @@ open class CheckListAdapter(
                     return@setOnClickListener
                 }
 
-                KeyboardUtil.hideKeyboard(et)
-                if (state == '0') {
-                    state = '1'
-                    val size = mItems!!.size
-                    val firstFinishedItemIndex = CheckListHelper.getFirstFinishedItemIndex(mItems)
-                    if (firstFinishedItemIndex == -1) {
-                        mItems!!.add(size, "3")
-                        mItems!!.add(size + 1, "4")
-                        posAfter = size + 1
-                    } else {
-                        posAfter = firstFinishedItemIndex - 1
-                    }
-                } else if (state == '1') {
-                    state = '0'
-                    posAfter = 0
-                    if (CheckListHelper.onlyOneFinishedItem(mItems)) {
-                        val size = mItems!!.size
-                        mItems!!.removeAt(size - 2)
-                        mItems!!.removeAt(size - 2)
-                        pos = size - 3
-                    }
-                } else {
-                    return@setOnClickListener
-                }
+                if (!CheckListHelper.isItem(item)) return@setOnClickListener
 
-                val itemAfter = state + item.substring(1, item.length)
+                KeyboardUtil.hideKeyboard(et)
+
+                // 组感知完成：委托给 ChecklistCompletion（规则 3 的唯一真理来源）。
+                val before: String = CheckListHelper.toCheckListStr(mItems)
+                val real = ArrayList<String?>(mItems!!)
+                real.remove("2"); real.remove("3"); real.remove("4")
+                var realPos = 0
+                for (i in 0 until pos) if (CheckListHelper.isItem(mItems!![i])) realPos++
+                ChecklistCompletion.toggle(real, realPos)
+                val after: String = CheckListHelper.toCheckListStr(real)
+                val rebuilt = CheckListHelper.toCheckListItems(after, false)
 
                 mWatchEditTextChange = false
-                mItems!!.removeAt(pos)
-                mItems!!.add(posAfter, itemAfter)
+                mItems!!.clear()
+                mItems!!.addAll(rebuilt)
                 mWatchEditTextChange = true
 
                 notifyChecklistStructureChanged()
 
                 if (mActionCallback != null) {
-                    mActionCallback!!.onAction(
-                        before, CheckListHelper.toCheckListStr(mItems)
-                    )
+                    mActionCallback!!.onAction(before, after)
                 }
-
                 if (mExpandShrinkCallback != null) {
                     mExpandShrinkCallback!!.updateChecklistHeight(mExpanded, mItems, false)
                 }
             }
 
-            ivDelete!!.setOnClickListener { v ->
-                val pos = adapterPosition
-                if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size) {
-                    removeItem(v, pos, true)
-                }
-            }
+            ivIndent!!.setOnClickListener { changeLevel(+1) }
+            ivOutdent!!.setOnClickListener { changeLevel(-1) }
 
             ivExpandShrink!!.setOnClickListener {
                 mExpanded = !mExpanded
@@ -672,9 +862,9 @@ open class CheckListAdapter(
                     if (!mWatchEditTextChange) return
                     val pos = adapterPosition
                     if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return
-                    val state = mItems!![pos]!![0]
-                    if (state == '0' || state == '1') {
-                        mItems!![pos] = state + s.toString()
+                    val item = mItems!![pos] ?: return
+                    if (CheckListHelper.isItem(item)) {
+                        mItems!![pos] = CheckListHelper.withText(item, s.toString())
                     }
                     if (mActionCallback != null) {
                         mActionCallback!!.onAction(
@@ -697,13 +887,11 @@ open class CheckListAdapter(
                         insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
                     } else if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size) {
                         v.post {
-                            ivDelete!!.isClickable = true
-                            ivDelete.visibility = View.VISIBLE
+                            refreshIndentOutdent()
                         }
                     }
                 } else {
-                    ivDelete!!.isClickable = false
-                    ivDelete.visibility = View.INVISIBLE
+                    hideIndentOutdent()
                 }
             }
 
@@ -720,8 +908,9 @@ open class CheckListAdapter(
                         } else {
                             val before: String = CheckListHelper.toCheckListStr(mItems)
                             val current: String = mItems!![pos]!!
-                            val newCurrent = current.substring(0, cursorPos + 1)
-                            val next = current.substring(cursorPos + 1, etLength + 1)
+                            // current = 状态位 + 层级位 + 文本；光标 cursorPos 在文本内。
+                            val newCurrent = current.substring(0, cursorPos + 2)
+                            val next = current.substring(cursorPos + 2)
                             mItems!![pos] = newCurrent
                             notifyItemChanged(pos)
                             insertItem(before, v, pos, next)
@@ -729,7 +918,7 @@ open class CheckListAdapter(
                         return@listener true
                     } else if (keyCode == KeyEvent.KEYCODE_DEL) {
                         if ((pos != 0 && et.selectionEnd == 0)
-                            || (pos == 0 && mItems!![0]!!.length == 1)
+                            || (pos == 0 && CheckListHelper.isEmptyItem(mItems!![0]))
                         ) {
                             removeItem(v, pos, false)
                             return@listener true
@@ -743,14 +932,17 @@ open class CheckListAdapter(
         /**
          * Inserting occurs in three ways: click ImageView "add", click EditText "new item"
          * and press enter when focus is on any EditTexts.
+         * 新项继承当前行层级；"添加新项"行(2)新建一级项。
          */
         private fun insertItem(before: String?, v: View, pos: Int, preset: String) {
-            val state = mItems!![pos]!![0]
+            val cur = mItems!![pos]!!
+            val state = cur[0]
             if (state == '2') {
-                mItems!![pos] = "0"
+                mItems!![pos] = CheckListHelper.makeItem('0', 1, "")
                 mItems!!.add(pos + 1, "2")
             } else {
-                mItems!!.add(pos + 1, state + preset)
+                val level = CheckListHelper.levelOf(cur)
+                mItems!!.add(pos + 1, CheckListHelper.makeItem(state, level, preset))
             }
             notifyChecklistStructureChanged()
             if (mItemsChangeCallback != null) {
@@ -781,8 +973,8 @@ open class CheckListAdapter(
                 if (mItems!![pos - 1]!! == "4") { // delete first finished item.
                     if (pos - 4 == -1) { // there is no unfinished item.
                         if (!deleteByClick) { // user used keyboard to delete this item.
-                            if (current.length != 1) {
-                                mItems!!.add(0, "0")
+                            if (!CheckListHelper.isEmptyItem(current)) {
+                                mItems!!.add(0, CheckListHelper.makeItem('0', 1, ""))
                                 pos++
                                 posToFocus = 0
                             } else {
@@ -806,11 +998,12 @@ open class CheckListAdapter(
                 cursorPos = -1
             } else {
                 val itemToFocus: String = mItems!![if (posToFocus == -1) 0 else posToFocus]!!
-                val length = itemToFocus.length
-                cursorPos = if (length == 1) 0 else length - 1
+                cursorPos = CheckListHelper.textOf(itemToFocus).length
                 if (!deleteByClick && posToFocus != -1) {
-                    val append = current.substring(1, current.length)
-                    mItems!![posToFocus] = itemToFocus + append
+                    val append = CheckListHelper.textOf(current)
+                    mItems!![posToFocus] = CheckListHelper.withText(
+                        itemToFocus, CheckListHelper.textOf(itemToFocus) + append
+                    )
                 }
             }
 
@@ -819,6 +1012,9 @@ open class CheckListAdapter(
                 mItems!!.remove("3")
                 mItems!!.remove("4")
             }
+            // 删除中间项可能让其子项失去直接上一级父项，归一化层级消除跳空/孤儿；并维持完成态不变量。
+            CheckListHelper.normalizeLevels(mItems!!)
+            CheckListHelper.normalizeCompletion(mItems!!)
             notifyChecklistStructureChanged()
 
             if (mItemsChangeCallback != null) {

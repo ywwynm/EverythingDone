@@ -31,7 +31,7 @@ object Def {
         const val FEEDBACK_ERROR_FILE_NAME: String = "feedback_error.dat"
 
         const val DATABASE_NAME: String = "EverythingDoneData.db"
-        const val DATABASE_VERSION: Int = 20
+        const val DATABASE_VERSION: Int = 21
 
         const val ONGOING_NOTIFICATION_ID: Int = Int.MAX_VALUE
 

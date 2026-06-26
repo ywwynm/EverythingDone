@@ -1,11 +1,13 @@
 ﻿package com.ywwynm.everythingdone.database
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.HomeEmptyStateHistory
 import com.ywwynm.everythingdone.model.Thing
@@ -120,7 +122,10 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
         if (oldVersion < 20) {
             migrateFoldersToSkeletonModel(db)
         }
-        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20.
+        if (oldVersion < 21) {
+            migrateChecklistItemLevels(db)
+        }
+        // released version should be 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21.
     }
 
     fun ensureHomeEmptyStateData(db: SQLiteDatabase) {
@@ -262,6 +267,41 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                 Def.Database.COLUMN_STATE_BEFORE_DELETE_THINGS
             )) {
             db.execSQL(SQL_ADD_COLUMN_STATE_BEFORE_DELETE_THINGS)
+        }
+    }
+
+    /**
+     * 多级清单项迁移（v21，ADR-0010）：旧清单串每个真实项是 `<状态位><文本>`，没有层级位。
+     * 扫描所有内容为清单串的 Thing，把每个真实项插入层级位 `1`（全部置一级），改写为
+     * `<状态位><层级位><文本>`。纯字符串变换，逐行重写 content 列。
+     */
+    private fun migrateChecklistItemLevels(db: SQLiteDatabase) {
+        val toUpdate = ArrayList<Pair<Long, String>>()
+        db.query(
+            Def.Database.TABLE_THINGS,
+            arrayOf(Def.Database.COLUMN_ID_THINGS, Def.Database.COLUMN_CONTENT_THINGS),
+            null, null, null, null, null
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val content = cursor.getString(1) ?: continue
+                if (!CheckListHelper.isCheckListStr(content)) continue
+                val migrated = CheckListHelper.migrateToLeveledFormat(content)
+                if (migrated != content) {
+                    toUpdate.add(cursor.getLong(0) to migrated)
+                }
+            }
+        }
+        for ((id, migrated) in toUpdate) {
+            try {
+                val cv = ContentValues()
+                cv.put(Def.Database.COLUMN_CONTENT_THINGS, migrated)
+                db.update(
+                    Def.Database.TABLE_THINGS, cv,
+                    Def.Database.COLUMN_ID_THINGS + "=?", arrayOf(id.toString())
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "migrateChecklistItemLevels failed for id=$id", e)
+            }
         }
     }
 

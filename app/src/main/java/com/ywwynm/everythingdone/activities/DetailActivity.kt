@@ -2,8 +2,12 @@
 
 package com.ywwynm.everythingdone.activities
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import androidx.recyclerview.widget.DefaultItemAnimator
 import android.Manifest
 import androidx.activity.OnBackPressedCallback
 import android.annotation.SuppressLint
@@ -20,6 +24,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Rect
@@ -239,6 +244,24 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mLlMoveChecklist: LinearLayout? = null
     private var mTvMoveChecklistAsBt: TextView? = null
     private var mChecklistTouchHelper: ItemTouchHelper? = null
+
+    // 拖拽时的自定义自动滚动（清单 RecyclerView 在 NestedScrollView 内、自身不滚动，需手动滚父容器）。
+    private var mDraggedChecklistVH: RecyclerView.ViewHolder? = null
+    private var mDragScrollRunnable: Runnable? = null
+    private var mLastTouchScreenY: Int = 0  // 实时手指屏幕 Y，用于自动滚动的边缘判定（不受补偿平移影响）
+    // 上一次触摸事件发生时父容器的 scrollY。补偿量 = 当前 scrollY − 该值，即“自上次手指事件以来父容器
+    // 又滚动了多少”。ItemTouchHelper 的 dY 已在每次 MOVE 时把当时的滚动量算进去，故只需补这段增量，
+    // 不能像之前那样无脑累加（否则与 dY 双重计数，被拖项会以两倍速度飞出屏幕而“消失”）。
+    private var mScrollYAtDragTouch: Int = 0
+    // 拖拽“子树收束”：拖拽开始时把被拖项的子树从列表临时移除（收束动画，拖拽中只剩父项作代理跟手），
+    // 暂存于此，松手时再插回代理下方（展开动画）。整段拖拽只记一次 UPDATE_CHECKLIST 撤销动作。
+    private var mCollapsedChildren: MutableList<String?>? = null
+    private var mDragBeforeContent: String? = null
+    // 仅移动模式期间挂载，做子树收束/展开动画并门控 onMove 的瞬时重排（见 ChecklistDragItemAnimator）。
+    private var mChecklistDragAnimator: ChecklistDragItemAnimator? = null
+    // 被拖父项上的胶囊轮廓（overlay drawable + 宿主视图），随拖拽渐显、松手渐隐。
+    private var mCapsuleHostView: View? = null
+    private var mCapsuleDrawable: GradientDrawable? = null
 
     private var mRvAudioAttachment: RecyclerView? = null
     private var mAudioAttachmentAdapter: AudioAttachmentAdapter? = null
@@ -1237,6 +1260,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             supportActionBar!!.title = null
         }
         mIbBack!!.setOnClickListener {
+            // 左上角返回 icon 始终直接退出详情（即使处于清单项移动模式）；移动模式由系统返回键退出。
             returnToThingsActivity(true, true)
         }
     }
@@ -1244,6 +1268,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     override fun setEvents() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                // 处于清单项移动模式时，返回键先完成并退出移动模式，而不是退出详情界面。
+                if (isChecklistMoveMode()) {
+                    exitChecklistMoveMode()
+                    return
+                }
                 returnToThingsActivity(true, true)
             }
         })
@@ -1348,23 +1377,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         mTvMoveChecklistAsBt!!.setOnClickListener {
-            val isDragging = mCheckListAdapter!!.isDragging()
-            if (!isDragging) {
-                mTvMoveChecklistAsBt!!.setText(R.string.act_back_from_move_checklist)
-                mTvMoveChecklistAsBt!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    R.drawable.act_back_from_move_checklist, 0, 0, 0
-                )
-                mCheckListAdapter!!.setDragging(true)
-                mChecklistTouchHelper!!.attachToRecyclerView(mRvCheckList)
+            if (!mCheckListAdapter!!.isDragging()) {
+                enterChecklistMoveMode()
             } else {
-                mTvMoveChecklistAsBt!!.setText(R.string.act_move_check_list)
-                mTvMoveChecklistAsBt!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    R.drawable.act_move_checklist, 0, 0, 0
-                )
-                mCheckListAdapter!!.setDragging(false)
-                mChecklistTouchHelper!!.attachToRecyclerView(null)
+                exitChecklistMoveMode()
             }
-            mCheckListAdapter!!.notifyDataSetChanged()
         }
 
         mCheckListAdapter!!.setIvStateTouchCallback(object : CheckListAdapter.IvStateTouchCallback {
@@ -1374,6 +1391,39 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 )
             }
         })
+    }
+
+    /** 清单项移动（拖拽）模式是否开启。 */
+    private fun isChecklistMoveMode(): Boolean = mCheckListAdapter?.isDragging() == true
+
+    private fun enterChecklistMoveMode() {
+        mTvMoveChecklistAsBt!!.setText(R.string.act_back_from_move_checklist)
+        mTvMoveChecklistAsBt!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            R.drawable.act_back_from_move_checklist, 0, 0, 0
+        )
+        mCheckListAdapter!!.setDragging(true)
+        // 移动模式期间挂自定义 ItemAnimator（做收束/展开动画 + 门控重排）；平时为 null（编辑输入不闪动）。
+        if (mChecklistDragAnimator == null) mChecklistDragAnimator = ChecklistDragItemAnimator()
+        mRvCheckList!!.itemAnimator = mChecklistDragAnimator
+        // 不裁剪子项，让被拖项的轮廓可在 itemView 下方溢出一点（多行文字时给文字底与轮廓底留白用），不被裁掉。
+        mRvCheckList!!.clipChildren = false
+        mRvCheckList!!.clipToPadding = false
+        mChecklistTouchHelper!!.attachToRecyclerView(mRvCheckList)
+        mCheckListAdapter!!.notifyDataSetChanged()
+    }
+
+    private fun exitChecklistMoveMode() {
+        mTvMoveChecklistAsBt!!.setText(R.string.act_move_check_list)
+        mTvMoveChecklistAsBt!!.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            R.drawable.act_move_checklist, 0, 0, 0
+        )
+        mCheckListAdapter!!.setDragging(false)
+        removeChecklistCapsule()                 // 兜底：移动模式结束清掉可能残留的轮廓
+        mRvCheckList!!.itemAnimator = null
+        mRvCheckList!!.clipChildren = true       // 恢复默认裁剪
+        mRvCheckList!!.clipToPadding = true
+        mChecklistTouchHelper!!.attachToRecyclerView(null)
+        mCheckListAdapter!!.notifyDataSetChanged()
     }
 
     fun updateDescriptions(color: Int) {
@@ -2027,7 +2077,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             && mCheckListAdapter != null
         ) {
             content = CheckListHelper.toContentStr(
-                CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems()), "X  ", "√  "
+                CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems()), "- [ ] ", "- [x] "
             )
         }
 
@@ -4903,35 +4953,371 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
+    /**
+     * 多级清单拖拽：只在"同一 owner、同层级的兄弟带"内重排，连同被拖项的整棵子树一起作为块移动，
+     * 且不跨越未完成/已完成分隔线。见 docs/features/multi-level-checklist/decisions.md（拖拽规则）。
+     */
     private fun moveChecklist(from: Int, to: Int): Boolean {
         val items: MutableList<String?> = mCheckListAdapter!!.getItems()!!
-        val pos2 = items.indexOf("2")
-        val fromPos2 = from - pos2
-        val toPos2 = to - pos2
-        if (fromPos2 * toPos2 <= 0) {
-            return false
+        if (from !in items.indices || to !in items.indices) return false
+        if (!CheckListHelper.isItem(items[from]) || !CheckListHelper.isItem(items[to])) return false
+
+        // 不跨越未完成/已完成分隔线（3）。
+        val sep = items.indexOf("3")
+        if (sep != -1 && (from > sep) != (to > sep)) return false
+
+        // 只在兄弟之间重排：owner 相同、层级相同。落点落在自己子树内（更深层）会因层级不同被拒。
+        if (CheckListHelper.levelOf(items[from]) != CheckListHelper.levelOf(items[to])) return false
+        if (CheckListHelper.ownerIndexOf(items, from) != CheckListHelper.ownerIndexOf(items, to)) return false
+
+        val before: String = CheckListHelper.toCheckListStr(items)
+        val fromEnd = CheckListHelper.subtreeEndIndexOf(items, from)
+        val blockSize = fromEnd - from + 1
+
+        // 整棵子树作为块移动，但**全程只用 notifyItemMoved**（绝不用 notifyDataSetChanged，否则会回收
+        // 被拖拽的视图，导致 ItemTouchHelper 脱手、根节点自己跳到新位置）。
+        if (to < from) {
+            // 上移：把块内各项依次移到目标兄弟之前（块整体上移）。
+            for (i in 0 until blockSize) moveChecklistItem(items, from + i, to + i)
+        } else {
+            // 下移：把目标兄弟整棵子树的各项依次上移到块之前，等价于块整体下移到该兄弟子树之后。
+            val count = CheckListHelper.subtreeEndIndexOf(items, to) - fromEnd
+            for (i in 0 until count) moveChecklistItem(items, fromEnd + 1 + i, from + i)
         }
 
-        val pos3 = items.indexOf("3")
-        if (pos3 != -1) {
-            val pos4 = pos3 + 1
-            if ((pos3 in from..to) || (pos3 in to..from)) {
-                return false
-            }
-            if ((pos4 in from..to) || (pos4 in to..from)) {
-                return false
-            }
-        }
-
-        val item: String = items.removeAt(from)!!
-        items.add(to, item)
-        mCheckListAdapter!!.notifyItemMoved(from, to)
-
-        if (shouldAddToActionList) {
-            mActionList!!.addAction(ThingAction(ThingAction.MOVE_CHECKLIST, from, to))
+        val after: String = CheckListHelper.toCheckListStr(items)
+        if (shouldAddToActionList && before != after) {
+            mActionList!!.addAction(ThingAction(ThingAction.UPDATE_CHECKLIST, before, after))
         }
 
         return true
+    }
+
+    /** 单步移动一项并用 notifyItemMoved 通知（不回收任何视图，拖拽不脱手）。 */
+    private fun moveChecklistItem(items: MutableList<String?>, from: Int, to: Int) {
+        val item: String? = items.removeAt(from)
+        items.add(to, item)
+        mCheckListAdapter!!.notifyItemMoved(from, to)
+    }
+
+    /**
+     * 拖拽开始：记录整段拖拽前的内容串（供松手时记一次撤销动作），并把被拖项的子树从列表临时移除——
+     * 触发删除动画形成“子项收束进父项”的观感，拖拽中列表里只剩父项一行作为代理跟手。
+     */
+    private fun beginChecklistDrag(vh: RecyclerView.ViewHolder) {
+        val items = mCheckListAdapter?.getItems() ?: return
+        mDragBeforeContent = CheckListHelper.toCheckListStr(items)
+        startChecklistCapsule(vh)                       // 被拖项渐显胶囊轮廓
+        val from = vh.adapterPosition
+        if (from == RecyclerView.NO_POSITION || from !in items.indices) return
+        if (!CheckListHelper.isItem(items[from])) return
+        val end = CheckListHelper.subtreeEndIndexOf(items, from)
+        val childCount = end - from
+        if (childCount <= 0) { mCollapsedChildren = null; return }
+        val children = ArrayList<String?>(childCount)
+        for (i in 0 until childCount) children.add(items[from + 1 + i])
+        repeat(childCount) { items.removeAt(from + 1) }
+        mCollapsedChildren = children
+        // 收束期间放开 move 动画，让被收子项下方的兄弟平滑上滑填补；短延时后关掉，使拖拽 onMove 重排仍瞬时。
+        mChecklistDragAnimator?.allowMoveAnimation = true
+        mCheckListAdapter!!.notifyItemRangeRemoved(from + 1, childCount)
+        mRvCheckList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
+    }
+
+    /**
+     * 拖拽结束：把收束的子树插回代理（被拖项）落点之后，触发插入动画形成“子项展开”的观感；
+     * 子树各项层级随父项一并平移，owner/层级不变，无需归一化。最后把整段拖拽记成一次 UPDATE_CHECKLIST。
+     */
+    private fun endChecklistDrag(vh: RecyclerView.ViewHolder) {
+        val items = mCheckListAdapter?.getItems()
+        val before = mDragBeforeContent
+        mDragBeforeContent = null
+        if (items == null) { mCollapsedChildren = null; return }
+        fadeOutChecklistCapsule()                       // 落点确定后胶囊轮廓渐隐消失
+        val children = mCollapsedChildren
+        mCollapsedChildren = null
+        if (children != null && children.isNotEmpty()) {
+            var pos = vh.adapterPosition
+            if (pos == RecyclerView.NO_POSITION) pos = vh.layoutPosition
+            if (pos in items.indices) {
+                val insertAt = pos + 1
+                items.addAll(insertAt, children)
+                // 展开期间放开 move 动画，让下方兄弟平滑下移让位、子项向下展开。
+                mChecklistDragAnimator?.allowMoveAnimation = true
+                mCheckListAdapter!!.notifyItemRangeInserted(insertAt, children.size)
+                mRvCheckList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
+            }
+        }
+        if (before != null && shouldAddToActionList) {
+            val after = CheckListHelper.toCheckListStr(items)
+            if (before != after) {
+                mActionList!!.addAction(ThingAction(ThingAction.UPDATE_CHECKLIST, before, after))
+            }
+        }
+        // 收束/展开等动画结束后，复位可能残留的变换，兜底消除"项停在两行间重叠"。
+        mRvCheckList?.postDelayed({ resetChecklistChildTransforms() }, 300L)
+    }
+
+    /**
+     * 拖拽代理（单行）在同 owner 同级兄弟之间整段跨越目标兄弟的子树移动；越出父子树范围即拒绝
+     * （二/三级项不会被拖出其父节点的子列表）。代理自身的子树在拖拽期间已收束移除，故其相邻项要么是
+     * 同级兄弟、要么是更浅的边界项/控制标记。
+     */
+    private fun moveChecklistDragProxy(from: Int, to: Int): Boolean {
+        if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
+        val items = mCheckListAdapter!!.getItems()!!
+        if (from !in items.indices || to !in items.indices || from == to) return false
+        if (!CheckListHelper.isItem(items[from])) return false
+        val level = CheckListHelper.levelOf(items[from])
+        if (to > from) {
+            // 下移：跨过下一个同级兄弟的整棵子树。
+            val nextStart = from + 1
+            if (nextStart >= items.size) return false
+            val next = items[nextStart]
+            if (!CheckListHelper.isItem(next)) return false               // 控制标记 → 父子树下边界
+            if (CheckListHelper.levelOf(next) != level) return false       // 更浅 → 越出父子树范围
+            val nextEnd = CheckListHelper.subtreeEndIndexOf(items, nextStart)
+            // 滞后：手指越过目标兄弟"整棵子树"的中线才跨越，否则刚一接触就跨越、跨完手指仍落在它身上会被
+            // 反向再次触发，造成目标项上下反复横跳。
+            if (!fingerPastSubtreeMid(nextStart, nextEnd, down = true)) return false
+            moveChecklistItem(items, from, nextEnd)
+            return true
+        } else {
+            // 上移：跨过上一个同级兄弟的整棵子树，落到该兄弟之前。
+            var s = from - 1
+            while (s > 0 && CheckListHelper.isItem(items[s]) && CheckListHelper.levelOf(items[s]) > level) s--
+            if (s < 0 || !CheckListHelper.isItem(items[s]) || CheckListHelper.levelOf(items[s]) != level) return false
+            if (!fingerPastSubtreeMid(s, from - 1, down = false)) return false   // 同上：滞后消抖
+            moveChecklistItem(items, from, s)
+            return true
+        }
+    }
+
+    /**
+     * 手指当前屏幕 Y 是否越过了 [startIdx, endIdx] 这棵子树的中线（按拖拽方向）。用于拖拽跨越的滞后消抖：
+     * 往下需手指越过中线偏下、往上需越过中线偏上才跨越，跨越后手指自然落在子树另一侧、不会立即反向触发。
+     * 边界项未布局（看不全）时返回 true，避免卡住无法移动。
+     */
+    private fun fingerPastSubtreeMid(startIdx: Int, endIdx: Int, down: Boolean): Boolean {
+        val rv = mRvCheckList ?: return true
+        val sVH = rv.findViewHolderForAdapterPosition(startIdx) ?: return true
+        val eVH = rv.findViewHolderForAdapterPosition(endIdx) ?: return true
+        val sLoc = IntArray(2); sVH.itemView.getLocationOnScreen(sLoc)
+        val eLoc = IntArray(2); eVH.itemView.getLocationOnScreen(eLoc)
+        val mid = (sLoc[1] + eLoc[1] + eVH.itemView.height) / 2
+        return if (down) mLastTouchScreenY >= mid else mLastTouchScreenY <= mid
+    }
+
+    /**
+     * 拖拽代理在某方向上是否还有可移动的同级兄弟（与 [moveChecklistDragProxy] 的边界判定同源）。
+     * 供自动滚动裁边用：代理在该方向已无兄弟可去（碰到父子树/区域边界）就不再自动滚动。
+     */
+    private fun canChecklistProxyMove(pos: Int, down: Boolean): Boolean {
+        val items = mCheckListAdapter?.getItems() ?: return false
+        if (pos !in items.indices || !CheckListHelper.isItem(items[pos])) return false
+        val level = CheckListHelper.levelOf(items[pos])
+        return if (down) {
+            val n = pos + 1
+            n < items.size && CheckListHelper.isItem(items[n]) && CheckListHelper.levelOf(items[n]) == level
+        } else {
+            var s = pos - 1
+            while (s > 0 && CheckListHelper.isItem(items[s]) && CheckListHelper.levelOf(items[s]) > level) s--
+            s >= 0 && CheckListHelper.isItem(items[s]) && CheckListHelper.levelOf(items[s]) == level
+        }
+    }
+
+    /**
+     * 给被拖项加一个圆角矩形描边轮廓（overlay），范围涵盖状态图标与文本，线条用该项文字色，渐显出现。
+     * 坐标用屏幕坐标换算到 itemView 坐标系：et 在内层 LinearLayout 里，直接用 et.right 会少算图标列偏移、
+     * 盖不住右侧文本；矩形再夹到 itemView 内并留出描边宽度，保证下/右描边不被裁。
+     */
+    private fun startChecklistCapsule(vh: RecyclerView.ViewHolder) {
+        removeChecklistCapsule()
+        val holder = vh as? CheckListAdapter.EditTextHolder ?: return
+        val v = holder.itemView
+        val ivState = holder.ivState ?: return
+        val et = holder.et ?: return
+        if (v.width <= 0 || v.height <= 0) return
+        val density = DisplayUtil.getScreenDensity(mApp)
+        val strokeW = Math.max(1, Math.round(1.5f * density))
+        val basePad = Math.round(3f * density)
+        val iLoc = IntArray(2); v.getLocationOnScreen(iLoc)
+        val sLoc = IntArray(2); ivState.getLocationOnScreen(sLoc)
+        val eLoc = IntArray(2); et.getLocationOnScreen(eLoc)
+        val sLeft = sLoc[0] - iLoc[0]
+        val sTop = sLoc[1] - iLoc[1]
+        val eLeft = eLoc[0] - iLoc[0]
+        val eTop = eLoc[1] - iLoc[1]
+        // ivState 控件（36dp）比里面的 icon 大、icon 居中（scaleType=center），控件比 icon 多出的单边留白
+        // 才是左/上"视觉 padding"的真实来源；右/下没有这种控件，只用 basePad 会偏窄。取 icon 实际尺寸算出
+        // 该留白，令四边到“内容真实视觉边缘”的 padding 统一为 basePad + 该留白，从而四边视觉对称。
+        val icon = ivState.drawable
+        val iconW = icon?.intrinsicWidth ?: -1
+        val iconH = icon?.intrinsicHeight ?: -1
+        val insetX = if (iconW in 1 until ivState.width) (ivState.width - iconW) / 2 else 0
+        val insetY = if (iconH in 1 until ivState.height) (ivState.height - iconH) / 2 else 0
+        val padX = basePad + insetX
+        val padY = basePad + insetY
+        // icon / 文字的真实视觉边缘（扣掉控件留白、EditText 内边距）。
+        val iconVisualLeft = sLeft + insetX
+        val iconVisualTop = sTop + insetY
+        val iconVisualBottom = sTop + insetY + (if (iconH > 0) iconH else ivState.height)
+        val textVisualRight = eLeft + et.width - et.totalPaddingRight
+        val textVisualTop = eTop + et.totalPaddingTop
+        val textVisualBottom = eTop + et.height - et.totalPaddingBottom
+        var left = (iconVisualLeft - padX).coerceAtLeast(0)
+        var top = (Math.min(iconVisualTop, textVisualTop) - padY).coerceAtLeast(0)
+        var right = (textVisualRight + padX).coerceAtMost(v.width - strokeW)
+        // 下边允许在 itemView 下方溢出 padY（移动模式 clipChildren=false 不裁），多行时文字底与轮廓底同样留白。
+        var bottom = (Math.max(iconVisualBottom, textVisualBottom) + padY).coerceAtMost(v.height + padY)
+        if (right <= left || bottom <= top) return
+        val d = GradientDrawable()
+        d.shape = GradientDrawable.RECTANGLE
+        d.setColor(Color.TRANSPARENT)
+        d.setStroke(strokeW, et.currentTextColor)
+        d.cornerRadius = 10f * density          // 圆角矩形，圆角 10dp
+        d.setBounds(left, top, right, bottom)
+        d.alpha = 0
+        v.overlay.add(d)
+        mCapsuleHostView = v
+        mCapsuleDrawable = d
+        ValueAnimator.ofInt(0, 255).apply {
+            duration = 180
+            addUpdateListener { d.alpha = it.animatedValue as Int; v.invalidate() }
+            start()
+        }
+    }
+
+    /** 胶囊轮廓渐隐后移除。 */
+    private fun fadeOutChecklistCapsule() {
+        val v = mCapsuleHostView ?: return
+        val d = mCapsuleDrawable ?: return
+        mCapsuleHostView = null
+        mCapsuleDrawable = null
+        ValueAnimator.ofInt(d.alpha, 0).apply {
+            duration = 180
+            addUpdateListener { d.alpha = it.animatedValue as Int; v.invalidate() }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(a: Animator) { v.overlay.remove(d); v.invalidate() }
+            })
+            start()
+        }
+    }
+
+    /** 立即移除轮廓（无动画，兜底用）。 */
+    private fun removeChecklistCapsule() {
+        val v = mCapsuleHostView
+        val d = mCapsuleDrawable
+        mCapsuleHostView = null
+        mCapsuleDrawable = null
+        if (v != null && d != null) { v.overlay.remove(d); v.invalidate() }
+    }
+
+    /**
+     * 落位后把所有可见项的动画残留变换复位，消除偶发的"项停在两行之间、相互重叠"——根因是某个收束/展开
+     * 或重排的 translation/scale 动画被打断、未归零。仅在拖拽确已结束（无被拖项）时执行，避免打断新拖拽。
+     */
+    private fun resetChecklistChildTransforms() {
+        if (mDraggedChecklistVH != null) return
+        val rv = mRvCheckList ?: return
+        for (i in 0 until rv.childCount) {
+            val c = rv.getChildAt(i) ?: continue
+            c.translationX = 0f
+            c.translationY = 0f
+            c.scaleX = 1f
+            c.scaleY = 1f
+            c.alpha = 1f
+        }
+    }
+
+    /**
+     * 仅清单项移动模式期间挂载的 ItemAnimator：
+     * - animateRemove：从顶部 pivot 做 scaleY→0 + alpha→0，被收子项“向上收缩”进父项；
+     * - animateAdd：从顶部 pivot 由 scaleY 0→1 + alpha 0→1，子项“向下展开”还原；
+     * - animateMove：默认（拖拽 onMove 重排）时**瞬时**完成，不与 ItemTouchHelper 的跟手平移冲突；仅在收束/
+     *   展开期间（allowMoveAnimation=true）让下方兄弟平滑滑动填补/让位；被拖代理本身任何时候都不做 move 动画。
+     * isRunning 计入自管的收缩/展开动画，避免 RecyclerView 误判动画结束而提前回收被动画的视图。
+     */
+    private inner class ChecklistDragItemAnimator : DefaultItemAnimator() {
+        var allowMoveAnimation = false
+        private val running = HashSet<RecyclerView.ViewHolder>()
+
+        init {
+            removeDuration = 180
+            addDuration = 180
+            moveDuration = 180
+        }
+
+        override fun animateRemove(holder: RecyclerView.ViewHolder): Boolean {
+            endViewAnimation(holder)
+            val v = holder.itemView
+            v.pivotY = 0f
+            running.add(holder)
+            dispatchRemoveStarting(holder)
+            v.animate().scaleY(0f).alpha(0f).setDuration(removeDuration)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(a: Animator) {
+                        v.animate().setListener(null)
+                        v.scaleY = 1f; v.alpha = 1f
+                        running.remove(holder)
+                        dispatchRemoveFinished(holder)
+                        if (!isRunning) dispatchAnimationsFinished()
+                    }
+                }).start()
+            return true
+        }
+
+        override fun animateAdd(holder: RecyclerView.ViewHolder): Boolean {
+            endViewAnimation(holder)
+            val v = holder.itemView
+            v.pivotY = 0f; v.scaleY = 0f; v.alpha = 0f
+            running.add(holder)
+            dispatchAddStarting(holder)
+            v.animate().scaleY(1f).alpha(1f).setDuration(addDuration)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(a: Animator) {
+                        v.animate().setListener(null)
+                        v.scaleY = 1f; v.alpha = 1f
+                        running.remove(holder)
+                        dispatchAddFinished(holder)
+                        if (!isRunning) dispatchAnimationsFinished()
+                    }
+                }).start()
+            return true
+        }
+
+        override fun animateMove(
+            holder: RecyclerView.ViewHolder, fromX: Int, fromY: Int, toX: Int, toY: Int
+        ): Boolean {
+            if (!allowMoveAnimation || holder === mDraggedChecklistVH) {
+                holder.itemView.translationX = 0f
+                holder.itemView.translationY = 0f
+                dispatchMoveFinished(holder)
+                return false
+            }
+            return super.animateMove(holder, fromX, fromY, toX, toY)
+        }
+
+        private fun endViewAnimation(holder: RecyclerView.ViewHolder) {
+            if (running.remove(holder)) {
+                val v = holder.itemView
+                v.animate().setListener(null).cancel()
+                v.scaleY = 1f; v.alpha = 1f
+            }
+        }
+
+        override fun endAnimation(holder: RecyclerView.ViewHolder) {
+            endViewAnimation(holder)
+            super.endAnimation(holder)
+        }
+
+        override fun endAnimations() {
+            for (h in ArrayList(running)) endViewAnimation(h)
+            super.endAnimations()
+            dispatchAnimationsFinished()
+        }
+
+        override fun isRunning(): Boolean = running.isNotEmpty() || super.isRunning()
     }
 
     private inner class CheckListTouchCallback : ItemTouchHelper.Callback() {
@@ -4947,9 +5333,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
             target: RecyclerView.ViewHolder
         ): Boolean {
-            val from = viewHolder.adapterPosition
-            val to   = target.adapterPosition
-            return moveChecklist(from, to)
+            // 子树已收束，被拖项是单行代理：在“同 owner 同级兄弟”之间整段跨越目标兄弟的子树。
+            return moveChecklistDragProxy(viewHolder.adapterPosition, target.adapterPosition)
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) { }
@@ -4957,6 +5342,103 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         override fun isItemViewSwipeEnabled(): Boolean = false
 
         override fun isLongPressDragEnabled(): Boolean = false
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                beginChecklistDrag(viewHolder)   // 收束子树（只剩父项代理跟手）
+                startChecklistDragAutoScroll(viewHolder)
+            }
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            stopChecklistDragAutoScroll()
+            endChecklistDrag(viewHolder)         // 在代理落点处展开子树，记一次撤销动作
+        }
+
+        override fun onChildDraw(
+            c: Canvas, recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
+            dX: Float, dY: Float, actionState: Int, isCurrentlyActive: Boolean
+        ) {
+            // 自动滚动父容器后，给被拖项补偿一个平移量，使它始终贴在手指处、不脱手。
+            // 补偿 = 自上次手指事件以来父容器又滚动的量；这段尚未被 ItemTouchHelper 的 dY 反映。
+            // 不可累加历史滚动——dY 在每次 MOVE 时已重算进全部滚动量，累加会双重计数。
+            val adjustedDy = if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                dY + ((mScrollView?.scrollY ?: mScrollYAtDragTouch) - mScrollYAtDragTouch)
+            } else dY
+            super.onChildDraw(c, recyclerView, viewHolder, dX, adjustedDy, actionState, isCurrentlyActive)
+        }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        mLastTouchScreenY = ev.rawY.toInt()  // 记录实时手指屏幕 Y，供拖拽自动滚动边缘判定
+        // dispatchTouchEvent 在事件下发到 RecyclerView/ItemTouchHelper 之前触发，此刻的 scrollY 正是
+        // ItemTouchHelper 处理本次 MOVE 时所依据的滚动量；记下它，作为补偿量的基准。
+        mScrollYAtDragTouch = mScrollView?.scrollY ?: 0
+        return super.dispatchTouchEvent(ev)
+    }
+
+    /**
+     * 拖拽自动滚动：手指靠近视口上/下边缘时，以**恒定速度**滚动父 NestedScrollView；
+     * 拖未完成项往下滚到未完成/已完成分割线即停，拖已完成项往上滚到分割线即停；全程不脱手。
+     */
+    private fun startChecklistDragAutoScroll(vh: RecyclerView.ViewHolder) {
+        mDraggedChecklistVH = vh
+        val sv = mScrollView ?: return
+        mScrollYAtDragTouch = sv.scrollY  // 起点对齐，首帧补偿为 0，避免进入拖拽即跳变
+        val rv = mRvCheckList ?: return
+        if (mDragScrollRunnable != null) return
+        val density = DisplayUtil.getScreenDensity(mApp)
+        val edge = (110 * density).toInt()
+        val step = (6 * density).toInt()  // 每帧恒定滚动量，不加速
+        val runnable = object : Runnable {
+            override fun run() {
+                if (mDraggedChecklistVH == null) return
+                val svLoc = IntArray(2)
+                sv.getLocationOnScreen(svLoc)
+                val svTop = svLoc[1]
+                val svBottom = svLoc[1] + sv.height
+
+                // 用实时手指屏幕 Y 判边缘（不依赖被拖视图位置，避免补偿平移造成反馈失控）。
+                val fingerY = mLastTouchScreenY
+                var dy = when {
+                    fingerY < svTop + edge -> -step
+                    fingerY > svBottom - edge -> step
+                    else -> 0
+                }
+                dy = clampChecklistAutoScroll(dy)
+                if (dy != 0) {
+                    sv.scrollBy(0, dy)
+                    // 补偿量在 onChildDraw 里按"当前 scrollY − 上次触摸时 scrollY"实时计算，这里只需触发重绘。
+                    rv.invalidate()
+                }
+                sv.postOnAnimation(this)
+            }
+        }
+        mDragScrollRunnable = runnable
+        sv.postOnAnimation(runnable)
+    }
+
+    private fun stopChecklistDragAutoScroll() {
+        mDragScrollRunnable?.let { mScrollView?.removeCallbacks(it) }
+        mDragScrollRunnable = null
+        mDraggedChecklistVH = null
+    }
+
+    /**
+     * 把自动滚动量按"拖拽边界"裁掉：被拖项在某方向**已无同级兄弟可去**（碰到父子树/区域边界）时，就不再
+     * 往该方向自动滚动。判定与 [moveChecklistDragProxy]/[canChecklistProxyMove] 同源——只要还有兄弟（哪怕
+     * 在视口外）就允许滚动把它带进来，故二/三级项不会被拖出父节点范围、一级项到分割线即停，且不依赖屏幕
+     * 几何（被拖项贴手指、其几何会受补偿平移影响，不可作判据）。
+     */
+    private fun clampChecklistAutoScroll(dy: Int): Int {
+        if (dy == 0) return 0
+        val draggedPos = mDraggedChecklistVH?.adapterPosition ?: return dy
+        if (draggedPos == RecyclerView.NO_POSITION) return dy
+        if (dy > 0 && !canChecklistProxyMove(draggedPos, down = true)) return 0
+        if (dy < 0 && !canChecklistProxyMove(draggedPos, down = false)) return 0
+        return dy
     }
 
     private fun moveAttachment(from: Int, to: Int, isImageAttachment: Boolean) {
