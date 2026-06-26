@@ -77,6 +77,7 @@ open class ModeManager(app: App?,
 
     private var backNormalModeListener: View.OnClickListener? = null
     private var backNormalModeCallback: (() -> Unit)? = null
+    private var backNormalModeRequestHandler: (() -> Boolean)? = null
     private var contextualToolbarVisibilityCallback: ((Boolean) -> Unit)? = null
     private var menuItemsChangedCallback: (() -> Unit)? = null
 
@@ -89,6 +90,9 @@ open class ModeManager(app: App?,
         }
 
         backNormalModeListener = View.OnClickListener {
+            if (backNormalModeRequestHandler?.invoke() == true) {
+                return@OnClickListener
+            }
             this@ModeManager.backNormalMode(0)
         }
 
@@ -151,6 +155,10 @@ open class ModeManager(app: App?,
 
     open fun setBackNormalModeCallback(callback: (() -> Unit)?) {
         backNormalModeCallback = callback
+    }
+
+    open fun setBackNormalModeRequestHandler(handler: (() -> Boolean)?) {
+        backNormalModeRequestHandler = handler
     }
 
     open fun setContextualToolbarVisibilityCallback(callback: ((Boolean) -> Unit)?) {

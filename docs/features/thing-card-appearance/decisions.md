@@ -1,5 +1,19 @@
 # Thing Card Appearance Decisions
 
+## 2026-06-26 - 首页外观面板取消与自动滚动
+
+首页选择模式中打开“调整记事外观”或“调整文件夹外观”面板后，系统返回键、contextual toolbar 的关闭按钮，以及面板内“取消”都只取消本次外观调整并关闭面板，不退出选择模式。确定按钮仍表示提交本次调整，按既有流程结束选择态。
+
+面板打开、在颜色页/外观页之间切换，或在颜色页内部切换纯色/渐变页时，列表自动滚动必须基于当前选中卡片的实际 holder 几何计算，而不是只调用 `smoothScrollToPosition(position)`。如果卡片高度超过面板上方的可见区域，则滚动到卡片顶部位于 contextual actionbar 下方并保留与相邻卡片之间一致的可视间距；如果卡片能完整放入可见区域，则只在顶部或底部被遮挡时做最小滚动，已经完整可见时不滚动。
+
+外观面板引发的程序化滚动、面板高度变化和 RecyclerView bottom padding 变化，都必须同步刷新 Activity Header。Activity Header 的折叠位置依赖首页 RecyclerView 当前滚动位置，因此不能只在手指滚动或新建记事显现滚动时刷新；外观面板的 `smoothScrollBy()` / `smoothScrollToPosition()` 路径也要在滚动过程中和滚动结束后的稳定布局帧重新计算 Header。
+
+外观面板高度变化引起的 RecyclerView bottom padding 变化也应当有过渡动画，不能让 `setPadding()` 的瞬时 relayout 直接表现为列表跳动。切换到颜色页、在颜色页内部切换纯色/渐变页、以及切回外观页时，应先让 padding 过渡到 `panelHeight + 首页卡片间距`，再在布局稳定后合并执行一次选中卡片可见性校正，避免短时间内连续两段滚动。
+
+选中卡片可见性校正不能只挂在 `OnPreDrawListener` 上等待下一次绘制。如果页面切换后 RecyclerView padding 目标值没有变化，就可能没有新的绘制帧，导致校正一直等到用户手动滚动才触发。调度时应主动 `postOnAnimation` 并请求下一帧，让“切换 panel 后选中卡片已离屏”这种场景也能立即启动自动滚动。
+
+holder 暂时不在屏幕上时，粗定位和精确定位必须使用同一个坐标基准。`LinearSmoothScroller` 默认按 decorated top 计算，包含 item margin / decoration；而精确校正按 `itemView.top` 计算。外观面板选中卡片滚动应覆盖 `calculateDyToMakeVisible()`，直接按 `itemView.top == recyclerView.paddingTop + 首页卡片间距` 计算，否则落点会比 16dp 稍大，后续页面切换又补一段小滚动。
+
 ## 2026-06-20 - Doing cover uses the new start-Thing rocket language
 
 The Thing Card and Things AppWidget currently-doing covers should not keep

@@ -1,5 +1,12 @@
 # Thing Card Appearance Preferences
 
+## Home Appearance Panel
+
+- When the Home appearance panel auto-scrolls the selected Thing or Folder Card
+  into view, keep the same visible gap used between adjacent Home Cards below
+  the contextual actionbar. This is currently derived from the item margins
+  around cards, not a separate hard-coded dp value.
+
 ## Doing Cover
 
 - The currently-doing cover shown on Thing Cards and Things AppWidgets should

@@ -5,6 +5,7 @@
     <dimen name="thing_card_corner_radius">10dp</dimen>
     <dimen name="thing_card_normal_elevation">8dp</dimen>
     <dimen name="thing_card_dragging_elevation">12dp</dimen>
+    <dimen name="folder_drop_target_inset">16dp</dimen>
     <dimen name="thing_card_full_span_sparse_min_height">120dp</dimen>
     <dimen name="thing_card_full_span_private_icon_size">72dp</dimen>
     <dimen name="thing_card_full_span_image_min_height">160dp</dimen>

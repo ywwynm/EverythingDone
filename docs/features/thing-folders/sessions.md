@@ -1,5 +1,19 @@
 # Thing Folders Sessions
 
+## 2026-06-26 - 拖拽进文件夹命中阈值
+
+- 调整首页拖拽移动模式的文件夹 drop 目标判断：拖拽卡片左上角必须进入目标卡片按“首页相邻卡片之间的实际可视间距”内缩后的区域，才会触发创建文件夹或移动到文件夹的 hover 动画。
+- 该阈值由卡片 item margin 推导，当前等价于 16dp，不再保留独立写死的 dp 常量。
+- 阈值会按目标卡片尺寸自动收缩，避免很小的卡片失去可命中区域。
+- 随同首页外观面板修复一起通过 `docs/features/thing-card-appearance/debug-updates/update-20260626201814.md` 发布到阿里云 debug 通道，更新码 `202606261218`。
+- 跟随用户反馈改为复用首页卡片实际间距后，随 `docs/features/thing-card-appearance/debug-updates/update-20260626204634.md` 再次发布到阿里云 debug 通道，最终更新码 `202606261248`。
+- 用户继续反馈 16dp 基本无感，且被拖拽卡片处于放大状态。排查后确认当前真机更可能走 `ThingListOverlayDragController` 的 overlay 拖拽路径，上一版没有改到这条路径。本次把 overlay 路径和旧 `ItemTouchHelper` 路径都改为按放大后的可见左上角判断，并把内缩阈值提高到 2 倍相邻卡片可视间距，当前约 32dp。
+- 验证：`:app:assembleDebug` 通过；随后通过 `docs/features/thing-folders/debug-updates/update-20260626205826.md` 发布到阿里云 debug 通道，更新码 `202606261258`。
+- 按用户要求，为继续对比手感，将内缩阈值改回 16dp；随后按反馈取消 multiplier 设计，改为 `app/src/main/res/values/dimens.xml` 的独立 dp 资源 `folder_drop_target_inset`，旧路径和 overlay 路径都读取同一资源。
+- 验证：`:app:assembleDebug` 通过；随后通过 `docs/features/thing-folders/debug-updates/update-20260626210330.md` 发布到阿里云 debug 通道，更新码 `202606261303`。
+- 进一步按用户要求移除 multiplier 资源，保留直接 dp 调整入口 `folder_drop_target_inset=16dp`；验证 `:app:assembleDebug` 通过，并通过 `docs/features/thing-folders/debug-updates/update-20260626210745.md` 发布到阿里云 debug 通道，更新码 `202606261308`。
+- 该 16dp 直接资源方案随首页外观面板 Header 同步修正再次发布到阿里云 debug 通道，最新更新码 `202606261323`。
+
 ## 2026-06-24 - 单个记事 Widget 配置顶部栏跟随文件夹配色
 
 `:app:assembleDebug` BUILD SUCCESSFUL。随后通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码 `202606241334`，发布日志为 `docs/features/thing-folders/debug-updates/update-20260624213401.md`。

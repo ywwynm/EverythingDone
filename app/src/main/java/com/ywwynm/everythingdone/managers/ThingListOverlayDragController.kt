@@ -442,6 +442,7 @@ class ThingListOverlayDragController(
         host.overlayParent.getLocationOnScreen(rootLocation)
         val x = getOverlayContentLeft(current.overlay) + rootLocation[0] - recyclerLocation[0]
         val y = getOverlayContentTop(current.overlay) + rootLocation[1] - recyclerLocation[1]
+        val minPenetration = getFolderDropTargetInsetPx(recyclerView)
         for (i in 0 until recyclerView.childCount) {
             val child = recyclerView.getChildAt(i)
             val holder = recyclerView.getChildViewHolder(child)
@@ -452,11 +453,25 @@ class ThingListOverlayDragController(
             val top = child.top + child.translationY
             val right = child.right + child.translationX
             val bottom = child.bottom + child.translationY
-            if (x >= left && x < right && y >= top && y < bottom) {
+            val horizontalInset = minPenetration
+                .coerceAtMost(((right - left) - 1f) / 2f)
+                .coerceAtLeast(0f)
+            val verticalInset = minPenetration
+                .coerceAtMost(((bottom - top) - 1f) / 2f)
+                .coerceAtLeast(0f)
+            if (x >= left + horizontalInset &&
+                x < right - horizontalInset &&
+                y >= top + verticalInset &&
+                y < bottom - verticalInset
+            ) {
                 return holder
             }
         }
         return null
+    }
+
+    private fun getFolderDropTargetInsetPx(recyclerView: RecyclerView): Float {
+        return recyclerView.resources.getDimension(R.dimen.folder_drop_target_inset)
     }
 
     private fun clearFolderHover(

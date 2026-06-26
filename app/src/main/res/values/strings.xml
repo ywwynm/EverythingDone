@@ -517,13 +517,13 @@
     <string name="delete_selected_items_forever_structural_confirm">Permanently delete the selected items (the selected folders with all their contents, and the selected things) — %1$s in total. This cannot be undone.</string>
     <string name="no_matching_things_in_selection">No things to act on in the selection</string>
     <string name="private_batch_skipped">The thing being timed was not made private</string>
-    <string name="act_customize_card_appearance">Adjust thing card appearance</string>
-    <string name="act_customize_folder_card_appearance">Adjust folder card appearance</string>
+    <string name="act_customize_card_appearance">Adjust thing appearance</string>
+    <string name="act_customize_folder_card_appearance">Adjust folder appearance</string>
 
     <string name="act_sticky_on_top">Sticky on top</string>
     <string name="act_cancel_sticky">Cancel sticky</string>
 
-    <string name="thing_card_appearance_panel_title">Adjust thing card appearance</string>
+    <string name="thing_card_appearance_panel_title">Adjust thing appearance</string>
     <string name="thing_card_appearance_media_image">Image</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>

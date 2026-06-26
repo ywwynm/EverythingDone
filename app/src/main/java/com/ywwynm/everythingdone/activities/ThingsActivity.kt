@@ -307,6 +307,11 @@ class ThingsActivity :
     private var mBindingThingCardAppearancePanel: Boolean = false
     private var mBindingFolderCardAppearancePanel: Boolean = false
     private var mThingCardAppearancePreviewRefreshPosted: Boolean = false
+    private var mThingCardAppearancePanelSpaceUpdateToken: Int = 0
+    private var mThingCardAppearanceVisibilityScrolling: Boolean = false
+    private var mThingCardAppearanceVisibilityScrollToken: Int = 0
+    private var mThingCardAppearanceVisibilityCheckToken: Int = 0
+    private var mThingCardAppearancePaddingAnimator: ValueAnimator? = null
     private var mThingCardAppearanceBackgroundHeightSliderMinPercent: Int = 0
     private var mThingCardActiveRatioDragRange: ThingCardRatioRange? = null
 
@@ -1899,12 +1904,33 @@ class ThingsActivity :
         mRecyclerView  = f(R.id.rv_things)
         mThingCardAppearancePanel = f(R.id.thing_card_appearance_panel)
         mThingCardAppearancePanel!!.setOnTouchListener { _, _ -> true }
+        mThingCardAppearancePanel!!.addOnLayoutChangeListener {
+                _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (isThingCardAppearancePanelShowing() &&
+                    bottom - top != oldBottom - oldTop) {
+                requestThingCardAppearancePanelSpaceUpdate()
+            }
+        }
         mTvThingCardAppearanceTitle = f(R.id.tv_thing_card_appearance_title)
         mEtFolderCardAppearanceName = f(R.id.et_folder_card_appearance_name)
         mBtThingCardAppearanceChangeColor =
                 f(R.id.bt_thing_card_appearance_change_color)
         mThingCardAppearanceEditor = f(R.id.tbe_thing_card_appearance)
+        mThingCardAppearanceEditor!!.addOnLayoutChangeListener {
+                _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (isThingCardAppearancePanelShowing() && mTcaOnColorPage &&
+                    bottom - top != oldBottom - oldTop) {
+                requestThingCardAppearancePanelSpaceUpdate()
+            }
+        }
         mScrollTcaColorPage = f(R.id.scroll_tca_color_page)
+        mScrollTcaColorPage?.addOnLayoutChangeListener {
+                _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (isThingCardAppearancePanelShowing() && mTcaOnColorPage &&
+                    bottom - top != oldBottom - oldTop) {
+                requestThingCardAppearancePanelSpaceUpdate()
+            }
+        }
         mSepTcaTop = f(R.id.sep_tca_top)
         mSepTcaBottom = f(R.id.sep_tca_bottom)
         mLlTcaAppearanceBody = f(R.id.ll_tca_appearance_body)
@@ -1979,6 +2005,14 @@ class ThingsActivity :
         mModeManager!!.setShouldShowPrivateContent(adapter.shouldShowPrivateContent())
         mModeManager!!.setBackNormalModeCallback {
             cancelThingCardAppearancePanel(false)
+        }
+        mModeManager!!.setBackNormalModeRequestHandler {
+            if (isThingCardAppearancePanelShowing()) {
+                cancelThingCardAppearancePanel(false)
+                true
+            } else {
+                false
+            }
         }
         mModeManager!!.setContextualToolbarVisibilityCallback { isShowing ->
             if (isShowing) {
@@ -2486,7 +2520,7 @@ class ThingsActivity :
                     mDrawerLayout!!.closeDrawer(GravityCompat.START)
                 } else {
                     if (isThingCardAppearancePanelShowing()) {
-                        cancelThingCardAppearancePanel(shouldAppearancePanelCloseExitSelectingMode())
+                        cancelThingCardAppearancePanel(false)
                         return
                     }
                     if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
@@ -2774,7 +2808,7 @@ class ThingsActivity :
                 }
         )
         mBtCancelThingCardAppearance!!.setOnClickListener {
-            cancelThingCardAppearancePanel(shouldAppearancePanelCloseExitSelectingMode())
+            cancelThingCardAppearancePanel(false)
         }
         mBtConfirmThingCardAppearance!!.setOnClickListener {
             confirmThingCardAppearancePanel()
@@ -2843,10 +2877,7 @@ class ThingsActivity :
         if (panel.visibility != View.VISIBLE) {
             panel.visibility = View.VISIBLE
         }
-        panel.post {
-            updateThingCardAppearancePanelWidth()
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
     }
 
     private fun isFolderCardAppearancePanelActive(): Boolean {
@@ -2936,9 +2967,7 @@ class ThingsActivity :
         folder.cardPresentation = newDraft
         requestThingCardAppearancePreviewRefresh()
         bindFolderCardAppearancePanel()
-        mThingCardAppearancePanel!!.post {
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
     }
 
     private fun openThingCardAppearancePanel() {
@@ -2972,10 +3001,7 @@ class ThingsActivity :
         if (panel.visibility != View.VISIBLE) {
             panel.visibility = View.VISIBLE
         }
-        panel.post {
-            updateThingCardAppearancePanelWidth()
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
     }
 
     private fun bindThingCardAppearancePanel() {
@@ -3706,18 +3732,14 @@ class ThingsActivity :
         mTcaPreciseCropWasVisible = mBtThingCardAppearancePreciseCrop?.visibility == View.VISIBLE
         mTcaOnColorPage = true
         applyThingCardAppearancePageVisibility()
-        mThingCardAppearancePanel?.post {
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
     }
 
     /** 返回外观设置页（页内导航，不提交，取消/确认仍代表整个面板会话）。 */
     private fun showThingCardAppearanceBodyPage() {
         mTcaOnColorPage = false
         applyThingCardAppearancePageVisibility()
-        mThingCardAppearancePanel?.post {
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
     }
 
     /** 开面板时复位到外观页（不动 precise crop，其可见性由 bind 决定）。 */
@@ -3764,9 +3786,7 @@ class ThingsActivity :
             folder.setBackground(background)
             requestThingCardAppearancePreviewRefresh()
             bindFolderCardAppearancePanel()
-            mThingCardAppearancePanel!!.post {
-                updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-            }
+            requestThingCardAppearancePanelSpaceUpdate()
             if (mTcaOnColorPage) applyThingCardAppearancePageVisibility()
             refreshActivitySurfaceAndHeader()
             return
@@ -3776,9 +3796,7 @@ class ThingsActivity :
         thing.setBackground(background)
         requestThingCardAppearancePreviewRefresh()
         bindThingCardAppearancePanel()
-        mThingCardAppearancePanel!!.post {
-            updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-        }
+        requestThingCardAppearancePanelSpaceUpdate()
         if (mTcaOnColorPage) applyThingCardAppearancePageVisibility()
     }
 
@@ -5035,9 +5053,7 @@ class ThingsActivity :
         }
         if (bindPanel) {
             bindThingCardAppearancePanel()
-            mThingCardAppearancePanel!!.post {
-                updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
-            }
+            requestThingCardAppearancePanelSpaceUpdate()
         }
     }
 
@@ -5211,6 +5227,10 @@ class ThingsActivity :
         }
     }
 
+    private fun requestActivityHeaderStateRefreshAfterThingListLayout() {
+        requestActivityHeaderStateRefreshBeforeDraw(mThingManager?.getProjection()?.key())
+    }
+
     private fun findFirstVisibleThingListPosition(): Int {
         val layoutManager = mStaggeredGridLayoutManager ?: return 0
         val positions = IntArray(mSpan.coerceAtLeast(1))
@@ -5379,11 +5399,13 @@ class ThingsActivity :
         }
     }
 
-    private fun shouldAppearancePanelCloseExitSelectingMode(): Boolean {
-        return !App.isSearching
-    }
-
     private fun hideThingCardAppearancePanel() {
+        mThingCardAppearancePanelSpaceUpdateToken++
+        mThingCardAppearanceVisibilityScrollToken++
+        mThingCardAppearanceVisibilityCheckToken++
+        mThingCardAppearanceVisibilityScrolling = false
+        mThingCardAppearancePaddingAnimator?.cancel()
+        mThingCardAppearancePaddingAnimator = null
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
         val wasShowing = isThingCardAppearancePanelShowing()
@@ -5430,26 +5452,225 @@ class ThingsActivity :
             return
         }
 
+        val recyclerView = mRecyclerView ?: return
+        if (recyclerView.isComputingLayout) {
+            requestThingCardAppearancePanelSpaceUpdate()
+            return
+        }
+
+        updateThingCardAppearancePanelWidth()
         val panelHeight = mThingCardAppearancePanel!!.height
         if (panelHeight <= 0) {
             return
         }
 
-        val extra = panelHeight + resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val extra = panelHeight + getThingCardListItemSpacingPx()
         val desiredPaddingBottom = mThingCardAppearancePanelOriginalPaddingBottom + extra
-        val paddingChanged = mRecyclerView!!.paddingBottom != desiredPaddingBottom
-        if (paddingChanged) {
-            mRecyclerView!!.setPadding(
-                    mRecyclerView!!.paddingLeft,
-                    mRecyclerView!!.paddingTop,
-                    mRecyclerView!!.paddingRight,
+        if (recyclerView.paddingBottom != desiredPaddingBottom) {
+            animateRecyclerViewBottomPaddingForThingCardAppearancePanel(
+                    recyclerView,
                     desiredPaddingBottom
             )
+        } else {
+            scheduleThingCardAppearanceSelectedCardVisibleCheck()
         }
+    }
+
+    private fun requestThingCardAppearancePanelSpaceUpdate() {
+        val panel = mThingCardAppearancePanel ?: return
+        val token = ++mThingCardAppearancePanelSpaceUpdateToken
+        panel.post {
+            updateThingCardAppearancePanelSpaceIfCurrent(token)
+            panel.postOnAnimation {
+                updateThingCardAppearancePanelSpaceIfCurrent(token)
+            }
+            panel.postDelayed({
+                updateThingCardAppearancePanelSpaceIfCurrent(token)
+            }, THING_CARD_APPEARANCE_PANEL_SPACE_SETTLE_DELAY_MS)
+            panel.postDelayed({
+                updateThingCardAppearancePanelSpaceIfCurrent(token)
+            }, THING_CARD_APPEARANCE_PANEL_SPACE_FINAL_DELAY_MS)
+        }
+    }
+
+    private fun updateThingCardAppearancePanelSpaceIfCurrent(token: Int) {
+        if (token != mThingCardAppearancePanelSpaceUpdateToken) return
+        updateRecyclerViewBottomPaddingForThingCardAppearancePanel()
+    }
+
+    private fun animateRecyclerViewBottomPaddingForThingCardAppearancePanel(
+        recyclerView: RecyclerView,
+        desiredPaddingBottom: Int
+    ) {
+        mThingCardAppearancePaddingAnimator?.cancel()
+        val startPaddingBottom = recyclerView.paddingBottom
+        if (!recyclerView.isLaidOut || !isThingCardAppearancePanelShowing()) {
+            setRecyclerViewBottomPadding(recyclerView, desiredPaddingBottom)
+            scheduleThingCardAppearanceSelectedCardVisibleCheck()
+            requestActivityHeaderStateRefreshAfterThingListLayout()
+            return
+        }
+
+        val animator = ValueAnimator.ofInt(startPaddingBottom, desiredPaddingBottom)
+        mThingCardAppearancePaddingAnimator = animator
+        animator.duration = THING_CARD_APPEARANCE_PADDING_ANIM_DURATION_MS
+        animator.interpolator = AccelerateDecelerateInterpolator()
+        animator.addUpdateListener {
+            setRecyclerViewBottomPadding(recyclerView, it.animatedValue as Int)
+            requestActivityHeaderStateRefreshAfterThingListLayout()
+        }
+        animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationCancel(animation: Animator) {
+                if (mThingCardAppearancePaddingAnimator === animation) {
+                    mThingCardAppearancePaddingAnimator = null
+                }
+            }
+
+            override fun onAnimationEnd(animation: Animator) {
+                if (mThingCardAppearancePaddingAnimator === animation) {
+                    mThingCardAppearancePaddingAnimator = null
+                    setRecyclerViewBottomPadding(recyclerView, desiredPaddingBottom)
+                    scheduleThingCardAppearanceSelectedCardVisibleCheck()
+                    requestActivityHeaderStateRefreshAfterThingListLayout()
+                }
+            }
+        })
+        animator.start()
+    }
+
+    private fun setRecyclerViewBottomPadding(
+        recyclerView: RecyclerView,
+        paddingBottom: Int
+    ) {
+        recyclerView.setPadding(
+                recyclerView.paddingLeft,
+                recyclerView.paddingTop,
+                recyclerView.paddingRight,
+                paddingBottom
+        )
+    }
+
+    private fun scheduleThingCardAppearanceSelectedCardVisibleCheck(
+        delayMs: Long = THING_CARD_APPEARANCE_VISIBILITY_CHECK_DELAY_MS
+    ) {
+        val recyclerView = mRecyclerView ?: return
+        val token = ++mThingCardAppearanceVisibilityCheckToken
+        recyclerView.postDelayed({
+            if (token != mThingCardAppearanceVisibilityCheckToken ||
+                    !isThingCardAppearancePanelShowing()) {
+                return@postDelayed
+            }
+            recyclerView.postOnAnimation {
+                if (token != mThingCardAppearanceVisibilityCheckToken ||
+                        !isThingCardAppearancePanelShowing()) {
+                    return@postOnAnimation
+                }
+                if (recyclerView.isComputingLayout) {
+                    scheduleThingCardAppearanceSelectedCardVisibleCheck(
+                            THING_CARD_APPEARANCE_VISIBILITY_CHECK_DELAY_MS
+                    )
+                    return@postOnAnimation
+                }
+                ensureThingCardAppearanceSelectedCardVisible()
+            }
+            ViewCompat.postInvalidateOnAnimation(recyclerView)
+        }, delayMs)
+    }
+
+    private fun ensureThingCardAppearanceSelectedCardVisible() {
+        val recyclerView = mRecyclerView ?: return
         val selectedListPosition = mThingCardAppearanceSelectedListPosition
-        if (paddingChanged && selectedListPosition > 0) {
-            mRecyclerView!!.smoothScrollToPosition(selectedListPosition)
+        if (selectedListPosition <= 0) return
+        if (selectedListPosition >= (mAdapter?.getItemCount() ?: 0)) return
+
+        val holder = recyclerView.findViewHolderForAdapterPosition(selectedListPosition)
+        if (holder == null) {
+            smoothScrollThingCardAppearanceSelectionNearTop(selectedListPosition)
+            return
         }
+
+        val view = holder.itemView
+        val topClearance = getThingCardListItemSpacingPx()
+        val visibleTop = recyclerView.paddingTop + topClearance
+        val visibleBottom = recyclerView.height - recyclerView.paddingBottom
+        val availableHeight = visibleBottom - visibleTop
+        if (availableHeight <= 0 || view.height <= 0) return
+
+        val scrollDelta = when {
+            view.height > availableHeight -> view.top - visibleTop
+            view.top < visibleTop -> view.top - visibleTop
+            view.bottom > visibleBottom -> view.bottom - visibleBottom
+            else -> 0
+        }
+        if (abs(scrollDelta) <= 1) return
+        if ((scrollDelta > 0 && !recyclerView.canScrollVertically(1)) ||
+                (scrollDelta < 0 && !recyclerView.canScrollVertically(-1))) {
+            return
+        }
+
+        if (recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+            scheduleThingCardAppearanceSelectedCardVisibleCheck(
+                    THING_CARD_APPEARANCE_SCROLL_RECHECK_DELAY_MS
+            )
+            return
+        }
+        beginThingCardAppearanceVisibilityScroll()
+        recyclerView.smoothScrollBy(0, scrollDelta)
+    }
+
+    private fun smoothScrollThingCardAppearanceSelectionNearTop(position: Int) {
+        val layoutManager = mStaggeredGridLayoutManager ?: return
+        if (mRecyclerView?.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+            scheduleThingCardAppearanceSelectedCardVisibleCheck(
+                    THING_CARD_APPEARANCE_SCROLL_RECHECK_DELAY_MS
+            )
+            return
+        }
+        val topClearance = getThingCardListItemSpacingPx()
+        val scroller = object : LinearSmoothScroller(this@ThingsActivity) {
+            override fun getVerticalSnapPreference(): Int =
+                    LinearSmoothScroller.SNAP_TO_START
+
+            override fun calculateDyToMakeVisible(
+                view: View,
+                snapPreference: Int
+            ): Int {
+                val targetTop = (mRecyclerView?.paddingTop ?: 0) + topClearance
+                return targetTop - view.top
+            }
+        }
+        scroller.targetPosition = position
+        beginThingCardAppearanceVisibilityScroll()
+        layoutManager.startSmoothScroll(scroller)
+    }
+
+    private fun beginThingCardAppearanceVisibilityScroll() {
+        mThingCardAppearanceVisibilityScrolling = true
+        val token = ++mThingCardAppearanceVisibilityScrollToken
+        requestActivityHeaderStateRefreshAfterThingListLayout()
+        mRecyclerView?.postDelayed({
+            if (token == mThingCardAppearanceVisibilityScrollToken &&
+                mThingCardAppearanceVisibilityScrolling &&
+                mRecyclerView?.scrollState == RecyclerView.SCROLL_STATE_IDLE
+            ) {
+                finishThingCardAppearanceVisibilityScroll()
+            }
+        }, THING_CARD_APPEARANCE_SCROLL_TIMEOUT_MS)
+    }
+
+    private fun finishThingCardAppearanceVisibilityScroll() {
+        if (!mThingCardAppearanceVisibilityScrolling) return
+        mThingCardAppearanceVisibilityScrolling = false
+        scheduleThingCardAppearanceSelectedCardVisibleCheck(0L)
+        requestActivityHeaderStateRefreshAfterThingListLayout()
+    }
+
+    private fun getThingCardListItemSpacingPx(): Int {
+        return resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing) * 2
+    }
+
+    private fun getFolderDropTargetInsetPx(): Float {
+        return resources.getDimension(R.dimen.folder_drop_target_inset)
     }
 
     private fun isThingCardAppearancePanelShowing(): Boolean {
@@ -5905,6 +6126,8 @@ class ThingsActivity :
                     // Keep the Activity Header collapsing in step with the
                     // programmatic scroll-into-view for a freshly created Thing.
                     mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
+                } else if (mThingCardAppearanceVisibilityScrolling) {
+                    mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
                 }
             }
 
@@ -5916,6 +6139,9 @@ class ThingsActivity :
                     if (mNewItemRevealScrolling) {
                         mNewItemRevealScrolling = false
                         maybeRevealGatedNewItem()
+                    }
+                    if (mThingCardAppearanceVisibilityScrolling) {
+                        finishThingCardAppearanceVisibilityScroll()
                     }
                 } else { // dragging or settling
                     Glide.with(mApp!!).pauseRequests()
@@ -10076,8 +10302,9 @@ class ThingsActivity :
             viewHolder: RecyclerView.ViewHolder
         ): RecyclerView.ViewHolder? {
             val source = viewHolder.itemView
-            val x = source.left + source.translationX
-            val y = source.top + source.translationY
+            val x = getScaledViewLeftInRecycler(source)
+            val y = getScaledViewTopInRecycler(source)
+            val minPenetration = this@ThingsActivity.getFolderDropTargetInsetPx()
             for (i in 0 until mRecyclerView!!.childCount) {
                 val child = mRecyclerView!!.getChildAt(i)
                 if (child === source) continue
@@ -10087,15 +10314,31 @@ class ThingsActivity :
                 val childTop = child.top + child.translationY
                 val childRight = child.right + child.translationX
                 val childBottom = child.bottom + child.translationY
-                if (x >= childLeft
-                    && x < childRight
-                    && y >= childTop
-                    && y < childBottom
+                val horizontalInset = min(
+                    minPenetration,
+                    ((childRight - childLeft) - 1f) / 2f
+                ).coerceAtLeast(0f)
+                val verticalInset = min(
+                    minPenetration,
+                    ((childBottom - childTop) - 1f) / 2f
+                ).coerceAtLeast(0f)
+                if (x >= childLeft + horizontalInset
+                    && x < childRight - horizontalInset
+                    && y >= childTop + verticalInset
+                    && y < childBottom - verticalInset
                 ) {
                     return holder
                 }
             }
             return null
+        }
+
+        private fun getScaledViewLeftInRecycler(view: View): Float {
+            return view.left + view.translationX + view.pivotX * (1f - view.scaleX)
+        }
+
+        private fun getScaledViewTopInRecycler(view: View): Float {
+            return view.top + view.translationY + view.pivotY * (1f - view.scaleY)
         }
     }
 
@@ -10740,6 +10983,12 @@ class ThingsActivity :
         private const val FOLDER_CREATE_TARGET_SCALE = 0.92f
         private const val FOLDER_MOVE_TARGET_SCALE = 0.95f
         private const val FOLDER_CREATE_OUTLINE_GAP_DP = 6.0f
+        private const val THING_CARD_APPEARANCE_PANEL_SPACE_SETTLE_DELAY_MS = 96L
+        private const val THING_CARD_APPEARANCE_PANEL_SPACE_FINAL_DELAY_MS = 260L
+        private const val THING_CARD_APPEARANCE_PADDING_ANIM_DURATION_MS = 160L
+        private const val THING_CARD_APPEARANCE_VISIBILITY_CHECK_DELAY_MS = 72L
+        private const val THING_CARD_APPEARANCE_SCROLL_RECHECK_DELAY_MS = 180L
+        private const val THING_CARD_APPEARANCE_SCROLL_TIMEOUT_MS: Long = 1200L
         private const val FOLDER_DROP_HOVER_ARM_DELAY_MS = 130L
         private const val FOLDER_DROP_HOVER_ARM_MIN_FRAMES = 2
         private const val CLEARED_DRAG_SCALE_RECOVERY_DURATION = 96L

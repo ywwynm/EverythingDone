@@ -501,13 +501,13 @@
     <string name="delete_selected_items_forever_structural_confirm">将永久删除所选项（所选文件夹及其全部内容、以及所选记事），共%1$s，无法恢复。</string>
     <string name="no_matching_things_in_selection">所选范围内没有可操作的记事</string>
     <string name="private_batch_skipped">正在做的记事未设为私密</string>
-    <string name="act_customize_card_appearance">调整记事卡片外观</string>
-    <string name="act_customize_folder_card_appearance">调整文件夹卡片外观</string>
+    <string name="act_customize_card_appearance">调整记事外观</string>
+    <string name="act_customize_folder_card_appearance">调整文件夹外观</string>
 
     <string name="act_sticky_on_top">置顶</string>
     <string name="act_cancel_sticky">取消置顶</string>
 
-    <string name="thing_card_appearance_panel_title">调整记事卡片外观</string>
+    <string name="thing_card_appearance_panel_title">调整记事外观</string>
     <string name="thing_card_appearance_media_image">图片</string>
     <string name="thing_card_appearance_media_video">视频</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>

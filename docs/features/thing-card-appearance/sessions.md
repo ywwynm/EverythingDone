@@ -1,5 +1,24 @@
 # Thing Card Appearance Sessions
 
+## 2026-06-26 - 首页外观面板取消、文案与滚动稳定性
+
+- 将首页选择模式里的外观入口文案从“调整记事/文件夹卡片外观”改为“调整记事/文件夹外观”，并同步修改记事外观面板标题。
+- 修复外观面板打开后返回键、contextual toolbar 关闭按钮、面板“取消”会直接退出选择模式的问题；现在这些入口只取消草稿并关闭面板。
+- 将面板占位与列表滚动统一为基于选中卡片 holder 的可见区域计算：长卡片优先对齐顶部，短卡片只在被遮挡时做最小滚动，颜色页和外观页切换后的 panel 高度变化也会重新同步。
+- 按用户反馈追加顶部留白，并继续修正为复用首页列表相邻卡片之间的实际可视间距，而不是单独使用一个 `thing_card_outer_spacing` 或写死 dp。
+- 进一步统一 panel 切换后的空间重算：颜色页、外观页、颜色页内部纯色/渐变切换，以及面板高度动画结束前后的多帧变化都会重新校正列表占位和选中卡片可见性；holder 缺失时先平滑靠近，再用 `smoothScrollBy` 做精确校正。
+- 验证：`git diff --check` 仅有既有 LF/CRLF 提示；`:app:assembleDebug` BUILD SUCCESSFUL；随后通过 `:app:publishDebugUpdate -PdebugUpdateNotesFile=docs/features/thing-card-appearance/debug-updates/update-20260626201814.md` 发布到阿里云 debug 通道，更新码 `202606261218`。
+- 顶部留白 follow-up 重新通过 `:app:assembleDebug` 验证并发布到阿里云 debug 通道，发布日志为 `docs/features/thing-card-appearance/debug-updates/update-20260626203539.md`，更新码 `202606261235`。
+- 卡片间距、颜色页内部切换与 smooth scroll follow-up 重新通过 `:app:assembleDebug` 验证并发布到阿里云 debug 通道，发布日志为 `docs/features/thing-card-appearance/debug-updates/update-20260626204634.md`，最终更新码 `202606261248`。
+- 提交后用户发现 Activity Header 有时没有跟随外观面板引发的列表滚动更新；已撤销该提交并补充外观面板专用的程序化滚动状态，滚动过程中、滚动结束后以及 panel padding 变化后的稳定布局帧都会刷新 Header。
+- Header 同步 follow-up 重新通过 `:app:assembleDebug` 验证，并通过 `docs/features/thing-card-appearance/debug-updates/update-20260626212229.md` 发布到阿里云 debug 通道，最终更新码 `202606261323`。
+- 用户继续反馈颜色页/外观页切换和纯色/渐变页切换时，RecyclerView padding 变化可能表现为无动画跳动，且可见性校正有时分两段滚动；本次改为动画过渡 bottom padding、把可见性检查 debounce 到布局稳定后执行，并将 panel 打开时的 bottom padding extra 从 8dp 改为首页卡片间距 16dp。
+- padding 动画与滚动合并 follow-up 已通过 `:app:assembleDebug` 验证，并通过 `docs/features/thing-card-appearance/debug-updates/update-20260626214235.md` 发布到阿里云 debug 通道，最终更新码 `202606261343`。
+- 用户继续反馈：打开外观 panel 后切颜色页、渐变页、切回外观页，再手动把选中记事滑出屏幕，随后切回颜色页时不会自动滚动，直到用户稍微滚动列表才触发。排查后判断为可见性检查挂在下一次 pre-draw 上，但这次切换未必改变 RecyclerView padding 或触发布局；已改为主动排入下一帧并请求绘制。
+- 离屏选中卡片立即校正 follow-up 已通过 `:app:assembleDebug` 验证，并通过 `docs/features/thing-card-appearance/debug-updates/update-20260626215026.md` 发布到阿里云 debug 通道，最终更新码 `202606261350`。
+- 用户继续反馈：离屏选中卡片自动滑回后，卡片顶部与 contextual actionbar 的间距比 16dp 稍大，下一次切到颜色页又会补一小段。排查为 holder 缺失时的 `LinearSmoothScroller` 默认按 decorated top 对齐，而精确校正按 `itemView.top` 对齐；已把粗定位也改为直接按 `itemView.top` 对齐 16dp，并在滚动结束后下一帧立即精确复查。
+- 离屏滚动落点统一 follow-up 已通过 `:app:assembleDebug` 验证，并通过 `docs/features/thing-card-appearance/debug-updates/update-20260626215800.md` 发布到阿里云 debug 通道，最终更新码 `202606261358`。
+
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
 ## 2026-06-20 - Tighten doing cover label spacing
