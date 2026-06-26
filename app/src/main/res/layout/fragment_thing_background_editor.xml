@@ -32,7 +32,7 @@
         android:layout_height="1dp"
         android:layout_marginLeft="@dimen/tbe_divider_bleed_margin"
         android:layout_marginRight="@dimen/tbe_divider_bleed_margin"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:background="@color/app_chrome_divider"
         android:visibility="invisible"
         tools:visibility="visible" />
@@ -41,6 +41,8 @@
         android:id="@+id/scroll_tbe_sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipChildren="true"
+        android:clipToPadding="true"
         android:scrollbars="none">
 
         <com.ywwynm.everythingdone.views.ThingBackgroundEditor
@@ -64,7 +66,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="@dimen/app_chrome_dialog_divided_action_row_margin_top"
         android:layout_marginEnd="@dimen/app_chrome_dialog_action_row_overflow_margin"
         android:layout_marginRight="@dimen/app_chrome_dialog_action_row_overflow_margin"
         android:gravity="center_vertical|end"

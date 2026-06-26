@@ -1,6 +1,39 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606251616`.
+Latest published debug update: `202606261510`.
+
+## 2026-06-26 - 颜色面板切换收起键盘与底部动画
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626230720.md`。根据用户反馈，主页颜色编辑器在键盘打开后切换纯色/渐变 page、外观页/颜色页或切换另一个记事/文件夹外观 panel 时，应主动收起键盘；同时主页“调整记事/文件夹外观”panel 和详情页“调整颜色”panel 的出现/消失需要从屏幕底部升起、降落到底部。本次保留用户已调整的 `thing_card_appearance_panel_card_peek_height=36dp`。
+
+实现上，`ThingBackgroundEditor` 在纯色/渐变 tab 切换前调用 `KeyboardUtil.hideKeyboard`；`ThingsActivity` 在主页 panel 打开/切换、外观页与颜色页互切、隐藏时统一收起键盘。主页 panel 新增基于 `translationY` 的底部滑入/滑出动画，并用 `mThingCardAppearancePanelVisibilityToken` 防止快速切换时旧动画回调把新 panel 误设为 `GONE`；隐藏时等滑出结束后再还原 RecyclerView 底部 padding。详情页 `ThingBackgroundEditorBottomSheet` 新增 `EverythingDoneAnimationBottomPanel` window animation，复用 `bottom_panel_slide_in.xml` / `bottom_panel_slide_out.xml`。
+
+验证：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL；已发布 `202606261510` 到阿里云 debug update channel。
+
+## 2026-06-26 - 首页颜色面板改为轻量卡片露出预留
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626225200.md`。
+根据用户反馈，不再追求完整露出当前卡片，避免把颜色面板自身压缩得过小。首页颜色面板仍保留在 `fl_things` 内，并继续通过 `ScrollAwareColumn.maxMeasuredHeightPx` 控制最大高度；卡片预留区改为固定轻量 peek：`thing_card_appearance_panel_card_peek_height`（88dp）+ 卡片间距。删除未发布的“按当前 holder 实际高度 / 可用高度 45% 上限”预留逻辑。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606261452`。
+
+## 2026-06-26 - 撤回顶层面板层级改法，改为限制首页颜色面板高度
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626224412.md`。
+根据用户反馈，撤回上一版把 `panel_thing_card_appearance` 移到 contextual toolbar 之上的做法，让 panel 回到 `fl_things` 内。新的修复方向是在选择模式、渐变页、键盘弹出并触发可滚动时降低中间滑动区域高度，从而降低整个 panel 高度。`ScrollAwareColumn` 新增运行时 `maxMeasuredHeightPx`；`ThingsActivity` 按 `fl_things` 高度减去 actionbar/contextual toolbar 区域、底部 margin 和列表卡片间距来设置 panel 最大高度。这样现有 RecyclerView 底部 padding 与选中卡片可见性检查会使用更小的 panel 高度，让正在调整颜色的卡片更容易保持可见。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606261444`。
+
+## 2026-06-26 - 首页颜色面板层级高于选择模式工具栏
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626223524.md`。
+修复首页选择模式打开外观面板后，颜色编辑器渐变页在键盘弹出并触发滚动时，面板标题可能被 contextual actionbar 挡住的问题。原因是 `panel_thing_card_appearance` 原本位于 `DrawerLayout` 内部，而 contextual toolbar 是 `DrawerLayout` 后面的顶层 sibling；面板自身 `elevation` 不能跨父级压过 toolbar。本次将面板 include 移到 `activity_things.xml` 顶层，并排在 contextual toolbar 之后，让它作为顶层浮层显示在选择模式工具栏上方。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606261435`。
+
+## 2026-06-26 - 颜色面板滚动区裁剪与分割线间距修正
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626222956.md`。
+根据用户继续反馈，对照 `LicenseDialogFragment` 和用于选择应用语言的 `ChooserDialogFragment`，把颜色面板标题下方分割线间距统一为 12dp，把底部 action row 到下分割线的间距统一为 `app_chrome_dialog_divided_action_row_margin_top`。同时在 `ScrollAwareColumn.drawChild()` 中对 `NestedScrollView` 子项强制裁剪，确保中间滚动内容只能显示在中间区域，不能越界覆盖标题、上下分割线或取消/确定按钮。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606261430`。
+
+## 2026-06-26 - 颜色面板键盘弹出时固定标题与按钮
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260626221227.md`。
+修复首页外观面板颜色页和详情页颜色面板在 RGB/Hex 输入框弹出键盘后，标题区、取消/确定按钮区可能被挤压或与中间滚动内容重叠的问题。`ScrollAwareColumn` 现在先测真实自然高度，再固定标题/分割线/底部按钮，只把剩余高度分配给中间 `NestedScrollView`；两处颜色编辑器滚动区也显式裁剪子内容，避免预置色或渐变方向按钮越界显示。验证 `:app:assembleDebug` BUILD SUCCESSFUL，已发布 `202606261413`。
 
 ## 2026-06-26 - 渐变方向顺序：斜向放第一排
 

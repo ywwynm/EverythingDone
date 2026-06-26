@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.KeyboardUtil
 
 import java.util.Random
 
@@ -99,12 +100,14 @@ class ThingBackgroundEditor @JvmOverloads constructor(
         BackgroundUtil.installAppChromePillRipple(tabGradient, context)
         tabPure.setOnClickListener {
             if (mode !== ThingBackground.Mode.PURE) {
+                hideKeyboardForPageSwitch()
                 showMode(ThingBackground.Mode.PURE)
                 emit()
             }
         }
         tabGradient.setOnClickListener {
             if (mode !== ThingBackground.Mode.GRADIENT) {
+                hideKeyboardForPageSwitch()
                 showMode(ThingBackground.Mode.GRADIENT)
                 emit()
             }
@@ -175,6 +178,10 @@ class ThingBackgroundEditor @JvmOverloads constructor(
 
     private fun emit() {
         onBackgroundChanged?.invoke(currentBackground())
+    }
+
+    private fun hideKeyboardForPageSwitch() {
+        KeyboardUtil.hideKeyboard(findFocus() ?: this)
     }
 
     private fun showMode(m: ThingBackground.Mode) {

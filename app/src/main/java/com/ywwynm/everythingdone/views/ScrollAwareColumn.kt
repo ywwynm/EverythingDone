@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.Context
+import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
@@ -19,18 +20,37 @@ class ScrollAwareColumn @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    var maxMeasuredHeightPx: Int = 0
+        set(value) {
+            val coerced = value.coerceAtLeast(0)
+            if (field == coerced) return
+            field = coerced
+            requestLayout()
+        }
+
     init {
         orientation = VERTICAL
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-
         val mode = MeasureSpec.getMode(heightMeasureSpec)
-        if (mode == MeasureSpec.UNSPECIFIED) return
-        val avail = MeasureSpec.getSize(heightMeasureSpec)
+        if (mode == MeasureSpec.UNSPECIFIED) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            return
+        }
+        val measuredAvail = MeasureSpec.getSize(heightMeasureSpec)
+        val avail = if (maxMeasuredHeightPx > 0) {
+            minOf(measuredAvail, maxMeasuredHeightPx)
+        } else {
+            measuredAvail
+        }
 
-        // 子项自然总高（含纵向 margin 与自身 padding）。
+        // 先用不受高度限制的 spec 得到真实自然高度；否则父级 AT_MOST 会先把 wrap_content
+        // 子项压缩，后续就无法可靠地只收缩中间滚动区。
+        val naturalHeightSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        super.onMeasure(widthMeasureSpec, naturalHeightSpec)
+
+        // 子项自然总高（含纵向 margin 与容器 padding）。
         var total = paddingTop + paddingBottom
         var scroll: View? = null
         for (i in 0 until childCount) {
@@ -41,15 +61,28 @@ class ScrollAwareColumn @JvmOverloads constructor(
             if (scroll == null && c is NestedScrollView) scroll = c
         }
 
-        if (total <= avail || scroll == null) return
+        if (total <= avail || scroll == null) {
+            val desiredHeight = if (mode == MeasureSpec.EXACTLY) avail else total.coerceAtMost(avail)
+            setMeasuredDimension(measuredWidth, desiredHeight)
+            return
+        }
 
-        // 溢出：把可滚动子项收缩 (total - avail)，容器高度收到 avail。
-        val overflow = total - avail
-        val targetH = (scroll.measuredHeight - overflow).coerceAtLeast(0)
+        val fixedHeight = total - scroll.measuredHeight
+        val targetH = (avail - fixedHeight).coerceAtLeast(0)
         scroll.measure(
             MeasureSpec.makeMeasureSpec(scroll.measuredWidth, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(targetH, MeasureSpec.EXACTLY)
         )
-        setMeasuredDimension(measuredWidth, avail)
+        setMeasuredDimension(measuredWidth, fixedHeight + targetH)
+    }
+
+    override fun drawChild(canvas: Canvas, child: View, drawingTime: Long): Boolean {
+        if (child !is NestedScrollView) return super.drawChild(canvas, child, drawingTime)
+
+        val save = canvas.save()
+        canvas.clipRect(child.left, child.top, child.right, child.bottom)
+        val drawn = super.drawChild(canvas, child, drawingTime)
+        canvas.restoreToCount(save)
+        return drawn
     }
 }

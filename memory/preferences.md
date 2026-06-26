@@ -136,3 +136,4 @@ visually on real hardware (e.g. HDR rendering, which an emulator cannot show).
 - `localization`: `docs/features/localization/preferences.md`
 - `thing-folders`: `docs/features/thing-folders/preferences.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/preferences.md`
+- `thing-background-editor`: `docs/features/thing-background-editor/preferences.md`

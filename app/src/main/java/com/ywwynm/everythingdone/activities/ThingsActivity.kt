@@ -146,6 +146,7 @@ import com.ywwynm.everythingdone.views.DrawerHeader
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.FloatingActionButton
 import com.ywwynm.everythingdone.views.Snackbar
+import com.ywwynm.everythingdone.views.ScrollAwareColumn
 import com.ywwynm.everythingdone.views.ThingsStaggeredLayoutManager
 import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
@@ -308,6 +309,7 @@ class ThingsActivity :
     private var mBindingFolderCardAppearancePanel: Boolean = false
     private var mThingCardAppearancePreviewRefreshPosted: Boolean = false
     private var mThingCardAppearancePanelSpaceUpdateToken: Int = 0
+    private var mThingCardAppearancePanelVisibilityToken: Int = 0
     private var mThingCardAppearanceVisibilityScrolling: Boolean = false
     private var mThingCardAppearanceVisibilityScrollToken: Int = 0
     private var mThingCardAppearanceVisibilityCheckToken: Int = 0
@@ -2846,6 +2848,7 @@ class ThingsActivity :
     }
 
     private fun openFolderCardAppearancePanel(folder: ThingFolder) {
+        hideThingCardAppearanceKeyboard()
         mThingCardAppearancePanelThing = null
         mThingCardAppearanceOriginal = null
         mThingCardAppearanceDraft = null
@@ -2874,9 +2877,7 @@ class ThingsActivity :
         mAdapter!!.setThingCardSurfaceAvailableHeight(0)
         bindFolderCardAppearancePanel()
         resetThingCardAppearanceToBodyPage()
-        if (panel.visibility != View.VISIBLE) {
-            panel.visibility = View.VISIBLE
-        }
+        showThingCardAppearancePanelAnimated(panel)
         requestThingCardAppearancePanelSpaceUpdate()
     }
 
@@ -2973,6 +2974,7 @@ class ThingsActivity :
     private fun openThingCardAppearancePanel() {
         val thing: Thing = getSingleSelectedThingForAppearance() ?: return
 
+        hideThingCardAppearanceKeyboard()
         clearFolderCardAppearanceDraft()
         mThingCardAppearanceMediaSources = ThingCardMediaHelper.getAvailableMediaSources(
                 thing.attachment
@@ -2998,9 +3000,7 @@ class ThingsActivity :
         )
         bindThingCardAppearancePanel()
         resetThingCardAppearanceToBodyPage()
-        if (panel.visibility != View.VISIBLE) {
-            panel.visibility = View.VISIBLE
-        }
+        showThingCardAppearancePanelAnimated(panel)
         requestThingCardAppearancePanelSpaceUpdate()
     }
 
@@ -3727,6 +3727,7 @@ class ThingsActivity :
     /** 进入颜色页：面板内容就地切换为编辑器（不另开面板）。 */
     private fun showThingCardAppearanceColorPage() {
         if (!isThingCardAppearancePanelShowing()) return
+        hideThingCardAppearanceKeyboard()
         val editor = mThingCardAppearanceEditor ?: return
         editor.setBackground(getThingCardAppearanceAccentBackground())
         mTcaPreciseCropWasVisible = mBtThingCardAppearancePreciseCrop?.visibility == View.VISIBLE
@@ -3737,6 +3738,7 @@ class ThingsActivity :
 
     /** 返回外观设置页（页内导航，不提交，取消/确认仍代表整个面板会话）。 */
     private fun showThingCardAppearanceBodyPage() {
+        hideThingCardAppearanceKeyboard()
         mTcaOnColorPage = false
         applyThingCardAppearancePageVisibility()
         requestThingCardAppearancePanelSpaceUpdate()
@@ -4365,6 +4367,33 @@ class ThingsActivity :
             lp.gravity = targetGravity
             panel.layoutParams = lp
         }
+    }
+
+    private fun updateThingCardAppearancePanelMaxHeight() {
+        val panel = mThingCardAppearancePanel as? ScrollAwareColumn ?: return
+        val parent = panel.parent as? View ?: return
+        val lp = panel.layoutParams as? FrameLayout.LayoutParams ?: return
+        val parentHeight = parent.height
+        if (parentHeight <= 0) {
+            panel.maxMeasuredHeightPx = 0
+            return
+        }
+
+        val topReserved = (mActionbar?.bottom ?: 0) + getThingCardListItemSpacingPx()
+        val availableHeight = parentHeight - topReserved - lp.topMargin - lp.bottomMargin
+        val cardReserved = getThingCardAppearancePanelCardReserveHeight(availableHeight)
+        val maxHeight = availableHeight - cardReserved
+        panel.maxMeasuredHeightPx = max(0, maxHeight)
+    }
+
+    private fun getThingCardAppearancePanelCardReserveHeight(availableHeight: Int): Int {
+        if (availableHeight <= 0) return 0
+
+        val spacing = getThingCardListItemSpacingPx()
+        val peekHeight = resources.getDimensionPixelSize(
+                R.dimen.thing_card_appearance_panel_card_peek_height
+        )
+        return min(availableHeight, peekHeight + spacing)
     }
 
     private fun getThingCardAppearanceConstrainedWidth(availableWidth: Int): Int {
@@ -5399,6 +5428,126 @@ class ThingsActivity :
         }
     }
 
+    private fun hideThingCardAppearanceKeyboard() {
+        KeyboardUtil.hideKeyboard(
+                window,
+                currentFocus ?: mEtFolderCardAppearanceName ?: mThingCardAppearancePanel
+        )
+    }
+
+    private fun showThingCardAppearancePanelAnimated(panel: View) {
+        val token = ++mThingCardAppearancePanelVisibilityToken
+        val wasVisible = panel.visibility == View.VISIBLE
+        panel.animate().cancel()
+        updateThingCardAppearancePanelWidth()
+        updateThingCardAppearancePanelMaxHeight()
+        if (!wasVisible) {
+            panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
+            panel.visibility = View.VISIBLE
+        }
+
+        if (!panel.isLaidOut || panel.height <= 0) {
+            panel.post {
+                startThingCardAppearancePanelInAnimation(panel, token, !wasVisible)
+            }
+        } else {
+            startThingCardAppearancePanelInAnimation(panel, token, !wasVisible)
+        }
+    }
+
+    private fun startThingCardAppearancePanelInAnimation(
+        panel: View,
+        token: Int,
+        fromHidden: Boolean
+    ) {
+        if (token != mThingCardAppearancePanelVisibilityToken) return
+        if (panel.visibility != View.VISIBLE) {
+            panel.visibility = View.VISIBLE
+        }
+        if (fromHidden) {
+            panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
+        } else if (abs(panel.translationY) <= 0.5f) {
+            panel.translationY = 0f
+            return
+        }
+        panel.animate()
+                .translationY(0f)
+                .setDuration(THING_CARD_APPEARANCE_PANEL_ANIM_DURATION_MS)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction {
+                    if (token == mThingCardAppearancePanelVisibilityToken) {
+                        panel.translationY = 0f
+                    }
+                }
+                .start()
+    }
+
+    private fun hideThingCardAppearancePanelAnimated(
+        panel: View,
+        onHidden: () -> Unit
+    ) {
+        val token = ++mThingCardAppearancePanelVisibilityToken
+        panel.animate().cancel()
+        if (panel.visibility != View.VISIBLE) {
+            panel.translationY = 0f
+            onHidden()
+            return
+        }
+        if (!panel.isLaidOut || panel.height <= 0) {
+            panel.post {
+                startThingCardAppearancePanelOutAnimation(panel, token, onHidden)
+            }
+        } else {
+            startThingCardAppearancePanelOutAnimation(panel, token, onHidden)
+        }
+    }
+
+    private fun startThingCardAppearancePanelOutAnimation(
+        panel: View,
+        token: Int,
+        onHidden: () -> Unit
+    ) {
+        if (token != mThingCardAppearancePanelVisibilityToken) return
+        val hiddenTranslationY = getThingCardAppearancePanelHiddenTranslationY(panel)
+        if (hiddenTranslationY <= 0f) {
+            completeThingCardAppearancePanelHidden(panel, token, onHidden)
+            return
+        }
+        panel.animate()
+                .translationY(hiddenTranslationY)
+                .setDuration(THING_CARD_APPEARANCE_PANEL_ANIM_DURATION_MS)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction {
+                    completeThingCardAppearancePanelHidden(panel, token, onHidden)
+                }
+                .start()
+    }
+
+    private fun completeThingCardAppearancePanelHidden(
+        panel: View,
+        token: Int,
+        onHidden: () -> Unit
+    ) {
+        if (token != mThingCardAppearancePanelVisibilityToken) return
+        panel.visibility = View.GONE
+        panel.translationY = 0f
+        onHidden()
+    }
+
+    private fun getThingCardAppearancePanelHiddenTranslationY(panel: View): Float {
+        val lp = panel.layoutParams as? ViewGroup.MarginLayoutParams
+        val measuredHeight = max(panel.height, panel.measuredHeight)
+        val parentHeight = (panel.parent as? View)?.height ?: 0
+        val hiddenHeight = if (measuredHeight > 0) {
+            measuredHeight + (lp?.bottomMargin ?: 0)
+        } else if (parentHeight > 0) {
+            parentHeight
+        } else {
+            DisplayUtil.getScreenSize(this).y
+        }
+        return max(1, hiddenHeight).toFloat()
+    }
+
     private fun hideThingCardAppearancePanel() {
         mThingCardAppearancePanelSpaceUpdateToken++
         mThingCardAppearanceVisibilityScrollToken++
@@ -5409,19 +5558,21 @@ class ThingsActivity :
         mThingCardAppearanceSourcePicker?.dismiss()
         mThingCardAppearanceSourcePicker = null
         val wasShowing = isThingCardAppearancePanelShowing()
-        if (isThingCardAppearancePanelShowing()) {
-            KeyboardUtil.hideKeyboard(window, currentFocus ?: mEtFolderCardAppearanceName)
-            mThingCardAppearancePanel!!.visibility = View.GONE
-            mRecyclerView!!.setPadding(
-                    mRecyclerView!!.paddingLeft,
-                    mRecyclerView!!.paddingTop,
-                    mRecyclerView!!.paddingRight,
-                    mThingCardAppearancePanelOriginalPaddingBottom
-            )
-        }
-        mAdapter!!.setThingCardSurfaceAvailableHeight(0)
         if (wasShowing) {
-            requestActivityHeaderStateRefresh()
+            hideThingCardAppearanceKeyboard()
+            hideThingCardAppearancePanelAnimated(mThingCardAppearancePanel!!) {
+                mRecyclerView!!.setPadding(
+                        mRecyclerView!!.paddingLeft,
+                        mRecyclerView!!.paddingTop,
+                        mRecyclerView!!.paddingRight,
+                        mThingCardAppearancePanelOriginalPaddingBottom
+                )
+                mAdapter!!.setThingCardSurfaceAvailableHeight(0)
+                requestActivityHeaderStateRefresh()
+            }
+        } else {
+            mAdapter!!.setThingCardSurfaceAvailableHeight(0)
+            mThingCardAppearancePanel?.translationY = 0f
         }
     }
 
@@ -5459,6 +5610,7 @@ class ThingsActivity :
         }
 
         updateThingCardAppearancePanelWidth()
+        updateThingCardAppearancePanelMaxHeight()
         val panelHeight = mThingCardAppearancePanel!!.height
         if (panelHeight <= 0) {
             return
@@ -5478,16 +5630,21 @@ class ThingsActivity :
 
     private fun requestThingCardAppearancePanelSpaceUpdate() {
         val panel = mThingCardAppearancePanel ?: return
+        updateThingCardAppearancePanelMaxHeight()
         val token = ++mThingCardAppearancePanelSpaceUpdateToken
         panel.post {
+            updateThingCardAppearancePanelMaxHeight()
             updateThingCardAppearancePanelSpaceIfCurrent(token)
             panel.postOnAnimation {
+                updateThingCardAppearancePanelMaxHeight()
                 updateThingCardAppearancePanelSpaceIfCurrent(token)
             }
             panel.postDelayed({
+                updateThingCardAppearancePanelMaxHeight()
                 updateThingCardAppearancePanelSpaceIfCurrent(token)
             }, THING_CARD_APPEARANCE_PANEL_SPACE_SETTLE_DELAY_MS)
             panel.postDelayed({
+                updateThingCardAppearancePanelMaxHeight()
                 updateThingCardAppearancePanelSpaceIfCurrent(token)
             }, THING_CARD_APPEARANCE_PANEL_SPACE_FINAL_DELAY_MS)
         }
@@ -10985,6 +11142,7 @@ class ThingsActivity :
         private const val FOLDER_CREATE_OUTLINE_GAP_DP = 6.0f
         private const val THING_CARD_APPEARANCE_PANEL_SPACE_SETTLE_DELAY_MS = 96L
         private const val THING_CARD_APPEARANCE_PANEL_SPACE_FINAL_DELAY_MS = 260L
+        private const val THING_CARD_APPEARANCE_PANEL_ANIM_DURATION_MS = 190L
         private const val THING_CARD_APPEARANCE_PADDING_ANIM_DURATION_MS = 160L
         private const val THING_CARD_APPEARANCE_VISIBILITY_CHECK_DELAY_MS = 72L
         private const val THING_CARD_APPEARANCE_SCROLL_RECHECK_DELAY_MS = 180L

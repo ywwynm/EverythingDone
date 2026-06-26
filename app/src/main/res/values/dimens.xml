@@ -14,6 +14,7 @@
     <dimen name="thing_card_single_surface_full_span_width">300dp</dimen>
     <dimen name="thing_card_single_surface_horizontal_margin">16dp</dimen>
     <dimen name="thing_card_appearance_max_width">480dp</dimen>
+    <dimen name="thing_card_appearance_panel_card_peek_height">36dp</dimen>
     <dimen name="doing_thing_card_vertical_margin">32dp</dimen>
     <dimen name="app_chrome_dialog_popup_corner_radius">16dp</dimen>
     <dimen name="app_chrome_dialog_title_margin_horizontal">20dp</dimen>

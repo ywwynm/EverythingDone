@@ -110,6 +110,7 @@ class ThingBackgroundEditorBottomSheet : BaseDialogFragment() {
         super.onStart()
         val window = dialog?.window ?: return
         window.setGravity(Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
+        window.setWindowAnimations(R.style.EverythingDoneAnimationBottomPanel)
         val lp = window.attributes
         lp.y = resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
         window.attributes = lp
