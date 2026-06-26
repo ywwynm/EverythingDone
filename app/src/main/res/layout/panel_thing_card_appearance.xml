@@ -41,6 +41,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="@string/thing_card_appearance_panel_title"
+            android:textAllCaps="true"
             android:textColor="@color/app_chrome_on_surface_primary"
             android:textSize="@dimen/app_chrome_dialog_title_text_size" />
 
@@ -116,6 +117,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="@string/act_adjust_color"
+            android:textAllCaps="true"
             android:textColor="@color/app_chrome_on_surface_primary"
             android:textSize="@dimen/app_chrome_dialog_title_text_size" />
 

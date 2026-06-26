@@ -880,10 +880,10 @@
     <string name="settings_group_advanced">Advanced</string>
 
     <!--group ui-->
-    <string name="settings_change_drawer_header">Drawer Header Image</string>
+    <string name="settings_change_drawer_header">Drawer header image</string>
     <string name="default_drawer_header">Default</string>
-    <string name="settings_drawer_header_choose_image">Choose Image</string>
-    <string name="settings_drawer_header_adjust_crop">Adjust Crop</string>
+    <string name="settings_drawer_header_choose_image">Choose image</string>
+    <string name="settings_drawer_header_adjust_crop">Adjust crop</string>
     <string name="drawer_header_ratio">Header Ratio</string>
     <string name="settings_app_language">Language</string>
     <string name="settings_follow_system_dark_mode">Follow system dark mode</string>

@@ -19,6 +19,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="@string/color_editor_tab_pure"
+            android:textAllCaps="true"
             android:textSize="15sp" />
 
         <TextView
@@ -28,6 +29,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="@string/color_editor_tab_gradient"
+            android:textAllCaps="true"
             android:textSize="15sp" />
 
     </LinearLayout>

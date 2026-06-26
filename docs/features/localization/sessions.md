@@ -2,6 +2,13 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-06-27 - 英文界面标题大小写与抽屉头图操作弹窗修正
+
+- 修正抽屉头图设置入口英文文案：`settings_change_drawer_header` 从 `Drawer Header Image` 改为 `Drawer header image`，遵循设置界面普通条目的句首大写规则；同时将该弹窗内的 `Choose Image` / `Adjust Crop` 调整为句首大写。
+- `fragment_two_action_picker.xml` 与 `fragment_three_action_picker.xml` 的操作单元改用统一的 `app_chrome_action_picker_cell_width=108dp`，并允许最多两行显示，避免 `Choose image` 以及其它较长语言在 100dp 图标画布宽度内贴边。
+- `fragment_thing_background_editor.xml`、`panel_thing_card_appearance.xml`、`view_thing_background_editor.xml` 的相关标题使用 `android:textAllCaps="true"`：英文下外观 panel 标题、调整颜色 panel 标题，以及颜色编辑器 `Pure` / `Gradient` tab 均显示为大写；中文等无大小写语言不受影响。
+- 验证：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`git diff --check` 仅提示仓库既有 LF/CRLF 规范化警告；已发布 debug update `202606261612`。
+
 ## 2026-06-26 - 详情颜色调整文案国际化
 
 - 将 `act_change_background` 从“改变颜色”语义改为“调整颜色”，并新增 `act_adjust_color` 给颜色编辑面板标题使用；`act_select_color` 保留“选择颜色”语义，避免影响搜索菜单。
