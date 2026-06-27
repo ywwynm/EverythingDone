@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.views.InterceptTouchCardView
 
 /**
  * Created by ywwynm on 2015/5/28.
@@ -938,11 +939,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val previewHolder = BaseThingViewHolder(view)
         val previewAdapter = FolderThingPreviewAdapter(thing, style)
         previewAdapter.onBindViewHolder(previewHolder, 0)
-        previewHolder.cv!!.setShouldInterceptTouchEvent(true)
-        previewHolder.cv.setOnClickListener {
+        configureFolderThumbnailPreviewTouch(previewHolder.cv!!) {
             mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
         }
-        previewHolder.cv.setOnLongClickListener(null)
         applyFolderThumbnailPreviewScale(previewHolder.cv, style)
         reapplyFolderThumbnailPreviewMediaCrop(previewHolder, previewAdapter, thing)
         applyFolderThumbnailPreviewElevation(previewHolder.cv)
@@ -986,14 +985,37 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         bindFolderCardSurface(previewHolder, previewFolder)
         bindFolderCardContent(previewHolder, previewEntry)
         alignFolderSummaryPreviewTitleSize(previewHolder, style)
-        previewHolder.cv!!.setShouldInterceptTouchEvent(true)
-        previewHolder.cv.setOnClickListener {
+        configureFolderThumbnailPreviewTouch(previewHolder.cv!!) {
             mOnItemTouchedListener?.onFolderThumbnailFolderClick(it, entry)
         }
-        previewHolder.cv.setOnLongClickListener(null)
         applyFolderThumbnailPreviewScale(previewHolder.cv, style)
         applyFolderThumbnailPreviewElevation(previewHolder.cv)
         return view
+    }
+
+    /**
+     * 缩略图预览卡的触摸 / 点击配置：
+     * - 普通模式：预览卡自行响应点击（打开对应记事 / 进入子文件夹）并显示自身 ripple。
+     * - 其它模式（尤其选择模式）：预览卡不消费点击、去掉自身 ripple，让触摸冒泡到外层大文件夹卡——
+     *   由文件夹卡显示整卡 ripple、按压动画并走 onItemClick（选择 / 反选该文件夹），与点击文件夹卡
+     *   空白区域完全一致。始终拦截内部触摸（setShouldInterceptTouchEvent(true)），避免预览里的清单
+     *   RecyclerView 抢走点击、阻断冒泡。进入 / 退出选择模式会整表重绑（notifyDataSetChanged），故
+     *   每次重建预览时按当前模式配置即可。
+     */
+    private fun configureFolderThumbnailPreviewTouch(
+        cv: InterceptTouchCardView,
+        onNormalClick: (View) -> Unit
+    ) {
+        cv.setShouldInterceptTouchEvent(true)
+        cv.setOnLongClickListener(null)
+        if (getCurrentMode() == ModeManager.NORMAL) {
+            cv.setOnClickListener { onNormalClick(it) }
+        } else {
+            cv.setOnClickListener(null)
+            cv.isClickable = false
+            cv.isLongClickable = false
+            cv.foreground = null
+        }
     }
 
     private fun copyFolderForSummaryPreview(folder: ThingFolder): ThingFolder {

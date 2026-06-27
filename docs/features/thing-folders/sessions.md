@@ -3104,3 +3104,12 @@ Publish:
 - Verification：`:app:assembleDebug` 通过。未使用 adb，待真机验证。
 - 发布（含错误修复，已被取代）：与"大文件夹正在做图文不显示"的**错误**修复一起发布，更新码 `202606271018`，日志 `update-20260627181816.md`，SHA-256 `78ddf1dbea1c98b9c60e12fc01a9a8e0f3a7cc8e4c84900d6d9fd3702463182d`。该修复未生效（见 `doing-thing-organize`）。
 - 发布（真正修复）：与"大文件夹第一个正在做预览图文不显示"的**真正**修复（`InterceptTouchCardView` 只在直接子节点找蒙层，见 `doing-thing-organize`）一起，通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627182927.md"` 发布到阿里云 debug 通道，更新码 `202606271029`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271029.apk`，SHA-256 为 `b98a5a947fb6f90a9a8ec597604b3196b21310cf67c4c53b0b8277933d926e95`。
+
+## 2026-06-27 - 优化：选择模式点缩略图的 ripple 落在整张文件夹卡（改触摸冒泡）
+
+- 用户反馈：上一版（`onFolderThumbnailClick` 在 SELECTING 分支切换文件夹选中）功能没问题，但 ripple 只出现在被点的缩略图预览卡上，而不是像点击文件夹空白区域那样、ripple 出现在整张大文件夹卡上。
+- 根因：预览卡自身可点击、自带 `selectable_item_background` foreground，点击被预览卡消费 → ripple 在预览卡上，触摸到不了外层文件夹卡。
+- 改法（`ThingsAdapter.configureFolderThumbnailPreviewTouch`，记事预览与子文件夹预览共用）：普通模式预览卡照旧可点击 + 自身 ripple（打开记事 / 进子文件夹）；**其它模式（尤其选择模式）把预览卡设为不可点击、`foreground=null` 去掉自身 ripple，但仍 `setShouldInterceptTouchEvent(true)`**（挡住预览内清单 RecyclerView 抢触摸）。于是触摸冒泡到外层文件夹卡 → 文件夹卡显示整卡 ripple + 按压动画 + 走 `onItemClick`（选择 / 反选），与点空白区域完全一致。进入 / 退出选择模式 `notifyDataSetChanged` 整表重绑，预览按当前模式重建，故配置时机正确。
+- 同步回退上一版 `ThingsActivity` 的改动：`onFolderThumbnailClick` / `onFolderThumbnailFolderClick` 回到"仅普通模式"，删除 `toggleContainingFolderSelectionForThumbnail`（选择由冒泡到文件夹卡处理，不再需要）。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待平板真机验证。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627184901.md"` 发布到阿里云 debug 通道，更新码 `202606271049`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271049.apk`，SHA-256 为 `dd563fc480699a1546b30d855a13468593c3316fde22778f6a275dda00615cfe`。尚未提交，待真机确认后提交。

@@ -7445,16 +7445,9 @@ class ThingsActivity :
         }
 
         override fun onFolderThumbnailClick(v: View?, thing: Thing) {
-            if (v == null) {
-                return
-            }
-            // 选择模式下，点击大文件夹缩略图里的预览记事 = 选择 / 反选这个文件夹，
-            // 与点击文件夹卡片空白区域一致。
-            if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
-                toggleContainingFolderSelectionForThumbnail(v)
-                return
-            }
-            if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
+            // 仅普通模式会到这里：选择 / 移动等模式下，预览卡在 ThingsAdapter 里被设为不可点击，
+            // 触摸冒泡到外层文件夹卡处理（选择 / 反选 + 整卡 ripple），与点击空白区域一致。
+            if (v == null || mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
                 return
             }
             dismissSnackbars()
@@ -7487,31 +7480,13 @@ class ThingsActivity :
             v: View?,
             entry: ThingListEntry.FolderEntry
         ) {
-            if (v == null) {
-                return
-            }
-            // 选择模式下，点击大文件夹缩略图里的预览子文件夹 = 选择 / 反选外层这个文件夹，
-            // 与点击文件夹卡片空白区域一致。
-            if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
-                toggleContainingFolderSelectionForThumbnail(v)
-                return
-            }
-            if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
+            // 同 onFolderThumbnailClick：仅普通模式会到这里。
+            if (v == null || mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
                 return
             }
             dismissSnackbars()
             KeyboardUtil.hideKeyboard(currentFocus)
             openThingFolder(entry)
-        }
-
-        // 把大文件夹缩略图里某个预览所在的外层文件夹卡，按"点击空白区域"的逻辑选择 / 反选。
-        // 缩略图预览是文件夹卡的子 View、并非 RecyclerView 的列表项，这里向上找到承载它的列表项
-        // ViewHolder，取其列表位置后复用 onItemClick 的文件夹选中分支，保证行为与点空白区域完全一致。
-        private fun toggleContainingFolderSelectionForThumbnail(thumbnailView: View) {
-            val holder = mRecyclerView?.findContainingViewHolder(thumbnailView) ?: return
-            val listPosition = holder.bindingAdapterPosition
-            if (listPosition == RecyclerView.NO_POSITION) return
-            onItemClick(holder.itemView, listPosition)
         }
 
         override fun onItemLongClick(v: View?, listPosition: Int): Boolean {
