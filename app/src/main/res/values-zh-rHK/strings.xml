@@ -1013,6 +1013,7 @@
     <string name="cd_open_drawer">打開導航抽屜</string>
     <string name="cd_close_drawer">關閉導航抽屜</string>
     <string name="cd_quit_searching">離開搜索界面</string>
+    <string name="cd_back_parent_folder">返回上級資料夾</string>
 
     <!--thing card or app widget-->
     <string name="cd_habit_unfinished">未完成</string>
@@ -1264,11 +1265,17 @@
 
     <!-- Home action wording -->
     <string name="scope_includes_subfolders">（包含所有子資料夾中的記事）</string>
-    <string name="folder_op_scope_only_type">本次只作用於目前類型篩選（%1$s）的記事，其他類型不受影響。</string>
+    <string name="folder_op_scope_only_type">本次操作只作用於目前類型篩選（%1$s）的記事，其他類型的記事不受影響</string>
+    <string name="folder_op_scope_only_search">本次操作只作用於目前搜尋範圍內的記事，其他不在搜尋範圍內的記事不受影響</string>
+    <string name="folder_op_scope_type_and_search">本次操作只作用於目前類型篩選（%1$s）和搜尋範圍內的記事，其他類型的記事、不在搜尋範圍內的記事不受影響</string>
     <string name="folder_op_reminder_subtree">此操作作用於整個資料夾子樹，包含目前%1$s下看不到的內容。</string>
     <string name="folder_op_scope_status">狀態篩選（%1$s）</string>
     <string name="folder_op_scope_type">類型篩選（%1$s）</string>
     <string name="folder_op_scope_both">狀態和類型篩選（%1$s、%2$s）</string>
+    <string name="folder_op_scope_search">搜尋範圍</string>
+    <string name="folder_op_scope_status_search">狀態篩選（%1$s）和搜尋範圍</string>
+    <string name="folder_op_scope_type_filter_search">類型篩選（%1$s）和搜尋範圍</string>
+    <string name="folder_op_scope_status_type_search">狀態和類型篩選（%1$s、%2$s）以及搜尋範圍</string>
     <string name="home_state_target_current_folder">目前資料夾</string>
     <string name="home_state_target_selected_folders">所選資料夾</string>
     <string name="home_state_target_selected_items">所選項目</string>

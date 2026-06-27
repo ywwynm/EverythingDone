@@ -1,5 +1,31 @@
 # Thing Folders Sessions
 
+## 2026-06-27 - 结构操作确认弹窗补充搜索范围提醒
+
+- 用户反馈：搜索结果中对文件夹执行解散、永久删除等结构操作时，确认弹窗只提示状态/类型筛选下看不到的内容，没有提示搜索范围下看不到的内容。
+- 修复 `ThingsActivity.hiddenScopeClauseForStructural(...)`：当 `App.isSearching` 为 true 时，把“搜索范围”合并进结构操作隐藏范围短语。
+- 新增资源短语 `folder_op_scope_search`、`folder_op_scope_status_search`、`folder_op_scope_type_filter_search`、`folder_op_scope_status_type_search`，同步默认英文、简中、繁中。最终仍复用同一句提示，不额外追加段落。
+- 同步更新 `selection-batch-actions` 与 `thing-folders` 决策文档和文案矩阵，明确内容类操作与结构类操作在搜索态下语义相反：前者仅处理搜索命中的记事，后者作用于整个子树并警告搜索范围外内容。
+- 验证：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627140824.md"` 发布到阿里云 debug 通道，更新码 `202606270608`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270608.apk`，SHA-256 为 `936bc02d07e58ee5154b6e9ca41fbd19687fdf46100388d6a3657d8c792c9aff`。
+
+## 2026-06-27 - 修复搜索结果只有文件夹时误显示“找不到对象”
+
+- 诊断确认：首页搜索文件夹标题或颜色命中后，文件夹结果已经进入 `mThingListEntries`，但搜索 no-result 显隐仍按 `mThings` 判空；`mThings` 只包含 header 和记事，所以“只有文件夹命中”的搜索结果会被误判为空。
+- `ThingsActivity.handleSearchResults()` 及其延迟隐藏回调改用 `ThingManager.hasVisibleProjectionContent()` 判断搜索结果是否为空，文件夹卡片和记事卡片都算作可见结果。
+- `ThingManager` 记录当前搜索关键词和颜色过滤条件；搜索态下完成、删除、恢复、撤销等后续列表重建继续按当前搜索范围生成文件夹投影，避免搜索范围外的文件夹影响 no-result 判断。
+- 同步补充 `home-empty-state` 与 `thing-folders` 决策文档。
+- 验证：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627140133.md"` 发布到阿里云 debug 通道，更新码 `202606270601`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270601.apk`，SHA-256 为 `0604f87b9760fab3616d3b14e9786e73b0bb894f7beef58610770f3fe0485dfc`。
+
+## 2026-06-27 - 首页搜索结果支持文件夹标题和颜色命中
+
+- 修复首页搜索模式中文件夹自身不参与搜索的问题：`ThingFolderDAO` 现在会把文件夹标题和文件夹背景色纳入搜索结果判断，关键词与颜色同时存在时按 AND 组合。
+- 文件夹卡片仍保留原有递归记事计数；若只是文件夹自身标题或颜色命中，卡片可以作为搜索结果出现，但不会把夹中未命中的记事视为搜索命中。
+- 修复搜索结果中长按文件夹无法进入选择模式的问题：搜索中长按文件夹直接进入 selecting mode，不走正在进行列表的拖拽移动分支。
+- 验证：`git diff --check` 仅有仓库既有 LF/CRLF 提示；`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627135127.md"` 发布到阿里云 debug 通道，更新码 `202606270551`；远端 `latest.json` 已确认指向 `app-debug-202606270551.apk`，SHA-256 为 `ea8c87ea75bee8ecfbc926b9f76286b2f16424e556c42911daaac00ef3f8c898`。
+
 ## 2026-06-27 - 大文件夹缩略图内文件夹预览标题字号对齐
 
 - 诊断确认普通记事 preview 走 `FolderThingPreviewAdapter.getThingCardTitleTextSize(...) = FolderThingPreviewStyle.titleTextSize`，再经过 thumbnail `textScale` 缩放；child Folder preview 则复用正常 Folder Card header，基准字号仍是 16sp，所以最终看起来更大。
@@ -3019,3 +3045,45 @@ Publish:
 > 理解错误。已纠正为"单选 1 项用该项颜色、多选用当前文件夹色（根目录 accent 渐变）"，权威记录见
 > [selection-batch-actions/decisions.md](../selection-batch-actions/decisions.md) 与
 > [selection-batch-actions/sessions.md](../selection-batch-actions/sessions.md) 的 2026-06-25 条目。
+
+## 2026-06-27 - 搜索结果打开文件夹后保留搜索条件
+
+- 用户反馈：在搜索结果里打开文件夹后，搜索文本筛选和颜色筛选应继续生效；返回上级也应保持搜索模式、文本筛选和颜色筛选。
+- 诊断：`ThingManager.openFolder()`、`openParentFolder()`、`navigateToFolderPathIndex()` 会直接调用 `loadThings()`，导致搜索态的 `keyword` 和 `color` 投影被清空；`ThingsActivity` 的返回键逻辑也在搜索态优先退出搜索，无法先返回上级文件夹。
+- 修改：`ThingManager` 的目录导航方法新增 `loadThingsNow` 默认参数，默认保持旧行为；搜索态文件夹导航改为先更新 `ThingListProjection`，再由 `ThingsActivity.loadThingsForCurrentSearchState()` 使用当前搜索框文本和颜色重新查询。系统返回键、左上角导航按钮、文件夹路径段跳转都复用同一刷新路径。
+- 交互：搜索态在非根目录返回时先返回上级文件夹，回到根目录后才退出搜索；导航按钮 content description 会在“返回上级文件夹”和“离开搜索界面”之间切换。
+- Verification：`:app:assembleDebug` 通过，无 error / warning。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627142044.md"` 发布到阿里云 debug 通道，更新码 `202606270621`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270621.apk`，SHA-256 为 `72bee171e9c03eb081981ddeb6e82efa5217512e099c345fe8ee6a46c39faf60`。
+
+## 2026-06-27 - 修复搜索态长按拖拽/选择模式回归
+
+- 用户反馈两类问题：搜索态长按记事并释放进入选择模式后，源记事没有被选中，其他记事也无法选择但文件夹可选；搜索态长按记事虽然能拖动，却不能拖到记事上创建文件夹、不能拖到文件夹上移动进去；长按文件夹则完全不能拖动，只会直接进入选择模式。
+- 诊断：上一轮为修复“搜索结果中文件夹长按无法进入选择模式”时，把搜索态文件夹长按直接导向选择模式，绕开了原本“长按先拖拽、原地释放再选择”的 overlay drag 语义。另一个风险是选择模式点击记事时仍提前要求 `thingIndex` 有效；该索引只服务于打开详情/更新，不应阻止选择态切换。拖拽创建/移动文件夹后的管理层方法还会直接 `loadThings()`，导致搜索条件被清空。
+- 修改：搜索态正在进行视图下，文件夹和记事长按都先进入 overlay drag；释放进入选择模式时按 stable id 再次设置源项选中并刷新菜单；选择模式点击记事不再依赖详情页索引；拖拽创建文件夹、移动记事到文件夹、移动文件夹到文件夹的提交路径改为先不 reload，再按当前搜索文本和颜色重建列表。
+- Verification：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627144123.md"` 发布到阿里云 debug 通道，更新码 `202606270642`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270642.apk`，SHA-256 为 `f15004bd34ad3f29c1c7dec099c62bc4270842be90121bca69647b6b216a3fbf`。
+
+## 2026-06-27 - 修复刚打开搜索模式时底层数据为空
+
+- 用户补充复现条件：问题只出现在点击搜索按钮后、尚未输入搜索文本且颜色仍为默认全部颜色的初始搜索态；此时进入文件夹再返回会恢复正常。
+- 诊断：`toggleSearching(false)` 进入搜索态时会 `mThingManager.getThings().clear()`，但不会同步清空或重建 `mThingListEntries`。Adapter 优先显示 `mThingListEntries`，所以 UI 上仍看到旧卡片；选择计数、菜单、拖拽投放源记事却依赖已被清空的 `mThings`，导致“卡片视觉上像被选中，但 toolbar 计数和菜单不变”“拖拽无法投放到记事/文件夹”。
+- 修改：进入搜索模式时不再清空 `mThings`，而是立即用当前搜索框文本和颜色执行一次 `mThingManager.searchThings(...)`。在空文本 + 全部颜色下，这会建立真实的“当前范围全部结果”搜索投影，使 `mThings` 与 `mThingListEntries` 一致。
+- Verification：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627145144.md"` 发布到阿里云 debug 通道，更新码 `202606270654`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270654.apk`，SHA-256 为 `ff48cdd6c1d9f50cebed3d2ec80a54be9b7fd1d954d1365dc0a7d321b9243260`。
+
+## 2026-06-27 - 根据 review 修复搜索态批量操作刷新泄漏
+
+- 用户转述 Claude code review，要求不要直接相信。逐条核对后确认 P1/P2/P3 中的刷新一致性问题成立：含文件夹的状态操作、纯记事恢复、批量移动到文件夹、批量置顶/私密的文件夹分支，都可能经由 manager 内部 `loadThings()` 清空 `mEntryFilterKeyword` / `mEntryFilterColor`，导致搜索框仍显示筛选但列表跳回当前文件夹全量内容。
+- 不采纳的项：`enterSelectionMode()` 重复 `setListEntrySelected(...)` 是幂等冗余，保留以覆盖 `toSelectingMode(...)` 可能重置选择状态的情况；DAO SQL 搜索与内存搜索剥离 checklist/private signal 的差异目前是维护风险，未证实为实际可达 bug。
+- 修改：`refreshHomeAfterScopeStateChange()` 改为走 `loadThingsForCurrentSearchState()` + `updateEmptyStateForCurrentSearchState()`；`moveSelectedThingsIntoFolder`、`toggleFolderSticky`、`updateFolderPrivate` 增加默认 `reload` 参数，搜索感知入口传 `reload=false` 后由 Activity 统一恢复当前搜索投影；移动到文件夹视觉路径在计算新列表形状前先重建搜索投影。
+- 追加修正：当前文件夹/单文件夹范围内容操作在搜索态下也透传当前搜索文本与颜色筛选，确认弹窗通过 `searchScoped = App.isSearching` 合并搜索范围提醒。
+- Verification：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627155027.md"` 发布到阿里云 debug 通道，更新码 `202606270752`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270752.apk`，SHA-256 为 `ddc0ac12c627cf366610a4c1e47796fbed330a55d26f244cd12930c7bbc25152`。
+
+## 2026-06-27 - 清理搜索态批量操作冗余刷新
+
+- 用户继续转述两个 nitpick：状态类批量操作在 manager 内部 `loadThings()` 后，Activity 又按搜索态 `searchThings()`；批量置顶记事时每个记事都会 `rebuildThingListEntries()`，最后又统一刷新；`enterSelectionMode()` 仍有两次选中设置。
+- 评估：都可以解决，且只要保留最终 Activity 统一刷新，不会改变操作对象、搜索范围或弹窗语义。
+- 修改：状态类 manager 方法新增默认 `reload` 参数，Activity 中马上调用 `refreshHomeAfterScopeStateChange()` 的路径传 `reload=false`；`restoreThingsToPreTrashState()` 与 `trashThingsPreservingState()` 内部合并为最多一次 reload；批量置顶记事改为每项只更新 location，最后统一 `rebuildCurrentThingListEntries()`；`enterSelectionMode()` 删除 `toSelectingMode(...)` 前的重复选中，只保留模式切换后的选中。
+- Verification：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627161550.md"` 发布到阿里云 debug 通道，更新码 `202606270816`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270816.apk`，SHA-256 为 `1eccfead32d427f39f23fb2cc9105d8d0ed58676e366266989e00e8d27b51ee2`。

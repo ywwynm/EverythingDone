@@ -1,6 +1,30 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606270220`.
+Latest published debug update: `202606270816`.
+
+## 2026-06-27 - 清理搜索态批量操作中的冗余刷新
+
+详细发布日志见 `docs/features/thing-folders/debug-updates/update-20260627161550.md`。用户继续转述两个 review nitpick：状态类批量/范围操作中 manager 先 `loadThings()`，Activity 又按搜索条件 `searchThings()`；批量置顶记事逐项 `rebuildThingListEntries()` 后又统一刷新；`enterSelectionMode()` 仍有两次 `setListEntrySelected(...)`。评估后确认都可以安全清理，前提是最终仍由 Activity 的统一刷新路径负责恢复搜索投影。
+
+本次让状态类 manager 方法增加默认 `reload` 参数，Activity 中马上调用 `refreshHomeAfterScopeStateChange()` 的路径传 `reload=false`；`restoreThingsToPreTrashState(...)` 与 `trashThingsPreservingState(...)` 内部多组状态变更后最多 reload 一次；批量置顶记事改为逐项只更新 location，最后统一 `rebuildCurrentThingListEntries()`；`enterSelectionMode(...)` 删除模式切换前的重复选中，保留 `toSelectingMode(...)` 之后的选中。普通调用默认 `reload=true`，搜索态最终仍按当前文本和颜色刷新一次，选择范围、操作对象、弹窗文案不变。验证：`:app:assembleDebug` 通过，`git diff --check` 通过，未使用 adb。已发布 debug update `202606270816`，远端 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270816.apk`，SHA-256 为 `1eccfead32d427f39f23fb2cc9105d8d0ed58676e366266989e00e8d27b51ee2`。
+
+Previous published debug update: `202606270752`.
+
+## 2026-06-27 - 修复搜索态批量操作后跳出搜索结果
+
+详细发布日志见 `docs/features/thing-folders/debug-updates/update-20260627155027.md`。用户转述 Claude code review，要求核对后再决定是否修改。逐项检查后确认 review 的核心刷新问题成立：搜索态含文件夹的状态操作、纯记事恢复、批量移动到文件夹、批量置顶/私密等路径，部分会经由 `ThingManager.loadThings()` 清空 `mEntryFilterKeyword` 和 `mEntryFilterColor`，让搜索框仍显示原筛选但列表跳回当前文件夹全量内容；搜索结果被操作清空时也可能走首页空状态而不是搜索 no-result。
+
+本次修复让 `refreshHomeAfterScopeStateChange()` 先按当前搜索态重建列表，再刷新 UI 与空状态；给 `moveSelectedThingsIntoFolder(...)`、`toggleFolderSticky(...)`、`updateFolderPrivate(...)` 增加默认 `reload` 参数，批量/搜索感知入口传 `reload=false`，由 Activity 统一调用 `loadThingsForCurrentSearchState()` 恢复搜索投影；移动到文件夹视觉刷新路径在计算新列表形状前先重建搜索投影。当前文件夹/单文件夹范围内容操作也会在搜索态下透传当前搜索文本和颜色筛选，并在确认弹窗中合并搜索范围提醒。未改 `enterSelectionMode()` 的幂等重复选中设置，也未改 DAO SQL 与内存搜索剥离 signal 的理论维护风险。验证：`:app:assembleDebug` 通过，`git diff --check` 通过，未使用 adb。已发布 debug update `202606270752`，远端 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270752.apk`，SHA-256 为 `ddc0ac12c627cf366610a4c1e47796fbed330a55d26f244cd12930c7bbc25152`。
+
+Previous published debug update: `202606270654`.
+
+## 2026-06-27 - 修复刚打开搜索模式时底层数据为空
+
+详细发布日志见 `docs/features/thing-folders/debug-updates/update-20260627145144.md`。用户补充复现条件：问题只出现在点击搜索按钮后、尚未输入搜索文本且颜色仍为默认全部颜色的初始搜索态；此时拖拽无法创建/加入文件夹，原地释放进入选择模式后记事卡片视觉上变化但 toolbar 计数和 contextual menu 不更新；进入文件夹再返回会恢复正常。
+
+诊断确认 `ThingsActivity.toggleSearching(false)` 进入搜索态时清空了 `mThings`，但 Adapter 优先使用的 `mThingListEntries` 仍保留原列表，因此 UI 可见卡片与底层搜索集合不一致。选择计数、菜单和拖拽投放源记事查找依赖 `mThings`，所以初始搜索态下记事相关操作失效。修复后进入搜索模式不再清空 `mThings`，而是立刻按当前搜索框文本和颜色执行 `ThingManager.searchThings(...)`；空文本 + 全部颜色会建立真实的当前范围全部结果搜索投影，并在搜索态开启后调用 `handleSearchResults()` 同步 no-result 状态。验证：`:app:assembleDebug` 通过，`git diff --check` 通过，未使用 adb。已发布 debug update `202606270654`，远端 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270654.apk`，SHA-256 为 `ff48cdd6c1d9f50cebed3d2ec80a54be9b7fd1d954d1365dc0a7d321b9243260`。
+
+Previous published debug update before this entry: `202606270220`.
 
 ## 2026-06-27 - 短列表颜色面板下选中卡片顶部对齐
 

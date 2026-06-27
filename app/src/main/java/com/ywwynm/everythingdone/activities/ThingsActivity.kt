@@ -2530,23 +2530,13 @@ class ThingsActivity :
                         mModeManager!!.backNormalMode(0)
                         return
                     } else if (App.isSearching) {
+                        if (openParentFolderForCurrentSearchState()) {
+                            return
+                        }
                         toggleSearching(true)
                         return
                     }
-                    val shouldRestoreParentScroll = !mThingManager!!.getProjection().isRoot()
-                    if (shouldRestoreParentScroll) {
-                        saveCurrentProjectionScrollState()
-                    }
-                    if (mThingManager!!.openParentFolder()) {
-                        clearOperationEmptyState()
-                        val parentProjectionKey = mThingManager!!.getProjection().key()
-                        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
-                        mAdapter!!.notifyDataSetChanged()
-                        updateHomeEmptyState()
-                        refreshActivitySurfaceAndHeader()
-                        restoreProjectionScrollStateOrTop(parentProjectionKey)
-                        updateDrawerFolderItems()
-                        invalidateOptionsMenu()
+                    if (openParentFolderForCurrentSearchState()) {
                         return
                     }
                     // At root: if the status/type filter isn't the default (正在进行 +
@@ -6572,6 +6562,31 @@ class ThingsActivity :
         handleSearchResults()
     }
 
+    private fun loadThingsForCurrentSearchState() {
+        if (App.isSearching) {
+            mHomeEmptyState?.visibility = View.GONE
+            mThingManager!!.searchThings(mEtSearch!!.text.toString(), mColorPicker!!.getPickedColor())
+        } else {
+            mThingManager!!.loadThings()
+        }
+    }
+
+    private fun updateEmptyStateForCurrentSearchState() {
+        if (App.isSearching) {
+            handleSearchResults()
+        } else {
+            updateHomeEmptyState()
+        }
+    }
+
+    private fun currentSearchKeywordForScope(): String? {
+        return if (App.isSearching) mEtSearch?.text?.toString() else null
+    }
+
+    private fun currentSearchColorForScope(): Int {
+        return if (App.isSearching) mColorPicker?.getPickedColor() ?: 0 else 0
+    }
+
     private fun setDrawer() {
         mDrawerHeader!!.updateTexts()
         val toggle: ActionBarDrawerToggle = object : ActionBarDrawerToggle(
@@ -6699,6 +6714,16 @@ class ThingsActivity :
         }
     }
 
+    private fun updateHomeNavigationContentDescription() {
+        val descriptionRes = when {
+            App.isSearching && mThingManager?.getProjection()?.isRoot() == false ->
+                R.string.cd_back_parent_folder
+            App.isSearching -> R.string.cd_quit_searching
+            else -> R.string.cd_open_drawer
+        }
+        mActionbar?.setNavigationContentDescription(descriptionRes)
+    }
+
     private fun changeToStatus(newStatus: Int, updateDrawerItem: Boolean) {
         finishNewItemShiningBorderAnimationIfNeeded()
         clearOperationEmptyState()
@@ -6818,7 +6843,7 @@ class ThingsActivity :
                     mThingManager!!.deleteFolderForever(folder)
                 }
                 if (selectedThings.isNotEmpty()) {
-                    mThingManager!!.deleteThingsForever(selectedThings)
+                    mThingManager!!.deleteThingsForever(selectedThings, reload = false)
                 }
                 exitSelectingModeIfNeeded()
                 refreshHomeAfterFolderUpdated()
@@ -6843,7 +6868,8 @@ class ThingsActivity :
             HomeActionWordingHelper.StateTarget.SELECTED_THINGS,
             actionable.size,
             includesSubfolders = false,
-            excludesDoing = excludesDoing
+            excludesDoing = excludesDoing,
+            searchScoped = App.isSearching
         )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
@@ -6856,7 +6882,7 @@ class ThingsActivity :
                 if (mApp!!.getStatus() == Def.ThingStatus.DELETED &&
                     stateAfter == Thing.UNDERWAY
                 ) {
-                    mThingManager!!.restoreTrashedThings(selectedThings)
+                    mThingManager!!.restoreTrashedThings(selectedThings, reload = false)
                     refreshHomeAfterScopeStateChange()
                 } else {
                     handleUpdateStates(stateAfter)
@@ -6872,9 +6898,13 @@ class ThingsActivity :
         selectedFolders: List<ThingFolder>
     ) {
         val status = mApp!!.getStatus()
+        val searchKeyword = currentSearchKeywordForScope()
+        val searchColor = currentSearchColorForScope()
         val folderContent = ArrayList<Thing>()
         for (folder in selectedFolders) {
-            folderContent.addAll(collectFolderScopeThings(folder, status, stateAfter))
+            folderContent.addAll(
+                collectFolderScopeThings(folder, status, stateAfter, searchKeyword, searchColor)
+            )
         }
         val rawUnion = ArrayList<Thing>(selectedThings)
         rawUnion.addAll(folderContent)
@@ -6901,7 +6931,8 @@ class ThingsActivity :
             union.size,
             includesSubfolders,
             mThingManager!!.getActiveTypeFilterMask(),
-            excludesDoing
+            excludesDoing,
+            searchScoped = App.isSearching
         )
         val adf = AlertDialogFragment()
         adf.setTitleBackground(background)
@@ -6923,21 +6954,25 @@ class ThingsActivity :
 
     /** In-scope Things contributed by one selected Folder for the given verb. */
     private fun collectFolderScopeThings(
-        folder: ThingFolder, status: Int, stateAfter: Int
+        folder: ThingFolder,
+        status: Int,
+        stateAfter: Int,
+        keyword: String?,
+        color: Int
     ): List<Thing> {
         return when {
             stateAfter == Thing.FINISHED ->
-                mThingManager!!.getUnderwayThingsInScope(folder)
+                mThingManager!!.getUnderwayThingsInScope(folder, keyword, color)
             status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
-                mThingManager!!.getUnderwayThingsInScope(folder)
+                mThingManager!!.getUnderwayThingsInScope(folder, keyword, color)
             status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
-                mThingManager!!.getFinishedThingsInScope(folder)
+                mThingManager!!.getFinishedThingsInScope(folder, keyword, color)
             status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.getFinishedThingsInScope(folder)
+                mThingManager!!.getFinishedThingsInScope(folder, keyword, color)
             status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.getTrashedThingsInScope(folder)
+                mThingManager!!.getTrashedThingsInScope(folder, keyword, color)
             status == Def.ThingStatus.DELETED && stateAfter == Thing.DELETED_FOREVER ->
-                mThingManager!!.getTrashedThingsInScope(folder)
+                mThingManager!!.getTrashedThingsInScope(folder, keyword, color)
             else -> emptyList()
         }
     }
@@ -6946,17 +6981,17 @@ class ThingsActivity :
         finishNewItemShiningBorderAnimationIfNeeded()
         when {
             stateAfter == Thing.FINISHED ->
-                mThingManager!!.finishThings(union)
+                mThingManager!!.finishThings(union, reload = false)
             status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
-                mThingManager!!.trashThingsPreservingState(union)
+                mThingManager!!.trashThingsPreservingState(union, reload = false)
             status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
-                mThingManager!!.trashThings(union)
+                mThingManager!!.trashThings(union, reload = false)
             status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.unfinishThings(union)
+                mThingManager!!.unfinishThings(union, reload = false)
             status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.restoreTrashedThings(union)
+                mThingManager!!.restoreTrashedThings(union, reload = false)
             stateAfter == Thing.DELETED_FOREVER ->
-                mThingManager!!.deleteThingsForever(union)
+                mThingManager!!.deleteThingsForever(union, reload = false)
         }
         refreshHomeAfterScopeStateChange()
     }
@@ -7214,15 +7249,21 @@ class ThingsActivity :
             mActivityHeader!!.showActionbarShadow(1.0f)
             mFab!!.shrink()
 
-            mThingManager!!.getThings()!!.clear()
+            mThingManager!!.searchThings(
+                mEtSearch!!.text.toString(),
+                mColorPicker!!.getPickedColor()
+            )
+            mAdapter!!.setShouldThingsAnimWhenAppearing(false)
             mHomeEmptyState?.visibility = View.GONE
 
             DisplayUtil.playDrawerToggleAnim(mActionbar!!.navigationIcon as DrawerArrowDrawable)
         }
         mAdapter!!.notifyDataSetChanged()
         App.isSearching = !toNormal
+        updateHomeNavigationContentDescription()
         if (App.isSearching) {
             mHomeEmptyState?.visibility = View.GONE
+            handleSearchResults()
         } else {
             updateHomeEmptyState()
         }
@@ -7237,20 +7278,24 @@ class ThingsActivity :
             return
         }
         mHomeEmptyState?.visibility = View.GONE
-        if (mThingManager!!.getThings()!!.size == 1) {
+        if (isSearchResultEmpty()) {
             mTvNoResult!!.visibility = View.VISIBLE
             mRevealLayout!!.visibility = View.VISIBLE
             mTvNoResult!!.animate().alpha(1f).setDuration(360)
         } else {
             mTvNoResult!!.animate().alpha(0f).setDuration(160)
             mRevealLayout!!.postDelayed({
-                if (App.isSearching && mThingManager!!.getThings()!!.size == 1) {
+                if (App.isSearching && isSearchResultEmpty()) {
                     return@postDelayed
                 }
                 mRevealLayout!!.visibility = View.INVISIBLE
                 mTvNoResult!!.visibility = View.INVISIBLE
             }, 160)
         }
+    }
+
+    private fun isSearchResultEmpty(): Boolean {
+        return mThingManager?.hasVisibleProjectionContent() != true
     }
 
     private fun celebrateHabitGoalFinish(thing: Thing, stateBefore: Int, stateAfter: Int) {
@@ -7282,6 +7327,9 @@ class ThingsActivity :
 
         override fun onClick(v: View) {
             if (App.isSearching) {
+                if (openParentFolderForCurrentSearchState()) {
+                    return
+                }
                 toggleSearching(true)
             } else {
                 mDrawerLayout!!.openDrawer(GravityCompat.START)
@@ -7336,13 +7384,13 @@ class ThingsActivity :
             }
 
             val thing: Thing = mThingManager!!.getThingAtListPosition(listPosition) ?: return
-            val thingIndex = mThingManager!!.getThingIndexForListPosition(listPosition)
-            if (thingIndex < 0) return
 
             if (mModeManager!!.getCurrentMode() != ModeManager.SELECTING) {
                 if (mRecyclerView!!.itemAnimator!!.isRunning) {
                     return
                 }
+                val thingIndex = mThingManager!!.getThingIndexForListPosition(listPosition)
+                if (thingIndex < 0) return
 
                 if (isThingEffectivelyPrivateInCurrentProjection(thing)) {
                     val activity = this@ThingsActivity
@@ -7449,7 +7497,7 @@ class ThingsActivity :
 
             val entry = mThingManager!!.getThingListEntry(listPosition)
             if (entry is ThingListEntry.FolderEntry) {
-                if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL && !App.isSearching) {
+                if (mModeManager!!.getCurrentMode() == ModeManager.NORMAL) {
                     mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                     if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY) {
                         mModeManager!!.toMovingMode(listPosition)
@@ -7548,18 +7596,38 @@ class ThingsActivity :
     ) {
         saveCurrentProjectionScrollState()
         clearOperationEmptyState()
-        mThingManager!!.openFolder(folder.id, authenticated)
+        mThingManager!!.openFolder(folder.id, authenticated, loadThingsNow = false)
+        loadThingsForCurrentSearchState()
         expandDrawerFolderAncestors(folder.id)
         if (folder.isPrivate) {
             mExpandedDrawerFolderIds.add(folder.id)
         }
-        mAdapter!!.setShouldThingsAnimWhenAppearing(true)
+        mAdapter!!.setShouldThingsAnimWhenAppearing(!App.isSearching)
         mAdapter!!.notifyDataSetChanged()
-        updateHomeEmptyState()
+        updateEmptyStateForCurrentSearchState()
         mRecyclerView!!.scrollToPosition(0)
         refreshActivitySurfaceAndHeader()
+        updateHomeNavigationContentDescription()
         updateDrawerFolderItems()
         invalidateOptionsMenu()
+    }
+
+    private fun openParentFolderForCurrentSearchState(): Boolean {
+        if (mThingManager!!.getProjection().isRoot()) return false
+        saveCurrentProjectionScrollState()
+        if (!mThingManager!!.openParentFolder(loadThingsNow = false)) return false
+        clearOperationEmptyState()
+        val parentProjectionKey = mThingManager!!.getProjection().key()
+        loadThingsForCurrentSearchState()
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        mAdapter!!.notifyDataSetChanged()
+        updateEmptyStateForCurrentSearchState()
+        refreshActivitySurfaceAndHeader()
+        updateHomeNavigationContentDescription()
+        restoreProjectionScrollStateOrTop(parentProjectionKey)
+        updateDrawerFolderItems()
+        invalidateOptionsMenu()
+        return true
     }
 
 
@@ -7681,7 +7749,7 @@ class ThingsActivity :
             warnNoPasswordForPrivateFolder(folder)
             return false
         }
-        if (mThingManager!!.updateFolderPrivate(folder, !folder.isPrivate)) {
+        if (mThingManager!!.updateFolderPrivate(folder, !folder.isPrivate, reload = false)) {
             refreshHomeAfterFolderUpdated()
             return true
         }
@@ -7823,7 +7891,7 @@ class ThingsActivity :
                 listOf(folderMenuMoveSource(folder)),
                 targetFolderId
             ) {
-                mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)
+                mThingManager!!.moveFolderIntoFolder(folder, targetFolderId, reload = false)
             }
         }
         authenticatePrivateMoveIfNeeded(
@@ -7958,7 +8026,7 @@ class ThingsActivity :
             moveSources,
             folderId
         ) {
-            mThingManager!!.moveSelectedThingsIntoFolder(folderId)
+            mThingManager!!.moveSelectedThingsIntoFolder(folderId, reload = false)
         }
     }
 
@@ -8036,6 +8104,7 @@ class ThingsActivity :
             refreshHomeAfterFolderUpdated()
             return
         }
+        loadThingsForCurrentSearchState()
 
         val newItemCount = mAdapter!!.getItemCount()
         val targetNewPosition = targetFolderId?.let { getVisibleFolderPosition(it) } ?: -1
@@ -8065,7 +8134,11 @@ class ThingsActivity :
     }
 
     private fun afterFolderMenuMoveDataChanged() {
-        markOperationEmptyStateIfCurrentProjectionEmpty()
+        if (App.isSearching) {
+            updateEmptyStateForCurrentSearchState()
+        } else {
+            markOperationEmptyStateIfCurrentProjectionEmpty()
+        }
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
@@ -8148,7 +8221,13 @@ class ThingsActivity :
     private fun confirmFinishAllThingsInScope(
         folder: ThingFolder?
     ) {
-        val (things, excludesDoing) = excludeDoingFrom(mThingManager!!.getUnderwayThingsInScope(folder))
+        val (things, excludesDoing) = excludeDoingFrom(
+            mThingManager!!.getUnderwayThingsInScope(
+                folder,
+                currentSearchKeywordForScope(),
+                currentSearchColorForScope()
+            )
+        )
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_underway_things_to_finish, Toast.LENGTH_SHORT).show()
@@ -8206,7 +8285,7 @@ class ThingsActivity :
     private fun applyFinishScope(things: List<Thing>) {
         if (things.isEmpty()) return
         finishNewItemShiningBorderAnimationIfNeeded()
-        mThingManager!!.finishThings(things)
+        mThingManager!!.finishThings(things, reload = false)
         refreshHomeAfterScopeStateChange()
     }
 
@@ -8214,8 +8293,9 @@ class ThingsActivity :
         exitSelectingModeIfNeeded()
         clearOperationEmptyState()
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        loadThingsForCurrentSearchState()
         mAdapter!!.notifyDataSetChanged()
-        updateHomeEmptyState()
+        updateEmptyStateForCurrentSearchState()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         invalidateOptionsMenu()
@@ -8226,7 +8306,11 @@ class ThingsActivity :
     private fun confirmUnfinishAllThingsInScope(
         folder: ThingFolder?
     ) {
-        val things = mThingManager!!.getFinishedThingsInScope(folder)
+        val things = mThingManager!!.getFinishedThingsInScope(
+            folder,
+            currentSearchKeywordForScope(),
+            currentSearchColorForScope()
+        )
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_finished_things_to_restore, Toast.LENGTH_SHORT).show()
@@ -8246,7 +8330,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.unfinishThings(things)
+                mThingManager!!.unfinishThings(things, reload = false)
                 refreshHomeAfterScopeStateChange()
             }
         })
@@ -8257,7 +8341,11 @@ class ThingsActivity :
     private fun confirmRestoreTrashedThingsInScope(
         folder: ThingFolder?
     ) {
-        val things = mThingManager!!.getTrashedThingsInScope(folder)
+        val things = mThingManager!!.getTrashedThingsInScope(
+            folder,
+            currentSearchKeywordForScope(),
+            currentSearchColorForScope()
+        )
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_trashed_things_to_restore, Toast.LENGTH_SHORT).show()
@@ -8277,7 +8365,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.restoreTrashedThings(things)
+                mThingManager!!.restoreTrashedThings(things, reload = false)
                 refreshHomeAfterScopeStateChange()
             }
         })
@@ -8292,7 +8380,11 @@ class ThingsActivity :
     private fun confirmTrashAllFinishedInScope(
         folder: ThingFolder?
     ) {
-        val things = mThingManager!!.getFinishedThingsInScope(folder)
+        val things = mThingManager!!.getFinishedThingsInScope(
+            folder,
+            currentSearchKeywordForScope(),
+            currentSearchColorForScope()
+        )
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_finished_things_to_delete, Toast.LENGTH_SHORT).show()
@@ -8312,7 +8404,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.trashThings(things)
+                mThingManager!!.trashThings(things, reload = false)
                 refreshHomeAfterScopeStateChange()
             }
         })
@@ -8329,7 +8421,11 @@ class ThingsActivity :
     private fun confirmDeleteForeverAllInScope(
         folder: ThingFolder?
     ) {
-        val things = mThingManager!!.getTrashedThingsInScope(folder)
+        val things = mThingManager!!.getTrashedThingsInScope(
+            folder,
+            currentSearchKeywordForScope(),
+            currentSearchColorForScope()
+        )
         val background = folder?.getBackground() ?: App.defaultAccentBackground
         if (things.isEmpty()) {
             Toast.makeText(
@@ -8351,7 +8447,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.deleteThingsForever(things)
+                mThingManager!!.deleteThingsForever(things, reload = false)
                 refreshHomeAfterScopeStateChange()
             }
         })
@@ -8391,7 +8487,8 @@ class ThingsActivity :
             things.size,
             includesSubfolders(folder, things),
             mThingManager!!.getActiveTypeFilterMask(),
-            excludesDoing
+            excludesDoing,
+            searchScoped = App.isSearching
         )
     }
 
@@ -8425,15 +8522,26 @@ class ThingsActivity :
         val hasOtherStatus = considerStatus && affected.any {
             Thing.getStatusForState(it.state) != currentStatus
         }
-        if (!hasOtherStatus && !hasOtherType) return null
+        val hasSearchScope = App.isSearching
+        if (!hasOtherStatus && !hasOtherType && !hasSearchScope) return null
         val statusName = getString(statusNameRes(currentStatus))
         return when {
+            hasOtherStatus && hasOtherType && hasSearchScope ->
+                getString(R.string.folder_op_scope_status_type_search, statusName, typeTitle)
             hasOtherStatus && hasOtherType ->
                 getString(R.string.folder_op_scope_both, statusName, typeTitle)
+            hasOtherStatus && hasSearchScope ->
+                getString(R.string.folder_op_scope_status_search, statusName)
             hasOtherStatus ->
                 getString(R.string.folder_op_scope_status, statusName)
+            hasOtherType && hasSearchScope ->
+                getString(R.string.folder_op_scope_type_filter_search, typeTitle)
             else ->
-                getString(R.string.folder_op_scope_type, typeTitle)
+                if (hasOtherType) {
+                    getString(R.string.folder_op_scope_type, typeTitle)
+                } else {
+                    getString(R.string.folder_op_scope_search)
+                }
         }
     }
 
@@ -8484,7 +8592,11 @@ class ThingsActivity :
     private fun confirmTrashFolderContent(folder: ThingFolder) {
         // Underway view: delete only the folder's underway Things (matching what is
         // visible here); finished Things are deleted from the Finished view instead.
-        val things = mThingManager!!.getUnderwayThingsInScope(folder)
+        val things = mThingManager!!.getUnderwayThingsInScope(
+            folder,
+            currentSearchKeywordForScope(),
+            currentSearchColorForScope()
+        )
         if (things.isEmpty()) {
             Toast.makeText(this, R.string.no_things_to_delete_in_folder, Toast.LENGTH_SHORT).show()
             return
@@ -8503,7 +8615,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.trashThingsPreservingState(things)
+                mThingManager!!.trashThingsPreservingState(things, reload = false)
                 refreshHomeAfterScopeStateChange()
             }
         })
@@ -8614,15 +8726,21 @@ class ThingsActivity :
 
     private fun refreshHomeAfterFolderCreationCanceled() {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        loadThingsForCurrentSearchState()
         mAdapter!!.notifyDataSetChanged()
-        updateHomeEmptyState()
+        updateEmptyStateForCurrentSearchState()
         updateHomeAfterFolderDropCommitted()
     }
 
     private fun refreshHomeAfterFolderUpdated() {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        loadThingsForCurrentSearchState()
         mAdapter!!.notifyDataSetChanged()
-        markOperationEmptyStateIfCurrentProjectionEmpty()
+        if (App.isSearching) {
+            updateEmptyStateForCurrentSearchState()
+        } else {
+            markOperationEmptyStateIfCurrentProjectionEmpty()
+        }
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
@@ -8655,7 +8773,8 @@ class ThingsActivity :
         val commitMove = {
             dismissSnackbars()
             finishNewItemShiningBorderAnimationIfNeeded()
-            mThingManager!!.moveThingIntoFolder(sourceThing, targetEntry.folder.id)
+            mThingManager!!.moveThingIntoFolder(sourceThing, targetEntry.folder.id, reload = false)
+            loadThingsForCurrentSearchState()
             val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
             notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
             updateHomeAfterFolderDropCommitted()
@@ -8694,7 +8813,12 @@ class ThingsActivity :
         val commitMove = {
             dismissSnackbars()
             finishNewItemShiningBorderAnimationIfNeeded()
-            mThingManager!!.moveFolderIntoFolder(sourceFolder, targetEntry.folder.id)
+            mThingManager!!.moveFolderIntoFolder(
+                sourceFolder,
+                targetEntry.folder.id,
+                reload = false
+            )
+            loadThingsForCurrentSearchState()
             val targetNewListPosition = getVisibleFolderPosition(targetFolderId)
             notifyFolderDropCommitted(sourceOldListPosition, targetNewListPosition)
             updateHomeAfterFolderDropCommitted()
@@ -8730,8 +8854,10 @@ class ThingsActivity :
             getString(R.string.default_thing_folder_name),
             sourceThing,
             targetThing,
-            folderBackground
+            folderBackground,
+            loadThingsNow = false
         ) ?: return null
+        loadThingsForCurrentSearchState()
         val folderListPosition = getVisibleFolderPosition(folder.id)
         notifyFolderDropCommitted(sourceOldListPosition, folderListPosition)
         updateHomeAfterFolderDropCommitted()
@@ -8748,6 +8874,11 @@ class ThingsActivity :
 
     private fun notifyFolderDropCommitted(sourceOldListPosition: Int, changedListPosition: Int) {
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        if (App.isSearching) {
+            mAdapter!!.notifyDataSetChanged()
+            updateEmptyStateForCurrentSearchState()
+            return
+        }
         if (sourceOldListPosition > 0) {
             mAdapter!!.notifyItemRemoved(sourceOldListPosition)
             if (changedListPosition > 0) {
@@ -9220,18 +9351,20 @@ class ThingsActivity :
     }
 
     private fun navigateToFolderPathSegment(folderPathIndex: Int) {
-        if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL || App.isSearching) {
+        if (mModeManager!!.getCurrentMode() != ModeManager.NORMAL) {
             return
         }
         dismissSnackbars()
         saveCurrentProjectionScrollState()
         clearOperationEmptyState()
-        mThingManager!!.navigateToFolderPathIndex(folderPathIndex)
+        mThingManager!!.navigateToFolderPathIndex(folderPathIndex, loadThingsNow = false)
         val projectionKey = mThingManager!!.getProjection().key()
+        loadThingsForCurrentSearchState()
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
-        updateHomeEmptyState()
+        updateEmptyStateForCurrentSearchState()
         refreshActivitySurfaceAndHeader()
+        updateHomeNavigationContentDescription()
         restoreProjectionScrollStateOrTop(projectionKey)
         updateDrawerFolderItems()
         invalidateOptionsMenu()
@@ -9509,10 +9642,13 @@ class ThingsActivity :
             mModeManager!!.backNormalMode(0)
             return false
         }
-        mThingManager!!.setListEntrySelected(listPosition, true)
         if (mModeManager!!.getCurrentMode() == ModeManager.MOVING) {
             mModeManager!!.toSelectingMode(listPosition)
         }
+        mThingManager!!.setListEntrySelected(listPosition, true)
+        mAdapter!!.notifyItemChanged(listPosition)
+        mModeManager!!.updateSelectedCount()
+        mModeManager!!.updateMenuItems()
         return true
     }
 
@@ -10997,7 +11133,7 @@ class ThingsActivity :
         mScrollCausedByFinger = false
 
         if (App.isSearching) {
-            if (mThingManager!!.getThings()!!.size == 1) {
+            if (isSearchResultEmpty()) {
                 handleSearchResults()
             }
         }
@@ -11100,10 +11236,18 @@ class ThingsActivity :
                 moveSources,
                 targetFolderId
             ) {
-                var changed = mThingManager!!.moveSelectedThingsIntoFolder(targetFolderId)
+                var changed = mThingManager!!.moveSelectedThingsIntoFolder(
+                    targetFolderId,
+                    reload = false
+                )
                 for (folder in selectedFolders) {
                     if (folder.parentFolderId != targetFolderId) {
-                        if (mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)) {
+                        if (mThingManager!!.moveFolderIntoFolder(
+                                folder,
+                                targetFolderId,
+                                reload = false
+                            )
+                        ) {
                             changed = true
                         }
                     }
@@ -11130,19 +11274,29 @@ class ThingsActivity :
                 val thing = mThingManager!!.getThings()!![thingIndex] ?: continue
                 if ((thing.location < 0) == targetSticky) continue
                 if (targetSticky) {
-                    mThingManager!!.stickyThingOnTop(thing, thingIndex)
+                    mThingManager!!.stickyThingOnTop(
+                        thing,
+                        thingIndex,
+                        rebuildEntries = false
+                    )
                 } else {
-                    mThingManager!!.cancelStickyThing(thing, thingIndex)
+                    mThingManager!!.cancelStickyThing(
+                        thing,
+                        thingIndex,
+                        rebuildEntries = false
+                    )
                 }
             }
             for (id in folderIds) {
                 val folder = mThingManager!!.getFolderById(id) ?: continue
                 if ((folder.location < 0) != targetSticky) {
-                    mThingManager!!.toggleFolderSticky(folder)
+                    mThingManager!!.toggleFolderSticky(folder, reload = false)
                 }
             }
+            mThingManager!!.rebuildCurrentThingListEntries()
             mAdapter!!.setShouldThingsAnimWhenAppearing(false)
             mAdapter!!.notifyDataSetChanged()
+            updateEmptyStateForCurrentSearchState()
             refreshActivitySurfaceAndHeader()
             mDrawerHeader!!.updateTexts()
             updateDrawerFolderItems()
@@ -11212,12 +11366,14 @@ class ThingsActivity :
         for (id in folderIds) {
             val folder = mThingManager!!.getFolderById(id) ?: continue
             if (folder.isPrivate != makePrivate) {
-                mThingManager!!.updateFolderPrivate(folder, makePrivate)
+                mThingManager!!.updateFolderPrivate(folder, makePrivate, reload = false)
             }
         }
         mModeManager!!.backNormalMode(0)
+        loadThingsForCurrentSearchState()
         mAdapter!!.setShouldThingsAnimWhenAppearing(false)
         mAdapter!!.notifyDataSetChanged()
+        updateEmptyStateForCurrentSearchState()
         refreshActivitySurfaceAndHeader()
         mDrawerHeader!!.updateTexts()
         updateDrawerFolderItems()
@@ -11267,7 +11423,8 @@ class ThingsActivity :
         val oldListPosition = mThingManager!!.getListPositionForFolderId(folder.id)
         mModeManager!!.backNormalMode(if (oldListPosition >= 0) oldListPosition else 0)
         mRecyclerView!!.postDelayed({
-            if (mThingManager!!.toggleFolderSticky(folder)) {
+            if (mThingManager!!.toggleFolderSticky(folder, reload = false)) {
+                loadThingsForCurrentSearchState()
                 val newListPosition = mThingManager!!.getListPositionForFolderId(folder.id)
                 if (oldListPosition >= 0 && newListPosition >= 0) {
                     mAdapter!!.notifyItemMoved(oldListPosition, newListPosition)

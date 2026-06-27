@@ -1,5 +1,13 @@
 # Home Empty State Sessions
 
+## 2026-06-27 - 修复搜索有文件夹结果时误显示 no-result
+
+- 诊断用户反馈的“明明有搜索结果但仍显示‘找不到对象’”问题，确认原因是 `ThingsActivity.handleSearchResults()` 只用 `mThingManager.getThings().size == 1` 判空；`mThings` 只包含 header 和记事，不包含搜索命中的文件夹。
+- 将搜索空结果判断改为 `ThingManager.hasVisibleProjectionContent()`，按混合列表里的可见 Thing Card 和 Thing Folder Card 共同判断。
+- 补充 `ThingManager` 的当前搜索关键词和颜色过滤状态，确保搜索态下后续列表重建仍按搜索范围过滤文件夹。
+- 验证：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 随 `thing-folders` debug 更新发布，更新码 `202606270601`，远端 `latest.json` 指向 `app-debug-202606270601.apk`，SHA-256 为 `0604f87b9760fab3616d3b14e9786e73b0bb894f7beef58610770f3fe0485dfc`。
+
 ## 2026-06-21 - Replace legacy placeholder Things with view-layer empty states
 
 - Added `PLAN.md` and `EXECUTION.md` from the confirmed discussion before

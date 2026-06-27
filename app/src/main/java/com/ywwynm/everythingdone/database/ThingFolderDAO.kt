@@ -122,7 +122,10 @@ open class ThingFolderDAO private constructor(context: Context?) {
             }
             val effectivePrivate = isEffectivelyPrivate(folder)
             val count = countDescendantThingsForProjection(folder, status, keyword, color)
-            if (count <= 0 && hasActiveEntryFilter(keyword, color)) continue
+            val folderMatchesEntryFilter = folderMatchesEntryFilter(folder, keyword, color)
+            if (count <= 0 && hasActiveEntryFilter(keyword, color) && !folderMatchesEntryFilter) {
+                continue
+            }
             val thumbnailEntries =
                 if (folder.effectiveCardPresentation().mode ==
                     ThingFolderCardPresentation.MODE_THUMBNAILS
@@ -167,7 +170,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
                 keyword,
                 color
             )
-            if (count <= 0) continue
+            val folderMatchesEntryFilter = folderMatchesEntryFilter(folder, keyword, color)
+            if (count <= 0 && !folderMatchesEntryFilter) continue
             val thumbnailEntries =
                 if (folder.effectiveCardPresentation().mode ==
                     ThingFolderCardPresentation.MODE_THUMBNAILS
@@ -854,7 +858,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
             return false
         }
         if (!hasActiveEntryFilter(keyword, color)) return true
-        return countDescendantThingsForProjection(folder, status, keyword, color) > 0
+        return folderMatchesEntryFilter(folder, keyword, color) ||
+            countDescendantThingsForProjection(folder, status, keyword, color) > 0
     }
 
     private fun shouldIncludeFolderForWidgetProjection(
@@ -877,6 +882,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
     ): Boolean {
         val effectiveDeleted = isEffectivelyDeleted(folder)
         if (effectiveDeleted && status != Def.ThingStatus.DELETED) return false
+        if (folderMatchesEntryFilter(folder, keyword, color)) return true
         return countDescendantThingsForTypeFilterProjection(
             folder,
             status,
@@ -1097,7 +1103,26 @@ open class ThingFolderDAO private constructor(context: Context?) {
     }
 
     private fun hasActiveEntryFilter(keyword: String?, color: Int): Boolean {
-        return keyword != null || hasColorFilter(color)
+        return !keyword.isNullOrEmpty() || hasColorFilter(color)
+    }
+
+    private fun folderMatchesEntryFilter(folder: ThingFolder, keyword: String?, color: Int): Boolean {
+        if (!hasActiveEntryFilter(keyword, color)) return false
+        return matchesFolderKeywordFilter(folder, keyword) && matchesFolderColorFilter(folder, color)
+    }
+
+    private fun matchesFolderKeywordFilter(folder: ThingFolder, keyword: String?): Boolean {
+        if (keyword.isNullOrEmpty()) return true
+        return folder.title.contains(keyword, ignoreCase = true)
+    }
+
+    private fun matchesFolderColorFilter(folder: ThingFolder, color: Int): Boolean {
+        if (!hasColorFilter(color)) return true
+        val bucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
+        return com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
+            folder.getBackground(),
+            bucket
+        )
     }
 
     private fun matchesColorFilter(thing: Thing, color: Int): Boolean {

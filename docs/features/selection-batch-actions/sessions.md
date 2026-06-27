@@ -1,5 +1,39 @@
 # Selection Batch Actions Sessions
 
+## 2026-06-27 - 修复搜索态选择操作后列表跳出搜索结果
+
+- 用户转述 Claude code review，要求核对后再决定是否修改。确认 review 的刷新一致性结论成立：选择模式下的状态操作、恢复、移动到文件夹、置顶和私密等路径，部分会经由 `ThingManager.loadThings()` 清空搜索字段，使搜索框仍保留筛选但列表显示当前文件夹全量内容。
+- 修复选择操作的收尾刷新：状态类内容操作统一通过搜索感知的 `refreshHomeAfterScopeStateChange()` 收尾；批量移动、置顶、私密涉及文件夹时，manager 只修改数据并延迟 reload，再由 Activity 恢复当前搜索文本和颜色筛选。
+- 单文件夹范围内容操作也同步修正：在搜索态下收集记事时透传当前搜索条件，确认弹窗继续合并“搜索范围”提醒。
+- 不改项：`enterSelectionMode()` 的重复选中设置保持不动；DAO SQL 与内存搜索剥离 signal 的差异暂作为维护风险观察。
+- 验证：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：随 `docs/features/thing-folders/debug-updates/update-20260627155027.md` 发布到阿里云 debug 通道，更新码 `202606270752`。
+
+## 2026-06-27 - 清理选择操作刷新冗余
+
+- 用户继续转述两个 nitpick，确认可以安全清理：状态类选择操作不必先在 manager 中 `loadThings()` 再由 Activity 重新搜索；批量置顶记事不必逐项重建列表；进入选择模式也不需要两次设置同一项选中。
+- 状态类选择操作传 `reload=false`，保持由 `refreshHomeAfterScopeStateChange()` 统一刷新；批量置顶最后统一 `rebuildCurrentThingListEntries()`；`enterSelectionMode()` 只在模式切换后设置选中。
+- 语义不变：选择范围、搜索范围、最终列表刷新和菜单状态保持上一版逻辑。
+- 验证：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
+- 发布：随 `docs/features/thing-folders/debug-updates/update-20260627161550.md` 发布到阿里云 debug 通道，更新码 `202606270816`。
+
+## 2026-06-27 - 结构操作确认弹窗合并搜索范围提示
+
+- 用户反馈：解散文件夹、永久删除文件夹等影响文件夹结构的操作，确认弹窗只提示状态/类型筛选下看不到的内容，没有提示搜索范围。
+- 修复 `ThingsActivity.hiddenScopeClauseForStructural(...)`：搜索模式下把“搜索范围”纳入结构操作隐藏范围短语；若同时存在状态筛选、类型筛选和搜索范围，会合并为同一句“该操作作用于整个文件夹子树，包含当前……下看不到的内容。”。
+- 新增默认英文、简中、繁中资源短语，覆盖搜索范围与状态/类型筛选的组合。
+- 同步更新 `decisions.md` 与 `wording-matrix.md`，明确结构操作是警告式提示：它作用于整个子树，不是仅作用于搜索范围内的记事。
+- 验证：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：随 `docs/features/thing-folders/debug-updates/update-20260627140824.md` 发布到阿里云 debug 通道，更新码 `202606270608`；远端 `latest.json` 指向 `app-debug-202606270608.apk`，SHA-256 为 `936bc02d07e58ee5154b6e9ca41fbd19687fdf46100388d6a3657d8c792c9aff`。
+
+## 2026-06-27 - 搜索结果中的选择动作限制到搜索命中记事
+
+- 搜索模式下，纯记事选择的确认弹窗新增“当前搜索范围”提醒；包含文件夹的选择会把所选文件夹内容收集限制到当前搜索关键词和颜色命中的记事。
+- `ThingManager` 的范围内容收集方法新增可选搜索条件，复用首页搜索对清单状态标记、私密标题前缀和颜色 hue bucket 的匹配语义。
+- `HomeActionWordingHelper` 新增 `searchScoped` 输入；类型筛选与搜索范围同时存在时合并为同一句提醒，仅搜索范围时单独提示。范围提醒统一使用“本次操作仅作用于”开头。
+- 验证：`git diff --check` 仅有仓库既有 LF/CRLF 提示；`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：随 `docs/features/thing-folders/debug-updates/update-20260627135127.md` 发布到阿里云 debug 通道，更新码 `202606270551`。
+
 ## 2026-06-25 - 选择操作确认弹窗按单选/多选配色
 
 - 用户反馈：移动到文件夹、完成/删除/恢复等确认弹窗应区分单选/多选——单选 1 项用该项颜色，多选

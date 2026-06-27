@@ -1,5 +1,11 @@
 # Home Empty State - Decisions
 
+## 2026-06-27 - 搜索 no-result 判断基于混合可见内容
+
+首页搜索或颜色筛选的 no-result 提示必须按当前混合列表投影判断是否为空，而不是只看 `mThings` 里是否存在记事。搜索结果中的 Thing Folder Card 是用户可见结果；当只有文件夹标题或文件夹颜色命中时，列表不为空，不能同时显示“找不到对象”提示。
+
+实现上，Activity 层的搜索空结果判断复用 `ThingManager.hasVisibleProjectionContent()`，让记事和文件夹走同一套可见内容语义。`ThingManager` 在搜索态还需要保留当前关键词和颜色过滤条件，确保后续状态更新触发的列表重建继续按搜索范围过滤文件夹。
+
 ## 2026-06-21 - Remove stored welcome and empty placeholders
 
 `WELCOME_*` and `NOTIFY_EMPTY_*` rows are legacy placeholder Things, not

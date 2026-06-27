@@ -242,11 +242,17 @@
     <string name="delete_all_things_in_folder_forever">永久删除文件夹中所有记事</string>
     <string name="delete_thing_folder_forever">永久删除文件夹</string>
     <string name="delete_thing_folder_forever_confirm">将永久删除所选文件夹及其全部内容，共%1$s，无法恢复。</string>
-    <string name="folder_op_scope_only_type">本次仅作用于当前类型筛选（%1$s）的记事，其他类型不受影响。</string>
+    <string name="folder_op_scope_only_type">本次操作仅作用于当前类型筛选（%1$s）的记事，其他类型的记事不受影响</string>
+    <string name="folder_op_scope_only_search">本次操作仅作用于当前搜索范围内的记事，其他不在搜索范围内的记事不受影响</string>
+    <string name="folder_op_scope_type_and_search">本次操作仅作用于当前类型筛选（%1$s）和搜索范围内的记事，其他类型的记事、不在搜索范围内的记事不受影响</string>
     <string name="folder_op_reminder_subtree">该操作作用于整个文件夹子树，包含当前%1$s下看不到的内容。</string>
     <string name="folder_op_scope_status">状态筛选（%1$s）</string>
     <string name="folder_op_scope_type">类型筛选（%1$s）</string>
     <string name="folder_op_scope_both">状态和类型筛选（%1$s、%2$s）</string>
+    <string name="folder_op_scope_search">搜索范围</string>
+    <string name="folder_op_scope_status_search">状态筛选（%1$s）和搜索范围</string>
+    <string name="folder_op_scope_type_filter_search">类型筛选（%1$s）和搜索范围</string>
+    <string name="folder_op_scope_status_type_search">状态和类型筛选（%1$s、%2$s）以及搜索范围</string>
     <string name="home_state_target_current_folder">当前文件夹</string>
     <string name="home_state_target_selected_folders">所选文件夹</string>
     <string name="home_state_target_selected_items">所选项</string>
@@ -1194,6 +1200,7 @@
     <string name="cd_open_drawer">打开导航抽屉</string>
     <string name="cd_close_drawer">关闭导航抽屉</string>
     <string name="cd_quit_searching">离开搜索界面</string>
+    <string name="cd_back_parent_folder">返回上级文件夹</string>
 
     <!--thing card or app widget-->
     <string name="cd_habit_unfinished">未完成</string>

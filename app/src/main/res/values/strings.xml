@@ -237,11 +237,17 @@
     <string name="delete_all_things_in_folder_forever">Delete all things in folder forever</string>
     <string name="delete_thing_folder_forever">Delete folder forever</string>
     <string name="delete_thing_folder_forever_confirm">Permanently delete the selected folder and all its contents (%1$s). This cannot be undone.</string>
-    <string name="folder_op_scope_only_type">This only affects things of the current type filter (%1$s); other types are untouched.</string>
+    <string name="folder_op_scope_only_type">This operation only affects things in the current type filter (%1$s); things of other types are untouched.</string>
+    <string name="folder_op_scope_only_search">This operation only affects things in the current search range; things outside the search range are untouched.</string>
+    <string name="folder_op_scope_type_and_search">This operation only affects things in the current type filter (%1$s) and search range; things of other types and things outside the search range are untouched.</string>
     <string name="folder_op_reminder_subtree">This affects the whole folder subtree, including content hidden by the current %1$s.</string>
     <string name="folder_op_scope_status">status filter (%1$s)</string>
     <string name="folder_op_scope_type">type filter (%1$s)</string>
     <string name="folder_op_scope_both">status and type filters (%1$s, %2$s)</string>
+    <string name="folder_op_scope_search">search range</string>
+    <string name="folder_op_scope_status_search">status filter (%1$s) and search range</string>
+    <string name="folder_op_scope_type_filter_search">type filter (%1$s) and search range</string>
+    <string name="folder_op_scope_status_type_search">status and type filters (%1$s, %2$s), and search range</string>
     <string name="home_state_target_current_folder">the current folder</string>
     <string name="home_state_target_selected_folders">the selected folders</string>
     <string name="home_state_target_selected_items">the selection</string>
@@ -1204,6 +1210,7 @@
     <string name="cd_open_drawer">Open Navigation Drawer</string>
     <string name="cd_close_drawer">Close Navigation Drawer</string>
     <string name="cd_quit_searching">Quit Searching</string>
+    <string name="cd_back_parent_folder">Back to parent folder</string>
 
     <!--thing card or app widget-->
     <string name="cd_habit_unfinished">Unfinished</string>

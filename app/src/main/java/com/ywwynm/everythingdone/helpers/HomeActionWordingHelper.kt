@@ -60,7 +60,8 @@ object HomeActionWordingHelper {
         count: Int,
         includesSubfolders: Boolean,
         typeFilterMask: Int? = null,
-        excludesDoing: Boolean = false
+        excludesDoing: Boolean = false,
+        searchScoped: Boolean = false
     ): ActionWording {
         val title = stateActionTitle(context, status, stateAfter, target)
         // 合成数量后的括号子句：子文件夹提示与"不含正在做的记事"都在时，合进同一对括号，
@@ -87,14 +88,31 @@ object HomeActionWordingHelper {
         val typeTitle = typeFilterMask?.let {
             ThingWidgetInfo.getTypeFilterTitle(context, it)
         }
-        if (typeTitle != null && target != StateTarget.SELECTED_THINGS) {
-            body += "\n" + context.getString(R.string.folder_op_scope_only_type, typeTitle)
+        val scopeReminder = stateScopeReminder(context, typeTitle, target, searchScoped)
+        if (scopeReminder != null) {
+            body += "\n" + scopeReminder
         }
         return ActionWording(
             actionTitle = title,
             dialogBody = body,
             confirmText = context.getString(R.string.confirm)
         )
+    }
+
+    private fun stateScopeReminder(
+        context: Context,
+        typeTitle: String?,
+        target: StateTarget,
+        searchScoped: Boolean
+    ): String? {
+        val typeScoped = typeTitle != null && target != StateTarget.SELECTED_THINGS
+        return when {
+            typeScoped && searchScoped ->
+                context.getString(R.string.folder_op_scope_type_and_search, typeTitle)
+            typeScoped -> context.getString(R.string.folder_op_scope_only_type, typeTitle)
+            searchScoped -> context.getString(R.string.folder_op_scope_only_search)
+            else -> null
+        }
     }
 
     fun stickyTitle(context: Context, allSticky: Boolean): String {

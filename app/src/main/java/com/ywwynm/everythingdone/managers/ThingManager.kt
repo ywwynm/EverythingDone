@@ -23,6 +23,7 @@ import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingListProjection
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
@@ -58,6 +59,8 @@ open class ThingManager private constructor(context: Context?) {
 
     private var mThings: MutableList<Thing?>? = null
     private var mThingListEntries: MutableList<ThingListEntry>? = null
+    private var mEntryFilterKeyword: String? = null
+    private var mEntryFilterColor: Int = 0
     private var mThingsCounts: ThingsCounts? = ThingsCounts.getInstance(context)
     private val mAuthenticatedPrivateFolderIds = HashSet<Long>()
 
@@ -121,6 +124,8 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun loadThings() {
+        mEntryFilterKeyword = null
+        mEntryFilterColor = 0
         mThings = getThingsForCurrentProjection(null, 0).toMutableList()
         rebuildThingListEntries()
     }
@@ -310,16 +315,26 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
-    open fun openFolder(folderId: Long, authenticated: Boolean = false) {
+    open fun openFolder(
+        folderId: Long,
+        authenticated: Boolean = false,
+        loadThingsNow: Boolean = true
+    ) {
         if (authenticated) {
             markFolderPrivacyAuthenticated(folderId)
         }
         mProjection = mProjection.openFolder(folderId)
         trimAuthenticatedPrivateFoldersToProjection()
-        loadThings()
+        if (loadThingsNow) {
+            loadThings()
+        }
     }
 
-    open fun openFolderPath(folderId: Long, authenticated: Boolean = false) {
+    open fun openFolderPath(
+        folderId: Long,
+        authenticated: Boolean = false,
+        loadThingsNow: Boolean = true
+    ) {
         val path = mFolderDao!!.getFolderPath(folderId)
         if (path.isEmpty()) return
         if (authenticated) {
@@ -327,20 +342,26 @@ open class ThingManager private constructor(context: Context?) {
         }
         mProjection = mProjection.copy(folderPath = path.map { it.id })
         trimAuthenticatedPrivateFoldersToProjection()
-        loadThings()
+        if (loadThingsNow) {
+            loadThings()
+        }
     }
 
-    open fun navigateToFolderPathIndex(index: Int) {
+    open fun navigateToFolderPathIndex(index: Int, loadThingsNow: Boolean = true) {
         mProjection = mProjection.navigateToPathIndex(index)
         trimAuthenticatedPrivateFoldersToProjection()
-        loadThings()
+        if (loadThingsNow) {
+            loadThings()
+        }
     }
 
-    open fun openParentFolder(): Boolean {
+    open fun openParentFolder(loadThingsNow: Boolean = true): Boolean {
         if (mProjection.isRoot()) return false
         mProjection = mProjection.parent()
         trimAuthenticatedPrivateFoldersToProjection()
-        loadThings()
+        if (loadThingsNow) {
+            loadThings()
+        }
         return true
     }
 
@@ -359,6 +380,8 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     open fun searchThings(keyword: String?, color: Int) {
+        mEntryFilterKeyword = keyword
+        mEntryFilterColor = color
         val things: List<Thing?> = getThingsForCurrentProjection(keyword, color)
         val PTP: String = Thing.PRIVATE_THING_PREFIX
         var containsPtp = false
@@ -391,10 +414,61 @@ open class ThingManager private constructor(context: Context?) {
         } else {
             mThings = things.toMutableList()
         }
-        rebuildThingListEntries(keyword, color)
+        rebuildThingListEntries()
     }
 
-    private fun rebuildThingListEntries(keyword: String? = null, color: Int = 0) {
+    private fun filterThingsForSearchRange(
+        things: List<Thing>,
+        keyword: String?,
+        color: Int
+    ): List<Thing> {
+        if (keyword.isNullOrEmpty() && !hasSearchColorFilter(color)) return things
+        return things.filter { matchesSearchRange(it, keyword, color) }
+    }
+
+    private fun matchesSearchRange(thing: Thing, keyword: String?, color: Int): Boolean {
+        return matchesSearchKeyword(thing, keyword) && matchesSearchColor(thing, color)
+    }
+
+    private fun matchesSearchKeyword(thing: Thing, keyword: String?): Boolean {
+        if (keyword.isNullOrEmpty()) return true
+        val privatePrefix = Thing.PRIVATE_THING_PREFIX
+        val keywordContainsPrivatePrefix = privatePrefix.any { keyword.contains(it.toString()) }
+        val stripsStoredMarkers =
+            CheckListHelper.isSignalContainsStrIgnoreCase(keyword) || keywordContainsPrivatePrefix
+        val title = if (stripsStoredMarkers) {
+            thing.title.orEmpty().replace(privatePrefix.toRegex(), "")
+        } else {
+            thing.title.orEmpty()
+        }
+        val content = if (stripsStoredMarkers) {
+            val signalRegex = (0 until CheckListHelper.CHECK_STATE_NUM)
+                .joinToString("|") { CheckListHelper.SIGNAL + it }
+                .toRegex()
+            thing.content.orEmpty().replace(signalRegex, "")
+        } else {
+            thing.content.orEmpty()
+        }
+        return title.contains(keyword, ignoreCase = true) ||
+            content.contains(keyword, ignoreCase = true)
+    }
+
+    private fun matchesSearchColor(thing: Thing, color: Int): Boolean {
+        if (!hasSearchColorFilter(color)) return true
+        return BackgroundUtil.matchesHueBucket(
+            thing.getBackground(),
+            BackgroundUtil.hueBucket(color)
+        )
+    }
+
+    private fun hasSearchColorFilter(color: Int): Boolean {
+        return color != 0 && color != -1979711488
+    }
+
+    private fun rebuildThingListEntries(
+        keyword: String? = mEntryFilterKeyword,
+        color: Int = mEntryFilterColor
+    ) {
         val things = mThings ?: return
         val entries = ArrayList<ThingListEntry>()
         val mixed = ArrayList<ThingListEntry>()
@@ -911,7 +985,8 @@ open class ThingManager private constructor(context: Context?) {
         title: String,
         firstThing: Thing?,
         secondThing: Thing?,
-        background: ThingBackground? = null
+        background: ThingBackground? = null,
+        loadThingsNow: Boolean = true
     ): ThingFolder? {
         val first = firstThing ?: return null
         val second = secondThing ?: return null
@@ -946,7 +1021,9 @@ open class ThingManager private constructor(context: Context?) {
 
         moveThingIntoFolder(first, folder.id, false)
         moveThingIntoFolder(second, folder.id, false)
-        loadThings()
+        if (loadThingsNow) {
+            loadThings()
+        }
         return folder
     }
 
@@ -1041,7 +1118,7 @@ open class ThingManager private constructor(context: Context?) {
         return candidates
     }
 
-    open fun moveSelectedThingsIntoFolder(folderId: Long?): Boolean {
+    open fun moveSelectedThingsIntoFolder(folderId: Long?, reload: Boolean = true): Boolean {
         val selectedThings = getSelectedThings() ?: return false
         var changed = false
         for (i in selectedThings.indices.reversed()) {
@@ -1056,7 +1133,7 @@ open class ThingManager private constructor(context: Context?) {
                 changed = true
             }
         }
-        if (changed) {
+        if (changed && reload) {
             loadThings()
         }
         return changed
@@ -1088,7 +1165,11 @@ open class ThingManager private constructor(context: Context?) {
         return mFolderDao!!.isDescendantOf(folderId, possibleAncestorId)
     }
 
-    open fun moveFolderIntoFolder(folder: ThingFolder?, parentFolderId: Long?): Boolean {
+    open fun moveFolderIntoFolder(
+        folder: ThingFolder?,
+        parentFolderId: Long?,
+        reload: Boolean = true
+    ): Boolean {
         if (folder == null) return false
         if (parentFolderId == folder.id) return false
         if (mFolderDao!!.isDescendantOf(parentFolderId, folder.id)) return false
@@ -1099,7 +1180,9 @@ open class ThingManager private constructor(context: Context?) {
         folder.location = newLocation
         mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
         trimProjectionToExistingFolders()
-        loadThings()
+        if (reload) {
+            loadThings()
+        }
         return true
     }
 
@@ -1180,7 +1263,11 @@ open class ThingManager private constructor(context: Context?) {
         return true
     }
 
-    open fun updateFolderPrivate(folder: ThingFolder?, isPrivate: Boolean): Boolean {
+    open fun updateFolderPrivate(
+        folder: ThingFolder?,
+        isPrivate: Boolean,
+        reload: Boolean = true
+    ): Boolean {
         if (folder == null) return false
         folder.isPrivate = isPrivate
         if (isPrivate) {
@@ -1190,7 +1277,9 @@ open class ThingManager private constructor(context: Context?) {
             mAuthenticatedPrivateFolderIds.remove(folder.id)
             mFolderDao!!.updatePrivate(folder.id, false)
         }
-        loadThings()
+        if (reload) {
+            loadThings()
+        }
         return true
     }
 
@@ -1222,14 +1311,17 @@ open class ThingManager private constructor(context: Context?) {
         val independentlyTrashed = mFolderDao!!.getDescendantThingsForProjection(
             folder.id, Def.ThingStatus.DELETED, ThingWidgetInfo.TYPE_FILTER_ALL
         )
-        restoreThingsToPreTrashState(independentlyTrashed)
+        restoreThingsToPreTrashState(independentlyTrashed, reload = false)
         trimProjectionToVisibleFolders()
         loadThings()
         return true
     }
 
-    private fun restoreThingsToPreTrashState(things: List<Thing>) {
-        if (things.isEmpty()) return
+    private fun restoreThingsToPreTrashState(
+        things: List<Thing>,
+        reload: Boolean = true
+    ): Int {
+        if (things.isEmpty()) return 0
         val toUnderway = ArrayList<Thing>()
         val toFinished = ArrayList<Thing>()
         for (thing in things) {
@@ -1239,8 +1331,21 @@ open class ThingManager private constructor(context: Context?) {
                 toUnderway.add(thing)
             }
         }
-        changeFolderSubtreeContentState(toUnderway, Thing.DELETED, Thing.UNDERWAY)
-        changeFolderSubtreeContentState(toFinished, Thing.DELETED, Thing.FINISHED)
+        val changed = changeFolderSubtreeContentState(
+            toUnderway,
+            Thing.DELETED,
+            Thing.UNDERWAY,
+            reload = false
+        ) + changeFolderSubtreeContentState(
+            toFinished,
+            Thing.DELETED,
+            Thing.FINISHED,
+            reload = false
+        )
+        if (changed > 0 && reload) {
+            loadThings()
+        }
+        return changed
     }
 
     private fun updateFolderState(folder: ThingFolder?, @Thing.State state: Int): Boolean {
@@ -1371,20 +1476,26 @@ open class ThingManager private constructor(context: Context?) {
      * that type only; "全部类型" affects every type. [folder] = null means the whole
      * tree from root, excluding things under a recycle-bin (deleted) folder.
      */
-    open fun getUnderwayThingsInScope(folder: ThingFolder?): List<Thing> {
-        if (folder != null) {
-            return mFolderDao!!.getDescendantThingsForProjection(
+    open fun getUnderwayThingsInScope(
+        folder: ThingFolder?,
+        keyword: String? = null,
+        color: Int = 0
+    ): List<Thing> {
+        val things = if (folder != null) {
+            mFolderDao!!.getDescendantThingsForProjection(
                 folder.id, Def.ThingStatus.UNDERWAY, getActiveTypeFilterMask()
             )
+        } else {
+            mDao!!.getAllUserThingsByState(Thing.UNDERWAY).filterNotNull().filter {
+                !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
+            }
         }
-        return mDao!!.getAllUserThingsByState(Thing.UNDERWAY).filterNotNull().filter {
-            !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
-        }
+        return filterThingsForSearchRange(things, keyword, color)
     }
 
-    /** Finish the given Things (underway -> finished), recursive-safe, then reload. */
-    open fun finishThings(things: List<Thing>): Int {
-        return changeFolderSubtreeContentState(things, Thing.UNDERWAY, Thing.FINISHED)
+    /** Finish the given Things (underway -> finished), recursive-safe, then optionally reload. */
+    open fun finishThings(things: List<Thing>, reload: Boolean = true): Int {
+        return changeFolderSubtreeContentState(things, Thing.UNDERWAY, Thing.FINISHED, reload)
     }
 
     /**
@@ -1392,29 +1503,35 @@ open class ThingManager private constructor(context: Context?) {
      * for the recursive "恢复文件夹中所有记事为正在进行" / "全部删除" actions. Follows
      * the current type filter. [folder] = null means root.
      */
-    open fun getFinishedThingsInScope(folder: ThingFolder?): List<Thing> {
-        if (folder != null) {
-            return mFolderDao!!.getDescendantThingsForProjection(
+    open fun getFinishedThingsInScope(
+        folder: ThingFolder?,
+        keyword: String? = null,
+        color: Int = 0
+    ): List<Thing> {
+        val things = if (folder != null) {
+            mFolderDao!!.getDescendantThingsForProjection(
                 folder.id, Def.ThingStatus.FINISHED, getActiveTypeFilterMask()
             )
+        } else {
+            mDao!!.getAllUserThingsByState(Thing.FINISHED).filterNotNull().filter {
+                !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
+            }
         }
-        return mDao!!.getAllUserThingsByState(Thing.FINISHED).filterNotNull().filter {
-            !mFolderDao!!.isEffectivelyDeleted(it.folderId) && matchesActiveTypeFilter(it.type)
-        }
+        return filterThingsForSearchRange(things, keyword, color)
     }
 
-    /** Restore the given finished Things back to underway, then reload. */
-    open fun unfinishThings(things: List<Thing>): Int {
-        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.UNDERWAY)
+    /** Restore the given finished Things back to underway, then optionally reload. */
+    open fun unfinishThings(things: List<Thing>, reload: Boolean = true): Int {
+        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.UNDERWAY, reload)
     }
 
     /**
      * Move the given finished Things to the recycle bin (finished -> deleted),
-     * recording each one's pre-trash state, then reload. Used by the recursive
+     * recording each one's pre-trash state, then optionally reload. Used by the recursive
      * "全部删除" toolbar action in the Finished view.
      */
-    open fun trashThings(things: List<Thing>): Int {
-        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.DELETED)
+    open fun trashThings(things: List<Thing>, reload: Boolean = true): Int {
+        return changeFolderSubtreeContentState(things, Thing.FINISHED, Thing.DELETED, reload)
     }
 
     /**
@@ -1423,37 +1540,59 @@ open class ThingManager private constructor(context: Context?) {
      * pure-skeleton model, "deleting a folder" trashes its content rather than the
      * container. Follows the current type filter. [folder] = null returns empty.
      */
-    open fun getNonDeletedThingsInScope(folder: ThingFolder?): List<Thing> {
+    open fun getNonDeletedThingsInScope(
+        folder: ThingFolder?,
+        keyword: String? = null,
+        color: Int = 0
+    ): List<Thing> {
         folder ?: return emptyList()
         val mask = getActiveTypeFilterMask()
-        return mFolderDao!!.getDescendantThingsForProjection(
+        val things = mFolderDao!!.getDescendantThingsForProjection(
             folder.id, Def.ThingStatus.UNDERWAY, mask
         ) + mFolderDao!!.getDescendantThingsForProjection(
             folder.id, Def.ThingStatus.FINISHED, mask
         )
+        return filterThingsForSearchRange(things, keyword, color)
     }
 
     /**
      * Move the given non-deleted Things to the recycle bin, recording each one's
      * pre-trash state. Splits by current state so underway and finished Things keep
-     * the correct state to return to on restore. Then reload.
+     * the correct state to return to on restore. Then optionally reload.
      */
-    open fun trashThingsPreservingState(things: List<Thing>): Int {
+    open fun trashThingsPreservingState(things: List<Thing>, reload: Boolean = true): Int {
         if (things.isEmpty()) return 0
         val underway = things.filter { it.state == Thing.UNDERWAY }
         val finished = things.filter { it.state == Thing.FINISHED }
-        changeFolderSubtreeContentState(underway, Thing.UNDERWAY, Thing.DELETED)
-        changeFolderSubtreeContentState(finished, Thing.FINISHED, Thing.DELETED)
-        return things.size
+        val changed = changeFolderSubtreeContentState(
+            underway,
+            Thing.UNDERWAY,
+            Thing.DELETED,
+            reload = false
+        ) + changeFolderSubtreeContentState(
+            finished,
+            Thing.FINISHED,
+            Thing.DELETED,
+            reload = false
+        )
+        if (changed > 0 && reload) {
+            loadThings()
+        }
+        return changed
     }
 
     /**
      * Permanently delete the given trashed Things (deleted -> deleted forever),
-     * then reload. Used by the recursive "全部永久删除" toolbar action in the
+     * then optionally reload. Used by the recursive "全部永久删除" toolbar action in the
      * recycle bin.
      */
-    open fun deleteThingsForever(things: List<Thing>): Int {
-        return changeFolderSubtreeContentState(things, Thing.DELETED, Thing.DELETED_FOREVER)
+    open fun deleteThingsForever(things: List<Thing>, reload: Boolean = true): Int {
+        return changeFolderSubtreeContentState(
+            things,
+            Thing.DELETED,
+            Thing.DELETED_FOREVER,
+            reload
+        )
     }
 
     /**
@@ -1462,29 +1601,38 @@ open class ThingManager private constructor(context: Context?) {
      * "全部永久删除" actions. Follows the current type filter. [folder] = null means
      * the whole tree from root.
      */
-    open fun getTrashedThingsInScope(folder: ThingFolder?): List<Thing> {
-        if (folder != null) {
-            return mFolderDao!!.getDescendantThingsForProjection(
+    open fun getTrashedThingsInScope(
+        folder: ThingFolder?,
+        keyword: String? = null,
+        color: Int = 0
+    ): List<Thing> {
+        val things = if (folder != null) {
+            mFolderDao!!.getDescendantThingsForProjection(
                 folder.id, Def.ThingStatus.DELETED, getActiveTypeFilterMask()
             )
+        } else {
+            mDao!!.getAllUserThingsByState(Thing.DELETED).filterNotNull().filter {
+                matchesActiveTypeFilter(it.type)
+            }
         }
-        return mDao!!.getAllUserThingsByState(Thing.DELETED).filterNotNull().filter {
-            matchesActiveTypeFilter(it.type)
-        }
+        return filterThingsForSearchRange(things, keyword, color)
     }
 
-    /** Restore the given trashed Things to their pre-trash state, then reload. */
-    open fun restoreTrashedThings(things: List<Thing>): Int {
+    /** Restore the given trashed Things to their pre-trash state, then optionally reload. */
+    open fun restoreTrashedThings(things: List<Thing>, reload: Boolean = true): Int {
         if (things.isEmpty()) return 0
-        restoreThingsToPreTrashState(things)
-        loadThings()
-        return things.size
+        val changed = restoreThingsToPreTrashState(things, reload = false)
+        if (changed > 0 && reload) {
+            loadThings()
+        }
+        return changed
     }
 
     private fun changeFolderSubtreeContentState(
         things: List<Thing>,
         @Thing.State stateBefore: Int,
-        @Thing.State stateAfter: Int
+        @Thing.State stateAfter: Int,
+        reload: Boolean = true
     ): Int {
         if (things.isEmpty()) return 0
 
@@ -1552,11 +1700,13 @@ open class ThingManager private constructor(context: Context?) {
             }
         }
 
-        loadThings()
+        if (reload) {
+            loadThings()
+        }
         return effectiveThings.size
     }
 
-    open fun toggleFolderSticky(folder: ThingFolder?): Boolean {
+    open fun toggleFolderSticky(folder: ThingFolder?, reload: Boolean = true): Boolean {
         if (folder == null) return false
         val newLocation = mFolderDao!!.getFirstChildLocation(
             folder.parentFolderId,
@@ -1564,7 +1714,9 @@ open class ThingManager private constructor(context: Context?) {
         )
         folder.location = newLocation
         mFolderDao!!.updateLocations(arrayOf<Long?>(folder.id), arrayOf<Long?>(newLocation))
-        loadThings()
+        if (reload) {
+            loadThings()
+        }
         return true
     }
 
@@ -1868,7 +2020,11 @@ open class ThingManager private constructor(context: Context?) {
         return -1
     }
 
-    open fun stickyThingOnTop(thing: Thing?, position: Int) {
+    open fun stickyThingOnTop(
+        thing: Thing?,
+        position: Int,
+        rebuildEntries: Boolean = true
+    ) {
         if (thing == null) return
 
         val newLocation = mFolderDao!!.getFirstChildLocation(thing.folderId, sticky = true)
@@ -1880,10 +2036,16 @@ open class ThingManager private constructor(context: Context?) {
         thing.location = newLocation
 
         mDao!!.updateLocations(ids, locations)
-        rebuildThingListEntries()
+        if (rebuildEntries) {
+            rebuildThingListEntries()
+        }
     }
 
-    open fun cancelStickyThing(thing: Thing?, position: Int) {
+    open fun cancelStickyThing(
+        thing: Thing?,
+        position: Int,
+        rebuildEntries: Boolean = true
+    ) {
         if (thing == null) return
 
         val newLocation = mFolderDao!!.getFirstChildLocation(thing.folderId, sticky = false)
@@ -1895,6 +2057,12 @@ open class ThingManager private constructor(context: Context?) {
         thing.location = newLocation
 
         mDao!!.updateLocations(ids, locations)
+        if (rebuildEntries) {
+            rebuildThingListEntries()
+        }
+    }
+
+    open fun rebuildCurrentThingListEntries() {
         rebuildThingListEntries()
     }
 
