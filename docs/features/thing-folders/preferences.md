@@ -419,6 +419,14 @@
 - Thumbnail-mode Folder Card previews should also include direct child Folder
   Cards. Child Folder previews render as summary Folder Cards even when that
   child Folder normally uses thumbnail mode.
+- 大文件夹缩略图里的 child Folder preview 标题字号应与普通记事 preview
+  标题一致：两者都使用 `FolderThingPreviewStyle.titleTextSize = 12.9f` 作为基准，
+  再统一乘以 thumbnail 的 `textScale`；不要沿用正常 Folder Card header 的
+  16sp 基准字号。
+- 大文件夹缩略图里的 child Folder preview 标题与左侧文件夹 icon 对齐时，
+  只让标题第一行的视觉中心对齐 icon 的垂直中心；不要把整个多行标题
+  TextView 与 icon 竖直居中。由于文件夹 icon 形状右侧视觉位置比左侧低，
+  第一行标题在几何对齐后还应额外向下微调 0.36dp。
 - Tapping a child Folder preview opens that Folder, following the same privacy
   authentication rules as tapping the ordinary Folder Card.
 - Thumbnail previews represent direct child entries of the Folder rather than

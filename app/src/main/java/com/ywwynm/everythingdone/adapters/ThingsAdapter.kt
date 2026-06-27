@@ -23,6 +23,7 @@ import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import kotlin.math.roundToInt
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -984,6 +985,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         setFolderPreviewContentWidth(previewHolder)
         bindFolderCardSurface(previewHolder, previewFolder)
         bindFolderCardContent(previewHolder, previewEntry)
+        alignFolderSummaryPreviewTitleSize(previewHolder, style)
         previewHolder.cv!!.setShouldInterceptTouchEvent(true)
         previewHolder.cv.setOnClickListener {
             mOnItemTouchedListener?.onFolderThumbnailFolderClick(it, entry)
@@ -1021,6 +1023,50 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
         textLp.width = ViewGroup.LayoutParams.MATCH_PARENT
         holder.llTextContent.layoutParams = textLp
+    }
+
+    private fun alignFolderSummaryPreviewTitleSize(
+        holder: BaseThingViewHolder,
+        style: FolderThingPreviewStyle
+    ) {
+        val container = holder.llTextContent ?: return
+        val headerIndex = findFolderHeaderIndex(container)
+        if (headerIndex < 0) return
+        val header = container.getChildAt(headerIndex) as? ViewGroup ?: return
+        var iconHeightPx = 0
+        var titleView: TextView? = null
+        for (i in 0 until header.childCount) {
+            val child = header.getChildAt(i)
+            if (iconHeightPx <= 0 && child is ImageView) {
+                iconHeightPx = child.layoutParams?.height?.takeIf { it > 0 } ?: 0
+            }
+            if (titleView == null && child is TextView) {
+                titleView = child
+            }
+        }
+        val title = titleView ?: return
+        title.textSize = style.titleTextSize
+        alignFolderSummaryPreviewTitleFirstLine(title, iconHeightPx, style)
+    }
+
+    private fun alignFolderSummaryPreviewTitleFirstLine(
+        titleView: TextView,
+        iconHeightPx: Int,
+        style: FolderThingPreviewStyle
+    ) {
+        if (iconHeightPx <= 0 || style.layoutScale <= 0f) return
+        val titleLp = titleView.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val fontMetrics = titleView.paint.fontMetrics
+        val firstLineHeightPx = fontMetrics.descent - fontMetrics.ascent
+        val shapeOffsetPx =
+            mDensity * FOLDER_THUMBNAIL_FOLDER_TITLE_SHAPE_OFFSET_DP / style.layoutScale
+        val topMarginPx = (
+            (iconHeightPx - firstLineHeightPx) / 2f *
+                style.textScale / style.layoutScale +
+                shapeOffsetPx
+        ).roundToInt()
+        titleLp.topMargin = topMarginPx
+        titleView.layoutParams = titleLp
     }
 
     private fun applyFolderThumbnailPreviewElevation(card: CardView?) {
@@ -1620,7 +1666,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val fullSpanPreviewWidth: Int,
         val surfaceAvailableHeight: Int
     ) {
-        val titleTextSize: Float = 13f
+        val titleTextSize: Float = 12.9f
         val checklistTextSize: Float = if (compact) 10.5f else 11f
         val contentMaxLines: Int = if (compact) 2 else 3
         val checklistMaxItems: Int = if (compact) 3 else 4
@@ -1758,6 +1804,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         private const val FOLDER_THUMBNAIL_HEADER_GAP_DP = 12
         private const val FOLDER_THUMBNAIL_ITEM_GAP_DP = 8
         private const val FOLDER_THUMBNAIL_PREVIEW_ELEVATION_DP = 2
+        private const val FOLDER_THUMBNAIL_FOLDER_TITLE_SHAPE_OFFSET_DP = 0.36f
 
         private const val FOLDER_THUMBNAIL_TEXT_SURFACE_COMPACT_DP = 150
         private const val FOLDER_THUMBNAIL_TEXT_SURFACE_TALL_DP = 170

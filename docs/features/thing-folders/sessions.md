@@ -1,5 +1,16 @@
 # Thing Folders Sessions
 
+## 2026-06-27 - 大文件夹缩略图内文件夹预览标题字号对齐
+
+- 诊断确认普通记事 preview 走 `FolderThingPreviewAdapter.getThingCardTitleTextSize(...) = FolderThingPreviewStyle.titleTextSize`，再经过 thumbnail `textScale` 缩放；child Folder preview 则复用正常 Folder Card header，基准字号仍是 16sp，所以最终看起来更大。
+- 在 `ThingsAdapter.createFolderSummaryPreviewView(...)` 的缩略图分支中，绑定 summary Folder Card 内容后、统一 thumbnail 缩放前，将 header 标题字号对齐到 `FolderThingPreviewStyle.titleTextSize`。这只影响大文件夹缩略图内的 child Folder preview，主列表正常 Folder Card header 保持原样。
+- 验证：`git diff --check` 仅有仓库既有 LF/CRLF 提示；`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627125804.md"` 发布到阿里云 debug 通道，更新码 `202606270458`；远端 `latest.json` 已确认指向 `app-debug-202606270458.apk`，SHA-256 为 `76c6aecb72bcf803e32ffdeafedfdcdbaafaddb8731d9fbd58a3bbe10a4ffa93`。
+- 按用户偏好微调：将共用标题基准字号从 `13f` 改为 `12.9f`，避免继续使用 13 这个数值；`git diff --check` 仅有仓库既有 LF/CRLF 提示，`:app:assembleDebug` 与 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627130113.md"` 均通过，更新码 `202606270501`，远端 SHA-256 为 `9493e3c019efc7b9a739818b08fbe2139c47a0851fffb8324c746e91e8532196`。
+- 修复 12.9f 后的第一行对齐回归：child Folder preview header 现在按标题第一行 font metrics 与左侧文件夹 icon 计算 top margin；只对齐第一行视觉中心，不把整个多行 `TextView` 与 icon 竖直居中。`:app:assembleDebug` 与 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627130821.md"` 均通过，更新码 `202606270508`，远端 SHA-256 为 `d2cdd9baa150fda558f36cba449fc23390ef5062a3442de27168580dbe314c35`。
+- 按用户进一步校准：由于文件夹 icon 形状右侧视觉位置比左侧更低，第一行标题在几何对齐后额外下移 0.5dp；该值会先换算到 thumbnail 缩放前的 top margin，保证最终视觉补偿量仍为 0.5dp。`:app:assembleDebug` 与 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627131247.md"` 均通过，更新码 `202606270512`，远端 SHA-256 为 `68ee4699cc1a386f6c60be8f47cd688ebcfc7af67ee119b6842a120dd4bf8262`。
+- 按用户视觉反馈将文件夹 icon 形状补偿从 0.5dp 调小为 0.36dp；补偿仍换算到 thumbnail 缩放前的 top margin。`:app:assembleDebug` 与 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627131752.md"` 均通过，更新码 `202606270518`，远端 SHA-256 为 `f688cfced3995f93d02b4e7f7be35f755e474c46e4f4d4cc2efdf1825857d0b9`。
+
 ## 2026-06-27 - 拖拽到 thumbnail 文件夹的提交动画语义修正
 
 - 根据用户补充定位：剩余问题集中在拖拽到 thumbnail-mode 大文件夹上，表现为没有飞入动画或飞入坐标错误；无论该文件夹是否 full-span 都会受影响。
