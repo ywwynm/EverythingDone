@@ -22,3 +22,32 @@
 
 `:app:assembleDebug` 通过；发布 debug 更新到阿里云（updateCode 202606250754，
 日志 `debug-updates/update-20260625155356.md`）。行为项待真机验证。
+
+## 2026-06-27 - 修复：大文件夹缩略图里第一个正在做预览的图标/文字不显示（findViewById 抓错蒙层）
+
+现象：正在做的记事作为大文件夹（缩略图模式）里**第一个**预览缩略图时，蒙层显示、但火箭图标 +
+"正在做"文字整体不显示；**第二个及以后的预览正常**。确定性复现，与缩放 / 卡片高度 / 是否有图片
+均无关。
+
+真正根因（决定性线索是"只有第一个预览坏"）：`card_thing` 布局的根是 `InterceptTouchCardView`，蒙层
+`fl_thing_doing_cover` 是它的直接子 View；而缩略图模式文件夹卡把若干**用同一个 card_thing inflate、
+带相同 R.id.fl_thing_doing_cover** 的预览卡加进自己的内容区（`ll_thing_content` 内，位于自身蒙层之
+前）。`InterceptTouchCardView.onMeasure` 里用 `findViewById(R.id.fl_thing_doing_cover)` 缓存蒙层——
+`findViewById` 深度优先遍历整棵子树，会先命中**第一个预览卡的蒙层**而非文件夹卡自己的。于是当第一个
+预览恰为正在做的记事（蒙层 VISIBLE），文件夹卡的 onMeasure 把**这个预览的蒙层按整张文件夹卡尺寸**
+强制重测，预览里 `layout_gravity=center` 的图标 + 文字被摆到整张文件夹卡的中心、跑到小预览卡之外被
+裁掉 → 蒙层在、图文不可见。第二个预览的蒙层 `findViewById` 永远到不了（首个匹配即停），故正常。
+
+修复（`InterceptTouchCardView`）：蒙层改为**只在直接子节点里找**（新增 `findOwnDoingCover()`），不再
+用会深度遍历的 `findViewById`。这样文件夹卡只处理自己的（GONE 的）蒙层、onMeasure 提前返回、不再
+碰任何预览；每个预览卡也只处理自己的蒙层。`holder.flDoing` 不受影响——它在 holder 创建时（预览尚未
+加入）就解析过，拿到的本就是自身的蒙层。
+
+误判记录（三连错，留档以免重蹈）：① 先怪"图片异步加载改高度→scale 失准"；② 再怪"过渡态极小高度
+→scale≈0 取整不可见"；③ 又怪"full-span 稳定卡上 tvDoing 重布局落不了地"。前两条被纯文字 / 高图片卡
+复现推翻，第三条被"只有第一个预览坏、第二个正常"推翻——真正原因与缩放 / 时序 / span 都无关，是
+findViewById 跨预览子卡抓到了同 id 的蒙层。基于②③加的 `applyDoingCoverScale` 强制重测、
+`OnLayoutChangeListener` 自愈、图标 `coerceAtLeast(1)` 均已回退（无效且非根因）。
+
+`:app:assembleDebug` 通过。发布到阿里云 debug 通道，更新码 `202606271029`（取代含错误修复的
+`202606271018`），日志 `docs/features/thing-folders/debug-updates/update-20260627182927.md`，待平板真机验证。

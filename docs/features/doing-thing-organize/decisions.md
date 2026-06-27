@@ -100,3 +100,19 @@ clearDraft 重绑）。
 
 文案：数量后的"不含正在做的记事"与"包含所有子文件夹中的记事"同时出现时合并进同一对括号
 （新增 `scope_includes_subfolders_and_excludes_doing` 资源），避免连续两个括号。
+
+蒙层 findViewById 抓错（2026-06-27 最终定位）：缩略图模式文件夹卡里，**第一个**正在做预览的图标 +
+文字不显示（蒙层在），第二个起正常。根因与缩放 / 高度 / span / 时序**全部无关**：`InterceptTouchCardView`
+（card_thing 的根）在 onMeasure 里用 `findViewById(R.id.fl_thing_doing_cover)` 找"自己的"蒙层强制铺满；
+但文件夹卡把多张同样用 card_thing inflate、带**相同 id** 的预览卡作为子 View 装在自己内容区里，
+`findViewById` 深度优先会先命中**第一个预览卡的蒙层**，于是文件夹卡把那个预览的蒙层按整张文件夹卡
+尺寸强测，预览里居中的图文被摆到文件夹卡中心、被预览卡裁掉。**决定：`InterceptTouchCardView` 只在
+直接子节点里找自己的蒙层（`findOwnDoingCover()`），不用会深度遍历的 `findViewById`。** `holder.flDoing`
+在 holder 创建时（预览未加入前）解析、本就正确，无需改。
+
+> 三连误判留档（以免重蹈）：① "图片异步加载改高度→scale 失准"；② "过渡态极小高度→scale≈0 取整
+> 不可见"；③ "full-span 稳定卡上 tvDoing 重布局落不了地"。①②被纯文字 / 高图片卡复现推翻，③被
+> "只有第一个预览坏、第二个正常"推翻。基于②③曾在 `applyDoingCoverScale` 加强制重测、加
+> `OnLayoutChangeListener`、给图标 `coerceAtLeast(1)`，均已回退——它们既非根因也修不好。
+> **教训：碰到"只有第 N 个/第一个才出问题"时，优先怀疑 findViewById/同 id 在共享布局里的歧义，
+> 而非缩放或测量时序。**

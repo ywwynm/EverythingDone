@@ -3095,3 +3095,12 @@ Publish:
 - 修改：新增 `ThingSearchHelper` 统一搜索匹配。私密标题只移除真实私密前缀；checklist 正文通过 `CheckListHelper.toContentStr(..., "", "")` 转成用户可见纯文本。`ThingDAO`、`ThingFolderDAO`、`ThingManager` 和 `Thing.matchSearchRequirement(...)` 都改走 helper；DAO 继续负责状态、类型、文件夹等结构筛选，keyword 最终判断改在净化后的文本上完成。
 - Verification：`:app:assembleDebug` 通过；`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示。未使用 adb。
 - 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627163603.md"` 发布到阿里云 debug 通道，更新码 `202606270837`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270837.apk`，SHA-256 为 `7ac3a73ee8ab096a2e4018d687c84e6d1de067275f3189fbba12040be3618848`。
+
+## 2026-06-27 - 选择模式下点大文件夹缩略图选中文件夹
+
+- 用户反馈：首页记事 / 文件夹混合列表进入选择模式后，点击大文件夹（缩略图模式）里的预览缩略图无作用，应与点击文件夹卡片空白区域一致——选中 / 反选这个文件夹。
+- 诊断：缩略图预览卡的点击走 `ThingsAdapter` 的 `onFolderThumbnailClick` / `onFolderThumbnailFolderClick`，二者在非 NORMAL 模式直接 return，故选择模式下点预览无任何效果。外层文件夹卡空白区域的点击走 `onItemClick`，其 SELECTING 分支会切换 `folder.selected`。外层文件夹卡 `setShouldInterceptTouchEvent(false)`，子预览卡能收到自己的点击（普通模式下点缩略图能打开记事详情即可佐证）。
+- 修改（`ThingsActivity.OnThingTouchedListener`）：两个回调在 SELECTING 模式改为调用新增的 `toggleContainingFolderSelectionForThumbnail(v)`——用 `mRecyclerView.findContainingViewHolder(v)` 向上找到承载该预览的列表项 ViewHolder，取 `bindingAdapterPosition` 后复用 `onItemClick(itemView, listPosition)`，保证与点空白区域完全一致（含外观面板取消、计数 / 菜单刷新）。预览是文件夹卡的子 View、并非 RecyclerView 列表项，故须向上回溯。非 SELECTING 的非 NORMAL 模式（如 MOVING）保持原来的 no-op。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待真机验证。
+- 发布（含错误修复，已被取代）：与"大文件夹正在做图文不显示"的**错误**修复一起发布，更新码 `202606271018`，日志 `update-20260627181816.md`，SHA-256 `78ddf1dbea1c98b9c60e12fc01a9a8e0f3a7cc8e4c84900d6d9fd3702463182d`。该修复未生效（见 `doing-thing-organize`）。
+- 发布（真正修复）：与"大文件夹第一个正在做预览图文不显示"的**真正**修复（`InterceptTouchCardView` 只在直接子节点找蒙层，见 `doing-thing-organize`）一起，通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627182927.md"` 发布到阿里云 debug 通道，更新码 `202606271029`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271029.apk`，SHA-256 为 `b98a5a947fb6f90a9a8ec597604b3196b21310cf67c4c53b0b8277933d926e95`。
