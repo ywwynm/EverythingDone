@@ -61,3 +61,13 @@
 实现：`ThingBackgroundEditor` 在纯色/渐变 tab 切换前调用 `KeyboardUtil.hideKeyboard`；`ThingsActivity` 在主页外观 panel 打开/切换、外观页与颜色页互切、隐藏 panel 时统一收起键盘。主页 `panel_thing_card_appearance` 改为使用 `translationY` 做底部滑入/滑出，并通过 `mThingCardAppearancePanelVisibilityToken` 避免快速切换时旧动画回调把新 panel 设为 `GONE`；隐藏时等滑出完成后再还原 RecyclerView 底部 padding。详情页 `ThingBackgroundEditorBottomSheet` 通过新的 `EverythingDoneAnimationBottomPanel` window animation 复用 `bottom_panel_slide_in/out.xml`，让显示和 dismiss 都走底部升降动画。
 
 验证：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` 已通过；已发布 debug update `202606261510`。发布日志见 `debug-updates/update-20260626230720.md`。
+
+## 2026-06-27 — 短列表打开颜色面板时选中卡片对齐到顶部
+
+用户反馈：主页记事/文件夹混合列表本身 item 不多、不需要滑动时，选择一个 item 打开外观 panel，切到调整颜色并点 RGB/Hex `EditText` 后，键盘弹出使 panel 中间区域变为可滑动，但混合列表没有把选中的 item 滚动到 contextual actionbar 下方 16dp 处。
+
+诊断：`ensureThingCardAppearanceSelectedCardVisible()` 原先只保证选中 holder 在 `RecyclerView` 的可见区内；当短列表中的 holder 已经绑定且仍“完整可见”时，它不会继续滚到顶部目标位置。短列表还可能因为内容高度不够，只有 `panelHeight + spacing` 的底部 padding 不足以产生把选中项顶边移动到目标位置所需的滚动余量。
+
+修复：`ThingsActivity` 将选中卡片定位目标改为 `RecyclerView.paddingTop + getThingCardListItemSpacingPx()`，即 contextual actionbar 下方 16dp；panel 打开期间的列表底部 padding 会在基础 panel 预留之外，按已布局内容底部与目标滚动距离补足短列表所需的额外滚动空间。随后可见性检查不再只做“完整可见”，而是让选中卡片顶边对齐到该目标位置。
+
+验证：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` 已通过；已发布 debug update `202606270220`。发布日志见 `debug-updates/update-20260627101952.md`。

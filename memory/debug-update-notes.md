@@ -1,6 +1,14 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606261510`.
+Latest published debug update: `202606270220`.
+
+## 2026-06-27 - 短列表颜色面板下选中卡片顶部对齐
+
+详细发布日志见 `docs/features/thing-background-editor/debug-updates/update-20260627101952.md`。用户反馈：主页记事/文件夹混合列表 item 不多、不需要滑动时，选择一个 item 打开外观 panel，切换到调整颜色并点击 RGB/Hex `EditText` 后，键盘弹出使 panel 中间区域变为可滑动，但混合列表没有把选中 item 滚动到 contextual actionbar 下方 16dp 处。
+
+诊断发现，`ensureThingCardAppearanceSelectedCardVisible()` 原先只保证选中 holder 完整可见；短列表里 holder 已经绑定且仍处于可见区时，不会继续走“贴近顶部”的定位路径。短列表还可能因为内容高度不够，仅靠 `panelHeight + spacing` 的底部 padding 不能产生足够滚动余量。
+
+实现上，`ThingsActivity` 将选中卡片目标位置统一为 `RecyclerView.paddingTop + getThingCardListItemSpacingPx()`；panel 打开期间的 RecyclerView 底部 padding 会按选中项当前顶边到目标顶边的距离、以及已布局内容底部，额外补足短列表需要的滚动空间。随后可见性检查不再只做“完整可见”，而是让选中卡片顶边对齐到 contextual actionbar 下方 16dp。验证：`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL；已发布 `202606270220` 到阿里云 debug update channel。
 
 ## 2026-06-26 - 颜色面板切换收起键盘与底部动画
 

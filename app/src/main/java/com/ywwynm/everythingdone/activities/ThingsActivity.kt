@@ -5617,7 +5617,11 @@ class ThingsActivity :
         }
 
         val extra = panelHeight + getThingCardListItemSpacingPx()
-        val desiredPaddingBottom = mThingCardAppearancePanelOriginalPaddingBottom + extra
+        val basePaddingBottom = mThingCardAppearancePanelOriginalPaddingBottom + extra
+        val desiredPaddingBottom = getThingCardAppearancePanelListPaddingBottom(
+                recyclerView,
+                basePaddingBottom
+        )
         if (recyclerView.paddingBottom != desiredPaddingBottom) {
             animateRecyclerViewBottomPaddingForThingCardAppearancePanel(
                     recyclerView,
@@ -5626,6 +5630,31 @@ class ThingsActivity :
         } else {
             scheduleThingCardAppearanceSelectedCardVisibleCheck()
         }
+    }
+
+    private fun getThingCardAppearancePanelListPaddingBottom(
+        recyclerView: RecyclerView,
+        basePaddingBottom: Int
+    ): Int {
+        val holder = recyclerView.findViewHolderForAdapterPosition(
+                mThingCardAppearanceSelectedListPosition
+        ) ?: return basePaddingBottom
+        val targetTop = getThingCardAppearanceSelectedCardTargetTop(recyclerView)
+        val scrollDelta = holder.itemView.top - targetTop
+        if (scrollDelta <= 1) return basePaddingBottom
+
+        val contentBottom = getThingCardListLaidOutContentBottom(recyclerView)
+        if (contentBottom <= 0) return basePaddingBottom
+        val requiredPaddingBottom = recyclerView.height + scrollDelta - contentBottom
+        return max(basePaddingBottom, requiredPaddingBottom)
+    }
+
+    private fun getThingCardListLaidOutContentBottom(recyclerView: RecyclerView): Int {
+        var bottom = 0
+        for (i in 0 until recyclerView.childCount) {
+            bottom = max(bottom, recyclerView.getChildAt(i).bottom)
+        }
+        return bottom
     }
 
     private fun requestThingCardAppearancePanelSpaceUpdate() {
@@ -5747,18 +5776,12 @@ class ThingsActivity :
         }
 
         val view = holder.itemView
-        val topClearance = getThingCardListItemSpacingPx()
-        val visibleTop = recyclerView.paddingTop + topClearance
+        val visibleTop = getThingCardAppearanceSelectedCardTargetTop(recyclerView)
         val visibleBottom = recyclerView.height - recyclerView.paddingBottom
         val availableHeight = visibleBottom - visibleTop
         if (availableHeight <= 0 || view.height <= 0) return
 
-        val scrollDelta = when {
-            view.height > availableHeight -> view.top - visibleTop
-            view.top < visibleTop -> view.top - visibleTop
-            view.bottom > visibleBottom -> view.bottom - visibleBottom
-            else -> 0
-        }
+        val scrollDelta = view.top - visibleTop
         if (abs(scrollDelta) <= 1) return
         if ((scrollDelta > 0 && !recyclerView.canScrollVertically(1)) ||
                 (scrollDelta < 0 && !recyclerView.canScrollVertically(-1))) {
@@ -5775,6 +5798,10 @@ class ThingsActivity :
         recyclerView.smoothScrollBy(0, scrollDelta)
     }
 
+    private fun getThingCardAppearanceSelectedCardTargetTop(recyclerView: RecyclerView): Int {
+        return recyclerView.paddingTop + getThingCardListItemSpacingPx()
+    }
+
     private fun smoothScrollThingCardAppearanceSelectionNearTop(position: Int) {
         val layoutManager = mStaggeredGridLayoutManager ?: return
         if (mRecyclerView?.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
@@ -5783,7 +5810,6 @@ class ThingsActivity :
             )
             return
         }
-        val topClearance = getThingCardListItemSpacingPx()
         val scroller = object : LinearSmoothScroller(this@ThingsActivity) {
             override fun getVerticalSnapPreference(): Int =
                     LinearSmoothScroller.SNAP_TO_START
@@ -5792,7 +5818,8 @@ class ThingsActivity :
                 view: View,
                 snapPreference: Int
             ): Int {
-                val targetTop = (mRecyclerView?.paddingTop ?: 0) + topClearance
+                val recyclerView = mRecyclerView ?: return 0
+                val targetTop = getThingCardAppearanceSelectedCardTargetTop(recyclerView)
                 return targetTop - view.top
             }
         }
