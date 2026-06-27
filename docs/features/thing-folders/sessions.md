@@ -3113,3 +3113,25 @@ Publish:
 - 同步回退上一版 `ThingsActivity` 的改动：`onFolderThumbnailClick` / `onFolderThumbnailFolderClick` 回到"仅普通模式"，删除 `toggleContainingFolderSelectionForThumbnail`（选择由冒泡到文件夹卡处理，不再需要）。
 - Verification：`:app:assembleDebug` 通过。未使用 adb，待平板真机验证。
 - 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627184901.md"` 发布到阿里云 debug 通道，更新码 `202606271049`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271049.apk`，SHA-256 为 `dd563fc480699a1546b30d855a13468593c3316fde22778f6a275dda00615cfe`。尚未提交，待真机确认后提交。
+
+## 2026-06-27 - 修复：拖拽大文件夹时缩略图卡片圆角丢失
+
+- 现象：长按带缩略图的大文件夹进入拖拽（卡片放大）后，文件夹里缩略图预览卡贴边的内容不再被卡片
+  圆角裁切、在对应边缘显示成直角矩形——右上角置顶标识让右上角变直角、上方图片/视频让上两角变直角、
+  左侧图片让左两角变直角、作为卡片背景的图片/视频让四角都变直角；结束拖拽即恢复圆角。
+- 诊断：拖拽悬浮层是把卡片 `sourceView.draw(Canvas(bitmap))` 截成 bitmap（`ThingListOverlayDragController`
+  约 164-168 行）再用 `DragOverlayImageView`（`clipToOutline` 只裁**外层**卡片圆角）显示。而**软件
+  `draw(Canvas)` 不会应用 `clipToOutline`**（圆角裁切是硬件 RenderNode 的行为），bitmap 里**内部预览卡**
+  的子 View 被画成直角矩形。结束拖拽后真实卡片回到硬件渲染，圆角恢复。"飞入文件夹"的 drop 动画
+  （`captureFolderDropCommitVisual` / `captureFolderMenuMoveVisual`）同理。
+- 改法（`InterceptTouchCardView`，预览卡与文件夹卡都是它）：覆盖 `dispatchDraw`，**仅在软件画布
+  （`!canvas.isHardwareAccelerated`）且 `clipToOutline` 时**，把子 View 画进离屏 `saveLayer`，画完后把
+  "四角 = 矩形 − 圆角矩形"（`Path.op(DIFFERENCE)`）用 `CLEAR` 抗锯齿地擦掉，使子 View 裁成圆角且边缘
+  平滑；硬件上屏直接走父类、依赖 `clipToOutline`、无额外开销。外层与每张内部预览卡都是本类、嵌套生效。
+- 第一版（更新码 202606271137）用 `saveLayer` + `drawRoundRect` + `DST_IN` 做蒙版，**无效**：
+  `drawRoundRect` 只覆盖圆角矩形**内部**像素，四角（圆角矩形外）根本没被绘制操作触及，`DST_IN` 也就
+  清不掉四角的矩形内容——等于没裁。改为"擦掉四角"才正确。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待平板真机验证。
+- 发布（无效，已被取代）：更新码 `202606271137`，日志 `update-20260627193647.md`，SHA-256
+  `238b1918f0291a67c816748a1f16da111297f50128fba9cab4d36af73cb4369c`。`DST_IN` 蒙版不覆盖四角、未生效。
+- 发布（第二版，擦四角）：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627195221.md"` 发布到阿里云 debug 通道，更新码 `202606271152`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271152.apk`，SHA-256 为 `caec2f243f6ca690c2c6812e2b42a047bffc2ac6cd9ea55550ae5daebe3c6bb4`。尚未提交，待真机确认后提交。

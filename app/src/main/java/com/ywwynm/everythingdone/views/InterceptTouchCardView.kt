@@ -1,6 +1,11 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import androidx.cardview.widget.CardView
 import android.util.AttributeSet
 import android.view.MotionEvent
@@ -30,8 +35,47 @@ open class InterceptTouchCardView : CardView {
     private var mDoingCover: View? = null
     private var mDoingCoverResolved: Boolean = false
 
+    // 复用，避免软件绘制时分配（仅软件绘制路径用到）。
+    private val mSoftwareRoundPath = Path()
+    private val mSoftwareCornerPath = Path()
+    private val mSoftwareCornerClearPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+    }
+
     fun setShouldInterceptTouchEvent(shouldInterceptTouchEvent: Boolean) {
         mShouldInterceptTouchEvent = shouldInterceptTouchEvent
+    }
+
+    /**
+     * 软件绘制（如拖拽 / 移入文件夹动画把卡片 `draw` 到 bitmap 做悬浮快照）**不会**应用
+     * `clipToOutline` 的圆角裁切——那是硬件 RenderNode 的行为。结果是卡片里贴边的图片、视频背景、
+     * 右上角置顶标识等在快照里被画成直角矩形，拖拽时就看到缩略图卡片对应的角 / 边不再是圆角（结束
+     * 拖拽、回到正常硬件渲染后又变圆角）。大文件夹里每张缩略图预览卡都是本类实例，故尤为明显。
+     *
+     * 这里在软件画布上把子 View 画进一个离屏层，画完后把"四角 = 矩形 − 圆角矩形"用 `CLEAR` 抗锯齿
+     * 地擦掉，使子 View 被裁成圆角且边缘平滑（不能用 `drawRoundRect` + `DST_IN`：`drawRoundRect` 只覆盖
+     * 圆角矩形内部、四角不会被绘制操作触及，xfermode 也就清不掉四角）。硬件绘制（正常上屏）直接走
+     * 父类、依赖 `clipToOutline`，不受影响、无额外开销（仅一次布尔判断即返回）。
+     */
+    override fun dispatchDraw(canvas: Canvas) {
+        val r = radius
+        if (!canvas.isHardwareAccelerated && clipToOutline && r > 0f
+            && width > 0 && height > 0
+        ) {
+            val w = width.toFloat()
+            val h = height.toFloat()
+            val save = canvas.saveLayer(0f, 0f, w, h, null)
+            super.dispatchDraw(canvas)
+            mSoftwareRoundPath.reset()
+            mSoftwareRoundPath.addRoundRect(0f, 0f, w, h, r, r, Path.Direction.CW)
+            mSoftwareCornerPath.reset()
+            mSoftwareCornerPath.addRect(0f, 0f, w, h, Path.Direction.CW)
+            mSoftwareCornerPath.op(mSoftwareRoundPath, Path.Op.DIFFERENCE)
+            canvas.drawPath(mSoftwareCornerPath, mSoftwareCornerClearPaint)
+            canvas.restoreToCount(save)
+        } else {
+            super.dispatchDraw(canvas)
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
