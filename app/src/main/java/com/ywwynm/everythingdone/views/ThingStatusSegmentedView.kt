@@ -165,7 +165,6 @@ class ThingStatusSegmentedView @JvmOverloads constructor(
                 Gravity.CENTER
             )
         )
-        cell.foreground = rippleForeground()
         row.addView(
             cell,
             LinearLayout.LayoutParams(dp(SEGMENT_MIN_DP), LinearLayout.LayoutParams.MATCH_PARENT)
@@ -194,6 +193,14 @@ class ThingStatusSegmentedView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w != oldw) gradientShader = null
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        for (segment in segments) {
+            val fg = segment.cell.foreground
+            if (fg is GradientRippleDrawable) fg.stopAnimations()
+        }
     }
 
     private fun targetWidthsFor(totalWidth: Int): IntArray? {
@@ -245,12 +252,24 @@ class ThingStatusSegmentedView @JvmOverloads constructor(
     private fun applyForegroundsAndTints() {
         val selected = selectedIndex()
         for ((index, segment) in segments.withIndex()) {
-            val foreground = if (index == selected) selectedForeground() else unselectedForeground()
-            segment.text.setTextColor(foreground)
+            val isSelected = index == selected
+            val fgColor = if (isSelected) selectedForeground() else unselectedForeground()
+            segment.text.setTextColor(fgColor)
             val drawable = AppCompatResources.getDrawable(context, segment.iconRes)
             if (drawable != null) {
                 segment.icon.setImageDrawable(
-                    DisplayUtil.opaqueTintDrawable(context, drawable, foreground)
+                    DisplayUtil.opaqueTintDrawable(context, drawable, fgColor)
+                )
+            }
+            // Selected segment already paints the Scope gradient as its fill, so keep its
+            // ripple a faint neutral; unselected segments get the gradient ripple on touch.
+            segment.cell.foreground = if (isSelected) {
+                rippleForeground()
+            } else {
+                GradientRippleDrawable(
+                    scopeBackground,
+                    shapeOval = false,
+                    cornerRadiusPx = dp(HEIGHT_DP / 2f).toFloat()
                 )
             }
         }

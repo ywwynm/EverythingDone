@@ -22,6 +22,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.util.ArrayList
 
@@ -149,13 +150,23 @@ open class RecurrencePickerAdapter(
                 }
                 holder.cv.background = pill
                 holder.cv.contentDescription = mCdPicked + mCds!![position] + ","
-                DisplayUtil.setRippleColorForCardView(holder.cv, unPickerColor)
+                val pickedMask = GradientDrawable()
+                pickedMask.shape = GradientDrawable.RECTANGLE
+                pickedMask.cornerRadius = holder.cv.radius
+                pickedMask.setColor(android.graphics.Color.WHITE)
+                holder.cv.foreground = RippleDrawable(
+                    ColorStateList.valueOf(unPickerColor), null, pickedMask
+                )
                 holder.tv!!.setTextColor(pickedTextColor())
             } else {
                 pill.setColor(unPickerColor)
                 holder.cv.background = pill
                 holder.cv.contentDescription = mCdUnpicked + mCds!![position] + ","
-                DisplayUtil.setRippleColorForCardView(holder.cv, mAccentColor)
+                holder.cv.foreground = GradientRippleDrawable(
+                    mAccentBackground ?: ThingBackground.pure(mAccentColor),
+                    shapeOval = false,
+                    cornerRadiusPx = holder.cv.radius
+                )
                 holder.tv!!.setTextColor(black_54)
             }
         } else {
@@ -181,19 +192,33 @@ open class RecurrencePickerAdapter(
                     holder.bg!!.background = null
                     holder.bg.setBackgroundColor(mAccentColor)
                 }
+                holder.cell!!.foreground = BackgroundUtil.circularRipple()
                 setRippleColor(holder.cell, unPickerColor)
                 holder.tvDate.setTextColor(pickedTextColor())
                 holder.cell!!.contentDescription = mCdPicked + mCds!![position] + ","
             } else {
                 holder.bg!!.background = null
                 holder.bg.setBackgroundColor(unPickerColor)
-                setRippleColor(holder.cell, mAccentColor)
+                holder.cell!!.foreground = GradientRippleDrawable(
+                    mAccentBackground ?: ThingBackground.pure(mAccentColor),
+                    shapeOval = true
+                )
                 holder.tvDate.setTextColor(black_54)
                 holder.cell!!.contentDescription = mCdUnpicked + mCds!![position] + ","
             }
         }
         viewHolder.itemView.contentDescription =
             (if (mPicked!![position]) mCdPicked else mCdUnpicked) + mCds!![position] + ","
+    }
+
+    override fun onViewRecycled(holder: BaseViewHolder) {
+        super.onViewRecycled(holder)
+        val fg = when (holder) {
+            is NormalViewHolder -> holder.cell?.foreground
+            is EndOfMonthViewHolder -> holder.cv?.foreground
+            else -> null
+        }
+        if (fg is GradientRippleDrawable) fg.stopAnimations()
     }
 
     override fun getItemCount(): Int = mItems!!.size
@@ -237,8 +262,6 @@ open class RecurrencePickerAdapter(
                     outline.setOval(0, 0, v.width, v.height)
                 }
             }
-            cell.foreground = BackgroundUtil.circularRipple()
-
             cell.setOnClickListener { v ->
                 togglePick(adapterPosition)
                 if (mOnPickListener != null) {

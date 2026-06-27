@@ -691,8 +691,10 @@ object DisplayUtil {
 
     @JvmStatic
     fun setRippleColorForCardView(cardView: CardView?, color: Int) {
-        val rp: RippleDrawable = cardView!!.foreground as RippleDrawable
-        rp.setColor(ColorStateList.valueOf(color))
+        val fg = cardView?.foreground
+        if (fg is RippleDrawable) {
+            fg.setColor(ColorStateList.valueOf(color))
+        }
     }
 
     @JvmStatic

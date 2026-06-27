@@ -8,7 +8,6 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
-import android.os.Build
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -126,6 +125,14 @@ class ThingFilterPanel @JvmOverloads constructor(
 
     fun getTypeFilterMask(): Int = currentMask
 
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        for ((_, typeButton) in typeButtons) {
+            val bg = typeButton.button.background
+            if (bg is GradientRippleDrawable) bg.stopAnimations()
+        }
+    }
+
     private fun onTypeTapped(maskKey: Int) {
         currentMask = if (maskKey == ThingWidgetInfo.TYPE_FILTER_ALL) {
             ThingWidgetInfo.TYPE_FILTER_ALL
@@ -185,22 +192,19 @@ class ThingFilterPanel @JvmOverloads constructor(
     }
 
     private fun circleBackground(selected: Boolean): Drawable {
+        if (!selected) {
+            // Unselected: a gradient ripple that only surfaces on touch (transparent at rest),
+            // tinted by the current Scope (root = accent gradient, folder = folder colour).
+            return GradientRippleDrawable(scopeBackground, shapeOval = true)
+        }
         val content = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            if (selected) {
-                if (scopeBackground.mode == ThingBackground.Mode.GRADIENT) {
-                    orientation = mapGradientOrientation(scopeBackground.orientation)
-                    colors = intArrayOf(scopeBackground.color, scopeBackground.endColor)
-                } else {
-                    setColor(scopeBackground.color)
-                }
+            if (scopeBackground.mode == ThingBackground.Mode.GRADIENT) {
+                orientation = mapGradientOrientation(scopeBackground.orientation)
+                colors = intArrayOf(scopeBackground.color, scopeBackground.endColor)
             } else {
-                // Unselected type circles have no outline.
-                setColor(Color.TRANSPARENT)
+                setColor(scopeBackground.color)
             }
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            return content
         }
         val mask = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
