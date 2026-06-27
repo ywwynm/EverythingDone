@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ThingSearchHelper
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import androidx.core.content.edit
 
@@ -240,32 +241,7 @@ open class Thing(
     }
 
     open fun matchSearchRequirement(keyword: String?, color: Int): Boolean {
-        // Phase 5/6: the int colour from the picker is now a hue-bucket hint, not
-        // an exact match. Convert it to a bucket and ask the background whether
-        // ANY of its stops falls into that bucket (so a red→blue gradient thing
-        // appears under both the red and the blue search). -1979711488 and 0
-        // keep their legacy "no filter" meaning.
-        if (color != -1979711488 && color != 0) {
-            val filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-            val bg: ThingBackground? = if (this._background != null)
-                this._background
-            else
-                ThingBackground.pure(this._color)
-            if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(bg, filterBucket)) {
-                return false
-            }
-        }
-
-        var curContent = content
-        if (CheckListHelper.isSignalContainsStrIgnoreCase(keyword)) {
-            val sbRex = StringBuilder()
-            for (i in 0 until CheckListHelper.CHECK_STATE_NUM) {
-                sbRex.append(CheckListHelper.SIGNAL).append(i).append("|")
-            }
-            sbRex.deleteCharAt(sbRex.length - 1)
-            curContent = curContent!!.replace(sbRex.toString().toRegex(), "")
-        }
-        return curContent!!.contains(keyword!!)
+        return ThingSearchHelper.matches(this, keyword, color)
     }
 
     override fun equals(other: Any?): Boolean {

@@ -3087,3 +3087,11 @@ Publish:
 - 修改：状态类 manager 方法新增默认 `reload` 参数，Activity 中马上调用 `refreshHomeAfterScopeStateChange()` 的路径传 `reload=false`；`restoreThingsToPreTrashState()` 与 `trashThingsPreservingState()` 内部合并为最多一次 reload；批量置顶记事改为每项只更新 location，最后统一 `rebuildCurrentThingListEntries()`；`enterSelectionMode()` 删除 `toSelectingMode(...)` 前的重复选中，只保留模式切换后的选中。
 - Verification：`:app:assembleDebug` 通过，`git diff --check` 通过。未使用 adb。
 - 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627161550.md"` 发布到阿里云 debug 通道，更新码 `202606270816`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270816.apk`，SHA-256 为 `1eccfead32d427f39f23fb2cc9105d8d0ed58676e366266989e00e8d27b51ee2`。
+
+## 2026-06-27 - 搜索排除私密与 checklist 存储标记
+
+- 用户反馈：首页搜索时，私密记事标题前缀和 checklist 的各种内容前缀有可能被纳入搜索范围；这些属于存储标记，不是真正的记事内容。
+- 诊断：`ThingManager.searchThings(...)` 和 DAO raw `title/content like` 曾按存储字段先匹配，旧的内存剥离逻辑只在关键词本身包含特殊 signal 时触发；文件夹递归计数、缩略图候选、编辑返回后的“是否仍匹配搜索”也没有共享同一套净化规则。
+- 修改：新增 `ThingSearchHelper` 统一搜索匹配。私密标题只移除真实私密前缀；checklist 正文通过 `CheckListHelper.toContentStr(..., "", "")` 转成用户可见纯文本。`ThingDAO`、`ThingFolderDAO`、`ThingManager` 和 `Thing.matchSearchRequirement(...)` 都改走 helper；DAO 继续负责状态、类型、文件夹等结构筛选，keyword 最终判断改在净化后的文本上完成。
+- Verification：`:app:assembleDebug` 通过；`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示。未使用 adb。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627163603.md"` 发布到阿里云 debug 通道，更新码 `202606270837`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270837.apk`，SHA-256 为 `7ac3a73ee8ab096a2e4018d687c84e6d1de067275f3189fbba12040be3618848`。

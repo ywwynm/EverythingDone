@@ -12,7 +12,7 @@ import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper
-import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.ThingSearchHelper
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.HomeEmptyStateHistory
 import com.ywwynm.everythingdone.model.Thing
@@ -23,7 +23,6 @@ import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingListProjection
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
-import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
@@ -382,38 +381,7 @@ open class ThingManager private constructor(context: Context?) {
     open fun searchThings(keyword: String?, color: Int) {
         mEntryFilterKeyword = keyword
         mEntryFilterColor = color
-        val things: List<Thing?> = getThingsForCurrentProjection(keyword, color)
-        val PTP: String = Thing.PRIVATE_THING_PREFIX
-        var containsPtp = false
-        var i = 0
-        while (i < PTP.length && !containsPtp) {
-            if (keyword!!.contains(PTP[i].toString())) {
-                containsPtp = true
-            }
-            i++
-        }
-
-        if (CheckListHelper.isSignalContainsStrIgnoreCase(keyword) || containsPtp) {
-            mThings!!.clear()
-            mThings!!.add(mDao!!.getThingById(mDao!!.getHeaderId()))
-            for (thing in things) {
-                if (thing!!.type == Thing.HEADER) continue
-
-                val sbRegex: StringBuilder = StringBuilder()
-                for (j in 0 until CheckListHelper.CHECK_STATE_NUM) {
-                    sbRegex.append(CheckListHelper.SIGNAL).append(j).append("|")
-                }
-                sbRegex.deleteCharAt(sbRegex.length - 1)
-                val content: String = thing.content!!.replace(sbRegex.toString().toRegex(), "")
-                val title: String   = thing.title!!.replace(PTP.toRegex(), "")
-
-                if (content.contains(keyword!!) || title.contains(keyword)) {
-                    mThings!!.add(thing)
-                }
-            }
-        } else {
-            mThings = things.toMutableList()
-        }
+        mThings = getThingsForCurrentProjection(keyword, color).toMutableList()
         rebuildThingListEntries()
     }
 
@@ -422,47 +390,12 @@ open class ThingManager private constructor(context: Context?) {
         keyword: String?,
         color: Int
     ): List<Thing> {
-        if (keyword.isNullOrEmpty() && !hasSearchColorFilter(color)) return things
+        if (keyword.isNullOrEmpty() && !ThingSearchHelper.hasColorFilter(color)) return things
         return things.filter { matchesSearchRange(it, keyword, color) }
     }
 
     private fun matchesSearchRange(thing: Thing, keyword: String?, color: Int): Boolean {
-        return matchesSearchKeyword(thing, keyword) && matchesSearchColor(thing, color)
-    }
-
-    private fun matchesSearchKeyword(thing: Thing, keyword: String?): Boolean {
-        if (keyword.isNullOrEmpty()) return true
-        val privatePrefix = Thing.PRIVATE_THING_PREFIX
-        val keywordContainsPrivatePrefix = privatePrefix.any { keyword.contains(it.toString()) }
-        val stripsStoredMarkers =
-            CheckListHelper.isSignalContainsStrIgnoreCase(keyword) || keywordContainsPrivatePrefix
-        val title = if (stripsStoredMarkers) {
-            thing.title.orEmpty().replace(privatePrefix.toRegex(), "")
-        } else {
-            thing.title.orEmpty()
-        }
-        val content = if (stripsStoredMarkers) {
-            val signalRegex = (0 until CheckListHelper.CHECK_STATE_NUM)
-                .joinToString("|") { CheckListHelper.SIGNAL + it }
-                .toRegex()
-            thing.content.orEmpty().replace(signalRegex, "")
-        } else {
-            thing.content.orEmpty()
-        }
-        return title.contains(keyword, ignoreCase = true) ||
-            content.contains(keyword, ignoreCase = true)
-    }
-
-    private fun matchesSearchColor(thing: Thing, color: Int): Boolean {
-        if (!hasSearchColorFilter(color)) return true
-        return BackgroundUtil.matchesHueBucket(
-            thing.getBackground(),
-            BackgroundUtil.hueBucket(color)
-        )
-    }
-
-    private fun hasSearchColorFilter(color: Int): Boolean {
-        return color != 0 && color != -1979711488
+        return ThingSearchHelper.matches(thing, keyword, color)
     }
 
     private fun rebuildThingListEntries(

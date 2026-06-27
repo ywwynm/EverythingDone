@@ -1,6 +1,14 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606270816`.
+Latest published debug update: `202606270837`.
+
+## 2026-06-27 - 搜索排除私密与 checklist 存储标记
+
+详细发布日志见 `docs/features/thing-folders/debug-updates/update-20260627163603.md`。用户反馈：首页搜索时，私密记事标题前缀和 checklist 的各种内容前缀可能被纳入搜索范围；这些标记不是用户真正输入的记事内容，不应影响搜索结果。
+
+诊断确认搜索链路存在规则分叉：`ThingManager.searchThings(...)` 和 DAO raw `title/content like` 会先按存储字段匹配，旧的内存剥离逻辑只在关键词本身包含特殊 signal 时才触发；文件夹递归计数、缩略图候选和编辑返回后的“是否仍匹配搜索”也没有共享同一套净化规则。本次新增 `ThingSearchHelper` 统一搜索匹配：私密标题移除真实私密前缀；checklist 正文通过 `CheckListHelper.toContentStr(..., "", "")` 转为用户可见纯文本。`ThingDAO`、`ThingFolderDAO`、`ThingManager` 和 `Thing.matchSearchRequirement(...)` 都改走 helper，搜索范围操作和文件夹搜索结果的判断保持一致。验证：`:app:assembleDebug` 通过，`git diff --check` 通过且仅有仓库既有 LF/CRLF 提示，未使用 adb。已发布 debug update `202606270837`，远端 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606270837.apk`，SHA-256 为 `7ac3a73ee8ab096a2e4018d687c84e6d1de067275f3189fbba12040be3618848`。
+
+Previous published debug update: `202606270816`.
 
 ## 2026-06-27 - 清理搜索态批量操作中的冗余刷新
 

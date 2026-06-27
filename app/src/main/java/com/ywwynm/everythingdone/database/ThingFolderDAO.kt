@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.helpers.ThingSearchHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
@@ -902,7 +903,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
         val cursor = db!!.query(
             Def.Database.TABLE_THINGS,
             null,
-            directThingSelection(folderId, thingSelection, keyword),
+            directThingSelection(folderId, thingSelection),
             null,
             null,
             null,
@@ -912,7 +913,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
             while (it.moveToNext()) {
                 val thing = Thing(it)
                 if (isEffectivelyPrivate(thing.folderId)) continue
-                if (!matchesColorFilter(thing, color)) continue
+                if (!ThingSearchHelper.matches(thing, keyword, color)) continue
                 things.add(thing)
             }
         }
@@ -928,12 +929,12 @@ open class ThingFolderDAO private constructor(context: Context?) {
         val folderIds = getDescendantFolderIds(folderId)
         if (folderIds.isEmpty()) return 0
         val idList = folderIds.joinToString(",")
-        if (keyword != null || hasColorFilter(color)) {
+        if (!keyword.isNullOrEmpty() || hasColorFilter(color)) {
             var count = 0
             val cursor = db!!.query(
                 Def.Database.TABLE_THINGS,
                 null,
-                descendantThingSelection(idList, thingSelection, keyword),
+                descendantThingSelection(idList, thingSelection),
                 null,
                 null,
                 null,
@@ -942,7 +943,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
             cursor.use {
                 while (it.moveToNext()) {
                     val thing = Thing(it)
-                    if (matchesColorFilter(thing, color)) count++
+                    if (ThingSearchHelper.matches(thing, keyword, color)) count++
                 }
             }
             return count
@@ -961,39 +962,23 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun descendantThingSelection(
         idList: String,
-        thingSelection: String,
-        keyword: String?
+        thingSelection: String
     ): String {
         val selection = StringBuilder()
         selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS)
             .append(" in (").append(idList).append(") and (")
             .append(thingSelection).append(")")
-        if (keyword != null) {
-            val kw = keyword.replace("'".toRegex(), "''")
-            selection.append(" and (")
-                .append(Def.Database.COLUMN_TITLE_THINGS).append(" like '%").append(kw)
-                .append("%' or ").append(Def.Database.COLUMN_CONTENT_THINGS)
-                .append(" like '%").append(kw).append("%')")
-        }
         return selection.toString()
     }
 
     private fun directThingSelection(
         folderId: Long,
-        thingSelection: String,
-        keyword: String?
+        thingSelection: String
     ): String {
         val selection = StringBuilder()
         selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS)
             .append("=").append(folderId).append(" and (")
             .append(thingSelection).append(")")
-        if (keyword != null) {
-            val kw = keyword.replace("'".toRegex(), "''")
-            selection.append(" and (")
-                .append(Def.Database.COLUMN_TITLE_THINGS).append(" like '%").append(kw)
-                .append("%' or ").append(Def.Database.COLUMN_CONTENT_THINGS)
-                .append(" like '%").append(kw).append("%')")
-        }
         return selection.toString()
     }
 
@@ -1099,7 +1084,7 @@ open class ThingFolderDAO private constructor(context: Context?) {
     }
 
     private fun hasColorFilter(color: Int): Boolean {
-        return color != 0 && color != -1979711488
+        return ThingSearchHelper.hasColorFilter(color)
     }
 
     private fun hasActiveEntryFilter(keyword: String?, color: Int): Boolean {
@@ -1121,15 +1106,6 @@ open class ThingFolderDAO private constructor(context: Context?) {
         val bucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
         return com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
             folder.getBackground(),
-            bucket
-        )
-    }
-
-    private fun matchesColorFilter(thing: Thing, color: Int): Boolean {
-        if (!hasColorFilter(color)) return true
-        val bucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-        return com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
-            thing.getBackground(),
             bucket
         )
     }

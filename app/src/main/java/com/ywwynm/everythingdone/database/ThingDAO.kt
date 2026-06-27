@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase
 
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
+import com.ywwynm.everythingdone.helpers.ThingSearchHelper
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingCardAppearance
@@ -144,23 +145,11 @@ open class ThingDAO private constructor(context: Context?) {
     open fun getThingsForDisplay(
         status: Int, typeFilterMask: Int, keyword: String?, color: Int
     ): List<Thing?>? {
-        var filterBucket: Int = com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
-        if (color != 0 && color != -1979711488 /* legacy "all colors" sentinel */) {
-            filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-        }
-
-        val cursor: Cursor = getThingsCursorForDisplay(status, typeFilterMask, keyword, 0)
+        val cursor: Cursor = getThingsCursorForDisplay(status, typeFilterMask, null, 0)
         val things: MutableList<Thing?> = ArrayList()
         while (cursor.moveToNext()) {
             val t = Thing(cursor)
-            if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
-                    && t.type != Thing.HEADER
-                    && !Thing.isLegacyPlaceholderType(t.type)) {
-                if (!com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
-                        t.getBackground(), filterBucket)) {
-                    continue
-                }
-            }
+            if (!ThingSearchHelper.matches(t, keyword, color)) continue
             things.add(t)
         }
         cursor.close()
@@ -197,11 +186,6 @@ open class ThingDAO private constructor(context: Context?) {
         keyword: String?,
         color: Int
     ): List<Thing?> {
-        var filterBucket: Int = com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
-        if (color != 0 && color != -1979711488 /* legacy "all colors" sentinel */) {
-            filterBucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-        }
-
         val selection = StringBuilder()
         selection.append("(type=").append(Thing.HEADER).append(" or (type>=")
             .append(Thing.NOTE).append(" and type<=").append(Thing.GOAL)
@@ -210,11 +194,6 @@ open class ThingDAO private constructor(context: Context?) {
             selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS).append(" is null")
         } else {
             selection.append(Def.Database.COLUMN_FOLDER_ID_THINGS).append("=").append(folderId)
-        }
-        if (keyword != null) {
-            val kw = keyword.replace("'".toRegex(), "''")
-            selection.append(" and (title like '%").append(kw)
-                .append("%' or content like '%").append(kw).append("%')")
         }
         selection.append("))")
 
@@ -231,15 +210,7 @@ open class ThingDAO private constructor(context: Context?) {
         cursor.use {
             while (it.moveToNext()) {
                 val thing = Thing(it)
-                if (filterBucket != com.ywwynm.everythingdone.utils.BackgroundUtil.HUE_BUCKET_NONE
-                    && thing.type != Thing.HEADER
-                    && !com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
-                        thing.getBackground(),
-                        filterBucket
-                    )
-                ) {
-                    continue
-                }
+                if (!ThingSearchHelper.matches(thing, keyword, color)) continue
                 things.add(thing)
             }
         }
