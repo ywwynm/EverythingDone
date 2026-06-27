@@ -37,12 +37,14 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.database.ThingDAO
+import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -405,6 +407,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
             override fun isFullSpanThingCard(thing: Thing): Boolean {
                 return this@DoingActivity.isFullSpanThingCard(thing)
+            }
+
+            // 置顶标识着色与首页一致：根目录置顶用 accent 渐变（基类已处理），文件夹内置顶用所属
+            // 父文件夹的颜色。基类默认返回 null，会让文件夹内置顶退化成黄色原图，故这里补上。
+            override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
+                val folderId = thing.folderId ?: return null
+                return ThingFolderDAO.getInstance(mApp)?.getFolderById(folderId)?.getBackground()
             }
 
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {

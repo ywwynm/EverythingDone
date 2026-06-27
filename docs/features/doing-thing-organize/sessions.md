@@ -51,3 +51,20 @@ findViewById 跨预览子卡抓到了同 id 的蒙层。基于②③加的 `appl
 
 `:app:assembleDebug` 通过。发布到阿里云 debug 通道，更新码 `202606271029`（取代含错误修复的
 `202606271018`），日志 `docs/features/thing-folders/debug-updates/update-20260627182927.md`，待平板真机验证。
+
+## 2026-06-27 - 修复：DoingActivity 里文件夹内置顶记事的标识颜色
+
+- 现象：置顶记事在 DoingActivity 右上角的置顶标识用了黄色（`ic_sticky` 原图色），而非首页那样——
+  根目录置顶用 accent+accent2 渐变、文件夹内置顶用所属父文件夹的颜色。
+- 诊断：置顶标识着色走基类共享私有方法 `BaseThingsAdapter.tintThingStickyOngoingIcon`：根目录置顶
+  （`folderId==null`）用 `App.defaultAccentBackground`（全局 accent 渐变）——**首页与 DoingActivity 共用同
+  一段代码、本就一致**；文件夹内置顶用 `getStickyThingParentFolderBackground(thing)` 取父文件夹背景，
+  但该方法基类默认返回 null，只有 `ThingsAdapter` 覆盖了它（`mThingManager.getFolderById(folderId)
+  .getBackground()`），DoingActivity 的匿名 `BaseThingsAdapter` 子类**没覆盖** → 落到 `tintCardIcon`
+  （深色记事不染色 → 显示 `ic_sticky` 黄色原图）。
+- 改法（`DoingActivity` 匿名适配器）：覆盖 `getStickyThingParentFolderBackground`，用
+  `ThingFolderDAO.getInstance(mApp).getFolderById(folderId).getBackground()` 返回父文件夹背景（与
+  `ThingManager.getFolderById` 等价，后者也只是委托给 `mFolderDao`）。根目录情况无需改（已共用渐变）。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待平板真机验证（重点验证文件夹内置顶；根目录
+  置顶本就是渐变）。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/doing-thing-organize/debug-updates/update-20260627192117.md"` 发布到阿里云 debug 通道，更新码 `202606271121`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271121.apk`，SHA-256 为 `e2ad3351cf88fd3dff1af28f5ae85db169255205ef583a5de78c4f16b1ae20a4`。尚未提交，待真机确认后提交。
