@@ -1,5 +1,38 @@
 # Thing Folders Sessions
 
+## 2026-06-27 - 拖拽到 thumbnail 文件夹的提交动画语义修正
+
+- 根据用户补充定位：剩余问题集中在拖拽到 thumbnail-mode 大文件夹上，表现为没有飞入动画或飞入坐标错误；无论该文件夹是否 full-span 都会受影响。
+- 重新对照历史设计，确认 `MOVE_TO_FOLDER` 的拖拽提交不应该飞向目标 Folder 中心。目标 Folder 已被 hover 高亮，overlay 已经位于用户拖入目标的位置，因此提交时应保持当前位置、以 overlay 内容左上角为 pivot 原地缩小。
+- `ThingListOverlayDragController.finishFolderDrop(...)` 已改回：`MOVE_TO_FOLDER` 走 `animateOverlayShrinkToTopLeft(...)`；只有 `CREATE` 继续使用目标 rect 调用 `animateOverlayIntoTarget(...)`。
+- 保留上一版释放阶段修复：松手时优先校验已 armed 的目标 holder 与业务候选，不再因为最后一帧左上角重新命中失败而丢掉提交动画。
+- 为避免继续误用大文件夹目标 rect，`targetRectInRoot` 只在 `CREATE` 候选上缓存；移入已有文件夹不再依赖目标 rect。
+- 验证：`git diff --check` 仅有仓库既有 LF/CRLF 提示；`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` BUILD SUCCESSFUL。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627123243.md"` 发布到阿里云 debug 通道，更新码 `202606270434`。
+
+## 2026-06-27 - 移动到文件夹 Dialog 飞入动画目标坐标修正
+
+- 按用户反馈修正飞入动画终点：目标文件夹卡片不完整可见时，不再使用完整卡片中心，而是取目标卡片与当前 `RecyclerView` 可见 viewport 的交集中心。
+- 计算 viewport 时会扣除 selecting mode 的 contextual toolbar wrapper，包括 statusbar spacer 和 shadow；Dialog 移动会在退出选择模式前缓存该 viewport，避免 toolbar 隐藏后重新计算丢失遮挡信息。
+- `ThingsActivity` 的 Dialog 移动飞入动画复用 `getVisibleRectInThingList` / `getThingListVisibleViewportRect`，目标完全不可见时不生成飞入目标，继续走源项移除动画或全量刷新兜底。
+- 后续根据用户提醒确认旧 `ItemTouchHelper` 提交动画不应套用这条 Dialog 坐标规则；已还原 `captureFolderDropCommitVisual` 的目标矩形计算。
+- 再次复核拖拽路径后确认真机长按拖拽主要走 `ThingListOverlayDragController`。该路径的 `MOVE_TO_FOLDER` 此前仍在 shrink in place，导致拖拽移入文件夹没有飞入动画；已改回对当前命中的目标 Folder rect 调用 `animateOverlayIntoTarget`。
+- 再次复核 Dialog 飞入坐标后，撤销“translationY 是根因”的判断。Dialog 目标坐标改为在确认移动前读取目标 Folder Card 的 `getGlobalVisibleRect`，转换到 activity root 坐标后与缓存的 `RecyclerView` 可见 viewport 求交并扣除 contextual toolbar 遮挡；动画播放时不再在列表变更后重新查找 F 坐标。
+- 验证：`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug` 通过。未使用 adb，视觉细节仍需真机自测确认。
+- 发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627112707.md"` 发布到阿里云 debug 通道，更新码 `202606270327`。
+- 边界修正再次发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627114304.md"` 发布到阿里云 debug 通道，更新码 `202606270343`。
+- 终点偏下修正再次发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627115429.md"` 发布到阿里云 debug 通道，更新码 `202606270354`。
+- 拖拽飞入恢复与 Dialog 坐标重算再次发布：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627121026.md"` 发布到阿里云 debug 通道，更新码 `202606270410`。
+
+## 2026-06-27 - “移动到文件夹”Dialog 的定向移动动画
+
+- 诊断长按后通过“移动到文件夹”移动记事/文件夹时只有全量刷新、没有拖拽式视觉反馈的问题；确认旧 `ItemTouchHelper` 路径仍有飞入目标文件夹的 `FolderDropCommitVisual`，但当前 Dialog 移动路径只调用 `refreshHomeAfterFolderUpdated()`。
+- 新增 Dialog 移动后的统一可视化路径：单选文件夹、单选/多选记事、混合多选都先捕获当前屏幕可见源条目的 overlay，再执行数据移动；目标文件夹可见时让所有可见源条目飞入目标文件夹，目标不可见时保留源条目的定向移除动画，最后补一次无入场动画的沉淀 rebind。
+- 继续修正同一入口的默认选中目标：多选文件夹、以及记事+文件夹混合多选打开 Dialog 时，不再固定选中根目录；改为按所有选中源项的共同来源文件夹预选，Thing 取 `folderId`，Thing Folder 取 `parentFolderId`。
+- `ModeManager` 新增 `finishCurrentModeWithoutListRefresh()`，让选择模式可以退出并隐藏 contextual toolbar，而不抢先触发全量刷新，从而给定向 `notifyItemRemoved` / `notifyItemChanged` 留出动画窗口。
+- 修正本次行为约定：屏幕外源条目仍需按旧 adapter position 发 `notifyItemRemoved` 来维持 item count 一致；`notifyItemChanged(目标文件夹)`只是目标可见时的补充更新。
+- 验证：`E:\projects\EverythingDone\gradlew.bat :app:assembleDebug` 通过；随后通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627104702.md"` 发布到阿里云 debug 通道，更新码 `202606270249`。默认选中目标修正再次通过 `:app:assembleDebug`，并通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627111825.md"` 发布到阿里云 debug 通道，最新更新码 `202606270319`。未使用 adb，视觉细节需真机自测。
+
 ## 2026-06-26 - 拖拽进文件夹命中阈值
 
 - 调整首页拖拽移动模式的文件夹 drop 目标判断：拖拽卡片左上角必须进入目标卡片按“首页相邻卡片之间的实际可视间距”内缩后的区域，才会触发创建文件夹或移动到文件夹的 hover 动画。

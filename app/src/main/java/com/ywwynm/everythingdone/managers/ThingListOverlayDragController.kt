@@ -89,7 +89,8 @@ class ThingListOverlayDragController(
         val sourceFolderId: Long?,
         val targetThingId: Long?,
         val targetFolderId: Long?,
-        val background: ThingBackground?
+        val background: ThingBackground?,
+        val targetRectInRoot: RectF? = null
     )
 
     enum class FolderDropAction {
@@ -353,6 +354,11 @@ class ThingListOverlayDragController(
     private fun release() {
         val current = session ?: return
         stopAutoScroll()
+        val existingDrop = armedFolderDrop
+        if (existingDrop != null && isFolderDropCandidateStillVisible(current, existingDrop)) {
+            finishFolderDrop(current, existingDrop)
+            return
+        }
         updateFrame()
         val drop = armedFolderDrop
         if (drop != null && isFolderDropCandidateStillVisible(current, drop)) {
@@ -398,7 +404,16 @@ class ThingListOverlayDragController(
         val targetHolder = findFolderDropTargetUnderOverlayTopLeft(current)
         val candidate = targetHolder?.adapterPosition
             ?.takeIf { it != RecyclerView.NO_POSITION }
-            ?.let { host.buildFolderDropCandidate(current.source, it) }
+            ?.let { position ->
+                host.buildFolderDropCandidate(current.source, position)
+                    ?.let { built ->
+                        if (built.action == FolderDropAction.CREATE) {
+                            built.copy(targetRectInRoot = getTargetRectInRoot(position))
+                        } else {
+                            built
+                        }
+                    }
+            }
         if (candidate == null) {
             clearFolderHover(true)
             return
@@ -665,12 +680,13 @@ class ThingListOverlayDragController(
     private fun finishFolderDrop(current: Session, candidate: FolderDropCandidate) {
         finishing = true
         clearInsertionLine()
-        clearFolderHover(false)
         val targetRect = if (candidate.action == FolderDropAction.CREATE) {
-            getTargetRectInRoot(candidate.targetListPosition)
+            candidate.targetRectInRoot
+                ?: getTargetRectInRoot(candidate.targetListPosition)
         } else {
             null
         }
+        clearFolderHover(false)
         val result = host.commitFolderDrop(candidate)
         if (!result.committed ||
             candidate.action == FolderDropAction.CREATE && targetRect == null
@@ -1247,9 +1263,15 @@ class ThingListOverlayDragController(
         current: Session,
         candidate: FolderDropCandidate
     ): Boolean {
-        val holder = findFolderDropTargetUnderOverlayTopLeft(current) ?: return false
+        val holder = host.recyclerView.findViewHolderForAdapterPosition(
+            candidate.targetListPosition
+        ) ?: return false
         val position = holder.adapterPosition
-        if (position != candidate.targetListPosition) return false
+        if (position == RecyclerView.NO_POSITION ||
+            position != candidate.targetListPosition
+        ) {
+            return false
+        }
         val latest = host.buildFolderDropCandidate(current.source, position) ?: return false
         return isSameFolderCandidate(candidate, latest)
     }

@@ -124,7 +124,12 @@
 
 ## Move Semantics
 
+- 长按拖拽移动到已有文件夹的提交动画属于拖拽路径自身语义：目标已被 hover 高亮并且 overlay 已在用户放置的位置，所以应保持当前释放位置，以 overlay 内容左上角为 pivot 原地缩小；不要飞向目标 Folder 中心点。拖拽两个记事创建文件夹的 `CREATE` 路径仍可飞入/合并到目标记事。
+- “移动到文件夹” Dialog 触发的飞入动画，目标点应使用确认移动前目标文件夹卡片在当前 `ThingsActivity` 列表中的实际可见区域中心，而不是完整卡片中心，也不应在列表变更后重新查找目标坐标。可见区域需要先读取目标卡片的 `getGlobalVisibleRect`，转换到 activity root 坐标，再与 `RecyclerView` 可见 viewport 求交，并扣除当前 contextual actionbar、statusbar spacer 和 shadow 造成的遮挡；目标完全不可见时不播放飞入动画，改走源项移除动画或全量刷新兜底。
 - 移动记事或文件夹时，置顶视为条目自身状态而不是来源目录的一次性排序效果。无论通过拖拽还是 Dialog，移入其它文件夹、移回根目录、或移到其它父级目录时，都保留源条目的置顶/非置顶状态；落位到目标父级对应的置顶区或非置顶区顶部。拖拽两个记事创建文件夹时，新文件夹只要任一成员置顶就置顶，成员记事在新文件夹内也分别保留自己的置顶状态。
+- 通过“移动到文件夹”Dialog 移动多项内容时，默认选中目标应是所有选中源项的共同来源文件夹：Thing 使用自身 `folderId`，Thing Folder 使用自身 `parentFolderId`。多个文件夹或记事+文件夹混合选择都适用；只有选中项来源不一致时，才回退到当前投影文件夹。
+- 通过“移动到文件夹”Dialog 移动单个或多个记事/文件夹时，应优先保留可见动画：目标文件夹与一个或多个被移动条目都在当前屏幕可见时，为每个可见源条目生成 overlay 并飞入目标文件夹；部分源条目不可见时，不应阻止其它可见源条目的飞入动画；目标文件夹不可见时，当前列表里可见的源条目至少应走定向移除动画；源条目与目标文件夹都不在当前可见区域时，才退回无入场动画的全量刷新。
+- Dialog 移动后的列表通知必须保持 adapter item count 一致。即使源条目在屏幕外，只要它属于当前混合列表，也需要按旧 adapter position 发 `notifyItemRemoved`；`notifyItemChanged(目标文件夹)`只能作为目标文件夹可见时的补充更新，不能单独代表一次会减少列表项数量的移动。
 - 记事完成、删除、从回收站恢复时，也应保留记事自身的置顶状态；原本置顶的记事会重新分配到同一父级置顶区顶部之前的新负数 `location`，因此后来完成/删除/恢复的置顶记事会排在更前面。原本未置顶的记事仍沿用既有行为，进入目标状态列表的非置顶区顶部。
 - When a Thing or Thing Folder is moved into a different Thing Folder, moved
   back to its previous parent, or moved back to root, it should not preserve its

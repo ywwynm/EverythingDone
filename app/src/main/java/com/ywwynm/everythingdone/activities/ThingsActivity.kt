@@ -26,6 +26,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Point
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -7786,10 +7787,26 @@ class ThingsActivity :
     }
 
     private fun getCommonSelectedThingsFolderId(things: List<Thing>): Long? {
-        if (things.isEmpty()) return mThingManager!!.getProjection().currentFolderId
-        val firstFolderId = things.first().folderId
+        return getCommonSelectedMoveSourceFolderId(things, emptyList())
+    }
+
+    private fun getCommonSelectedMoveSourceFolderId(
+        things: List<Thing>,
+        folders: List<ThingFolder>
+    ): Long? {
+        val sourceFolderIds = ArrayList<Long?>()
         for (thing in things) {
-            if (thing.folderId != firstFolderId) {
+            sourceFolderIds.add(thing.folderId)
+        }
+        for (folder in folders) {
+            sourceFolderIds.add(folder.parentFolderId)
+        }
+        if (sourceFolderIds.isEmpty()) {
+            return mThingManager!!.getProjection().currentFolderId
+        }
+        val firstFolderId = sourceFolderIds.first()
+        for (folderId in sourceFolderIds) {
+            if (folderId != firstFolderId) {
                 return mThingManager!!.getProjection().currentFolderId
             }
         }
@@ -7802,8 +7819,11 @@ class ThingsActivity :
     ) {
         if (folder.parentFolderId == targetFolderId) return
         val moveFolder = {
-            if (mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)) {
-                refreshHomeAfterFolderUpdated()
+            moveEntriesToFolderWithVisualUpdate(
+                listOf(folderMenuMoveSource(folder)),
+                targetFolderId
+            ) {
+                mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)
             }
         }
         authenticatePrivateMoveIfNeeded(
@@ -7821,7 +7841,7 @@ class ThingsActivity :
             needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId),
             getSelectedThingsMovePrivacyBackground(selectedThings, targetFolderId)
         ) {
-            moveSelectedThingsToFolder(targetFolderId)
+            moveSelectedThingsToFolder(selectedThings, targetFolderId)
         }
     }
 
@@ -7927,10 +7947,154 @@ class ThingsActivity :
         )
     }
 
-    private fun moveSelectedThingsToFolder(folderId: Long?) {
-        mThingManager!!.moveSelectedThingsIntoFolder(folderId)
-        mModeManager!!.backNormalMode(0)
-        refreshHomeAfterFolderUpdated()
+    private fun moveSelectedThingsToFolder(
+        selectedThings: List<Thing>,
+        folderId: Long?
+    ) {
+        val moveSources = selectedThings
+            .filter { it.folderId != folderId }
+            .map { folderMenuMoveSource(it) }
+        moveEntriesToFolderWithVisualUpdate(
+            moveSources,
+            folderId
+        ) {
+            mThingManager!!.moveSelectedThingsIntoFolder(folderId)
+        }
+    }
+
+    private enum class FolderMenuMoveSourceKind {
+        THING,
+        FOLDER
+    }
+
+    private data class FolderMenuMoveSource(
+        val kind: FolderMenuMoveSourceKind,
+        val id: Long
+    )
+
+    private fun folderMenuMoveSource(thing: Thing): FolderMenuMoveSource {
+        return FolderMenuMoveSource(
+            FolderMenuMoveSourceKind.THING,
+            thing.id
+        )
+    }
+
+    private fun folderMenuMoveSource(folder: ThingFolder): FolderMenuMoveSource {
+        return FolderMenuMoveSource(
+            FolderMenuMoveSourceKind.FOLDER,
+            folder.id
+        )
+    }
+
+    private fun getFolderMenuMoveSourceOldPosition(
+        source: FolderMenuMoveSource
+    ): Int {
+        return when (source.kind) {
+            FolderMenuMoveSourceKind.THING ->
+                mThingManager!!.getListPositionForThingId(source.id)
+            FolderMenuMoveSourceKind.FOLDER ->
+                mThingManager!!.getListPositionForFolderId(source.id)
+        }
+    }
+
+    private fun moveEntriesToFolderWithVisualUpdate(
+        movedSources: List<FolderMenuMoveSource>,
+        targetFolderId: Long?,
+        moveOperation: () -> Boolean
+    ) {
+        dismissSnackbars()
+        finishNewItemShiningBorderAnimationIfNeeded()
+
+        val oldItemCount = mAdapter!!.getItemCount()
+        val sourceOldPositions = movedSources
+            .map { getFolderMenuMoveSourceOldPosition(it) }
+            .filter { it > 0 }
+            .distinct()
+            .sortedDescending()
+        val visibleSourceOldPositions = sourceOldPositions
+            .filter { isThingListPositionVisible(it) }
+        val targetOldPosition = targetFolderId?.let { getVisibleFolderPosition(it) } ?: -1
+        val targetViewportRect = getThingListVisibleViewportRect()
+        val targetInitialRect = targetFolderId?.let {
+            getVisibleFolderTargetRect(it, targetViewportRect)
+        }
+        val visuals = if (targetInitialRect != null) {
+            sourceOldPositions.mapNotNull {
+                captureFolderMenuMoveVisual(
+                    it,
+                    targetInitialRect
+                )
+            }
+        } else {
+            emptyList()
+        }
+
+        val changed = moveOperation()
+        mModeManager!!.finishCurrentModeWithoutListRefresh()
+        if (!changed) {
+            restoreFolderMenuMoveVisualsImmediately(visuals)
+            refreshHomeAfterFolderUpdated()
+            return
+        }
+
+        val newItemCount = mAdapter!!.getItemCount()
+        val targetNewPosition = targetFolderId?.let { getVisibleFolderPosition(it) } ?: -1
+        val removedCount = sourceOldPositions.size
+        val itemCountMatchesTargetedRemoval = newItemCount == oldItemCount - removedCount
+        val targetDidNotNewlyAppear = targetNewPosition <= 0 || targetOldPosition > 0
+        val hasVisibleMoveChange =
+            visibleSourceOldPositions.isNotEmpty() || targetInitialRect != null
+        val canUseTargetedNotify =
+            itemCountMatchesTargetedRemoval && targetDidNotNewlyAppear && hasVisibleMoveChange
+
+        mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+        if (canUseTargetedNotify) {
+            for (oldListPosition in sourceOldPositions) {
+                mAdapter!!.notifyItemRemoved(oldListPosition)
+            }
+            if (targetNewPosition > 0) {
+                mAdapter!!.notifyItemChanged(targetNewPosition)
+            }
+            afterFolderMenuMoveDataChanged()
+            playFolderMenuMoveVisualsThenRebind(visuals)
+        } else {
+            mAdapter!!.notifyDataSetChanged()
+            afterFolderMenuMoveDataChanged()
+            playFolderMenuMoveVisualsThenRebind(visuals)
+        }
+    }
+
+    private fun afterFolderMenuMoveDataChanged() {
+        markOperationEmptyStateIfCurrentProjectionEmpty()
+        refreshActivitySurfaceAndHeader()
+        mDrawerHeader!!.updateTexts()
+        updateDrawerFolderItems()
+        invalidateOptionsMenu()
+        AppWidgetHelper.updateAllThingsListAppWidgets(mApp)
+    }
+
+    private fun playFolderMenuMoveVisualsThenRebind(
+        visuals: List<FolderDropCommitVisual>
+    ) {
+        if (visuals.isEmpty()) {
+            rebindHomeListAfterFolderMenuMove()
+            return
+        }
+        mRecyclerView!!.postOnAnimation {
+            playFolderMenuMoveVisuals(visuals) {
+                rebindHomeListAfterFolderMenuMove()
+            }
+        }
+    }
+
+    private fun rebindHomeListAfterFolderMenuMove() {
+        runWhenThingListCanUpdate(
+            "folder-menu-move-rebind",
+            waitForItemAnimations = true
+        ) {
+            mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+            mAdapter!!.notifyDataSetChanged()
+        }
     }
 
     private fun startDraggingThingFolder(folder: ThingFolder) {
@@ -8797,6 +8961,226 @@ class ThingsActivity :
         visual.root.removeView(visual.overlay)
         visual.sourceView.visibility = View.VISIBLE
         visual.sourceView.alpha = 1.0f
+    }
+
+    private fun captureFolderMenuMoveVisual(
+        sourceListPosition: Int,
+        targetRect: RectF
+    ): FolderDropCommitVisual? {
+        val holder = mRecyclerView!!.findViewHolderForAdapterPosition(sourceListPosition)
+            ?: return null
+        val sourceView = (holder as? BaseThingsAdapter.BaseThingViewHolder)?.cv
+            ?: holder.itemView
+        if (!isViewVisibleInThingList(sourceView)) return null
+        if (sourceView.width <= 0 || sourceView.height <= 0) return null
+        val root = findViewById<ViewGroup>(android.R.id.content) ?: return null
+        val sourceRect = getViewRectInActivityRoot(sourceView) ?: return null
+
+        val bitmap = try {
+            Bitmap.createBitmap(
+                sourceView.width,
+                sourceView.height,
+                Bitmap.Config.ARGB_8888
+            ).also { sourceView.draw(Canvas(it)) }
+        } catch (_: RuntimeException) {
+            return null
+        }
+
+        val overlay = ImageView(this)
+        overlay.setImageBitmap(bitmap)
+        overlay.scaleType = ImageView.ScaleType.FIT_XY
+        overlay.pivotX = 0f
+        overlay.pivotY = 0f
+        overlay.elevation = sourceView.elevation + resources.displayMetrics.density * 8
+        root.addView(
+            overlay,
+            FrameLayout.LayoutParams(sourceView.width, sourceView.height)
+        )
+        overlay.x = sourceRect.left
+        overlay.y = sourceRect.top
+        sourceView.visibility = View.INVISIBLE
+        sourceView.alpha = 0.0f
+        return FolderDropCommitVisual(
+            root,
+            overlay,
+            sourceView,
+            targetRect
+        )
+    }
+
+    private fun playFolderMenuMoveVisuals(
+        visuals: List<FolderDropCommitVisual>,
+        onFinished: () -> Unit
+    ) {
+        if (visuals.isEmpty()) {
+            onFinished()
+            return
+        }
+        var remaining = visuals.size
+        fun finishOne(visual: FolderDropCommitVisual) {
+            visual.overlay.animate().setListener(null)
+            visual.overlay.setImageDrawable(null)
+            visual.root.removeView(visual.overlay)
+            remaining--
+            if (remaining == 0) {
+                onFinished()
+            }
+        }
+
+        for (visual in visuals) {
+            val overlay = visual.overlay
+            val targetRect = visual.targetRect
+            val targetScale = 0.16f
+            val targetX = targetRect.centerX() - overlay.width * targetScale / 2f
+            val targetY = targetRect.centerY() - overlay.height * targetScale / 2f
+            var finished = false
+            fun finishOnce() {
+                if (finished) return
+                finished = true
+                finishOne(visual)
+            }
+            overlay.animate().cancel()
+            overlay.animate()
+                .x(targetX)
+                .y(targetY)
+                .scaleX(targetScale)
+                .scaleY(targetScale)
+                .alpha(0.0f)
+                .setDuration(FOLDER_DROP_COMMIT_ANIM_DURATION)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        finishOnce()
+                    }
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        finishOnce()
+                    }
+                })
+                .start()
+        }
+    }
+
+    private fun restoreFolderMenuMoveVisualsImmediately(
+        visuals: List<FolderDropCommitVisual>
+    ) {
+        for (visual in visuals) {
+            restoreFolderDropVisualImmediately(visual)
+        }
+    }
+
+    private fun getVisibleFolderTargetRect(
+        folderId: Long,
+        viewportRect: RectF? = null
+    ): RectF? {
+        val listPosition = getVisibleFolderPosition(folderId)
+        if (listPosition <= 0) return null
+        val holder = mRecyclerView!!.findViewHolderForAdapterPosition(listPosition)
+            ?: return null
+        val targetView = (holder as? BaseThingsAdapter.BaseThingViewHolder)?.cv
+            ?: holder.itemView
+        return getVisibleRectInThingList(targetView, viewportRect)
+    }
+
+    private fun isViewVisibleInThingList(view: View): Boolean {
+        return getVisibleRectInThingList(view) != null
+    }
+
+    private fun isThingListPositionVisible(listPosition: Int): Boolean {
+        val holder = mRecyclerView!!.findViewHolderForAdapterPosition(listPosition)
+            ?: return false
+        val view = (holder as? BaseThingsAdapter.BaseThingViewHolder)?.cv
+            ?: holder.itemView
+        return isViewVisibleInThingList(view)
+    }
+
+    private fun getVisibleRectInThingList(
+        view: View,
+        viewportRect: RectF? = null
+    ): RectF? {
+        if (!view.isShown || view.width <= 0 || view.height <= 0) return null
+        val viewRect = getGlobalVisibleRectInActivityRoot(view) ?: return null
+        val viewport = viewportRect ?: getThingListVisibleViewportRect() ?: return null
+        val visibleRect = RectF(viewRect)
+        if (!visibleRect.intersect(viewport)) return null
+        if (visibleRect.width() <= 1f || visibleRect.height() <= 1f) return null
+        return visibleRect
+    }
+
+    private fun getThingListVisibleViewportRect(): RectF? {
+        val recyclerRect = getViewRectInActivityRoot(mRecyclerView!!) ?: return null
+        val root = findViewById<ViewGroup>(android.R.id.content) ?: return recyclerRect
+        val rootRect = RectF(0f, 0f, root.width.toFloat(), root.height.toFloat())
+        val viewport = RectF(recyclerRect)
+        if (!viewport.intersect(rootRect)) return null
+        getContextualToolbarObstructionRect()?.let { obstruction ->
+            subtractVerticalObstruction(viewport, obstruction)
+        }
+        if (viewport.width() <= 1f || viewport.height() <= 1f) return null
+        return viewport
+    }
+
+    private fun getContextualToolbarObstructionRect(): RectF? {
+        val contextualToolbarWrapper = findViewById<View>(R.id.rl_contextual_toolbar)
+            ?: return null
+        if (!contextualToolbarWrapper.isShown ||
+            contextualToolbarWrapper.width <= 0 ||
+            contextualToolbarWrapper.height <= 0
+        ) {
+            return null
+        }
+        return getViewRectInActivityRoot(contextualToolbarWrapper)
+    }
+
+    private fun subtractVerticalObstruction(rect: RectF, obstruction: RectF) {
+        if (!RectF.intersects(rect, obstruction)) return
+        if (obstruction.left > rect.left || obstruction.right < rect.right) return
+
+        if (obstruction.top <= rect.top) {
+            rect.top = rect.top.coerceAtLeast(obstruction.bottom)
+            return
+        }
+        if (obstruction.bottom >= rect.bottom) {
+            rect.bottom = rect.bottom.coerceAtMost(obstruction.top)
+            return
+        }
+
+        val topHeight = obstruction.top - rect.top
+        val bottomHeight = rect.bottom - obstruction.bottom
+        if (bottomHeight >= topHeight) {
+            rect.top = obstruction.bottom
+        } else {
+            rect.bottom = obstruction.top
+        }
+    }
+
+    private fun getGlobalVisibleRectInActivityRoot(view: View): RectF? {
+        val visibleRectOnScreen = Rect()
+        if (!view.getGlobalVisibleRect(visibleRectOnScreen)) return null
+        if (visibleRectOnScreen.width() <= 1 || visibleRectOnScreen.height() <= 1) {
+            return null
+        }
+        val root = findViewById<ViewGroup>(android.R.id.content) ?: return null
+        val rootLocation = IntArray(2)
+        root.getLocationOnScreen(rootLocation)
+        return RectF(
+            visibleRectOnScreen.left - rootLocation[0].toFloat(),
+            visibleRectOnScreen.top - rootLocation[1].toFloat(),
+            visibleRectOnScreen.right - rootLocation[0].toFloat(),
+            visibleRectOnScreen.bottom - rootLocation[1].toFloat()
+        )
+    }
+
+    private fun getViewRectInActivityRoot(view: View): RectF? {
+        if (view.width <= 0 || view.height <= 0) return null
+        val root = findViewById<ViewGroup>(android.R.id.content) ?: return null
+        val rootLocation = IntArray(2)
+        val viewLocation = IntArray(2)
+        root.getLocationOnScreen(rootLocation)
+        view.getLocationOnScreen(viewLocation)
+        val left = viewLocation[0] - rootLocation[0].toFloat()
+        val top = viewLocation[1] - rootLocation[1].toFloat()
+        return RectF(left, top, left + view.width, top + view.height)
     }
 
     private fun canCreateThingFolderWith(thing: Thing?): Boolean {
@@ -10667,7 +11051,11 @@ class ThingsActivity :
         // 多选 / 混合，用当前文件夹色（根目录 accent 渐变）。
         dialog.setAccentBackground(selectionDialogBackground())
         dialog.setHasAnyFolder(mThingManager!!.hasAnyFolder())
-        dialog.setFolders(mThingManager!!.getDrawerFolders(), null, forbidden)
+        dialog.setFolders(
+            mThingManager!!.getDrawerFolders(),
+            getCommonSelectedMoveSourceFolderId(selectedThings, selectedFolders),
+            forbidden
+        )
         dialog.setListener(object : MoveToThingFolderDialogFragment.Listener {
             override fun onMoveTargetConfirmed(targetFolderId: Long?) {
                 moveSelectedMixedToFolder(selectedThings, selectedFolders, targetFolderId)
@@ -10697,14 +11085,31 @@ class ThingsActivity :
         val needAuth = needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId) ||
             selectedFolders.any { needsFolderMovePrivacyAuthentication(it, targetFolderId) }
         authenticatePrivateMoveIfNeeded(needAuth, App.defaultAccentBackground) {
-            mThingManager!!.moveSelectedThingsIntoFolder(targetFolderId)
-            for (folder in selectedFolders) {
-                if (folder.parentFolderId != targetFolderId) {
-                    mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)
+            val moveSources = ArrayList<FolderMenuMoveSource>()
+            moveSources.addAll(
+                selectedThings
+                    .filter { it.folderId != targetFolderId }
+                    .map { folderMenuMoveSource(it) }
+            )
+            moveSources.addAll(
+                selectedFolders
+                    .filter { it.parentFolderId != targetFolderId }
+                    .map { folderMenuMoveSource(it) }
+            )
+            moveEntriesToFolderWithVisualUpdate(
+                moveSources,
+                targetFolderId
+            ) {
+                var changed = mThingManager!!.moveSelectedThingsIntoFolder(targetFolderId)
+                for (folder in selectedFolders) {
+                    if (folder.parentFolderId != targetFolderId) {
+                        if (mThingManager!!.moveFolderIntoFolder(folder, targetFolderId)) {
+                            changed = true
+                        }
+                    }
                 }
+                changed
             }
-            mModeManager!!.backNormalMode(0)
-            refreshHomeAfterFolderUpdated()
         }
     }
 

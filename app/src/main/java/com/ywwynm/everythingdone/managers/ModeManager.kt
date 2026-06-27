@@ -204,13 +204,21 @@ open class ModeManager(app: App?,
     }
 
     open fun finishMovingModeWithoutListRefresh() {
+        finishCurrentModeWithoutListRefresh()
+    }
+
+    open fun finishCurrentModeWithoutListRefresh() {
         backNormalModeCallback?.invoke()
         val isSearching: Boolean = App.isSearching
         if (!isSearching) {
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
         }
+        val previousMode = currentMode
         beforeMode = currentMode
         currentMode = NORMAL
+        if (previousMode == SELECTING) {
+            hideContextualToolbar()
+        }
         if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY && !isSearching) {
             mFab!!.spread()
         }

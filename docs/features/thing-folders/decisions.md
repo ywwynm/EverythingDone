@@ -1,5 +1,31 @@
 # Thing Folders Decisions
 
+## 2026-06-27 - 拖拽移入已有文件夹恢复原地左上缩小
+
+本条修正并取代同日较早“`MOVE_TO_FOLDER` 应飞入目标 Folder”的描述。长按拖拽移入已有文件夹时，目标 Folder Card 已经通过 hover 高亮表达“接收者”，被拖拽 overlay 也已经被用户拖到目标里的正确位置，因此提交视觉不应再计算目标 Folder 中心点，也不应飞向目标中心。`MOVE_TO_FOLDER` 应保持释放位置，以 overlay 内容左上角为 pivot 直接缩小；这同时避免 thumbnail-mode 大文件夹因 expanded shadow inset、content rect 和 CardView rect 不一致导致的飞入坐标偏差。
+
+上一版“armed 后释放阶段不再被最后一帧左上角命中误判取消”的修正仍然保留：释放时只校验已 armed 的目标 holder 仍可见、业务候选仍是同一个源和目标。真正拖离目标时，普通 MOVE 帧会先清掉 armed 状态。`CREATE`（拖拽两个记事创建文件夹）仍使用目标 rect 播放合并/飞入目标的提交动画。
+
+## 2026-06-27 - 拖拽飞入与 Dialog 飞入坐标重新拆分
+
+继续复核后确认，上一轮把问题归因到 `RecyclerView` move animation 的 `translationY` 不成立；真正需要修正的是两条路径的语义边界和 Dialog 坐标来源。
+
+实际长按拖拽主要走 `ThingListOverlayDragController`；同日较早曾尝试让 `MOVE_TO_FOLDER` 飞入目标 Folder，但后续 thumbnail-mode 大文件夹反馈证明该方向不合适，已由上一条“原地左上缩小”规则取代。Dialog 移动不是拖拽路径，目标坐标应在确认移动前捕获：用目标 Folder Card 的 `getGlobalVisibleRect` 得到系统实际可见区域，转换到 activity root 坐标，再与当前 `RecyclerView` 可见 viewport 求交，并扣除 selecting mode contextual toolbar 的遮挡。Dialog 动画后续不再在 `notifyItemRemoved` / `notifyItemChanged` 之后重新查找 F 的 holder 或重新取坐标，避免把列表变更期间的中间状态当成飞入终点。
+
+## 2026-06-27 - Dialog 飞入动画终点使用目标文件夹可见区域中心
+
+“移动到文件夹” Dialog 触发的飞入动画不能直接使用目标文件夹卡片的完整中心点，因为目标文件夹可能只有一部分露在当前列表可见区内，也可能被 selecting mode 的 contextual actionbar 覆盖一部分。动画目标应取目标文件夹卡片与当前 `RecyclerView` 可见 viewport 的交集中心，并在计算 viewport 时扣除 contextual toolbar wrapper（含 statusbar spacer 与 shadow）的垂直遮挡。若目标文件夹在扣除遮挡后完全不可见，则不生成飞入目标，Dialog 移动继续按可见源项移除动画或全量刷新兜底。
+
+实现上，`ThingsActivity` 在退出选择模式前先缓存当前列表可见 viewport，避免 `finishCurrentModeWithoutListRefresh()` 隐藏 contextual toolbar 后重新计算时丢失遮挡信息；随后无论目标 holder 是否重排，都用这个缓存 viewport 重新裁剪 Dialog 飞入目标矩形。旧拖拽提交动画不属于本规则，它继续按拖拽路径自身的落点语义处理，避免把 Dialog 的“飞入 F”坐标规则错误套到拖拽提交上。
+
+## 2026-06-27 - “移动到文件夹”Dialog 优先使用可见源项动画和定向通知
+
+通过长按菜单或 contextual toolbar 打开的“移动到文件夹”Dialog，不应只在确认后全量刷新。若目标文件夹和一个或多个被移动条目都在当前屏幕可见，应为每个可见源条目生成 overlay 并飞入目标文件夹；多选时，部分源条目不可见不应阻止其它可见源条目的动画。若目标文件夹不在屏幕可见区域，当前列表中的源条目仍应走 `notifyItemRemoved` 的定向移除动画；只有当前可见区域没有可表达的源或目标变化，或目标文件夹因移动后才新进入当前投影这类 item count 变化无法用纯移除表达时，才退回无入场动画的全量刷新。
+
+实现上，屏幕可见与 adapter 所属是两个独立判断。源条目即使在屏幕外，只要属于当前混合列表，移动后也会减少 adapter item count，因此必须按旧 adapter position 发 `notifyItemRemoved`；目标文件夹可见时再补 `notifyItemChanged` 更新缩略图和计数。单独 `notifyItemChanged(目标文件夹)`不能代表一次会减少列表项数量的移动。
+
+后续反馈确认，多选文件夹、以及记事+文件夹混合多选打开同一个 Dialog 时，默认选中项也必须是源项真实所在的共同文件夹，而不是固定根目录。计算口径为：Thing 取 `folderId`，Thing Folder 取 `parentFolderId`；若所有来源一致则默认选中该来源文件夹，来源不一致才回退当前投影文件夹。
+
 ## 2026-06-26 - 拖拽进文件夹需要按卡片间距内缩命中
 
 首页拖拽移动模式中，创建文件夹或移动到文件夹的 hover 目标不应在拖拽卡片左上角刚碰到目标卡片边缘时触发。左上角必须进入目标卡片内缩“首页相邻卡片之间的实际可视间距”后才算命中；该间距由卡片 item margin 推导，当前等价于 16dp。目标卡片过小时按可用宽高自动收缩阈值，避免把命中区域反向挤没。
