@@ -168,6 +168,10 @@ _Avoid_: app dark overlay, selection cover
 The full-height media target used when Thing Card Media is placed on the left or right side of a Thing Card.
 _Avoid_: intrinsic image-size thumbnail, partial side thumbnail
 
+**Thing Card Bottom Status**:
+A Thing Card 上承载音频、提醒/目标、习惯信息的区域。当卡片内容区高于正文自然高度时（侧栏媒体撑高、媒体背景按比例撑高等），它锚定在卡片内容区底部，而不是紧跟正文向下排。提醒类与目标类共用同一段状态显示，习惯是另一段。
+_Avoid_: 把它当成正文的一部分、把它固定排在标题/正文正下方、把"目标"当成独立于"提醒"的状态块
+
 **Detail Attachment Media Appearance**:
 The persistent presentation choices that control how a Thing's image and video attachments are shown inside the Detail screen attachment list.
 _Avoid_: Thing Card Appearance, attachment file editing
@@ -285,6 +289,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Full-Span Thing Card** is a presentation preference of a **Thing**, not of a home-list filter.
 - **Thing Card Appearance** includes **Thing Card Span Mode**, **Thing Card Image Placement**, **Thing Card Media Source**, **Thing Card Media Target Aspect Ratio**, **Thing Card Media Crop**, and **Thing Card Media Background**.
 - When **Thing Card Media** is placed left or right, it appears in a **Thing Card Side Media Panel** that spans the Thing Card's final visible content height.
+- **Thing Card Bottom Status** anchors to the bottom of a Thing Card's content area on surfaces that render it; surfaces that re-present reminder/goal/habit another way (such as the noticeable reminder surface and Doing) may hide it instead.
 - A **Thing** may have one **Thing Card Appearance Update Time**.
 - A **Thing Card** has one **Thing Card Span Mode**.
 - A **Thing Card** may have one **Thing Card Image Placement** when the Thing has Thing Card Media.

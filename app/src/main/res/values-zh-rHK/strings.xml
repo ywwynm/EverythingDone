@@ -378,6 +378,8 @@
     <string name="thing_card_appearance_cover_image_width_format">封面圖片寬度 · %1$d%%</string>
     <string name="thing_card_appearance_precise_crop">裁切封面圖片</string>
     <string name="thing_card_appearance_thumbnail_shape">封面圖片比例</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">封面圖片比例的調整範圍受記事卡片高度影響，目前卡片高度較大，封面圖片依卡片寬高顯示</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">封面影片比例的調整範圍受記事卡片高度影響，目前卡片高度較大，封面影片依卡片寬高顯示</string>
     <string name="thing_card_appearance_thumbnail_video_shape">封面影片比例</string>
     <string name="thing_card_appearance_background_mask">背景遮罩</string>
     <string name="thing_card_appearance_background_height">卡片高度</string>

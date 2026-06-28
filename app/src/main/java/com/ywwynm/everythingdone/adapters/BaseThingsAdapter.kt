@@ -1935,9 +1935,26 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
         textLp.width = projection.textWidth
-        textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         textLp.weight = 0f
         textLp.setMargins(0, 0, 0, 0)
+
+        // 侧栏模式：当内容列比侧图矮时，把状态块（音频 / 提醒 / 目标 / 习惯）锚定到内容列底部，
+        // 复用 view_thing_bottom_status_spacer（weight=1 占满多余空间），避免状态块紧跟正文、底部留白；
+        // spacer 同时保证状态块不与上方内容重叠。无状态块时保持 wrap_content（正文顶对齐）。
+        val spacer = holder.vBottomStatusSpacer!!
+        val spacerLp = spacer.layoutParams as LinearLayout.LayoutParams
+        if (hasThingCardBottomStatus(holder)) {
+            textLp.height = projection.imageHeight
+            spacer.visibility = View.VISIBLE
+            spacerLp.height = 0
+            spacerLp.weight = 1f
+        } else {
+            textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            spacer.visibility = View.GONE
+            spacerLp.height = 0
+            spacerLp.weight = 0f
+        }
+        spacer.layoutParams = spacerLp
         holder.llTextContent.layoutParams = textLp
     }
 
@@ -2015,10 +2032,21 @@ abstract class BaseThingsAdapter(context: Context?) :
         val oldTextWidth = textLp.width
         val oldTextHeight = textLp.height
         val oldTextWeight = textLp.weight
+        // 测量自然高度时收起底部 spacer，避免之前置底布局残留的 weight 干扰测量。
+        val spacer = holder.vBottomStatusSpacer
+        val spacerLp = spacer?.layoutParams as? LinearLayout.LayoutParams
+        val oldSpacerVisibility = spacer?.visibility
+        val oldSpacerHeight = spacerLp?.height
+        val oldSpacerWeight = spacerLp?.weight
         return try {
             textLp.width = width
             textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             textLp.weight = 0f
+            if (spacer != null && spacerLp != null) {
+                spacer.visibility = View.GONE
+                spacerLp.height = 0
+                spacerLp.weight = 0f
+            }
             val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
             val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             textContent.measure(widthSpec, heightSpec)
@@ -2027,6 +2055,13 @@ abstract class BaseThingsAdapter(context: Context?) :
             textLp.width = oldTextWidth
             textLp.height = oldTextHeight
             textLp.weight = oldTextWeight
+            if (spacer != null && spacerLp != null) {
+                if (oldSpacerVisibility != null) spacer.visibility = oldSpacerVisibility
+                if (oldSpacerHeight != null && oldSpacerWeight != null) {
+                    spacerLp.height = oldSpacerHeight
+                    spacerLp.weight = oldSpacerWeight
+                }
+            }
         }
     }
 
@@ -2392,43 +2427,24 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder: BaseThingViewHolder,
         thing: Thing
     ) {
+        // 媒体背景模式下，“X张图片，Y段视频”提示并入内容列底部置底组（位于状态块上方），
+        // 复用 llInlineMediaAttachment（layout 中位于 spacer 之后、音频之前），不再用卡片级 overlay。
+        holder.llMediaCount!!.visibility = View.GONE
+        setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
+
         val str = AttachmentHelper.getImageAttachmentCountStr(thing.attachment, mContext)
         if (str == null) {
-            holder.llMediaCount!!.visibility = View.GONE
-            setThingCardPaddingBottomHeight(holder, THING_CARD_DEFAULT_PADDING_BOTTOM_DP)
+            holder.llInlineMediaAttachment!!.visibility = View.GONE
             return
         }
 
-        val p = (mDensity * 16).toInt()
-        val topMargin = (mDensity * 8).toInt()
-        val bottomMargin = (mDensity * 12).toInt()
-        val countLp = holder.llMediaCount!!.layoutParams as FrameLayout.LayoutParams
-        val gravity = Gravity.BOTTOM or Gravity.LEFT
-        if (countLp.gravity != gravity ||
-                countLp.leftMargin != p ||
-                countLp.topMargin != topMargin ||
-                countLp.rightMargin != p ||
-                countLp.bottomMargin != bottomMargin) {
-            countLp.gravity = gravity
-            countLp.setMargins(p, topMargin, p, bottomMargin)
-            holder.llMediaCount.layoutParams = countLp
-        }
-        holder.llMediaCount!!.visibility = View.VISIBLE
-        holder.llMediaCount.alpha = 1.0f
-        holder.tvMediaCount!!.setPadding(0, 0, 0, 0)
-        holder.tvMediaCount.text = str
-        applyThingCardOverlayMediaCountColors(holder)
-        setThingCardMediaCountIconLayout(
-            holder.ivMediaCount,
-            THING_CARD_MEDIA_COUNT_ICON_NORMAL_WIDTH_DP,
-            THING_CARD_COUNT_ICON_NORMAL_HEIGHT_DP,
-            0
-        )
-        setThingCardCountTextStartMargin(
-            holder.tvMediaCount,
-            THING_CARD_MEDIA_COUNT_TEXT_NORMAL_MARGIN_START_DP
-        )
-        setThingCardPaddingBottomHeight(holder, THING_CARD_MEDIA_COUNT_PADDING_BOTTOM_DP)
+        holder.llInlineMediaAttachment!!.visibility = View.VISIBLE
+        holder.llInlineMediaAttachment.alpha = 1.0f
+        holder.tvInlineMediaCount!!.text = str
+        val foregroundBaseColor = getThingCardForegroundBaseColor(thing)
+        holder.tvInlineMediaCount.setTextColor(textColorTertiary(foregroundBaseColor))
+        applyThingCardMediaCountIcon(holder.ivInlineMediaCount, foregroundBaseColor)
+        // 图标尺寸 / 文字边距 / 内边距由随后的 enlargeHiddenMediaCountLayoutIfNeeded 统一按常规小尺寸设置。
     }
 
     private fun setThingCardPaddingBottomHeight(holder: BaseThingViewHolder, heightDp: Int) {
@@ -2481,7 +2497,8 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     private fun hasThingCardBottomStatus(holder: BaseThingViewHolder): Boolean {
-        return holder.llAudioAttachment!!.isVisible
+        return holder.llInlineMediaAttachment!!.isVisible
+                || holder.llAudioAttachment!!.isVisible
                 || holder.rlReminder!!.isVisible
                 || holder.rlHabit!!.isVisible
     }
@@ -2828,7 +2845,9 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val llp2 = holder.tvInlineMediaCount!!.layoutParams as LinearLayout.LayoutParams
         val dp16 = (mDensity * 16).toInt()
-        if (holder.flImageAttachment!!.isGone
+        // 媒体背景模式下内联计数是图上的小标注，不放大（即便此时没有其它正文内容）。
+        if (holder.ivMediaBackground!!.isGone
+            && holder.flImageAttachment!!.isGone
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
             && holder.rvChecklist!!.isGone

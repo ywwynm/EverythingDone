@@ -556,6 +556,8 @@
     <string name="thing_card_appearance_precise_crop">Crop cover image</string>
     <string name="thing_card_appearance_precise_crop_video">Crop cover video</string>
     <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">The cover image ratio range depends on the note card height. The card is currently tall, so the cover image is sized to the card width and height.</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">The cover video ratio range depends on the note card height. The card is currently tall, so the cover video is sized to the card width and height.</string>
     <string name="thing_card_appearance_thumbnail_video_shape">Cover video ratio</string>
     <string name="thing_card_appearance_background_mask">Background mask</string>
     <string name="thing_card_appearance_background_height">Card height</string>

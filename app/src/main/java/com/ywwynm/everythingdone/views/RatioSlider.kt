@@ -140,6 +140,13 @@ class RatioSlider @JvmOverloads constructor(
 
     fun getRatio(): Double = currentRatio
 
+    /** 禁用时 SeekBar 不可拖动、整体淡化；仍可通过 [setRatio] 程序化定位 thumb。 */
+    override fun setEnabled(enabled: Boolean) {
+        super.setEnabled(enabled)
+        seekBar.isEnabled = enabled
+        alpha = if (enabled) 1.0f else DISABLED_ALPHA
+    }
+
     fun setAccentBackground(background: ThingBackground, textColor: Int) {
         ticks.setAccentBackground(background, textColor)
         DisplayUtil.setSeekBarBackground(seekBar, background)
@@ -153,6 +160,7 @@ class RatioSlider @JvmOverloads constructor(
     companion object {
         const val SLIDER_MAX = 1000
         const val SNAP_PROGRESS_DISTANCE = 28
+        const val DISABLED_ALPHA = 0.4f
 
         /** 标准档位梯子（10 档），互为倒数在对数下关于 1:1 对称。 */
         val PRESET_RATIOS = doubleArrayOf(

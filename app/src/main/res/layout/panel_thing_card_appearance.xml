@@ -442,6 +442,16 @@
             android:layout_width="match_parent"
             android:layout_height="52dp" />
 
+        <TextView
+            android:id="@+id/tv_thing_card_appearance_ratio_overridden_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/thing_card_appearance_ratio_overridden_hint"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
     </LinearLayout>
 
     <LinearLayout

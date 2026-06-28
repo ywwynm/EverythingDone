@@ -172,6 +172,37 @@
             android:visibility="gone"
             android:theme="@style/WhiteListStyle"/>
 
+        <!--
+            底部状态块置底用的弹性空白：内容列为 match_parent 高度，侧栏 / 媒体背景模式下
+            显示此 spacer（weight=1）把下方的内联计数、音频、提醒/习惯顶到内容区底部。
+        -->
+        <TextView
+            android:id="@+id/view_bottom_status_spacer_widget"
+            android:layout_width="1px"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone"/>
+
+        <!-- 媒体背景模式下的“X张图片，Y段视频”提示：位于底部状态块最上方。 -->
+        <TextView
+            android:id="@+id/tv_thing_media_inline_count_widget"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginLeft="12dp"
+            android:layout_marginTop="8dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textSize="11sp"
+            android:textColor="@color/white_76p"
+            android:background="@color/black_26p"
+            android:visibility="gone"
+            tools:ignore="SmallSp"/>
+
         <LinearLayout
             android:id="@+id/ll_thing_audio_attachment"
             android:layout_width="wrap_content"

@@ -279,6 +279,7 @@ class ThingsActivity :
     private var mBtThingCardAppearancePreciseCrop: TextView? = null
     private var mLlThingCardAppearanceThumbnailRatio: View? = null
     private var mThingCardAppearanceRatioSlider: RatioSlider? = null
+    private var mTvThingCardAppearanceRatioOverriddenHint: TextView? = null
     private var mLlThingCardAppearanceBackgroundControls: View? = null
     private var mSeekThingCardAppearanceBackgroundMask: SeekBar? = null
     private var mSeekThingCardAppearanceBackgroundHeight: SeekBar? = null
@@ -1977,6 +1978,8 @@ class ThingsActivity :
                 f(R.id.ll_thing_card_appearance_thumbnail_ratio)
         mThingCardAppearanceRatioSlider =
                 f(R.id.v_thing_card_appearance_ratio_slider)
+        mTvThingCardAppearanceRatioOverriddenHint =
+                f(R.id.tv_thing_card_appearance_ratio_overridden_hint)
         mLlThingCardAppearanceBackgroundControls =
                 f(R.id.ll_thing_card_appearance_background_controls)
         mSeekThingCardAppearanceBackgroundMask =
@@ -3310,6 +3313,7 @@ class ThingsActivity :
             slider.refreshRange()
             slider.setRatio(aspectRatio)
         }
+        updateThingCardAppearanceRatioOverriddenState()
     }
 
     private fun bindThingCardAppearanceSideWidthControls(draft: ThingCardAppearance) {
@@ -3584,6 +3588,52 @@ class ThingsActivity :
             return ThingCardRatioRange(minRatio, minRatio + 0.01)
         }
         return ThingCardRatioRange(minRatio, maxRatio)
+    }
+
+    /**
+     * 媒体背景模式下，所设封面比例换算出的卡片高度是否已被记事内容高度覆盖
+     * （内容更高、卡片再也减不短）。此时封面比例不可调，slider 置灰并显示提示；
+     * 内容变矮、比例可重新生效时自动恢复。仅作用于媒体背景：侧栏比例对应宽度，
+     * 始终能在 30%–60% 间调整，不进入此状态。
+     */
+    private fun isThingCardMediaBackgroundRatioOverridden(): Boolean {
+        val draft = mThingCardAppearanceDraft ?: return false
+        if (getActiveThingCardPresentationKey(draft) !=
+                ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND) {
+            return false
+        }
+        val source = getCurrentThingCardAppearanceMediaSource() ?: return false
+        val cardWidth = getThingCardAppearancePreviewCardWidth()
+        val naturalHeight = getThingCardBackgroundNaturalHeight()
+        if (cardWidth <= 0 || naturalHeight <= 0) return false
+        val ratio = getThingCardPresentationTargetAspectRatio(
+                draft, source, ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND
+        )
+        if (ratio <= 0.0 || ratio.isNaN() || ratio.isInfinite()) return false
+        val desiredHeight = cardWidth / ratio
+        // 1px 容差，避免相等边界抖动。
+        return desiredHeight < naturalHeight - 1.0
+    }
+
+    private fun updateThingCardAppearanceRatioOverriddenState() {
+        val overridden = isThingCardMediaBackgroundRatioOverridden()
+        mThingCardAppearanceRatioSlider?.isEnabled = !overridden
+        val hint = mTvThingCardAppearanceRatioOverriddenHint
+        if (hint != null) {
+            if (overridden) {
+                val isVideo = getCurrentThingCardAppearanceMediaSource()?.isVideo == true
+                hint.setText(
+                        if (isVideo) {
+                            R.string.thing_card_appearance_ratio_overridden_hint_video
+                        } else {
+                            R.string.thing_card_appearance_ratio_overridden_hint
+                        }
+                )
+                hint.visibility = View.VISIBLE
+            } else {
+                hint.visibility = View.GONE
+            }
+        }
     }
 
     private fun clampThingCardAppearanceSeekProgress(value: Int, maxValue: Int): Int {
@@ -4719,6 +4769,8 @@ class ThingsActivity :
         ratioSlider.onRatioChanged = { snapped ->
             cropView.setTargetAspectRatio(snapped)
         }
+        // 媒体背景比例被内容覆盖时，封面比例不可调，裁切 dialog 内的比例滑条同样置灰。
+        ratioSlider.isEnabled = !isThingCardMediaBackgroundRatioOverridden()
         container.addView(
                 ratioSlider,
                 LinearLayout.LayoutParams(
@@ -5299,6 +5351,7 @@ class ThingsActivity :
             }
             if (mLlThingCardAppearanceThumbnailRatio?.visibility == View.VISIBLE) {
                 mThingCardAppearanceRatioSlider?.refreshRange()
+                updateThingCardAppearanceRatioOverriddenState()
             }
         }
     }

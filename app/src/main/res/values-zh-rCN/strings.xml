@@ -540,6 +540,8 @@
     <string name="thing_card_appearance_precise_crop">裁切封面图片</string>
     <string name="thing_card_appearance_precise_crop_video">裁切封面视频</string>
     <string name="thing_card_appearance_thumbnail_shape">封面图片比例</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">封面图片比例的调整范围受记事卡片高度影响，当前卡片高度较大，封面图片按照卡片宽高显示</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">封面视频比例的调整范围受记事卡片高度影响，当前卡片高度较大，封面视频按照卡片宽高显示</string>
     <string name="thing_card_appearance_thumbnail_video_shape">封面视频比例</string>
     <string name="thing_card_appearance_background_mask">背景遮罩</string>
     <string name="thing_card_appearance_background_height">卡片高度</string>

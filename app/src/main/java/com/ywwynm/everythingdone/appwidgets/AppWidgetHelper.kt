@@ -116,6 +116,9 @@ object AppWidgetHelper {
     private val TV_IMAGE_COUNT_RIGHT: Int       = R.id.tv_thing_image_attachment_count_right
     private val TV_MEDIA_BACKGROUND_COUNT: Int  =
             R.id.tv_thing_media_background_attachment_count
+    private val V_BOTTOM_STATUS_SPACER: Int     = R.id.view_bottom_status_spacer_widget
+    private val TV_INLINE_MEDIA_COUNT: Int      = R.id.tv_thing_media_inline_count_widget
+    private val LL_TEXT_CONTENT_WIDGET: Int     = R.id.ll_thing_text_content_widget
 
     private val TV_TITLE: Int                  = R.id.tv_thing_title
     private val IV_PRIVATE_THING: Int          = R.id.iv_private_thing
@@ -1133,7 +1136,8 @@ object AppWidgetHelper {
                 })
 
         setImageAttachment(context, remoteViews, thing, appWidgetId, clazz,
-                mediaBackground != null, a, style, contentWidthOverride)
+                mediaBackground != null, mediaBackground?.layoutMinHeight, a, style,
+                contentWidthOverride)
 
         setTitleAndPrivate(context, remoteViews, thing, style)
 
@@ -1537,11 +1541,13 @@ object AppWidgetHelper {
 
     private fun setImageAttachment(
             context: Context, remoteViews: RemoteViews, thing: Thing, appWidgetId: Int,
-            clazz: Class<*>?, mediaBackgroundApplied: Boolean,
+            clazz: Class<*>?, mediaBackgroundApplied: Boolean, mediaBackgroundLayoutHeight: Int?,
             alpha: Int, @ThingWidgetInfo.Style style: Int,
             contentWidthOverride: Int? = null) {
         hideForegroundMediaSlots(remoteViews)
         remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.GONE)
+        remoteViews.setViewVisibility(TV_INLINE_MEDIA_COUNT, View.GONE)
+        remoteViews.setViewVisibility(V_BOTTOM_STATUS_SPACER, View.GONE)
 
         if (thing.isPrivate()) {
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
@@ -1556,8 +1562,13 @@ object AppWidgetHelper {
         }
 
         if (mediaBackgroundApplied) {
-            setMediaBackgroundAttachmentCount(remoteViews, attachment, context)
+            // 媒体背景：提示并入内容列底部置底组（spacer 之后、状态块之上），不再用卡片级 overlay。
+            setWidgetInlineMediaCount(remoteViews, attachment, context)
+            remoteViews.setViewVisibility(V_BOTTOM_STATUS_SPACER, View.VISIBLE)
             remoteViews.setViewVisibility(V_PADDING_BOTTOM, View.VISIBLE)
+            if (isThingsListWidgetClass(clazz) && mediaBackgroundLayoutHeight != null) {
+                applyThingsListContentColumnHeight(remoteViews, mediaBackgroundLayoutHeight)
+            }
             return
         }
 
@@ -1575,6 +1586,18 @@ object AppWidgetHelper {
         remoteViews.setImageViewBitmap(slot.imageId, bitmapWithAlpha(rendered.bitmap, alpha))
         remoteViews.setInt(slot.imageId, "setImageAlpha", 255)
         setImageAttachmentCount(remoteViews, slot.countId, attachment, context)
+
+        // 侧栏模式：状态块置底。单一 widget 内容列为 match_parent、随固定单元格高度填满；
+        // 列表行内容列默认 wrap_content，Android 12+ 在此把其高度显式设为侧图高度，spacer 才有
+        // 空间把状态块顶到底（11- 退化为跟随内容）。
+        if (isSideImagePlacement(placement)) {
+            remoteViews.setViewVisibility(V_BOTTOM_STATUS_SPACER, View.VISIBLE)
+            if (isThingsListWidgetClass(clazz)) {
+                val slotTarget = getWidgetMediaSlotTarget(
+                        context, thing, appWidgetId, clazz, placement, style, contentWidthOverride)
+                applyThingsListContentColumnHeight(remoteViews, slotTarget.height)
+            }
+        }
 
         remoteViews.setViewVisibility(V_PADDING_BOTTOM,
                 if (placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM) View.GONE else View.VISIBLE)
@@ -1626,6 +1649,30 @@ object AppWidgetHelper {
         } else {
             remoteViews.setViewVisibility(TV_MEDIA_BACKGROUND_COUNT, View.VISIBLE)
             remoteViews.setTextViewText(TV_MEDIA_BACKGROUND_COUNT, count)
+        }
+    }
+
+    /** 媒体背景模式下，把“X张图片，Y段视频”提示显示在内容列底部置底组最上方。 */
+    private fun setWidgetInlineMediaCount(
+            remoteViews: RemoteViews, attachment: String, context: Context) {
+        val count = AttachmentHelper.getImageAttachmentCountStr(attachment, context)
+        if (count == null) {
+            remoteViews.setViewVisibility(TV_INLINE_MEDIA_COUNT, View.GONE)
+        } else {
+            remoteViews.setViewVisibility(TV_INLINE_MEDIA_COUNT, View.VISIBLE)
+            remoteViews.setTextViewText(TV_INLINE_MEDIA_COUNT, count)
+        }
+    }
+
+    /**
+     * Android 12+：把记事列表 widget 行的内容列高度显式设为行高（侧图高 / 媒体背景高），
+     * 使内容列填满行高、底部状态 spacer(weight=1) 能把状态块顶到底。Android 11 及以下
+     * RemoteViews 无法设布局高度，内容列保持 wrap_content，状态块退化为跟随内容。
+     */
+    private fun applyThingsListContentColumnHeight(remoteViews: RemoteViews, heightPx: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && heightPx > 0) {
+            remoteViews.setViewLayoutHeight(
+                    LL_TEXT_CONTENT_WIDGET, heightPx.toFloat(), TypedValue.COMPLEX_UNIT_PX)
         }
     }
 
