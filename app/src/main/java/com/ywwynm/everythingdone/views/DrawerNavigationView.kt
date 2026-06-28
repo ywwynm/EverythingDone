@@ -378,9 +378,9 @@ class DrawerNavigationView @JvmOverloads constructor(
             }
             val effectiveBackground = itemBackground ?: App.defaultAccentBackground
             val foregroundColor = if (selected) {
-                BackgroundUtil.onColor(effectiveBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+                ColorConstants.FolderList.selectedForeground(effectiveBackground)
             } else {
-                getDrawerItemForegroundColor()
+                ColorConstants.FolderList.unselectedForeground(context)
             }
             content.background = createItemBackground(selected, effectiveBackground)
             content.isSelected = selected
@@ -430,7 +430,7 @@ class DrawerNavigationView @JvmOverloads constructor(
                         DisplayUtil.opaqueTintDrawable(
                             context,
                             AppCompatResources.getDrawable(context, R.drawable.ic_dropdown),
-                            BackgroundUtil.onColor(effectiveBackground, 1f)
+                            ColorConstants.FolderList.selectedExpandIcon(effectiveBackground)
                         )
                     )
                 } else {
@@ -447,7 +447,7 @@ class DrawerNavigationView @JvmOverloads constructor(
                 )
                 expandButton.foreground = if (selected) {
                     // 文件夹行已铺其颜色，展开按钮 ripple 按其明暗自适应。
-                    BackgroundUtil.circularRipple(BackgroundUtil.adaptiveRippleColor(effectiveBackground))
+                    BackgroundUtil.circularRipple(ColorConstants.FolderList.selectedRipple(effectiveBackground))
                 } else {
                     GradientRippleDrawable(effectiveBackground, shapeOval = true)
                 }
@@ -484,7 +484,7 @@ class DrawerNavigationView @JvmOverloads constructor(
             }
             // 选中：常驻铺该色 + 自适应波纹（亮底偏黑、暗底/accent 偏白）。
             return RippleDrawable(
-                ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(bg)),
+                ColorStateList.valueOf(ColorConstants.FolderList.selectedRipple(bg)),
                 BackgroundUtil.fillDrawable(bg),
                 ColorDrawable(Color.WHITE)
             )
@@ -502,10 +502,6 @@ class DrawerNavigationView @JvmOverloads constructor(
             val iconRes = item.iconRes ?: return null
             val drawable = AppCompatResources.getDrawable(context, iconRes) ?: return null
             return DisplayUtil.opaqueTintDrawable(context, drawable, fgColor)
-        }
-
-        private fun getDrawerItemForegroundColor(): Int {
-            return ContextCompat.getColor(context, R.color.app_chrome_drawer_item_foreground)
         }
 
         private fun updateTitleEndMargin(marginEnd: Int) {

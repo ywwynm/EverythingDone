@@ -208,3 +208,96 @@ Published 202606280425. Not committed.
   (accent gradient) for title / confirm text / confirm ripple; folder → its own colour. The dialog no
   longer uses the host-supplied `mAccentBackground` at all — `setAccentBackground` kept as a no-op for
   caller compatibility, field removed, overscroll edge colour switched to accent. Published 202606280434.
+
+## 2026-06-28 — Batch-3 feedback (3 items: checkbox ripple + widget chrome + folder-list unification)
+
+- 条1 设置界面 checkbox ripple 偏小：`GradientRippleDrawable` 现支持 `shapeOval + fixedRadiusPx`
+  的「居中固定半径圆形裁剪」（半径可超出控件 bounds）；新增 companion
+  `applyCheckboxRipple(checkbox, bg)`（半径 `CHECKBOX_RIPPLE_RADIUS_DP = 20dp`、`centered=true`，
+  并把所在行 `clipChildren/clipToPadding` 关掉，波纹才能画到 checkbox bounds 外）。`SettingsActivity`
+  的 `applySettingsItemRipples` CompoundButton 分支改用该方法。原内切圆 ~16dp → 20dp。
+- 条2 记事列表 widget 配置：标题、确定按钮（文字 + 胶囊 ripple）、透明度滑条、两个 checkbox
+  （box + 自身圆形 ripple）及其所在 item 的触摸 ripple，全部随文件夹列表区域所选范围（文件夹色 /
+  根目录 accent 渐变）实时着色。新增 `updateScopeChrome()`，在 `onCreate` 末尾与
+  `refreshScopeDependentChrome()` 调用；确定按钮 ripple 用 `foreground = GradientRippleDrawable(scope,
+  胶囊)` 覆盖 `installAppChromeDialogActionButton` 设的中性 ripple。新增字段 `mTvTitle/mTvConfirm/
+  mRlSimpleView/mRlAlphaHeader`，移除早期固定 `mAccentBackground` 上色。
+- 条3 三处文件夹列表区域（Drawer / 移动到文件夹 dialog / widget 配置）配色统一到 Drawer：
+  - widget `ScopeAdapter` 重写配色：选中行 `selectedFillRipple`（半透明）→ Drawer 式
+    `scopeRowBackground`（实色 `fillDrawable` 填充 + 自适应波纹 + 白 mask）；选中前景 `applyTextBackground`
+    渐变文字 → `onColor(bg,.86)` 对比纯色；文件夹 icon 选中 → `pure(onColor)` 对比色（原一直用文件夹
+    自身色）；「全部」icon / 展开 icon / 标题 未选中 `black_54p`(54%) → `app_chrome_drawer_item_foreground`
+    (69%)；展开 icon 选中 → `opaqueTintDrawable(onColor 1f)` 满不透明（原一直 `black_54p`）。
+  - 移动到文件夹 dialog：未选中标题色 `app_chrome_on_surface_secondary`(54%) →
+    `app_chrome_drawer_item_foreground`(69%)，与 Drawer 统一（其余颜色第六批已对齐）。
+
+`:app:assembleDebug` 通过。未发布、未提交。
+
+## 2026-06-28 — 文件夹列表区域固定色集中到 ColorConstants
+
+- 新增 `views/ColorConstants.kt`，内含 `ColorConstants.FolderList` 单一来源，集中三处文件夹列表区域
+  （Drawer / 移动到文件夹 dialog / widget 配置）相对固定的配色：`unselectedForeground`（未选中前景 =
+  `app_chrome_drawer_item_foreground`）、`disabledForeground`（不可选目标）、`selectedForeground`
+  （选中对比前景 = `onColor(bg, .86)`）、`selectedExpandIcon`（选中展开箭头满不透明 = `onColor(bg, 1f)`）、
+  `selectedRipple`（选中行自适应波纹 = `adaptiveRippleColor(bg)`）。
+- `DrawerNavigationView` / `MoveToThingFolderDialogFragment` / `ThingsListWidgetConfiguration` 三处
+  原本内联的这些颜色全部改为引用 `ColorConstants.FolderList`，以后统一改一处即可。Drawer 删除已无引用的
+  `getDrawerItemForegroundColor()`。文件夹自身色（未选中图标 / 波纹、选中实色填充）仍由各行 ThingBackground
+  直接给出，不进此对象。`:app:assembleDebug` 通过。
+
+## 2026-06-28 — 根目录展开/收缩按钮：Drawer + widget 配置
+
+移动到文件夹 dialog 的根目录早已有「收起/展开所有顶层文件夹」的 chevron；Drawer 与记事列表 widget
+配置缺这个按钮（顶层文件夹恒展开）。本次补齐，三处行为一致：
+
+- widget `ScopeAdapter`：新增 `rootExpanded`（默认展开）；`rebuildVisibleItems` 据其决定是否铺顶层；
+  抽取 `bindExpandButton(holder,rowBg,selected,expanded,visible,onToggle)` 供根目录行与文件夹行共用；
+  新增 `toggleRootExpanded()`（旋转动画 + `notifyItemRangeInserted/Removed`）。
+- `DrawerNavigationView`：`DrawerItem` 加 `rootToggle`；新增 `setOnRootExpandClickListener`；`submitItems`
+  /adapter 加 `animatedRootToggle` 贯穿；`bind()` 展开段改为 `showsToggleSlot = isFolder || (rootToggle &&
+  hasChildFolders)`，根目录行复用 `hasChildFolders`/`folderExpanded` 渲染 chevron，点击走 root 监听。
+- `ThingsActivity`：新增 `mDrawerRootExpanded`（默认展开）；`updateDrawerFolderItems` 加 `animatedRootToggle`
+  参数、按其决定是否 `appendDrawerFolderItems`、给「全部」目的地行设 `rootToggle/rootHasChildFolders/
+  rootExpanded`；`createDrawerDestinationItem` 扩展这三参；新增 `toggleDrawerRootExpanded()` 接监听；
+  `expandDrawerFolderAncestors` 顺带置 `mDrawerRootExpanded=true`（导航到文件夹要能看见它）；
+  `findVisibleDrawerFolderKey` 在根目录收起时回退到「全部」选中态（与折叠父文件夹时高亮最近可见祖先一致）。
+
+`:app:assembleDebug` 通过。未发布、未提交。
+
+## 2026-06-28 — 撤销：三处根目录都不要展开/收缩按钮
+
+上一条的根目录 chevron 方案按反馈撤掉：Drawer、移动到文件夹 dialog、记事列表 widget 配置三处的
+「全部 / 根目录」行右侧都不显示展开/收缩按钮，顶层文件夹恒展开。
+
+- 撤回 `DrawerNavigationView`（`rootToggle` / `rootExpandClickListener` / `animatedRootToggle` /
+  `consumeRootToggleAnim` 及 bind 中 `showsToggleSlot` 全部移除，恢复 `isFolder` 版本）与
+  `ThingsActivity`（`mDrawerRootExpanded` / `toggleDrawerRootExpanded` / `setOnRootExpandClickListener`
+  及 `updateDrawerFolderItems`、`createDrawerDestinationItem`、`expandDrawerFolderAncestors`、
+  `findVisibleDrawerFolderKey` 的相关改动）。
+- widget `ScopeAdapter` 撤回 `rootExpanded` / `toggleRootExpanded`，根目录行恢复为 expand INVISIBLE、
+  `rebuildVisibleItems` 恒展开顶层；`bindExpandButton` 助手保留（文件夹行仍在用）。
+- 移动到文件夹 dialog 移除原有的 `mRootExpanded` 根目录折叠：根目录行 `hasChildren=false`（无 chevron）、
+  顶层文件夹恒展开，`toggleExpanded` 去掉 `folder==null` 分支。
+
+`:app:assembleDebug` 通过。未发布、未提交。
+
+## 2026-06-28 — NoticeableNotificationActivity：类型标题渐变 + 按钮记事色 ripple
+
+- 标题里「记事类型」文字由单色（`mThing.getColor()` 代表色）改为按记事背景上色：渐变记事用渐变 shader
+  （新增 `GradientTextSpan`，复用 `BackgroundUtil.createLinearGradient`，与左侧类型图标一致），纯色记事用
+  其颜色；「• 时间」部分仍为灰色提示色（不受 shader 影响——span 分 run 渲染）。
+- 关闭按钮（右上角）+ 卡片下方 action 按钮（完成 / 开始做事 / 延迟提醒等）触摸 ripple 由中性
+  `installAppChromeCircleRipple` 改为记事色：`foreground = GradientRippleDrawable(thingBackground,
+  shapeOval=true)`（40dp 方形 → 圆形波纹；渐变记事则渐变波纹）。
+
+`:app:assembleDebug` 通过。未发布、未提交。
+
+## 2026-06-28 — widget 配置类型 icon 亮/暗色适配（撤回 c6ade5d6 后追加）
+
+- 上一条提交 c6ade5d6 已 `git reset --soft HEAD~1` 撤回（改动仍暂存），追加本修复后再一起提交。
+- 记事列表 widget 配置的 5 个记事类型 icon，未选中态原用恒定 `black_54p`（暗色模式下黑图标几乎不可见），
+  改为主题自适应的 `app_chrome_drawer_item_foreground`（亮 #B0000000 / 暗 #B0FFFFFF）+ `opaqueTintDrawable`
+  满不透明，与 Drawer 的 `ThingFilterPanel` 一致。类型按钮映射加入 iconRes（`Triple(mask, ImageView, iconRes)`），
+  每次从原始 drawable 重新着色，避免反复着色累积。选中态（范围色渐变图标 + 现有填充）保持不变。
+
+`:app:assembleDebug` 通过。

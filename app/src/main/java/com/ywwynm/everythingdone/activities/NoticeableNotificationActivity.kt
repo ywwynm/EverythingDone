@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Outline
 import android.graphics.PorterDuff
+import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -18,7 +19,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.TextPaint
+import android.text.style.CharacterStyle
 import android.text.style.ForegroundColorSpan
+import android.text.style.UpdateAppearance
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
@@ -42,6 +46,7 @@ import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -318,7 +323,11 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
     }
 
     private fun applyActionButtonRipple(button: View?) {
-        BackgroundUtil.installAppChromeCircleRipple(button, this)
+        button ?: return
+        // 关闭按钮 + 卡片下方 action 按钮（完成 / 开始做事 / 延迟提醒等）触摸 ripple 用记事颜色
+        // （40dp 方形按钮，oval 裁剪即圆形；渐变记事则为渐变波纹）。
+        button.background = null
+        button.foreground = GradientRippleDrawable(mThing!!.getBackground()!!, shapeOval = true)
     }
 
     @SuppressLint("SetTextI18n")
@@ -337,14 +346,31 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         val timeStr: String = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
         val title = "$typeStr • $timeStr"
         val ssb = SpannableStringBuilder(title)
-        val colorSpan1 = ForegroundColorSpan(mThing!!.getColor())
+        val index = title.indexOf('•')
+        // 记事类型文字按记事背景上色，与左侧类型图标一致：渐变记事用渐变 shader，纯色记事用其颜色；
+        // 「• 时间」部分仍为灰色提示色。
+        val bg: ThingBackground = mThing!!.getBackground()!!
+        val typeSpan: CharacterStyle = if (bg.mode == ThingBackground.Mode.GRADIENT) {
+            val w = max(1f, mTvTitle!!.paint.measureText(typeStr))
+            val fm = mTvTitle!!.paint.fontMetrics
+            val h = max(1f, fm.descent - fm.ascent)
+            GradientTextSpan(BackgroundUtil.createLinearGradient(bg, w, h))
+        } else {
+            ForegroundColorSpan(bg.color)
+        }
         val colorSpan2 = ForegroundColorSpan(
             ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint)
         )
-        val index = title.indexOf('•')
-        ssb.setSpan(colorSpan1, 0, index - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        ssb.setSpan(typeSpan, 0, index - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         ssb.setSpan(colorSpan2, index - 1, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         mTvTitle!!.text = ssb
+    }
+
+    /** 让一段文字用渐变 shader 上色（其它 span 各自的颜色不受影响），用于通知标题里的记事类型部分。 */
+    private class GradientTextSpan(private val shader: Shader) : CharacterStyle(), UpdateAppearance {
+        override fun updateDrawState(tp: TextPaint) {
+            tp.shader = shader
+        }
     }
 
     private fun initRvThing() {

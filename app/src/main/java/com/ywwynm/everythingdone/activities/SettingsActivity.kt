@@ -561,8 +561,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             }
         }
         if (view is android.widget.CompoundButton) {
-            // 右侧 checkbox / switch 的圆形 ripple → accent+accent2 渐变。
-            view.background = GradientRippleDrawable(App.defaultAccentBackground, shapeOval = true)
+            // 右侧 checkbox 的圆形 ripple → accent+accent2 渐变；半径略大、贴近系统原生尺寸
+            // （内部会关掉所在行的 clipChildren，让波纹能画到 checkbox bounds 之外）。
+            GradientRippleDrawable.applyCheckboxRipple(view, App.defaultAccentBackground)
             return
         }
         if (view.id == View.NO_ID) return

@@ -13,6 +13,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -133,7 +134,16 @@ class GradientRippleDrawable(
         clipPath.reset()
         if (boundsF.isEmpty) return
         if (shapeOval) {
-            clipPath.addOval(boundsF, Path.Direction.CW)
+            if (fixedRadiusPx > 0f) {
+                // 固定半径的圆形裁剪：以控件中心为圆心，半径可超出控件 bounds（需所在父容器
+                // clipChildren=false 才能完整画出），用于 checkbox 这类「波纹比控件本身略大、贴近系统
+                // 原生尺寸」的指示控件。
+                clipPath.addCircle(
+                    boundsF.centerX(), boundsF.centerY(), fixedRadiusPx, Path.Direction.CW
+                )
+            } else {
+                clipPath.addOval(boundsF, Path.Direction.CW)
+            }
         } else if (cornerRadiusPx > 0f) {
             clipPath.addRoundRect(boundsF, cornerRadiusPx, cornerRadiusPx, Path.Direction.CW)
         } else if (cornerRadiusPx < 0f) {
@@ -320,6 +330,27 @@ class GradientRippleDrawable(
             applyAccentRippleShaped(view, bg, fallbackColor, cornerRadiusPx = 0f)
         }
 
+        /**
+         * 给「右侧指示用」的 [android.widget.CompoundButton]（设置 / widget 配置里的 checkbox）设一圈圆形
+         * 渐变 ripple，半径略大于控件内切圆、贴近系统原生 checkbox 的波纹尺寸（[CHECKBOX_RIPPLE_RADIUS_DP]）。
+         * 波纹需画到控件自身 bounds 之外，故同时关掉所在行的 clipChildren / clipToPadding；[centered] 让圆心
+         * 向控件中心收敛，即便 checkbox 不可点、按下态由整行下发，也能完整铺满并居中。
+         */
+        @JvmStatic
+        fun applyCheckboxRipple(checkbox: android.widget.CompoundButton, bg: ThingBackground) {
+            val density = checkbox.resources.displayMetrics.density
+            checkbox.background = GradientRippleDrawable(
+                bg,
+                shapeOval = true,
+                fixedRadiusPx = CHECKBOX_RIPPLE_RADIUS_DP * density,
+                centered = true
+            )
+            (checkbox.parent as? ViewGroup)?.let {
+                it.clipChildren = false
+                it.clipToPadding = false
+            }
+        }
+
         private fun applyAccentRippleShaped(
             view: View, bg: ThingBackground?, fallbackColor: Int, cornerRadiusPx: Float
         ) {
@@ -333,10 +364,12 @@ class GradientRippleDrawable(
             }
         }
 
+        /** checkbox 指示控件圆形 ripple 半径（dp）：略大于控件内切圆，贴近系统原生 checkbox 波纹尺寸。 */
+        private const val CHECKBOX_RIPPLE_RADIUS_DP = 21f
         /** 渐变波纹峰值不透明度。鲜艳品牌色作波纹，需高于现有 10–16% 的淡对比色 ripple 才看得清。 */
         private const val PEAK_ALPHA = 0.36f
         /** 半径铺满时长；略短于 alpha 淡出，保证铺满瞬间仍可见。 */
-        private const val RADIUS_DURATION = 260L
+        private const val RADIUS_DURATION = 256L
         /** alpha 升满时长，尽量短，快速点击/滑动也能看到颜色。 */
         private const val ALPHA_ENTER_DURATION = 60L
         /** alpha 淡出时长。 */

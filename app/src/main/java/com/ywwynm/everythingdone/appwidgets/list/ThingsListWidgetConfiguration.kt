@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
@@ -18,6 +20,7 @@ import android.widget.RemoteViews
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,6 +40,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
+import com.ywwynm.everythingdone.views.ColorConstants
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
@@ -51,6 +55,10 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
     private var mScopeAdapter: ScopeAdapter? = null
 
+    private var mTvTitle: TextView? = null
+    private var mTvConfirm: TextView? = null
+    private var mRlSimpleView: View? = null
+    private var mRlAlphaHeader: View? = null
     private var mSbAlpha: SeekBar? = null
     private var mCbAlphaHeader: AppCompatCheckBox? = null
     private var mCbSimpleView: AppCompatCheckBox? = null
@@ -62,7 +70,8 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     private var mTvDisplayGrid: TextView? = null
     private var mTvStatusUnderway: TextView? = null
     private var mTvStatusFinished: TextView? = null
-    private var mTypeButtons: List<Pair<Int, ImageView>> = emptyList()
+    // (类型掩码, 图标 ImageView, 图标资源)；图标资源用于每次从原始 drawable 重新着色（与 Drawer 一致）。
+    private var mTypeButtons: List<Triple<Int, ImageView, Int>> = emptyList()
 
     private var mAppWidgetId: Int = 0
     private var mIsSetting: Boolean = false
@@ -80,11 +89,9 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_things_list_widget_configuration)
 
-        val tvTitle: TextView? = findViewById(R.id.tv_title_things_list_widget_configuration)
-        BackgroundUtil.applyTextBackground(tvTitle, mAccentBackground)
-        val tvConfirm: TextView? = findViewById(R.id.tv_confirm_as_bt_things_list_config)
-        BackgroundUtil.applyTextBackground(tvConfirm, mAccentBackground)
-        BackgroundUtil.installAppChromeDialogActionButton(tvConfirm, this)
+        mTvTitle = findViewById(R.id.tv_title_things_list_widget_configuration)
+        mTvConfirm = findViewById(R.id.tv_confirm_as_bt_things_list_config)
+        BackgroundUtil.installAppChromeDialogActionButton(mTvConfirm, this)
 
         readAppWidgetIdOrFinish()
         if (isFinishing) return
@@ -114,23 +121,18 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
 
         mSbAlpha = findViewById(R.id.sb_app_widget_alpha)!!
         mSbAlpha!!.max = 100
-        DisplayUtil.setSeekBarBackground(mSbAlpha, mAccentBackground)
 
         mCbSimpleView = findViewById(R.id.cb_simple_view)!!
-        BackgroundUtil.applyCheckboxAccent(mCbSimpleView!!, mAccentBackground)
         mCbSimpleView!!.isChecked = simpleView
-        val rlSimpleView = findViewById<View>(R.id.rl_simple_view_as_bt)
-        rlSimpleView.background = GradientRippleDrawable(mAccentBackground, shapeOval = false, cornerRadiusPx = 0f)
-        rlSimpleView.setOnClickListener {
+        mRlSimpleView = findViewById(R.id.rl_simple_view_as_bt)
+        mRlSimpleView!!.setOnClickListener {
             mCbSimpleView!!.toggle()
         }
 
         mCbAlphaHeader = findViewById(R.id.cb_alpha_header)!!
-        BackgroundUtil.applyCheckboxAccent(mCbAlphaHeader!!, mAccentBackground)
         mCbAlphaHeader!!.isChecked = alphaHeader
-        val rlAlphaHeader = findViewById<View>(R.id.rl_alpha_header_as_bt)
-        rlAlphaHeader.background = GradientRippleDrawable(mAccentBackground, shapeOval = false, cornerRadiusPx = 0f)
-        rlAlphaHeader.setOnClickListener {
+        mRlAlphaHeader = findViewById(R.id.rl_alpha_header_as_bt)
+        mRlAlphaHeader!!.setOnClickListener {
             mCbAlphaHeader!!.toggle()
         }
 
@@ -141,13 +143,15 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         }
 
         val cancelButton = findViewById<TextView>(R.id.tv_cancel_as_bt_things_list_config)
-        val confirmButton = findViewById<TextView>(R.id.tv_confirm_as_bt_things_list_config)
         BackgroundUtil.installAppChromeDialogActionButton(cancelButton, this)
-        BackgroundUtil.installAppChromeDialogActionButton(confirmButton, this)
         if (mIsSetting) {
             cancelButton.visibility = View.VISIBLE
             cancelButton.setOnClickListener { finish() }
         }
+
+        // 标题 / 确定按钮（文字 + ripple）/ 透明度滑条 / 两个 checkbox（含其 item、checkbox 自身 ripple）
+        // 颜色，随文件夹列表区域所选范围（文件夹色 / 根目录 accent 渐变）实时设置。
+        updateScopeChrome()
     }
 
     private fun readAppWidgetIdOrFinish() {
@@ -255,23 +259,64 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
         )
     }
 
+    /**
+     * 文件夹列表行背景，与 Drawer 一致：未选中 → 文件夹色渐变波纹（直角整条）；
+     * 选中 → 文件夹实色填充（纯色 / 渐变，非透明度版本）+ 按明暗自适应的触摸波纹。
+     */
+    private fun scopeRowBackground(bg: ThingBackground, selected: Boolean): Drawable {
+        if (!selected) {
+            return GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+        }
+        return RippleDrawable(
+            ColorStateList.valueOf(ColorConstants.FolderList.selectedRipple(bg)),
+            BackgroundUtil.fillDrawable(bg),
+            ColorDrawable(Color.WHITE)
+        )
+    }
+
     /** 范围 / 类型 / 状态 / 显示模式切换后，刷新依赖范围颜色的触摸 ripple。 */
     private fun refreshScopeDependentChrome() {
+        updateScopeChrome()
         updateTypeFilterButtons()
         updateStatusButtons()
         updateDisplayModeButtons()
     }
 
+    /**
+     * 标题、确定按钮（文字 + 胶囊 ripple）、透明度滑条、两个 checkbox（box + 自身圆形 ripple）及其所在
+     * item 的触摸 ripple，全部随文件夹列表区域所选范围（文件夹色 / 根目录 accent 渐变）着色。
+     */
+    private fun updateScopeChrome() {
+        val bg = currentScopeBackground()
+        mTvTitle?.let { BackgroundUtil.applyTextBackground(it, bg) }
+        mTvConfirm?.let {
+            BackgroundUtil.applyTextBackground(it, bg)
+            // 确定按钮触摸 ripple 用范围色（胶囊，与其它 dialog 确定按钮一致），覆盖默认中性 ripple。
+            it.foreground = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = -1f)
+        }
+        DisplayUtil.setSeekBarBackground(mSbAlpha, bg)
+        mCbSimpleView?.let {
+            BackgroundUtil.applyCheckboxAccent(it, bg)
+            GradientRippleDrawable.applyCheckboxRipple(it, bg)
+        }
+        mCbAlphaHeader?.let {
+            BackgroundUtil.applyCheckboxAccent(it, bg)
+            GradientRippleDrawable.applyCheckboxRipple(it, bg)
+        }
+        mRlSimpleView?.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+        mRlAlphaHeader?.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+    }
+
     private fun setupTypeFilters() {
         mTvTypeFilterSummary = findViewById(R.id.tv_widget_type_filter_summary)
         mTypeButtons = listOf(
-            ThingWidgetInfo.TYPE_FILTER_ALL to findViewById(R.id.iv_widget_type_all),
-            ThingWidgetInfo.TYPE_FILTER_NOTE to findViewById(R.id.iv_widget_type_note),
-            ThingWidgetInfo.TYPE_FILTER_REMINDER to findViewById(R.id.iv_widget_type_reminder),
-            ThingWidgetInfo.TYPE_FILTER_HABIT to findViewById(R.id.iv_widget_type_habit),
-            ThingWidgetInfo.TYPE_FILTER_GOAL to findViewById(R.id.iv_widget_type_goal)
+            Triple(ThingWidgetInfo.TYPE_FILTER_ALL, findViewById(R.id.iv_widget_type_all), R.drawable.drawer_all),
+            Triple(ThingWidgetInfo.TYPE_FILTER_NOTE, findViewById(R.id.iv_widget_type_note), R.drawable.drawer_note),
+            Triple(ThingWidgetInfo.TYPE_FILTER_REMINDER, findViewById(R.id.iv_widget_type_reminder), R.drawable.drawer_reminder),
+            Triple(ThingWidgetInfo.TYPE_FILTER_HABIT, findViewById(R.id.iv_widget_type_habit), R.drawable.drawer_habit),
+            Triple(ThingWidgetInfo.TYPE_FILTER_GOAL, findViewById(R.id.iv_widget_type_goal), R.drawable.drawer_goal)
         )
-        for ((mask, button) in mTypeButtons) {
+        for ((mask, button, _) in mTypeButtons) {
             button.setOnClickListener { toggleTypeFilter(mask) }
         }
         updateTypeFilterButtons()
@@ -331,23 +376,29 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
     }
 
     private fun updateTypeFilterButtons() {
-        val normalColor = ContextCompat.getColor(this, R.color.black_54p)
+        // 未选中类型 icon 用主题自适应的抽屉项前景色（亮色偏黑、暗色偏白），与 Drawer 一致，
+        // 不再用恒定的 black_54p（暗色模式下不可见）。
+        val unselectedColor = ContextCompat.getColor(this, R.color.app_chrome_drawer_item_foreground)
         val selectedAll = ThingWidgetInfo.isAllTypeFilter(mTypeFilterMask)
         updateTypeFilterSummary()
-        for ((mask, button) in mTypeButtons) {
+        for ((mask, button, iconRes) in mTypeButtons) {
             val selected = if (mask == ThingWidgetInfo.TYPE_FILTER_ALL) {
                 selectedAll
             } else {
                 !selectedAll && mTypeFilterMask and mask != 0
             }
             setTypeButtonBackground(button, selected)
+            // 每次从原始 drawable 重新着色（与 Drawer 的 ThingFilterPanel 一致），避免反复着色累积。
+            val src = AppCompatResources.getDrawable(this, iconRes)
+            button.clearColorFilter()
             if (selected) {
-                button.clearColorFilter()
                 button.setImageDrawable(
-                    BackgroundUtil.tintDrawable(resources, button.drawable, currentScopeBackground())
+                    BackgroundUtil.tintDrawable(resources, src, currentScopeBackground())
                 )
             } else {
-                button.setColorFilter(normalColor)
+                button.setImageDrawable(
+                    DisplayUtil.opaqueTintDrawable(this, src, unselectedColor)
+                )
             }
         }
     }
@@ -540,53 +591,35 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
             holder.root.setPadding(dp(16 + item.level * 16), 0, dp(4), 0)
             val rowBg = folder?.let { it.getBackground() ?: ThingBackground.pure(it.getColor()) }
                 ?: mAccentBackground
-            // 未选中：所属文件夹颜色波纹；选中：其颜色填充 + 自适应波纹（参考 Drawer / 条12）。
-            holder.root.background = if (selected) {
-                selectedFillRipple(rowBg, 0f, oval = false)
+            // 跟 Drawer 一致：未选中行触摸 ripple 用所属文件夹色（直角整条）；选中行铺其实色 + 自适应波纹。
+            holder.root.background = scopeRowBackground(rowBg, selected)
+
+            // 前景色：选中 → 对比色（onColor）；未选中 → 抽屉项前景色（与 Drawer 统一，去掉渐变文字）。
+            val fgColor = if (selected) {
+                ColorConstants.FolderList.selectedForeground(rowBg)
             } else {
-                GradientRippleDrawable(rowBg, shapeOval = false, cornerRadiusPx = 0f)
+                ColorConstants.FolderList.unselectedForeground(this@ThingsListWidgetConfiguration)
             }
-            if (selected) {
-                BackgroundUtil.applyTextBackground(holder.title, rowBg)
-            } else {
-                holder.title.paint.shader = null
-                holder.title.setTextColor(
-                    ContextCompat.getColor(
+            holder.title.paint.shader = null
+            holder.title.setTextColor(fgColor)
+            holder.title.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+
+            if (folder == null) {
+                // 「全部 / 根目录」图标：满不透明，选中用对比色、未选中用抽屉项前景色（与 Drawer 一致）。
+                holder.icon.clearColorFilter()
+                holder.icon.setImageDrawable(
+                    DisplayUtil.opaqueTintDrawable(
                         this@ThingsListWidgetConfiguration,
-                        R.color.black_54p
+                        ContextCompat.getDrawable(
+                            this@ThingsListWidgetConfiguration, R.drawable.drawer_all
+                        ),
+                        fgColor
                     )
                 )
-            }
-            holder.title.typeface = if (selected) {
-                android.graphics.Typeface.DEFAULT_BOLD
-            } else {
-                android.graphics.Typeface.DEFAULT
-            }
-            if (folder == null) {
-                holder.icon.setImageResource(R.drawable.drawer_all)
-                if (selected) {
-                    holder.icon.clearColorFilter()
-                    holder.icon.setImageDrawable(
-                        BackgroundUtil.tintDrawable(
-                            resources,
-                            ContextCompat.getDrawable(
-                                this@ThingsListWidgetConfiguration,
-                                R.drawable.drawer_all
-                            ),
-                            rowBg
-                        )
-                    )
-                } else {
-                    holder.icon.setColorFilter(
-                        ContextCompat.getColor(
-                            this@ThingsListWidgetConfiguration,
-                            R.color.black_54p
-                        )
-                    )
-                }
                 holder.title.setText(
                     if (hasAnyFolder) R.string.all_content else R.string.all_things
                 )
+                // 根目录「全部」不显示展开/收缩按钮，顶层文件夹恒展开。
                 holder.expand.visibility = View.INVISIBLE
                 holder.expand.isClickable = false
                 holder.expand.isFocusable = false
@@ -597,40 +630,30 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                     refreshScopeDependentChrome()
                 }
             } else {
-                val bg = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+                // 文件夹图标：未选中用文件夹自身颜色；选中行已铺其色 → 改用对比色保持可见（与 Drawer 一致）。
+                val iconBg = if (selected) {
+                    ThingBackground.pure(ColorConstants.FolderList.selectedForeground(rowBg))
+                } else {
+                    rowBg
+                }
                 holder.icon.clearColorFilter()
                 holder.icon.setImageDrawable(
-                    DrawerNavigationView.FolderIconDrawable(bg, folder.isPrivate)
+                    DrawerNavigationView.FolderIconDrawable(iconBg, folder.isPrivate)
                 )
                 holder.title.text = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) }
                 val hasChildren = !childrenByParent[folder.id].isNullOrEmpty()
-                holder.expand.visibility = if (hasChildren) View.VISIBLE else View.INVISIBLE
-                holder.expand.isClickable = hasChildren
-                holder.expand.isFocusable = hasChildren
-                holder.expand.rotation = if (expandedFolderIds.contains(folder.id)) 180f else 0f
-                holder.expand.setColorFilter(ContextCompat.getColor(this@ThingsListWidgetConfiguration, R.color.black_54p))
-                // 展开/收缩按钮：未选中用该文件夹颜色，选中行已铺其色则按明暗自适应。
-                holder.expand.background = if (selected) {
-                    BackgroundUtil.circularRipple(BackgroundUtil.adaptiveRippleColor(rowBg))
-                } else {
-                    GradientRippleDrawable(rowBg, shapeOval = true)
-                }
-                holder.expand.contentDescription = getString(
-                    if (expandedFolderIds.contains(folder.id)) {
-                        R.string.cd_collapse_thing_folder
+                bindExpandButton(
+                    holder, rowBg, selected,
+                    expanded = expandedFolderIds.contains(folder.id),
+                    visible = hasChildren,
+                    onToggle = if (hasChildren) {
+                        { toggleFolderExpanded(folder) }
                     } else {
-                        R.string.cd_expand_thing_folder
+                        null
                     }
                 )
                 holder.root.setOnClickListener {
                     selectFolder(folder)
-                }
-                if (hasChildren) {
-                    holder.expand.setOnClickListener {
-                        toggleFolderExpanded(folder)
-                    }
-                } else {
-                    holder.expand.setOnClickListener(null)
                 }
             }
         }
@@ -725,6 +748,57 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                 notifyItemRangeRemoved(folderPos + 1, childCount)
             }
             updateScopeScrollSeparatorsSoon()
+        }
+
+        /**
+         * 展开/收缩按钮统一样式（文件夹行与根目录行共用）：未选中用所属色波纹 + 抽屉项前景色箭头；
+         * 选中行已铺其色 → 满不透明对比箭头 + 自适应波纹。旋转角直接按 [expanded] 落定（切换时的旋转
+         * 动画由各自的 toggle 方法单独触发）。
+         */
+        private fun bindExpandButton(
+            holder: ScopeViewHolder,
+            rowBg: ThingBackground,
+            selected: Boolean,
+            expanded: Boolean,
+            visible: Boolean,
+            onToggle: (() -> Unit)?
+        ) {
+            holder.expand.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+            holder.expand.isClickable = visible
+            holder.expand.isFocusable = visible
+            holder.expand.rotation = if (expanded) 180f else 0f
+            if (selected) {
+                holder.expand.clearColorFilter()
+                holder.expand.setImageDrawable(
+                    DisplayUtil.opaqueTintDrawable(
+                        this@ThingsListWidgetConfiguration,
+                        AppCompatResources.getDrawable(
+                            this@ThingsListWidgetConfiguration, R.drawable.ic_dropdown
+                        ),
+                        ColorConstants.FolderList.selectedExpandIcon(rowBg)
+                    )
+                )
+            } else {
+                holder.expand.setImageResource(R.drawable.ic_dropdown)
+                holder.expand.setColorFilter(
+                    ColorConstants.FolderList.unselectedForeground(this@ThingsListWidgetConfiguration)
+                )
+            }
+            holder.expand.background = if (selected) {
+                BackgroundUtil.circularRipple(ColorConstants.FolderList.selectedRipple(rowBg))
+            } else {
+                GradientRippleDrawable(rowBg, shapeOval = true)
+            }
+            holder.expand.contentDescription = getString(
+                if (expanded) R.string.cd_collapse_thing_folder else R.string.cd_expand_thing_folder
+            )
+            holder.expand.setOnClickListener(
+                if (visible && onToggle != null) {
+                    View.OnClickListener { onToggle() }
+                } else {
+                    null
+                }
+            )
         }
 
         private fun countVisibleChildren(parentFolderId: Long?): Int {
