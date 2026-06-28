@@ -96,8 +96,6 @@ class ThingBackgroundEditor @JvmOverloads constructor(
 
         presetColors = resources.getIntArray(R.array.thing)
 
-        BackgroundUtil.installAppChromePillRipple(tabPure, context)
-        BackgroundUtil.installAppChromePillRipple(tabGradient, context)
         tabPure.setOnClickListener {
             if (mode !== ThingBackground.Mode.PURE) {
                 hideKeyboardForPageSwitch()
@@ -216,6 +214,8 @@ class ThingBackgroundEditor @JvmOverloads constructor(
     }
 
     private fun styleTab(tab: TextView, selected: Boolean, bg: ThingBackground) {
+        // 纯色/渐变切换按钮：触摸 ripple 用当前正在编辑的记事/文件夹颜色（胶囊）。
+        tab.foreground = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = -1f)
         if (selected) {
             tab.setTypeface(Typeface.DEFAULT_BOLD)
             BackgroundUtil.applyTextBackground(tab, bg)

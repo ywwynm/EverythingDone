@@ -53,7 +53,11 @@ import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
+import android.graphics.drawable.RippleDrawable
+import android.widget.ImageButton
+import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
 import android.text.TextWatcher
@@ -738,6 +742,7 @@ class ThingsActivity :
             tintHomeMenuIconsForAppearance(menu)
             mColorPicker!!.setTintTarget(menu.findItem(R.id.act_select_color))
             mColorPicker!!.updateAnchor()
+            applyHomeToolbarIconRipples()
             return true
         }
 
@@ -754,6 +759,7 @@ class ThingsActivity :
         }
         configureCurrentFolderMenu(menu)
         tintHomeMenuIconsForAppearance(menu)
+        applyHomeToolbarIconRipples()
         return true
     }
 
@@ -876,13 +882,8 @@ class ThingsActivity :
         if (folderBackground != null) {
             return folderBackground
         }
-        return if (AppearanceUtil.isDarkMode(this)) {
-            App.defaultAccentBackground
-        } else {
-            ThingBackground.pure(
-                ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
-            )
-        }
+        // 根目录：无论亮 / 暗模式，actionbar 图标都用 accent+accent2 渐变着色。
+        return App.defaultAccentBackground
     }
 
     private fun tintHomeOverflowIconForAppearance(background: ThingBackground) {
@@ -986,7 +987,8 @@ class ThingsActivity :
             drawerItems,
             selectedKey,
             animate,
-            animatedFolderToggleId
+            animatedFolderToggleId,
+            currentScopeBackground()
         )
     }
 
@@ -2268,6 +2270,7 @@ class ThingsActivity :
             DisplayUtil.cancelDarkStatusBar(this)
         }
         applyHomeNavigationIconTintForAppearance()
+        applyHomeToolbarIconRipples()
     }
 
     private fun applyThingsActivitySurfaceBackground(): ThingBackground {
@@ -2364,6 +2367,7 @@ class ThingsActivity :
             val icon = item.icon ?: continue
             item.icon = DisplayUtil.opaqueTintDrawable(this, icon, foreground)
         }
+        applyContextualToolbarIconRipples(toolbar)
     }
 
     private fun refreshContextualToolbarForeground() {
@@ -2382,13 +2386,69 @@ class ThingsActivity :
         }
     }
 
+    /** 普通模式顶栏图标按钮：触摸 ripple 用当前文件夹色（根目录 = accent 渐变），居中、固定半径。 */
+    private fun applyHomeToolbarIconRipples() {
+        val toolbar = mActionbar ?: return
+        val rippleBackground = getCurrentFolderBackgroundForChrome() ?: App.defaultAccentBackground
+        applyToolbarIconRipples(toolbar) { radiusPx ->
+            GradientRippleDrawable(
+                rippleBackground, shapeOval = false, fixedRadiusPx = radiusPx, centered = true
+            )
+        }
+    }
+
+    /** 选择模式顶栏已铺文件夹色，图标 ripple 改为按其明暗自适应（根目录 = 偏白），同样居中、固定半径。 */
+    private fun applyContextualToolbarIconRipples(toolbar: Toolbar) {
+        val adaptive = BackgroundUtil.adaptiveRippleColor(getCurrentFolderBackgroundForChrome())
+        val rgb = ThingBackground.pure(adaptive or 0xFF000000.toInt())
+        val peak = ((adaptive ushr 24) and 0xFF) / 255f
+        applyToolbarIconRipples(toolbar) { radiusPx ->
+            GradientRippleDrawable(
+                rgb, shapeOval = false, fixedRadiusPx = radiusPx, centered = true, peakAlphaOverride = peak
+            )
+        }
+    }
+
+    /**
+     * 遍历系统 Toolbar 的内部子 view（导航 ImageButton、ActionMenuView 内的菜单项 / overflow），
+     * 给每个设置由 [rippleFactory] 现造的 foreground ripple。子 view 在布局后才存在，故 post；
+     * 菜单重建会重置 foreground，需在每次 chrome / 菜单刷新后重新调用。overflow 下拉里的菜单项
+     * 由系统 PopupMenu 渲染，无法按文件夹色着色，保持系统默认。
+     */
+    private fun applyToolbarIconRipples(
+        toolbar: Toolbar,
+        rippleFactory: (radiusPx: Float) -> android.graphics.drawable.Drawable
+    ) {
+        toolbar.post {
+            // 固定半径：与系统原生图标 ripple 同尺寸，且不随导航按钮 / 菜单项各自控件大小而变化。
+            val radiusPx = resources.displayMetrics.density * TOOLBAR_ICON_RIPPLE_RADIUS_DP
+            for (i in 0 until toolbar.childCount) {
+                when (val child = toolbar.getChildAt(i)) {
+                    is ActionMenuView -> {
+                        for (j in 0 until child.childCount) {
+                            child.getChildAt(j).apply {
+                                background = null  // 去掉系统自带 ripple，避免与我们的叠成两层
+                                foreground = rippleFactory(radiusPx)
+                            }
+                        }
+                    }
+                    is ImageButton -> child.apply {
+                        background = null
+                        foreground = rippleFactory(radiusPx)
+                    }
+                }
+            }
+        }
+    }
+
     private fun applyCreateFabBackgroundForCurrentProjection() {
         val fab = mFab ?: return
         val appAccent = App.defaultAccentBackground.representativeColor()
         val folderBackground = getCurrentFolderBackgroundForChrome()
         if (folderBackground == null) {
             fab.setThingBackground(App.defaultAccentBackground, appAccent)
-            fab.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.black_54p))
+            // 根目录 FAB 是 accent+accent2 渐变（按深色处理），图标改为偏白。
+            fab.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.white_86p))
             // Root FAB shows the accent+accent2 gradient. Its ripple no longer previews
             // the random new-thing colour; the gradient pairs with a light (white)
             // overlay even though its representative colour is nominally light.
@@ -3608,6 +3668,28 @@ class ThingsActivity :
                     ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
             )
         }
+        applyThingCardAppearancePillRipple(view, selected && enabled)
+    }
+
+    /** 外观胶囊触摸 ripple：未选中 = 记事/文件夹色（胶囊），选中 = 按其明暗自适应（胶囊）。 */
+    private fun applyThingCardAppearancePillRipple(view: TextView?, selected: Boolean) {
+        if (view == null) return
+        val accentBackground = getThingCardAppearanceAccentBackground()
+                ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
+        view.foreground = if (selected) {
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 1000f
+                setColor(android.graphics.Color.WHITE)
+            }
+            RippleDrawable(
+                    ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(accentBackground)),
+                    null,
+                    mask
+            )
+        } else {
+            GradientRippleDrawable(accentBackground, shapeOval = false, cornerRadiusPx = -1f)
+        }
     }
 
     private fun applyThingCardAppearanceSelectedPill(textView: TextView) {
@@ -3683,10 +3765,20 @@ class ThingsActivity :
     }
 
     private fun installThingCardAppearanceRipples() {
+        val accentBackground = getThingCardAppearanceAccentBackground()
+                ?: ThingBackground.pure(getThingCardAppearanceAccentColor())
         listOf(
-                mTvThingCardAppearanceSource,
                 mBtThingCardAppearanceVideoFramePrevious,
-                mBtThingCardAppearanceVideoFrameNext,
+                mBtThingCardAppearanceVideoFrameNext
+        ).forEach { view ->
+            BackgroundUtil.installAppChromePillRipple(view, this)
+        }
+        // 封面图片右侧的来源选择按钮 → 记事/文件夹色（胶囊）。
+        mTvThingCardAppearanceSource?.foreground =
+                GradientRippleDrawable(accentBackground, shapeOval = false, cornerRadiusPx = -1f)
+        // 选择型胶囊（卡片宽度 / 文件夹大小 / 媒体位置）：未选中用记事/文件夹色波纹、选中自适应。
+        // 选中态由 applyThingCardAppearanceSelectedPill 设上非空背景，据此判断（兼顾颜色变化时刷新）。
+        listOf(
                 mBtThingCardAppearanceSpanNormal,
                 mBtThingCardAppearanceSpanFull,
                 mBtThingCardAppearancePlacementTop,
@@ -3695,16 +3787,23 @@ class ThingsActivity :
                 mBtThingCardAppearancePlacementRight,
                 mBtThingCardAppearancePlacementBackground
         ).forEach { view ->
-            BackgroundUtil.installAppChromePillRipple(view, this)
+            applyThingCardAppearancePillRipple(view, view?.background != null)
         }
-        listOf(
-                mBtThingCardAppearancePreciseCrop,
-                mBtCancelThingCardAppearance,
-                mBtConfirmThingCardAppearance
-        ).forEach { view ->
-            BackgroundUtil.installAppChromeDialogActionButton(view, this)
-        }
-        BackgroundUtil.installAppChromeCircleRipple(mBtThingCardAppearanceChangeColor, this)
+        // 取消：保持 app chrome 对话框按钮样式（中性胶囊）。
+        BackgroundUtil.installAppChromeDialogActionButton(mBtCancelThingCardAppearance, this)
+        // 裁切封面：格式同对话框按钮，但 ripple 用记事/文件夹色（胶囊）。
+        BackgroundUtil.installAppChromeDialogActionButton(mBtThingCardAppearancePreciseCrop, this)
+        mBtThingCardAppearancePreciseCrop?.foreground =
+                GradientRippleDrawable(accentBackground, shapeOval = false, cornerRadiusPx = -1f)
+        // 确定：格式同对话框按钮，但 ripple 用记事/文件夹色（胶囊）。
+        BackgroundUtil.installAppChromeDialogActionButton(mBtConfirmThingCardAppearance, this)
+        mBtConfirmThingCardAppearance?.foreground =
+                GradientRippleDrawable(accentBackground, shapeOval = false, cornerRadiusPx = -1f)
+        // 调整颜色 icon、颜色页返回按钮 → 记事/文件夹色（圆形）。
+        mBtThingCardAppearanceChangeColor?.foreground =
+                GradientRippleDrawable(accentBackground, shapeOval = true)
+        mBtTcaColorPageBack?.foreground =
+                GradientRippleDrawable(accentBackground, shapeOval = true)
     }
 
     private fun bindThingCardAppearanceColorButton() {
@@ -4575,7 +4674,12 @@ class ThingsActivity :
         button.isFocusable = true
         val padding = (resources.displayMetrics.density * 8).toInt()
         button.setPadding(padding, padding, padding, padding)
-        BackgroundUtil.installAppChromeCircleRipple(button, this)
+        // 播放/暂停、停止按钮触摸 ripple 用记事/封面颜色，圆形。
+        button.background = GradientRippleDrawable(
+            getThingCardAppearanceAccentBackground()
+                ?: ThingBackground.pure(getThingCardAppearanceAccentColor()),
+            shapeOval = true
+        )
         return button
     }
 
@@ -4661,6 +4765,14 @@ class ThingsActivity :
             }
         }
         BackgroundUtil.installAppChromeDialogActionButton(button, this)
+        if (useAccent) {
+            // 确定按钮触摸 ripple 用记事/封面颜色（胶囊）。
+            button.foreground = GradientRippleDrawable(
+                    getThingCardAppearanceAccentBackground()
+                            ?: ThingBackground.pure(getThingCardAppearanceAccentColor()),
+                    shapeOval = false, cornerRadiusPx = -1f
+            )
+        }
         button.setOnClickListener { onClick() }
         return button
     }
@@ -11720,6 +11832,8 @@ class ThingsActivity :
 
     companion object {
         const val TAG: String = "ThingsActivity"
+        // 顶栏图标 ripple 固定半径（dp）：导航按钮与菜单项统一、居中于图标，且不被各自控件尺寸撑大。
+        private const val TOOLBAR_ICON_RIPPLE_RADIUS_DP = 21f
         // Fallback delay for revealing a freshly created Thing if the
         // scroll-into-view never reports an idle state (e.g. nothing to scroll).
         private const val NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS: Long = 1200L

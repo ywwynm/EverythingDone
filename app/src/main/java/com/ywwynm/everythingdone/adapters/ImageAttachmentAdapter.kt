@@ -28,6 +28,8 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.bumptech.glide.signature.ObjectKey
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -79,6 +81,15 @@ open class ImageAttachmentAdapter(
     private var mAppearanceCallback: AppearanceCallback? = appearanceCallback
 
     private var mTakingScreenshot: Boolean = false
+
+    /** 当前记事颜色：图片/视频附件容器与编辑/删除按钮的触摸 ripple 用它。 */
+    private var mAccentBackground: ThingBackground = App.defaultAccentBackground
+
+    open fun setAccentBackground(bg: ThingBackground?) {
+        if (bg == null || bg == mAccentBackground) return
+        mAccentBackground = bg
+        notifyDataSetChanged()
+    }
 
     open fun setItems(items: List<String?>?) {
         mItems = items
@@ -152,6 +163,8 @@ open class ImageAttachmentAdapter(
         params.width  = size[0]
         params.height = size[1]
         holder.itemView.layoutParams = params
+
+        applyAttachmentRipples(holder)
 
         val type = if (typePathName[0] == '0') AttachmentHelper.IMAGE else AttachmentHelper.VIDEO
         if (type == AttachmentHelper.IMAGE) {
@@ -335,6 +348,23 @@ open class ImageAttachmentAdapter(
     }
 
     override fun getItemCount(): Int = mItems!!.size
+
+    override fun onViewRecycled(holder: ImageViewHolder) {
+        super.onViewRecycled(holder)
+        (holder.fl?.foreground as? GradientRippleDrawable)?.stopAnimations()
+        (holder.ivEditAppearance?.background as? GradientRippleDrawable)?.stopAnimations()
+        (holder.ivDelete?.background as? GradientRippleDrawable)?.stopAnimations()
+    }
+
+    /** 图片/视频附件容器（矩形）与编辑外观/删除按钮（圆形）的触摸 ripple 改为当前记事颜色。 */
+    private fun applyAttachmentRipples(holder: ImageViewHolder) {
+        holder.fl!!.foreground =
+            GradientRippleDrawable(mAccentBackground, shapeOval = false, cornerRadiusPx = 0f)
+        holder.ivEditAppearance!!.background =
+            GradientRippleDrawable(mAccentBackground, shapeOval = true)
+        holder.ivDelete!!.background =
+            GradientRippleDrawable(mAccentBackground, shapeOval = true)
+    }
 
     inner class ImageViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
 

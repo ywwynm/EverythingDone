@@ -19,6 +19,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
@@ -192,7 +193,10 @@ open class TimeOfDayRecAdapter(
                     black_54p
                 )
             )
-            BackgroundUtil.installAppChromeCircleRipple(ivDelete, mContext!!)
+            // 删除（x）按钮触摸 ripple 用当前记事颜色（圆形）。
+            ivDelete!!.background = GradientRippleDrawable(
+                mAccentBackground ?: ThingBackground.pure(mAccentColor), shapeOval = true
+            )
 
             DisplayUtil.setSelectionHandlersColor(etHour, mAccentColor)
             DisplayUtil.setSelectionHandlersColor(etMinute, mAccentColor)
@@ -305,7 +309,11 @@ open class TimeOfDayRecAdapter(
                 null,
                 null
             )
-            BackgroundUtil.installAppChromePillRipple(tvNewReminder, mContext!!)
+            // 「新的提醒时刻」按钮触摸 ripple 用当前记事颜色（胶囊形）。
+            tvNewReminder!!.background = GradientRippleDrawable(
+                mAccentBackground ?: ThingBackground.pure(mAccentColor),
+                shapeOval = false, cornerRadiusPx = -1f
+            )
 
             tvNewReminder!!.setOnClickListener {
                 val size = mItems!!.size

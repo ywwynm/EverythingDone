@@ -45,6 +45,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.InputLayout
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
 
@@ -443,6 +444,9 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         } else {
             mTvConfirmAsBt!!.setTextColor(mAccentColor)
         }
+        mTvConfirmAsBt?.let {
+            GradientRippleDrawable.applyAccentRipple(it, mAccentBackground, mAccentColor)
+        }
 
         EdgeEffectUtil.forViewPager(mVpDateTime, mAccentColor)
 
@@ -474,9 +478,11 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun installTabRippleShapes() {
         val tabLayout = mTabLayout ?: return
-        val rippleColor = BackgroundUtil.appChromeRippleColor(mActivity!!)
+        // 三个 tab 的触摸 ripple 改为当前记事颜色（胶囊形）。
+        val bg = mAccentBackground ?: ThingBackground.pure(mAccentColor)
         for (i in 0 until tabLayout.tabCount) {
-            BackgroundUtil.installPillRipple(tabLayout.getTabAt(i)?.view, rippleColor)
+            val tab = tabLayout.getTabAt(i) ?: continue
+            tab.view.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = -1f)
         }
     }
 
@@ -546,7 +552,10 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         DisplayUtil.setSelectionHandlersColor(mEtTimeAfter, mAccentColor)
         mEtTimeAfter!!.setTextColor(black_54p)
         applyDropdownIcon(mTvTimeAsBtAfter)
-        BackgroundUtil.installAppChromePillRipple(mTvTimeAsBtAfter, mActivity!!)
+        mTvTimeAsBtAfter!!.background = GradientRippleDrawable(
+            mAccentBackground ?: ThingBackground.pure(mAccentColor),
+            shapeOval = false, cornerRadiusPx = -1f
+        )
         mDtpAfter!!.setAnchor(mTvTimeAsBtAfter!!)
         mDtpAfter!!.pickForUI(0)
         improveComplex()
@@ -554,8 +563,9 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
     private fun initUIRec() {
         applyDropdownIcon(mTvTimeAsBtRec)
-        BackgroundUtil.installAppChromePillRipple(mTvTimeAsBtRec, mActivity!!)
-        BackgroundUtil.installAppChromeCircleRipple(mIvPickAllAsBtRec, mActivity!!)
+        val recBg = mAccentBackground ?: ThingBackground.pure(mAccentColor)
+        mTvTimeAsBtRec!!.background = GradientRippleDrawable(recBg, shapeOval = false, cornerRadiusPx = -1f)
+        mIvPickAllAsBtRec!!.background = GradientRippleDrawable(recBg, shapeOval = true)
         mDtpRec!!.setAnchor(mTvTimeAsBtRec!!)
         (mRvWmy!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
     }

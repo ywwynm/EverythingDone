@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.Button
 
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
@@ -510,9 +511,15 @@ open class ColorPicker(
             val holder: AllColorViewHolder = viewHolder as AllColorViewHolder
             val picked = mPickedPosition == 0
             if (picked) {
+                // 选中态保持现状（不可点击，无渐变触摸 ripple）。
+                holder.bt.setBackgroundResource(R.drawable.selectable_item_background)
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_picked) + holder.bt.getText() + ",")
             } else {
+                // 未选中：触摸 ripple 用 accent+accent2 渐变。
+                holder.bt.background = GradientRippleDrawable(
+                    App.defaultAccentBackground, shapeOval = false, cornerRadiusPx = 0f
+                )
                 holder.bt.setContentDescription(
                         mActivity.getString(R.string.cd_unpicked) + holder.bt.getText() + ",")
             }

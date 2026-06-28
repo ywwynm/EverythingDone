@@ -72,9 +72,6 @@ class ColorAreaView @JvmOverloads constructor(
         ilB = InputLayout(context, findViewById(R.id.tv_color_area_b), etB, currentColor)
         ilHex = InputLayout(context, findViewById(R.id.tv_color_area_hex), etHex, currentColor)
 
-        BackgroundUtil.installAppChromeCircleRipple(btRandom, context)
-        BackgroundUtil.installAppChromeCircleRipple(btWorld, context)
-
         val rgbFilter = MinMaxFilter(0, 255)
         etR.filters = arrayOf(rgbFilter, *etR.filters)
         etG.filters = arrayOf(rgbFilter, *etG.filters)
@@ -129,6 +126,10 @@ class ColorAreaView @JvmOverloads constructor(
     private fun tintTools(color: Int) {
         btRandom.setColorFilter(color, PorterDuff.Mode.SRC_IN)
         btWorld.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+        // 随机 / 取色按钮触摸 ripple 用当前编辑颜色（圆形）。
+        val bg = ThingBackground.pure(color)
+        btRandom.foreground = GradientRippleDrawable(bg, shapeOval = true)
+        btWorld.foreground = GradientRippleDrawable(bg, shapeOval = true)
     }
 
     private fun updateAccent(color: Int) {

@@ -211,7 +211,7 @@ class ThingFilterPanel @JvmOverloads constructor(
             setColor(Color.WHITE)
         }
         return RippleDrawable(
-            ColorStateList.valueOf(ContextCompat.getColor(context, R.color.app_chrome_ripple)),
+            ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(scopeBackground)),
             content,
             mask
         )

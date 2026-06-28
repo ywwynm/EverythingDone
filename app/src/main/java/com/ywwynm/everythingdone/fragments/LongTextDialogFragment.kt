@@ -16,6 +16,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
@@ -87,6 +88,7 @@ open class LongTextDialogFragment : BaseDialogFragment() {
         } else {
             tvConfirmAsBt.setTextColor(mAccentColor)
         }
+        GradientRippleDrawable.applyAccentRipple(tvConfirmAsBt, mAccentBackground, mAccentColor)
         tvConfirmAsBt.setOnClickListener { v ->
             if (mConfirmListener != null) {
                 mConfirmListener!!.onClick(v)

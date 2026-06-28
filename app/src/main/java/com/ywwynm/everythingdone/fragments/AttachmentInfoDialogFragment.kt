@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 /**
  * Created by ywwynm on 2016/4/30.
@@ -60,6 +61,11 @@ open class AttachmentInfoDialogFragment : BaseDialogFragment() {
             title.setTextColor(fallback)
             confirm.setTextColor(fallback)
         }
+        GradientRippleDrawable.applyAccentRipple(
+            confirm, mAccentBackground,
+            if (mAccentColor != 0) mAccentColor
+            else ContextCompat.getColor(activity, R.color.app_chrome_on_surface_primary)
+        )
         confirm.setOnClickListener { dismiss() }
 
         val recyclerView: RecyclerView = f(R.id.rv_attachment_info)!!

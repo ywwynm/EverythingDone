@@ -15,6 +15,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 /**
@@ -81,6 +82,7 @@ open class AlertDialogFragment : BaseDialogFragment() {
             tvConfirmAsBt.text = mConfirmText
         }
         applyAccent(tvConfirmAsBt, mConfirmBg, mColors[2])
+        GradientRippleDrawable.applyAccentRipple(tvConfirmAsBt, mConfirmBg, mColors[2])
         tvConfirmAsBt.setOnClickListener {
             if (mConfirmListener != null) {
                 mConfirmListener!!.onConfirm()

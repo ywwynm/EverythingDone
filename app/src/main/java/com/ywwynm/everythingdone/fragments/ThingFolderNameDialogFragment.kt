@@ -17,6 +17,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 
@@ -49,6 +50,7 @@ class ThingFolderNameDialogFragment : BaseDialogFragment() {
         title.setText(mTitleRes)
         applyAccentText(title)
         applyAccentText(confirm)
+        GradientRippleDrawable.applyAccentRipple(confirm, mAccentBackground, mAccentColor)
 
         input.hint = getString(R.string.thing_folder_name_hint)
         input.setText(

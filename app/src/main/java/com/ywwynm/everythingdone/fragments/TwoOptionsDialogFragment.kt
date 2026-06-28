@@ -12,8 +12,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -64,7 +66,16 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
         }
         tvEnd.setOnClickListener(mListenerEnd)
 
+        applyActionRipple(tvStart)
+        applyActionRipple(tvEnd)
+
         return mContentView
+    }
+
+    /** item 触摸 ripple 用传入的强调背景（未传则 accent+accent2 渐变）。 */
+    private fun applyActionRipple(view: TextView) {
+        val bg = mAccentBackground ?: App.defaultAccentBackground
+        view.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
     }
 
     private fun tintActionIconForAppearance(view: TextView) {
@@ -76,7 +87,8 @@ open class TwoOptionsDialogFragment : BaseDialogFragment() {
             for (i in drawables.indices) {
                 val drawable = drawables[i]
                 if (drawable != null) {
-                    drawables[i] = BackgroundUtil.tintDrawable(resources, drawable, accent)
+                    // 源 PNG 本身带透明度，用 opaque 版（重映射 alpha）避免 SRC_IN 保留半透明发虚。
+                    drawables[i] = BackgroundUtil.tintDrawableOpaque(resources, drawable, accent)
                     changed = true
                 }
             }

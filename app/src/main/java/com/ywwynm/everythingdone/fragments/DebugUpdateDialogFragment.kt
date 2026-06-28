@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.DebugApkUpdateInfo
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 
 import kotlin.math.min
@@ -58,6 +59,7 @@ open class DebugUpdateDialogFragment : BaseDialogFragment() {
         val accentColor = accentBackground.representativeColor()
         BackgroundUtil.applyTextBackground(title, accentBackground)
         BackgroundUtil.applyTextBackground(download, accentBackground)
+        GradientRippleDrawable.applyAccentRipple(download, accentBackground, accentColor)
 
         version.text = getString(R.string.debug_update_version_label, info.versionName ?: "")
         build.text = getString(R.string.debug_update_build_label, info.debugUpdateCode.toString())

@@ -16,6 +16,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.fragments.HelpDetailFragment
@@ -37,6 +39,23 @@ open class HelpActivity : EverythingDoneBaseActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_help, menu)
+        val toolbar: Toolbar? = f(R.id.actionbar)
+        if (toolbar != null) {
+            // 顶栏背景为 accent 渐变：菜单图标（反馈）改偏白，触摸 ripple 也偏白。
+            val fg = BackgroundUtil.onColor(App.defaultAccentBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                item.icon?.let { item.icon = DisplayUtil.opaqueTintDrawable(this, it, fg) }
+            }
+            val adaptive = BackgroundUtil.adaptiveRippleColor(App.defaultAccentBackground)
+            val rippleBg = ThingBackground.pure(adaptive or 0xFF000000.toInt())
+            val peak = ((adaptive ushr 24) and 0xFF) / 255f
+            BackgroundUtil.applyToolbarIconRipples(toolbar) { r ->
+                GradientRippleDrawable(
+                    rippleBg, shapeOval = false, fixedRadiusPx = r, centered = true, peakAlphaOverride = peak
+                )
+            }
+        }
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -91,6 +110,15 @@ open class HelpActivity : EverythingDoneBaseActivity() {
             } else {
                 finish()
             }
+        }
+        // 顶栏背景为 accent+accent2 渐变，标题文字 / 返回图标改为偏白以保证可读。
+        val fg = BackgroundUtil.onColor(App.defaultAccentBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+        toolbar.setTitleTextColor(fg)
+        toolbar.navigationIcon?.let {
+            toolbar.navigationIcon = DisplayUtil.opaqueTintDrawable(this, it, fg)
+        }
+        toolbar.overflowIcon?.let {
+            toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, it, fg)
         }
     }
 

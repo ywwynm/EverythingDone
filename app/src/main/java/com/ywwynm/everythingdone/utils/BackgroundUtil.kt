@@ -30,9 +30,12 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.ProgressBar
 import androidx.annotation.Keep
+import androidx.appcompat.widget.ActionMenuView
+import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 
 import androidx.cardview.widget.CardView
@@ -1156,6 +1159,66 @@ object BackgroundUtil {
     @JvmStatic
     fun thingRippleColor(thingColor: Int): Int {
         return if (isLight(thingColor)) 0x29000000 else 0x29FFFFFF
+    }
+
+    /**
+     * 自适应 ripple 颜色，用于「选中态」等本身已铺底色的控件：底色亮 → 偏黑波纹，
+     * 暗 → 偏白波纹；根目录（[bg] 为 null）或 accent 渐变固定偏白。偏白 alpha 36%、
+     * 偏黑 alpha 16%。[isLight] 已把 accent 渐变当暗色处理（→偏白）。
+     */
+    @JvmStatic
+    fun adaptiveRippleColor(bg: ThingBackground?): Int {
+        // 偏白比偏黑更易被彩色底色冲淡，alpha 取更高一些（0x5C ≈ 36%）。
+        if (bg == null) return 0x5CFFFFFF
+        return if (isLight(bg)) 0x29000000 else 0x5CFFFFFF
+    }
+
+    /** 顶栏图标 ripple 固定半径（dp）：导航按钮与菜单项统一、居中于图标，不被各自控件尺寸撑大。 */
+    const val TOOLBAR_ICON_RIPPLE_RADIUS_DP = 21f
+
+    /**
+     * 遍历系统 [Toolbar] 子 view（导航 ImageButton、ActionMenuView 内菜单项 / overflow），给每个
+     * 设由 [rippleFactory]（入参=固定半径 px）现造的 foreground ripple，并清掉系统自带那层。子 view
+     * 布局后才存在，故 post；菜单 / chrome 刷新后需重调。工厂由调用方提供（避免 utils→views 反向依赖）。
+     */
+    @JvmStatic
+    fun applyToolbarIconRipples(
+        toolbar: Toolbar,
+        radiusDp: Float = TOOLBAR_ICON_RIPPLE_RADIUS_DP,
+        rippleFactory: (radiusPx: Float) -> Drawable
+    ) {
+        toolbar.post {
+            val radiusPx = toolbar.resources.displayMetrics.density * radiusDp
+            for (i in 0 until toolbar.childCount) {
+                when (val child = toolbar.getChildAt(i)) {
+                    is ActionMenuView -> {
+                        for (j in 0 until child.childCount) {
+                            child.getChildAt(j).apply {
+                                background = null
+                                foreground = rippleFactory(radiusPx)
+                            }
+                        }
+                    }
+                    is ImageButton -> child.apply {
+                        background = null
+                        foreground = rippleFactory(radiusPx)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 「选中态」等需要常驻铺底色的填充 [Drawable]：PURE → 纯色，GRADIENT → 线性渐变。
+     * 通常与 [adaptiveRippleColor] 叠成 RippleDrawable（底色 + 自适应波纹）一起用。
+     */
+    @JvmStatic
+    fun fillDrawable(bg: ThingBackground): Drawable {
+        return if (bg.mode == ThingBackground.Mode.GRADIENT) {
+            GradientDrawable(toGdOrientation(bg.orientation), intArrayOf(bg.color, bg.endColor))
+        } else {
+            GradientDrawable().apply { setColor(bg.color) }
+        }
     }
 
     @JvmStatic

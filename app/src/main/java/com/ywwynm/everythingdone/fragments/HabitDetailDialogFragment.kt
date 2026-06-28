@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
@@ -65,6 +66,7 @@ open class HabitDetailDialogFragment : BaseDialogFragment() {
         } else {
             tvGetIt.setTextColor(activity.getAccentColor())
         }
+        GradientRippleDrawable.applyAccentRipple(tvGetIt, accentBg, activity.getAccentColor())
         tvGetIt.setOnClickListener { dismiss() }
 
         initUI()

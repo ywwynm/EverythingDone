@@ -28,10 +28,12 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import androidx.appcompat.content.res.AppCompatResources
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 import com.ywwynm.everythingdone.views.DrawerNavigationView
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
 
@@ -44,7 +46,6 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
     private var mFolders: List<ThingFolder> = emptyList()
     private var mForbiddenFolderIds: Set<Long> = emptySet()
     private var mSelectedFolderId: Long? = null
-    private var mAccentBackground: ThingBackground? = null
     private var mListener: Listener? = null
     private var mAdapter: FolderTreeAdapter? = null
     private var mRows: List<Row> = emptyList()
@@ -55,6 +56,8 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
     private var mRecyclerView: RecyclerView? = null
     private var mTopSeparator: View? = null
     private var mBottomSeparator: View? = null
+    private var mTitleView: TextView? = null
+    private var mConfirmView: TextView? = null
 
     fun setFolders(
         folders: List<ThingFolder>,
@@ -68,8 +71,9 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         rebuildRows()
     }
 
+    /** 保留以兼容调用方；移动到文件夹 dialog 现按自身逻辑上色（各文件夹色 / 根目录 accent），忽略此值。 */
+    @Suppress("UNUSED_PARAMETER")
     fun setAccentBackground(background: ThingBackground?) {
-        mAccentBackground = background
     }
 
     /** When true, the root target node is labelled "All content" instead of "All things". */
@@ -95,7 +99,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         val title: TextView = f(R.id.tv_title_move_to_thing_folder)!!
-        applyAccentText(title)
+        mTitleView = title
 
         val recyclerView: RecyclerView = f(R.id.rv_move_to_thing_folder)!!
         mRecyclerView = recyclerView
@@ -115,13 +119,15 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             dismiss()
         }
         val confirm: TextView = f(R.id.tv_confirm_as_bt_move_to_thing_folder)!!
-        applyAccentText(confirm)
+        mConfirmView = confirm
         confirm.setOnClickListener {
             val selected = mSelectedFolderId
             if (selected != null && mForbiddenFolderIds.contains(selected)) return@setOnClickListener
             mListener?.onMoveTargetConfirmed(selected)
             dismiss()
         }
+        // 标题 / 确定按钮颜色、确定 ripple 跟随当前选中目标文件夹的颜色。
+        updateAccentChrome()
 
         return mContentView
     }
@@ -130,6 +136,8 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         mRecyclerView = null
         mTopSeparator = null
         mBottomSeparator = null
+        mTitleView = null
+        mConfirmView = null
         super.onDestroyView()
     }
 
@@ -198,7 +206,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         val recyclerView = mRecyclerView ?: return
         recyclerView.post {
             if (activity == null || mRecyclerView == null) return@post
-            EdgeEffectUtil.forRecyclerView(recyclerView, accentBackground().color)
+            EdgeEffectUtil.forRecyclerView(recyclerView, App.defaultAccentBackground.color)
             updateScrollSeparators()
         }
     }
@@ -253,17 +261,21 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         }
     }
 
-    private fun applyAccentText(textView: TextView) {
-        val background = mAccentBackground
-        if (background != null) {
-            BackgroundUtil.applyTextBackground(textView, background)
-        } else {
-            BackgroundUtil.applyTextBackground(textView, App.defaultAccentBackground)
-        }
+    /** 当前选中目标文件夹自身颜色；选「全部」(根) 时用 accent+accent2 渐变。不再理会外部传入的记事色。 */
+    private fun selectedFolderBackground(): ThingBackground {
+        val id = mSelectedFolderId ?: return App.defaultAccentBackground
+        val folder = mFolders.firstOrNull { it.id == id } ?: return App.defaultAccentBackground
+        return folder.getBackground() ?: ThingBackground.pure(folder.getColor())
     }
 
-    private fun accentBackground(): ThingBackground {
-        return mAccentBackground ?: App.defaultAccentBackground
+    /** 标题 / 确定按钮文字颜色与确定 ripple 实时跟随当前选中目标文件夹颜色。 */
+    private fun updateAccentChrome() {
+        val bg = selectedFolderBackground()
+        mTitleView?.let { BackgroundUtil.applyTextBackground(it, bg) }
+        mConfirmView?.let {
+            BackgroundUtil.applyTextBackground(it, bg)
+            GradientRippleDrawable.applyAccentRipple(it, bg, bg.representativeColor())
+        }
     }
 
     private fun folderLocationComparator(): Comparator<ThingFolder> {
@@ -276,30 +288,33 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         }
     }
 
-    private fun selectedBackground(): GradientDrawable {
-        return BackgroundUtil.makeTranslucentGradient(accentBackground(), 0x22).apply {
-            cornerRadius = 8 * resources.displayMetrics.density
-        }
+    /** 每行所属目标文件夹自身的颜色；根目录（无文件夹）行用 accent。 */
+    private fun folderBackgroundFor(rowItem: Row): ThingBackground {
+        val folder = rowItem.folder ?: return App.defaultAccentBackground
+        return folder.getBackground() ?: ThingBackground.pure(folder.getColor())
     }
 
-    private fun rowBackground(selected: Boolean): Drawable {
-        val pressedColor = ContextCompat.getColor(activity!!, R.color.app_chrome_ripple)
-        val content: Drawable = if (selected) {
-            selectedBackground()
-        } else {
-            ColorDrawable(Color.TRANSPARENT)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+    /**
+     * 跟 Drawer 一致：未选中行触摸 ripple 用目标文件夹自身颜色；选中行铺其「实色」（纯色 / 渐变，
+     * 非透明度版本）+ 触摸 ripple 按其明暗自适应。颜色取自该行文件夹，而非被移动的记事/文件夹。
+     */
+    private fun rowBackground(bg: ThingBackground, selected: Boolean): Drawable {
+        val radius = 8 * resources.displayMetrics.density
+        if (selected) {
+            val fill = (BackgroundUtil.fillDrawable(bg) as GradientDrawable).apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = radius
+            }
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = radius
+                setColor(Color.WHITE)
+            }
             return RippleDrawable(
-                ColorStateList.valueOf(pressedColor),
-                content,
-                ColorDrawable(Color.WHITE)
+                ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(bg)), fill, mask
             )
         }
-        return StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), ColorDrawable(pressedColor))
-            addState(intArrayOf(), content)
-        }
+        return GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = radius)
     }
 
     private fun toggleExpanded(row: Row) {
@@ -333,6 +348,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         if (!row.selectable) return
         mSelectedFolderId = row.folder?.id
         rebuildRows()
+        updateAccentChrome()
     }
 
     private inner class FolderTreeAdapter : RecyclerView.Adapter<FolderTreeHolder>() {
@@ -392,14 +408,13 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
                     marginEnd = (8 * density).toInt()
                 }
             )
-            expand.setImageResource(R.drawable.ic_dropdown)
-            expand.setColorFilter(ContextCompat.getColor(parent.context, R.color.app_chrome_drawer_item_foreground))
+            // 展开/收缩图标的图像与着色在 bindExpand 里按选中态设置（选中用满不透明）。
             expand.scaleType = ImageView.ScaleType.CENTER
             val padding = (8 * density).toInt()
             expand.setPadding(padding, padding, padding, padding)
             expand.isClickable = true
             expand.isFocusable = true
-            BackgroundUtil.installAppChromeCircleRipple(expand, parent.context)
+            // 展开/收缩按钮的 ripple 在 bindExpand 里按所属文件夹色 / 选中态自适应设置。
             row.addView(
                 expand,
                 LinearLayout.LayoutParams((40 * density).toInt(), (40 * density).toInt())
@@ -421,10 +436,11 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             row.alpha = 1.0f
             row.isClickable = rowItem.selectable
             row.isFocusable = rowItem.selectable
-            row.background = rowBackground(selected)
-            bindIcon(rowItem)
-            bindTitle(rowItem)
-            bindExpand(rowItem)
+            val rowBg = folderBackgroundFor(rowItem)
+            row.background = rowBackground(rowBg, selected)
+            bindIcon(rowItem, rowBg, selected)
+            bindTitle(rowItem, rowBg, selected)
+            bindExpand(rowItem, rowBg, selected)
             row.setOnClickListener(if (rowItem.selectable) {
                 View.OnClickListener { selectRow(rowItem) }
             } else {
@@ -432,27 +448,34 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             })
         }
 
-        private fun bindIcon(rowItem: Row) {
+        private fun bindIcon(rowItem: Row, rowBg: ThingBackground, selected: Boolean) {
             val folder = rowItem.folder
             if (folder == null) {
+                // 「全部」图标：选中行已铺色 → 用对比色；否则默认抽屉前景色。
+                val color = if (selected) {
+                    BackgroundUtil.onColor(rowBg, BackgroundUtil.ON_ALPHA_PRIMARY)
+                } else {
+                    ContextCompat.getColor(itemView.context, R.color.app_chrome_drawer_item_foreground)
+                }
                 icon.setImageDrawable(
                     DisplayUtil.opaqueTintDrawable(
                         itemView.context,
                         ContextCompat.getDrawable(itemView.context, R.drawable.drawer_all),
-                        ContextCompat.getColor(
-                            itemView.context,
-                            R.color.app_chrome_drawer_item_foreground
-                        )
+                        color
                     )
                 )
                 icon.clearColorFilter()
                 return
             }
+            val ownBg = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+            // 选中行已铺文件夹实色：文件夹图标改用对比色以保持可见（跟 Drawer 一致）。
+            val iconBg = if (selected) {
+                ThingBackground.pure(BackgroundUtil.onColor(rowBg, BackgroundUtil.ON_ALPHA_PRIMARY))
+            } else {
+                ownBg
+            }
             icon.setImageDrawable(
-                DrawerNavigationView.FolderIconDrawable(
-                    folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
-                    folder.isPrivate
-                )
+                DrawerNavigationView.FolderIconDrawable(iconBg, folder.isPrivate)
             )
             if (rowItem.selectable) {
                 icon.clearColorFilter()
@@ -466,7 +489,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             }
         }
 
-        private fun bindTitle(rowItem: Row) {
+        private fun bindTitle(rowItem: Row, rowBg: ThingBackground, selected: Boolean) {
             val folder = rowItem.folder
             if (folder == null) {
                 title.text = getString(
@@ -475,30 +498,44 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             } else {
                 title.text = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) }
             }
-            title.setTextColor(
-                ContextCompat.getColor(
-                    itemView.context,
-                    if (rowItem.selectable) {
-                        R.color.app_chrome_on_surface_secondary
-                    } else {
-                        R.color.app_chrome_on_surface_disabled
-                    }
-                )
-            )
-            title.typeface = if (rowItem.selectable && (
-                rowItem.folder?.id == mSelectedFolderId ||
-                    rowItem.folder == null && mSelectedFolderId == null
-            )
-            ) {
-                Typeface.DEFAULT_BOLD
-            } else {
-                Typeface.DEFAULT
+            // 选中行已铺文件夹实色：名称改用对比色（跟 Drawer 一致）。
+            val color = when {
+                !rowItem.selectable ->
+                    ContextCompat.getColor(itemView.context, R.color.app_chrome_on_surface_disabled)
+                selected -> BackgroundUtil.onColor(rowBg, BackgroundUtil.ON_ALPHA_PRIMARY)
+                else -> ContextCompat.getColor(itemView.context, R.color.app_chrome_on_surface_secondary)
             }
+            title.setTextColor(color)
+            title.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
 
-        private fun bindExpand(rowItem: Row) {
+        private fun bindExpand(rowItem: Row, rowBg: ThingBackground, selected: Boolean) {
             expand.visibility = if (rowItem.hasChildren) View.VISIBLE else View.INVISIBLE
             expand.rotation = if (rowItem.expanded) 180f else 0f
+            val expandColor = ContextCompat.getColor(
+                expand.context, R.color.app_chrome_drawer_item_foreground
+            )
+            if (selected) {
+                // 选中行已铺文件夹实色：箭头用满不透明对比色（ic_dropdown 源 PNG 仅 ~54% alpha，
+                // 用 opaqueTintDrawable 重映射 alpha，SRC_IN/ATOP 提不上去）。
+                expand.clearColorFilter()
+                expand.setImageDrawable(
+                    DisplayUtil.opaqueTintDrawable(
+                        expand.context,
+                        AppCompatResources.getDrawable(expand.context, R.drawable.ic_dropdown),
+                        BackgroundUtil.onColor(rowBg, 1f)
+                    )
+                )
+            } else {
+                expand.setImageResource(R.drawable.ic_dropdown)
+                expand.setColorFilter(expandColor)
+            }
+            // 未选中：展开/收缩按钮 ripple 用目标文件夹色；选中行已铺其色，改按明暗自适应。
+            expand.background = if (selected) {
+                BackgroundUtil.circularRipple(BackgroundUtil.adaptiveRippleColor(rowBg))
+            } else {
+                GradientRippleDrawable(rowBg, shapeOval = true)
+            }
             expand.setOnClickListener {
                 if (rowItem.hasChildren) toggleExpanded(rowItem)
             }

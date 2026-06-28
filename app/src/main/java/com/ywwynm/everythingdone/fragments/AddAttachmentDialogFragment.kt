@@ -23,6 +23,7 @@ import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.io.File
 
@@ -60,6 +61,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         mTvRecordAudioAsBt      = f(R.id.tv_record_audio_as_bt)
         mTvChooseMediaFilesAsBt = f(R.id.tv_choose_media_files_as_bt)
         tintActionIconsForAppearance()
+        applyItemRipples()
 
         setEvents()
 
@@ -67,6 +69,18 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_add_attachment
+
+    /** 每个附件选项 item 的触摸 ripple 改为当前记事颜色（未选中态，纯色/渐变波纹）。 */
+    private fun applyItemRipples() {
+        val bg: ThingBackground = mActivity!!.getAccentBackground()
+            ?: ThingBackground.pure(mActivity!!.getAccentColor())
+        arrayOf(
+            mTvTakePhotoAsBt, mTvShootVideoAsBt,
+            mTvRecordAudioAsBt, mTvChooseMediaFilesAsBt
+        ).forEach {
+            it?.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+        }
+    }
 
     private fun tintActionIconsForAppearance() {
         if (!AppearanceUtil.isDarkMode(mActivity!!)) return

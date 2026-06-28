@@ -16,6 +16,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 /**
@@ -91,6 +92,7 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
         if (mFirstAction != null) {
             tvFirstAsBt.text = mFirstAction
             applyAccent(tvFirstAsBt, mContinueBg, mColors[2])
+            GradientRippleDrawable.applyAccentRipple(tvFirstAsBt, mContinueBg, mColors[2])
             tvFirstAsBt.setOnClickListener {
                 if (mOnClickListener != null) {
                     mOnClickListener!!.onFirstClicked()
@@ -105,6 +107,7 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
         if (mSecondAction != null) {
             tvSecondAsBt.text = mSecondAction
             applyAccent(tvSecondAsBt, mContinueBg, mColors[2])
+            GradientRippleDrawable.applyAccentRipple(tvSecondAsBt, mContinueBg, mColors[2])
             tvSecondAsBt.setOnClickListener {
                 if (mOnClickListener != null) {
                     mOnClickListener!!.onSecondClicked()

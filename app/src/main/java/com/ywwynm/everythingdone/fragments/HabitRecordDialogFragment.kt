@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.helpers.PossibleMistakeHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 /**
  * Created by 张启 on 2017/3/10.
@@ -71,6 +72,7 @@ open class HabitRecordDialogFragment : BaseDialogFragment() {
         } else {
             tvConfirm.setTextColor(activity.getAccentColor())
         }
+        GradientRippleDrawable.applyAccentRipple(tvConfirm, accentBg, activity.getAccentColor())
         tvConfirm.setOnClickListener {
             mConfirmClicked = true
             dismiss()

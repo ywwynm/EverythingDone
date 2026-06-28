@@ -154,8 +154,10 @@ open class RecurrencePickerAdapter(
                 pickedMask.shape = GradientDrawable.RECTANGLE
                 pickedMask.cornerRadius = holder.cv.radius
                 pickedMask.setColor(android.graphics.Color.WHITE)
+                // 选中态药丸已铺记事色，触摸 ripple 按记事色明暗自适应。
                 holder.cv.foreground = RippleDrawable(
-                    ColorStateList.valueOf(unPickerColor), null, pickedMask
+                    ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(mAccentBackground)),
+                    null, pickedMask
                 )
                 holder.tv!!.setTextColor(pickedTextColor())
             } else {
@@ -192,8 +194,9 @@ open class RecurrencePickerAdapter(
                     holder.bg!!.background = null
                     holder.bg.setBackgroundColor(mAccentColor)
                 }
+                // 选中态圆形已铺记事色，触摸 ripple 按记事色明暗自适应。
                 holder.cell!!.foreground = BackgroundUtil.circularRipple()
-                setRippleColor(holder.cell, unPickerColor)
+                setRippleColor(holder.cell, BackgroundUtil.adaptiveRippleColor(mAccentBackground))
                 holder.tvDate.setTextColor(pickedTextColor())
                 holder.cell!!.contentDescription = mCdPicked + mCds!![position] + ","
             } else {

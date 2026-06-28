@@ -17,10 +17,10 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
-import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.io.File
 
@@ -153,6 +153,14 @@ open class AudioAttachmentAdapter(
 
     override fun getItemCount(): Int = mItems!!.size
 
+    override fun onViewRecycled(holder: AudioCardViewHolder) {
+        super.onViewRecycled(holder)
+        (holder.cv?.foreground as? GradientRippleDrawable)?.stopAnimations()
+        (holder.ivFirst?.background as? GradientRippleDrawable)?.stopAnimations()
+        (holder.ivSecond?.background as? GradientRippleDrawable)?.stopAnimations()
+        (holder.ivThird?.background as? GradientRippleDrawable)?.stopAnimations()
+    }
+
     private fun setAudioIcon(imageView: ImageView?, iconRes: Int) {
         imageView!!.setImageDrawable(
             DisplayUtil.opaqueTintDrawable(
@@ -163,20 +171,16 @@ open class AudioAttachmentAdapter(
         )
     }
 
+    /** 音频卡片 + 播放/暂停、删除、信息三按钮的触摸 ripple 改为当前记事颜色（卡片随圆角、按钮圆形）。 */
     private fun applyAudioRipples(holder: AudioCardViewHolder) {
-        val backgroundRes = if (AppearanceUtil.isDarkMode(mActivity!!)) {
-            R.drawable.selectable_item_background_light
-        } else {
-            R.drawable.selectable_item_background
-        }
-        holder.cv!!.foreground = selectableDrawable(backgroundRes)
-        holder.ivFirst!!.background = selectableDrawable(backgroundRes)
-        holder.ivSecond!!.background = selectableDrawable(backgroundRes)
-        holder.ivThird!!.background = selectableDrawable(backgroundRes)
+        val bg = mAccentBackground ?: ThingBackground.pure(mAccentColor)
+        holder.cv!!.foreground =
+            GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = holder.cv!!.radius)
+        // 三个按钮的 ripple 铺满按钮矩形区域（不是圆形）。
+        holder.ivFirst!!.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+        holder.ivSecond!!.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
+        holder.ivThird!!.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
     }
-
-    private fun selectableDrawable(backgroundRes: Int) =
-        ContextCompat.getDrawable(mActivity!!, backgroundRes)?.mutate()
 
     private fun startPlaying(index: Int) {
         mPlayingIndex = index

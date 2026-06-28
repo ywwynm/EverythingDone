@@ -38,6 +38,7 @@ import android.widget.Toast
 
 import com.google.android.material.snackbar.Snackbar
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
@@ -545,10 +546,38 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     }
 
     private fun installLocalButtonRipples() {
-        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_save_edits_help_as_bt), this)
-        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_strict_mode_help_as_bt), this)
-        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_daily_todo_help_as_bt), this)
-        BackgroundUtil.installAppChromeCircleRipple(f(R.id.iv_auto_notify_help_as_bt), this)
+        val root = f<View>(R.id.sv_settings) ?: return
+        applySettingsItemRipples(root)
+    }
+
+    /**
+     * 设置页所有可点 item（id 以 `_as_bt` 结尾）触摸 ripple 改为 accent+accent2 渐变：
+     * 行容器替换 background（原 selectable_item_background），help 图标设圆形 foreground。
+     */
+    private fun applySettingsItemRipples(view: View) {
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                applySettingsItemRipples(view.getChildAt(i))
+            }
+        }
+        if (view is android.widget.CompoundButton) {
+            // 右侧 checkbox / switch 的圆形 ripple → accent+accent2 渐变。
+            view.background = GradientRippleDrawable(App.defaultAccentBackground, shapeOval = true)
+            return
+        }
+        if (view.id == View.NO_ID) return
+        val name = try {
+            resources.getResourceEntryName(view.id)
+        } catch (e: android.content.res.Resources.NotFoundException) {
+            return
+        }
+        if (!name.endsWith("_as_bt")) return
+        val accent = App.defaultAccentBackground
+        if (view is ImageView) {
+            view.foreground = GradientRippleDrawable(accent, shapeOval = true)
+        } else {
+            view.background = GradientRippleDrawable(accent, shapeOval = false, cornerRadiusPx = 0f)
+        }
     }
 
     private fun applySettingsGroupTitleAccents() {
@@ -857,6 +886,24 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         actionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener {
             finish()
+        }
+        // 顶栏背景为 accent+accent2 渐变，标题文字 / 返回图标改为偏白以保证可读。
+        val fg = BackgroundUtil.onColor(App.defaultAccentBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+        toolbar.setTitleTextColor(fg)
+        toolbar.navigationIcon?.let {
+            toolbar.navigationIcon = DisplayUtil.opaqueTintDrawable(this, it, fg)
+        }
+        toolbar.overflowIcon?.let {
+            toolbar.overflowIcon = DisplayUtil.opaqueTintDrawable(this, it, fg)
+        }
+        // 顶栏图标触摸 ripple 偏白（背景为 accent 渐变）。
+        val adaptive = BackgroundUtil.adaptiveRippleColor(App.defaultAccentBackground)
+        val rippleBg = ThingBackground.pure(adaptive or 0xFF000000.toInt())
+        val peak = ((adaptive ushr 24) and 0xFF) / 255f
+        BackgroundUtil.applyToolbarIconRipples(toolbar) { r ->
+            GradientRippleDrawable(
+                rippleBg, shapeOval = false, fixedRadiusPx = r, centered = true, peakAlphaOverride = peak
+            )
         }
     }
 

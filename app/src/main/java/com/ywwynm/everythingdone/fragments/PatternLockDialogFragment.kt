@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.PatternLockView
 
 /**
@@ -84,6 +85,9 @@ open class PatternLockDialogFragment : BaseDialogFragment() {
         } else {
             mTvTitle!!.setTextColor(mAccentColor)
             mTvRightAsBt!!.setTextColor(mAccentColor)
+        }
+        mTvRightAsBt?.let {
+            GradientRippleDrawable.applyAccentRipple(it, mAccentBackground, mAccentColor)
         }
         mLockView!!.setPathColor(
             ContextCompat.getColor(activity!!, R.color.app_chrome_control_unchecked)

@@ -73,16 +73,23 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
 
     fun setThingBackgroundWithAdaptiveIcon(background: ThingBackground?, fallbackColor: Int) {
         setThingBackground(background, fallbackColor)
-        val foregroundBase = background?.representativeColor() ?: fallbackColor
-        val ripple = BackgroundUtil.onColor(foregroundBase, 0.24f)
-        imageTintList = ColorStateList.valueOf(getFabIconColor(foregroundBase))
+        // 前景明暗以完整背景为准：accent+accent2 渐变按深色处理 → 偏白图标 / 波纹（而非按代表色误判为浅色）。
+        val light = if (background != null) {
+            BackgroundUtil.isLight(background)
+        } else {
+            BackgroundUtil.isLight(fallbackColor)
+        }
+        val iconColor = onColorForLight(light, if (light) 0.54f else 0.86f)
+        val ripple = onColorForLight(light, 0.24f)
+        imageTintList = ColorStateList.valueOf(iconColor)
         rippleColor = ripple
         setForegroundRippleColor(ripple)
     }
 
-    private fun getFabIconColor(backgroundColor: Int): Int {
-        val alpha = if (BackgroundUtil.isLight(backgroundColor)) 0.54f else 0.86f
-        return BackgroundUtil.onColor(backgroundColor, alpha)
+    private fun onColorForLight(light: Boolean, alpha: Float): Int {
+        val rgb = if (light) 0x000000 else 0xFFFFFF
+        val a = Math.round(alpha.coerceIn(0f, 1f) * 255f)
+        return (a shl 24) or rgb
     }
 
     fun setForegroundRippleColor(color: Int) {

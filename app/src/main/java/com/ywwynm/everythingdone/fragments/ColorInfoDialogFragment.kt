@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.ColorNameMatcher
 
 import kotlin.math.min
@@ -67,6 +68,7 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
 
         BackgroundUtil.applyTextBackground(title, background)
         BackgroundUtil.applyTextBackground(confirm, background)
+        GradientRippleDrawable.applyAccentRipple(confirm, background, background.representativeColor())
         confirm.setOnClickListener { dismiss() }
 
         installTopPreview(preview, background)

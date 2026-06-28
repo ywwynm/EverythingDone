@@ -42,6 +42,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -84,6 +85,9 @@ class DrawerNavigationView @JvmOverloads constructor(
     private val headerAdapter: HeaderAdapter
     private var bottomSystemInset = 0
 
+    /** 当前记事 Scope 颜色（文件夹色；null = 根目录 → accent 渐变），供各 item 着色 ripple。 */
+    private var scopeBackground: ThingBackground? = null
+
     private var itemClickListener: ((DrawerItem) -> Unit)? = null
     private var folderExpandClickListener: ((Long) -> Unit)? = null
     private var typeFilterChangeListener: ((Int) -> Unit)? = null
@@ -94,6 +98,10 @@ class DrawerNavigationView @JvmOverloads constructor(
         setBackgroundColor(ContextCompat.getColor(context, R.color.app_chrome_surface_elevated))
 
         headerView = LayoutInflater.from(context).inflate(R.layout.drawer_header, this, false)
+        // 抽屉头部图片触摸 ripple 改为 accent+accent2 渐变。
+        headerView.foreground = GradientRippleDrawable(
+            App.defaultAccentBackground, shapeOval = false, cornerRadiusPx = 0f
+        )
         // The header is no longer a fixed child: it becomes the first item of the
         // list so it scrolls together with folders, the status/type filter panel,
         // and the destinations below, instead of staying pinned at the top.
@@ -160,8 +168,10 @@ class DrawerNavigationView @JvmOverloads constructor(
         items: List<DrawerItem>,
         selectedKey: ItemKey?,
         animate: Boolean = false,
-        animatedFolderToggleId: Long? = null
+        animatedFolderToggleId: Long? = null,
+        scopeBackground: ThingBackground? = null
     ) {
+        this.scopeBackground = scopeBackground
         adapter.submitItems(items, selectedKey, animate, animatedFolderToggleId)
     }
 
@@ -361,12 +371,23 @@ class DrawerNavigationView @JvmOverloads constructor(
             val bottomSpaceHeight = groupBottomHeight + bottomInsetHeight
             groupBottomSpace.visibility = if (bottomSpaceHeight > 0) View.VISIBLE else View.GONE
             updateLinearHeight(groupBottomSpace, bottomSpaceHeight)
-            content.background = createItemBackground(selected)
+            val itemBackground = if (item.key is ItemKey.Folder) {
+                item.folderBackground
+            } else {
+                scopeBackground
+            }
+            val effectiveBackground = itemBackground ?: App.defaultAccentBackground
+            val foregroundColor = if (selected) {
+                BackgroundUtil.onColor(effectiveBackground, BackgroundUtil.ON_ALPHA_PRIMARY)
+            } else {
+                getDrawerItemForegroundColor()
+            }
+            content.background = createItemBackground(selected, effectiveBackground)
             content.isSelected = selected
             content.setOnClickListener { itemClickListener?.invoke(item) }
 
             title.text = item.title
-            title.setTextColor(getDrawerItemForegroundColor())
+            title.setTextColor(foregroundColor)
             title.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
 
             val isFolder = item.key is ItemKey.Folder
@@ -382,7 +403,7 @@ class DrawerNavigationView @JvmOverloads constructor(
                 iconTitleGap,
                 if (isFolder) dp(DRAWER_FOLDER_ICON_TITLE_GAP_DP) else dp(DRAWER_ITEM_ICON_TITLE_GAP_DP)
             )
-            icon.setImageDrawable(createIconDrawable(item))
+            icon.setImageDrawable(createIconDrawable(item, selected, foregroundColor))
             updateTitleEndMargin(
                 if (isFolder) {
                     dp(DRAWER_TITLE_EXPAND_MARGIN_END_DP)
@@ -401,8 +422,22 @@ class DrawerNavigationView @JvmOverloads constructor(
 
             if (isFolder && item.hasChildFolders) {
                 expandButton.visibility = View.VISIBLE
-                expandButton.setImageResource(R.drawable.ic_dropdown)
-                expandButton.setColorFilter(getDrawerItemForegroundColor())
+                if (selected) {
+                    // 选中行已铺文件夹色：ic_dropdown 源 PNG 仅 ~54% alpha，setColorFilter 的 SRC_ATOP
+                    // 保留这层 alpha 无法变实，故用 opaqueTintDrawable 把 alpha 重映射为满不透明的对比色。
+                    expandButton.clearColorFilter()
+                    expandButton.setImageDrawable(
+                        DisplayUtil.opaqueTintDrawable(
+                            context,
+                            AppCompatResources.getDrawable(context, R.drawable.ic_dropdown),
+                            BackgroundUtil.onColor(effectiveBackground, 1f)
+                        )
+                    )
+                } else {
+                    // 未选中：沿用源 PNG 自带的淡化（约 54%），仅按前景色着色。
+                    expandButton.setImageResource(R.drawable.ic_dropdown)
+                    expandButton.setColorFilter(foregroundColor)
+                }
                 expandButton.contentDescription = context.getString(
                     if (item.folderExpanded) {
                         R.string.cd_collapse_thing_folder
@@ -410,7 +445,12 @@ class DrawerNavigationView @JvmOverloads constructor(
                         R.string.cd_expand_thing_folder
                     }
                 )
-                BackgroundUtil.installAppChromeCircleRipple(expandButton, context)
+                expandButton.foreground = if (selected) {
+                    // 文件夹行已铺其颜色，展开按钮 ripple 按其明暗自适应。
+                    BackgroundUtil.circularRipple(BackgroundUtil.adaptiveRippleColor(effectiveBackground))
+                } else {
+                    GradientRippleDrawable(effectiveBackground, shapeOval = true)
+                }
                 expandButton.animate().cancel()
                 if (animateFolderToggle) {
                     expandButton.rotation = if (item.folderExpanded) 0f else 180f
@@ -437,38 +477,31 @@ class DrawerNavigationView @JvmOverloads constructor(
             }
         }
 
-        private fun createItemBackground(selected: Boolean): Drawable {
-            val pressedColor = ContextCompat.getColor(context, R.color.app_chrome_ripple)
-            val selectedColor = ContextCompat.getColor(context, R.color.drawer_selected_bg)
-            val base = ColorDrawable(if (selected) selectedColor else Color.TRANSPARENT)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                return RippleDrawable(
-                    ColorStateList.valueOf(pressedColor),
-                    base,
-                    ColorDrawable(Color.WHITE)
-                )
+        private fun createItemBackground(selected: Boolean, bg: ThingBackground): Drawable {
+            if (!selected) {
+                // 未选中：仅按下时浮现的颜色波纹（静止透明），整条矩形。
+                return GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
             }
-
-            return StateListDrawable().apply {
-                addState(intArrayOf(android.R.attr.state_pressed), ColorDrawable(pressedColor))
-                addState(intArrayOf(android.R.attr.state_selected), ColorDrawable(selectedColor))
-                addState(intArrayOf(), base)
-            }
+            // 选中：常驻铺该色 + 自适应波纹（亮底偏黑、暗底/accent 偏白）。
+            return RippleDrawable(
+                ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(bg)),
+                BackgroundUtil.fillDrawable(bg),
+                ColorDrawable(Color.WHITE)
+            )
         }
 
-        private fun createIconDrawable(item: DrawerItem): Drawable? {
+        private fun createIconDrawable(item: DrawerItem, selected: Boolean, fgColor: Int): Drawable? {
             val folderBackground = item.folderBackground
             if (folderBackground != null) {
-                return FolderIconDrawable(folderBackground, item.folderPrivate)
+                // 选中文件夹行已铺其自身颜色，文件夹图标改用自适应前景色以保持可见；
+                // 未选中沿用文件夹自身颜色。
+                val iconBg = if (selected) ThingBackground.pure(fgColor) else folderBackground
+                return FolderIconDrawable(iconBg, item.folderPrivate)
             }
 
             val iconRes = item.iconRes ?: return null
             val drawable = AppCompatResources.getDrawable(context, iconRes) ?: return null
-            return DisplayUtil.opaqueTintDrawable(
-                context,
-                drawable,
-                getDrawerItemForegroundColor()
-            )
+            return DisplayUtil.opaqueTintDrawable(context, drawable, fgColor)
         }
 
         private fun getDrawerItemForegroundColor(): Int {

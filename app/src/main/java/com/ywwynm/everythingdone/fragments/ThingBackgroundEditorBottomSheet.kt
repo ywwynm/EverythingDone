@@ -16,6 +16,7 @@ import androidx.core.widget.NestedScrollView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 
 /**
@@ -90,7 +91,10 @@ class ThingBackgroundEditorBottomSheet : BaseDialogFragment() {
 
     private fun tintConfirm(bg: ThingBackground?) {
         bg ?: return
-        confirmBt?.let { BackgroundUtil.applyTextBackground(it, bg) }
+        confirmBt?.let {
+            BackgroundUtil.applyTextBackground(it, bg)
+            GradientRippleDrawable.applyAccentRipple(it, bg, bg.representativeColor())
+        }
     }
 
     private fun updateSeparators() {

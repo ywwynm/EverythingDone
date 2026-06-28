@@ -33,6 +33,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -46,6 +47,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
@@ -1242,14 +1244,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
             val d1: Drawable = ContextCompat.getDrawable(this, R.drawable.vec_ic_start_thing)!!
             val d2: Drawable = d1.mutate()
+            // 按钮是 accent+accent2 渐变（按深色处理），图标改为偏白；vec 图标无透明度，SRC_IN 即可。
             d2.setColorFilter(
-                ContextCompat.getColor(this, R.color.black_54p),
+                ContextCompat.getColor(this, R.color.white_86p),
                 PorterDuff.Mode.SRC_IN
             )
             val iv: ImageView = f(R.id.iv_doing_detail)!!
             iv.setImageDrawable(d2)
 
-            fl.foreground = BackgroundUtil.circularRipple(BackgroundUtil.RIPPLE_DARK)
+            fl.foreground = BackgroundUtil.circularRipple(BackgroundUtil.RIPPLE_LIGHT)
             BackgroundUtil.applyOvalBackground(fl, App.defaultAccentBackground)
         }
     }
@@ -1537,6 +1540,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (menuAccentBg != null) BackgroundUtil.isLight(menuAccentBg)
             else BackgroundUtil.isLight(getAccentColor())
         )
+        applyDetailToolbarIconRipples()
         return true
     }
 
@@ -1997,6 +2001,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val todf = TwoOptionsDialogFragment()
+        todf.setAccentBackground(getAccentBackground() ?: ThingBackground.pure(getAccentColor()))
         todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image
         ) {
             todf.dismiss()
@@ -2524,6 +2529,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mMaxSpanImage,
             mDetailAttachmentMediaAppearance
         )
+        mImageAttachmentAdapter!!.setAccentBackground(getAccentBackground())
         mImageLayoutManager = GridLayoutManager(this, getImageAttachmentSpanCount(size))
         mRvImageAttachment!!.adapter = mImageAttachmentAdapter
         mRvImageAttachment!!.layoutManager = mImageLayoutManager
@@ -2958,6 +2964,40 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      */
     private var mChangeBackgroundTo: ThingBackground? = null
 
+    /**
+     * 详情顶栏已铺记事色，图标按钮（返回 ib_back + 菜单项 + overflow）的触摸 ripple 改为按记事色
+     * 明暗自适应（浅底偏黑、深底偏白），居中、固定半径，并去掉系统自带那层。菜单重建 / 改色后重调。
+     */
+    private fun applyDetailToolbarIconRipples() {
+        val toolbar = mActionbar ?: return
+        val adaptive = BackgroundUtil.adaptiveRippleColor(getAccentBackground())
+        val rgb = ThingBackground.pure(adaptive or 0xFF000000.toInt())
+        val peak = ((adaptive ushr 24) and 0xFF) / 255f
+        val radiusPx = resources.displayMetrics.density * 21f
+        toolbar.post {
+            for (i in 0 until toolbar.childCount) {
+                when (val child = toolbar.getChildAt(i)) {
+                    is ActionMenuView -> for (j in 0 until child.childCount) {
+                        child.getChildAt(j).apply {
+                            background = null
+                            foreground = GradientRippleDrawable(
+                                rgb, shapeOval = false, fixedRadiusPx = radiusPx,
+                                centered = true, peakAlphaOverride = peak
+                            )
+                        }
+                    }
+                    is ImageButton -> child.apply {
+                        background = null
+                        foreground = GradientRippleDrawable(
+                            rgb, shapeOval = false, fixedRadiusPx = radiusPx,
+                            centered = true, peakAlphaOverride = peak
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun tintMenuIcons(lightAccent: Boolean) {
         if (mActionbar == null) return
 
@@ -3079,6 +3119,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             androidx.core.widget.ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint)
         }
         tintMenuIcons(lightAccent)
+        applyDetailToolbarIconRipples()
 
         val lightBg = light
         mFlRoot!!.post {
@@ -4625,7 +4666,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         button.textSize = 14f
         button.isClickable = true
         button.isFocusable = true
-        BackgroundUtil.installAppChromePillRipple(button, this)
+        // ripple 由 bindDetailAttachmentAppearanceChoice 按选中态设置（未选中=记事色，选中=自适应）。
         return button
     }
 
@@ -4639,7 +4680,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (selected && enabled) {
             applyDetailAttachmentAppearanceSelectedPill(view)
         } else {
-            view.background = null
+            // 未选中胶囊：触摸 ripple 用当前记事颜色（胶囊形）。
+            val accentBg = getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+            view.background = GradientRippleDrawable(accentBg, shapeOval = false, cornerRadiusPx = -1f)
             setDetailAttachmentAppearancePlainTextColor(
                 view,
                 ContextCompat.getColor(this, R.color.app_chrome_on_surface_secondary)
@@ -4658,7 +4701,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
         background.cornerRadius = 1000f
-        textView.background = background
+        // 选中胶囊已铺记事色，触摸 ripple 按记事色明暗自适应（胶囊形裁剪）。
+        val pillMask = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 1000f
+            setColor(Color.WHITE)
+        }
+        textView.background = android.graphics.drawable.RippleDrawable(
+            android.content.res.ColorStateList.valueOf(
+                BackgroundUtil.adaptiveRippleColor(accentBackground)
+            ),
+            background,
+            pillMask
+        )
 
         val light = if (accentBackground != null) {
             BackgroundUtil.isLight(accentBackground)
@@ -4746,10 +4801,17 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     ): TextView {
         val button = TextView(this)
         button.setText(textRes)
-        button.setTextColor(
-            if (useAccent) getAccentColor()
-            else ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
-        )
+        val accentBg = getAccentBackground()
+        if (useAccent) {
+            // 确定按钮文字用记事颜色（纯色 / 渐变）。
+            if (accentBg != null) {
+                BackgroundUtil.applyTextBackground(button, accentBg)
+            } else {
+                button.setTextColor(getAccentColor())
+            }
+        } else {
+            button.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel))
+        }
         button.gravity = android.view.Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
@@ -4766,7 +4828,24 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 )
             }
         }
-        BackgroundUtil.installAppChromeDialogActionButton(button, this)
+        if (useAccent) {
+            // 确定按钮触摸 ripple 也用记事颜色（纯色 / 渐变），胶囊形；内边距 / 字号与其它 dialog 的
+            // 确定按钮对齐（取消按钮由 installAppChromeDialogActionButton 设置同样的值）。
+            button.setTextSize(
+                android.util.TypedValue.COMPLEX_UNIT_PX,
+                resources.getDimension(R.dimen.app_chrome_dialog_action_text_size)
+            )
+            GradientRippleDrawable.applyAccentRipple(button, accentBg, getAccentColor())
+            val padH = resources.getDimensionPixelSize(
+                R.dimen.app_chrome_dialog_action_button_padding_horizontal
+            )
+            val padV = resources.getDimensionPixelSize(
+                R.dimen.app_chrome_dialog_action_button_padding_vertical
+            )
+            button.setPaddingRelative(padH, padV, padH, padV)
+        } else {
+            BackgroundUtil.installAppChromeDialogActionButton(button, this)
+        }
         button.setOnClickListener { onClick() }
         return button
     }
@@ -4784,7 +4863,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         button.isFocusable = true
         val padding = (resources.displayMetrics.density * 8).toInt()
         button.setPadding(padding, padding, padding, padding)
-        BackgroundUtil.installAppChromeCircleRipple(button, this)
+        // 播放/暂停、停止按钮触摸 ripple 用记事颜色，圆形。
+        button.background = GradientRippleDrawable(
+            getAccentBackground() ?: ThingBackground.pure(getAccentColor()),
+            shapeOval = true
+        )
         return button
     }
 

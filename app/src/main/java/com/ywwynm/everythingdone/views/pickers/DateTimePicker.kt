@@ -26,6 +26,7 @@ import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.util.Calendar
 
@@ -309,6 +310,11 @@ open class DateTimePicker(
                 else -> params.setMargins(0, 0, 0, 0)
             }
             holder.bt.text = mItems[position]
+            // 弹出列表每项的触摸 ripple 用当前记事颜色。
+            holder.bt.background = GradientRippleDrawable(
+                mAccentBackground ?: com.ywwynm.everythingdone.model.ThingBackground.pure(mAccentColor),
+                shapeOval = false, cornerRadiusPx = 0f
+            )
             if (mPickedPosition == position) {
                 holder.bt.setTypeface(Typeface.DEFAULT_BOLD)
                 // Phase 8: gradient text on the picked row when the accent is

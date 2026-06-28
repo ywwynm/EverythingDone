@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import kotlin.math.max
@@ -136,6 +137,8 @@ class ThingCardAppearanceSourcePicker(
                 else -> params.setMargins(0, 0, 0, 0)
             }
             holder.text.text = items[position].label
+            // 选项触摸 ripple 用当前记事/封面颜色（整行直角矩形）。
+            GradientRippleDrawable.applyAccentRowRipple(holder.text, accentBackground, accentColor)
             if (mPickedPosition == position) {
                 holder.text.setTypeface(Typeface.DEFAULT_BOLD)
                 if (accentBackground != null) {

@@ -12,6 +12,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 /**
  * Created by qiizhang on 2016/11/21.
@@ -101,6 +102,8 @@ open class RadioChooserAdapter(
             animateIcon
         )
         holder.tv.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
+        // 每个 radio 选项触摸 ripple 用与「确定」按钮同源的强调色（整行直角矩形）。
+        GradientRippleDrawable.applyAccentRowRipple(holder.tv, mAccentBackground, mAccentColor)
         if (picked) {
             holder.tv.contentDescription = context.getString(R.string.cd_chosen_item) + item
             if (mAccentBackground != null) {

@@ -31,6 +31,7 @@ import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FontCache
 import com.ywwynm.everythingdone.views.FloatingActionButton
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 open class AboutActivity : EverythingDoneBaseActivity() {
 
@@ -55,7 +56,42 @@ open class AboutActivity : EverythingDoneBaseActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_about, menu)
+        applyAboutToolbarChrome()
         return true
+    }
+
+    /**
+     * 关于界面顶栏：导航 / 菜单 / overflow 图标用 accent+accent2 渐变着色（opaque，源 PNG 带透明度，
+     * 不用 SRC_IN），触摸 ripple 也用 accent 渐变（居中、固定半径）。
+     */
+    private fun applyAboutToolbarChrome() {
+        val toolbar = mActionbar ?: return
+        val accentBg = App.defaultAccentBackground
+        toolbar.navigationIcon?.let {
+            toolbar.navigationIcon = BackgroundUtil.tintDrawableOpaque(resources, it, accentBg)
+        }
+        toolbar.overflowIcon?.let {
+            toolbar.overflowIcon = BackgroundUtil.tintDrawableOpaque(resources, it, accentBg)
+        }
+        val menu = toolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon?.let { item.icon = BackgroundUtil.tintDrawableOpaque(resources, it, accentBg) }
+        }
+        // 标题文字也用 accent+accent2 渐变（关于界面顶栏在浅色 surface 上，与图标统一）。
+        toolbar.post {
+            val title = toolbar.title
+            for (i in 0 until toolbar.childCount) {
+                val child = toolbar.getChildAt(i)
+                if (child is TextView && child.text == title) {
+                    BackgroundUtil.applyTextBackground(child, accentBg)
+                    break
+                }
+            }
+        }
+        BackgroundUtil.applyToolbarIconRipples(toolbar) { r ->
+            GradientRippleDrawable(accentBg, shapeOval = false, fixedRadiusPx = r, centered = true)
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -110,6 +146,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
         BackgroundUtil.applyTextBackground(mTvEverythingDone, accentBg)
 
         mTvVersion!!.append(" " + BuildConfig.VERSION_NAME)
+        BackgroundUtil.applyTextBackground(mTvVersion, accentBg)
 
         val tvLicense: TextView = f(R.id.tv_license_as_bt)!!
         val paint: Paint = tvLicense.paint

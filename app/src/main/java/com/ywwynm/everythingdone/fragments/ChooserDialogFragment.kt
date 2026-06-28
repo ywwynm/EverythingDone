@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.util.ArrayList
 
@@ -109,11 +110,13 @@ open class ChooserDialogFragment : BaseDialogFragment() {
         }
         applyAccent(mTvTitle!!)
         applyAccent(mTvConfirmAsBt!!)
+        GradientRippleDrawable.applyAccentRipple(mTvConfirmAsBt!!, mAccentBackground, mAccentColor)
 
         if (!mShouldShowMore) {
             mTvMoreAsBt!!.visibility = View.GONE
         } else {
             applyAccent(mTvMoreAsBt!!)
+            GradientRippleDrawable.applyAccentRipple(mTvMoreAsBt!!, mAccentBackground, mAccentColor)
         }
         if (!mShouldShowActions) {
             (mTvConfirmAsBt!!.parent as View).visibility = View.GONE

@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 
 /**
@@ -367,18 +368,25 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             BackgroundUtil.applyCardBackground(holder.cv, background)
         }
 
-        val baseColor = if (thumbnailMode) {
-            getThumbnailFolderSurfaceBackground(background, folder.getColor()).representativeColor()
+        if (thumbnailMode) {
+            // 大文件夹缩略图卡片：触摸 ripple 用该文件夹自身颜色（纯色或渐变）。
+            val rippleBackground = background ?: ThingBackground.pure(folder.getColor())
+            val radius = mApp!!.resources.getDimension(R.dimen.thing_card_corner_radius)
+            holder.cv!!.foreground = GradientRippleDrawable(
+                rippleBackground,
+                shapeOval = false,
+                cornerRadiusPx = radius
+            )
         } else {
-            background?.representativeColor() ?: folder.getColor()
+            val baseColor = background?.representativeColor() ?: folder.getColor()
+            holder.cv!!.foreground = ContextCompat.getDrawable(
+                mApp!!,
+                if (BackgroundUtil.isLight(baseColor))
+                    R.drawable.selectable_item_background
+                else
+                    R.drawable.selectable_item_background_light
+            )
         }
-        holder.cv!!.foreground = ContextCompat.getDrawable(
-            mApp!!,
-            if (BackgroundUtil.isLight(baseColor))
-                R.drawable.selectable_item_background
-            else
-                R.drawable.selectable_item_background_light
-        )
     }
 
     private fun bindFolderSelectionAppearance(
