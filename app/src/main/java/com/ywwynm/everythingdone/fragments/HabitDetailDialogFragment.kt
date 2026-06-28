@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.DateTimeUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
 /**
@@ -75,6 +76,10 @@ open class HabitDetailDialogFragment : BaseDialogFragment() {
     }
 
     override fun getLayoutResource(): Int = R.layout.fragment_habit_detail
+
+    override fun getDialogWindowWidthPx(): Int {
+        return (DisplayUtil.getScreenDensity(activity) * 320).toInt()
+    }
 
     @SuppressLint("SetTextI18n")
     private fun initUI() {

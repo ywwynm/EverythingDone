@@ -2,6 +2,19 @@
 
 Latest published debug update: `202606270837`.
 
+## 2026-06-28 - 修复习惯详情对话框宽度过窄
+
+用户反馈：在 `DetailActivity` 中查看习惯（Habit）详情的对话框宽度特别窄。
+
+诊断确认：`HabitDetailDialogFragment` 没有覆盖 `BaseDialogFragment` 的 `getDialogWindowWidthPx()`，父类默认返回 `WRAP_CONTENT`；同时布局根 `LinearLayout` 又在 `fragment_habit_detail.xml` 中写死了 `280dp`。`280dp` 只是 Material Dialog 的最小标准宽度，在大屏 / 高密度设备上对话框会显得明显偏窄。而项目中其它同类纯文本对话框（如 `DebugUpdateDialogFragment`、`ThingFolderNameDialogFragment`）都通过覆盖 `getDialogWindowWidthPx()` 返回 `320 * density` 对应的像素宽度。
+
+本次按项目既有约定修复：
+
+- `HabitDetailDialogFragment.kt` 新增 `import com.ywwynm.everythingdone.utils.DisplayUtil`，并覆盖 `getDialogWindowWidthPx()` 返回 `(DisplayUtil.getScreenDensity(activity) * 320).toInt()`，即 320dp 对应的实际像素宽度。
+- `fragment_habit_detail.xml` 根 `LinearLayout` 的 `android:layout_width` 由 `280dp` 改为 `match_parent`，让对话框宽度以窗口宽度（fragment 返回的 320dp）为准，与 `fragment_debug_update.xml` 的写法保持一致。
+
+验证：`:app:assembleDebug` BUILD SUCCESSFUL，`git diff --check` 通过，未使用 adb。
+
 ## 2026-06-27 - 搜索排除私密与 checklist 存储标记
 
 详细发布日志见 `docs/features/thing-folders/debug-updates/update-20260627163603.md`。用户反馈：首页搜索时，私密记事标题前缀和 checklist 的各种内容前缀可能被纳入搜索范围；这些标记不是用户真正输入的记事内容，不应影响搜索结果。
