@@ -51,7 +51,6 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
     private var mAdapter: FolderTreeAdapter? = null
     private var mRows: List<Row> = emptyList()
     private val mExpandedFolderIds = HashSet<Long>()
-    private val mAuthenticatedExpandedPrivateFolderIds = HashSet<Long>()
     private var mHasAnyFolder = false
     private var mRecyclerView: RecyclerView? = null
     private var mTopSeparator: View? = null
@@ -324,11 +323,10 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             return
         }
         val listener = mListener
-        if (listener?.shouldAuthenticateBeforeExpand(folder) == true &&
-            !mAuthenticatedExpandedPrivateFolderIds.contains(folder.id)
-        ) {
+        if (listener?.shouldAuthenticateBeforeExpand(folder) == true) {
+            // P1：是否需要认证由 listener（→ ThingManager 共享会话集）判定；本会话已认证过则
+            // 直接展开。认证成功由 listener 侧统一写入共享集，这里只负责展开与重建。
             listener.onAuthenticateFolderExpand(folder) {
-                mAuthenticatedExpandedPrivateFolderIds.add(folder.id)
                 mExpandedFolderIds.add(folder.id)
                 rebuildRows()
             }
@@ -469,7 +467,13 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
                 ownBg
             }
             icon.setImageDrawable(
-                DrawerNavigationView.FolderIconDrawable(iconBg, folder.isPrivate)
+                DrawerNavigationView.FolderIconDrawable(
+                    iconBg,
+                    folder.isPrivate,
+                    // 本会话已鉴权的私密文件夹画开锁。读共享单例会话集（与认证判定同源）。
+                    com.ywwynm.everythingdone.managers.ThingManager
+                        .getInstance(itemView.context)?.isFolderPrivacyAuthenticated(folder.id) == true
+                )
             )
             if (rowItem.selectable) {
                 icon.clearColorFilter()

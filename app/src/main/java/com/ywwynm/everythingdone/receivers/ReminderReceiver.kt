@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
@@ -122,7 +123,8 @@ open class ReminderReceiver : BroadcastReceiver() {
         // Phase 8: pass full ThingBackground so the action's PendingIntent
         // carries the gradient across IPC to StartDoingActivity / DelayReminderActivity.
         SystemNotificationUtil.addActionsForReminderNotification(
-                builder, context, id, position, thing.type, thing.isPrivate(),
+                builder, context, id, position, thing.type,
+                ThingPrivacyResolver.isEffectivelyPrivate(context, thing),
                 thing.getBackground())
 
         if (moreNoticeable) {

@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
@@ -81,7 +82,8 @@ open class ThingsListWidgetService : RemoteViewsService() {
                 if (thing == null || thing.type == Thing.HEADER) continue
                 if (Thing.isLegacyPlaceholderType(thing.type)) continue
                 if (!matchesTypeFilter(thing.type, typeFilterMask)) continue
-                entries.add(ThingsListWidgetItem.ThingItem(protectThingIfNeeded(thing, folderDAO)))
+                entries.add(ThingsListWidgetItem.ThingItem(
+                    ThingPrivacyResolver.resolveForPresentation(thing, folderDAO)))
             }
             val folderEntries = folderDAO.getFolderEntriesForWidgetProjection(
                 targetFolderId,
@@ -98,14 +100,6 @@ open class ThingsListWidgetService : RemoteViewsService() {
                 )
                 if (result != 0) result else item1.stableId.compareTo(item2.stableId)
             }
-        }
-
-        private fun protectThingIfNeeded(thing: Thing, folderDAO: ThingFolderDAO): Thing {
-            val copy = Thing(thing)
-            if (folderDAO.isEffectivelyPrivate(copy.folderId) && !copy.isPrivate()) {
-                copy.title = Thing.PRIVATE_THING_PREFIX + (copy.title ?: "")
-            }
-            return copy
         }
 
         private fun matchesTypeFilter(type: Int, typeFilterMask: Int): Boolean {

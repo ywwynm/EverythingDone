@@ -48,6 +48,10 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
         mAdapter!!.setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing)
     }
 
+    open fun setAppearanceRevealFolderId(id: Long?) {
+        mAdapter!!.setAppearanceRevealFolderId(id)
+    }
+
     open fun shouldShowPrivateContent(): Boolean {
         return mAdapter!!.shouldShowPrivateContent()
     }

@@ -121,14 +121,29 @@ object HomeActionWordingHelper {
         )
     }
 
-    fun privateTitle(context: Context, allPrivate: Boolean): String {
-        return context.getString(
-            if (allPrivate) R.string.home_action_cancel_private else R.string.home_action_set_private
-        )
+    /**
+     * 私密动词文案按选中组成自适应（与状态动词同一套"三桶"口径）：纯记事 → 设为/取消私密记事，
+     * 纯文件夹 → 设为/取消私密文件夹，混合 → 设为/取消私密项。`allPrivate` 决定设/取消方向。
+     */
+    fun privateTitle(
+        context: Context,
+        allPrivate: Boolean,
+        hasThing: Boolean,
+        hasFolder: Boolean
+    ): String {
+        val res = when {
+            hasThing && hasFolder ->
+                if (allPrivate) R.string.act_cancel_private_items else R.string.act_set_as_private_items
+            hasFolder ->
+                if (allPrivate) R.string.cancel_thing_folder_private else R.string.set_thing_folder_private
+            else ->
+                if (allPrivate) R.string.act_cancel_private_thing else R.string.act_set_as_private_thing
+        }
+        return context.getString(res)
     }
 
-    fun cannotSetPrivateTitle(context: Context): String {
-        return context.getString(R.string.home_action_cannot_set_private)
+    fun noPasswordTitle(context: Context): String {
+        return context.getString(R.string.set_password_first_title)
     }
 
     fun structuralActionTitle(

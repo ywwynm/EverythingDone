@@ -2,6 +2,7 @@
 
 package com.ywwynm.everythingdone
 
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.Application
 import android.app.NotificationChannel
@@ -15,6 +16,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.database.Cursor
+import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -100,6 +102,32 @@ open class App : Application() {
         }
 
         mThingManager = ThingManager.getInstance(this)
+        // P1：私密文件夹认证为会话级——app 切到后台即清空已认证集合，回前台需重新认证。
+        // 用前台 Activity 计数判定"真正后台"，并用 isChangingConfigurations 排除旋转等配置变更。
+        registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+            private var startedActivities = 0
+            override fun onActivityStarted(activity: Activity) {
+                startedActivities++
+            }
+            override fun onActivityStopped(activity: Activity) {
+                startedActivities--
+                // 因启动外部 Activity（选图/拍照/查看器等）等待结果而临时切后台时，不清认证——
+                // 这是"临时离开取结果"而非用户真正离开。该抑制标志在回前台（onActivityResumed）解除。
+                if (startedActivities <= 0 && !activity.isChangingConfigurations
+                    && !sSuppressAuthClearOnBackground) {
+                    mThingManager?.clearAuthenticatedPrivateFolders()
+                    mThingManager?.clearAuthenticatedPrivateThings()
+                }
+            }
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityResumed(activity: Activity) {
+                // 回到前台（含从外部选图/拍照/查看器返回）：解除抑制，之后真正切后台照常清空认证。
+                sSuppressAuthClearOnBackground = false
+            }
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
 
         SystemNotificationUtil.tryToCreateQuickCreateNotification(this)
         SystemNotificationUtil.tryToCreateThingOngoingNotification(this)
@@ -319,6 +347,18 @@ open class App : Application() {
 
         private var somethingUpdatedSpecially: Boolean = false
         private var justNotifyAll: Boolean = false
+
+        // P1 配套：因启动外部 Activity 等待结果（选图/拍照/选媒体/图片查看器等）而临时切后台时，抑制
+        // 对私密会话认证的清空——这是"临时离开取结果"而非用户真正离开。由各入口在 startActivityForResult
+        // 前调 [suppressPrivacyAuthClearForActivityResult] 置位，ActivityLifecycleCallbacks 回前台
+        // （onActivityResumed）解除。
+        @Volatile
+        private var sSuppressAuthClearOnBackground: Boolean = false
+
+        @JvmStatic
+        fun suppressPrivacyAuthClearForActivityResult() {
+            sSuppressAuthClearOnBackground = true
+        }
 
         /**
          * The randomly-chosen background for the next new thing the user creates.

@@ -540,7 +540,11 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     protected open fun isThingEffectivelyPrivate(thing: Thing): Boolean {
-        return thing.isPrivate()
+        // 默认按"有效私密"判定（含处于私密文件夹内、自身无前缀的记事），避免新界面用基类时漏判。
+        // 需要"当前文件夹已认证"豁免的列表界面在子类覆写（如 ThingsAdapter）。
+        return mContext?.let {
+            com.ywwynm.everythingdone.helpers.ThingPrivacyResolver.isEffectivelyPrivate(it, thing)
+        } ?: thing.isPrivate()
     }
 
     private fun applyUnselectedContentAlpha(
@@ -697,15 +701,41 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private fun updateCardForTitle(holder: BaseThingViewHolder, thing: Thing) {
         val title: String = thing.getTitleToDisplay()!!
-        if (!title.isEmpty()) {
+        // 已揭示的私密记事：标题行左侧加"开锁"标识，与已鉴权私密文件夹的开锁对应。
+        // 只对"本身是私密记事"（自带前缀，与所在文件夹是否私密无关）显示——普通记事即便处于已鉴权的
+        // 私密文件夹内、被揭示显示，也保持正常态、不加私密标识。masked 为遮蔽态（显示居中大锁）则不加。
+        val masked = isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent
+        val revealedPrivate = !masked && thing.isPrivate()
+        val tv = holder.tvTitle!!
+        // 空标题但已揭示私密时仍显示标题行，让开锁有处可依（处理"无标题私密记事"）。
+        if (title.isNotEmpty() || revealedPrivate) {
             val p = (mDensity * 16).toInt()
-            holder.tvTitle!!.visibility = View.VISIBLE
-            holder.tvTitle.setPadding(p, p, p, 0)
-            holder.tvTitle.text = title
-            holder.tvTitle.textSize = getThingCardTitleTextSize(thing, isFullSpanThingCard(thing))
-            holder.tvTitle.setTextColor(textColorPrimary(getThingCardForegroundBaseColor(thing)))
+            tv.visibility = View.VISIBLE
+            tv.setPadding(p, p, p, 0)
+            tv.text = title
+            tv.textSize = getThingCardTitleTextSize(thing, isFullSpanThingCard(thing))
+            val color = textColorPrimary(getThingCardForegroundBaseColor(thing))
+            tv.setTextColor(color)
+            if (revealedPrivate) {
+                val lock = mContext?.let {
+                    ContextCompat.getDrawable(it, R.drawable.ic_lock_open)?.mutate()
+                }
+                if (lock != null) {
+                    // 图标尺寸取标题字号（px），使其与标题首行在 y 方向居中对齐（标题为单行）。
+                    val s = tv.textSize.toInt().coerceAtLeast(1)
+                    lock.setBounds(0, 0, s, s)
+                    lock.setTint(color)
+                    tv.setCompoundDrawablesRelative(lock, null, null, null)
+                    tv.compoundDrawablePadding = (mDensity * 6).toInt()
+                } else {
+                    tv.setCompoundDrawablesRelative(null, null, null, null)
+                }
+            } else {
+                tv.setCompoundDrawablesRelative(null, null, null, null)
+            }
         } else {
-            holder.tvTitle!!.visibility = View.GONE
+            tv.visibility = View.GONE
+            tv.setCompoundDrawablesRelative(null, null, null, null)
         }
     }
 

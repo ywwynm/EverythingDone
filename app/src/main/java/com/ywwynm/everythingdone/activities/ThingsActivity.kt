@@ -117,6 +117,7 @@ import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.helpers.ThingExporter
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingListOverlayDragController
 import com.ywwynm.everythingdone.managers.ThingManager
@@ -212,7 +213,6 @@ class ThingsActivity :
     private var mDrawer: DrawerNavigationView? = null
     private var mDrawerHeader: DrawerHeader? = null
     private val mExpandedDrawerFolderIds = HashSet<Long>()
-    private val mAuthenticatedDrawerExpandedPrivateFolderIds = HashSet<Long>()
     private var mCurrentDrawerSelectionKey: DrawerNavigationView.ItemKey? = null
     private var mInitialExternalFolderId: Long? = null
     private var mInitialExternalFolderAuthenticated: Boolean = false
@@ -836,7 +836,9 @@ class ThingsActivity :
         menu.findItem(R.id.act_toggle_current_folder_private)?.let { item ->
             item.isVisible = inFolder && limitIsUnderway
             if (currentFolder != null) {
-                item.title = HomeActionWordingHelper.privateTitle(this, currentFolder.isPrivate)
+                item.title = HomeActionWordingHelper.privateTitle(
+                    this, currentFolder.isPrivate, hasThing = false, hasFolder = true
+                )
             }
         }
         menu.findItem(R.id.act_move_current_folder_to_folder)?.isVisible =
@@ -914,7 +916,6 @@ class ThingsActivity :
         val folders = mThingManager!!.getDrawerFolders()
         val folderIds = folders.mapTo(HashSet()) { it.id }
         mExpandedDrawerFolderIds.retainAll(folderIds)
-        mAuthenticatedDrawerExpandedPrivateFolderIds.retainAll(folderIds)
         val currentPathIds = mThingManager!!.getProjection().folderPath.toHashSet()
 
         val childrenByParent = HashMap<Long?, MutableList<ThingFolder>>()
@@ -1034,7 +1035,7 @@ class ThingsActivity :
     ): Boolean {
         return !folder.isPrivate ||
             currentPathIds.contains(folder.id) ||
-            mAuthenticatedDrawerExpandedPrivateFolderIds.contains(folder.id)
+            mThingManager!!.isFolderPrivacyAuthenticated(folder.id)
     }
 
     private fun createDrawerDestinationItem(
@@ -1065,6 +1066,7 @@ class ThingsActivity :
             title = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) },
             folderBackground = folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
             folderPrivate = folder.isPrivate,
+            folderAuthenticated = mThingManager!!.isFolderPrivacyAuthenticated(folder.id),
             folderLevel = drawerFolderItem.level,
             hasChildFolders = drawerFolderItem.hasChildren,
             folderExpanded = mExpandedDrawerFolderIds.contains(folder.id),
@@ -1081,11 +1083,9 @@ class ThingsActivity :
 
         val folder = mThingManager!!.getFolderById(folderId)
         if (folder != null &&
-            shouldAuthenticateTransientPrivateFolderExpansion(folder) &&
-            !mAuthenticatedDrawerExpandedPrivateFolderIds.contains(folderId)
+            shouldAuthenticateTransientPrivateFolderExpansion(folder)
         ) {
             authenticateThingFolder(folder, R.string.expand_private_thing_folder) {
-                mAuthenticatedDrawerExpandedPrivateFolderIds.add(folderId)
                 mExpandedDrawerFolderIds.add(folderId)
                 updateDrawerFolderItems(animate = true, animatedFolderToggleId = folderId)
             }
@@ -1103,14 +1103,13 @@ class ThingsActivity :
     }
 
     private fun resetDrawerPrivateExpansionAuthentication() {
-        if (mAuthenticatedDrawerExpandedPrivateFolderIds.isEmpty() &&
-            mExpandedDrawerFolderIds.isEmpty()
-        ) {
+        // P1：私密认证已是会话级（共享 ThingManager 集合，切后台才清空），关抽屉不再清认证；
+        // 仍把不在当前路径上的私密文件夹在抽屉里收起，保持抽屉整洁。
+        if (mExpandedDrawerFolderIds.isEmpty()) {
             return
         }
         val currentPathIds = mThingManager!!.getProjection().folderPath.toHashSet()
-        var changed = mAuthenticatedDrawerExpandedPrivateFolderIds.isNotEmpty()
-        mAuthenticatedDrawerExpandedPrivateFolderIds.clear()
+        var changed = false
         val iterator = mExpandedDrawerFolderIds.iterator()
         while (iterator.hasNext()) {
             val folderId = iterator.next()
@@ -2874,7 +2873,9 @@ class ThingsActivity :
     private fun openSelectedCardAppearancePanel() {
         when (val entry = mThingManager!!.getSingleSelectedEntry()) {
             is ThingListEntry.FolderEntry -> {
-                if (entry.effectivePrivate) {
+                // 访问即信任：本会话已为该私密文件夹认证过（如进入时验证），调其外观免二次验证；
+                // 与打开文件夹、抽屉展开、移动等入口一致（shouldProtectFolderForAccess 含已认证豁免）。
+                if (shouldProtectFolderForAccess(entry.folder.id)) {
                     authenticateThingFolder(
                         entry.folder,
                         R.string.customize_private_thing_folder_card
@@ -2886,7 +2887,11 @@ class ThingsActivity :
                 }
             }
             is ThingListEntry.ThingEntry -> {
-                if (entry.thing.isPrivate()) {
+                // 同上：有效私密（自身前缀或所在私密文件夹）且所在文件夹未认证、且本会话未认证过
+                // 该记事，才验证；在已认证私密文件夹内、或本会话已认证过该记事，调外观均免二次验证。
+                if (ThingPrivacyResolver.isEffectivelyPrivate(this, entry.thing)
+                    && !mThingManager!!.isFolderPrivacyAuthenticated(entry.thing.folderId)
+                    && !mThingManager!!.isThingPrivacyAuthenticated(entry.thing.id)) {
                     authenticateThing(
                         entry.thing,
                         R.string.customize_private_thing_card
@@ -2915,13 +2920,20 @@ class ThingsActivity :
         mFolderCardAppearanceOriginalTitle = folder.title
         mFolderCardAppearanceOriginalPresentation = folder.cardPresentation
         mFolderCardAppearanceOriginalBackground = folder.getBackground()
-        mFolderCardAppearanceDraftPresentation = folder.effectiveCardPresentation()
+        // 编辑器经认证后从真实存储值起编，展示该文件夹的真实外观供调整（而非被遮蔽的 default）。
+        mFolderCardAppearanceDraftPresentation = folder.cardPresentation
         mThingCardAppearanceSelectedListPosition =
                 mThingManager!!.getListPositionForFolderId(folder.id)
         if (mThingCardAppearanceSelectedListPosition < 0) {
             clearThingCardAppearanceDraft()
             return
         }
+
+        // 经认证打开私密文件夹外观面板：让该文件夹的列表卡片临时展示真实外观（含预览），
+        // 而不是被遮蔽的 default，便于用户对着真实卡片调整。关闭面板时清除。
+        mAdapter!!.setAppearanceRevealFolderId(folder.id)
+        val revealPosition = mThingCardAppearanceSelectedListPosition
+        mRecyclerView?.post { mAdapter?.notifyItemChanged(revealPosition) }
 
         val panel: View = mThingCardAppearancePanel!!
         if (panel.visibility != View.VISIBLE) {
@@ -2962,14 +2974,12 @@ class ThingsActivity :
         mLlThingCardAppearanceSource!!.visibility = View.GONE
         mLlThingCardAppearanceVideoFrame!!.visibility = View.GONE
         clearThingCardAppearanceVideoFramePreview()
-        val privateFolder = folder.isPrivate
-        mLlThingCardAppearanceSpanControls!!.visibility =
-                if (privateFolder) View.GONE else View.VISIBLE
+        // 私密文件夹（经认证后）也能调整卡片宽度/大小模式，与普通文件夹一致；私密的显示遮蔽
+        // 仍由 effectiveCardPresentation / hiddenPrivate 在展示层负责，存储保留真实外观。
+        mLlThingCardAppearanceSpanControls!!.visibility = View.VISIBLE
         mTvThingCardAppearanceMediaPosition!!.visibility = View.GONE
-        mTvFolderCardAppearanceSizeLabel!!.visibility =
-                if (privateFolder) View.GONE else View.VISIBLE
-        mLlThingCardAppearancePlacementControls!!.visibility =
-                if (privateFolder) View.GONE else View.VISIBLE
+        mTvFolderCardAppearanceSizeLabel!!.visibility = View.VISIBLE
+        mLlThingCardAppearancePlacementControls!!.visibility = View.VISIBLE
         setThingCardAppearancePlacementControlsTopMargin(10)
         mBtThingCardAppearancePlacementTop!!.setText(
                 R.string.folder_card_appearance_mode_summary
@@ -2987,28 +2997,26 @@ class ThingsActivity :
         mThingCardAppearanceBackgroundHeightSliderMinPercent = 0
 
         bindThingCardAppearanceAccentControls()
-        if (!privateFolder) {
-            bindThingCardAppearanceChoice(
-                    mBtThingCardAppearanceSpanNormal!!,
-                    draft.spanMode == ThingFolderCardPresentation.SPAN_NORMAL,
-                    true
-            )
-            bindThingCardAppearanceChoice(
-                    mBtThingCardAppearanceSpanFull!!,
-                    draft.spanMode == ThingFolderCardPresentation.SPAN_FULL,
-                    true
-            )
-            bindThingCardAppearanceChoice(
-                    mBtThingCardAppearancePlacementTop!!,
-                    draft.mode == ThingFolderCardPresentation.MODE_SUMMARY,
-                    true
-            )
-            bindThingCardAppearanceChoice(
-                    mBtThingCardAppearancePlacementBottom!!,
-                    draft.mode == ThingFolderCardPresentation.MODE_THUMBNAILS,
-                    true
-            )
-        }
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearanceSpanNormal!!,
+                draft.spanMode == ThingFolderCardPresentation.SPAN_NORMAL,
+                true
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearanceSpanFull!!,
+                draft.spanMode == ThingFolderCardPresentation.SPAN_FULL,
+                true
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementTop!!,
+                draft.mode == ThingFolderCardPresentation.MODE_SUMMARY,
+                true
+        )
+        bindThingCardAppearanceChoice(
+                mBtThingCardAppearancePlacementBottom!!,
+                draft.mode == ThingFolderCardPresentation.MODE_THUMBNAILS,
+                true
+        )
         mBindingFolderCardAppearancePanel = false
     }
 
@@ -3017,7 +3025,6 @@ class ThingsActivity :
     ) {
         val folder = mFolderCardAppearancePanelFolder ?: return
         if (newDraft == null) return
-        if (folder.isPrivate) return
         mFolderCardAppearanceDraftPresentation = newDraft
         folder.cardPresentation = newDraft
         requestThingCardAppearancePreviewRefresh()
@@ -5386,11 +5393,10 @@ class ThingsActivity :
             mNormalSnackbar!!.show()
             return
         }
-        val confirmedDraft = if (folder.isPrivate) {
-            ThingFolderCardPresentation.default()
-        } else {
-            draft
-        }
+        // 不再因私密把外观抹成 default（显示层已由 effectiveCardPresentation 遮蔽）：存真实草稿，
+        // 取消私密后即可完整恢复。先清除编辑预览的 reveal，使后续重绑按遮蔽后的外观渲染。
+        mAdapter!!.setAppearanceRevealFolderId(null)
+        val confirmedDraft = draft
         folder.title = title
         folder.cardPresentation = confirmedDraft
         hideThingCardAppearancePanel()
@@ -5561,6 +5567,8 @@ class ThingsActivity :
     }
 
     private fun cancelFolderCardAppearancePanel(shouldBackNormalMode: Boolean) {
+        // 先清 reveal，使下面恢复原值后的 notifyItemChanged 按遮蔽后的外观渲染，避免私密预览残留。
+        mAdapter!!.setAppearanceRevealFolderId(null)
         val folder = mFolderCardAppearancePanelFolder
         val originalTitle = mFolderCardAppearanceOriginalTitle
         val originalPresentation = mFolderCardAppearanceOriginalPresentation
@@ -5733,6 +5741,7 @@ class ThingsActivity :
     }
 
     private fun clearThingCardAppearanceDraft() {
+        mAdapter?.setAppearanceRevealFolderId(null)
         mThingCardAppearancePanelThing = null
         mThingCardAppearanceOriginal = null
         mThingCardAppearanceDraft = null
@@ -7557,24 +7566,13 @@ class ThingsActivity :
                 val thingIndex = mThingManager!!.getThingIndexForListPosition(listPosition)
                 if (thingIndex < 0) return
 
-                if (isThingEffectivelyPrivateInCurrentProjection(thing)) {
-                    val activity = this@ThingsActivity
-                    val sp: SharedPreferences = getSharedPreferences(
-                        Def.Meta.PREFERENCES_NAME, MODE_PRIVATE
-                    )
-                    val cp: String? = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
-
-                    AuthenticationHelper.authenticate(
-                        activity, thing.getBackground(),
-                        getString(R.string.check_private_thing), cp,
-                        object : AuthenticationHelper.AuthenticationCallback {
-                            override fun onAuthenticated() {
-                                openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
-                            }
-
-                            override fun onCancel() {
-                            }
-                        })
+                if (isThingEffectivelyPrivateInCurrentProjection(thing)
+                    && !mThingManager!!.isThingPrivacyAuthenticated(thing.id)) {
+                    // 访问即信任：本会话已认证过该私密记事则免二次验证，与私密文件夹同口径。
+                    // 经 authenticateThing 收口，认证成功即写入会话级已认证记事集。
+                    authenticateThing(thing) {
+                        openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
+                    }
                 } else {
                     openDetailActivityForUpdate(thing, thingIndex, listPosition, v!!)
                 }
@@ -7620,22 +7618,14 @@ class ThingsActivity :
 
             val thingIndex = mThingManager!!.getPosition(thing.id)
             val listPosition = mThingManager!!.getListPositionForThingId(thing.id)
-            if (thing.isPrivate() && !mThingManager!!.isCurrentFolderPrivacyAuthenticated()) {
-                val sp: SharedPreferences = getSharedPreferences(
-                    Def.Meta.PREFERENCES_NAME, MODE_PRIVATE
-                )
-                val cp: String? = sp.getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
-                AuthenticationHelper.authenticate(
-                    this@ThingsActivity, thing.getBackground(),
-                    getString(R.string.check_private_thing), cp,
-                        object : AuthenticationHelper.AuthenticationCallback {
-                        override fun onAuthenticated() {
-                            openDetailActivityForUpdate(thing, thingIndex, listPosition, v)
-                        }
-
-                        override fun onCancel() {
-                        }
-                    })
+            if (ThingPrivacyResolver.isEffectivelyPrivate(this@ThingsActivity, thing) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId) &&
+                !mThingManager!!.isThingPrivacyAuthenticated(thing.id)) {
+                // 收口到 authenticateThing：认证成功即写入会话级已认证记事集并重绑列表（A2），
+                // 与列表点击同口径；已认证（文件夹或该记事）则免二次验证。
+                authenticateThing(thing) {
+                    openDetailActivityForUpdate(thing, thingIndex, listPosition, v)
+                }
             } else {
                 openDetailActivityForUpdate(thing, thingIndex, listPosition, v)
             }
@@ -7816,6 +7806,9 @@ class ThingsActivity :
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
+                    // 统一写入会话级共享认证集（P1）：抽屉展开、移动对话框展开、打开文件夹、
+                    // 外观面板等所有文件夹鉴权都经此处，认证一次本会话处处生效。
+                    mThingManager!!.markFolderPrivacyAuthenticated(folder.id)
                     onAuthenticated()
                 }
 
@@ -7841,6 +7834,12 @@ class ThingsActivity :
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
+                    // 会话级记事认证（访问即信任）：本会话认证过该私密记事后，
+                    // 再打开/调外观等免二次验证，与私密文件夹同款；切后台清空。
+                    mThingManager!!.markThingPrivacyAuthenticated(thing.id)
+                    // A2：认证后让列表重绑，已认证的私密记事卡片即时从锁变为显示真实内容。仅查看记事
+                    // 返回详情走 RESULT_NO_UPDATE、不入 notify 队列，tryToNotify 不会重绑，故主动通知。
+                    mAdapter?.notifyDataSetChanged()
                     onAuthenticated()
                 }
 
@@ -7937,7 +7936,7 @@ class ThingsActivity :
         adf.setShowCancel(false)
         adf.setTitleBackground(folder.getBackground())
         adf.setConfirmBackground(folder.getBackground())
-        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
+        adf.setTitle(HomeActionWordingHelper.noPasswordTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
@@ -8098,12 +8097,15 @@ class ThingsActivity :
         selectedThings: List<Thing>,
         targetFolderId: Long?
     ): Boolean {
-        val targetPrivate = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId)
+        // 与 moveFolderToFolder 的鉴权口径一致（访问即信任）：只有源或目标是"未认证的"私密文件夹
+        // 才要求验证；在已认证的私密文件夹里移动记事不再重复验证。
+        val targetNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(targetFolderId)
         for (thing in selectedThings) {
             if (thing.folderId == targetFolderId) continue
-            if (targetPrivate || thing.isPrivate() ||
-                    mThingManager!!.isFolderEffectivelyPrivate(thing.folderId)
-            ) {
+            val sourceNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) &&
+                    !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId)
+            if (targetNeedsAuth || sourceNeedsAuth) {
                 return true
             }
         }
@@ -8115,9 +8117,12 @@ class ThingsActivity :
         targetFolderId: Long?
     ): Boolean {
         if (thing.folderId == targetFolderId) return false
-        return thing.isPrivate() ||
-                mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) ||
-                mThingManager!!.isFolderEffectivelyPrivate(targetFolderId)
+        // 同上：与 moveFolderToFolder 一致，已认证的私密文件夹内移动免重复验证。
+        val sourceNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId)
+        val targetNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(targetFolderId)
+        return sourceNeedsAuth || targetNeedsAuth
     }
 
     private fun getFolderMovePrivacyBackground(
@@ -10856,7 +10861,12 @@ class ThingsActivity :
         }
 
         private fun needsThingSwipePrivacyAuthentication(thing: Thing): Boolean {
-            return thing.isPrivate() || mThingManager!!.isCurrentFolderEffectivelyPrivate()
+            // 与列表显示口径（isThingEffectivelyPrivate）一致：已认证当前私密文件夹后，里面的
+            // 记事既已解锁显示，右滑完成/开始做就不再二次验证（访问即信任）。
+            // 同理：本会话已单独认证过该私密记事（如先点开过它）也免二次验证。
+            return (thing.isPrivate() || mThingManager!!.isCurrentFolderEffectivelyPrivate())
+                && !mThingManager!!.isCurrentFolderPrivacyAuthenticated()
+                && !mThingManager!!.isThingPrivacyAuthenticated(thing.id)
         }
 
         private fun authenticateThingSwipe(
@@ -10878,6 +10888,8 @@ class ThingsActivity :
                 cp,
                 object : AuthenticationHelper.AuthenticationCallback {
                     override fun onAuthenticated() {
+                        // 会话级记事认证：右滑认证过后本会话再访问该记事免二次验证。
+                        mThingManager!!.markThingPrivacyAuthenticated(thing.id)
                         onAuthenticated()
                     }
 
@@ -10921,7 +10933,7 @@ class ThingsActivity :
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    if (thingToSwipe.isPrivate()) {
+                    if (ThingPrivacyResolver.isEffectivelyPrivate(this@ThingsActivity, thingToSwipe)) {
                         val helper = ThingDoingHelper(this@ThingsActivity, thingToSwipe)
                         helper.tryToOpenStartDoingActivityUser(thingToSwipe.getBackground())
                     } else {
@@ -11497,7 +11509,10 @@ class ThingsActivity :
             AuthenticationHelper.authenticate(
                 this,
                 App.defaultAccentBackground,
-                HomeActionWordingHelper.privateTitle(this, allPrivate = true),
+                HomeActionWordingHelper.privateTitle(
+                    this, allPrivate = true,
+                    hasThing = things.isNotEmpty(), hasFolder = folders.isNotEmpty()
+                ),
                 cp,
                 object : AuthenticationHelper.AuthenticationCallback {
                     override fun onAuthenticated() {
@@ -11552,6 +11567,34 @@ class ThingsActivity :
                 this, getString(R.string.private_batch_skipped), Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    private fun exportSelectedThingsWithPrivacyAuth() {
+        val selected = mThingManager!!.getSelectedThings() ?: emptyArray()
+        val export = {
+            ThingExporter.startExporting(this, App.defaultAccentBackground, *selected)
+            mModeManager!!.backNormalMode(0)
+        }
+        // 导出会把内容明文写到 SD 卡：选中含有效私密记事时先鉴权一次再导出（访问即信任）。
+        val hasPrivate = selected.filterNotNull().any {
+            ThingPrivacyResolver.isEffectivelyPrivate(this, it)
+        }
+        if (!hasPrivate) {
+            export()
+            return
+        }
+        val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this, App.defaultAccentBackground,
+            getString(R.string.act_export_to_sdcard), cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    export()
+                }
+
+                override fun onCancel() {}
+            })
     }
 
     private fun toggleSelectedStickyEntry() {
@@ -11642,7 +11685,9 @@ class ThingsActivity :
         AuthenticationHelper.authenticate(
             this,
             thing.getBackground(),
-            HomeActionWordingHelper.privateTitle(this, allPrivate = true),
+            HomeActionWordingHelper.privateTitle(
+                this, allPrivate = true, hasThing = true, hasFolder = false
+            ),
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
@@ -11670,7 +11715,7 @@ class ThingsActivity :
         adf.setShowCancel(false)
         adf.setTitleBackground(thing.getBackground())
         adf.setConfirmBackground(thing.getBackground())
-        adf.setTitle(HomeActionWordingHelper.cannotSetPrivateTitle(this))
+        adf.setTitle(HomeActionWordingHelper.noPasswordTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
@@ -11728,11 +11773,7 @@ class ThingsActivity :
             } else if (itemId == R.id.act_delete_thing_folder) {
                 confirmDeleteSelectedStructural()
             } else if (itemId == R.id.act_export) {
-                ThingExporter.startExporting(
-                    this@ThingsActivity, App.defaultAccentBackground,
-                    *(mThingManager!!.getSelectedThings() ?: emptyArray())
-                )
-                mModeManager!!.backNormalMode(0)
+                exportSelectedThingsWithPrivacyAuth()
             }
             mModeManager!!.updateSelectedCount()
             return false

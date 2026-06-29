@@ -14,6 +14,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
@@ -128,7 +129,9 @@ open class AuthenticationActivity : AppCompatActivity() {
     private fun tryToAuthenticate(thing: Thing, position: Int) {
         val intent: Intent = getIntent()
         val action: String? = intent.action
-        if (thing.isPrivate()) {
+        // 用有效私密判定：处于私密文件夹内、自身无前缀的记事，从小部件/通知点进来时也要走验证，
+        // 否则这道总闸会把 P5 已正确路由过来的私密记事又放行（见 ADR 0011）。
+        if (ThingPrivacyResolver.isEffectivelyPrivate(this, thing)) {
             val cp: String? = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
             if (cp == null) {

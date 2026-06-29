@@ -120,6 +120,51 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     override fun isThingEffectivelyPrivate(thing: Thing): Boolean {
         return (thing.isPrivate() || mThingManager!!.isCurrentFolderEffectivelyPrivate())
             && !mThingManager!!.isCurrentFolderPrivacyAuthenticated()
+            && !isThingRevealedByAuth(thing.id)
+    }
+
+    // 外观编辑期间，对正在编辑的那个文件夹展示真实外观（含缩略图/预览）；其余文件夹仍走遮蔽后的
+    // effective 外观，私密文件夹在普通列表里照常只显示锁。面板关闭时由调用方清空该 id。
+    private var mAppearanceRevealFolderId: Long? = null
+
+    open fun setAppearanceRevealFolderId(id: Long?) {
+        mAppearanceRevealFolderId = id
+    }
+
+    /**
+     * 该私密文件夹的内容是否应揭示（按真实外观显示内容/预览，而非上锁）：正在外观编辑、全局显示
+     * 私密、或本会话已认证过该文件夹时为真。一旦本会话认证过某私密文件夹，其卡片即按真实外观显示
+     * 内容（含大文件夹缩略图），与"访问即信任"一致；非私密文件夹永远为真（effectivePrivate 才遮蔽）。
+     */
+    private fun shouldRevealFolderContent(folder: ThingFolder): Boolean {
+        return folder.id == mAppearanceRevealFolderId ||
+            shouldShowPrivateContent() ||
+            isFolderRevealedByAuth(folder.id)
+    }
+
+    /**
+     * 会话级"已认证→揭示"的可覆写接缝。主 app 走单例 ThingManager 的会话认证集；widget 配置等
+     * 从 app 外启动、维护各自本地认证会话的子类应覆写为本地语义（决策 4：app 外入口不共享主会话
+     * 认证，避免主 app 认证过的私密内容泄露到桌面配置界面）。
+     */
+    protected open fun isFolderRevealedByAuth(folderId: Long): Boolean {
+        return mThingManager!!.isFolderPrivacyAuthenticated(folderId)
+    }
+
+    protected open fun isThingRevealedByAuth(thingId: Long): Boolean {
+        return mThingManager!!.isThingPrivacyAuthenticated(thingId)
+    }
+
+    private fun presentationFor(folder: ThingFolder): ThingFolderCardPresentation {
+        // effectiveCardPresentation 仅在 folder 自身私密时才与真实值不同；非自身私密的文件夹直接返回
+        // 真实外观，省去 shouldRevealFolderContent 里 isFolderPrivacyAuthenticated 的祖先路径遍历
+        // （getFolderPath 是逐级 DB 查询，presentationFor 每次绑卡片会调多次）。
+        if (!folder.isPrivate) return folder.cardPresentation
+        return if (shouldRevealFolderContent(folder)) {
+            folder.cardPresentation
+        } else {
+            folder.effectiveCardPresentation()
+        }
     }
 
     open fun shouldThingsAnimWhenAppearing(): Boolean = mShouldThingsAnimWhenAppearing
@@ -271,7 +316,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         lp.height = StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT
         lp.setMargins(mX, mX, mX, mX)
         lp.isFullSpan =
-            folder.effectiveCardPresentation().spanMode == ThingFolderCardPresentation.SPAN_FULL
+            presentationFor(folder).spanMode == ThingFolderCardPresentation.SPAN_FULL
         cv.visibility = View.VISIBLE
     }
 
@@ -354,7 +399,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     private fun bindFolderCardSurface(holder: BaseThingViewHolder, folder: ThingFolder) {
         val background = folder.getBackground()
-        val presentation = folder.effectiveCardPresentation()
+        val presentation = presentationFor(folder)
         val thumbnailMode =
             presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         if (thumbnailMode) {
@@ -397,7 +442,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val selected = folder.isSelected()
         val currentMode = getCurrentMode()
         val background = folder.getBackground()
-        val presentation = folder.effectiveCardPresentation()
+        val presentation = presentationFor(folder)
         val thumbnailMode =
             presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         val dimUnselected = shouldDimUnselectedContent(currentMode) && !selected
@@ -495,8 +540,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     ) {
         val folder = entry.folder
         val background = folder.getBackground()
-        val hiddenPrivate = entry.effectivePrivate && !shouldShowFolderPrivateContent()
-        val presentation = folder.effectiveCardPresentation()
+        // 私密文件夹：本会话已认证（含正在外观编辑、全局显示私密）时放行内容遮蔽，卡片按真实外观
+        // 显示内容/预览；未认证才上锁。揭示判据统一收口到 shouldRevealFolderContent。
+        val hiddenPrivate = entry.effectivePrivate && !shouldShowFolderPrivateContent() &&
+            !shouldRevealFolderContent(folder)
+        val presentation = presentationFor(folder)
         val thumbnailMode =
             presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
         val baseColor = if (thumbnailMode) {
@@ -512,7 +560,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             // that only contains trashed descendants in the recycle bin.
             if (folder.isDeleted()) R.drawable.ic_thing_folder_deleted else R.drawable.ic_thing_folder,
             baseColor,
-            if (thumbnailMode) background else null
+            if (thumbnailMode) background else null,
+            folder = folder
         )
 
         if (hiddenPrivate) {
@@ -594,7 +643,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         title: String,
         iconRes: Int,
         baseColor: Int,
-        titleBackground: ThingBackground? = null
+        titleBackground: ThingBackground? = null,
+        folder: ThingFolder? = null
     ) {
         val container = holder.llTextContent ?: return
         removeFolderHeaderViews(holder)
@@ -608,19 +658,36 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         val iconSize = (mDensity * 20).toInt()
         val icon = ImageView(mApp)
-        icon.setImageResource(iconRes)
         icon.contentDescription = mApp!!.getString(R.string.thing_folder)
         icon.scaleType = ImageView.ScaleType.CENTER_INSIDE
-        if (titleBackground != null) {
+        if (folder != null && folder.isPrivate && !folder.isDeleted() &&
+            shouldRevealFolderContent(folder)
+        ) {
+            // 已鉴权（揭示）的私密文件夹：仿 Drawer，folder 图标内嵌"开锁"。未鉴权态卡片本就有
+            // 居中大锁（bindFolderPrivateLock），不在图标里重复加锁，故此分支只处理揭示态开锁。
+            // 图标填充沿用既有的"按形态着色"：大文件夹（titleBackground 非空）用文件夹自身背景色，
+            // 小文件夹 / 缩略图里的预览（小文件夹形态，titleBackground 为空）用自适应墨色
+            // （textColorPrimary，偏黑/白）。FolderIconDrawable 据填充色把锁画成对比色，开锁清晰可见。
+            val iconBg = titleBackground ?: ThingBackground.pure(textColorPrimary(baseColor))
             ImageViewCompat.setImageTintList(icon, null)
             icon.setImageDrawable(
-                BackgroundUtil.tintDrawable(mApp!!.resources, icon.drawable, titleBackground)
+                com.ywwynm.everythingdone.views.DrawerNavigationView.FolderIconDrawable(
+                    iconBg, privateFolder = true, authenticated = true
+                )
             )
         } else {
-            ImageViewCompat.setImageTintList(
-                icon,
-                ColorStateList.valueOf(textColorPrimary(baseColor))
-            )
+            icon.setImageResource(iconRes)
+            if (titleBackground != null) {
+                ImageViewCompat.setImageTintList(icon, null)
+                icon.setImageDrawable(
+                    BackgroundUtil.tintDrawable(mApp!!.resources, icon.drawable, titleBackground)
+                )
+            } else {
+                ImageViewCompat.setImageTintList(
+                    icon,
+                    ColorStateList.valueOf(textColorPrimary(baseColor))
+                )
+            }
         }
         row.addView(icon, LinearLayout.LayoutParams(iconSize, iconSize))
 
@@ -706,7 +773,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val entries = getFolderThumbnailEntries(entry)
         val container = holder.llTextContent ?: return
         allowFolderThumbnailShadowOverflow(container)
-        val presentation = entry.folder.effectiveCardPresentation()
+        val presentation = presentationFor(entry.folder)
         val fullSpan = presentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
         // Full-span masonry shows screen-aware count (phone fixed, tablet 2×columns);
         // normal-span list keeps the model's fixed preview limit.
@@ -743,11 +810,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private fun getFolderThumbnailEntries(
         entry: ThingListEntry.FolderEntry
     ): List<ThingListEntry> {
-        if (entry.thumbnailEntries.isNotEmpty()) return entry.thumbnailEntries
-        if (entry.folder.effectiveCardPresentation().mode ==
+        // 该有效私密文件夹是否应揭示真实内容（如处于已认证的祖先私密文件夹内）。
+        // entry.effectivePrivate 短路：非有效私密文件夹无遮蔽可绕过，免去揭示判定的路径遍历。
+        val reveal = entry.effectivePrivate && shouldRevealFolderContent(entry.folder)
+        // 投影预算的 thumbnailEntries 是按 revealRoot=false 算的：有效私密文件夹的直接记事在
+        // getDirectThumbnailThings 被整条过滤、只剩子文件夹。故揭示时不能用这份缓存（否则"只见
+        // 子文件夹、不见记事"），必须按 revealRoot 重新实时取数。
+        if (!reveal && entry.thumbnailEntries.isNotEmpty()) return entry.thumbnailEntries
+        if (presentationFor(entry.folder).mode ==
                 ThingFolderCardPresentation.MODE_THUMBNAILS
         ) {
-            val previewEntries = mThingManager!!.getFolderThumbnailPreviewEntries(entry.folder)
+            val previewEntries = mThingManager!!.getFolderThumbnailPreviewEntries(
+                entry.folder,
+                revealRoot = reveal
+            )
             if (previewEntries.isNotEmpty()) return previewEntries
         }
         return entry.thumbnailThings.map { ThingListEntry.ThingEntry(it) }
@@ -1037,7 +1113,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             isPrivate = folder.isPrivate,
             createTime = folder.createTime,
             updateTime = folder.updateTime,
-            cardPresentation = folder.effectiveCardPresentation().withMode(
+            cardPresentation = presentationFor(folder).withMode(
                 ThingFolderCardPresentation.MODE_SUMMARY
             )
         )
@@ -1385,7 +1461,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private fun isFolderPreviewFullSpanEntry(entry: ThingListEntry): Boolean {
         return when (entry) {
             is ThingListEntry.FolderEntry ->
-                entry.folder.effectiveCardPresentation().spanMode ==
+                presentationFor(entry.folder).spanMode ==
                     ThingFolderCardPresentation.SPAN_FULL
             is ThingListEntry.ThingEntry -> isFolderPreviewFullSpanThing(entry.thing)
         }
@@ -1765,6 +1841,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         override fun isThingEffectivelyPrivate(thing: Thing): Boolean {
             return thing.isPrivate() && !shouldShowFolderPrivateContent()
+                && !this@ThingsAdapter.isThingRevealedByAuth(thing.id)
         }
 
         override fun shouldDimUnselectedContent(currentMode: Int): Boolean = false

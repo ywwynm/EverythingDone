@@ -16,6 +16,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
@@ -97,9 +98,12 @@ abstract class BaseThingWidget : AppWidgetProvider() {
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.lv_thing_check_list)
 
         Log.e(TAG, "updateSingleThingAppWidget, thing.content[" + thing.content + "]")
+        // 经集中解析：处于私密文件夹内、自身无前缀的记事也按私密渲染（隐藏内容、显示锁），
+        // 避免单一小部件在桌面明文泄露（见 ADR 0011）。
+        val safeThing = ThingPrivacyResolver.resolveForPresentation(context, thing)
         appWidgetManager.updateAppWidget(appWidgetId,
                 AppWidgetHelper.createRemoteViewsForSingleThing(
-                        context, thing, position, appWidgetId, this::class.java))
+                        context, safeThing, position, appWidgetId, this::class.java))
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {

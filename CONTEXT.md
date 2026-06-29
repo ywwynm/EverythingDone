@@ -24,6 +24,10 @@ _Avoid_: ongoing-notification Thing, every underway Thing, 把"正在做"当成�
 被固定为常驻通知的 Thing，由 `KEY_ONGOING_THING_ID` 标识；它与 Doing Thing 是两个独立概念，状态变更时清理的是它的常驻通知，而不是 Doing Thing 的计时。
 _Avoid_: 把 Ongoing Thing 与 Doing Thing 混用
 
+**Private Thing**:
+内容被保护、需通过身份验证才能查看的 Thing；标题（若有）仍然可见，列表中显示为带锁的彩色卡片，凭锁与颜色辨识。
+_Avoid_: 隐藏记事、把"私密"理解为连标题一起隐藏
+
 **Thing Folder**:
 A user-created container that groups Things and may itself live inside another Thing Folder.
 _Avoid_: note folder, category, tag
@@ -31,6 +35,10 @@ _Avoid_: note folder, category, tag
 **Private Thing Folder**:
 A Thing Folder whose folder identity, contained previews, and descendant content presentation are protected while the descendants remain inside it.
 _Avoid_: secret category, hidden tag
+
+**Effectively Private**:
+因自身私密、或位于某个 Private Thing Folder 之内而被保护展示的 Thing 或 Thing Folder；保护持续到所属私密范围通过身份验证为止。
+_Avoid_: 把"位于私密文件夹内的条目"误解为它自身已被标记私密
 
 **Trashed Thing Folder**:
 已进入回收站、保留子结构并可恢复或永久删除的 Thing Folder。

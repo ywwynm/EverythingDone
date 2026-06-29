@@ -841,6 +841,7 @@
     <string name="warning_title_should_not_be_empty">如果閣下要設置該記事為私密記事，請您為它設置標題</string>
     <string name="warning_should_set_password_first"><![CDATA[閣下還未設定應用密碼，請前往設置 -> 隱私 -> 設定應用密碼進行設定]]></string>
     <string name="cannot_set_as_private_thing_title">無法設置為私密記事</string>
+    <string name="set_password_first_title">請先設定密碼</string>
 
     <!--group start doing-->
     <string name="auto_start_doing_title">提醒到來時自動開始做事</string>

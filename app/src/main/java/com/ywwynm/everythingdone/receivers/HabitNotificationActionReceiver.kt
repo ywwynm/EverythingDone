@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity
 import com.ywwynm.everythingdone.activities.StartDoingActivity
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.services.DoingService
@@ -70,7 +71,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
 
         val hrTime: Long = intent.getLongExtra(Def.Communication.KEY_TIME, -1)
         if (Def.Communication.NOTIFICATION_ACTION_FINISH == action) {
-            if (thing.isPrivate()) {
+            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
@@ -89,7 +90,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
             }
 
             val actionIntent: Intent
-            if (thing.isPrivate()) {
+            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,

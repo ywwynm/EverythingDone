@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Habit
@@ -216,7 +217,7 @@ open class HabitReceiver : BroadcastReceiver() {
         // Phase 8: full ThingBackground for gradient on the action dialog.
         SystemNotificationUtil.addActionsForHabitNotification(
                 context, builder, hrId, position, hrTime,
-                thing.isPrivate(), habitId, thing.getBackground())
+                ThingPrivacyResolver.isEffectivelyPrivate(context, thing), habitId, thing.getBackground())
 
         if (moreNoticeable) {
             val fullScreenIntent: Intent = NoticeableNotificationActivity.getOpenIntentForHabit(

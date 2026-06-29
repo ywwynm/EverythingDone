@@ -68,6 +68,7 @@ class DrawerNavigationView @JvmOverloads constructor(
         @param:DrawableRes val iconRes: Int? = null,
         val folderBackground: ThingBackground? = null,
         val folderPrivate: Boolean = false,
+        val folderAuthenticated: Boolean = false,
         val folderLevel: Int = 0,
         val hasChildFolders: Boolean = false,
         val folderExpanded: Boolean = false,
@@ -496,7 +497,7 @@ class DrawerNavigationView @JvmOverloads constructor(
                 // 选中文件夹行已铺其自身颜色，文件夹图标改用自适应前景色以保持可见；
                 // 未选中沿用文件夹自身颜色。
                 val iconBg = if (selected) ThingBackground.pure(fgColor) else folderBackground
-                return FolderIconDrawable(iconBg, item.folderPrivate)
+                return FolderIconDrawable(iconBg, item.folderPrivate, item.folderAuthenticated)
             }
 
             val iconRes = item.iconRes ?: return null
@@ -812,7 +813,9 @@ class DrawerNavigationView @JvmOverloads constructor(
 
     class FolderIconDrawable(
         private val background: ThingBackground,
-        private val privateFolder: Boolean
+        private val privateFolder: Boolean,
+        // 本会话已鉴权（揭示）的私密文件夹画"开锁"，未鉴权画"闭锁"，区分访问状态。
+        private val authenticated: Boolean = false
     ) : Drawable() {
 
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -903,11 +906,21 @@ class DrawerNavigationView @JvmOverloads constructor(
             lockPaint.style = Paint.Style.STROKE
             lockPaint.strokeWidth = (size * 0.72f / 24f).coerceAtLeast(1f)
             lockPath.reset()
-            lockPath.moveTo(x(10.35f), y(12.9f))
-            lockPath.lineTo(x(10.35f), y(11.95f))
-            lockPath.cubicTo(x(10.35f), y(10.72f), x(11.04f), y(10.02f), x(12f), y(10.02f))
-            lockPath.cubicTo(x(12.96f), y(10.02f), x(13.65f), y(10.72f), x(13.65f), y(11.95f))
-            lockPath.lineTo(x(13.65f), y(12.9f))
+            if (authenticated) {
+                // 已鉴权"开锁"：右锁栓照常连接锁体，删去左侧锁栓下段、使其悬于锁体上方留出缺口。
+                // 形状端正不旋转、开口在左侧，与私密记事的开锁一致。
+                lockPath.moveTo(x(13.65f), y(12.9f))
+                lockPath.lineTo(x(13.65f), y(11.95f))
+                lockPath.cubicTo(x(13.65f), y(10.72f), x(12.96f), y(10.02f), x(12f), y(10.02f))
+                lockPath.cubicTo(x(11.04f), y(10.02f), x(10.35f), y(10.6f), x(10.35f), y(11.0f))
+            } else {
+                // 未鉴权"闭锁"：左右锁栓都连接锁体。
+                lockPath.moveTo(x(10.35f), y(12.9f))
+                lockPath.lineTo(x(10.35f), y(11.95f))
+                lockPath.cubicTo(x(10.35f), y(10.72f), x(11.04f), y(10.02f), x(12f), y(10.02f))
+                lockPath.cubicTo(x(12.96f), y(10.02f), x(13.65f), y(10.72f), x(13.65f), y(11.95f))
+                lockPath.lineTo(x(13.65f), y(12.9f))
+            }
             canvas.drawPath(lockPath, lockPaint)
 
             lockPaint.style = Paint.Style.FILL

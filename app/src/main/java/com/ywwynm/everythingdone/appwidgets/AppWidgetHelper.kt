@@ -2099,6 +2099,11 @@ object AppWidgetHelper {
         if (!title.isEmpty()) {
             return title
         }
+        // 私密记事（含被 resolveForPresentation 标私密的"私密文件夹内、自身无前缀"记事）空标题时不
+        // 回退内容，避免简单样式 widget 在桌面泄露内容摘要；返回 null，与"仅附件"情形一致（外层显示锁）。
+        if (thing.isPrivate()) {
+            return null
+        }
         var content: String = thing.content!!
         if (!content.isEmpty()) {
             if (CheckListHelper.isCheckListStr(content)) {

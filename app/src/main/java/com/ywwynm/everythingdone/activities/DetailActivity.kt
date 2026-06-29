@@ -967,7 +967,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val lastFolder = folders.last()
         val icon = DrawerNavigationView.FolderIconDrawable(
             lastFolder.getBackground() ?: ThingBackground.pure(lastFolder.getColor()),
-            lastFolder.isPrivate
+            lastFolder.isPrivate,
+            // 已鉴权私密文件夹画开锁，与路径文字按认证显示真实名一致。
+            manager?.isFolderPrivacyAuthenticated(lastFolder.id) == true
         )
         val iconSize = (18 * screenDensity).toInt().coerceAtLeast(1)
         val iconShiftY = (screenDensity * 1).toInt().coerceAtLeast(1)
@@ -1786,35 +1788,18 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         adf.setTitleBackground(accent)
         adf.setConfirmBackground(accent)
 
-        adf.setTitle(getString(R.string.cannot_set_as_private_thing_title))
+        adf.setTitle(getString(R.string.set_password_first_title))
         adf.setContent(getString(R.string.warning_should_set_password_first))
         adf.show(fragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun tryToCancelPrivateThing() {
-        if (!mThing!!.isPrivate()) {
-            cancelPrivateThingUiAndAddAction()
-            if (shouldAddToActionList) {
-                mActionList!!.addAction(ThingAction(ThingAction.TOGGLE_PRIVATE, null, null))
-            }
-            return
+        // 访问即信任（见 docs/adr 与 private-content/decisions.md 取消私密决议）：能进到详情页
+        // 就已经通过认证，取消私密不再二次验证，直接取消即可。
+        cancelPrivateThingUiAndAddAction()
+        if (shouldAddToActionList) {
+            mActionList!!.addAction(ThingAction(ThingAction.TOGGLE_PRIVATE, null, null))
         }
-
-        val cp: String = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)!!
-        val shouldAddToActionList = this.shouldAddToActionList
-        AuthenticationHelper.authenticate(
-            this, getAccentBackground(), getString(R.string.act_cancel_private_thing), cp,
-            object : AuthenticationHelper.AuthenticationCallback {
-                override fun onAuthenticated() {
-                    cancelPrivateThingUiAndAddAction()
-                    if (shouldAddToActionList) {
-                        mActionList!!.addAction(ThingAction(ThingAction.TOGGLE_PRIVATE, null, null))
-                    }
-                }
-
-                override fun onCancel() {}
-            })
     }
 
     private fun cancelPrivateThingUiAndAddAction() {

@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.activities.NoticeableNotificationActivity
 import com.ywwynm.everythingdone.activities.StartDoingActivity
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.services.DoingService
 
@@ -64,7 +65,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
         if (Def.Communication.NOTIFICATION_ACTION_FINISH == action
             || Def.Communication.WIDGET_ACTION_FINISH == action
         ) {
-            if (thing.isPrivate()) {
+            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
@@ -80,7 +81,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
                         Toast.LENGTH_LONG).show()
                 return
             }
-            val actionIntent: Intent = if (thing.isPrivate()) {
+            val actionIntent: Intent = if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 AuthenticationActivity.getOpenIntent(
                     context, TAG, thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_START_DOING,
@@ -94,7 +95,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)
         } else if (Def.Communication.NOTIFICATION_ACTION_DELAY == action) {
-            val actionIntent: Intent = if (thing.isPrivate()) {
+            val actionIntent: Intent = if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 AuthenticationActivity.getOpenIntent(
                     context, TAG, thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_DELAY,

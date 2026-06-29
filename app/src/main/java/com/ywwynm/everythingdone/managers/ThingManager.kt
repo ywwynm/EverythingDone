@@ -62,6 +62,9 @@ open class ThingManager private constructor(context: Context?) {
     private var mEntryFilterColor: Int = 0
     private var mThingsCounts: ThingsCounts? = ThingsCounts.getInstance(context)
     private val mAuthenticatedPrivateFolderIds = HashSet<Long>()
+    // 会话级"已认证私密记事"集，与 mAuthenticatedPrivateFolderIds 对称：本会话打开/右滑/调外观
+    // 时认证过的私密记事记在此，再次访问免二次验证（访问即信任）；同样切后台清空。
+    private val mAuthenticatedPrivateThingIds = HashSet<Long>()
 
     /**
      * Used to ensure that id/location of thing in [mThings] is same as that in database.
@@ -277,11 +280,15 @@ open class ThingManager private constructor(context: Context?) {
         return mFolderDao!!.hasAnyFolder()
     }
 
-    open fun getFolderThumbnailPreviewEntries(folder: ThingFolder): List<ThingListEntry> {
+    open fun getFolderThumbnailPreviewEntries(
+        folder: ThingFolder,
+        revealRoot: Boolean = false
+    ): List<ThingListEntry> {
         return mFolderDao!!.getThumbnailEntriesForTypeFilterPreview(
             folder,
             mStatus,
-            mTypeFilterMask
+            mTypeFilterMask,
+            revealRoot = revealRoot
         )
     }
 
@@ -312,6 +319,24 @@ open class ThingManager private constructor(context: Context?) {
                 mAuthenticatedPrivateFolderIds.add(folder.id)
             }
         }
+    }
+
+    /** P1：app 切到后台时清空，会话级私密文件夹认证就此失效，回前台需重新认证。 */
+    open fun clearAuthenticatedPrivateFolders() {
+        mAuthenticatedPrivateFolderIds.clear()
+    }
+
+    open fun isThingPrivacyAuthenticated(thingId: Long): Boolean {
+        return mAuthenticatedPrivateThingIds.contains(thingId)
+    }
+
+    open fun markThingPrivacyAuthenticated(thingId: Long) {
+        mAuthenticatedPrivateThingIds.add(thingId)
+    }
+
+    /** 与 [clearAuthenticatedPrivateFolders] 对称：app 切到后台时一并清空已认证私密记事。 */
+    open fun clearAuthenticatedPrivateThings() {
+        mAuthenticatedPrivateThingIds.clear()
     }
 
     open fun openFolder(
@@ -365,9 +390,9 @@ open class ThingManager private constructor(context: Context?) {
     }
 
     private fun trimAuthenticatedPrivateFoldersToProjection() {
-        if (mAuthenticatedPrivateFolderIds.isEmpty()) return
-        val pathIds = mProjection.folderPath.toHashSet()
-        mAuthenticatedPrivateFolderIds.retainAll(pathIds)
+        // P1：私密认证改为会话级——导航离开不再裁剪，认证持续到 app 切到后台
+        // （由 App 的 ActivityLifecycleCallbacks 调用 clearAuthenticatedPrivateFolders 清空）。
+        // 保留空方法体，避免改动各调用点。
     }
 
     open fun getThingsCounts(): ThingsCounts? {
@@ -1170,11 +1195,9 @@ open class ThingManager private constructor(context: Context?) {
         val cleanTitle = title.trim()
         if (cleanTitle.isEmpty()) return false
         folder.title = cleanTitle
-        folder.cardPresentation = if (folder.isPrivate) {
-            ThingFolderCardPresentation.default()
-        } else {
-            presentation
-        }
+        // 不再因私密而把存储外观抹成 default（那会造成取消私密后外观回不来的数据损坏）。
+        // 存储始终保留用户真实外观；私密时由 effectiveCardPresentation() 在显示层遮蔽为 default。
+        folder.cardPresentation = presentation
         mFolderDao!!.update(folder)
         loadThings()
         return true
@@ -1185,13 +1208,9 @@ open class ThingManager private constructor(context: Context?) {
         presentation: ThingFolderCardPresentation?
     ): Boolean {
         if (folder == null || presentation == null) return false
-        val confirmedPresentation = if (folder.isPrivate) {
-            ThingFolderCardPresentation.default()
-        } else {
-            presentation
-        }
-        folder.cardPresentation = confirmedPresentation
-        mFolderDao!!.updateCardPresentation(folder.id, confirmedPresentation)
+        // 同 updateFolderAppearance：存储保留真实外观，私密遮蔽交给 effectiveCardPresentation()。
+        folder.cardPresentation = presentation
+        mFolderDao!!.updateCardPresentation(folder.id, presentation)
         loadThings()
         return true
     }
@@ -1204,8 +1223,13 @@ open class ThingManager private constructor(context: Context?) {
         if (folder == null) return false
         folder.isPrivate = isPrivate
         if (isPrivate) {
-            folder.cardPresentation = ThingFolderCardPresentation.default()
             mFolderDao!!.update(folder)
+            // 仅当正设私密的是"当前已打开的文件夹"时才自动认证：人还站在里面，内容不应立刻锁成一片
+            // 锁卡片（决策 3）。从列表长按 / 批量设私密时用户并未打开它，不认证，卡片即刻上锁，给出
+            // "已变私密"的可见反馈。
+            if (folder.id == mProjection.currentFolderId) {
+                markFolderPrivacyAuthenticated(folder.id)
+            }
         } else {
             mAuthenticatedPrivateFolderIds.remove(folder.id)
             mFolderDao!!.updatePrivate(folder.id, false)

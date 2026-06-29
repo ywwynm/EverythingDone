@@ -638,7 +638,11 @@ open class ThingsListWidgetConfiguration : AppCompatActivity() {
                 }
                 holder.icon.clearColorFilter()
                 holder.icon.setImageDrawable(
-                    DrawerNavigationView.FolderIconDrawable(iconBg, folder.isPrivate)
+                    DrawerNavigationView.FolderIconDrawable(
+                        iconBg, folder.isPrivate,
+                        // 配置页是独立本地会话：已认证私密文件夹按本地认证集画开锁。
+                        isFolderPrivacyAuthenticated(folder.id)
+                    )
                 )
                 holder.title.text = folder.title.ifEmpty { getString(R.string.default_thing_folder_name) }
                 val hasChildren = !childrenByParent[folder.id].isNullOrEmpty()

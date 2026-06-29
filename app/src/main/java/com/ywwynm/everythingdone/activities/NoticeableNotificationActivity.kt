@@ -37,6 +37,8 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.database.HabitDAO
+import com.ywwynm.everythingdone.helpers.AuthenticationHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
@@ -148,7 +150,11 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
 
         val position = intent.getIntExtra(Def.Communication.KEY_POSITION, -1)
         val pair: Pair<Thing, Int> = App.getThingAndPosition(this, thingId, position)
-        mThing = pair.first
+        // 处于私密文件夹内、自身无前缀的记事也按私密处理（见 ADR 0011）：卡片显示锁、动作要鉴权。
+        // 记事已删除 / 通知过期时 pair.first 可能为 null：置 mThing=null，由 onCreate 走 finish() 优雅
+        // 退出，而非把 null 传给非空参的 resolveForPresentation 触发 NPE 崩溃。
+        val rawThing: Thing? = pair.first
+        mThing = rawThing?.let { ThingPrivacyResolver.resolveForPresentation(this, it) }
         mPosition = pair.second ?: -1
 
         if (mThing != null) {
@@ -194,20 +200,26 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mActionsTexts!!.add(R.string.act_finish)
         mActionsIcons!!.add(R.drawable.act_finish)
         mActions!!.add(View.OnClickListener {
-            sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_FINISH)
+            runActionWithPrivacyAuth(R.string.act_finish) {
+                sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_FINISH)
+            }
         })
 
         if (mThing!!.type == Thing.REMINDER) {
             mActionsTexts!!.add(R.string.act_start_doing)
             mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
             mActions!!.add(View.OnClickListener {
-                sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_START_DOING)
+                runActionWithPrivacyAuth(R.string.act_start_doing) {
+                    sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_START_DOING)
+                }
             })
 
             mActionsTexts!!.add(R.string.act_delay)
             mActionsIcons!!.add(R.drawable.act_delay)
             mActions!!.add(View.OnClickListener {
-                sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_DELAY)
+                runActionWithPrivacyAuth(R.string.act_delay) {
+                    sendBroadcastForReminderAndLeave(Def.Communication.NOTIFICATION_ACTION_DELAY)
+                }
             })
         }
     }
@@ -216,31 +228,35 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         mActionsTexts!!.add(R.string.act_finish_this_time_habit)
         mActionsIcons!!.add(R.drawable.act_finish)
         mActions!!.add(View.OnClickListener {
-            val intent = Intent(
-                this@NoticeableNotificationActivity,
-                HabitNotificationActionReceiver::class.java
-            )
-            intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
-            intent.putExtra(Def.Communication.KEY_ID, mHrId)
-            intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
-            intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
-            sendBroadcast(intent)
-            finish()
+            runActionWithPrivacyAuth(R.string.act_finish_this_time_habit) {
+                val intent = Intent(
+                    this@NoticeableNotificationActivity,
+                    HabitNotificationActionReceiver::class.java
+                )
+                intent.setAction(Def.Communication.NOTIFICATION_ACTION_FINISH)
+                intent.putExtra(Def.Communication.KEY_ID, mHrId)
+                intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+                intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
+                sendBroadcast(intent)
+                finish()
+            }
         })
 
         mActionsTexts!!.add(R.string.act_start_doing)
         mActionsIcons!!.add(R.drawable.vec_ic_start_thing)
         mActions!!.add(View.OnClickListener {
-            val intent = Intent(
-                this@NoticeableNotificationActivity,
-                HabitNotificationActionReceiver::class.java
-            )
-            intent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING)
-            intent.putExtra(Def.Communication.KEY_ID, mHrId)
-            intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
-            intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
-            sendBroadcast(intent)
-            finish()
+            runActionWithPrivacyAuth(R.string.act_start_doing) {
+                val intent = Intent(
+                    this@NoticeableNotificationActivity,
+                    HabitNotificationActionReceiver::class.java
+                )
+                intent.setAction(Def.Communication.NOTIFICATION_ACTION_START_DOING)
+                intent.putExtra(Def.Communication.KEY_ID, mHrId)
+                intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+                intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
+                sendBroadcast(intent)
+                finish()
+            }
         })
     }
 
@@ -251,6 +267,28 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
         sendBroadcast(intent)
         finish()
+    }
+
+    /**
+     * 私密记事的每个动作（查看、完成、开始做、延迟）执行前都先鉴权——访问即信任：
+     * 本就需要验证身份才能在这块全屏通知上操作私密内容。未配密码时直接放行（无从鉴权）。
+     */
+    private fun runActionWithPrivacyAuth(titleRes: Int, run: () -> Unit) {
+        if (!mThing!!.isPrivate()) {
+            run()
+            return
+        }
+        val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this, mThing!!.getBackground(), getString(titleRes), cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    run()
+                }
+
+                override fun onCancel() {}
+            })
     }
 
     override fun findViews() {
@@ -401,30 +439,19 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 holder.flDoing!!.visibility = View.GONE
                 holder.ivStickyOngoing!!.visibility = View.GONE
 
-                if (holder.ivPrivateThing!!.isVisible) {
-                    holder.ivPrivateThing.visibility = View.GONE
-                    holder.tvContent.visibility = View.VISIBLE
-                    holder.tvContent.setText(R.string.notification_private_thing_content)
-                    holder.tvContent.textSize = 20f
-                    val light = BackgroundUtil.isLight(mThing!!.getColor())
-                    holder.tvContent.setTextColor(
-                        ContextCompat.getColor(
-                            applicationContext,
-                            if (light) R.color.black_76p else R.color.white_76p
-                        )
-                    )
-                    val p = (mDensity * 16).toInt()
-                    holder.tvContent.setPadding(p, p, p, 0)
-                }
+                // 私密记事在此模仿首页私密卡片：保留锁图标、隐藏内容（基类已处理），不再用
+                // “[私密记事]”占位文本——只有真正的系统通知托盘才用占位（见 decisions.md 问题6/a）。
 
                 holder.cv.setOnClickListener {
-                    val intent = DetailActivity.getOpenIntentForUpdate(
-                        this@NoticeableNotificationActivity,
-                        TAG,
-                        mThing!!.id, mPosition
-                    )
-                    startActivity(intent)
-                    finish()
+                    runActionWithPrivacyAuth(R.string.check_private_thing) {
+                        val intent = DetailActivity.getOpenIntentForUpdate(
+                            this@NoticeableNotificationActivity,
+                            TAG,
+                            mThing!!.id, mPosition
+                        )
+                        startActivity(intent)
+                        finish()
+                    }
                 }
             }
         }

@@ -671,14 +671,16 @@ open class ThingFolderDAO private constructor(context: Context?) {
         status: Int,
         typeFilterMask: Int,
         keyword: String? = null,
-        color: Int = 0
+        color: Int = 0,
+        revealRoot: Boolean = false
     ): List<ThingListEntry> {
         return getThumbnailEntriesForTypeFilterProjection(
             folder,
             status,
             typeFilterMask,
             keyword,
-            color
+            color,
+            revealRoot
         ).entries
     }
 
@@ -687,9 +689,13 @@ open class ThingFolderDAO private constructor(context: Context?) {
         status: Int,
         typeFilterMask: Int,
         keyword: String?,
-        color: Int
+        color: Int,
+        revealRoot: Boolean = false
     ): ThumbnailEntriesProjection {
-        val maxCount = folder.effectiveCardPresentation().effectiveThumbnailPreviewLimit()
+        // revealRoot：外观编辑揭示该文件夹时，按它"取消私密后"的样子取预览——数量用真实外观，
+        // 子文件夹按各自私密状态判定（见下方 effectivePrivate）。
+        val maxCount = (if (revealRoot) folder.cardPresentation else folder.effectiveCardPresentation())
+            .effectiveThumbnailPreviewLimit()
         val effectiveDeleted = isEffectivelyDeleted(folder)
         if (effectiveDeleted && status != Def.ThingStatus.DELETED) {
             return ThumbnailEntriesProjection(emptyList(), 0)
@@ -706,10 +712,11 @@ open class ThingFolderDAO private constructor(context: Context?) {
                 status,
                 typeFilterMask,
                 keyword,
-                color
+                color,
+                revealRoot
             )
         )
-        for (thing in getDirectThumbnailThings(folder.id, selection, keyword, color)) {
+        for (thing in getDirectThumbnailThings(folder.id, selection, keyword, color, revealRoot)) {
             entries.add(ThingListEntry.ThingEntry(thing))
         }
         val sortedEntries = entries.sortedWith { entry1, entry2 ->
@@ -758,7 +765,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
         status: Int,
         typeFilterMask: Int,
         keyword: String?,
-        color: Int
+        color: Int,
+        revealRoot: Boolean = false
     ): List<ThingListEntry.FolderEntry> {
         val entries = ArrayList<ThingListEntry.FolderEntry>()
         for (childFolder in getChildFolders(folder.id)) {
@@ -789,7 +797,14 @@ open class ThingFolderDAO private constructor(context: Context?) {
                         keyword,
                         color
                     ),
-                    effectivePrivate = isEffectivelyPrivate(childFolder),
+                    // revealRoot 时按子文件夹"自身是否私密"判定，仅自己设过私密的才上锁。能揭示该根
+                    // 文件夹本就意味着其祖先链已认证可访问，故不再因祖先私密而把非私密子文件夹连带上锁
+                    // （否则嵌套大文件夹缩略图里、非私密子文件夹会被错误地标成私密/上锁）。
+                    effectivePrivate = if (revealRoot) {
+                        childFolder.isPrivate
+                    } else {
+                        isEffectivelyPrivate(childFolder)
+                    },
                     effectiveDeleted = isEffectivelyDeleted(childFolder)
                 )
             )
@@ -897,7 +912,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
         folderId: Long,
         thingSelection: String,
         keyword: String?,
-        color: Int
+        color: Int,
+        revealRoot: Boolean = false
     ): List<Thing> {
         val things = ArrayList<Thing>()
         val cursor = db!!.query(
@@ -912,7 +928,9 @@ open class ThingFolderDAO private constructor(context: Context?) {
         cursor.use {
             while (it.moveToNext()) {
                 val thing = Thing(it)
-                if (isEffectivelyPrivate(thing.folderId)) continue
+                // revealRoot：外观编辑揭示该私密文件夹时，按"取消私密后"的样子取它的直接记事，
+                // 不在数据层把它们整条遮蔽（正常浏览仍由 isEffectivelyPrivate 拦截）。
+                if (!revealRoot && isEffectivelyPrivate(thing.folderId)) continue
                 if (!ThingSearchHelper.matches(thing, keyword, color)) continue
                 things.add(thing)
             }

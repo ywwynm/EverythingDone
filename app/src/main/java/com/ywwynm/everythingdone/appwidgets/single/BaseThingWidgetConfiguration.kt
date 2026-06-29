@@ -696,8 +696,12 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
                 AppWidgetHelper.getSizeByProviderClass(clazz), mWidgetAlpha,
                 ThingWidgetInfo.STYLE_NORMAL)
 
+        // 私密文件夹内的普通记事（自身无前缀）在桌面小部件上不应明文显示：先经有效私密解析遮蔽，
+        // 与常规小部件刷新（BaseThingWidget）口径一致，避免刚创建的小部件明文泄露到下次刷新前。
+        val safeThing = com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
+                .resolveForPresentation(this, thing)
         val views: RemoteViews = AppWidgetHelper.createRemoteViewsForSingleThing(
-                this, thing, -1, mAppWidgetId, clazz)
+                this, safeThing, -1, mAppWidgetId, clazz)
         AppWidgetManager.getInstance(this).updateAppWidget(mAppWidgetId, views)
 
         val intent = Intent()
@@ -802,6 +806,17 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
         override fun shouldShowFolderPrivateContent(): Boolean {
             return isCurrentFolderPrivacyAuthenticated()
+        }
+
+        // 配置界面是 app 外入口（从桌面启动），维护独立的本地认证集，不共享主 app 会话认证：
+        // 文件夹揭示按本地认证判定；记事级会话认证在配置界面不存在（点记事是选中预览、不鉴权），
+        // 故恒为 false，避免主 app 认证过的私密记事泄露到此处。
+        override fun isFolderRevealedByAuth(folderId: Long): Boolean {
+            return this@BaseThingWidgetConfiguration.isFolderPrivacyAuthenticated(folderId)
+        }
+
+        override fun isThingRevealedByAuth(thingId: Long): Boolean {
+            return false
         }
     }
 

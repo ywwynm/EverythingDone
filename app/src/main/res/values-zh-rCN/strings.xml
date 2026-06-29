@@ -1027,6 +1027,7 @@
     <string name="warning_title_should_not_be_empty">如果您要设置该记事为私密记事，请您为它设置标题</string>
     <string name="warning_should_set_password_first"><![CDATA[您还未设置应用密码，请前往设置 -> 隐私 -> 设置应用密码进行设置]]></string>
     <string name="cannot_set_as_private_thing_title">无法设置为私密记事</string>
+    <string name="set_password_first_title">请先设置密码</string>
 
     <!--group start doing-->
     <string name="auto_start_doing_title">提醒到来时自动开始做事</string>

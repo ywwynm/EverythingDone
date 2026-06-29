@@ -386,7 +386,9 @@ open class ModeManager(app: App?,
         item.isVisible = true
         // Smart-set direction: only flip to "cancel" when every selected item is private.
         val allPrivate = things.all { it.isPrivate() } && folders.all { it.isPrivate }
-        item.title = HomeActionWordingHelper.privateTitle(mApp!!, allPrivate)
+        item.title = HomeActionWordingHelper.privateTitle(
+            mApp!!, allPrivate, things.isNotEmpty(), folders.isNotEmpty()
+        )
     }
 
     private fun updateMenuItemsForFolderSelection() {

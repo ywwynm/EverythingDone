@@ -159,6 +159,8 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
                 .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
             intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
             mActivity!!.cameraOutputUri = imageUri
+            // 跳外部相机取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
+            com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
             mActivity!!.startActivityForResult(intent,
                 Def.Communication.REQUEST_TAKE_PHOTO)
         }
@@ -178,6 +180,8 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
                 .insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
             intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
             mActivity!!.cameraOutputUri = videoUri
+            // 跳外部相机取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
+            com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
             mActivity!!.startActivityForResult(intent,
                 Def.Communication.REQUEST_CAPTURE_VIDEO)
         }
@@ -198,6 +202,8 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         intent.type = "*/*"
         intent.putExtra(Intent.EXTRA_MIME_TYPES,
             arrayOf("image/*", "video/*", "audio/*"))
+        // 跳外部"选择媒体文件"取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
+        com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
         mActivity!!.startActivityForResult(
             Intent.createChooser(intent,
                 mActivity!!.getString(R.string.act_choose_media_files)),

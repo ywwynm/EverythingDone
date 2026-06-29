@@ -30,6 +30,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.RemoteThingCardMediaRenderer
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
@@ -108,7 +109,8 @@ object SystemNotificationUtil {
         var content: String      = thing.content!!
         var attachment: String   = thing.attachment!!
 
-        if (thing.isPrivate()) {
+        val effectivelyPrivate = ThingPrivacyResolver.isEffectivelyPrivate(context!!, thing)
+        if (effectivelyPrivate) {
             content    = context.getString(R.string.notification_private_thing_content)
             attachment = ""
         }
@@ -145,7 +147,9 @@ object SystemNotificationUtil {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
         }
 
-        if (RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing) != null) {
+        // 有效私密记事（含"私密文件夹内、自身无前缀、带图片/视频"）不渲染大图，避免媒体在通知里泄露。
+        if (!effectivelyPrivate &&
+            RemoteThingCardMediaRenderer.resolveRenderableMediaSource(context, thing) != null) {
             val display = DisplayUtil.getDisplaySize(context)
             val width: Int = min(display.x, display.y)
             val height: Int = width / 2
@@ -421,6 +425,9 @@ object SystemNotificationUtil {
         val thingTitle: String = thing.getTitleToDisplay()!!
         if (!thingTitle.isEmpty()) {
             nTitle.append(thingTitle)
+        } else if (ThingPrivacyResolver.isEffectivelyPrivate(context!!, thing)) {
+            // 私密记事无标题：只显示类型名，不回退到内容 / 附件摘要，避免在 Doing 通知标题泄露内容。
+            nTitle.append(Thing.getTypeStr(thing.type, context) ?: "")
         } else {
             var thingContent: String = thing.content!!
             if (!thingContent.isEmpty()) {
@@ -487,7 +494,7 @@ object SystemNotificationUtil {
                 .setAutoCancel(false)
 
         @Thing.Type val thingType: Int = thing.type
-        val isPrivate: Boolean = thing.isPrivate()
+        val isPrivate: Boolean = ThingPrivacyResolver.isEffectivelyPrivate(context!!, thing)
         val color: Int = thing.getColor()
         if (Thing.isReminderType(thingType) || thingType == Thing.NOTE) {
             if (isPrivate) {

@@ -1,7 +1,13 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.res.Configuration
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.Drawable
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.TextUtils
+import android.text.style.ImageSpan
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
@@ -62,6 +68,13 @@ open class ActivityHeader(
     private var mLastHeaderSpacerHeight: Int = 0
     private var mExpandedHeaderSpacerRefreshPosted: Boolean = false
     private var mInFolderProjection: Boolean = false
+
+    // 当前私密文件夹标题：带"开/闭锁"内联图标的版本（mFolderLockTitle）与纯文字版本（mFolderPlainTitle）。
+    // 锁用 ImageSpan 内联在标题开头，天然与第一行文字对齐（多行时不会跑到行间），且随标题换行/缩放一起走。
+    // 折叠到 actionbar 附近时切到纯文字版（隐藏锁），避免锁挤进 actionbar 区、影响标题归位。
+    private var mFolderLockTitle: CharSequence? = null
+    private var mFolderPlainTitle: CharSequence? = null
+    private var mFolderLockShown: Boolean = false
 
     init {
         computeFactors(null)
@@ -263,6 +276,10 @@ open class ActivityHeader(
         mTitle.isClickable = false
         mTitle.paint.isUnderlineText = false
         mTitle.paint.shader = null
+        mFolderLockTitle = null
+        mFolderPlainTitle = null
+        mFolderLockShown = false
+        mTitle.setCompoundDrawables(null, null, null, null)
         mTitle.setTextColor(ContextCompat.getColor(mApp, R.color.app_chrome_on_surface_medium))
         mTitle.ellipsize = TextUtils.TruncateAt.END
         mTitle.invalidate()
@@ -276,6 +293,50 @@ open class ActivityHeader(
         } else {
             mTitle.setTextColor(background.color)
         }
+        // 私密文件夹：在标题开头内联一把锁（纯锁）作为"当前文件夹是私密"的正向标识；本会话已鉴权
+        // （进入即已认证）画开锁、否则闭锁。用 CenteredLockSpan 内联，故与标题首行文字垂直居中对齐
+        // （多行标题也只在第一行，不会像 compound drawable 那样在整段高度上居中）。
+        if (folder.isPrivate) {
+            val authed =
+                ThingManager.getInstance(mApp)?.isFolderPrivacyAuthenticated(folder.id) == true
+            val lockRes = if (authed) R.drawable.ic_lock_open else R.drawable.ic_locked_small
+            val lock = ContextCompat.getDrawable(mApp, lockRes)?.mutate()
+            val baseTitle = mTitle.text
+            if (lock != null && baseTitle != null) {
+                lock.setTint(background.representativeColor())
+                // 尺寸跟随标题字号，与标题视觉等高（随标题缩放一并变小）。
+                val size = mTitle.textSize.toInt().coerceAtLeast((mScreenDensity * 16).toInt())
+                lock.setBounds(0, 0, size, size)
+                val sb = SpannableStringBuilder()
+                sb.append("￼") // 占位符，由 CenteredLockSpan 替换为锁
+                sb.setSpan(CenteredLockSpan(lock), 0, 1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
+                sb.append(" ") // 锁与标题之间留半字宽间距
+                sb.append(baseTitle)
+                mFolderLockTitle = sb
+                mFolderPlainTitle = baseTitle
+            } else {
+                mFolderLockTitle = null
+                mFolderPlainTitle = null
+            }
+        } else {
+            mFolderLockTitle = null
+            mFolderPlainTitle = null
+        }
+        mFolderLockShown = false
+        applyFolderLockForProgress(headerCollapseProgress)
+    }
+
+    /**
+     * 折叠时管理标题开头的私密锁：标题较展开时用"带锁"文本，滑动到 actionbar 附近（折叠进度过阈值）
+     * 切到"纯文字"文本（隐藏锁），避免锁挤进 actionbar 区、影响标题缩小 / 换行 / 最终归位。仅在显示态
+     * 变化时改文本，避免每帧重设。非私密文件夹（mFolderLockTitle 为空）不处理。
+     */
+    private fun applyFolderLockForProgress(progress: Float) {
+        val lockedTitle = mFolderLockTitle ?: return
+        val shouldShow = progress < FOLDER_LOCK_HIDE_PROGRESS
+        if (shouldShow == mFolderLockShown) return
+        mFolderLockShown = shouldShow
+        mTitle.text = if (shouldShow) lockedTitle else mFolderPlainTitle
     }
 
     private fun updateSubtitle() {
@@ -396,6 +457,7 @@ open class ActivityHeader(
     }
 
     private fun updateTitleLayoutForProgress(progress: Float) {
+        applyFolderLockForProgress(progress)
         val maxLines = if (progress >= FOLDER_TITLE_COLLAPSED_LINE_PROGRESS) {
             COLLAPSED_FOLDER_TITLE_MAX_LINES
         } else {
@@ -502,6 +564,30 @@ open class ActivityHeader(
         }
     }
 
+    /**
+     * 把锁图标内联进标题文本、并与所在行（标题首行）垂直居中的 ImageSpan。默认 ImageSpan 按基线对齐，
+     * 多行时还会跑到整段中部；这里改成按该行文字的视觉中线居中，使锁与第一行文字对齐。
+     */
+    private class CenteredLockSpan(drawable: Drawable) : ImageSpan(drawable) {
+        override fun getSize(
+            paint: Paint, text: CharSequence?, start: Int, end: Int,
+            fm: Paint.FontMetricsInt?
+        ): Int = drawable.bounds.width()
+
+        override fun draw(
+            canvas: Canvas, text: CharSequence?, start: Int, end: Int,
+            x: Float, top: Int, y: Int, bottom: Int, paint: Paint
+        ) {
+            val d = drawable
+            val metrics = paint.fontMetricsInt
+            val transY = y + (metrics.descent + metrics.ascent) / 2 - d.bounds.height() / 2
+            canvas.save()
+            canvas.translate(x, transY.toFloat())
+            d.draw(canvas)
+            canvas.restore()
+        }
+    }
+
     interface FolderPathClickListener {
         fun onFolderPathSegmentClicked(folderPathIndex: Int)
     }
@@ -520,6 +606,8 @@ open class ActivityHeader(
         private const val EXPANDED_FOLDER_TITLE_MAX_LINES = 4
         private const val COLLAPSED_FOLDER_TITLE_MAX_LINES = 2
         private const val FOLDER_TITLE_COLLAPSED_LINE_PROGRESS = 0.68f
+        // 折叠进度超过此值（滑动到 actionbar 附近）即隐藏标题前的私密文件夹图标，避免影响标题归位。
+        private const val FOLDER_LOCK_HIDE_PROGRESS = 0.6f
         private const val COMPACT_TWO_LINE_FOLDER_TITLE_SCALE = 0.76f
     }
 }
