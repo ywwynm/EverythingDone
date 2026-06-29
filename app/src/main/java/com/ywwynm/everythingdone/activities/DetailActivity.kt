@@ -1803,6 +1803,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun cancelPrivateThingUiAndAddAction() {
+        // 取消私密：清掉该记事的会话认证，避免回到列表后同会话重新设私密时被误揭示（与文件夹对称）。
+        mThing?.let { ThingManager.getInstance(mApp)?.clearThingPrivacyAuthenticated(it.id) }
         togglePrivateThingActionItem(mActionbar!!.menu, true)
 
         mEtTitle!!.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)

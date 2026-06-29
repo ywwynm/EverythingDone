@@ -216,6 +216,9 @@ class ThingsActivity :
     private var mCurrentDrawerSelectionKey: DrawerNavigationView.ItemKey? = null
     private var mInitialExternalFolderId: Long? = null
     private var mInitialExternalFolderAuthenticated: Boolean = false
+    // 上次所见的会话私密认证代次（见 ThingManager.getPrivacyAuthGeneration）：onResume 比较，发现后台
+    // 清过认证就重绑列表 / Drawer，把揭示态私密文件夹 / 记事恢复为锁态（问题4）。
+    private var mLastSeenPrivacyAuthGeneration: Long = 0
     private var mInitialExternalTypeFilterMask: Int? = null
 
     private var mActivityHeader: ActivityHeader? = null
@@ -669,6 +672,15 @@ class ThingsActivity :
             updateSearchNoResult(0)
         } else {
             hideSearchNoResult()
+        }
+
+        // 切后台清空会话私密认证后回前台：重绑列表 / Drawer，把揭示态私密文件夹 / 记事恢复为锁态（问题4）。
+        // “选图 / 拍照临时离开”被 suppress 抑制、不清认证、代次不变，故不会误触发重绑。
+        val authGen = mThingManager!!.getPrivacyAuthGeneration()
+        if (authGen != mLastSeenPrivacyAuthGeneration) {
+            mLastSeenPrivacyAuthGeneration = authGen
+            mAdapter!!.notifyDataSetChanged()
+            updateDrawerFolderItems()
         }
 
         KeyboardUtil.hideKeyboard(currentFocus)
@@ -6956,10 +6968,66 @@ class ThingsActivity :
         return actionable to (actionable.size != things.size)
     }
 
+    /** 选中集里是否有“未认证的有效私密”记事或文件夹——状态变更（完成/恢复/删除/彻底删除）前据此鉴权。 */
+    private fun needsSelectedStateChangePrivacyAuthentication(
+        things: List<Thing>,
+        folders: List<ThingFolder>
+    ): Boolean {
+        val thingNeeds = things.any {
+            ThingPrivacyResolver.isEffectivelyPrivate(this, it) &&
+                !mThingManager!!.isThingPrivacyAuthenticated(it.id) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(it.folderId)
+        }
+        val folderNeeds = folders.any {
+            mThingManager!!.isFolderEffectivelyPrivate(it.id) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(it.id)
+        }
+        return thingNeeds || folderNeeds
+    }
+
+    /**
+     * 完成 / 恢复 / 删除 / 彻底删除私密记事 / 文件夹前先鉴权一次（访问即信任）：选中集含“未认证的有效
+     * 私密”项才弹验证，通过后把本批涉及的私密项标记本会话已认证，再走原确认框 / 执行流程；无私密项直接
+     * 放行。未设密码时（理应不存在私密项）也直接放行。
+     */
+    private fun authenticateSelectedStateChangePrivacyIfNeeded(
+        things: List<Thing>,
+        folders: List<ThingFolder>,
+        onAuthenticated: () -> Unit
+    ) {
+        if (!needsSelectedStateChangePrivacyAuthentication(things, folders)) {
+            onAuthenticated()
+            return
+        }
+        val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        if (cp == null) {
+            onAuthenticated()
+            return
+        }
+        AuthenticationHelper.authenticate(
+            this,
+            selectionDialogBackground(),
+            getString(R.string.check_private_thing),
+            cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    things.forEach {
+                        if (it.isPrivate()) mThingManager!!.markThingPrivacyAuthenticated(it.id)
+                    }
+                    folders.forEach { mThingManager!!.markFolderPrivacyAuthenticated(it.id) }
+                    onAuthenticated()
+                }
+
+                override fun onCancel() {}
+            })
+    }
+
     private fun confirmSelectedStateChange(stateAfter: Int) {
         val selectedThings = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
         val selectedFolders = mThingManager!!.getSelectedFolders().toList()
         if (selectedThings.isEmpty() && selectedFolders.isEmpty()) return
+        // 私密鉴权在确认框点“确定”之后、真正执行前进行（见各 onConfirm），不在弹框之前拦。
         when {
             selectedFolders.isEmpty() ->
                 confirmThingsOnlyStateChange(stateAfter, selectedThings)
@@ -7013,15 +7081,18 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                for (folder in selectedFolders) {
-                    mThingManager!!.deleteFolderForever(folder)
+                // 确定后、执行前鉴权（问题8）：选中含未认证有效私密文件夹 / 记事才弹验证。
+                authenticateSelectedStateChangePrivacyIfNeeded(selectedThings, selectedFolders) {
+                    for (folder in selectedFolders) {
+                        mThingManager!!.deleteFolderForever(folder)
+                    }
+                    if (selectedThings.isNotEmpty()) {
+                        mThingManager!!.deleteThingsForever(selectedThings, reload = false)
+                    }
+                    exitSelectingModeIfNeeded()
+                    refreshHomeAfterFolderUpdated()
+                    AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
                 }
-                if (selectedThings.isNotEmpty()) {
-                    mThingManager!!.deleteThingsForever(selectedThings, reload = false)
-                }
-                exitSelectingModeIfNeeded()
-                refreshHomeAfterFolderUpdated()
-                AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
             }
         })
         adf.show(fragmentManager, AlertDialogFragment.TAG)
@@ -7053,13 +7124,16 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                if (mApp!!.getStatus() == Def.ThingStatus.DELETED &&
-                    stateAfter == Thing.UNDERWAY
-                ) {
-                    mThingManager!!.restoreTrashedThings(selectedThings, reload = false)
-                    refreshHomeAfterScopeStateChange()
-                } else {
-                    handleUpdateStates(stateAfter)
+                // 确定后、执行前鉴权（问题8）：选中含未认证有效私密记事才弹验证。
+                authenticateSelectedStateChangePrivacyIfNeeded(selectedThings, emptyList()) {
+                    if (mApp!!.getStatus() == Def.ThingStatus.DELETED &&
+                        stateAfter == Thing.UNDERWAY
+                    ) {
+                        mThingManager!!.restoreTrashedThings(selectedThings, reload = false)
+                        refreshHomeAfterScopeStateChange()
+                    } else {
+                        handleUpdateStates(stateAfter)
+                    }
                 }
             }
         })
@@ -7116,10 +7190,13 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                if (stateAfter == Thing.FINISHED && union.any { Thing.isImportantType(it.type) }) {
-                    showFinishScopeHabitGoalDialog(union, background)
-                } else {
-                    applyUnionStateChange(union, status, stateAfter)
+                // 确定后、执行前鉴权（问题8）：选中含未认证有效私密记事 / 文件夹才弹验证。
+                authenticateSelectedStateChangePrivacyIfNeeded(selectedThings, selectedFolders) {
+                    if (stateAfter == Thing.FINISHED && union.any { Thing.isImportantType(it.type) }) {
+                        showFinishScopeHabitGoalDialog(union, background)
+                    } else {
+                        applyUnionStateChange(union, status, stateAfter)
+                    }
                 }
             }
         })
@@ -7916,6 +7993,18 @@ class ThingsActivity :
             warnNoPasswordForPrivateFolder(folder)
             return false
         }
+        // 取消私密：访问即信任——未认证的有效私密文件夹先鉴权再取消，防止未认证路径直接解除保护、
+        // 暴露内容（决策 5）。当前唯一入口是文件夹内 overflow，进入时已认证、此前提天然满足；该判断
+        // 为防御性，保证将来任何未认证入口取消私密都必须先验证。authenticateThingFolder 会先把
+        // 文件夹标记已认证，紧接着的 updateFolderPrivate(false) 又移除它，最终落到“非私密、不在认证集”。
+        if (folder.isPrivate && shouldProtectFolderForAccess(folder.id)) {
+            authenticateThingFolder(folder, R.string.cancel_thing_folder_private) {
+                if (mThingManager!!.updateFolderPrivate(folder, false, reload = false)) {
+                    refreshHomeAfterFolderUpdated()
+                }
+            }
+            return false
+        }
         if (mThingManager!!.updateFolderPrivate(folder, !folder.isPrivate, reload = false)) {
             refreshHomeAfterFolderUpdated()
             return true
@@ -8064,7 +8153,8 @@ class ThingsActivity :
         authenticatePrivateMoveIfNeeded(
             needsFolderMovePrivacyAuthentication(folder, targetFolderId),
             getFolderMovePrivacyBackground(folder, targetFolderId),
-            moveFolder
+            foldersToAuthenticate = listOf(folder.id, targetFolderId),
+            onAuthenticated = moveFolder
         )
     }
 
@@ -8074,7 +8164,8 @@ class ThingsActivity :
     ) {
         authenticatePrivateMoveIfNeeded(
             needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId),
-            getSelectedThingsMovePrivacyBackground(selectedThings, targetFolderId)
+            getSelectedThingsMovePrivacyBackground(selectedThings, targetFolderId),
+            foldersToAuthenticate = selectedThings.map { it.folderId } + targetFolderId
         ) {
             moveSelectedThingsToFolder(selectedThings, targetFolderId)
         }
@@ -8162,6 +8253,8 @@ class ThingsActivity :
     private fun authenticatePrivateMoveIfNeeded(
         needsAuthentication: Boolean,
         background: ThingBackground?,
+        foldersToAuthenticate: List<Long?> = emptyList(),
+        onCancelled: () -> Unit = {},
         onAuthenticated: () -> Unit
     ) {
         if (!needsAuthentication) {
@@ -8180,10 +8273,21 @@ class ThingsActivity :
             cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
+                    // 访问即信任：鉴权一次即把本次移动涉及的私密源/目标文件夹标记为本会话已认证，移入
+                    // 私密文件夹后其卡片即揭示、再移别的记事免重复验证（markFolderPrivacyAuthenticated
+                    // 对非私密 id 无副作用，可安全传入全部源/目标）。
+                    foldersToAuthenticate.forEach { id ->
+                        id?.let { mThingManager!!.markFolderPrivacyAuthenticated(it) }
+                    }
                     onAuthenticated()
                 }
 
-                override fun onCancel() {}
+                override fun onCancel() {
+                    // 拖拽场景：鉴权取消必须回调（onCancelled → onCommitted(false)）退出拖拽视觉态，否则
+                    // 列表会停在“移动模式遗留的浅色态、不可选”——commitFolderDrop 的 finishIfReady 因
+                    // committed 一直为 null 而永不复位。非拖拽场景默认空，无副作用。
+                    onCancelled()
+                }
             }
         )
     }
@@ -8819,10 +8923,13 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                if (mThingManager!!.deleteFolderForever(folder)) {
-                    exitSelectingModeIfNeeded()
-                    refreshHomeAfterFolderUpdated()
-                    AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
+                // 确定后、执行前鉴权（问题8）：私密文件夹才弹验证（当前文件夹等已认证场景自动豁免）。
+                authenticateSelectedStateChangePrivacyIfNeeded(emptyList(), listOf(folder)) {
+                    if (mThingManager!!.deleteFolderForever(folder)) {
+                        exitSelectingModeIfNeeded()
+                        refreshHomeAfterFolderUpdated()
+                        AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
+                    }
                 }
             }
         })
@@ -8956,7 +9063,9 @@ class ThingsActivity :
         authenticatePrivateMoveIfNeeded(
             needsThingMovePrivacyAuthentication(sourceThing, targetEntry.folder.id),
             getThingMovePrivacyBackground(sourceThing, targetEntry.folder.id),
-            commitMove
+            foldersToAuthenticate = listOf(sourceThing.folderId, targetEntry.folder.id),
+            onCancelled = { onCommitted(false) },
+            onAuthenticated = commitMove
         )
     }
 
@@ -9000,7 +9109,9 @@ class ThingsActivity :
         authenticatePrivateMoveIfNeeded(
             needsFolderMovePrivacyAuthentication(sourceFolder, targetEntry.folder.id),
             getFolderMovePrivacyBackground(sourceFolder, targetEntry.folder.id),
-            commitMove
+            foldersToAuthenticate = listOf(sourceFolder.id, targetEntry.folder.id),
+            onCancelled = { onCommitted(false) },
+            onAuthenticated = commitMove
         )
     }
 
@@ -9712,7 +9823,9 @@ class ThingsActivity :
             var visualFinished = false
             fun finishIfReady() {
                 val result = committed ?: return
-                if (!visualFinished) return
+                // 成功 commit 等缩放动画落位再重绑、避免闪烁；取消 / 失败立即复位、不等动画——鉴权取消
+                // 可能早于动画回调、或动画被 onPause 打断，否则会卡在“移动模式遗留的浅色态、不可选”。
+                if (result && !visualFinished) return
                 resetCommitState()
                 if (result) {
                     rebindHomeListAfterFolderDropModeExit()
@@ -10256,9 +10369,10 @@ class ThingsActivity :
             highlightedFolderTargetCard = card
             trackFolderDropHighlightedCard(card)
             val targetFolderEntry = getFolderDropTargetEntry(listPosition)
+            // 揭示感知：本会话已认证（揭示）的私密大文件夹也算大文件夹，否则会播放小文件夹的加入动画
+            // （effectiveCardPresentation 对私密文件夹强制返回小文件夹摘要，绕过揭示态）。
             val targetFolderIsThumbnail =
-                targetFolderEntry?.folder?.effectiveCardPresentation()?.mode ==
-                    ThingFolderCardPresentation.MODE_THUMBNAILS
+                targetFolderEntry?.folder?.let { mAdapter!!.isFolderShownAsThumbnails(it) } == true
             val thumbnailFolderDropTarget =
                 action == FOLDER_DROP_ACTION_MOVE_TO_FOLDER && targetFolderIsThumbnail
             val summaryFolderDropTarget =
@@ -11400,7 +11514,11 @@ class ThingsActivity :
     ) {
         val needAuth = needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId) ||
             selectedFolders.any { needsFolderMovePrivacyAuthentication(it, targetFolderId) }
-        authenticatePrivateMoveIfNeeded(needAuth, App.defaultAccentBackground) {
+        authenticatePrivateMoveIfNeeded(
+            needAuth, App.defaultAccentBackground,
+            foldersToAuthenticate = selectedThings.map { it.folderId } +
+                selectedFolders.map { it.id } + targetFolderId
+        ) {
             val moveSources = ArrayList<FolderMenuMoveSource>()
             moveSources.addAll(
                 selectedThings
@@ -11540,6 +11658,8 @@ class ThingsActivity :
             } else {
                 if (!thing.isPrivate()) continue
                 thing.title = thing.getTitleToDisplay()
+                // 取消私密：移除会话认证，避免同会话重新设私密时被误揭示（与文件夹取消私密对称）。
+                mThingManager!!.clearThingPrivacyAuthenticated(thing.id)
             }
             val thingIndex = mThingManager!!.getPosition(thing.id)
             if (thingIndex >= 0) {
@@ -11650,64 +11770,6 @@ class ThingsActivity :
                 updateDrawerFolderItems()
             }
         }, 160)
-    }
-
-    private fun toggleSelectedPrivateEntry() {
-        when (val entry = mThingManager!!.getSingleSelectedEntry()) {
-            is ThingListEntry.ThingEntry -> toggleSelectedThingPrivate(entry.thing)
-            is ThingListEntry.FolderEntry -> {
-                if (toggleThingFolderPrivate(entry.folder)) {
-                    mModeManager!!.backNormalMode(0)
-                }
-            }
-            else -> {}
-        }
-    }
-
-    private fun toggleSelectedThingPrivate(thing: Thing) {
-        if (!thing.isPrivate()) {
-            if (!hasPrivatePassword()) {
-                warnNoPasswordForPrivateThing(thing)
-                return
-            }
-            val titleToDisplay = thing.getTitleToDisplay()?.trim().orEmpty()
-            thing.title = Thing.PRIVATE_THING_PREFIX + titleToDisplay
-            persistSelectedThingPrivateChange(thing)
-            return
-        }
-
-        if (!hasPrivatePassword()) {
-            warnNoPasswordForPrivateThing(thing)
-            return
-        }
-        val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null) ?: return
-        AuthenticationHelper.authenticate(
-            this,
-            thing.getBackground(),
-            HomeActionWordingHelper.privateTitle(
-                this, allPrivate = true, hasThing = true, hasFolder = false
-            ),
-            cp,
-            object : AuthenticationHelper.AuthenticationCallback {
-                override fun onAuthenticated() {
-                    thing.title = thing.getTitleToDisplay()
-                    persistSelectedThingPrivateChange(thing)
-                }
-
-                override fun onCancel() {}
-            })
-    }
-
-    private fun persistSelectedThingPrivateChange(thing: Thing) {
-        val thingIndex = mThingManager!!.getPosition(thing.id)
-        if (thingIndex < 0) return
-        mThingManager!!.update(thing.type, thing, thingIndex, false)
-        mModeManager!!.backNormalMode(0)
-        mAdapter!!.notifyDataSetChanged()
-        AppWidgetHelper.updateSingleThingAppWidgets(this, thing.id)
-        AppWidgetHelper.updateAllThingsListAppWidgets(this)
-        SystemNotificationUtil.tryToCreateThingOngoingNotification(mApp)
     }
 
     private fun warnNoPasswordForPrivateThing(thing: Thing) {

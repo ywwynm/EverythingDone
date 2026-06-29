@@ -52,6 +52,12 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
         mAdapter!!.setAppearanceRevealFolderId(id)
     }
 
+    open fun isFolderShownAsThumbnails(
+        folder: com.ywwynm.everythingdone.model.ThingFolder
+    ): Boolean {
+        return mAdapter!!.isFolderShownAsThumbnails(folder)
+    }
+
     open fun shouldShowPrivateContent(): Boolean {
         return mAdapter!!.shouldShowPrivateContent()
     }

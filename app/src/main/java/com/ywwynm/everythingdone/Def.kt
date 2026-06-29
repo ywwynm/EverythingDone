@@ -266,6 +266,12 @@ object Def {
         /** JSON encoding of a [com.ywwynm.everythingdone.model.ThingBackground]; added Phase 4. */
         const val KEY_BACKGROUND: String   = PREFIX + "key.background"
         const val KEY_POSITION: String     = PREFIX + "key.position"
+        /**
+         * 标记“该动作广播来自全屏通知（NoticeableNotificationActivity），其内部已对私密记事鉴权过”，
+         * 让动作 receiver 跳过自身的有效私密二次鉴权，避免“点完成 → 验证 → 又被要求验证一次”。仅
+         * app 内部显式广播携带；桌面小部件等外部广播不带，仍各自鉴权。
+         */
+        const val KEY_ALREADY_AUTHENTICATED: String = PREFIX + "key.already_authenticated"
         const val KEY_LIST_POSITION: String = PREFIX + "key.list_position"
         const val KEY_LIST_PROJECTION: String = PREFIX + "key.list_projection"
         const val KEY_TYPE_BEFORE: String  = PREFIX + "key.type_before"

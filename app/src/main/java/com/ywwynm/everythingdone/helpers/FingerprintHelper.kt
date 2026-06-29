@@ -171,6 +171,11 @@ open class FingerprintHelper private constructor(context: Context?) {
                         if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
                                 && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
                             showPatternLock(activity, App.defaultAccentBackground, title, "", callback)
+                        } else {
+                            // 用户取消（取消按钮 / 系统取消）：回调 onCancel，让调用方据此复位。此前这里
+                            // 什么都不做，依赖 onCancel 的流程（如拖拽 drop 到私密文件夹后取消鉴权）收不到
+                            // 通知，列表会卡在“移动模式遗留的浅色态、不可选”。与图案锁取消调 onCancel 对齐。
+                            callback?.onCancel()
                         }
                     }
                 })

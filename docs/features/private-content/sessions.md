@@ -1,5 +1,22 @@
 # 私密记事/文件夹 Sessions
 
+## 2026-06-29 - 提交全面复审 + 评审 8 问题一并修复
+
+先对上一提交（7e9055de）做只读全面复审（首页长按各操作、文件夹各菜单项、通知/小部件、DAO 揭示层），确认主干正确、通知/小部件泄露面已堵，并报告：记事取消私密未清会话认证集、单选私密切换死代码 + 取消私密零门槛、状态变更未鉴权、主列表"当前文件夹"口径依赖投影不变量等。随后用户汇总 8 个问题，一并修复，`:app:assembleDebug` 编译通过：
+
+1. **拖拽取消鉴权列表未复位**：`authenticatePrivateMoveIfNeeded` 的 `onCancel` 原为空体，拖拽到私密文件夹取消鉴权时 `commitFolderDrop` 的 `finishIfReady` 因 `committed` 恒为 null 永不复位，列表停在移动模式遗留的浅色态。加 `onCancelled` 回调，拖拽两个调用方（`commitMoveThingIntoFolderDrop`/`commitMoveFolderIntoFolderDrop`）传 `{ onCommitted(false) }`。
+2. **揭示态大文件夹拖入动画错**：`setFolderDropTargetHighlighted`（10260）用 `effectiveCardPresentation()`（私密强制小文件夹摘要）判大/小文件夹。新增 `ThingsAdapter.isFolderShownAsThumbnails`（揭示感知，走 `presentationFor`）+ `ThingsAdapterWrapper` 委托，改用之。
+3. **移动鉴权后未标记文件夹已认证**：`authenticatePrivateMoveIfNeeded` 走底层 `AuthenticationHelper.authenticate`、`onAuthenticated` 不 mark。加 `foldersToAuthenticate` 参数，鉴权成功 `markFolderPrivacyAuthenticated` 本次源/目标；5 个调用方全部传入。
+4. **回前台仍显示解锁态**：`ThingManager` 加 `mPrivacyAuthGeneration`（真正清认证时 +1）+ `getPrivacyAuthGeneration`；`ThingsActivity.onResume` 比较代次，后台清过认证则 `notifyDataSetChanged` + `updateDrawerFolderItems` 恢复锁态。移动对话框实时刷新留 followup。
+5. **全屏通知动作双重鉴权**：`runActionWithPrivacyAuth` 通过后发广播给 receiver、receiver 再鉴权。`Def` 加 `KEY_ALREADY_AUTHENTICATED`，`NoticeableNotificationActivity` 三处发广播带标志，`ReminderNotificationActionReceiver`/`HabitNotificationActionReceiver` 见标志跳过自身有效私密鉴权（widget 广播不带、仍各自鉴权）。
+6. **记事取消私密未清认证集**：`ThingManager` 加 `clearThingPrivacyAuthenticated`；批量取消私密、详情页 `cancelPrivateThingUiAndAddAction`、`deleteThingsForever` 三处清，与文件夹取消私密对称。
+7. **死代码 + 取消私密零门槛**：删 `toggleSelectedPrivateEntry`/`toggleSelectedThingPrivate`/`persistSelectedThingPrivateChange`（均无调用）；`toggleThingFolderPrivate` 取消分支补 `shouldProtectFolderForAccess` 前提——未认证先 `authenticateThingFolder` 再取消（落实决策 5 的"确实已认证前提"）。
+8. **状态变更未鉴权**：新增 `needsSelectedStateChangePrivacyAuthentication` + `authenticateSelectedStateChangePrivacyIfNeeded`（含未认证有效私密项才验证、通过后 mark）。**按用户要求置于确认框点"确定"之后、真正执行前**，接入 `confirmThingsOnlyStateChange`/`confirmMixedStateChange`/`confirmDeleteSelectedStructural`/`showDeleteThingFolderForeverDialog` 四个 onConfirm。文件夹 scope“全部完成/删除”（根目录）未接入，留 followup。
+
+随后按用户要求补做第 4 项的延伸——“移动到文件夹”对话框开着时切后台、回前台未恢复锁态：`MoveToThingFolderDialogFragment.onResume` 比较认证代次，清过认证则收起未再认证的私密文件夹（`collapseUnauthenticatedPrivateFolders`）并 `rebuildRows`，图标恢复闭锁。`:app:assembleDebug` 通过，按用户要求发布阿里云（**更新码 202606291338**）。文件夹 scope“全部完成/删除”鉴权仍留 followup。
+
+**问题 1 二次修复（根因，发布码 202606291338 后真机仍复现）**：上批 `onCancelled → onCommitted(false)` 只覆盖图案锁路径；启用指纹时 `FingerprintHelper.authenticateWithBiometricPrompt` 的 `onAuthenticationError` 在 `ERROR_NEGATIVE_BUTTON`/`ERROR_USER_CANCELED`（用户取消）时**既不回调 onAuthenticated 也不回调 onCancel**，拖拽 `onCancelled` 收不到通知、`commitFolderDrop` 的 `finishIfReady` 因 `committed` 恒 null 永不复位，列表卡在移动遗留的浅色态。修：① BiometricPrompt 取消分支补 `callback?.onCancel()`，与图案锁取消（`PatternLockDialogFragment` 销毁时调 onCancel）对齐——这是全应用所有鉴权点取消回调的根因修复，其余调用点 onCancel 多为空实现、不受影响；② `finishIfReady` 改为仅成功 commit 才等落位动画，取消/失败立即复位（防动画被 onPause 打断或取消早于动画回调而卡住）。`:app:assembleDebug` 通过，重新发布阿里云（**更新码 202606291349**）。
+
 ## 2026-06-29 - 私密显示/交互改动代码评审
 
 复核了本轮私密文件夹/私密记事显示与交互改动，覆盖 `ThingPrivacyResolver`、主列表/缩略图揭示、会话级认证、系统通知、NoticeableNotification、小部件与小部件配置入口。`:app:assembleDebug` 编译通过。

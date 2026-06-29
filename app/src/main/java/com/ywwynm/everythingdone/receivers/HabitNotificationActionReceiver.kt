@@ -27,6 +27,9 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action: String? = intent.action
+        // 来自全屏通知、其内部已对私密记事鉴权过的动作：跳过本 receiver 的有效私密二次鉴权（问题5）。
+        val alreadyAuthenticated = intent.getBooleanExtra(
+            Def.Communication.KEY_ALREADY_AUTHENTICATED, false)
         val hrId: Long = intent.getLongExtra(Def.Communication.KEY_ID, -1)
         val thingId: Long
         if (hrId == -1L) { // ongoing Habit
@@ -71,7 +74,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
 
         val hrTime: Long = intent.getLongExtra(Def.Communication.KEY_TIME, -1)
         if (Def.Communication.NOTIFICATION_ACTION_FINISH == action) {
-            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
+            if (!alreadyAuthenticated && ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
@@ -90,7 +93,7 @@ open class HabitNotificationActionReceiver : BroadcastReceiver() {
             }
 
             val actionIntent: Intent
-            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
+            if (!alreadyAuthenticated && ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 actionIntent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_START_DOING,

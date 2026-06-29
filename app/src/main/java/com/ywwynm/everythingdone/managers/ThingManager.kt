@@ -321,9 +321,18 @@ open class ThingManager private constructor(context: Context?) {
         }
     }
 
+    // 会话私密认证被清空（切后台）的代次：每真正清空一次 +1。前台界面（ThingsActivity.onResume）比较
+    // 此值与上次所见，不同即说明认证在后台被清过，需重绑列表 / Drawer 把揭示态私密项恢复为锁态（问题4）。
+    private var mPrivacyAuthGeneration: Long = 0
+
+    open fun getPrivacyAuthGeneration(): Long = mPrivacyAuthGeneration
+
     /** P1：app 切到后台时清空，会话级私密文件夹认证就此失效，回前台需重新认证。 */
     open fun clearAuthenticatedPrivateFolders() {
-        mAuthenticatedPrivateFolderIds.clear()
+        if (mAuthenticatedPrivateFolderIds.isNotEmpty()) {
+            mAuthenticatedPrivateFolderIds.clear()
+            mPrivacyAuthGeneration++
+        }
     }
 
     open fun isThingPrivacyAuthenticated(thingId: Long): Boolean {
@@ -334,9 +343,21 @@ open class ThingManager private constructor(context: Context?) {
         mAuthenticatedPrivateThingIds.add(thingId)
     }
 
+    /**
+     * 取消某记事私密、或彻底删除该记事时移除其会话认证——与文件夹取消私密时
+     * [mAuthenticatedPrivateFolderIds] 的 remove 对称。否则 id 残留集合，会话内把同一记事
+     * （或 id 被复用的新记事）重新设私密时，会被误当作“已认证”直接揭示内容、跳过验证。
+     */
+    open fun clearThingPrivacyAuthenticated(thingId: Long) {
+        mAuthenticatedPrivateThingIds.remove(thingId)
+    }
+
     /** 与 [clearAuthenticatedPrivateFolders] 对称：app 切到后台时一并清空已认证私密记事。 */
     open fun clearAuthenticatedPrivateThings() {
-        mAuthenticatedPrivateThingIds.clear()
+        if (mAuthenticatedPrivateThingIds.isNotEmpty()) {
+            mAuthenticatedPrivateThingIds.clear()
+            mPrivacyAuthGeneration++
+        }
     }
 
     open fun openFolder(
@@ -1544,6 +1565,10 @@ open class ThingManager private constructor(context: Context?) {
      * recycle bin.
      */
     open fun deleteThingsForever(things: List<Thing>, reload: Boolean = true): Int {
+        // 彻底删除后记事 id 可能被新记事复用：一并清掉会话私密认证，避免新记事误判为已认证。
+        for (thing in things) {
+            mAuthenticatedPrivateThingIds.remove(thing.id)
+        }
         return changeFolderSubtreeContentState(
             things,
             Thing.DELETED,

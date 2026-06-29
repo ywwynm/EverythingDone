@@ -51,6 +51,9 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
     private var mAdapter: FolderTreeAdapter? = null
     private var mRows: List<Row> = emptyList()
     private val mExpandedFolderIds = HashSet<Long>()
+    // 上次所见会话私密认证代次（ThingManager.getPrivacyAuthGeneration）：onResume 比较，发现切后台
+    // 清过认证就收起未再认证的私密文件夹、重建（图标恢复闭锁），与首页列表 / Drawer 同步（问题4 续）。
+    private var mLastSeenAuthGeneration: Long = 0
     private var mHasAnyFolder = false
     private var mRecyclerView: RecyclerView? = null
     private var mTopSeparator: View? = null
@@ -128,7 +131,39 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         // 标题 / 确定按钮颜色、确定 ripple 跟随当前选中目标文件夹的颜色。
         updateAccentChrome()
 
+        mLastSeenAuthGeneration =
+            com.ywwynm.everythingdone.managers.ThingManager.getInstance(context)
+                ?.getPrivacyAuthGeneration() ?: 0
+
         return mContentView
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // app 切后台会清空会话私密认证（ThingManager）。若清空发生在本对话框开着期间，回前台需收起
+        // 未再认证的私密文件夹并重建，否则其图标仍停留在开锁、展开的私密子树仍可见（问题4 续）。
+        val manager = com.ywwynm.everythingdone.managers.ThingManager.getInstance(context) ?: return
+        val gen = manager.getPrivacyAuthGeneration()
+        if (gen == mLastSeenAuthGeneration) return
+        mLastSeenAuthGeneration = gen
+        collapseUnauthenticatedPrivateFolders(manager)
+        rebuildRows()
+    }
+
+    /** 把展开集中“现已未认证的私密文件夹”收起——切后台清认证后回前台调用。 */
+    private fun collapseUnauthenticatedPrivateFolders(
+        manager: com.ywwynm.everythingdone.managers.ThingManager
+    ) {
+        if (mExpandedFolderIds.isEmpty()) return
+        val byId = mFolders.associateBy { it.id }
+        val iterator = mExpandedFolderIds.iterator()
+        while (iterator.hasNext()) {
+            val id = iterator.next()
+            val folder = byId[id] ?: continue
+            if (folder.isPrivate && !manager.isFolderPrivacyAuthenticated(id)) {
+                iterator.remove()
+            }
+        }
     }
 
     override fun onDestroyView() {

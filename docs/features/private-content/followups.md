@@ -27,4 +27,10 @@ P1（认证作用域合并为会话级 + 切后台清空）与 P4 实时预览�
 - [x] **详情页文件夹路径图标未接入开锁状态**（已修）：`updateThingFolderPath` 创建 `FolderIconDrawable` 时传入 `manager?.isFolderPrivacyAuthenticated(lastFolder.id) == true`，已认证私密文件夹路径图标改画开锁，与路径文字真实名一致。
 - [x] **列表小组件配置页文件夹树未接入开锁状态**（已修）：`FolderAdapter` 创建 `FolderIconDrawable` 传入本地 `isFolderPrivacyAuthenticated(folder.id)`，已认证私密文件夹画开锁。
 - [x] **复核 Drawer / 移动到文件夹对话框开锁**：均已正确传 `isFolderPrivacyAuthenticated`（Drawer 经 `DrawerItem.folderAuthenticated`，对话框读共享单例），且认证 / 导航后 `updateDrawerFolderItems` / 对话框重建会刷新，无滞后。无需改动。
-- [x] **Doing 入口隐私例外，已定调**（2026-06-29）：采"**正在做即默认可信**"——访问/操作正在做的记事（含 app 外的 Doing 前台通知点按与动作）不鉴权，维持现状不改。已写入 `decisions.md`（同日"正在做是隐私鉴权的显式例外"）。注意区分：本例外只豁免鉴权，不放开对旁观者的展示遮蔽（Doing 通知仍遮蔽私密内容）。
+- [x] **Doing 入口隐私例外，已定调**（2026-06-29）：采“**正在做即默认可信**”——访问/操作正在做的记事（含 app 外的 Doing 前台通知点按与动作）不鉴权，维持现状不改。已写入 `decisions.md`（同日“正在做是隐私鉴权的显式例外”）。注意区分：本例外只豁免鉴权，不放开对旁观者的展示遮蔽（Doing 通知仍遮蔽私密内容）。
+
+## 2026-06-29 - 评审 8 问题修复后的残留项
+
+- [x] **记事取消私密未清会话认证集**（已修）：`clearThingPrivacyAuthenticated` + 批量取消 / 详情取消 / 彻底删除三处清，与文件夹对称。见 `sessions.md` 同日“8 问题修复”第 6 项。
+- [x] **移动到文件夹对话框回前台不刷新锁态**（已修，发布码 202606291338）：`MoveToThingFolderDialogFragment.onResume` 比较 `ThingManager.getPrivacyAuthGeneration`，切后台清过认证则 `collapseUnauthenticatedPrivateFolders`（收起展开集中现已未认证的私密文件夹）+ `rebuildRows`，图标恢复闭锁、展开的私密子树收起，与首页列表 / Drawer 同步。对话框 `onCreateView` 初始化代次基线，避免首次显示误触发。
+- [ ] **文件夹 scope“全部完成 / 删除”未接入状态变更鉴权**：问题 8 覆盖了列表长按选中的完成 / 恢复 / 删除 / 彻底删除、回收站结构删除、单 / 当前文件夹永久删除；但 `confirmFinishAllThingsInScope` / `confirmUnfinishAllThingsInScope` / `confirmRestoreTrashedThingsInScope` / `confirmDeleteForeverAllInScope`（文件夹内 / 根目录 overflow 的“全部…”）暂未接入。文件夹内 overflow 触发时用户通常已认证该文件夹（自动豁免）；根目录“全部”作用于含私密子文件夹内容时无鉴权。判定需扫描 scope 内是否含未认证有效私密项，复杂度较高，单列待评估。

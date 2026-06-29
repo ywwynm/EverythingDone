@@ -152,4 +152,8 @@
 
 理由：进入"正在做"本身是一次明确、主动的用户操作（开始做事时通常已在 app 内、或刚解锁设备），把它视为已获信任，避免在专注做事的高频交互里反复设卡。
 
-**与"显示层隐私"区分**：本条只豁免**鉴权**，不放开**对旁观者的展示遮蔽**。Doing 前台通知仍按系统通知口径遮蔽内容（无标题私密记事只显类型名、不露内容/附件，见同日"代码评审 5 条"第 4 条），因为锁屏/通知栏可能被他人看到——"可信"针对的是用户身份、不是把秘密广播给旁人。
+**与“显示层隐私”区分**：本条只豁免**鉴权**，不放开**对旁观者的展示遮蔽**。Doing 前台通知仍按系统通知口径遮蔽内容（无标题私密记事只显类型名、不露内容/附件，见同日“代码评审 5 条”第 4 条），因为锁屏/通知栏可能被他人看到——“可信”针对的是用户身份、不是把秘密广播给旁人。
+
+## 2026-06-29 - 状态变更（完成/恢复/删除/彻底删除）鉴权置于确认框之后
+
+给完成 / 恢复 / 删除 / 彻底删除私密记事 / 文件夹补隐私鉴权（此前完全没有）。鉴权时机定为**确认框点“确定”之后、真正执行前**，而非弹确认框之前——先让用户确认要做此操作，确定后再验证身份；若用户本就要取消（不点确定），无需先输密码。判定沿用“访问即信任”：选中含“未认证的有效私密”记事 / 文件夹才弹验证（记事按 `isEffectivelyPrivate && !isThingPrivacyAuthenticated && !isFolderPrivacyAuthenticated(folderId)`，文件夹按 `isFolderEffectivelyPrivate && !isFolderPrivacyAuthenticated`），通过后把涉及项标记本会话已认证。接入四个确认框 onConfirm（纯记事 `confirmThingsOnlyStateChange`、混合 `confirmMixedStateChange`、回收站结构删除 `confirmDeleteSelectedStructural`、单 / 当前文件夹永久删除 `showDeleteThingFolderForeverDialog`）。文件夹 scope“全部完成 / 删除”（根 / 文件夹 overflow）暂未接入，记 followup。

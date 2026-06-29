@@ -237,6 +237,8 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 intent.putExtra(Def.Communication.KEY_ID, mHrId)
                 intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
                 intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
+                // 已在全屏通知内鉴权，告知 receiver 跳过二次鉴权（见 Def.KEY_ALREADY_AUTHENTICATED）。
+                intent.putExtra(Def.Communication.KEY_ALREADY_AUTHENTICATED, true)
                 sendBroadcast(intent)
                 finish()
             }
@@ -254,6 +256,8 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 intent.putExtra(Def.Communication.KEY_ID, mHrId)
                 intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
                 intent.putExtra(Def.Communication.KEY_TIME, mHrTime)
+                // 已在全屏通知内鉴权，告知 receiver 跳过二次鉴权（见 Def.KEY_ALREADY_AUTHENTICATED）。
+                intent.putExtra(Def.Communication.KEY_ALREADY_AUTHENTICATED, true)
                 sendBroadcast(intent)
                 finish()
             }
@@ -265,6 +269,8 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         intent.setAction(action)
         intent.putExtra(Def.Communication.KEY_ID, mThing!!.id)
         intent.putExtra(Def.Communication.KEY_POSITION, mPosition)
+        // 已在全屏通知内对私密记事鉴权过，告知 receiver 跳过二次鉴权（见 Def.KEY_ALREADY_AUTHENTICATED）。
+        intent.putExtra(Def.Communication.KEY_ALREADY_AUTHENTICATED, true)
         sendBroadcast(intent)
         finish()
     }

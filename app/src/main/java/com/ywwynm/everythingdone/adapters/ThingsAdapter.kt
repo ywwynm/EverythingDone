@@ -167,6 +167,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
+    /**
+     * 该文件夹当前是否以“大文件夹（缩略图）”形态显示——揭示感知：本会话已认证（揭示）的私密大
+     * 文件夹算大文件夹。拖拽悬停据此选“加入大/小文件夹”的动画，必须用揭示感知的 [presentationFor]，
+     * 否则揭示态大文件夹会被 effectiveCardPresentation 当成小文件夹、播放错误的小文件夹动画。
+     */
+    open fun isFolderShownAsThumbnails(folder: ThingFolder): Boolean {
+        return presentationFor(folder).mode == ThingFolderCardPresentation.MODE_THUMBNAILS
+    }
+
     open fun shouldThingsAnimWhenAppearing(): Boolean = mShouldThingsAnimWhenAppearing
 
     open fun setShouldThingsAnimWhenAppearing(shouldThingsAnimWhenAppearing: Boolean) {

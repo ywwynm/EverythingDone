@@ -29,6 +29,9 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
     @SuppressLint("LongLogTag")
     override fun onReceive(context: Context, intent: Intent) {
         val action: String? = intent.action
+        // 来自全屏通知、其内部已对私密记事鉴权过的动作：跳过本 receiver 的有效私密二次鉴权（问题5）。
+        val alreadyAuthenticated = intent.getBooleanExtra(
+            Def.Communication.KEY_ALREADY_AUTHENTICATED, false)
         val thingId: Long = intent.getLongExtra(Def.Communication.KEY_ID, 0)
         val nmc: NotificationManagerCompat = NotificationManagerCompat.from(context)
         nmc.cancel(thingId.toInt())
@@ -65,7 +68,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
         if (Def.Communication.NOTIFICATION_ACTION_FINISH == action
             || Def.Communication.WIDGET_ACTION_FINISH == action
         ) {
-            if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
+            if (!alreadyAuthenticated && ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 val actionIntent: Intent = AuthenticationActivity.getOpenIntent(
                         context, TAG, thingId, position,
                         Def.Communication.AUTHENTICATE_ACTION_FINISH,
@@ -81,7 +84,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
                         Toast.LENGTH_LONG).show()
                 return
             }
-            val actionIntent: Intent = if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
+            val actionIntent: Intent = if (!alreadyAuthenticated && ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 AuthenticationActivity.getOpenIntent(
                     context, TAG, thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_START_DOING,
@@ -95,7 +98,7 @@ open class ReminderNotificationActionReceiver : BroadcastReceiver() {
             actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             context.startActivity(actionIntent)
         } else if (Def.Communication.NOTIFICATION_ACTION_DELAY == action) {
-            val actionIntent: Intent = if (ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
+            val actionIntent: Intent = if (!alreadyAuthenticated && ThingPrivacyResolver.isEffectivelyPrivate(context, thing)) {
                 AuthenticationActivity.getOpenIntent(
                     context, TAG, thingId, position,
                     Def.Communication.AUTHENTICATE_ACTION_DELAY,
