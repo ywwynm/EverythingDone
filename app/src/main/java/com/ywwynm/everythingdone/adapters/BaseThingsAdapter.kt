@@ -1854,10 +1854,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun syncSideImageProjectionAfterMeasure(
         holder: BaseThingViewHolder,
         bindToken: String,
-        thing: Thing,
-        pathName: String,
-        crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        videoFrameMs: Long?
+        thing: Thing
     ) {
         holder.llContent!!.post {
             if (holder.flImageAttachment!!.getTag(
@@ -1866,25 +1863,44 @@ abstract class BaseThingsAdapter(context: Context?) :
             ) {
                 return@post
             }
-            if (!holder.flImageAttachment.isVisible) return@post
-
-            val projection = getSideImageProjection(holder, thing)
-            val imageLp = holder.flImageAttachment.layoutParams as LinearLayout.LayoutParams
-            val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
-            if (imageLp.height == projection.imageHeight &&
-                    imageLp.width == projection.imageWidth &&
-                    textLp.width == projection.textWidth) {
-                return@post
-            }
-
-            applySideImageProjectionLayout(holder, projection)
-            setThingCardImageFrameSize(
-                holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            loadThingCardImage(
-                holder, pathName, projection.imageWidth, projection.imageHeight, crop, videoFrameMs
-            )
+            resyncSideImageProjection(holder, thing)
         }
+    }
+
+    /**
+     * 侧图卡的图片高度 = 内容列实测文本高度。文字内容、字号或缩放在首帧绑定后还可能变化（典型：大文件夹
+     * 缩略图预览在绑定后才整体缩放文字），需据最终文本重新结算一次投影。投影与当前布局已一致则不动，否则
+     * 重应用并按新尺寸重载图片；返回是否实际改动。[measureThingCardSideTextContentHeight] 自测文本、不依赖
+     * 卡片已布局，故本方法可同步调用——预览据此在首帧前结算，避免异步补算改高度造成的“闪一下”。
+     */
+    protected fun resyncSideImageProjection(holder: BaseThingViewHolder, thing: Thing): Boolean {
+        val mediaSource = ThingCardMediaHelper.resolveEffectiveMediaSource(thing) ?: return false
+        if (thing.thingCardAppearance.mediaBackgroundEnabled) return false
+        if (!isSideImagePlacement(getEffectiveThingCardImagePlacement(thing))) return false
+        if (holder.flImageAttachment?.isVisible != true) return false
+
+        val projection = getSideImageProjection(holder, thing)
+        val imageLp = holder.flImageAttachment!!.layoutParams as LinearLayout.LayoutParams
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        if (imageLp.height == projection.imageHeight &&
+                imageLp.width == projection.imageWidth &&
+                textLp.width == projection.textWidth) {
+            return false
+        }
+
+        applySideImageProjectionLayout(holder, projection)
+        setThingCardImageFrameSize(
+            holder, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        loadThingCardImage(
+            holder,
+            mediaSource.pathName,
+            projection.imageWidth,
+            projection.imageHeight,
+            getThingCardSidePanelCrop(thing, mediaSource),
+            getThingCardVideoFrameMs(thing, mediaSource)
+        )
+        return true
     }
 
     private fun applyThingCardImagePlacementLayout(
@@ -2496,6 +2512,13 @@ abstract class BaseThingsAdapter(context: Context?) :
             return
         }
 
+        // 同步先把置底锚定生效：每次重绑 applyCardContentGeometry 都会把 spacer 复位（GONE/weight=0），
+        // 若锚定只靠下面的异步 post，重绑后到 post 执行前置底元素会短暂跟在正文下方排列（长按记事 /
+        // 进出选择模式触发重绑时可见，松手后才恢复）。这里据当前 targetHeight 同步锚定，post 仅负责
+        // 分割线 / 放大等绑定后步骤改变自然高度时的高度再校正（仍按 bindToken 防旧的更高绑定覆盖新的
+        // 更矮绑定）。
+        applyThingCardMediaBackgroundBottomStatusAnchor(holder, targetHeight)
+
         holder.llTextContent!!.post {
             val mediaBackground = holder.ivMediaBackground!!
             if (!mediaBackground.isVisible) return@post
@@ -2505,24 +2528,37 @@ abstract class BaseThingsAdapter(context: Context?) :
             }
 
             val naturalHeight = measureThingCardMediaBackgroundNaturalContentHeight(holder)
-            val expandedHeight = max(targetHeight, naturalHeight)
-            if (expandedHeight <= 0) return@post
+            applyThingCardMediaBackgroundBottomStatusAnchor(
+                holder, max(targetHeight, naturalHeight)
+            )
+        }
+    }
 
-            val textLp = holder.llTextContent.layoutParams as LinearLayout.LayoutParams
-            if (textLp.height != expandedHeight) {
-                textLp.height = expandedHeight
-                textLp.weight = 0f
-                holder.llTextContent.layoutParams = textLp
-            }
+    /**
+     * 媒体背景卡的置底锚定：内容列高度固定为媒体背景高度，底部 spacer 以 weight=1 撑满余下空间，把
+     * 状态块（音频 / 附件计数 / 提醒 / 习惯 / 目标）压到内容列底部。可同步调用，使重绑首帧即锚定，避免
+     * 异步生效期间状态块短暂跟在正文下方的“闪一下”。
+     */
+    private fun applyThingCardMediaBackgroundBottomStatusAnchor(
+        holder: BaseThingViewHolder,
+        expandedHeight: Int
+    ) {
+        if (expandedHeight <= 0) return
 
-            val spacer = holder.vBottomStatusSpacer!!
-            val spacerLp = spacer.layoutParams as LinearLayout.LayoutParams
-            if (spacer.visibility != View.VISIBLE || spacerLp.weight != 1f) {
-                spacer.visibility = View.VISIBLE
-                spacerLp.height = 0
-                spacerLp.weight = 1f
-                spacer.layoutParams = spacerLp
-            }
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
+        if (textLp.height != expandedHeight) {
+            textLp.height = expandedHeight
+            textLp.weight = 0f
+            holder.llTextContent.layoutParams = textLp
+        }
+
+        val spacer = holder.vBottomStatusSpacer!!
+        val spacerLp = spacer.layoutParams as LinearLayout.LayoutParams
+        if (spacer.visibility != View.VISIBLE || spacerLp.weight != 1f) {
+            spacer.visibility = View.VISIBLE
+            spacerLp.height = 0
+            spacerLp.weight = 1f
+            spacer.layoutParams = spacerLp
         }
     }
 
@@ -2705,9 +2741,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                     holder, pathName, imageW, sideImageProjection!!.imageHeight,
                     thumbnailCrop, videoFrameMs
                 )
-                syncSideImageProjectionAfterMeasure(
-                    holder, bindToken, thing, pathName, thumbnailCrop, videoFrameMs
-                )
+                syncSideImageProjectionAfterMeasure(holder, bindToken, thing)
             } else {
                 setThingCardImageFrameSize(
                     holder,

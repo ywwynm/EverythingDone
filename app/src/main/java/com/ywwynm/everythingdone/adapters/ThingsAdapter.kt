@@ -822,10 +822,16 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         // 该有效私密文件夹是否应揭示真实内容（如处于已认证的祖先私密文件夹内）。
         // entry.effectivePrivate 短路：非有效私密文件夹无遮蔽可绕过，免去揭示判定的路径遍历。
         val reveal = entry.effectivePrivate && shouldRevealFolderContent(entry.folder)
+        // 外观编辑预览中的文件夹：草稿外观（如刚把普通宽度切到 full-span）改变了取数上限，但 entry 缓存
+        // 的投影是列表构建时按旧外观取的（普通宽度=3）。预览必须按草稿外观实时取数，否则 full-span 预览
+        // 只显示普通宽度的 3 个，要等点击确定、列表重建后才正确显示 6 个。
+        val appearanceReveal = entry.folder.id == mAppearanceRevealFolderId
         // 投影预算的 thumbnailEntries 是按 revealRoot=false 算的：有效私密文件夹的直接记事在
         // getDirectThumbnailThings 被整条过滤、只剩子文件夹。故揭示时不能用这份缓存（否则"只见
         // 子文件夹、不见记事"），必须按 revealRoot 重新实时取数。
-        if (!reveal && entry.thumbnailEntries.isNotEmpty()) return entry.thumbnailEntries
+        if (!reveal && !appearanceReveal && entry.thumbnailEntries.isNotEmpty()) {
+            return entry.thumbnailEntries
+        }
         if (presentationFor(entry.folder).mode ==
                 ThingFolderCardPresentation.MODE_THUMBNAILS
         ) {
@@ -1036,6 +1042,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             mOnItemTouchedListener?.onFolderThumbnailClick(it, thing)
         }
         applyFolderThumbnailPreviewScale(previewHolder.cv, style)
+        // 文字到此处才被整体缩小，而侧图卡的图片高度 = 内容列实测文本高度、绑定时按未缩放文字算的。
+        // 在首帧前据缩放后的文字同步结算一次侧图投影，使卡片首帧即为最终高度；否则
+        // syncSideImageProjectionAfterMeasure 的异步补算会在下一帧把高度改一下，长按等重绑时表现为
+        // 缩略图“高度闪一下”，并连带挤动同列其它缩略图。
+        previewAdapter.settleSideImageProjectionForPreview(previewHolder)
         reapplyFolderThumbnailPreviewMediaCrop(previewHolder, previewAdapter, thing)
         applyFolderThumbnailPreviewElevation(previewHolder.cv)
         // 若是正在做的记事：缩略图预览不经历正常列表的测量时机，updateCardForDoing 里 post 的
@@ -1808,6 +1819,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             setFullSpanCardWidth(style.fullSpanPreviewWidth)
             setThingCardSurfaceAvailableHeight(style.surfaceAvailableHeight)
             setShouldShowPrivateContent(shouldShowFolderPrivateContent())
+        }
+
+        /**
+         * 预览构建在 applyFolderThumbnailPreviewScale 整体缩小文字之后，据缩放后的最终文本同步结算一次
+         * 侧图投影，使卡片首帧即为最终高度，避免 syncSideImageProjectionAfterMeasure 的异步补算在下一帧
+         * 再改高度（长按等重绑时表现为缩略图“高度闪一下”）。非侧图卡不受影响。
+         */
+        fun settleSideImageProjectionForPreview(holder: BaseThingViewHolder) {
+            resyncSideImageProjection(holder, previewThing)
         }
 
         override fun getCurrentMode(): Int = ModeManager.NORMAL

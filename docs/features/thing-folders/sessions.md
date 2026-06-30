@@ -1,5 +1,54 @@
 # Thing Folders Sessions
 
+## 2026-06-30 - 修复媒体背景卡置底元素长按重绑时短暂失去置底
+
+- 用户报告：图片/视频作背景的记事卡，置底元素（音频/附件数量、提醒/习惯/目标）长按时短暂失去置底、
+  跟在正文下方，松手恢复；大文件夹缩略图里该记事预览同样；长按别的记事进出选择模式也会再闪一下。
+- 根因：媒体背景卡的置底锚定（textLp 固定为背景高度 + `vBottomStatusSpacer` weight=1 压到底部）原放在
+  `holder.llTextContent.post` 异步生效；每次重绑 `applyCardContentGeometry` 先把 spacer 复位（GONE/
+  weight=0）。重绑后到 post 执行前置底元素按正常流跟在正文下方；长按/进出选择反复重绑期间一直未置底。
+- 修复：抽出 `BaseThingsAdapter.applyThingCardMediaBackgroundBottomStatusAnchor(holder, height)`，在
+  `updateThingCardMediaBackgroundBottomStatusLayout` 绑定时**同步**锚定一次，post 仅保留 bindToken 守卫的
+  高度再校正。普通列表/缩略图预览/缩高预览一致，缩高预览还能即时收缩。与侧图修复同属"被 post 的二次
+  布局结算重绑后留中间态"，但路径不同（媒体背景置底 vs 侧图投影）。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630101419.md"`
+  发布到阿里云 debug 通道，更新码 `202606300214`。
+
+## 2026-06-30 - 修复大文件夹侧边图文缩略图长按时高度闪动（“拖拽闪动”的真因）
+
+- 用户更精确复现：大文件夹缩略图里一个"图片在左/右、内容列有正文+音频提示+提醒分割线"的侧图记事
+  缩略图，长按它或别的记事时高度闪一下，还连带挤动同列其它缩略图（观察到一个多级 checklist）。与拖拽
+  本身无关，长按触发列表重绑即可复现——前一版按"拖拽 / SGLM gap"的方向是错的（已撤回）。
+- 真因：侧图卡图片高度 = `measureThingCardSideTextContentHeight` 实测内容列文本高度；
+  `syncSideImageProjectionAfterMeasure` 在 `holder.llContent.post` 里据实测文本二次结算投影并改尺寸。
+  大文件夹缩略图预览在 `onBindViewHolder` 之后才用 `applyFolderThumbnailPreviewScale` 整体缩小文字，初始
+  投影按未缩放文字算（偏大），异步补算据缩小后文字算出更矮高度并改之 → "高度闪一下"。普通列表不缩放、
+  补算 no-op，故仅大文件夹缩略图出现。同列 checklist 的"连带闪动"是侧图卡改高度引起文件夹卡整体重测的级联。
+- 修复：把补算逻辑抽成可同步调用的 `BaseThingsAdapter.resyncSideImageProjection(holder, thing)`（原异步
+  `syncSideImageProjectionAfterMeasure` 改为委托它）；`FolderThingPreviewAdapter` 暴露
+  `settleSideImageProjectionForPreview`，在 `createFolderThingPreviewView` 缩放文字后同步结算一次，使首帧
+  即最终高度，异步补算届时 no-op。普通列表渲染路径不变。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630095716.md"`
+  发布到阿里云 debug 通道，更新码 `202606300157`。
+
+## 2026-06-30 - 修复 full-span 大文件夹预览缩略图数量（拖拽闪动方向错误，已撤回）
+
+- **预览只显示 3 个缩略图（应 6 个）— 已修复并保留**：外观面板"预览"是揭示列表真实卡片来显示的，
+  切换大小模式只改草稿外观并重绑卡片，但 `ThingsAdapter.getFolderThumbnailEntries` 优先返回列表
+  构建时缓存的 `FolderEntry.thumbnailEntries` 投影——那份投影按旧外观（普通宽度，取数上限 3）取的。
+  修复：对正在外观编辑预览的文件夹（`folder.id == mAppearanceRevealFolderId`）绕过缓存，按草稿外观
+  实时取数（full-span 取数上限 10），预览即与确定后一致显示 6 个。
+- **很高的 full-span 大文件夹拖拽时列表闪动 — 诊断方向错误，已撤回**：曾推断为
+  `StaggeredGridLayoutManager` 的 gap 修正，在 `ModeManager`（拖拽开始 `notifyThingsSelected`、选择
+  退出/取消的 `backNormalMode` 与 `notifyDataSetRunnable`）与
+  `ThingsActivity.runOverlayDragModeExitRebind` 三处重绑加锚点 save/restore 保住滚动位置。用户反馈此
+  闪动与该方案无关，已全部撤回，此 bug 仍待定位。
+- 验证：撤回拖拽改动后 `:app:assembleDebug` BUILD SUCCESSFUL（Bug 1 修复保留）。
+- 发布：更新码 `202606291603`（仍含已撤回的拖拽改动）此前已发到阿里云 debug 通道，Bug 1 修复在该包
+  内有效；源码撤回后已不含拖拽改动，如需可重新发布仅含 Bug 1 的版本。
+
 ## 2026-06-27 - 结构操作确认弹窗补充搜索范围提醒
 
 - 用户反馈：搜索结果中对文件夹执行解散、永久删除等结构操作时，确认弹窗只提示状态/类型筛选下看不到的内容，没有提示搜索范围下看不到的内容。
