@@ -212,3 +212,23 @@ Doing 入口"app 外不鉴权"是否要纳入隐私体系，留作产品口径�
 确认前一轮 5 个风险点已修复：系统通知媒体大图按 `effectivelyPrivate` 禁止渲染；单一 widget 配置完成时使用 `resolveForPresentation`；嵌套大文件夹缩略图 revealRoot 的缓存与 DAO 子文件夹判定已补；Doing 空标题通知不再回退内容/附件；`NoticeableNotificationActivity` 对过期/删除记事加了 null guard。
 
 本轮新发现并记录到 `followups.md`：widget 简单样式空标题私密记事仍可能回退显示内容；详情页文件夹路径图标未传已鉴权状态；列表小组件配置页文件夹树未传本地鉴权状态；Doing 当前仍是 app 外鉴权体系的显式例外，需要确认是否维持。
+
+## 2026-06-30 - 私密记事移动补鉴权（对齐私密文件夹）
+
+用户反馈私密文件夹移动（拖拽 / "移动到文件夹"对话框）会鉴权、私密记事同样移动却不会，要求对齐。根因：`needsThingMovePrivacyAuthentication` / `needsSelectedThingsMovePrivacyAuthentication` 只看源 / 目标**文件夹**的有效私密，漏了 `thing.isPrivate()`（记事自身私密），而 `needsFolderMovePrivacyAuthentication` 看被移动文件夹自身私密，故不对称。这正是 2026-06-29 决策第 4 条"移动不看记事自身"的遗留，本次推翻（见 `decisions.md` 同日条目）。
+
+改动（均在 `ThingsActivity.kt`）：
+- `needsThingMovePrivacyAuthentication` 源判定改为 `(thing.isPrivate() || isFolderEffectivelyPrivate(thing.folderId)) && !isFolderPrivacyAuthenticated(thing.folderId) && !isThingPrivacyAuthenticated(thing.id)`，与右滑 `needsThingSwipePrivacyAuthentication` 完全对称（仅把 currentFolder 换成按 thing.folderId），目标判定不变。
+- `needsSelectedThingsMovePrivacyAuthentication` 简化为 `selectedThings.any { needsThingMovePrivacyAuthentication(it, targetFolderId) }`，批量与单条口径不再漂移。
+- `authenticatePrivateMoveIfNeeded` 加 `thingsToAuthenticate` 参数，鉴权通过后 `markThingPrivacyAuthenticated`，与 `foldersToAuthenticate` 对称。三处记事移动调用方（纯记事对话框 `moveSelectedThingsToFolderWithPrivacyCheck`、拖拽 `commitMoveThingIntoFolderDrop`、混合对话框 `moveSelectedMixedToFolder`）传入选中 / 拖拽记事 id。
+
+`:app:assembleDebug` 编译通过，按要求发布阿里云（更新码 **202606300337**），发布日志见 `debug-updates/update-20260630113537.md`。
+
+## 2026-06-30 - 私密管理操作鉴权口径复盘：取消私密补豁免、设私密维持不鉴权
+
+用户提出两条：① 长按列表设私密（单 / 多 / 混选）不鉴权；② 已鉴权的项取消私密仍要再验。逐条对照决策与代码：
+
+- **设私密不鉴权**：与 2026-06-28 决策一致，非疏漏；经大厂调研（iOS 照片隐藏不鉴权、Google 锁定文件夹 / 三星安全文件夹"移入容器"才鉴权、iOS 备忘录锁定也不在锁定动作设卡）佐证，维持不改代码。
+- **取消私密缺已认证豁免**：批量 / 单选 / 混选取消（`toggleSelectedPrivateBatch` 取消分支）无条件验证，与文件夹 overflow 取消、状态变更、移动口径不一致。改为复用 `needsSelectedStateChangePrivacyAuthentication`——全部已认证免验、仅含未认证有效私密项才验。详见 `decisions.md` 同日条目。
+
+`:app:assembleDebug` 编译通过，按要求发布阿里云（更新码 **202606300356**），发布日志见 `debug-updates/update-20260630115528.md`。

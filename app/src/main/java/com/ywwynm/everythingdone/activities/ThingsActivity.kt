@@ -8165,7 +8165,8 @@ class ThingsActivity :
         authenticatePrivateMoveIfNeeded(
             needsSelectedThingsMovePrivacyAuthentication(selectedThings, targetFolderId),
             getSelectedThingsMovePrivacyBackground(selectedThings, targetFolderId),
-            foldersToAuthenticate = selectedThings.map { it.folderId } + targetFolderId
+            foldersToAuthenticate = selectedThings.map { it.folderId } + targetFolderId,
+            thingsToAuthenticate = selectedThings.map { it.id }
         ) {
             moveSelectedThingsToFolder(selectedThings, targetFolderId)
         }
@@ -8188,19 +8189,8 @@ class ThingsActivity :
         selectedThings: List<Thing>,
         targetFolderId: Long?
     ): Boolean {
-        // 与 moveFolderToFolder 的鉴权口径一致（访问即信任）：只有源或目标是"未认证的"私密文件夹
-        // 才要求验证；在已认证的私密文件夹里移动记事不再重复验证。
-        val targetNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId) &&
-                !mThingManager!!.isFolderPrivacyAuthenticated(targetFolderId)
-        for (thing in selectedThings) {
-            if (thing.folderId == targetFolderId) continue
-            val sourceNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) &&
-                    !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId)
-            if (targetNeedsAuth || sourceNeedsAuth) {
-                return true
-            }
-        }
-        return false
+        // 逐条复用单条移动的鉴权口径，保证批量与单条、拖拽、右滑、文件夹移动完全一致、不漂移。
+        return selectedThings.any { needsThingMovePrivacyAuthentication(it, targetFolderId) }
     }
 
     private fun needsThingMovePrivacyAuthentication(
@@ -8208,9 +8198,14 @@ class ThingsActivity :
         targetFolderId: Long?
     ): Boolean {
         if (thing.folderId == targetFolderId) return false
-        // 同上：与 moveFolderToFolder 一致，已认证的私密文件夹内移动免重复验证。
-        val sourceNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(thing.folderId) &&
-                !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId)
+        // 与右滑 / 文件夹移动口径对称（访问即信任）：记事自身私密、或其所在源文件夹有效私密，且记事
+        // 自身与所在文件夹本会话均未认证时，才要求验证；移入 / 移出已认证的私密文件夹、或已单独认证
+        // 过的私密记事免重复验证。此前漏了 thing.isPrivate()（记事自身私密），导致把"自身私密、却处
+        // 于非私密文件夹"的记事移走时不鉴权，与私密文件夹移动会鉴权的行为不对称。
+        val sourceNeedsAuth = (thing.isPrivate() ||
+                mThingManager!!.isFolderEffectivelyPrivate(thing.folderId)) &&
+                !mThingManager!!.isFolderPrivacyAuthenticated(thing.folderId) &&
+                !mThingManager!!.isThingPrivacyAuthenticated(thing.id)
         val targetNeedsAuth = mThingManager!!.isFolderEffectivelyPrivate(targetFolderId) &&
                 !mThingManager!!.isFolderPrivacyAuthenticated(targetFolderId)
         return sourceNeedsAuth || targetNeedsAuth
@@ -8254,6 +8249,7 @@ class ThingsActivity :
         needsAuthentication: Boolean,
         background: ThingBackground?,
         foldersToAuthenticate: List<Long?> = emptyList(),
+        thingsToAuthenticate: List<Long> = emptyList(),
         onCancelled: () -> Unit = {},
         onAuthenticated: () -> Unit
     ) {
@@ -8279,6 +8275,9 @@ class ThingsActivity :
                     foldersToAuthenticate.forEach { id ->
                         id?.let { mThingManager!!.markFolderPrivacyAuthenticated(it) }
                     }
+                    // 同理标记本次移动的私密记事为本会话已认证——与右滑 / 打开详情认证后 mark 对称：移动
+                    // 验过身后再点开 / 右滑 / 再移动同一记事免二次验证、卡片揭示（对非私密 id 无副作用）。
+                    thingsToAuthenticate.forEach { mThingManager!!.markThingPrivacyAuthenticated(it) }
                     onAuthenticated()
                 }
 
@@ -9064,6 +9063,7 @@ class ThingsActivity :
             needsThingMovePrivacyAuthentication(sourceThing, targetEntry.folder.id),
             getThingMovePrivacyBackground(sourceThing, targetEntry.folder.id),
             foldersToAuthenticate = listOf(sourceThing.folderId, targetEntry.folder.id),
+            thingsToAuthenticate = listOf(sourceThing.id),
             onCancelled = { onCommitted(false) },
             onAuthenticated = commitMove
         )
@@ -11517,7 +11517,8 @@ class ThingsActivity :
         authenticatePrivateMoveIfNeeded(
             needAuth, App.defaultAccentBackground,
             foldersToAuthenticate = selectedThings.map { it.folderId } +
-                selectedFolders.map { it.id } + targetFolderId
+                selectedFolders.map { it.id } + targetFolderId,
+            thingsToAuthenticate = selectedThings.map { it.id }
         ) {
             val moveSources = ArrayList<FolderMenuMoveSource>()
             moveSources.addAll(
@@ -11622,6 +11623,13 @@ class ThingsActivity :
             }
             applySelectedPrivateBatch(thingIds, folderIds, true)
         } else {
+            // 取消私密遵循“访问即信任”：选中项本会话全部已认证则免验直接取消；仅当含未认证的有效
+            // 私密项时才弹验证（复用状态变更同款判定，与文件夹 overflow 取消、移动口径一致）。取消后
+            // 这些项由私密变公开，无需 mark 认证（applySelectedPrivateBatch 取消分支会清其会话认证）。
+            if (!needsSelectedStateChangePrivacyAuthentication(things, folders)) {
+                applySelectedPrivateBatch(thingIds, folderIds, false)
+                return
+            }
             val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
                 .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null) ?: return
             AuthenticationHelper.authenticate(
