@@ -506,6 +506,8 @@ open class ThingManager private constructor(context: Context?) {
             thingToCreate.folderId = mProjection.currentFolderId
         }
         mDao!!.create(thingToCreate, false, false)
+        // 在文件夹内新建记事：刷新该容器文件夹（folderId 为 null 即根目录、跳过）。
+        touchFolderUpdateTime(thingToCreate.folderId)
 //        mExecutor.execute(new Runnable() {
 //            @Override
 //            public void run() {
@@ -1054,6 +1056,12 @@ open class ThingManager private constructor(context: Context?) {
             }
         }
         mFolderDao!!.deleteRecord(folder.id)
+        // 撤销建夹：成员回到原容器、临时子夹从父消失，按直接子项集合变化刷新相关容器。restoreSnapshot 分支
+        // 走 DAO 直写、未经 moveThingIntoFolderInternal 的 touch，故在此对成员恢复后所在容器与临时夹的父统一
+        // 补刷（幂等，覆盖两条恢复分支）。
+        val affectedFolderIds = createdFolderMembers.mapTo(mutableListOf<Long?>()) { it.folderId }
+        affectedFolderIds.add(folder.parentFolderId)
+        touchFolderUpdateTimes(affectedFolderIds)
         trimProjectionToExistingFolders()
         loadThings()
         return true
@@ -1063,6 +1071,19 @@ open class ThingManager private constructor(context: Context?) {
         if (thing == null) return false
         if (thing.type !in Thing.NOTE..Thing.GOAL) return false
         return thing.state == Thing.UNDERWAY
+    }
+
+    // 借鉴文件系统目录 mtime：某文件夹的直接子项集合发生增减时刷新它的 updateTime。根目录（null）不是
+    // 文件夹、跳过；不向上冒泡（只刷新直接容器）。
+    private fun touchFolderUpdateTime(folderId: Long?) {
+        if (folderId == null) return
+        mFolderDao!!.touchUpdateTime(folderId)
+    }
+
+    private fun touchFolderUpdateTimes(folderIds: Collection<Long?>) {
+        for (id in folderIds.toSet()) {
+            if (id != null) mFolderDao!!.touchUpdateTime(id)
+        }
     }
 
     open fun moveThingIntoFolder(thing: Thing?, folderId: Long?, reload: Boolean = true) {
@@ -1084,6 +1105,10 @@ open class ThingManager private constructor(context: Context?) {
         thing.folderId = folderId
         thing.location = newLocation
         mDao!!.updateFolderIdAndLocation(thing.id, folderId, newLocation)
+        // 直接子项集合变化：源容器少一项、目标容器多一项，两边都刷新（被移动的记事自身不刷新，与文件
+        // 系统 mv 一致）。
+        touchFolderUpdateTime(sourceFolderId)
+        touchFolderUpdateTime(folderId)
         trimProjectionToExistingFolders()
         return true
     }
@@ -1158,6 +1183,9 @@ open class ThingManager private constructor(context: Context?) {
         folder.parentFolderId = parentFolderId
         folder.location = newLocation
         mFolderDao!!.updateParentAndLocation(folder.id, parentFolderId, newLocation)
+        // 子文件夹移动：被移动者自身已随 updateParentAndLocation 刷新；再刷新源父与目标父两个容器。
+        touchFolderUpdateTime(sourceParentFolderId)
+        touchFolderUpdateTime(parentFolderId)
         trimProjectionToExistingFolders()
         if (reload) {
             loadThings()
@@ -1337,7 +1365,10 @@ open class ThingManager private constructor(context: Context?) {
 
     open fun deleteFolderForever(folder: ThingFolder?): Boolean {
         if (folder == null) return false
+        val parentFolderId = folder.parentFolderId
         mFolderDao!!.deleteForever(folder.id)
+        // 永久删除文件夹（物理移除整棵子树）：刷新其父容器（少了一个直接子文件夹）。
+        touchFolderUpdateTime(parentFolderId)
         trimProjectionToExistingFolders()
         loadThings()
         return true
@@ -1346,7 +1377,10 @@ open class ThingManager private constructor(context: Context?) {
     open fun dissolveFolder(folder: ThingFolder?): Boolean {
         if (folder == null) return false
         mAuthenticatedPrivateFolderIds.remove(folder.id)
+        val parentFolderId = folder.parentFolderId
         mFolderDao!!.dissolve(folder.id)
+        // 解散：所有直接子项上移到父容器，父的直接子项集合变化，刷新父。被解散文件夹自身已删除。
+        touchFolderUpdateTime(parentFolderId)
         trimProjectionToExistingFolders()
         loadThings()
         return true
@@ -1569,6 +1603,8 @@ open class ThingManager private constructor(context: Context?) {
         for (thing in things) {
             mAuthenticatedPrivateThingIds.remove(thing.id)
         }
+        // 永久删除记事所属容器的刷新统一在 ThingDAO.updateState 的物理删除点处理（覆盖批量/详情页/回收站各
+        // 入口），此处不再单独 touch，避免重复。
         return changeFolderSubtreeContentState(
             things,
             Thing.DELETED,

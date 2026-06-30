@@ -1,5 +1,44 @@
 # Thing Folders Sessions
 
+## 2026-06-30 - folder.updateTime 内容增减刷新补漏（实现 P1/P2/P3）
+
+- 接上一条“复核”及外部评审发现的三处漏刷，核实后全部成立并修复：
+  - P1 批量“永久删除所选记事”走 `ThingManager.updateStates(..., DELETED_FOREVER)`，不经 `deleteThingsForever`；
+  - P2 详情页清空删除：`mThingIndex==-1` 走 `ThingDAO.updateState` **DAO 直写**（绕 Manager），else 走
+    `manager.updateState`，两条都未刷容器；
+  - P3 `cancelCreatedFolder` 的 restoreSnapshot 分支用 `updateFolderIdAndLocation` 直写恢复成员、`deleteRecord`
+    删临时夹，均未刷相关容器。
+- 修法：所有永久删除最终都经 `ThingDAO.updateState` 行 383 的 `db.delete`（单个/批量/详情页/回收站皆然），
+  在该统一物理删除点 touch 记事所属文件夹 → 一处覆盖 P1+P2+`deleteThingsForever`；同步移除 `deleteThingsForever`
+  里重复的 touch。P3 在 `cancelCreatedFolder` 末尾对成员恢复后所在容器 + 临时夹父统一补刷。永久删除文件夹走
+  `ThingFolderDAO.deleteForever` 直接删子树、不经物理点，不会误刷正在消失的子夹。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。followups 中相应待修项已勾除。
+- 发布（含本次 P1/P2/P3 + 上次内容增减刷新补齐，folder.updateTime 工作整体）：`:app:publishDebugUpdate
+  "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630172601.md"` 发布到阿里云 debug
+  通道，更新码 `202606300926`。
+
+## 2026-06-30 - 复核 folder.updateTime 刷新语义与 UI/UX 入口
+
+- 按“自身字段变更 + 直接物理子项集合增减、不冒泡、不因排序/软删除/内容编辑刷新”的定义，复核当前 `ThingFolderDAO` / `ThingManager` 写入点：重命名、确认文件夹外观、设置/取消私密、移动记事、移动子文件夹、文件夹内新建记事、永久删除文件夹、解散文件夹等刷新点语义合理；置顶/重排、完成/恢复、删到回收站、编辑记事内容不刷新也合理。
+- 发现仍有可达漏刷入口：仅选记事的“永久删除所选记事”仍走旧 `updateStates(..., DELETED_FOREVER)`；详情页把已有记事清空导致永久删除、以及创建失败/取消已落库草稿时，也走旧 `updateState(..., DELETED_FOREVER)` 或 DAO 直写；取消拖拽创建文件夹的回滚路径用 `updateFolderIdAndLocation` / `deleteRecord` 直接恢复，没有按回滚后的直接子项集合变化刷新相关容器。
+- 这些漏刷只影响 `folder.updateTime` 元数据本身；当前缩略图缓存另有渲染输入指纹和 reload 兜底，暂未发现会直接造成缩略图过期显示。已把修复项记录到 `followups.md`，等待后续实现。
+
+## 2026-06-30 - 补齐 folder.updateTime 的内容增减刷新（借鉴目录 mtime）
+
+- 调研 folder.updateTime 写入时机，先纠正一处此前的误判：`ThingFolderDAO.update(folder)` 首行
+  `folder.markUpdated()` 已刷新 updateTime，所以 renameFolder/改外观/设私密一直在 bump，“自身字段不一致”
+  并不存在；已更正 decisions/sessions 旧表述。location（置顶/重排）不刷新、与 thing 一致，保持。
+- 唯一缺口是“内容增减不刷新容器”。按用户确认按目录 mtime 语义补齐：新增 `ThingFolderDAO.touchUpdateTime`
+  与 `ThingManager.touchFolderUpdateTime/­touchFolderUpdateTimes`，在以下处刷新相关容器——
+  - `moveThingIntoFolderInternal`：源+目标容器（覆盖批量移动、拖拽建夹成员移入）；
+  - `moveFolderIntoFolder`：源父+目标父；
+  - `create`：文件夹内新建记事刷新目标容器；
+  - `deleteThingsForever` / `deleteFolderForever`：永久删除刷新所属/父容器；
+  - `dissolveFolder`：刷新父容器。
+- 不刷新：删到回收站、完成、编辑内容、排序置顶；不向上冒泡。根目录（null）跳过。
+- 注：folder.updateTime 目前仅缩略图缓存签名读取，本次属语义正确化 + 为将来铺路；无可见行为变化。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。
+
 ## 2026-06-30 - 关闭缩略图性能诊断日志（真实手感版）
 
 - 确认缓存复用生效后，把 `DEBUG_FOLDER_THUMBNAIL_PERF` 置 `false`：不再写 `folder_thumbnail_perf.log`，也不再
@@ -96,10 +135,12 @@
   + 标题/正文/附件/背景/卡片外观（`thingCardAppearance.toJson()`）的 hashCode；子文件夹：id/位置/spanMode/
   私密/计数 + 标题/背景指纹。两层正确性：① 缩略图数据源是 `FolderEntry.thumbnailEntries` 快照，内容更改经
   app 既有的 `loadThings()`/`searchThings()` reload 刷新快照；② 缓存在快照上靠签名判断是否复用。
-- 顺带修了一个盲点：`renameFolder`/`updateFolderAppearance` 改子文件夹名/外观后只 `loadThings()`、不 bump
-  `folder.updateTime`，习惯打卡等也可能不刷新 updateTime。早先若签名只放 updateTime，会让子文件夹改名后
-  大文件夹缩略图复用旧树、显示旧名。改用渲染输入指纹（仍保留 updateTime 做多重保险）后，标题/正文/附件/
-  背景/外观任一变化签名必变，与各写路径是否 bump updateTime 解耦。
+- 改用渲染输入指纹而非只靠 `updateTime` 的原因：部分写路径不刷新 `folder.updateTime`。**更正（2026-06-30
+  复核）**：本条原断言 `renameFolder`/`updateFolderAppearance` 改名改外观“不 bump updateTime”，是错的——它们走
+  `ThingFolderDAO.update(folder)`，首行 `folder.markUpdated()` 已刷新 updateTime；改私密/移动/状态变更也都 bump。
+  真正不刷新的是：置顶/重排（`updateLocations` 只写 location）、内容增减不 touch 容器（移动改的是被移动者，
+  容器行不变）、以及习惯/目标打卡等不改记事可见字段的更改。改用渲染输入指纹（仍保留 updateTime 做多重保险）
+  后，标题/正文/附件/背景/外观任一变化签名必变，与各写路径是否 bump updateTime 解耦。
 - reload 兜底：`loadThings`/`searchThings` 每次把 `mThingListEntries` 重建为新 ArrayList 实例；adapter 在
   `onBindViewHolder` 比较 `getEntries()` 实例引用，变化即 `mFolderThumbnailCache.evictAll()`。即使签名漏字段，
   只要更改经 reload（内容更改的必经路径）就强制重建，覆盖习惯/目标打卡进度等不在记事字段的更改。滚动与

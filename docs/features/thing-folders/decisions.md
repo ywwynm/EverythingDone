@@ -1,5 +1,37 @@
 # Thing Folders Decisions
 
+## 2026-06-30 - folder.updateTime 语义：自身字段变更 + 直接子项集合增减（借鉴目录 mtime）
+
+`folder.updateTime` 定义为在两类事件时刷新：① 文件夹自身行字段（标题/颜色/背景/外观/父级/状态/私密）变更；
+② 其直接物理子项集合增减。借鉴 Windows/Linux/macOS 目录 mtime：改子项内部内容、删到回收站（state 变但
+folderId/parent 不变、物理归属未动）、纯排序（location）、子孙层级变化，均**不**刷新，且**不向上冒泡**。
+
+现状核对：
+- 自身字段变更**已全部刷新**——renameFolder / updateFolderAppearance / 设私密走 `ThingFolderDAO.update(folder)`，
+  其首行 `folder.markUpdated()` 刷新；updateParent/State/Private/CardPresentation 各自刷新。（更正此前误判：
+  曾以为 renameFolder 不 bump，实为漏看 `update(folder)` 里的 `markUpdated()`。）
+- location（置顶/重排 `updateLocations`）**不刷新**，与 thing 一致（`updateLocations`/`updateFolderIdAndLocation`
+  都只写 location），by design。
+- 内容增减此前不刷新容器，本次补齐（见下）。
+
+本次补齐（新增 `ThingFolderDAO.touchUpdateTime(folderId)` + `ThingManager.touchFolderUpdateTime`）：
+- 移动记事进/出文件夹（`moveThingIntoFolderInternal`）：刷新**源 + 目标**容器；被移动记事自身不刷新（与 mv
+  一致）。自动覆盖批量移动、拖拽建夹的成员移入。
+- 移动子文件夹（`moveFolderIntoFolder`）：刷新**源父 + 目标父**；被移动者自身随 `updateParentAndLocation` 刷新。
+- 文件夹内新建记事（`create`）：刷新目标容器。
+- 永久删除记事：统一在 `ThingDAO.updateState` 的物理删除点（`stateAfter==DELETED_FOREVER` 的 `db.delete`）刷新
+  所属容器。这是所有永久删除入口的唯一物理点，覆盖批量删所选（`updateStates`）、详情页清空删除（含 `mThingIndex==-1`
+  时的 DAO 直写）、回收站永久删除（`deleteThingsForever`→`changeFolderSubtreeContentState`→`updateStates`）。
+- 永久删除文件夹（`deleteFolderForever`）：刷新父容器；子树内 things 经 `ThingFolderDAO.deleteForever` 直接
+  `db.delete`、不经上述物理点，故不会误刷正在消失的子文件夹。
+- 解散（`dissolveFolder`）：刷新父容器。
+- 撤销拖拽建夹（`cancelCreatedFolder`）：成员回原容器、临时子夹消失，刷新成员恢复后所在容器与临时夹的父
+  （其 restoreSnapshot 分支走 DAO 直写、不经 `moveThingIntoFolderInternal` 的 touch，需单独补）。
+- **不刷新**：删到回收站（记事/文件夹）、完成、编辑内容/外观、排序置顶；不冒泡。
+
+边界（已与用户确认）：删到回收站不算物理移除、不刷新；移动刷新源 + 目标两边。注：`folder.updateTime`
+目前除缩略图缓存签名外无业务消费者，本次属语义正确化 + 为将来（同步 / “最近修改” / 增量备份）铺路。
+
 ## 2026-06-30 - 全宽缩略图瀑布流按实测高度分列，而非估算
 
 全宽缩略图文件夹卡（`createFolderThumbnailMasonryView`）的瀑布流分列改为：先构建预览卡，按目标列宽
@@ -40,12 +72,15 @@ delegate 渲染路径也要转发 `onViewRecycled`：单记事 Widget 配置用�
 条目的身份 + 渲染输入指纹——记事取标题/正文/附件/背景/卡片外观（`thingCardAppearance.toJson()`）的
 hashCode，加类型/状态/位置/私密/已认证；子文件夹 summary 取标题/背景指纹，加 spanMode/私密/计数。
 
-不挑 `updateTime` 兜底的原因：部分写路径并不刷新 `updateTime`——已确认 `renameFolder` /
-`updateFolderAppearance` 改子文件夹名或外观后只 `loadThings()` 重建列表、不 bump `folder.updateTime`，
-习惯打卡等不经详情页的更改也可能如此。若签名只放 `updateTime`，这些更改会让缩略图复用旧树、显示过期
-内容（如子文件夹改名后大文件夹缩略图仍显示旧名）。对渲染输入取指纹后，只要标题/正文/附件/背景/外观等
-任一发生变化签名必变，与“哪条写路径是否 bump updateTime”解耦。代价是命中判定每次要对 6~10 个预览条目算
-少量 hashCode 与两次 `toJson`，约 1ms 量级，远小于一次整树重建（数十 ms），可接受。
+不挑 `updateTime` 兜底的原因：部分写路径并不刷新 `folder.updateTime`。**更正（2026-06-30 复核）**：此前
+本段曾断言 `renameFolder` / `updateFolderAppearance` 改名改外观“不 bump updateTime”，这是错的——它们走
+`ThingFolderDAO.update(folder)`，其首行 `folder.markUpdated()`（`updateTime = now`）已正确刷新；改私密、移动、
+状态变更也都 bump。真正不刷新 `updateTime` 的是：① 置顶/重排（`updateLocations` 只写 location，与 thing 一致）；
+② “内容增减不 touch 容器”——把记事/子文件夹移入移出某文件夹时，改的是被移动者（thing.folderId 或子 folder
+的 parent），容器文件夹自身的行不变、`updateTime` 不变；③ 习惯/目标打卡等不改记事可见字段的更改。若签名只放
+`updateTime`，上述更改会让缩略图复用旧树、显示过期内容。对渲染输入取指纹后，只要标题/正文/附件/背景/外观等
+任一变化签名必变，与“哪条写路径是否 bump updateTime”解耦。代价是命中判定每次要对 6~10 个预览条目算少量
+hashCode 与两次 `toJson`，约 1ms 量级，远小于一次整树重建（数十 ms），可接受。
 
 正确性边界须分两层理解：① 缩略图的数据源是 adapter 持有的 `FolderEntry.thumbnailEntries` 快照，该快照在
 列表 `loadThings()` / `searchThings()` 重建时从库刷新——这是 app 既有刷新模型，与缓存无关；② 缓存只在

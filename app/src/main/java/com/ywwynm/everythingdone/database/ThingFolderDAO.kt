@@ -35,6 +35,17 @@ open class ThingFolderDAO private constructor(context: Context?) {
         db!!.update(Def.Database.TABLE_THING_FOLDERS, values, "id=${folder.id}", null)
     }
 
+    /**
+     * 仅把某文件夹的 updateTime 刷新为当前时间，不改其它字段。用于“直接子项集合增减”（记事/子文件夹移入
+     * 移出、文件夹内新建记事、永久删除直接子项、解散时子项上移到父）时刷新容器文件夹，借鉴文件系统目录
+     * mtime 语义。改子项内部内容、删到回收站（folderId 不变）、纯排序均不调用。
+     */
+    open fun touchUpdateTime(folderId: Long) {
+        val values = ContentValues(1)
+        values.put(Def.Database.COLUMN_UPDATE_TIME_THING_FOLDERS, System.currentTimeMillis())
+        db!!.update(Def.Database.TABLE_THING_FOLDERS, values, "id=$folderId", null)
+    }
+
     open fun getFolderById(id: Long): ThingFolder? {
         val cursor = db!!.query(
             Def.Database.TABLE_THING_FOLDERS,

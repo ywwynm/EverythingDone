@@ -1,5 +1,17 @@
 # Thing Folders Followups
 
+## folder.updateTime 漏刷修复（已完成 2026-06-30）
+
+三处漏刷均已修复（详见 sessions「folder.updateTime 内容增减刷新补漏（实现 P1/P2/P3）」）。核心发现：所有永久
+删除最终都经 `ThingDAO.updateState` 行 383 的 `db.delete`，遂在该统一物理删除点 touch 记事所属文件夹，一处覆盖
+下列前两类入口；P3 单独补。
+
+- ✅ 永久删除所选记事（`updateStates(..., DELETED_FOREVER)`）：经物理删除点统一 touch，无需改走 `deleteThingsForever`。
+- ✅ 详情页清空导致永久删除（`manager.updateState` 与 `mThingIndex==-1` 的 `ThingDAO.updateState` DAO 直写）：
+  同经物理删除点统一 touch。
+- ✅ 取消拖拽建夹回滚（`cancelCreatedFolder`）：末尾对成员恢复后所在容器 + 临时夹父统一补刷，保留原 location
+  恢复语义。`deleteThingsForever` 里此前重复的 touch 已移除，统一到物理删除点。
+
 ## 死代码清理（已完成 2026-06-23）
 
 - ✅ 已删除死代码 `showThingFolderActions` / `showThingFolderActionsOrAuthenticate` / `addThingFolderAction` / `showFinishFolderContentDialog` / `showRestoreFolderContentDialog` 及 `FOLDER_ACTION_*` 常量，并清理了随之孤立的字符串（还原文件夹、完成/恢复当前筛选下的内容）。文件夹操作统一在工具栏 + 选择模式上下文菜单。

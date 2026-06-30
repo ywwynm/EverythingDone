@@ -381,6 +381,13 @@ open class ThingDAO private constructor(context: Context?) {
                 if (temp != null && temp.type == Thing.HEADER) return
 
                 db!!.delete(Def.Database.TABLE_THINGS, "id=$id", null)
+                // 永久删除（物理移除）记事：刷新其所属文件夹的 updateTime（借鉴目录 mtime）。这是所有永久删除
+                // 入口的统一物理点——批量删所选、详情页清空删除（含 DAO 直写）、回收站永久删除都经此 db.delete；
+                // 删到回收站走上面的 update 分支、folderId 不变，不经此处。
+                val folderId = thing.folderId
+                if (folderId != null) {
+                    ThingFolderDAO.getInstance(mContext)?.touchUpdateTime(folderId)
+                }
             }
         }
 
