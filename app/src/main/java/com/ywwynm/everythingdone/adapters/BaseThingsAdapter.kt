@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
 import androidx.annotation.StringRes
@@ -54,6 +55,7 @@ import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
+import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
@@ -204,6 +206,15 @@ abstract class BaseThingsAdapter(context: Context?) :
     open fun setAnimatedPlaybackEnabled(enabled: Boolean) {
         mAnimatedPlaybackEnabled = enabled
     }
+
+    /**
+     * 封面动态内容（Animated Image 与 Thing Card Video Preview）是否在本表面真正播放。
+     * 合并两个条件：本适配器的 widget 预览强制关（[mAnimatedPlaybackEnabled]）与用户的
+     * Cover Autoplay 设置（默认开，实时读取）。见 ADR-0012 / D4。
+     */
+    private fun isCoverAutoplayEnabled(): Boolean =
+        mAnimatedPlaybackEnabled &&
+                FrequentSettings.getBoolean(Def.Meta.KEY_AUTOPLAY_COVER_DYNAMIC, true)
 
     open fun shouldShowPrivateContent(): Boolean {
         return mShouldShowPrivateContent
@@ -358,10 +369,39 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
+    // M2(ADR-0007/0012)：拖动/快滑期间暂停可见封面动图(Animated Image 与 Thing Card Video
+    // Preview)，停下恢复，减轻滚动期 GIF 软解负担；屏外动图由 Glide 的 M1 自动暂停。
+    private val mAnimatedCoverScrollPauseListener = object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            setVisibleAnimatedCoversRunning(
+                recyclerView, newState == RecyclerView.SCROLL_STATE_IDLE
+            )
+        }
+    }
+
+    private fun setVisibleAnimatedCoversRunning(recyclerView: RecyclerView, running: Boolean) {
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i) ?: continue
+            val holder = recyclerView.getChildViewHolder(child) as? BaseThingViewHolder ?: continue
+            setDrawableRunning(holder.ivImageAttachment?.drawable, running)
+            setDrawableRunning(holder.ivMediaBackground?.drawable, running)
+        }
+    }
+
+    private fun setDrawableRunning(drawable: Drawable?, running: Boolean) {
+        val animatable = drawable as? Animatable ?: return
+        if (running) {
+            if (!animatable.isRunning) animatable.start()
+        } else {
+            if (animatable.isRunning) animatable.stop()
+        }
+    }
+
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
         mRecyclerView = recyclerView
         refreshCardWidthFromRecyclerView()
+        recyclerView.addOnScrollListener(mAnimatedCoverScrollPauseListener)
     }
 
     fun setHostRecyclerViewForDelegatedBinding(recyclerView: RecyclerView?) {
@@ -370,6 +410,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        recyclerView.removeOnScrollListener(mAnimatedCoverScrollPauseListener)
         if (mRecyclerView === recyclerView) {
             mRecyclerView = null
         }
@@ -1046,13 +1087,19 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivImageAttachment ?: return
+        // 把"是否会作为封面动图播放"折进 loadKey：切换 Cover Autoplay 时 key 随之变化，
+        // 绕过同 key 短路、重新分流到动图/静态路径。非动图图片不受影响。
+        val animatedCover = isCoverAutoplayEnabled() && (
+            AttachmentHelper.isAnimatedImageCandidate(pathName) ||
+                AttachmentHelper.isVideoCandidate(pathName)
+        )
         val loadKey = getThingCardImageLoadKey(
             pathName,
             imageW,
             imageH,
             videoFrameMs,
             crop
-        )
+        ) + if (animatedCover) ":anim" else ""
         val renderRequest = ThingCardThumbnailRenderRequest(
             loadKey,
             imageW,
@@ -1078,13 +1125,45 @@ abstract class BaseThingsAdapter(context: Context?) :
             applyCurrentThingCardThumbnailRenderRequest(imageView)
             return
         }
-        if (mAnimatedPlaybackEnabled && videoFrameMs == null &&
+        if (isCoverAutoplayEnabled() && videoFrameMs == null &&
             AttachmentHelper.isAnimatedImageCandidate(pathName)
         ) {
             loadAnimatedThingCardThumbnail(
                 holder, imageView, pathName, imageW, imageH, crop, loadKey
             )
             return
+        }
+        // Thing Card Video Preview：视频封面在 Cover Autoplay 开启时播放派生 GIF。命中缓存直接
+        // 走动图分支；未就绪则后台生成、本次回退到静态 Thing Card Video Frame，就绪后若该卡仍
+        // 展示同一封面则换成动画。见 ADR-0012。
+        if (AttachmentHelper.isVideoCandidate(pathName)) {
+            val coverAutoplay = isCoverAutoplayEnabled()
+            val previewContext = imageView.context
+            val readyPreview = if (coverAutoplay) {
+                VideoCoverPreviewManager.getReadyPreview(previewContext, pathName, videoFrameMs)
+            } else null
+            VideoCoverPreviewManager.logBindDecision(
+                previewContext, pathName, videoFrameMs, coverAutoplay, readyPreview != null
+            )
+            if (coverAutoplay) {
+                if (readyPreview != null) {
+                    loadAnimatedThingCardThumbnail(
+                        holder, imageView, readyPreview.absolutePath, imageW, imageH, crop, loadKey,
+                        fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
+                    )
+                    return
+                }
+                VideoCoverPreviewManager.requestPreview(
+                    previewContext, pathName, videoFrameMs
+                ) { previewFile ->
+                    if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                        loadAnimatedThingCardThumbnail(
+                            holder, imageView, previewFile.absolutePath, imageW, imageH, crop, loadKey,
+                            fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
+                        )
+                    }
+                }
+            }
         }
         if (applyCachedThingCardMediaBitmap(
                 imageView, loadKey, R.id.tag_thing_card_image_load_key
@@ -1233,7 +1312,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageW: Int,
         imageH: Int,
         crop: ThingCardAppearance.ThingCardThumbnailCrop,
-        loadKey: String
+        loadKey: String,
+        fallbackVideoPath: String? = null,
+        fallbackVideoFrameMs: Long? = null
     ) {
         // Animated Image (GIF / animated WebP) thumbnail: load as a Drawable and
         // crop each frame with MediaCropTransformation so it animates while keeping
@@ -1241,13 +1322,29 @@ abstract class BaseThingsAdapter(context: Context?) :
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_image_load_key, loadKey)
         holder.pbLoading!!.visibility = View.VISIBLE
-        mImageRequestManager!!
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        imageView.imageMatrix = null
+        val bitmapCrop = getThingCardThumbnailBitmapCrop(crop)
+        val request = mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
-            .transform(
-                MediaCropTransformation(imageW, imageH, getThingCardThumbnailBitmapCrop(crop))
-            )
+            .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getThingCardMediaCacheSignature(loadKey))
+        // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏封面。见 ADR-0012 / followups。
+        if (fallbackVideoPath != null) {
+            val errorRequest = mImageRequestManager!!
+                .load(fallbackVideoPath)
+                .override(imageW, imageH)
+                .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
+            if (fallbackVideoFrameMs != null) {
+                errorRequest.apply(
+                    RequestOptions.frameOf(fallbackVideoFrameMs * 1000L)
+                        .set(VideoDecoder.FRAME_OPTION, MediaMetadataRetriever.OPTION_CLOSEST)
+                )
+            }
+            request.error(errorRequest)
+        }
+        request
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
@@ -1255,11 +1352,16 @@ abstract class BaseThingsAdapter(context: Context?) :
                 ): Boolean {
                     if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
                         holder.pbLoading!!.visibility = View.GONE
-                        holder.flImageAttachment!!.visibility = View.GONE
-                        holder.tvImageCount!!.visibility = View.GONE
-                        holder.vImageCover!!.visibility = View.GONE
-                        holder.vPaddingBottom!!.visibility = View.VISIBLE
-                        imageView.setTag(R.id.tag_thing_card_image_render_request, null)
+                        if (fallbackVideoPath != null) {
+                            // 视频派生 GIF 坏了：删它（一次性自愈）、不隐藏封面，交给 .error() 显示静态帧。
+                            VideoCoverPreviewManager.onPreviewLoadFailed(File(pathName))
+                        } else {
+                            holder.flImageAttachment!!.visibility = View.GONE
+                            holder.tvImageCount!!.visibility = View.GONE
+                            holder.vImageCover!!.visibility = View.GONE
+                            holder.vPaddingBottom!!.visibility = View.VISIBLE
+                            imageView.setTag(R.id.tag_thing_card_image_render_request, null)
+                        }
                     }
                     return false
                 }
@@ -1290,6 +1392,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivMediaBackground ?: return
+        val animatedCover = isCoverAutoplayEnabled() && (
+            AttachmentHelper.isAnimatedImageCandidate(pathName) ||
+                AttachmentHelper.isVideoCandidate(pathName)
+        )
         val loadKey = getThingCardMediaBackgroundLoadKey(
             pathName,
             imageW,
@@ -1297,7 +1403,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             videoFrameMs,
             crop,
             sourceAspectRatio
-        )
+        ) + if (animatedCover) ":anim" else ""
         val renderRequest = ThingCardMediaBackgroundRenderRequest(
             loadKey,
             imageW,
@@ -1313,7 +1419,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             applyCurrentThingCardMediaBackgroundRenderRequest(imageView)
             return
         }
-        if (mAnimatedPlaybackEnabled && videoFrameMs == null &&
+        if (isCoverAutoplayEnabled() && videoFrameMs == null &&
             AttachmentHelper.isAnimatedImageCandidate(pathName)
         ) {
             loadAnimatedThingCardMediaBackground(
@@ -1321,6 +1427,39 @@ abstract class BaseThingsAdapter(context: Context?) :
                 crop, sourceAspectRatio, loadKey
             )
             return
+        }
+        // Thing Card Video Preview（媒体背景）：与缩略图同策略，命中走动图、未就绪后台生成 +
+        // 静态回退 + 就绪换装。见 ADR-0012。
+        if (AttachmentHelper.isVideoCandidate(pathName)) {
+            val coverAutoplay = isCoverAutoplayEnabled()
+            val previewContext = imageView.context
+            val readyPreview = if (coverAutoplay) {
+                VideoCoverPreviewManager.getReadyPreview(previewContext, pathName, videoFrameMs)
+            } else null
+            VideoCoverPreviewManager.logBindDecision(
+                previewContext, pathName, videoFrameMs, coverAutoplay, readyPreview != null
+            )
+            if (coverAutoplay) {
+                if (readyPreview != null) {
+                    loadAnimatedThingCardMediaBackground(
+                        holder, imageView, thing, readyPreview.absolutePath, imageW, imageH,
+                        crop, sourceAspectRatio, loadKey,
+                        fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
+                    )
+                    return
+                }
+                VideoCoverPreviewManager.requestPreview(
+                    previewContext, pathName, videoFrameMs
+                ) { previewFile ->
+                    if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+                        loadAnimatedThingCardMediaBackground(
+                            holder, imageView, thing, previewFile.absolutePath, imageW, imageH,
+                            crop, sourceAspectRatio, loadKey,
+                            fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
+                        )
+                    }
+                }
+            }
         }
         if (applyCachedThingCardMediaBitmap(
                 imageView, loadKey, R.id.tag_thing_card_media_background_load_key
@@ -1427,22 +1566,38 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageH: Int,
         crop: ThingCardAppearance.ThingCardMediaBackgroundCrop,
         sourceAspectRatio: Double?,
-        loadKey: String
+        loadKey: String,
+        fallbackVideoPath: String? = null,
+        fallbackVideoFrameMs: Long? = null
     ) {
         // Animated Image media background: animate while keeping the crop. Foreground
         // colours use a fixed dark base in media-background mode (not sampled from the
         // media), so animation does not affect them. Skips the LruCache. See ADR-0007.
         mImageRequestManager!!.clear(imageView)
         imageView.setTag(R.id.tag_thing_card_media_background_load_key, loadKey)
-        mImageRequestManager!!
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        imageView.imageMatrix = null
+        val bitmapCrop = getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio)
+        val request = mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
-            .transform(
-                MediaCropTransformation(
-                    imageW, imageH, getThingCardMediaBackgroundBitmapCrop(crop, sourceAspectRatio)
-                )
-            )
+            .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
             .signature(getThingCardMediaCacheSignature(loadKey))
+        // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏媒体背景。见 ADR-0012 / followups。
+        if (fallbackVideoPath != null) {
+            val errorRequest = mImageRequestManager!!
+                .load(fallbackVideoPath)
+                .override(imageW, imageH)
+                .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
+            if (fallbackVideoFrameMs != null) {
+                errorRequest.apply(
+                    RequestOptions.frameOf(fallbackVideoFrameMs * 1000L)
+                        .set(VideoDecoder.FRAME_OPTION, MediaMetadataRetriever.OPTION_CLOSEST)
+                )
+            }
+            request.error(errorRequest)
+        }
+        request
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
@@ -1452,14 +1607,19 @@ abstract class BaseThingsAdapter(context: Context?) :
                             R.id.tag_thing_card_media_background_load_key
                         ) == loadKey
                     ) {
-                        imageView.visibility = View.GONE
-                        holder.vMediaBackgroundMask!!.visibility = View.GONE
-                        resetThingCardMediaBackgroundOverlaySize(holder)
-                        applyThingCardForegroundColors(holder, thing, thing.getColor())
-                        imageView.setTag(
-                            R.id.tag_thing_card_media_background_render_request,
-                            null
-                        )
+                        if (fallbackVideoPath != null) {
+                            // 视频派生 GIF 坏了：删它（一次性自愈）、不隐藏背景，交给 .error() 显示静态帧。
+                            VideoCoverPreviewManager.onPreviewLoadFailed(File(pathName))
+                        } else {
+                            imageView.visibility = View.GONE
+                            holder.vMediaBackgroundMask!!.visibility = View.GONE
+                            resetThingCardMediaBackgroundOverlaySize(holder)
+                            applyThingCardForegroundColors(holder, thing, thing.getColor())
+                            imageView.setTag(
+                                R.id.tag_thing_card_media_background_render_request,
+                                null
+                            )
+                        }
                     }
                     return false
                 }

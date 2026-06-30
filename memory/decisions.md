@@ -30,6 +30,7 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 ## Feature decision indexes
 
 - `android-16-migration`: `docs/features/android-16-migration/decisions.md`
+- `animated-video-cover`: `docs/features/animated-video-cover/decisions.md`
 - `app-chrome-polish`: `docs/features/app-chrome-polish/decisions.md`
 - `appwidget-platform-compat`: `docs/features/appwidget-platform-compat/decisions.md`
 - `color-system-migration`: `docs/features/color-system-migration/decisions.md`

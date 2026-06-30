@@ -52,6 +52,7 @@ object Def {
         const val KEY_TOGGLE_CLI_OTC: String           = "toggle_cli_otc"
         const val KEY_SIMPLE_FCLI: String              = "simple_fcli"
         const val KEY_AUTO_LINK: String                = "auto_link" // 2016/11/11
+        const val KEY_AUTOPLAY_COVER_DYNAMIC: String   = "autoplay_cover_dynamic" // 2026/6/30
         const val KEY_TWICE_BACK: String               = "twice_back"
         const val KEY_LANGUAGE_CODE: String            = "language_code"
         const val KEY_FOLLOW_SYSTEM_DARK_MODE: String  = "follow_system_dark_mode"

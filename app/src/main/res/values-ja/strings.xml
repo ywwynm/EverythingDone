@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">モノカードのチェックリスト項目を切り替えます</string>
     <string name="settings_simple_finished_checklist">完了したチェックリストの項目を進行中のものカードに折り込みます</string>
     <string name="settings_auto_link">確認時に電話番号やウェブページなどを自動的にリンク</string>
+    <string name="settings_autoplay_cover_dynamic">記事リストでカバーに設定したGIFと動画を自動再生</string>
     <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
     <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
     <string name="cd_random_pure_background">ランダムな純色</string>

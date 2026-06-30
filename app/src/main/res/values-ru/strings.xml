@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">Переключить элемент контрольного списка на карточке вещи</string>
     <string name="settings_simple_finished_checklist">Сложите готовые пункты контрольного списка на карточке текущих дел</string>
     <string name="settings_auto_link">Автоматически связывать номер телефона, веб-страницу и многое другое при проверке чего-либо</string>
+    <string name="settings_autoplay_cover_dynamic">Автоматически воспроизводить GIF-анимации и видео на обложках в списке записей</string>
     <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
     <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
     <string name="cd_random_pure_background">Случайный чистый цвет</string>

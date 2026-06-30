@@ -327,6 +327,9 @@ dependencies {
 
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    // 原生(NDK/C++) GIF 编码器，用于从视频派生封面动图预览。纯 Java 编码器(Square)实测每帧
+    // 约 12s 不可用，改用原生(约几十毫秒/帧)。见 ADR-0012 / animated-video-cover。
+    implementation 'io.github.waynejo:androidndkgif:1.0.1'
     implementation 'jp.wasabeef:blurry:4.0.1'
     implementation 'com.google.code.gson:gson:2.13.2'
 }

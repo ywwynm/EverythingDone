@@ -519,6 +519,18 @@ object AttachmentHelper {
         return isInsideArray(postfixes, postfix)
     }
 
+    /**
+     * 是否按视频文件处理(按扩展名小写粗判)。与 [isAnimatedImageCandidate] 对称:用于只拿到
+     * pathName、且视频未选帧时 videoFrameMs 为 null、无法据此识别视频的场合。见 ADR-0012。
+     */
+    @JvmStatic
+    fun isVideoCandidate(pathName: String?): Boolean {
+        if (pathName.isNullOrEmpty()) return false
+        val dot = pathName.lastIndexOf('.')
+        if (dot < 0 || dot == pathName.length - 1) return false
+        return isVideoFile(pathName.substring(dot + 1).lowercase())
+    }
+
     @JvmStatic
     fun isAudioFile(postfix: String?): Boolean {
         val postfixes: Array<String?> = arrayOf("wav", "mp3", "3gp", "mp4", "aac", "flac", "mid", "xmf",

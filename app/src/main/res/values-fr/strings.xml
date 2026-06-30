@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">Basculer l\'élément de la liste de contrôle sur la carte d\'objet</string>
     <string name="settings_simple_finished_checklist">Pliez les éléments de la liste de contrôle terminés sur la carte d\'objet en cours</string>
     <string name="settings_auto_link">Associez automatiquement un numéro de téléphone, une page Web et plus encore lors de la vérification d\'un élément</string>
+    <string name="settings_autoplay_cover_dynamic">Lire automatiquement les couvertures GIF et vidéo dans la liste des notes</string>
     <string name="settings_twice_back">Appuyez deux fois sur Retour pour quitter</string>
     <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
     <string name="cd_random_pure_background">Couleur pure aléatoire</string>

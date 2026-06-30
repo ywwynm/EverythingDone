@@ -759,6 +759,7 @@
     <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
     <string name="settings_simple_finished_checklist">在正在進行的記事卡片中折疊已完成的清單項</string>
     <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
+    <string name="settings_autoplay_cover_dynamic">在記事列表中自動播放作為封面的 GIF 與視頻</string>
     <string name="settings_twice_back">按兩次返回鍵退出應用</string>
     <string name="settings_create_animation_style">新建事項時使用屏幕邊框光效動畫</string>
 

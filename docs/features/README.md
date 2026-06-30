@@ -69,3 +69,4 @@ memory files.
 - `drawer-type-filter/`
 - `thing-card-image-placement/`
 - `thing-card-media-target-geometry/`
+- `animated-video-cover/`

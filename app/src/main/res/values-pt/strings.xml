@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">Alternar item da lista de verificação no cartão de coisa</string>
     <string name="settings_simple_finished_checklist">Dobre os itens da lista de verificação finalizados no cartão de coisas em andamento</string>
     <string name="settings_auto_link">Vincule automaticamente número de telefone, página da web e muito mais ao verificar algo</string>
+    <string name="settings_autoplay_cover_dynamic">Reproduzir automaticamente as capas em GIF e vídeo na lista de notas</string>
     <string name="settings_twice_back">Pressione Voltar duas vezes para sair</string>
     <string name="settings_create_animation_style">Animação de luz de borda ao criar algo novo</string>
     <string name="cd_random_pure_background">Cor pura aleatória</string>

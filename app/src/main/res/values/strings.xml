@@ -954,6 +954,7 @@
     <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
     <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
+    <string name="settings_autoplay_cover_dynamic">Automatically play animated GIF and video covers in the thing list</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
     <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
 

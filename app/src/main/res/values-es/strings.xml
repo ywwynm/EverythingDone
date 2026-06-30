@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">Alternar elemento de lista de verificación en tarjeta de objeto</string>
     <string name="settings_simple_finished_checklist">Doblar los elementos de la lista de verificación terminados en la tarjeta de cosas en marcha</string>
     <string name="settings_auto_link">Vincula automáticamente un número de teléfono, una página web y más al comprobar algo</string>
+    <string name="settings_autoplay_cover_dynamic">Reproduce automáticamente las portadas de GIF y vídeo en la lista de notas</string>
     <string name="settings_twice_back">Presione Atrás dos veces para salir</string>
     <string name="settings_create_animation_style">Animación de luz de borde al crear algo nuevo.</string>
     <string name="cd_random_pure_background">Color puro aleatorio</string>

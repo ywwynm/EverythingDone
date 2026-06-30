@@ -128,6 +128,8 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     private var mSimpleFCli: Boolean = false
 
     private var mCbAutoLink: CheckBox? = null
+    private var mCbAutoplayCoverDynamic: CheckBox? = null
+    private var mAutoplayCoverDynamic: Boolean = false
     private var mCbTwiceBack: CheckBox? = null
     private var mCbCreateAnimationStyle: CheckBox? = null
 
@@ -471,6 +473,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         mCbToggleCli  = f(R.id.cb_toggle_checklist)
         mCbSimpleFCli = f(R.id.cb_simple_finished_checklist)
         mCbAutoLink   = f(R.id.cb_auto_link)
+        mCbAutoplayCoverDynamic = f(R.id.cb_autoplay_cover_dynamic)
         mCbTwiceBack  = f(R.id.cb_twice_back)
         mCbCreateAnimationStyle = f(R.id.cb_create_animation_style)
 
@@ -667,7 +670,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         val bg = App.defaultAccentBackground
         listOf(
             mCbFollowSystemDarkMode, mCbForceDarkMode, mCbNn,
-            mCbToggleCli, mCbSimpleFCli, mCbAutoLink, mCbTwiceBack,
+            mCbToggleCli, mCbSimpleFCli, mCbAutoLink, mCbAutoplayCoverDynamic, mCbTwiceBack,
             mCbCreateAnimationStyle, mCbFgprt, mCbQuickCreate,
             mCbCloseNotificationLater, mCbOngoingLockscreen
         ).forEach {
@@ -719,6 +722,11 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
         val autoLink: Boolean = mPreferences!!.getBoolean(Def.Meta.KEY_AUTO_LINK, true)
         mCbAutoLink!!.isChecked = autoLink
+
+        mAutoplayCoverDynamic = mPreferences!!.getBoolean(
+            Def.Meta.KEY_AUTOPLAY_COVER_DYNAMIC, true
+        )
+        mCbAutoplayCoverDynamic!!.isChecked = mAutoplayCoverDynamic
 
         val twiceBack: Boolean = mPreferences!!.getBoolean(Def.Meta.KEY_TWICE_BACK, false)
         mCbTwiceBack!!.isChecked = twiceBack
@@ -1006,6 +1014,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         }
         f<View>(R.id.rl_auto_link_as_bt).setOnClickListener {
             mCbAutoLink!!.isChecked = !mCbAutoLink!!.isChecked
+        }
+        f<View>(R.id.rl_autoplay_cover_dynamic_as_bt).setOnClickListener {
+            mCbAutoplayCoverDynamic!!.isChecked = !mCbAutoplayCoverDynamic!!.isChecked
         }
         f<View>(R.id.rl_twice_back_as_bt).setOnClickListener {
             mCbTwiceBack!!.isChecked = !mCbTwiceBack!!.isChecked
@@ -1812,6 +1823,13 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         val autoLink: Boolean = mCbAutoLink!!.isChecked
         FrequentSettings.put(Def.Meta.KEY_AUTO_LINK, autoLink)
         editor.putBoolean(Def.Meta.KEY_AUTO_LINK, autoLink)
+
+        val autoplayCoverDynamic: Boolean = mCbAutoplayCoverDynamic!!.isChecked
+        FrequentSettings.put(Def.Meta.KEY_AUTOPLAY_COVER_DYNAMIC, autoplayCoverDynamic)
+        editor.putBoolean(Def.Meta.KEY_AUTOPLAY_COVER_DYNAMIC, autoplayCoverDynamic)
+        if (autoplayCoverDynamic != mAutoplayCoverDynamic) {
+            App.setJustNotifyAll(true)
+        }
 
         val twiceBack: Boolean = mCbTwiceBack!!.isChecked
         FrequentSettings.put(Def.Meta.KEY_TWICE_BACK, twiceBack)

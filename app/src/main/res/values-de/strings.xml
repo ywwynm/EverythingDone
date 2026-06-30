@@ -493,6 +493,7 @@
     <string name="settings_toggle_checklist_thing_card">Checklistenelement auf der Thing-Karte umschalten</string>
     <string name="settings_simple_finished_checklist">Falten Sie die fertigen Punkte der Checkliste auf die Karte „Unterwegs“.</string>
     <string name="settings_auto_link">Verknüpfen Sie automatisch Telefonnummer, Webseite und mehr, wenn Sie etwas überprüfen</string>
+    <string name="settings_autoplay_cover_dynamic">GIF- und Video-Titelbilder in der Notizliste automatisch abspielen</string>
     <string name="settings_twice_back">Drücken Sie zweimal Zurück, um den Vorgang zu beenden</string>
     <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
     <string name="cd_random_pure_background">Zufällige reine Farbe</string>

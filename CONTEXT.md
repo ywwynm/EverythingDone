@@ -140,6 +140,10 @@ _Avoid_: first attachment, attachment order
 The video frame selected to provide Thing Card Media for a video attachment.
 _Avoid_: playback position, video attachment itself
 
+**Thing Card Video Preview**:
+由一个视频 Thing Card Media Source 派生、在 Thing Card 上循环播放的动态预览；以该来源的 Thing Card Video Frame 为循环起点。它能否真正逐帧播放，取决于显示它的界面是否支持，以及用户是否开启了封面动态内容的自动播放。
+_Avoid_: 把视频本身当成 Animated Image、把它与静态的 Thing Card Video Frame 混为一谈、把它误解为改变了视频文件本身的播放
+
 **Thing Card Media Crop**:
 The persistent presentation choice that determines the crop center, user zoom, and when applicable source crop shape of Thing Card Media.
 _Avoid_: image placement, centerCrop, editing the attachment file
@@ -201,8 +205,12 @@ _Avoid_: HDR support as a blanket term, wide colour gamut
 _Avoid_: GIF as the blanket term, video attachment
 
 **Animated Playback**:
-某个界面真的在逐帧播放一个 Animated Image,而不是只显示它的第一帧。
+某个界面真的在逐帧播放一个 Animated Image 或 Thing Card Video Preview,而不是只显示它的第一帧 / 单帧。
 _Avoid_: GIF support as a blanket term, autoplay as a file property
+
+**Cover Autoplay**:
+用户偏好:是否在 Thing Card 封面上真正对动态内容(Animated Image 与 Thing Card Video Preview)进行 Animated Playback。它统一管控所有应用内 Thing Card 面的封面动态播放;关闭时封面停在静态首帧 / Thing Card Video Frame。它不作用于详情附件列表与全屏预览这类主动查看附件的界面,那里照旧无条件播放。
+_Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看界面、把它与逐帧裁切混为一谈
 
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
@@ -304,6 +312,11 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card** may have one **Thing Card Media Source** when the Thing has image or video attachments.
 - A video **Thing Card Media Source** may have one **Thing Card Video Frame**.
 - **Thing Card Video Frame** changes Thing Card presentation only and does not change video playback.
+- A video **Thing Card Media Source** may have one **Thing Card Video Preview** derived from it, looping from its **Thing Card Video Frame**.
+- A **Thing Card Video Preview** receives **Animated Playback** only on in-app Thing Card surfaces that support it and only when cover autoplay is enabled; otherwise the video shows its static **Thing Card Video Frame**, mirroring how an **Animated Image** falls back to its first frame.
+- A **Thing Card Video Preview** is a derived presentation artifact; it does not make the video an **Animated Image** and does not change the underlying video file or its playback.
+- **Cover Autoplay** is the user preference that gates **Animated Playback** of cover dynamic content (**Animated Image** and **Thing Card Video Preview**) across all in-app **Thing Card** surfaces uniformly.
+- **Cover Autoplay** does not affect the detail attachment list or the full-screen viewer, where animated attachments keep playing unconditionally because the user opened them to view.
 - A **Thing Card Media Source** may have separate **Thing Card Media Target Aspect Ratio** values for foreground thumbnail, side panel, and media background presentations.
 - A **Thing Card Media Source** may have separate **Thing Card Media Crop** values for foreground thumbnail, side panel, and media background presentations.
 - A **Thing Card** may have one **Thing Card Media Crop** when the Thing has Thing Card Media.
@@ -375,3 +388,4 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “Drawer Header Image”名字听起来只作用于导航抽屉，但同一张图与同一套裁切同时驱动统计界面头部；已解析为一个跨界面共享的 **Drawer Header Image** 概念，而非每个界面各自一张头图。
 - “Drawer Header Image”的比例与裁切是否像 Thing Card Media 那样按界面各存一份，曾不明确；已解析为**单一共享**的 **Drawer Header Image Crop**，抽屉与统计强制同形，因为两者是分时查看的独立屏幕，不需要在同一处并存多种取景。
 - “需要固定裁切的界面只显示单帧”曾被读成“凡是显示裁切结果的界面都单帧”；已按 ADR-0007 收紧：单帧只针对裁切编辑器、RemoteViews、HDR 基帧、视频缩略图；应用内视图界面通过逐帧套用裁切仍然给 Animated Image 以 Animated Playback，**Drawer Header Image** 因此在抽屉与统计上会播放动图。
+- “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。

@@ -28,3 +28,7 @@
 - 滚动列表中多个 GIF 同时解码有性能成本。首版依赖 Glide 的屏外自动暂停(仅可见 GIF 解码),必要时再加 fling 期间暂停(M2)。
 - 候选判定按扩展名 `{gif, webp}`;静态 WebP 走 Drawable 路径不出错也不损失 HDR(动图/静态 WebP 不带 gain map)。
 - 未来若想让 widget 配置页预览或裁切编辑器"也动",需先认识到这分别会偏离真实 widget、以及偏离静态裁切工具的定位。
+
+## 更新（2026-06-30）
+
+[ADR-0012](0012-thing-card-video-preview-derived-animated-image.md) 修订了本文"任何视频缩略图一律停在单帧"的结论：应用内 Thing Card 封面面在 **Cover Autoplay** 开启时，视频封面改为播放从视频派生的 **Thing Card Video Preview**（GIF 动图产物），复用本文确立的逐帧裁切动图管线。裁切编辑器、RemoteViews、HDR 基帧、以及详情/全屏的视频仍停在单帧/原样。
