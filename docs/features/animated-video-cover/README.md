@@ -21,4 +21,4 @@
 
 ## 状态
 
-设计定稿（2026-06-30，grill-with-docs 评审）。待实现。
+已实现并提交（2026-06-30，commit `d4cc8429`）。经多轮真机调试定稿：原生 NDK 编码器、WorkManager 健壮后台、坏 GIF 回退静态帧、尾帧不跳变等。完整历程见 [sessions.md](sessions.md)，已知小优化见 [followups.md](followups.md)。
