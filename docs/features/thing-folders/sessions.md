@@ -1,5 +1,119 @@
 # Thing Folders Sessions
 
+## 2026-06-30 - 关闭缩略图性能诊断日志（真实手感版）
+
+- 确认缓存复用生效后，把 `DEBUG_FOLDER_THUMBNAIL_PERF` 置 `false`：不再写 `folder_thumbnail_perf.log`，也不再
+  做诊断用的那次额外 measure（诊断版每次绑定多一次 measure、体感偏卡，本版去掉，恢复正常手感）。功能不变，
+  此前所有缓存修复保留。埋点代码暂留（仅关开关），以备后续若要优化 measure/layout 再开启。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630161547.md"`
+  发布到阿里云 debug 通道，更新码 `202606300816`。
+
+## 2026-06-30 - 确认缩略图缓存兼容类型/状态/搜索筛选（无需改代码）
+
+- 结论：兼容，双保险。
+- 机制一（主）：`setTypeFilterMask`/`setStatus` 走 `loadThings()`、搜索走 `searchThings()`，三者都经
+  `rebuildThingListEntries`，末尾 `mThingListEntries = entries` 为新 `ArrayList` 实例（ThingManager:482）。adapter
+  的 reload 兜底据 `getEntries()` 实例引用变化 `evictAll()`，故任何筛选/状态/搜索切换即清空整缓存、按新筛选重建。
+- 机制二（保险）：`FolderEntry.thumbnailEntries` 由 `getFolderEntriesForTypeFilterProjection(mStatus,
+  mTypeFilterMask, folderId, keyword, color)`（ThingManager:463）算出，状态/类型/关键词/颜色四维度全带，故
+  previewEntries 与签名随筛选变化，跨筛选不会复用。
+- 可用诊断日志自证：切筛选时先出 `evictAll: 数据列表实例变化（reload）` 行，随后 `cache=MISS_NEW` 重建。
+
+## 2026-06-30 - 修复缩略图整树缓存因 holder 回收未摘树而 MISS_DETACHED（缓存形同虚设）
+
+- 诊断日志暴露：同一全宽大文件夹（id=198）第二次滑入时 `cache=MISS_DETACHED`、又重建 44ms，缓存没生效。
+- 根因：RecyclerView 把滑出的 holder 回收进 `RecycledViewPool` 时不清理其子树挂着的缩略图树，该树 parent 仍
+  指向待命 holder；同一文件夹换到另一个 holder 重绑时，缓存树因 `view.parent != null` 无法 attach，只能重建。
+- 修复：`ThingsAdapter` override `onViewRecycled`，对回收的 holder 调 `removeFolderThumbnailViews` 把缩略图树
+  摘下（树仍按 folderId 留在 `mFolderThumbnailCache`），parent 归零后任意 holder 可复用。`mCachedViews`（近处
+  滑出、保留绑定直接复用）不调 onViewRecycled、不经缓存查询，天然顺畅；只有挤出进池时摘树，正好覆盖
+  “出池后换 holder 重绑”路径。
+- 日志同时显示构建（inflate+绑定+缩放）是大头：全宽 6 张缩略图 build≈38~45ms、measure≈8~12ms；普通卡
+  build≈4~14ms。修复后同一文件夹滑回应 `cache=HIT`、build≈0，仅余 measure。若 HIT 后 measure 仍可感知，
+  再单独优化（降子树层级 / 固定高度避免重测）。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL；需真机复测日志确认变为 HIT。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630155703.md"`
+  发布到阿里云 debug 通道，更新码 `202606300757`（仍带诊断埋点，供验证 HIT）。
+- 延伸到单记事 Widget 配置：该界面用外层 `MixedThingsAdapter` 借 `FolderCardDelegateAdapter` 渲染文件夹卡，
+  delegate 非 RecyclerView 直挂 adapter、收不到 `onViewRecycled`，故同样会 MISS_DETACHED。已在
+  `MixedThingsAdapter.onViewRecycled` 把文件夹 holder 转发给 `mFolderCardAdapter.onViewRecycled`。其余缓存链路
+  （列宽/滚动状态、签名揭示态、reload 兜底）因 `setHostRecyclerViewForDelegatedBinding` 接了宿主 RV、且都在
+  `bindFolderCard` 公共入口，本就已覆盖。
+- 发布（含 Widget 配置转发修复）：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630160526.md"`
+  发布到阿里云 debug 通道，更新码 `202606300805`（仍带诊断埋点）。
+
+## 2026-06-30 - 大文件夹缩略图性能诊断埋点（临时）
+
+- 用户反馈整树缓存上线后大文件夹缩略图仍有轻微卡顿。加临时性能日志定位：开关 `DEBUG_FOLDER_THUMBNAIL_PERF`，
+  经现成 `DebugFileLogger` 异步写 `debug_logs/folder_thumbnail_perf.log`。每次绑定大文件夹缩略图记一行：
+  id/标题/布局(span+列数)/entries(显示/总数)/滚动状态/缓存命中态(HIT|MISS_NEW|MISS_SIG|MISS_DETACHED)/
+  各段耗时(sig/build/attach/measure/bind)；reload 清缓存记 evictAll 行。
+- 关键是单独测一次该大卡的 measure 耗时：验证"命中却仍卡"是否卡在 RecyclerView 对大子树（6~10 张完整记事
+  卡）的 measure/layout——缓存省掉 inflate/绑定/缩放，但省不掉 measure。`bind` 总耗时不含这次诊断 measure。
+- 实现：`obtainFolderThumbnailTree` 改返回 `FolderThumbnailObtain`（view+命中态+sig/build 耗时）；新增
+  `logFolderThumbnailPerf`/`debugMeasureFolderCard`/`formatMillis`；`BaseThingsAdapter` 暴露 `hostScrollStateName()`。
+  临时埋点，诊断完成后移除（见 followups）。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630154804.md"`
+  发布到阿里云 debug 通道，更新码 `202606300748`。
+
+## 2026-06-30 - 缩略图缓存 review 修复：私密子文件夹揭示态泄露、兜底漏 Widget 路径
+
+- review 指出整树缓存两个正确性盲点，已修复并编译通过。
+- P1（私密子文件夹揭示态泄露）：FolderEntry 签名未含子文件夹揭示态。父大文件夹非私密、内嵌私密子文件夹
+  被本会话认证揭示后，后台返回清空认证、`ThingsActivity.onResume` 只 `notifyDataSetChanged` 不 reload（entry
+  引用不变、兜底不触发），曾揭示的子文件夹 summary 会复用旧揭示态 View 泄露。修复：把
+  `shouldRevealFolderContent(f)`（与渲染同源）纳入 FolderEntry 签名，揭示翻转即签名变、强制重建为锁态。
+  签名是所有渲染路径都会实时计算的失效点，且 delegate 覆写揭示态为本地语义，故主列表与 Widget 配置均覆盖。
+- P2（reload 兜底漏 Widget 路径）：兜底原在 `onBindViewHolder`，Widget 单记事配置经
+  `FolderCardDelegateAdapter.bindFolderHolder → bindFolderCard` 不走 `onBindViewHolder`。修复：兜底移到
+  `bindFolderCard` 入口（两路径公共入口），失效令牌来源抽成可覆写 `folderThumbnailCacheToken()`——主列表默认
+  `getEntries()`，Widget 配置覆写为 `mEntries`。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。揭示态/Widget 配置下的缩略图正确性需真机复测。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630151933.md"`
+  发布到阿里云 debug 通道，更新码 `202606300720`。
+
+## 2026-06-30 - 全宽大文件夹缩略图分列不均与滑动卡顿优化
+
+- 用户报告两点：① 全宽大文件夹的缩略图瀑布流分列不均——某列明显能再放下一张卡，卡片却跑到另一（更高）
+  列，把整张大文件夹卡撑高；② 滑动记事列表从下往上滑到大文件夹时容易"一顿再继续"，缩略图含封面图/
+  视频或布局较复杂的记事时更明显。
+- 根因① `ThingsAdapter.createFolderThumbnailMasonryView` 用 `estimateFolderThingPreviewHeight` 的粗略估算
+  （标题按单行 32/36dp、正文按固定 2-3 行、媒体按固定 160/200dp）选"最矮列"。真实高度受标题实际行数、
+  正文实际行数、媒体真实宽高比影响，估算误差累积后把卡放进实际更高的列，留下空列。
+- 根因② 每次 `onBindViewHolder` 绑定缩略图文件夹卡，都对 6（手机）~10（平板）个预览同步 inflate 整个
+  `card_thing`（384 行、约 41 控件）+ 跑完整 `FolderThingPreviewAdapter.onBindViewHolder` + 同步 measure/
+  layout，且**无任何复用池**；滑入与 42 处 `notifyDataSetChanged` 都从零重建，整批挤在一帧 → 卡顿。封面
+  图/视频是 Glide 异步加载、异步 baking 并缓存，非同步卡顿主因；主因是重复 inflate + 同步绑定。
+- 修复① 改"先建卡、按列宽 EXACTLY 实测真实高度、再选最矮列放入"，新增 `measureFolderThumbnailPreviewHeight`；
+  仅在测量异常返回 0 时回退旧估算。分列即精确。
+- 修复② 新增"按文件夹缓存整棵已构建缩略图树"（`mFolderThumbnailCache`，`LruCache` 24 项，键=文件夹 id +
+  内容签名）。命中（签名一致且该树当前 parent 为空）即原样复用，跳过整棵 inflate/重绑/重缩放；签名不符
+  则按现有路径重建，**绝不复用出过期内容**。文件夹被重新上锁（hiddenPrivate）时清除其缓存树，避免私密预览
+  滞留。来回滚动与内容未变的 `notifyDataSetChanged` 直接命中复用。
+- 签名口径（响应内容更改的关键）：直接对“渲染输入”取指纹，而非只挑 updateTime。除当前模式、列数/列宽、
+  是否显示私密、Doing id、文件夹版本/外观揭示态外，每个预览条目纳入——记事：id/类型/状态/位置/私密/已认证
+  + 标题/正文/附件/背景/卡片外观（`thingCardAppearance.toJson()`）的 hashCode；子文件夹：id/位置/spanMode/
+  私密/计数 + 标题/背景指纹。两层正确性：① 缩略图数据源是 `FolderEntry.thumbnailEntries` 快照，内容更改经
+  app 既有的 `loadThings()`/`searchThings()` reload 刷新快照；② 缓存在快照上靠签名判断是否复用。
+- 顺带修了一个盲点：`renameFolder`/`updateFolderAppearance` 改子文件夹名/外观后只 `loadThings()`、不 bump
+  `folder.updateTime`，习惯打卡等也可能不刷新 updateTime。早先若签名只放 updateTime，会让子文件夹改名后
+  大文件夹缩略图复用旧树、显示旧名。改用渲染输入指纹（仍保留 updateTime 做多重保险）后，标题/正文/附件/
+  背景/外观任一变化签名必变，与各写路径是否 bump updateTime 解耦。
+- reload 兜底：`loadThings`/`searchThings` 每次把 `mThingListEntries` 重建为新 ArrayList 实例；adapter 在
+  `onBindViewHolder` 比较 `getEntries()` 实例引用，变化即 `mFolderThumbnailCache.evictAll()`。即使签名漏字段，
+  只要更改经 reload（内容更改的必经路径）就强制重建，覆盖习惯/目标打卡进度等不在记事字段的更改。滚动与
+  非 reload 刷新不替换列表实例、不清缓存，照常命中。指纹 + reload 兜底叠加，内容更改即时响应、无已知盲点。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260630145007.md"`
+  发布到阿里云 debug 通道，更新码 `202606300650`。
+- 否决：未采用"复用单张预览卡（跨文件夹卡池）"。因为 `applyFolderThumbnailPreviewScale` 系列是**累乘真实
+  尺寸**（padding/margin/textSize/drawable bounds），且标题/正文/习惯摘要字号是"绑定时设置 + 缩放叠加"、正文
+  字号还与每条记事的 `defaultTextSizeSp` 相关，naive 复用会二次缩放或字号不一致，且无真机难以验证。整树缓存
+  规避了所有重绑/重缩放风险（命中即原样复用、永不重绑）。代价是某文件夹**首次**进入可视区仍需构建（无法
+  安全消除），但来回滚动/全量重绑这两类主场景已覆盖。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL。视觉与手感（分列是否均匀、滑动是否顺滑、私密揭示/外观编辑/
+  选择模式下缩略图是否仍正确）需真机 sideload 复测。
+
 ## 2026-06-30 - 修复媒体背景卡置底元素长按重绑时短暂失去置底
 
 - 用户报告：图片/视频作背景的记事卡，置底元素（音频/附件数量、提醒/习惯/目标）长按时短暂失去置底、

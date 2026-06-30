@@ -804,6 +804,10 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             bindFolderCard(holder, entry)
         }
 
+        // 配置界面的真实数据源是外层 mEntries（每次重建为新实例），而非主列表 entry。覆写令牌来源，使
+        // 这条 bindFolderHolder→bindFolderCard 路径的 reload 兜底据配置数据重建而非主列表 entry 失效。
+        override fun folderThumbnailCacheToken(): Any? = mEntries
+
         override fun shouldShowFolderPrivateContent(): Boolean {
             return isCurrentFolderPrivacyAuthenticated()
         }
@@ -859,6 +863,19 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
         override fun getItemCount(): Int {
             return mEntries.size
+        }
+
+        override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+            super.onViewRecycled(holder)
+            // 列表挂的是本 MixedThingsAdapter，文件夹卡实际由 mFolderCardAdapter 渲染；RecyclerView 回收
+            // holder 只回调到这里。需转发给 delegate，让它在 holder 进池时摘下缓存的缩略图树——否则
+            // delegate.onViewRecycled 永不触发，配置界面大文件夹缩略图缓存会因 view 仍挂在待命 holder 上
+            // 而无法复用、滑回重建（与主列表 MISS_DETACHED 同因）。
+            if (holder is BaseThingsAdapter.BaseThingViewHolder &&
+                holder.itemViewType == VIEW_TYPE_FOLDER
+            ) {
+                mFolderCardAdapter?.onViewRecycled(holder)
+            }
         }
 
         override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {

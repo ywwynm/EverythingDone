@@ -1,5 +1,86 @@
 # Thing Folders Decisions
 
+## 2026-06-30 - 全宽缩略图瀑布流按实测高度分列，而非估算
+
+全宽缩略图文件夹卡（`createFolderThumbnailMasonryView`）的瀑布流分列改为：先构建预览卡，按目标列宽
+`MeasureSpec.EXACTLY` 实测真实高度，再选当前最矮列放入。此前用 `estimateFolderThingPreviewHeight` 的粗略
+估算（标题按单行、正文按固定行数、媒体按固定高度）选列，估算误差会累积，把卡片放进实际更高的列、留下
+明显能容纳的空列，从而把整张大文件夹卡撑高。预览卡本就要构建，实测仅多一次 measure（远比 inflate+bind
+便宜）。`estimateFolderEntryPreviewHeight` 保留为测量异常返回 0 时的兜底，避免退化成单列堆叠。
+
+## 2026-06-30 - 大文件夹缩略图用"整树缓存"复用，不做单卡复用池
+
+消除滑动到大文件夹卡顿、以及 `notifyDataSetChanged` 全量重绑卡顿的手段，是"按文件夹缓存整棵已构建的
+缩略图预览树"并在命中时原样复用，而不是"复用单张预览卡（跨文件夹卡池）"。
+
+整树缓存（`mFolderThumbnailCache`，`LruCache`，键=文件夹 id + 内容签名）：命中条件为签名一致且该树当前
+parent 为空（避免列表项动画的瞬时双 holder 期把仍挂载的树"偷走"造成闪动）；命中即原样复用，跳过整棵
+`card_thing` 的重复 inflate / 重绑 / 重缩放。文件夹被重新上锁（hiddenPrivate）时清除其缓存树，避免私密
+预览内容滞留。缓存树不持有外层被回收的文件夹 holder 引用（预览卡的点击仅捕获 `thing`/`entry` 与
+`mOnItemTouchedListener`），故可安全跨 holder 复用。
+
+整树缓存必须配合 `onViewRecycled` 才真正生效：holder 被回收进 `RecycledViewPool` 时，RecyclerView 不会清理
+它子树里挂着的缩略图树，该树 `parent` 仍指向这个待命 holder。等同一文件夹换到另一个 holder 重绑时，缓存树
+因 `view.parent != null` 无法 attach，只能重建（日志中的 `MISS_DETACHED`），缓存形同虚设。因此 `onViewRecycled`
+里要对回收的 holder 调 `removeFolderThumbnailViews` 把缩略图树从视图层级摘下（树仍按 folderId 留在
+`mFolderThumbnailCache`），使 `parent` 归零、任意 holder 都能复用。RecyclerView 的 `mCachedViews`（滑出近处、
+保留绑定、滑回直接复用、不重绑）不调 `onViewRecycled`、也不经缓存查询，天然顺畅；只有被挤出进池时才摘树，
+正好覆盖“出池后换 holder 重绑”这条路径。
+
+delegate 渲染路径也要转发 `onViewRecycled`：单记事 Widget 配置用外层 `MixedThingsAdapter` 借
+`FolderCardDelegateAdapter.bindFolderHolder → bindFolderCard` 渲染文件夹卡，delegate 并不是挂在 RecyclerView
+上的 adapter，收不到 `onViewRecycled` 回调（只回调到外层 `MixedThingsAdapter`）。因此 `MixedThingsAdapter`
+必须 override `onViewRecycled`，把文件夹 holder 转发给 `mFolderCardAdapter.onViewRecycled`，否则该界面的缩略图
+缓存同样退化为 `MISS_DETACHED`。整树缓存的其余链路（列宽/滚动状态、签名含揭示态、reload 兜底）在 Widget
+配置中天然生效，因为 `setHostRecyclerViewForDelegatedBinding` 已把宿主 RecyclerView 接给 delegate，且签名/兜底
+都在 `bindFolderCard` 这条公共入口上。
+
+签名必须直接对“渲染输入”取指纹，而不是只挑 `updateTime` 等少数字段。涵盖：当前模式（决定预览卡是否
+可点击）、列数与列宽、是否全局显示私密、正在做的记事 id、文件夹自身版本与外观编辑揭示态，以及每个预览
+条目的身份 + 渲染输入指纹——记事取标题/正文/附件/背景/卡片外观（`thingCardAppearance.toJson()`）的
+hashCode，加类型/状态/位置/私密/已认证；子文件夹 summary 取标题/背景指纹，加 spanMode/私密/计数。
+
+不挑 `updateTime` 兜底的原因：部分写路径并不刷新 `updateTime`——已确认 `renameFolder` /
+`updateFolderAppearance` 改子文件夹名或外观后只 `loadThings()` 重建列表、不 bump `folder.updateTime`，
+习惯打卡等不经详情页的更改也可能如此。若签名只放 `updateTime`，这些更改会让缩略图复用旧树、显示过期
+内容（如子文件夹改名后大文件夹缩略图仍显示旧名）。对渲染输入取指纹后，只要标题/正文/附件/背景/外观等
+任一发生变化签名必变，与“哪条写路径是否 bump updateTime”解耦。代价是命中判定每次要对 6~10 个预览条目算
+少量 hashCode 与两次 `toJson`，约 1ms 量级，远小于一次整树重建（数十 ms），可接受。
+
+正确性边界须分两层理解：① 缩略图的数据源是 adapter 持有的 `FolderEntry.thumbnailEntries` 快照，该快照在
+列表 `loadThings()` / `searchThings()` 重建时从库刷新——这是 app 既有刷新模型，与缓存无关；② 缓存只在
+同一份快照之上决定是否复用视图树。因此“内容更改能否及时反映”最终取决于：内容更改后列表会 reload 重建
+快照（既有模型保证），且签名能区分新旧快照的渲染差异（指纹保证）。
+
+在指纹签名之外再加一道 reload 兜底：`loadThings()` / `searchThings()` 每次都把 `mThingListEntries` 重建为
+新的 `ArrayList` 实例，adapter 在 `onBindViewHolder` 比较 `getEntries()` 的实例引用，一旦变化即对缩略图缓存
+`evictAll()`。这样即使签名漏掉某个渲染字段，只要更改经过 reload（app 内容更改的必经路径），缓存也会被
+清空、强制重建——覆盖如习惯/目标打卡进度这类不在记事字段、不 bump `updateTime` 的更改。滚动与非 reload
+刷新（模式切换、选择）不替换列表实例、不触发清空，缓存照常命中。指纹签名 + reload 兜底叠加后，内容更改
+即时响应，无已知盲点。
+
+补充（2026-06-30，review 修复 P1/P2）：
+
+- P1 私密子文件夹揭示态泄露：早先 FolderEntry 签名只到“标题/背景/spanMode/私密/计数”，未含子文件夹
+  揭示态。父大文件夹非私密、其内嵌私密子文件夹被本会话认证揭示后，后台返回会 `clearAuthenticatedPrivateFolders`
+  清空认证，但 `ThingsActivity.onResume` 只 `notifyDataSetChanged`、不 reload（entry 列表引用不变、reload 兜底
+  不触发），曾揭示的子文件夹 summary 会复用旧揭示态 View 泄露内容。已把 `shouldRevealFolderContent(f)`
+  （与 `presentationFor` / `getFolderThumbnailEntries` 同源判定）纳入 FolderEntry 签名：揭示态翻转即签名变、
+  强制重建为锁态；该判定在主列表与 Widget 配置各按其揭示语义（delegate 覆写 `isFolderRevealedByAuth` 为
+  本地认证）生效。
+- P2 reload 兜底漏 Widget 路径：兜底原放在 `onBindViewHolder`，而 Widget 单记事配置经
+  `FolderCardDelegateAdapter.bindFolderHolder → bindFolderCard` 直接复用文件夹卡渲染、不走 `onBindViewHolder`，
+  该路径无兜底。已把兜底移到 `bindFolderCard` 入口（两条路径公共入口），并把失效令牌来源抽成可覆写的
+  `folderThumbnailCacheToken()`：主列表默认取 `getEntries()`，Widget 配置覆写为其真实数据源 `mEntries`
+  （每次重建为新实例）。
+
+否决单卡复用池的原因：`applyFolderThumbnailPreviewScale` 系列是累乘真实尺寸（padding/margin/textSize/
+drawable bounds），且标题/正文/习惯摘要字号是"绑定时设置 + 缩放叠加"、正文字号还与每条记事的
+`defaultTextSizeSp` 相关。naive 复用会二次缩放或与新建卡字号不一致；要安全复用须深入审计每个 TextView 的
+"绑定设尺寸 vs 布局默认尺寸"分类，在无真机验证下风险过高。整树缓存命中即原样复用、永不重绑重缩放，规避
+全部此类风险。代价是某文件夹首次进入可视区仍需完整构建（无法在不引入上述风险下安全消除），但来回滚动与
+内容未变的全量重绑这两类主场景已覆盖。
+
 ## 2026-06-27 - 搜索态批量/范围操作刷新必须统一恢复搜索投影
 
 首页搜索模式下，任何会重建列表的批量或范围操作，完成后都必须继续使用当前搜索文本与颜色筛选恢复列表投影。即使底层 `ThingManager` 的某个方法为了普通列表路径调用了 `loadThings()`，Activity 刷新层也必须再按当前搜索态调用 `searchThings(...)`，避免搜索框仍显示关键词但列表跳回当前文件夹全量内容。

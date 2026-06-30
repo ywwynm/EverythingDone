@@ -35,6 +35,25 @@
   可用宽度响应式计算。实现时要覆盖大屏、横屏和旋转后的重新测量；同时
   检查全宽缩略图预览数量上限和省略号逻辑，避免列数增加后仍只显示过少
   子项。
+- （2026-06-30）整树缓存只能消除"来回滚动 / 内容未变的全量重绑"两类重建，
+  某文件夹**首次**进入可视区仍要完整构建（6~10 张 `card_thing` inflate + 绑定）。
+  若首帧构建成本仍偏高，可评估更激进且更大改动的方向：a) 为缩略图预览做一个
+  精简版预览布局替代整套 `card_thing`，从根上降低 inflate 成本；b) 快速 fling 时
+  延后构建（用占位高度，settle 后补建）；c) 安全化单卡复用池（须先把
+  `applyFolderThumbnailPreviewScale` 改为按基准幂等、并把内容相关字号纳入每次
+  重绑）。三者都需要真机验证手感与正确性后再决定是否做。
+- （2026-06-30）本次"实测分列 + 整树缓存"改动需真机 sideload 复测：分列是否均匀、
+  滑动是否顺滑、以及私密揭示/外观编辑实时预览/选择模式切换下缩略图是否仍正确
+  （签名是否覆盖到位）。
+- （2026-06-30，临时埋点，诊断完成后移除）`ThingsAdapter` 加了缩略图绑定性能日志，开关
+  `DEBUG_FOLDER_THUMBNAIL_PERF`，异步写 `debug_logs/folder_thumbnail_perf.log`。每次绑定大文件夹缩略图记一行：
+  `id / 标题 / span(列数) / entries(显示/总数) / scroll(IDLE|DRAG|FLING) / cache(HIT|MISS_NEW|MISS_SIG|
+  MISS_DETACHED) / sig / build / attach / measure(该大卡 measure 耗时) / bind(总耗时)`；reload 清缓存时记
+  evictAll 行。用途：定位"缓存命中却仍卡"——若 cache=HIT 且 build≈0 但 measure 偏大，说明卡在 RecyclerView
+  对大子树的 measure/layout（缓存省不掉它），下一步可往"降子树层级/复杂度、或固定高度避免重测"优化。诊断
+  完成后连同 `debugMeasureFolderCard` / `logFolderThumbnailPerf` / `FolderThumbnailObtain` 一并移除
+  （`obtainFolderThumbnailTree` 回退为返回 View）。**（2026-06-30 已置 `DEBUG_FOLDER_THUMBNAIL_PERF=false`
+  关闭，不再写日志/不再额外 measure；埋点代码暂留备后续 measure 优化诊断，若确定不再用可彻底移除。）**
 
 ## Mixed List Gestures
 

@@ -225,6 +225,13 @@ abstract class BaseThingsAdapter(context: Context?) :
     protected fun getBoundListSpanCount(): Int =
         (mRecyclerView?.layoutManager as? StaggeredGridLayoutManager)?.spanCount ?: 0
 
+    /** 诊断用：当前宿主列表的滚动状态名（IDLE / DRAG / FLING）。 */
+    protected fun hostScrollStateName(): String = when (mRecyclerView?.scrollState) {
+        RecyclerView.SCROLL_STATE_DRAGGING -> "DRAG"
+        RecyclerView.SCROLL_STATE_SETTLING -> "FLING"
+        else -> "IDLE"
+    }
+
     protected open fun getThingCardTitleTextSize(
         thing: Thing,
         fullSpan: Boolean

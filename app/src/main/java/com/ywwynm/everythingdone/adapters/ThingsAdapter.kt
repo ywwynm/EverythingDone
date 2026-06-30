@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.text.TextUtils
+import android.util.LruCache
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
@@ -31,6 +32,7 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
@@ -44,6 +46,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
+import java.util.Locale
 
 /**
  * Created by ywwynm on 2015/5/28.
@@ -131,6 +134,55 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         mAppearanceRevealFolderId = id
     }
 
+    private class CachedFolderThumbnails(val signature: String, val view: View)
+
+    // 诊断用：一次取缩略图树的结果与各段耗时。cacheState：HIT / MISS_NEW（首次无缓存）/
+    // MISS_SIG（签名不符）/ MISS_DETACHED（缓存树仍挂载在别处、未能复用）。
+    private class FolderThumbnailObtain(
+        val view: View,
+        val cacheState: String,
+        val signatureNanos: Long,
+        val buildNanos: Long
+    )
+
+    // 大文件夹缩略图整棵预览树缓存：键为文件夹 id，值带一份内容签名。命中（签名一致且该树当前未挂载）
+    // 时原样复用已构建好的缩略图树，跳过整棵 card_thing 的重复 inflate / 重绑 / 重缩放——这正是滑动到
+    // 大文件夹卡顿、以及 notifyDataSetChanged（全表多处）全量重绑卡顿的主因。签名取保守口径：任何影响
+    // 预览渲染的字段变化都会改变签名而触发重建，宁可多重建，也绝不复用出过期内容。LruCache 自动淘汰
+    // 最久未用项，限制内存占用。
+    private val mFolderThumbnailCache =
+        LruCache<Long, CachedFolderThumbnails>(FOLDER_THUMBNAIL_CACHE_MAX_ENTRIES)
+
+    // 上次绑定时所见的"缩略图缓存失效令牌"。loadThings/searchThings 每次都把 entry 列表重建为新实例，
+    // 据此检测"数据是否 reload 过"：令牌引用变化即清空缩略图缓存，作为内容签名之外的兜底，确保任何经
+    // reload 反映出来的更改（含习惯/目标打卡这类不改记事字段、不 bump updateTime 的更改）都重建。滚动与
+    // 非 reload 的刷新（模式切换、选择）不替换列表实例，缓存照常命中复用。
+    private var mLastFolderThumbnailCacheToken: Any? = null
+
+    /**
+     * 缩略图整树缓存的失效令牌来源：引用变化即视为数据 reload、清空缓存。默认取当前 entry 列表实例
+     * （loadThings/searchThings 每次重建为新实例）。Widget 配置等不走主列表 entry、而是经
+     * bindFolderHolder→bindFolderCard 直接复用文件夹卡渲染的子类，应覆写为各自真实的数据源实例。
+     */
+    protected open fun folderThumbnailCacheToken(): Any? = getEntries()
+
+    private fun invalidateFolderThumbnailCacheIfReloaded() {
+        val token = folderThumbnailCacheToken()
+        if (token !== mLastFolderThumbnailCacheToken) {
+            val hadPrev = mLastFolderThumbnailCacheToken != null
+            val cleared = mFolderThumbnailCache.size()
+            mLastFolderThumbnailCacheToken = token
+            mFolderThumbnailCache.evictAll()
+            if (DEBUG_FOLDER_THUMBNAIL_PERF && hadPrev) {
+                DebugFileLogger.log(
+                    FOLDER_THUMBNAIL_PERF_LOG,
+                    "evictAll: 数据列表实例变化（reload），清空缓存 cleared=$cleared 条",
+                    "[FolderThumb]"
+                )
+            }
+        }
+    }
+
     /**
      * 该私密文件夹的内容是否应揭示（按真实外观显示内容/预览，而非上锁）：正在外观编辑、全局显示
      * 私密、或本会话已认证过该文件夹时为真。一旦本会话认证过某私密文件夹，其卡片即按真实外观显示
@@ -209,6 +261,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val entry = getEntries()?.getOrNull(position)
         if (entry is ThingListEntry.FolderEntry) return VIEW_TYPE_THING_FOLDER
         return super.getItemViewType(position)
+    }
+
+    override fun onViewRecycled(holder: BaseThingViewHolder) {
+        super.onViewRecycled(holder)
+        // holder 被回收进 RecycledViewPool 时，把它挂着的缩略图树从视图层级摘下（树本身仍按 folderId 留在
+        // mFolderThumbnailCache 中）。否则该树的 parent 仍指向这个待命 holder，等同一文件夹换到另一个 holder
+        // 重绑时，会因 view.parent != null 无法复用（MISS_DETACHED）而重建整棵树，使缓存形同虚设。摘下后
+        // parent 归零，任意 holder 都能复用缓存树。对非文件夹卡是 no-op（其 llTextContent 无缩略图标记视图）。
+        removeFolderThumbnailViews(holder)
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
@@ -333,6 +394,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry
     ) {
+        // reload 兜底放在 bindFolderCard 入口而非 onBindViewHolder：Widget 配置经
+        // bindFolderHolder→bindFolderCard 直接复用文件夹卡渲染、不走 onBindViewHolder，此处确保该路径
+        // 也能触发缓存失效。
+        invalidateFolderThumbnailCacheIfReloaded()
         val folder = entry.folder
         distinguishFolder(folder, holder.cv)
         resetFolderCardHolder(holder)
@@ -574,6 +639,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         )
 
         if (hiddenPrivate) {
+            // 文件夹被遮蔽（重新上锁）时丢弃其已渲染的缩略图树，避免私密预览内容滞留缓存。
+            mFolderThumbnailCache.remove(folder.id)
             bindFolderPrivateLock(holder, baseColor)
         } else {
             bindFolderCardCount(holder, entry, baseColor)
@@ -774,6 +841,147 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
+    /**
+     * 取该文件夹的整棵缩略图预览树：签名命中且当前未挂载时原样复用缓存树，否则按需构建并写入缓存。
+     * 仅在 [CachedFolderThumbnails.view] 的 parent 为空时才复用，避免在列表项动画的瞬时双 holder 期把
+     * 仍挂载在另一个 holder 上的树“偷走”，造成闪动。
+     */
+    private fun obtainFolderThumbnailTree(
+        folder: ThingFolder,
+        previewEntries: List<ThingListEntry>,
+        fullSpan: Boolean
+    ): FolderThumbnailObtain {
+        val tSig0 = System.nanoTime()
+        val signature = folderThumbnailSignature(folder, previewEntries, fullSpan)
+        val signatureNanos = System.nanoTime() - tSig0
+        val cached = mFolderThumbnailCache.get(folder.id)
+        if (cached != null && cached.signature == signature && cached.view.parent == null) {
+            return FolderThumbnailObtain(cached.view, "HIT", signatureNanos, 0L)
+        }
+        val cacheState = when {
+            cached == null -> "MISS_NEW"
+            cached.signature != signature -> "MISS_SIG"
+            else -> "MISS_DETACHED"
+        }
+        val tBuild0 = System.nanoTime()
+        val view = if (fullSpan) {
+            createFolderThumbnailMasonryView(previewEntries)
+        } else {
+            createFolderThumbnailListView(previewEntries)
+        }
+        val buildNanos = System.nanoTime() - tBuild0
+        mFolderThumbnailCache.put(folder.id, CachedFolderThumbnails(signature, view))
+        return FolderThumbnailObtain(view, cacheState, signatureNanos, buildNanos)
+    }
+
+    private fun logFolderThumbnailPerf(
+        folder: ThingFolder,
+        fullSpan: Boolean,
+        count: Int,
+        totalCount: Int,
+        obtain: FolderThumbnailObtain,
+        attachNanos: Long,
+        bindNanos: Long,
+        holder: BaseThingViewHolder
+    ) {
+        // 额外测一次该大卡内容的 measure 耗时：缓存命中省掉了 inflate/绑定/缩放，但 RecyclerView 仍要对这
+        // 棵大子树（6~10 张完整记事卡）做 measure/layout——“缓存了却仍卡”往往卡在这里，而它不在 bind 耗时内。
+        val measureNanos = debugMeasureFolderCard(holder, fullSpan)
+        val span = if (fullSpan) "FULL/${folderThumbnailFullSpanColumnCount()}col" else "NORMAL"
+        DebugFileLogger.log(
+            FOLDER_THUMBNAIL_PERF_LOG,
+            "id=${folder.id} \"${folder.title}\" $span entries=$count/$totalCount " +
+                "scroll=${hostScrollStateName()} cache=${obtain.cacheState} " +
+                "sig=${formatMillis(obtain.signatureNanos)} build=${formatMillis(obtain.buildNanos)} " +
+                "attach=${formatMillis(attachNanos)} measure=${formatMillis(measureNanos)} " +
+                "bind=${formatMillis(bindNanos)}",
+            "[FolderThumb]"
+        )
+    }
+
+    private fun formatMillis(nanos: Long): String =
+        if (nanos < 0) "n/a" else String.format(Locale.US, "%.2fms", nanos / 1_000_000.0)
+
+    private fun debugMeasureFolderCard(holder: BaseThingViewHolder, fullSpan: Boolean): Long {
+        val cv = holder.cv ?: return -1L
+        val width = if (fullSpan) getBoundFullSpanThingCardWidth() else getBoundNormalThingCardWidth()
+        if (width <= 0) return -1L
+        return try {
+            val t0 = System.nanoTime()
+            cv.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            System.nanoTime() - t0
+        } catch (e: RuntimeException) {
+            -1L
+        }
+    }
+
+    /**
+     * 缩略图预览树的内容签名。涵盖一切会改变这棵树渲染结果的输入：当前模式（决定预览卡是否可点击）、
+     * 列数与列宽、是否全局显示私密、正在做的记事 id、文件夹自身版本与是否处于外观编辑揭示态，以及每个
+     * 预览条目的身份与“渲染输入指纹”——记事取标题/正文/附件/背景/卡片外观，子文件夹取标题/背景/外观/
+     * 计数/私密。直接对渲染输入取指纹（而非只挑 updateTime）是为了不依赖各写路径是否 bump updateTime：
+     * 例如 renameFolder / updateFolderAppearance 改名改外观、习惯打卡等并不刷新 updateTime，但它们都会改变
+     * 上述渲染输入，故内容一变签名即变。取保守口径：任一字段变化即触发重建，绝不复用出过期内容。
+     */
+    private fun folderThumbnailSignature(
+        folder: ThingFolder,
+        previewEntries: List<ThingListEntry>,
+        fullSpan: Boolean
+    ): String {
+        val sb = StringBuilder(64)
+        sb.append(getCurrentMode()).append('|')
+        sb.append(if (fullSpan) folderThumbnailFullSpanColumnCount() else 1).append('|')
+        sb.append(
+            if (fullSpan) getFolderThumbnailFullPreviewWidth()
+            else getFolderThumbnailNormalPreviewWidth()
+        ).append('|')
+        sb.append(if (shouldShowFolderPrivateContent()) 1 else 0).append('|')
+        sb.append(App.getDoingThingId()).append('|')
+        sb.append(folder.id).append(':').append(folder.updateTime).append('@')
+        sb.append(if (mAppearanceRevealFolderId == folder.id) 1 else 0).append('|')
+        for (e in previewEntries) {
+            when (e) {
+                is ThingListEntry.ThingEntry -> {
+                    val t = e.thing
+                    // 直接纳入会改变预览渲染的输入指纹（标题/正文/附件/背景/卡片外观），不依赖各写路径是否
+                    // bump updateTime（习惯打卡等更改可能不刷新 updateTime），确保内容一变签名即变。
+                    sb.append('T').append(t.id).append(',').append(t.type).append(',')
+                        .append(t.state).append(',').append(t.updateTime).append(',')
+                        .append(t.location).append(',')
+                        .append(if (t.isPrivate()) 1 else 0).append(',')
+                        .append(if (isThingRevealedByAuth(t.id)) 1 else 0).append(',')
+                        .append(t.title?.hashCode() ?: 0).append(',')
+                        .append(t.content?.hashCode() ?: 0).append(',')
+                        .append(t.attachment?.hashCode() ?: 0).append(',')
+                        .append(t.getBackground()?.toJson()?.hashCode() ?: 0).append(',')
+                        .append(t.thingCardAppearance.toJson().hashCode())
+                }
+                is ThingListEntry.FolderEntry -> {
+                    val f = e.folder
+                    // 子文件夹 summary 预览：标题/背景指纹直接纳入。renameFolder / updateFolderAppearance
+                    // 改名改外观后并不 bump folder.updateTime，只靠 updateTime 会漏刷新子文件夹缩略图。
+                    sb.append('F').append(f.id).append(',').append(f.updateTime).append(',')
+                        .append(f.location).append(',')
+                        .append(presentationFor(f).spanMode).append(',')
+                        .append(if (f.isPrivate) 1 else 0).append(',')
+                        // 私密子文件夹的揭示态（本会话是否已认证揭示）必须入签名：否则后台返回清空认证后
+                        // Activity 只 notifyDataSetChanged、entry 列表引用不变，曾揭示的子文件夹 summary 会
+                        // 复用旧揭示态 View 造成泄露。与 presentationFor / getFolderThumbnailEntries 同源判定，
+                        // 揭示态翻转即签名变、强制重建为锁态（在主列表与 Widget 配置各按其揭示语义判定）。
+                        .append(if (!f.isPrivate || shouldRevealFolderContent(f)) 1 else 0).append(',')
+                        .append(e.thumbnailEntryCount).append(',')
+                        .append(f.title.hashCode()).append(',')
+                        .append(f.getBackground()?.toJson()?.hashCode() ?: 0)
+                }
+            }
+            sb.append(';')
+        }
+        return sb.toString()
+    }
+
     private fun bindFolderThumbnails(
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry,
@@ -794,14 +1002,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val count = entries.size.coerceAtMost(displayLimit)
         val insertStart = (findFolderCountIndex(container) + 1)
             .coerceIn(0, container.childCount)
+        val tStart = System.nanoTime()
+        var obtain: FolderThumbnailObtain? = null
+        var attachNanos = 0L
         if (count > 0) {
             val previewEntries = entries.take(count)
-            val thumbnails = if (fullSpan) {
-                createFolderThumbnailMasonryView(previewEntries)
-            } else {
-                createFolderThumbnailListView(previewEntries)
-            }
-            container.addView(thumbnails, insertStart)
+            obtain = obtainFolderThumbnailTree(entry.folder, previewEntries, fullSpan)
+            val tAttach0 = System.nanoTime()
+            container.addView(obtain.view, insertStart)
+            attachNanos = System.nanoTime() - tAttach0
         }
         val totalCount = if (entry.thumbnailEntryCount > 0) {
             entry.thumbnailEntryCount
@@ -812,6 +1021,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             container.addView(
                 createFolderThumbnailEllipsisView(holder, baseColor),
                 insertStart + 1
+            )
+        }
+        val bindNanos = System.nanoTime() - tStart
+        if (DEBUG_FOLDER_THUMBNAIL_PERF && obtain != null) {
+            logFolderThumbnailPerf(
+                entry.folder, fullSpan, count, totalCount, obtain, attachNanos, bindNanos, holder
             )
         }
     }
@@ -898,7 +1113,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val columnCount = folderThumbnailFullSpanColumnCount()
         var columnsContainer: LinearLayout? = null
         var columns: Array<LinearLayout>? = null
-        var estimatedHeights = IntArray(columnCount)
+        var columnHeights = IntArray(columnCount)
         var hasRenderedPreview = false
 
         for (entry in entries) {
@@ -927,7 +1142,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 hasRenderedPreview = true
                 columnsContainer = null
                 columns = null
-                estimatedHeights = IntArray(columnCount)
+                columnHeights = IntArray(columnCount)
             } else {
                 if (columnsContainer == null || columns == null) {
                     columnsContainer = createFolderThumbnailColumnsContainer(
@@ -945,7 +1160,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                             allowFolderThumbnailShadowOverflow(this)
                         }
                     }
-                    estimatedHeights = IntArray(columnCount)
+                    columnHeights = IntArray(columnCount)
                     for (i in columns!!.indices) {
                         val lp = LinearLayout.LayoutParams(
                             0,
@@ -959,10 +1174,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     }
                 }
 
-                val columnIndex = getShortestColumnIndex(estimatedHeights)
                 val previewWidth = getFolderThumbnailColumnPreviewWidth(columnCount)
                 val thumbnail = createFolderEntryPreviewView(
-                    columns!![columnIndex],
+                    columnsContainer!!,
                     entry,
                     createFolderPreviewStyle(
                         entry = entry,
@@ -971,6 +1185,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         fullSpanPreviewWidth = previewWidth
                     )
                 )
+                // 先按列宽实测缩略图真实高度，再选当前最矮列放入。此前用 estimateFolderEntryPreviewHeight
+                // 的粗略估算（标题按单行、正文按固定行数、媒体按固定高度）选列，估算误差会累积，把卡片放进
+                // 实际更高的列，留下明显能容纳的空列，从而把整张大文件夹卡撑高。仅在测量异常返回 0 时回退估算。
+                val measuredHeight = measureFolderThumbnailPreviewHeight(thumbnail, previewWidth)
+                    .takeIf { it > 0 }
+                    ?: estimateFolderEntryPreviewHeight(entry, compact = true)
+                val columnIndex = getShortestColumnIndex(columnHeights)
                 val lp = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -982,8 +1203,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 }
                 lp.topMargin = (mDensity * itemTopMarginDp).toInt()
                 columns!![columnIndex].addView(thumbnail, lp)
-                estimatedHeights[columnIndex] += (mDensity * itemTopMarginDp).toInt() +
-                    estimateFolderEntryPreviewHeight(entry, compact = true)
+                columnHeights[columnIndex] += (mDensity * itemTopMarginDp).toInt() + measuredHeight
             }
         }
 
@@ -1012,6 +1232,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             if (heights[i] < heights[index]) index = i
         }
         return index
+    }
+
+    /**
+     * 按目标列宽精确测量一张缩略图预览卡的真实高度，用于瀑布流选列。预览卡此时已完成内容绑定、文字整体
+     * 缩放与侧图投影结算，故按 EXACTLY(列宽) + UNSPECIFIED 高度测量即为最终高度。卡片尚未挂入列容器，
+     * 独立测量不影响后续真正布局时的再次测量。
+     */
+    private fun measureFolderThumbnailPreviewHeight(view: View, width: Int): Int {
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(
+            width.coerceAtLeast(1), View.MeasureSpec.EXACTLY
+        )
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        view.measure(widthSpec, heightSpec)
+        return view.measuredHeight
     }
 
     private fun createFolderEntryPreviewView(
@@ -1935,6 +2169,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         private const val FOLDER_THUMBNAIL_FULL_SPAN_COLUMN_COUNT = 3
         private const val FOLDER_THUMBNAIL_PHONE_FULL_SPAN_DISPLAY_COUNT = 6
+        // 缩略图整树缓存上限：约覆盖一屏可见大文件夹卡及上下相邻若干个的来回滚动复用，淘汰最久未用项。
+        private const val FOLDER_THUMBNAIL_CACHE_MAX_ENTRIES = 24
+        // 诊断用：大文件夹缩略图绑定性能日志（命中/未命中、签名/构建/attach/measure 各段耗时、滚动状态），
+        // 异步写入 debug_logs/folder_thumbnail_perf.log。完成卡顿诊断后应移除这些埋点。
+        private const val DEBUG_FOLDER_THUMBNAIL_PERF = false
+        private const val FOLDER_THUMBNAIL_PERF_LOG = "folder_thumbnail_perf.log"
         private const val FOLDER_THUMBNAIL_SIDE_MARGIN_DP = 16
         private const val FOLDER_THUMBNAIL_COLUMN_GAP_DP = 6
         private const val FOLDER_THUMBNAIL_HEADER_GAP_DP = 12
