@@ -118,6 +118,10 @@ successful compile, publish a debug update to the Aliyun channel and let the
 user test there. This matters especially for features that can only be confirmed
 visually on real hardware (e.g. HDR rendering, which an emulator cannot show).
 
+## 发布日志纳入版本控制
+
+发布日志文件（`docs/features/*/debug-updates/update-*.md` 与 `memory/debug-updates/*.md`）是**纳入 Git 版本控制**的——项目历史上已提交数百个，每次发布的日志随其对应的代码 / 文档改动一起提交，**不要**加进 `.gitignore`。注意：会话之间可能有少数发布日志暂处于未跟踪状态，这并不代表项目不收录它们；判断前先用 `git ls-files` 查证，不要只凭单次 `git status` 的表象误判。
+
 ## Memory and feature documentation
 
 - Keep `memory/*.md` lightweight and cross-feature. Do not store detailed feature implementation history here.
