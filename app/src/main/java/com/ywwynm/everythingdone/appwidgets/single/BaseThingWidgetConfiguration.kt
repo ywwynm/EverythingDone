@@ -804,10 +804,6 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
             bindFolderCard(holder, entry)
         }
 
-        // 配置界面的真实数据源是外层 mEntries（每次重建为新实例），而非主列表 entry。覆写令牌来源，使
-        // 这条 bindFolderHolder→bindFolderCard 路径的 reload 兜底据配置数据重建而非主列表 entry 失效。
-        override fun folderThumbnailCacheToken(): Any? = mEntries
-
         override fun shouldShowFolderPrivateContent(): Boolean {
             return isCurrentFolderPrivacyAuthenticated()
         }

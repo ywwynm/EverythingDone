@@ -852,6 +852,16 @@ object DateTimeUtil {
         }
     }
 
+    /**
+     * 当前时间在本地时区下的"日历日"序号（epoch day）。与 [calculateTimeGap] 的
+     * `truncatedTo(DAYS)` 同口径（均按 [ZoneId.systemDefault] 的午夜边界切分），供大文件夹缩略图
+     * 签名判定 reminder / goal 倒计时文本是否跨日需刷新使用。
+     */
+    @JvmStatic
+    fun getLocalEpochDay(millis: Long): Long {
+        return toZoned(millis).toLocalDate().toEpochDay()
+    }
+
     private fun formatMillis(millis: Long, pattern: String?): String? {
         return toZoned(millis).format(DateTimeFormatter.ofPattern(pattern))
     }

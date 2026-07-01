@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
@@ -152,36 +153,6 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     // 最久未用项，限制内存占用。
     private val mFolderThumbnailCache =
         LruCache<Long, CachedFolderThumbnails>(FOLDER_THUMBNAIL_CACHE_MAX_ENTRIES)
-
-    // 上次绑定时所见的"缩略图缓存失效令牌"。loadThings/searchThings 每次都把 entry 列表重建为新实例，
-    // 据此检测"数据是否 reload 过"：令牌引用变化即清空缩略图缓存，作为内容签名之外的兜底，确保任何经
-    // reload 反映出来的更改（含习惯/目标打卡这类不改记事字段、不 bump updateTime 的更改）都重建。滚动与
-    // 非 reload 的刷新（模式切换、选择）不替换列表实例，缓存照常命中复用。
-    private var mLastFolderThumbnailCacheToken: Any? = null
-
-    /**
-     * 缩略图整树缓存的失效令牌来源：引用变化即视为数据 reload、清空缓存。默认取当前 entry 列表实例
-     * （loadThings/searchThings 每次重建为新实例）。Widget 配置等不走主列表 entry、而是经
-     * bindFolderHolder→bindFolderCard 直接复用文件夹卡渲染的子类，应覆写为各自真实的数据源实例。
-     */
-    protected open fun folderThumbnailCacheToken(): Any? = getEntries()
-
-    private fun invalidateFolderThumbnailCacheIfReloaded() {
-        val token = folderThumbnailCacheToken()
-        if (token !== mLastFolderThumbnailCacheToken) {
-            val hadPrev = mLastFolderThumbnailCacheToken != null
-            val cleared = mFolderThumbnailCache.size()
-            mLastFolderThumbnailCacheToken = token
-            mFolderThumbnailCache.evictAll()
-            if (DEBUG_FOLDER_THUMBNAIL_PERF && hadPrev) {
-                DebugFileLogger.log(
-                    FOLDER_THUMBNAIL_PERF_LOG,
-                    "evictAll: 数据列表实例变化（reload），清空缓存 cleared=$cleared 条",
-                    "[FolderThumb]"
-                )
-            }
-        }
-    }
 
     /**
      * 该私密文件夹的内容是否应揭示（按真实外观显示内容/预览，而非上锁）：正在外观编辑、全局显示
@@ -399,10 +370,6 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder: BaseThingViewHolder,
         entry: ThingListEntry.FolderEntry
     ) {
-        // reload 兜底放在 bindFolderCard 入口而非 onBindViewHolder：Widget 配置经
-        // bindFolderHolder→bindFolderCard 直接复用文件夹卡渲染、不走 onBindViewHolder，此处确保该路径
-        // 也能触发缓存失效。
-        invalidateFolderThumbnailCacheIfReloaded()
         val folder = entry.folder
         distinguishFolder(folder, holder.cv)
         resetFolderCardHolder(holder)
@@ -937,6 +904,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         fullSpan: Boolean
     ): String {
         val sb = StringBuilder(64)
+        // 含时间驱动展示文本的预览（reminder、进行中 goal 的"还剩 N 天 / 已逾期 N 天 / 应于 H:mm 前完成"等，
+        // 均按本地日历日在午夜翻转，见 DateTimeUtil.calculateTimeGap 的 truncatedTo(DAYS)）须把当前本地日历日
+        // 纳入签名：同一天内进出全部命中复用、滚动流畅，跨午夜后首次 reload 签名变、重建一次刷新倒计时。纯
+        // 普通/习惯记事（缩略图不显示习惯打卡动态）的文件夹不含该桶，永不因跨天而失效。此桶取代原 reload
+        // 兜底（曾在数据列表实例变化时 evictAll 整个缓存）：签名已覆盖全部数据驱动变化，唯一签名天然覆盖不
+        // 到的是随 wall-clock 变的倒计时文本，正由此日历日桶按天补刷。
+        var hasTimeSensitiveEntry = false
         sb.append(getCurrentMode()).append('|')
         sb.append(if (fullSpan) folderThumbnailFullSpanColumnCount() else 1).append('|')
         sb.append(
@@ -963,6 +937,23 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         .append(t.attachment?.hashCode() ?: 0).append(',')
                         .append(t.getBackground()?.toJson()?.hashCode() ?: 0).append(',')
                         .append(t.thingCardAppearance.toJson().hashCode())
+                    // reminder / goal / habit 的预览文本还依赖 Thing 行之外的 DAO 派生量（Reminder.notifyTime /
+                    // state、Habit.intervalInfo）：reminder 到点、延迟提醒、goal 重置、habit 暂停/恢复等路径会改
+                    // 它们却不 bump thing.updateTime，须纳入签名，否则移除 reload 全清后复用旧树、预览的时间 /
+                    // 状态后缀过期。
+                    when (t.type) {
+                        Thing.REMINDER, Thing.GOAL ->
+                            sb.append(',').append(reminderSignaturePart(t.id))
+                        Thing.HABIT ->
+                            sb.append(',').append(habitSignaturePart(t.id))
+                    }
+                    // reminder 无论状态其相对日文本（今天/明天/昨天…）都随日历日变；goal 仅进行中才显示随天
+                    // 变化的倒计时（已完成 goal 文本为历史固定天数、且 state 已入签名），故只对这两类置位。
+                    if (t.type == Thing.REMINDER ||
+                        (t.type == Thing.GOAL && t.state == Thing.UNDERWAY)
+                    ) {
+                        hasTimeSensitiveEntry = true
+                    }
                 }
                 is ThingListEntry.FolderEntry -> {
                     val f = e.folder
@@ -978,11 +969,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         // 揭示态翻转即签名变、强制重建为锁态（在主列表与 Widget 配置各按其揭示语义判定）。
                         .append(if (!f.isPrivate || shouldRevealFolderContent(f)) 1 else 0).append(',')
                         .append(e.thumbnailEntryCount).append(',')
+                        // 子文件夹 summary 卡渲染的"N 个文件夹 M 项"取 directFolderCount / recursiveThingCount
+                        // （getFolderCardCountText），须一并入签名：孙层及更深内容增减会改这两个计数、却按目录
+                        // mtime 语义不 bump 本子文件夹 updateTime（不冒泡），仅靠 updateTime / thumbnailEntryCount
+                        // 判不出，移除 reload 全清后会复用旧树、显示过期计数。
+                        .append(e.directFolderCount).append(',')
+                        .append(e.recursiveThingCount).append(',')
                         .append(f.title.hashCode()).append(',')
                         .append(f.getBackground()?.toJson()?.hashCode() ?: 0)
                 }
             }
             sb.append(';')
+        }
+        if (hasTimeSensitiveEntry) {
+            sb.append('D').append(DateTimeUtil.getLocalEpochDay(System.currentTimeMillis())).append('|')
         }
         return sb.toString()
     }

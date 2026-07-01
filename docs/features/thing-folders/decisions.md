@@ -1,5 +1,55 @@
 # Thing Folders Decisions
 
+## 2026-07-01 - 大文件夹缩略图缓存：去掉 reload 全清，改由 per-folder 签名 + 本地日历日时间桶（方向 A / A1）
+
+**问题**：缩略图整树缓存（`mFolderThumbnailCache`）挂在 adapter 实例上，adapter 在 `ThingsActivity.onCreate`
+只 new 一次、导航只 `notifyDataSetChanged`，故缓存 map 本身不随导航丢失。但 `bindFolderCard` 入口的
+`invalidateFolderThumbnailCacheIfReloaded` 以 `getEntries()`（=`ThingManager.mThingListEntries`）的**实例引用**
+为失效令牌，而 `loadThings`/`searchThings` 每次都在 `rebuildThingListEntries` 把该列表重建为**新实例**，令牌
+必变即 `evictAll` 全清。打开文件夹（`openFolder`）、返回父级（`openParentFolder`）、看记事返回都走 loadThings，
+故**任何导航离开再回来都跨一次 reload、返回后缓存皆空**，滚到大文件夹整棵重建 → 卡顿。缓存有效存活边界 =
+两次 reload 之间，而导航每次都跨界。
+
+**评估**（两路 Explore 调研 + 亲验代码）：evictAll 兜底本为防「内容变了但 per-folder 签名反映不出」。逐类核查：
+- **habit 打卡**：缩略图预览 `FolderThingPreviewAdapter.shouldShowThingCardHabitDetails=false`，打卡进度 / streak /
+  下次提醒等动态元素在预览里根本不渲染；且打卡只写 habit 记录表、不 bump `thing.updateTime`、不 `loadThings`
+  （仅 `notifyItemChanged`）。对缩略图零影响。唯一会动 thing 行的「清单型 habit 打卡清勾选」改 `content`，被签名
+  的 `content.hashCode` 覆盖。→ 无盲区。
+- **goal 推进**：goal 无独立打卡，靠完成记事本身推进，改 `state`/`finish_time`/`updateTime` 并 `loadThings`；签名的
+  `state`/`updateTime`/`location` 全覆盖。→ 无盲区。
+- 私密揭示态 / doing 高亮 / 外观编辑实时预览 / 附件封面 / 内容增删改 / 子文件夹改名改外观：均已入签名。
+- **唯一签名天然覆盖不到的**：reminder、进行中 goal 的**倒计时文本**（「还剩 N 天」「已逾期 N 天」「应于 H:mm
+  前完成」），随 wall-clock 变、非数据。`DateTimeUtil.calculateTimeGap(..., Calendar.DATE)` 先 `truncatedTo(DAYS)`
+  到本地时区午夜再算整天差，故这些文本按**本地日历日在午夜翻转**。
+
+**决策（A1，用户 2026-07-01 拍板）**：去掉 reload 的 evictAll，缓存失效纯靠 per-folder 内容签名 + LruCache 容量
+淘汰 + `onViewRecycled` 摘挂 + 私密 `remove`；对含 reminder / 进行中 goal 的预览，把**当前本地日历日**
+（新增 `DateTimeUtil.getLocalEpochDay`，与 `calculateTimeGap` 同 `truncatedTo(DAYS)` 口径）纳入签名。删除
+`invalidateFolderThumbnailCacheIfReloaded` / `folderThumbnailCacheToken`（含 Widget 子类 override）/
+`mLastFolderThumbnailCacheToken`。
+
+**效果**：同一日历日内进出文件夹 / 看记事返回 / 来回滚动，只要内容签名不变即命中复用、不再全清 → 导航返回
+卡顿消除；跨午夜后首次 reload 因日历日桶变而重建一次、刷新倒计时（天级新鲜，恰与 reminder/goal 文本按午夜
+翻转对齐）。纯普通 / 习惯记事的文件夹不含时间桶，永不因跨天失效，命中率无损。
+
+**已接受的残留**：goal 当天过 `notifyTime` 那一刻「应于 H:mm 前完成」→「已逾期」的翻转（发生在当天内、非
+午夜）会滞后到次日午夜才刷新。缩略图是预览、点进文件夹准确，可接受；要消除须 per-goal 把 `now≤notifyTime`
+布尔入签名（需查 `ReminderDAO`，签名转重），未做。
+
+**签名补漏（GPT 审查，2026-07-01）**：移除 reload 全清后，GPT 审查指出签名两处覆盖缺口，核实均属实并已修复。
+① 子文件夹 summary 卡渲染的「N 文件夹 M 项」取 `directFolderCount` / `recursiveThingCount`（`getFolderCardCountText`），
+但签名只放了 `thumbnailEntryCount`——孙层及更深内容增减改这两个计数却不 bump 本子文件夹 `updateTime`（不冒泡），
+会复用旧计数；已把这两个计数并入 FolderEntry 签名段。② reminder / goal 预览文本含 `Reminder.notifyTime` / `state`
+后缀、habit summary 含 `Habit.intervalInfo`（暂停态），这些是 Thing 行之外的 DAO 派生量，reminder 到点（改
+`Reminder.state`）、延迟提醒 / goal 重置（改 `notifyTime`）、habit 暂停恢复（改 `intervalInfo`）均不 bump
+`thing.updateTime`——原 reload 全清掩盖了这个缺口，移除后会复用旧后缀；新增 `reminderSignaturePart` /
+`habitSignaturePart`（`BaseThingsAdapter`，按 id 查 DAO 取指纹），签名对这三类 entry 纳入之。代价：这三类 entry
+的签名各多一次按主键 DAO 查询，命中 bind 仍远快于重建。
+
+**Verification**：`:app:assembleDebug` 通过，无对已删符号的残留引用。未使用 adb，待真机验证：进出文件夹返回
+是否不再卡、reminder/goal 缩略图倒计时是否跨天正常刷新、以及上述补漏场景（孙层增减后子文件夹计数、reminder
+到点后状态后缀、habit 暂停后 summary 后缀）缩略图是否及时更新。
+
 ## 2026-06-30 - folder.updateTime 语义：自身字段变更 + 直接子项集合增减（借鉴目录 mtime）
 
 `folder.updateTime` 定义为在两类事件时刷新：① 文件夹自身行字段（标题/颜色/背景/外观/父级/状态/私密）变更；

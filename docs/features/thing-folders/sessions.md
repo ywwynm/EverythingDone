@@ -1,5 +1,86 @@
 # Thing Folders Sessions
 
+## 2026-07-01 - 全面复核缩略图缓存移除 reload 全清后的正确性（用户要求，结论：无数据驱动盲区）
+
+- 背景：用户担心 A1 去掉 reload `evictAll` 后，缓存会让「本应刷新的大文件夹状态」复用旧树；要求核查历史反馈问题
+  未死灰复燃。做了一次以「渲染输入 → 签名覆盖」为主线的静态审计。
+- **失效路径彻底移除、无残留**：全仓 grep 确认 `invalidateFolderThumbnailCacheIfReloaded` /
+  `folderThumbnailCacheToken`（含 Widget 子类 override，本次一并删）/ `mLastFolderThumbnailCacheToken` /
+  `evictAll` 均无调用点，仅剩 `folderThumbnailSignature` 内一处注释提及。
+- **历史问题逐项仍在修复态**：① MISS_DETACHED——主列表 `onViewRecycled`→`removeFolderThumbnailViews`（摘树留缓存）
+  在；Widget 侧 `MixedThingsAdapter.onViewRecycled` 按 `VIEW_TYPE_FOLDER` guard 转发 `mFolderCardAdapter.onViewRecycled`
+  在。② 命中条件 `cached.view.parent == null` 防列表项动画瞬时双 holder「偷树」在。③ 私密重新上锁
+  `hiddenPrivate` 分支 `mFolderThumbnailCache.remove(folder.id)` 在。④ 私密揭示态泄露（P1）——thing 侧
+  `isThingRevealedByAuth`、子文件夹侧 `shouldRevealFolderContent` 均入签名，与 `presentationFor` 同源判定。
+- **签名完整性（核心结论）**：签名对「实际渲染的那份 entries」（`getFolderThumbnailEntries` 的返回，reveal /
+  外观编辑时实时重取）逐条取指纹，与渲染同源。逐类核查渲染输入：
+  - 记事预览：title/content/attachment/background/thingCardAppearance 全取 hashCode；type/state/location/私密/
+    揭示态直接入；`defaultTextSizeSp` 由 `content.length` 公式派生（非全局设置、非独立字段），已被 content 覆盖。
+  - reminder/goal 预览文本 `getDateTimeStrReminder/Goal` 只读 `notifyTime`+`thing.state`+`reminder.state`（goal 的
+    FINISHED 分支另用 goalCreateTime+finishTime，但完成瞬间冻结、且完成 bump updateTime+state）→ `reminderSignaturePart`
+    (`notifyTime`:`state`) + 签名 t.state + 时间桶全覆盖。
+  - habit 预览（`shouldShowThingCardHabitDetails=false` 只渲染 `getSummary()` + 可选「已暂停」）：`getSummary` 依赖
+    `type`+`habitReminders.size`——频率编辑会置 `habitUpdated=true`，`createOrUpdateThing` 的 `noUpdate` 含
+    `!habitUpdated`，故走 `updateThing` bump updateTime（签名 t.updateTime 覆盖）；「已暂停」依赖 `intervalInfo`，
+    pause/resume 不 bump updateTime，由 `habitSignaturePart`(intervalInfo hash) 覆盖。两条互补、无缺口。
+  - 子文件夹 summary 只渲染标题/背景/计数（`entry.copy` 清空 thumbnail* 后走 `bindFolderCardContent`，不渲染嵌套
+    缩略图）：title/background 取 hash，`directFolderCount`/`recursiveThingCount`/`thumbnailEntryCount`（由
+    `ThingFolderDAO.getFolderEntriesForTypeFilterProjection` 每次 reload 从库实时算）入签名，覆盖孙层增减不冒泡的计数变。
+  - 唯一不 bump updateTime 的写路径（reminder 到点/延迟、goal 重置、habit 暂停/恢复/打卡、置顶重排 location、
+    揭示认证、doing 态、全局显私密）逐一在签名中有对应字段。其余任意 DetailActivity 编辑必 bump updateTime。
+- **`getReminderById`/`getHabitById` 均为每次实时 `db.query`（无内存缓存）**，故签名读到的即当前 DB 值。
+- **仅存的、均为既知/已接受项**：goal 当天过 `notifyTime` 的「应于 H:mm 前完成」→「已逾期」翻转滞后到次日午夜
+  （文档已记为接受残留）；跨午夜刷新需一次 rebind 触发（与所有 reminder 卡一致，非缓存特有）；reminder/goal/habit
+  预览 entry 每次算签名各多一次主键 DAO 查询（perf 权衡，非正确性）；hashCode 理论碰撞（既有口径）。
+- 结论：移除 reload 全清后无新增数据驱动盲区，历史反馈问题未复发。未改代码，纯审计。
+
+- 背景：A1 移除 reload 全清后，让 GPT 审查是否有「该刷新却复用旧缩略图」的正确性缺口。GPT 提两条，核实均属实、已修。
+- **P1-A 子文件夹 summary 计数变旧**：summary 卡渲染用 `entry.directFolderCount` / `recursiveThingCount`
+  （`ThingsAdapter.getFolderCardCountText`；预览经 `entry.copy` 只覆盖 thumbnail* 字段、保留这两个计数），但签名
+  只放 `thumbnailEntryCount`。孙层 / 更深内容增减改这两个计数、按目录 mtime 语义不 bump 本子文件夹 `updateTime`
+  （不冒泡），签名不变 → 复用旧计数。修复：FolderEntry 签名段加 `directFolderCount` + `recursiveThingCount`。
+- **P1-B DAO-only 动态文本过期**：预览 `updateCardForReminder` / `updateCardForHabit` 每次按 id 查 DAO——reminder
+  文本含 `Reminder.state` 后缀与 `notifyTime`；habit summary 含 `isPaused()`（`intervalInfo`）。reminder 到点
+  （`ReminderReceiver.updateReminderState` 只改 `Reminder.state`）、habit 暂停/恢复（`DetailActivity.pauseOrResumeHabit`
+  只改 `Habit.intervalInfo`）都不动 thing，签名只看 thing + 日历日 → 复用旧后缀。修复：`BaseThingsAdapter` 新增
+  `reminderSignaturePart`（`notifyTime`+`state`）/ `habitSignaturePart`（`intervalInfo` hash），签名对 reminder /
+  goal / habit entry 纳入；代价是这三类 entry 签名各多一次主键 DAO 查询（命中 bind 仍远快于重建）。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待真机验证。
+- 发布：通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码 `202607010704`（2.0.0/43）；apk
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607010704.apk`，SHA-256
+  `e425f57617870f11ea187a1775f479def8d136a18019b24f8ef3cf263adfd796`，日志 `update-20260701150412.md`。用户真机
+  测试中；尚未提交。（注：更早一次汇报的 `202607010805` 是工具调用格式错误导致的误报，实际未发布，作废。）
+
+## 2026-07-01 - 复核大文件夹缩略图缓存移除 reload 全清后的正确性
+- 对 Claude 的缓存修改做静态审查：当前实现确实解决了“打开文件夹再返回后缓存被 reload 兜底清空”的性能问题，`DateTimeUtil.getLocalEpochDay` 的本地日历日桶也能覆盖 reminder / 进行中 goal 的跨日文本刷新。
+- 发现两个正确性风险，已记录到 `followups.md`：子文件夹 summary 预览签名漏掉 `directFolderCount` / `recursiveThingCount`；`ReminderDAO` 与 `HabitDAO` 的 DAO-only 派生文本变化未进入签名，移除 reload 全清后可能复用旧缩略图树。
+- 验证：`git diff --check` 仅有既有 LF/CRLF 提示；`:app:assembleDebug` 通过。未使用 adb。
+
+## 2026-07-01 - 大文件夹缩略图缓存扛不过导航返回：去 reload 全清、签名加本地日历日时间桶（A1）
+
+- **用户现象**：对大文件夹整树缓存后，「打开一个文件夹再返回，缓存似乎就没了」，滚到大文件夹又卡一下。
+- **定位**：缓存 map 挂 adapter（`ThingsActivity` onCreate 单例化 adapter、导航只 `notifyDataSetChanged`，map
+  不丢）；丢的是内容——`bindFolderCard`→`invalidateFolderThumbnailCacheIfReloaded` 以 `getEntries()`
+  （=`ThingManager.mThingListEntries`）实例引用为令牌，`loadThings`/`searchThings` 每次 `rebuildThingListEntries`
+  换新实例（`ThingManager.kt:482`），令牌必变 → `evictAll`。`openFolder`（`ThingsActivity.kt:7965`）/
+  `openParentFolder`（`:7987`）/ 看记事返回都 loadThings，故任何导航返回缓存皆空。
+- **调研**：派 2 个 Explore agent（habit/goal 打卡数据流、缩略图预览动态内容渲染）+ 亲验签名与预览绑定。结论
+  见 decisions 同日条目——唯一盲区是 reminder / 进行中 goal 的 wall-clock 倒计时文本，且按本地午夜翻转。
+- **用户决策**：方向 A（去 evictAll，靠 per-folder 签名）确认可行且正确性安全；倒计时滞后按 **A1（签名加时间桶）**
+  落地。
+- **改动**：
+  - `DateTimeUtil` 新增 `getLocalEpochDay(millis)`（`toZoned→toLocalDate→toEpochDay`，与 `calculateTimeGap` 同口径）。
+  - `ThingsAdapter`：删 `invalidateFolderThumbnailCacheIfReloaded` / `folderThumbnailCacheToken` /
+    `mLastFolderThumbnailCacheToken` 及 `bindFolderCard` 里的调用；`folderThumbnailSignature` 遍历 previewEntries
+    时对 `type==REMINDER || (type==GOAL && state==UNDERWAY)` 置 `hasTimeSensitiveEntry`，循环后若真则 append
+    `DateTimeUtil.getLocalEpochDay(System.currentTimeMillis())`。
+  - `BaseThingWidgetConfiguration`：删 `FolderCardDelegateAdapter.folderThumbnailCacheToken` override（父方法已删）。
+- **Verification**：`:app:assembleDebug` 通过，grep 确认三个已删符号无残留引用。未使用 adb，待真机验证。
+- **发布**：通过 `:app:publishDebugUpdate` 发布到阿里云 debug 通道，更新码 `202607010637`（versionCode 43 /
+  2.0.0）；`latest.json` 的 `apkUrl` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607010637.apk`，
+  SHA-256 `3d00e7a8f06c0abcffc00ce6b2d7097b736c63396ac41c6d4338dfeca2fc410e`，日志 `update-20260701143638.md`。
+  用户真机测试中；尚未提交。
+
 ## 2026-07-01 - 修复「调整文件夹外观」面板名称输入框下划线随长文本左移
 
 - 现象：调整文件夹外观的面板里，修改文件夹名称的 EditText 输入很长文本时，下方那条彩色下划线会往左移。

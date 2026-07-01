@@ -850,6 +850,27 @@ abstract class BaseThingsAdapter(context: Context?) :
         // do nothing here
     }
 
+    /**
+     * reminder / goal 预览文本所依赖的、Thing 行之外的动态量指纹（`Reminder.notifyTime` + `Reminder.state`）。
+     * reminder 到点只改 `Reminder.state`（`ReminderReceiver.updateReminderState`）、延迟提醒只改 `notifyTime`、
+     * goal 重置只改 `notifyTime`/`state`，这些都不 bump `thing.updateTime`。大文件夹缩略图缓存签名须纳入本
+     * 指纹，否则移除 reload 全清后会复用旧树，使预览的时间 / 状态后缀过期。
+     */
+    protected fun reminderSignaturePart(thingId: Long): String {
+        val r: Reminder = mReminderDAO?.getReminderById(thingId) ?: return "_"
+        return r.notifyTime.toString() + ":" + r.state
+    }
+
+    /**
+     * habit 预览 summary 所依赖的、Thing 行之外的动态量指纹（`Habit.intervalInfo`，含频率与暂停态）。
+     * 暂停 / 恢复只改 `Habit.intervalInfo`（`DetailActivity.pauseOrResumeHabit`）、不 bump `thing.updateTime`。
+     * 缩略图缓存签名须纳入本指纹，否则复用旧树、summary 的"已暂停"后缀过期。
+     */
+    protected fun habitSignaturePart(thingId: Long): String {
+        val h: Habit = mHabitDAO?.getHabitById(thingId) ?: return "_"
+        return (h.intervalInfo?.hashCode() ?: 0).toString()
+    }
+
     private fun updateCardForReminder(holder: BaseThingViewHolder, thing: Thing) {
         val thingType = thing.type
         if (!Thing.isReminderType(thingType)) {

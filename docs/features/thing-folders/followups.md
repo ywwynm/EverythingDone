@@ -1,5 +1,18 @@
 # Thing Folders Followups
 
+## 大文件夹缩略图缓存签名补漏（已完成 2026-07-01，GPT 审查后）
+
+移除 reload 全清（A1）后，签名覆盖面的两处缺口经 GPT 审查发现，核实均属实并已修复（详见 decisions / sessions
+同日「签名补漏」条目）：
+- ✅ 子文件夹 summary 计数：`folderThumbnailSignature` 的 FolderEntry 段已加入 `directFolderCount` +
+  `recursiveThingCount`（summary 卡实际渲染的计数，`getFolderCardCountText`；预览 `entry.copy` 保留这两字段）。
+  此前只放 `thumbnailEntryCount`，孙层及更深内容增减改这两个计数却不 bump 本子文件夹 `updateTime`（不冒泡），
+  会复用旧计数。
+- ✅ DAO-only 动态文本：新增 `BaseThingsAdapter.reminderSignaturePart`（`Reminder.notifyTime`+`state`）/
+  `habitSignaturePart`（`Habit.intervalInfo`），签名对 reminder / goal / habit 预览 entry 纳入之。覆盖 reminder
+  到点（改 `Reminder.state`）、延迟提醒 / goal 重置（改 `notifyTime`）、habit 暂停恢复（改 `intervalInfo`）等不
+  bump `thing.updateTime` 的路径。代价：签名对这三类 entry 各多一次按主键 DAO 查询（命中 bind 仍远快于重建）。
+
 ## folder.updateTime 漏刷修复（已完成 2026-06-30）
 
 三处漏刷均已修复（详见 sessions「folder.updateTime 内容增减刷新补漏（实现 P1/P2/P3）」）。核心发现：所有永久
@@ -43,6 +56,10 @@
 
 ## Folder Card Thumbnail Layout
 
+- （2026-07-01，已完成）缩略图整树缓存扛不过导航返回的问题已解决（方向 A / A1）：去掉 reload 的
+  evictAll 全清，改由 per-folder 内容签名 + 本地日历日时间桶判定失效，同一日历日内进出文件夹 / 看记事
+  返回 / 来回滚动全部命中复用。详见 decisions / sessions 2026-07-01 条目。注：这只免除「重建」，下面
+  「首次进入仍要完整构建」的 first-paint 成本仍在。
 - 将全宽大 Folder Card 内部的缩略图 masonry 列数从固定 3 列改为按当前
   可用宽度响应式计算。实现时要覆盖大屏、横屏和旋转后的重新测量；同时
   检查全宽缩略图预览数量上限和省略号逻辑，避免列数增加后仍只显示过少
