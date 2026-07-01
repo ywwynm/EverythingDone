@@ -17,5 +17,9 @@ v1 实测范围收窄为 OPPO + 三星（仅有的测试机）。检测的 ftyp 
 ## HEIC 动态照片的 box 精确解析
 v1 对 HEIC 走"尾部 ftyp 扫描 + 校验"定位内嵌视频。若发现某些 HEIC 动态照片扫描不稳，再补 `mpvd`(Google) / `sefd`(三星) box 的精确解析。
 
+## 卡片封面的实况（LIVE）小徽标
+详情网格已有"实况 / HDR / GIF"标识（`ImageAttachmentAdapter.ivBadgeLive` 等）；但**卡片封面**（首页 / 文件夹 / Doing / Noticeable 等记事卡片列表）目前动态照片只播派生 GIF、无任何标识（`BaseThingsAdapter` 无 badge）。可在封面角落加一个小 LIVE 徽标表明其为动态照片。
+推迟原因：需评估卡片尺寸下徽标是否过挤、与现有卡片元素（时间 / 类型角标、附件数等）的位置冲突；且封面 GIF 本就在动，标识优先级低。
+
 ## 全屏之外的真视频播放 / 更高画质
 v1 详情附件列表用派生 GIF（256 色、~720px）。若日后觉得详情里 GIF 画质不够，可考虑详情也上真播放器，但要重新评估列表内 live player 的性能（ADR-0012 当初否决卡片内真播放的理由）。

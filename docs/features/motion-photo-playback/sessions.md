@@ -23,7 +23,7 @@
 
 **发布**：`:app:assembleDebug` 通过；`publishDebugUpdate` 发布 **202607010926**，日志 [update-20260701172543.md](debug-updates/update-20260701172543.md)。等 OPPO/三星 验证封面/详情动效、全屏三处修复、性能。
 
-**待办**：封面/详情的 LIVE 小徽标（暂缓）；三星/HEIC 实测；小米/Pixel 扩展（见 followups）。
+**待办**：LIVE 小徽标——**详情已在后续轮次实现**（`ivBadgeLive`），仅卡片封面待做；三星/HEIC 实测；小米/Pixel 扩展（见 followups）。
 
 ### 第 2 版反馈修复（同日）
 - **崩溃**（OPPO 上报 `You cannot start a load for a destroyed activity`）：`ImageAttachmentAdapter.loadDetailMotionGif` 的异步回调在 Activity 销毁后仍 `Glide.with(context)`。修复：新增 `isImageViewUsable`（`isAttachedToWindow` + Activity 未 destroyed/finishing），回调前与方法入口双重守卫。
