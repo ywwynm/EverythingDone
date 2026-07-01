@@ -68,3 +68,9 @@
 
 ### 全屏顶部两徽标 y 方向居中对齐（同日，第七轮反馈）
 反馈：实况胶囊与 HDR 卡片顶边对齐但高度不同（实况 padding 5dp+16dp 图标 ≈26dp、HDR padding 3dp+文字 ≈20dp），视觉未垂直居中。改为把两者包进同一横条 `fl_top_badges`（`match_parent`×`wrap_content`），HDR `start|center_vertical`、实况 `end|center_vertical`，与各自高度无关地 y 方向居中；原 `marginStart/End 16dp` 改为容器 `padding`，`marginTop 64dp` 与顶部 inset 统一加到容器（`applyTopInsetAsMargin` 由两次改为对容器一次）。发布 **202607011343**，日志 [update-20260701214308.md](debug-updates/update-20260701214308.md)。
+
+### 详情网格 HDR/GIF 标识调小（2026-07-02，第八轮反馈）
+反馈：详情附件网格里 HDR/GIF 标识比同排"实况"偏大。`KnockoutTextBadge` 文字硬编码由 10sp 先改 8.5sp（高度 ≈16dp、与 `iv_badge_live` 16dp icon 齐平），用户要再小一点点，最终定 **8sp**（高度 ≈15dp、比实况 icon 略小）；垂直 padding 3dp 不变，宽度随字号收窄。全屏 HDR 用的是 `HdrBadgeView`（另一类），不受影响。发布 **202607011633**（8.5sp）→ **202607011637**（8sp），日志 [update-20260702003236.md](debug-updates/update-20260702003236.md) / [update-20260702003639.md](debug-updates/update-20260702003639.md)。随后用户手动把 HDR/GIF 垂直 padding 3dp→2dp（高度 ≈13dp、更紧凑），随代码一并提交、未单独发布。
+
+### 文档更正（2026-07-02）
+`sessions.md`/`followups.md` 更正"封面/详情 LIVE 徽标"过时待办：详情已实现（`ivBadgeLive`），仅卡片封面待做，`followups.md` 新增该条。已提交 `d6f79d4b`。

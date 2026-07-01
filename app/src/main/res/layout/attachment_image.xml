@@ -67,8 +67,8 @@
             android:layout_marginStart="6dp"
             android:paddingStart="5dp"
             android:paddingEnd="5dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             android:text="@string/hdr_badge_text"
             android:visibility="gone"/>
 
@@ -79,8 +79,8 @@
             android:layout_marginStart="6dp"
             android:paddingStart="5dp"
             android:paddingEnd="5dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             android:text="@string/media_badge_gif"
             android:visibility="gone"/>
 

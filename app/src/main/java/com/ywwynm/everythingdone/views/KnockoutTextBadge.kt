@@ -35,8 +35,9 @@ class KnockoutTextBadge @JvmOverloads constructor(
 
     init {
         setLayerType(LAYER_TYPE_SOFTWARE, null)
+        // 8sp + 垂直 padding 2dp(见 attachment_image.xml),整体高度 ≈13dp,比同排实况 icon(16dp)更紧凑。
         textPaint.textSize = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics
+            TypedValue.COMPLEX_UNIT_SP, 8f, resources.displayMetrics
         )
         if (attrs != null) {
             val ta = context.obtainStyledAttributes(attrs, intArrayOf(android.R.attr.text))
