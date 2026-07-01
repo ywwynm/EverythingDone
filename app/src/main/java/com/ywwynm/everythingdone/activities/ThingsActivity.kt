@@ -7622,7 +7622,11 @@ class ThingsActivity :
             mEtSearch!!.animate().alpha(1.0f).setDuration(160)
 
             mRecyclerView!!.overScrollMode = View.OVER_SCROLL_NEVER
-            mRecyclerView!!.scrollBy(0, Int.MIN_VALUE)
+            // 复位到列表顶部。原为 scrollBy(0, Int.MIN_VALUE)（想一次滚到顶），但
+            // LinearLayoutManager.scrollBy 内部 Math.abs(Int.MIN_VALUE) 会整数溢出（仍为负），
+            // 触发 offsetChildren(Int.MIN_VALUE) 把子项整体位移到天量偏移，沉浸式改 padding/布局后
+            // 表现为"列表自动滚到底部"。改用与退出搜索分支一致的 scrollToPosition(0)，落点稳定。
+            mRecyclerView!!.scrollToPosition(0)
 
             // Immersive Thing List 不覆盖搜索：进入搜索强制显示常规 chrome（搜索框就在 actionbar 里）。
             mActivityHeader!!.setRetractionOffset(0f, false)

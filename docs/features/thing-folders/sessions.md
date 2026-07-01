@@ -1,5 +1,18 @@
 # Thing Folders Sessions
 
+## 2026-07-01 - 修复「调整文件夹外观」面板名称输入框下划线随长文本左移
+
+- 现象：调整文件夹外观的面板里，修改文件夹名称的 EditText 输入很长文本时，下方那条彩色下划线会往左移。
+- 根因（通用，非文件夹专属）：该下划线是 `BackgroundUtil.applyEditTextUnderline` 给 EditText 设的
+  **前景** `BottomLineDrawable`。Android 画 View **背景**时会用 `+scrollX` 补偿滚动（故原生下划线不随文字
+  滚动），但画**前景**（`onDrawForeground`）**不做补偿**；单行 EditText 输入超宽文本时 `scrollX` 增大以
+  保光标可见，前景下划线便随内容被 `−scrollX` 平移而左移。
+- 改法：`BottomLineDrawable.draw` 仿照 `View.drawBackground` 的做法，绘制前按 host EditText 的
+  `scrollX/scrollY` 平移补偿，使下划线始终贴合输入框可见边缘。`scrollX==0` 时走原路径、零回归。
+  该修复对所有用此下划线的输入框通用（新建/重命名文件夹弹窗、录音命名、日期时间等）。
+- Verification：`:app:assembleDebug` 通过。随 immersive-thing-list 的折叠间距修复一并发布，更新码
+  `202607010355`，详见 `docs/features/immersive-thing-list/sessions.md` 同日条目。未使用 adb，待真机验证。
+
 ## 2026-06-30 - folder.updateTime 内容增减刷新补漏（实现 P1/P2/P3）
 
 - 接上一条“复核”及外部评审发现的三处漏刷，核实后全部成立并修复：

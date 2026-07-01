@@ -1069,7 +1069,23 @@ object BackgroundUtil {
         }
 
         override fun draw(canvas: android.graphics.Canvas) {
-            inner.draw(canvas)
+            // The host View draws its foreground in the SCROLLED coordinate space —
+            // unlike the background, onDrawForeground() does NOT undo the view's
+            // scroll translation. A singleLine EditText scrolls its content
+            // (scrollX > 0) to keep the caret visible once the text outgrows the
+            // field, which would otherwise drag this underline strip left along
+            // with the text. Mirror View.drawBackground()'s scroll compensation so
+            // the strip stays anchored to the field's visible edges.
+            val et: android.widget.EditText? = hostRef.get()
+            val sx: Int = et?.scrollX ?: 0
+            val sy: Int = et?.scrollY ?: 0
+            if ((sx or sy) == 0) {
+                inner.draw(canvas)
+            } else {
+                canvas.translate(sx.toFloat(), sy.toFloat())
+                inner.draw(canvas)
+                canvas.translate(-sx.toFloat(), -sy.toFloat())
+            }
         }
 
         @Keep

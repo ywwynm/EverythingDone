@@ -40,3 +40,42 @@ enterAlways，小标题 pinned）解耦；模式复位策略（搜索/选择强�
 - 顺带把「卡片外观面板打开挂起 retraction」纳入 `immersiveEligible()`。
 - 发布 debug 更新到阿里云：更新码 202607010156，日志见
   `debug-updates/update-20260701095553.md`。待真机验证。
+
+## 2026-07-01 — 修复：多行文件夹标题的折叠间距 ＋ 提前沉浸
+
+- 真机反馈：打开名字较长（标题多行）的文件夹上滑，标题归位 actionbar 时第一张卡片离 actionbar
+  比单行时远，且行数越多越远；沉浸判定也可能提前。根因是折叠进度用固定 `90dp` 驱动、而 header
+  spacer 随标题行数增高，二者脱钩。详见 `decisions.md` 同日条目。
+- 改动集中在 `views/ActivityHeader.kt`：`getTitleCollapseScrollY()` 改为 `getHeaderSpacerScrollY() −
+  TITLE_DOCK_RESIDUAL_DP(12dp)`；`updateAll` 三处强制折叠用 `ceil(getTitleCollapseScrollY())`（保证
+  progress 取到 1、`isFullyCollapsed`/retraction 不失效）；阴影淡入公式的硬编码 90/12 改用动态折叠点与
+  新常量。单行/根标题折叠距离回到 90dp，无回归。
+- 同批还修了一个 EditText 彩色下划线随长文本左移的通用 bug（`utils/BackgroundUtil.kt` 的
+  `BottomLineDrawable.draw` 补偿 host 的 scrollX/Y），由「调整文件夹外观」面板的名称输入框暴露，见
+  `docs/features/thing-folders/sessions.md`。
+- Verification：`:app:assembleDebug` 通过。未使用 adb，待真机视觉验证。
+- 发布：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/immersive-thing-list/debug-updates/update-20260701115432.md"`，
+  更新码 `202607010355`，远端 `latest.json` 指向
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607010355.apk`。尚未提交，待真机确认后提交。
+
+## 2026-07-01 — 修复：点击搜索时列表自动滚到底部
+
+- 真机反馈：列表停在顶部（未滑动）点搜索，列表莫名滚到底部。根因是进入搜索用了
+  `mRecyclerView.scrollBy(0, Int.MIN_VALUE)`（Kotlin 迁移自原 Java 的"一次滚到顶"写法）：
+  `LinearLayoutManager.scrollBy` 内部 `Math.abs(Int.MIN_VALUE)` 整数溢出仍为负，导致
+  `offsetChildren(Int.MIN_VALUE)` 天量位移子项；沉浸式改了 rv 的 padding/布局后暴露为"滚到底部"。
+- 改法：`ThingsActivity.toggleSearching` 进入搜索分支改用 `scrollToPosition(0)`，与退出搜索分支一致、
+  落点稳定。全项目仅此一处该模式。
+- Verification：`:app:assembleDebug` 通过。发布更新码 `202607010459`，日志
+  `debug-updates/update-20260701125916.md`。未使用 adb，待真机验证。尚未提交。
+
+## 2026-07-01 — 统一 actionbar 到第一张卡片的间距为 16dp
+
+- 真机反馈：搜索态首卡到 actionbar 的间距比非搜索折叠态小；且非搜索那个间距比卡片间距 16dp 还大。
+  根因是两处间距来自零散魔法数（搜索 spacer 6dp、折叠余量 12dp）＋卡片自带 8dp 上边距，得 14dp 与 20dp。
+  经询问用户选定统一到 16dp（= 卡片间距），详见 `decisions.md` 同日条目。
+- 改动：`views/ActivityHeader.kt` 的 `TITLE_DOCK_RESIDUAL_DP` 12→8dp（折叠态 8+8=16dp，多行恒定；
+  折叠距离 90→94dp、阴影淡入 12→8dp 随之联动）；`adapters/ThingsAdapter.kt` 搜索态 spacer 6dp→
+  `thing_card_outer_spacing`(8dp)（搜索态 8+8=16dp）。两处由同一 8dp 单位推导。
+- Verification：`:app:assembleDebug` 通过。发布更新码 `202607010603`，日志
+  `debug-updates/update-20260701140319.md`。未使用 adb，待真机验证。尚未提交。

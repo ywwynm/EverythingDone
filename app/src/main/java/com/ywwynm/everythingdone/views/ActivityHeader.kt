@@ -27,6 +27,7 @@ import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import kotlin.math.ceil
 import kotlin.math.min
 
 /**
@@ -157,7 +158,12 @@ open class ActivityHeader(
     }
 
     private fun getTitleCollapseScrollY(): Float {
-        return mScreenDensity * 90
+        // 折叠滚动距离 = header spacer 高度 - 标题归位余量(TITLE_DOCK_RESIDUAL_DP=8dp)。第一张卡片
+        // 在滚动到 spacer 高度处其上边距(8dp)顶到 actionbar；让标题恰在其前 8dp 完成折叠，于是"标题
+        // 归位"时首卡到 actionbar 的间距恒为 8dp(余量)+8dp(卡片上边距)=16dp，与卡片间距、搜索态一致。
+        // spacer 随多行标题增高，折叠距离同步增大，标题归位与卡片归位始终对齐。单行/根标题时 spacer
+        // 为默认 102dp，折叠距离为 94dp（102-8）。
+        return getHeaderSpacerScrollY() - TITLE_DOCK_RESIDUAL_DP * mScreenDensity
     }
 
     private fun computeCollapsedHeaderTranslationY(
@@ -216,6 +222,9 @@ open class ActivityHeader(
         var scrollY: Int = mBindingRecyclerView.paddingTop - firstChild.top
         val titleAndShadowScrollY: Int = getTitleCollapseScrollY().toInt()
         val shadowAppearCompletelyScrollY: Int = getHeaderSpacerScrollY()
+        // "折叠完成"哨兵值：用 ceil 保证 progress 取到 1（多行时折叠距离含小数，toInt 下取整会
+        // 让 progress 差一点点到不了 1，isFullyCollapsed 便一直为 false、沉浸式 retraction 失效）。
+        val fullyCollapsedScrollY: Int = ceil(getTitleCollapseScrollY()).toInt()
 
         /*
          * Sometimes, especially when an item is removed or moved,
@@ -229,14 +238,19 @@ open class ActivityHeader(
             if (scrollY <= titleAndShadowScrollY) {
                 updateHeader(scrollY, anim)
             } else if (scrollY <= shadowAppearCompletelyScrollY) {
-                actionbarShadowAlphaAfter = 1f / 12 / mScreenDensity * scrollY - 90f / 12
-                updateHeader((90 * mScreenDensity).toInt(), anim)
+                // 阴影在折叠完成后（scrollY 超过折叠距离）的余量区间内淡入，恰好在卡片贴到
+                // actionbar（scrollY 抵达 spacer 高度）时充满。原公式把折叠点硬编码成 90dp；改用
+                // 动态折叠点 titleAndShadowScrollY，多行标题下同样从折叠完成处起、到卡片归位淡满。
+                actionbarShadowAlphaAfter =
+                    ((scrollY - titleAndShadowScrollY) / (TITLE_DOCK_RESIDUAL_DP * mScreenDensity))
+                        .coerceIn(0f, 1f)
+                updateHeader(fullyCollapsedScrollY, anim)
             } else {
-                updateHeader((90 * mScreenDensity).toInt(), anim)
+                updateHeader(fullyCollapsedScrollY, anim)
                 actionbarShadowAlphaAfter = 1.0f
             }
         } else {
-            updateHeader((90 * mScreenDensity).toInt(), anim)
+            updateHeader(fullyCollapsedScrollY, anim)
             actionbarShadowAlphaAfter = 1.0f
         }
         actionbarShadowAlpha = actionbarShadowAlphaAfter
@@ -727,6 +741,11 @@ open class ActivityHeader(
         private const val HEADER_START_MARGIN_DP = 72
         private const val DEFAULT_ACTIONBAR_HEIGHT_DP = 56
         private const val DEFAULT_HEADER_SPACER_HEIGHT_DP = 102
+        // 折叠完成（标题归位 actionbar）时，第一张卡片顶到 actionbar 底的滚动余量（dp）；也是
+        // actionbar 阴影淡入的区间长度。折叠距离 = spacer 高 - 该余量。取 8dp（= thing_card_outer_spacing）：
+        // 卡片自带 8dp 上边距，加这 8dp 预留，标题归位时首卡到 actionbar 的间距为 16dp——与卡片之间的
+        // 间距（8+8）、以及搜索态首卡到 actionbar 的间距一致。默认 spacer 102dp 时折叠距离为 94dp（102-8）。
+        private const val TITLE_DOCK_RESIDUAL_DP = 8
         private const val EXPANDED_TITLE_END_INSET_DP = 40
         private const val COLLAPSED_ACTION_FALLBACK_INSET_DP = 192
         private const val COLLAPSED_TITLE_ACTION_GAP_DP = 8

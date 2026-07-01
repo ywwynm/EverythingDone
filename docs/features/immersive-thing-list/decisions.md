@@ -151,3 +151,44 @@ contextual toolbar 从顶部 `-100%p` 滑入（360ms）会露出下方 home chro
 ＋actionbar＋标题），contextual 滑入过程不再露出 home actionbar；退出选择时 `setHomeChromeVisible(true)`
 随 contextual 滑出而恢复，并复位 retraction 为显示。进入选择不再复位 retraction（避免多余弹出动画）。
 `reset()` 也一并把 home chrome 恢复可见，作为"完全展开显示"的不变量。
+
+### 2026-07-01 — 折叠滚动距离跟随 header 高度（= spacer 高 − 12dp 余量），修多行标题间距 ＋ 提前沉浸
+
+真机反馈：打开名字较长（标题多行）的文件夹，上滑到标题归位 actionbar 时，第一张卡片离 actionbar 明显
+比单行标题时远，且**标题行数越多越远**；沉浸判定也可能提前触发（卡片还没贴齐就开始收起顶栏）。
+
+根因：标题折叠进度由 `scrollY / 固定 90dp` 驱动（progress 在 90dp 处到 1），但 header spacer 高度随标题
+行数增长。第一张卡片到 actionbar 的距离 = `spacer高 − scrollY`；标题在 `scrollY=90dp` 归位时，该距离 =
+`spacer高 − 90dp`，随标题行数（spacer 增高）线性变大。`isFullyCollapsed()`（progress≥1）驱动 Home Chrome
+Retraction，故沉浸也在卡片仍远离时提前触发——同一根因。
+
+改法：`getTitleCollapseScrollY()` 从固定 `90dp` 改为 **`getHeaderSpacerScrollY() − 12dp`**。语义：第一张卡片
+在 `scrollY = spacer高` 处贴到 actionbar，让标题恰在其前 `12dp`（新常量 `TITLE_DOCK_RESIDUAL_DP`）完成折叠；
+于是"标题归位"时卡片到 actionbar 的距离恒为 `12dp`，与标题高度无关、与单行时一致，随后 12dp 内卡片贴齐并
+淡入 actionbar 阴影。`12dp` 正是历史常量的还原：默认 spacer `102dp` = 折叠 `90dp` + 阴影淡入 `12dp`，故单行/根
+标题下折叠距离回到 `90dp`，行为无回归。沉浸判定随折叠距离一并后移，改为在卡片真正贴齐后才触发。
+
+配套：`updateAll` 里三处"强制折叠"的硬编码 `(90*density)` 改为 `ceil(getTitleCollapseScrollY())`（用 ceil 保证
+progress 取到 1，避免多行时折叠距离含小数、`toInt` 下取整让 `isFullyCollapsed` 永远为 false、retraction 失效）；
+阴影淡入公式的硬编码 `90` 改用动态折叠点 `titleAndShadowScrollY`、区间用 `TITLE_DOCK_RESIDUAL_DP`。
+
+放弃的备选：「折叠距离 = 90dp + (标题行数−1)×行高」。数值核算发现单行 spacer 被 `coerceAtLeast(102dp)` 托底
+（实测 computed≈81dp<102），该式会让多行折叠距离**超过** spacer 最大滚动量，progress 永远到不了 1、折叠无法
+完成——是回归。改用「spacer 高 − 固定余量」后对所有标题高度都精确、且无需单独测量标题行数。
+
+### 2026-07-01 — actionbar 到第一张卡片的间距统一为 16dp（= 卡片间距）
+
+真机反馈：搜索态停在顶部时首卡到 actionbar 的间距，比非搜索折叠态（标题归位那一刻）小；且非搜索那个间距比
+卡片之间的 16dp 还大一些。根因是这两处间距各来自零散魔法数：搜索态 header spacer 固定 6dp、非搜索折叠余量
+`TITLE_DOCK_RESIDUAL_DP` 为 12dp，加上卡片自带的 8dp 上边距，分别得 14dp 与 20dp，彼此不一致、也不等于 16dp。
+
+决策（经询问用户，选定 16dp = 卡片间距）：让两处间距都等于卡片之间的间距 16dp。统一由一个 8dp 单位
+（`thing_card_outer_spacing`）推导——卡片自带 8dp 上边距，再在 actionbar 之下预留 8dp，合计 16dp：
+- 非搜索折叠态：`TITLE_DOCK_RESIDUAL_DP` 由 12dp 改为 8dp。折叠距离 = spacer 高 − 8dp；标题归位（progress=1）
+  那一刻首卡到 actionbar = 8dp(余量) + 8dp(卡片上边距) = 16dp，且对所有标题行数恒定（沿用上一条「spacer − 余量」
+  模型，仅改常量）。默认 spacer 102dp 下折叠距离由 90dp 变 94dp、阴影淡入区间由 12dp 变 8dp（均随该常量联动）。
+- 搜索态：`ThingsAdapter.getActivityHeaderSpacerHeight()` 的搜索分支 spacer 由 6dp 改为 `thing_card_outer_spacing`
+  (8dp)，首卡到 actionbar = 8dp + 8dp = 16dp。
+
+放弃 8dp（= 卡片到屏幕边距）方案：需把折叠余量压到近 0，阴影淡入区间随之趋零、不够平滑；16dp 与卡片纵向
+间距同律，视觉节奏最统一，也正好把用户觉得偏大的非搜索间距收到 16dp。

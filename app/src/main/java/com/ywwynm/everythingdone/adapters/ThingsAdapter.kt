@@ -375,8 +375,13 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     private fun getActivityHeaderSpacerHeight(): Int {
-        val defaultHeight = (if (App.isSearching) mDensity * 6 else mDensity * 102).toInt()
-        if (App.isSearching) return defaultHeight
+        if (App.isSearching) {
+            // 搜索态无 Activity Header：让首个结果卡片到 actionbar 底的间距 = 卡片间距(16dp)。卡片自带
+            // thing_card_outer_spacing(8dp) 上边距，这里的 spacer 再补一个 8dp，合计 16dp——与卡片之间、
+            // 以及非搜索折叠态首卡到 actionbar 的间距一致（后者由 ActivityHeader.TITLE_DOCK_RESIDUAL_DP 保证）。
+            return mApp!!.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        }
+        val defaultHeight = (mDensity * 102).toInt()
         return mActivityHeaderSpacerHeightPx.coerceAtLeast(defaultHeight)
     }
 
