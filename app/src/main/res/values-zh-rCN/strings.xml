@@ -1259,6 +1259,10 @@
     <!--video attachment-->
     <string name="cd_play_video_attachment">播放视频文件</string>
 
+    <!--motion photo (动态照片 / 实况)-->
+    <string name="cd_motion_photo">动态照片，按住播放</string>
+    <string name="motion_photo_live_badge">实况</string>
+
     <!--audio attachment-->
     <string name="cd_play_audio_attachment">播放音频文件</string>
     <string name="cd_pause_play_audio_attachment">暂停音频播放</string>

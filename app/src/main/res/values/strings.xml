@@ -1269,6 +1269,10 @@
     <!--video attachment-->
     <string name="cd_play_video_attachment">Play Video</string>
 
+    <!--motion photo (动态照片 / 实况)-->
+    <string name="cd_motion_photo">Motion photo. Press and hold to play.</string>
+    <string name="motion_photo_live_badge">LIVE</string>
+
     <!--audio attachment-->
     <string name="cd_play_audio_attachment">Play audio</string>
     <string name="cd_pause_play_audio_attachment">Pause playing audio</string>
@@ -1451,6 +1455,7 @@
     <string name="channel_auto_notify">Auto Notify</string>
 
     <string name="hdr_badge_text" translatable="false">HDR</string>
+    <string name="media_badge_gif" translatable="false">GIF</string>
     <string name="cd_hdr_badge_on">HDR on, tap to show in standard range</string>
     <string name="cd_hdr_badge_off">HDR off, tap to enable HDR</string>
     <string name="image_viewer_no_video_player">No app can play this video</string>

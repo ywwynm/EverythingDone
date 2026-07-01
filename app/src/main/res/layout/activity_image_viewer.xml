@@ -20,22 +20,63 @@
         android:theme="@style/EverythingDoneTheme.ImageViewer.Actionbar"
         app:contentInsetStart="72dp"/>
 
-    <TextView
-        android:id="@+id/tv_hdr_badge"
-        android:layout_width="wrap_content"
+    <!-- 顶部徽标横条：HDR(左) 与 实况(右) 放同一容器、各自 center_vertical，
+         与各自高度无关地在 y 方向居中对齐。marginTop 与顶部 inset 统一加到容器。 -->
+    <FrameLayout
+        android:id="@+id/fl_top_badges"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
+        android:layout_gravity="top"
         android:layout_marginTop="64dp"
-        android:layout_marginEnd="16dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
-        android:background="@drawable/bg_hdr_badge_on"
-        android:text="@string/hdr_badge_text"
-        android:textColor="#000000"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:visibility="gone"/>
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <com.ywwynm.everythingdone.views.HdrBadgeView
+            android:id="@+id/tv_hdr_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="@string/hdr_badge_text"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:id="@+id/ll_live_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_live_badge"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:contentDescription="@string/cd_motion_photo"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_live_badge"
+                android:importantForAccessibility="no"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="2dp"
+                android:text="@string/motion_photo_live_badge"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </merge>

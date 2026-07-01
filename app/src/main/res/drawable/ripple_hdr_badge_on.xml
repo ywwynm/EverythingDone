@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HDR 徽标选中态(白底)的按压 ripple:偏黑,裁剪到圆角药丸形状。 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40000000">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</ripple>

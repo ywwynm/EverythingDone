@@ -29,7 +29,8 @@
         android:layout_height="40dp"
         android:scaleType="center"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="40dp"
+        android:layout_marginEnd="43dp"
+        android:layout_marginBottom="3dp"
         android:src="@drawable/ic_thing_card_image_placement"
         android:contentDescription="@string/cd_edit_image_attachment_appearance"
         android:background="@drawable/ripple_attachment_icon_circle_light"
@@ -41,9 +42,60 @@
         android:layout_height="40dp"
         android:scaleType="center"
         android:layout_gravity="bottom|end"
+        android:layout_marginEnd="3dp"
+        android:layout_marginBottom="3dp"
         android:src="@drawable/delete_image_checklist"
         android:contentDescription="@string/cd_delete_image_attachment"
         android:background="@drawable/ripple_attachment_icon_circle_light"/>
+
+    <!-- 左下角媒体标识（实况 / HDR / GIF），与右下角两个按钮在 y 方向居中；按需显示、可多显。 -->
+    <LinearLayout
+        android:id="@+id/ll_media_badges"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="3dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <com.ywwynm.everythingdone.views.KnockoutTextBadge
+            android:id="@+id/tv_badge_hdr"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="@string/hdr_badge_text"
+            android:visibility="gone"/>
+
+        <com.ywwynm.everythingdone.views.KnockoutTextBadge
+            android:id="@+id/tv_badge_gif"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="@string/media_badge_gif"
+            android:visibility="gone"/>
+
+        <ImageView
+            android:id="@+id/iv_badge_live"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_live_badge"
+            android:alpha="0.76"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cd_motion_photo"
+            android:visibility="gone"/>
+
+    </LinearLayout>
 
     <ProgressBar
         android:id="@+id/pb_image_attachment"

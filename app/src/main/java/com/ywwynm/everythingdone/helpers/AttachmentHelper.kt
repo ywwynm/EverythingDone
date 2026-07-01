@@ -491,8 +491,21 @@ object AttachmentHelper {
 
     @JvmStatic
     fun isImageFile(postfix: String?): Boolean {
-        val postfixes: Array<String?> = arrayOf("png", "jpg", "jpeg", "gif", "bmp", "webp")
+        val postfixes: Array<String?> = arrayOf("png", "jpg", "jpeg", "gif", "bmp", "webp", "heic", "heif")
         return isInsideArray(postfixes, postfix)
+    }
+
+    /**
+     * 是否可能是 Motion Photo(动态照片)的静态图容器,按扩展名粗判。只有 JPEG / HEIC 才可能内嵌视频;
+     * 用作 [MotionPhotoDetector] 的前置过滤,避免对 png/gif/webp/bmp 做无谓的内容扫描。见 ADR-0014。
+     */
+    @JvmStatic
+    fun isMotionPhotoCandidate(pathName: String?): Boolean {
+        if (pathName.isNullOrEmpty()) return false
+        val dot = pathName.lastIndexOf('.')
+        if (dot < 0 || dot == pathName.length - 1) return false
+        val postfix = pathName.substring(dot + 1).lowercase()
+        return postfix == "jpg" || postfix == "jpeg" || postfix == "heic" || postfix == "heif"
     }
 
     @JvmStatic

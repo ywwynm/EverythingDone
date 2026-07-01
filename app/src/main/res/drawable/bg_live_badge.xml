@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Motion Photo“实况/LIVE”徽标底：半透明黑色药丸 + 细白描边（胶囊轮廓）。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#8C000000" />
+    <stroke
+        android:width="1dp"
+        android:color="#66FFFFFF" />
+    <corners android:radius="20dp" />
+</shape>

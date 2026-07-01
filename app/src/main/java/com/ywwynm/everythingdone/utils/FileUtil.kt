@@ -120,6 +120,8 @@ object FileUtil {
             if (mimeType == "image/png") return ".png"
             if (mimeType == "image/gif") return ".gif"
             if (mimeType == "image/webp") return ".webp"
+            if (mimeType == "image/heic" || mimeType == "image/heic-sequence") return ".heic"
+            if (mimeType == "image/heif" || mimeType == "image/heif-sequence") return ".heif"
             return ".jpg"
         } else if (mimeType.startsWith("video/")) {
             return ".mp4"

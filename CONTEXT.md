@@ -212,6 +212,10 @@ _Avoid_: GIF support as a blanket term, autoplay as a file property
 用户偏好:是否在 Thing Card 封面上真正对动态内容(Animated Image 与 Thing Card Video Preview)进行 Animated Playback。它统一管控所有应用内 Thing Card 面的封面动态播放;关闭时封面停在静态首帧 / Thing Card Video Frame。它不作用于详情附件列表与全屏预览这类主动查看附件的界面,那里照旧无条件播放。
 _Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看界面、把它与逐帧裁切混为一谈
 
+**Motion Photo**:
+一个静态图片附件，其文件本身同时携带一段内嵌的短视频动态成分（对应 Android 阵营各厂商的“动态照片/实况照片”）。它默认在所有界面显示为静态图，只有支持的界面才呈现其动态成分；它是图片附件被检测出的一种本性，而非独立于 IMAGE/VIDEO 的附件类型，与 **HDR Media**、**Animated Image** 同属“同一个文件、额外能力按界面分级呈现”。
+_Avoid_: 把它当成视频附件、当成新的附件类型、用苹果商标 Live Photo 作为词汇表术语、把 VIVO 那种独立配对视频文件默认当作内嵌
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -351,6 +355,9 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
 - A single **Animated Image** may receive **Animated Playback** on a surface that supports it while appearing as its first static frame on every other surface, mirroring how an **HDR Media** receives **HDR Display** only where supported.
 - A crop editor, a RemoteViews surface (widget preview or placed widget), an HDR base frame, or a video thumbnail shows an **Animated Image** as a single frame; an in-app view surface that applies the same crop per frame still gives it **Animated Playback**.
+- A **Thing Card Media** or **Detail Attachment** may be backed by a **Motion Photo** file.
+- A single **Motion Photo** shows its still image by default and presents its embedded motion only on surfaces that support it, mirroring how an **HDR Media** receives **HDR Display** and an **Animated Image** receives **Animated Playback** only where supported.
+- A **Motion Photo** is backed by an image attachment and does not change that attachment's type; its still image may itself be an **HDR Media**.
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
@@ -408,3 +415,4 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “需要固定裁切的界面只显示单帧”曾被读成“凡是显示裁切结果的界面都单帧”；已按 ADR-0007 收紧：单帧只针对裁切编辑器、RemoteViews、HDR 基帧、视频缩略图；应用内视图界面通过逐帧套用裁切仍然给 Animated Image 以 Animated Playback，**Drawer Header Image** 因此在抽屉与统计上会播放动图。
 - “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。
 - "edge-to-edge" 既可指窗口本就绘制到系统栏之下（本 App 全局早已 `setDecorFitsSystemWindows(false)`、导航栏透明、列表底部已铺到导航栏之下），也可指首页顶部 chrome 随滚动收起让列表全铺；已解析为后者专用 **Immersive Thing List** 与 **Home Chrome Retraction**，避免与窗口级 edge-to-edge 混用。
+- "Live Photo"（苹果商标，HEIC+MOV 双文件配对）与 Android 的"动态照片"（多为单个 JPEG/HEIC 尾部内嵌视频）常被混用；已解析为词汇表统一使用 **Motion Photo**，并明确它是图片附件被检测出的一种本性、而非新的附件类型，除 VIVO 外均为单文件内嵌。

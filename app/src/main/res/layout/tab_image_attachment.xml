@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#000000"
     android:orientation="vertical">
 
     <com.github.chrisbanes.photoview.PhotoView
@@ -11,6 +12,13 @@
         android:layout_height="match_parent"
         android:contentDescription="@string/cd_image_attachment"
         android:background="#000000"/>
+
+    <!-- Motion Photo 按住播放层：默认 alpha=0（不可见），按住时播放内嵌视频并置 alpha=1 盖住静图。 -->
+    <TextureView
+        android:id="@+id/tv_motion_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"/>
 
     <ImageView
         android:id="@+id/iv_video_signal"

@@ -55,6 +55,8 @@ import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
+import com.ywwynm.everythingdone.helpers.MotionPhotoCoverHelper
+import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
@@ -1112,7 +1114,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         // 绕过同 key 短路、重新分流到动图/静态路径。非动图图片不受影响。
         val animatedCover = isCoverAutoplayEnabled() && (
             AttachmentHelper.isAnimatedImageCandidate(pathName) ||
-                AttachmentHelper.isVideoCandidate(pathName)
+                AttachmentHelper.isVideoCandidate(pathName) ||
+                (AttachmentHelper.isMotionPhotoCandidate(pathName) &&
+                    MotionPhotoDetector.peekCached(pathName)?.isMotionPhoto == true)
         )
         val loadKey = getThingCardImageLoadKey(
             pathName,
@@ -1183,6 +1187,28 @@ abstract class BaseThingsAdapter(context: Context?) :
                             fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
                         )
                     }
+                }
+            }
+        }
+        // Motion Photo 封面（缩略图）：动态照片在 Cover Autoplay 开启时播放从其内嵌视频派生的 GIF。
+        // 命中缓存直接走动图分支；未就绪则后台检测/抠出/生成、本次回退静态主图，就绪后若该卡仍展示
+        // 同一封面则换上。回退与失败自愈交给 loadAnimatedThingCardThumbnail（fallback=主图）。见 ADR-0014。
+        if (AttachmentHelper.isMotionPhotoCandidate(pathName) && isCoverAutoplayEnabled()) {
+            val previewContext = imageView.context
+            val readyGif = MotionPhotoCoverHelper.getReadyGif(previewContext, pathName)
+            if (readyGif != null) {
+                loadAnimatedThingCardThumbnail(
+                    holder, imageView, readyGif.absolutePath, imageW, imageH, crop, loadKey,
+                    fallbackVideoPath = pathName, fallbackVideoFrameMs = null
+                )
+                return
+            }
+            MotionPhotoCoverHelper.requestGif(previewContext, pathName) { gifFile ->
+                if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                    loadAnimatedThingCardThumbnail(
+                        holder, imageView, gifFile.absolutePath, imageW, imageH, crop, loadKey,
+                        fallbackVideoPath = pathName, fallbackVideoFrameMs = null
+                    )
                 }
             }
         }
@@ -1415,7 +1441,9 @@ abstract class BaseThingsAdapter(context: Context?) :
         val imageView = holder.ivMediaBackground ?: return
         val animatedCover = isCoverAutoplayEnabled() && (
             AttachmentHelper.isAnimatedImageCandidate(pathName) ||
-                AttachmentHelper.isVideoCandidate(pathName)
+                AttachmentHelper.isVideoCandidate(pathName) ||
+                (AttachmentHelper.isMotionPhotoCandidate(pathName) &&
+                    MotionPhotoDetector.peekCached(pathName)?.isMotionPhoto == true)
         )
         val loadKey = getThingCardMediaBackgroundLoadKey(
             pathName,
@@ -1479,6 +1507,28 @@ abstract class BaseThingsAdapter(context: Context?) :
                             fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
                         )
                     }
+                }
+            }
+        }
+        // Motion Photo 封面（媒体背景）：与缩略图同策略，命中走动图、未就绪后台生成 + 静态回退 + 就绪换装。
+        if (AttachmentHelper.isMotionPhotoCandidate(pathName) && isCoverAutoplayEnabled()) {
+            val previewContext = imageView.context
+            val readyGif = MotionPhotoCoverHelper.getReadyGif(previewContext, pathName)
+            if (readyGif != null) {
+                loadAnimatedThingCardMediaBackground(
+                    holder, imageView, thing, readyGif.absolutePath, imageW, imageH,
+                    crop, sourceAspectRatio, loadKey,
+                    fallbackVideoPath = pathName, fallbackVideoFrameMs = null
+                )
+                return
+            }
+            MotionPhotoCoverHelper.requestGif(previewContext, pathName) { gifFile ->
+                if (imageView.getTag(R.id.tag_thing_card_media_background_load_key) == loadKey) {
+                    loadAnimatedThingCardMediaBackground(
+                        holder, imageView, thing, gifFile.absolutePath, imageW, imageH,
+                        crop, sourceAspectRatio, loadKey,
+                        fallbackVideoPath = pathName, fallbackVideoFrameMs = null
+                    )
                 }
             }
         }
