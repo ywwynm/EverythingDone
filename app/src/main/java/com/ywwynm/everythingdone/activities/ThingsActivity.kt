@@ -225,6 +225,9 @@ class ThingsActivity :
     private var mPendingActivityHeaderSpacerHeightPx: Int? = null
     private var mActivityHeaderSpacerApplyPosted: Boolean = false
     private val mProjectionScrollStates = HashMap<String, Parcelable>()
+    // Immersive Thing List：随滚动位置一起、按投影记忆的 Home Chrome Retraction 位移，
+    // 使"进文件夹再返回"时若之前处于沉浸态，返回后仍保持沉浸。
+    private val mProjectionRetractionStates = HashMap<String, Float>()
 
     private var mFab: FloatingActionButton? = null
 
@@ -1230,6 +1233,8 @@ class ThingsActivity :
         val projectionKey = mThingManager?.getProjection()?.key() ?: return
         val state = mRecyclerView?.layoutManager?.onSaveInstanceState() ?: return
         mProjectionScrollStates[projectionKey] = state
+        // 同时记忆该投影的沉浸位移，随滚动位置一起恢复。
+        mProjectionRetractionStates[projectionKey] = mActivityHeader?.getRetractionOffset() ?: 0f
     }
 
     private fun restoreProjectionScrollStateOrTop(projectionKey: String?) {
@@ -1252,10 +1257,14 @@ class ThingsActivity :
         }
         recyclerView.layoutManager?.onRestoreInstanceState(state)
         recyclerView.requestLayout()
-        requestActivityHeaderStateRefreshBeforeDraw(projectionKey)
+        val savedRetraction = mProjectionRetractionStates[projectionKey] ?: 0f
+        requestActivityHeaderStateRefreshBeforeDraw(projectionKey, savedRetraction)
     }
 
-    private fun requestActivityHeaderStateRefreshBeforeDraw(projectionKey: String?) {
+    private fun requestActivityHeaderStateRefreshBeforeDraw(
+        projectionKey: String?,
+        restoreRetraction: Float = 0f
+    ) {
         val recyclerView = mRecyclerView ?: return
         val viewTreeObserver = recyclerView.viewTreeObserver
         if (!viewTreeObserver.isAlive) {
@@ -1270,6 +1279,11 @@ class ThingsActivity :
                 }
                 if (projectionKey == null || mThingManager?.getProjection()?.key() == projectionKey) {
                     mActivityHeader?.updateAll(findFirstVisibleThingListPosition(), false)
+                    // 恢复该投影记忆的沉浸位移：仅当恢复到的滚动位置已完全折叠时才应用，否则维持
+                    // 显示（避免"顶栏已隐藏但标题未折叠"的错乱；未折叠时由 updateHeader 不变量兜底）。
+                    if (restoreRetraction > 0f && mActivityHeader?.isFullyCollapsed() == true) {
+                        mActivityHeader?.setRetractionOffset(restoreRetraction, false)
+                    }
                 }
                 return true
             }
@@ -2009,6 +2023,8 @@ class ThingsActivity :
             f(R.id.tv_header_title),
             f(R.id.tv_header_subtitle)
         )
+        mActivityHeader!!.setStatusBarView(f(R.id.view_status_bar))
+        mActivityHeader!!.setStatusBarScrim(f(R.id.view_status_bar_scrim))
         mActivityHeader!!.setHeaderSpacerHeightListener { height ->
             requestActivityHeaderSpacerHeightUpdate(height)
         }
@@ -2093,7 +2109,9 @@ class ThingsActivity :
 
         DisplayUtil.applyBottomInsetAsMargin(mFab)
         DisplayUtil.applyBottomInsetAsMargin(mThingCardAppearancePanel)
-        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
+        // Immersive Thing List: rv reserves status bar + actionbar as top padding and
+        // the nav bar as bottom padding from one callback (owns both, no clobber).
+        DisplayUtil.applyImmersiveListInsetPadding(mRecyclerView)
     }
 
     private fun openInitialExternalProjectionIfNeeded() {
@@ -2242,11 +2260,25 @@ class ThingsActivity :
     }
 
     private fun updateStatusBarLayoutOffsets(statusBarHeight: Int) {
+        val density = resources.displayMetrics.density
+        val actionBarSize = DisplayUtil.resolveActionBarSize(this)
+        val headerTop = statusBarHeight + (IMMERSIVE_HEADER_TOP_DP * density).toInt()
+        val belowChrome = statusBarHeight + actionBarSize
+
+        // view_status_bar 现在是 fl_things 的子 View（FrameLayout.LayoutParams），高度设为 SB。
         val statusbar: View = f(R.id.view_status_bar)!!
-        val dlp1 = statusbar.layoutParams as DrawerLayout.LayoutParams
-        if (dlp1.height != statusBarHeight) {
-            dlp1.height = statusBarHeight
+        val slp = statusbar.layoutParams
+        if (slp.height != statusBarHeight) {
+            slp.height = statusBarHeight
             statusbar.requestLayout()
+        }
+
+        // 沉浸态状态栏保护罩，同为 SB 高。
+        val statusbarScrim: View = f(R.id.view_status_bar_scrim)!!
+        val sslp = statusbarScrim.layoutParams
+        if (sslp.height != statusBarHeight) {
+            sslp.height = statusBarHeight
+            statusbarScrim.requestLayout()
         }
 
         val contextualStatusbar: View = f(R.id.view_contextual_status_bar)!!
@@ -2264,11 +2296,32 @@ class ThingsActivity :
             contextualToolbarWrapper.layoutParams = contextualToolbarLp
         }
 
+        // Immersive Thing List: fl_things fills [0..screenH] (topMargin 0). The top
+        // App Chrome floats over the list — actionbar at the status-bar offset, the
+        // Activity Header title just below it, the actionbar shadow at the bottom of
+        // the chrome — while rv_things reserves SB+AB via its own inset padding
+        // (DisplayUtil.applyImmersiveListInsetPadding) so Thing Cards draw behind the
+        // chrome and are exposed when it retracts. view_status_bar stays a persistent
+        // top scrim (declared after fl_things, so it draws above the list).
         val fl: FrameLayout = f(R.id.fl_things)!!
         val dlp2 = fl.layoutParams as DrawerLayout.LayoutParams
-        if (dlp2.topMargin != statusBarHeight) {
-            dlp2.setMargins(dlp2.leftMargin, statusBarHeight, dlp2.rightMargin, dlp2.bottomMargin)
+        if (dlp2.topMargin != 0) {
+            dlp2.setMargins(dlp2.leftMargin, 0, dlp2.rightMargin, dlp2.bottomMargin)
             fl.requestLayout()
+        }
+
+        setTopMarginIfChanged(mActionbar, statusBarHeight)
+        setTopMarginIfChanged(f(R.id.rl_header), headerTop)
+        setTopMarginIfChanged(mHomeEmptyState, belowChrome)
+        setTopMarginIfChanged(f(R.id.actionbar_shadow), belowChrome)
+    }
+
+    private fun setTopMarginIfChanged(view: View?, topMargin: Int) {
+        view ?: return
+        val lp = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (lp.topMargin != topMargin) {
+            lp.topMargin = topMargin
+            view.layoutParams = lp
         }
     }
 
@@ -2290,9 +2343,30 @@ class ThingsActivity :
     private fun applyThingsActivitySurfaceBackground(): ThingBackground {
         val background = getThingsActivitySurfaceBackground()
         BackgroundUtil.applyBackground(findViewById<View>(R.id.fl_things), background)
+        // Immersive Thing List：状态栏占位（view_status_bar）与 actionbar 连体——同为不透明 surface
+        // 背景，一起随 Home Chrome Retraction 上移/回落。旧方案里它们靠 rv 的 top padding 使卡片不进
+        // 其区、可透明；新方案卡片会滑到其下，显示时须不透明，否则透出卡片。
+        mActionbar?.let { BackgroundUtil.applyBackground(it, background) }
         BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
+        applyImmersiveStatusBarScrim(f(R.id.view_status_bar_scrim)!!, background.representativeColor())
         mRecyclerView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         return background
+    }
+
+    /**
+     * Immersive Thing List 沉浸态状态栏保护罩渐变：顶部较实的 surface 派生色向下渐透到全透明。
+     * 该罩固定在状态栏区、z 序在列表之上、顶部 chrome 之下——静止/显示态被连体的不透明状态栏底色
+     * 盖住而不可见，只有顶部 chrome 完全收起后才露出，保护系统图标落在裸卡片上时的可读性。
+     */
+    private fun applyImmersiveStatusBarScrim(scrimView: View, surfaceColor: Int) {
+        val rgb = surfaceColor and 0x00FFFFFF
+        val top = (STATUS_BAR_SCRIM_TOP_ALPHA shl 24) or rgb
+        // 两档线性渐变：顶部较实，从上到下匀速淡出，到最底一格 alpha 直接为 0——与其下裸卡片无缝
+        // 衔接、不留分界线。不再设中间停靠点（那会让上半段偏实、只有下半段淡出，产生隐约的边）。
+        scrimView.background = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(top, rgb) // rgb 的 alpha 为 0 = 底部全透明
+        )
     }
 
     private fun getThingsActivitySurfaceBackground(): ThingBackground {
@@ -2328,7 +2402,7 @@ class ThingsActivity :
         return getCurrentFolderBackgroundForChrome() ?: App.defaultAccentBackground
     }
 
-    private fun refreshActivitySurfaceAndHeader() {
+    private fun refreshActivitySurfaceAndHeader(resetRetraction: Boolean = true) {
         if (mModeManager?.getCurrentMode() == ModeManager.SELECTING) {
             applyThingsActivitySurfaceBackground()
         } else {
@@ -2336,6 +2410,13 @@ class ThingsActivity :
         }
         applyCreateFabBackgroundForCurrentProjection()
         mActivityHeader?.updateText()
+        // Home Chrome Retraction 在切换范围 / 换状态 / 开关文件夹等刷新时复位为显示（R=0）。
+        // 但原地改单项（updateUIAfterStateUpdated，保留滚动位置）传 resetRetraction=false 以保留
+        // 沉浸态；随后的 pre-draw updateAll 会按当前滚动位置重算折叠，若已不再完全折叠则由
+        // ActivityHeader 的不变量安全清零。
+        if (resetRetraction) {
+            mActivityHeader?.setRetractionOffset(0f, false)
+        }
         // `updateText` rebuilds title constraints; re-apply the current scroll state before draw.
         requestActivityHeaderStateRefreshBeforeDraw(mThingManager?.getProjection()?.key())
     }
@@ -6483,6 +6564,9 @@ class ThingsActivity :
                 if (mScrollCausedByFinger) {
                     dismissSnackbars()
                     mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
+                    // Home Chrome Retraction: only finger scrolls drive it, and only
+                    // after the Activity Header is fully collapsed (see method).
+                    updateHomeChromeRetraction(dy)
                 } else if (mNewItemRevealScrolling) {
                     // Keep the Activity Header collapsing in step with the
                     // programmatic scroll-into-view for a freshly created Thing.
@@ -6497,6 +6581,8 @@ class ThingsActivity :
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor)
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     Glide.with(mApp!!).resumeRequests()
+                    // Home Chrome Retraction: snap to fully shown / fully hidden on release.
+                    snapHomeChromeRetraction()
                     if (mNewItemRevealScrolling) {
                         mNewItemRevealScrolling = false
                         maybeRevealGatedNewItem()
@@ -6514,6 +6600,47 @@ class ThingsActivity :
         mThingsTouchCallback = ThingsTouchCallback()
         mThingsTouchHelper = ItemTouchHelper(mThingsTouchCallback!!)
         mThingsTouchHelper!!.attachToRecyclerView(mRecyclerView)
+    }
+
+    /**
+     * Immersive Thing List 只在正常 / moving 模式、非搜索、且卡片外观编辑面板未打开时生效。
+     * 外观面板是聚焦编辑浮层（会把目标卡片滚入视野、占据底部），其间挂起 Home Chrome Retraction。
+     */
+    private fun immersiveEligible(): Boolean {
+        if (App.isSearching) return false
+        if (isThingCardAppearancePanelShowing()) return false
+        val mode = mModeManager?.getCurrentMode() ?: return false
+        return mode == ModeManager.NORMAL || mode == ModeManager.MOVING
+    }
+
+    /**
+     * Home Chrome Retraction 驱动，每个手指滚动帧调用。仅当 Activity Header 完全折叠、
+     * 且处于可沉浸模式时，顶部 chrome 才随滚动方向连续隐现（dy>0 下滑隐藏、dy<0 上滑显示，
+     * 与滚动量 1:1 联动 / enterAlways）。其余情况强制复位为显示。
+     */
+    private fun updateHomeChromeRetraction(dy: Int) {
+        val header = mActivityHeader ?: return
+        if (!immersiveEligible() || !header.isFullyCollapsed()) {
+            if (header.getRetractionOffset() != 0f) {
+                header.setRetractionOffset(0f, false)
+            }
+            return
+        }
+        val current = header.getRetractionOffset()
+        val next = (current + dy).coerceIn(0f, header.getMaxRetractionPx())
+        if (next != current) {
+            header.setRetractionOffset(next, false)
+        }
+    }
+
+    /** 松手（滚动进入 IDLE）时把 Home Chrome Retraction 吸附到更近的端态（全显示 / 全隐藏）。 */
+    private fun snapHomeChromeRetraction() {
+        val header = mActivityHeader ?: return
+        if (!immersiveEligible() || !header.isFullyCollapsed()) return
+        val max = header.getMaxRetractionPx()
+        if (max <= 0f) return
+        val target = if (header.getRetractionOffset() > max / 2f) max else 0f
+        header.setRetractionOffset(target, true)
     }
 
     private fun setSearchEvents() {
@@ -7398,7 +7525,9 @@ class ThingsActivity :
     }
 
     private fun updateUIAfterStateUpdated(stateAfter: Int, timeDelay: Long, shouldForceBackNormalMode: Boolean) {
-        refreshActivitySurfaceAndHeader()
+        // 原地改单项（完成/删除/恢复，保留滚动位置）保留 Home Chrome Retraction：滑到深处对单项
+        // 操作后顶栏不弹回。若删项使列表变短、不再完全折叠，ActivityHeader 的不变量会安全清零。
+        refreshActivitySurfaceAndHeader(resetRetraction = false)
         mDrawerHeader!!.updateCompletionRate()
         markOperationEmptyStateIfCurrentProjectionEmpty()
 
@@ -7495,6 +7624,8 @@ class ThingsActivity :
             mRecyclerView!!.overScrollMode = View.OVER_SCROLL_NEVER
             mRecyclerView!!.scrollBy(0, Int.MIN_VALUE)
 
+            // Immersive Thing List 不覆盖搜索：进入搜索强制显示常规 chrome（搜索框就在 actionbar 里）。
+            mActivityHeader!!.setRetractionOffset(0f, false)
             mActivityHeader!!.setShouldListenToScroll(false)
             mActivityHeader!!.hideTitles()
             mActivityHeader!!.showActionbarShadow(1.0f)
@@ -11996,6 +12127,12 @@ class ThingsActivity :
 
     companion object {
         const val TAG: String = "ThingsActivity"
+        // Immersive Thing List: Activity Header 标题浮层相对状态栏底部的顶边距（dp），
+        // 与 include_activity_header_things.xml 的静态 marginTop 对应；实际 marginTop = SB + 该值。
+        private const val IMMERSIVE_HEADER_TOP_DP = 82f
+        // 沉浸态状态栏保护罩顶部 alpha（0..255）：顶部较实，向下线性淡到底部 0。偏保护取值，
+        // 保证完全沉浸时深色/高饱和卡片下系统图标可读；可按视觉再调。
+        private const val STATUS_BAR_SCRIM_TOP_ALPHA = 214
         // 顶栏图标 ripple 固定半径（dp）：导航按钮与菜单项统一、居中于图标，且不被各自控件尺寸撑大。
         private const val TOOLBAR_ICON_RIPPLE_RADIUS_DP = 21f
         // Fallback delay for revealing a freshly created Thing if the

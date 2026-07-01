@@ -423,6 +423,70 @@ object DisplayUtil {
     }
 
     /**
+     * Immersive Thing List: own the RecyclerView's top AND bottom padding from a
+     * single decor-inset callback. The list draws behind the top App Chrome
+     * (status bar + actionbar are reserved via top padding, with
+     * `clipToPadding=false` so cards can scroll behind them) and clears the
+     * navigation bar at rest (bottom padding).
+     *
+     * Combining top+bottom in one callback avoids the two-callback padding
+     * clobber: a separate top setter plus [applyBottomInsetAsScrollPadding]
+     * would each rewrite the full padding from its own captured original and
+     * fight on every inset dispatch. Use this INSTEAD of
+     * [applyBottomInsetAsScrollPadding] for that list.
+     *
+     * `paddingTop = original.top + systemBars.top + actionBarSize`;
+     * `paddingBottom = original.bottom + systemBars.bottom`.
+     *
+     * `actionBarSize` is resolved per dispatch, so a landscape/tablet
+     * configuration change that shrinks the actionbar is picked up on the next
+     * inset pass without re-registration.
+     */
+    @JvmStatic
+    fun applyImmersiveListInsetPadding(view: View?) {
+        val target = view!!
+        if (target.getTag(TAG_IMMERSIVE_LIST_PADDING_ORIGINAL) == null) {
+            target.setTag(TAG_IMMERSIVE_LIST_PADDING_ORIGINAL, intArrayOf(
+                    target.paddingLeft,
+                    target.paddingTop,
+                    target.paddingRight,
+                    target.paddingBottom
+            ))
+        }
+        val original = target.getTag(TAG_IMMERSIVE_LIST_PADDING_ORIGINAL) as IntArray
+        if (target is ViewGroup) {
+            target.clipToPadding = false
+        }
+        chainDecorInsetsCallback(target, callbackKey(target, TAG_IMMERSIVE_LIST_PADDING_CALLBACK)) {
+            insets ->
+            val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
+            target.setPadding(
+                    original[0],
+                    original[1] + bars.top + resolveActionBarSize(target.context),
+                    original[2],
+                    original[3] + bars.bottom
+            )
+        }
+    }
+
+    /**
+     * Current `?attr/actionBarSize` in pixels for the given (themed) context,
+     * falling back to 56dp. Reflects the active configuration (56dp portrait /
+     * 48dp landscape phone), so callers reading it per layout pass stay correct
+     * across rotation.
+     */
+    @JvmStatic
+    fun resolveActionBarSize(context: Context): Int {
+        val tv = android.util.TypedValue()
+        return if (context.theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+            android.util.TypedValue.complexToDimensionPixelSize(
+                    tv.data, context.resources.displayMetrics)
+        } else {
+            (56 * context.resources.displayMetrics.density).toInt()
+        }
+    }
+
+    /**
      * Tag id used by [chainDecorInsetsCallback] to attach keyed per-target
      * callbacks onto the activity's decor view. Hash of a stable
      * unique string — no R.id.* dependency needed.
@@ -447,6 +511,10 @@ object DisplayUtil {
             "DisplayUtil#bottomInsetScrollPaddingOriginal".hashCode()
     private val TAG_BOTTOM_INSET_SCROLL_PADDING_CALLBACK: Int =
             "DisplayUtil#bottomInsetScrollPaddingCallback".hashCode()
+    private val TAG_IMMERSIVE_LIST_PADDING_ORIGINAL: Int =
+            "DisplayUtil#immersiveListPaddingOriginal".hashCode()
+    private val TAG_IMMERSIVE_LIST_PADDING_CALLBACK: Int =
+            "DisplayUtil#immersiveListPaddingCallback".hashCode()
 
     /**
      * Register `callback` so it runs with the activity decor view's raw

@@ -232,6 +232,18 @@ _Avoid_: dark-mode screen
 A surface that wraps Thing-owned content in App Chrome, such as a reminder dialog whose shell should follow Appearance Mode while the embedded Thing keeps its Thing Background.
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
+**Activity Header**:
+首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
+_Avoid_: 把它等同于 actionbar 或系统状态栏、把它当成 App Chrome 的全部
+
+**Immersive Thing List**:
+NORMAL 或 MOVING 模式下首页 Thing 列表的一种呈现态：Activity Header 完全折叠进 actionbar 后继续滚动，顶部 App Chrome 收起，使 Thing Card 从状态栏一直铺到导航栏；SELECTING 与搜索态永不进入。它不同于"窗口本就绘制到系统栏之下"的通用 edge-to-edge。
+_Avoid_: 与窗口级 edge-to-edge 混用、把它当成一种状态或类型筛选
+
+**Home Chrome Retraction**:
+让首页顶部 App Chrome（不透明的状态栏底色条与 actionbar——二者连体、同色，加上其阴影与折叠后的 Activity Header）作为一个整体随滚动上移隐藏、下移回落的行为；由滚动方向驱动（enterAlways），与由滚动位置驱动的 Activity Header 折叠相互独立。它是进入 / 离开 Immersive Thing List 的动作。
+_Avoid_: 与 Activity Header 折叠混为一谈、作用到 SELECTING/搜索态、连带隐藏创建 FAB、把状态栏底色条当成独立于 actionbar 的常驻保护罩
+
 **Appearance Mode**:
 The user's light/dark preference for App Chrome, where following the system setting takes priority over a manual dark-mode choice.
 _Avoid_: independent dark-mode booleans
@@ -343,6 +355,12 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
+- An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
+- An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
+- **Home Chrome Retraction** hides and restores the home's top **App Chrome** as one unit, driven by scroll direction, independently of **Activity Header** collapse which is driven by scroll position.
+- **Home Chrome Retraction** moves the opaque status-bar backdrop and the actionbar together as one conjoined unit; the home Thing list is drawn behind them, so retracting the unit exposes **Thing Cards** from the status bar to the navigation bar.
+- Only when the chrome is fully retracted, a status-bar scrim layered beneath the conjoined backdrop is uncovered, protecting the system status-bar icons over the exposed **Thing Cards**; while the chrome is shown the scrim stays hidden behind the opaque backdrop.
+- **Home Chrome Retraction** does not hide the create FAB, which keeps its own scroll-driven show and hide.
 - A **Drawer Header Image** is part of **App Chrome** and appears on both the navigation drawer and the statistic screen with one shared crop.
 - A **Drawer Header Image** has at most one user-chosen image; when unset, each surface shows its own built-in default header.
 - A **Drawer Header Image** has one **Drawer Header Image Crop** that determines its shape and framing identically on both surfaces.
@@ -389,3 +407,4 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “Drawer Header Image”的比例与裁切是否像 Thing Card Media 那样按界面各存一份，曾不明确；已解析为**单一共享**的 **Drawer Header Image Crop**，抽屉与统计强制同形，因为两者是分时查看的独立屏幕，不需要在同一处并存多种取景。
 - “需要固定裁切的界面只显示单帧”曾被读成“凡是显示裁切结果的界面都单帧”；已按 ADR-0007 收紧：单帧只针对裁切编辑器、RemoteViews、HDR 基帧、视频缩略图；应用内视图界面通过逐帧套用裁切仍然给 Animated Image 以 Animated Playback，**Drawer Header Image** 因此在抽屉与统计上会播放动图。
 - “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。
+- "edge-to-edge" 既可指窗口本就绘制到系统栏之下（本 App 全局早已 `setDecorFitsSystemWindows(false)`、导航栏透明、列表底部已铺到导航栏之下），也可指首页顶部 chrome 随滚动收起让列表全铺；已解析为后者专用 **Immersive Thing List** 与 **Home Chrome Retraction**，避免与窗口级 edge-to-edge 混用。

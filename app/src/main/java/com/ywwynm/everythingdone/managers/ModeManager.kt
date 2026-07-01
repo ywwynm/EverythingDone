@@ -127,6 +127,11 @@ open class ModeManager(app: App?,
         showContextualToolbar(true)
         beforeMode = currentMode
         currentMode = SELECTING
+        // 进入选择：直接隐藏整个 home 顶部 chrome（状态栏占位＋actionbar＋标题）。contextual toolbar
+        // 自带状态栏占位、从顶部滑入，隐藏 home chrome 后滑入过程不再露出 home actionbar，做到
+        // "直接显示 contextual"。不在此复位 retraction——退出时再复位为显示，避免进入时 home actionbar
+        // 先弹出的多余动画。
+        mHeader?.setHomeChromeVisible(false)
 
         val rv: RecyclerView = mRecyclerView!!
         prepareRecyclerViewForModeRebind()
@@ -179,6 +184,9 @@ open class ModeManager(app: App?,
         currentMode = NORMAL
         if (beforeMode == SELECTING) {
             hideContextualToolbar()
+            // 从选择返回正常：恢复 home 顶部 chrome 显示（随 contextual 滑出而露出），并复位为显示。
+            mHeader?.setHomeChromeVisible(true)
+            mHeader?.setRetractionOffset(0f, false)
             val adapter: ThingsAdapter = mAdapter!!
             adapter.setShouldThingsAnimWhenAppearing(false)
             adapter.notifyDataSetChanged()
@@ -218,6 +226,9 @@ open class ModeManager(app: App?,
         currentMode = NORMAL
         if (previousMode == SELECTING) {
             hideContextualToolbar()
+            // 从选择返回正常：恢复 home 顶部 chrome 显示，并复位为显示。
+            mHeader?.setHomeChromeVisible(true)
+            mHeader?.setRetractionOffset(0f, false)
         }
         if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY && !isSearching) {
             mFab!!.spread()

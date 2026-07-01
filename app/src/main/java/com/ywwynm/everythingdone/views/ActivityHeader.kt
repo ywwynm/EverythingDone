@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views
 
+import android.animation.ValueAnimator
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -52,8 +53,25 @@ open class ActivityHeader(
     private var collapsedTitleScale: Float = 5f / 6f
     private var headerTranslationYFallbackFactor: Float = 65f / 90
     private var mActionbar: Toolbar? = null
+    // 状态栏占位 View（view_status_bar）：与 actionbar 连体——同为不透明 surface、一起随
+    // Home Chrome Retraction 上移/回落。进入选择模式时与 actionbar 一并隐藏。
+    private var mStatusBarView: View? = null
+    // 沉浸态状态栏保护罩（view_status_bar_scrim）：固定不随 chrome 收起，靠层叠顺序（在 chrome
+    // 之下）只在顶栏完全收起后露出。它本身不平移；只需在进入选择模式时随 home chrome 一并隐藏，
+    // 避免 contextual 滑入过程中因 view_status_bar 被隐藏而短暂露出。
+    private var mStatusBarScrim: View? = null
 
     private var actionbarShadowAlpha: Float = 0f
+
+    // Home Chrome Retraction (Immersive Thing List): how far the top App Chrome
+    // (actionbar + collapsed title + shadow) is retracted upward, in pixels.
+    // 0 = fully shown, getMaxRetractionPx() = fully hidden above the screen.
+    // Driven by scroll DIRECTION after the header is fully collapsed, independent
+    // of the collapse itself (driven by scroll POSITION). retractionOffsetPx is
+    // added on top of headerCollapseTranslationY when transforming the title.
+    private var retractionOffsetPx: Float = 0f
+    private var headerCollapseTranslationY: Float = 0f
+    private var mRetractionAnimator: ValueAnimator? = null
 
     private val mActionbarShadow: View = actionbarShadow
     private val mRelativeLayout: RelativeLayout = relativeLayout
@@ -192,7 +210,10 @@ open class ActivityHeader(
 
         var actionbarShadowAlphaAfter = 0f
         val firstChild = mBindingRecyclerView.getChildAt(0) ?: return
-        var scrollY: Int = -firstChild.top
+        // Immersive Thing List: rv reserves SB+AB as top padding (clipToPadding=false),
+        // so the first child rests at paddingTop rather than 0. Offset by paddingTop so
+        // collapse progress still starts at the first downward pixel.
+        var scrollY: Int = mBindingRecyclerView.paddingTop - firstChild.top
         val titleAndShadowScrollY: Int = getTitleCollapseScrollY().toInt()
         val shadowAppearCompletelyScrollY: Int = getHeaderSpacerScrollY()
 
@@ -384,7 +405,17 @@ open class ActivityHeader(
 
     fun reset(anim: Boolean) {
         mRelativeLayout.visibility = View.VISIBLE
+        // reset 语义为"完全展开、显示"：一并恢复 home 顶部 chrome 可见（覆盖退出选择等路径）。
+        mActionbar?.visibility = View.VISIBLE
+        mStatusBarView?.visibility = View.VISIBLE
+        mStatusBarScrim?.visibility = View.VISIBLE
         headerCollapseProgress = 0f
+        headerCollapseTranslationY = 0f
+        // Home Chrome Retraction: any reset (mode change, search exit, scope switch,
+        // rotation) restores the top App Chrome to fully shown.
+        mRetractionAnimator?.cancel()
+        mRetractionAnimator = null
+        retractionOffsetPx = 0f
         updateTitleLayoutForProgress(0f)
         if (anim) {
             mRelativeLayout.animate()!!.translationY(0f)
@@ -392,6 +423,9 @@ open class ActivityHeader(
             mTitle.animate()!!.scaleY(1.0f)
             mSubtitle.animate()!!.alpha(1.0f)
             mActionbarShadow.animate()!!.alpha(0f)
+            mActionbar?.animate()?.translationY(0f)
+            mStatusBarView?.animate()?.translationY(0f)
+            mActionbarShadow.animate()!!.translationY(0f)
         } else {
             cancelHeaderAnimations()
             mRelativeLayout.translationY = 0f
@@ -399,6 +433,9 @@ open class ActivityHeader(
             mTitle.scaleY = 1.0f
             mSubtitle.setAlpha(1.0f)
             mActionbarShadow.setAlpha(0f)
+            mActionbar?.translationY = 0f
+            mStatusBarView?.translationY = 0f
+            mActionbarShadow.translationY = 0f
         }
         requestExpandedHeaderSpacerRefresh()
     }
@@ -410,6 +447,14 @@ open class ActivityHeader(
     private fun updateHeader(scrollY: Int, anim: Boolean) {
         val progress: Float = (scrollY / getTitleCollapseScrollY()).coerceIn(0f, 1f)
         headerCollapseProgress = progress
+        // 不变量：Home Chrome Retraction 只允许在完全折叠（progress==1）时非零。任何原因导致
+        // 未完全折叠（上滑回顶、原地删项使列表变短等），都把 retraction 清零，避免"顶栏已隐藏但
+        // 标题已展开"的错乱。这也让"原地改单项保留沉浸态"在列表被改短时安全退回。
+        if (progress < 1f && retractionOffsetPx != 0f) {
+            mRetractionAnimator?.cancel()
+            mRetractionAnimator = null
+            retractionOffsetPx = 0f
+        }
         updateTitleLayoutForProgress(progress)
         val targetScale = getCollapsedTitleScaleForCurrentLayout()
         val scale: Float = 1f + (targetScale - 1f) * progress
@@ -422,8 +467,13 @@ open class ActivityHeader(
         mTitle.pivotX = TITLE_SCALE_PIVOT
         mTitle.pivotY = TITLE_SCALE_PIVOT
 
+        headerCollapseTranslationY = translationY
+
         if (anim) {
-            mRelativeLayout.animate()!!.translationY(translationY)
+            // Retraction is 0 in every anim-path caller (mode changes / resets), so
+            // the title animates to its plain collapse translation; actionbar/shadow
+            // follow retraction directly.
+            mRelativeLayout.animate()!!.translationY(translationY - retractionOffsetPx)
 
             /*
              * Changing scaleX and scaleY of title is better than changing its textSize.
@@ -434,13 +484,90 @@ open class ActivityHeader(
             mTitle.animate()!!.scaleX(scale).setDuration(160)
             mTitle.animate()!!.scaleY(scale).setDuration(160)
             mSubtitle.animate()!!.alpha(1f - progress).withLayer().setDuration(160)
+            mActionbar?.translationY = -retractionOffsetPx
+            mStatusBarView?.translationY = -retractionOffsetPx
+            mActionbarShadow.translationY = -retractionOffsetPx
         } else {
             cancelHeaderAnimations()
-            mRelativeLayout.translationY = translationY
+            applyRetractionTransforms()
             mTitle.scaleX = scale
             mTitle.scaleY = scale
             mSubtitle.setAlpha(1f - progress)
         }
+    }
+
+    /**
+     * Home Chrome Retraction current offset in pixels (0 = shown).
+     */
+    fun getRetractionOffset(): Float = retractionOffsetPx
+
+    /**
+     * Fully-hidden retraction distance = the actionbar's bottom edge in fl_things
+     * coordinates (fl_things fills [0..screenH]), i.e. `SB + AB`. Translating the
+     * chrome up by this amount moves the actionbar bottom to y=0, off the top.
+     */
+    fun getMaxRetractionPx(): Float {
+        val ab = mActionbar
+        if (ab != null && ab.bottom > 0) {
+            return ab.bottom.toFloat()
+        }
+        return mScreenDensity * DEFAULT_ACTIONBAR_HEIGHT_DP
+    }
+
+    fun isFullyCollapsed(): Boolean = headerCollapseProgress >= 1f
+
+    /**
+     * Set the Home Chrome Retraction offset. `anim` snaps to the value with a
+     * short animation (used on finger release); otherwise applies immediately
+     * (used per scroll frame). Any in-flight snap is cancelled first.
+     */
+    fun setRetractionOffset(px: Float, anim: Boolean) {
+        val clamped = px.coerceIn(0f, getMaxRetractionPx())
+        mRetractionAnimator?.cancel()
+        mRetractionAnimator = null
+        if (!anim) {
+            retractionOffsetPx = clamped
+            applyRetractionTransforms()
+            return
+        }
+        if (clamped == retractionOffsetPx) return
+        val animator = ValueAnimator.ofFloat(retractionOffsetPx, clamped)
+        animator.duration = RETRACTION_SNAP_DURATION_MS
+        animator.addUpdateListener {
+            retractionOffsetPx = it.animatedValue as Float
+            applyRetractionTransforms()
+        }
+        mRetractionAnimator = animator
+        animator.start()
+    }
+
+    private fun applyRetractionTransforms() {
+        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx
+        mActionbar?.translationY = -retractionOffsetPx
+        mStatusBarView?.translationY = -retractionOffsetPx
+        mActionbarShadow.translationY = -retractionOffsetPx
+    }
+
+    fun setStatusBarView(view: View?) {
+        mStatusBarView = view
+    }
+
+    fun setStatusBarScrim(view: View?) {
+        mStatusBarScrim = view
+    }
+
+    /**
+     * 进入 / 退出选择模式时整体显隐 home 顶部 chrome（状态栏占位＋actionbar＋折叠标题）。
+     * 选择模式由独立的 contextual toolbar（自带状态栏占位）承载，从顶部滑入；隐藏 home chrome
+     * 后，滑入过程中不再露出 home actionbar，做到"直接显示 contextual"。actionbar 阴影另由
+     * ModeManager 管理，这里不动。
+     */
+    fun setHomeChromeVisible(visible: Boolean) {
+        val visibility = if (visible) View.VISIBLE else View.INVISIBLE
+        mStatusBarView?.visibility = visibility
+        mStatusBarScrim?.visibility = visibility
+        mActionbar?.visibility = visibility
+        mRelativeLayout.visibility = visibility
     }
 
     private fun getCollapsedTitleScaleForCurrentLayout(): Float {
@@ -594,6 +721,8 @@ open class ActivityHeader(
 
     companion object {
         const val TAG: String = "ActivityHeader"
+        // Home Chrome Retraction 松手吸附动画时长（ms），与 FAB 隐现节奏一致。
+        private const val RETRACTION_SNAP_DURATION_MS = 200L
         private const val TITLE_SCALE_PIVOT = 1f
         private const val HEADER_START_MARGIN_DP = 72
         private const val DEFAULT_ACTIONBAR_HEIGHT_DP = 56

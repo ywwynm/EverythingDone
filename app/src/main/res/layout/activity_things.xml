@@ -19,51 +19,16 @@
              DisplayUtil.expandStatusBarViewAboveKitkat below, so the
              DrawerLayout's own status-bar tinting isn't needed. -->
 
-        <View
-            android:id="@+id/view_status_bar"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:background="@color/bg_activity_things"/>
-
+        <!-- Immersive Thing List: fl_things fills [0..screenH] (topMargin set to 0
+             by updateStatusBarLayoutOffsets), the Thing list draws behind the top
+             App Chrome via rv_things paddingTop=SB+AB, and the top chrome
+             (actionbar + collapsed Activity Header + shadow) floats above it and
+             retracts on scroll. view_status_bar is declared AFTER fl_things so it
+             draws on top as a persistent status-bar scrim. -->
         <FrameLayout
             android:id="@+id/fl_things"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/actionbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:theme="@style/EverythingDoneTheme.Things.Toolbar"
-                android:background="@android:color/transparent"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                app:contentInsetStart="72dp">
-
-                <View
-                    android:id="@+id/view_inside_actionbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"/>
-
-                <EditText
-                    android:id="@+id/et_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:imeOptions="actionSearch"
-                    android:hint="@string/act_search"
-                    android:alpha="0"
-                    android:enabled="false"
-                    android:background="@null"
-                    android:singleLine="true"
-                    android:textColor="@color/app_chrome_on_surface_secondary"
-                    android:textColorHint="@color/app_chrome_on_surface_hint"
-                    android:textCursorDrawable="@null"
-                    android:theme="@style/EverythingDoneTheme.Things.Search"/>
-
-            </androidx.appcompat.widget.Toolbar>
-
-            <include layout="@layout/include_activity_header_things" />
+            android:layout_height="match_parent">
 
             <com.ywwynm.everythingdone.views.StablerRecyclerView
                 android:id="@+id/rv_things"
@@ -71,7 +36,6 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:paddingLeft="@dimen/thing_card_outer_spacing"
-                android:layout_marginTop="?attr/actionBarSize"
                 android:paddingRight="@dimen/thing_card_outer_spacing"
                 android:scrollbars="vertical"
                 android:scrollbarStyle="outsideOverlay"
@@ -108,6 +72,51 @@
 
             </LinearLayout>
 
+            <!-- Immersive Thing List 沉浸态状态栏保护罩：固定在 [0..SB]，z 序在列表之上、顶部 chrome
+                 之下。静止/显示态被不透明的 view_status_bar（连体顶栏）盖住而不可见；顶栏完全收起后
+                 露出，用 surface 派生渐变保护系统状态栏图标落在裸卡片上时的可读性。它不随 chrome 收起，
+                 靠层叠顺序天然做到"只在完全沉浸态显示"，无需透明度动画。 -->
+            <View
+                android:id="@+id/view_status_bar_scrim"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:background="@android:color/transparent"/>
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/actionbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:theme="@style/EverythingDoneTheme.Things.Toolbar"
+                android:background="@android:color/transparent"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                app:contentInsetStart="72dp">
+
+                <View
+                    android:id="@+id/view_inside_actionbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+
+                <EditText
+                    android:id="@+id/et_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:imeOptions="actionSearch"
+                    android:hint="@string/act_search"
+                    android:alpha="0"
+                    android:enabled="false"
+                    android:background="@null"
+                    android:singleLine="true"
+                    android:textColor="@color/app_chrome_on_surface_secondary"
+                    android:textColorHint="@color/app_chrome_on_surface_hint"
+                    android:textCursorDrawable="@null"
+                    android:theme="@style/EverythingDoneTheme.Things.Search"/>
+
+            </androidx.appcompat.widget.Toolbar>
+
+            <include layout="@layout/include_activity_header_things" />
+
             <View
                 android:id="@+id/actionbar_shadow"
                 android:layout_width="match_parent"
@@ -115,6 +124,16 @@
                 android:layout_marginTop="?attr/actionBarSize"
                 android:alpha="0.0"
                 android:background="@drawable/actionbar_shadow"/>
+
+            <!-- Immersive Thing List 状态栏保护罩：放在 fl_things 内（作 DrawerLayout 内容子 View
+                 会被强制测量成整屏高、忽略 height=SB），FrameLayout 尊重 height=SB。绘制在列表与
+                 收起中的顶部 chrome 之上，作为常驻 SB 高的顶层 scrim；背景渐变由 applyStatusBarScrim
+                 在运行时按 surface 色生成。静止态它罩在同色 surface 之上，本就不可见。 -->
+            <View
+                android:id="@+id/view_status_bar"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:background="@android:color/transparent"/>
 
             <include layout="@layout/panel_thing_card_appearance" />
 
@@ -182,4 +201,3 @@
         android:visibility="invisible"/>
 
 </merge>
-
