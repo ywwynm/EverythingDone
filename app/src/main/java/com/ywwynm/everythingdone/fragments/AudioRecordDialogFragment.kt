@@ -57,6 +57,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mIvCancelRecording: ImageView? = null
 
     private var mConfirmClicked: Boolean = false
+    private var mRecorderTransitionInProgress: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -120,9 +121,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     override fun getLayoutResource(): Int = R.layout.fragment_record_audio
 
     override fun onDismiss(dialog: DialogInterface) {
+        val recorder: AudioRecorder? = mRecorder
+        mRecorder = null
         if (mConfirmClicked) {
-            mRecorder!!.stopListening(false)
-
             val parent: File = mFileToSave!!.parentFile!!
 
             val name: String = mEtFileName!!.text.toString()
@@ -140,11 +141,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 FileUtil.deleteFile(mFileToSave!!.absolutePath)
             }
             mChronometer!!.stop()
-            mRecorder!!.stopListening(false)
         }
-        mRecorder!!.release()
-
-        FileUtil.deleteDirectory(FileUtil.getTempPath(mActivity) + "/audio_raw")
+        releaseRecorderInBackground(recorder)
 
         super.onDismiss(dialog)
     }
@@ -183,6 +181,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         })
 
         mFabMain!!.setOnClickListener {
+            if (mRecorderTransitionInProgress) {
+                return@setOnClickListener
+            }
             when (mState) {
                 PREPARED -> {
                     mRecorder!!.startRecording()
@@ -190,22 +191,17 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                     mState = RECORDING
                 }
                 RECORDING -> {
-                    mRecorder!!.stopListening(true)
-                    mFileToSave = mRecorder!!.getSavedFile()
-                    mRecorder!!.startListening()
-                    recordingToStopped()
-                    mState = STOPPED
+                    stopRecordingWithoutBlocking()
                 }
                 else -> saveFileAndLeave()
             }
         }
 
         mIvReRecording!!.setOnClickListener {
-            FileUtil.deleteFile(mFileToSave!!.absolutePath)
-            mRecorder!!.stopListening(false)
-            mRecorder!!.startListening()
-            stoppedToPrepared()
-            mState = PREPARED
+            if (mRecorderTransitionInProgress) {
+                return@setOnClickListener
+            }
+            restartRecordingWithoutBlocking()
         }
 
         mIvCancelRecording!!.setOnClickListener { dismiss() }
@@ -263,7 +259,74 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mFabMain!!.contentDescription = getString(R.string.cd_start_record_audio)
     }
 
+    private fun stopRecordingWithoutBlocking() {
+        val recorder = mRecorder ?: return
+        val fileToSave: File = recorder.getSavedFile() ?: return
+        mFileToSave = fileToSave
+        recordingToStopped()
+        mState = STOPPED
+        setRecorderTransitionInProgress(true)
+
+        Thread({
+            recorder.stopListening(true)
+            recorder.startListening()
+            postRecorderTransitionResult(recorder) {
+                setRecorderTransitionInProgress(false)
+            }
+        }, "AudioRecordStop").start()
+    }
+
+    private fun restartRecordingWithoutBlocking() {
+        val recorder = mRecorder ?: return
+        val fileToDelete: File? = mFileToSave
+        mFileToSave = null
+        stoppedToPrepared()
+        mState = PREPARED
+        setRecorderTransitionInProgress(true)
+
+        Thread({
+            if (fileToDelete != null) {
+                FileUtil.deleteFile(fileToDelete.absolutePath)
+            }
+            recorder.restartListening()
+            postRecorderTransitionResult(recorder) {
+                setRecorderTransitionInProgress(false)
+            }
+        }, "AudioRecordRestart").start()
+    }
+
+    private fun postRecorderTransitionResult(recorder: AudioRecorder, action: () -> Unit) {
+        mContentView?.post {
+            if (!isAdded || mRecorder !== recorder) {
+                return@post
+            }
+            action()
+        }
+    }
+
+    private fun setRecorderTransitionInProgress(inProgress: Boolean) {
+        mRecorderTransitionInProgress = inProgress
+        mFabMain!!.isClickable = !inProgress
+        if (mState == STOPPED) {
+            mIvReRecording!!.isClickable = !inProgress
+            mIvCancelRecording!!.isClickable = !inProgress
+        } else {
+            mIvReRecording!!.isClickable = false
+            mIvCancelRecording!!.isClickable = false
+        }
+    }
+
+    private fun releaseRecorderInBackground(recorder: AudioRecorder?) {
+        Thread({
+            recorder?.release()
+            FileUtil.deleteDirectory(FileUtil.getTempPath(mActivity) + "/audio_raw")
+        }, "AudioRecordRelease").start()
+    }
+
     private fun saveFileAndLeave() {
+        if (mRecorderTransitionInProgress) {
+            return
+        }
         val name: String = mEtFileName!!.text.toString()
         if (name.isEmpty()) {
             return

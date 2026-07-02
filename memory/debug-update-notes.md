@@ -1,6 +1,6 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202606270837`.
+Latest published debug update: `202607020832`.
 
 ## 2026-06-28 - 修复习惯详情对话框宽度过窄
 
@@ -708,3 +708,17 @@ Drawer 的选中背景统一改为新颜色 `drawer_selected_bg`，不再复用 
 - `git diff --check` 已通过，仅有仓库既有的 LF/CRLF 提示。
 - `.\gradlew.bat :app:assembleDebug --console=plain --no-configuration-cache` 已通过，结果为 `BUILD SUCCESSFUL`。
 - 已使用 `:app:publishDebugUpdate` 发布 debug update `202606191645` 到 debug update channel，并已回读远端 `latest.json`，确认当前 APK 为 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606191645.apk`，SHA-256 为 `dadbcec9b7b43faf4465f9c5e4bf9a973a68fc6f3955637bd32e6793e8ced849`。
+## 2026-07-02 - 录音波浪果冻感与重新开始失效修复
+
+详见 `docs/features/recording-wave-visualizer/debug-updates/update-20260702162127.md`。本次修复录音波浪两个问题：一是 20ms 音频特征更新下的小幅输入变化会持续驱动视觉目标，造成果冻感；二是录完音后多次点击重新开始，旧监听线程没有被明确 stop/join，可能让可视化只剩水流动而失去波峰波谷响应。
+
+实现上，`VoiceVisualizer.kt` 在 `receive(VoiceAudioFrame)` 入口加入 `stableInput()` 死区，过滤分量、水位、rhythm energy 和 pulse 的微小变化；`AudioRecorder.kt` 新增 `restartListening()`、当前 `RecordingThread` 跟踪、线程私有 stop 标记、旧线程 stop/join 和 `AudioRecord` 初始化兜底；`RecordingThread` 捕获启动时的 raw 文件和 `AudioRecord`，防止旧线程在下一次 start 后继续读取；raw 写入和 wav 转存都按真实读取长度写入；`AudioRecordDialogFragment.kt` 的重新开始按钮改为调用统一重启入口并清空旧保存文件。
+
+验证：`:app:assembleDebug` BUILD SUCCESSFUL；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code `202607020823`；未使用 adb。
+## 2026-07-02 - 录音停止和重新开始按钮卡顿修复
+
+详见 `docs/features/recording-wave-visualizer/debug-updates/update-20260702163121.md`。用户反馈 D27 后按下停止按钮、重新开始按钮都会出现 UI 卡死约一秒。诊断确认原因是 D27 为了彻底修复重启后动画失效，把 `AudioRecord.stop()`、`RecordingThread.join(600ms)` 和 raw -> wav 转存放进了 UI 点击链路。
+
+本次保留 D27 的线程安全收束，但把阻塞工作移出主线程：停止按钮点击后立即切到 STOPPED UI，后台执行 `stopListening(true)`、wav 转存和重新开始监听；重新开始按钮点击后立即切回 PREPARED UI，后台删除旧 wav 并执行 `restartListening()`；后台完成前保存、重新开始、取消等相关按钮临时不可点。dialog 关闭时的 recorder release 和 `audio_raw` 清理也改为后台执行。
+
+验证：`:app:assembleDebug` BUILD SUCCESSFUL；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code `202607020832`；未使用 adb。

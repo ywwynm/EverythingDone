@@ -8,12 +8,23 @@ package com.ywwynm.everythingdone.views.recording
  */
 internal data class VoiceAudioFrame(
     val loudness: Float,
+    val intensity: Float = loudness,
     val low: Float,
     val lowMid: Float,
     val mid: Float,
     val high: Float,
     val air: Float,
-    val transient: Float
+    val transient: Float,
+    val onset: Float = 0f,
+    val beatPulse: Float = 0f,
+    val beatPhase: Float = 0f,
+    val tempoBpm: Float = 0f,
+    val tempoConfidence: Float = 0f,
+    val rhythmEnergy: Float = 0f,
+    val lowPulse: Float = 0f,
+    val highPulse: Float = 0f,
+    val pace: Float = 0f,
+    val activity: Float = 0f
 ) {
 
     fun bandAt(index: Int): Float = when (index) {

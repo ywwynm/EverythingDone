@@ -17,9 +17,13 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.ArrayList
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -34,15 +38,18 @@ import kotlin.math.sqrt
  */
 open class AudioRecorder {
 
-    private var mSamplingInterval: Int = 100
+    private var mSamplingInterval: Int = 20
 
     private var mAudioRecord: AudioRecord? = null
+    private var mRecordingThread: RecordingThread? = null
 
     private var mBufSize: Int = 0
 
     private val mVoiceVisualizers: MutableList<VoiceVisualizer> = ArrayList()
 
+    @Volatile
     private var mIsListening: Boolean = false
+    @Volatile
     private var mIsRecording: Boolean = false
 
     private var mRawFile: File? = null
@@ -102,23 +109,31 @@ open class AudioRecorder {
     /**
      * start AudioRecord.read
      */
+    @Synchronized
     fun startListening() {
-        mRawFile = FileUtil.createTempAudioFile(".raw")
-        if (mRawFile == null) {
+        if (mIsListening || mRecordingThread?.isAlive == true) {
             return
         }
 
+        val audioRecord = ensureAudioRecord() ?: return
+        if (audioRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+            audioRecord.stop()
+        }
+        val rawFile = FileUtil.createTempAudioFile(".raw") ?: return
+
+        audioRecord.startRecording()
+        mRawFile = rawFile
         mIsListening = true
-        mAudioRecord!!.startRecording()
-        RecordingThread().start()
+        mRecordingThread = RecordingThread(rawFile, audioRecord).apply { start() }
     }
 
     /**
      * stop AudioRecord.read
      */
+    @Synchronized
     fun stopListening(saveFile: Boolean) {
         mIsRecording = false
-        mIsListening = false
+        stopListeningThread()
 
         if (saveFile) {
             saveToWaveFile()
@@ -129,6 +144,12 @@ open class AudioRecorder {
                 mVoiceVisualizers[i].receive(VoiceAudioFrame.SILENCE)
             }
         }
+    }
+
+    @Synchronized
+    fun restartListening() {
+        stopListening(false)
+        startListening()
     }
 
     fun isRecording(): Boolean {
@@ -151,8 +172,10 @@ open class AudioRecorder {
         var input: FileInputStream? = null
         var out: FileOutputStream? = null
         try {
-            input = FileInputStream(mRawFile)
-            out = FileOutputStream(mOutputFile)
+            val rawFile = mRawFile ?: return
+            val outputFile = mOutputFile ?: return
+            input = FileInputStream(rawFile)
+            out = FileOutputStream(outputFile)
             val audioLength: Long = input.getChannel().size()
             val dataLength: Long = audioLength + 36
 
@@ -161,8 +184,9 @@ open class AudioRecorder {
 
             val data = ByteArray(mBufSize)
 
-            while (input.read(data) != -1) {
-                out.write(data)
+            var readSize: Int
+            while (input.read(data).also { readSize = it } != -1) {
+                out.write(data, 0, readSize)
             }
         } catch (e: IOException) {
             e.printStackTrace()
@@ -176,7 +200,8 @@ open class AudioRecorder {
      * release member object
      */
     fun release() {
-        mAudioRecord!!.release()
+        stopListening(false)
+        mAudioRecord?.release()
         mAudioRecord = null
     }
 
@@ -231,49 +256,98 @@ open class AudioRecorder {
         out.write(header, 0, 44)
     }
 
-    private inner class RecordingThread : Thread() {
+    private fun ensureAudioRecord(): AudioRecord? {
+        val current = mAudioRecord
+        if (current != null && current.state == AudioRecord.STATE_INITIALIZED) {
+            return current
+        }
+        initAudioRecord()
+        return mAudioRecord?.takeIf { it.state == AudioRecord.STATE_INITIALIZED }
+    }
+
+    private fun stopListeningThread() {
+        val thread = mRecordingThread
+        mIsListening = false
+        thread?.requestStop()
+        val audioRecord = mAudioRecord
+        if (audioRecord != null &&
+            audioRecord.state == AudioRecord.STATE_INITIALIZED &&
+            audioRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING
+        ) {
+            audioRecord.stop()
+        }
+        if (thread != null && thread != Thread.currentThread()) {
+            thread.join(STOP_THREAD_JOIN_MS)
+        }
+        if (mRecordingThread === thread) {
+            mRecordingThread = null
+        }
+    }
+
+    private inner class RecordingThread(
+        private val rawFile: File,
+        private val audioRecord: AudioRecord
+    ) : Thread() {
 
         var time: Long = System.currentTimeMillis()
         private val mAnalyzer: VoiceAudioAnalyzer = VoiceAudioAnalyzer(RECORDING_SAMPLE_RATE)
+        private var mLastLogTime: Long = 0L
+        @Volatile private var mShouldRun: Boolean = true
+
+        fun requestStop() {
+            mShouldRun = false
+        }
 
         override fun run() {
             var fos: FileOutputStream? = null
             try {
-                fos = FileOutputStream(mRawFile)
+                fos = FileOutputStream(rawFile)
             } catch (e: FileNotFoundException) {
                 e.printStackTrace()
             }
 
             var readSize: Int
-            val audioBytes = ByteArray(mBufSize)
-            while (mIsListening) {
-                readSize = mAudioRecord!!.read(audioBytes, 0, mBufSize)
+            val readBufferBytes = (VISUAL_READ_FRAMES * RECORDING_BYTES_PER_STEREO_FRAME)
+                .coerceAtMost(mBufSize)
+                .coerceAtLeast(RECORDING_BYTES_PER_STEREO_FRAME)
+            val audioBytes = ByteArray(readBufferBytes - readBufferBytes % RECORDING_BYTES_PER_STEREO_FRAME)
+            while (mShouldRun) {
+                readSize = audioRecord.read(audioBytes, 0, audioBytes.size)
+                if (!mShouldRun) {
+                    break
+                }
                 if (readSize > 0) {
                     mAnalyzer.ingest(audioBytes, readSize)
                 }
 
-                if (System.currentTimeMillis() - time >= mSamplingInterval) {
-                    val frame: VoiceAudioFrame = mAnalyzer.analyze()
-                    if (BuildConfig.DEBUG) {
+                val now = System.currentTimeMillis()
+                val elapsed = now - time
+                if (elapsed >= mSamplingInterval) {
+                    val frame: VoiceAudioFrame = mAnalyzer.analyze(elapsed)
+                    if (BuildConfig.DEBUG && now - mLastLogTime >= DEBUG_FRAME_LOG_INTERVAL_MS) {
                         Log.i(
                             TAG,
                             "audio frame: loudness=${frame.loudness}, low=${frame.low}, " +
                                     "lowMid=${frame.lowMid}, mid=${frame.mid}, high=${frame.high}, " +
-                                    "air=${frame.air}, transient=${frame.transient}"
+                                    "air=${frame.air}, transient=${frame.transient}, " +
+                                    "onset=${frame.onset}, beat=${frame.beatPulse}, " +
+                                    "tempo=${frame.tempoBpm}, confidence=${frame.tempoConfidence}, " +
+                                    "activity=${frame.activity}"
                         )
+                        mLastLogTime = now
                     }
                     if (!mVoiceVisualizers.isEmpty()) {
                         for (i in mVoiceVisualizers.indices) {
                             mVoiceVisualizers[i].receive(frame)
                         }
                     }
-                    time = System.currentTimeMillis()
+                    time = now
                 }
 
                 if (mIsRecording) {
-                    if (fos != null && readSize != AudioRecord.ERROR_INVALID_OPERATION) {
+                    if (fos != null && readSize > 0) {
                         try {
-                            fos.write(audioBytes)
+                            fos.write(audioBytes, 0, readSize)
                         } catch (e: IOException) {
                             e.printStackTrace()
                         }
@@ -282,6 +356,12 @@ open class AudioRecorder {
             }
 
             FileUtil.closeStream(fos)
+            synchronized(this@AudioRecorder) {
+                if (mRecordingThread === this) {
+                    mIsListening = false
+                    mRecordingThread = null
+                }
+            }
         }
     }
 
@@ -306,6 +386,25 @@ open class AudioRecorder {
         private val mPreviousBands: FloatArray = FloatArray(BAND_COUNT)
         private val mSmoothedBands: FloatArray = FloatArray(BAND_COUNT)
         private var mPreviousLoudness: Float = 0f
+        private var mPreviousFastLoudness: Float = 0f
+        private var mPreviousOnsetScore: Float = 0f
+        private var mOnsetMean: Float = 0f
+        private var mOnsetDeviation: Float = 0.08f
+        private var mRhythmEnergy: Float = 0f
+        private var mVisualActivity: Float = 0f
+        private var mAdaptiveFloorDb: Float = ADAPTIVE_FLOOR_START_DB
+        private var mAdaptivePeakDb: Float = ADAPTIVE_FLOOR_START_DB + ADAPTIVE_MIN_RANGE_DB
+        private var mPaceEnergy: Float = 0f
+        private var mFrameCounter: Int = 0
+        private var mLastFastOnsetFrame: Int = -RHYTHM_HISTORY_SIZE
+        private var mLastStrongOnsetFrame: Int = -RHYTHM_HISTORY_SIZE
+        private var mLastBeatFrame: Int = -RHYTHM_HISTORY_SIZE
+        private var mBeatPeriodFrames: Float = 0f
+        private var mTempoBpm: Float = 0f
+        private var mTempoConfidence: Float = 0f
+        private val mOnsetHistory: FloatArray = FloatArray(RHYTHM_HISTORY_SIZE)
+        private var mOnsetHistoryIndex: Int = 0
+        private var mOnsetHistoryCount: Int = 0
 
         init {
             val nyquistBin = FFT_SIZE / 2
@@ -333,10 +432,11 @@ open class AudioRecorder {
             }
         }
 
-        fun analyze(): VoiceAudioFrame {
+        fun analyze(elapsedMs: Long): VoiceAudioFrame {
             if (mSampleCount <= 0) {
                 return VoiceAudioFrame.SILENCE
             }
+            val frameSeconds = (elapsedMs.coerceIn(MIN_FRAME_MS, MAX_FRAME_MS)).toFloat() / 1000f
 
             val available = mSampleCount.coerceAtMost(FFT_SIZE)
             val leadingZeros = FFT_SIZE - available
@@ -363,6 +463,13 @@ open class AudioRecorder {
                 20.0 * log10(rms * PCM_16_MAX.toDouble())
             }
             val loudness = clamp01(((decibel - VISUAL_MIN_DB) / (VISUAL_MAX_DB - VISUAL_MIN_DB)).toFloat())
+            val fastLoudness = recentLoudness(FAST_RMS_SIZE)
+            val intensity = loudnessIntensity(
+                decibel = decibel.toFloat(),
+                loudness = loudness,
+                fastLoudness = fastLoudness,
+                frameSeconds = frameSeconds
+            )
 
             fft(mReal, mImag)
 
@@ -388,8 +495,19 @@ open class AudioRecorder {
             }
 
             var positiveFlux = 0f
+            var lowFlux = 0f
+            var midFlux = 0f
+            var highFlux = 0f
             for (band in 0 until BAND_COUNT) {
-                positiveFlux += max(0f, rawBands[band] - mPreviousBands[band])
+                val bandFlux = max(0f, rawBands[band] - mPreviousBands[band])
+                positiveFlux += bandFlux
+                when (band) {
+                    0 -> lowFlux += bandFlux * 1.35f
+                    1 -> lowFlux += bandFlux * 0.90f
+                    2 -> midFlux += bandFlux * 0.85f
+                    3 -> highFlux += bandFlux * 0.70f
+                    4 -> highFlux += bandFlux * 0.55f
+                }
                 mPreviousBands[band] = rawBands[band]
 
                 val k = if (rawBands[band] > mSmoothedBands[band]) BAND_ATTACK else BAND_RELEASE
@@ -397,18 +515,368 @@ open class AudioRecorder {
             }
 
             val loudnessRise = max(0f, loudness - mPreviousLoudness)
+            val fastLoudnessRise = max(0f, fastLoudness - mPreviousFastLoudness)
             mPreviousLoudness = loudness
-            val transient = clamp01(loudnessRise * 2.2f + positiveFlux / BAND_COUNT * 1.8f)
+            mPreviousFastLoudness = fastLoudness
+            val transientFlux = lowFlux * 0.28f + midFlux * 0.32f +
+                    highFlux * 0.10f + positiveFlux / BAND_COUNT * 0.18f
+            val transient = clamp01(loudnessRise * 2.2f + transientFlux * 1.8f)
+            val rhythm = analyzeRhythm(
+                frameSeconds = frameSeconds,
+                loudness = loudness,
+                fastLoudness = fastLoudness,
+                loudnessRise = loudnessRise,
+                fastLoudnessRise = fastLoudnessRise,
+                positiveFlux = positiveFlux,
+                lowFlux = lowFlux,
+                midFlux = midFlux,
+                highFlux = highFlux,
+                intensity = intensity
+            )
 
             return VoiceAudioFrame(
                 loudness = loudness,
+                intensity = intensity,
                 low = mSmoothedBands[0],
                 lowMid = mSmoothedBands[1],
                 mid = mSmoothedBands[2],
                 high = mSmoothedBands[3],
                 air = mSmoothedBands[4],
-                transient = transient
+                transient = transient,
+                onset = rhythm.onset,
+                beatPulse = rhythm.beatPulse,
+                beatPhase = rhythm.beatPhase,
+                tempoBpm = rhythm.tempoBpm,
+                tempoConfidence = rhythm.tempoConfidence,
+                rhythmEnergy = rhythm.rhythmEnergy,
+                lowPulse = rhythm.lowPulse,
+                highPulse = rhythm.highPulse,
+                pace = rhythm.pace,
+                activity = rhythm.activity
             )
+        }
+
+        private class RhythmFrame(
+            val onset: Float,
+            val beatPulse: Float,
+            val beatPhase: Float,
+            val tempoBpm: Float,
+            val tempoConfidence: Float,
+            val rhythmEnergy: Float,
+            val lowPulse: Float,
+            val highPulse: Float,
+            val pace: Float,
+            val activity: Float
+        )
+
+        private fun analyzeRhythm(
+            frameSeconds: Float,
+            loudness: Float,
+            fastLoudness: Float,
+            loudnessRise: Float,
+            fastLoudnessRise: Float,
+            positiveFlux: Float,
+            lowFlux: Float,
+            midFlux: Float,
+            highFlux: Float,
+            intensity: Float
+        ): RhythmFrame {
+            val broadFlux = positiveFlux / BAND_COUNT
+            val bodyFlux = lowFlux * 0.38f + midFlux * 0.55f + broadFlux * 0.08f
+            val rawOnset = fastLoudnessRise * FAST_ONSET_GAIN +
+                    loudnessRise * 0.90f +
+                    bodyFlux * 1.05f +
+                    highFlux * 0.06f
+
+            val meanDelta = rawOnset - mOnsetMean
+            mOnsetMean += meanDelta * ONSET_MEAN_ALPHA
+            mOnsetDeviation += (abs(meanDelta) - mOnsetDeviation) * ONSET_DEVIATION_ALPHA
+
+            val adaptiveFloor = mOnsetMean + mOnsetDeviation * ONSET_DEVIATION_BIAS
+            val onsetScore = clamp01((rawOnset - adaptiveFloor) / (mOnsetDeviation * ONSET_GAIN + ONSET_MIN_RANGE))
+            val fastImpact = clamp01(
+                (fastLoudnessRise * FAST_IMPACT_GAIN +
+                        lowFlux * 0.85f +
+                        midFlux * 0.45f +
+                        broadFlux * 0.08f -
+                        adaptiveFloor * FAST_IMPACT_FLOOR_MIX) /
+                        (mOnsetDeviation * FAST_IMPACT_DEVIATION_GAIN + FAST_IMPACT_MIN_RANGE)
+            )
+            val lowPulse = clamp01((lowFlux + fastLoudnessRise * 0.30f + loudnessRise * 0.18f) * LOW_PULSE_GAIN)
+            val highPulseGate = clamp01((max(onsetScore, fastImpact) - HIGH_PULSE_ONSET_GATE) /
+                    (1f - HIGH_PULSE_ONSET_GATE))
+            val eventStrength = max(onsetScore, fastImpact)
+            val sustainedEnergy = max(loudness, fastLoudness)
+            val fluxActivity = max(bodyFlux, broadFlux * 0.12f)
+            val activityTarget = max(
+                max(
+                    smoothStep(ACTIVITY_LOUDNESS_START, ACTIVITY_LOUDNESS_FULL, sustainedEnergy),
+                    smoothStep(ACTIVITY_EVENT_START, ACTIVITY_EVENT_FULL, eventStrength)
+                ),
+                smoothStep(ACTIVITY_FLUX_START, ACTIVITY_FLUX_FULL, fluxActivity)
+            )
+            mVisualActivity += (activityTarget - mVisualActivity) *
+                    if (activityTarget > mVisualActivity) ACTIVITY_ATTACK else ACTIVITY_RELEASE
+            val activity = clamp01(mVisualActivity)
+            val eventAllowed = activity >= EVENT_ACTIVITY_GATE || eventStrength >= WAKE_EVENT_TRIGGER
+
+            val highPulse = clamp01((highFlux * 0.70f + broadFlux * 0.10f) * HIGH_PULSE_GAIN) *
+                    highPulseGate * HIGH_PULSE_VISUAL_SCALE
+            val gatedLowPulse = lowPulse * activity
+            val gatedHighPulse = highPulse * activity
+            val paceImpulse = if (eventAllowed) {
+                clamp01(
+                    (eventStrength - PACE_EVENT_GATE) / (1f - PACE_EVENT_GATE) * PACE_EVENT_WEIGHT +
+                            fastImpact * PACE_FAST_IMPACT_WEIGHT +
+                            bodyFlux * PACE_BODY_FLUX_WEIGHT
+                ) * (PACE_ACTIVITY_FLOOR + activity * (1f - PACE_ACTIVITY_FLOOR))
+            } else {
+                0f
+            }
+            val paceTau = if (paceImpulse > mPaceEnergy) PACE_ATTACK_TAU else PACE_RELEASE_TAU
+            mPaceEnergy += (paceImpulse - mPaceEnergy) * smoothingFactor(frameSeconds, paceTau)
+
+            val tempoOnsetScore = if (eventAllowed) onsetScore else 0f
+            pushOnset(tempoOnsetScore)
+            estimateTempo(frameSeconds)
+
+            val minOnsetSpacing = max(1, (MIN_ONSET_SPACING_SEC / frameSeconds).roundToInt())
+            val minFastSpacing = max(1, (MIN_FAST_ONSET_SPACING_SEC / frameSeconds).roundToInt())
+            val isFastOnset = eventAllowed &&
+                    fastImpact >= FAST_ONSET_TRIGGER &&
+                    mFrameCounter - mLastFastOnsetFrame >= minFastSpacing
+            val isStrongOnset = eventAllowed &&
+                    onsetScore >= ONSET_TRIGGER &&
+                    onsetScore >= mPreviousOnsetScore * ONSET_PEAK_HOLD &&
+                    mFrameCounter - mLastStrongOnsetFrame >= minOnsetSpacing
+
+            if (isFastOnset) {
+                mLastFastOnsetFrame = mFrameCounter
+            }
+
+            var beatPulse = 0f
+            if (isStrongOnset) {
+                mLastStrongOnsetFrame = mFrameCounter
+                if (shouldAcceptBeat(frameSeconds)) {
+                    if (mLastBeatFrame > -RHYTHM_HISTORY_SIZE / 2) {
+                        val interval = mFrameCounter - mLastBeatFrame
+                        val minPeriod = (60f / MAX_BPM / frameSeconds).roundToInt()
+                        val maxPeriod = (60f / MIN_BPM / frameSeconds).roundToInt()
+                        if (interval in minPeriod..maxPeriod) {
+                            mBeatPeriodFrames = if (mBeatPeriodFrames <= 0f) {
+                                interval.toFloat()
+                            } else {
+                                mBeatPeriodFrames * BEAT_PERIOD_SMOOTH + interval * (1f - BEAT_PERIOD_SMOOTH)
+                            }
+                            mTempoBpm = 60f / (mBeatPeriodFrames * frameSeconds)
+                            mTempoConfidence = (mTempoConfidence + onsetScore * 0.20f).coerceAtMost(1f)
+                        }
+                    }
+                    mLastBeatFrame = mFrameCounter
+                    beatPulse = onsetScore
+                }
+            }
+
+            val rhythmEnergyTarget = clamp01(
+                (eventStrength * 0.40f +
+                        fastLoudness * 0.42f +
+                        intensity * 0.30f +
+                        loudness * 0.14f +
+                        gatedLowPulse * 0.24f) * activity
+            )
+            mRhythmEnergy += (rhythmEnergyTarget - mRhythmEnergy) *
+                    if (rhythmEnergyTarget > mRhythmEnergy) RHYTHM_ENERGY_ATTACK else RHYTHM_ENERGY_RELEASE
+
+            val beatPhase = currentBeatPhase()
+            val predictedPulse = predictedBeatPulse(beatPhase)
+            beatPulse = max(beatPulse, predictedPulse * (0.45f + loudness * 0.55f) * activity)
+
+            mPreviousOnsetScore = tempoOnsetScore
+            mFrameCounter++
+            val tempoPace = if (mTempoConfidence > TEMPO_PACE_MIN_CONFIDENCE) {
+                smoothStep(PACE_TEMPO_MIN_BPM, PACE_TEMPO_FULL_BPM, mTempoBpm) * mTempoConfidence
+            } else {
+                0f
+            }
+            val pace = max(mPaceEnergy, tempoPace)
+
+            return RhythmFrame(
+                onset = if (isStrongOnset || isFastOnset) {
+                    max(onsetScore, fastImpact)
+                } else {
+                    max(onsetScore * ONSET_CONTINUOUS_SCALE, fastImpact * FAST_ONSET_CONTINUOUS_SCALE) *
+                            activity
+                },
+                beatPulse = clamp01(beatPulse),
+                beatPhase = beatPhase,
+                tempoBpm = mTempoBpm,
+                tempoConfidence = mTempoConfidence,
+                rhythmEnergy = clamp01(mRhythmEnergy),
+                lowPulse = gatedLowPulse,
+                highPulse = gatedHighPulse,
+                pace = clamp01(pace),
+                activity = activity
+            )
+        }
+
+        private fun loudnessIntensity(
+            decibel: Float,
+            loudness: Float,
+            fastLoudness: Float,
+            frameSeconds: Float
+        ): Float {
+            val db = decibel.coerceIn(ADAPTIVE_FLOOR_MIN_DB, ADAPTIVE_PEAK_MAX_DB)
+            val floorTau = if (db < mAdaptiveFloorDb) ADAPTIVE_FLOOR_FALL_TAU else ADAPTIVE_FLOOR_RISE_TAU
+            mAdaptiveFloorDb += (db - mAdaptiveFloorDb) * smoothingFactor(frameSeconds, floorTau)
+            val peakTau = if (db > mAdaptivePeakDb) ADAPTIVE_PEAK_RISE_TAU else ADAPTIVE_PEAK_FALL_TAU
+            mAdaptivePeakDb += (db - mAdaptivePeakDb) * smoothingFactor(frameSeconds, peakTau)
+            if (mAdaptivePeakDb < mAdaptiveFloorDb + ADAPTIVE_MIN_RANGE_DB) {
+                mAdaptivePeakDb = mAdaptiveFloorDb + ADAPTIVE_MIN_RANGE_DB
+            }
+
+            val usableRange = (mAdaptivePeakDb - mAdaptiveFloorDb)
+                .coerceIn(ADAPTIVE_MIN_RANGE_DB, ADAPTIVE_MAX_RANGE_DB)
+            val relative = clamp01((db - mAdaptiveFloorDb - ADAPTIVE_RELATIVE_OFFSET_DB) / usableRange)
+            return clamp01(
+                loudness * ABSOLUTE_LOUDNESS_INTENSITY_MIX +
+                        fastLoudness * FAST_LOUDNESS_INTENSITY_MIX +
+                        relative * RELATIVE_LOUDNESS_INTENSITY_MIX
+            )
+        }
+
+        private fun smoothingFactor(frameSeconds: Float, tau: Float): Float {
+            return 1f - exp(-frameSeconds / tau)
+        }
+
+        private fun smoothStep(start: Float, end: Float, v: Float): Float {
+            if (end <= start) return if (v >= end) 1f else 0f
+            val t = clamp01((v - start) / (end - start))
+            return t * t * (3f - 2f * t)
+        }
+
+        private fun recentLoudness(windowSize: Int): Float {
+            val available = mSampleCount.coerceAtMost(windowSize)
+            if (available <= 0) return 0f
+            val start = (mWriteIndex - available + FFT_SIZE) % FFT_SIZE
+            var sumSq = 0.0
+            for (i in 0 until available) {
+                val sample = mSampleRing[(start + i) % FFT_SIZE]
+                sumSq += sample.toDouble() * sample.toDouble()
+            }
+            val rms = sqrt(sumSq / available)
+            val db = if (rms <= SILENCE_RMS) {
+                0.0
+            } else {
+                20.0 * log10(rms * PCM_16_MAX.toDouble())
+            }
+            return clamp01(((db - VISUAL_MIN_DB) / (VISUAL_MAX_DB - VISUAL_MIN_DB)).toFloat())
+        }
+
+        private fun pushOnset(onset: Float) {
+            mOnsetHistory[mOnsetHistoryIndex] = onset
+            mOnsetHistoryIndex = (mOnsetHistoryIndex + 1) % RHYTHM_HISTORY_SIZE
+            if (mOnsetHistoryCount < RHYTHM_HISTORY_SIZE) {
+                mOnsetHistoryCount++
+            }
+        }
+
+        private fun onsetAtAge(age: Int): Float {
+            val index = (mOnsetHistoryIndex - 1 - age + RHYTHM_HISTORY_SIZE) % RHYTHM_HISTORY_SIZE
+            return mOnsetHistory[index]
+        }
+
+        private fun estimateTempo(frameSeconds: Float) {
+            val minPeriod = max(2, (60f / MAX_BPM / frameSeconds).roundToInt())
+            val maxPeriod = min(RHYTHM_HISTORY_SIZE / 2, (60f / MIN_BPM / frameSeconds).roundToInt())
+            if (mOnsetHistoryCount < max(minPeriod * 3, 16) || minPeriod >= maxPeriod) {
+                mTempoConfidence *= TEMPO_CONFIDENCE_DECAY
+                return
+            }
+
+            var bestPeriod = 0
+            var bestScore = 0f
+            var scoreSum = 0f
+            var scoreCount = 0
+
+            for (period in minPeriod..maxPeriod) {
+                var score = 0f
+                var pairs = 0
+                var age = 0
+                while (age + period < mOnsetHistoryCount) {
+                    score += onsetAtAge(age) * onsetAtAge(age + period)
+                    pairs++
+                    age++
+                }
+                if (pairs > 0) {
+                    score /= pairs
+                    scoreSum += score
+                    scoreCount++
+                    if (score > bestScore) {
+                        bestScore = score
+                        bestPeriod = period
+                    }
+                }
+            }
+
+            if (bestPeriod <= 0 || scoreCount <= 0) {
+                mTempoConfidence *= TEMPO_CONFIDENCE_DECAY
+                return
+            }
+
+            val avgScore = scoreSum / scoreCount
+            val rawConfidence = clamp01((bestScore - avgScore) / (bestScore + TEMPO_SCORE_EPSILON) * 2.4f)
+            if (rawConfidence >= TEMPO_LOCK_THRESHOLD) {
+                mBeatPeriodFrames = if (mBeatPeriodFrames <= 0f) {
+                    bestPeriod.toFloat()
+                } else {
+                    mBeatPeriodFrames * TEMPO_PERIOD_SMOOTH + bestPeriod * (1f - TEMPO_PERIOD_SMOOTH)
+                }
+                mTempoBpm = 60f / (mBeatPeriodFrames * frameSeconds)
+                mTempoConfidence += (rawConfidence - mTempoConfidence) * TEMPO_CONFIDENCE_ATTACK
+            } else {
+                mTempoConfidence *= TEMPO_CONFIDENCE_DECAY
+            }
+        }
+
+        private fun shouldAcceptBeat(frameSeconds: Float): Boolean {
+            if (mBeatPeriodFrames <= 0f || mLastBeatFrame <= -RHYTHM_HISTORY_SIZE / 2) {
+                return true
+            }
+            val framesSinceBeat = mFrameCounter - mLastBeatFrame
+            val minGap = max(1, (mBeatPeriodFrames * BEAT_MIN_GAP).roundToInt())
+            if (framesSinceBeat < minGap) {
+                return false
+            }
+            if (mTempoConfidence < BEAT_SYNC_CONFIDENCE) {
+                return true
+            }
+
+            val expected = mBeatPeriodFrames
+            val phaseError = abs(framesSinceBeat - expected) / expected
+            val lateEnough = framesSinceBeat >= (expected * BEAT_FORCE_AFTER).roundToInt()
+            val inTempoWindow = phaseError <= BEAT_PHASE_TOLERANCE
+            val minAbsoluteGap = framesSinceBeat >= (MIN_BEAT_GAP_SEC / frameSeconds).roundToInt()
+            return minAbsoluteGap && (inTempoWindow || lateEnough)
+        }
+
+        private fun currentBeatPhase(): Float {
+            if (mBeatPeriodFrames <= 0f || mLastBeatFrame <= -RHYTHM_HISTORY_SIZE / 2) {
+                return 0f
+            }
+            val phase = ((mFrameCounter - mLastBeatFrame).toFloat() / mBeatPeriodFrames) % 1f
+            return if (phase < 0f) phase + 1f else phase
+        }
+
+        private fun predictedBeatPulse(beatPhase: Float): Float {
+            if (mTempoConfidence < PREDICTED_BEAT_MIN_CONFIDENCE || mRhythmEnergy < PREDICTED_BEAT_MIN_ENERGY) {
+                return 0f
+            }
+            val distance = min(beatPhase, 1f - beatPhase)
+            if (distance > PREDICTED_BEAT_WIDTH) {
+                return 0f
+            }
+            val t = 1f - distance / PREDICTED_BEAT_WIDTH
+            return t * t * mTempoConfidence * mRhythmEnergy
         }
 
         private fun readPcm16(buf: ByteArray, index: Int): Int {
@@ -473,6 +941,7 @@ open class AudioRecorder {
 
         companion object {
             private const val FFT_SIZE = 2048
+            private const val FAST_RMS_SIZE = 512
             private const val BAND_COUNT = 5
             private const val BYTES_PER_SAMPLE = 2
             private const val BYTES_PER_STEREO_FRAME = 4
@@ -481,10 +950,89 @@ open class AudioRecorder {
 
             private const val VISUAL_MIN_DB = 25.0
             private const val VISUAL_MAX_DB = 65.0
+            private const val ADAPTIVE_FLOOR_START_DB = 25f
+            private const val ADAPTIVE_FLOOR_MIN_DB = 18f
+            private const val ADAPTIVE_PEAK_MAX_DB = 84f
+            private const val ADAPTIVE_MIN_RANGE_DB = 34f
+            private const val ADAPTIVE_MAX_RANGE_DB = 54f
+            private const val ADAPTIVE_RELATIVE_OFFSET_DB = 6.5f
+            private const val ADAPTIVE_FLOOR_FALL_TAU = 0.85f
+            private const val ADAPTIVE_FLOOR_RISE_TAU = 5.5f
+            private const val ADAPTIVE_PEAK_RISE_TAU = 0.18f
+            private const val ADAPTIVE_PEAK_FALL_TAU = 3.2f
+            private const val ABSOLUTE_LOUDNESS_INTENSITY_MIX = 0.48f
+            private const val FAST_LOUDNESS_INTENSITY_MIX = 0.20f
+            private const val RELATIVE_LOUDNESS_INTENSITY_MIX = 0.42f
             private const val BAND_MIN_DB = -82f
             private const val BAND_MAX_DB = -26f
             private const val BAND_ATTACK = 0.62f
             private const val BAND_RELEASE = 0.34f
+
+            private const val MIN_FRAME_MS = 16L
+            private const val MAX_FRAME_MS = 120L
+            private const val RHYTHM_HISTORY_SIZE = 256
+            private const val MIN_BPM = 70f
+            private const val MAX_BPM = 200f
+
+            private const val ONSET_MEAN_ALPHA = 0.035f
+            private const val ONSET_DEVIATION_ALPHA = 0.060f
+            private const val ONSET_DEVIATION_BIAS = 0.20f
+            private const val FAST_ONSET_GAIN = 2.15f
+            private const val ONSET_GAIN = 2.55f
+            private const val ONSET_MIN_RANGE = 0.045f
+            private const val ONSET_TRIGGER = 0.42f
+            private const val ONSET_PEAK_HOLD = 0.82f
+            private const val ONSET_CONTINUOUS_SCALE = 0.24f
+            private const val FAST_ONSET_TRIGGER = 0.36f
+            private const val FAST_ONSET_CONTINUOUS_SCALE = 0.18f
+            private const val FAST_IMPACT_GAIN = 3.10f
+            private const val FAST_IMPACT_FLOOR_MIX = 0.28f
+            private const val FAST_IMPACT_DEVIATION_GAIN = 1.15f
+            private const val FAST_IMPACT_MIN_RANGE = 0.040f
+            private const val MIN_ONSET_SPACING_SEC = 0.08f
+            private const val MIN_FAST_ONSET_SPACING_SEC = 0.045f
+            private const val LOW_PULSE_GAIN = 2.35f
+            private const val HIGH_PULSE_GAIN = 2.10f
+            private const val HIGH_PULSE_ONSET_GATE = 0.50f
+            private const val HIGH_PULSE_VISUAL_SCALE = 0.36f
+            private const val RHYTHM_ENERGY_ATTACK = 0.26f
+            private const val RHYTHM_ENERGY_RELEASE = 0.060f
+            private const val ACTIVITY_LOUDNESS_START = 0.16f
+            private const val ACTIVITY_LOUDNESS_FULL = 0.42f
+            private const val ACTIVITY_EVENT_START = 0.24f
+            private const val ACTIVITY_EVENT_FULL = 0.70f
+            private const val ACTIVITY_FLUX_START = 0.055f
+            private const val ACTIVITY_FLUX_FULL = 0.22f
+            private const val ACTIVITY_ATTACK = 0.30f
+            private const val ACTIVITY_RELEASE = 0.060f
+            private const val EVENT_ACTIVITY_GATE = 0.24f
+            private const val WAKE_EVENT_TRIGGER = 0.62f
+
+            private const val TEMPO_PERIOD_SMOOTH = 0.86f
+            private const val BEAT_PERIOD_SMOOTH = 0.70f
+            private const val TEMPO_CONFIDENCE_ATTACK = 0.18f
+            private const val TEMPO_CONFIDENCE_DECAY = 0.96f
+            private const val TEMPO_LOCK_THRESHOLD = 0.14f
+            private const val TEMPO_SCORE_EPSILON = 0.0001f
+
+            private const val BEAT_MIN_GAP = 0.45f
+            private const val BEAT_FORCE_AFTER = 1.35f
+            private const val BEAT_PHASE_TOLERANCE = 0.30f
+            private const val BEAT_SYNC_CONFIDENCE = 0.36f
+            private const val MIN_BEAT_GAP_SEC = 0.22f
+            private const val PREDICTED_BEAT_MIN_CONFIDENCE = 0.34f
+            private const val PREDICTED_BEAT_MIN_ENERGY = 0.10f
+            private const val PREDICTED_BEAT_WIDTH = 0.16f
+            private const val PACE_EVENT_GATE = 0.18f
+            private const val PACE_EVENT_WEIGHT = 0.76f
+            private const val PACE_FAST_IMPACT_WEIGHT = 0.24f
+            private const val PACE_BODY_FLUX_WEIGHT = 1.25f
+            private const val PACE_ACTIVITY_FLOOR = 0.24f
+            private const val PACE_ATTACK_TAU = 0.070f
+            private const val PACE_RELEASE_TAU = 0.42f
+            private const val TEMPO_PACE_MIN_CONFIDENCE = 0.18f
+            private const val PACE_TEMPO_MIN_BPM = 82f
+            private const val PACE_TEMPO_FULL_BPM = 176f
 
             // low, lowMid, mid, high, air。高频上限保守截到 12k，避免麦克风噪声完全主导画面。
             private val BAND_RANGES = intArrayOf(
@@ -501,5 +1049,9 @@ open class AudioRecorder {
         const val TAG: String = "AudioRecorder"
 
         private const val RECORDING_SAMPLE_RATE: Int = 44100
+        private const val DEBUG_FRAME_LOG_INTERVAL_MS: Long = 400L
+        private const val VISUAL_READ_FRAMES: Int = 512
+        private const val RECORDING_BYTES_PER_STEREO_FRAME: Int = 4
+        private const val STOP_THREAD_JOIN_MS: Long = 600L
     }
 }

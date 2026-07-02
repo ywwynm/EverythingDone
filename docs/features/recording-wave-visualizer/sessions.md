@@ -1,5 +1,108 @@
 # 会话记录 — 录音波形可视化改造
 
+## 2026-07-02 - D36 实现：恢复适度水位涨落
+
+- 用户反馈：水位高低也应根据音量大小变化，声音小时低位、声音大时高位，并要求回看此前决策。
+- 回看结论：D3 原始设计是“浪高 + 水位一起涨落”；D15 因“大声时整片基础水位匀速抬升不好”把水位降级为近固定。D35 已有 `intensity` 声强通道，因此适合恢复有限水位变化。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增 `levelDrive`，由 `loudness` 和 `intensity` 混合后经 `LEVEL_GAMMA` 驱动水位。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：水位范围从 `0.36..0.42` 扩为 `0.31..0.49`；水位上升 / 回落使用独立时间常数 `LEVEL_ATTACK_TAU=0.30`、`LEVEL_RELEASE_TAU=0.62`。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 发布到阿里云 debug 渠道，code **202607021137**，日志 [update-20260702193656.md](debug-updates/update-20260702193656.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D37 实现：水位范围和潮位时间微调
+
+- 用户指定：水位从 `0.24` 到 `0.49`，上升 / 回落时间为 `0.32s / 0.64s`。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：`REST_FRAC` 调整为 `0.24`，`MAX_FRAC` 保持 `0.49`，`LEVEL_ATTACK_TAU` / `LEVEL_RELEASE_TAU` 调整为 `0.32` / `0.64`。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 发布到阿里云 debug 渠道，code **202607021154**，日志 [update-20260702195441.md](debug-updates/update-20260702195441.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D35 实现：声强与节奏快慢区分
+
+- 用户反馈：正常音量说话与大声说话、普通音量音乐与大声音乐在动画上差异不够；正常语速与快速说话、慢节奏音乐与快节奏音乐在横向流速和波形变化速度上也差异不够。
+- 调研参考：ITU-R BS.1770 的 loudness 时间窗 / gating 思路；librosa beat tracking 的 onset strength -> tempo correlation -> beat peak 流程；Essentia RhythmExtractor2013 的 BPM / beat / confidence 输出与离线统计限制；aubio 的 onset / tempo / beat 实时音频标注能力。
+- 修改 [VoiceAudioFrame.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceAudioFrame.kt)：新增 `intensity` 和 `pace` 字段，把有效活动度、声强、速度感拆成不同语义。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：新增自适应 loudness contrast，结合绝对 loudness、fast loudness 和相对环境底噪动态范围，拉开正常音量和大音量。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：新增事件密度 `pace`，由 onsetScore、fastImpact、body flux 的 leaky density 和高置信 tempo/BPM 共同决定。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：用 `intensity` 放大主体浪高和频段驱动，用 `pace` 放大横向流速与波形相位推进；`activity` 继续只负责从安静态唤醒。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 发布到阿里云 debug 渠道，code **202607021024**，日志 [update-20260702182353.md](debug-updates/update-20260702182353.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D34 实现：连续峰高稳定
+
+- 用户反馈：D33 后仍能在动画中看到部分波峰高度出现抖动式上下变化，影响观感。
+- 诊断：本轮不恢复 D30 的逐采样最终 y 冻结；剩余抖动更可能来自整层 `ampBoost`、`crestFactor` 和主体分量 `AMP_JITTER` 对小幅输入 / 包络变化的持续响应。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增逐层 `ampBoost` 死区平滑，吸收 surge、rhythm 和 rhythmEnergy 的小幅变化，减少已成形波峰上下浮动。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增逐层 `crestFactor` 死区平滑，并将主体 / 细节分量的慢速随机包络拆分缩放；低活动状态下进一步压低 jitter。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：高位波峰的 detail 衰减提前并增强，减少峰顶局部扰动；没有恢复逐点最终 y 冻结。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 发布到阿里云 debug 渠道，code **202607021009**，日志 [update-20260702180804.md](debug-updates/update-20260702180804.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D33 实现：稳态空调风噪抑制
+
+- 用户反馈：D32 好了一些，但工位上主要是中央空调声和偶尔键盘声，仍能看到偏快动画；怀疑空调高频噪声触发了快速播放。
+- 调研参考：HVAC 支持资料提到空调运行可产生 swish / hissing 等持续声音；VAD 资料强调要区分 speech/event 与 background noise；onset/spectral flux 资料也提醒 novelty/flux 需要抑制非事件性的持续波动。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：新增 `midFlux`，把 activity/onset/fastImpact 改为 low/mid/body flux 主导；high/air flux 只保留很小权重，避免稳态 hiss 单独推高活动度。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：`transient` 与 highPulse 降低 high/air 权重，键盘等短促事件仍可响应，但空调风噪不会持续驱动。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：body/detail 活动映射从线性 activity 改为 smooth step 门控；低活动时细节几乎关闭，横向底速、rhythm phase 和 idle 时间继续降低。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 852ms`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020958**，日志 [update-20260702175748.md](debug-updates/update-20260702175748.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D32 实现：安静工位态更平更慢
+
+- 用户反馈：工位上主观较安静，但仍有明显波浪和偏快的左右移动；希望保留水感，但近安静时更平、更慢。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：提高 `activity` 的响度、事件和 spectral flux 起点/满值阈值；提高事件放行和强唤醒阈值；活动度回落略加快。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：降低安静态主体驱动、细节驱动、idle 幅度、微漂幅度和细节预算底线。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：横向主相位速度从线性 `activity` 响应改成 smooth step 门控；安静底速下调，rhythm phase 也增加低活动门槛。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 798ms`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020942**，日志 [update-20260702174146.md](debug-updates/update-20260702174146.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D31 修复：移除峰顶硬冻结锯齿
+
+- 用户反馈：D30 后波峰处能看到锯齿。
+- 诊断：D30 的 `stabilizePeakY()` 按固定采样点逐点冻结最终 y 值，相邻点可能处在不同帧状态，导致峰顶空间不连续。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：删除 `mPreviousSurfaceY`、`resetSurfaceMemory()`、`stabilizePeakY()` 和 `PEAK_STABILITY_*`，不再对最终 y 做上一帧替换。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增 smooth step 的峰顶细节衰减，`bodyS` 到达高位波峰时连续降低 `detailS`，减少峰顶小扰动但保持曲线连续；水面采样数从 120 提到 180。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 811ms`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020921**，日志 [update-20260702172004.md](debug-updates/update-20260702172004.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D30 实现：高位波峰稳定阈值 + 活动度驱动流速
+
+- 用户反馈：D29 效果继续提升，但高位波峰仍有细小变化；安静时横向流动也应更慢，有声音或音乐节奏时再及时跟随。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：绘制循环改为固定 121 个采样点，并保存上一帧每层采样 y 值；高位波峰变化小于 `PEAK_STABILITY_DP` 阈值时沿用上一帧，减少峰顶细小抖动。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增 `flowActivity`、`mFlowTime`、`mIdleTime`；主相位、慢速随机包络、idle 波和基线微漂都随 `activity` 放慢，tempo confidence 足够时再按 BPM 轻量加速或减速。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 2s`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020915**，日志 [update-20260702171423.md](debug-updates/update-20260702171423.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D29 实现：活动度状态机 + 安静低频水感
+
+- 用户确认推进，并要求“往效果最好的方向实现”。
+- 修改 [VoiceAudioFrame.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceAudioFrame.kt)：新增 `activity` 字段，作为音频侧传给视觉侧的有效活动度。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：`VoiceAudioAnalyzer` 根据持续响度、onset/fast impact 与 spectral flux 计算 `activity`；安静时门控 rhythm/beat/onset/pulse 和 tempo 历史，强 onset 仍可快速唤醒。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：输入映射按 `activity` 区分主体浪和细节浪；安静时显著降低 rhythm trigger、tempo confidence、细节预算、漂移 boost 与 rhythm contour；静音微动改为更慢、更低频的独立 idle 波，避免近静音高频翻动。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 3s`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020854**，日志 [update-20260702165316.md](debug-updates/update-20260702165316.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - D29 调研：安静降活跃度与自然水感平衡
+
+- 用户反馈：当前录音 dialog 波浪在相对安静时仍会高频变化，动画不够像自然水波；希望继续调研“及时反映音量、音调、节奏”和“自然、灵性的波浪动画”之间的平衡。
+- 代码检查：当前链路已经有 `stableInput()` 死区、20ms 音频帧、512-sample fast RMS/rise、2048 FFT、onset/beat/tempo/rhythmEnergy，以及 `incoming -> delayed target -> current` 的视觉平滑链路。安静时仍显活跃的潜在来源包括 `IDLE_AMP` 持续波、`AMP_JITTER` 连续包络、`rhythmEnergy` 对 loudness/fastLoudness 的持续纳入、onset/fastImpact 的连续缩放输出，以及较低的 `RHYTHM_TRIGGER_THRESHOLD`。
+- 调研结论：应继续坚持分层方案。音频层负责检测 RMS、spectral flux、onset、beat/tempo 和频段能量；视觉层不应逐帧拟合这些特征，而应先经过噪声门、活动状态、事件合并、包络追随和水体惯性，再映射到主体低频轮廓、宽节奏脉冲和受限高频细节。
+- 推荐下一轮 D29：新增噪声地板 / 安静状态机，安静时冻结或强衰减 rhythm/beat 驱动、降低细节预算和漂移 boost、把 `IDLE_AMP` 改为低频慢漂移；强 onset 或明显节拍再快速唤醒节奏层。暂未改代码，等待用户确认推进。
+
+## 2026-07-02 — D25 几何细纹收束 + 低延迟快通道
+
+- 用户确认实现 D25，并强调只要效果最好的方法，不接受偷懒式参数微调。
+- 实现 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：可视化采样间隔从 40ms 降到 25ms；新增 512-sample fast RMS/rise，用于更低延迟的 onset/impact；`rhythmEnergy` 纳入持续 loudness/lowPulse，高潮段不再只依赖 beat/onset 才变强；`highPulse` 增加 onset gate，减少高频常态驱动。
+- 实现 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：移除 D24 的高频 rhythm surface displacement；rhythm accent 改为宽轮廓脉冲、振幅增强、轻微漂移加速和 event backfill；主体轮廓与高频细节分离，高频细节进入预算限制，rhythm 越强细节预算越收敛。
+- 文档更新：新增 D25 决策；README 当前数据流改为 25ms + fast RMS/rise；followups 标记 D25 已本地实现待发布。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 4s`）；`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020742**，日志 [update-20260702154133.md](debug-updates/update-20260702154133.md)。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 — D24 反馈与 D25 调研方向
+
+- 用户反馈：D24 细纹太多，水面容易全是细纹，观感像锯齿；同时延迟仍高，音乐进入高潮后视觉没有及时反应。
+- 初步判断：节奏细节被直接叠进水面几何轮廓，频率和面积偏高；延迟不只来自 40ms 采样，还来自 2048 FFT window、onset/beat 平滑、layer rhythm delay 和视觉 attack/release。
+- 调研方向：参考实时 onset / beat tracking 和水面渲染资料，下一版应把高频节奏细节从几何轮廓里拿出来，改为低延迟 onset 快通道 + 更宽的低频/中频浪涌，必要时做事件时间回填补偿视觉滞后。
+
+## 2026-07-02 — D24 歌曲节奏响应优化
+
+- 用户反馈：旁边播放比较激情、节奏较快的歌曲时，录音波形和节拍、演唱速度不够贴合，观感偏慢；用户强调希望采用效果最好的方法，而不是只调快参数。
+- 实现 [VoiceAudioFrame.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceAudioFrame.kt)：新增 `onset`、`beatPulse`、`beatPhase`、`tempoBpm`、`tempoConfidence`、`rhythmEnergy`、`lowPulse`、`highPulse`，保持旧入口默认兼容。
+- 实现 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：采样间隔从 100ms 降到 40ms；`VoiceAudioAnalyzer` 新增基于 loudness rise、spectral flux、低频/高频 flux 的 onset 检测、短历史 tempo 估计和 beat phase / predicted beat pulse。
+- 实现 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：新增 rhythm accent 层，每层独立 rhythm delay、amp、speed 和 phase；节奏只驱动短促细纹、局部浪花感、轻微振幅/尖峰加成和 tempo-based drift boost，主水波继续保持 D21-D23 的随机灵动和个性化错峰。
+- 文档更新：新增 D24 决策；README 当前数据流改为 40ms + rhythm fields；followups 将歌曲节奏项标记为已实现、待真机确认。
+- 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 4s`）；`git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020717**，日志 [update-20260702151600.md](debug-updates/update-20260702151600.md)。未使用 adb，未安装设备，未 commit。
+
 ## 2026-07-02 — D21 个性化错峰响应
 
 - 用户反馈 D20 过于平稳、每个浪都差不多，野性不如上一版；明确偏好随机、灵动、每个浪有自己的个性，不要同一时刻一起上升/下降。
@@ -184,3 +287,25 @@
 - 修复 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：给 `crestFactor` 增加上限；`shapeWave()` 正峰分支新增高峰 taper 和圆角软限制，降低极端窄峰的针尖感。
 - 未改 `MAX_AMP_DP`、`BAND_MIX`、`SURGE_AMP_BOOST`、RMS/FFT 输入映射，声音大小和频段驱动仍按原链路表达。
 - 验证与发布：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 3s`）；`:app:publishDebugUpdate` 发布到阿里云 debug 通道，code **202607020636**，日志 [update-20260702143559.md](debug-updates/update-20260702143559.md)。未使用 adb，未安装设备，未 commit。
+## 2026-07-02 — D26 响应链去跳变、渐变方向与锁屏恢复
+
+- 用户反馈 D25 整体效果不错、响应更快，但仍有四个问题：个别波浪偶尔上下颤动；记事渐变色方向没有被录音波浪继承；打开录音 dialog 后锁屏再回来动画停止；希望评估 25ms 采样和动画帧率是否还能更顺滑。
+- 诊断结论：剩余颤动主要来自低延迟 rhythm backfill 直接抬高 `mLayerRhythmCurrent`，以及 beat phase 收到新相位后直接改 `mVisualBeatPhase`；渐变方向来自固定横向 `LinearGradient`；锁屏恢复来自 View 自驱帧循环缺少可见性恢复入口；25ms 是音频特征采样，不是动画帧率。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：rhythm backfill 不再写当前值，改为 `mergedPulseTarget()` 目标合并；surge/rhythm 延迟触发共用“已接近峰值则保持、不重新抬峰”的规则；beat phase 改为按帧限速拉近；渐变 shader 按 `ThingBackground.Orientation` 生成 8 向起止点；新增 window 可见性、聚合可见性、焦点恢复时的帧循环重启。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：视觉采样从约 25ms 调到 20ms，同时把录音线程每次读取块缩到约 512 个 stereo frame，避免采样间隔被过大的 `AudioRecord.read()` 阻塞粒度抵消。
+- 验证：`:app:assembleDebug` 通过（`BUILD SUCCESSFUL in 3s`）；`git diff --check` 通过，仅有既有 LF/CRLF 提示；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607020804**。未使用 adb，未安装设备，未 commit。
+## 2026-07-02 - D27 果冻感与重新开始失效修复
+
+- 用户反馈：当前版本在小幅音频变化下仍有果冻感，希望忽略不重要的小变化；同时录音结束后点击重新开始，重复几次“开始 -> 结束 -> 重新开始”后，可能出现只有水流动、没有波峰波谷响应的问题。
+- 诊断结论：果冻感来自 20ms 音频特征更新后，小幅 loudness / band / rhythm 变化持续进入视觉目标链路；重新开始失效的核心风险在 `AudioRecorder` 旧监听线程没有被明确 stop/join，且线程使用全局 `mIsListening` 与可变 `mAudioRecord`，快速重启后旧线程可能与新线程争用同一录音源或让 analyzer 不再收到有效 PCM。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：新增 `mRecordingThread`、线程私有 stop 标记、`restartListening()`、`ensureAudioRecord()` 和 `stopListeningThread()`；停止时请求旧线程退出并停止 `AudioRecord`，启动时为新线程捕获当前 raw 文件和 `AudioRecord`；raw 写入和 wav 转存都按真实读取长度写入；`release()` 与保存路径改为可重复调用的空值安全逻辑。
+- 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt)：重新开始按钮改为清理当前保存文件后调用 `mRecorder.restartListening()`，不再分散手写 stop/start。
+- 修改 [VoiceVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/VoiceVisualizer.kt)：在 `receive(VoiceAudioFrame)` 入口为分量目标、水位、rhythm energy、low/high pulse 增加 `stableInput()` 死区与零值门槛，忽略不构成有效视觉反馈的小幅变化，减少果冻感。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607020823**。未使用 adb，未安装设备，未 commit。
+## 2026-07-02 - D28 停止和重新开始按钮卡顿修复
+
+- 用户反馈：按下停止按钮、重新开始按钮都会出现 UI 卡死约一秒。
+- 诊断结论：D27 为修复重启后动画失效，引入了 `AudioRecord.stop()`、`RecordingThread.join(600ms)` 和 raw -> wav 转存的严格收束；这些操作仍在 `AudioRecordDialogFragment` 的点击回调里同步执行，所以停止和重新开始都会阻塞主线程。
+- 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt)：新增 `mRecorderTransitionInProgress` 和后台收束流程；停止按钮立即切到 STOPPED UI，后台执行 `stopListening(true)`、wav 转存和 `startListening()`；重新开始按钮立即切到 PREPARED UI，后台删除旧文件并执行 `restartListening()`；后台完成后再恢复按钮点击。
+- 同步调整 dismiss：资源释放和 `audio_raw` 临时目录清理改到后台线程顺序执行，避免关闭 dialog 时也被录音线程收束卡住。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607020832**。未使用 adb，未安装设备，未 commit。

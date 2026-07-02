@@ -270,7 +270,196 @@ Gerstner 式尖峰陡峭度。
 - 对极端正峰做轻量圆角软限制，减少“针尖”感，同时保留大声时的整体浪高；
 - 波谷压浅逻辑保持不变，继续维持 Gerstner 式“峰尖、谷平”的方向，只把过尖的峰顶做圆润化。
 
+## 2026-07-02 — D24 歌曲节奏响应：Rhythm Engine + 局部节奏强调层
+
+用户反馈：旁边播放节奏较快、能量较强的歌曲时，录音波形动画和节拍、演唱速度不够贴合，观感偏慢。用户明确要求不要用偷懒式参数加速，而是优先追求效果最好的方法。
+
+判断：单纯调快 `VoiceVisualizer` 的 drift、attack 或 surge 会和 D21-D23 冲突，容易让整片水波一起加速、一起上升，破坏此前确认的“随机、灵动、每层有个性”的主方向。更合适的方案是把“主水波形态”和“节奏强调”拆开：
+
+- 主水波继续由 RMS、5 个 FFT 频段、多层延迟、独立 attack/release、layer-local surge 和波峰圆润化控制，保持自然、错峰、有个性；
+- 音频侧新增轻量 rhythm engine：在原 5 频段 FFT 基础上计算 spectral flux / loudness rise，提取 `onset`、`beatPulse`、`beatPhase`、`tempoBpm`、`tempoConfidence`、`rhythmEnergy`、`lowPulse`、`highPulse`；
+- 采样间隔从 100ms 降到 40ms，让 onset/beat 有足够时间分辨率；主体视觉仍保留平滑链路，避免水位或主浪形因为更高采样频率而颤动；
+- 视觉侧新增局部 rhythm accent：每层有独立 rhythm delay、amp、speed 和 phase，beat/onset 只触发短促的细纹、浪花感、轻微振幅/尖峰加成和 tempo-based drift boost；
+- tempo confidence 足够时才同步 beat phase，并且只做平滑相位吸附，不直接强行重置整片水波。
+
+原则：节奏层负责“更跟拍、更兴奋、更快的表面反应”，主水波负责“自然、随机、灵动和声音内容表达”。这样优化歌曲节奏响应不会推翻 D21-D23 的个性化错峰决策。
+
+## 2026-07-02 — D25 几何细纹收束 + 低延迟快通道
+
+用户反馈 D24 仍有两个问题：节奏细纹太多，水面容易全是细纹、像锯齿；音乐进入高潮后视觉没有及时反应。用户强调只接受效果最好的方案，不接受单纯调小参数。
+
+判断：D24 的 rhythm engine 方向正确，但视觉映射把节奏高频直接叠进水面几何轮廓，和当前 2D `Canvas` 填充路径的能力不匹配。成熟水面渲染通常把大形变和细节波分层，细浪更多进入 normal map / texture，而不是直接改几何轮廓。当前控件没有 normal map，因此必须让轮廓以宽波为主，把细节限制在预算内。
+
+实现决策：
+
+- 音频侧新增 512-sample fast RMS/rise 通道，采样间隔从 40ms 降到 25ms；`onset` 更偏向低延迟快通道，不再只等 2048 FFT + tempo 置信度；
+- `rhythmEnergy` 改为持续能量 + onset 的组合，音乐高潮即使不是每一拍都有清晰 transient，也能更快推高整体波浪强度；
+- `highPulse` 增加 onset gate 和视觉缩放，高频/air 不再常态驱动大面积几何细纹；
+- 视觉侧移除 D24 的高频 rhythm surface displacement，不再把 beat/onset 画成密集小齿；
+- rhythm accent 改为宽的低频轮廓脉冲、振幅增强和轻微漂移加速；tempo 慢通道只负责周期感和相位吸附，不负责“高潮立刻响应”；
+- 每帧把前 3 个分量作为主体轮廓，高频分量进入 `detailS`，再用 `DETAIL_BUDGET_*` 限制细节总量；rhythm 越强，细节预算越收敛，避免高能量时锯齿化；
+- rhythm 事件加入 backfill：小于补偿窗口的 layer delay 直接进入 target，并给 current 一个起始值，减少视觉上“现在才开始爬”的滞后。
+
+原则：节奏响应要靠更早、更宽、更有重量的脉冲，而不是靠更多高频细纹。这样保留 D21-D23 的随机灵动和个性化错峰，同时修正 D24 的锯齿化和高潮滞后。
+
 ## ADR 评估
 
 暂不单独立 ADR：以上均为呈现层决策、可逆，且未推翻已有 ADR。若后续把"录音对话框的
 Thing 身份配色"上升为跨界面规则，再考虑归入 ADR。
+## 2026-07-02 — D26 响应链去跳变 + 生命周期恢复 + 渐变方向一致
+
+用户确认 D25 的整体方向更好、响应更快，但继续反馈四个问题：偶尔仍有单个波浪上下颤动；录音水体使用记事渐变色时没有遵循同样方向；打开录音 dialog 后锁屏再回来动画停止；以及 25ms 可视化采样和动画帧率是否还能更顺滑。
+
+判断：
+- 颤动的主要剩余风险不是主分量 target/current 链路，而是 D25 为了低延迟引入的两个直接或近似直接响应点：`mLayerRhythmCurrent` 的 backfill 会在同一帧抬高当前 rhythm 包络；`mVisualBeatPhase` 会在收到新 beat phase 时直接拉向目标相位。两者都会在第二个音节或节拍到来时让已成形的峰值或宽轮廓突然变化。
+- 渐变方向问题来自 `VoiceVisualizer.rebuildPaints()` 固定使用 `LinearGradient(0, 0, width, 0)`，没有读取 `ThingBackground.orientation`。
+- 锁屏返回停止动画是 View 自驱循环的生命周期漏洞：`onDraw` 末尾会继续 `postInvalidateOnAnimation()`，但锁屏/窗口不可见后这条链可能中断，而 view 仍处于 attached 状态，返回时没有新的显式重启动画入口。
+- 25ms 是音频特征采样 cadence，不是动画帧率。动画由 `postInvalidateOnAnimation()` 跟随系统 vsync，通常是 60fps 或设备当前刷新率。继续降低采样间隔只有在 `AudioRecord.read()` 的读取块也变小后才有意义，否则会被阻塞读取粒度抵消。
+
+实现策略：
+- rhythm backfill 不再直接写 `mLayerRhythmCurrent`；改为 `mergedPulseTarget()` 合并目标包络。如果当前包络已经接近候选脉冲，就只保持当前高度，不重新抬峰；强得多的新脉冲仍可推高目标。
+- surge 和 rhythm 的延迟触发都通过同一个目标合并规则处理，减少第二个音节对已到峰值层的重新改写。
+- beat phase 从“收到新相位立即吸附”改为 `mTargetBeatPhase` + 每帧限速拉近，避免宽轮廓相位瞬移。
+- 渐变 shader 按 `ThingBackground.Orientation` 生成 8 向起止点，保持每层亮度/透明度阶梯不变。
+- 新增 `onWindowVisibilityChanged()`、`onVisibilityAggregated()`、`onWindowFocusChanged()` 中的 `startFrameLoop()` / `stopFrameLoop()`，并在恢复时重置 `mLastFrameNanos`，避免锁屏返回后动画停住或第一帧时间跨度异常。
+- 音频读取块缩到约 512 个 stereo frame，并把视觉采样间隔从 25ms 降到 20ms。暂不直接压到 16ms，因为 2048 FFT 窗口仍有约 46ms 的频域上下文，强行每 16ms 跑完整 FFT 会提高 CPU，却不一定明显提升观感；当前更高收益来自更小读取块、快速 RMS/onset 通道和视觉侧去跳变。
+## 2026-07-02 - D27 果冻感抑制与重新开始链路重建
+
+用户反馈两点：一是当前波浪对很小的音频变化仍然过敏，容易出现果冻感；二是录完音后多次执行“开始 -> 结束 -> 重新开始”后，动画可能只剩水面流动，失去波峰波谷响应。诊断认为这不是单纯的视觉参数问题，而是视觉输入敏感度和录音监听线程生命周期叠加造成的。
+
+决策：
+- `VoiceVisualizer.receive(VoiceAudioFrame)` 对分量目标、水位、rhythm energy、low/high pulse 增加轻量死区与零值门槛，忽略不构成可感知反馈的小变化；大变化仍进入既有 target/current 平滑链路，不削弱音量、频段和节拍的主要表达。
+- 重新开始不再由按钮手写 `stopListening(false)` + `startListening()`，改为 `AudioRecorder.restartListening()` 统一收束旧监听再启动新监听。
+- `AudioRecorder` 明确持有当前 `RecordingThread`，停止时先请求线程退出、停止 `AudioRecord`、等待线程收束，再进入保存或重启流程。
+- 每个 `RecordingThread` 使用自己的停止标记，并捕获启动时的 `AudioRecord` 与 raw 文件，避免旧线程在下一次 start 把全局监听标记重新置 true 后继续读音频。
+- raw 写入和 wav 转存都按真实读取长度写入，避免较小读块下写入尾部脏数据或额外静音。
+
+取舍：死区只作用在“视觉目标输入层”，不是降低音频采样率，也不是降低动画帧率；因此会减轻小幅果冻抖动，但保留强音节、低频大浪、节拍脉冲和高频短促反馈。
+## 2026-07-02 - D28 录音收束不得阻塞 UI 点击链路
+
+用户反馈：D27 后按下停止按钮和重新开始按钮都会出现 UI 卡死约一秒。诊断确认 D27 的线程收束方向正确，但 `AudioRecord.stop()`、`RecordingThread.join()` 与 raw -> wav 转存在点击回调中同步执行，导致主线程被阻塞。
+
+决策：
+- 保留 D27 的“旧录音线程必须被明确 stop/join 后再重启”的安全性，但 stop/join/save 只能在后台线程执行。
+- 停止按钮点击后，UI 立即进入 STOPPED 视觉状态并停止计时；后台完成 `stopListening(true)`、wav 转存和重新开始监听。后台完成前，保存 / 重新开始 / 取消按钮暂时不可点，避免文件未写完时被保存或删除。
+- 重新开始按钮点击后，UI 立即回到 PREPARED 视觉状态；删除旧 wav、停止旧监听、启动新监听都放到后台执行。后台完成前主按钮暂时不可点，避免新监听尚未就绪时开始录音。
+- dialog dismiss 时，录音资源释放和临时 raw 目录清理也进入后台线程，避免关闭对话框时再次把主线程卡住。
+
+原则：录音线程生命周期和文件完整性仍然优先，但任何可能阻塞的音频系统调用、线程等待和磁盘 IO 都不得在 UI 点击回调中同步执行。
+
+## 2026-07-02 - D29 安静降活跃度与自然水感状态
+
+用户反馈：相对安静时波浪仍会高频变化，且整体还不够像自然水波。判断根因不是单个阈值过低，而是音频侧的 onset / rhythm / pulse 与视觉侧的 idle / detail / rhythm contour 都缺少统一的“有效活动度”状态，导致近静音噪声、小幅频谱波动和持续微动仍能层层叠加成可见变化。
+
+决策：
+
+- 在 `VoiceAudioFrame` 增加 `activity`，表示当前声音是否足以驱动明显视觉变化。它由持续响度、onset/fast impact、spectral flux 三类证据共同决定，使用 smooth step 和 attack/release 平滑，避免小噪声触发，也避免强音节唤醒太慢。
+- `AudioRecorder.VoiceAudioAnalyzer` 用 `activity` 门控节奏事件：安静时 `onset` 的连续输出、`beatPulse`、`rhythmEnergy`、`lowPulse`、`highPulse` 都随活动度衰减；强 onset 可越过安静门快速唤醒节奏层。
+- tempo/onset 历史只接收通过活动门的事件，避免近静音噪声让节拍估计误锁。
+- `VoiceVisualizer` 不再把安静状态当作“低音量但仍快速变化”：输入映射先乘活动度，主体浪保留很低的水感底线，细节分量几乎关闭；rhythm trigger、tempo confidence、rhythm contour 和 drift boost 都随活动度衰减。
+- 静音微动从随主分量相位高速流动，改为更低频、更慢的独立 idle 波；安静时仍有轻微水感，但不再出现高频翻动。
+
+原则：响应声音变化和自然水感并不直接冲突。冲突发生在把所有音频特征逐帧、等权地映射到几何轮廓时。D29 的平衡方式是“音频侧快速检测，视觉侧按活动状态分层吸收”：强变化可以快速唤醒，弱变化只进入低频、低幅、慢速的水体惯性。
+
+## 2026-07-02 - D30 高位波峰稳定阈值 + 活动度驱动流速
+
+用户反馈 D29 效果继续提升，但仍有两点：部分波峰在高点会出现很小变化；安静时横向动画速度也应放慢，真正有声音或音乐节奏时再及时跟随。
+
+决策：
+
+- 在 `VoiceVisualizer` 绘制采样层增加高位波峰稳定器：每层固定 121 个水面采样点，保存上一帧 y 值；当 `shapeWave()` 后的位移达到高位波峰区间，且当前 y 与上一帧差值小于 dp 阈值时，沿用上一帧 y 值。
+- 这个阈值只作用于高位波峰，不作用于普通上升、回落和明显变化；差值超过阈值时立即更新，避免把整片水面冻住。
+- 横向主相位不再按固定速度推进；新增 `flowActivity = activity + rhythmEnergy` 派生的流速系数，安静时主相位只保留低速流动，有效声音出现时恢复速度。
+- 当 tempo confidence 足够时，主相位流速会按当前 BPM 相对 120 BPM 做轻量缩放：快歌可更快，慢节奏可更慢；无可靠节奏时只按活动度控制，不强行同步。
+- 慢速随机包络、idle 波和基线微漂也改用活动度缩放后的时间，避免近静音时虽然节奏层安静、但底层随机时间仍全速流动。
+
+原则：D30 继续把“响应”和“自然感”拆层处理。声音检测仍保持敏感，但横向速度和峰顶细节必须先经过活动度、节奏置信度和峰顶阈值，只有有意义的变化才进入最终几何轮廓。
+
+## 2026-07-02 - D31 回退逐点硬冻结，改为连续峰顶细节衰减
+
+用户反馈：D30 后波峰处能看到锯齿。诊断认为这是 D30 的逐采样点峰顶冻结造成的空间不连续：相邻采样点可能一个沿用上一帧 y、一个更新到当前帧，最终路径在峰顶形成细小折线。
+
+修正决策：
+
+- 删除 `mPreviousSurfaceY` / `stabilizePeakY()` / `PEAK_STABILITY_*`，不再对最终绘制 y 值做逐点硬冻结。
+- 保留 D30 的活动度驱动横向流速，因为它不破坏空间连续性，且符合用户“安静时慢、声音出现时响应”的偏好。
+- 峰顶稳定改为连续方案：在主体波形 `bodyS` 进入高位波峰区间时，用 smooth step 连续降低 `detailS` 的参与比例；峰顶越高，细节分量越弱。
+- 水面采样数从 120 提到 180，减少路径折线感；这只是几何采样密度提升，不改变音频响应链路。
+
+原则：峰顶稳定不能通过最终 y 的离散冻结实现；应在波形合成阶段连续衰减高频细节或随机扰动，保证最终路径在空间上始终连续。
+
+## 2026-07-02 - D32 安静工位态：更平、更慢的低活动水面
+
+用户反馈：在工位上主观感觉较安静，但水面仍有明显波浪和偏快的左右移动。D31 解决了峰顶锯齿，但低活动状态仍不够“平”和“慢”。
+
+决策：
+
+- 音频侧提高 `activity` 的进入门槛：响度、事件强度和 spectral flux 都需要更明显才会推高活动度；强冲击仍可通过更高的 wake trigger 唤醒。
+- 视觉侧降低低活动底线：`QUIET_BODY_DRIVE_FLOOR`、`QUIET_DETAIL_DRIVE_FLOOR`、`IDLE_AMP`、`IDLE_QUIET_SCALE`、`WANDER_QUIET_SCALE`、`DETAIL_QUIET_SCALE` 下调，让安静工位态水面更接近平。
+- 横向速度不再对很小的 `activity` 线性响应：新增 `FLOW_ACTIVITY_START/FULL`，用 smooth step 把低活动区压成慢流，超过明确活动区后才恢复明显流动。
+- rhythm phase 的安静底速下调，并新增独立活动门槛；没有快速声音时，即便有轻微 rhythmEnergy 残留，也不应出现偏快的节奏相位动画。
+
+原则：安静态不是“低幅度但仍快速运动”，而是低幅度、低细节、低速度的慢水面；声音出现时再用活动度与节奏置信度恢复响应。
+
+## 2026-07-02 - D33 稳态空调风噪抑制
+
+用户反馈：工位上主要可听见中央空调声，偶尔有键盘声，但水面仍会有偏快的动画和不够平缓的横向运动。判断：空调声常表现为持续风噪 / hiss / swish，这类输入可能在 high / air 频段产生短窗波动；如果把所有正向 spectral flux 都等权纳入 activity，就容易把稳态背景噪声误判为持续活动。
+
+决策：
+
+- 音频侧把 flux 分成 low / mid / high。`activity`、`rawOnset` 和 `fastImpact` 主要看 low/mid/body flux；high/air flux 只保留很小权重，不能单独推高活动度。
+- `transient` 的 flux 也从全频正向 flux 改成低/中频为主、高频为辅，避免空调 hiss 反复触发短时浪涌。
+- high pulse 继续存在，但必须经过 onset/impact gate，且 high/air 权重降低；键盘声等短促事件可以有轻微反应，但稳态空调不应持续驱动。
+- 视觉侧把 body/detail 的低活动响应从线性 activity 改为 smooth step 门控，尤其 detail 需要更明确的活动度才参与。
+- 横向流速和 rhythm phase 继续保留 D32 的低活动门槛，并进一步降低安静底速；低活动时只保留很慢水感。
+
+原则：中央空调这类稳态噪声应被当作背景噪声底处理；录音波浪应优先响应人声、短促音节、敲击和音乐节奏，而不是响应持续 hiss 的高频细碎波动。
+
+## 2026-07-02 - D34 连续峰高稳定
+
+用户反馈：D33 后整体更平、更慢，但动画里仍能看到部分波峰高度出现小幅上下抖动。这类抖动不是 D30 那种逐点冻结导致的空间锯齿，而更可能来自三个连续量叠加：整层 `ampBoost` 受 surge/rhythm/rhythmEnergy 小幅变化影响、`crestFactor` 随事件包络改变峰形、`AMP_JITTER` 仍在主体分量上持续调制波峰高度。
+
+决策：
+- 不恢复最终 y 坐标的逐采样冻结；峰顶稳定必须保持空间连续。
+- 在视觉层新增逐层 `ampBoost` 和 `crestFactor` 的死区平滑，小变化保持当前值，超过阈值后再按 attack/release 连续追随。
+- 将慢速随机包络按主体 / 细节分量拆分强度；主体分量的 jitter 明显收敛，低活动状态再额外压低，避免已经成形的主体波峰被微扰持续推高/拉低。
+- 高位波峰的 detail 衰减提前并略增强，让峰顶区域的高频细节更少参与最终轮廓。
+
+原则：峰高要稳定，但不能僵住。强音节、明显节奏和音乐能量变化仍可越过死区推动波峰变化；只有低于感知阈值的小幅 envelope / crest / jitter 变化会被吸收。
+
+## 2026-07-02 - D35 声强与节奏快慢分离
+
+用户反馈：正常音量说话和大声说话、普通音量音乐和大声音乐在动画上差异不够；正常语速和快速说话、慢节奏音乐和快节奏音乐在横向流速与波形变化速度上也差异不够。
+
+调研结论：
+- ITU-R BS.1770 的 loudness 思路提醒：响度测量不应只看单个采样峰值，而应基于加权能量和一定时间窗的统计 / gating。录音 dialog 不需要完整 LUFS，但应把短时 RMS 与相对环境底噪的动态范围分开。
+- librosa 的 beat tracking 文档把节拍检测拆成 onset strength、tempo correlation 和 beat peak picking；这说明“快慢”不应只等最终 BPM，onset envelope 本身就是可靠的节奏快通道。
+- Essentia 的 RhythmExtractor2013 会输出 BPM、beat 位置和 confidence，并说明整段统计更适合离线音乐分析；实时录音 dialog 需要在 BPM 置信度不足时使用事件密度作为即时速度感。
+- aubio 的实时音频标注能力同样覆盖 onset、tempo tracking 和 beat detection，支持把 onset / tempo 作为不同层级的节奏信息。
+
+决策：
+- 在 `VoiceAudioFrame` 中新增 `intensity` 和 `pace`。`activity` 只表示“是否足以进入活跃水面”，不再同时承担声强和速度。
+- `AudioRecorder` 继续输出原有 loudness / FFT / onset / tempo，同时新增自适应声强估计：结合绝对 loudness、fast loudness 和相对环境底噪的 loudness contrast，拉开正常音量与大音量。
+- `AudioRecorder` 新增 `pace`：由 onsetScore、fastImpact 和 body flux 的 leaky density 得到，重复事件越密集越高；tempo/BPM 置信度足够时再作为慢通道补强。
+- `VoiceVisualizer` 用 `intensity` 放大主体浪幅和频段驱动，让大声说话 / 大声音乐明显更高；用 `pace` 控制横向流速和相位推进，让快速说话 / 快节奏音乐明显更快。
+- 低活动水面、空调风噪抑制和 D34 的峰高稳定仍保留；`intensity` / `pace` 只在有效声音和事件密度足够时拉开视觉差异。
+
+原则：先区分语义，再映射动画。`activity` 负责“从静到动”，`intensity` 负责“多高”，`pace` 负责“多快”，tempo/BPM 只在有置信度时修正音乐节拍，而不是唯一速度来源。
+
+## 2026-07-02 - D36 恢复适度水位涨落
+
+用户追问此前关于水位的决定，并提出：水位高低也应根据音量大小有一定变化，声音小时水位低，声音大时水位高。
+
+回看历史决策：
+- D3 原始设计明确为“音量同时驱动浪高 + 水位”，声大则整片水面升高、浪变大，声小则水位回落、浪变平缓。
+- D12 仍保留水位随音量整体升降，只是为了容纳更大浪峰把范围做过调整。
+- D15 修订 D3：用户当时反馈“大声时基础水位匀速上升、带动每个浪整体匀速升高，不好”，因此把 `REST_FRAC / MAX_FRAC` 拉到很接近的范围，水位几乎固定，声音主要由浪振幅体现。
+- D35 后 `intensity` 已经能更好地区分声强，适合把水位重新接到声强通道，而不是继续只用近固定水位。
+
+决策：
+- 恢复水位随音量 / 声强变化，但不回到 D3/D12 的大幅涨潮；初始范围为 `REST_FRAC=0.31`、`MAX_FRAC=0.49`，随后按用户反馈调整为 `REST_FRAC=0.24`、`MAX_FRAC=0.49`，明显大于 D15/D35 的 0.06 跨度，但仍有限幅。
+- 新增独立 `levelDrive`：由 `loudness` 和 `intensity` 混合后经 `LEVEL_GAMMA` 曲线得到，避免只要进入活跃态就水位过高。
+- 水位使用独立 attack/release：上升 `LEVEL_ATTACK_TAU=0.32`，回落 `LEVEL_RELEASE_TAU=0.64`，让它像较慢的潮位变化，而不是跟随每个音节机械跳动。
+- 波浪振幅和横向速度仍分别由 D35 的 `intensity` / `pace` 主导；水位只提供额外的“整体能量位置”反馈。
+
+原则：恢复 D3 的“声音大小影响水位”语义，但保留 D15 的审美约束：水位可以涨落，但不能把所有波峰一起机械抬高，也不能破坏 D33/D34 调出的平缓和稳定。
