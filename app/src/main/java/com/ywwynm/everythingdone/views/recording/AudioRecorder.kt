@@ -17,7 +17,11 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.ArrayList
+import kotlin.math.cos
 import kotlin.math.log10
+import kotlin.math.max
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Created by tyorikan on 2015/06/09.
@@ -122,7 +126,7 @@ open class AudioRecorder {
 
         if (!mVoiceVisualizers.isEmpty()) {
             for (i in mVoiceVisualizers.indices) {
-                mVoiceVisualizers[i].receive(0)
+                mVoiceVisualizers[i].receive(VoiceAudioFrame.SILENCE)
             }
         }
     }
@@ -230,6 +234,7 @@ open class AudioRecorder {
     private inner class RecordingThread : Thread() {
 
         var time: Long = System.currentTimeMillis()
+        private val mAnalyzer: VoiceAudioAnalyzer = VoiceAudioAnalyzer(RECORDING_SAMPLE_RATE)
 
         override fun run() {
             var fos: FileOutputStream? = null
@@ -243,12 +248,23 @@ open class AudioRecorder {
             val audioBytes = ByteArray(mBufSize)
             while (mIsListening) {
                 readSize = mAudioRecord!!.read(audioBytes, 0, mBufSize)
+                if (readSize > 0) {
+                    mAnalyzer.ingest(audioBytes, readSize)
+                }
 
                 if (System.currentTimeMillis() - time >= mSamplingInterval) {
-                    val decibel: Int = calculateDecibel(audioBytes, readSize)
+                    val frame: VoiceAudioFrame = mAnalyzer.analyze()
+                    if (BuildConfig.DEBUG) {
+                        Log.i(
+                            TAG,
+                            "audio frame: loudness=${frame.loudness}, low=${frame.low}, " +
+                                    "lowMid=${frame.lowMid}, mid=${frame.mid}, high=${frame.high}, " +
+                                    "air=${frame.air}, transient=${frame.transient}"
+                        )
+                    }
                     if (!mVoiceVisualizers.isEmpty()) {
                         for (i in mVoiceVisualizers.indices) {
-                            mVoiceVisualizers[i].receive(decibel)
+                            mVoiceVisualizers[i].receive(frame)
                         }
                     }
                     time = System.currentTimeMillis()
@@ -267,25 +283,217 @@ open class AudioRecorder {
 
             FileUtil.closeStream(fos)
         }
+    }
 
-        private fun calculateDecibel(buf: ByteArray, byteReadSize: Int): Int {
-            if (byteReadSize == 0) {
-                return 0
+    /**
+     * 从录音 PCM 中提取给水波使用的轻量特征：RMS/响度、5 个 FFT 频段、瞬态。
+     * 不引入第三方依赖，2048 点 FFT 每 100ms 跑一次，对当前录音对话框足够轻。
+     */
+    private class VoiceAudioAnalyzer(private val sampleRate: Int) {
+
+        private val mSampleRing: FloatArray = FloatArray(FFT_SIZE)
+        private var mWriteIndex: Int = 0
+        private var mSampleCount: Int = 0
+
+        private val mWindow: FloatArray = FloatArray(FFT_SIZE) { i ->
+            (0.5 - 0.5 * cos(2.0 * Math.PI * i / (FFT_SIZE - 1))).toFloat()
+        }
+        private val mReal: DoubleArray = DoubleArray(FFT_SIZE)
+        private val mImag: DoubleArray = DoubleArray(FFT_SIZE)
+
+        private val mBandStartBins: IntArray = IntArray(BAND_COUNT)
+        private val mBandEndBins: IntArray = IntArray(BAND_COUNT)
+        private val mPreviousBands: FloatArray = FloatArray(BAND_COUNT)
+        private val mSmoothedBands: FloatArray = FloatArray(BAND_COUNT)
+        private var mPreviousLoudness: Float = 0f
+
+        init {
+            val nyquistBin = FFT_SIZE / 2
+            for (i in 0 until BAND_COUNT) {
+                val startHz = BAND_RANGES[i * 2]
+                val endHz = BAND_RANGES[i * 2 + 1]
+                mBandStartBins[i] = (startHz * FFT_SIZE / sampleRate).coerceIn(1, nyquistBin - 1)
+                mBandEndBins[i] = (endHz * FFT_SIZE / sampleRate).coerceIn(mBandStartBins[i] + 1, nyquistBin)
+            }
+        }
+
+        fun ingest(buf: ByteArray, byteReadSize: Int) {
+            var i = 0
+            val usable = byteReadSize - (byteReadSize % BYTES_PER_STEREO_FRAME)
+            while (i + BYTES_PER_STEREO_FRAME <= usable) {
+                val left = readPcm16(buf, i)
+                val right = readPcm16(buf, i + BYTES_PER_SAMPLE)
+                val mono = ((left + right) * 0.5f) / PCM_16_MAX
+                mSampleRing[mWriteIndex] = mono.coerceIn(-1f, 1f)
+                mWriteIndex = (mWriteIndex + 1) % FFT_SIZE
+                if (mSampleCount < FFT_SIZE) {
+                    mSampleCount++
+                }
+                i += BYTES_PER_STEREO_FRAME
+            }
+        }
+
+        fun analyze(): VoiceAudioFrame {
+            if (mSampleCount <= 0) {
+                return VoiceAudioFrame.SILENCE
             }
 
-            var sum: Long = 0
-            for (i in 0 until buf.size / 2) {
-                val data: Short = ((buf[i * 2].toInt() and 0xff) or (buf[i * 2 + 1].toInt() shl 8)).toShort()
-                sum += data * data
+            val available = mSampleCount.coerceAtMost(FFT_SIZE)
+            val leadingZeros = FFT_SIZE - available
+            val start = (mWriteIndex - available + FFT_SIZE) % FFT_SIZE
+            var sumSq = 0.0
+
+            for (i in 0 until FFT_SIZE) {
+                val sample: Float = if (i < leadingZeros) {
+                    0f
+                } else {
+                    mSampleRing[(start + i - leadingZeros) % FFT_SIZE]
+                }
+                if (i >= leadingZeros) {
+                    sumSq += sample.toDouble() * sample.toDouble()
+                }
+                mReal[i] = (sample * mWindow[i]).toDouble()
+                mImag[i] = 0.0
             }
 
-            val amplitude: Double = sum / (byteReadSize / 2.0) // 振幅
-            val decibel: Double = 10 * log10(amplitude)
-
-            if (BuildConfig.DEBUG) {
-                Log.i(TAG, "decibel: $decibel")
+            val rms = sqrt(sumSq / available.coerceAtLeast(1))
+            val decibel = if (rms <= SILENCE_RMS) {
+                0.0
+            } else {
+                20.0 * log10(rms * PCM_16_MAX.toDouble())
             }
-            return decibel.toInt()
+            val loudness = clamp01(((decibel - VISUAL_MIN_DB) / (VISUAL_MAX_DB - VISUAL_MIN_DB)).toFloat())
+
+            fft(mReal, mImag)
+
+            val rawBands = FloatArray(BAND_COUNT)
+            for (band in 0 until BAND_COUNT) {
+                var energy = 0.0
+                var bins = 0
+                for (bin in mBandStartBins[band] until mBandEndBins[band]) {
+                    val re = mReal[bin]
+                    val im = mImag[bin]
+                    val mag = sqrt(re * re + im * im) / (FFT_SIZE * 0.5)
+                    energy += mag * mag
+                    bins++
+                }
+                val bandRms = sqrt(energy / bins.coerceAtLeast(1))
+                val bandDb = if (bandRms <= SILENCE_RMS) BAND_MIN_DB.toDouble()
+                else 20.0 * log10(bandRms)
+                val normalized = clamp01(
+                    ((bandDb - BAND_MIN_DB.toDouble()) /
+                            (BAND_MAX_DB - BAND_MIN_DB).toDouble()).toFloat()
+                )
+                rawBands[band] = clamp01(normalized * (0.45f + loudness * 0.9f))
+            }
+
+            var positiveFlux = 0f
+            for (band in 0 until BAND_COUNT) {
+                positiveFlux += max(0f, rawBands[band] - mPreviousBands[band])
+                mPreviousBands[band] = rawBands[band]
+
+                val k = if (rawBands[band] > mSmoothedBands[band]) BAND_ATTACK else BAND_RELEASE
+                mSmoothedBands[band] += (rawBands[band] - mSmoothedBands[band]) * k
+            }
+
+            val loudnessRise = max(0f, loudness - mPreviousLoudness)
+            mPreviousLoudness = loudness
+            val transient = clamp01(loudnessRise * 2.2f + positiveFlux / BAND_COUNT * 1.8f)
+
+            return VoiceAudioFrame(
+                loudness = loudness,
+                low = mSmoothedBands[0],
+                lowMid = mSmoothedBands[1],
+                mid = mSmoothedBands[2],
+                high = mSmoothedBands[3],
+                air = mSmoothedBands[4],
+                transient = transient
+            )
+        }
+
+        private fun readPcm16(buf: ByteArray, index: Int): Int {
+            return ((buf[index].toInt() and 0xff) or (buf[index + 1].toInt() shl 8)).toShort().toInt()
+        }
+
+        private fun fft(real: DoubleArray, imag: DoubleArray) {
+            val n = real.size
+            var j = 0
+            for (i in 1 until n) {
+                var bit = n shr 1
+                while (j and bit != 0) {
+                    j = j xor bit
+                    bit = bit shr 1
+                }
+                j = j xor bit
+                if (i < j) {
+                    val tr = real[i]
+                    real[i] = real[j]
+                    real[j] = tr
+                    val ti = imag[i]
+                    imag[i] = imag[j]
+                    imag[j] = ti
+                }
+            }
+
+            var len = 2
+            while (len <= n) {
+                val angle = -2.0 * Math.PI / len
+                val wLenReal = cos(angle)
+                val wLenImag = sin(angle)
+                var i = 0
+                while (i < n) {
+                    var wReal = 1.0
+                    var wImag = 0.0
+                    val half = len / 2
+                    for (offset in 0 until half) {
+                        val even = i + offset
+                        val odd = even + half
+                        val oddReal = real[odd] * wReal - imag[odd] * wImag
+                        val oddImag = real[odd] * wImag + imag[odd] * wReal
+                        real[odd] = real[even] - oddReal
+                        imag[odd] = imag[even] - oddImag
+                        real[even] += oddReal
+                        imag[even] += oddImag
+
+                        val nextWReal = wReal * wLenReal - wImag * wLenImag
+                        wImag = wReal * wLenImag + wImag * wLenReal
+                        wReal = nextWReal
+                    }
+                    i += len
+                }
+                len = len shl 1
+            }
+        }
+
+        private fun clamp01(v: Float): Float {
+            if (v < 0f) return 0f
+            if (v > 1f) return 1f
+            return v
+        }
+
+        companion object {
+            private const val FFT_SIZE = 2048
+            private const val BAND_COUNT = 5
+            private const val BYTES_PER_SAMPLE = 2
+            private const val BYTES_PER_STEREO_FRAME = 4
+            private const val PCM_16_MAX = 32768f
+            private const val SILENCE_RMS = 1.0e-7
+
+            private const val VISUAL_MIN_DB = 25.0
+            private const val VISUAL_MAX_DB = 65.0
+            private const val BAND_MIN_DB = -82f
+            private const val BAND_MAX_DB = -26f
+            private const val BAND_ATTACK = 0.62f
+            private const val BAND_RELEASE = 0.34f
+
+            // low, lowMid, mid, high, air。高频上限保守截到 12k，避免麦克风噪声完全主导画面。
+            private val BAND_RANGES = intArrayOf(
+                60, 250,
+                250, 600,
+                600, 1600,
+                1600, 4000,
+                4000, 12000
+            )
         }
     }
 

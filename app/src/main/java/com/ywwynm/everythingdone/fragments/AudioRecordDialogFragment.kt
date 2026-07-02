@@ -5,6 +5,7 @@ package com.ywwynm.everythingdone.fragments
 import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -50,7 +51,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mEtFileName: EditText? = null
     private var mChronometer: Chronometer? = null
     private var mVisualizer: VoiceVisualizer? = null
-    private var mBase: View? = null
 
     private var mFabMain: FloatingActionButton? = null
     private var mIvReRecording: ImageView? = null
@@ -70,7 +70,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mEtFileName  = f(R.id.et_audio_file_name)
         mChronometer = f(R.id.chronometer_record_audio)
         mVisualizer  = f(R.id.voice_visualizer)
-        mBase        = f(R.id.view_voice_visualizer_base)
 
         mFabMain           = f(R.id.fab_record_main)
         mIvReRecording     = f(R.id.iv_re_recording_audio)
@@ -96,14 +95,12 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             setMainFabIcon(R.drawable.act_start_recording_audio)
         }
 
-        val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
-        val accentColor: Int = accentBg?.color ?: mActivity!!.getAccentColor()
-        mVisualizer!!.setRenderColor(accentColor)
-        if (accentBg != null) {
-            BackgroundUtil.applyBackground(mBase, accentBg)
-        } else {
-            mBase!!.setBackgroundColor(accentColor)
-        }
+        val accentBg: ThingBackground = mActivity!!.getAccentBackground()
+            ?: ThingBackground.pure(mActivity!!.getAccentColor())
+        val accentColor: Int = accentBg.color
+        mVisualizer!!.setThingBackground(accentBg)
+        installSideControlScrim(mIvReRecording)
+        installSideControlScrim(mIvCancelRecording)
 
         mEtFileName!!.highlightColor = DisplayUtil.getLightColor(accentColor, mActivity)
         DisplayUtil.setSelectionHandlersColor(mEtFileName, accentColor)
@@ -220,7 +217,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer!!.animate().alpha(0.54f).setDuration(ANIM_DURATION.toLong())
 
         mVisualizer!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
-        mBase!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
         setMainFabIcon(R.drawable.act_stop_recording_audio)
 
         mFabMain!!.contentDescription = getString(R.string.cd_stop_record_audio)
@@ -236,7 +232,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer!!.animate().translationY(mActivity!!.screenDensity * 72).setDuration(ANIM_DURATION.toLong())
 
         mVisualizer!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
-        mBase!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
 
         mFabMain!!.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
         setMainFabIcon(R.drawable.act_save_audio)
@@ -291,6 +286,24 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
     }
 
+    /**
+     * 给侧边裸图标（重录 / 取消）加一层柔和的圆形半透明衬底，使其在流动的彩色水体上仍清晰
+     * 可读（D8）。在 [BackgroundUtil.installAppChromeCircleRipple] 之后调用：涟漪已设为
+     * foreground、oval outline 已就绪，这里设 background 即被裁成同形圆盘，主 FAB 自带悬浮面
+     * 不需处理。
+     */
+    private fun installSideControlScrim(iv: ImageView?) {
+        if (iv == null) return
+        val scrimColor: Int = DisplayUtil.getTransparentColor(
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated),
+            SIDE_CONTROL_SCRIM_ALPHA
+        )
+        val scrim = GradientDrawable()
+        scrim.shape = GradientDrawable.OVAL
+        scrim.setColor(scrimColor)
+        iv.background = scrim
+    }
+
     companion object {
         const val TAG: String = "AudioRecordDialogFragment"
 
@@ -299,5 +312,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         const val STOPPED: Int   = 2
 
         private const val ANIM_DURATION = 360
+
+        // 侧边控件柔和衬底的透明度（约 45%）。
+        private const val SIDE_CONTROL_SCRIM_ALPHA = 115
     }
 }

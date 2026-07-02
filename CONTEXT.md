@@ -236,6 +236,10 @@ _Avoid_: dark-mode screen
 A surface that wraps Thing-owned content in App Chrome, such as a reminder dialog whose shell should follow Appearance Mode while the embedded Thing keeps its Thing Background.
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
+**Voice Waveform**:
+录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background（纯色取同色系深浅阶梯、渐变整条按层复用），与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
+_Avoid_: 把它当成已保存音频的播放波形、当成 App Chrome 的中性控件配色、竖直柱子可视化
+
 **Activity Header**:
 首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
 _Avoid_: 把它等同于 actionbar 或系统状态栏、把它当成 App Chrome 的全部
@@ -362,6 +366,8 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
+- The audio recording dialog is a **Hybrid Chrome Surface**: its shell, controls, and text follow **Appearance Mode**, while its **Voice Waveform** carries the recording Thing's **Thing Background** identity.
+- A **Voice Waveform** derives its colours from the recording Thing's **Thing Background** — a same-hue lightness/alpha depth ladder for a PURE background, and the whole gradient reused per wave layer for a GRADIENT one — so, like **Thing Foreground**, it depends on the visible Thing-owned background rather than **Appearance Mode**.
 - An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
 - An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
 - **Home Chrome Retraction** hides and restores the home's top **App Chrome** as one unit, driven by scroll direction, independently of **Activity Header** collapse which is driven by scroll position.
@@ -416,3 +422,4 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。
 - "edge-to-edge" 既可指窗口本就绘制到系统栏之下（本 App 全局早已 `setDecorFitsSystemWindows(false)`、导航栏透明、列表底部已铺到导航栏之下），也可指首页顶部 chrome 随滚动收起让列表全铺；已解析为后者专用 **Immersive Thing List** 与 **Home Chrome Retraction**，避免与窗口级 edge-to-edge 混用。
 - "Live Photo"（苹果商标，HEIC+MOV 双文件配对）与 Android 的"动态照片"（多为单个 JPEG/HEIC 尾部内嵌视频）常被混用；已解析为词汇表统一使用 **Motion Photo**，并明确它是图片附件被检测出的一种本性、而非新的附件类型，除 VIVO 外均为单文件内嵌。
+- "录音动画的颜色"曾在"属于 App Chrome 的中性控件配色"与"属于记事身份"之间含糊；已解析为 **Voice Waveform** 承载被录音记事的 **Thing Background** 身份（纯色取同色系深浅、渐变整条复用），而录音对话框外壳仍是 **App Chrome**——即该对话框是一个 **Hybrid Chrome Surface**。
