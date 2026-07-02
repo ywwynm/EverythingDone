@@ -309,3 +309,31 @@
 - 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt)：新增 `mRecorderTransitionInProgress` 和后台收束流程；停止按钮立即切到 STOPPED UI，后台执行 `stopListening(true)`、wav 转存和 `startListening()`；重新开始按钮立即切到 PREPARED UI，后台删除旧文件并执行 `restartListening()`；后台完成后再恢复按钮点击。
 - 同步调整 dismiss：资源释放和 `audio_raw` 临时目录清理改到后台线程顺序执行，避免关闭 dialog 时也被录音线程收束卡住。
 - 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607020832**。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - 确认 FAB 跟随记事颜色
+
+- 用户反馈：录音完成后的确认/保存 FAB 应使用当前记事颜色，纯色显示纯色，渐变显示渐变；图标颜色根据记事色自适应；普通状态仍保持白色。
+- 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：在主 FAB 后增加同尺寸圆形色层，用于确认态承载纯色或渐变背景，FAB 本体继续负责点击、阴影、涟漪和图标。
+- 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt)：保存态移除固定绿色 `#4CAF50`，改为当前 `ThingBackground`；确认态让 FAB 本体透明并显示后方色层；开始录音和重新录音恢复白色；确认图标通过 `BackgroundUtil.onColor(...)` 自动取偏白或偏黑。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607021207**。远端 `latest.json` 已确认 APK URL 和 SHA-256。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - 确认按钮去除 FAB 叠层
+
+- 用户反馈：上一版效果很差，普通状态下出现正方形背景，确认状态下图标附近出现多边形/八边形残留；要求不要用 FAB，统一改成圆形按钮。
+- 诊断结论：上一版 `FloatingActionButton` 透明化后，Material FAB 的内部 shape/ripple 仍参与绘制；背后色层又没有裁剪成圆形，因此同时出现方形底和多边形残留。
+- 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：删除 `FloatingActionButton` 和背后色层，主按钮改为单个 56dp `ImageView`，16dp padding 保持 24dp 图标尺寸。
+- 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt)：主按钮类型改为 `ImageView`；普通态直接设置圆形高架面背景；确认态直接设置当前 `ThingBackground` 的圆形纯色/渐变背景；图标和 ripple 按背景明暗自适应。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607021213**。远端 `latest.json` 已确认 APK URL 和 SHA-256。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - 录音 dialog 高度改为宽度四比三
+
+- 用户询问当前高度并要求调高为宽度的 `4/3`。
+- 当前 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml) 根布局宽度为 `280dp`，此前高度为 `320dp`；按 `280 × 4 / 3` 计算，新高度设置为 `373.33dp`。
+- 修改根布局 `android:layout_height` 和 `android:minHeight` 为 `373.33dp`。保留 `minHeight` 是因为 `BaseDialogFragment` 以 `null parent` 充气，根节点 `layout_height` 可能不作为实际固有尺寸。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607021217**。远端 `latest.json` 已确认 APK URL 和 SHA-256。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-02 - 录音 dialog 高度改为 360dp
+
+- 用户要求将上一版 `373.33dp` 的录音 dialog 高度改为 `360dp`。
+- 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：根布局 `android:layout_height` 和 `android:minHeight` 同步改为 `360dp`。
+- 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607021219**。远端 `latest.json` 已确认 APK URL 和 SHA-256。未使用 adb，未安装设备，未 commit。

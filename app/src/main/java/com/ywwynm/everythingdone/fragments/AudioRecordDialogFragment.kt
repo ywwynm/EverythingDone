@@ -3,12 +3,10 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.content.DialogInterface
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
@@ -52,9 +50,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mChronometer: Chronometer? = null
     private var mVisualizer: VoiceVisualizer? = null
 
-    private var mFabMain: FloatingActionButton? = null
+    private var mIvMainAction: ImageView? = null
     private var mIvReRecording: ImageView? = null
     private var mIvCancelRecording: ImageView? = null
+
+    private var mAccentBackground: ThingBackground? = null
 
     private var mConfirmClicked: Boolean = false
     private var mRecorderTransitionInProgress: Boolean = false
@@ -72,11 +72,13 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer = f(R.id.chronometer_record_audio)
         mVisualizer  = f(R.id.voice_visualizer)
 
-        mFabMain           = f(R.id.fab_record_main)
+        mIvMainAction      = f(R.id.iv_record_main_action)
         mIvReRecording     = f(R.id.iv_re_recording_audio)
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
+        BackgroundUtil.installAppChromeCircleRipple(mIvMainAction, mActivity!!)
         BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, mActivity!!)
         BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, mActivity!!)
+        applyMainButtonNormalStyle()
 
         if (AppearanceUtil.isDarkMode(mActivity!!)) {
             mIvReRecording!!.setImageDrawable(
@@ -93,11 +95,12 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                     ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
                 )
             )
-            setMainFabIcon(R.drawable.act_start_recording_audio)
+            setMainButtonIcon(R.drawable.act_start_recording_audio)
         }
 
-        val accentBg: ThingBackground = mActivity!!.getAccentBackground()
+        mAccentBackground = mActivity!!.getAccentBackground()
             ?: ThingBackground.pure(mActivity!!.getAccentColor())
+        val accentBg: ThingBackground = mAccentBackground!!
         val accentColor: Int = accentBg.color
         mVisualizer!!.setThingBackground(accentBg)
         installSideControlScrim(mIvReRecording)
@@ -151,7 +154,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         val normalColor = ContextCompat.getColor(
             mActivity!!, R.color.app_chrome_on_surface_hint
         )
-        val accentBg: ThingBackground? = mActivity!!.getAccentBackground()
+        val accentBg: ThingBackground? = mAccentBackground
         val accentColor: Int = accentBg?.color ?: mActivity!!.getAccentColor()
         mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
             val useGradientLine = hasFocus
@@ -180,7 +183,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             false
         })
 
-        mFabMain!!.setOnClickListener {
+        mIvMainAction!!.setOnClickListener {
             if (mRecorderTransitionInProgress) {
                 return@setOnClickListener
             }
@@ -213,9 +216,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer!!.animate().alpha(0.54f).setDuration(ANIM_DURATION.toLong())
 
         mVisualizer!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
-        setMainFabIcon(R.drawable.act_stop_recording_audio)
+        applyMainButtonNormalStyle()
+        setMainButtonIcon(R.drawable.act_stop_recording_audio)
 
-        mFabMain!!.contentDescription = getString(R.string.cd_stop_record_audio)
+        mIvMainAction!!.contentDescription = getString(R.string.cd_stop_record_audio)
     }
 
     private fun recordingToStopped() {
@@ -229,15 +233,16 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mVisualizer!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
 
-        mFabMain!!.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
-        setMainFabIcon(R.drawable.act_save_audio)
+        val confirmBg: ThingBackground = currentAccentBackground()
+        applyMainButtonConfirmStyle(confirmBg)
+        setMainButtonIcon(R.drawable.act_save_audio, BackgroundUtil.onColor(confirmBg, MAIN_BUTTON_CONFIRM_ICON_ALPHA))
 
         mIvReRecording!!.isClickable = true
         mIvCancelRecording!!.isClickable = true
         mIvReRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
         mIvCancelRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
 
-        mFabMain!!.contentDescription = getString(R.string.cd_save_recorded_audio_file)
+        mIvMainAction!!.contentDescription = getString(R.string.cd_save_recorded_audio_file)
     }
 
     private fun stoppedToPrepared() {
@@ -246,17 +251,15 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mChronometer!!.animate().alpha(0.26f).setDuration(ANIM_DURATION.toLong())
         mChronometer!!.animate().translationY(0f).setDuration(ANIM_DURATION.toLong())
 
-        mFabMain!!.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
-        )
-        setMainFabIcon(R.drawable.act_start_recording_audio)
+        applyMainButtonNormalStyle()
+        setMainButtonIcon(R.drawable.act_start_recording_audio)
 
         mIvReRecording!!.isClickable = false
         mIvCancelRecording!!.isClickable = false
         mIvReRecording!!.animate().alpha(0f).setDuration((ANIM_DURATION shr 4).toLong())
         mIvCancelRecording!!.animate().alpha(0f).setDuration((ANIM_DURATION shr 4).toLong())
 
-        mFabMain!!.contentDescription = getString(R.string.cd_start_record_audio)
+        mIvMainAction!!.contentDescription = getString(R.string.cd_start_record_audio)
     }
 
     private fun stopRecordingWithoutBlocking() {
@@ -306,7 +309,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private fun setRecorderTransitionInProgress(inProgress: Boolean) {
         mRecorderTransitionInProgress = inProgress
-        mFabMain!!.isClickable = !inProgress
+        mIvMainAction!!.isClickable = !inProgress
         if (mState == STOPPED) {
             mIvReRecording!!.isClickable = !inProgress
             mIvCancelRecording!!.isClickable = !inProgress
@@ -335,18 +338,48 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         dismiss()
     }
 
-    private fun setMainFabIcon(iconRes: Int) {
-        if (AppearanceUtil.isDarkMode(mActivity!!)) {
-            mFabMain!!.setImageDrawable(
+    private fun setMainButtonIcon(iconRes: Int, tintColor: Int? = null) {
+        val color: Int? = tintColor ?: if (AppearanceUtil.isDarkMode(mActivity!!)) {
+            ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+        } else {
+            null
+        }
+        if (color != null) {
+            mIvMainAction!!.imageTintList = null
+            mIvMainAction!!.setImageDrawable(
                 DisplayUtil.opaqueTintDrawable(
                     mActivity!!,
                     ContextCompat.getDrawable(mActivity!!, iconRes),
-                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
+                    color
                 )
             )
         } else {
-            mFabMain!!.setImageResource(iconRes)
+            mIvMainAction!!.imageTintList = null
+            mIvMainAction!!.setImageResource(iconRes)
         }
+    }
+
+    private fun applyMainButtonNormalStyle() {
+        BackgroundUtil.applyOvalBackground(
+            mIvMainAction,
+            ThingBackground.pure(
+                ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
+            )
+        )
+        mIvMainAction!!.foreground = BackgroundUtil.circularRipple(
+            BackgroundUtil.appChromeRippleColor(mActivity!!)
+        )
+    }
+
+    private fun applyMainButtonConfirmStyle(background: ThingBackground) {
+        BackgroundUtil.applyOvalBackground(mIvMainAction, background)
+        mIvMainAction!!.foreground = BackgroundUtil.circularRipple(
+            BackgroundUtil.adaptiveRippleColor(background)
+        )
+    }
+
+    private fun currentAccentBackground(): ThingBackground {
+        return mAccentBackground ?: ThingBackground.pure(mActivity!!.getAccentColor())
     }
 
     /**
@@ -378,5 +411,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         // 侧边控件柔和衬底的透明度（约 45%）。
         private const val SIDE_CONTROL_SCRIM_ALPHA = 115
+        private const val MAIN_BUTTON_CONFIRM_ICON_ALPHA = 0.94f
     }
 }

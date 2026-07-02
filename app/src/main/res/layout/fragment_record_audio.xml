@@ -3,12 +3,11 @@
      必须用 minWidth/minHeight 声明固有尺寸，否则 FrameLayout 叠层会塌到最高子项（按钮行 96dp）。 -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
-    android:layout_height="320dp"
+    android:layout_height="360dp"
     android:minWidth="280dp"
-    android:minHeight="320dp">
+    android:minHeight="360dp">
 
     <!-- Voice Waveform：水体，铺满下部，绘制在文字与按钮之下 -->
     <com.ywwynm.everythingdone.views.recording.VoiceVisualizer
@@ -80,18 +79,18 @@
             android:contentDescription="@string/cd_re_recording_audio"
             android:alpha="0"/>
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_record_main"
+        <ImageView
+            android:id="@+id/iv_record_main_action"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:layout_gravity="center_vertical"
+            android:elevation="4dp"
+            android:padding="16dp"
+            android:scaleType="centerInside"
             android:src="@drawable/act_start_recording_audio"
             android:contentDescription="@string/cd_start_record_audio"
-            app:elevation="4dp"
-            app:pressedTranslationZ="8dp"
-            app:backgroundTint="@color/app_chrome_surface_elevated"
-            app:rippleColor="@color/app_chrome_ripple"
-            app:borderWidth="0dp"/>
+            android:clickable="true"
+            android:focusable="true"/>
 
         <ImageView
             android:id="@+id/iv_cancel_recording_audio"
