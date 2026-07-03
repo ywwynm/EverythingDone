@@ -36,6 +36,13 @@ raw `android.app.Dialog` instances directly inside Activities for feature UI.
 If a dialog's content is tightly coupled to Activity state, use a thin custom
 `DialogFragment` host rather than keeping the raw `Dialog` in the Activity.
 
+自定义 View 放进 BaseDialogFragment 的对话框时**必须重写 `onMeasure`**：窗口是
+WRAP_CONTENT、根布局以 null parent 充气并靠 `minWidth/minHeight` 声明固有尺寸，
+而默认 View（getDefaultSize）在 AT_MOST 下会按可用空间上报尺寸，把对话框撑大。
+正确做法：非 EXACTLY 模式只上报固有最小尺寸，让根布局的 min 尺寸决定对话框大小
+（FrameLayout 会对 match_parent 子项以 EXACTLY 二次测量铺满）。此坑在录音波形
+动画的多轮迭代中反复出现（GPT 与 Claude 均踩过，2026-07-03 再次确认并修复）。
+
 ## Documentation organization
 
 For every new feature request or substantial technical initiative, create a

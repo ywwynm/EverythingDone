@@ -34,7 +34,9 @@ import kotlin.math.sqrt
  * Updated by ywwynm on 2016/7/8 to get real decibel
  *
  * Sampling AudioRecord Input
- * This output sends semantic wave drive frames to [RecordingWaveFrameReceiver].
+ * This output sends semantic wave drive frames to [RecordingWaveFrameReceiver],
+ * and Fable ocean audio frames to [OceanWaveFrameReceiverFable]. Each analyzer
+ * chain only runs when it has at least one linked receiver.
  */
 open class AudioRecorder {
 
@@ -46,6 +48,7 @@ open class AudioRecorder {
     private var mBufSize: Int = 0
 
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
+    private val mFableReceivers: MutableList<OceanWaveFrameReceiverFable> = ArrayList()
 
     @Volatile
     private var mIsListening: Boolean = false
@@ -64,6 +67,13 @@ open class AudioRecorder {
      */
     fun link(receiver: RecordingWaveFrameReceiver) {
         mWaveReceivers.add(receiver)
+    }
+
+    /**
+     * link to Fable ocean wave receiver（新方案旁路，与现有分发链并存）
+     */
+    fun linkFable(receiver: OceanWaveFrameReceiverFable) {
+        mFableReceivers.add(receiver)
     }
 
     /**
@@ -141,6 +151,9 @@ open class AudioRecorder {
             for (i in mWaveReceivers.indices) {
                 mWaveReceivers[i].receive(RecordingWaveDriveFrame.SILENCE)
             }
+        }
+        for (i in mFableReceivers.indices) {
+            mFableReceivers[i].receive(OceanWaveAudioFrameFable.SILENCE)
         }
     }
 
@@ -289,6 +302,8 @@ open class AudioRecorder {
 
         var time: Long = System.currentTimeMillis()
         private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
+        private val mFableAnalyzer: OceanWaveAudioAnalyzerFable =
+            OceanWaveAudioAnalyzerFable(RECORDING_SAMPLE_RATE)
         private var mLastLogTime: Long = 0L
         @Volatile private var mShouldRun: Boolean = true
 
@@ -315,29 +330,40 @@ open class AudioRecorder {
                     break
                 }
                 if (readSize > 0) {
-                    mAnalyzer.ingest(audioBytes, readSize)
+                    if (mWaveReceivers.isNotEmpty()) {
+                        mAnalyzer.ingest(audioBytes, readSize)
+                    }
+                    if (mFableReceivers.isNotEmpty()) {
+                        mFableAnalyzer.ingest(audioBytes, readSize)
+                    }
                 }
 
                 val now = System.currentTimeMillis()
                 val elapsed = now - time
                 if (elapsed >= mSamplingInterval) {
-                    val frame: RecordingWaveDriveFrame = mAnalyzer.analyze(elapsed)
-                    if (BuildConfig.DEBUG && now - mLastLogTime >= DEBUG_FRAME_LOG_INTERVAL_MS) {
-                        Log.i(
-                            TAG,
-                            "wave drive: level=${frame.level}, presence=${frame.presence}, " +
-                                    "swell=${frame.swell}, wake=${frame.wake}, pace=${frame.pace}, " +
-                                    "bass=${frame.bassWeight}, voice=${frame.voiceWeight}, " +
-                                    "brightness=${frame.brightnessWeight}, pitch=${frame.feature.pitchHz}, " +
-                                    "pitchConfidence=${frame.pitchConfidence}, beat=${frame.feature.beatPulse}, " +
-                                    "tempo=${frame.feature.tempoBpm}, confidence=${frame.feature.tempoConfidence}, " +
-                                    "noise=${frame.feature.noiseLike}"
-                        )
-                        mLastLogTime = now
-                    }
-                    if (!mWaveReceivers.isEmpty()) {
+                    if (mWaveReceivers.isNotEmpty()) {
+                        val frame: RecordingWaveDriveFrame = mAnalyzer.analyze(elapsed)
+                        if (BuildConfig.DEBUG && now - mLastLogTime >= DEBUG_FRAME_LOG_INTERVAL_MS) {
+                            Log.i(
+                                TAG,
+                                "wave drive: level=${frame.level}, presence=${frame.presence}, " +
+                                        "swell=${frame.swell}, wake=${frame.wake}, pace=${frame.pace}, " +
+                                        "bass=${frame.bassWeight}, voice=${frame.voiceWeight}, " +
+                                        "brightness=${frame.brightnessWeight}, pitch=${frame.feature.pitchHz}, " +
+                                        "pitchConfidence=${frame.pitchConfidence}, beat=${frame.feature.beatPulse}, " +
+                                        "tempo=${frame.feature.tempoBpm}, confidence=${frame.feature.tempoConfidence}, " +
+                                        "noise=${frame.feature.noiseLike}"
+                            )
+                            mLastLogTime = now
+                        }
                         for (i in mWaveReceivers.indices) {
                             mWaveReceivers[i].receive(frame)
+                        }
+                    }
+                    if (mFableReceivers.isNotEmpty()) {
+                        val fableFrame: OceanWaveAudioFrameFable = mFableAnalyzer.analyze(elapsed)
+                        for (i in mFableReceivers.indices) {
+                            mFableReceivers[i].receive(fableFrame)
                         }
                     }
                     time = now
