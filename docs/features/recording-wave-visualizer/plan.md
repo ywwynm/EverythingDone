@@ -3,6 +3,20 @@
 对应决策见 [decisions.md](decisions.md)（D1–D9）。目标：把录音对话框的"底座 + 竖直柱子"
 改造为"一片由记事颜色填充、会随音量起伏的多层水体波浪"。
 
+## 2026-07-03 - 新录音波浪重新设计计划
+
+本轮不查看、不参考现有 visualizer 源码。新实现使用清晰的领域命名，不再要求 `Fable` 类名后缀，优先落在录音 dialog 当前边界内：
+
+1. 新增轻量接收接口，例如 `AudioFrameReceiver`，提供 `receive(VoiceAudioFrame)` 与兼容的 `receive(Int)`；`AudioRecorder` 只依赖该接口，不再依赖具体 View 类。
+2. 新建独立录音波浪 View，例如 `RecordingWaveVisualizer`，接收 `VoiceAudioFrame` 后先更新视觉目标状态，而不是直接改绘制路径。
+3. 建立连续视觉状态机：`quiet` 用于安静/空调底噪，`aware` 用于轻声或低能量活动，`alive` 用于明显语音/音乐，`surge` 用于强 onset / beat / 声强突变。状态之间只用平滑包络过渡。
+4. 绘制 6 道半透明填充波：共享同一水位和 Thing Background 配色，每层拥有独立相位、漂移、惯性、延迟、透明度、色阶、随机包络和局部 surge。
+5. 输入映射分工：`loudness/intensity` 控制水位与主体浪高；`low/lowMid/mid` 控制宽波轮廓；`high/air` 只在有效活动时提供受限表面细节；`pace/onset/beatPulse` 控制流速、错峰脉冲和短时野性。
+6. 安静态保护：低水位、低浪高、慢流速、细节预算接近关闭；高频稳态噪声不得单独推高活动度。
+7. 渐变颜色遵循 `ThingBackground.orientation`，纯色使用同色系明度/透明度阶梯；主按钮和侧边控件现有布局策略不在本轮主动重做。
+8. 在主波浪之外增加轻量“表面生命层”，但该层只能在 `alive` / `surge` 时出现，不得破坏主轮廓，也不得在安静态持续显眼。
+9. 编译验证使用 `:app:assembleDebug`；需要发布 debug 版本时，在 `docs/features/recording-wave-visualizer/debug-updates/` 新建中文发布日志并传给 `:app:publishDebugUpdate`。
+
 ## 一、渲染架构（VoiceVisualizer.kt 重写）
 
 放弃现有的"离屏 `Bitmap` + 每次 `receive` new 一个 `Handler` 重绘"的柱子画法，改为

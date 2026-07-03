@@ -34,7 +34,7 @@ import kotlin.math.sqrt
  * Updated by ywwynm on 2016/7/8 to get real decibel
  *
  * Sampling AudioRecord Input
- * This output send to [VoiceVisualizer]
+ * This output sends semantic wave drive frames to [RecordingWaveFrameReceiver].
  */
 open class AudioRecorder {
 
@@ -45,7 +45,7 @@ open class AudioRecorder {
 
     private var mBufSize: Int = 0
 
-    private val mVoiceVisualizers: MutableList<VoiceVisualizer> = ArrayList()
+    private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
 
     @Volatile
     private var mIsListening: Boolean = false
@@ -60,12 +60,10 @@ open class AudioRecorder {
     }
 
     /**
-     * link to VisualizerView
-     *
-     * @param voiceVisualizer [VoiceVisualizer]
+     * link to recording wave receiver
      */
-    fun link(voiceVisualizer: VoiceVisualizer) {
-        mVoiceVisualizers.add(voiceVisualizer)
+    fun link(receiver: RecordingWaveFrameReceiver) {
+        mWaveReceivers.add(receiver)
     }
 
     /**
@@ -139,9 +137,9 @@ open class AudioRecorder {
             saveToWaveFile()
         }
 
-        if (!mVoiceVisualizers.isEmpty()) {
-            for (i in mVoiceVisualizers.indices) {
-                mVoiceVisualizers[i].receive(VoiceAudioFrame.SILENCE)
+        if (!mWaveReceivers.isEmpty()) {
+            for (i in mWaveReceivers.indices) {
+                mWaveReceivers[i].receive(RecordingWaveDriveFrame.SILENCE)
             }
         }
     }
@@ -290,7 +288,7 @@ open class AudioRecorder {
     ) : Thread() {
 
         var time: Long = System.currentTimeMillis()
-        private val mAnalyzer: VoiceAudioAnalyzer = VoiceAudioAnalyzer(RECORDING_SAMPLE_RATE)
+        private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
         private var mLastLogTime: Long = 0L
         @Volatile private var mShouldRun: Boolean = true
 
@@ -323,22 +321,23 @@ open class AudioRecorder {
                 val now = System.currentTimeMillis()
                 val elapsed = now - time
                 if (elapsed >= mSamplingInterval) {
-                    val frame: VoiceAudioFrame = mAnalyzer.analyze(elapsed)
+                    val frame: RecordingWaveDriveFrame = mAnalyzer.analyze(elapsed)
                     if (BuildConfig.DEBUG && now - mLastLogTime >= DEBUG_FRAME_LOG_INTERVAL_MS) {
                         Log.i(
                             TAG,
-                            "audio frame: loudness=${frame.loudness}, low=${frame.low}, " +
-                                    "lowMid=${frame.lowMid}, mid=${frame.mid}, high=${frame.high}, " +
-                                    "air=${frame.air}, transient=${frame.transient}, " +
-                                    "onset=${frame.onset}, beat=${frame.beatPulse}, " +
-                                    "tempo=${frame.tempoBpm}, confidence=${frame.tempoConfidence}, " +
-                                    "activity=${frame.activity}"
+                            "wave drive: level=${frame.level}, presence=${frame.presence}, " +
+                                    "swell=${frame.swell}, wake=${frame.wake}, pace=${frame.pace}, " +
+                                    "bass=${frame.bassWeight}, voice=${frame.voiceWeight}, " +
+                                    "brightness=${frame.brightnessWeight}, pitch=${frame.feature.pitchHz}, " +
+                                    "pitchConfidence=${frame.pitchConfidence}, beat=${frame.feature.beatPulse}, " +
+                                    "tempo=${frame.feature.tempoBpm}, confidence=${frame.feature.tempoConfidence}, " +
+                                    "noise=${frame.feature.noiseLike}"
                         )
                         mLastLogTime = now
                     }
-                    if (!mVoiceVisualizers.isEmpty()) {
-                        for (i in mVoiceVisualizers.indices) {
-                            mVoiceVisualizers[i].receive(frame)
+                    if (!mWaveReceivers.isEmpty()) {
+                        for (i in mWaveReceivers.indices) {
+                            mWaveReceivers[i].receive(frame)
                         }
                     }
                     time = now

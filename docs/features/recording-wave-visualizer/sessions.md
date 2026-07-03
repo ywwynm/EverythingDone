@@ -1,4 +1,120 @@
 # 会话记录 — 录音波形可视化改造
+## 2026-07-03 - 按按钮实际高度重新上调水位
+- 用户反馈：D67 发布后水位只升高了一点点，仍然没有怎么盖过录音按钮。
+- 诊断结论：底部按钮行高 `96dp`，dialog 高 `360dp`，主录音按钮 `56dp` 且在按钮行内居中，因此按钮 top 约为 `284dp`。D67 的最前景深色层静态水面约为 `288dp`，仍低于按钮 top，视觉上不会明显覆盖按钮区域。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：`baseSurfaceY()` 从 `0.772 - waterLevel * 0.218` 调整为 `0.724 - waterLevel * 0.202`，让最前景深色层静态水面约从 `288dp` 抬到 `271dp`。dialog 尺寸和按钮布局不变。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703145150.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030652**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030652.apk`，SHA-256 `09fe3328660a9e25b6fe5a6301d8ce61648aa0d8aa89771dc3fec610e74bc2df`。服务器 `latest.json` 已确认指向该版本。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 毛刺柔化与初始水位上移
+- 用户反馈：波浪偶尔会出现一些毛刺；初始水位稍微低了一些，导致最深色那道浪没能盖过录音按钮的高度。
+- 诊断结论：初始水位来自 `baseSurfaceY()`，当前静态基座偏低，最前景深色层还有向下的 `verticalOffset`，因此低能量时不够覆盖按钮高度。毛刺更可能是最终路径中少量孤立采样点、局部物理波场高斜率或细小扰动被路径重建放大，不应通过降低大浪高度或减少层数来解决。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：`baseSurfaceY()` 从 `0.798 - waterLevel * 0.225` 调整为 `0.772 - waterLevel * 0.218`，让整片水体和 6 道浪整体上移。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增最终路径的孤立尖点柔化，只处理单点局部极值且超过邻域阈值的突起，保留连续大浪峰、强声高浪和多层丰富度。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703144723.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030647**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030647.apk`，SHA-256 `ee0954b495de69b5596c94c88eb47437b76fbd6edfce9dc2b4fdd0862f38479d`。服务器 `latest.json` 已确认指向该版本。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 残余阶梯状折点合并修正
+- 用户反馈：阶梯状情况已经少了非常多，但仍有一些，怀疑波浪合并处还有问题。
+- 诊断结论：D64 后生成浪主输出已经是连续 signed sum，但 `crestSupport` 仍通过单个浪包 offset 是否为负来累加；多个浪包互相抵消或穿过时，单个浪包跨零可能让限幅支持量斜率变化，留下轻微下折。另一个次要风险是 cubic 路径控制点在波峰/波谷附近过冲，把小的合成斜率变化放大成折点。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：同层多浪包合并改为使用总 signed sum 的建设性 crest 分量和连续合并能量 `sqrt(sum(offset^2))` 推导 `crestSupport`，不再按单个浪包正负分组。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：路径重建改为局部单调 cubic 切线，相邻斜率异号时切线归零，同号时按较小相邻斜率限制控制点，避免 crest/trough 附近过冲。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：降低生成浪尾部硬截断阈值，让浪包边缘衰减更连续。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703143118.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030631**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030631.apk`，SHA-256 `3f740ce422a1ec9a1df079e64f709685a0274a02498279487497ba28e873289c`。服务器 `latest.json` 已确认指向该版本。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 波峰小卡顿保质优化
+
+- 用户反馈：声音比较大、动画比较丰富时，波峰处会有一些小卡顿，并要求不要降低动画质量。
+- 诊断结论：最可能原因是 D64 后主浪路径采样密度较高，且每个采样点会通过三点空间平滑重复计算 `generatedWaveOffsetRaw()`；大声和丰富动画时每层多个 `GeneratedWave` 同时激活，指数/三角函数调用量在波峰丰富场景下达到峰值。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：移除生成浪三点空间平滑的重复 raw 计算。D64 的连续 signed sum 已经承担几何连续性，因此不再需要每个采样点三次计算同一组浪包。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：路径从高密度二次中点连接改为三次连续路径重建；采样点数略降但使用受限切线的 cubic 连接，保持视觉平滑并降低每帧计算量。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：`waveWildness()` 改为每帧计算一次并缓存，避免每个采样点重复计算同一视觉状态。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703142231.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030622**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030622.apk`，SHA-256 `3db46bf9c6132f3aa821e8e048b57b9b3777ba12c92b9e1f3a8485420767b8e7`。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 阶梯式下折锯齿修正
+
+- 用户反馈：仍能看到一种像阶梯一样的锯齿，本来平滑的曲线会突然往下折一下，并询问是否是采样点数不够。
+- 调研结论：采样点数不足会造成 aliasing 和阶梯感，但这类“局部突然下折”更像几何函数本身存在斜率突变；`Path` / `Canvas` 只能绘制给定路径，不能自动消除上游合成函数里的折点。
+- 诊断结论：D62/D63 的同层多浪包合成把每个浪包按正负拆成 crest / trough 两组再分别做非线性软上限。多个浪包互相抵消时，单个浪包跨过零点会切换组别，可能造成局部斜率突变。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：生成浪合成改为先做连续 signed sum，再只对总和做 crest / trough 软约束；`crestSupport` 只用于估计 trough room，不再改变每个浪包的输出公式。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：提高水体边界和主浪路径采样密度，降低普通采样 aliasing 对阶梯感的放大。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703141417.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030614**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030614.apk`，SHA-256 `a032803dea6407e24563e5f8b734700310840669d2db7363966d031eefa2af2c`。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 潮位流速、强浪幅度与锯齿优化
+
+- 用户反馈：同层多浪包版本比之前更好，但低水位时波浪流速仍偏快；有时会出现矩形锯齿；声音较大时仍缺少必要的高大浪。
+- 诊断结论：相位推进和生成浪速度主要由 presence / pace 驱动，低水位只弱参与；D62 的多浪包软上限为了保护稳定性偏保守，强事件 crest room 不足；窄浪包和指数饱和软限幅可能在局部形成平台或硬折角。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 `tideFlowScale()`，让低水位降低基础波、肩部波、细节波、漂移波、生成浪出生速度和物理波场注入速度。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：生成浪合成增加小尺度空间平滑，浪包最小宽度略加大，并将同层 crest / trough 的软上限改为更柔和的对数型曲线，减少矩形锯齿和硬折角。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：强声、强节拍和高 wake 时提高 crest room、生成浪强度上限和前景层振幅，让必要场景能生成更高、更大的浪；trough 仍由基座水位软限幅保护。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703131323.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030513**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030513.apk`，SHA-256 `7ec1b88b12c6323b7332437534963e8148a46002f4a49521b5c8b85e5683c05d`。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 同层多浪包叠加与后浪软干涉
+
+- 用户反馈：有时会出现一个波峰在瞬间突然下压，希望继续优化海浪模拟，尤其是同一层里后面出现的新浪如何影响已经升起或正在渲染的前浪。
+- 调研结论：波浪相遇应以位移叠加和相位干涉为基础；可信的实时水面通常让 active wave 继续按自身参数传播，新参数用于后续出生的波，而不是直接改写已经在运动的波。
+- 诊断结论：当前 `RecordingWaveVisualizer` 每层只有一个 `GeneratedWave` 槽位；新浪生成时一旦复用同层槽位，旧浪会瞬间被替换，视觉上就可能表现为波峰突然下压或消失。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：`GeneratedWave` 改为每层 4 个浪包槽位，新波优先进入空槽；只有旧浪可见度很低时才允许复用槽位。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：同层多个浪包在几何层叠加，crest 分量可形成更大的浪，trough 分量经过软上限与 crest 保护，避免新浪肩部瞬间压垮旧波峰。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新浪出生位置会检查同层可见波峰，避免 leading/trailing shoulder 直接落在旧 crest 上造成突兀抵消。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703130409.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030504**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030504.apk`，SHA-256 `a971d9d4c8d1ea84f491c98768a681ab2b0d30073c8fa213888906e2067d5faf`。未使用 adb，未安装到物理设备或模拟器，未 commit。
+
+## 2026-07-03 - 生成式波浪野性增强
+
+- 用户反馈：生成式生命周期版本减少了当前波浪原地乱颤，但浪不够野性，整体太平淡。
+- 诊断结论：生命周期模型方向继续保留，问题在于出生参数偏保守；单个事件通常只生成一道浪，生成门槛和间隔偏高，`GeneratedWave` 的高度、crest、尾浪、速度和内部 ripple 都较克制。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：降低有效事件和持续音乐 drive 的生成门槛，缩短快节奏场景下的新波浪生成间隔。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：提高 `GeneratedWave` 的波峰振幅、crest 权重、传播速度、尾浪权重、leading shoulder 和内部 ripple，让新生成的浪更高、更快、更有冲击感。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：强 beat / 高 pace / 高 strength 时允许一次事件生成主浪和副浪，占用两个不同槽位形成错峰叠加；已出生波浪仍不被后续音频帧改形。
+- 更新 [preferences.md](preferences.md) 与 [decisions.md](decisions.md)，记录“生成式波浪也必须足够野性”的偏好与 D61 决策。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703125150.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030452**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030452.apk`，SHA-256 `3d63ab96e0bc61cea4ee0456707156be73a55dc7be236e1a19a4918eeab5007a`。未使用 adb，未安装到物理设备/模拟器，未 commit。
+
+## 2026-07-03 - 生成式波浪生命周期重构
+
+- 用户反馈：当前版本仍会出现波浪原地乱颤；但“音乐变化主要反映在下一个波浪生成上，而不是强行改变当前波浪”的思路是对的。每个波浪应自然完成从上升到下降的生命周期，音乐快慢通过新波浪生成速度体现；6 道波浪可以错峰跟上音乐。
+- 诊断结论：上一版虽然加入了行进波前，但基础水面频率、细节、beat breath、pan bend、底层流速和背景水体边界仍有部分当前音频即时改写入口，且 traveling surge 是叠加扰动，不是 6 道主浪自身的生命周期模型。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 6 个 `GeneratedWave` 生命周期槽位；有效声音事件、能量上升、beat pulse 或持续音乐 drive 只触发一个槽位出生新波浪。出生时冻结强度、宽度、速度、方向、rise/fall 比例、crest/trailing/ripple 权重，后续只随 `age` 自然上升、传播、下降。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：`pace`、beat pulse 和整体 music drive 只影响新波浪生成间隔；保留最小间隔和 6 槽复用，避免 20ms 音频帧直接制造几何变化。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：基础水面改成低幅、低频、慢速底座，移除当前音频对基础波频率、细节、beat breath、pan bend、底层流速和 bodySurface 的明显即时改写；慢速 `waterLevel` 继续承担整体潮位。
+- 更新 [preferences.md](preferences.md) 与 [decisions.md](decisions.md)，记录“音乐变化主要影响下一道浪的生成”的偏好与 D60 决策。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703120049.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030401**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030401.apk`，SHA-256 `8b5da3973f682e3323b2908f145ca8e6e0c99e39dc023ad958e56359ec6e127f`。未使用 adb，未安装到物理设备/模拟器，未 commit。
+
+## 2026-07-03 - 强声响应改为行进波前
+
+- 用户反馈：当前版本声音变化时会原地把已有波形变成波峰和波谷，看起来像一座座山，而不是自然升起的波浪。
+- 诊断结论：上一版虽然加入了死区门控和向下软限幅，但 `RecordingWaveVisualizer.waveY()` 仍用 `level/swell/wake/wildness` 对整条基础正弦波做直接振幅放大，因此声音一变，现有峰谷会在原地长高。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：降低 `level`、`swell`、`wake`、`wildness` 对基础波整条曲线的直接放大和 `shapeAudioWave()` 的原地 crest sharpening，基础水面改回更温和的低频水体底座。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 `TravelingSurge` 生命周期事件；当 `level`、`swell`、`presence`、`wake` 上升或 beat pulse 明显时生成局部行进波前，并在 6 层水面之间加入轻微延迟、宽度和强度差异，让波峰从水面局部升起并横向传播。
+- 保留上一轮的目标值死区门控和相对基座水位向下软限幅，避免回到轻微颤动或波谷撞到底部。
+- 更新 [preferences.md](preferences.md) 与 [decisions.md](decisions.md)，记录“声音变化应生成行进波峰，而不是原地长成山”的偏好与 D59 决策。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703115201.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030352**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030352.apk`，SHA-256 `99a2e16c9e38b63a1c323c4fb2b696234baf92f5efb4746da2d69c40a9264de7`。未使用 adb，未安装到物理设备/模拟器，未 commit。
+
+## 2026-07-03 - 波谷软限幅与目标值死区门控
+
+- 用户反馈最新发布版在声音变化时，波谷容易直接落到 dialog 底部，上下差异过大；同时部分波浪有轻微颤动，希望变化超过阈值后再发生，并且要以动画形式顺滑变化，而不是瞬时 set。
+- 诊断结论：上一版为增强野性提高了主波幅、wake 振幅和物理波场冲击，但 `waveY()` 没有相对平均基座水位的向下软边界；`acceptFrame()` 每帧原样写入所有目标值，也会让细小音频 drive 抖动持续传入视觉层。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：为 `level`、`waterLevel`、`swell`、`wake`、`pace`、频段权重、pitch、pan、beat/tempo 等目标值增加死区门控；超过阈值后仍由 `approach()` 按 attack/release 连续追赶，静音或近零输入可归零目标。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：以每层 `baseSurfaceY + verticalOffset` 作为基座水位，对最终 `waveY` 的向下位移做指数软压缩；同时降低向下 trough 额外放大和物理波场配对 trough 冲击，保留向上波峰和高能量野性。
+- 更新 [preferences.md](preferences.md) 与 [decisions.md](decisions.md)，记录“波谷不能明显低于基座水位”和“小幅输入变化需要阈值门控并平滑追赶”的偏好与 D58 决策。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703113923.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 渠道，code **202607030339**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030339.apk`，SHA-256 `9f74815729c41e07b44ea06c4be1db55787b7db5a7d64b14480bd936731023e9`。未使用 adb，未安装到物理设备/模拟器，未 commit。
+
+## 2026-07-03 - 新录音波浪外部调研与首轮问题
+
+- 用户要求重新设计录音 dialog 的波浪动画：完全不参考现有 visualizer 实现，先调研音频可视化、波浪动画和实时音频特征，再通过充分讨论决定方案。
+- 调研结论：实时音频可视化不应只看单一音量值；应拆分为响度/动态范围、频段能量、spectral flux / onset、tempo / beat 置信度、spectral centroid 或近似音色亮度等通道，再由视觉层按不同惯性和阈值吸收。
+- 调研结论：自然水面不适合逐帧追踪每个音频特征；更适合使用多组连续正弦/Gerstner 式波分量、分层相位、连续噪声和 envelope follower，让音频事件驱动目标值而不是直接改写最终几何。
+- 调研结论：安静环境和空调等稳态噪声需要单独门控；低活动态应保留低幅、低速、低细节的水感，只有有效人声、明显 onset、节拍或声强变化进入 alive / surge 类视觉状态。
+- 待用户确认的第一个产品问题：这轮新设计的首要取向是“自然水体优先，声学特征作为驱动”，还是“声学仪表优先，尽量直接展示音频特征”。
+- 后续讨论中用户不同意复用当前 `VoiceAudioFrame`，要求重新设计音频特征提取层，并再次明确必须上网调研音频可视化和音频特征提取后给出更好的方案。
+- 补充调研结论：新特征层应使用多时间尺度特征。短窗约 10-20ms 用于低延迟 RMS、rise、onset 快通道；中窗约 40-60ms 用于 Mel/Bark 频带、spectral centroid/rolloff/flatness 和 spectral flux；长窗约 400ms 以上用于噪声底、响度动态范围、节奏密度和 tempo 置信度。
+- 补充调研结论：安静和空调风噪不应只靠响度阈值处理。应维护自适应 noise floor，并结合 spectral flatness、低中频 flux、voicing/pitch 可信度、onset 密度和 hysteresis 得到 `intent` 或 `presence`，再决定视觉层是否进入 alive/surge。
+- 补充调研结论： pitch / F0 可以作为“高低感”的辅助输入，但麦克风环境可能混有人声、音乐和噪声；因此不应让 pitch 直接决定几何高度，而应在可信度足够时轻量影响波浪的纵向倾向、流速或表面亮度。
+
+## 2026-07-03 - Fable 版重新设计调研与定向
+
+- 用户反馈近几次提交后的录音 dialog 波浪仍不满意：较安静环境中动画仍明显，声音大小、高低、快慢和节拍差异表达不够；要求完全不查看、不参考现有 visualizer 源码，新建以 `Fable` 为类名后缀的 visualizer。
+- 读取了功能文档、录音 dialog 宿主、布局、`VoiceAudioFrame` 和 `AudioRecorder` 的音频特征数据流；未打开现有 visualizer 源码。
+- 外部调研参考了实时音频可视化、FFT/频域分析、onset / beat tracking、谱质心 / 音色亮度、水波多正弦 / Gerstner 式渲染等资料。结论是继续采用“音频检测敏感、视觉承接有惯性”的分层策略，而不是把每个短时音频特征直接画进几何轮廓。
+- 新增偏好：Fable 版默认约 6 道半透明波浪，每道浪共享同一水体身份但有独立透明度、惯性、延迟、相位、扰动和随机个性；安静态低水位、低浪高、慢流速，活跃态对声强、节奏和速度差异有更显著反馈。
+- 新增 D38 决策与 Fable 计划：`AudioRecorder` 后续应依赖轻量接收接口；`AudioVisualizerFable` 内部使用 `quiet / aware / alive / surge` 连续视觉状态机，再映射到 6 层水体绘制。待用户确认是否允许增加不改变主轮廓的“表面生命层”后开始实现。
 
 ## 2026-07-02 - D36 实现：恢复适度水位涨落
 
@@ -337,3 +453,57 @@
 - 用户要求将上一版 `373.33dp` 的录音 dialog 高度改为 `360dp`。
 - 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：根布局 `android:layout_height` 和 `android:minHeight` 同步改为 `360dp`。
 - 验证与发布：`:app:assembleDebug` 通过；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code **202607021219**。远端 `latest.json` 已确认 APK URL 和 SHA-256。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-03 - 新录音波浪实现与入口切换
+
+- 用户在调研和方案确认后要求进入实现并发布阿里云，同时强调 dialog 尺寸必须保持 `280dp * 360dp`，自定义 View 不得改变对话框尺寸。
+- 新增 [RecordingAudioFeatureFrame.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingAudioFeatureFrame.kt)、[RecordingWaveDriveFrame.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveDriveFrame.kt)、[RecordingWaveFrameReceiver.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveFrameReceiver.kt)、[RecordingAudioAnalyzer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingAudioAnalyzer.kt)、[RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)。
+- 新特征层使用 RMS / dBFS、adaptive floor、fast level、8 段 FFT、spectral centroid / rolloff / flatness、spectral flux、onset、弱 tempo / beat、轻量 YIN pitch、stereo balance；再映射成 `level`、`presence`、`swell`、`wake`、`pace`、`surfaceLife`、`pitchLift` 等水体语义驱动。
+- 新动画 View 使用底部水体、6 道实例随机主波、局部浪涌事件和表面高光；安静态保留轻微自然流动，presence gate 与 noise-like 判定会抑制环境噪声导致的剧烈动画；有效声音优先推动浪高和局部浪涌，水位只慢速少量变化。
+- 修改 [AudioRecorder.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/AudioRecorder.kt)：运行入口改为 `RecordingAudioAnalyzer`，接收者改为 `RecordingWaveFrameReceiver`，旧 `VoiceAudioAnalyzer` / `VoiceAudioFrame` 留在文件中但不再被当前录音 dialog 使用。
+- 修改 [AudioRecordDialogFragment.kt](../../../app/src/main/java/com/ywwynm/everythingdone/fragments/AudioRecordDialogFragment.kt) 和 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：`voice_visualizer` 切到 `RecordingWaveVisualizer`；根布局仍保持 `layout_width="280dp"`、`layout_height="360dp"`、`minWidth="280dp"`、`minHeight="360dp"`。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过（`BUILD SUCCESSFUL in 7s`）；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703011723.md" --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，code **202607021718**，远端 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607021718.apk`，SHA-256 `fd87f3fdf406c53101717d7722c7e82b305321daae5655cc0bd19820b96d65da`。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-03 - 尺寸回归与波峰过尖修复
+
+- 用户反馈：上一版新 visualizer 导致录音 dialog 宽高又变了，高度非常高，顶部计时器文本不居中；同时波峰太尖锐，跳动太快。
+- 诊断结论：`BaseDialogFragment` 的 window 高度是 `WRAP_CONTENT`，根布局以 `null parent` 充气后依赖 `minWidth/minHeight` 提供固有尺寸；新 `RecordingWaveVisualizer` 是 `match_parent` 子项，在 `AT_MOST` 测量下默认接受父容器可用高度，导致根 `FrameLayout` 被撑高。计时器偏移是该尺寸回归的连带表现。波峰过尖主要来自窄局部浪涌、高频环纹、较短 attack 和较高横向流速。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 `onMeasure()`，非精确测量下声明 `280dp * 360dp` 固有尺寸；放慢 `level/presence/swell/turbulence/wake/pace` 等视觉状态追随；降低横向流速、高频交叉分量、crest 线条强度与 turbulence/impulse 权重；局部浪涌改为更宽、更慢、更低强度的波包。
+- 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：根布局尺寸仍保持 `280dp * 360dp`，计时器 `layout_gravity` 改为 `top|center_horizontal`。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过（`BUILD SUCCESSFUL in 1s`）；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703095917.md" --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，code **202607030159**，远端 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030159.apk`，SHA-256 `d4a417608b4914482491878cfd0d0d7d909a24ca746f3e631f1399ac82b4f75e`。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-03 - 增强起伏与颜色深度
+
+- 用户反馈：浪的上下起伏可以再大、更显著，水位起伏也可以再大一点点；当前颜色太淡，需要更深。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：提高主波 `baseAmplitude`、`energyAmplitude`、`wakeAmplitude`，增强 `swell` 对层透明度和水体顶部的影响；水位映射从 `0.170` 提高到 `0.215`，并略微加快慢速潮位追随。
+- 颜色调整：水体和主波 alpha 提高；`tone()` 改为在浅色背景上更明显压暗、在暗色背景上减少提亮，避免整体发白、过淡。
+- 保留上一轮约束：未加快横向主相位速度，未恢复窄而快的局部尖峰；dialog 根布局仍保持 `280dp * 360dp`。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过（`BUILD SUCCESSFUL in 4s`）；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703100751.md" --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，code **202607030208**，远端 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030208.apk`，SHA-256 `6c20500d08970a578c877641f034c0be4d3ca2764bacccd5c3ac000f257cc62a`。未使用 adb，未安装设备，未 commit。
+
+## 2026-07-03 - 顶部平浪、起伏幅度与竖条闪烁优化
+
+- 用户反馈：最上方总有一道几乎一直平着的浅浪，希望它也起伏；波峰和波谷的高度差异还可以再大；当前实现里有从左往右滑动闪烁的竖条，渲染质量不高。
+- 诊断结论：顶部平浪来自 `drawWaterBody()` 用矩形绘制，水体上边界天然是水平线；竖条感主要来自半透明填充路径的粗折线采样和表面高光短亮条；起伏差异不足则需要继续提高主体波幅，而不是恢复窄尖瞬态。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 `bodySurfaceY()`，水体上边界改为低频波形路径；水体和主波填充路径从折线改为更密的二次曲线采样；提高 `baseAmplitude / energyAmplitude / wakeAmplitude` 并增加最终波高放大系数；收敛表面高光的触发门槛、概率、alpha、移动速度和形状。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过（`BUILD SUCCESSFUL in 3s`）；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703101617.md" --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，code **202607030216**，远端 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030216.apk`，SHA-256 `d30a1a7539754869d42ff5851de94b173d47fff163a7b16bcde004d4eafd3c1e`。未使用 adb，未安装设备，未 commit。
+## 2026-07-03 - Fable 自然波场内核补强与边界随机
+
+- 读取交接文件后继续当前录音波浪任务，确认本轮只借 Claude Fable 的自然波浪动力学内核，不整体替换 EverythingDone 的视觉风格，也不修改 `bigA`。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：在 6 层水面上加入小幅实例级随机，让相位、采样偏移、振幅、速度和细节比例每次 dialog 生命周期略有不同，但不逐帧跳变，不改变层数和核心稳定常量。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：物理波场脉冲改为 crest/trough 成对速度扰动，并轻量消除整体速度均值；同时略微放慢波速、提高黏性、加宽脉冲核，减少尖锐跳动和整体机械抬升。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：加密水体和主波填充曲线采样，继续压低半透明填充路径产生的竖向分段和闪烁感。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703110927.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 通道，code **202607030311**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030311.apk`，SHA-256 `6143a65ccaeef6c82ce7f17a096ce3254da8aeb438ab9039ab46a6fa287fb142`。未使用 adb，未安装设备，未 commit。
+## 2026-07-03 - Fable 内核剩余项补全
+
+- 用户追问是否还有 Fable 相关内容未实现；重新对照 `E:\tmp\audio-visualizer-fable` 参考实现后，确认继续只借自然动力学内核，不搬粒子水花、径向光斑、三层视差等 Fable 视觉身份。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增冲击事件队列，`receive()` 只入队，动画帧 `advance()` 再统一注入物理波场，使音频回调和水波积分解耦。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：补回 `onWindowVisibilityChanged()`、`onVisibilityAggregated()` 和 `onWindowFocusChanged()` 的帧循环恢复/停止逻辑，降低锁屏返回或窗口状态变化后动画停止的风险。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：加入轻量 `beatBreath`，在 tempo 置信度足够时只调制宽浪呼吸；横向流速改为活动度门控，安静时更慢，有效声音和快节奏出现后再明显活跃。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703111609.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 通道，code **202607030316**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030316.apk`，SHA-256 `c9dcc4970ff0fd247fe755f5ba63db6d71f7bd02998361a7a161799af7c8f5d1`。未使用 adb，未安装设备，未 commit。
+## 2026-07-03 - 去白边、增强野性和修正高潮能量
+
+- 用户反馈三点：每一道浪顶部像有白边；波峰/波谷高度差太小，声音丰富场景缺少“野性”和相对尖锐的大浪；一首歌前奏水位高、高潮反而下降，怀疑当前实现过度跟随音调/频段亮度而不是音量和整体能量。
+- 诊断结论：白边来自 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt) 中每层 `crestPath` 的高亮描边；野性不足来自主波振幅、物理冲击和波形整形仍偏保守；高潮下降风险来自 [RecordingAudioAnalyzer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingAudioAnalyzer.kt) 中 `brightness` / `noiseLike` / 相对响度对水位和浪高的权重不平衡。
+- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：删除每层 crest 描边，只保留填充水面；新增 `waveWildness()` 和 `shapeAudioWave()`，高 presence / level / swell / turbulence / wake / pace 时对主波做非线性放大和 crest sharpening；提高主波能量振幅、wake 振幅和物理波场冲击力度，同时降低 pitch / brightness 对主波频率的影响。
+- 修改 [RecordingAudioAnalyzer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingAudioAnalyzer.kt)：提高 `absoluteLevel`、`fastLevel` 和整体频带能量对 `level`、`waterLevel`、`swell` 的权重；降低 `noiseLike` 对高能量人声/高潮段的压制，让高潮段即使频段不如前奏乐器明亮，也更可靠地表现为更高水位和更剧烈波浪。
+- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703112811.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 通道，code **202607030328**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030328.apk`，SHA-256 `9a1ea2136d277a5e48a7500016c5ef93bcac9da75774bb18898510e360abaa68`。未使用 adb，未安装设备，未 commit。

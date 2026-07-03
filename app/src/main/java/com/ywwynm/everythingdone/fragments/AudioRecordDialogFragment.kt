@@ -27,7 +27,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
-import com.ywwynm.everythingdone.views.recording.VoiceVisualizer
+import com.ywwynm.everythingdone.views.recording.RecordingWaveVisualizer
 
 import java.io.File
 
@@ -48,7 +48,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
     private var mChronometer: Chronometer? = null
-    private var mVisualizer: VoiceVisualizer? = null
+    private var mVisualizer: RecordingWaveVisualizer? = null
 
     private var mIvMainAction: ImageView? = null
     private var mIvReRecording: ImageView? = null
