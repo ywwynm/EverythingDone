@@ -9,8 +9,8 @@
     android:minWidth="280dp"
     android:minHeight="360dp">
 
-    <!-- Voice Waveform：海浪水体（Fable 方案），铺满下部，绘制在文字与按钮之下 -->
-    <com.ywwynm.everythingdone.views.recording.OceanWaveVisualizerFable
+    <!-- Voice Waveform：波浪水体（Opus 方案），铺满下部，绘制在文字与按钮之下 -->
+    <com.ywwynm.everythingdone.views.recording.WaveVisualizerOpus
         android:id="@+id/voice_visualizer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

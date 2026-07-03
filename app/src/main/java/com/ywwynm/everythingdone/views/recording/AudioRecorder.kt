@@ -2,9 +2,14 @@
 
 package com.ywwynm.everythingdone.views.recording
 
+import android.content.Context
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
 import android.util.Log
 
 import com.ywwynm.everythingdone.BuildConfig
@@ -38,7 +43,7 @@ import kotlin.math.sqrt
  * and Fable ocean audio frames to [OceanWaveFrameReceiverFable]. Each analyzer
  * chain only runs when it has at least one linked receiver.
  */
-open class AudioRecorder {
+open class AudioRecorder(private val appContext: Context?) {
 
     private var mSamplingInterval: Int = 20
 
@@ -49,6 +54,12 @@ open class AudioRecorder {
 
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
     private val mFableReceivers: MutableList<OceanWaveFrameReceiverFable> = ArrayList()
+    private val mOpusReceivers: MutableList<WaveFrameReceiverOpus> = ArrayList()
+
+    // 采集端音效（D6）：改用 UNPROCESSED/VOICE_RECOGNITION 后仍显式关掉 AGC/NS/AEC，持引用防 GC。
+    private var mAgc: AutomaticGainControl? = null
+    private var mNs: NoiseSuppressor? = null
+    private var mAec: AcousticEchoCanceler? = null
 
     @Volatile
     private var mIsListening: Boolean = false
@@ -77,6 +88,13 @@ open class AudioRecorder {
     }
 
     /**
+     * link to Opus wave receiver（Opus 方案入口，D13）。链路只在有接收器时运行。
+     */
+    fun linkOpus(receiver: WaveFrameReceiverOpus) {
+        mOpusReceivers.add(receiver)
+    }
+
+    /**
      * setter of samplingInterval
      *
      * @param samplingInterval interval volume sampling
@@ -95,23 +113,86 @@ open class AudioRecorder {
     }
 
     private fun initAudioRecord() {
+        // D6：单声道采集（多数手机 stereo 只是复制单声道，mono 减半数据/计算，特征全可从单声道得出）。
         val bufSize: Int = AudioRecord.getMinBufferSize(
                 RECORDING_SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_STEREO,
+                AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
         )
+        if (bufSize <= 0) return
 
-        mAudioRecord = AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                RECORDING_SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufSize
-        )
-
-        if (mAudioRecord!!.state == AudioRecord.STATE_INITIALIZED) {
-            mBufSize = bufSize
+        // 依次尝试候选采集源，直到某个真正 INITIALIZED；避免"报告支持但实际失败"时静默无数据。
+        for (source in candidateSources()) {
+            val record: AudioRecord = try {
+                AudioRecord(
+                        source,
+                        RECORDING_SAMPLE_RATE,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        bufSize
+                )
+            } catch (e: Exception) {
+                continue
+            }
+            if (record.state == AudioRecord.STATE_INITIALIZED) {
+                mAudioRecord = record
+                mBufSize = bufSize
+                // MIC 模式保留默认 AGC/NS（还原原始录音体验）；其余模式显式关闭以保留动态与频谱。
+                if (!PREFER_MIC) disablePreprocessing(record.audioSessionId)
+                if (BuildConfig.DEBUG) Log.i(TAG, "AudioRecord source=$source (preferMic=$PREFER_MIC) initialized")
+                return
+            }
+            try { record.release() } catch (_: Exception) {}
         }
+    }
+
+    /**
+     * D6：优先 UNPROCESSED（保留动态与频谱最佳），再回退 VOICE_RECOGNITION（不加 AGC、NS 默认关），
+     * 最后回退 MIC 兜底可用性。minSdk 26，常量均可直接引用。
+     */
+    private fun candidateSources(): IntArray {
+        if (PREFER_MIC) return intArrayOf(MediaRecorder.AudioSource.MIC)
+        val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val unprocessed = am?.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED) == "true"
+        return if (unprocessed) {
+            intArrayOf(
+                MediaRecorder.AudioSource.UNPROCESSED,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                MediaRecorder.AudioSource.MIC
+            )
+        } else {
+            intArrayOf(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                MediaRecorder.AudioSource.MIC
+            )
+        }
+    }
+
+    /**
+     * D6：即便选了低处理采集源，仍在 session 上显式关闭 AGC/NS/AEC（双保险）。部分机型只读不可关，
+     * `isAvailable()` 为 false 时无能为力（正常）。
+     */
+    private fun disablePreprocessing(sessionId: Int) {
+        releaseEffects()
+        try {
+            if (AutomaticGainControl.isAvailable()) {
+                mAgc = AutomaticGainControl.create(sessionId)?.also { it.setEnabled(false) }
+            }
+            if (NoiseSuppressor.isAvailable()) {
+                mNs = NoiseSuppressor.create(sessionId)?.also { it.setEnabled(false) }
+            }
+            if (AcousticEchoCanceler.isAvailable()) {
+                mAec = AcousticEchoCanceler.create(sessionId)?.also { it.setEnabled(false) }
+            }
+        } catch (e: Exception) {
+            // 某些机型创建/操作音效可能抛异常，忽略即可（退回默认处理，不影响录音）。
+        }
+    }
+
+    private fun releaseEffects() {
+        mAgc?.release(); mAgc = null
+        mNs?.release(); mNs = null
+        mAec?.release(); mAec = null
     }
 
     /**
@@ -155,6 +236,9 @@ open class AudioRecorder {
         for (i in mFableReceivers.indices) {
             mFableReceivers[i].receive(OceanWaveAudioFrameFable.SILENCE)
         }
+        for (i in mOpusReceivers.indices) {
+            mOpusReceivers[i].receive(WaveDriveFrameOpus.SILENCE)
+        }
     }
 
     @Synchronized
@@ -190,8 +274,9 @@ open class AudioRecorder {
             val audioLength: Long = input.getChannel().size()
             val dataLength: Long = audioLength + 36
 
+            // D6：单声道，channels=1、byteRate 相应减半。
             writeWaveFileHeader(out, audioLength, dataLength,
-                    RECORDING_SAMPLE_RATE.toLong(), 2, (16 * RECORDING_SAMPLE_RATE * 2 / 8).toLong())
+                    RECORDING_SAMPLE_RATE.toLong(), 1, (16 * RECORDING_SAMPLE_RATE * 1 / 8).toLong())
 
             val data = ByteArray(mBufSize)
 
@@ -212,6 +297,7 @@ open class AudioRecorder {
      */
     fun release() {
         stopListening(false)
+        releaseEffects()
         mAudioRecord?.release()
         mAudioRecord = null
     }
@@ -252,7 +338,7 @@ open class AudioRecorder {
         header[29] = ((byteRate shr 8) and 0xff).toByte()
         header[30] = ((byteRate shr 16) and 0xff).toByte()
         header[31] = ((byteRate shr 24) and 0xff).toByte()
-        header[32] = (2 * 16 / 8).toByte() // block align
+        header[32] = (channels * 16 / 8).toByte() // block align
         header[33] = 0
         header[34] = 16 // bits per sample
         header[35] = 0
@@ -304,6 +390,8 @@ open class AudioRecorder {
         private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
         private val mFableAnalyzer: OceanWaveAudioAnalyzerFable =
             OceanWaveAudioAnalyzerFable(RECORDING_SAMPLE_RATE)
+        private val mOpusAnalyzer: WaveAudioAnalyzerOpus =
+            WaveAudioAnalyzerOpus(RECORDING_SAMPLE_RATE)
         private var mLastLogTime: Long = 0L
         @Volatile private var mShouldRun: Boolean = true
 
@@ -320,10 +408,10 @@ open class AudioRecorder {
             }
 
             var readSize: Int
-            val readBufferBytes = (VISUAL_READ_FRAMES * RECORDING_BYTES_PER_STEREO_FRAME)
+            val readBufferBytes = (VISUAL_READ_FRAMES * RECORDING_BYTES_PER_FRAME)
                 .coerceAtMost(mBufSize)
-                .coerceAtLeast(RECORDING_BYTES_PER_STEREO_FRAME)
-            val audioBytes = ByteArray(readBufferBytes - readBufferBytes % RECORDING_BYTES_PER_STEREO_FRAME)
+                .coerceAtLeast(RECORDING_BYTES_PER_FRAME)
+            val audioBytes = ByteArray(readBufferBytes - readBufferBytes % RECORDING_BYTES_PER_FRAME)
             while (mShouldRun) {
                 readSize = audioRecord.read(audioBytes, 0, audioBytes.size)
                 if (!mShouldRun) {
@@ -335,6 +423,9 @@ open class AudioRecorder {
                     }
                     if (mFableReceivers.isNotEmpty()) {
                         mFableAnalyzer.ingest(audioBytes, readSize)
+                    }
+                    if (mOpusReceivers.isNotEmpty()) {
+                        mOpusAnalyzer.ingest(audioBytes, readSize)
                     }
                 }
 
@@ -364,6 +455,25 @@ open class AudioRecorder {
                         val fableFrame: OceanWaveAudioFrameFable = mFableAnalyzer.analyze(elapsed)
                         for (i in mFableReceivers.indices) {
                             mFableReceivers[i].receive(fableFrame)
+                        }
+                    }
+                    if (mOpusReceivers.isNotEmpty()) {
+                        val opusFrame: WaveDriveFrameOpus = mOpusAnalyzer.analyze(elapsed)
+                        if (BuildConfig.DEBUG && now - mLastLogTime >= DEBUG_FRAME_LOG_INTERVAL_MS) {
+                            Log.i(
+                                TAG,
+                                "opus drive: loud=${opusFrame.loudness}, intensity=${opusFrame.intensity}, " +
+                                        "quiet=${opusFrame.quietness}, pace=${opusFrame.pace}, " +
+                                        "bright=${opusFrame.brightness}, bass=${opusFrame.bassWeight}, " +
+                                        "mid=${opusFrame.midWeight}, treble=${opusFrame.trebleWeight}, " +
+                                        "onset=${opusFrame.onset}, sustain=${opusFrame.sustainDrive}, " +
+                                        "water=${opusFrame.waterLevel}, pitch=${opusFrame.feature.pitchHz}, " +
+                                        "pconf=${opusFrame.pitchConfidence}, noise=${opusFrame.noiseLike}"
+                            )
+                            mLastLogTime = now
+                        }
+                        for (i in mOpusReceivers.indices) {
+                            mOpusReceivers[i].receive(opusFrame)
                         }
                     }
                     time = now
@@ -1073,10 +1183,14 @@ open class AudioRecorder {
     companion object {
         const val TAG: String = "AudioRecorder"
 
+        // 采集模式开关（编译期）：true=原始 MIC（带默认 AGC/NS，录音更响更清，但特征动态被压平）；
+        // false=UNPROCESSED（回退 VOICE_RECOGNITION）+ 关 AGC/NS/AEC（特征最好，录音偏小偏闷）。
+        private const val PREFER_MIC: Boolean = true
+
         private const val RECORDING_SAMPLE_RATE: Int = 44100
         private const val DEBUG_FRAME_LOG_INTERVAL_MS: Long = 400L
         private const val VISUAL_READ_FRAMES: Int = 512
-        private const val RECORDING_BYTES_PER_STEREO_FRAME: Int = 4
+        private const val RECORDING_BYTES_PER_FRAME: Int = 2  // 单声道 16-bit
         private const val STOP_THREAD_JOIN_MS: Long = 600L
     }
 }

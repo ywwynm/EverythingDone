@@ -1,4 +1,7 @@
 # 偏好 — 录音波形可视化改造
+## 2026-07-03 - 三个已有版本的偏好排序（用户明确）
+用户对三个录音波浪版本的喜好排序：v2 `RecordingWaveVisualizer`（提交 753a1bf7，生成式波浪生命周期 + 多浪包 + `RecordingAudioAnalyzer`/`RecordingWaveDriveFrame`）最喜欢；其次 v1 `VoiceVisualizer`（提交 3cacdd19，多层多分量正弦合成 + layer-local surge + `VoiceAudioFrame`）；Fable `OceanWaveVisualizerFable`（当前 HEAD 接线，仅因是最新提交而挂在 dialog 上）效果不好，只是放着。新一轮 Opus 版本设计与取舍应以 v2 为主要正面参照、v1 为次要参照，Fable 不作为参照。
+
 ## 2026-07-03 - 水位覆盖按钮不能只做微调
 用户反馈：上一版水位只升高了一点点，最深色那道浪仍然没有明显盖过录音按钮。后续校准应按按钮实际 top 高度来判断，而不是凭比例微调；在 `360dp` dialog 中，底部按钮行高 `96dp`，主录音按钮 top 大约在 `284dp`，最前景深色浪的静态水面需要明显高于这个位置，例如约 `270dp` 附近，才能视觉上真正进入按钮区域。
 

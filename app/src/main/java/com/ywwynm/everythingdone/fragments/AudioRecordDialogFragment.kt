@@ -27,7 +27,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
-import com.ywwynm.everythingdone.views.recording.OceanWaveVisualizerFable
+import com.ywwynm.everythingdone.views.recording.WaveVisualizerOpus
 
 import java.io.File
 
@@ -48,7 +48,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
     private var mChronometer: Chronometer? = null
-    private var mVisualizer: OceanWaveVisualizerFable? = null
+    private var mVisualizer: WaveVisualizerOpus? = null
 
     private var mIvMainAction: ImageView? = null
     private var mIvReRecording: ImageView? = null
@@ -65,7 +65,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         mActivity = activity as DetailActivity
-        mRecorder = AudioRecorder()
+        mRecorder = AudioRecorder(mActivity)
 
         mLlFileName  = f(R.id.ll_audio_file_name)
         mEtFileName  = f(R.id.et_audio_file_name)
@@ -113,7 +113,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
         )
 
-        mRecorder!!.linkFable(mVisualizer!!)
+        mRecorder!!.linkOpus(mVisualizer!!)
         mRecorder!!.startListening()
 
         setEvents()

@@ -237,7 +237,7 @@ A surface that wraps Thing-owned content in App Chrome, such as a reminder dialo
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
 **Voice Waveform**:
-录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——每层浪都用其本色（纯色原样、渐变整条按层复用），仅以透明度阶梯表现远近，越近的浪越不透明，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
+录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——主体水体用其本色、满明度满不透明（完全等于记事颜色，作为颜色身份锚点，不压暗不叠透），景深只在其上/更远的波浪层用明度 + 透明度阶梯（越远越亮越透）表现，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
 _Avoid_: 把它当成已保存音频的播放波形、当成 App Chrome 的中性控件配色、竖直柱子可视化
 
 **Activity Header**:
@@ -367,7 +367,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
 - The audio recording dialog is a **Hybrid Chrome Surface**: its shell, controls, and text follow **Appearance Mode**, while its **Voice Waveform** carries the recording Thing's **Thing Background** identity.
-- A **Voice Waveform** derives its colours from the recording Thing's **Thing Background** — every wave layer carries the background's own colour (a PURE colour as-is, a GRADIENT reused whole per layer), with an alpha ladder alone conveying depth so nearer layers are more opaque — so, like **Thing Foreground**, it depends on the visible Thing-owned background rather than **Appearance Mode**.
+- A **Voice Waveform** derives its colours from the recording Thing's **Thing Background** — its main water body carries the background's own colour at full opacity and unmodified lightness (a PURE colour as-is, a GRADIENT reused whole) as a clean colour-identity anchor, while depth is conveyed only by a lightness-plus-alpha ladder on the upper, farther wave layers (farther layers lighter and more translucent) — so, like **Thing Foreground**, it depends on the visible Thing-owned background rather than **Appearance Mode**.
 - An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
 - An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
 - **Home Chrome Retraction** hides and restores the home's top **App Chrome** as one unit, driven by scroll direction, independently of **Activity Header** collapse which is driven by scroll position.
