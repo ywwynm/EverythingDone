@@ -1,5 +1,17 @@
 # 会话记录 — 录音波浪可视化（Opus 版）
 
+## 2026-07-04 撤销竖直明暗变化
+
+- **触发**：用户确认需要去掉此前的竖直方向明暗变化，因为它会让水体最下方显得脏。
+- **修改**：`WaveVisualizerOpus` 删除渐变记事的第二遍竖向中性光照覆盖，删除纯色记事的竖向同色系明暗 `LinearGradient`，并移除对应画笔、常量与 helper。现在颜色只保留记事底色、完整 8 向渐变方向和层间远近提亮；水体底部不再被额外压暗。
+- **文档**：更新 [preferences.md](preferences.md) 和 [decisions.md](decisions.md) D29，记录 D24/D25 的竖直明暗着色已撤销。
+
+## 2026-07-04 渐变记事水体方向修正
+
+- **触发**：用户追问当前录音 dialog 中，渐变记事下水体、波浪的渐变方向是否与记事一致。检查发现 `WaveVisualizerOpus` 已接入当前录音 dialog，但渐变底色仍固定为横向 `LinearGradient(0,0,w,0)`，只根据左右语义交换起止色；因此上下与对角方向并不与记事背景一致。
+- **修改**：`WaveVisualizerOpus.rebuildPaints()` 中，渐变记事的每层底色改为构造对应层的 `ThingBackground.gradient(...)`，再交给 `BackgroundUtil.createLinearGradient(...)` 生成 shader，从而完整沿用项目统一的 8 向 `ThingBackground.orientation` 映射。第二遍竖向中性光照覆盖 `mLayerLightPaints` 保留，用于继续提供上亮下暗的体积明暗。
+- **文档**：更新 [preferences.md](preferences.md) 和 [decisions.md](decisions.md) D28，记录"底色完整跟随记事渐变方向，竖向明暗仅作为覆盖层"。
+
 ## 2026-07-03 设计访谈（grill-with-docs）+ 首轮实现
 
 - **调研**：七轮联网调研 + v1/v2 精读，汇总于 [research.md](research.md)。方向包括音频可视化设计

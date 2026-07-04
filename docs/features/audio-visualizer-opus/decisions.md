@@ -8,6 +8,14 @@ Fable `OceanWaveVisualizerFable` 区分。现有代码全部保留、暂不删�
 v1 为次要参照，Fable 不作为参照。详见
 [recording-wave-visualizer/preferences.md](../recording-wave-visualizer/preferences.md)。
 
+## 2026-07-04 — D29 撤销竖直明暗变化，颜色只保留记事底色与层间远近
+
+用户反馈：此前 D24/D25 加入的竖直方向明暗变化会让最下方显得脏。决策：撤销所有 y 方向明暗着色，包括纯色记事的竖直同色系 `LinearGradient`，以及渐变记事的第二遍白/黑中性光照覆盖。`WaveVisualizerOpus` 的颜色逻辑改为只表达两件事：第一，渐变记事完整沿用 `ThingBackground.orientation` 的 8 向底色；第二，远近层之间仍可用 `mLayerTone` 做轻微层次提亮。不得再通过顶部提亮、底部压暗来制造体积感。
+
+## 2026-07-04 — D28 渐变底色完整沿用记事 8 向 orientation，竖向明暗保留为覆盖层
+
+用户指出当前 Opus 版虽然文档意图是"录音水体遵循记事渐变方向"，但实现里渐变记事的水体底色固定为横向 `LinearGradient(0,0,w,0)`，只对部分右向语义交换起止色，导致 `T_B`、`B_T` 与四个对角方向并不等同于记事背景。决策：水体与波浪的底色渐变必须直接使用项目统一的 `BackgroundUtil.createLinearGradient(...)` / `ThingBackground.orientation` 映射，完整覆盖 8 向方向。D24/D25 的竖向明暗覆盖当时继续保留为第二遍中性光照，但已被 D29 撤销；底色方向要求仍然有效。
+
 ## 2026-07-03 — D1 视觉核心模型：弹簧水线 + Gerstner，取代 v2 的三合一手工模型
 
 经三方调研（音频可视化设计、水面/波浪模拟、音频特征→视觉映射）与 v1/v2 精读后确认：

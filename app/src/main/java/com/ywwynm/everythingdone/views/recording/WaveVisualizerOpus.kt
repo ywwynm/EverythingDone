@@ -3,10 +3,8 @@ package com.ywwynm.everythingdone.views.recording
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Shader
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
@@ -45,8 +43,6 @@ class WaveVisualizerOpus @JvmOverloads constructor(
 
     private var mBackground: ThingBackground = ThingBackground.pure(Color.parseColor("#3F51B5"))
     private val mLayerPaints = Array(LAYER_COUNT) { Paint(Paint.ANTI_ALIAS_FLAG) }
-    private val mLayerLightPaints = Array(LAYER_COUNT) { Paint(Paint.ANTI_ALIAS_FLAG) }   // 渐变记事竖直光照覆盖（第二遍）
-    private var mUseLightOverlay = false
 
     // 基础波场：每层各自的多分量行波参数（实例级随机，每次打开略不同）
     private val mBaseK = Array(LAYER_COUNT) { FloatArray(BASE_COMPS) }
@@ -386,12 +382,6 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             val paint = mLayerPaints[layer]
             paint.alpha = mLayerBaseAlpha[layer]
             canvas.drawPath(mPath, paint)
-            // 渐变记事：第二遍叠竖直中性光照（顶亮底暗），底色横向渐变方向保留（D24）。整体强度随层景深缩放。
-            if (mUseLightOverlay) {
-                val light = mLayerLightPaints[layer]
-                light.alpha = mLayerBaseAlpha[layer]
-                canvas.drawPath(mPath, light)
-            }
         }
     }
 
@@ -459,76 +449,25 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
         val bg = mBackground
-        // 渐变记事：底色保留横向 orientation，竖直明暗改由第二遍中性光照覆盖承担（ComposeShader 不能组合两个
-        // 同类型 LinearGradient，故用两遍绘制，见 D24）。纯色记事：单遍竖直同色系明暗渐变，无需覆盖。
-        mUseLightOverlay = bg.mode == ThingBackground.Mode.GRADIENT && w > 0f && h > 0f
+        // 颜色只表达记事底色与层间远近；不再叠加竖直明暗，避免底部显脏。
         for (layer in 0 until LAYER_COUNT) {
             val paint = mLayerPaints[layer]
             paint.style = Paint.Style.FILL
             paint.shader = null
-            val light = mLayerLightPaints[layer]
-            light.style = Paint.Style.FILL
-            light.shader = null
             val isMain = layer == LAYER_COUNT - 1
             val toneAmt = mLayerTone[layer]
-            if (bg.mode == ThingBackground.Mode.GRADIENT && w > 0f) {
-                // 底色：横向 orientation 渐变（守"录音水体遵循记事渐变方向"）
+            if (bg.mode == ThingBackground.Mode.GRADIENT && w > 0f && h > 0f) {
+                // 底色：完整沿用记事的 8 向渐变方向。
                 val c0 = if (isMain) bg.color else BackgroundUtil.lighter(bg.color, toneAmt)
                 val c1 = if (isMain) bg.endColor else BackgroundUtil.lighter(bg.endColor, toneAmt)
-                val reversed = bg.orientation == ThingBackground.Orientation.R_L ||
-                        bg.orientation == ThingBackground.Orientation.RT_LB ||
-                        bg.orientation == ThingBackground.Orientation.RB_LT
-                val start = if (reversed) c1 else c0; val end = if (reversed) c0 else c1
-                paint.shader = LinearGradient(0f, 0f, w, 0f, opaque(start), opaque(end), Shader.TileMode.CLAMP)
-                // 覆盖：竖直中性光照（顶提亮白 → 中段透明保留底色/方向 → 底压暗黑），叠出 y 方向明暗。
-                // D25：明暗包络用 smoothstep（两端斜率为 0、与本色段无缝）密集采样，替代分段线性 → 无可辨分界线。
-                if (h > 0f) {
-                    light.shader = LinearGradient(
-                        0f, 0f, 0f, h,
-                        buildOverlayDepthColors(OVERLAY_LIGHT_ALPHA, OVERLAY_DARK_ALPHA), null,
-                        Shader.TileMode.CLAMP
-                    )
-                }
+                val layerBg = ThingBackground.gradient(opaque(c0), opaque(c1), bg.orientation)
+                paint.shader = BackgroundUtil.createLinearGradient(layerBg, w, h)
             } else {
-                // 纯色记事：单遍竖直同色系明暗渐变——波峰区提亮、主体大段本色、最下方深水区压暗
-                // （lighter/darker 同色系，不发灰）。D25：同 smoothstep 密集采样，明暗连续无分界线。
                 val base = if (isMain) bg.color else BackgroundUtil.lighter(bg.color, toneAmt)
-                if (h > 0f) {
-                    paint.shader = LinearGradient(
-                        0f, 0f, 0f, h,
-                        buildPureDepthColors(base,
-                            if (isMain) CREST_LIGHTEN_MAIN else CREST_LIGHTEN_FAR,
-                            if (isMain) DEEP_DARKEN_MAIN else DEEP_DARKEN_FAR), null,
-                        Shader.TileMode.CLAMP
-                    )
-                } else {
-                    paint.color = opaque(base)
-                }
+                paint.color = opaque(base)
             }
         }
     }
-
-    // D25：竖直深度明暗——smoothstep 包络（两端斜率 0，与本色段无缝）密集采样成多个均匀 stop，
-    // 从根上消除分段线性在 stop 处的斜率突变（Mach band → 隐约分界线）。仍是"顶亮—中本色—底暗"。
-    private fun depthHi(t: Float): Float = 1f - smoothStep(SHADE_CREST_POS, SHADE_NEUTRAL_HI, t)   // 提亮包络
-    private fun depthLo(t: Float): Float = smoothStep(SHADE_NEUTRAL_LO, 1f, t)                     // 压暗包络
-
-    /** 纯色记事：逐 stop 同色系明暗（提亮/压暗区不重叠，净量单侧，过 0 连续）。 */
-    private fun buildPureDepthColors(base: Int, crestAmt: Float, deepAmt: Float): IntArray =
-        IntArray(DEPTH_STOPS) { i ->
-            val t = i.toFloat() / (DEPTH_STOPS - 1)
-            val net = depthHi(t) * crestAmt - depthLo(t) * deepAmt
-            opaque(if (net >= 0f) BackgroundUtil.lighter(base, net) else BackgroundUtil.darker(base, -net))
-        }
-
-    /** 渐变记事：逐 stop 中性光照（提亮=白、压暗=黑，alpha 由包络定；本色段 alpha=0）。 */
-    private fun buildOverlayDepthColors(lightAlpha: Int, darkAlpha: Int): IntArray =
-        IntArray(DEPTH_STOPS) { i ->
-            val t = i.toFloat() / (DEPTH_STOPS - 1)
-            val hi = depthHi(t); val lo = depthLo(t)
-            if (hi >= lo) Color.argb((hi * lightAlpha).toInt(), 255, 255, 255)
-            else Color.argb((lo * darkAlpha).toInt(), 0, 0, 0)
-        }
 
     private fun opaque(c: Int): Int = Color.rgb(Color.red(c), Color.green(c), Color.blue(c))
 
@@ -653,23 +592,6 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         private const val WOBBLE_AMP = 0.18f
         private const val WOBBLE_K_MIN = 0.12f
         private const val WOBBLE_K_MAX = 0.40f
-        // 建议1/D24：竖直深度明暗着色（模拟自然水 y 方向明暗）。竖直渐变分三段：顶部提亮（波峰受光）→
-        // 中段本色（主体大段保留记事颜色/方向）→ 底部压暗（深水）。归一位置（占 h）：
-        // D25：竖直明暗曲线的采样 stop 数（够密 + smoothstep 包络 → 平滑连续、无可辨分界线）
-        private const val DEPTH_STOPS = 48
-        // 三个 smoothstep 断点（占 h）：顶部满亮到 CREST_POS、提亮平滑淡出到 NEUTRAL_HI（本色）、
-        // 本色保持到 NEUTRAL_LO、其下平滑渐入压暗（深水）。断点处 smoothstep 斜率为 0，与本色段无缝。
-        private const val SHADE_CREST_POS = 0.18f     // 满亮平台末端（约波峰净空高度）
-        private const val SHADE_NEUTRAL_HI = 0.45f    // 提亮淡出到本色
-        private const val SHADE_NEUTRAL_LO = 0.84f    // 本色保持到此，其下渐入压暗（"最下方深水区"）
-        // 纯色记事：同色系明暗量（不发灰）。提亮/压暗都克制（用户要"稍微"）。
-        private const val CREST_LIGHTEN_MAIN = 0.10f
-        private const val CREST_LIGHTEN_FAR = 0.16f
-        private const val DEEP_DARKEN_MAIN = 0.13f
-        private const val DEEP_DARKEN_FAR = 0.09f
-        // 渐变记事：第二遍中性光照覆盖的白/黑 alpha（0..255），保留底色横向渐变方向的同时叠 y 方向明暗
-        private const val OVERLAY_LIGHT_ALPHA = 36
-        private const val OVERLAY_DARK_ALPHA = 48
         // 事件浪包落层权重：弱/持续声用 BACK（偏远层→远层浪频繁），强击按 strength 插值到 FRONT（偏近层→近层偶尔大浪）
         private val LAYER_SPAWN_W_BACK = floatArrayOf(2.24f, 1.8f, 1.5f, 1.29f, 1.08f, 1.0f)
         private val LAYER_SPAWN_W_FRONT = floatArrayOf(0.56f, 0.72f, 1.0f, 1.44f, 1.96f, 2.4f)
