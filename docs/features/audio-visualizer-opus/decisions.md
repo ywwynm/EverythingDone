@@ -360,3 +360,39 @@ MIC 后的降敏过度，用"音调性 + 自适应底"双重手段区分"稳态�
   仅微调波长、影响小）；⑥ 浪包尾谷（centripetal Catmull-Rom 早已在用，尾谷有露按钮风险、收益小）。
 
 落地版 202607040134。
+
+## 2026-07-04 — D23 v5 之后的第二轮外部调研优化（五条：着色/K 加权/分桶/SuperFlux/去机械感）
+
+用户在 v5（78f9f9fe）稳定后要求"分析当前实现 + 联网调研还能怎么优化"。经新一轮 web 调研（AGSL/
+RuntimeShader、Gerstner 着色的 fresnel/specular/深浅色、SuperFlux、LUFS/K 加权、相量递推、Canvas
+drawPath 性能、domain warping），落地价值最高且低风险的五条（编号沿用建议序号）：
+
+- **建议1 视觉·高（着色体积感）**：此前每层是"平"填充（纯色或横向渐变），plan.md 第六节的"按高度/
+  斜率提亮波峰"一直未做，是最大那片不透明前景水体显"平面色块"的根因。落地：**纯色记事**各层改用
+  **竖直深度渐变**（波峰区 `TOP_LIMIT` 提亮 → 静息水线 `BASE_TOP` 以下纯本色），**只提亮不压暗**（守
+  D12 主体本色）；主体层提亮量小（`CREST_LIGHTEN_MAIN=0.10`）、非主体层稍大（`CREST_LIGHTEN_FAR=0.16`）。
+  **渐变记事保持横向 orientation 渐变不变**（守"录音水体遵循记事渐变方向"），不叠竖直提亮、不引入
+  ComposeShader/双绘制。依据：GPU Gems Ch.1 / 80.lv Gerstner 着色（按高度做深浅色 + crest 提亮）。
+- **建议2 音频·中高（K 加权响度）**：响度此前是未加权时域 RMS→dbFs，空调低频与人声等权进入测量。改用
+  **BS.1770 K 加权**（two-stage biquad：high-shelf 抬 2–5kHz + RLB high-pass 压低频），对 raw 样本在
+  `ingest` 连续滤波到 `mKRing`，`dbFs`/`fastDbFs` 改用它。系数按 sampleRate 由 RBJ cookbook 生成。收益：
+  从测量源头削低频底噪对响度的贡献（与自适应零点叠加而非替代）+ 更贴感知响度。**注意标定回归**：dbFs
+  刻度可能微移，`RANGE_DB`/`DEADZONE_DB` 等未动，真机需复校"大小声戏剧性 + 空调不激活"。
+- **建议3 性能·中高**：①**浪包按层分桶预筛选**（`mLayerPacketScratch`）——`drawWater` 原来每层每点扫全部
+  26 浪包、约 5/6 空转，改为每层预筛选一次，packet loop 约 6× 降。②**基础波场相量递推**——`xNorm` 等间距，
+  `sin(k·xNorm+φ)` 沿 x 用固定角步长 `k·dx` 的复数旋转递推（预计算 `mCosDx/mSinDx`），消除逐点 sin
+  （原 6×216×3≈3888 sin/帧）。均纯结构优化、像素输出不变。**不做** drawVertices（顶边 AA 会发毛，列为后续
+  实验）。依据：Android 官方"drawPath 每帧 CPU tessellate + GPU 上传"、相量/递推正弦合成。
+- **建议4 音频·中（SuperFlux）**：flux 改为对**参考帧**沿频率轴取 ±2 bins 最大值再算正向差（双缓冲
+  `mCurWhitened`，帧末拷回），抑制 vibrato/微移谱峰的虚假 onset（对唱歌/弦乐有效）。依据：Böck & Widmer
+  DAFx-13 Maximum Filter Vibrato Suppression。
+- **建议5 视觉·中低（去机械感）**：与建议3.2 冲突（空间 domain warping 破坏相量递推的等间距前提）。取舍：
+  **改用分量权重的缓慢时变起伏**（`WOBBLE_AMP=0.18`，各分量各层不同的很慢 LFO 乘在权重上）——让波形形状
+  缓慢演变、去掉纯正弦的机械感，且**不碰 drift/流向**（避免重现 D18 治过的"左右晃动"），兼容相量递推。
+
+**未采纳（本轮）**：建议6（AGSL RuntimeShader 把水体搬 GPU）——`RuntimeShader` 要 API 33，本项目 minSdk 26，
+需双路回退、是另一量级重写，列为单独立项；建议7（tempo 锁 + 节拍预判）——价值不确定、有抖动回退风险，用户
+偏好反复警告过不要为追节拍引入抖动，暂不做。
+
+落地：改 `WaveAudioAnalyzerOpus`（K 加权 biquad + SuperFlux）与 `WaveVisualizerOpus`（竖直渐变 + 分桶 +
+相量递推 + 权重起伏），`:app:assembleDebug` 通过。未发布 debug（用户未要求）。真机复校清单见 sessions.md。

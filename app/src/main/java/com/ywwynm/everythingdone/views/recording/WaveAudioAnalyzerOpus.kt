@@ -34,6 +34,16 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     private val mMag = FloatArray(FFT_SIZE / 2)
     private val mWhitenPeak = FloatArray(FFT_SIZE / 2) { WHITEN_FLOOR }
     private val mPrevWhitened = FloatArray(FFT_SIZE / 2)
+    private val mCurWhitened = FloatArray(FFT_SIZE / 2)   // SuperFlux 双缓冲：本帧白化谱，帧末拷入 mPrevWhitened
+
+    // K 加权（BS.1770）响度（建议2/D23）：对 raw 样本连续跑两级 biquad 得 K 加权信号，压低频（空调隆隆声）
+    // + 抬中高频（贴近感知响度），响度改用它测量。系数按 sampleRate 由 RBJ cookbook 生成（designKWeighting）。
+    // 好处：从测量源头削掉低频底噪对响度的贡献（与自适应零点叠加而非替代），并让"大声更汹涌"在测量层更成立。
+    private val mKRing = FloatArray(FFT_SIZE)
+    private var mKw1b0 = 1f; private var mKw1b1 = 0f; private var mKw1b2 = 0f; private var mKw1a1 = 0f; private var mKw1a2 = 0f
+    private var mKw2b0 = 1f; private var mKw2b1 = 0f; private var mKw2b2 = 0f; private var mKw2a1 = 0f; private var mKw2a2 = 0f
+    private var mKz1a = 0f; private var mKz2a = 0f    // stage1（high-shelf）状态
+    private var mKz1b = 0f; private var mKz2b = 0f    // stage2（RLB high-pass）状态
 
     private val mBandStartBin = IntArray(BAND_COUNT)
     private val mBandEndBin = IntArray(BAND_COUNT)
@@ -79,6 +89,44 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             mBandStartBin[b] = (startHz * FFT_SIZE / sampleRate).coerceIn(1, nyquist - 1)
             mBandEndBin[b] = (endHz * FFT_SIZE / sampleRate).coerceIn(mBandStartBin[b] + 1, nyquist)
         }
+        designKWeighting()
+    }
+
+    /**
+     * 生成 K 加权（BS.1770-4）两级 biquad 系数（RBJ audio-EQ cookbook，按 sampleRate 双线性化）。
+     * stage1 = high-shelf（fc≈1682Hz, +3.999dB, Q≈0.707）抬 2–5kHz；stage2 = RLB high-pass
+     * （fc≈38Hz, Q≈0.5）压低频。二者串联 ≈ 人耳等响加权，且天然衰减空调隆隆声。
+     */
+    private fun designKWeighting() {
+        val fs = sampleRate.toFloat()
+        run {   // stage 1: high shelf
+            val fc = 1681.974f; val gainDb = 3.9993f; val q = 0.70710677f
+            val a = Math.pow(10.0, (gainDb / 40.0)).toFloat()
+            val w0 = (2.0 * Math.PI * fc / fs).toFloat()
+            val cw = cos(w0); val sw = sin(w0)
+            val alpha = sw / (2f * q)
+            val sqA = sqrt(a)
+            val b0 = a * ((a + 1f) + (a - 1f) * cw + 2f * sqA * alpha)
+            val b1 = -2f * a * ((a - 1f) + (a + 1f) * cw)
+            val b2 = a * ((a + 1f) + (a - 1f) * cw - 2f * sqA * alpha)
+            val a0 = (a + 1f) - (a - 1f) * cw + 2f * sqA * alpha
+            val a1 = 2f * ((a - 1f) - (a + 1f) * cw)
+            val a2 = (a + 1f) - (a - 1f) * cw - 2f * sqA * alpha
+            mKw1b0 = b0 / a0; mKw1b1 = b1 / a0; mKw1b2 = b2 / a0; mKw1a1 = a1 / a0; mKw1a2 = a2 / a0
+        }
+        run {   // stage 2: high pass
+            val fc = 38.135f; val q = 0.5f
+            val w0 = (2.0 * Math.PI * fc / fs).toFloat()
+            val cw = cos(w0); val sw = sin(w0)
+            val alpha = sw / (2f * q)
+            val b0 = (1f + cw) / 2f
+            val b1 = -(1f + cw)
+            val b2 = (1f + cw) / 2f
+            val a0 = 1f + alpha
+            val a1 = -2f * cw
+            val a2 = 1f - alpha
+            mKw2b0 = b0 / a0; mKw2b1 = b1 / a0; mKw2b2 = b2 / a0; mKw2a1 = a1 / a0; mKw2a2 = a2 / a0
+        }
     }
 
     /** 单声道 PCM16（小端）写入环形缓冲。 */
@@ -86,8 +134,16 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         var i = 0
         val usable = byteReadSize - (byteReadSize % BYTES_PER_MONO_FRAME)
         while (i + BYTES_PER_MONO_FRAME <= usable) {
-            val sample = readPcm16(buf, i) / PCM_16_MAX
-            mRing[mWriteIndex] = sample.coerceIn(-1f, 1f)
+            val sample = (readPcm16(buf, i) / PCM_16_MAX).coerceIn(-1f, 1f)
+            mRing[mWriteIndex] = sample
+            // K 加权 biquad（两级串联，transposed DF-II），连续状态 → 无每帧 warm-up 瞬态（建议2/D23）
+            val y1 = mKw1b0 * sample + mKz1a
+            mKz1a = mKw1b1 * sample - mKw1a1 * y1 + mKz2a
+            mKz2a = mKw1b2 * sample - mKw1a2 * y1
+            val y2 = mKw2b0 * y1 + mKz1b
+            mKz1b = mKw2b1 * y1 - mKw2a1 * y2 + mKz2b
+            mKz2b = mKw2b2 * y1 - mKw2a2 * y2
+            mKRing[mWriteIndex] = y2
             mWriteIndex = (mWriteIndex + 1) % FFT_SIZE
             if (mSampleCount < FFT_SIZE) mSampleCount++
             i += BYTES_PER_MONO_FRAME
@@ -106,7 +162,9 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         var prevSample = 0f
         for (i in 0 until FFT_SIZE) {
             val raw = if (i < leadingZeros) 0f else mRing[(start + i - leadingZeros) % FFT_SIZE]
-            if (i >= leadingZeros) sumSq += raw.toDouble() * raw.toDouble()
+            // 响度用 K 加权信号（建议2/D23）；FFT/flux/频段/pitch 仍用 raw 预加重信号
+            val kw = if (i < leadingZeros) 0f else mKRing[(start + i - leadingZeros) % FFT_SIZE]
+            if (i >= leadingZeros) sumSq += kw.toDouble() * kw.toDouble()
             // 一阶预加重补麦克风高频滚降
             val pre = raw - PRE_EMPHASIS * prevSample
             prevSample = raw
@@ -124,17 +182,27 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         }
 
         // ---- 逐 bin 自适应白化 → spectral flux（onset novelty）----
+        // SuperFlux（建议4/D23）：参考帧沿频率轴取 ±SUPERFLUX_MAXFILTER_BINS 邻域最大值再算正向差，抑制
+        // vibrato/微移谱峰造成的虚假 onset（对唱歌/弦乐尤其有效）。本帧写 mCurWhitened，帧末拷回 mPrevWhitened。
         var flux = 0f
         for (bin in 1 until half) {
             val m = mMag[bin]
             if (m > mWhitenPeak[bin]) mWhitenPeak[bin] = m
             else mWhitenPeak[bin] = max(WHITEN_FLOOR, mWhitenPeak[bin] * WHITEN_DECAY)
             val w = m / mWhitenPeak[bin]
-            val d = w - mPrevWhitened[bin]
+            var ref = mPrevWhitened[bin]
+            var r = 1
+            while (r <= SUPERFLUX_MAXFILTER_BINS) {
+                if (bin - r >= 0) ref = max(ref, mPrevWhitened[bin - r])
+                if (bin + r < half) ref = max(ref, mPrevWhitened[bin + r])
+                r++
+            }
+            val d = w - ref
             if (d > 0f) flux += d
-            mPrevWhitened[bin] = w
+            mCurWhitened[bin] = w
         }
         flux /= half.toFloat()
+        System.arraycopy(mCurWhitened, 0, mPrevWhitened, 0, half)
 
         // ---- 谱质心 / 平坦度 ----
         var magSum = 0.0; var freqWeighted = 0.0; var logSum = 0.0; var linSum = 0.0; var cnt = 0
@@ -314,7 +382,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         val s = (mWriteIndex - n + FFT_SIZE) % FFT_SIZE
         var sumSq = 0.0
         for (i in 0 until n) {
-            val v = mRing[(s + i) % FFT_SIZE]; sumSq += v.toDouble() * v.toDouble()
+            val v = mKRing[(s + i) % FFT_SIZE]; sumSq += v.toDouble() * v.toDouble()   // K 加权（建议2/D23）
         }
         val rms = sqrt(sumSq / n)
         return if (rms <= SILENCE_RMS) -96f else (20.0 * log10(rms)).toFloat()
@@ -504,6 +572,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val FLATNESS_TONAL_HI = 0.55f  // 高于此更像噪声
         private const val FLATNESS_TONAL_LO = 0.20f  // 低于此更像乐音/语音
 
+        private const val SUPERFLUX_MAXFILTER_BINS = 2   // ±2 bins ≈ ±43Hz @44.1k/2048，覆盖中低频谐波颤音（建议4）
         private const val FLUX_MEAN_ALPHA = 0.04f
         private const val FLUX_DEV_ALPHA = 0.06f
         private const val FLUX_DEV_BIAS = 0.30f

@@ -22,6 +22,20 @@
 - [x] E8 文档收尾：decisions/preferences/research/plan/execution + CONTEXT.md 词条
 - [ ] E9 用户真机目视验证 + 可调参迭代（plan.md 第十节）
 
+## 2026-07-04 第二轮调研优化（D23，五条）
+
+- [x] E10 建议2 K 加权响度：`WaveAudioAnalyzerOpus` 加两级 BS.1770 biquad（`designKWeighting` 按
+      sampleRate 由 RBJ cookbook 生成），`ingest` 连续滤波到 `mKRing`，组帧 `sumSq` 与 `fastDbFs` 改用 K 加权
+- [x] E11 建议4 SuperFlux：flux 参考帧沿频率轴 ±2 bins 最大值 + 双缓冲 `mCurWhitened` 帧末拷回
+- [x] E12 建议1 竖直深度渐变：`rebuildPaints` 纯色记事各层竖直提亮渐变（只提亮不压暗，守 D12），
+      渐变记事保持横向 orientation
+- [x] E13 建议3 性能：`drawWater` 浪包按层分桶预筛选（`mLayerPacketScratch`）+ 基础波场相量递推
+      （预计算 `mCosDx/mSinDx`，删 `baseFieldNorm`）；drawVertices 不做（后续实验）
+- [x] E14 建议5 去机械感：分量权重缓慢时变起伏（`WOBBLE_*`，兼容相量递推、不碰流向）
+- [x] E15 编译 `:app:assembleDebug` 通过（分两批：音频层、视觉层）
+- [ ] E16 用户真机复校（见 sessions.md 清单；重点 K 加权是否需重调 `RANGE_DB`/`DEADZONE_DB`）
+- 未采纳：建议6 AGSL（minSdk 26 vs API 33）、建议7 tempo 锁（抖动风险）
+
 ## 首轮已知待调/简化点（真机后处理）
 
 - YIN 的 CMND 只在 [tau_min, tau_max] 区间累加分母，pitch 精度有折扣；若音高映射不稳再补全或换法。

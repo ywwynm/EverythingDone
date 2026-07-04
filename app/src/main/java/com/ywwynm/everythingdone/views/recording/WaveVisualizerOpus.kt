@@ -15,6 +15,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 import java.util.Random
+import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
@@ -53,7 +54,18 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     private val mBaseAmpScale = FloatArray(LAYER_COUNT)
     private val mSpawnWeightTmp = FloatArray(LAYER_COUNT)   // spawnWave 落层采样临时权重（避免每次分配）
 
+    // 建议3.2：基础波场相量递推的预计算角步长（cos/sin(k·dx)，dx=1/(RENDER_N-1)），消除逐点 sin
+    private val mCosDx = Array(LAYER_COUNT) { FloatArray(BASE_COMPS) }
+    private val mSinDx = Array(LAYER_COUNT) { FloatArray(BASE_COMPS) }
+    private val mPhS = FloatArray(BASE_COMPS)   // 相量 sin/cos 递推 scratch（逐层逐帧复用）
+    private val mPhC = FloatArray(BASE_COMPS)
+    private val mWobW = FloatArray(BASE_COMPS)  // 本帧起伏后的分量权重 scratch
+    // 建议5：各分量缓慢时变起伏参数（去机械感，作用在权重上、不碰流向/推进）
+    private val mBaseWobbleK = Array(LAYER_COUNT) { FloatArray(BASE_COMPS) }
+    private val mBaseWobblePhase = Array(LAYER_COUNT) { FloatArray(BASE_COMPS) }
+
     private val mPackets = ArrayList<WavePacket>(MAX_PACKETS + 4)
+    private val mLayerPacketScratch = ArrayList<WavePacket>(MAX_PACKETS + 4)   // 建议3.1：本层浪包预筛选复用
 
     @Volatile private var mIncoming: WaveDriveFrameOpus = WaveDriveFrameOpus.SILENCE
     private val mOnsetLock = Any()
@@ -98,6 +110,13 @@ class WaveVisualizerOpus @JvmOverloads constructor(
                 val cycles = (when (c) { 0 -> rand(0.72f, 1.2f); 1 -> rand(1.6f, 2.7f); else -> rand(3.2f, 4.8f) }) * cyclesScale
                 val k = cycles * 2f * Math.PI.toFloat()
                 mBaseK[layer][c] = k
+                // 相量递推预计算：dx=1/(RENDER_N-1) 的角步长 k·dx（建议3.2）
+                val dTheta = k / (RENDER_N - 1)
+                mCosDx[layer][c] = cos(dTheta)
+                mSinDx[layer][c] = sin(dTheta)
+                // 缓慢起伏 LFO（建议5）：很慢的角频率 + 随机相位，各分量各层不同
+                mBaseWobbleK[layer][c] = rand(WOBBLE_K_MIN, WOBBLE_K_MAX)
+                mBaseWobblePhase[layer][c] = rand(0f, 2f * Math.PI.toFloat())
                 // 相速（xNorm/单位 flowTime）：基准 + 温和色散（cycles 小=长波略快），层间仅极小随机差
                 val phaseVel = FLOW_VEL_BASE * (1f + FLOW_VEL_DISPERSION * (1.4f - cycles).coerceIn(-0.6f, 0.9f)) * rand(0.92f, 1.08f)
                 mBaseDrift[layer][c] = layerDir * k * phaseVel
@@ -325,11 +344,27 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             val baseAmpLayer = (BASE_FLOOR_DP + BASE_GAIN_DP * mLayerDrive[layer]) * mDensity * mBaseAmpScale[layer] * mLayerAmp[layer]
             // 波峰净空深度阶梯：前景净空满（能窜到护栏附近），越远的层净空越小（波峰被压得越低）→ 前景结构性主导
             val hCeil = ((layerBaseY - topLimitY) * mLayerCeilFrac[layer]).coerceAtLeast(mDensity)
+
+            // 建议3.1：预筛选本层浪包到复用 scratch，点循环只遍历本层浪 → packet loop 约 6×（原来每层每点扫全部）
+            val bucket = mLayerPacketScratch
+            bucket.clear()
+            for (pi in mPackets.indices) { val p = mPackets[pi]; if (p.layer == layer) bucket.add(p) }
+
+            // 建议3.2 + 5：基础波场相量递推（消除逐点 sin）；分量权重叠加缓慢起伏去机械感（不碰流向）。
+            // 初始化本层各分量相量（n=0 → xNorm=0，相位=basePhase + drift·flowTime）与本帧起伏后的权重。
+            for (c in 0 until BASE_COMPS) {
+                val phi = mBasePhase[layer][c] + mBaseDrift[layer][c] * mFlowTime
+                mPhS[c] = sin(phi); mPhC[c] = cos(phi)
+                val wob = 1f + WOBBLE_AMP * sin(mBaseWobbleK[layer][c] * mFlowTime + mBaseWobblePhase[layer][c])
+                mWobW[c] = mBaseWeight[layer][c] * wob
+            }
+
             for (n in 0 until RENDER_N) {
                 val x = w * n / (RENDER_N - 1)
-                val xNorm = x / w
-                var s = baseFieldNorm(layer, xNorm) * baseAmpLayer     // ± 有峰有谷
-                for (pi in mPackets.indices) { val p = mPackets[pi]; if (p.layer == layer) s += packetContribution(p, x) }  // 事件浪（正峰）
+                var s = 0f
+                for (c in 0 until BASE_COMPS) s += mWobW[c] * mPhS[c]   // 基础波场：± 有峰有谷（相量递推，非逐点 sin）
+                s *= baseAmpLayer
+                for (pi in bucket.indices) s += packetContribution(bucket[pi], x)   // 事件浪（正峰）
                 s = shapeHeight(s, crestSoft, troughShapeSoft)          // Gerstner 峰尖谷平
                 // 波峰按该层净空 tanh 软压缩：中小浪几乎不变、越高压得越狠但始终圆润、严格 < 净空 → 永不拍平成
                 // 平台；且后层最高点结构性地低于前景（净空阶梯），无需再硬性截顶。
@@ -337,21 +372,19 @@ class WaveVisualizerOpus @JvmOverloads constructor(
                 var y = layerBaseY - s
                 y = softUpperLimit(y, maxTroughY, troughSoft)           // 谷不过深、不露按钮
                 mSurfaceX[n] = x; mSurfaceY[n] = y
+                // 相量沿 x 递推到下一采样点（固定角步长 k·dx；一帧内递推、不跨帧累积漂移）
+                if (n < RENDER_N - 1) for (c in 0 until BASE_COMPS) {
+                    val cs = mCosDx[layer][c]; val sn = mSinDx[layer][c]
+                    val ns = mPhS[c] * cs + mPhC[c] * sn
+                    val nc = mPhC[c] * cs - mPhS[c] * sn
+                    mPhS[c] = ns; mPhC[c] = nc
+                }
             }
             buildSurfacePath(mPath, mSurfaceX, mSurfaceY, bottom)
             val paint = mLayerPaints[layer]
             paint.alpha = mLayerBaseAlpha[layer]
             canvas.drawPath(mPath, paint)
         }
-    }
-
-    /** 基础波场归一化场值 ∈ [-1,1]：多分量行波叠加（随时间横向漂移 → 滚动、有峰有谷）。 */
-    private fun baseFieldNorm(layer: Int, xNorm: Float): Float {
-        var s = 0f
-        for (c in 0 until BASE_COMPS) {
-            s += mBaseWeight[layer][c] * sin(mBaseK[layer][c] * xNorm + mBasePhase[layer][c] + mBaseDrift[layer][c] * mFlowTime)
-        }
-        return s
     }
 
     /** 一道事件浪在 x 处的高度贡献（≥0 的行进波峰）。 */
@@ -416,6 +449,7 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     // ------------------------------------------------------------------ 颜色（D12）
     private fun rebuildPaints() {
         val w = width.toFloat()
+        val h = height.toFloat()
         val bg = mBackground
         for (layer in 0 until LAYER_COUNT) {
             val paint = mLayerPaints[layer]
@@ -424,6 +458,7 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             val isMain = layer == LAYER_COUNT - 1
             val toneAmt = mLayerTone[layer]
             if (bg.mode == ThingBackground.Mode.GRADIENT && w > 0f) {
+                // 渐变记事：保持横向 orientation 渐变（守"录音水体遵循记事渐变方向"），不叠竖直提亮
                 val c0 = if (isMain) bg.color else BackgroundUtil.lighter(bg.color, toneAmt)
                 val c1 = if (isMain) bg.endColor else BackgroundUtil.lighter(bg.endColor, toneAmt)
                 val reversed = bg.orientation == ThingBackground.Orientation.R_L ||
@@ -432,7 +467,19 @@ class WaveVisualizerOpus @JvmOverloads constructor(
                 val start = if (reversed) c1 else c0; val end = if (reversed) c0 else c1
                 paint.shader = LinearGradient(0f, 0f, w, 0f, opaque(start), opaque(end), Shader.TileMode.CLAMP)
             } else {
-                paint.color = opaque(if (isMain) bg.color else BackgroundUtil.lighter(bg.color, toneAmt))
+                // 纯色记事（建议1/D23）：竖直深度渐变——波峰区提亮 → 静息水线以下纯本色，做出体积感。
+                // 只提亮不压暗（守 D12 主体本色）；提亮带从 TOP_LIMIT（波峰最高处）淡出到 BASE_TOP（静息水线）。
+                val base = if (isMain) bg.color else BackgroundUtil.lighter(bg.color, toneAmt)
+                if (h > 0f) {
+                    val crestAmt = if (isMain) CREST_LIGHTEN_MAIN else CREST_LIGHTEN_FAR
+                    val top = BackgroundUtil.lighter(base, crestAmt)
+                    paint.shader = LinearGradient(
+                        0f, h * TOP_LIMIT_FRAC, 0f, h * BASE_TOP_FRAC,
+                        opaque(top), opaque(base), Shader.TileMode.CLAMP
+                    )
+                } else {
+                    paint.color = opaque(base)
+                }
             }
         }
     }
@@ -556,6 +603,13 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         // 基础波场波峰密度随层缩放：远层 ×1.35（波峰多、细密但不过短陡→保持圆润），近层 ×0.72（大而疏）
         private const val CYCLES_FAR_SCALE = 1.35f
         private const val CYCLES_NEAR_SCALE = 0.72f
+        // 建议5：基础波场分量权重的缓慢时变起伏（去机械感；作用在权重上，不改流向/推进速度）
+        private const val WOBBLE_AMP = 0.18f
+        private const val WOBBLE_K_MIN = 0.12f
+        private const val WOBBLE_K_MAX = 0.40f
+        // 建议1：纯色记事竖直深度渐变的波峰区提亮量（只提亮不压暗，守 D12 主体本色）
+        private const val CREST_LIGHTEN_MAIN = 0.10f
+        private const val CREST_LIGHTEN_FAR = 0.16f
         // 事件浪包落层权重：弱/持续声用 BACK（偏远层→远层浪频繁），强击按 strength 插值到 FRONT（偏近层→近层偶尔大浪）
         private val LAYER_SPAWN_W_BACK = floatArrayOf(2.24f, 1.8f, 1.5f, 1.29f, 1.08f, 1.0f)
         private val LAYER_SPAWN_W_FRONT = floatArrayOf(0.56f, 0.72f, 1.0f, 1.44f, 1.96f, 2.4f)

@@ -49,3 +49,26 @@
 - **提交**：首轮 Opus 功能整体提交 `85f1aa28`（31 文件；排除 Everything-Android 与临时日志）。
 - **待验证**：真机看大声 vs 小声是否明显拉开、空调是否不激活、各机型 AGC 能否关（`logcat` 看 `preproc=`）；
   录音文件音量分步处理（暂不动，真机若变小再单独加保存前增益归一）。
+
+## 2026-07-04 v5 之后第二轮调研优化（D23，五条落地）
+
+- **触发**：用户在 v5（`78f9f9fe`）稳定后要求"分析当前实现 + 联网充分调研还能怎么优化"，先只出分析与
+  建议（不改文件），再要求"改一下 1-5"。
+- **调研**：新一轮 web 调研（避开前 7 轮已覆盖的弹簧水线/Gerstner/Catmull-Rom/cymatics/PCEN/半绝对响度），
+  聚焦 AGSL/RuntimeShader、Gerstner 着色（fresnel/specular/深浅色）、SuperFlux（Böck DAFx-13）、LUFS/
+  K 加权（BS.1770）、相量递推、Canvas drawPath 性能、domain warping（iq）。
+- **落地五条**（见 [decisions.md](decisions.md) D23）：
+  1. 建议1 竖直深度渐变着色（纯色记事，只提亮不压暗，守 D12；渐变记事保横向）。
+  2. 建议2 K 加权响度（BS.1770 two-stage biquad，`ingest` 连续滤波到 `mKRing`，`dbFs`/`fastDbFs` 改用）。
+  3. 建议3 浪包按层分桶 + 基础波场相量递推（性能，像素不变；drawVertices 不做）。
+  4. 建议4 SuperFlux 频域最大值滤波（抑制颤音虚假 onset）。
+  5. 建议5 分量权重缓慢时变起伏去机械感（与相量递推兼容、不碰流向，取代会冲突的空间 domain warping）。
+- **未采纳**：建议6 AGSL（minSdk 26 vs API 33，单独立项）；建议7 tempo 锁（抖动回退风险）。
+- **构建**：`WaveAudioAnalyzerOpus` + `WaveVisualizerOpus` 改动，`:app:assembleDebug` 两次分批通过。未发布
+  debug（用户未要求）。
+- **真机复校清单**（重点看 K 加权是否改变标定）：
+  1. **大小声戏剧性**是否保持/更好（K 加权后 dbFs 刻度可能微移；若变弱调 `RANGE_DB`，若空调又激活调 `DEADZONE_DB`/floor 门控）；
+  2. **纯色记事**是否有了竖直体积感、主体是否仍纯净不脏（`CREST_LIGHTEN_*` 可调；渐变记事应保持横向方向）；
+  3. **唱歌/弦乐**的 onset 是否更干净、不再一串虚假浪（`SUPERFLUX_MAXFILTER_BINS` 可调）；
+  4. **去机械感**是否自然、有没有引入不想要的形状抖动或"晃动"（`WOBBLE_AMP`/`WOBBLE_K_*` 可调）；
+  5. 高能量场景**帧稳定性**（卡顿）是否改善（分桶 + 相量递推的目的）。
