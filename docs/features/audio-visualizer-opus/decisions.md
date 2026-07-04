@@ -311,3 +311,52 @@ loudness/intensity 都用 `max(relativeLevel, absoluteLevel)` 或含 absoluteLev
 的噪声 tonal/voiced≈0 → absAssist≈0.14、几乎不激活；真实语音/音乐 relativeLevel 本就高且 tonal/voiced 高
 → 不受影响。presence/loudness/intensity 三处统一用 absAssist 缩放 absoluteLevel/fastLevel。这修正 D16 改回
 MIC 后的降敏过度，用"音调性 + 自适应底"双重手段区分"稳态底噪"与"有内容的声音"。落地版 202607031636。
+
+## 2026-07-04 — D21 半绝对响度：自适应零点 + 固定尺子（大声真的比小声汹涌），MIC 也关 AGC/NS
+
+诉求：正常/小声说话跟大声放歌动画差别不大、甚至前者更显著。目标定为**半绝对**——同场录音内大声明显
+比小声汹涌（保留大小声/高低/快慢真实差异），同时自动减掉环境底噪（空调不激活），换环境重标定零点、
+同场内忠实。（经一轮 grill + 6 份 web 调研，详见 [research.md](research.md)。）
+
+**诊断（双重元凶）**：
+1. 软件：旧 `relativeLevel` 把噪声底 `floor` 和峰值 `peak` **都自适应**、把每种声音拉满量程 → 抹平绝对
+   差异；`absoluteLevel`（无自适应底旁路）又把持续空调底噪抬起（D20 削 absoluteLevel 又加剧）。MIC/AGC
+   调研独立指出"自适应归一化很可能才是主因，即使 MIC 线性它也会把小声填满"。
+2. 硬件：MIC 保留 AGC（`PREFER_MIC` 时 `:141` 从不关），AGC 实时压动态。dBFS↔SPL 调研证明未校准手机
+   拿不到绝对 SPL（差设备相关常数 K≈120dB、跨机误差 5–10dB），故"半绝对"（相对本场零点）是唯一正解。
+
+**决策（骨架=最小机制，只改响度一路、不建历史缓冲）**：
+- **零点** = 信号门控自适应底：快降；仅稳态噪声态（`tonal`/`voiced` 低）慢升；**有信号冻结上升**
+  （fast-down/slow-up，VAD 标准）。开场 seeding 锚定。
+- **尺子** = 固定 `RANGE_DB=45`（≈单人声动态；正常说话~44%、喊叫封顶，声学数据坐实）+ `DEADZONE_DB=5`
+  （gate 实践建议 5–6dB 抗误触发）。
+- **曲线** = S 曲线（`contrast()`）强区分（视觉审美选择，非"感知响度线性/sones"——后者反而压缩大声）。
+- `semiAbsLevel` 取代 `relativeLevel`/`absoluteLevel`，驱动 `loudness`/`intensity`/水位/浪高；
+  **`absoluteLevel` + D20 的 `absAssist` 退役**（新零点自带减空调）。快窗 dbFs 取 max 保留瞬时响应。
+- **采集端**：MIC 也关 **AGC + NS**（修 `:141`；NS 削小声/高频），带 `getEnabled` 复核 + DEBUG log；
+  定制 ROM HAL 层可能关不掉（返回成功却无效），靠半绝对兜底。这**部分推翻 D16**"MIC 保留 AGC 还原
+  录音听感"——录音听感让位于可视化动态。
+- `pace`/`pitch` 不动（本就绝对刻度）；录音保存暂不动（分步，用户定；真机若录音明显变小再单独加
+  "保存前增益归一"）。
+
+真机调旋钮：`RANGE_DB`、`DEADZONE_DB`、S 曲线陡度、floor 门控/时间常数、平滑时间常数。落地版 202607031730。
+
+## 2026-07-04 — D22 频段进水面 + onset 语义分型 + 浪列 + floor 门控多证据
+
+对外部（GPT）6 条优化建议评审后采纳价值最高的 4 条（③①②④），⑤⑥核心已做/低价值不做。
+
+- **③ floor 门控多证据（修 D21 弱点，最优先）**：D21 的 `signalGate = max(tonal, pitchConfidence)` 会把
+  **响亮、宽频、无明确音高的音乐**（摇滚/电子）误当稳态噪声吸收、**吞掉高潮**。扩为**四证据 OR**（音调 /
+  音高 / flux 起伏 / dB 快速上升）：空调稳态四证据全低仍被吸收；音乐即便宽频也有持续 flux/起伏 → 冻结
+  floor 上升。新增 `mPrevDbFs` 算帧间上升。
+- **① 频段进水面（偏置，非硬频段轨道，避 D14 坑）**：`bassWeight`/`trebleWeight`/`noiseLike` 此前 visualizer
+  完全没消费。现按物理参数偏置叠加在层/亮度上：bass→浪更长/宽/慢/长寿，treble→更短/快；noiseLike→抑制
+  sustain 细浪生成 + 压小浪幅（与 D21 零点抑制形成双保险）。visualizer 平滑 `mBass`/`mTreble`/`mNoise`。
+- **② onset 语义分型（用现有特征，不引 Essentia 全套）**：percussive（无音高宽频冲击）偏前层、大 skew
+  前冲；tonal（有音高）拉中层、小 skew 平滑；noisy（高噪）浪幅压小。
+- **④ 浪列**：`pace≥TRAIN_PACE_GATE` 且 `onset≥TRAIN_ONSET_GATE` 时，一次生成 2–4 个共享方向/速度/尺度的
+  浪包，上游按波长错峰排开、依次进入 →"节奏在推动水面"。容量不足先回收将逝浪、仍不足退回单浪。
+- **不做**：⑤ octave-jump guard / 三帧 median（pitch 核心"只影响新浪、confidence 低退亮度"已实现，八度错
+  仅微调波长、影响小）；⑥ 浪包尾谷（centripetal Catmull-Rom 早已在用，尾谷有露按钮风险、收益小）。
+
+落地版 202607040134。

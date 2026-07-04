@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AudioEffect
 import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
 import android.util.Log
@@ -137,9 +138,10 @@ open class AudioRecorder(private val appContext: Context?) {
             if (record.state == AudioRecord.STATE_INITIALIZED) {
                 mAudioRecord = record
                 mBufSize = bufSize
-                // MIC 模式保留默认 AGC/NS（还原原始录音体验）；其余模式显式关闭以保留动态与频谱。
-                if (!PREFER_MIC) disablePreprocessing(record.audioSessionId)
-                if (BuildConfig.DEBUG) Log.i(TAG, "AudioRecord source=$source (preferMic=$PREFER_MIC) initialized")
+                // 无论哪种源都尝试关 AGC/NS/AEC：AGC 实时压动态、NS 削小声/高频，都会抹平"大声 vs 小声"。
+                // 部分定制 ROM 在 HAL 层压、关不掉（setEnabled 返回成功却无效），此时靠可视化侧半绝对映射兜底（D21）。
+                val preproc = disablePreprocessing(record.audioSessionId)
+                if (BuildConfig.DEBUG) Log.i(TAG, "AudioRecord source=$source preferMic=$PREFER_MIC preproc=$preproc")
                 return
             }
             try { record.release() } catch (_: Exception) {}
@@ -172,21 +174,39 @@ open class AudioRecorder(private val appContext: Context?) {
      * D6：即便选了低处理采集源，仍在 session 上显式关闭 AGC/NS/AEC（双保险）。部分机型只读不可关，
      * `isAvailable()` 为 false 时无能为力（正常）。
      */
-    private fun disablePreprocessing(sessionId: Int) {
+    /**
+     * 尝试关闭采集端 AGC/NS/AEC，返回可读报告（DEBUG 下打 log，便于在真机上判断各机型能否关掉）。
+     * 正确姿势：create 后先读默认态，setEnabled(false) 后再复核 getEnabled——若仍为 true，说明压缩在框架
+     * 够不到的 HAL/硬件层（定制 ROM 常见），此时无能为力，靠可视化侧半绝对映射兜底（D21）。
+     */
+    private fun disablePreprocessing(sessionId: Int): String {
         releaseEffects()
+        val sb = StringBuilder()
         try {
             if (AutomaticGainControl.isAvailable()) {
-                mAgc = AutomaticGainControl.create(sessionId)?.also { it.setEnabled(false) }
-            }
+                val agc = AutomaticGainControl.create(sessionId)
+                if (agc != null) {
+                    val before = agc.enabled
+                    val ok = agc.setEnabled(false) == AudioEffect.SUCCESS
+                    mAgc = agc
+                    sb.append("AGC[before=$before,ok=$ok,after=${agc.enabled}] ")
+                } else sb.append("AGC[create=null] ")
+            } else sb.append("AGC[unavail] ")
             if (NoiseSuppressor.isAvailable()) {
-                mNs = NoiseSuppressor.create(sessionId)?.also { it.setEnabled(false) }
-            }
+                val ns = NoiseSuppressor.create(sessionId)
+                if (ns != null) {
+                    val ok = ns.setEnabled(false) == AudioEffect.SUCCESS
+                    mNs = ns
+                    sb.append("NS[ok=$ok,after=${ns.enabled}] ")
+                } else sb.append("NS[create=null] ")
+            } else sb.append("NS[unavail] ")
             if (AcousticEchoCanceler.isAvailable()) {
                 mAec = AcousticEchoCanceler.create(sessionId)?.also { it.setEnabled(false) }
             }
         } catch (e: Exception) {
-            // 某些机型创建/操作音效可能抛异常，忽略即可（退回默认处理，不影响录音）。
+            sb.append("EX:${e.message} ")   // 某些机型 create/setEnabled 抛异常，忽略即可（退回默认处理）
         }
+        return sb.toString()
     }
 
     private fun releaseEffects() {
@@ -1183,8 +1203,8 @@ open class AudioRecorder(private val appContext: Context?) {
     companion object {
         const val TAG: String = "AudioRecorder"
 
-        // 采集模式开关（编译期）：true=原始 MIC（带默认 AGC/NS，录音更响更清，但特征动态被压平）；
-        // false=UNPROCESSED（回退 VOICE_RECOGNITION）+ 关 AGC/NS/AEC（特征最好，录音偏小偏闷）。
+        // 采集源开关（编译期）：true=MIC（兼容性好、远场佳），false=UNPROCESSED（回退 VOICE_RECOGNITION）。
+        // 两种模式现在都会尝试关 AGC/NS/AEC 以保留动态（D21）；能否真正关掉由 disablePreprocessing 的 log 判断。
         private const val PREFER_MIC: Boolean = true
 
         private const val RECORDING_SAMPLE_RATE: Int = 44100

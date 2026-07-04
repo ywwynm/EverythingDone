@@ -67,6 +67,9 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     private var mQuietness = 1f
     private var mSustain = 0f
     private var mWaterLevel = 0f
+    private var mBass = 0f            // 平滑频段/噪声权重（第1条）：驱动浪的尺度倾向与噪声抑制
+    private var mTreble = 0f
+    private var mNoise = 0f
     private val mLayerDrive = FloatArray(LAYER_COUNT)   // 各层独立平滑的基础驱动（前景灵敏、后层迟缓 → 时间响应不同）
 
     private var mSpawnTimer = 0f
@@ -82,27 +85,29 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     init {
         // 各层**独立**波形（不同波长/相位/振幅倍率）→ 远近波浪高度不同、涨落节奏不同，绝不重复。层间不靠
         // "振幅大小"分主次（主次由 drawWater 的**波峰净空深度阶梯**保证）。
-        // 流动：**全场统一主流向**（整片水面朝同一方向流，杜绝层间对冲导致的"原地晃"）；各分量相速接近（收窄
-        // 相速差 → 抑制驻波干涉的分叉/合并、呈现"一列波持续推进"的整体流动），相速仍遵循温和色散（长波略快）。
-        mFlowDir = if (mRandom.nextBoolean()) 1f else -1f
+        // 流动：录音场景**主流向固定为从右往左**（mFlowDir=+1 → drift>0 → 波形向 -x 移动 = 右往左）；绝大多数层
+        // 顺主流向，少数层（LAYER_REVERSE_PROB）反向（左往右）提升丰富度。各分量相速接近（收窄相速差 → 抑制驻波
+        // 干涉、呈现"一列波持续推进"），相速仍遵循温和色散（长波略快）。注意：浪包 dir 约定与 drift 相反，见 spawnWave。
+        mFlowDir = 1f
         for (layer in 0 until LAYER_COUNT) {
             val layerNorm = layer.toFloat() / (LAYER_COUNT - 1)          // 0=最远 … 1=最近（前景）
             val cyclesScale = lerp(CYCLES_FAR_SCALE, CYCLES_NEAR_SCALE, layerNorm)  // 远层密（波峰多、细）、近层疏（大而少）
+            val layerDir = if (mRandom.nextFloat() < LAYER_REVERSE_PROB) -mFlowDir else mFlowDir  // 少数层反向(左往右)增丰富度
             var wsum = 0f
             for (c in 0 until BASE_COMPS) {
-                val cycles = (when (c) { 0 -> rand(0.7f, 1.2f); 1 -> rand(1.6f, 2.7f); else -> rand(3.2f, 4.8f) }) * cyclesScale
+                val cycles = (when (c) { 0 -> rand(0.72f, 1.2f); 1 -> rand(1.6f, 2.7f); else -> rand(3.2f, 4.8f) }) * cyclesScale
                 val k = cycles * 2f * Math.PI.toFloat()
                 mBaseK[layer][c] = k
                 // 相速（xNorm/单位 flowTime）：基准 + 温和色散（cycles 小=长波略快），层间仅极小随机差
                 val phaseVel = FLOW_VEL_BASE * (1f + FLOW_VEL_DISPERSION * (1.4f - cycles).coerceIn(-0.6f, 0.9f)) * rand(0.92f, 1.08f)
-                mBaseDrift[layer][c] = mFlowDir * k * phaseVel
+                mBaseDrift[layer][c] = layerDir * k * phaseVel
                 mBasePhase[layer][c] = rand(0f, 2f * Math.PI.toFloat())
-                val w = when (c) { 0 -> rand(0.52f, 0.64f); 1 -> rand(0.22f, 0.32f); else -> rand(0.10f, 0.16f) }
+                val w = when (c) { 0 -> rand(0.52f, 0.64f); 1 -> rand(0.21f, 0.32f); else -> rand(0.10f, 0.16f) }
                 mBaseWeight[layer][c] = w
                 wsum += w
             }
             for (c in 0 until BASE_COMPS) mBaseWeight[layer][c] /= wsum   // 归一化 → 场值 ∈ [-1,1]
-            mBaseAmpScale[layer] = rand(0.9f, 1.1f)   // 各层振幅略有差异 → 高度不重复
+            mBaseAmpScale[layer] = rand(0.84f, 1.29f)   // 各层振幅略有差异 → 高度不重复
         }
     }
 
@@ -154,12 +159,16 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     // ------------------------------------------------------------------ 状态更新
     private fun update(dt: Float) {
         val f = mIncoming
-        mIntensity += (f.intensity - mIntensity) * approach(dt, if (f.intensity > mIntensity) 0.07f else 0.26f)
+        mIntensity += (f.intensity - mIntensity) * approach(dt, if (f.intensity > mIntensity) 0.072f else 0.264f)
         mPace += (f.pace - mPace) * approach(dt, if (f.pace > mPace) 0.12f else 0.45f)
         mBrightness += (f.brightness - mBrightness) * approach(dt, 0.25f)
-        mQuietness += (f.quietness - mQuietness) * approach(dt, if (f.quietness > mQuietness) 0.35f else 0.10f)
-        mSustain += (f.sustainDrive - mSustain) * approach(dt, if (f.sustainDrive > mSustain) 0.14f else 0.22f)
-        mWaterLevel += (f.waterLevel - mWaterLevel) * approach(dt, if (f.waterLevel > mWaterLevel) 0.30f else 0.55f)
+        mQuietness += (f.quietness - mQuietness) * approach(dt, if (f.quietness > mQuietness) 0.36f else 0.10f)
+        mSustain += (f.sustainDrive - mSustain) * approach(dt, if (f.sustainDrive > mSustain) 0.144f else 0.224f)
+        mWaterLevel += (f.waterLevel - mWaterLevel) * approach(dt, if (f.waterLevel > mWaterLevel) 0.30f else 0.56f)
+        // 频段/噪声权重平滑（第1条）：低频厚浪、高频细波的尺度倾向；noiseLike 抑制持续细浪
+        mBass += (f.bassWeight - mBass) * approach(dt, BAND_SMOOTH_TAU)
+        mTreble += (f.trebleWeight - mTreble) * approach(dt, BAND_SMOOTH_TAU)
+        mNoise += (f.noiseLike - mNoise) * approach(dt, NOISE_SMOOTH_TAU)
 
         // 流动相位按声音变速推进：安静缓流、有声/快节奏更快（该快则快、该慢则慢）
         val flowDrive = max(mIntensity, mSustain * 0.8f)
@@ -173,16 +182,23 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         var onset: Float; var secondary: Boolean
         synchronized(mOnsetLock) { onset = mOnsetAccum; mOnsetAccum = 0f; secondary = mPendingSecondary; mPendingSecondary = false }
         if (onset >= ONSET_SPAWN_GATE && mQuietness < QUIET_SPAWN_BLOCK) {
-            spawnWave(onset, f, primary = true)
-            if (secondary) spawnWave(onset * 0.8f, f, primary = false)
+            // 第4条：节奏强(pace高)且 onset 强 → 一小列错峰浪包（"节奏推动水面"）；否则单浪 + 可选副浪
+            if (mPace >= TRAIN_PACE_GATE && onset >= TRAIN_ONSET_GATE) {
+                spawnWaveTrain(onset, f)
+            } else {
+                spawnWave(onset, f, primary = true)
+                if (secondary) spawnWave(onset * 0.8f, f, primary = false)
+            }
         }
 
         mSpawnTimer -= dt
         if (mSpawnTimer <= 0f) {
             val interval = SUSTAIN_INTERVAL_SLOW - (SUSTAIN_INTERVAL_SLOW - SUSTAIN_INTERVAL_FAST) * mPace
             mSpawnTimer = interval.coerceAtLeast(SUSTAIN_INTERVAL_FAST)
-            if (mSustain >= SUSTAIN_SPAWN_GATE && mQuietness < QUIET_SPAWN_BLOCK && mPackets.size < MAX_PACKETS) {
-                spawnWave(mSustain * 0.7f, f, primary = true)
+            // noiseLike 抑制持续细浪（第1条）：空调/摩擦等噪声不催生 sustain 浪
+            if (mSustain * (1f - NOISE_SUSTAIN_SUPPRESS * mNoise) >= SUSTAIN_SPAWN_GATE &&
+                mQuietness < QUIET_SPAWN_BLOCK && mPackets.size < MAX_PACKETS) {
+                spawnWave(mSustain * 0.72f, f, primary = true)
             }
         }
 
@@ -203,41 +219,87 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             }
             if (faded >= 0 && minEnv < RECYCLE_ENV_MAX) mPackets.removeAt(faded) else return
         }
-        // 跨全部 6 层分布，保证前景/主体层也有事件浪；音色（亮）让整体更细，不决定落层（D14）。
-        // 偏向前景层但不过度：野性高峰多落前景，后层也能得到一些小事件浪（有存在感），不出现突兀高峰。
-        // 落层：弱/持续声偏远层（远层浪频繁、细密、幅小），强击按 strength 插值偏近层前景（近层偶尔来一记又大又高的
-        // 浪）→ "近极值高但平均低、频率低；远极值低但频率高"，使任意时刻各层都有浪、内容丰富。
-        val bias = strength.coerceIn(0f, 1f)
-        var wsumL = 0f
-        for (l in 0 until LAYER_COUNT) { mSpawnWeightTmp[l] = lerp(LAYER_SPAWN_W_BACK[l], LAYER_SPAWN_W_FRONT[l], bias); wsumL += mSpawnWeightTmp[l] }
-        val rSel = mRandom.nextFloat() * wsumL
-        var accW = 0f; var layer = 0
-        for (l in 0 until LAYER_COUNT) { accW += mSpawnWeightTmp[l]; if (rSel < accW) { layer = l; break } }
+        // 落层：strength 偏置(强→前) + onset 类型微调（第2条）：percussive(无音高宽频冲击)更偏前层、tonal(有音高)
+        // 拉向中层；noisy(高噪)幅度压小。频段(第1条)：bass 厚长慢、treble 细快，作尺度偏置叠加在层/亮度之上。
+        val tonalness = f.pitchConfidence
+        val noisiness = f.noiseLike
+        val percussive = ((1f - tonalness) * (1f - 0.6f * noisiness)).coerceIn(0f, 1f)
+        val layer = pickLayer((strength * lerp(0.84f, 1.29f, percussive)).coerceIn(0f, 1f))
         val layerNorm = layer.toFloat() / (LAYER_COUNT - 1)
-        // 波长随层：远层短窄（细密频繁）、近层长宽（大而疏），与基础波场同向
-        var wl = lerp(0.32f, 0.92f, layerNorm) * (1f - 0.30f * mBrightness)
+        // 波长：远短近长 + 亮度，叠加频段偏置（bass→更长、treble→更短）
+        var wl = lerp(0.32f, 0.92f, layerNorm) * (1f - 0.30f * mBrightness) * lerp(1f, BASS_WL, mBass) * lerp(1f, TREBLE_WL, mTreble)
         wl = wl.coerceIn(0.16f, 1f)
         if (f.pitchConfidence > 0.4f) wl = 0.6f * wl + 0.4f * (1f - f.pitchWavelength).coerceIn(0.18f, 1f)
 
         val w = width.toFloat().coerceAtLeast(1f)
-        val wavelengthPx = lerp(w / 8f, w * 1.1f, wl)
-        val widthPx = (wavelengthPx * PACKET_WIDTH_FRAC).coerceAtLeast(MIN_WIDTH_DP * mDensity)
-        // 色散：长浪快、短纹慢；再乘 pace。速度足够大，浪是"滚过来"而非"原地长起来"（P3）。
-        val speed = DISPERSION_BASE * sqrt(wavelengthPx) * (0.7f + 0.6f * mPace) * (if (primary) 1f else rand(0.85f, 1.15f))
-        // 浪包大概率顺主流向（与水面同向、横穿后移出屏幕），少量逆向添真实感
-        val dir = if (mRandom.nextFloat() < PACKET_FLOW_ALIGN) mFlowDir else -mFlowDir
-        // 从上游屏外一侧出生 → 全程横穿可见区 → 从下游屏外移出（真正"移动并离开"，而非原地长起来）
-        val origin = if (dir > 0f) rand(-0.35f * w, 0.35f * w) else rand(0.65f * w, 1.35f * w)
+        val wavelengthPx = lerp(w / 8f, w * 1.29f, wl)
+        // 宽度：bass 厚浪更宽（第1条）
+        val widthPx = (wavelengthPx * PACKET_WIDTH_FRAC * lerp(1f, BASS_WIDTH, mBass)).coerceAtLeast(MIN_WIDTH_DP * mDensity)
+        // 色散：长浪快、短纹慢 + pace（pace 系数拉大 → 快慢差异更明显）；bass 更慢、treble 更快（第1条）
+        val speed = DISPERSION_BASE * sqrt(wavelengthPx) * (0.36f + 1.6f * mPace) *
+                lerp(1f, BASS_SPEED, mBass) * lerp(1f, TREBLE_SPEED, mTreble) * (if (primary) 1f else rand(0.84f, 1.29f))
+        val dir = if (mRandom.nextFloat() < PACKET_FLOW_ALIGN) -mFlowDir else mFlowDir  // dir<0=右往左(与 drift>0 视觉同向)
+        val origin = if (dir > 0f) rand(-0.36f * w, 0.36f * w) else rand(0.64f * w, 1.29f * w)
         val ampBase = PACKET_AMP_DP * mDensity
-        val amp = ampBase * (0.45f + 0.65f * max(strength, mIntensity)) * lerp(0.9f, 1.18f, wl) * mLayerPacketAmp[layer] * (if (primary) 1f else 0.72f)
+        // noisy 事件幅度压小（第2条）：摩擦/噪声冲击不生成大浪
+        val amp = ampBase * (0.45f + 0.64f * max(strength, mIntensity)) * lerp(0.96f, 1.29f, wl) *
+                mLayerPacketAmp[layer] * (if (primary) 1f else 0.72f) * (1f - NOISE_AMP_SUPPRESS * noisiness)
 
         mPackets.add(WavePacket(
             layer = layer, origin = origin, dir = dir, widthPx = widthPx, speed = speed, amp = amp,
             age = 0f,
-            lifetime = LIFETIME_BASE * (0.85f + 0.4f * (1f - mPace)) * rand(0.85f, 1.15f),
-            // 快升、后段才落 → 升起后保持满幅横穿大部分行程、接近移出时才衰减（强化"移动"观感）
-            riseFrac = rand(0.16f, 0.26f), fallStartFrac = rand(0.66f, 0.82f), skew = rand(0.18f, 0.34f)
+            // bass 厚浪更长寿（第1条）
+            lifetime = LIFETIME_BASE * (0.84f + 0.4f * (1f - mPace)) * lerp(1f, BASS_LIFETIME, mBass) * rand(0.84f, 1.29f),
+            // 快升后落 + percussive 前冲(大 skew)、tonal 平滑(小 skew)（第2条）
+            riseFrac = rand(0.16f, 0.264f), fallStartFrac = rand(0.64f, 0.84f), skew = lerp(0.16f, 0.42f, percussive)
         ))
+    }
+
+    /** 按权重(strength 偏置)采样落层：弱/持续声偏远层(频繁细密)、强击偏近层前景(偶尔大浪)。 */
+    private fun pickLayer(bias: Float): Int {
+        var wsumL = 0f
+        for (l in 0 until LAYER_COUNT) { mSpawnWeightTmp[l] = lerp(LAYER_SPAWN_W_BACK[l], LAYER_SPAWN_W_FRONT[l], bias); wsumL += mSpawnWeightTmp[l] }
+        val rSel = mRandom.nextFloat() * wsumL
+        var accW = 0f
+        for (l in 0 until LAYER_COUNT) { accW += mSpawnWeightTmp[l]; if (rSel < accW) return l }
+        return LAYER_COUNT - 1
+    }
+
+    /**
+     * 浪列（第4条）：节奏强时一次生成一小组共享方向/尺度的浪包，在上游错峰排开、依次进入 →
+     * "节奏在推动水面"，比单个随机浪包更有节奏推进感。容量不足时先回收将逝浪，仍不足则退回单浪。
+     */
+    private fun spawnWaveTrain(strength: Float, f: WaveDriveFrameOpus) {
+        val count = (2 + (mPace * 2.4f).toInt()).coerceIn(2, TRAIN_MAX)
+        while (mPackets.size + count > MAX_PACKETS) {
+            var faded = -1; var minEnv = Float.MAX_VALUE
+            for (k in mPackets.indices) { val e = lifecycleEnv(mPackets[k]); if (e < minEnv) { minEnv = e; faded = k } }
+            if (faded >= 0 && minEnv < RECYCLE_ENV_MAX) mPackets.removeAt(faded) else { spawnWave(strength, f, primary = true); return }
+        }
+        // 一组共享参数（percussive 偏前层）
+        val percussive = ((1f - f.pitchConfidence) * (1f - 0.6f * f.noiseLike)).coerceIn(0f, 1f)
+        val layer = pickLayer((strength * lerp(0.9f, 1.2f, percussive)).coerceIn(0f, 1f))
+        val layerNorm = layer.toFloat() / (LAYER_COUNT - 1)
+        val wl = (lerp(0.32f, 0.92f, layerNorm) * (1f - 0.30f * mBrightness) * lerp(1f, BASS_WL, mBass) * lerp(1f, TREBLE_WL, mTreble)).coerceIn(0.16f, 1f)
+        val w = width.toFloat().coerceAtLeast(1f)
+        val wavelengthPx = lerp(w / 8f, w * 1.29f, wl)
+        val widthPx = (wavelengthPx * PACKET_WIDTH_FRAC * lerp(1f, BASS_WIDTH, mBass)).coerceAtLeast(MIN_WIDTH_DP * mDensity)
+        val speed = DISPERSION_BASE * sqrt(wavelengthPx) * (0.36f + 1.6f * mPace) * lerp(1f, BASS_SPEED, mBass) * lerp(1f, TREBLE_SPEED, mTreble)
+        val dir = if (mRandom.nextFloat() < PACKET_FLOW_ALIGN) -mFlowDir else mFlowDir  // dir<0=右往左(与 drift>0 视觉同向)
+        val baseOrigin = if (dir > 0f) rand(-0.35f * w, 0f) else rand(w, 1.35f * w)
+        val spacing = wavelengthPx * TRAIN_SPACING_WL
+        val ampBase = PACKET_AMP_DP * mDensity
+        val amp0 = ampBase * (0.45f + 0.65f * max(strength, mIntensity)) * lerp(0.9f, 1.29f, wl) *
+                mLayerPacketAmp[layer] * (1f - NOISE_AMP_SUPPRESS * f.noiseLike)
+        for (i in 0 until count) {
+            mPackets.add(WavePacket(
+                layer = layer, origin = baseOrigin - dir * spacing * i, dir = dir, widthPx = widthPx, speed = speed,
+                amp = amp0 * (1f - 0.12f * i),      // 队尾略小，避免整列死板
+                age = 0f,
+                lifetime = LIFETIME_BASE * (0.9f + 0.3f * (1f - mPace)) * lerp(1f, BASS_LIFETIME, mBass) * rand(0.96f, 1.29f),
+                riseFrac = rand(0.129f, 0.21f), fallStartFrac = rand(0.72f, 0.84f), skew = lerp(0.2f, 0.42f, percussive)
+            ))
+        }
     }
 
     // ------------------------------------------------------------------ 绘制
@@ -406,9 +468,9 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     companion object {
         private const val LAYER_COUNT = 6
         private const val BASE_COMPS = 3
-        private const val RENDER_N = 112
+        private const val RENDER_N = 216   // 采样点密度：足够高才能让密波（尤其远层细波）圆润、不成"面筋"
         private const val MAX_PACKETS = 26
-        private const val RECYCLE_ENV_MAX = 0.14f   // 只回收生命周期包络低于此的浪（接近消亡）
+        private const val RECYCLE_ENV_MAX = 0.129f   // 只回收生命周期包络低于此的浪（接近消亡）
         private const val MAX_DT = 0.05f
 
         private const val INTRINSIC_W_DP = 280f
@@ -416,28 +478,46 @@ class WaveVisualizerOpus @JvmOverloads constructor(
 
         // 水位（占 h 比例，从上算）：静息盖住 56dp 按钮；涨幅收窄，让浪成为主要表现（P4）。
         private const val BASE_TOP_FRAC = 0.75f
-        private const val WATER_RANGE_FRAC = 0.15f
+        private const val WATER_RANGE_FRAC = 0.24f   // 水位随响度的升降幅度（加大 → 大小声的水位差更显著）
 
         // 基础波场振幅：安静 floor 轻微起伏（不平），声音大时汹涌
-        private const val BASE_FLOOR_DP = 3.5f
+        private const val BASE_FLOOR_DP = 3.6f
         private const val BASE_GAIN_DP = 26f
         // 基础波场横向流速：相速基准 + 温和色散强度（长波略快）；全场同向。mFlowTime 增速随声音加速。
         private const val FLOW_VEL_BASE = 0.24f
         private const val FLOW_VEL_DISPERSION = 0.3f
-        private const val FLOW_BASE = 1.1f
-        private const val FLOW_PACE = 1.0f
-        private const val FLOW_DRIVE = 0.7f
+        // 静息基速低、pace 系数很高 → 说话快慢的流速差异明显（慢真慢、快真快）
+        private const val FLOW_BASE = 0.5f
+        private const val FLOW_PACE = 2.8f
+        private const val FLOW_DRIVE = 0.5f
 
         // 事件浪包
-        private const val PACKET_AMP_DP = 34f
+        private const val PACKET_AMP_DP = 36f
         private const val MIN_WIDTH_DP = 12f
         private const val PACKET_WIDTH_FRAC = 0.42f
-        private const val DISPERSION_BASE = 34f
+        private const val DISPERSION_BASE = 36f
         private const val LIFETIME_BASE = 2.1f          // 寿命拉长 → 浪包有足够时间横穿并移出屏幕（强化流动）
-        private const val PACKET_FLOW_ALIGN = 0.78f      // 浪包顺主流向的概率（其余逆向添真实感）
+        private const val PACKET_FLOW_ALIGN = 0.84f      // 浪包顺主流向(右往左)的概率（其余逆向添丰富度）
+        private const val LAYER_REVERSE_PROB = 0.18f     // 基础波场各层反向(左往右)的概率（少数层，增丰富度）
+        // 频段→浪的尺度偏置（第1条，作偏置叠加在层/亮度上，非硬频段轨道）：bass 厚长慢、treble 细快
+        private const val BASS_WL = 1.29f
+        private const val TREBLE_WL = 0.84f
+        private const val BASS_WIDTH = 1.29f
+        private const val BASS_SPEED = 0.84f
+        private const val TREBLE_SPEED = 1.29f
+        private const val BASS_LIFETIME = 1.25f
+        private const val BAND_SMOOTH_TAU = 0.20f
+        private const val NOISE_SMOOTH_TAU = 0.25f
+        private const val NOISE_SUSTAIN_SUPPRESS = 0.72f  // noiseLike 对持续细浪生成的抑制（第1条）
+        private const val NOISE_AMP_SUPPRESS = 0.45f     // noisy onset 对浪幅的抑制（第2条）
+        // 浪列（第4条）：节奏强时成组错峰浪包
+        private const val TRAIN_PACE_GATE = 0.5f         // pace ≥ 此值才可能触发浪列
+        private const val TRAIN_ONSET_GATE = 0.45f       // onset ≥ 此值才可能触发浪列
+        private const val TRAIN_MAX = 4                  // 浪列最多浪包数
+        private const val TRAIN_SPACING_WL = 0.84f       // 相邻浪间距（波长倍数）
 
         // Gerstner 整形 + 上下软限
-        private const val CREST_FACTOR = 0.22f
+        private const val CREST_FACTOR = 0.21f
         private const val CREST_SOFT_DP = 24f
         private const val CREST_COMPRESS_GAIN = 1.0f   // 波峰 tanh 软压缩增益：越大越早压缩、越贴净空上限
         private const val TROUGH_FACTOR = 0.5f
@@ -448,16 +528,16 @@ class WaveVisualizerOpus @JvmOverloads constructor(
 
         // 生成门槛
         private const val ONSET_SPAWN_GATE = 0.12f
-        private const val QUIET_SPAWN_BLOCK = 0.92f
+        private const val QUIET_SPAWN_BLOCK = 0.96f
         private const val SECONDARY_ONSET_GATE = 0.45f
-        private const val SECONDARY_INTENSITY_GATE = 0.35f
+        private const val SECONDARY_INTENSITY_GATE = 0.36f
         private const val SUSTAIN_SPAWN_GATE = 0.10f
         private const val SUSTAIN_INTERVAL_SLOW = 0.30f
-        private const val SUSTAIN_INTERVAL_FAST = 0.11f
+        private const val SUSTAIN_INTERVAL_FAST = 0.129f
 
         // 每层视差（0=最后/最远/最亮最透，5=最前/主体/纯本色不透明）
-        private val mLayerTone = floatArrayOf(0.52f, 0.42f, 0.32f, 0.22f, 0.11f, 0.0f)
-        private val mLayerBaseAlpha = intArrayOf(120, 145, 170, 200, 230, 255)
+        private val mLayerTone = floatArrayOf(0.56f, 0.42f, 0.32f, 0.21f, 0.129f, 0.0f)
+        private val mLayerBaseAlpha = intArrayOf(120, 144, 169, 200, 224, 255)
         // 基线偏移基础梯度（dp，实际乘 offsetScale 伸缩）：**大胆加大**——即使绝对平静(offsetScale=base)也要
         // 让每层基线明显错开、清晰可辨（相邻 12×0.8=9.6dp，远大于平静时的 floor 波动）。远层坐得高、层层叠成透视水面。
         private val mLayerOffset = floatArrayOf(60f, 48f, 36f, 24f, 12f, 0f)
@@ -465,19 +545,19 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         private const val OFFSET_DRIVE_SCALE = 0.35f     // 随声音再略展开（层间偏移以 base 为主、较稳定）
         // 波峰净空深度阶梯（× 该层到护栏的净空）：**近层极值高、远层极值低**。近层(前景)满 1.0 → 偶尔能冲很高；
         // 远层压到 0.5 → 极值受限、冲不高、只作细密低浪，前景恒不会被远层盖过。
-        private val mLayerCeilFrac = floatArrayOf(0.5f, 0.6f, 0.7f, 0.82f, 0.92f, 1.0f)
+        private val mLayerCeilFrac = floatArrayOf(0.5f, 0.6f, 0.72f, 0.84f, 0.91f, 1.0f)
         // 各层基础驱动响应时间常数（秒）：前景小=灵敏先涨快落，后层大=迟缓滞后 → 各层涨落节奏不重复
         private val mLayerDriveTau = floatArrayOf(0.42f, 0.36f, 0.30f, 0.24f, 0.18f, 0.13f)
-        // 基础波场每层振幅倍率：**远层大、近层小**。近层(前景)平均振幅低(0.48)→大部分时间平静、不挡后层；
-        // 远层高(1.3)→持续起伏、有存在感。近层的高度靠事件大浪(极值)偶尔体现，而非基础波场。
-        private val mLayerAmp = floatArrayOf(1.3f, 1.15f, 1.0f, 0.82f, 0.64f, 0.48f)
+        // 基础波场每层振幅倍率：**远层略大、近层小**。近层(前景)平均振幅低(0.5)→大部分时间平静、不挡后层；
+        // 远层(1.29)持续起伏、有存在感，但收敛过大的振幅以免撞净空被 tanh 压变形（保持圆润）。近层高度靠事件大浪。
+        private val mLayerAmp = floatArrayOf(1.29f, 1.08f, 1.0f, 0.84f, 0.64f, 0.5f)
         // 事件浪包每层振幅倍率：**近层大、远层小**。近层前景偶尔一记大浪(1.25)、远层只有细密小浪(0.5)。
-        private val mLayerPacketAmp = floatArrayOf(0.5f, 0.62f, 0.74f, 0.88f, 1.05f, 1.25f)
-        // 基础波场波峰密度随层缩放：远层 ×1.5（波峰多、细密），近层 ×0.72（大而疏）
-        private const val CYCLES_FAR_SCALE = 1.5f
+        private val mLayerPacketAmp = floatArrayOf(0.5f, 0.64f, 0.72f, 0.88f, 1.08f, 1.29f)
+        // 基础波场波峰密度随层缩放：远层 ×1.35（波峰多、细密但不过短陡→保持圆润），近层 ×0.72（大而疏）
+        private const val CYCLES_FAR_SCALE = 1.35f
         private const val CYCLES_NEAR_SCALE = 0.72f
         // 事件浪包落层权重：弱/持续声用 BACK（偏远层→远层浪频繁），强击按 strength 插值到 FRONT（偏近层→近层偶尔大浪）
-        private val LAYER_SPAWN_W_BACK = floatArrayOf(2.2f, 1.8f, 1.5f, 1.3f, 1.1f, 1.0f)
-        private val LAYER_SPAWN_W_FRONT = floatArrayOf(0.55f, 0.7f, 1.0f, 1.4f, 1.9f, 2.4f)
+        private val LAYER_SPAWN_W_BACK = floatArrayOf(2.24f, 1.8f, 1.5f, 1.29f, 1.08f, 1.0f)
+        private val LAYER_SPAWN_W_FRONT = floatArrayOf(0.56f, 0.72f, 1.0f, 1.44f, 1.96f, 2.4f)
     }
 }

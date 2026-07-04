@@ -61,3 +61,38 @@
   ([Meyda](https://meyda.js.org/audio-features.html) · [TarsosDSP](https://github.com/JorenSix/TarsosDSP) ·
   [PCEN](https://par.nsf.gov/servlets/purl/10313542) ·
   [自适应白化](https://www.researchgate.net/publication/250824858_Adaptive_whitening_for_improved_real-time_audio_onset_detection))
+
+## 5. 响度"半绝对"方案的 web 调研（2026-07-04，6 份，支撑 [D21](decisions.md)）
+
+针对"正常/小声说话跟大声放歌动画差别不大"，为"半绝对响度"（自适应零点 + 固定 dB 尺子）做的校准调研。
+
+- **声学 dBFS 参考**：正常说话 RMS≈−20dBFS、峰值 −6~0、安静室内底噪 −50~−40、crest factor~11dB；实时
+  电平表事实显示窗 −60~0dBFS；映射在 dB 域做再叠曲线（纯线性振幅"看着死"）。
+  ([audiointerfacing](https://audiointerfacing.com/dbfs-in-audio/) ·
+  [DPA 语音](https://www.dpamicrophones.com/mic-university/background-knowledge/facts-about-speech-intelligibility/) ·
+  [OBS 电平表](https://obsproject.com/kb/audio-mixer-technical-details))
+- **dB SPL 场景值**（@1m，DPA）：正常对话 58、提高嗓门 64、大声 70、喊叫 76；耳语 30/安静室内 40/很响
+  音乐 100+。正常→喊叫差~20dB SPL，单人声自身动态~40dB。注意是 SPL 非 dBFS，只作场景相对参考。
+  ([Phonak](https://audiologyblog.phonakpro.com/revisiting-expectations-for-average-and-soft-speech-levels/) ·
+  [Nureva](https://support.nureva.com/docs/about-background-noise-levels))
+- **心理声学**：+10dB≈感知响度翻倍（Stevens 幂律 loudness∝intensity^0.3）；dB 域映射是对的一阶近似；
+  别用原始振幅/RMS 线性（夸大瞬态）。用户要的"强区分"是视觉审美，非"感知响度线性/sones"（后者会
+  压缩大声，与诉求相反）。
+  ([HyperPhysics](https://hyperphysics.gsu.edu/hbase/Sound/loud.html) · [Sone](https://en.wikipedia.org/wiki/Sone))
+- **自适应 metering/gate/VAD**：噪声底用 **fast-down/slow-up** 双时间常数积分器（信号突发不抬底）；
+  死区/迟滞 **5–6dB** 比 3dB 更稳；VU ~300ms 平滑 + hold 20–200ms 防闪。**45dB 量程被坐实**（正常说话
+  ~44%、提高嗓门~67%、喊叫封顶，≈单人声动态）。
+  ([VOCAL VAD](https://vocal.com/voice-quality-enhancement/standard-methods-of-voice-activity-detection-vad/) ·
+  [噪声门](https://en.wikipedia.org/wiki/Noise_gate))
+- **dBFS↔SPL**：两者差一个设备相关常数 K=94−sensitivity_dBFS（典型~120dB）；**未校准手机拿不到绝对
+  SPL**（缺 mic 灵敏度+preamp+AGC+ADC 增益链，OS 不暴露），跨机误差 5–10dB + 距离项 6dB/翻倍 → 完全
+  绝对不可行，半绝对是唯一正解。AGC 主动抬小声压大声，摧毁 dBFS↔SPL 关系（元凶实锤）。
+  ([dBFS](https://en.wikipedia.org/wiki/DBFS) ·
+  [AD 麦克风灵敏度](https://www.analog.com/en/resources/analog-dialogue/articles/understanding-microphone-sensitivity.html) ·
+  [NIOSH 手机测声](https://www.cdc.gov/niosh/bulletin/2014/sound-app.html))
+- **Android MIC/AGC**（深化第 3 节）：CDD 对 MIC **无**"禁 AGC"强制条款——多数原生机 MIC 不太压、动态
+  基本线性（此时"大小声差不多"主因是**软件自适应归一化**，非硬件）；三星/小米等定制 ROM 可能 HAL 层
+  压、`setEnabled(false)` 返回成功却**无效关不掉**。姿势：create→`getEnabled`→`setEnabled(false)`→复核+log。
+  NS 建议一并关（削小声/高频），AEC 顺手；可选 `PCM_FLOAT`（免归一、小声精度高，但不增加动态）。
+  ([CDD 5.4](https://android.googlesource.com/platform/compatibility/cdd/+/refs/tags/platform-tools-31.0.0/5_multimedia/5_4_audio-recording.md) ·
+  [AutomaticGainControl](https://developer.android.com/reference/android/media/audiofx/AutomaticGainControl))

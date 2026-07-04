@@ -23,3 +23,29 @@
   execution/sessions）；更新 `CONTEXT.md` 的 **Voice Waveform** 词条（主体纯本色 + 上层明度/透明度
   阶梯，纠正 Fable 那轮改的"仅透明度"）；更新 `recording-wave-visualizer/preferences.md`（版本排序）。
 - **待办**：E9 用户真机目视验证 + 可调参迭代（plan.md 第十节；execution.md 列出首轮简化点）。
+
+## 2026-07-03 晚–07-04 真机调优批次（视觉层）
+
+多轮真机反馈迭代，逐条落在 [debug-updates](debug-updates/)（含 debug code）与 decisions D17–D20：
+层次均衡与"浅色后层窜高/深色前景遮死"的反复（D17 解耦"丰富度⟂主次"）→ 整体单向流动 + 浪包横穿
+移出（D18 消驻波干涉）→ 六层角色分工"近层平静·偶爆发、远层细密·频繁"（D19）→ 大胆加大层间基线差
+（相邻 9.6dp，平静时也能看清 6 层）→ 稳态空调底噪抑制（D20，音调性缩放 absoluteLevel）。
+
+## 2026-07-04 响度"半绝对"重构（grill-me + 6 份调研 + 实现 + 发布）
+
+- **触发**：用户提"把声音特征记录下来做相对比较"的想法，因为正常/小声说话跟大声放歌动画差别不大、
+  甚至前者更显著。
+- **grill-me 收敛**：诊断出根因不是"缺历史"，而是**自适应归一化（floor+peak 都自适应）抹平大小声** +
+  **MIC 保留 AGC 压动态**（D20 削 absoluteLevel 又加剧）。共识=**半绝对**：自适应零点 + 固定尺子。逐个
+  钉定：目标（半绝对）、骨架（最小机制、不建历史）、零点（信号门控自适应底）、量程/死区（45/5dB）、
+  曲线（S 曲线强区分）、录音（分步暂不动）。见 [decisions.md](decisions.md) D21。
+- **调研**：6 份 web 调研（声学 dBFS/SPL、心理声学、自适应 metering/gate/VAD、Android MIC/AGC），存
+  [research.md](research.md) 第 5 节，全面印证 45dB 量程、fast-down/slow-up 零点、AGC 是元凶、未校准
+  拿不到绝对 SPL（半绝对是唯一正解）。
+- **实现**：重构 `WaveAudioAnalyzerOpus` 响度链（新 `semiAbsLevel`、信号门控 `mFloorDb`、删 `mPeakDb`/
+  `relativeLevel`/`absoluteLevel`/`absAssist`、`fastLevel→fastDbFs`、常量 `RANGE_DB=45`/`DEADZONE_DB=5`）；
+  `AudioRecorder` MIC 也 `disablePreprocessing` + `getEnabled` 复核 + DEBUG log（修 `:141` 漏洞）。编译通过，
+  发布 debug code **202607031730**。
+- **提交**：首轮 Opus 功能整体提交 `85f1aa28`（31 文件；排除 Everything-Android 与临时日志）。
+- **待验证**：真机看大声 vs 小声是否明显拉开、空调是否不激活、各机型 AGC 能否关（`logcat` 看 `preproc=`）；
+  录音文件音量分步处理（暂不动，真机若变小再单独加保存前增益归一）。

@@ -41,9 +41,9 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     private val mBandFloorDb = FloatArray(BAND_COUNT) { BAND_START_DB }
     private val mBandPeakDb = FloatArray(BAND_COUNT) { BAND_START_DB + BAND_MIN_RANGE_DB }
 
-    private var mFloorDb = ADAPTIVE_FLOOR_START_DB       // 整体响度自适应底
-    private var mPeakDb = ADAPTIVE_FLOOR_START_DB + ADAPTIVE_MIN_RANGE_DB
-    private var mSeeded = false                          // 是否已用开场实际环境电平锚定自适应底/峰
+    private var mFloorDb = ADAPTIVE_FLOOR_START_DB       // 半绝对响度的自适应"零点"(信号门控噪声底)
+    private var mPrevDbFs = ADAPTIVE_FLOOR_START_DB      // 上一帧 dbFs（算快速上升，作 floor 门控证据之一）
+    private var mSeeded = false                          // 是否已用开场实际环境电平锚定零点
 
     private var mFluxMean = 0f
     private var mFluxDev = 0.05f
@@ -170,20 +170,24 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             mBandNorm[b] += (norm - mBandNorm[b]) * k
         }
 
-        // ---- 整体响度自适应对比 → relativeLevel ----
+        // ---- 半绝对响度：自适应"零点"(信号门控噪声底) + 固定 dB 尺子（保留大小声真实差异，见 D21）----
         val dbClamped = dbFs.coerceIn(ADAPTIVE_FLOOR_MIN_DB, ADAPTIVE_PEAK_MAX_DB)
         if (!mSeeded && rms > SILENCE_RMS) {
-            // 用开场实际环境电平锚定底/峰，消除"打开后先涨后落再稳到另一状态"的初始收敛瞬变（问题3）
-            mSeeded = true
+            mSeeded = true                                   // 开场用实际环境电平锚定零点，消除初始收敛瞬变
             mFloorDb = dbClamped - ADAPTIVE_SEED_FLOOR_MARGIN
-            mPeakDb = dbClamped + ADAPTIVE_MIN_RANGE_DB
         }
-        mFloorDb += (dbClamped - mFloorDb) * (if (dbClamped < mFloorDb) FLOOR_FALL else FLOOR_RISE)
-        mPeakDb += (dbClamped - mPeakDb) * (if (dbClamped > mPeakDb) PEAK_RISE else PEAK_FALL)
-        if (mPeakDb < mFloorDb + ADAPTIVE_MIN_RANGE_DB) mPeakDb = mFloorDb + ADAPTIVE_MIN_RANGE_DB
-        val relativeLevel = ((dbClamped - mFloorDb - ADAPTIVE_OFFSET_DB) / (mPeakDb - mFloorDb)).coerceIn(0f, 1f)
-        val absoluteLevel = ((dbFs - VISUAL_MIN_DB) / (VISUAL_MAX_DB - VISUAL_MIN_DB)).coerceIn(0f, 1f)
-        val fastLevel = fastLevel()
+        // 信号门控自适应底（多证据）：快降跟随环境变静；仅在"稳态噪声态"慢升吸收新底噪；有任一"信号迹象"
+        // （音调 / 音高 / 频谱起伏 / 快速变响）时冻结上升 → 零点=纯环境底噪，且**响亮宽频音乐不被误当噪声吞掉**
+        // （空调稳态无起伏/无音高 → 四证据全低 → 被吸收；音乐即便宽频也有持续 flux/起伏 → 冻结）。
+        val tonalNow = smoothStep(FLATNESS_TONAL_HI, FLATNESS_TONAL_LO, flatness)
+        val fluxActive = smoothStep(mFluxMean + mFluxDev * FLOOR_FLUX_LO, mFluxMean + mFluxDev * FLOOR_FLUX_HI, flux)
+        val riseActive = smoothStep(FLOOR_RISE_LO_DB, FLOOR_RISE_HI_DB, dbFs - mPrevDbFs)
+        val signalGate = max(max(tonalNow, mPitchConfidence), max(fluxActive, riseActive))
+        val floorK = if (dbClamped < mFloorDb) FLOOR_FALL else FLOOR_RISE * (1f - signalGate)
+        mFloorDb += (dbClamped - mFloorDb) * floorK
+        // 快窗 dbFs 取 max 让瞬时冲击更快体现；再用"固定 45dB 尺子 + 5dB 死区"把超出零点的量映射到 [0,1]
+        val levelDbFs = max(dbFs, fastDbFs())
+        val semiAbsLevel = ((levelDbFs - mFloorDb - DEADZONE_DB) / RANGE_DB).coerceIn(0f, 1f)
 
         // ---- onset：flux 自适应门限 + 最小间隔 ----
         val meanDelta = flux - mFluxMean
@@ -196,19 +200,20 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         val minSpacing = max(1, (MIN_ONSET_SPACING_SEC / dt).toInt())
         val isOnset = onsetScore >= ONSET_TRIGGER &&
                 mFrameCounter - mLastOnsetFrame >= minSpacing &&
-                relativeLevel >= ONSET_LEVEL_GATE
+                semiAbsLevel >= ONSET_LEVEL_GATE
         if (isOnset) mLastOnsetFrame = mFrameCounter
         pushOnset(if (isOnset) 1f else 0f)
         val eventDensity = eventDensity(dt)
 
         // ---- YIN pitch（隔帧）----
-        if (mFrameCounter % PITCH_EVERY == 0) updatePitch(relativeLevel, flatness)
+        if (mFrameCounter % PITCH_EVERY == 0) updatePitch(semiAbsLevel, flatness)
 
         mFrameCounter++
+        mPrevDbFs = dbFs                                  // 供下一帧 floor 门控的"快速上升"证据
 
         // ---- 客观特征帧 ----
         val feature = WaveAudioFrameOpus(
-            rms = rms, dbFs = dbFs, fastLevel = fastLevel, relativeLevel = relativeLevel,
+            rms = rms, dbFs = dbFs, fastLevel = semiAbsLevel, relativeLevel = semiAbsLevel,
             bass = mBandNorm[0], lowMid = mBandNorm[1], mid = mBandNorm[2],
             highMid = mBandNorm[3], treble = mBandNorm[4],
             centroid = centroid, flatness = flatness, flux = flux,
@@ -216,7 +221,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             pitchHz = mPitchHz, pitchConfidence = mPitchConfidence, pitchNormalized = mPitchNormalized
         )
 
-        return mapToDrive(feature, absoluteLevel, relativeLevel, fastLevel, onsetScore, isOnset,
+        return mapToDrive(feature, semiAbsLevel, onsetScore, isOnset,
             eventDensity, centroid, flatness, dt)
     }
 
@@ -225,36 +230,26 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     // ------------------------------------------------------------------
     private fun mapToDrive(
         feature: WaveAudioFrameOpus,
-        absoluteLevel: Float, relativeLevel: Float, fastLevel: Float,
+        semiAbsLevel: Float,
         onsetScore: Float, isOnset: Boolean, eventDensity: Float,
         centroid: Float, flatness: Float, dt: Float
     ): WaveDriveFrameOpus {
-        // presence：存在感主要由"相对电平（超出近期噪声底的部分）"驱动——稳态风噪已被自适应底吸收，
-        // 音色/浊音只做温和加权（下限 0.6，绝不把有声压成零）。放开灵敏度：宁可略敏感也不要毫无反应。
-        val tonal = smoothStep(FLATNESS_TONAL_HI, FLATNESS_TONAL_LO, flatness)
-        val voiced = mPitchConfidence
-        // 稳态宽频噪声（空调风噪等）：relativeLevel 已被自适应底吸收→≈0，但 absoluteLevel 无自适应底、会把持续
-        // 底噪抬起来（这是"底噪比音乐还激烈"的元凶）。故 relativeLevel 主导、absoluteLevel 仅作辅助，且辅助力度
-        // 随"音调性"缩放：越像纯噪声（tonal/voiced 越低）辅助越弱 → 稳态底噪几乎不激活，真实语音/音乐不受影响。
-        val absAssist = ABS_ASSIST * (NOISE_FLOOR_ASSIST + (1f - NOISE_FLOOR_ASSIST) * max(tonal, voiced))
-        val level = max(relativeLevel, absAssist * max(absoluteLevel, fastLevel))
-        val gate = 0.6f + 0.4f * max(tonal, voiced)
-        val presenceTarget = (level * gate).coerceIn(0f, 1f)
+        // 半绝对响度已在 analyze 算好（零点减掉稳态空调、固定尺子保留大小声）。presence/loudness 直接用它平滑，
+        // 不再需要 absoluteLevel 旁路与音调性门控（D20 的 absAssist 一并退役，见 D21）。
+        val presenceTarget = semiAbsLevel
         mPresence += (presenceTarget - mPresence) *
                 (if (presenceTarget > mPresence) approach(dt, PRESENCE_ATTACK) else approach(dt, PRESENCE_RELEASE))
         val quietness = (1f - smoothStep(QUIET_START, QUIET_FULL, mPresence)).coerceIn(0f, 1f)
 
-        // loudness / intensity（不再乘 presence 压低——presence 已由相对电平驱动，避免双重压制）
-        val loudTarget = max(relativeLevel, absAssist * absoluteLevel)
-        mLoudness += (loudTarget - mLoudness) *
-                (if (loudTarget > mLoudness) approach(dt, LOUD_ATTACK) else approach(dt, LOUD_RELEASE))
-        // 声强对比：拉开正常/大声（S 曲线）
-        val intensityTarget = contrast(0.72f * relativeLevel + absAssist * (0.18f * absoluteLevel + 0.1f * fastLevel))
+        // loudness：半绝对、较线性（水位用）；intensity：半绝对 + S 曲线强区分（浪高用，大声明显更汹涌）
+        mLoudness += (semiAbsLevel - mLoudness) *
+                (if (semiAbsLevel > mLoudness) approach(dt, LOUD_ATTACK) else approach(dt, LOUD_RELEASE))
+        val intensityTarget = contrast(semiAbsLevel)
         mIntensity += (intensityTarget - mIntensity) *
                 (if (intensityTarget > mIntensity) approach(dt, LOUD_ATTACK) else approach(dt, LOUD_RELEASE))
 
-        // pace：事件密度为主，绝对量避免锁 BPM
-        val paceTarget = (eventDensity * 0.8f + smoothStep(0.1f, 0.6f, mPresence) * 0.2f) * mPresence
+        // pace：事件密度直接主导（值域更宽、快慢分明），只用 presence 做"有声"门控，不再二次压低
+        val paceTarget = eventDensity * smoothStep(0.05f, 0.30f, mPresence)
         mPace += (paceTarget - mPace) *
                 (if (paceTarget > mPace) approach(dt, PACE_ATTACK) else approach(dt, PACE_RELEASE))
 
@@ -276,9 +271,9 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         mSustain += (sustainTarget - mSustain) *
                 (if (sustainTarget > mSustain) approach(dt, SUSTAIN_ATTACK) else approach(dt, SUSTAIN_RELEASE))
 
-        // 水位：慢潮（攻快释慢）
+        // 水位：慢潮（攻快释慢）；对比放大（WATER_DRAMA）+ intensity 主导 → 大小声的水位差更戏剧
         val waterTarget = (WATER_REST + (WATER_MAX - WATER_REST) *
-                contrast(0.6f * mLoudness + 0.4f * mIntensity)).coerceIn(0f, 1f)
+                contrast((0.4f * mLoudness + 0.6f * mIntensity) * WATER_DRAMA)).coerceIn(0f, 1f)
         mWaterLevel += (waterTarget - mWaterLevel) *
                 (if (waterTarget > mWaterLevel) approach(dt, WATER_ATTACK) else approach(dt, WATER_RELEASE))
 
@@ -312,17 +307,17 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     // ------------------------------------------------------------------
     // 辅助
     // ------------------------------------------------------------------
-    private fun fastLevel(): Float {
+    /** 快窗（512 样本）RMS 的 dbFs，比 FFT 帧（2048）更快反映瞬时冲击。 */
+    private fun fastDbFs(): Float {
         val n = mSampleCount.coerceAtMost(FAST_WINDOW)
-        if (n <= 0) return 0f
+        if (n <= 0) return -96f
         val s = (mWriteIndex - n + FFT_SIZE) % FFT_SIZE
         var sumSq = 0.0
         for (i in 0 until n) {
             val v = mRing[(s + i) % FFT_SIZE]; sumSq += v.toDouble() * v.toDouble()
         }
         val rms = sqrt(sumSq / n)
-        val db = if (rms <= SILENCE_RMS) -96.0 else 20.0 * log10(rms)
-        return (((db - VISUAL_MIN_DB) / (VISUAL_MAX_DB - VISUAL_MIN_DB)).toFloat()).coerceIn(0f, 1f)
+        return if (rms <= SILENCE_RMS) -96f else (20.0 * log10(rms)).toFloat()
     }
 
     private fun pushOnset(v: Float) {
@@ -489,17 +484,17 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val PEAK_RISE = 0.35f
         private const val PEAK_FALL = 0.03f
 
-        // 去 AGC 后麦克风电平明显偏低，窗口整体下移；peak 起点贴近 floor 让相对电平即时敏感。
-        private const val ADAPTIVE_FLOOR_START_DB = -70f
-        private const val ADAPTIVE_FLOOR_MIN_DB = -92f
-        private const val ADAPTIVE_PEAK_MAX_DB = -4f
-        private const val ADAPTIVE_MIN_RANGE_DB = 12f
-        private const val ADAPTIVE_OFFSET_DB = 2f
-        private const val VISUAL_MIN_DB = -72f
-        private const val VISUAL_MAX_DB = -22f
-        // absoluteLevel（无自适应底、绝对 dB 归一）仅作辅助，relativeLevel（有自适应底、吸收稳态底噪）主导：
-        private const val ABS_ASSIST = 0.5f             // absoluteLevel 辅助权重上限
-        private const val NOISE_FLOOR_ASSIST = 0.28f     // 纯噪声时辅助的最低占比（越小越压制稳态空调底噪）
+        // 半绝对响度（D21）：零点=信号门控自适应底；固定 dB 尺子保留大小声真实差异。
+        private const val ADAPTIVE_FLOOR_START_DB = -70f  // 零点初值（seeding 前）
+        private const val ADAPTIVE_FLOOR_MIN_DB = -92f    // 零点/电平下限 clamp
+        private const val ADAPTIVE_PEAK_MAX_DB = -4f      // dbClamped 上限（防极端）
+        private const val RANGE_DB = 45f                  // 尺子满量程：零点上方 45dB 算满（≈单人声动态，正常说话~44%、喊叫封顶）
+        private const val DEADZONE_DB = 5f                // 死区：零点上方 5dB 内不计（滤环境波动、抗误触发）
+        // floor 门控多证据（响亮宽频音乐不被当噪声吸收）：flux 起伏 / dB 快速上升的判定区间
+        private const val FLOOR_FLUX_LO = 1.0f            // flux 超近期均值 1σ 起算"有起伏"
+        private const val FLOOR_FLUX_HI = 3.5f            // 超 3.5σ 完全算信号
+        private const val FLOOR_RISE_LO_DB = 2f           // 单帧 dbFs 上升 2dB 起算"变响"
+        private const val FLOOR_RISE_HI_DB = 8f           // 上升 8dB 完全算信号
 
         private const val WHITEN_FLOOR = 1.0e-5f
         private const val WHITEN_DECAY = 0.9970f
@@ -547,12 +542,13 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val SUSTAIN_ATTACK = 0.12f
         private const val SUSTAIN_RELEASE = 0.22f   // 更快释放：说完词后尽快停止持续生成（问题1）
         private const val ADAPTIVE_SEED_FLOOR_MARGIN = 3f
-        private const val WATER_ATTACK = 0.32f
+        private const val WATER_ATTACK = 0.26f
         private const val WATER_RELEASE = 0.64f
         private const val NOISE_TAU = 0.30f
         private const val QUIET_START = 0.03f
         private const val QUIET_FULL = 0.13f
         private const val WATER_REST = 0.0f
         private const val WATER_MAX = 1.0f
+        private const val WATER_DRAMA = 1.2f    // 水位对响度的对比放大（大声更快顶高、小声更低 → 更戏剧）
     }
 }
