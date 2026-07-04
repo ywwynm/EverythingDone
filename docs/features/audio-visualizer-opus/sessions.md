@@ -72,3 +72,15 @@
   3. **唱歌/弦乐**的 onset 是否更干净、不再一串虚假浪（`SUPERFLUX_MAXFILTER_BINS` 可调）；
   4. **去机械感**是否自然、有没有引入不想要的形状抖动或"晃动"（`WOBBLE_AMP`/`WOBBLE_K_*` 可调）；
   5. 高能量场景**帧稳定性**（卡顿）是否改善（分桶 + 相量递推的目的）。
+
+## 2026-07-04 D24 竖直明暗着色扩展到渐变记事 + 深水压暗
+
+- **触发**：用户反馈 D23 的竖直渐变只影响纯色记事，要求渐变记事也有 y 方向明暗（主体保留颜色/渐变方向，
+  波峰稍提亮、最下方深水区稍压暗），更好模拟自然水。
+- **调研**：UE4 stylized water（深处更暗、越浅越亮、波峰高光）、水彩海景（深色打底 + 渐浅到波峰 + 波峰留白）；
+  确认 ComposeShader 不能组合两个 LinearGradient（须两遍绘制）；确认 `BackgroundUtil` 有 `lighter`/`darker`。
+- **实现**（见 [decisions.md](decisions.md) D24，修订 D12 放宽"主体不压暗"）：纯色记事单遍竖直同色系
+  `提亮→本色→压暗`；渐变记事底色横向不变 + 第二遍中性竖直光照覆盖（白/黑，透明端用同侧透明白/黑避免灰边）。
+  `:app:assembleDebug` 通过；同步更新 `CONTEXT.md` 的 Voice Waveform 词条。未发布 debug、未提交（待用户指示）。
+- **真机调**：`CREST_LIGHTEN_*`/`DEEP_DARKEN_*`（纯色）、`OVERLAY_LIGHT_ALPHA`/`OVERLAY_DARK_ALPHA`（渐变）、
+  三段位置 `SHADE_*`。重点看渐变记事是否既保留渐变方向又有了体积感、深水压暗是否自然不过头。

@@ -395,4 +395,93 @@ drawPath 性能、domain warping），落地价值最高且低风险的五条（
 偏好反复警告过不要为追节拍引入抖动，暂不做。
 
 落地：改 `WaveAudioAnalyzerOpus`（K 加权 biquad + SuperFlux）与 `WaveVisualizerOpus`（竖直渐变 + 分桶 +
-相量递推 + 权重起伏），`:app:assembleDebug` 通过。未发布 debug（用户未要求）。真机复校清单见 sessions.md。
+相量递推 + 权重起伏），`:app:assembleDebug` 通过。发布 debug **202607040454**。真机复校清单见 sessions.md。
+
+## 2026-07-04 — D24 竖直明暗着色扩展到渐变记事 + 深水压暗（有意放宽 D12）
+
+D23 建议1 的竖直渐变只作用于纯色记事、且只提亮不压暗。用户要求：**渐变记事也要 y 方向明暗**（主体大段仍
+保留记事颜色与渐变方向，但波峰稍提亮、最下方深水区稍压暗），以更好模拟自然水系的上亮下暗。经调研（UE4
+stylized water「深处更暗、越浅越亮、波峰高光」、水彩海景「深色打底 + 渐浅到波峰 + 波峰留白高光」）确认
+"顶亮→中段本色→底压暗"是自然且艺术化的做法。
+
+**修订 D12**：主体水体不再"绝对不压暗"，而是允许**克制的 y 方向明暗**——提亮波峰 + 压暗最下方深水，只要
+主体大段仍是记事本色、颜色身份可辨。这是用户主动提出的放宽（D12 原为避免"多层压暗 + 半透明"导致的浑浊，
+本次的同色系 darker/中性黑覆盖是可控的深度着色，不是那种浑浊）。
+
+**实现**（`WaveVisualizerOpus.rebuildPaints` + `drawWater`）：
+- **纯色记事**：单遍竖直**同色系**渐变，5 段 `[lighter@0 → lighter@CREST → base@NEUTRAL_HI → base@NEUTRAL_LO
+  → darker@1]`（`BackgroundUtil.lighter`/`darker`，不发灰）。提亮 `CREST_LIGHTEN_*`、压暗 `DEEP_DARKEN_*`，均克制。
+- **渐变记事**：底色**保留横向 orientation 渐变不变**（守渐变方向），叠**第二遍中性竖直光照覆盖**
+  `mLayerLightPaints`：竖直渐变 `[白α → 透明白 → 透明黑 → 黑α]`（透明端用同侧透明白/黑，避免非预乘插值灰边），
+  `drawWater` 里 `mUseLightOverlay` 时对同一 `mPath` 再 `drawPath` 一遍。仅渐变记事付两遍绘制成本（配合 D23
+  提速可接受）。
+- **为何两遍**：`ComposeShader` 只能组合**不同类型**的 shader，两个 LinearGradient（横向底色 + 竖直明暗）不能
+  组合，故用两遍绘制而非单 shader。
+- 三段位置 `SHADE_CREST_POS=0.18` / `SHADE_NEUTRAL_HI=0.45` / `SHADE_NEUTRAL_LO=0.85`（占 h）：中段 0.45–0.85
+  为本色，覆盖静息水线一带的主体，保证"主体大部分保留记事颜色"。
+
+`:app:assembleDebug` 通过。发布 debug **202607040515**。真机调：`CREST_LIGHTEN_*`/`DEEP_DARKEN_*`/
+`OVERLAY_LIGHT_ALPHA`/`OVERLAY_DARK_ALPHA`/三段位置。
+
+## 2026-07-04 — D25 竖直明暗改用 smoothstep 密集采样，消除分段分界线
+
+用户反馈 D24 的三段式竖直渐变有时能隐约看到每段分界线，要"像自然渐变那样、不分段"。
+
+**根因**：`LinearGradient` 是**分段线性**插值，在每个 stop（0.18/0.45/0.84）处颜色变化的**斜率突变**；人眼对渐变
+斜率不连续极敏感（Mach band 效应），于是把"提亮淡出→本色平台""本色平台→压暗渐入"这些转折看成隐约的带状
+分界线。
+
+**决策**：明暗沿 y 改由**处处斜率连续**的包络曲线定义，密集采样成多个均匀 stop，替代 5 个断点的分段线性。
+- **包络用 smoothstep**：提亮 `depthHi(t)=1−smoothstep(CREST_POS, NEUTRAL_HI, t)`、压暗
+  `depthLo(t)=smoothstep(NEUTRAL_LO, 1, t)`。smoothstep 两端斜率天然为 0 → 在 `CREST_POS`/`NEUTRAL_HI`/
+  `NEUTRAL_LO` 断点处与"满亮/本色/满暗"平台**无缝衔接**（斜率都是 0），不再有突变。
+- **密集采样** `DEPTH_STOPS=48` 个均匀 stop → GPU 线性插值出的分段足够细、相邻段斜率差极小，Mach band 消失。
+- **结构不变**："顶亮—中段本色—底暗"仍在，三个位置常量（现改为 smoothstep 断点）与提亮/压暗量/alpha 沿用
+  用户已调好的值（`SHADE_NEUTRAL_LO=0.84`、`OVERLAY_LIGHT_ALPHA=36`、`OVERLAY_DARK_ALPHA=48` 等）。
+- 纯色记事 `buildPureDepthColors`（同色系 lighter/darker，净量单侧、过 0 连续）；渐变记事
+  `buildOverlayDepthColors`（白/黑中性覆盖，alpha 由包络定、本色段 alpha=0）。stop 在 `rebuildPaints` 构造一次，
+  非每帧，开销可忽略。
+
+`:app:assembleDebug` 通过。发布 debug **202607040529**。
+
+## 2026-07-04 — D26 波峰高光：斜率镜面着色 + 少量 sun-glitter 闪点（方案C，放宽 D4）
+
+用户要"水面/波峰接近白的高光，更像自然水，但不要一条白边、要贴近物理"。经调研（sun glitter、Blinn-Phong、
+Fresnel、stylized water 软高光）确认自然水的白高光来自 **specular（由波面法线/斜率决定，非轮廓线）+ sun
+glitter（无数小波面离散闪烁）+ Fresnel**；"白边"之所以假，是因为把高光画成沿轮廓的连续固定线。给了三个
+方案让用户定，用户选 **方案C（斜率镜面着色打底 + 少量闪点点缀）**。
+
+**放宽 D4**：D4/[preferences.md](preferences.md) 原定"不设独立的表面高光/泡点/光晕图层"。用户主动选择加高光，
+故放宽：允许（a）作为水体自身着色的镜面高光带，（b）最前层少量克制的闪点。仍守"克制、随声音、不喧宾夺主"。
+
+**实现**（`WaveVisualizerOpus.drawHighlights/drawGlints/ensureGlintSprite`，前景 `HIGHLIGHT_LAYER_MIN=4` 两层）：
+- **斜率镜面着色带（A）**：逐点由相邻采样算局部斜率→法线，`spec=pow(saturate(N·H), SPEC_SHININESS)`，H 为
+  归一高光方向（`SPEC_LIGHT_X` 偏一侧、选中**倾斜迎光坡**而非平面 → facet 感）；乘"高于层基线"的高度门控
+  （只波峰上部、谷无）、能量门控、高频**碎斑**（两载波拍频 + 随 `mFlowTime` 移动）。用 `drawVertices`
+  画一条从轮廓向下羽化的薄近白带（顶 alpha=spec、底 alpha=0），SRC_OVER、微冷白非纯白。碎斑 + 羽化 + 斜率
+  驱动 → 软高光斑，非连续白边。
+- **sun-glitter 闪点（B，仅最前层）**：在 `spec×碎斑×门控` 的离散局部峰上画预渲染的柔和径向近白 sprite，
+  贪心取最强、彼此拉开距离的 ≤`GLINT_MAX_COUNT` 个，size/alpha∝强度；随波与碎斑相位明灭移动。
+- **不像白边的保证**：斜率驱动（非位置）、碎斑离散、向下羽化、能量门控（安静无）、只前景层、近白软混合。
+- 成本：前景 2 层各一遍 `drawVertices`（432 顶点）+ ≤5 sprite；每点几次 sin/pow。可接受。
+
+真机调：`SPEC_SHININESS`/`SPEC_LIGHT_X`（集中度/选面）、`HILIGHT_MAX_ALPHA`/`HILIGHT_BAND_DP`（带强度/宽）、
+`SPARKLE_*`（碎斑疏密/移动）、`GLINT_*`（闪点数/阈值/大小/亮度）、`HILIGHT_ENERGY_*`（门控）。
+若真机上 `drawVertices` 的 SRC_OVER 近白显脏/发灰或某机型不合成，可改 `PorterDuff.Mode.SCREEN`（备选）。
+
+`:app:assembleDebug` 通过。发布 debug **202607040548**。
+
+## 2026-07-04 — D27 撤回 D26 高光，回到无高光版本（202607040529）
+
+D26 高光两版真机效果用户均不满意，决定**整套移除白色高光**、代码回到 D25（无高光）。历程：
+- **首版（方案C）**：高光带（A）用规则高频正弦碎斑并阈值化，`drawVertices` 把相邻列亮暗突变插成**等间距竖条**，
+  真机看像"尺子刻度、每根线垂直于切线"。
+- **修正版**：A 去碎斑改连续 sheen（`SPEC_SHININESS`↓、加宽羽化）、闪烁交给离散闪点各自明灭。用户看后仍不满意，
+  要求撤回。
+- **决定**：删除全部高光代码（imports/fields/constants/`drawWater` 门控与调用/`drawHighlights`·`drawGlints`·
+  `ensureGlintSprite`），保留 D24/D25。**D4 恢复生效**（不设独立高光/泡沫/光晕层），[preferences.md](preferences.md)
+  的 D4 放宽注记改为"已撤回"。
+
+**教训**：① 规则等频正弦阈值化做碎光必然产生等间距条纹（尺子刻度）；碎光要用不规则噪声或交给离散元素。
+② 侧剖水面（非俯视）的镜面高光很难做出用户期望的自然波光感，投入产出低；此方向暂不再尝试，除非换到
+逐像素 shader（AGSL，API 33，受 minSdk 26 限制）。`:app:assembleDebug` 通过（已回退）。

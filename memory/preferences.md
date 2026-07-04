@@ -119,6 +119,12 @@ standing permission for the Gradle debug update publish task in this small-bug
 workflow; still respect sandbox/escalation policy prompts if the environment
 requires them.
 
+**（2026-07-04 扩大范围）** 不限于小 bug 修复：凡是改完代码、`:app:assembleDebug` 编译通过、
+且需要真机看效果的迭代改动（如录音波浪可视化的视觉调整），**默认直接发布 debug 到阿里云**，
+不要每次再问用户"发不发"——用户对反复确认感到啰嗦，已授予该发布任务的常驻许可。发布 = 建
+`docs/features/<slug>/debug-updates/update-*.md` 日志并调 `:app:publishDebugUpdate` 传入。提交
+（commit）仍需用户明确指示，不因编译通过或"看起来完成"就自动提交。
+
 Do not auto-install the debug APK onto the connected physical device (the
 `BYZL…` serial). The user verifies on their own device remotely: after a
 successful compile, publish a debug update to the Aliyun channel and let the
