@@ -7,9 +7,14 @@ files; single-weight families reuse one file (hierarchy then comes from opacity)
 
 Per style writes <out>/<style>.json:
   { "style":..., "N":128, "M":48, "advance":<float>,
-    "h": {"0":{"outer":[...N], "holes":[[...M],...0..2]}, ...}, "m":{...}, "s":{...} }
+    "h": {"0":{"outer":[...N], "holes":[[...M],...secondary contours]}, ...}, "m":{...}, "s":{...} }
 Coords: x centred at 0, y DOWN (capTop=0, baseline=1), scaled by the medium-weight
 figure height so all three weights share one box.
+
+`holes` is the historical runtime field name. It now stores every secondary
+contour after the largest contour: true counters, stencil gaps, inline rings, and
+disjoint fill components. Runtime uses EVEN_ODD fill, so disjoint contours remain
+filled while nested contours cut out as expected.
 
 Usage:  python generate_glyph_data.py <fonts_dir> <assets_out_dir> <verify_out_dir> [style...]
 """
@@ -48,11 +53,15 @@ STYLES = {
     "spacegrotesk": "VAR", "limelight": "SINGLE", "righteous": "SINGLE", "poiretone": "SINGLE",
     "majormonodisplay": "SINGLE", "genos": "VAR", "italiana": "SINGLE", "nixieone": "SINGLE",
     "outfit": "VAR",
+    "bigshouldersstencil": "SINGLE", "sirinstencil": "SINGLE", "allertastencil": "SINGLE",
+    "sairastencil": "SINGLE", "stardosstencil": "SINGLE", "monoton": "SINGLE",
 }
 ORDER = ["poppins", "comfortaa", "orbitron", "playfairdisplay", "abrilfatface",
          "cormorantgaramond", "zillaslab", "lora", "dmserifdisplay", "jetbrainsmono",
          "pacifico", "dancingscript", "spacegrotesk", "limelight", "righteous", "poiretone",
-         "majormonodisplay", "genos", "italiana", "nixieone", "outfit"]
+         "majormonodisplay", "genos", "italiana", "nixieone", "outfit",
+         "bigshouldersstencil", "sirinstencil", "allertastencil", "sairastencil",
+         "stardosstencil", "monoton"]
 REQUESTED = sys.argv[4:]
 if REQUESTED:
     unknown = sorted(set(REQUESTED) - set(STYLES.keys()))
@@ -161,7 +170,7 @@ def build_style(style):
         outer = align_top(resample(orient(ps[oi], ccw=True), N))
         holes = [orient(ps[i], ccw=False) for i in range(len(ps)) if i != oi]
         holes.sort(key=lambda p: -p[:, 1].mean())
-        holes = [align_top(resample(h, M)) for h in holes[:2]]
+        holes = [align_top(resample(h, M)) for h in holes]
         cx = (outer[:, 0].min() + outer[:, 0].max()) / 2.0
 
         def nrm(P):

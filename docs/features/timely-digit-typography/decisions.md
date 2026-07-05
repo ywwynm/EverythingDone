@@ -334,3 +334,11 @@ DoingActivity 的无限时长符号 `∞` 也属于计时读数，应纳入同�
 后续细化：该 dialog 宽度对齐设置应用语言 dialog 的 280dp，不再使用屏幕百分比宽度。标题也使用 App 默认 accent + accent2 渐变；字体名称不参与选中态白色前景，统一使用 App Chrome 的提示性文本颜色，把强选中反馈留给整行渐变背景和白色预览数字。
 
 再次细化：选中字体行的字体名称仍需要偏白，以便在整行 accent 渐变背景上保持可读；提示性文本颜色只用于未选中字体名称。打开 dialog 后自动滚动到当前字体行。滚动指示只保留 tab 下方一条顶部指示线，显示 / 隐藏逻辑参考应用语言 `ChooserDialogFragment` 的顶部分隔线：列表在顶部时隐藏，向下滚动后显示。
+
+## 2026-07-05 - 多外轮廓字体沿用兼容 JSON 字段
+
+为接入 stencil、inline 与多填充分片字体，离线管线不再把次级轮廓限制为最多两个。历史字段 `holes` 继续保留，但语义扩展为“除最大外轮廓之外的所有次级轮廓”：真实 counters、stencil 缺口、inline 环和分离填充分片都放入该数组。
+
+这样做可以复用现有运行时：`TimelyView` 和 `TimelyClockView` 已经对 `holes.length` 使用动态数组，并通过 `EVEN_ODD` 填充绘制整组轮廓；morph 时也按当前与目标字形的最大次级轮廓数量补零面积 seed。此轮不引入新的 JSON 顶层 schema，避免同时迁移旧资产和运行时读取器。
+
+代价是字段名 `holes` 已不再精确描述所有内容，因此在生成器注释和 runtime 注释中明确说明它是历史字段名。未来若需要更强的轮廓匹配质量，可再新增显式 `secondaryContours` / component metadata schema。

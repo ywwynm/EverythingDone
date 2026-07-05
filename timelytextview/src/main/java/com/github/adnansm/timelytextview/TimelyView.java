@@ -50,7 +50,7 @@ public class TimelyView extends View {
 
     static final class RawGlyph {
         float[][] outer;
-        float[][][] holes;    // K = 0..2
+        float[][][] holes;    // secondary contours: counters, stencil gaps or disjoint fills
     }
 
     static final class StyleData {

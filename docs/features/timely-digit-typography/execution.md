@@ -233,3 +233,13 @@ Doing screen, then published to Aliyun for on-device review.
 - [x] `:app:assembleDebug` 编译通过。
 - [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705141512.md`。
 - [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050615`。
+
+## Phase 6 多外轮廓 / 多填充分片字体 - 2026-07-05
+
+- [x] 扩展 `generate_glyph_data.py`：历史 `holes` 字段不再截断为 2 个，改为保存所有次级轮廓。
+- [x] 记录兼容字段决策：运行时继续使用 `EVEN_ODD` 和动态次级轮廓数组，不新增 JSON 顶层 schema。
+- [x] 生成 Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Monoton 的 timely JSON。
+- [x] 更新 `DoingDigitStyleDialogFragment.STYLES`，让设置 dialog 显示这些字体。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705142400.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050624`。

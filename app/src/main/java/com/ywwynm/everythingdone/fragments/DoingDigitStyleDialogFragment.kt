@@ -221,7 +221,13 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
             "genos" to "Genos",
             "italiana" to "Italiana",
             "nixieone" to "Nixie One",
-            "outfit" to "Outfit"
+            "outfit" to "Outfit",
+            "bigshouldersstencil" to "Big Shoulders Stencil",
+            "sirinstencil" to "Sirin Stencil",
+            "allertastencil" to "Allerta Stencil",
+            "sairastencil" to "Saira Stencil",
+            "stardosstencil" to "Stardos Stencil",
+            "monoton" to "Monoton"
         )
     }
 }
