@@ -1,5 +1,11 @@
 # Decisions — Timely Digit Typography
 
+## 2026-07-05 - Stencil 秒钟字距使用动态 kerning
+
+- Stencil 系列的秒钟字距修正不采用全局压缩 advance，也不改变秒钟字重层级。
+- 采用按当前秒钟两位数字轮廓边界计算的动态 kerning：只有当这对数字存在超过目标值的可见空隙时，才将秒钟个位向左收紧。
+- 这样可以改善 `36` 等窄数字组合的空隙，同时保留 `04`、`09`、`20` 等宽数字组合的原始安全距离，避免重叠和整组计时器宽度抖动。
+
 ## 2026-07-04 - Preserve the continuous skeleton morph (Option A)
 
 **Context.** The current `timelytextview` draws each digit as a single open

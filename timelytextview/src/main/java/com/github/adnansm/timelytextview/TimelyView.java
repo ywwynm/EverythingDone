@@ -41,6 +41,8 @@ import java.util.Map;
 public class TimelyView extends View {
     private static final String DEFAULT_STYLE = "poppins";
     private static final String[] LEVELS = {"h", "m", "s"};
+    private static final float STENCIL_SECOND_TARGET_GAP = 0.32f;
+    private static final float STENCIL_SECOND_MAX_TIGHTEN = 0.30f;
 
     // ---- animated value: an outer ring + K hole rings (matched structure) ----
     static final class Shape {
@@ -226,6 +228,7 @@ public class TimelyView extends View {
 
         Path path = new Path();
         float cursor = 0f;
+        float secondPairTighten = secondPairTightenUnits(sd, style, digits[4], digits[5]);
         int layer = canvas.saveLayer(0f, 0f, wPx, hPx, null);
         p.setShader(colorShader);
         p.setAlpha(255);
@@ -233,7 +236,8 @@ public class TimelyView extends View {
             RawGlyph g = sd.glyphs[levels[i]][digits[i]];
             float cellW = sd.advance * sizeF[i];
             float gS = s * sizeF[i];
-            float ox = startX + (cursor + cellW / 2f) * s;
+            float tighten = i == 5 ? secondPairTighten : 0f;
+            float ox = startX + (cursor + cellW / 2f - tighten) * s;
             float oyTop = baseY - gS;
             path.reset();
             path.setFillType(Path.FillType.EVEN_ODD);
@@ -269,6 +273,55 @@ public class TimelyView extends View {
         p.setShader(null);
         canvas.restoreToCount(layer);
         return bmp;
+    }
+
+    private static float secondPairTightenUnits(StyleData sd, String style, int tens, int ones) {
+        if (!isStencilStyle(style) || sd == null || tens < 0 || tens > 9 || ones < 0 || ones > 9) {
+            return 0f;
+        }
+        RawGlyph left = sd.glyphs[2][tens];
+        RawGlyph right = sd.glyphs[2][ones];
+        if (left == null || right == null) return 0f;
+        float currentGap = sd.advance + glyphMinX(right) - glyphMaxX(left);
+        float targetGap = sd.advance * STENCIL_SECOND_TARGET_GAP;
+        if (currentGap <= targetGap) return 0f;
+        return Math.min(currentGap - targetGap, sd.advance * STENCIL_SECOND_MAX_TIGHTEN);
+    }
+
+    private static boolean isStencilStyle(String style) {
+        return "bigshouldersstencil".equals(style)
+                || "sirinstencil".equals(style)
+                || "allertastencil".equals(style)
+                || "sairastencil".equals(style)
+                || "stardosstencil".equals(style);
+    }
+
+    private static float glyphMinX(RawGlyph glyph) {
+        return glyphBoundX(glyph, true);
+    }
+
+    private static float glyphMaxX(RawGlyph glyph) {
+        return glyphBoundX(glyph, false);
+    }
+
+    private static float glyphBoundX(RawGlyph glyph, boolean min) {
+        if (glyph == null) return 0f;
+        float bound = min ? Float.MAX_VALUE : -Float.MAX_VALUE;
+        bound = ringBoundX(glyph.outer, min, bound);
+        if (glyph.holes != null) {
+            for (float[][] hole : glyph.holes) bound = ringBoundX(hole, min, bound);
+        }
+        if (bound == Float.MAX_VALUE || bound == -Float.MAX_VALUE) return 0f;
+        return bound;
+    }
+
+    private static float ringBoundX(float[][] ring, boolean min, float bound) {
+        if (ring == null) return bound;
+        for (float[] point : ring) {
+            if (point == null || point.length == 0) continue;
+            bound = min ? Math.min(bound, point[0]) : Math.max(bound, point[0]);
+        }
+        return bound;
     }
 
     private static void addRingTo(Path path, float[][] r, float ox, float oy, float s) {

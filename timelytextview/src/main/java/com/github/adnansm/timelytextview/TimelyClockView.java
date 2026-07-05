@@ -51,6 +51,8 @@ public class TimelyClockView extends View {
     private static final float HOUR_WEIGHT_STROKE = 0.080f;
     private static final float MINUTE_WEIGHT_STROKE = 0.035f;
     private static final float SECOND_WEIGHT_STROKE = 0.000f;
+    private static final float STENCIL_SECOND_TARGET_GAP = 0.32f;
+    private static final float STENCIL_SECOND_MAX_TIGHTEN = 0.30f;
 
     private static final float ALPHA_START = 0.90f;
     private static final float ALPHA_END = 1.00f;
@@ -372,8 +374,10 @@ public class TimelyClockView extends View {
         int startSlot = showHour ? 0 : 2;
         float advance = styleData.advance * contentH;
         float colonW = advance * colonWidthFactor;
+        float secondPairTighten = secondPairTightenUnits() * contentH;
         for (int i = startSlot; i < DIGIT_COUNT; i++) {
             float cx = left + cursor + advance / 2f;
+            if (i == 5) cx -= secondPairTighten;
             drawDigit(i, canvas, cx, top, contentH, glow);
             cursor += advance;
             if ((i == 1 && showHour) || i == 3) {
@@ -383,6 +387,59 @@ public class TimelyClockView extends View {
         }
         applyAlphaMask(canvas, left, top, totalW, contentH);
         canvas.restoreToCount(save);
+    }
+
+    private float secondPairTightenUnits() {
+        if (!isStencilStyle() || styleData == null || lastDigits == null
+                || lastDigits.length < DIGIT_COUNT) {
+            return 0f;
+        }
+        int tens = lastDigits[4];
+        int ones = lastDigits[5];
+        if (tens < 0 || tens > 9 || ones < 0 || ones > 9) return 0f;
+        RawGlyph left = styleData.glyphs[2][tens];
+        RawGlyph right = styleData.glyphs[2][ones];
+        if (left == null || right == null) return 0f;
+        float currentGap = styleData.advance + glyphMinX(right) - glyphMaxX(left);
+        float targetGap = styleData.advance * STENCIL_SECOND_TARGET_GAP;
+        if (currentGap <= targetGap) return 0f;
+        return Math.min(currentGap - targetGap, styleData.advance * STENCIL_SECOND_MAX_TIGHTEN);
+    }
+
+    private boolean isStencilStyle() {
+        return "bigshouldersstencil".equals(styleName)
+                || "sirinstencil".equals(styleName)
+                || "allertastencil".equals(styleName)
+                || "sairastencil".equals(styleName)
+                || "stardosstencil".equals(styleName);
+    }
+
+    private static float glyphMinX(RawGlyph glyph) {
+        return glyphBoundX(glyph, true);
+    }
+
+    private static float glyphMaxX(RawGlyph glyph) {
+        return glyphBoundX(glyph, false);
+    }
+
+    private static float glyphBoundX(RawGlyph glyph, boolean min) {
+        if (glyph == null) return 0f;
+        float bound = min ? Float.MAX_VALUE : -Float.MAX_VALUE;
+        bound = ringBoundX(glyph.outer, min, bound);
+        if (glyph.holes != null) {
+            for (float[][] hole : glyph.holes) bound = ringBoundX(hole, min, bound);
+        }
+        if (bound == Float.MAX_VALUE || bound == -Float.MAX_VALUE) return 0f;
+        return bound;
+    }
+
+    private static float ringBoundX(float[][] ring, boolean min, float bound) {
+        if (ring == null) return bound;
+        for (float[] point : ring) {
+            if (point == null || point.length == 0) continue;
+            bound = min ? Math.min(bound, point[0]) : Math.max(bound, point[0]);
+        }
+        return bound;
     }
 
     private void drawInfinityLayer(Canvas canvas, float left, float top, float totalW,

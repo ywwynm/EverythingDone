@@ -1,5 +1,12 @@
 # Sessions — Timely Digit Typography
 
+## 2026-07-05 - Stencil 秒钟字距修正
+
+- 用户反馈 Stencil 系列字体的秒钟两位数字间距偏大。复核后确认根因是 `TimelyClockView` 使用统一 tabular advance，而秒钟维持最轻字重；Stencil 的断笔和镂空让这一段视觉空隙更明显。
+- 在 `TimelyClockView` 中为 Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil 增加秒钟两位动态 kerning：根据当前秒钟数字组合的轮廓边界计算多余空隙，只把个位秒向左收紧，宽数字组合不收紧以避免重叠。
+- 在 `TimelyView.renderClock` 中同步同一套 Stencil 秒钟 kerning，保证设置页字体选择器预览和 DoingActivity、录音 dialog 的实际显示一致。
+- `:app:assembleDebug` 编译通过；已用 `docs/features/timely-digit-typography/debug-updates/update-20260705144430.md` 发布阿里云 debug update `202607050645`。未使用 adb。
+
 ## 2026-07-04 — Design interview (grill-with-docs) + Python spikes
 
 Redesigned the Doing-screen countdown digits (the `timelytextview` module).
