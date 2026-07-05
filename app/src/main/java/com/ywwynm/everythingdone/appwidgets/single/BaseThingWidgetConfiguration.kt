@@ -319,8 +319,9 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
         val background = folderBackground ?: App.defaultAccentBackground
         val foreground = getTopChromeForeground(folderBackground)
 
-        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
-        BackgroundUtil.applyBackground(mActionBar, background)
+        BackgroundUtil.applyBackground(findViewById<View>(R.id.ll_top_chrome), background)
+        findViewById<View>(R.id.view_status_bar)?.setBackgroundColor(Color.TRANSPARENT)
+        mActionBar?.setBackgroundColor(Color.TRANSPARENT)
         if (folderBackground != null && BackgroundUtil.isLight(background)) {
             DisplayUtil.darkStatusBar(this)
         } else {

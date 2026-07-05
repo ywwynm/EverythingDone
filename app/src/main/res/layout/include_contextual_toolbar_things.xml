@@ -32,9 +32,8 @@
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="5dp"
+        android:layout_height="4dp"
         android:layout_below="@id/ll_contextual_header"
-        android:background="@drawable/actionbar_shadow"
-        android:alpha="0.6"/>
+        android:background="@drawable/actionbar_shadow"/>
 
 </RelativeLayout>

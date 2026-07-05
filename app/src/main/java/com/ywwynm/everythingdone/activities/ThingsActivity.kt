@@ -2342,15 +2342,31 @@ class ThingsActivity :
 
     private fun applyThingsActivitySurfaceBackground(): ThingBackground {
         val background = getThingsActivitySurfaceBackground()
-        BackgroundUtil.applyBackground(findViewById<View>(R.id.fl_things), background)
+        val root = findViewById<View>(R.id.fl_things)
+        BackgroundUtil.applyBackground(root, background)
         // Immersive Thing List：状态栏占位（view_status_bar）与 actionbar 连体——同为不透明 surface
         // 背景，一起随 Home Chrome Retraction 上移/回落。旧方案里它们靠 rv 的 top padding 使卡片不进
-        // 其区、可透明；新方案卡片会滑到其下，显示时须不透明，否则透出卡片。
-        mActionbar?.let { BackgroundUtil.applyBackground(it, background) }
-        BackgroundUtil.applyBackground(findViewById<View>(R.id.view_status_bar), background)
+        // 其区、可透明；新方案卡片会滑到其下，显示时须不透明，否则透出卡片。渐变 Folder surface
+        // 不能分别从各 View 顶部重画，否则 statusbar / actionbar / list 会出现色差边界；这里让
+        // chrome 子 View 画整屏 surface 在自身位置上的切片。
+        applyHomeChromeSurfaceBackground(mActionbar, root, background)
+        applyHomeChromeSurfaceBackground(findViewById<View>(R.id.view_status_bar), root, background)
         applyImmersiveStatusBarScrim(f(R.id.view_status_bar_scrim)!!, background.representativeColor())
         mRecyclerView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         return background
+    }
+
+    private fun applyHomeChromeSurfaceBackground(
+        view: View?,
+        root: View?,
+        background: ThingBackground
+    ) {
+        if (view == null || root == null) return
+        if (background.mode == ThingBackground.Mode.PURE) {
+            BackgroundUtil.applyBackground(view, background)
+        } else {
+            view.background = ProjectedHomeChromeSurfaceDrawable(background, view, root)
+        }
     }
 
     /**
@@ -12120,6 +12136,115 @@ class ThingsActivity :
                 background.endColor,
                 Shader.TileMode.CLAMP
             )
+        }
+    }
+
+    private class ProjectedHomeChromeSurfaceDrawable(
+        private val background: ThingBackground,
+        private val owner: View,
+        private val root: View
+    ) : Drawable() {
+
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+        private val ownerBounds = RectF()
+        private var externalAlpha = 255
+        private var gradientShader: LinearGradient? = null
+        private var shaderLeft = Float.NaN
+        private var shaderTop = Float.NaN
+        private var shaderRight = Float.NaN
+        private var shaderBottom = Float.NaN
+
+        override fun draw(canvas: Canvas) {
+            val rootWidth = root.width.takeIf { it > 0 } ?: bounds.width()
+            val rootHeight = root.height.takeIf { it > 0 } ?: bounds.height()
+            if (rootWidth <= 0 || rootHeight <= 0) return
+
+            updateOwnerPositionInRoot()
+            val left = -ownerBounds.left
+            val top = -ownerBounds.top
+            val right = left + rootWidth
+            val bottom = top + rootHeight
+
+            paint.alpha = externalAlpha
+            paint.shader = getGradientShader(left, top, right, bottom)
+            canvas.drawRect(left, top, right, bottom, paint)
+        }
+
+        override fun setAlpha(alpha: Int) {
+            externalAlpha = alpha.coerceIn(0, 255)
+            invalidateSelf()
+        }
+
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            paint.colorFilter = colorFilter
+            invalidateSelf()
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+
+        private fun updateOwnerPositionInRoot() {
+            var left = owner.left.toFloat()
+            var top = owner.top.toFloat()
+            var parent = owner.parent
+            while (parent is View && parent !== root) {
+                left += parent.left - parent.scrollX
+                top += parent.top - parent.scrollY
+                parent = parent.parent
+            }
+            ownerBounds.set(left, top, left + owner.width, top + owner.height)
+        }
+
+        private fun getGradientShader(
+            left: Float,
+            top: Float,
+            right: Float,
+            bottom: Float
+        ): LinearGradient {
+            val cached = gradientShader
+            if (cached != null
+                && left == shaderLeft
+                && top == shaderTop
+                && right == shaderRight
+                && bottom == shaderBottom
+            ) {
+                return cached
+            }
+
+            val coords = when (background.orientation) {
+                ThingBackground.Orientation.L_R ->
+                    floatArrayOf(left, top, right, top)
+                ThingBackground.Orientation.T_B ->
+                    floatArrayOf(left, top, left, bottom)
+                ThingBackground.Orientation.LT_RB ->
+                    floatArrayOf(left, top, right, bottom)
+                ThingBackground.Orientation.RT_LB ->
+                    floatArrayOf(right, top, left, bottom)
+                ThingBackground.Orientation.LB_RT ->
+                    floatArrayOf(left, bottom, right, top)
+                ThingBackground.Orientation.RB_LT ->
+                    floatArrayOf(right, bottom, left, top)
+                ThingBackground.Orientation.R_L ->
+                    floatArrayOf(right, top, left, top)
+                ThingBackground.Orientation.B_T ->
+                    floatArrayOf(left, bottom, left, top)
+            }
+            val shader = LinearGradient(
+                coords[0],
+                coords[1],
+                coords[2],
+                coords[3],
+                background.color,
+                background.endColor,
+                Shader.TileMode.CLAMP
+            )
+            gradientShader = shader
+            shaderLeft = left
+            shaderTop = top
+            shaderRight = right
+            shaderBottom = bottom
+            return shader
         }
     }
 

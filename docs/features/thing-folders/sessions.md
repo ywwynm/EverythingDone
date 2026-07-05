@@ -1,4 +1,11 @@
-# Thing Folders Sessions
+﻿# Thing Folders Sessions
+
+## 2026-07-05 - 单个记事 Widget 配置顶部栏渐变连续绘制
+
+- 反馈：单一记事 Widget 配置界面进入文件夹后，statusbar 和 actionbar 分别单独绘制文件夹颜色；渐变文件夹下断开尤其明显。根目录若使用 `accent+accent2` 渐变，也应避免同类断开。
+- 诊断：`BaseThingWidgetConfiguration.applyTopChrome()` 分别对 `view_status_bar` 与 `actionbar` 调用 `BackgroundUtil.applyBackground`，导致同一渐变在两段里各自重启。
+- 修复：`activity_thing_widget_configuration.xml` 新增顶部容器 `ll_top_chrome` 包住 statusbar 与 toolbar；`applyTopChrome()` 改为只给容器应用根目录 `App.defaultAccentBackground` 或当前文件夹背景，两个子 View 保持透明。标题、返回图标、overflow 图标与系统状态栏明暗策略保持既有规则。
+- Verification：`:app:assembleDebug` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=memory/debug-updates/update-20260705181221.md"` 发布成功，更新码 `202607051014`。未使用 adb，需真机确认根目录与文件夹内顶部渐变连续。
 
 ## 2026-07-01 - 全面复核缩略图缓存移除 reload 全清后的正确性（用户要求，结论：无数据驱动盲区）
 
@@ -3433,3 +3440,4 @@ Publish:
 - 发布（无效，已被取代）：更新码 `202606271137`，日志 `update-20260627193647.md`，SHA-256
   `238b1918f0291a67c816748a1f16da111297f50128fba9cab4d36af73cb4369c`。`DST_IN` 蒙版不覆盖四角、未生效。
 - 发布（第二版，擦四角）：通过 `:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/thing-folders/debug-updates/update-20260627195221.md"` 发布到阿里云 debug 通道，更新码 `202606271152`；远端 `latest.json` 指向 `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202606271152.apk`，SHA-256 为 `caec2f243f6ca690c2c6812e2b42a047bffc2ac6cd9ea55550ae5daebe3c6bb4`。尚未提交，待真机确认后提交。
+

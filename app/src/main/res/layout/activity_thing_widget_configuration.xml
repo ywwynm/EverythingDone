@@ -8,27 +8,35 @@
     android:background="@color/app_chrome_surface"
     tools:context=".appwidgets.single.BaseThingWidgetConfiguration">
 
-    <View
-        android:id="@+id/view_status_bar"
+    <LinearLayout
+        android:id="@+id/ll_top_chrome"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@android:color/transparent"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@android:color/transparent">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/actionbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:layout_below="@id/view_status_bar"
-        android:background="@android:color/transparent"
-        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
-        app:contentInsetStart="72dp"
-        app:titleTextColor="@color/black_54p"/>
+        <View
+            android:id="@+id/view_status_bar"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"/>
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/actionbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/transparent"
+            android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
+            app:contentInsetStart="72dp"
+            app:titleTextColor="@color/black_54p"/>
+
+    </LinearLayout>
 
     <com.ywwynm.everythingdone.views.StablerRecyclerView
         android:id="@+id/rv_things"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/actionbar"
+        android:layout_below="@id/ll_top_chrome"
         android:paddingTop="6dp"
         android:clipToPadding="false"
         android:paddingLeft="@dimen/rv_things_padding"
@@ -41,7 +49,7 @@
         android:id="@+id/actionbar_shadow"
         android:layout_width="match_parent"
         android:layout_height="4dp"
-        android:layout_below="@id/actionbar"
+        android:layout_below="@id/ll_top_chrome"
         android:background="@drawable/actionbar_shadow"/>
 
     <FrameLayout

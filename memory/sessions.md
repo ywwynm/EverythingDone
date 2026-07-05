@@ -1,6 +1,11 @@
-# Sessions
+﻿# Sessions
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
+
+## 2026-07-05 - 首页沉浸选择阴影与单个 Widget 顶部渐变修复
+
+- 完成一次跨 feature 视觉修复：进入首页选择模式前立即隐藏旧 home actionbar 阴影；单个记事 Widget 配置页把 statusbar 与 actionbar 放进同一顶部容器连续绘制根目录 / 文件夹背景。
+- 细节分别记录在 `docs/features/immersive-thing-list/sessions.md` 与 `docs/features/thing-folders/sessions.md`；debug 更新码 `202607051014`。
 
 ## 2026-06-26 - 多级清单项设计追问与文档
 
@@ -75,3 +80,4 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 ## Update rule
 
 Add a substantive-work entry to this file only when the work is cross-feature or changes the memory/documentation system itself. Otherwise write the session note to the relevant feature directory.
+

@@ -82,11 +82,18 @@ open class ModeManager(app: App?,
     private var menuItemsChangedCallback: (() -> Unit)? = null
 
     private var notifyDataSetRunnable: Runnable? = null
-    private var hideActionBarShadowRunnable: Runnable? = null
+    private var hideCoveredHomeChromeRunnable: Runnable? = null
 
     init {
         notifyDataSetRunnable = Runnable {
             mAdapter!!.notifyDataSetChanged()
+        }
+
+        hideCoveredHomeChromeRunnable = Runnable {
+            if (currentMode == SELECTING) {
+                mHeader?.setHomeChromeVisible(false)
+                mHeader?.hideActionbarShadow(anim = false)
+            }
         }
 
         backNormalModeListener = View.OnClickListener {
@@ -94,10 +101,6 @@ open class ModeManager(app: App?,
                 return@OnClickListener
             }
             this@ModeManager.backNormalMode(0)
-        }
-
-        hideActionBarShadowRunnable = Runnable {
-            mHeader!!.hideActionbarShadow()
         }
     }
 
@@ -123,15 +126,22 @@ open class ModeManager(app: App?,
         if (position < 0) {
             return
         }
+        val contextualCanCoverHomeChrome = mHeader?.canContextualToolbarCoverHomeChrome() == true
         updateSelectedCount()
-        showContextualToolbar(true)
+        showContextualToolbar(true, contextualCanCoverHomeChrome)
         beforeMode = currentMode
         currentMode = SELECTING
-        // 进入选择：直接隐藏整个 home 顶部 chrome（状态栏占位＋actionbar＋标题）。contextual toolbar
-        // 自带状态栏占位、从顶部滑入，隐藏 home chrome 后滑入过程不再露出 home actionbar，做到
-        // "直接显示 contextual"。不在此复位 retraction——退出时再复位为显示，避免进入时 home actionbar
-        // 先弹出的多余动画。
-        mHeader?.setHomeChromeVisible(false)
+        // 进入选择：若 home actionbar 已完全显示且带阴影，让 contextual toolbar 直接滑下盖住它，
+        // 入场完成后再隐藏底下的 home chrome，避免 actionbar/阴影先突然消失。若 home chrome 处于
+        // 隐藏或半隐藏状态，则仍直接隐藏，避免它在选择模式入场前先弹出。
+        if (contextualCanCoverHomeChrome) {
+            mRecyclerView!!.postDelayed(
+                hideCoveredHomeChromeRunnable,
+                CONTEXTUAL_TOOLBAR_SHOW_DURATION_MS
+            )
+        } else {
+            mHeader?.setHomeChromeVisible(false)
+        }
 
         val rv: RecyclerView = mRecyclerView!!
         prepareRecyclerViewForModeRebind()
@@ -176,6 +186,7 @@ open class ModeManager(app: App?,
 
     open fun backNormalMode(position: Int) {
         backNormalModeCallback?.invoke()
+        mRecyclerView!!.removeCallbacks(hideCoveredHomeChromeRunnable)
         val isSearching: Boolean = App.isSearching
         if (!isSearching) {
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
@@ -217,6 +228,7 @@ open class ModeManager(app: App?,
 
     open fun finishCurrentModeWithoutListRefresh() {
         backNormalModeCallback?.invoke()
+        mRecyclerView!!.removeCallbacks(hideCoveredHomeChromeRunnable)
         val isSearching: Boolean = App.isSearching
         if (!isSearching) {
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
@@ -243,7 +255,10 @@ open class ModeManager(app: App?,
         mAdapter!!.notifyDataSetChanged()
     }
 
-    open fun showContextualToolbar(anim: Boolean) {
+    open fun showContextualToolbar(
+        anim: Boolean,
+        contextualCanCoverHomeChrome: Boolean = false
+    ) {
         val tb: Toolbar = mContextualToolbar!!
         tb.setTitleTextAppearance(mApp!!, R.style.ContextualToolbarText)
         tb.setNavigationIcon(R.drawable.act_close)
@@ -260,12 +275,14 @@ open class ModeManager(app: App?,
 
         val rl: RelativeLayout = mRlContextualToolbar!!
         contextualToolbarVisibilityCallback?.invoke(true)
+        if (!contextualCanCoverHomeChrome) {
+            mHeader!!.hideActionbarShadow(anim = false)
+        }
         rl.visibility = View.VISIBLE
         if (anim) {
             rl.setAnimation(showContextualToolbar)
             showContextualToolbar!!.startNow()
         }
-        mRecyclerView!!.postDelayed(hideActionBarShadowRunnable, 200)
     }
 
     private fun hideContextualToolbar() {
@@ -509,5 +526,6 @@ open class ModeManager(app: App?,
         const val NORMAL: Int    = 0
         const val MOVING: Int    = 1
         const val SELECTING: Int = 2
+        private const val CONTEXTUAL_TOOLBAR_SHOW_DURATION_MS = 360L
     }
 }

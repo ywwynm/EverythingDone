@@ -19,6 +19,35 @@ SELECTING 与搜索（`App.isSearching`）不生效。
 
 ## 决策
 
+### 2026-07-05 — contextual actionbar 阴影与正常 actionbar 保持一致
+
+选择模式的 contextual actionbar 使用与正常 home actionbar 完全一致的阴影呈现：同一
+`@drawable/actionbar_shadow`、`4dp` 高度、显示时不额外压低 alpha。此前 contextual 阴影是
+`5dp` 且 `alpha=0.6`，视觉上比正常 actionbar 更淡、更散；在选择模式从已显示的 home actionbar
+覆盖入场时，两者阴影强度应一致，避免动画前后出现明暗跳变。
+
+### 2026-07-05 — 选择模式入场优先覆盖已显示的 home actionbar
+
+从沉浸式列表深处上滑让 home actionbar 完全回落、且折叠阴影可见时，长按记事进入 SELECTING，
+contextual toolbar 应直接从顶部滑下盖住现有 home actionbar，而不是先让 home actionbar / 阴影突然
+消失再显示 contextual toolbar。入场完成后，再隐藏底下的 home chrome 与旧阴影，最终只保留
+contextual toolbar 自己的阴影，避免两层阴影叠加。
+
+如果进入选择时 home chrome 仍处于隐藏或半隐藏状态，则继续直接隐藏 home chrome，不为了入场而先
+弹出 home actionbar。退出选择时仍恢复 home chrome 可见并复位 retraction 为显示。
+
+### 2026-07-05 — 文件夹淡色 surface 在顶部 chrome 中按整屏切片绘制
+
+打开文件夹后的首页应读作一整张由当前文件夹背景派生出来的淡色 surface，而不是 statusbar、
+actionbar、记事列表三段各自独立的背景。沉浸式布局此前为了避免卡片滑到 actionbar 下方时透出，
+给 `fl_things`、`view_status_bar`、`actionbar` 分别应用同一个 `mutedSurfaceBackground`；这对纯色
+无碍，但渐变文件夹会让三段背景各自从自身顶部重新开始绘制，形成 statusbar/actionbar 与
+actionbar/list 两条色差边界。
+
+修法：`fl_things` 仍绘制整屏的淡文件夹 surface；`view_status_bar` 与 `actionbar` 在需要不透明遮挡
+卡片时，绘制这张整屏 surface 在自身布局位置上的切片。纯色文件夹继续走普通纯色背景。`actionbar_shadow`
+仍只按 Activity Header 折叠进度出现，不在打开文件夹的默认态充当分界线。
+
 ### 2026-07-01 — 隐藏/显示交互模型：连续跟手＋松手吸附
 
 顶部 chrome 的上移量与"超出折叠点后的滑动量"1:1 联动（下滑上移、上滑回落），松手时

@@ -1,5 +1,29 @@
 # Immersive Thing List 会话记录
 
+## 2026-07-05 — 统一 contextual actionbar 与正常 actionbar 的阴影
+
+- 反馈：用户感觉 contextual actionbar 的阴影比正常 actionbar 淡。检查后确认二者虽然共用
+  `@drawable/actionbar_shadow`，但正常 home actionbar 阴影是 `4dp` 且完全显示时 alpha 为 `1.0`；
+  contextual actionbar 阴影此前是 `5dp` 且固定 `alpha=0.6`，因此视觉上更淡、更散。
+- 修改：`app/src/main/res/layout/include_contextual_toolbar_things.xml` 中 contextual 阴影改为 `4dp`，
+  并移除额外 `alpha=0.6`，保持与正常 actionbar 同强度、同 drawable。
+- Verification：`:app:assembleDebug` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/immersive-thing-list/debug-updates/update-20260705202020.md"`
+  发布成功，更新码 `202607051221`。未使用 adb，需真机确认选择模式入场动画中的阴影连续性。
+
+## 2026-07-05 — 调整选择模式入场：让 contextual toolbar 覆盖已显示的 home actionbar
+
+- 反馈：上一版把旧 home actionbar 阴影立即隐藏，虽然避免了阴影残留，但会出现 home actionbar/阴影突然消失，然后 contextual toolbar 再下滑出现的断裂感。期望是在原 actionbar 已显示且带阴影时，contextual toolbar 直接下滑盖住它。
+- 诊断：进入选择模式有两类状态：① home actionbar 已完全显示并有阴影；② home chrome 仍隐藏或半隐藏。前者适合覆盖入场，后者不应为了入场先弹出 home actionbar。
+- 修复：`ActivityHeader.canContextualToolbarCoverHomeChrome()` 判断 home actionbar 是否完全显示且阴影可见；`ModeManager.toSelectingMode()` 在该场景下保留 home chrome，等 contextual toolbar 360ms 入场完成后再隐藏底层 home chrome/旧阴影。其它场景仍直接隐藏 home chrome。
+- Verification：`:app:assembleDebug` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/immersive-thing-list/debug-updates/update-20260705200915.md"` 发布成功，更新码 `202607051209`。未使用 adb，需真机确认选择模式入场动画连续。
+
+## 2026-07-05 — 修复文件夹默认页顶部三段背景分界线
+
+- 反馈：打开文件夹后，默认状态下 statusbar、actionbar、记事列表三块之间会出现两条分界线；预期是整页直接呈现为当前文件夹背景派生出的淡色版本。
+- 诊断：沉浸式布局为了保证 actionbar 显示时不透出其下卡片，把同一个 `mutedSurfaceBackground` 分别应用到 `fl_things`、`view_status_bar`、`actionbar`。纯色背景不会暴露问题；渐变文件夹背景会在三块 View 内各自重启渐变，导致交界处有色差。
+- 修复：`ThingsActivity.applyThingsActivitySurfaceBackground()` 保留 `fl_things` 的整屏淡色 surface，同时让 `view_status_bar` 与 `actionbar` 通过 `ProjectedHomeChromeSurfaceDrawable` 绘制整屏 surface 在自身位置上的切片；纯色路径仍使用原有 `BackgroundUtil.applyBackground`。`actionbar_shadow` 的滚动出现逻辑未改。
+- Verification：`:app:assembleDebug` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/immersive-thing-list/debug-updates/update-20260705180256.md"` 发布成功，更新码 `202607051003`。未使用 adb，默认态视觉仍需用户通过 debug 更新真机确认。
+
 ## 2026-07-01 — grill-with-docs 设计定稿
 
 通过 grill-with-docs 逐项确认了 ThingsActivity 沉浸式记事列表的设计，未写实现代码。
@@ -79,3 +103,4 @@ enterAlways，小标题 pinned）解耦；模式复位策略（搜索/选择强�
   `thing_card_outer_spacing`(8dp)（搜索态 8+8=16dp）。两处由同一 8dp 单位推导。
 - Verification：`:app:assembleDebug` 通过。发布更新码 `202607010603`，日志
   `debug-updates/update-20260701140319.md`。未使用 adb，待真机验证。尚未提交。
+

@@ -393,9 +393,14 @@ open class ActivityHeader(
         }
     }
 
-    fun hideActionbarShadow() {
+    fun hideActionbarShadow(anim: Boolean = true) {
         actionbarShadowAlpha = mActionbarShadow.alpha
-        mActionbarShadow.animate()!!.alpha(0f).withLayer().setDuration(160)
+        mActionbarShadow.animate()!!.cancel()
+        if (anim) {
+            mActionbarShadow.animate()!!.alpha(0f).withLayer().setDuration(160)
+        } else {
+            mActionbarShadow.alpha = 0f
+        }
     }
 
     fun showActionbarShadow() {
@@ -404,6 +409,13 @@ open class ActivityHeader(
 
     fun showActionbarShadow(alpha: Float) {
         mActionbarShadow.animate()!!.alpha(alpha).withLayer()
+    }
+
+    fun canContextualToolbarCoverHomeChrome(): Boolean {
+        return mActionbar?.visibility == View.VISIBLE
+                && mStatusBarView?.visibility == View.VISIBLE
+                && retractionOffsetPx <= 0.5f
+                && mActionbarShadow.alpha > 0.01f
     }
 
     private fun cancelHeaderAnimations() {
