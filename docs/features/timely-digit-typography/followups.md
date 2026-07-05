@@ -2,8 +2,8 @@
 
 ## 2026-07-05 - 追加字体候选
 
-- 用户确认第一轮可保留候选：Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2。
-- 用户确认第二轮看中的候选：Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Outfit、Monoton。
+- 用户确认的第一轮字体已接入：Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2。
+- 用户确认的第二轮字体已接入：Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Outfit、Monoton。
 - 仍可优先尝试接入的优雅 / 适配性较好的候选：Prata、Spectral、Quattrocento、Tenor Sans。
 - 可作为技术 / 数字感补充的候选：Rajdhani、Oxanium、Chakra Petch、Quicksand。
 - 第二轮可直接用当前管线继续试的其它风格：Righteous、Poiret One、Limelight、Antonio、Teko、Saira Condensed、Oswald、Space Grotesk、Sora、Urbanist、Outfit、Nixie One、Courier Prime、Gilda Display、Forum、Gemunu Libre、Kanit、Major Mono Display、Jersey 10。

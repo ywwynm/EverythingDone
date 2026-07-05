@@ -227,6 +227,12 @@ Doing screen, then published to Aliyun for on-device review.
 ## Phase 5 追加可直接接入字体 - 2026-07-05
 
 - [x] 用户确认先接入 Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Outfit。
+
+## Phase 7 补齐第一批确认字体 - 2026-07-05
+
+- [x] 复核用户完整点名清单、`app/src/main/assets/timely/*.json` 和 `DoingDigitStyleDialogFragment.STYLES`，确认第一批 Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2 只记录为偏好，尚未真正接入。
+- [x] 扩展 `generate_glyph_data.py` 的 `STYLES` / `ORDER`，用既有字体研究阶段下载的 Google Fonts 文件生成 7 个 Timely JSON 资产。
+- [x] 更新 `DoingDigitStyleDialogFragment.STYLES`，让 7 个字体进入设置页字体选择器。
 - [x] 扩展 `generate_glyph_data.py`，支持传入 style 子集，只生成新增字体 JSON。
 - [x] 使用现有 filled-outline 管线生成 9 个新增 `app/src/main/assets/timely/*.json` 字形资产。
 - [x] 更新 `DoingDigitStyleDialogFragment.STYLES`，让设置 dialog 显示新增字体。

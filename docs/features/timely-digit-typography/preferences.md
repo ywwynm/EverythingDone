@@ -1,5 +1,10 @@
 # Timely 数字排版偏好
 
+## 2026-07-05 - 点名字体清单必须完整接入
+
+- 用户点名确认的 Timely 字体不能只记录为候选或偏好；只有同时存在生成脚本定义、`app/src/main/assets/timely/*.json` 资产、设置页字体选择器入口时，才算真正支持。
+- 当前必须支持的追加字体清单包括：Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2、Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Outfit、Monoton。
+
 ## 2026-07-05 - Stencil 秒钟字距
 
 - Stencil 系列字体的秒钟两位数字不应因为秒钟字重更轻而显得字距明显偏大。

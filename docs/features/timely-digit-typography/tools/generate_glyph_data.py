@@ -50,6 +50,8 @@ STYLES = {
     "cormorantgaramond": "VAR", "lora": "VAR", "jetbrainsmono": "VAR", "dancingscript": "VAR",
     "zillaslab": {"h": "zillaslab_bold.ttf", "m": "zillaslab.ttf", "s": "zillaslab_light.ttf"},
     "abrilfatface": "SINGLE", "dmserifdisplay": "SINGLE", "pacifico": "SINGLE",
+    "fraunces": "VAR", "bodonimoda": "VAR", "librebodoni": "VAR", "cinzel": "VAR",
+    "librebaskerville": "VAR", "josefinsans": "VAR", "exo2": "VAR",
     "spacegrotesk": "VAR", "limelight": "SINGLE", "righteous": "SINGLE", "poiretone": "SINGLE",
     "majormonodisplay": "SINGLE", "genos": "VAR", "italiana": "SINGLE", "nixieone": "SINGLE",
     "outfit": "VAR",
@@ -58,7 +60,8 @@ STYLES = {
 }
 ORDER = ["poppins", "comfortaa", "orbitron", "playfairdisplay", "abrilfatface",
          "cormorantgaramond", "zillaslab", "lora", "dmserifdisplay", "jetbrainsmono",
-         "pacifico", "dancingscript", "spacegrotesk", "limelight", "righteous", "poiretone",
+         "pacifico", "dancingscript", "fraunces", "bodonimoda", "librebodoni", "cinzel",
+         "librebaskerville", "josefinsans", "exo2", "spacegrotesk", "limelight", "righteous", "poiretone",
          "majormonodisplay", "genos", "italiana", "nixieone", "outfit",
          "bigshouldersstencil", "sirinstencil", "allertastencil", "sairastencil",
          "stardosstencil", "monoton"]

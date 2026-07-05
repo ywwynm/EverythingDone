@@ -1,5 +1,12 @@
 # Sessions — Timely Digit Typography
 
+## 2026-07-05 - 补齐第一批确认字体
+
+- 用户复核完整点名清单后指出不少字体似乎没有接入。用脚本对照目标清单、`app/src/main/assets/timely/*.json` 和 `DoingDigitStyleDialogFragment.STYLES` 后确认：第二批 15 个字体均已支持，但第一批 Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2 只记录为偏好，缺少资产和选择器入口。
+- 补齐 `generate_glyph_data.py` 的 `STYLES` / `ORDER`，使用此前字体调研阶段下载的 Google Fonts 文件生成 7 个 JSON：`fraunces.json`、`bodonimoda.json`、`librebodoni.json`、`cinzel.json`、`librebaskerville.json`、`josefinsans.json`、`exo2.json`。
+- 更新 `DoingDigitStyleDialogFragment.STYLES`，将 7 个字体加入设置页字体选择器；重新对照后，用户列出的 22 个字体在资产和选择器中均为已支持。
+- `:app:assembleDebug` 编译通过；已用 `docs/features/timely-digit-typography/debug-updates/update-20260705145639.md` 发布阿里云 debug update `202607050658`。未使用 adb。
+
 ## 2026-07-05 - Stencil 秒钟字距修正
 
 - 用户反馈 Stencil 系列字体的秒钟两位数字间距偏大。复核后确认根因是 `TimelyClockView` 使用统一 tabular advance，而秒钟维持最轻字重；Stencil 的断笔和镂空让这一段视觉空隙更明显。
