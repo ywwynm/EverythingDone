@@ -1,5 +1,13 @@
 # Thing Background 编辑器重构 — 会话记录
 
+## 2026-07-05 - GradientRippleDrawable 触点顺序通用修复
+
+- 用户复核发现这不是计时数字风格 dialog 的孤立问题：记事详情调整记事颜色 panel、首页长按后的调整记事颜色 panel 中，切换纯色/渐变的触摸 ripple 也没有从实际触摸位置扩散。
+- 检查所有 `GradientRippleDrawable` 调用后确认当前项目中有 91 处直接创建或通过 helper 应用该 drawable，问题应集中在 drawable 自身处理，而不是分别修改颜色面板、设置 dialog、列表行或按钮调用点。
+- 修复 `GradientRippleDrawable` 的 hotspot/pressed 顺序：当 pressed 先到、hotspot 稍后才到时，先用中心兜底但保留一次纠正机会；真实 hotspot 到达后立即把圆心改为触摸点。同步增加 `hotspotFresh`，避免快速连续点击时复用上一轮还在淡出的旧触点。
+- 删除 `DoingDigitStyleDialogFragment` 中上一轮为实心/描边 tab 添加的局部 touch listener，让计时数字风格 dialog、颜色面板纯色/渐变 tab 与其它 `GradientRippleDrawable` 调用统一走同一套通用逻辑。
+- `git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug` 编译通过；已用 `docs/features/thing-background-editor/debug-updates/update-20260705172411.md` 发布阿里云 debug update `202607050925`。未使用 adb。
+
 ## 2026-06-26 — 首页颜色面板改为轻量卡片露出预留
 
 用户指出不需要完整看到当前卡片，且完整预留会把颜色面板压得过小。调整上一版未发布的卡片预留逻辑：保留 `panel_thing_card_appearance` 在 `fl_things` 内，继续通过 `ScrollAwareColumn.maxMeasuredHeightPx` 限制 panel 最大高度，但卡片预留区改为固定轻量 peek（88dp + 卡片间距），删除按当前 holder 实际高度/45% 可用高度上限的预留逻辑。`:app:assembleDebug` 已通过，已发布 debug update `202606261452`，发布日志见 `debug-updates/update-20260626225200.md`。

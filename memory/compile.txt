@@ -1,102 +1,103 @@
 ﻿Reusing configuration cache.
-> Task :app:preBuild UP-TO-DATE
-> Task :app:generateDebugAssets UP-TO-DATE
 > Task :swirl:preBuild UP-TO-DATE
-> Task :swirl:generateDebugAssets UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
 > Task :timelytextview:generateDebugAssets UP-TO-DATE
+> Task :swirl:generateDebugAssets UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
 > Task :timelytextview:preBuild UP-TO-DATE
 > Task :timelytextview:preDebugBuild UP-TO-DATE
 > Task :swirl:preDebugBuild UP-TO-DATE
-> Task :swirl:javaPreCompileDebug UP-TO-DATE
-> Task :swirl:processDebugNavigationResources UP-TO-DATE
-> Task :swirl:processDebugManifest UP-TO-DATE
-> Task :swirl:generateDebugResources UP-TO-DATE
-> Task :timelytextview:extractDeepLinksDebug UP-TO-DATE
-> Task :swirl:extractDeepLinksDebug UP-TO-DATE
-> Task :timelytextview:javaPreCompileDebug UP-TO-DATE
-> Task :swirl:mapDebugSourceSetPaths UP-TO-DATE
-> Task :timelytextview:mapDebugSourceSetPaths UP-TO-DATE
 > Task :swirl:writeDebugAarMetadata UP-TO-DATE
-> Task :swirl:mergeDebugJniLibFolders UP-TO-DATE
 > Task :timelytextview:mergeDebugJniLibFolders UP-TO-DATE
-> Task :timelytextview:writeDebugAarMetadata UP-TO-DATE
-> Task :swirl:extractDebugSupportedLocales UP-TO-DATE
+> Task :timelytextview:processDebugNavigationResources UP-TO-DATE
 > Task :swirl:mergeDebugAssets UP-TO-DATE
 > Task :timelytextview:generateDebugResources UP-TO-DATE
-> Task :timelytextview:processDebugManifest UP-TO-DATE
-> Task :timelytextview:mergeDebugAssets UP-TO-DATE
-> Task :timelytextview:processDebugNavigationResources UP-TO-DATE
 > Task :timelytextview:extractDebugSupportedLocales UP-TO-DATE
-> Task :swirl:packageDebugResources UP-TO-DATE
-> Task :swirl:mergeDebugNativeLibs NO-SOURCE
-> Task :swirl:compileDebugLibraryResources UP-TO-DATE
-> Task :swirl:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :timelytextview:mergeDebugAssets UP-TO-DATE
+> Task :swirl:processDebugNavigationResources UP-TO-DATE
+> Task :swirl:mergeDebugJniLibFolders UP-TO-DATE
+> Task :timelytextview:mapDebugSourceSetPaths UP-TO-DATE
+> Task :swirl:javaPreCompileDebug UP-TO-DATE
+> Task :timelytextview:writeDebugAarMetadata UP-TO-DATE
+> Task :swirl:extractDebugSupportedLocales UP-TO-DATE
+> Task :swirl:generateDebugResources UP-TO-DATE
+> Task :timelytextview:javaPreCompileDebug UP-TO-DATE
+> Task :swirl:mapDebugSourceSetPaths UP-TO-DATE
+> Task :timelytextview:extractDeepLinksDebug UP-TO-DATE
+> Task :swirl:extractDeepLinksDebug UP-TO-DATE
+> Task :swirl:processDebugManifest UP-TO-DATE
+> Task :timelytextview:processDebugManifest UP-TO-DATE
 > Task :timelytextview:mergeDebugNativeLibs NO-SOURCE
-> Task :swirl:parseDebugLocalResources UP-TO-DATE
-> Task :app:generateDebugUpdateValues
+> Task :swirl:mergeDebugNativeLibs NO-SOURCE
+> Task :swirl:copyDebugJniLibsProjectOnly UP-TO-DATE
 > Task :timelytextview:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :swirl:packageDebugResources UP-TO-DATE
 > Task :timelytextview:packageDebugResources UP-TO-DATE
-> Task :app:preDebugBuild
-> Task :swirl:generateDebugRFile UP-TO-DATE
 > Task :timelytextview:compileDebugLibraryResources UP-TO-DATE
+> Task :swirl:compileDebugLibraryResources UP-TO-DATE
 > Task :timelytextview:parseDebugLocalResources UP-TO-DATE
+> Task :swirl:parseDebugLocalResources UP-TO-DATE
+> Task :swirl:generateDebugRFile UP-TO-DATE
+> Task :timelytextview:generateDebugRFile UP-TO-DATE
+> Task :app:generateDebugUpdateValues
+> Task :app:preDebugBuild
 > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
 > Task :app:generateDebugGlobalSynthetics UP-TO-DATE
-> Task :app:desugarDebugFileDependencies UP-TO-DATE
 > Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
 > Task :app:writeDebugAppMetadata UP-TO-DATE
-> Task :app:validateSigningDebug UP-TO-DATE
 > Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
 > Task :app:extractDeepLinksDebug UP-TO-DATE
-> Task :app:javaPreCompileDebug UP-TO-DATE
-> Task :app:generateDebugBuildConfig UP-TO-DATE
-> Task :timelytextview:generateDebugRFile UP-TO-DATE
 > Task :app:mergeDebugJniLibFolders UP-TO-DATE
-> Task :app:checkDebugDuplicateClasses UP-TO-DATE
 > Task :swirl:compileDebugKotlin NO-SOURCE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
 > Task :swirl:processDebugJavaRes NO-SOURCE
 > Task :swirl:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:mergeDebugAssets UP-TO-DATE
-> Task :app:checkDebugAarMetadata UP-TO-DATE
-> Task :swirl:bundleLibRuntimeToDirDebug UP-TO-DATE
 > Task :swirl:bundleLibCompileToJarDebug UP-TO-DATE
-> Task :app:compressDebugAssets UP-TO-DATE
-> Task :app:mergeDebugNativeLibs UP-TO-DATE
-> Task :app:mapDebugSourceSetPaths
-> Task :app:stripDebugDebugSymbols UP-TO-DATE
-> Task :app:mergeExtDexDebug UP-TO-DATE
-> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :swirl:bundleLibRuntimeToDirDebug UP-TO-DATE
 > Task :timelytextview:compileDebugKotlin NO-SOURCE
-> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:extractDebugSupportedLocales FROM-CACHE
+> Task :app:generateDebugResources FROM-CACHE
 > Task :timelytextview:processDebugJavaRes NO-SOURCE
-> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
 > Task :timelytextview:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:generateDebugResources
 > Task :timelytextview:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :timelytextview:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths
 > Task :app:mergeLibDexDebug UP-TO-DATE
-> Task :app:extractDebugSupportedLocales
-> Task :app:processDebugNavigationResources
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:processDebugNavigationResources FROM-CACHE
 > Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
 > Task :app:generateDebugLocaleConfig UP-TO-DATE
-> Task :app:packageDebugResources
-> Task :app:parseDebugLocalResources
+> Task :app:packageDebugResources FROM-CACHE
+> Task :app:parseDebugLocalResources FROM-CACHE
 > Task :app:generateDebugRFile UP-TO-DATE
-> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:mergeDebugResources FROM-CACHE
+> Task :app:processDebugResources FROM-CACHE
+
+> Task :app:compileDebugKotlin
+w: file:///E:/projects/EverythingDone/app/src/main/java/com/ywwynm/everythingdone/fragments/DoingDigitStyleDialogFragment.kt:214:18 'val resources: Resources!' is deprecated. Deprecated in Java.
+
 > Task :app:compileDebugJavaWithJavac UP-TO-DATE
 > Task :app:processDebugJavaRes UP-TO-DATE
 > Task :app:mergeDebugJavaResource UP-TO-DATE
-> Task :app:mergeDebugResources
-warn: removing resource com.ywwynm.everythingdone:string/restore_thing_folder without required default value.
-
-> Task :app:processDebugResources
-> Task :app:dexBuilderDebug UP-TO-DATE
-> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeProjectDexDebug
 > Task :app:packageDebug
 > Task :app:assembleDebug
 > Task :app:createDebugApkListingFileRedirect UP-TO-DATE
 
-BUILD SUCCESSFUL in 2s
-77 actionable tasks: 10 executed, 67 up-to-date
+BUILD SUCCESSFUL in 6s
+77 actionable tasks: 6 executed, 7 from cache, 64 up-to-date
 Configuration cache entry reused.
 "Good luck, EverythingDone v1"

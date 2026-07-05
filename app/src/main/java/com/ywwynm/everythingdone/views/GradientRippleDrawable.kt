@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -69,9 +70,14 @@ class GradientRippleDrawable(
     // 最新触摸点（setHotspot 持续更新，含 ACTION_MOVE）。
     private var hotspotX = Float.NaN
     private var hotspotY = Float.NaN
+    private var hotspotFresh = false
+    private var hotspotUptimeMs = 0L
     // 波纹圆心：按下时锁定为当时的触摸点，扩散过程中固定不动，避免「跟手滑动」。
     private var originX = Float.NaN
     private var originY = Float.NaN
+    // 某些 foreground/background 场景会先收到 pressed，稍后才收到 hotspot。
+    // 这种情况下 enter() 会先用中心兜底；hotspot 补到后只允许纠正这一次圆心。
+    private var originFromFallback = false
 
     private var cachedShader: Shader? = null
     private var shaderW = -1
@@ -106,6 +112,11 @@ class GradientRippleDrawable(
         alphaFraction = 0f
         originX = Float.NaN
         originY = Float.NaN
+        originFromFallback = false
+        hotspotX = Float.NaN
+        hotspotY = Float.NaN
+        hotspotFresh = false
+        hotspotUptimeMs = 0L
     }
 
     override fun isStateful(): Boolean = true
@@ -121,6 +132,17 @@ class GradientRippleDrawable(
     override fun setHotspot(x: Float, y: Float) {
         hotspotX = x
         hotspotY = y
+        hotspotUptimeMs = SystemClock.uptimeMillis()
+        hotspotFresh = hasUsableBounds()
+        if (pressed && originFromFallback && hasUsableBounds()) {
+            originX = x
+            originY = y
+            originFromFallback = false
+            invalidateSelf()
+        }
+        if (pressed) {
+            hotspotFresh = false
+        }
     }
 
     override fun onBoundsChange(bounds: Rect) {
@@ -128,6 +150,17 @@ class GradientRippleDrawable(
         boundsF.set(bounds)
         rebuildClip()
         cachedShader = null
+        if (pressed && originFromFallback && hasUsableBounds()) {
+            if (!hotspotX.isNaN() && !hotspotY.isNaN()) {
+                originX = hotspotX
+                originY = hotspotY
+            } else {
+                originX = bounds.exactCenterX()
+                originY = bounds.exactCenterY()
+            }
+            originFromFallback = false
+            invalidateSelf()
+        }
     }
 
     private fun rebuildClip() {
@@ -157,10 +190,14 @@ class GradientRippleDrawable(
     private fun enter() {
         // 先结束可能在跑的淡出（其 onEnd 会复位半径/圆心），再设置本次按下的起点。
         alphaOutAnimator?.cancel(); alphaOutAnimator = null
-        // 按下瞬间锁定起始圆心为触摸点（系统在 ACTION_DOWN 时先 setHotspot 再置 pressed，故此处
-        // hotspot 已就位），缺失时兜底为中心。centered 模式下圆心会随扩散迁移到控件中心（见 draw）。
-        originX = if (hotspotX.isNaN()) bounds.exactCenterX() else hotspotX
-        originY = if (hotspotY.isNaN()) bounds.exactCenterY() else hotspotY
+        // 按下瞬间尽量锁定为本次新触摸点；不同 background / foreground 路径里 hotspot 与
+        // pressed 的到达顺序可能不同，hotspot 缺失时先兜底为中心，稍后由 setHotspot() 纠正一次。
+        // centered 模式下圆心会随扩散迁移到控件中心（见 draw）。
+        val hasHotspot = hasFreshHotspot()
+        originX = if (hasHotspot) hotspotX else bounds.exactCenterX()
+        originY = if (hasHotspot) hotspotY else bounds.exactCenterY()
+        originFromFallback = !hasHotspot
+        hotspotFresh = false
         pendingExit = false
 
         radiusAnimator?.cancel()
@@ -197,6 +234,7 @@ class GradientRippleDrawable(
     }
 
     private fun exit() {
+        hotspotFresh = false
         // 淡入还没结束就松手：先记下，等淡入满了再淡出，绝不半路截断（确保铺满 + 淡出完整可见）。
         if (alphaInAnimator?.isRunning == true) {
             pendingExit = true
@@ -223,6 +261,11 @@ class GradientRippleDrawable(
                     alphaFraction = 0f
                     originX = Float.NaN
                     originY = Float.NaN
+                    originFromFallback = false
+                    hotspotX = Float.NaN
+                    hotspotY = Float.NaN
+                    hotspotFresh = false
+                    hotspotUptimeMs = 0L
                 }
             })
             start()
@@ -295,7 +338,23 @@ class GradientRippleDrawable(
         alphaFraction = 0f
         originX = Float.NaN
         originY = Float.NaN
+        originFromFallback = false
+        hotspotX = Float.NaN
+        hotspotY = Float.NaN
+        hotspotFresh = false
+        hotspotUptimeMs = 0L
         invalidateSelf()
+    }
+
+    private fun hasUsableBounds(): Boolean {
+        val b = bounds
+        return !b.isEmpty && b.width() > 0 && b.height() > 0
+    }
+
+    private fun hasFreshHotspot(): Boolean {
+        if (!hotspotFresh || !hasUsableBounds()) return false
+        if (hotspotX.isNaN() || hotspotY.isNaN()) return false
+        return SystemClock.uptimeMillis() - hotspotUptimeMs <= HOTSPOT_FRESH_MS
     }
 
     override fun setAlpha(alpha: Int) {
@@ -374,6 +433,8 @@ class GradientRippleDrawable(
         private const val ALPHA_ENTER_DURATION = 60L
         /** alpha 淡出时长。 */
         private const val ALPHA_EXIT_DURATION = 300L
+        /** 未按下状态下缓存的 hotspot 只在同一次触摸派发附近可信，避免把初始化时的 (0,0) 当触点。 */
+        private const val HOTSPOT_FRESH_MS = 250L
         private val RADIUS_INTERPOLATOR = DecelerateInterpolator()
         private val LINEAR = LinearInterpolator()
     }

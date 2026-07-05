@@ -1,5 +1,13 @@
 # Gradient Ripple — Sessions
 
+## 2026-07-05 — 修正 tab ripple 触点与 drawable 重建
+
+- 用户明确纠正：`GradientRippleDrawable` 必须继续复用背景的线性渐变方向，不能为了修触摸扩散行为而改变 ripple 本身的渐变方向。
+- 重新诊断颜色面板“纯色 / 渐变”和计时数字风格“实心 / 描边”tab：问题集中在旧 hotspot 可能把初始化时的 `(0,0)` 当成本次触摸点，以及 tab 状态刷新时反复替换新的 foreground drawable，导致按下后状态重建和卡顿。
+- 修复 `GradientRippleDrawable`：未按下状态缓存的 hotspot 只有在 bounds 已可用且接近同一次触摸派发时才采信；bounds 为空或 hotspot 缺失时先兜底，等真实 hotspot 或 bounds 到达后再纠正圆心。保留 `BackgroundUtil.createLinearGradient(...)`，不改 `ThingBackground.orientation`。
+- 修复 `ThingBackgroundEditor` 和 `DoingDigitStyleDialogFragment` 的 tab：`styleTab()` 复用已有 `GradientRippleDrawable` 并只调用 `updateBackground(...)`，避免切换纯色/渐变、实心/描边时替换 foreground 导致 ripple 状态丢失。
+- `git diff --check` 通过，仅有仓库既有 LF/CRLF 提示；`:app:assembleDebug` 编译通过；已用 `docs/features/gradient-ripple/debug-updates/update-20260705173921.md` 发布阿里云 debug update `202607050940`。未使用 adb。
+
 ## 2026-06-27 — Initial implementation
 
 - Confirmed against AOSP source that the platform `RippleDrawable` cannot render a gradient

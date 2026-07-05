@@ -1,11 +1,15 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.TextUtils
+import android.util.LruCache
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -23,6 +27,8 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 /**
@@ -35,6 +41,9 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
     private var fill = true
     private var selected = "poppins"
     private var onChosen: (() -> Unit)? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var previewExecutor: ExecutorService? = null
+    private var previewGeneration = 0
 
     fun setOnChosen(cb: () -> Unit) {
         onChosen = cb
@@ -87,9 +96,13 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
         }
 
         fun buildRows() {
+            val generation = ++previewGeneration
+            restartPreviewQueue()
+            val appContext = ctx.applicationContext
             rows.removeAllViews()
             val wPx = (getDialogWindowWidthPx() - dp(64f)).coerceAtLeast(dp(220f))
             val hPx = dp(52f)
+            val pendingPreviews = ArrayList<Pair<ImageView, PreviewKey>>()
             for ((id, label) in STYLES) {
                 val isSelected = id == selected
                 val row = LinearLayout(ctx)
@@ -127,16 +140,17 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
                 lp.setMargins(0, dp(4f), 0, 0)
                 iv.layoutParams = lp
                 iv.scaleType = ImageView.ScaleType.FIT_CENTER
-                iv.setImageBitmap(
-                    if (isSelected) {
-                        TimelyView.renderClock(ctx, id, fill, Color.WHITE, wPx, hPx)
-                    } else {
-                        TimelyView.renderClock(
-                            ctx, id, fill,
-                            accentBackground.color, accentBackground.endColor, wPx, hPx
-                        )
-                    }
-                )
+                val key = previewKey(id, fill, isSelected, accentBackground, wPx, hPx)
+                iv.tag = key
+                val cached = PREVIEW_CACHE.get(key)
+                if (cached != null) {
+                    iv.alpha = 1f
+                    iv.setImageBitmap(cached)
+                } else {
+                    iv.alpha = 0f
+                    iv.setImageDrawable(null)
+                    pendingPreviews.add(iv to key)
+                }
                 row.addView(iv)
 
                 row.setOnClickListener {
@@ -149,6 +163,9 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
                 }
                 rows.addView(row)
             }
+            pendingPreviews.sortedBy { if (it.second.isSelectedPreview()) 0 else 1 }
+                .forEach { (iv, key) -> loadPreviewAsync(appContext, iv, key, generation) }
+            prefetchRenderMode(appContext, !fill, selected, accentBackground, wPx, hPx)
             scrollToSelectedRow()
         }
 
@@ -170,15 +187,27 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
         return v
     }
 
+    override fun onDestroyView() {
+        previewGeneration++
+        previewExecutor?.shutdownNow()
+        previewExecutor = null
+        super.onDestroyView()
+    }
+
     private fun styleTab(
         tab: TextView,
         selected: Boolean,
         accentBackground: ThingBackground,
         hintColor: Int
     ) {
-        tab.foreground = GradientRippleDrawable(
-            accentBackground, shapeOval = false, cornerRadiusPx = -1f
-        )
+        val ripple = tab.foreground as? GradientRippleDrawable
+        if (ripple != null) {
+            ripple.updateBackground(accentBackground)
+        } else {
+            tab.foreground = GradientRippleDrawable(
+                accentBackground, shapeOval = false, cornerRadiusPx = -1f
+            )
+        }
         if (selected) {
             tab.setTypeface(Typeface.DEFAULT_BOLD)
             BackgroundUtil.applyTextBackground(tab, accentBackground)
@@ -194,11 +223,106 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
         }
     }
 
+    private fun previewKey(
+        style: String,
+        fillMode: Boolean,
+        isSelected: Boolean,
+        accentBackground: ThingBackground,
+        wPx: Int,
+        hPx: Int
+    ): PreviewKey {
+        return if (isSelected) {
+            PreviewKey(style, fillMode, Color.WHITE, Color.WHITE, wPx, hPx)
+        } else {
+            PreviewKey(style, fillMode, accentBackground.color, accentBackground.endColor, wPx, hPx)
+        }
+    }
+
+    private fun loadPreviewAsync(
+        appContext: Context,
+        imageView: ImageView,
+        key: PreviewKey,
+        generation: Int
+    ) {
+        ensurePreviewExecutor().execute {
+            val bitmap = getOrRenderPreview(appContext, key)
+            mainHandler.post {
+                if (generation != previewGeneration || mContentView == null || imageView.tag != key) {
+                    return@post
+                }
+                imageView.animate().cancel()
+                imageView.alpha = 0f
+                imageView.setImageBitmap(bitmap)
+                imageView.animate().alpha(1f).setDuration(PREVIEW_FADE_IN_MS).start()
+            }
+        }
+    }
+
+    private fun prefetchRenderMode(
+        appContext: Context,
+        fillMode: Boolean,
+        selectedStyle: String,
+        accentBackground: ThingBackground,
+        wPx: Int,
+        hPx: Int
+    ) {
+        val keys = STYLES.map { (id, _) ->
+            previewKey(id, fillMode, id == selectedStyle, accentBackground, wPx, hPx)
+        }.filter { PREVIEW_CACHE.get(it) == null }
+        if (keys.isEmpty()) return
+        ensurePreviewExecutor().execute {
+            for (key in keys) {
+                if (Thread.currentThread().isInterrupted) return@execute
+                getOrRenderPreview(appContext, key)
+            }
+        }
+    }
+
+    private fun ensurePreviewExecutor(): ExecutorService {
+        val existing = previewExecutor
+        if (existing != null && !existing.isShutdown) return existing
+        return Executors.newSingleThreadExecutor { r ->
+            Thread(r, "doing-digit-preview")
+        }.also { previewExecutor = it }
+    }
+
+    private fun restartPreviewQueue() {
+        previewExecutor?.shutdownNow()
+        previewExecutor = null
+    }
+
+    private fun getOrRenderPreview(appContext: Context, key: PreviewKey): Bitmap {
+        PREVIEW_CACHE.get(key)?.let { return it }
+        val bitmap = TimelyView.renderClock(
+            appContext, key.style, key.fillMode, key.startColor, key.endColor, key.wPx, key.hPx
+        )
+        PREVIEW_CACHE.put(key, bitmap)
+        return bitmap
+    }
+
     private fun dp(value: Float): Int =
         (value * resources.displayMetrics.density).roundToInt()
 
+    private data class PreviewKey(
+        val style: String,
+        val fillMode: Boolean,
+        val startColor: Int,
+        val endColor: Int,
+        val wPx: Int,
+        val hPx: Int
+    ) {
+        fun isSelectedPreview(): Boolean =
+            startColor == Color.WHITE && endColor == Color.WHITE
+    }
+
     companion object {
         const val TAG = "DoingDigitStyleDialogFragment"
+        private const val PREVIEW_CACHE_BYTES = 8 * 1024 * 1024
+        private const val PREVIEW_FADE_IN_MS = 90L
+
+        private val PREVIEW_CACHE = object : LruCache<PreviewKey, Bitmap>(PREVIEW_CACHE_BYTES) {
+            override fun sizeOf(key: PreviewKey, value: Bitmap): Int = value.byteCount
+        }
 
         /** id (asset name) -> display label. */
         val STYLES = listOf(

@@ -1,5 +1,24 @@
 # Sessions — Timely Digit Typography
 
+## 2026-07-05 - 字体选择器预览改为异步渲染
+
+- 用户指出 `DoingDigitStyleDialogFragment` 中“实心 / 描边”tab 的 ripple 卡顿，可能不是 ripple 本身，而是切换时同步把每个字体的预览都渲染出来；建议参考修改提醒声音 dialog 的后台加载处理。
+- 复核确认 `buildRows()` 在主线程里对每个字体调用 `TimelyView.renderClock(...)`，当前字体数量增加后，切换实心/描边会同步生成几十张 bitmap，阻塞 tab 的 pressed/ripple 动画。提醒声音 dialog 的铃声列表则是先显示 loading，再用后台 `Thread` 收集数据并回到主线程展示。
+- 改为在 `DoingDigitStyleDialogFragment` 内用单线程后台队列生成预览 bitmap：主线程只创建行和 `ImageView`，未命中缓存时先留空，后台完成后通过 generation + `ImageView.tag` 校验回填并淡入；关闭 dialog 或再次切换时取消旧队列，避免旧任务阻塞当前模式。
+- 新增 8MB 预览缓存，缓存键包含字体、实心/描边、颜色和尺寸；打开或切换后会在当前模式行渲染完后预热另一种模式，用户来回切换时尽量直接命中缓存。
+- `:app:assembleDebug` 编译通过；已用 `docs/features/timely-digit-typography/debug-updates/update-20260705174739.md` 发布阿里云 debug update `202607050948`。未使用 adb。
+
+## 2026-07-05 - 计时数字风格 tab ripple 改走通用修复
+
+- 用户进一步确认颜色面板的纯色/渐变 tab 也存在同样的 ripple 起点问题后，上一轮只给 `DoingDigitStyleDialogFragment` 实心/描边 tab 转发触点的局部修复不再合适。
+- 已移除该 dialog 中的 `setOnTouchListener` 触点转发，改由 `GradientRippleDrawable` 自身处理 pressed 与 hotspot 的到达顺序；计时数字风格 dialog 继续保留原有 tab 样式、选中态和字体列表行为。
+
+## 2026-07-05 - 计时数字风格 tab ripple 触点修正
+
+- 用户反馈设置界面“计时数字风格”dialog 顶部“实心 / 描边”两个 tab 的触摸 ripple，与记事详情调整记事颜色面板“纯色 / 渐变”tab 不一致，没有从实际触摸点扩散。
+- 对照 `DoingDigitStyleDialogFragment`、`ThingBackgroundEditor` 和 `GradientRippleDrawable` 后，保留原有 tab 样式，只为“实心 / 描边”两个 TextView 安装触点转发：`ACTION_DOWN` / `ACTION_MOVE` 时把 `event.x/y` 传给当前 foreground 的 `GradientRippleDrawable.setHotspot()`，并返回 `false` 保持原有 click 切换逻辑。
+- `:app:assembleDebug` 编译通过；已用 `docs/features/timely-digit-typography/debug-updates/update-20260705171405.md` 发布阿里云 debug update `202607050914`。未使用 adb。
+
 ## 2026-07-05 - 补齐第一批确认字体
 
 - 用户复核完整点名清单后指出不少字体似乎没有接入。用脚本对照目标清单、`app/src/main/assets/timely/*.json` 和 `DoingDigitStyleDialogFragment.STYLES` 后确认：第二批 15 个字体均已支持，但第一批 Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2 只记录为偏好，缺少资产和选择器入口。
