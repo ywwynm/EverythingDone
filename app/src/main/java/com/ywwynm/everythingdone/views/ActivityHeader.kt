@@ -583,17 +583,15 @@ open class ActivityHeader(
     }
 
     /**
-     * 进入 / 退出选择模式时整体显隐 home 顶部 chrome（状态栏占位＋actionbar＋折叠标题）。
-     * 选择模式由独立的 contextual toolbar（自带状态栏占位）承载，从顶部滑入；隐藏 home chrome
-     * 后，滑入过程中不再露出 home actionbar，做到"直接显示 contextual"。actionbar 阴影另由
-     * ModeManager 管理，这里不动。
+     * 进入 / 退出选择模式时显隐 home toolbar chrome（状态栏占位＋actionbar）。
+     * Activity Header 本体仍保留在列表上方；折叠到顶部的部分由 contextual toolbar 的层级自然覆盖。
+     * actionbar 阴影另由 ModeManager 管理，这里不动。
      */
-    fun setHomeChromeVisible(visible: Boolean) {
+    fun setHomeToolbarChromeVisible(visible: Boolean) {
         val visibility = if (visible) View.VISIBLE else View.INVISIBLE
         mStatusBarView?.visibility = visibility
         mStatusBarScrim?.visibility = visibility
         mActionbar?.visibility = visibility
-        mRelativeLayout.visibility = visibility
     }
 
     private fun getCollapsedTitleScaleForCurrentLayout(): Float {

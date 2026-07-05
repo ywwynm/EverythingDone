@@ -30,11 +30,16 @@ SELECTING 与搜索（`App.isSearching`）不生效。
 
 从沉浸式列表深处上滑让 home actionbar 完全回落、且折叠阴影可见时，长按记事进入 SELECTING，
 contextual toolbar 应直接从顶部滑下盖住现有 home actionbar，而不是先让 home actionbar / 阴影突然
-消失再显示 contextual toolbar。入场完成后，再隐藏底下的 home chrome 与旧阴影，最终只保留
-contextual toolbar 自己的阴影，避免两层阴影叠加。
+消失再显示 contextual toolbar。入场完成后，再隐藏底下的 home toolbar chrome（状态栏占位、
+actionbar、沉浸态状态栏保护层）与旧阴影，最终只保留 contextual toolbar 自己的阴影，避免两层
+阴影叠加。
 
-如果进入选择时 home chrome 仍处于隐藏或半隐藏状态，则继续直接隐藏 home chrome，不为了入场而先
-弹出 home actionbar。退出选择时仍恢复 home chrome 可见并复位 retraction 为显示。
+Activity Header 不随选择模式隐藏；它仍属于列表上方的标题浮层。若已折叠进顶部区域，则由
+contextual toolbar 的层级自然盖住；若仍处于展开态，则不应因为长按进入选择而突然消失。
+
+如果进入选择时 home toolbar chrome 仍处于隐藏或半隐藏状态，则继续直接隐藏该 toolbar chrome，
+不为了入场而先弹出 home actionbar。退出选择时仍恢复 home toolbar chrome 可见并复位 retraction
+为显示。
 
 ### 2026-07-05 — 文件夹淡色 surface 在顶部 chrome 中按整屏切片绘制
 

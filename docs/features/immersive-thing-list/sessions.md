@@ -1,5 +1,16 @@
 # Immersive Thing List 会话记录
 
+## 2026-07-05 — 修正选择模式入场不应隐藏 Activity Header
+
+- 反馈：长按记事出现 contextual toolbar 时，Activity Header 也一起消失了。检查确认原因是上一轮为隐藏旧
+  home actionbar 复用了 `ActivityHeader.setHomeChromeVisible(false)`，而该方法同时把 `rl_header`
+  设为不可见。
+- 修复：将该方法收窄并重命名为 `setHomeToolbarChromeVisible()`，只显隐 `view_status_bar`、
+  `view_status_bar_scrim` 与 `actionbar`；Activity Header 本体保持可见。折叠到顶部区域的标题仍由
+  contextual toolbar 层级自然覆盖，展开态标题不会在进入选择时突然消失。
+- Verification：`:app:assembleDebug` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/immersive-thing-list/debug-updates/update-20260705230935.md"`
+  发布成功，更新码 `202607051510`。未使用 adb，需真机确认长按进入选择模式时 Activity Header 保持可见。
+
 ## 2026-07-05 — 统一 contextual actionbar 与正常 actionbar 的阴影
 
 - 反馈：用户感觉 contextual actionbar 的阴影比正常 actionbar 淡。检查后确认二者虽然共用

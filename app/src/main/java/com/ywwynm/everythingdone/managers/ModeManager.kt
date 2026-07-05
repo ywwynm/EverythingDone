@@ -91,7 +91,7 @@ open class ModeManager(app: App?,
 
         hideCoveredHomeChromeRunnable = Runnable {
             if (currentMode == SELECTING) {
-                mHeader?.setHomeChromeVisible(false)
+                mHeader?.setHomeToolbarChromeVisible(false)
                 mHeader?.hideActionbarShadow(anim = false)
             }
         }
@@ -132,7 +132,7 @@ open class ModeManager(app: App?,
         beforeMode = currentMode
         currentMode = SELECTING
         // 进入选择：若 home actionbar 已完全显示且带阴影，让 contextual toolbar 直接滑下盖住它，
-        // 入场完成后再隐藏底下的 home chrome，避免 actionbar/阴影先突然消失。若 home chrome 处于
+        // 入场完成后再隐藏底下的 home toolbar chrome，避免 actionbar/阴影先突然消失。若 home chrome 处于
         // 隐藏或半隐藏状态，则仍直接隐藏，避免它在选择模式入场前先弹出。
         if (contextualCanCoverHomeChrome) {
             mRecyclerView!!.postDelayed(
@@ -140,7 +140,7 @@ open class ModeManager(app: App?,
                 CONTEXTUAL_TOOLBAR_SHOW_DURATION_MS
             )
         } else {
-            mHeader?.setHomeChromeVisible(false)
+            mHeader?.setHomeToolbarChromeVisible(false)
         }
 
         val rv: RecyclerView = mRecyclerView!!
@@ -195,8 +195,8 @@ open class ModeManager(app: App?,
         currentMode = NORMAL
         if (beforeMode == SELECTING) {
             hideContextualToolbar()
-            // 从选择返回正常：恢复 home 顶部 chrome 显示（随 contextual 滑出而露出），并复位为显示。
-            mHeader?.setHomeChromeVisible(true)
+            // 从选择返回正常：恢复 home toolbar chrome 显示（随 contextual 滑出而露出），并复位为显示。
+            mHeader?.setHomeToolbarChromeVisible(true)
             mHeader?.setRetractionOffset(0f, false)
             val adapter: ThingsAdapter = mAdapter!!
             adapter.setShouldThingsAnimWhenAppearing(false)
@@ -238,8 +238,8 @@ open class ModeManager(app: App?,
         currentMode = NORMAL
         if (previousMode == SELECTING) {
             hideContextualToolbar()
-            // 从选择返回正常：恢复 home 顶部 chrome 显示，并复位为显示。
-            mHeader?.setHomeChromeVisible(true)
+            // 从选择返回正常：恢复 home toolbar chrome 显示，并复位为显示。
+            mHeader?.setHomeToolbarChromeVisible(true)
             mHeader?.setRetractionOffset(0f, false)
         }
         if (mApp!!.getStatus() == Def.ThingStatus.UNDERWAY && !isSearching) {
