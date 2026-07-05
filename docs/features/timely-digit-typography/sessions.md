@@ -1,5 +1,11 @@
 # Sessions — Timely Digit Typography
 
+## 2026-07-06 - 计时数字风格多语言文案修正
+
+- 用户指出设置界面“计时数字风格”的英文不应限定为 `Countdown digit style`，因为该设置同时影响 DoingActivity 倒计时和录音 dialog 等计时读数。
+- 默认英文改为 `Timer digit style`，并同步更新 `DoingDigitStyleDialogFragment` 注释；非默认 locale 补齐 `settings_doing_digit_style`、`doing_digit_fill`、`doing_digit_outline`，覆盖德语、西班牙语、法语、印地语、意大利语、日语、韩语、葡萄牙语、俄语、繁体中文香港和繁体中文台湾。
+- `:app:assembleDebug --console=plain` 编译通过；已用 `docs/features/timely-digit-typography/debug-updates/update-20260706002021.md` 发布阿里云 debug update `202607051620`。未使用 adb，未提交 git。
+
 ## 2026-07-05 - 字体选择器预览改为异步渲染
 
 - 用户指出 `DoingDigitStyleDialogFragment` 中“实心 / 描边”tab 的 ripple 卡顿，可能不是 ripple 本身，而是切换时同步把每个字体的预览都渲染出来；建议参考修改提醒声音 dialog 的后台加载处理。

@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">नोट सूची में कवर के रूप में सेट GIF और वीडियो स्वचालित रूप से चलाएँ</string>
     <string name="settings_twice_back">बाहर निकलने के लिए वापस दो बार दबाएँ</string>
     <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
+    <string name="settings_doing_digit_style">टाइमर अंक शैली</string>
+    <string name="doing_digit_fill">भरा हुआ</string>
+    <string name="doing_digit_outline">आउटलाइन</string>
     <string name="cd_random_pure_background">यादृच्छिक शुद्ध रंग</string>
     <string name="cd_random_gradient_background">यादृच्छिक ढाल रंग</string>
     <string name="chooser_ringtone">रिंगटोन चुनें</string>

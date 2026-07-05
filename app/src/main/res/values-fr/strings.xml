@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">Lire automatiquement les couvertures GIF et vidéo dans la liste des notes</string>
     <string name="settings_twice_back">Appuyez deux fois sur Retour pour quitter</string>
     <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
+    <string name="settings_doing_digit_style">Style des chiffres du minuteur</string>
+    <string name="doing_digit_fill">Rempli</string>
+    <string name="doing_digit_outline">Contour</string>
     <string name="cd_random_pure_background">Couleur pure aléatoire</string>
     <string name="cd_random_gradient_background">Couleur dégradée aléatoire</string>
     <string name="chooser_ringtone">Sélectionnez la sonnerie</string>

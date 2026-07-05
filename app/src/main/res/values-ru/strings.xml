@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">Автоматически воспроизводить GIF-анимации и видео на обложках в списке записей</string>
     <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
     <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
+    <string name="settings_doing_digit_style">Стиль цифр таймера</string>
+    <string name="doing_digit_fill">Заливка</string>
+    <string name="doing_digit_outline">Контур</string>
     <string name="cd_random_pure_background">Случайный чистый цвет</string>
     <string name="cd_random_gradient_background">Случайный цвет градиента</string>
     <string name="chooser_ringtone">Выберите рингтон</string>

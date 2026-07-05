@@ -762,6 +762,9 @@
     <string name="settings_autoplay_cover_dynamic">在記事列表中自動播放作為封面的 GIF 與視頻</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
     <string name="settings_create_animation_style">新建事項時使用屏幕邊框光效動畫</string>
+    <string name="settings_doing_digit_style">計時數字風格</string>
+    <string name="doing_digit_fill">實心</string>
+    <string name="doing_digit_outline">描邊</string>
 
     <!-- Color picker random FABs (Phase 6) -->
     <string name="cd_random_pure_background">隨機純色</string>

@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">記事リストでカバーに設定したGIFと動画を自動再生</string>
     <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
     <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
+    <string name="settings_doing_digit_style">タイマーの数字スタイル</string>
+    <string name="doing_digit_fill">塗りつぶし</string>
+    <string name="doing_digit_outline">アウトライン</string>
     <string name="cd_random_pure_background">ランダムな純色</string>
     <string name="cd_random_gradient_background">ランダムなグラデーションカラー</string>
     <string name="chooser_ringtone">着信音の選択</string>

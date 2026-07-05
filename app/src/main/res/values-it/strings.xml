@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">Riproduci automaticamente le copertine GIF e video nell\'elenco delle note</string>
     <string name="settings_twice_back">Premere Indietro due volte per uscire</string>
     <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
+    <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
+    <string name="doing_digit_fill">Pieno</string>
+    <string name="doing_digit_outline">Contorno</string>
     <string name="cd_random_pure_background">Colore puro casuale</string>
     <string name="cd_random_gradient_background">Colore sfumato casuale</string>
     <string name="chooser_ringtone">Seleziona Suoneria</string>

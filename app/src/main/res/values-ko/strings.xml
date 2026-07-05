@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">기록 목록에서 표지로 설정된 GIF와 동영상을 자동으로 재생</string>
     <string name="settings_twice_back">종료하려면 뒤로를 두 번 누르세요.</string>
     <string name="settings_create_animation_style">새로운 것을 만들 때 테두리 조명 애니메이션</string>
+    <string name="settings_doing_digit_style">타이머 숫자 스타일</string>
+    <string name="doing_digit_fill">채우기</string>
+    <string name="doing_digit_outline">윤곽선</string>
     <string name="cd_random_pure_background">무작위 순수 색상</string>
     <string name="cd_random_gradient_background">무작위 그라데이션 색상</string>
     <string name="chooser_ringtone">벨소리 선택</string>

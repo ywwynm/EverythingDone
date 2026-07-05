@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">Reproduce automáticamente las portadas de GIF y vídeo en la lista de notas</string>
     <string name="settings_twice_back">Presione Atrás dos veces para salir</string>
     <string name="settings_create_animation_style">Animación de luz de borde al crear algo nuevo.</string>
+    <string name="settings_doing_digit_style">Estilo de dígitos del temporizador</string>
+    <string name="doing_digit_fill">Relleno</string>
+    <string name="doing_digit_outline">Contorno</string>
     <string name="cd_random_pure_background">Color puro aleatorio</string>
     <string name="cd_random_gradient_background">Color degradado aleatorio</string>
     <string name="chooser_ringtone">Seleccionar tono de llamada</string>

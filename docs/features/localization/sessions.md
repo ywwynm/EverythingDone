@@ -2,6 +2,12 @@
 
 Migrated from global `memory/sessions.md` on 2026-06-06. This file keeps feature-scoped history out of startup memory while preserving the original notes.
 
+## 2026-07-06 - 计时数字风格设置项补齐多语言
+
+- 按用户反馈修正 `settings_doing_digit_style`：默认英文从 `Countdown digit style` 改为 `Timer digit style`，避免把 Doing / 录音等计时读数误限定为倒计时。
+- 为德语、西班牙语、法语、印地语、意大利语、日语、韩语、葡萄牙语、俄语、繁体中文香港和繁体中文台湾补齐 `settings_doing_digit_style`，并同步补齐同一弹窗的 `doing_digit_fill` / `doing_digit_outline`。
+- `:app:assembleDebug --console=plain` 通过；已随 timely digit typography 功能日志发布 debug update `202607051620`。
+
 ## 2026-06-27 - 英文界面标题大小写与抽屉头图操作弹窗修正
 
 - 修正抽屉头图设置入口英文文案：`settings_change_drawer_header` 从 `Drawer Header Image` 改为 `Drawer header image`，遵循设置界面普通条目的句首大写规则；同时将该弹窗内的 `Choose Image` / `Adjust Crop` 调整为句首大写。

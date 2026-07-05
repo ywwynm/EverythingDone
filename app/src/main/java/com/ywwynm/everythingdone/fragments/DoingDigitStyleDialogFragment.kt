@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 /**
- * Countdown digit style chooser: one row per style previewing "01:29:36" (so the
+ * Timer digit style chooser: one row per style previewing "01:29:36" (so the
  * hour/minute/second weight ladder shows), plus a Fill/Outline toggle. Persists
  * the choice to the app settings preferences; DoingActivity reads it on open.
  */

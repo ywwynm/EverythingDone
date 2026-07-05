@@ -496,6 +496,9 @@
     <string name="settings_autoplay_cover_dynamic">GIF- und Video-Titelbilder in der Notizliste automatisch abspielen</string>
     <string name="settings_twice_back">Drücken Sie zweimal Zurück, um den Vorgang zu beenden</string>
     <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
+    <string name="settings_doing_digit_style">Timer-Ziffernstil</string>
+    <string name="doing_digit_fill">Ausgefüllt</string>
+    <string name="doing_digit_outline">Kontur</string>
     <string name="cd_random_pure_background">Zufällige reine Farbe</string>
     <string name="cd_random_gradient_background">Zufällige Farbverlaufsfarbe</string>
     <string name="chooser_ringtone">Wählen Sie Klingelton</string>
