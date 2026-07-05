@@ -84,6 +84,9 @@ object Def {
         // added on 2016/11/22
         const val KEY_AUTO_START_DOING: String         = "auto_start_doing"
         const val KEY_AUTO_STRICT_MODE: String         = "auto_strict_mode"
+
+        const val KEY_DOING_DIGIT_STYLE: String        = "doing_digit_style"
+        const val KEY_DOING_DIGIT_RENDER: String       = "doing_digit_render"
         // added on 2016/11/26
         const val KEY_ASD_TIME_REMINDER: String        = "asd_time_reminder"
         const val KEY_ASD_TIME_HABIT: String           = "asd_time_habit"

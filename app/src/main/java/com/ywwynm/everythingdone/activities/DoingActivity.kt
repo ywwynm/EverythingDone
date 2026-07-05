@@ -223,8 +223,18 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             R.id.tv_hour_1, R.id.tv_hour_2, R.id.tv_minute_1, R.id.tv_minute_2,
             R.id.tv_second_1, R.id.tv_second_2
         )
+        // hour digits render heaviest, second lightest (weight ladder for h/m/s)
+        val levels = arrayOf("h", "h", "m", "m", "s", "s")
+        val sp = getSharedPreferences(com.ywwynm.everythingdone.Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+        val digitStyle = sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins") ?: "poppins"
+        val digitFill = (sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_RENDER, "fill") ?: "fill") == "fill"
+        // same digit size for h/m/s; hierarchy comes from synthesized stroke weight
+        val wstroke = floatArrayOf(0.08f, 0.08f, 0.035f, 0.035f, 0f, 0f)
         for (i in mTimelyViews!!.indices) {
             mTimelyViews!![i] = f(ids[i])
+            mTimelyViews!![i]!!.setStyle(digitStyle, levels[i])
+            mTimelyViews!![i]!!.setRenderMode(digitFill)
+            mTimelyViews!![i]!!.setWeightStroke(wstroke[i])
         }
     }
 
@@ -376,19 +386,26 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         val density: Float = DisplayUtil.getScreenDensity(mApp)
         if (leftTime < HOUR_MILLIS) {
             mLlHour!!.visibility = View.GONE
+            val boxH = (density * 72).toInt()
             for (i in 2 until mTimelyViews!!.size) {
-                val vlp: ViewGroup.LayoutParams = mTimelyViews!![i]!!.layoutParams
-                vlp.width = (density * 72).toInt()
-                mTimelyViews!![i]!!.requestLayout()
+                sizeTimelyView(mTimelyViews!![i]!!, boxH)
             }
         } else {
             mLlHour!!.visibility = View.VISIBLE
-            for (mTimelyView in mTimelyViews!!) {
-                val vlp: ViewGroup.LayoutParams = mTimelyView!!.layoutParams
-                vlp.width = (density * 56).toInt()
-                mTimelyView.requestLayout()
+            val boxH = (density * 56).toInt()
+            for (v in mTimelyViews!!) {
+                sizeTimelyView(v!!, boxH)
             }
         }
+    }
+
+    // Each digit gets a cell sized to its font's tabular advance, so wide fonts
+    // (e.g. Orbitron) never let adjacent digits touch and layout never jitters.
+    private fun sizeTimelyView(v: com.github.adnansm.timelytextview.TimelyView, boxHpx: Int) {
+        val lp = v.layoutParams
+        lp.height = boxHpx
+        lp.width = (boxHpx * v.getAdvance() * v.getScale()).toInt()
+        v.requestLayout()
     }
 
     private fun initRecyclerView() {

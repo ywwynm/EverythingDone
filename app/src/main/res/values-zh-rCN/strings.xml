@@ -941,6 +941,9 @@
     <string name="settings_autoplay_cover_dynamic">在记事列表中自动播放作为封面的 GIF 与视频</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
     <string name="settings_create_animation_style">新建事项时使用屏幕边框光效动画</string>
+    <string name="settings_doing_digit_style">计时数字风格</string>
+    <string name="doing_digit_fill">实心</string>
+    <string name="doing_digit_outline">描边</string>
 
     <!-- Color picker random FABs (Phase 6) -->
     <string name="cd_random_pure_background">随机纯色</string>

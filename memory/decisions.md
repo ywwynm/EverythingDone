@@ -54,3 +54,4 @@ Feature-specific project documentation is organized under `docs/features/<kebab-
 - `thing-folders`: `docs/features/thing-folders/decisions.md`
 - `thing-card-image-placement`: `docs/features/thing-card-image-placement/decisions.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/decisions.md`
+- `timely-digit-typography`: `docs/features/timely-digit-typography/decisions.md`

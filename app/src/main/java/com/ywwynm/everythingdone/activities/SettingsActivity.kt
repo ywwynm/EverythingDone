@@ -1024,6 +1024,19 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.rl_create_animation_style_as_bt).setOnClickListener {
             mCbCreateAnimationStyle!!.isChecked = !mCbCreateAnimationStyle!!.isChecked
         }
+        f<View>(R.id.rl_doing_digit_style_as_bt).setOnClickListener {
+            val df = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment()
+            df.setOnChosen { updateDoingDigitStyleValue() }
+            df.show(fragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
+        }
+        updateDoingDigitStyleValue()
+    }
+
+    private fun updateDoingDigitStyleValue() {
+        val id = mPreferences!!.getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins")
+        val label = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.STYLES
+            .firstOrNull { it.first == id }?.second ?: "Poppins"
+        f<TextView>(R.id.tv_doing_digit_style_value).text = label
     }
 
     private fun updateUiAppearanceMode() {

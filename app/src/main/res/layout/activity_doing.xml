@@ -63,8 +63,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingBottom="8dp"
-                    android:layout_marginStart="-8dp"
-                    android:layout_marginLeft="-8dp"
                     app:textColor="@color/white_86p"
                     app:lineWidth="@integer/doing_timely_line_width_hour"/>
 
@@ -104,8 +102,6 @@
                     android:id="@+id/tv_minute_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="-8dp"
-                    android:layout_marginLeft="-8dp"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_76p"
                     app:lineWidth="@integer/doing_timely_line_width_minute"/>
@@ -146,8 +142,6 @@
                     android:id="@+id/tv_second_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="-12dp"
-                    android:layout_marginLeft="-12dp"
                     android:paddingBottom="8dp"
                     app:textColor="@color/white_66p"
                     app:lineWidth="@integer/doing_timely_line_width_second"/>
