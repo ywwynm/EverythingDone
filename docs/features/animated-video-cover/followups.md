@@ -1,5 +1,25 @@
 # 后续项 / 动态视频封面（Animated Video Cover）
 
+## 动图签名不含 GIF 内容，导致坏缓存无法自愈（已修复 2026-07-05）
+
+**修复（方案 A）**：新增 `getAnimatedThingCardMediaCacheSignature(loadKey, modelPath)`，动图缩略图 / 媒体背景两条加载分支的 Glide `.signature()` 改用它——在视频派生的视图身份 `loadKey` 之外，叠加**实际被加载文件（派生 GIF / 真动图 / Motion Photo GIF）**的 `length` + `lastModified`。GIF 内容一变签名即变，Glide 不再返回旧的静态首帧位图缓存、重新解码为动图；老坏条目随 Glide 磁盘/内存缓存 LRU 自然淘汰，无需手动清缓存。视图 tag / 静态回退仍用 `loadKey`（视频派生），身份判定不受影响。`:app:assembleDebug` 通过。
+
+**顺带修复（replay 路径 `:anim` 归一化）**：`replay*RenderRequest` 的两处重算 loadKey（媒体背景约 `BaseThingsAdapter.kt:2109` / 缩略图约 `:2168`）此前漏了绑定路径都有的 `:anim` 后缀，导致对动图封面 `currentLoadKey != loadKey` 永远成立、replay 快路径退化成每次完整重绑（靠下游同 key 短路兜底，非用户可见 bug，但有无谓开销与语义不一致）。抽出 `isAnimatedCoverActive` / `animatedCoverKeySuffix` helper，绑定与 replay 四处统一使用，行为对齐。
+
+---
+
+以下为诊断记录（背景保留）：
+
+**现象**：个别视频封面派生 GIF 已正常生成，但某一个几何（如普通宽度上/下封面 4:3 的 577x432）的卡片一直显示静态首帧、不播放；同一 GIF 在其它请求尺寸下能正常动。详见 sessions.md 2026-07-05 根因分析。
+
+**根因**：`loadAnimatedThingCardThumbnail` / `loadAnimatedThingCardMediaBackground` 加载 GIF 时，Glide 的 `.signature()` 用的是视频派生的 `loadKey`（`getThingCardMediaCacheSignature`，`BaseThingsAdapter.kt:1972`），不含被加载 GIF 文件自身的内容标识。一旦某次把 GIF 解成静态首帧 Bitmap 写进 RESOURCE_DISK_CACHE，之后 GIF 重生成同名同签名，Glide 继续吐旧的静态位图；`MediaCropTransformation` 把宽高编进 key，故只有被污染的那个几何不动。`onPreviewLoadFailed` 自愈只在加载失败时触发，坏缓存“加载成功”为静态图，清不掉。
+
+**实现要点（候选）**：
+- 方案 A（推荐、精准）：动图分支的 Glide `.signature()` 改为反映**实际加载的 GIF 文件内容**（追加 GIF 的 `length` + `lastModified`），与仍作视图 tag/静态回退身份的视频派生 `loadKey` 分离。GIF 内容一变 key 即变，旧静态位图条目被绕过、重新解码为 GifDrawable；老坏条目走 LRU 自然淘汰，无需手动清缓存。媒体背景分支同改。
+- 方案 B（备选）：动图 GIF 加载改 `DiskCacheStrategy.DATA`（不写变换后的 RESOURCE 资源缓存，GIF 变换重编码本就贵），绕开且不再产生新污染。
+- 方案 C（备选、最稳最重）：动图 `onResourceReady` 里若 model 是我方 GIF 却拿回非 `Animatable` 的 `BitmapDrawable`，判定为坏缓存，invalidate 该几何条目并用变过的 signature 重加载。
+- 立即验证根因/让现有设备恢复：清一次 Glide 缓存（或该 GIF 对应条目）即可恢复播放，反证是缓存而非文件问题。
+
 ## 派生 GIF 加载失败时回退静态视频帧（已修复 2026-06-30）
 
 **修复**：视频派生 GIF 的两个动图加载分支（缩略图 / 媒体背景）加 Glide `.error()` 回退——加载失败时改加载该视频 `videoFrameMs` 静态帧（同 `MediaCropTransformation` 裁切），封面不再消失；同时 `onPreviewLoadFailed(file)` 按 key 一次性删除坏 GIF（`badPreviewKeys` 守卫）触发一次自愈式重生成，避免坏编码输出死循环。真·动图附件（GIF/WebP）自身加载失败仍保持隐藏策略。

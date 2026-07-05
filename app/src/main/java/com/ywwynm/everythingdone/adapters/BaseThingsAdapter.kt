@@ -119,11 +119,14 @@ abstract class BaseThingsAdapter(context: Context?) :
         val placementName: String,
         val mediaSourceName: String,
         val mediaPath: String,
-        val isVideo: Boolean
+        val isVideo: Boolean,
+        val fullSpan: Boolean,
+        val listSpanCount: Int
     ) {
         fun identity(): String {
             return "thingId=$thingId placement=$placementName " +
-                    "video=$isVideo media=$mediaSourceName path=$mediaPath " +
+                    "video=$isVideo fullSpan=$fullSpan spans=$listSpanCount " +
+                    "media=$mediaSourceName path=$mediaPath " +
                     "title=\"$titlePreview\" content=\"$contentPreview\""
         }
     }
@@ -286,7 +289,14 @@ abstract class BaseThingsAdapter(context: Context?) :
         thing: Thing,
         mediaSource: ThingCardMediaHelper.MediaSource,
         @Thing.ThingCardImagePlacement placement: Int
-    ): Boolean = false
+    ): Boolean {
+        return mediaSource.isVideo &&
+                !thing.thingCardAppearance.mediaBackgroundEnabled &&
+                (
+                        placement == Thing.THING_CARD_IMAGE_PLACEMENT_TOP ||
+                                placement == Thing.THING_CARD_IMAGE_PLACEMENT_BOTTOM
+                        )
+    }
 
     private fun createThingCardMediaDebugInfo(
         thing: Thing,
@@ -300,7 +310,9 @@ abstract class BaseThingsAdapter(context: Context?) :
             placementName = thingCardImagePlacementName(placement),
             mediaSourceName = mediaSource.typePathName,
             mediaPath = mediaSource.pathName,
-            isVideo = mediaSource.isVideo
+            isVideo = mediaSource.isVideo,
+            fullSpan = isFullSpanThingCard(thing),
+            listSpanCount = getBoundListSpanCount()
         )
     }
 
@@ -347,7 +359,15 @@ abstract class BaseThingsAdapter(context: Context?) :
         message: String
     ) {
         if (debugInfo == null) return
-        Log.i(TAG, "$DEBUG_THING_FOLDER_VIDEO_CROP_PREFIX $message ${debugInfo.identity()}")
+        val fullMessage = "$message ${debugInfo.identity()}"
+        Log.i(TAG, "$DEBUG_VIDEO_COVER_PREVIEW_PREFIX $fullMessage")
+        VideoCoverPreviewManager.debugLog(fullMessage)
+    }
+
+    private fun debugAnimatableState(drawable: Drawable?): String {
+        val animatable = drawable as? Animatable
+        return "drawable=${debugDrawableSize(drawable)} animatable=${animatable != null} " +
+                "running=${animatable?.isRunning}"
     }
 
     private fun debugViewSize(view: View?): String {
@@ -385,18 +405,40 @@ abstract class BaseThingsAdapter(context: Context?) :
         for (i in 0 until recyclerView.childCount) {
             val child = recyclerView.getChildAt(i) ?: continue
             val holder = recyclerView.getChildViewHolder(child) as? BaseThingViewHolder ?: continue
-            setDrawableRunning(holder.ivImageAttachment?.drawable, running)
-            setDrawableRunning(holder.ivMediaBackground?.drawable, running)
+            setDrawableRunning(
+                holder.ivImageAttachment?.drawable,
+                running,
+                getThingCardMediaDebugInfo(holder.ivImageAttachment),
+                "thumbnail"
+            )
+            setDrawableRunning(
+                holder.ivMediaBackground?.drawable,
+                running,
+                getThingCardMediaDebugInfo(holder.ivMediaBackground),
+                "media-background"
+            )
         }
     }
 
-    private fun setDrawableRunning(drawable: Drawable?, running: Boolean) {
+    private fun setDrawableRunning(
+        drawable: Drawable?,
+        running: Boolean,
+        debugInfo: ThingCardMediaDebugInfo?,
+        surface: String
+    ) {
         val animatable = drawable as? Animatable ?: return
+        val wasRunning = animatable.isRunning
         if (running) {
             if (!animatable.isRunning) animatable.start()
         } else {
             if (animatable.isRunning) animatable.stop()
         }
+        logThingCardMediaDebug(
+            debugInfo,
+            "animated-scroll-control surface=$surface requestRunning=$running " +
+                    "wasRunning=$wasRunning nowRunning=${animatable.isRunning} " +
+                    "drawable=${debugDrawableSize(drawable)} scroll=${hostScrollStateName()}"
+        )
     }
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
@@ -1112,19 +1154,13 @@ abstract class BaseThingsAdapter(context: Context?) :
         val imageView = holder.ivImageAttachment ?: return
         // 把"是否会作为封面动图播放"折进 loadKey：切换 Cover Autoplay 时 key 随之变化，
         // 绕过同 key 短路、重新分流到动图/静态路径。非动图图片不受影响。
-        val animatedCover = isCoverAutoplayEnabled() && (
-            AttachmentHelper.isAnimatedImageCandidate(pathName) ||
-                AttachmentHelper.isVideoCandidate(pathName) ||
-                (AttachmentHelper.isMotionPhotoCandidate(pathName) &&
-                    MotionPhotoDetector.peekCached(pathName)?.isMotionPhoto == true)
-        )
         val loadKey = getThingCardImageLoadKey(
             pathName,
             imageW,
             imageH,
             videoFrameMs,
             crop
-        ) + if (animatedCover) ":anim" else ""
+        ) + animatedCoverKeySuffix(pathName)
         val renderRequest = ThingCardThumbnailRenderRequest(
             loadKey,
             imageW,
@@ -1170,8 +1206,23 @@ abstract class BaseThingsAdapter(context: Context?) :
             VideoCoverPreviewManager.logBindDecision(
                 previewContext, pathName, videoFrameMs, coverAutoplay, readyPreview != null
             )
+            logThingCardMediaDebug(
+                debugInfo,
+                "video-preview decision surface=thumbnail autoplay=$coverAutoplay " +
+                        "ready=${readyPreview != null} request=${imageW}x$imageH " +
+                        "currentKey=${imageView.getTag(R.id.tag_thing_card_image_load_key)} " +
+                        "loadKey=$loadKey scroll=${hostScrollStateName()} " +
+                        VideoCoverPreviewManager.describePreviewState(
+                            previewContext, pathName, videoFrameMs
+                        )
+            )
             if (coverAutoplay) {
                 if (readyPreview != null) {
+                    logThingCardMediaDebug(
+                        debugInfo,
+                        "video-preview use-ready surface=thumbnail gif=${readyPreview.name} " +
+                                "gifBytes=${readyPreview.length()} loadKey=$loadKey"
+                    )
                     loadAnimatedThingCardThumbnail(
                         holder, imageView, readyPreview.absolutePath, imageW, imageH, crop, loadKey,
                         fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
@@ -1181,13 +1232,27 @@ abstract class BaseThingsAdapter(context: Context?) :
                 VideoCoverPreviewManager.requestPreview(
                     previewContext, pathName, videoFrameMs
                 ) { previewFile ->
-                    if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
+                    val currentKey = imageView.getTag(R.id.tag_thing_card_image_load_key)
+                    val accepted = currentKey == loadKey
+                    logThingCardMediaDebug(
+                        debugInfo,
+                        "video-preview ready-callback surface=thumbnail accepted=$accepted " +
+                                "currentKey=$currentKey loadKey=$loadKey " +
+                                "gif=${previewFile.name} gifBytes=${previewFile.length()} " +
+                                "iv=${debugViewSize(imageView)} frame=${debugViewSize(holder.flImageAttachment)}"
+                    )
+                    if (accepted) {
                         loadAnimatedThingCardThumbnail(
                             holder, imageView, previewFile.absolutePath, imageW, imageH, crop, loadKey,
                             fallbackVideoPath = pathName, fallbackVideoFrameMs = videoFrameMs
                         )
                     }
                 }
+                logThingCardMediaDebug(
+                    debugInfo,
+                    "video-preview fallback-static surface=thumbnail reason=gif-not-ready " +
+                            "loadKey=$loadKey"
+                )
             }
         }
         // Motion Photo 封面（缩略图）：动态照片在 Cover Autoplay 开启时播放从其内嵌视频派生的 GIF。
@@ -1372,11 +1437,24 @@ abstract class BaseThingsAdapter(context: Context?) :
         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
         imageView.imageMatrix = null
         val bitmapCrop = getThingCardThumbnailBitmapCrop(crop)
+        logThingCardMediaDebug(
+            getThingCardMediaDebugInfo(imageView),
+            "animated-load start surface=thumbnail model=${File(pathName).name} " +
+                    "request=${imageW}x$imageH fallback=${File(fallbackVideoPath.orEmpty()).name} " +
+                    "fallbackFrameMs=$fallbackVideoFrameMs " +
+                    "loadKey=$loadKey " +
+                    "modelExists=${File(pathName).exists()} modelBytes=${File(pathName).length()} " +
+                    "iv=${debugViewSize(imageView)} ivLp=${debugLayoutParamsSize(imageView)} " +
+                    "frame=${debugViewSize(holder.flImageAttachment)} " +
+                    "frameLp=${debugLayoutParamsSize(holder.flImageAttachment)} " +
+                    "shown=${imageView.isShown} window=${imageView.windowVisibility} " +
+                    "scroll=${hostScrollStateName()}"
+        )
         val request = mImageRequestManager!!
             .load(pathName)
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
-            .signature(getThingCardMediaCacheSignature(loadKey))
+            .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))
         // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏封面。见 ADR-0012 / followups。
         if (fallbackVideoPath != null) {
             val errorRequest = mImageRequestManager!!
@@ -1397,6 +1475,13 @@ abstract class BaseThingsAdapter(context: Context?) :
                     e: GlideException?, model: Any?, target: Target<Drawable>,
                     isFirstResource: Boolean
                 ): Boolean {
+                    logThingCardMediaDebug(
+                        getThingCardMediaDebugInfo(imageView),
+                        "animated-load failed surface=thumbnail model=${File(pathName).name} " +
+                                "fallback=${fallbackVideoPath != null} loadKey=$loadKey " +
+                                "tagMatches=${imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey} " +
+                                "first=$isFirstResource error=\"${previewThingCardDebugText(e?.message)}\""
+                    )
                     if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
                         holder.pbLoading!!.visibility = View.GONE
                         if (fallbackVideoPath != null) {
@@ -1417,10 +1502,30 @@ abstract class BaseThingsAdapter(context: Context?) :
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    logThingCardMediaDebug(
+                        getThingCardMediaDebugInfo(imageView),
+                        "animated-load ready surface=thumbnail model=${File(pathName).name} " +
+                                "resource=${debugAnimatableState(resource)} dataSource=$dataSource " +
+                                "first=$isFirstResource tagMatches=${
+                                    imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey
+                                } loadKey=$loadKey"
+                    )
                     if (imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey) {
                         holder.pbLoading!!.visibility = View.GONE
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                         imageView.imageMatrix = null
+                        imageView.post {
+                            logThingCardMediaDebug(
+                                getThingCardMediaDebugInfo(imageView),
+                                "animated-load applied surface=thumbnail " +
+                                        "${debugAnimatableState(imageView.drawable)} " +
+                                        "shown=${imageView.isShown} window=${imageView.windowVisibility} " +
+                                        "scroll=${hostScrollStateName()} loadKey=$loadKey " +
+                                        "tagMatches=${
+                                            imageView.getTag(R.id.tag_thing_card_image_load_key) == loadKey
+                                        }"
+                            )
+                        }
                     }
                     return false
                 }
@@ -1439,12 +1544,6 @@ abstract class BaseThingsAdapter(context: Context?) :
         videoFrameMs: Long?
     ) {
         val imageView = holder.ivMediaBackground ?: return
-        val animatedCover = isCoverAutoplayEnabled() && (
-            AttachmentHelper.isAnimatedImageCandidate(pathName) ||
-                AttachmentHelper.isVideoCandidate(pathName) ||
-                (AttachmentHelper.isMotionPhotoCandidate(pathName) &&
-                    MotionPhotoDetector.peekCached(pathName)?.isMotionPhoto == true)
-        )
         val loadKey = getThingCardMediaBackgroundLoadKey(
             pathName,
             imageW,
@@ -1452,7 +1551,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             videoFrameMs,
             crop,
             sourceAspectRatio
-        ) + if (animatedCover) ":anim" else ""
+        ) + animatedCoverKeySuffix(pathName)
         val renderRequest = ThingCardMediaBackgroundRenderRequest(
             loadKey,
             imageW,
@@ -1653,7 +1752,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             .load(pathName)
             .override(imageW, imageH)
             .transform(MediaCropTransformation(imageW, imageH, bitmapCrop))
-            .signature(getThingCardMediaCacheSignature(loadKey))
+            .signature(getAnimatedThingCardMediaCacheSignature(loadKey, pathName))
         // 视频派生 GIF：加载失败时回退到该视频静态帧（同裁切），而非隐藏媒体背景。见 ADR-0012 / followups。
         if (fallbackVideoPath != null) {
             val errorRequest = mImageRequestManager!!
@@ -1862,6 +1961,37 @@ abstract class BaseThingsAdapter(context: Context?) :
         return ObjectKey(loadKey)
     }
 
+    // 动图封面（视频派生 GIF / 真动图 / Motion Photo GIF）的 Glide 缓存签名：在视图身份
+    // loadKey 之外，叠加实际被加载文件的内容标识（length + lastModified）。视频派生 GIF 会在
+    // 同名路径上被删后重生成，而 loadKey 完全由视频派生、不含 GIF 内容——若只用 loadKey 作签名，
+    // Glide 无法感知 GIF 文件内容已变，可能把某一几何下把 GIF 解成的静态首帧位图长期缓存，导致
+    // 该几何的封面不播放。叠加文件 length/mtime 后，GIF 内容一变签名即变，旧的坏条目被绕过、重新
+    // 解码为动图；老条目随 Glide 磁盘缓存 LRU 淘汰。见 followups.md「动图签名不含 GIF 内容」。
+    private fun getAnimatedThingCardMediaCacheSignature(
+        loadKey: String,
+        modelPath: String
+    ): ObjectKey {
+        val file = File(modelPath)
+        val length = if (file.exists()) file.length() else 0L
+        val lastModified = if (file.exists()) file.lastModified() else 0L
+        return ObjectKey("$loadKey:model:$length:$lastModified")
+    }
+
+    // 封面是否会作为动图播放（Cover Autoplay 开 + 该来源可动）。用于给 loadKey 追加 :anim
+    // 归一化，使绑定路径与 replay 路径对同一动图封面算出一致的 key。
+    private fun isAnimatedCoverActive(pathName: String): Boolean {
+        return isCoverAutoplayEnabled() && (
+            AttachmentHelper.isAnimatedImageCandidate(pathName) ||
+                AttachmentHelper.isVideoCandidate(pathName) ||
+                (AttachmentHelper.isMotionPhotoCandidate(pathName) &&
+                    MotionPhotoDetector.peekCached(pathName)?.isMotionPhoto == true)
+        )
+    }
+
+    private fun animatedCoverKeySuffix(pathName: String): String {
+        return if (isAnimatedCoverActive(pathName)) ":anim" else ""
+    }
+
     private fun applyCachedThingCardMediaBitmap(
         imageView: ImageView,
         loadKey: String,
@@ -2002,7 +2132,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 videoFrameMs,
                 crop,
                 sourceAspectRatio
-            )
+            ) + animatedCoverKeySuffix(mediaSource.pathName)
             val currentLoadKey = imageView.getTag(
                 R.id.tag_thing_card_media_background_load_key
             ) as? String
@@ -2060,7 +2190,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             targetH,
             videoFrameMs,
             crop
-        )
+        ) + animatedCoverKeySuffix(mediaSource.pathName)
         val currentLoadKey = imageView.getTag(R.id.tag_thing_card_image_load_key) as? String
         if (currentLoadKey != loadKey || imageView.drawable == null) {
             loadThingCardImage(
@@ -3559,7 +3689,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         private const val BYTES_PER_ARGB_8888_PIXEL = 4
         private const val THING_CARD_MEDIA_BITMAP_CACHE_MIN_BYTES = 8 * BYTES_PER_MEGABYTE
         private const val THING_CARD_MEDIA_BITMAP_CACHE_MAX_BYTES = 24 * BYTES_PER_MEGABYTE
-        private const val DEBUG_THING_FOLDER_VIDEO_CROP_PREFIX = "[DEBUG-tf-video-crop]"
+        private const val DEBUG_VIDEO_COVER_PREVIEW_PREFIX = "[DEBUG-video-cover-preview]"
         private const val DEBUG_THING_CARD_TEXT_PREVIEW_LENGTH = 80
         private const val MOVING_SCALE_RECOVERY_CHECK_DELAY = 112L
         private const val MOVING_SCALE_RECOVERY_DURATION = 96L

@@ -51,6 +51,7 @@ object VideoCoverPreviewManager {
     private const val CACHE_MAX_BYTES = 1024L * 1024L * 1024L   // 1GB LRU 上限
     private const val DIR_NAME = "video-cover-previews"
     private const val LOG_FILE = "video-cover-preview.log"
+    private const val DEBUG_PREFIX = "[DEBUG-video-cover-preview]"
     /** 孤儿 .gif.tmp 的清理年龄阈值：远大于一次生成耗时(~10–30s)，确保不会误删正在写入的 tmp。 */
     private const val STALE_TMP_MS = 10L * 60L * 1000L
     /** 生成参数/逻辑变化时 +1，使旧缓存 key 失效。 */
@@ -72,13 +73,17 @@ object VideoCoverPreviewManager {
      *  之后不再删，避免坏编码器输出导致"删→重生成→又坏"死循环。 */
     private val badPreviewKeys = Collections.synchronizedSet(HashSet<String>())
 
-    /** 诊断日志总开关：默认关闭；排查时改 true 即可全部恢复（写入 files/debug_logs/[LOG_FILE]）。 */
-    private const val DEBUG_LOG = false
+    /** 诊断日志总开关：本轮用于排查“派生 GIF 已存在但卡片不播放”的特殊封面问题。 */
+    private const val DEBUG_LOG = true
 
     /** 受 [DEBUG_LOG] 门控的诊断日志；Worker 等同进程组件也走它，统一一处开关。 */
     fun debugLog(msg: String) {
-        if (DEBUG_LOG) DebugFileLogger.log(LOG_FILE, msg)
+        if (DEBUG_LOG) {
+            DebugFileLogger.log(LOG_FILE, msg, DEBUG_PREFIX, startSession = true)
+        }
     }
+
+    fun isDebugLogEnabled(): Boolean = DEBUG_LOG
 
     private fun videoPrefix(videoPath: String): String =
         Integer.toHexString(videoPath.hashCode())
@@ -107,6 +112,17 @@ object VideoCoverPreviewManager {
         return if (out.exists() && out.length() > 0L) out else null
     }
 
+    fun describePreviewState(context: Context, videoPath: String, videoFrameMs: Long?): String {
+        if (!DEBUG_LOG) return "previewDebug=off"
+        val video = File(videoPath)
+        val out = previewFileFor(context, videoPath, videoFrameMs)
+        return "videoExists=${video.exists()} videoBytes=${video.length()} " +
+                "videoMtime=${video.lastModified()} frameMs=$videoFrameMs " +
+                "previewName=${out?.name} previewExists=${out?.exists()} " +
+                "previewBytes=${out?.length()} previewMtime=${out?.lastModified()} " +
+                "previewDir=${previewDir(context).absolutePath}"
+    }
+
     /** 诊断：记录一次视频封面绑定的判定输入（按 key 去重，仅记一次）。 */
     fun logBindDecision(
         context: Context,
@@ -122,7 +138,8 @@ object VideoCoverPreviewManager {
         if (!loggedOnce.add("bind:${out?.name ?: videoPath}")) return
         debugLog(
             "BIND name=$name frameMs=$videoFrameMs autoplay=$autoplayEnabled " +
-                    "videoExists=$exists ready=$ready out=${out?.name} dir=${previewDir(context).absolutePath}"
+                    "videoExists=$exists ready=$ready out=${out?.name} " +
+                    "outBytes=${out?.length()} dir=${previewDir(context).absolutePath}"
         )
     }
 

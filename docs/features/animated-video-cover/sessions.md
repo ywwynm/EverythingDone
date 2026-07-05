@@ -1,5 +1,25 @@
 # 会话记录 / 动态视频封面
 
+## 2026-07-05 - 特殊 4:3 普通卡视频封面不播放的诊断日志
+
+- 用户反馈一个特殊 Thing/视频在横屏、普通宽度卡片、封面位于上方或下方、目标比例为 4:3 时，派生 GIF 已生成但卡片仍不播放。
+- 本次先不改播放逻辑，只打开 `VideoCoverPreviewManager` 的文件日志，并在 `BaseThingsAdapter` 前景视频封面路径补充分支、尺寸、ready GIF、Glide 加载结果、实际 drawable 动画状态和滚动暂停/恢复日志，统一使用 `[DEBUG-video-cover-preview]` 前缀。
+- 日志文件随 debug build 写入应用文件目录的 `debug_logs/video-cover-preview.log`；发布日志为 `docs/features/animated-video-cover/debug-updates/update-20260705211211.md`，已发布 debug update `202607051313`。
+
+### 根因（据日志确诊）
+
+- 关注 `content="棒棒哒"` 的 thingId=36（GIF `897a18b_…_v10.gif`）：同一个 GIF 文件在 504x378、577x577 请求尺寸下都是 `LOCAL → GifDrawable`（会动），唯独 577x432 尺寸下始终是 `RESOURCE_DISK_CACHE/MEMORY_CACHE → BitmapDrawable animatable=false`（静态、不动）。证明 **GIF 文件本身正常**，问题是 **577x432 这一个几何的 Glide 资源缓存被污染成了静态首帧位图**。
+- 根因在缓存签名：`loadAnimatedThingCardThumbnail` 里 Glide 的 model 是 GIF 文件，但 `.signature()` 用的是 `ObjectKey(loadKey)`，而 `loadKey`（`getThingCardMediaSourceKey`/`getThingCardImageLoadKey`，`BaseThingsAdapter.kt:1929`/`:1940`）完全由**视频**的路径/大小/修改时间 + 尺寸 + 裁切 + `:anim` 组成，**不含 GIF 文件自身内容**。Glide 的 `ResourceCacheKey` 里 model=GIF 路径、signature=视频派生、transformation 含宽高——GIF 内容变化时这些都不变。
+- 于是某次在 577x432 下把该 GIF 解成静态首帧 Bitmap 写进 RESOURCE 缓存后（很可能发生在编码器数轮迭代 / 自愈删后重生成期间该文件短暂只能被解成首帧的窗口；577x432 是普通宽度卡最常先被请求的几何），坏条目就永远留住：GIF 重生成同名同签名，Glide 不知道文件已变好；`MediaCropTransformation` 把宽高编进 transformation key，故每个几何是独立条目、只有 577x432 被污染。`onPreviewLoadFailed` 自愈只在加载失败时触发，而这次“加载成功”（成功拿到静态图），清不掉。
+- 待用户决定是否实现修复，方案见 followups.md 对应条目。
+
+### 修复落地（方案 A + replay 归一化）
+
+- 用户选方案 A。新增 `getAnimatedThingCardMediaCacheSignature(loadKey, modelPath)`，`loadAnimatedThingCardThumbnail` / `loadAnimatedThingCardMediaBackground` 的 Glide `.signature()` 改用它，在视频派生 loadKey 上叠加实际 GIF 文件的 `length` + `lastModified`，使 GIF 内容变化能让 Glide 缓存失效、绕开被静态化的坏条目。
+- 顺带修 GPT 曾指出的「一处 key 没加 `:anim`」：定位到 `replay*RenderRequest` 两处（媒体背景约 `BaseThingsAdapter.kt:2109`、缩略图约 `:2168`）重算 loadKey 时漏了 `:anim`。判定为真实缺陷但非用户可见 bug（下游同 key 短路兜底），后果是动图封面 replay 快路径退化为每次完整重绑。抽 `isAnimatedCoverActive` / `animatedCoverKeySuffix` helper，绑定路径与 replay 四处统一归一化。
+- `:app:assembleDebug` 通过。旧的坏缓存条目靠 LRU 淘汰；如需立即恢复现有设备，可清一次 Glide 缓存。
+- 已发布阿里云 debug 通道，更新码 `202607051426`，发布日志 `debug-updates/update-20260705222417.md`。
+
 ## 2026-06-30 — 后台生成审查
 
 围绕“派生 GIF 在后台生成是否可靠、失败是否影响下一次、是否影响 UI/UX”做静态审查，并运行 `:app:assembleDebug`，构建通过。结论：主流程能回退到静态 Thing Card Video Frame，WorkManager 失败后下次可重新入队；但当前实现仍有三个待修风险，已记入 [followups.md](followups.md)：不同 key Worker 并发时会互删 `.gif.tmp`、永久失败时进程内回调不清理、以及生成前未预清理 LRU/低存储兜底不足。
