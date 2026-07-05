@@ -121,3 +121,34 @@ Consolidate the spike scripts into one `tools/generate_glyph_data.py`. For each
 - **Motion:** on-device Doing screen ticking through minutes/hours — check jitter,
   the h/m/s hierarchy, and morph middles (esp. topology jumps).
 - **Per-style sign-off** from the chooser preview.
+
+## 2026-07-05 追加计划：Thing Background 字形色与录音计时器
+
+本轮目标是在已有 filled-outline timely 数字基础上，让计时读数承载当前 Thing 的颜色身份，并把录音 dialog 的计时器迁移到同一套方案。
+
+### 范围
+
+- **包含**：DoingActivity 的倒计时读数、无限时长符号、录音 dialog 计时器、冒号分隔符、复用的 `TimelyClockView`。
+- **不包含**：设置 chooser 的中性字体预览、其它 DoingActivity 白色 UI、录音波形配色、额外用户设置开关。
+
+### 关键规则
+
+- 主字形色使用原始 Thing Background：纯色直接使用原色，渐变按当前可见读数组连续铺设。
+- 主字形不做提亮或压暗，只叠加位置透明度。
+- 当前可见读数从左到右使用 90% -> 100% 连续透明度；DoingActivity 低于 1 小时时在可见的 `MM:SS` 范围内重新铺满，录音 dialog 固定 `HH:MM:SS`。无限时长符号 `∞` 不套位置透明度梯度，内部字形透明度为 100%。
+- h/m/s 的离散层级继续由合成粗细表达；透明度改为空间连续层级。
+- 冒号、无限符号都属于计时读数，纳入同一套字形色、透明度和可读性辅助。
+- 可读性辅助层是同一 even-odd 路径上的低透明细 stroke，不用整块 glow，不填数字洞。
+- 辅助光颜色 = 64% 宿主反向明暗 + 36% Thing Background；DoingActivity 和暗色 dialog 的宿主反向明暗为白，亮色 dialog 为黑。渐变背景按两端分别混色，并保持连续渐变。
+- 第一版辅助参数：stroke 宽度 = 字高 0.018，辅助 alpha = 0.32，再乘当前位置透明度。
+- 实心/空心模式使用同一辅助强度；空心线条也完整使用连续渐变，不降级为代表色。
+
+### 实现步骤
+
+1. 在 `timelytextview` 中新增复用的 `TimelyClockView`，统一绘制数字、冒号、无限符号、连续主渐变、连续透明度和细轮廓光。
+2. `TimelyClockView` 支持 Doing 自动隐藏小时段模式和 Recording 固定完整 `HH:MM:SS` 模式；内部保留每个数字的 timely morph。
+3. DoingActivity 替换现有六个 `TimelyView` 与两个冒号 TextView，读取当前 Thing Background、用户选择的 style/render mode，并把倒计时变化交给 `TimelyClockView`。
+4. 录音 dialog 替换 `Chronometer`，复用同一 style/render mode 和当前 DetailActivity 的 Thing Background；用 handler 驱动录音时长显示。
+5. 录音 dialog 宽度改为 320dp；录音计时器使用略小高度和更紧的冒号间隔，录音中加入整体透明度呼吸。
+6. 保持设置 chooser 预览不变，仍用中性深色背景 + 白色字形，但透明度梯度同步为 90% -> 100%。
+7. 编译通过后，按本功能目录生成 debug update 日志并发布到阿里云。

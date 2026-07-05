@@ -35,118 +35,16 @@
             android:paddingBottom="4dp"
             android:gravity="bottom|center_horizontal">
 
-            <TextView
-                android:id="@+id/tv_time_infinity_doing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="120dp"
-                android:textColor="@android:color/white"
-                android:text="@string/infinity"
-                android:alpha="0"
-                android:visibility="gone"/>
-
-            <LinearLayout
-                android:id="@+id/ll_hour_doing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_hour_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_86p"
-                    app:lineWidth="@integer/doing_timely_line_width_hour"/>
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_hour_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_86p"
-                    app:lineWidth="@integer/doing_timely_line_width_hour"/>
-
-                <TextView
-                    android:id="@+id/tv_separator_1_doing"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp"
-                    android:paddingEnd="4dp"
-                    android:paddingRight="4dp"
-                    android:includeFontPadding="false"
-                    android:textSize="40dp"
-                    android:textColor="@color/white_86p"
-                    android:text=":"
-                    android:alpha="0"/>
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/ll_minute_doing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_minute_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_76p"
-                    app:lineWidth="@integer/doing_timely_line_width_minute"/>
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_minute_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_76p"
-                    app:lineWidth="@integer/doing_timely_line_width_minute"/>
-
-                <TextView
-                    android:id="@+id/tv_separator_2_doing"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingLeft="8dp"
-                    android:paddingEnd="4dp"
-                    android:paddingRight="4dp"
-                    android:includeFontPadding="false"
-                    android:textSize="40dp"
-                    android:textColor="@color/white_66p"
-                    android:text=":"
-                    android:alpha="0"/>
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/ll_second_doing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_second_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_66p"
-                    app:lineWidth="@integer/doing_timely_line_width_second"/>
-
-                <com.github.adnansm.timelytextview.TimelyView
-                    android:id="@+id/tv_second_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="8dp"
-                    app:textColor="@color/white_66p"
-                    app:lineWidth="@integer/doing_timely_line_width_second"/>
-
-            </LinearLayout>
+            <com.github.adnansm.timelytextview.TimelyClockView
+                android:id="@+id/clock_time_doing"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginLeft="24dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginRight="24dp"
+                android:paddingBottom="8dp"
+                android:alpha="0"/>
 
         </LinearLayout>
 

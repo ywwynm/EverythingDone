@@ -6,18 +6,21 @@ import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.Chronometer
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
+import com.github.adnansm.timelytextview.TimelyClockView
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
@@ -47,7 +50,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
-    private var mChronometer: Chronometer? = null
+    private var mClockView: TimelyClockView? = null
     private var mVisualizer: WaveVisualizerOpus? = null
 
     private var mIvMainAction: ImageView? = null
@@ -58,6 +61,18 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private var mConfirmClicked: Boolean = false
     private var mRecorderTransitionInProgress: Boolean = false
+    private var mClockBreathing: Boolean = false
+    private val mClockHandler: Handler = Handler(Looper.getMainLooper())
+    private var mRecordingBaseElapsed: Long = 0L
+    private val mClockTick: Runnable = object : Runnable {
+        override fun run() {
+            if (mState != RECORDING || mClockView == null) return
+            val elapsed = SystemClock.elapsedRealtime() - mRecordingBaseElapsed
+            mClockView!!.setTimeMillis(elapsed, true)
+            val delay = 1000L - (elapsed % 1000L)
+            mClockHandler.postDelayed(this, delay)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -69,7 +84,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mLlFileName  = f(R.id.ll_audio_file_name)
         mEtFileName  = f(R.id.et_audio_file_name)
-        mChronometer = f(R.id.chronometer_record_audio)
+        mClockView   = f(R.id.clock_record_audio)
         mVisualizer  = f(R.id.voice_visualizer)
 
         mIvMainAction      = f(R.id.iv_record_main_action)
@@ -102,6 +117,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             ?: ThingBackground.pure(mActivity!!.getAccentColor())
         val accentBg: ThingBackground = mAccentBackground!!
         val accentColor: Int = accentBg.color
+        configureClockView(accentBg)
         mVisualizer!!.setThingBackground(accentBg)
         installSideControlScrim(mIvReRecording)
         installSideControlScrim(mIvCancelRecording)
@@ -143,8 +159,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             if (mFileToSave != null) {
                 FileUtil.deleteFile(mFileToSave!!.absolutePath)
             }
-            mChronometer!!.stop()
         }
+        stopClockTicker()
+        stopClockBreathing()
+        mClockHandler.removeCallbacks(mClockIntro)
         releaseRecorderInBackground(recorder)
 
         super.onDismiss(dialog)
@@ -211,9 +229,14 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun preparedToRecording() {
-        mChronometer!!.base = SystemClock.elapsedRealtime()
-        mChronometer!!.start()
-        mChronometer!!.animate().alpha(0.54f).setDuration(ANIM_DURATION.toLong())
+        mClockHandler.removeCallbacks(mClockIntro)
+        mRecordingBaseElapsed = SystemClock.elapsedRealtime()
+        mClockView!!.setTimeMillis(0L, false)
+        startClockTicker()
+        mClockView!!.animate()
+            .alpha(CLOCK_RECORDING_ALPHA_HIGH)
+            .setDuration(ANIM_DURATION.toLong())
+            .withEndAction { startClockBreathing() }
 
         mVisualizer!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
         applyMainButtonNormalStyle()
@@ -223,13 +246,19 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun recordingToStopped() {
-        mLlFileName!!.animate().translationY(mActivity!!.screenDensity * 32).setDuration(ANIM_DURATION.toLong())
+        mLlFileName!!.animate()
+            .translationY(mActivity!!.screenDensity * FILE_NAME_STOPPED_TRANSLATION_Y_DP)
+            .setDuration(ANIM_DURATION.toLong())
 
         val name: String = mFileToSave!!.name
         mEtFileName!!.setText(name.substring(0, name.length - 4))
 
-        mChronometer!!.stop()
-        mChronometer!!.animate().translationY(mActivity!!.screenDensity * 72).setDuration(ANIM_DURATION.toLong())
+        stopClockTicker()
+        stopClockBreathing()
+        mClockView!!.animate()
+            .alpha(CLOCK_RECORDING_ALPHA_HIGH)
+            .translationY(clockStoppedTranslationY())
+            .setDuration(ANIM_DURATION.toLong())
 
         mVisualizer!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
 
@@ -247,9 +276,14 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private fun stoppedToPrepared() {
         mLlFileName!!.animate().translationY(-mActivity!!.screenDensity * 72).setDuration(ANIM_DURATION.toLong())
-        mChronometer!!.base = SystemClock.elapsedRealtime()
-        mChronometer!!.animate().alpha(0.26f).setDuration(ANIM_DURATION.toLong())
-        mChronometer!!.animate().translationY(0f).setDuration(ANIM_DURATION.toLong())
+        stopClockTicker()
+        stopClockBreathing()
+        mClockHandler.removeCallbacks(mClockIntro)
+        mClockView!!.setTimeMillis(0L, false)
+        mClockView!!.animate()
+            .alpha(CLOCK_PREPARED_ALPHA)
+            .translationY(0f)
+            .setDuration(ANIM_DURATION.toLong())
 
         applyMainButtonNormalStyle()
         setMainButtonIcon(R.drawable.act_start_recording_audio)
@@ -382,6 +416,91 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         return mAccentBackground ?: ThingBackground.pure(mActivity!!.getAccentColor())
     }
 
+    private fun configureClockView(accentBg: ThingBackground) {
+        val clock = mClockView ?: return
+        val sp = mActivity!!.getSharedPreferences(Def.Meta.PREFERENCES_NAME, 0)
+        val digitStyle = sp.getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins") ?: "poppins"
+        val digitFill = (sp.getString(Def.Meta.KEY_DOING_DIGIT_RENDER, "fill") ?: "fill") == "fill"
+        clock.setStyleName(digitStyle)
+        clock.setRenderMode(digitFill)
+        clock.setClockMode(TimelyClockView.MODE_FULL)
+        clock.setColonWidthFactor(0.42f)
+        clock.setHostDark(AppearanceUtil.isDarkMode(mActivity!!))
+        if (accentBg.mode == ThingBackground.Mode.GRADIENT) {
+            clock.setInkGradient(accentBg.color, accentBg.endColor, timelyOrientation(accentBg.orientation))
+        } else {
+            clock.setInkColor(accentBg.color)
+        }
+        clock.alpha = CLOCK_PREPARED_ALPHA
+        mClockHandler.removeCallbacks(mClockIntro)
+        mClockHandler.postDelayed(mClockIntro, CLOCK_INTRO_DELAY_MS)
+    }
+
+    private fun startClockTicker() {
+        stopClockTicker()
+        mClockHandler.post(mClockTick)
+    }
+
+    private fun stopClockTicker() {
+        mClockHandler.removeCallbacks(mClockTick)
+    }
+
+    private fun startClockBreathing() {
+        val clock = mClockView ?: return
+        if (mState != RECORDING) return
+        mClockBreathing = true
+        clock.animate().withEndAction(null)
+        animateClockBreathTo(CLOCK_RECORDING_ALPHA_LOW)
+    }
+
+    private fun animateClockBreathTo(alpha: Float) {
+        val clock = mClockView ?: return
+        if (!mClockBreathing || mState != RECORDING) return
+        clock.animate()
+            .alpha(alpha)
+            .setDuration(CLOCK_BREATH_DURATION)
+            .withEndAction {
+                val nextAlpha = if (alpha == CLOCK_RECORDING_ALPHA_LOW) {
+                    CLOCK_RECORDING_ALPHA_HIGH
+                } else {
+                    CLOCK_RECORDING_ALPHA_LOW
+                }
+                animateClockBreathTo(nextAlpha)
+            }
+    }
+
+    private fun stopClockBreathing() {
+        mClockBreathing = false
+        mClockView?.animate()?.withEndAction(null)
+        mClockView?.animate()?.cancel()
+    }
+
+    private val mClockIntro: Runnable = Runnable {
+        if (mState == PREPARED && mClockView != null) {
+            mClockView!!.animateIn(0L)
+        }
+    }
+
+    private fun clockStoppedTranslationY(): Float {
+        val clock = mClockView ?: return 0f
+        val topMargin = (clock.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+        val targetTop = mActivity!!.screenDensity * CLOCK_STOPPED_TOP_FROM_PARENT_DP
+        return (targetTop - topMargin).coerceAtLeast(0f)
+    }
+
+    private fun timelyOrientation(orientation: ThingBackground.Orientation): Int {
+        return when (orientation) {
+            ThingBackground.Orientation.L_R -> TimelyClockView.ORIENTATION_L_R
+            ThingBackground.Orientation.R_L -> TimelyClockView.ORIENTATION_R_L
+            ThingBackground.Orientation.T_B -> TimelyClockView.ORIENTATION_T_B
+            ThingBackground.Orientation.B_T -> TimelyClockView.ORIENTATION_B_T
+            ThingBackground.Orientation.LT_RB -> TimelyClockView.ORIENTATION_LT_RB
+            ThingBackground.Orientation.RB_LT -> TimelyClockView.ORIENTATION_RB_LT
+            ThingBackground.Orientation.RT_LB -> TimelyClockView.ORIENTATION_RT_LB
+            ThingBackground.Orientation.LB_RT -> TimelyClockView.ORIENTATION_LB_RT
+        }
+    }
+
     /**
      * 给侧边裸图标（重录 / 取消）加一层柔和的圆形半透明衬底，使其在流动的彩色水体上仍清晰
      * 可读（D8）。在 [BackgroundUtil.installAppChromeCircleRipple] 之后调用：涟漪已设为
@@ -408,9 +527,16 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         const val STOPPED: Int   = 2
 
         private const val ANIM_DURATION = 360
+        private const val CLOCK_PREPARED_ALPHA = 0.36f
+        private const val CLOCK_RECORDING_ALPHA_HIGH = 1.0f
+        private const val CLOCK_RECORDING_ALPHA_LOW = 0.84f
+        private const val CLOCK_BREATH_DURATION = 1996L
+        private const val CLOCK_INTRO_DELAY_MS = 160L
+        private const val CLOCK_STOPPED_TOP_FROM_PARENT_DP = 80f
+        private const val FILE_NAME_STOPPED_TRANSLATION_Y_DP = 24f
 
-        // 侧边控件柔和衬底的透明度（约 45%）。
-        private const val SIDE_CONTROL_SCRIM_ALPHA = 115
-        private const val MAIN_BUTTON_CONFIRM_ICON_ALPHA = 0.94f
+        // 侧边控件柔和衬底的透明度。
+        private const val SIDE_CONTROL_SCRIM_ALPHA = 128
+        private const val MAIN_BUTTON_CONFIRM_ICON_ALPHA = 0.96f
     }
 }

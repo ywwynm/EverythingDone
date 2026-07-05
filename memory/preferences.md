@@ -28,6 +28,10 @@ contains concrete implementation preferences, ask at least the remaining
 product/design trade-off questions one at a time unless the user explicitly
 asks to proceed directly to coding.
 
+When grilling a design, avoid low-value scope-confirmation questions when the
+scope is already obvious from the user's request. Focus on decisions that can
+change the main implementation shape or user-visible behaviour.
+
 ## Android dialogs
 
 Prefer custom `DialogFragment` implementations under `app/src/main/java/.../fragments/`,
@@ -155,3 +159,4 @@ visually on real hardware (e.g. HDR rendering, which an emulator cannot show).
 - `thing-folders`: `docs/features/thing-folders/preferences.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/preferences.md`
 - `thing-background-editor`: `docs/features/thing-background-editor/preferences.md`
+- `timely-digit-typography`: `docs/features/timely-digit-typography/preferences.md`

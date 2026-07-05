@@ -17,17 +17,16 @@
         android:background="@android:color/transparent"
         android:alpha="0.16"/>
 
-    <Chronometer
-        android:id="@+id/chronometer_record_audio"
-        android:layout_width="280dp"
+    <com.github.adnansm.timelytextview.TimelyClockView
+        android:id="@+id/clock_record_audio"
+        android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="20dp"
-        android:gravity="center"
-        android:textSize="36dp"
-        android:textColor="@color/app_chrome_on_surface_strong"
-        android:alpha="0.26"
-        tools:ignore="SpUsage"/>
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="36dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"/>
 
     <LinearLayout
         android:id="@+id/ll_audio_file_name"

@@ -187,7 +187,6 @@ public class TimelyView extends View {
         int[] levels = {0, 0, 1, 1, 2, 2};        // h,h,m,m,s,s
         float[] sizeF = {1f, 1f, 1f, 1f, 1f, 1f};  // same size; hierarchy from stroke weight
         float[] wstroke = {0.08f, 0.08f, 0.035f, 0.035f, 0f, 0f};
-        float[] opacity = {0.90f, 0.80f, 0.66f};
         boolean[] colonAfter = {false, true, false, true, false, false};
         float colonW = sd.advance * 0.5f;
 
@@ -212,7 +211,8 @@ public class TimelyView extends View {
             path.setFillType(Path.FillType.EVEN_ODD);
             addRingTo(path, g.outer, ox, oyTop, gS);
             for (float[][] hole : g.holes) addRingTo(path, hole, ox, oyTop, gS);
-            int a = Math.round(Color.alpha(color) * opacity[levels[i]]);
+            float pos = total > 0f ? (cursor + cellW / 2f) / total : 0f;
+            int a = Math.round(Color.alpha(color) * (0.90f + (1.00f - 0.90f) * pos));
             p.setColor(Color.argb(a, Color.red(color), Color.green(color), Color.blue(color)));
             if (fillMode) {
                 if (wstroke[i] > 0f) {
@@ -229,7 +229,8 @@ public class TimelyView extends View {
             cursor += cellW;
             if (colonAfter[i]) {
                 float cx = startX + (cursor + colonW / 2f) * s;
-                int ca = Math.round(Color.alpha(color) * opacity[1]);
+                float cpos = total > 0f ? (cursor + colonW / 2f) / total : 0f;
+                int ca = Math.round(Color.alpha(color) * (0.90f + (1.00f - 0.90f) * cpos));
                 p.setStyle(Paint.Style.FILL);
                 p.setColor(Color.argb(ca, Color.red(color), Color.green(color), Color.blue(color)));
                 float r = s * 0.045f;

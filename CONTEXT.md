@@ -84,6 +84,10 @@ _Avoid_: app theme information, debug colour data
 Text, icons, and other adaptive foreground content drawn directly on top of a Thing Background or Thing Card Media Background. Its colour is chosen from the visible Thing-owned background and does not depend on Appearance Mode.
 _Avoid_: dark-mode foreground
 
+**Thing Background Glyph Colour**:
+字形本体直接使用 Thing Background 的纯色或渐变来表达 Thing 身份；可读性辅助层应接近宿主背景的反向明暗（偏白或偏黑），但可混入 Thing Background 的色味，不能替代主字形色。
+_Avoid_: 把它当成普通 Thing Foreground、为了对比度把主字形色直接改成黑色或白色、使用完全脱离 Thing 身份的辅助光
+
 **Thing Card**:
 A compact card representation of a Thing, used by the home list and embedded single-card surfaces such as Doing and noticeable reminder surfaces. Its layout may differ from the Detail screen while preserving the Thing's identity.
 _Avoid_: note card as the blanket term
@@ -319,6 +323,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Foreground** adapts to the visible Thing-owned background, not to **Appearance Mode**.
 - On ordinary Thing-owned surfaces, **Thing Foreground** adapts to **Thing Background**.
 - On **Thing Card Media Background**, **Thing Foreground** adapts to the masked media background.
+- A **Thing Background Glyph Colour** preserves the Thing Background as the main glyph colour while using separate black/white support only for readability.
 - A **Thing** has one **Thing Card** presentation preference that can be reused by card-based surfaces.
 - **Thing Card Appearance** is the stored presentation preference; a **Thing Card Surface Projection** is how one card-based surface renders that preference.
 - An **AppWidget Size Preset** provides a launcher-picker default shape and does not change the identity of existing placed AppWidget instances.
@@ -368,6 +373,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
 - The audio recording dialog is a **Hybrid Chrome Surface**: its shell, controls, and text follow **Appearance Mode**, while its **Voice Waveform** carries the recording Thing's **Thing Background** identity.
 - A **Voice Waveform** derives its colours from the recording Thing's **Thing Background** — its main water body carries the background's own colour at full opacity and unmodified lightness (a PURE colour as-is, a GRADIENT reused whole) as a clean colour-identity anchor, while depth is conveyed only by a lightness-plus-alpha ladder on the upper, farther wave layers (farther layers lighter and more translucent) — so, like **Thing Foreground**, it depends on the visible Thing-owned background rather than **Appearance Mode**.
+- A **Hybrid Chrome Surface** may contain a **Thing Background Glyph Colour** readout; the readout carries Thing identity while the surrounding shell remains App Chrome.
 - An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
 - An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
 - **Home Chrome Retraction** hides and restores the home's top **App Chrome** as one unit, driven by scroll direction, independently of **Activity Header** collapse which is driven by scroll position.

@@ -31,7 +31,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 
-import com.github.adnansm.timelytextview.TimelyView
+import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
@@ -92,11 +92,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private var mIvBg: ImageView? = null
 
-    private var mTvInfinity: TextView? = null
-    private var mLlHour: LinearLayout? = null
-    private var mLlMinute: LinearLayout? = null
-    private var mLlSecond: LinearLayout? = null
-    private var mTimelyViews: Array<TimelyView?>? = null
+    private var mClockView: TimelyClockView? = null
 
     private var mRecyclerView: RecyclerView? = null
     private var mTvSwipeToFinish: TextView? = null
@@ -204,10 +200,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     override fun findViews() {
         mIvBg = f(R.id.iv_bg_doing)
 
-        mTvInfinity = f(R.id.tv_time_infinity_doing)
-        mLlHour     = f(R.id.ll_hour_doing)
-        mLlMinute   = f(R.id.ll_minute_doing)
-        mLlSecond   = f(R.id.ll_second_doing)
+        mClockView = f(R.id.clock_time_doing)
 
         mRecyclerView = f(R.id.rv_thing_doing)
         mTvSwipeToFinish = f(R.id.tv_swipe_to_finish_doing)
@@ -218,24 +211,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         mFabStrictMode = f(R.id.fab_strict_mode)
         mFlCancel      = f(R.id.fl_cancel_doing)
 
-        mTimelyViews = arrayOfNulls(6)
-        val ids = intArrayOf(
-            R.id.tv_hour_1, R.id.tv_hour_2, R.id.tv_minute_1, R.id.tv_minute_2,
-            R.id.tv_second_1, R.id.tv_second_2
-        )
-        // hour digits render heaviest, second lightest (weight ladder for h/m/s)
-        val levels = arrayOf("h", "h", "m", "m", "s", "s")
         val sp = getSharedPreferences(com.ywwynm.everythingdone.Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
         val digitStyle = sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins") ?: "poppins"
         val digitFill = (sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_RENDER, "fill") ?: "fill") == "fill"
-        // same digit size for h/m/s; hierarchy comes from synthesized stroke weight
-        val wstroke = floatArrayOf(0.08f, 0.08f, 0.035f, 0.035f, 0f, 0f)
-        for (i in mTimelyViews!!.indices) {
-            mTimelyViews!![i] = f(ids[i])
-            mTimelyViews!![i]!!.setStyle(digitStyle, levels[i])
-            mTimelyViews!![i]!!.setRenderMode(digitFill)
-            mTimelyViews!![i]!!.setWeightStroke(wstroke[i])
-        }
+        mClockView!!.setStyleName(digitStyle)
+        mClockView!!.setRenderMode(digitFill)
+        mClockView!!.setClockMode(TimelyClockView.MODE_AUTO_HIDE_HOUR)
+        mClockView!!.setHostDark(true)
     }
 
     override fun initUI() {
@@ -313,6 +295,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         val binder = mDoingBinder ?: return
         mThing = binder.getThing() ?: return
         overlayLatestThingFromDb()
+        applyClockThingBackground()
         initRecyclerView()
     }
 
@@ -334,6 +317,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         // 开始做之后卡片外观 / 内容可能已在首页被修改并写入数据库，但 Service 持有的是开始计时时
         // 的旧 Thing 对象。渲染前用数据库最新数据覆盖，使外观等改动在 DoingActivity 立即生效。
         overlayLatestThingFromDb()
+        applyClockThingBackground()
 
         if (mDoingBinder!!.isInStrictMode()) {
             Toast.makeText(this, R.string.doing_toast_already_strict_mode, Toast.LENGTH_LONG).show()
@@ -350,7 +334,12 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         if (mDoingBinder!!.getTimeInMillis() == -1L) {
             mInfinityHandler = Handler { message ->
                 if (message.what == 96) {
-                    mTvInfinity!!.animate().setDuration(3600).alpha(1 - mTvInfinity!!.alpha)
+                    val targetAlpha = if (mClockView!!.alpha > INFINITE_CLOCK_ALPHA_MID) {
+                        INFINITE_CLOCK_ALPHA_LOW
+                    } else {
+                        INFINITE_CLOCK_ALPHA_HIGH
+                    }
+                    mClockView!!.animate().setDuration(3600).alpha(targetAlpha)
                     mInfinityHandler!!.sendEmptyMessageDelayed(96, 3600)
                 }
                 false
@@ -373,39 +362,54 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun updateTimeViews() {
         if (mDoingBinder!!.getTimeInMillis() == -1L) { // time is infinite
-            mTvInfinity!!.visibility = View.VISIBLE
-            mLlHour!!.visibility = View.GONE
-            mLlMinute!!.visibility = View.GONE
-            mLlSecond!!.visibility = View.GONE
+            sizeClockView((DisplayUtil.getScreenDensity(mApp) * 128).toInt())
+            mClockView!!.setInfinite(true)
+            mClockView!!.alpha = 0f
         } else {
-            setTimelyViewsVisibilities(mDoingBinder!!.getLeftTime())
+            updateClockForLeftTime(mDoingBinder!!.getLeftTime(), true)
         }
     }
 
-    private fun setTimelyViewsVisibilities(leftTime: Long) {
+    private fun updateClockForLeftTime(leftTime: Long, updateDigits: Boolean) {
         val density: Float = DisplayUtil.getScreenDensity(mApp)
-        if (leftTime < HOUR_MILLIS) {
-            mLlHour!!.visibility = View.GONE
-            val boxH = (density * 72).toInt()
-            for (i in 2 until mTimelyViews!!.size) {
-                sizeTimelyView(mTimelyViews!![i]!!, boxH)
-            }
-        } else {
-            mLlHour!!.visibility = View.VISIBLE
-            val boxH = (density * 56).toInt()
-            for (v in mTimelyViews!!) {
-                sizeTimelyView(v!!, boxH)
-            }
+        val boxH = if (leftTime < HOUR_MILLIS) (density * 72).toInt() else (density * 56).toInt()
+        sizeClockView(boxH)
+        if (updateDigits) {
+            mClockView!!.setTimeMillis(leftTime, false)
         }
     }
 
-    // Each digit gets a cell sized to its font's tabular advance, so wide fonts
-    // (e.g. Orbitron) never let adjacent digits touch and layout never jitters.
-    private fun sizeTimelyView(v: com.github.adnansm.timelytextview.TimelyView, boxHpx: Int) {
+    private fun sizeClockView(boxHpx: Int) {
+        val v = mClockView ?: return
         val lp = v.layoutParams
         lp.height = boxHpx
-        lp.width = (boxHpx * v.getAdvance() * v.getScale()).toInt()
+        lp.width = ViewGroup.LayoutParams.MATCH_PARENT
         v.requestLayout()
+    }
+
+    private fun applyClockThingBackground() {
+        val clock = mClockView ?: return
+        val bg = mThing?.getBackground()
+            ?: ThingBackground.pure(mThing?.getColor() ?: ContextCompat.getColor(this, R.color.app_accent))
+        if (bg.mode == ThingBackground.Mode.GRADIENT) {
+            clock.setInkGradient(bg.color, bg.endColor, timelyOrientation(bg.orientation))
+        } else {
+            clock.setInkColor(bg.color)
+        }
+        clock.setHostDark(true)
+    }
+
+    private fun timelyOrientation(orientation: ThingBackground.Orientation): Int {
+        return when (orientation) {
+            ThingBackground.Orientation.L_R -> TimelyClockView.ORIENTATION_L_R
+            ThingBackground.Orientation.R_L -> TimelyClockView.ORIENTATION_R_L
+            ThingBackground.Orientation.T_B -> TimelyClockView.ORIENTATION_T_B
+            ThingBackground.Orientation.B_T -> TimelyClockView.ORIENTATION_B_T
+            ThingBackground.Orientation.LT_RB -> TimelyClockView.ORIENTATION_LT_RB
+            ThingBackground.Orientation.RB_LT -> TimelyClockView.ORIENTATION_RB_LT
+            ThingBackground.Orientation.RT_LB -> TimelyClockView.ORIENTATION_RT_LB
+            ThingBackground.Orientation.LB_RT -> TimelyClockView.ORIENTATION_LB_RT
+        }
     }
 
     private fun initRecyclerView() {
@@ -524,11 +528,11 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                     numbersFrom: IntArray?, numbersTo: IntArray?,
                     leftTimeBefore: Long, leftTimeAfter: Long
                 ) {
-                    playTimelyAnimation(numbersFrom!!, numbersTo!!)
+                    playTimelyAnimation(numbersFrom!!, numbersTo!!, leftTimeAfter)
                 }
 
                 override fun onAdd5Min(leftTime: Long) {
-                    setTimelyViewsVisibilities(leftTime)
+                    updateClockForLeftTime(leftTime, true)
                 }
 
                 override fun onCountdownFailed() {
@@ -548,15 +552,16 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun playEnterAnimations() {
         mRecyclerView!!.postDelayed({
-            mTvInfinity!!.animate().setDuration(1600).alpha(0.76f)
+            if (mDoingBinder!!.getTimeInMillis() == -1L) {
+                mClockView!!.animate().setDuration(1600).alpha(INFINITE_CLOCK_ALPHA_HIGH)
+            } else {
+                mClockView!!.alpha = 0f
+            }
             f<View>(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1f)
             mRecyclerView!!.animate().setDuration(1600).alpha(0.84f)
             mRecyclerView!!.scrollBy(0, Int.MAX_VALUE)
         }, 160) // executed after 1160ms, animation ends at 2760ms
         mRecyclerView!!.postDelayed({
-            f<View>(R.id.tv_separator_1_doing).animate().setDuration(360).alpha(0.86f)
-            f<View>(R.id.tv_separator_2_doing).animate().setDuration(360).alpha(0.76f)
-
             mRecyclerView!!.smoothScrollToPosition(0)
 
             val oi = OvershootInterpolator()
@@ -569,12 +574,10 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         }, 1200) // executed after 1360ms, animation ends at 1720ms
     }
 
-    private fun playTimelyAnimation(from: IntArray, to: IntArray) {
-        for (i in from.indices) {
-            if (from[i] != to[i]) {
-                mTimelyViews!![i]!!.animate(from[i], to[i]).start()
-            }
-        }
+    private fun playTimelyAnimation(from: IntArray, to: IntArray, leftTimeAfter: Long) {
+        updateClockForLeftTime(leftTimeAfter, false)
+        mClockView!!.alpha = 1f
+        mClockView!!.animateDigits(from, to, leftTimeAfter)
     }
 
     open fun onClick(view: View) {
@@ -716,6 +719,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
         private const val MINUTE_MILLIS: Long = 60 * 1000L
         private const val HOUR_MILLIS: Long   = 60 * MINUTE_MILLIS
+        private const val INFINITE_CLOCK_ALPHA_HIGH: Float = 1.0f
+        private const val INFINITE_CLOCK_ALPHA_LOW: Float = 0.75f
+        private const val INFINITE_CLOCK_ALPHA_MID: Float = 0.875f
 
         @JvmStatic
         fun getOpenIntent(context: Context?, resume: Boolean): Intent {
