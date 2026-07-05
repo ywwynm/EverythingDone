@@ -2,18 +2,28 @@ package com.ywwynm.everythingdone.fragments
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
+import androidx.core.content.ContextCompat
 import com.github.adnansm.timelytextview.TimelyView
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import kotlin.math.roundToInt
 
 /**
  * Countdown digit style chooser: one row per style previewing "01:29:36" (so the
@@ -33,7 +43,7 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
     override fun getLayoutResource(): Int = R.layout.dialog_doing_digit_style
 
     override fun getDialogWindowWidthPx(): Int =
-        (resources.displayMetrics.widthPixels * 0.92f).toInt()
+        dp(280f)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -46,45 +56,87 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
 
         val tvFill = f<TextView>(R.id.tv_ddc_fill)
         val tvOutline = f<TextView>(R.id.tv_ddc_outline)
+        val tvTitle = f<TextView>(R.id.tv_ddc_title)
+        val scroll = f<ScrollView>(R.id.sv_ddc_rows)
         val rows = f<LinearLayout>(R.id.ll_ddc_rows)
-        val density = resources.displayMetrics.density
-        val dark = Color.parseColor("#20242B")
-        val accent = 0x33448AFF
+        val scrollIndicator = f<View>(R.id.view_ddc_scroll_indicator)
+        val accentBackground = App.defaultAccentBackground
+        val tabHintColor = ContextCompat.getColor(ctx, R.color.app_chrome_on_surface_hint)
+        val selectedLabelColor = BackgroundUtil.onColor(
+            accentBackground, BackgroundUtil.ON_ALPHA_TERTIARY
+        )
+        val rowRadius = dp(8f).toFloat()
+        BackgroundUtil.applyTextBackground(tvTitle, accentBackground)
+
+        fun updateScrollIndicator() {
+            scrollIndicator.visibility =
+                if (scroll.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
+        }
+
+        fun scrollToSelectedRow() {
+            scroll.post {
+                val index = STYLES.indexOfFirst { it.first == selected }
+                if (index >= 0) {
+                    val child = rows.getChildAt(index)
+                    if (child != null) {
+                        scroll.scrollTo(0, (child.top - dp(8f)).coerceAtLeast(0))
+                    }
+                }
+                updateScrollIndicator()
+            }
+        }
 
         fun buildRows() {
             rows.removeAllViews()
-            val wPx = (resources.displayMetrics.widthPixels * 0.60f).toInt()
-            val hPx = (44 * density).toInt()
+            val wPx = (getDialogWindowWidthPx() - dp(64f)).coerceAtLeast(dp(220f))
+            val hPx = dp(52f)
             for ((id, label) in STYLES) {
+                val isSelected = id == selected
                 val row = LinearLayout(ctx)
-                row.orientation = LinearLayout.HORIZONTAL
+                row.orientation = LinearLayout.VERTICAL
                 row.gravity = Gravity.CENTER_VERTICAL
                 row.layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, (52 * density).toInt()
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(92f)
+                ).apply {
+                    setMargins(dp(12f), dp(4f), dp(12f), dp(4f))
+                }
+                row.setPadding(dp(14f), dp(8f), dp(14f), dp(8f))
+                row.background = if (isSelected) selectedRowBackground(accentBackground, rowRadius) else null
+                row.foreground = if (isSelected) null else GradientRippleDrawable(
+                    accentBackground, shapeOval = false, cornerRadiusPx = rowRadius
                 )
-                row.setPadding(
-                    (12 * density).toInt(), (4 * density).toInt(),
-                    (12 * density).toInt(), (4 * density).toInt()
-                )
-                if (id == selected) row.setBackgroundColor(accent)
                 row.isClickable = true
+                row.isFocusable = true
 
                 val tv = TextView(ctx)
                 tv.text = label
                 tv.textSize = 13f
+                tv.includeFontPadding = false
                 tv.gravity = Gravity.CENTER_VERTICAL
+                tv.maxLines = 1
+                tv.ellipsize = TextUtils.TruncateAt.END
+                tv.setTextColor(if (isSelected) selectedLabelColor else tabHintColor)
+                tv.setTypeface(Typeface.DEFAULT, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
                 tv.layoutParams = LinearLayout.LayoutParams(
-                    (96 * density).toInt(), ViewGroup.LayoutParams.MATCH_PARENT
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(20f)
                 )
                 row.addView(tv)
 
                 val iv = ImageView(ctx)
-                val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
-                lp.setMargins(0, (4 * density).toInt(), 0, (4 * density).toInt())
+                val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52f))
+                lp.setMargins(0, dp(4f), 0, 0)
                 iv.layoutParams = lp
-                iv.setBackgroundColor(dark)
                 iv.scaleType = ImageView.ScaleType.FIT_CENTER
-                iv.setImageBitmap(TimelyView.renderClock(ctx, id, fill, Color.WHITE, wPx, hPx))
+                iv.setImageBitmap(
+                    if (isSelected) {
+                        TimelyView.renderClock(ctx, id, fill, Color.WHITE, wPx, hPx)
+                    } else {
+                        TimelyView.renderClock(
+                            ctx, id, fill,
+                            accentBackground.color, accentBackground.endColor, wPx, hPx
+                        )
+                    }
+                )
                 row.addView(iv)
 
                 row.setOnClickListener {
@@ -97,11 +149,12 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
                 }
                 rows.addView(row)
             }
+            scrollToSelectedRow()
         }
 
         fun updateToggle() {
-            tvFill.setBackgroundColor(if (fill) accent else Color.TRANSPARENT)
-            tvOutline.setBackgroundColor(if (!fill) accent else Color.TRANSPARENT)
+            styleTab(tvFill, fill, accentBackground, tabHintColor)
+            styleTab(tvOutline, !fill, accentBackground, tabHintColor)
         }
 
         tvFill.setOnClickListener {
@@ -112,9 +165,37 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
         }
 
         updateToggle()
+        scroll.viewTreeObserver.addOnScrollChangedListener { updateScrollIndicator() }
         buildRows()
         return v
     }
+
+    private fun styleTab(
+        tab: TextView,
+        selected: Boolean,
+        accentBackground: ThingBackground,
+        hintColor: Int
+    ) {
+        tab.foreground = GradientRippleDrawable(
+            accentBackground, shapeOval = false, cornerRadiusPx = -1f
+        )
+        if (selected) {
+            tab.setTypeface(Typeface.DEFAULT_BOLD)
+            BackgroundUtil.applyTextBackground(tab, accentBackground)
+        } else {
+            tab.setTypeface(Typeface.DEFAULT)
+            BackgroundUtil.applyTextBackground(tab, ThingBackground.pure(hintColor))
+        }
+    }
+
+    private fun selectedRowBackground(bg: ThingBackground, radiusPx: Float): GradientDrawable {
+        return BackgroundUtil.makeTranslucentGradient(bg, 255).apply {
+            cornerRadius = radiusPx
+        }
+    }
+
+    private fun dp(value: Float): Int =
+        (value * resources.displayMetrics.density).roundToInt()
 
     companion object {
         const val TAG = "DoingDigitStyleDialogFragment"

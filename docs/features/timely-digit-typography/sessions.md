@@ -59,3 +59,15 @@ with a Poppins tracer bullet. No app code changed yet.
 - 修复无限时长呼吸 alpha 掉到接近 0 的问题：旧算法 `1 - currentAlpha` 改为 1.0 / 0.75 两端显式切换，进场淡入到 1.0。录音 dialog 首次准备态 `animateIn(0L)` 延迟 160ms 执行，并在用户立即开始录音或关闭 dialog 时取消待执行 intro。`:app:assembleDebug` 通过，已发布阿里云 debug update `202607050359`。未使用 adb，未提交 git。
 - 根据反馈调整录音重录路径：`animateIn(0L)` 只保留在 dialog 首次出现时通过延迟 `mClockIntro` 播放；重录回准备态时取消待执行 intro，并直接 `setTimeMillis(0L, false)` 静态复位到 `00:00:00`。`:app:assembleDebug` 通过，已发布阿里云 debug update `202607050413`。未使用 adb，未提交 git。
 - 根据反馈处理不同字体字宽差异：`TimelyClockView` 绘制时按可用宽度自动缩小宽字体；DoingActivity 计时器改为 `match_parent` 并左右各留 24dp，动态高度调整保持 `MATCH_PARENT` 宽度；录音 dialog 计时器在 280dp dialog 内左右各留 16dp。`:app:assembleDebug` 通过，已发布阿里云 debug update `202607050425`。未使用 adb，未提交 git。
+
+## 2026-07-05 - 设置字体选择器重设计
+
+- 重做设置界面的 `DoingDigitStyleDialogFragment`：实心 / 描边切换改成两个等宽 page tab，选中 tab 使用 accent + accent2 渐变文本，未选中 tab 使用提示色，触摸反馈复用 `GradientRippleDrawable`。
+- 字体列表行改为“字体名称在上、`01:29:36` 预览在下”的纵向结构；未选中行透明背景 + accent 渐变 ripple + accent 渐变预览字形，选中行整行 accent 渐变背景 + 白色预览字形。
+- 扩展 `TimelyView.renderClock`：支持整组连续颜色渐变，并在整组读数上用统一 90% -> 100% alpha mask，实心、描边和冒号预览共享同一位置透明度规则。
+- 补充修复 tab 快速切换时的 pending text shader：未选中 tab 走 `ThingBackground.pure(hintColor)`，避免旧选中态的延迟渐变回写。
+- `:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705124953.md` 并发布阿里云 debug update `202607050452`。未使用 adb，未提交 git。
+- 后续按反馈微调：dialog 宽度改为 280dp，对齐设置应用语言 dialog；标题改为 accent + accent2 渐变；字体名称统一使用提示性文本颜色。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705125650.md` 并发布阿里云 debug update `202607050457`。未使用 adb，未提交 git。
+- 继续按反馈微调：选中字体行的字体名称改为偏白；打开 dialog 与切换实心 / 描边后自动滚动到当前选中字体；在实心 / 描边 tab 下方加入顶部滚动指示线，列表在顶部时隐藏，向下滚动后显示。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705130417.md` 并发布阿里云 debug update `202607050504`。未使用 adb，未提交 git。
+- 再次按反馈调整选中字体名亮度：从纯白改为 App Chrome tertiary on-color 层级，保持偏白但更接近提示性文本。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705130800.md` 并发布阿里云 debug update `202607050508`。未使用 adb，未提交 git。
+- 按反馈将录音 dialog 中 `clock_record_audio` 的左右边距从 16dp 改为 24dp，dialog 仍保持 280dp 宽度，计时器继续在可用宽度内自适应。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705131724.md` 并发布阿里云 debug update `202607050517`。未使用 adb，未提交 git。

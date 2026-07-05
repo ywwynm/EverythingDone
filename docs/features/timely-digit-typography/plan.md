@@ -122,6 +122,30 @@ Consolidate the spike scripts into one `tools/generate_glyph_data.py`. For each
   the h/m/s hierarchy, and morph middles (esp. topology jumps).
 - **Per-style sign-off** from the chooser preview.
 
+## 2026-07-05 追加计划：设置字体选择器重设计
+
+本轮目标是重做设置界面的 timely 字体选择 dialog，让字体预览与当前 DoingActivity / 录音 dialog 的读数语言保持一致。
+
+### 范围
+
+- **包含**：实心 / 描边 page tab、字体行布局、选中态 / 未选中态背景与 ripple、`TimelyView.renderClock` 预览渐变能力。
+- **不包含**：新增字体、修改 DoingActivity 或录音 dialog 的实际计时器绘制、引入 Thing 专属颜色到设置页。
+
+### 关键规则
+
+- 模式选择使用两个等宽 page tab；选中 tab 用 accent + accent2 渐变文本，未选中 tab 用提示色，触摸 ripple 使用同一 accent 渐变。
+- 字体行改为纵向：字体名称在上，`01:29:36` 预览在下。
+- 未选中行透明背景 + accent 渐变 ripple；预览字形为 accent + accent2 渐变。
+- 选中行整行背景为 accent + accent2 渐变；预览字形为白色。
+- 所有预览字形都使用左到右 90% -> 100% 的位置透明度遮罩。
+
+### 实现步骤
+
+1. 扩展 `TimelyView.renderClock`，支持整组读数的连续颜色渐变并用统一 alpha mask 叠加 90% -> 100% 位置透明度。
+2. 重做 `dialog_doing_digit_style.xml` 的 tab 容器和列表空间。
+3. 重写 `DoingDigitStyleDialogFragment` 的行生成、tab 样式、选中背景和未选中渐变 ripple。
+4. 编译通过后生成本功能 debug update 日志并发布到阿里云。
+
 ## 2026-07-05 追加计划：Thing Background 字形色与录音计时器
 
 本轮目标是在已有 filled-outline timely 数字基础上，让计时读数承载当前 Thing 的颜色身份，并把录音 dialog 的计时器迁移到同一套方案。

@@ -18,8 +18,12 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.util.Property;
 import android.view.View;
@@ -174,6 +178,15 @@ public class TimelyView extends View {
      */
     public static Bitmap renderClock(Context ctx, String style, boolean fillMode,
                                      int color, int wPx, int hPx) {
+        return renderClock(ctx, style, fillMode, color, color, wPx, hPx);
+    }
+
+    /**
+     * Render a preview readout with one continuous left-to-right colour gradient,
+     * then apply the shared 90% -> 100% positional alpha mask used by TimelyClockView.
+     */
+    public static Bitmap renderClock(Context ctx, String style, boolean fillMode,
+                                     int startColor, int endColor, int wPx, int hPx) {
         StyleData sd = load(ctx, style);
         Bitmap bmp = Bitmap.createBitmap(wPx, hPx, Bitmap.Config.ARGB_8888);
         if (sd == null) return bmp;
@@ -198,9 +211,24 @@ public class TimelyView extends View {
         float s = Math.min(wPx * 0.94f / total, hPx * 0.60f);
         float baseY = hPx * 0.80f;
         float startX = (wPx - total * s) / 2f;
+        float endX = startX + total * s;
+
+        Shader colorShader = new LinearGradient(
+                startX, 0f, endX, 0f,
+                Color.rgb(Color.red(startColor), Color.green(startColor), Color.blue(startColor)),
+                Color.rgb(Color.red(endColor), Color.green(endColor), Color.blue(endColor)),
+                Shader.TileMode.CLAMP);
+        Shader alphaShader = new LinearGradient(
+                startX, 0f, endX, 0f,
+                Color.argb(Math.round(Color.alpha(startColor) * 0.90f), 0, 0, 0),
+                Color.argb(Math.round(Color.alpha(endColor) * 1.00f), 0, 0, 0),
+                Shader.TileMode.CLAMP);
 
         Path path = new Path();
         float cursor = 0f;
+        int layer = canvas.saveLayer(0f, 0f, wPx, hPx, null);
+        p.setShader(colorShader);
+        p.setAlpha(255);
         for (int i = 0; i < 6; i++) {
             RawGlyph g = sd.glyphs[levels[i]][digits[i]];
             float cellW = sd.advance * sizeF[i];
@@ -211,9 +239,6 @@ public class TimelyView extends View {
             path.setFillType(Path.FillType.EVEN_ODD);
             addRingTo(path, g.outer, ox, oyTop, gS);
             for (float[][] hole : g.holes) addRingTo(path, hole, ox, oyTop, gS);
-            float pos = total > 0f ? (cursor + cellW / 2f) / total : 0f;
-            int a = Math.round(Color.alpha(color) * (0.90f + (1.00f - 0.90f) * pos));
-            p.setColor(Color.argb(a, Color.red(color), Color.green(color), Color.blue(color)));
             if (fillMode) {
                 if (wstroke[i] > 0f) {
                     p.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -229,16 +254,20 @@ public class TimelyView extends View {
             cursor += cellW;
             if (colonAfter[i]) {
                 float cx = startX + (cursor + colonW / 2f) * s;
-                float cpos = total > 0f ? (cursor + colonW / 2f) / total : 0f;
-                int ca = Math.round(Color.alpha(color) * (0.90f + (1.00f - 0.90f) * cpos));
                 p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.argb(ca, Color.red(color), Color.green(color), Color.blue(color)));
                 float r = s * 0.045f;
                 canvas.drawCircle(cx, baseY - s * 0.46f, r, p);
                 canvas.drawCircle(cx, baseY - s * 0.20f, r, p);
                 cursor += colonW;
             }
         }
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(alphaShader);
+        p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        canvas.drawRect(0f, 0f, wPx, hPx, p);
+        p.setXfermode(null);
+        p.setShader(null);
+        canvas.restoreToCount(layer);
         return bmp;
     }
 

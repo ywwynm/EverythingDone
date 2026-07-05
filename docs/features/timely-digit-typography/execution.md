@@ -180,3 +180,46 @@ Doing screen, then published to Aliyun for on-device review.
 - [x] `:app:assembleDebug` 编译通过。
 - [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705122446.md`。
 - [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050425`。
+
+## Phase 4 设置字体选择器重设计 - 2026-07-05
+
+- [x] 记录用户确认的 chooser 视觉规则：page tab、字体名称在上 / 预览在下、未选中渐变 ripple、选中整行 accent 渐变、预览字形按选中态在 accent 渐变与白色之间切换。
+- [x] 扩展 `TimelyView.renderClock` 支持整组连续渐变字形和统一 90% -> 100% alpha mask。
+- [x] 重做 `DoingDigitStyleDialogFragment` 的 tab 样式、行布局、选中态和触摸反馈。
+- [x] 未选中 tab 通过纯色 `ThingBackground` 清理 pending text shader，避免快速切换后旧渐变文本状态回写。
+- [x] 按反馈将 dialog 宽度改为 280dp，标题改为 accent 渐变，字体名称统一改为提示性文本颜色。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705124953.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050452`。
+
+## Phase 4 设置字体选择器微调 - 2026-07-05
+
+- [x] 将字体选择 dialog 宽度从屏幕 92% 改为 280dp，对齐设置应用语言的 `ChooserDialogFragment`。
+- [x] 标题改为 App 默认 accent + accent2 渐变文字。
+- [x] 字体名称文字统一改为 `app_chrome_on_surface_hint`。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705125650.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050457`。
+
+## Phase 4 设置字体选择器滚动与选中态微调 - 2026-07-05
+
+- [x] 选中字体行的字体名称改为偏白，未选中字体名保持提示性文本颜色。
+- [x] 打开 dialog 或切换实心 / 描边后自动滚动到当前选中的字体行。
+- [x] 在实心 / 描边 tab 下方加入顶部滚动指示线，列表顶部时隐藏，向下滚动后显示。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705130417.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050504`。
+
+## Phase 4 设置字体选择器选中字体名亮度微调 - 2026-07-05
+
+- [x] 选中字体行的字体名称从纯白改为 App Chrome tertiary on-color 层级，让它保持偏白但更接近提示性文本。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705130800.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050508`。
+
+## Phase 4 录音计时器左右边距微调 - 2026-07-05
+
+- [x] 将录音 dialog 中 `clock_record_audio` 的左右边距从 16dp 改为 24dp。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705131724.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050517`。

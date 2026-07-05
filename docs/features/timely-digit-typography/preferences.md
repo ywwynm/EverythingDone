@@ -45,3 +45,18 @@
 - 不同 timely 字体的 digit advance 不同，`TimelyClockView` 不能因为宽字体而顶到屏幕或 dialog 边缘。
 - DoingActivity 的计时器应保留屏幕左右留白；录音 dialog 的计时器也应保留 dialog 内左右留白。
 - 当字体过宽时，应在 `TimelyClockView` 内部整体缩小读数以适配可用宽度，而不是让内容溢出或贴边。
+- 录音 dialog 内 `TimelyClockView` 的左右边距使用 24dp，而不是 16dp，以在 280dp dialog 内保留更明确的边缘距离。
+
+## 2026-07-05 - 设置字体选择器视觉
+
+- 设置界面的 timely 字体选择 dialog 中，实心 / 描边选择应改成类似记事详情提醒时间 dialog 或 Thing Background 编辑器纯色 / 渐变页签的 page tab，而不是普通分散按钮。
+- 每个字体选项按整行呈现：上方显示字体名称，下方显示 `01:29:36` 的字体预览效果。
+- 设置页没有具体 Thing 作为颜色来源，因此字体选择器使用 App 默认 accent + accent2 作为中性强调渐变。
+- 未选中的字体行应保持透明背景，但触摸反馈使用 accent + accent2 的渐变 ripple；未选中的预览数字本身也使用 accent + accent2 渐变。
+- 选中的字体行整行背景使用 accent + accent2 渐变，预览数字改为白色。
+- 所有字体预览都必须保留与 DoingActivity 和录音 dialog 一致的从左到右 90% -> 100% 位置透明度变化，并同时支持实心与描边模式。
+- 字体选择 dialog 宽度应与设置应用语言的 `ChooserDialogFragment` 一致，即 280dp；标题使用 accent + accent2 渐变，字体名称文字使用提示性文本颜色。
+- 选中字体行里的字体名称应使用偏白文字，不能继续保持提示性文本色；未选中字体名才使用提示性文本色。
+- 打开字体选择 dialog 时，应自动滚动到当前选中的字体行。
+- 当字体列表已向下滚动、顶部内容被遮住时，实心 / 描边 tab 下方应显示一条滑动指示线；列表回到顶部时隐藏。只需要顶部这一条线，不需要底部指示线。
+- 选中字体行的偏白字体名称不应接近纯白，应更像提示性文本；当前使用 App Chrome tertiary on-color 层级。
