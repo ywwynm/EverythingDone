@@ -19,6 +19,7 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 - `system-bar-insets`: `docs/features/system-bar-insets/followups.md`
 - `thing-card-media-target-geometry`: `docs/features/thing-card-media-target-geometry/followups.md`
 - `thing-folders`: `docs/features/thing-folders/followups.md`
+- `timely-digit-typography`: `docs/features/timely-digit-typography/followups.md`
 
 ## Update rule
 

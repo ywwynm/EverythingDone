@@ -60,3 +60,9 @@
 - 打开字体选择 dialog 时，应自动滚动到当前选中的字体行。
 - 当字体列表已向下滚动、顶部内容被遮住时，实心 / 描边 tab 下方应显示一条滑动指示线；列表回到顶部时隐藏。只需要顶部这一条线，不需要底部指示线。
 - 选中字体行的偏白字体名称不应接近纯白，应更像提示性文本；当前使用 App Chrome tertiary on-color 层级。
+
+## 2026-07-05 - 追加字体候选保留方向
+
+- 追加字体第一轮可保留：Fraunces、Bodoni Moda、Libre Bodoni、Cinzel、Libre Baskerville、Josefin Sans、Exo 2。
+- 用户希望继续补充更多其它风格，不能只在 Didone / 经典 serif / 几何 sans 范围内扩展；后续候选应覆盖更明显的风格差异。
+- 第二轮用户看中的追加候选：Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Outfit、Monoton。

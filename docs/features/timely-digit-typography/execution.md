@@ -223,3 +223,13 @@ Doing screen, then published to Aliyun for on-device review.
 - [x] `:app:assembleDebug` 编译通过。
 - [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705131724.md`。
 - [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050517`。
+
+## Phase 5 追加可直接接入字体 - 2026-07-05
+
+- [x] 用户确认先接入 Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Outfit。
+- [x] 扩展 `generate_glyph_data.py`，支持传入 style 子集，只生成新增字体 JSON。
+- [x] 使用现有 filled-outline 管线生成 9 个新增 `app/src/main/assets/timely/*.json` 字形资产。
+- [x] 更新 `DoingDigitStyleDialogFragment.STYLES`，让设置 dialog 显示新增字体。
+- [x] `:app:assembleDebug` 编译通过。
+- [x] 生成发布日志 `docs/features/timely-digit-typography/debug-updates/update-20260705141512.md`。
+- [x] 已通过 `:app:publishDebugUpdate` 发布阿里云 debug update `202607050615`。

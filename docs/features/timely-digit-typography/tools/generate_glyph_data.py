@@ -11,7 +11,7 @@ Per style writes <out>/<style>.json:
 Coords: x centred at 0, y DOWN (capTop=0, baseline=1), scaled by the medium-weight
 figure height so all three weights share one box.
 
-Usage:  python generate_glyph_data.py <fonts_dir> <assets_out_dir> <verify_out_dir>
+Usage:  python generate_glyph_data.py <fonts_dir> <assets_out_dir> <verify_out_dir> [style...]
 """
 import os
 import sys
@@ -45,10 +45,20 @@ STYLES = {
     "cormorantgaramond": "VAR", "lora": "VAR", "jetbrainsmono": "VAR", "dancingscript": "VAR",
     "zillaslab": {"h": "zillaslab_bold.ttf", "m": "zillaslab.ttf", "s": "zillaslab_light.ttf"},
     "abrilfatface": "SINGLE", "dmserifdisplay": "SINGLE", "pacifico": "SINGLE",
+    "spacegrotesk": "VAR", "limelight": "SINGLE", "righteous": "SINGLE", "poiretone": "SINGLE",
+    "majormonodisplay": "SINGLE", "genos": "VAR", "italiana": "SINGLE", "nixieone": "SINGLE",
+    "outfit": "VAR",
 }
 ORDER = ["poppins", "comfortaa", "orbitron", "playfairdisplay", "abrilfatface",
          "cormorantgaramond", "zillaslab", "lora", "dmserifdisplay", "jetbrainsmono",
-         "pacifico", "dancingscript"]
+         "pacifico", "dancingscript", "spacegrotesk", "limelight", "righteous", "poiretone",
+         "majormonodisplay", "genos", "italiana", "nixieone", "outfit"]
+REQUESTED = sys.argv[4:]
+if REQUESTED:
+    unknown = sorted(set(REQUESTED) - set(STYLES.keys()))
+    if unknown:
+        raise SystemExit("unknown styles: " + ", ".join(unknown))
+    ORDER = [style for style in ORDER if style in REQUESTED]
 
 _clean_cache = {}
 

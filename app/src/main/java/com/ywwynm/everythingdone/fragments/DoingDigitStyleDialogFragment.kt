@@ -212,7 +212,16 @@ class DoingDigitStyleDialogFragment : BaseDialogFragment() {
             "dmserifdisplay" to "DM Serif Display",
             "jetbrainsmono" to "JetBrains Mono",
             "pacifico" to "Pacifico",
-            "dancingscript" to "Dancing Script"
+            "dancingscript" to "Dancing Script",
+            "spacegrotesk" to "Space Grotesk",
+            "limelight" to "Limelight",
+            "righteous" to "Righteous",
+            "poiretone" to "Poiret One",
+            "majormonodisplay" to "Major Mono Display",
+            "genos" to "Genos",
+            "italiana" to "Italiana",
+            "nixieone" to "Nixie One",
+            "outfit" to "Outfit"
         )
     }
 }
