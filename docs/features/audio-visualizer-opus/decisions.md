@@ -8,6 +8,22 @@ Fable `OceanWaveVisualizerFable` 区分。现有代码全部保留、暂不删�
 v1 为次要参照，Fable 不作为参照。详见
 [recording-wave-visualizer/preferences.md](../recording-wave-visualizer/preferences.md)。
 
+## 2026-07-06 - D60 水位驱动与 floor 保护分离，环境声只能低响应
+
+用户反馈：安静房间打开窗户后，外界声音传入会造成非常高的水位。重新判断后确认，D59 的 `absoluteActive` 适合保护 floor 不吞掉稳定内容，但不适合作为视觉水位抬高依据；否则交通、风声、远处人群等只要足够响，就会被当成“真实内容”。
+
+决策：保留 D59 的 floor 保护门控，但新增更严格的 `visualContentScore` 给视觉语义映射使用。`semiAbsLevel` 仍表示高出环境底的半绝对能量；`visualLevel = semiAbsLevel * visualContentScore` 才进入 `presence`、`loudness`、`intensity` 和 `waterLevel`。`visualContentScore` 主要由结构证据决定：音调性、音高置信、onset 强度、事件密度。缺少结构证据的宽频稳态环境声只保留 `VISUAL_CONTENT_BASE` 的低响应，不再凭绝对响度抬高水位。
+
+当前启发式边界：单麦无法可靠判断近场/远场，也无法准确区分窗外音乐、人声与用户希望表达的声音；本轮先压制最明确的“宽频稳态外界环境声高水位”。后续若需要更细，可评估 MediaPipe/YAMNet 一类音频分类，或引入更完整的子带 signal presence probability。
+
+## 2026-07-06 - D59 自适应底噪不得吞掉稳定持续内容
+
+用户反馈：录音 dialog 中持续播放同样大小的声音时，水位会逐渐下降。诊断确认根因是 `WaveAudioAnalyzerOpus` 的 `mFloorDb` 在 `signalGate` 偏低时会持续向输入电平上升，导致 `semiAbsLevel` 和 `waterLevel` 被压回静息。
+
+决策：保留稳态底噪吸收，但为真实内容增加底噪上升冻结条件。除音调、音高、flux、快速变响之外，若当前电平明显高于自适应 floor，或 K 加权绝对电平已经达到可视化内容区间，也应视为内容证据并冻结 floor 上升。这样空调等低电平稳态噪声仍能被吸收，稳定但足够明显的真实声音不会被慢慢当作新底噪。
+
+同时修正开场 seed：如果第一批非静音样本本身已经像真实内容，不再只用 3dB 余量贴近它，而是按内容强度扩大 seed 余量，避免“打开 dialog 时声音已存在”时被 `DEADZONE_DB=5dB` 直接吃掉。
+
 ## 2026-07-06 - D58 再次回退到 Phase 1 完成阶段（debug 202607060908）
 
 用户明确要求从当前倒置下坠迭代回退到 **Phase 1 完成阶段**，也就是 debug code `202607060908` 的版本（`202607060927` 的上一个版本）。当前实现状态以 D51 为准：保留 Phase 1 的 360 度连续重力方向、自由液面速度场、1 阶 slosh 回荡、音频浪包平流、静止门控、6 层错落、D47 的峰/谷口径复原和面积守恒；移除 D52-D57 引入的倒置下坠、空中水片、下坠快照、触底冲击、侧壁爬升等 Phase 2 代码。

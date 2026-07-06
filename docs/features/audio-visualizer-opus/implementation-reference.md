@@ -53,9 +53,12 @@ AudioRecord(PCM16 mono 44.1k)
 - **自适应白化 + SuperFlux**（onset novelty）：每 bin `mWhitenPeak`（遇大即涨、否则 ×WHITEN_DECAY 衰减，floor `WHITEN_FLOOR`），白化 `w=m/peak`；参考帧=上一帧白化谱 `mPrevWhitened` 沿频率轴 ±SUPERFLUX_MAXFILTER_BINS(2) 取 max，正向差累加 → flux（抑颤音虚假 onset）；帧末 `mCurWhitened`→`mPrevWhitened`。
 - **谱质心/平坦度**：`centroid = normalizeLogFreq(Σm·f/Σm, 120, 6000)`；`flatness` = 几何均值/算术均值（越高越像噪声）。
 - **5 宏频段自适应归一**（bass/lowMid/mid/highMid/treble，边界 `BAND_HZ` = 40/160/500/1500/4000/11000）：各段 `mBandFloorDb`（快降 FLOOR_FALL0.30/慢升 FLOOR_RISE0.02）、`mBandPeakDb`（快升 PEAK_RISE0.35/慢降 PEAK_FALL0.03），峰≥底+BAND_MIN_RANGE_DB(26)，归一后 attack0.5/release0.16 → `mBandNorm[b]`。
-- **半绝对响度（D21，核心）**：`semiAbsLevel = (levelDbFs − mFloorDb − DEADZONE_DB) / RANGE_DB` clamp01。
-  - 零点 `mFloorDb` = 信号门控自适应底：seeding 开场锚定；`signalGate = max(tonalNow, pitchConfidence, fluxActive, riseActive)`（四证据：低平坦=乐音 / 有音高 / flux 起伏 / dB 快升）；`floorK = 快降(变静) 否则 FLOOR_RISE·(1−signalGate)`（有信号迹象冻结上升）。空调稳态四证据全低→被吸收；响亮宽频音乐有持续 flux→冻结、不被误吞（修 D21 弱点）。
+- **半绝对响度（D21/D59，核心）**：`semiAbsLevel = (levelDbFs − mFloorDb − DEADZONE_DB) / RANGE_DB` clamp01。
+  - 零点 `mFloorDb` = 信号门控自适应底：seeding 开场锚定；如果开场样本已达到内容电平，seed 余量从 3dB 平滑扩到 24dB，避免真实内容被 5dB 死区吃掉。
+  - `signalGate = max(tonalNow, pitchConfidence, fluxActive, riseActive, contentActive)`。前四证据分别是低平坦=乐音 / 有音高 / flux 起伏 / dB 快升；`contentActive` 由 `dbClamped-mFloorDb` 的 headroom（14→24dB）和 K 加权绝对电平（-62→-52dB）取 max。
+  - `floorK = FLOOR_FALL` 用于变静快降；声音变大时，`signalGate >= FLOOR_FREEZE_GATE0.55` 则冻结 floor 上升，否则用 `FLOOR_RISE·(1−signalGate)` 慢升。低电平空调稳态仍会被吸收；稳定但足够明显的真实声音不会被慢慢吞成底噪。
   - `levelDbFs = max(dbFs, fastDbFs())`（快窗 512 取 max，瞬时冲击更快）。RANGE_DB=45 尺子 + DEADZONE_DB=5 死区。
+- **视觉内容分数（D60）**：`visualContentScore = VISUAL_CONTENT_BASE0.12 + 0.88·max(tonalNow, pitchConfidence, onsetScore, eventDensity)`。`semiAbsLevel` 只表示高出环境底的能量，`visualLevel = semiAbsLevel · visualContentScore` 才进入语义映射。缺少音调/音高/onset/节奏结构的宽频环境声只给低水位和轻响应。
 - **onset**：`threshold = mFluxMean + mFluxDev·FLUX_DEV_BIAS`；`onsetScore = clamp01((flux−threshold)/(mFluxDev·FLUX_GAIN+FLUX_MIN_RANGE))·tonalGate`；`isOnset` 需 ≥ONSET_TRIGGER(0.40) 且距上次 ≥MIN_ONSET_SPACING_SEC(0.05) 且 semiAbsLevel≥ONSET_LEVEL_GATE(0.06)。`eventDensity` = 近 96 帧每秒事件数 / EVENT_DENSITY_FULL(7)。
 - **YIN pitch**（隔 PITCH_EVERY=3 帧）：门控 level<PITCH_LEVEL_GATE(0.08) 或 flatness>PITCH_FLATNESS_GATE(0.55) 时置信衰减；差分函数+CMND，YIN_THRESHOLD0.16 首个局部极小，抛物线精化；75..600Hz，`pitchNormalized` 对数归一。
 
@@ -63,10 +66,10 @@ AudioRecord(PCM16 mono 44.1k)
 平滑 `approach(dt,tau)=1−exp(−dt/tau)`。
 | 输出 | 计算 | attack/release |
 |---|---|---|
-| presence | =semiAbsLevel | 0.06 / 0.28 |
+| presence | =visualLevel | 0.06 / 0.28 |
 | quietness | 1−smoothStep(presence: QUIET_START0.03→QUIET_FULL0.13) | — |
-| loudness | =semiAbsLevel（较线性，水位用） | 0.05 / 0.30 |
-| intensity | =contrast(semiAbsLevel)（S 曲线强区分，浪高用） | 0.05 / 0.30 |
+| loudness | =visualLevel（较线性，水位用） | 0.05 / 0.30 |
+| intensity | =contrast(visualLevel)（S 曲线强区分，浪高用） | 0.05 / 0.30 |
 | pace | eventDensity·smoothStep(presence:0.05→0.30) | 0.10 / 0.55 |
 | brightness | centroid·presence | 0.22 |
 | bass/mid/trebleW | band ratios（bassE=bass+0.6lowMid 等）各 /sum | 0.20 |
@@ -187,7 +190,7 @@ AudioRecord(PCM16 mono 44.1k)
 - **落层/尺度** → `mLayerCeilFrac`/`mLayerAmp`/`mLayerPacketAmp`/`LAYER_SPAWN_W_*`、`CYCLES_*_SCALE`。
 - **音色偏置** → `BASS_WL/WIDTH/SPEED/LIFETIME`、`TREBLE_WL/SPEED`。
 - **onset 灵敏** → analyzer `FLUX_DEV_BIAS0.30`、`ONSET_TRIGGER0.40`、`SUPERFLUX_MAXFILTER_BINS2`。
-- **响度标定** → analyzer `RANGE_DB45`、`DEADZONE_DB5`、`FLOOR_*`、seeding。
+- **响度/内容标定** → analyzer `RANGE_DB45`、`DEADZONE_DB5`、`FLOOR_*`、`FLOOR_CONTENT_*`、`FLOOR_FREEZE_GATE0.55`、`VISUAL_CONTENT_BASE0.12`、seeding。
 
 ## 7. 已知待办/优化候选（未下结论，待讨论/真机）
 - 倾斜容器手感（惯性回摆、爬墙、反弹夸张度）、90/180/270 轴映射、平放稳定性均**未真机验证**（[followups.md](followups.md)）。

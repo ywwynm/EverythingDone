@@ -332,4 +332,6 @@ dependencies {
     implementation 'io.github.waynejo:androidndkgif:1.0.1'
     implementation 'jp.wasabeef:blurry:4.0.1'
     implementation 'com.google.code.gson:gson:2.13.2'
+
+    testImplementation 'junit:junit:4.13.2'
 }

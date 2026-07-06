@@ -242,7 +242,10 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         val dbClamped = dbFs.coerceIn(ADAPTIVE_FLOOR_MIN_DB, ADAPTIVE_PEAK_MAX_DB)
         if (!mSeeded && rms > SILENCE_RMS) {
             mSeeded = true                                   // 开场用实际环境电平锚定零点，消除初始收敛瞬变
-            mFloorDb = dbClamped - ADAPTIVE_SEED_FLOOR_MARGIN
+            val contentSeedGate = smoothStep(FLOOR_CONTENT_ABS_LO_DB, FLOOR_CONTENT_ABS_HI_DB, dbClamped)
+            val seedMargin = ADAPTIVE_SEED_FLOOR_MARGIN +
+                    (ADAPTIVE_CONTENT_SEED_FLOOR_MARGIN - ADAPTIVE_SEED_FLOOR_MARGIN) * contentSeedGate
+            mFloorDb = dbClamped - seedMargin
         }
         // 信号门控自适应底（多证据）：快降跟随环境变静；仅在"稳态噪声态"慢升吸收新底噪；有任一"信号迹象"
         // （音调 / 音高 / 频谱起伏 / 快速变响）时冻结上升 → 零点=纯环境底噪，且**响亮宽频音乐不被误当噪声吞掉**
@@ -250,8 +253,15 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         val tonalNow = smoothStep(FLATNESS_TONAL_HI, FLATNESS_TONAL_LO, flatness)
         val fluxActive = smoothStep(mFluxMean + mFluxDev * FLOOR_FLUX_LO, mFluxMean + mFluxDev * FLOOR_FLUX_HI, flux)
         val riseActive = smoothStep(FLOOR_RISE_LO_DB, FLOOR_RISE_HI_DB, dbFs - mPrevDbFs)
-        val signalGate = max(max(tonalNow, mPitchConfidence), max(fluxActive, riseActive))
-        val floorK = if (dbClamped < mFloorDb) FLOOR_FALL else FLOOR_RISE * (1f - signalGate)
+        val headroomActive = smoothStep(FLOOR_CONTENT_HEADROOM_LO_DB, FLOOR_CONTENT_HEADROOM_HI_DB, dbClamped - mFloorDb)
+        val absoluteActive = smoothStep(FLOOR_CONTENT_ABS_LO_DB, FLOOR_CONTENT_ABS_HI_DB, dbClamped)
+        val contentActive = max(headroomActive, absoluteActive)
+        val signalGate = max(max(max(tonalNow, mPitchConfidence), max(fluxActive, riseActive)), contentActive)
+        val floorK = when {
+            dbClamped < mFloorDb -> FLOOR_FALL
+            signalGate >= FLOOR_FREEZE_GATE -> 0f
+            else -> FLOOR_RISE * (1f - signalGate)
+        }
         mFloorDb += (dbClamped - mFloorDb) * floorK
         // 快窗 dbFs 取 max 让瞬时冲击更快体现；再用"固定 45dB 尺子 + 5dB 死区"把超出零点的量映射到 [0,1]
         val levelDbFs = max(dbFs, fastDbFs())
@@ -275,6 +285,8 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
 
         // ---- YIN pitch（隔帧）----
         if (mFrameCounter % PITCH_EVERY == 0) updatePitch(semiAbsLevel, flatness)
+        val visualContentScore = visualContentScore(tonalNow, mPitchConfidence, onsetScore, eventDensity)
+        val visualLevel = semiAbsLevel * visualContentScore
 
         mFrameCounter++
         mPrevDbFs = dbFs                                  // 供下一帧 floor 门控的"快速上升"证据
@@ -289,7 +301,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             pitchHz = mPitchHz, pitchConfidence = mPitchConfidence, pitchNormalized = mPitchNormalized
         )
 
-        return mapToDrive(feature, semiAbsLevel, onsetScore, isOnset,
+        return mapToDrive(feature, visualLevel, onsetScore, isOnset,
             eventDensity, centroid, flatness, dt)
     }
 
@@ -400,6 +412,18 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         val windowSec = EVENT_HISTORY * dt
         val perSec = if (windowSec > 1e-3f) sum / windowSec else 0f
         return (perSec / EVENT_DENSITY_FULL).coerceIn(0f, 1f)
+    }
+
+    private fun visualContentScore(
+        tonalNow: Float,
+        pitchConfidence: Float,
+        onsetScore: Float,
+        eventDensity: Float
+    ): Float {
+        val harmonic = max(tonalNow, pitchConfidence)
+        val temporal = max(onsetScore, eventDensity)
+        val structured = max(harmonic, temporal)
+        return (VISUAL_CONTENT_BASE + (1f - VISUAL_CONTENT_BASE) * structured).coerceIn(0f, 1f)
     }
 
     private fun updatePitch(level: Float, flatness: Float) {
@@ -563,6 +587,12 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val FLOOR_FLUX_HI = 3.5f            // 超 3.5σ 完全算信号
         private const val FLOOR_RISE_LO_DB = 2f           // 单帧 dbFs 上升 2dB 起算"变响"
         private const val FLOOR_RISE_HI_DB = 8f           // 上升 8dB 完全算信号
+        private const val FLOOR_CONTENT_HEADROOM_LO_DB = 14f // 高出当前底噪较多时，视为持续内容而非新底噪
+        private const val FLOOR_CONTENT_HEADROOM_HI_DB = 24f
+        private const val FLOOR_CONTENT_ABS_LO_DB = -62f     // K 加权后足够响的稳态声也应保留水位
+        private const val FLOOR_CONTENT_ABS_HI_DB = -52f
+        private const val FLOOR_FREEZE_GATE = 0.55f
+        private const val VISUAL_CONTENT_BASE = 0.12f
 
         private const val WHITEN_FLOOR = 1.0e-5f
         private const val WHITEN_DECAY = 0.9970f
@@ -611,6 +641,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val SUSTAIN_ATTACK = 0.12f
         private const val SUSTAIN_RELEASE = 0.22f   // 更快释放：说完词后尽快停止持续生成（问题1）
         private const val ADAPTIVE_SEED_FLOOR_MARGIN = 3f
+        private const val ADAPTIVE_CONTENT_SEED_FLOOR_MARGIN = 24f
         private const val WATER_ATTACK = 0.26f
         private const val WATER_RELEASE = 0.64f
         private const val NOISE_TAU = 0.30f

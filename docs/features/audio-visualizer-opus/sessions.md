@@ -1,5 +1,32 @@
 # 会话记录 — 录音波浪可视化（Opus 版）
 
+## 2026-07-06 启发式抑制开窗外界环境声高水位（D60）
+
+- **触发**：用户要求先试试启发式方案，解决安静房间开窗后外界声音让录音水位过高的问题。
+- **反馈环**：调整 `WaveAudioAnalyzerOpusTest`，把 D59 的“恒定内容”夹具改成稳定音调，避免继续把白噪声式宽频环境声当作必须高水位的内容；新增 `steadyWidebandEnvironmentNoiseDoesNotDriveHighWaterLevel`。修复前该测试复现为 `peak=0.8710145`、`late=0.8710145`。
+- **修复**：保留 D59 的 floor 保护门控，但新增 `visualContentScore`，由音调性、音高置信、onset 强度和事件密度决定；`visualLevel = semiAbsLevel * visualContentScore` 才进入 `mapToDrive` 驱动 `presence`、`loudness`、`intensity` 与 `waterLevel`。宽频稳态环境声缺少结构证据时只保留低响应，稳定音调仍保持水位。
+- **验证与发布**：`:app:testDebugUnitTest --tests com.ywwynm.everythingdone.views.recording.WaveAudioAnalyzerOpusTest` 通过，`:app:assembleDebug` 通过。新增发布日志 [update-20260706202848.md](debug-updates/update-20260706202848.md)，执行 `:app:publishDebugUpdate -PdebugUpdateNotesFile=docs/features/audio-visualizer-opus/debug-updates/update-20260706202848.md` 成功，debug update code 为 `202607061230`，远端 `latest.json` 已更新到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。未使用 adb。
+
+## 2026-07-06 调研真实内容判断与开窗环境声误触发
+
+- **反馈**：用户发现安静房间打开窗户后，外界声音传入也会造成非常高的水位，并要求联网搜索如何判断是否是真实内容。
+- **调研结论**：VAD 与噪声估计资料都不建议只用响度判断内容；更可靠的判断需要时间上下文、频谱结构、子带信号存在概率、最小值/环境底跟踪，或直接使用音频事件分类模型。当前 D59 的绝对电平内容门能防止恒定真实声被吞掉，但也会把足够响的外界环境声当成内容证据。
+- **后续方向**：已在 followups 中记录“防止 floor 吞内容”和“视觉水位抬高”需要拆成两套门控。下一步若修复，应优先让水位驱动依赖更严格的内容分数，而不是直接依赖绝对响度。未修改 Kotlin 代码、未发布 debug 版本。
+
+## 2026-07-06 修复恒定持续声导致水位回落
+
+- **触发**：用户要求修复此前确认的“恒定同样大小声音下水位逐渐下降”问题。
+- **反馈环**：新增 `WaveAudioAnalyzerOpusTest`，用低电平背景先建立环境零点，再喂稳定宽频内容；修复前测试复现为 `peak=0.48400983`、末段 `late=1.9293002E-4`。另加“开场声音已存在”测试，覆盖 seed 余量小于 deadzone 的相邻问题。
+- **修复**：`WaveAudioAnalyzerOpus` 的 floor 门控新增 `contentActive`：当前电平明显高于 floor、或 K 加权绝对电平达到内容区间时，冻结 `mFloorDb` 上升；`signalGate` 超过冻结阈值时不再仅靠 `FLOOR_RISE * (1 - signalGate)` 慢升。开场 seed 根据内容强度从 3dB 平滑扩展到 24dB，避免第一帧就是真实内容时被贴身设为底噪。
+- **验证与发布**：`:app:testDebugUnitTest --tests com.ywwynm.everythingdone.views.recording.WaveAudioAnalyzerOpusTest` 通过，`:app:assembleDebug` 通过。新增发布日志 [update-20260706201309.md](debug-updates/update-20260706201309.md)，执行 `:app:publishDebugUpdate -PdebugUpdateNotesFile=docs/features/audio-visualizer-opus/debug-updates/update-20260706201309.md` 成功，debug update code 为 `202607061213`，远端 `latest.json` 已更新到 `http://120.25.194.207/everythingdone-updates/debug/latest.json`。未使用 adb。
+
+## 2026-07-06 确认恒定声下水位逐渐下降的机制
+
+- **反馈**：用户发现录音 dialog 的音频可视化波浪动画中，如果一直播放同样大小的声音，水位似乎会逐渐下降；本轮只确认原因，暂不写 Kotlin 代码。
+- **诊断**：当前 dialog 实际使用 `WaveVisualizerOpus` 链路，视觉水位来自 `WaveAudioAnalyzerOpus` 输出的 `waterLevel`，绘制层只把它映射成 `fillRatio = 0.25 + waterLevel * 0.24`。分析器的 `mFloorDb` 是信号门控自适应底噪；当持续同样大小的声音缺少足够的音调、音高、频谱起伏或快速变响证据时，`signalGate` 会偏低，`floorK = FLOOR_RISE * (1 - signalGate)` 会让 `mFloorDb` 慢慢追近当前输入电平，进而把 `semiAbsLevel = (levelDbFs - mFloorDb - DEADZONE_DB) / RANGE_DB` 压低，最终带动 `waterLevel` 回落。
+- **验证**：用现有公式做无文件改动仿真：环境底噪零点约 -65dB、随后恒定输入 -35dB 时，`signalGate=0` 的情况下 `fillRatio` 约在 1 秒到 0.289，2 秒降到 0.260，5 秒回到静息 0.250；`signalGate=1` 时同样输入稳定在约 0.367。结论是代码中确实存在“稳定持续声被吸收到自适应底噪”导致水位下降的机制。
+- **状态**：本轮未修改 Kotlin 代码、未运行 adb、未发布 debug 版本。
+
 ## 2026-07-06 回退到 Phase 1 完成阶段（D58）
 
 - **决定**：用户要求回退到 Phase 1 完成阶段，也就是 debug code `202607060908` 的版本（`202607060927` 的上一个版本）。
