@@ -13,9 +13,9 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 
 import java.util.Random
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
-import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -91,6 +91,34 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     private val mPath = Path()
     private val mSurfaceX = FloatArray(RENDER_N)
     private val mSurfaceY = FloatArray(RENDER_N)
+    private val mSurfaceS = FloatArray(RENDER_N)
+    private val mRectU = FloatArray(4)
+    private val mRectV = FloatArray(4)
+    private val mClipU0 = FloatArray(8)
+    private val mClipV0 = FloatArray(8)
+
+    @Volatile private var mInputGravityX = 0f
+    @Volatile private var mInputGravityY = 1f
+    @Volatile private var mInputGravityZ = 0f
+    private var mGravityX = 0f
+    private var mGravityY = 1f
+    private var mStableGravityX = 0f
+    private var mStableGravityY = 1f
+    private var mPrevTargetGravityX = 0f
+    private var mPrevTargetGravityY = 1f
+    private var mPrevGravityZ = 0f
+    // 自由液面晃动速度场（Phase 1，D48/D49）：1D 交错网格浅水 η+切向速度 u；回荡/爬墙/反射从中涌现。
+    // 零均值形变叠在面积守恒平衡线上；只被容器倾斜/前后倾驱动、绝不吃音频（守 D5/D18）。静止时清零休眠。
+    private val mSloshH = FloatArray(SLOSH_N)        // 形变（渲染时按层缩放到 px）
+    private val mSloshU = FloatArray(SLOSH_N)        // 交错网格切向流速（face i 在 h[i]、h[i+1] 之间）
+    private val mSloshRender = FloatArray(RENDER_N)  // 本帧重采样到渲染分辨率的晃动形变（层间复用）
+    private var mSloshSubAccum = 0f                  // 固定子步时间累加（与帧率解耦）
+    private var mSloshTiltForce = 0f                 // 本帧倾斜激励（重力旋转增量，反对称注入 u）
+    private var mSloshZForce = 0f                    // 本帧前后倾激励（z 变化量，对称注入 u）
+    private var mSloshAwake = false                  // 速度场是否活跃（否则走静态路径、对音频零影响）
+    private var mGravitySeeded = false               // 是否已把重力状态锚定到首个真实读数（防开场收敛喷冲量）
+    private var mWaveStartU = 0f
+    private var mWaveSpanPx = 0f
 
     init {
         // 各层**独立**波形（不同波长/相位/振幅倍率）→ 远近波浪高度不同、涨落节奏不同，绝不重复。层间不靠
@@ -134,6 +162,13 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         invalidate()
     }
 
+    fun setContainerGravity(x: Float, y: Float, z: Float) {
+        mInputGravityX = x
+        mInputGravityY = y
+        mInputGravityZ = z
+        ensureAnimating()
+    }
+
     override fun receive(frame: WaveDriveFrameOpus) {
         mIncoming = frame
         synchronized(mOnsetLock) {
@@ -169,6 +204,12 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     private fun shouldAnimate(): Boolean = isAttachedToWindow && width > 0 && height > 0
 
     override fun onAttachedToWindow() { super.onAttachedToWindow(); ensureAnimating() }
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // View 分离即复位晃动状态：下次重新锚定重力、清空速度场，避免复用时残留导致开场异常
+        mGravitySeeded = false; mSloshAwake = false; mSloshSubAccum = 0f
+        for (i in 0 until SLOSH_N) { mSloshH[i] = 0f; mSloshU[i] = 0f }
+    }
     override fun onWindowVisibilityChanged(visibility: Int) { super.onWindowVisibilityChanged(visibility); ensureAnimating() }
     override fun onVisibilityAggregated(isVisible: Boolean) { super.onVisibilityAggregated(isVisible); if (isVisible) ensureAnimating() }
     override fun onWindowFocusChanged(hasWindowFocus: Boolean) { super.onWindowFocusChanged(hasWindowFocus); if (hasWindowFocus) ensureAnimating() }
@@ -190,6 +231,7 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         // 流动相位按声音变速推进：安静缓流、有声/快节奏更快（该快则快、该慢则慢）
         val flowDrive = max(mIntensity, mSustain * 0.8f)
         mFlowTime += dt * (FLOW_BASE + FLOW_PACE * mPace + FLOW_DRIVE * flowDrive)
+        updateContainerGravity(dt)
 
         // 各层基础振幅驱动用不同时间常数追踪：前景灵敏（先涨快落）、后层迟缓（滞后平缓）→ 各层涨落节奏不同
         for (layer in 0 until LAYER_COUNT) {
@@ -219,11 +261,152 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             }
         }
 
+        updateSloshField(dt)
+
         var i = 0
         while (i < mPackets.size) {
             val p = mPackets[i]; p.age += dt
+            // ③ 音频浪包被晃动流速平流：浪骑着晃动水面一起涌。静止时休眠 → 直接跳过、零影响。
+            if (mSloshAwake && mWaveSpanPx > 1f) {
+                val centerPx = p.origin + p.dir * p.speed * p.age + p.drift
+                p.drift += sampleSloshArray(mSloshU, centerPx / mWaveSpanPx) * SLOSH_ADVECT_GAIN * dt
+            }
             if (p.age >= p.lifetime) mPackets.removeAt(i) else i++
         }
+    }
+
+    private fun updateContainerGravity(dt: Float) {
+        val rawX = mInputGravityX
+        val rawY = mInputGravityY
+        val rawZ = mInputGravityZ
+        val len = sqrt(rawX * rawX + rawY * rawY)
+        val confidence = smoothStep(GRAVITY_PROJECTION_LOW, GRAVITY_PROJECTION_HIGH, len)
+        val rawUnitX = if (len > 1e-4f) rawX / len else mPrevTargetGravityX
+        val rawUnitY = if (len > 1e-4f) rawY / len else mPrevTargetGravityY
+        if (!mGravitySeeded) {
+            // 首次可信读数：把重力/稳定方向/prev 全锚定到真实方向，避免从假设的 (0,1) 收敛时喷出大 dθ（开 dialog 即狂涌）。
+            if (confidence > 0.5f && len > 1e-4f) {
+                mStableGravityX = rawUnitX; mStableGravityY = rawUnitY
+                mGravityX = rawUnitX; mGravityY = rawUnitY
+                mPrevTargetGravityX = rawUnitX; mPrevTargetGravityY = rawUnitY
+                mPrevGravityZ = rawZ
+                mGravitySeeded = true
+            }
+            mSloshTiltForce = 0f
+            mSloshZForce = 0f
+            return
+        }
+        var targetX: Float
+        var targetY: Float
+        if (confidence > 0.08f && len > 1e-4f) {
+            val follow = approach(dt, if (confidence > 0.6f) STABLE_GRAVITY_TAU else STABLE_GRAVITY_WEAK_TAU)
+            mStableGravityX += (rawUnitX - mStableGravityX) * follow
+            mStableGravityY += (rawUnitY - mStableGravityY) * follow
+            val stableLen = sqrt(mStableGravityX * mStableGravityX + mStableGravityY * mStableGravityY).coerceAtLeast(1e-4f)
+            mStableGravityX /= stableLen
+            mStableGravityY /= stableLen
+            targetX = mStableGravityX
+            targetY = mStableGravityY
+        } else {
+            val back = approach(dt, FLAT_RETURN_TAU)
+            mStableGravityX += (0f - mStableGravityX) * back
+            mStableGravityY += (1f - mStableGravityY) * back
+            val stableLen = sqrt(mStableGravityX * mStableGravityX + mStableGravityY * mStableGravityY).coerceAtLeast(1e-4f)
+            targetX = mStableGravityX / stableLen
+            targetY = mStableGravityY / stableLen
+            mStableGravityX = targetX
+            mStableGravityY = targetY
+        }
+
+        // 倾斜激励：重力方向有符号旋转增量（叉积 z 分量 ≈ 小角度 dθ）→ 反对称注入切向流速。前后倾：z 变化 → 对称。
+        // 死区滤掉传感器噪声（否则每帧持续注入、累积成狂涌、永不休眠）；再 clamp 上限，避免一次大动作灌爆速度场。
+        val dTheta = deadzone(mPrevTargetGravityX * targetY - mPrevTargetGravityY * targetX, TILT_DEADZONE)
+        val zDelta = deadzone(abs((rawZ - mPrevGravityZ) / GRAVITY_NOMINAL), Z_DEADZONE)
+        val confidenceWeight = 0.35f + 0.65f * confidence
+        mSloshTiltForce = (dTheta * confidenceWeight).coerceIn(-TILT_MAX, TILT_MAX)
+        mSloshZForce = (zDelta * confidenceWeight).coerceAtMost(Z_MAX)
+        mPrevTargetGravityX = targetX
+        mPrevTargetGravityY = targetY
+        mPrevGravityZ = rawZ
+
+        val follow = approach(dt, GRAVITY_FOLLOW_TAU)
+        mGravityX += (targetX - mGravityX) * follow
+        mGravityY += (targetY - mGravityY) * follow
+        val currentLen = sqrt(mGravityX * mGravityX + mGravityY * mGravityY).coerceAtLeast(1e-4f)
+        mGravityX /= currentLen
+        mGravityY /= currentLen
+    }
+
+    // ------------------------------------------------------------------ 自由液面晃动速度场（Phase 1，D48/D49）
+    /**
+     * 1D 交错网格浅水（η=[mSloshH]、切向流速 u=[mSloshU]）：倾斜/前后倾注入 u，浅水动力学自发产生晃动、
+     * 爬墙、壁面反射、多次衰减回荡（阻尼调到"甲"，可见 5~8 次）。η 零均值（守恒，形变不改水量），与去均值/
+     * 面积守恒天然兼容。固定子步积分（与帧率解耦、稳定）。无激励且能量衰竭时清零休眠 → 走静态路径、对音频零影响。
+     */
+    private fun updateSloshField(dt: Float) {
+        val tilt = mSloshTiltForce
+        val zsym = mSloshZForce
+        mSloshTiltForce = 0f
+        mSloshZForce = 0f
+        if (abs(tilt) < 1e-5f && zsym < 1e-5f) {
+            if (!mSloshAwake) return
+            var energy = 0f
+            for (i in 0 until SLOSH_N) energy += mSloshH[i] * mSloshH[i] + mSloshU[i] * mSloshU[i]
+            if (energy < SLOSH_SLEEP_EPS * SLOSH_N) {   // 衰竭：清零休眠（此后渲染加 0 = 当前静态路径）
+                for (i in 0 until SLOSH_N) { mSloshH[i] = 0f; mSloshU[i] = 0f }
+                mSloshAwake = false
+                return
+            }
+        } else {
+            mSloshAwake = true
+            // 注入激励到切向流速（交错 face）：倾斜反对称（一侧+一侧-）、前后倾对称外涌（两端外推、中间下陷）
+            for (i in 0 until SLOSH_N - 1) {
+                val faceNorm = (i + 0.5f) / (SLOSH_N - 1)
+                // 倾斜：注入 **1 阶速度本征模** sin(π·u)（两壁为 0、中间最大）→ 只激发基础摇摆、几乎不带高次谐波。
+                // （均匀注入虽方向对，但会激发一串奇次谐波 → 主摇摆之外持续高频颤动很久；本征模干净得多、摇完就停。）
+                val fund = sin(Math.PI.toFloat() * faceNorm)
+                val sym = cos(2f * Math.PI.toFloat() * faceNorm)             // 前后倾：平滑对称 2 阶模（辅助）
+                mSloshU[i] += (tilt * SLOSH_TILT_GAIN * fund + zsym * SLOSH_Z_SURGE_GAIN * sym) * mDensity
+            }
+        }
+        // 频率随容器宽缩放：宽越大 → G 越小 → 波速越低 → 晃动越慢越大气（≈ ω∝1/√span 色散）
+        val g = SLOSH_G * (SLOSH_REF_SPAN_PX / effectiveWaveSpan()).coerceIn(SLOSH_SCALE_MIN, SLOSH_SCALE_MAX)
+        mSloshSubAccum += dt
+        var steps = 0
+        while (mSloshSubAccum >= SLOSH_SUB_DT && steps < SLOSH_MAX_SUB) {
+            stepSloshField(g)
+            mSloshSubAccum -= SLOSH_SUB_DT
+            steps++
+        }
+        if (mSloshSubAccum > SLOSH_SUB_DT) mSloshSubAccum = 0f   // 长卡顿后不追补、防爆冲
+    }
+
+    /** 交错网格浅水单子步：动量(面)→连续(格)→阻尼→零均值。两端 flux=0 = 反射墙（水撞壁反弹）。 */
+    private fun stepSloshField(g: Float) {
+        for (i in 0 until SLOSH_N - 1) {          // 动量：face 流速被两侧高度差驱动（-g·∂η/∂x）+ 阻尼
+            mSloshU[i] += -g * (mSloshH[i + 1] - mSloshH[i])
+            mSloshU[i] *= SLOSH_DAMP
+        }
+        for (i in 0 until SLOSH_N) {              // 连续：格高度被通量散度改变（-HH·∂u/∂x）；墙处 flux=0
+            val fluxRight = if (i < SLOSH_N - 1) mSloshU[i] else 0f
+            val fluxLeft = if (i > 0) mSloshU[i - 1] else 0f
+            mSloshH[i] += -SLOSH_HH * (fluxRight - fluxLeft)
+        }
+        var mean = 0f                             // 零均值：形变不改变水量（守恒）
+        for (i in 0 until SLOSH_N) mean += mSloshH[i]
+        mean /= SLOSH_N
+        for (i in 0 until SLOSH_N) {              // 零均值 + 安全 clamp（防极端输入下速度场爆冲甩飞浪包/尖峰）
+            mSloshH[i] = (mSloshH[i] - mean).coerceIn(-SLOSH_H_CLAMP, SLOSH_H_CLAMP)
+            mSloshU[i] = mSloshU[i].coerceIn(-SLOSH_U_CLAMP, SLOSH_U_CLAMP)
+        }
+    }
+
+    /** 在归一化位置 uNorm∈[0,1] 线性采样晃动数组。 */
+    private fun sampleSloshArray(arr: FloatArray, uNorm: Float): Float {
+        val x = uNorm.coerceIn(0f, 1f) * (SLOSH_N - 1)
+        val i = x.toInt().coerceIn(0, SLOSH_N - 2)
+        val frac = x - i
+        return arr[i] * (1f - frac) + arr[i + 1] * frac
     }
 
     private fun spawnWave(strength: Float, f: WaveDriveFrameOpus, primary: Boolean) {
@@ -248,7 +431,7 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         wl = wl.coerceIn(0.16f, 1f)
         if (f.pitchConfidence > 0.4f) wl = 0.6f * wl + 0.4f * (1f - f.pitchWavelength).coerceIn(0.18f, 1f)
 
-        val w = width.toFloat().coerceAtLeast(1f)
+        val w = effectiveWaveSpan()
         val wavelengthPx = lerp(w / 8f, w * 1.29f, wl)
         // 宽度：bass 厚浪更宽（第1条）
         val widthPx = (wavelengthPx * PACKET_WIDTH_FRAC * lerp(1f, BASS_WIDTH, mBass)).coerceAtLeast(MIN_WIDTH_DP * mDensity)
@@ -298,7 +481,7 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         val layer = pickLayer((strength * lerp(0.9f, 1.2f, percussive)).coerceIn(0f, 1f))
         val layerNorm = layer.toFloat() / (LAYER_COUNT - 1)
         val wl = (lerp(0.32f, 0.92f, layerNorm) * (1f - 0.30f * mBrightness) * lerp(1f, BASS_WL, mBass) * lerp(1f, TREBLE_WL, mTreble)).coerceIn(0.16f, 1f)
-        val w = width.toFloat().coerceAtLeast(1f)
+        val w = effectiveWaveSpan()
         val wavelengthPx = lerp(w / 8f, w * 1.29f, wl)
         val widthPx = (wavelengthPx * PACKET_WIDTH_FRAC * lerp(1f, BASS_WIDTH, mBass)).coerceAtLeast(MIN_WIDTH_DP * mDensity)
         val speed = DISPERSION_BASE * sqrt(wavelengthPx) * (0.36f + 1.6f * mPace) * lerp(1f, BASS_SPEED, mBass) * lerp(1f, TREBLE_SPEED, mTreble)
@@ -323,25 +506,58 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     private fun drawWater(canvas: Canvas) {
         val w = width.toFloat(); val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
-        val bottom = h + 2f
-        val baseSurfaceY = h * (BASE_TOP_FRAC - mWaterLevel * WATER_RANGE_FRAC)
-        val topLimitY = h * TOP_LIMIT_FRAC
-        val troughSoft = TROUGH_SOFT_DP * mDensity
-        val troughMaxPx = h * TROUGH_MAX_FRAC
+        val diag = sqrt(w * w + h * h)
+        val cx = w * 0.5f
+        val cy = h * 0.5f
+        val gx = mGravityX
+        val gy = mGravityY
+        val tx = gy
+        val ty = -gx
+        updateRectLocal(w, h, tx, ty, gx, gy)
+        var minU = Float.MAX_VALUE
+        var maxU = -Float.MAX_VALUE
+        var minV = Float.MAX_VALUE
+        var maxV = -Float.MAX_VALUE
+        for (i in 0 until 4) {
+            if (mRectU[i] < minU) minU = mRectU[i]
+            if (mRectU[i] > maxU) maxU = mRectU[i]
+            if (mRectV[i] < minV) minV = mRectV[i]
+            if (mRectV[i] > maxV) maxV = mRectV[i]
+        }
+        val uStart = minU
+        val uSpan = (maxU - minU).coerceAtLeast(1f)
+        mWaveStartU = uStart
+        mWaveSpanPx = uSpan
+        // 容器沿重力轴的实际跨度（竖直=h、横放=w、斜放=矩形在重力向的投影）与计时保护线，作波峰净空/
+        // 波谷限深的参照：竖直静止时精确等于旧的 h 口径（复原原动画的峰高/谷深），倾斜时按容器真实深度
+        // 自适应。取代此前固定 diag（对角线恒偏大、把前景大浪爆发力削掉约 40dp）。
+        val vSpan = (maxV - minV).coerceAtLeast(1f)
+        val topLimitV = minV + TOP_LIMIT_FRAC * vSpan
+        val fillRatio = currentFillRatio()
+        val targetArea = w * h * fillRatio
+        val baseSurfaceV = solveBaseV(targetArea)
+        val closeDistance = diag * 2f
         val crestSoft = CREST_SOFT_DP * mDensity
         val troughShapeSoft = TROUGH_SHAPE_SOFT_DP * mDensity
         // 层间基线偏移随声音伸缩：安静时各层贴合成一片平静水面（不成"梯田"），响时层间展开 → 6 层充分错开、
         // 后层从前景之上清晰露出、层次丰富。
         val drive = max(mIntensity, mSustain * 0.8f)
         val offsetScale = OFFSET_BASE_SCALE + OFFSET_DRIVE_SCALE * drive
+        val save = canvas.save()
+        canvas.clipRect(0f, 0f, w, h)
+        // 晃动形变重采样到渲染分辨率一次、层间复用（① 自由液面速度场）；休眠时不采样、零影响。
+        if (mSloshAwake) for (n in 0 until RENDER_N) mSloshRender[n] = sampleSloshArray(mSloshH, n.toFloat() / (RENDER_N - 1))
 
         for (layer in 0 until LAYER_COUNT) {
-            val layerBaseY = baseSurfaceY - mLayerOffset[layer] * mDensity * offsetScale
-            val maxTroughY = layerBaseY + troughMaxPx
+            val equilibriumLayerBaseV = baseSurfaceV - mLayerOffset[layer] * mDensity * offsetScale
+            val layerBaseV = equilibriumLayerBaseV
             // 基础波场振幅（px）：各层用**自己的**驱动（前景灵敏、后层迟缓）× 层随机倍率 × 层倍率 → 高度/节奏不重复
             val baseAmpLayer = (BASE_FLOOR_DP + BASE_GAIN_DP * mLayerDrive[layer]) * mDensity * mBaseAmpScale[layer] * mLayerAmp[layer]
-            // 波峰净空深度阶梯：前景净空满（能窜到护栏附近），越远的层净空越小（波峰被压得越低）→ 前景结构性主导
-            val hCeil = ((layerBaseY - topLimitY) * mLayerCeilFrac[layer]).coerceAtLeast(mDensity)
+            // 波峰净空深度阶梯：净空 = 层基线到计时保护线的重力向距离 × 该层阶梯（前景 1.0 满、越远越小）→
+            // 前景结构性主导。竖直时等于旧的"层基线到顶部 72dp"口径，前景大浪恢复能冲到护栏附近的爆发力。
+            val hCeil = ((equilibriumLayerBaseV - topLimitV) * mLayerCeilFrac[layer]).coerceAtLeast(mDensity)
+            // 波谷限深 = 容器深度 × TROUGH_MAX_FRAC（竖直≈基线下 18dp，护住录音按钮）；保留 tanh 连续限深。
+            val troughMaxPx = (TROUGH_MAX_FRAC * vSpan).coerceAtLeast(mDensity)
 
             // 建议3.1：预筛选本层浪包到复用 scratch，点循环只遍历本层浪 → packet loop 约 6×（原来每层每点扫全部）
             val bucket = mLayerPacketScratch
@@ -357,19 +573,21 @@ class WaveVisualizerOpus @JvmOverloads constructor(
                 mWobW[c] = mBaseWeight[layer][c] * wob
             }
 
+            var mean = 0f
             for (n in 0 until RENDER_N) {
-                val x = w * n / (RENDER_N - 1)
+                val waveX = uSpan * n / (RENDER_N - 1)
                 var s = 0f
                 for (c in 0 until BASE_COMPS) s += mWobW[c] * mPhS[c]   // 基础波场：± 有峰有谷（相量递推，非逐点 sin）
                 s *= baseAmpLayer
-                for (pi in bucket.indices) s += packetContribution(bucket[pi], x)   // 事件浪（正峰）
+                for (pi in bucket.indices) s += packetContribution(bucket[pi], waveX)   // 事件浪（正峰）
+                if (mSloshAwake) s += SLOSH_RENDER_GAIN * mLayerSloshAmp[layer] * mSloshRender[(n + mLayerSloshShift[layer]).coerceIn(0, RENDER_N - 1)]   // ① 晃动形变（层间微错位破除机械齐动）
                 s = shapeHeight(s, crestSoft, troughShapeSoft)          // Gerstner 峰尖谷平
                 // 波峰按该层净空 tanh 软压缩：中小浪几乎不变、越高压得越狠但始终圆润、严格 < 净空 → 永不拍平成
                 // 平台；且后层最高点结构性地低于前景（净空阶梯），无需再硬性截顶。
                 if (s > 0f) s = hCeil * tanh(s / hCeil * CREST_COMPRESS_GAIN)
-                var y = layerBaseY - s
-                y = softUpperLimit(y, maxTroughY, troughSoft)           // 谷不过深、不露按钮
-                mSurfaceX[n] = x; mSurfaceY[n] = y
+                if (s < 0f) s = -troughMaxPx * tanh((-s) / troughMaxPx)
+                mSurfaceS[n] = s
+                mean += s
                 // 相量沿 x 递推到下一采样点（固定角步长 k·dx；一帧内递推、不跨帧累积漂移）
                 if (n < RENDER_N - 1) for (c in 0 until BASE_COMPS) {
                     val cs = mCosDx[layer][c]; val sn = mSinDx[layer][c]
@@ -378,18 +596,26 @@ class WaveVisualizerOpus @JvmOverloads constructor(
                     mPhS[c] = ns; mPhC[c] = nc
                 }
             }
-            buildSurfacePath(mPath, mSurfaceX, mSurfaceY, bottom)
+            mean /= RENDER_N
+            for (n in 0 until RENDER_N) {
+                val u = uStart + uSpan * n / (RENDER_N - 1)
+                val surfaceV = layerBaseV - (mSurfaceS[n] - mean)
+                mSurfaceX[n] = cx + tx * u + gx * surfaceV
+                mSurfaceY[n] = cy + ty * u + gy * surfaceV
+            }
+            buildGravitySurfacePath(mPath, mSurfaceX, mSurfaceY, gx, gy, closeDistance)
             val paint = mLayerPaints[layer]
             paint.alpha = mLayerBaseAlpha[layer]
             canvas.drawPath(mPath, paint)
         }
+        canvas.restoreToCount(save)
     }
 
     /** 一道事件浪在 x 处的高度贡献（≥0 的行进波峰）。 */
     private fun packetContribution(p: WavePacket, x: Float): Float {
         val env = lifecycleEnv(p)
         if (env <= 0.001f) return 0f
-        val center = p.origin + p.dir * p.speed * p.age
+        val center = p.origin + p.dir * p.speed * p.age + p.drift
         val u = x - center
         val ahead = u * p.dir > 0f
         val wSide = if (ahead) p.widthPx * (1f - p.skew) else p.widthPx * (1f + p.skew)
@@ -412,14 +638,84 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         }
     }
 
-    /** 软上界：结果 <= maxY（波谷不深过 troughMax）。 */
-    private fun softUpperLimit(y: Float, maxY: Float, soft: Float): Float {
-        val d = maxY - y
-        if (d > 12f * soft) return y
-        return maxY - soft * ln(1f + exp(d / soft))
+    private fun currentFillRatio(): Float {
+        return (1f - BASE_TOP_FRAC + mWaterLevel * WATER_RANGE_FRAC)
+            .coerceIn(MIN_FILL_RATIO, MAX_FILL_RATIO)
     }
 
-    private fun buildSurfacePath(path: Path, xs: FloatArray, ys: FloatArray, bottom: Float) {
+    private fun effectiveWaveSpan(): Float {
+        return if (mWaveSpanPx > 1f) mWaveSpanPx else width.toFloat().coerceAtLeast(1f)
+    }
+
+    private fun updateRectLocal(w: Float, h: Float, tx: Float, ty: Float, gx: Float, gy: Float) {
+        setRectLocal(0, -w * 0.5f, -h * 0.5f, tx, ty, gx, gy)
+        setRectLocal(1,  w * 0.5f, -h * 0.5f, tx, ty, gx, gy)
+        setRectLocal(2,  w * 0.5f,  h * 0.5f, tx, ty, gx, gy)
+        setRectLocal(3, -w * 0.5f,  h * 0.5f, tx, ty, gx, gy)
+    }
+
+    private fun setRectLocal(i: Int, dx: Float, dy: Float, tx: Float, ty: Float, gx: Float, gy: Float) {
+        mRectU[i] = dx * tx + dy * ty
+        mRectV[i] = dx * gx + dy * gy
+    }
+
+    private fun solveBaseV(targetArea: Float): Float {
+        var minV = Float.MAX_VALUE
+        var maxV = -Float.MAX_VALUE
+        for (i in 0 until 4) {
+            if (mRectV[i] < minV) minV = mRectV[i]
+            if (mRectV[i] > maxV) maxV = mRectV[i]
+        }
+        var low = minV - 1f
+        var high = maxV + 1f
+        repeat(22) {
+            val mid = (low + high) * 0.5f
+            if (clippedWaterArea(mid) > targetArea) {
+                low = mid
+            } else {
+                high = mid
+            }
+        }
+        return (low + high) * 0.5f
+    }
+
+    private fun clippedWaterArea(baseV: Float): Float {
+        var outN = 0
+        for (i in 0 until 4) {
+            val j = (i + 1) and 3
+            val cu = mRectU[i]; val cv = mRectV[i]
+            val nu = mRectU[j]; val nv = mRectV[j]
+            val cIn = cv >= baseV
+            val nIn = nv >= baseV
+            if (cIn != nIn) {
+                val a = ((baseV - cv) / (nv - cv)).coerceIn(0f, 1f)
+                mClipU0[outN] = cu + (nu - cu) * a
+                mClipV0[outN] = baseV
+                outN++
+            }
+            if (nIn) {
+                mClipU0[outN] = nu
+                mClipV0[outN] = nv
+                outN++
+            }
+        }
+        if (outN < 3) return 0f
+        var area = 0f
+        for (i in 0 until outN) {
+            val j = if (i + 1 == outN) 0 else i + 1
+            area += mClipU0[i] * mClipV0[j] - mClipU0[j] * mClipV0[i]
+        }
+        return abs(area) * 0.5f
+    }
+
+    private fun buildGravitySurfacePath(
+        path: Path,
+        xs: FloatArray,
+        ys: FloatArray,
+        gx: Float,
+        gy: Float,
+        far: Float
+    ) {
         val n = xs.size
         path.reset()
         path.moveTo(xs[0], ys[0])
@@ -436,7 +732,9 @@ class WaveVisualizerOpus @JvmOverloads constructor(
             m1x *= t12; m1y *= t12; m2x *= t12; m2y *= t12
             path.cubicTo(p1x + m1x / 3f, p1y + m1y / 3f, p2x - m2x / 3f, p2y - m2y / 3f, p2x, p2y)
         }
-        path.lineTo(xs[n - 1], bottom); path.lineTo(xs[0], bottom); path.close()
+        path.lineTo(xs[n - 1] + gx * far, ys[n - 1] + gy * far)
+        path.lineTo(xs[0] + gx * far, ys[0] + gy * far)
+        path.close()
     }
 
     private fun distPow(ax: Float, ay: Float, bx: Float, by: Float): Float {
@@ -491,11 +789,14 @@ class WaveVisualizerOpus @JvmOverloads constructor(
     }
     private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
     private fun rand(a: Float, b: Float): Float = a + (b - a) * mRandom.nextFloat()
+    private fun deadzone(v: Float, dz: Float): Float = if (v > dz) v - dz else if (v < -dz) v + dz else 0f
 
     private class WavePacket(
         val layer: Int, val origin: Float, val dir: Float, val widthPx: Float, val speed: Float, val amp: Float,
         var age: Float, val lifetime: Float, val riseFrac: Float, val fallStartFrac: Float, val skew: Float
-    )
+    ) {
+        var drift: Float = 0f   // ③ 被晃动流速平流的累计横移（静止时恒 0）
+    }
 
     companion object {
         private const val LAYER_COUNT = 6
@@ -504,6 +805,37 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         private const val MAX_PACKETS = 26
         private const val RECYCLE_ENV_MAX = 0.129f   // 只回收生命周期包络低于此的浪（接近消亡）
         private const val MAX_DT = 0.05f
+
+        private const val GRAVITY_NOMINAL = 9.80665f
+        private const val GRAVITY_PROJECTION_LOW = 1.0f
+        private const val GRAVITY_PROJECTION_HIGH = 3.2f
+        private const val GRAVITY_FOLLOW_TAU = 0.16f
+        private const val STABLE_GRAVITY_TAU = 0.08f
+        private const val STABLE_GRAVITY_WEAK_TAU = 0.24f
+        private const val FLAT_RETURN_TAU = 1.45f
+        private const val MIN_FILL_RATIO = 0.10f
+        private const val MAX_FILL_RATIO = 0.88f
+        // 自由液面晃动速度场（Phase 1，D48/D49）：1D 交错网格浅水，回荡/爬墙/反射从中涌现。
+        private const val SLOSH_N = 48                // 晃动网格点数（渲染时线性采样到 RENDER_N，再走 Catmull-Rom）
+        private const val SLOSH_SUB_DT = 1f / 120f    // 固定子步（与帧率解耦、稳定）
+        private const val SLOSH_MAX_SUB = 8           // 每帧最多子步（防长卡顿爆冲）
+        private const val SLOSH_G = 0.6f              // 动量系数（波速²≈G·HH，定晃动频率）；× 容器宽缩放
+        private const val SLOSH_HH = 0.85f            // 连续系数；G·HH<1 保 CFL 稳定
+        private const val SLOSH_DAMP = 0.995f         // 每子步流速阻尼：调大→更快settle（约 3~4 次干净摇摆后平静，不再长时间颤动）
+        private const val SLOSH_REF_SPAN_PX = 900f    // 频率缩放基准跨度：宽越大越慢（≈ω∝1/√span）
+        private const val SLOSH_SCALE_MIN = 0.4f
+        private const val SLOSH_SCALE_MAX = 1.4f      // 上限保 G·HH<1（CFL）
+        private const val SLOSH_TILT_GAIN = 40f       // 倾斜(rad 旋转增量)→切向流速激励【主振幅旋钮，真机调】。按帧累积故取小值
+        private const val SLOSH_Z_SURGE_GAIN = 12f    // 前后倾(z 变化)→对称外涌激励（压低：让倾斜的 1 阶摇摆为主，z 只作辅助）
+        private const val SLOSH_RENDER_GAIN = 1.0f    // η→渲染 px 缩放【可调总振幅】
+        private const val SLOSH_ADVECT_GAIN = 0.15f   // 流速→浪包平流强度（③，无 tanh 保护、保守起步防甩飞）
+        private const val SLOSH_SLEEP_EPS = 0.1f      // 场能量（每点）低于此且无激励 → 清零休眠
+        private const val TILT_DEADZONE = 0.006f      // rad/帧倾斜死区：低于此视作传感器噪声/手抖、不注入（防持续狂涌、保休眠）
+        private const val TILT_MAX = 0.06f            // 单帧倾斜注入上限（防一次大动作灌爆速度场）
+        private const val Z_DEADZONE = 0.01f          // 前后倾(z)死区
+        private const val Z_MAX = 0.08f               // 单帧 z 注入上限
+        private const val SLOSH_U_CLAMP = 60f         // 速度场安全上限（防甩飞浪包）
+        private const val SLOSH_H_CLAMP = 220f        // 形变安全上限（渲染另有 tanh 净空限制兜底）
 
         private const val INTRINSIC_W_DP = 280f
         private const val INTRINSIC_H_DP = 360f
@@ -556,7 +888,6 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         private const val TROUGH_SHAPE_SOFT_DP = 18f
         private const val TOP_LIMIT_FRAC = 0.20f    // 波峰最高约到 72dp（护住 20–60dp 计时）
         private const val TROUGH_MAX_FRAC = 0.05f   // 波谷最深约到基线下 18dp（不露按钮）
-        private const val TROUGH_SOFT_DP = 12f
 
         // 生成门槛
         private const val ONSET_SPAWN_GATE = 0.12f
@@ -585,6 +916,10 @@ class WaveVisualizerOpus @JvmOverloads constructor(
         private val mLayerAmp = floatArrayOf(1.29f, 1.08f, 1.0f, 0.84f, 0.64f, 0.5f)
         // 事件浪包每层振幅倍率：**近层大、远层小**。近层前景偶尔一记大浪(1.25)、远层只有细密小浪(0.5)。
         private val mLayerPacketAmp = floatArrayOf(0.5f, 0.64f, 0.72f, 0.88f, 1.08f, 1.29f)
+        // 晃动形变每层渲染倍率：**大幅错开**——有的层晃得多、有的少（少的露出各自音频纹理），破除齐动。
+        private val mLayerSloshAmp = floatArrayOf(0.45f, 0.95f, 0.6f, 1.0f, 0.75f, 1.0f)
+        // 晃动形变每层水平错位（渲染索引，≈±9% 宽）：进一步破除 6 层齐动的机械感（近似各层惯性/相位差）。
+        private val mLayerSloshShift = intArrayOf(20, -14, 9, -8, 13, 0)
         // 基础波场波峰密度随层缩放：远层 ×1.35（波峰多、细密但不过短陡→保持圆润），近层 ×0.72（大而疏）
         private const val CYCLES_FAR_SCALE = 1.35f
         private const val CYCLES_NEAR_SCALE = 0.72f

@@ -123,6 +123,8 @@ standing permission for the Gradle debug update publish task in this small-bug
 workflow; still respect sandbox/escalation policy prompts if the environment
 requires them.
 
+2026-07-06 补充：当用户在 debug 版本试用后反馈方向、手感、视觉等问题，代理修复并完成本地验证后，应直接发布新的阿里云 debug 版本；不要再让用户单独说“发布”。仍然不要自动安装到物理设备，也不要自动创建 Git commit。
+
 **（2026-07-04 扩大范围）** 不限于小 bug 修复：凡是改完代码、`:app:assembleDebug` 编译通过、
 且需要真机看效果的迭代改动（如录音波浪可视化的视觉调整），**默认直接发布 debug 到阿里云**，
 不要每次再问用户"发不发"——用户对反复确认感到啰嗦，已授予该发布任务的常驻许可。发布 = 建

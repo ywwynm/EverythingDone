@@ -3,14 +3,21 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.content.DialogInterface
+import android.content.Context
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
+import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -62,6 +69,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mConfirmClicked: Boolean = false
     private var mRecorderTransitionInProgress: Boolean = false
     private var mClockBreathing: Boolean = false
+    private var mSensorManager: SensorManager? = null
+    private var mGravitySensor: Sensor? = null
+    private var mOriginalRequestedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    private var mOrientationLocked: Boolean = false
+    private var mLockedRotation: Int = Surface.ROTATION_0
     private val mClockHandler: Handler = Handler(Looper.getMainLooper())
     private var mRecordingBaseElapsed: Long = 0L
     private val mClockTick: Runnable = object : Runnable {
@@ -80,6 +92,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         mActivity = activity as DetailActivity
+        lockHostOrientation()
+        prepareTiltSensor()
         mRecorder = AudioRecorder(mActivity)
 
         mLlFileName  = f(R.id.ll_audio_file_name)
@@ -139,6 +153,23 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_record_audio
 
+    override fun onResume() {
+        super.onResume()
+        startTiltSensor()
+    }
+
+    override fun onPause() {
+        stopTiltSensor()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        stopTiltSensor()
+        restoreHostOrientation()
+        mVisualizer?.setContainerGravity(0f, 1f, 0f)
+        super.onDestroyView()
+    }
+
     override fun onDismiss(dialog: DialogInterface) {
         val recorder: AudioRecorder? = mRecorder
         mRecorder = null
@@ -163,9 +194,64 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         stopClockTicker()
         stopClockBreathing()
         mClockHandler.removeCallbacks(mClockIntro)
+        stopTiltSensor()
+        restoreHostOrientation()
         releaseRecorderInBackground(recorder)
 
         super.onDismiss(dialog)
+    }
+
+    private val mTiltListener: SensorEventListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.values.size < 3) return
+            dispatchGravityToVisualizer(event.values[0], event.values[1], event.values[2])
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    private fun lockHostOrientation() {
+        val host = mActivity ?: return
+        if (mOrientationLocked) return
+        mLockedRotation = host.windowManager.defaultDisplay.rotation
+        mOriginalRequestedOrientation = host.requestedOrientation
+        host.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        mOrientationLocked = true
+    }
+
+    private fun restoreHostOrientation() {
+        val host = mActivity ?: return
+        if (!mOrientationLocked) return
+        host.requestedOrientation = mOriginalRequestedOrientation
+        mOrientationLocked = false
+    }
+
+    private fun prepareTiltSensor() {
+        val host = mActivity ?: return
+        val manager = host.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
+        mSensorManager = manager
+        mGravitySensor = manager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+            ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    }
+
+    private fun startTiltSensor() {
+        val manager = mSensorManager ?: return
+        val sensor = mGravitySensor ?: return
+        manager.registerListener(mTiltListener, sensor, SensorManager.SENSOR_DELAY_GAME)
+    }
+
+    private fun stopTiltSensor() {
+        mSensorManager?.unregisterListener(mTiltListener)
+    }
+
+    private fun dispatchGravityToVisualizer(gx: Float, gy: Float, gz: Float) {
+        val (screenX, screenY) = when (mLockedRotation) {
+            Surface.ROTATION_90 -> -gy to gx
+            Surface.ROTATION_180 -> -gx to -gy
+            Surface.ROTATION_270 -> gy to -gx
+            else -> gx to gy
+        }
+        mVisualizer?.setContainerGravity(-screenX, screenY, gz)
     }
 
     private fun setEvents() {
