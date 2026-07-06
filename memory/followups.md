@@ -6,6 +6,7 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 
 - `animated-video-cover`: `docs/features/animated-video-cover/followups.md`
 - `app-chrome-polish`: `docs/features/app-chrome-polish/followups.md`
+- `cloud-sync`: `docs/features/cloud-sync/followups.md`
 - `dark-mode`: `docs/features/dark-mode/followups.md`
 - `debug-update-channel`: `docs/features/debug-update-channel/followups.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/followups.md`

@@ -220,6 +220,14 @@ _Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看
 一个静态图片附件，其文件本身同时携带一段内嵌的短视频动态成分（对应 Android 阵营各厂商的“动态照片/实况照片”）。它默认在所有界面显示为静态图，只有支持的界面才呈现其动态成分；它是图片附件被检测出的一种本性，而非独立于 IMAGE/VIDEO 的附件类型，与 **HDR Media**、**Animated Image** 同属“同一个文件、额外能力按界面分级呈现”。
 _Avoid_: 把它当成视频附件、当成新的附件类型、用苹果商标 Live Photo 作为词汇表术语、把 VIVO 那种独立配对视频文件默认当作内嵌
 
+**Sync Account**:
+以全局唯一用户名标识、绑定已验证邮箱的服务端账号；同一账号登录的所有设备共享同一份同步数据。登录方式挂在可扩展的 identity 层下（一期仅用户名+密码）。
+_Avoid_: 把邮箱当登录名、把本地无账号使用称为"账号"、user 泛称
+
+**Conflict Copy**:
+两台设备并发修改同一条 Thing 的内容域（标题、正文/清单、附件列表）时，为落后一方生成的完整 Thing 副本，放入同一 Thing Folder、标题带冲突标记，由用户手动取舍；结构域（状态、文件夹归属、置顶、卡片外观）的并发修改按字段级最后写入赢静默收敛，不产生它。
+_Avoid_: 静默覆盖任何一方的内容、把结构域并发也当成冲突、conflict file
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
@@ -389,6 +397,9 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - Light App Chrome is compatibility-sensitive: dark-mode infrastructure must not change existing light-mode visuals.
 - A **Selection** may contain both **Things** and **Thing Folders**, all siblings within the current projection.
 - A **Batch Action** applies one action across a **Selection** by mapping each member to its own type's operation, so a **Thing Folder** member runs a content or structural operation rather than a Thing state change.
+- A **Sync Account** 的所有已登录设备共享同一份 **Things** 与 **Thing Folders** 数据；未登录设备的数据只存在于本地。
+- A **Conflict Copy** 是一条普通 **Thing**，与原 Thing 放在同一 **Thing Folder**，二者此后无持久关联。
+- **Thing Folder** 的并发修改不产生 **Conflict Copy**，按字段级最后写入赢收敛。
 - A **Thing** whose content is a **Checklist** owns an ordered list of **Checklist Items**.
 - A **Checklist Item** has one **Checklist Item Level** of one, two, or three.
 - A **Checklist Item** may have one **Checklist Item Owner**, derived as the nearest preceding item of a shallower level; a level-two or level-three item always has one because indenting is only enabled when a same-level previous sibling exists.
