@@ -41,8 +41,8 @@ import kotlin.math.sqrt
  *
  * Sampling AudioRecord Input
  * This output sends semantic wave drive frames to [RecordingWaveFrameReceiver],
- * and Fable ocean audio frames to [OceanWaveFrameReceiverFable]. Each analyzer
- * chain only runs when it has at least one linked receiver.
+ * and Opus wave frames to [WaveFrameReceiverOpus]. Each analyzer chain only runs
+ * when it has at least one linked receiver.
  */
 open class AudioRecorder(private val appContext: Context?) {
 
@@ -54,7 +54,6 @@ open class AudioRecorder(private val appContext: Context?) {
     private var mBufSize: Int = 0
 
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
-    private val mFableReceivers: MutableList<OceanWaveFrameReceiverFable> = ArrayList()
     private val mOpusReceivers: MutableList<WaveFrameReceiverOpus> = ArrayList()
 
     // 采集端音效（D6）：改用 UNPROCESSED/VOICE_RECOGNITION 后仍显式关掉 AGC/NS/AEC，持引用防 GC。
@@ -79,13 +78,6 @@ open class AudioRecorder(private val appContext: Context?) {
      */
     fun link(receiver: RecordingWaveFrameReceiver) {
         mWaveReceivers.add(receiver)
-    }
-
-    /**
-     * link to Fable ocean wave receiver（新方案旁路，与现有分发链并存）
-     */
-    fun linkFable(receiver: OceanWaveFrameReceiverFable) {
-        mFableReceivers.add(receiver)
     }
 
     /**
@@ -253,9 +245,6 @@ open class AudioRecorder(private val appContext: Context?) {
                 mWaveReceivers[i].receive(RecordingWaveDriveFrame.SILENCE)
             }
         }
-        for (i in mFableReceivers.indices) {
-            mFableReceivers[i].receive(OceanWaveAudioFrameFable.SILENCE)
-        }
         for (i in mOpusReceivers.indices) {
             mOpusReceivers[i].receive(WaveDriveFrameOpus.SILENCE)
         }
@@ -408,8 +397,6 @@ open class AudioRecorder(private val appContext: Context?) {
 
         var time: Long = System.currentTimeMillis()
         private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
-        private val mFableAnalyzer: OceanWaveAudioAnalyzerFable =
-            OceanWaveAudioAnalyzerFable(RECORDING_SAMPLE_RATE)
         private val mOpusAnalyzer: WaveAudioAnalyzerOpus =
             WaveAudioAnalyzerOpus(RECORDING_SAMPLE_RATE)
         private var mLastLogTime: Long = 0L
@@ -441,9 +428,6 @@ open class AudioRecorder(private val appContext: Context?) {
                     if (mWaveReceivers.isNotEmpty()) {
                         mAnalyzer.ingest(audioBytes, readSize)
                     }
-                    if (mFableReceivers.isNotEmpty()) {
-                        mFableAnalyzer.ingest(audioBytes, readSize)
-                    }
                     if (mOpusReceivers.isNotEmpty()) {
                         mOpusAnalyzer.ingest(audioBytes, readSize)
                     }
@@ -469,12 +453,6 @@ open class AudioRecorder(private val appContext: Context?) {
                         }
                         for (i in mWaveReceivers.indices) {
                             mWaveReceivers[i].receive(frame)
-                        }
-                    }
-                    if (mFableReceivers.isNotEmpty()) {
-                        val fableFrame: OceanWaveAudioFrameFable = mFableAnalyzer.analyze(elapsed)
-                        for (i in mFableReceivers.indices) {
-                            mFableReceivers[i].receive(fableFrame)
                         }
                     }
                     if (mOpusReceivers.isNotEmpty()) {

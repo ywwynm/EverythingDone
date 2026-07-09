@@ -15,7 +15,7 @@
 - [x] E4 `WaveVisualizerOpus.kt`：离散波浪群（高斯非对称波峰、色散传播、rise/travel/decay
       生命周期）+ 轻弹簧底（活水 + 浪间涟漪）+ 6 深度层视差 + centripetal Catmull-Rom 路径
       + 颜色（主体纯本色不透明、上层更亮更透）+ 水位 + 生成门控 + onMeasure + 自驱帧循环
-      （可见性/焦点恢复）。view alpha 交给框架离屏合成，未拦截 setAlpha（避免 Fable 的初始化时序坑）
+      （可见性/焦点恢复）。view alpha 交给框架离屏合成，未拦截 setAlpha（避免旧实现中出现过的初始化时序问题）
 - [x] E5 `fragment_record_audio.xml`：View 类换成 `WaveVisualizerOpus`（id 不变）
 - [x] E6 `AudioRecordDialogFragment.kt`：字段类型改 Opus、`linkOpus`、`AudioRecorder(mActivity)`
 - [x] E7 编译 `:app:assembleDebug` 通过（app-debug.apk 20.8MB 已产出，无 Opus 警告）

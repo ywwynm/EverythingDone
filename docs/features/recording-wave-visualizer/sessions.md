@@ -1,4 +1,10 @@
 # 会话记录 — 录音波形可视化改造
+## 2026-07-09 - 清理已废弃旁路与文档引用
+
+- 按用户要求删除已废弃的录音波浪旁路：移除 `AudioRecorder` 中对应 receiver / link / analyzer 分发，删除 `views/recording/` 下旧旁路类，并清理 feature 文档里的相关历史引用。
+- 保留当前 v1、v2 与 Opus 录音波浪链路；验证 `:app:assembleDebug --console=plain --no-configuration-cache` 通过，本轮未使用 adb。
+- 按用户要求发布阿里云 debug 版本：`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260709101544.md" --console=plain --no-configuration-cache` 成功，code **202607090216**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607090216.apk`，SHA-256 `b363f3dcb1022b9f85ee232e8297f2aaf205e3b392e0466ae5e46321b400ef02`。
+
 ## 2026-07-03 - 按按钮实际高度重新上调水位
 - 用户反馈：D67 发布后水位只升高了一点点，仍然没有怎么盖过录音按钮。
 - 诊断结论：底部按钮行高 `96dp`，dialog 高 `360dp`，主录音按钮 `56dp` 且在按钮行内居中，因此按钮 top 约为 `284dp`。D67 的最前景深色层静态水面约为 `288dp`，仍低于按钮 top，视觉上不会明显覆盖按钮区域。
@@ -107,14 +113,6 @@
 - 补充调研结论：新特征层应使用多时间尺度特征。短窗约 10-20ms 用于低延迟 RMS、rise、onset 快通道；中窗约 40-60ms 用于 Mel/Bark 频带、spectral centroid/rolloff/flatness 和 spectral flux；长窗约 400ms 以上用于噪声底、响度动态范围、节奏密度和 tempo 置信度。
 - 补充调研结论：安静和空调风噪不应只靠响度阈值处理。应维护自适应 noise floor，并结合 spectral flatness、低中频 flux、voicing/pitch 可信度、onset 密度和 hysteresis 得到 `intent` 或 `presence`，再决定视觉层是否进入 alive/surge。
 - 补充调研结论： pitch / F0 可以作为“高低感”的辅助输入，但麦克风环境可能混有人声、音乐和噪声；因此不应让 pitch 直接决定几何高度，而应在可信度足够时轻量影响波浪的纵向倾向、流速或表面亮度。
-
-## 2026-07-03 - Fable 版重新设计调研与定向
-
-- 用户反馈近几次提交后的录音 dialog 波浪仍不满意：较安静环境中动画仍明显，声音大小、高低、快慢和节拍差异表达不够；要求完全不查看、不参考现有 visualizer 源码，新建以 `Fable` 为类名后缀的 visualizer。
-- 读取了功能文档、录音 dialog 宿主、布局、`VoiceAudioFrame` 和 `AudioRecorder` 的音频特征数据流；未打开现有 visualizer 源码。
-- 外部调研参考了实时音频可视化、FFT/频域分析、onset / beat tracking、谱质心 / 音色亮度、水波多正弦 / Gerstner 式渲染等资料。结论是继续采用“音频检测敏感、视觉承接有惯性”的分层策略，而不是把每个短时音频特征直接画进几何轮廓。
-- 新增偏好：Fable 版默认约 6 道半透明波浪，每道浪共享同一水体身份但有独立透明度、惯性、延迟、相位、扰动和随机个性；安静态低水位、低浪高、慢流速，活跃态对声强、节奏和速度差异有更显著反馈。
-- 新增 D38 决策与 Fable 计划：`AudioRecorder` 后续应依赖轻量接收接口；`AudioVisualizerFable` 内部使用 `quiet / aware / alive / surge` 连续视觉状态机，再映射到 6 层水体绘制。待用户确认是否允许增加不改变主轮廓的“表面生命层”后开始实现。
 
 ## 2026-07-02 - D36 实现：恢复适度水位涨落
 
@@ -486,20 +484,6 @@
 - 诊断结论：顶部平浪来自 `drawWaterBody()` 用矩形绘制，水体上边界天然是水平线；竖条感主要来自半透明填充路径的粗折线采样和表面高光短亮条；起伏差异不足则需要继续提高主体波幅，而不是恢复窄尖瞬态。
 - 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增 `bodySurfaceY()`，水体上边界改为低频波形路径；水体和主波填充路径从折线改为更密的二次曲线采样；提高 `baseAmplitude / energyAmplitude / wakeAmplitude` 并增加最终波高放大系数；收敛表面高光的触发门槛、概率、alpha、移动速度和形状。
 - 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过（`BUILD SUCCESSFUL in 3s`）；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703101617.md" --console=plain --no-configuration-cache` 发布到阿里云 debug 通道，code **202607030216**，远端 APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030216.apk`，SHA-256 `d30a1a7539754869d42ff5851de94b173d47fff163a7b16bcde004d4eafd3c1e`。未使用 adb，未安装设备，未 commit。
-## 2026-07-03 - Fable 自然波场内核补强与边界随机
-
-- 读取交接文件后继续当前录音波浪任务，确认本轮只借 Claude Fable 的自然波浪动力学内核，不整体替换 EverythingDone 的视觉风格，也不修改 `bigA`。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：在 6 层水面上加入小幅实例级随机，让相位、采样偏移、振幅、速度和细节比例每次 dialog 生命周期略有不同，但不逐帧跳变，不改变层数和核心稳定常量。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：物理波场脉冲改为 crest/trough 成对速度扰动，并轻量消除整体速度均值；同时略微放慢波速、提高黏性、加宽脉冲核，减少尖锐跳动和整体机械抬升。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：加密水体和主波填充曲线采样，继续压低半透明填充路径产生的竖向分段和闪烁感。
-- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703110927.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 通道，code **202607030311**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030311.apk`，SHA-256 `6143a65ccaeef6c82ce7f17a096ce3254da8aeb438ab9039ab46a6fa287fb142`。未使用 adb，未安装设备，未 commit。
-## 2026-07-03 - Fable 内核剩余项补全
-
-- 用户追问是否还有 Fable 相关内容未实现；重新对照 `E:\tmp\audio-visualizer-fable` 参考实现后，确认继续只借自然动力学内核，不搬粒子水花、径向光斑、三层视差等 Fable 视觉身份。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：新增冲击事件队列，`receive()` 只入队，动画帧 `advance()` 再统一注入物理波场，使音频回调和水波积分解耦。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：补回 `onWindowVisibilityChanged()`、`onVisibilityAggregated()` 和 `onWindowFocusChanged()` 的帧循环恢复/停止逻辑，降低锁屏返回或窗口状态变化后动画停止的风险。
-- 修改 [RecordingWaveVisualizer.kt](../../../app/src/main/java/com/ywwynm/everythingdone/views/recording/RecordingWaveVisualizer.kt)：加入轻量 `beatBreath`，在 tempo 置信度足够时只调制宽浪呼吸；横向流速改为活动度门控，安静时更慢，有效声音和快节奏出现后再明显活跃。
-- 验证与发布：`:app:assembleDebug --console=plain --no-configuration-cache` 通过；`:app:publishDebugUpdate "-PdebugUpdateNotesFile=docs/features/recording-wave-visualizer/debug-updates/update-20260703111609.md" --console=plain --no-configuration-cache` 已发布到阿里云 debug 通道，code **202607030316**，APK `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607030316.apk`，SHA-256 `c9dcc4970ff0fd247fe755f5ba63db6d71f7bd02998361a7a161799af7c8f5d1`。未使用 adb，未安装设备，未 commit。
 ## 2026-07-03 - 去白边、增强野性和修正高潮能量
 
 - 用户反馈三点：每一道浪顶部像有白边；波峰/波谷高度差太小，声音丰富场景缺少“野性”和相对尖锐的大浪；一首歌前奏水位高、高潮反而下降，怀疑当前实现过度跟随音调/频段亮度而不是音量和整体能量。

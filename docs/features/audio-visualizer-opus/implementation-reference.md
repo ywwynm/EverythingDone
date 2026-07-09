@@ -166,7 +166,7 @@ AudioRecord(PCM16 mono 44.1k)
 ## 4. 采集驱动 `AudioRecorder`
 - RecordingThread：`audioRecord.read()` 阻塞读 VISUAL_READ_FRAMES=512 帧（≈11.6ms@44.1k mono）；每次读到 `ingest`。
 - `elapsed≥mSamplingInterval(20ms)` 才 `analyze(elapsed)`（≈43–50Hz），elapsed 作 dt。`receive()` **在录音线程**。
-- 每条链（v2/Fable/Opus）只在有 receiver 时跑；当前 Opus 生效（D13）。RECORDING_SAMPLE_RATE=44100 mono 16bit。DEBUG 每 400ms 打 opus drive log。WAV 保存：mIsRecording 时同一 audioBytes 写盘（单路采集 PCM 分叉，D6/D16 采集默认 MIC）。
+- 每条链（v2/Opus）只在有 receiver 时跑；当前 Opus 生效（D13）。RECORDING_SAMPLE_RATE=44100 mono 16bit。DEBUG 每 400ms 打 opus drive log。WAV 保存：mIsRecording 时同一 audioBytes 写盘（单路采集 PCM 分叉，D6/D16 采集默认 MIC）。
 
 ---
 

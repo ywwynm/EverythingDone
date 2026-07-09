@@ -1,7 +1,7 @@
 # 实施方案 — 录音波浪可视化（Opus 版）
 
 汇编 D1–D13 为可执行方案。目标：最高视觉质量，靠**声音对波浪群的深度塑造**实现"自然/美观/
-丰富/流畅"，不加装饰元素。现有 v1/v2/Fable 代码全部保留不删。类/目录以 `Opus` 结尾。
+丰富/流畅"，不加装饰元素。现有 v1/v2 代码保留，录音旁路只接入 Opus。类/目录以 `Opus` 结尾。
 
 ## 一、文件与类（`views/recording/`，Opus 后缀）
 
@@ -23,7 +23,7 @@
   `AcousticEchoCanceler`（`isAvailable()` → `create(id).enabled=false`，持引用防 GC）。
 - **单声道** `CHANNEL_IN_MONO` + 44.1kHz + PCM_16BIT；读块约 1024 帧。WAV 头 `channels=1`、
   `byteRate` 相应改。单路采集，PCM 分叉喂分析与写盘。
-- 旧分析器（v2/Fable）保留但不 link、不运行，不受 mono 影响。
+- 旧分析器（v2）保留但不 link、不运行，不受 mono 影响。
 - 可选（后评估，不入首版）：写盘那份做响度归一化缓解偏小声。
 
 ## 三、音频分析器 `WaveAudioAnalyzerOpus`（D3/D7）
@@ -90,7 +90,7 @@
 ## 八、接入（D13）
 
 `fragment_record_audio.xml` 与 `AudioRecordDialogFragment` 换用 `WaveVisualizerOpus`；`AudioRecorder`
-加 `linkOpus` 并在有 Opus 接收器时运行 `WaveAudioAnalyzerOpus`。v1/v2/Fable 全保留不删、不接线。
+加 `linkOpus` 并在有 Opus 接收器时运行 `WaveAudioAnalyzerOpus`。v1/v2 保留不删、不接线。
 
 ## 九、构建 / 验证
 

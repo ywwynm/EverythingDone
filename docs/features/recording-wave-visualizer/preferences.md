@@ -1,6 +1,6 @@
 # 偏好 — 录音波形可视化改造
 ## 2026-07-03 - 三个已有版本的偏好排序（用户明确）
-用户对三个录音波浪版本的喜好排序：v2 `RecordingWaveVisualizer`（提交 753a1bf7，生成式波浪生命周期 + 多浪包 + `RecordingAudioAnalyzer`/`RecordingWaveDriveFrame`）最喜欢；其次 v1 `VoiceVisualizer`（提交 3cacdd19，多层多分量正弦合成 + layer-local surge + `VoiceAudioFrame`）；Fable `OceanWaveVisualizerFable`（当前 HEAD 接线，仅因是最新提交而挂在 dialog 上）效果不好，只是放着。新一轮 Opus 版本设计与取舍应以 v2 为主要正面参照、v1 为次要参照，Fable 不作为参照。
+用户对录音波浪版本的喜好排序：v2 `RecordingWaveVisualizer`（提交 753a1bf7，生成式波浪生命周期 + 多浪包 + `RecordingAudioAnalyzer`/`RecordingWaveDriveFrame`）最喜欢；其次 v1 `VoiceVisualizer`（提交 3cacdd19，多层多分量正弦合成 + layer-local surge + `VoiceAudioFrame`）。新一轮 Opus 版本设计与取舍应以 v2 为主要正面参照、v1 为次要参照。
 
 ## 2026-07-03 - 水位覆盖按钮不能只做微调
 用户反馈：上一版水位只升高了一点点，最深色那道浪仍然没有明显盖过录音按钮。后续校准应按按钮实际 top 高度来判断，而不是凭比例微调；在 `360dp` dialog 中，底部按钮行高 `96dp`，主录音按钮 top 大约在 `284dp`，最前景深色浪的静态水面需要明显高于这个位置，例如约 `270dp` 附近，才能视觉上真正进入按钮区域。
@@ -52,7 +52,7 @@
 
 ## 2026-07-03 - 新建录音波浪，不参考现有实现
 
-用户要求重新设计录音 dialog 的波浪动画时，不再沿用或参考现有 visualizer 源码。本轮可以读取录音 dialog 的宿主、布局和音频特征数据流以完成集成，但不得打开现有 visualizer 实现文件。用户已取消“必须使用 `Fable` 类名后缀”的要求，新类使用清晰的领域命名即可。
+用户要求重新设计录音 dialog 的波浪动画时，不再沿用或参考现有 visualizer 源码。本轮可以读取录音 dialog 的宿主、布局和音频特征数据流以完成集成，但不得打开现有 visualizer 实现文件。新类使用清晰的领域命名即可。
 
 新的波浪动画需要同时满足两组看似冲突的审美要求：在安静、空调风噪、低能量背景下保持平缓、轻柔、慢速；在明显人声、强音节、快语速、音乐高潮和强节拍下，要有足够明显的音量、音色、节奏和速度差异，不能一直显得普通、慢悠悠或不紧不慢。
 

@@ -1,11 +1,10 @@
 # 决策记录 — 录音波浪可视化（Opus 版）
 
 记事详情界面录音对话框内、以波浪为主题的实时声音可视化重设计（第三轮，Opus 版）。
-类名、文件夹以 `Opus` 结尾，与现有 v1 `VoiceVisualizer`、v2 `RecordingWaveVisualizer`、
-Fable `OceanWaveVisualizerFable` 区分。现有代码全部保留、暂不删除。
+类名、文件夹以 `Opus` 结尾，与现有 v1 `VoiceVisualizer`、v2 `RecordingWaveVisualizer` 区分。录音旁路只接入 Opus。
 
-偏好排序（用户明确）：v2 最喜欢、其次 v1、Fable 只是放着。Opus 版以 v2 为主要正面参照、
-v1 为次要参照，Fable 不作为参照。详见
+偏好排序（用户明确）：v2 最喜欢、其次 v1。Opus 版以 v2 为主要正面参照、
+v1 为次要参照。详见
 [recording-wave-visualizer/preferences.md](../recording-wave-visualizer/preferences.md)。
 
 ## 2026-07-06 - D60 水位驱动与 floor 保护分离，环境声只能低响应
@@ -412,12 +411,11 @@ S 曲线拉开强弱/快慢。不引入第三方 DSP 库（沿用自实现路线
 阶梯"表现，且倾向**更亮更透**（大气透视）而非更暗，避免变脏。体积感靠**提亮波峰**为主、**压暗
 波谷**为辅且很克制（不把主体压暗成浑色）。纯色记事：主体纯本色，上层同色系提亮 + 递增透明；
 渐变记事：主体整条渐变（按 `orientation`）不透明，上层提亮 + 递增透明。这修订了 v2 "明度阶梯含
-压暗" 与 Fable "仅透明度阶梯" 两种口径，并据此更新 CONTEXT.md 的 Voice Waveform 词条。
+压暗" 口径，并据此更新 CONTEXT.md 的 Voice Waveform 词条。
 
-## 2026-07-03 — D13 接入：Opus 直接生效（替换 Fable），现有代码全保留
+## 2026-07-03 — D13 接入：Opus 直接生效，录音旁路只接入当前方案
 
-- `AudioRecordDialogFragment` 与 `fragment_record_audio.xml` 换用 Opus 可视化 View（就像当初 Fable
-  替换 v2）。v1/v2/Fable 全部类保留不删、不接线。
+- `AudioRecordDialogFragment` 与 `fragment_record_audio.xml` 换用 Opus 可视化 View。v1/v2 类保留不删、不接线。
 - `AudioRecorder` 加 `linkOpus(receiver)`；D6 的采集改动（UNPROCESSED/VOICE_RECOGNITION + 关
   AGC/NS/AEC + 单声道 + WAV 头改 mono）由于只有 Opus 被 link、旧分析器不运行，只影响 Opus 链路
   与保存文件；旧分析器代码保留但不再跑（无副作用）。

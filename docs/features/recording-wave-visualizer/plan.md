@@ -5,7 +5,7 @@
 
 ## 2026-07-03 - 新录音波浪重新设计计划
 
-本轮不查看、不参考现有 visualizer 源码。新实现使用清晰的领域命名，不再要求 `Fable` 类名后缀，优先落在录音 dialog 当前边界内：
+本轮不查看、不参考现有 visualizer 源码。新实现使用清晰的领域命名，优先落在录音 dialog 当前边界内：
 
 1. 新增轻量接收接口，例如 `AudioFrameReceiver`，提供 `receive(VoiceAudioFrame)` 与兼容的 `receive(Int)`；`AudioRecorder` 只依赖该接口，不再依赖具体 View 类。
 2. 新建独立录音波浪 View，例如 `RecordingWaveVisualizer`，接收 `VoiceAudioFrame` 后先更新视觉目标状态，而不是直接改绘制路径。

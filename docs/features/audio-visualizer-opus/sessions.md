@@ -1,5 +1,10 @@
 # 会话记录 — 录音波浪可视化（Opus 版）
 
+## 2026-07-09 - 同步已废弃旁路清理状态
+
+- 按本轮清理结果同步 Opus 文档：当前录音旁路只接入 `WaveVisualizerOpus` / `WaveAudioAnalyzerOpus`，保留 v1/v2 历史实现说明，不再记录已删除旁路。
+- 验证 `:app:assembleDebug --console=plain --no-configuration-cache` 通过，本轮未使用 adb。
+
 ## 2026-07-06 启发式抑制开窗外界环境声高水位（D60）
 
 - **触发**：用户要求先试试启发式方案，解决安静房间开窗后外界声音让录音水位过高的问题。
@@ -188,7 +193,7 @@
   "声音即水面"液化技法、Android 采集优化（UNPROCESSED + 关 AGC/NS）、稳健特征工程（PCEN/白化）。
 - **v1/v2 总结**：v1 `VoiceVisualizer` = 多分量正弦合成 + 事后整形（原地放大、反复打补丁）；
   v2 `RecordingWaveVisualizer`（用户最爱）= 生成式浪包 + 196 点物理场 + 持久波三合一（方向对、
-  但重且补丁多、有帧峰）。偏好排序 v2 > v1 > Fable。
+  但重且补丁多、有帧峰）。偏好排序 v2 > v1。
 - **访谈定案 D1–D13**（见 [decisions.md](decisions.md)）：核心=离散艺术化波浪群 + 轻弹簧底
   （收窄 D1）；共享场 + 前景层内扰动；全新 Opus 分析器；融合而非装饰；声音驱动浪的数量/大小/
   分层；采集改 UNPROCESSED + 关音效 + mono；层级=深度层 + 尺度倾向 + 音色分配；数量明显但克制；
@@ -198,10 +203,10 @@
 - **实现 E1–E7**（见 [execution.md](execution.md)）：新增 5 个 Kotlin 类（`WaveAudioFrameOpus`、
   `WaveDriveFrameOpus`、`WaveFrameReceiverOpus`、`WaveAudioAnalyzerOpus`、`WaveVisualizerOpus`），
   改造 `AudioRecorder`（采集源/单声道/关音效/`linkOpus`）、`AudioRecordDialogFragment`、
-  `fragment_record_audio.xml`。v1/v2/Fable 全部保留不删。`:app:assembleDebug` 通过，APK 20.8MB。
+  `fragment_record_audio.xml`。v1/v2 保留不删，录音旁路只接入 Opus。`:app:assembleDebug` 通过，APK 20.8MB。
 - **文档**：新建 `docs/features/audio-visualizer-opus/`（decisions/preferences/research/plan/
   execution/sessions）；更新 `CONTEXT.md` 的 **Voice Waveform** 词条（主体纯本色 + 上层明度/透明度
-  阶梯，纠正 Fable 那轮改的"仅透明度"）；更新 `recording-wave-visualizer/preferences.md`（版本排序）。
+  阶梯）；更新 `recording-wave-visualizer/preferences.md`（版本排序）。
 - **待办**：E9 用户真机目视验证 + 可调参迭代（plan.md 第十节；execution.md 列出首轮简化点）。
 
 ## 2026-07-03 晚–07-04 真机调优批次（视觉层）
