@@ -37,7 +37,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
-import com.ywwynm.everythingdone.views.recording.WaveVisualizerOpus
+import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
 
 import java.io.File
 
@@ -58,7 +58,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
     private var mClockView: TimelyClockView? = null
-    private var mVisualizer: WaveVisualizerOpus? = null
+    private var mVisualizer: WaveVisualizerFableSol? = null
 
     private var mIvMainAction: ImageView? = null
     private var mIvReRecording: ImageView? = null
@@ -143,7 +143,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
         )
 
-        mRecorder!!.linkOpus(mVisualizer!!)
+        mRecorder!!.linkFableSol(mVisualizer!!)
         mRecorder!!.startListening()
 
         setEvents()

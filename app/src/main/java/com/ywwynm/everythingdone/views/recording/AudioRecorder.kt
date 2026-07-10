@@ -16,6 +16,8 @@ import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrameReceiver
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolRealtimeAnalyzer
 
 import java.io.File
 import java.io.FileInputStream
@@ -55,6 +57,7 @@ open class AudioRecorder(private val appContext: Context?) {
 
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
     private val mOpusReceivers: MutableList<WaveFrameReceiverOpus> = ArrayList()
+    private val mFableSolReceivers: MutableList<FableSolFrameReceiver> = ArrayList()
 
     // 采集端音效（D6）：改用 UNPROCESSED/VOICE_RECOGNITION 后仍显式关掉 AGC/NS/AEC，持引用防 GC。
     private var mAgc: AutomaticGainControl? = null
@@ -85,6 +88,14 @@ open class AudioRecorder(private val appContext: Context?) {
      */
     fun linkOpus(receiver: WaveFrameReceiverOpus) {
         mOpusReceivers.add(receiver)
+    }
+
+    /**
+     * link to FableSol wave receiver（FableSol 方案入口，见 docs/features/audio-visualization-fable-sol/）。
+     * 链路只在有接收器时运行；采集线程直接把 PCM 喂给分析器并分发产出的 frames/events。
+     */
+    fun linkFableSol(receiver: FableSolFrameReceiver) {
+        mFableSolReceivers.add(receiver)
     }
 
     /**
@@ -399,6 +410,8 @@ open class AudioRecorder(private val appContext: Context?) {
         private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
         private val mOpusAnalyzer: WaveAudioAnalyzerOpus =
             WaveAudioAnalyzerOpus(RECORDING_SAMPLE_RATE)
+        private val mFableSolAnalyzer: FableSolRealtimeAnalyzer =
+            FableSolRealtimeAnalyzer(RECORDING_SAMPLE_RATE)
         private var mLastLogTime: Long = 0L
         @Volatile private var mShouldRun: Boolean = true
 
@@ -430,6 +443,25 @@ open class AudioRecorder(private val appContext: Context?) {
                     }
                     if (mOpusReceivers.isNotEmpty()) {
                         mOpusAnalyzer.ingest(audioBytes, readSize)
+                    }
+                    if (mFableSolReceivers.isNotEmpty()) {
+                        // FableSol 自带滑窗分析器：单声道 16-bit PCM 转 float 直接 feed，
+                        // 立即产出 frames/events 并分发（与 20ms 采样间隔解耦）。
+                        val sampleCount = readSize / 2
+                        val mono = DoubleArray(sampleCount)
+                        var bi = 0
+                        for (s in 0 until sampleCount) {
+                            val v = ((audioBytes[bi].toInt() and 0xff) or
+                                    (audioBytes[bi + 1].toInt() shl 8)).toShort().toInt()
+                            mono[s] = v / 32768.0
+                            bi += 2
+                        }
+                        val (fsFrames, fsEvents) = mFableSolAnalyzer.feed(mono)
+                        if (fsFrames.isNotEmpty() || fsEvents.isNotEmpty()) {
+                            for (r in mFableSolReceivers.indices) {
+                                mFableSolReceivers[r].onAudioFrames(fsFrames, fsEvents)
+                            }
+                        }
                     }
                 }
 

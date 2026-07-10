@@ -5,12 +5,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
-    android:layout_height="360dp"
+    android:layout_height="420dp"
     android:minWidth="280dp"
-    android:minHeight="360dp">
+    android:minHeight="420dp">
 
-    <!-- Voice Waveform：波浪水体（Opus 方案），铺满下部，绘制在文字与按钮之下 -->
-    <com.ywwynm.everythingdone.views.recording.WaveVisualizerOpus
+    <!-- Voice Waveform：波浪水体（FableSol 方案），铺满全区，绘制在文字与按钮之下。
+         高度 420dp 对齐 Fable 逻辑坐标 HEIGHT_DP；宽度随上方 TimelyClockView 自适应。 -->
+    <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
         android:id="@+id/voice_visualizer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

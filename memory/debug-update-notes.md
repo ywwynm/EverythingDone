@@ -1,6 +1,49 @@
 # Current Debug Update Notes
 
-Latest published debug update: `202607020832`.
+## 2026-07-10 - FableSol 物理容器改用 Dialog 最终实测宽度
+
+用户在 Python → Android 迁移审查后确认：PREPARED/STOPPED 持续监听并驱动水面属于既定录音预览设计，
+不需要按 Python 播放器状态机重置或门控 Analyzer。随后用户要求消除固定 320dp 物理宽度，并特别明确
+“真实宽度”是 Dialog 完成全部布局测量后 `WaveVisualizerFableSol` 获得的最终宽度，不是 XML 的
+`280dp`，也不是直接读取 TimelyClockView 的声明宽度。
+
+诊断确认固定宽度影响 `FableSolSimulation` 的容器跨度、沿重力方向尺寸、体积守恒倾斜水位、墙面、
+渲染范围和屏幕坐标注入中心；`FableSolFeatureMapper` 的段落 surge 也固定使用 `320×0.75`。旧实现以
+280dp View 为例，水平跨度仍为 320dp，30° 倾斜跨度为 487.128129dp，而正确值应为 452.487113dp。
+
+本次由 `WaveVisualizerFableSol.onSizeChanged(w, ...)` 把最终实测 `w / density` 传给 Simulation；上述物理
+行为及段落 surge 宽度全部改用运行时 `containerWidthDp`。原 320dp 常量改名为
+`REFERENCE_WIDTH_DP`，仅保留为 `DX_DP` 网格采样和测量前回退；波长、浪高、速度及固定 dp 注入宽度
+不缩放。新增 `FableSolContainerGeometryTest`，修复后水平/30° 倾斜结果与真实宽度公式完全一致。
+
+验证：`:app:testDebugUnitTest` 与 `:app:assembleDebug` 均为 `BUILD SUCCESSFUL`，未使用 adb。详细发布日志见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260710222131.md`。最终已发布阿里云 Debug
+`202607101423`，APK SHA-256 为 `5f283f05b85d45a6c7512e1b07a0eba221a83be736a19cb999497a16edc142a0`；
+首次上传的 `202607101422` 因更新说明不完整，已由最终版本替代。
+
+Latest published debug update: `202607101423`.
+
+## 2026-07-10 - 修复 FableSol 第 0 层水面颜色偏浅
+
+用户反馈：正常录音态下，距离屏幕最近的第 0 层水面比 Thing 本身明显更浅、更灰；进一步确认纯色和
+渐变 Thing 都应让第 0 层直接保持记事颜色。
+
+诊断对照了 `WaveVisualizerFableSol`、原始 `audioVisualizerSimulatorFable/canvas.py` 和旧
+`WaveVisualizerOpus`。问题不是 Paint/View alpha 或 OKLab 移植，而是原模拟器的 palette 规则被
+套到了 Thing 身份色：纯色会生成向白混合 45% 的第二端色；纯色和渐变又都会在第 0 层叠加
+`color_breath` / `moodBright` 混白。
+
+本次新增 `FableSolLayerColorPolicy`：纯色基础色两端都使用 `background.color`；渐变保留原始
+`color`、`endColor` 与 `orientation`；`lighten_far`、`moodBright`、`color_breath` 的合成混白量
+统一乘以 `depth01`，保证第 0 层混白量恒为 0，远层仍保留空气透视和声音明度变化。高光、环境天空、
+水体物理和逐层透明度未改动。
+
+新增 4 项 `FableSolLayerColorPolicyTest`，先在旧规则下复现 3 项失败，再确认修复后全部通过；完整
+`:app:testDebugUnitTest` 与 `:app:assembleDebug` 均为 `BUILD SUCCESSFUL`。未使用 adb。详细发布日志见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260710214017.md`。已发布阿里云 Debug
+`202607101341`，APK SHA-256 为 `701d41938d0f4735bfe72f83816b65be789bcc1060b00f58383d18b0c05292f0`。
+
+Latest published debug update: `202607101341`.
 
 ## 2026-06-28 - 修复习惯详情对话框宽度过窄
 
