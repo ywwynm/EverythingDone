@@ -93,6 +93,45 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private val streakNextT = DoubleArray(FableSolSpec.N_LAYERS)
     private var trackT = 0.0
     private val unitRect = RectF(-1f, -1f, 1f, 1f)
+    // C 阶段返工：AGSL 不允许 uniform 数组动态索引（真机红屏确诊），轮廓数据改
+    // 编码进 RGBA_F16 位图（r=top01、g=th01，归一化后半浮点精度 ≈0.3px）。每次
+    // 绘制从池中取新位图——显示列表不快照位图内容，同帧复用会串数据。
+    // 位图池按三帧轮换：UI 线程写第 N+1 帧数据时 RenderThread 可能仍在渲染
+    // 引用同一位图的第 N 帧显示列表（位图内容不做快照），同池跨帧复用会
+    // 偶发串帧闪烁（用户真机实测）。
+    private val dataBitmapPools = Array(3) { ArrayList<android.graphics.Bitmap>(40) }
+    private var poolPhase = 0
+    private var dataBitmapIdx = 0
+    private val halfBuf: java.nio.ShortBuffer =
+        java.nio.ShortBuffer.allocate(FableSolSpec.N_POINTS * 4)
+
+    private fun contourData(top: DoubleArray, th: DoubleArray?, aux: DoubleArray?,
+                            cnt: Int, yMin: Double, yRange: Double): android.graphics.BitmapShader {
+        val pool = dataBitmapPools[poolPhase]
+        if (dataBitmapIdx >= pool.size) {
+            pool.add(android.graphics.Bitmap.createBitmap(
+                FableSolSpec.N_POINTS, 1, android.graphics.Bitmap.Config.RGBA_F16))
+        }
+        val bmp = pool[dataBitmapIdx++]
+        val inv = 1.0 / yRange
+        val zero = android.util.Half.toHalf(0f)
+        val one = android.util.Half.toHalf(1f)
+        halfBuf.clear()
+        for (j in 0 until FableSolSpec.N_POINTS) {
+            if (j < cnt) {
+                halfBuf.put(android.util.Half.toHalf(((top[j] - yMin) * inv).toFloat()))
+                halfBuf.put(if (th != null)
+                    android.util.Half.toHalf((th[j] * inv).toFloat()) else zero)
+                halfBuf.put(if (aux != null)
+                    android.util.Half.toHalf(aux[j].toFloat()) else zero)
+            } else { halfBuf.put(zero); halfBuf.put(zero); halfBuf.put(zero) }
+            halfBuf.put(one)
+        }
+        halfBuf.rewind()
+        bmp.copyPixelsFromBuffer(halfBuf)
+        return android.graphics.BitmapShader(bmp, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+    }
+    // 焦散已按用户裁决整体移除（2026-07-11，两轮修形后仍"不好看"——宁少勿烂）。
     private val anchorsScratch = ArrayList<DoubleArray>(6)
 
     fun setThingBackground(background: ThingBackground) {
@@ -232,6 +271,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val save = canvas.save()
         canvas.translate(w / 2f, h / 2f)
         canvas.rotate(-Math.toDegrees(info.thetaRad).toFloat())
+        poolPhase = (poolPhase + 1) % 3  // 三帧轮换防跨帧位图别名
+        dataBitmapIdx = 0  // 位图池按帧复位（必须在层循环之前——填充与软带都会取用）
         // 远→近叠加（层 N-1 最远先画，层 0 最近后画）
         for (i in FableSolSpec.N_LAYERS - 1 downTo 0) {
             val row = sim.heights[i]
@@ -247,13 +288,20 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val top = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c2Base, WHITE, 0.72), strength * 0.55)
         val horizon = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c1Base, WHITE, 0.78), strength)
         val bottom = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c2Base, WHITE, 0.84), strength * 0.42)
-        fillPaint.shader = LinearGradient(
+        fillPaint.shader = dithered(LinearGradient(
             0f, 0f, 0f, h,
             intArrayOf(FableSolColor.toColor(top, 255), FableSolColor.toColor(horizon, 255), FableSolColor.toColor(bottom, 255)),
             floatArrayOf(0f, 0.42f, 1f), Shader.TileMode.CLAMP
-        )
+        ))
         canvas.drawRect(0f, 0f, w, h, fillPaint)
         fillPaint.shader = null
+    }
+
+    /** C1（AGSL）：渐变包一层三角抖动，消除 OLED 平缓渐变的色阶条纹；不支持时原样返回。 */
+    private fun dithered(src: Shader): Shader {
+        val d = FableSolAgsl.dither ?: return src
+        d.setInputShader("src", src)
+        return d
     }
 
     private fun drawLayer(canvas: Canvas, i: Int, cnt: Int, fillBottom: Double, i0: Int) {
@@ -277,7 +325,30 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         fillPath.lineTo(xsPx[0].toFloat(), fillBottom.toFloat())
         fillPath.close()
 
-        fillPaint.shader = layerShader(c1, c2, a255, cnt, fillBottom)
+        // C3（AGSL）：层填充在渐变之上做逐像素深度吸收 + 焦散；不可用则纯渐变。
+        val gradient = dithered(layerShader(c1, c2, a255, cnt, fillBottom))
+        val fillFx = FableSolAgsl.layerFill
+        val absorbGain = params.get("absorption_gain")
+        if (fillFx != null && absorbGain > 1e-3) {
+            var yMin = Double.MAX_VALUE; var yMax = -Double.MAX_VALUE
+            for (j in 0 until cnt) {
+                if (ysPx[j] < yMin) yMin = ysPx[j]
+                if (ysPx[j] > yMax) yMax = ysPx[j]
+            }
+            val yRange = max(yMax - yMin, 1.0)
+            fillFx.setInputShader("src", gradient)
+            fillFx.setInputBuffer("data", contourData(ysPx, null, null, cnt, yMin, yRange))
+            fillFx.setFloatUniform("x0", xsPx[0].toFloat())
+            fillFx.setFloatUniform("dxStep", (xsPx[1] - xsPx[0]).toFloat())
+            fillFx.setFloatUniform("cntF", cnt.toFloat())
+            fillFx.setFloatUniform("yMin", yMin.toFloat())
+            fillFx.setFloatUniform("yRange", yRange.toFloat())
+            fillFx.setFloatUniform("densityPx", density.toFloat())
+            fillFx.setFloatUniform("absorb", absorbGain.toFloat())
+            fillPaint.shader = fillFx
+        } else {
+            fillPaint.shader = gradient
+        }
         canvas.drawPath(fillPath, fillPaint)
         fillPaint.shader = null
 
@@ -497,6 +568,32 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             if (lo < 0) return
             lo = max(lo - 2, 0); hi = min(hi + 3, cnt)
             if (hi - lo < 4) return
+            // C2（AGSL）：逐像素连续钟形剖面——数学精确、无子带阶差，路径光栅
+            // 移到 GPU；shader 不可用（<API33 或编译失败）则走下方 CPU 子带近似。
+            val bandShader = FableSolAgsl.band
+            if (bandShader != null) {
+                var yMin = Double.MAX_VALUE; var yMax = -Double.MAX_VALUE
+                for (j in lo until hi) {
+                    if (top[j] < yMin) yMin = top[j]
+                    val b = top[j] + thickness[j]
+                    if (b > yMax) yMax = b
+                }
+                val yRange = max(yMax - yMin, 1.0)
+                bandShader.setInputBuffer("data",
+                    contourData(top, thickness, null, cnt, yMin, yRange))
+                bandShader.setFloatUniform("x0", xsPx[0].toFloat())
+                bandShader.setFloatUniform("dxStep", (xsPx[1] - xsPx[0]).toFloat())
+                bandShader.setFloatUniform("cntF", cnt.toFloat())
+                bandShader.setFloatUniform("yMin", yMin.toFloat())
+                bandShader.setFloatUniform("yRange", yRange.toFloat())
+                bandShader.setFloatUniform("tint", rgb[0] / 255f, rgb[1] / 255f,
+                    rgb[2] / 255f, alpha / 255f)
+                fillPaint.shader = bandShader
+                canvas.drawRect(xsPx[lo].toFloat(), yMin.toFloat(),
+                    xsPx[hi - 1].toFloat(), yMax.toFloat(), fillPaint)
+                fillPaint.shader = null
+                return
+            }
             if (alpha < 40) {
                 bandPaint.color = FableSolColor.toColor(rgb, (alpha * 0.55).toInt())
                 bandPathLite(lo, hi, top, thickness, 0.06, 0.88)

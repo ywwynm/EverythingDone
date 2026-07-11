@@ -46,3 +46,19 @@ works on any device without `-t`.
 After making non-trivial edits, just run the gradle task directly — no
 "now I'll compile" message. The user reads the output, not the
 announcement.
+
+## 发布阿里云 debug：必须传更新日志属性
+
+`:app:publishDebugUpdate` 的应用内更新日志（latest.json 的 releaseNotes）
+**完全依赖** gradle 属性 `-PdebugUpdateNotesFile`（路径相对仓库根）；不传则
+latest.json 没有日志字段，应用内看不到任何更新说明（2026-07-11 实际发生过，
+连续四次发布无日志）。标准调用：
+
+```powershell
+& "E:\projects\EverythingDone\gradlew.bat" :app:publishDebugUpdate --no-configuration-cache `
+    "-PdebugUpdateNotesFile=docs/features/<slug>/debug-updates/update-<时间戳>.md"
+```
+
+任务只提取该文件的**第一个 `## ` 条目**作为日志。发布后核对
+`app/build/**/latest.json` 含 `releaseNotes` 字段，并把发布号 + APK SHA-256 回填
+到 `memory/debug-update-notes.md` 顶部条目。

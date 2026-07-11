@@ -1,5 +1,102 @@
 # Current Debug Update Notes
 
+## 2026-07-11 - 根治浪包突然隆起/鼓包 + 移除焦散
+
+长期顽疾定位：注入 Hann 包本应画外出生，但 ①主因——injectLayer 的 uLimit 向内
+钳位在共鸣档塌缩（melodic/loud → resonance01→1 → wallBlend≥0.35 → 画外余量
+140→12dp），每次注入的半个包体（48~140dp）被直接压进可见区，120ms 内隆起几十 dp；
+②次因——jitter/pan/frac 随机尾部越界，A6 宽度增长放大。物理核验共鸣档墙外
+cScale=0.65、画外包可穿墙进入，向内钳位非必需。修复：画外全支撑硬保证
+（need=可见半宽+半包宽+8dp，只向外推不向内拉；超网格先收窄包宽，仍放不下则丢弃）。
+另按用户裁决整体移除焦散（两轮修形仍不好看，宁少勿烂）。全部单测（含浪形连续性）
+与构建绿；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711222645.md`。
+
+## 2026-07-11 - 修复焦散悬浮感与偶发颜色闪烁
+
+用户反馈焦散像"悬浮在浪前的羽毛"、水色偶尔闪烁。①焦散噪声纵坐标由屏幕 y 改为
+水深锚定（光纹随浪升降），亮度受上方浪峰曲率聚焦调制（数据纹理 b 通道，峰下亮
+谷下淡），阈值再稀疏；②闪烁根因=轮廓数据位图池跨帧复用与 RenderThread 在飞显示
+列表竞争（位图不做快照），改三帧轮换池。构建单测绿；未使用 adb。仍差则按宁少勿烂
+砍焦散。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711220450.md`。
+
+## 2026-07-11 - C3 定稿优雅档 + 移除诊断 + 修复应用内更新日志缺失
+
+真机确认纹理采样返工后三个 AGSL shader 全部存活。C3 回优雅档（absorption 0.35 /
+caustic 0.5）、移除天空诊断色。修复应用内更新日志缺失：publishDebugUpdate 的
+releaseNotes 依赖 `-PdebugUpdateNotesFile` 属性，此前几次发布未传，latest.json 无
+日志字段；本次起恒传（规范已入 .claude/rules/gradle.md）。阶段 C 定稿：C1 抖动 +
+C2 软带逐像素 + C3 吸收/焦散全部存活；折射暂缓待裁决。构建单测绿；未使用 adb。
+详细见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260711215258.md`。
+
+## 2026-07-11 - C 阶段返工：轮廓数据改纹理采样（修复 AGSL 红屏回退）
+
+真机红屏确诊：AGSL 不允许 uniform 数组动态索引（GLSL ES 1.0 fragment 限制），
+C3 层填充与 C2 软带 shader 一直静默回退。返工：top/th 归一化编码进 RGBA_F16
+216×1 位图（精度≈0.3px），shader 以 input shader 纹素中心采样+手动插值；位图取自
+帧内递增池（防显示列表别名，稳态零分配）。诊断天空色与 C3 夸张档保留供复验。
+构建单测绿；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711214716.md`。
+
+## 2026-07-11 - 临时诊断版：AGSL 回退可视化 + C3 夸张档
+
+用户真机感觉 C3 无变化，需区分 shader 静默回退与效果过于克制。任一 AGSL shader
+编译失败时天空变纯色（红=C3 层填充、橙=C2 软带、紫=C1 抖动失败；正常天空=全部
+存活）；C3 临时夸张档 absorption 0.80 / caustic 1.0，确认存活后回优雅档
+（0.35/0.5）并移除诊断。构建绿；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711214037.md`。
+
+## 2026-07-11 - 阶段 C3：层填充逐像素光学（深度吸收 + 焦散）
+
+用户真机确认 C1+C2 后圈定 C3。`FableSolAgsl` 新增 `layerFill` shader 链在已抖动渐变
+之上：逐像素以该层轮廓（≤216 列 uniform 数组）求水深——①深度吸收（Beer–Lambert
+近似，乘性衰减保色相、下限 0.72，全九层，`absorption_gain` 默认 0.35）；②焦散
+（表面下 1.5~36dp 包络内的横向拉伸双倍频值噪声亮脉，阈值稀疏化，相位随层流累积
+漂移，近三层限定，`caustic_gain` 默认 0.5，焦散色从本层色派生无新色相）。两参数
+各自归零即关（A5.5 教训）。折射视差暂缓：第 0 层不透明，真折射在本架构无语义，
+待用户看过本轮再定。构建与单测绿；未使用 adb。真机验收：水体是否读作有深度的
+介质、光脉是否柔和跟流、两参数 A/B、帧率发热。详细记录见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711213355.md`。
+已发布阿里云 Debug `202607111334`，APK SHA-256 为
+`2227c465c01b9c3b2ea125ac570bec4e7eb0f3c083e1846ff8f046fa07044db7`。
+
+## 2026-07-11 - 阶段 C：AGSL 逐像素渲染增强（C1 抖动 + C2 软带）
+
+阶段 A/B 收敛后按 D20 启动阶段 C，用户确认真机 Android 16 并圈定 C1+C2。新增
+`FableSolAgsl`（RuntimeShader 运行时编译，API<33 或编译失败自动回退既有 Canvas 路径）。
+C1：环境天空与九层水体填充渐变叠加三角分布抖动（±1/255），消除 OLED 平缓渐变的
+色阶条纹——该问题按 D20 暂存至今，视觉设计零变化。C2：fade 软带优先走逐像素
+shader——轮廓上沿与厚度（≤216 列）作 uniform 数组传入，逐像素求连续钟形剖面
+（平台值 0.14/0.48/0.72 与 CPU 三子带一致、smoothstep 连续过渡），表面带/薄峰透光/
+波背自阴影/体光/珍珠斑/猫爪/羽化全部受益，路径光栅移到 GPU；uniform 缓冲复用无
+逐帧分配。C3（吸收/折射/焦散）另行立项。`:app:testDebugUnitTest` 与
+`:app:assembleDebug` 通过；未使用 adb。真机验收：banding 是否消失、软带是否更
+连续柔和、帧率发热。详细记录见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711212101.md`。
+已发布阿里云 Debug `202607111322`，APK SHA-256 为
+`a35d2464692b2e1c502b88b30554887aba9fe0173994eaf5324a6ffeebdf621d`。
+
+## 2026-07-11 - 根治连续“你好”时既有 Hero 浪突然上抬
+
+用户反馈连续说“你好你好你好”时，偶尔有一条已经可见的浪突然向上变形，并要求先确认修复方案
+是否与 Python/Android 既有设计冲突。确定性差分排除 `Prominence`、张力相干与注入渐入后，确认
+根因是 `FeatureMapper.applyFrame()` 的响度、频段、音高和境状态持续改写全局 Hero 振幅；即使有
+0.85 秒攻击，也会重新缩放整段已可见解析波。修复前两套无事件 Simulation 在 0.2 秒内出现最高
+约 `0.541dp RMS` 的可见轮廓分叉。
+
+对照 `CONTEXT.md`、ADR-0006/0009/0011 与 Android D12/D17/D19 后，保留六模态 Hero、慢声音
+背景、A3 音高/境映射和 `Prominence` 几何事件，只淘汰全局幅度标量。Python 与 Android 每层新增
+低/中/高三条空间能量包络：原攻击/释放只平滑上游画外源，能量按
+`FLOW_DIR × (1.5|flow| + 0.45×wave_speed)` 传播进入可见区；`HeroWave.sample()` 逐点读取包络，
+不再因下一帧声音整体重塑现有峰谷。回归同时要求传播到达前不分叉、到达后产生可测声音差异，
+避免用关闭 Hero 响应伪修复。
+
+Python 全量 55 项、Android 完整 `:app:testDebugUnitTest` 已通过；未使用 adb。详细记录见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711200915.md`。已发布阿里云
+Debug `202607111211`，APK SHA-256 为
+`1120b8db1177bf3148585e9027b8ce4d95d7cf1195fe544fdbe1659fc397977e`。
+
 ## 2026-07-11 - 将 FableSol 最新表达与材质升级迁移到 Android
 
 用户要求继续把 `audioVisualizerSimulatorFable` 的最新更新迁移到 Android，并明确范围只包括

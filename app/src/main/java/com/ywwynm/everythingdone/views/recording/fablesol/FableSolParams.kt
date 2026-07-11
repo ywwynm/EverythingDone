@@ -27,6 +27,8 @@ class FableSolParams {
         v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
         v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
         v("hue_temp_deg", 5.0); v("pink_mod", 0.80)
+        // 阶段 C3（AGSL 层填充光学）：深度吸收定稿；焦散已按用户裁决移除
+        v("absorption_gain", 0.35)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)
