@@ -2,6 +2,13 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-07-11 - 项目综合审计
+
+- 用六个并行只读代理 + 一份功能冲突逐行核验，对全项目做了跨维度审计（架构/构建、数据模型、平台可靠性、UI/UX、代码质量、功能完整性），最重的 P0/P1 结论已单独用工具复核。
+- 交付文档 `docs/features/project-maintenance/project-audit-2026-07-11.md`：含执行摘要表、九大章节与优先级行动清单。
+- 最关键结论：私密体系是明文 UI 门禁（正文/口令/备份全明文，SEC-1/SEC-2）、备份不含附件导致换机丢媒体（DATA-1）、`ThingDAO` 写入静默吞异常（DATA-2）、`onUpgrade` 旧段无守卫可致重装（DATA-3）、`doingThingId` 进程重建失真（ARCH-1）、错过提醒无补偿（REL-1）、数据层零测试无 CI（QA-1）。
+- 已排除的误报（勿再当问题）：外观模型走 `org.json` 非 Gson、不受混淆影响；工具链是最新的 AGP 9.2.1/Gradle 9.4.1；私密内容在通知/widget/分享已正确遮蔽，唯一泄露点是搜索；Doing/Ongoing 处理得当。
+
 ## 2026-07-05 - 首页沉浸选择阴影与单个 Widget 顶部渐变修复
 
 - 完成一次跨 feature 视觉修复：进入首页选择模式前立即隐藏旧 home actionbar 阴影；单个记事 Widget 配置页把 statusbar 与 actionbar 放进同一顶部容器连续绘制根目录 / 文件夹背景。
