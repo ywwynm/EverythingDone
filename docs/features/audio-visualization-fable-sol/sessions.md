@@ -1,5 +1,21 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-11 录音完成后的文件名行与计时器等宽
+
+- 用户反馈：录音结束后，上方文件名重命名区域的 `EditText` 与 `.wav` 后缀总长度短于下方
+  `TimelyClockView`。
+- 诊断确认停止态动画只改变纵向位置；可见宽度差异来自文件名行内部固定的 `192dp + 40dp`
+  分配，其中 `.wav` 不会填满固定的 `40dp`。
+- 修改 [fragment_record_audio.xml](../../../app/src/main/res/layout/fragment_record_audio.xml)：文件名行与
+  计时器统一使用 `match_parent` 和两侧 `24dp` margin；输入框使用权重填充剩余空间，后缀改为
+  `wrap_content`。
+- XML 结构检查、`git diff --check` 与 `:app:assembleDebug --console=plain --no-configuration-cache`
+  均通过。
+- 已发布阿里云 debug 版本：code **202607111505**，APK
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607111505.apk`，SHA-256
+  `ab10414ca4e00f03d878e09bf339b1e873b1e233d80e0c79d79a6dff6dd586c7`；远端 `latest.json`
+  已核验。未使用 adb，未安装设备；本次按用户要求提交。
+
 ## 2026-07-11 根治浪包突变（长期顽疾定位）+ 移除焦散
 
 焦散两轮修形仍被否，按宁少勿烂整体移除（shader/参数/相位/聚焦场；吸收保留）。

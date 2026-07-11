@@ -1,5 +1,8 @@
 # 录音波形可视化改造（recording-wave-visualizer）
 
+> **已弃用：** 当前录音 Dialog 使用 FableSol 实现。后续偏好、决策、会话与发布日志统一维护在
+> [`docs/features/audio-visualization-fable-sol/`](../audio-visualization-fable-sol/)；本目录仅保留历史记录。
+
 把录音对话框里的音量可视化，从"底座 + 竖直柱子"改造成"一片会起伏的水体波浪"。
 
 ## 范围
