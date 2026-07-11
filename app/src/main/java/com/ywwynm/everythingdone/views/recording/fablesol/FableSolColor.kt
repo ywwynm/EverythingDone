@@ -85,6 +85,23 @@ object FableSolColor {
         )
     }
 
+    /** 色相向 target 有界旋转（_hue_toward）：透射色偏移从本色出发、幅度设上限。 */
+    fun hueToward(c: IntArray, targetDeg: Double, maxDeg: Double): IntArray {
+        val hls = rgbToHls(c[0] / 255.0, c[1] / 255.0, c[2] / 255.0)
+        if (hls[2] < 1e-4) return c  // 无彩色没有色相可言
+        var delta = (targetDeg - hls[0] * 360.0 + 180.0) % 360.0
+        if (delta < 0) delta += 360.0
+        delta -= 180.0
+        return shiftHue(c, delta.coerceIn(-maxDeg, maxDeg))
+    }
+
+    /** OKLab 降明度、保色相彩度（_darken_oklab）：阴影色从本层色派生，不发灰。 */
+    fun darkenOklab(c: IntArray, dl: Double): IntArray {
+        val lab = rgbToOklab(c)
+        lab[0] = (lab[0] - dl).coerceAtLeast(0.0)
+        return oklabToRgb(lab)
+    }
+
     // ---- colorsys 端口（0..1） ----
     private fun rgbToHls(r: Double, g: Double, b: Double): DoubleArray {
         val maxc = maxOf(r, g, b)

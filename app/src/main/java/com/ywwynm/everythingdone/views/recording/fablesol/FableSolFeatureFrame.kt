@@ -28,7 +28,21 @@ class FableSolFeatureFrame(
     @JvmField val isSilent: Boolean,
     @JvmField val tempoBpm: Double,
     @JvmField val beatPhase01: Double,
-    @JvmField val beatConf01: Double
+    @JvmField val beatConf01: Double,
+    @JvmField val loudMDb: Double = loudDb,
+    @JvmField val loudSDb: Double = loudDb,
+    @JvmField val music01: Double = 0.0,
+    @JvmField val fluct4hz01: Double = 0.0,
+    @JvmField val fluxCv: Double = 0.0,
+    @JvmField val f0Hz: Double = 0.0,
+    @JvmField val pitch01: Double = 0.0,
+    @JvmField val pitchRel01: Double = 0.5,
+    @JvmField val voiced01: Double = 0.0,
+    @JvmField val sylRateHz: Double = 0.0,
+    @JvmField val hnr01: Double = 0.0,
+    @JvmField val arousal01: Double = 0.0,
+    @JvmField val loom01: Double = 0.0,
+    @JvmField val impulse01: Double = 0.0
 )
 
 /** 离散事件（对应 features.py 产出的 onset / section event dict）。 */
@@ -45,7 +59,16 @@ sealed class FableSolEvent {
         @JvmField val high: Double,
         @JvmField val flatness01: Double,
         @JvmField val pan01: Double,
-        @JvmField val stereoWidth01: Double
+        @JvmField val stereoWidth01: Double,
+        @JvmField var impulse01: Double = Double.NaN,
+        @JvmField var loom01: Double = Double.NaN
+    ) : FableSolEvent()
+
+    /** 音节重音事件：在旋律角色层出生一条宽浪。 */
+    class Prominence(
+        override val t: Double,
+        @JvmField val strength01: Double,
+        @JvmField val pitchRel01: Double
     ) : FableSolEvent()
 
     /** 段落边界事件（Foote 新奇度）。 */

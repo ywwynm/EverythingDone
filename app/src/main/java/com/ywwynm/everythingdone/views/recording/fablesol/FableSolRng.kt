@@ -16,4 +16,6 @@ class FableSolRng(seed: Long) {
     fun gaussian(mean: Double, std: Double): Double = mean + std * r.nextGaussian()
 
     fun nextDouble(): Double = r.nextDouble()
+
+    fun integers(from: Int, until: Int): Int = from + r.nextInt(until - from)
 }

@@ -22,12 +22,16 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
 
     private val window = FableSolMath.hanning(N_FFT)
     private val freqs = DoubleArray(halfN + 1) { it.toDouble() * sr / N_FFT }
+    private val kwPow = FableSolAudioFrontEnd.kWeightPower(freqs, sr.toDouble())
     private val awPow = DoubleArray(halfN + 1) { Math.pow(10.0, aWeightDb(freqs[it]) / 10.0) }
     private val idx250 = FableSolMath.searchsorted(freqs, 250.0)
     private val idx2000 = FableSolMath.searchsorted(freqs, 2000.0)
     private val idx16000 = FableSolMath.searchsorted(freqs, 16000.0)
     private val bandIdx: IntArray
     private val dbRef: Double
+    private val dbRefA: Double
+    private val fluxFloor: Double
+    private val whiteDecay = Math.pow(0.5, 1.0 / (WHITEN_HALFLIFE_S * frameRate))
 
     // 复用 scratch
     private val reArr = DoubleArray(N_FFT)
@@ -45,6 +49,15 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     private val rHigh = FableSolRingStat(cap, anchorAlpha)
     private val rFlux = FableSolRingStat(cap, anchorAlpha)
     private val rRate = FableSolRingStat(rateCap, anchorAlpha)
+    private val rF0 = FableSolRingStat((8.0 * frameRate).toInt(), anchorAlpha)
+    private val rImpulseEnv = FableSolRingStat((1.2 * frameRate).toInt(), anchorAlpha)
+    private val rMomentary = FableSolRunningMeanRing(Math.round(MOMENTARY_S * frameRate).toInt())
+    private val rShortTerm = FableSolRunningMeanRing(Math.round(SHORTTERM_S * frameRate).toInt())
+    private val envBandPass = FableSolAudioFrontEnd.bandPass(FLUCT_BP_HZ, FLUCT_BP_Q, frameRate)
+    private val envHighPassR = FableSolAudioFrontEnd.highPassPole(ENV_HP_HZ, frameRate)
+    private val rEnvAc = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
+    private val rEnvBand = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
+    private val rFluxCv = FableSolRunningMeanRing(Math.round(FLUX_CV_WIN_S * frameRate).toInt())
 
     @JvmField var agcWindowS = 24.0
     @JvmField var gateDb = 6.0
@@ -57,6 +70,7 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     private var silent = false
     private var belowSince = Double.NaN
     private var prevLogbands: DoubleArray? = null
+    private var whitePeak: DoubleArray? = null
     private val envHist = DoubleArray(3)
     private val strHist = DoubleArray(3)
     private var percEnv = 0.0
@@ -66,6 +80,20 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     private var emaSlow: DoubleArray? = null
     private val onsetTimes = ArrayDeque<DoubleArray>()   // [t, strength]
     private var lastOnsetT = -10.0
+    private var music01 = 0.0
+    private var envHighPassX = 0.0
+    private var envHighPassY = 0.0
+    private var pitchBaseLog = Double.NaN
+    private var pitchRelSm = 0.5
+    private var syllableAbove = false
+    private var syllablePeakDb = -120.0
+    private var syllablePeakT = 0.0
+    private val syllableTimes = ArrayDeque<Double>()
+    private var lastProminenceT = -10.0
+    private var hnrSm = 0.0
+    private var arousalSm = 0.0
+    private var loomSm = 0.0
+    private var previousShortDb = Double.NaN
     private var floorDb = -60.0
     private val centers = HashMap<String, Double>()
     private var centerAge = 0.0
@@ -81,9 +109,18 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         // dB 标定：满幅 1kHz 正弦 → 0 dB（近似 dBFS）
         for (i in 0 until N_FFT) { reArr[i] = sin(2.0 * Math.PI * 1000.0 * i / sr) * window[i]; imArr[i] = 0.0 }
         FableSolFft.transform(reArr, imArr)
-        var ref = 0.0
-        for (i in 0 until idx16000) ref += (reArr[i] * reArr[i] + imArr[i] * imArr[i]) * awPow[i]
-        dbRef = 10.0 * log10(ref)
+        var refK = 0.0
+        var refA = 0.0
+        var refUnweighted = 0.0
+        for (i in 0 until idx16000) {
+            val raw = reArr[i] * reArr[i] + imArr[i] * imArr[i]
+            refK += raw * kwPow[i]
+            refA += raw * awPow[i]
+            refUnweighted += raw
+        }
+        dbRef = 10.0 * log10(refK)
+        dbRefA = 10.0 * log10(refA)
+        fluxFloor = refUnweighted * Math.pow(10.0, WHITEN_FLOOR_DBFS / 10.0)
         reset(true)
     }
 
@@ -95,11 +132,21 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         silent = true
         belowSince = Double.NaN
         prevLogbands = null
+        whitePeak = null
+        rMomentary.reset(); rShortTerm.reset()
+        envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
+        rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
         percEnv = 0.0
         speed01 = 0.0
         tempoSpeed01 = 0.5
+        music01 = 0.0
+        pitchBaseLog = Double.NaN
+        pitchRelSm = 0.5
+        syllableAbove = false; syllablePeakDb = -120.0; syllablePeakT = 0.0
+        syllableTimes.clear(); lastProminenceT = -10.0
+        hnrSm = 0.0; arousalSm = 0.0; loomSm = 0.0; previousShortDb = Double.NaN
         emaFast = null; emaSlow = null
         novelty.reset(full)
         beat.reset()
@@ -113,6 +160,7 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             centers.clear()
             centerAge = 0.0
             rLoud.reset(); rLow.reset(); rMid.reset(); rHigh.reset(); rFlux.reset(); rRate.reset()
+            rF0.reset(); rImpulseEnv.reset()
         }
     }
 
@@ -123,11 +171,17 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         silent = true
         belowSince = Double.NaN
         prevLogbands = null
+        whitePeak = null
+        rMomentary.reset(); rShortTerm.reset()
+        envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
+        rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
         percEnv = 0.0
         speed01 = 0.0
         tempoSpeed01 = 0.5
+        syllableAbove = false; syllablePeakDb = -120.0; syllablePeakT = 0.0
+        syllableTimes.clear(); lastProminenceT = -10.0
         onsetTimes.clear()
         lastOnsetT = t - 10.0
         startupFirstT = Double.NaN
@@ -160,15 +214,17 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         for (i in 0 until N_FFT) { reArr[i] = src[srcOff + i] * window[i]; imArr[i] = 0.0 }
         FableSolFft.transform(reArr, imArr)
         var pTotal = 0.0
+        var pTotalA = 0.0
         for (i in 0..halfN) {
             val s = reArr[i] * reArr[i] + imArr[i] * imArr[i]
             spec[i] = s
             // 近 Nyquist 手机电子干扰不属于可视化的听觉频段。
-            val ws = if (i < idx16000) s * awPow[i] else 0.0
+            val ws = if (i < idx16000) s * kwPow[i] else 0.0
             wspec[i] = ws
             pTotal += ws
+            if (i < idx16000) pTotalA += s * awPow[i]
         }
-        val db = 10.0 * log10(pTotal + 1e-12) - dbRef
+        val db = 10.0 * log10(pTotalA + 1e-12) - dbRefA
         var pLow = 0.0; for (i in 0 until idx250) pLow += wspec[i]
         var pMid = 0.0; for (i in idx250 until idx2000) pMid += wspec[i]
         var pHigh = 0.0; for (i in idx2000 until idx16000) pHigh += wspec[i]
@@ -176,6 +232,17 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             frames.add(startupSilentFrame(t, db))
             return
         }
+        rMomentary.push(pTotal)
+        rShortTerm.push(pTotal)
+        val dbM = 10.0 * log10(rMomentary.mean() + 1e-12) - dbRef
+        val dbS = 10.0 * log10(rShortTerm.mean() + 1e-12) - dbRef
+        val envLinear = sqrt(max(pTotal, 0.0))
+        val highPassed = envHighPassR * (envHighPassY + envLinear - envHighPassX)
+        envHighPassX = envLinear
+        envHighPassY = highPassed
+        val envBand = envBandPass.process(highPassed)
+        rEnvAc.push(highPassed * highPassed)
+        rEnvBand.push(envBand * envBand)
         // 底噪追踪
         if (db < floorDb) floorDb = db
         else {
@@ -196,13 +263,13 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         // 相对门适配环境；绝对可听度只拦截极低电平电子噪声/AGC 泵动。
         val sil = silent || audibility <= AUDIBILITY_SILENT_CUTOFF
         // 响度混合归一
-        if (!sil) rLoud.push(db)
-        val rank = rLoud.span01(db, k, 5.0, 95.0, MIN_SPAN_DB)
+        if (!sil) rLoud.push(dbM)
+        val rank = rLoud.span01(dbM, k, 5.0, 95.0, MIN_SPAN_DB)
         val confLoud = !sil && audibility >= 0.15 && db > floorDb + gateDb + 6.0
         if (confLoud) centerAge += 1.0 / frameRate
-        val center = trackCenter("loud", db, confLoud)
+        val center = trackCenter("loud", dbM, confLoud)
         val trust = 0.25 + 0.75 * min(centerAge / 12.0, 1.0)
-        val dbAbs = (0.5 + (db - center) / ABS_SPAN_DB * trust).coerceIn(0.0, 1.0)
+        val dbAbs = (0.5 + (dbM - center) / ABS_SPAN_DB * trust).coerceIn(0.0, 1.0)
         val wLoud = 0.3 * min(rLoud.count.toDouble() / k, 1.0)
         var loud01 = wLoud * rank + (1.0 - wLoud) * dbAbs
         loud01 = (0.5 + (loud01 - 0.5) * (1.0 + expander * 1.2)).coerceIn(0.0, 1.0)
@@ -230,13 +297,29 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         val flat01 = ((flatDb + 45.0) / 30.0).coerceIn(0.0, 1.0)
         // 立体声（mono → 中性）
         val stereoWidth01 = 0.0; val pan01 = 0.5
-        // spectral flux（对数频带、半波整流）
+        // 自适应白化 + SuperFlux；未白化 logb 继续供 Foote 段落检测。
         val bandpow = FableSolMath.sumAdjacentSegments(spec, bandIdx)
         val logb = DoubleArray(32) { log10(bandpow[it] + 1e-10) }
+        var peaks = whitePeak
+        if (peaks == null) {
+            peaks = DoubleArray(32) { max(bandpow[it], fluxFloor) }
+            whitePeak = peaks
+        } else {
+            for (i in 0 until 32) peaks[i] = max(max(bandpow[i], fluxFloor), peaks[i] * whiteDecay)
+        }
+        val logw = DoubleArray(32) { log10(bandpow[it] / peaks[it] + 1e-6) }
         var flux = 0.0
         val prev = prevLogbands
-        if (prev != null) for (i in 0 until 32) { val d = logb[i] - prev[i]; if (d > 0.0) flux += d }
-        prevLogbands = logb
+        if (prev != null) {
+            for (i in 0 until 32) {
+                var ref = prev[i]
+                if (i > 0) ref = max(ref, prev[i - 1])
+                if (i + 1 < 32) ref = max(ref, prev[i + 1])
+                val d = logw[i] - ref
+                if (d > 0.0) flux += d
+            }
+        }
+        prevLogbands = logw
         // 所有帧都为 flux 提供基线；audibility 会阻止极低电平变化被相对归一放大。
         rFlux.push(flux)
         val rf = rFlux.recent(k)
@@ -279,14 +362,49 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         val warm = min(rRate.count.toDouble() / rateCap, 1.0)
         val wr = 0.65 * warm
         val activity01 = (wr * relRate + (1.0 - wr) * activityDensity01).coerceIn(0.0, 1.0)
-        // beat
+
+        // A3：YIN 音高、浊音度、说话人相对音高、因果音节核与重音事件。
+        val (f0Hz, cmndf) = if (sil) 0.0 to 1.0 else yinPitch(src, srcOff)
+        val voiced01 = if (sil) 0.0 else
+            (1.0 - smoothstep(0.10, YIN_VOICED_CMNDF, cmndf)) * audibility
+        val pitch01 = (ln(max(f0Hz, YIN_MIN_HZ) / YIN_MIN_HZ) /
+                ln(YIN_MAX_HZ / YIN_MIN_HZ)).coerceIn(0.0, 1.0)
+        if (voiced01 > 0.55 && f0Hz > 0.0) {
+            val logF0 = ln(f0Hz)
+            pitchBaseLog = if (pitchBaseLog.isNaN()) logF0 else
+                pitchBaseLog + (logF0 - pitchBaseLog) * (1.0 - exp(-1.0 / (frameRate * 15.0)))
+        }
+        val pitchRel01 = if (pitchBaseLog.isNaN() || f0Hz <= 0.0) 0.5 else
+            (0.5 + (ln(f0Hz) - pitchBaseLog) / ln(2.0) * 0.5).coerceIn(0.0, 1.0)
+        val pitchGain = 1.0 - exp(-1.0 / (frameRate * 0.24))
+        pitchRelSm += ((if (voiced01 > 0.3) pitchRel01 else 0.5) - pitchRelSm) * pitchGain
+        val dbK = 10.0 * log10(pTotal + 1e-12) - dbRef
+        val recentLoud = rLoud.recent((3.0 * frameRate).toInt())
+        val syllableMedian = if (rLoud.count >= 8) FableSolMath.percentile(recentLoud, 50.0) else dbK
+        val syllableRateHz = if (sil) 0.0 else
+            syllableStep(t, dbK, syllableMedian, voiced01, pitchRel01, events)
+
+        // 节拍证据先经 speech/music 慢门；语音音节率不经过该门。
         beat.push(if (sil) 0.0 else onsetEnv, t)
         val (bpm, beatPh, beatConf) = beat.state(t)
-        val slowRate = FableSolSpeed.effectiveEventRate(rawRate, salientRate, beatConf)
-        val fastRate = FableSolSpeed.effectiveEventRate(fastRawRate, fastSalientRate, beatConf)
-        val rate = FableSolSpeed.surfaceEventRate(fastRate, slowRate)
-        tempoSpeed01 = FableSolSpeed.tempoEvidenceStep(tempoSpeed01, FableSolSpeed.tempo01(bpm), beatConf, frameRate)
-        val speedTarget = FableSolSpeed.fusePerceivedSpeed01(rate, tempoSpeed01, beatConf)
+        rFluxCv.push(flux)
+        val fluctRatio = rEnvBand.mean() / (rEnvAc.mean() + 1e-9)
+        val fluxCv = rFluxCv.std() / (rFluxCv.mean() + 1e-6)
+        if (!sil) {
+            val evidence = FableSolSpeed.tempoConfidence01(beatConf)
+            val tau = if (evidence > music01) MUSIC_RISE_S else MUSIC_FALL_S
+            music01 += (evidence - music01) * (1.0 - exp(-1.0 / (frameRate * tau)))
+        }
+        val musicGate = smoothstep(MUSIC_GATE_LO, MUSIC_GATE_HI, music01)
+        val gatedBeatConf = beatConf * musicGate
+        val fluct4hz01 = fluctRatio.coerceIn(0.0, 1.0) * audibility
+        val slowRate = FableSolSpeed.effectiveEventRate(rawRate, salientRate, gatedBeatConf)
+        val fastRate = FableSolSpeed.effectiveEventRate(fastRawRate, fastSalientRate, gatedBeatConf)
+        var rate = FableSolSpeed.surfaceEventRate(fastRate, slowRate)
+        rate = max(rate, syllableRateHz * (1.0 - musicGate))
+        tempoSpeed01 = FableSolSpeed.tempoEvidenceStep(
+            tempoSpeed01, FableSolSpeed.tempo01(bpm), gatedBeatConf, frameRate)
+        val speedTarget = FableSolSpeed.fusePerceivedSpeed01(rate, tempoSpeed01, gatedBeatConf)
         speed01 = FableSolSpeed.smoothStep(speed01, speedTarget, frameRate)
         val flow01 = speed01
         // 打击性质感
@@ -298,6 +416,56 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         var punchSum = 0.0; var punchCnt = 0
         for (o in onsetTimes) if (o[0] > t - 2.0) { punchSum += o[1]; punchCnt++ }
         val punch01 = if (punchCnt > 0) min(punchSum / punchCnt * 1.2, 1.0) else 0.0
+
+        // A6：清澈度、激活度、渐强逼近与冲击性。
+        val hnrTarget = (1.0 - cmndf) * voiced01
+        hnrSm += (hnrTarget - hnrSm) * (1.0 - exp(-1.0 / (frameRate * 2.5)))
+        val hnr01 = ((hnrSm - 0.15) / 0.65).coerceIn(0.0, 1.0)
+        if (voiced01 > 0.45) rF0.push(pitch01)
+        val f0History = rF0.recent((8.0 * frameRate).toInt())
+        val f0Iqr01 = if (f0History.size >= 20) {
+            val q = FableSolMath.percentiles(f0History, doubleArrayOf(25.0, 75.0))
+            ((q[1] - q[0]) / 0.18).coerceIn(0.0, 1.0)
+        } else 0.0
+        val loudHistory = rLoud.recent((6.0 * frameRate).toInt())
+        val loudDynamic01 = if (rLoud.count >= 30) {
+            val q = FableSolMath.percentiles(loudHistory, doubleArrayOf(10.0, 90.0))
+            ((q[1] - q[0]) / 18.0).coerceIn(0.0, 1.0)
+        } else 0.0
+        val syllable01 = (syllableRateHz / 5.0).coerceIn(0.0, 1.0)
+        val arousalTarget = if (sil) 0.0 else
+            (0.40 * loudDynamic01 + 0.30 * f0Iqr01 + 0.30 * syllable01).coerceIn(0.0, 1.0)
+        arousalSm += (arousalTarget - arousalSm) * (1.0 - exp(-1.0 / (frameRate * 4.0)))
+        val shortSlope = if (previousShortDb.isNaN()) 0.0 else (dbS - previousShortDb) * frameRate
+        previousShortDb = dbS
+        val loomTarget = if (sil) 0.0 else (shortSlope / 4.0).coerceIn(0.0, 1.0) * audibility
+        val loomTau = if (loomTarget > loomSm) 0.5 else 1.1
+        loomSm += (loomTarget - loomSm) * (1.0 - exp(-1.0 / (frameRate * loomTau)))
+        val loom01 = loomSm.coerceIn(0.0, 1.0)
+        rImpulseEnv.push(onsetEnv)
+        val impulseHistory = rImpulseEnv.recent((1.2 * frameRate).toInt())
+        var impulse01 = 0.0
+        if (impulseHistory.size >= 24) {
+            val mean = FableSolMath.mean(impulseHistory)
+            var variance = 0.0
+            for (value in impulseHistory) {
+                val d = value - mean
+                variance += d * d
+            }
+            val std = sqrt(variance / impulseHistory.size)
+            if (std > 1e-6) {
+                var fourth = 0.0
+                for (value in impulseHistory) {
+                    val z = (value - mean) / std
+                    fourth += z * z * z * z
+                }
+                impulse01 = (fourth / impulseHistory.size - 3.0).div(9.0).coerceIn(0.0, 1.0)
+            }
+        }
+        for (event in events) if (event is FableSolEvent.Onset) {
+            event.impulse01 = impulse01
+            event.loom01 = loom01
+        }
         // 性格档取值用的快/慢 EMA
         val vec = doubleArrayOf(loud01, low01, mid01, high01, centroid01, flow01, flat01, punch01)
         var ef = emaFast; var es = emaSlow
@@ -323,8 +491,103 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             stereoWidth01 = stereoWidth01, pan01 = pan01,
             onsetEnv = onsetEnv, flow01 = flow01, activity01 = activity01,
             loudDb = db, floorDb = floorDb, isSilent = sil,
-            tempoBpm = bpm, beatPhase01 = beatPh, beatConf01 = if (sil) 0.0 else beatConf
+            tempoBpm = bpm, beatPhase01 = beatPh,
+            beatConf01 = if (sil) 0.0 else gatedBeatConf,
+            loudMDb = dbM, loudSDb = dbS,
+            music01 = music01,
+            fluct4hz01 = if (sil) 0.0 else fluct4hz01,
+            fluxCv = fluxCv,
+            f0Hz = f0Hz, pitch01 = pitch01, pitchRel01 = pitchRel01,
+            voiced01 = voiced01, sylRateHz = syllableRateHz,
+            hnr01 = hnr01, arousal01 = arousalSm,
+            loom01 = loom01, impulse01 = impulse01
         ))
+    }
+
+    /** A3 YIN：4:1 抽取后的 ACF 近似差分与 CMNDF。 */
+    private fun yinPitch(src: DoubleArray, srcOff: Int): Pair<Double, Double> {
+        val n = N_FFT / YIN_DECIM
+        val down = DoubleArray(n)
+        var mean = 0.0
+        for (i in 0 until n) {
+            var sum = 0.0
+            val base = srcOff + i * YIN_DECIM
+            for (j in 0 until YIN_DECIM) sum += src[base + j]
+            down[i] = sum / YIN_DECIM
+            mean += down[i]
+        }
+        mean /= n
+        var r0 = 0.0
+        for (i in down.indices) {
+            down[i] -= mean
+            r0 += down[i] * down[i]
+        }
+        val sampleRate4 = sr.toDouble() / YIN_DECIM
+        val tauMin = max((sampleRate4 / YIN_MAX_HZ).toInt(), 2)
+        val tauMax = min((sampleRate4 / YIN_MIN_HZ).toInt(), n - 2)
+        if (tauMax <= tauMin + 2 || r0 < 1e-10) return 0.0 to 1.0
+        val count = tauMax - tauMin
+        val cmndf = DoubleArray(count)
+        var cumulative = 1e-12
+        for (index in 0 until count) {
+            val tau = tauMin + index
+            var autocorrelation = 0.0
+            for (i in 0 until n - tau) autocorrelation += down[i] * down[i + tau]
+            val difference = 2.0 * (r0 - autocorrelation)
+            cumulative += max(difference, 0.0)
+            cmndf[index] = difference * (index + 1) / cumulative
+        }
+        var best = -1
+        for (i in cmndf.indices) if (cmndf[i] < YIN_THRESHOLD) { best = i; break }
+        if (best < 0) {
+            best = 0
+            for (i in 1 until cmndf.size) if (cmndf[i] < cmndf[best]) best = i
+        }
+        var offset = 0.0
+        if (best > 0 && best + 1 < cmndf.size) {
+            val denominator = cmndf[best - 1] - 2.0 * cmndf[best] + cmndf[best + 1]
+            if (abs(denominator) > 1e-12) {
+                offset = (0.5 * (cmndf[best - 1] - cmndf[best + 1]) / denominator)
+                    .coerceIn(-1.0, 1.0)
+            }
+        }
+        val tau = tauMin + best + offset
+        return sampleRate4 / max(tau, 1e-6) to cmndf[best].coerceIn(0.0, 1.0)
+    }
+
+    /** 因果音节核；重音只在音节峰完成后产生。 */
+    private fun syllableStep(t: Double, db: Double, median: Double, voiced01: Double,
+                             pitchRel01: Double, events: ArrayList<FableSolEvent>): Double {
+        if (!syllableAbove) {
+            if (db > median + SYLLABLE_RISE_DB && voiced01 > 0.4) {
+                syllableAbove = true
+                syllablePeakDb = db
+                syllablePeakT = t
+            }
+        } else {
+            if (db > syllablePeakDb) {
+                syllablePeakDb = db
+                syllablePeakT = t
+            }
+            if (db < syllablePeakDb - SYLLABLE_DIP_DB) {
+                syllableAbove = false
+                if (syllableTimes.isEmpty() || syllablePeakT - syllableTimes.last() > SYLLABLE_MIN_GAP_S) {
+                    syllableTimes.addLast(syllablePeakT)
+                    val excursion = abs(pitchRel01 - 0.5) * 2.0
+                    val strength = ((syllablePeakDb - median - 4.0) / 12.0)
+                        .coerceIn(0.0, 1.0) * (0.62 + 0.38 * excursion)
+                    if (strength >= PROMINENCE_MIN_STRENGTH &&
+                        syllablePeakT - lastProminenceT > PROMINENCE_MIN_GAP_S) {
+                        lastProminenceT = syllablePeakT
+                        events.add(FableSolEvent.Prominence(syllablePeakT, strength, pitchRel01))
+                    }
+                }
+            }
+        }
+        while (syllableTimes.isNotEmpty() && syllableTimes.first() < t - SYLLABLE_RATE_WINDOW_S) {
+            syllableTimes.removeFirst()
+        }
+        return syllableTimes.size / SYLLABLE_RATE_WINDOW_S
     }
 
     private fun band01(power: Double, ring: FableSolRingStat, fkey: String,
@@ -442,6 +705,30 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         private const val AUDIBILITY_ZERO_DB = -66.0
         private const val AUDIBILITY_FULL_DB = -54.0
         private const val AUDIBILITY_SILENT_CUTOFF = 0.02
+        private const val MOMENTARY_S = 0.4
+        private const val SHORTTERM_S = 3.0
+        private const val WHITEN_HALFLIFE_S = 3.0
+        private const val WHITEN_FLOOR_DBFS = -72.0
+        private const val ENV_HP_HZ = 0.4
+        private const val FLUCT_BP_HZ = 4.0
+        private const val FLUCT_BP_Q = 0.8
+        private const val FLUCT_WIN_S = 2.0
+        private const val FLUX_CV_WIN_S = 2.4
+        private const val MUSIC_RISE_S = 4.0
+        private const val MUSIC_FALL_S = 6.0
+        private const val MUSIC_GATE_LO = 0.45
+        private const val MUSIC_GATE_HI = 0.75
+        private const val YIN_DECIM = 4
+        private const val YIN_MIN_HZ = 60.0
+        private const val YIN_MAX_HZ = 480.0
+        private const val YIN_THRESHOLD = 0.14
+        private const val YIN_VOICED_CMNDF = 0.30
+        private const val SYLLABLE_RISE_DB = 2.0
+        private const val SYLLABLE_DIP_DB = 4.0
+        private const val SYLLABLE_MIN_GAP_S = 0.12
+        private const val SYLLABLE_RATE_WINDOW_S = 2.5
+        private const val PROMINENCE_MIN_STRENGTH = 0.45
+        private const val PROMINENCE_MIN_GAP_S = 0.35
         private const val STARTUP_QUIET_DB = -58.0
         private const val STARTUP_MAX_LOW_SHARE = 0.55
         private const val STARTUP_TRUST_S = 0.30

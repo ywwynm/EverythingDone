@@ -18,6 +18,8 @@ commit", "commit this"). Reverting an unrequested commit was needed
 once on 2026-05-18; avoid the same mistake. Applies even when code
 compiles and tasks look "done".
 
+当用户要求进行网上调研时，不要只浏览少量搜索结果后下结论；需要覆盖官方文档、平台/API 约束、相关工程实践和可借鉴的产品/论文资料，并在回答中说明依据来源与取舍。
+
 When a broad UI sweep finds additional candidate omissions beyond the user's
 explicitly reported bug, report those candidates first and wait for user
 confirmation before modifying them.

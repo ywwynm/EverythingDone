@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.DEEP_LAYER_START
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.DX_DP
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.FLOW_DIR
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.HEIGHT_DP
@@ -105,6 +106,23 @@ class FableSolSimulation(private val p: FableSolParams) {
     @JvmField val heights = Array(N_LAYERS) { DoubleArray(N_POINTS) }
 
     @JvmField var flow01 = 0.0
+    @JvmField var flow01Deep = 0.0   // 深层流速驱动：mapper 的数十秒积分（D16）
+    @JvmField var breath01 = 0.0     // 4Hz 音节呼吸（mapper 写入；只调制环境波振幅）
+    @JvmField var sparkle01 = 0.0    // 闪点活跃度（mapper：慢响度×材质档；渲染侧消费）
+    @JvmField var calm01 = 1.0       // 平静度（idle/silence 权重→顶边羽化；渲染侧消费）
+    @JvmField var resonance01 = 0.0  // 共鸣度（melodic/loud 权重→墙侧驻波）
+    @JvmField var tension01 = 0.0    // 张力（A6 相位试验：波速相干偏置）；请经 setTension01 写入
+    private var cMean = 150.0        // wave_speed_dps 九层均值（setTension01 时缓存）
+
+    // 猫爪阵风（对应 Python gusts 列表 [{u, age, life, strength, seed}]）：
+    // 上限 5 条先进先出；定长并行数组 + 计数实现，帧内零分配。渲染侧按 gustCount 读取。
+    @JvmField val gustU = DoubleArray(MAX_GUSTS)
+    @JvmField val gustAge = DoubleArray(MAX_GUSTS)
+    @JvmField val gustLife = DoubleArray(MAX_GUSTS)
+    @JvmField val gustStrength = DoubleArray(MAX_GUSTS)
+    @JvmField val gustSeed = DoubleArray(MAX_GUSTS)
+    var gustCount = 0
+        private set
 
     // 节拍锁相
     private var beatBpm = 0.0
@@ -188,6 +206,38 @@ class FableSolSimulation(private val p: FableSolParams) {
             tiltAgit = 0.0
             for (ls in layers) ls.thetaEff = th
         }
+    }
+
+    /**
+     * 张力=相位（A6 试验，D18/D20 标签）：持续渐强下各层波速缓慢向层均值靠拢
+     * （混合上限 0.6），静息回失谐；注入时序不参与（绝不同步化注入）。
+     */
+    fun setTension01(v: Double) {
+        tension01 = v.coerceIn(0.0, 1.0)
+        val arr = p.larray("wave_speed_dps")
+        var sum = 0.0
+        for (x in arr) sum += x
+        cMean = sum / arr.size
+    }
+
+    /** 猫爪阵风：音节在可见水面留下一块顺流漂移、软边消散的暗纹斑。 */
+    fun spawnGust(uDp: Double, strength01: Double, seed: Double) {
+        if (gustCount >= MAX_GUSTS) {   // 先进先出：挤掉最老一条（对应 Python pop(0)）
+            for (k in 1 until MAX_GUSTS) {
+                gustU[k - 1] = gustU[k]
+                gustAge[k - 1] = gustAge[k]
+                gustLife[k - 1] = gustLife[k]
+                gustStrength[k - 1] = gustStrength[k]
+                gustSeed[k - 1] = gustSeed[k]
+            }
+            gustCount = MAX_GUSTS - 1
+        }
+        gustU[gustCount] = uDp
+        gustAge[gustCount] = 0.0
+        gustLife[gustCount] = 1.1 + 0.5 * seed
+        gustStrength[gustCount] = strength01.coerceIn(0.0, 1.0)
+        gustSeed[gustCount] = seed
+        gustCount++
     }
 
     fun triggerShake() { shakeT = 0.0 }
@@ -386,7 +436,10 @@ class FableSolSimulation(private val p: FableSolParams) {
             val thetaIn = thetaDeg + wobbleDeg()
             val thInRad = Math.toRadians(thetaIn)
             // 硬墙过渡取决于水面偏离水平面的角度；0° 和 180° 都是水平水面。
-            val targetBlend = min(abs(sin(thInRad)) / sin(Math.toRadians(WALL_ON_DEG)), 1.0)
+            var targetBlend = min(abs(sin(thInRad)) / sin(Math.toRadians(WALL_ON_DEG)), 1.0)
+            // 驻波呼吸（试验，D20）：持续乐音时墙侧吸收缓慢让位于反射，水池对音乐
+            // “共鸣”；语音/静默下 resonance≈0，行为与旧版全同。
+            targetBlend = max(targetBlend, 0.35 * resonance01)
             wallBlend += (targetBlend - wallBlend) * (1.0 - exp(-PHYSICS_DT / 0.3))
             val rate = abs(thInRad - prevThIn) / PHYSICS_DT
             prevThIn = thInRad
@@ -414,12 +467,16 @@ class FableSolSimulation(private val p: FableSolParams) {
             for (ls in layers) {
                 val base = p.lget("flow_base_dps", ls.i)
                 val idle = p.get("idle_flow_ratio")
-                val driveRaw = (flow01 + moodFlow01).coerceIn(0.0, 1.0)
+                // 深层无动于衷（D16）：流速只跟数十秒能量积分，不吃逐帧感知速度
+                val driveRaw = if (ls.i >= DEEP_LAYER_START) flow01Deep.coerceIn(0.0, 1.0)
+                               else (flow01 + moodFlow01).coerceIn(0.0, 1.0)
                 val drive01 = driveRaw.pow(p.get("flow_curve"))
                 val target = FLOW_DIR * base * (idle + (1.0 - idle) * drive01 * p.get("flow_gain"))
                 val tau = max(p.get("flow_smooth_s"), 1e-2)
                 ls.flowDps += (target - ls.flowDps) * (1.0 - exp(-PHYSICS_DT / tau))
-                val pulse = 1.0 + beatSurge * (1.0 - 0.5 * ls.depth01)
+                // 深层不吃节拍脉冲（D16 无动于衷）
+                val pulse = if (ls.i >= DEEP_LAYER_START) 1.0
+                            else 1.0 + beatSurge * (1.0 - 0.5 * ls.depth01)
                 ls.ambient.retune(p.lget("ambient_len_dp", ls.i))
                 ls.ambient.advance(PHYSICS_DT, ls.flowDps * pulse)
                 ls.hero.retune(p.get("hero_len_dp"))
@@ -440,8 +497,10 @@ class FableSolSimulation(private val p: FableSolParams) {
                     val wu = ls.wave.u; val lt = lagTaper[ls.i]; val ls2 = ls.lagShape
                     for (n in 0 until N_POINTS) wu[n] -= dDyn * uGrid[n] * lt[n] * ls2[n]
                 }
-                val c = p.lget("wave_speed_dps", ls.i)
-                applyInjections(ls, c)
+                var c = p.lget("wave_speed_dps", ls.i)
+                applyInjections(ls, c)   // 注入用原生波速：绝不同步化注入
+                // 张力（A6）：注入之后波速才向九层均值相干偏置（混合上限 0.6）
+                if (tension01 > 1e-3) c += 0.6 * tension01 * (cMean - c)
                 var hl = p.lget("damp_halflife_s", ls.i)
                 if (agitC > 1e-3) hl *= 1.0 - 0.60 * agitC
                 ls.wave.step(PHYSICS_DT, c, hl, spongeDecay[ls.i], cScale[ls.i],
@@ -464,6 +523,20 @@ class FableSolSimulation(private val p: FableSolParams) {
         spectralTilt01 += (materialTargetTilt - spectralTilt01) * (1.0 - exp(-dt / 0.7))
         stereoWidth01 += (spatialTargetWidth - stereoWidth01) * (1.0 - exp(-dt / 0.45))
         pan01 += (spatialTargetPan - pan01) * (1.0 - exp(-dt / 0.22))
+        // 猫爪阵风：随层 1 背景流速顺流平移，超寿命剔除（原位压缩，零分配）
+        val advGust = layers[1].flowDps
+        var wg = 0
+        for (g in 0 until gustCount) {
+            val age = gustAge[g] + dt
+            if (age >= gustLife[g]) continue
+            gustU[wg] = gustU[g] + advGust * dt
+            gustAge[wg] = age
+            gustLife[wg] = gustLife[g]
+            gustStrength[wg] = gustStrength[g]
+            gustSeed[wg] = gustSeed[g]
+            wg++
+        }
+        gustCount = wg
         val cTh = abs(cos(thRender)); val sTh = abs(sin(thRender))
         val half = span / 2.0
         val vis = BooleanArray(N_POINTS) { auAbs[it] <= half }
@@ -513,7 +586,12 @@ class FableSolSimulation(private val p: FableSolParams) {
                     moodSpreadDp * moodSpread01 * (ls.depth01 - 0.5) * 2.0
             val level = tiltLevel(p.lget("base_level_dp", ls.i), cTh, sTh) +
                     wander + ls.swellDp + mood + ls.surgeLiftDp
-            val amb = ls.ambient.sample(uGrid, t, p.lget("ambient_amp_dp", ls.i) * ambientGain, ambientBreath)
+            // 4Hz 音节呼吸只调制环境波振幅（浅层强、深层无）——运动学振幅包络，
+            // 与 ambient_breath 同类机制，不改动已成形的动态浪（D12）。
+            val breathGain = if (ls.i >= DEEP_LAYER_START) 1.0
+                             else 1.0 + 0.30 * breath01 * (1.0 - 0.55 * ls.depth01)
+            val amb = ls.ambient.sample(uGrid, t,
+                p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain, ambientBreath)
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
             val xShift = DoubleArray(N_POINTS) { uGrid[it] + spatialShift }
@@ -583,6 +661,7 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val SPONGE_RATE = 9.0
         private const val SPONGE_FREE_DP = 96.0
         private const val WALL_ON_DEG = 8.0
+        private const val MAX_GUSTS = 5          // 猫爪阵风上限（Python len(gusts) >= 5 → pop(0)）
         private const val SHAKE_AMP_DEG = 8.0
         private const val SHAKE_FREQ_HZ = 3.2
         private const val SHAKE_TAU_S = 0.45

@@ -6,9 +6,12 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RadialGradient
+import android.graphics.RectF
 import android.graphics.Shader
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
 
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -67,6 +70,30 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     // 渲染 scratch
     private val xsPx = DoubleArray(FableSolSpec.N_POINTS)
     private val ysPx = DoubleArray(FableSolSpec.N_POINTS)
+
+    // 环境基色（D21 修复）：暗色模式下对话框表面是深色，天空基色必须取主题
+    // colorBackground 而不是硬编码白——否则录音开始的 View alpha 变化会呈现
+    // "昏暗天空突然翻白"。
+    private val envBase: IntArray = run {
+        val tv = TypedValue()
+        if (context.theme.resolveAttribute(android.R.attr.colorBackground, tv, true)
+            && tv.type >= TypedValue.TYPE_FIRST_COLOR_INT && tv.type <= TypedValue.TYPE_LAST_COLOR_INT
+        ) FableSolColor.fromColor(tv.data) else intArrayOf(255, 255, 255)
+    }
+
+    // A5 实体跟踪：闪点/珍珠/流光是持久实体（跟随浪面滑行、软生软灭），
+    // 不做逐帧重新选峰——那会读作锯齿闪烁/一闪而过（Python 版被用户否决过）。
+    private class Track(var u: Double, var inten: Double, var size: Double, val seed: Double)
+    private class Streak(var u: Double, var age: Double, val life: Double,
+                         val len: Double, val seed: Double)
+    private val glintTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(4) }
+    private val pearlTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(3) }
+    private val streakTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Streak>(4) }
+    private val streakSeq = IntArray(FableSolSpec.N_LAYERS)
+    private val streakNextT = DoubleArray(FableSolSpec.N_LAYERS)
+    private var trackT = 0.0
+    private val unitRect = RectF(-1f, -1f, 1f, 1f)
+    private val anchorsScratch = ArrayList<DoubleArray>(6)
 
     fun setThingBackground(background: ThingBackground) {
         val isGradient = background.mode == ThingBackground.Mode.GRADIENT
@@ -137,6 +164,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         for (e in events) when (e) {
             is FableSolEvent.Onset -> mapper.applyOnset(sim, e)
             is FableSolEvent.Section -> mapper.applySection(sim, e)
+            is FableSolEvent.Prominence -> mapper.applyProminence(sim, e)
         }
     }
 
@@ -211,13 +239,14 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             drawLayer(canvas, i, cnt, fillBottom, i0)
         }
         canvas.restoreToCount(save)
+        trackT = sim.t  // 实体跟踪时基（帧末推进，各层同帧共享同一 dt）
     }
 
     private fun drawEnvironment(canvas: Canvas, w: Float, h: Float) {
         val strength = params.get("environment_tint")
-        val top = FableSolColor.mixOklab(WHITE, FableSolColor.mixOklab(c2Base, WHITE, 0.72), strength * 0.55)
-        val horizon = FableSolColor.mixOklab(WHITE, FableSolColor.mixOklab(c1Base, WHITE, 0.78), strength)
-        val bottom = FableSolColor.mixOklab(WHITE, FableSolColor.mixOklab(c2Base, WHITE, 0.84), strength * 0.42)
+        val top = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c2Base, WHITE, 0.72), strength * 0.55)
+        val horizon = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c1Base, WHITE, 0.78), strength)
+        val bottom = FableSolColor.mixOklab(envBase, FableSolColor.mixOklab(c2Base, WHITE, 0.84), strength * 0.42)
         fillPaint.shader = LinearGradient(
             0f, 0f, 0f, h,
             intArrayOf(FableSolColor.toColor(top, 255), FableSolColor.toColor(horizon, 255), FableSolColor.toColor(bottom, 255)),
@@ -252,7 +281,14 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         canvas.drawPath(fillPath, fillPaint)
         fillPaint.shader = null
 
+        // 浪顶表面带：38°俯角下可见的水面平面（立体感主承重墙）。接触阴影已按
+        // 用户裁决移除（2026-07-11），层间厚度感由波背自阴影承担。
+        if (i <= 6 && params.get("surface_strip_gain") > 1e-3) {
+            drawSurfaceStrip(canvas, i, cnt, c1, c2, a255, depth01)
+        }
         if (params.get("crest_on") >= 0.5) drawHighlights(canvas, i, cnt, c1, c2, a255, i0, depth01)
+        // 顶边羽化（透纳）：平静时最远两层轮廓向环境地平溶解。
+        if (i >= 7) drawEdgeFeather(canvas, cnt, depth01)
     }
 
     private fun layerShader(c1: IntArray, c2: IntArray, a255: Int, cnt: Int, fillBottom: Double): LinearGradient {
@@ -340,27 +376,69 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val crestLight = FableSolMath.convolveSame(crestLight0, FULL5)
         val volume = DoubleArray(cnt) { ((0.16 + 0.84 * crestLight[it]) * (1.0 - fres[it]) * bodyStrength).coerceIn(0.0, 1.0) }
 
+        // 轨道微摆：线性深水波的物质水平位移 ξ=slope/k——光斑骑在"水"上而非钉在
+        // "波形"上，随浪经过绕基点回摆，与竖直起伏合成轨道运动。
+        val sway = DoubleArray(cnt) {
+            (slope[it] * params.get("orbital_sway_dp") * density)
+                .coerceIn(-8.0 * density, 8.0 * density)
+        }
         val pearlPhase = sin(2.0 * Math.PI * sim.t / 12.0 + i * 0.21)
         val pearlDeg = params.get("pearl_shift_deg") * pearlPhase
         var hc = FableSolColor.mixOklab(FableSolColor.mix(c1, c2, 0.3), WHITE, params.get("crest_lighten"))
-        hc = FableSolColor.shiftHue(hc, pearlDeg)
+        // 冷暖微偏：受光家族（闪点/珍珠/透光母色）偏暖，自阴影偏冷（见下）。
+        hc = FableSolColor.shiftHue(hc, pearlDeg + params.get("hue_temp_deg") * 0.6)
         val bodyColor = FableSolColor.mixOklab(c1, hc, 0.46)
         val a01 = a255 / 255.0
+        // 空气透视压缩：远层所有装饰统一向该层基调收缩（构图的音量控制器）。
+        val kAir = 1.0 - params.get("aerial_contrast") * depth01
 
+        // 猫爪暗纹画在高光之下：阵风让微面停止反射天空，读作一块暗的软纹。
+        if (i <= 2 && sim.gustCount > 0) drawGusts(canvas, i, cnt, ys, sway, c1, a01)
         if (bodyStrength > 1e-3) {
             val dPx = params.get("crest_glow_depth_dp") * density
             val topArr = DoubleArray(cnt) { ys[it] + 0.35 * density }
             val thickness = DoubleArray(cnt) { dPx * (0.34 + 0.66 * volume[it]) }
             drawOneSidedBand(canvas, cnt, topArr, thickness, bodyColor,
-                (72 * a01 * bodyStrength).toInt(), true)
+                (72 * a01 * kAir * bodyStrength).toInt(), true)
         }
-        if (glintStrength > 1e-3) {
-            var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
-            if (mx > 1e-3) {
-                val amt = DoubleArray(cnt) { edgeS[it] * a01 }
-                drawVariableBand(canvas, cnt, ys, amt, hc, params.get("crest_width_dp") * density, (188 * a01).toInt())
+        // 薄峰透光内辉：高出均线的圆峰水最薄，光穿透后以偏青的透射色从内部亮起
+        // ——反射族之外唯一的透射族证据，水因此读作有厚度的介质。
+        val tg = params.get("thin_glow_gain")
+        if (tg > 1e-3 && i <= 4) {
+            val glow = smoothSignal(thinGlowField(ys, curv, cnt), 5)
+            var gm = 0.0; for (v in glow) if (v > gm) gm = v
+            if (gm > 0.03) {
+                val glowC = FableSolColor.hueToward(
+                    FableSolColor.mixOklab(hc, WHITE, 0.24), 165.0, 24.0)
+                val topArr = DoubleArray(cnt) { ys[it] + 0.4 * density }
+                val th = DoubleArray(cnt) { (3.0 + 20.0 * glow[it]) * density * sqrt(glow[it]) }
+                drawOneSidedBand(canvas, cnt, topArr, th, glowC,
+                    (140 * a01 * tg * kAir).toInt(), true)
             }
         }
+        // 波背自阴影：亮脊紧贴背光暗窝（层内明暗转折）。阴影色=本层色 OKLab 降明度
+        // +冷偏——不发灰、只随浪出现，接替已移除的灰色接触阴影。
+        val bs = params.get("back_shade_gain")
+        if (bs > 1e-3 && i <= 5) {
+            val litSign = if (s0 >= 0) 1.0 else -1.0
+            val shade = smoothSignal(backShadeField(slope, curv, litSign, cnt), 4)
+            var sm = 0.0; for (v in shade) if (v > sm) sm = v
+            if (sm > 0.04) {
+                val shadeC = FableSolColor.shiftHue(
+                    FableSolColor.darkenOklab(c1, 0.085), -params.get("hue_temp_deg"))
+                val topArr = DoubleArray(cnt) { ys[it] + 0.3 * density }
+                val th = DoubleArray(cnt) { (2.0 + 13.0 * shade[it]) * density * sqrt(shade[it]) }
+                drawOneSidedBand(canvas, cnt, topArr, th, shadeC,
+                    (88 * a01 * bs * kAir).toInt(), true)
+            }
+        }
+        // 镜面高光：持久实体闪点（原地生灭的明灭，不是行驶的车厢）。
+        if (glintStrength > 1e-3) {
+            var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
+            if (mx > 1e-3) drawGlints(canvas, i, cnt, ys, edgeS, sway, hc, a01, kAir)
+        }
+        // 波峰珍珠斑：圆润峰肩上的软鹅卵石光泽（近层限定，尖峰无斑）。
+        if (i <= 2) drawPearls(canvas, i, cnt, ys, curv, sway, hc, a01)
         val veilStrength = params.get("crest_veil_strength")
         if (veilStrength > 1e-3 && i <= 2) {
             val veilRaw = DoubleArray(cnt) { ls.crestVeil[i0 + it] }
@@ -400,33 +478,398 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         canvas.drawPath(bandPath, bandPaint)
     }
 
-    /** 表面到水下的连续透光体（对应 _draw_one_sided_band）。 */
+    /**
+     * 表面到水下的连续透光体（对应 _draw_one_sided_band 定稿）。fade 剖面不再用
+     * 全局 y 百分位锚定的竖直渐变——浪高时带的几何下缘会以 ~0.4·alpha 截断成割裂
+     * 亮边（Python 侧用户实测）。改为跟随带几何的子带剖面：alpha 只依赖带内相对深
+     * 度。低透明度带（<40）硬下缘每通道 ≤~6 不可辨，单次填充即视觉等价；另先裁剪
+     * 到非零厚度跨度，局部带（珍珠/透光/猫爪）光栅面积数倍缩小。
+     */
     private fun drawOneSidedBand(canvas: Canvas, cnt: Int, top: DoubleArray, thicknessIn: DoubleArray,
-                                rgb: IntArray, alpha: Int, fade: Boolean) {
+                                rgb: IntArray, alphaIn: Int, fade: Boolean) {
+        val alpha = alphaIn.coerceIn(0, 255)
+        if (alpha <= 0) return
         val thickness = DoubleArray(cnt) { max(thicknessIn[it], 0.0) }
         if (cnt >= 2) { thickness[0] = 0.0; thickness[1] = 0.0; thickness[cnt - 1] = 0.0; thickness[cnt - 2] = 0.0 }
+        if (fade) {
+            var lo = -1; var hi = -1
+            for (j in 0 until cnt) if (thickness[j] > 0.05) { if (lo < 0) lo = j; hi = j }
+            if (lo < 0) return
+            lo = max(lo - 2, 0); hi = min(hi + 3, cnt)
+            if (hi - lo < 4) return
+            if (alpha < 40) {
+                bandPaint.color = FableSolColor.toColor(rgb, (alpha * 0.55).toInt())
+                bandPathLite(lo, hi, top, thickness, 0.06, 0.88)
+                canvas.drawPath(bandPath, bandPaint)
+            } else {
+                // 剖面（叠加）：上沿 0.14 软入 → 中段 0.72 聚光 → 下缘 0.14 收出。
+                for (s in 0 until 3) {
+                    bandPaint.color = FableSolColor.toColor(rgb, (alpha * SUB_AA[s]).toInt())
+                    bandPathLite(lo, hi, top, thickness, SUB_OFF[s], SUB_FRAC[s])
+                    canvas.drawPath(bandPath, bandPaint)
+                }
+            }
+            return
+        }
         val bottom = DoubleArray(cnt) { top[it] + thickness[it] }
         bandPath.reset()
         buildSmooth(bandPath, sliceX(cnt), top, cnt, true)
         buildSmooth(bandPath, reverse(sliceX(cnt), cnt), reverse(bottom, cnt), cnt, false)
         bandPath.close()
-        if (fade) {
-            val y0 = FableSolMath.percentile(top, 45.0)
-            val y1 = max(y0 + 1.0, FableSolMath.percentile(bottom, 70.0))
-            fillPaint.shader = LinearGradient(0f, y0.toFloat(), 0f, y1.toFloat(),
-                intArrayOf(
-                    FableSolColor.toColor(rgb, 0),
-                    FableSolColor.toColor(rgb, (alpha * 0.72).toInt().coerceIn(0, 255)),
-                    FableSolColor.toColor(rgb, (alpha * 0.36).toInt().coerceIn(0, 255)),
-                    FableSolColor.toColor(rgb, 0)
-                ), floatArrayOf(0f, 0.24f, 0.58f, 1f), Shader.TileMode.CLAMP)
-            canvas.drawPath(bandPath, fillPaint)
-            fillPaint.shader = null
-        } else {
-            bandPaint.color = FableSolColor.toColor(rgb, alpha.coerceIn(0, 255))
-            canvas.drawPath(bandPath, bandPaint)
+        bandPaint.color = FableSolColor.toColor(rgb, alpha)
+        canvas.drawPath(bandPath, bandPaint)
+    }
+
+    /** fade 子带的轻量路径：2 倍下采样折线（子带是内部 alpha 结构，视觉等价于样条）。 */
+    private fun bandPathLite(lo: Int, hi: Int, top: DoubleArray, thickness: DoubleArray,
+                             off: Double, frac: Double) {
+        bandPath.reset()
+        var first = true
+        var j = lo
+        while (j < hi) {
+            val y = (top[j] + thickness[j] * off).toFloat()
+            if (first) { bandPath.moveTo(xsPx[j].toFloat(), y); first = false }
+            else bandPath.lineTo(xsPx[j].toFloat(), y)
+            if (j == hi - 1) break
+            j = min(j + 2, hi - 1)
+        }
+        j = hi - 1
+        while (j >= lo) {
+            val st = top[j] + thickness[j] * off
+            bandPath.lineTo(xsPx[j].toFloat(), (st + thickness[j] * frac).toFloat())
+            if (j == lo) break
+            j = max(j - 2, lo)
+        }
+        bandPath.close()
+    }
+
+    // ================================================================== A5/B 立体感手法
+    /** 浪顶表面带（_draw_surface_strip）：迎光坡宽、背坡窄，随浪起伏开合；
+     *  颜色=地平天空倒影混层高光色——轮廓线成为"平面的近边"，画面获得体积。 */
+    private fun drawSurfaceStrip(canvas: Canvas, i: Int, cnt: Int, c1: IntArray, c2: IntArray,
+                                 a255: Int, depth01: Double) {
+        val dxPx = xsPx[1] - xsPx[0]
+        val gradY = FableSolMath.gradient(sliceY(cnt), dxPx)
+        val slope = FableSolMath.convolveSame(DoubleArray(cnt) { -gradY[it] }, KER3)
+        val gradGrad = FableSolMath.gradient(gradY, dxPx)
+        val curv = FableSolMath.convolveSame(DoubleArray(cnt) { -gradGrad[it] * density }, KER3)
+        val facing = DoubleArray(cnt) {
+            val q = ((slope[it] + 0.05) / 0.50).coerceIn(0.0, 1.0)
+            q * q * (3.0 - 2.0 * q)
+        }
+        val crest = DoubleArray(cnt) { (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0) }
+        val wDp = smoothSignal(DoubleArray(cnt) {
+            (2.2 + (10.5 + 4.0 * crest[it]) * facing[it]) * (1.0 - 0.45 * depth01)
+        }, 4)
+        val tint = params.get("environment_tint")
+        val horizon = FableSolColor.mixOklab(envBase,
+            FableSolColor.mixOklab(c1Base, WHITE, 0.78), tint)
+        var hcS = FableSolColor.mixOklab(FableSolColor.mix(c1, c2, 0.3), WHITE,
+            params.get("crest_lighten"))
+        hcS = FableSolColor.shiftHue(hcS, params.get("hue_temp_deg") * 0.6)  // 受光面偏暖
+        val strip = FableSolColor.mixOklab(horizon, hcS, 0.42)
+        val a01 = a255 / 255.0
+        val kAir = 1.0 - params.get("aerial_contrast") * depth01
+        val breath = 1.0 + 0.10 * params.get("pink_mod") * (2.0 * pink01(sim.t, 9.7) - 1.0)
+        val alpha = ((92.0 - 34.0 * depth01) * a01 * kAir * breath
+                * params.get("surface_strip_gain")).toInt()
+        val topArr = DoubleArray(cnt) { ysPx[it] + 0.2 * density }
+        val th = DoubleArray(cnt) { wDp[it] * density }
+        drawOneSidedBand(canvas, cnt, topArr, th, strip, alpha, true)
+        // 流光条纹：材质相对波形滚动的证据——顺层流漂移、随轨道回摆，只在浪顶平面可见。
+        if (i <= 2 && params.get("flow_streak_gain") > 1e-3) {
+            val sway = DoubleArray(cnt) {
+                (slope[it] * params.get("orbital_sway_dp") * density)
+                    .coerceIn(-8.0 * density, 8.0 * density)
+            }
+            drawFlowStreaks(canvas, i, cnt, facing, sway, strip, a01)
         }
     }
+
+    /** 顶边羽化（_draw_edge_feather）：平静时远层轮廓以环境地平色的软带溶解。 */
+    private fun drawEdgeFeather(canvas: Canvas, cnt: Int, depth01: Double) {
+        val f = sim.calm01 * ((depth01 - 0.55) / 0.45).coerceIn(0.0, 1.0)
+        if (f < 0.06) return
+        val horizon = FableSolColor.mixOklab(envBase,
+            FableSolColor.mixOklab(c1Base, WHITE, 0.78), params.get("environment_tint"))
+        val th = (3.0 + 8.0 * f) * density
+        val topArr = DoubleArray(cnt) { ysPx[it] - th * 0.55 }
+        val thickness = DoubleArray(cnt) { th }
+        drawOneSidedBand(canvas, cnt, topArr, thickness, horizon, (105 * f).toInt(), true)
+    }
+
+    /** 猫爪暗纹（_draw_gusts）：阵风斑块顺流漂移软入软出；渲染位置叠加轨道回摆。 */
+    private fun drawGusts(canvas: Canvas, i: Int, cnt: Int, ys: DoubleArray,
+                          sway: DoubleArray, c1: IntArray, a01: Double) {
+        val amt = DoubleArray(cnt)
+        for (k in 0 until sim.gustCount) {
+            val env = sin(Math.PI * min(sim.gustAge[k] / sim.gustLife[k], 1.0)).pow(1.3)
+            val w = (40.0 + 26.0 * sim.gustSeed[k]) * density
+            var cx = sim.gustU[k] * density
+            cx += interpAt(sway, cnt, cx)
+            val s2 = 2.0 * (w / 2.2) * (w / 2.2)
+            for (j in 0 until cnt) {
+                val d = xsPx[j] - cx
+                amt[j] += sim.gustStrength[k] * env * exp(-d * d / s2)
+            }
+        }
+        val g = 1.0 - 0.28 * i
+        var mx = 0.0
+        for (j in 0 until cnt) { amt[j] = (amt[j]).coerceIn(0.0, 1.0) * g; if (amt[j] > mx) mx = amt[j] }
+        if (mx < 0.04) return
+        val dark = FableSolColor.mixOklab(c1, DARK_GUST, 0.34)
+        val topArr = DoubleArray(cnt) { ys[it] + 0.2 * density }
+        val th = DoubleArray(cnt) { (3.2 + 4.6 * amt[it]) * density * amt[it].pow(0.6) }
+        drawOneSidedBand(canvas, cnt, topArr, th, dark, (42 * a01).toInt(), true)
+    }
+
+    /** 场的局部极大 → 锚点 (u, 强度, 半宽)（_field_peaks）。半宽随浪形伸缩。 */
+    private fun fieldPeaks(field: DoubleArray, cnt: Int, floor: Double, minSepPx: Double,
+                           kMax: Int): ArrayList<DoubleArray> {
+        anchorsScratch.clear()
+        // 简化：按强度降序取局部极大（cnt≈216，冒泡式选前 kMax 足够快）
+        val idx = ArrayList<Int>(8)
+        for (j in 2 until cnt - 2) {
+            if (field[j] >= field[j - 1] && field[j] > field[j + 1] && field[j] > floor) idx.add(j)
+        }
+        idx.sortByDescending { field[it] }
+        for (j in idx) {
+            val u = xsPx[j]
+            var ok = true
+            for (a in anchorsScratch) if (abs(u - a[0]) < minSepPx) { ok = false; break }
+            if (!ok) continue
+            val half = 0.5 * field[j]
+            var l = j; while (l > 0 && field[l] > half) l--
+            var r = j; while (r < cnt - 1 && field[r] > half) r++
+            anchorsScratch.add(doubleArrayOf(u, field[j], max(xsPx[r] - xsPx[l], 6.0)))
+            if (anchorsScratch.size >= kMax) break
+        }
+        return anchorsScratch
+    }
+
+    /** 通用实体跟踪（_track_entities）：锚点匹配→位置平滑跟随，强度攻击/释放。 */
+    private fun trackEntities(tracks: ArrayList<Track>, anchors: ArrayList<DoubleArray>,
+                              dt: Double, matchPx: Double, attackS: Double, releaseS: Double,
+                              posTau: Double, cap: Int) {
+        val kPos = 1.0 - exp(-dt / max(posTau, 1e-3))
+        val kAtt = 1.0 - exp(-dt / max(attackS, 1e-3))
+        val kRel = 1.0 - exp(-dt / max(releaseS, 1e-3))
+        val used = BooleanArray(anchors.size)
+        for (e in tracks) {
+            var best = -1; var bestD = matchPx
+            for (ai in anchors.indices) {
+                if (used[ai]) continue
+                val d = abs(anchors[ai][0] - e.u)
+                if (d < bestD) { best = ai; bestD = d }
+            }
+            if (best >= 0) {
+                used[best] = true
+                val a = anchors[best]
+                e.u += (a[0] - e.u) * kPos
+                val k = if (a[1] > e.inten) kAtt else kRel
+                e.inten += (a[1] - e.inten) * k
+                e.size += (a[2] - e.size) * kAtt
+            } else e.inten -= e.inten * kRel
+        }
+        for (ai in anchors.indices) {
+            if (!used[ai] && anchors[ai][1] > 0.10 && tracks.size < cap) {
+                val a = anchors[ai]
+                val seed = (sin(a[0] * 12.9898) * 43758.5453).let { it - Math.floor(it) }
+                tracks.add(Track(a[0], a[1] * 0.12, a[2], seed))
+            }
+        }
+        tracks.removeAll { it.inten <= 0.015 }
+        tracks.sortByDescending { it.inten }
+        while (tracks.size > cap) tracks.removeAt(tracks.size - 1)
+    }
+
+    /** 镜面闪点（_draw_glints）：少量持久实体贴着受光浪面滑行，慢呼吸明暗。 */
+    private fun drawGlints(canvas: Canvas, i: Int, cnt: Int, ys: DoubleArray, prob: DoubleArray,
+                           sway: DoubleArray, hc: IntArray, a01: Double, kAir: Double) {
+        val dt = max(sim.t - trackT, 0.0)
+        val pink = 1.0 + 0.12 * params.get("pink_mod") * (2.0 * pink01(sim.t, 3.1) - 1.0)
+        val spark = (0.35 + 0.65 * sim.sparkle01) * pink
+        val field = smoothSignal(DoubleArray(cnt) {
+            (prob[it] * 1.5).coerceIn(0.0, 1.0) * spark * kAir
+        }, 5)
+        val cap = if (i <= 1) 3 else 2
+        val anchors = fieldPeaks(field, cnt, 0.10, 46.0 * density, cap)
+        trackEntities(glintTracks[i], anchors, dt, 34.0 * density, 0.30, 0.80, 0.10, cap)
+        val tracks = glintTracks[i]
+        if (tracks.isEmpty()) return
+        val core = FableSolColor.mixOklab(hc, WHITE, 0.35)
+        val dxPx = xsPx[1] - xsPx[0]
+        for (e in tracks) {
+            val breath = 1.0 + 0.12 * sin(2.0 * Math.PI * sim.t / (2.6 + 1.4 * e.seed) + e.seed * 6.28)
+            val inten = (e.inten * breath).coerceIn(0.0, 1.0)
+            if (inten < 0.04) continue
+            val cx = e.u + interpAt(sway, cnt, e.u)
+            val j = ((cx - xsPx[0]) / dxPx).toInt().coerceIn(1, cnt - 2)
+            val cy = interpAt(ys, cnt, cx)
+            val ang = Math.toDegrees(atan2(ys[j + 1] - ys[j - 1], 2.0 * dxPx))
+            val length = (e.size * 0.62).coerceIn(6.0 * density, 34.0 * density) * (0.8 + 0.4 * inten)
+            val thick = (1.1 + 0.8 * e.seed) * density
+            val aPk = (235 * a01 * inten.pow(0.8)).toInt().coerceIn(0, 255)
+            drawGlowEllipse(canvas, cx, cy, ang, length, thick, core, hc, aPk, 0.5)
+        }
+    }
+
+    /** 波峰珍珠斑（_draw_pearls）：持久实体锁在圆润波峰上，面积由跟踪半宽驱动。 */
+    private fun drawPearls(canvas: Canvas, i: Int, cnt: Int, ys: DoubleArray, curv: DoubleArray,
+                           sway: DoubleArray, hc: IntArray, a01: Double) {
+        val dt = max(sim.t - trackT, 0.0)
+        var meanY = 0.0; for (j in 0 until cnt) meanY += ys[j]; meanY /= cnt
+        val score = smoothSignal(DoubleArray(cnt) {
+            val crest = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
+            val gate = exp(-((crest - 0.42) / 0.32).pow(2))
+            val height = ((meanY - ys[it]) / (7.0 * density)).coerceIn(0.0, 1.0)
+            gate * height * (0.50 + 0.50 * sim.sparkle01)
+        }, 6)
+        val anchors = fieldPeaks(score, cnt, 0.13, 60.0 * density, 2)
+        trackEntities(pearlTracks[i], anchors, dt, 44.0 * density, 0.35, 1.10, 0.12, 2)
+        val tracks = pearlTracks[i]
+        if (tracks.isEmpty()) return
+        val s0 = tan(Math.toRadians(params.get("light_azimuth_deg")) / 2.0)
+        val shoulder = 7.0 * density * (if (s0 >= 0) 1.0 else -1.0)
+        val amt = DoubleArray(cnt)
+        for (e in tracks) {
+            val sig = (e.size * 0.48).coerceIn(12.0 * density, 46.0 * density)
+            val sl = sig * (0.80 + 0.40 * e.seed)
+            val sr = sig * (1.20 - 0.40 * e.seed)
+            val du = e.u + shoulder + interpAt(sway, cnt, e.u)
+            val inten = e.inten.coerceIn(0.0, 1.0)
+            for (j in 0 until cnt) {
+                val d = xsPx[j] - du
+                val g = if (d < 0) exp(-d * d / (2.0 * sl * sl)) else exp(-d * d / (2.0 * sr * sr))
+                amt[j] += inten * g
+            }
+        }
+        var mx = 0.0
+        for (j in 0 until cnt) { amt[j] = amt[j].coerceIn(0.0, 1.0); if (amt[j] > mx) mx = amt[j] }
+        if (mx < 0.03) return
+        val core = FableSolColor.mixOklab(hc, WHITE, 0.30)
+        val fringe = FableSolColor.shiftHue(hc, 7.0 * sin(2.0 * Math.PI * sim.t / 12.0 + i))
+        val top1 = DoubleArray(cnt) { ys[it] + 0.30 * density }
+        val th1 = DoubleArray(cnt) { (3.5 + 11.0 * amt[it]) * density * sqrt(amt[it]) }
+        drawOneSidedBand(canvas, cnt, top1, th1, core, (150 * a01).toInt(), true)
+        val top2 = DoubleArray(cnt) { ys[it] + 1.2 * density }
+        val th2 = DoubleArray(cnt) { (3.6 + 10.0 * amt[it]) * density * sqrt(amt[it]) }
+        drawOneSidedBand(canvas, cnt, top2, th2, fringe, (44 * a01).toInt(), true)
+    }
+
+    /** 流光条纹（_draw_flow_streaks + _step_streaks）：浪顶平面上的持久发光条。 */
+    private fun drawFlowStreaks(canvas: Canvas, i: Int, cnt: Int, facing: DoubleArray,
+                                sway: DoubleArray, baseC: IntArray, a01: Double) {
+        val dt = max(sim.t - trackT, 0.0)
+        val flowPxS = sim.layers[i].flowDps * density
+        val cap = if (i == 0) 3 else 2
+        val tracks = streakTracks[i]
+        // 推进：顺流漂移、寿命衰老、越界剔除；缺员按确定性节奏补生。
+        for (e in tracks) { e.age += dt; e.u += flowPxS * dt }
+        val margin = 60.0 * density
+        tracks.removeAll { it.age >= it.life || it.u <= xsPx[0] - margin || it.u >= xsPx[cnt - 1] + margin }
+        if (tracks.size < cap && sim.t >= streakNextT[i]) {
+            val s = hash01(streakSeq[i] * 1.7 + 0.37, i * 2.9)
+            val s2 = hash01(streakSeq[i] * 3.1 + 1.11, i * 5.3)
+            tracks.add(Streak(
+                xsPx[0] + (0.08 + 0.84 * s) * (xsPx[cnt - 1] - xsPx[0]), 0.0,
+                5.0 + 4.0 * s2,
+                (26.0 + 38.0 * hash01(streakSeq[i] + 9.1, i.toDouble())) * density, s2))
+            streakSeq[i]++
+            streakNextT[i] = sim.t + 0.8 + 1.6 * s
+        }
+        if (tracks.isEmpty()) return
+        val gain = params.get("flow_streak_gain")
+        val streakC = FableSolColor.mixOklab(baseC, WHITE, 0.45)
+        val dxPx = xsPx[1] - xsPx[0]
+        val pink = 1.0 + 0.15 * params.get("pink_mod") * (2.0 * pink01(sim.t, 17.3) - 1.0)
+        for (e in tracks) {
+            val env = sin(Math.PI * min(e.age / e.life, 1.0)).pow(0.8) * pink
+            val cx = e.u + interpAt(sway, cnt, e.u)
+            val fAt = interpAt(facing, cnt, cx)
+            val vis = env * fAt.pow(1.1)
+            if (vis < 0.05) continue
+            val j = ((cx - xsPx[0]) / dxPx).toInt().coerceIn(1, cnt - 2)
+            val cy = interpAt(ysPx, cnt, cx) + (1.4 + 1.0 * e.seed) * density
+            val ang = Math.toDegrees(atan2(ysPx[j + 1] - ysPx[j - 1], 2.0 * dxPx))
+            val length = e.len * 0.5 * (0.85 + 0.30 * fAt)
+            val thick = (1.1 + 0.9 * e.seed) * density
+            val aPk = (92 * a01 * gain * vis).toInt().coerceIn(0, 255)
+            if (aPk <= 1) continue
+            drawGlowEllipse(canvas, cx, cy, ang, length, thick, streakC, streakC, aPk, 0.42)
+        }
+    }
+
+    /** 旋转径向渐变椭圆（闪点/流光共用绘制管线）。 */
+    private fun drawGlowEllipse(canvas: Canvas, cx: Double, cy: Double, angDeg: Double,
+                                length: Double, thick: Double, core: IntArray, edge: IntArray,
+                                aPk: Int, midStop: Double) {
+        if (aPk <= 1) return
+        bandPaint.shader = RadialGradient(0f, 0f, 1f,
+            intArrayOf(FableSolColor.toColor(core, aPk),
+                FableSolColor.toColor(edge, (aPk * midStop).toInt()),
+                FableSolColor.toColor(edge, 0)),
+            floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        val save = canvas.save()
+        canvas.translate(cx.toFloat(), cy.toFloat())
+        canvas.rotate(angDeg.toFloat())
+        canvas.scale(length.toFloat(), thick.toFloat())
+        canvas.drawOval(unitRect, bandPaint)
+        canvas.restoreToCount(save)
+        bandPaint.shader = null
+    }
+
+    /** 薄峰透光场（_thin_glow_field）：绝对海拔门(4→14dp) × 上凸薄度。 */
+    private fun thinGlowField(ys: DoubleArray, curv: DoubleArray, cnt: Int): DoubleArray {
+        var mean = 0.0; for (j in 0 until cnt) mean += ys[j]; mean /= cnt
+        return DoubleArray(cnt) {
+            val elevDp = (mean - ys[it]) / density
+            var gate = ((elevDp - 4.0) / 10.0).coerceIn(0.0, 1.0)
+            gate = gate * gate * (3.0 - 2.0 * gate)
+            val thin = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
+            gate * (0.15 + 0.85 * thin)
+        }
+    }
+
+    /** 波背自阴影场（_back_shade_field）：背光坡 × 脊线邻近；平水自动归零。 */
+    private fun backShadeField(slope: DoubleArray, curv: DoubleArray, litSign: Double,
+                               cnt: Int): DoubleArray = DoubleArray(cnt) {
+        var back = ((-slope[it] * litSign - 0.05) / 0.40).coerceIn(0.0, 1.0)
+        back = back * back * (3.0 - 2.0 * back)
+        val crest = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
+        back * (0.30 + 0.70 * crest)
+    }
+
+    /** 1/f 慢调制（_pink01）：四时间尺度值噪声按 1/k 加权，确定性无状态。 */
+    private fun pink01(t: Double, seed: Double): Double {
+        var total = 0.0; var wsum = 0.0
+        for (k in 0 until 4) {
+            val w = 1.0 / (k + 1)
+            val x = t / PINK_TAU[k] + seed * (7.31 + k)
+            val i0 = Math.floor(x)
+            var f = x - i0
+            f = f * f * (3.0 - 2.0 * f)
+            val v = (1.0 - f) * hash01(i0, seed + k * 3.7) + f * hash01(i0 + 1.0, seed + k * 3.7)
+            total += w * v; wsum += w
+        }
+        return total / wsum
+    }
+
+    private fun hash01(a: Double, b: Double): Double {
+        val x = sin(a * 127.1 + b * 311.7) * 43758.5453
+        return x - Math.floor(x)
+    }
+
+    /** 均匀网格线性插值（xs 等距，按索引直接定位）。 */
+    private fun interpAt(arr: DoubleArray, cnt: Int, x: Double): Double {
+        val dxPx = xsPx[1] - xsPx[0]
+        val f = (x - xsPx[0]) / dxPx
+        val j = f.toInt().coerceIn(0, cnt - 2)
+        val frac = (f - j).coerceIn(0.0, 1.0)
+        return arr[j] * (1.0 - frac) + arr[j + 1] * frac
+    }
+
+    private fun sliceY(cnt: Int): DoubleArray = DoubleArray(cnt) { ysPx[it] }
 
     /** Catmull-Rom → cubic Bezier，穿过全部采样点，C1 连续（对应 _smooth_curve）。 */
     private fun buildSmooth(path: Path, xs: DoubleArray, ys: DoubleArray, cnt: Int, moveFirst: Boolean) {
@@ -474,5 +917,12 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private val POS4 = floatArrayOf(0f, 0.24f, 0.60f, 1f)
         private val KER3 = doubleArrayOf(0.25, 0.5, 0.25)
         private val FULL5 = doubleArrayOf(0.2, 0.2, 0.2, 0.2, 0.2)
+
+        // fade 子带剖面（上沿软入→中段聚光→下缘收出），见 drawOneSidedBand 注释
+        private val SUB_OFF = doubleArrayOf(0.00, 0.10, 0.24)
+        private val SUB_FRAC = doubleArrayOf(1.00, 0.62, 0.42)
+        private val SUB_AA = doubleArrayOf(0.14, 0.34, 0.24)
+        private val PINK_TAU = doubleArrayOf(0.9, 3.7, 14.0, 55.0)
+        private val DARK_GUST = intArrayOf(8, 12, 22)
     }
 }

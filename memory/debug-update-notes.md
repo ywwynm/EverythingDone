@@ -1,5 +1,23 @@
 # Current Debug Update Notes
 
+## 2026-07-11 - 将 FableSol 最新表达与材质升级迁移到 Android
+
+用户要求继续把 `audioVisualizerSimulatorFable` 的最新更新迁移到 Android，并明确范围只包括
+`FableSol` 实现链。对照源端移植说明和两边工作区后，确认 Android 已有映射、物理和渲染的大部分
+改动，但音频帧、事件和 Analyzer 尚未接上 A1/A3/A6，当前代码因此无法编译。
+
+本次补齐 K/A 双计权、400ms/3s 响度窗、白化 SuperFlux、music gate、4Hz 波动强度、YIN、
+相对音高、音节率/重音、HNR、arousal、looming 与 impulse；扩展 `FableSolFeatureFrame` 和
+`FableSolEvent`，完成 `Prominence` 分发与随机整数接口。已有部分迁移继续覆盖双 register、
+乐队分层、反克隆注入、境状态、持久闪点/珍珠斑、猫爪、表面带、薄峰透光、流光条纹、轨道
+微摆、波背自阴影、空气透视、冷暖微偏、1/f 和 A6 张力试验；接触阴影与 A5.5 保持移除。
+
+新增 Kotlin 表达升级回归；源模拟器 42 项相关测试、Android 完整单测和 Debug 构建通过。
+未使用 adb、未安装设备、未创建 Git commit。详细记录见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260711193253.md`。已发布阿里云
+Debug `202607111133`，APK SHA-256 为
+`d7b29809505c0de0029e54ac21c4b507f51f131fbe02e97208a86e1c85c4b15e`。
+
 ## 2026-07-11 - 让 FableSol 流速对齐快速发声和高事件密度
 
 用户先后提供 Android 录音 `20260710234846.wav` 与 `20260710235706.wav`，反馈快速“啦啦啦”和另一段高事件密度声音对应的水流都偏慢，并要求结合公开研究调整人的感知速度映射。诊断确认两段录音都未触及 213.6dp/s 的第 0 层物理上限：旧实现固定以 3 秒为分母，导致新出现的密集声音需要约 3 秒才能建立速度；节拍置信度越高，弱 subdivision 被删除得越多；tempo 与 density 的凸组合还会让约 110 BPM 向下拉低每秒 6~8 个表层事件。

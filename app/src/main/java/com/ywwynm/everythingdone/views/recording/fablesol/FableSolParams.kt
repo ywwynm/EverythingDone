@@ -22,6 +22,11 @@ class FableSolParams {
         v("crest_lighten", 0.40); v("crest_glow_strength", 0.42)
         v("crest_glow_depth_dp", 12.0); v("crest_veil_strength", 0.32)
         v("capillary_glint_gain", 1.0)
+        // 立体感手法（2026-07-11 视觉批次，Python 面板同名参数的定稿默认值）
+        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.55)
+        v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
+        v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
+        v("hue_temp_deg", 5.0); v("pink_mod", 0.80)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)

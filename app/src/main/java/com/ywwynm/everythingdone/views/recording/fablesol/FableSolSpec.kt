@@ -14,6 +14,7 @@ object FableSolSpec {
     const val HEIGHT_DP = 420.0
 
     const val N_LAYERS = 9
+    const val DEEP_LAYER_START = 7   // 深两层“无动于衷”（D16 乐队分层）：只随长积分与段落慢变
 
     const val VISIBLE_COLS = 96
     const val N_POINTS = 216
