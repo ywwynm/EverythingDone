@@ -118,21 +118,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     fun applyOnset(sim: FableSolSimulation, ev: FableSolEvent.Onset) {
         val s = ev.strength01
         val bands = doubleArrayOf(ev.low, ev.mid, ev.high)
-        val raw = DoubleArray(sim.layers.size) {
-            val role = bandWeights(sim.layers[it].depth01)
-            role[0] * bands[0] + role[1] * bands[1] + role[2] * bands[2]
-        }
-        var mx = 1e-3
-        for (r in raw) if (r > mx) mx = r
-        val s15 = s.pow(1.5)
         for (ls in sim.layers) {
-            val r = raw[ls.i]
-            val carrier = 0.45 * (1.0 - 0.65 * ls.depth01)
-            ls.heroPunch01 = min(ls.heroPunch01 + s15 * (r / mx) * carrier, 1.0)
-            val role = bandWeights(ls.depth01)
-            val v = DoubleArray(3) { role[it] * max(bands[it], 0.02) }
-            val vSum = max(v[0] + v[1] + v[2], 1e-6)
-            for (j in 0 until 3) ls.heroPunchBand01[j] = min(ls.heroPunchBand01[j] + s15 * (r / mx) * (v[j] / vSum) * carrier, 1.0)
+            // 快速事件只改变光学毛细纹；几何能量统一进入下方 DynamicWave 物理注入。
             ls.capillaryTarget01 = min(ls.capillaryTarget01 + s * (0.18 + 0.42 * ev.flatness01), 1.0)
         }
         injectRhythmWave(sim, ev, bands)

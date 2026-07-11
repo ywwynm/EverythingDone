@@ -44,12 +44,13 @@ class FableSolLayerSim(index: Int) {
 
     @JvmField var heroDp = 0.0
     @JvmField var heroTargetDp = 0.0
-    @JvmField var heroPunch01 = 0.0
+    @JvmField var heroPunch01 = 0.0  // 旧调用兼容；实时/演示路径不得写入
     @JvmField val heroBandDp = DoubleArray(3)
     @JvmField val heroBandTargetDp = DoubleArray(3)
     @JvmField val heroPunchBand01 = DoubleArray(3)
     @JvmField var roughness01 = 0.0
     @JvmField var roughnessTarget01 = 0.0
+    @JvmField var shapeRoughness01 = 0.0
     @JvmField var capillary01 = 0.0
     @JvmField var capillaryTarget01 = 0.0
 
@@ -173,7 +174,13 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     // ---- 倾斜控制 ----
     fun setTilt(deg: Double, snap: Boolean = false) {
-        thetaDeg = deg.coerceIn(-90.0, 90.0)
+        if (!deg.isFinite()) return
+        // Android 重力方向覆盖完整圆周；选择与当前角度最近的等价角，既允许完全倒置，
+        // 又避免传感器从 179° 跳到 -179° 时让水体反向旋转 358°。
+        var delta = (deg - thetaDeg) % 360.0
+        if (delta <= -180.0) delta += 360.0
+        else if (delta > 180.0) delta -= 360.0
+        thetaDeg += delta
         if (snap) {
             val th = Math.toRadians(thetaDeg)
             prevThRender = th
@@ -273,7 +280,9 @@ class FableSolSimulation(private val p: FableSolParams) {
     private fun toU(xDp: Double, span: Double): Double {
         val th = Math.toRadians(thetaDeg)
         val centeredX = xDp - containerWidthDp / 2.0
-        val uu = if (abs(thetaDeg) < 89) centeredX * abs(cos(th)) else centeredX
+        val uu = if (abs(cos(th)) > cos(Math.toRadians(89.0))) {
+            centeredX * abs(cos(th))
+        } else centeredX
         val lim = uLimit(span)
         return uu.coerceIn(-lim, lim)
     }
@@ -352,15 +361,15 @@ class FableSolSimulation(private val p: FableSolParams) {
         if (t < demoNextT) return
         demoNextT = t + demoRng.uniform(0.4, 1.3)
         val strength = demoRng.uniform(0.2, 1.0).pow(1.5)
-        val share = doubleArrayOf(0.5, 0.3, 0.2)
+        val span = geometrySpan()
+        val side = if (FLOW_DIR < 0.0) 1.0 else -1.0
         for (ls in layers) {
             val k = (1.0 - 0.42 * ls.depth01) * demoRng.uniform(0.6, 1.0)
-            ls.heroPunch01 = min(ls.heroPunch01 + strength * k, 1.0)
-            ls.heroTargetDp = 0.45 * p.lget("hero_max_dp", ls.i) * p.get("hero_gain")
-            for (j in 0 until 3) {
-                ls.heroBandTargetDp[j] = ls.heroTargetDp * share[j]
-                ls.heroPunchBand01[j] = min(ls.heroPunchBand01[j] + strength * k * share[j], 1.0)
-            }
+            val width = 150.0 * (1.0 + 0.20 * ls.depth01)
+            val amp = max(2.0, strength * k * 18.0)
+            val u = side * (span / 2.0 + width / 2.0 + 16.0 + 24.0 * ls.depth01)
+            injectLayer(ls.i, 0.0, width, amp, FLOW_DIR * 0.90,
+                delayS = 0.018 * ls.i, uDp = u, peak = 1.15)
         }
     }
 
@@ -375,9 +384,10 @@ class FableSolSimulation(private val p: FableSolParams) {
             if (shakeT >= 0.0) shakeT += PHYSICS_DT
             if (p.get("demo_mode") >= 0.5) demoTick()
             val thetaIn = thetaDeg + wobbleDeg()
-            val targetBlend = min(abs(thetaIn) / WALL_ON_DEG, 1.0)
-            wallBlend += (targetBlend - wallBlend) * (1.0 - exp(-PHYSICS_DT / 0.3))
             val thInRad = Math.toRadians(thetaIn)
+            // 硬墙过渡取决于水面偏离水平面的角度；0° 和 180° 都是水平水面。
+            val targetBlend = min(abs(sin(thInRad)) / sin(Math.toRadians(WALL_ON_DEG)), 1.0)
+            wallBlend += (targetBlend - wallBlend) * (1.0 - exp(-PHYSICS_DT / 0.3))
             val rate = abs(thInRad - prevThIn) / PHYSICS_DT
             prevThIn = thInRad
             tiltAgit = max(tiltAgit * exp(-PHYSICS_DT / 1.4), min(rate / 1.2, 1.0))
@@ -461,7 +471,7 @@ class FableSolSimulation(private val p: FableSolParams) {
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
         val heroGain = p.get("hero_gain")
-        val heroPunch = p.get("hero_punch")
+        val heroPunch = p.get("hero_punch") // 旧调用兼容，默认 0；快速能量只走 DynamicWave
         val punchDecay = exp(-dt / max(p.get("hero_punch_decay_s"), 0.05))
         val moodSpreadDp = p.get("mood_spread_dp")
         val wanderGain = p.get("wander_gain")
@@ -492,6 +502,7 @@ class FableSolSimulation(private val p: FableSolParams) {
                 ls.heroBandDp[j] += (bandTarget[j] - ls.heroBandDp[j]) * (1.0 - exp(-dt / max(tauB, 1e-3)))
             }
             ls.roughness01 += (ls.roughnessTarget01 - ls.roughness01) * (1.0 - exp(-dt / 0.26))
+            ls.shapeRoughness01 += (ls.roughnessTarget01 - ls.shapeRoughness01) * (1.0 - exp(-dt / 1.2))
             val capTau = if (ls.capillaryTarget01 > ls.capillary01) 0.06 else 0.34
             ls.capillary01 += (ls.capillaryTarget01 - ls.capillary01) * (1.0 - exp(-dt / capTau))
             ls.surgeLiftTargetDp *= exp(-dt / 2.2)
@@ -506,7 +517,7 @@ class FableSolSimulation(private val p: FableSolParams) {
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
             val xShift = DoubleArray(N_POINTS) { uGrid[it] + spatialShift }
-            val hero = ls.hero.sample(xShift, ls.heroBandDp, t, heroBreath, vis, ls.roughness01)
+            val hero = ls.hero.sample(xShift, ls.heroBandDp, t, heroBreath, vis, ls.shapeRoughness01)
             val wu = ls.wave.u
             val row = heights[ls.i]
             for (n in 0 until N_POINTS) row[n] = level + wu[n] + amb[n] + hero[n] + lagK * uGrid[n]
@@ -575,8 +586,8 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val SHAKE_AMP_DEG = 8.0
         private const val SHAKE_FREQ_HZ = 3.2
         private const val SHAKE_TAU_S = 0.45
-        private val ATK_MULT = doubleArrayOf(1.35, 0.85, 0.38)
-        private val REL_MULT = doubleArrayOf(1.25, 0.78, 0.34)
+        private val ATK_MULT = doubleArrayOf(1.15, 1.0, 0.85)
+        private val REL_MULT = doubleArrayOf(1.15, 1.0, 0.85)
     }
 }
 

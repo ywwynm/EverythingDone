@@ -33,6 +33,13 @@
   可见跨度和按宽度定义的事件全部使用这项实测宽度。见 decisions.md D2、D8。
 - **采样率**：复用现有采集 44100Hz（原版 48000Hz）。`FRAME_RATE=SR/HOP` 自适应，
   算法结构不变，仅频率分辨率有极小差异（bin 21.5Hz vs 23.4Hz），视觉无感。见 decisions.md D3。
+- **可信声音门**：A 加权感知总能量限制在 16kHz 以下，flux 的 32 个对数频带严格止于 12kHz；
+  Analyzer 从静音启动，并以 −66~−54dBFS smoothstep 置信度缩放响度、频段和 onset，避免手机
+  近 Nyquist 电子干扰及 AGC 泵动被相对归一放大。见 decisions.md D9。
+- **采集启动预热**：Android 首次启动 AudioRecord 时，连续的低频暂态在最多 4.5 秒的自适应预热内
+  不驱动水位或 onset；稳定静音或可信中高频内容持续 0.3 秒即可提前放行。只保护可视化，不裁剪 WAV。
+- **浪形连续性**：onset 不再直接修改程序化主浪；快速能量只进入 DynamicWave 物理注入。
+  HeroWave 只按慢包络改变，几何粗糙度与快速光学材质分离。见 decisions.md D12。
 - **段落检测**：移植实时 Foote 新奇度 `_NoveltyDetector`（驱动性格档切换；段涌 surge_gain 默认 0）。
 - **录音状态**：PREPARED/STOPPED 继续监听并驱动低透明度水面，开始录音不重置 Analyzer；
   这是 Android 录音预览设计，不要求跟随 Python 播放器状态机。见 decisions.md D7。
@@ -66,5 +73,7 @@
 
 原版 `set_tilt(deg)`；Fragment 已把重力投影到屏幕平面 `(screenX, screenY)`。
 `WaveVisualizerFableSol.setContainerGravity(x,y,z)` 内部换算
-`deg = toDegrees(atan2(x, y))` 传给 `Simulation.setTilt(deg)`（符号真机校准）。
-原版无 z 通道，z 暂忽略。
+`deg = toDegrees(atan2(x, y))` 传给 `Simulation.setTilt(deg)`。Android 实现接受完整 360° 重力方向，
+完全倒置时保持 ±180°，并在 179°↔−179° 边界选择最短连续旋转，因此水体可与旧 Opus 一样转到
+Dialog 顶部。录音 Dialog 打开时锁定宿主 Activity 当前方向，销毁或关闭时恢复原方向；该生命周期与
+切换 FableSol 前的 Opus 实现相同。原版无 z 通道，z 暂忽略。

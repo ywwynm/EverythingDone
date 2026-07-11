@@ -125,6 +125,23 @@ object FableSolMath {
         return DoubleArray(qs.size) { percentileSorted(s, qs[it]) }
     }
 
+    /**
+     * 按相邻边界求和：[b0,b1)、[b1,b2)...；最后一段严格止于最后一个边界，
+     * 不采用 np.add.reduceat“最后一段延伸到数组末尾”的语义。
+     */
+    fun sumAdjacentSegments(values: DoubleArray, boundaries: IntArray): DoubleArray {
+        if (boundaries.size < 2) return DoubleArray(0)
+        val out = DoubleArray(boundaries.size - 1)
+        for (i in out.indices) {
+            val start = boundaries[i].coerceIn(0, values.size)
+            val end = boundaries[i + 1].coerceIn(start, values.size)
+            var sum = 0.0
+            for (j in start until end) sum += values[j]
+            out[i] = sum
+        }
+        return out
+    }
+
     private fun percentileSorted(s: DoubleArray, q: Double): Double {
         val n = s.size
         if (n == 0) return 0.0

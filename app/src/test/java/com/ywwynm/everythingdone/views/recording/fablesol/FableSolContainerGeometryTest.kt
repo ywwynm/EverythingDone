@@ -9,6 +9,27 @@ import kotlin.math.sin
 class FableSolContainerGeometryTest {
 
     @Test
+    fun fullInversionKeepsOneHundredEightyDegreeRenderAngle() {
+        val sim = FableSolSimulation(FableSolParams())
+
+        sim.setTilt(180.0, snap = true)
+
+        assertEquals(180.0, abs(Math.toDegrees(sim.renderInfo().thetaRad)), 1e-9)
+        assertEquals(FableSolSpec.REFERENCE_WIDTH_DP, sim.geometrySpan(), 1e-9)
+        assertEquals(FableSolSpec.HEIGHT_DP, sim.renderInfo().hG, 1e-9)
+    }
+
+    @Test
+    fun crossingOneHundredEightyDegreesUsesShortestRotation() {
+        val sim = FableSolSimulation(FableSolParams())
+        sim.setTilt(179.0, snap = true)
+
+        sim.setTilt(-179.0)
+
+        assertEquals(181.0, sim.thetaDeg, 1e-9)
+    }
+
+    @Test
     fun measuredViewWidthControlsContainerGeometry() {
         val measuredWidthDp = 276.5
         val sim = FableSolSimulation(FableSolParams())

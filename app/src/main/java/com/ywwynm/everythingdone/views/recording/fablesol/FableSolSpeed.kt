@@ -10,15 +10,18 @@ import kotlin.math.pow
 object FableSolSpeed {
 
     const val RATE_WINDOW_S = 3.0
+    const val FAST_RATE_WINDOW_S = 1.0
+    private const val FAST_RATE_WEIGHT = 0.72
     private const val TEMPO_MIN_BPM = 55.0
     private const val TEMPO_MAX_BPM = 175.0
-    private const val TEMPO_MAX_WEIGHT = 0.32
+    private const val TEMPO_MAX_BOOST = 0.12
     private const val PERCEPTUAL_CONTRAST = 0.50
-    private const val SPEED_ATTACK_S = 0.65
+    private const val SPEED_ATTACK_S = 0.35
     private const val SPEED_RELEASE_S = 1.10
     const val TEMPO_EVIDENCE_TAU_S = 7.2
     private const val ONSET_SALIENCE_EXPONENT = 1.7
     private const val ONSET_WEIGHT_FLOOR = 0.28
+    private const val RAW_SUBDIVISION_RETAIN = 0.75
 
     private val SCALE_X = doubleArrayOf(0.0, 0.074, 0.316, 0.365, 0.503, 0.639, 0.739, 0.792, 1.0)
     private val SCALE_Y = doubleArrayOf(0.0, 0.076, 0.320, 0.360, 0.499, 0.639, 0.749, 0.841, 1.0)
@@ -43,8 +46,15 @@ object FableSolSpeed {
     fun effectiveEventRate(rawRateHz: Double, salientRateHz: Double, beatConfidence: Double): Double {
         val raw = if (rawRateHz > 0.0) rawRateHz else 0.0
         val salient = if (salientRateHz > 0.0) salientRateHz else 0.0
-        val unmetered = 1.0 - tempoConfidence01(beatConfidence)
-        return salient + 0.45 * unmetered * maxOf(raw - salient, 0.0)
+        return salient + RAW_SUBDIVISION_RETAIN * maxOf(raw - salient, 0.0)
+    }
+
+    /** 1 秒通道负责及时提速，3 秒通道负责稳定与自然释放。 */
+    fun surfaceEventRate(fastRateHz: Double, slowRateHz: Double): Double {
+        val fast = maxOf(fastRateHz, 0.0)
+        val slow = maxOf(slowRateHz, 0.0)
+        val rising = FAST_RATE_WEIGHT * fast + (1.0 - FAST_RATE_WEIGHT) * slow
+        return maxOf(slow, rising)
     }
 
     fun tempo01(bpm: Double): Double =
@@ -57,8 +67,8 @@ object FableSolSpeed {
     fun fusePerceivedSpeed01(rateHz: Double, tempoComponent01: Double, beatConfidence: Double): Double {
         val density = onsetDensity01(rateHz)
         val tempo = tempoComponent01.coerceIn(0.0, 1.0)
-        val weight = TEMPO_MAX_WEIGHT * tempoConfidence01(beatConfidence)
-        val fused = density + weight * (tempo - density)
+        val weight = TEMPO_MAX_BOOST * tempoConfidence01(beatConfidence)
+        val fused = density + weight * tempo * (1.0 - density)
         val contrasted = fused + PERCEPTUAL_CONTRAST * fused * (1.0 - fused) * (2.0 * fused - 1.0)
         return interp(contrasted.coerceIn(0.0, 1.0), SCALE_X, SCALE_Y)
     }

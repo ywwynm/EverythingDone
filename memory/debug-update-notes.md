@@ -1,5 +1,72 @@
 # Current Debug Update Notes
 
+## 2026-07-11 - 让 FableSol 流速对齐快速发声和高事件密度
+
+用户先后提供 Android 录音 `20260710234846.wav` 与 `20260710235706.wav`，反馈快速“啦啦啦”和另一段高事件密度声音对应的水流都偏慢，并要求结合公开研究调整人的感知速度映射。诊断确认两段录音都未触及 213.6dp/s 的第 0 层物理上限：旧实现固定以 3 秒为分母，导致新出现的密集声音需要约 3 秒才能建立速度；节拍置信度越高，弱 subdivision 被删除得越多；tempo 与 density 的凸组合还会让约 110 BPM 向下拉低每秒 6~8 个表层事件。
+
+本次同步修改 Python 蓝本与 Android/Kotlin：新增 1 秒快速事件率并与 3 秒保持事件率融合；通过听觉门的原始 subdivision 固定保留 75%，不再受 beat confidence 降权；tempo 仅在剩余行程内提供最高 12% 正向佐证，不再压低表层速度；分析侧攻击由 0.65 秒缩短到 0.35 秒，Simulation 流速平滑由 0.72 秒缩短到 0.48 秒。onset strength 仍主要控制波高、注入能量和材质，没有修改物理速度上限。
+
+真实 WAV 回放中，快速“啦啦啦”的 `flow01` 中位数由约 0.49 提高到 0.65，第二个 onset 后约 0.92 秒越过 0.5；长录音中位数由约 0.51 提高到 0.83。此前近静音 Android 噪声样本仍只有 3 个 onset、97% 帧静音、平均响度约 0.007，没有复发噪声高速流动。新增 Python/Kotlin 速度纯函数与 Analyzer 整链回归；Python 10 项相关测试、完整 Android 单测通过，未使用 adb。详细说明见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260711001812.md`。已发布阿里云 Debug `202607101619`，APK SHA-256 为 `a49ece45531e35ae9dc64e4146fa7dc7e0ca192d551c34d2a1c3431b3851e4e1`。
+
+## 2026-07-10 - 抑制 FableSol 采集启动低频暂态并保持既有浪形连续
+
+用户提供 Android 录音 `20260710231609.wav`，反馈打开录音 Dialog 后即使环境安静，水位也会先升后降；
+约第 7 秒的拖鞋拍地声还会让几层已经形成的浪生硬改形。Python 分析、回放和测试按用户要求使用 Conda
+环境 `everythingdone`。
+
+诊断确认录音前 0~3 秒的 PCM 本身约为 −20~−23dBFS，约 70%~90% 的 A 加权能量位于 250Hz 以下，
+约 4.5 秒后才降到 −55dBFS 以下；当前应用显式关闭 AGC/NS/AEC，因此不能简单归因于应用层先录噪声、
+再开始降噪。Android Analyzer 增加采集会话启动预热门：稳定静音或可信非低频内容持续 0.3 秒可提前
+开放，最长 4.5 秒；低频暂态不进入底噪、中心、flux 或视觉输出。该门只影响水面，不裁剪保存的 WAV。
+
+拍击 onset 位于约 6.30、6.76、7.15、7.26 秒。旧实现即使关闭物理注入，仍会通过 HeroWave punch
+在全屏直接重塑多层既有轮廓，高频模态攻击最低约 61ms。Python 与 Kotlin 同步取消这条直接改形路径；
+快速事件只进入 DynamicWave 物理波包，HeroWave 只按约 0.72 秒以上的慢包络改变，几何粗糙度与快速
+光学材质分离。无物理注入的 onset 轮廓变化由最高约 0.56dp RMS 降为严格 0，极端频段目标单帧变化由
+约 3.97 降至约 0.39dp RMS。
+
+新增双端回归测试；Python 5 项测试、FableSol JVM 测试、完整 `:app:testDebugUnitTest` 和
+`:app:assembleDebug` 均通过，未使用 adb。详细日志见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260710234151.md`。已发布阿里云 Debug
+`202607101544`，APK SHA-256 为 `a6e0997c1f672cc02c65b3d88022081159df83092c63fa6060e19ec37f832309`。
+
+## 2026-07-10 - 修复完全倒置时 FableSol 水体未转到录音 Dialog 顶部
+
+用户真机发现完全倒置手机时，FableSol 水面和波浪仍停在侧边，没有像迁移前的 Opus 一样转到录音
+Dialog 顶部；同时要求确认打开录音 Dialog 后是否禁止宿主 Activity 自动旋转。
+
+诊断以“180° 重力输入必须保留 ±180° 渲染角”为复现信号。新增 `FableSolContainerGeometryTest`
+用例后稳定得到 90°，确认根因是 `FableSolSimulation.setTilt()` 直接沿用了 Python 桌面滑块的
+`[-90°, 90°]` 限制。修复后 Simulation 接受完整圆周角，并在 179°↔−179° 之间选择最近等价角，
+避免水体跨边界时反向旋转 358°；墙面过渡改按水面偏离水平面的角度计算，使 0° 和 180° 都保持
+水平水面语义。现有填充闭合距离在 180° 时已经越过顶部约 80dp，不需要修改水量或绘制范围。
+
+迁移前后 diff 证明 `AudioRecordDialogFragment` 的行为没有变化：`onCreateView()` 保存当前
+`requestedOrientation` 与屏幕 rotation 后设置 `SCREEN_ORIENTATION_LOCKED`；`onDestroyView()` 和
+`onDismiss()` 恢复原策略；重力传感器到屏幕坐标的转换也与 Opus 相同。新增测试修复前 2 项失败、
+修复后通过；完整 `:app:testDebugUnitTest`、`:app:assembleDebug` 均通过，未使用 adb。详细日志见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260710231140.md`。已发布阿里云 Debug
+`202607101512`，APK SHA-256 为 `a070d497adc004cbe9b7da4455948c3083d03f7293360bc3bd0972cb26306199`。
+
+## 2026-07-10 - 修复 FableSol 近静音录音的假响度与假 onset
+
+用户提供 Android 近静音录音 `20260710215433.wav`：旧 FableSol 前端前 10 秒输出约 0.45~0.60 响度，
+并持续产生每秒 7~8 个假 onset。复核确认录音存在 18.3kHz 强电子干扰、约 100Hz 嗡声与非平稳
+AGC/噪声泵动；同时确认原分析中“`reduceat` 最后一带越过 12kHz”是代码 Bug，但单独修正它不会让
+前 5 秒的 37 个假 onset 降低，直接撑开静音门的是 A 加权总能量仍累计到 Nyquist。
+
+本次同步修复 Python 蓝本与 Android/Kotlin：听觉总能量、底噪、质心和平坦度限制在 16kHz 以下；
+32 个 flux 带严格止于 12kHz；Analyzer 从静音启动；以 −66~−54dBFS smoothstep 绝对可听度置信
+缩放响度、频段和 onset；flux 环接收所有帧作为基线，保留稀疏真实脉冲的快速检测。
+
+真实 WAV 在 Python 路径由 90 个假 onset、平均响度 0.272 降至 3 个 onset、约 0.004；Kotlin 原生
+44.1kHz 路径为 4 个 onset、约 0.008。新增 Python/Kotlin 回归测试覆盖频带边界、超声调制近静音与
+明确可听稀疏脉冲；`:app:testDebugUnitTest`、`:app:assembleDebug` 均通过，未使用 adb。详细日志见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260710225539.md`。已发布阿里云 Debug
+`202607101456`，APK SHA-256 为 `7201f01aec23479a5ad182aa52d0057618c4e048b521c7d2501f81d693886ad3`。
+
+Latest published debug update: `202607101544`.
+
 ## 2026-07-10 - FableSol 物理容器改用 Dialog 最终实测宽度
 
 用户在 Python → Android 迁移审查后确认：PREPARED/STOPPED 持续监听并驱动水面属于既定录音预览设计，

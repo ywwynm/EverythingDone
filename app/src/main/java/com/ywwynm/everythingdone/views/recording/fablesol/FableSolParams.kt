@@ -25,12 +25,12 @@ class FableSolParams {
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)
-        v("flow_curve", 1.29); v("flow_smooth_s", 0.72)
+        v("flow_curve", 1.29); v("flow_smooth_s", 0.48)
         v("wander_gain", 1.0); v("wall_soft", 0.6); v("tilt_calm", 0.75)
         // 主浪
         v("hero_gain", 1.0); v("hero_len_dp", 360.0)
-        v("hero_attack_s", 0.16); v("hero_release_s", 1.20)
-        v("hero_punch", 0.32); v("hero_punch_decay_s", 0.42)
+        v("hero_attack_s", 0.85); v("hero_release_s", 1.60)
+        v("hero_punch", 0.0); v("hero_punch_decay_s", 0.42)
         v("hero_breath", 0.42); v("beat_gain", 1.0)
         // 涨落
         v("swell_presmooth_s", 0.55); v("swell_presmooth_release_s", 1.60)

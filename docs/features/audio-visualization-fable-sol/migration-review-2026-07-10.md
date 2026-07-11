@@ -13,8 +13,8 @@ Simulation 与 Canvas 渲染公式已逐项对照；主要数学链路保持一�
 2. View 在不可见期间仍可能接收并累计全部 feature frame；渲染和分析路径也存在较多短数组分配，
    需要真机确认后台内存、GC 与帧率。
 3. 固定 320dp 物理宽度问题已修复：物理容器改用 View 最终实测宽度，320dp 只保留为网格基准和测量前回退。
-4. FableSol 自动化测试目前覆盖第 0 层颜色策略与运行时容器几何，仍缺少由 Python 版生成的
-   Analyzer、Mapper 和完整物理 golden fixture。
+4. FableSol 自动化测试目前覆盖第 0 层颜色策略、运行时容器几何和近静音噪声 Analyzer 回归，
+   仍缺少由 Python 版生成的完整 Mapper/Simulation golden fixture。
 
 ## 已确认一致的部分
 
@@ -61,8 +61,9 @@ FableSol receiver 主动发送 silence。Python 版则在 `record_start` 执行
 
 ### 4. 自动化回归覆盖不足
 
-现有 FableSol JVM 测试覆盖 `FableSolLayerColorPolicy` 和运行时容器宽度几何；Analyzer、Mapper 与完整
-Simulation 仍主要依赖源码逐项比对和临时差分烟测，后续参数或公式改动缺少足够的自动防回归能力。
+现有 FableSol JVM 测试已覆盖 `FableSolLayerColorPolicy`、运行时容器宽度与完整倒置几何、Analyzer 的
+频带边界/近静音/采集启动预热，以及 Mapper/Simulation 的浪形连续性。跨语言完整 golden fixture、beat、
+FeatureMapper 全字段输出与 Canvas 截图仍缺少足够的自动防回归能力。
 
 建议把 Python 输出固化为小型 fixture，至少覆盖：FFT/特征帧、onset/beat、FeatureMapper 输出、固定种子下的
 Simulation 不变量；Canvas 可增加少量截图 golden 测试。
