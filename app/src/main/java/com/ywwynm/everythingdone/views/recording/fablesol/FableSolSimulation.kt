@@ -369,7 +369,9 @@ class FableSolSimulation(private val p: FableSolParams) {
                 abs(travel) > 1e-6 -> if (travel > 0) -1.0 else 1.0
                 else -> 1.0
             }
-            u = side * max(abs(raw), need)
+            // 中心不超网格上限（否则包整体落在网格外被静默丢弃）；外侧尾巴
+            // 允许被网格截断——发生在海绵深处，不可见且被吸收。
+            u = side * min(max(abs(raw), need), gridCap)
         }
         val nRamp = max((p.get("inject_ramp_ms") / 1000.0 / PHYSICS_DT).toInt(), 1)
         ls.pending.add(FableSolPending(

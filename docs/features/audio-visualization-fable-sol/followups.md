@@ -1,8 +1,10 @@
 # 待办 · audio-visualization-fable-sol
 
-- **Python 蓝本回植画外出生硬保证（2026-07-11）**：Android injectLayer 已修
-  （画外全支撑 + 删除共鸣档 uLimit 向内钳位塌缩，见 update-20260711222645）；
-  Python sim.inject_layer 几乎必然同病，需同构修复 + 回归。
+- **画外出生硬保证已双端同构完成（2026-07-11）**：Android injectLayer 与
+  Python sim.inject_layer 同修（画外全支撑、共鸣档塌缩移除、中心网格上限防
+  静默丢包）；Python 新增 4 项回归（test_offscreen_birth.py），双端全绿。
+  Android 补丁发布 `202607111443`。注：8dp 出生间隙下波前 ~50ms 合法入画，
+  保证语义=渐入期无宏观突现（锁步测试阈值 0.05dp/0.04s 即此语义）。
 - **焦散已整体移除**（两轮修形仍"不好看"）；深度吸收（absorption_gain 0.35）保留。
 
 - **C 阶段返工中（2026-07-11 真机红色天空确诊）**：AGSL 不支持 uniform 数组动态
