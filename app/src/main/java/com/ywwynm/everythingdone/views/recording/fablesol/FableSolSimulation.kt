@@ -46,8 +46,12 @@ class FableSolLayerSim(index: Int) {
     @JvmField var heroDp = 0.0
     @JvmField var heroTargetDp = 0.0
     @JvmField var heroPunch01 = 0.0  // 旧调用兼容；实时/演示路径不得写入
+    // 三个 Hero 频段的空间能量包络。目标值只写入上游出生区，再随流进入可见区；
+    // 禁止逐帧音频直接重缩放整段已可见 Hero 几何（D17）。
     @JvmField val heroBandDp = DoubleArray(3)
     @JvmField val heroBandTargetDp = DoubleArray(3)
+    @JvmField val heroBandFieldDp = Array(3) { DoubleArray(N_POINTS) }
+    @JvmField internal val heroBandScratchDp = Array(3) { DoubleArray(N_POINTS) }
     @JvmField val heroPunchBand01 = DoubleArray(3)
     @JvmField var roughness01 = 0.0
     @JvmField var roughnessTarget01 = 0.0
@@ -342,10 +346,34 @@ class FableSolSimulation(private val p: FableSolParams) {
         if (ampDp < 0.9) return
         val span = geometrySpan()
         val ls = layers[i]
-        val u = if (uDp == null) toU(xDp, span) else uDp.coerceIn(-uLimit(span), uLimit(span))
+        var w = widthDp
+        val u: Double
+        if (uDp == null) {
+            u = toU(xDp, span)
+        } else {
+            // 画外全支撑出生的硬保证（2026-07-11 根治"浪包突然隆起/鼓包"）：
+            // Hann 支撑 [u−w/2, u+w/2] 不得与可见跨度相交——出生点只向外推、
+            // 绝不向内拉；浪只能以行波形式进入画面。旧实现的 uLimit 向内钳位
+            // 在共鸣档（余量塌缩到 12dp）把每个包的半幅直接压进可见区，是
+            // 频繁大幅突变的主因；jitter/pan/frac 的随机尾部越界是次因。
+            // need 超出网格容量时先收窄包宽（保持全支撑画外），不牺牲保证。
+            val visHalf = span / 2.0
+            val gridCap = U_HALF_DP - 12.0
+            val maxW = 2.0 * (gridCap - visHalf - EDGE_BIRTH_GAP_DP)
+            if (w > maxW) w = maxW
+            if (w < 24.0) return  // 容器占满网格的极端情形：宁可丢弃也不入画
+            val need = visHalf + w / 2.0 + EDGE_BIRTH_GAP_DP
+            val raw = uDp
+            val side = when {
+                abs(raw) > 1e-6 -> if (raw > 0) 1.0 else -1.0
+                abs(travel) > 1e-6 -> if (travel > 0) -1.0 else 1.0
+                else -> 1.0
+            }
+            u = side * max(abs(raw), need)
+        }
         val nRamp = max((p.get("inject_ramp_ms") / 1000.0 / PHYSICS_DT).toInt(), 1)
         ls.pending.add(FableSolPending(
-            t = t + delayS, u = u, w = widthDp, amp = ampDp * ls.gainMult,
+            t = t + delayS, u = u, w = w, amp = ampDp * ls.gainMult,
             travel = travel, peak = peak.coerceIn(0.5, 2.5), stepsLeft = nRamp, total = nRamp
         ))
     }
@@ -574,6 +602,7 @@ class FableSolSimulation(private val p: FableSolParams) {
                 val tauB = if (risingB) p.get("hero_attack_s") * ATK_MULT[j] else p.get("hero_release_s") * REL_MULT[j]
                 ls.heroBandDp[j] += (bandTarget[j] - ls.heroBandDp[j]) * (1.0 - exp(-dt / max(tauB, 1e-3)))
             }
+            advectHeroEnvelope(ls, dt, half)
             ls.roughness01 += (ls.roughnessTarget01 - ls.roughness01) * (1.0 - exp(-dt / 0.26))
             ls.shapeRoughness01 += (ls.roughnessTarget01 - ls.shapeRoughness01) * (1.0 - exp(-dt / 1.2))
             val capTau = if (ls.capillaryTarget01 > ls.capillary01) 0.06 else 0.34
@@ -595,11 +624,48 @@ class FableSolSimulation(private val p: FableSolParams) {
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
             val xShift = DoubleArray(N_POINTS) { uGrid[it] + spatialShift }
-            val hero = ls.hero.sample(xShift, ls.heroBandDp, t, heroBreath, vis, ls.shapeRoughness01)
+            val hero = ls.hero.sample(xShift, ls.heroBandFieldDp, t, heroBreath, vis, ls.shapeRoughness01)
             val wu = ls.wave.u
             val row = heights[ls.i]
             for (n in 0 until N_POINTS) row[n] = level + wu[n] + amb[n] + hero[n] + lagK * uGrid[n]
             updateCrestVeil(ls, dt)
+        }
+    }
+
+    /**
+     * Hero 声音包络的出生与传播（D17）：[heroBandDp] 是上游源的慢目标，只有源区会被写入；
+     * 可见区里的包络只做平流，不因下一帧响度、频段或音高变化而整体改形。
+     */
+    private fun advectHeroEnvelope(ls: FableSolLayerSim, dt: Double, visibleHalf: Double) {
+        if (dt <= 0.0) return
+        val waveSpeed = p.lget("wave_speed_dps", ls.i)
+        val transport = FLOW_DIR * (abs(ls.flowDps) * 1.5 + HERO_ENVELOPE_GROUP_SPEED * waveSpeed)
+        val upstreamEdge = if (FLOW_DIR < 0) uGrid[N_POINTS - 1] else uGrid[0]
+        val available = max(abs(upstreamEdge) - visibleHalf - DX_DP, DX_DP)
+        val sourceGap = min(HERO_ENVELOPE_SOURCE_GAP_DP, available)
+        val sourceBoundary = if (FLOW_DIR < 0) visibleHalf + sourceGap else -visibleHalf - sourceGap
+
+        for (band in 0 until 3) {
+            val field = ls.heroBandFieldDp[band]
+            val scratch = ls.heroBandScratchDp[band]
+            val source = ls.heroBandDp[band]
+            for (n in 0 until N_POINTS) {
+                val xq = uGrid[n] - transport * dt
+                val pos = (xq - uGrid[0]) / DX_DP
+                scratch[n] = when {
+                    pos <= 0.0 -> if (FLOW_DIR > 0) source else field[0]
+                    pos >= N_POINTS - 1.0 -> if (FLOW_DIR < 0) source else field[N_POINTS - 1]
+                    else -> {
+                        val i0 = pos.toInt()
+                        val frac = pos - i0
+                        field[i0] + (field[i0 + 1] - field[i0]) * frac
+                    }
+                }
+            }
+            for (n in 0 until N_POINTS) {
+                field[n] = if ((FLOW_DIR < 0 && uGrid[n] >= sourceBoundary) ||
+                    (FLOW_DIR > 0 && uGrid[n] <= sourceBoundary)) source else scratch[n]
+            }
         }
     }
 
@@ -658,8 +724,11 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     companion object {
+        private const val HERO_ENVELOPE_GROUP_SPEED = 0.45
+        private const val HERO_ENVELOPE_SOURCE_GAP_DP = 48.0
         private const val SPONGE_RATE = 9.0
         private const val SPONGE_FREE_DP = 96.0
+        private const val EDGE_BIRTH_GAP_DP = 8.0  // 出生支撑外缘到可见边的最小间隙
         private const val WALL_ON_DEG = 8.0
         private const val MAX_GUSTS = 5          // 猫爪阵风上限（Python len(gusts) >= 5 → pop(0)）
         private const val SHAKE_AMP_DEG = 8.0

@@ -126,17 +126,22 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
     }
 
     /**
-     * amp3：低/中/高三模态能量幅度。meanMask 给定时在该窗口（可见区）内归零均值。
+     * ampField3：低/中/高三模态的空间能量包络。meanMask 给定时在该窗口（可见区）内归零均值。
      * 返回与 xDp 等长的高度贡献；总能量过低时返回全 0。
      */
-    fun sample(xDp: DoubleArray, amp3: DoubleArray, t: Double, breathDepth: Double,
+    fun sample(xDp: DoubleArray, ampField3: Array<DoubleArray>, t: Double, breathDepth: Double,
                meanMask: BooleanArray?, roughness01: Double): DoubleArray {
         val lenX = xDp.size
-        if (amp3[0] + amp3[1] + amp3[2] < 0.05) return DoubleArray(lenX)
+        var maxAmp = 0.0
+        for (band in 0 until 3) {
+            val field = ampField3[band]
+            for (i in 0 until lenX) if (field[i] > maxAmp) maxAmp = field[i]
+        }
+        if (maxAmp < 0.05) return DoubleArray(lenX)
         val kk = DoubleArray(6) { TWO_PI / (baseLen * lenMult[it]) }
         val w = DoubleArray(6) {
-            weight[it] * amp3[group[it]] *
-                    (1.0 + breathDepth * 0.20 * sin(TWO_PI * t / breathT[it] + breathPhi[it]))
+            weight[it] * (1.0 + breathDepth * 0.20 *
+                    sin(TWO_PI * t / breathT[it] + breathPhi[it]))
         }
         val profLag = DoubleArray(lenX)
         val disp = DoubleArray(lenX)
@@ -145,8 +150,9 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
             var sinSum = 0.0; var cosSum = 0.0
             for (m in 0 until 6) {
                 val ph = x * kk[m] + phase[m]
-                sinSum += sin(ph) * w[m]
-                cosSum += cos(ph) * w[m]
+                val localAmp = ampField3[group[m]][i]
+                sinSum += sin(ph) * w[m] * localAmp
+                cosSum += cos(ph) * w[m] * localAmp
             }
             profLag[i] = sinSum
             disp[i] = cosSum
