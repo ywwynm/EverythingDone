@@ -27,6 +27,11 @@ class FableSolParams {
         v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
         v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
         v("hue_temp_deg", 5.0); v("pink_mod", 0.80)
+        // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，
+        // 旧九层填充路径保留为内部回退，便于真机对照与低风险回滚。
+        v("surface2d_on", 1.0)
+        v("surface_heading_deg", 30.0); v("surface_spread_deg", 24.0)
+        v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 38.0)
         // 阶段 C3（AGSL 层填充光学）：深度吸收定稿；焦散已按用户裁决移除
         v("absorption_gain", 0.35)
         // 环境波 / 流动

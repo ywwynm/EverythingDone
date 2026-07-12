@@ -163,6 +163,11 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     // 倾斜
     @JvmField var thetaDeg = 0.0
+    /** 手机传感器的完整前后俯仰，范围 ±90°。 */
+    @JvmField var pitchDeg = 0.0
+    /** 由完整俯仰软压缩后的水体惯性目标，范围 ±55°。 */
+    @JvmField var motionPitchDeg = 0.0
+    @JvmField val surface2d = FableSolContinuousSurface(p)
     private var wallBlend = 0.0
     private var prevThRender = 0.0
     private var prevThIn = 0.0
@@ -174,6 +179,8 @@ class FableSolSimulation(private val p: FableSolParams) {
     private var bcBlend = Double.NaN
     private var bcSoft = Double.NaN
     private var bcAgit = Double.NaN
+    private var bcLastUpdateT = Double.NEGATIVE_INFINITY
+    private var boundaryProfileRevision = 0
     private val spongeDecay = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
     private val cScale = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
     private val vDecay = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
@@ -210,6 +217,14 @@ class FableSolSimulation(private val p: FableSolParams) {
             tiltAgit = 0.0
             for (ls in layers) ls.thetaEff = th
         }
+    }
+
+    /** 前后俯仰只驱动连续水面；旧九层重力系物理保持原样。 */
+    fun setPitch(deg: Double, snap: Boolean = false) {
+        if (!deg.isFinite()) return
+        pitchDeg = FableSolPitchPolicy.rawPitchDeg(deg)
+        motionPitchDeg = FableSolPitchPolicy.motionPitchDeg(pitchDeg)
+        surface2d.setPitch(motionPitchDeg, snap)
     }
 
     /**
@@ -262,6 +277,20 @@ class FableSolSimulation(private val p: FableSolParams) {
         return SHAKE_AMP_DEG * sin(2.0 * Math.PI * SHAKE_FREQ_HZ * ts) * exp(-ts / SHAKE_TAU_S)
     }
 
+    /** 同一次摇晃的纵向错频错相分量，避免二维姿态退化为对角直线。 */
+    private fun pitchWobbleDeg(): Double {
+        if (shakeT < 0.0 || shakeT > 1.8) return 0.0
+        val ts = shakeT
+        return 0.62 * SHAKE_AMP_DEG * sin(
+            2.0 * Math.PI * (SHAKE_FREQ_HZ * 0.83) * ts + 0.9
+        ) * exp(-ts / (SHAKE_TAU_S * 1.12))
+    }
+
+    /** 连续水面的稀有远浪入口；普通实时 onset 不调用。 */
+    fun injectDepthPacket(strength: Double, pan01: Double = 0.5, zDominant: Boolean = false) {
+        surface2d.injectPacket(this, strength.coerceIn(0.0, 1.0), pan01, zDominant)
+    }
+
     /** 当前锁定 BPM（mapper 计算下一拍时刻用）。 */
     fun currentBeatBpm(): Double = beatBpm
 
@@ -302,7 +331,13 @@ class FableSolSimulation(private val p: FableSolParams) {
         val agit = roundTo(tiltAgit * p.get("tilt_calm"), 1)
         val kSpan = roundTo(span, 1); val kBlend = roundTo(wallBlend, 2); val kSoft = roundTo(soft, 2)
         if (kSpan == bcSpan && kBlend == bcBlend && kSoft == bcSoft && agit == bcAgit) return
+        // 传感器运动时 span / wallBlend / agit 每个 120Hz 物理子步都在变化。边界剖面
+        // 是空间阻尼系数，不需要以求解器频率重建；30Hz 更新把最大滞后限制在 33ms，
+        // 同时避免每秒约 114 次的 9×216 exp 重算。
+        if (t - bcLastUpdateT < BOUNDARY_PROFILE_DT) return
         bcSpan = kSpan; bcBlend = kBlend; bcSoft = kSoft; bcAgit = agit
+        bcLastUpdateT = t
+        boundaryProfileRevision++
         val edge = span / 2.0
         val blend = wallBlend
         for (ls in layers) {
@@ -536,6 +571,8 @@ class FableSolSimulation(private val p: FableSolParams) {
                 ls.wave.step(PHYSICS_DT, c, hl, spongeDecay[ls.i], cScale[ls.i],
                         vDecay[ls.i], visc[ls.i], ls.flowDps)
             }
+            // A/B 回退关闭时仍推进二维状态，重新启用不会从静止相位重新开始。
+            surface2d.advance(PHYSICS_DT, this, motionPitchDeg, pitchWobbleDeg())
         }
         perFrame(dtReal, span, Math.toRadians(thetaDeg))
     }
@@ -718,6 +755,37 @@ class FableSolSimulation(private val p: FableSolParams) {
         return FableSolRenderInfo(i0, i1, th, hG)
     }
 
+    /**
+     * 连续水面的专用采样窗口。最远行会被弱透视收窄，Gerstner 轨道又可向内偏移；
+     * 若复用旧九层的未投影窗口，滚转/俯仰时两侧会露出环境背景。
+     */
+    fun continuousRenderInfo(): FableSolRenderInfo {
+        val span = geometrySpan()
+        val hG = geometryHg()
+        val th = Math.toRadians(thetaDeg)
+        val perspectiveDen = 1.0 + CONTINUOUS_PERSPECTIVE * CONTINUOUS_MAX_Z01
+        val requiredHalf = min(
+            U_HALF_DP - 2.0 * DX_DP,
+            (span / 2.0 + 2.0 * DX_DP) * perspectiveDen + CONTINUOUS_MAX_ORBIT_DP
+        )
+        var i0 = 0
+        while (i0 < N_POINTS && uGrid[i0] < -requiredHalf) i0++
+        i0 = max(i0 - 1, 0) // 必须包含边界外第一列，不能向内取整
+        var i1 = N_POINTS
+        while (i1 > i0 && uGrid[i1 - 1] > requiredHalf) i1--
+        i1 = min(i1 + 1, N_POINTS)
+        return FableSolRenderInfo(i0, i1, th, hG)
+    }
+
+    /** 连续曲面的实际渲染列数；由 View 与回归测试共享。 */
+    fun continuousRenderColumnCount(rawColumns: Int): Int = min(rawColumns, CONTINUOUS_RENDER_COLUMNS)
+
+    internal fun continuousRenderSourcePosition(i0: Int, rawColumns: Int,
+                                                renderedColumns: Int, column: Int): Double =
+        i0 + (rawColumns - 1).toDouble() * column / max(renderedColumns - 1, 1)
+
+    internal fun boundaryProfileRevisionForTest(): Int = boundaryProfileRevision
+
     private fun clip01(x: Double): Double = if (x < 0.0) 0.0 else if (x > 1.0) 1.0 else x
 
     private fun smoothstep(lo: Double, hi: Double, value: Double): Double {
@@ -736,6 +804,11 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val SHAKE_AMP_DEG = 8.0
         private const val SHAKE_FREQ_HZ = 3.2
         private const val SHAKE_TAU_S = 0.45
+        private const val CONTINUOUS_PERSPECTIVE = 0.16
+        private const val CONTINUOUS_MAX_Z01 = 1.1
+        private const val CONTINUOUS_MAX_ORBIT_DP = 10.0
+        private const val CONTINUOUS_RENDER_COLUMNS = 120
+        private const val BOUNDARY_PROFILE_DT = 1.0 / 30.0
         private val ATK_MULT = doubleArrayOf(1.15, 1.0, 0.85)
         private val REL_MULT = doubleArrayOf(1.15, 1.0, 0.85)
     }

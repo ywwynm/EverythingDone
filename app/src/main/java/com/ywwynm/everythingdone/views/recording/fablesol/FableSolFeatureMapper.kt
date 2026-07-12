@@ -480,6 +480,10 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
                        bands: DoubleArray, incoming: Boolean, cascade: Boolean,
                        punch: Double = 0.7, delay0: Double = 0.0, pan01: Double = 0.5,
                        impulse01: Double = 0.0) {
+        if (incoming) {
+            // 稀有远浪同时向连续二维水面注入有限相干波包；原前景即时注入保留。
+            sim.injectDepthPacket(punch.coerceIn(0.0, 1.0), pan01, zDominant = true)
+        }
         var amp = ampIn
         val wMin = p.get("inject_width_min_dp")
         val wMax = p.get("inject_width_max_dp")
@@ -547,6 +551,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         sim.setMood(ev.energy01, ev.brightness01)
         val g = p.get("surge_gain")
         if (g <= 1e-6 || !ev.surge) return
+        sim.injectDepthPacket((0.45 + 0.55 * m).coerceIn(0.0, 1.0), 0.5, zDominant = true)
         val amp = g * p.get("surge_amp_max_dp") * (0.6 + 0.4 * m)
         sim.layers[0].surgeLiftTargetDp = max(sim.layers[0].surgeLiftTargetDp, g * p.get("surge_lift_dp"))
         val width = sim.containerWidthDp * 0.75

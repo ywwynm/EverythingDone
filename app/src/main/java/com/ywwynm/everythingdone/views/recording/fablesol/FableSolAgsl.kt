@@ -56,12 +56,9 @@ object FableSolAgsl {
             if (h < 0.05) return half4(0.0);
             float rel = (xy.y - t) / h;
             if (rel < 0.0 || rel > 1.0) return half4(0.0);
-            float a = 0.14
-                + 0.34 * smoothstep(0.06, 0.14, rel)
-                + 0.24 * smoothstep(0.18, 0.28, rel)
-                - 0.24 * smoothstep(0.60, 0.70, rel)
-                - 0.34 * smoothstep(0.68, 0.78, rel)
-                - 0.14 * smoothstep(0.86, 1.00, rel);
+            // 连续半正弦剖面：保留旧三子带 source-over 的中央峰值与积分光量，
+            // 消除浪面展开时出现的多档透明度平台；两端严格连续归零。
+            float a = 0.66 * sin(3.14159265 * rel);
             float alpha = tint.a * a;
             return half4(tint.rgb * alpha, alpha);
         }
