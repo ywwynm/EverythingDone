@@ -6,6 +6,7 @@ layout(location = 1) in vec2 aLocalUv;
 layout(location = 2) in vec4 aColor;
 layout(location = 3) in float aOpticalMode;
 layout(location = 4) in vec3 aEdgeColor;
+layout(location = 5) in float aHdrEligibility;
 
 uniform vec2 uViewportPx;
 uniform float uRotationRad;
@@ -14,6 +15,7 @@ out vec2 vLocalUv;
 out vec4 vColor;
 out float vOpticalMode;
 out vec3 vEdgeColor;
+out float vHdrEligibility;
 
 void main() {
     float c = cos(-uRotationRad);
@@ -32,4 +34,5 @@ void main() {
     vColor = aColor;
     vOpticalMode = aOpticalMode;
     vEdgeColor = aEdgeColor;
+    vHdrEligibility = aHdrEligibility;
 }

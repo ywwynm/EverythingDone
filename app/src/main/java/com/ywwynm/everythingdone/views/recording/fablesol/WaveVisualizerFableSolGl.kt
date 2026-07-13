@@ -1,32 +1,55 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
-import android.graphics.SurfaceTexture
+import android.graphics.PixelFormat
+import android.os.Build
 import android.util.AttributeSet
 import android.view.Choreographer
-import android.view.TextureView
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import android.view.View
 import com.ywwynm.everythingdone.model.ThingBackground
+import kotlin.math.max
 import kotlin.math.min
 
-/** Stage 1 TextureView 宿主：UI 线程只投递 60Hz 时间戳，全部水体工作在 FableSolGles 线程。 */
+/** SurfaceView 宿主：UI 线程只投递 60Hz 时间戳，全部水体工作在 FableSolGles 线程。 */
 class WaveVisualizerFableSolGl @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : TextureView(context, attrs), TextureView.SurfaceTextureListener, FableSolFrameReceiver {
+) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver {
 
     private val density = resources.displayMetrics.density.toDouble()
     private val framePacer = FableSolFramePacer(TARGET_FPS)
-    private val renderThread = FableSolGlRenderThread(context, density) { message ->
-        post {
-            contentDescription = "FableSol GLES unavailable: $message"
-            onGlFailure?.invoke(message)
+    private val renderThread = FableSolGlRenderThread(
+        context,
+        density,
+        onHdrStatus = { active, _ ->
+            post {
+                hdrContentAvailable = surfaceReady && active
+                updateDesiredHdrHeadroom()
+            }
+        },
+        onFatalError = { message ->
+            post {
+                contentDescription = "FableSol GLES unavailable: $message"
+                onGlFailure?.invoke(message)
+            }
         }
-    }
+    )
     internal var onGlFailure: ((String) -> Unit)? = null
     private var frameCallbackPosted = false
     private var animating = false
     private var surfaceReady = false
+    private var recordingHdrRequested = false
+    private var hdrContentAvailable = false
+    private var desiredHdrHeadroomRaised = false
+    private var lastHeadroomPollNanos = Long.MIN_VALUE
+    private val releaseHdrHeadroom = Runnable {
+        if (!recordingHdrRequested) {
+            desiredHdrHeadroomRaised = false
+            applyDesiredHdrHeadroom(1f)
+        }
+    }
     private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
         frameCallbackPosted = false
         if (!shouldAnimate()) {
@@ -34,6 +57,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             framePacer.reset()
             return@FrameCallback
         }
+        pollHdrHeadroom(frameTimeNanos)
         if (framePacer.shouldRender(frameTimeNanos)) {
             renderThread.requestRender(frameTimeNanos)
         }
@@ -41,8 +65,15 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     init {
-        isOpaque = false
-        surfaceTextureListener = this
+        setZOrderOnTop(false)
+        holder.setFormat(
+            if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr) {
+                PixelFormat.RGBA_F16
+            } else {
+                PixelFormat.RGBA_8888
+            }
+        )
+        holder.addCallback(this)
     }
 
     fun setThingBackground(background: ThingBackground) {
@@ -57,29 +88,63 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         renderThread.setPerformanceMonitor(monitor)
     }
 
+    internal fun setPresentationAlpha(alpha: Float) {
+        renderThread.setPresentationAlpha(alpha)
+    }
+
+    internal fun setRecordingHdrActive(active: Boolean) {
+        recordingHdrRequested = active
+        renderThread.setHdrRecordingRequested(active)
+        updateDesiredHdrHeadroom()
+    }
+
     override fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
         renderThread.onAudioFrames(frames, events)
     }
 
-    override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        if (!holder.surface.isValid) return
         surfaceReady = true
-        renderThread.attach(surface, width, height)
+        val frame = holder.surfaceFrame
+        val preferHdr = canBuildHdrSurface()
+        val hdrSdrRatio = currentHdrSdrRatio()
+        renderThread.attach(
+            holder.surface,
+            max(width, frame.width()).coerceAtLeast(1),
+            max(height, frame.height()).coerceAtLeast(1),
+            preferHdr,
+            hdrSdrRatio
+        )
+        renderThread.setHdrRecordingRequested(recordingHdrRequested)
+        lastHeadroomPollNanos = Long.MIN_VALUE
         ensureAnimating()
     }
 
-    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
-        renderThread.resize(width, height)
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (!surfaceReady && holder.surface.isValid) {
+            surfaceReady = true
+            renderThread.attach(
+                holder.surface,
+                width.coerceAtLeast(1),
+                height.coerceAtLeast(1),
+                canBuildHdrSurface(),
+                currentHdrSdrRatio()
+            )
+            renderThread.setHdrRecordingRequested(recordingHdrRequested)
+        } else {
+            renderThread.resize(width, height)
+        }
         ensureAnimating()
     }
 
-    override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-        surfaceReady = false
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
         stopFrameLoop()
-        renderThread.detachBlocking()
-        return true
+        resetHdrSurfaceState()
+        if (surfaceReady) {
+            surfaceReady = false
+            renderThread.detachBlocking()
+        }
     }
-
-    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -88,6 +153,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         stopFrameLoop()
+        resetHdrSurfaceState()
         if (surfaceReady) {
             surfaceReady = false
             renderThread.detachBlocking()
@@ -141,6 +207,55 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         framePacer.reset()
     }
 
+    private fun canBuildHdrSurface(): Boolean {
+        if (Build.VERSION.SDK_INT < 34) return false
+        val currentDisplay = display ?: return false
+        return currentDisplay.isHdr && currentDisplay.isHdrSdrRatioAvailable
+    }
+
+    private fun currentHdrSdrRatio(): Float {
+        if (Build.VERSION.SDK_INT < 34) return 1f
+        val currentDisplay = display ?: return 1f
+        if (!currentDisplay.isHdr || !currentDisplay.isHdrSdrRatioAvailable) return 1f
+        return currentDisplay.hdrSdrRatio
+    }
+
+    private fun pollHdrHeadroom(frameTimeNanos: Long) {
+        if (!hdrContentAvailable || Build.VERSION.SDK_INT < 34) return
+        if (lastHeadroomPollNanos != Long.MIN_VALUE &&
+            frameTimeNanos - lastHeadroomPollNanos < HEADROOM_POLL_INTERVAL_NANOS
+        ) return
+        lastHeadroomPollNanos = frameTimeNanos
+        renderThread.setDisplayHdrSdrRatio(currentHdrSdrRatio())
+    }
+
+    private fun updateDesiredHdrHeadroom() {
+        removeCallbacks(releaseHdrHeadroom)
+        if (Build.VERSION.SDK_INT < 35) return
+        if (recordingHdrRequested && hdrContentAvailable) {
+            desiredHdrHeadroomRaised = true
+            applyDesiredHdrHeadroom(FableSolHdrPolicy.DESIRED_SURFACE_HEADROOM)
+        } else if (hdrContentAvailable && desiredHdrHeadroomRaised) {
+            postDelayed(releaseHdrHeadroom, HDR_RELEASE_DELAY_MS)
+        } else {
+            desiredHdrHeadroomRaised = false
+            applyDesiredHdrHeadroom(1f)
+        }
+    }
+
+    private fun applyDesiredHdrHeadroom(value: Float) {
+        if (Build.VERSION.SDK_INT >= 35) setDesiredHdrHeadroom(value)
+    }
+
+    private fun resetHdrSurfaceState() {
+        removeCallbacks(releaseHdrHeadroom)
+        hdrContentAvailable = false
+        desiredHdrHeadroomRaised = false
+        lastHeadroomPollNanos = Long.MIN_VALUE
+        applyDesiredHdrHeadroom(1f)
+        renderThread.setDisplayHdrSdrRatio(1f)
+    }
+
     private fun shouldAnimate(): Boolean = surfaceReady && isAttachedToWindow &&
         width > 0 && height > 0 && windowVisibility == View.VISIBLE && isShown
 
@@ -157,6 +272,8 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     private companion object {
         const val TARGET_FPS = 60.0
+        const val HEADROOM_POLL_INTERVAL_NANOS = 250_000_000L
+        const val HDR_RELEASE_DELAY_MS = 360L
         const val INTRINSIC_W_DP = 280f
         const val INTRINSIC_H_DP = 420f
     }

@@ -75,14 +75,27 @@ class FableSolGlOpticsTest {
                 floatCount / FableSolGlOptics.COMPONENTS_PER_VERTEX)
         }
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
-        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == fullContourVertices })
+        assertTrue((0..8).all {
+            optics.bodyLightVertexCountForTest[it] == fullContourVertices
+        })
         assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
+        var hasHdrEligibleSurfaceSegment = false
         for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
             for (component in 0 until FableSolGlOptics.COMPONENTS_PER_VERTEX) {
                 assertTrue(optics.vertices[offset + component].isFinite())
             }
             assertTrue(optics.vertices[offset + 7] in 0f..1f)
+            val opticalMode = optics.vertices[offset + 8]
+            val hdrEligibility = optics.vertices[offset + 12]
+            assertTrue(hdrEligibility in 0f..1f)
+            if (opticalMode == 4f && hdrEligibility > 0f) {
+                hasHdrEligibleSurfaceSegment = true
+            }
+            if (opticalMode == 2f || opticalMode == 7f || opticalMode == 9f) {
+                assertEquals(0f, hdrEligibility, 0f)
+            }
         }
+        assertTrue(hasHdrEligibleSurfaceSegment)
     }
 
     @Test
@@ -106,7 +119,9 @@ class FableSolGlOpticsTest {
 
         assertTrue((0..4).sumOf { optics.glintTrackCountForTest(it) } > 0)
         assertTrue((0..2).sumOf { optics.streakTrackCountForTest(it) } > 0)
-        assertTrue((0..4).all { optics.glintTrackCountForTest(it) <= if (it <= 1) 3 else 2 })
+        assertTrue((0..5).all {
+            optics.glintTrackCountForTest(it) <= FableSolMaterialPolicy.glintCapacity(it)
+        })
         assertTrue((0..2).all { optics.streakTrackCountForTest(it) <= if (it == 0) 3 else 2 })
         assertTrue((0..4).all { optics.glintPinkGainForTest[it] in 0.904..1.096 })
         assertTrue((0..2).all { optics.streakPinkGainForTest[it] in 0.88..1.12 })
@@ -225,7 +240,7 @@ class FableSolGlOpticsTest {
     }
 
     @Test
-    fun bodyLightAndCrestVeilAreGeneratedOnTheirCanvasLayerScopes() {
+    fun restoredBodyLightCoversEveryLayerWhileCrestVeilKeepsItsNearLayerScope() {
         val params = FableSolParams()
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
@@ -250,7 +265,9 @@ class FableSolGlOpticsTest {
         )
 
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
-        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == fullContourVertices })
+        assertTrue((0..8).all {
+            optics.bodyLightVertexCountForTest[it] == fullContourVertices
+        })
         assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
         assertTrue((3..8).all { optics.crestVeilVertexCountForTest[it] == 0 })
     }

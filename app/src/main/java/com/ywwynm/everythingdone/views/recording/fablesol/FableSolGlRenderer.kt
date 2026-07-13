@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.opengl.GLES30
 import android.os.SystemClock
 import android.util.TypedValue
+import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -64,18 +65,35 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             value.type in TypedValue.TYPE_FIRST_COLOR_INT..TypedValue.TYPE_LAST_COLOR_INT
         ) FableSolColor.fromColor(value.data) else intArrayOf(255, 255, 255)
     }
+    private val presentationBackdrop = FloatArray(3) { environmentBase[it] / 255f }
+    private val cornerRadiusPx = context.resources.getDimension(
+        R.dimen.app_chrome_dialog_popup_corner_radius
+    )
 
     private var width = 1
     private var height = 1
     private lateinit var environmentProgram: FableSolGlProgram
     private lateinit var waterProgram: FableSolGlProgram
     private lateinit var opticalProgram: FableSolGlProgram
+    private lateinit var presentationProgram: FableSolGlProgram
     private var vertexBufferId = 0
     private var frontBufferId = 0
     private var indexBufferId = 0
     private var opticalBufferId = 0
     private var vertexArrayId = 0
+    private var sceneFramebufferId = 0
+    private var sceneTextureId = 0
+    private var sceneTargetWidth = 0
+    private var sceneTargetHeight = 0
     private val indexBufferState = FableSolGlIndexBufferState()
+    @Volatile private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
+    @Volatile private var hdrRecordingRequested = false
+    @Volatile private var displayHdrSdrRatio = 1f
+    private val hdrTransition = FableSolHdrTransition()
+    private var sceneLinear = false
+    private var hdrContentEnabled = false
+    private var hdrGain = 0f
+    private var hdrHeadroom = 1f
 
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
@@ -123,7 +141,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var rotationRad = 0f
     private var viewElevationRad = 0f
 
-    fun initialize() {
+    fun initialize(hdrOutput: Boolean) {
+        sceneLinear = hdrOutput
+        hdrContentEnabled = hdrOutput
+        hdrGain = 0f
+        hdrHeadroom = 1f
+        hdrTransition.reset()
         environmentProgram = FableSolGlProgram(
             assets,
             "fablesol/glsl/fullscreen.vert",
@@ -138,6 +161,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             assets,
             "fablesol/glsl/optical.vert",
             "fablesol/glsl/optical.frag"
+        )
+        presentationProgram = FableSolGlProgram(
+            assets,
+            "fablesol/glsl/fullscreen.vert",
+            "fablesol/glsl/present.frag"
         )
         val buffers = IntArray(4)
         GLES30.glGenBuffers(4, buffers, 0)
@@ -159,8 +187,23 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         this.width = max(width, 1)
         this.height = max(height, 1)
         sim.setContainerWidthDp(this.width / density)
+        ensureSceneTarget(this.width, this.height)
         GLES30.glViewport(0, 0, this.width, this.height)
     }
+
+    fun setPresentationAlpha(alpha: Float) {
+        presentationAlpha = alpha.coerceIn(0f, 1f)
+    }
+
+    fun setHdrRecordingRequested(requested: Boolean) {
+        hdrRecordingRequested = requested
+    }
+
+    fun setDisplayHdrSdrRatio(ratio: Float) {
+        displayHdrSdrRatio = ratio
+    }
+
+    fun isHdrContentEnabled(): Boolean = hdrContentEnabled
 
     fun setThingBackground(background: ThingBackground) {
         this.background = BackgroundSnapshot(
@@ -196,7 +239,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             (frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0
         lastFrameTimeNanos = frameTimeNanos
         if (dt <= 0.0) dt = TARGET_FRAME_SECONDS
-        sim.update(dt.coerceAtMost(MAX_DT_SECONDS))
+        val boundedDt = dt.coerceAtMost(MAX_DT_SECONDS)
+        hdrHeadroom = if (hdrContentEnabled) {
+            FableSolHdrPolicy.advanceHeadroom(
+                hdrHeadroom,
+                displayHdrSdrRatio,
+                boundedDt.toFloat()
+            )
+        } else {
+            1f
+        }
+        hdrGain = hdrTransition.update(
+            hdrContentEnabled && hdrRecordingRequested && hdrHeadroom > 1f,
+            boundedDt.toFloat()
+        )
+        sim.update(boundedDt)
         val buildStart = SystemClock.elapsedRealtimeNanos()
         buildFrame()
         val drawStart = SystemClock.elapsedRealtimeNanos()
@@ -220,6 +277,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         if (::environmentProgram.isInitialized) environmentProgram.release()
         if (::waterProgram.isInitialized) waterProgram.release()
         if (::opticalProgram.isInitialized) opticalProgram.release()
+        if (::presentationProgram.isInitialized) presentationProgram.release()
         if (vertexBufferId != 0) {
             GLES30.glDeleteBuffers(
                 4,
@@ -228,12 +286,18 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             )
         }
         if (vertexArrayId != 0) GLES30.glDeleteVertexArrays(1, intArrayOf(vertexArrayId), 0)
+        releaseSceneTarget()
         vertexBufferId = 0
         frontBufferId = 0
         indexBufferId = 0
         opticalBufferId = 0
         vertexArrayId = 0
         indexBufferState.onGlResourcesReleased()
+        sceneLinear = false
+        hdrContentEnabled = false
+        hdrGain = 0f
+        hdrHeadroom = 1f
+        hdrTransition.reset()
     }
 
     private fun drainAndApply(now: Long) {
@@ -471,6 +535,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 
     private fun drawFrame() {
+        check(sceneFramebufferId != 0 && sceneTextureId != 0) { "Scene target is unavailable" }
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sceneFramebufferId)
         GLES30.glViewport(0, 0, width, height)
         GLES30.glClearColor(0f, 0f, 0f, 0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
@@ -513,7 +579,110 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, columns * 2)
             drawOpticalLayer(0)
         }
+        presentScene()
         checkGl("drawFrame")
+    }
+
+    private fun ensureSceneTarget(width: Int, height: Int) {
+        if (sceneFramebufferId != 0 && sceneTextureId != 0 &&
+            sceneTargetWidth == width && sceneTargetHeight == height
+        ) return
+        releaseSceneTarget()
+
+        val textures = IntArray(1)
+        GLES30.glGenTextures(1, textures, 0)
+        sceneTextureId = textures[0]
+        check(sceneTextureId != 0) { "glGenTextures failed for scene target" }
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sceneTextureId)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
+        val internalFormat = if (hdrContentEnabled) GLES30.GL_RGBA16F else GLES30.GL_RGBA8
+        val componentType = if (hdrContentEnabled) GLES30.GL_HALF_FLOAT else GLES30.GL_UNSIGNED_BYTE
+        GLES30.glTexImage2D(
+            GLES30.GL_TEXTURE_2D,
+            0,
+            internalFormat,
+            width,
+            height,
+            0,
+            GLES30.GL_RGBA,
+            componentType,
+            null
+        )
+
+        val framebuffers = IntArray(1)
+        GLES30.glGenFramebuffers(1, framebuffers, 0)
+        sceneFramebufferId = framebuffers[0]
+        check(sceneFramebufferId != 0) { "glGenFramebuffers failed for scene target" }
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sceneFramebufferId)
+        GLES30.glFramebufferTexture2D(
+            GLES30.GL_FRAMEBUFFER,
+            GLES30.GL_COLOR_ATTACHMENT0,
+            GLES30.GL_TEXTURE_2D,
+            sceneTextureId,
+            0
+        )
+        val framebufferStatus = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER)
+        if (framebufferStatus != GLES30.GL_FRAMEBUFFER_COMPLETE && hdrContentEnabled) {
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            releaseSceneTarget()
+            hdrContentEnabled = false
+            ensureSceneTarget(width, height)
+            return
+        }
+        check(framebufferStatus == GLES30.GL_FRAMEBUFFER_COMPLETE) { "Scene framebuffer is incomplete" }
+        sceneTargetWidth = width
+        sceneTargetHeight = height
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+        checkGl("ensureSceneTarget")
+    }
+
+    private fun presentScene() {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glViewport(0, 0, width, height)
+        GLES30.glDisable(GLES30.GL_BLEND)
+        GLES30.glClearColor(0f, 0f, 0f, 0f)
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        presentationProgram.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sceneTextureId)
+        GLES30.glUniform1i(presentationProgram.uniform("uScene"), 0)
+        GLES30.glUniform3fv(
+            presentationProgram.uniform("uBackdropColor"),
+            1,
+            presentationBackdrop,
+            0
+        )
+        GLES30.glUniform1f(
+            presentationProgram.uniform("uPresentationAlpha"),
+            presentationAlpha
+        )
+        GLES30.glUniform2f(
+            presentationProgram.uniform("uViewportPx"),
+            width.toFloat(),
+            height.toFloat()
+        )
+        GLES30.glUniform1f(presentationProgram.uniform("uCornerRadiusPx"), cornerRadiusPx)
+        GLES30.glUniform1i(
+            presentationProgram.uniform("uSceneLinear"),
+            if (sceneLinear) 1 else 0
+        )
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+    }
+
+    private fun releaseSceneTarget() {
+        if (sceneFramebufferId != 0) {
+            GLES30.glDeleteFramebuffers(1, intArrayOf(sceneFramebufferId), 0)
+        }
+        if (sceneTextureId != 0) GLES30.glDeleteTextures(1, intArrayOf(sceneTextureId), 0)
+        sceneFramebufferId = 0
+        sceneTextureId = 0
+        sceneTargetWidth = 0
+        sceneTargetHeight = 0
     }
 
     private fun drawOpticalLayer(layer: Int) {
@@ -523,6 +692,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         bindOpticalVertexLayout()
         GLES30.glUniform2f(opticalProgram.uniform("uViewportPx"), width.toFloat(), height.toFloat())
         GLES30.glUniform1f(opticalProgram.uniform("uRotationRad"), rotationRad)
+        GLES30.glUniform1i(opticalProgram.uniform("uSceneLinear"), if (sceneLinear) 1 else 0)
+        GLES30.glUniform1f(opticalProgram.uniform("uHdrGain"), hdrGain)
+        GLES30.glUniform1f(opticalProgram.uniform("uHdrHeadroom"), hdrHeadroom)
+        GLES30.glUniform1f(
+            opticalProgram.uniform("uHdrCorePeak"),
+            FableSolHdrPolicy.glintCorePeak(layer)
+        )
+        GLES30.glUniform1f(
+            opticalProgram.uniform("uHdrCrestPeak"),
+            FableSolHdrPolicy.litCrestPeak(layer)
+        )
+        GLES30.glUniform1f(
+            opticalProgram.uniform("uHdrTransmissionPeak"),
+            FableSolHdrPolicy.transmissionPeak(layer)
+        )
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFuncSeparate(
             FableSolGlOpticalBlendPolicy.RGB_SOURCE_FACTOR,
@@ -584,12 +768,15 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glVertexAttribPointer(3, 1, GLES30.GL_FLOAT, false, stride, 32)
         GLES30.glEnableVertexAttribArray(4)
         GLES30.glVertexAttribPointer(4, 3, GLES30.GL_FLOAT, false, stride, 36)
+        GLES30.glEnableVertexAttribArray(5)
+        GLES30.glVertexAttribPointer(5, 1, GLES30.GL_FLOAT, false, stride, 48)
     }
 
     private fun uploadEnvironmentUniforms(program: FableSolGlProgram) {
         GLES30.glUniform3fv(program.uniform("uEnvironmentTop"), 1, environmentTop, 0)
         GLES30.glUniform3fv(program.uniform("uEnvironmentHorizon"), 1, environmentHorizon, 0)
         GLES30.glUniform3fv(program.uniform("uEnvironmentBottom"), 1, environmentBottom, 0)
+        GLES30.glUniform1i(program.uniform("uSceneLinear"), if (sceneLinear) 1 else 0)
     }
 
     private fun uploadWaterUniforms() {
@@ -743,6 +930,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         const val IDLE_SILENCE_MS = 200L
         const val MAX_PENDING_EVENTS = 128
         const val FILL_EXTRA_DP = 80.0
+        const val PREPARED_PRESENTATION_ALPHA = 0.16f
         val WHITE = intArrayOf(255, 255, 255)
     }
 }

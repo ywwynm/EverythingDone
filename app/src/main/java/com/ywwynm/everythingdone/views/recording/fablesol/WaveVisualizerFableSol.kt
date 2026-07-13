@@ -898,7 +898,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val uDp = scratchArray(cnt) { xsPx[it] / density }
         val micro = scratchZero(cnt)
         val microCurv = scratchZero(cnt)
-        if (i <= 4) {
+        if (FableSolMaterialPolicy.glintCapacity(i) > 0) {
             ls.optical.sampleInto(uDp, cnt, cap, rough, micro, microCurv)
         }
         val opticalSlope = scratchArray(cnt) { slope[it] + micro[it] }
@@ -938,11 +938,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             (slope[it] * params.get("orbital_sway_dp") * density)
                 .coerceIn(-8.0 * density, 8.0 * density)
         }
-        val pearlPhase = sin(2.0 * Math.PI * sim.t / 12.0 + i * 0.21)
-        val pearlDeg = params.get("pearl_shift_deg") * pearlPhase
-        var hc = FableSolColor.mixOklab(FableSolColor.mix(c1, c2, 0.3), WHITE, params.get("crest_lighten"))
-        // 冷暖微偏：受光家族（闪点/珍珠/透光母色）偏暖，自阴影偏冷（见下）。
-        hc = FableSolColor.shiftHue(hc, pearlDeg + params.get("hue_temp_deg") * 0.6)
+        val hc = FableSolOpticalColorPolicy.highlight(
+            FableSolColor.mix(c1, c2, 0.3), params.get("crest_lighten")
+        )
         val bodyColor = FableSolColor.mixOklab(c1, hc, 0.46)
         val a01 = a255 / 255.0
         // 空气透视压缩：远层所有装饰统一向该层基调收缩（构图的音量控制器）。
@@ -955,23 +953,24 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             drawOneSidedBand(canvas, cnt, topArr, thickness, bodyColor,
                 (72 * a01 * kAir * bodyStrength).toInt(), true)
         }
-        // 薄峰透光内辉：高出均线的圆峰水最薄，光穿透后以偏青的透射色从内部亮起
+        // 薄峰透光内辉：高出均线的圆峰水最薄，光穿透后以本层身份色从内部亮起
         // ——反射族之外唯一的透射族证据，水因此读作有厚度的介质。
         val tg = params.get("thin_glow_gain")
         if (tg > 1e-3 && i <= 4) {
             val glow = smoothSignal(thinGlowField(ys, curv, cnt), cnt, 5)
             var gm = 0.0; for (v in glow) if (v > gm) gm = v
             if (gm > 0.03) {
-                val glowC = FableSolColor.hueToward(
-                    FableSolColor.mixOklab(hc, WHITE, 0.24), 165.0, 24.0)
+                val glowC = FableSolOpticalColorPolicy.thinTransmission(hc)
                 val topArr = scratchArray(cnt) { ys[it] + 0.4 * density }
-                val th = scratchArray(cnt) { (3.0 + 20.0 * glow[it]) * density * sqrt(glow[it]) }
+                val th = scratchArray(cnt) {
+                    FableSolMaterialPolicy.thinGlowThicknessDp(glow[it]) * density
+                }
                 drawOneSidedBand(canvas, cnt, topArr, th, glowC,
                     (140 * a01 * tg * kAir).toInt(), true)
             }
         }
-        // 波背自阴影：亮脊紧贴背光暗窝（层内明暗转折）。阴影色=本层色 OKLab 降明度
-        // +冷偏——不发灰、只随浪出现，接替已移除的灰色接触阴影。
+        // 波背自阴影：亮脊紧贴背光暗窝（层内明暗转折）。阴影色只将本层色沿明度轴压暗，
+        // 不额外偏色、不发灰，只随浪出现，接替已移除的灰色接触阴影。
         val bs = params.get("back_shade_gain")
         if (bs > 1e-3 && i <= 5) {
             val litSign = if (s0 >= 0) 1.0 else -1.0
@@ -1007,7 +1006,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             var mx = 0.0
             for (j in 0 until cnt) { veil[j] *= veilStrength; if (veil[j] > mx) mx = veil[j] }
             if (mx > 1e-3) {
-                val veilColor = FableSolColor.mixOklab(hc, WHITE, 0.32)
+                val veilColor = FableSolOpticalColorPolicy.crestVeil(hc)
                 val ysV = scratchArray(cnt) { ys[it] - 0.20 * density }
                 val amt = scratchArray(cnt) { veil[it] * a01 }
                 drawVariableBand(canvas, cnt, ysV, amt, veilColor, 3.2 * density, (96 * a01 * veilStrength).toInt())
@@ -1154,15 +1153,15 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
         val crest = scratchArray(cnt) { (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0) }
         val widthInput = scratchArray(cnt) {
-            (2.2 + (10.5 + 4.0 * crest[it]) * facing[it]) * (1.0 - 0.45 * depth01)
+            FableSolMaterialPolicy.surfaceBandWidthDp(facing[it], crest[it], depth01)
         }
         val wDp = smoothSignal(widthInput, cnt, 4)
         val tint = params.get("environment_tint")
         val horizon = FableSolColor.mixOklab(envBase,
             FableSolColor.mixOklab(c1Base, WHITE, 0.78), tint)
-        var hcS = FableSolColor.mixOklab(FableSolColor.mix(c1, c2, 0.3), WHITE,
-            params.get("crest_lighten"))
-        hcS = FableSolColor.shiftHue(hcS, params.get("hue_temp_deg") * 0.6)  // 受光面偏暖
+        val hcS = FableSolOpticalColorPolicy.highlight(
+            FableSolColor.mix(c1, c2, 0.3), params.get("crest_lighten")
+        )
         val strip = FableSolColor.mixOklab(horizon, hcS, 0.42)
         val a01 = a255 / 255.0
         val kAir = 1.0 - params.get("aerial_contrast") * depth01
@@ -1243,7 +1242,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             } else e.inten -= e.inten * kRel
         }
         for (ai in anchors.indices) {
-            if (!used[ai] && anchors[ai][1] > 0.10 && tracks.size < cap) {
+            if (!used[ai] &&
+                anchors[ai][1] > FableSolMaterialPolicy.GLINT_FIELD_FLOOR &&
+                tracks.size < cap
+            ) {
                 val a = anchors[ai]
                 val seed = (sin(a[0] * 12.9898) * 43758.5453).let { it - Math.floor(it) }
                 tracks.add(Track(a[0], a[1] * 0.12, a[2], seed))
@@ -1264,8 +1266,14 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             (prob[it] * 1.5).coerceIn(0.0, 1.0) * spark * kAir
         }
         val field = smoothSignal(fieldInput, cnt, 5)
-        val cap = if (i <= 1) 3 else 2
-        val anchors = fieldPeaks(field, cnt, 0.10, 46.0 * density, cap)
+        val cap = FableSolMaterialPolicy.glintCapacity(i)
+        val anchors = fieldPeaks(
+            field,
+            cnt,
+            FableSolMaterialPolicy.GLINT_FIELD_FLOOR,
+            FableSolMaterialPolicy.GLINT_MIN_SEPARATION_DP * density,
+            cap
+        )
         trackEntities(glintTracks[i], anchors, dt, 34.0 * density, 0.30, 0.80, 0.10, cap)
         val tracks = glintTracks[i]
         if (tracks.isEmpty()) return

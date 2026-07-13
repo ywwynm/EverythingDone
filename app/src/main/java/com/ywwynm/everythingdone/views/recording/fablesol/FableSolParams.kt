@@ -16,17 +16,18 @@ class FableSolParams {
         v("palette", 0.0); v("gradient_dir", 1.0)
         v("lighten_far", 0.6); v("color_breath", 1.0)
         v("environment_tint", 0.16); v("sky_reflection_strength", 0.42)
-        v("body_light_strength", 0.36); v("pearl_shift_deg", 6.0)
+        // 保留后来加回的体光；三项表层光学效果恢复 Debug 202607130749。
+        v("body_light_strength", 0.36); v("pearl_shift_deg", 0.0)
         v("crest_on", 1.0); v("light_azimuth_deg", 27.0)
         v("crest_glint_strength", 0.90); v("crest_width_dp", 1.25)
         v("crest_lighten", 0.40); v("crest_glow_strength", 0.42)
-        v("crest_glow_depth_dp", 12.0); v("crest_veil_strength", 0.32)
+        v("crest_glow_depth_dp", 12.0); v("crest_veil_strength", 0.14)
         v("capillary_glint_gain", 1.0)
         // 立体感手法（2026-07-11 视觉批次，Python 面板同名参数的定稿默认值）
-        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.55)
+        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.38)
         v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
         v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
-        v("hue_temp_deg", 5.0); v("pink_mod", 0.80)
+        v("hue_temp_deg", 0.0); v("pink_mod", 0.80)
         // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，
         // 旧九层填充路径保留为内部回退，便于真机对照与低风险回滚。
         v("surface2d_on", 1.0)
@@ -42,7 +43,7 @@ class FableSolParams {
         v("global_pink_breath_strength", 1.0)
         v("micro_normal_strength", 0.16)
         v("sun_sss_strength", 0.16); v("sun_sss_falloff", 6.0)
-        v("analytic_halo_strength", 0.21)
+        v("analytic_halo_strength", 0.10)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)

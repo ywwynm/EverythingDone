@@ -35,8 +35,8 @@ class FableSolDepthScatteringPolicyTest {
         )
         for (base in samples) {
             val palette = FableSolDepthScatteringPolicy.derive(base)
-            assertTrue(hueDistanceDeg(base, palette.deep) <= 10.0)
-            assertTrue(hueDistanceDeg(base, palette.subsurface) <= 6.0)
+            assertTrue(hueDistanceDeg(base, palette.deep) <= 2.0)
+            assertTrue(hueDistanceDeg(base, palette.subsurface) <= 1.0)
             assertTrue((palette.deep + palette.subsurface).all { it in 0..255 })
         }
     }

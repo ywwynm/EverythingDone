@@ -17,6 +17,7 @@ uniform float uMicroNormalStrength;
 uniform float uSpecularAaStrength;
 uniform float uSunSssStrength;
 uniform float uSunSssFalloff;
+uniform bool uSceneLinear;
 out vec4 fragColor;
 
 float srgbToLinearChannel(float c) {
@@ -158,5 +159,6 @@ void main() {
         color = linearToSrgb(linearColor);
     }
     float dither = vFrontFill == 1 ? triangularDither(gl_FragCoord.xy) : 0.0;
-    fragColor = vec4(clamp(color + dither, 0.0, 1.0), 1.0);
+    vec3 encodedColor = clamp(color + dither, 0.0, 1.0);
+    fragColor = vec4(uSceneLinear ? srgbToLinear(encodedColor) : encodedColor, 1.0);
 }

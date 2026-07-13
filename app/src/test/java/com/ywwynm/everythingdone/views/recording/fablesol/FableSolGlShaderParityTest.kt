@@ -87,7 +87,48 @@ class FableSolGlShaderParityTest {
 
         assertTrue(halo >= 0)
         assertTrue(core > halo)
-        assertTrue(source.contains("exp2(-4.6 * radiusSquared)"))
+        assertTrue(source.contains("exp2(-6.5 * radiusSquared)"))
+        assertTrue(source.contains("smoothstep(0.72, 1.0, vLocalUv.y)"))
+    }
+
+    @Test
+    fun presentationPassOwnsLegacyAlphaAndPremultipliedRoundedCorners() {
+        val source = shader("present.frag")
+
+        assertTrue(source.contains("uPresentationAlpha"))
+        assertTrue(source.contains("uCornerRadiusPx"))
+        assertTrue(source.contains("roundedRectCoverage"))
+        assertTrue(source.contains("mix("))
+        assertTrue(source.contains("vec4(color * coverage, coverage)"))
+    }
+
+    @Test
+    fun hdrPipelineUsesLinearSceneEncodingWithoutChangingSdrPresentationMix() {
+        val environment = shader("environment.frag")
+        val water = shader("water.frag")
+        val optical = shader("optical.frag")
+        val presentation = shader("present.frag")
+
+        assertTrue(environment.contains("uniform bool uSceneLinear"))
+        assertTrue(environment.contains("srgbToLinear(encodedColor)"))
+        assertTrue(water.contains("uniform bool uSceneLinear"))
+        assertTrue(water.contains("srgbToLinear(encodedColor)"))
+        assertTrue(optical.contains("uSceneLinear ? srgbToLinear(encodedColor) : encodedColor"))
+        assertTrue(presentation.contains("encodedScene = linearToSrgb(sceneColor)"))
+        assertTrue(presentation.contains("srgbToLinear(mix(uBackdropColor"))
+    }
+
+    @Test
+    fun hdrExcessIsLimitedToGlintCrestAndTransmissionRatherThanStreakOrHalo() {
+        val source = shader("optical.frag")
+        val hdrBlock = source.substring(source.indexOf("if (uSceneLinear && uHdrGain"))
+
+        assertTrue(hdrBlock.contains("uHdrCorePeak"))
+        assertTrue(hdrBlock.contains("uHdrCrestPeak"))
+        assertTrue(hdrBlock.contains("uHdrTransmissionPeak"))
+        assertTrue(hdrBlock.contains("smoothstep(0.28, 0.82, vHdrEligibility)"))
+        assertFalse(hdrBlock.contains("vOpticalMode > 1.5"))
+        assertFalse(hdrBlock.contains("vOpticalMode > 6.5"))
     }
 
     private fun shader(name: String): String {

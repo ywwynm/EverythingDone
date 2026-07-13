@@ -51,7 +51,7 @@ internal class FableSolGlOptics(private val density: Double) {
     internal val featherVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val crestVeilVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
 
-    private val glints = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(3) }
+    private val glints = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(4) }
     private val glintBirthCredit = DoubleArray(FableSolSpec.N_LAYERS) { 1.0 }
     private val streaks = Array(FableSolSpec.N_LAYERS) { ArrayList<Streak>(3) }
     private val streakSequence = IntArray(FableSolSpec.N_LAYERS)
@@ -72,6 +72,7 @@ internal class FableSolGlOptics(private val density: Double) {
     private val specularCurvature = DoubleArray(FableSolSpec.N_POINTS)
     private val field = DoubleArray(FableSolSpec.N_POINTS)
     private val smooth = DoubleArray(FableSolSpec.N_POINTS)
+    private val hdrEligibility = DoubleArray(FableSolSpec.N_POINTS)
     private val sway = DoubleArray(FableSolSpec.N_POINTS)
     private val bandTop = DoubleArray(FableSolSpec.N_POINTS)
     private val bandThickness = DoubleArray(FableSolSpec.N_POINTS)
@@ -167,7 +168,7 @@ internal class FableSolGlOptics(private val density: Double) {
                     (cursor - startVertex) / COMPONENTS_PER_VERTEX
             }
 
-            if (layer <= 4) {
+            if (FableSolMaterialPolicy.glintCapacity(layer) > 0) {
                 glintFirstVertexForTest[layer] = cursor / COMPONENTS_PER_VERTEX
                 val glintStart = cursor
                 buildGlints(sim, params, layer, columns, dt, layerStart[layer], layerEnd[layer])
@@ -228,7 +229,7 @@ internal class FableSolGlOptics(private val density: Double) {
         java.util.Arrays.fill(specularCurvature, 0, columns, 0.0)
         unresolvedSpecularSlopeVariance = 0.0
         unresolvedSpecularCurvatureVariance = 0.0
-        if (layer <= 4) {
+        if (FableSolMaterialPolicy.glintCapacity(layer) > 0) {
             val ls = sim.layers[layer]
             unresolvedSpecularSlopeVariance = ls.optical.sampleInto(
                 uDp,
@@ -257,7 +258,8 @@ internal class FableSolGlOptics(private val density: Double) {
             val q = ((slope[i] + 0.05) / 0.50).coerceIn(0.0, 1.0)
             val facing = q * q * (3.0 - 2.0 * q)
             val crest = (curvature[i] / -GLOW_KAPPA).coerceIn(0.0, 1.0)
-            field[i] = (2.2 + (10.5 + 4.0 * crest) * facing) * (1.0 - 0.45 * depth)
+            field[i] = FableSolMaterialPolicy.surfaceBandWidthDp(facing, crest, depth)
+            hdrEligibility[i] = facing * (0.65 + 0.35 * crest)
         }
         smoothHann(field, smooth, columns, 4)
         var maximumThickness = 0.0
@@ -267,12 +269,10 @@ internal class FableSolGlOptics(private val density: Double) {
             maximumThickness = max(maximumThickness, canvasThickness)
             bandThickness[i] = canvasThickness * GLES_SURFACE_WIDTH_SCALE
         }
-        var highlight = FableSolColor.mixOklab(
+        val highlight = FableSolOpticalColorPolicy.highlight(
             FableSolColor.mix(start, end, 0.3),
-            WHITE,
             params.get("crest_lighten")
         )
-        highlight = FableSolColor.shiftHue(highlight, params.get("hue_temp_deg") * 0.6)
         val color = FableSolColor.mixOklab(environmentHorizon, highlight, 0.42)
         val air = 1.0 - params.get("aerial_contrast") * depth
         val breath = 1.0 + 0.10 * params.get("pink_mod") *
@@ -290,7 +290,8 @@ internal class FableSolGlOptics(private val density: Double) {
             bandThickness,
             color,
             alpha * GLES_SURFACE_ALPHA_SCALE.toFloat(),
-            OPTICAL_MODE_CONTOUR
+            OPTICAL_MODE_SURFACE_REFLECTION,
+            hdrEligibility
         )
     }
 
@@ -314,12 +315,12 @@ internal class FableSolGlOptics(private val density: Double) {
             bandTop[i] = y[i] + 0.35 * density
             bandThickness[i] = depthPx * (0.34 + 0.66 * volume)
         }
-        val highlight = highlightColor(start, end, params, sim, layer)
+        val highlight = highlightColor(start, end, params)
         val color = FableSolColor.mixOklab(start, highlight, 0.46)
         val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
         val air = 1.0 - params.get("aerial_contrast") * depth
         val alpha = (72.0 / 255.0 * params.lget("alpha", layer) * air * strength).toFloat()
-        addContourBand(columns, bandTop, bandThickness, color, alpha, OPTICAL_MODE_CONTOUR)
+        addContourBand(columns, bandTop, bandThickness, color, alpha, OPTICAL_MODE_TRANSMISSION)
     }
 
     private fun buildCrestVeil(sim: FableSolSimulation, params: FableSolParams,
@@ -341,8 +342,8 @@ internal class FableSolGlOptics(private val density: Double) {
             maximum = max(maximum, smooth[i])
         }
         if (maximum <= 1e-3) return
-        val highlight = highlightColor(start, end, params, sim, layer)
-        val color = FableSolColor.mixOklab(highlight, WHITE, 0.32)
+        val highlight = highlightColor(start, end, params)
+        val color = FableSolOpticalColorPolicy.crestVeil(highlight)
         val alpha = (96.0 / 255.0 * layerAlpha * strength).toFloat()
         addVariableCenteredBand(columns, bandThickness, color, alpha)
     }
@@ -363,18 +364,25 @@ internal class FableSolGlOptics(private val density: Double) {
         for (i in 0 until columns) {
             maximum = max(maximum, smooth[i])
             bandTop[i] = y[i] + 0.4 * density
-            bandThickness[i] = (3.0 + 20.0 * smooth[i]) * density * sqrt(max(smooth[i], 0.0))
+            bandThickness[i] = FableSolMaterialPolicy.thinGlowThicknessDp(smooth[i]) * density
+            hdrEligibility[i] = smooth[i]
         }
         if (maximum <= 0.03) return
-        val highlight = highlightColor(start, end, params, sim, layer)
-        val color = FableSolColor.hueToward(
-            FableSolColor.mixOklab(highlight, WHITE, 0.24), 165.0, 24.0
-        )
+        val highlight = highlightColor(start, end, params)
+        val color = FableSolOpticalColorPolicy.thinTransmission(highlight)
         val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
         val air = 1.0 - params.get("aerial_contrast") * depth
         val alpha = (140.0 / 255.0 * params.lget("alpha", layer) *
             params.get("thin_glow_gain") * air).toFloat()
-        addContourBand(columns, bandTop, bandThickness, color, alpha, OPTICAL_MODE_CONTOUR)
+        addContourBand(
+            columns,
+            bandTop,
+            bandThickness,
+            color,
+            alpha,
+            OPTICAL_MODE_TRANSMISSION,
+            hdrEligibility
+        )
     }
 
     private fun buildBackShade(params: FableSolParams, layer: Int,
@@ -401,7 +409,7 @@ internal class FableSolGlOptics(private val density: Double) {
         val air = 1.0 - params.get("aerial_contrast") * depth
         val alpha = (88.0 / 255.0 * params.lget("alpha", layer) *
             params.get("back_shade_gain") * air).toFloat()
-        addContourBand(columns, bandTop, bandThickness, color, alpha, OPTICAL_MODE_CONTOUR)
+        addContourBand(columns, bandTop, bandThickness, color, alpha, OPTICAL_MODE_BACK_SHADE)
     }
 
     private fun buildEdgeFeather(sim: FableSolSimulation, layer: Int, columns: Int,
@@ -479,8 +487,14 @@ internal class FableSolGlOptics(private val density: Double) {
             field[i] = (edge * 1.5).coerceIn(0.0, 1.0) * sparkle * air
         }
         smoothHann(field, smooth, columns, 5)
-        val cap = if (layer <= 1) 3 else 2
-        findAnchors(smooth, columns, 0.10, 46.0 * density, cap)
+        val cap = FableSolMaterialPolicy.glintCapacity(layer)
+        findAnchors(
+            smooth,
+            columns,
+            FableSolMaterialPolicy.GLINT_FIELD_FLOOR,
+            FableSolMaterialPolicy.GLINT_MIN_SEPARATION_DP * density,
+            cap
+        )
         val globalBreathStrength = params.get("global_pink_breath_strength")
         val birthRate = FableSolPinkBreathPolicy.glintBirthRate(
             sim.t,
@@ -511,7 +525,7 @@ internal class FableSolGlOptics(private val density: Double) {
             glintBirthCredit[layer] = max(0.0, glintBirthCredit[layer] - births)
         }
 
-        val highlight = highlightColor(start, end, params, sim, layer)
+        val highlight = highlightColor(start, end, params)
         val core = FableSolColor.mixOklab(highlight, WHITE, 0.35)
         for (track in glints[layer]) {
             val breath = 1.0 + 0.12 * sin(2.0 * PI * sim.t /
@@ -527,12 +541,12 @@ internal class FableSolGlOptics(private val density: Double) {
             if (haloStrength > 1e-3) {
                 val haloStart = cursor
                 val haloColor = FableSolColor.mixOklab(highlight, WHITE, 0.18)
-                val haloAlpha = (0.24 * haloStrength * params.lget("alpha", layer) *
-                    intensity.pow(0.72)).toFloat()
+                val haloAlpha = (FableSolMaterialPolicy.HALO_ALPHA_SCALE * haloStrength *
+                    params.lget("alpha", layer) * intensity.pow(0.72)).toFloat()
                 addCurvedBand(
                     centerX,
-                    halfLength * 1.38,
-                    halfThickness * 4.2,
+                    halfLength * FableSolMaterialPolicy.HALO_LENGTH_SCALE,
+                    halfThickness * FableSolMaterialPolicy.HALO_THICKNESS_SCALE,
                     haloColor,
                     haloColor,
                     haloAlpha,
@@ -584,7 +598,7 @@ internal class FableSolGlOptics(private val density: Double) {
         }
         if (tracks.isEmpty()) return
 
-        val base = highlightColor(start, end, params, sim, layer)
+        val base = highlightColor(start, end, params)
         val color = FableSolColor.mixOklab(base, WHITE, 0.45)
         val gain = params.get("flow_streak_gain")
         val pink = 1.0 + 0.15 * params.get("pink_mod") *
@@ -613,19 +627,12 @@ internal class FableSolGlOptics(private val density: Double) {
         }
     }
 
-    private fun highlightColor(start: IntArray, end: IntArray, params: FableSolParams,
-                               sim: FableSolSimulation, layer: Int): IntArray {
-        val phase = sin(2.0 * PI * sim.t / 12.0 + layer * 0.21)
-        val base = FableSolColor.mixOklab(
+    private fun highlightColor(start: IntArray, end: IntArray,
+                               params: FableSolParams): IntArray =
+        FableSolOpticalColorPolicy.highlight(
             FableSolColor.mix(start, end, 0.3),
-            WHITE,
             params.get("crest_lighten")
         )
-        return FableSolColor.shiftHue(
-            base,
-            params.get("pearl_shift_deg") * phase + params.get("hue_temp_deg") * 0.6
-        )
-    }
 
     private fun findAnchors(values: DoubleArray, count: Int, floor: Double,
                             minSeparation: Double, maxAnchors: Int) {
@@ -691,7 +698,8 @@ internal class FableSolGlOptics(private val density: Double) {
         }
         var births = 0
         for (anchor in 0 until anchorCount) {
-            if (!anchorUsed[anchor] && anchorIntensity[anchor] > 0.10 &&
+            if (!anchorUsed[anchor] &&
+                anchorIntensity[anchor] > FableSolMaterialPolicy.GLINT_FIELD_FLOOR &&
                 tracks.size < cap && births < maxBirths
             ) {
                 val seed = fract(sin(anchorU[anchor] * 12.9898) * 43758.5453)
@@ -711,7 +719,8 @@ internal class FableSolGlOptics(private val density: Double) {
     }
 
     private fun addContourBand(columns: Int, top: DoubleArray, thickness: DoubleArray,
-                               color: IntArray, alpha: Float, opticalMode: Float) {
+                               color: IntArray, alpha: Float, opticalMode: Float,
+                               hdrEligibility: DoubleArray? = null) {
         if (alpha <= 1f / 255f) return
         val profiledAlpha = alpha * CONTOUR_PROFILE_PEAK.toFloat()
         for (column in 0 until columns - 1) {
@@ -721,12 +730,20 @@ internal class FableSolGlOptics(private val density: Double) {
             val q1 = -1.0 + 2.0 * (column + 1) / max(columns - 1, 1)
             val bottom0 = top[column] + max(thickness[column], 0.0)
             val bottom1 = top[column + 1] + max(thickness[column + 1], 0.0)
-            putVertex(x[column], top[column], q0, 0.0, color, profiledAlpha, opticalMode)
-            putVertex(x[column], bottom0, q0, 1.0, color, profiledAlpha, opticalMode)
-            putVertex(x[column + 1], top[column + 1], q1, 0.0, color, profiledAlpha, opticalMode)
-            putVertex(x[column + 1], top[column + 1], q1, 0.0, color, profiledAlpha, opticalMode)
-            putVertex(x[column], bottom0, q0, 1.0, color, profiledAlpha, opticalMode)
-            putVertex(x[column + 1], bottom1, q1, 1.0, color, profiledAlpha, opticalMode)
+            val eligibility0 = hdrEligibility?.get(column)?.toFloat() ?: 0f
+            val eligibility1 = hdrEligibility?.get(column + 1)?.toFloat() ?: 0f
+            putVertex(x[column], top[column], q0, 0.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility0)
+            putVertex(x[column], bottom0, q0, 1.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility0)
+            putVertex(x[column + 1], top[column + 1], q1, 0.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility1)
+            putVertex(x[column + 1], top[column + 1], q1, 0.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility1)
+            putVertex(x[column], bottom0, q0, 1.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility0)
+            putVertex(x[column + 1], bottom1, q1, 1.0, color, profiledAlpha, opticalMode,
+                hdrEligibility = eligibility1)
         }
     }
 
@@ -801,7 +818,7 @@ internal class FableSolGlOptics(private val density: Double) {
 
     private fun putVertex(px: Double, py: Double, u: Double, v: Double,
                           color: IntArray, alpha: Float, opticalMode: Float,
-                          edgeColor: IntArray = color) {
+                          edgeColor: IntArray = color, hdrEligibility: Float = 0f) {
         vertices[cursor++] = px.toFloat()
         vertices[cursor++] = py.toFloat()
         vertices[cursor++] = u.toFloat()
@@ -814,6 +831,7 @@ internal class FableSolGlOptics(private val density: Double) {
         vertices[cursor++] = edgeColor[0] / 255f
         vertices[cursor++] = edgeColor[1] / 255f
         vertices[cursor++] = edgeColor[2] / 255f
+        vertices[cursor++] = hdrEligibility.coerceIn(0f, 1f)
     }
 
     private fun interpolate(values: DoubleArray, count: Int, queryX: Double): Double {
@@ -884,18 +902,20 @@ internal class FableSolGlOptics(private val density: Double) {
     internal fun streakTrackCountForTest(layer: Int): Int = streaks[layer].size
 
     companion object {
-        const val COMPONENTS_PER_VERTEX = 12 // x、y、局部 uv、核心 rgb、alpha、模式、边缘 rgb
+        const val COMPONENTS_PER_VERTEX = 13 // x、y、局部 uv、核心 rgb、alpha、模式、边缘 rgb、HDR 资格
         const val VERTICES_PER_QUAD = 6
         const val VERTICES_PER_ELLIPSE = VERTICES_PER_QUAD
         const val MAX_VERTICES = 32_000
-        private const val MAX_ANCHORS = 3
+        private const val MAX_ANCHORS = 4
         private const val CURVED_BAND_SEGMENTS = 10
         private const val OPTICAL_MODE_STREAK = 2f
         private const val OPTICAL_MODE_GLINT = 3f
-        private const val OPTICAL_MODE_CONTOUR = 4f
+        private const val OPTICAL_MODE_SURFACE_REFLECTION = 4f
         private const val OPTICAL_MODE_FEATHER = 5f
         private const val OPTICAL_MODE_VEIL = 6f
         private const val OPTICAL_MODE_ANALYTIC_HALO = 7f
+        private const val OPTICAL_MODE_TRANSMISSION = 8f
+        private const val OPTICAL_MODE_BACK_SHADE = 9f
         private const val CONTOUR_PROFILE_PEAK = 0.66
         private const val GLES_SURFACE_ALPHA_SCALE = 1.0
         private const val GLES_SURFACE_WIDTH_SCALE = 1.0

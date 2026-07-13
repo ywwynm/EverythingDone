@@ -373,7 +373,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             .setDuration(ANIM_DURATION.toLong())
             .withEndAction { startClockBreathing() }
 
-        mVisualizer!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
+        mVisualizer!!.setRecordingHdrActive(true)
+        mVisualizer!!.animatePresentationAlpha(1.0f, ANIM_DURATION.toLong())
         applyMainButtonNormalStyle()
         setMainButtonIcon(R.drawable.act_stop_recording_audio)
 
@@ -395,7 +396,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             .translationY(clockStoppedTranslationY())
             .setDuration(ANIM_DURATION.toLong())
 
-        mVisualizer!!.animate().alpha(0.16f).setDuration(ANIM_DURATION.toLong())
+        mVisualizer!!.setRecordingHdrActive(false)
+        mVisualizer!!.animatePresentationAlpha(0.16f, ANIM_DURATION.toLong())
 
         val confirmBg: ThingBackground = currentAccentBackground()
         applyMainButtonConfirmStyle(confirmBg)
@@ -410,6 +412,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun stoppedToPrepared() {
+        mVisualizer!!.setRecordingHdrActive(false)
         mLlFileName!!.animate().translationY(-mActivity!!.screenDensity * 72).setDuration(ANIM_DURATION.toLong())
         stopClockTicker()
         stopClockBreathing()

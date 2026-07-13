@@ -204,6 +204,22 @@ _Avoid_: wide-gamut image, bright image, edited photo
 A surface actually rendering an HDR Media's full brightness boost, as opposed to showing only its SDR base image.
 _Avoid_: HDR support as a blanket term, wide colour gamut
 
+**HDR UI 渲染**:
+界面实时生成的图形在兼容设备上保持 SDR 基线不变，并让受几何与光照约束的局部高光区域使用
+SDR reference white 以上亮度的渲染方式。它不要求存在 HDR Media，也不等同于 Display P3 等
+广色域输出。
+_Avoid_: 整体提亮 SDR 界面、把广色域称为 HDR、按设备改变几何或身份色
+
+**平均画面亮度（APL）**:
+FableSol 可见区域在一段画面中的平均亮度，用于发现整体意外变暗或变亮；它不表示局部高光峰值，
+也不直接代表水体是否显得晶莹。
+_Avoid_: 把 APL 当作 HDR 峰值、把“整体更亮”默认解释为抬高全部水体亮度
+
+**主观晶亮感**:
+水体由清晰而集中的局部反射、受光浪峰及其明暗对比形成的视觉感受。它可以在平均画面亮度不升、
+甚至小幅下降时增强，不等同于全局补光、宽光晕或 HDR 能力本身。
+_Avoid_: 整体泛白、扩大柔光、把 APL 上升当作晶亮感上升
+
 **Animated Image**:
 一个本身就是动图的图片附件——GIF 或动态 WebP;它能否逐帧播放取决于显示它的界面。
 _Avoid_: GIF as the blanket term, video attachment
@@ -249,8 +265,13 @@ A surface that wraps Thing-owned content in App Chrome, such as a reminder dialo
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
 **Voice Waveform**:
-录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——主体水体以其本色为颜色身份锚点，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗，主体大段仍为本色）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事在保留其横向渐变方向的底色上叠一层中性竖直光照；景深在更远的波浪层再用明度 + 透明度阶梯（越远越亮越透）表现，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
+录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——主体水体以其本色为颜色身份锚点，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗，主体大段仍为本色）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事在保留其横向渐变方向的底色上叠一层中性竖直光照；表面反射与薄层透射不得被统一拉向固定青蓝/蓝绿色，只有最深传播路径可相对身份色产生不超过约 2°的轻微冷移；更远波浪使用 **水层景深阶梯** 表现景深，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
 _Avoid_: 把它当成已保存音频的播放波形、当成 App Chrome 的中性控件配色、竖直柱子可视化
+
+**水层景深阶梯**:
+Voice Waveform 中随水层距离增加而单调提高混白/明度并降低透明度的分层关系，用于保持相邻水层
+可辨识并表达前后纵深。它是有意的结构性分层，不等同于需要消除的材质雾感。
+_Avoid_: 把去雾理解为取消远层偏白、让所有水层回到相近颜色、仅靠 HDR 区分层级
 
 **Activity Header**:
 首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
@@ -369,6 +390,11 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **HDR Media** file.
 - A single **HDR Media** may receive **HDR Display** on a surface that supports it while appearing as its SDR base on every other surface.
 - **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
+- FableSol 可以在能力满足时使用 **HDR UI 渲染**；其非 HDR 输出与 HDR 输出共享几何、动画、材质语义、ThingBackground 身份色和 SDR 基线，只有受控局部高光的额外亮度可以不同。
+- **HDR UI 渲染** 依赖 Android 版本、窗口、渲染 surface、显示器和实时可用 headroom；任何条件不满足时都回退为同源 SDR 输出。
+- FableSol 只有在 **Voice Waveform** 表达正在录音时才获得 **HDR UI 渲染** 的额外高光亮度；准备态与停止态保持 SDR。
+- **Voice Waveform** 的声音输入通过改变水面与光学条件间接改变 HDR 高光分布，不直接控制单个高光的 HDR 增益。
+- **Voice Waveform** 的最高 HDR 镜面核心可以接近中性白；较低亮度的受光浪峰与薄层透射仍按层级保留 **Thing Background** 身份色。
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
 - A single **Animated Image** may receive **Animated Playback** on a surface that supports it while appearing as its first static frame on every other surface, mirroring how an **HDR Media** receives **HDR Display** only where supported.
 - A crop editor, a RemoteViews surface (widget preview or placed widget), an HDR base frame, or a video thumbnail shows an **Animated Image** as a single frame; an in-app view surface that applies the same crop per frame still gives it **Animated Playback**.
@@ -380,7 +406,8 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
 - The audio recording dialog is a **Hybrid Chrome Surface**: its shell, controls, and text follow **Appearance Mode**, while its **Voice Waveform** carries the recording Thing's **Thing Background** identity.
-- A **Voice Waveform** derives its colours from the recording Thing's **Thing Background** — its main water body carries the background's own colour at full opacity and unmodified lightness (a PURE colour as-is, a GRADIENT reused whole) as a clean colour-identity anchor, while depth is conveyed only by a lightness-plus-alpha ladder on the upper, farther wave layers (farther layers lighter and more translucent) — so, like **Thing Foreground**, it depends on the visible Thing-owned background rather than **Appearance Mode**.
+- **Voice Waveform** 从被录音记事的 **Thing Background** 派生颜色：主水体以原背景色和未修改明度作为身份锚点，远层主要通过 **水层景深阶梯** 表达纵深；只有最深传播路径可产生不超过约 2°的相对冷移。它与 **Thing Foreground** 一样依赖当前可见的 Thing-owned background，而不依赖 **Appearance Mode**。
+- **水层景深阶梯** 必须保持水层由近到远的单调关系与相邻层可辨识度；减少 Voice Waveform 的材质雾感不得把各层颜色收敛到一起。
 - A **Hybrid Chrome Surface** may contain a **Thing Background Glyph Colour** readout; the readout carries Thing identity while the surrounding shell remains App Chrome.
 - An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
 - An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
@@ -423,7 +450,8 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - "Note folder" sounds like it only contains Note-type Things; resolved as **Thing Folder** because EverythingDone's user-created items are Things across notes, reminders, habits, and goals.
 - "WELCOME/NOTIFY_EMPTY note" can sound like user-owned content; resolved as **Legacy Placeholder Thing** when discussing the old stored rows and **Empty-List Guidance** when discussing the replacement message.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
-- "HDR support" conflates a file being high-dynamic-range (**HDR Media**) with a surface actually boosting its brightness (**HDR Display**); resolved as two distinct concepts, because one **HDR Media** is HDR-displayed on some surfaces and shown as its SDR base on others.
+- “HDR 支持”可能混淆文件本身携带高动态范围信息（**HDR Media**）、界面显示该文件的完整亮度增益（**HDR Display**），以及实时生成图形使用额外高光亮度（**HDR UI 渲染**）；三者必须分别表述，广色域也不属于其中任何一种。
+- “去雾”可能同时指减少宽柔光累计造成的材质泛白，或取消用于区分远近水层的 **水层景深阶梯**；这里只允许前者，后者必须保留。
 - “支持 GIF 显示”混淆了文件本身是动图(**Animated Image**)与界面真的在播放它(**Animated Playback**);已解析为两个独立概念,因为同一个 Animated Image 在某些界面播放、在另一些界面只显示第一帧。
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.

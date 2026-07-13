@@ -14,8 +14,7 @@
     <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
         android:id="@+id/voice_visualizer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0.16"/>
+        android:layout_height="match_parent"/>
 
     <com.github.adnansm.timelytextview.TimelyClockView
         android:id="@+id/clock_record_audio"

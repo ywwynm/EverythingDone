@@ -1,5 +1,115 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-13 三项表层光学效果恢复到 Debug 202607130749
+
+用户要求将表面反射、薄峰透射和闪点外围光晕重新恢复为 Debug 更新码
+`202607130749` 对应的版本。本轮精确恢复表面反射近层最大约 `9.4dp`、薄峰透射
+最大约 `11dp` 且 `thin_glow_gain=0.38`，以及解析光晕
+`analytic_halo_strength=0.10`、长度 `1.18×`、厚度 `2.25×`、alpha 系数 `0.18`、
+`exp2(-6.5*r²)` 衰减和 0.72 边界软出。
+
+后来单独恢复的 `body_light_strength=0.36` 继续保留；HDR 管线、分层峰值、颜色归一、
+更多窄闪点、远层景深阶梯和自动 SDR 回退不变。完整 106 项 JVM 单测 0 失败，
+四组 GLES 程序通过 `glslangValidator` 链接，`:app:assembleDebug` 成功，APK 内 shader
+内容与目标值一致，`git diff --check` 无空白错误。已发布阿里云 Debug `202607130907`，
+并回读远端 `latest.json` 与 APK HTTP 头，确认更新码、URL、SHA-256 和文件大小一致。
+未使用 adb；等待真机对照。
+
+## 2026-07-13 单独收窄 HDR 薄峰透射
+
+用户在四项宽材质恢复版 Debug `202607130840` 上，要求薄峰透射再收窄一些。
+本次只把 `FableSolMaterialPolicy.thinGlowThicknessDp()` 由
+`(3 + 20*signal)*sqrt(signal)` 改为 `(3 + 15*signal)*sqrt(signal)`，最大厚度从约
+`23dp` 降到 `18dp`。`thin_glow_gain=0.55`、颜色、曲率/海拔门、分层范围、
+HDR eligibility 与峰值不变；表面反射、外围光晕和 `body light` 也保持恢复值。
+
+完整 106 项 JVM 单测 0 失败，四组 GLES 程序通过 `glslangValidator` 链接，
+`:app:assembleDebug` 成功，`git diff --check` 通过。Canvas 诊断回退与 GLES 共用同一
+几何策略。已发布阿里云 Debug `202607130849`，并回读远端 metadata、核对本地/远端
+SHA-256 与文件大小。未使用 adb；待用户真机对照。
+
+## 2026-07-13 在 HDR 上恢复去雾前四项宽材质
+
+用户真机确认 Debug `202607130828` 已成功进入 HDR，并要求在保留 HDR 的前提下，
+把表面反射、薄峰透射、闪点外围光晕恢复到第一阶段收紧前，并重新加回
+`body light` 做真机对照。
+
+现已按收紧前代码的精确值恢复：`body_light_strength=0.36`；表面反射近层最大
+约 `16.7dp`；薄峰透射最大约 `23dp` 且 `thin_glow_gain=0.55`；解析光晕恢复
+`analytic_halo_strength=0.21`、长度 `1.38×`、厚度 `4.2×`、alpha 系数 `0.24`、
+`exp2(-4.6*r²)` 衰减和 0.82 边界软出。`crest_veil_strength=0.14`、更多窄闪点、
+Thing 色到中性白的色轴、环境、阴影、远层阶梯、波形与顺流流光不变。
+
+HDR 管线、分层峰值和能力回退不变。`body light` 与 analytic halo 的顶点
+HDR eligibility 仍为零；恢复宽度后的表面反射与薄峰透射继续沿用现有条件和峰值。
+相关回归已更新；完整 106 项 JVM 单测 0 失败，四组 GLES 程序通过
+`glslangValidator` 链接，`:app:assembleDebug` 成功，APK 包含恢复后的 `optical.frag`。
+已发布阿里云 Debug `202607130840`，并回读远端 `latest.json` 核对更新码、APK 地址、
+SHA-256、大小和中文说明。未使用 adb；待用户真机对照宽材质与 HDR 叠加后的观感。
+
+## 2026-07-13 完成第二阶段 FP16/scRGB HDR 管线
+
+用户确认第一阶段 SDR 材质方向后要求继续 HDR。实现延续 D56～D80：API 34+
+只在显示器的 HDR 状态和实时 `hdrSdrRatio` 可用时尝试 float component EGL config、
+linear scRGB window surface 和 `GL_RGBA16F` 线性 scene framebuffer；任一环节不可用即在
+同一 `SurfaceView` 自动回退 SDR。没有切换 Dialog Window 的 color mode，也没有因录音
+状态变化重建 surface。
+
+录音态通过 `FableSolHdrTransition` 以 0.36 秒启停局部超白增益，API 35+ 同步为
+`SurfaceView` 请求最多 `2.0×` desired headroom；显示器 headroom 下降时立即收紧。近层
+闪点核心分配 `1.75～2.0×`，中层递减到 `1.2～1.5×`，第 6～8 层回到 SDR；
+受光窄浪峰和少量薄峰透射使用更低峰值。顺流流光、环境、光晕、轻纱、阴影和
+远层不生成 HDR excess；不引入音量/onset/beat 乘数、tone mapping 或全局曝光。
+
+新增 HDR 能力、峰值阶梯、headroom 收放、状态过渡、EGL/renderer 源码约束和光学
+eligibility 回归。完整 106 项 JVM 单测 0 失败，四组 GLES 程序已通过
+`glslangValidator` 链接，`:app:assembleDebug` 成功，APK 已确认包含新 HDR 着色器。
+已发布阿里云 Debug `202607130828`，并回读远端 `latest.json` 核对更新码、APK 地址、
+SHA-256、大小和中文说明。未使用 adb；待用户在真 HDR 设备上核对超白峰值、分层与自动回退。
+
+## 2026-07-13 完成 HDR 前的第一阶段 SDR 材质基线
+
+用户通过 `grill-with-docs` 逐项确认：保留远层偏白、透明与柔化形成的水层景深阶梯，首轮锁定
+environment、`lighten_far`、九层 alpha、远层羽化、阴影与波形几何；“整体更亮”指局部峰值和
+主观晶亮感，不要求提高 APL。实施顺序拆为两个 Debug：先验收共享 SDR 材质，再启用 HDR。
+
+第一阶段现已取消九层独立 `body light`；把连续表面反射的最大宽度由约 16.7dp 收至 9.4dp、
+薄峰透射由约 23dp 收至 11dp，并把 `thin_glow_gain` 从 0.55 调为 0.38、
+`crest_veil_strength` 从 0.32 调为 0.14。解析闪点柔边强度从 0.21 调为 0.10，几何由核心厚度
+约 4.2 倍收至 2.25 倍，shader 衰减同步收紧；镜面闪点容量由近层 3/中层 2 提到近层 4/中层
+3，最小间距从 46dp 降到 34dp，并扩展到第 5 层，以增加窄片段而非扩大光晕。顺流流光仍保持
+SDR 语义和原有几何、寿命、alpha。
+
+固定 165°/220°/150° 派生色、约 ±6° 周期高光摆色和约 +3° 固定偏移均已移除；反射、透射与
+轻纱改为沿 Thing 身份色到中性白的 OKLab 轴变化，深水与次表面只改明度/彩度、不主动改色相。
+亮度呼吸、闪点出生频率、环境、远层分层、`back_shade_gain=0.80` 与声音/倾斜动画保持不变。
+
+新增材质能量、颜色轴、深度色相与光学网格回归。完整 96 项单测 0 失败，7 个共享 GLSL 均通过
+`glslangValidator`，`:app:assembleDebug` 通过；本阶段仍使用 RGBA8 SDR，未加入 FP16/scRGB 或
+任何 `>1.0` 输出。已发布阿里云 Debug `202607130749`，并回读远端 `latest.json` 核对更新码、
+APK 地址、SHA-256、文件大小和中文说明；等待用户真机判断通透度、层级、高光数量和 Thing 色
+保持情况。
+
+## 2026-07-13 改用 SurfaceView 承载统一 GLES 渲染器
+
+用户在 HDR 调研中确认：既然 Android 官方将 SurfaceView 标为完整 HDR 支持、TextureView 仅为
+Android T+ 有限支持，就将 FableSol 改成 SurfaceView。现已把 `WaveVisualizerFableSolGl` 从
+TextureView 生命周期迁移为 `SurfaceHolder.Callback`，`FableSolEglSession` 直接接收
+Surface；所有 API 26+ 继续共用同一 GLES 路径，没有增加旧系统 TextureView 分支。
+
+为补偿 SurfaceView 在 API 34 前不支持任意 View alpha、也不具备 TextureView 复杂裁切语义，
+新增 RGBA8 scene framebuffer 与 `present.frag` 最终合成 pass：保持原水体绘制不变，集中完成
+准备/录音态 `0.16 ↔ 1.0` presentation alpha、16dp 圆角和预乘 alpha 输出。SurfaceView 保持在
+窗口下方，普通录音文字和按钮继续覆盖其上；Canvas 诊断回退仍使用普通 View alpha。
+
+已通过完整 91 项单测、`glslangValidator` 离线片元着色器编译和 `:app:assembleDebug`，APK 已确认
+包含 `assets/fablesol/glsl/present.frag`。已按用户要求发布阿里云 Debug `202607130639`，并回读
+远端 `latest.json` 核对更新码、APK 地址、SHA-256、大小和发布说明。未使用 adb；API 26～33、
+34 与 35+ 的圆角漏边、层级、淡入淡出和 surface 重建仍需用户真机验收。
+
+用户安装 `202607130639` 后确认当前真机没有问题，SurfaceView 迁移的首轮观感与交互验收通过；
+该结果解除 HDR 主线的容器阻塞，但不代替后续 API 26～33、34 与 35+ 的兼容矩阵覆盖。
+
 ## 2026-07-13 微调解析光晕强度
 
 用户要求把上一批默认值中唯一的 0.22 调为 0.21。已将 `analytic_halo_strength` 从 0.22 改为
