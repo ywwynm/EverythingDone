@@ -11,8 +11,10 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
@@ -27,6 +29,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 import com.github.adnansm.timelytextview.TimelyClockView
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
@@ -37,7 +40,8 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
-import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
+import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.io.File
 
@@ -58,7 +62,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
     private var mClockView: TimelyClockView? = null
-    private var mVisualizer: WaveVisualizerFableSol? = null
+    private var mVisualizer: WaveVisualizerFableSolHost? = null
 
     private var mIvMainAction: ImageView? = null
     private var mIvReRecording: ImageView? = null
@@ -71,6 +75,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mClockBreathing: Boolean = false
     private var mSensorManager: SensorManager? = null
     private var mGravitySensor: Sensor? = null
+    private var mSensorThread: HandlerThread? = null
+    private var mTiltSensorRegistered: Boolean = false
+    private var mPerformanceMonitor: FableSolPerformanceMonitor? = null
     private var mOriginalRequestedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked: Boolean = false
     private var mLockedRotation: Int = Surface.ROTATION_0
@@ -153,6 +160,23 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     override fun getLayoutResource(): Int = R.layout.fragment_record_audio
 
+    override fun onStart() {
+        super.onStart()
+        val window = dialog?.window ?: return
+        val attributes = window.attributes
+        attributes.preferredRefreshRate = TARGET_REFRESH_RATE
+        window.attributes = attributes
+        if (Build.VERSION.SDK_INT >= 35) {
+            mVisualizer?.setRequestedFrameRate(TARGET_REFRESH_RATE)
+        }
+        if (BuildConfig.DEBUG && mPerformanceMonitor == null) {
+            val monitor = FableSolPerformanceMonitor(window.context)
+            mPerformanceMonitor = monitor
+            mVisualizer?.setPerformanceMonitor(monitor)
+            monitor.start(window)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         startTiltSensor()
@@ -165,6 +189,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     override fun onDestroyView() {
         stopTiltSensor()
+        stopPerformanceMonitor()
         restoreHostOrientation()
         mVisualizer?.setContainerGravity(0f, 1f, 0f)
         super.onDestroyView()
@@ -195,6 +220,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         stopClockBreathing()
         mClockHandler.removeCallbacks(mClockIntro)
         stopTiltSensor()
+        stopPerformanceMonitor()
         restoreHostOrientation()
         releaseRecorderInBackground(recorder)
 
@@ -237,11 +263,34 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private fun startTiltSensor() {
         val manager = mSensorManager ?: return
         val sensor = mGravitySensor ?: return
-        manager.registerListener(mTiltListener, sensor, SensorManager.SENSOR_DELAY_GAME)
+        if (mTiltSensorRegistered) return
+        val thread = HandlerThread("FableSolTiltSensor").also { it.start() }
+        mSensorThread = thread
+        mTiltSensorRegistered = manager.registerListener(
+            mTiltListener,
+            sensor,
+            SensorManager.SENSOR_DELAY_GAME,
+            Handler(thread.looper)
+        )
+        if (!mTiltSensorRegistered) {
+            thread.quitSafely()
+            mSensorThread = null
+        }
     }
 
     private fun stopTiltSensor() {
-        mSensorManager?.unregisterListener(mTiltListener)
+        if (mTiltSensorRegistered) {
+            mSensorManager?.unregisterListener(mTiltListener)
+            mTiltSensorRegistered = false
+        }
+        mSensorThread?.quitSafely()
+        mSensorThread = null
+    }
+
+    private fun stopPerformanceMonitor() {
+        mVisualizer?.setPerformanceMonitor(null)
+        mPerformanceMonitor?.stop()
+        mPerformanceMonitor = null
     }
 
     private fun dispatchGravityToVisualizer(gx: Float, gy: Float, gz: Float) {
@@ -606,6 +655,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     companion object {
+        private const val TARGET_REFRESH_RATE = 60f
         const val TAG: String = "AudioRecordDialogFragment"
 
         const val PREPARED: Int  = 0

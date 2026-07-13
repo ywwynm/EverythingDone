@@ -70,6 +70,10 @@ android {
     }
 
     sourceSets {
+        main {
+            // FableSol 的 GLSL 由 Android 与桌面 moderngl 蓝本共享，避免双端各维护一份。
+            assets.srcDir("$rootDir/shared")
+        }
         debug {
             res.srcDir(debugUpdateResPath)
         }

@@ -11,11 +11,10 @@
 
     <!-- Voice Waveform：波浪水体（FableSol 方案），铺满全区，绘制在文字与按钮之下。
          高度 420dp 对齐 Fable 逻辑坐标 HEIGHT_DP；宽度随上方 TimelyClockView 自适应。 -->
-    <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
+    <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
         android:id="@+id/voice_visualizer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent"
         android:alpha="0.16"/>
 
     <com.github.adnansm.timelytextview.TimelyClockView

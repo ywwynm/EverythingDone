@@ -331,7 +331,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val travel = FLOW_DIR * (0.55 + 0.25 * sim.flow01.coerceIn(0.0, 1.0))
         val peak = 0.85 + 0.55 * centroid   // 锐度上限收紧（红线）
         sim.injectLayer(li, 0.0, width, amp, travel, 0.0, uDp = u, peak = peak)
-        sim.spawnGust(rng.uniform(-0.30, 0.42) * span, 0.35 + 0.55 * s, rng.nextDouble())
     }
 
     /**

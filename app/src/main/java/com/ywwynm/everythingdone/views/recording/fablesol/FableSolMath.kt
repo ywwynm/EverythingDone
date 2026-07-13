@@ -11,6 +11,22 @@ import kotlin.math.sqrt
  */
 object FableSolMath {
 
+    private const val MAX_CACHED_HANN_RADIUS = 6
+    private val hannKernels = Array(MAX_CACHED_HANN_RADIUS + 1) { radius ->
+        if (radius == 0) {
+            doubleArrayOf(1.0)
+        } else {
+            DoubleArray(radius * 2 + 1) { index ->
+                val offset = index - radius
+                0.5 + 0.5 * cos(Math.PI * offset / (radius + 1.0))
+            }.also { kernel ->
+                var sum = 0.0
+                for (weight in kernel) sum += weight
+                for (index in kernel.indices) kernel[index] /= sum
+            }
+        }
+    }
+
     /** np.gradient(y, dx)：内部中心差分，端点单边差分。 */
     fun gradient(y: DoubleArray, dx: Double): DoubleArray {
         val n = y.size
@@ -20,7 +36,10 @@ object FableSolMath {
     }
 
     fun gradientInto(y: DoubleArray, dx: Double, out: DoubleArray) {
-        val n = y.size
+        gradientInto(y, y.size, dx, out)
+    }
+
+    fun gradientInto(y: DoubleArray, n: Int, dx: Double, out: DoubleArray) {
         if (n == 1) { out[0] = 0.0; return }
         out[0] = (y[1] - y[0]) / dx
         out[n - 1] = (y[n - 1] - y[n - 2]) / dx
@@ -92,6 +111,36 @@ object FableSolMath {
         val out = DoubleArray(n)
         System.arraycopy(full, start, out, 0, n)
         return out
+    }
+
+    /** 与 [convolveSame] 相同，但只读取前 [n] 项并写入调用方缓冲，避免渲染热路径分配。 */
+    fun convolveSameInto(a: DoubleArray, n: Int, v: DoubleArray, out: DoubleArray) {
+        val m = v.size
+        val start = (m - 1) / 2
+        for (i in 0 until n) {
+            var sum = 0.0
+            for (k in 0 until m) {
+                val source = start + i - k
+                if (source in 0 until n) sum += a[source] * v[k]
+            }
+            out[i] = sum
+        }
+    }
+
+    /**
+     * edge padding + Hann 内核的平滑热路径。权重在对象初始化时只计算一次，帧内不再执行 cos。
+     */
+    fun smoothHannInto(values: DoubleArray, n: Int, radius: Int, out: DoubleArray) {
+        require(radius in 0..MAX_CACHED_HANN_RADIUS)
+        val kernel = hannKernels[radius]
+        for (i in 0 until n) {
+            var sum = 0.0
+            for (kernelIndex in kernel.indices) {
+                val source = (i + kernelIndex - radius).coerceIn(0, n - 1)
+                sum += values[source] * kernel[kernelIndex]
+            }
+            out[i] = sum
+        }
     }
 
     /** np.convolve(a, v, mode="valid")，返回长度 a.size - v.size + 1。 */

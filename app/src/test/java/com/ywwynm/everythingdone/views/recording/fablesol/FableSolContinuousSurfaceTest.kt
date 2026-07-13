@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -178,5 +179,41 @@ class FableSolContinuousSurfaceTest {
         }
         val revisions = sim.boundaryProfileRevisionForTest()
         assertTrue("revisions=$revisions", revisions in 30..65)
+    }
+
+    @Test
+    fun continuousTiltCapsBoundaryProfileWorkPerDisplayFrame() {
+        val sim = FableSolSimulation(FableSolParams())
+        sim.update(1.0 / 60.0) // 首次初始化允许一次性建立全部九层
+
+        var rebuiltLayers = 0
+        repeat(12) { frame ->
+            sim.setTilt(35.0 * sin(frame * 0.19))
+            sim.update(1.0 / 60.0)
+            rebuiltLayers += sim.perfBoundaryLayers
+            assertTrue("frame=$frame layers=${sim.perfBoundaryLayers}", sim.perfBoundaryLayers <= 5)
+        }
+
+        assertTrue("rebuiltLayers=$rebuiltLayers", rebuiltLayers > 0)
+    }
+
+    @Test
+    fun boundaryProfilesRemainExactlySymmetricAfterAmortizedRebuild() {
+        val sim = FableSolSimulation(FableSolParams())
+        sim.update(1.0 / 60.0)
+        repeat(8) { frame ->
+            sim.setTilt(38.0 * sin(frame * 0.21))
+            sim.update(1.0 / 60.0)
+        }
+
+        for (layer in 0 until FableSolSpec.N_LAYERS) {
+            for (point in 0 until FableSolSpec.N_POINTS / 2) {
+                assertArrayEquals(
+                    sim.boundaryProfileValueForTest(layer, point),
+                    sim.boundaryProfileValueForTest(layer, FableSolSpec.N_POINTS - 1 - point),
+                    0.0
+                )
+            }
+        }
     }
 }

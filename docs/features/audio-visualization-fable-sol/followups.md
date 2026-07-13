@@ -1,5 +1,62 @@
 # 待办 · audio-visualization-fable-sol
 
+- **GL 迁移其余维度已亲自核对（2026-07-13 深挖，除颜色/光学外基本健康）**：
+  - 物理/动感/响应一致：GL 与 Canvas 调同一个 `FableSolSimulation.update`（固定子步 PHYSICS_DT
+    + acc 累积器，dt 只决定子步数），dt 语义两侧逐行相同（Choreographer 时间戳差、clamp 0.05、
+    首帧 1/60、同一 `FableSolFramePacer` 锁 60Hz）。波速/流速/沉降两侧相同。
+  - 事件分发集合一致：两侧都 `applyFrame`(仅最后帧)+`applySilence`+`Onset/Section/Prominence`，
+    相同顺序（Canvas onAudioFrames L305-313 vs GL drainAndApply）。
+  - 传感器同源：`AudioRecordDialogFragment` 唯一注册 `TYPE_GRAVITY?:ACCELEROMETER`，经 Host 同一
+    `setContainerGravity(-screenX,screenY,gz)` 转发；`tilt=atan2(x,y)`、`pitch=atan2(z,hypot)`
+    两侧公式完全一致（Canvas L223-228 vs GL applyLatestGravity）。
+  - 几何/透视/depthScale：一致。帧节奏 `FableSolFramePacer` 逻辑正确（120Hz 稳定降 60，步长交给
+    真实时间戳）。竞态 `FableSolGravityInbox` seqlock（奇偶序号+AtomicInteger 夹逼，字段非 volatile
+    但对 3-float 容错传感器数据实践安全）。网格 `FableSolGlMeshLayout` Z 行三角带无裂缝（待确认
+    `Z_ROWS=(N_LAYERS-1)*ROWS_PER_LAYER+1`）。生命周期 surface/attach/detachBlocking(750ms)/
+    后台停渲染/dismiss 释放链路中曾遗漏 EBO 缓存失效；A1 已用 EGL 资源重建状态回归修复。
+  - **唯一非观感隐患（低-中）**：`FableSolGlProgram.uniform()` 对 location<0 直接 check 抛→fatal→
+    回退 Canvas 红天空；当前 shader 所有 uniform 都用到不触发，但将来改 shader 留下未用 uniform 会
+    在某些驱动直接崩回退，应改为忽略（返回 -1 跳过 glUniform）。
+  - 结论：物理/几何/线程/输入主体基本忠实；A1 生命周期故障与颜色/光学差异已在
+    `research-2026-07-13-gles-parity-audit.md` 核验并修复，待真机验收。
+  - 注：一次 Read 工具输出异常（错乱行号+重复 placeholder 行）经 `grep -c placeholder`=0 证伪，
+    文件本身干净，非代码问题。
+
+- **GLES 迁移三阶段执行中（2026-07-12，主线）**：见
+  plan-2026-07-12-gles-migration.md 与 ADR-0016。Stage 0 首轮已完成帧仪表、锁 60Hz、
+  光学 DoubleArray 零分配和传感器后台 latest-value 合并。`202607121348` 的首轮日志已证明
+  首次 attach 时因尺寸为 0 导致帧循环未启动，现已在 `onSizeChanged()` 补启动，待新版真机
+  确认恢复动画并回传包含 `onDraw[...]` 的 `debug_logs/fablesol_frame_perf.log`。第二份
+  真机日志已测得 onDraw P50 约 32.8ms，而 GPU P50 约 4ms，确认 CPU/UI 线程瓶颈；
+  Stage 0 平滑核重复计算回归已修，待新版日志形成 Canvas 最终基线。AGSL 位图 atlas
+  不再阻塞主线。Stage 1 首个 TextureView+EGL 纵向切片已接入录音 Dialog，待真机验证
+  EGL/GLSL 存活、透明合成/圆角/动画、基础连续水面、音频与倾斜响应，以及
+  `glFrame` 分段耗时；随后迁移闪点/珍珠/流光/猫爪、表面软带、薄峰透光、波背阴影与
+  羽化，完成一比一视觉复刻（验收
+  后一个发布周期删除全部 Canvas 水体渲染与 AGSL 三件套，D42）→ Stage 2 十一项
+  逐像素视觉升级（D45）。模拟器需同步新增 moderngl 后端共享 GLSL（D43）。
+  A6 在整个 GL 计划完成后解冻（D44）。
+
+  真机 `202607121451` 已确认 GL 正常且持续倾斜不卡，基础 GLES 性能验收通过。珍珠与猫爪已按
+  用户裁决整体删除；镜面闪点、顺流流光、表面软带、薄峰透光、波背阴影与远层羽化已进入 GLES。
+  表面软带与远层羽化已恢复 Canvas 原始参数；A1 与 B1～B9 审计确认项已修复，体积光带和波冠
+  轻纱也已迁移。下一版需真机确认：后台返回不再红屏、白带在相同参数下恢复正常、渐变记事配色、
+  天空 banding、整体明暗和光学软边 alpha 均接近 Canvas，并继续确认性能。Stage 1 剩余工作主要为
+  Stage 1 真机观感已于 `202607130124` 通过。Stage 2-1 色相保持高光压缩因真机高光变暗、观感
+  变差而被整项删除，回退版已确认正常。Stage 2-2 双色深度散射按用户反馈微调为 0.21；当前只
+  加入 Stage 2-3 解析镜面抗锯齿，待真机确认倾斜/运动时闪点是否更稳定、亮度与数量是否仍自然、
+  双色散射和帧率是否保持；通过后再进入风耦合。
+
+- **Stage 1 失败回退验证（2026-07-12）**：`202607121429` 因 XML 向 TextureView 设置
+  transparent background 在构造阶段崩溃，已改 Host 管理 GL/Canvas。新版需确认正常 GL
+  不显示红色；若 EGL/GLSL/绘制失败，应自动出现可运动的 Canvas 水面且天空为纯红色，日志
+  同时含 `[DEBUG-FABLESOL-GL] fatal`。
+
+- **核实 API 26–28 上 drawVertices 的实际行为（2026-07-12）**：调研确认硬件
+  Canvas 的 drawVertices 支持自 API 29 始；26–28 设备上当前连续水面可能静默
+  丢失或整 View 软件光栅化。GLES 落地即根治；在此之前如有旧设备反馈异常，
+  按此归因。
+
 - **低屏幕内重力投影下的滚转稳定性待真机确认（2026-07-12）**：Android Z 轴滚转链没有
   角度限幅或临界回退，`±180°` 已做连续展开；但手机接近平放时 `hypot(gx,gy)` 趋近于零，
   重力传感器无法观测绕屏幕法线的角度，当前也没有低投影门控。若真机的“回退”只在这一姿态
@@ -80,8 +137,9 @@
   接入，输出 `vocalPresence01`；Essentia voice/instrumental 仅作研究基线（CC BY-NC-SA，不直接
   发布），Silero/WebRTC VAD 与实时源分离均不作为主路线。详见
   `research-2026-07-11-android-vocal-presence.md`。
-- **AGSL 立项条件（D20）**：表达层（阶段 A/B）收敛后另行立项；OLED 渐变 banding
-  等 shader 级问题在此之前接受暂存。
+- ~~**AGSL 立项条件（D20）**~~：已被 D40/D41 取代（2026-07-12）——严格像素级
+  一致排除 AGSL 新特性，逐像素路线改走 GLES（ADR-0016）；OLED banding 由 GLES
+  着色器内抖动根治，全设备一致。
 - **张力=相位与驻波呼吸带试验标签**：Python 目测不喜欢即砍（D18/D20）。
 - **离线音乐文件可视化模式（D14 范围事实）**：未来功能，复用境 4~6 与段落导演路径。
 
@@ -96,9 +154,9 @@
 
 首版已可运行并发布，以下项待真机反馈后处理：
 
-- **性能**：`WaveVisualizerFableSol.drawHighlights` 每层每帧分配多个长度约 216 的 DoubleArray，
-  九层 × 60fps 的 GC 压力较大；物理为九层 × 216 点 × 120Hz 子步。若真机掉帧，可优先：
-  高光渲染改用复用 scratch buffer、必要时降 N_POINTS 或 PHYSICS_HZ、减少参与高光的层数。
+- ~~**性能：高光 DoubleArray 分配**~~：Stage 0 已把光学路径改为按锚层复用的 scratch
+  buffer；第二份真机日志显示主要剩余成本是 physics、逐顶点 color 与 optics CPU 计算，
+  已转由 Stage 1 GLES 迁移解决，不再通过降低 N_POINTS/PHYSICS_HZ 牺牲视觉或物理质量。
 - **配色/环境天空观感**：环境天空以白为 base、记事色做极浅染色（`environment_tint`）。若与对话框
   观感冲突（例如白底过重），再讨论是否弱化天空或改 base。
 - **静止/停止态**：无音频帧超过 200ms 调 `applySilence` 衰减；真机确认停止录音后水面收敛是否自然。

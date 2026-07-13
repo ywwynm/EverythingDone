@@ -25,15 +25,6 @@ class FableSolShadowColorPolicyTest {
     }
 
     @Test
-    fun gustShadeIsOnlyTheLayerColorMixedWithBlack() {
-        for (base in noteColors) {
-            val expected = FableSolColor.mixOklab(
-                base, black, FableSolShadowColorPolicy.GUST_BLACK_MIX)
-            assertArrayEquals(expected, FableSolShadowColorPolicy.gustShade(base, depth01 = 0.0))
-        }
-    }
-
-    @Test
     fun blackMixDecreasesWithLayerDepth() {
         val depths = doubleArrayOf(0.0, 0.25, 0.625, 1.0)
         for (base in noteColors) {
@@ -43,11 +34,6 @@ class FableSolShadowColorPolicyTest {
                     FableSolColor.mixOklab(
                         base, black, FableSolShadowColorPolicy.BACK_BLACK_MIX * depthScale),
                     FableSolShadowColorPolicy.backShade(base, 5.0, depth)
-                )
-                assertArrayEquals(
-                    FableSolColor.mixOklab(
-                        base, black, FableSolShadowColorPolicy.GUST_BLACK_MIX * depthScale),
-                    FableSolShadowColorPolicy.gustShade(base, depth)
                 )
             }
         }

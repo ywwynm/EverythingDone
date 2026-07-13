@@ -34,6 +34,15 @@ class FableSolParams {
         v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 38.0)
         // 阶段 C3（AGSL 层填充光学）：深度吸收定稿；焦散已按用户裁决移除
         v("absorption_gain", 0.35)
+        // Stage 2-2：同一记事色派生 deep/subsurface，由视角与浪峰收拢驱动。
+        v("depth_scattering_strength", 0.21)
+        // Stage 2-3：解析镜面抗锯齿；0 可完整恢复未带限的既有闪点选取。
+        v("specular_aa_strength", 1.0)
+        // Stage 2-4：四项质感增强均可独立归零关闭。
+        v("global_pink_breath_strength", 1.0)
+        v("micro_normal_strength", 0.16)
+        v("sun_sss_strength", 0.16); v("sun_sss_falloff", 6.0)
+        v("analytic_halo_strength", 0.21)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)

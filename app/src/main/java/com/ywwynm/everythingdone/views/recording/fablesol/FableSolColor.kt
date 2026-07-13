@@ -52,6 +52,32 @@ object FableSolColor {
     }
 
     fun oklabToRgb(lab: DoubleArray): IntArray {
+        val linear = oklabToLinearRgb(lab)
+        return intArrayOf(srgbChannel(linear[0]), srgbChannel(linear[1]), srgbChannel(linear[2]))
+    }
+
+    /**
+     * 保持 OKLab 明度与色相，把超出 sRGB 的彩度沿同一色相压回色域。
+     * 仅供需要主动提高彩度的派生色使用；既有颜色路径继续沿用原来的逐通道裁切。
+     */
+    fun oklabToRgbGamutMapped(lab: DoubleArray): IntArray {
+        val source = lab.copyOf()
+        source[0] = source[0].coerceIn(0.0, 1.0)
+        if (isInSrgbGamut(source)) return oklabToRgb(source)
+        var low = 0.0
+        var high = 1.0
+        repeat(18) {
+            val scale = (low + high) * 0.5
+            val candidate = doubleArrayOf(source[0], source[1] * scale, source[2] * scale)
+            if (isInSrgbGamut(candidate)) low = scale else high = scale
+        }
+        return oklabToRgb(doubleArrayOf(source[0], source[1] * low, source[2] * low))
+    }
+
+    private fun isInSrgbGamut(lab: DoubleArray): Boolean =
+        oklabToLinearRgb(lab).all { it in 0.0..1.0 }
+
+    private fun oklabToLinearRgb(lab: DoubleArray): DoubleArray {
         val bigL = lab[0]; val a = lab[1]; val b = lab[2]
         val l_ = bigL + 0.3963377774 * a + 0.2158037573 * b
         val m_ = bigL - 0.1055613458 * a - 0.0638541728 * b
@@ -60,7 +86,7 @@ object FableSolColor {
         val r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
         val g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
         val bb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
-        return intArrayOf(srgbChannel(r), srgbChannel(g), srgbChannel(bb))
+        return doubleArrayOf(r, g, bb)
     }
 
     /** OKLab 空间线性插值（_mix_oklab），避免透明叠层发灰。 */

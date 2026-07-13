@@ -118,16 +118,6 @@ class FableSolSimulation(private val p: FableSolParams) {
     @JvmField var tension01 = 0.0    // 张力（A6 相位试验：波速相干偏置）；请经 setTension01 写入
     private var cMean = 150.0        // wave_speed_dps 九层均值（setTension01 时缓存）
 
-    // 猫爪阵风（对应 Python gusts 列表 [{u, age, life, strength, seed}]）：
-    // 上限 5 条先进先出；定长并行数组 + 计数实现，帧内零分配。渲染侧按 gustCount 读取。
-    @JvmField val gustU = DoubleArray(MAX_GUSTS)
-    @JvmField val gustAge = DoubleArray(MAX_GUSTS)
-    @JvmField val gustLife = DoubleArray(MAX_GUSTS)
-    @JvmField val gustStrength = DoubleArray(MAX_GUSTS)
-    @JvmField val gustSeed = DoubleArray(MAX_GUSTS)
-    var gustCount = 0
-        private set
-
     // 节拍锁相
     private var beatBpm = 0.0
     private var beatPhase = 0.0
@@ -180,12 +170,30 @@ class FableSolSimulation(private val p: FableSolParams) {
     private var bcSoft = Double.NaN
     private var bcAgit = Double.NaN
     private var bcLastUpdateT = Double.NEGATIVE_INFINITY
+    private var bcTargetSpan = REFERENCE_WIDTH_DP
+    private var bcTargetBlend = 0.0
+    private var bcTargetSoft = 0.0
+    private var bcTargetAgit = 0.0
+    private var bcNextLayer = N_LAYERS
     private var boundaryProfileRevision = 0
     private val spongeDecay = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
     private val cScale = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
     private val vDecay = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
     private val visc = Array(N_LAYERS) { DoubleArray(N_POINTS) }
     private val lagTaper = Array(N_LAYERS) { DoubleArray(N_POINTS) { 1.0 } }
+
+    internal var perfSubsteps = 0
+        private set
+    internal var perfBoundaryLayers = 0
+        private set
+    internal var perfBoundaryNs = 0L
+        private set
+    internal var perfWaveNs = 0L
+        private set
+    internal var perfSurfaceNs = 0L
+        private set
+    internal var perfComposeNs = 0L
+        private set
 
     private val demoRng = FableSolRng(42)
     private var demoNextT = 0.0
@@ -237,26 +245,6 @@ class FableSolSimulation(private val p: FableSolParams) {
         var sum = 0.0
         for (x in arr) sum += x
         cMean = sum / arr.size
-    }
-
-    /** 猫爪阵风：音节在可见水面留下一块顺流漂移、软边消散的暗纹斑。 */
-    fun spawnGust(uDp: Double, strength01: Double, seed: Double) {
-        if (gustCount >= MAX_GUSTS) {   // 先进先出：挤掉最老一条（对应 Python pop(0)）
-            for (k in 1 until MAX_GUSTS) {
-                gustU[k - 1] = gustU[k]
-                gustAge[k - 1] = gustAge[k]
-                gustLife[k - 1] = gustLife[k]
-                gustStrength[k - 1] = gustStrength[k]
-                gustSeed[k - 1] = gustSeed[k]
-            }
-            gustCount = MAX_GUSTS - 1
-        }
-        gustU[gustCount] = uDp
-        gustAge[gustCount] = 0.0
-        gustLife[gustCount] = 1.1 + 0.5 * seed
-        gustStrength[gustCount] = strength01.coerceIn(0.0, 1.0)
-        gustSeed[gustCount] = seed
-        gustCount++
     }
 
     fun triggerShake() { shakeT = 0.0 }
@@ -326,38 +314,74 @@ class FableSolSimulation(private val p: FableSolParams) {
         return Math.round(x * f) / f
     }
 
-    private fun rebuildBc(span: Double) {
+    private fun rebuildBc(span: Double, layerBudget: Int): Int {
+        if (layerBudget <= 0) return 0
+        if (bcNextLayer < N_LAYERS) return rebuildBcLayers(layerBudget)
         val soft = p.get("wall_soft")
         val agit = roundTo(tiltAgit * p.get("tilt_calm"), 1)
         val kSpan = roundTo(span, 1); val kBlend = roundTo(wallBlend, 2); val kSoft = roundTo(soft, 2)
-        if (kSpan == bcSpan && kBlend == bcBlend && kSoft == bcSoft && agit == bcAgit) return
+        if (kSpan == bcSpan && kBlend == bcBlend && kSoft == bcSoft && agit == bcAgit) return 0
         // 传感器运动时 span / wallBlend / agit 每个 120Hz 物理子步都在变化。边界剖面
         // 是空间阻尼系数，不需要以求解器频率重建；30Hz 更新把最大滞后限制在 33ms，
         // 同时避免每秒约 114 次的 9×216 exp 重算。
-        if (t - bcLastUpdateT < BOUNDARY_PROFILE_DT) return
+        if (boundaryProfileRevision > 0 && t - bcLastUpdateT < BOUNDARY_PROFILE_DT) return 0
         bcSpan = kSpan; bcBlend = kBlend; bcSoft = kSoft; bcAgit = agit
+        bcTargetSpan = span
+        bcTargetBlend = wallBlend
+        bcTargetSoft = soft
+        bcTargetAgit = agit
         bcLastUpdateT = t
         boundaryProfileRevision++
-        val edge = span / 2.0
-        val blend = wallBlend
-        for (ls in layers) {
+        bcNextLayer = 0
+        return rebuildBcLayers(
+            if (boundaryProfileRevision == 1) N_LAYERS else layerBudget
+        )
+    }
+
+    /**
+     * 倾斜期间把九层边界剖面分摊到连续物理子步，避免单帧集中执行数千次指数运算。
+     * 剖面只依赖 |u|，因此左右半区严格镜像计算，结果与逐点重建一致。
+     */
+    private fun rebuildBcLayers(maxLayers: Int): Int {
+        val edge = bcTargetSpan / 2.0
+        val blend = bcTargetBlend
+        val softEff = min(bcTargetSoft * (1.0 + 0.9 * bcTargetAgit), 1.0)
+        val endLayer = min(bcNextLayer + maxLayers, N_LAYERS)
+        for (layerIndex in bcNextLayer until endLayer) {
+            val ls = layers[layerIndex]
             val i = ls.i
             val wall = edge + 2.0 * DX_DP + ls.wallOff * blend
-            val softEff = min(soft * (1.0 + 0.9 * agit), 1.0)
-            for (n in 0 until N_POINTS) {
+            for (n in 0 until (N_POINTS + 1) / 2) {
                 val au = auAbs[n]
                 val profSp = clip01((au - edge - SPONGE_FREE_DP) / MARGIN_DP).let { it * it } * (1.0 - blend)
                 val appr = clip01((au - (wall - ls.wallRamp)) / ls.wallRamp)
                 val prof = profSp + clip01((au - wall) / 24.0) * 2.0 * blend
-                spongeDecay[i][n] = exp(-PHYSICS_DT * SPONGE_RATE * prof)
+                val sponge = exp(-PHYSICS_DT * SPONGE_RATE * prof)
                 val fric = appr * appr * (7.0 * ls.wallAbsorb * softEff) * blend
-                vDecay[i][n] = exp(-PHYSICS_DT * fric)
-                visc[i][n] = (appr * appr * ls.wallVisc * (0.4 + softEff) * blend + 0.055 * agit).coerceIn(0.0, 0.30)
-                cScale[i][n] = 1.0 - blend * clip01((au - wall) / (2.0 * DX_DP))
+                val velocity = exp(-PHYSICS_DT * fric)
+                val viscosity = (appr * appr * ls.wallVisc * (0.4 + softEff) * blend +
+                    0.055 * bcTargetAgit).coerceIn(0.0, 0.30)
+                val speed = 1.0 - blend * clip01((au - wall) / (2.0 * DX_DP))
                 val ct = clip01((au - wall) / 24.0)
-                lagTaper[i][n] = (1.0 - 0.7 * appr * blend) * (1.0 - ct * ct * blend)
+                val taper = (1.0 - 0.7 * appr * blend) * (1.0 - ct * ct * blend)
+                val mirror = N_POINTS - 1 - n
+                spongeDecay[i][n] = sponge
+                vDecay[i][n] = velocity
+                visc[i][n] = viscosity
+                cScale[i][n] = speed
+                lagTaper[i][n] = taper
+                if (mirror != n) {
+                    spongeDecay[i][mirror] = sponge
+                    vDecay[i][mirror] = velocity
+                    visc[i][mirror] = viscosity
+                    cScale[i][mirror] = speed
+                    lagTaper[i][mirror] = taper
+                }
             }
         }
+        val rebuilt = endLayer - bcNextLayer
+        bcNextLayer = endLayer
+        return rebuilt
     }
 
     // ---- 注入 ----
@@ -493,7 +517,14 @@ class FableSolSimulation(private val p: FableSolParams) {
         val dtReal = min(dtReal0, 0.1)
         acc += dtReal
         val span = geometrySpan()
+        var substeps = 0
+        var boundaryLayers = 0
+        var boundaryNs = 0L
+        var waveNs = 0L
+        var surfaceNs = 0L
+        var boundaryLayerBudget = BOUNDARY_LAYERS_PER_FRAME
         while (acc >= PHYSICS_DT) {
+            substeps++
             acc -= PHYSICS_DT
             t += PHYSICS_DT
             if (shakeT >= 0.0) shakeT += PHYSICS_DT
@@ -511,7 +542,12 @@ class FableSolSimulation(private val p: FableSolParams) {
             tiltAgit = max(tiltAgit * exp(-PHYSICS_DT / 1.4), min(rate / 1.2, 1.0))
             val calm = p.get("tilt_calm")
             val agitC = tiltAgit * calm
-            rebuildBc(span)
+            val boundaryStart = System.nanoTime()
+            val rebuiltLayers = rebuildBc(span, boundaryLayerBudget)
+            boundaryLayers += rebuiltLayers
+            boundaryLayerBudget -= rebuiltLayers
+            boundaryNs += System.nanoTime() - boundaryStart
+            val waveStart = System.nanoTime()
             // 节拍振荡器（锁相环）
             beat01 += (min(beatInConf, 1.0) - beat01) * (1.0 - exp(-PHYSICS_DT / 0.8))
             var beatSurge = 0.0
@@ -571,10 +607,20 @@ class FableSolSimulation(private val p: FableSolParams) {
                 ls.wave.step(PHYSICS_DT, c, hl, spongeDecay[ls.i], cScale[ls.i],
                         vDecay[ls.i], visc[ls.i], ls.flowDps)
             }
+            waveNs += System.nanoTime() - waveStart
             // A/B 回退关闭时仍推进二维状态，重新启用不会从静止相位重新开始。
+            val surfaceStart = System.nanoTime()
             surface2d.advance(PHYSICS_DT, this, motionPitchDeg, pitchWobbleDeg())
+            surfaceNs += System.nanoTime() - surfaceStart
         }
+        val composeStart = System.nanoTime()
         perFrame(dtReal, span, Math.toRadians(thetaDeg))
+        perfSubsteps = substeps
+        perfBoundaryLayers = boundaryLayers
+        perfBoundaryNs = boundaryNs
+        perfWaveNs = waveNs
+        perfSurfaceNs = surfaceNs
+        perfComposeNs = System.nanoTime() - composeStart
     }
 
     private fun perFrame(dt: Double, span: Double, thRender: Double) {
@@ -590,26 +636,17 @@ class FableSolSimulation(private val p: FableSolParams) {
         spectralTilt01 += (materialTargetTilt - spectralTilt01) * (1.0 - exp(-dt / 0.7))
         stereoWidth01 += (spatialTargetWidth - stereoWidth01) * (1.0 - exp(-dt / 0.45))
         pan01 += (spatialTargetPan - pan01) * (1.0 - exp(-dt / 0.22))
-        // 猫爪阵风：随层 1 背景流速顺流平移，超寿命剔除（原位压缩，零分配）
-        val advGust = layers[1].flowDps
-        var wg = 0
-        for (g in 0 until gustCount) {
-            val age = gustAge[g] + dt
-            if (age >= gustLife[g]) continue
-            gustU[wg] = gustU[g] + advGust * dt
-            gustAge[wg] = age
-            gustLife[wg] = gustLife[g]
-            gustStrength[wg] = gustStrength[g]
-            gustSeed[wg] = gustSeed[g]
-            wg++
-        }
-        gustCount = wg
         val cTh = abs(cos(thRender)); val sTh = abs(sin(thRender))
         val half = span / 2.0
         val vis = BooleanArray(N_POINTS) { auAbs[it] <= half }
         val heroBreath = p.get("hero_breath")
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
+        val globalPinkGain = FableSolPinkBreathPolicy.waveAmplitudeGain(
+            t,
+            p.get("pink_mod"),
+            p.get("global_pink_breath_strength")
+        )
         val heroGain = p.get("hero_gain")
         val heroPunch = p.get("hero_punch") // 旧调用兼容，默认 0；快速能量只走 DynamicWave
         val punchDecay = exp(-dt / max(p.get("hero_punch_decay_s"), 0.05))
@@ -659,7 +696,8 @@ class FableSolSimulation(private val p: FableSolParams) {
             val breathGain = if (ls.i >= DEEP_LAYER_START) 1.0
                              else 1.0 + 0.30 * breath01 * (1.0 - 0.55 * ls.depth01)
             val amb = ls.ambient.sample(uGrid, t,
-                p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain, ambientBreath)
+                p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain * globalPinkGain,
+                ambientBreath)
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
             val xShift = DoubleArray(N_POINTS) { uGrid[it] + spatialShift }
@@ -786,6 +824,14 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     internal fun boundaryProfileRevisionForTest(): Int = boundaryProfileRevision
 
+    internal fun boundaryProfileValueForTest(layer: Int, point: Int): DoubleArray = doubleArrayOf(
+        spongeDecay[layer][point],
+        vDecay[layer][point],
+        visc[layer][point],
+        cScale[layer][point],
+        lagTaper[layer][point]
+    )
+
     private fun clip01(x: Double): Double = if (x < 0.0) 0.0 else if (x > 1.0) 1.0 else x
 
     private fun smoothstep(lo: Double, hi: Double, value: Double): Double {
@@ -800,7 +846,6 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val SPONGE_FREE_DP = 96.0
         private const val EDGE_BIRTH_GAP_DP = 8.0  // 出生支撑外缘到可见边的最小间隙
         private const val WALL_ON_DEG = 8.0
-        private const val MAX_GUSTS = 5          // 猫爪阵风上限（Python len(gusts) >= 5 → pop(0)）
         private const val SHAKE_AMP_DEG = 8.0
         private const val SHAKE_FREQ_HZ = 3.2
         private const val SHAKE_TAU_S = 0.45
@@ -809,6 +854,7 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val CONTINUOUS_MAX_ORBIT_DP = 10.0
         private const val CONTINUOUS_RENDER_COLUMNS = 120
         private const val BOUNDARY_PROFILE_DT = 1.0 / 30.0
+        private const val BOUNDARY_LAYERS_PER_FRAME = 5
         private val ATK_MULT = doubleArrayOf(1.15, 1.0, 0.85)
         private val REL_MULT = doubleArrayOf(1.15, 1.0, 0.85)
     }

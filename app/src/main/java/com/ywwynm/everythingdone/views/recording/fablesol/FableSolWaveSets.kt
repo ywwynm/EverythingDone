@@ -199,17 +199,21 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
  * 不改变可见轮廓，但同样遵循重力/表面张力色散并被背景流平流。
  */
 class FableSolOpticalWaveSet(seed: Long, depth01: Double, private val n: Int = 10) {
+    private val wavelength: DoubleArray
     private val k: DoubleArray
     private val phase: DoubleArray
     private val weight: DoubleArray
     private val dispersionJitter: DoubleArray
+    private val resolvedScale = DoubleArray(n)
     private var travelDir = -1.0
+    var lastUnresolvedCurvatureVariance: Double = 0.0
+        private set
 
     init {
         val rng = FableSolRng(seed)
         val base = FableSolMath.geomspace(6.0, 54.0, n)
         val jit = rng.uniform(0.88, 1.12, n)
-        val wavelength = DoubleArray(n) { base[it] * jit[it] * (1.0 + 0.20 * depth01) }
+        wavelength = DoubleArray(n) { base[it] * jit[it] * (1.0 + 0.20 * depth01) }
         k = DoubleArray(n) { TWO_PI / wavelength[it] }
         phase = rng.uniform(0.0, TWO_PI, n)
         // 中等尺度最显眼，两端收敛；归一化后 sample 的 RMS 约等于目标坡度
@@ -239,21 +243,57 @@ class FableSolOpticalWaveSet(seed: Long, depth01: Double, private val n: Int = 1
 
     /** 返回 (slope, curvature) 两条与 xDp 等长的光学法线扰动。 */
     fun sample(xDp: DoubleArray, capillary01: Double, roughness01: Double): Pair<DoubleArray, DoubleArray> {
-        val targetRms = (0.012 + 0.072 * capillary01.coerceIn(0.0, 1.0)) *
-                (0.78 + 0.44 * roughness01.coerceIn(0.0, 1.0))
         val slope = DoubleArray(xDp.size)
         val curv = DoubleArray(xDp.size)
-        for (i in xDp.indices) {
+        sampleInto(xDp, xDp.size, capillary01, roughness01, slope, curv)
+        return Pair(slope, curv)
+    }
+
+    fun sampleInto(xDp: DoubleArray, count: Int, capillary01: Double, roughness01: Double,
+                   slope: DoubleArray, curv: DoubleArray,
+                   specularAaStrength: Double = 0.0,
+                   unfilteredSlope: DoubleArray? = null,
+                   unfilteredCurv: DoubleArray? = null): Double {
+        val targetRms = (0.012 + 0.072 * capillary01.coerceIn(0.0, 1.0)) *
+                (0.78 + 0.44 * roughness01.coerceIn(0.0, 1.0))
+        val aa = specularAaStrength.coerceIn(0.0, 1.0)
+        val footprintDp = if (count >= 2) {
+            abs(xDp[count - 1] - xDp[0]) / (count - 1)
+        } else 0.0
+        var unresolvedVariance = 0.0
+        var unresolvedCurvatureVariance = 0.0
+        for (c in 0 until n) {
+            val resolved = if (footprintDp > 1e-6) {
+                FableSolSpecularAaPolicy.resolvedAmplitude(wavelength[c], footprintDp)
+            } else 1.0
+            val scale = 1.0 + (resolved - 1.0) * aa
+            resolvedScale[c] = scale
+            val componentRms = targetRms * weight[c]
+            val removedFraction = 1.0 - scale * scale
+            unresolvedVariance += 0.5 * componentRms * componentRms * removedFraction
+            val curvatureRms = componentRms * k[c]
+            unresolvedCurvatureVariance +=
+                0.5 * curvatureRms * curvatureRms * removedFraction
+        }
+        for (i in 0 until count) {
             val x = xDp[i]
             var cs = 0.0; var ss = 0.0
+            var rawCs = 0.0; var rawSs = 0.0
             for (c in 0 until n) {
                 val ph = x * k[c] + phase[c]
-                cs += cos(ph) * weight[c]
-                ss += sin(ph) * (weight[c] * k[c])
+                val componentCos = cos(ph) * weight[c]
+                val componentSin = sin(ph) * (weight[c] * k[c])
+                cs += componentCos * resolvedScale[c]
+                ss += componentSin * resolvedScale[c]
+                rawCs += componentCos
+                rawSs += componentSin
             }
             slope[i] = targetRms * cs
             curv[i] = targetRms * (-ss)
+            if (unfilteredSlope != null) unfilteredSlope[i] = targetRms * rawCs
+            if (unfilteredCurv != null) unfilteredCurv[i] = targetRms * (-rawSs)
         }
-        return Pair(slope, curv)
+        lastUnresolvedCurvatureVariance = unresolvedCurvatureVariance
+        return unresolvedVariance
     }
 }

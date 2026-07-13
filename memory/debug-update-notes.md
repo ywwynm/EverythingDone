@@ -1,5 +1,224 @@
 # Current Debug Update Notes
 
+## 2026-07-13 - FableSol Stage 2-3 解析镜面抗锯齿
+
+用户要求把双色深度散射轻量档从 0.22 微调为 0.21，并继续下一项。审计确认当前 GLES 镜面闪点
+由 `FableSolGlOptics.buildGlints()` 的坡度高斯选峰驱动，而非 shader 中不存在的传统高光指数。
+本轮在 `FableSolOpticalWaveSet` 按真实列采样足迹解析带限短毛细波：每波少于 2 个样本的分量
+转为坡度方差，4 个样本以上完整保留，中间平滑过渡；方差按高斯卷积关系展宽闪点选取 lobe，
+并做积分能量归一；过滤掉的曲率以统计 RMS 补回，避免闪点数量随带限一起消失。只有闪点使用
+过滤坡度，体积光等仍使用原始毛细坡度。新增独立
+`specular_aa_strength`，设为 0 可逐值恢复旧路径。未修改闪点实体上限、跟踪、颜色、曲面内侧
+几何、双色散射其他规则或水面运动。84 项单测与 Debug 构建通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713114624.md`。
+已发布阿里云 Debug `202607130347`。
+
+## 2026-07-13 - FableSol Stage 2-2 双色深度散射
+
+用户确认 PBR Neutral 高光压缩回退版正常并要求继续下一项。本轮只加入双色深度散射：在
+`FableSolDepthScatteringPolicy` 中从当前记事色派生 deep/subsurface 色板，色相偏移分别限制在
+8°/4°，并用保持色相的 sRGB 色域压缩避免逐通道硬裁切。连续水面顶点新增 Gerstner 横向收拢量，
+共享 `water.vert` 仅按远近视角、浪峰收拢和固定光向混合两色；独立强度参数默认 0.22。未改变
+现有高光、光学实体、波形、运动或音频映射，也未新增离屏 pass。79 项单测与 Debug 构建通过，
+APK 已确认包含更新后的共享 shader，未使用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260713113655.md`。
+已发布阿里云 Debug `202607130337`。
+
+## 2026-07-13 - 整项回退 FableSol Stage 2-1 高光压缩
+
+用户复测认为 PBR Neutral 处理使高光不够亮、观感不如 Stage 1。已删除色调映射 shader、RGBA8
+离屏 framebuffer/纹理、最终 fullscreen pass、独立参数和专项测试，恢复 Stage 1 默认
+framebuffer 直接输出；Stage 1 迁移一致性修复保持不变。本轮不加入下一项质感优化，未使用 adb。
+73 项单测与 Debug 构建通过，APK 已确认不再包含 `tone_map.frag`。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713112427.md`。
+已发布阿里云 Debug `202607130324`。
+
+## 2026-07-13 - FableSol Stage 2-1 色相保持高光压缩
+
+用户确认 GLES 与 Canvas 观感一致并要求继续质感优化。本轮只加入 Khronos PBR Neutral 启发的
+最终高光 shoulder：场景先进入 RGBA8 离屏目标，再经 fullscreen pass 在 sRGB↔linear 之间处理；
+线性最大通道≤0.76 时严格恒等，更亮时补回 F90 并按官方 Ks/Kd 曲线压缩。新增独立开关
+`pbr_neutral_strength`，未修改散射、微法线、光学实体或运动。数学、shader 契约和 EGL 重建
+回归通过；79 项单测与 Debug 构建通过，APK 包含 `tone_map.frag`，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713094457.md`。
+已发布阿里云 Debug `202607130145`。
+
+## 2026-07-13 - 修复 FableSol GLES 迁移差异并恢复 Canvas 光带参数
+
+用户提供 A1/B1～B9 清单并要求独立核验。撤销此前 GLES 感知补偿：表面软带宽度/alpha、远层
+羽化 alpha 均恢复 Canvas 100%。A1、B1/B2/B3/B5/B6/B7/B8 核心判断准确并已修复；B4 的
+天空漏抖和双倍噪声准确，alpha 后果不适用于当前不透明目标；B9 恢复增益、阈值、空气透视与
+双色彩晕，但按既有裁决保留水内弯曲几何。新增 EGL 重建、shader 契约、体积光带、波冠轻纱、
+光学容量等回归；73 项单测与 Debug 构建通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/research-2026-07-13-gles-parity-audit.md`。
+已发布阿里云 Debug `202607130124`。
+
+## 2026-07-13 - 继续降低最远两层羽化亮度
+
+用户要求继续降低远层羽化亮度。仅将 GLES 羽化 alpha 从原 Canvas 参数的 30% 降至 15%，宽度、
+颜色和其他光效不变。实际顶点 alpha 回归先失败后转绿；完整单测与 Debug 构建通过，未使用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260713073536.md`。已发布阿里云
+Debug `202607122336`。
+
+## 2026-07-13 - 分离校准表面软带与最远两层羽化
+
+用户要求 `202607122313` 的表面软带宽度回调但更加透明，并指出最远两层白带几乎没变化。确认
+前七层表面软带与最远两层 `edge feather` 是独立通道：前者调整为 Canvas 宽度的 62%、峰值
+透明度的 34%；后者保持柔化宽度，alpha 降到原值的 30%。两条真实网格回归均先失败后转绿；
+完整单测与 Debug 构建通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713073038.md`。已发布阿里云 Debug
+`202607122331`。
+
+## 2026-07-13 - 第二次收窄并淡化 GLES 表面软带
+
+用户确认 `202607121602` 的表面软带仍需更窄、更透明。仅将 GLES 表面软带相对 Canvas 的峰值
+透明度从 68% 降至 48%、宽度从 72% 降至 52%；颜色、薄峰透光、波背阴影、远层羽化均不改。
+真实网格回归按新目标先失败、修复后通过；完整单测与 Debug 构建通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713071313.md`。已发布阿里云 Debug
+`202607122313`。
+
+## 2026-07-13 - GLES 表面软带真机感知补偿
+
+用户确认 `202607121554` 虽已恢复 Canvas 的半正弦剖面，但白边仍更厚、更白。进一步逐项对照
+确认带宽、颜色、基础 alpha 和剖面数学均一致，故只对 GLES 表面软带增加独立感知补偿：峰值
+透明度缩放到 Canvas 的 68%，带宽缩放到 72%；薄峰透光、波背阴影、远层羽化均不改。新增
+真实网格回归，修复前失败、修复后通过；完整单测与 Debug 构建通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713000202.md`。已发布阿里云 Debug
+`202607121602`。
+
+## 2026-07-12 - 修复 GLES 表面边带比 Canvas 过厚过白
+
+用户截图指出 `202607121547` 的多层白边比旧 Canvas 明显更厚或更白。对照确认几何宽度和颜色
+公式均相同，根因是透明度剖面迁移错误：Canvas/AGSL 为峰值 0.66 的半正弦，GLES 使用中央接近
+1.0 的宽平台，导致同宽几何同时显得更白、更厚。新增峰值和 10000 点积分光量回归，旧模型稳定
+失败；现将表面软带、薄峰透光、波背阴影和远层羽化统一恢复为
+`0.66×sin(π·relativeDepth)`。未改宽度或颜色。完整 65 项单测与 Debug 构建通过；未使用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260712235416.md`。
+已发布阿里云 Debug `202607121554`。
+
+## 2026-07-12 - 移除珍珠/猫爪并迁移四类 GLES 表面效果
+
+用户要求移除珍珠斑、猫爪暗纹，并继续表面软带、薄峰透光、波背阴影和远层羽化。珍珠跟踪已从
+GLES/Canvas 删除；猫爪绘制、`FableSolFeatureMapper` 生成入口、`FableSolSimulation` 阵风数组/
+生命周期推进、阴影颜色策略与测试也一并删除。GLES 新增四类沿轮廓的分层曲面带：表面软带仅
+0～6 层，薄峰透光仅 0～4 层并保留 4～14dp 海拔门，波背阴影仅 0～5 层且保持记事色混黑，
+环境色羽化仅 7～8 层。固定光学顶点容量提升到 20000，无稳态扩容。新增层范围回归，完整 64 项
+单测与 Debug 构建通过，APK 含六份共享 GLSL；未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712234619.md`。
+已发布阿里云 Debug `202607121547`。
+
+## 2026-07-12 - 纠正实体识别并修复镜面闪点高光越出曲面
+
+用户用第二张截图确认 `202607121525` 后亮白长斜高光仍越出波面，并质疑是否在说同一个对象。
+重新按代码通道核对后承认前两轮误认：被修的是低透明度、持续顺流移动的 `streak`；截图实际是
+最高 alpha 约 0.92、跟随受光峰的 `glint`。新增 glint 独立顶点范围与真实生成路径回归，旧完整
+直椭圆稳定出现负法向及曲面外顶点。现保留 glint 的峰值检测、身份跟踪和呼吸，只把几何改成
+10 段贴合轮廓、仅向水内展开的弯曲软带，并收窄锐利亮芯。完整 64 项单测与 Debug 构建通过；
+未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712233225.md`。
+已发布阿里云 Debug `202607121533`。
+
+## 2026-07-12 - 根据截图把顺流流光改为贴合波峰的弯曲软带
+
+用户提供截图，明确指向右下方跨过波峰的长斜锐利高光。由此纠正上一轮诊断：`202607121517`
+只解决了流光短轴跨出中心切线的问题，但长轴仍是一条中心点切线上的直椭圆；波峰是曲线，流光
+两端仍会穿到空气侧。新增实际生成路径的逐顶点曲面约束，要求每个流光顶点均位于其横坐标对应
+的水面轮廓以内，旧半椭圆稳定失败。现将每条流光分成 10 段，逐段采样波峰高度形成弯曲带，并
+分别软化长度两端、轮廓入口和水内下缘。完整 63 项单测与 Debug 构建通过；未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712232510.md`。
+已发布阿里云 Debug `202607121525`。
+
+## 2026-07-12 - 修复 GLES 顺流流光滑出波峰
+
+用户安装 `202607121505` 后指出，沿波面切线倾斜并顺流移动的高光有时会有一部分滑到曲面外。
+诊断确认 GLES 流光使用完整对称椭圆，切线法向两侧各占一半；中心向水内偏移小于部分流光半厚度，
+所以宽流光或陡坡会露出空气侧。新增实际网格回归，修复前稳定发现负法向顶点；现将流光改为从
+轮廓开始、只沿水体内法向延伸的半椭圆，并在轮廓后的 0～14% 厚度内透明软入，避免硬裁切亮边。
+闪点和珍珠形态不变。完整 63 项单测与 Debug 构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712231659.md`。
+已发布阿里云 Debug `202607121517`。
+
+## 2026-07-12 - FableSol Stage 1 GLES 光学实体首个切片
+
+用户确认 `202607121451` 倾斜已经不卡并要求继续下一步。按 GLES 迁移计划继续 Stage 1 视觉复刻，
+新增 `FableSolGlOptics`：闪点、珍珠与流光保留跨帧实体身份、受光峰匹配、攻击/释放、顺流移动和
+寿命；猫爪消费 Simulation 已有阵风。CPU 每帧只生成固定上限的椭圆三角形，新
+`optical.vert/optical.frag` 在 GPU 上做旋转、径向软边和 alpha 混合。光学实体穿插在 8→0 层
+水体绘制之间，避免远层装饰错误浮到近层之上；固定容量最多 64 个椭圆。新增两项回归，完整
+62 项单测与 Debug 构建通过，APK 已确认包含六份共享 GLSL；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712230410.md`。
+已发布阿里云 Debug `202607121505`。
+
+## 2026-07-12 - 修复 GLES 倾斜物理尖峰并细分性能日志
+
+用户确认 `202607121437` 的 GLES 路径正常启用，但倾斜手机时仍感觉卡顿。真机日志显示 GL draw、
+swap 与 GPU 均很轻，问题集中在 `FableSolSimulation.update()`：physics P50 会从约 5.8ms 上升到
+12.5ms、P95 约 16ms。根因是倾斜持续改变边界参数后，九层 216 点剖面会集中在同一帧执行大量
+`exp`。现将重建改为显示帧级预算，首次初始化后每帧最多 5 层，且利用左右对称只计算 108 点再
+镜像写入；单个倾斜帧的边界点工作上限约下降 72%，传感器与 120Hz 物理不降频。性能日志新增
+`steps/bcLayers/bc/waves/surface/compose`，便于下一次真机复测直接定位剩余开销。新增两项回归，
+完整 60 项单测与 Debug 构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712224913.md`。
+已发布阿里云 Debug `202607121451`。
+
+## 2026-07-12 - 修复 GLES TextureView 充气崩溃与红天空 Canvas 回退
+
+用户安装 `202607121429` 后打开录音 Dialog 立即闪退，并要求 GL 未正常启用时回退 Canvas、
+天空显示红色。崩溃栈确认 XML 给 TextureView 设置 transparent background，OPPO Android 16
+在构造阶段抛 `TextureView doesn't support displaying a background drawable`；GL View 内的
+`setBackgroundColor()` 也有同样风险。现改 FrameLayout Host 管理 GL/Canvas，彻底移除
+TextureView background API；正常只运行 GL，任何 EGL/GLSL/draw/swap fatal 时切 Canvas，
+Canvas 天空强制纯红并保留错误日志。完整单测与 Debug 构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712223617.md`。
+已发布阿里云 Debug `202607121437`。
+
+## 2026-07-12 - FableSol Stage 1 首个 OpenGL ES 纵向切片
+
+用户确认进入 GLES Stage。新增仓库级共享 GLSL、透明 TextureView、EGL ES 3.0 会话、
+独立 `FableSolGles` 线程与 latest-frame 合并；Simulation、音频/重力消费、连续网格构建和
+GL 绘制全部移出 UI 线程。录音 Dialog 已切换到 GL 路径，首批覆盖环境、连续 2.5D 网格、
+九层颜色合成、Thing 纯色/八向渐变、纵向受光、Fresnel、抖动与近层填充；光学实体待后续
+迁移。新增 `glFrame` 分段日志和 EGL/GLSL 静态色失败降级。完整单测与 Debug 构建通过，
+APK 已确认打包四份 GLSL；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712222824.md`。
+已发布阿里云 Debug `202607121429`。
+
+## 2026-07-12 - 修复 FableSol Stage 0 Hann 平滑性能回归
+
+用户反馈恢复动画后比以前更卡，并回传第二份性能日志。稳定段 onDraw P50 约 32.8ms：
+physics 6.5ms、color 11.8ms、submit_optics 13.6ms；GPU P50 仅约 4ms，确认 CPU/UI
+线程瓶颈并进一步证明 Stage 1 GLES 必要。另定位 Stage 0 自身回归：池化版
+`smoothSignal()` 把 Hann 权重 `cos()` 放进采样点×核点内循环。现改为初始化时缓存半径
+3~6 的归一化核，帧内只做乘加，继续保持零分配。新增数值回归，完整单测与 Debug
+构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712220236.md`。
+已发布阿里云 Debug `202607121403`。
+
+## 2026-07-12 - 修复 FableSol Stage 0 水面完全静止
+
+用户安装 `202607121348` 后反馈录音继续但水面、波浪和倾斜响应全部静止，并回传
+`fablesol_frame_perf.log`。日志持续产生 Window FrameMetrics，却完全没有水面每 120 次
+`onDraw` 才输出的六段汇总，确认帧循环从未启动。根因是 `onAttachedToWindow()` 早于首次
+layout，彼时宽高为 0、`ensureAnimating()` 拒绝启动；Stage 0 又移除了音频/传感器回调的
+逐次 invalidate，而 `onSizeChanged()` 没有补启动。现已在获得有效尺寸并更新物理容器宽度后
+调用 `ensureAnimating()`。完整单测和 Debug 构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712215624.md`。
+已发布阿里云 Debug `202607121357`。
+
+## 2026-07-12 - FableSol Stage 0 首轮性能修复与真机帧诊断
+
+用户确认开始执行 GLES 迁移计划。本次先完成 Stage 0 首轮：以 Choreographer
+frameTimeNanos 将水面固定为 60Hz，Dialog Window 请求 60Hz；重力传感器移到独立
+HandlerThread，通过无分配 latest-value 信箱在渲染帧消费；`drawHighlights`、表面带、
+猫爪、闪点、珍珠等光学路径的帧内 DoubleArray 改为 scratch 池，数学与 optical sample
+增加 caller-buffer 入口。新增临时 FrameMetrics + onDraw 六段耗时日志，写入
+`debug_logs/fablesol_frame_perf.log`，标记 `[DEBUG-FABLESOL-PERF]`。位图 atlas 等真机
+SYNC/COMMAND_ISSUE 数据后再裁决，因为 Stage 1 会删除 AGSL 上传路径。新增节拍、重力信箱、
+分位数和缓冲数学测试；完整单测与 Debug 构建通过；未使用 adb。详细见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260712214507.md`。
+最终阿里云 Debug 更新码 `202607121348`；`202607121346` 因嵌入说明不完整、
+`202607121347` 因重力信箱读端继续收紧为单次非阻塞读取，均已被替代。
+
 ## 2026-07-11 - 根治浪包突然隆起/鼓包 + 移除焦散
 
 长期顽疾定位：注入 Hann 包本应画外出生，但 ①主因——injectLayer 的 uLimit 向内
@@ -947,3 +1166,18 @@ Drawer 的选中背景统一改为新颜色 `drawer_selected_bg`，不再复用 
 本次保留 D27 的线程安全收束，但把阻塞工作移出主线程：停止按钮点击后立即切到 STOPPED UI，后台执行 `stopListening(true)`、wav 转存和重新开始监听；重新开始按钮点击后立即切回 PREPARED UI，后台删除旧 wav 并执行 `restartListening()`；后台完成前保存、重新开始、取消等相关按钮临时不可点。dialog 关闭时的 recorder release 和 `audio_raw` 清理也改为后台执行。
 
 验证：`:app:assembleDebug` BUILD SUCCESSFUL；`:app:publishDebugUpdate` 已发布到阿里云 debug 通道，code `202607020832`；未使用 adb。
+# 2026-07-13 - FableSol 解析光晕强度微调
+
+按用户要求将 `analytic_halo_strength` 从 0.22 调为 0.21，其余三项质感参数和光晕算法不变。
+相关参数回归通过；详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713124317.md`。未使用 adb。
+已发布阿里云 Debug `202607130443`，远端 `latest.json` 已回读确认。
+
+# 2026-07-13 - FableSol Stage 2-4 四项持续质感优化
+
+同批加入四项可独立关闭的持续质感：1/f 慢呼吸进入环境波幅、稀有波包节奏和仅新生闪点的频率；
+水体片元增加按远近行足迹带限的三倍频风梳解析微法线；近层浪峰增加固定日照、6 次方向瓣且不接
+瞬态音频的朝阳 SSS；镜面闪点亮芯之前增加严格位于水体内侧的数学衰减光晕。87 项 FableSol
+单测与 Debug 构建通过，APK 已确认包含新版 GLSL；未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713120538.md`。
+已发布阿里云 Debug `202607130406`，远端 `latest.json` 已回读确认。
