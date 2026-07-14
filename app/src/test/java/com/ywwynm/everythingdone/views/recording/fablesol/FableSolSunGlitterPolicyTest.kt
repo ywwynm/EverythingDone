@@ -37,12 +37,12 @@ class FableSolSunGlitterPolicyTest {
 
     @Test
     fun depthElongationStaysSmallAndRecoversTowardTheFarRows() {
-        val near = FableSolSunGlitterPolicy.depthAxisLengthDp(0.0, 1.0)
-        val far = FableSolSunGlitterPolicy.depthAxisLengthDp(1.0, 1.0)
-        val outside = FableSolSunGlitterPolicy.depthAxisLengthDp(0.0, 0.0)
+        val near = FableSolSunGlitterPolicy.depthAxisLengthDp(0, 1.0)
+        val far = FableSolSunGlitterPolicy.depthAxisLengthDp(7, 1.0)
+        val outside = FableSolSunGlitterPolicy.depthAxisLengthDp(0, 0.0)
 
-        assertEquals(2.6, near, 1e-12)
-        assertEquals(1.3, far, 1e-12)
+        assertEquals(2.56, near, 1e-6)
+        assertEquals(1.29, far, 1e-6)
         assertTrue(outside < near)
         assertTrue(outside > 1.0)
     }

@@ -21,6 +21,7 @@ class FableSolGlOpticsTest {
             0.0
         )
         assertTrue(FableSolGlintEnvelopePolicy.coreAlpha(0.04, 1.0) > 1.0 / 255.0)
+        assertEquals(0.9129, FableSolGlintEnvelopePolicy.coreAlpha(1.0, 1.0), 1e-12)
         var previous = 0.0
         for (step in 0..100) {
             val alpha = FableSolGlintEnvelopePolicy.coreAlpha(step / 100.0, 1.0)
@@ -83,7 +84,7 @@ class FableSolGlOpticsTest {
         var floatCount = 0
         repeat(90) {
             sim.update(1.0 / 60.0)
-            for (layer in 0..2) java.util.Arrays.fill(sim.layers[layer].crestVeil, 0.8)
+            for (layer in 0..4) java.util.Arrays.fill(sim.layers[layer].crestVeil, 0.8)
             floatCount = optics.build(
                 sim,
                 params,
@@ -107,7 +108,7 @@ class FableSolGlOpticsTest {
         }
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
         assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
-        assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
+        assertTrue((0..4).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
         var hasHdrEligibleSurfaceSegment = false
         for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
             for (component in 0 until FableSolGlOptics.COMPONENTS_PER_VERTEX) {
@@ -136,18 +137,26 @@ class FableSolGlOpticsTest {
         val start = Array(FableSolSpec.N_LAYERS) { intArrayOf(60, 112, 182) }
         val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(94, 154, 211) }
         sim.sparkle01 = 1.0
-        for (layer in 0..4) {
+        for (layer in 0..7) {
             sim.layers[layer].capillary01 = 1.0
             sim.layers[layer].roughness01 = 0.35
         }
 
+        val maximumCandidateCount = IntArray(FableSolSpec.N_LAYERS)
         repeat(120) {
             sim.update(1.0 / 60.0)
             optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
+            for (layer in maximumCandidateCount.indices) {
+                maximumCandidateCount[layer] = maxOf(
+                    maximumCandidateCount[layer],
+                    optics.glintCandidateCountForTest[layer]
+                )
+            }
         }
 
-        assertTrue((0..4).sumOf { optics.glintTrackCountForTest(it) } > 0)
+        assertTrue((0..7).sumOf { optics.glintTrackCountForTest(it) } > 0)
         assertTrue(optics.glitterOccupiedLayerCountForTest() >= 2)
+        assertTrue((3..7).any { optics.glintTrackCountForTest(it) > 0 })
         assertTrue(
             optics.glitterBirthPathWeightAverageForTest() >
                 FableSolSunGlitterPolicy.OUTSIDE_PATH_WEIGHT
@@ -156,16 +165,19 @@ class FableSolGlOpticsTest {
             optics.glintPathCenter01ForTest[far] > optics.glintPathCenter01ForTest[near]
         })
         assertTrue((0..4).any { optics.glintMaximumPathWeightForTest[it] > 0.5 })
-        assertTrue((0..2).sumOf { optics.streakTrackCountForTest(it) } > 0)
-        assertTrue((0..5).all {
+        assertTrue((0..4).sumOf { optics.streakTrackCountForTest(it) } > 0)
+        assertTrue((0..7).all {
             optics.glintTrackCountForTest(it) <= FableSolMaterialPolicy.glintCapacity(it)
         })
-        assertTrue((0..2).all { optics.streakTrackCountForTest(it) <= if (it == 0) 3 else 2 })
-        assertTrue((0..4).all { optics.glintPinkGainForTest[it] in 0.904..1.096 })
-        assertTrue((0..2).all { optics.streakPinkGainForTest[it] in 0.88..1.12 })
-        assertTrue((0..4).any { optics.glintFresnelContributionMaxForTest[it] > 0.0 })
-        assertTrue((0..4).all { optics.glintBirthRateForTest[it] in 0.72..1.28 })
-        assertTrue((0..4).sumOf { optics.analyticHaloVertexCountForTest[it] } > 0)
+        assertTrue((0..4).all {
+            optics.streakTrackCountForTest(it) <= FableSolMaterialPolicy.flowStreakCapacity(it)
+        })
+        assertTrue((0..7).all { optics.glintPinkGainForTest[it] in 0.904..1.096 })
+        assertTrue((0..4).all { optics.streakPinkGainForTest[it] in 0.88..1.12 })
+        assertTrue((0..7).any { optics.glintFresnelContributionMaxForTest[it] > 0.0 })
+        assertTrue((0..7).all { optics.glintBirthRateForTest[it] in 0.72..1.28 })
+        assertTrue((0..7).sumOf { optics.analyticHaloVertexCountForTest[it] } > 0)
+        assertTrue((3..7).all { maximumCandidateCount[it] > 0 })
 
         val layer = (0..4).first { optics.glintVertexCountForTest[it] > 0 }
         val first = optics.glintFirstVertexForTest[layer]
@@ -178,6 +190,53 @@ class FableSolGlOpticsTest {
             kotlin.math.abs(optics.vertices[offset + 5] - optics.vertices[offset + 10]) +
             kotlin.math.abs(optics.vertices[offset + 6] - optics.vertices[offset + 11])
         assertTrue(coreToEdgeDistance > 1e-4f)
+
+        var sharedSubdivisionChecked = false
+        for (candidateLayer in 0..7) {
+            val runStart = optics.glintFirstVertexForTest[candidateLayer]
+            val runEnd = runStart + optics.glintVertexCountForTest[candidateLayer]
+            var vertex = runStart
+            while (vertex < runEnd) {
+                val mode = optics.vertices[
+                    vertex * FableSolGlOptics.COMPONENTS_PER_VERTEX + 8
+                ]
+                var next = vertex + 1
+                while (next < runEnd && optics.vertices[
+                        next * FableSolGlOptics.COMPONENTS_PER_VERTEX + 8
+                    ] == mode
+                ) next++
+                if (mode == 7f && next < runEnd && optics.vertices[
+                        next * FableSolGlOptics.COMPONENTS_PER_VERTEX + 8
+                    ] == 3f
+                ) {
+                    var coreEnd = next + 1
+                    while (coreEnd < runEnd && optics.vertices[
+                            coreEnd * FableSolGlOptics.COMPONENTS_PER_VERTEX + 8
+                        ] == 3f
+                    ) coreEnd++
+                    val haloCount = next - vertex
+                    val coreCount = coreEnd - next
+                    assertEquals(haloCount, coreCount)
+                    assertEquals(0, haloCount % FableSolGlOptics.VERTICES_PER_QUAD)
+                    val segments = haloCount / FableSolGlOptics.VERTICES_PER_QUAD
+                    assertTrue(segments in 12..32)
+                    for (segment in 0 until segments) {
+                        val haloQ = optics.vertices[
+                            (vertex + segment * 6) * FableSolGlOptics.COMPONENTS_PER_VERTEX + 2
+                        ]
+                        val coreQ = optics.vertices[
+                            (next + segment * 6) * FableSolGlOptics.COMPONENTS_PER_VERTEX + 2
+                        ]
+                        assertEquals(haloQ, coreQ, 0f)
+                    }
+                    sharedSubdivisionChecked = true
+                    break
+                }
+                vertex = next
+            }
+            if (sharedSubdivisionChecked) break
+        }
+        assertTrue(sharedSubdivisionChecked)
     }
 
     @Test
@@ -267,12 +326,12 @@ class FableSolGlOpticsTest {
         sim.update(1.0 / 60.0)
         optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
 
-        assertTrue((0..6).all { optics.surfaceBandVertexCountForTest[it] > 0 })
-        assertTrue((7..8).all { optics.surfaceBandVertexCountForTest[it] == 0 })
+        assertTrue((0..7).all { optics.surfaceBandVertexCountForTest[it] > 0 })
+        assertEquals(0, optics.surfaceBandVertexCountForTest[8])
         assertTrue((0..4).sumOf { optics.thinGlowVertexCountForTest[it] } > 0)
         assertTrue((5..8).all { optics.thinGlowVertexCountForTest[it] == 0 })
-        assertTrue((0..5).sumOf { optics.backShadeVertexCountForTest[it] } > 0)
-        assertTrue((6..8).all { optics.backShadeVertexCountForTest[it] == 0 })
+        assertTrue((0..6).sumOf { optics.backShadeVertexCountForTest[it] } > 0)
+        assertTrue((7..8).all { optics.backShadeVertexCountForTest[it] == 0 })
         assertTrue((0..6).all { optics.featherVertexCountForTest[it] == 0 })
         assertTrue((7..8).all { optics.featherVertexCountForTest[it] > 0 })
     }
@@ -287,7 +346,7 @@ class FableSolGlOpticsTest {
         val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(94, 154, 211) }
         val sourceIndex = IntArray(COLUMNS) { it.coerceAtMost(FableSolSpec.N_POINTS - 2) }
         val sourceFraction = DoubleArray(COLUMNS)
-        for (layer in 0..2) java.util.Arrays.fill(sim.layers[layer].crestVeil, 0.8)
+        for (layer in 0..4) java.util.Arrays.fill(sim.layers[layer].crestVeil, 0.8)
 
         sim.update(1.0 / 60.0)
         optics.build(
@@ -304,8 +363,8 @@ class FableSolGlOpticsTest {
 
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
         assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
-        assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
-        assertTrue((3..8).all { optics.crestVeilVertexCountForTest[it] == 0 })
+        assertTrue((0..4).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
+        assertTrue((5..8).all { optics.crestVeilVertexCountForTest[it] == 0 })
     }
 
     @Test

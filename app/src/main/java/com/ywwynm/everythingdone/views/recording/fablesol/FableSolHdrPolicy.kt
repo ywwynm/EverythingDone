@@ -10,14 +10,15 @@ import kotlin.math.min
  */
 internal object FableSolHdrPolicy {
 
-    const val MAX_CONTENT_HEADROOM = 2.0f
-    const val DESIRED_SURFACE_HEADROOM = 2.0f
+    const val MAX_CONTENT_HEADROOM = 3.6f
+    const val DESIRED_SURFACE_HEADROOM = 3.6f
     const val TRANSITION_SECONDS = 0.36f
-    const val WATER_TRANSMISSION_PEAK = 1.45f
     private const val MIN_VISIBLE_HEADROOM = 1.01f
 
-    private val glintCorePeaks = floatArrayOf(2.00f, 1.90f, 1.75f, 1.50f, 1.35f, 1.20f, 1f, 1f, 1f)
-    private val litCrestPeaks = floatArrayOf(1.40f, 1.36f, 1.30f, 1.22f, 1.14f, 1.08f, 1f, 1f, 1f)
+    private val glintCorePeaks = floatArrayOf(3.60f, 2.80f, 2.40f, 2.00f, 1.60f, 1.36f, 1.29f, 1.16f, 1f)
+    private val surfaceReflectionPeaks = floatArrayOf(3.20f, 2.70f, 2.24f, 1.96f, 1.60f, 1.29f, 1.18f, 1.08f, 1f)
+    val CONTINUOUS_SHEEN_PEAKS = floatArrayOf(2.70f, 2.40f, 2.10f, 1.80f, 1.50f, 1.29f, 1.08f, 1f, 1f)
+    val CONTINUOUS_TRANSMISSION_PEAKS = floatArrayOf(1.60f, 1.50f, 1.36f, 1.29f, 1.21f, 1.14f, 1.08f, 1f, 1f)
     // Step D 后 mode8 只保留很弱的独立肩部；主要 HDR 透射改由连续水面 SSS 承担。
     private val transmissionPeaks = floatArrayOf(1.08f, 1.06f, 1.04f, 1.02f, 1f, 1f, 1f, 1f, 1f)
 
@@ -37,7 +38,7 @@ internal object FableSolHdrPolicy {
 
     fun glintCorePeak(layer: Int): Float = glintCorePeaks.getOrElse(layer) { 1f }
 
-    fun litCrestPeak(layer: Int): Float = litCrestPeaks.getOrElse(layer) { 1f }
+    fun surfaceReflectionPeak(layer: Int): Float = surfaceReflectionPeaks.getOrElse(layer) { 1f }
 
     fun transmissionPeak(layer: Int): Float = transmissionPeaks.getOrElse(layer) { 1f }
 }

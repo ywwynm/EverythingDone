@@ -16,8 +16,6 @@ internal object FableSolSunGlitterPolicy {
     private const val NEAR_HALF_WIDTH_01 = 0.24
     private const val FAR_HALF_WIDTH_01 = 0.11
     private const val PATH_TILT_SCALE = 0.28
-    private const val NEAR_DEPTH_LENGTH_DP = 2.6
-    private const val FAR_DEPTH_LENGTH_DP = 1.3
 
     fun pathCenter01(depth01: Double, lightAzimuthDeg: Double): Double {
         val depth = depth01.coerceIn(0.0, 1.0)
@@ -40,9 +38,8 @@ internal object FableSolSunGlitterPolicy {
     }
 
     /** 闪点只向连续面的远深方向轻微展开；远层更短，避免形成纵向光柱。 */
-    fun depthAxisLengthDp(depth01: Double, pathWeight: Double): Double {
-        val depth = depth01.coerceIn(0.0, 1.0)
-        val base = NEAR_DEPTH_LENGTH_DP + (FAR_DEPTH_LENGTH_DP - NEAR_DEPTH_LENGTH_DP) * depth
+    fun depthAxisLengthDp(layer: Int, pathWeight: Double): Double {
+        val base = FableSolMaterialPolicy.glintDepthLengthDp(layer)
         return base * (0.72 + 0.28 * pathWeight.coerceIn(0.0, 1.0))
     }
 }

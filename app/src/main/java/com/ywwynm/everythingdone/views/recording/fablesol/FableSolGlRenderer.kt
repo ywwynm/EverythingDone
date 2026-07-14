@@ -172,6 +172,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             "fablesol/glsl/fullscreen.vert",
             "fablesol/glsl/present.frag"
         )
+        waterProgram.use()
+        uploadStaticWaterUniforms()
         val buffers = IntArray(4)
         GLES30.glGenBuffers(4, buffers, 0)
         vertexBufferId = buffers[0]
@@ -483,6 +485,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // 二者都不再参与整层深度散射混色。
         val baseScatterStop1 = FableSolColor.mixOklab(base.start, base.end, 0.21)
         val baseScatterStop2 = FableSolColor.mixOklab(base.start, base.end, 0.56)
+        val scatteringPalettes = arrayOf(
+            FableSolDepthScatteringPolicy.derive(base.start),
+            FableSolDepthScatteringPolicy.derive(baseScatterStop1),
+            FableSolDepthScatteringPolicy.derive(baseScatterStop2),
+            FableSolDepthScatteringPolicy.derive(base.end)
+        )
         for (layer in 0 until FableSolSpec.N_LAYERS) {
             val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
             val breath = params.get("color_breath") *
@@ -502,10 +510,14 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             putColor(layerStop1, layer, stop1)
             putColor(layerStop2, layer, stop2)
             putColor(layerEnd, layer, end)
-            putScatteringColors(layer, base.start, layerDeepStart, layerSubsurfaceStart)
-            putScatteringColors(layer, baseScatterStop1, layerDeepStop1, layerSubsurfaceStop1)
-            putScatteringColors(layer, baseScatterStop2, layerDeepStop2, layerSubsurfaceStop2)
-            putScatteringColors(layer, base.end, layerDeepEnd, layerSubsurfaceEnd)
+            putScatteringColors(
+                layer, scatteringPalettes[0], layerDeepStart, layerSubsurfaceStart)
+            putScatteringColors(
+                layer, scatteringPalettes[1], layerDeepStop1, layerSubsurfaceStop1)
+            putScatteringColors(
+                layer, scatteringPalettes[2], layerDeepStop2, layerSubsurfaceStop2)
+            putScatteringColors(
+                layer, scatteringPalettes[3], layerDeepEnd, layerSubsurfaceEnd)
             layerAlpha[layer] = params.lget("alpha", layer).toFloat()
             buildLayerGradientGeometry(layer, fillBottom, snapshot)
         }
@@ -738,7 +750,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
         GLES30.glUniform1f(
             opticalProgram.uniform("uHdrCrestPeak"),
-            FableSolHdrPolicy.litCrestPeak(layer)
+            FableSolHdrPolicy.surfaceReflectionPeak(layer)
         )
         GLES30.glUniform1f(
             opticalProgram.uniform("uHdrTransmissionPeak"),
@@ -926,15 +938,50 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
         GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
-        GLES30.glUniform1f(
-            waterProgram.uniform("uHdrTransmissionPeak"),
-            FableSolHdrPolicy.WATER_TRANSMISSION_PEAK
+    }
+
+    /** 程序链接后不再变化的逐层曲线只上传一次，避免每帧重复 JNI/driver 调用。 */
+    private fun uploadStaticWaterUniforms() {
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uMacroLightWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.MACRO_LIGHT_WEIGHTS,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uMacroShadowWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.MACRO_SHADOW_WEIGHTS,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uMicroNormalWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.MICRO_NORMAL_WEIGHTS,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uSdrSssWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.SDR_SSS_WEIGHTS,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uHdrSheenPeaks[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolHdrPolicy.CONTINUOUS_SHEEN_PEAKS,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uHdrTransmissionPeaks[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolHdrPolicy.CONTINUOUS_TRANSMISSION_PEAKS,
+            0
         )
     }
 
-    private fun putScatteringColors(layer: Int, base: IntArray,
+    private fun putScatteringColors(layer: Int, palette: FableSolDepthScatteringPolicy.Palette,
                                     deepTarget: FloatArray, subsurfaceTarget: FloatArray) {
-        val palette = FableSolDepthScatteringPolicy.derive(base)
         putColor(deepTarget, layer, palette.deep)
         putColor(subsurfaceTarget, layer, palette.subsurface)
     }

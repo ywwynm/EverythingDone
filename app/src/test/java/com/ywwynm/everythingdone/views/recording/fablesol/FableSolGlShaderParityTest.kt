@@ -19,7 +19,8 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("LONGITUDINAL_LIGHT_RESPONSE = 0.12"))
         assertTrue(source.contains("uniform float uMacroShadowLumaCap"))
         assertTrue(source.contains("MACRO_SHADOW_NDL_START = 0.080"))
-        assertTrue(source.contains("MACRO_SHADOW_FAR_END = 0.700"))
+        assertTrue(source.contains("uniform float uMacroLightWeights[9]"))
+        assertTrue(source.contains("uniform float uMacroShadowWeights[9]"))
         assertTrue(longitudinal.contains("positiveNdl"))
         assertTrue(longitudinal.contains("max(-relativeNdl, 0.0)"))
         assertTrue(longitudinal.contains("deepLinear"))
@@ -74,6 +75,7 @@ class FableSolGlShaderParityTest {
 
     @Test
     fun microNormalsUseThreeAnalyticDerivativeOctavesAndRowBandLimiting() {
+        val vertex = shader("water.vert")
         val source = shader("water.frag")
 
         assertTrue(source.contains("valueNoiseDerivative"))
@@ -83,6 +85,9 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("rowFootprint"))
         assertTrue(source.contains("uSpecularAaStrength"))
         assertTrue(source.contains("uMicroNormalStrength"))
+        assertTrue(vertex.contains("uniform float uMicroNormalWeights[9]"))
+        assertTrue(vertex.contains("vMicroNormalWeight = sampleLayerCurve"))
+        assertTrue(source.contains("if (rowFade <= 0.0001) return linearColor"))
     }
 
     @Test
@@ -144,6 +149,7 @@ class FableSolGlShaderParityTest {
         assertTrue(hdrBlock.contains("uHdrCrestPeak"))
         assertTrue(hdrBlock.contains("uHdrTransmissionPeak"))
         assertTrue(hdrBlock.contains("smoothstep(0.28, 0.82, vHdrEligibility)"))
+        assertTrue(hdrBlock.contains("clamp(vHdrEligibility, 0.0, 1.0)"))
         assertFalse(hdrBlock.contains("vOpticalMode > 1.5"))
         assertFalse(hdrBlock.contains("vOpticalMode > 6.5"))
     }
@@ -166,14 +172,19 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("in vec2 vSheenSlope"))
         assertTrue(source.contains("vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)"))
         assertTrue(source.contains("pow(clamp(fresnel * sunBoost, 0.0, 1.0), 0.70)"))
-        assertTrue(source.contains("mix(2.0, 1.0"))
+        assertTrue(vertex.contains("uniform float uHdrSheenPeaks[9]"))
+        assertTrue(vertex.contains("vHdrSheenPeak = sampleLayerCurve"))
+        assertTrue(source.contains("float sheenPeak = min(vHdrSheenPeak"))
     }
 
     @Test
     fun waterBacklitTransmissionUsesIdentityColorAndTheComplementaryFresnelBudget() {
         val source = shader("water.frag")
 
-        assertTrue(source.contains("uniform float uHdrTransmissionPeak"))
+        val vertex = shader("water.vert")
+        assertTrue(vertex.contains("uniform float uHdrTransmissionPeaks[9]"))
+        assertTrue(vertex.contains("vHdrTransmissionPeak = sampleLayerCurve"))
+        assertTrue(source.contains("vHdrTransmissionPeak"))
         assertTrue(source.contains("backlitTransmissionExcess"))
         assertTrue(source.contains("(1.0 - fresnel) * sunriseSubsurfaceMask()"))
         assertTrue(source.contains("subsurfaceLinear / maximum"))

@@ -81,7 +81,8 @@ void main() {
         float targetPeak = 1.0;
         float neutralMix = 0.0;
         if (vOpticalMode > 2.5 && vOpticalMode < 3.5) {
-            hdrMask = pow(clamp(coverage, 0.0, 1.0), 1.55);
+            hdrMask = pow(clamp(coverage, 0.0, 1.0), 1.55) *
+                clamp(vHdrEligibility, 0.0, 1.0);
             targetPeak = min(uHdrCorePeak, uHdrHeadroom);
             neutralMix = 0.90;
         } else if (vOpticalMode > 3.5 && vOpticalMode < 4.5) {

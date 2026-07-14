@@ -32,6 +32,12 @@ uniform vec3 uEnvironmentBottom;
 uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
 uniform float uMacroShadowLumaCap;
+uniform float uMacroLightWeights[9];
+uniform float uMacroShadowWeights[9];
+uniform float uMicroNormalWeights[9];
+uniform float uSdrSssWeights[9];
+uniform float uHdrSheenPeaks[9];
+uniform float uHdrTransmissionPeaks[9];
 uniform bool uFrontFill;
 
 out vec3 vColor;
@@ -41,6 +47,10 @@ out vec2 vSurfaceSlope;
 out float vDepth01;
 out float vCrestPinch;
 out vec2 vSheenSlope;
+out float vMicroNormalWeight;
+out float vSdrSssWeight;
+out float vHdrSheenPeak;
+out float vHdrTransmissionPeak;
 flat out int vFrontFill;
 
 float srgbToLinearChannel(float c) {
@@ -119,15 +129,15 @@ const float MAX_RELATIVE_LONGITUDINAL_LIFT = 0.015;
 const float LONGITUDINAL_LIGHT_RESPONSE = 0.12;
 const float MACRO_SHADOW_NDL_START = 0.080;
 const float MACRO_SHADOW_NDL_FULL = 0.180;
-const float MACRO_SHADOW_FAR_START = 0.350;
-const float MACRO_SHADOW_FAR_END = 0.700;
 const float MACRO_SHADOW_CREST_START = 0.005;
 const float MACRO_SHADOW_CREST_FULL = 0.080;
 const float MACRO_SHADOW_LOCAL_FLOOR = 0.300;
 
-float longitudinalDepthWeight(float depth01) {
-    return mix(1.0, 0.45,
-        smoothstep(0.35, 0.90, clamp(depth01, 0.0, 1.0)));
+float sampleLayerCurve(float values[9], float depth01) {
+    float position = clamp(depth01, 0.0, 1.0) * 8.0;
+    int lower = int(floor(position));
+    int upper = min(lower + 1, 8);
+    return mix(values[lower], values[upper], fract(position));
 }
 
 vec3 relativeLongitudinalLight(vec3 base, vec3 deep, vec2 slope,
@@ -141,7 +151,7 @@ vec3 relativeLongitudinalLight(vec3 base, vec3 deep, vec2 slope,
     float relativeLift = min(
         positiveNdl * LONGITUDINAL_LIGHT_RESPONSE,
         MAX_RELATIVE_LONGITUDINAL_LIFT
-    ) * longitudinalDepthWeight(depth01);
+    ) * sampleLayerCurve(uMacroLightWeights, depth01);
     vec3 lit = base * (1.0 + relativeLift);
 
     float backSlope = smoothstep(
@@ -149,11 +159,7 @@ vec3 relativeLongitudinalLight(vec3 base, vec3 deep, vec2 slope,
         MACRO_SHADOW_NDL_FULL,
         max(-relativeNdl, 0.0)
     );
-    float depthGate = 1.0 - smoothstep(
-        MACRO_SHADOW_FAR_START,
-        MACRO_SHADOW_FAR_END,
-        clamp(depth01, 0.0, 1.0)
-    );
+    float depthGate = sampleLayerCurve(uMacroShadowWeights, depth01);
     float crestGate = mix(
         MACRO_SHADOW_LOCAL_FLOOR,
         1.0,
@@ -230,5 +236,10 @@ void main() {
     vDepth01 = aDepth01;
     vCrestPinch = aCrestPinch;
     vSheenSlope = aSheenSlope;
+    // 网格行与九层曲线节点对齐；在顶点阶段采样后线性插值，与逐片元采样等价。
+    vMicroNormalWeight = sampleLayerCurve(uMicroNormalWeights, aDepth01);
+    vSdrSssWeight = sampleLayerCurve(uSdrSssWeights, aDepth01);
+    vHdrSheenPeak = sampleLayerCurve(uHdrSheenPeaks, aDepth01);
+    vHdrTransmissionPeak = sampleLayerCurve(uHdrTransmissionPeaks, aDepth01);
     vFrontFill = uFrontFill ? 1 : 0;
 }

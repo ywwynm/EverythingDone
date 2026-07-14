@@ -13,34 +13,40 @@ class FableSolHdrPolicyTest {
         assertEquals(1f, FableSolHdrPolicy.usableHeadroom(0.8f), 0f)
         assertEquals(1f, FableSolHdrPolicy.usableHeadroom(1.01f), 0f)
         assertEquals(1.45f, FableSolHdrPolicy.usableHeadroom(1.45f), 0f)
-        assertEquals(2f, FableSolHdrPolicy.usableHeadroom(4f), 0f)
+        assertEquals(3.6f, FableSolHdrPolicy.usableHeadroom(4f), 0f)
     }
 
     @Test
     fun peakBudgetFallsFromNearToMiddleAndBecomesSdrAtFarLayers() {
-        assertEquals(2f, FableSolHdrPolicy.glintCorePeak(0), 0f)
-        assertTrue(FableSolHdrPolicy.glintCorePeak(2) >= 1.6f)
-        assertEquals(1.5f, FableSolHdrPolicy.glintCorePeak(3), 0f)
-        assertEquals(1.2f, FableSolHdrPolicy.glintCorePeak(5), 0f)
-        assertEquals(1f, FableSolHdrPolicy.glintCorePeak(6), 0f)
-
-        assertEquals(1.4f, FableSolHdrPolicy.litCrestPeak(0), 0f)
-        assertEquals(1.08f, FableSolHdrPolicy.litCrestPeak(5), 0f)
-        assertEquals(1f, FableSolHdrPolicy.litCrestPeak(6), 0f)
-
-        assertEquals(1.45f, FableSolHdrPolicy.WATER_TRANSMISSION_PEAK, 0f)
-        assertEquals(1.08f, FableSolHdrPolicy.transmissionPeak(0), 0f)
-        assertEquals(1.02f, FableSolHdrPolicy.transmissionPeak(3), 0f)
-        assertEquals(1f, FableSolHdrPolicy.transmissionPeak(4), 0f)
+        assertPeakCurve(
+            floatArrayOf(3.6f, 2.8f, 2.4f, 2f, 1.6f, 1.36f, 1.29f, 1.16f, 1f),
+            FableSolHdrPolicy::glintCorePeak
+        )
+        assertPeakCurve(
+            floatArrayOf(3.2f, 2.7f, 2.24f, 1.96f, 1.6f, 1.29f, 1.18f, 1.08f, 1f),
+            FableSolHdrPolicy::surfaceReflectionPeak
+        )
+        assertPeakCurve(
+            floatArrayOf(1.08f, 1.06f, 1.04f, 1.02f, 1f, 1f, 1f, 1f, 1f),
+            FableSolHdrPolicy::transmissionPeak
+        )
+        assertPeakArray(
+            floatArrayOf(2.7f, 2.4f, 2.1f, 1.8f, 1.5f, 1.29f, 1.08f, 1f, 1f),
+            FableSolHdrPolicy.CONTINUOUS_SHEEN_PEAKS
+        )
+        assertPeakArray(
+            floatArrayOf(1.6f, 1.5f, 1.36f, 1.29f, 1.21f, 1.14f, 1.08f, 1f, 1f),
+            FableSolHdrPolicy.CONTINUOUS_TRANSMISSION_PEAKS
+        )
     }
 
     @Test
     fun availableHeadroomRisesSmoothlyButDropsToTheRealLimitImmediately() {
-        val halfway = FableSolHdrPolicy.advanceHeadroom(1f, 2f, 0.18f)
+        val halfway = FableSolHdrPolicy.advanceHeadroom(1f, 3.6f, 0.18f)
 
-        assertEquals(1.5f, halfway, 1e-6f)
-        assertEquals(2f, FableSolHdrPolicy.advanceHeadroom(halfway, 2f, 0.18f), 1e-6f)
-        assertEquals(1.2f, FableSolHdrPolicy.advanceHeadroom(2f, 1.2f, 0.01f), 0f)
+        assertEquals(2.3f, halfway, 1e-6f)
+        assertEquals(3.6f, FableSolHdrPolicy.advanceHeadroom(halfway, 3.6f, 0.18f), 1e-6f)
+        assertEquals(1.2f, FableSolHdrPolicy.advanceHeadroom(3.6f, 1.2f, 0.01f), 0f)
         assertEquals(1f, FableSolHdrPolicy.advanceHeadroom(1.8f, Float.NaN, 0.01f), 0f)
     }
 
@@ -63,5 +69,18 @@ class FableSolHdrPolicyTest {
         assertTrue(rising in 0f..1f)
         assertEquals(rising, firstFalling, 0f)
         assertTrue(transition.update(false, 0.09f) < rising)
+    }
+
+    private fun assertPeakCurve(expected: FloatArray, valueAt: (Int) -> Float) {
+        expected.forEachIndexed { index, value ->
+            assertEquals("layer=$index", value, valueAt(index), 0f)
+        }
+    }
+
+    private fun assertPeakArray(expected: FloatArray, actual: FloatArray) {
+        assertEquals(expected.size, actual.size)
+        expected.forEachIndexed { index, value ->
+            assertEquals("layer=$index", value, actual[index], 0f)
+        }
     }
 }

@@ -23,14 +23,12 @@ class FableSolShadowColorPolicyTest {
     }
 
     @Test
-    fun deepeningDecreasesWithLayerDepth() {
+    fun colorDepthIsUniformAndLayerPresenceIsControlledByGeometryAlpha() {
         val depths = doubleArrayOf(0.0, 0.25, 0.625, 1.0)
         for (base in noteColors) {
             for (depth in depths) {
-                val depthScale = ((1.0 - depth) * (1.0 - depth)).coerceAtLeast(0.05)
                 assertArrayEquals(
-                    FableSolColor.darkenOklab(
-                        base, FableSolShadowColorPolicy.BACK_DARKEN_L * depthScale),
+                    FableSolColor.darkenOklab(base, FableSolShadowColorPolicy.BACK_DARKEN_L),
                     FableSolShadowColorPolicy.backShade(base, 5.0, depth)
                 )
             }

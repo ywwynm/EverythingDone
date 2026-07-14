@@ -748,7 +748,8 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     /** 陡峭波冠的持久轻纱：由真实轮廓触发，随流平移并自然消散。 */
     private fun updateCrestVeil(ls: FableSolLayerSim, dt: Double) {
-        if (ls.depth01 >= 0.34) { java.util.Arrays.fill(ls.crestVeil, 0.0); return }
+        val layerWeight = FableSolMaterialPolicy.crestVeilSourceWeight(ls.i)
+        if (layerWeight <= 0.0) { java.util.Arrays.fill(ls.crestVeil, 0.0); return }
         val h = heights[ls.i]
         val slope = FableSolMath.gradient(h, DX_DP)
         val curvature = FableSolMath.gradient(slope, DX_DP)
@@ -761,7 +762,6 @@ class FableSolSimulation(private val p: FableSolParams) {
             for (j in 0..(radius * 2)) { val vv = padded[j + m]; if (vv > mx) mx = vv }
             nearSlope[m] = mx
         }
-        val depthGain = max(0.0, 1.0 - ls.depth01 / 0.34)
         val material = 0.30 + 0.70 * (0.55 * ls.roughness01 + 0.45 * ls.capillary01).coerceIn(0.0, 1.0)
         val backtrace = DoubleArray(uGrid.size) { uGrid[it] - ls.flowDps * dt }
         val advected = FableSolMath.interp(backtrace, uGrid, ls.crestVeil, 0.0, 0.0)
@@ -772,7 +772,7 @@ class FableSolSimulation(private val p: FableSolParams) {
         for (n in slope.indices) {
             val crest = smoothstep(0.006, 0.018, -curvature[n])
             val steep = smoothstep(0.16, 0.34, nearSlope[n])
-            val source = crest * steep * depthGain * material
+            val source = crest * steep * layerWeight * material
             var vv = advected[n] * decay
             vv += max(source - vv, 0.0) * attack
             veil[n] = vv.coerceIn(0.0, 1.0)

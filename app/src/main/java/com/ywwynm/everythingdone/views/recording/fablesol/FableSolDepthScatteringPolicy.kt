@@ -7,10 +7,20 @@ internal object FableSolDepthScatteringPolicy {
 
     data class Palette(val deep: IntArray, val subsurface: IntArray)
 
-    fun derive(base: IntArray): Palette = Palette(
-        deep = variant(base, DEEP_LIGHTNESS, DEEP_CHROMA),
-        subsurface = variant(base, SUBSURFACE_LIGHTNESS, SUBSURFACE_CHROMA)
-    )
+    private val paletteCache = object : LinkedHashMap<Int, Palette>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, Palette>?): Boolean =
+            size > PALETTE_CACHE_CAPACITY
+    }
+
+    @Synchronized
+    fun derive(base: IntArray): Palette {
+        val key = (base[0].coerceIn(0, 255) shl 16) or
+            (base[1].coerceIn(0, 255) shl 8) or base[2].coerceIn(0, 255)
+        return paletteCache[key] ?: Palette(
+            deep = variant(base, DEEP_LIGHTNESS, DEEP_CHROMA),
+            subsurface = variant(base, SUBSURFACE_LIGHTNESS, SUBSURFACE_CHROMA)
+        ).also { paletteCache[key] = it }
+    }
 
     /** displaced-x 对原始 x 的负导数表示横向收拢；用软阈值抑制普通缓坡。 */
     fun crestPinch(orbitXDerivative: Double): Double {
@@ -36,6 +46,7 @@ internal object FableSolDepthScatteringPolicy {
     private const val SUBSURFACE_LIGHTNESS = 1.15
     private const val SUBSURFACE_CHROMA = 0.85
     private const val MIN_CHROMA_FOR_HUE = 0.01
+    private const val PALETTE_CACHE_CAPACITY = 64
     private const val PINCH_START = 0.035
     private const val PINCH_FULL = 0.22
 }

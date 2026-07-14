@@ -8,6 +8,10 @@ in vec2 vSurfaceSlope;
 in float vDepth01;
 in float vCrestPinch;
 in vec2 vSheenSlope;
+in float vMicroNormalWeight;
+in float vSdrSssWeight;
+in float vHdrSheenPeak;
+in float vHdrTransmissionPeak;
 flat in int vFrontFill;
 
 uniform float uTimeSeconds;
@@ -21,7 +25,6 @@ uniform float uSunSssFalloff;
 uniform bool uSceneLinear;
 uniform float uHdrGain;
 uniform float uHdrHeadroom;
-uniform float uHdrTransmissionPeak;
 out vec4 fragColor;
 
 float srgbToLinearChannel(float c) {
@@ -117,6 +120,8 @@ vec3 lightDirection() {
 }
 
 vec3 applyWindCombedMicroNormals(vec3 linearColor) {
+    float rowFade = clamp(vMicroNormalWeight, 0.0, 1.0);
+    if (rowFade <= 0.0001) return linearColor;
     vec2 derivative = windCombedMicroDerivative(vSurfacePositionPx, vDepth01);
     vec2 microSlope = derivative * (0.075 * uMicroNormalStrength);
     vec3 baseNormal = normalize(vec3(-vSurfaceSlope.x, 1.0, -vSurfaceSlope.y));
@@ -127,7 +132,6 @@ vec3 applyWindCombedMicroNormals(vec3 linearColor) {
     ));
     vec3 lightDir = lightDirection();
     float lightDelta = dot(detailNormal, lightDir) - dot(baseNormal, lightDir);
-    float rowFade = mix(1.0, 0.42, clamp(vDepth01, 0.0, 1.0));
     return linearColor * clamp(1.0 + lightDelta * 0.72 * rowFade, 0.82, 1.18);
 }
 
@@ -139,7 +143,7 @@ float sunriseSubsurfaceMask() {
     float sunAlignment = clamp(dot(viewHorizontal, lightHorizontal), 0.0, 1.0);
     float sunriseLobe = pow(sunAlignment, clamp(uSunSssFalloff, 4.0, 10.0));
     float crestMask = pow(clamp(vCrestPinch, 0.0, 1.0), 1.35);
-    float nearMask = pow(1.0 - clamp(vDepth01, 0.0, 1.0), 0.70);
+    float nearMask = clamp(vSdrSssWeight, 0.0, 1.0);
     return crestMask * nearMask * (0.08 + 0.92 * sunriseLobe);
 }
 
@@ -167,7 +171,7 @@ vec3 grazingSheenExcess(vec3 normal, float fresnel) {
     float sunBoost = 1.0 + 1.4 * pow(sunCos, 3.0);               // 全域 ~1，朝太阳最高 ~2.4
     // 低通宏观法线表达有限粗糙度下的宽镜面瓣；0.70 只拓宽 HDR 银泽，不改变 SDR 基色。
     float grazing = pow(clamp(fresnel * sunBoost, 0.0, 1.0), 0.70);
-    float sheenPeak = min(mix(2.0, 1.0, smoothstep(0.0, 0.62, vDepth01)), uHdrHeadroom);
+    float sheenPeak = min(vHdrSheenPeak, uHdrHeadroom);
     float sheen = grazing * max(sheenPeak - 1.0, 0.0);           // 超白差量，天然不超过 headroom
     float maxChannel = max(max(vColor.r, vColor.g), max(vColor.b, 0.001));
     vec3 tint = mix(vec3(1.0), vColor / maxChannel, 0.14);        // 近中性白 + 一丝身份色
@@ -180,7 +184,7 @@ vec3 grazingSheenExcess(vec3 normal, float fresnel) {
 vec3 backlitTransmissionExcess(float fresnel) {
     float strength = clamp(uSunSssStrength / 0.16, 0.0, 1.0);
     float transmissionPeak = min(
-        mix(uHdrTransmissionPeak, 1.0, smoothstep(0.0, 0.62, vDepth01)),
+        vHdrTransmissionPeak,
         uHdrHeadroom
     );
     float budget = (1.0 - fresnel) * sunriseSubsurfaceMask() * strength *
@@ -207,7 +211,9 @@ void main() {
     float dither = vFrontFill == 1 ? triangularDither(gl_FragCoord.xy) : 0.0;
     vec3 encodedColor = clamp(color + dither, 0.0, 1.0);
     vec3 outLinear = uSceneLinear ? srgbToLinear(encodedColor) : encodedColor;
-    if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 && uHdrHeadroom > 1.001) {
+    if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 &&
+            uHdrHeadroom > 1.001 &&
+            (vHdrSheenPeak > 1.001 || vHdrTransmissionPeak > 1.001)) {
         vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
         vec3 normal = normalize(vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y));
         float NdV = clamp(dot(normal, viewDir), 0.0, 1.0);

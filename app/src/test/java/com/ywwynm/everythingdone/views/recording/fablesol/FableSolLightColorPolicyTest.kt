@@ -29,7 +29,7 @@ class FableSolLightColorPolicyTest {
             FableSolLightColorPolicy.resolveLongitudinal(base, 0.25, 0.0)
         )
         assertEquals(
-            rgb(81, 91, 121),
+            base,
             FableSolLightColorPolicy.resolveLongitudinal(base, 0.25, 1.0)
         )
     }
@@ -44,9 +44,10 @@ class FableSolLightColorPolicyTest {
     }
 
     @Test
-    fun macroShadowMaskRejectsWeakSlopesAndFarRowsButKeepsCrestLocality() {
+    fun macroShadowMaskRejectsWeakSlopesAndLastRowButKeepsAQuietFarTail() {
         assertEquals(0.0, FableSolLightColorPolicy.macroShadowMask(0.079, 0.0, 1.0), 0.0)
-        assertEquals(0.0, FableSolLightColorPolicy.macroShadowMask(0.30, 0.70, 1.0), 0.0)
+        assertEquals(0.0, FableSolLightColorPolicy.macroShadowMask(0.30, 1.0, 1.0), 0.0)
+        assertTrue(FableSolLightColorPolicy.macroShadowMask(0.30, 0.70, 1.0) > 0.0)
         assertEquals(0.30, FableSolLightColorPolicy.macroShadowMask(0.18, 0.0, 0.0), 1e-12)
         assertEquals(1.0, FableSolLightColorPolicy.macroShadowMask(0.18, 0.0, 0.08), 1e-12)
     }

@@ -13,8 +13,6 @@ object FableSolLightColorPolicy {
     const val LONGITUDINAL_LIGHT_RESPONSE = 0.12
     const val MACRO_SHADOW_NDL_START = 0.080
     const val MACRO_SHADOW_NDL_FULL = 0.180
-    const val MACRO_SHADOW_FAR_START = 0.350
-    const val MACRO_SHADOW_FAR_END = 0.700
     const val MACRO_SHADOW_CREST_START = 0.005
     const val MACRO_SHADOW_CREST_FULL = 0.080
     const val MACRO_SHADOW_LOCAL_FLOOR = 0.300
@@ -31,7 +29,7 @@ object FableSolLightColorPolicy {
     ): Int {
         val response = (positiveNdl.coerceAtLeast(0.0) * LONGITUDINAL_LIGHT_RESPONSE)
             .coerceAtMost(MAX_RELATIVE_LONGITUDINAL_LIFT)
-        val lift = response * longitudinalDepthWeight(depth01)
+        val lift = response * FableSolMaterialPolicy.macroLightWeight(depth01)
         val scaledRed = (base ushr 16 and 0xff) * (1.0 + lift)
         val scaledGreen = (base ushr 8 and 0xff) * (1.0 + lift)
         val scaledBlue = (base and 0xff) * (1.0 + lift)
@@ -67,11 +65,7 @@ object FableSolLightColorPolicy {
             MACRO_SHADOW_NDL_FULL,
             negativeNdl.coerceAtLeast(0.0)
         )
-        val depthGate = 1.0 - smoothstep(
-            MACRO_SHADOW_FAR_START,
-            MACRO_SHADOW_FAR_END,
-            depth01.coerceIn(0.0, 1.0)
-        )
+        val depthGate = FableSolMaterialPolicy.macroShadowWeight(depth01)
         val crestGate = MACRO_SHADOW_LOCAL_FLOOR +
             (1.0 - MACRO_SHADOW_LOCAL_FLOOR) * smoothstep(
                 MACRO_SHADOW_CREST_START,
@@ -79,12 +73,6 @@ object FableSolLightColorPolicy {
                 crestPinch
             )
         return (backSlope * depthGate * crestGate).coerceIn(0.0, 1.0)
-    }
-
-    private fun longitudinalDepthWeight(depth01: Double): Double {
-        val t = ((depth01.coerceIn(0.0, 1.0) - 0.35) / 0.55).coerceIn(0.0, 1.0)
-        val smooth = t * t * (3.0 - 2.0 * t)
-        return 1.0 - 0.55 * smooth
     }
 
     private fun smoothstep(edge0: Double, edge1: Double, value: Double): Double {

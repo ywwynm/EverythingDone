@@ -9,9 +9,6 @@ object FableSolShadowColorPolicy {
      * 而不是向黑混（同时掉明度和彩度=发黑发脏）。远层衰减不变。
      */
     fun backShade(base: IntArray, @Suppress("UNUSED_PARAMETER") hueTemperatureDeg: Double,
-                  depth01: Double): IntArray =
-        FableSolColor.darkenOklab(base, BACK_DARKEN_L * depthScale(depth01))
-
-    private fun depthScale(depth01: Double): Double =
-        (1.0 - depth01.coerceIn(0.0, 1.0)).let { it * it }.coerceAtLeast(0.05)
+                  @Suppress("UNUSED_PARAMETER") depth01: Double): IntArray =
+        FableSolColor.darkenOklab(base, BACK_DARKEN_L)
 }
