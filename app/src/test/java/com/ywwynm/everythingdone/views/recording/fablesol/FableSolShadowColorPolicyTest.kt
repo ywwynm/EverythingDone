@@ -5,7 +5,6 @@ import org.junit.Test
 
 class FableSolShadowColorPolicyTest {
 
-    private val black = intArrayOf(0, 0, 0)
     private val noteColors = arrayOf(
         intArrayOf(240, 42, 75),
         intArrayOf(46, 139, 87),
@@ -15,24 +14,23 @@ class FableSolShadowColorPolicyTest {
     )
 
     @Test
-    fun backShadeIsOnlyTheLayerColorMixedWithBlack() {
+    fun backShadeDeepensLayerColorByReducingLightnessNotMixingBlack() {
         for (base in noteColors) {
-            val expected = FableSolColor.mixOklab(
-                base, black, FableSolShadowColorPolicy.BACK_BLACK_MIX)
+            val expected = FableSolColor.darkenOklab(base, FableSolShadowColorPolicy.BACK_DARKEN_L)
             assertArrayEquals(expected,
                 FableSolShadowColorPolicy.backShade(base, hueTemperatureDeg = 5.0, depth01 = 0.0))
         }
     }
 
     @Test
-    fun blackMixDecreasesWithLayerDepth() {
+    fun deepeningDecreasesWithLayerDepth() {
         val depths = doubleArrayOf(0.0, 0.25, 0.625, 1.0)
         for (base in noteColors) {
             for (depth in depths) {
                 val depthScale = ((1.0 - depth) * (1.0 - depth)).coerceAtLeast(0.05)
                 assertArrayEquals(
-                    FableSolColor.mixOklab(
-                        base, black, FableSolShadowColorPolicy.BACK_BLACK_MIX * depthScale),
+                    FableSolColor.darkenOklab(
+                        base, FableSolShadowColorPolicy.BACK_DARKEN_L * depthScale),
                     FableSolShadowColorPolicy.backShade(base, 5.0, depth)
                 )
             }

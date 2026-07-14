@@ -28,9 +28,10 @@ class FableSolHdrPolicyTest {
         assertEquals(1.08f, FableSolHdrPolicy.litCrestPeak(5), 0f)
         assertEquals(1f, FableSolHdrPolicy.litCrestPeak(6), 0f)
 
-        assertEquals(1.2f, FableSolHdrPolicy.transmissionPeak(0), 0f)
-        assertEquals(1.05f, FableSolHdrPolicy.transmissionPeak(4), 0f)
-        assertEquals(1f, FableSolHdrPolicy.transmissionPeak(5), 0f)
+        assertEquals(1.45f, FableSolHdrPolicy.WATER_TRANSMISSION_PEAK, 0f)
+        assertEquals(1.08f, FableSolHdrPolicy.transmissionPeak(0), 0f)
+        assertEquals(1.02f, FableSolHdrPolicy.transmissionPeak(3), 0f)
+        assertEquals(1f, FableSolHdrPolicy.transmissionPeak(4), 0f)
     }
 
     @Test

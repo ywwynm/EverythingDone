@@ -7,8 +7,10 @@ import org.junit.Test
 class FableSolGlMeshLayoutTest {
 
     @Test
-    fun `water vertex carries an independent crest pinch component`() {
-        assertEquals(6, FableSolGlMeshLayout.COMPONENTS_PER_VERTEX)
+    fun `water vertex keeps crest pinch and adds an independent sheen slope`() {
+        assertEquals(8, FableSolGlMeshLayout.COMPONENTS_PER_VERTEX)
+        assertEquals(6, FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET)
+        assertEquals(7, FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET)
     }
 
     @Test

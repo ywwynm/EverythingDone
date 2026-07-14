@@ -7,10 +7,10 @@ import org.junit.Test
 class FableSolMaterialPolicyTest {
 
     @Test
-    fun debug0749OpticsKeepLaterBodyLightAndColorDepthControlsStable() {
+    fun cleanFillKeepsLocalOpticsAndAlignedDefaults() {
         val params = FableSolParams()
 
-        assertEquals(0.36, params.get("body_light_strength"), 0.0)
+        assertEquals(0.0, params.get("body_light_strength"), 0.0)
         assertEquals(0.38, params.get("thin_glow_gain"), 0.0)
         assertEquals(0.14, params.get("crest_veil_strength"), 0.0)
         assertEquals(0.10, params.get("analytic_halo_strength"), 0.0)
@@ -18,15 +18,22 @@ class FableSolMaterialPolicyTest {
         assertEquals(0.0, params.get("hue_temp_deg"), 0.0)
 
         assertEquals(0.80, params.get("back_shade_gain"), 0.0)
-        assertEquals(0.60, params.get("lighten_far"), 0.0)
+        assertEquals(0.864, params.get("lighten_far"), 0.0)
         assertEquals(0.16, params.get("environment_tint"), 0.0)
     }
 
     @Test
-    fun surfaceAndTransmissionMatchDebug0749Geometry() {
-        assertEquals(1.2, FableSolMaterialPolicy.surfaceBandWidthDp(0.0, 0.0, 0.0), 1e-12)
-        assertEquals(9.4, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 0.0), 1e-12)
-        assertTrue(FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 1.0) < 9.4)
+    fun surfaceReflectionIsNarrowAndRequiresBothFacingAndCrest() {
+        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandWidthDp(0.0, 1.0, 0.0), 0.0)
+        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 0.0, 0.0), 0.0)
+        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandLocality(1.0, 0.10), 0.0)
+        assertEquals(1.0, FableSolMaterialPolicy.surfaceBandLocality(1.0, 1.0), 0.0)
+        assertEquals(3.0, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 0.0), 1e-12)
+        assertEquals(1.65, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 1.0), 1e-12)
+    }
+
+    @Test
+    fun thinTransmissionStillMatchesDebug0749Geometry() {
         assertEquals(0.0, FableSolMaterialPolicy.thinGlowThicknessDp(0.0), 0.0)
         assertEquals(11.0, FableSolMaterialPolicy.thinGlowThicknessDp(1.0), 1e-12)
     }

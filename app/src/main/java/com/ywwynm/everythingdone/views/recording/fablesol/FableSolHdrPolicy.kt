@@ -13,11 +13,13 @@ internal object FableSolHdrPolicy {
     const val MAX_CONTENT_HEADROOM = 2.0f
     const val DESIRED_SURFACE_HEADROOM = 2.0f
     const val TRANSITION_SECONDS = 0.36f
+    const val WATER_TRANSMISSION_PEAK = 1.45f
     private const val MIN_VISIBLE_HEADROOM = 1.01f
 
     private val glintCorePeaks = floatArrayOf(2.00f, 1.90f, 1.75f, 1.50f, 1.35f, 1.20f, 1f, 1f, 1f)
     private val litCrestPeaks = floatArrayOf(1.40f, 1.36f, 1.30f, 1.22f, 1.14f, 1.08f, 1f, 1f, 1f)
-    private val transmissionPeaks = floatArrayOf(1.20f, 1.17f, 1.14f, 1.10f, 1.05f, 1f, 1f, 1f, 1f)
+    // Step D 后 mode8 只保留很弱的独立肩部；主要 HDR 透射改由连续水面 SSS 承担。
+    private val transmissionPeaks = floatArrayOf(1.08f, 1.06f, 1.04f, 1.02f, 1f, 1f, 1f, 1f, 1f)
 
     fun usableHeadroom(displayHdrSdrRatio: Float): Float {
         if (!displayHdrSdrRatio.isFinite() || displayHdrSdrRatio <= MIN_VISIBLE_HEADROOM) return 1f

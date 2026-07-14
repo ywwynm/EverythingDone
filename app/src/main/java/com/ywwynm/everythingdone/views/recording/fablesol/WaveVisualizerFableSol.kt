@@ -121,6 +121,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private val surfaceSlopeZ = Array(FableSolContinuousSurface.Z_ROWS) {
         DoubleArray(FableSolSpec.N_POINTS)
     }
+    private val surfaceCrestPinch = Array(FableSolContinuousSurface.Z_ROWS) {
+        DoubleArray(FableSolSpec.N_POINTS)
+    }
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
     // 各层光学函数同步嵌套调用；用游标式帧内池替代每层每帧的短命 DoubleArray。
     // 每个锚层绘制结束即回退游标，因此容量按单层最大并发量而非九层总量计算。
@@ -514,6 +517,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                     sample.slopeX[r][xIndex + 1] * fraction
                 surfaceSlopeZ[r][j] = sample.slopeZ[r][xIndex] * (1.0 - fraction) +
                     sample.slopeZ[r][xIndex + 1] * fraction
+                val orbitDerivative = orbitXDerivative(sample, r, xIndex) * (1.0 - fraction) +
+                    orbitXDerivative(sample, r, xIndex + 1) * fraction
+                surfaceCrestPinch[r][j] =
+                    FableSolDepthScatteringPolicy.crestPinch(orbitDerivative)
             }
         }
         renderSamplingNs += SystemClock.elapsedRealtimeNanos() - samplingStart
@@ -528,6 +535,15 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 palettes[i].end
             )
         }
+        val identityStops = arrayOf(
+            c1Base,
+            FableSolColor.mixOklab(c1Base, c2Base, 0.21),
+            FableSolColor.mixOklab(c1Base, c2Base, 0.56),
+            c2Base
+        )
+        val deepColorStops = Array(identityStops.size) { index ->
+            FableSolDepthScatteringPolicy.derive(identityStops[index]).deep
+        }
         val environment = environmentColors()
         val gradientGeometry = buildLayerGradientGeometry(cnt, fillBottom)
         renderColorNs += SystemClock.elapsedRealtimeNanos() - colorStart
@@ -538,7 +554,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             val farAnchor = layer * FableSolContinuousSurface.ROWS_PER_LAYER
             val nearAnchor = (layer - 1) * FableSolContinuousSurface.ROWS_PER_LAYER
             drawContinuousRibbonGroup(canvas, farAnchor, nearAnchor, layer,
-                cnt, viewElev, info.thetaRad, palettes, colorStops,
+                cnt, info.thetaRad, palettes, colorStops, deepColorStops,
                 gradientGeometry, environment)
             drawContinuousOptics(canvas, layer, farAnchor, cnt, palettes[layer])
         }
@@ -618,17 +634,18 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     /** 三条 ribbon 合成一次三角网格提交；颜色边界通过逐 ribbon 重复顶点保持清晰。 */
     private fun drawContinuousRibbonGroup(canvas: Canvas,
                                           farAnchor: Int, nearAnchor: Int, startLayer: Int,
-                                          cnt: Int, viewElev: Double,
-                                          thetaRad: Double, palettes: Array<LayerColors>,
+                                          cnt: Int, thetaRad: Double,
+                                          palettes: Array<LayerColors>,
                                            colorStops: Array<Array<IntArray>>,
+                                           deepColorStops: Array<IntArray>,
                                            geometry: Array<LayerGradientGeometry>,
                                            environment: EnvironmentColors) {
         val colorStart = SystemClock.elapsedRealtimeNanos()
         for (r in nearAnchor..farAnchor) {
             for (j in 0 until cnt) {
                 surfaceVertexColors[r][j] = continuousVertexColor(
-                    r, j, startLayer, viewElev, thetaRad,
-                    palettes, colorStops, geometry, environment
+                    r, j, startLayer, thetaRad,
+                    palettes, colorStops, deepColorStops, geometry, environment
                 )
             }
         }
@@ -666,9 +683,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     }
 
     private fun continuousVertexColor(row: Int, j: Int, startLayer: Int,
-                                      viewElev: Double, thetaRad: Double,
+                                      thetaRad: Double,
                                       palettes: Array<LayerColors>,
                                       colorStops: Array<Array<IntArray>>,
+                                      deepColorStops: Array<IntArray>,
                                       geometry: Array<LayerGradientGeometry>,
                                       environment: EnvironmentColors): Int {
         val x = surfaceXsPx[row][j]
@@ -684,16 +702,29 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         var red = (envA[0] + (envB[0] - envA[0]) * envT).roundToInt()
         var green = (envA[1] + (envB[1] - envA[1]) * envT).roundToInt()
         var blue = (envA[2] + (envB[2] - envA[2]) * envT).roundToInt()
+        var deepRed = red
+        var deepGreen = green
+        var deepBlue = blue
         for (layer in FableSolSpec.N_LAYERS - 1 downTo startLayer) {
             val g = geometry[layer]
             val q = (((x - g.ox) * g.dx + (y - g.oy) * g.dy) / g.denominator)
                 .coerceIn(0.0, 1.0)
             val stops = colorStops[layer]
             val a: IntArray; val b: IntArray; val t: Double
+            val deepA: IntArray; val deepB: IntArray
             when {
-                q <= 0.24 -> { a = stops[0]; b = stops[1]; t = q / 0.24 }
-                q <= 0.60 -> { a = stops[1]; b = stops[2]; t = (q - 0.24) / 0.36 }
-                else -> { a = stops[2]; b = stops[3]; t = (q - 0.60) / 0.40 }
+                q <= 0.24 -> {
+                    a = stops[0]; b = stops[1]; deepA = deepColorStops[0]
+                    deepB = deepColorStops[1]; t = q / 0.24
+                }
+                q <= 0.60 -> {
+                    a = stops[1]; b = stops[2]; deepA = deepColorStops[1]
+                    deepB = deepColorStops[2]; t = (q - 0.24) / 0.36
+                }
+                else -> {
+                    a = stops[2]; b = stops[3]; deepA = deepColorStops[2]
+                    deepB = deepColorStops[3]; t = (q - 0.60) / 0.40
+                }
             }
             val alpha = palettes[layer].alpha255 / 255.0
             val layerRed = a[0] + (b[0] - a[0]) * t
@@ -702,56 +733,59 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             red = (layerRed * alpha + red * (1.0 - alpha)).roundToInt()
             green = (layerGreen * alpha + green * (1.0 - alpha)).roundToInt()
             blue = (layerBlue * alpha + blue * (1.0 - alpha)).roundToInt()
+            val deepLayerRed = deepA[0] + (deepB[0] - deepA[0]) * t
+            val deepLayerGreen = deepA[1] + (deepB[1] - deepA[1]) * t
+            val deepLayerBlue = deepA[2] + (deepB[2] - deepA[2]) * t
+            deepRed = (deepLayerRed * alpha + deepRed * (1.0 - alpha)).roundToInt()
+            deepGreen = (deepLayerGreen * alpha + deepGreen * (1.0 - alpha)).roundToInt()
+            deepBlue = (deepLayerBlue * alpha + deepBlue * (1.0 - alpha)).roundToInt()
         }
         val base = Color.rgb(red.coerceIn(0, 255), green.coerceIn(0, 255), blue.coerceIn(0, 255))
+        val deep = Color.rgb(
+            deepRed.coerceIn(0, 255),
+            deepGreen.coerceIn(0, 255),
+            deepBlue.coerceIn(0, 255)
+        )
         return applyLongitudinalLight(base, surfaceSlopeX[row][j],
-            surfaceSlopeZ[row][j], viewElev, environment.horizonColor,
-            row.toDouble() / (FableSolContinuousSurface.Z_ROWS - 1))
+            surfaceSlopeZ[row][j],
+            row.toDouble() / (FableSolContinuousSurface.Z_ROWS - 1),
+            deep,
+            surfaceCrestPinch[row][j])
     }
 
-    /** 只加入 Z 坡度相对原 A 受光的物理差；Z=0 时逐通道恒等。 */
+    /** 加入相对参考法线的正向同色抬亮，以及受亮度上限约束的局部背坡阴影。 */
     private fun applyLongitudinalLight(base: Int, sx: Double, sz: Double,
-                                       viewElevDeg: Double, sky: Int, depth01: Double): Int {
-        if (abs(sz) <= 1e-12) return base
+                                       depth01: Double, deep: Int,
+                                       crestPinch: Double): Int {
         val inv = 1.0 / max(sqrt(1.0 + sx * sx + sz * sz), 1e-9)
         val nx = -sx * inv; val ny = inv; val nz = -sz * inv
         val invRef = 1.0 / max(sqrt(1.0 + sx * sx), 1e-9)
         val nxRef = -sx * invRef; val nyRef = invRef
-        val elev = Math.toRadians(viewElevDeg)
-        val vx = 0.0; val vy = sin(elev); val vz = -cos(elev)
         val lightElev = Math.toRadians(50.0)
         val az = Math.toRadians(params.get("light_azimuth_deg"))
         val lx = sin(az) * cos(lightElev)
         val ly = sin(lightElev)
         val lz = -cos(az) * cos(lightElev)
-        val fullNdv = (nx * vx + ny * vy + nz * vz).coerceIn(0.001, 1.0)
         val fullNdl = (nx * lx + ny * ly + nz * lz).coerceIn(0.0, 1.0)
-        val fullFres = WATER_F0 + (1.0 - WATER_F0) * (1.0 - fullNdv).pow(5)
-        val refNdv = (nxRef * vx + nyRef * vy).coerceIn(0.001, 1.0)
         val refNdl = (nxRef * lx + nyRef * ly).coerceIn(0.0, 1.0)
-        val refFres = WATER_F0 + (1.0 - WATER_F0) * (1.0 - refNdv).pow(5)
-        fun litChannel(baseChannel: Int, skyChannel: Int): Int {
-            val b = srgbToLinear(baseChannel)
-            val sk = srgbToLinear(skyChannel)
-            val f = fullNdl * (1.0 - fullFres) * b + fullFres * sk
-            val r = refNdl * (1.0 - refFres) * b + refFres * sk
-            return linearToSrgb(b + f - r)
-        }
-        val candidate = Color.rgb(
-            litChannel(Color.red(base), Color.red(sky)),
-            litChannel(Color.green(base), Color.green(sky)),
-            litChannel(Color.blue(base), Color.blue(sky))
+        val relativeNdl = fullNdl - refNdl
+        return FableSolLightColorPolicy.resolveLongitudinal(
+            base,
+            relativeNdl.coerceAtLeast(0.0),
+            depth01,
+            (-relativeNdl).coerceAtLeast(0.0),
+            deep,
+            crestPinch,
+            params.get("macro_shadow_luma_cap")
         )
-        return FableSolLightColorPolicy.resolveLongitudinal(base, candidate, depth01)
     }
 
-    private fun srgbToLinear(v: Int): Double {
-        return SRGB_TO_LINEAR[v.coerceIn(0, 255)]
-    }
-
-    private fun linearToSrgb(value: Double): Int {
-        val index = (value.coerceIn(0.0, 1.0) * LINEAR_TO_SRGB_LAST).roundToInt()
-        return LINEAR_TO_SRGB[index]
+    private fun orbitXDerivative(sample: FableSolContinuousSurface.Sample,
+                                 row: Int, index: Int): Double {
+        val previous = max(index - 1, 0)
+        val next = min(index + 1, FableSolSpec.N_POINTS - 1)
+        return (sample.orbitX[row][next] - sample.orbitX[row][previous]) /
+            max((next - previous) * FableSolSpec.DX_DP, 1e-6)
     }
 
     private fun drawContinuousOptics(canvas: Canvas, i: Int, row: Int, cnt: Int,
@@ -1251,7 +1285,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 tracks.add(Track(a[0], a[1] * 0.12, a[2], seed))
             }
         }
-        tracks.removeAll { it.inten <= 0.015 }
+        tracks.removeAll {
+            it.inten <= FableSolGlintEnvelopePolicy.TRACK_RETIRE_INTENSITY
+        }
         tracks.sortByDescending { it.inten }
         while (tracks.size > cap) tracks.removeAt(tracks.size - 1)
     }
@@ -1259,7 +1295,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     /** 镜面闪点（_draw_glints）：少量持久实体贴着受光浪面滑行，慢呼吸明暗。 */
     private fun drawGlints(canvas: Canvas, i: Int, cnt: Int, ys: DoubleArray, prob: DoubleArray,
                            sway: DoubleArray, hc: IntArray, a01: Double, kAir: Double) {
-        val dt = max(sim.t - trackT, 0.0)
+        val dt = FableSolGlintEnvelopePolicy.trackingDeltaSeconds(
+            max(sim.t - trackT, 0.0)
+        )
         val pink = 1.0 + 0.12 * params.get("pink_mod") * (2.0 * pink01(sim.t, 3.1) - 1.0)
         val spark = (0.35 + 0.65 * sim.sparkle01) * pink
         val fieldInput = scratchArray(cnt) {
@@ -1282,14 +1320,15 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         for (e in tracks) {
             val breath = 1.0 + 0.12 * sin(2.0 * Math.PI * sim.t / (2.6 + 1.4 * e.seed) + e.seed * 6.28)
             val inten = (e.inten * breath).coerceIn(0.0, 1.0)
-            if (inten < 0.04) continue
+            val alpha = FableSolGlintEnvelopePolicy.coreAlpha(inten, a01)
+            if (alpha <= 1.0 / 255.0) continue
             val cx = e.u + interpAt(sway, cnt, e.u)
             val j = ((cx - xsPx[0]) / dxPx).toInt().coerceIn(1, cnt - 2)
             val cy = interpAt(ys, cnt, cx)
             val ang = Math.toDegrees(atan2(ys[j + 1] - ys[j - 1], 2.0 * dxPx))
             val length = (e.size * 0.62).coerceIn(6.0 * density, 34.0 * density) * (0.8 + 0.4 * inten)
             val thick = (1.1 + 0.8 * e.seed) * density
-            val aPk = (235 * a01 * inten.pow(0.8)).toInt().coerceIn(0, 255)
+            val aPk = (alpha * 255.0).roundToInt().coerceIn(0, 255)
             drawGlowEllipse(canvas, cx, cy, ang, length, thick, core, hc, aPk, 0.5)
         }
     }
@@ -1464,17 +1503,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private val POS4 = floatArrayOf(0f, 0.24f, 0.60f, 1f)
         private val KER3 = doubleArrayOf(0.25, 0.5, 0.25)
         private val FULL5 = doubleArrayOf(0.2, 0.2, 0.2, 0.2, 0.2)
-        private const val LINEAR_TO_SRGB_LAST = 4096
-        private val SRGB_TO_LINEAR = DoubleArray(256) { value ->
-            val c = value / 255.0
-            if (c <= 0.04045) c / 12.92 else ((c + 0.055) / 1.055).pow(2.4)
-        }
-        private val LINEAR_TO_SRGB = IntArray(LINEAR_TO_SRGB_LAST + 1) { index ->
-            val c = index.toDouble() / LINEAR_TO_SRGB_LAST
-            val v = if (c <= 0.0031308) 12.92 * c else 1.055 * c.pow(1.0 / 2.4) - 0.055
-            (v * 255.0).roundToInt().coerceIn(0, 255)
-        }
-
         // fade 子带剖面（上沿软入→中段聚光→下缘收出），见 drawOneSidedBand 注释
         private val SUB_OFF = doubleArrayOf(0.00, 0.10, 0.24)
         private val SUB_FRAC = doubleArrayOf(1.00, 0.62, 0.42)

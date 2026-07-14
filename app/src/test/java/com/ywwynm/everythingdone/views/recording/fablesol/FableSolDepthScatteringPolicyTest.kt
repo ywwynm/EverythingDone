@@ -10,11 +10,6 @@ import org.junit.Test
 class FableSolDepthScatteringPolicyTest {
 
     @Test
-    fun `default strength is subtle and independently switchable`() {
-        assertEquals(0.21, FableSolParams().get("depth_scattering_strength"), 0.0)
-    }
-
-    @Test
     fun `derived pair gives darker deep water and lighter subsurface water`() {
         val base = intArrayOf(220, 72, 132)
         val palette = FableSolDepthScatteringPolicy.derive(base)

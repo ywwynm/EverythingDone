@@ -98,6 +98,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
+    private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    private val sheenSlopeScratch = FloatArray(
+        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
+    )
     private val vertexData = FloatArray(
         FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS *
             FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
@@ -387,14 +392,17 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 )
                 baseHeight = layerMeans[0] + (baseHeight - layerMeans[0]) * depthScale
                 val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
-                vertexData[cursor++] = ((uDp + orbitX) * density * perspective).toFloat()
-                vertexData[cursor++] = ((info.hG / 2.0 - (baseHeight + worldEta)) * density).toFloat()
-                vertexData[cursor++] = lerp(
+                val slopeX = lerp(
                     sample.slopeX[row][index], sample.slopeX[row][index + 1], fraction
                 ).toFloat()
-                vertexData[cursor++] = lerp(
+                val slopeZ = lerp(
                     sample.slopeZ[row][index], sample.slopeZ[row][index + 1], fraction
                 ).toFloat()
+                val gridIndex = row * columns + column
+                vertexData[cursor++] = ((uDp + orbitX) * density * perspective).toFloat()
+                vertexData[cursor++] = ((info.hG / 2.0 - (baseHeight + worldEta)) * density).toFloat()
+                vertexData[cursor++] = slopeX
+                vertexData[cursor++] = slopeZ
                 vertexData[cursor++] =
                     (row.toDouble() / (FableSolContinuousSurface.Z_ROWS - 1)).toFloat()
                 val orbitDerivative = lerp(
@@ -404,7 +412,28 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 )
                 vertexData[cursor++] =
                     FableSolDepthScatteringPolicy.crestPinch(orbitDerivative).toFloat()
+                sheenSlopeX[gridIndex] = slopeX
+                sheenSlopeZ[gridIndex] = slopeZ
+                vertexData[cursor++] = slopeX
+                vertexData[cursor++] = slopeZ
             }
+        }
+        FableSolSheenSlopeFilter.smooth(
+            sheenSlopeX,
+            sheenSlopeScratch,
+            FableSolContinuousSurface.Z_ROWS,
+            columns
+        )
+        FableSolSheenSlopeFilter.smooth(
+            sheenSlopeZ,
+            sheenSlopeScratch,
+            FableSolContinuousSurface.Z_ROWS,
+            columns
+        )
+        for (vertex in 0 until FableSolContinuousSurface.Z_ROWS * columns) {
+            val offset = vertex * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+            vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET] = sheenSlopeX[vertex]
+            vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
         vertexFloatCount = cursor
 
@@ -418,8 +447,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
             frontData[cursor++] = vertexData[sourceOffset + 5]
+            frontData[cursor++] = 0f
+            frontData[cursor++] = 0f
             frontData[cursor++] = vertexData[sourceOffset]
             frontData[cursor++] = fillBottom.toFloat()
+            frontData[cursor++] = 0f
+            frontData[cursor++] = 0f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
@@ -446,6 +479,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             FableSolColor.fromColor(snapshot.color),
             if (snapshot.gradient) FableSolColor.fromColor(snapshot.endColor) else null
         )
+        // deep/subsurface 从未混白的身份色派生：deep 只供受控背坡阴影，subsurface 只供日出 SSS；
+        // 二者都不再参与整层深度散射混色。
+        val baseScatterStop1 = FableSolColor.mixOklab(base.start, base.end, 0.21)
+        val baseScatterStop2 = FableSolColor.mixOklab(base.start, base.end, 0.56)
         for (layer in 0 until FableSolSpec.N_LAYERS) {
             val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
             val breath = params.get("color_breath") *
@@ -465,10 +502,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             putColor(layerStop1, layer, stop1)
             putColor(layerStop2, layer, stop2)
             putColor(layerEnd, layer, end)
-            putScatteringColors(layer, start, layerDeepStart, layerSubsurfaceStart)
-            putScatteringColors(layer, stop1, layerDeepStop1, layerSubsurfaceStop1)
-            putScatteringColors(layer, stop2, layerDeepStop2, layerSubsurfaceStop2)
-            putScatteringColors(layer, end, layerDeepEnd, layerSubsurfaceEnd)
+            putScatteringColors(layer, base.start, layerDeepStart, layerSubsurfaceStart)
+            putScatteringColors(layer, baseScatterStop1, layerDeepStop1, layerSubsurfaceStop1)
+            putScatteringColors(layer, baseScatterStop2, layerDeepStop2, layerSubsurfaceStop2)
+            putScatteringColors(layer, base.end, layerDeepEnd, layerSubsurfaceEnd)
             layerAlpha[layer] = params.lget("alpha", layer).toFloat()
             buildLayerGradientGeometry(layer, fillBottom, snapshot)
         }
@@ -753,6 +790,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glVertexAttribPointer(2, 1, GLES30.GL_FLOAT, false, stride, 16)
         GLES30.glEnableVertexAttribArray(3)
         GLES30.glVertexAttribPointer(3, 1, GLES30.GL_FLOAT, false, stride, 20)
+        GLES30.glEnableVertexAttribArray(4)
+        GLES30.glVertexAttribPointer(4, 2, GLES30.GL_FLOAT, false, stride, 24)
     }
 
     private fun bindOpticalVertexLayout() {
@@ -854,15 +893,14 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             0
         )
         uploadEnvironmentUniforms(waterProgram)
-        GLES30.glUniform3fv(waterProgram.uniform("uHorizonColor"), 1, environmentHorizon, 0)
         GLES30.glUniform1f(waterProgram.uniform("uViewElevationRad"), viewElevationRad)
         GLES30.glUniform1f(
             waterProgram.uniform("uLightAzimuthRad"),
             Math.toRadians(params.get("light_azimuth_deg")).toFloat()
         )
         GLES30.glUniform1f(
-            waterProgram.uniform("uDepthScatteringStrength"),
-            params.get("depth_scattering_strength").toFloat()
+            waterProgram.uniform("uMacroShadowLumaCap"),
+            params.get("macro_shadow_luma_cap").toFloat()
         )
         GLES30.glUniform1f(waterProgram.uniform("uTimeSeconds"), sim.t.toFloat())
         GLES30.glUniform1f(
@@ -884,6 +922,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glUniform1f(
             waterProgram.uniform("uSunSssFalloff"),
             params.get("sun_sss_falloff").toFloat()
+        )
+        // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
+        GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
+        GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
+        GLES30.glUniform1f(
+            waterProgram.uniform("uHdrTransmissionPeak"),
+            FableSolHdrPolicy.WATER_TRANSMISSION_PEAK
         )
     }
 

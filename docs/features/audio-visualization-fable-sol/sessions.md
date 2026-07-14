@@ -1,5 +1,206 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-14 实现 Step D 背光 HDR 透射与 Step E 连续太阳碎光
+
+按既有光照相干化计划继续实现 D/E。共享 `water.frag` 把现有朝阳 SSS 掩码拆为可复用函数，在 HDR 分支新增受 `(1-Fresnel)` 约束的身份色透射差量，近层峰值 `1.45×`、随深度归回 SDR，并把独立 mode 8 峰值压低为弱肩部；SDR 公式不变。Android 新增 `FableSolSunGlitterPolicy`，`FableSolGlOptics` 改用跨层候选池和单一出生额度，把既有闪点的出生位置偏向连续太阳路径，并沿真实深度行方向轻微展开；D70 生命周期、单点亮度、数量上限和音频映射均未改变。
+
+同构实现已同步到 Python ModernGL 与 QPainter，Python 仍为 `320dp/640px`。新增策略、全局出生组织、深度轴几何、HDR/SDR 分支和共享 shader 守卫测试。Android `:app:testDebugUnitTest --rerun-tasks` 强制重跑 118 项全部通过，`:app:assembleDebug` 成功；Python `compileall` 与全量 111 项 unittest 通过，共享 shader 已由 ModernGL 实际编译并完成离屏渲染。GL/QPainter 的 `640×840` 固定帧均正常，未使用 adb。
+
+已发布阿里云 Debug `202607140529`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为 `4092970efd1134750aac3a9d2ac0909a4a32b11884685090a30adac5afa10317`。远端 `latest.json` 的更新码、完整中文说明、大小和哈希已回读；重新下载的 APK 与本地 APK 完全一致，包内 `assets/fablesol/glsl/water.frag` 已确认包含 `backlitTransmissionExcess`、`uHdrTransmissionPeak` 与 `(1.0-fresnel)` 预算。
+
+## 2026-07-14 修复 HDR 银泽网格分片与闪点突消，清理失活散射链
+
+按 `diagnose` 流程先用 Python ModernGL 直接编译 Android 共享 shader 建立 FP16 数值基线。当前银泽
+水体峰值约为 `1.17× reference white`；HDR 增量在水面网格对角线上的二阶跳变约为单元内部
+`1.54` 倍，确认矩形/三角拼片感来自原始网格坡度经过强非线性 Fresnel 后暴露，而不是色阶量化。
+闪点的 `intensity < 0.04` 会把前一帧仍约 `7% alpha` 的亮芯直接裁掉；两帧间隔 2 秒时，原
+`0.80s` release 还会在单帧把强度乘到约 `0.082`。同时确认只有 strength 恒为 0 的
+`depthScattering` 分支失活；`deep` 仍供 D91 阴影，`subsurface` 仍供日出 SSS。
+
+Android 按 D92 修改：水面顶点由 6 项扩为 8 项，新增只供 HDR 银泽的低通坡度；原坡度与几何、
+微法线和阴影不变。银泽近层目标 headroom 改为 `2.0`，响应拓宽为 `0.70` 次幂。闪点加入
+`0.018～0.060` 低强度软门，track 在 `0.015` 退休前已不可感知，并把闪点单帧跟踪步长封顶为
+`1/15s`。删除 `uDepthScatteringStrength`、参数、函数和两处调用，保留仍有消费者的 deep/
+subsurface 颜色链。
+
+共享 shader 定稿后一次性同步 Python ModernGL、QPainter 闪点生命周期、网格数据与测试；Python
+容器仍为 320dp、输出宽度仍为 640px。复测水体峰值约 `1.28× reference white`，网格对角线/内部跳变比
+降到约 `1.14`，专用坡度总变化量下降约 `43%`。Android 114 项单测与 `:app:assembleDebug`
+通过，Python 105 项 unittest 通过；未使用 adb，未发布阿里云，等待真 HDR 设备目测。
+
+## 2026-07-14 将局部保色坡面阴影同步 Android
+
+用户确认 Python 试验方向后要求同步 Android 并发布。Android GLES 共享 `water.vert` 新增
+`uMacroShadowLumaCap`，默认 `0.018`；保留 D87 正向同色提亮，背坡使用 `0.08～0.18` 的负向
+相对 `N·L` 门、`0.35～0.70` 深度退出和 crest 局部性，只朝未混白身份色派生的 `deepColor`
+移动，并按最终 linear RGB 亮度损失封顶。Canvas 回退同步计算 deep 目标与 crest 收敛度，且光照
+策略保持逐顶点零临时数组分配。
+
+Python ModernGL 已改为直接复用 Android 共享阴影函数，只在桌面编译时继续关闭深度散射，避免
+重复注入；QPainter 保持同构。`lighten_far=0.864`、Python 320dp、深度散射默认值、微法线、HDR、
+SSS 和其它局部光学均未改。Android FableSol 全量测试经 `--rerun-tasks` 重新编译通过，Python
+104 项 `unittest` 全部通过，ModernGL 已实际编译并渲染新共享 shader。未使用 ADB。
+
+Android FableSol 108 项测试与 `:app:assembleDebug` 通过。已发布阿里云 Debug
+`202607140331`（versionCode 43 / 2.0.0），APK SHA-256 为
+`41abcc87643b6685c3ca432df8b77edcac8eac8260e0fb91cf42e6db5fd08da4`，大小 `20776849`
+字节。首次回读发现多级 `##` 使发布说明只取首节，已将子节改为 `###` 并在同一更新码重新覆盖；
+最终远端 `latest.json` 包含实现、验证和真机观察全文。本地 APK、重新下载的远端 APK 与元数据
+哈希和大小三方一致。
+
+## 2026-07-14 在 Python 实现保色封顶的局部坡面阴影
+
+用户认可干净立体阴影调研方向并要求实现。本轮只修改
+`E:\projects\audioVisualizerSimulatorFable`，Python 保持 320dp，Android 产品代码、共享 shader
+和阿里云版本均未修改。
+
+新增面板参数 `macro_shadow_luma_cap=0.018`，归零精确回到 D87。ModernGL 在内存包装的
+`water.vert` 中保留正向同色坡面光，再对强负向相对 `N·L` 使用 `0.08～0.18` 门、
+`0.35～0.70` 深度淡出与 crest 局部性；QPainter 同构计算。阴影目标为未混白身份色派生
+`deepColor`，在 linear RGB 中按最终亮度损失反解混色量，不混黑、不用微法线、不压远层。
+
+首轮调研门控在真实三角形插值后仍有约 `133px` 连续暗段，因此按最终像素收紧。最终 `t=4s`
+固定帧中，达到 `0.5%` 亮度差的最长连续段为 ModernGL `73px`、QPainter `49px`，最大 8-bit
+实测损失约 `1.42%`；十个运动时间点最坏连续段 `135px`，但对应帧最大损失仅约 `0.92%`。
+104 项 Python 测试全部通过，`compileall` 与 `git diff --check` 通过；RTX 5090 离屏基准中
+ModernGL 默认阴影 mean/P95 约 `12.52/13.35ms`，QPainter 约 `14.76/15.84ms`。新增回归覆盖
+亮度封顶、死区、深度归零、crest 局部性、远层不变、双后端路由和固定帧连续暗段上限。
+
+## 2026-07-14 调研干净但有立体感的水体阴影
+
+用户在 D87 只保留同色正向坡面光后仍感到水体偏平，希望重新加入更符合真实光输运、但不让水体显脏的
+阴影。本轮只调研与定量诊断，未修改 Python/Android 产品代码，也未构建或发布。
+
+PBRT、NVIDIA GPU Gems 与微软实时海水论文共同支持把环境/水体体积底色、Fresnel 反射和太阳直射项
+分开；阴影应主要削弱直射太阳贡献，不能把整块水体、环境反射和透射一起乘暗。PBRT 还指出高估微表面
+masking-shadowing 会产生不希望出现的暗区，与此前微法线/宽域暗化的脏灰现象一致。
+
+在 Python 当前 `lighten_far=0.864`、默认光方位、`t=4s` 固定帧上按 X 方向计算：直接镜像 D87
+负向公式会让可感知暗区连续跨约 `101～202px`；加入强背坡阈值、近中层深度衰减和 crest 局部性后，
+L0～L3 可收敛到约 `61/81/82/36px`，L4 以后低于 `0.5%` 相对亮度门槛。建议下一步只在 Python
+试验“受限直射光亏损”：朝身份色 `deepColor` 变化、最终线性亮度损失封顶 `1.8%`、不使用黑色、
+微法线或远层压暗。完整依据与参数见 `research-2026-07-14-clean-form-shadow.md`。
+
+## 2026-07-14 将 lighten_far 从 0.96 收到 0.864 并发布 Debug
+
+用户在 `0.96` 对照版后要求把 `lighten_far` 改为 `0.864`。Android 与 Python 默认值已同步；
+静态九层混白步进由每层约 `12%` 收到 `10.8%`，仍高于原 `0.60` 基线的 `7.5%`。其它颜色
+公式、D87 坡面光、alpha、环境色、局部光学和水面几何均未修改，Python 仍保持 320dp。
+
+Android FableSol 105 项、Python 99 项测试和 `:app:assembleDebug` 均通过。已发布阿里云 Debug
+`202607140235`（versionCode 43 / 2.0.0），APK SHA-256 为
+`eea03b4b477196413ca411fc8be418e522ca9b7727b225b179a118385308500f`；远端 `latest.json`
+的 URL、大小、哈希和完整发布说明已回读一致。未使用 ADB。
+
+## 2026-07-14 将 lighten_far 提到 0.96 并发布 Debug
+
+用户希望九层水体更加分明，要求把 `lighten_far` 调到 `0.96` 进行真机对照。本轮只把 Android
+与 Python 的默认值从 `0.60` 提到参数上限 `0.96`，静态混白步进由每层约 `7.5%` 增至约
+`12%`；第 0 层仍保持 Thing 原色，中远层通过更大的混白阶梯拉开。D87 正向坡面光、九层
+alpha、环境色、表面反射、闪点、HDR 银泽、SSS、薄峰透射和几何均未改变，Python 仍为 320dp。
+
+Android FableSol 105 项、Python 99 项测试和 `:app:assembleDebug` 均通过。已发布阿里云 Debug
+`202607140224`（versionCode 43 / 2.0.0），APK SHA-256 为
+`b9150d62e264f60d19a8aad7c818ac6ad44910bb28003452cfdd3a0be6ef6db2`；远端 `latest.json`
+的 URL、大小、哈希和完整发布说明已回读一致。未使用 ADB。
+
+## 2026-07-14 恢复封顶的同色正向坡面光并发布 Debug
+
+用户确认 D86 干净水体版本控制住宽域阴影后，水体基色因逐层平色而显得过平。固定帧先比较
+1%、1.5%、2% 封顶值和多档响应，最终采用 D87：只取纵向法线相对参考法线的正向 N·L 差，
+按原 RGB 同比例抬亮；响应 `0.12`、近层封顶 `1.5%`，深度权重从 `1.0` 平滑降到 `0.45`。
+没有恢复 Fresnel 天空色候选、`blackMix` 或任何负向坡面压暗。
+
+Android GL/Canvas 与 Python ModernGL/QPainter 已使用同一公式，Python 继续保持 320dp 宽度。
+最终 640×840 固定帧中，第 1/2/4/5/7 层的 61px 宽域跨度约为
+`1.49/1.50/1.54/1.76/1.02`，各层最小差均为 0；共享 GLSL 相对平色基线有 37,527 个像素
+正向变化。诊断中还修正了 ModernGL 回归测试的上下文使用方式：两个独立上下文必须依次
+创建、渲染、关闭，避免在非当前上下文上读取造成假阴性。
+
+验证结果：Android FableSol 105 项和 Python 99 项测试全部通过，`:app:assembleDebug` 通过。
+已发布阿里云 Debug `202607140217`（versionCode 43 / 2.0.0），APK SHA-256 为
+`6be0ad89a80ae54342c333f5b7d15c4fdc80e2baac0165e3c1c83c114b2d4863`，远端
+`latest.json` 的 URL、大小、哈希和完整发布说明均已回读核对；未使用 ADB。
+
+## 2026-07-14 同步 Python 干净水体策略并发布 Android Debug
+
+用户确认 Python 第一轮限制纵向受光后近中层仍有大范围阴影。固定恒色帧按 X 方向取样与逐项消融
+把宽域来源收敛为 `depth_scattering` 的真实压暗、纵向长波受光的宽域抬亮，以及无波峰仍保留
+`1.2dp` 基础宽度的 `surface_strip`。Python 最终版在默认全效果下把第 1/2/4/5/7 层的 61px
+宽域亮度跨度压到不超过 0.06，用户随后要求同步 Android 并发布。
+
+Android 按 D86 收口：深度散射默认归零；`water.vert` 与 Canvas 回退不再让纵向法线调制整层
+填充色；表面反射改为迎光与波峰双门控、近层最大约 `3dp`，HDR eligibility 同步局部化。
+`water.frag` 的 HDR 掠射青灰银泽和其它局部光学保持不变。同步收口此前诊断实验遗留的参数断言，
+没有使用 ADB，也没有修改或安装到物理设备。
+
+验证结果：Android FableSol 105 项单元测试通过，Python 共享 shader/ModernGL 6 项实际编译渲染
+测试通过，`:app:assembleDebug` 通过。已发布阿里云 Debug `202607140110`（versionCode 43 / 2.0.0），
+APK SHA-256 为 `ee2fcd44559f3f54a1e968cfc8767a0193e821fbbb8620fa5452ec3d0f37dbe5`，远端
+`latest.json` 与完整 `releaseNotes` 已回读核对。
+
+## 2026-07-13 Crest 调研 + 实现 Step B 补丁与 Step C（水面首次进 HDR）
+
+Step B 真机反馈中远处灰黑更重，根因确认 deep 从已混白层色派生（乳白被加深=灰）；Step B 补丁在
+`water.vert` 加 `nearShadingWeight(depth01)` 让加深/打光随水层混白衰减，近层保对比、远层交给景深阶梯
+（Debug `202607131208`，好转）。重开的 Crest 调研完成：**完全印证方向、无冲突**——`lerp(body,sky,R)` 就是
+统一太阳模型，我们 Fresnel/SSS 公式已与 Crest 对齐，另给 3 个正交小借鉴（深度变锐度、RMS 粗糙化、C/D
+共享 Fresnel），全部记入 plan 的 Crest 节。随后实现 **Step C**：`water.frag` 新增 `grazingSheenExcess()`，
+把掠射 Fresnel 天空/太阳反射在 scene-linear 录音态提成超白银泽（SDR 逐字节不变、深度衰减峰值、近中性白、
+不接音频），renderer 补喂 `hdrGain`/`hdrHeadroom`，加守卫测试，107 项 0 失败（Debug `202607131220`）。
+
+## 2026-07-13 实现 Step B：止脏 + 拉对比（打光待在身份色轴上）
+
+Step A 真机反馈"更真实但脏"（灰青带 + 偏灰黑）。诊断为 Step A 的真法线放大了 `water.vert`
+`relativeLongitudinalLight` 的掠射 Fresnel 天空反射，反射近白 `uHorizonColor` 且 SDR 钳位，身份色糊成
+中性灰。Step B：① 掠射天空反射乘 `skyReflect=0.2` 压弱（灭灰青），保留全强度 N·L 漫反射与保色暗化；
+② `body_light 0.36→0`；③ `depth_scattering 0.21→0.45`（几何体积顶替体光、波谷压深浪峰提亮=对比）。
+那块灰青反射留给 Step C 的 HDR 变亮银。更新 3 个测试；106 项 0 失败；发布阿里云 Debug `202607131143`。
+
+## 2026-07-13 grill 收敛"光照相干化与 HDR 存在感"计划并实现 Step A
+
+`/grill-with-docs` 走完设计树，收敛出提升水体晶莹/流动/真实与 HDR 存在感的方向，落到
+`plan-2026-07-13-light-coherence-hdr-presence.md`（定位 A 物理纪律、存在感靠面积不靠峰值、
+反射+透射由水面自己在 HDR 里做、统一太阳模型；分步 A 法线统一 → B 画布对比 → C 掠射光泽 →
+D 透射亮边 → E sun-glitter 组织；音频耦合 HDR / glitter 光柱 / 时间太阳 / 折射 / 泡沫延后）。
+
+随后实现 **Step A**：诊断出打光法线 `aSlope` 原只来自二维方向场 `eta`、不含各层波形轮廓，
+光不贴看得见的波走（光学高光又是逐层第三套基准）。改动全在 `FableSolContinuousSurface.kt`——
+`sample()` 先合成真渲染面 `worldEta` 再从它求 `slopeX/slopeZ`；`composeLayerField` 跨层由线性改
+Catmull-Rom 防层锚点坡度接缝、锚点行仍精确穿过各层轮廓；行间权重按固定 `z01[r]` 在 init 预计算
+保持零分配。shader/renderer/optical 未改，`:app:assembleDebug` 通过、fablesol 单测 12/12 绿。
+待真机验收"光贴着波走 + 每 3 行无横向接缝"。Python 模拟器同构（D43）列为跨仓待办。
+
+## 2026-07-13 将 Python 模拟器首轮同步到当前 Android FableSol
+
+用户明确 Python 保持 `320dp×420dp`，其余差异可以更新。本轮在
+`E:\projects\audioVisualizerSimulatorFable` 完成首轮回同步：默认参数改为 Android 当前材质值，
+移除珍珠斑与猫爪主链，颜色改为 Thing 身份色到中性白，加入全局确定性 1/f 对环境波、二维远浪
+出生和闪点出生的调制；横滚扩为完整 `−180°~180°`，`0°/180°` 共用水平边界语义。
+
+新增 ModernGL 后端，直接编译 EverythingDone 的 7 个共享 shader；Python 侧同构构建连续水面、
+双深度散射、crest pinch、微法线、镜面足迹抗锯齿、朝阳 SSS，以及表面反射、体光、薄峰透射、
+波背阴影、流光、闪点/解析光晕、波冠轻纱和远层羽化，并按 Android 的逐层顺序交错绘制。
+默认 `auto` 优先 GL、失败回退 QPainter；present 同步 16dp 圆角和准备态 0.16/播放录音态 1.0
+的 360ms 过渡，demo/无头回归保持全强度。旧 A 基线及文件输入、面板和视频导出保留。
+
+HDR 数值链同步了线性 `RGBA16F` 场景、2.0× 上限、逐层峰值和 360ms 录音态过渡；Qt readback
+单独转成 sRGB 作为 SDR 预览。实测线性场景峰值 `1.77×` SDR 白点。RTX 5090 上 640×840 完整
+GL 帧（含 NumPy 网格、光学层、GPU 和 readback）均值 `13.23ms`、P95 `13.71ms`；`−180°` 到
+`180°` 九档横滚扫角全部成功。新增回归后 Python 94 项 `unittest` 全部通过，`compileall`、GL/旧
+A 基线无头截图和两个仓库 `git diff --check` 均通过；未使用 adb，也未修改 Android 产品代码。
+
+## 2026-07-13 分析 Python 模拟器与当前 Android FableSol 的差异
+
+用户希望在连续水面迁移后反向更新 `E:\projects\audioVisualizerSimulatorFable`，先要求只分析两端
+当前差异。本轮以 Android 迁移提交 `f9ad7215…`、Android 当前提交 `c03b4f7…` 和 Python 当前提交
+`44ad68bd…` 为边界，对照了提交历史、调用链、参数、映射、连续曲面、光学几何、GLES 材质、HDR、
+容器尺寸、倾斜范围和帧调度。结论是宏观波面物理仍大体同源，主要差距来自 Android 后续统一
+GLES、逐像素材质与 FP16/scRGB HDR；另有 280dp/320dp、珍珠/猫爪删除、颜色身份轴、全局 1/f 和
+实时调度差异。完整结果写入 `analysis-2026-07-13-python-android-parity.md`；初步曾把同宽模式列为
+候选，用户随后明确 Python 必须保持 320dp，D84 已据此修订比较口径和实施顺序。分析阶段未修改
+两端产品实现。Python 80 项 `unittest` 全部通过，两个仓库 `git diff --check` 通过；未使用 adb。
+
 ## 2026-07-13 三项表层光学效果恢复到 Debug 202607130749
 
 用户要求将表面反射、薄峰透射和闪点外围光晕重新恢复为 Debug 更新码

@@ -1,5 +1,256 @@
 # Current Debug Update Notes
 
+## 2026-07-14 - FableSol Step D/E：HDR 背光透射与连续太阳碎光
+
+用户先要求找回 Claude 制定的 HDR 增强计划并确认阶段 D/E，随后要求实现。阶段 D 的目标是让真实
+水面上的朝阳 SSS 进入 HDR，而不是继续只依赖独立透射带；阶段 E 的目标是把既有镜面闪点按固定
+太阳路径跨整个连续水面组织，而不是各层独立拼接。此前已经解决的银泽网格分片、闪点突消、宽域
+脏阴影和 `lighten_far=0.864` 均作为不可回退基线，Python 宽度继续固定为 320dp/640px。
+
+共享 `water.frag` 复用 `sunriseSubsurfaceMask()`，只在 scene-linear HDR 分支新增
+`(1-Fresnel)` 身份色透射差量；近层目标峰值 `1.45× reference white`，随深度归回 SDR，并受
+实时 headroom 与录音态 HDR 增益封顶。SDR SSS 公式不变，独立 mode 8 峰值收为
+`1.08/1.06/1.04/1.02/1.0…` 的弱肩部，避免重复记账。
+
+新增 `FableSolSunGlitterPolicy`；`FableSolGlOptics` 把所有层未匹配锚点汇入一个候选池，由一个
+总出生额度跨层选择。出生分数按近宽远窄、随深度连续偏移的太阳路径加权，路径外保留 `0.12`
+概率底；闪点沿真实相邻深度行方向轻微展开，近层最大 `2.6dp`、远层最大 `1.3dp`。数量、单点
+亮度、D70 attack/release、软退场、HDR 峰值与音频映射均未改变。Python ModernGL/QPainter
+已同构同步。
+
+数值回归确认透射只产生正向、小面积 HDR 差量，峰值 `1.0/1.45` 两档的 SDR 输出逐字节一致；
+全局出生池可跨至少两层组织闪点且明显偏向太阳路径。Android 强制重跑 118 项单元测试全部通过，
+`:app:assembleDebug` 成功；Python `compileall` 和 111 项 unittest 通过，共享 shader 已由 ModernGL
+实际编译并完成离屏渲染。未使用 ADB。
+
+已发布阿里云 Debug `202607140529`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256
+为 `4092970efd1134750aac3a9d2ac0909a4a32b11884685090a30adac5afa10317`。远端 `latest.json`
+已回读完整说明、大小与哈希；重新下载 APK 与本地构建完全一致，包内共享 `water.frag` 已确认包含
+Step D 的函数、uniform 和 Fresnel 互补预算。
+
+## 2026-07-14 - FableSol 同步局部保色坡面阴影
+
+用户在干净平色与 D87 正向坡面光基础上仍觉得水体偏平，先要求上网调研更真实、但不显脏的阴影，
+随后确认 Python 试验效果方向并要求同步 Android 发布。本轮 Android 新增
+`macro_shadow_luma_cap=0.018`：保留 D87 正向同色提亮，只对宏观背坡使用 `0.08～0.18` 的
+负向相对 `N·L` 门、`0.35～0.70` 深度退出和 crest 局部性。颜色只朝未混白 Thing 身份色派生的
+`deepColor` 移动，并按最终 linear RGB 亮度损失封顶，不混黑、不使用微法线暗纹、不压暗远层。
+
+GLES 规则位于共享 `water.vert`；Canvas 回退同步 deep 目标、crest 收敛度和封顶算法，并保持逐顶点
+零临时数组分配。Python ModernGL 改为直接复用共享阴影函数，只保留自身关闭 `depthScattering` 的
+覆盖，避免双重阴影。`lighten_far=0.864`、Python 320dp、深度散射默认关闭、微法线、HDR、SSS 和
+其它局部光学均未改变。Android FableSol 全量测试和 Python 104 项测试通过，ModernGL 已实际编译
+渲染共享 shader；未使用 ADB。真机请重点观察近中层坡面是否恢复适量转折，同时远层和宽缓坡是否
+保持干净。
+
+已发布阿里云 Debug `202607140331`（versionCode 43 / 2.0.0），APK SHA-256 为
+`41abcc87643b6685c3ca432df8b77edcac8eac8260e0fb91cf42e6db5fd08da4`，大小 `20776849` 字节。
+首次远端回读发现发布日志的多级 `##` 只嵌入首节，已改用 `###` 子节并在同一更新码覆盖；最终
+`latest.json` 已包含实现、验证和真机观察全文，本地 APK、远端 APK 与元数据的哈希和大小一致。
+
+## 2026-07-14 - FableSol 将 lighten_far 收到 0.864
+
+用户在 `0.96` 对照版后要求改为 `0.864`。Android 与 Python 默认值已同步，静态层间混白步进
+由约 `12%` 收到 `10.8%`，其它颜色、坡面光、alpha、环境与局部光学均不变，Python 宽度仍为
+320dp。Android FableSol 105 项、Python 99 项测试及 `:app:assembleDebug` 通过。
+
+已发布阿里云 Debug `202607140235`，APK SHA-256
+`eea03b4b477196413ca411fc8be418e522ca9b7727b225b179a118385308500f`，远端 `latest.json`
+与完整 `releaseNotes` 已回读一致。
+
+## 2026-07-14 - FableSol 将 lighten_far 提到 0.96
+
+用户希望九层水体更加分明。本轮只把 Android 与 Python 默认 `lighten_far` 从 `0.60` 提到
+`0.96`，静态层间混白步进由约 `7.5%` 增至约 `12%`；第 0 层原色、D87 坡面光、alpha、
+环境色和局部光学均不变，Python 宽度仍为 320dp。最远层叠加 mood/色彩呼吸后可能更早钳到
+纯白，留给真机重点观察。
+
+Android FableSol 105 项、Python 99 项测试及 `:app:assembleDebug` 通过。已发布阿里云 Debug
+`202607140224`，APK SHA-256 `b9150d62e264f60d19a8aad7c818ac6ad44910bb28003452cfdd3a0be6ef6db2`，
+远端 `latest.json` 与完整 `releaseNotes` 已回读一致。
+
+## 2026-07-14 - FableSol 恢复干净的坡面立体感
+
+D86 清理宽域阴影后，用户确认水体基色退化为逐层平色、整体太平。本轮采用 D87：纵向长波只取
+`max(fullNdl-referenceNdl, 0)`，按原 RGB 同比例抬亮；响应 `0.12`、近层封顶 `1.5%`，远层
+权重降至 `0.45`。背光坡面严格返回原色，不混天空色、不计算 Fresnel 候选色、不使用
+`blackMix`。Android GL/Canvas 与 Python ModernGL/QPainter 已同步，Python 宽度仍为 320dp；
+深度散射默认关闭和表面反射局部门控继续保留。
+
+固定帧第 1/2/4/5/7 层 61px 横向跨度约为 `1.49/1.50/1.54/1.76/1.02`，所有层最小差为 0。
+Android FableSol 105 项、Python 99 项测试及 `:app:assembleDebug` 全部通过。已发布阿里云 Debug
+`202607140217`，APK SHA-256 `6be0ad89a80ae54342c333f5b7d15c4fdc80e2baac0165e3c1c83c114b2d4863`，
+远端 `latest.json` 与完整 `releaseNotes` 已回读一致。
+
+## 2026-07-14 - FableSol 清理近中层大范围阴影
+
+用户在 Android FableSol 中持续观察到单层水体内部存在较大范围灰暗阴影；此前分别归零
+`skyReflect`、`depth_scattering_strength`、`micro_normal_strength` 和波背阴影都只能缓解。先在
+Python 同步 Android 效果并做固定恒色帧逐项消融：第一轮只禁止纵向负向受光、限制正向抬亮后，
+用户继续指出近中层仍有。进一步 X 方向取样确认三个宽域来源：深度散射会让第 1/2/4/5 层整体
+降低约 12/15/11/7 个亮度单位；纵向长波受光会形成最高约 4 的宽域抬亮；旧 `surface_strip`
+即使无波峰也保留 `1.2dp` 基础宽度，中层可形成约 11 的宽域抬亮，使相邻基色被感知为阴影。
+
+本轮同步已验证的 Python 干净填充策略：`FableSolParams.kt` 将默认
+`depth_scattering_strength` 设为 0；`water.vert` 的 `relativeLongitudinalLight()` 严格返回基色，
+Canvas 回退的 `FableSolLightColorPolicy` 同样恒等；`FableSolMaterialPolicy` 与
+`FableSolGlOptics` 把表面反射改为迎光+波峰双门控，无波峰/非迎光位置宽度为 0，近层最大约
+`3dp`，HDR eligibility 同步局部化。`water.frag` 的 HDR 掠射青灰银泽明确不属于本次阴影，保持
+不变。此前诊断实验遗留的 `micro_normal_strength` 与 `lighten_far` 断言也收口到当前正式值。
+
+验证：Android FableSol 105 项单元测试通过；Python 共享 shader/ModernGL 6 项实际编译渲染测试
+通过；`:app:assembleDebug` 通过。待阿里云发布后由真机重点检查近中层宽域阴影、局部波峰反射与
+HDR 银泽是否按预期分离。已发布阿里云 Debug `202607140110`，APK SHA-256
+`ee2fcd44559f3f54a1e968cfc8767a0193e821fbbb8620fa5452ec3d0f37dbe5`，远端 `latest.json` 与完整
+`releaseNotes` 已回读核对。
+
+## 2026-07-13 - FableSol 去灰蒙蒙：水层改不透明 + 直接混白（关键突破）
+
+用户在纯白 dialog 下、纯色记事 AE6060=(174,96,96) 实测最下层水体 A55659=(165,86,89)，整片低饱和灰蒙蒙。
+用真实颜色数学（FableSolColor.mixOklab）逐 band 复现，定位根因：**不是掉饱和，是透明度**。半透明水层让
+环境色（纯白 dialog 背景）从底下透上来，把远层从饱满色拖成灰——实测远层 S 从 ~35 塌到 ~27，L 推到 86 近白。
+近/中层层数多盖住环境所以干净；远层层数少透得最厉害。用户提出且认同的方案：去掉透明度、每层颜色纯由混白确定。
+本轮 `alpha` 全 = 1.0（不透明），`lighten_far` 0.6→0.75（补回去掉透明度损失的远处白，L86→L88）。不透明下
+band = 纯混白层色、无环境透入：近层严格 = 记事色、S 不塌、远层干净偏白。环境/天空层未动。
+MaterialPolicyTest lighten_far 断言 0.60→0.75；删临时诊断测试。assembleDebug + FableSol 全测通过。
+待真机确认；近层 (165,86,89) 偏暗此前判断是回退的旧构建残留，若本版仍在再查（HDR 显示路径/采样点）。
+已发布阿里云 Debug `202607131603`，APK SHA-256 `b57b74318490d34f42d7955f0ade8e2fa41dec9e73ff1374b269cde28f5d9370`。
+
+## 2026-07-13 - FableSol 近处去脏：纵向受光改封顶高光、背光坡不压暗
+
+远处灰浊已解决（远层 alpha 抬升），用户明确近脏在近处。定位：`relativeLongitudinalLight` 的**背光坡压暗**支
+（`base*(1-blackMix)`），其 `depthScale=(1-depth01)²` + `nearShadingWeight` 双重把压暗**堆在近层**，最该晶莹处最暗。
+已试过（不再重复）：[339] 关背光压暗但提亮还开→红框还在（被提亮污染）；[349] 关提亮留压暗→削减很多近处仍脏。
+用户选"封顶高光、不要阴影"。本轮改：背光坡不压暗；受光坡只取 `lift=min(max(candidate-base,0),base*0.15)`，
+`return base + lift*nearShadingWeight`（保色不冲白，冲白正是衬脏根）。景深交给水层阶梯+lighten_far。顶部 candidate/
+skyReflect=0/linearSky 逐字不变，uniform 存活不变。ParityTest 原钉 GL/Canvas blackMix 一致→GL 有意分歧，改守封顶
+高光结构 + 断言 `sqrt(darkness)` 已删，重命名；104/0。合并 asset 核对 lift 在、旧压暗无。Canvas 回退
+（FableSolLightColorPolicy/WaveVisualizerFableSol）暂不动，记为后续对齐项。封顶幅度 0.15 可调。
+已发布阿里云 Debug `202607131436`，APK SHA-256 `af716d5a2d6fa0df146ac255fe010db246991d0f2dd888798c50e247af166631`。
+
+## 2026-07-13 - FableSol 基础层去灰浊：抬高远层 alpha
+
+关受光提亮后"脏削减很多、基础层仍稍脏"。定位根因：水体合成起点是 `environmentAt`（84% 深色 app 背景），远层被
+`lighten_far` 混白成乳白、alpha 又低到 0.357 → 64% 深背景透过乳白远层 = 灰浊；只发生在远端 band（近/中被 layer0
+alpha=1.0 覆盖）。本轮 `alpha` 阶梯 1.0→0.357 抬到 1.0→0.68（深背景透出 64%→32%），外科式只清远端、不动近中。
+受光提亮仍关（保持基础层信号干净）。若远方变干净=确诊，下一版给提亮封顶恢复再逐个加回 depth_scattering/
+micro_normal/back_shade；若仍发灰=转查 lighten_far 乳白量或身份色派生。assembleDebug + FableSol 全测通过。
+已发布阿里云 Debug `202607131412`，APK SHA-256 `3c15e33cf47a3ba021d8f3ad6494809b759607d58a779c1280ac06402110bd67`。
+
+## 2026-07-13 - FableSol 诊断：关闭受光坡提亮（红框暗斑）
+
+关背光压暗后红框暗斑仍在→排除。水体内部只剩 `relativeLongitudinalLight` 受光坡提亮。疑 Step A 陡法线让受光
+提亮冲白、把旁边水色衬暗衬脏。本轮受光支 `return base`（关提亮），背光压暗恢复（两支不同避免 uniform 被优化）。
+若红框净=提亮冲白衬脏，下一版给提亮封顶（不冲白）再干净加回诊断关掉项；若仍在=基础层色/合成本身，钻 buildColors。
+parity 11/0。已发布阿里云 Debug `202607131349`，APK SHA-256 `3bf4c8ad408139ce4bb4641361f3d6008af5031e4ea7dee6009efda192ecfa0a`。
+
+## 2026-07-13 - FableSol 诊断：关闭背光坡压暗（红框暗斑）
+
+用户发截图圈红框：暗斑都在波形背光肩部。此时 depth_scattering/back_shade/micro_normal/skyReflect 全关，
+水体内部只剩 `relativeLongitudinalLight`（Step A 光贴波走）在打明暗→暗斑=它的背光坡压暗（Step A 陡法线放大，
+故"之前没这个问题"）。本轮只关背光压暗支：`return mix(base, base*(1-blackMix), 0.0)`，受光提亮保留。若红框净=
+背光压暗，下一版重做成干净的深身份色阴影并逐步加回诊断关掉的项；若仍在=受光提亮太狠衬脏，转收提亮。parity 11/0。
+已发布阿里云 Debug `202607131339`，APK SHA-256 `860881e1e149366e2ee98706eec2a612ffa43bf57ba531a7a4b016ea83ca2776`。
+
+## 2026-07-13 - FableSol 诊断：关闭微法线（隔离暗部混杂灰黑颗粒）
+
+depth_scattering=0 后暗部仍脏 → 不是保色加深类。转查微法线：它叠 ±18% 细密明暗噪点，暗部表现为细碎黑点/
+脏纹理，最符合"混杂灰黑"。本轮 `micro_normal_strength 0.16→0`（诊断），其它保持（skyReflect=0/back_shade=0/
+depth_scattering=0）。若暗部脏消失=微法线噪点，下一版重做其强度/暗部足迹/带限；若仍脏=基础层色/合成本身，
+届时请用户发截图看。已清源确认：灰青光斑=SDR 天空反射。更新 PinkBreathPolicyTest；107 项 0 失败。已发布阿里云
+Debug `202607131326`，APK SHA-256 `b00116484a21b7627881d1b0739f38f1d6f200f5756162d2d7048910623c96ac`。
+
+## 2026-07-13 - FableSol 诊断：关闭 depth_scattering（隔离暗部脏）
+
+灰青光斑确认=SDR 天空反射，`skyReflect=0` 已清。暗部仍脏，继续隔离：`depth_scattering_strength 0.45→0`
+（诊断），其它不动。`derive()` 深色本身 `L×0.70 C×1.15` gamut-map、保色不发脏；嫌疑是 0.45 强度把波谷压得
+又深又闷。若关掉暗部变干净=它，下一版用更浅深色+更小强度重做；若仍脏=转查 relativeLongitudinalLight
+漫反射压暗/微法线。更新 DepthScatteringPolicyTest；107 项 0 失败。已发布阿里云 Debug `202607131319`，
+APK SHA-256 `5631c4eb04cf64b6ff9c27b12978b17e091b54994dac950e4e23711fdd5ac7b1`。
+
+## 2026-07-13 - FableSol：关闭 SDR 天空反射（清灰青光斑 + 暗部洗脏）
+
+诊断确认 back_shade 不是暗部脏主因（dl=0 只好一点）；用户坚称灰青光斑是真 bug。定位共同强嫌疑=
+`relativeLongitudinalLight` 的 SDR 天空反射（`skyReflect×Fresnel×近白偏冷天空`）：反射近白偏冷天空→灰青光斑，
+叠水体又洗脏暗部。关键：Step C 后水面"好反射"已由 HDR 银泽接管，这道 SDR 老反射冗余且脏。本轮 `skyReflect
+0.2→0`（保留 N·L 漫反射）。back_shade 继续 dl=0。若暗部仍残脏，下一刀关 depth_scattering 深色下拉或 blackMix。
+非 HDR 屏此刻无镜面高光，待"SDR 钳位版光泽"补。parity 11/0。已发布阿里云 Debug `202607131311`，APK SHA-256
+`861e19fa741dafc0c4b3e3d78b9196e8997ce6cb731c702aefc658406aacf41a`。
+
+## 2026-07-13 - FableSol 诊断：关闭波背阴影（back_shade dl=0）
+
+用户反馈上一版暗部仍脏、青灰又显。应其要求发一个纯诊断版隔离波背阴影：`BACK_DARKEN_L 0.10→0`，其它不动。
+若暗部变干净=波背阴影是主因；若仍脏=来自 depthScattering 深色下拉 / relativeLongitudinalLight 的 blackMix /
+skyReflect 青灰天空反射，下一版逐个关闭定位。青灰是独立的 `skyReflect=0.2` SDR 天空反射，近两版未动、非新回归，
+待单独处理。107 项 0 失败。已发布阿里云 Debug `202607131306`，APK SHA-256
+`0bb79b63082520213692334d98b227f7779b3b4ccbcadc43e6d54fa290bc62b6`。
+
+## 2026-07-13 - FableSol：加深改为"更深的记事色"（保彩度不发黑）
+
+用户反馈灰黑色让水体脏、近层黑尤其明显。定位两处加深在**掉彩度**：① `depthScattering` 的 deep 从已混白
+层色派生（压暗乳白=灰）；② `back_shade` 向黑混（同时降 L 和 C=发黑）。修复：① `buildColors` 的
+deep/subsurface 改从**未混白** `base` 身份渐变派生；② `backShade` 由 `mixOklab(base,black,0.18)` 改
+`darkenOklab(base,0.10)`（只降 L 保彩度）。暗部变"更深的记事色"，近/中/远层都不再发灰黑。光泽本轮保持 1.6
+不提亮（避免加大对比让黑更扎眼，先单独验收"黑→深色"）。更新 `ShadowColorPolicyTest`；107 项 0 失败，未用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260713205714.md`。已发布阿里云 Debug
+`202607131257`，APK SHA-256 `8cc2c57892d24722594ce2e945c1f1b6e38f6a558926849d5d2e3451f9eb7834`。
+
+## 2026-07-13 - FableSol Step C 修复：银泽门控改加成（让 HDR 光泽真正出现）
+
+Step C v1 真机完全看不到 HDR 光泽。几何诊断：平缓水面反射方向多指向观察者、太阳在画面深处高处，
+`sunCos≈0.03`，`sunLobe=pow(sunCos,2~6)≈0` 把 sheen 整片掐灭。修复：`grazingSheenExcess` 把 sunLobe(门控)
+改为 `sunBoost=1+1.4*pow(sunCos,3)`(全域 1、朝太阳最高 ~2.4)，`grazing=clamp(fresnel*sunBoost,0,1)`，
+峰值近层提到 1.6×。掠射受光面广域出银泽、朝太阳更强；仍只 HDR+录音态、SDR 逐字节不变。present pass
+不钳超白(round-trip 对 >1 恒等)。107 项 0 失败；解包 APK 确认含 `sunBoost`，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713203030.md`。已发布阿里云 Debug
+`202607131231`，APK SHA-256 `335dc0d4908fbfbd546f2aa947b37cdc435ecbe128b9effea331baee4d4e4133`。
+
+## 2026-07-13 - FableSol Step C：掠射 Fresnel 反射进 HDR（银泽）
+
+水面首次进 HDR。`water.frag` 新增 `grazingSheenExcess()`：掠射 Fresnel(`f0=0.020373`,`pow(1-NdV,5)`) ×
+朝太阳反射瓣(`reflect(-viewDir,normal)·lightDir`, 瓣指数 `mix(6,2,depth01)` 近紧远宽) × 深度衰减峰值
+(`mix(1.40,1.0,smoothstep(0,0.62,depth01))`, 对齐 litCrestPeaks/D74, 服从 `uHdrHeadroom`)。仅
+`uSceneLinear && vFrontFill==0 && uHdrGain>0 && uHdrHeadroom>1` 叠加超白差量 `max(peak-1,0)`，SDR 逐字节
+不变；近中性白+一丝身份色(D69)；不接音频。`renderer` 把 `hdrGain`/`hdrHeadroom` 也喂给水面。Crest 报告
+印证方向(`lerp(body,sky,R)` 统一太阳模型、Fresnel/SSS 公式已对齐，见 plan 的 Crest 节)。v1 只做宏观法线
+大面积柔光泽，未接微法线/闪点瓣。新增守卫测试；107 项 0 失败；解包 APK 确认含新 shader，未使用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260713202008.md`。已发布阿里云
+Debug `202607131220`，APK SHA-256 `4124c7950f7d232b1d4ec62bd7ba85d1959a04ed12d4647b0956711aaf1eb3ed`。
+
+## 2026-07-13 - FableSol Step B 补丁：远处灰黑修复
+
+Step B 真机反馈中远处波背灰黑更重。根因确认：deep/subsurface 从**已被 `lighten_far` 混白的层色**派生
+（`renderer` 先 `mixOklab(base,WHITE,lighten)` 再 `derive`），乳白远层被加深只会变灰；Step B 的
+`depth_scattering 0.45` 加重了它。修复：`water.vert` 新增 `nearShadingWeight(depth01)=
+mix(1,0.15,smoothstep(0.15,0.70,depth01))`，`depthScattering` 强度与 `relativeLongitudinalLight` 输出都乘/混它
+——加深与打光随水层混白而衰减，近层保留对比与"光贴波走"、远层交给景深阶梯保持干净。parity 关键串
+保留、强制重跑通过；106 项 0 失败；解包 APK 确认含新 shader，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713200742.md`。已发布阿里云 Debug
+`202607131208`，APK SHA-256 `3e8295b80ec17df263e6744124d21eaea996fe9e882350f37e5c4411ec83b058`。
+
+## 2026-07-13 - FableSol Step B：止脏 + 拉对比
+
+Step A（打光法线迁到 `worldEta`）真机反馈"更真实但脏"——灰青带 + 偏灰黑。诊断为真法线放大了
+`water.vert relativeLongitudinalLight` 的掠射 Fresnel 天空反射，它反射近白 `uHorizonColor` 且 SDR 钳位，
+身份色被糊成中性灰（挨着品红读成灰青）。Step B 原则"打光待在身份色轴上"：① 掠射天空反射项乘
+`skyReflect=0.2` 压弱（灭灰青），保留全强度 N·L 漫反射与 `0.14*sqrt(darkness)` 保色暗化；②
+`body_light_strength 0.36→0`（无感的平铺中间调抬升）；③ `depth_scattering_strength 0.21→0.45`（几何
+deep/subsurface 顶替体光，波谷压深、浪峰提亮=对比与保色阴影主来源）。灰青那块反射留给后续 HDR 变亮银。
+同步更新 3 个测试。106 项单测 0 失败、`assembleDebug` 通过，未使用 adb。详见
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260713194258.md`。
+已发布阿里云 Debug `202607131143`，APK SHA-256 `2ce575de752bed8bcb90cca3e42256186bee0706e1feec42fa730c33b242a917`。
+
+## 2026-07-13 - FableSol Step A：打光法线统一到真连续水面
+
+`/grill-with-docs` 收敛出"光照相干化与 HDR 存在感"计划（`plan-2026-07-13-light-coherence-hdr-presence.md`）
+后实现第一步。诊断出打光法线 `aSlope` 原只来自二维方向场 `eta`、不含各层波形轮廓，光与看得见的
+波形错位；光学高光又是逐层第三套基准。改动全在 `FableSolContinuousSurface.kt`：`sample()` 先合成
+真渲染面 `worldEta`（各层轮廓 + 方向场）再从它求 `slopeX/slopeZ`；`composeLayerField` 跨层由线性改
+Catmull-Rom 防层锚点坡度接缝，锚点行仍精确穿过各层轮廓；行间权重按固定 `z01[r]` 在 init 预计算
+保持零分配。shader/renderer/optical 未改。106 项单测 0 失败、`assembleDebug` 通过，未使用 adb。
+详见 `docs/features/audio-visualization-fable-sol/debug-updates/update-20260713191842.md`。
+已发布阿里云 Debug `202607131120`，APK SHA-256 `1d3e355f75b5cd3bb2cda7d4faacab0bcf33b00e9a3af3c70f67fa85fb3754ab`。
+
 ## 2026-07-13 - FableSol Stage 2-3 解析镜面抗锯齿
 
 用户要求把双色深度散射轻量档从 0.22 微调为 0.21，并继续下一项。审计确认当前 GLES 镜面闪点

@@ -12,10 +12,21 @@ internal object FableSolMaterialPolicy {
     const val HALO_THICKNESS_SCALE = 2.25
     const val HALO_ALPHA_SCALE = 0.18
 
-    /** 与 Debug 202607130749 一致的连续表面反射宽度，近层最大约 9.4dp。 */
-    fun surfaceBandWidthDp(facing: Double, crest: Double, depth01: Double): Double =
-        (1.2 + (5.8 + 2.4 * crest.coerceIn(0.0, 1.0)) * facing.coerceIn(0.0, 1.0)) *
+    /** 迎光与波峰双门控；平坡和背光坡都不能形成横贯整层的表面反射。 */
+    fun surfaceBandLocality(facing: Double, crest: Double): Double {
+        val facing01 = facing.coerceIn(0.0, 1.0)
+        val q = ((crest.coerceIn(0.0, 1.0) - 0.10) / 0.45).coerceIn(0.0, 1.0)
+        val crestGate = q * q * (3.0 - 2.0 * q)
+        return facing01 * crestGate
+    }
+
+    /** D86 局部表面反射宽度：无局部波峰时为 0，近层最大约 3dp。 */
+    fun surfaceBandWidthDp(facing: Double, crest: Double, depth01: Double): Double {
+        val crest01 = crest.coerceIn(0.0, 1.0)
+        val locality = surfaceBandLocality(facing, crest01)
+        return (0.35 + 2.65 * crest01) * sqrt(locality) *
             (1.0 - 0.45 * depth01.coerceIn(0.0, 1.0))
+    }
 
     /** 与 Debug 202607130749 一致的薄峰透射宽度，满强度最大约 11dp。 */
     fun thinGlowThicknessDp(signal: Double): Double {

@@ -7,6 +7,7 @@ in vec2 vSurfacePositionPx;
 in vec2 vSurfaceSlope;
 in float vDepth01;
 in float vCrestPinch;
+in vec2 vSheenSlope;
 flat in int vFrontFill;
 
 uniform float uTimeSeconds;
@@ -18,6 +19,9 @@ uniform float uSpecularAaStrength;
 uniform float uSunSssStrength;
 uniform float uSunSssFalloff;
 uniform bool uSceneLinear;
+uniform float uHdrGain;
+uniform float uHdrHeadroom;
+uniform float uHdrTransmissionPeak;
 out vec4 fragColor;
 
 float srgbToLinearChannel(float c) {
@@ -127,7 +131,7 @@ vec3 applyWindCombedMicroNormals(vec3 linearColor) {
     return linearColor * clamp(1.0 + lightDelta * 0.72 * rowFade, 0.82, 1.18);
 }
 
-vec3 addSunriseSubsurface(vec3 linearColor) {
+float sunriseSubsurfaceMask() {
     vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
     vec3 lightDir = lightDirection();
     vec2 viewHorizontal = normalize(viewDir.xz);
@@ -136,14 +140,56 @@ vec3 addSunriseSubsurface(vec3 linearColor) {
     float sunriseLobe = pow(sunAlignment, clamp(uSunSssFalloff, 4.0, 10.0));
     float crestMask = pow(clamp(vCrestPinch, 0.0, 1.0), 1.35);
     float nearMask = pow(1.0 - clamp(vDepth01, 0.0, 1.0), 0.70);
-    float mask = crestMask * nearMask * (0.08 + 0.92 * sunriseLobe);
-    return linearColor + srgbToLinear(vSubsurfaceColor) * uSunSssStrength * mask;
+    return crestMask * nearMask * (0.08 + 0.92 * sunriseLobe);
+}
+
+vec3 addSunriseSubsurface(vec3 linearColor) {
+    return linearColor + srgbToLinear(vSubsurfaceColor) *
+        uSunSssStrength * sunriseSubsurfaceMask();
 }
 
 float triangularDither(vec2 p) {
     float a = fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
     float b = fract(sin(dot(p + 17.13, vec2(26.6514, 57.211))) * 24634.6345);
     return ((a + b) * 0.5 - 0.5) / 255.0;
+}
+
+// Step C：掠射角 Fresnel 天空/太阳反射的超白光泽。只在 scene-linear 录音态加"越过 reference
+// white"的差量，SDR 路径完全不进——把 Step B 压弱的那片反射在 HDR 里提成发亮的银泽。
+// 大面积柔（峰值随深度归 SDR，D74）、朝太阳集中（统一太阳模型）、近中性白带一丝身份色（D69）。
+vec3 grazingSheenExcess(vec3 normal, float fresnel) {
+    vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
+    vec3 lightDir = lightDirection();
+    // 朝太阳只作加亮加成（基线 1、朝太阳更高），不作门控——平缓水面几乎没有满足窄瓣的朝向，
+    // 一旦拿它门控，光泽会整片消失（这正是上一版完全看不到 HDR 的原因）。
+    vec3 refl = reflect(-viewDir, normal);
+    float sunCos = clamp(dot(refl, lightDir), 0.0, 1.0);
+    float sunBoost = 1.0 + 1.4 * pow(sunCos, 3.0);               // 全域 ~1，朝太阳最高 ~2.4
+    // 低通宏观法线表达有限粗糙度下的宽镜面瓣；0.70 只拓宽 HDR 银泽，不改变 SDR 基色。
+    float grazing = pow(clamp(fresnel * sunBoost, 0.0, 1.0), 0.70);
+    float sheenPeak = min(mix(2.0, 1.0, smoothstep(0.0, 0.62, vDepth01)), uHdrHeadroom);
+    float sheen = grazing * max(sheenPeak - 1.0, 0.0);           // 超白差量，天然不超过 headroom
+    float maxChannel = max(max(vColor.r, vColor.g), max(vColor.b, 0.001));
+    vec3 tint = mix(vec3(1.0), vColor / maxChannel, 0.14);        // 近中性白 + 一丝身份色
+    return tint * (sheen * uHdrGain);
+}
+
+// Step D：与反射共用 Fresnel 预算的背光透射。现有 SSS 负责 SDR 内的体色提亮；这里只把同一
+// 小面积 crest/backlit 掩码放行到 reference white 以上。透射使用 (1-R)，因此掠射自动让位给
+// Step C 银泽，较正视角保留最多身份色；mode8 只留下很弱的独立肩部。
+vec3 backlitTransmissionExcess(float fresnel) {
+    float strength = clamp(uSunSssStrength / 0.16, 0.0, 1.0);
+    float transmissionPeak = min(
+        mix(uHdrTransmissionPeak, 1.0, smoothstep(0.0, 0.62, vDepth01)),
+        uHdrHeadroom
+    );
+    float budget = (1.0 - fresnel) * sunriseSubsurfaceMask() * strength *
+        max(transmissionPeak - 1.0, 0.0) * uHdrGain;
+    vec3 subsurfaceLinear = srgbToLinear(vSubsurfaceColor);
+    float maximum = max(max(subsurfaceLinear.r, subsurfaceLinear.g),
+        max(subsurfaceLinear.b, 0.001));
+    vec3 identityTint = subsurfaceLinear / maximum;
+    return identityTint * budget;
 }
 
 void main() {
@@ -160,5 +206,16 @@ void main() {
     }
     float dither = vFrontFill == 1 ? triangularDither(gl_FragCoord.xy) : 0.0;
     vec3 encodedColor = clamp(color + dither, 0.0, 1.0);
-    fragColor = vec4(uSceneLinear ? srgbToLinear(encodedColor) : encodedColor, 1.0);
+    vec3 outLinear = uSceneLinear ? srgbToLinear(encodedColor) : encodedColor;
+    if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 && uHdrHeadroom > 1.001) {
+        vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
+        vec3 normal = normalize(vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y));
+        float NdV = clamp(dot(normal, viewDir), 0.0, 1.0);
+        float f0 = 0.020373;
+        float fresnel = f0 + (1.0 - f0) * pow(1.0 - NdV, 5.0);
+        outLinear += grazingSheenExcess(normal, fresnel);
+        outLinear += backlitTransmissionExcess(fresnel);
+        outLinear = min(outLinear, vec3(uHdrHeadroom));
+    }
+    fragColor = vec4(outLinear, 1.0);
 }

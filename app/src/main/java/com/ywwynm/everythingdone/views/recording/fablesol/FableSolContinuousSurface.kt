@@ -69,12 +69,32 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val packetEnvX = DoubleArray(N_POINTS)
     private var nextPacketT = 0.0
 
+    // Step A：打光法线改从真渲染面 worldEta 求，跨层用 Catmull-Rom 平滑防止层锚点处的坡度
+    // 跳变（横向接缝）。行间插值权重只依赖固定的 z01[r]，init 预计算一次，稳态零分配。
+    private val layerMean = DoubleArray(N_LAYERS)
+    private val depthMeanX = DoubleArray(N_POINTS)
+    private val crRowIndex = Array(Z_ROWS) { IntArray(4) }
+    private val crRowWeight = Array(Z_ROWS) { DoubleArray(4) }
+
     @JvmField var pitchEffRad = 0.0
     private var pitchVelocity = 0.0
 
     init {
         for (j in wavelength.indices) phase[j] = rng.uniform(0.0, 2.0 * PI)
         for (q in doubleArrayOf(0.18, 0.50, 0.82)) spawnPacket(null, q)
+        for (r in 0 until Z_ROWS) {
+            val f = (r.toDouble() / (Z_ROWS - 1)) * (N_LAYERS - 1)
+            val i0 = min(f.toInt(), N_LAYERS - 2)
+            val q = f - i0
+            crRowIndex[r][0] = max(i0 - 1, 0)
+            crRowIndex[r][1] = i0
+            crRowIndex[r][2] = i0 + 1
+            crRowIndex[r][3] = min(i0 + 2, N_LAYERS - 1)
+            crRowWeight[r][0] = 0.5 * (-q + 2.0 * q * q - q * q * q)
+            crRowWeight[r][1] = 0.5 * (2.0 - 5.0 * q * q + 3.0 * q * q * q)
+            crRowWeight[r][2] = 0.5 * (q + 4.0 * q * q - 3.0 * q * q * q)
+            crRowWeight[r][3] = 0.5 * (-q * q + q * q * q)
+        }
     }
 
     fun setPitch(degrees: Double, snap: Boolean = false) {
@@ -88,27 +108,36 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         }
     }
 
-    /** 九层锚点减去各层均值，再只叠加二维场的纵深差分。 */
+    /**
+     * 九层锚点减去各层均值后跨层 Catmull-Rom 平滑插值，再叠加二维方向场（并去掉与深度无关的
+     * 公共横波）。锚点行（q=0/1）严格穿过该层自身轮廓，因此不改变既有分层语义；平滑插值消除
+     * 线性混合在层锚点处的坡度跳变，使从 worldEta 求得的打光法线不产生横向接缝。
+     */
     fun composeLayerField(layerHeights: Array<DoubleArray>,
                           directionalEta: Array<DoubleArray>): Array<DoubleArray> {
-        val means = DoubleArray(N_LAYERS)
         for (i in 0 until N_LAYERS) {
             var sum = 0.0
             for (v in layerHeights[i]) sum += v
-            means[i] = sum / layerHeights[i].size
+            layerMean[i] = sum / layerHeights[i].size
         }
         for (x in 0 until N_POINTS) {
             var depthMean = 0.0
             for (r in 0 until Z_ROWS) depthMean += directionalEta[r][x]
-            depthMean /= Z_ROWS
-            for (r in 0 until Z_ROWS) {
-                val f = sample.z01[r] * (N_LAYERS - 1)
-                val i0 = min(f.toInt(), N_LAYERS - 2)
-                val q = f - i0
-                val local0 = layerHeights[i0][x] - means[i0]
-                val local1 = layerHeights[i0 + 1][x] - means[i0 + 1]
-                sample.worldEta[r][x] = local0 + (local1 - local0) * q +
-                    directionalEta[r][x] - depthMean
+            depthMeanX[x] = depthMean / Z_ROWS
+        }
+        for (r in 0 until Z_ROWS) {
+            val idx = crRowIndex[r]
+            val w = crRowWeight[r]
+            val h0 = layerHeights[idx[0]]; val m0 = layerMean[idx[0]]; val w0 = w[0]
+            val h1 = layerHeights[idx[1]]; val m1 = layerMean[idx[1]]; val w1 = w[1]
+            val h2 = layerHeights[idx[2]]; val m2 = layerMean[idx[2]]; val w2 = w[2]
+            val h3 = layerHeights[idx[3]]; val m3 = layerMean[idx[3]]; val w3 = w[3]
+            val worldRow = sample.worldEta[r]
+            val dirRow = directionalEta[r]
+            for (x in 0 until N_POINTS) {
+                worldRow[x] = w0 * (h0[x] - m0) + w1 * (h1[x] - m1) +
+                    w2 * (h2[x] - m2) + w3 * (h3[x] - m3) +
+                    dirRow[x] - depthMeanX[x]
             }
         }
         return sample.worldEta
@@ -324,23 +353,26 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
                 sample.orbitZ[r][x] = sample.orbitZ[r][x].coerceIn(-10.0, 10.0)
             }
         }
+        // 先合成真渲染面 worldEta（含各层轮廓 + 二维方向场），打光法线改从它求，
+        // 使光贴着看得见的波形走，而不是只跟随二维方向场。
+        composeLayerField(sim.heights, sample.eta)
+        val world = sample.worldEta
         for (r in 0 until Z_ROWS) {
             for (x in 0 until N_POINTS) {
                 sample.slopeX[r][x] = when (x) {
-                    0 -> (sample.eta[r][1] - sample.eta[r][0]) / FableSolSpec.DX_DP
-                    N_POINTS - 1 -> (sample.eta[r][x] - sample.eta[r][x - 1]) / FableSolSpec.DX_DP
-                    else -> (sample.eta[r][x + 1] - sample.eta[r][x - 1]) / (2.0 * FableSolSpec.DX_DP)
+                    0 -> (world[r][1] - world[r][0]) / FableSolSpec.DX_DP
+                    N_POINTS - 1 -> (world[r][x] - world[r][x - 1]) / FableSolSpec.DX_DP
+                    else -> (world[r][x + 1] - world[r][x - 1]) / (2.0 * FableSolSpec.DX_DP)
                 }
                 sample.slopeZ[r][x] = when (r) {
-                    0 -> (sample.eta[1][x] - sample.eta[0][x]) / (sample.zDp[1] - sample.zDp[0])
-                    Z_ROWS - 1 -> (sample.eta[r][x] - sample.eta[r - 1][x]) /
+                    0 -> (world[1][x] - world[0][x]) / (sample.zDp[1] - sample.zDp[0])
+                    Z_ROWS - 1 -> (world[r][x] - world[r - 1][x]) /
                         (sample.zDp[r] - sample.zDp[r - 1])
-                    else -> (sample.eta[r + 1][x] - sample.eta[r - 1][x]) /
+                    else -> (world[r + 1][x] - world[r - 1][x]) /
                         (sample.zDp[r + 1] - sample.zDp[r - 1])
                 }
             }
         }
-        composeLayerField(sim.heights, sample.eta)
         return sample
     }
 

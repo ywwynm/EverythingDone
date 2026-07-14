@@ -8,6 +8,37 @@ import kotlin.math.sin
 class FableSolGlOpticsTest {
 
     @Test
+    fun glintEnvelopeFadesBelowVisibilityBeforeTrackRetirement() {
+        val retirementBoundaryWithMaximumBreath =
+            FableSolGlintEnvelopePolicy.TRACK_RETIRE_INTENSITY * 1.12
+
+        assertEquals(
+            0.0,
+            FableSolGlintEnvelopePolicy.coreAlpha(
+                retirementBoundaryWithMaximumBreath,
+                layerAlpha = 1.0
+            ),
+            0.0
+        )
+        assertTrue(FableSolGlintEnvelopePolicy.coreAlpha(0.04, 1.0) > 1.0 / 255.0)
+        var previous = 0.0
+        for (step in 0..100) {
+            val alpha = FableSolGlintEnvelopePolicy.coreAlpha(step / 100.0, 1.0)
+            assertTrue(alpha + 1e-12 >= previous)
+            previous = alpha
+        }
+    }
+
+    @Test
+    fun longFrameGapCannotConsumeAWholeGlintReleaseInOneFrame() {
+        val step = FableSolGlintEnvelopePolicy.trackingDeltaSeconds(2.0)
+        val retained = kotlin.math.exp(-step / 0.80)
+
+        assertEquals(1.0 / 15.0, step, 1e-12)
+        assertTrue(retained > 0.90)
+    }
+
+    @Test
     fun analyticSpecularAaFeedsUnresolvedVarianceIntoTheGlintLobe() {
         val params = FableSolParams()
         val sim = FableSolSimulation(params)
@@ -75,9 +106,7 @@ class FableSolGlOpticsTest {
                 floatCount / FableSolGlOptics.COMPONENTS_PER_VERTEX)
         }
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
-        assertTrue((0..8).all {
-            optics.bodyLightVertexCountForTest[it] == fullContourVertices
-        })
+        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
         var hasHdrEligibleSurfaceSegment = false
         for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
@@ -118,6 +147,15 @@ class FableSolGlOpticsTest {
         }
 
         assertTrue((0..4).sumOf { optics.glintTrackCountForTest(it) } > 0)
+        assertTrue(optics.glitterOccupiedLayerCountForTest() >= 2)
+        assertTrue(
+            optics.glitterBirthPathWeightAverageForTest() >
+                FableSolSunGlitterPolicy.OUTSIDE_PATH_WEIGHT
+        )
+        assertTrue((0..4).zipWithNext().all { (near, far) ->
+            optics.glintPathCenter01ForTest[far] > optics.glintPathCenter01ForTest[near]
+        })
+        assertTrue((0..4).any { optics.glintMaximumPathWeightForTest[it] > 0.5 })
         assertTrue((0..2).sumOf { optics.streakTrackCountForTest(it) } > 0)
         assertTrue((0..5).all {
             optics.glintTrackCountForTest(it) <= FableSolMaterialPolicy.glintCapacity(it)
@@ -240,7 +278,7 @@ class FableSolGlOpticsTest {
     }
 
     @Test
-    fun restoredBodyLightCoversEveryLayerWhileCrestVeilKeepsItsNearLayerScope() {
+    fun bodyLightIsOffByDefaultWhileCrestVeilKeepsItsNearLayerScope() {
         val params = FableSolParams()
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
@@ -265,9 +303,7 @@ class FableSolGlOpticsTest {
         )
 
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
-        assertTrue((0..8).all {
-            optics.bodyLightVertexCountForTest[it] == fullContourVertices
-        })
+        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         assertTrue((0..2).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
         assertTrue((3..8).all { optics.crestVeilVertexCountForTest[it] == 0 })
     }

@@ -5,6 +5,7 @@ layout(location = 0) in vec2 aPositionPx;
 layout(location = 1) in vec2 aSlope;
 layout(location = 2) in float aDepth01;
 layout(location = 3) in float aCrestPinch;
+layout(location = 4) in vec2 aSheenSlope;
 
 uniform vec2 uViewportPx;
 uniform float uRotationRad;
@@ -28,10 +29,9 @@ uniform float uGradientDenominator[9];
 uniform vec3 uEnvironmentTop;
 uniform vec3 uEnvironmentHorizon;
 uniform vec3 uEnvironmentBottom;
-uniform vec3 uHorizonColor;
 uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
-uniform float uDepthScatteringStrength;
+uniform float uMacroShadowLumaCap;
 uniform bool uFrontFill;
 
 out vec3 vColor;
@@ -40,6 +40,7 @@ out vec2 vSurfacePositionPx;
 out vec2 vSurfaceSlope;
 out float vDepth01;
 out float vCrestPinch;
+out vec2 vSheenSlope;
 flat out int vFrontFill;
 
 float srgbToLinearChannel(float c) {
@@ -114,48 +115,68 @@ vec3 lightDirection() {
     ));
 }
 
-vec3 depthScattering(vec3 base, vec3 deep, vec3 subsurface,
-                     vec2 slope, float depth01, float crestPinch) {
-    vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
-    float sunFacing = smoothstep(0.15, 0.85, dot(normal, lightDirection()));
-    float grazing = smoothstep(0.18, 0.92, depth01);
-    float thinCrest = crestPinch * mix(0.65, 1.0, sunFacing);
-    float subsurfaceMask = clamp(0.10 + 0.18 * grazing + 0.75 * thinCrest, 0.0, 1.0);
-    return mix(base, mix(deep, subsurface, subsurfaceMask), uDepthScatteringStrength);
+const float MAX_RELATIVE_LONGITUDINAL_LIFT = 0.015;
+const float LONGITUDINAL_LIGHT_RESPONSE = 0.12;
+const float MACRO_SHADOW_NDL_START = 0.080;
+const float MACRO_SHADOW_NDL_FULL = 0.180;
+const float MACRO_SHADOW_FAR_START = 0.350;
+const float MACRO_SHADOW_FAR_END = 0.700;
+const float MACRO_SHADOW_CREST_START = 0.005;
+const float MACRO_SHADOW_CREST_FULL = 0.080;
+const float MACRO_SHADOW_LOCAL_FLOOR = 0.300;
+
+float longitudinalDepthWeight(float depth01) {
+    return mix(1.0, 0.45,
+        smoothstep(0.35, 0.90, clamp(depth01, 0.0, 1.0)));
 }
 
-vec3 relativeLongitudinalLight(vec3 base, vec2 slope, float depth01) {
-    if (abs(slope.y) <= 1e-12) return base;
+vec3 relativeLongitudinalLight(vec3 base, vec3 deep, vec2 slope,
+                               float depth01, float crestPinch) {
+    // 正向坡面光保留 D87；背坡只朝身份色派生的 deepColor 移动，并按最终线性亮度损失封顶。
     vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
-    vec2 referenceNormal = normalize(vec2(-slope.x, 1.0));
-    vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
-    vec3 lightDir = lightDirection();
-    float fullNdl = clamp(dot(normal, lightDir), 0.0, 1.0);
-    float fullNdv = clamp(dot(normal, viewDir), 0.001, 1.0);
-    float refNdl = clamp(dot(referenceNormal, lightDir.xy), 0.0, 1.0);
-    float refNdv = clamp(dot(referenceNormal, viewDir.xy), 0.001, 1.0);
-    float f0 = 0.020373;
-    float fullFresnel = f0 + (1.0 - f0) * pow(1.0 - fullNdv, 5.0);
-    float refFresnel = f0 + (1.0 - f0) * pow(1.0 - refNdv, 5.0);
-    vec3 linearBase = srgbToLinear(base);
-    vec3 linearSky = srgbToLinear(uHorizonColor);
-    vec3 fullLight = fullNdl * (1.0 - fullFresnel) * linearBase +
-        fullFresnel * linearSky;
-    vec3 referenceLight = refNdl * (1.0 - refFresnel) * linearBase +
-        refFresnel * linearSky;
-    vec3 candidate = linearToSrgb(linearBase + fullLight - referenceLight);
-    float baseLuminance = dot(base, vec3(0.2126, 0.7152, 0.0722));
-    float candidateLuminance = dot(candidate, vec3(0.2126, 0.7152, 0.0722));
-    if (candidateLuminance >= baseLuminance) return candidate;
-    float darkness = clamp(
-        (baseLuminance - candidateLuminance) / max(baseLuminance, 1.0 / 255.0),
-        0.0,
-        1.0
+    vec3 referenceNormal = normalize(vec3(-slope.x, 1.0, 0.0));
+    float relativeNdl = dot(normal, lightDirection())
+        - dot(referenceNormal, lightDirection());
+    float positiveNdl = max(relativeNdl, 0.0);
+    float relativeLift = min(
+        positiveNdl * LONGITUDINAL_LIGHT_RESPONSE,
+        MAX_RELATIVE_LONGITUDINAL_LIFT
+    ) * longitudinalDepthWeight(depth01);
+    vec3 lit = base * (1.0 + relativeLift);
+
+    float backSlope = smoothstep(
+        MACRO_SHADOW_NDL_START,
+        MACRO_SHADOW_NDL_FULL,
+        max(-relativeNdl, 0.0)
     );
-    float nearScale = 1.0 - clamp(depth01, 0.0, 1.0);
-    float depthScale = max(nearScale * nearScale, 0.05);
-    float blackMix = 0.14 * sqrt(darkness) * depthScale;
-    return base * (1.0 - blackMix);
+    float depthGate = 1.0 - smoothstep(
+        MACRO_SHADOW_FAR_START,
+        MACRO_SHADOW_FAR_END,
+        clamp(depth01, 0.0, 1.0)
+    );
+    float crestGate = mix(
+        MACRO_SHADOW_LOCAL_FLOOR,
+        1.0,
+        smoothstep(
+            MACRO_SHADOW_CREST_START,
+            MACRO_SHADOW_CREST_FULL,
+            crestPinch
+        )
+    );
+    float shadowMask = backSlope * depthGate * crestGate;
+    float cap = clamp(uMacroShadowLumaCap, 0.0, 0.040);
+    if (shadowMask <= 0.0 || cap <= 0.0) return lit;
+
+    vec3 litLinear = srgbToLinear(clamp(lit, 0.0, 1.0));
+    vec3 deepLinear = srgbToLinear(clamp(deep, 0.0, 1.0));
+    const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+    float litLuma = dot(litLinear, LUMA);
+    float availableLoss = max(litLuma - dot(deepLinear, LUMA), 0.0);
+    float requestedLoss = litLuma * cap * shadowMask;
+    float deepMix = availableLoss > 1e-6
+        ? clamp(requestedLoss / availableLoss, 0.0, 1.0)
+        : 0.0;
+    return linearToSrgb(mix(litLinear, deepLinear, deepMix));
 }
 
 void main() {
@@ -175,14 +196,7 @@ void main() {
     if (uFrontFill) {
         float q = gradientT(aPositionPx, 0);
         materialSubsurface = subsurfaceGradient(0, q);
-        color = depthScattering(
-            layerGradient(0, q),
-            deepGradient(0, q),
-            materialSubsurface,
-            aSlope,
-            aDepth01,
-            aCrestPinch
-        );
+        color = layerGradient(0, q);
     } else {
         color = environmentAt(screen.y);
         vec3 deepColor = color;
@@ -200,15 +214,13 @@ void main() {
                 );
             }
         }
-        color = depthScattering(
+        color = relativeLongitudinalLight(
             color,
             deepColor,
-            subsurfaceColor,
             aSlope,
             aDepth01,
             aCrestPinch
         );
-        color = relativeLongitudinalLight(color, aSlope, aDepth01);
         materialSubsurface = subsurfaceColor;
     }
     vColor = color;
@@ -217,5 +229,6 @@ void main() {
     vSurfaceSlope = aSlope;
     vDepth01 = aDepth01;
     vCrestPinch = aCrestPinch;
+    vSheenSlope = aSheenSlope;
     vFrontFill = uFrontFill ? 1 : 0;
 }
