@@ -26,9 +26,9 @@ class FableSolPinkBreathPolicyTest {
     fun stageDefaultsKeepEveryNewMaterialDetailIndependentlySwitchable() {
         val params = FableSolParams()
         assertEquals(1.0, params.get("global_pink_breath_strength"), 0.0)
-        assertEquals(0.16, params.get("micro_normal_strength"), 0.0)
+        assertEquals(0.36, params.get("micro_normal_strength"), 0.0)
         assertEquals(0.16, params.get("sun_sss_strength"), 0.0)
         assertEquals(6.0, params.get("sun_sss_falloff"), 0.0)
-        assertEquals(0.10, params.get("analytic_halo_strength"), 0.0)
+        assertEquals(0.0, params.get("analytic_halo_strength"), 0.0)
     }
 }

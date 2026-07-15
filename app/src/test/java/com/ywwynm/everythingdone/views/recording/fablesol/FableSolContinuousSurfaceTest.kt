@@ -18,7 +18,12 @@ class FableSolContinuousSurfaceTest {
 
     @Test
     fun continuousRibbonsAreBatchedByNineLayerDepthInterval() {
-        assertEquals(3, FableSolContinuousSurface.ROWS_PER_LAYER)
+        assertEquals(12, FableSolContinuousSurface.ROWS_PER_LAYER)
+        assertEquals(97, FableSolContinuousSurface.Z_ROWS)
+        assertEquals(
+            (FableSolSpec.N_LAYERS - 1) * FableSolContinuousSurface.ROWS_PER_LAYER + 1,
+            FableSolContinuousSurface.Z_ROWS
+        )
         assertEquals(8, FableSolContinuousSurface.RENDER_GROUPS)
         assertTrue(FableSolContinuousSurface.RENDER_GROUPS <
             FableSolContinuousSurface.Z_ROWS - 1)
@@ -42,7 +47,7 @@ class FableSolContinuousSurfaceTest {
 
         for (i in layers.indices) {
             val mean = layers[i].average()
-            val row = i * 3
+            val row = i * FableSolContinuousSurface.ROWS_PER_LAYER
             for (x in layers[i].indices) {
                 assertEquals(layers[i][x] - mean, field[row][x], 1e-9)
             }

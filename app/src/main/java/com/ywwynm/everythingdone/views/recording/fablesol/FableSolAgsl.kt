@@ -12,6 +12,10 @@ import android.os.Build
  *   厚度（≤216 列）作为 uniform 数组传入，逐像素插值出带内相对深度并求
  *   连续剖面——数学精确、无子带阶差，且把路径光栅从 CPU 移到 GPU。
  *
+ * 旧 C3 曾在编码 sRGB 中把整层填充乘暗并称为 Beer–Lambert 吸收；该做法既没有
+ * 独立透射分瓣，也会污染主体颜色，已按 D127 移除。真实体积吸收只能进入介质
+ * 透射/折射路径，不能在 Canvas 填充之后补一个整层暗化 shader。
+ *
  * 所有 shader 运行时编译；任何一步失败（编译器差异/旧系统）即整体回退，
  * 不影响既有渲染。剖面平台值与 CPU 子带堆叠一致（0.14/0.48/0.72），过渡改为
  * smoothstep 连续化。
@@ -64,39 +68,6 @@ object FableSolAgsl {
         }
     """
 
-    /**
-     * C3 层填充：在既有渐变（input shader）之上做逐像素水体光学。
-     * - 深度吸收：Beer–Lambert 近似——深度越大越向本层深色收敛（乘性衰减、
-     *   保色相，有下限不压黑），absorb=0 时恒等。
-     * - 焦散：表面下 2~36dp 的横向拉伸值噪声亮脉（两倍频、随层流漂移、
-     *   深度包络、稀疏化阈值），caustic=0 时恒等。
-     */
-    private const val LAYER_SRC = """
-        uniform shader src;
-        uniform shader data;
-        uniform float x0;
-        uniform float dxStep;
-        uniform float cntF;
-        uniform float yMin;
-        uniform float yRange;
-        uniform float densityPx;
-        uniform float absorb;
-        half4 main(float2 xy) {
-            half4 c = src.eval(xy);
-            float f = clamp((xy.x - x0) / dxStep, 0.0, cntF - 1.0);
-            float j = floor(min(f, cntF - 2.0));
-            float fr = f - j;
-            half4 d0 = data.eval(float2(j + 0.5, 0.5));
-            half4 d1 = data.eval(float2(j + 1.5, 0.5));
-            float t = yMin + mix(float(d0.r), float(d1.r), fr) * yRange;
-            float d = max(xy.y - t, 0.0) / densityPx;
-            if (d <= 0.0) return c;
-            float att = exp(-absorb * 0.010 * d);
-            float g = mix(0.72, 1.0, att);
-            return half4(c.rgb * half(g), c.a);
-        }
-    """
-
     val supported: Boolean = Build.VERSION.SDK_INT >= 33
 
     /** 渐变抖动包装 shader；构建失败返回 null（调用方直接用原渐变）。 */
@@ -117,12 +88,4 @@ object FableSolAgsl {
         }
     }
 
-    /** C3 层填充光学 shader；构建失败返回 null（调用方直接用渐变填充）。 */
-    val layerFill: RuntimeShader? by lazy {
-        if (!supported) null else try {
-            RuntimeShader(LAYER_SRC)
-        } catch (_: Throwable) {
-            null
-        }
-    }
 }

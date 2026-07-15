@@ -25,8 +25,37 @@ class FableSolHdrPipelineSourceTest {
         assertTrue(source.contains("GLES30.GL_RGBA16F"))
         assertTrue(source.contains("FableSolHdrPolicy.advanceHeadroom"))
         assertTrue(source.contains("hdrContentEnabled && hdrRecordingRequested"))
+        assertTrue(source.contains("FableSolLayerColorPolicy.palette("))
+        assertTrue(source.contains("palette.interfaceWeights.start"))
+        assertTrue(source.contains("palette.interfaceWeights.stop1"))
+        assertTrue(source.contains("palette.interfaceWeights.stop2"))
+        assertTrue(source.contains("palette.interfaceWeights.end"))
+        assertFalse(source.contains("quantizedDeltaEOk"))
         assertFalse(source.contains("loudness01 * hdr"))
         assertFalse(source.contains("onset * hdr"))
+    }
+
+    @Test
+    fun refractionUsesASeparateImmutableBackgroundTargetWithAtomicFallback() {
+        val source = source("FableSolGlRenderer.kt")
+
+        assertTrue(source.contains("private var preWaterFramebufferId = 0"))
+        assertTrue(source.contains("private var preWaterTextureId = 0"))
+        assertTrue(source.contains("drawEnvironmentTo(preWaterFramebufferId)"))
+        assertTrue(source.contains("drawEnvironmentTo(sceneFramebufferId)"))
+        assertTrue(source.contains("GLES30.glActiveTexture(GLES30.GL_TEXTURE1)"))
+        assertTrue(source.contains("waterProgram.uniform(\"uPreWaterScene\"), 1"))
+        assertTrue(source.contains("GLES30.GL_LINEAR"))
+        assertTrue(source.contains("val textures = IntArray(2)"))
+        assertTrue(source.contains("val framebuffers = IntArray(2)"))
+        assertTrue(source.contains("val requestedHdrTargets = hdrContentEnabled"))
+        assertTrue(source.contains("hdrContentEnabled = false"))
+        assertTrue(source.contains("releaseSceneTargets()"))
+        val fallback = source.substring(
+            source.indexOf("val requestedHdrTargets = hdrContentEnabled"),
+            source.indexOf("private fun createSceneTargets")
+        )
+        assertFalse(fallback.contains("sceneLinear = false"))
     }
 
     @Test
@@ -38,6 +67,32 @@ class FableSolHdrPipelineSourceTest {
         assertTrue(source.contains("Build.VERSION.SDK_INT < 35"))
         assertTrue(source.contains("setDesiredHdrHeadroom(value)"))
         assertTrue(source.contains("setRecordingHdrActive"))
+    }
+
+    @Test
+    fun opticalBuilderKeepsVolumeBehindSurfaceAndGlintsLast() {
+        val source = source("FableSolGlOptics.kt")
+        val loopStart = source.indexOf("for (layer in FableSolSpec.N_LAYERS - 1 downTo 0)")
+        val loopEnd = source.indexOf("layerVertexCount[layer]", loopStart)
+        val loop = source.substring(loopStart, loopEnd)
+
+        val shoulder = loop.indexOf("buildInterfaceShoulder(")
+        val shadow = loop.indexOf("buildBackShade(")
+        val body = loop.indexOf("buildBodyLight(")
+        val thin = loop.indexOf("buildThinGlow(")
+        val veil = loop.indexOf("buildCrestVeil(")
+        val surface = loop.indexOf("buildSurfaceBand(")
+        val streak = loop.indexOf("buildStreaks(")
+        val glint = loop.indexOf("buildGlints(")
+        assertTrue(listOf(shoulder, shadow, body, thin, veil, surface, streak, glint)
+            .all { it >= 0 })
+        assertTrue(shoulder < shadow)
+        assertTrue(shadow < body)
+        assertTrue(body < thin)
+        assertTrue(thin < veil)
+        assertTrue(veil < surface)
+        assertTrue(surface < streak)
+        assertTrue(streak < glint)
     }
 
     private fun source(name: String): String {

@@ -1,5 +1,224 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-15 双仓提交前收口
+
+按用户要求对 Android 与 Python 工作区进行逐文件审计，为本轮长周期视觉迭代建立成对提交边界。
+Android 只纳入 FableSol 主代码、测试、共享 GLSL、功能文档、发布日志及本轮形成的工具规则；明确
+排除 `Everything-Android/` 与 `tmp/`。Python 只纳入 16 个既有源码/测试改动、长期维护的 18 色
+FP16/scRGB 回归工具和分层水体合同测试；明确排除录音素材、全部生成结果，以及服务于已否决
+continuous-sheen 候选的一次性诊断脚本。
+
+提交前领域文档审计发现两处陈旧表述：`CONTEXT.md` 一面禁止向白点混色，一面又以 D135 的静态
+OKLab `lighten_far` 作为现行主体色板；`followups.md` 仍把 D135 的 `3/2/1/0…` 闪点收缩和 D137
+微面片写成当前方案。现已把 **水层景深阶梯** 收紧为不绑定具体颜色算法的结果术语，明确当前
+允许统一向白点提亮；把“随层保色界面肩”标为已退出的历史术语；并将待办统一到 D136 的
+`4/4/3/3/2/2/1/1/0` glint 合同与 D138 的无层内 continuous sheen 基线。Python 提交正文明确
+本轮基于并保留 Claude Opus 4.8 已实现的 D3D11 FP16/scRGB 窗口 HDR 呈现链，不把既有贡献误写为
+本次新增，并按用户要求保留对应 Co-authored-by trailer。
+
+## 2026-07-15 精确对照 HDR 前最终版与首个 HDR 版
+
+用户认为当前版是近期最好版本，但回顾迭代感觉走了弯路，要求比较 Android 刚加入 HDR 的版本与
+HDR 前最终版本。本轮只读审计锁定相邻 Debug `202607130749` 与 `202607130828`；两版没有独立
+Git commit，不能用混入 SurfaceView、SDR 收敛与 HDR 后实验的 `8eb23c04…c03b4f711` 代替。
+
+直接比较本地两个 APK 的 2014 个 ZIP 条目、五份 shader 和 DEX 反汇编后确认：九层主体配色、
+全部材质/颜色策略、参数、连续水面与 `water.vert` 均相同，首次 HDR 没有改第二、第三层基色。
+实际差异是 FP16/linear-scRGB 输出、半透明光学由 sRGB 编码域改为线性混合，以及录音态为 glint、
+surface/crest 与 transmission 开启局部 HDR excess。首版 `darkCompensation`、中性白 tint 和
+`excess/opticalAlpha` 使暗色低 alpha 光学在第 1/2 层也能整片越过 reference white，是录音后
+提亮、降饱和和乳白的首要代码原因；原有 `presentation alpha 0.16→1.0` 同时发生但不是 HDR 新增。
+
+当前版保留正确的线性 HDR 管线，已删除暗色与 inverse-alpha 补偿，缩小中性白比例、覆盖面积，
+并移除 halo 与层内 continuous sheen。历史对照说明峰值本身不是根因，后续应分别冻结主体色、
+线性半透明混合和 HDR excess。完整证据见
+`analysis-2026-07-15-hdr-first-version-diff.md`；本轮未修改产品代码、未构建、未发布、未使用 ADB。
+
+## 2026-07-15 按目测反馈移除层内斜短光点与 continuous sheen
+
+用户查看 D137 联系表后指出，各层内部新增了大量斜短光点；确认它们不是边缘 glint，并要求直接
+删除。代码与 `water_only` 对照一致证明这些点就是稳定微面片版 continuous sheen，而不是其它
+optical 实体。新增 GPU 回归先在旧实现上稳定失败：129 BPM、适中水位、`EmptyOptics` 的四时相
+中，sheen 开关最大像素差达到 `1.50098× reference white`。
+
+随后从共享 shader 完整删除固定微面片、连续 GGX SDR/HDR 反射和配套暗斑；Android/Python 同步
+删除 uniform 上传、峰值/覆盖率表以及两个 Python 面板参数。预滤波坡度继续只供折射、Beer、SSS
+与 HDR transmission 使用，边缘 glint、surface/streak、透射和既有逐层峰值不变。更新后的
+`full/no_glint/water_only` 动态联系表中，三路均已没有层内斜短点；只有独立 optical 路径仍在
+真实轮廓附近出现高光。
+
+最终共享 shader hash 为
+`c2d7b3ccfcd435b951eedfafc4f95afbdd146730b856a9c3b6a3c661d77430f6`。18 色 FP16
+离屏回归中，完整效果峰值最小/中位/最大仍为 `2.629/2.934/3.314× reference white`，说明边缘
+glint 与其它独立 optical 峰值没有被削弱；`water_only` 峰值不超过 `1.000×`，去 glint 后 HDR
+覆盖率中位归零，符合“不要再用另一种层内连续图案补回 HDR”的裁决。九层主体最弱相邻色差的
+18 色最小/中位/最大为 `0.0210/0.0430/0.0628`，均不低于既有 `0.02` 验收线。
+
+129 BPM 动态三联画已重渲染，确认 `full/no_glint/water_only` 均无层内斜点、扩缩光带或环形替代物。
+640×840、FP16、RTX 5090 基准中，GPU 完成但不读回的中位/P95/P99 为
+`12.293/12.896/13.487ms`（约 `81.35fps`）；FP16 读回为
+`17.477/18.875/20.131ms`（约 `57.22fps`），删除该路径后没有性能回退。Python 160 项
+unittest 与 Android 140 项 Debug JVM 测试全部通过，未使用 ADB。最终已发布阿里云 Debug
+`202607150348`（versionCode 43 / 2.0.0），APK 大小
+`20776849` 字节，SHA-256 为
+`d64026f0da0d91d043dd51d7cdc1b9f3923c03ec37e41df37940fca8c6c6ad32`。远端
+`latest.json`、完整中文说明和重新下载 APK 已回读；元数据、本地及远端 APK 的大小与哈希完全
+一致。包内 `water.frag` 不含 continuous-sheen 禁止符号，折射、Beer 与 transmission 必需符号
+仍在。
+
+## 2026-07-15 定位并移除连续 GGX 扩缩光带
+
+按用户补充反馈，把动态夹具从过度激昂调整为 129 BPM 中高能量、适中主浪：第 0 层不再抬高到
+遮挡中远层，同时九层仍有足够运动用于判断。`full/no_glint/water_only/no_sheen/no_surface`
+逐项消融确认，油漆感弯月光带在关闭 glint、全部 optical 和表面带后仍存在，只有关闭连续 sheen
+才消失；因此正式排除 glint，根因锁定为 `water.frag` 的动态 GGX 响应窄等值线。
+
+共享 shader 已改为稳定播种的有界各向异性微面片：空间存在与 GGX 能量分离，时间只平移坐标，
+连续坐标解析导数负责抗锯齿；同源暗面改用相同空间门控，前景填充走 uniform 提前返回。Python
+与 Android 都直接使用同一份 GLSL，并分别增加 GPU 集成回归和源码合同测试。16 时相最大亮连通
+域由旧实现中位 `2302px`、最大 `3151px` 收到中位 `93px`、最大 `105px`；负亮度残差在
+`ΔY<-0.003` 下中位为零、最大仅 `14px`，不再跨层。动态三联对照未见规则扩缩圆环或整条暗带。
+
+当前 shader hash 为 `850455a9f8b0a486d2185b065437be59309c859d187aecdd422e03f9da60a8dd`。
+最终全量测试、Android 构建、Debug 发布及远端校验继续补入本节。
+
+## 2026-07-15 完成 D136 逐层特效恢复、同源亮暗与 HDR 双轨验收
+
+按照最新真机反馈，保留静态 `lighten_far`、零界面肩和录音不改主体色，恢复此前已经确认的
+闪点容量 `4/4/3/3/2/2/1/1/0`、出生率、长度、核心 alpha、逐层连续响应及五组 HDR 峰值。
+中远层不再因修复圆环而被整体清零。闪点改为贴住真实轮廓、出生尺寸固定、向水内单调衰减的
+实心短光迹；删除解析 halo、周期尺寸呼吸和 `216×129` 低频椭圆银斑。连续高光与保色暗面由
+同一法线和太阳方向驱动，暗面只降低当前线性色的曝光，不混黑、灰或最终 HDR 像素。
+
+共享 shader 同时修复三项合成错误：Beer/折射现在从未包含当前层的 `behindColor` 出发，当前层
+alpha 只应用一次；体光 `mode 8` 接入实时 HDR eligibility；没有正向覆盖的第 8 层不再保留
+孤立暗面。反射身份色改取当前层 `materialColor`，HDR 峰值与 coverage 改为独立控制；光学实体
+使用预乘 SDR 颜色加独立 HDR excess，presentation 按设备 headroom 有界输出。Python 与 Android
+GL/Canvas 同构同步，并增加逐层合同、动态出生、mode 3 剖面和 shader 合成回归。
+
+18 色离屏验收明确区分 SDR 与 HDR：联系表 PNG 为 8-bit RGB 固定曝光图，只检查颜色、层界、
+浑浊感和形状；18 份原始帧为 `(840,640,4)` FP16 线性 scRGB，全部有限。完整效果峰值在 18 色
+中的最小/中位/最大值为 `2.629/2.934/3.314× reference white`，去闪点后为
+`1.621/1.898/2.266×`；完整效果 `>1.0/>1.29/>2.0` 的水体 pooled 覆盖率为
+`0.636%/0.346%/0.091%`，证明连续响应和小面积超白均真实存在。最弱相邻主体色差的跨色中位数
+为 `0.0429`，18 色均未低于 `0.02`，界面肩宽度保持为零。
+
+Python 使用 `everythingdone` Conda 环境完成 158 项 unittest；640×840、3.6× HDR、FP16 读回
+的 72 帧基准中位 `15.82ms`、P95 `16.48ms`，约 `63.2fps`。Android 139 项 Debug JVM 测试和
+`:app:assembleDebug` 通过，两个仓库 `git diff --check` 无错误；未使用 ADB。最终动态 HDR、系统
+tone mapping、浅色洁净度和中远层稀疏光迹仍由用户真机验收。
+
+已发布阿里云 Debug `202607150216`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `108df976f5cc8c63a69e38a4e36237c5bfe14e5acfc511b874524edff251e682`。远端
+`latest.json`、完整中文说明和重新下载 APK 已回读；元数据、文件大小与哈希均与本地产物一致。
+发布说明见 `debug-updates/update-20260715101350.md`。
+
+## 2026-07-15 审计逐层特效/HDR 回归并研究高光—暗面耦合
+
+根据最新真机反馈，对当前工作区与上一提交 `72d9c853` 做只读差异审计。确认 D135 不只恢复了
+`lighten_far`：离散闪点容量从 `4/4/3/3/2/2/1/1/0` 收到 `3/2/1/0…`，连续太阳反射又乘
+`.72/.49/.21/0…`，使第 3～8 层的主要连续 SDR/HDR 反射一起归零。连续银泽近层峰值也由
+`2.7/2.4/2.1…` 降为 `2.3/2.1/1.9…`，随后再受相同逐层门控；`optical.frag` 同时取消
+inverse-alpha 补偿并收紧 HDR mask。因此全局 headroom 虽仍为 `3.6×`，最终画面 HDR 覆盖和
+可达峰值都显著降低，用户看到“除第 0～2 层外几乎无特效、HDR 变暗”与代码和离屏数据一致。
+
+当前解析 halo 实际已经关闭。可见圆环/扩缩主要来自三部分叠加：`mode 3` 在真实轮廓处为零、
+进入水体后成峰的空心单侧剖面；track 尺寸以 `0.30s` 持续追随候选半高宽；以及共享水体 shader
+中的 `216×129` 移动低频 GGX patch 等值区。旧亮银斑与当前光带并非完全不同的机制；旧版本的
+高峰值中性核心遮住了下层曲带，当前核心降峰、着色、收窄后暴露了塑料感明显的空间轮廓。
+
+调研确认，高光应由满足太阳—视线反射条件的局部坡面产生，并与同一法线场的 `N·L`、Smith
+masking-shadowing 和透射能量变化保持一致。正确修复不是给光带添加黑色暗环，而是恢复既定逐层
+数量和 HDR 峰值，只重做形状、覆盖率、最终合成与同源亮暗：小面积高峰银白核心、保身份色肩部、
+沿波峰切线的破碎短光迹、无径向尺寸呼吸，以及从当前水色保色变深的单侧宽缓暗面。详细依据与
+建议消融见 `research-2026-07-15-highlight-shadow-coupling.md`。本轮未修改 Android/Python 渲染
+代码、未构建、未发布，也未使用 ADB。
+
+## 2026-07-15 恢复 lighten_far 混白并清理中远层圆环光斑
+
+根据真机复测，撤销 D132 固定 hue 的亮向色域阶梯：该方案虽减少第二、第三层乳白，却令主体
+灰暗、发脏，层级分界也弱于旧 `lighten_far`。Python 与 Android 现统一使用
+`mixOklab(identityColor, white, depth01 × clamp(lighten_far, 0, 0.864))`；第 0 层保持记事色，
+第 8 层最多混白 `86.4%`，纯色与渐变四停靠点同构处理。录音、HDR、mood、color breath 和
+界面肩均不再改写主体色板，第二、第三层没有逐色或压暗特殊控制。
+
+离屏消融确认过量圆环来自九层离散闪点的尺寸呼吸/解析外晕，以及连续太阳反射斑。离散闪点现
+仅保留第 0～2 层，容量为 `3/2/1`，删除周期尺寸呼吸、强度尺寸耦合和解析外晕；连续太阳反射
+权重收为 `.72/.49/.21/0/0/0/0/0/0`。折射与 Beer–Lambert 背景混合上限由 `.049` 收到
+`.016`，保留非零介质响应而减轻第二、第三层洗灰。18 色离屏结果中，648 个停靠点逐码符合静态
+混白公式；第 3～8 层 180 帧离散闪点和 `full-no_glint` 图像差均严格为零，第二、第三层跨色
+中位色度保留率约为 `98.2%/96.0%`，没有整体压暗。
+
+Python 149 项 unittest、Android 全量 Debug JVM 测试和 `:app:assembleDebug` 全部通过，两个
+仓库的 `git diff --check` 均无错误；未使用 ADB。已发布阿里云 Debug `202607150057`
+（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`271573bebdac51fcbe211ba92c34c05c4f8a5bc143b407684e3fe8f2b7185945`。远端 `latest.json`、完整
+中文说明和重新下载 APK 已回读，大小与哈希和本地产物一致；发布说明见
+`debug-updates/update-20260715085611.md`。Android HDR 运动观感仍由用户实机验收。
+
+## 2026-07-15 第二轮材质回归：完成连续微表面、折射吸收与双端同步
+
+针对用户复测指出的四类问题——九层边界变弱且偶发身份色粗边、跨层光影出现直线马赛克、最近
+三层以外缺少材质事件、现实海面高光与局部 HDR 覆盖不足——先在 Python 离屏链完成诊断和视觉
+调试，再同步 Android。调研覆盖 Cox–Munk 海面坡度统计、GGX/Trowbridge–Reitz、height-correlated
+Smith、Schlick Fresnel、逐片元导数抗锯齿、Snell 折射和 Beer–Lambert 体积吸收；资料与实现边界
+记录在 `research-2026-07-15-water-material-second-pass.md`。
+
+九层主体采用 D132：第 0 层保持 Thing 身份色，第 1～8 层沿固定 hue、最大可用 chroma 的亮向
+OKLCH 色域边界前进，以端点弦长分配八条相邻 ΔE；最远端不超过 `L0+0.864×(1-L0)`，录音、
+mood 与 color breath 不再改变主体。界面肩只补 8-bit 量化损失，当前 18 组夹具全部归零，不再
+生成身份色粗描边。共享水体 shader 改为连续 GGX/Smith/Schlick 微表面，导数在分支前计算，
+SDR 反射、SSS 与同色阴影分别受限；HDR 只开放局部银泽、背光透射和闪点 excess。
+
+Python 与 Android GL 都增加独立 `pre-water` 与 `scene` 离屏目标，环境先写入两张纹理，水体在
+scene 上绘制时只从 texture unit 1 的不可变背景取样；FP16 任一目标失败即成对回退 RGBA8。
+折射率为 `1.333`，屏幕空间折射按 Snell 定律偏移；Beer–Lambert 只作用于透射分瓣，并以相对
+彩度和感知明度保护浅灰绿、浅粉、浅黄等输入。连续网格从 25 行提高到 97 行，闪点纵深跨度同步
+保持为每层三分之一；核心与解析光晕合并成一次 `6～32` 段曲面绘制。九层都有闪点容量，远层
+微法线、SSS、连续银泽与透射不再硬截止。
+
+最终 18 色 FP16 基线中，最弱相邻主体 ΔE 为 `0.01365`、跨颜色中位数为 `0.01973`；全部样本的
+界面肩宽度为零；去掉离散闪点后仍有中位 `0.442%` 的局部超白覆盖。稳态动态帧保留 23 个闪点和
+6 条流光；精确 RGB 色变换稀疏缓存加入色板失效与 65,536 色上限后，中位帧耗时 `15.52ms`
+（约 `64.4fps`），P95 `18.86ms`。Python 151 项 unittest、Android 149 项 JVM 测试和
+`:app:assembleDebug` 全部通过，两个共享 shader 均由 ModernGL 实际编译；未使用 ADB。Android
+实机 HDR 画面、系统 tone mapping 与运动观感按用户要求留给用户最终验收。
+
+已发布阿里云 Debug `202607141929`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `327b4fd21c5555b723649386a93cadcb05241d8215210a0de6236e22627536c5`。远端
+`latest.json` 已回读完整中文说明；重新下载 APK 与本地产物的大小、哈希完全一致，包内共享
+`water.frag`/`optical.frag` 已确认包含 GGX、独立背景折射、Beer–Lambert 与合并光晕实现。发布
+说明见 `debug-updates/update-20260715032853.md`。
+
+## 2026-07-15 完成晶莹水体完整材质链重构并同步 Android/Python
+
+针对“第 0 层以外偏灰、乳白、浑浊、暗淡，录音开启 HDR 后第 1/2 层又整体突亮”的反馈，本轮
+没有只替换九层配色，而是按 D117～D131 重构完整水体材质链。第 0 层继续承载 Thing 身份色；
+第 1～8 层改为固定 hue、尽量保持绝对 chroma 的 bright-only OKLab/OKLCH 路径，八个相邻边界
+分别验收，色域耗尽后的分离缺口由 `7～14dp`、零端点半正弦的随层保色界面肩补足。
+
+录音仍是 HDR 状态入口，但 HDR gain 不再进入主体色板。连续银泽删除全域中性白基线，改为由
+方向、Fresnel、坡度/波峰和低频 patch 共同门控的局部响应；反射、薄峰透射、SSS、闪点分别受
+headroom 和逐层能量约束。波背暗带从当前层、当前渐变位置派生同色深色，宏观遮挡只削弱直射
+亮瓣，微法线不再负向乘暗主体；合成顺序统一为
+`interface → backShade → body/thin → veil → surface/streak → glint`，HDR excess 取消
+inverse-alpha 预补偿。
+
+任意 Thing 纯色与四停靠点渐变均进入同一合同：表面反射带先采样当前位置主体渐变再固定 hue
+提亮，SSS 从每层最终四个停靠点派生；纯黑、近黑、纯白、近白、浅粉、浅黄、浅青、深蓝和互补
+渐变均有回归。Android GLES/Canvas 与 Python ModernGL/QPainter 已同步；真实折射及
+Beer–Lambert 体积吸收仍因缺少独立背景采样和可定义光程而暂缓，不再用压暗主体伪造。
+
+Android FableSol `137` 项单元测试与 `:app:assembleDebug` 通过；Python 全量 `142` 项 unittest 通过，
+共享 GLSL 已由 ModernGL 实际编译，两个仓库 `git diff --check` 均无错误。未使用 ADB。剩余工作是
+在真实 HDR 设备对比准备态/录音态，重点验收近三层边界、浅色阴影洁净度、深色形体和局部超白
+覆盖率。
+
+已发布阿里云 Debug `202607141655`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `18fe081447db645eec7fca4f0d65915ebf84f3539f1119d53fe88698886955a1`。远端
+`latest.json`、完整中文说明和重新下载 APK 均已回读；本地、远端元数据与下载文件的大小和哈希
+完全一致。发布说明见 `debug-updates/update-20260715005249.md`。
+
 ## 2026-07-14 实现九层材质存在度、闪点最高质量几何并发布 Debug
 
 按 D95～D116 完成 Android 与 Python 同构实现。近三层保持主视觉，第 3～7 层接入逐层递减的
@@ -1383,3 +1602,8 @@ feature frame 队列与动画/麦克风生命周期可能造成内存、GC 或�
 回归测试先在旧规则下稳定出现 3 项失败，再应用修复；随后新增的 4 项颜色策略测试与完整
 `:app:testDebugUnitTest` 均通过，`:app:assembleDebug` 通过。未使用 adb；视觉效果待用户通过阿里云
 Debug 版本真机确认。已发布阿里云 Debug `202607101341`。
+## 2026-07-15 第二轮水体材质诊断与 Python 性能修复
+
+根据真机反馈开始第二轮分层、光影连续性、中远景效果和 HDR 高光迭代。Python 固定 HDR 场景复现约 2.5 FPS 卡顿；分段计时证实 GPU 不是瓶颈，主要成本来自光学带逐列执行 OKLCH 色域二分。完成颜色场向量化、256 级材质状态缓存、静态索引拓扑缓存和帧数组所有权修复后，无读回场景中位数约 16.3 ms，HDR 离屏读回中位数约 22.0 ms；67 项相关回归通过。
+
+建立覆盖 10 个内置纯色与 8 组真实记事色/渐变的 HDR 离屏诊断。发现同时创建多个 standalone OpenGL context 会使非 current renderer 的消融帧只剩环境背景，立即作废该批错误基线并改为逐变体 create→render→close。物理与实现调研、真实性边界及分阶段方案见 `research-2026-07-15-water-material-second-pass.md`。

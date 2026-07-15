@@ -20,17 +20,18 @@ vec3 srgbToLinear(vec3 c) {
     );
 }
 
-float triangularDither(vec2 p) {
-    float a = fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-    float b = fract(sin(dot(p + 17.13, vec2(26.6514, 57.211))) * 24634.6345);
-    return ((a + b) * 0.5 - 0.5) / 255.0;
-}
-
 void main() {
     float q = 1.0 - vUv.y;
+    vec3 top = uSceneLinear ? srgbToLinear(uEnvironmentTop) : uEnvironmentTop;
+    vec3 horizon = uSceneLinear
+        ? srgbToLinear(uEnvironmentHorizon)
+        : uEnvironmentHorizon;
+    vec3 bottom = uSceneLinear
+        ? srgbToLinear(uEnvironmentBottom)
+        : uEnvironmentBottom;
     vec3 color = q <= 0.42
-        ? mix(uEnvironmentTop, uEnvironmentHorizon, q / 0.42)
-        : mix(uEnvironmentHorizon, uEnvironmentBottom, (q - 0.42) / 0.58);
-    vec3 encodedColor = clamp(color + triangularDither(gl_FragCoord.xy), 0.0, 1.0);
-    fragColor = vec4(uSceneLinear ? srgbToLinear(encodedColor) : encodedColor, 1.0);
+        ? mix(top, horizon, q / 0.42)
+        : mix(horizon, bottom, (q - 0.42) / 0.58);
+    // HDR 必须先解码各停靠点再插值，避免在 encoded sRGB 中合成环境辐射。
+    fragColor = vec4(color, 1.0);
 }

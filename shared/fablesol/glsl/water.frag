@@ -3,6 +3,10 @@ precision highp float;
 
 in vec3 vColor;
 in vec3 vSubsurfaceColor;
+in vec3 vMaterialColor;
+in vec3 vBehindColor;
+in float vMaterialOpacity;
+in vec2 vScreenUv;
 in vec2 vSurfacePositionPx;
 in vec2 vSurfaceSlope;
 in float vDepth01;
@@ -10,10 +14,12 @@ in float vCrestPinch;
 in vec2 vSheenSlope;
 in float vMicroNormalWeight;
 in float vSdrSssWeight;
-in float vHdrSheenPeak;
 in float vHdrTransmissionPeak;
+in float vDirectLight;
 flat in int vFrontFill;
 
+uniform sampler2D uPreWaterScene;
+uniform vec2 uViewportPx;
 uniform float uTimeSeconds;
 uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
@@ -22,6 +28,7 @@ uniform float uMicroNormalStrength;
 uniform float uSpecularAaStrength;
 uniform float uSunSssStrength;
 uniform float uSunSssFalloff;
+uniform bool uFrontFill;
 uniform bool uSceneLinear;
 uniform float uHdrGain;
 uniform float uHdrHeadroom;
@@ -56,6 +63,10 @@ float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
+// (1.333 - 1)^2 / (1.333 + 1)^2：空气到水面的法向入射反射率。
+const float WATER_F0 = 0.020373;
+const float WATER_IOR = 1.333;
+
 // IQ 风格解析导数值噪声：x=值，yz=对输入坐标的解析导数。
 vec3 valueNoiseDerivative(vec2 p) {
     vec2 cell = floor(p);
@@ -77,7 +88,7 @@ vec3 valueNoiseDerivative(vec2 p) {
 
 float octaveBandLimit(float frequency, float depth01) {
     float rowFootprint = mix(1.0, 3.2, clamp(depth01, 0.0, 1.0));
-    float normalizedFootprint = rowFootprint * frequency / 44.0;
+    float normalizedFootprint = rowFootprint * frequency / 42.0;
     float analyticLimit = 1.0 - smoothstep(0.16, 0.42, normalizedFootprint);
     return mix(1.0, analyticLimit, clamp(uSpecularAaStrength, 0.0, 1.0));
 }
@@ -88,7 +99,7 @@ vec2 windCombedMicroDerivative(vec2 positionPx, float depth01) {
     vec2 combed = vec2(
         dot(positionPx, wind) * 0.34,
         dot(positionPx, across) * 1.28
-    ) / 44.0;
+    ) / 42.0;
     combed.x += uTimeSeconds * 0.11;
     vec2 derivative = vec2(0.0);
     float weightSum = 0.0;
@@ -119,22 +130,6 @@ vec3 lightDirection() {
     ));
 }
 
-vec3 applyWindCombedMicroNormals(vec3 linearColor) {
-    float rowFade = clamp(vMicroNormalWeight, 0.0, 1.0);
-    if (rowFade <= 0.0001) return linearColor;
-    vec2 derivative = windCombedMicroDerivative(vSurfacePositionPx, vDepth01);
-    vec2 microSlope = derivative * (0.075 * uMicroNormalStrength);
-    vec3 baseNormal = normalize(vec3(-vSurfaceSlope.x, 1.0, -vSurfaceSlope.y));
-    vec3 detailNormal = normalize(vec3(
-        -(vSurfaceSlope.x + microSlope.x),
-        1.0,
-        -(vSurfaceSlope.y + microSlope.y)
-    ));
-    vec3 lightDir = lightDirection();
-    float lightDelta = dot(detailNormal, lightDir) - dot(baseNormal, lightDir);
-    return linearColor * clamp(1.0 + lightDelta * 0.72 * rowFade, 0.82, 1.18);
-}
-
 float sunriseSubsurfaceMask() {
     vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
     vec3 lightDir = lightDirection();
@@ -148,48 +143,124 @@ float sunriseSubsurfaceMask() {
 }
 
 vec3 addSunriseSubsurface(vec3 linearColor) {
-    return linearColor + srgbToLinear(vSubsurfaceColor) *
-        uSunSssStrength * sunriseSubsurfaceMask();
+    vec3 subsurfaceLinear = uSceneLinear
+        ? vSubsurfaceColor
+        : srgbToLinear(vSubsurfaceColor);
+    float amount = clamp(
+        uSunSssStrength * sunriseSubsurfaceMask(),
+        0.0,
+        0.160
+    );
+    return mix(linearColor, subsurfaceLinear, amount);
 }
 
-float triangularDither(vec2 p) {
-    float a = fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-    float b = fract(sin(dot(p + 17.13, vec2(26.6514, 57.211))) * 24634.6345);
-    return ((a + b) * 0.5 - 0.5) / 255.0;
+vec3 preWaterSceneLinear(vec2 uv) {
+    vec2 halfTexel = 0.5 / max(uViewportPx, vec2(1.0));
+    vec2 safeUv = clamp(uv, halfTexel, vec2(1.0) - halfTexel);
+    // 显式 LOD 避免 sampler 位于 front-fill 非一致分支时依赖隐式导数。
+    vec3 sampled = textureLod(uPreWaterScene, safeUv, 0.0).rgb;
+    return uSceneLinear ? sampled : srgbToLinear(sampled);
 }
 
-// Step C：掠射角 Fresnel 天空/太阳反射的超白光泽。只在 scene-linear 录音态加"越过 reference
-// white"的差量，SDR 路径完全不进——把 Step B 压弱的那片反射在 HDR 里提成发亮的银泽。
-// 大面积柔（峰值随深度归 SDR，D74）、朝太阳集中（统一太阳模型）、近中性白带一丝身份色（D69）。
-vec3 grazingSheenExcess(vec3 normal, float fresnel) {
-    vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
-    vec3 lightDir = lightDirection();
-    // 朝太阳只作加亮加成（基线 1、朝太阳更高），不作门控——平缓水面几乎没有满足窄瓣的朝向，
-    // 一旦拿它门控，光泽会整片消失（这正是上一版完全看不到 HDR 的原因）。
-    vec3 refl = reflect(-viewDir, normal);
-    float sunCos = clamp(dot(refl, lightDir), 0.0, 1.0);
-    float sunBoost = 1.0 + 1.4 * pow(sunCos, 3.0);               // 全域 ~1，朝太阳最高 ~2.4
-    // 低通宏观法线表达有限粗糙度下的宽镜面瓣；0.70 只拓宽 HDR 银泽，不改变 SDR 基色。
-    float grazing = pow(clamp(fresnel * sunBoost, 0.0, 1.0), 0.70);
-    float sheenPeak = min(vHdrSheenPeak, uHdrHeadroom);
-    float sheen = grazing * max(sheenPeak - 1.0, 0.0);           // 超白差量，天然不超过 headroom
-    float maxChannel = max(max(vColor.r, vColor.g), max(vColor.b, 0.001));
-    vec3 tint = mix(vec3(1.0), vColor / maxChannel, 0.14);        // 近中性白 + 一丝身份色
-    return tint * (sheen * uHdrGain);
+vec2 screenSpaceRefractionOffsetPx(
+        vec3 normal,
+        vec3 viewDir,
+        float depth01) {
+    vec3 incident = -viewDir;
+    vec3 transmitted = refract(incident, normal, 1.0 / WATER_IOR);
+    vec3 flatTransmitted = refract(
+        incident,
+        vec3(0.0, 1.0, 0.0),
+        1.0 / WATER_IOR
+    );
+    vec2 lateral = transmitted.xz / max(-transmitted.y, 0.24);
+    vec2 flatLateral = flatTransmitted.xz / max(-flatTransmitted.y, 0.24);
+    float depthCurve = pow(clamp(depth01, 0.0, 1.0), 0.75);
+    float offsetScalePx = mix(6.0, 16.0, depthCurve);
+    vec2 delta = lateral - flatLateral;
+    return offsetScalePx * vec2(
+        delta.x,
+        delta.y * sin(uViewElevationRad)
+    );
 }
 
-// Step D：与反射共用 Fresnel 预算的背光透射。现有 SSS 负责 SDR 内的体色提亮；这里只把同一
-// 小面积 crest/backlit 掩码放行到 reference white 以上。透射使用 (1-R)，因此掠射自动让位给
-// Step C 银泽，较正视角保留最多身份色；mode8 只留下很弱的独立肩部。
+vec3 applyRefractionAndBeer(
+        vec3 linearColor,
+        vec3 normal,
+        vec3 viewDir) {
+    vec3 identity = max(
+        uSceneLinear ? vMaterialColor : srgbToLinear(vMaterialColor),
+        vec3(0.0)
+    );
+    vec3 behind = max(
+        uSceneLinear ? vBehindColor : srgbToLinear(vBehindColor),
+        vec3(0.0)
+    );
+    vec2 offsetPx = screenSpaceRefractionOffsetPx(
+        normal,
+        viewDir,
+        vDepth01
+    );
+    vec3 refractedBackground = preWaterSceneLinear(
+        vScreenUv + offsetPx / max(uViewportPx, vec2(1.0))
+    );
+
+    vec3 incident = -viewDir;
+    vec3 transmitted = refract(incident, normal, 1.0 / WATER_IOR);
+    float depthCurve = pow(clamp(vDepth01, 0.0, 1.0), 0.75);
+    float thickness = mix(0.72, 1.44, depthCurve);
+    float opticalPath = thickness / max(-transmitted.y, 0.24);
+
+    float peak = max(max(identity.r, identity.g), max(identity.b, 0.04));
+    vec3 identityRatio = clamp(identity / peak, 0.0, 1.0);
+    float minimumChannel = min(min(identity.r, identity.g), identity.b);
+    float chroma = peak - minimumChannel;
+    // 绝对线性 RGB 色差会把 B6BF8F 这类浅灰绿误判为高彩度。
+    // 改用相对彩度，并随感知亮度连续收紧透过预算；浅色仍有真实折射，
+    // 但不会为了显示背景而牺牲相邻层主体色差。
+    float relativeChroma = chroma / max(peak, 0.04);
+    float chromaGate = smoothstep(0.42, 0.86, relativeChroma);
+    float perceptualLightness = pow(clamp(dot(
+        identity,
+        vec3(0.2126, 0.7152, 0.0722)
+    ), 0.0, 1.0), 1.0 / 3.0);
+    float lightColorProtection = 1.0 - 0.72 * smoothstep(
+        0.62,
+        0.86,
+        perceptualLightness
+    );
+    vec3 sigma = vec3(0.12) + 0.24 * chromaGate *
+        (vec3(1.0) - sqrt(max(identityRatio, vec3(0.05))));
+    vec3 beer = exp(-sigma * opticalPath);
+
+    float NdV = clamp(dot(normal, viewDir), 0.0, 1.0);
+    float surfaceFresnel = WATER_F0 + (1.0 - WATER_F0) *
+        pow(1.0 - NdV, 5.0);
+    // 体积透过只占身份主体的小部分；浅色/低彩度进一步收敛，避免环境白洗平层差。
+    float clearWaterFraction = mix(
+        0.006,
+        0.016,
+        chromaGate * lightColorProtection
+    );
+    vec3 effectiveTransmission =
+        (1.0 - surfaceFresnel) * clearWaterFraction * beer;
+    vec3 volume = mix(identity, refractedBackground, effectiveTransmission);
+    // vColor 已等于 mix(behind, identity, opacity)；这里用同一 opacity 只合成
+    // 一次带折射/Beer 的当前介质，避免把本层 alpha 重复应用。
+    return mix(behind, volume, clamp(vMaterialOpacity, 0.0, 1.0));
+}
+
 vec3 backlitTransmissionExcess(float fresnel) {
     float strength = clamp(uSunSssStrength / 0.16, 0.0, 1.0);
     float transmissionPeak = min(
         vHdrTransmissionPeak,
         uHdrHeadroom
     );
-    float budget = (1.0 - fresnel) * sunriseSubsurfaceMask() * strength *
+    float budget = 0.58 * (1.0 - fresnel) * sunriseSubsurfaceMask() * strength *
         max(transmissionPeak - 1.0, 0.0) * uHdrGain;
-    vec3 subsurfaceLinear = srgbToLinear(vSubsurfaceColor);
+    vec3 subsurfaceLinear = uSceneLinear
+        ? vSubsurfaceColor
+        : srgbToLinear(vSubsurfaceColor);
     float maximum = max(max(subsurfaceLinear.r, subsurfaceLinear.g),
         max(subsurfaceLinear.b, 0.001));
     vec3 identityTint = subsurfaceLinear / maximum;
@@ -197,31 +268,77 @@ vec3 backlitTransmissionExcess(float fresnel) {
 }
 
 void main() {
-    vec3 color = vColor;
+    // front-fill 是独立 uniform draw；在所有导数之前按整次 draw 一致地早退，
+    // 避免前景纯色遮挡区仍支付微法线、哈希与折射的完整成本。
+    if (uFrontFill) {
+        vec3 frontLinear = uSceneLinear ? vColor : srgbToLinear(vColor);
+        vec3 baseline = max(frontLinear, vec3(0.0));
+        float peak = max(
+            max(baseline.r, baseline.g),
+            max(baseline.b, 1.0)
+        );
+        vec3 frontOutput = baseline / peak;
+        fragColor = uSceneLinear
+            ? vec4(frontOutput, 1.0)
+            : vec4(clamp(linearToSrgb(frontOutput), 0.0, 1.0), 1.0);
+        return;
+    }
+
+    float microWeight = clamp(vMicroNormalWeight, 0.0, 1.0);
+    vec2 microDerivative = windCombedMicroDerivative(
+        vSurfacePositionPx,
+        vDepth01
+    );
+    vec2 microSlope = microDerivative *
+        (0.216 * uMicroNormalStrength * microWeight);
+    vec2 continuousSlope = vSheenSlope + microSlope;
+
+    vec3 normal = normalize(vec3(
+        -continuousSlope.x,
+        1.0,
+        -continuousSlope.y
+    ));
+    vec3 viewDir = normalize(vec3(
+        0.0,
+        sin(uViewElevationRad),
+        -cos(uViewElevationRad)
+    ));
+    // HDR transmission 保留既有 V·H Fresnel 标量，避免微法线把透射重新切成
+    // 层内点状纹理；真实 N·V Fresnel 仍只用于低能量折射/Beer 分瓣。
+    vec3 halfDirection = normalize(viewDir + lightDirection());
+    float VdH = clamp(dot(viewDir, halfDirection), 0.0, 1.0);
+    float transmissionFresnel = WATER_F0 + (1.0 - WATER_F0) *
+        pow(1.0 - VdH, 5.0);
+
+    vec3 linearColor = uSceneLinear ? vColor : srgbToLinear(vColor);
     if (vFrontFill == 0) {
-        vec3 linearColor = srgbToLinear(color);
-        if (uMicroNormalStrength > 0.0001) {
-            linearColor = applyWindCombedMicroNormals(linearColor);
-        }
+        linearColor = applyRefractionAndBeer(
+            linearColor,
+            normal,
+            viewDir
+        );
+        linearColor += linearColor * clamp(vDirectLight, 0.0, 0.020);
         if (uSunSssStrength > 0.0001) {
             linearColor = addSunriseSubsurface(linearColor);
         }
-        color = linearToSrgb(linearColor);
     }
-    float dither = vFrontFill == 1 ? triangularDither(gl_FragCoord.xy) : 0.0;
-    vec3 encodedColor = clamp(color + dither, 0.0, 1.0);
-    vec3 outLinear = uSceneLinear ? srgbToLinear(encodedColor) : encodedColor;
+    // 录音门控关闭时，即使浅色主体叠加直射/微法线/SDR SSS，也不得越过 reference white。
+    // HDR 只由下面的录音增益门控局部 excess 开放。
+    vec3 sdrBaseline = max(linearColor, vec3(0.0));
+    float sdrBaselinePeak = max(
+        max(sdrBaseline.r, sdrBaseline.g),
+        max(sdrBaseline.b, 1.0)
+    );
+    vec3 outLinear = sdrBaseline / sdrBaselinePeak;
     if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 &&
             uHdrHeadroom > 1.001 &&
-            (vHdrSheenPeak > 1.001 || vHdrTransmissionPeak > 1.001)) {
-        vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
-        vec3 normal = normalize(vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y));
-        float NdV = clamp(dot(normal, viewDir), 0.0, 1.0);
-        float f0 = 0.020373;
-        float fresnel = f0 + (1.0 - f0) * pow(1.0 - NdV, 5.0);
-        outLinear += grazingSheenExcess(normal, fresnel);
-        outLinear += backlitTransmissionExcess(fresnel);
+            vHdrTransmissionPeak > 1.001) {
+        outLinear += backlitTransmissionExcess(transmissionFresnel);
         outLinear = min(outLinear, vec3(uHdrHeadroom));
     }
-    fragColor = vec4(outLinear, 1.0);
+    if (uSceneLinear) {
+        fragColor = vec4(max(outLinear, vec3(0.0)), 1.0);
+    } else {
+        fragColor = vec4(clamp(linearToSrgb(outLinear), 0.0, 1.0), 1.0);
+    }
 }

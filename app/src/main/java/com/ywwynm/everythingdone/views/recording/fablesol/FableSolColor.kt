@@ -2,8 +2,11 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.graphics.Color
 import kotlin.math.cbrt
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * 颜色工具（对应 canvas.py 的颜色函数）：sRGB↔线性、OKLab 感知混色、HLS 偏色。
@@ -56,26 +59,67 @@ object FableSolColor {
         return intArrayOf(srgbChannel(linear[0]), srgbChannel(linear[1]), srgbChannel(linear[2]))
     }
 
-    /**
-     * 保持 OKLab 明度与色相，把超出 sRGB 的彩度沿同一色相压回色域。
-     * 仅供需要主动提高彩度的派生色使用；既有颜色路径继续沿用原来的逐通道裁切。
-     */
-    fun oklabToRgbGamutMapped(lab: DoubleArray): IntArray {
+    /** 保持 OKLab 明度与色相，把超出 sRGB 的彩度沿同一色相压回色域。 */
+    fun gamutMappedOklab(lab: DoubleArray): DoubleArray {
         val source = lab.copyOf()
         source[0] = source[0].coerceIn(0.0, 1.0)
-        if (isInSrgbGamut(source)) return oklabToRgb(source)
+        if (isOklabInSrgbGamut(source[0], source[1], source[2])) return source
+        val chroma = hypot(source[1], source[2])
+        if (chroma <= ACHROMATIC_EPSILON) {
+            return doubleArrayOf(source[0], 0.0, 0.0)
+        }
         var low = 0.0
         var high = 1.0
-        repeat(18) {
+        repeat(GAMUT_SEARCH_ITERATIONS) {
             val scale = (low + high) * 0.5
-            val candidate = doubleArrayOf(source[0], source[1] * scale, source[2] * scale)
-            if (isInSrgbGamut(candidate)) low = scale else high = scale
+            if (isOklabInSrgbGamut(
+                    source[0],
+                    source[1] * scale,
+                    source[2] * scale
+                )
+            ) low = scale else high = scale
         }
-        return oklabToRgb(doubleArrayOf(source[0], source[1] * low, source[2] * low))
+        return doubleArrayOf(source[0], source[1] * low, source[2] * low)
     }
 
-    private fun isInSrgbGamut(lab: DoubleArray): Boolean =
-        oklabToLinearRgb(lab).all { it in 0.0..1.0 }
+    fun oklabToRgbGamutMapped(lab: DoubleArray): IntArray =
+        oklabToRgb(gamutMappedOklab(lab))
+
+    /** 判断给定 OKLab 坐标是否无需裁切即可落在 sRGB 色域内。 */
+    fun isOklabInSrgbGamut(lab: DoubleArray): Boolean =
+        isOklabInSrgbGamut(lab[0], lab[1], lab[2])
+
+    /** 固定 L/h 时，从中性色轴向外二分求 sRGB 可容纳的最大 OKLCH 彩度。 */
+    fun maximumSrgbChroma(lightness: Double, hueRadians: Double, maximum: Double): Double {
+        var low = 0.0
+        var high = maximum.coerceAtLeast(0.0)
+        if (high <= ACHROMATIC_EPSILON) return 0.0
+        val hueCos = cos(hueRadians)
+        val hueSin = sin(hueRadians)
+        repeat(GAMUT_SEARCH_ITERATIONS) {
+            val chroma = (low + high) * 0.5
+            if (isOklabInSrgbGamut(
+                    lightness,
+                    chroma * hueCos,
+                    chroma * hueSin
+                )
+            ) low = chroma else high = chroma
+        }
+        return low
+    }
+
+    private fun isOklabInSrgbGamut(lightness: Double, a: Double, b: Double): Boolean {
+        val l_ = lightness + 0.3963377774 * a + 0.2158037573 * b
+        val m_ = lightness - 0.1055613458 * a - 0.0638541728 * b
+        val s_ = lightness - 0.0894841775 * a - 1.2914855480 * b
+        val l = l_ * l_ * l_; val m = m_ * m_ * m_; val s = s_ * s_ * s_
+        val red = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
+        val green = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
+        val blue = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+        return red >= -GAMUT_EPSILON && red <= 1.0 + GAMUT_EPSILON &&
+            green >= -GAMUT_EPSILON && green <= 1.0 + GAMUT_EPSILON &&
+            blue >= -GAMUT_EPSILON && blue <= 1.0 + GAMUT_EPSILON
+    }
 
     private fun oklabToLinearRgb(lab: DoubleArray): DoubleArray {
         val bigL = lab[0]; val a = lab[1]; val b = lab[2]
@@ -121,12 +165,32 @@ object FableSolColor {
         return shiftHue(c, delta.coerceIn(-maxDeg, maxDeg))
     }
 
-    /** OKLab 降明度、保色相彩度（_darken_oklab）：阴影色从本层色派生，不发灰。 */
-    fun darkenOklab(c: IntArray, dl: Double): IntArray {
+    /** 固定 OKLab 色相、优先保持绝对彩度，在 sRGB 边界才压缩彩度。 */
+    fun withOklabLightness(c: IntArray, lightness: Double): IntArray {
         val lab = rgbToOklab(c)
-        lab[0] = (lab[0] - dl).coerceAtLeast(0.0)
-        return oklabToRgb(lab)
+        lab[0] = lightness.coerceIn(0.0, 1.0)
+        return oklabToRgbGamutMapped(lab)
     }
+
+    /** OKLab 提亮，不向白点混色，也不会自动反向压暗。 */
+    fun lightenOklab(c: IntArray, dl: Double): IntArray {
+        if (dl <= 0.0) return c.copyOf()
+        val lab = rgbToOklab(c)
+        lab[0] = (lab[0] + dl).coerceIn(0.0, 1.0)
+        return oklabToRgbGamutMapped(lab)
+    }
+
+    /** OKLab 降明度、固定色相并优先保持绝对彩度；近黑时安全收敛到黑。 */
+    fun darkenOklab(c: IntArray, dl: Double): IntArray {
+        if (dl <= 0.0) return c.copyOf()
+        val lab = rgbToOklab(c)
+        lab[0] = (lab[0] - dl).coerceIn(0.0, 1.0)
+        return oklabToRgbGamutMapped(lab)
+    }
+
+    private const val GAMUT_SEARCH_ITERATIONS = 22
+    private const val GAMUT_EPSILON = 1e-9
+    private const val ACHROMATIC_EPSILON = 1e-9
 
     // ---- colorsys 端口（0..1） ----
     private fun rgbToHls(r: Double, g: Double, b: Double): DoubleArray {

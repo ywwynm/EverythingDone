@@ -265,13 +265,26 @@ A surface that wraps Thing-owned content in App Chrome, such as a reminder dialo
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
 **Voice Waveform**:
-录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——主体水体以其本色为颜色身份锚点，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗，主体大段仍为本色）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事在保留其横向渐变方向的底色上叠一层中性竖直光照；表面反射与薄层透射不得被统一拉向固定青蓝/蓝绿色，只有最深传播路径可相对身份色产生不超过约 2°的轻微冷移；更远波浪使用 **水层景深阶梯** 表现景深，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
+录音对话框里随麦克风实时音量起伏的可视化，呈现为一片由被录音记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。它只出现在实时录音界面；配色取自 Thing Background——主体水体保留 **记事身份色锚点**，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事保留其横向渐变关系；表面反射与薄层透射不得被统一拉向固定青蓝/蓝绿色，只有最深传播路径可相对身份色产生不超过约 2°的轻微冷移；更远波浪使用 **水层景深阶梯** 表现景深，与 Appearance Mode 无关。已保存音频的播放是另一套 UI，不属于它。
 _Avoid_: 把它当成已保存音频的播放波形、当成 App Chrome 的中性控件配色、竖直柱子可视化
 
+**记事身份色锚点**:
+Voice Waveform 中由最靠近观察者的首层水体低频主体保留的被录音记事原始纯色或横向渐变视觉基准。
+_Avoid_: 要求首层全部最终像素严格等于原色、把白色高光或灰暗阴影当成记事身份色、让远层取代首层成为唯一颜色参照
+
 **水层景深阶梯**:
-Voice Waveform 中随水层距离增加而单调提高混白/明度并降低透明度的分层关系，用于保持相邻水层
-可辨识并表达前后纵深。它是有意的结构性分层，不等同于需要消除的材质雾感。
-_Avoid_: 把去雾理解为取消远层偏白、让所有水层回到相近颜色、仅靠 HDR 区分层级
+Voice Waveform 中由第 0 层记事身份色与第 1～8 层低频主体共同形成的稳定远近关系：九层保持有序、八个相邻边界独立可辨，且近三层拥有最高辨识优先级；该术语只约束最终层序，不限定具体感知色空间路径。
+_Avoid_: 按输入颜色切换向暗、随录音或 HDR 状态改写阶梯、依赖局部光影/HDR/闪点/阴影才能看见层界、用身份色粗边代替主体分离、让相邻主体收敛
+
+**随层保色阴影**:
+Voice Waveform 中以当前位置已经完成景深阶梯和 Thing 渐变、但尚未加入反射、透射、高光与 HDR 的水层主体色为颜色来源，在保持该层颜色身份的同时形成更深受光结构的负向明暗响应。
+_Avoid_: 黑色或灰色 overlay、从第一层或原始 Thing 色派生所有远层阴影、乘暗最终材质总和
+
+- **Voice Waveform** 的随层保色阴影锚定当前层当前横向位置的主体色；物理遮挡只削弱对应的直射光分量。
+
+**身份色体积吸收**:
+Voice Waveform 中只作用于穿过水体介质的透射光路、由记事身份色关系约束的有界颜色衰减；光程增加时可以自然变深和改变饱和度，但不压暗主体、环境反射或高光。
+_Avoid_: 把体积吸收当作阴影、乘暗最终材质总和、以黑色覆盖制造介质深度
 
 **Activity Header**:
 首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
@@ -390,9 +403,9 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **HDR Media** file.
 - A single **HDR Media** may receive **HDR Display** on a surface that supports it while appearing as its SDR base on every other surface.
 - **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
-- FableSol 可以在能力满足时使用 **HDR UI 渲染**；其非 HDR 输出与 HDR 输出共享几何、动画、材质语义、ThingBackground 身份色和 SDR 基线，只有受控局部高光的额外亮度可以不同。
+- FableSol 可以在能力满足时使用 **HDR UI 渲染**；其非 HDR 输出与 HDR 输出共享几何、动画、材质语义、ThingBackground 身份色和 SDR 基线，录音 HDR 态可以增强受控的局部反射、透射及其它受光结构，但不得通过大面积中性提亮抹平水层边界。
 - **HDR UI 渲染** 依赖 Android 版本、窗口、渲染 surface、显示器和实时可用 headroom；任何条件不满足时都回退为同源 SDR 输出。
-- FableSol 只有在 **Voice Waveform** 表达正在录音时才获得 **HDR UI 渲染** 的额外高光亮度；准备态与停止态保持 SDR。
+- FableSol 只有在 **Voice Waveform** 表达正在录音时才获得 **HDR UI 渲染** 的额外局部光学响应；准备态与停止态保持 SDR。
 - **Voice Waveform** 的声音输入通过改变水面与光学条件间接改变 HDR 高光分布，不直接控制单个高光的 HDR 增益。
 - **Voice Waveform** 的最高 HDR 镜面核心可以接近中性白；较低亮度的受光浪峰与薄层透射仍按层级保留 **Thing Background** 身份色。
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
@@ -406,8 +419,9 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
 - **Hybrid Chrome Surfaces** apply **Appearance Mode** to their chrome shell, icons, and controls, while embedded Thing content continues to use its **Thing Background**.
 - The audio recording dialog is a **Hybrid Chrome Surface**: its shell, controls, and text follow **Appearance Mode**, while its **Voice Waveform** carries the recording Thing's **Thing Background** identity.
-- **Voice Waveform** 从被录音记事的 **Thing Background** 派生颜色：主水体以原背景色和未修改明度作为身份锚点，远层主要通过 **水层景深阶梯** 表达纵深；只有最深传播路径可产生不超过约 2°的相对冷移。它与 **Thing Foreground** 一样依赖当前可见的 Thing-owned background，而不依赖 **Appearance Mode**。
-- **水层景深阶梯** 必须保持水层由近到远的单调关系与相邻层可辨识度；减少 Voice Waveform 的材质雾感不得把各层颜色收敛到一起。
+- **Voice Waveform** 从被录音记事的 **Thing Background** 派生颜色：主水体保留 **记事身份色锚点**，其余区域可按材质响应产生有界明暗与色度变化；远层主要通过 **水层景深阶梯** 表达纵深，只有最深传播路径可产生不超过约 2°的相对冷移。它与 **Thing Foreground** 一样依赖当前可见的 Thing-owned background，而不依赖 **Appearance Mode**。
+- **Voice Waveform** 最靠近观察者的首层水体以低频主体基线承载 **记事身份色锚点**；局部材质响应可以偏离该基线，其余八层从锚点形成 **水层景深阶梯**。
+- **水层景深阶梯** 必须由九层低频主体外观独立保持近到远的有序关系与相邻层可辨识度；局部光影、HDR、闪点和阴影只丰富层内材质，不承担层界存在与否。
 - A **Hybrid Chrome Surface** may contain a **Thing Background Glyph Colour** readout; the readout carries Thing identity while the surrounding shell remains App Chrome.
 - An **Activity Header** collapses from an expanded title into the actionbar as the home Thing list scrolls and re-expands only near the top.
 - An **Immersive Thing List** is a home-list presentation state available only in NORMAL and MOVING modes; SELECTING and searching never enter it.
@@ -451,7 +465,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - "WELCOME/NOTIFY_EMPTY note" can sound like user-owned content; resolved as **Legacy Placeholder Thing** when discussing the old stored rows and **Empty-List Guidance** when discussing the replacement message.
 - "Image thumbnail" can exclude video thumbnails; resolved as **Thing Card Media** when discussing image or video thumbnails used by Thing Cards.
 - “HDR 支持”可能混淆文件本身携带高动态范围信息（**HDR Media**）、界面显示该文件的完整亮度增益（**HDR Display**），以及实时生成图形使用额外高光亮度（**HDR UI 渲染**）；三者必须分别表述，广色域也不属于其中任何一种。
-- “去雾”可能同时指减少宽柔光累计造成的材质泛白，或取消用于区分远近水层的 **水层景深阶梯**；这里只允许前者，后者必须保留。
+- “去雾”可能同时指减少宽柔光累计造成的材质泛白，或取消用于区分远近水层的 **水层景深阶梯**；这里只允许前者，后者的层序结果必须保留。阶梯当前可以采用统一向白点提亮的感知色路径，但不能随录音/HDR 状态变化，也不能被理解成必须永久绑定某一种颜色算法。
 - “支持 GIF 显示”混淆了文件本身是动图(**Animated Image**)与界面真的在播放它(**Animated Playback**);已解析为两个独立概念,因为同一个 Animated Image 在某些界面播放、在另一些界面只显示第一帧。
 - "Card background image" can mean replacing the Thing's identity background or only changing a card presentation; resolved as **Thing Card Media Background**, which does not replace **Thing Background**.
 - "Side image width", "cover image ratio", and "card height" can describe different controls for the shape of **Thing Card Media Target**; resolved as **Thing Card Media Target Aspect Ratio**.
@@ -467,4 +481,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。
 - "edge-to-edge" 既可指窗口本就绘制到系统栏之下（本 App 全局早已 `setDecorFitsSystemWindows(false)`、导航栏透明、列表底部已铺到导航栏之下），也可指首页顶部 chrome 随滚动收起让列表全铺；已解析为后者专用 **Immersive Thing List** 与 **Home Chrome Retraction**，避免与窗口级 edge-to-edge 混用。
 - "Live Photo"（苹果商标，HEIC+MOV 双文件配对）与 Android 的"动态照片"（多为单个 JPEG/HEIC 尾部内嵌视频）常被混用；已解析为词汇表统一使用 **Motion Photo**，并明确它是图片附件被检测出的一种本性、而非新的附件类型，除 VIVO 外均为单文件内嵌。
-- "录音动画的颜色"曾在"属于 App Chrome 的中性控件配色"与"属于记事身份"之间含糊；已解析为 **Voice Waveform** 承载被录音记事的 **Thing Background** 身份（每层以本色为身份锚点，叠克制的竖直明暗与明度/透明度阶梯表现体积与远近），而录音对话框外壳仍是 **App Chrome**——即该对话框是一个 **Hybrid Chrome Surface**。
+- "录音动画的颜色"曾在"属于 App Chrome 的中性控件配色"与"属于记事身份"之间含糊；已解析为 **Voice Waveform** 承载被录音记事的 **Thing Background** 身份（以 **记事身份色锚点** 保留颜色身份，并由九层低频主体外观独立保持 **水层景深阶梯**），而录音对话框外壳仍是 **App Chrome**——即该对话框是一个 **Hybrid Chrome Surface**。
+- “记事颜色本身”曾在“全部水体像素必须严格等于原色”与“画面必须保留可识别的记事颜色身份”之间含糊；已解析为 **记事身份色锚点**：它落在最靠近观察者的首层低频主体基线上，局部材质响应及其余水层可以有界变化。
+- “录音 HDR 态”曾被收窄为只能增强镜面和闪点；已解析为可以增强局部反射、薄峰透射及其它受光结构，但必须保留九层水体的相对边界和记事颜色身份，不得把第二、第三层或其它主体区域整体推成乳白。
+- “随层保色界面肩”曾指在主体色阶不足时补充分离度的常驻宽软层界；当前已退出现行 **Voice Waveform**，层界必须由 **水层景深阶梯** 的九层低频主体独立成立，不得恢复身份色粗边、白边或黑边。

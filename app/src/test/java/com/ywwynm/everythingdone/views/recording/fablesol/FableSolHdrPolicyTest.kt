@@ -17,7 +17,7 @@ class FableSolHdrPolicyTest {
     }
 
     @Test
-    fun peakBudgetFallsFromNearToMiddleAndBecomesSdrAtFarLayers() {
+    fun peakBudgetMatchesTheEstablishedPerLayerHierarchy() {
         assertPeakCurve(
             floatArrayOf(3.6f, 2.8f, 2.4f, 2f, 1.6f, 1.36f, 1.29f, 1.16f, 1f),
             FableSolHdrPolicy::glintCorePeak
@@ -29,10 +29,6 @@ class FableSolHdrPolicyTest {
         assertPeakCurve(
             floatArrayOf(1.08f, 1.06f, 1.04f, 1.02f, 1f, 1f, 1f, 1f, 1f),
             FableSolHdrPolicy::transmissionPeak
-        )
-        assertPeakArray(
-            floatArrayOf(2.7f, 2.4f, 2.1f, 1.8f, 1.5f, 1.29f, 1.08f, 1f, 1f),
-            FableSolHdrPolicy.CONTINUOUS_SHEEN_PEAKS
         )
         assertPeakArray(
             floatArrayOf(1.6f, 1.5f, 1.36f, 1.29f, 1.21f, 1.14f, 1.08f, 1f, 1f),

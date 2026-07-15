@@ -3,7 +3,6 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.pow
 
 class FableSolLightColorPolicyTest {
 
@@ -25,7 +24,7 @@ class FableSolLightColorPolicyTest {
     fun positiveLongitudinalResponseOnlyScalesTheBaseColorUpward() {
         val base = rgb(80, 90, 120)
         assertEquals(
-            rgb(81, 91, 122),
+            rgb(81, 91, 121),
             FableSolLightColorPolicy.resolveLongitudinal(base, 0.25, 0.0)
         )
         assertEquals(
@@ -39,7 +38,7 @@ class FableSolLightColorPolicyTest {
         val base = rgb(201, 101, 41)
         val atCap = FableSolLightColorPolicy.resolveLongitudinal(base, 0.125, 0.0)
         val farAboveCap = FableSolLightColorPolicy.resolveLongitudinal(base, 1.0, 0.0)
-        assertEquals(rgb(204, 103, 42), atCap)
+        assertEquals(rgb(202, 102, 41), atCap)
         assertEquals(atCap, farAboveCap)
     }
 
@@ -53,48 +52,47 @@ class FableSolLightColorPolicyTest {
     }
 
     @Test
-    fun identityColorShadowIsCappedByFinalLinearLuminanceLoss() {
+    fun macroVisibilityOnlyRemovesTheDirectLobeAndNeverDarkensTheBody() {
         val base = rgb(170, 160, 190)
-        val deep = rgb(82, 72, 106)
+        val lit = FableSolLightColorPolicy.resolveLongitudinal(
+            base = base,
+            positiveNdl = 1.0,
+            depth01 = 0.0,
+            negativeNdl = 0.0,
+            directNdl = 1.0,
+            crestPinch = 0.10
+        )
         val shadowed = FableSolLightColorPolicy.resolveLongitudinal(
             base = base,
-            positiveNdl = 0.0,
+            positiveNdl = 1.0,
             depth01 = 0.0,
             negativeNdl = 0.30,
-            deep = deep,
-            crestPinch = 0.10,
-            shadowLumaCap = 0.018
+            directNdl = 1.0,
+            crestPinch = 0.10
         )
-        val loss = (linearLuma(base) - linearLuma(shadowed)) / linearLuma(base)
 
-        assertTrue(loss > 0.010)
-        assertTrue(loss <= 0.022)
+        assertTrue(lit != base)
+        assertEquals(base, shadowed)
     }
 
     @Test
-    fun zeroShadowCapExactlyRestoresD87PositiveOnlyOutput() {
+    fun zeroDirectAndZeroRelativeResponseReturnExactBase() {
         val base = rgb(80, 90, 120)
-        val d87 = FableSolLightColorPolicy.resolveLongitudinal(base, 0.25, 0.0)
-        val disabled = FableSolLightColorPolicy.resolveLongitudinal(
-            base, 0.25, 0.0, 0.40, rgb(30, 40, 60), 1.0, 0.0
+        assertEquals(
+            base,
+            FableSolLightColorPolicy.resolveLongitudinal(
+                base = base,
+                positiveNdl = 0.0,
+                depth01 = 0.0,
+                negativeNdl = 0.40,
+                directNdl = 0.0,
+                crestPinch = 1.0
+            )
         )
-
-        assertEquals(d87, disabled)
-        assertEquals(0.018, FableSolParams().get("macro_shadow_luma_cap"), 0.0)
     }
 
     private fun rgb(r: Int, g: Int, b: Int): Int =
         (0xff shl 24) or (r.coerceIn(0, 255) shl 16) or
             (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
-
-    private fun linearLuma(color: Int): Double {
-        fun linear(channel: Int): Double {
-            val c = channel / 255.0
-            return if (c <= 0.04045) c / 12.92 else ((c + 0.055) / 1.055).pow(2.4)
-        }
-        return linear(color ushr 16 and 0xff) * 0.2126 +
-            linear(color ushr 8 and 0xff) * 0.7152 +
-            linear(color and 0xff) * 0.0722
-    }
 
 }

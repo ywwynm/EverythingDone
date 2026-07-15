@@ -14,11 +14,11 @@ class FableSolParams {
         // ---- 全局 ----
         // 外观
         v("palette", 0.0); v("gradient_dir", 1.0)
-        // D89：在 0.60 基线与 0.96 对照之间收回一成，兼顾层间分明度与远层身份色。
+        // D135：lighten_far 恢复为静态 OKLab 混白比例，最远层硬封顶 86.4%。
         v("lighten_far", 0.864); v("color_breath", 1.0)
         v("environment_tint", 0.16); v("sky_reflection_strength", 0.42)
         // Step B（2026-07-13）：体光是九层平铺的中间调抬升、对比负项，且真机开关无感，改默认关闭；
-        // deep 身份色只供受控背坡阴影，subsurface 身份色只供日出 SSS。三项表层光学仍为 Debug 202607130749。
+        // 显式阴影从当前层当前位置派生，subsurface 身份色只供日出 SSS。三项表层光学仍为 Debug 202607130749。
         v("body_light_strength", 0.0); v("pearl_shift_deg", 0.0)
         v("crest_on", 1.0); v("light_azimuth_deg", 27.0)
         v("crest_glint_strength", 0.90); v("crest_width_dp", 1.25)
@@ -35,17 +35,15 @@ class FableSolParams {
         v("surface2d_on", 1.0)
         v("surface_heading_deg", 30.0); v("surface_spread_deg", 24.0)
         v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 38.0)
-        // D91：宏观背坡的最终线性亮度损失上限；只朝身份色加深，不混黑。
-        v("macro_shadow_luma_cap", 0.018)
-        // 阶段 C3（AGSL 层填充光学）：深度吸收定稿；焦散已按用户裁决移除
-        v("absorption_gain", 0.35)
-        // Stage 2-3：解析镜面抗锯齿；0 可完整恢复未带限的既有闪点选取。
+        // 预滤波微法线带限；当前只服务折射、Beer、SSS 与 HDR transmission。
         v("specular_aa_strength", 1.0)
         // Stage 2-4：四项质感增强均可独立归零关闭。
         v("global_pink_breath_strength", 1.0)
-        v("micro_normal_strength", 0.16) // 2026-07-14：恢复 Step C 完成态
+        // 第二轮材质基准：增强全九层微法线，但仍由逐层权重控制远层响应。
+        v("micro_normal_strength", 0.36)
         v("sun_sss_strength", 0.16); v("sun_sss_falloff", 6.0)
-        v("analytic_halo_strength", 0.10)
+        // D135：离散闪点不再绘制解析外晕，避免圆环状扩张/收缩光斑。
+        v("analytic_halo_strength", 0.0)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)
@@ -90,7 +88,7 @@ class FableSolParams {
         l("wander_period_s", doubleArrayOf(12.0, 16.0, 24.0, 27.0, 32.0, 12.0, 16.0, 24.0, 27.0))
         // 层全不透明（无景深半透）：半透明会让环境色（纯白 dialog / 深主题背景）从半透明层底下
         // 透上来，把远层拖成灰蒙蒙（实测远层饱和度 S 从 ~35 塌到 ~27）。改为每层不透明、颜色纯由
-        // lighten_far 直接混白确定：近层严格 = 记事色，远层是干净的偏白记事色，S 不塌，仍是九层渐变。
+        // D135 色板按深度直接混白；声音、录音和 HDR 状态不改写九层主体色。
         l("alpha", doubleArrayOf(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
     }
 

@@ -35,7 +35,11 @@ vec3 hdrTint(vec3 linearColor, float neutralMix) {
 
 void main() {
     float coverage;
-    if (vOpticalMode > 8.5) {
+    float glintCoreCoverage = 0.0;
+    if (vOpticalMode > 9.5) {
+        // D129 界面肩：轮廓和带外均归零，带内半正弦峰值固定为 0.66。
+        coverage = 0.66 * sin(3.14159265 * clamp(vLocalUv.y, 0.0, 1.0));
+    } else if (vOpticalMode > 8.5) {
         coverage = sin(3.14159265 * clamp(vLocalUv.y, 0.0, 1.0));
     } else if (vOpticalMode > 7.5) {
         coverage = sin(3.14159265 * clamp(vLocalUv.y, 0.0, 1.0));
@@ -53,10 +57,11 @@ void main() {
     } else if (vOpticalMode > 3.5) {
         coverage = sin(3.14159265 * clamp(vLocalUv.y, 0.0, 1.0));
     } else if (vOpticalMode > 2.5) {
-        float along = 1.0 - smoothstep(0.36, 1.0, abs(vLocalUv.x));
-        float inward = smoothstep(0.0, 0.16, vLocalUv.y) *
-                       (1.0 - smoothstep(0.38, 1.0, vLocalUv.y));
-        coverage = along * inward;
+        // 水面起始处为实体短光带，向水内单调衰减；不生成椭圆空心环。
+        float along = 1.0 - smoothstep(0.56, 1.0, abs(vLocalUv.x));
+        float inward = 1.0 - smoothstep(0.08, 0.72, vLocalUv.y);
+        glintCoreCoverage = along * inward;
+        coverage = glintCoreCoverage;
     } else if (vOpticalMode > 1.5) {
         float along = 1.0 - smoothstep(0.68, 1.0, abs(vLocalUv.x));
         float inward = smoothstep(0.0, 0.14, vLocalUv.y) *
@@ -70,52 +75,46 @@ void main() {
     }
     if (coverage <= 0.001) discard;
 
-    float halo = clamp(max(abs(vLocalUv.x), vLocalUv.y), 0.0, 1.0);
-    vec3 encodedColor = vOpticalMode > 2.5 && vOpticalMode < 3.5
-        ? mix(vColor.rgb, vEdgeColor, smoothstep(0.0, 0.72, halo))
+    vec3 primaryColor = uSceneLinear
+        ? srgbToLinear(vColor.rgb)
         : vColor.rgb;
-
-    vec3 color = uSceneLinear ? srgbToLinear(encodedColor) : encodedColor;
+    vec3 edgeColor = uSceneLinear
+        ? srgbToLinear(vEdgeColor)
+        : vEdgeColor;
+    // edgeColor 只在核心覆盖内部形成很弱的中心层次，不再延伸成外晕。
+    vec3 color = vOpticalMode > 2.5 && vOpticalMode < 3.5
+        ? mix(edgeColor, primaryColor, clamp(glintCoreCoverage, 0.0, 1.0))
+        : primaryColor;
+    vec3 hdrExcess = vec3(0.0);
     if (uSceneLinear && uHdrGain > 0.0001 && uHdrHeadroom > 1.001) {
         float hdrMask = 0.0;
         float targetPeak = 1.0;
         float neutralMix = 0.0;
         if (vOpticalMode > 2.5 && vOpticalMode < 3.5) {
-            hdrMask = pow(clamp(coverage, 0.0, 1.0), 1.55) *
+            hdrMask = pow(clamp(glintCoreCoverage, 0.0, 1.0), 1.65) *
                 clamp(vHdrEligibility, 0.0, 1.0);
             targetPeak = min(uHdrCorePeak, uHdrHeadroom);
-            neutralMix = 0.90;
+            neutralMix = 0.72;
         } else if (vOpticalMode > 3.5 && vOpticalMode < 4.5) {
             hdrMask = smoothstep(0.28, 0.82, vHdrEligibility) *
-                pow(clamp(coverage, 0.0, 1.0), 1.35);
+                pow(clamp(coverage, 0.0, 1.0), 1.45);
             targetPeak = min(uHdrCrestPeak, uHdrHeadroom);
-            neutralMix = 0.45;
+            neutralMix = 0.34;
         } else if (vOpticalMode > 7.5 && vOpticalMode < 8.5) {
             hdrMask = smoothstep(0.24, 0.78, vHdrEligibility) *
                 pow(clamp(coverage, 0.0, 1.0), 1.40);
             targetPeak = min(uHdrTransmissionPeak, uHdrHeadroom);
-            neutralMix = 0.25;
+            neutralMix = 0.18;
         }
         if (targetPeak > 1.001 && hdrMask > 0.0001) {
             vec3 tint = hdrTint(color, neutralMix);
-            vec3 targetColor = max(color, tint * targetPeak);
-            // 当前 pass 使用 SRC_ALPHA 混合；预补偿 excess，才能让窄、低 alpha 的浪峰带
-            // 真正越过 reference white；暗色 Thing 的补偿只使用 targetPeak 之上的剩余 headroom。
-            float opticalAlpha = max(vColor.a * coverage, 0.02);
-            float sourcePeak = max(max(color.r, color.g), color.b);
-            float darkCompensation = min(
-                max(uHdrHeadroom - targetPeak, 0.0),
-                clamp(1.0 - sourcePeak, 0.0, 0.45)
-            );
-            vec3 excess = max(targetColor - vec3(1.0), vec3(0.0)) +
-                tint * darkCompensation;
-            vec3 sourceWithExcess = color + excess / opticalAlpha;
-            color = mix(
-                color,
-                sourceWithExcess,
-                clamp(uHdrGain * hdrMask, 0.0, 1.0)
-            );
+            // 局部实体的 alpha 本身就是覆盖/能量预算；不再反向除 alpha 制造巨大白色源。
+            float excess = max(targetPeak - 1.0, 0.0) *
+                clamp(uHdrGain * hdrMask, 0.0, 1.0);
+            hdrExcess = tint * excess;
         }
     }
-    fragColor = vec4(color, vColor.a * coverage);
+    float opticalAlpha = clamp(vColor.a * coverage, 0.0, 1.0);
+    // SDR 使用预乘 alpha；HDR excess 独立于覆盖 alpha，峰值与出现面积分离。
+    fragColor = vec4(color * opticalAlpha + hdrExcess, opticalAlpha);
 }

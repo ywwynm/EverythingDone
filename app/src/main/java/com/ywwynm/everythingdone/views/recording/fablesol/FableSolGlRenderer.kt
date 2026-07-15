@@ -83,6 +83,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var vertexArrayId = 0
     private var sceneFramebufferId = 0
     private var sceneTextureId = 0
+    private var preWaterFramebufferId = 0
+    private var preWaterTextureId = 0
     private var sceneTargetWidth = 0
     private var sceneTargetHeight = 0
     private val indexBufferState = FableSolGlIndexBufferState()
@@ -121,17 +123,19 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val layerStop1 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStop2 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerEnd = FloatArray(FableSolSpec.N_LAYERS * 3)
-    private val layerDeepStart = FloatArray(FableSolSpec.N_LAYERS * 3)
-    private val layerDeepStop1 = FloatArray(FableSolSpec.N_LAYERS * 3)
-    private val layerDeepStop2 = FloatArray(FableSolSpec.N_LAYERS * 3)
-    private val layerDeepEnd = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerSubsurfaceStart = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerSubsurfaceStop1 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerSubsurfaceStop2 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerSubsurfaceEnd = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStartRgb = Array(FableSolSpec.N_LAYERS) { IntArray(3) }
+    private val layerStop1Rgb = Array(FableSolSpec.N_LAYERS) { IntArray(3) }
+    private val layerStop2Rgb = Array(FableSolSpec.N_LAYERS) { IntArray(3) }
     private val layerEndRgb = Array(FableSolSpec.N_LAYERS) { IntArray(3) }
     private val layerAlpha = FloatArray(FableSolSpec.N_LAYERS)
+    private val interfaceWeightStart = FloatArray(FableSolSpec.N_LAYERS)
+    private val interfaceWeightStop1 = FloatArray(FableSolSpec.N_LAYERS)
+    private val interfaceWeightStop2 = FloatArray(FableSolSpec.N_LAYERS)
+    private val interfaceWeightEnd = FloatArray(FableSolSpec.N_LAYERS)
     private val layerGradientOrigin = FloatArray(FableSolSpec.N_LAYERS * 2)
     private val layerGradientDirection = FloatArray(FableSolSpec.N_LAYERS * 2)
     private val layerGradientDenominator = FloatArray(FableSolSpec.N_LAYERS)
@@ -194,7 +198,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         this.width = max(width, 1)
         this.height = max(height, 1)
         sim.setContainerWidthDp(this.width / density)
-        ensureSceneTarget(this.width, this.height)
+        ensureSceneTargets(this.width, this.height)
         GLES30.glViewport(0, 0, this.width, this.height)
     }
 
@@ -293,7 +297,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             )
         }
         if (vertexArrayId != 0) GLES30.glDeleteVertexArrays(1, intArrayOf(vertexArrayId), 0)
-        releaseSceneTarget()
+        releaseSceneTargets()
         vertexBufferId = 0
         frontBufferId = 0
         indexBufferId = 0
@@ -471,7 +475,16 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             layerEndRgb,
             environmentHorizonRgb,
             sourceIndex,
-            sourceFraction
+            sourceFraction,
+            layerStop1 = layerStop1Rgb,
+            layerStop2 = layerStop2Rgb,
+            gradientOrigin = layerGradientOrigin,
+            gradientDirection = layerGradientDirection,
+            gradientDenominator = layerGradientDenominator,
+            interfaceWeightStart = interfaceWeightStart,
+            interfaceWeightStop1 = interfaceWeightStop1,
+            interfaceWeightStop2 = interfaceWeightStop2,
+            interfaceWeightEnd = interfaceWeightEnd
         )
     }
 
@@ -481,46 +494,51 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             FableSolColor.fromColor(snapshot.color),
             if (snapshot.gradient) FableSolColor.fromColor(snapshot.endColor) else null
         )
-        // deep/subsurface 从未混白的身份色派生：deep 只供受控背坡阴影，subsurface 只供日出 SSS；
-        // 二者都不再参与整层深度散射混色。
-        val baseScatterStop1 = FableSolColor.mixOklab(base.start, base.end, 0.21)
-        val baseScatterStop2 = FableSolColor.mixOklab(base.start, base.end, 0.56)
-        val scatteringPalettes = arrayOf(
-            FableSolDepthScatteringPolicy.derive(base.start),
-            FableSolDepthScatteringPolicy.derive(baseScatterStop1),
-            FableSolDepthScatteringPolicy.derive(baseScatterStop2),
-            FableSolDepthScatteringPolicy.derive(base.end)
+        val breath = params.get("color_breath") *
+            (0.30 * (sim.colorBright01 - 0.45) + 0.18 * (sim.colorEnergy01 - 0.5))
+        val palette = FableSolLayerColorPolicy.palette(
+            base = base,
+            lightenFar = params.get("lighten_far"),
+            moodBright = sim.moodBright,
+            breath = breath
         )
+        // subsurface 只供局部透射/SSS，并在下方从每层四停靠点的最终主体色分别派生；
+        // 不再把原始 Thing 的同一组散射色复制给九层。
         for (layer in 0 until FableSolSpec.N_LAYERS) {
-            val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
-            val breath = params.get("color_breath") *
-                (0.30 * (sim.colorBright01 - 0.45) + 0.18 * (sim.colorEnergy01 - 0.5))
-            val lighten = FableSolLayerColorPolicy.lightenAmount(
-                depth, params.get("lighten_far"), sim.moodBright, breath
-            )
-            val start = FableSolColor.mixOklab(base.start, WHITE, lighten)
-            val end = FableSolColor.mixOklab(base.end, WHITE, lighten)
-            val stop1 = FableSolColor.mixOklab(start, end, 0.21)
-            val stop2 = FableSolColor.mixOklab(start, end, 0.56)
+            val stops = palette.layers[layer]
+            val start = stops.start
+            val stop1 = stops.stop1
+            val stop2 = stops.stop2
+            val end = stops.end
             for (channel in 0 until 3) {
                 layerStartRgb[layer][channel] = start[channel]
+                layerStop1Rgb[layer][channel] = stop1[channel]
+                layerStop2Rgb[layer][channel] = stop2[channel]
                 layerEndRgb[layer][channel] = end[channel]
             }
             putColor(layerStart, layer, start)
             putColor(layerStop1, layer, stop1)
             putColor(layerStop2, layer, stop2)
             putColor(layerEnd, layer, end)
-            putScatteringColors(
-                layer, scatteringPalettes[0], layerDeepStart, layerSubsurfaceStart)
-            putScatteringColors(
-                layer, scatteringPalettes[1], layerDeepStop1, layerSubsurfaceStop1)
-            putScatteringColors(
-                layer, scatteringPalettes[2], layerDeepStop2, layerSubsurfaceStop2)
-            putScatteringColors(
-                layer, scatteringPalettes[3], layerDeepEnd, layerSubsurfaceEnd)
+            putSubsurfaceColor(
+                layer, FableSolDepthScatteringPolicy.derive(start), layerSubsurfaceStart
+            )
+            putSubsurfaceColor(
+                layer, FableSolDepthScatteringPolicy.derive(stop1), layerSubsurfaceStop1
+            )
+            putSubsurfaceColor(
+                layer, FableSolDepthScatteringPolicy.derive(stop2), layerSubsurfaceStop2
+            )
+            putSubsurfaceColor(
+                layer, FableSolDepthScatteringPolicy.derive(end), layerSubsurfaceEnd
+            )
             layerAlpha[layer] = params.lget("alpha", layer).toFloat()
             buildLayerGradientGeometry(layer, fillBottom, snapshot)
         }
+        copyInterfaceWeights(palette.interfaceWeights.start, interfaceWeightStart)
+        copyInterfaceWeights(palette.interfaceWeights.stop1, interfaceWeightStop1)
+        copyInterfaceWeights(palette.interfaceWeights.stop2, interfaceWeightStop2)
+        copyInterfaceWeights(palette.interfaceWeights.end, interfaceWeightEnd)
         val tint = params.get("environment_tint")
         val top = FableSolColor.mixOklab(
             environmentBase,
@@ -541,6 +559,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         putColor(environmentHorizon, horizon)
         putColor(environmentBottom, bottom)
         for (channel in 0 until 3) environmentHorizonRgb[channel] = horizon[channel]
+    }
+
+    /** 界面肩权重由色板策略基于最终层色统一给出；Renderer 只负责上传。 */
+    private fun copyInterfaceWeights(source: DoubleArray, target: FloatArray) {
+        for (boundary in target.indices) target[boundary] = source[boundary].toFloat()
     }
 
     private fun buildLayerGradientGeometry(layer: Int, fillBottom: Double,
@@ -584,16 +607,15 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 
     private fun drawFrame() {
-        check(sceneFramebufferId != 0 && sceneTextureId != 0) { "Scene target is unavailable" }
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sceneFramebufferId)
-        GLES30.glViewport(0, 0, width, height)
-        GLES30.glClearColor(0f, 0f, 0f, 0f)
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        check(sceneFramebufferId != 0 && sceneTextureId != 0 &&
+            preWaterFramebufferId != 0 && preWaterTextureId != 0
+        ) { "Scene targets are unavailable" }
         GLES30.glBindVertexArray(vertexArrayId)
 
-        environmentProgram.use()
-        uploadEnvironmentUniforms(environmentProgram)
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        // 折射必须采样不含水面的不可变背景；两个目标分别绘制同一环境，避免在当前
+        // scene 颜色附件上形成纹理读写反馈。
+        drawEnvironmentTo(preWaterFramebufferId)
+        drawEnvironmentTo(sceneFramebufferId)
         if (vertexFloatCount > 0) {
             ensureIndexBuffer(columns)
             uploadBuffer(vertexBufferId, vertexData, vertexFloatCount, vertexUpload)
@@ -602,6 +624,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 uploadBuffer(opticalBufferId, optics.vertices, opticalFloatCount, opticalUpload)
             }
             waterProgram.use()
+            bindPreWaterScene()
             uploadWaterUniforms()
             bindWaterVertexLayout(vertexBufferId)
             GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexBufferId)
@@ -627,28 +650,103 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             GLES30.glUniform1i(waterProgram.uniform("uStartLayer"), 0)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, columns * 2)
             drawOpticalLayer(0)
+            unbindPreWaterScene()
         }
         presentScene()
         checkGl("drawFrame")
     }
 
-    private fun ensureSceneTarget(width: Int, height: Int) {
+    private fun drawEnvironmentTo(framebufferId: Int) {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebufferId)
+        GLES30.glViewport(0, 0, width, height)
+        GLES30.glClearColor(0f, 0f, 0f, 0f)
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        environmentProgram.use()
+        uploadEnvironmentUniforms(environmentProgram)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+    }
+
+    private fun bindPreWaterScene() {
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, preWaterTextureId)
+        GLES30.glUniform1i(waterProgram.uniform("uPreWaterScene"), 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+    }
+
+    private fun unbindPreWaterScene() {
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+    }
+
+    private fun ensureSceneTargets(width: Int, height: Int) {
         if (sceneFramebufferId != 0 && sceneTextureId != 0 &&
+            preWaterFramebufferId != 0 && preWaterTextureId != 0 &&
             sceneTargetWidth == width && sceneTargetHeight == height
         ) return
-        releaseSceneTarget()
+        releaseSceneTargets()
 
-        val textures = IntArray(1)
-        GLES30.glGenTextures(1, textures, 0)
+        val requestedHdrTargets = hdrContentEnabled
+        if (!createSceneTargets(width, height, requestedHdrTargets)) {
+            releaseSceneTargets()
+            if (requestedHdrTargets) {
+                // 两个 FP16 目标必须一起成功；任一失败就原子回退到同格式 RGBA8。
+                // sceneLinear 描述 EGL 输出/合成颜色空间，不得因离屏格式回退而改写。
+                discardGlErrorsBeforeTargetFallback()
+                hdrContentEnabled = false
+                if (!createSceneTargets(width, height, hdrTargets = false)) {
+                    releaseSceneTargets()
+                    error("RGBA8 scene framebuffers are incomplete")
+                }
+            } else {
+                error("RGBA8 scene framebuffers are incomplete")
+            }
+        }
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
+        checkGl("ensureSceneTargets")
+    }
+
+    private fun createSceneTargets(width: Int, height: Int, hdrTargets: Boolean): Boolean {
+        val textures = IntArray(2)
+        GLES30.glGenTextures(2, textures, 0)
         sceneTextureId = textures[0]
-        check(sceneTextureId != 0) { "glGenTextures failed for scene target" }
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sceneTextureId)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
-        val internalFormat = if (hdrContentEnabled) GLES30.GL_RGBA16F else GLES30.GL_RGBA8
-        val componentType = if (hdrContentEnabled) GLES30.GL_HALF_FLOAT else GLES30.GL_UNSIGNED_BYTE
+        preWaterTextureId = textures[1]
+        if (sceneTextureId == 0 || preWaterTextureId == 0) return false
+
+        val internalFormat = if (hdrTargets) GLES30.GL_RGBA16F else GLES30.GL_RGBA8
+        val componentType = if (hdrTargets) GLES30.GL_HALF_FLOAT else GLES30.GL_UNSIGNED_BYTE
+        configureSceneTexture(sceneTextureId, width, height, internalFormat, componentType,
+            GLES30.GL_NEAREST)
+        configureSceneTexture(preWaterTextureId, width, height, internalFormat, componentType,
+            GLES30.GL_LINEAR)
+
+        val framebuffers = IntArray(2)
+        GLES30.glGenFramebuffers(2, framebuffers, 0)
+        sceneFramebufferId = framebuffers[0]
+        preWaterFramebufferId = framebuffers[1]
+        if (sceneFramebufferId == 0 || preWaterFramebufferId == 0) return false
+        val sceneComplete = attachAndCheckSceneTarget(sceneFramebufferId, sceneTextureId)
+        val preWaterComplete = attachAndCheckSceneTarget(
+            preWaterFramebufferId,
+            preWaterTextureId
+        )
+        if (!sceneComplete || !preWaterComplete) return false
+
+        sceneTargetWidth = width
+        sceneTargetHeight = height
+        return true
+    }
+
+    private fun configureSceneTexture(textureId: Int, width: Int, height: Int,
+                                      internalFormat: Int, componentType: Int, filter: Int) {
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, filter)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, filter)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S,
+            GLES30.GL_CLAMP_TO_EDGE)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T,
+            GLES30.GL_CLAMP_TO_EDGE)
         GLES30.glTexImage2D(
             GLES30.GL_TEXTURE_2D,
             0,
@@ -660,33 +758,26 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             componentType,
             null
         )
+    }
 
-        val framebuffers = IntArray(1)
-        GLES30.glGenFramebuffers(1, framebuffers, 0)
-        sceneFramebufferId = framebuffers[0]
-        check(sceneFramebufferId != 0) { "glGenFramebuffers failed for scene target" }
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sceneFramebufferId)
+    private fun attachAndCheckSceneTarget(framebufferId: Int, textureId: Int): Boolean {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebufferId)
         GLES30.glFramebufferTexture2D(
             GLES30.GL_FRAMEBUFFER,
             GLES30.GL_COLOR_ATTACHMENT0,
             GLES30.GL_TEXTURE_2D,
-            sceneTextureId,
+            textureId,
             0
         )
-        val framebufferStatus = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER)
-        if (framebufferStatus != GLES30.GL_FRAMEBUFFER_COMPLETE && hdrContentEnabled) {
-            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-            releaseSceneTarget()
-            hdrContentEnabled = false
-            ensureSceneTarget(width, height)
-            return
+        return GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) ==
+            GLES30.GL_FRAMEBUFFER_COMPLETE
+    }
+
+    private fun discardGlErrorsBeforeTargetFallback() {
+        repeat(8) {
+            if (GLES30.glGetError() == GLES30.GL_NO_ERROR) return
+            // 这里只丢弃已经确认失败的 FP16 目标尝试产生的错误，再独立验证 RGBA8 目标。
         }
-        check(framebufferStatus == GLES30.GL_FRAMEBUFFER_COMPLETE) { "Scene framebuffer is incomplete" }
-        sceneTargetWidth = width
-        sceneTargetHeight = height
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
-        checkGl("ensureSceneTarget")
     }
 
     private fun presentScene() {
@@ -719,17 +810,29 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             presentationProgram.uniform("uSceneLinear"),
             if (sceneLinear) 1 else 0
         )
+        GLES30.glUniform1f(
+            presentationProgram.uniform("uHdrHeadroom"),
+            hdrHeadroom
+        )
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
     }
 
-    private fun releaseSceneTarget() {
-        if (sceneFramebufferId != 0) {
-            GLES30.glDeleteFramebuffers(1, intArrayOf(sceneFramebufferId), 0)
+    private fun releaseSceneTargets() {
+        if (sceneFramebufferId != 0 || preWaterFramebufferId != 0) {
+            GLES30.glDeleteFramebuffers(
+                2,
+                intArrayOf(sceneFramebufferId, preWaterFramebufferId),
+                0
+            )
         }
-        if (sceneTextureId != 0) GLES30.glDeleteTextures(1, intArrayOf(sceneTextureId), 0)
+        if (sceneTextureId != 0 || preWaterTextureId != 0) {
+            GLES30.glDeleteTextures(2, intArrayOf(sceneTextureId, preWaterTextureId), 0)
+        }
         sceneFramebufferId = 0
         sceneTextureId = 0
+        preWaterFramebufferId = 0
+        preWaterTextureId = 0
         sceneTargetWidth = 0
         sceneTargetHeight = 0
     }
@@ -838,30 +941,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glUniform3fv(waterProgram.uniform("uLayerStop2[0]"), FableSolSpec.N_LAYERS, layerStop2, 0)
         GLES30.glUniform3fv(waterProgram.uniform("uLayerEnd[0]"), FableSolSpec.N_LAYERS, layerEnd, 0)
         GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerDeepStart[0]"),
-            FableSolSpec.N_LAYERS,
-            layerDeepStart,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerDeepStop1[0]"),
-            FableSolSpec.N_LAYERS,
-            layerDeepStop1,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerDeepStop2[0]"),
-            FableSolSpec.N_LAYERS,
-            layerDeepStop2,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerDeepEnd[0]"),
-            FableSolSpec.N_LAYERS,
-            layerDeepEnd,
-            0
-        )
-        GLES30.glUniform3fv(
             waterProgram.uniform("uLayerSubsurfaceStart[0]"),
             FableSolSpec.N_LAYERS,
             layerSubsurfaceStart,
@@ -909,10 +988,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glUniform1f(
             waterProgram.uniform("uLightAzimuthRad"),
             Math.toRadians(params.get("light_azimuth_deg")).toFloat()
-        )
-        GLES30.glUniform1f(
-            waterProgram.uniform("uMacroShadowLumaCap"),
-            params.get("macro_shadow_luma_cap").toFloat()
         )
         GLES30.glUniform1f(waterProgram.uniform("uTimeSeconds"), sim.t.toFloat())
         GLES30.glUniform1f(
@@ -967,12 +1042,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             0
         )
         GLES30.glUniform1fv(
-            waterProgram.uniform("uHdrSheenPeaks[0]"),
-            FableSolSpec.N_LAYERS,
-            FableSolHdrPolicy.CONTINUOUS_SHEEN_PEAKS,
-            0
-        )
-        GLES30.glUniform1fv(
             waterProgram.uniform("uHdrTransmissionPeaks[0]"),
             FableSolSpec.N_LAYERS,
             FableSolHdrPolicy.CONTINUOUS_TRANSMISSION_PEAKS,
@@ -980,9 +1049,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
     }
 
-    private fun putScatteringColors(layer: Int, palette: FableSolDepthScatteringPolicy.Palette,
-                                    deepTarget: FloatArray, subsurfaceTarget: FloatArray) {
-        putColor(deepTarget, layer, palette.deep)
+    private fun putSubsurfaceColor(layer: Int, palette: FableSolDepthScatteringPolicy.Palette,
+                                   subsurfaceTarget: FloatArray) {
         putColor(subsurfaceTarget, layer, palette.subsurface)
     }
 
@@ -1027,9 +1095,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 }
 
-/** 光学覆盖只混合 RGB，保持已经不透明的环境/水面 framebuffer alpha。 */
+/** 光学 shader 输出预乘 RGB；覆盖只混合 RGB，保持环境/水面 framebuffer alpha。 */
 internal object FableSolGlOpticalBlendPolicy {
-    const val RGB_SOURCE_FACTOR = GLES30.GL_SRC_ALPHA
+    const val RGB_SOURCE_FACTOR = GLES30.GL_ONE
     const val RGB_DESTINATION_FACTOR = GLES30.GL_ONE_MINUS_SRC_ALPHA
     const val ALPHA_SOURCE_FACTOR = GLES30.GL_ZERO
     const val ALPHA_DESTINATION_FACTOR = GLES30.GL_ONE

@@ -1,5 +1,10 @@
 # Preferences
 
+## 参数数字偏好（2026-07-15）
+
+- 用户喜欢数字 `6、12、16、21、24、27、32、36、42、45、49、50、54、56、60、64、72、75、81、84、91、96、108、121、129、144、150、160、180、196、216、224`，其中最喜欢 `129`。
+- 设计参数在多个近似可行值之间选择时，可以适度靠近这些数字；实际观感、物理合理性、性能和可维护性始终优先，不得为了迎合数字偏好勉强采用较差参数。
+
 Global startup preferences only. Feature-specific preferences live in `docs/features/<kebab-case-feature-slug>/preferences.md`.
 
 ## Communication

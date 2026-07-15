@@ -8,13 +8,12 @@ internal object FableSolMaterialPolicy {
     const val LAYER_COUNT = 9
 
     /** 公共存在度只描述层级主次；各效果族不得把它直接当作统一乘数。 */
-    val COMMON_PRESENCE = floatArrayOf(1.0f, 0.927f, 0.81f, 0.64f, 0.48f, 0.30f, 0.16f, 0.06f, 0f)
+    val COMMON_PRESENCE = floatArrayOf(1f, 0.96f, 0.84f, 0.72f, 0.60f, 0.49f, 0.36f, 0.24f, 0.16f)
 
     val MACRO_LIGHT_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.64f, 0.49f, 0.32f, 0.16f, 0f)
     val MACRO_SHADOW_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.60f, 0.42f, 0.27f, 0.12f, 0.06f, 0f)
-    val MICRO_NORMAL_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.49f, 0.32f, 0.16f, 0.06f, 0f)
-    val SDR_SSS_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.49f, 0.32f, 0.16f, 0.06f, 0f)
-
+    val MICRO_NORMAL_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0.49f)
+    val SDR_SSS_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.49f, 0.36f, 0.24f, 0.16f, 0.12f)
     private val SURFACE_BAND_WIDTH_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0f)
     private val SURFACE_BAND_ALPHA_WEIGHTS =
@@ -33,7 +32,7 @@ internal object FableSolMaterialPolicy {
     private val GLINT_CORE_ALPHA_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.64f, 0.60f, 0.56f, 0.49f, 0f)
     private val GLINT_HALO_ALPHA_WEIGHTS =
-        floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.64f, 0.49f, 0.36f, 0.24f, 0f)
+        floatArrayOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
     private val FLOW_STREAK_CAPACITIES = intArrayOf(3, 2, 2, 1, 1, 0, 0, 0, 0)
     private val FLOW_STREAK_WEIGHTS = floatArrayOf(1f, 1f, 1f, 0.45f, 0.20f, 0f, 0f, 0f, 0f)
 
@@ -53,7 +52,7 @@ internal object FableSolMaterialPolicy {
 
     const val HALO_LENGTH_SCALE = 1.18
     const val HALO_THICKNESS_SCALE = 2.25
-    const val HALO_ALPHA_SCALE = 0.18
+    const val HALO_ALPHA_SCALE = 0.0
 
     /** 迎光与波峰双门控；平坡和背光坡都不能形成横贯整层的表面反射。 */
     fun surfaceBandLocality(facing: Double, crest: Double): Double {

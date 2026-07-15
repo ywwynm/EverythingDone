@@ -7,6 +7,7 @@ internal object FableSolGlMeshLayout {
     const val SHEEN_SLOPE_X_OFFSET = 6
     const val SHEEN_SLOPE_Z_OFFSET = 7
     const val GROUP_COUNT = FableSolSpec.N_LAYERS - 1
+    private const val MAX_UNSIGNED_SHORT_VERTEX_COUNT = 0x10000
 
     fun vertexCount(columns: Int): Int = FableSolContinuousSurface.Z_ROWS * columns
 
@@ -15,6 +16,10 @@ internal object FableSolGlMeshLayout {
 
     fun buildIndices(columns: Int): ShortArray {
         require(columns >= 2)
+        require(columns <= MAX_UNSIGNED_SHORT_VERTEX_COUNT / FableSolContinuousSurface.Z_ROWS) {
+            "连续水面顶点数超出 GL_UNSIGNED_SHORT 索引范围：" +
+                "rows=${FableSolContinuousSurface.Z_ROWS}, columns=$columns"
+        }
         val perGroup = indicesPerGroup(columns)
         val indices = ShortArray(perGroup * GROUP_COUNT)
         var cursor = 0

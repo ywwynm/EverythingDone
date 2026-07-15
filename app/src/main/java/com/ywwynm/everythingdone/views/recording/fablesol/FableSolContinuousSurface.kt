@@ -377,8 +377,9 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     }
 
     companion object {
-        const val Z_ROWS = 25
-        const val ROWS_PER_LAYER = (Z_ROWS - 1) / (N_LAYERS - 1) // 3
+        /** 每两个产品层锚线之间的纵深采样数；锚线本身仍严格对应九层原始轮廓。 */
+        const val ROWS_PER_LAYER = 12
+        const val Z_ROWS = (N_LAYERS - 1) * ROWS_PER_LAYER + 1 // 97
         const val RENDER_GROUPS = N_LAYERS - 1                  // 8 次网格提交
         private const val GRAVITY_DP_S2 = 32.0
     }

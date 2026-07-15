@@ -33,12 +33,34 @@ class FableSolGlMeshLayoutTest {
         val indices = FableSolGlMeshLayout.buildIndices(columns)
         val perGroup = FableSolGlMeshLayout.indicesPerGroup(columns)
 
-        // 第一组是 layer 8：第一只三角形连接 row 24 与 row 23。
-        assertEquals(24 * columns, indices[0].toInt())
-        assertEquals(23 * columns, indices[1].toInt())
-        // 最后一组是 layer 1，最后一个索引仍落在 row 1/0 区间。
+        // 第一组是最远区间：第一只三角形连接最后一行与其近侧相邻行。
+        assertEquals((FableSolContinuousSurface.Z_ROWS - 1) * columns,
+            indices[0].toInt() and 0xffff)
+        assertEquals((FableSolContinuousSurface.Z_ROWS - 2) * columns,
+            indices[1].toInt() and 0xffff)
+        // 最后一组是 layer 1，全部索引仍落在第一个产品层区间。
         val lastGroup = indices.copyOfRange(perGroup * 7, indices.size)
-        assertTrue(lastGroup.all { (it.toInt() and 0xffff) < 4 * columns })
+        assertTrue(lastGroup.all {
+            (it.toInt() and 0xffff) <
+                (FableSolContinuousSurface.ROWS_PER_LAYER + 1) * columns
+        })
+    }
+
+    @Test
+    fun `uint16 indices cover the maximum renderer column count and reject overflow`() {
+        val maximumRendererColumns = FableSolSpec.N_POINTS
+        val maximumVertex = FableSolGlMeshLayout.vertexCount(maximumRendererColumns) - 1
+
+        assertTrue(maximumVertex <= 0xffff)
+        FableSolGlMeshLayout.buildIndices(maximumRendererColumns)
+
+        val overflowingColumns = 0x10000 / FableSolContinuousSurface.Z_ROWS + 1
+        try {
+            FableSolGlMeshLayout.buildIndices(overflowingColumns)
+            throw AssertionError("应拒绝超出 GL_UNSIGNED_SHORT 范围的网格")
+        } catch (_: IllegalArgumentException) {
+            // 预期结果。
+        }
     }
 
     @Test

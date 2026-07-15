@@ -13,7 +13,8 @@ class FableSolMaterialPolicyTest {
         assertEquals(0.0, params.get("body_light_strength"), 0.0)
         assertEquals(0.38, params.get("thin_glow_gain"), 0.0)
         assertEquals(0.14, params.get("crest_veil_strength"), 0.0)
-        assertEquals(0.10, params.get("analytic_halo_strength"), 0.0)
+        assertEquals(0.0, params.get("analytic_halo_strength"), 0.0)
+        assertEquals(0.36, params.get("micro_normal_strength"), 0.0)
         assertEquals(0.0, params.get("pearl_shift_deg"), 0.0)
         assertEquals(0.0, params.get("hue_temp_deg"), 0.0)
 
@@ -42,7 +43,7 @@ class FableSolMaterialPolicyTest {
     @Test
     fun layerFamiliesUseTheConfirmedNineLayerCurves() {
         assertFloatCurve(
-            doubleArrayOf(1.0, 0.927, 0.81, 0.64, 0.48, 0.30, 0.16, 0.06, 0.0),
+            doubleArrayOf(1.0, 0.96, 0.84, 0.72, 0.60, 0.49, 0.36, 0.24, 0.16),
             FableSolMaterialPolicy.COMMON_PRESENCE
         )
         assertFloatCurve(
@@ -54,11 +55,11 @@ class FableSolMaterialPolicyTest {
             FableSolMaterialPolicy.MACRO_SHADOW_WEIGHTS
         )
         assertFloatCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.32, 0.16, 0.06, 0.0),
+            doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.72, 0.64, 0.60, 0.56, 0.49),
             FableSolMaterialPolicy.MICRO_NORMAL_WEIGHTS
         )
         assertFloatCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.32, 0.16, 0.06, 0.0),
+            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.36, 0.24, 0.16, 0.12),
             FableSolMaterialPolicy.SDR_SSS_WEIGHTS
         )
         assertEquals(
@@ -80,6 +81,12 @@ class FableSolMaterialPolicyTest {
         assertEquals(0.12, FableSolMaterialPolicy.backShadeAlphaWeight(6), 1e-6)
         assertEquals(0.0, FableSolMaterialPolicy.backShadeAlphaWeight(7), 0.0)
         assertEquals(34.0, FableSolMaterialPolicy.GLINT_MIN_SEPARATION_DP, 0.0)
+        assertEquals(0.085, FableSolMaterialPolicy.GLINT_FIELD_FLOOR, 0.0)
+        assertEquals(
+            FableSolMaterialPolicy.GLINT_BIRTH_WEIGHT_TOTAL,
+            (0..8).sumOf(FableSolMaterialPolicy::glintBirthWeight),
+            1e-6
+        )
 
         assertDoubleCurve(
             doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.72, 0.64, 0.60, 0.56, 0.0)
@@ -109,7 +116,7 @@ class FableSolMaterialPolicyTest {
             FableSolMaterialPolicy::glintCoreAlphaWeight
         )
         assertDoubleCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.64, 0.49, 0.36, 0.24, 0.0),
+            doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             FableSolMaterialPolicy::glintHaloAlphaWeight
         )
         assertDoubleCurve(
@@ -119,19 +126,26 @@ class FableSolMaterialPolicyTest {
     }
 
     @Test
-    fun glintGeometryAndAlphaStayHighQualityWhileReceding() {
+    fun discreteGlintsRemainSparseButPresentThroughLayerSeven() {
+        assertEquals(
+            listOf(4, 4, 3, 3, 2, 2, 1, 1),
+            (0..7).map(FableSolMaterialPolicy::glintCapacity)
+        )
+        assertTrue((3..7).all { FableSolMaterialPolicy.glintBirthWeight(it) > 0.0 })
+        assertTrue((3..7).all { FableSolMaterialPolicy.glintLengthWeight(it) > 0.0 })
+        assertTrue((3..7).all { FableSolMaterialPolicy.glintDepthLengthDp(it) > 0.0 })
+        assertTrue((3..7).all { FableSolMaterialPolicy.glintCoreAlphaWeight(it) > 0.0 })
+        assertEquals(0, FableSolMaterialPolicy.glintCapacity(8))
         assertEquals(2.56, FableSolMaterialPolicy.glintDepthLengthDp(0), 1e-6)
         assertEquals(1.29, FableSolMaterialPolicy.glintDepthLengthDp(7), 1e-6)
-        assertEquals(0.42, FableSolMaterialPolicy.glintLengthWeight(7), 1e-6)
-        assertEquals(0.49, FableSolMaterialPolicy.glintCoreAlphaWeight(7), 1e-6)
-        assertEquals(0.24, FableSolMaterialPolicy.glintHaloAlphaWeight(7), 1e-6)
+        assertTrue((0..8).all { FableSolMaterialPolicy.glintHaloAlphaWeight(it) == 0.0 })
     }
 
     @Test
-    fun analyticHaloMatchesDebug0749OuterShoulder() {
+    fun analyticHaloEnergyIsDisabled() {
         assertEquals(1.18, FableSolMaterialPolicy.HALO_LENGTH_SCALE, 0.0)
         assertEquals(2.25, FableSolMaterialPolicy.HALO_THICKNESS_SCALE, 0.0)
-        assertEquals(0.18, FableSolMaterialPolicy.HALO_ALPHA_SCALE, 0.0)
+        assertEquals(0.0, FableSolMaterialPolicy.HALO_ALPHA_SCALE, 0.0)
     }
 
     private fun assertFloatCurve(expected: DoubleArray, actual: FloatArray) {

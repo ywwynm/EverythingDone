@@ -8,27 +8,26 @@ import java.io.File
 class FableSolGlShaderParityTest {
 
     @Test
-    fun waterUsesBoundedIdentityColorMacroShadowAndLayerLocalFourStopGradients() {
+    fun macroVisibilityOnlyAttenuatesARealIdentityDirectLobe() {
         val source = shader("water.vert")
-
-        assertTrue(source.contains("relativeLongitudinalLight"))
-        val functionStart = source.indexOf("vec3 relativeLongitudinalLight")
+        val functionStart = source.indexOf("float relativeLongitudinalDirect")
         val functionEnd = source.indexOf("\n}\n", functionStart) + 3
         val longitudinal = source.substring(functionStart, functionEnd)
+
         assertTrue(source.contains("MAX_RELATIVE_LONGITUDINAL_LIFT = 0.015"))
         assertTrue(source.contains("LONGITUDINAL_LIGHT_RESPONSE = 0.12"))
-        assertTrue(source.contains("uniform float uMacroShadowLumaCap"))
-        assertTrue(source.contains("MACRO_SHADOW_NDL_START = 0.080"))
+        assertTrue(source.contains("DIRECT_LIGHT_BASE_RESPONSE = 0.004"))
+        assertTrue(source.contains("MAX_DIRECT_LIGHT_LOBE = 0.019"))
         assertTrue(source.contains("uniform float uMacroLightWeights[9]"))
         assertTrue(source.contains("uniform float uMacroShadowWeights[9]"))
-        assertTrue(longitudinal.contains("positiveNdl"))
+        assertTrue(longitudinal.contains("float ndl = max(dot(normal, lightDir), 0.0)"))
+        assertTrue(longitudinal.contains("float directLobe = min("))
         assertTrue(longitudinal.contains("max(-relativeNdl, 0.0)"))
-        assertTrue(longitudinal.contains("deepLinear"))
-        assertTrue(longitudinal.contains("requestedLoss"))
-        assertTrue(longitudinal.contains("linearToSrgb"))
-        assertFalse(longitudinal.contains("blackMix"))
-        assertFalse(longitudinal.contains("uHorizonColor"))
-        assertFalse(source.contains("0.90 + 0.10 * ndl"))
+        assertTrue(longitudinal.contains("return directLobe * (1.0 - clamp(shadowMask"))
+        assertFalse(longitudinal.contains("deepLinear"))
+        assertFalse(longitudinal.contains("linearToSrgb"))
+        assertFalse(source.contains("uMacroShadowLumaCap"))
+        assertFalse(source.contains("uLayerDeep"))
         assertTrue(source.contains("uLayerStop1[9]"))
         assertTrue(source.contains("uLayerStop2[9]"))
         assertTrue(source.contains("uGradientOrigin[9]"))
@@ -36,45 +35,73 @@ class FableSolGlShaderParityTest {
     }
 
     @Test
-    fun canvasStrengthDitherCoversSkyAndFrontFillOnly() {
+    fun sdrDitherIsAppliedOnceAtPresentationAndSkippedByHdrScenePasses() {
         val environment = shader("environment.frag")
         val water = shader("water.frag")
+        val presentation = shader("present.frag")
 
-        assertTrue(environment.contains("((a + b) * 0.5 - 0.5) / 255.0"))
-        assertTrue(environment.contains("triangularDither(gl_FragCoord.xy)"))
-        assertTrue(water.contains("vFrontFill == 1 ? triangularDither"))
-        assertFalse(water.contains("(a + b - 1.0) / 255.0"))
+        assertFalse(environment.contains("triangularDither"))
+        assertFalse(water.contains("triangularDither"))
+        assertTrue(environment.contains("uSceneLinear ? srgbToLinear(uEnvironmentTop)"))
+        assertTrue(environment.contains("? srgbToLinear(uEnvironmentHorizon)"))
+        assertTrue(environment.contains("? srgbToLinear(uEnvironmentBottom)"))
+        assertTrue(presentation.contains("((a + b) * 0.5 - 0.5) / 255.0"))
+        assertTrue(presentation.contains("color + triangularDither(gl_FragCoord.xy)"))
+        val hdrBranch = presentation.substring(
+            presentation.indexOf("if (uSceneLinear)"),
+            presentation.indexOf("} else {")
+        )
+        assertFalse(hdrBranch.contains("triangularDither"))
     }
 
     @Test
-    fun glintShaderKeepsCurvedWaterSideGeometryButRestoresTwoToneHalo() {
+    fun glintShaderKeepsCurvedCoreGeometryWithoutPackedOrPeriodicHalo() {
         val vertex = shader("optical.vert")
         val fragment = shader("optical.frag")
+        val optics = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "FableSolGlOptics.kt"
+        )
+        val canvas = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "WaveVisualizerFableSol.kt"
+        )
 
         assertTrue(vertex.contains("aEdgeColor"))
-        assertTrue(fragment.contains("mix(vColor.rgb, vEdgeColor"))
-        assertTrue(fragment.contains("vOpticalMode > 5.5"))
+        assertTrue(fragment.contains("glintCoreCoverage"))
+        assertTrue(fragment.contains("coverage = glintCoreCoverage"))
+        assertFalse(fragment.contains("float haloRatio"))
+        assertFalse(fragment.contains("haloRatio * haloCoverage"))
+        assertTrue(optics.contains("val packedMode = OPTICAL_MODE_GLINT"))
+        assertFalse(optics.contains("OPTICAL_MODE_GLINT + 0.49f"))
+        assertFalse(optics.contains("analytic_halo_strength"))
+        assertFalse(optics.contains("track.intensity * breath"))
+        assertFalse(optics.contains("0.8 + 0.4 * intensity"))
+        assertFalse(optics.contains("track.size +="))
+        assertFalse(canvas.contains("e.inten * breath"))
+        assertFalse(canvas.contains("0.8 + 0.4 * inten"))
+        assertFalse(canvas.contains("e.size +="))
     }
 
     @Test
-    fun derivedDeepAndSubsurfaceColorsRemainLiveWithoutDisabledDepthScattering() {
+    fun subsurfaceRemainsLiveWhileDeepBodyMultiplicationIsRemoved() {
         val vertex = shader("water.vert")
         val fragment = shader("water.frag")
 
         assertTrue(vertex.contains("layout(location = 3) in float aCrestPinch"))
-        assertTrue(vertex.contains("uLayerDeepStart[9]"))
         assertTrue(vertex.contains("uLayerSubsurfaceStart[9]"))
-        assertTrue(vertex.contains("deepColor"))
-        assertTrue(vertex.contains("relativeLongitudinalLight"))
-        assertTrue(vertex.contains("materialSubsurface = subsurfaceColor"))
+        assertTrue(vertex.contains("relativeLongitudinalDirect"))
+        assertTrue(vertex.contains("materialSubsurface = mix("))
+        assertTrue(vertex.contains("behindSubsurface"))
+        assertFalse(vertex.contains("uLayerDeepStart"))
+        assertFalse(vertex.contains("deepColor"))
         assertTrue(fragment.contains("addSunriseSubsurface"))
         assertFalse(vertex.contains("uDepthScatteringStrength"))
         assertFalse(vertex.contains("vec3 depthScattering"))
-        assertFalse(vertex.contains("nearShadingWeight"))
     }
 
     @Test
-    fun microNormalsUseThreeAnalyticDerivativeOctavesAndRowBandLimiting() {
+    fun microNormalsRemainForRefractionWithoutVisibleContinuousSheen() {
         val vertex = shader("water.vert")
         val source = shader("water.frag")
 
@@ -82,12 +109,59 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("octave0"))
         assertTrue(source.contains("octave1"))
         assertTrue(source.contains("octave2"))
-        assertTrue(source.contains("rowFootprint"))
+        assertTrue(source.contains("octaveBandLimit"))
         assertTrue(source.contains("uSpecularAaStrength"))
-        assertTrue(source.contains("uMicroNormalStrength"))
         assertTrue(vertex.contains("uniform float uMicroNormalWeights[9]"))
         assertTrue(vertex.contains("vMicroNormalWeight = sampleLayerCurve"))
-        assertTrue(source.contains("if (rowFade <= 0.0001) return linearColor"))
+        assertTrue(source.contains("vec2 continuousSlope = vSheenSlope + microSlope"))
+        assertTrue(source.contains("applyRefractionAndBeer("))
+        assertFalse(source.contains("float distributionGgx("))
+        assertFalse(source.contains("float visibilitySmithGgxCorrelated"))
+        assertFalse(source.contains("float fresnelSchlick("))
+        assertFalse(source.contains("float effectiveSpecularRoughness("))
+        assertFalse(source.contains("applyWindCombedMicroNormals"))
+        assertFalse(source.contains("lightDelta <"))
+
+        val main = source.substring(source.indexOf("void main()"))
+        assertFalse(main.contains("dFdx(continuousSlope)"))
+        assertFalse(main.contains("dFdy(continuousSlope)"))
+        assertFalse(main.contains("fwidth(continuousSlope)"))
+    }
+
+    @Test
+    fun layerInteriorContinuousSheenAndPairedDarkMarksAreAbsent() {
+        val source = shader("water.frag")
+
+        listOf(
+            "stableWindFacetCoverage",
+            "continuousHdrLocality",
+            "microfacetSheenExcess",
+            "boundedSdrReflection",
+            "applyBoundedSunReflection",
+            "applySameNormalFormShade",
+            "uSheenCoverageScale",
+            "uSunReflectionCoverageWeights",
+            "vSunReflectionCoverageWeight",
+            "vHdrSheenPeak"
+        ).forEach { removed -> assertFalse(removed, source.contains(removed)) }
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
+    }
+
+    @Test
+    fun dormantInterfaceShoulderPipelineReceivesOnlyZeroPolicyWeights() {
+        val vertex = shader("water.vert")
+        val fragment = shader("water.frag")
+        val policy = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "FableSolLayerColorPolicy.kt"
+        )
+
+        assertFalse(vertex.contains("uInterface"))
+        assertFalse(fragment.contains("applyInterfaceShoulder"))
+        assertTrue(policy.contains("val zero = DoubleArray(FableSolSpec.N_LAYERS)"))
+        assertTrue(policy.contains(
+            "zero.copyOf(), zero.copyOf(), zero.copyOf(), zero.copyOf()"
+        ))
     }
 
     @Test
@@ -102,106 +176,158 @@ class FableSolGlShaderParityTest {
     }
 
     @Test
-    fun analyticGlintHaloUsesMathematicalFalloffBeforeCoreMode() {
+    fun glintCoreKeepsCurvedGeometryWithoutPackedHalo() {
         val source = shader("optical.frag")
-        val halo = source.indexOf("vOpticalMode > 6.5")
-        val core = source.indexOf("vOpticalMode > 2.5")
+        val optics = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "FableSolGlOptics.kt"
+        )
 
-        assertTrue(halo >= 0)
-        assertTrue(core > halo)
-        assertTrue(source.contains("exp2(-6.5 * radiusSquared)"))
-        assertTrue(source.contains("smoothstep(0.72, 1.0, vLocalUv.y)"))
+        assertFalse(source.contains("(vOpticalMode - 3.0) / 0.49"))
+        assertTrue(source.contains(
+            "float inward = 1.0 - smoothstep(0.08, 0.72, vLocalUv.y)"
+        ))
+        assertFalse(source.contains("smoothstep(0.0, 0.16, corePoint.y)"))
+        assertTrue(source.contains("glintCoreCoverage = along * inward"))
+        assertTrue(source.contains("coverage = glintCoreCoverage"))
+        assertTrue(optics.contains("MIN_CURVED_BAND_SEGMENTS = 12"))
+        assertTrue(optics.contains("CURVED_BAND_TARGET_SEGMENT_DP = 3.2"))
+        assertTrue(optics.contains("val packedMode = OPTICAL_MODE_GLINT"))
+        assertFalse(optics.contains("OPTICAL_MODE_GLINT + 0.49f"))
     }
 
     @Test
-    fun presentationPassOwnsLegacyAlphaAndPremultipliedRoundedCorners() {
+    fun presentationPassComposesLinearHdrWithoutEncodingRoundTrip() {
         val source = shader("present.frag")
 
         assertTrue(source.contains("uPresentationAlpha"))
         assertTrue(source.contains("uCornerRadiusPx"))
+        assertTrue(source.contains("uniform float uHdrHeadroom"))
         assertTrue(source.contains("roundedRectCoverage"))
-        assertTrue(source.contains("mix("))
+        assertTrue(source.contains("sceneColor = clamp(sceneColor"))
+        assertTrue(source.contains("mix(srgbToLinear(uBackdropColor), sceneColor"))
+        assertFalse(source.contains("linearToSrgb"))
         assertTrue(source.contains("vec4(color * coverage, coverage)"))
     }
 
     @Test
-    fun hdrPipelineUsesLinearSceneEncodingWithoutChangingSdrPresentationMix() {
+    fun hdrPipelineDecodesInputsOnceAndKeepsSceneLinearUntilPresentation() {
         val environment = shader("environment.frag")
         val water = shader("water.frag")
         val optical = shader("optical.frag")
         val presentation = shader("present.frag")
 
-        assertTrue(environment.contains("uniform bool uSceneLinear"))
-        assertTrue(environment.contains("srgbToLinear(encodedColor)"))
-        assertTrue(water.contains("uniform bool uSceneLinear"))
-        assertTrue(water.contains("srgbToLinear(encodedColor)"))
-        assertTrue(optical.contains("uSceneLinear ? srgbToLinear(encodedColor) : encodedColor"))
-        assertTrue(presentation.contains("encodedScene = linearToSrgb(sceneColor)"))
-        assertTrue(presentation.contains("srgbToLinear(mix(uBackdropColor"))
+        assertTrue(environment.contains("uSceneLinear ? srgbToLinear(uEnvironmentTop)"))
+        assertFalse(environment.contains("srgbToLinear(encodedColor)"))
+        assertTrue(water.contains("vec3 linearColor = uSceneLinear ? vColor : srgbToLinear(vColor)"))
+        assertTrue(water.contains("fragColor = vec4(max(outLinear, vec3(0.0)), 1.0)"))
+        assertTrue(optical.contains("? srgbToLinear(vColor.rgb)"))
+        assertTrue(presentation.contains("mix(srgbToLinear(uBackdropColor), sceneColor"))
     }
 
     @Test
-    fun hdrExcessIsLimitedToGlintCrestAndTransmissionRatherThanStreakOrHalo() {
+    fun hdrOpticalPeakIsIndependentFromCoverageAlphaAndUsesPremultipliedSdr() {
         val source = shader("optical.frag")
+        val optics = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/" +
+                "fablesol/FableSolGlOptics.kt"
+        )
         val hdrBlock = source.substring(source.indexOf("if (uSceneLinear && uHdrGain"))
 
         assertTrue(hdrBlock.contains("uHdrCorePeak"))
         assertTrue(hdrBlock.contains("uHdrCrestPeak"))
         assertTrue(hdrBlock.contains("uHdrTransmissionPeak"))
         assertTrue(hdrBlock.contains("smoothstep(0.28, 0.82, vHdrEligibility)"))
-        assertTrue(hdrBlock.contains("clamp(vHdrEligibility, 0.0, 1.0)"))
+        assertTrue(hdrBlock.contains("pow(clamp(glintCoreCoverage, 0.0, 1.0), 1.65)"))
+        assertTrue(hdrBlock.contains("color * opticalAlpha + hdrExcess"))
+        assertFalse(hdrBlock.contains("darkCompensation"))
+        assertFalse(hdrBlock.contains("/ opticalAlpha"))
         assertFalse(hdrBlock.contains("vOpticalMode > 1.5"))
         assertFalse(hdrBlock.contains("vOpticalMode > 6.5"))
+        assertTrue(optics.contains("hdrEligibility[i] = volume"))
     }
 
     @Test
-    fun waterGrazingSheenAddsSuperWhiteOnlyInSceneLinear() {
+    fun waterLayerInteriorSheenIsAbsentWhileOtherHdrOpticsRemain() {
         val vertex = shader("water.vert")
         val source = shader("water.frag")
+        val renderer = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "FableSolGlRenderer.kt"
+        )
+        val hdrStart = source.indexOf("if (uSceneLinear && vFrontFill == 0")
+        val bodyBlock = source.substring(source.indexOf("void main()"), hdrStart)
 
-        assertTrue(source.contains("grazingSheenExcess"))
-        assertTrue(source.contains("outLinear += grazingSheenExcess(normal, fresnel)"))
-        // 只在 scene-linear 录音态叠加超白差量：SDR 分支（uSceneLinear=false）逐字节不变。
-        assertTrue(source.contains("uSceneLinear && vFrontFill == 0 && uHdrGain"))
-        // 掠射 Fresnel 反射 + 朝太阳集中，几何驱动、不接音频。
-        assertTrue(source.contains("reflect(-viewDir, normal)"))
-        assertTrue(source.contains("pow(1.0 - NdV, 5.0)"))
-        // HDR 银泽使用独立低通法线，避免把水体几何网格的三角形边界放大出来。
+        assertFalse(source.contains("SUN_RADIANCE_RESPONSE"))
+        assertFalse(source.contains("SDR_REFLECTION_CEILING"))
+        assertFalse(source.contains("continuousHdrLocality"))
+        assertFalse(source.contains("microfacetSheenExcess"))
+        assertFalse(source.contains("microfacetSunResponse("))
+        assertFalse(source.contains("vec2(216.0, 129.0)"))
+        assertFalse(source.contains("patchPoint"))
+        assertFalse(source.contains("patchMask"))
+        assertFalse(source.contains("directionalSheenLocality"))
+        assertFalse(source.contains("sunBoost"))
+        assertFalse(bodyBlock.contains("uHdrGain"))
+        assertTrue(bodyBlock.contains("vec3 sdrBaseline = max(linearColor, vec3(0.0))"))
+        assertTrue(bodyBlock.contains("vec3 outLinear = sdrBaseline / sdrBaselinePeak"))
+        assertTrue(source.contains("? vMaterialColor"))
+        assertTrue(source.contains(": srgbToLinear(vMaterialColor)"))
+        assertFalse(source.contains("vec3 identityTint = vColor / maxChannel"))
         assertTrue(vertex.contains("layout(location = 4) in vec2 aSheenSlope"))
-        assertTrue(vertex.contains("vSheenSlope = aSheenSlope"))
-        assertTrue(source.contains("in vec2 vSheenSlope"))
-        assertTrue(source.contains("vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)"))
-        assertTrue(source.contains("pow(clamp(fresnel * sunBoost, 0.0, 1.0), 0.70)"))
-        assertTrue(vertex.contains("uniform float uHdrSheenPeaks[9]"))
-        assertTrue(vertex.contains("vHdrSheenPeak = sampleLayerCurve"))
-        assertTrue(source.contains("float sheenPeak = min(vHdrSheenPeak"))
+        assertFalse(vertex.contains("uniform float uHdrSheenPeaks[9]"))
+        assertFalse(vertex.contains("uniform float uSunReflectionCoverageWeights[9]"))
+        assertFalse(renderer.contains("uSunReflectionCoverageWeights"))
+        assertFalse(renderer.contains("uHdrSheenPeaks"))
+        assertFalse(renderer.contains("uSheenCoverageScale"))
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
     }
 
     @Test
-    fun waterBacklitTransmissionUsesIdentityColorAndTheComplementaryFresnelBudget() {
+    fun waterBacklitTransmissionRemainsWithoutAContinuousReflectionMask() {
         val source = shader("water.frag")
-
         val vertex = shader("water.vert")
+
         assertTrue(vertex.contains("uniform float uHdrTransmissionPeaks[9]"))
         assertTrue(vertex.contains("vHdrTransmissionPeak = sampleLayerCurve"))
-        assertTrue(source.contains("vHdrTransmissionPeak"))
         assertTrue(source.contains("backlitTransmissionExcess"))
         assertTrue(source.contains("(1.0 - fresnel) * sunriseSubsurfaceMask()"))
+        assertFalse(source.contains("reflectionCompetition"))
         assertTrue(source.contains("subsurfaceLinear / maximum"))
-        assertTrue(source.contains("outLinear += backlitTransmissionExcess(fresnel)"))
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
         assertTrue(source.contains("outLinear = min(outLinear, vec3(uHdrHeadroom))"))
-        // SDR 仍只经过原有 encodedColor；透射超白和银泽共享同一个 scene-linear 门。
-        val hdrStart = source.indexOf("if (uSceneLinear && vFrontFill == 0")
-        assertTrue(hdrStart > source.indexOf("vec3 encodedColor"))
+    }
+
+    @Test
+    fun refractionSamplesImmutableBackgroundAndBeerOnlyAffectsTransmission() {
+        val vertex = shader("water.vert")
+        val source = shader("water.frag")
+
+        assertTrue(vertex.contains("out vec3 vMaterialColor"))
+        assertTrue(vertex.contains("out vec3 vBehindColor"))
+        assertTrue(vertex.contains("out float vMaterialOpacity"))
+        assertTrue(vertex.contains("out vec2 vScreenUv"))
+        assertTrue(source.contains("uniform sampler2D uPreWaterScene"))
+        assertTrue(source.contains("const float WATER_IOR = 1.333"))
+        assertTrue(source.contains("textureLod(uPreWaterScene, safeUv, 0.0)"))
+        assertTrue(source.contains("refract(incident, normal, 1.0 / WATER_IOR)"))
+        assertTrue(source.contains("vec3 beer = exp(-sigma * opticalPath)"))
+        assertTrue(source.contains("mix(identity, refractedBackground, effectiveTransmission)"))
+        assertTrue(source.contains("return mix(behind, volume, clamp(vMaterialOpacity"))
+        assertFalse(source.contains("texture(uScene"))
     }
 
     private fun shader(name: String): String {
+        return projectFile("shared/fablesol/glsl/$name")
+    }
+
+    private fun projectFile(relativePath: String): String {
         var directory = File(System.getProperty("user.dir") ?: ".").absoluteFile
         repeat(5) {
-            val candidate = File(directory, "shared/fablesol/glsl/$name")
+            val candidate = File(directory, relativePath)
             if (candidate.isFile) return candidate.readText(Charsets.UTF_8)
             directory = directory.parentFile ?: return@repeat
         }
-        error("找不到 shared/fablesol/glsl/$name")
+        error("找不到 $relativePath")
     }
 }

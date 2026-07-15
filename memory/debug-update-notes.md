@@ -1,5 +1,98 @@
 # Current Debug Update Notes
 
+## 2026-07-15 - FableSol 删除层内斜短光点与 continuous sheen
+
+用户复看上一轮动态图片后确认：每层水体内部新增的斜短光点不是边缘 glint，观感仍然不好，要求
+直接去掉。`full/no_glint/water_only` 消融与 GPU 回归证明，它们是为替代旧扩缩光带而加入的稳定
+微面片 continuous sheen；关闭 glint 或全部 optical 后仍存在，因此没有继续调整大小、密度或
+阴影，而是删除整条可见连续高光路径，避免再变成点、线、环或斑块。
+
+共享 `water.frag`/`water.vert` 已删除固定微面片、连续 GGX/Smith 太阳反射、SDR 有界反射、
+continuous HDR sheen excess 及配套暗面；Android 与 Python 同步删除对应 uniform 上传、逐层
+coverage/峰值策略和两个已失效面板参数。边缘 glint 的数量与峰值、surface reflection/streak、
+折射、Beer–Lambert、SSS 和 HDR transmission 保持独立。预滤波坡度仍服务折射与透射；HDR
+transmission 沿用不随微法线分块的 `V·H` Fresnel，避免以另一种噪点重新出现。
+
+129 BPM、适中水位的动态三联画确认 `full/no_glint/water_only` 均无层内斜点、扩缩光带或环状
+替代物。18 色 FP16 回归中，完整效果峰值仍为 `2.629/2.934/3.314× reference white`
+（最小/中位/最大），`water_only` 不超过 `1.000×`；九层主体相邻色差继续通过既有验收线。
+Python 160 项 unittest、Android 140 项 Debug JVM 测试全部通过；删除后 GPU 基准略有改善。
+未使用 ADB，最终 Android HDR 动态观感仍由用户真机验收。已发布阿里云 Debug
+`202607150348`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`d64026f0da0d91d043dd51d7cdc1b9f3923c03ec37e41df37940fca8c6c6ad32`；远端元数据、完整说明、
+重新下载 APK 及包内 shader 均已回读核对。
+
+## 2026-07-15 - FableSol 恢复逐层特效并重做晶莹光影
+
+保留静态 `lighten_far` 主体色板、零界面肩以及录音/HDR 不改写主体色，恢复已经确认的九层
+闪点数量、出现率、长度、强度和五组 HDR 峰值：第 0～2 层为主视觉，第 3～7 层保留逐层稀疏的
+水面事件，第 8 层退出离散闪点。闪点改为贴住真实水面、出生后尺寸固定、向水内单调衰减的实心
+短光迹；删除解析光晕、周期扩缩和大块低频椭圆银斑。
+
+连续水面高光与暗面现在来自同一法线和太阳方向。暗面只在当前水色上保色降低曝光，不混黑、灰
+或整体乘暗 HDR；SDR 身份色肩部与小面积银白 HDR 核心分开。折射与 Beer–Lambert 从未包含当前
+层的背景颜色开始合成，当前层透明度只应用一次；体光 HDR 资格、第 8 层无配对暗面、反射身份色
+和预乘 HDR excess 也已修正。Python 与 Android GL/Canvas 已同构同步。
+
+18 色普通 PNG 明确只作为 8-bit SDR 颜色/形状对照；HDR 直接验收 FP16 线性 scRGB 原值和
+`1.0/1.08/1.16/1.29/1.6/2.0× reference white` 分档图。完整效果峰值中位 `2.934×`，去闪点
+后仍为 `1.898×`；完整效果 `>1/>1.29/>2×` pooled 覆盖率为 `0.636%/0.346%/0.091%`。
+Python 158 项测试和约 63fps 的 FP16 读回基准通过；Android 139 项 JVM 测试与 Debug 构建通过，
+未使用 ADB。动态 HDR 与系统 tone mapping 由真机最终验收。
+
+已发布阿里云 Debug `202607150216`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `108df976f5cc8c63a69e38a4e36237c5bfe14e5acfc511b874524edff251e682`；远端
+元数据、完整中文说明和重新下载 APK 的大小与哈希均已核对一致。
+
+## 2026-07-15 - FableSol 恢复 lighten_far 并清理中远层圆环光斑
+
+根据真机复测，撤销固定 hue 的亮向色域阶梯，Android/Python 主体统一恢复静态
+`depth × lighten_far` 的 OKLab 混白；第 0 层保持记事色、第 8 层最多混白 `86.4%`，录音、HDR、
+mood 与 color breath 不再改变主体。界面肩归零，第二、第三层不再使用逐色保色或特殊压暗。
+
+离散闪点只保留最近三层，容量为 `3/2/1`；删除周期尺寸呼吸、强度尺寸耦合与解析外晕，中远层
+连续太阳反射同步关闭。折射/Beer 背景混合上限收为 `.016`，最近三层连续反射权重为
+`.72/.49/.21`。18 色离屏回归确认 648 个停靠点逐码符合静态混白公式，第 4～9 层不再出现离散
+光斑；第二、第三层跨色中位色度保留率约 `98.2%/96.0%`。
+
+Python 149 项 unittest、Android 全量 Debug JVM 测试和 `:app:assembleDebug` 均通过，未使用
+ADB。已发布阿里云 Debug `202607150057`（versionCode 43 / 2.0.0），APK 大小 `20776849`
+字节，SHA-256 为 `271573bebdac51fcbe211ba92c34c05c4f8a5bc143b407684e3fe8f2b7185945`；远端
+元数据、完整中文说明和重新下载 APK 均已核对一致。
+
+## 2026-07-15 - FableSol 第二轮晶莹水体材质重构
+
+用户复测上一版后指出：九层边界变弱且偶发记事色粗边，跨层移动光影出现直线马赛克，最近三层
+以外缺少闪点和材质变化，现实海面光斑、波光粼粼与局部 HDR 超白响应不足。用户提供 10 个内置
+色和 8 组真实纯色/渐变，要求浅色不显脏、远层不超过 86.4% 等效混白；先在 Python HDR 离屏链
+调试并解决卡顿，再同步 Android，Android 实机测试由用户完成。
+
+### 实现与诊断
+
+九层主体改为固定 hue 的亮向 OKLCH 色域贴边阶梯，以八条相邻 ΔE 分配层距；第 0 层保持 Thing
+身份色，录音、mood 和 color breath 不再整体提亮主体，界面肩只补 8-bit 量化损失。共享
+`water.frag` 改为 GGX/Smith/Schlick 连续微表面与导数 specular AA；SDR 反射、SSS、同色阴影和
+HDR 局部 excess 分责限能。连续网格从 25 行增至 97 行；九层均有闪点容量，闪点核心与解析光晕
+合并为一次 `6～32` 段曲面绘制。
+
+Android `FableSolGlRenderer` 与 Python `FableSolGlRenderer` 均增加独立 `pre-water`、`scene`
+离屏目标。水体从不可变背景纹理执行 Snell 屏幕空间折射，并只对透射分瓣应用 Beer–Lambert；
+相对彩度和感知明度保护浅色。FP16 任一目标失败时两张纹理原子回退 RGBA8，不改写 EGL 输出
+颜色空间。Python 对精确 8-bit RGB 色变换做色板作用域稀疏缓存，高活动稳态中位 15.52ms
+（约 64.4fps），P95 18.86ms，保留 23 个闪点和 6 条流光。
+
+### 验证
+
+18 色 FP16 回归的最弱相邻主体 ΔE 为 0.01365、中位 0.01973；全部夹具界面肩宽度为零；去掉
+离散闪点后仍有中位 0.442% 的局部超白覆盖。Python 151 项 unittest、Android 149 项 JVM 测试
+及 `:app:assembleDebug` 全部通过，共享 GLSL 由 ModernGL 实际编译。未使用 ADB。真机需重点
+观察快速大浪的折射边缘、准备态/录音态第 1/2 层腹部亮度、浅色阴影洁净度、九层动态分界和
+中远层碎光分布。
+
+已发布阿里云 Debug `202607141929`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `327b4fd21c5555b723649386a93cadcb05241d8215210a0de6236e22627536c5`；远端
+`latest.json`、完整说明和重新下载 APK 均已核对一致。
+
 ## 2026-07-14 - FableSol Step D/E：HDR 背光透射与连续太阳碎光
 
 用户先要求找回 Claude 制定的 HDR 增强计划并确认阶段 D/E，随后要求实现。阶段 D 的目标是让真实
