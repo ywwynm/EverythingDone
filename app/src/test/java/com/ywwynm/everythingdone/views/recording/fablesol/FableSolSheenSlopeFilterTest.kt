@@ -33,6 +33,45 @@ class FableSolSheenSlopeFilterTest {
         assertTrue(values.all { it.isFinite() })
     }
 
+    @Test
+    fun pingPongImplementationMatchesRepeatedEdgeClampReference() {
+        val rows = 6
+        val columns = 12
+        val values = FloatArray(rows * columns) { index ->
+            (kotlin.math.sin(index * 0.37) + 0.2 * kotlin.math.cos(index * 0.11)).toFloat()
+        }
+        val expected = referenceSmooth(values, rows, columns)
+
+        FableSolSheenSlopeFilter.smooth(values, FloatArray(values.size), rows, columns)
+
+        for (index in values.indices) assertEquals(expected[index], values[index], 0f)
+    }
+
+    private fun referenceSmooth(input: FloatArray, rows: Int, columns: Int): FloatArray {
+        var values = input.copyOf()
+        repeat(3) {
+            val next = FloatArray(values.size)
+            for (row in 0 until rows) for (column in 0 until columns) {
+                val center = row * columns + column
+                val left = row * columns + (column - 1).coerceAtLeast(0)
+                val right = row * columns + (column + 1).coerceAtMost(columns - 1)
+                next[center] = (values[left] + 2f * values[center] + values[right]) * 0.25f
+            }
+            values = next
+        }
+        repeat(4) {
+            val next = FloatArray(values.size)
+            for (row in 0 until rows) for (column in 0 until columns) {
+                val near = (row - 1).coerceAtLeast(0) * columns + column
+                val center = row * columns + column
+                val far = (row + 1).coerceAtMost(rows - 1) * columns + column
+                next[center] = (values[near] + 2f * values[center] + values[far]) * 0.25f
+            }
+            values = next
+        }
+        return values
+    }
+
     private fun adjacentVariation(values: FloatArray, rows: Int, columns: Int): Double {
         var total = 0.0
         for (row in 0 until rows) {

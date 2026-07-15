@@ -10,6 +10,7 @@ layout(location = 5) in float aHdrEligibility;
 
 uniform vec2 uViewportPx;
 uniform float uRotationRad;
+uniform float uRasterScale;
 
 out vec2 vLocalUv;
 out vec4 vColor;
@@ -23,7 +24,7 @@ void main() {
     vec2 rotated = vec2(
         c * aPositionPx.x - s * aPositionPx.y,
         s * aPositionPx.x + c * aPositionPx.y
-    );
+    ) * uRasterScale;
     vec2 screen = rotated + uViewportPx * 0.5;
     vec2 ndc = vec2(
         screen.x / uViewportPx.x * 2.0 - 1.0,

@@ -1,5 +1,28 @@
 # 待办 · audio-visualization-fable-sol
 
+- **D141 光学 RGSS 超采样待 Android 真机验收（2026-07-15）**：本轮不使用 ADB。共享
+  `optical.frag` 已对光学 pass 做 4x RGSS 超采样。真机放大观察细小/远处 glint、streak、surface
+  reflection 的形状边缘是否更平滑；既定 glint 数量、尺寸、剖面与逐层 HDR 峰值应不变。最亮 glint
+  核心在 HDR 录音态的 SDR 截图里仍会有很轻微台阶（HDR 超白→SDR 固有现象），已按用户裁决保持锐利、
+  不柔化；真机 HDR 屏上应比 SDR 截图柔和。若某设备 4x 片元开销影响帧率，可降为 RGSS 但更少的样本或
+  仅对最贵的 mode 超采样，不撤销超采样本身。
+
+- **D140 场景 4x MSAA 待 Android 真机验收（2026-07-15）**：本轮不使用 ADB。请在同一段中高能
+  129 BPM 音乐、深蓝与浅灰绿 Thing 上放大观察九条界线、水天轮廓和光学闪点边缘——不应再有阶梯
+  锯齿或颗粒；MSAA 只作用于几何覆盖，主体色阶、glint 数量、逐层 HDR 峰值应与 D136/D138/D139
+  一致。重点记录准备态与 HDR 录音态的 Choreographer `p50/p95/p99` 与掉帧：4x FP16 MSAA resolve
+  在小对话框 surface 上带宽应可接受，但若个别设备出现掉帧，先把采样数降到 2 或对 HDR 态单独降
+  采样，仍不撤销 MSAA 与 D139 的 196 列 C1。若某设备不支持 RGBA16F 多采样，会自动回退单采样
+  FP16（HDR 仍在，仅无 AA），需确认该回退路径下无红屏、无 GL 报错。Python 侧 4x MSAA 已用 SSAA
+  参考与 18 色 FP16 回归确认锯齿消除且效果不变。
+
+- **D139 待 Android 原生 DPI/HDR 动态真机验收（2026-07-15）**：本轮不使用 ADB。请在同一段
+  中高能 129 BPM 音乐、深蓝与浅灰绿 Thing 上放大检查九条界线：不得再出现折线台阶、浅色虚线、
+  身份色粗边或一像素暗脏边；开始录音前后 glint 数量、逐层 HDR 峰值和主体色阶应与 D136/D138
+  基线一致。性能应分别记录准备态与 HDR 录音态的 Choreographer `p50/p95/p99` 和掉帧；Android
+  已保留 tile-friendly 的双目标环境绘制，不用桌面 Blit 结果推断手机收益。若仍需优化，只调整
+  平台复制策略，不撤销 196 列 C1、不透明邻层 coverage 或既有视觉特效。
+
 - **D136 已完成，待 Android HDR 动态真机验收（2026-07-15）**：逐层闪点/HDR 合同、固定尺寸
   实心短光迹、无 halo、无低频椭圆银斑、同法线保色暗面、单次 alpha 的折射/Beer 合成和独立
   HDR excess 已同步 Python 与 Android。18 色 FP16 原始值和分档伪彩图确认超白响应存在，普通

@@ -15,7 +15,16 @@ class FableSolGlRenderTargetSourceTest {
         assertTrue(source.contains("private var preWaterFramebufferId = 0"))
         assertTrue(source.contains("private var preWaterTextureId = 0"))
         assertTrue(drawFrame.contains("drawEnvironmentTo(preWaterFramebufferId)"))
-        assertTrue(drawFrame.contains("drawEnvironmentTo(sceneFramebufferId)"))
+        // MSAA 时场景画进多重采样目标，再 resolve 进单采样 sceneFramebufferId；pre-water 始终单采样。
+        // 两目标独立与折射采样源不变的契约必须继续成立。
+        assertTrue(drawFrame.contains("drawEnvironmentTo(sceneDrawFramebufferId)"))
+        assertTrue(
+            drawFrame.contains(
+                "if (sceneSamples > 1) sceneMsaaFramebufferId else sceneFramebufferId"
+            )
+        )
+        assertTrue(drawFrame.contains("if (sceneSamples > 1) resolveSceneMsaa()"))
+        assertTrue(source.contains("GLES30.GL_DRAW_FRAMEBUFFER, sceneFramebufferId"))
         assertTrue(drawFrame.contains("bindPreWaterScene()"))
         assertTrue(source.contains("waterProgram.uniform(\"uPreWaterScene\"), 1"))
         assertTrue(source.contains("GLES30.GL_TEXTURE1"))
@@ -52,6 +61,44 @@ class FableSolGlRenderTargetSourceTest {
         assertTrue(ensure.contains("hdrContentEnabled = false"))
         assertTrue(ensure.contains("createSceneTargets(width, height, hdrTargets = false)"))
         assertFalse(ensure.contains("sceneLinear = false"))
+    }
+
+    @Test
+    fun `场景使用同格式多重采样并在不支持时原子回退单采样`() {
+        val source = rendererSource()
+        val setup = functionBody(
+            source,
+            "private fun setupSceneMsaa",
+            "private fun querySceneSamples"
+        )
+        val query = functionBody(
+            source,
+            "private fun querySceneSamples",
+            "private fun deleteSceneMsaa"
+        )
+
+        // MSAA renderbuffer 使用与 sceneTexture 相同的 internalFormat，保持 HDR/SDR 精度一致。
+        assertTrue(setup.contains("GLES30.glRenderbufferStorageMultisample("))
+        assertTrue(setup.contains("internalFormat"))
+        assertTrue(setup.contains("GLES30.glCheckFramebufferStatus"))
+        // 不支持该格式采样或建立失败时退回单采样，sceneSamples=1，不改动 HDR 目标或输出颜色空间。
+        assertTrue(setup.contains("sceneSamples = 1"))
+        assertFalse(setup.contains("hdrContentEnabled"))
+        assertFalse(setup.contains("sceneLinear"))
+        assertTrue(query.contains("GLES30.glGetInternalformativ("))
+        assertTrue(query.contains("GLES30.GL_SAMPLES"))
+        assertTrue(query.contains("if (supported < 2) return 1"))
+        // pre-water 折射采样源必须保持单采样：只有 scene 目标接入 MSAA。
+        assertFalse(source.contains("preWaterMsaa"))
+        // resolve 为同尺寸、NEAREST 的多重采样解析。
+        val resolve = functionBody(
+            source,
+            "private fun resolveSceneMsaa",
+            "private fun presentScene"
+        )
+        assertTrue(resolve.contains("GLES30.GL_READ_FRAMEBUFFER, sceneMsaaFramebufferId"))
+        assertTrue(resolve.contains("GLES30.GL_DRAW_FRAMEBUFFER, sceneFramebufferId"))
+        assertTrue(resolve.contains("GLES30.GL_NEAREST"))
     }
 
     private fun functionBody(source: String, startToken: String, endToken: String): String {

@@ -163,8 +163,7 @@ class FableSolContinuousSurfaceTest {
             val info = sim.continuousRenderInfo()
             sim.continuousRenderColumnCount(info.i1 - info.i0)
         }
-        assertTrue("counts=$renderedCounts", renderedCounts.max() <= 120)
-        assertTrue("counts=$renderedCounts", renderedCounts.max() - renderedCounts.min() <= 10)
+        assertTrue("counts=$renderedCounts", renderedCounts.all { it == 196 })
 
         val i0 = 11
         val raw = 190
@@ -173,6 +172,99 @@ class FableSolContinuousSurfaceTest {
             sim.continuousRenderSourcePosition(i0, raw, rendered, 0), 0.0)
         assertEquals((i0 + raw - 1).toDouble(),
             sim.continuousRenderSourcePosition(i0, raw, rendered, rendered - 1), 0.0)
+    }
+
+    @Test
+    fun renderOnlyHermiteReconstructionPreservesNodesAndEndpointSlopes() {
+        val values = doubleArrayOf(0.0, 1.0, 0.0, -1.0)
+        val slopes = doubleArrayOf(1.0, 0.0, -1.0, 0.0)
+
+        val atStart = FableSolCubicResampler.hermiteValue(
+            values[1], values[2], slopes[1], slopes[2], 0.0, 1.0
+        )
+        val atEnd = FableSolCubicResampler.hermiteValue(
+            values[1], values[2], slopes[1], slopes[2], 1.0, 1.0
+        )
+        val middle = FableSolCubicResampler.hermiteValue(
+            values[1], values[2], slopes[1], slopes[2], 0.5, 1.0
+        )
+
+        assertEquals(values[1], atStart, 0.0)
+        assertEquals(
+            slopes[1],
+            FableSolCubicResampler.hermiteDerivative(
+                values[1], values[2], slopes[1], slopes[2], 0.0, 1.0
+            ),
+            0.0
+        )
+        assertEquals(values[2], atEnd, 0.0)
+        assertEquals(
+            slopes[2],
+            FableSolCubicResampler.hermiteDerivative(
+                values[1], values[2], slopes[1], slopes[2], 1.0, 1.0
+            ),
+            0.0
+        )
+        assertTrue(kotlin.math.abs(middle - 0.5) > 1e-6)
+
+        val weights = FableSolHermiteWeightTable(1)
+        weights.update(0, 0.5, 1.0)
+        val tableMiddle = values[1] * weights.h00[0] + slopes[1] * weights.h10[0] +
+            values[2] * weights.h01[0] + slopes[2] * weights.h11[0]
+        assertEquals(middle, tableMiddle, 0.0)
+    }
+
+    @Test
+    fun productionCubicWeightTablesMatchReferenceFunctions() {
+        val before = -0.4
+        val start = 1.2
+        val end = -0.7
+        val after = 0.9
+        val startSlope = 0.31
+        val endSlope = -0.27
+        val step = 3.25
+        val catmull = FableSolCatmullRomWeightTable(1)
+        val hermite = FableSolHermiteWeightTable(1)
+
+        for (fraction in doubleArrayOf(0.0, 0.129, 0.5, 0.91, 1.0)) {
+            catmull.update(0, fraction, step)
+            hermite.update(0, fraction, step)
+            val catmullValue = before * catmull.w0[0] + start * catmull.w1[0] +
+                end * catmull.w2[0] + after * catmull.w3[0]
+            val catmullDerivative = before * catmull.dw0[0] + start * catmull.dw1[0] +
+                end * catmull.dw2[0] + after * catmull.dw3[0]
+            val hermiteValue = start * hermite.h00[0] + startSlope * hermite.h10[0] +
+                end * hermite.h01[0] + endSlope * hermite.h11[0]
+            val hermiteDerivative = start * hermite.dh00[0] + startSlope * hermite.dh10[0] +
+                end * hermite.dh01[0] + endSlope * hermite.dh11[0]
+
+            assertEquals(
+                FableSolCubicResampler.catmullRom(before, start, end, after, fraction),
+                catmullValue,
+                1e-12
+            )
+            assertEquals(
+                FableSolCubicResampler.catmullRomDerivative(
+                    before, start, end, after, fraction, step
+                ),
+                catmullDerivative,
+                1e-12
+            )
+            assertEquals(
+                FableSolCubicResampler.hermiteValue(
+                    start, end, startSlope, endSlope, fraction, step
+                ),
+                hermiteValue,
+                1e-12
+            )
+            assertEquals(
+                FableSolCubicResampler.hermiteDerivative(
+                    start, end, startSlope, endSlope, fraction, step
+                ),
+                hermiteDerivative,
+                1e-12
+            )
+        }
     }
 
     @Test

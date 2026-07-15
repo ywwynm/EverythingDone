@@ -1,5 +1,92 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-15 光学实体形状 RGSS 超采样并裁定亮 glint 保持锐利
+
+用户在 4x MSAA（D140）真机上确认波浪界线好多了，但发现 glint 附近仍有锯齿，担心其它特效缺少抗锯齿。
+Python 离屏诊断把残余分成两类。其一是真实缺口：glint/streak/surface reflection/halo/transmission 的
+形状是 `optical.frag` 里 `smoothstep`/`sin` 逐像素程序化算出来的，MSAA 只多采样几何覆盖、不重算片元
+着色，所以完全不抗这类形状边缘的锯齿。其二经隔离确认**不是缺少抗锯齿**：准备态 SDR 反射很淡、平滑
+无锯齿，只有录音态 HDR 核心变亮（峰值约 `2.3× reference white`）才出现台阶——薄亮 glint 线性梯度陡，
+SDR 可见边本质亚像素宽，clip 又在着色下游的显示/截图 SDR 映射，`avg(线性)` 再 clip 任何采样数都抗不掉，
+真机 HDR 屏更柔和、只在 SDR 截图明显（用 filmic tonemap 与 headroom clip 对照均验证）。
+
+针对第一类，共享 `optical.frag` 对光学 pass 单独做 4x 旋转网格超采样（RGSS）：覆盖抽成
+`opticalCoverage(vec2 uv,...)`，单样本预乘输出抽成 `shadeOpticalSample(vec2 uv)`，`main()` 用
+`dFdx/dFdy(vLocalUv)` 把四个子样本放在四个不同 x/y 子位置再平均。实体较大时导数极小、四点几乎重合，
+输出与逐像素一次着色一致，不改变既定 glint 尺寸、剖面、峰值与观感；只用 GLES 3.0 核心片元导数，无需
+sample shading。两端共享同一 shader，一次覆盖 Android 与 Python。针对第二类，用户裁决（AskUserQuestion）
+保持 glint 锐利/亮度，接受固有 SDR 台阶，不展宽/柔化/压暗最亮核心，维持 D103～D118 的 glint 合同。
+
+`FableSolGlShaderParityTest`、`test_gl_backend` 的 `optical.frag` 结构断言同步为 `uv.y` 并新增
+`opticalCoverage`/`shadeOpticalSample`/`dFdx`/`dFdy`/4 次子样本调用的守卫。Python 167 项 unittest、
+Android 全量 `:app:testDebugUnitTest` 与 `:app:assembleDebug` 通过，两仓 `git diff --check` 通过；
+未使用 ADB。已发布阿里云 Debug `202607150755`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `c0c250d8c0df69a767f24e84ca9afae33ff17952d1da3403eab3205a3d26fa80`。远端 `latest.json` 的
+`releaseNotes` 已回读，远端 SHA-256 与本地 APK 一致。发布说明见 `debug-updates/update-20260715155420.md`。
+Android 真机放大观感与帧率由用户验收。
+
+## 2026-07-15 场景 4x MSAA 消除放大后的波浪边缘锯齿
+
+用户反馈 D139（原生 DPI + 196 列 C1 + 边界 coverage）后，Android 放大观察波浪边缘仍有锯齿与
+颗粒，让 GPT 改过一版变化不大。按功能既定顺序先在 Python 离屏复现与调试：`366686` 深蓝与
+`B6BF8F` 浅灰绿在 1.5 DPR 下裁剪放大九层弯曲界线，确认是清晰的横向阶梯锯齿；2x2 超采样与真实
+4x MSAA 对照都能直接抹平台阶，证明是纯采样不足，`waterEdgeCoverage` 的方向盲 1px 平滑不足以
+解决。诊断同时确认 D139 的原生 DPI 修复只作用于 Python——Android `uRasterScale` 恒为 1，早已按
+surface 实体分辨率渲染，所以那轮对 Android 锯齿基本无效。
+
+两端场景离屏改用 4x MSAA：几何画进多重采样 renderbuffer，再 resolve 进单采样 `sceneTexture`，
+折射与 present 继续采样已 resolve 的纹理；`pre-water` 折射背景保持单采样。采样数按内部格式查询
+取 `min(4, 支持值)`，与场景同格式（SDR RGBA8 / HDR RGBA16F），维持 D134 的 FP16 精度语义；不支持
+或建立失败时原子回退单采样，保留 FP16→RGBA8 目标回退与不改写输出颜色空间的契约。Android 用可
+移植的 `glRenderbufferStorageMultisample` + `glBlitFramebuffer` resolve（GLES3.0 保证），未依赖无
+Java 绑定的 `GL_EXT_multisampled_render_to_texture`；pre-water 仍两目标各画一次环境，不做 Blit。
+MSAA 只对几何覆盖多采样，主体色、界面、光学、SSS、折射、Beer 与 HDR 材质仍逐像素只计算一次；
+九层界线是几何边（每组三角带远边压在其后一组之上），逐像素一次着色的 MSAA 即可修复。
+`waterEdgeCoverage`、196 列 C1、glint 数量与逐层 HDR 峰值等既定合同全部保持不变。
+
+验证：Python 离屏 SSAA 与 4x MSAA 均消除九层界线台阶、内部深水无颗粒；18 色 FP16 回归的远/近
+响应比、相邻主体色差与超白覆盖同无 MSAA 基线一致；新增 Python MSE 测试确认 MSAA 比无 AA 明显更
+接近超采样真值（`mse_msaa < 0.75 × mse_none`）。桌面 GPU 960×1260 FP16 完成时间由约 `10.94ms` 到
+`11.10ms`（约 +1.4%）。新增 Android `场景使用同格式多重采样并在不支持时原子回退单采样` 源结构测试
+与 Python 三项 MSAA 测试；`FableSolGlRenderTargetSourceTest`、`FableSolHdrPipelineSourceTest` 的两目标
+折射契约断言同步更新为 MSAA 结构。Python 167 项 unittest、Android 全量 `:app:testDebugUnitTest` 与
+`:app:assembleDebug` 通过，两个仓库 `git diff --check` 通过；未使用 ADB。
+
+已发布阿里云 Debug `202607150701`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`a4887087e5a3017e65838309ae2f01314d2804683231dafaf313ff02252013bf`。远端 `latest.json` 的完整
+`releaseNotes` 已回读，远端 SHA-256 与本地 APK 完全一致。发布说明见
+`debug-updates/update-20260715145903.md`。Android 真机放大观感与准备态/HDR 录音态帧率由用户验收。
+
+## 2026-07-15 放大波浪精细化与原生像素渲染优化
+
+用户反馈放大观察时，Python 与 Android 的波浪边缘都有明显像素颗粒和折线感，同时要求在效果不退化的
+前提下继续提高帧率。诊断确认 `N_POINTS=216` 是覆盖画外区域、海绵边界和注入区域的完整物理网格，屏幕内
+通常只能看到约 96～126 个物理节点；直接提高它会同时改变 `DX_DP`、CFL 上限、传播速度和既有波形，因此
+没有把视觉采样问题转嫁给物理模拟。两端改为固定 196 列的显示重建网格：高度和横向坡度使用带节点导数的
+Hermite C1 重建，轨道与纵深坡度使用 Catmull–Rom C1 重建；轨道被限制到 ±10dp 时同步把导数归零，避免
+钳制后的边界继续产生假峰。相对 640 列参考，正常帧轮廓误差为 `p95≤0.035px、max≤0.117px`，强波压力帧
+仍为 `p95≤0.186px、p99≤0.350px、max≤0.521px`。
+
+共享 shader 新增 `uRasterScale`，只把设计空间顶点映射到实体像素，不改变微法线、渐变和材质计算；Python
+的普通 GL、D3D11/scRGB HDR、Composer 与 swapchain 均按 `logical size × devicePixelRatio` 建立目标，
+消除了 640×840 画面被系统拉伸到 960×1260 所产生的主要颗粒。录像继续输出固定 640×840，但直接复用原生
+DPI 场景，由 GPU 在线性域缩小并编码 RGBA8；开始录制不再让窗口退回低分辨率。九条可见边界增加严格限制在
+一个实体像素内的解析 coverage，并在线性域用已合成邻层颜色完成不透明覆盖，避免浅色环境泄漏成白点、粗边，
+也避免 SDR 固定功能 sRGB 混合产生暗脏边；没有增加身份色描边、界面肩或新的层内光学图案。
+
+性能侧同步删除 Python 无消费者的微表面数组，把二维相位三角函数拆成可分离一维运算，缓存三次重建权重并
+使用无复制 VBO 上传；两端的七次坡度平滑改为双缓冲交换、仅最终复制一次；Android 额外缓存静态 Thing 材质和
+环境 uniform，并把稳定后的 `glGetError` 改为每 129 帧抽检。Android 保留适合 tile GPU 的双目标极简环境绘制，
+不照搬桌面端 FP16 framebuffer copy。Python `build_gl_frame` 中位耗时由约 4.26ms 降到约 3.33～3.55ms；
+960×1260 完整 HDR 链为 `p50 14.54ms、p95 15.24ms、p99 16.19ms`，加入 GPU 录像取帧后为
+`p50 15.30ms、p95 16.47ms、p99 17.32ms`，P95 仍约 60.71 FPS。
+
+18 组真实/内置颜色的 FP16 回归保持既定局部 HDR：峰值中位数约 `1.710× reference white`；相邻层渲染色差
+中位数约 `0.0419`，浅灰绿色有一处约 `0.0195`，接近既有 `0.02` 观察线，因此没有为单一颜色增加特殊分支。
+Python 164 项测试与 Android 完整 `gradlew test` 均通过，`git diff --check` 通过；未使用 ADB，Android 的
+原生 DPI、HDR 动态画面和帧时间仍按 D139 交由真机验收。最终已发布阿里云 Debug `202607150614`；APK
+大小为 20,776,849 字节，SHA-256 为 `dd2e6ad45a91921e7596511aba52cfb268e1eb0f2aa7d78523b5161563cf05ab`。
+
 ## 2026-07-15 双仓提交前收口
 
 按用户要求对 Android 与 Python 工作区进行逐文件审计，为本轮长周期视觉迭代建立成对提交边界。

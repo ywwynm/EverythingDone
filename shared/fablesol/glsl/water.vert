@@ -9,7 +9,8 @@ layout(location = 4) in vec2 aSheenSlope;
 
 uniform vec2 uViewportPx;
 uniform float uRotationRad;
-uniform int uStartLayer;
+uniform float uRasterScale;
+uniform highp int uStartLayer;
 uniform vec3 uLayerStart[9];
 uniform vec3 uLayerStop1[9];
 uniform vec3 uLayerStop2[9];
@@ -180,7 +181,7 @@ void main() {
     vec2 rotated = vec2(
         c * aPositionPx.x - s * aPositionPx.y,
         s * aPositionPx.x + c * aPositionPx.y
-    );
+    ) * uRasterScale;
     vec2 screen = rotated + uViewportPx * 0.5;
     vec2 ndc = vec2(screen.x / uViewportPx.x * 2.0 - 1.0,
                     1.0 - screen.y / uViewportPx.y * 2.0);
@@ -192,32 +193,31 @@ void main() {
     vec3 behindColor;
     float materialOpacity;
     float directLight = 0.0;
+    behindColor = environmentAt(screen.y);
+    vec3 behindSubsurface = behindColor;
+    for (int layer = 8; layer >= 0; --layer) {
+        if (layer > uStartLayer) {
+            float q = gradientT(aPositionPx, layer);
+            vec3 layerColor = layerGradient(layer, q);
+            behindColor = mix(
+                behindColor,
+                layerColor,
+                uLayerAlpha[layer]
+            );
+            behindSubsurface = mix(
+                behindSubsurface,
+                subsurfaceGradient(layer, q),
+                uLayerAlpha[layer]
+            );
+        }
+    }
     if (uFrontFill) {
         float q = gradientT(aPositionPx, 0);
         materialSubsurface = subsurfaceGradient(0, q);
         materialColor = layerGradient(0, q);
-        behindColor = materialColor;
         materialOpacity = uLayerAlpha[0];
         color = materialColor;
     } else {
-        behindColor = environmentAt(screen.y);
-        vec3 behindSubsurface = behindColor;
-        for (int layer = 8; layer >= 0; --layer) {
-            if (layer > uStartLayer) {
-                float q = gradientT(aPositionPx, layer);
-                vec3 layerColor = layerGradient(layer, q);
-                behindColor = mix(
-                    behindColor,
-                    layerColor,
-                    uLayerAlpha[layer]
-                );
-                behindSubsurface = mix(
-                    behindSubsurface,
-                    subsurfaceGradient(layer, q),
-                    uLayerAlpha[layer]
-                );
-            }
-        }
         float materialQ = gradientT(aPositionPx, uStartLayer);
         materialColor = layerGradient(uStartLayer, materialQ);
         materialOpacity = uLayerAlpha[uStartLayer];

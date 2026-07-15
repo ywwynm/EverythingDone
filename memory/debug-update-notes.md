@@ -1,5 +1,43 @@
 # Current Debug Update Notes
 
+## 2026-07-15 - FableSol 光学实体形状 RGSS 超采样
+
+D140 的 MSAA 只抗几何覆盖。glint/streak/reflection/halo/transmission 的形状是 `optical.frag` 里
+`smoothstep`/`sin` 逐像素程序化算出来的，MSAA 不重算片元着色故完全不抗其形状边缘锯齿。共享
+`optical.frag` 因此对光学 pass 单独做 4x 旋转网格超采样（RGSS）：覆盖抽成 `opticalCoverage(vec2 uv)`，
+单样本预乘输出抽成 `shadeOpticalSample(vec2 uv)`，`main()` 用 `dFdx/dFdy(vLocalUv)` 抖动四个 x/y 子
+位置再平均。大实体导数极小、四点几乎重合，观感与逐像素一次着色一致，不改 glint 尺寸/剖面/峰值；只用
+GLES 3.0 核心片元导数，光学占少量像素、4x 开销可忽略。两端共享 shader 一次覆盖。
+
+另确认最亮 glint 核心的 SDR 台阶**不是缺抗锯齿**，而是薄亮 HDR 超白（峰值约 `2.3×`）clip 到 SDR 的
+固有现象（clip 在着色下游、亚像素宽，任何采样抗不掉），真机 HDR 屏更柔和。用户裁决保持 glint 锐利、
+不柔化，维持 D103～D118 合同。Python 167 项 unittest、Android 全量测试与 `:app:assembleDebug` 通过，
+两仓 `git diff --check` 通过；未使用 ADB。已发布阿里云 Debug `202607150755`（versionCode 43 / 2.0.0），
+APK 大小 `20776849` 字节，SHA-256 为
+`c0c250d8c0df69a767f24e84ca9afae33ff17952d1da3403eab3205a3d26fa80`；远端 `latest.json` 的
+`releaseNotes` 已回读，远端 SHA-256 与本地 APK 一致。
+
+## 2026-07-15 - FableSol 波浪边缘 4x MSAA 抗锯齿
+
+放大真机截图后九层弯曲界线、水天轮廓和光学闪点边缘仍有阶梯锯齿与颗粒。根因是 Android 与
+Python 的整条离屏链都渲染到单采样 FBO、无任何多重采样；D139 的 `waterEdgeCoverage` 只是方向盲的
+约 1px depth01 平滑，且其原生 DPI 修复只对 Python 生效（Android `uRasterScale` 恒为 1，早已按
+surface 实体分辨率渲染）。Python 离屏对照证明是纯采样不足：2x2 超采样与 4x MSAA 都能消除台阶。
+
+两端场景离屏改用 4x MSAA：几何画进多重采样 renderbuffer，再 resolve 进单采样 `sceneTexture`；
+`pre-water` 折射背景保持单采样。采样数按格式查询取 `min(4, 支持值)`，与场景同格式（RGBA8/RGBA16F），
+不支持时原子回退单采样并保留 D134 的 FP16→RGBA8 目标回退与输出颜色空间契约。Android 用可移植的
+`glRenderbufferStorageMultisample` + `glBlitFramebuffer` resolve（GLES3.0 保证），未依赖无 Java 绑定
+的 EXT。MSAA 只对几何覆盖多采样，材质/颜色仍逐像素一次计算；九层界线是几何边故逐像素 MSAA 足够。
+`waterEdgeCoverage`、196 列 C1、glint 数量与逐层 HDR 峰值等既定合同不变。
+
+18 色 FP16 回归的远/近响应比、相邻主体色差与超白覆盖同无 MSAA 一致；新增 Python MSE 测试确认 MSAA
+更接近超采样真值。桌面 960×1260 FP16 完成时间 `10.94→11.10ms`（约 +1.4%）。Python 167 项 unittest、
+Android 全量 `:app:testDebugUnitTest` 与 `:app:assembleDebug` 通过，两仓 `git diff --check` 通过；
+未使用 ADB。已发布阿里云 Debug `202607150701`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为 `a4887087e5a3017e65838309ae2f01314d2804683231dafaf313ff02252013bf`；远端 `latest.json` 的
+`releaseNotes` 已回读，远端 SHA-256 与本地 APK 一致。Android 真机放大观感与帧率由用户验收。
+
 ## 2026-07-15 - FableSol 删除层内斜短光点与 continuous sheen
 
 用户复看上一轮动态图片后确认：每层水体内部新增的斜短光点不是边缘 glint，观感仍然不好，要求

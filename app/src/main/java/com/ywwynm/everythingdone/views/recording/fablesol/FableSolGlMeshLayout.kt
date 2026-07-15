@@ -60,6 +60,8 @@ internal object FableSolSheenSlopeFilter {
         val count = rows * columns
         require(values.size >= count && scratch.size >= count)
 
+        var source = values
+        var target = scratch
         repeat(HORIZONTAL_PASSES) {
             for (row in 0 until rows) {
                 val rowStart = row * columns
@@ -67,10 +69,14 @@ internal object FableSolSheenSlopeFilter {
                     val center = rowStart + column
                     val left = rowStart + (column - 1).coerceAtLeast(0)
                     val right = rowStart + (column + 1).coerceAtMost(columns - 1)
-                    scratch[center] = (values[left] + 2f * values[center] + values[right]) * 0.25f
+                    target[center] = (
+                        source[left] + 2f * source[center] + source[right]
+                        ) * 0.25f
                 }
             }
-            System.arraycopy(scratch, 0, values, 0, count)
+            val swap = source
+            source = target
+            target = swap
         }
 
         repeat(DEPTH_PASSES) {
@@ -79,15 +85,18 @@ internal object FableSolSheenSlopeFilter {
                 val centerRow = row * columns
                 val farRow = (row + 1).coerceAtMost(rows - 1) * columns
                 for (column in 0 until columns) {
-                    scratch[centerRow + column] = (
-                        values[nearRow + column] +
-                            2f * values[centerRow + column] +
-                            values[farRow + column]
+                    target[centerRow + column] = (
+                        source[nearRow + column] +
+                            2f * source[centerRow + column] +
+                            source[farRow + column]
                         ) * 0.25f
                 }
             }
-            System.arraycopy(scratch, 0, values, 0, count)
+            val swap = source
+            source = target
+            target = swap
         }
+        if (source !== values) System.arraycopy(source, 0, values, 0, count)
     }
 }
 

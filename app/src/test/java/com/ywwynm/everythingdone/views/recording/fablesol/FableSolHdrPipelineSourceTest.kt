@@ -42,7 +42,9 @@ class FableSolHdrPipelineSourceTest {
         assertTrue(source.contains("private var preWaterFramebufferId = 0"))
         assertTrue(source.contains("private var preWaterTextureId = 0"))
         assertTrue(source.contains("drawEnvironmentTo(preWaterFramebufferId)"))
-        assertTrue(source.contains("drawEnvironmentTo(sceneFramebufferId)"))
+        // MSAA 场景 resolve 回单采样 sceneFramebufferId，折射仍采样这张独立不可变背景。
+        assertTrue(source.contains("drawEnvironmentTo(sceneDrawFramebufferId)"))
+        assertTrue(source.contains("GLES30.GL_DRAW_FRAMEBUFFER, sceneFramebufferId"))
         assertTrue(source.contains("GLES30.glActiveTexture(GLES30.GL_TEXTURE1)"))
         assertTrue(source.contains("waterProgram.uniform(\"uPreWaterScene\"), 1"))
         assertTrue(source.contains("GLES30.GL_LINEAR"))

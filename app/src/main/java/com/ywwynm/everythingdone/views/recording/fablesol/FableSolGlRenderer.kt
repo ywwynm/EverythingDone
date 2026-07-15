@@ -39,6 +39,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val orientation: ThingBackground.Orientation
     )
 
+    private data class MaterialColorKey(
+        val color: Int,
+        val endColor: Int,
+        val gradient: Boolean
+    )
+
     private val assets = context.assets
     private val params = FableSolParams()
     private val sim = FableSolSimulation(params)
@@ -85,6 +91,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var sceneTextureId = 0
     private var preWaterFramebufferId = 0
     private var preWaterTextureId = 0
+    // 场景几何画进多重采样 renderbuffer，再 resolve 进单采样 sceneTexture 供折射/present 采样。
+    // 只解决九层弯曲界线、水天轮廓和光学几何的覆盖锯齿；材质与颜色仍逐像素一次计算。
+    private var sceneMsaaFramebufferId = 0
+    private var sceneMsaaRenderbufferId = 0
+    private var sceneSamples = 1
     private var sceneTargetWidth = 0
     private var sceneTargetHeight = 0
     private val indexBufferState = FableSolGlIndexBufferState()
@@ -98,7 +109,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var hdrHeadroom = 1f
 
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
+    private val sourceBefore = IntArray(FableSolSpec.N_POINTS)
+    private val sourceAfter = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
+    private val cubicWeights = FableSolCatmullRomWeightTable(FableSolSpec.N_POINTS)
+    private val hermiteWeights = FableSolHermiteWeightTable(FableSolSpec.N_POINTS)
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
     private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
@@ -149,6 +164,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var opticalFloatCount = 0
     private var rotationRad = 0f
     private var viewElevationRad = 0f
+    private var materialColorKey: MaterialColorKey? = null
+    private var framesUntilGlErrorCheck = GL_ERROR_CHECK_INTERVAL_FRAMES
+    private var environmentUniformsDirty = true
+    private var waterMaterialUniformsDirty = true
 
     fun initialize(hdrOutput: Boolean) {
         sceneLinear = hdrOutput
@@ -156,6 +175,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         hdrGain = 0f
         hdrHeadroom = 1f
         hdrTransition.reset()
+        materialColorKey = null
+        framesUntilGlErrorCheck = GL_ERROR_CHECK_INTERVAL_FRAMES
+        environmentUniformsDirty = true
+        waterMaterialUniformsDirty = true
         environmentProgram = FableSolGlProgram(
             assets,
             "fablesol/glsl/fullscreen.vert",
@@ -374,17 +397,43 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             val source = sim.continuousRenderSourcePosition(info.i0, rawColumns, columns, column)
             val index = min(source.toInt(), info.i1 - 2)
             sourceIndex[column] = index
-            sourceFraction[column] = (source - index).coerceIn(0.0, 1.0)
+            sourceBefore[column] = (index - 1).coerceAtLeast(0)
+            sourceAfter[column] = (index + 2).coerceAtMost(FableSolSpec.N_POINTS - 1)
+            val fraction = (source - index).coerceIn(0.0, 1.0)
+            sourceFraction[column] = fraction
+            cubicWeights.update(column, fraction, FableSolSpec.DX_DP)
+            hermiteWeights.update(column, fraction, FableSolSpec.DX_DP)
         }
 
         var cursor = 0
         for (row in 0 until FableSolContinuousSurface.Z_ROWS) {
             for (column in 0 until columns) {
                 val index = sourceIndex[column]
+                val before = sourceBefore[column]
+                val after = sourceAfter[column]
                 val fraction = sourceFraction[column]
-                val orbitZ = lerp(sample.orbitZ[row][index], sample.orbitZ[row][index + 1], fraction)
-                val orbitX = lerp(sample.orbitX[row][index], sample.orbitX[row][index + 1], fraction)
-                val worldEta = lerp(sample.worldEta[row][index], sample.worldEta[row][index + 1], fraction)
+                val next = index + 1
+                val w0 = cubicWeights.w0[column]
+                val w1 = cubicWeights.w1[column]
+                val w2 = cubicWeights.w2[column]
+                val w3 = cubicWeights.w3[column]
+                val orbitZ = (
+                    sample.orbitZ[row][before] * w0 +
+                        sample.orbitZ[row][index] * w1 +
+                        sample.orbitZ[row][next] * w2 +
+                        sample.orbitZ[row][after] * w3
+                    ).coerceIn(-10.0, 10.0)
+                val rawOrbitX =
+                    sample.orbitX[row][before] * w0 +
+                        sample.orbitX[row][index] * w1 +
+                        sample.orbitX[row][next] * w2 +
+                        sample.orbitX[row][after] * w3
+                val orbitX = rawOrbitX.coerceIn(-10.0, 10.0)
+                val worldEta =
+                    sample.worldEta[row][index] * hermiteWeights.h00[column] +
+                        sample.slopeX[row][index] * hermiteWeights.h10[column] +
+                        sample.worldEta[row][next] * hermiteWeights.h01[column] +
+                        sample.slopeX[row][next] * hermiteWeights.h11[column]
                 val uDp = lerp(sim.uGrid[index], sim.uGrid[index + 1], fraction)
                 val z01 = ((sample.zDp[row] + orbitZ) / max(sample.depthDp, 1e-6))
                     .coerceIn(-0.08, 1.08)
@@ -398,12 +447,18 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 )
                 baseHeight = layerMeans[0] + (baseHeight - layerMeans[0]) * depthScale
                 val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
-                val slopeX = lerp(
-                    sample.slopeX[row][index], sample.slopeX[row][index + 1], fraction
-                ).toFloat()
-                val slopeZ = lerp(
-                    sample.slopeZ[row][index], sample.slopeZ[row][index + 1], fraction
-                ).toFloat()
+                val slopeX = (
+                    sample.worldEta[row][index] * hermiteWeights.dh00[column] +
+                        sample.slopeX[row][index] * hermiteWeights.dh10[column] +
+                        sample.worldEta[row][next] * hermiteWeights.dh01[column] +
+                        sample.slopeX[row][next] * hermiteWeights.dh11[column]
+                    ).toFloat()
+                val slopeZ = (
+                    sample.slopeZ[row][before] * w0 +
+                        sample.slopeZ[row][index] * w1 +
+                        sample.slopeZ[row][next] * w2 +
+                        sample.slopeZ[row][after] * w3
+                    ).toFloat()
                 val gridIndex = row * columns + column
                 vertexData[cursor++] = ((uDp + orbitX) * density * perspective).toFloat()
                 vertexData[cursor++] = ((info.hG / 2.0 - (baseHeight + worldEta)) * density).toFloat()
@@ -411,11 +466,14 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 vertexData[cursor++] = slopeZ
                 vertexData[cursor++] =
                     (row.toDouble() / (FableSolContinuousSurface.Z_ROWS - 1)).toFloat()
-                val orbitDerivative = lerp(
-                    orbitXDerivative(sample, row, index),
-                    orbitXDerivative(sample, row, index + 1),
-                    fraction
-                )
+                val orbitDerivative = if (rawOrbitX != orbitX) {
+                    0.0
+                } else {
+                    sample.orbitX[row][before] * cubicWeights.dw0[column] +
+                        sample.orbitX[row][index] * cubicWeights.dw1[column] +
+                        sample.orbitX[row][next] * cubicWeights.dw2[column] +
+                        sample.orbitX[row][after] * cubicWeights.dw3[column]
+                }
                 vertexData[cursor++] =
                     FableSolDepthScatteringPolicy.crestPinch(orbitDerivative).toFloat()
                 sheenSlopeX[gridIndex] = slopeX
@@ -459,7 +517,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             frontData[cursor++] = fillBottom.toFloat()
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
-            frontData[cursor++] = 0f
+            // front fill 顶边使用 depth=0，向水体内部递减；fragment shader 据此构造 1px coverage。
+            frontData[cursor++] = -1f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
@@ -490,6 +549,22 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
 
     private fun buildColors(fillBottom: Double) {
         val snapshot = background
+        val key = MaterialColorKey(
+            color = snapshot.color,
+            endColor = if (snapshot.gradient) snapshot.endColor else snapshot.color,
+            gradient = snapshot.gradient
+        )
+        if (materialColorKey != key) {
+            buildStaticMaterialColors(snapshot)
+            materialColorKey = key
+        }
+        // 方向与轮廓会随背景设置、重力和波形变化；只有这部分需要逐帧更新。
+        for (layer in 0 until FableSolSpec.N_LAYERS) {
+            buildLayerGradientGeometry(layer, fillBottom, snapshot)
+        }
+    }
+
+    private fun buildStaticMaterialColors(snapshot: BackgroundSnapshot) {
         val base = FableSolLayerColorPolicy.baseColors(
             FableSolColor.fromColor(snapshot.color),
             if (snapshot.gradient) FableSolColor.fromColor(snapshot.endColor) else null
@@ -533,7 +608,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 layer, FableSolDepthScatteringPolicy.derive(end), layerSubsurfaceEnd
             )
             layerAlpha[layer] = params.lget("alpha", layer).toFloat()
-            buildLayerGradientGeometry(layer, fillBottom, snapshot)
         }
         copyInterfaceWeights(palette.interfaceWeights.start, interfaceWeightStart)
         copyInterfaceWeights(palette.interfaceWeights.stop1, interfaceWeightStop1)
@@ -559,6 +633,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         putColor(environmentHorizon, horizon)
         putColor(environmentBottom, bottom)
         for (channel in 0 until 3) environmentHorizonRgb[channel] = horizon[channel]
+        environmentUniformsDirty = true
+        waterMaterialUniformsDirty = true
     }
 
     /** 界面肩权重由色板策略基于最终层色统一给出；Renderer 只负责上传。 */
@@ -612,10 +688,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         ) { "Scene targets are unavailable" }
         GLES30.glBindVertexArray(vertexArrayId)
 
-        // 折射必须采样不含水面的不可变背景；两个目标分别绘制同一环境，避免在当前
-        // scene 颜色附件上形成纹理读写反馈。
+        // 折射必须采样不含水面的不可变背景。Android 常见 tile GPU 上，直接在 scene
+        // 再画一次极简环境可留在 tile 内；从 FP16 pre-water Blit 反而可能强制外存 resolve。
+        // MSAA 时几何画进多重采样目标；pre-water 始终单采样（只是平滑环境，且是折射采样源）。
+        val sceneDrawFramebufferId =
+            if (sceneSamples > 1) sceneMsaaFramebufferId else sceneFramebufferId
         drawEnvironmentTo(preWaterFramebufferId)
-        drawEnvironmentTo(sceneFramebufferId)
+        drawEnvironmentTo(sceneDrawFramebufferId)
         if (vertexFloatCount > 0) {
             ensureIndexBuffer(columns)
             uploadBuffer(vertexBufferId, vertexData, vertexFloatCount, vertexUpload)
@@ -635,6 +714,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 bindWaterVertexLayout(vertexBufferId)
                 GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexBufferId)
                 GLES30.glUniform1i(waterProgram.uniform("uStartLayer"), layer)
+                GLES30.glDisable(GLES30.GL_BLEND)
                 GLES30.glDrawElements(
                     GLES30.GL_TRIANGLES,
                     indexBufferState.indexCountPerGroup,
@@ -648,12 +728,18 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             bindWaterVertexLayout(frontBufferId)
             GLES30.glUniform1i(waterProgram.uniform("uFrontFill"), 1)
             GLES30.glUniform1i(waterProgram.uniform("uStartLayer"), 0)
+            GLES30.glDisable(GLES30.GL_BLEND)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, columns * 2)
             drawOpticalLayer(0)
             unbindPreWaterScene()
         }
+        if (sceneSamples > 1) resolveSceneMsaa()
         presentScene()
-        checkGl("drawFrame")
+        framesUntilGlErrorCheck--
+        if (framesUntilGlErrorCheck <= 0) {
+            checkGl("drawFrame sampled")
+            framesUntilGlErrorCheck = GL_ERROR_CHECK_INTERVAL_FRAMES
+        }
     }
 
     private fun drawEnvironmentTo(framebufferId: Int) {
@@ -662,7 +748,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glClearColor(0f, 0f, 0f, 0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         environmentProgram.use()
-        uploadEnvironmentUniforms(environmentProgram)
+        if (environmentUniformsDirty) {
+            uploadEnvironmentUniforms(environmentProgram)
+            environmentUniformsDirty = false
+        }
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
     }
 
@@ -733,9 +822,77 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
         if (!sceneComplete || !preWaterComplete) return false
 
+        // MSAA 只是单采样目标之上的可选增益：建立失败仅退回单采样，不改变 HDR 精度回退契约。
+        setupSceneMsaa(width, height, internalFormat)
+
         sceneTargetWidth = width
         sceneTargetHeight = height
         return true
+    }
+
+    /** 场景 MSAA renderbuffer 与 resolve FBO；不支持该格式采样时安静退回单采样。 */
+    private fun setupSceneMsaa(width: Int, height: Int, internalFormat: Int) {
+        sceneSamples = 1
+        val samples = querySceneSamples(internalFormat)
+        if (samples < 2) return
+        val renderbuffers = IntArray(1)
+        GLES30.glGenRenderbuffers(1, renderbuffers, 0)
+        val framebuffers = IntArray(1)
+        GLES30.glGenFramebuffers(1, framebuffers, 0)
+        if (renderbuffers[0] == 0 || framebuffers[0] == 0) {
+            deleteSceneMsaa(renderbuffers[0], framebuffers[0])
+            discardGlErrorsBeforeTargetFallback()
+            return
+        }
+        GLES30.glBindRenderbuffer(GLES30.GL_RENDERBUFFER, renderbuffers[0])
+        GLES30.glRenderbufferStorageMultisample(
+            GLES30.GL_RENDERBUFFER, samples, internalFormat, width, height
+        )
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffers[0])
+        GLES30.glFramebufferRenderbuffer(
+            GLES30.GL_FRAMEBUFFER,
+            GLES30.GL_COLOR_ATTACHMENT0,
+            GLES30.GL_RENDERBUFFER,
+            renderbuffers[0]
+        )
+        val complete = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) ==
+            GLES30.GL_FRAMEBUFFER_COMPLETE
+        GLES30.glBindRenderbuffer(GLES30.GL_RENDERBUFFER, 0)
+        if (!complete) {
+            deleteSceneMsaa(renderbuffers[0], framebuffers[0])
+            discardGlErrorsBeforeTargetFallback()
+            return
+        }
+        sceneMsaaRenderbufferId = renderbuffers[0]
+        sceneMsaaFramebufferId = framebuffers[0]
+        sceneSamples = samples
+    }
+
+    /** 查询该内部格式支持的采样数上限；查询本身失败或不支持多采样时返回 1。 */
+    private fun querySceneSamples(internalFormat: Int): Int {
+        val formatSamples = IntArray(1)
+        GLES30.glGetInternalformativ(
+            GLES30.GL_RENDERBUFFER,
+            internalFormat,
+            GLES30.GL_SAMPLES,
+            1,
+            formatSamples,
+            0
+        )
+        // glGetInternalformativ 返回降序采样列表，首元素即最大值；FP16 在部分设备返回 0。
+        discardGlErrorsBeforeTargetFallback()
+        val supported = formatSamples[0]
+        if (supported < 2) return 1
+        return min(TARGET_MSAA_SAMPLES, supported).coerceAtLeast(1)
+    }
+
+    private fun deleteSceneMsaa(renderbufferId: Int, framebufferId: Int) {
+        if (framebufferId != 0) {
+            GLES30.glDeleteFramebuffers(1, intArrayOf(framebufferId), 0)
+        }
+        if (renderbufferId != 0) {
+            GLES30.glDeleteRenderbuffers(1, intArrayOf(renderbufferId), 0)
+        }
     }
 
     private fun configureSceneTexture(textureId: Int, width: Int, height: Int,
@@ -778,6 +935,19 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             if (GLES30.glGetError() == GLES30.GL_NO_ERROR) return
             // 这里只丢弃已经确认失败的 FP16 目标尝试产生的错误，再独立验证 RGBA8 目标。
         }
+    }
+
+    /** 把多重采样场景 resolve 进单采样 sceneTexture。resolve 尺寸相同，滤波必须为 NEAREST。 */
+    private fun resolveSceneMsaa() {
+        GLES30.glBindFramebuffer(GLES30.GL_READ_FRAMEBUFFER, sceneMsaaFramebufferId)
+        GLES30.glBindFramebuffer(GLES30.GL_DRAW_FRAMEBUFFER, sceneFramebufferId)
+        GLES30.glBlitFramebuffer(
+            0, 0, width, height,
+            0, 0, width, height,
+            GLES30.GL_COLOR_BUFFER_BIT,
+            GLES30.GL_NEAREST
+        )
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
     }
 
     private fun presentScene() {
@@ -829,6 +999,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         if (sceneTextureId != 0 || preWaterTextureId != 0) {
             GLES30.glDeleteTextures(2, intArrayOf(sceneTextureId, preWaterTextureId), 0)
         }
+        deleteSceneMsaa(sceneMsaaRenderbufferId, sceneMsaaFramebufferId)
+        sceneMsaaFramebufferId = 0
+        sceneMsaaRenderbufferId = 0
+        sceneSamples = 1
         sceneFramebufferId = 0
         sceneTextureId = 0
         preWaterFramebufferId = 0
@@ -844,6 +1018,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         bindOpticalVertexLayout()
         GLES30.glUniform2f(opticalProgram.uniform("uViewportPx"), width.toFloat(), height.toFloat())
         GLES30.glUniform1f(opticalProgram.uniform("uRotationRad"), rotationRad)
+        GLES30.glUniform1f(opticalProgram.uniform("uRasterScale"), 1f)
         GLES30.glUniform1i(opticalProgram.uniform("uSceneLinear"), if (sceneLinear) 1 else 0)
         GLES30.glUniform1f(opticalProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(opticalProgram.uniform("uHdrHeadroom"), hdrHeadroom)
@@ -936,35 +1111,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private fun uploadWaterUniforms() {
         GLES30.glUniform2f(waterProgram.uniform("uViewportPx"), width.toFloat(), height.toFloat())
         GLES30.glUniform1f(waterProgram.uniform("uRotationRad"), rotationRad)
-        GLES30.glUniform3fv(waterProgram.uniform("uLayerStart[0]"), FableSolSpec.N_LAYERS, layerStart, 0)
-        GLES30.glUniform3fv(waterProgram.uniform("uLayerStop1[0]"), FableSolSpec.N_LAYERS, layerStop1, 0)
-        GLES30.glUniform3fv(waterProgram.uniform("uLayerStop2[0]"), FableSolSpec.N_LAYERS, layerStop2, 0)
-        GLES30.glUniform3fv(waterProgram.uniform("uLayerEnd[0]"), FableSolSpec.N_LAYERS, layerEnd, 0)
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerSubsurfaceStart[0]"),
-            FableSolSpec.N_LAYERS,
-            layerSubsurfaceStart,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerSubsurfaceStop1[0]"),
-            FableSolSpec.N_LAYERS,
-            layerSubsurfaceStop1,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerSubsurfaceStop2[0]"),
-            FableSolSpec.N_LAYERS,
-            layerSubsurfaceStop2,
-            0
-        )
-        GLES30.glUniform3fv(
-            waterProgram.uniform("uLayerSubsurfaceEnd[0]"),
-            FableSolSpec.N_LAYERS,
-            layerSubsurfaceEnd,
-            0
-        )
-        GLES30.glUniform1fv(waterProgram.uniform("uLayerAlpha[0]"), FableSolSpec.N_LAYERS, layerAlpha, 0)
+        GLES30.glUniform1f(waterProgram.uniform("uRasterScale"), 1f)
+        if (waterMaterialUniformsDirty) {
+            uploadWaterMaterialUniforms()
+            waterMaterialUniformsDirty = false
+        }
         GLES30.glUniform2fv(
             waterProgram.uniform("uGradientOrigin[0]"),
             FableSolSpec.N_LAYERS,
@@ -983,7 +1134,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             layerGradientDenominator,
             0
         )
-        uploadEnvironmentUniforms(waterProgram)
         GLES30.glUniform1f(waterProgram.uniform("uViewElevationRad"), viewElevationRad)
         GLES30.glUniform1f(
             waterProgram.uniform("uLightAzimuthRad"),
@@ -1013,6 +1163,40 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
         GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
+    }
+
+    /** Thing 色未变化时，逐层材质数组无需每帧重复跨 JNI 上传。 */
+    private fun uploadWaterMaterialUniforms() {
+        GLES30.glUniform3fv(waterProgram.uniform("uLayerStart[0]"), FableSolSpec.N_LAYERS, layerStart, 0)
+        GLES30.glUniform3fv(waterProgram.uniform("uLayerStop1[0]"), FableSolSpec.N_LAYERS, layerStop1, 0)
+        GLES30.glUniform3fv(waterProgram.uniform("uLayerStop2[0]"), FableSolSpec.N_LAYERS, layerStop2, 0)
+        GLES30.glUniform3fv(waterProgram.uniform("uLayerEnd[0]"), FableSolSpec.N_LAYERS, layerEnd, 0)
+        GLES30.glUniform3fv(
+            waterProgram.uniform("uLayerSubsurfaceStart[0]"),
+            FableSolSpec.N_LAYERS,
+            layerSubsurfaceStart,
+            0
+        )
+        GLES30.glUniform3fv(
+            waterProgram.uniform("uLayerSubsurfaceStop1[0]"),
+            FableSolSpec.N_LAYERS,
+            layerSubsurfaceStop1,
+            0
+        )
+        GLES30.glUniform3fv(
+            waterProgram.uniform("uLayerSubsurfaceStop2[0]"),
+            FableSolSpec.N_LAYERS,
+            layerSubsurfaceStop2,
+            0
+        )
+        GLES30.glUniform3fv(
+            waterProgram.uniform("uLayerSubsurfaceEnd[0]"),
+            FableSolSpec.N_LAYERS,
+            layerSubsurfaceEnd,
+            0
+        )
+        GLES30.glUniform1fv(waterProgram.uniform("uLayerAlpha[0]"), FableSolSpec.N_LAYERS, layerAlpha, 0)
+        uploadEnvironmentUniforms(waterProgram)
     }
 
     /** 程序链接后不再变化的逐层曲线只上传一次，避免每帧重复 JNI/driver 调用。 */
@@ -1054,14 +1238,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         putColor(subsurfaceTarget, layer, palette.subsurface)
     }
 
-    private fun orbitXDerivative(sample: FableSolContinuousSurface.Sample,
-                                 row: Int, index: Int): Double {
-        val previous = max(index - 1, 0)
-        val next = min(index + 1, FableSolSpec.N_POINTS - 1)
-        return (sample.orbitX[row][next] - sample.orbitX[row][previous]) /
-            max((next - previous) * FableSolSpec.DX_DP, 1e-6)
-    }
-
     private fun putColor(target: FloatArray, index: Int, color: IntArray) {
         val offset = index * 3
         target[offset] = color[0] / 255f
@@ -1090,6 +1266,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         const val IDLE_SILENCE_MS = 200L
         const val MAX_PENDING_EVENTS = 128
         const val FILL_EXTRA_DP = 80.0
+        const val GL_ERROR_CHECK_INTERVAL_FRAMES = 129
+        const val TARGET_MSAA_SAMPLES = 4
         const val PREPARED_PRESENTATION_ALPHA = 0.16f
         val WHITE = intArrayOf(255, 255, 255)
     }

@@ -184,12 +184,19 @@ class FableSolGlShaderParityTest {
         )
 
         assertFalse(source.contains("(vOpticalMode - 3.0) / 0.49"))
+        // 覆盖计算已抽成 opticalCoverage(vec2 uv,...) 供逐子样本调用，剖面数学不变。
         assertTrue(source.contains(
-            "float inward = 1.0 - smoothstep(0.08, 0.72, vLocalUv.y)"
+            "float inward = 1.0 - smoothstep(0.08, 0.72, uv.y)"
         ))
         assertFalse(source.contains("smoothstep(0.0, 0.16, corePoint.y)"))
         assertTrue(source.contains("glintCoreCoverage = along * inward"))
         assertTrue(source.contains("coverage = glintCoreCoverage"))
+        // 光学 pass 对逐像素程序化形状做旋转网格 4 采样（RGSS）超采样，MSAA 只多采样几何。
+        assertTrue(source.contains("void opticalCoverage(vec2 uv"))
+        assertTrue(source.contains("vec4 shadeOpticalSample(vec2 uv)"))
+        assertTrue(source.contains("dFdx(vLocalUv)"))
+        assertTrue(source.contains("dFdy(vLocalUv)"))
+        assertTrue("shadeOpticalSample\\(vLocalUv".toRegex().findAll(source).count() == 4)
         assertTrue(optics.contains("MIN_CURVED_BAND_SEGMENTS = 12"))
         assertTrue(optics.contains("CURVED_BAND_TARGET_SEGMENT_DP = 3.2"))
         assertTrue(optics.contains("val packedMode = OPTICAL_MODE_GLINT"))
@@ -213,6 +220,7 @@ class FableSolGlShaderParityTest {
     @Test
     fun hdrPipelineDecodesInputsOnceAndKeepsSceneLinearUntilPresentation() {
         val environment = shader("environment.frag")
+        val waterVertex = shader("water.vert")
         val water = shader("water.frag")
         val optical = shader("optical.frag")
         val presentation = shader("present.frag")
@@ -220,7 +228,14 @@ class FableSolGlShaderParityTest {
         assertTrue(environment.contains("uSceneLinear ? srgbToLinear(uEnvironmentTop)"))
         assertFalse(environment.contains("srgbToLinear(encodedColor)"))
         assertTrue(water.contains("vec3 linearColor = uSceneLinear ? vColor : srgbToLinear(vColor)"))
-        assertTrue(water.contains("fragColor = vec4(max(outLinear, vec3(0.0)), 1.0)"))
+        assertTrue(water.contains("waterEdgeCoverage"))
+        assertTrue(water.contains("fwidth(vDepth01)"))
+        assertTrue(water.contains("smoothstep(-0.5 * pixelDepth, 0.5 * pixelDepth, insideDistance)"))
+        assertTrue(water.contains("edgeBehindBaseline"))
+        assertTrue(water.contains("mix(edgeBehindBaseline(), outLinear, coverage)"))
+        assertTrue(water.contains("vec4(max(outLinear, vec3(0.0)), 1.0)"))
+        assertTrue(water.contains("uniform highp int uStartLayer"))
+        assertTrue(waterVertex.contains("uniform highp int uStartLayer"))
         assertTrue(optical.contains("? srgbToLinear(vColor.rgb)"))
         assertTrue(presentation.contains("mix(srgbToLinear(uBackdropColor), sceneColor"))
     }
@@ -269,8 +284,7 @@ class FableSolGlShaderParityTest {
         assertFalse(source.contains("directionalSheenLocality"))
         assertFalse(source.contains("sunBoost"))
         assertFalse(bodyBlock.contains("uHdrGain"))
-        assertTrue(bodyBlock.contains("vec3 sdrBaseline = max(linearColor, vec3(0.0))"))
-        assertTrue(bodyBlock.contains("vec3 outLinear = sdrBaseline / sdrBaselinePeak"))
+        assertTrue(bodyBlock.contains("vec3 outLinear = boundedReferenceWhite(linearColor)"))
         assertTrue(source.contains("? vMaterialColor"))
         assertTrue(source.contains(": srgbToLinear(vMaterialColor)"))
         assertFalse(source.contains("vec3 identityTint = vColor / maxChannel"))

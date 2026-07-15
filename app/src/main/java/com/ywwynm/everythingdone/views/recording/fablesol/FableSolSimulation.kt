@@ -816,7 +816,8 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     /** 连续曲面的实际渲染列数；由 View 与回归测试共享。 */
-    fun continuousRenderColumnCount(rawColumns: Int): Int = min(rawColumns, CONTINUOUS_RENDER_COLUMNS)
+    fun continuousRenderColumnCount(rawColumns: Int): Int =
+        if (rawColumns < 2) rawColumns else CONTINUOUS_RENDER_COLUMNS
 
     internal fun continuousRenderSourcePosition(i0: Int, rawColumns: Int,
                                                 renderedColumns: Int, column: Int): Double =
@@ -852,7 +853,8 @@ class FableSolSimulation(private val p: FableSolParams) {
         private const val CONTINUOUS_PERSPECTIVE = 0.16
         private const val CONTINUOUS_MAX_Z01 = 1.1
         private const val CONTINUOUS_MAX_ORBIT_DP = 10.0
-        private const val CONTINUOUS_RENDER_COLUMNS = 120
+        /** 屏幕侧固定重建列数；物理网格仍由 N_POINTS=216 决定。 */
+        private const val CONTINUOUS_RENDER_COLUMNS = 196
         private const val BOUNDARY_PROFILE_DT = 1.0 / 30.0
         private const val BOUNDARY_LAYERS_PER_FRAME = 5
         private val ATK_MULT = doubleArrayOf(1.15, 1.0, 0.85)

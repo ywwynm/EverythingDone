@@ -20,6 +20,8 @@ flat in int vFrontFill;
 
 uniform sampler2D uPreWaterScene;
 uniform vec2 uViewportPx;
+uniform float uRasterScale;
+uniform highp int uStartLayer;
 uniform float uTimeSeconds;
 uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
@@ -176,7 +178,7 @@ vec2 screenSpaceRefractionOffsetPx(
     vec2 lateral = transmitted.xz / max(-transmitted.y, 0.24);
     vec2 flatLateral = flatTransmitted.xz / max(-flatTransmitted.y, 0.24);
     float depthCurve = pow(clamp(depth01, 0.0, 1.0), 0.75);
-    float offsetScalePx = mix(6.0, 16.0, depthCurve);
+    float offsetScalePx = mix(6.0, 16.0, depthCurve) * uRasterScale;
     vec2 delta = lateral - flatLateral;
     return offsetScalePx * vec2(
         delta.x,
@@ -267,17 +269,43 @@ vec3 backlitTransmissionExcess(float fresnel) {
     return identityTint * budget;
 }
 
+float waterEdgeCoverage() {
+    float insideDistance = vFrontFill == 1
+        ? -vDepth01
+        : float(uStartLayer) / 8.0 - vDepth01;
+    float pixelDepth = max(fwidth(vDepth01), 1e-6);
+    // 只处理轮廓命中的亚像素残差；完整单侧 1px 坡道会侵占本就很薄的中远层主体，
+    // 18 色回归会把相邻层色差压低近一半。主要精细度由原生 DPR 与 C1 网格承担。
+    return smoothstep(-0.5 * pixelDepth, 0.5 * pixelDepth, insideDistance);
+}
+
+vec3 boundedReferenceWhite(vec3 linearColor) {
+    vec3 baseline = max(linearColor, vec3(0.0));
+    float peak = max(
+        max(baseline.r, baseline.g),
+        max(baseline.b, 1.0)
+    );
+    return baseline / peak;
+}
+
+vec3 edgeBehindBaseline() {
+    vec3 behindLinear = uSceneLinear
+        ? vBehindColor
+        : srgbToLinear(vBehindColor);
+    return boundedReferenceWhite(behindLinear);
+}
+
 void main() {
     // front-fill 是独立 uniform draw；在所有导数之前按整次 draw 一致地早退，
     // 避免前景纯色遮挡区仍支付微法线、哈希与折射的完整成本。
     if (uFrontFill) {
+        float coverage = waterEdgeCoverage();
         vec3 frontLinear = uSceneLinear ? vColor : srgbToLinear(vColor);
-        vec3 baseline = max(frontLinear, vec3(0.0));
-        float peak = max(
-            max(baseline.r, baseline.g),
-            max(baseline.b, 1.0)
+        vec3 frontOutput = mix(
+            edgeBehindBaseline(),
+            boundedReferenceWhite(frontLinear),
+            coverage
         );
-        vec3 frontOutput = baseline / peak;
         fragColor = uSceneLinear
             ? vec4(frontOutput, 1.0)
             : vec4(clamp(linearToSrgb(frontOutput), 0.0, 1.0), 1.0);
@@ -324,18 +352,15 @@ void main() {
     }
     // 录音门控关闭时，即使浅色主体叠加直射/微法线/SDR SSS，也不得越过 reference white。
     // HDR 只由下面的录音增益门控局部 excess 开放。
-    vec3 sdrBaseline = max(linearColor, vec3(0.0));
-    float sdrBaselinePeak = max(
-        max(sdrBaseline.r, sdrBaseline.g),
-        max(sdrBaseline.b, 1.0)
-    );
-    vec3 outLinear = sdrBaseline / sdrBaselinePeak;
+    vec3 outLinear = boundedReferenceWhite(linearColor);
     if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 &&
             uHdrHeadroom > 1.001 &&
             vHdrTransmissionPeak > 1.001) {
         outLinear += backlitTransmissionExcess(transmissionFresnel);
         outLinear = min(outLinear, vec3(uHdrHeadroom));
     }
+    float coverage = waterEdgeCoverage();
+    outLinear = mix(edgeBehindBaseline(), outLinear, coverage);
     if (uSceneLinear) {
         fragColor = vec4(max(outLinear, vec3(0.0)), 1.0);
     } else {

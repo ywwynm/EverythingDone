@@ -1,5 +1,86 @@
 # 决策记录 · audio-visualization-fable-sol
 
+## D141 光学 pass 逐像素程序化形状用 RGSS 超采样；亮 glint 核心保持锐利不为 SDR clip 让步（2026-07-15）
+
+D140 的 MSAA 只多采样**几何覆盖**，不重算片元着色。glint、streak、surface reflection、halo、
+transmission 等光学实体的**形状是在 `optical.frag` 里用 `smoothstep`/`sin` 逐像素程序化算出来的**，
+MSAA 完全不抗这类形状边缘的锯齿。放大真机截图确认 glint 附近仍有残余锯齿。
+
+共享 `optical.frag` 因此对光学 pass 单独做 4x 旋转网格超采样（RGSS）：覆盖计算抽成
+`opticalCoverage(vec2 uv, out ...)`，单样本最终预乘输出抽成 `shadeOpticalSample(vec2 uv)`，
+`main()` 用 `dFdx/dFdy(vLocalUv)` 把四个子样本放在四个不同的 x 与 y 子位置再平均。glint 多为近
+水平光带，RGSS 的纵向分辨率明显优于轴对齐 2x2。实体较大时导数极小、四点几乎重合，输出与逐像素
+一次着色一致，不改变既定 glint 尺寸、剖面、峰值与观感；D129 界面肩剖面、mode 判定和 HDR excess
+逐层峰值合同均不变。只用 GLES 3.0 核心的片元导数，无需 sample shading 或任何扩展；光学实体只占
+少量像素，4x 片元开销可忽略。两端共享同一 shader，一次修复覆盖 Android 与 Python。
+
+诊断同时确认另一类残余**不是缺少抗锯齿**，而是 HDR 超白 clip 到 SDR 的固有现象：准备态（SDR）的
+反射很淡、平滑无锯齿，只有录音态（HDR）核心变亮（峰值约 `2.3× reference white`）才出现台阶。薄而
+亮的 glint 线性强度梯度陡，SDR 可见边（线性越过约 `1.0` 处）本质是亚像素宽，`avg(线性)` 后再 clip
+无论多少采样都无法抗掉——clip 发生在着色下游的显示/截图 SDR 映射。这在真机 HDR 屏上更柔和，只在
+SDR 截图里明显。用户裁决：**保持 glint 锐利/亮度，接受该固有残留，不为 SDR clip 展宽、柔化或压暗
+最亮核心**，以维持 D103～D118 的最高质量 glint 合同。若将来要进一步减轻，只能作为独立的 glint 观感
+改动单独裁决，不属于抗锯齿修复。
+
+## D140 场景离屏改用 4x MSAA 消除放大后的波浪边缘锯齿（2026-07-15）
+
+放大真机截图后，九层弯曲界线、水天轮廓和光学几何仍呈明显阶梯锯齿与颗粒。根因是整条离屏链
+（Python 与 Android）都渲染到**单采样** FBO，没有任何多重采样；D139 的 `waterEdgeCoverage`
+只是一条 `±0.5px` 的 depth01 平滑，方向盲、宽度不足，无法解决近水平弯曲界线上的横向台阶。
+D139 的原生 DPI 修复实际只作用于 Python：Android 的 `uRasterScale` 恒为 1，早已按 surface
+实体分辨率渲染，因此那轮改动对 Android 锯齿基本无效。Python 离屏对照证明该锯齿是纯采样不足：
+2x2 超采样与 4x MSAA 都能直接消除台阶，而单采样加 coverage 不能。
+
+两端场景离屏改为 4x MSAA：几何画进多重采样 renderbuffer，再 resolve 进单采样 scene_texture，
+折射与 present 继续采样这张已 resolve 的纹理。`pre-water` 折射背景保持单采样（只是平滑环境，
+且是折射采样源，不需要也不能接 MSAA）。九层主体、界面、光学、HDR 的材质与颜色仍逐像素**只计算
+一次**：MSAA 只对几何覆盖做多采样。九层界线是几何边（每组三角带的远边压在其后一组之上），因此
+逐像素一次着色的 MSAA 足以修复，无需 per-sample 或超采样着色。`waterEdgeCoverage` 保留，MSAA
+之上只再叠加约 1px 的轻微软化，不改变既定视觉合同。
+
+采样数按内部格式查询后取 `min(4, 支持值)`，保持与 sceneTexture 同格式（SDR RGBA8 / HDR
+RGBA16F），维持 D134 的 FP16 精度语义。不支持该格式多采样或建立失败时原子回退单采样，仍保留
+D134 的 FP16→RGBA8 目标回退与不改写输出颜色空间的契约；即回退顺序为
+`请求格式 MSAA → 请求格式单采样 → RGBA8 MSAA → RGBA8 单采样`。Android 走可移植的
+`glRenderbufferStorageMultisample` + `glBlitFramebuffer` resolve（GLES3.0 保证），未依赖
+`GL_EXT_multisampled_render_to_texture`（Java 无绑定）；对话框 surface 很小，4x resolve 带宽
+可接受，多采样数据位于 tile 内存。这与 D139 反对的 pre-water FP16 Blit 不是同一路径：pre-water
+仍是两目标各画一次环境，不做 Blit。效果指标经 18 色 FP16 回归确认未变（远/近响应比、相邻主体
+色差、超白覆盖不动），Python `build_gl_frame` 与桌面 GPU 完成时间几乎无回退（约 +1.4%）。
+
+## D139 物理网格保持 216 点，显示侧使用 196 列 C1 重建与实体像素边界覆盖（2026-07-15）
+
+放大观察暴露的颗粒和折线不能通过盲目增加物理点数解决。`N_POINTS=216` 覆盖包含画外余量、
+海绵区和注入区的完整物理域，屏内只会看到其中约 96～126 点；提高它会改变 `DX_DP`、CFL 上限、
+传播速度和既有波形。两端因此继续固定 216 点物理模拟与 97 行纵深网格，只把显示侧横向网格从
+最多 120 列改成固定 196 列。高度和横向坡度使用物理节点值/导数做 Hermite C1 重建，水平轨道与
+纵深坡度使用 Catmull–Rom；轨道越过 ±10dp 边界时同步把解析导数归零，禁止已夹平的几何继续
+产生虚假波峰光学。正常场景在 1.5 DPR 下相对 640 列参考的轮廓误差 `p95≤0.035px`、
+`max≤0.117px`；强注入压力帧仍保持 `p95≤0.186px`、`p99≤0.350px`、`max≤0.521px`，继续升到
+216 显示列的边际收益不足以抵消顶点和光学构建成本。
+
+Python 的 640×840 是逻辑尺寸，不再同时充当底层 Render Target 尺寸。普通 GL 与 D3D11/scRGB
+HDR 窗口都按 `logical size × devicePixelRatio` 建立 FBO、Composer 和 swapchain；共享 vertex
+shader 的 `uRasterScale` 只缩放栅格位置，程序化微法线、渐变和其它材质计算仍使用设计空间，
+折射偏移单独换算为实体像素。录制输出继续固定 640×840：HDR 由 GPU 在线性域缩小、撤销 scRGB
+scale 并编码为 RGBA8；SDR 窗口复用同一张原生 DPI 水体图生成视频副本，开始录制不得把窗口退回
+低分辨率拉伸。
+
+九条可见界线使用严格局限于一个实体像素以内的亚像素解析 coverage，但不再输出半透明水体。
+完整单侧 1px 坡道会侵占薄的中远层主体并让 18 色相邻层色差中位数近乎减半，因此 coverage 只
+处理轮廓命中的残余台阶，主要精细度由原生 DPR 与 C1 重建承担。片元在
+线性空间内直接混合 `vBehindColor` 与当前层结果并保持 alpha=1，front fill 的 behind 明确合成
+第 1～8 层；这样既不会露出浅色环境形成白色点线，也不会在 SDR 的 sRGB 固定功能混合中产生
+暗脏边。它只平滑栅格覆盖，不添加身份色描边、界面肩、额外亮度或跨层光学实体；独立 glint 的
+峰值、数量、生命周期和 D136 的逐层合同保持不变。
+
+新增显示精度必须由等价或更大的无损性能收益支付：Python 删除无人消费的 `micro_x/micro_z`，
+把二维相位三角函数拆成可分离的一维计算，缓存三次重建权重并使用无复制 VBO 上传；两端把坡度
+预滤波改成双缓冲交替，只在最终复制一次。Android 还缓存静态 Thing 材质及其 uniform，GL 错误
+稳定后每 129 帧抽检。Python 的 immediate-mode 桌面 GPU 实测一次环境绘制后 copy 更快；Android
+常见 tile GPU 则保留两个目标各画一次极简环境，避免 FP16 Blit 强制 attachment resolve 和外存
+往返。两端输出合同一致，但复制策略按平台带宽模型分开，不能把桌面结论直接外推到手机。
+
 ## D138 层内 continuous sheen 整体退出，不再以点、短划或光带替代（2026-07-15）
 
 用户复核 D137 的动态截图后确认：原扩缩光带虽然消失，但稳定微面片把同一效果缩成了分布在每层
