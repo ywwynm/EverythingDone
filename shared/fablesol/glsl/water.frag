@@ -16,6 +16,9 @@ in float vMicroNormalWeight;
 in float vSdrSssWeight;
 in float vHdrTransmissionPeak;
 in float vDirectLight;
+in float vThickness01;
+in float vThicknessSurface;
+in float vThicknessGlowWeight;
 flat in int vFrontFill;
 
 uniform sampler2D uPreWaterScene;
@@ -34,6 +37,10 @@ uniform bool uFrontFill;
 uniform bool uSceneLinear;
 uniform float uHdrGain;
 uniform float uHdrHeadroom;
+// 厚度透光（2026-07-16 质感提升批）：0 = 关闭 = 与既有输出逐位一致；
+// uGlowDerivedBoost 为透光派生的线性提亮倍数。Android 未上传时按 GLES 默认 0 关闭。
+uniform float uThicknessGlowStrength;
+uniform float uGlowDerivedBoost;
 out vec4 fragColor;
 
 float srgbToLinearChannel(float c) {
@@ -164,6 +171,59 @@ vec3 preWaterSceneLinear(vec2 uv) {
     return uSceneLinear ? sampled : srgbToLinear(sampled);
 }
 
+// 掠射差分光泽已于 2026-07-16 目测否决并整项移除（宁少勿烂）。
+
+// D155 薄度/透光量：入射量 = 水面处的波峰门（vThicknessSurface，波峰越高出
+// 层均值进入水体的光越多，波谷为 0）；随后按"水面下深度"做 Beer–Lambert
+// 指数衰减（λ = 2×uThicknessRangePx）。波浪网格顶点即在水面上，两 varying
+// 恒等 → 深度为 0、无衰减，与旧行为一致；front fill 由此获得突破水位线、
+// 逐列跟随水面轮廓的自然淡出。
+float thicknessThin() {
+    float entry = clamp(vThicknessSurface, 0.0, 1.0);
+    float depthNorm = max(vThicknessSurface - vThickness01, 0.0);
+    // 近表亮环：水面下前 0.35×范围保持全入射（近表层散射），随后
+    // Beer–Lambert 衰减 λ=2.5×范围——用户裁决第 0 层亮度不得输给第 1 层。
+    float transmit = exp(-max(depthNorm - 0.35, 0.0) * 0.4);
+    return pow(clamp(entry * transmit, 0.0, 1.0), 1.25);
+}
+
+// 厚度透光（合并"波峰透光/薄峰透光"的材质版）：厚度代理来自顶点阶段的
+// "高出层均值高度"（vThickness01），薄处按迎光坡向从内部亮起；
+// 目标色 = subsurface 派生再线性提亮 uGlowDerivedBoost（保色相与饱和比，
+// 不向白混）。0 = 关闭 = 与既有输出逐位一致。约 +10 ALU/px，零采样。
+// boostScale：波浪侧恒 1；front fill（第 0 层）为 1.35——身份色最纯最深，
+// 需更高提亮才能与混白近层达到同等绝对亮度（浅色身份被 1.0 钳制自然封顶）。
+vec3 thicknessGlow(vec3 baseLinear, float normalX, float boostScale) {
+    vec3 subsurfaceLinear = uSceneLinear
+        ? vSubsurfaceColor
+        : srgbToLinear(vSubsurfaceColor);
+    vec3 target = min(
+        subsurfaceLinear * (max(uGlowDerivedBoost, 1.0) * boostScale),
+        vec3(1.0));
+    float sunSide = clamp(sin(uLightAzimuthRad) * 4.0, -1.0, 1.0);
+    float facing = clamp(0.5 + 1.1 * sunSide * normalX, 0.0, 1.0);
+    float thin = thicknessThin();
+    // D154：独立权重表；未上传（旧接线）时回退 SDR_SSS 权重，行为与 D151 一致。
+    float layerWeight = vThicknessGlowWeight > 0.0001
+        ? clamp(vThicknessGlowWeight, 0.0, 1.0)
+        : clamp(vSdrSssWeight, 0.0, 1.0);
+    float amount = clamp(
+        uThicknessGlowStrength * thin * (0.35 + 0.65 * facing) *
+            layerWeight * 0.62,
+        0.0,
+        0.55
+    );
+    return mix(baseLinear, target, amount);
+}
+
+// 供 HDR 透射 excess 复用的厚度掩码（与 SDR 透光同源）。
+float thicknessExcessMask(vec3 normal) {
+    float sunSide = clamp(sin(uLightAzimuthRad) * 4.0, -1.0, 1.0);
+    float facing = clamp(0.5 + 1.1 * sunSide * normal.x, 0.0, 1.0);
+    float thin = thicknessThin();
+    return thin * facing * min(uThicknessGlowStrength, 1.0);
+}
+
 vec2 screenSpaceRefractionOffsetPx(
         vec3 normal,
         vec3 viewDir,
@@ -252,13 +312,15 @@ vec3 applyRefractionAndBeer(
     return mix(behind, volume, clamp(vMaterialOpacity, 0.0, 1.0));
 }
 
-vec3 backlitTransmissionExcess(float fresnel) {
+vec3 backlitTransmissionExcess(float fresnel, float thicknessMask) {
     float strength = clamp(uSunSssStrength / 0.16, 0.0, 1.0);
     float transmissionPeak = min(
         vHdrTransmissionPeak,
         uHdrHeadroom
     );
-    float budget = 0.58 * (1.0 - fresnel) * sunriseSubsurfaceMask() * strength *
+    // 厚度掩码与 SDR 厚度透光同源（uThicknessGlowStrength=0 时恒为 0）。
+    float mask = min(sunriseSubsurfaceMask() * strength + thicknessMask, 1.0);
+    float budget = 0.58 * (1.0 - fresnel) * mask *
         max(transmissionPeak - 1.0, 0.0) * uHdrGain;
     vec3 subsurfaceLinear = uSceneLinear
         ? vSubsurfaceColor
@@ -301,6 +363,16 @@ void main() {
     if (uFrontFill) {
         float coverage = waterEdgeCoverage();
         vec3 frontLinear = uSceneLinear ? vColor : srgbToLinear(vColor);
+        // D155（2026-07-16 用户裁决，适当放宽 D6）：前景水体在水线下
+        // uThicknessRangePx 内接受同一厚度透光，让第 0 层的透光可见；
+        // vThickness01 随深度衰减为 0，大面积主体仍保持身份纯色。
+        // 迎光信号来自顶边复制的 sheen slope（未接线的平台为 0 → 中性 0.5）。
+        if (uThicknessGlowStrength > 0.0001) {
+            vec3 fillNormal = normalize(
+                vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)
+            );
+            frontLinear = thicknessGlow(frontLinear, fillNormal.x, 1.35);
+        }
         vec3 frontOutput = mix(
             edgeBehindBaseline(),
             boundedReferenceWhite(frontLinear),
@@ -346,6 +418,10 @@ void main() {
             viewDir
         );
         linearColor += linearColor * clamp(vDirectLight, 0.0, 0.020);
+        // 厚度透光（体现象）在直射之后、旧 SSS 之前合成。
+        if (uThicknessGlowStrength > 0.0001) {
+            linearColor = thicknessGlow(linearColor, normal.x, 1.0);
+        }
         if (uSunSssStrength > 0.0001) {
             linearColor = addSunriseSubsurface(linearColor);
         }
@@ -356,7 +432,10 @@ void main() {
     if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 &&
             uHdrHeadroom > 1.001 &&
             vHdrTransmissionPeak > 1.001) {
-        outLinear += backlitTransmissionExcess(transmissionFresnel);
+        float thicknessMask = uThicknessGlowStrength > 0.0001
+            ? thicknessExcessMask(normal)
+            : 0.0;
+        outLinear += backlitTransmissionExcess(transmissionFresnel, thicknessMask);
         outLinear = min(outLinear, vec3(uHdrHeadroom));
     }
     float coverage = waterEdgeCoverage();

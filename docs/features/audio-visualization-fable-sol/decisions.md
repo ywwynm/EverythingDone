@@ -2093,3 +2093,140 @@ Canvas/AGSL 定稿的 fade 带透明度为 `baseAlpha × 0.66 × sin(π·relativ
 几何厚度继续按 Canvas 的原公式，不因视觉白边问题先行缩窄。若峰值和积分偏高，同宽几何会同时
 显得更白、更厚；应先恢复剖面一致，再由真机判断是否还存在颜色或几何偏差。峰值与数值积分必须
 有自动回归，防止后续 shader 调整重新放大量层边缘。
+
+## D151（2026-07-16）质感提升批·三改动以零默认 uniform 门控进入共享 shader
+
+依据 2026-07-16 双份独立调研（本仓库 research-2026-07-16-water-look-uplift-latex 与
+research-sol-ultra-0716）的交集，实施三项改进，全部先落 Python、经用户目测后再接 Android：
+
+1. **统一光场**：`water.frag` 新增掠射差分光泽 `grazingSheen`（uniform
+   `uGrazingSheenStrength`，逐行视角近 1.0×→远 0.37×仰角、只保留相对平坦水面的
+   菲涅耳增量、光泽色 = vSubsurfaceColor 派生 + 太阳侧向白 ≤10%）；
+   `environment.frag` 新增日出光锚（`uSunAnchorStrength`/`uSunAnchorQ`，
+   地平线亮核 + 太阳侧梯度，锚点 x 与 glitter path 同源）。
+2. **厚度透光**：`water.vert` 以 `uLayerMeanYPx[9]`/`uThicknessRangePx` 计算
+   "高出层均值高度"厚度代理（varying `vThickness01`）；`water.frag` 新增
+   `thicknessGlow`（`uThicknessGlowStrength`，目标色 = subsurface 线性提亮
+   `uGlowDerivedBoost`≈1.35，保色相饱和比、不向白），并把同一厚度掩码并入
+   HDR 透射 excess（`backlitTransmissionExcess` 增加 thicknessMask 参数）——
+   SDR 透光与 HDR excess 同源。定位为"波峰透光/薄峰透光"实体带的材质版替代，
+   目测认可后可考虑降档或退役实体带。
+3. **闪点统计化**：模拟器 `gl_optics._glints` 以 Cox-Munk 均方坡
+   （mss=0.003+0.00512U，U=5·wind·sparkle01，阻尼 0.5）展宽 σ；
+   守恒分两半——锚点查找用未调暗的展宽场（数量↑），单体以
+   conserve=widen^-0.6 收敛 alpha 与 HDR 资格（容量表 D136 在响亮段封顶数量，
+   完全守恒会把单体压过头）。
+
+**关键约束**：所有新 uniform 零默认 = 关闭；已用 4 配色 × 2 时刻验证
+strength=0 与改动前逐位一致（maxdiff 0）——Android 在 Kotlin 未接线前行为不变。
+模拟器面板新增"质感提升（试验）"组（uplift_sheen / uplift_anchor /
+uplift_thick_glow / uplift_glow_boost / uplift_glint_wind，默认 0，1.0=建议档）。
+桌面 GL 基准：全开 15.33ms vs 基线 15.28ms（增量≈0）。评审图与差异面板见
+模拟器 `tmp/uplift-review/compare/`。QPainter 后端未实现（归零即回退），
+Android 移植清单见 sessions.md 本日条目。
+
+## D152（2026-07-16）质感提升批·首轮目测裁决与修复
+
+用户 GUI 目测后对 D151 三改动的裁决与随之落地的修复：
+
+1. **厚度透光定档**：`uplift_thick_glow` 默认 1.29、`uplift_glow_boost` 默认 1.6；
+   旧"薄峰透光"实体带（`thin_glow_gain`）默认 0.38 → 0 并标记 deprecated
+   （被材质版厚度透光取代，参数仅留回退）。
+2. **掠射光泽整项砍除**（宁少勿烂）：shader 函数、uniform 与 Python 上传全部移除；
+   D151 中该项作废。
+3. **日出光锚可见性修复**：根因是提亮目标取"地平线色向白 25%"，而地平线环境色
+   本身接近白（environment_tint 仅 0.16）——向白提亮不可见。改为 CPU 派生的
+   晨曦染色 `uSunAnchorColor = mix_oklab(地平线色, 身份层0起点色, 0.42)`，
+   shader 向该色染色。修复后 t45 差异 mean 6.95/P99 48（此前 0.5/5.6）。
+4. **闪点风力修复与定性**：出生率随 widen 加速（生灭节奏可感）、守恒指数
+   0.6 → 0.5；归一化锚定 base×widen（只补偿 specular AA，风力不压暗整场）。
+   定性结论：容量表（D136）封顶数量，风力通道的静帧收益天生有限
+   （t70 超白 758→489，单体守恒收敛），可感价值在动态端
+   （生灭节奏、带宽随能量变化、"安静=少而亮"对比）；去留待用户在
+   动态 GUI 中裁决。
+5. **暂停冻结**：暂停音乐时画面完全静止（`VisCanvas.freeze_probe`，
+   ST_PAUSED 时不推进模拟与音频泵、仍重绘同帧——参数滑杆改动即时可见），
+   继续播放无时间跳变。三种画布（QPainter/GL/HDR）共用同一实现。
+
+## D153（2026-07-16）质感提升批·终裁：仅厚度透光存活并上线 Android
+
+用户动态目测终裁：**日出光锚**（效果不好）与**闪点风力 Cox-Munk**（无感）
+均整项移除（Python 参数/上传/shader/优化器全链路删除，environment.frag 恢复原状，
+gl_optics 恢复原 σ/归一化路径）；**厚度透光**为质感提升批唯一存活项，
+定档 uplift_thick_glow=1.29、uplift_glow_boost=1.6，薄峰透光实体带
+（thin_glow_gain）默认归零 deprecated。
+
+**暂停冻结修复**：暂停后播放按钮失效的根因是按钮使能刷新位于 _pump 末尾而
+冻结分支跳过了整个 _pump。新增 freeze_tick 轻量回调（仅刷新按钮/时钟/
+离线分析轮询，不消费特征、不驱动 mapper——暂停期间 apply_silence 不再
+污染能量状态），冻结语义保持"画面完全静止、参数滑杆即时可见"。
+
+**Android 移植与发布**：FableSolParams 增加两参数并把 thin_glow_gain 置 0；
+FableSolGlRenderer 网格构建后计算 9 锚行均值 y（与 Python layer_mean_y_px
+一比一）并上传 uThicknessGlowStrength / uGlowDerivedBoost / uLayerMeanYPx[9] /
+uThicknessRangePx(22dp×density)；共享 shader 已含 vThickness01 与
+thicknessGlow/thicknessExcessMask。契约测试按新设计更新
+（backlitTransmissionExcess 双参签名、透射掩码同源合并、thin_glow 全层归零、
+params 新默认），FableSol 146 项单测全绿。阿里云 debug 发布
+**202607161231**（APK SHA-256 ec156ea3…48c2，含中文更新日志）。
+真机验收要点：厚度透光在 18 色上的观感、录音态逆光波冠的 HDR 透射、
+60fps 帧率（新增成本：每帧 9×196 次均值求和 + 每像素约 10 ALU）。
+
+## D154（2026-07-16）厚度透光独立权重表与近层覆盖偏置
+
+用户复测 202607161231 后指出：厚度透光实际只在约 1~4 层可感，第 0 层与中远层
+（4~8）几乎没有。裁决与落地：
+
+1. **独立权重表**：新增 `THICKNESS_GLOW_WEIGHTS = (1.0, 0.96, 0.84, 0.64,
+   0.56, 0.49, 0.42, 0.36, 0.27)`（4~8 层按用户指定整体上提一档），经新 uniform
+   `uThicknessGlowWeights[9]` 上传；不再借用 `SDR_SSS_WEIGHTS`（避免连带改旧
+   SSS 通道）。shader 侧带回退：未上传该表（旧接线）时自动回退 SDR_SSS 权重，
+   已发布 APK 行为不变。
+2. **近层覆盖偏置**：`water.vert` 厚度代理增加
+   `nearBias = 0.45 × clamp(1 − depth01×4, 0, 1)`（层 0=+0.45 → 层 2≈0），
+   让最近条带整体进入透光渐变、波峰仍最亮。
+3. **验证方法论修正**（用户指出两处错误）：灰度差异面板的放大倍数由 P99.9
+   离群值主导改为 P95 定标（`amp = min(160/max(P95,2), 60)`，闪点级离群值允许
+   饱和）；前后对比必须同管线——两侧都走 `--hdr-debug` 线性 FP16 场景，
+   SDR 视图与 HDR −1EV 视图各比各，杜绝普通 SDR 链路与线性链路混比。
+
+## D155（2026-07-16）适当放宽 D6：front fill 水线带参与厚度透光
+
+D154 落地后第 0 层透光仍完全不可见。根因：第 0 层在画面中的可见主体是
+front fill（第 0 层轮廓线以下的整块前景水体），而 `water.frag` 对 front fill
+在所有光学之前早退（D6 身份色锚点使然），厚度透光从未在其上运行；波浪网格
+在锚线 0 即结束，第 0 层"条带"实际不存在。
+
+用户裁决：**D6 身份色锚点适当推翻**——front fill 参与同一 `thicknessGlow()`。
+首版实现把透光 clamp 在"层均值线 + 偏置"的水平线处，用户复看后追加裁决：
+第 0 层透光面积不得小于第 1 层，**必须突破这条固定水位线，面积与颜色淡出
+都遵循自然物理规律**。最终模型：
+
+- **入射量**（波峰门）：水面处的厚度代理 `vThicknessSurface`（波峰越高出
+  层均值，进入水体的光越多；波谷为 0）——与波浪侧同源，水线接缝连续；
+- **衰减**（近表亮环 + Beer–Lambert）：水面下前 0.35×范围（≈8dp）保持全
+  入射（近表层散射亮环），随后乘 `exp(−(深度−亮环)/λ)`，λ =
+  2.5×`uThicknessRangePx`（55dp）；下边界不再是直线，逐列跟随其上方的
+  实际水面轮廓指数淡出。亮环与放缓的 λ 来自用户追加裁决"第 0 层透光
+  亮度不得输给第 1 层"（首版 λ=2×范围、无亮环，整团平均亮度偏低）；
+- **第 0 层提亮补偿**：fill 的透光目标 = `min(subsurface × uGlowDerivedBoost
+  × 1.35, 1)`（等效 2.16）——第 0 层身份色最纯最深（无 D135 混白），同等
+  提亮倍数下绝对亮度天然低于近层条带；×1.35 将其补偿到感知同亮，浅色身份
+  被 1.0 钳制自然封顶，波浪侧 boostScale 恒 1 不变。实测（默认色 t70 水线
+  下 0–40px 盒）：提亮 8.45→14.81，绝对亮度 115.7→122.0（条带参照约 136）；
+- `water.vert` 输出两个 varying：`vThickness01`（像素处原始代理，顶点端
+  不 clamp——fill 只有上下两排顶点，先 clamp 再插值会把衰减线性拉伸到
+  整块填充）与 `vThicknessSurface`（本列水面处代理，逐列常量）；片元
+  `thicknessThin()` 以两者之差还原水面下深度。波浪网格顶点即在水面上，
+  两值恒等 → 衰减为 0，波浪侧行为不变；
+- fill 的本列水面 y 经闲置的 `aSlope.y` 传入（fill 宏观坡度恒 0：Python
+  `gl_scene.front[0::2/1::2, 3]`、Kotlin front 顶点 slopeZ 分量）；顶边
+  另继承 row 0 的 sheen slope 供迎光门连续（底边 0 → 中性 0.5）；
+- `water.frag` front-fill 早退分支内、参考白钳制前合成 thicknessGlow，
+  由 `uThicknessGlowStrength > 0` 门控（未接线平台零默认关闭不变）；
+- 不改变 HDR 路径：front fill 仍无 HDR excess，透光目标色
+  `min(subsurface×1.6, 1)` 被参考白钳制约束，SDR 安全（验证：超白像素
+  与峰值 Y 逐位不变）。
+
+D6 其余合同不变：第 0 层混白量恒为 0、静态色板、渐变身份保留；
+深处大面积主体随指数衰减回归身份纯色。

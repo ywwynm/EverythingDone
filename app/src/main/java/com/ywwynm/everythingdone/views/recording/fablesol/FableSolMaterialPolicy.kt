@@ -14,6 +14,10 @@ internal object FableSolMaterialPolicy {
     val MACRO_SHADOW_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.60f, 0.42f, 0.27f, 0.12f, 0.06f, 0f)
     val MICRO_NORMAL_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0.49f)
     val SDR_SSS_WEIGHTS = floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.49f, 0.36f, 0.24f, 0.16f, 0.12f)
+    // D154：厚度透光独立权重表（4~8 层较 SDR_SSS 上提一档，用户裁决），
+    // 与 Python material_policy.THICKNESS_GLOW_WEIGHTS 一比一。
+    val THICKNESS_GLOW_WEIGHTS =
+        floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.56f, 0.49f, 0.42f, 0.36f, 0.27f)
     private val SURFACE_BAND_WIDTH_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0f)
     private val SURFACE_BAND_ALPHA_WEIGHTS =

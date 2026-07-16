@@ -26,8 +26,12 @@ class FableSolParams {
         v("crest_glow_depth_dp", 12.0); v("crest_veil_strength", 0.14)
         v("capillary_glint_gain", 1.0)
         // 立体感手法（2026-07-11 视觉批次，Python 面板同名参数的定稿默认值）
-        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.38)
+        // D152：薄峰透光实体带被材质版"厚度透光"取代，默认归零仅留回退（deprecated）。
+        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.0)
         v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
+        // D151/D152 质感提升（2026-07-16 目测定稿）：厚度透光——薄处按迎光坡向
+        // 从内部亮起，目标色 = subsurface 派生线性提亮 1.6（保色相饱和比）。
+        v("uplift_thick_glow", 1.29); v("uplift_glow_boost", 1.6)
         v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
         v("hue_temp_deg", 0.0); v("pink_mod", 0.80)
         // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，

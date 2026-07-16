@@ -1,5 +1,30 @@
 # Current Debug Update Notes
 
+## 2026-07-16 - FableSol 厚度透光层级重分布与第 0 层透光（D154/D155）
+
+厚度透光独立权重表（4~8 层上提为 0.56/0.49/0.42/0.36/0.27，经
+`uThicknessGlowWeights[9]` 上传，shader 未上传时回退 SDR_SSS 保旧接线）；
+第 0 层按用户裁决适当放宽 D6：front fill 参与厚度透光，入射量 = 水面处
+波峰门（fill 本列水面 y 借闲置 aSlope.y 传入），衰减 = 近表亮环
+0.35×范围 + Beer–Lambert（λ=2.5×范围），目标色对第 0 层补偿 ×1.35；
+HDR 超白与峰值逐位不变。Python 177 项 unittest、Android
+`:app:testDebugUnitTest` 161 项与 `:app:assembleDebug` 全部通过；
+未使用 adb。已发布阿里云 Debug `202607161438`（versionCode 43 / 2.0.0），
+APK 大小 `20776849` 字节，SHA-256 为
+`bfd52b9544b92380f64ab62296bbf27a41e9244c2607c43cd70d61a196ed3343`；
+本地 `latest.json` 的 `releaseNotes` 已核对含完整日志。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260716223659.md。
+
+## 2026-07-16 - FableSol 厚度透光上线（D151~D153）
+
+质感提升批唯一存活项定档 uplift_thick_glow=1.29 / uplift_glow_boost=1.6，
+薄峰透光 deprecated 归零，砍除掠射光泽/日出光锚/闪点风力；已发布阿里云
+Debug `202607161231`，APK SHA-256
+`ec156ea3fe39ff4d05fb64dc325b5eb331646698cf451599b0467ddad7e548c2`；
+日志文件 docs/features/audio-visualization-fable-sol/debug-updates/update-20260716202919.md；
+同号 202607161229 因 releaseNotes 带 BOM 被该次覆盖。
+（本条由 2026-07-16 晚补位：原回填误插入下方 2026-06-28 条目的列表中，已迁出。）
+
 ## 2026-07-15 - FableSol 光学实体形状 RGSS 超采样
 
 D140 的 MSAA 只抗几何覆盖。glint/streak/reflection/halo/transmission 的形状是 `optical.frag` 里

@@ -1857,3 +1857,89 @@ Debug 版本真机确认。已发布阿里云 Debug `202607101341`。
 根据真机反馈开始第二轮分层、光影连续性、中远景效果和 HDR 高光迭代。Python 固定 HDR 场景复现约 2.5 FPS 卡顿；分段计时证实 GPU 不是瓶颈，主要成本来自光学带逐列执行 OKLCH 色域二分。完成颜色场向量化、256 级材质状态缓存、静态索引拓扑缓存和帧数组所有权修复后，无读回场景中位数约 16.3 ms，HDR 离屏读回中位数约 22.0 ms；67 项相关回归通过。
 
 建立覆盖 10 个内置纯色与 8 组真实记事色/渐变的 HDR 离屏诊断。发现同时创建多个 standalone OpenGL context 会使非 current renderer 的消融帧只剩环境背景，立即作废该批错误基线并改为逐变体 create→render→close。物理与实现调研、真实性边界及分阶段方案见 `research-2026-07-15-water-material-second-pass.md`。
+
+## 2026-07-16（晚）质感提升批 Python 落地（D151）
+
+按双调研交集实施三改动（统一光场 / 厚度透光 / 闪点统计化），共享 GLSL 以零默认
+uniform 门控进入公共区，parity(0) 四配色逐位一致。评审产物：模拟器
+`tmp/uplift-review/`（base/step1/step2/step3/all 各含 4 SDR + 2 组 HDR 诊断；
+`compare/` 为前|后|灰度差异三联与 HDR −1EV 视图）。数值摘要：
+step1 掠射光泽 P99≈8.4（t45）；step2 厚度透光 P99 13.9–26.0，HDR 超白
+244→255（t45）/714→750（t70）、透射 excess 首次真实触发；step3 风力展宽
+t45 超白 244→269（数量↑）、t70 峰值 1.85→1.48（单体收敛，容量表封顶数量）；
+全开 t45 P99 22.1。基准：全开 15.33ms vs 基线 15.28ms。手动契约断言通过
+（water.vert 无历史包裹符号）；env 缺 pytest，正式回归待补。
+
+**Android 移植清单（待用户目测认可后执行）**：
+1. `FableSolParams` 增加 uplift_sheen / uplift_anchor / uplift_thick_glow /
+   uplift_glow_boost / uplift_glint_wind（默认 0 / 0 / 0 / 1.35 / 0）；
+2. `FableSolGlRenderer` 上传 `uGrazingSheenStrength`、`uThicknessGlowStrength`、
+   `uGlowDerivedBoost`、`uLayerMeanYPx[9]`（锚层轮廓均值 y，物理 px 未旋转）、
+   `uThicknessRangePx`（22dp×density）；environment 程序上传
+   `uSunAnchorStrength`、`uSunAnchorQ`（x=0.5+tan(az±55°)·0.14，q=0.42）；
+3. `FableSolGlOptics` 在 σ 处并入 widen（U=5·wind·sparkle01，阻尼 0.5，
+   peak_normalization 锚定 base·widen）与 conserve=widen^-0.6（乘 track 强度）；
+4. 网格构建侧计算 9 锚层均值 y 传入（对应模拟器 gl_scene 的
+   `layer_mean_y_px = y[::ROWS_PER_LAYER].mean(axis=1)`）；
+5. 真机验收：18 色回归 + HDR FP16 原值读数 + 60fps 锁定；
+   QPainter/Canvas 回退路径保持归零行为。
+
+## 2026-07-16（深夜）目测反馈落地（D152）
+
+厚度透光定档 1.29/1.6（新默认 vs 旧现状：SDR P99 21.8–32.8，HDR 超白
+244→266/714→758）；薄峰透光 deprecated 归零；掠射光泽砍除；日出光锚改
+晨曦染色（差异 mean 0.5→6.95）；闪点风力补出生率联动并定性"静帧受容量表
+约束、价值在动态端"；新增暂停冻结（freeze_probe，离屏单测通过：冻结期
+sim.t 不变、恢复无跳变）。验证渲染 tmp/uplift-review/{defaults2,anchor1,wind12}，
+拼图在 compare/。Android 移植清单相应更新：不移植掠射光泽；
+uSunAnchorColor 需在 Kotlin 侧用 FableSolColor.mixOklab 派生。
+
+## 2026-07-16（夜末）终裁落地与 Android 发布（D153）
+
+砍除日出光锚与闪点风力（全链路）；freeze_tick 修复暂停后播放按钮失效；
+Android 接线厚度透光（参数/均值/四 uniform），契约测试更新后 146 项全绿；
+assembleDebug 通过；阿里云 debug 发布 202607161231（含日志，BOM 已修）。
+Python 侧冒烟：params 仅剩 uplift_thick_glow/uplift_glow_boost、
+freeze_tick 单测通过、GL 渲染正常。
+
+## 2026-07-16（次日）厚度透光层级重分布 + 第 0 层可见（D154/D155，Python 侧）
+
+用户复测指出厚度透光只在 1~4 层可感。落地：①独立权重表
+THICKNESS_GLOW_WEIGHTS（4~8 层上提为 0.56/0.49/0.42/0.36/0.27）经新
+uniform `uThicknessGlowWeights[9]` 上传，shader 回退 SDR_SSS 保旧接线；
+②近层覆盖偏置 nearBias=0.45×clamp(1−depth×4,0,1)；③验证方法论修正
+（差异面板 P95 定标、前后同走 --hdr-debug 线性管线）。
+
+第 0 层仍完全不可见（可见主体 = front fill，片元早退）→ 用户裁决适当推翻
+D6（D155）。三版迭代：v1 fill 参与透光但顶点端 clamp 插值把衰减拉伸到整块
+填充（差异 mean 4.52，等于全面推翻，废）；v2 顶点传原始代理、片元 clamp
+（衰减止于均值线+20px 的水平直线，mean 0.63）；用户复看后追加裁决"面积
+不小于第 1 层、突破固定水位线、遵循自然物理"→ v3 终版：入射量 = 水面处
+波峰门（vThicknessSurface，fill 的本列水面 y 借闲置 aSlope.y 传入）×
+Beer–Lambert 深度衰减（λ=2×范围），透光柱逐列跟随水面轮廓指数淡出
+（隔离差异 mean 2.42/P99 21.3@t70；HDR 超白与峰值逐位不变；深海/浅灰绿
+配色无脏感）。评审图 tmp/uplift-review/compare/layer0v3-*、cumulv3-*。
+
+Python 契约测试同步：7 项陈旧断言更新（5 项为上轮双参掩码/薄峰透光
+deprecated/Android 默认值对照表遗留——上轮只跑了 Android 侧；2 项为本轮
+fill 网格新契约），sheen-absent 测试补 uplift_thick_glow=0 关断（HDR
+excess 与厚度透光同源）。全套 177 项测试全绿。
+
+v4（用户追加裁决"第 0 层透光没第 1 层亮"）：数值归因 = fill 立即衰减拉低
+整团平均 + 第 0 层身份色无混白、目标色绝对亮度天然更低。修复：①近表亮环
+0.35×范围内全入射、λ 放缓到 2.5×范围；②fill 透光目标额外 ×1.35（浅色被
+1.0 钳制自然封顶）。实测水线下提亮 8.45→14.81；HDR 超白/峰值仍逐位不变；
+深海/浅灰绿无过冲。评审图 compare/layer0v4-*。渲染期间遇 wgl 上下文持续
+创建失败（Auto HDR 显示模式切换期），轮询 ~2 分钟自愈，非代码问题。
+
+用户确认 v4 后完成 Android 移植：FableSolMaterialPolicy 新增
+THICKNESS_GLOW_WEIGHTS（含契约测试断言）；FableSolGlRenderer 静态上传
+uThicknessGlowWeights[9]，front fill 顶点 aSlope.y（slopeZ 分量）改运本列
+水面 y、顶边继承 row 0 sheen slope；共享 shader 无需再改（vert/frag 已
+就绪，parity 断言全部仍成立）。testDebugUnitTest 161 项全绿，
+assembleDebug 通过，APK 内 water.frag/vert 已含 thicknessThin/
+vThicknessSurface。随后按用户要求发布阿里云 Debug **202607161438**
+（SHA-256 bfd52b95…d3343，releaseNotes 已核对；发布号+SHA 已回填
+memory/debug-update-notes.md 顶部，并顺手把上轮 202607161231 误插进
+2026-06-28 条目列表中的回填迁回正位）。真机验收要点：18 色下第 0 层
+水线透光观感、HDR 透射仍限逆光波冠、60fps。

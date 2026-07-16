@@ -118,6 +118,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val layerMeanTangents = DoubleArray(FableSolSpec.N_LAYERS)
     private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    // D151 厚度透光：逐锚层轮廓均值 y（物理 px，未旋转），供 uLayerMeanYPx。
+    private val layerMeanYPx = FloatArray(FableSolSpec.N_LAYERS)
     private val sheenSlopeScratch = FloatArray(
         FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
     )
@@ -499,24 +501,41 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET] = sheenSlopeX[vertex]
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
+        // D151 厚度透光：9 个锚行的可见列均值 y（与 aPositionPx 同空间，y 向下为正，
+        // 波峰更小）。与 Python gl_scene 的 layer_mean_y_px 一比一。
+        for (layer in 0 until FableSolSpec.N_LAYERS) {
+            val row = layer * FableSolContinuousSurface.ROWS_PER_LAYER
+            var sum = 0.0
+            for (column in 0 until columns) {
+                val offset = (row * columns + column) *
+                    FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+                sum += vertexData[offset + 1]
+            }
+            layerMeanYPx[layer] = (sum / columns).toFloat()
+        }
         vertexFloatCount = cursor
 
         val fillBottom = (info.hG / 2.0 + FILL_EXTRA_DP) * density
         cursor = 0
+        // D155：fill 宏观坡度 x 恒 0，闲置的 aSlope.y（slopeZ 分量）改运本列
+        // 水面 y（上下两排同值），供片元按"水面下深度"做 Beer–Lambert 衰减；
+        // 顶边另继承 row 0 的 sheen slope，迎光门在水线接缝处连续（底边 0）。
         for (column in 0 until columns) {
             val sourceOffset = column * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
             frontData[cursor++] = vertexData[sourceOffset]
             frontData[cursor++] = vertexData[sourceOffset + 1]
             frontData[cursor++] = 0f
-            frontData[cursor++] = 0f
+            frontData[cursor++] = vertexData[sourceOffset + 1]
             frontData[cursor++] = 0f
             frontData[cursor++] = vertexData[sourceOffset + 5]
-            frontData[cursor++] = 0f
-            frontData[cursor++] = 0f
+            frontData[cursor++] =
+                vertexData[sourceOffset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET]
+            frontData[cursor++] =
+                vertexData[sourceOffset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET]
             frontData[cursor++] = vertexData[sourceOffset]
             frontData[cursor++] = fillBottom.toFloat()
             frontData[cursor++] = 0f
-            frontData[cursor++] = 0f
+            frontData[cursor++] = vertexData[sourceOffset + 1]
             // front fill 顶边使用 depth=0，向水体内部递减；fragment shader 据此构造 1px coverage。
             frontData[cursor++] = -1f
             frontData[cursor++] = 0f
@@ -1163,6 +1182,25 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
         GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
+        // D151/D152 厚度透光（SDR 透光与 HDR 透射 excess 同源）。
+        GLES30.glUniform1f(
+            waterProgram.uniform("uThicknessGlowStrength"),
+            params.get("uplift_thick_glow").toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uGlowDerivedBoost"),
+            params.get("uplift_glow_boost").toFloat()
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uLayerMeanYPx[0]"),
+            FableSolSpec.N_LAYERS,
+            layerMeanYPx,
+            0
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uThicknessRangePx"),
+            (22.0 * density).toFloat()
+        )
     }
 
     /** Thing 色未变化时，逐层材质数组无需每帧重复跨 JNI 上传。 */
@@ -1223,6 +1261,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             waterProgram.uniform("uSdrSssWeights[0]"),
             FableSolSpec.N_LAYERS,
             FableSolMaterialPolicy.SDR_SSS_WEIGHTS,
+            0
+        )
+        // D154：厚度透光独立权重表；shader 在未上传时回退 SDR_SSS。
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uThicknessGlowWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.THICKNESS_GLOW_WEIGHTS,
             0
         )
         GLES30.glUniform1fv(

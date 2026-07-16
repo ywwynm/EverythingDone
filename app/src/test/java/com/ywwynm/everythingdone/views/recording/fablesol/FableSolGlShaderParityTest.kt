@@ -144,7 +144,7 @@ class FableSolGlShaderParityTest {
             "vSunReflectionCoverageWeight",
             "vHdrSheenPeak"
         ).forEach { removed -> assertFalse(removed, source.contains(removed)) }
-        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel, thicknessMask)"))
     }
 
     @Test
@@ -294,7 +294,7 @@ class FableSolGlShaderParityTest {
         assertFalse(renderer.contains("uSunReflectionCoverageWeights"))
         assertFalse(renderer.contains("uHdrSheenPeaks"))
         assertFalse(renderer.contains("uSheenCoverageScale"))
-        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel, thicknessMask)"))
     }
 
     @Test
@@ -305,10 +305,15 @@ class FableSolGlShaderParityTest {
         assertTrue(vertex.contains("uniform float uHdrTransmissionPeaks[9]"))
         assertTrue(vertex.contains("vHdrTransmissionPeak = sampleLayerCurve"))
         assertTrue(source.contains("backlitTransmissionExcess"))
-        assertTrue(source.contains("(1.0 - fresnel) * sunriseSubsurfaceMask()"))
+        // D151/D152：HDR 透射掩码 = 旧日出 SSS 掩码与厚度透光掩码同源合并。
+        assertTrue(
+            source.contains("min(sunriseSubsurfaceMask() * strength + thicknessMask, 1.0)")
+        )
+        assertTrue(source.contains("0.58 * (1.0 - fresnel) * mask"))
+        assertTrue(source.contains("thicknessExcessMask(normal)"))
         assertFalse(source.contains("reflectionCompetition"))
         assertTrue(source.contains("subsurfaceLinear / maximum"))
-        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel)"))
+        assertTrue(source.contains("backlitTransmissionExcess(transmissionFresnel, thicknessMask)"))
         assertTrue(source.contains("outLinear = min(outLinear, vec3(uHdrHeadroom))"))
     }
 

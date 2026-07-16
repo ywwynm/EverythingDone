@@ -11,7 +11,10 @@ class FableSolMaterialPolicyTest {
         val params = FableSolParams()
 
         assertEquals(0.0, params.get("body_light_strength"), 0.0)
-        assertEquals(0.38, params.get("thin_glow_gain"), 0.0)
+        // D152：薄峰透光实体带 deprecated 归零，由厚度透光材质版取代。
+        assertEquals(0.0, params.get("thin_glow_gain"), 0.0)
+        assertEquals(1.29, params.get("uplift_thick_glow"), 0.0)
+        assertEquals(1.6, params.get("uplift_glow_boost"), 0.0)
         assertEquals(0.14, params.get("crest_veil_strength"), 0.0)
         assertEquals(0.0, params.get("analytic_halo_strength"), 0.0)
         assertEquals(0.36, params.get("micro_normal_strength"), 0.0)
@@ -61,6 +64,11 @@ class FableSolMaterialPolicyTest {
         assertFloatCurve(
             doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.36, 0.24, 0.16, 0.12),
             FableSolMaterialPolicy.SDR_SSS_WEIGHTS
+        )
+        // D154：厚度透光独立权重表（4~8 层较 SDR_SSS 上提一档，用户裁决）。
+        assertFloatCurve(
+            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.56, 0.49, 0.42, 0.36, 0.27),
+            FableSolMaterialPolicy.THICKNESS_GLOW_WEIGHTS
         )
         assertEquals(
             listOf(4, 4, 3, 3, 2, 2, 1, 1, 0),

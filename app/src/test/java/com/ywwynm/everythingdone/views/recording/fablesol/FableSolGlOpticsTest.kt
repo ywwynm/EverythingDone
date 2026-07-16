@@ -325,8 +325,9 @@ class FableSolGlOpticsTest {
 
         assertTrue((0..7).all { optics.surfaceBandVertexCountForTest[it] > 0 })
         assertEquals(0, optics.surfaceBandVertexCountForTest[8])
-        assertTrue((0..4).sumOf { optics.thinGlowVertexCountForTest[it] } > 0)
-        assertTrue((5..8).all { optics.thinGlowVertexCountForTest[it] == 0 })
+        // D152：thin_glow_gain 默认归零（deprecated，被厚度透光材质版取代），
+        // 全层不再生成薄峰透光实体。
+        assertTrue((0..8).all { optics.thinGlowVertexCountForTest[it] == 0 })
         assertTrue((0..6).sumOf { optics.backShadeVertexCountForTest[it] } > 0)
         assertTrue((7..8).all { optics.backShadeVertexCountForTest[it] == 0 })
         for (layer in 0..6) {

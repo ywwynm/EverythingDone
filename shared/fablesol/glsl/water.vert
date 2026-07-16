@@ -35,6 +35,12 @@ uniform float uSdrSssWeights[9];
 uniform float uHdrTransmissionPeaks[9];
 uniform bool uSceneLinear;
 uniform bool uFrontFill;
+// 厚度透光（2026-07-16 质感提升批）：逐锚层的轮廓均值 y（物理 px，未旋转），
+// 与归一化范围。两者未上传（Android 未接线）时 vThickness01 恒为 0 = 关闭。
+uniform float uLayerMeanYPx[9];
+uniform float uThicknessRangePx;
+// D154：厚度透光独立权重表（4~8 层上提一档）。未上传时片元回退 SDR_SSS 表。
+uniform float uThicknessGlowWeights[9];
 
 out vec3 vColor;
 out vec3 vSubsurfaceColor;
@@ -51,6 +57,9 @@ out float vMicroNormalWeight;
 out float vSdrSssWeight;
 out float vHdrTransmissionPeak;
 out float vDirectLight;
+out float vThickness01;
+out float vThicknessSurface;
+out float vThicknessGlowWeight;
 flat out int vFrontFill;
 
 float srgbToLinearChannel(float c) {
@@ -248,5 +257,26 @@ void main() {
     vSdrSssWeight = sampleLayerCurve(uSdrSssWeights, aDepth01);
     vHdrTransmissionPeak = sampleLayerCurve(uHdrTransmissionPeaks, aDepth01);
     vDirectLight = directLight;
+    // 厚度代理：高出本层轮廓均值的高度（y 向下为正，波峰 y 更小）。
+    // 整体开关由片元侧 uThicknessGlowStrength=0 承担（Android 未接线时安全）。
+    // D154 近层覆盖偏置：层 0=+0.45 → 层 2≈0，让最近条带整体进入透光渐变。
+    // D155（2026-07-16 用户裁决，适当放宽 D6）：front fill 不再强制归零——
+    // 前景水体在水线下同一厚度范围内衰减到 0，第 0 层透光由此可见，
+    // 大面积主体仍保持身份纯色。fill 的 aDepth01∈[-1,0]，偏置系数 clamp 在层 0 档。
+    float layerMeanY = sampleLayerCurve(uLayerMeanYPx, aDepth01);
+    float nearBias = 0.45 * clamp(1.0 - aDepth01 * 4.0, 0.0, 1.0);
+    // 顶点端不 clamp：fill 网格只有上下两排顶点，先 clamp 再插值会把
+    // "范围内衰减"线性拉伸到整块填充高度；原始代理对 y 严格线性，
+    // 插值即逐像素精确，clamp 统一由片元的 thin/掩码承担。
+    vThickness01 =
+        (layerMeanY - aPositionPx.y) / max(uThicknessRangePx, 1.0) + nearBias;
+    // D155：水面处的厚度代理（逐列常量）。波浪网格顶点本身在水面上；
+    // front fill 的本列水面 y 由网格侧写入闲置的 aSlope.y（fill 宏观坡度恒 0）。
+    // 片元用 (vThicknessSurface − vThickness01) 还原"水面下深度"做
+    // Beer–Lambert 衰减；波浪侧两值恒等 → 衰减为 0，行为不变。
+    float surfaceYPx = uFrontFill ? aSlope.y : aPositionPx.y;
+    vThicknessSurface =
+        (layerMeanY - surfaceYPx) / max(uThicknessRangePx, 1.0) + nearBias;
+    vThicknessGlowWeight = sampleLayerCurve(uThicknessGlowWeights, aDepth01);
     vFrontFill = uFrontFill ? 1 : 0;
 }
