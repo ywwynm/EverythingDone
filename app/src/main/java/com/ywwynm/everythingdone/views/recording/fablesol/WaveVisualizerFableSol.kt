@@ -128,6 +128,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         DoubleArray(FableSolSpec.N_POINTS)
     }
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
+    private val layerMeanTangents = DoubleArray(FableSolSpec.N_LAYERS)
     // 各层光学函数同步嵌套调用；用游标式帧内池替代每层每帧的短命 DoubleArray。
     // 每个锚层绘制结束即回退游标，因此容量按单层最大并发量而非九层总量计算。
     private val doubleScratch = Array(DOUBLE_SCRATCH_CAPACITY) {
@@ -543,6 +544,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             for (v in sim.heights[i]) sum += v
             means[i] = sum / sim.heights[i].size
         }
+        FableSolDepthBaseline.updateTangents(means, layerMeanTangents)
         val viewBase = params.get("surface_view_elev_deg")
         val viewElev = FableSolPitchPolicy.viewElevationDeg(sim.pitchDeg, viewBase)
         val depthScale = sin(Math.toRadians(viewElev)) /
@@ -562,9 +564,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 val zEff = sample.zDp[r] + orbitZ
                 val z01 = (zEff / max(sample.depthDp, 1e-6)).coerceIn(-0.08, 1.08)
                 val f = z01.coerceIn(0.0, 1.0) * (FableSolSpec.N_LAYERS - 1)
-                val a = min(f.toInt(), FableSolSpec.N_LAYERS - 2)
-                val q = f - a
-                var baseH = means[a] + (means[a + 1] - means[a]) * q
+                var baseH = FableSolDepthBaseline.value(means, layerMeanTangents, f)
                 baseH = means[0] + (baseH - means[0]) * depthScale
                 val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
                 surfaceXsPx[r][j] = (uDp + orbitX) *

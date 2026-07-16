@@ -1,5 +1,10 @@
 # 待办 · audio-visualization-fable-sol
 
+- **二维 packet 最坏重叠的 Gerstner 总陡峭度预算（2026-07-16）**：它不是本轮三个用户确认区段的原因，真实
+  14/112 秒状态没有 `orbit_x` 限幅或投影折返，因此不混入 D150。不过确定性压力场景中，7 个高能 packet 同相重叠可使
+  raw `orbit_x` 达到约 `-28.54～+26.72dp`，触发 27 个限幅采样和 7 处横向折返。后续应单独设计固定总容量的
+  steepness 预算与出生/死亡连续性合同，再决定是否修正，避免把潜在安全边界误称为本轮视觉根因。
+
 - **D141 光学 RGSS 超采样待 Android 真机验收（2026-07-15）**：本轮不使用 ADB。共享
   `optical.frag` 已对光学 pass 做 4x RGSS 超采样。真机放大观察细小/远处 glint、streak、surface
   reflection 的形状边缘是否更平滑；既定 glint 数量、尺寸、剖面与逐层 HDR 峰值应不变。最亮 glint

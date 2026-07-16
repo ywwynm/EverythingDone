@@ -1,5 +1,130 @@
 # 决策记录 · audio-visualization-fable-sol
 
+## D150 用保持形状的 C1 深度插值消除纵向轨道造成的小尖峰（2026-07-16）
+
+指定音乐的 14.0 秒 `L6/L3` 与 112.0 秒 `L7` 三个用户确认区段证明，真实缺陷不是音频高频、
+`AmbientSet`、`HeroWave`、`DynamicWave`、196 列显示重建或抗锯齿。根因是连续水面把
+`z + orbit_z` 映射到九层均值时使用分段线性插值：每条锚行恰好位于整数层节点，平滑的纵向轨道反复跨越节点时，
+节点两侧不同的一阶斜率会被投影成真实的小冒尖和轻台阶。
+
+Python 与 Android 的 GL/GLES 和 QPainter/Canvas fallback 四条路径统一改用等距 Fritsch–Carlson/PCHIP 三次
+Hermite 深度剖面。它严格命中九个层锚点、在节点处保持 C1、对单调输入不超调；只替换层均值随深度的基线插值，完整保留
+packet 的高度、`orbit_x/orbit_z`、音乐状态、光学高频、顶点数、4x MSAA、shader 与 HDR/SDR 亮度策略。
+
+真实音乐修复后，三个确认区段的 95% 截尾空间 jerk 为 `0.000797 / 0.001322 / 0.000936dp⁻²`，均低于
+`0.00145dp⁻²`；三个用户否定区段也保持通过。上一轮 D148 的 L7/L8 环境波加宽由错误的静默全层指标得出，既未解决
+真实样本又改变宽浪构图，因此撤回并恢复 `84/72dp`；D150 取代 D148 作为本问题的定因与修复决策。
+
+## D149 Python 参数面板只保留当前有效参数（2026-07-16）
+
+逐项追踪 `GLOBAL_SPECS` 的生产消费者并做运行时消融后，删除七个对当前输出完全无效的参数：
+`pearl_shift_deg`、`crest_width_dp`、`hue_temp_deg`、`analytic_halo_strength`、`color_breath`、
+`hero_punch`、`hero_punch_decay_s`。其中两个 punch 参数对应的状态也一并删除；快速事件继续只走
+`DynamicWave` 物理注入。`lighten_far` 在 `0.864` 已达到既定远层白混合上限，因此滑块最大值收窄到
+`0.864`，不再暴露无效果区间。
+
+`crest_on` 虽不影响默认 ModernGL 连续水面，但仍控制 QPainter fallback，故保留。感知前端与段落链已经接通，删除
+“M3/M4 接入后生效”的过时提示；“连续水面原型”改名为“连续水面”。旧 JSON 预设中的已删除键由现有
+`Params.from_dict()` 忽略，不影响加载。
+
+## D148 远两层环境波改为宽缓波长，消除连续小波峰聚集（2026-07-16）
+
+固定静默输入即可复现图中最远两层的连续小波峰，因此它不是音乐频率或节奏设计。单变量消融确认根因是 L7/L8 的
+`ambient_len_dp=84/72dp` 过短：随机谱还会生成约 `42.77～80.93dp` 的短环境波，远景透视压缩后形成锯齿状峰群；
+Hermite 重建只放大约 1.7%，不是根因。
+
+Python 与 Android 同步把 L7/L8 基准波长改为 `120/132dp`，保留相同环境波数量、振幅、流速、音乐驱动和抗锯齿路径。
+20 秒静默扫描中，L7 的局部高频 RMS/峰谷差由 `0.134/0.504dp` 降至 `0.059/0.305dp`，L8 由
+`0.311/1.375dp` 降至 `0.059/0.213dp`。该修改不增加逐帧计算量。
+
+## D147 撤销 Python 表面反射软带试验，并把新增配色与方向绑定（2026-07-16）
+
+用户最终判定 `surface_strip` 表面反射软带会让水面显得杂乱。Python 因此完整删除 QPainter/ModernGL 的软带发射链、
+HDR excess 策略和 `surface_strip_on`、`surface_strip_gain`、`surface_strip_facing_threshold`、
+`surface_strip_curvature_boost` 四个控制项；独立 `flow_streak` 流光保留。Android 从未同步本轮软带试验，故不改其既有
+共享 optical mode 4。本决策取代 D142、D144、D145、D146 的恢复与待同步方案，也不恢复任何灰黑脏阴影。
+
+Python 配色注册表改为“名称、颜色、默认方向”三元组；在保留原有 12 项的基础上加入 10 个 Thing 纯色与用户指定的
+7 个其余配色，共 29 项。点击配色会同时应用其声明方向；方向 3 在 QPainter 与 ModernGL 统一纠正为
+“左上→右下”。默认绯紫继续作为既有项，方向纠正为“左→右”，不重复登记。
+
+## D146 Python 软带 HDR 峰值恢复 7 月 13 日标尺，既有强度同时控制 HDR excess（2026-07-16）
+
+用户确认最初参考图来自 HDR 模式，并判定当前约 `3.0× reference white` 的软带核心明显过亮。原 PNG 只是无 HDR
+色彩块/配置文件的 8-bit RGB 截屏，只能判断 tone mapping 后的形状与观感；绝对标尺改以 2026-07-13 21:26
+构建的历史策略和 raw FP16/scRGB 输出为准。该构建的 mode 4 软带逐层峰值是
+`1.40/1.36/1.30/1.22/1.14/1.08/1/1/1`；当前
+`3.20/2.70/2.24/1.96/1.60/1.29/1.18/1.08/1` 是 7 月 14 日才引入的后续增亮，不属于参考图。
+
+Python 因此只把 `SURFACE_REFLECTION_PEAKS` 恢复到 7 月 13 日曲线；全局 `3.6×` headroom、glint 与 transmission
+预算均不改。为保持 D145“不增加重复强度参数”的决定，既有 `surface_strip_gain` 现在同时控制 SDR alpha 与 HDR
+excess：有效峰值为 `1 + (historicalPeak - 1) * clamp(gain / 1.2, 0, 1)`。增益只缩放能量，不进入
+eligibility/smoothstep，故不会改变软带的空间支持、动态出现位置或抗锯齿形状。
+
+固定 `#00FFF6 → #4B7ADB` 场景的 L0 隔离 raw FP16 峰值由 `3.010×` 降为 `1.214×`；历史 shader 重建约
+`1.23～1.25×`。默认/半强度的 HDR 增量比例约 `1:0.5`，SDR 对不同 HDR 峰值逐字节一致，on-off 增量没有负亮度
+脏影。当前仍只修改 Python，等待真 HDR 目测确认后再同步 Android。
+
+## D145 Python 软带使用独立控制组，QPainter 流光与软带解耦（2026-07-16）
+
+`surface_strip_gain` 并非本轮新增：它由 2026-07-11 的 `be72b42` 引入，提交态默认值为 1.0；D144 只按用户选择把默认值改为
+1.2。它控制的就是同一条 `surface_strip` 表面反射软带，因此保留并重命名为“峰值强度”，不再增加重复的第二个强度参数。
+
+Python 参数面板新增独立“表面反射软带”组：`surface_strip_on` 明确开关、既有 `surface_strip_gain`、
+`surface_strip_facing_threshold`（迎光出现门槛，默认 0.04）和 `surface_strip_curvature_boost`（波峰曲率增强，默认 0.55）。
+门槛沿固定 0.54 facing 过渡宽度平移；曲率增强继续使用永不成为硬门的
+`1 - boost + boost * sqrt(smoothed_crest)`。四项由 ParamSpec 自动接入控件、重置与 JSON 预设。
+
+QPainter 原先把独立 flow streak 嵌套在 `_draw_surface_strip()` 内，造成白带开关/强度错误控制流光。本轮拆成独立路由：
+白带开关只影响 mode 4 表面反射，`flow_streak_gain` 继续单独控制流光；ModernGL 原本已经分离，现用测试锁定两端语义。
+
+关闭连续水面后的卡死与材质公式无关。`dd92c90` 删除了 `_draw_flow_streaks()` 内的局部 `QRadialGradient` import，却保留
+实例化；第一个进入可见寿命的流光因此抛出 NameError。HDR legacy 路径又只在正常返回时 `painter.end()`，随后级联为
+`QPaintDevice: Cannot destroy paint device that is being painted`。修复恢复顶层 import，并让 VisCanvas、GlVisCanvas 与 HDR
+离屏 QPainter 均用 `finally` 释放绘制设备，清理后仍继续抛出原始异常而不吞错。
+
+## D144 Python 表面反射软带采用方向性法线响应，100% 白度与 1.2 仅作为局部峰值（2026-07-16）
+
+用户选择 `100% 中性白 / surface_strip_gain=1.2`，同时否决各层整条常亮。Python 的 `surface_strip` 因此不再把
+D83 的基础宽度直接画满整条轮廓，而是由同一局部门控同时调制宽度和 alpha：先按主光所在侧翻转波面坡度，再用连续
+smoothstep 得到方向性 facing；facing 低于阈值时严格归零。平滑后的上凸曲率只通过
+`0.45 + 0.55 * sqrt(crest)` 柔和增强，不承担硬开关，避免恢复 D86/crest-edge 式只认波峰的窄线。
+
+该响应完全来自逐帧水面几何与光源方向，不再叠加 `pink_mod` 独立呼吸，也不使用随机门控；因此符合条件的 L0～L7
+都可以随波浪移动、缩短、消退和重新出现，L8 继续保持既有零权重远景哨兵。颜色峰值固定为纯白，gain 默认改为 1.2；
+HDR eligibility 继续使用更严格的 facing、crest 与动态衰减交集，SDR/HDR 都只增加能量，不生成负亮度或脏阴影。
+
+ModernGL 与 QPainter 使用同一方向性公式；共享 optical shader、4× RGSS 和场景 4× MSAA 均未修改。当前仅完成 Python
+验证，Android 暂不改动，待用户确认动态观感后再做同构迁移。
+
+## D143 完整撤回 Python 的 crest-edge 遗留实验，并恢复 thin-glow 基线（2026-07-15）
+
+用户确认 `crest edge` 是忘记撤回的独立实验，要求全部移除。全仓审计确认 Android 与共享 GLSL 本来就没有
+`crest_edge`、`uCrestEdge*` 或 `bodyEdgeW` 实现；遗留仅存在于 Python 未提交工作区，且链路不完整：五个参数和五个 uniform
+上传没有 shader 消费者，front-fill 顶边坡度/曲率载荷在当前 shader 早退分支中也不参与像素输出，测试却错误断言不存在的
+`bodyEdgeW`。
+
+Python 因此删除五个 `crest_edge_*` 参数、五个 uniform 上传、front-fill 的实验性坡度/sheens/曲率载荷及对应测试改写；同批被抬高的
+`thin_glow_gain` 从 `0.55` 恢复为 Android 与已提交 Python 基线的 `0.38`。保留正式 `crest_glint`、`crest_glow`、
+`crest_veil`、`crestPinch`、`thin_glow` 功能本身，以及本轮独立的 `surface_strip` 连续软带恢复。文档保留历史并明确标记撤回，
+不再把 crest edge 当成可用候选。
+
+## D142 Python 首轮只恢复连续表面带几何，保留当前干净着色与局部 HDR 资格（2026-07-15）
+
+用户确认目标为 `surface_strip` / optical mode 4 后，先只在 Python 做单变量试验，不同步 Android。Python 专属
+`clean_surface_band_width_dp(s)` 恢复 D83 的连续内展公式：
+`(1.2 + (5.8 + 2.4 * crest) * facing) * (1 - 0.45 * depth)`，近层因此重新具有 `1.2dp` 连续基础宽度，
+迎光波峰最大约 `9.4dp`。Android 共享 `surface_band_width_dp()` 仍保持当前约 `3dp` 的局部门控，避免在用户目测确认前扩大改动范围。
+
+本轮不整体回滚 D83：继续保留当前位置本层水色的身份色着色、D111 逐层 alpha 衰减、轮廓下方 `0.2dp` 单侧半正弦剖面，
+以及 ModernGL 的 `facing * crest_gate` HDR eligibility。尤其不恢复 `environmentHorizon` 混色、旧宽 HDR 资格、`blackMix`、
+纵向明暗宽域或任何灰黑阴影。这样 SDR 可以得到连续软带，而 HDR excess 仍只出现在迎光波峰。
+
+固定蓝青中高能场景证明几何恢复后形状存在，但当前仅 `+0.045 OKLab L` 的颜色肉眼仍明显弱于历史截图。诊断脚本另外生成
+`0% / 18% / 32% / 46%` 向中性白推进的非生产候选；该轮随后被用户判定整体仍暗于原截图，未写入正式渲染路径。
+
+## D141 光学 pass 逐像素程序化形状用 RGSS 超采样；亚 glint 核心保持锐利不为 SDR clip 让步（2026-07-15）
+
 ## D141 光学 pass 逐像素程序化形状用 RGSS 超采样；亮 glint 核心保持锐利不为 SDR clip 让步（2026-07-15）
 
 D140 的 MSAA 只多采样**几何覆盖**，不重算片元着色。glint、streak、surface reflection、halo、

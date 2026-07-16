@@ -1,5 +1,168 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-07-16 用 C1 深度基线修复用户确认的中远层小尖峰
+
+用户最终只确认 14.0 秒左上区域的两条轮廓与 112.0 秒上方中间轮廓。按单层几何反投影建立三个正样本后，逐项关闭
+`AmbientSet`、Hero 高频、固定连续面高频、`DynamicWave`、二维 packet 和轨道，并比较 196/392 列。消融证明采样列、
+抗锯齿和音频高频都不是共同原因；真正的共同点是锚行处于整数深度节点，`orbit_z` 跨节点时会遇到九层均值分段线性
+插值的左右斜率跳变。
+
+Python 新增纯 NumPy 等距 Fritsch–Carlson/PCHIP 深度剖面并由 GL、QPainter 共用；Android 新增零分配
+`FableSolDepthBaseline` 并由 GLES、Canvas fallback 共用。四条路径都只替换 base-height 深度插值，保留完整二维波包、
+Gerstner 轨道、音乐响应、HDR/SDR、196 列、4x MSAA 与光学 shader。同步撤回上一轮基于错误指标而加宽 L7/L8
+`ambient_len_dp` 的修改，恢复 `84/72dp`。
+
+指定音乐在最终 Python 代码中的三个正样本为 `0.000797 / 0.001322 / 0.000936dp⁻²`，三个对照区段也全部低于
+`0.00145dp⁻²`。指定蓝色的 GL 与 QPainter 14/112 秒离屏图均复核平滑；Python 177 项测试、compileall、Android
+完整 `:app:testDebugUnitTest` 与两端 diff check 通过。Python 19,012 点 PCHIP 实测约 `0.227ms/帧`，比旧线性
+插值增加约 `0.186ms/帧`；Android 实现逐帧零分配。未使用 ADB。最终发布阿里云 debug `202607160253`，远端
+`latest.json`、APK 大小与本地 SHA-256 已核对；SHA-256 为
+`8e5507688c06501bb31f0d08100f0304333a2aa4c787e5689f8cc1530c6a6709`。此前同分钟的 `202607160252` 因发布说明只
+截取了首个二级标题而立即由本版本取代，最终远端说明已确认包含定因、PCHIP 修复和验证结果。
+
+## 2026-07-16 使用指定音乐复现中远层曲线不平滑并制作 mask
+
+用户指出上一轮只加宽最远两层环境波并未解决实际观感，要求先用
+`HOYO-MiX - 银花玉鉴逐人来 Where Tender Night Embraceth Thee.flac` 对齐视觉问题，不先改实现。诊断使用 Python
+现有 `--sim-audio` 正式链，从歌曲 0 秒开始按固定 60Hz 完整推进
+`RealtimeAnalyzer → FeatureMapper → Simulation → shared GL`，而非 demo、静默或裁切 seek。全曲 196.714 秒以 10Hz
+扫描 L3～L8，稳定找到连续小波峰、轻度分段台阶和孤立硬拐点三类现象。
+
+14.0 秒与 112.0 秒的 mask 直接读取同帧 196 列真实几何轮廓，沿异常 x 区间画窄带；99.3 秒与 142.7 秒另圈出两个
+肉眼可见的孤立折点。112.0 秒同类问题出现时 `band_high≈0.0007`、`rel_high≈0.0099`，已足以否定“全部由当前高频
+响应造成”，但在用户确认 mask 前不裁定具体修复范围。产物位于 Python 仓库
+`scratch/diagnose_curve_smoothness_hoyo_20260716/`；本阶段没有修改 Python/Android 产品实现、没有构建发布或使用 ADB。
+
+用户随后纠正：99.3 秒与 142.7 秒的两个紫圈只是两层水体正常交叉，并非单条轮廓冒尖；首版自动残差 mask 也因红紫
+渐变和阈值过宽而难以核对。诊断删除这两处误判，改用 Python 配色列表第二项蓝色“深海”重新走完整音频链，并将
+14.0 秒、112.0 秒分别以未标注原图/人工复核窄带并排输出。新版只标单条边界自身可见的连续小峰与轻台阶，不再标
+任何层间相交点。用户最终确认的正样本只有 14.0 秒左上区域和 112.0 秒上方中间区域；其余标注全部作废。几何反投影
+进一步把 14 秒的可见红线拆为 `L6 x=-150..-35dp` 与交叉后的 `L3 x=-25..+5dp`，112 秒红线为
+`L7 x=+65..+150dp`。采用单层 0.5dp 等距重采样、`σ=0.75dp` 预滤波及 95% 截尾三阶空间导数后，三个正样本分别为
+`0.003745 / 0.001932 / 0.001938dp⁻²`；三个用户否定区段为 `0.001038 / 0.001225 / 0.001038dp⁻²`，据此把
+`0.00145dp⁻²` 作为本轮区分阈值。后续只用这三个单层区段做正回归，不再使用全层 RMS 或截图颜色边缘自动判定。
+
+## 2026-07-16 撤销 Python 表面反射软带、扩充配色并修复远景峰群
+
+用户最终否决表面反射软带，要求移除效果及控制项；同时要求 Python 加入指定配色、清理无效参数，并修复 Python/Android
+最远两层偶发的连续小波峰。Python 已删除 QPainter/ModernGL 的 `surface_strip` 发射链、HDR excess 路由和四个对应参数，
+保留独立 flow streak；Android 此前未同步该试验，因此不改既有 mode 4。
+
+配色注册表扩展为 29 项：保留原 12 项及其索引，加入 10 个 Thing 纯色和用户指定的 7 个其余配色；每项绑定默认方向。
+审查同时修复方向 3 的三处旧语义，使主体、界面肩、流光在 QPainter 与 ModernGL 都一致为“左上→右下”。参数消费者审计
+删除 `pearl_shift_deg`、`crest_width_dp`、`hue_temp_deg`、`analytic_halo_strength`、`color_breath`、
+`hero_punch`、`hero_punch_decay_s` 七个死参数及 punch 空状态，并把 `lighten_far` 最大值收窄到有效上限 `0.864`；
+旧 JSON 预设会忽略删除键，`crest_on` 因仍控制 QPainter fallback 而保留。
+
+连续小波峰在静默输入也能复现。当时依据静默 L7/L8 全层指标，把根因判断为 `ambient_len_dp=84/72dp` 过短，并将
+Python 与 Android 同步改为 `120/132dp`；该改动确实降低了当时量到的全层高频峰谷差，但后来由指定音乐和用户确认
+证明并未解决真实问题。该段结论只保留为历史记录，不再视为有效定因或验收依据。
+
+Python 最终 175 项 unittest、compileall 与 `git diff --check` 通过；Android 完整 `:app:testDebugUnitTest`、发布所含
+`:app:assembleDebug` 与 `git diff --check` 通过。未使用 ADB。阿里云 debug 版本 `202607151746` 发布成功，远端
+`latest.json` 已核对，APK SHA-256 为 `c4ddbae778633689f797b37ad3c1a1830d844f8d65fb21b99fd2d981e95cc089`。
+
+## 2026-07-16 按历史 FP16 标尺降低 Python 软带 HDR 核心
+
+用户指出此前离屏图都是 SDR，不能用于判断 HDR 核心亮度；真 HDR 下当前表面反射软带过亮。诊断先检查参考 PNG，确认其
+为不含 cICP/ICC/gAMA/sRGB/cHRM 的 8-bit RGB 截屏，无法恢复绝对峰值；随后沿 7 月 13 日发布记录与 Git 历史重建
+mode 4 策略。7 月 13 日软带近层峰值为 `1.40×`、全局余量 `2.0×`，当前 `3.20×` 软带曲线与 `3.6×` 全局余量均是
+7 月 14 日后引入。composer 只做统一 scRGB 缩放，不是选择性增亮软带的根因。
+
+固定目标青蓝渐变、仅 L0 软带、4× MSAA 的同帧消融复现：当前画面峰值 `3.010×`、软带 ΔY 峰 `2.391`；只换历史
+软带曲线后为 `1.214×`、ΔY `0.596`，空间支持几乎不变。另发现既有“峰值强度”只控制 SDR alpha，gain 从 1.2
+降到 0.05 时 HDR ΔY 仍保留约 92%。本轮先写历史曲线、uniform 上传与 FP16 场景红测，再让 gain 以 1.2 为满额线性
+缩放 HDR excess；默认 1.2 与半强度 0.6 的 HDR 增量比例约 `1:0.5`，SDR 字节不受 HDR 峰值影响。
+
+Python 完整 180 项 unittest、compileall 与 `git diff --check` 通过。640×840、FP16、4× MSAA、含线性读回的两轮
+交叉计时中，gain-aware 路径中位 `14.36/13.89ms`（约 `69.7/72.0fps`），静态 uniform 基线为
+`14.52/13.88ms`；差异落在测量噪声内。Android 未修改，未使用 ADB，等待用户在 Python 真 HDR 窗口目测。
+
+## 2026-07-16 增加 Python 软带控制组并修复关闭连续水面后的 QPainter 卡死
+
+用户要求为 Python 动态表面反射增加开关/调参位置，并报告关闭“连续水面”后 HDR fallback 在
+`_draw_flow_streaks()` 抛出 `QRadialGradient` NameError，随后出现 QPaintDevice 错误。Git 核对确认既有
+`surface_strip_gain` 由 `be72b42` 引入、提交态默认 1.0；上一轮只把同一参数默认值改为 1.2，不是另一项特效。
+
+默认参数、固定 60Hz 的真实 legacy 离屏反馈环 3/3 都在第 35 帧、`t=0.583333s` 复现用户调用链。根因是
+`dd92c90` 删除局部 `QRadialGradient` import；单独恢复符号或关闭 flow streak 均可让 120 帧通过。故障注入同时证明
+`_legacy_srgb()` 异常后 painter 仍为 active，QPaintDevice 是未释放绘制设备造成的级联错误，不存在模式切换重入或
+GL/QPainter 同时占用。
+
+先新增真实第 35 帧渲染、异常清理、参数默认、动态门控调参、专用面板组以及“关白带不关流光”的 GL/QPainter 红测，再恢复
+`QRadialGradient` 顶层 import、给所有相关 painter 作用域加 `finally`，并把 QPainter flow streak 从软带函数拆出。
+面板新增“表面反射软带”组，包含启用开关、既有峰值强度、迎光出现门槛和波峰曲率增强，自动参与 JSON 预设。
+
+红测由 1 failure + 4 errors 转为全绿；连续 40 帧 → legacy 80 帧 → 连续 40 帧的 160 帧真实切换通过，相关 88 项测试、
+完整 177 项 unittest、compileall 和 `git diff --check` 均通过。Android 未修改，未使用 ADB。
+
+## 2026-07-16 Python 表面反射软带改为随波面开合的动态物理响应
+
+用户选定 `100% 中性白 / surface_strip_gain=1.2`，但指出此前恢复结果在每层近似常亮，要求白带能随水流和波形变化。
+固定高能大浪复现确认根因：D83 恢复的 `1.2dp` 基础宽度未被局部 alpha 门控，L0 在 9 个采样时刻的可见覆盖和最长连通段
+均为 100%，约 86% 几何落在实际迎光区域之外。先写回归测试稳定复现 gain、GL 标量 alpha 和 QPainter 无 opacity 三项旧行为，
+再把门控改为“主光侧有符号坡向 smoothstep × 软曲率增强”，同时作用于带宽和 alpha，并移除表面带独立 pink breath。
+
+正式生产路径 8 帧直渲显示白带沿迎光坡连续移动、缩短、消退并在新坡重新出现；L0 平静帧可见覆盖约 21.9%，动态峰值
+约 46.9%，活跃/平静 P95 亮度比约 1.71。两次独立重建的逐帧哈希完全相同，无随机闪烁。隔离增量中可见负亮度像素为 0；
+SDR 峰值为 `1.0× reference white`，HDR 峰值约 `3.008×`、超白覆盖约 0.295%，低于 `3.6×` 内容余量。
+
+抗锯齿专项 3 项通过，完整 Python unittest 171 项通过，`git diff --check` 通过。640×840、FP16、4× MSAA 的 ModernGL
+完整帧中位约 11.37ms（约 87.9fps），旧整条常亮基线约 13.12ms；QPainter 中位约 29.61ms，优于旧基线 37.78ms，
+但 legacy fallback 本身仍未达到 60fps。Android 未修改，未使用 ADB，等待用户对 Python 动态观感的裁决。
+
+## 2026-07-15 指定青蓝渐变亮度复测并撤回 crest-edge 遗留
+
+用户指出原截图目标区域比 46% 中性白候选更亮，要求改用 `#00FFF6 → #4B7ADB` 左下→右上渐变复测；同时确认
+`crest edge` 是忘记撤回的独立实验，要求完整移除。诊断保持同一个 `51dp / 77px` DynamicWave 大浪相位，先单变量渲染
+`60% / 72% / 84% / 100%` 中性白，再交叉比较 `84% / 100%` 与 `surface_strip_gain 1.0 / 1.2`。84% 仍偏弱，
+`100% + 1.2` 的局部 sRGB 亮度提升 `max≈0.181、p95≈0.157`，最接近原截图代表性约 `0.10～0.21` 的带内亮度差；
+折中建议为约 `92% + 1.2`。这些仍只存在于诊断图，没有写入正式 ModernGL/QPainter 颜色路径。
+
+crest-edge 审计确认 Android 与共享 shader 零实现，Python 遗留则包括五个参数、五个无效 uniform 上传、front-fill 顶边
+坡度/sheens/曲率载荷、错误测试合同，以及同批 `thin_glow_gain 0.38→0.55`。先恢复 intended tests，复现默认值与 front-fill
+合同两项失败，再删除全部遗留并把 thin glow 恢复为 `0.38`；两项转绿。最终 `src/`、`tests/` 中零 crest-edge 引用，九项重点
+测试、三个相关模块共 62 项测试、全套 167 项 unittest 均通过，`git diff --check` 通过。Android 未修改，未使用 ADB。
+
+## 2026-07-15 Python 连续表面反射软带几何试验与颜色分档
+
+用户确认诊断后同意先在 Python 试验。按单变量反馈环，只修改 Python 的 `clean_surface_band_width_dp(s)`，把 D86 的双门控窄带
+恢复为 D83 的 `1.2～9.4dp` 连续内展几何；Android 与共享 GLSL 均未修改。标量/向量历史锚点先失败后通过，相关颜色与
+QPainter 合同共 29 项 unittest 通过；共享 optical RGSS 与 4x MSAA 超采样参考两项测试通过。
+
+新增隔离诊断脚本 `scratch/diagnose_surface_strip_restore_20260715/render_ab.py`，在同一固定 129 BPM 蓝青中高能场景渲染
+关闭、D86 修改前和恢复候选，并消融 thin glow。除 mode 4 外的 optical 顶点字节哈希三路完全一致，证明没有连带改变
+glint、thin glow、back shade 等实体。恢复候选相对关闭表面带没有显著负亮度像素，负/正亮度能量约 `0.000005`；SDR 峰值
+严格不超过 reference white。HDR 峰值约 `1.513×`，`>1.0` 覆盖约 `0.0268%`，`>1.29` 覆盖约 `0.0082%`，仍是波峰局部，
+没有把整条基础带推成超白。mode 4 顶点约 `9360`，远低于 `64000` 上限。
+
+ModernGL 640×840、FP16、4x MSAA 的交叉计时中位约 `8.1～8.2ms`，恢复前后差异落在噪声内；QPainter 完整 fallback 本来约
+`36.7ms`，恢复后约 `37.6ms`，净增约 `0.9ms`，没有数量级退化，但该 legacy 路径本来就不满足 60fps，不能据此宣称
+两后端均达到 60fps。颜色单变量进一步输出 `0% / 18% / 32% / 46%` 中性白推进对照；约 `32%` 较接近历史截图，当前仍只存在于
+诊断脚本，等待用户目测后再决定是否写入 ModernGL 与 QPainter。未构建或发布 Android，未使用 ADB。
+
+用户指出首轮联系图水面过于平静，无法判断目标。量化确认首轮所谓“中高能”场景只有慢变 `hero` 背景，前景峰谷约 `15.6px`，
+并没有真实音头波包；问题在反馈环而非材质参数。诊断改为走正式 `DynamicWave` 注入路径，固定注入宽 `320dp`、幅 `60dp` 的前景
+宽波包并选取稳定相位，前景峰谷达到约 `51dp / 77px`，脚本增加 `<45dp` 直接失败的浪幅门槛。新场景下候选相对关闭表面带的
+负亮度仍为零，SDR 峰值仍不超过 reference white；HDR 峰值约 `3.063×`，`>1.0` 覆盖约 `0.329%`、`>2.0` 覆盖约
+`0.154%`，仍低于 `3.6×` 内容余量上限。大浪原尺寸裁剪现已能清楚区分 `0% / 18% / 32% / 46%` 偏白档位。
+
+## 2026-07-15 识别 7 月 13 日截图中的连续表面反射软带
+
+用户先用遮罩确认目标是最前层波浪上边界下方、沿迎光坡向水内展开的乳白—浅青柔光带，并要求
+先只说明效果身份，不直接实现。Android 历史代码、Python 同步记录与 7 月 13 日 21:26～21:49
+Debug 时间线交叉确认：主体是 `surface_strip` / `surfaceBand`，即 optical mode 4 的连续表面
+反射软带；旧 D83 公式在近层保留 `1.2dp` 基础宽度、迎光波峰最大约 `9.4dp`，从轮廓下方
+`0.2dp` 单侧展开并使用半正弦软剖面。薄峰透射和正向纵向受光只在局部叠加，不是主体；7 月 15 日
+删除的层内 `continuous sheen` 也不是该效果。
+
+主弱化来自 7 月 14 日 D86：Android `9f8de815` 与 Python `655b159` 将表面带改为迎光和波峰
+双门控、未命中宽度为 0、近层最大约 `3dp`；7 月 15 日又把偏白环境混色改为当前位置水色的小幅
+提亮，所以当前并未删除该 pass，但视觉上接近消失。截图里的脏暗块属于当时独立的
+`relativeLongitudinalLight` 正负宽域明暗链；恢复目标不需要恢复 `blackMix`、灰黑阴影、微法线
+暗纹、深度散射或天空反射。本轮没有修改 Android/Python 实现、没有构建、发布或使用 ADB，等待
+用户确认诊断与后续恢复方向。
+
 ## 2026-07-15 光学实体形状 RGSS 超采样并裁定亮 glint 保持锐利
 
 用户在 4x MSAA（D140）真机上确认波浪界线好多了，但发现 glint 附近仍有锯齿，担心其它特效缺少抗锯齿。

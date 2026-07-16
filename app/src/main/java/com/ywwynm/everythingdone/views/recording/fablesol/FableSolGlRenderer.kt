@@ -115,6 +115,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val cubicWeights = FableSolCatmullRomWeightTable(FableSolSpec.N_POINTS)
     private val hermiteWeights = FableSolHermiteWeightTable(FableSolSpec.N_POINTS)
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
+    private val layerMeanTangents = DoubleArray(FableSolSpec.N_LAYERS)
     private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     private val sheenSlopeScratch = FloatArray(
@@ -386,6 +387,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             for (value in sim.heights[layer]) sum += value
             layerMeans[layer] = sum / sim.heights[layer].size
         }
+        FableSolDepthBaseline.updateTangents(layerMeans, layerMeanTangents)
         val viewBase = params.get("surface_view_elev_deg")
         val viewElevation = FableSolPitchPolicy.viewElevationDeg(sim.pitchDeg, viewBase)
         val depthScale = sin(Math.toRadians(viewElevation)) /
@@ -438,12 +440,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 val z01 = ((sample.zDp[row] + orbitZ) / max(sample.depthDp, 1e-6))
                     .coerceIn(-0.08, 1.08)
                 val layerPosition = z01.coerceIn(0.0, 1.0) * (FableSolSpec.N_LAYERS - 1)
-                val baseLayer = min(layerPosition.toInt(), FableSolSpec.N_LAYERS - 2)
-                val layerFraction = layerPosition - baseLayer
-                var baseHeight = lerp(
-                    layerMeans[baseLayer],
-                    layerMeans[baseLayer + 1],
-                    layerFraction
+                var baseHeight = FableSolDepthBaseline.value(
+                    layerMeans,
+                    layerMeanTangents,
+                    layerPosition
                 )
                 baseHeight = layerMeans[0] + (baseHeight - layerMeans[0]) * depthScale
                 val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
