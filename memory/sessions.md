@@ -2,6 +2,13 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-07-17 - 未跟踪产物分类清理与调研归档
+
+- 将 `tmp/` 下 9 个 `timely-*` 字体调研中间产物目录移入 `docs/features/timely-digit-typography/`；删除 `tmp/` 中与已提交 `research-2026-07-12-*` 三篇内容完全相同的重复副本（仅换行符差异，已逐一比对）。
+- FableSol 2026-07-16 水体质感调研（md + 12 张 SVG 配图）移入 `docs/features/audio-visualization-fable-sol/research-2026-07-16-water-quality-uplift-by-opus/`，md 对配图的相对引用保持有效。
+- `.gitignore` 新增：`/Everything-Android/`（独立 git 仓库，clone 自 GitHub 同名 repo）、timely 调研目录、fable-sol 三个调研目录（by-opus 版、LaTeX 版 15.8MB、ultra 版 215.5MB）。
+- 遗留：`tmp/` 仍有 4 个 FableSol 测试日志（`android_optics_tests.txt` 等），`on-device-perf-testing.md` 未跟踪待提交，均由用户后续处置。
+
 ## 2026-07-11 - 项目综合审计
 
 - 用六个并行只读代理 + 一份功能冲突逐行核验，对全项目做了跨维度审计（架构/构建、数据模型、平台可靠性、UI/UX、代码质量、功能完整性），最重的 P0/P1 结论已单独用工具复核。

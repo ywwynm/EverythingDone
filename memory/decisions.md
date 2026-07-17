@@ -2,6 +2,10 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-07-17 - 调研归档产物随 feature 目录本地存放且不进版本库
+
+大体积或一次性的调研产物（LaTeX 报告及配图、对比图集、字体候选与子集化中间产物）归档在所属 `docs/features/<slug>/` 目录下，并在根 `.gitignore` 中按具体路径忽略，不进入版本库；已提交文档按目录名提及它们即可。本仓库亦不跟踪 `Everything-Android/`（独立 git 仓库，仅本地参考）。轻量调研 md 是否入库由用户逐一决定。
+
 ## 2026-06-24 - Things without a title can be made private
 
 Setting a Thing private no longer requires a non-empty title. The previous

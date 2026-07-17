@@ -9,3 +9,12 @@
 findbugs-android-exclude.xml
 .claude/settings.local.json
 memory/screenshots/
+
+# 独立参考仓库（自带 .git，不跟踪）
+/Everything-Android/
+
+# 调研归档：随 feature 目录本地存放，不进版本库
+/docs/features/timely-digit-typography/timely-*/
+/docs/features/audio-visualization-fable-sol/research-2026-07-16-water-quality-uplift-by-opus/
+/docs/features/audio-visualization-fable-sol/research-2026-07-16-water-look-uplift-latex/
+/docs/features/audio-visualization-fable-sol/research-sol-ultra-0716/
