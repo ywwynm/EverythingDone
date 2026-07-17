@@ -66,7 +66,6 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val k = DoubleArray(wavelength.size)
     private val kx = DoubleArray(wavelength.size)
     private val kz = DoubleArray(wavelength.size)
-    private val packetEnvX = DoubleArray(N_POINTS)
     private var nextPacketT = 0.0
 
     // Step A：打光法线改从真渲染面 worldEta 求，跨层用 Catmull-Rom 平滑防止层锚点处的坡度
@@ -75,6 +74,29 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val depthMeanX = DoubleArray(N_POINTS)
     private val crRowIndex = Array(Z_ROWS) { IntArray(4) }
     private val crRowWeight = Array(Z_ROWS) { DoubleArray(4) }
+
+    // sample() 并行行阶段的只读预备量（逐模态/逐波包标量与 X 向包络），
+    // 全部在串行预备段写入、并行段只读，稳态零分配。
+    private val modeAmp = DoubleArray(wavelength.size)
+    private val modeOrbitXWeight = DoubleArray(wavelength.size)
+    private val modeOrbitZWeight = DoubleArray(wavelength.size)
+    private val modeStepCos = DoubleArray(wavelength.size)
+    private val modeStepSin = DoubleArray(wavelength.size)
+    private val modeBaseX = DoubleArray(wavelength.size)
+    private val packetAmp = DoubleArray(MAX_PACKETS)
+    private val packetOrbitXWeight = DoubleArray(MAX_PACKETS)
+    private val packetOrbitZWeight = DoubleArray(MAX_PACKETS)
+    private val packetKz = DoubleArray(MAX_PACKETS)
+    private val packetBaseX = DoubleArray(MAX_PACKETS)
+    private val packetPhaseOffset = DoubleArray(MAX_PACKETS)
+    private val packetCenterZ = DoubleArray(MAX_PACKETS)
+    private val packetSigmaZ = DoubleArray(MAX_PACKETS)
+    private val packetStepCos = DoubleArray(MAX_PACKETS)
+    private val packetStepSin = DoubleArray(MAX_PACKETS)
+    private val packetEnvX = Array(MAX_PACKETS) { DoubleArray(N_POINTS) }
+    // 波向量只依赖两个 params；参数未变时跳过重算（纯函数缓存，逐位一致）。
+    private var waveVectorHeading = Double.NaN
+    private var waveVectorSpread = Double.NaN
 
     @JvmField var pitchEffRad = 0.0
     private var pitchVelocity = 0.0
@@ -125,27 +147,34 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
             for (r in 0 until Z_ROWS) depthMean += directionalEta[r][x]
             depthMeanX[x] = depthMean / Z_ROWS
         }
-        for (r in 0 until Z_ROWS) {
-            val idx = crRowIndex[r]
-            val w = crRowWeight[r]
-            val h0 = layerHeights[idx[0]]; val m0 = layerMean[idx[0]]; val w0 = w[0]
-            val h1 = layerHeights[idx[1]]; val m1 = layerMean[idx[1]]; val w1 = w[1]
-            val h2 = layerHeights[idx[2]]; val m2 = layerMean[idx[2]]; val w2 = w[2]
-            val h3 = layerHeights[idx[3]]; val m3 = layerMean[idx[3]]; val w3 = w[3]
-            val worldRow = sample.worldEta[r]
-            val dirRow = directionalEta[r]
-            for (x in 0 until N_POINTS) {
-                worldRow[x] = w0 * (h0[x] - m0) + w1 * (h1[x] - m1) +
-                    w2 * (h2[x] - m2) + w3 * (h3[x] - m3) +
-                    dirRow[x] - depthMeanX[x]
+        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
+            for (r in startRow until endRow) {
+                val idx = crRowIndex[r]
+                val w = crRowWeight[r]
+                val h0 = layerHeights[idx[0]]; val m0 = layerMean[idx[0]]; val w0 = w[0]
+                val h1 = layerHeights[idx[1]]; val m1 = layerMean[idx[1]]; val w1 = w[1]
+                val h2 = layerHeights[idx[2]]; val m2 = layerMean[idx[2]]; val w2 = w[2]
+                val h3 = layerHeights[idx[3]]; val m3 = layerMean[idx[3]]; val w3 = w[3]
+                val worldRow = sample.worldEta[r]
+                val dirRow = directionalEta[r]
+                for (x in 0 until N_POINTS) {
+                    worldRow[x] = w0 * (h0[x] - m0) + w1 * (h1[x] - m1) +
+                        w2 * (h2[x] - m2) + w3 * (h3[x] - m3) +
+                        dirRow[x] - depthMeanX[x]
+                }
             }
         }
         return sample.worldEta
     }
 
     private fun updateWaveVectors() {
-        val heading = Math.toRadians(p.get("surface_heading_deg"))
-        val spread = Math.toRadians(p.get("surface_spread_deg"))
+        val headingDeg = p.get("surface_heading_deg")
+        val spreadDeg = p.get("surface_spread_deg")
+        if (headingDeg == waveVectorHeading && spreadDeg == waveVectorSpread) return
+        waveVectorHeading = headingDeg
+        waveVectorSpread = spreadDeg
+        val heading = Math.toRadians(headingDeg)
+        val spread = Math.toRadians(spreadDeg)
         for (j in wavelength.indices) {
             val angle = (heading + angleUnit[j] * spread * spreadScale[j])
                 .coerceIn(Math.toRadians(-18.0), Math.toRadians(62.0))
@@ -271,17 +300,18 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         if (sim.t >= nextPacketT && packets.size < 7) spawnPacket(sim)
     }
 
-    /** 采样最终宏观高度、轨道位移和解析二维坡度；返回对象及其数组每帧复用。 */
+    /**
+     * 采样最终宏观高度、轨道位移和解析二维坡度；返回对象及其数组每帧复用。
+     *
+     * 逐模态/逐波包标量在串行预备段一次算好（轨道系数按 Python 的
+     * `q·a·(kx/k)` 折叠形式预乘，两端一致），三个重循环（方向场累加、
+     * worldEta 合成、坡度）按行并行——行间无共享写，输出与串行一致。
+     */
     fun sample(sim: FableSolSimulation): Sample {
         updateWaveVectors()
         val depth = depthSpanDp()
         sample.depthDp = depth
         for (r in 0 until Z_ROWS) sample.zDp[r] = sample.z01[r] * depth
-        for (r in 0 until Z_ROWS) {
-            java.util.Arrays.fill(sample.eta[r], 0.0)
-            java.util.Arrays.fill(sample.orbitX[r], 0.0)
-            java.util.Arrays.fill(sample.orbitZ[r], 0.0)
-        }
 
         val ambientScale = p.get("ambient_gain") / 1.2 *
             FableSolPinkBreathPolicy.waveAmplitudeGain(
@@ -289,87 +319,128 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
                 p.get("pink_mod"),
                 p.get("global_pink_breath_strength")
             )
-        for (j in wavelength.indices) {
+        val u0 = sim.uGrid[0]
+        val modeCount = wavelength.size
+        for (j in 0 until modeCount) {
             val amp = baseAmplitude[j] * ambientScale * (0.78 + 0.52 * energyBand[band[j]])
-            val q = min(0.58, 0.46 / max(k[j] * amp * wavelength.size, 1e-4))
+            val q = min(0.58, 0.46 / max(k[j] * amp * modeCount, 1e-4))
+            modeAmp[j] = amp
+            modeOrbitXWeight[j] = q * amp * (kx[j] / k[j])
+            modeOrbitZWeight[j] = q * amp * (kz[j] / k[j])
             val phaseStep = kx[j] * FableSolSpec.DX_DP
-            val stepCos = cos(phaseStep)
-            val stepSin = sin(phaseStep)
-            for (r in 0 until Z_ROWS) {
-                val z = sample.zDp[r]
-                var phCos = cos(kx[j] * sim.uGrid[0] + kz[j] * z + phase[j])
-                var phSin = sin(kx[j] * sim.uGrid[0] + kz[j] * z + phase[j])
-                for (x in 0 until N_POINTS) {
-                    sample.eta[r][x] += amp * phCos
-                    val tang = q * amp * phSin
-                    sample.orbitX[r][x] += tang * kx[j] / k[j]
-                    sample.orbitZ[r][x] += tang * kz[j] / k[j]
-                    val nextCos = phCos * stepCos - phSin * stepSin
-                    phSin = phSin * stepCos + phCos * stepSin
-                    phCos = nextCos
-                }
-            }
+            modeStepCos[j] = cos(phaseStep)
+            modeStepSin[j] = sin(phaseStep)
+            modeBaseX[j] = kx[j] * u0
         }
-
-        for (packet in packets) {
+        val packetCount = min(packets.size, MAX_PACKETS)
+        for (index in 0 until packetCount) {
+            val packet = packets[index]
             val kp = 2.0 * PI / packet.wavelength
             val kxp = -kp * cos(packet.angle)
             val kzp = -kp * sin(packet.angle)
             val lifeEnv = sin(PI * min(packet.age / max(packet.life, 1e-3), 1.0)).pow(0.7)
             val a = packet.amplitude * packet.energy * lifeEnv
             val q = min(0.62, 0.48 / max(kp * max(a, 0.1), 1e-4))
+            packetAmp[index] = a
+            packetOrbitXWeight[index] = q * (kxp / kp)
+            packetOrbitZWeight[index] = q * (kzp / kp)
+            packetKz[index] = kzp
+            packetBaseX[index] = kxp * u0
+            packetPhaseOffset[index] = packet.phase
+            packetCenterZ[index] = packet.z
+            packetSigmaZ[index] = packet.sigmaZ
+            val phaseStep = kxp * FableSolSpec.DX_DP
+            packetStepCos[index] = cos(phaseStep)
+            packetStepSin[index] = sin(phaseStep)
+            val envX = packetEnvX[index]
             for (x in 0 until N_POINTS) {
                 val dx = (sim.uGrid[x] - packet.x) / packet.sigmaX
-                packetEnvX[x] = exp(-0.5 * dx * dx)
-            }
-            val phaseStep = kxp * FableSolSpec.DX_DP
-            val stepCos = cos(phaseStep)
-            val stepSin = sin(phaseStep)
-            for (r in 0 until Z_ROWS) {
-                val dz = (sample.zDp[r] - packet.z) / packet.sigmaZ
-                val envZ = exp(-0.5 * dz * dz)
-                var phCos = cos(kxp * sim.uGrid[0] + kzp * sample.zDp[r] + packet.phase)
-                var phSin = sin(kxp * sim.uGrid[0] + kzp * sample.zDp[r] + packet.phase)
-                for (x in 0 until N_POINTS) {
-                    val local = a * packetEnvX[x] * envZ
-                    sample.eta[r][x] += local * phCos
-                    val tang = q * local * phSin
-                    sample.orbitX[r][x] += tang * kxp / kp
-                    sample.orbitZ[r][x] += tang * kzp / kp
-                    val nextCos = phCos * stepCos - phSin * stepSin
-                    phSin = phSin * stepCos + phCos * stepSin
-                    phCos = nextCos
-                }
+                envX[x] = exp(-0.5 * dx * dx)
             }
         }
 
         val pitchIn = Math.toRadians(sim.motionPitchDeg)
         val lag = (pitchEffRad - pitchIn).coerceIn(-0.24, 0.24)
-        for (r in 0 until Z_ROWS) {
-            val lift = lag * (sample.zDp[r] - 0.5 * depth)
-            for (x in 0 until N_POINTS) {
-                sample.eta[r][x] += lift
-                sample.orbitX[r][x] = sample.orbitX[r][x].coerceIn(-10.0, 10.0)
-                sample.orbitZ[r][x] = sample.orbitZ[r][x].coerceIn(-10.0, 10.0)
+        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
+            for (r in startRow until endRow) {
+                val etaRow = sample.eta[r]
+                val orbitXRow = sample.orbitX[r]
+                val orbitZRow = sample.orbitZ[r]
+                java.util.Arrays.fill(etaRow, 0.0)
+                java.util.Arrays.fill(orbitXRow, 0.0)
+                java.util.Arrays.fill(orbitZRow, 0.0)
+                val z = sample.zDp[r]
+                for (j in 0 until modeCount) {
+                    val amp = modeAmp[j]
+                    val orbitXWeight = modeOrbitXWeight[j]
+                    val orbitZWeight = modeOrbitZWeight[j]
+                    val stepCos = modeStepCos[j]
+                    val stepSin = modeStepSin[j]
+                    val rowPhase = modeBaseX[j] + kz[j] * z + phase[j]
+                    var phCos = cos(rowPhase)
+                    var phSin = sin(rowPhase)
+                    for (x in 0 until N_POINTS) {
+                        etaRow[x] += amp * phCos
+                        orbitXRow[x] += phSin * orbitXWeight
+                        orbitZRow[x] += phSin * orbitZWeight
+                        val nextCos = phCos * stepCos - phSin * stepSin
+                        phSin = phSin * stepCos + phCos * stepSin
+                        phCos = nextCos
+                    }
+                }
+                for (index in 0 until packetCount) {
+                    val dz = (z - packetCenterZ[index]) / packetSigmaZ[index]
+                    val envZ = exp(-0.5 * dz * dz)
+                    val a = packetAmp[index]
+                    val orbitXWeight = packetOrbitXWeight[index]
+                    val orbitZWeight = packetOrbitZWeight[index]
+                    val stepCos = packetStepCos[index]
+                    val stepSin = packetStepSin[index]
+                    val envX = packetEnvX[index]
+                    val rowPhase = packetBaseX[index] + packetKz[index] * z +
+                        packetPhaseOffset[index]
+                    var phCos = cos(rowPhase)
+                    var phSin = sin(rowPhase)
+                    for (x in 0 until N_POINTS) {
+                        val local = a * envX[x] * envZ
+                        etaRow[x] += local * phCos
+                        val tang = local * phSin
+                        orbitXRow[x] += tang * orbitXWeight
+                        orbitZRow[x] += tang * orbitZWeight
+                        val nextCos = phCos * stepCos - phSin * stepSin
+                        phSin = phSin * stepCos + phCos * stepSin
+                        phCos = nextCos
+                    }
+                }
+                val lift = lag * (z - 0.5 * depth)
+                for (x in 0 until N_POINTS) {
+                    etaRow[x] += lift
+                    orbitXRow[x] = orbitXRow[x].coerceIn(-10.0, 10.0)
+                    orbitZRow[x] = orbitZRow[x].coerceIn(-10.0, 10.0)
+                }
             }
         }
         // 先合成真渲染面 worldEta（含各层轮廓 + 二维方向场），打光法线改从它求，
         // 使光贴着看得见的波形走，而不是只跟随二维方向场。
         composeLayerField(sim.heights, sample.eta)
         val world = sample.worldEta
-        for (r in 0 until Z_ROWS) {
-            for (x in 0 until N_POINTS) {
-                sample.slopeX[r][x] = when (x) {
-                    0 -> (world[r][1] - world[r][0]) / FableSolSpec.DX_DP
-                    N_POINTS - 1 -> (world[r][x] - world[r][x - 1]) / FableSolSpec.DX_DP
-                    else -> (world[r][x + 1] - world[r][x - 1]) / (2.0 * FableSolSpec.DX_DP)
-                }
-                sample.slopeZ[r][x] = when (r) {
-                    0 -> (world[1][x] - world[0][x]) / (sample.zDp[1] - sample.zDp[0])
-                    Z_ROWS - 1 -> (world[r][x] - world[r - 1][x]) /
-                        (sample.zDp[r] - sample.zDp[r - 1])
-                    else -> (world[r + 1][x] - world[r - 1][x]) /
-                        (sample.zDp[r + 1] - sample.zDp[r - 1])
+        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
+            for (r in startRow until endRow) {
+                val slopeXRow = sample.slopeX[r]
+                val slopeZRow = sample.slopeZ[r]
+                for (x in 0 until N_POINTS) {
+                    slopeXRow[x] = when (x) {
+                        0 -> (world[r][1] - world[r][0]) / FableSolSpec.DX_DP
+                        N_POINTS - 1 -> (world[r][x] - world[r][x - 1]) / FableSolSpec.DX_DP
+                        else -> (world[r][x + 1] - world[r][x - 1]) / (2.0 * FableSolSpec.DX_DP)
+                    }
+                    slopeZRow[x] = when (r) {
+                        0 -> (world[1][x] - world[0][x]) / (sample.zDp[1] - sample.zDp[0])
+                        Z_ROWS - 1 -> (world[r][x] - world[r - 1][x]) /
+                            (sample.zDp[r] - sample.zDp[r - 1])
+                        else -> (world[r + 1][x] - world[r - 1][x]) /
+                            (sample.zDp[r + 1] - sample.zDp[r - 1])
+                    }
                 }
             }
         }
@@ -382,5 +453,8 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         const val Z_ROWS = (N_LAYERS - 1) * ROWS_PER_LAYER + 1 // 97
         const val RENDER_GROUPS = N_LAYERS - 1                  // 8 次网格提交
         private const val GRAVITY_DP_S2 = 32.0
+        // 波包预备数组容量。自然生成上限 7，注入事件在两次剪枝间最多再加数个；
+        // 24 远高于可达数量，超出部分按序丢弃（防御性钳制，实际不可达）。
+        private const val MAX_PACKETS = 24
     }
 }

@@ -44,6 +44,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private var hdrContentAvailable = false
     private var desiredHdrHeadroomRaised = false
     private var lastHeadroomPollNanos = Long.MIN_VALUE
+    private var lastRefreshPollNanos = Long.MIN_VALUE
     private val releaseHdrHeadroom = Runnable {
         if (!recordingHdrRequested) {
             desiredHdrHeadroomRaised = false
@@ -58,6 +59,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             return@FrameCallback
         }
         pollHdrHeadroom(frameTimeNanos)
+        pollDisplayRefreshRate(frameTimeNanos)
         if (framePacer.shouldRender(frameTimeNanos)) {
             renderThread.requestRender(frameTimeNanos)
         }
@@ -244,6 +246,26 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         return currentDisplay.hdrSdrRatio
     }
 
+    /**
+     * 让渲染频率跟随当前显示模式：60Hz 面板维持既有 60fps，高刷面板放开到
+     * 120fps 上限（模拟以真实时间戳推进，水体速度与两端视觉合同不变）。
+     * 刷新率查询按 250ms 节流；显示模式切换（如系统省电降到 60Hz）时 pacer
+     * 自动收回节奏。
+     */
+    private fun pollDisplayRefreshRate(frameTimeNanos: Long) {
+        if (lastRefreshPollNanos != Long.MIN_VALUE &&
+            frameTimeNanos - lastRefreshPollNanos < HEADROOM_POLL_INTERVAL_NANOS
+        ) return
+        lastRefreshPollNanos = frameTimeNanos
+        val refreshRate = display?.refreshRate ?: 0f
+        val target = if (refreshRate >= MIN_VALID_REFRESH_RATE) {
+            min(refreshRate.toDouble(), MAX_RENDER_FPS)
+        } else {
+            TARGET_FPS
+        }
+        framePacer.setTargetFps(target)
+    }
+
     private fun pollHdrHeadroom(frameTimeNanos: Long) {
         if (!hdrContentAvailable || Build.VERSION.SDK_INT < 34) return
         if (lastHeadroomPollNanos != Long.MIN_VALUE &&
@@ -294,11 +316,14 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         }
     }
 
-    private companion object {
+    companion object {
+        // 显示模式未知时的保底节奏；实际目标随显示刷新率在 [60, 120] 内跟随。
         const val TARGET_FPS = 60.0
-        const val HEADROOM_POLL_INTERVAL_NANOS = 250_000_000L
-        const val HDR_RELEASE_DELAY_MS = 360L
-        const val INTRINSIC_W_DP = 280f
-        const val INTRINSIC_H_DP = 420f
+        const val MAX_RENDER_FPS = 120.0
+        private const val MIN_VALID_REFRESH_RATE = 10f
+        private const val HEADROOM_POLL_INTERVAL_NANOS = 250_000_000L
+        private const val HDR_RELEASE_DELAY_MS = 360L
+        private const val INTRINSIC_W_DP = 280f
+        private const val INTRINSIC_H_DP = 420f
     }
 }

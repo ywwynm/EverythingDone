@@ -6,6 +6,12 @@
 
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
-        android:usesCleartextTraffic="true" />
+        android:usesCleartextTraffic="true">
+
+        <!-- Debug 专用离屏基准入口：adb am broadcast 触发，锁屏可用。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.views.recording.fablesol.FableSolBenchmarkReceiver"
+            android:exported="true" />
+    </application>
 
 </manifest>

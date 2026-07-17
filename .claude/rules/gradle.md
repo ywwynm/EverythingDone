@@ -61,4 +61,6 @@ latest.json 没有日志字段，应用内看不到任何更新说明（2026-07-
 
 任务只提取该文件的**第一个 `## ` 条目**作为日志。发布后核对
 `app/build/**/latest.json` 含 `releaseNotes` 字段，并把发布号 + APK SHA-256 回填
-到 `memory/debug-update-notes.md` 顶部条目。
+到 `memory/debug-update-notes.md` 顶部条目。**回填与日志文件只写入、不得单独
+git 提交**（2026-07-17 用户裁定：记录性文件留在工作区，提交由用户掌控或并入
+下一次代码提交）。

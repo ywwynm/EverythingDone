@@ -2600,3 +2600,72 @@ Android 143 项全绿、assembleDebug 通过；阿里云 Debug 202607170734。
    action_row_margin_top 是给无分隔线场合的，导致上距大于下距。
 
 Android 143 项全绿、assembleDebug 通过。
+## D162（2026-07-17）零视觉损失性能优化：Android 解锁 120fps 上限，两端逐帧成本下调
+
+用户要求在**不产生任何人眼可感知视觉变化**的前提下提升渲染帧率（目标 Android 120fps）。
+本轮修改分四类，全部通过"数学同式重排/纯状态去重"实现，未改动任何视觉合同：
+
+**Android 帧率解锁**：`FableSolFramePacer` 支持动态目标频率；`WaveVisualizerFableSolGl`
+每 250ms 跟随 `display.refreshRate` 把 pacer 目标设为 `min(实际刷新率, 120)`（显示模式
+未知时保底 60）；录音与调参两个 Dialog 的窗口 `preferredRefreshRate`/`setRequestedFrameRate`
+从 60 改为 120，请求系统切换高刷模式。物理仍是 120Hz 固定子步（120fps 渲染时恰好每帧
+1 子步）、模拟由真实 vsync 时间戳驱动，水体速度与 60Hz 面板行为完全不变；系统省电/
+热降频把显示压回 60/90Hz 时 pacer 自动跟随。D38 的"锁 60fps"验收由本决策取代。
+这同时兑现 D158 留待的"调参 Dialog 滑动卡顿（窗口 60Hz 锁）"事项。
+
+**Android CPU（渲染线程内确定性按行并行 + 预备量折叠）**：新增 `FableSolRowParallel`
+（固定 `min(核数-2, 3)` 工作线程 + 调用线程，DISPLAY 优先级，行块连续切分）。
+`FableSolContinuousSurface.sample()` 重构为"串行预备逐模态/逐波包标量（轨道系数按
+Python 的 `q·a·(kx/k)` 折叠形式预乘，两端一致）→ 方向场累加/worldEta 合成/坡度三段
+按行并行"；`buildFrame` 顶点填充同样按行并行（游标改行基址）。行间无共享写、每行
+数学与串行逐条一致。`updateWaveVectors` 按 heading/spread 参数值缓存（纯函数）。
+
+**Android GL 状态去重**：水体/前景/光学三种顶点布局各建专属 VAO 一次捕获，绘制循环
+从逐组重设 5~6 个 attrib pointer 变为单次 `glBindVertexArray`；光学 pass 帧内全层共享
+的 uniform（viewport/rotation/rasterScale/sceneLinear/hdrGain/hdrHeadroom）只在首个
+光学层上传。绘制次序、混合状态与所有 draw call 内容不变。
+
+**Python（消除解释器细碎调用）**：`prototype_surface.sample` 把谱模态+波包统一为
+X/Z 可分离行，六次 `(97,J)@(J,216)` 矩阵乘一次合成 eta/orbit_x/orbit_z（替代逐帧约
+130 次全场数组操作）；`simulation` 的九层环境波单次批量采样、波冠轻纱跨层批量化；
+`sample_specular` 三角函数求值去重 + `resolved_amplitude` 向量化展开；`gl_renderer`
+uniform 等值跳过上传 + 背景色解析缓存；`_find_anchors` 一次性筛局部峰替代逐轮全列
+重扫（判据与选取顺序严格同语义）；`thin_glow` 厚度公式向量化；画布 QTimer 跟随屏幕
+刷新率（上限 120fps，60Hz 屏保持既有 16ms）。
+
+**实测（视觉一致性证据 + 性能）**：
+- Python 确定性 129 BPM 高活动场（640×840 FP16 + 4x MSAA，RTX 5090 离屏）：帧 p50
+  `10.23ms → 8.63ms`（97.7 → 115.9 fps，**+18.6%**）；10 个对照帧线性 scRGB **逐位一致
+  （max|Δ|=0）**；177 项测试全绿（1 项既有失败与本轮无关，另行登记）。
+- Android 实机（OPD2515 平板，锁屏 background cpuset 受限、demo 确定性驱动、EGL
+  pbuffer 离屏 735×1102 FP16）：build p50 `37.2 → 31.5ms`、物理 `6.96 → 4.95ms`、帧
+  `57.0 → 50.6ms`（**-11%**；受限小核环境压缩了并行收益，前台大核收益更大待复测）；
+  GPU finish 不变（未改 GPU 工作量）；**两构建 5 个对照帧 RGBA 输出逐字节一致
+  （max|Δ|=0/255）**；152 项 JVM 测试全绿。
+- 新增 debug 专用离屏基准：`FableSolBenchmarkReceiver`（`am broadcast` 触发、锁屏可用、
+  可落盘对照帧），Python 侧 `tools/perf_bench.py`（分阶段计时 + `--dump/--compare`
+  逐像素对照）。
+
+已知余量（不阻塞本决策）：前台 120Hz 端到端 FrameMetrics 验证与真机目测因设备锁屏
+未完成，待解锁后复测；光学实体构建仍为串行（追加并行需按层缓冲重排，另行裁决）。
+
+## D163（2026-07-17）平板实机定因：debuggable ART 运行时税是 30fps 主因；release 实测满帧 120fps
+
+前台端到端复测（OPD2515 平板解锁后，录音态 + 真实音乐驱动）推翻了"CPU 算量不足"的
+直觉：debug 构建的水面实际约 30fps（glFrame 间隔换算），且**优化前（当日上午历史日志）
+同为 build 18~19ms / 约 30fps**——平板上的慢并非本轮引入。simpleperf 定因：CPU 周期约半数
+落在 ART 运行时（`art::Mutex` 19%、CAS 原子 19%、通用 JNI 蹦床 9%、JIT 反复编译 4%+），
+真正的水面数学合计不足 8%。`pm compile -m speed -f` 无效——debuggable 应用的 ART 忽略
+AOT 代码、强制走可反优化的解释/JIT 路径，属预期行为。
+
+两项修复随本决策进入主干：GL 渲染线程从默认优先级提为 `THREAD_PRIORITY_DISPLAY`
+（默认优先级下 compose 实测 7.8ms，提档后首窗 2.75ms）；`FableSolRowParallel` 从固定
+均分改为原子计数器发放 8 行小块的工作窃取（异构调度下固定均分的 latch 尾延迟 =
+最慢核整块耗时；行结果与执行者无关，输出不变）。
+
+决定性对照：release（minify，同 debug 密钥临时签名覆盖安装）在同一录音场景 atrace 统计
+6 秒 722 帧 —— **实测 120.4fps 满帧**，证明 120fps 解锁 + 优化在非 debuggable 运行时下
+完整兑现。结论与建议：手机日常 60fps 验收不受影响；平板/追求 120fps 的体验需要
+非 debuggable 构建（后续可为阿里云通道增加 release 型 perf 通道或转正式 release 发布，
+另行裁决）。lintVitalRelease 当前被 `restore_thing_folder` 多余翻译卡住（zh-rHK/rTW），
+是独立既有问题。

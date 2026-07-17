@@ -45,6 +45,7 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolParams
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.util.Locale
@@ -668,7 +669,9 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     companion object {
         const val TAG = "FableSolTuningDialogFragment"
 
-        private const val TARGET_REFRESH_RATE = 60f
+        // 与录音 Dialog 一致：请求 ≤120Hz 高刷模式，渲染节奏由 pacer 跟随显示。
+        private const val TARGET_REFRESH_RATE =
+            WaveVisualizerFableSolGl.MAX_RENDER_FPS.toFloat()
 
         /** 预览 240dp + 参数区 + 按钮行的理想总高。 */
         private const val IDEAL_HEIGHT_DP = 648f

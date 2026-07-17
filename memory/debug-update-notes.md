@@ -1,5 +1,41 @@
 # Current Debug Update Notes
 
+## 2026-07-17 - 性能优化合集重发（用户手机验收用）
+
+内容与 202607171143 相同（无新代码），发布日志合并 D162+D163 两轮：
+120fps 解锁 + 渲染调度修复 + 零视觉变化说明，供用户手机端更新对照。
+已发布阿里云 Debug `202607171147`（versionCode 43 / 2.0.0），APK 大小
+`20867852` 字节，SHA-256 为
+`39bae6580c232e12d2f4cfe5e303d7f2cca13521b21696639d72bb8af36ad04b`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717195800.md。
+
+## 2026-07-17 - 性能优化（二）：GL 线程 DISPLAY 优先级 + 工作窃取（D163）
+
+平板前台复测定因：debuggable ART 运行时税（Mutex/CAS/JNI/JIT ≈ 半数周期）
+是水面 30fps 主因且早于本轮存在；release 同场景 atrace 实测满帧 120.4fps。
+本次落地 GL 线程 DISPLAY 优先级（compose 7.8→2.75ms）与行并行 8 行小块
+工作窃取（消除异构核尾延迟），画面内容不变。143 项 JVM 测试全绿。
+已发布阿里云 Debug `202607171143`（versionCode 43 / 2.0.0），APK 大小
+`20867852` 字节，SHA-256 为
+`7e97ca3eba02a2c2159f6426...`（完整值见 latest.json，releaseNotes 已核对）。
+日志文件 docs/features/audio-visualization-fable-sol/debug-updates/update-20260717194500.md。
+非 debuggable 发布通道已登记 followups（D163）。
+
+## 2026-07-17 - 零视觉损失性能优化：120fps 解锁 + 逐帧成本下调（D162）
+
+Android pacer 动态跟随显示刷新率（上限 120fps）、两 Dialog 窗口刷新率
+请求 60→120；sample()/顶点填充按行并行 + 预备量折叠 + 波向量缓存；
+三 VAO 一次捕获布局 + 光学帧常量 uniform 去重。确定性对照下优化前后
+实机 RGBA 输出逐字节一致（max|Δ|=0/255）；Python 侧同轮批量化后
+帧 p50 10.23→8.63ms 且对照帧逐位一致。152 项 JVM 测试全绿。
+已发布阿里云 Debug `202607171056`（versionCode 43 / 2.0.0），APK 大小
+`20867852` 字节，SHA-256 为
+`bdd10bc5be5d20489e8e8adabaf23f6bb13b08a17782e04e9180a20ae550a2b1`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717185900.md。
+前台 120Hz 端到端 FrameMetrics 与真机目测待平板解锁后补做（followups 已登记）。
+
 ## 2026-07-17 - 调参目录多语言化（87 条 × 13 语言）
 
 FableSolTuning.Spec 的 label 从中文字符串改为 @StringRes（labelRes/

@@ -289,3 +289,16 @@
 - **静止/停止态**：无音频帧超过 200ms 调 `applySilence` 衰减；真机确认停止录音后水面收敛是否自然。
 - ~~**参数固化**：原版可调参数已按默认值硬编码，暂无调参入口；若需现场微调视觉，再考虑最小暴露方式。~~
   已由 2026-07-17 设置内"音频海浪动画参数调节"Dialog 解决（D157）：82 个实际生效标量参数 + HDR 开关，实时预览 + 持久化。
+
+- **前台 120fps 端到端复测**（2026-07-17 性能轮遗留）：平板 9018f404 解锁后，打开录音
+  Dialog 播放 `E:\projects\audioVisualizerSimulator\assets` 音频，读
+  `files/debug_logs/fablesol_frame_perf.log`（FrameMetrics + glFrame 分阶段）确认
+  120Hz 模式生效、稳定帧率与热表现；锁屏 background cpuset 下的离屏 A/B 已证明
+  方向与像素一致性，但绝对帧率必须以前台数据为准。
+- **光学实体构建并行化**（可选下一轮）：`FableSolGlOptics.build` 仍串行（顺序追加共享
+  顶点数组）。若前台数据表明 build 中 optics 占比仍高，可改为按层独立缓冲 + 固定顺序
+  拼接（确定性保持），预计再省 1~2ms。
+- **非 debuggable 发布通道**（2026-07-17 D163 遗留）：平板等设备要享受 120fps 需要
+  release 型构建（debuggable ART 税约 3~5×）。候选：阿里云通道加发 release 签名版，或
+  转正式 release。需要先解决 lintVitalRelease 的 `restore_thing_folder` 多余翻译
+  （zh-rHK/rTW strings.xml:198，默认 locale 无此键）。

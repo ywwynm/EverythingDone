@@ -78,7 +78,13 @@ internal class FableSolGlRenderThread(
         initialHdrSdrRatio: Float
     ) {
         detachBlocking()
-        val thread = HandlerThread("FableSolGles").also { it.start() }
+        // DISPLAY 优先级（与系统 RenderThread 同档）：默认优先级的连续渲染线程
+        // 在大小核调度下会被放到慢核（2026-07-17 OPD2515 实测 build 18ms、~30fps，
+        // 手机上同代码 60fps），提档后调度器才把逐帧关键路径放上大核。
+        val thread = HandlerThread(
+            "FableSolGles",
+            android.os.Process.THREAD_PRIORITY_DISPLAY
+        ).also { it.start() }
         val handler = Handler(thread.looper)
         this.thread = thread
         this.handler = handler

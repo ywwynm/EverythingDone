@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.io.File
@@ -660,7 +661,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     companion object {
-        private const val TARGET_REFRESH_RATE = 60f
+        // 请求系统切到不超过 120Hz 的高刷模式；FableSol 渲染节奏由
+        // WaveVisualizerFableSolGl 的 pacer 跟随实际显示模式，60Hz 面板不受影响。
+        private const val TARGET_REFRESH_RATE =
+            WaveVisualizerFableSolGl.MAX_RENDER_FPS.toFloat()
         const val TAG: String = "AudioRecordDialogFragment"
 
         const val PREPARED: Int  = 0

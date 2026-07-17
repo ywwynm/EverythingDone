@@ -2171,4 +2171,28 @@ freeze_probe），冻结画面上调参/换色/HDR 切换实时可见；按钮�
 
 FableSolTuning.Spec 标签改 @StringRes；8 组名 + 79 参数名 ×13 语言
 （1131 条，脚本一次性插入；英/德组名的 & 需 &amp; 转义）。中文文案
-与 Python GUI 保持一致。143 项全绿，发布阿里云 Debug 202607170801。
+与 Python GUI 保持一致。143 项全绿，发布阿里云 Debug 202607170801。## 2026-07-17（夜）零视觉损失性能优化：120fps 解锁 + 两端逐帧成本下调（D162）
+
+Android：pacer 动态跟随显示刷新率（上限 120fps）、两 Dialog 窗口刷新率请求
+60→120；`sample()`/顶点填充按行并行（`FableSolRowParallel`，行间无共享写、
+逐行数学与串行一致）+ 逐模态/波包预备量折叠 + 波向量参数缓存；三 VAO 一次
+捕获顶点布局 + 光学帧常量 uniform 去重。Python：谱模态+波包六次矩阵乘合成、
+环境波/波冠轻纱跨层批量化、specular 三角去重、uniform 等值跳过、选峰扫描
+向量化、QTimer 跟随屏幕刷新率。
+
+验证：Python 对照帧逐位一致（max|Δ|=0）、帧 p50 10.23→8.63ms（+18.6% fps）、
+177 测试全绿；Android 实机（锁屏受限 cpuset 下 EGL pbuffer 离屏、demo 确定
+驱动）两构建 5 对照帧逐字节一致（max|Δ|=0/255）、build 37.2→31.5ms、帧
+57.0→50.6ms、152 JVM 测试全绿。新增锁屏可用的实机离屏基准
+（`FableSolBenchmarkReceiver`）与 Python `tools/perf_bench.py`。前台 120Hz
+端到端 FrameMetrics 与真机目测待设备解锁后补做。
+## 2026-07-17（夜 II）前台复测定因 + release 满帧 120fps（D163）
+
+平板解锁后前台复测：debug 构建水面约 30fps 且与优化前历史日志持平（build
+18~19ms 早已如此）。simpleperf 显示约半数 CPU 周期为 ART debuggable 运行时
+（Mutex/CAS/JNI 蹦床/JIT 反复编译），水面数学不足 8%；pm compile 无效（
+debuggable 忽略 AOT，预期）。落地两修复：GL 线程提 DISPLAY 优先级（compose
+7.8→2.75ms 首窗）、行并行改 8 行小块工作窃取（消除异构 latch 尾延迟）。
+release 同场景 atrace 6 秒 722 帧 = **120.4fps 满帧**，120fps 目标在非
+debuggable 运行时下完整兑现。143 项 JVM 测试全绿。临时 release 签名改动已
+还原；平板装回 debug 版、录音已取消丢弃、stayon 已恢复。
