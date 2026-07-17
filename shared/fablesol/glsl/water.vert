@@ -41,6 +41,9 @@ uniform float uLayerMeanYPx[9];
 uniform float uThicknessRangePx;
 // D154：厚度透光独立权重表（4~8 层上提一档）。未上传时片元回退 SDR_SSS 表。
 uniform float uThicknessGlowWeights[9];
+// 波峰银边（2026-07-16 夜）：逐层存在度，近层重、远层近无。
+// 未上传（Android 未接线）时全 0，片元侧银边恒为 0 = 关闭。
+uniform float uCrestRimWeights[9];
 
 out vec3 vColor;
 out vec3 vSubsurfaceColor;
@@ -60,6 +63,7 @@ out float vDirectLight;
 out float vThickness01;
 out float vThicknessSurface;
 out float vThicknessGlowWeight;
+out float vCrestRimWeight;
 flat out int vFrontFill;
 
 float srgbToLinearChannel(float c) {
@@ -278,5 +282,6 @@ void main() {
     vThicknessSurface =
         (layerMeanY - surfaceYPx) / max(uThicknessRangePx, 1.0) + nearBias;
     vThicknessGlowWeight = sampleLayerCurve(uThicknessGlowWeights, aDepth01);
+    vCrestRimWeight = sampleLayerCurve(uCrestRimWeights, aDepth01);
     vFrontFill = uFrontFill ? 1 : 0;
 }

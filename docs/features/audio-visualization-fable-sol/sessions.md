@@ -1943,3 +1943,180 @@ vThicknessSurface。随后按用户要求发布阿里云 Debug **202607161438**
 memory/debug-update-notes.md 顶部，并顺手把上轮 202607161231 误插进
 2026-06-28 条目列表中的回填迁回正位）。真机验收要点：18 色下第 0 层
 水线透光观感、HDR 透射仍限逆光波冠、60fps。
+
+本批（调研→实施→迭代→双端落地→两次发布）随后双仓提交收尾：
+EverythingDone `ca351032`（13 文件）、audioVisualizerSimulatorFable
+`b16f7a8`（11 文件），调研产物/Everything-Android/tmp/scratch 按用户
+要求不入库，提交日志英文前中文后双语详述。
+
+## 2026-07-16（夜·二）波峰银边（D156，Python 侧首轮）
+
+用户圈选 GPT 效果图的波唇白线（"银丝游动"）。视觉确认（compare/1、3
+放大）：贴上轮廓 1~2px 亮芯 + 内侧柔晕、沿边不均、近层强。物理调研
+定性为剪影掠射镜面线（掠射菲涅耳→1 全反射 + 高光沿最小曲率成线 +
+半角对准/Cox–Munk 涨落），据此选确定性 shader 实现而非拉长 glint。
+
+实现：params `uplift_crest_rim`（默认 1.0）与 `glint_capacity_gain`
+（默认 0，试验期闪点归零，容量表不动）；material_policy
+CREST_RIM_WEIGHTS；water.vert/frag crestRimProfile/Energy/Color +
+uCrestRimStrength/uCrestRimWidthPx/uCrestRimWeights[9]，波浪带与
+fill 各对自身剪影生效，SDR 入参考白钳制、HDR 峰值 1+1.4×weight
+（近层 2.4）录音门控（fill 首次获得银边专属 HDR 通道）。
+
+渲染 rimbase/rimv1（SDR+HDR，4 配色）：t70 隔离差异 mean 0.30/P99
+6.9，银边超白 117px 峰值 1.091，−1EV 下银丝仍亮；基线证实旧超白几乎
+全由闪点承担。修一处自伤：excess 调用拆行破坏双端契约字符串（改回
+单行）；glint 测试×2 显式开数量门、sheen-absent 补关银边。177 项全绿。
+评审图 compare/rim1-*（含 1:1 zoom）。待用户 GUI 动态目测定档后移植
+Android。教训重申：跨进程传 JSON 引号必坏——render_review.ps1 要在
+会话内 `&` 调用，勿嵌套 powershell -Command。
+
+## 2026-07-17（凌晨）波峰银边 v2："山舞银蛇"修订
+
+用户裁决 v1 不够亮/太短/频率低/水体内部有可见截止边界。四处定位与
+修复：①晕尾硬截止（残留 4.6% 台阶）→ 平滑窗归零，实测尾部台阶
+8.86→1.93/255；②迎光门掺了风梳微法线把线切碎 → 波浪带与 fill 统一
+改用平滑 sheen 坡度；③半角门放宽（0.55+0.9·s·n 不乘方）+ 峰锐度门
+提前饱和（pinch×1.6 开方）+ 权重中层上提；④SDR 系数 →1.0、HDR 峰值
+系数 →2.0（第 0 层峰值 3.0）。v2 数据（t70）：P99 6.9→22.4、超白
+117→1415px、峰值 1.658、银线峰值增量 +36%；t45/深海/浅灰绿形态均呈
+长段银蛇。直射分瓣单调隔离测试×2 补关银边（bounded 峰值归一破坏
+隔离前提），177 项全绿。评审图 compare/rim2-*（含 v1 对比 zoom）。
+
+## 2026-07-17（凌晨·续）波峰银边 v3~v6：亮度对齐闪点核心、长度×数倍
+
+用户再裁决：亮度要与闪点核心同档、长度比 v2 再长几倍。v3 提 HDR 峰值
+到 3.6 档并试峰锐度 smoothstep——覆盖列数反而降（399/1280）；随即实测
+pinch 沿轮廓分布（P50=0、P99≈0.002~0.07、层 0 全零），确认**任何 pinch
+乘法门都是长度杀手**，整项删除（物理：剪影掠射反射沿整条轮廓存在），
+"不常出现"改由音频活跃度承担（0.30+0.70×sparkle01 乘进强度，D67 合规，
+GlFrameData 新增 crest_rim_activity）。v4（方向门加 0.35 底）成全轮廓
+描边、自否；v5 实测纯线性方向门在平缓 sheen 坡度下永不熄灭仍描边；
+v6 方向门 smoothstep(0.40,0.82) 制造真实熄灭区，银蛇=受光坡段（数百
+px、两端收尖、同屏约 10 条、近粗远细）。t70：SDR P99 94.9、超白
+12410px、诊断峰值顶 2.0 天花板。MSAA 几何 AA 回归补关银边（细亮线
+是逐像素着色、不在 MSAA 语义内），177 项全绿。评审图 compare/rim6-*、
+rim6-vs-v2-t70.png。
+
+v7（用户裁决：粗了一点、中远层太明显）：亮芯 1.2dp→1.0dp、晕幅
+0.35→0.30；权重中远层下调一档；片元线宽乘 0.55+0.45×weight 做空气
+透视变细（远层银丝更纤细）。t70：mean 2.19/P99 79.6、超白 7682px
+（中远层回落、近层不变）。177 项全绿。评审图 compare/rim7-*、
+rim7-vs-v6-t70.png。v8：晕幅 0.30→0.16（用户直接定档），光晕渗出
+收敛、银丝本体更干净。评审图 compare/rim8-*、rim8-vs-v7-t70.png。
+
+## 2026-07-17（晨）波峰银边 v8 定稿：移植 Android 并发布
+
+用户确认 v8 后移植：FableSolParams 两参数 + setForTest 测试入口；
+FableSolMaterialPolicy CREST_RIM_WEIGHTS；FableSolGlRenderer 权重表
+静态上传 + 每帧 uCrestRimStrength（×活跃度）/uCrestRimWidthPx；
+FableSolGlOptics 闪点容量门（与 Python 同咽喉点，Canvas 回退不动）；
+共享 shader 零改动。测试三处契约更新（曲线表、闪点测试×2 开数量门、
+parity bodyBlock 断言起点后移——fill 银边 HDR excess 为唯一许可例外），
+149 项全绿；assembleDebug 通过，APK 核对含 crestRimShape/0.16 晕幅。
+阿里云 debug 发布 202607170010（SHA-256 3bd6c606…c8f4），发布号+SHA
+已回填 memory/debug-update-notes.md 顶部。
+
+## 2026-07-17（晨·续）银丝 v9/v10 细化与参数化（Python 侧）
+
+发布后用户续调：v9 亮芯 0.8dp + 权重/空气透视加陡；v10 亮芯 0.6dp +
+中远层权重按用户指定 0.42/0.27/0.16/0.10/0.05/0.0129。亮度 vs glint
+定量：SDR 核心双双纯白、HDR 银丝峰值（2.0 顶死）> glint 1.869——感知
+差为点/线能量集中度。GUI 新增银丝三控制项（粗细/光晕/峰值亮度，
+uCrestRimHaloAmp、uCrestRimPeakBoost 两个新 uniform，宽度改每帧参数
+驱动）。177 项全绿。评审图 compare/rim10-*、rim10-vs-v9-t70.png。
+
+v11 银丝滑动：按用户要求复刻 glint"逆流跑"视差。物理 = 深水群速为
+相速一半、镜面包络相对波峰后滑；实现 = 低频值噪声调制场以半流速沿
++x 滑动（相位沿 sim 时间积分、冻结静止；λ≈160dp、各层 seed 异步），
+第四个参数"银丝滑动"（深度 0.65×、0 关闭）。相位探针单调正向、
+177 项全绿。评审图 rim11-vs-v10-t70.png；滑动感待 GUI 动态确认后
+同步 Android 并重发。
+
+v12（用户"完全没看到滑动"，探针定位双根因）：①GPU sin 大参数精度使
+调制噪声整行偏平（on/off 比值恒 1）→ 亮结改正弦承载 + 小输入噪声
+抖动，调制幅度实测 0.26~0.52；②相位跨帧积分在单帧渲染路径恒 0 →
+改 sim.t 纯函数（恒速 55dp/s、λ=240dp 取模、无跨帧状态、冻结静止）。
+同 sim 强制双相位差 712px 确认 shader 消费相位。GlFrameData 撤销
+crest_rim_flow01（流速耦合放弃）。177 项全绿。教训：GLSL 噪声输入
+保持小数值；跨帧渲染器状态在单帧截图路径必然失效，优先纯函数。
+
+## 2026-07-17（午前）银丝 v9~v12 同步 Android 并发布
+
+移植：FableSolParams 四控制项（width 0.6 / halo 0.16 / peak 3.6 /
+slide 1.0）；FableSolMaterialPolicy 权重表 v10 用户定值（含测试曲线
+更新）；FableSolGlRenderer 六个 uniform 每帧上传（宽度参数化、光晕、
+峰值增量、滑动相位 = (55×sim.t)%240×density 纯函数、尺度、深度）；
+共享 shader 零改动。Android 149 项全绿、assembleDebug 通过、APK 核对
+含 uCrestRimSlidePhase 与正弦亮结。阿里云 debug 发布 **202607170158**
+（SHA-256 e461a14d…6107），发布号+SHA 已回填 memory 顶部。
+
+随后用户定档滑速 55→**64dp/s**（两端同改），发布 **202607170223**
+（SHA-256 89acbbe0…4f89）。
+
+## 2026-07-17（午后）银丝 v13/v14：波峰全覆盖 + 顶点辉光（Python 侧）
+
+用户两连裁决：①银丝只挂波峰右侧、错过顶点——v13 方向门降级为倾斜、
+主门改局部凸性（dFdx(sheen 坡度)>0×宽坡度窗；"高出均值"对宽缓涌包
+失效 t45 实测消失；底 0.30→0.55 二渲回调防长翼跑者变暗）；②顶点应
+显著最亮——v14 顶点辉光：3.2 倍宽 bloom 光球（SDR 靠面积）、闪光
+驱动 0.45+0.55×亮结、HDR 超驱后被 headroom 钳死 3.6 = 全场最亮
+（真机 3.6 屏顶满，诊断链只显示 2.0 上限）。经历 GLSL 保留字 flat
+编译错误一轮 + 陈旧 SKIP 图一轮 + **凸性符号错误一轮**（vSheenSlope
+为高度向上的物理坡度、波峰 = 坡度导数为负；首渲取 +dFdx 辉光整场点
+在波谷，用户目测抓出，v14b 取 −dFdx 修正——教训：涉及 y 向下屏幕系
+与高度向上物理系并存时，先写明每个量的坐标约定再定符号）。修正后
+t70：P99 46.5、超白 3651 集中于波峰顶点；t45 超白 1794（平缓圆顶也
+有亮帽）。用户再裁决：独立亮球与银丝"明显是两个东西"→ v15 连续
+塑形——删除叠加式 bloom/flash，同一剖面随顶点度连续变化（线宽
+×1~1.45、晕幅 ×1~3.2、晕铺展 3.2→4.6 倍、能量 SDR ×1~2.1、HDR
++2.2·apex），亮结滑到顶点的冲顶由乘积自然涌现。t70 P99 47.8/超白
+3428、t45 超白 1184。177 项全绿。评审图 compare/rim15-*、
+rim15-apex-zoom.png（顶点区 1.4:1 过渡自然）。
+
+用户确认后同步 Android：v13~v15 全为共享 shader 改动、Kotlin 零改动
+（重打包即同步）；Android 149 项 --rerun 强制重跑全绿（教训：parity
+测试运行时读共享 shader、Gradle 不追踪其为任务输入，shader 改动后必须
+--rerun 防陈旧绿）。APK 核对含 crestRimApexMask/连续塑形/凸性负号。
+阿里云 debug 发布 **202607170325**（SHA-256 a1cc6e37…275f），发布号+
+SHA 已回填 memory 顶部。
+
+发布后用户裁决 v15 顶点"打结"光斑不好看 → v16 终形：剖面粗细全程
+恒定，顶点强调只走亮度（SDR ×1~2.1、HDR +2.2·apex01，顶端最亮向两翼
+平滑衰减）。t70 P99 29.7/超白 2122、t45 超白 598。177 项全绿。评审图
+compare/rim16-*、rim16-vs-v15-apex.png（同位置对比：结消失、线等粗、
+顶点仅更亮）。用户确认后打包发布（按指示跳过 Android 测试）：阿里云
+debug **202607170339**（SHA-256 b99f85a0…4838），发布号+SHA 已回填
+memory 顶部。
+
+## 2026-07-17（午后·二）银丝 v17：太阳柱限定顶点高亮（Python 侧）
+
+用户真机反馈：每个相对高的波峰都有高亮区 → 银丝断断续续，希望每层
+只有 1~2 处。物理定性：顶点高亮是光滑波唇的宏观镜面点（每凸段至多
+一个、需太阳柱内坡度可达、无微面片兜底），比闪点更严格集中于柱内。
+实现：apex01 × 太阳柱包络（柱心同构 sun_glitter_policy、柱半宽更窄
+0.15→0.07；新 uniform SpanX0/Span 换算 x01；GlFrameData 加 row 0
+跨度字段）；银丝本体（天空宽光源）沿峰连续不受限。t70 超白
+2122→1675、t45 598→342（高亮凝聚入柱）。177 项全绿。评审图
+compare/rim17-vs-v16-t45/t70.png。
+
+同步 Android：FableSolGlRenderer 新增 crestRimX0Px/crestRimSpanPx
+字段（buildFrame 取 row 0 首末列 x）+ 两个 uniform 上传；149 项
+--rerun 全绿、assembleDebug 通过、APK 核对含 crestRimSunColumn。
+阿里云 debug 发布 **202607170358**（SHA-256 3ee3b644…54e6），
+发布号+SHA 已回填 memory 顶部。
+
+## 2026-07-17（傍晚）银丝 v18：全平滑过渡（Python 侧，三轮细化）
+
+用户真机截图裁决：高亮区边界生硬、第 1 层 4 处高亮。四项根因逐一
+移除：①dFdx 逐三角形阶跃（顶点/覆盖判据改坡度近零×显著度平滑场）；
+②太阳柱收窄 0.11/0.055；③亮结 λ=360dp + 过渡带 0.24~0.78 + 深度
+0.60（相位取模同步 360，取模必须等于波长）；④覆盖门 wings 坡度窗
+删除（陡坡空间压缩成硬边、与显著度重复），方向倾斜 0.80+0.20、顶点
+SDR 增益 0.9。沿丝追踪 P90 过渡落差 30→22/255；第 1 层右坡生硬终止
+消失。177 项全绿。评审图 rim18-*、rim18c-layer1-zoom.png。
+
+用户确认后同步 Android（Kotlin 三常量：取模 360、尺度 1/360、深度
+0.60；按指示跳过 Android 测试）并发布：阿里云 debug
+**202607170459**（SHA-256 443007de…9f2a），发布号+SHA 已回填 memory
+顶部。

@@ -19,6 +19,7 @@ in float vDirectLight;
 in float vThickness01;
 in float vThicknessSurface;
 in float vThicknessGlowWeight;
+in float vCrestRimWeight;
 flat in int vFrontFill;
 
 uniform sampler2D uPreWaterScene;
@@ -41,6 +42,21 @@ uniform float uHdrHeadroom;
 // uGlowDerivedBoost 为透光派生的线性提亮倍数。Android 未上传时按 GLES 默认 0 关闭。
 uniform float uThicknessGlowStrength;
 uniform float uGlowDerivedBoost;
+// 波峰银边（2026-07-16 夜）：剪影掠射镜面线。0 = 关闭 = 与既有输出逐位一致；
+// uCrestRimWidthPx 为亮芯高斯宽度（物理 px），uCrestRimHaloAmp 为光晕幅度，
+// uCrestRimPeakBoost 为 HDR 峰值增量（峰值−1）。Android 未上传时零默认关闭。
+uniform float uCrestRimStrength;
+uniform float uCrestRimWidthPx;
+uniform float uCrestRimHaloAmp;
+uniform float uCrestRimPeakBoost;
+// 银丝滑动：调制场相位（物理 px，CPU 按半流速沿 sim 时间积分）、
+// 噪声空间尺度（1/λ）与调制深度（0 = 关闭 = 无调制）。
+uniform float uCrestRimSlidePhase;
+uniform float uCrestRimSlideScale;
+uniform float uCrestRimSlideDepth;
+// 太阳柱（v17）：可见跨度起点与宽度（本地 px），供顶点高亮换算 x01。
+uniform float uCrestRimSpanX0Px;
+uniform float uCrestRimSpanPx;
 out vec4 fragColor;
 
 float srgbToLinearChannel(float c) {
@@ -224,6 +240,127 @@ float thicknessExcessMask(vec3 normal) {
     return thin * facing * min(uThicknessGlowStrength, 1.0);
 }
 
+// 波峰银边：剪影掠射镜面线。物理依据——剪影处 N·V→0、菲涅耳→1（近乎全反射
+// 天空/太阳，颜色与水色无关故近白）；高光沿最小曲率方向（沿脊）拉长成细线，
+// 横向宽度∝1/横向曲率（峰越尖线越细亮）；半角对准门 + 微法线扰动（normal.x
+// 已含风梳微法线）带来沿边亮度涨落、间歇与随波"游动"。
+// v16（2026-07-17 用户裁决）：剖面形状恒定——v15 的顶点线宽膨大 +
+// 光晕铺展在细线上形成"打结"般的光斑，不好看。顶点强调只走能量
+// （调用方按 apex01 做亮度渐变），线的粗细与光晕形状全程不变。
+float crestRimProfile() {
+    // 到本层上轮廓（自身剪影）的屏幕像素距离，与 waterEdgeCoverage 同源。
+    float insideDistance = vFrontFill == 1
+        ? -vDepth01
+        : float(uStartLayer) / 8.0 - vDepth01;
+    float pixelDepth = max(fwidth(vDepth01), 1e-6);
+    float distancePx = max(insideDistance / pixelDepth, 0.0);
+    // 空气透视变细（2026-07-17 三轮目测加陡）：远层银丝按层级权重收窄，
+    // 近层最粗最明显、越远越纤细。
+    float width = max(
+        uCrestRimWidthPx * (0.45 + 0.55 * clamp(vCrestRimWeight, 0.0, 1.0)),
+        0.5);
+    float cutoff = width * 7.0;
+    if (distancePx > cutoff) {
+        return 0.0;
+    }
+    float core = exp(-0.5 * distancePx * distancePx / (width * width));
+    // 晕幅经 uniform 可调（2026-07-17 用户定档基准 0.16）。
+    float halo = uCrestRimHaloAmp * exp(-distancePx / (width * 3.2));
+    // 平滑窗：晕尾在 cutoff 处连续归零——硬截止会在水体内部留下一条
+    // 可见的等距边界（2026-07-17 首轮目测缺陷）。
+    float window = 1.0 - smoothstep(width * 3.5, cutoff, distancePx);
+    return min(core + halo, 1.0) * window;
+}
+
+// 太阳对准度原始值（0..1）：调用方须传平滑 sheen 坡度派生的 normal.x——
+// 掺入风梳微法线会把线切碎成短虚线。
+float crestRimSunAlignRaw(float normalX) {
+    float sunSide = clamp(sin(uLightAzimuthRad) * 4.0, -1.0, 1.0);
+    return clamp(0.5 + 1.1 * sunSide * normalX, 0.0, 1.0);
+}
+
+// 波峰包络（2026-07-17 v13 用户裁决）：方向门做主门会让银丝只挂单侧翼、
+// 恰好错过波峰顶点。判据用**局部凸性**——"高出层均值"对宽缓涌包失效
+// （均值被涌包本身抬走，t45 实测银丝整场消失）：y 向下时波峰 = y 局部
+// 极小 → 沿 x 的坡度导数为正；配宽坡度窗覆盖两翼（顶点为中心、左右
+// 完整），坡度窗外/凹段（波谷）落到 30% 底——长翼跑者不消失、
+// 凸顶最亮。物理：唇线高光聚于剪影凸段（镜面沿最小曲率方向成线）。
+// 波峰显著度（可为负）：vThicknessSurface 减去 D154 近层覆盖偏置后的
+// 纯"高出层均值"量——平滑插值场，波谷为负、平段近零。
+float crestRimProminence() {
+    float nearBias = 0.45 * clamp(1.0 - vDepth01 * 4.0, 0.0, 1.0);
+    return vThicknessSurface - nearBias;
+}
+
+float crestRimCrestGate() {
+    // v18（2026-07-17 真机裁决"过渡突兀"）：凸性判据弃用 dFdx——插值
+    // varying 的屏幕导数逐三角形恒定、跨列跳变（列宽 3~6px），亮度在
+    // 相邻列间跳台阶。覆盖门只由显著度（平滑高度场，波谷负值天然排除）
+    // 决定；坡度窗（wings）已删——陡坡把它的过渡带空间压缩成硬边，
+    // 且与显著度职责重复。底 0.55：凸顶满强、其余过半亮度不硬裁。
+    return 0.55 + 0.45 * smoothstep(0.0, 0.18, crestRimProminence());
+}
+
+// 亮结存在度（0..1）：银丝滑动的调制形态（2026-07-17 用户行为需求）。
+// 物理依据——深水群速 = 相速/2，镜面事件包络随波群走、相对波峰恒向后
+// 滑移（glint 逆流跑的同源现象）。正弦承载亮结（保证全动态范围——大
+// seed 行的值噪声在 GPU sin() 大参数精度下整行偏平，实测 on/off 比值
+// 恒 1 的根因）；小输入值噪声只做相位抖动，亮结间距/宽度有机化；seed
+// 相位项让各层亮结互不同步。滑动关闭（depth=0）时恒 1。
+float crestRimKnot01() {
+    if (uCrestRimSlideDepth <= 0.0001) {
+        return 1.0;
+    }
+    float u = (vSurfacePositionPx.x - uCrestRimSlidePhase) *
+        uCrestRimSlideScale;
+    float seed = clamp(vCrestRimWeight, 0.0, 1.0) * 3.7;
+    float jitter = (valueNoiseDerivative(
+        vec2(u * 0.53 + 3.7, seed)).x - 0.5) * 2.4;
+    float wave = 0.5 + 0.5 * sin(6.2831853 * u + jitter + seed * 5.1);
+    // v18：过渡带加宽（0.30~0.72 → 0.24~0.78），明暗过渡更绵长。
+    return smoothstep(0.24, 0.78, wave);
+}
+
+// 太阳柱包络（v17，与 sun_glitter_policy.path_center01 同构）：顶点高亮
+// 是**光滑波唇上的宏观镜面点**——光滑凸面每凸段至多一个镜面点，且只有
+// 波峰位于太阳柱内所需坡度才可达；没有微面片（Cox–Munk）兜底，故比
+// 闪点更严格地集中于柱内 → 每层自然 1~2 处（用户裁决"不是任何高波峰
+// 都亮"的物理依据）。柱半宽取 0.15→0.07（窄于闪点的 0.24→0.11）。
+// 银丝本体 = 天空掠射反射（宽光源），保持沿峰连续，不受柱限制。
+float crestRimSunColumn() {
+    float depth = clamp(vDepth01, 0.0, 1.0);
+    float azimuth = clamp(uLightAzimuthRad, -0.9599, 0.9599);
+    float center = clamp(
+        0.5 + tan(azimuth) * 0.28 * (depth - 0.5), 0.18, 0.82);
+    // v18 收窄（0.15→0.11、0.07→0.055）：配合显著度门，每层高亮 1~2 处。
+    float halfWidth = mix(0.11, 0.055, depth);
+    float x01 = clamp(
+        (vSurfacePositionPx.x - uCrestRimSpanX0Px) /
+            max(uCrestRimSpanPx, 1.0),
+        0.0, 1.0);
+    float d = (x01 - center) / halfWidth;
+    return exp(-0.5 * d * d);
+}
+
+// 顶点度（0..1，连续场）：物理 = 凸顶镜面焦散——反射在坡度过零、
+// 波峰显著处聚焦。v18 全平滑判据（弃 dFdx 阶跃）：坡度近零（宽过渡带
+// 渐出）× 波峰显著度（波谷/平段天然排除）× 太阳柱包络（柱外无高亮）。
+float crestRimApexMask() {
+    float flatTop = 1.0 - smoothstep(0.03, 0.30, abs(vSheenSlope.x));
+    float lifted = smoothstep(0.05, 0.35, crestRimProminence());
+    return flatTop * lifted * crestRimSunColumn();
+}
+
+vec3 crestRimColor() {
+    vec3 subsurfaceLinear = uSceneLinear
+        ? vSubsurfaceColor
+        : srgbToLinear(vSubsurfaceColor);
+    float maximum = max(max(subsurfaceLinear.r, subsurfaceLinear.g),
+        max(subsurfaceLinear.b, 0.001));
+    // 近白、略带身份色相的镜面银——反射天空的银线不吃水体吸收。
+    return mix(subsurfaceLinear / maximum, vec3(1.0), 0.72);
+}
+
 vec2 screenSpaceRefractionOffsetPx(
         vec3 normal,
         vec3 viewDir,
@@ -363,21 +500,52 @@ void main() {
     if (uFrontFill) {
         float coverage = waterEdgeCoverage();
         vec3 frontLinear = uSceneLinear ? vColor : srgbToLinear(vColor);
+        // 迎光信号来自顶边复制的 sheen slope（未接线的平台为 0 → 中性 0.5）。
+        vec3 fillNormal = normalize(
+            vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)
+        );
         // D155（2026-07-16 用户裁决，适当放宽 D6）：前景水体在水线下
         // uThicknessRangePx 内接受同一厚度透光，让第 0 层的透光可见；
         // vThickness01 随深度衰减为 0，大面积主体仍保持身份纯色。
-        // 迎光信号来自顶边复制的 sheen slope（未接线的平台为 0 → 中性 0.5）。
         if (uThicknessGlowStrength > 0.0001) {
-            vec3 fillNormal = normalize(
-                vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)
-            );
             frontLinear = thicknessGlow(frontLinear, fillNormal.x, 1.35);
+        }
+        // 波峰银边：第 0 层水线即其剪影。波峰包络做主门（顶点为中心、
+        // 两翼完整覆盖），方向只做 ±28% 倾斜；HDR 超白仍锐方向门控；
+        // 亮结掠过峰顶时叠加镜面焦散闪光（SDR+HDR 双路）。
+        float fillRimSun = 0.0;
+        float fillRim = 0.0;
+        if (uCrestRimStrength > 0.0001) {
+            float knot01 = crestRimKnot01();
+            float apex01 = crestRimApexMask();
+            // v16：粗细恒定，顶点强调只走亮度——顶端最亮、随 apex01
+            // 场向两翼平滑衰减；亮结滑到顶点时自然到达最亮。
+            float base = uCrestRimStrength * crestRimProfile() *
+                clamp(vCrestRimWeight, 0.0, 1.0) * crestRimCrestGate();
+            float body = base *
+                mix(1.0 - uCrestRimSlideDepth, 1.0, knot01);
+            float alignRaw = crestRimSunAlignRaw(fillNormal.x);
+            fillRim = body * (0.80 + 0.20 * alignRaw) *
+                (1.0 + 0.9 * apex01);
+            fillRimSun = body *
+                (smoothstep(0.40, 0.82, alignRaw) + 2.2 * apex01);
+        }
+        if (fillRim > 0.0001) {
+            frontLinear += crestRimColor() * fillRim;
         }
         vec3 frontOutput = mix(
             edgeBehindBaseline(),
             boundedReferenceWhite(frontLinear),
             coverage
         );
+        // 银边太阳对准段在录音态进入超白：峰值 = 1 + uCrestRimPeakBoost×
+        // weight（默认档第 0 层 3.6 = 闪点核心同档）；随 coverage 收边。
+        if (uSceneLinear && uHdrGain > 0.0001 && uHdrHeadroom > 1.001 &&
+                fillRimSun > 0.0001) {
+            frontOutput += crestRimColor() * (fillRimSun * uCrestRimPeakBoost *
+                uHdrGain * coverage);
+            frontOutput = min(frontOutput, vec3(uHdrHeadroom));
+        }
         fragColor = uSceneLinear
             ? vec4(frontOutput, 1.0)
             : vec4(clamp(linearToSrgb(frontOutput), 0.0, 1.0), 1.0);
@@ -411,6 +579,8 @@ void main() {
         pow(1.0 - VdH, 5.0);
 
     vec3 linearColor = uSceneLinear ? vColor : srgbToLinear(vColor);
+    float crestRim = 0.0;
+    float crestRimSun = 0.0;
     if (vFrontFill == 0) {
         linearColor = applyRefractionAndBeer(
             linearColor,
@@ -425,17 +595,51 @@ void main() {
         if (uSunSssStrength > 0.0001) {
             linearColor = addSunriseSubsurface(linearColor);
         }
+        // 波峰银边（自身剪影的掠射镜面线），SDR 部分入参考白钳制。
+        // 波峰包络做主门（v13：顶点为中心、两翼完整覆盖，方向门只留
+        // ±28% 倾斜——方向做主门会让银丝只挂单侧、错过顶点）；
+        // HDR 超白仍锐方向门控；亮结掠过峰顶时叠加镜面焦散闪光。
+        // 迎光信号用平滑 sheen 坡度（不含微法线）。
+        if (uCrestRimStrength > 0.0001) {
+            vec3 rimNormal = normalize(
+                vec3(-vSheenSlope.x, 1.0, -vSheenSlope.y)
+            );
+            float knot01 = crestRimKnot01();
+            float apex01 = crestRimApexMask();
+            // v16：粗细恒定，顶点强调只走亮度——顶端最亮、随 apex01
+            // 场向两翼平滑衰减；亮结滑到顶点时自然到达最亮。
+            float base = uCrestRimStrength * crestRimProfile() *
+                clamp(vCrestRimWeight, 0.0, 1.0) * crestRimCrestGate();
+            float body = base *
+                mix(1.0 - uCrestRimSlideDepth, 1.0, knot01);
+            float alignRaw = crestRimSunAlignRaw(rimNormal.x);
+            crestRim = body * (0.80 + 0.20 * alignRaw) *
+                (1.0 + 0.9 * apex01);
+            crestRimSun = body *
+                (smoothstep(0.40, 0.82, alignRaw) + 2.2 * apex01);
+            if (crestRim > 0.0001) {
+                linearColor += crestRimColor() * crestRim;
+            }
+        }
     }
     // 录音门控关闭时，即使浅色主体叠加直射/微法线/SDR SSS，也不得越过 reference white。
     // HDR 只由下面的录音增益门控局部 excess 开放。
     vec3 outLinear = boundedReferenceWhite(linearColor);
     if (uSceneLinear && vFrontFill == 0 && uHdrGain > 0.0001 &&
-            uHdrHeadroom > 1.001 &&
-            vHdrTransmissionPeak > 1.001) {
-        float thicknessMask = uThicknessGlowStrength > 0.0001
-            ? thicknessExcessMask(normal)
-            : 0.0;
-        outLinear += backlitTransmissionExcess(transmissionFresnel, thicknessMask);
+            uHdrHeadroom > 1.001) {
+        if (vHdrTransmissionPeak > 1.001) {
+            float thicknessMask = uThicknessGlowStrength > 0.0001
+                ? thicknessExcessMask(normal)
+                : 0.0;
+            outLinear += backlitTransmissionExcess(transmissionFresnel, thicknessMask);
+        }
+        // 银边太阳对准段的掠射反射超白：峰值 = 1 + uCrestRimPeakBoost×
+        // weight（默认档第 0 层 3.6 = 闪点核心同档），逐层随权重衰减守
+        // 近层充足约定；与透射 excess 相互独立。
+        if (crestRimSun > 0.0001) {
+            outLinear += crestRimColor() *
+                (crestRimSun * uCrestRimPeakBoost * uHdrGain);
+        }
         outLinear = min(outLinear, vec3(uHdrHeadroom));
     }
     float coverage = waterEdgeCoverage();

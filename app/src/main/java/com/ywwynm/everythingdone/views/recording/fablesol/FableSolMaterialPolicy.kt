@@ -18,6 +18,13 @@ internal object FableSolMaterialPolicy {
     // 与 Python material_policy.THICKNESS_GLOW_WEIGHTS 一比一。
     val THICKNESS_GLOW_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.56f, 0.49f, 0.42f, 0.36f, 0.27f)
+    // D156 波峰银边逐层存在度（近层重、远层近无；HDR 峰值 = 1+peakBoost×
+    // weight → 第 0 层默认 3.6 = 闪点核心档；线宽另乘 0.45+0.55×weight
+    // 空气透视变细），与 Python material_policy.CREST_RIM_WEIGHTS 一比一。
+    // 2026-07-17 v10：中远层按用户指定值。
+    val CREST_RIM_WEIGHTS = floatArrayOf(
+        1f, 0.90f, 0.72f, 0.42f, 0.27f, 0.16f, 0.10f, 0.05f, 0.0129f
+    )
     private val SURFACE_BAND_WIDTH_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0f)
     private val SURFACE_BAND_ALPHA_WEIGHTS =

@@ -1,5 +1,123 @@
 # Current Debug Update Notes
 
+## 2026-07-17 - FableSol 银丝亮度过渡全面平滑化（v18）
+
+用户真机截图裁决"高亮边界生硬、第 1 层 4 处高亮"。四根因移除：
+①dFdx 逐三角形阶跃 → 顶点/覆盖判据改"坡度近零 × 波峰显著度
+crestRimProminence"全平滑场；②太阳柱半宽收窄 0.11/0.055；③亮结
+λ=360dp（相位取模同步 360——取模必须等于波长否则回绕跳变）+ 过渡带
+0.24~0.78 + 深度 0.60；④覆盖门 wings 坡度窗删除（陡坡空间压缩成
+硬边）、方向倾斜 0.80+0.20、顶点 SDR 增益 0.9。沿丝追踪 P90 过渡
+落差 30→22/255。Kotlin 同步三常量（取模 360/尺度 1/360/深度 0.60），
+按用户指示跳过 Android 测试（Python 177 项全绿），APK 核对含
+crestRimProminence、无 dFdx。已发布阿里云 Debug `202607170459`
+（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`443007de5a87fd698430eaa53fae70303aa0de23ee6a35c71f41c8df98b89f2a`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717125905.md。
+
+## 2026-07-17 - FableSol 银丝高亮收敛太阳柱（v17）
+
+用户真机反馈"每个高波峰都有高亮区 → 断断续续，每层最好 1~2 处"。
+物理定性：顶点高亮是光滑波唇的宏观镜面点（每凸段至多一个、需太阳柱内
+坡度可达、无 Cox–Munk 微面片兜底），比闪点更严格集中于柱内。实现：
+apex01 × 太阳柱包络（柱心同构 sun_glitter_policy.path_center01、柱半宽
+更窄 0.15→0.07），新 uniform uCrestRimSpanX0Px/uCrestRimSpanPx（row 0
+可见跨度换算 x01；Kotlin 在 buildFrame 取 vertexData row 0 首末列 x）。
+银丝本体（天空宽光源掠射反射）沿峰连续不受柱限制。Python 177 项 +
+Android 149 项（--rerun）全绿，APK 核对含 crestRimSunColumn。
+已发布阿里云 Debug `202607170358`（versionCode 43 / 2.0.0），APK 大小
+`20776849` 字节，SHA-256 为
+`3ee3b64439dabd88bbaefb4056b8655aad02e4ede22cb340e9c878b51c4354e6`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717115820.md。
+真机验收要点：同层高亮区收敛 1~2 处、柱外银丝连续无断续感、滑动亮结
+入柱冲顶节奏、60fps。
+
+## 2026-07-17 - FableSol 银丝顶点纯亮度渐变（v16 终形）
+
+用户裁决 v15 顶点线宽膨大 + 晕铺展像细线"打结"的光斑 → v16：剖面
+粗细全程恒定，顶点强调只走亮度（SDR ×1~2.1、HDR +2.2·apex01，顶端
+最亮向两翼平滑衰减，亮结滑过顶点自然到达最亮）。纯共享 shader 改动、
+Kotlin 零改动；按用户指示本次跳过 Android 测试（Python 177 项全绿），
+assembleDebug 通过、APK 核对 v16 标记。已发布阿里云 Debug
+`202607170339`（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，
+SHA-256 为
+`b99f85a07aee0cd6e18b812d117d9af16b4d263164a2758d838d3b86812c4838`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717113848.md。
+
+## 2026-07-17 - FableSol 银丝波峰全覆盖与顶点连续增亮（v13~v15）
+
+三轮用户裁决落地：①方向门降级为 ±28% 倾斜，主门改局部凸性
+（−dFdx(sheen 坡度)，"高出均值"对宽缓涌包失效；首渲 +dFdx 符号错误把
+辉光整场点在波谷，用户目测抓出）；②顶点须显著最亮——v14 独立亮球被
+否（"两个东西"），v15 改同一剖面随顶点度连续塑形（线宽 ×1~1.45、晕幅
+×1~3.2、晕铺展 3.2→4.6 倍、SDR 能量 ×1~2.1、HDR 太阳项 +2.2·apex，
+超驱后被 headroom 钳 3.6 = 闪点核心档）；亮结滑到顶点的冲顶由乘积自然
+涌现。v13~v15 全为共享 shader 改动、Android 零 Kotlin 改动（重打包即
+同步）。Python 177 项全绿；Android 149 项 --rerun 强制重跑全绿（教训：
+parity 测试运行时读共享 shader，Gradle 不追踪其为输入，shader 改动后
+必须 --rerun）。APK 核对含 crestRimApexMask/连续塑形/凸性负号。
+已发布阿里云 Debug `202607170325`（versionCode 43 / 2.0.0），APK 大小
+`20776849` 字节，SHA-256 为
+`a1cc6e373d6bbc60e68d830d7648081eeb2d776ff73259794ed311a60012275f`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717112520.md。
+真机验收要点：银丝覆盖波峰全域（含顶点）、顶点连续增亮增晕（HDR 屏
+顶点 3.6 刺眼）、波谷干净、滑动冲顶节奏、60fps。
+
+## 2026-07-17 - FableSol 银丝滑动提速 64dp/s
+
+用户定档：滑动速度 55→64dp/s（Python gl_renderer.rim_slide_phase_px 与
+Kotlin FableSolGlRenderer 上传处两端同改，其余不变）。Android 149 项
+全绿、assembleDebug 通过。已发布阿里云 Debug `202607170223`
+（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`89acbbe02f4796eeca56ea14710001a6c7b5c6e2e2320a148dc42532689c4f89`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717102309.md。
+
+## 2026-07-17 - FableSol 银丝细化与逆流滑动（D156 v9~v12）
+
+发布 202607170010 后的四轮续调：v9/v10 亮芯 1.0→0.6dp、中远层权重按
+用户定值 (1/0.90/0.72/0.42/0.27/0.16/0.10/0.05/0.0129)、空气透视变细
+加陡（0.45+0.55×w）；银丝四控制项参数化（uplift_rim_width 0.6dp /
+uplift_rim_halo 0.16 / uplift_rim_peak 3.6 / uplift_rim_slide 1.0，
+Python GUI 同名）；v11/v12 逆流滑动视差——正弦亮结（GPU sin 大参数
+精度使值噪声整行偏平的修复）+ 恒速 55dp/s 的 sim.t 纯函数相位
+（λ=240dp 取模；跨帧积分在单帧渲染路径恒 0 的修复），亮度 vs glint
+定量结论：SDR 双方核心纯白、HDR 银丝峰值≥glint。Python 177 项与
+Android 149 项全绿，assembleDebug 通过，APK 核对含 slide uniform 与
+正弦亮结；未使用 adb。已发布阿里云 Debug `202607170158`
+（versionCode 43 / 2.0.0），APK 大小 `20776849` 字节，SHA-256 为
+`e461a14dd73f60f7f3f61d48eab06ae3aa1eec76aad909cf11ce4fd7f05b6107`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717095741.md。
+真机验收要点：银丝亮段以 55dp/s 右滑 vs 波浪左滚的视差、0.6dp 细丝
+观感、层级递减、HDR 太阳段、60fps。
+
+## 2026-07-17 - FableSol 波峰银边"山舞银蛇"（D156）
+
+用户圈选 GPT 效果图的波唇白线，物理定性为剪影掠射镜面线（掠射菲涅耳→1
+全反射 + 高光沿最小曲率成线 + 半角对准），经 v1~v8 八轮目测迭代定稿：
+剖面 = 1.0dp 高斯亮芯 + 0.16 幅指数晕（平滑窗归零，无内部截止边界）、
+方向门 smoothstep(0.40,0.82)（银蛇 = 受光坡段，段长约半波长）、峰锐度门
+删除（实测 pinch 沿轮廓 P50=0——乘性门会把银蛇饿死）、场强 × 音频活跃度
+（0.30+0.70×sparkle01，D67 合规）、权重近层重远层近无 + 线宽空气透视
+变细、HDR 峰值 = 1+2.6×weight（第 0 层 3.6 = 闪点核心同档，录音门控；
+front fill 获得银边专属 HDR 通道——parity 测试的 bodyBlock 断言范围
+相应调整）。闪点评审期经 glint_capacity_gain=0 默认归零（容量表不动，
+Python/Kotlin 同构门，相关测试显式开 1）。Python 177 项与 Android
+`:app:testDebugUnitTest` 149 项全绿，`:app:assembleDebug` 通过，APK 内
+water.frag 已含 crestRimShape 与 0.16 晕幅；未使用 adb。已发布阿里云
+Debug `202607170010`（versionCode 43 / 2.0.0），APK 大小 `20776849`
+字节，SHA-256 为
+`3bd6c6062fd6c5789b8e7616953ef78a46c0c999ebd3effb1c6a6422cbd8c8f4`；
+本地 `latest.json` 的 `releaseNotes` 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717080949.md。
+真机验收要点：银蛇的长度/亮度/游动感、闪点缺席后的观感、HDR 屏上
+太阳段超白、60fps（银边约 +15 ALU/px，无采样）。
+
 ## 2026-07-16 - FableSol 厚度透光层级重分布与第 0 层透光（D154/D155）
 
 厚度透光独立权重表（4~8 层上提为 0.56/0.49/0.42/0.36/0.27，经

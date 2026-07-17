@@ -32,6 +32,15 @@ class FableSolParams {
         // D151/D152 质感提升（2026-07-16 目测定稿）：厚度透光——薄处按迎光坡向
         // 从内部亮起，目标色 = subsurface 派生线性提亮 1.6（保色相饱和比）。
         v("uplift_thick_glow", 1.29); v("uplift_glow_boost", 1.6)
+        // D156 波峰银边（2026-07-17 模拟器 v12 定稿）：剪影掠射镜面线，
+        // 场强另乘音频活跃度（0.30+0.70×sparkle01）。
+        v("uplift_crest_rim", 1.0)
+        // 银丝四控制项（与 Python 模拟器 GUI 同名同默认）：粗细 dp、光晕
+        // 幅度、HDR 峰值（3.6 = 闪点核心档）、滑动调制深度（逆流视差）。
+        v("uplift_rim_width", 0.6); v("uplift_rim_halo", 0.16)
+        v("uplift_rim_peak", 3.6); v("uplift_rim_slide", 1.0)
+        // D156：银边评审期闪点数量整体归零（容量表不动，恢复置 1）。
+        v("glint_capacity_gain", 0.0)
         v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
         v("hue_temp_deg", 0.0); v("pink_mod", 0.80)
         // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，
@@ -102,4 +111,10 @@ class FableSolParams {
     fun get(key: String): Double = values[key] ?: 0.0
     fun lget(key: String, i: Int): Double = layers[key]!![i]
     fun larray(key: String): DoubleArray = layers[key]!!
+
+    /** 测试专用覆盖入口（与 Python params.set 对应）；产品代码不调用。 */
+    fun setForTest(key: String, value: Double) {
+        require(values.containsKey(key)) { "未注册参数：$key" }
+        values[key] = value
+    }
 }

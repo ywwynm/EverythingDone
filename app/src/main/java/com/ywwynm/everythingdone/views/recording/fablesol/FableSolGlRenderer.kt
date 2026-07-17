@@ -120,6 +120,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     // D151 厚度透光：逐锚层轮廓均值 y（物理 px，未旋转），供 uLayerMeanYPx。
     private val layerMeanYPx = FloatArray(FableSolSpec.N_LAYERS)
+    // D156 v17 银丝太阳柱：row 0 可见跨度（本地 px），供 shader 换算 x01。
+    private var crestRimX0Px = 0f
+    private var crestRimSpanPx = 1f
     private val sheenSlopeScratch = FloatArray(
         FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
     )
@@ -501,6 +504,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET] = sheenSlopeX[vertex]
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
+        // D156 v17 银丝太阳柱：row 0 可见跨度（与 Python crest_rim_x0/span 一比一）。
+        crestRimX0Px = vertexData[0]
+        crestRimSpanPx = (vertexData[(columns - 1) *
+            FableSolGlMeshLayout.COMPONENTS_PER_VERTEX] - vertexData[0])
+            .coerceAtLeast(1f)
         // D151 厚度透光：9 个锚行的可见列均值 y（与 aPositionPx 同空间，y 向下为正，
         // 波峰更小）。与 Python gl_scene 的 layer_mean_y_px 一比一。
         for (layer in 0 until FableSolSpec.N_LAYERS) {
@@ -1201,6 +1209,49 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             waterProgram.uniform("uThicknessRangePx"),
             (22.0 * density).toFloat()
         )
+        // D156 波峰银边：场强 = 参数 × 音频活跃度（0.30+0.70×sparkle01，
+        // 沿用闪点 sparkle 前例、HDR 峰值预算不变）。与 Python gl_renderer
+        // 一比一：粗细（dp→物理 px，片元另乘层级空气透视）、光晕幅度、
+        // HDR 峰值增量（峰值−1）、滑动（恒速 64dp/s 沿 +x 右滑的逆流视差，
+        // 相位为 sim.t 纯函数、对 λ=240dp 取模，冻结时静止）。
+        val crestRimActivity = 0.30 + 0.70 * sim.sparkle01.coerceIn(0.0, 1.0)
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimStrength"),
+            (params.get("uplift_crest_rim") * crestRimActivity).toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimWidthPx"),
+            (params.get("uplift_rim_width") * density).toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimHaloAmp"),
+            params.get("uplift_rim_halo").toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimPeakBoost"),
+            (params.get("uplift_rim_peak") - 1.0).coerceAtLeast(0.0).toFloat()
+        )
+        // v18：λ=360dp（取模必须等于波长，否则相位回绕跳变）；深度 0.60
+        // （段间谷底 0.40，过渡更绵）。与 Python gl_renderer 一比一。
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimSlidePhase"),
+            ((64.0 * sim.t) % 360.0 * density).toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimSlideScale"),
+            (1.0 / (360.0 * density)).toFloat()
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimSlideDepth"),
+            (0.60 * params.get("uplift_rim_slide")).toFloat()
+        )
+        // D156 v17 太阳柱：顶点高亮只在太阳柱内的波峰出现（每层 1~2 处）。
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimSpanX0Px"), crestRimX0Px
+        )
+        GLES30.glUniform1f(
+            waterProgram.uniform("uCrestRimSpanPx"), crestRimSpanPx
+        )
     }
 
     /** Thing 色未变化时，逐层材质数组无需每帧重复跨 JNI 上传。 */
@@ -1268,6 +1319,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             waterProgram.uniform("uThicknessGlowWeights[0]"),
             FableSolSpec.N_LAYERS,
             FableSolMaterialPolicy.THICKNESS_GLOW_WEIGHTS,
+            0
+        )
+        // D156 波峰银边逐层存在度。
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uCrestRimWeights[0]"),
+            FableSolSpec.N_LAYERS,
+            FableSolMaterialPolicy.CREST_RIM_WEIGHTS,
             0
         )
         GLES30.glUniform1fv(

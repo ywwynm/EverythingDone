@@ -271,7 +271,11 @@ class FableSolGlShaderParityTest {
                 "FableSolGlRenderer.kt"
         )
         val hdrStart = source.indexOf("if (uSceneLinear && vFrontFill == 0")
-        val bodyBlock = source.substring(source.indexOf("void main()"), hdrStart)
+        // D156：front fill 早退分支内有自己的银边 HDR excess（录音门控），
+        // 是唯一被许可的例外；主光照路径（fill 分支之后）仍必须 SDR 纯净。
+        val bodyBlock = source.substring(
+            source.indexOf("float microWeight"), hdrStart
+        )
 
         assertFalse(source.contains("SUN_RADIANCE_RESPONSE"))
         assertFalse(source.contains("SDR_REFLECTION_CEILING"))

@@ -146,6 +146,9 @@ class FableSolGlOpticsTest {
     @Test
     fun nearGlintsAndStreaksKeepBoundedCrossFrameIdentityWithoutAnalyticHalos() {
         val params = FableSolParams()
+        // D156：银边评审期闪点数量默认归零；本测试显式开启以继续覆盖
+        // 闪点身份/容量合同。
+        params.setForTest("glint_capacity_gain", 1.0)
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
         val water = syntheticWater(COLUMNS)
@@ -273,6 +276,9 @@ class FableSolGlOpticsTest {
     @Test
     fun mirrorGlintGeometryNeverCrossesOutsideItsWaterContour() {
         val params = FableSolParams()
+        // D156：银边评审期闪点数量默认归零；本测试显式开启以继续覆盖
+        // 闪点几何合同。
+        params.setForTest("glint_capacity_gain", 1.0)
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
         val water = syntheticWater(COLUMNS)

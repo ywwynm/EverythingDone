@@ -70,6 +70,11 @@ class FableSolMaterialPolicyTest {
             doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.56, 0.49, 0.42, 0.36, 0.27),
             FableSolMaterialPolicy.THICKNESS_GLOW_WEIGHTS
         )
+        // D156：波峰银边逐层存在度（近层重、远层近无，2026-07-17 v10 用户定值）。
+        assertFloatCurve(
+            doubleArrayOf(1.0, 0.90, 0.72, 0.42, 0.27, 0.16, 0.10, 0.05, 0.0129),
+            FableSolMaterialPolicy.CREST_RIM_WEIGHTS
+        )
         assertEquals(
             listOf(4, 4, 3, 3, 2, 2, 1, 1, 0),
             (0..8).map(FableSolMaterialPolicy::glintCapacity)

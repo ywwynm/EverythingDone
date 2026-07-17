@@ -797,7 +797,11 @@ internal class FableSolGlOptics(private val density: Double) {
             field[i] = (edge * 1.5).coerceIn(0.0, 1.0) * sparkle
         }
         smoothHann(field, smooth, columns, 5)
-        val cap = FableSolMaterialPolicy.glintCapacity(layer)
+        // D156：银边评审期闪点数量门（容量表不动），与 Python gl_optics 一比一。
+        val capacityGain = params.get("glint_capacity_gain").coerceIn(0.0, 1.0)
+        val cap = Math.round(
+            FableSolMaterialPolicy.glintCapacity(layer) * capacityGain
+        ).toInt()
         findAnchors(
             smooth,
             columns,
