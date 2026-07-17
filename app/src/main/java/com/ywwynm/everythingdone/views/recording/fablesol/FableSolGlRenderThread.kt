@@ -136,6 +136,26 @@ internal class FableSolGlRenderThread(
         renderer.onAudioFrames(frames, events)
     }
 
+    fun setTuningValue(key: String, value: Double) {
+        renderer.setTuningValue(key, value)
+    }
+
+    fun beginBackgroundTransition(background: ThingBackground) {
+        renderer.beginBackgroundTransition(background)
+    }
+
+    fun setContentVerticalOffsetDp(offsetDp: Float) {
+        renderer.setContentVerticalOffsetDp(offsetDp)
+    }
+
+    fun setBottomCornerRadiusPx(radiusPx: Float) {
+        renderer.setBottomCornerRadiusPx(radiusPx)
+    }
+
+    fun setSimulationPaused(paused: Boolean) {
+        renderer.setSimulationPaused(paused)
+    }
+
     fun setPerformanceMonitor(monitor: FableSolPerformanceMonitor?) {
         this.monitor = monitor
     }

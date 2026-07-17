@@ -2438,3 +2438,165 @@ Android 149 项全绿、assembleDebug 通过、APK 内已核对 crestRimShape �
 0.16 晕幅。阿里云 debug 发布 **202607170010**（SHA-256 3bd6c606…c8f4，
 含中文日志）。真机验收要点：银蛇长度/亮度/游动感、闪点缺席观感、
 HDR 太阳段超白、60fps。
+
+
+## D157（2026-07-17）设置内调参 Dialog：全量生效参数 + HDR 开关 + 实时预览
+
+设置界面（用户界面卡片）新增"音频海浪动画参数调节"入口，点击先申请
+RECORD_AUDIO，通过后打开 FableSolTuningDialogFragment：
+
+1. **实时预览与录音界面同源**：顶部固定 240dp 高的
+   WaveVisualizerFableSolHost（同一 GLES 宿主：九层水体、HDR、重力
+   倾斜、AudioRecorder 实时驱动），背景取 App.defaultAccentBackground、
+   呈现 alpha 恒 1，无录音按钮/时钟。逻辑空间 420dp 高、water.vert 以
+   视口中心对齐——240dp 恰好容下九条水线（最近层水线位于中心下方
+   114dp）。窗口高度收敛 min(648dp, 94% 屏高)，参数区 ScrollView 用
+   weight 吸收差额，预览与按钮行永不被顶出。
+2. **参数目录 = 实际消费 ∩ 已注册**：FableSolTuning.GROUPS 收录 82 个
+   标量参数、9 组（质感提升/外观与光学/连续水面/环境与流动/主浪/涨落/
+   注入/段落/系统），标签、范围、步长与 Python params.py 的 GUI 规格
+   同源；排除 canvas 回退独占键（crest_on、surface2d_on）、逐层数组
+   （lget 系）与前端未消费键（agc_window_s 等）。滑杆用均匀插值映射
+   （粒度≈step、两端点精确可达——lighten_far 上限 0.864 这类 step 不
+   整除的范围，若按步长量化会永远取不到上限/默认值）。
+3. **热更新通道**：调节即时经 WaveVisualizerFableSolHost.setTuningValue
+   → 渲染线程 pendingTuning（inputLock 门）→ drainAndApply 在 GL 线程
+   写入共享 params，并把 materialColorKey 置空强制重建静态材质色
+   （lighten_far/color_breath/environment_tint 平时只在背景变化时重算）。
+   所有效果 uniform 均逐帧读 params；静态权重表全部来自策略常量，不受
+   调参影响。Canvas 回退路径直写（物理/渲染同在 UI 线程）。
+4. **持久化**：独立 SharedPreferences 文件 fablesol_tuning 只存偏离
+   默认值的键（滑杆松手时写入、等于默认即删除存储项）；FableSolParams
+   新增运行时 set()（setForTest 变为别名），各渲染器构造 params 后立即
+   FableSolTuning.applyStored（先于 sim/mapper 构造，二者共享同一
+   实例）——录音界面下次打开自动生效。恢复默认 = 清空存储 + 全量推
+   默认值 + 重建参数行。
+5. **HDR 开关**：布尔项存同一文件（默认开）；预览端激活条件 = 设备
+   支持（SDK≥34 且 display.isHdr 且 isHdrSdrRatioAvailable）∧ 开关，
+   设备不支持时整行置灰并标注"（设备不支持）"；录音 Dialog 的
+   setRecordingHdrActive(true) 改为读该开关。
+6. **补注册两个漏移植参数**：FeatureMapper 一直在读 swell_halflife_s /
+   deep_integral_s，但 FableSolParams 从未注册——get 走 0.0 兜底再被
+   max(…,0.5)/max(…,1.0) 钳制。按既有实效值 0.5 / 1.0 注册（观感逐位
+   不变），与 Python 原版默认 3.0 / 30.0 的差异记入 followups 待裁决。
+
+新文件：FableSolTuning.kt、FableSolTuningDialogFragment.kt、
+dialog_fablesol_tuning.xml；字符串 13 个语言全部补齐。Android 161 项
+单元测试全绿、assembleDebug 通过（按规则未做 adb 实机操作）。
+
+## D158（2026-07-17）调参 Dialog 二轮打磨：沉浸预览、换色涌入、暂停冻结与样式统一
+
+用户对 D157 首版的九项裁决落地（第九项滑动帧率暂缓，见文末）：
+
+1. **预览沉浸化**：去掉标题，预览贴顶满宽；渲染端 present.frag 新增
+   uCornerRadiusBottomDeltaPx（下两角半径 = max(上角+增量, 0)，按
+   gl_FragCoord.y 半分上下），Dialog 预览把底两角切成直角与参数区无缝
+   衔接，顶两角保持 app_chrome_dialog_popup_corner_radius（与 Dialog
+   轮廓同一 dimen，精确吻合）。默认增量 0 = 四角同半径，录音界面与
+   Python（不上传该 uniform）逐位不变。
+2. **取景上移**：新 API setContentVerticalOffsetDp（Host→…→Renderer），
+   buildFrame 在旋转前顶点空间加 R^{-1}·(0, dy) 补偿向量（屏幕上是纯
+   垂直平移，倾斜不横漂），fill 底同步平移。Dialog 用 -36dp：第 0 层
+   水线距下边缘从 6dp 提到 42dp，波谷不再被裁。物理、optics、银丝
+   跨度等全部随 vertexData 继承，无一处特判。
+3. **换色（新颜色的波浪从右侧涌入）**：water.frag 新增揭示门
+   uColorRevealEdgePx/uColorRevealSoftPx（gl_FragCoord.x 的 smoothstep，
+   软带 72dp；SoftPx<=0 默认关闭恒 1）；两个输出点 alpha 由常量 1 改为
+   colorRevealAlpha()（两端合同测试同步更新）。渲染端过渡（1600ms
+   smoothstep）：主遍每帧以 OKLab 插值配色重建材质（环境天空与 optics
+   同色渐变），再以目标配色第二遍重绘水体+front fill（SRC_ALPHA 混合
+   + 揭示门），边界从右缘推进到左缘后落定目标色；进行中再次换色以
+   当前插值色接力。optics 不重画（主遍已是插值色，被新色浪头盖过即
+   "涌入"的一部分；当前闪点容量默认 0）。UI 侧同步 1600ms 渐变
+   （ArgbEvaluator、12 档节流——SeekBar tint 每次重建 drawable，82 条
+   全量重设需节流），组头渐变字/滑杆/复选框/行涟漪/确定按钮全部跟随。
+   颜色池 = accent 渐变 + 内置 10 色（R.array.thing）+ 用户记事背景
+   （ThingDAO 后台去重），随机不重复当前色。
+4. **暂停/继续**：预览右上角按钮（换色按钮左侧），View 层停帧循环即
+   冻结最后一帧（GL surface 保留内容；音频帧照常入队、恢复只取最新，
+   dt 有 MAX_DT 钳制无跳变）。暂停中点换色自动恢复播放。按钮用录音
+   Dialog 侧键同款半透明圆底 + 圆形涟漪。
+5. **样式统一**：HDR 行复选框改 BackgroundUtil.applyCheckboxAccent
+   （渐变勾选），行涟漪改 GradientRippleDrawable（设置界面同款）；
+   确定按钮改 applyTextBackground + applyAccentRipple（AlertDialog
+   确认钮同款）；按钮行上方新增分隔线，与顶部线一起指示滚动状态
+   （canScrollVertically ±1）。
+6. **文案与密度**："质感提升（试验）"组更名"质感"；滑杆行上下内边距
+   4/0→9/5、组头上边距 14→22，行间不再拥挤。
+
+滑动卡顿（第九项，本轮未动）：根因即 Dialog 窗口 preferredRefreshRate
+= 60（整窗锁 60Hz，用户设备高刷屏上滚动明显钝），叠加预览持续渲染。
+按用户指示留待下轮处理（方案备选：仅预览 SurfaceView 请求 60Hz 帧率
+而窗口不锁、或调参 Dialog 不锁刷新率）。
+
+合同更新：Android FableSolGlShaderParityTest 与 Python test_gl_backend
+的输出行断言改为 colorRevealAlpha() 版本。Android 149 项、Python 177
+项全绿；assembleDebug 通过。
+
+## D159（2026-07-17）调参 Dialog 三轮反馈：亮带归零对齐 Python、换色卡顿与 overscroll 掉帧修复
+
+1. **surface_strip_gain 默认 1.0 → 0.0**：Python 端"表面亮带"特效已整项
+   移除（test_surface_strip_removed），Android 一直默认开着——归零即与
+   模拟器视觉对齐；调参 Dialog 仍可拉回。四个亮带合同测试按 D156 闪点
+   先例显式 setForTest 开启被测特效。
+2. **"系统"组删除**：demo_mode 不再暴露在调参 Dialog（目录仅移除，
+   参数本身仍注册）。
+3. **角标按钮去衬底**：透明背景 + 圆形涟漪；图标 imageAlpha=176，
+   亮色模式下不再是实黑（tint 仍 on_surface_secondary，54%×69%≈37% 黑）。
+4. **换色动画卡顿修复**：根因是每档全量重设 82 条滑杆——setSeekBar-
+   Background 重建 thumb/track drawable 并各自 requestLayout，12 档 ×82
+   次 dirty measure 把主线程一帧打爆，Choreographer 断流连带预览掉帧。
+   改为档中只更新 ScrollView 视口内可见的滑杆（offsetDescendantRect
+   判定，每档 ~6 条），动画结束一次性全量补齐；组头/复选框/涟漪/按钮
+   仍每档更新（invalidate 级，便宜）。
+5. **overscroll 拉伸掉帧**：Android 12+ 的 stretch 是对整块列表内容每帧
+   变化的 RenderEffect，GPU 开销大到拖垮上方 GL 预览；该 ScrollView
+   改 overScrollMode="never"，到边提示由上下两条滚动指示分隔线承担。
+
+Android 149 项全绿、assembleDebug 通过；shader 未动，Python 端无涉。
+
+## D160（2026-07-17）表面亮带整项移除 + 调参 Dialog 四轮细节
+
+1. **表面亮带（surface_strip_gain）整项移除**：Python 端 D147 撤销软带
+   试验时已删除 GlOpticsBuilder._surface_band 与全部控制项（有
+   test_surface_strip_removed 守卫），Android 一直保留完整实现。按用户
+   裁决对齐移除：FableSolGlOptics.buildSurfaceBand 与调用块、mode 4
+   （OPTICAL_MODE_SURFACE_REFLECTION）发射、canvas drawSurfaceStrip /
+   colorRampShader / drawGradientRampOneSidedBand、MaterialPolicy 的
+   SURFACE_BAND_* 权重表与三个函数、FableSolSurfaceColorPolicy 类、
+   params 注册、调参目录条目全部删除。共享 optical.frag 的 mode 分支
+   与 Python 端同样保留为无发射死分支（两端对称，不动 shader）。
+   canvas 端流光与亮带解耦保留：原来流光只在 strip 内触发（strip 归零
+   即消失），现改为独立入口（自算迎光/摆幅、底色取层色中间调 stop1/
+   stop2 中点，行为与 GL buildStreaks 的独立性对齐）。测试 149→143：
+   band 专测 ×2、SurfaceColorPolicyTest ×2、MaterialPolicy band ×1
+   删除；网格合同的 mode 4 断言反转为"不复存在"；builder 排序合同去
+   surface 项。
+2. **HDR 勾选框涟漪跟色**：复选框自身的圆形按压涟漪此前是系统默认色
+   （行按压经 dispatchSetPressed 传导显现），补装设置界面同款
+   GradientRippleDrawable.applyCheckboxRipple 并纳入换色 update。
+3. **按钮行间距**：marginTop 从手写 4dp 恢复标准
+   app_chrome_dialog_action_row_margin_top，与其它 Dialog 一致。
+
+Android 143 项全绿、assembleDebug 通过；阿里云 Debug 202607170734。
+
+## D161（2026-07-17）暂停语义重做：冻结模拟而非停渲染 + 按钮行 divided 间距
+
+1. **暂停 = 冻结模拟与音频泵，渲染循环照跑**（对齐 Python canvas.py 的
+   freeze_probe 语义："不推进模拟与音频泵，mapper 的静默衰减也被冻结"）。
+   此前 Android 的暂停停掉了帧循环，冻结画面上调参毫无反馈。现改为
+   渲染端 simulationPaused 门：跳过 sim.update 与重力应用；drainAndApply
+   丢弃冻结期音频特征/事件（恢复后从最新实时输入继续），静默衰减计时
+   锚随帧推移一并冻结；调参热更、HDR 增益过渡、换色揭示遍照常逐帧
+   执行。GlView/canvas 的帧循环暂停逻辑撤销，API 更名
+   setSimulationPaused（Host→GlView/Canvas→RenderThread→Renderer）。
+   冻结下实时可见的参数 = 渲染每帧读取的全部光学/材质项（质感组、
+   外观与光学组、相机仰角等）；作用于模拟推进的组（环境与流动/主浪/
+   涨落/注入/段落）冻结下自然无表现，与 Python 行为一致。换色不再
+   强制恢复播放（静止波形上也能看到新色涌入）。
+2. **按钮行间距**：分隔线下方的动作行应使用
+   app_chrome_dialog_divided_action_row_margin_top（参照选择应用语言
+   Dialog fragment_chooser 的 separator_2 → 动作行结构），普通
+   action_row_margin_top 是给无分隔线场合的，导致上距大于下距。
+
+Android 143 项全绿、assembleDebug 通过。

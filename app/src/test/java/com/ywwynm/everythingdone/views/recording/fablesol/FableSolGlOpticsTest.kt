@@ -122,7 +122,6 @@ class FableSolGlOpticsTest {
         val fullContourVertices = (COLUMNS - 1) * FableSolGlOptics.VERTICES_PER_QUAD
         assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         assertTrue((0..4).all { optics.crestVeilVertexCountForTest[it] == fullContourVertices })
-        var hasHdrEligibleSurfaceSegment = false
         for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
             for (component in 0 until FableSolGlOptics.COMPONENTS_PER_VERTEX) {
                 assertTrue(optics.vertices[offset + component].isFinite())
@@ -131,16 +130,14 @@ class FableSolGlOpticsTest {
             val opticalMode = optics.vertices[offset + 8]
             val hdrEligibility = optics.vertices[offset + 12]
             assertTrue(hdrEligibility in 0f..1f)
-            if (opticalMode == 4f && hdrEligibility > 0f) {
-                hasHdrEligibleSurfaceSegment = true
-            }
+            // D160：表面亮带（mode 4）已整项移除，不应再有该模式的顶点。
+            assertTrue(opticalMode != 4f)
             if (opticalMode == 2f || opticalMode == 7f ||
                 opticalMode == 9f || opticalMode == 10f
             ) {
                 assertEquals(0f, hdrEligibility, 0f)
             }
         }
-        assertTrue(hasHdrEligibleSurfaceSegment)
     }
 
     @Test
@@ -329,8 +326,6 @@ class FableSolGlOpticsTest {
         sim.update(1.0 / 60.0)
         optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
 
-        assertTrue((0..7).all { optics.surfaceBandVertexCountForTest[it] > 0 })
-        assertEquals(0, optics.surfaceBandVertexCountForTest[8])
         // D152：thin_glow_gain 默认归零（deprecated，被厚度透光材质版取代），
         // 全层不再生成薄峰透光实体。
         assertTrue((0..8).all { optics.thinGlowVertexCountForTest[it] == 0 })
@@ -387,104 +382,6 @@ class FableSolGlOpticsTest {
         )
 
         assertTrue((0..8).all { optics.interfaceShoulderVertexCountForTest[it] == 0 })
-    }
-
-    @Test
-    fun surfaceBandUsesCurrentLayerColorInsteadOfEnvironmentHorizon() {
-        val params = FableSolParams()
-        val sim = FableSolSimulation(params)
-        val optics = FableSolGlOptics(DENSITY)
-        val water = syntheticWater(COLUMNS)
-        val body = intArrayOf(24, 68, 146)
-        val start = Array(FableSolSpec.N_LAYERS) { body.copyOf() }
-        val end = Array(FableSolSpec.N_LAYERS) { body.copyOf() }
-        val whiteHorizon = intArrayOf(255, 255, 255)
-        val expected = FableSolColor.lightenOklab(body, 0.045)
-
-        sim.update(1.0 / 60.0)
-        val floatCount = optics.build(
-            sim, params, COLUMNS, water, start, end, whiteHorizon
-        )
-
-        var checked = 0
-        for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
-            if (optics.vertices[offset + 8] != 4f) continue
-            for (channel in 0..2) {
-                assertEquals(
-                    expected[channel] / 255f,
-                    optics.vertices[offset + 4 + channel],
-                    1e-6f
-                )
-            }
-            checked++
-        }
-        assertTrue(checked > 0)
-    }
-
-    @Test
-    fun surfaceBandFollowsTheCurrentFourStopThingGradientPerVertex() {
-        val params = FableSolParams()
-        val sim = FableSolSimulation(params)
-        val optics = FableSolGlOptics(DENSITY)
-        val water = syntheticWater(COLUMNS)
-        val start = Array(FableSolSpec.N_LAYERS) { intArrayOf(235, 44, 40) }
-        val stop1 = Array(FableSolSpec.N_LAYERS) { intArrayOf(242, 186, 46) }
-        val stop2 = Array(FableSolSpec.N_LAYERS) { intArrayOf(42, 196, 182) }
-        val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(42, 76, 230) }
-        val origin = FloatArray(FableSolSpec.N_LAYERS * 2)
-        val direction = FloatArray(FableSolSpec.N_LAYERS * 2)
-        val denominator = FloatArray(FableSolSpec.N_LAYERS)
-        val x0 = water[0]
-        val x1 = water[(COLUMNS - 1) * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX]
-        for (layer in 0 until FableSolSpec.N_LAYERS) {
-            origin[layer * 2] = x0
-            direction[layer * 2] = x1 - x0
-            denominator[layer] = (x1 - x0) * (x1 - x0)
-        }
-
-        sim.update(1.0 / 60.0)
-        optics.build(
-            sim = sim,
-            params = params,
-            columns = COLUMNS,
-            waterVertices = water,
-            layerStart = start,
-            layerEnd = end,
-            environmentHorizon = intArrayOf(255, 255, 255),
-            layerStop1 = stop1,
-            layerStop2 = stop2,
-            gradientOrigin = origin,
-            gradientDirection = direction,
-            gradientDenominator = denominator
-        )
-
-        val layer = 0
-        val first = optics.surfaceBandFirstVertexForTest[layer]
-        val count = optics.surfaceBandVertexCountForTest[layer]
-        assertTrue(count > 0)
-        val firstOffset = first * FableSolGlOptics.COMPONENTS_PER_VERTEX
-        val lastOffset = (first + count - 1) * FableSolGlOptics.COMPONENTS_PER_VERTEX
-        assertEquals(4f, optics.vertices[firstOffset + 8], 0f)
-        assertEquals(4f, optics.vertices[lastOffset + 8], 0f)
-        val firstQ = ((optics.vertices[firstOffset] - x0) / (x1 - x0)).toDouble()
-        val lastQ = ((optics.vertices[lastOffset] - x0) / (x1 - x0)).toDouble()
-        assertTrue(lastQ > firstQ + 0.05)
-        val ramp = FableSolSurfaceColorPolicy.reflectionRamp(
-            start[layer], stop1[layer], stop2[layer], end[layer]
-        )
-        val expectedStart = IntArray(3)
-        val expectedEnd = IntArray(3)
-        FableSolSurfaceColorPolicy.sampleRampInto(ramp, firstQ, expectedStart)
-        FableSolSurfaceColorPolicy.sampleRampInto(ramp, lastQ, expectedEnd)
-        for (channel in 0..2) {
-            assertEquals(expectedStart[channel] / 255f,
-                optics.vertices[firstOffset + 4 + channel], 1e-6f)
-            assertEquals(expectedEnd[channel] / 255f,
-                optics.vertices[lastOffset + 4 + channel], 1e-6f)
-        }
-        assertTrue(expectedStart.indices.any {
-            kotlin.math.abs(expectedStart[it] - expectedEnd[it]) >= 12
-        })
     }
 
     @Test
@@ -584,32 +481,6 @@ class FableSolGlOpticsTest {
 
         assertEquals(0.66, FableSolGlOptics.contourCoverageForTest(0.5), 1e-12)
         assertEquals(0.66 * 2.0 / Math.PI, integral, 1e-4)
-    }
-
-    @Test
-    fun glesSurfaceBandUsesCanvasWidthAndAlphaWithoutCompensation() {
-        val params = FableSolParams()
-        val sim = FableSolSimulation(params)
-        val optics = FableSolGlOptics(DENSITY)
-        val water = syntheticWater(COLUMNS)
-        val start = Array(FableSolSpec.N_LAYERS) { intArrayOf(60, 112, 182) }
-        val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(94, 154, 211) }
-
-        sim.update(1.0 / 60.0)
-        optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
-
-        for (layer in 0..6) {
-            assertEquals(
-                optics.canvasSurfacePeakAlphaForTest[layer],
-                optics.actualSurfacePeakAlphaForTest[layer],
-                1e-6f
-            )
-            assertEquals(
-                optics.canvasSurfaceMaxThicknessForTest[layer],
-                optics.actualSurfaceMaxThicknessForTest[layer],
-                1e-9
-            )
-        }
     }
 
     @Test

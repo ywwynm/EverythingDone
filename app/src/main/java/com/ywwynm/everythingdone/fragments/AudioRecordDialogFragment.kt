@@ -41,6 +41,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.io.File
@@ -373,7 +374,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             .setDuration(ANIM_DURATION.toLong())
             .withEndAction { startClockBreathing() }
 
-        mVisualizer!!.setRecordingHdrActive(true)
+        // HDR 高光是否随录音激活由设置里的调参 Dialog 决定（默认开）。
+        mVisualizer!!.setRecordingHdrActive(FableSolTuning.isHdrEnabled(mActivity!!))
         mVisualizer!!.animatePresentationAlpha(1.0f, ANIM_DURATION.toLong())
         applyMainButtonNormalStyle()
         setMainButtonIcon(R.drawable.act_stop_recording_audio)

@@ -2120,3 +2120,55 @@ SDR 增益 0.9。沿丝追踪 P90 过渡落差 30→22/255；第 1 层右坡生�
 0.60；按指示跳过 Android 测试）并发布：阿里云 debug
 **202607170459**（SHA-256 443007de…9f2a），发布号+SHA 已回填 memory
 顶部。
+
+## 2026-07-17（下午）设置内调参 Dialog：全量参数 + HDR 开关 + 实时预览
+
+设置界面新增"音频海浪动画参数调节"入口（RECORD_AUDIO 权限门控）。
+Dialog 顶部固定 240dp 与录音界面同源的 GLES 预览（实时录音驱动、
+重力倾斜、HDR、App 默认强调色渐变），下方滚动区列出 82 个实际生效的
+标量参数（9 组，标签/范围/步长与 Python params.py 同源）+ HDR 开关
+（默认开、设备不支持置灰）。调节经渲染线程 drain 实时生效并失效静态
+材质色缓存，松手持久化到独立 prefs（只存偏离项），各渲染器构造时
+套用；录音 Dialog 的 HDR 激活改读开关。顺带补注册漏移植的
+swell_halflife_s / deep_integral_s（按实效值 0.5/1.0 保观感，与
+Python 3.0/30.0 的差异入 followups）。新文件 FableSolTuning /
+FableSolTuningDialogFragment / dialog_fablesol_tuning.xml；字符串
+13 语言补齐。161 项单元测试全绿、assembleDebug 通过。决策 D157。
+## 2026-07-17（傍晚）调参 Dialog 二轮：沉浸预览 + 换色涌入 + 暂停 + 样式统一
+
+用户九项裁决落地（D158）：去标题、预览贴顶满宽（present.frag 底角
+半径增量 uniform 切直下两角）；取景上移 36dp（旋转前 R^{-1} 补偿，
+第 0 层波谷不再贴边）；右上角新增暂停/换色按钮——换色走 water.frag
+揭示门（gl_FragCoord.x smoothstep）+ 渲染端双遍绘制：主遍 OKLab 插值
+配色、第二遍目标配色 SRC_ALPHA 混合，新色波浪从右缘涌入 1600ms，
+UI 全部强调色元素（组头/滑杆/复选框/涟漪/确定按钮）12 档同步渐变；
+颜色池 = accent 渐变 + 内置 10 色 + 用户记事背景（后台去重）。HDR 行
+复选框换渐变勾选、行涟漪换 GradientRippleDrawable，确定按钮换
+AlertDialog 同款 accent，按钮行上方加滚动指示分隔线；"质感提升
+（试验）"更名"质感"、行距增大。滑动卡顿确认根因是窗口
+preferredRefreshRate=60 锁刷新率，按用户指示留待下轮。两端输出行
+合同断言同步更新（colorRevealAlpha）；Android 149 项 + Python 177 项
+全绿、assembleDebug 通过。
+## 2026-07-17（晚）调参 Dialog 三轮反馈（D159）
+
+角标按钮去圆形衬底、图标降不透明度（亮色不再实黑）；表面亮带默认
+归零（Python 已整项移除，视觉对齐，合同测试显式开启）；删"系统"组；
+换色卡顿修复——每档只更新视口内可见滑杆（82 条全量重建的 requestLayout
+风暴是根因），动画结束全量补齐；参数列表 overScrollMode=never（12+ 的
+stretch RenderEffect 拖垮预览帧率）。149 项全绿、assembleDebug 通过。
+## 2026-07-17（晚 II）调参 Dialog 四轮反馈：表面亮带整项移除（D160）
+
+HDR 勾选框涟漪补渐变并随换色更新；按钮行恢复标准 dimen 间距；表面
+亮带按 Python D147 先例整项移除（发射端/权重/策略类/参数/目录全删，
+canvas 流光解耦保留、与 GL 独立性对齐，mode 4 合同反转），测试
+149→143 全绿。发布阿里云 Debug 202607170734。
+## 2026-07-17（晚 III）暂停语义重做 + 按钮行 divided 间距（D161）
+
+暂停从"停帧循环"改为"冻结模拟与音频泵、渲染照跑"（对齐 Python
+freeze_probe），冻结画面上调参/换色/HDR 切换实时可见；按钮行上边距
+换 divided_action_row_margin_top（参照选语言 Dialog）。143 项全绿。
+## 2026-07-17（晚 IV）调参目录多语言化
+
+FableSolTuning.Spec 标签改 @StringRes；8 组名 + 79 参数名 ×13 语言
+（1131 条，脚本一次性插入；英/德组名的 & 需 &amp; 转义）。中文文案
+与 Python GUI 保持一致。143 项全绿，发布阿里云 Debug 202607170801。

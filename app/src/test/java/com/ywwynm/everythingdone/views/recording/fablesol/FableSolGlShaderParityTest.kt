@@ -233,7 +233,10 @@ class FableSolGlShaderParityTest {
         assertTrue(water.contains("smoothstep(-0.5 * pixelDepth, 0.5 * pixelDepth, insideDistance)"))
         assertTrue(water.contains("edgeBehindBaseline"))
         assertTrue(water.contains("mix(edgeBehindBaseline(), outLinear, coverage)"))
-        assertTrue(water.contains("vec4(max(outLinear, vec3(0.0)), 1.0)"))
+        // 颜色过渡揭示门（2026-07-17 调参 Dialog）：alpha 从常量 1 改为
+        // colorRevealAlpha()，uColorRevealSoftPx<=0（默认）时恒 1，逐位不变。
+        assertTrue(water.contains("vec4(max(outLinear, vec3(0.0)), colorRevealAlpha())"))
+        assertTrue(water.contains("if (uColorRevealSoftPx <= 0.0) return 1.0"))
         assertTrue(water.contains("uniform highp int uStartLayer"))
         assertTrue(waterVertex.contains("uniform highp int uStartLayer"))
         assertTrue(optical.contains("? srgbToLinear(vColor.rgb)"))

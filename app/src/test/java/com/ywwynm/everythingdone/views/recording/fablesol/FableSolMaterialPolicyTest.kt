@@ -27,17 +27,6 @@ class FableSolMaterialPolicyTest {
     }
 
     @Test
-    fun surfaceReflectionIsNarrowAndRequiresBothFacingAndCrest() {
-        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandWidthDp(0.0, 1.0, 0.0), 0.0)
-        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 0.0, 0.0), 0.0)
-        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandLocality(1.0, 0.10), 0.0)
-        assertEquals(1.0, FableSolMaterialPolicy.surfaceBandLocality(1.0, 1.0), 0.0)
-        assertEquals(3.0, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 0.0), 1e-12)
-        assertEquals(1.68, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 7.0 / 8.0), 1e-6)
-        assertEquals(0.0, FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, 1.0), 0.0)
-    }
-
-    @Test
     fun thinTransmissionStillMatchesDebug0749Geometry() {
         assertEquals(0.0, FableSolMaterialPolicy.thinGlowThicknessDp(0.0), 0.0)
         assertEquals(11.0, FableSolMaterialPolicy.thinGlowThicknessDp(1.0), 1e-12)
@@ -90,7 +79,6 @@ class FableSolMaterialPolicyTest {
         )
         assertEquals(0.45, FableSolMaterialPolicy.flowStreakWeight(3), 1e-6)
         assertEquals(0.20, FableSolMaterialPolicy.flowStreakWeight(4), 1e-6)
-        assertEquals(0.06, FableSolMaterialPolicy.surfaceBandAlphaWeight(7), 1e-6)
         assertEquals(0.12, FableSolMaterialPolicy.backShadeAlphaWeight(6), 1e-6)
         assertEquals(0.0, FableSolMaterialPolicy.backShadeAlphaWeight(7), 0.0)
         assertEquals(34.0, FableSolMaterialPolicy.GLINT_MIN_SEPARATION_DP, 0.0)
@@ -101,13 +89,6 @@ class FableSolMaterialPolicyTest {
             1e-6
         )
 
-        assertDoubleCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.72, 0.64, 0.60, 0.56, 0.0)
-        ) { layer -> FableSolMaterialPolicy.surfaceBandWidthDp(1.0, 1.0, layer / 8.0) / 3.0 }
-        assertDoubleCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.32, 0.16, 0.06, 0.0),
-            FableSolMaterialPolicy::surfaceBandAlphaWeight
-        )
         assertDoubleCurve(
             doubleArrayOf(1.0, 1.0, 1.0, 0.84, 0.72, 0.60, 0.42, 0.0, 0.0),
             FableSolMaterialPolicy::backShadeWidthWeight

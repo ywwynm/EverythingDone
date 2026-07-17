@@ -1,5 +1,99 @@
 # Current Debug Update Notes
 
+## 2026-07-17 - 调参目录多语言化（87 条 × 13 语言）
+
+FableSolTuning.Spec 的 label 从中文字符串改为 @StringRes（labelRes/
+titleRes），8 组名 + 79 参数名以 fablesol_group_* / fablesol_param_*
+命名进入 13 个 strings.xml（脚本一次性插入 1131 条；教训：英/德组名
+里的 & 必须 &amp; 转义）。中文文案与 Python GUI 一致。143 项全绿。
+已发布阿里云 Debug `202607170801`（versionCode 43 / 2.0.0），APK 大小
+`20867852` 字节，SHA-256 为
+`80785a96615411b496f9ffd2949eaccb898c191cea3d5fa686d92d066c36c35d`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717160136.md。
+
+## 2026-07-17 - 暂停语义重做 + 按钮行 divided 间距（D161）
+
+暂停从"停帧循环"改为"冻结模拟与音频泵、渲染照跑"（对齐 Python
+canvas.py freeze_probe 语义）：simulationPaused 门跳过 sim.update/
+重力，drainAndApply 丢弃冻结期音频、静默计时锚随帧冻结；调参热更/
+HDR 过渡/换色揭示照常逐帧——冻结画面上渲染类参数实时可见，模拟
+推进类（环境流动/主浪/涨落/注入/段落）需恢复播放（与 Python 一致）。
+API 更名 setSimulationPaused，换色不再强制恢复播放。按钮行上边距换
+divided_action_row_margin_top（参照选语言 Dialog）。143 项全绿。
+已发布阿里云 Debug `202607170749`（versionCode 43 / 2.0.0），APK 大小
+`20783596` 字节，SHA-256 为
+`75e7aec198aa4de0d9b8666b2563b3ad1250803a80e9e26b5eadd7c3c061637c`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717154853.md。
+
+## 2026-07-17 - 调参 Dialog 四轮反馈 + 表面亮带整项移除（D160）
+
+HDR 勾选框自身涟漪补装 GradientRippleDrawable.applyCheckboxRipple 并
+随换色 updateBackground；按钮行 marginTop 恢复标准 dimen。表面亮带
+（surface_strip_gain / buildSurfaceBand / drawSurfaceStrip /
+SURFACE_BAND_* 权重 / FableSolSurfaceColorPolicy）随 Python 端
+D147 先例整项移除，参数不再注册、目录不再收录；canvas 端流光与
+亮带解耦保留（自算迎光/摆幅、底色取层色中间调，与 GL buildStreaks
+对齐），mode 4 顶点合同改为"不复存在"。测试 149→143（删 band 专测
+×2 + SurfaceColorPolicyTest ×2 + MaterialPolicy band ×1，排序合同
+去 surface 项）全绿。
+已发布阿里云 Debug `202607170734`（versionCode 43 / 2.0.0），APK 大小
+`20783596` 字节，SHA-256 为
+`4ce4083c2143881288678083259c73ab1b3845daf0caf00b328281cbf1c467a4`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717153336.md。
+
+## 2026-07-17 - 调参 Dialog 三轮反馈（D159）
+
+角标按钮去圆形衬底 + 图标 imageAlpha=176（亮色不实黑）；
+surface_strip_gain 默认 1.0→0.0（Python 端该特效已整项移除，视觉
+对齐；四个亮带合同测试显式 setForTest 开启）；删"系统"组
+（demo_mode 不再暴露）；换色卡顿修复——根因是每档全量重设 82 条
+滑杆的 requestLayout 风暴，改为档中只更新视口内可见滑杆、动画结束
+全量补齐；参数列表 overScrollMode=never（12+ stretch RenderEffect
+拖垮预览帧率），到边提示走上下滚动指示分隔线。149 项全绿。
+已发布阿里云 Debug `202607170713`（versionCode 43 / 2.0.0），APK 大小
+`20783596` 字节，SHA-256 为
+`7729de22488cbe6da8d1eac3d08d1339a3fb18a5bc2471f181a4daee95c11b5c`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717151251.md。
+
+## 2026-07-17 - 调参 Dialog 二轮打磨（D158）
+
+用户九项裁决落地：预览贴顶满宽（present.frag 底角半径增量切直下两角，
+顶角与 Dialog 轮廓同 dimen）；取景上移 36dp（旋转前 R^{-1} 补偿，第 0
+层波谷不贴边）；右上角暂停/换色按钮——换色 = water.frag 揭示门 +
+渲染端双遍（主遍 OKLab 插值、第二遍目标色 SRC_ALPHA 混合），新色
+波浪从右缘 1600ms 涌入，UI 强调色元素 12 档同步渐变，颜色池 = accent
+渐变 + 内置 10 色 + 记事背景去重；HDR 行渐变勾选框 + GradientRipple、
+确定按钮 accent 化、底部滚动指示分隔线；"质感提升（试验）"更名
+"质感"、行距增大。滑动卡顿根因 = 窗口 preferredRefreshRate=60 锁
+刷新率，按用户指示留待下轮。两端输出行合同断言同步更新
+（colorRevealAlpha）；Android 149 + Python 177 全绿。
+已发布阿里云 Debug `202607170655`（versionCode 43 / 2.0.0），APK 大小
+`20783596` 字节，SHA-256 为
+`f45a9202f08ebf50b7e693caf58bbf59df8fa1fed253e409c8f47ca4df485d12`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717145502.md。
+
+## 2026-07-17 - 设置内新增"音频海浪动画参数调节"（D157）
+
+设置 → 用户界面新增入口（RECORD_AUDIO 权限门控）打开调参 Dialog：
+顶部固定 240dp 与录音界面同源的 GLES 实时预览（录音驱动、重力倾斜、
+HDR、App 默认强调色），下方滚动区列出 82 个实际生效标量参数（9 组，
+标签/范围/步长与 Python params.py 同源）+ HDR 高光开关（默认开、
+设备不支持置灰）+ 恢复默认。调节经渲染线程 drain 实时生效并失效
+静态材质色缓存，松手持久化到独立 prefs（只存偏离项），各渲染器
+构造时套用；录音 Dialog 的 HDR 激活改读开关。顺带补注册漏移植的
+swell_halflife_s / deep_integral_s（按实效值 0.5/1.0 保观感，与
+Python 3.0/30.0 差异入 followups）。161 项单元测试全绿。
+已发布阿里云 Debug `202607170600`（versionCode 43 / 2.0.0），APK 大小
+`20781780` 字节，SHA-256 为
+`aab5d1c25960ccd544b5f8220107c51db291fdef505bb0a4b1c5d6a34bdad033`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260717135950.md。
+
 ## 2026-07-17 - FableSol 银丝亮度过渡全面平滑化（v18）
 
 用户真机截图裁决"高亮边界生硬、第 1 层 4 处高亮"。四根因移除：

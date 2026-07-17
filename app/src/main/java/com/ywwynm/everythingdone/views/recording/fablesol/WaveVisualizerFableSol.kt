@@ -45,7 +45,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
     private val density = resources.displayMetrics.density.toDouble()
 
-    private val params = FableSolParams()
+    private val params = FableSolParams().also { FableSolTuning.applyStored(context, it) }
     private val sim = FableSolSimulation(params)
     private val mapper = FableSolFeatureMapper(params)
 
@@ -82,6 +82,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private var renderColorNs = 0L
     private var renderAssemblyNs = 0L
     private var glFallbackDiagnostic = false
+    private var simulationPaused = false
     private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
         mFrameCallbackPosted = false
         if (!shouldAnimate()) {
@@ -261,6 +262,16 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         invalidate()
     }
 
+    /** 运行时调参（调参 Dialog 实时预览）：本 View 的物理与渲染都在 UI 线程，直接写。 */
+    internal fun setTuningValue(key: String, value: Double) {
+        params.set(key, value)
+    }
+
+    /** 暂停冻结（与 Python canvas 同语义）：模拟与音频泵停住，绘制照跑。 */
+    internal fun setSimulationPaused(paused: Boolean) {
+        simulationPaused = paused
+    }
+
     /** 完整三维重力方向 → 左右滚转 + 连续水面的前后俯仰。 */
     fun setContainerGravity(x: Float, y: Float, z: Float) {
         gravityInbox.offer(x, y, z)
@@ -314,9 +325,11 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
         val drainStart = SystemClock.elapsedRealtimeNanos()
         drainAndApply(now)
-        applyLatestGravity()
         val physicsStart = SystemClock.elapsedRealtimeNanos()
-        sim.update(dt.toDouble())
+        if (!simulationPaused) {
+            applyLatestGravity()
+            sim.update(dt.toDouble())
+        }
         val drawStart = SystemClock.elapsedRealtimeNanos()
         renderSamplingNs = 0L
         renderColorNs = 0L
@@ -343,6 +356,11 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             if (frames != null) pendingFrames = ArrayList()
             events = pendingEvents
             pendingEvents = ArrayList()
+        }
+        if (simulationPaused) {
+            // 冻结：丢弃本帧特征与事件，静默衰减计时锚随帧推移一并冻结。
+            if (mLastAudioElapsed != 0L) mLastAudioElapsed = now
+            return
         }
         if (frames != null) {
             mapper.applyFrame(sim, frames[frames.size - 1])
@@ -828,8 +846,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val depth01 = i.toDouble() / (FableSolSpec.N_LAYERS - 1)
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
         drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
-        val surfaceEnabled = FableSolMaterialPolicy.surfaceBandAlphaWeight(i) > 0.0 &&
-            params.get("surface_strip_gain") > 1e-3
         if (params.get("crest_on") >= 0.5) {
             drawHighlights(
                 canvas = canvas,
@@ -842,11 +858,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 sourceIndex = surfaceSourceIndex,
                 sourceFraction = surfaceSourceFraction,
                 depthAxisX = canvasDepthAxisX,
-                depthAxisY = canvasDepthAxisY,
-                drawSurface = surfaceEnabled
+                depthAxisY = canvasDepthAxisY
             )
-        } else if (surfaceEnabled) {
-            drawSurfaceStrip(canvas, i, cnt, lc, depth01, fillBottom)
+        } else {
+            drawFlowStreaks(canvas, i, cnt, lc)
         }
         doubleScratchIndex = scratchMark
     }
@@ -880,17 +895,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
         drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
 
-        // 浪顶表面带：38°俯角下可见的水面平面（立体感主承重墙）。接触阴影已按
-        // 用户裁决移除（2026-07-11），层间厚度感由波背自阴影承担。
-        val surfaceEnabled = FableSolMaterialPolicy.surfaceBandAlphaWeight(i) > 0.0 &&
-            params.get("surface_strip_gain") > 1e-3
         if (params.get("crest_on") >= 0.5) {
-            drawHighlights(
-                canvas, i, cnt, lc, i0, depth01, fillBottom,
-                drawSurface = surfaceEnabled
-            )
-        } else if (surfaceEnabled) {
-            drawSurfaceStrip(canvas, i, cnt, lc, depth01, fillBottom)
+            drawHighlights(canvas, i, cnt, lc, i0, depth01, fillBottom)
+        } else {
+            drawFlowStreaks(canvas, i, cnt, lc)
         }
         doubleScratchIndex = scratchMark
     }
@@ -935,23 +943,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             (geometry.ox + geometry.dx).toFloat(),
             (geometry.oy + geometry.dy).toFloat(),
             packedColors, POS4, Shader.TileMode.CLAMP)
-    }
-
-    private fun colorRampShader(ramp: Array<IntArray>, a255: Int, cnt: Int,
-                                fillBottom: Double): LinearGradient {
-        require(ramp.size == FableSolSurfaceColorPolicy.RAMP_POSITIONS_FLOAT.size)
-        val geometry = currentLayerGradientGeometry(cnt, fillBottom)
-        val packedColors = IntArray(ramp.size) { index ->
-            FableSolColor.toColor(ramp[index], a255)
-        }
-        return LinearGradient(
-            geometry.ox.toFloat(), geometry.oy.toFloat(),
-            (geometry.ox + geometry.dx).toFloat(),
-            (geometry.oy + geometry.dy).toFloat(),
-            packedColors,
-            FableSolSurfaceColorPolicy.RAMP_POSITIONS_FLOAT,
-            Shader.TileMode.CLAMP
-        )
     }
 
     /**
@@ -1031,17 +1022,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             canvas, cnt, top, thickness, alphaIn
         ) { alpha ->
             layerShader(colors, alpha, cnt, fillBottom)
-        }
-    }
-
-    private fun drawGradientRampOneSidedBand(canvas: Canvas, cnt: Int,
-                                             top: DoubleArray, thickness: DoubleArray,
-                                             ramp: Array<IntArray>, alphaIn: Int,
-                                             fillBottom: Double) {
-        drawOneSidedBandWithColorShader(
-            canvas, cnt, top, thickness, alphaIn
-        ) { alpha ->
-            colorRampShader(ramp, alpha, cnt, fillBottom)
         }
     }
 
@@ -1170,8 +1150,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                               sourceIndex: IntArray? = null,
                               sourceFraction: DoubleArray? = null,
                               depthAxisX: DoubleArray? = null,
-                              depthAxisY: DoubleArray? = null,
-                              drawSurface: Boolean = false) {
+                              depthAxisY: DoubleArray? = null) {
         val c1 = colors.start
         val c2 = colors.end
         val a255 = colors.alpha255
@@ -1286,11 +1265,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 drawVariableBand(canvas, cnt, ysV, amt, veilColor, 3.2 * density, (96 * a01 * veilStrength).toInt())
             }
         }
-        // source-over 下内部体光/透射/轻纱先完成，表面反射与流光随后覆盖；
+        // source-over 下内部体光/透射/轻纱先完成，流光随后；
         // 闪点最后绘制，不能再被半透明介质衰减。
-        if (drawSurface) {
-            drawSurfaceStrip(canvas, i, cnt, colors, depth01, fillBottom)
-        }
+        drawFlowStreaks(canvas, i, cnt, colors)
         // 镜面高光：持久实体闪点（原地生灭的明灭，不是行驶的车厢）。
         if (glintStrength > 1e-3) {
             var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
@@ -1423,58 +1400,35 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     // ================================================================== A5/B 立体感手法
     /** 浪顶表面带（_draw_surface_strip）：迎光坡宽、背坡窄，随浪起伏开合；
      *  颜色从当前层色固定 hue 提亮，轮廓线成为平面的近边。 */
-    private fun drawSurfaceStrip(canvas: Canvas, i: Int, cnt: Int, colors: LayerColors,
-                                 depth01: Double, fillBottom: Double) {
+    /**
+     * 流光条纹：材质相对波形滚动的证据——顺层流漂移、随轨道回摆，只在浪顶平面
+     * 可见。已与被移除的表面亮带解耦（与 Python D145 先例、GL 端 buildStreaks
+     * 对齐）：迎光与摆幅由波形梯度现算，底色取层色中间调。
+     */
+    private fun drawFlowStreaks(canvas: Canvas, i: Int, cnt: Int, colors: LayerColors) {
+        if (FableSolMaterialPolicy.flowStreakCapacity(i) <= 0 ||
+            params.get("flow_streak_gain") <= 1e-3
+        ) {
+            return
+        }
         val dxPx = xsPx[1] - xsPx[0]
         val gradY = scratchZero(cnt)
         FableSolMath.gradientInto(ysPx, cnt, dxPx, gradY)
         val slopeRaw = scratchArray(cnt) { -gradY[it] }
         val slope = scratchZero(cnt)
         FableSolMath.convolveSameInto(slopeRaw, cnt, KER3, slope)
-        val gradGrad = scratchZero(cnt)
-        FableSolMath.gradientInto(gradY, cnt, dxPx, gradGrad)
-        val curvRaw = scratchArray(cnt) { -gradGrad[it] * density }
-        val curv = scratchZero(cnt)
-        FableSolMath.convolveSameInto(curvRaw, cnt, KER3, curv)
         val facing = scratchArray(cnt) {
             val q = ((slope[it] + 0.05) / 0.50).coerceIn(0.0, 1.0)
             q * q * (3.0 - 2.0 * q)
         }
-        val crest = scratchArray(cnt) { (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0) }
-        val widthInput = scratchArray(cnt) {
-            FableSolMaterialPolicy.surfaceBandWidthDp(facing[it], crest[it], depth01)
+        val sway = scratchArray(cnt) {
+            (slope[it] * params.get("orbital_sway_dp") * density)
+                .coerceIn(-8.0 * density, 8.0 * density)
         }
-        val wDp = smoothSignal(widthInput, cnt, 4)
-        // 表面带是低频、局部的迎光结构，不再把环境地平白大面积铺进层色。
-        // 中性环境反射与超白峰值留给方向性 Fresnel / glint；这里沿当前层色提亮。
-        val stripRamp = FableSolSurfaceColorPolicy.reflectionRamp(
-            colors.start, colors.stop1, colors.stop2, colors.end
+        val representative = FableSolColor.mixOklab(colors.stop1, colors.stop2, 0.5)
+        drawFlowStreakTracks(
+            canvas, i, cnt, facing, sway, representative, colors.alpha255 / 255.0
         )
-        val a01 = colors.alpha255 / 255.0
-        val kAir = 1.0 - params.get("aerial_contrast") * depth01
-        val breath = 1.0 + 0.10 * params.get("pink_mod") * (2.0 * pink01(sim.t, 9.7) - 1.0)
-        val alpha = (92.0 * FableSolMaterialPolicy.surfaceBandAlphaWeight(i) *
-                a01 * kAir * breath
-                * params.get("surface_strip_gain")).toInt()
-        val topArr = scratchArray(cnt) { ysPx[it] + 0.2 * density }
-        val th = scratchArray(cnt) { wDp[it] * density }
-        drawGradientRampOneSidedBand(
-            canvas, cnt, topArr, th, stripRamp, alpha, fillBottom
-        )
-        // 流光条纹：材质相对波形滚动的证据——顺层流漂移、随轨道回摆，只在浪顶平面可见。
-        if (FableSolMaterialPolicy.flowStreakCapacity(i) > 0 &&
-            params.get("flow_streak_gain") > 1e-3
-        ) {
-            val sway = scratchArray(cnt) {
-                (slope[it] * params.get("orbital_sway_dp") * density)
-                    .coerceIn(-8.0 * density, 8.0 * density)
-            }
-            val representativeStrip = IntArray(3)
-            FableSolSurfaceColorPolicy.sampleRampInto(
-                stripRamp, 0.50, representativeStrip
-            )
-            drawFlowStreaks(canvas, i, cnt, facing, sway, representativeStrip, a01)
-        }
     }
 
     /** 场的局部极大 → 锚点 (u, 强度, 半宽)（_field_peaks）。半宽随浪形伸缩。 */
@@ -1716,8 +1670,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     }
 
     /** 流光条纹（_draw_flow_streaks + _step_streaks）：浪顶平面上的持久发光条。 */
-    private fun drawFlowStreaks(canvas: Canvas, i: Int, cnt: Int, facing: DoubleArray,
-                                sway: DoubleArray, baseC: IntArray, a01: Double) {
+    private fun drawFlowStreakTracks(canvas: Canvas, i: Int, cnt: Int, facing: DoubleArray,
+                                     sway: DoubleArray, baseC: IntArray, a01: Double) {
         val dt = max(sim.t - trackT, 0.0)
         val flowPxS = sim.layers[i].flowDps * density
         val cap = FableSolMaterialPolicy.flowStreakCapacity(i)

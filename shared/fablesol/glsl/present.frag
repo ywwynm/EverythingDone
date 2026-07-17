@@ -7,6 +7,9 @@ uniform vec3 uBackdropColor;
 uniform float uPresentationAlpha;
 uniform vec2 uViewportPx;
 uniform float uCornerRadiusPx;
+// 下两角相对 uCornerRadiusPx 的半径增量（默认 0 = 与上两角一致）。调参 Dialog
+// 的顶置预览用 -uCornerRadiusPx 把底部两角切成直角，与下方内容无缝衔接。
+uniform float uCornerRadiusBottomDeltaPx;
 uniform bool uSceneLinear;
 uniform float uHdrHeadroom;
 out vec4 fragColor;
@@ -25,7 +28,11 @@ vec3 srgbToLinear(vec3 c) {
 
 float roundedRectCoverage(vec2 pointPx) {
     vec2 halfSize = uViewportPx * 0.5;
-    float radius = min(uCornerRadiusPx, min(halfSize.x, halfSize.y));
+    // gl_FragCoord 的 y 向上：y > halfSize.y 属于视图顶部两角。
+    float cornerRadiusPx = pointPx.y > halfSize.y
+        ? uCornerRadiusPx
+        : max(uCornerRadiusPx + uCornerRadiusBottomDeltaPx, 0.0);
+    float radius = min(cornerRadiusPx, min(halfSize.x, halfSize.y));
     vec2 q = abs(pointPx - halfSize) - (halfSize - vec2(radius));
     float distanceToEdge = length(max(q, vec2(0.0))) +
         min(max(q.x, q.y), 0.0) - radius;

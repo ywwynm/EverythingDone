@@ -11,6 +11,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -46,12 +47,28 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     )
 
     private val assets = context.assets
-    private val params = FableSolParams()
+    // 持久化调参覆盖必须在 sim/mapper 构造前套用，二者与渲染共享同一 params 实例。
+    private val params = FableSolParams().also { FableSolTuning.applyStored(context, it) }
     private val sim = FableSolSimulation(params)
     private val mapper = FableSolFeatureMapper(params)
     private val inputLock = Any()
     private var pendingFrames = ArrayList<FableSolFeatureFrame>()
     private var pendingEvents = ArrayList<FableSolEvent>()
+    private val pendingTuning = HashMap<String, Double>()
+    // 颜色过渡（调参 Dialog 换色）：UI 线程投递目标，GL 线程消费推进。
+    @Volatile private var pendingTransitionTarget: BackgroundSnapshot? = null
+    private var transitionFrom: BackgroundSnapshot? = null
+    private var transitionTo: BackgroundSnapshot? = null
+    private var transitionStartMs = 0L
+    private var transitionEased = 0f
+    private var lastFillBottom = 0.0
+    // 预览取景：内容沿屏幕 y 的平移（px，负 = 上移；旋转在 CPU 侧补偿）与
+    // 底部两角半径覆盖（<0 = 与顶部一致）。默认零/负一 = 录音界面原样。
+    @Volatile private var contentOffsetYPx = 0f
+    @Volatile private var bottomCornerRadiusPx = -1f
+    // 暂停冻结（与 Python canvas 同语义）：不推进模拟与音频泵，渲染循环
+    // 照跑——冻结画面上调参、换色、HDR 切换仍逐帧实时生效。
+    @Volatile private var simulationPaused = false
     private val gravityInbox = FableSolGravityInbox()
     private val gravityScratch = FloatArray(3)
     private var consumedGravitySequence = 0
@@ -254,6 +271,34 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
     }
 
+    /**
+     * 渐变切换到新配色（调参 Dialog 换色）：新颜色的水体从右缘涌入、软带边界
+     * 左推、最终完全替代；进行中再次调用会以当前插值色为起点接力，无跳变。
+     */
+    fun beginBackgroundTransition(background: ThingBackground) {
+        pendingTransitionTarget = BackgroundSnapshot(
+            background.color,
+            background.endColor,
+            background.mode == ThingBackground.Mode.GRADIENT,
+            background.orientation
+        )
+    }
+
+    /** 预览取景：内容整体沿屏幕 y 平移（dp，负 = 上移）。只影响构图，不动物理。 */
+    fun setContentVerticalOffsetDp(offsetDp: Float) {
+        contentOffsetYPx = (offsetDp * density).toFloat()
+    }
+
+    /** 底部两角半径覆盖（px；<0 恢复与顶部一致）。 */
+    fun setBottomCornerRadiusPx(radiusPx: Float) {
+        bottomCornerRadiusPx = radiusPx
+    }
+
+    /** 暂停冻结：模拟与音频泵停住、画面静止，渲染照跑（调参实时可见）。 */
+    fun setSimulationPaused(paused: Boolean) {
+        simulationPaused = paused
+    }
+
     fun setGravity(x: Float, y: Float, z: Float) {
         gravityInbox.offer(x, y, z)
     }
@@ -269,11 +314,17 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         }
     }
 
+    /** 运行时调参（UI 线程调用）：入待应用表，渲染帧起始在 GL 线程统一写入 params。 */
+    fun setTuningValue(key: String, value: Double) {
+        synchronized(inputLock) { pendingTuning[key] = value }
+    }
+
     fun render(frameTimeNanos: Long): Timing {
         val drainStart = SystemClock.elapsedRealtimeNanos()
         val now = SystemClock.elapsedRealtime()
         drainAndApply(now)
-        applyLatestGravity()
+        if (!simulationPaused) applyLatestGravity()
+        advanceColorTransition(now)
         val physicsStart = SystemClock.elapsedRealtimeNanos()
         var dt = if (lastFrameTimeNanos == 0L) TARGET_FRAME_SECONDS else
             (frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0
@@ -293,7 +344,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             hdrContentEnabled && hdrRecordingRequested && hdrHeadroom > 1f,
             boundedDt.toFloat()
         )
-        sim.update(boundedDt)
+        if (!simulationPaused) sim.update(boundedDt)
         val buildStart = SystemClock.elapsedRealtimeNanos()
         buildFrame()
         val drawStart = SystemClock.elapsedRealtimeNanos()
@@ -343,11 +394,28 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private fun drainAndApply(now: Long) {
         val frames: ArrayList<FableSolFeatureFrame>?
         val events: ArrayList<FableSolEvent>
+        var tuned = false
         synchronized(inputLock) {
             frames = if (pendingFrames.isEmpty()) null else pendingFrames
             pendingFrames = ArrayList()
             events = pendingEvents
             pendingEvents = ArrayList()
+            if (pendingTuning.isNotEmpty()) {
+                for ((key, value) in pendingTuning) params.set(key, value)
+                pendingTuning.clear()
+                tuned = true
+            }
+        }
+        if (tuned) {
+            // 静态材质色缓存读 lighten_far/color_breath/environment_tint 等参数，
+            // 调参后强制下一帧重建。
+            materialColorKey = null
+        }
+        if (simulationPaused) {
+            // 冻结：丢弃本帧 drain 到的特征与事件（恢复后从最新实时输入继续），
+            // 静默衰减计时锚随帧推移一并冻结。
+            if (lastAudioElapsed != 0L) lastAudioElapsed = now
+            return
         }
         if (frames != null) {
             mapper.applyFrame(sim, frames[frames.lastIndex])
@@ -360,6 +428,56 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             is FableSolEvent.Section -> mapper.applySection(sim, event)
             is FableSolEvent.Prominence -> mapper.applyProminence(sim, event)
         }
+    }
+
+    /** 推进颜色过渡：消费待启动目标、按真实时间求缓动进度，结束时落定目标色。 */
+    private fun advanceColorTransition(now: Long) {
+        val target = pendingTransitionTarget
+        if (target != null) {
+            pendingTransitionTarget = null
+            transitionFrom = if (transitionTo != null) currentLerpSnapshot() else background
+            transitionTo = target
+            transitionStartMs = now
+            transitionEased = 0f
+        }
+        val to = transitionTo ?: return
+        val progress = ((now - transitionStartMs).toFloat() / COLOR_TRANSITION_MS)
+            .coerceIn(0f, 1f)
+        transitionEased = progress * progress * (3f - 2f * progress)
+        if (progress >= 1f) {
+            background = to
+            transitionFrom = null
+            transitionTo = null
+            materialColorKey = null
+        }
+    }
+
+    private fun currentLerpSnapshot(): BackgroundSnapshot {
+        val from = transitionFrom ?: return background
+        val to = transitionTo ?: return background
+        return lerpSnapshot(from, to, transitionEased.toDouble())
+    }
+
+    private fun lerpSnapshot(
+        from: BackgroundSnapshot,
+        to: BackgroundSnapshot,
+        fraction: Double
+    ): BackgroundSnapshot {
+        val start = mixColorOklab(from.color, to.color, fraction)
+        val fromEnd = if (from.gradient) from.endColor else from.color
+        val toEnd = if (to.gradient) to.endColor else to.color
+        val gradient = from.gradient || to.gradient
+        val end = if (gradient) mixColorOklab(fromEnd, toEnd, fraction) else start
+        return BackgroundSnapshot(start, end, gradient, to.orientation)
+    }
+
+    private fun mixColorOklab(a: Int, b: Int, fraction: Double): Int {
+        val mixed = FableSolColor.mixOklab(
+            FableSolColor.fromColor(a),
+            FableSolColor.fromColor(b),
+            fraction
+        )
+        return Color.rgb(mixed[0], mixed[1], mixed[2])
     }
 
     private fun applyLatestGravity() {
@@ -399,6 +517,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             max(sin(Math.toRadians(viewBase)), 0.2)
         rotationRad = info.thetaRad.toFloat()
         viewElevationRad = Math.toRadians(viewElevation).toFloat()
+        // 预览取景平移：顶点在旋转前空间，偏移向量按 R^{-1}·(0, dy) 补偿，
+        // 使屏幕上是纯垂直平移（录音界面 offset=0，两分量恒 0）。
+        val offsetDy = contentOffsetYPx.toDouble()
+        val offsetXPx = sin(info.thetaRad) * offsetDy
+        val offsetYPx = cos(info.thetaRad) * offsetDy
 
         for (column in 0 until columns) {
             val source = sim.continuousRenderSourcePosition(info.i0, rawColumns, columns, column)
@@ -465,8 +588,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                         sample.slopeZ[row][after] * w3
                     ).toFloat()
                 val gridIndex = row * columns + column
-                vertexData[cursor++] = ((uDp + orbitX) * density * perspective).toFloat()
-                vertexData[cursor++] = ((info.hG / 2.0 - (baseHeight + worldEta)) * density).toFloat()
+                vertexData[cursor++] =
+                    ((uDp + orbitX) * density * perspective + offsetXPx).toFloat()
+                vertexData[cursor++] =
+                    ((info.hG / 2.0 - (baseHeight + worldEta)) * density + offsetYPx).toFloat()
                 vertexData[cursor++] = slopeX
                 vertexData[cursor++] = slopeZ
                 vertexData[cursor++] =
@@ -523,7 +648,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         }
         vertexFloatCount = cursor
 
-        val fillBottom = (info.hG / 2.0 + FILL_EXTRA_DP) * density
+        val fillBottom = (info.hG / 2.0 + FILL_EXTRA_DP) * density + offsetYPx
         cursor = 0
         // D155：fill 宏观坡度 x 恒 0，闲置的 aSlope.y（slopeZ 分量）改运本列
         // 水面 y（上下两排同值），供片元按"水面下深度"做 Beer–Lambert 衰减；
@@ -575,15 +700,24 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 
     private fun buildColors(fillBottom: Double) {
-        val snapshot = background
-        val key = MaterialColorKey(
-            color = snapshot.color,
-            endColor = if (snapshot.gradient) snapshot.endColor else snapshot.color,
-            gradient = snapshot.gradient
-        )
-        if (materialColorKey != key) {
-            buildStaticMaterialColors(snapshot)
-            materialColorKey = key
+        lastFillBottom = fillBottom
+        // 颜色过渡中：主遍（含环境与 optics 的取色数组）每帧用插值配色重建；
+        // 目标配色的揭示遍在 drawColorRevealPass 里另行构建上传。
+        val snapshot = if (transitionTo != null) {
+            materialColorKey = null
+            currentLerpSnapshot().also(::buildStaticMaterialColors)
+        } else {
+            val steady = background
+            val key = MaterialColorKey(
+                color = steady.color,
+                endColor = if (steady.gradient) steady.endColor else steady.color,
+                gradient = steady.gradient
+            )
+            if (materialColorKey != key) {
+                buildStaticMaterialColors(steady)
+                materialColorKey = key
+            }
+            steady
         }
         // 方向与轮廓会随背景设置、重力和波形变化；只有这部分需要逐帧更新。
         for (layer in 0 until FableSolSpec.N_LAYERS) {
@@ -758,6 +892,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             GLES30.glDisable(GLES30.GL_BLEND)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, columns * 2)
             drawOpticalLayer(0)
+            if (transitionTo != null) {
+                drawColorRevealPass()
+            }
             unbindPreWaterScene()
         }
         if (sceneSamples > 1) resolveSceneMsaa()
@@ -767,6 +904,68 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             checkGl("drawFrame sampled")
             framesUntilGlErrorCheck = GL_ERROR_CHECK_INTERVAL_FRAMES
         }
+    }
+
+    /**
+     * 颜色过渡的揭示遍：以目标配色重建材质并把水体（九层 + front fill）再画一遍，
+     * fragment 端 colorRevealAlpha 只在软带边界右侧显影——新颜色的波浪从右缘
+     * 涌入、覆盖主遍的插值配色。optics 不重画（主遍已用插值色；被新色浪头
+     * 盖过是"涌入"的一部分）。成员色数组被目标配色覆盖，下一帧 buildColors
+     * 会以插值配色整体重建，环境与 optics 取色随之恢复。
+     */
+    private fun drawColorRevealPass() {
+        val target = transitionTo ?: return
+        buildStaticMaterialColors(target)
+        for (layer in 0 until FableSolSpec.N_LAYERS) {
+            buildLayerGradientGeometry(layer, lastFillBottom, target)
+        }
+        waterProgram.use()
+        uploadWaterMaterialUniforms()
+        waterMaterialUniformsDirty = false
+        GLES30.glUniform2fv(
+            waterProgram.uniform("uGradientOrigin[0]"),
+            FableSolSpec.N_LAYERS,
+            layerGradientOrigin,
+            0
+        )
+        GLES30.glUniform2fv(
+            waterProgram.uniform("uGradientDirection[0]"),
+            FableSolSpec.N_LAYERS,
+            layerGradientDirection,
+            0
+        )
+        GLES30.glUniform1fv(
+            waterProgram.uniform("uGradientDenominator[0]"),
+            FableSolSpec.N_LAYERS,
+            layerGradientDenominator,
+            0
+        )
+        val softPx = (COLOR_REVEAL_SOFT_DP * density).toFloat()
+        val sweepPx = width + 2f * softPx
+        val edgePx = width + softPx - transitionEased * sweepPx
+        GLES30.glUniform1f(waterProgram.uniform("uColorRevealEdgePx"), edgePx)
+        GLES30.glUniform1f(waterProgram.uniform("uColorRevealSoftPx"), softPx)
+        GLES30.glEnable(GLES30.GL_BLEND)
+        GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+        bindWaterVertexLayout(vertexBufferId)
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexBufferId)
+        GLES30.glUniform1i(waterProgram.uniform("uFrontFill"), 0)
+        for (group in 0 until FableSolGlMeshLayout.GROUP_COUNT) {
+            GLES30.glUniform1i(waterProgram.uniform("uStartLayer"), 8 - group)
+            GLES30.glDrawElements(
+                GLES30.GL_TRIANGLES,
+                indexBufferState.indexCountPerGroup,
+                GLES30.GL_UNSIGNED_SHORT,
+                group * indexBufferState.indexCountPerGroup * 2
+            )
+        }
+        bindWaterVertexLayout(frontBufferId)
+        GLES30.glUniform1i(waterProgram.uniform("uFrontFill"), 1)
+        GLES30.glUniform1i(waterProgram.uniform("uStartLayer"), 0)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, columns * 2)
+        GLES30.glDisable(GLES30.GL_BLEND)
+        // 复位揭示门：program 级状态会跨帧滞留，主遍必须恒 1。
+        GLES30.glUniform1f(waterProgram.uniform("uColorRevealSoftPx"), 0f)
     }
 
     private fun drawEnvironmentTo(framebufferId: Int) {
@@ -1003,6 +1202,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             height.toFloat()
         )
         GLES30.glUniform1f(presentationProgram.uniform("uCornerRadiusPx"), cornerRadiusPx)
+        val bottomRadiusPx = if (bottomCornerRadiusPx >= 0f) bottomCornerRadiusPx else cornerRadiusPx
+        GLES30.glUniform1f(
+            presentationProgram.uniform("uCornerRadiusBottomDeltaPx"),
+            bottomRadiusPx - cornerRadiusPx
+        )
         GLES30.glUniform1i(
             presentationProgram.uniform("uSceneLinear"),
             if (sceneLinear) 1 else 0
@@ -1366,6 +1570,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private companion object {
         const val TARGET_FRAME_SECONDS = 1.0 / 60.0
         const val MAX_DT_SECONDS = 0.05
+        // 颜色过渡：总时长与揭示软带宽（新色从右缘推进到左缘）。
+        const val COLOR_TRANSITION_MS = 1600f
+        const val COLOR_REVEAL_SOFT_DP = 72.0
         const val IDLE_SILENCE_MS = 200L
         const val MAX_PENDING_EVENTS = 128
         const val FILL_EXTRA_DP = 80.0

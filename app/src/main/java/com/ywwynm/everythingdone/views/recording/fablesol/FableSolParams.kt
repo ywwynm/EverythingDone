@@ -27,7 +27,8 @@ class FableSolParams {
         v("capillary_glint_gain", 1.0)
         // 立体感手法（2026-07-11 视觉批次，Python 面板同名参数的定稿默认值）
         // D152：薄峰透光实体带被材质版"厚度透光"取代，默认归零仅留回退（deprecated）。
-        v("surface_strip_gain", 1.0); v("thin_glow_gain", 0.0)
+        // D160：表面亮带（surface_strip_gain）随 Python 端先例整项移除，不再注册。
+        v("thin_glow_gain", 0.0)
         v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
         // D151/D152 质感提升（2026-07-16 目测定稿）：厚度透光——薄处按迎光坡向
         // 从内部亮起，目标色 = subsurface 派生线性提亮 1.6（保色相饱和比）。
@@ -71,6 +72,10 @@ class FableSolParams {
         v("swell_presmooth_s", 0.55); v("swell_presmooth_release_s", 1.60)
         v("swell_deadband_pct", 0.0); v("swell_attack_s", 0.38)
         v("swell_release_s", 1.60); v("swell_gain", 1.0)
+        // 2026-07-17 补注册：FeatureMapper 一直在读这两个 key，但移植时漏了注册，
+        // get 走 0.0 兜底后又被 max(…, 0.5)/max(…, 1.0) 钳制。按既有实效值入表以
+        // 保持观感不变（Python 原版默认 3.0 / 30.0，差异记录在 followups）。
+        v("swell_halflife_s", 0.5); v("deep_integral_s", 1.0)
         // 注入
         v("inject_gain", 1.0); v("inject_amp_max_dp", 36.0)
         v("inject_width_min_dp", 96.0); v("inject_width_max_dp", 216.0)
@@ -112,9 +117,16 @@ class FableSolParams {
     fun lget(key: String, i: Int): Double = layers[key]!![i]
     fun larray(key: String): DoubleArray = layers[key]!!
 
-    /** 测试专用覆盖入口（与 Python params.set 对应）；产品代码不调用。 */
-    fun setForTest(key: String, value: Double) {
+    /**
+     * 运行时覆盖入口（与 Python params.set 对应）：调参 Dialog 的持久化覆盖在渲染器
+     * 构造时套用（[FableSolTuning.applyStored]），实时调节经渲染线程 drain 后写入。
+     * key 必须已注册，防止拼写错误静默落空。
+     */
+    fun set(key: String, value: Double) {
         require(values.containsKey(key)) { "未注册参数：$key" }
         values[key] = value
     }
+
+    /** 测试专用别名。 */
+    fun setForTest(key: String, value: Double) = set(key, value)
 }

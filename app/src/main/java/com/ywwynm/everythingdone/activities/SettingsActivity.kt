@@ -1029,6 +1029,19 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             df.setOnChosen { updateDoingDigitStyleValue() }
             df.show(fragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
         }
+        f<View>(R.id.rl_fablesol_tuning_as_bt).setOnClickListener {
+            // 调参 Dialog 的实时预览由麦克风驱动，须先拿到录音权限。
+            doWithPermissionChecked(
+                object : SimplePermissionCallback(this@SettingsActivity) {
+                    override fun onGranted() {
+                        val df = com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment()
+                        df.show(fragmentManager, com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG)
+                    }
+                },
+                Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
+                Manifest.permission.RECORD_AUDIO
+            )
+        }
         updateDoingDigitStyleValue()
     }
 

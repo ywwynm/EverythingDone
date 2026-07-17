@@ -57,7 +57,20 @@ uniform float uCrestRimSlideDepth;
 // 太阳柱（v17）：可见跨度起点与宽度（本地 px），供顶点高亮换算 x01。
 uniform float uCrestRimSpanX0Px;
 uniform float uCrestRimSpanPx;
+// 颜色过渡揭示门（2026-07-17 调参 Dialog 换色动画）：第二遍以目标配色重绘
+// 水体时，只在 uColorRevealEdgePx 右侧渐显（软带宽 uColorRevealSoftPx，屏幕
+// 空间 x），营造新颜色的波浪从右侧涌入。uColorRevealSoftPx<=0 = 关闭 = 恒 1
+//（默认，与既有输出逐位一致）。
+uniform float uColorRevealEdgePx;
+uniform float uColorRevealSoftPx;
 out vec4 fragColor;
+
+float colorRevealAlpha() {
+    if (uColorRevealSoftPx <= 0.0) return 1.0;
+    return smoothstep(uColorRevealEdgePx - uColorRevealSoftPx,
+                      uColorRevealEdgePx + uColorRevealSoftPx,
+                      gl_FragCoord.x);
+}
 
 float srgbToLinearChannel(float c) {
     return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4);
@@ -547,8 +560,8 @@ void main() {
             frontOutput = min(frontOutput, vec3(uHdrHeadroom));
         }
         fragColor = uSceneLinear
-            ? vec4(frontOutput, 1.0)
-            : vec4(clamp(linearToSrgb(frontOutput), 0.0, 1.0), 1.0);
+            ? vec4(frontOutput, colorRevealAlpha())
+            : vec4(clamp(linearToSrgb(frontOutput), 0.0, 1.0), colorRevealAlpha());
         return;
     }
 
@@ -645,8 +658,8 @@ void main() {
     float coverage = waterEdgeCoverage();
     outLinear = mix(edgeBehindBaseline(), outLinear, coverage);
     if (uSceneLinear) {
-        fragColor = vec4(max(outLinear, vec3(0.0)), 1.0);
+        fragColor = vec4(max(outLinear, vec3(0.0)), colorRevealAlpha());
     } else {
-        fragColor = vec4(clamp(linearToSrgb(outLinear), 0.0, 1.0), 1.0);
+        fragColor = vec4(clamp(linearToSrgb(outLinear), 0.0, 1.0), colorRevealAlpha());
     }
 }

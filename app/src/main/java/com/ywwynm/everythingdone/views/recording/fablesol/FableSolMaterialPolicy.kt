@@ -25,10 +25,6 @@ internal object FableSolMaterialPolicy {
     val CREST_RIM_WEIGHTS = floatArrayOf(
         1f, 0.90f, 0.72f, 0.42f, 0.27f, 0.16f, 0.10f, 0.05f, 0.0129f
     )
-    private val SURFACE_BAND_WIDTH_WEIGHTS =
-        floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.72f, 0.64f, 0.60f, 0.56f, 0f)
-    private val SURFACE_BAND_ALPHA_WEIGHTS =
-        floatArrayOf(1f, 0.96f, 0.84f, 0.64f, 0.49f, 0.32f, 0.16f, 0.06f, 0f)
     private val BACK_SHADE_WIDTH_WEIGHTS =
         floatArrayOf(1f, 1f, 1f, 0.84f, 0.72f, 0.60f, 0.42f, 0f, 0f)
     private val BACK_SHADE_ALPHA_WEIGHTS =
@@ -64,24 +60,6 @@ internal object FableSolMaterialPolicy {
     const val HALO_LENGTH_SCALE = 1.18
     const val HALO_THICKNESS_SCALE = 2.25
     const val HALO_ALPHA_SCALE = 0.0
-
-    /** 迎光与波峰双门控；平坡和背光坡都不能形成横贯整层的表面反射。 */
-    fun surfaceBandLocality(facing: Double, crest: Double): Double {
-        val facing01 = facing.coerceIn(0.0, 1.0)
-        val q = ((crest.coerceIn(0.0, 1.0) - 0.10) / 0.45).coerceIn(0.0, 1.0)
-        val crestGate = q * q * (3.0 - 2.0 * q)
-        return facing01 * crestGate
-    }
-
-    /** D86 局部表面反射宽度：无局部波峰时为 0，近层最大约 3dp。 */
-    fun surfaceBandWidthDp(facing: Double, crest: Double, depth01: Double): Double {
-        val crest01 = crest.coerceIn(0.0, 1.0)
-        val locality = surfaceBandLocality(facing, crest01)
-        return (0.35 + 2.65 * crest01) * sqrt(locality) *
-            sample(SURFACE_BAND_WIDTH_WEIGHTS, depth01)
-    }
-
-    fun surfaceBandAlphaWeight(layer: Int): Double = at(SURFACE_BAND_ALPHA_WEIGHTS, layer)
 
     fun backShadeWidthWeight(layer: Int): Double = at(BACK_SHADE_WIDTH_WEIGHTS, layer)
 

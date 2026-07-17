@@ -83,6 +83,38 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.setRecordingHdrActive(active && !fallbackActive)
     }
 
+    /** 运行时调参（调参 Dialog 实时预览）：直达当前活动的渲染后端。 */
+    fun setTuningValue(key: String, value: Double) {
+        glView.setTuningValue(key, value)
+        if (fallbackActive) canvasFallback.setTuningValue(key, value)
+    }
+
+    /** 暂停冻结（调参 Dialog）：画面静止但渲染照跑，调参实时可见。 */
+    fun setSimulationPaused(paused: Boolean) {
+        glView.setSimulationPaused(paused)
+        canvasFallback.setSimulationPaused(paused)
+    }
+
+    /**
+     * 渐变切换配色（调参 Dialog 换色）：GL 端新颜色的波浪从右缘涌入；
+     * Canvas 回退无过渡动画、直切。
+     */
+    fun animateThingBackground(background: ThingBackground) {
+        currentBackground = background
+        glView.beginBackgroundTransition(background)
+        if (fallbackActive) canvasFallback.setThingBackground(background)
+    }
+
+    /** 预览取景：内容整体沿屏幕 y 平移（dp，负 = 上移）；仅 GL 路径。 */
+    fun setContentVerticalOffsetDp(offsetDp: Float) {
+        glView.setContentVerticalOffsetDp(offsetDp)
+    }
+
+    /** 底部两角半径覆盖（px；<0 恢复与顶部一致）；仅 GL 路径。 */
+    fun setBottomCornerRadiusPx(radiusPx: Float) {
+        glView.setBottomCornerRadiusPx(radiusPx)
+    }
+
     override fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
         if (fallbackActive) canvasFallback.onAudioFrames(frames, events)
         else glView.onAudioFrames(frames, events)

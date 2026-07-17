@@ -85,13 +85,7 @@ internal class FableSolGlOptics(private val density: Double) {
     internal val streakPinkGainForTest = DoubleArray(FableSolSpec.N_LAYERS)
     internal val streakFirstVertexForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val streakVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
-    internal val surfaceBandFirstVertexForTest = IntArray(FableSolSpec.N_LAYERS)
-    internal val surfaceBandVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val bodyLightVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
-    internal val canvasSurfacePeakAlphaForTest = FloatArray(FableSolSpec.N_LAYERS)
-    internal val actualSurfacePeakAlphaForTest = FloatArray(FableSolSpec.N_LAYERS)
-    internal val canvasSurfaceMaxThicknessForTest = DoubleArray(FableSolSpec.N_LAYERS)
-    internal val actualSurfaceMaxThicknessForTest = DoubleArray(FableSolSpec.N_LAYERS)
     internal val thinGlowVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val backShadeVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val crestVeilVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
@@ -135,7 +129,6 @@ internal class FableSolGlOptics(private val density: Double) {
     private val bandLowerY = DoubleArray(FableSolSpec.N_POINTS)
     private val backShadeColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
     private val interfaceColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
-    private val surfaceBandColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
     private val depthAxisX = DoubleArray(FableSolSpec.N_POINTS)
     private val depthAxisY = DoubleArray(FableSolSpec.N_POINTS)
     private val curvedBandQ = DoubleArray(MAX_CURVED_BAND_SEGMENTS + 1)
@@ -202,13 +195,7 @@ internal class FableSolGlOptics(private val density: Double) {
         java.util.Arrays.fill(glintPackedHaloModeMaxForTest, 0f)
         java.util.Arrays.fill(streakPinkGainForTest, 0.0)
         java.util.Arrays.fill(streakVertexCountForTest, 0)
-        java.util.Arrays.fill(surfaceBandFirstVertexForTest, 0)
-        java.util.Arrays.fill(surfaceBandVertexCountForTest, 0)
         java.util.Arrays.fill(bodyLightVertexCountForTest, 0)
-        java.util.Arrays.fill(canvasSurfacePeakAlphaForTest, 0f)
-        java.util.Arrays.fill(actualSurfacePeakAlphaForTest, 0f)
-        java.util.Arrays.fill(canvasSurfaceMaxThicknessForTest, 0.0)
-        java.util.Arrays.fill(actualSurfaceMaxThicknessForTest, 0.0)
         java.util.Arrays.fill(thinGlowVertexCountForTest, 0)
         java.util.Arrays.fill(backShadeVertexCountForTest, 0)
         java.util.Arrays.fill(crestVeilVertexCountForTest, 0)
@@ -300,29 +287,8 @@ internal class FableSolGlOptics(private val density: Double) {
                 crestVeilVertexCountForTest[layer] =
                     (cursor - startVertex) / COMPONENTS_PER_VERTEX
             }
-            // source-over 下先画内部体光/透射/轻纱，再画表面反射与流光；否则后画的
+            // source-over 下先画内部体光/透射/轻纱，再画流光；否则后画的
             // 半透明介质会衰减已经存在的表面响应并形成乳白覆盖。
-            if (FableSolMaterialPolicy.surfaceBandAlphaWeight(layer) > 0.0 &&
-                params.get("surface_strip_gain") > 1e-3
-            ) {
-                surfaceBandFirstVertexForTest[layer] = cursor / COMPONENTS_PER_VERTEX
-                val startVertex = cursor
-                buildSurfaceBand(
-                    sim = sim,
-                    params = params,
-                    layer = layer,
-                    columns = columns,
-                    start = layerStart[layer],
-                    stop1 = layerStop1?.get(layer),
-                    stop2 = layerStop2?.get(layer),
-                    end = layerEnd[layer],
-                    gradientOrigin = gradientOrigin,
-                    gradientDirection = gradientDirection,
-                    gradientDenominator = gradientDenominator
-                )
-                surfaceBandVertexCountForTest[layer] =
-                    (cursor - startVertex) / COMPONENTS_PER_VERTEX
-            }
             if (FableSolMaterialPolicy.flowStreakCapacity(layer) > 0) {
                 streakFirstVertexForTest[layer] = cursor / COMPONENTS_PER_VERTEX
                 val streakStart = cursor
@@ -503,77 +469,6 @@ internal class FableSolGlOptics(private val density: Double) {
             interfaceColors,
             1f,
             OPTICAL_MODE_INTERFACE_SHOULDER
-        )
-    }
-
-    private fun buildSurfaceBand(
-        sim: FableSolSimulation,
-        params: FableSolParams,
-        layer: Int,
-        columns: Int,
-        start: IntArray,
-        stop1: IntArray?,
-        stop2: IntArray?,
-        end: IntArray,
-        gradientOrigin: FloatArray?,
-        gradientDirection: FloatArray?,
-        gradientDenominator: FloatArray?
-    ) {
-        val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
-        for (i in 0 until columns) {
-            val q = ((slope[i] + 0.05) / 0.50).coerceIn(0.0, 1.0)
-            val facing = q * q * (3.0 - 2.0 * q)
-            val crest = (curvature[i] / -GLOW_KAPPA).coerceIn(0.0, 1.0)
-            field[i] = FableSolMaterialPolicy.surfaceBandWidthDp(facing, crest, depth)
-            hdrEligibility[i] = FableSolMaterialPolicy.surfaceBandLocality(facing, crest)
-        }
-        smoothHann(field, smooth, columns, 4)
-        var maximumThickness = 0.0
-        for (i in 0 until columns) {
-            bandTop[i] = y[i] + 0.2 * density
-            val canvasThickness = smooth[i] * density
-            maximumThickness = max(maximumThickness, canvasThickness)
-            bandThickness[i] = canvasThickness * GLES_SURFACE_WIDTH_SCALE
-        }
-        // 低频表面带沿当前位置的四停靠点层色固定 hue 提亮；不能用整层单一中间色
-        // 覆盖任意双色 Thing 渐变，否则互补色会形成灰浊的常量带。
-        val resolvedStop1 = stop1 ?: FableSolColor.mixOklab(start, end, 0.21)
-        val resolvedStop2 = stop2 ?: FableSolColor.mixOklab(start, end, 0.56)
-        val reflectionRamp = FableSolSurfaceColorPolicy.reflectionRamp(
-            start, resolvedStop1, resolvedStop2, end
-        )
-        for (column in 0 until columns) {
-            val gradientQ = layerGradientT(
-                layer,
-                column,
-                columns,
-                gradientOrigin,
-                gradientDirection,
-                gradientDenominator
-            )
-            FableSolSurfaceColorPolicy.sampleRampInto(
-                reflectionRamp, gradientQ, surfaceBandColors[column]
-            )
-        }
-        val air = 1.0 - params.get("aerial_contrast") * depth
-        val breath = 1.0 + 0.10 * params.get("pink_mod") *
-            (2.0 * pink01(sim.t, 9.7) - 1.0)
-        val alpha = (92.0 / 255.0 * FableSolMaterialPolicy.surfaceBandAlphaWeight(layer) *
-            params.lget("alpha", layer) * air * breath *
-            params.get("surface_strip_gain")).toFloat()
-        canvasSurfacePeakAlphaForTest[layer] = alpha * CONTOUR_PROFILE_PEAK.toFloat()
-        actualSurfacePeakAlphaForTest[layer] =
-            alpha * GLES_SURFACE_ALPHA_SCALE.toFloat() * CONTOUR_PROFILE_PEAK.toFloat()
-        canvasSurfaceMaxThicknessForTest[layer] = maximumThickness
-        actualSurfaceMaxThicknessForTest[layer] = maximumThickness * GLES_SURFACE_WIDTH_SCALE
-        addContourBand(
-            columns,
-            bandTop,
-            bandThickness,
-            surfaceBandColors,
-            alpha * GLES_SURFACE_ALPHA_SCALE.toFloat(),
-            OPTICAL_MODE_SURFACE_REFLECTION,
-            hdrEligibility
         )
     }
 
@@ -1484,14 +1379,11 @@ internal class FableSolGlOptics(private val density: Double) {
         private const val CURVED_BAND_TARGET_SEGMENT_DP = 3.2
         private const val OPTICAL_MODE_STREAK = 2f
         private const val OPTICAL_MODE_GLINT = 3f
-        private const val OPTICAL_MODE_SURFACE_REFLECTION = 4f
         private const val OPTICAL_MODE_VEIL = 6f
         private const val OPTICAL_MODE_TRANSMISSION = 8f
         private const val OPTICAL_MODE_BACK_SHADE = 9f
         private const val OPTICAL_MODE_INTERFACE_SHOULDER = 10f
         private const val CONTOUR_PROFILE_PEAK = 0.66
-        private const val GLES_SURFACE_ALPHA_SCALE = 1.0
-        private const val GLES_SURFACE_WIDTH_SCALE = 1.0
         private const val GLINT_SIGMA = 0.072
         private const val GLOW_KAPPA = 0.009
         private const val VIEW_ELEVATION_DEG = 38.0

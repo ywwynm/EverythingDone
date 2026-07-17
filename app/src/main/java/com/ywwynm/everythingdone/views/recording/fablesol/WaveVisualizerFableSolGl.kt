@@ -98,6 +98,30 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         updateDesiredHdrHeadroom()
     }
 
+    internal fun setTuningValue(key: String, value: Double) {
+        renderThread.setTuningValue(key, value)
+    }
+
+    /**
+     * 暂停冻结（与 Python 模拟器同语义）：模拟与音频泵停住、画面静止，但渲染
+     * 循环照跑——冻结画面上调参、换色、HDR 切换仍逐帧实时生效。
+     */
+    internal fun setSimulationPaused(paused: Boolean) {
+        renderThread.setSimulationPaused(paused)
+    }
+
+    internal fun beginBackgroundTransition(background: ThingBackground) {
+        renderThread.beginBackgroundTransition(background)
+    }
+
+    internal fun setContentVerticalOffsetDp(offsetDp: Float) {
+        renderThread.setContentVerticalOffsetDp(offsetDp)
+    }
+
+    internal fun setBottomCornerRadiusPx(radiusPx: Float) {
+        renderThread.setBottomCornerRadiusPx(radiusPx)
+    }
+
     override fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
         renderThread.onAudioFrames(frames, events)
     }
