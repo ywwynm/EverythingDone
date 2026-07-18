@@ -83,8 +83,11 @@ internal class FableSolGlOptics(private val density: Double) {
     private val x = DoubleArray(FableSolSpec.N_POINTS)
     private val y = DoubleArray(FableSolSpec.N_POINTS)
     private val gradient = DoubleArray(FableSolSpec.N_POINTS)
+    private val gradient2 = DoubleArray(FableSolSpec.N_POINTS)
     private val slopeRaw = DoubleArray(FableSolSpec.N_POINTS)
     private val slope = DoubleArray(FableSolSpec.N_POINTS)
+    private val curvatureRaw = DoubleArray(FableSolSpec.N_POINTS)
+    private val curvature = DoubleArray(FableSolSpec.N_POINTS)
     private val uDp = DoubleArray(FableSolSpec.N_POINTS)
     private val microSlope = DoubleArray(FableSolSpec.N_POINTS)
     private val microCurvature = DoubleArray(FableSolSpec.N_POINTS)
@@ -93,6 +96,7 @@ internal class FableSolGlOptics(private val density: Double) {
     private val hdrEligibility = DoubleArray(FableSolSpec.N_POINTS)
     private val bandTop = DoubleArray(FableSolSpec.N_POINTS)
     private val bandThickness = DoubleArray(FableSolSpec.N_POINTS)
+    private val backShadeColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
     private val interfaceColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
     private val depthAxisX = DoubleArray(FableSolSpec.N_POINTS)
     private val depthAxisY = DoubleArray(FableSolSpec.N_POINTS)
@@ -110,6 +114,7 @@ internal class FableSolGlOptics(private val density: Double) {
     private val glitterCandidateScore = DoubleArray(MAX_GLITTER_CANDIDATES)
     private val glitterCandidateUsed = BooleanArray(MAX_GLITTER_CANDIDATES)
     private var glitterCandidateCount = 0
+    internal val backShadeVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val glintPathCenter01ForTest = DoubleArray(FableSolSpec.N_LAYERS)
     internal val glintMaximumPathWeightForTest = DoubleArray(FableSolSpec.N_LAYERS)
     internal var glitterBirthsForTest = 0
@@ -151,6 +156,7 @@ internal class FableSolGlOptics(private val density: Double) {
         java.util.Arrays.fill(glintPackedHaloModeMaxForTest, 0f)
         java.util.Arrays.fill(bodyLightVertexCountForTest, 0)
         java.util.Arrays.fill(interfaceShoulderVertexCountForTest, 0)
+        java.util.Arrays.fill(backShadeVertexCountForTest, 0)
         glitterCandidateCount = 0
         glitterBirthsForTest = 0
         if (columns < 3) return 0
@@ -186,6 +192,22 @@ internal class FableSolGlOptics(private val density: Double) {
                     weightEnd = interfaceWeightEnd[layer + 1].toDouble()
                 )
                 interfaceShoulderVertexCountForTest[layer] =
+                    (cursor - startVertex) / COMPONENTS_PER_VERTEX
+            }
+
+            // 显式保色暗带紧随主体水层；透射、反射和闪点都在它之后叠加，
+            // 阴影不能事后把这些光学分瓣压脏。
+            if (FableSolMaterialPolicy.backShadeAlphaWeight(layer) > 0.0 &&
+                params.get("back_shade_gain") > 1e-3
+            ) {
+                val startVertex = cursor
+                buildBackShade(
+                    params, layer, columns,
+                    layerStart[layer], layerStop1?.get(layer), layerStop2?.get(layer),
+                    layerEnd[layer],
+                    gradientOrigin, gradientDirection, gradientDenominator
+                )
+                backShadeVertexCountForTest[layer] =
                     (cursor - startVertex) / COMPONENTS_PER_VERTEX
             }
 
@@ -240,6 +262,9 @@ internal class FableSolGlOptics(private val density: Double) {
         FableSolMath.gradientInto(y, columns, dx, gradient)
         for (i in 0 until columns) slopeRaw[i] = -gradient[i]
         smoothThree(slopeRaw, slope, columns)
+        FableSolMath.gradientInto(gradient, columns, dx, gradient2)
+        for (i in 0 until columns) curvatureRaw[i] = -gradient2[i] * density
+        smoothThree(curvatureRaw, curvature, columns)
         java.util.Arrays.fill(microSlope, 0, columns, 0.0)
         java.util.Arrays.fill(microCurvature, 0, columns, 0.0)
         if (FableSolMaterialPolicy.glintCapacity(layer) > 0) {
@@ -346,6 +371,73 @@ internal class FableSolGlOptics(private val density: Double) {
             interfaceColors,
             1f,
             OPTICAL_MODE_INTERFACE_SHOULDER
+        )
+    }
+
+    private fun buildBackShade(params: FableSolParams, layer: Int, columns: Int,
+                               start: IntArray, stop1: IntArray?, stop2: IntArray?,
+                               end: IntArray, gradientOrigin: FloatArray?,
+                               gradientDirection: FloatArray?,
+                               gradientDenominator: FloatArray?) {
+        val litSign = if (params.get("light_azimuth_deg") >= 0.0) 1.0 else -1.0
+        for (i in 0 until columns) {
+            var back = ((-slope[i] * litSign - 0.05) / 0.40).coerceIn(0.0, 1.0)
+            back = back * back * (3.0 - 2.0 * back)
+            val crest = (curvature[i] / -GLOW_KAPPA).coerceIn(0.0, 1.0)
+            field[i] = back * (0.30 + 0.70 * crest)
+        }
+        smoothHann(field, smooth, columns, 4)
+        var maximum = 0.0
+        for (i in 0 until columns) {
+            maximum = max(maximum, smooth[i])
+            bandTop[i] = y[i] + 0.3 * density
+            bandThickness[i] = (2.0 + 13.0 * smooth[i]) * density *
+                sqrt(max(smooth[i], 0.0)) * FableSolMaterialPolicy.backShadeWidthWeight(layer)
+        }
+        if (maximum <= 0.04) return
+        val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
+        val resolvedStop1 = stop1 ?: FableSolColor.mixOklab(start, end, 0.21)
+        val resolvedStop2 = stop2 ?: FableSolColor.mixOklab(start, end, 0.56)
+        val shadowStart = FableSolShadowColorPolicy.backShade(
+            start, params.get("hue_temp_deg"), depth
+        )
+        val shadowStop1 = FableSolShadowColorPolicy.backShade(
+            resolvedStop1, params.get("hue_temp_deg"), depth
+        )
+        val shadowStop2 = FableSolShadowColorPolicy.backShade(
+            resolvedStop2, params.get("hue_temp_deg"), depth
+        )
+        val shadowEnd = FableSolShadowColorPolicy.backShade(
+            end, params.get("hue_temp_deg"), depth
+        )
+        for (column in 0 until columns) {
+            val q = layerGradientT(
+                layer,
+                column,
+                columns,
+                gradientOrigin,
+                gradientDirection,
+                gradientDenominator
+            )
+            interpolateFourStopColor(
+                shadowStart,
+                shadowStop1,
+                shadowStop2,
+                shadowEnd,
+                q,
+                backShadeColors[column]
+            )
+        }
+        // D169 恢复注：原式的空气透视因子随 aerial_contrast 按 0 固化为 1。
+        val alpha = (88.0 / 255.0 * FableSolMaterialPolicy.backShadeAlphaWeight(layer) *
+            params.lget("alpha", layer) * params.get("back_shade_gain")).toFloat()
+        addContourBand(
+            columns,
+            bandTop,
+            bandThickness,
+            backShadeColors,
+            alpha,
+            OPTICAL_MODE_BACK_SHADE
         )
     }
 
@@ -901,8 +993,13 @@ internal class FableSolGlOptics(private val density: Double) {
         private const val MIN_CURVED_BAND_SEGMENTS = 12
         private const val MAX_CURVED_BAND_SEGMENTS = 32
         private const val CURVED_BAND_TARGET_SEGMENT_DP = 3.2
+        // 波峰透光的曲率尺度 (dp^-1)；波背自阴影的脊线邻近门也用它归一。
+        private const val GLOW_KAPPA = 0.009
         private const val OPTICAL_MODE_GLINT = 3f
         private const val OPTICAL_MODE_TRANSMISSION = 8f
+        // mode 9 复用 optical.frag 里 mode 8 的半正弦覆盖分支（剖面相同），
+        // 且 HDR 透射提升带 <8.5 上界，波背暗带不会误入超白预算。
+        private const val OPTICAL_MODE_BACK_SHADE = 9f
         private const val OPTICAL_MODE_INTERFACE_SHOULDER = 10f
         private const val CONTOUR_PROFILE_PEAK = 0.66
         private const val GLINT_SIGMA = 0.072

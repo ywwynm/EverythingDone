@@ -520,6 +520,7 @@
     <string name="fablesol_param_sky_reflection_strength">空の反射の強さ</string>
     <string name="fablesol_param_body_light_strength">水体透過光の強さ</string>
     <string name="fablesol_param_light_azimuth_deg">光源の方位角</string>
+    <string name="fablesol_param_back_shade_gain">波背のセルフシャドウ</string>
     <string name="fablesol_param_color_breath">色の呼吸</string>
     <string name="fablesol_param_hue_temp_deg">色温度シフト</string>
     <string name="fablesol_param_surface_heading_deg">主波の進行方位</string>

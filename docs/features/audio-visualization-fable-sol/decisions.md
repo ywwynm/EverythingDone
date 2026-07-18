@@ -2798,3 +2798,30 @@ B 路径沿 X 形态与九层行波无关。
   roughness 0.35 的真实动态浪面 120 帧内必须出生并产生 mode 3 几何——
   防止出生场再次被静默改死。
 Canvas 回退路径同构恢复。发布 202607181001。
+
+## D169（2026-07-18）恢复波背自阴影：back_shade_gain 回归"外观"（默认 0.80）
+
+背景：D164 按"归零无可感变化"删除了 back_shade_gain 及整条渲染链。用户
+真机复看后裁定波背自阴影需要保留（"亮脊紧贴暗窝"的体积明暗相接），要求
+按原默认值恢复，Android 放"外观与光学"组、Python 放"外观"组。
+- 恢复面（两侧一比一，代码取自删除提交的父版本）：参数注册（0~1.2，默认
+  0.80，步长 0.02）；material_policy 宽度/alpha 逐层权重表（近三层全宽、
+  第 7/8 层归零）；GL 端 _back_shade/buildBackShade（背光坡 smoothstep ×
+  脊线曲率门 → Hann 平滑 → 保色暗带，mode 9）；宏观曲率随 _prepare_contour/
+  prepareContour 一并恢复（D164 时与消费者同删）；Canvas 回退
+  _draw_back_shade/drawBackShade + OKLab 降明度派生色链（Python 复用存活的
+  color_policy.derive_shadow_color，Android 恢复 FableSolShadowColorPolicy，
+  仅 backShade 所需部分——macroShade 已由 shader 权重表接管，不恢复）。
+- 兑现的既有固化：aerial_contrast 已按 0 删除，原式空气透视因子固化为 1，
+  暗带 alpha 少乘一项，其余逐位同删除前。
+- 共享 optical.frag 零改动：mode 9 落入现行 >7.5 半正弦分支（与旧 >8.5 分支
+  剖面逐字相同），HDR 透射提升带 <8.5 上界天然排除 mode 9；仅补注释。
+- 验证：Python 158 测试全绿；run.py 截图 A/B（rec_20260709_184459 驱动 6s）
+  默认 0.80 对归零最大差 18/255、1162 像素，GL 直连与 QPainter 回退双端确认。
+  Android JVM 测试全绿（默认几何守护改为"唯一默认几何=mode 9 暗带、0..6 层
+  有、7..8 层无、gain=0 时归零"；HDR 源码序列断言恢复 shoulder→backShade→
+  body→glint；backShade 四停靠渐变逐顶点测试原样恢复）。
+- 排查记录（免将来重查）：首轮截图 A/B "零差异"是对照组 params JSON 格式
+  错误——params.load/from_dict 只读顶层 "values" 子字典，裸键被静默忽略，
+  两轮实际同为默认值；恢复代码本身自始正确。--params 文件须写成
+  {"values": {...}}。

@@ -835,6 +835,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
         val depth01 = i.toDouble() / (FableSolSpec.N_LAYERS - 1)
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
+        drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
         if (params.get("crest_on") >= 0.5) {
             drawHighlights(
                 canvas = canvas,
@@ -878,6 +879,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         fillPaint.shader = null
 
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
+        drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
 
         if (params.get("crest_on") >= 0.5) {
             drawHighlights(canvas, i, cnt, lc, i0, depth01, fillBottom)
@@ -1070,6 +1072,66 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             canvas.drawPath(bandPath, fillPaint)
         }
         fillPaint.shader = null
+    }
+
+    /**
+     * 波背自阴影（对应 canvas.py 的 _draw_back_shade）：主体之后、反射/透射之前
+     * 绘制当前位置的随层保色暗带。
+     * D169 恢复注：原式的空气透视因子随 aerial_contrast 按 0 固化为 1。
+     */
+    private fun drawBackShade(canvas: Canvas, layer: Int, cnt: Int,
+                              colors: LayerColors, fillBottom: Double,
+                              depth01: Double) {
+        val gain = params.get("back_shade_gain")
+        val layerWeight = FableSolMaterialPolicy.backShadeAlphaWeight(layer)
+        if (gain <= 1e-3 || layerWeight <= 0.0) return
+
+        val scratchMark = doubleScratchIndex
+        val dxPx = xsPx[1] - xsPx[0]
+        val gradY = scratchZero(cnt)
+        FableSolMath.gradientInto(ysPx, cnt, dxPx, gradY)
+        val slopeRaw = scratchArray(cnt) { -gradY[it] }
+        val slope = scratchZero(cnt)
+        FableSolMath.convolveSameInto(slopeRaw, cnt, KER3, slope)
+        val gradGrad = scratchZero(cnt)
+        FableSolMath.gradientInto(gradY, cnt, dxPx, gradGrad)
+        val curvRaw = scratchArray(cnt) { -gradGrad[it] * density }
+        val curv = scratchZero(cnt)
+        FableSolMath.convolveSameInto(curvRaw, cnt, KER3, curv)
+        val litSign = if (params.get("light_azimuth_deg") >= 0.0) 1.0 else -1.0
+        val shade = smoothSignal(backShadeField(slope, curv, litSign, cnt), cnt, 4)
+        var maximum = 0.0
+        for (value in shade) maximum = max(maximum, value)
+        if (maximum > 0.04) {
+            val top = scratchArray(cnt) { ysPx[it] + 0.3 * density }
+            val thickness = scratchArray(cnt) {
+                (2.0 + 13.0 * shade[it]) * density * sqrt(shade[it]) *
+                    FableSolMaterialPolicy.backShadeWidthWeight(layer)
+            }
+            fun shadow(color: IntArray): IntArray = FableSolShadowColorPolicy.backShade(
+                color, params.get("hue_temp_deg"), depth01
+            )
+            val shadowColors = LayerColors(
+                shadow(colors.start), shadow(colors.stop1),
+                shadow(colors.stop2), shadow(colors.end),
+                colors.interfaceWeights, colors.alpha255
+            )
+            val alpha = (88.0 * (colors.alpha255 / 255.0) * gain * layerWeight)
+                .roundToInt()
+            drawGradientOneSidedBand(
+                canvas, cnt, top, thickness, shadowColors, alpha, fillBottom
+            )
+        }
+        doubleScratchIndex = scratchMark
+    }
+
+    /** 波背自阴影场：背光坡 × 脊线邻近；平水坡度≈0 时场自动归零，不常驻。 */
+    private fun backShadeField(slope: DoubleArray, curv: DoubleArray, litSign: Double,
+                               cnt: Int): DoubleArray = scratchArray(cnt) {
+        var back = ((-slope[it] * litSign - 0.05) / 0.40).coerceIn(0.0, 1.0)
+        back = back * back * (3.0 - 2.0 * back)
+        val crest = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
+        back * (0.30 + 0.70 * crest)
     }
 
     /**
@@ -1538,6 +1600,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private const val MAX_GLINT_ANCHORS = 4
         private const val MAX_GLITTER_CANDIDATES = FableSolSpec.N_LAYERS * MAX_GLINT_ANCHORS
         private const val GLINT_SIGMA = 0.072
+        // 波峰透光的曲率尺度 (dp^-1)；波背自阴影的脊线邻近门也用它归一。
+        private const val GLOW_KAPPA = 0.009
         private val WATER_F0 = ((1.333 - 1.0) / (1.333 + 1.0)).pow(2)
         private const val VIEW_ELEVATION_DEG = 38.0
         private val WHITE = intArrayOf(255, 255, 255)

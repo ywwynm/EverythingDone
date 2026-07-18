@@ -21,6 +21,12 @@ internal object FableSolMaterialPolicy {
     val CREST_RIM_WEIGHTS = floatArrayOf(
         1f, 0.90f, 0.72f, 0.42f, 0.27f, 0.16f, 0.10f, 0.05f, 0.0129f
     )
+    // 波背自阴影逐层权重（D169 恢复；与 Python material_policy 一比一）：
+    // 近三层全宽，第 7/8 层归零不画。
+    private val BACK_SHADE_WIDTH_WEIGHTS =
+        floatArrayOf(1f, 1f, 1f, 0.84f, 0.72f, 0.60f, 0.42f, 0f, 0f)
+    private val BACK_SHADE_ALPHA_WEIGHTS =
+        floatArrayOf(1f, 0.75f, 0.56f, 0.42f, 0.24f, 0.16f, 0.12f, 0f, 0f)
     private val GLINT_CAPACITIES = intArrayOf(4, 4, 3, 3, 2, 2, 1, 1, 0)
     private val GLINT_LENGTH_WEIGHTS =
         floatArrayOf(1f, 0.96f, 0.84f, 0.75f, 0.64f, 0.56f, 0.49f, 0.42f, 0f)
@@ -39,6 +45,10 @@ internal object FableSolMaterialPolicy {
     const val HALO_ALPHA_SCALE = 0.0
 
     fun glintCapacity(layer: Int): Int = GLINT_CAPACITIES.getOrElse(layer) { 0 }
+
+    fun backShadeWidthWeight(layer: Int): Double = at(BACK_SHADE_WIDTH_WEIGHTS, layer)
+
+    fun backShadeAlphaWeight(layer: Int): Double = at(BACK_SHADE_ALPHA_WEIGHTS, layer)
 
     fun glintLengthWeight(layer: Int): Double = at(GLINT_LENGTH_WEIGHTS, layer)
 

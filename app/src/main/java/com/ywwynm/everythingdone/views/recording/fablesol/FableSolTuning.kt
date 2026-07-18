@@ -49,6 +49,7 @@ object FableSolTuning {
             Spec("sky_reflection_strength", R.string.fablesol_param_sky_reflection_strength, "", 0.0, 1.2, 0.02),
             Spec("body_light_strength", R.string.fablesol_param_body_light_strength, "", 0.0, 1.2, 0.02),
             Spec("light_azimuth_deg", R.string.fablesol_param_light_azimuth_deg, "°", -60.0, 60.0, 1.0),
+            Spec("back_shade_gain", R.string.fablesol_param_back_shade_gain, "", 0.0, 1.2, 0.02),
             Spec("color_breath", R.string.fablesol_param_color_breath, "", 0.0, 1.5, 0.02),
             Spec("hue_temp_deg", R.string.fablesol_param_hue_temp_deg, "°", -30.0, 30.0, 1.0)
         )),

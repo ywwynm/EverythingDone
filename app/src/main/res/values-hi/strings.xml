@@ -520,6 +520,7 @@
     <string name="fablesol_param_sky_reflection_strength">आकाश परावर्तन तीव्रता</string>
     <string name="fablesol_param_body_light_strength">जल-पिंड पारदीप्ति</string>
     <string name="fablesol_param_light_azimuth_deg">प्रकाश दिगंश</string>
+    <string name="fablesol_param_back_shade_gain">लहर-पीठ स्व-छाया</string>
     <string name="fablesol_param_color_breath">रंग श्वसन</string>
     <string name="fablesol_param_hue_temp_deg">रंग-तापमान विचलन</string>
     <string name="fablesol_param_surface_heading_deg">मुख्य लहर दिशा</string>

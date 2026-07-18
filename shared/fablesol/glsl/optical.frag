@@ -40,6 +40,8 @@ void opticalCoverage(vec2 uv, out float coverage, out float glintCoreCoverage) {
         // D129 界面肩：轮廓和带外均归零，带内半正弦峰值固定为 0.66。
         coverage = 0.66 * sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
     } else if (vOpticalMode > 7.5) {
+        // mode 8 透射与 mode 9 波背暗带（D169 恢复）共用半正弦剖面；
+        // 下方 HDR 透射提升带 <8.5 上界，mode 9 不入超白预算。
         coverage = sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
     } else if (vOpticalMode > 6.5) {
         // 解析光晕只承担 SDR 肩部，不进入超白预算。

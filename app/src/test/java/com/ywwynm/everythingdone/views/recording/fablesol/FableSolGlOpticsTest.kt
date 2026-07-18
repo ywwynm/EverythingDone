@@ -100,12 +100,11 @@ class FableSolGlOpticsTest {
             val opticalMode = optics.vertices[offset + 8]
             val hdrEligibility = optics.vertices[offset + 12]
             assertTrue(hdrEligibility in 0f..1f)
-            // D160：表面亮带（mode 4）已整项移除；2026-07-18：流光（2）/轻纱（6）/
-            // 波背自阴影（9）随参数删除，不应再有这些模式的顶点。
+            // D160：表面亮带（mode 4）已整项移除；2026-07-18：流光（2）/轻纱（6）
+            // 随参数删除，不应再有这些模式的顶点；波背自阴影（9）经 D169 恢复。
             assertTrue(opticalMode != 2f)
             assertTrue(opticalMode != 4f)
             assertTrue(opticalMode != 6f)
-            assertTrue(opticalMode != 9f)
             if (opticalMode == 7f || opticalMode == 10f) {
                 assertEquals(0f, hdrEligibility, 0f)
             }
@@ -154,7 +153,7 @@ class FableSolGlOpticsTest {
     }
 
     @Test
-    fun contourEffectsGenerateNoGeometryAtDefaults() {
+    fun backShadeIsTheOnlyDefaultGeometryAndRespectsLayerScopes() {
         val params = FableSolParams()
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
@@ -165,11 +164,20 @@ class FableSolGlOpticsTest {
         sim.update(1.0 / 60.0)
         val floatCount = optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
 
-        // 默认参数下所有几何光学项均关闭（水体透光默认 0、闪点试验期归零、
-        // 界面肩未接线），optical 网格为空。
-        assertEquals(0, floatCount)
+        // 默认参数下唯一的几何光学是波背自阴影（D169 恢复，默认 0.80）；
+        // 水体透光默认 0、闪点默认 0、界面肩未接线。
+        assertTrue(floatCount > 0)
         assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         assertTrue((0..8).all { optics.glintVertexCountForTest[it] == 0 })
+        assertTrue((0..6).sumOf { optics.backShadeVertexCountForTest[it] } > 0)
+        assertTrue((7..8).all { optics.backShadeVertexCountForTest[it] == 0 })
+        for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
+            assertEquals(9f, optics.vertices[offset + 8], 0f)
+        }
+
+        params.set("back_shade_gain", 0.0)
+        val opticsOff = FableSolGlOptics(DENSITY)
+        assertEquals(0, opticsOff.build(sim, params, COLUMNS, water, start, end, HORIZON))
     }
 
     @Test
@@ -215,6 +223,61 @@ class FableSolGlOpticsTest {
         )
 
         assertTrue((0..8).all { optics.interfaceShoulderVertexCountForTest[it] == 0 })
+    }
+
+    @Test
+    fun backShadeCarriesTheCurrentFourStopThingGradientPerVertex() {
+        val params = FableSolParams()
+        val sim = FableSolSimulation(params)
+        val optics = FableSolGlOptics(DENSITY)
+        val water = syntheticWater(COLUMNS)
+        val start = Array(FableSolSpec.N_LAYERS) { intArrayOf(220, 62, 48) }
+        val stop1 = Array(FableSolSpec.N_LAYERS) { intArrayOf(186, 104, 62) }
+        val stop2 = Array(FableSolSpec.N_LAYERS) { intArrayOf(80, 146, 155) }
+        val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(42, 94, 224) }
+        val origin = FloatArray(FableSolSpec.N_LAYERS * 2)
+        val direction = FloatArray(FableSolSpec.N_LAYERS * 2)
+        val denominator = FloatArray(FableSolSpec.N_LAYERS)
+        val x0 = water[0]
+        val x1 = water[(COLUMNS - 1) * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX]
+        for (layer in 0 until FableSolSpec.N_LAYERS) {
+            origin[layer * 2] = x0
+            direction[layer * 2] = x1 - x0
+            denominator[layer] = (x1 - x0) * (x1 - x0)
+        }
+
+        sim.update(1.0 / 60.0)
+        val floatCount = optics.build(
+            sim = sim,
+            params = params,
+            columns = COLUMNS,
+            waterVertices = water,
+            layerStart = start,
+            layerEnd = end,
+            environmentHorizon = HORIZON,
+            layerStop1 = stop1,
+            layerStop2 = stop2,
+            gradientOrigin = origin,
+            gradientDirection = direction,
+            gradientDenominator = denominator
+        )
+
+        var minimumRed = 1f
+        var maximumRed = 0f
+        var minimumBlue = 1f
+        var maximumBlue = 0f
+        var shadeVertices = 0
+        for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
+            if (optics.vertices[offset + 8] != 9f) continue
+            minimumRed = minOf(minimumRed, optics.vertices[offset + 4])
+            maximumRed = maxOf(maximumRed, optics.vertices[offset + 4])
+            minimumBlue = minOf(minimumBlue, optics.vertices[offset + 6])
+            maximumBlue = maxOf(maximumBlue, optics.vertices[offset + 6])
+            shadeVertices++
+        }
+        assertTrue(shadeVertices > 0)
+        assertTrue(maximumRed - minimumRed > 0.20f)
+        assertTrue(maximumBlue - minimumBlue > 0.20f)
     }
 
     @Test

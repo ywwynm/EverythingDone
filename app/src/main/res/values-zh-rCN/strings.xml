@@ -967,6 +967,7 @@
     <string name="fablesol_param_sky_reflection_strength">天空反射强度</string>
     <string name="fablesol_param_body_light_strength">水体透光强度</string>
     <string name="fablesol_param_light_azimuth_deg">光源方位角</string>
+    <string name="fablesol_param_back_shade_gain">波背自阴影</string>
     <string name="fablesol_param_color_breath">颜色呼吸</string>
     <string name="fablesol_param_hue_temp_deg">色温偏移</string>
     <string name="fablesol_param_surface_heading_deg">主波向偏近角</string>

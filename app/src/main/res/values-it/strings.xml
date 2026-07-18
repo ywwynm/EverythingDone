@@ -520,6 +520,7 @@
     <string name="fablesol_param_sky_reflection_strength">Intensità del riflesso del cielo</string>
     <string name="fablesol_param_body_light_strength">Luce trasmessa del corpo d\'acqua</string>
     <string name="fablesol_param_light_azimuth_deg">Azimut della luce</string>
+    <string name="fablesol_param_back_shade_gain">Ombra propria del dorso d\'onda</string>
     <string name="fablesol_param_color_breath">Respirazione del colore</string>
     <string name="fablesol_param_hue_temp_deg">Spostamento di temperatura colore</string>
     <string name="fablesol_param_surface_heading_deg">Direzione dell\'onda principale</string>

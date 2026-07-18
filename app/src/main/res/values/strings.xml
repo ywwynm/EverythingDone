@@ -983,6 +983,7 @@
     <string name="fablesol_param_sky_reflection_strength">Sky reflection strength</string>
     <string name="fablesol_param_body_light_strength">Body light strength</string>
     <string name="fablesol_param_light_azimuth_deg">Light azimuth</string>
+    <string name="fablesol_param_back_shade_gain">Wave-back self-shadow</string>
     <string name="fablesol_param_color_breath">Color breathing</string>
     <string name="fablesol_param_hue_temp_deg">Hue temperature shift</string>
     <string name="fablesol_param_surface_heading_deg">Main wave heading</string>

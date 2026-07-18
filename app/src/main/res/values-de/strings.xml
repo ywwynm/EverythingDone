@@ -520,6 +520,7 @@
     <string name="fablesol_param_sky_reflection_strength">Himmelsreflexions-Stärke</string>
     <string name="fablesol_param_body_light_strength">Wasserkörper-Durchlicht</string>
     <string name="fablesol_param_light_azimuth_deg">Lichtazimut</string>
+    <string name="fablesol_param_back_shade_gain">Wellenrücken-Eigenschatten</string>
     <string name="fablesol_param_color_breath">Farbatmung</string>
     <string name="fablesol_param_hue_temp_deg">Farbtemperatur-Versatz</string>
     <string name="fablesol_param_surface_heading_deg">Hauptwellenrichtung</string>

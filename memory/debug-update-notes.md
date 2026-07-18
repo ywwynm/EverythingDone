@@ -1,5 +1,23 @@
 # Current Debug Update Notes
 
+## 2026-07-18 - 恢复波背自阴影（D169，back_shade_gain 默认 0.80）
+
+用户裁定 D164 删除的波背自阴影需要保留，两侧从删除提交父版本一比一找回：
+参数注册（Python"外观"/Android"外观与光学"，0~1.2 默认 0.80）、权重表、
+GL mode 9 暗带（宏观曲率随 prepareContour 恢复）、Canvas 回退与 OKLab
+降明度阴影色（Android 恢复 FableSolShadowColorPolicy，macroShade 不恢复）。
+aerial_contrast 维持已删、空气透视因子按 0 固化为 1；共享 optical.frag
+零改动（mode 9 复用 >7.5 半正弦分支，HDR <8.5 上界天然排除），仅补注释。
+13 语言文案恢复（意语 \' 转义）。守护测试反转："唯一默认几何 = mode 9、
+0..6 层有、7..8 层无、gain=0 归零"；HDR 源码序列断言恢复 backShade 环节。
+Python 158 + Android JVM 全绿；截图 A/B 默认对归零最大差 18/255（注意：
+--params 文件必须 {"values": {...}} 结构，裸键被静默忽略）。
+已发布阿里云 Debug `202607181139`（versionCode 43 / 2.0.0），APK 大小
+`20932604` 字节，SHA-256 为
+`39d125a2bff9a7ff55d1386850ce6dcc179d746c62ef89e441c4cc0279c88992`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718193844.md。
+
 ## 2026-07-18 - 恢复闪点出生场（"闪点数量"转正式可调项，默认 0）
 
 D164 删除 crest_glint_strength 后闪点出生场只剩菲涅尔细节项（恒低于 0.08

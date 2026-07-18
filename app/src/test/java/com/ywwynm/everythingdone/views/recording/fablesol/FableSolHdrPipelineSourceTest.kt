@@ -78,18 +78,20 @@ class FableSolHdrPipelineSourceTest {
         val loopEnd = source.indexOf("layerVertexCount[layer]", loopStart)
         val loop = source.substring(loopStart, loopEnd)
 
-        // D160：表面亮带（buildSurfaceBand）已整项移除；2026-07-18 波背自阴影/
-        // 薄峰透光/波冠轻纱/流光随参数删除，序列只剩界面肩→体光→闪点。
+        // D160：表面亮带（buildSurfaceBand）已整项移除；2026-07-18 薄峰透光/
+        // 波冠轻纱/流光随参数删除；波背自阴影经 D169 恢复，序列为
+        // 界面肩→波背暗带→体光→闪点（暗带不得压脏其后的光学分瓣）。
         val shoulder = loop.indexOf("buildInterfaceShoulder(")
+        val backShade = loop.indexOf("buildBackShade(")
         val body = loop.indexOf("buildBodyLight(")
         val glint = loop.indexOf("buildGlints(")
-        assertTrue(listOf(shoulder, body, glint).all { it >= 0 })
+        assertTrue(listOf(shoulder, backShade, body, glint).all { it >= 0 })
         assertTrue(loop.indexOf("buildSurfaceBand(") < 0)
-        assertTrue(loop.indexOf("buildBackShade(") < 0)
         assertTrue(loop.indexOf("buildThinGlow(") < 0)
         assertTrue(loop.indexOf("buildCrestVeil(") < 0)
         assertTrue(loop.indexOf("buildStreaks(") < 0)
-        assertTrue(shoulder < body)
+        assertTrue(shoulder < backShade)
+        assertTrue(backShade < body)
         assertTrue(body < glint)
     }
 

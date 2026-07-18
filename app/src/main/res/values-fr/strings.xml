@@ -520,6 +520,7 @@
     <string name="fablesol_param_sky_reflection_strength">Intensité du reflet du ciel</string>
     <string name="fablesol_param_body_light_strength">Lumière transmise du corps d\'eau</string>
     <string name="fablesol_param_light_azimuth_deg">Azimut de la lumière</string>
+    <string name="fablesol_param_back_shade_gain">Ombre propre du dos de vague</string>
     <string name="fablesol_param_color_breath">Respiration des couleurs</string>
     <string name="fablesol_param_hue_temp_deg">Décalage de température de couleur</string>
     <string name="fablesol_param_surface_heading_deg">Cap de la vague principale</string>

@@ -2271,3 +2271,19 @@ debuggable 运行时下完整兑现。143 项 JVM 测试全绿。临时 release 
 - 新增出生守护测试（Python test_gl_backend + Android GlOpticsTest）；
   Python 158 + Android JVM 全绿；模拟器 capacity_gain=1 截图确认可见。
 - 发布阿里云 202607181001（默认关闭，画面与上一包一致）。
+
+## 2026-07-18（七）：恢复波背自阴影（D169）
+
+- 用户裁定 D164 删除的波背自阴影需要保留，按默认 0.80 恢复；Android 进
+  "外观与光学"、Python 进"外观"。两侧从删除提交父版本取回全链：参数注册、
+  权重表、GL mode 9 暗带（含宏观曲率恢复）、Canvas 回退与 OKLab 阴影色
+  派生（Android 恢复 FableSolShadowColorPolicy，裁掉已被 shader 接管的
+  macroShade）；aerial_contrast 维持已删，空气透视因子按 0 固化。
+- 共享 optical.frag 无需改动（mode 9 复用 >7.5 半正弦分支、HDR 上界天然
+  排除），仅补注释。13 语言恢复"波背自阴影"文案（意语单引号需 \' 转义）。
+- 测试改造：Android"默认零几何"守护反转为"唯一默认几何=mode 9"，HDR 源码
+  序列断言恢复 backShade 环节，MaterialPolicy/ShadowColorPolicy 断言回归；
+  Python 绘制路由测试恢复 shadow 桩。Python 158 + Android JVM 全绿，
+  assembleDebug 产出 APK。
+- 排查教训：--params 文件必须是 {"values": {...}} 结构，裸键被 from_dict
+  静默忽略——首轮 A/B "零差异"由此而来，勿再踩。

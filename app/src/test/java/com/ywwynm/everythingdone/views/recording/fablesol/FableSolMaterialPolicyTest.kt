@@ -45,6 +45,15 @@ class FableSolMaterialPolicyTest {
             doubleArrayOf(1.0, 0.90, 0.72, 0.42, 0.27, 0.16, 0.10, 0.05, 0.0129),
             FableSolMaterialPolicy.CREST_RIM_WEIGHTS
         )
+        // D169：波背自阴影逐层权重恢复（与 Python material_policy 一比一）。
+        assertDoubleCurve(
+            doubleArrayOf(1.0, 1.0, 1.0, 0.84, 0.72, 0.60, 0.42, 0.0, 0.0),
+            FableSolMaterialPolicy::backShadeWidthWeight
+        )
+        assertDoubleCurve(
+            doubleArrayOf(1.0, 0.75, 0.56, 0.42, 0.24, 0.16, 0.12, 0.0, 0.0),
+            FableSolMaterialPolicy::backShadeAlphaWeight
+        )
         assertEquals(
             listOf(4, 4, 3, 3, 2, 2, 1, 1, 0),
             (0..8).map(FableSolMaterialPolicy::glintCapacity)
