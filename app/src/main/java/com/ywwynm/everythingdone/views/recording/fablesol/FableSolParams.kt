@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 /**
- * 运行时参数（对应 params.py），取原版默认值硬编码。调参 UI 已裁掉，全程只读。
+ * 运行时参数（对应 params.py），默认值硬编码，设置内调参 Dialog 可在运行时覆盖标量参数。
  * 外观类 palette/gradient_dir 在本移植中不使用（配色改接记事 ThingBackground，见 D1），
  * 但保留其 key，以便 simulation/mapping 的逐条读取与原版一比一。
  */
@@ -57,11 +57,12 @@ class FableSolParams {
         v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)
         v("flow_curve", 1.29); v("flow_smooth_s", 0.48)
         v("wander_gain", 1.0); v("wall_soft", 0.6); v("tilt_calm", 0.75)
+        // 踩拍只短暂加速环境纹理相位，不改写主浪相位或振幅。
+        v("beat_gain", 1.0)
         // 主浪
         v("hero_gain", 1.0); v("hero_len_dp", 360.0)
         v("hero_attack_s", 0.85); v("hero_release_s", 1.60)
-        v("hero_punch", 0.0); v("hero_punch_decay_s", 0.42)
-        v("hero_breath", 0.42); v("beat_gain", 1.0)
+        v("hero_breath", 0.42)
         // 涨落
         v("swell_presmooth_s", 0.55); v("swell_presmooth_release_s", 1.60)
         v("swell_deadband_pct", 0.0); v("swell_attack_s", 0.38)
@@ -72,7 +73,7 @@ class FableSolParams {
         v("swell_halflife_s", 0.5); v("deep_integral_s", 1.0)
         // 注入组已于 2026-07-18 整组固化进实现（Python 同步；机制保留，
         // 连续水面主路径均值化行波形态，调参无可感变化）。
-        // 感知前端
+        // 声音分析与灵敏度
         v("agc_window_s", 24.0); v("silence_gate_db", 6.0); v("expander_amount", 0.32)
         // 段落组已于 2026-07-18 整组移除（Python 同步）：段涌连根删，
         // mood_transition_s/mood_spread_dp 固化 1.5s/12dp 进实现。

@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">Ambiente y flujo</string>
     <string name="fablesol_group_hero">Ola principal</string>
     <string name="fablesol_group_swell">Oleaje</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">Análisis de sonido y sensibilidad</string>
+    <string name="fablesol_param_agc_window_s">Ventana de autocalibración</string>
+    <string name="fablesol_param_silence_gate_db">Puerta de silencio (sobre el ruido de fondo)</string>
+    <string name="fablesol_param_expander_amount">Expansión dinámica</string>
     <string name="fablesol_param_uplift_thick_glow">Intensidad del brillo por grosor</string>
     <string name="fablesol_param_uplift_glow_boost">Aclarado derivado del brillo</string>
     <string name="fablesol_param_uplift_crest_rim">Intensidad del hilo plateado de cresta</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">Longitud de onda principal</string>
     <string name="fablesol_param_hero_attack_s">Ataque de la ola principal</string>
     <string name="fablesol_param_hero_release_s">Liberación de la ola principal</string>
-    <string name="fablesol_param_hero_punch">Impacto de la ola principal (antiguo)</string>
-    <string name="fablesol_param_hero_punch_decay_s">Decaimiento del impacto</string>
     <string name="fablesol_param_hero_breath">Profundidad de respiración de la ola</string>
     <string name="fablesol_param_beat_gain">Amplitud del pulso</string>
     <string name="fablesol_param_swell_presmooth_s">Presuavizado de subida</string>

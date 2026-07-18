@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">環境波と流れ</string>
     <string name="fablesol_group_hero">主波</string>
     <string name="fablesol_group_swell">うねり</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">音声分析と感度</string>
+    <string name="fablesol_param_agc_window_s">自動校正ウィンドウ</string>
+    <string name="fablesol_param_silence_gate_db">無音ゲート（ノイズフロア超過）</string>
+    <string name="fablesol_param_expander_amount">ダイナミック拡張</string>
     <string name="fablesol_param_uplift_thick_glow">厚み透過光の強さ</string>
     <string name="fablesol_param_uplift_glow_boost">透過光による明るさ上げ</string>
     <string name="fablesol_param_uplift_crest_rim">波頭シルバーラインの強さ</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">主波の基準波長</string>
     <string name="fablesol_param_hero_attack_s">主波アタック</string>
     <string name="fablesol_param_hero_release_s">主波リリース</string>
-    <string name="fablesol_param_hero_punch">主波パンチ（旧）</string>
-    <string name="fablesol_param_hero_punch_decay_s">主波パンチ減衰</string>
     <string name="fablesol_param_hero_breath">主波の呼吸の深さ</string>
     <string name="fablesol_param_beat_gain">ビート振幅</string>
     <string name="fablesol_param_swell_presmooth_s">水位上昇の事前平滑</string>

@@ -954,6 +954,10 @@
     <string name="fablesol_group_ambient_flow">环境与流动</string>
     <string name="fablesol_group_hero">主浪</string>
     <string name="fablesol_group_swell">涨落</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">声音分析与灵敏度</string>
+    <string name="fablesol_param_agc_window_s">自校准窗口</string>
+    <string name="fablesol_param_silence_gate_db">静音门（高于底噪）</string>
+    <string name="fablesol_param_expander_amount">动态扩展</string>
     <string name="fablesol_param_uplift_thick_glow">厚度透光强度</string>
     <string name="fablesol_param_uplift_glow_boost">透光派生提亮</string>
     <string name="fablesol_param_uplift_crest_rim">波峰银丝强度</string>
@@ -987,8 +991,6 @@
     <string name="fablesol_param_hero_len_dp">主浪基准波长</string>
     <string name="fablesol_param_hero_attack_s">主浪攻击</string>
     <string name="fablesol_param_hero_release_s">主浪释放</string>
-    <string name="fablesol_param_hero_punch">主浪冲击（旧）</string>
-    <string name="fablesol_param_hero_punch_decay_s">主浪冲击衰减</string>
     <string name="fablesol_param_hero_breath">主浪呼吸深度</string>
     <string name="fablesol_param_beat_gain">踩拍幅度</string>
     <string name="fablesol_param_swell_presmooth_s">水位上升预平滑</string>

@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">परिवेश और प्रवाह</string>
     <string name="fablesol_group_hero">मुख्य लहर</string>
     <string name="fablesol_group_swell">उभार</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">ध्वनि विश्लेषण और संवेदनशीलता</string>
+    <string name="fablesol_param_agc_window_s">स्व-अंशांकन विंडो</string>
+    <string name="fablesol_param_silence_gate_db">मौन गेट (शोर तल से ऊपर)</string>
+    <string name="fablesol_param_expander_amount">डायनेमिक विस्तार</string>
     <string name="fablesol_param_uplift_thick_glow">मोटाई चमक तीव्रता</string>
     <string name="fablesol_param_uplift_glow_boost">चमक से व्युत्पन्न उजाला</string>
     <string name="fablesol_param_uplift_crest_rim">लहर-शिखर रजत रेखा तीव्रता</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">मुख्य तरंगदैर्घ्य</string>
     <string name="fablesol_param_hero_attack_s">मुख्य लहर आक्रमण</string>
     <string name="fablesol_param_hero_release_s">मुख्य लहर विमोचन</string>
-    <string name="fablesol_param_hero_punch">मुख्य लहर आघात (पुराना)</string>
-    <string name="fablesol_param_hero_punch_decay_s">आघात क्षय</string>
     <string name="fablesol_param_hero_breath">मुख्य लहर श्वसन गहराई</string>
     <string name="fablesol_param_beat_gain">ताल आयाम</string>
     <string name="fablesol_param_swell_presmooth_s">जलस्तर वृद्धि पूर्व-चिकनाई</string>

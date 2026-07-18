@@ -16,8 +16,10 @@ import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrameReceiver
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolRealtimeAnalyzer
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 
 import java.io.File
 import java.io.FileInputStream
@@ -58,6 +60,9 @@ open class AudioRecorder(private val appContext: Context?) {
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
     private val mOpusReceivers: MutableList<WaveFrameReceiverOpus> = ArrayList()
     private val mFableSolReceivers: MutableList<FableSolFrameReceiver> = ArrayList()
+    private val mFableSolFrontEndTuning = FableSolFrontEndTuning().also { tuning ->
+        appContext?.let { FableSolTuning.applyFrontEndStored(it, tuning) }
+    }
 
     // 采集端音效（D6）：改用 UNPROCESSED/VOICE_RECOGNITION 后仍显式关掉 AGC/NS/AEC，持引用防 GC。
     private var mAgc: AutomaticGainControl? = null
@@ -97,6 +102,10 @@ open class AudioRecorder(private val appContext: Context?) {
     fun linkFableSol(receiver: FableSolFrameReceiver) {
         mFableSolReceivers.add(receiver)
     }
+
+    /** 设置 Dialog 调用：下一批 PCM 开始使用新的声音分析参数。 */
+    fun setFableSolFrontEndTuning(key: String, value: Double): Boolean =
+        mFableSolFrontEndTuning.set(key, value)
 
     /**
      * setter of samplingInterval
@@ -456,6 +465,7 @@ open class AudioRecorder(private val appContext: Context?) {
                             mono[s] = v / 32768.0
                             bi += 2
                         }
+                        mFableSolFrontEndTuning.applyTo(mFableSolAnalyzer)
                         val (fsFrames, fsEvents) = mFableSolAnalyzer.feed(mono)
                         if (fsFrames.isNotEmpty() || fsEvents.isNotEmpty()) {
                             for (r in mFableSolReceivers.indices) {

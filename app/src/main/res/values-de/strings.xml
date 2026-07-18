@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">Umgebung &amp; Strömung</string>
     <string name="fablesol_group_hero">Hauptwelle</string>
     <string name="fablesol_group_swell">Dünung</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">Klanganalyse &amp; Empfindlichkeit</string>
+    <string name="fablesol_param_agc_window_s">Selbstkalibrierungsfenster</string>
+    <string name="fablesol_param_silence_gate_db">Stille-Schwelle (über Grundrauschen)</string>
+    <string name="fablesol_param_expander_amount">Dynamikerweiterung</string>
     <string name="fablesol_param_uplift_thick_glow">Dickenglühen-Stärke</string>
     <string name="fablesol_param_uplift_glow_boost">Glühen-Aufhellung</string>
     <string name="fablesol_param_uplift_crest_rim">Kamm-Silberfaden-Stärke</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">Hauptwellenlänge</string>
     <string name="fablesol_param_hero_attack_s">Hauptwellen-Attack</string>
     <string name="fablesol_param_hero_release_s">Hauptwellen-Release</string>
-    <string name="fablesol_param_hero_punch">Hauptwellen-Punch (alt)</string>
-    <string name="fablesol_param_hero_punch_decay_s">Punch-Abklingzeit</string>
     <string name="fablesol_param_hero_breath">Hauptwellen-Atemtiefe</string>
     <string name="fablesol_param_beat_gain">Beat-Amplitude</string>
     <string name="fablesol_param_swell_presmooth_s">Anstiegs-Vorglättung</string>

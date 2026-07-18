@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">환경파 및 흐름</string>
     <string name="fablesol_group_hero">메인 파도</string>
     <string name="fablesol_group_swell">스웰</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">소리 분석 및 감도</string>
+    <string name="fablesol_param_agc_window_s">자동 보정 창</string>
+    <string name="fablesol_param_silence_gate_db">무음 게이트(노이즈 플로어 초과)</string>
+    <string name="fablesol_param_expander_amount">다이내믹 확장</string>
     <string name="fablesol_param_uplift_thick_glow">두께 투과광 강도</string>
     <string name="fablesol_param_uplift_glow_boost">투과광 파생 밝기</string>
     <string name="fablesol_param_uplift_crest_rim">물마루 은빛 라인 강도</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">메인 파도 기준 파장</string>
     <string name="fablesol_param_hero_attack_s">메인 파도 어택</string>
     <string name="fablesol_param_hero_release_s">메인 파도 릴리즈</string>
-    <string name="fablesol_param_hero_punch">메인 파도 펀치(구형)</string>
-    <string name="fablesol_param_hero_punch_decay_s">메인 파도 펀치 감쇠</string>
     <string name="fablesol_param_hero_breath">메인 파도 호흡 깊이</string>
     <string name="fablesol_param_beat_gain">비트 진폭</string>
     <string name="fablesol_param_swell_presmooth_s">수위 상승 사전 평활</string>

@@ -9,8 +9,8 @@ import kotlin.math.abs
 /**
  * FableSol 调参持久层 + 可调参数目录（设置界面"音频海浪动画参数调节"Dialog 使用）。
  *
- * - 目录只收录 Android 渲染链路（GlRenderer / GlOptics / Simulation / FeatureMapper /
- *   ContinuousSurface）实际消费、且在 [FableSolParams] 注册过的标量参数；范围、
+ * - 目录收录 Android 渲染链路（GlRenderer / GlOptics / Simulation / FeatureMapper /
+ *   ContinuousSurface）或音频分析链实际消费、且在 [FableSolParams] 注册过的标量参数；范围、
  *   步长与 Python 模拟器 params.py 的 GUI 规格同源，标签为多语言字符串资源
  *   （fablesol_group_* / fablesol_param_*，中文文案与 Python GUI 一致）。
  * - 存储在独立 SharedPreferences 文件里，只存偏离默认值的键；未存储的键永远走
@@ -18,6 +18,11 @@ import kotlin.math.abs
  * - HDR 开关也存这里（默认开）；真正能否生效仍由设备能力与录音态门控。
  */
 object FableSolTuning {
+
+    enum class Target {
+        RENDERER,
+        AUDIO_FRONT_END
+    }
 
     /** 单个可调参数的 UI 规格。[boolLike] 为真时渲染为开关（0/1）。 */
     class Spec(
@@ -27,7 +32,8 @@ object FableSolTuning {
         val lo: Double,
         val hi: Double,
         val step: Double,
-        val boolLike: Boolean = false
+        val boolLike: Boolean = false,
+        val target: Target = Target.RENDERER
     )
 
     class Group(@StringRes val titleRes: Int, val specs: List<Spec>)
@@ -68,17 +74,15 @@ object FableSolTuning {
             Spec("flow_smooth_s", R.string.fablesol_param_flow_smooth_s, "s", 0.2, 5.0, 0.01),
             Spec("wander_gain", R.string.fablesol_param_wander_gain, "×", 0.0, 2.0, 0.01),
             Spec("wall_soft", R.string.fablesol_param_wall_soft, "", 0.0, 1.0, 0.02),
-            Spec("tilt_calm", R.string.fablesol_param_tilt_calm, "", 0.0, 1.0, 0.02)
+            Spec("tilt_calm", R.string.fablesol_param_tilt_calm, "", 0.0, 1.0, 0.02),
+            Spec("beat_gain", R.string.fablesol_param_beat_gain, "×", 0.0, 2.0, 0.02)
         )),
         Group(R.string.fablesol_group_hero, listOf(
             Spec("hero_gain", R.string.fablesol_param_hero_gain, "×", 0.0, 2.0, 0.01),
             Spec("hero_len_dp", R.string.fablesol_param_hero_len_dp, "dp", 160.0, 640.0, 1.0),
             Spec("hero_attack_s", R.string.fablesol_param_hero_attack_s, "s", 0.02, 1.50, 0.01),
             Spec("hero_release_s", R.string.fablesol_param_hero_release_s, "s", 0.10, 3.00, 0.01),
-            Spec("hero_punch", R.string.fablesol_param_hero_punch, "", 0.0, 2.0, 0.02),
-            Spec("hero_punch_decay_s", R.string.fablesol_param_hero_punch_decay_s, "s", 0.05, 1.5, 0.01),
-            Spec("hero_breath", R.string.fablesol_param_hero_breath, "", 0.0, 0.9, 0.02),
-            Spec("beat_gain", R.string.fablesol_param_beat_gain, "×", 0.0, 2.0, 0.02)
+            Spec("hero_breath", R.string.fablesol_param_hero_breath, "", 0.0, 0.9, 0.02)
         )),
         Group(R.string.fablesol_group_swell, listOf(
             Spec("swell_presmooth_s", R.string.fablesol_param_swell_presmooth_s, "s", 0.10, 2.00, 0.01),
@@ -89,6 +93,26 @@ object FableSolTuning {
             Spec("swell_attack_s", R.string.fablesol_param_swell_attack_s, "s", 0.02, 1.20, 0.01),
             Spec("swell_release_s", R.string.fablesol_param_swell_release_s, "s", 0.10, 3.00, 0.01),
             Spec("swell_gain", R.string.fablesol_param_swell_gain, "×", 0.0, 2.0, 0.01)
+        )),
+        Group(R.string.fablesol_group_sound_analysis_sensitivity, listOf(
+            Spec(
+                FableSolFrontEndTuning.KEY_AGC_WINDOW_S,
+                R.string.fablesol_param_agc_window_s,
+                "s", 3.0, 30.0, 1.0,
+                target = Target.AUDIO_FRONT_END
+            ),
+            Spec(
+                FableSolFrontEndTuning.KEY_SILENCE_GATE_DB,
+                R.string.fablesol_param_silence_gate_db,
+                "dB", 0.0, 18.0, 0.5,
+                target = Target.AUDIO_FRONT_END
+            ),
+            Spec(
+                FableSolFrontEndTuning.KEY_EXPANDER_AMOUNT,
+                R.string.fablesol_param_expander_amount,
+                "", 0.0, 1.0, 0.01,
+                target = Target.AUDIO_FRONT_END
+            )
         )),
         // 注入组已于 2026-07-18 整组固化进实现（机制保留、调参无可感变化）。
         // 段落组已于 2026-07-18 整组移除（段涌连根删、mood 两项固化进实现）。
@@ -104,17 +128,32 @@ object FableSolTuning {
     private fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    val FRONT_END_SPECS: List<Spec> by lazy {
+        GROUPS.flatMap { it.specs }.filter { it.target == Target.AUDIO_FRONT_END }
+    }
+
     /** 把持久化覆盖套到一个 params 实例上；渲染器构造 params 后立即调用。 */
     fun applyStored(context: Context, params: FableSolParams) {
         val sp = prefs(context)
         for (group in GROUPS) {
             for (spec in group.specs) {
+                if (spec.target != Target.RENDERER) continue
                 val prefKey = KEY_PARAM_PREFIX + spec.key
                 if (sp.contains(prefKey)) {
                     val value = sp.getFloat(prefKey, 0f).toDouble().coerceIn(spec.lo, spec.hi)
                     params.set(spec.key, value)
                 }
             }
+        }
+    }
+
+    /** AudioRecorder 构造时调用：把持久化的声音分析参数载入线程安全快照。 */
+    fun applyFrontEndStored(context: Context, tuning: FableSolFrontEndTuning) {
+        for (spec in FRONT_END_SPECS) {
+            tuning.set(
+                spec.key,
+                storedValue(context, spec, FableSolFrontEndTuning.defaultValue(spec.key))
+            )
         }
     }
 

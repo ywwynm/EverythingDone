@@ -970,6 +970,10 @@
     <string name="fablesol_group_ambient_flow">Ambient &amp; flow</string>
     <string name="fablesol_group_hero">Hero wave</string>
     <string name="fablesol_group_swell">Swell</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">Sound analysis &amp; sensitivity</string>
+    <string name="fablesol_param_agc_window_s">Self-calibration window</string>
+    <string name="fablesol_param_silence_gate_db">Silence gate (above noise floor)</string>
+    <string name="fablesol_param_expander_amount">Dynamic expansion</string>
     <string name="fablesol_param_uplift_thick_glow">Thickness glow strength</string>
     <string name="fablesol_param_uplift_glow_boost">Glow-derived lightening</string>
     <string name="fablesol_param_uplift_crest_rim">Crest silver-thread strength</string>
@@ -1003,8 +1007,6 @@
     <string name="fablesol_param_hero_len_dp">Hero wavelength</string>
     <string name="fablesol_param_hero_attack_s">Hero attack</string>
     <string name="fablesol_param_hero_release_s">Hero release</string>
-    <string name="fablesol_param_hero_punch">Hero punch (legacy)</string>
-    <string name="fablesol_param_hero_punch_decay_s">Hero punch decay</string>
     <string name="fablesol_param_hero_breath">Hero breathing depth</string>
     <string name="fablesol_param_beat_gain">Beat amplitude</string>
     <string name="fablesol_param_swell_presmooth_s">Rise pre-smoothing</string>

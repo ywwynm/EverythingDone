@@ -2287,3 +2287,63 @@ debuggable 运行时下完整兑现。143 项 JVM 测试全绿。临时 release 
   assembleDebug 产出 APK。
 - 排查教训：--params 文件必须是 {"values": {...}} 结构，裸键被 from_dict
   静默忽略——首轮 A/B "零差异"由此而来，勿再踩。
+
+## 2026-07-18（八）“主浪”调参双端一致性诊断
+
+- 考古确认 Android 可见“主浪”栏目由 2026-07-17 `c88399b` 的调参 Dialog 首次加入；
+  `HeroWave` 机制本身则随 2026-07-10 `81aa81a` 的 FableSol 首次移植进入 Android。
+- Python `params.py` 从首个可追溯快照起就注册主浪参数，但 `panel.py` 一直没有构建该组；仅
+  `hero_max_dp` 位于“水体（逐层）”，其余 6 项不是分散显示，而是 GUI 隐藏。
+- 逐项数据流确认 Android 8 项中 6 项生效；`hero_punch` / `hero_punch_decay_s` 的状态没有
+  任何生产赋值，属于无效旧兼容控件。Python 已在 2026-07-16 `5daf6eb` 删除这两项，Android
+  未同步清理。`beat_gain` 虽生效，但只改变环境波拍点流速，不作用于主浪相位。
+- Android `FableSolWaveShapeContinuityTest` 与 Python 3 项同源连续性测试全绿；Python 确定性
+  单变量消融补证 6 个共享参数的实际输出差异。未修改运行代码、未发布 debug。
+- 完整报告见 `analysis-2026-07-18-main-wave-parameter-parity.md`；清理与面板补齐记入 followups。
+
+## 2026-07-18（九）“主浪”调参目录按 D170 收敛
+
+- Android 删除 `hero_punch` / `hero_punch_decay_s` 的 Params 注册、Tuning 条目、13 语言
+  文案、LayerSim 零状态及 Simulation 每帧零状态消费；默认和所有可达画面不变。
+- `beat_gain` 在 Android `FableSolTuning` / `FableSolParams` 与 Python `params.py` 中统一
+  归入“环境与流动”；运行公式不变，仍只短暂加速可信拍点下的环境纹理。
+- Python `ControlPanel` 新增显式“主浪”组，展示 `hero_gain`、`hero_len_dp`、
+  `hero_attack_s`、`hero_release_s`、`hero_breath`；逐层 `hero_max_dp` 位置不变。
+- Android 新增 `FableSolTuningCatalogTest`，并把 onset 连续性测试从检查已删除的 Punch 零状态
+  改为直接锁定主浪目标不被 onset 改写；Python 参数注册审计新增精确分组合同。
+- 验证：Android 全量 `:app:testDebugUnitTest` 成功；Python 全量 159 项测试通过；资源中无残留
+  Punch 字符串，双端 `diff --check` 通过。
+- 已发布阿里云 debug `202607181229`（versionCode 43 / 2.0.0）；本地 APK、远端 APK 与
+  `latest.json` 的大小均为 `20930620` 字节，SHA-256 均为
+  `ee4f8a15c7dc15cb723ef86e6b166759451cb9b419d5ffe2fd049740f262a73a`，远端发布说明已回读一致。
+
+## 2026-07-18（十）“感知前端”参数双端一致性诊断
+
+- Python“感知前端”仅含 `agc_window_s`、`silence_gate_db`、`expander_amount`。完整热更新链为
+  Panel → Params listener → AudioClient 共享 tuning 数组 → 音频子进程 RealtimeAnalyzer；三项在
+  GUI 实时文件播放/麦克风路径均真实生效。
+- 确定性单变量消融：静音门 `0→18dB` 让同一约 `−50dBFS` 弱声从 100% 放行变为 100% 静音；
+  动态扩展 `0→1` 让强声中心后的弱段均值从 `0.068585` 降为 `0`；AGC 窗 `3→30s` 的响度最大差
+  `0.333960`、频段最大差 `0.240431`，onset 数为 `161 / 146`。
+- Python 离线分析由独立进程/OfflineDirector 驱动，未接收面板 Params；`--sim-audio` 也直接使用
+  Analyzer 默认值。因此这组控件目前只对实时模式生效，UI 没有提示或禁用该边界。
+- Android 初次移植就有同构算法和 `24s / 6dB / 0.32` 默认字段，但生产中没有其它赋值；
+  `FableSolParams` 的三个同名 key 没有消费者，D157 因调参通道只能到渲染器而明确排除该组。
+- 本轮只诊断、未改实现、未构建或发布。完整报告见
+  `analysis-2026-07-18-perception-frontend-parameter-parity.md`，收敛方向记入 followups。
+
+## 2026-07-18（十一）“声音分析与灵敏度”双端接通（D171）
+
+- 按用户裁决将原“感知前端”统一改名为“声音分析与灵敏度”；Python 面板与 Android 13 语言资源
+  使用同一语义，三项参数仍为 `agc_window_s`、`silence_gate_db`、`expander_amount`。
+- Android 为调参规格增加音频分析目标，新增线程安全 `FableSolFrontEndTuning` 快照；Dialog 继续
+  复用现有持久化，并把预览值送到 `AudioRecorder`，录音线程在每批 feed 前更新 Analyzer。
+- Python 离线 worker、缓存键和 `--sim-audio` 接收同一参数快照；默认参数保持旧离线结果，非默认值
+  用因果 Analyzer 的差分影响响度、频段、静音与 onset，离线 GUI 调整以 350ms 防抖触发重分析。
+- 已补 Android 目录/范围/动态效果测试与 Python 归一化、缓存隔离、worker 转发和插值测试。20 秒
+  确定性音频端到端对照确认非默认参数可改变响度、三频段、flow 与 105 个静音帧；Android 全量
+  `:app:testDebugUnitTest` 与 Python 164 项 `unittest` 均通过。
+- 已发布阿里云 debug `202607181308`（versionCode 43 / 2.0.0）；发布任务成功，APK 大小为
+  `20934848` 字节，SHA-256 为
+  `b371f9f977e4dac0c9527dabdea9eff4be873eba6180d27804ed1a87735edaa5`。按用户要求不再执行远端
+  APK 二次下载校验。

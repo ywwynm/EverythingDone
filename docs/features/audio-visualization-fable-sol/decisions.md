@@ -2825,3 +2825,36 @@ Canvas 回退路径同构恢复。发布 202607181001。
   错误——params.load/from_dict 只读顶层 "values" 子字典，裸键被静默忽略，
   两轮实际同为默认值；恢复代码本身自始正确。--params 文件须写成
   {"values": {...}}。
+
+## D170（2026-07-18）“主浪”调参目录收敛：删除旧 Punch、踩拍归流动、Python 补显式分组
+
+用户确认 2026-07-18 双端一致性诊断后的收敛方向：
+
+1. Android 删除 `hero_punch` / `hero_punch_decay_s` 的参数注册、调参条目、多语言文案、
+   `heroPunch01` / `heroPunchBand01` 零状态及每帧零状态消费。两项在生产链路没有任何非零
+   写入，删除不改变默认或可达画面。
+2. `beat_gain` 两端统一归入“环境与流动”。它只在可信拍点短暂加速近中层环境波相位，明确
+   不改变 `HeroWave` 相位或振幅；继续放在“主浪”会误报职责。
+3. Python `ControlPanel` 显式构建“主浪”组，展示仍实际生效的 5 个全局参数：
+   `hero_gain`、`hero_len_dp`、`hero_attack_s`、`hero_release_s`、`hero_breath`。
+   `hero_max_dp` 继续保留在“水体（逐层）”；Android 本轮不扩展逐层数组调参 UI。
+4. 参数目录测试必须锁定以上分组与死键缺席，避免以后再次以“已注册且有读取点”代替完整的
+   生产者—消费者活性审计。
+
+## D171（2026-07-18）“声音分析与灵敏度”双端接通：Android Analyzer 热更新 + Python 离线传参
+
+用户确认保留并接通 `agc_window_s`、`silence_gate_db`、`expander_amount`，同时将难以理解的
+“感知前端”统一改名为“声音分析与灵敏度”。
+
+1. Android 在 `FableSolTuning` 中引入渲染器/音频分析两类目标，并新增包含三项参数的
+   “声音分析与灵敏度”组；13 个语言资源同步补齐。参数仍使用原默认值与范围，继续沿用现有
+   SharedPreferences 持久化，并由 Dialog 将当前预览值送到 `AudioRecorder`。
+2. Android 新增线程安全的 `FableSolFrontEndTuning` 快照。`AudioRecorder` 每批音频送入
+   `FableSolRealtimeAnalyzer` 前应用最新快照，因此当前录音会话内调节即可生效，且不让音频线程
+   读取 UI 或渲染器状态。
+3. Python 统一栏目名称；离线 worker、缓存键和因果分析链接收同一组三项参数。非默认值以
+   `RealtimeAnalyzer` 的调节前后差分修正离线响度、频段、静音与 onset 驱动；默认值保持旧离线
+   输出不变。GUI 对离线文件调节采用 350ms 防抖后重分析，`--sim-audio` 也读取同一参数快照。
+4. 目录合同、范围钳制、Android Analyzer 动态效果、Python 缓存隔离/worker 转发/插值均由测试
+   锁定。20 秒确定性音频的离线端到端对照确认非默认值可改变响度、三频段、flow 与静音帧，
+   并生成独立缓存。

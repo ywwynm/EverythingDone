@@ -13,6 +13,14 @@ class FableSolWaveShapeContinuityTest {
         val params = FableSolParams()
         val sim = FableSolSimulation(params)
         val mapper = FableSolFeatureMapper(params)
+        for (layer in sim.layers) {
+            layer.heroTargetDp = 20.0
+            layer.heroBandTargetDp[0] = 10.0
+            layer.heroBandTargetDp[1] = 7.0
+            layer.heroBandTargetDp[2] = 3.0
+        }
+        val targetBefore = sim.layers.map { it.heroTargetDp }
+        val bandsBefore = sim.layers.map { it.heroBandTargetDp.copyOf() }
 
         mapper.applyOnset(
             sim,
@@ -29,9 +37,11 @@ class FableSolWaveShapeContinuityTest {
             )
         )
 
-        for (layer in sim.layers) {
-            assertEquals(0.0, layer.heroPunch01, 0.0)
-            for (value in layer.heroPunchBand01) assertEquals(0.0, value, 0.0)
+        for ((index, layer) in sim.layers.withIndex()) {
+            assertEquals(targetBefore[index], layer.heroTargetDp, 0.0)
+            for (band in 0 until 3) {
+                assertEquals(bandsBefore[index][band], layer.heroBandTargetDp[band], 0.0)
+            }
         }
     }
 

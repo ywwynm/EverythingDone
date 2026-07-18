@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">Фон и течение</string>
     <string name="fablesol_group_hero">Главная волна</string>
     <string name="fablesol_group_swell">Зыбь</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">Анализ звука и чувствительность</string>
+    <string name="fablesol_param_agc_window_s">Окно автокалибровки</string>
+    <string name="fablesol_param_silence_gate_db">Порог тишины (выше уровня шума)</string>
+    <string name="fablesol_param_expander_amount">Расширение динамики</string>
     <string name="fablesol_param_uplift_thick_glow">Сила свечения толщины</string>
     <string name="fablesol_param_uplift_glow_boost">Осветление от свечения</string>
     <string name="fablesol_param_uplift_crest_rim">Сила серебряной нити гребня</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">Базовая длина волны</string>
     <string name="fablesol_param_hero_attack_s">Атака главной волны</string>
     <string name="fablesol_param_hero_release_s">Спад главной волны</string>
-    <string name="fablesol_param_hero_punch">Удар главной волны (устар.)</string>
-    <string name="fablesol_param_hero_punch_decay_s">Затухание удара</string>
     <string name="fablesol_param_hero_breath">Глубина дыхания волны</string>
     <string name="fablesol_param_beat_gain">Амплитуда бита</string>
     <string name="fablesol_param_swell_presmooth_s">Предсглаживание подъёма</string>

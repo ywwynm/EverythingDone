@@ -1,5 +1,54 @@
 # Current Debug Update Notes
 
+## 2026-07-18 - 接通 FableSol“声音分析与灵敏度”双端调参（D171）
+
+用户先询问 Python“感知前端”面板中的选项是否生效，以及 Android 为何没有同组
+控件。诊断确认 `agc_window_s`、`silence_gate_db`、`expander_amount` 在 Python
+GUI 实时分析中均有完整热更新链并真实影响输出；Android 也运行同构算法和相同
+默认值 `24s / 6dB / 0.32`，但三个同名 Params 注册无法到达 `AudioRecorder`
+独立持有的 Analyzer。Python 离线模式与 `--sim-audio` 当时也只用固定默认值。
+用户确认按建议全部接通，并进一步指出“感知前端”难以理解，因此现统一命名为
+“声音分析与灵敏度”。
+
+Android 在 `FableSolTuning` 中增加 `AUDIO_FRONT_END` 目标与三项参数组，补齐
+13 种语言资源；新增 `FableSolFrontEndTuning` volatile 快照，Dialog 继续复用
+既有持久化并将预览值送到 `AudioRecorder`，录音线程在每批 PCM feed 前应用到
+`FableSolRealtimeAnalyzer`，当前会话下一批即可生效。Python 将离线 worker、
+缓存键和 `--sim-audio` 接入同一参数快照；非默认值通过正式因果 Analyzer 的
+“自定义−默认”差分修正离线响度、三频段、静音与 onset 驱动，默认值保持旧
+离线输出；GUI 以 350ms 防抖触发整曲重分析。
+
+验证：Android 完整 `:app:testDebugUnitTest` 通过；Python 164 项 `unittest`
+全部通过；新增动态测试确认 Android 静音门真实改变 Analyzer 输出。20 秒确定性
+音频离线对照确认非默认参数会改变响度、三频段、flow 和 105 个静音帧，并产生
+独立缓存。发布日志：docs/features/audio-visualization-fable-sol/debug-updates/
+update-20260718210721.md。已发布阿里云 Debug `202607181308`（versionCode 43 /
+2.0.0）；发布任务成功，生成的 APK 大小为 `20934848` 字节，SHA-256 为
+`b371f9f977e4dac0c9527dabdea9eff4be873eba6180d27804ed1a87735edaa5`。
+
+## 2026-07-18 - 收敛 FableSol“主浪”调参目录（D170）
+
+用户在对比 Android 与 Python 模拟器后追问 `hero_punch` 是否就是
+“主浪冲击（旧）”，并提出删除不生效项、把 `beat_gain` 放回正确组别，
+同时让 Python 参数面板展示真正生效的参数。代码与 Git 历史审计确认：
+`hero_punch` 正是该控件；它和 `hero_punch_decay_s` 只读取从未被生产路径
+写入的零状态，Python 已于 2026-07-16 删除，Android 遗留到次日调参
+Dialog 后才变得可见；`beat_gain` 实际只加速环境波相位，不作用于主浪。
+
+本次从 Android 的 `FableSolTuning`、`FableSolParams`、
+`FableSolSimulation` 及 13 种语言资源删除两个 Punch 参数和旧状态；
+Android/Python 均将 `beat_gain` 移入“环境与流动”；Python
+`ControlPanel` 增加“主浪”组，只显示 `hero_gain`、`hero_len_dp`、
+`hero_attack_s`、`hero_release_s`、`hero_breath` 5 个有效全局参数。
+新增双端目录合同测试，Android 完整 `:app:testDebugUnitTest` 与 Python
+159 项 `unittest` 全部通过；默认参数值及生产画面行为不变。
+已发布阿里云 Debug `202607181229`（versionCode 43 / 2.0.0），APK 大小
+`20930620` 字节，SHA-256 为
+`ee4f8a15c7dc15cb723ef86e6b166759451cb9b419d5ffe2fd049740f262a73a`；
+本地 APK、远端文件与 `latest.json` 已核对一致。
+日志文件：docs/features/audio-visualization-fable-sol/debug-updates/
+update-20260718202834.md。
+
 ## 2026-07-18 - 恢复波背自阴影（D169，back_shade_gain 默认 0.80）
 
 用户裁定 D164 删除的波背自阴影需要保留，两侧从删除提交父版本一比一找回：

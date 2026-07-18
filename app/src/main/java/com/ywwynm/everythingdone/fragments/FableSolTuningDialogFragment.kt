@@ -59,8 +59,9 @@ import kotlin.math.roundToInt
  * 下方可滚动列出全部在 Android 端实际生效的特效参数（目录见 [FableSolTuning.GROUPS]）
  * 与 HDR 开关。
  *
- * 调节即时生效（经渲染线程 drain 写入共享 params），松手后持久化；持久化覆盖由
- * 各渲染器构造时套用，因此录音界面下次打开同样生效。换色时水体走 GL 端"新色从
+ * 调节即时生效（渲染参数经渲染线程 drain 写入共享 params，声音分析参数经线程安全快照在
+ * 下一批 PCM 生效），松手后持久化；持久化覆盖由各渲染器/AudioRecorder 构造时套用，
+ * 因此录音界面下次打开同样生效。换色时水体走 GL 端"新色从
  * 右缘涌入"的过渡，Dialog 里全部强调色元素同步渐变跟随。调用方须先确保
  * RECORD_AUDIO 权限已授予（SettingsActivity 入口负责）。
  */
@@ -489,7 +490,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 val value = valueOf(spec, progress, steps)
                 tvValue.text = formatValue(spec, value)
                 if (fromUser) {
-                    mVisualizer?.setTuningValue(spec.key, value)
+                    applyRuntimeTuning(spec, value)
                 }
             }
 
@@ -537,7 +538,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         mAccentCheckBoxes.add(checkBox)
         checkBox.setOnCheckedChangeListener { _, checked ->
             val value = if (checked) 1.0 else 0.0
-            mVisualizer?.setTuningValue(spec.key, value)
+            applyRuntimeTuning(spec, value)
             FableSolTuning.putValue(ctx, spec, value, defaultValue)
         }
         row.addView(tvLabel)
@@ -551,10 +552,18 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         FableSolTuning.clearAllParams(ctx)
         for (group in FableSolTuning.GROUPS) {
             for (spec in group.specs) {
-                mVisualizer?.setTuningValue(spec.key, mDefaults.get(spec.key))
+                applyRuntimeTuning(spec, mDefaults.get(spec.key))
             }
         }
         buildParamRows()
+    }
+
+    private fun applyRuntimeTuning(spec: FableSolTuning.Spec, value: Double) {
+        when (spec.target) {
+            FableSolTuning.Target.RENDERER -> mVisualizer?.setTuningValue(spec.key, value)
+            FableSolTuning.Target.AUDIO_FRONT_END ->
+                mRecorder?.setFableSolFrontEndTuning(spec.key, value)
+        }
     }
 
     private fun setupScrollIndicators() {

@@ -44,14 +44,12 @@ class FableSolLayerSim(index: Int) {
 
     @JvmField var heroDp = 0.0
     @JvmField var heroTargetDp = 0.0
-    @JvmField var heroPunch01 = 0.0  // 旧调用兼容；实时/演示路径不得写入
     // 三个 Hero 频段的空间能量包络。目标值只写入上游出生区，再随流进入可见区；
     // 禁止逐帧音频直接重缩放整段已可见 Hero 几何（D17）。
     @JvmField val heroBandDp = DoubleArray(3)
     @JvmField val heroBandTargetDp = DoubleArray(3)
     @JvmField val heroBandFieldDp = Array(3) { DoubleArray(N_POINTS) }
     @JvmField internal val heroBandScratchDp = Array(3) { DoubleArray(N_POINTS) }
-    @JvmField val heroPunchBand01 = DoubleArray(3)
     @JvmField var roughness01 = 0.0
     @JvmField var roughnessTarget01 = 0.0
     @JvmField var shapeRoughness01 = 0.0
@@ -638,25 +636,20 @@ class FableSolSimulation(private val p: FableSolParams) {
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
         val heroGain = p.get("hero_gain")
-        val heroPunch = p.get("hero_punch") // 旧调用兼容，默认 0；快速能量只走 DynamicWave
-        val punchDecay = exp(-dt / max(p.get("hero_punch_decay_s"), 0.05))
         val wanderGain = p.get("wander_gain")
         for (ls in layers) {
             val target = ls.swellTargetDp
             val rising = target > ls.swellDp
             val tau = if (rising) p.get("swell_attack_s") * ls.attackMult else p.get("swell_release_s") * ls.releaseMult
             ls.swellDp += (target - ls.swellDp) * (1.0 - exp(-dt / max(tau, 1e-3)))
-            ls.heroPunch01 *= punchDecay
-            for (j in 0 until 3) ls.heroPunchBand01[j] *= punchDecay
             val heroMax = p.lget("hero_max_dp", ls.i) * heroGain
-            val hTarget = min(ls.heroTargetDp + ls.heroPunch01 * heroPunch * heroMax, 1.25 * heroMax)
+            val hTarget = min(ls.heroTargetDp, 1.25 * heroMax)
             val hTau = if (hTarget > ls.heroDp) p.get("hero_attack_s") * ls.attackMult else p.get("hero_release_s") * ls.releaseMult
             ls.heroDp += (hTarget - ls.heroDp) * (1.0 - exp(-dt / max(hTau, 1e-3)))
             val bandTarget = doubleArrayOf(ls.heroBandTargetDp[0], ls.heroBandTargetDp[1], ls.heroBandTargetDp[2])
             if (bandTarget[0] + bandTarget[1] + bandTarget[2] < 1e-6 && ls.heroTargetDp > 0.0) {
                 bandTarget[0] = ls.heroTargetDp * 0.48; bandTarget[1] = ls.heroTargetDp * 0.34; bandTarget[2] = ls.heroTargetDp * 0.18
             }
-            for (j in 0 until 3) bandTarget[j] += ls.heroPunchBand01[j] * heroPunch * heroMax
             val totalB = bandTarget[0] + bandTarget[1] + bandTarget[2]
             if (totalB > 1.25 * heroMax && totalB > 1e-6) {
                 val f = 1.25 * heroMax / totalB

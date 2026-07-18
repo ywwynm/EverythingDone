@@ -507,6 +507,10 @@
     <string name="fablesol_group_ambient_flow">Ambiance et courant</string>
     <string name="fablesol_group_hero">Vague principale</string>
     <string name="fablesol_group_swell">Houle</string>
+    <string name="fablesol_group_sound_analysis_sensitivity">Analyse sonore et sensibilité</string>
+    <string name="fablesol_param_agc_window_s">Fenêtre d’autocalibrage</string>
+    <string name="fablesol_param_silence_gate_db">Porte de silence (au-dessus du bruit de fond)</string>
+    <string name="fablesol_param_expander_amount">Expansion dynamique</string>
     <string name="fablesol_param_uplift_thick_glow">Intensité de la lueur d\'épaisseur</string>
     <string name="fablesol_param_uplift_glow_boost">Éclaircissement dérivé de la lueur</string>
     <string name="fablesol_param_uplift_crest_rim">Intensité du fil argenté de crête</string>
@@ -540,8 +544,6 @@
     <string name="fablesol_param_hero_len_dp">Longueur d\'onde principale</string>
     <string name="fablesol_param_hero_attack_s">Attaque de la vague</string>
     <string name="fablesol_param_hero_release_s">Relâchement de la vague</string>
-    <string name="fablesol_param_hero_punch">Impact de la vague (ancien)</string>
-    <string name="fablesol_param_hero_punch_decay_s">Décroissance de l\'impact</string>
     <string name="fablesol_param_hero_breath">Profondeur de respiration de la vague</string>
     <string name="fablesol_param_beat_gain">Amplitude du battement</string>
     <string name="fablesol_param_swell_presmooth_s">Prélissage de montée</string>
