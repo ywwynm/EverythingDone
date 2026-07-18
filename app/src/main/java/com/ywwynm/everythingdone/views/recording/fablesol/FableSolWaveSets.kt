@@ -204,10 +204,7 @@ class FableSolOpticalWaveSet(seed: Long, depth01: Double, private val n: Int = 1
     private val phase: DoubleArray
     private val weight: DoubleArray
     private val dispersionJitter: DoubleArray
-    private val resolvedScale = DoubleArray(n)
     private var travelDir = -1.0
-    var lastUnresolvedCurvatureVariance: Double = 0.0
-        private set
 
     init {
         val rng = FableSolRng(seed)
@@ -241,59 +238,24 @@ class FableSolOpticalWaveSet(seed: Long, depth01: Double, private val n: Int = 1
         }
     }
 
-    /** 返回 (slope, curvature) 两条与 xDp 等长的光学法线扰动。 */
-    fun sample(xDp: DoubleArray, capillary01: Double, roughness01: Double): Pair<DoubleArray, DoubleArray> {
-        val slope = DoubleArray(xDp.size)
-        val curv = DoubleArray(xDp.size)
-        sampleInto(xDp, xDp.size, capillary01, roughness01, slope, curv)
-        return Pair(slope, curv)
-    }
-
-    fun sampleInto(xDp: DoubleArray, count: Int, capillary01: Double, roughness01: Double,
-                   slope: DoubleArray, curv: DoubleArray,
-                   specularAaStrength: Double = 0.0,
-                   unfilteredSlope: DoubleArray? = null,
-                   unfilteredCurv: DoubleArray? = null): Double {
-        val targetRms = (0.012 + 0.072 * capillary01.coerceIn(0.0, 1.0)) *
-                (0.78 + 0.44 * roughness01.coerceIn(0.0, 1.0))
-        val aa = specularAaStrength.coerceIn(0.0, 1.0)
-        val footprintDp = if (count >= 2) {
-            abs(xDp[count - 1] - xDp[0]) / (count - 1)
-        } else 0.0
-        var unresolvedVariance = 0.0
-        var unresolvedCurvatureVariance = 0.0
-        for (c in 0 until n) {
-            val resolved = if (footprintDp > 1e-6) {
-                FableSolSpecularAaPolicy.resolvedAmplitude(wavelength[c], footprintDp)
-            } else 1.0
-            val scale = 1.0 + (resolved - 1.0) * aa
-            resolvedScale[c] = scale
-            val componentRms = targetRms * weight[c]
-            val removedFraction = 1.0 - scale * scale
-            unresolvedVariance += 0.5 * componentRms * componentRms * removedFraction
-            val curvatureRms = componentRms * k[c]
-            unresolvedCurvatureVariance +=
-                0.5 * curvatureRms * curvatureRms * removedFraction
-        }
+    /**
+     * 把毛细坡度/曲率扰动写入 slope/curv（毛细增益与微法线带限已随参数移除，
+     * 只剩固定基线）。曲率供闪点 facet 碎裂因子（2026-07-18 恢复闪点出生）。
+     */
+    fun sampleInto(xDp: DoubleArray, count: Int, roughness01: Double,
+                   slope: DoubleArray, curv: DoubleArray) {
+        val targetRms = 0.012 * (0.78 + 0.44 * roughness01.coerceIn(0.0, 1.0))
         for (i in 0 until count) {
             val x = xDp[i]
-            var cs = 0.0; var ss = 0.0
-            var rawCs = 0.0; var rawSs = 0.0
+            var cs = 0.0
+            var ss = 0.0
             for (c in 0 until n) {
                 val ph = x * k[c] + phase[c]
-                val componentCos = cos(ph) * weight[c]
-                val componentSin = sin(ph) * (weight[c] * k[c])
-                cs += componentCos * resolvedScale[c]
-                ss += componentSin * resolvedScale[c]
-                rawCs += componentCos
-                rawSs += componentSin
+                cs += cos(ph) * weight[c]
+                ss += sin(ph) * (weight[c] * k[c])
             }
             slope[i] = targetRms * cs
             curv[i] = targetRms * (-ss)
-            if (unfilteredSlope != null) unfilteredSlope[i] = targetRms * rawCs
-            if (unfilteredCurv != null) unfilteredCurv[i] = targetRms * (-rawSs)
         }
-        lastUnresolvedCurvatureVariance = unresolvedCurvatureVariance
-        return unresolvedVariance
     }
 }

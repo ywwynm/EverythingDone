@@ -41,7 +41,6 @@ class FableSolLayerSim(index: Int) {
     @JvmField val ambient = FableSolAmbientSet(1000L + index * 7, 1.0)
     @JvmField val hero = FableSolHeroWave(3000L + index * 13, depth01)
     @JvmField val optical = FableSolOpticalWaveSet(6000L + index * 19, depth01)
-    @JvmField val crestVeil = DoubleArray(N_POINTS)
 
     @JvmField var heroDp = 0.0
     @JvmField var heroTargetDp = 0.0
@@ -56,8 +55,6 @@ class FableSolLayerSim(index: Int) {
     @JvmField var roughness01 = 0.0
     @JvmField var roughnessTarget01 = 0.0
     @JvmField var shapeRoughness01 = 0.0
-    @JvmField var capillary01 = 0.0
-    @JvmField var capillaryTarget01 = 0.0
 
     @JvmField val wanderPhi: Double
     @JvmField val attackMult: Double
@@ -72,8 +69,6 @@ class FableSolLayerSim(index: Int) {
     @JvmField var thetaEff = 0.0
     @JvmField var swellDp = 0.0
     @JvmField var swellTargetDp = 0.0
-    @JvmField var surgeLiftDp = 0.0
-    @JvmField var surgeLiftTargetDp = 0.0
     @JvmField var flowDps = 0.0
     @JvmField internal val pending = ArrayList<FableSolPending>()
 
@@ -134,10 +129,8 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     // 材质 / 空间
     @JvmField var roughness01 = 0.0
-    @JvmField var capillary01 = 0.0
     @JvmField var spectralTilt01 = 0.5
     private var materialTargetRough = 0.0
-    private var materialTargetCap = 0.0
     private var materialTargetTilt = 0.5
     @JvmField var stereoWidth01 = 0.0
     @JvmField var pan01 = 0.5
@@ -432,7 +425,8 @@ class FableSolSimulation(private val p: FableSolParams) {
             // 允许被网格截断——发生在海绵深处，不可见且被吸收。
             u = side * min(max(abs(raw), need), gridCap)
         }
-        val nRamp = max((p.get("inject_ramp_ms") / 1000.0 / PHYSICS_DT).toInt(), 1)
+        // 注入渐入固化 120ms（原 inject_ramp_ms）。
+        val nRamp = max((0.120 / PHYSICS_DT).toInt(), 1)
         ls.pending.add(FableSolPending(
             t = t + delayS, u = u, w = w, amp = ampDp * ls.gainMult,
             travel = travel, peak = peak.coerceIn(0.5, 2.5), stepsLeft = nRamp, total = nRamp
@@ -441,7 +435,8 @@ class FableSolSimulation(private val p: FableSolParams) {
 
     fun injectEvent(xDp: Double, widthDp: Double, ampDp: Double, travel: Double,
                     layerAmps: DoubleArray, cascade: Boolean) {
-        val stepS = if (cascade) p.get("cascade_step_s") else 0.0
+        // 级联层间延迟固化 0.054s（原 cascade_step_s）。
+        val stepS = if (cascade) 0.054 else 0.0
         for (ls in layers) injectLayer(ls.i, xDp, widthDp, ampDp * layerAmps[ls.i], travel, stepS * ls.i)
     }
 
@@ -478,8 +473,8 @@ class FableSolSimulation(private val p: FableSolParams) {
     // ---- 节拍 / 色彩 / 材质 / 空间驱动（mapper 每帧写入）----
     fun setBeat(bpm: Double, phase01: Double, conf01: Double) { beatInBpm = bpm; beatInPh = phase01; beatInConf = conf01 }
     fun setColorDrive(bright01: Double, energy01: Double) { colorTargetBright = bright01; colorTargetEnergy = energy01 }
-    fun setMaterialDrive(roughness: Double, capillary: Double, spectralTilt: Double) {
-        materialTargetRough = roughness; materialTargetCap = capillary; materialTargetTilt = spectralTilt
+    fun setMaterialDrive(roughness: Double, spectralTilt: Double) {
+        materialTargetRough = roughness; materialTargetTilt = spectralTilt
     }
     fun setSpatialDrive(width01: Double, pan01v: Double) { spatialTargetWidth = width01; spatialTargetPan = pan01v }
 
@@ -624,7 +619,8 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     private fun perFrame(dt: Double, span: Double, thRender: Double) {
-        val kMood = 1.0 - exp(-dt / max(p.get("mood_transition_s"), 0.05))
+        // 性格档过渡固化 1.5s（原 mood_transition_s，2026-07-18 参数移除）。
+        val kMood = 1.0 - exp(-dt / 1.5)
         moodLevelDp += (moodTargets[0] - moodLevelDp) * kMood
         moodFlow01 += (moodTargets[1] - moodFlow01) * kMood
         moodBright += (moodTargets[2] - moodBright) * kMood
@@ -632,7 +628,6 @@ class FableSolSimulation(private val p: FableSolParams) {
         colorBright01 += (colorTargetBright - colorBright01) * (1.0 - exp(-dt / 2.0))
         colorEnergy01 += (colorTargetEnergy - colorEnergy01) * (1.0 - exp(-dt / 1.2))
         roughness01 += (materialTargetRough - roughness01) * (1.0 - exp(-dt / 0.24))
-        capillary01 += (materialTargetCap - capillary01) * (1.0 - exp(-dt / 0.12))
         spectralTilt01 += (materialTargetTilt - spectralTilt01) * (1.0 - exp(-dt / 0.7))
         stereoWidth01 += (spatialTargetWidth - stereoWidth01) * (1.0 - exp(-dt / 0.45))
         pan01 += (spatialTargetPan - pan01) * (1.0 - exp(-dt / 0.22))
@@ -642,15 +637,9 @@ class FableSolSimulation(private val p: FableSolParams) {
         val heroBreath = p.get("hero_breath")
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
-        val globalPinkGain = FableSolPinkBreathPolicy.waveAmplitudeGain(
-            t,
-            p.get("pink_mod"),
-            p.get("global_pink_breath_strength")
-        )
         val heroGain = p.get("hero_gain")
         val heroPunch = p.get("hero_punch") // 旧调用兼容，默认 0；快速能量只走 DynamicWave
         val punchDecay = exp(-dt / max(p.get("hero_punch_decay_s"), 0.05))
-        val moodSpreadDp = p.get("mood_spread_dp")
         val wanderGain = p.get("wander_gain")
         for (ls in layers) {
             val target = ls.swellTargetDp
@@ -681,22 +670,19 @@ class FableSolSimulation(private val p: FableSolParams) {
             advectHeroEnvelope(ls, dt, half)
             ls.roughness01 += (ls.roughnessTarget01 - ls.roughness01) * (1.0 - exp(-dt / 0.26))
             ls.shapeRoughness01 += (ls.roughnessTarget01 - ls.shapeRoughness01) * (1.0 - exp(-dt / 1.2))
-            val capTau = if (ls.capillaryTarget01 > ls.capillary01) 0.06 else 0.34
-            ls.capillary01 += (ls.capillaryTarget01 - ls.capillary01) * (1.0 - exp(-dt / capTau))
-            ls.surgeLiftTargetDp *= exp(-dt / 2.2)
-            ls.surgeLiftDp += (ls.surgeLiftTargetDp - ls.surgeLiftDp) * (1.0 - exp(-dt / 0.35))
             val wander = p.lget("wander_amp_dp", ls.i) * wanderGain *
                     sin(2.0 * Math.PI * t / max(p.lget("wander_period_s", ls.i), 1.0) + ls.wanderPhi)
+            // 能量档层距撑开固化 12dp（原 mood_spread_dp，2026-07-18 参数移除）。
             val mood = moodLevelDp * (1.0 - 0.3 * ls.depth01) +
-                    moodSpreadDp * moodSpread01 * (ls.depth01 - 0.5) * 2.0
+                    12.0 * moodSpread01 * (ls.depth01 - 0.5) * 2.0
             val level = tiltLevel(p.lget("base_level_dp", ls.i), cTh, sTh) +
-                    wander + ls.swellDp + mood + ls.surgeLiftDp
+                    wander + ls.swellDp + mood
             // 4Hz 音节呼吸只调制环境波振幅（浅层强、深层无）——运动学振幅包络，
             // 与 ambient_breath 同类机制，不改动已成形的动态浪（D12）。
             val breathGain = if (ls.i >= DEEP_LAYER_START) 1.0
                              else 1.0 + 0.30 * breath01 * (1.0 - 0.55 * ls.depth01)
             val amb = ls.ambient.sample(uGrid, t,
-                p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain * globalPinkGain,
+                p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain,
                 ambientBreath)
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
@@ -705,7 +691,6 @@ class FableSolSimulation(private val p: FableSolParams) {
             val wu = ls.wave.u
             val row = heights[ls.i]
             for (n in 0 until N_POINTS) row[n] = level + wu[n] + amb[n] + hero[n] + lagK * uGrid[n]
-            updateCrestVeil(ls, dt)
         }
     }
 
@@ -743,39 +728,6 @@ class FableSolSimulation(private val p: FableSolParams) {
                 field[n] = if ((FLOW_DIR < 0 && uGrid[n] >= sourceBoundary) ||
                     (FLOW_DIR > 0 && uGrid[n] <= sourceBoundary)) source else scratch[n]
             }
-        }
-    }
-
-    /** 陡峭波冠的持久轻纱：由真实轮廓触发，随流平移并自然消散。 */
-    private fun updateCrestVeil(ls: FableSolLayerSim, dt: Double) {
-        val layerWeight = FableSolMaterialPolicy.crestVeilSourceWeight(ls.i)
-        if (layerWeight <= 0.0) { java.util.Arrays.fill(ls.crestVeil, 0.0); return }
-        val h = heights[ls.i]
-        val slope = FableSolMath.gradient(h, DX_DP)
-        val curvature = FableSolMath.gradient(slope, DX_DP)
-        val radius = 6
-        val absSlope = DoubleArray(slope.size) { abs(slope[it]) }
-        val padded = FableSolMath.padEdge(absSlope, radius)
-        val nearSlope = DoubleArray(slope.size)
-        for (m in slope.indices) {
-            var mx = 0.0
-            for (j in 0..(radius * 2)) { val vv = padded[j + m]; if (vv > mx) mx = vv }
-            nearSlope[m] = mx
-        }
-        val material = 0.30 + 0.70 * (0.55 * ls.roughness01 + 0.45 * ls.capillary01).coerceIn(0.0, 1.0)
-        val backtrace = DoubleArray(uGrid.size) { uGrid[it] - ls.flowDps * dt }
-        val advected = FableSolMath.interp(backtrace, uGrid, ls.crestVeil, 0.0, 0.0)
-        val lifetime = 0.72 + 0.36 * (1.0 - ls.roughness01)
-        val decay = exp(-dt / lifetime)
-        val attack = 1.0 - exp(-dt / 0.12)
-        val veil = ls.crestVeil
-        for (n in slope.indices) {
-            val crest = smoothstep(0.006, 0.018, -curvature[n])
-            val steep = smoothstep(0.16, 0.34, nearSlope[n])
-            val source = crest * steep * layerWeight * material
-            var vv = advected[n] * decay
-            vv += max(source - vv, 0.0) * attack
-            veil[n] = vv.coerceIn(0.0, 1.0)
         }
     }
 

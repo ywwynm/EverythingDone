@@ -101,7 +101,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             ls.heroBandTargetDp[1] = overall * 0.33
             ls.heroBandTargetDp[2] = overall * 0.12
             ls.roughnessTarget01 = 0.12 * d
-            ls.capillaryTarget01 = 0.08 * d
         }
     }
 
@@ -124,7 +123,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         sim.flow01Deep = deepFlow
         sim.setBeat(0.0, 0.0, 0.0)
         sim.setColorDrive(0.5, 0.0)
-        sim.setMaterialDrive(0.0, 0.0, 0.5)
+        sim.setMaterialDrive(0.0, 0.5)
         sim.setSpatialDrive(0.0, 0.5)
         tension01 *= 0.94   // 静息回失谐（A6 张力试验）
         sim.setTension01(tension01)
@@ -138,7 +137,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             ls.swellTargetDp = p.lget("swell_max_dp", ls.i) * p.get("swell_gain") * swell01v
             ls.heroTargetDp = 0.0
             ls.heroBandTargetDp[0] = 0.0; ls.heroBandTargetDp[1] = 0.0; ls.heroBandTargetDp[2] = 0.0
-            ls.capillaryTarget01 = 0.0
             ls.roughnessTarget01 = 0.0
         }
         applyDeepTargets(sim)
@@ -195,13 +193,10 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val colorEnergy = min(eMix.pow(0.7) * 1.15, 1.0)
         sim.setColorDrive(tCent, colorEnergy)
         var rough = (0.62 * tFlat + 0.23 * tPerc + 0.15 * (1.0 - tTilt)).coerceIn(0.0, 1.0)
-        var capillary = (0.45 * tFlat + 0.35 * tPerc + 0.20 * rel[2]).coerceIn(0.0, 1.0)
-        // A6：HNR 清澈度——谐波干净的声音让水更清：微法线更平（闪光更锐、轻纱更丝滑）、
-        // 毛细噪纹减少。清澈是减法，不新增元素。
+        // A6：HNR 清澈度——谐波干净的声音让水更清。清澈是减法，不新增元素。
         val clar = if (silent) 0.0 else fr.hnr01
         rough *= 1.0 - 0.42 * clar
-        capillary *= 1.0 - 0.28 * clar
-        sim.setMaterialDrive(rough, capillary, tTilt)
+        sim.setMaterialDrive(rough, tTilt)
         sim.setSpatialDrive(tWidth, tPan)
         // 呼吸容积（A3）：4Hz 音节调制经 1.2s 平滑后调制环境波振幅——
         // 水面随说话的音节脉搏"呼吸"（心理声学波动强度峰值恰在 4Hz）。
@@ -265,8 +260,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             cSum = max(cSum, 1e-6)
             for (j in 0 until 3) ls.heroBandTargetDp[j] = overall * contribution[j] / cSum
             ls.roughnessTarget01 = rough * (0.82 + 0.18 * role[2]) * stChop
-            ls.capillaryTarget01 = ((capillary * (0.35 + 0.95 * role[2]) + 0.18 * tWidth) * stChop)
-                .coerceIn(0.0, 1.0)
         }
         applyDeepTargets(sim)
     }
@@ -279,20 +272,15 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     fun applyOnset(sim: FableSolSimulation, ev: FableSolEvent.Onset) {
         val s = ev.strength01
         scratchBands[0] = ev.low; scratchBands[1] = ev.mid; scratchBands[2] = ev.high
-        for (li in 0 until DEEP_LAYER_START) {
-            val ls = sim.layers[li]
-            // 瞬态材质只进光学毛细纹；织体层减半，深层不响应（D16）。
-            val g = if (ls.i < TEXTURE_LAYERS[0]) 1.0 else 0.45
-            ls.capillaryTarget01 = min(ls.capillaryTarget01 + g * s * (0.18 + 0.42 * ev.flatness01), 1.0)
-        }
         // 通道互斥（D18 单事件 ≤3 层）：远浪触发时它就是本次事件的全部几何表达
         // （已含旋律主浪+装饰前奏+织体余韵三层），跳过点击与波群；
         // 否则点击（1 层，即时）+ 波群（首包即时，后续包按组间隔在未来出生）。
-        val cd = p.get("incoming_cooldown_s") * (1.5 - 0.9 * sim.flow01.coerceIn(0.0, 1.0))
-        if (s >= p.get("incoming_threshold") && sim.t - lastIncomingT >= cd
-            && rng.nextDouble() < p.get("incoming_prob")) {
+        // 远浪触发固化：冷却 3.2s、强度门 0.75、概率 0.50（原 incoming_* 参数）。
+        val cd = 3.2 * (1.5 - 0.9 * sim.flow01.coerceIn(0.0, 1.0))
+        if (s >= 0.75 && sim.t - lastIncomingT >= cd
+            && rng.nextDouble() < 0.50) {
             lastIncomingT = sim.t
-            val amp = s * p.get("inject_amp_max_dp") * p.get("inject_gain")
+            val amp = s * 36.0
             // 重音装弹、拍点发射：锁拍时注入时刻吸附到预测的下一拍
             var delay0 = 0.0
             if (sim.beat01 > 0.45) {
@@ -314,7 +302,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     /** 装饰层点击（Laban dab）：单层、限速、宽度红线内的小水花。 */
     private fun injectOrnamentDab(sim: FableSolSimulation, ev: FableSolEvent.Onset) {
         val s = ev.strength01
-        if (s < ORNAMENT_MIN_STRENGTH || p.get("inject_gain") <= 1e-6) return
+        if (s < ORNAMENT_MIN_STRENGTH) return
         if (sim.t - lastOrnamentT < ORNAMENT_MIN_GAP_S) return
         lastOrnamentT = sim.t
         val li = ORNAMENT_LAYERS[ornamentPtr % ORNAMENT_LAYERS.size]
@@ -323,7 +311,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val low = ev.low
         val width = max(ORNAMENT_MIN_WIDTH_DP, 136.0 - 44.0 * centroid) * rng.uniform(0.95, 1.18)
         var amp = (2.2 + 6.0 * (s - ORNAMENT_MIN_STRENGTH) / (1.0 - ORNAMENT_MIN_STRENGTH)) *
-            (0.62 + 0.38 * low) * p.get("inject_gain")
+            (0.62 + 0.38 * low)
         amp = min(amp, AMP_WIDTH_SLOPE * width)   // 高宽联动：不尖窄
         val span = sim.geometrySpan()
         val side = if (FLOW_DIR < 0) 1.0 else -1.0
@@ -342,7 +330,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     private fun scheduleWaveGroup(sim: FableSolSimulation, ev: FableSolEvent.Onset,
                                   bandVec: DoubleArray): Boolean {
         val strength = ev.strength01
-        if (strength < p.get("rhythm_wave_min_strength") || p.get("rhythm_wave_gain") <= 1e-6) return false
+        // 节奏波包门槛固化 0.25（原 rhythm_wave_min_strength）。
+        if (strength < 0.25) return false
         if (swellEnergy < GROUP_MIN_SWELL) return false
         val span = sim.geometrySpan()
         val probe = sim.layers[TEXTURE_LAYERS[1]]
@@ -356,7 +345,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             .coerceIn(2, GROUP_ENVELOPE.size)
         val flow = sim.flow01.coerceIn(0.0, 1.0)
         val centroid = ev.centroid01
-        val ampBase = p.get("rhythm_wave_gain") * (3.0 + 6.0 * strength) *
+        // 节奏波包强度固化 0.85（原 rhythm_wave_gain）。
+        val ampBase = 0.85 * (3.0 + 6.0 * strength) *
             (0.72 + 0.28 * flow) * (0.70 + 0.50 * sw) *
             (0.55 + 0.45 * stGroup) *
             (1.0 + 0.35 * loom01)   // A6：渐强下波群生长更旺
@@ -438,7 +428,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
      * 单事件单层（D18 内），宽度大、锐度软（不尖窄红线）。
      */
     fun applyProminence(sim: FableSolSimulation, ev: FableSolEvent.Prominence) {
-        if (p.get("inject_gain") <= 1e-6) return
         val s = ev.strength01
         val pr = ev.pitchRel01.coerceIn(0.0, 1.0)
         val li = MELODY_LAYERS[melodyPtr % MELODY_LAYERS.size]
@@ -446,7 +435,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val span = sim.geometrySpan()
         val side = if (FLOW_DIR < 0) 1.0 else -1.0
         var width = (176.0 + 60.0 * (1.0 - pr)) * rng.uniform(0.92, 1.15)
-        var amp = (5.0 + 9.0 * s) * (0.72 + 0.56 * pr) * p.get("inject_gain")
+        var amp = (5.0 + 9.0 * s) * (0.72 + 0.56 * pr)
         width *= 1.0 + 0.16 * loom01   // A6：渐强下重音浪随之生长（宽随幅长）
         amp *= 1.0 + 0.30 * loom01
         amp = min(amp, AMP_WIDTH_SLOPE * width)
@@ -459,7 +448,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     /** 测试注入（对应 Python 面板按钮路径）：走与真实 onset 完全相同的注入管线。 */
     fun injectTest(sim: FableSolSimulation, incoming: Boolean) {
         val s = rng.uniform(0.65, 0.95)
-        val amp = s.pow(1.5) * p.get("inject_amp_max_dp") * p.get("inject_gain")
+        val amp = s.pow(1.5) * 36.0
         scratchBands[0] = rng.uniform(0.55, 0.95)
         scratchBands[1] = rng.uniform(0.35, 0.75)
         scratchBands[2] = rng.uniform(0.25, 0.65)
@@ -484,8 +473,9 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             sim.injectDepthPacket(punch.coerceIn(0.0, 1.0), pan01, zDominant = true)
         }
         var amp = ampIn
-        val wMin = p.get("inject_width_min_dp")
-        val wMax = p.get("inject_width_max_dp")
+        // 浪宽范围固化 96~216dp（原 inject_width_min/max_dp）。
+        val wMin = 96.0
+        val wMax = 216.0
         var width = wMax + (wMin - wMax) * centroid01  // 低沉→宽，清脆→窄
         // A6：looming→新浪生长与前倾；冲击性→更宽的底座 + 更立的峰。
         // 守红线：宽度与幅度同向增长（高浪必须宽），峰锐度有硬上限。
@@ -505,7 +495,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         } else {
             val frac = rng.uniform(0.30, 0.65)
             uBase = side * (span / 2.0 + width * frac)
-            var tf = p.get("travel_bias_max") * (0.6 + 0.4 * sim.flow01)
+            // 顺流偏置上限固化 0.75（原 travel_bias_max）。
+            var tf = 0.75 * (0.6 + 0.4 * sim.flow01)
             tf += (0.95 - tf) * frac
             travel = FLOW_DIR * tf
         }
@@ -539,35 +530,11 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     }
 
     /**
-     * 段涌：第一层（最近层）的信使巨浪——高过其它所有层的水面，扫过画面，宣告段落切换；
-     * 其余层只收到衰减的回声。性格档同时切换。
-     *
-     * 注：段涌是段落级的全栈同步点（Chion 终止式语法），不受 D18 单事件 ≤3 层约束；
-     * 默认仍整体停用（surge_gain=0）。
+     * 段落切换只换性格档（段涌巨浪已于 2026-07-18 连根移除——
+     * surge_gain 在 git 化之前即默认 0、从未启用）。
      */
     fun applySection(sim: FableSolSimulation, ev: FableSolEvent.Section) {
-        val m = ev.magnitude01
         sim.setMood(ev.energy01, ev.brightness01)
-        val g = p.get("surge_gain")
-        if (g <= 1e-6 || !ev.surge) return
-        sim.injectDepthPacket((0.45 + 0.55 * m).coerceIn(0.0, 1.0), 0.5, zDominant = true)
-        val amp = g * p.get("surge_amp_max_dp") * (0.6 + 0.4 * m)
-        sim.layers[0].surgeLiftTargetDp = max(sim.layers[0].surgeLiftTargetDp, g * p.get("surge_lift_dp"))
-        val width = sim.containerWidthDp * 0.75
-        val span = sim.geometrySpan()
-        val side = if (FLOW_DIR < 0) 1.0 else -1.0
-        val uBase = side * (span / 2.0 + width * 0.05)
-        val travel = FLOW_DIR * 0.27
-        val step = p.get("cascade_step_s") * 1.5
-        sim.injectLayer(0, 0.0, width, amp, travel, 0.0, uDp = uBase + rng.gaussian(0.0, 10.0))
-        val dd = g * p.get("surge_drawdown_dp") * (0.5 + 0.5 * m)
-        for (i in 1 until sim.layers.size) {
-            val ls = sim.layers[i]
-            ls.surgeLiftTargetDp = min(ls.surgeLiftTargetDp, -dd * (0.3 + 0.7 * ls.depth01))
-            sim.injectLayer(ls.i, 0.0, width * (1.0 - 0.3 * ls.depth01),
-                amp * 0.30 * (1.0 - 0.6 * ls.depth01), travel, step * ls.i,
-                uDp = uBase + rng.gaussian(0.0, 12.0))
-        }
     }
 
     /** 返回最近的水体角色权重行（共享只读表行，不得修改；depth01 入参保持旧接口兼容）。 */

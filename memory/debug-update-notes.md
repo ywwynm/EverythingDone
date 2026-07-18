@@ -1,5 +1,117 @@
 # Current Debug Update Notes
 
+## 2026-07-18 - 恢复闪点出生场（"闪点数量"转正式可调项，默认 0）
+
+D164 删除 crest_glint_strength 后闪点出生场只剩菲涅尔细节项（恒低于 0.08
+门槛），glint_capacity_gain 成死参数。用户喜欢闪点，裁决恢复：镜面反射项
+以固化强度 0.90（原默认，参数本身不恢复）写回两侧出生场（reflection ×
+facet 碎裂），OpticalWaveSet 恢复毛细曲率输出（sample/sampleInto 双返回）。
+默认 0 时画面与 202607180942 逐位一致；调参 Dialog"质感提升"组拉起即出。
+params 标签"闪点数量（试验期归零）"→"闪点数量"（Android 文案本就无试验期
+字样）。两侧新增出生守护测试（默认 0 无出生 / 拉 1 必须出生 + mode3 几何），
+Python 158 + Android JVM 全绿；模拟器截图确认闪点可见。
+已发布阿里云 Debug `202607181001`（versionCode 43 / 2.0.0），APK 大小
+`20931572` 字节，SHA-256 为
+`8fe29d50ef91a890155e1543c147f5b534caa53916ddf030b45e444986099055`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718175500.md。
+
+## 2026-07-18 - 撤销波浪曲线单纯化（D167 撤销），回到注入固化完成态
+
+用户对照 8 图网格（真实录音驱动、近层裁剪、4 时刻 × 前后）后裁定：轮廓
+叠加/转折在参数精简之前即已存在，属既定观感，非本轮回归——D167 三处
+数值全部还原（高频模态 0.92/0.66/0.42、Gerstner 0.58/0.46 与 0.62/0.48、
+spread 尾部 0.94/1.06/1.18），两侧同步，注释清除。波形几何回到与
+202607180817 一致；D164~D166 参数精简与 GL 修复保留。两侧测试全绿。
+已发布阿里云 Debug `202607180942`（versionCode 43 / 2.0.0），APK 大小
+`20931572` 字节，SHA-256 为
+`2e15b53f4c8e753343366715a7700be1531dc952984c88832339707373a8759c`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718172000.md。
+
+## 2026-07-18 - 波浪曲线单纯化（轮廓叠加小波与生硬转折收敛）
+
+用户真机目测：表面光学移除后轮廓复杂度暴露——"完整 sin 中间叠加小曲线、
+生硬转折"，确认与银丝无关、静止轮廓即有。定因：沿 X 的轮廓 100% 来自连续
+水面方向谱（9 模态，最短 58dp）+ 波包 + Gerstner 峰聚拢（q 实算全模态顶满
+0.58 上限）；此前被背阴影体积塑形/流光/轻纱/微法线纹理掩盖。三处收敛
+（Python 模拟器 --screenshot 前后对照定档）：高频三模态振幅 0.92/0.66/0.42
+→ 0.46/0.33/0.21；Gerstner q 0.58/0.46 → 0.32/0.26（波包 0.62/0.48 →
+0.34/0.27）；spread_scale 尾部 0.94/1.06/1.18 → 0.82/0.88/0.94。两侧同步，
+测试全绿。compose_layer_field 确认为无调用死代码（顺带记录，未删）。
+已发布阿里云 Debug `202607180912`（versionCode 43 / 2.0.0），APK 大小
+`20831652` 字节，SHA-256 为
+`9b82340eb8d2356faebaea8d2905b73c66387963bb2a191ad86861ab9ebb4c85`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718164500.md。
+
+## 2026-07-18 - "注入"组 12 参数固化进实现（机制保留、行为零变化）
+
+考古：10 项来自 git 化前基线快照、rhythm_wave 两项来自同日 3b43d3f。定性：
+连续水面主路径（build_gl_frame）只消费 sim.heights 的逐层均值（means），
+DynamicWave 行波空间形态被均值化 → 调参无可感变化；且 demo_mode、面板测试
+按钮、多份测试依赖 inject_layer 机制 → 不能连根删，选固化。两侧消费点写死
+默认值（增益 1.0/幅 36/宽 96~216/渐入 120ms/节奏 0.85·0.25/偏置 0.75/级联
+0.054s/远浪 0.75·0.50·3.2s），远浪 2.5D 波包（inject_depth_packet）照常。
+顺带删 Python 面板残留的空白"段落"组标题。测试改造：wave_shape_continuity
+的关断对照改 mock sim.inject_layer；registry_audit 断言两组退出面板。
+Python 157 + Android JVM 全绿。
+已发布阿里云 Debug `202607180817`（versionCode 43 / 2.0.0），APK 大小
+`20831652` 字节，SHA-256 为
+`2bed10b03fd851a20fcda62ceb1c8bf43dbddb7911449e9d69b51f61f3624500`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718161800.md。
+
+## 2026-07-18 - 移除"段落"组 8 参数（段涌连根删、mood 两项固化）
+
+段落组 8 项全部来自 git 化之前的基线快照（2026-07-10），用户目测调整无感
+后裁决整组移除。段涌（surge_gain 基线即默认 0、从未启用）连同
+apply_section 注入分支与 surge_lift 状态机两侧连根删；section_delay_s
+（固化 1.0s 进 app.py/main_window.py 离线对时）与 lookahead_s（前瞻蓄势
+随段涌整段删，sections.py）只服务模拟器离线播放路径、Android 本就未消费；
+mood_transition_s/mood_spread_dp 固化 1.5s/12dp（性格档切换行为不变）。
+调参 Dialog "段落"组整组消失（13 语言各删 7 行文案）。Python 157 测试全绿、
+Android JVM 测试全绿。
+已发布阿里云 Debug `202607180757`（versionCode 43 / 2.0.0），APK 大小
+`20844396` 字节，SHA-256 为
+`430c71d8337f29b3d8a9a432dc4de0db73cdc1f6940fe8503e5c6dad88e75a76`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718155900.md。
+
+## 2026-07-18 - 修复上一包 GL 崩溃回退（卡顿 + 观感异常）
+
+用户真机反馈 202607180728 动画效果大变且非常卡顿。定因：删除风梳微法线后
+water.frag 的 uTimeSeconds/uSurfaceHeadingRad 只剩声明、无使用者，GLES 链接器
+裁出 active 列表（location=-1）；FableSolGlProgram.uniform() 的
+check(location>=0) 每帧抛异常 → onGlFailure 静默回退 Canvas 软件绘制（画面
+特性不同 + 性能差）。Python 端无恙因其 _uniform 有缺失防护。修复：删除两个
+死 uniform 的声明与两侧上传；新增 JVM 静态守护测试
+everyQueriedUniformIsActuallyUsedInItsShaderProgram（渲染器查询名必须出现在
+shader 正文）。Python 157 + Android fablesol 127 测试全绿。
+已发布阿里云 Debug `202607180743`（versionCode 43 / 2.0.0），APK 大小
+`20850832` 字节，SHA-256 为
+`3128e698b67e2a752457cd2eabce0b498436649ff313240dae8dbe44030a16c8`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718161500.md。
+
+## 2026-07-18 - 移除 17 项归零无感的表面光学参数与对应功能
+
+用户在 Python 模拟器逐项归零 A/B 目测：镜面高光/高光提亮/波峰透光（含
+纵深）/波冠轻纱/毛细闪光/薄峰透光/表面流光/轨道摆幅/波背自阴影/空气
+透视/1/f 慢调制/微法线带限/全局 1/f 呼吸/风梳微法线/朝阳次表面散射
+（含收束）共 17 参数全 0 或最小后画面无可感变化，裁决整体移除。Python
+（params/simulation/mapping/ambient/gl_optics/gl_renderer/canvas，删
+pink_breath.py 与 specular_policy.py）与 Android（Params/Tuning/GlOptics/
+Simulation/FeatureMapper/WaveSets/GlRenderer/WaveVisualizer，删
+PinkBreathPolicy/SpecularAaPolicy/OpticalColorPolicy/ShadowColorPolicy）
+及共享 GLSL 同步瘦身；capillary 驱动链、crest_veil 场、streak/credit 状态机
+一并删除。Python 157 测试与 Android 全部 JVM 测试全绿。
+已发布阿里云 Debug `202607180728`（versionCode 43 / 2.0.0），APK 大小
+`20850832` 字节，SHA-256 为
+`5dd10e61426d897a99f0af07ae8a0a3bb2ef4b0509f1b9f8f65f038459c23eef`；
+`latest.json` releaseNotes 已核对。日志文件
+docs/features/audio-visualization-fable-sol/debug-updates/update-20260718152815.md。
+
 ## 2026-07-17 - 性能优化合集重发（用户手机验收用）
 
 内容与 202607171143 相同（无新代码），发布日志合并 D162+D163 两轮：

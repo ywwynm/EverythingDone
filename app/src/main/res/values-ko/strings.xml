@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">예</string>
@@ -507,8 +507,6 @@
     <string name="fablesol_group_ambient_flow">환경파 및 흐름</string>
     <string name="fablesol_group_hero">메인 파도</string>
     <string name="fablesol_group_swell">스웰</string>
-    <string name="fablesol_group_injection">파도 주입</string>
-    <string name="fablesol_group_sections">섹션</string>
     <string name="fablesol_param_uplift_thick_glow">두께 투과광 강도</string>
     <string name="fablesol_param_uplift_glow_boost">투과광 파생 밝기</string>
     <string name="fablesol_param_uplift_crest_rim">물마루 은빛 라인 강도</string>
@@ -522,23 +520,6 @@
     <string name="fablesol_param_sky_reflection_strength">하늘 반사 강도</string>
     <string name="fablesol_param_body_light_strength">수체 투과광 강도</string>
     <string name="fablesol_param_light_azimuth_deg">광원 방위각</string>
-    <string name="fablesol_param_crest_glint_strength">정반사 하이라이트 강도</string>
-    <string name="fablesol_param_crest_lighten">하이라이트 밝기</string>
-    <string name="fablesol_param_crest_glow_strength">물마루 투과광 강도</string>
-    <string name="fablesol_param_crest_glow_depth_dp">투과광 깊이</string>
-    <string name="fablesol_param_crest_veil_strength">물마루 베일 강도</string>
-    <string name="fablesol_param_capillary_glint_gain">잔물결 반짝임</string>
-    <string name="fablesol_param_thin_glow_gain">얇은 물마루 투과광(구형)</string>
-    <string name="fablesol_param_flow_streak_gain">표면 흐름 줄무늬</string>
-    <string name="fablesol_param_orbital_sway_dp">궤도 흔들림 폭</string>
-    <string name="fablesol_param_back_shade_gain">파도 뒷면 자체 그림자</string>
-    <string name="fablesol_param_aerial_contrast">대기 원근 압축</string>
-    <string name="fablesol_param_pink_mod">1/f 느린 변조</string>
-    <string name="fablesol_param_specular_aa_strength">마이크로 노멀 대역 제한</string>
-    <string name="fablesol_param_global_pink_breath_strength">전역 1/f 호흡</string>
-    <string name="fablesol_param_micro_normal_strength">바람빗질 마이크로 노멀</string>
-    <string name="fablesol_param_sun_sss_strength">아침해 표면하 산란</string>
-    <string name="fablesol_param_sun_sss_falloff">아침해 산란 감쇠</string>
     <string name="fablesol_param_color_breath">색상 호흡</string>
     <string name="fablesol_param_hue_temp_deg">색온도 이동</string>
     <string name="fablesol_param_surface_heading_deg">주 파향 방위</string>
@@ -570,24 +551,6 @@
     <string name="fablesol_param_swell_attack_s">스웰 어택</string>
     <string name="fablesol_param_swell_release_s">스웰 릴리즈</string>
     <string name="fablesol_param_swell_gain">스웰 게인</string>
-    <string name="fablesol_param_inject_gain">주입 게인</string>
-    <string name="fablesol_param_inject_amp_max_dp">단일 파도 높이 상한</string>
-    <string name="fablesol_param_inject_width_min_dp">파도 폭 하한</string>
-    <string name="fablesol_param_inject_width_max_dp">파도 폭 상한</string>
-    <string name="fablesol_param_inject_ramp_ms">주입 페이드인 시간</string>
-    <string name="fablesol_param_rhythm_wave_gain">리듬 파속 강도</string>
-    <string name="fablesol_param_rhythm_wave_min_strength">리듬 파속 문턱값</string>
-    <string name="fablesol_param_travel_bias_max">순류 편향 상한</string>
-    <string name="fablesol_param_cascade_step_s">캐스케이드 층간 지연</string>
-    <string name="fablesol_param_incoming_threshold">원거리 파도 트리거 강도</string>
-    <string name="fablesol_param_incoming_prob">원거리 파도 확률</string>
-    <string name="fablesol_param_incoming_cooldown_s">원거리 파도 쿨다운</string>
-    <string name="fablesol_param_surge_gain">서지 게인</string>
-    <string name="fablesol_param_surge_amp_max_dp">서지 큰 파도 높이</string>
-    <string name="fablesol_param_surge_lift_dp">서지 상승 높이</string>
-    <string name="fablesol_param_surge_drawdown_dp">서지 수위 하강</string>
-    <string name="fablesol_param_mood_transition_s">무드 전환</string>
-    <string name="fablesol_param_mood_spread_dp">에너지 단계 층 간격</string>
     <string name="doing_digit_fill">채우기</string>
     <string name="doing_digit_outline">윤곽선</string>
     <string name="cd_random_pure_background">무작위 순수 색상</string>

@@ -2669,3 +2669,132 @@ AOT 代码、强制走可反优化的解释/JIT 路径，属预期行为。
 非 debuggable 构建（后续可为阿里云通道增加 release 型 perf 通道或转正式 release 发布，
 另行裁决）。lintVitalRelease 当前被 `restore_thing_folder` 多余翻译卡住（zh-rHK/rTW），
 是独立既有问题。
+
+## D164（2026-07-18）表面光学 17 参数整体移除：归零 A/B 无感即删（宁少勿烂收束）
+
+用户在 Python 模拟器把"外观"组自"镜面高光强度"以下的 17 项调参全部设为 0 或
+最小值，目测画面无可感变化，裁决：这些参数与其功能代码、渲染代码整体移除，
+Android 同步。移除清单：crest_glint_strength、crest_lighten、crest_glow_strength、
+crest_glow_depth_dp、crest_veil_strength、capillary_glint_gain、thin_glow_gain
+（D152 已 deprecated）、flow_streak_gain、orbital_sway_dp、back_shade_gain、
+aerial_contrast、pink_mod、specular_aa_strength、global_pink_breath_strength、
+micro_normal_strength、sun_sss_strength、sun_sss_falloff。
+
+随动删除（两侧一比一）：
+- 整模块：Python pink_breath.py、specular_policy.py；Android FableSolPinkBreathPolicy、
+  FableSolSpecularAaPolicy、FableSolOpticalColorPolicy、FableSolShadowColorPolicy。
+- 状态机：crest_veil 场（Simulation）、capillary01 驱动链（mapper→simulation→
+  OpticalWaveSet，毛细振幅只剩 0.012 固定基线）、流光 Streak 跟踪、闪点出生
+  credit 预算（固化 strength=0 的现状行为：候选按分数贪心兑现、只受层容量约束）。
+- 共享 GLSL：uMicroNormalStrength/uSpecularAaStrength/uSunSssStrength/uSunSssFalloff、
+  uMicroNormalWeights/uSdrSssWeights、vMicroNormalWeight/vSdrSssWeight/vCrestPinch、
+  windCombedMicroDerivative/octaveBandLimit/sunriseSubsurfaceMask/addSunriseSubsurface；
+  optical.frag 删 mode 2（流光）/6（轻纱）/9（波背自阴影）分支；
+  thicknessGlow 的 SDR_SSS 回退改为直接用 vThicknessGlowWeight；
+  backlitTransmissionExcess 掩码只剩厚度透光项；continuousSlope = vSheenSlope。
+- 权重表：MICRO_NORMAL/SDR_SSS/BACK_SHADE_*/FLOW_STREAK_*/CREST_VEIL_SOURCE/
+  GLINT_BIRTH_WEIGHTS（credit 专用）。
+
+已知连带（记录在案）：镜面高光项移除后，闪点出生场只剩"菲涅尔细节×天空反射"
+（正常浪面远低于 0.08 门槛），即使把试验期 glint_capacity_gain 拉回 1 闪点也几乎
+不再出生；闪点骨架（容量表、跟踪、HDR 峰值、太阳路径）按 D156 保留不动。
+body_light_strength（默认 0）保留，其波峰增强项随 crest_glow_* 删除固化为
+0.16 基线 × 2dp 纵深。验证：Python 157 测试全绿；Android JVM 测试全绿；
+发布阿里云 Debug 202607180728。
+
+### D164 补充（2026-07-18 当日回归与修复）：死 uniform 令 GL 整路回退 Canvas
+
+首包 202607180728 真机表现为"动画效果大变 + 非常卡顿"。根因不是删除本身，
+而是删除风梳微法线后 water.frag 的 uTimeSeconds/uSurfaceHeadingRad 失去唯一
+使用者：GLES 链接器把仅声明未使用的 uniform 裁出 active 列表，
+FableSolGlProgram.uniform() 的 check(location>=0) 首帧即抛，
+WaveVisualizerFableSolHost.onGlFailure 静默切 Canvas 软件绘制。Python 桌面端
+因 _uniform 的"缺失即跳过"防护而无恙——这正是两侧防护策略不对称的盲区。
+修复（202607180743）：删除两个死 uniform 的声明与两侧上传；新增 JVM 静态
+守护测试 everyQueriedUniformIsActuallyUsedInItsShaderProgram（GlRenderer 按名
+查询的每个 uniform 必须出现在对应 program 的 shader 正文中，声明行不算）。
+教训：改共享 GLSL 删功能时，必须同步审计"声明仍在但使用者清零"的 uniform，
+Android 的 fail-fast 查询策略会把这种残留放大成整路回退。
+
+## D165（2026-07-18）"段落"组 8 参数整组移除：段涌连根删、离线消费固化、mood 细节固化
+
+用户查询该组来历（全部来自 git 化之前的 2026-07-10 基线快照，属最早一批原始
+设计）并目测调整无感后裁决整组移除，按风险三档执行：
+- 段涌连根删：surge_gain 在基线快照即默认 0、从未启用。删除
+  apply_section/applySection 的巨浪注入分支（inject_depth_packet 的
+  z_dominant 段涌调用、逐层回声注入）、LayerSim 的 surge_lift_dp/
+  surge_lift_target_dp 状态机与水位合成项。apply_section 收敛为只
+  set_mood（性格档切换保留，是段落事件在实时链路的全部效果）。
+- 离线专用参数处理：section_delay_s 固化 1.0s 进 app.py 与
+  main_window.py 的离线播放对时（补偿播放时钟领先扬声器）；
+  lookahead_s 的"前瞻蓄势"整段删除（sections.py——蓄势为段涌让对比度，
+  段涌删则蓄势无意义）。两者 Android 端本就未消费（Tuning 当初未收录）。
+- 活参数固化：mood_transition_s → 1.5s、mood_spread_dp → 12dp 写死进
+  Simulation.perFrame（两侧），性格档系统本身保留、行为不变。
+调参 Dialog "段落"组（fablesol_group_sections）整组删除。验证：Python 157
+测试全绿、Android JVM 全绿；发布 202607180757。
+
+## D166（2026-07-18）"注入"组 12 参数整组固化：主路径均值化使行波形态不可感，机制保留
+
+来历：10 项来自 git 化之前的基线快照，rhythm_wave_gain/min_strength 来自同日
+3b43d3f（feat: enhance perceptual audio-reactive water）。用户目测调整无感。
+定性分析：连续水面主路径 build_gl_frame 只取 sim.heights 的逐层均值（means）
+作九条锚线水位，DynamicWave 行波（inject_layer 全部产物：装饰点击/波群/重音
+浪/远浪三层）的空间形态被均值化，只剩几 dp 的瞬态均值扰动——注入参数因此在
+B 主路径下全部不可感；incoming 三项虽控制可见的 2.5D 远浪波包（inject_depth_
+packet），但触发稀有（强 onset+概率+冷却）且与自主出生波包难以目测区分。
+不能连根删的原因：demo_mode（保留参数）、面板注入测试按钮、多份测试
+（wave_shape_continuity/offscreen_birth/orchestra_dual_register）都依赖
+inject_layer 机制。裁决：12 参数按既有默认值固化进实现（增益 1.0、幅 36dp、
+宽 96~216dp、渐入 120ms、节奏 0.85/门槛 0.25、偏置 0.75、级联 0.054s、远浪
+0.75/0.50/3.2s），注入机制与远浪 2.5D 完整保留，行为零变化。调参 Dialog
+"注入"组整组退出；顺带删除 Python 面板上一轮遗留的空白"段落"组标题。
+已知余量（不阻塞）：若将来连续水面改为逐列消费九层高度（非均值），行波
+形态将重新可见，届时可考虑恢复调参项。
+
+## D167（2026-07-18）波浪曲线单纯化：谱高频减半、Gerstner 峰聚拢减半、短波扩散收窄
+
+用户真机目测（D164~D166 精简后）："本来连续的完整 sin 曲线中间叠加另一个/
+几个曲线、出现生硬转折"。排查：与银丝无关（用户确认）、静止轮廓即有；三轮
+精简对波形几何数学零改动（逐项核对），是表面光学（背阴影体积塑形、流光/
+轻纱/微法线纹理）移除后的视觉暴露。沿 X 轮廓的复杂度全部来自
+ContinuousSurface：方向谱 9 模态（最短 58dp 的高频叠加）+ 波包 + Gerstner
+峰聚拢（q=min(0.58, 0.46/(k·amp·9)) 实算各模态全部顶满 0.58——峰锐化即
+"生硬转折"主源）。compose_layer_field（九层残差进二维场）确认无调用者，
+B 路径沿 X 形态与九层行波无关。
+收敛定档（模拟器 --screenshot --seconds 6 前后对照）：
+- base_amplitude 高频三模态（102/78/58dp）0.92/0.66/0.42 → 0.46/0.33/0.21；
+- Gerstner q 上限/系数 0.58/0.46 → 0.32/0.26，波包 0.62/0.48 → 0.34/0.27；
+- spread_scale 尾三项 0.94/1.06/1.18 → 0.82/0.88/0.94（交叉干涉减少）。
+第一层大浪活力与远浪叙事不变。两侧一比一同步（FableSolContinuousSurface）。
+后续余量：若仍嫌复杂可继续压高频或砍最短模态；若嫌过平可回调 q 至 0.40 档。
+
+### D167 撤销（2026-07-18 当日）：叠加/转折确认为既有观感，单纯化不做
+
+发布 202607180912 后补做了正确的验证（真实录音 rec_20260718_094835 驱动、
+近层裁剪 y300-560、t=4/7/10/13s 前后 8 图网格——首轮静息全景图无效，用户
+指正）。用户对照后裁定：近层轮廓的叠加小波与转折在参数精简之前即已存在，
+属波形谱的既定观感而非回归，单纯化没有必要。D167 三处数值全部还原、注释
+清除、两侧同步，波形几何回到 202607180817 状态；发布 202607180942。
+留档结论（免将来重查）：沿 X 轮廓复杂度 = 方向谱 9 模态 + 波包 + Gerstner
+峰聚拢（q 实算全模态顶满 0.58）；compose_layer_field 为无调用死代码；
+若将来真要单纯化，第一档参考值与网格对照存于本条与 update-20260718164500.md。
+
+## D168（2026-07-18）恢复闪点出生场：glint_capacity_gain 转正式可调项（默认 0）
+
+背景：D164 记录过已知连带——镜面高光项删除后闪点出生场只剩"菲涅尔细节×
+天空反射"（正常浪面 raw≈0.001~0.02，恒低于 0.08 出生门槛），capacity_gain
+拉 1 也不出生。用户喜欢闪点，裁决恢复出生场、参数转正式：
+- 出生场恢复：raw = reflection·facet·0.90 + fresnel_detail·sky·0.24。
+  镜面强度 0.90 为原 crest_glint_strength 默认值**固化**（参数不恢复）；
+  specular AA 的 normalization/sigma 展宽维持删除态（aa=0 等价）。
+- 毛细曲率通道恢复：OpticalWaveSet.sample（Python）/sampleInto（Android）
+  重新输出 curvature，供 facet=clip(|curv|/(0.004+0.006·rough))^0.58。
+  0.012 固定基线的毛细谱 curvature RMS≈0.005，facet 峰值可达 1——无需
+  恢复 capillary 音频驱动链。
+- glint_capacity_gain：默认 0（关闭，画面与 202607180942 逐位一致），
+  label"闪点数量（试验期归零）"→"闪点数量"，调参 Dialog 拉起即出。
+- 守护测试（两侧）：默认 0 必须无出生；capacity_gain=1 + sparkle=1 +
+  roughness 0.35 的真实动态浪面 120 帧内必须出生并产生 mode 3 几何——
+  防止出生场再次被静默改死。
+Canvas 回退路径同构恢复。发布 202607181001。

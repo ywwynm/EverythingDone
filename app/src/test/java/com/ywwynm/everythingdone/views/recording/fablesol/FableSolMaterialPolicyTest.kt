@@ -11,25 +11,14 @@ class FableSolMaterialPolicyTest {
         val params = FableSolParams()
 
         assertEquals(0.0, params.get("body_light_strength"), 0.0)
-        // D152：薄峰透光实体带 deprecated 归零，由厚度透光材质版取代。
-        assertEquals(0.0, params.get("thin_glow_gain"), 0.0)
         assertEquals(1.29, params.get("uplift_thick_glow"), 0.0)
         assertEquals(1.6, params.get("uplift_glow_boost"), 0.0)
-        assertEquals(0.14, params.get("crest_veil_strength"), 0.0)
         assertEquals(0.0, params.get("analytic_halo_strength"), 0.0)
-        assertEquals(0.36, params.get("micro_normal_strength"), 0.0)
         assertEquals(0.0, params.get("pearl_shift_deg"), 0.0)
         assertEquals(0.0, params.get("hue_temp_deg"), 0.0)
 
-        assertEquals(0.80, params.get("back_shade_gain"), 0.0)
         assertEquals(0.864, params.get("lighten_far"), 0.0)
         assertEquals(0.16, params.get("environment_tint"), 0.0)
-    }
-
-    @Test
-    fun thinTransmissionStillMatchesDebug0749Geometry() {
-        assertEquals(0.0, FableSolMaterialPolicy.thinGlowThicknessDp(0.0), 0.0)
-        assertEquals(11.0, FableSolMaterialPolicy.thinGlowThicknessDp(1.0), 1e-12)
     }
 
     @Test
@@ -46,15 +35,7 @@ class FableSolMaterialPolicyTest {
             doubleArrayOf(1.0, 0.96, 0.84, 0.60, 0.42, 0.27, 0.12, 0.06, 0.0),
             FableSolMaterialPolicy.MACRO_SHADOW_WEIGHTS
         )
-        assertFloatCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.72, 0.64, 0.60, 0.56, 0.49),
-            FableSolMaterialPolicy.MICRO_NORMAL_WEIGHTS
-        )
-        assertFloatCurve(
-            doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.49, 0.36, 0.24, 0.16, 0.12),
-            FableSolMaterialPolicy.SDR_SSS_WEIGHTS
-        )
-        // D154：厚度透光独立权重表（4~8 层较 SDR_SSS 上提一档，用户裁决）。
+        // D154：厚度透光独立权重表（4~8 层上提一档，用户裁决）。
         assertFloatCurve(
             doubleArrayOf(1.0, 0.96, 0.84, 0.64, 0.56, 0.49, 0.42, 0.36, 0.27),
             FableSolMaterialPolicy.THICKNESS_GLOW_WEIGHTS
@@ -68,35 +49,9 @@ class FableSolMaterialPolicyTest {
             listOf(4, 4, 3, 3, 2, 2, 1, 1, 0),
             (0..8).map(FableSolMaterialPolicy::glintCapacity)
         )
-        val expectedBirthWeights =
-            doubleArrayOf(4.2, 3.6, 2.4, 1.92, 0.96, 0.60, 0.36, 0.16, 0.0)
-        expectedBirthWeights.forEachIndexed { layer, expected ->
-            assertEquals(expected, FableSolMaterialPolicy.glintBirthWeight(layer), 1e-6)
-        }
-        assertEquals(
-            listOf(3, 2, 2, 1, 1, 0, 0, 0, 0),
-            (0..8).map(FableSolMaterialPolicy::flowStreakCapacity)
-        )
-        assertEquals(0.45, FableSolMaterialPolicy.flowStreakWeight(3), 1e-6)
-        assertEquals(0.20, FableSolMaterialPolicy.flowStreakWeight(4), 1e-6)
-        assertEquals(0.12, FableSolMaterialPolicy.backShadeAlphaWeight(6), 1e-6)
-        assertEquals(0.0, FableSolMaterialPolicy.backShadeAlphaWeight(7), 0.0)
         assertEquals(34.0, FableSolMaterialPolicy.GLINT_MIN_SEPARATION_DP, 0.0)
         assertEquals(0.085, FableSolMaterialPolicy.GLINT_FIELD_FLOOR, 0.0)
-        assertEquals(
-            FableSolMaterialPolicy.GLINT_BIRTH_WEIGHT_TOTAL,
-            (0..8).sumOf(FableSolMaterialPolicy::glintBirthWeight),
-            1e-6
-        )
 
-        assertDoubleCurve(
-            doubleArrayOf(1.0, 1.0, 1.0, 0.84, 0.72, 0.60, 0.42, 0.0, 0.0),
-            FableSolMaterialPolicy::backShadeWidthWeight
-        )
-        assertDoubleCurve(
-            doubleArrayOf(1.0, 0.75, 0.56, 0.42, 0.24, 0.16, 0.12, 0.0, 0.0),
-            FableSolMaterialPolicy::backShadeAlphaWeight
-        )
         assertDoubleCurve(
             doubleArrayOf(1.0, 0.96, 0.84, 0.75, 0.64, 0.56, 0.49, 0.42, 0.0),
             FableSolMaterialPolicy::glintLengthWeight
@@ -113,10 +68,6 @@ class FableSolMaterialPolicyTest {
             doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             FableSolMaterialPolicy::glintHaloAlphaWeight
         )
-        assertDoubleCurve(
-            doubleArrayOf(1.0, 1.0, 1.0, 0.45, 0.20, 0.0, 0.0, 0.0, 0.0),
-            FableSolMaterialPolicy::flowStreakWeight
-        )
     }
 
     @Test
@@ -125,7 +76,6 @@ class FableSolMaterialPolicyTest {
             listOf(4, 4, 3, 3, 2, 2, 1, 1),
             (0..7).map(FableSolMaterialPolicy::glintCapacity)
         )
-        assertTrue((3..7).all { FableSolMaterialPolicy.glintBirthWeight(it) > 0.0 })
         assertTrue((3..7).all { FableSolMaterialPolicy.glintLengthWeight(it) > 0.0 })
         assertTrue((3..7).all { FableSolMaterialPolicy.glintDepthLengthDp(it) > 0.0 })
         assertTrue((3..7).all { FableSolMaterialPolicy.glintCoreAlphaWeight(it) > 0.0 })

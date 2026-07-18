@@ -2196,3 +2196,78 @@ debuggable 忽略 AOT，预期）。落地两修复：GL 线程提 DISPLAY 优�
 release 同场景 atrace 6 秒 722 帧 = **120.4fps 满帧**，120fps 目标在非
 debuggable 运行时下完整兑现。143 项 JVM 测试全绿。临时 release 签名改动已
 还原；平板装回 debug 版、录音已取消丢弃、stayon 已恢复。
+
+## 2026-07-18 表面光学 17 参数整体移除（D164）+ 发布 202607180728
+
+- Python 侧：params.py 删 17 个 ParamSpec；删除 pink_breath.py/specular_policy.py
+  两模块；simulation.py 删 crest_veil 场与 capillary 平滑、setMaterialDrive 收为
+  (rough, tilt)；mapping.py 删 capillary 驱动与 onset 毛细注入；ambient.py
+  OpticalWaveSet.sample 收为 (xDp, rough)→slope；gl_optics.py 删 _back_shade/
+  _thin_glow/_crest_veil/_streaks/_variable_centered_band/_layer_color_field、
+  _glints 去镜面项/pink/air/sway、出生 credit 固化为贪心；canvas.py 同构删除；
+  gl_renderer.py 删 4 个 uniform 与 2 张权重表上传。157 项 pytest 全绿
+  （test_volumetric_roll.py 整删，其余 7 个测试文件同步裁剪）。
+- 共享 GLSL：water.vert/water.frag/optical.frag 删微法线/SSS/流光/轻纱/波背
+  分支与 vCrestPinch 死 varying（SSS 删除后 frag 无消费者）。
+- Android 侧：FableSolParams/FableSolTuning 删 17 项注册与调参条目（13 语言
+  strings.xml 各删 17 行）；GlOptics 删 buildBackShade/buildThinGlow/
+  buildCrestVeil/buildStreaks 与 credit；Simulation/FeatureMapper/WaveSets/
+  GlRenderer/WaveVisualizer 同构收敛；删 PinkBreathPolicy/SpecularAaPolicy/
+  OpticalColorPolicy/ShadowColorPolicy 四文件及其测试。JVM 测试全绿，
+  assembleDebug 通过。
+- 发布：阿里云 Debug 202607180728（versionCode 43 / 2.0.0），latest.json
+  releaseNotes 已核对；SHA-256 与发布号回填 memory/debug-update-notes.md。
+
+### 2026-07-18 追记：GL 死 uniform 回归修复 + 发布 202607180743
+
+- 用户真机反馈首包卡顿且观感异常；定因 water.frag 死 uniform
+  （uTimeSeconds/uSurfaceHeadingRad）触发 FableSolGlProgram.uniform() 的
+  check 崩溃，GL 每帧失败回退 Canvas 软件绘制。
+- 修复：删 shader 死声明 + Android/Python 两侧上传；加 JVM 静态守护测试
+  （渲染器查询的 uniform 必须在 shader 正文中被使用，防同类回退）。
+- Python 157 与 Android fablesol 127 测试全绿；重发阿里云 202607180743。
+
+### 2026-07-18 追记二："段落"组 8 参数移除（D165）+ 发布 202607180757
+
+- 考古：8 项全部来自 git 化之前的基线快照；surge_gain 基线即 0。
+- Python：params 删 8 项；mapping.apply_section 收敛为 set_mood；
+  simulation 删 surge_lift 状态机、mood 两项固化 1.5s/12dp；sections.py
+  删前瞻蓄势段；app.py/main_window.py 对时固化 1.0s。
+- Android：Params/Tuning/FeatureMapper/Simulation 同构收敛；"段落"组
+  整组消失（13 语言各删 7 行）。
+- 两侧测试全绿；发布阿里云 202607180757。
+
+### 2026-07-18 追记三："注入"组 12 参数固化（D166）+ 发布 202607180817
+
+- 考古与定性：基线快照参数；B 主路径均值化行波形态 → 调参不可感；
+  demo/测试按钮/测试套件依赖机制 → 固化而非删除。
+- Python：params 删 12 项注册、panel 删空白"段落"与"注入"组行、
+  mapping/simulation 消费点写死默认值；wave_shape_continuity 对照改
+  mock inject 入口；registry_audit 更新面板断言。
+- Android：Params/Tuning 删注册与整组 UI（13 语言各删 13 行）、
+  FeatureMapper/Simulation 同值固化。
+- 两侧测试全绿；发布阿里云 202607180817。
+
+### 2026-07-18 追记四：波浪曲线单纯化（D167）+ 发布 202607180912
+
+- 诊断：三轮精简对几何零改动（逐项核对）；"叠加/转折"为视觉暴露，
+  源头在连续水面方向谱高频模态 + 满档 Gerstner 峰聚拢 + 短波交叉干涉。
+- 修改：prototype_surface.py 与 FableSolContinuousSurface.kt 三处同步
+  收敛；模拟器确定性截图前后对照确认高频碎纹消失、峰形圆润、活力保留。
+- 两侧测试全绿；发布阿里云 202607180912。
+
+### 2026-07-18 追记五：D167 撤销 + 发布 202607180942
+
+- 首轮验证图（静息全景）被用户指正无效；重做真实录音驱动 + 近层裁剪 +
+  4 时刻前后网格。用户对照裁定叠加/转折为既有观感，撤销单纯化。
+- prototype_surface.py 与 FableSolContinuousSurface.kt 三处数值还原、
+  注释清除；两侧测试全绿；发布 202607180942（几何等同 202607180817）。
+
+### 2026-07-18 追记六：恢复闪点出生场（D168）+ 发布 202607181001
+
+- ambient.py/FableSolWaveSets 恢复毛细曲率输出；gl_optics/GlOptics/
+  canvas/WaveVisualizer 恢复镜面项（固化 0.90）；params/FableSolParams
+  注释与 label 转正式；GLINT_SIGMA 常量两侧回归。
+- 新增出生守护测试（Python test_gl_backend + Android GlOpticsTest）；
+  Python 158 + Android JVM 全绿；模拟器 capacity_gain=1 截图确认可见。
+- 发布阿里云 202607181001（默认关闭，画面与上一包一致）。

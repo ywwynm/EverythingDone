@@ -78,23 +78,19 @@ class FableSolHdrPipelineSourceTest {
         val loopEnd = source.indexOf("layerVertexCount[layer]", loopStart)
         val loop = source.substring(loopStart, loopEnd)
 
-        // D160：表面亮带（buildSurfaceBand）已整项移除，序列中不复存在。
+        // D160：表面亮带（buildSurfaceBand）已整项移除；2026-07-18 波背自阴影/
+        // 薄峰透光/波冠轻纱/流光随参数删除，序列只剩界面肩→体光→闪点。
         val shoulder = loop.indexOf("buildInterfaceShoulder(")
-        val shadow = loop.indexOf("buildBackShade(")
         val body = loop.indexOf("buildBodyLight(")
-        val thin = loop.indexOf("buildThinGlow(")
-        val veil = loop.indexOf("buildCrestVeil(")
-        val streak = loop.indexOf("buildStreaks(")
         val glint = loop.indexOf("buildGlints(")
-        assertTrue(listOf(shoulder, shadow, body, thin, veil, streak, glint)
-            .all { it >= 0 })
+        assertTrue(listOf(shoulder, body, glint).all { it >= 0 })
         assertTrue(loop.indexOf("buildSurfaceBand(") < 0)
-        assertTrue(shoulder < shadow)
-        assertTrue(shadow < body)
-        assertTrue(body < thin)
-        assertTrue(thin < veil)
-        assertTrue(veil < streak)
-        assertTrue(streak < glint)
+        assertTrue(loop.indexOf("buildBackShade(") < 0)
+        assertTrue(loop.indexOf("buildThinGlow(") < 0)
+        assertTrue(loop.indexOf("buildCrestVeil(") < 0)
+        assertTrue(loop.indexOf("buildStreaks(") < 0)
+        assertTrue(shoulder < body)
+        assertTrue(body < glint)
     }
 
     private fun source(name: String): String {

@@ -95,25 +95,27 @@ class FableSolGlShaderParityTest {
         assertTrue(vertex.contains("behindSubsurface"))
         assertFalse(vertex.contains("uLayerDeepStart"))
         assertFalse(vertex.contains("deepColor"))
-        assertTrue(fragment.contains("addSunriseSubsurface"))
+        // 2026-07-18：朝阳次表面散射随参数移除；subsurface 色仍供厚度透光/银边。
+        assertFalse(fragment.contains("addSunriseSubsurface"))
         assertFalse(vertex.contains("uDepthScatteringStrength"))
         assertFalse(vertex.contains("vec3 depthScattering"))
     }
 
     @Test
-    fun microNormalsRemainForRefractionWithoutVisibleContinuousSheen() {
+    fun microNormalSystemIsFullyRemovedFromTheWaterShaders() {
         val vertex = shader("water.vert")
         val source = shader("water.frag")
 
+        // 2026-07-18：风梳微法线/微法线带限随参数移除；valueNoiseDerivative
+        // 仍供银丝滑动亮结（crestRimKnot01）使用。
         assertTrue(source.contains("valueNoiseDerivative"))
-        assertTrue(source.contains("octave0"))
-        assertTrue(source.contains("octave1"))
-        assertTrue(source.contains("octave2"))
-        assertTrue(source.contains("octaveBandLimit"))
-        assertTrue(source.contains("uSpecularAaStrength"))
-        assertTrue(vertex.contains("uniform float uMicroNormalWeights[9]"))
-        assertTrue(vertex.contains("vMicroNormalWeight = sampleLayerCurve"))
-        assertTrue(source.contains("vec2 continuousSlope = vSheenSlope + microSlope"))
+        assertFalse(source.contains("octaveBandLimit"))
+        assertFalse(source.contains("windCombedMicroDerivative"))
+        assertFalse(source.contains("uSpecularAaStrength"))
+        assertFalse(source.contains("uMicroNormalStrength"))
+        assertFalse(vertex.contains("uMicroNormalWeights"))
+        assertFalse(vertex.contains("vMicroNormalWeight"))
+        assertTrue(source.contains("vec2 continuousSlope = vSheenSlope;"))
         assertTrue(source.contains("applyRefractionAndBeer("))
         assertFalse(source.contains("float distributionGgx("))
         assertFalse(source.contains("float visibilitySmithGgxCorrelated"))
@@ -165,12 +167,14 @@ class FableSolGlShaderParityTest {
     }
 
     @Test
-    fun sunriseSssUsesStableCrestMaskAndHighFalloffWithoutAudioUniforms() {
+    fun sunriseSssIsFullyRemovedFromTheWaterShader() {
         val source = shader("water.frag")
 
-        assertTrue(source.contains("uSunSssFalloff"))
-        assertTrue(source.contains("clamp(uSunSssFalloff, 4.0, 10.0)"))
-        assertTrue(source.contains("pow(clamp(vCrestPinch, 0.0, 1.0), 1.35)"))
+        // 2026-07-18：朝阳次表面散射（含收束）随参数移除。
+        assertFalse(source.contains("uSunSssFalloff"))
+        assertFalse(source.contains("uSunSssStrength"))
+        assertFalse(source.contains("sunriseSubsurfaceMask"))
+        assertFalse(source.contains("vCrestPinch"))
         assertFalse(source.contains("Audio"))
         assertFalse(source.contains("Transient"))
     }
@@ -277,7 +281,7 @@ class FableSolGlShaderParityTest {
         // D156：front fill 早退分支内有自己的银边 HDR excess（录音门控），
         // 是唯一被许可的例外；主光照路径（fill 分支之后）仍必须 SDR 纯净。
         val bodyBlock = source.substring(
-            source.indexOf("float microWeight"), hdrStart
+            source.indexOf("vec2 continuousSlope"), hdrStart
         )
 
         assertFalse(source.contains("SUN_RADIANCE_RESPONSE"))
@@ -312,10 +316,8 @@ class FableSolGlShaderParityTest {
         assertTrue(vertex.contains("uniform float uHdrTransmissionPeaks[9]"))
         assertTrue(vertex.contains("vHdrTransmissionPeak = sampleLayerCurve"))
         assertTrue(source.contains("backlitTransmissionExcess"))
-        // D151/D152：HDR 透射掩码 = 旧日出 SSS 掩码与厚度透光掩码同源合并。
-        assertTrue(
-            source.contains("min(sunriseSubsurfaceMask() * strength + thicknessMask, 1.0)")
-        )
+        // 2026-07-18：日出 SSS 掩码随参数移除，HDR 透射掩码只剩厚度透光。
+        assertTrue(source.contains("min(thicknessMask, 1.0)"))
         assertTrue(source.contains("0.58 * (1.0 - fresnel) * mask"))
         assertTrue(source.contains("thicknessExcessMask(normal)"))
         assertFalse(source.contains("reflectionCompetition"))
@@ -341,6 +343,41 @@ class FableSolGlShaderParityTest {
         assertTrue(source.contains("mix(identity, refractedBackground, effectiveTransmission)"))
         assertTrue(source.contains("return mix(behind, volume, clamp(vMaterialOpacity"))
         assertFalse(source.contains("texture(uScene"))
+    }
+
+    @Test
+    fun everyQueriedUniformIsActuallyUsedInItsShaderProgram() {
+        // FableSolGlProgram.uniform() 对缺失 uniform 直接 check 失败；GLES 链接器
+        // 会把"声明了但没使用"的 uniform 裁出 active 列表（location = -1）。渲染器
+        // 查询任何死 uniform 都会让 GL 路径每帧崩溃并静默回退 Canvas（2026-07-18
+        // uTimeSeconds/uSurfaceHeadingRad 实际发生过）。这里静态钉死：查询名必须
+        // 出现在对应 program 的 shader 正文（去掉 uniform 声明行）中。
+        val renderer = projectFile(
+            "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
+                "FableSolGlRenderer.kt"
+        )
+        val programSources = mapOf(
+            "waterProgram" to (shader("water.vert") + shader("water.frag")),
+            "opticalProgram" to (shader("optical.vert") + shader("optical.frag")),
+            "presentationProgram" to (shader("fullscreen.vert") + shader("present.frag")),
+            "environmentProgram" to (shader("fullscreen.vert") + shader("environment.frag"))
+        )
+        val queries = Regex("(\\w+Program)\\.uniform\\(\"([^\"]+)\"\\)")
+            .findAll(renderer)
+            .map { it.groupValues[1] to it.groupValues[2] }
+            .distinct()
+        var checked = 0
+        for ((program, uniformName) in queries) {
+            val source = programSources[program] ?: continue
+            val body = source.lineSequence()
+                .filterNot { it.trimStart().startsWith("uniform ") }
+                .joinToString("\n")
+            val base = uniformName.removeSuffix("[0]")
+            assertTrue("$program 查询了 shader 未使用的 uniform：$uniformName",
+                body.contains(base))
+            checked++
+        }
+        assertTrue(checked > 20)
     }
 
     private fun shader(name: String): String {

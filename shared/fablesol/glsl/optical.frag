@@ -39,8 +39,6 @@ void opticalCoverage(vec2 uv, out float coverage, out float glintCoreCoverage) {
     if (vOpticalMode > 9.5) {
         // D129 界面肩：轮廓和带外均归零，带内半正弦峰值固定为 0.66。
         coverage = 0.66 * sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
-    } else if (vOpticalMode > 8.5) {
-        coverage = sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
     } else if (vOpticalMode > 7.5) {
         coverage = sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
     } else if (vOpticalMode > 6.5) {
@@ -50,8 +48,6 @@ void opticalCoverage(vec2 uv, out float coverage, out float glintCoreCoverage) {
         float falloff = exp2(-6.5 * radiusSquared);
         float boundaryTaper = 1.0 - smoothstep(0.72, 1.0, uv.y);
         coverage = falloff * boundaryTaper;
-    } else if (vOpticalMode > 5.5) {
-        coverage = 1.0;
     } else if (vOpticalMode > 4.5) {
         coverage = sin(3.14159265 * clamp(uv.y, 0.0, 1.0));
     } else if (vOpticalMode > 3.5) {
@@ -62,11 +58,6 @@ void opticalCoverage(vec2 uv, out float coverage, out float glintCoreCoverage) {
         float inward = 1.0 - smoothstep(0.08, 0.72, uv.y);
         glintCoreCoverage = along * inward;
         coverage = glintCoreCoverage;
-    } else if (vOpticalMode > 1.5) {
-        float along = 1.0 - smoothstep(0.68, 1.0, abs(uv.x));
-        float inward = smoothstep(0.0, 0.14, uv.y) *
-                       (1.0 - smoothstep(0.70, 1.0, uv.y));
-        coverage = along * inward;
     } else {
         float radius = length(uv);
         coverage = 1.0 - smoothstep(0.42, 1.0, radius);

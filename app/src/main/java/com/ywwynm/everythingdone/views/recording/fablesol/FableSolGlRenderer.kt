@@ -1420,27 +1420,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             waterProgram.uniform("uLightAzimuthRad"),
             Math.toRadians(params.get("light_azimuth_deg")).toFloat()
         )
-        GLES30.glUniform1f(waterProgram.uniform("uTimeSeconds"), sim.t.toFloat())
-        GLES30.glUniform1f(
-            waterProgram.uniform("uSurfaceHeadingRad"),
-            Math.toRadians(params.get("surface_heading_deg")).toFloat()
-        )
-        GLES30.glUniform1f(
-            waterProgram.uniform("uMicroNormalStrength"),
-            params.get("micro_normal_strength").toFloat()
-        )
-        GLES30.glUniform1f(
-            waterProgram.uniform("uSpecularAaStrength"),
-            params.get("specular_aa_strength").toFloat()
-        )
-        GLES30.glUniform1f(
-            waterProgram.uniform("uSunSssStrength"),
-            params.get("sun_sss_strength").toFloat()
-        )
-        GLES30.glUniform1f(
-            waterProgram.uniform("uSunSssFalloff"),
-            params.get("sun_sss_falloff").toFloat()
-        )
         // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
         GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
@@ -1556,19 +1535,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             FableSolMaterialPolicy.MACRO_SHADOW_WEIGHTS,
             0
         )
-        GLES30.glUniform1fv(
-            waterProgram.uniform("uMicroNormalWeights[0]"),
-            FableSolSpec.N_LAYERS,
-            FableSolMaterialPolicy.MICRO_NORMAL_WEIGHTS,
-            0
-        )
-        GLES30.glUniform1fv(
-            waterProgram.uniform("uSdrSssWeights[0]"),
-            FableSolSpec.N_LAYERS,
-            FableSolMaterialPolicy.SDR_SSS_WEIGHTS,
-            0
-        )
-        // D154：厚度透光独立权重表；shader 在未上传时回退 SDR_SSS。
+        // D154：厚度透光独立权重表。
         GLES30.glUniform1fv(
             waterProgram.uniform("uThicknessGlowWeights[0]"),
             FableSolSpec.N_LAYERS,

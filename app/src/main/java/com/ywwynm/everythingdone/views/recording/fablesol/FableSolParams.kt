@@ -21,15 +21,12 @@ class FableSolParams {
         // 显式阴影从当前层当前位置派生，subsurface 身份色只供日出 SSS。三项表层光学仍为 Debug 202607130749。
         v("body_light_strength", 0.0); v("pearl_shift_deg", 0.0)
         v("crest_on", 1.0); v("light_azimuth_deg", 27.0)
-        v("crest_glint_strength", 0.90); v("crest_width_dp", 1.25)
-        v("crest_lighten", 0.40); v("crest_glow_strength", 0.42)
-        v("crest_glow_depth_dp", 12.0); v("crest_veil_strength", 0.14)
-        v("capillary_glint_gain", 1.0)
-        // 立体感手法（2026-07-11 视觉批次，Python 面板同名参数的定稿默认值）
-        // D152：薄峰透光实体带被材质版"厚度透光"取代，默认归零仅留回退（deprecated）。
+        v("crest_width_dp", 1.25)
+        // 2026-07-18 用户裁决：镜面高光/高光提亮/波峰透光（含纵深）/波冠轻纱/
+        // 毛细闪光/薄峰透光/表面流光/轨道摆幅/波背自阴影/空气透视/1/f 慢调制/
+        // 微法线带限/全局 1/f 呼吸/风梳微法线/朝阳次表面散射（含收束）共 17 项
+        // 全部归零后画面无可感变化，参数与对应功能整体移除（Python 同步）。
         // D160：表面亮带（surface_strip_gain）随 Python 端先例整项移除，不再注册。
-        v("thin_glow_gain", 0.0)
-        v("flow_streak_gain", 0.70); v("orbital_sway_dp", 13.0)
         // D151/D152 质感提升（2026-07-16 目测定稿）：厚度透光——薄处按迎光坡向
         // 从内部亮起，目标色 = subsurface 派生线性提亮 1.6（保色相饱和比）。
         v("uplift_thick_glow", 1.29); v("uplift_glow_boost", 1.6)
@@ -40,22 +37,15 @@ class FableSolParams {
         // 幅度、HDR 峰值（3.6 = 闪点核心档）、滑动调制深度（逆流视差）。
         v("uplift_rim_width", 0.6); v("uplift_rim_halo", 0.16)
         v("uplift_rim_peak", 3.6); v("uplift_rim_slide", 1.0)
-        // D156：银边评审期闪点数量整体归零（容量表不动，恢复置 1）。
+        // 闪点数量总门（2026-07-18 转正式可调项）：默认 0 关闭，调参 Dialog
+        // 拉起即出闪点；出生场镜面强度固化 0.90（原 crest_glint_strength 默认）。
         v("glint_capacity_gain", 0.0)
-        v("back_shade_gain", 0.80); v("aerial_contrast", 0.50)
-        v("hue_temp_deg", 0.0); v("pink_mod", 0.80)
+        v("hue_temp_deg", 0.0)
         // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，
         // 旧九层填充路径保留为内部回退，便于真机对照与低风险回滚。
         v("surface2d_on", 1.0)
         v("surface_heading_deg", 30.0); v("surface_spread_deg", 24.0)
         v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 38.0)
-        // 预滤波微法线带限；当前只服务折射、Beer、SSS 与 HDR transmission。
-        v("specular_aa_strength", 1.0)
-        // Stage 2-4：四项质感增强均可独立归零关闭。
-        v("global_pink_breath_strength", 1.0)
-        // 第二轮材质基准：增强全九层微法线，但仍由逐层权重控制远层响应。
-        v("micro_normal_strength", 0.36)
-        v("sun_sss_strength", 0.16); v("sun_sss_falloff", 6.0)
         // D135：离散闪点不再绘制解析外晕，避免圆环状扩张/收缩光斑。
         v("analytic_halo_strength", 0.0)
         // 环境波 / 流动
@@ -76,20 +66,12 @@ class FableSolParams {
         // get 走 0.0 兜底后又被 max(…, 0.5)/max(…, 1.0) 钳制。按既有实效值入表以
         // 保持观感不变（Python 原版默认 3.0 / 30.0，差异记录在 followups）。
         v("swell_halflife_s", 0.5); v("deep_integral_s", 1.0)
-        // 注入
-        v("inject_gain", 1.0); v("inject_amp_max_dp", 36.0)
-        v("inject_width_min_dp", 96.0); v("inject_width_max_dp", 216.0)
-        v("inject_ramp_ms", 120.0); v("rhythm_wave_gain", 0.85)
-        v("rhythm_wave_min_strength", 0.25); v("travel_bias_max", 0.75)
-        v("cascade_step_s", 0.054); v("incoming_threshold", 0.75)
-        v("incoming_prob", 0.50); v("incoming_cooldown_s", 3.2)
+        // 注入组已于 2026-07-18 整组固化进实现（Python 同步；机制保留，
+        // 连续水面主路径均值化行波形态，调参无可感变化）。
         // 感知前端
         v("agc_window_s", 24.0); v("silence_gate_db", 6.0); v("expander_amount", 0.32)
-        // 段落
-        v("surge_gain", 0.0); v("surge_amp_max_dp", 75.0)
-        v("surge_lift_dp", 160.0); v("surge_drawdown_dp", 16.0)
-        v("section_delay_s", 1.0); v("mood_transition_s", 1.5)
-        v("mood_spread_dp", 12.0); v("lookahead_s", 1.5)
+        // 段落组已于 2026-07-18 整组移除（Python 同步）：段涌连根删，
+        // mood_transition_s/mood_spread_dp 固化 1.5s/12dp 进实现。
         // 系统
         v("demo_mode", 0.0)
 

@@ -49,23 +49,6 @@ object FableSolTuning {
             Spec("sky_reflection_strength", R.string.fablesol_param_sky_reflection_strength, "", 0.0, 1.2, 0.02),
             Spec("body_light_strength", R.string.fablesol_param_body_light_strength, "", 0.0, 1.2, 0.02),
             Spec("light_azimuth_deg", R.string.fablesol_param_light_azimuth_deg, "°", -60.0, 60.0, 1.0),
-            Spec("crest_glint_strength", R.string.fablesol_param_crest_glint_strength, "", 0.0, 1.5, 0.02),
-            Spec("crest_lighten", R.string.fablesol_param_crest_lighten, "", 0.0, 1.0, 0.01),
-            Spec("crest_glow_strength", R.string.fablesol_param_crest_glow_strength, "", 0.0, 1.0, 0.02),
-            Spec("crest_glow_depth_dp", R.string.fablesol_param_crest_glow_depth_dp, "dp", 2.0, 32.0, 0.5),
-            Spec("crest_veil_strength", R.string.fablesol_param_crest_veil_strength, "", 0.0, 1.0, 0.02),
-            Spec("capillary_glint_gain", R.string.fablesol_param_capillary_glint_gain, "×", 0.0, 2.0, 0.02),
-            Spec("thin_glow_gain", R.string.fablesol_param_thin_glow_gain, "", 0.0, 1.2, 0.02),
-            Spec("flow_streak_gain", R.string.fablesol_param_flow_streak_gain, "", 0.0, 1.2, 0.02),
-            Spec("orbital_sway_dp", R.string.fablesol_param_orbital_sway_dp, "dp", 0.0, 24.0, 0.5),
-            Spec("back_shade_gain", R.string.fablesol_param_back_shade_gain, "", 0.0, 1.2, 0.02),
-            Spec("aerial_contrast", R.string.fablesol_param_aerial_contrast, "", 0.0, 0.9, 0.02),
-            Spec("pink_mod", R.string.fablesol_param_pink_mod, "", 0.0, 1.2, 0.02),
-            Spec("specular_aa_strength", R.string.fablesol_param_specular_aa_strength, "", 0.0, 1.0, 0.02),
-            Spec("global_pink_breath_strength", R.string.fablesol_param_global_pink_breath_strength, "", 0.0, 1.0, 0.02),
-            Spec("micro_normal_strength", R.string.fablesol_param_micro_normal_strength, "", 0.0, 1.0, 0.01),
-            Spec("sun_sss_strength", R.string.fablesol_param_sun_sss_strength, "", 0.0, 1.0, 0.01),
-            Spec("sun_sss_falloff", R.string.fablesol_param_sun_sss_falloff, "", 4.0, 10.0, 0.25),
             Spec("color_breath", R.string.fablesol_param_color_breath, "", 0.0, 1.5, 0.02),
             Spec("hue_temp_deg", R.string.fablesol_param_hue_temp_deg, "°", -30.0, 30.0, 1.0)
         )),
@@ -106,28 +89,8 @@ object FableSolTuning {
             Spec("swell_release_s", R.string.fablesol_param_swell_release_s, "s", 0.10, 3.00, 0.01),
             Spec("swell_gain", R.string.fablesol_param_swell_gain, "×", 0.0, 2.0, 0.01)
         )),
-        Group(R.string.fablesol_group_injection, listOf(
-            Spec("inject_gain", R.string.fablesol_param_inject_gain, "×", 0.0, 3.0, 0.01),
-            Spec("inject_amp_max_dp", R.string.fablesol_param_inject_amp_max_dp, "dp", 6.0, 96.0, 1.0),
-            Spec("inject_width_min_dp", R.string.fablesol_param_inject_width_min_dp, "dp", 24.0, 129.0, 1.0),
-            Spec("inject_width_max_dp", R.string.fablesol_param_inject_width_max_dp, "dp", 48.0, 320.0, 1.0),
-            Spec("inject_ramp_ms", R.string.fablesol_param_inject_ramp_ms, "ms", 8.0, 400.0, 1.0),
-            Spec("rhythm_wave_gain", R.string.fablesol_param_rhythm_wave_gain, "×", 0.0, 2.0, 0.02),
-            Spec("rhythm_wave_min_strength", R.string.fablesol_param_rhythm_wave_min_strength, "", 0.0, 1.0, 0.02),
-            Spec("travel_bias_max", R.string.fablesol_param_travel_bias_max, "", 0.0, 1.0, 0.01),
-            Spec("cascade_step_s", R.string.fablesol_param_cascade_step_s, "s", 0.0, 0.12, 0.002),
-            Spec("incoming_threshold", R.string.fablesol_param_incoming_threshold, "", 0.0, 1.0, 0.01),
-            Spec("incoming_prob", R.string.fablesol_param_incoming_prob, "", 0.0, 1.0, 0.01),
-            Spec("incoming_cooldown_s", R.string.fablesol_param_incoming_cooldown_s, "s", 0.5, 10.0, 0.1)
-        )),
-        Group(R.string.fablesol_group_sections, listOf(
-            Spec("surge_gain", R.string.fablesol_param_surge_gain, "×", 0.0, 3.0, 0.01),
-            Spec("surge_amp_max_dp", R.string.fablesol_param_surge_amp_max_dp, "dp", 24.0, 240.0, 1.0),
-            Spec("surge_lift_dp", R.string.fablesol_param_surge_lift_dp, "dp", 0.0, 216.0, 1.0),
-            Spec("surge_drawdown_dp", R.string.fablesol_param_surge_drawdown_dp, "dp", 0.0, 48.0, 1.0),
-            Spec("mood_transition_s", R.string.fablesol_param_mood_transition_s, "s", 0.3, 4.0, 0.01),
-            Spec("mood_spread_dp", R.string.fablesol_param_mood_spread_dp, "dp", 0.0, 24.0, 1.0)
-        ))
+        // 注入组已于 2026-07-18 整组固化进实现（机制保留、调参无可感变化）。
+        // 段落组已于 2026-07-18 整组移除（段涌连根删、mood 两项固化进实现）。
     )
 
     private const val PREFS_NAME = "fablesol_tuning"

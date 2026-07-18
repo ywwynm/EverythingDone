@@ -30,8 +30,6 @@ uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
 uniform float uMacroLightWeights[9];
 uniform float uMacroShadowWeights[9];
-uniform float uMicroNormalWeights[9];
-uniform float uSdrSssWeights[9];
 uniform float uHdrTransmissionPeaks[9];
 uniform bool uSceneLinear;
 uniform bool uFrontFill;
@@ -54,10 +52,7 @@ out vec2 vScreenUv;
 out vec2 vSurfacePositionPx;
 out vec2 vSurfaceSlope;
 out float vDepth01;
-out float vCrestPinch;
 out vec2 vSheenSlope;
-out float vMicroNormalWeight;
-out float vSdrSssWeight;
 out float vHdrTransmissionPeak;
 out float vDirectLight;
 out float vThickness01;
@@ -254,11 +249,8 @@ void main() {
     vSurfacePositionPx = aPositionPx;
     vSurfaceSlope = aSlope;
     vDepth01 = aDepth01;
-    vCrestPinch = aCrestPinch;
     vSheenSlope = aSheenSlope;
     // 网格行与九层曲线节点对齐；在顶点阶段采样后线性插值，与逐片元采样等价。
-    vMicroNormalWeight = sampleLayerCurve(uMicroNormalWeights, aDepth01);
-    vSdrSssWeight = sampleLayerCurve(uSdrSssWeights, aDepth01);
     vHdrTransmissionPeak = sampleLayerCurve(uHdrTransmissionPeaks, aDepth01);
     vDirectLight = directLight;
     // 厚度代理：高出本层轮廓均值的高度（y 向下为正，波峰 y 更小）。

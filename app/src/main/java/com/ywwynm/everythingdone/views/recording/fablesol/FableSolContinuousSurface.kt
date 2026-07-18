@@ -236,14 +236,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         val life = (p.get("surface_decay_dp") / (speed * spectral)).coerceIn(2.8, 14.0)
         packets.add(Packet(lambda, angle, amp, x, z, sigmaX, sigmaZ,
             rng.uniform(0.0, 2.0 * PI), 1.0, age, life))
-        val cadenceRate = if (sim == null) 1.0 else
-            FableSolPinkBreathPolicy.packetCadenceRate(
-                now,
-                p.get("pink_mod"),
-                p.get("global_pink_breath_strength")
-            )
-        nextPacketT = now + rng.uniform(1.5, 3.0) /
-            ((0.72 + 0.55 * s) * cadenceRate)
+        nextPacketT = now + rng.uniform(1.5, 3.0) / (0.72 + 0.55 * s)
     }
 
     fun injectPacket(sim: FableSolSimulation, strength: Double, pan01: Double = 0.5,
@@ -313,12 +306,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         sample.depthDp = depth
         for (r in 0 until Z_ROWS) sample.zDp[r] = sample.z01[r] * depth
 
-        val ambientScale = p.get("ambient_gain") / 1.2 *
-            FableSolPinkBreathPolicy.waveAmplitudeGain(
-                sim.t,
-                p.get("pink_mod"),
-                p.get("global_pink_breath_strength")
-            )
+        val ambientScale = p.get("ambient_gain") / 1.2
         val u0 = sim.uGrid[0]
         val modeCount = wavelength.size
         for (j in 0 until modeCount) {

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">Да</string>
@@ -507,8 +507,6 @@
     <string name="fablesol_group_ambient_flow">Фон и течение</string>
     <string name="fablesol_group_hero">Главная волна</string>
     <string name="fablesol_group_swell">Зыбь</string>
-    <string name="fablesol_group_injection">Ввод волн</string>
-    <string name="fablesol_group_sections">Секции</string>
     <string name="fablesol_param_uplift_thick_glow">Сила свечения толщины</string>
     <string name="fablesol_param_uplift_glow_boost">Осветление от свечения</string>
     <string name="fablesol_param_uplift_crest_rim">Сила серебряной нити гребня</string>
@@ -522,23 +520,6 @@
     <string name="fablesol_param_sky_reflection_strength">Сила отражения неба</string>
     <string name="fablesol_param_body_light_strength">Просвет водной толщи</string>
     <string name="fablesol_param_light_azimuth_deg">Азимут света</string>
-    <string name="fablesol_param_crest_glint_strength">Сила зеркального блика</string>
-    <string name="fablesol_param_crest_lighten">Осветление бликов</string>
-    <string name="fablesol_param_crest_glow_strength">Свечение гребня</string>
-    <string name="fablesol_param_crest_glow_depth_dp">Глубина свечения</string>
-    <string name="fablesol_param_crest_veil_strength">Сила вуали гребня</string>
-    <string name="fablesol_param_capillary_glint_gain">Капиллярные блики</string>
-    <string name="fablesol_param_thin_glow_gain">Свечение тонкого гребня (устар.)</string>
-    <string name="fablesol_param_flow_streak_gain">Полосы течения</string>
-    <string name="fablesol_param_orbital_sway_dp">Орбитальное покачивание</string>
-    <string name="fablesol_param_back_shade_gain">Собственная тень тыла волны</string>
-    <string name="fablesol_param_aerial_contrast">Воздушная перспектива</string>
-    <string name="fablesol_param_pink_mod">Медленная модуляция 1/f</string>
-    <string name="fablesol_param_specular_aa_strength">Ограничение полосы микронормалей</string>
-    <string name="fablesol_param_global_pink_breath_strength">Глобальное дыхание 1/f</string>
-    <string name="fablesol_param_micro_normal_strength">Микронормали, расчёсанные ветром</string>
-    <string name="fablesol_param_sun_sss_strength">Подповерхностное рассеяние рассвета</string>
-    <string name="fablesol_param_sun_sss_falloff">Спад рассеяния рассвета</string>
     <string name="fablesol_param_color_breath">Дыхание цвета</string>
     <string name="fablesol_param_hue_temp_deg">Сдвиг цветовой температуры</string>
     <string name="fablesol_param_surface_heading_deg">Курс главной волны</string>
@@ -570,24 +551,6 @@
     <string name="fablesol_param_swell_attack_s">Атака зыби</string>
     <string name="fablesol_param_swell_release_s">Спад зыби</string>
     <string name="fablesol_param_swell_gain">Усиление зыби</string>
-    <string name="fablesol_param_inject_gain">Усиление ввода</string>
-    <string name="fablesol_param_inject_amp_max_dp">Макс. высота одной волны</string>
-    <string name="fablesol_param_inject_width_min_dp">Мин. ширина волны</string>
-    <string name="fablesol_param_inject_width_max_dp">Макс. ширина волны</string>
-    <string name="fablesol_param_inject_ramp_ms">Время нарастания ввода</string>
-    <string name="fablesol_param_rhythm_wave_gain">Сила ритм-пакета</string>
-    <string name="fablesol_param_rhythm_wave_min_strength">Порог ритм-пакета</string>
-    <string name="fablesol_param_travel_bias_max">Макс. смещение по течению</string>
-    <string name="fablesol_param_cascade_step_s">Каскадная задержка слоёв</string>
-    <string name="fablesol_param_incoming_threshold">Порог дальней волны</string>
-    <string name="fablesol_param_incoming_prob">Вероятность дальней волны</string>
-    <string name="fablesol_param_incoming_cooldown_s">Перезарядка дальней волны</string>
-    <string name="fablesol_param_surge_gain">Усиление вала</string>
-    <string name="fablesol_param_surge_amp_max_dp">Высота вала</string>
-    <string name="fablesol_param_surge_lift_dp">Подъём вала</string>
-    <string name="fablesol_param_surge_drawdown_dp">Отход вала</string>
-    <string name="fablesol_param_mood_transition_s">Переход настроения</string>
-    <string name="fablesol_param_mood_spread_dp">Разнос слоёв по энергии</string>
     <string name="doing_digit_fill">Заливка</string>
     <string name="doing_digit_outline">Контур</string>
     <string name="cd_random_pure_background">Случайный чистый цвет</string>

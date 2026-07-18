@@ -156,16 +156,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val seed: Double,
         val birthPathWeight: Double
     )
-    private class Streak(var u: Double, var age: Double, val life: Double,
-                         val len: Double, val seed: Double)
     private val glintTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(4) }
     private val eligibleGlintLayerCount = (0 until FableSolSpec.N_LAYERS).count {
         FableSolMaterialPolicy.glintCapacity(it) > 0
-    }
-    private var glitterBirthCredit = eligibleGlintLayerCount.toDouble()
-    private val glintLayerBirthCredit = DoubleArray(FableSolSpec.N_LAYERS) { layer ->
-        eligibleGlintLayerCount * FableSolMaterialPolicy.glintBirthWeight(layer) /
-            FableSolMaterialPolicy.GLINT_BIRTH_WEIGHT_TOTAL
     }
     private val glintAnchorUsed = BooleanArray(MAX_GLINT_ANCHORS)
     private val glitterCandidateLayer = IntArray(MAX_GLITTER_CANDIDATES)
@@ -176,9 +169,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private val glitterCandidateScore = DoubleArray(MAX_GLITTER_CANDIDATES)
     private val glitterCandidateUsed = BooleanArray(MAX_GLITTER_CANDIDATES)
     private var glitterCandidateCount = 0
-    private val streakTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Streak>(4) }
-    private val streakSeq = IntArray(FableSolSpec.N_LAYERS)
-    private val streakNextT = DoubleArray(FableSolSpec.N_LAYERS)
     private var trackT = 0.0
     private val canvasDepthAxisX = DoubleArray(FableSolSpec.N_POINTS)
     private val canvasDepthAxisY = DoubleArray(FableSolSpec.N_POINTS)
@@ -845,7 +835,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
         val depth01 = i.toDouble() / (FableSolSpec.N_LAYERS - 1)
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
-        drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
         if (params.get("crest_on") >= 0.5) {
             drawHighlights(
                 canvas = canvas,
@@ -855,13 +844,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 i0 = 0,
                 depth01 = depth01,
                 fillBottom = fillBottom,
-                sourceIndex = surfaceSourceIndex,
-                sourceFraction = surfaceSourceFraction,
                 depthAxisX = canvasDepthAxisX,
                 depthAxisY = canvasDepthAxisY
             )
-        } else {
-            drawFlowStreaks(canvas, i, cnt, lc)
         }
         doubleScratchIndex = scratchMark
     }
@@ -893,12 +878,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         fillPaint.shader = null
 
         drawInterfaceShoulder(canvas, i, cnt, lc, fillBottom)
-        drawBackShade(canvas, i, cnt, lc, fillBottom, depth01)
 
         if (params.get("crest_on") >= 0.5) {
             drawHighlights(canvas, i, cnt, lc, i0, depth01, fillBottom)
-        } else {
-            drawFlowStreaks(canvas, i, cnt, lc)
         }
         doubleScratchIndex = scratchMark
     }
@@ -1091,64 +1073,11 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     }
 
     /**
-     * 层内波背暗带先写入主体，再叠加表面反射、透射和闪点。颜色逐停靠点从当前层色
-     * 派生，水平/垂直/对角渐变都不再共用 Thing 起点色或黑灰覆盖色。
-     */
-    private fun drawBackShade(canvas: Canvas, layer: Int, cnt: Int,
-                              colors: LayerColors, fillBottom: Double,
-                              depth01: Double) {
-        val gain = params.get("back_shade_gain")
-        val layerWeight = FableSolMaterialPolicy.backShadeAlphaWeight(layer)
-        if (gain <= 1e-3 || layerWeight <= 0.0) return
-
-        val scratchMark = doubleScratchIndex
-        val dxPx = xsPx[1] - xsPx[0]
-        val gradY = scratchZero(cnt)
-        FableSolMath.gradientInto(ysPx, cnt, dxPx, gradY)
-        val slopeRaw = scratchArray(cnt) { -gradY[it] }
-        val slope = scratchZero(cnt)
-        FableSolMath.convolveSameInto(slopeRaw, cnt, KER3, slope)
-        val gradGrad = scratchZero(cnt)
-        FableSolMath.gradientInto(gradY, cnt, dxPx, gradGrad)
-        val curvRaw = scratchArray(cnt) { -gradGrad[it] * density }
-        val curv = scratchZero(cnt)
-        FableSolMath.convolveSameInto(curvRaw, cnt, KER3, curv)
-        val litSign = if (params.get("light_azimuth_deg") >= 0.0) 1.0 else -1.0
-        val shade = smoothSignal(backShadeField(slope, curv, litSign, cnt), cnt, 4)
-        var maximum = 0.0
-        for (value in shade) maximum = max(maximum, value)
-        if (maximum > 0.04) {
-            val top = scratchArray(cnt) { ysPx[it] + 0.3 * density }
-            val thickness = scratchArray(cnt) {
-                (2.0 + 13.0 * shade[it]) * density * sqrt(shade[it]) *
-                    FableSolMaterialPolicy.backShadeWidthWeight(layer)
-            }
-            fun shadow(color: IntArray): IntArray = FableSolShadowColorPolicy.backShade(
-                color, params.get("hue_temp_deg"), depth01
-            )
-            val shadowColors = LayerColors(
-                shadow(colors.start), shadow(colors.stop1),
-                shadow(colors.stop2), shadow(colors.end),
-                colors.interfaceWeights, colors.alpha255
-            )
-            val air = 1.0 - params.get("aerial_contrast") * depth01
-            val alpha = (88.0 * (colors.alpha255 / 255.0) * gain * air * layerWeight)
-                .roundToInt()
-            drawGradientOneSidedBand(
-                canvas, cnt, top, thickness, shadowColors, alpha, fillBottom
-            )
-        }
-        doubleScratchIndex = scratchMark
-    }
-
-    /**
-     * 物理近似高光（对应 canvas.py 的 _draw_highlights）：镜面闪光（坡度匹配光源半角）+ 菲涅尔亮边
-     * + 波峰透光 + 波冠轻纱。三项都是表面坡度/曲率的局部函数，无需光线追踪。
+     * 物理近似高光（对应 canvas.py 的 _draw_highlights）：菲涅尔亮边 + 水体透光 + 闪点。
+     * 全部是表面坡度的局部函数，无需光线追踪。
      */
     private fun drawHighlights(canvas: Canvas, i: Int, cnt: Int, colors: LayerColors,
                               i0: Int, depth01: Double, fillBottom: Double,
-                              sourceIndex: IntArray? = null,
-                              sourceFraction: DoubleArray? = null,
                               depthAxisX: DoubleArray? = null,
                               depthAxisY: DoubleArray? = null) {
         val c1 = colors.start
@@ -1163,147 +1092,62 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val slopeRaw = scratchArray(cnt) { -gradY[it] }
         val slope = scratchZero(cnt)
         FableSolMath.convolveSameInto(slopeRaw, cnt, ker, slope)
-        val gradGrad = scratchZero(cnt)
-        FableSolMath.gradientInto(gradY, cnt, dxPx, gradGrad)
-        val curvRaw = scratchArray(cnt) { -gradGrad[it] * density }
-        val curv = scratchZero(cnt)
-        FableSolMath.convolveSameInto(curvRaw, cnt, ker, curv)
-        val cap = ls.capillary01 * params.get("capillary_glint_gain")
         val rough = ls.roughness01
         val uDp = scratchArray(cnt) { xsPx[it] / density }
         val micro = scratchZero(cnt)
         val microCurv = scratchZero(cnt)
         if (FableSolMaterialPolicy.glintCapacity(i) > 0) {
-            ls.optical.sampleInto(uDp, cnt, cap, rough, micro, microCurv)
+            ls.optical.sampleInto(uDp, cnt, rough, micro, microCurv)
         }
         val opticalSlope = scratchArray(cnt) { slope[it] + micro[it] }
         val s0 = tan(Math.toRadians(params.get("light_azimuth_deg")) / 2.0)
         val sigma = GLINT_SIGMA * (1.0 + 0.42 * rough)
         val sinElev = sin(Math.toRadians(VIEW_ELEVATION_DEG))
         val flatFres = WATER_F0 + (1.0 - WATER_F0) * (1.0 - sinElev).pow(5)
-        val glintStrength = params.get("crest_glint_strength")
         val skyStrength = params.get("sky_reflection_strength")
-        val glowStrength = params.get("crest_glow_strength")
         val bodyStrength = params.get("body_light_strength")
         val fres = scratchZero(cnt)
         val edge = scratchZero(cnt)
+        // 镜面反射项（2026-07-18 恢复闪点出生）：强度固化 0.90（原
+        // crest_glint_strength 默认，参数不恢复），数量总门 glint_capacity_gain。
         for (j in 0 until cnt) {
             val os = opticalSlope[j]
             val glint = exp(-((os - s0) / sigma).pow(2))
-            val facet = (abs(microCurv[j]) / (0.004 + 0.006 * rough)).coerceIn(0.0, 1.0).pow(0.58)
+            val facet = (abs(microCurv[j]) / (0.004 + 0.006 * rough))
+                .coerceIn(0.0, 1.0).pow(0.58)
             val cosTheta = (sinElev / sqrt(1.0 + os * os)).coerceIn(0.0, 1.0)
             val fr = WATER_F0 + (1.0 - WATER_F0) * (1.0 - cosTheta).pow(5)
             fres[j] = fr
             val fresDetail = ((fr - flatFres) * 4.0).coerceIn(0.0, 1.0)
-            val edgeRaw = (glint * facet * glintStrength + fresDetail * skyStrength * 0.24)
+            val edgeRaw = (glint * facet * 0.90 + fresDetail * skyStrength * 0.24)
                 .coerceIn(0.0, 1.0)
             edge[j] = ((edgeRaw - 0.08) / 0.92).coerceIn(0.0, 1.0)
         }
         val edgeS = smoothSignal(edge, cnt, 3)
         for (j in 0 until cnt) if (edgeS[j] < 0.015) edgeS[j] = 0.0
-        val crestLight0 = scratchArray(cnt) { (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0) * glowStrength }
-        val crestLight = scratchZero(cnt)
-        FableSolMath.convolveSameInto(crestLight0, cnt, FULL5, crestLight)
-        val volume = scratchArray(cnt) { ((0.16 + 0.84 * crestLight[it]) * (1.0 - fres[it]) * bodyStrength).coerceIn(0.0, 1.0) }
-
-        // 轨道微摆：线性深水波的物质水平位移 ξ=slope/k——光斑骑在"水"上而非钉在
-        // "波形"上，随浪经过绕基点回摆，与竖直起伏合成轨道运动。
-        val sway = scratchArray(cnt) {
-            (slope[it] * params.get("orbital_sway_dp") * density)
-                .coerceIn(-8.0 * density, 8.0 * density)
+        val volume = scratchArray(cnt) {
+            (0.16 * (1.0 - fres[it]) * bodyStrength).coerceIn(0.0, 1.0)
         }
-        val hc = FableSolOpticalColorPolicy.highlight(
-            FableSolColor.mix(c1, c2, 0.3), params.get("crest_lighten")
-        )
+
+        val hc = FableSolColor.mix(c1, c2, 0.3)
         val bodyColor = FableSolColor.mixOklab(c1, hc, 0.46)
         val a01 = a255 / 255.0
-        // 空气透视压缩：远层所有装饰统一向该层基调收缩（构图的音量控制器）。
-        val kAir = 1.0 - params.get("aerial_contrast") * depth01
 
         if (bodyStrength > 1e-3) {
-            val dPx = params.get("crest_glow_depth_dp") * density
+            val dPx = 2.0 * density
             val topArr = scratchArray(cnt) { ys[it] + 0.35 * density }
             val thickness = scratchArray(cnt) { dPx * (0.34 + 0.66 * volume[it]) }
             drawOneSidedBand(canvas, cnt, topArr, thickness, bodyColor,
-                (72 * a01 * kAir * bodyStrength).toInt(), true)
+                (72 * a01 * bodyStrength).toInt(), true)
         }
-        // 薄峰透光内辉：高出均线的圆峰水最薄，光穿透后以本层身份色从内部亮起
-        // ——反射族之外唯一的透射族证据，水因此读作有厚度的介质。
-        val tg = params.get("thin_glow_gain")
-        if (tg > 1e-3 && i <= 4) {
-            val glow = smoothSignal(thinGlowField(ys, curv, cnt), cnt, 5)
-            var gm = 0.0; for (v in glow) if (v > gm) gm = v
-            if (gm > 0.03) {
-                val glowC = FableSolOpticalColorPolicy.thinTransmission(hc)
-                val topArr = scratchArray(cnt) { ys[it] + 0.4 * density }
-                val th = scratchArray(cnt) {
-                    FableSolMaterialPolicy.thinGlowThicknessDp(glow[it]) * density
-                }
-                drawOneSidedBand(canvas, cnt, topArr, th, glowC,
-                    (140 * a01 * tg * kAir).toInt(), true)
-            }
-        }
-        val veilStrength = params.get("crest_veil_strength")
-        if (veilStrength > 1e-3 && FableSolMaterialPolicy.crestVeilSourceWeight(i) > 0.0) {
-            val veilRaw = scratchArray(cnt) {
-                if (sourceIndex == null || sourceFraction == null) {
-                    ls.crestVeil[i0 + it]
-                } else {
-                    val index = sourceIndex[it]
-                    val fraction = sourceFraction[it]
-                    ls.crestVeil[index] * (1.0 - fraction) +
-                        ls.crestVeil[index + 1] * fraction
-                }
-            }
-            val veil = smoothSignal(veilRaw, cnt, 4)
-            var mx = 0.0
-            for (j in 0 until cnt) { veil[j] *= veilStrength; if (veil[j] > mx) mx = veil[j] }
-            if (mx > 1e-3) {
-                val veilColor = FableSolOpticalColorPolicy.crestVeil(hc)
-                val ysV = scratchArray(cnt) { ys[it] - 0.20 * density }
-                val amt = scratchArray(cnt) { veil[it] * a01 }
-                drawVariableBand(canvas, cnt, ysV, amt, veilColor, 3.2 * density, (96 * a01 * veilStrength).toInt())
-            }
-        }
-        // source-over 下内部体光/透射/轻纱先完成，流光随后；
         // 闪点最后绘制，不能再被半透明介质衰减。
-        drawFlowStreaks(canvas, i, cnt, colors)
-        // 镜面高光：持久实体闪点（原地生灭的明灭，不是行驶的车厢）。
-        if (glintStrength > 1e-3) {
-            var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
-            if (mx > 1e-3) {
-                drawGlints(
-                    canvas, i, cnt, ys, edgeS, sway, hc, a01, kAir,
-                    depthAxisX, depthAxisY
-                )
-            }
+        var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
+        if (mx > 1e-3) {
+            drawGlints(
+                canvas, i, cnt, ys, edgeS, hc, a01,
+                depthAxisX, depthAxisY
+            )
         }
-    }
-
-    /** 连续变宽的镜面光斑（对应 _draw_variable_band）：用填充几何承载强度。 */
-    private fun drawVariableBand(canvas: Canvas, cnt: Int, ys: DoubleArray, amountIn: DoubleArray,
-                                rgb: IntArray, maxWidthPx: Double, alpha: Int) {
-        val amount = scratchArray(cnt) { amountIn[it].coerceIn(0.0, 1.0).pow(0.72) }
-        if (cnt >= 2) { amount[0] = 0.0; amount[1] = 0.0; amount[cnt - 1] = 0.0; amount[cnt - 2] = 0.0 }
-        val dxg = scratchZero(cnt)
-        FableSolMath.gradientInto(xsPx, cnt, 1.0, dxg)
-        val dyg = scratchZero(cnt)
-        FableSolMath.gradientInto(ys, cnt, 1.0, dyg)
-        val upperX = scratchZero(cnt); val upperY = scratchZero(cnt)
-        val lowerX = scratchZero(cnt); val lowerY = scratchZero(cnt)
-        for (j in 0 until cnt) {
-            val inv = 1.0 / max(hypot(dxg[j], dyg[j]), 1e-6)
-            val nx = -dyg[j] * inv; val ny = dxg[j] * inv
-            val half = 0.5 * maxWidthPx * amount[j]
-            upperX[j] = xsPx[j] + nx * half; upperY[j] = ys[j] + ny * half
-            lowerX[j] = xsPx[j] - nx * half; lowerY[j] = ys[j] - ny * half
-        }
-        bandPath.reset()
-        buildSmooth(bandPath, upperX, upperY, cnt, true)
-        buildSmooth(bandPath, reverse(lowerX, cnt), reverse(lowerY, cnt), cnt, false)
-        bandPath.close()
-        bandPaint.color = FableSolColor.toColor(rgb, alpha.coerceIn(0, 255))
-        canvas.drawPath(bandPath, bandPaint)
     }
 
     /**
@@ -1397,40 +1241,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         bandPath.close()
     }
 
-    // ================================================================== A5/B 立体感手法
-    /** 浪顶表面带（_draw_surface_strip）：迎光坡宽、背坡窄，随浪起伏开合；
-     *  颜色从当前层色固定 hue 提亮，轮廓线成为平面的近边。 */
-    /**
-     * 流光条纹：材质相对波形滚动的证据——顺层流漂移、随轨道回摆，只在浪顶平面
-     * 可见。已与被移除的表面亮带解耦（与 Python D145 先例、GL 端 buildStreaks
-     * 对齐）：迎光与摆幅由波形梯度现算，底色取层色中间调。
-     */
-    private fun drawFlowStreaks(canvas: Canvas, i: Int, cnt: Int, colors: LayerColors) {
-        if (FableSolMaterialPolicy.flowStreakCapacity(i) <= 0 ||
-            params.get("flow_streak_gain") <= 1e-3
-        ) {
-            return
-        }
-        val dxPx = xsPx[1] - xsPx[0]
-        val gradY = scratchZero(cnt)
-        FableSolMath.gradientInto(ysPx, cnt, dxPx, gradY)
-        val slopeRaw = scratchArray(cnt) { -gradY[it] }
-        val slope = scratchZero(cnt)
-        FableSolMath.convolveSameInto(slopeRaw, cnt, KER3, slope)
-        val facing = scratchArray(cnt) {
-            val q = ((slope[it] + 0.05) / 0.50).coerceIn(0.0, 1.0)
-            q * q * (3.0 - 2.0 * q)
-        }
-        val sway = scratchArray(cnt) {
-            (slope[it] * params.get("orbital_sway_dp") * density)
-                .coerceIn(-8.0 * density, 8.0 * density)
-        }
-        val representative = FableSolColor.mixOklab(colors.stop1, colors.stop2, 0.5)
-        drawFlowStreakTracks(
-            canvas, i, cnt, facing, sway, representative, colors.alpha255 / 255.0
-        )
-    }
-
     /** 场的局部极大 → 锚点 (u, 强度, 半宽)（_field_peaks）。半宽随浪形伸缩。 */
     private fun fieldPeaks(field: DoubleArray, cnt: Int, floor: Double, minSepPx: Double,
                            kMax: Int): ArrayList<DoubleArray> {
@@ -1488,13 +1298,12 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
     /** 镜面闪点（_draw_glints）：少量持久实体贴着受光浪面滑行，无周期呼吸或强度驱动的尺寸扩张。 */
     private fun drawGlints(canvas: Canvas, i: Int, cnt: Int, ys: DoubleArray, prob: DoubleArray,
-                           sway: DoubleArray, hc: IntArray, a01: Double, kAir: Double,
+                           hc: IntArray, a01: Double,
                            depthAxisX: DoubleArray?, depthAxisY: DoubleArray?) {
         val dt = FableSolGlintEnvelopePolicy.trackingDeltaSeconds(
             max(sim.t - trackT, 0.0)
         )
-        val pink = 1.0 + 0.12 * params.get("pink_mod") * (2.0 * pink01(sim.t, 3.1) - 1.0)
-        val spark = (0.35 + 0.65 * sim.sparkle01) * pink
+        val spark = 0.35 + 0.65 * sim.sparkle01
         val fieldInput = scratchArray(cnt) {
             (prob[it] * 1.5).coerceIn(0.0, 1.0) * spark
         }
@@ -1539,11 +1348,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             val alpha = FableSolGlintEnvelopePolicy.coreAlpha(
                 inten,
                 a01,
-                FableSolMaterialPolicy.glintCoreAlphaWeight(i),
-                kAir
+                FableSolMaterialPolicy.glintCoreAlphaWeight(i)
             )
             if (alpha <= 1.0 / 255.0) continue
-            val cx = e.u + interpAt(sway, cnt, e.u)
+            val cx = e.u
             val j = ((cx - xsPx[0]) / dxPx).toInt().coerceIn(1, cnt - 2)
             val cy = interpAt(ys, cnt, cx)
             val halfLength = (
@@ -1586,51 +1394,12 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
     }
 
-    /** 所有层共享一份出生预算，按太阳反射路径与层权重选择下一批闪点。 */
+    /** 所有层候选按分数贪心兑现且不超层容量（1/f 呼吸出生预算已随参数移除）。 */
     private fun scheduleGlitterBirths(dt: Double) {
-        if (eligibleGlintLayerCount <= 0) return
-        val strength = params.get("global_pink_breath_strength")
-        val birthRate = FableSolPinkBreathPolicy.glintBirthRate(
-            sim.t,
-            params.get("pink_mod"),
-            strength
-        )
-        var allowance = glitterCandidateCount
-        if (strength > 1e-6) {
-            val earned = dt * birthRate * eligibleGlintLayerCount /
-                GLINT_BIRTH_INTERVAL_SECONDS
-            glitterBirthCredit = min(
-                eligibleGlintLayerCount.toDouble(),
-                glitterBirthCredit + earned
-            )
-            for (layer in 0 until FableSolSpec.N_LAYERS) {
-                val capacity = FableSolMaterialPolicy.glintCapacity(layer)
-                if (capacity <= 0) continue
-                glintLayerBirthCredit[layer] = min(
-                    capacity.toDouble(),
-                    glintLayerBirthCredit[layer] + earned *
-                        FableSolMaterialPolicy.glintBirthWeight(layer) /
-                        FableSolMaterialPolicy.GLINT_BIRTH_WEIGHT_TOTAL
-                )
-            }
-            allowance = min(allowance, glitterBirthCredit.toInt())
-        }
-        if (allowance <= 0 || glitterCandidateCount <= 0) return
+        if (eligibleGlintLayerCount <= 0 || glitterCandidateCount <= 0) return
 
         java.util.Arrays.fill(glitterCandidateUsed, 0, glitterCandidateCount, false)
-        var births = 0
-        while (births < allowance) {
-            var hasQuotaCandidate = false
-            for (candidate in 0 until glitterCandidateCount) {
-                if (glitterCandidateUsed[candidate]) continue
-                val layer = glitterCandidateLayer[candidate]
-                if (glintTracks[layer].size < FableSolMaterialPolicy.glintCapacity(layer) &&
-                    glintLayerBirthCredit[layer] >= 1.0
-                ) {
-                    hasQuotaCandidate = true
-                    break
-                }
-            }
+        while (true) {
             var best = -1
             var bestScore = MIN_GLITTER_BIRTH_SCORE
             for (candidate in 0 until glitterCandidateCount) {
@@ -1639,7 +1408,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 if (glintTracks[layer].size >= FableSolMaterialPolicy.glintCapacity(layer)) {
                     continue
                 }
-                if (hasQuotaCandidate && glintLayerBirthCredit[layer] < 1.0) continue
                 val distributedScore = glitterCandidateScore[candidate] /
                     (1.0 + 0.28 * glintTracks[layer].size)
                 if (distributedScore > bestScore) {
@@ -1661,75 +1429,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                     glitterCandidatePathWeight[best]
                 )
             )
-            glintLayerBirthCredit[layer] = max(0.0, glintLayerBirthCredit[layer] - 1.0)
-            births++
         }
-        if (strength > 1e-6) {
-            glitterBirthCredit = max(0.0, glitterBirthCredit - births)
-        }
-    }
-
-    /** 流光条纹（_draw_flow_streaks + _step_streaks）：浪顶平面上的持久发光条。 */
-    private fun drawFlowStreakTracks(canvas: Canvas, i: Int, cnt: Int, facing: DoubleArray,
-                                     sway: DoubleArray, baseC: IntArray, a01: Double) {
-        val dt = max(sim.t - trackT, 0.0)
-        val flowPxS = sim.layers[i].flowDps * density
-        val cap = FableSolMaterialPolicy.flowStreakCapacity(i)
-        val layerWeight = FableSolMaterialPolicy.flowStreakWeight(i)
-        val tracks = streakTracks[i]
-        // 推进：顺流漂移、寿命衰老、越界剔除；缺员按确定性节奏补生。
-        for (e in tracks) { e.age += dt; e.u += flowPxS * dt }
-        val margin = 60.0 * density
-        tracks.removeAll { it.age >= it.life || it.u <= xsPx[0] - margin || it.u >= xsPx[cnt - 1] + margin }
-        if (tracks.size < cap && sim.t >= streakNextT[i]) {
-            val s = hash01(streakSeq[i] * 1.7 + 0.37, i * 2.9)
-            val s2 = hash01(streakSeq[i] * 3.1 + 1.11, i * 5.3)
-            tracks.add(Streak(
-                xsPx[0] + (0.08 + 0.84 * s) * (xsPx[cnt - 1] - xsPx[0]), 0.0,
-                5.0 + 4.0 * s2,
-                (26.0 + 38.0 * hash01(streakSeq[i] + 9.1, i.toDouble())) * density, s2))
-            streakSeq[i]++
-            streakNextT[i] = sim.t + (0.8 + 1.6 * s) / max(layerWeight, 1e-3)
-        }
-        if (tracks.isEmpty()) return
-        val gain = params.get("flow_streak_gain")
-        val streakC = FableSolColor.mixOklab(baseC, WHITE, 0.45)
-        val dxPx = xsPx[1] - xsPx[0]
-        val pink = 1.0 + 0.15 * params.get("pink_mod") * (2.0 * pink01(sim.t, 17.3) - 1.0)
-        for (e in tracks) {
-            val env = sin(Math.PI * min(e.age / e.life, 1.0)).pow(0.8) * pink
-            val cx = e.u + interpAt(sway, cnt, e.u)
-            val fAt = interpAt(facing, cnt, cx)
-            val vis = env * fAt.pow(1.1)
-            if (vis < 0.05) continue
-            val j = ((cx - xsPx[0]) / dxPx).toInt().coerceIn(1, cnt - 2)
-            val cy = interpAt(ysPx, cnt, cx) + (1.4 + 1.0 * e.seed) * density
-            val ang = Math.toDegrees(atan2(ysPx[j + 1] - ysPx[j - 1], 2.0 * dxPx))
-            val length = e.len * 0.5 * (0.85 + 0.30 * fAt)
-            val thick = (1.1 + 0.9 * e.seed) * density
-            val aPk = (92 * a01 * gain * vis * layerWeight).toInt().coerceIn(0, 255)
-            if (aPk <= 1) continue
-            drawGlowEllipse(canvas, cx, cy, ang, length, thick, streakC, streakC, aPk, 0.42)
-        }
-    }
-
-    /** 旋转径向渐变椭圆只供较长的流光条纹使用；镜面闪点使用单侧实心短光迹。 */
-    private fun drawGlowEllipse(canvas: Canvas, cx: Double, cy: Double, angDeg: Double,
-                                length: Double, thick: Double, core: IntArray, edge: IntArray,
-                                aPk: Int, midStop: Double) {
-        if (aPk <= 1) return
-        bandPaint.shader = RadialGradient(0f, 0f, 1f,
-            intArrayOf(FableSolColor.toColor(core, aPk),
-                FableSolColor.toColor(edge, (aPk * midStop).toInt()),
-                FableSolColor.toColor(edge, 0)),
-            floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-        val save = canvas.save()
-        canvas.translate(cx.toFloat(), cy.toFloat())
-        canvas.rotate(angDeg.toFloat())
-        canvas.scale(length.toFloat(), thick.toFloat())
-        canvas.drawOval(unitRect, bandPaint)
-        canvas.restoreToCount(save)
-        bandPaint.shader = null
     }
 
     /** Canvas 回退闪点：顶边贴住水面，只向水体内部展开的实心短光迹。 */
@@ -1775,47 +1475,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         canvas.drawPath(unitSurfaceGlint, bandPaint)
         canvas.restoreToCount(save)
         bandPaint.shader = null
-    }
-
-    /** 薄峰透光场（_thin_glow_field）：绝对海拔门(4→14dp) × 上凸薄度。 */
-    private fun thinGlowField(ys: DoubleArray, curv: DoubleArray, cnt: Int): DoubleArray {
-        var mean = 0.0; for (j in 0 until cnt) mean += ys[j]; mean /= cnt
-        return scratchArray(cnt) {
-            val elevDp = (mean - ys[it]) / density
-            var gate = ((elevDp - 4.0) / 10.0).coerceIn(0.0, 1.0)
-            gate = gate * gate * (3.0 - 2.0 * gate)
-            val thin = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
-            gate * (0.15 + 0.85 * thin)
-        }
-    }
-
-    /** 波背自阴影场（_back_shade_field）：背光坡 × 脊线邻近；平水自动归零。 */
-    private fun backShadeField(slope: DoubleArray, curv: DoubleArray, litSign: Double,
-                               cnt: Int): DoubleArray = scratchArray(cnt) {
-        var back = ((-slope[it] * litSign - 0.05) / 0.40).coerceIn(0.0, 1.0)
-        back = back * back * (3.0 - 2.0 * back)
-        val crest = (curv[it] / (-GLOW_KAPPA)).coerceIn(0.0, 1.0)
-        back * (0.30 + 0.70 * crest)
-    }
-
-    /** 1/f 慢调制（_pink01）：四时间尺度值噪声按 1/k 加权，确定性无状态。 */
-    private fun pink01(t: Double, seed: Double): Double {
-        var total = 0.0; var wsum = 0.0
-        for (k in 0 until 4) {
-            val w = 1.0 / (k + 1)
-            val x = t / PINK_TAU[k] + seed * (7.31 + k)
-            val i0 = Math.floor(x)
-            var f = x - i0
-            f = f * f * (3.0 - 2.0 * f)
-            val v = (1.0 - f) * hash01(i0, seed + k * 3.7) + f * hash01(i0 + 1.0, seed + k * 3.7)
-            total += w * v; wsum += w
-        }
-        return total / wsum
-    }
-
-    private fun hash01(a: Double, b: Double): Double {
-        val x = sin(a * 127.1 + b * 311.7) * 43758.5453
-        return x - Math.floor(x)
     }
 
     /** 均匀网格线性插值（xs 等距，按索引直接定位）。 */
@@ -1875,23 +1534,19 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private const val INTRINSIC_W_DP = 280f
         private const val INTRINSIC_H_DP = 420f
 
-        private const val GLINT_SIGMA = 0.072
-        private const val GLINT_BIRTH_INTERVAL_SECONDS = 0.42
         private const val MIN_GLITTER_BIRTH_SCORE = 0.03
         private const val MAX_GLINT_ANCHORS = 4
         private const val MAX_GLITTER_CANDIDATES = FableSolSpec.N_LAYERS * MAX_GLINT_ANCHORS
-        private const val GLOW_KAPPA = 0.009
+        private const val GLINT_SIGMA = 0.072
         private val WATER_F0 = ((1.333 - 1.0) / (1.333 + 1.0)).pow(2)
         private const val VIEW_ELEVATION_DEG = 38.0
         private val WHITE = intArrayOf(255, 255, 255)
         private val GL_FALLBACK_RED = intArrayOf(255, 0, 0)
         private val POS4 = floatArrayOf(0f, 0.24f, 0.60f, 1f)
         private val KER3 = doubleArrayOf(0.25, 0.5, 0.25)
-        private val FULL5 = doubleArrayOf(0.2, 0.2, 0.2, 0.2, 0.2)
         // fade 子带剖面（上沿软入→中段聚光→下缘收出），见 drawOneSidedBand 注释
         private val SUB_OFF = doubleArrayOf(0.00, 0.10, 0.24)
         private val SUB_FRAC = doubleArrayOf(1.00, 0.62, 0.42)
         private val SUB_AA = doubleArrayOf(0.14, 0.34, 0.24)
-        private val PINK_TAU = doubleArrayOf(0.9, 3.7, 14.0, 55.0)
     }
 }

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">はい</string>
@@ -507,8 +507,6 @@
     <string name="fablesol_group_ambient_flow">環境波と流れ</string>
     <string name="fablesol_group_hero">主波</string>
     <string name="fablesol_group_swell">うねり</string>
-    <string name="fablesol_group_injection">波の注入</string>
-    <string name="fablesol_group_sections">セクション</string>
     <string name="fablesol_param_uplift_thick_glow">厚み透過光の強さ</string>
     <string name="fablesol_param_uplift_glow_boost">透過光による明るさ上げ</string>
     <string name="fablesol_param_uplift_crest_rim">波頭シルバーラインの強さ</string>
@@ -522,23 +520,6 @@
     <string name="fablesol_param_sky_reflection_strength">空の反射の強さ</string>
     <string name="fablesol_param_body_light_strength">水体透過光の強さ</string>
     <string name="fablesol_param_light_azimuth_deg">光源の方位角</string>
-    <string name="fablesol_param_crest_glint_strength">鏡面ハイライトの強さ</string>
-    <string name="fablesol_param_crest_lighten">ハイライトの明るさ上げ</string>
-    <string name="fablesol_param_crest_glow_strength">波頭透過光の強さ</string>
-    <string name="fablesol_param_crest_glow_depth_dp">透過光の深さ</string>
-    <string name="fablesol_param_crest_veil_strength">波頭ベールの強さ</string>
-    <string name="fablesol_param_capillary_glint_gain">さざ波のきらめき</string>
-    <string name="fablesol_param_thin_glow_gain">薄い波頭の透過光（旧）</string>
-    <string name="fablesol_param_flow_streak_gain">表面の流れ筋</string>
-    <string name="fablesol_param_orbital_sway_dp">軌道の揺れ幅</string>
-    <string name="fablesol_param_back_shade_gain">波背のセルフシャドウ</string>
-    <string name="fablesol_param_aerial_contrast">空気遠近の圧縮</string>
-    <string name="fablesol_param_pink_mod">1/f ゆらぎ変調</string>
-    <string name="fablesol_param_specular_aa_strength">マイクロ法線の帯域制限</string>
-    <string name="fablesol_param_global_pink_breath_strength">全体の 1/f 呼吸</string>
-    <string name="fablesol_param_micro_normal_strength">風梳きマイクロ法線</string>
-    <string name="fablesol_param_sun_sss_strength">朝日のサブサーフェス散乱</string>
-    <string name="fablesol_param_sun_sss_falloff">朝日散乱の減衰</string>
     <string name="fablesol_param_color_breath">色の呼吸</string>
     <string name="fablesol_param_hue_temp_deg">色温度シフト</string>
     <string name="fablesol_param_surface_heading_deg">主波の進行方位</string>
@@ -570,24 +551,6 @@
     <string name="fablesol_param_swell_attack_s">うねりアタック</string>
     <string name="fablesol_param_swell_release_s">うねりリリース</string>
     <string name="fablesol_param_swell_gain">うねりゲイン</string>
-    <string name="fablesol_param_inject_gain">注入ゲイン</string>
-    <string name="fablesol_param_inject_amp_max_dp">単一波の高さ上限</string>
-    <string name="fablesol_param_inject_width_min_dp">波幅の下限</string>
-    <string name="fablesol_param_inject_width_max_dp">波幅の上限</string>
-    <string name="fablesol_param_inject_ramp_ms">注入フェードイン時間</string>
-    <string name="fablesol_param_rhythm_wave_gain">リズム波束の強さ</string>
-    <string name="fablesol_param_rhythm_wave_min_strength">リズム波束のしきい値</string>
-    <string name="fablesol_param_travel_bias_max">順流バイアス上限</string>
-    <string name="fablesol_param_cascade_step_s">カスケード層間遅延</string>
-    <string name="fablesol_param_incoming_threshold">遠波トリガーの強さ</string>
-    <string name="fablesol_param_incoming_prob">遠波の確率</string>
-    <string name="fablesol_param_incoming_cooldown_s">遠波のクールダウン</string>
-    <string name="fablesol_param_surge_gain">サージゲイン</string>
-    <string name="fablesol_param_surge_amp_max_dp">サージ大波の高さ</string>
-    <string name="fablesol_param_surge_lift_dp">サージの持ち上げ</string>
-    <string name="fablesol_param_surge_drawdown_dp">サージの引き波</string>
-    <string name="fablesol_param_mood_transition_s">ムード遷移</string>
-    <string name="fablesol_param_mood_spread_dp">エネルギー段の層間隔</string>
     <string name="doing_digit_fill">塗りつぶし</string>
     <string name="doing_digit_outline">アウトライン</string>
     <string name="cd_random_pure_background">ランダムな純色</string>

@@ -10,10 +10,7 @@ in vec2 vScreenUv;
 in vec2 vSurfacePositionPx;
 in vec2 vSurfaceSlope;
 in float vDepth01;
-in float vCrestPinch;
 in vec2 vSheenSlope;
-in float vMicroNormalWeight;
-in float vSdrSssWeight;
 in float vHdrTransmissionPeak;
 in float vDirectLight;
 in float vThickness01;
@@ -26,14 +23,8 @@ uniform sampler2D uPreWaterScene;
 uniform vec2 uViewportPx;
 uniform float uRasterScale;
 uniform highp int uStartLayer;
-uniform float uTimeSeconds;
 uniform float uViewElevationRad;
 uniform float uLightAzimuthRad;
-uniform float uSurfaceHeadingRad;
-uniform float uMicroNormalStrength;
-uniform float uSpecularAaStrength;
-uniform float uSunSssStrength;
-uniform float uSunSssFalloff;
 uniform bool uFrontFill;
 uniform bool uSceneLinear;
 uniform float uHdrGain;
@@ -124,41 +115,6 @@ vec3 valueNoiseDerivative(vec2 p) {
     return vec3(value, derivative);
 }
 
-float octaveBandLimit(float frequency, float depth01) {
-    float rowFootprint = mix(1.0, 3.2, clamp(depth01, 0.0, 1.0));
-    float normalizedFootprint = rowFootprint * frequency / 42.0;
-    float analyticLimit = 1.0 - smoothstep(0.16, 0.42, normalizedFootprint);
-    return mix(1.0, analyticLimit, clamp(uSpecularAaStrength, 0.0, 1.0));
-}
-
-vec2 windCombedMicroDerivative(vec2 positionPx, float depth01) {
-    vec2 wind = normalize(vec2(cos(uSurfaceHeadingRad), sin(uSurfaceHeadingRad)));
-    vec2 across = vec2(-wind.y, wind.x);
-    vec2 combed = vec2(
-        dot(positionPx, wind) * 0.34,
-        dot(positionPx, across) * 1.28
-    ) / 42.0;
-    combed.x += uTimeSeconds * 0.11;
-    vec2 derivative = vec2(0.0);
-    float weightSum = 0.0;
-
-    vec3 octave0 = valueNoiseDerivative(combed);
-    float weight0 = octaveBandLimit(1.0, depth01);
-    derivative += octave0.yz * weight0;
-    weightSum += weight0;
-
-    vec3 octave1 = valueNoiseDerivative(combed * 2.03 + vec2(17.1, 9.2));
-    float weight1 = 0.52 * octaveBandLimit(2.03, depth01);
-    derivative += octave1.yz * weight1 * 2.03;
-    weightSum += weight1;
-
-    vec3 octave2 = valueNoiseDerivative(combed * 4.11 + vec2(4.7, 23.3));
-    float weight2 = 0.26 * octaveBandLimit(4.11, depth01);
-    derivative += octave2.yz * weight2 * 4.11;
-    weightSum += weight2;
-    return derivative / max(weightSum, 1e-4);
-}
-
 vec3 lightDirection() {
     float lightElevation = radians(50.0);
     return normalize(vec3(
@@ -166,30 +122,6 @@ vec3 lightDirection() {
         sin(lightElevation),
         -cos(uLightAzimuthRad) * cos(lightElevation)
     ));
-}
-
-float sunriseSubsurfaceMask() {
-    vec3 viewDir = normalize(vec3(0.0, sin(uViewElevationRad), -cos(uViewElevationRad)));
-    vec3 lightDir = lightDirection();
-    vec2 viewHorizontal = normalize(viewDir.xz);
-    vec2 lightHorizontal = normalize(lightDir.xz);
-    float sunAlignment = clamp(dot(viewHorizontal, lightHorizontal), 0.0, 1.0);
-    float sunriseLobe = pow(sunAlignment, clamp(uSunSssFalloff, 4.0, 10.0));
-    float crestMask = pow(clamp(vCrestPinch, 0.0, 1.0), 1.35);
-    float nearMask = clamp(vSdrSssWeight, 0.0, 1.0);
-    return crestMask * nearMask * (0.08 + 0.92 * sunriseLobe);
-}
-
-vec3 addSunriseSubsurface(vec3 linearColor) {
-    vec3 subsurfaceLinear = uSceneLinear
-        ? vSubsurfaceColor
-        : srgbToLinear(vSubsurfaceColor);
-    float amount = clamp(
-        uSunSssStrength * sunriseSubsurfaceMask(),
-        0.0,
-        0.160
-    );
-    return mix(linearColor, subsurfaceLinear, amount);
 }
 
 vec3 preWaterSceneLinear(vec2 uv) {
@@ -232,10 +164,7 @@ vec3 thicknessGlow(vec3 baseLinear, float normalX, float boostScale) {
     float sunSide = clamp(sin(uLightAzimuthRad) * 4.0, -1.0, 1.0);
     float facing = clamp(0.5 + 1.1 * sunSide * normalX, 0.0, 1.0);
     float thin = thicknessThin();
-    // D154：独立权重表；未上传（旧接线）时回退 SDR_SSS 权重，行为与 D151 一致。
-    float layerWeight = vThicknessGlowWeight > 0.0001
-        ? clamp(vThicknessGlowWeight, 0.0, 1.0)
-        : clamp(vSdrSssWeight, 0.0, 1.0);
+    float layerWeight = clamp(vThicknessGlowWeight, 0.0, 1.0);
     float amount = clamp(
         uThicknessGlowStrength * thin * (0.35 + 0.65 * facing) *
             layerWeight * 0.62,
@@ -463,13 +392,12 @@ vec3 applyRefractionAndBeer(
 }
 
 vec3 backlitTransmissionExcess(float fresnel, float thicknessMask) {
-    float strength = clamp(uSunSssStrength / 0.16, 0.0, 1.0);
     float transmissionPeak = min(
         vHdrTransmissionPeak,
         uHdrHeadroom
     );
     // 厚度掩码与 SDR 厚度透光同源（uThicknessGlowStrength=0 时恒为 0）。
-    float mask = min(sunriseSubsurfaceMask() * strength + thicknessMask, 1.0);
+    float mask = min(thicknessMask, 1.0);
     float budget = 0.58 * (1.0 - fresnel) * mask *
         max(transmissionPeak - 1.0, 0.0) * uHdrGain;
     vec3 subsurfaceLinear = uSceneLinear
@@ -565,14 +493,7 @@ void main() {
         return;
     }
 
-    float microWeight = clamp(vMicroNormalWeight, 0.0, 1.0);
-    vec2 microDerivative = windCombedMicroDerivative(
-        vSurfacePositionPx,
-        vDepth01
-    );
-    vec2 microSlope = microDerivative *
-        (0.216 * uMicroNormalStrength * microWeight);
-    vec2 continuousSlope = vSheenSlope + microSlope;
+    vec2 continuousSlope = vSheenSlope;
 
     vec3 normal = normalize(vec3(
         -continuousSlope.x,
@@ -601,12 +522,9 @@ void main() {
             viewDir
         );
         linearColor += linearColor * clamp(vDirectLight, 0.0, 0.020);
-        // 厚度透光（体现象）在直射之后、旧 SSS 之前合成。
+        // 厚度透光（体现象）在直射之后合成。
         if (uThicknessGlowStrength > 0.0001) {
             linearColor = thicknessGlow(linearColor, normal.x, 1.0);
-        }
-        if (uSunSssStrength > 0.0001) {
-            linearColor = addSunriseSubsurface(linearColor);
         }
         // 波峰银边（自身剪影的掠射镜面线），SDR 部分入参考白钳制。
         // 波峰包络做主门（v13：顶点为中心、两翼完整覆盖，方向门只留

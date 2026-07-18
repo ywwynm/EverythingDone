@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="everythingdone">EverythingDone</string>
     <string name="yes">Oui</string>
@@ -507,8 +507,6 @@
     <string name="fablesol_group_ambient_flow">Ambiance et courant</string>
     <string name="fablesol_group_hero">Vague principale</string>
     <string name="fablesol_group_swell">Houle</string>
-    <string name="fablesol_group_injection">Injection de vagues</string>
-    <string name="fablesol_group_sections">Sections</string>
     <string name="fablesol_param_uplift_thick_glow">Intensité de la lueur d\'épaisseur</string>
     <string name="fablesol_param_uplift_glow_boost">Éclaircissement dérivé de la lueur</string>
     <string name="fablesol_param_uplift_crest_rim">Intensité du fil argenté de crête</string>
@@ -522,23 +520,6 @@
     <string name="fablesol_param_sky_reflection_strength">Intensité du reflet du ciel</string>
     <string name="fablesol_param_body_light_strength">Lumière transmise du corps d\'eau</string>
     <string name="fablesol_param_light_azimuth_deg">Azimut de la lumière</string>
-    <string name="fablesol_param_crest_glint_strength">Intensité du reflet spéculaire</string>
-    <string name="fablesol_param_crest_lighten">Éclaircissement des reflets</string>
-    <string name="fablesol_param_crest_glow_strength">Lueur de crête</string>
-    <string name="fablesol_param_crest_glow_depth_dp">Profondeur de la lueur</string>
-    <string name="fablesol_param_crest_veil_strength">Intensité du voile de crête</string>
-    <string name="fablesol_param_capillary_glint_gain">Scintillements capillaires</string>
-    <string name="fablesol_param_thin_glow_gain">Lueur de crête fine (ancien)</string>
-    <string name="fablesol_param_flow_streak_gain">Stries de courant</string>
-    <string name="fablesol_param_orbital_sway_dp">Balancement orbital</string>
-    <string name="fablesol_param_back_shade_gain">Ombre propre du dos de vague</string>
-    <string name="fablesol_param_aerial_contrast">Perspective aérienne</string>
-    <string name="fablesol_param_pink_mod">Modulation lente 1/f</string>
-    <string name="fablesol_param_specular_aa_strength">Limitation de bande des micronormales</string>
-    <string name="fablesol_param_global_pink_breath_strength">Respiration globale 1/f</string>
-    <string name="fablesol_param_micro_normal_strength">Micronormales peignées par le vent</string>
-    <string name="fablesol_param_sun_sss_strength">Diffusion sous-surface de l\'aube</string>
-    <string name="fablesol_param_sun_sss_falloff">Atténuation de diffusion de l\'aube</string>
     <string name="fablesol_param_color_breath">Respiration des couleurs</string>
     <string name="fablesol_param_hue_temp_deg">Décalage de température de couleur</string>
     <string name="fablesol_param_surface_heading_deg">Cap de la vague principale</string>
@@ -570,24 +551,6 @@
     <string name="fablesol_param_swell_attack_s">Attaque de houle</string>
     <string name="fablesol_param_swell_release_s">Relâchement de houle</string>
     <string name="fablesol_param_swell_gain">Gain de houle</string>
-    <string name="fablesol_param_inject_gain">Gain d\'injection</string>
-    <string name="fablesol_param_inject_amp_max_dp">Hauteur max par vague</string>
-    <string name="fablesol_param_inject_width_min_dp">Largeur min de vague</string>
-    <string name="fablesol_param_inject_width_max_dp">Largeur max de vague</string>
-    <string name="fablesol_param_inject_ramp_ms">Durée d\'entrée de l\'injection</string>
-    <string name="fablesol_param_rhythm_wave_gain">Intensité du paquet rythmique</string>
-    <string name="fablesol_param_rhythm_wave_min_strength">Seuil du paquet rythmique</string>
-    <string name="fablesol_param_travel_bias_max">Biais max dans le courant</string>
-    <string name="fablesol_param_cascade_step_s">Délai en cascade entre couches</string>
-    <string name="fablesol_param_incoming_threshold">Seuil de vague entrante</string>
-    <string name="fablesol_param_incoming_prob">Probabilité de vague entrante</string>
-    <string name="fablesol_param_incoming_cooldown_s">Temps de recharge de vague entrante</string>
-    <string name="fablesol_param_surge_gain">Gain de déferlement</string>
-    <string name="fablesol_param_surge_amp_max_dp">Hauteur du déferlement</string>
-    <string name="fablesol_param_surge_lift_dp">Soulèvement du déferlement</string>
-    <string name="fablesol_param_surge_drawdown_dp">Retrait du déferlement</string>
-    <string name="fablesol_param_mood_transition_s">Transition d\'humeur</string>
-    <string name="fablesol_param_mood_spread_dp">Écart de couches par énergie</string>
     <string name="doing_digit_fill">Rempli</string>
     <string name="doing_digit_outline">Contour</string>
     <string name="cd_random_pure_background">Couleur pure aléatoire</string>

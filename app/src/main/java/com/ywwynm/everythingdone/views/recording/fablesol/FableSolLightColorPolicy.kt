@@ -6,7 +6,7 @@ import kotlin.math.roundToInt
 
 /**
  * 宏观坡面受光策略：主体色与反射/透射分瓣不参与遮挡乘暗；背坡可见度只削减
- * 一个微弱、同色的直射光瓣。显式波背暗带由 [FableSolShadowColorPolicy] 另行负责。
+ * 一个微弱、同色的直射光瓣。
  */
 object FableSolLightColorPolicy {
 

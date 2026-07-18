@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
@@ -773,8 +773,6 @@
     <string name="fablesol_group_ambient_flow">環境與流動</string>
     <string name="fablesol_group_hero">主浪</string>
     <string name="fablesol_group_swell">漲落</string>
-    <string name="fablesol_group_injection">注入</string>
-    <string name="fablesol_group_sections">段落</string>
     <string name="fablesol_param_uplift_thick_glow">厚度透光強度</string>
     <string name="fablesol_param_uplift_glow_boost">透光派生提亮</string>
     <string name="fablesol_param_uplift_crest_rim">波峰銀絲強度</string>
@@ -788,23 +786,6 @@
     <string name="fablesol_param_sky_reflection_strength">天空反射強度</string>
     <string name="fablesol_param_body_light_strength">水體透光強度</string>
     <string name="fablesol_param_light_azimuth_deg">光源方位角</string>
-    <string name="fablesol_param_crest_glint_strength">鏡面高光強度</string>
-    <string name="fablesol_param_crest_lighten">高光提亮</string>
-    <string name="fablesol_param_crest_glow_strength">波峰透光強度</string>
-    <string name="fablesol_param_crest_glow_depth_dp">透光縱深</string>
-    <string name="fablesol_param_crest_veil_strength">波冠輕紗強度</string>
-    <string name="fablesol_param_capillary_glint_gain">毛細閃光</string>
-    <string name="fablesol_param_thin_glow_gain">薄峰透光（舊）</string>
-    <string name="fablesol_param_flow_streak_gain">表面流光</string>
-    <string name="fablesol_param_orbital_sway_dp">軌道擺幅</string>
-    <string name="fablesol_param_back_shade_gain">波背自陰影</string>
-    <string name="fablesol_param_aerial_contrast">空氣透視壓縮</string>
-    <string name="fablesol_param_pink_mod">1/f 慢調制</string>
-    <string name="fablesol_param_specular_aa_strength">微法線帶限強度</string>
-    <string name="fablesol_param_global_pink_breath_strength">全域 1/f 呼吸</string>
-    <string name="fablesol_param_micro_normal_strength">風梳微法線</string>
-    <string name="fablesol_param_sun_sss_strength">朝陽次表面散射</string>
-    <string name="fablesol_param_sun_sss_falloff">朝陽散射收束</string>
     <string name="fablesol_param_color_breath">顏色呼吸</string>
     <string name="fablesol_param_hue_temp_deg">色溫偏移</string>
     <string name="fablesol_param_surface_heading_deg">主波向偏近角</string>
@@ -836,24 +817,6 @@
     <string name="fablesol_param_swell_attack_s">漲落攻擊</string>
     <string name="fablesol_param_swell_release_s">漲落釋放</string>
     <string name="fablesol_param_swell_gain">漲落增益</string>
-    <string name="fablesol_param_inject_gain">注入增益</string>
-    <string name="fablesol_param_inject_amp_max_dp">單浪高度上限</string>
-    <string name="fablesol_param_inject_width_min_dp">浪寬下限</string>
-    <string name="fablesol_param_inject_width_max_dp">浪寬上限</string>
-    <string name="fablesol_param_inject_ramp_ms">注入漸入時長</string>
-    <string name="fablesol_param_rhythm_wave_gain">節奏波包強度</string>
-    <string name="fablesol_param_rhythm_wave_min_strength">節奏波包門檻</string>
-    <string name="fablesol_param_travel_bias_max">順流偏置上限</string>
-    <string name="fablesol_param_cascade_step_s">級聯層間延遲</string>
-    <string name="fablesol_param_incoming_threshold">遠浪觸發強度</string>
-    <string name="fablesol_param_incoming_prob">遠浪機率</string>
-    <string name="fablesol_param_incoming_cooldown_s">遠浪冷卻</string>
-    <string name="fablesol_param_surge_gain">段湧增益</string>
-    <string name="fablesol_param_surge_amp_max_dp">段湧巨浪高度</string>
-    <string name="fablesol_param_surge_lift_dp">段湧湧升高度</string>
-    <string name="fablesol_param_surge_drawdown_dp">段湧退水深度</string>
-    <string name="fablesol_param_mood_transition_s">性格檔過渡</string>
-    <string name="fablesol_param_mood_spread_dp">能量檔層距撐開</string>
     <string name="doing_digit_fill">實心</string>
     <string name="doing_digit_outline">描邊</string>
 
