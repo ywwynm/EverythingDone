@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 /**
  * 一帧实时音频特征（对应 features.py 的 frame dict）。所有 01 字段均为 0..1。
+ * [loudness01] 保留旧 Android 诊断刻度；视觉水位与七境必须读取 [waterDrive01]。
  * 由 [FableSolRealtimeAnalyzer] 在音频线程产出，[FableSolFeatureMapper] 消费。
  */
 class FableSolFeatureFrame(
@@ -42,7 +43,49 @@ class FableSolFeatureFrame(
     @JvmField val hnr01: Double = 0.0,
     @JvmField val arousal01: Double = 0.0,
     @JvmField val loom01: Double = 0.0,
-    @JvmField val impulse01: Double = 0.0
+    @JvmField val impulse01: Double = 0.0,
+    // 感知标定 v2。旧字段继续保留，便于 Canvas/GL 在迁移期间共享同一帧类型。
+    @JvmField val loudnessRaw01: Double = loudness01,
+    @JvmField val loudnessAbsolute01: Double = loudness01,
+    @JvmField val loudnessMomentary01: Double = loudness01,
+    @JvmField val loudnessTransientBoost01: Double = 0.0,
+    @JvmField val waterDrive01: Double = loudness01,
+    @JvmField val legacyLoudness01: Double = loudness01,
+    @JvmField val loudP10Db: Double = 0.0,
+    @JvmField val loudP95Db: Double = 0.0,
+    @JvmField val loudMUntrimmedDb: Double = loudMDb,
+    @JvmField val loudSUntrimmedDb: Double = loudSDb,
+    @JvmField val inputLoudnessTrimDb: Double = 0.0,
+    @JvmField val speed01: Double = flow01,
+    @JvmField val speedAbs01: Double = flow01,
+    @JvmField val speedRank01: Double = activity01,
+    @JvmField val kineticDrive01: Double = flow01,
+    @JvmField val kineticTarget01: Double = flow01,
+    @JvmField val motionContextBoost01: Double = 0.0,
+    @JvmField val percussiveMotion01: Double = 0.0,
+    @JvmField val vocalMotion01: Double = 0.0,
+    @JvmField val harmonicMotion01: Double = 0.0,
+    @JvmField val beatMotion01: Double = 0.0,
+    @JvmField val grooveMotion01: Double = 0.0,
+    @JvmField val intensityDrive01: Double = loudness01,
+    @JvmField val targetDps: Double = 0.0,
+    @JvmField val musicArousal01: Double = 0.0,
+    @JvmField val punchLu01: Double = 0.0,
+    @JvmField val energy01: Double = 0.0,
+    @JvmField val energyRising01: Double = 0.0,
+    @JvmField val buildUp01: Double = 0.0,
+    @JvmField val gradeDrive01: Double = 0.0,
+    @JvmField val liftScore01: Double = 0.0,
+    @JvmField val climaxScore01: Double = 0.0,
+    @JvmField val gradeAbsolute01: Double = 0.0,
+    @JvmField val gradeContext01: Double = 0.0,
+    @JvmField val vocalSoloPenalty01: Double = 0.0,
+    @JvmField val zLoud: Double = 0.0,
+    @JvmField val zFlux: Double = 0.0,
+    @JvmField val zOnsetRate: Double = 0.0,
+    @JvmField val zBass: Double = 0.0,
+    @JvmField val zCentroid: Double = 0.0,
+    @JvmField val novelty01: Double = 0.0
 )
 
 /** 离散事件（对应 features.py 产出的 onset / section event dict）。 */
@@ -78,5 +121,11 @@ sealed class FableSolEvent {
         @JvmField val energy01: Double,
         @JvmField val brightness01: Double,
         @JvmField val surge: Boolean = true
+    ) : FableSolEvent()
+
+    /** 因果 build-up 后的低频/响度共同到达，不依赖离线标签或神经网络。 */
+    class Drop(
+        override val t: Double,
+        @JvmField val confidence01: Double
     ) : FableSolEvent()
 }

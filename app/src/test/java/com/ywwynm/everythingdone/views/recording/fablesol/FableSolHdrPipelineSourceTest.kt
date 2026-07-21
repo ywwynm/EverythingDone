@@ -74,8 +74,11 @@ class FableSolHdrPipelineSourceTest {
     @Test
     fun opticalBuilderKeepsVolumeBehindSurfaceAndGlintsLast() {
         val source = source("FableSolGlOptics.kt")
-        val loopStart = source.indexOf("for (layer in FableSolSpec.N_LAYERS - 1 downTo 0)")
-        val loopEnd = source.indexOf("layerVertexCount[layer]", loopStart)
+        // C2 之后逐层构面搬进 LayerScratch.buildLayer（层循环本身只剩压实），
+        // 守的仍是同一条契约：单层内部的发射顺序，以及已移除的建带函数不得复活。
+        val loopStart = source.indexOf("fun buildLayer(")
+        val loopEnd = source.indexOf("segmentFloatCount = cursor - segmentStart", loopStart)
+        assertTrue(loopStart >= 0 && loopEnd > loopStart)
         val loop = source.substring(loopStart, loopEnd)
 
         // D160：表面亮带（buildSurfaceBand）已整项移除；2026-07-18 薄峰透光/

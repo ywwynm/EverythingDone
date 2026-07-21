@@ -119,6 +119,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     }
     private val surfaceSourceIndex = IntArray(FableSolSpec.N_POINTS)
     private val surfaceSourceFraction = DoubleArray(FableSolSpec.N_POINTS)
+    private val surfaceSourceUDp = DoubleArray(FableSolSpec.N_POINTS)
+    private val surfaceHermiteWeights = FableSolHermiteWeightTable(FableSolSpec.N_POINTS)
     private val surfaceSlopeX = Array(FableSolContinuousSurface.Z_ROWS) {
         DoubleArray(FableSolSpec.N_POINTS)
     }
@@ -157,6 +159,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val birthPathWeight: Double
     )
     private val glintTracks = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(4) }
+    private val effectiveGlintCapacity = IntArray(FableSolSpec.N_LAYERS)
     private val eligibleGlintLayerCount = (0 until FableSolSpec.N_LAYERS).count {
         FableSolMaterialPolicy.glintCapacity(it) > 0
     }
@@ -353,15 +356,35 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             return
         }
         if (frames != null) {
-            mapper.applyFrame(sim, frames[frames.size - 1])
+            // Canvas 回退与 GLES 主路径共享同一 authoritative 音频时钟和事件交织。
+            events.sortBy { it.t }
+            var eventIndex = 0
+            for (frame in frames) {
+                while (eventIndex < events.size && events[eventIndex].t < frame.t) {
+                    applyAudioEvent(events[eventIndex++])
+                }
+                mapper.applyFrame(sim, frame)
+                while (eventIndex < events.size && events[eventIndex].t <= frame.t) {
+                    applyAudioEvent(events[eventIndex++])
+                }
+            }
+            while (eventIndex < events.size) applyAudioEvent(events[eventIndex++])
             mLastAudioElapsed = now
         } else if (mLastAudioElapsed != 0L && now - mLastAudioElapsed > IDLE_SILENCE_MS) {
             mapper.applySilence(sim)
+            for (event in events) applyAudioEvent(event)
+        } else {
+            for (event in events) applyAudioEvent(event)
         }
-        for (e in events) when (e) {
-            is FableSolEvent.Onset -> mapper.applyOnset(sim, e)
-            is FableSolEvent.Section -> mapper.applySection(sim, e)
-            is FableSolEvent.Prominence -> mapper.applyProminence(sim, e)
+
+    }
+
+    private fun applyAudioEvent(event: FableSolEvent) {
+        when (event) {
+            is FableSolEvent.Onset -> mapper.applyOnset(sim, event)
+            is FableSolEvent.Section -> mapper.applySection(sim, event)
+            is FableSolEvent.Prominence -> mapper.applyProminence(sim, event)
+            is FableSolEvent.Drop -> mapper.applyDrop(sim, event)
         }
     }
 
@@ -471,8 +494,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 val fraction = (source - index).coerceIn(0.0, 1.0)
                 surfaceSourceIndex[j] = index
                 surfaceSourceFraction[j] = fraction
-                xsPx[j] = (sim.uGrid[index] * (1.0 - fraction) +
-                    sim.uGrid[index + 1] * fraction) * density
+                surfaceSourceUDp[j] = sim.uGrid[index] * (1.0 - fraction) +
+                    sim.uGrid[index + 1] * fraction
+                surfaceHermiteWeights.update(j, fraction, FableSolSpec.DX_DP)
+                xsPx[j] = surfaceSourceUDp[j] * density
             }
         } else {
             for (j in 0 until cnt) xsPx[j] = sim.uGrid[i0 + j] * density
@@ -561,33 +586,68 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             for (j in 0 until cnt) {
                 val xIndex = surfaceSourceIndex[j]
                 val fraction = surfaceSourceFraction[j]
-                val orbitZ = sample.orbitZ[r][xIndex] * (1.0 - fraction) +
-                    sample.orbitZ[r][xIndex + 1] * fraction
-                val orbitX = sample.orbitX[r][xIndex] * (1.0 - fraction) +
-                    sample.orbitX[r][xIndex + 1] * fraction
-                val worldEta = sample.worldEta[r][xIndex] * (1.0 - fraction) +
-                    sample.worldEta[r][xIndex + 1] * fraction
-                val uDp = sim.uGrid[xIndex] * (1.0 - fraction) +
-                    sim.uGrid[xIndex + 1] * fraction
+                val next = xIndex + 1
+                // 与 GLES buildFrame 完全相同：ContinuousSurface 已把物理节点公平化为
+                // 同一条 C2 cubic B-spline 的节点值与解析切线。Canvas 只做 Hermite
+                // 重建，禁止再套一层 Catmull-Rom 造成过冲、尖角或局部下凹。
+                val orbitZ =
+                    sample.orbitZ[r][xIndex] * surfaceHermiteWeights.h00[j] +
+                        sample.orbitZSlope[r][xIndex] * surfaceHermiteWeights.h10[j] +
+                        sample.orbitZ[r][next] * surfaceHermiteWeights.h01[j] +
+                        sample.orbitZSlope[r][next] * surfaceHermiteWeights.h11[j]
+                val orbitX =
+                    sample.orbitX[r][xIndex] * surfaceHermiteWeights.h00[j] +
+                        sample.orbitXSlope[r][xIndex] * surfaceHermiteWeights.h10[j] +
+                        sample.orbitX[r][next] * surfaceHermiteWeights.h01[j] +
+                        sample.orbitXSlope[r][next] * surfaceHermiteWeights.h11[j]
+                val worldEta =
+                    sample.worldEta[r][xIndex] * surfaceHermiteWeights.h00[j] +
+                        sample.slopeX[r][xIndex] * surfaceHermiteWeights.h10[j] +
+                        sample.worldEta[r][next] * surfaceHermiteWeights.h01[j] +
+                        sample.slopeX[r][next] * surfaceHermiteWeights.h11[j]
+                val uDp = surfaceSourceUDp[j]
                 val zEff = sample.zDp[r] + orbitZ
-                val z01 = (zEff / max(sample.depthDp, 1e-6)).coerceIn(-0.08, 1.08)
-                val f = z01.coerceIn(0.0, 1.0) * (FableSolSpec.N_LAYERS - 1)
-                var baseH = FableSolDepthBaseline.value(means, layerMeanTangents, f)
+                // 不钳制外层纵向轨道；DepthBaseline 沿端点切线延拓，避免穿过
+                // 第一/末层时导数突然归零并形成“斜线接平台”。
+                val z01 = zEff / max(sample.depthDp, 1e-6)
+                val layerPosition = z01 * (FableSolSpec.N_LAYERS - 1)
+                var baseH = FableSolDepthBaseline.value(
+                    means,
+                    layerMeanTangents,
+                    layerPosition
+                )
                 baseH = means[0] + (baseH - means[0]) * depthScale
-                val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
+                val perspective = 1.0 / (1.0 + 0.16 * z01)
                 surfaceXsPx[r][j] = (uDp + orbitX) *
                     density * perspective
                 surfaceYsPx[r][j] = (info.hG / 2.0 -
                     (baseH + worldEta)) * density
-                surfaceSlopeX[r][j] = sample.slopeX[r][xIndex] * (1.0 - fraction) +
-                    sample.slopeX[r][xIndex + 1] * fraction
+                surfaceSlopeX[r][j] =
+                    sample.worldEta[r][xIndex] * surfaceHermiteWeights.dh00[j] +
+                        sample.slopeX[r][xIndex] * surfaceHermiteWeights.dh10[j] +
+                        sample.worldEta[r][next] * surfaceHermiteWeights.dh01[j] +
+                        sample.slopeX[r][next] * surfaceHermiteWeights.dh11[j]
+                // slopeZ 是着色属性；与 GLES 一样做线性采样，避免无必要的四点超调。
                 surfaceSlopeZ[r][j] = sample.slopeZ[r][xIndex] * (1.0 - fraction) +
-                    sample.slopeZ[r][xIndex + 1] * fraction
-                val orbitDerivative = orbitXDerivative(sample, r, xIndex) * (1.0 - fraction) +
-                    orbitXDerivative(sample, r, xIndex + 1) * fraction
+                    sample.slopeZ[r][next] * fraction
+                val orbitDerivative =
+                    sample.orbitX[r][xIndex] * surfaceHermiteWeights.dh00[j] +
+                        sample.orbitXSlope[r][xIndex] * surfaceHermiteWeights.dh10[j] +
+                        sample.orbitX[r][next] * surfaceHermiteWeights.dh01[j] +
+                        sample.orbitXSlope[r][next] * surfaceHermiteWeights.dh11[j]
                 surfaceCrestPinch[r][j] =
                     FableSolDepthScatteringPolicy.crestPinch(orbitDerivative)
             }
+            // 透视与横向轨道叠加后若逼近回折，整行只使用一个比例朝无轨道
+            // 基线收回。禁止逐点 accumulate/clip；后者会制造平台和小阶梯。
+            FableSolCanvasProjection.repairMonotoneInPlace(
+                projectedX = surfaceXsPx[r],
+                sourceUDp = surfaceSourceUDp,
+                count = cnt,
+                baselinePerspective = 1.0 / (1.0 + 0.16 * sample.z01[r]),
+                density = density,
+                minimumSpacingRatio = PROJECTED_MINIMUM_SPACING_RATIO
+            )
         }
         renderSamplingNs += SystemClock.elapsedRealtimeNanos() - samplingStart
 
@@ -622,7 +682,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             ysPx[j] = surfaceYsPx[0][j]
         }
         fillPath.reset()
-        buildSmooth(fillPath, xsPx, ysPx, cnt, true)
+        appendPolyline(fillPath, xsPx, ysPx, cnt, true)
         fillPath.lineTo(xsPx[cnt - 1].toFloat(), fillBottom.toFloat())
         fillPath.lineTo(xsPx[0].toFloat(), fillBottom.toFloat())
         fillPath.close()
@@ -814,14 +874,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         )
     }
 
-    private fun orbitXDerivative(sample: FableSolContinuousSurface.Sample,
-                                 row: Int, index: Int): Double {
-        val previous = max(index - 1, 0)
-        val next = min(index + 1, FableSolSpec.N_POINTS - 1)
-        return (sample.orbitX[row][next] - sample.orbitX[row][previous]) /
-            max((next - previous) * FableSolSpec.DX_DP, 1e-6)
-    }
-
     private fun drawContinuousOptics(canvas: Canvas, i: Int, row: Int, cnt: Int,
                                      lc: LayerColors, fillBottom: Double) {
         val scratchMark = doubleScratchIndex
@@ -866,7 +918,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val lc = layerColors(i, palette)
 
         fillPath.reset()
-        buildSmooth(fillPath, xsPx, ysPx, cnt, true)
+        appendPolyline(fillPath, xsPx, ysPx, cnt, true)
         fillPath.lineTo(xsPx[cnt - 1].toFloat(), fillBottom.toFloat())
         fillPath.lineTo(xsPx[0].toFloat(), fillBottom.toFloat())
         fillPath.close()
@@ -1273,8 +1325,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
         val bottom = scratchArray(cnt) { top[it] + thickness[it] }
         bandPath.reset()
-        buildSmooth(bandPath, sliceX(cnt), top, cnt, true)
-        buildSmooth(bandPath, reverse(sliceX(cnt), cnt), reverse(bottom, cnt), cnt, false)
+        appendPolyline(bandPath, xsPx, top, cnt, true)
+        appendPolyline(bandPath, xsPx, bottom, cnt, false, reverse = true)
         bandPath.close()
         bandPaint.color = FableSolColor.toColor(rgb, alpha)
         canvas.drawPath(bandPath, bandPaint)
@@ -1370,7 +1422,12 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             (prob[it] * 1.5).coerceIn(0.0, 1.0) * spark
         }
         val field = smoothSignal(fieldInput, cnt, 5)
-        val cap = FableSolMaterialPolicy.glintCapacity(i)
+        val cap = Math.round(
+            FableSolMaterialPolicy.glintCapacity(i) *
+                (params.get("glint_capacity_gain") * sim.glintCapacity01)
+                    .coerceIn(0.0, 1.0)
+        ).toInt()
+        effectiveGlintCapacity[i] = cap
         val anchors = fieldPeaks(
             field,
             cnt,
@@ -1467,7 +1524,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             for (candidate in 0 until glitterCandidateCount) {
                 if (glitterCandidateUsed[candidate]) continue
                 val layer = glitterCandidateLayer[candidate]
-                if (glintTracks[layer].size >= FableSolMaterialPolicy.glintCapacity(layer)) {
+                if (glintTracks[layer].size >= effectiveGlintCapacity[layer]) {
                     continue
                 }
                 val distributedScore = glitterCandidateScore[candidate] /
@@ -1559,19 +1616,24 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
     private fun sliceY(cnt: Int): DoubleArray = scratchArray(cnt) { ysPx[it] }
 
-    /** Catmull-Rom → cubic Bezier，穿过全部采样点，C1 连续（对应 _smooth_curve）。 */
-    private fun buildSmooth(path: Path, xs: DoubleArray, ys: DoubleArray, cnt: Int, moveFirst: Boolean) {
-        if (moveFirst) path.moveTo(xs[0].toFloat(), ys[0].toFloat())
-        else path.lineTo(xs[0].toFloat(), ys[0].toFloat())
-        for (k in 0 until cnt - 1) {
-            val xkm1 = xs[if (k - 1 < 0) 0 else k - 1]; val ykm1 = ys[if (k - 1 < 0) 0 else k - 1]
-            val xk2 = xs[if (k + 2 >= cnt) cnt - 1 else k + 2]; val yk2 = ys[if (k + 2 >= cnt) cnt - 1 else k + 2]
-            val c1x = xs[k] + (xs[k + 1] - xkm1) / 6.0
-            val c1y = ys[k] + (ys[k + 1] - ykm1) / 6.0
-            val c2x = xs[k + 1] - (xk2 - xs[k]) / 6.0
-            val c2y = ys[k + 1] - (yk2 - ys[k]) / 6.0
-            path.cubicTo(c1x.toFloat(), c1y.toFloat(), c2x.toFloat(), c2y.toFloat(),
-                xs[k + 1].toFloat(), ys[k + 1].toFloat())
+    /**
+     * 连续面已按 196 列完成解析 Hermite 重建；Path 只连接最终投影点，不再做
+     * 第二次三次拟合。与 GLES 三角网格边界同构，也避免 Catmull-Rom 的局部过冲。
+     */
+    private fun appendPolyline(path: Path, xs: DoubleArray, ys: DoubleArray, cnt: Int,
+                               moveFirst: Boolean, reverse: Boolean = false) {
+        if (cnt <= 0) return
+        val first = if (reverse) cnt - 1 else 0
+        if (moveFirst) path.moveTo(xs[first].toFloat(), ys[first].toFloat())
+        else path.lineTo(xs[first].toFloat(), ys[first].toFloat())
+        if (reverse) {
+            for (index in cnt - 2 downTo 0) {
+                path.lineTo(xs[index].toFloat(), ys[index].toFloat())
+            }
+        } else {
+            for (index in 1 until cnt) {
+                path.lineTo(xs[index].toFloat(), ys[index].toFloat())
+            }
         }
     }
 
@@ -1583,9 +1645,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         return output
     }
 
-    private fun sliceX(cnt: Int): DoubleArray = scratchArray(cnt) { xsPx[it] }
-    private fun reverse(a: DoubleArray, cnt: Int): DoubleArray = scratchArray(cnt) { a[cnt - 1 - it] }
-
     companion object {
         private const val TARGET_FPS = 60.0
         private const val TARGET_FRAME_SECONDS = 1.0 / TARGET_FPS
@@ -1593,6 +1652,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private const val MAX_DT = 0.05f
         private const val IDLE_SILENCE_MS = 200L
         private const val FILL_EXTRA_DP = 80.0
+        private const val PROJECTED_MINIMUM_SPACING_RATIO = 0.12
         private const val INTRINSIC_W_DP = 280f
         private const val INTRINSIC_H_DP = 420f
 
@@ -1612,5 +1672,48 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         private val SUB_OFF = doubleArrayOf(0.00, 0.10, 0.24)
         private val SUB_FRAC = doubleArrayOf(1.00, 0.62, 0.42)
         private val SUB_AA = doubleArrayOf(0.14, 0.34, 0.24)
+    }
+}
+
+/**
+ * Canvas 投影 X 的整行单调修复。独立成纯数学策略，既便于 JVM 回归，也保证
+ * 97 条深度行全部走同一公式；调用方复用既有数组，函数本身不分配。
+ */
+internal object FableSolCanvasProjection {
+    fun repairMonotoneInPlace(
+        projectedX: DoubleArray,
+        sourceUDp: DoubleArray,
+        count: Int,
+        baselinePerspective: Double,
+        density: Double,
+        minimumSpacingRatio: Double
+    ): Double {
+        require(count in 0..min(projectedX.size, sourceUDp.size))
+        if (count < 2) return 1.0
+
+        var scale = 1.0
+        var previousBaseline = sourceUDp[0] * density * baselinePerspective
+        var previousRaw = projectedX[0]
+        for (column in 1 until count) {
+            val baseline = sourceUDp[column] * density * baselinePerspective
+            val raw = projectedX[column]
+            scale = min(
+                scale,
+                FableSolCubicResampler.monotoneBlendBound(
+                    raw - previousRaw,
+                    baseline - previousBaseline,
+                    minimumSpacingRatio
+                )
+            )
+            previousBaseline = baseline
+            previousRaw = raw
+        }
+        if (scale < 1.0) {
+            for (column in 0 until count) {
+                val baseline = sourceUDp[column] * density * baselinePerspective
+                projectedX[column] = baseline + scale * (projectedX[column] - baseline)
+            }
+        }
+        return scale
     }
 }

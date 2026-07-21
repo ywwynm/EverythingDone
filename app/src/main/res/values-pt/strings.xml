@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">Janela de autocalibração</string>
     <string name="fablesol_param_silence_gate_db">Porta de silêncio (acima do ruído de fundo)</string>
     <string name="fablesol_param_expander_amount">Expansão dinâmica</string>
+    <string name="fablesol_group_audio_visual_coupling">Acoplamento audiovisual</string>
+    <string name="fablesol_param_expression_gain">Amplitude expressiva</string>
+    <string name="fablesol_param_state_sensitivity">Sensibilidade de estado</string>
+    <string name="fablesol_param_transition_speed">Velocidade de transição</string>
+    <string name="fablesol_param_relative_loudness_mix">Reforço transitório de sonoridade</string>
     <string name="fablesol_param_uplift_thick_glow">Intensidade do brilho de espessura</string>
     <string name="fablesol_param_uplift_glow_boost">Clareamento derivado do brilho</string>
     <string name="fablesol_param_uplift_crest_rim">Intensidade do fio prateado da crista</string>

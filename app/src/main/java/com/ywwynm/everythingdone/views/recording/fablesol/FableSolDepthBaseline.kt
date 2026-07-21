@@ -35,9 +35,27 @@ internal object FableSolDepthBaseline {
     }
 
     fun value(anchors: DoubleArray, tangents: DoubleArray, position: Double): Double {
-        if (position <= 0.0) return anchors[0]
+        requireValid(anchors, tangents)
+        return valueUnchecked(anchors, tangents, position)
+    }
+
+    /**
+     * 契约校验的独立入口：顶点循环每帧调用 [valueUnchecked] 19012 次，
+     * 把 `require` 提到循环外只做一次。锚点与切线数组是渲染器的常驻字段，
+     * 循环期间形状不变，因此循环外校验一次与逐次校验等效。
+     */
+    fun requireValid(anchors: DoubleArray, tangents: DoubleArray) {
+        require(anchors.size >= 2 && tangents.size == anchors.size)
+    }
+
+    /** 与 [value] 数学完全相同、不做契约校验的热路径入口；调用方需先 [requireValid]。 */
+    fun valueUnchecked(anchors: DoubleArray, tangents: DoubleArray, position: Double): Double {
+        // 纵向轨道只会越出不足一个层间距。沿端点切线延拓能让一阶导连续；
+        // 旧端点钳制会在穿越最外层时把导数突然归零，形成斜线接平台的尖角。
+        if (position < 0.0) return anchors[0] + tangents[0] * position
         val last = anchors.lastIndex
-        if (position >= last) return anchors[last]
+        if (position > last) return anchors[last] + tangents[last] * (position - last)
+        if (position == last.toDouble()) return anchors[last]
         val start = position.toInt()
         val fraction = position - start
         return FableSolCubicResampler.hermiteValue(

@@ -44,9 +44,17 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         @JvmField val eta = Array(Z_ROWS) { DoubleArray(N_POINTS) }
         @JvmField val orbitX = Array(Z_ROWS) { DoubleArray(N_POINTS) }
         @JvmField val orbitZ = Array(Z_ROWS) { DoubleArray(N_POINTS) }
+        @JvmField val orbitXSlope = Array(Z_ROWS) { DoubleArray(N_POINTS) }
+        @JvmField val orbitZSlope = Array(Z_ROWS) { DoubleArray(N_POINTS) }
         @JvmField val slopeX = Array(Z_ROWS) { DoubleArray(N_POINTS) }
         @JvmField val slopeZ = Array(Z_ROWS) { DoubleArray(N_POINTS) }
         @JvmField val worldEta = Array(Z_ROWS) { DoubleArray(N_POINTS) }
+        /**
+         * 本帧实际求值的列区间（闭区间）。窗口外的元素是上一帧的陈旧值，不得读取。
+         * `buildFrame` 只读 `[i0, i1-1]`，恒在此区间内。
+         */
+        @JvmField var windowLo = 0
+        @JvmField var windowHi = N_POINTS - 1
     }
 
     private val wavelength = doubleArrayOf(420.0, 330.0, 260.0, 205.0, 164.0,
@@ -67,6 +75,8 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val kx = DoubleArray(wavelength.size)
     private val kz = DoubleArray(wavelength.size)
     private var nextPacketT = 0.0
+    // 修复发生在行并行区内，故用原子计数。
+    private val worldRepairRows = java.util.concurrent.atomic.AtomicInteger(0)
 
     // Step A：打光法线改从真渲染面 worldEta 求，跨层用 Catmull-Rom 平滑防止层锚点处的坡度
     // 跳变（横向接缝）。行间插值权重只依赖固定的 z01[r]，init 预计算一次，稳态零分配。
@@ -74,6 +84,11 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val depthMeanX = DoubleArray(N_POINTS)
     private val crRowIndex = Array(Z_ROWS) { IntArray(4) }
     private val crRowWeight = Array(Z_ROWS) { DoubleArray(4) }
+    // 原始控制样本与公开的 fair C2 结果分离：行并行阶段只读 raw、只写 Sample，
+    // 无原地邻点覆盖，也不需要逐帧临时数组。
+    private val rawWorldEta = Array(Z_ROWS) { DoubleArray(N_POINTS) }
+    private val rawOrbitX = Array(Z_ROWS) { DoubleArray(N_POINTS) }
+    private val rawOrbitZ = Array(Z_ROWS) { DoubleArray(N_POINTS) }
 
     // sample() 并行行阶段的只读预备量（逐模态/逐波包标量与 X 向包络），
     // 全部在串行预备段写入、并行段只读，稳态零分配。
@@ -98,10 +113,37 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private var waveVectorHeading = Double.NaN
     private var waveVectorSpread = Double.NaN
 
+    // field 列外层推进用的逐行相位状态：前 modeCount 槽是模态，其后是波包。
+    // 按行预分配（每行只由一个线程处理），热路径零分配。
+    private val fieldPhaseCos = Array(Z_ROWS) { DoubleArray(FIELD_CHAIN_SLOTS) }
+    private val fieldPhaseSin = Array(Z_ROWS) { DoubleArray(FIELD_CHAIN_SLOTS) }
+    private val fieldPacketEnvZ = Array(Z_ROWS) { DoubleArray(MAX_PACKETS) }
+    /** 测试专用：强制走旧的「模态外层、列内层」路径，用于与列外层实现逐位对拍。 */
+    internal var forceModeOuterFieldForTest = false
+
     @JvmField var pitchEffRad = 0.0
     private var pitchVelocity = 0.0
 
+    // sample() 的分段计时（2026-07-21 帧率排查）。桌面 JVM 与 Android ART 对同一段
+    // 代码的相对代价差异可达两个数量级（`Math.cbrt` 在 ART 上是 libcore 的纯 Java
+    // FDLIBM，桌面 HotSpot 则近乎免费），因此这几段必须在真机上分别读数。
+    @JvmField var perfPrepNs = 0L
+    @JvmField var perfFieldNs = 0L
+    @JvmField var perfLimitNs = 0L
+    @JvmField var perfFairNs = 0L
+    @JvmField var perfSlopeNs = 0L
+    /** 本帧参与方向场累加的波包数。自然生成上限 7，但事件注入可在两次剪枝间叠到 24。 */
+    @JvmField var perfPacketCount = 0
+    /**
+     * 世界空间单调修复实际触发的行数。这是"把 sample() 裁到渲染窗口"是否安全的唯一未知量：
+     * 波包按设计先生在画外，画外正是 orbitX 幅度最大处；若该修复真的会触发，裁窗后
+     * 可见区的行缩放比例就会变，倾斜导致窗口边界跳变时还会出现幅度突跳。若实测恒为 0，
+     * 则裁窗在实际参数下不改变任何输出。
+     */
+    @JvmField var perfWorldRepairRows = 0
+
     init {
+        require(wavelength.size + MAX_PACKETS <= FIELD_CHAIN_SLOTS)
         for (j in wavelength.indices) phase[j] = rng.uniform(0.0, 2.0 * PI)
         for (q in doubleArrayOf(0.18, 0.50, 0.82)) spawnPacket(null, q)
         for (r in 0 until Z_ROWS) {
@@ -137,34 +179,226 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
      */
     fun composeLayerField(layerHeights: Array<DoubleArray>,
                           directionalEta: Array<DoubleArray>): Array<DoubleArray> {
+        prepareComposeMeans(layerHeights, directionalEta)
+        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
+            for (r in startRow until endRow) composeRow(r, layerHeights, directionalEta)
+        }
+        return rawWorldEta
+    }
+
+    /**
+     * 合成前的串行预备：逐层均值与逐列纵深均值。
+     * `depthMeanX` 是整列跨全部 Z_ROWS 的均值，必须等方向场累加全部完成，
+     * 因此它天然是 [sample] 里唯一无法回避的跨行汇合点。
+     */
+    private fun prepareComposeMeans(layerHeights: Array<DoubleArray>,
+                                    directionalEta: Array<DoubleArray>,
+                                    lo: Int = 0,
+                                    hi: Int = N_POINTS - 1) {
+        // layerMean 必须保留全 216 列——它是各层的 DC 去除项，裁窗会改变水位。
         for (i in 0 until N_LAYERS) {
             var sum = 0.0
             for (v in layerHeights[i]) sum += v
             layerMean[i] = sum / layerHeights[i].size
         }
-        for (x in 0 until N_POINTS) {
-            var depthMean = 0.0
-            for (r in 0 until Z_ROWS) depthMean += directionalEta[r][x]
-            depthMeanX[x] = depthMean / Z_ROWS
+        // depthMeanX 是逐列的纵深均值，只有窗口内的列会被消费，可以裁。
+        // 行外层、列内层：directionalEta 是行主序 [97][216]，列外层遍历每一步都要
+        // 换 cache line 并重做一次外层解引用。每列的加法到达顺序仍是 r=0→96，
+        // 除法同样只在最后做一次，逐位一致。
+        val means = depthMeanX
+        java.util.Arrays.fill(means, lo, hi + 1, 0.0)
+        for (r in 0 until Z_ROWS) {
+            val row = directionalEta[r]
+            for (x in lo..hi) means[x] += row[x]
         }
-        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
-            for (r in startRow until endRow) {
-                val idx = crRowIndex[r]
-                val w = crRowWeight[r]
-                val h0 = layerHeights[idx[0]]; val m0 = layerMean[idx[0]]; val w0 = w[0]
-                val h1 = layerHeights[idx[1]]; val m1 = layerMean[idx[1]]; val w1 = w[1]
-                val h2 = layerHeights[idx[2]]; val m2 = layerMean[idx[2]]; val w2 = w[2]
-                val h3 = layerHeights[idx[3]]; val m3 = layerMean[idx[3]]; val w3 = w[3]
-                val worldRow = sample.worldEta[r]
-                val dirRow = directionalEta[r]
-                for (x in 0 until N_POINTS) {
-                    worldRow[x] = w0 * (h0[x] - m0) + w1 * (h1[x] - m1) +
-                        w2 * (h2[x] - m2) + w3 * (h3[x] - m3) +
-                        dirRow[x] - depthMeanX[x]
-                }
+        for (x in lo..hi) means[x] = means[x] / Z_ROWS
+    }
+
+    /** 单行合成；只写 `rawWorldEta[r]`，行间无共享写。 */
+    private fun composeRow(r: Int, layerHeights: Array<DoubleArray>,
+                           directionalEta: Array<DoubleArray>,
+                           lo: Int = 0, hi: Int = N_POINTS - 1) {
+        val idx = crRowIndex[r]
+        val w = crRowWeight[r]
+        val h0 = layerHeights[idx[0]]; val m0 = layerMean[idx[0]]; val w0 = w[0]
+        val h1 = layerHeights[idx[1]]; val m1 = layerMean[idx[1]]; val w1 = w[1]
+        val h2 = layerHeights[idx[2]]; val m2 = layerMean[idx[2]]; val w2 = w[2]
+        val h3 = layerHeights[idx[3]]; val m3 = layerMean[idx[3]]; val w3 = w[3]
+        val worldRow = rawWorldEta[r]
+        val dirRow = directionalEta[r]
+        for (x in lo..hi) {
+            worldRow[x] = w0 * (h0[x] - m0) + w1 * (h1[x] - m1) +
+                w2 * (h2[x] - m2) + w3 * (h3[x] - m3) +
+                dirRow[x] - depthMeanX[x]
+        }
+    }
+
+    /**
+     * field 的列外层实现：12 组 (phCos, phSin) 作为状态数组一起沿列推进，
+     * 每列以寄存器 `s = 0.0` 起步按 j 升序、再 packet 升序累加，最后一次 store。
+     *
+     * 与 [accumulateFieldRowModeOuter] 逐位等价：
+     * - 固定列 x 的加法到达顺序仍是模态 0→8、再波包 0→k−1，起点同为 `0.0`
+     *   （旧路径的起点是 `Arrays.fill(..., 0.0)`，`0.0 + y` 只在 y = −0.0 时
+     *   与 y 不同，而那正是 fill 版的行为，两边一致）；
+     * - 每条递推链的初值、步进旋转与推进次数不变，只是 12 条链改为交错推进
+     *   （彼此独立，延迟可被流水线隐藏）；
+     * - 波包项保持 `a * envX[x] * envZ` 的原乘法结合顺序。
+     *
+     * 收益来自内存趟数：eta/orbitX/orbitZ 从约 12 趟 read-modify-write 降为 1 趟写。
+     */
+    private fun accumulateFieldRowColumnOuter(
+        r: Int,
+        rawLo: Int,
+        rawHi: Int,
+        modeCount: Int,
+        packetCount: Int
+    ) {
+        val etaRow = sample.eta[r]
+        val orbitXRow = rawOrbitX[r]
+        val orbitZRow = rawOrbitZ[r]
+        val z = sample.zDp[r]
+        val phaseCos = fieldPhaseCos[r]
+        val phaseSin = fieldPhaseSin[r]
+        val packetEnvZ = fieldPacketEnvZ[r]
+        for (j in 0 until modeCount) {
+            val rowPhase = modeBaseX[j] + kz[j] * z + phase[j]
+            phaseCos[j] = cos(rowPhase)
+            phaseSin[j] = sin(rowPhase)
+        }
+        for (index in 0 until packetCount) {
+            val dz = (z - packetCenterZ[index]) / packetSigmaZ[index]
+            packetEnvZ[index] = exp(-0.5 * dz * dz)
+            val rowPhase = packetBaseX[index] + packetKz[index] * z +
+                packetPhaseOffset[index]
+            val slot = modeCount + index
+            phaseCos[slot] = cos(rowPhase)
+            phaseSin[slot] = sin(rowPhase)
+        }
+        for (x in rawLo..rawHi) {
+            var etaSum = 0.0
+            var orbitXSum = 0.0
+            var orbitZSum = 0.0
+            for (j in 0 until modeCount) {
+                val phCos = phaseCos[j]
+                val phSin = phaseSin[j]
+                etaSum += modeAmp[j] * phCos
+                orbitXSum += phSin * modeOrbitXWeight[j]
+                orbitZSum += phSin * modeOrbitZWeight[j]
+                val stepCos = modeStepCos[j]
+                val stepSin = modeStepSin[j]
+                phaseCos[j] = phCos * stepCos - phSin * stepSin
+                phaseSin[j] = phSin * stepCos + phCos * stepSin
+            }
+            for (index in 0 until packetCount) {
+                val slot = modeCount + index
+                val phCos = phaseCos[slot]
+                val phSin = phaseSin[slot]
+                val local = packetAmp[index] * packetEnvX[index][x] * packetEnvZ[index]
+                etaSum += local * phCos
+                val tang = local * phSin
+                orbitXSum += tang * packetOrbitXWeight[index]
+                orbitZSum += tang * packetOrbitZWeight[index]
+                val stepCos = packetStepCos[index]
+                val stepSin = packetStepSin[index]
+                phaseCos[slot] = phCos * stepCos - phSin * stepSin
+                phaseSin[slot] = phSin * stepCos + phCos * stepSin
+            }
+            etaRow[x] = etaSum
+            orbitXRow[x] = orbitXSum
+            orbitZRow[x] = orbitZSum
+        }
+    }
+
+    /** 旧的「模态外层、列内层」实现；只在对拍开关打开时执行，是逐位等价的参照。 */
+    private fun accumulateFieldRowModeOuter(
+        r: Int,
+        rawLo: Int,
+        rawHi: Int,
+        modeCount: Int,
+        packetCount: Int
+    ) {
+        val etaRow = sample.eta[r]
+        val orbitXRow = rawOrbitX[r]
+        val orbitZRow = rawOrbitZ[r]
+        java.util.Arrays.fill(etaRow, rawLo, rawHi + 1, 0.0)
+        java.util.Arrays.fill(orbitXRow, rawLo, rawHi + 1, 0.0)
+        java.util.Arrays.fill(orbitZRow, rawLo, rawHi + 1, 0.0)
+        val z = sample.zDp[r]
+        for (j in 0 until modeCount) {
+            val amp = modeAmp[j]
+            val orbitXWeight = modeOrbitXWeight[j]
+            val orbitZWeight = modeOrbitZWeight[j]
+            val stepCos = modeStepCos[j]
+            val stepSin = modeStepSin[j]
+            val rowPhase = modeBaseX[j] + kz[j] * z + phase[j]
+            var phCos = cos(rowPhase)
+            var phSin = sin(rowPhase)
+            for (x in rawLo..rawHi) {
+                etaRow[x] += amp * phCos
+                orbitXRow[x] += phSin * orbitXWeight
+                orbitZRow[x] += phSin * orbitZWeight
+                val nextCos = phCos * stepCos - phSin * stepSin
+                phSin = phSin * stepCos + phCos * stepSin
+                phCos = nextCos
             }
         }
-        return sample.worldEta
+        for (index in 0 until packetCount) {
+            val dz = (z - packetCenterZ[index]) / packetSigmaZ[index]
+            val envZ = exp(-0.5 * dz * dz)
+            val a = packetAmp[index]
+            val orbitXWeight = packetOrbitXWeight[index]
+            val orbitZWeight = packetOrbitZWeight[index]
+            val stepCos = packetStepCos[index]
+            val stepSin = packetStepSin[index]
+            val envX = packetEnvX[index]
+            val rowPhase = packetBaseX[index] + packetKz[index] * z +
+                packetPhaseOffset[index]
+            var phCos = cos(rowPhase)
+            var phSin = sin(rowPhase)
+            for (x in rawLo..rawHi) {
+                val local = a * envX[x] * envZ
+                etaRow[x] += local * phCos
+                val tang = local * phSin
+                orbitXRow[x] += tang * orbitXWeight
+                orbitZRow[x] += tang * orbitZWeight
+                val nextCos = phCos * stepCos - phSin * stepSin
+                phSin = phSin * stepCos + phCos * stepSin
+                phCos = nextCos
+            }
+        }
+    }
+
+    /**
+     * 软饱和与单调修复曾经单独派发，只为在真机上把「模态/波包累加」与「逐点软饱和」
+     * 分开读数；诊断已完成，C6 把它并回 field 的行体。lift / softLimit / 单调修复
+     * 都只依赖本行的 field 结果，逐行数学与拆开时逐位一致，省掉一次汇合和
+     * eta/orbitX/orbitZ 三数组的整轮重读重写。
+     */
+    private fun limitRow(r: Int, rawLo: Int, rawHi: Int, lag: Double, depth: Double) {
+        val etaRow = sample.eta[r]
+        val orbitXRow = rawOrbitX[r]
+        val orbitZRow = rawOrbitZ[r]
+        val lift = lag * (sample.zDp[r] - 0.5 * depth)
+        for (x in rawLo..rawHi) {
+            etaRow[x] += lift
+            // 硬裁剪会在 ±10dp 处突然把导数归零。高阶软饱和保留
+            // 常用区间，同时让极值仍有连续导数，不产生平台或尖点。
+            orbitXRow[x] = FableSolCubicResampler.softLimit(orbitXRow[x], 10.0)
+            orbitZRow[x] = FableSolCubicResampler.softLimit(orbitZRow[x], 10.0)
+        }
+        // 若多源叠加逼近横向翻折，只用一个全行比例把 X 轨道朝无轨道
+        // 基线收回；禁止逐点 accumulate/clip 制造局部平段与阶梯。
+        if (FableSolCubicResampler.repairOrbitRowMonotone(
+                orbitXRow,
+                FableSolSpec.DX_DP,
+                WORLD_MINIMUM_SPACING_RATIO,
+                rawLo,
+                rawHi
+            ) < 1.0
+        ) {
+            worldRepairRows.incrementAndGet()
+        }
     }
 
     private fun updateWaveVectors() {
@@ -287,9 +521,19 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
             val spectral = (190.0 / packet.wavelength).pow(0.72).coerceIn(0.55, 1.8)
             packet.energy *= exp(-hypot(vx, vz) * spectral * dt / max(p.get("surface_decay_dp"), 1.0))
         }
-        packets.removeAll {
-            it.age >= it.life || it.energy <= 0.055 || it.z <= -0.60 * depth || abs(it.x) >= 620.0
+        // 手写下标压缩：`removeAll { … }` 会为捕获 depth 的谓词每个物理子步分配一个
+        // lambda（120 次/s）。保留顺序与判定条件与原式逐项相同。
+        var kept = 0
+        for (index in packets.indices) {
+            val packet = packets[index]
+            val expired = packet.age >= packet.life || packet.energy <= 0.055 ||
+                packet.z <= -0.60 * depth || abs(packet.x) >= 620.0
+            if (!expired) {
+                if (kept != index) packets[kept] = packet
+                kept++
+            }
         }
+        while (packets.size > kept) packets.removeAt(packets.size - 1)
         if (sim.t >= nextPacketT && packets.size < 7) spawnPacket(sim)
     }
 
@@ -300,14 +544,33 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
      * `q·a·(kx/k)` 折叠形式预乘，两端一致），三个重循环（方向场累加、
      * worldEta 合成、坡度）按行并行——行间无共享写，输出与串行一致。
      */
-    fun sample(sim: FableSolSimulation): Sample {
+    fun sample(sim: FableSolSimulation): Sample = sample(sim, sim.continuousRenderInfo())
+
+    /**
+     * 渲染路径专用入口：窗口信息由 `buildFrame` 算好后传入，整帧只算一次
+     * （原先渲染器与本方法各算一次，等于每帧两次窗口扫描 + 两次对象分配，
+     * 且两处消费的必须是同一帧同一次计算的结果）。
+     */
+    fun sample(sim: FableSolSimulation, info: FableSolRenderInfo): Sample {
+        val prepStart = System.nanoTime()
+        // 只对渲染窗口求值：`buildFrame` 只读 [i0, i1-1]，而物理网格有 216 点，
+        // 容器 280dp、θ≈0 时其中约 42% 永远不会出现在画面上。
+        // fair 化在 p 处要读 raw[p-1..p+1]，因此 raw 要比 fair 各宽一列。
+        // 单调修复也随之限制在窗口内——`rs` 长期实测恒为 0（该修复在真实参数下
+        // 从不触发），故这一限制不改变任何输出。
+        val fairLo = max(info.i0 - 1, 0)
+        val fairHi = min(info.i1, N_POINTS - 1)
+        val rawLo = max(fairLo - 1, 0)
+        val rawHi = min(fairHi + 1, N_POINTS - 1)
+        sample.windowLo = fairLo
+        sample.windowHi = fairHi
         updateWaveVectors()
         val depth = depthSpanDp()
         sample.depthDp = depth
         for (r in 0 until Z_ROWS) sample.zDp[r] = sample.z01[r] * depth
 
         val ambientScale = p.get("ambient_gain") / 1.2
-        val u0 = sim.uGrid[0]
+        val u0 = sim.uGrid[rawLo]
         val modeCount = wavelength.size
         for (j in 0 until modeCount) {
             val amp = baseAmplitude[j] * ambientScale * (0.78 + 0.52 * energyBand[band[j]])
@@ -321,6 +584,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
             modeBaseX[j] = kx[j] * u0
         }
         val packetCount = min(packets.size, MAX_PACKETS)
+        perfPacketCount = packetCount
         for (index in 0 until packetCount) {
             val packet = packets[index]
             val kp = 2.0 * PI / packet.wavelength
@@ -341,7 +605,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
             packetStepCos[index] = cos(phaseStep)
             packetStepSin[index] = sin(phaseStep)
             val envX = packetEnvX[index]
-            for (x in 0 until N_POINTS) {
+            for (x in rawLo..rawHi) {
                 val dx = (sim.uGrid[x] - packet.x) / packet.sigmaX
                 envX[x] = exp(-0.5 * dx * dx)
             }
@@ -349,89 +613,85 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
 
         val pitchIn = Math.toRadians(sim.motionPitchDeg)
         val lag = (pitchEffRad - pitchIn).coerceIn(-0.24, 0.24)
+        val fieldStart = System.nanoTime()
+        perfPrepNs = fieldStart - prepStart
+        worldRepairRows.set(0)
+        val modeOuter = forceModeOuterFieldForTest
         FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
             for (r in startRow until endRow) {
-                val etaRow = sample.eta[r]
-                val orbitXRow = sample.orbitX[r]
-                val orbitZRow = sample.orbitZ[r]
-                java.util.Arrays.fill(etaRow, 0.0)
-                java.util.Arrays.fill(orbitXRow, 0.0)
-                java.util.Arrays.fill(orbitZRow, 0.0)
-                val z = sample.zDp[r]
-                for (j in 0 until modeCount) {
-                    val amp = modeAmp[j]
-                    val orbitXWeight = modeOrbitXWeight[j]
-                    val orbitZWeight = modeOrbitZWeight[j]
-                    val stepCos = modeStepCos[j]
-                    val stepSin = modeStepSin[j]
-                    val rowPhase = modeBaseX[j] + kz[j] * z + phase[j]
-                    var phCos = cos(rowPhase)
-                    var phSin = sin(rowPhase)
-                    for (x in 0 until N_POINTS) {
-                        etaRow[x] += amp * phCos
-                        orbitXRow[x] += phSin * orbitXWeight
-                        orbitZRow[x] += phSin * orbitZWeight
-                        val nextCos = phCos * stepCos - phSin * stepSin
-                        phSin = phSin * stepCos + phCos * stepSin
-                        phCos = nextCos
-                    }
+                if (modeOuter) {
+                    accumulateFieldRowModeOuter(r, rawLo, rawHi, modeCount, packetCount)
+                } else {
+                    accumulateFieldRowColumnOuter(r, rawLo, rawHi, modeCount, packetCount)
                 }
-                for (index in 0 until packetCount) {
-                    val dz = (z - packetCenterZ[index]) / packetSigmaZ[index]
-                    val envZ = exp(-0.5 * dz * dz)
-                    val a = packetAmp[index]
-                    val orbitXWeight = packetOrbitXWeight[index]
-                    val orbitZWeight = packetOrbitZWeight[index]
-                    val stepCos = packetStepCos[index]
-                    val stepSin = packetStepSin[index]
-                    val envX = packetEnvX[index]
-                    val rowPhase = packetBaseX[index] + packetKz[index] * z +
-                        packetPhaseOffset[index]
-                    var phCos = cos(rowPhase)
-                    var phSin = sin(rowPhase)
-                    for (x in 0 until N_POINTS) {
-                        val local = a * envX[x] * envZ
-                        etaRow[x] += local * phCos
-                        val tang = local * phSin
-                        orbitXRow[x] += tang * orbitXWeight
-                        orbitZRow[x] += tang * orbitZWeight
-                        val nextCos = phCos * stepCos - phSin * stepSin
-                        phSin = phSin * stepCos + phCos * stepSin
-                        phCos = nextCos
-                    }
-                }
-                val lift = lag * (z - 0.5 * depth)
-                for (x in 0 until N_POINTS) {
-                    etaRow[x] += lift
-                    orbitXRow[x] = orbitXRow[x].coerceIn(-10.0, 10.0)
-                    orbitZRow[x] = orbitZRow[x].coerceIn(-10.0, 10.0)
-                }
+                limitRow(r, rawLo, rawHi, lag, depth)
             }
         }
-        // 先合成真渲染面 worldEta（含各层轮廓 + 二维方向场），打光法线改从它求，
-        // 使光贴着看得见的波形走，而不是只跟随二维方向场。
-        composeLayerField(sim.heights, sample.eta)
+        // 合成真渲染面 worldEta（各层轮廓 + 二维方向场）并 fair 化。打光法线从
+        // worldEta 求，使光贴着看得见的波形走，而不是只跟随二维方向场。
+        //
+        // 合成与 fairing 都只依赖本行，因此并入同一次行并行；三路 fairing 也共用
+        // 这一次派发。物理节点是 cubic B-spline 控制样本，不是画面必须逐点命中的
+        // 折线角；局部凸包抑制离群尖峰，解析切线使屏幕 Hermite 重建严格 C2。
+        // 逐行结果与拆成四次派发时逐位一致，只是少了三次汇合。
+        val fairStart = System.nanoTime()
+        perfFieldNs = fairStart - fieldStart
+        // limit 已并回 field 派发（C6），不再单独读数；字段与 HUD 布局保持不变。
+        perfLimitNs = 0L
+        prepareComposeMeans(sim.heights, sample.eta, rawLo, rawHi)
+        val heights = sim.heights
+        FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
+            for (r in startRow until endRow) {
+                composeRow(r, heights, sample.eta, rawLo, rawHi)
+                FableSolCubicResampler.fairCubicBsplineRange(
+                    rawWorldEta[r], sample.worldEta[r], sample.slopeX[r],
+                    FableSolSpec.DX_DP, fairLo, fairHi
+                )
+                FableSolCubicResampler.fairCubicBsplineRange(
+                    rawOrbitX[r], sample.orbitX[r], sample.orbitXSlope[r],
+                    FableSolSpec.DX_DP, fairLo, fairHi
+                )
+                FableSolCubicResampler.fairCubicBsplineRange(
+                    rawOrbitZ[r], sample.orbitZ[r], sample.orbitZSlope[r],
+                    FableSolSpec.DX_DP, fairLo, fairHi
+                )
+            }
+        }
+        // slopeZ 要读相邻行的 fair 结果，无法并入上一段，只能单独派发一次。
+        val slopeStart = System.nanoTime()
+        perfFairNs = slopeStart - fairStart
         val world = sample.worldEta
+        val depthStep = sample.zDp[1] - sample.zDp[0]
+        val inverseDepthStep2 = 1.0 / (2.0 * depthStep)
         FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
             for (r in startRow until endRow) {
-                val slopeXRow = sample.slopeX[r]
                 val slopeZRow = sample.slopeZ[r]
-                for (x in 0 until N_POINTS) {
-                    slopeXRow[x] = when (x) {
-                        0 -> (world[r][1] - world[r][0]) / FableSolSpec.DX_DP
-                        N_POINTS - 1 -> (world[r][x] - world[r][x - 1]) / FableSolSpec.DX_DP
-                        else -> (world[r][x + 1] - world[r][x - 1]) / (2.0 * FableSolSpec.DX_DP)
+                // 与 numpy.gradient(edge_order=2) 同式；外层同样保持二阶单侧导数，
+                // 避免第一/最后一行法线突然改折。三个分支提到行外，内层只剩三项式。
+                when (r) {
+                    0 -> {
+                        val w0 = world[0]; val w1 = world[1]; val w2 = world[2]
+                        for (x in fairLo..fairHi) {
+                            slopeZRow[x] = (-3.0 * w0[x] + 4.0 * w1[x] - w2[x]) * inverseDepthStep2
+                        }
                     }
-                    slopeZRow[x] = when (r) {
-                        0 -> (world[1][x] - world[0][x]) / (sample.zDp[1] - sample.zDp[0])
-                        Z_ROWS - 1 -> (world[r][x] - world[r - 1][x]) /
-                            (sample.zDp[r] - sample.zDp[r - 1])
-                        else -> (world[r + 1][x] - world[r - 1][x]) /
-                            (sample.zDp[r + 1] - sample.zDp[r - 1])
+                    Z_ROWS - 1 -> {
+                        val w0 = world[r]; val w1 = world[r - 1]; val w2 = world[r - 2]
+                        for (x in fairLo..fairHi) {
+                            slopeZRow[x] = (3.0 * w0[x] - 4.0 * w1[x] + w2[x]) * inverseDepthStep2
+                        }
+                    }
+                    else -> {
+                        val next = world[r + 1]; val previous = world[r - 1]
+                        for (x in fairLo..fairHi) {
+                            slopeZRow[x] = (next[x] - previous[x]) * inverseDepthStep2
+                        }
                     }
                 }
             }
         }
+        perfSlopeNs = System.nanoTime() - slopeStart
+        perfWorldRepairRows = worldRepairRows.get()
         return sample
     }
 
@@ -444,5 +704,8 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         // 波包预备数组容量。自然生成上限 7，注入事件在两次剪枝间最多再加数个；
         // 24 远高于可达数量，超出部分按序丢弃（防御性钳制，实际不可达）。
         private const val MAX_PACKETS = 24
+        /** field 列外层推进的相位链槽位：9 个模态 + 至多 [MAX_PACKETS] 个波包。 */
+        private const val FIELD_CHAIN_SLOTS = 9 + MAX_PACKETS
+        private const val WORLD_MINIMUM_SPACING_RATIO = 0.16
     }
 }

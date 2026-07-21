@@ -1,5 +1,221 @@
 # Current Debug Update Notes
 
+## 2026-07-21 - FableSol CPU 算法优化第一、二批（10 项，无视觉/物理改动）
+
+按 `docs/features/audio-visualization-fable-sol/plan-2026-07-21-cpu-optimization-batches-1-2.md`
+一次落地。第一批位级等价：顶点装载削减（含每顶点一次的 `hG/2` 除法与 19012 次/帧的
+`require` 提到循环外）、派发合并（19 → 约 10 次/帧）、方向场循环互换（模态外层 → 列外层，
+三数组约 12 趟 RMW → 1 趟写）、纵深均值互换、分配清理、微项。第二批确定性并行：行并行器
+新增小任务入口（total=9 也能并行），光学几何 / 合成段 / 物理子步三处按层并行，输出
+字节级或逐位相同，各留串行回退开关。
+
+新增永久回归：方向场新旧路径逐位对拍、光学并行与串行逐元素 `floatToRawIntBits` 相等、
+两路银泽共派发逐位相同、层任务体不得触碰层外可变状态的结构门禁。全量 223 项 0 失败。
+
+**实测教训**：把 `ls.heroShiftedX` 人为改成 `layers[0].heroShiftedX`（真正的跨层共享写）
+后逐位对拍**没有失败**，而同位置 1e-13 的确定性差异会被立刻抓住——harness 是灵的，只是
+线程交错不保证发生（探针实测 worker 确实承担了 3/4 的层任务）。**竞态无法用单测证伪**，
+层并行的安全依据是逐项共享写审计 + 结构门禁，不是对拍绿灯。
+
+已发布阿里云 Debug `202607211215`（versionCode 43 / 2.0.0），APK `21029948` 字节，
+SHA-256 `394fbe150b8556fdd0c010faf5fecd80a76fd638795600ca809c7e5c0dbfcd18`；
+`latest.json` 已确认含 `releaseNotes`。
+
+**待真机验证**：HUD 第三行 `work p50/p95` 与 `sample`/`vtx`/`sheen`/`optics`/`comp`/`phys`
+分段，必须同派发速率对比。目标 work p50 5.3 → 约 3.5ms。`limit` 现恒为 `0.0/0.0`
+（已并回方向场派发）属预期。
+
+## 2026-07-21 - FableSol 达成 120fps 并转攻 p95（第六～九批）
+
+关键突破是 **ARR 省电平衡投票**：Android 15 的自适应刷新率默认给窗口投「省电平衡」票，
+把对话框里的普通 View 压到 NORMAL（约 60Hz）。`window.isFrameRatePowerSavingsBalanced
+= false` 一行让真机达到 **119.8fps**（`vs 8.3/8.3`、`grid 8.3`、`skip 0%`）。
+
+此前依次修掉三个棘轮，全部是「读当前状态再据此请求」形成的自锁环——这个坑本会话踩了
+三次，代码里已写明：
+1. `postFrameCallback()` 放在 8ms 渲染之后 → SF 给「请求时刻之后的第一个唤醒点」，
+   系统性错过 → 帧间隔被 vsync 栅格量化成恒定两周期；
+2. 节拍器目标取自 `Display.getRefreshRate()`（含 override/renderFrameRate）→ 被压到 60 后
+   只按 60 提交 → 继续喂给系统。改取 `Display.Mode.getRefreshRate()`；
+3. `Surface.setFrameRate` 的投票值取自**当前**模式刷新率 → 面板在 60 时就投 60。
+   改取 `Display.getSupportedModes()` 里同分辨率下的最高刷新率。
+
+另确认 SurfaceView 子图层从未投过帧率票：窗口 `preferredRefreshRate` 管不到它；
+`View.setRequestedFrameRate` 不向子 View 传播，且窗口图层被 ViewRootImpl 以
+`FRAME_RATE_SELECTION_STRATEGY_SELF` 禁止下传。
+
+**剩余问题是 p95**：`work` p50 5.6ms、p95 10.3ms，预算 8.33ms。各段 p95/p50 比值均约
+1.8~2×，**尖峰是乘性的**（CPU 降频/调度抖动），不是 GC 这类加性事件——因此砍 p50 能
+等比例砍 p95。第四个棘轮闭合在 SF 的内容检测里：越线漏帧 → SF 判定 60fps 内容 → 降节拍
+→ steps 变 2 → 出不来。
+
+本轮落地：音频分析缓冲改定长复用（消 5.3MB/s 垃圾）、`sample()` 只对渲染窗口求值
+（`rs` 恒为 0 证明单调修复从不触发，故裁窗零画质代价；桌面 172→97.9µs，−43%）。
+
+已发布阿里云 Debug `202607210835`，SHA-256
+`7330c33dcb7194aba1517f949856a114c3510e5c69d9fdf173db7caf1a86cff2`。
+
+**待办**：`vtx`（约 1.1ms）+ `sheen`（约 0.2ms）的 GPU 化——节点纹理 + 顶点着色器内
+Hermite 重建（shader 内无超越函数，误差约 1e-4 px）。用户已授权同时修改 Android 与
+Python 蓝本。注意：**在顶点着色器里解析求值方向场不可行**，相位达 44~58 rad 而 GLSL ES
+只保证 `[−π,π]` 内精度，会违反 D40。
+
+## 2026-07-21 - FableSol 第六批：锁死 60fps 的三个成因（主因是自引入的顺序错误）
+
+第五批后真机 59.8fps / 16.7ms，`hz 120.0`、分段合计仅 8.0ms（预算 8.33ms）。
+35 个 agent 的排查（29 条候选、复核后成立 8 条）定位三个叠加成因：
+
+1. **主因（第五批自己引入）**：`Choreographer.postFrameCallback` 被放在约 8ms 的渲染
+   **之后**。在回调体内 post 时 `doFrame` 已清 `mFrameScheduled`，会当场向 SF 发一次性
+   vsync 请求，SF 给「请求时刻之后的第一个唤醒点」。申请时刻 `vsync+8.2~8.5ms` 越过
+   `vsync+8.33ms`，只能拿再下一拍 → 间隔被 vsync 栅格量化成恒定两周期。这解释了
+   "work 8.0ms 却恰好 16.7ms 且零抖动"，也解释了棘轮效应（掉下去只需 +0.03ms 噪声，
+   爬回来要 −0.3ms，因为子步 1→2 会再加 0.3ms）。**修复：把申请提到渲染之前。**
+2. `Display.getRefreshRate()` 的取值顺序是 `refreshRateOverride → renderFrameRate →
+   mode.refreshRate`，前两者是"系统认为本应用需要多少帧"。拿它当节拍器目标 = 让系统的
+   降频决策反过来喂给自己，形成闭环。改取 `Display.Mode.getRefreshRate()`（物理模式速率）。
+3. SurfaceView 的子 SurfaceControl 图层从未投过帧率票。窗口 `preferredRefreshRate`
+   管不到它；`View.setRequestedFrameRate` 不向子 View 传播，且窗口图层被 ViewRootImpl
+   以 `FRAME_RATE_SELECTION_STRATEGY_SELF` 禁止下传。改为直接对
+   `SurfaceHolder.getSurface().setFrameRate(...)`（API 30+）。
+
+已排除：`eglPresentationTimeANDROID` 传过去时刻（过期时刻即刻 latch，不会 PRESENT_LATER）、
+温控（work 未越预算且当时无 `th` 实测值）、`PHYSICS_DT` 双稳态（定步长累加器保证长期守恒，
+真正随子步翻倍的只有 0.3ms，是棘轮的增量项而非独立成因）。
+
+HUD 新增一行 `vs / arm / skip` 与 `hz A/B`（系统下发速率 / 物理模式速率），可一次性区分
+"系统没按 120Hz 派发""回调到得太晚""自己跳了帧"。
+
+已发布阿里云 Debug `202607210549`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `ec90b8f4f2b2515a0c3d661a75d2924c9358a6fb0387dc10d2eda79a09324444`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
+## 2026-07-21 - FableSol 第五批：GPU 迁移设计审查 + 单调归约折叠
+
+第四批后真机 59.3fps（16.9ms/帧）：`phys 6.1 → 1.4ms`（主浪/环境波相位递推奏效），
+GL 线程 CPU 合计 8.2ms，`draw 0.4 + swap 0.3` 说明 GPU 几乎全闲。用户提出"当初迁
+OpenGL ES 时以为会把运算搬进 shader"，并裁定**两端（Android + Python 蓝本）都可以改**、
+设备面板为 **120Hz**。
+
+49 个 agent 的双端设计审查（42 条候选、复核后成立 9 条）关键结论：
+
+1. **在顶点着色器里解析求值方向场不可行**：相位达 44~58 rad，GLSL ES 只保证
+   `sin`/`cos` 在 `[−π, π]` 内精度，几何会变成厂商相关，正面违反 D40。
+   正确设计是**节点纹理 + 顶点着色器内 Hermite 重建**（着色器内无超越函数，
+   误差约 1e-4 px，远低于 D139 已接受的 0.035px）。
+2. **整体搬迁不成立**，卡在闭环：银泽滤波（整网格 7 趟）需要 CPU 全部 97×196 坡度
+   → 坡度是 worldEta 的 Hermite 导数 → CPU 必须重建 → 坐标顺带就有了。打断闭环
+   必须把滤波也做成独立离屏 pass。
+3. **共享 GLSL 不是障碍**：`gl_renderer.py:61-67` 把 `#version 300 es` 改写成
+   `#version 330 core` 并剥离精度限定符，两端共用一份源。但新增 uniform 有 D164 风险
+   （GLES 链接器裁掉未使用 uniform → `check(location >= 0)` 抛出 → 静默切 Canvas）。
+4. **8.33ms 预算尚未证实**：`gl 16.9ms` 与分段合计 8.2ms 之间有 8.7ms 无归属，
+   "面板被压回 60Hz"与"120Hz 但略越预算导致每两次 vsync 一帧"都自洽。
+
+本批只落地纯 CPU、逐位一致的部分：两处整行单调归约折叠（利用
+`min_j bound(step_j) ≡ bound(min_j step_j)`，因 bound 对 rawStep 单调不减，IEEE-754 下
+逐位成立）、顶点循环的重复元素读/死存储/逐顶点除法。另加 `hz`（面板实际刷新率）与
+`rs`（单调修复触发行数）读数以判定上述第 4 点。
+
+**未采纳审计的 S1-e（波包包络窗口化）**：它漏了 `repairOrbitRowMonotone` 扫描整行
+216 点，窗口外的陈旧值会改变行缩放比例进而影响画面，不是逐位一致。
+
+已发布阿里云 Debug `202607210424`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `944bb2fac135654469aa0a153b1e47a9f181622315c03d35ea9a6463c3f49974`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
+## 2026-07-21 - FableSol 第四批：主浪/环境波相位递推（帧率与录音相关的成因）
+
+第三批后真机 60.1fps（29.6 → 16.6ms/帧）。分段读数解开两件事：
+
+1. `field 22.7 → 0.6ms`、`limit 0.7ms`——上一版那 22.7ms 几乎全是软饱和，**即便
+   已把 `Math.cbrt` 换成纯算术**。说明 `Double.doubleToRawLongBits` /
+   `longBitsToDouble` 在 debuggable ART 下同样没有内联，每次立方根仍要付两次慢调用；
+   二项展开快速路绕开它们后塌到 0.7ms。**结论：debuggable ART 下任何 `java.lang`
+   的位操作/数学静态方法都不能假定是内联的。**
+2. 瓶颈转为 `phys 6.1ms`，其中 `wave 0.30`、`surf ≈ 0`，约 5.8ms 落在 `perFrame`。
+   用户观察到的"帧率跟录音相关"由此解释：主浪空间采样有"能量过低即早退"，静音
+   不花钱、有声音满负荷。
+
+落地审计 1B-1/1B-2：主浪六模态（每帧 9×216×6×2 = 23328 次 libm）与环境波四模态
+（9×216×4 = 7776 次，且无早退）在等距网格上改相位旋转递推，libm 降到常数级；
+累加顺序与乘法结合序保持不变。附带免疫 `phase` 无界累加进入 libm Payne-Hanek 慢路径。
+安全网是全量等距校验——第一版只做"均值 + 中点"抽查，被"整体等距、只有第 40 点被
+推移"的测试网格击穿，改为全量扫描（216 次比较，相对省下的三万余次 libm 可忽略）。
+
+已发布阿里云 Debug `202607210306`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `223ae7586c43cac813616d8d0766ce311b073da354d473c766ab0880e7128e6a`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
+## 2026-07-21 - FableSol 第三批：软饱和快速路 + `field` 分解仪表
+
+第二批后真机 33.8fps（56.6 → 29.6ms/帧），瓶颈收敛到 `sample` 23.0ms 中的
+`field` 22.7ms（方向场累加）；`optics` 5.0 → 0.7ms，`prep/fair/slope` 各 ≤0.1ms，
+`draw 0.1 / swap 0.1` 说明 GPU 仍全空闲。
+
+一个对不上的数字：`fair` 每次内层迭代约 1.2ns、`field` 约 68ns，而两者循环体复杂度
+只差一倍。`fair`/`sheen` 用同一套派发且都很快 → 派发机制没问题，是 `field` 内部另有
+原因。本批**先把它拆成可读数字，不猜**：`sample()` 分段细化为
+`prep / field / limit / fair / slope`（把 41904 次软饱和 + 单调修复单独派发），
+另加 `pkt`（参与累加的波包数，自然上限 7 但事件注入可叠到 24）与 `cpu W/N`
+（实际计算线程数 / 可见核数）两个读数。
+
+同时落地审计 1A-2 软饱和快速路：`ratio⁶ ≤ 1e-3` 时用四项二项展开代替开方与三次
+Halley 除法，截断相对误差 < 5.6e-14。阈值刻意不放宽到 1e-2——`FableSolCurveFairnessTest`
+以 1e-12 容差探测 `value = ±3`，恰好落在快速路内。
+
+已发布阿里云 Debug `202607210251`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `6655a11c3311d5cef467687ac3320549b3c033d44917707c2b1f3ead38398e62`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
+## 2026-07-21 - FableSol 帧率回归真凶定位：`Math.cbrt`（第二批）
+
+上一版的屏幕仪表在真机给出决定性读数：整帧 56.6ms 中 `sample` 独占 **44.0ms**，
+`draw 0.2 / swap 0.1` 证明 GPU 完全空闲。真凶是本轮迁移新引入的六阶软饱和
+`value / sqrt(cbrt(1 + ratio⁶))`——97 行 × 216 点 × X/Z 两路 = 每帧 **41904 次
+`Math.cbrt`**。Android 的 `Math.cbrt` 是 libcore 的纯 Java FDLIBM 实现，没有
+`sin`/`cos` 那样的快速路径，debuggable 构建下每次约 1µs（44ms ÷ 41904 ≈ 1.05µs）。
+桌面 HotSpot 把它当内联函数，代价近零——**桌面 JVM 探针对这类 ART 特有开销结构性
+失明**（同一函数桌面 0.26ms vs 真机 44ms，相差 170 倍）。
+
+改为纯算术实现（位级初值 + 三次 Halley 迭代，误差约 1 ulp），并新增 `[1,1e18)` 上
+与 `Math.cbrt` 的逐点比对测试。同时按 87 个 agent 的审计结论落地三项：闪点死算链
+短路（`glint_capacity_gain` 默认 0 时容量恒为 0、一个顶点都不发，却仍跑 31360 次
+sin/cos，逐位等价地跳过，optics 282µs → 56µs）、C2 fairing 的 125712 次除法换成
+每行两次倒数、性能仪表自伤（GL 线程上的同步 binder `getThermalHeadroom` 改 1s 缓存、
+分位数一次排序出三个值、HUD 8Hz → 2Hz）。
+
+仪表增强：`sample()` 内部分 `prep / field / fair / slope` 四段，物理段分
+`bc / wave / surf`，等待真机读数决定下一批。
+
+已发布阿里云 Debug `202607210239`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `a98ff937a3d8cec1466a0ff9372d9927c91f4955d09361dcafe9b844557d47af`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
+## 2026-07-21 - FableSol 帧率回归修复第一批 + 屏幕内性能仪表
+
+用户反馈 FableSol 迁移后动画发卡，并明确**新 debug 包比旧 debug 包更卡**，
+因此排除 D163 的 ART 运行时税，判定为本轮代码回归。用户裁定：可接受"难以察觉
+的差异"；当时无可用设备，先纯静态优化，再发布远程测试。
+
+无设备条件下新增 JVM 探针 `FableSolCpuFrameCostProbe`（默认跳过，需
+`-Dfablesol.perf=1`）取相对基线，定位到本轮迁移新增的 `FableSolRowParallel`
+每次派发要付 22.8µs 的挂起/唤醒往返，而一帧派发五次。四项**逐位等价**优化：
+行并行改短自旋+挂起（空任务 22.8µs → 1.0µs）、`sample()` 派发四次合并为两次、
+银泽坡度滤波按行并行（136µs → 44µs）、几何光学顶点色归一化外提。连续水面
+采样 407µs → 258µs（−37%），每帧屏障总开销约 114µs → 约 5µs。
+
+同时新增 GL 线程 build 段分解计时（采样/顶点/银泽/配色/光学）与每帧 hop 计数，
+接到 Debug 构建的屏幕内 HUD，便于远程读数。新增两条逐位一致性回归测试，开发中
+实际拦下一处求和顺序错误（`(b + 2a) + a` 误合并为 `b + 3a`，浮点加法不结合）。
+
+尚未处理：`optics.build`（桌面约 274µs，当前最大单项、完全未并行）、19012 顶点
+填充与上传、GPU 侧四 pass + 4×MSAA + FP16。
+
+已发布阿里云 Debug `202607210220`（versionCode 43 / 2.0.0），APK `20939764` 字节，
+SHA-256 `2522f9f37baaf20cc1b566ff5d93e50a2a6a68b807a9cbd5aad5cb02b9b857d4`；
+`latest.json` 的 `releaseNotes` 字段已回读确认存在。
+
 ## 2026-07-18 - 接通 FableSol“声音分析与灵敏度”双端调参（D171）
 
 用户先询问 Python“感知前端”面板中的选项是否生效，以及 Android 为何没有同组

@@ -91,6 +91,17 @@ android {
     androidResources {
         generateLocaleConfig true
     }
+
+    testOptions {
+        unitTests.all {
+            // FableSol CPU 帧成本探针默认跳过；只有显式传 -Dfablesol.perf=1 时才透传给测试 JVM。
+            def perfFlag = System.getProperty('fablesol.perf')
+            if (perfFlag != null) {
+                systemProperty 'fablesol.perf', perfFlag
+                testLogging { showStandardStreams = true }
+            }
+        }
+    }
 }
 
 def appUpdateVersionCode = android.defaultConfig.versionCode

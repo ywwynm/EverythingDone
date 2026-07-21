@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">स्व-अंशांकन विंडो</string>
     <string name="fablesol_param_silence_gate_db">मौन गेट (शोर तल से ऊपर)</string>
     <string name="fablesol_param_expander_amount">डायनेमिक विस्तार</string>
+    <string name="fablesol_group_audio_visual_coupling">ऑडियो-विज़ुअल संयोजन</string>
+    <string name="fablesol_param_expression_gain">अभिव्यक्ति आयाम</string>
+    <string name="fablesol_param_state_sensitivity">स्थिति संवेदनशीलता</string>
+    <string name="fablesol_param_transition_speed">संक्रमण गति</string>
+    <string name="fablesol_param_relative_loudness_mix">लाउडनेस ट्रांज़िएंट बूस्ट</string>
     <string name="fablesol_param_uplift_thick_glow">मोटाई चमक तीव्रता</string>
     <string name="fablesol_param_uplift_glow_boost">चमक से व्युत्पन्न उजाला</string>
     <string name="fablesol_param_uplift_crest_rim">लहर-शिखर रजत रेखा तीव्रता</string>

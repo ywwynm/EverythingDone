@@ -2,10 +2,11 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import kotlin.math.exp
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
- * 感知速度相关函数（对应 speed.py 的实时标量路径）。flow01 是绝对的、缓变的感知速度估计，
- * 不做相对分位排名（稳定的快段仍是快）。离线向量版本（local_tempo_curve 等）不移植。
+ * 感知速度相关函数（对应 speed.py 的实时标量路径）。S 融合打击、人声、和声、低频/节拍运动，
+ * K 只在 S 上增加有界正证据；二者都不做曲内分位归一，稳定的快段仍是快。
  */
 object FableSolSpeed {
 
@@ -22,6 +23,17 @@ object FableSolSpeed {
     private const val ONSET_SALIENCE_EXPONENT = 1.7
     private const val ONSET_WEIGHT_FLOOR = 0.28
     private const val RAW_SUBDIVISION_RETAIN = 0.75
+    private const val MOTION_POWER = 8.0
+    private const val MOTION_MAX_MIX = 0.65
+    private const val MOTION_MEAN_MIX = 1.0 - MOTION_MAX_MIX
+    private const val MOTION_TEMPO_MAX_BOOST = 0.08
+    private const val KINETIC_GROOVE_CAP = 0.15
+    private const val KINETIC_INTENSITY_CAP = 0.12
+    private const val KINETIC_NOVELTY_CAP = 0.08
+
+    private val MOTION_WEIGHTS = doubleArrayOf(0.34, 0.22, 0.23, 0.21)
+    private val MOTION_SCALE_X = doubleArrayOf(0.0, 0.15, 0.30, 0.45, 0.60, 0.75, 1.0)
+    private val MOTION_SCALE_Y = doubleArrayOf(0.0, 0.10, 0.24, 0.40, 0.62, 0.90, 1.0)
 
     private val SCALE_X = doubleArrayOf(0.0, 0.074, 0.316, 0.365, 0.503, 0.639, 0.739, 0.792, 1.0)
     private val SCALE_Y = doubleArrayOf(0.0, 0.076, 0.320, 0.360, 0.499, 0.639, 0.749, 0.841, 1.0)
@@ -62,6 +74,83 @@ object FableSolSpeed {
 
     fun tempoConfidence01(confidence: Double): Double =
         smoothstep01((confidence - 0.08) / 0.70)
+
+    /** 1.2 秒均值后的正向 log-band 变化映射到固定运动刻度。 */
+    fun spectralMotion01(meanPositiveDbPerHop: Double, scaleDb: Double = 0.16): Double {
+        val value = maxOf(meanPositiveDbPerHop, 0.0)
+        val scale = maxOf(scaleDb, 1e-6)
+        return (1.0 - exp(-(value / scale).pow(0.85))).coerceIn(0.0, 1.0)
+    }
+
+    /** 纯 DSP 音节运动；presence 单独不能把持续音判成快速。 */
+    fun vocalMotion01(syllableRateHz: Double, vocalPresence01: Double,
+                      harmonicMotion01: Double): Double {
+        val rate = maxOf(syllableRateHz, 0.0)
+        val presence = vocalPresence01.coerceIn(0.0, 1.0)
+        val harmonic = harmonicMotion01.coerceIn(0.0, 1.0)
+        val syllables = 1.0 - exp(-(rate / 4.2).pow(1.10))
+        val articulated = maxOf(syllables, 0.82 * harmonic * presence)
+        return (articulated * (0.38 + 0.62 * presence)).coerceIn(0.0, 1.0)
+    }
+
+    /** 低频运动是主证据，可靠 tempo 只提供正向佐证。 */
+    fun beatMotion01(lowFrequencyMotion01: Double, tempoComponent01: Double,
+                     beatConfidence: Double): Double {
+        val low = lowFrequencyMotion01.coerceIn(0.0, 1.0)
+        val tempoEvidence = tempoComponent01.coerceIn(0.0, 1.0) *
+            tempoConfidence01(beatConfidence)
+        return (low + 0.55 * tempoEvidence * (1.0 - low)).coerceIn(0.0, 1.0)
+    }
+
+    fun grooveMotion01(percussiveMotion01: Double, beatMotion01: Double): Double =
+        sqrt(percussiveMotion01.coerceIn(0.0, 1.0) * beatMotion01.coerceIn(0.0, 1.0))
+
+    /**
+     * 四条独立运动表面的单调融合。八阶广义均值保留任一可靠快通道，算术均值限制噪声通道接管。
+     * 纯标量实现，不在音频热路径创建数组。
+     */
+    fun fuseMotionChannels01(
+        percussive01: Double,
+        vocal01: Double,
+        harmonic01: Double,
+        beat01: Double,
+        percussiveConfidence: Double = 1.0,
+        vocalConfidence: Double = 1.0,
+        harmonicConfidence: Double = 1.0,
+        beatConfidence: Double = 1.0,
+        tempoComponent01: Double = 0.0,
+        tempoEvidenceConfidence: Double = 0.0
+    ): Double {
+        val p = percussive01.coerceIn(0.0, 1.0)
+        val v = vocal01.coerceIn(0.0, 1.0)
+        val h = harmonic01.coerceIn(0.0, 1.0)
+        val b = beat01.coerceIn(0.0, 1.0)
+        val wp = MOTION_WEIGHTS[0] * percussiveConfidence.coerceIn(0.0, 1.0)
+        val wv = MOTION_WEIGHTS[1] * vocalConfidence.coerceIn(0.0, 1.0)
+        val wh = MOTION_WEIGHTS[2] * harmonicConfidence.coerceIn(0.0, 1.0)
+        val wb = MOTION_WEIGHTS[3] * beatConfidence.coerceIn(0.0, 1.0)
+        val total = wp + wv + wh + wb
+        if (total <= 1e-12) return 0.0
+        val mean = (wp * p + wv * v + wh * h + wb * b) / total
+        val generalizedMax = ((wp * p.pow(MOTION_POWER) + wv * v.pow(MOTION_POWER) +
+            wh * h.pow(MOTION_POWER) + wb * b.pow(MOTION_POWER)) / total)
+            .pow(1.0 / MOTION_POWER)
+        var motion = MOTION_MAX_MIX * generalizedMax + MOTION_MEAN_MIX * mean
+        val tempoGain = MOTION_TEMPO_MAX_BOOST * tempoConfidence01(tempoEvidenceConfidence)
+        motion += tempoGain * tempoComponent01.coerceIn(0.0, 1.0) * (1.0 - motion)
+        return interp(motion.coerceIn(0.0, 1.0), MOTION_SCALE_X, MOTION_SCALE_Y)
+    }
+
+    /** 状态标签不能压低输运；groove/intensity/novelty 只能提供有界正向证据。 */
+    fun kineticDriveTarget01(speed01: Double, groove01: Double = 0.0,
+                             intensity01: Double = 0.0,
+                             positiveNovelty01: Double = 0.0): Double {
+        val speed = speed01.coerceIn(0.0, 1.0)
+        val addition = KINETIC_GROOVE_CAP * groove01.coerceIn(0.0, 1.0) +
+            KINETIC_INTENSITY_CAP * intensity01.coerceIn(0.0, 1.0) +
+            KINETIC_NOVELTY_CAP * positiveNovelty01.coerceIn(0.0, 1.0)
+        return (speed + (1.0 - speed) * addition).coerceIn(0.0, 1.0)
+    }
 
     /** 密度与（可稳定的）tempo 分量融合。 */
     fun fusePerceivedSpeed01(rateHz: Double, tempoComponent01: Double, beatConfidence: Double): Double {

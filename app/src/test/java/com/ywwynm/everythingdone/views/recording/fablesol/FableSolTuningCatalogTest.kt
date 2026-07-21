@@ -34,7 +34,12 @@ class FableSolTuningCatalogTest {
         )
         assertTrue(ambientFlow.specs.any { it.key == "beat_gain" })
         assertEquals(
-            setOf("agc_window_s", "silence_gate_db", "expander_amount"),
+            setOf(
+                "agc_window_s",
+                "silence_gate_db",
+                "expander_amount",
+                "relative_loudness_mix"
+            ),
             soundAnalysis.specs.map { it.key }.toSet()
         )
         assertTrue(soundAnalysis.specs.all {

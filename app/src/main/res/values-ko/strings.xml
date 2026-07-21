@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">자동 보정 창</string>
     <string name="fablesol_param_silence_gate_db">무음 게이트(노이즈 플로어 초과)</string>
     <string name="fablesol_param_expander_amount">다이내믹 확장</string>
+    <string name="fablesol_group_audio_visual_coupling">오디오-비주얼 결합</string>
+    <string name="fablesol_param_expression_gain">표현 진폭</string>
+    <string name="fablesol_param_state_sensitivity">상태 민감도</string>
+    <string name="fablesol_param_transition_speed">전환 속도</string>
+    <string name="fablesol_param_relative_loudness_mix">음량 트랜지언트 강화</string>
     <string name="fablesol_param_uplift_thick_glow">두께 투과광 강도</string>
     <string name="fablesol_param_uplift_glow_boost">투과광 파생 밝기</string>
     <string name="fablesol_param_uplift_crest_rim">물마루 은빛 라인 강도</string>

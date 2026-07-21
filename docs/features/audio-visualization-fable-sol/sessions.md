@@ -2347,3 +2347,294 @@ debuggable 运行时下完整兑现。143 项 JVM 测试全绿。临时 release 
   `20934848` 字节，SHA-256 为
   `b371f9f977e4dac0c9527dabdea9eff4be873eba6180d27804ed1a87735edaa5`。按用户要求不再执行远端
   APK 二次下载校验。
+
+## 2026-07-21 因果七境、持续高潮与可重复巨浪双端重构（D172）
+
+- Python 以实时 Analyzer 的固定声学标定重构 `W/S/K/I`、四类音乐运动、能量上升、grade 与
+  七境证据；`LIFT`、`CLIMAX` 改为证据可持续，不再用 4.5 秒硬上限。巨浪门控取消每高潮
+  两道配额，保留 14 秒全局冷却，并以结构到达、段内急剧到达和强新奇度桥接三类因果证据触发。
+- 三段真实音频回放命中：Lose My Mind `53.133s / 69.617s / 139.900s / 158.800s`；
+  录音 `20260707165742.wav` 在覆盖到的对应高潮 `54.083s` 命中；银花在 `143.283s`
+  命中。银花约 32 秒没有短促 CLIMAX；Lose My Mind 说唱 solo 区没有错误巨浪。
+- Python 以真实 `OfflineDirector → FeatureMapper → Simulation` 链生成 6 个 HDR 离屏锚点；
+  均为 840dp × 144dp 的第 0 层完整宽峰，FP16 线性缓存存在 >1.0 reference white 像素，
+  同时保留 4× MSAA、scene-linear 与 HDR active 证据。
+- Android 移植固定 master/capture 域、`W/S/K/I`、无神经 DSP 运动、七境/连续水位流速、
+  巨浪门控及 L0 物理实体。Analyzer 默认 master，只有 `AudioRecorder` 麦克风实例显式使用
+  `PHONE_CAPTURE_V1`；原始 A 计权门不受 +10.5dB 响度补偿和低架滤波影响。
+- Android 巨浪为 840dp × 144dp C2 compact profile，从画外按 `FLOW_DIR × waveSpeed + flow`
+  自然输运；不设演出时钟、不冻结、不重塑。所有 97 行/九层轮廓统一走 C2 B-spline fairing、
+  六阶软限幅、单调 X 修复和 Hermite 重建，Hero 出生前沿同步改为 C2。
+- 渲染端逐个消费每个 authoritative 音频 hop，并按时间交织 Drop/Section/Onset/Prominence，
+  避免显示帧率吞掉 0.2 秒证据窗。现有 GLES、FP16/scRGB HDR、120Hz 固定物理、4× MSAA
+  与逐像素材质路径保持不变；可选神经人声检测明确不进入本轮 Android 包。
+- 新增“音画耦合”调参组（表达幅度、状态灵敏度、过渡速度），声音分析组新增响度瞬态加成；
+  13 语言资源同步。最终 Python 为 `281 passed, 23 subtests passed`；Android 全量为 193 项
+  JVM 测试（其中 FableSol 190 项），`assembleDebug` 成功。
+- 已发布阿里云 Debug `202607201858`（versionCode 43 / 2.0.0），公网 `latest.json` 与本地
+  清单的 code、版本、说明、大小和哈希全部一致。APK 为 `20939764` 字节，SHA-256 为
+  `3975e26aac6a39b6c5bb2630930022980d2190be07449656166de448e65fe298`；公网 APK HEAD 返回
+  200 且 Content-Length 一致。详细用户可见说明见 `debug-updates/update-20260721025615.md`。
+
+## 2026-07-21（二）帧率回归定位与第一、二批优化
+
+- 用户反馈迁移后动画发卡，且**新 debug 包比旧 debug 包更卡**，据此排除 D163 的 ART 通用税，
+  判定为本轮代码回归；用户裁定可接受"难以察觉的差异"，且当时无可用设备。
+- 先建无设备的 JVM 探针 `FableSolCpuFrameCostProbe`（默认跳过，`-Dfablesol.perf=1` 开启）取相对
+  基线，定位到本轮新增的 `FableSolRowParallel` 每次派发要付 22.8µs 挂起/唤醒往返，而一帧派发五次。
+  落地四项逐位等价优化：等待改短自旋+挂起（空屏障 → 1.0µs）、`sample()` 派发四合二、银泽滤波
+  按行并行、几何光学顶点色归一化外提。发布 `202607210220`，并新增 debug 屏幕内性能 HUD。
+- **真机 HUD 读数推翻桌面推断**：整帧 56.6ms 中 `sample` 独占 44.0ms，`draw 0.2 / swap 0.1`
+  证明 GPU 完全空闲。真凶是本轮新增的六阶软饱和 `sqrt(cbrt(1+ratio⁶))`——每帧 41904 次
+  `Math.cbrt`，而 Android 的 `Math.cbrt` 是 libcore 纯 Java FDLIBM，约 1µs/次；桌面 HotSpot
+  视其为内联函数，代价近零，故桌面探针对该热点结构性失明（170 倍差）。
+- 同期 87 个 agent 的多智能体审计（76 条候选、复核后 53 条成立）独立得出同一首要结论，并另外
+  给出：闪点死算链（`glint_capacity_gain` 默认 0 时不发任何顶点却仍跑 31360 次 sin/cos）、
+  fairing 的 125712 次除法、性能仪表把同步 binder `getThermalHeadroom` 放在 GL 线程等。
+- 第二批落地：`cbrt` 换纯算术实现（位级初值 + 三次 Halley，误差约 1 ulp，新增 `[1,1e18)` 逐点
+  比对测试）、闪点链短路（optics 282µs → 56µs）、fairing 除法换乘倒数、仪表自伤修复。
+  `sample()` 内部与物理段补齐分段计时并接入 HUD。发布 `202607210239`。
+- 过程中银泽滤波并行化曾把边界项 `(b + 2a) + a` 误合并为 `b + 3a`（浮点加法不结合），被仓库
+  既有的逐位参考对照测试当场拦下；随后补了覆盖生产规模 97×196（越过并行阈值）与单列退化的测试。
+- 详见 `analysis-2026-07-21-cpu-frame-cost-baseline.md`。
+
+## 2026-07-21（三）120→60 掉档只读定位：面板保持 120，SF 只按 60 派发本应用
+
+- 复核两张真机 HUD 截图：录音 3 秒时 `fps 122.4 / vs 8.3/8.3 / grid 8.3 / work 5.3/9.5 /
+  idle 2.9 / skip 1.6%`；约 21 秒时 `fps 59.7 / vs 16.6/16.6（p05 也是 16.6）/ grid 16.6 /
+  work 7.6/11.7 / idle 8.9 / skip 0% / th 0.0`，而 `hz` 两次都是 `120.0/120.0`。结论：掉到
+  60 不是算力不足（idle 占一半）、不是温控（th 0.0）、不是自跳帧（skip 0%）；显示模式仍在
+  120Hz，是 SurfaceFlinger 把本应用的 vsync 派发降到 60，且此后从未再给过 8.3 栅格。
+- 该形态与两条公开机制都对不上：AOSP per-uid FrameRateOverride 会让本应用的
+  `Display.getRefreshRate()` 读出 60（本会话早前 `hz 60.0/60.0` 即该形态）；ARR 合成模式
+  切换会让 `Display.Mode` 一并变 60。当前 hz/mode 都是 120 而 grid 16.6，指向 OEM 帧率
+  治理不走公开上报通道，HUD 需要补 `DisplayInfo.renderFrameRate` 才能拿到地面真值。
+- 应用侧确认一个"回不来"的具体缺口：`WaveVisualizerFableSolGl.applySurfaceFrameRate` 以
+  `votedFrameRate` 缓存去重，首次投出 120 后不再重投；降档后应用又只能按 16.6ms 栅格提交，
+  内容检测永远观察不到高于 60 的呈现率，两个方向都没有恢复通道。
+- 触发候选按证据排序：①触摸加速窗口过期后重新仲裁（时间线吻合：开始录音的点击后约 3 秒仍
+  120，约 10~20 秒内掉档）；②漏帧触发内容检测降档（work p95 9.5~11.7ms 超 8.33 预算，即
+  第六～九批记录的第四棘轮）；③录音态 HDR headroom 场景策略；④悬浮视频窗并存场景策略。
+  四者可用不接 ADB 的分组实验判别（见 followups）。
+- 本阶段只读定位未改代码；处置方案（重投票看门狗、ADPF、HUD 补 renderFrameRate、p95 收尾）
+  提交用户后，用户裁定落地前三项，见下一节。
+
+## 2026-07-21（四）落地降档恢复通道、ADPF 提示会话与 HUD renderFrameRate
+
+- 降档看门狗：`FableSolGlRenderThread` 逐回调维护 vsync 派发间隔 EMA（新值权重 1/4，
+  volatile 发布，`removeFrameCallback` 归零）；`WaveVisualizerFableSolGl` 的 250ms 显示轮询
+  在连续 4 次观测 ≥ 期望间隔 1.5 倍时先 `setFrameRate(0f)` 撤票、96ms 后重投期望值——同值
+  重发对 SurfaceFlinger 是空操作，必须先清零制造状态变化；重投至少间隔 4 秒，`stopFrameLoop`
+  撤销挂起的重投。重投在 API ≥36 用 `FRAME_RATE_COMPATIBILITY_AT_LEAST`（"至少此速率"，
+  60 无法满足），首投保持已验证的 DEFAULT；每次重投把观测间隔与完整 `DisplayInfo` 写入
+  `fablesol_frame_perf.log`（仅 debug）。
+- ADPF：新增 `FableSolAdpf`，`PerformanceHintManager.createHintSession` 绑 GL 线程 +
+  `FableSolRowParallel` 全部常驻 worker（worker 启动时自行登记内核 tid，JVM 单测安全跳过），
+  目标 8,333,333ns，逐渲染帧 `reportActualWorkDuration`；会话随 detach 释放、重 attach 按新
+  GL 线程 tid 重建，session 字段用 Any? 承载避免低版本类解析（与 VsyncProbe 同模式）。
+  针对已确认的乘性尖峰（DVFS 降频）压 work p95，削减"漏帧→内容检测降档"的触发源。
+- HUD：首行 `hz cur/mode` 后新增 `rr <renderFrameRate>`，按既有 1s 缓存节奏从
+  `DisplayInfo.toString()` 正则抽取（兼容空格/等号两种打印格式）。掉档时 `rr` 读数可区分
+  "公开通路可见的降速"与"OEM 治理绕过上报"。
+- `:app:assembleDebug` 通过；全量 `:app:testDebugUnitTest` 218 项 0 失败 0 错误
+  （`FableSolHdrPipelineSourceTest` 对 `WaveVisualizerFableSolGl` 的结构断言全部保留）。
+  未使用 ADB，未发布阿里云。真机验证要点：掉档后看门狗能否拉回 120（HUD fps 与 perf 日志
+  `revote` 条目）、`rr` 在掉档瞬间的读数、ADPF 生效后 work p95 变化。另有算法性能深挖调研
+  由独立 agent 并行进行中，结论见下一节。
+
+## 2026-07-21（五）算法性能深挖调研完成（独立 agent，未读既有 research 文档）
+
+- 交付每帧成本结构图与 11 项优化候选（C1~C11），合计预期 work p50 5.3 → 3.2~3.5ms；按已证
+  实的乘性尖峰模型，p95 9.5 → 约 6ms，p99 有较大概率进入 8.33ms 预算。
+- 结构性结论：并行覆盖率是 Amdahl 瓶颈——串行大块 optics 0.9 + comp 0.6 + 装配前缀合计约
+  1.7ms；field 是全项目唯一"模态外层、列内层"的求值循环（互换后位级等价，−0.25~0.40ms）；
+  每帧 19 次并行派发可合并到约 10 次；vtx 每顶点约 17 次冗余装载与 19012 次/帧的
+  `DepthBaseline.require` 校验是 debuggable ART 下的显著常数项。音频链确认干净：Analyzer
+  全在录音线程，渲染线程只做标量消费。
+- 明确否定 8 个方向并记录理由：Hermite 上 GPU（四个 CPU 消费者+双端同构）、裁 216 列均值
+  （水位定义）、softLimit 越界短路（全域改值）、sheen 合核（浮点重排）、跨帧流水线（收益
+  上限 0.5ms 不抵成本）、sin/cos 查表、增量顶点重写、降规格（合同项）。
+- 建议四批落地：①位级等价批 C5/C6/C7/C10/C11/C1 → 约 4.3ms；②确定性并行重构 C2/C3/C8
+  → 约 3.5ms；③调度实验 C4（worker 3→5/6/7、块 8→4，真机 HUD A/B）；④需数值门禁的 C9
+  （跨行相位递推，新增 <1e-11 对照 + HDR 截图 A/B）。
+- 完整报告归档于 `research-2026-07-21-cpu-algorithm-deep-dive.md`。本节只归档调研，未改产品
+  代码；批次落地与 A/B/C 真机验证的先后由用户裁决。
+
+## 2026-07-21（六）真机验证定性 ColorOS 触摸空闲降档；产出第一、二批实施计划
+
+- 用户真机验证 A/B/C：看门狗撤票重投**不能**拉回 120；`rr` 全程恒 120；开始录音后不动
+  很快 120→60，但在对话框内任意触摸一下即回升 120（松手后再掉）。三条合起来定性：本机
+  （ColorOS）的触摸空闲降档策略在应用无输入约 10s 后强制降到 60Hz 派发，无视应用层
+  `setFrameRate` 显式投票与撤票重投（AOSP 仲裁中 ExplicitDefault 会赢过启发式，此处不会），
+  且不走 per-uid override / ARR 模式切换等公开上报通道（rr 恒 120）。应用侧无正规恢复
+  手段；触摸加速是唯一提升通道。看门狗与 ADPF 代码保留（AOSP 设备语义正确、无副作用）。
+  ADPF 效果判定需比对 HUD 第三行 `work` p95（用户首次读的 `gl p95` 在 60Hz 派发下恒为
+  16.6~20ms，不反映 CPU），留待后续有效读数。
+- 产出 `plan-2026-07-21-cpu-optimization-batches-1-2.md`：把调研报告第一批（C5/C6/C7/
+  C10/C11/C1）与第二批（RowParallel 小任务入口 + C2/C3/C8）落成可执行规格——逐项做法与
+  等价性自查要点、HUD/监控处理决策（limit 并回 field 后上报 0、签名不动）、C1 逐位对拍
+  开关、C2 字节级相等回归与串行回退、C3 scratch 迁移清单要求、测量协议（同派发速率对比、
+  60Hz 下 steps=2 使 phys 翻倍）与交付验收清单。实现会话须同时阅读计划与调研报告；第三、
+  四批明确不在范围。本节未改产品代码。
+
+## 2026-07-21（七）CPU 优化第一批落地：C5/C6/C7/C10/C11/C1 全部位级等价
+
+按 `plan-2026-07-21-cpu-optimization-batches-1-2.md` 第 3 节顺序实施，帧调度 A/B/C
+改动作为基座保留未动。全部条目位级等价，每项后 `:app:assembleDebug` +
+全量 `:app:testDebugUnitTest`；收尾 213 项 0 失败 0 错误。
+
+- **C5 顶点装载削减**（`FableSolGlRenderer.buildFrame`）：九个 `sample.xxx[row]` 外层
+  数组提为行级一维引用；`hermiteWeights` 的 8 张权重表与 sourceIndex/Fraction/UDp、
+  vertexData/projectedX/sheenSlopeX/Z 在并行行体开头提为 local（每块一次装载，
+  debuggable ART 不做 LICM，原本每顶点都真跑）；`max(sample.depthDp,1e-6)` 与
+  `info.hG/2.0` 提为帧常量（后者原是逐顶点一次双精度除法）；`FableSolDepthBaseline`
+  拆出 `requireValid` + `valueUnchecked`，19012 次/帧的契约校验提到循环外一次，
+  公开 `value` 行为不变。
+- **C6 派发合并**：① limit 行体并回 field 派发（省一次汇合与 eta/orbitX/orbitZ 的
+  整轮重读重写），`perfLimitNs` 恒置 0、`recordGlStages` 签名与监控字段一律不动，
+  HUD `limit` 列保留并在 `publishHud` 注释说明；② `FableSolSheenSlopeFilter` 三个
+  横向 pass 融进单次派发的行体（行内乒乓，仍是整段 source→target 双缓冲），新增
+  `smoothPair` 让 slopeX/slopeZ 两路共派发（各持一份 scratch），单帧派发
+  14 → 5、全帧 19 → 约 10。
+- **C7**：`prepareComposeMeans` 的 depthMeanX 改行外层列内层累加（先清零、最后统一
+  除 Z_ROWS），消除对行主序 `[97][216]` 的列主序散射读。
+- **C10 分配清理**：`packets.removeAll{}` → 手写下标压缩；`continuousRenderInfo()`
+  每帧两次 → `buildFrame` 算一次经新增的 `sample(sim, info)` 重载传入；
+  `applyInjections` 的 bump 数组迁为 `FableSolLayerSim.injectBumpDp`（归层所有，
+  为 C8 层并行预留）并由 `inject` 显式按 `i1-i0` 限定有效区间，`DynamicWave` 的
+  注入梯度改用常驻 scratch + `gradientInto(y, n, …)`；`buildInterfaceShoulder` 的
+  「先分配后早退」判定提到调用点（`interfaceShoulderNeeded`，不分配）；
+  `AudioRecorder` 的 mono 缓冲按最大读长预分配，配套 `feed(mono, count)` 重载。
+- **C11 微项**：Ambient/Hero 的步进旋转按 (dx, baseLen) 跨帧缓存；perFrame 的三频段
+  攻击/释放系数与两条 roughness 系数提到层循环前（exp 27→6、18→2）；Hero 的
+  「均匀性判定」与「最小采样间隔」合成一趟 `FableSolWaveRecurrence.scanSteps`；
+  optics `readContour` 的 `uDp` 除法与 `depthAxis` 差值按 micro/glint 门禁跳过
+  （默认色板下整段是死算）。
+- **C1 field 循环互换**（单独成一个完整改动）：field 段改列外层，9 模态 + ≤24 波包的
+  (phCos, phSin) 作为逐行状态数组交错推进，每列寄存器 `s=0.0` 起步按 j 升序再
+  packet 升序累加、一次 store；三个输出数组从约 12 趟 read-modify-write 降为 1 趟写。
+  旧路径以 `forceModeOuterFieldForTest` 永久保留。
+
+新增/调整的测试：`FableSolContinuousFieldParityTest`（C1 新旧路径逐位对拍，全 216 列
+与自然裁窗两种规模 × 4 组参数配置 + 满波包 + 零输入边界，`doubleToRawLongBits` 相等）；
+`FableSolSheenSlopeFilterTest` 增「两路共派发与逐路单独平滑逐位相同」；
+`FableSolWavePhaseRecurrenceTest` 增「合并扫描与独立判定同结论且最小步长逐位相同」
+（含 NaN 步长边界）。`FableSolCurveFairnessTest` 的顶点重建结构断言按 C5 的行级引用
+写法更新——守的仍是「消费共享 fair 曲线的解析切线」这一契约，改的只是断言里的写法。
+
+对拍测试的门禁能力实测验证过：把列外层实现里 `a * envX[x] * envZ` 改成
+`a * (envX[x] * envZ)`（纯结合序变化）后三条对拍全部立刻失败，恢复后全绿。
+
+未 commit、未发布、未使用 ADB、未改 Python 仓库。真机 HUD 前后对比读数待用户提供
+（按计划第 2 节协议：同派发速率下比 `work p50/p95`、`sample`、`vtx`、`sheen`、`optics`；
+`limit` 现恒为 0.0 属预期）。
+
+## 2026-07-21（八）CPU 优化第二批落地：RowParallel 小任务入口 + C2/C3/C8 按层并行
+
+按计划第 4 节顺序实施。收尾 `:app:assembleDebug` + 全量 `:app:testDebugUnitTest`
+223 项 0 失败 0 错误（1 项 skip 为既有）。
+
+- **4.1 RowParallel 小任务入口**：新增 `run(total, minParallelRows, chunkRows, body)`
+  重载，`chunkRows` 与 `totalRows`/`currentBody` 在同一 runLock 临界区内写、由同一次
+  `generation` volatile 写发布，worker 与调用线程按本轮块大小窃取；默认入口语义
+  一字未动（97 行仍是 ≥16 才并行、8 行一块）。另加便捷入口 `runUnits(total)`
+  ——9 个单元、每个自成一块、2 个单元起并行，供三处按层并行共用。
+  新增单测：九单元逐个成块且各执行一次（300 轮）、默认入口仍 13 块、小任务入口的
+  后台异常包装回传且不污染下一轮块大小、调用线程异常原样重抛。
+- **C2 optics 按层并行**：`FableSolGlOptics` 引入 `LayerScratch` 内部类，把原先九层
+  共享逐层复写的 21 组 216 长度 scratch、锚点池与顶点游标整体下沉到层粒度（9 份常驻
+  复用）；顶点写入改为在 `vertices` 里按 `(N_LAYERS-1-layer)` 静态划分的互不重叠段内
+  进行（每层定容 5928 顶点，9 段 53352 ≤ MAX_VERTICES 64000，构造期 `check` 兜底），
+  构完后按层序 8→0 用 `System.arraycopy` 压实——段基址与压实顺序同向，目的地恒不晚于
+  源，重叠区间安全。待生候选改为每层收集、层循环后按「层序 8→0、层内锚点序」归并进
+  共享池（顺序有意义：`scheduleGlitterBirths` 用严格大于挑最优，并列先入者胜）；
+  `scheduleGlitterBirths` 与 `lastTrackTime` 保持在层循环之后串行。
+  保留 `@Volatile parallelLayerBuildEnabled` 串行回退开关。
+- **C3 perFrame 按层并行**：现场枚举出四组被逐层复写的 sim 级 scratch——
+  `heroBandTargetScratch`、`heroShiftedX`、`heroInterpIndex`、`heroInterpFraction`
+  ——全部迁入 `FableSolLayerSim`（`heroVisibleMask`/`heroSourceWeight`/`grandProfile`
+  确认为层循环前写好的只读量，保持共享）。层体抽成 `perFrameLayer`。
+- **C8 物理 substep 层循环并行**：层体抽成 `physicsLayerStep`；`beatSurge`/`thInRad`/
+  `thRenderRad`/`dRender`/`calm`/`agitC`/`tension01`/`cMean` 均在循环前算好只读，注入
+  路径按层隔离（bump scratch 已在 C10 归层），`surface2d.advance` 仍在层循环之后串行。
+  唯一 sim 级写是第 0 层的 `visualTargetDps`，单写者、循环内无读者。
+  C3/C8 共用 `@Volatile parallelLayerLoopsEnabled` 串行回退开关。
+
+新增测试与它们各自证明了什么（这一段是有意写清楚的）：
+
+- `FableSolGlOpticsParallelParityTest`：并行与串行两路在默认色板 / 开闪点 /
+  闪点+体光三种配置下，顶点缓冲**逐元素 `floatToRawIntBits` 相等**，层区间与各项
+  统计位一一相等。
+- `FableSolSimulationLayerParallelTest`：以**串行**结果为稳定基准，六轮并行结果逐位
+  对拍（取串行而非「并行跑两遍互比」，是为了避免两遍同向出错互相吻合）。
+- 同文件的结构门禁「层任务体不得触碰层外可变状态」：断言四组 scratch 只声明在
+  `FableSolLayerSim` 上、`FableSolSimulation` 不再持有同名字段，且两个层体不按下标
+  访问 `layers[]`。
+
+**关于测试能力的诚实结论（重要）**：把 `ls.heroShiftedX` 人为改成
+`layers[0].heroShiftedX`（制造真正的跨层共享写）后，上面那条逐位对拍**没有失败**；
+而同一位置一个 1e-13 的确定性差异会被立刻抓住——说明对拍 harness 本身是灵的，只是
+那一轮的线程交错恰好没撞上。用探针实测过 worker 确实在干活（3000 轮派发里后台
+worker 承担 19906/27000 个单元），所以并行是真的在跑，但**竞态无法用单测证伪**。
+因此才补了上面那条结构门禁，它对同一处人为改动会确定性地失败（已实测）。竞态安全
+最终依据是逐项枚举的共享写审计（本节已列全），不是对拍绿灯。
+
+同时按计划把 `FableSolHdrPipelineSourceTest` 的光学发射顺序断言重新锚到
+`LayerScratch.buildLayer`——守的仍是「界面肩→波背暗带→体光→闪点」这条契约，
+只是它随 C2 搬了家。
+
+未 commit、未发布、未使用 ADB、未改 Python 仓库。真机 HUD 前后对比读数待用户提供：
+按计划第 2 节协议在同一派发速率下比 `work p50/p95`、`optics`、`comp`、`phys`；
+第二批的预期是 optics 0.9 → 0.4~0.5、comp 0.6 → 0.25、120Hz phys 0.9 → 0.8。
+若真机出现异常，可用 `FableSolGlOptics.parallelLayerBuildEnabled` 与
+`FableSolSimulation.parallelLayerLoopsEnabled` 两个开关分别切回串行定位。
+
+## 2026-07-21（九）第一、二批实施的独立复核：通过，未发现正确性缺陷
+
+对第七、八节全部改动做逐文件代码审查（20 个改动文件按 mtime 圈定），全量测试在最终
+代码上重跑确认（47 套件，20:09:40 全部写出，0 失败）。重点核验结论：
+
+- **C1 逐位等价成立**：新旧路径逐行比对——每列加法到达顺序（j 升序再 packet 升序、
+  `0.0` 起点）、旋转递推式、`(amp*envX[x])*envZ` 结合序全部一致；行首相位仍逐行直接
+  sin/cos，未夹带 C9。对拍测试覆盖 8 组窗口 + 满波包 + 零输入，比较 8 个下游数组的
+  raw bits，且门禁能力经变异实测。
+- **C6 守卫互补性成立**：limit 行体与 field 同派发（历史上本就合并，注释留档）；
+  Renderer 回折稀有分支的 `rawStep < ratio*baselineStep` 守卫与
+  `monotoneBlendBound` 内部 `rawStep >= floor` 恒等返回 1.0 严格互补（同一乘积表达式，
+  baselineStep 恒正）。sheen 三横向 pass 行内乒乓 + 两路共派发，行局部性成立。
+- **C11 系数合并对照 HEAD 验证**：旧三频段 tau 本就层无关（`ATK_MULT[j]` 直乘），合并
+  位级等价；WaveSets 步进旋转缓存键 (dx, baseLen) 的失效路径完备（k 只经 retune 变更，
+  retune 必改 baseLen；hero 的 heroShiftedX 平移不改 dx）。
+- **C2 无共享写**：全部发射辅助函数与 21 组 scratch 都在 LayerScratch 内、按层顶点段
+  静态划分且越界就地 `check`；压实 8→0 目的地恒不晚于源（且 System.arraycopy 本就是
+  memmove 语义）；候选按「层序 8→0、层内锚点序」归并，与串行追加顺序一致，每层 ≤4
+  锚点 × 9 层恰等于池容量，全局上限判定位置迁移不改变行为。
+- **C3/C8 共享写审计复核**：physicsLayerStep/perFrameLayer 只写 `ls.*` 与
+  `heights[i]`；`visualTargetDps` 单写者且循环内无读者；`heroInterpIndex/Fraction`
+  哨兵插值结构为前几轮既有实现，本批仅迁移归属；调参写入经 `pendingTuning` 锁 +
+  drainAndApply 串行消费，并行段无并发参数变更。**全部 12 个 RowParallel 调用点无嵌套
+  派发**（层任务体内再调 RowParallel 会因 runLock 排队 + 汇合等待互锁，已逐点排除）。
+- **RowParallel 扩展**：chunkRows 与 totalRows/currentBody 同临界区写、同一次
+  generation volatile 写发布；默认入口语义逐字未变；异常语义保持。
+- **音频缓冲复用**：`feed(mono, count)` 全部消费以 count 为界，复用缓冲无越界读。
+- 帧调度 A/B/C 基座（RenderThread/GL 视图/ADPF/HUD rr）确认未被本批触碰。
+
+两处外观级小瑕疵（不影响正确性，留待顺手处理）：`FableSolGlOptics.build` 开头未重置
+`glintFirstVertexForTest`（仅测试字段，消费方以 count 为门，与旧行为一致）；
+`FableSolRowParallel` 类首注释仍写"切成 8 行连续块"（现仅描述默认入口），`runUnits`
+上方有一段悬空 KDoc。竞态安全的最终依据与第八节一致：逐项枚举的共享写审计 + 结构
+门禁，对拍绿灯只是必要条件。本节未修改产品代码；真机 HUD 读数仍待用户提供。
+
+## 2026-07-21（十）默认隐藏帧率 HUD，双仓提交本轮全部工作
+
+- `WaveVisualizerFableSolHost` 新增 `SHOW_PERF_HUD`（默认 false）：debug 构建不再把
+  帧率仪表叠在水面上；`FableSolPerformanceMonitor` 与 perf 文件日志照常工作
+  （`onHudUpdate` 未注册时 `publishHud` 直接早退，格式化开销一并省去），需要屏幕
+  读数时把开关改回 true。复跑 `:app:assembleDebug` + 全量 `:app:testDebugUnitTest`：
+  223 项、1 skip（既有探针）、0 失败。
+- Android 仓库将 4217f1c5 以来的完整工作树一次提交：D172 因果七境移植、帧成本定位与
+  首两批计算优化、帧调度轮（ARR 省电投票退出、GL 线程帧循环、降档看门狗、ADPF、
+  HUD rr）、CPU 第一/二批位级等价优化、HUD 默认隐藏，以及全部文档、测试与 debug
+  发布记录。Python 仓库（audioVisualizerSimulatorFable）同步提交 D172 零神经因果
+  七境解码轮，提交前复跑全量 pytest：281 passed + 23 subtests。
+- 两笔提交按用户指定共同署名：GPT 5.6 Sol 在前、Claude Fable 5 在后。

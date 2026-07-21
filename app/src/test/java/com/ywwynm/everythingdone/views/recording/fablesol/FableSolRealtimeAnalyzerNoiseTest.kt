@@ -104,6 +104,34 @@ class FableSolRealtimeAnalyzerNoiseTest {
         assertTrue("真实中频声音不应等待完整预热超时", audibleAfterWarmup)
     }
 
+    @Test
+    fun captureTrimCannotOpenRawAudibilityGate() {
+        val sr = 44100
+        val amplitude = Math.pow(10.0, -68.0 / 20.0)
+        val samples = DoubleArray(4 * sr) { index ->
+            amplitude * sin(2.0 * PI * 1000.0 * index / sr)
+        }
+        val analyzer = FableSolRealtimeAnalyzer(
+            sr,
+            FableSolCaptureProfile(loudnessTrimDb = 12.0, lowShelfGainDb = 18.0)
+        )
+        var maxWater = 0.0
+        var anyAudible = false
+        var offset = 0
+        while (offset < samples.size) {
+            val end = minOf(offset + 512, samples.size)
+            val (frames, _) = analyzer.feed(samples.copyOfRange(offset, end))
+            for (frame in frames) {
+                anyAudible = anyAudible || !frame.isSilent
+                maxWater = maxOf(maxWater, frame.waterDrive01)
+            }
+            offset = end
+        }
+
+        assertTrue("输入 trim 不得泄漏进原始 A 计权安全门", !anyAudible)
+        assertTrue("maxWater=$maxWater", maxWater == 0.0)
+    }
+
     private fun analyze(samples: DoubleArray, sr: Int): AnalysisResult {
         val analyzer = FableSolRealtimeAnalyzer(sr)
         var onsetCount = 0

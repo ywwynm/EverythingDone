@@ -47,6 +47,37 @@ class FableSolDepthBaselineTest {
     }
 
     @Test
+    fun depthBaselineContinuesBothEndpointTangents() {
+        val anchors = realisticLayerMeans()
+        val tangents = DoubleArray(anchors.size)
+        FableSolDepthBaseline.updateTangents(anchors, tangents)
+        val epsilon = 1e-4
+        val last = anchors.lastIndex.toDouble()
+
+        val nearLeft = (
+            FableSolDepthBaseline.value(anchors, tangents, 0.0) -
+                FableSolDepthBaseline.value(anchors, tangents, -epsilon)
+            ) / epsilon
+        val nearRight = (
+            FableSolDepthBaseline.value(anchors, tangents, epsilon) -
+                FableSolDepthBaseline.value(anchors, tangents, 0.0)
+            ) / epsilon
+        val farLeft = (
+            FableSolDepthBaseline.value(anchors, tangents, last) -
+                FableSolDepthBaseline.value(anchors, tangents, last - epsilon)
+            ) / epsilon
+        val farRight = (
+            FableSolDepthBaseline.value(anchors, tangents, last + epsilon) -
+                FableSolDepthBaseline.value(anchors, tangents, last)
+            ) / epsilon
+
+        assertEquals(nearLeft, nearRight, 1e-2)
+        assertEquals(farLeft, farRight, 1e-2)
+        assertTrue(FableSolDepthBaseline.value(anchors, tangents, -0.1) < anchors[0])
+        assertTrue(FableSolDepthBaseline.value(anchors, tangents, last + 0.1) > anchors.last())
+    }
+
+    @Test
     fun depthBaselineMatchesTheShapePreservingPchipReference() {
         val anchors = doubleArrayOf(0.0, 1.0, 3.0)
         val tangents = DoubleArray(anchors.size)

@@ -30,7 +30,23 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val boundaryNs: Long,
         val waveNs: Long,
         val surfaceNs: Long,
-        val composeNs: Long
+        val composeNs: Long,
+        // build 内部分解（2026-07-21 帧率排查）：定位 build 段耗时落在哪一块。
+        val sampleNs: Long,
+        val vertexNs: Long,
+        val sheenNs: Long,
+        val colorNs: Long,
+        val opticsNs: Long,
+        val audioFrames: Int,
+        val audioEvents: Int,
+        val packetCount: Int,
+        val repairRows: Int,
+        // sample() 内部四段：串行预备 / 方向场累加 / 合成与 fairing / 纵深梯度。
+        val samplePrepNs: Long,
+        val sampleFieldNs: Long,
+        val sampleLimitNs: Long,
+        val sampleFairNs: Long,
+        val sampleSlopeNs: Long
     )
 
     private data class BackgroundSnapshot(
@@ -55,6 +71,17 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var pendingFrames = ArrayList<FableSolFeatureFrame>()
     private var pendingEvents = ArrayList<FableSolEvent>()
     private val pendingTuning = HashMap<String, Double>()
+
+    // build 段的分解计时与本帧消费的音频 hop 数（2026-07-21 帧率排查仪表）。
+    private var perfSampleNs = 0L
+    private var perfVertexNs = 0L
+    private var perfSheenNs = 0L
+    private var perfColorNs = 0L
+    private var perfOpticsNs = 0L
+    private var perfAudioFrames = 0
+    private var perfAudioEvents = 0
+    /** 投影单调修复触发的行数；顶点填充在行并行区内，故用原子计数。 */
+    private val perfRepairRows = java.util.concurrent.atomic.AtomicInteger(0)
     // 颜色过渡（调参 Dialog 换色）：UI 线程投递目标，GL 线程消费推进。
     @Volatile private var pendingTransitionTarget: BackgroundSnapshot? = null
     private var transitionFrom: BackgroundSnapshot? = null
@@ -129,21 +156,28 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var hdrHeadroom = 1f
 
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
-    private val sourceBefore = IntArray(FableSolSpec.N_POINTS)
-    private val sourceAfter = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
-    private val cubicWeights = FableSolCatmullRomWeightTable(FableSolSpec.N_POINTS)
+    private val sourceUDp = DoubleArray(FableSolSpec.N_POINTS)
     private val hermiteWeights = FableSolHermiteWeightTable(FableSolSpec.N_POINTS)
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
     private val layerMeanTangents = DoubleArray(FableSolSpec.N_LAYERS)
     private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
     private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    // 投影 X 先保留 Double 精度，逐行求唯一收回比例后再写入 Float 顶点；
+    // 数组按最大列数预分配，稳态零分配。
+    private val projectedX = DoubleArray(
+        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
+    )
     // D151 厚度透光：逐锚层轮廓均值 y（物理 px，未旋转），供 uLayerMeanYPx。
     private val layerMeanYPx = FloatArray(FableSolSpec.N_LAYERS)
     // D156 v17 银丝太阳柱：row 0 可见跨度（本地 px），供 shader 换算 x01。
     private var crestRimX0Px = 0f
     private var crestRimSpanPx = 1f
-    private val sheenSlopeScratch = FloatArray(
+    // 两路 sheen 共派发（C6）后必须各持一份 scratch，否则行体内两路会互相踩踏。
+    private val sheenSlopeScratchX = FloatArray(
+        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
+    )
+    private val sheenSlopeScratchZ = FloatArray(
         FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
     )
     private val vertexData = FloatArray(
@@ -378,7 +412,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             sim.perfBoundaryNs,
             sim.perfWaveNs,
             sim.perfSurfaceNs,
-            sim.perfComposeNs
+            sim.perfComposeNs,
+            perfSampleNs,
+            perfVertexNs,
+            perfSheenNs,
+            perfColorNs,
+            perfOpticsNs,
+            perfAudioFrames,
+            perfAudioEvents,
+            sim.surface2d.perfPacketCount,
+            perfRepairRows.get() + sim.surface2d.perfWorldRepairRows,
+            sim.surface2d.perfPrepNs,
+            sim.surface2d.perfFieldNs,
+            sim.surface2d.perfLimitNs,
+            sim.surface2d.perfFairNs,
+            sim.surface2d.perfSlopeNs
         )
     }
 
@@ -433,6 +481,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                 tuned = true
             }
         }
+        perfAudioFrames = frames?.size ?: 0
+        perfAudioEvents = events.size
         if (tuned) {
             // 静态材质色缓存读 lighten_far/color_breath/environment_tint 等参数，
             // 调参后强制下一帧重建。
@@ -445,15 +495,38 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             return
         }
         if (frames != null) {
-            mapper.applyFrame(sim, frames[frames.lastIndex])
+            // 七境、突发确认和巨浪门控以音频 hop 的 authoritative 时钟积分。
+            // 渲染帧可能一次收到多个 hop；必须逐个消费，并按音频时间把稀疏事件
+            // 放回相邻 hop 之间。事件与同时间 hop 同批产生，先应用该 hop、再应用
+            // 事件，保证 Drop/Section 从下一权威帧开始生效，与实时 Python 链一致。
+            events.sortBy { it.t }
+            var eventIndex = 0
+            for (frame in frames) {
+                while (eventIndex < events.size && events[eventIndex].t < frame.t) {
+                    applyAudioEvent(events[eventIndex++])
+                }
+                mapper.applyFrame(sim, frame)
+                while (eventIndex < events.size && events[eventIndex].t <= frame.t) {
+                    applyAudioEvent(events[eventIndex++])
+                }
+            }
+            while (eventIndex < events.size) applyAudioEvent(events[eventIndex++])
             lastAudioElapsed = now
         } else if (lastAudioElapsed != 0L && now - lastAudioElapsed > IDLE_SILENCE_MS) {
             mapper.applySilence(sim)
+            for (event in events) applyAudioEvent(event)
+        } else {
+            for (event in events) applyAudioEvent(event)
         }
-        for (event in events) when (event) {
+
+    }
+
+    private fun applyAudioEvent(event: FableSolEvent) {
+        when (event) {
             is FableSolEvent.Onset -> mapper.applyOnset(sim, event)
             is FableSolEvent.Section -> mapper.applySection(sim, event)
             is FableSolEvent.Prominence -> mapper.applyProminence(sim, event)
+            is FableSolEvent.Drop -> mapper.applyDrop(sim, event)
         }
     }
 
@@ -531,7 +604,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             opticalFloatCount = 0
             return
         }
-        val sample = sim.surface2d.sample(sim)
+        perfRepairRows.set(0)
+        val sampleStart = SystemClock.elapsedRealtimeNanos()
+        val sample = sim.surface2d.sample(sim, info)
+        perfSampleNs = SystemClock.elapsedRealtimeNanos() - sampleStart
+        val vertexStart = perfSampleNs + sampleStart
         for (layer in layerMeans.indices) {
             var sum = 0.0
             for (value in sim.heights[layer]) sum += value
@@ -554,107 +631,210 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             val source = sim.continuousRenderSourcePosition(info.i0, rawColumns, columns, column)
             val index = min(source.toInt(), info.i1 - 2)
             sourceIndex[column] = index
-            sourceBefore[column] = (index - 1).coerceAtLeast(0)
-            sourceAfter[column] = (index + 2).coerceAtMost(FableSolSpec.N_POINTS - 1)
             val fraction = (source - index).coerceIn(0.0, 1.0)
             sourceFraction[column] = fraction
-            cubicWeights.update(column, fraction, FableSolSpec.DX_DP)
+            sourceUDp[column] = lerp(sim.uGrid[index], sim.uGrid[index + 1], fraction)
             hermiteWeights.update(column, fraction, FableSolSpec.DX_DP)
         }
 
         // 逐行独立填充（游标 = 行基址 + 列内偏移），行间无共享写，可安全并行；
         // 每个顶点的数学与串行版逐条一致。
         val fillColumns = columns
+        // 帧常量提到循环外：这两项在 19012 个顶点上恒定，其中 hG/2 原本是逐顶点
+        // 一次双精度除法。除数与被除数数值均未改变，除法本身仍在，逐位一致。
+        val safeDepthDp = max(sample.depthDp, 1e-6)
+        val halfHeightG = info.hG / 2.0
+        // 契约校验提到顶点循环外一次；数组是渲染器常驻字段，循环期间形状不变。
+        FableSolDepthBaseline.requireValid(layerMeans, layerMeanTangents)
         FableSolRowParallel.run(FableSolContinuousSurface.Z_ROWS) { startRow, endRow ->
+            // 下面这批 local 只是把字段/表数组的装载从「每顶点一次」降为「每块一次」，
+            // 表达式与访问的元素完全不变（debuggable ART 不做 LICM，这些 getfield
+            // 全部真实执行）。
+            val h00 = hermiteWeights.h00
+            val h10 = hermiteWeights.h10
+            val h01 = hermiteWeights.h01
+            val h11 = hermiteWeights.h11
+            val dh00 = hermiteWeights.dh00
+            val dh10 = hermiteWeights.dh10
+            val dh01 = hermiteWeights.dh01
+            val dh11 = hermiteWeights.dh11
+            val columnIndex = sourceIndex
+            val columnFraction = sourceFraction
+            val columnUDp = sourceUDp
+            val anchors = layerMeans
+            val anchorTangents = layerMeanTangents
+            val anchor0 = layerMeans[0]
+            val vertices = vertexData
+            val projected = projectedX
+            val sheenX = sheenSlopeX
+            val sheenZ = sheenSlopeZ
+            val sampleZ01 = sample.z01
+            val sampleZDp = sample.zDp
             var cursor = startRow * fillColumns * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
             for (row in startRow until endRow) {
+                // 行级提升：内层每个顶点原本要对九个 [Z_ROWS][N_POINTS] 外层数组
+                // 各做一次 aaload + 界检查，提成一维行引用后每行只做一次。
+                val orbitZRow = sample.orbitZ[row]
+                val orbitZSlopeRow = sample.orbitZSlope[row]
+                val orbitXRow = sample.orbitX[row]
+                val orbitXSlopeRow = sample.orbitXSlope[row]
+                val worldEtaRow = sample.worldEta[row]
+                val slopeXRow = sample.slopeX[row]
+                val slopeZRow = sample.slopeZ[row]
+                val rowZDp = sampleZDp[row]
+                val rowZ01 = sampleZ01[row]
+                val rowZ01Float = rowZ01.toFloat()
                 for (column in 0 until fillColumns) {
-                    val index = sourceIndex[column]
-                    val before = sourceBefore[column]
-                    val after = sourceAfter[column]
-                    val fraction = sourceFraction[column]
+                    val index = columnIndex[column]
+                    val fraction = columnFraction[column]
                     val next = index + 1
-                    val w0 = cubicWeights.w0[column]
-                    val w1 = cubicWeights.w1[column]
-                    val w2 = cubicWeights.w2[column]
-                    val w3 = cubicWeights.w3[column]
-                    val orbitZ = (
-                        sample.orbitZ[row][before] * w0 +
-                            sample.orbitZ[row][index] * w1 +
-                            sample.orbitZ[row][next] * w2 +
-                            sample.orbitZ[row][after] * w3
-                        ).coerceIn(-10.0, 10.0)
-                    val rawOrbitX =
-                        sample.orbitX[row][before] * w0 +
-                            sample.orbitX[row][index] * w1 +
-                            sample.orbitX[row][next] * w2 +
-                            sample.orbitX[row][after] * w3
-                    val orbitX = rawOrbitX.coerceIn(-10.0, 10.0)
+                    val wh00 = h00[column]
+                    val wh10 = h10[column]
+                    val wh01 = h01[column]
+                    val wh11 = h11[column]
+                    val wdh00 = dh00[column]
+                    val wdh10 = dh10[column]
+                    val wdh01 = dh01[column]
+                    val wdh11 = dh11[column]
+                    // worldEta 与两路轨道已经是同一 fair cubic B-spline 的节点值；
+                    // 用各自解析切线做 Hermite 重建，禁止 Catmull-Rom 超调或二次滤波。
+                    val orbitZ =
+                        orbitZRow[index] * wh00 +
+                            orbitZSlopeRow[index] * wh10 +
+                            orbitZRow[next] * wh01 +
+                            orbitZSlopeRow[next] * wh11
+                    // 下面四组元素在本顶点里各被读两次（一次配 h 权重出值，一次配
+                    // dh 权重出导数）。提成元素级 local，二维数组的双重解引用与
+                    // 边界检查各省一半；表达式形状不变，逐位一致。
+                    val orbitXIndex = orbitXRow[index]
+                    val orbitXNext = orbitXRow[next]
+                    val orbitXSlopeIndex = orbitXSlopeRow[index]
+                    val orbitXSlopeNext = orbitXSlopeRow[next]
+                    val worldEtaIndex = worldEtaRow[index]
+                    val worldEtaNext = worldEtaRow[next]
+                    val slopeXIndex = slopeXRow[index]
+                    val slopeXNext = slopeXRow[next]
+                    val orbitX =
+                        orbitXIndex * wh00 +
+                            orbitXSlopeIndex * wh10 +
+                            orbitXNext * wh01 +
+                            orbitXSlopeNext * wh11
                     val worldEta =
-                        sample.worldEta[row][index] * hermiteWeights.h00[column] +
-                            sample.slopeX[row][index] * hermiteWeights.h10[column] +
-                            sample.worldEta[row][next] * hermiteWeights.h01[column] +
-                            sample.slopeX[row][next] * hermiteWeights.h11[column]
-                    val uDp = lerp(sim.uGrid[index], sim.uGrid[index + 1], fraction)
-                    val z01 = ((sample.zDp[row] + orbitZ) / max(sample.depthDp, 1e-6))
-                        .coerceIn(-0.08, 1.08)
-                    val layerPosition = z01.coerceIn(0.0, 1.0) * (FableSolSpec.N_LAYERS - 1)
-                    var baseHeight = FableSolDepthBaseline.value(
-                        layerMeans,
-                        layerMeanTangents,
+                        worldEtaIndex * wh00 +
+                            slopeXIndex * wh10 +
+                            worldEtaNext * wh01 +
+                            slopeXNext * wh11
+                    val uDp = columnUDp[column]
+                    // orbitZ 已在物理场中软限幅；保留真实外层坐标，让深度基线沿
+                    // 端点切线延拓。再次 clamp 会把一侧导数归零并重新造出尖角。
+                    val z01 = (rowZDp + orbitZ) / safeDepthDp
+                    val layerPosition = z01 * (FableSolSpec.N_LAYERS - 1)
+                    var baseHeight = FableSolDepthBaseline.valueUnchecked(
+                        anchors,
+                        anchorTangents,
                         layerPosition
                     )
-                    baseHeight = layerMeans[0] + (baseHeight - layerMeans[0]) * depthScale
-                    val perspective = 1.0 / (1.0 + 0.16 * z01.coerceIn(0.0, 1.1))
+                    baseHeight = anchor0 + (baseHeight - anchor0) * depthScale
+                    val perspective = 1.0 / (1.0 + 0.16 * z01)
                     val slopeX = (
-                        sample.worldEta[row][index] * hermiteWeights.dh00[column] +
-                            sample.slopeX[row][index] * hermiteWeights.dh10[column] +
-                            sample.worldEta[row][next] * hermiteWeights.dh01[column] +
-                            sample.slopeX[row][next] * hermiteWeights.dh11[column]
+                        worldEtaIndex * wdh00 +
+                            slopeXIndex * wdh10 +
+                            worldEtaNext * wdh01 +
+                            slopeXNext * wdh11
                         ).toFloat()
-                    val slopeZ = (
-                        sample.slopeZ[row][before] * w0 +
-                            sample.slopeZ[row][index] * w1 +
-                            sample.slopeZ[row][next] * w2 +
-                            sample.slopeZ[row][after] * w3
-                        ).toFloat()
+                    // slopeZ 是着色属性而非几何；线性采样保持形状，GPU 顶点插值
+                    // 已能保证视觉连续，无需再用可能超调的四点三次式。
+                    val slopeZ = lerp(
+                        slopeZRow[index], slopeZRow[next], fraction
+                    ).toFloat()
                     val gridIndex = row * fillColumns + column
-                    vertexData[cursor++] =
-                        ((uDp + orbitX) * density * perspective + offsetXPx).toFloat()
-                    vertexData[cursor++] =
-                        ((info.hG / 2.0 - (baseHeight + worldEta)) * density + offsetYPx).toFloat()
-                    vertexData[cursor++] = slopeX
-                    vertexData[cursor++] = slopeZ
-                    vertexData[cursor++] =
-                        (row.toDouble() / (FableSolContinuousSurface.Z_ROWS - 1)).toFloat()
-                    val orbitDerivative = if (rawOrbitX != orbitX) {
-                        0.0
-                    } else {
-                        sample.orbitX[row][before] * cubicWeights.dw0[column] +
-                            sample.orbitX[row][index] * cubicWeights.dw1[column] +
-                            sample.orbitX[row][next] * cubicWeights.dw2[column] +
-                            sample.orbitX[row][after] * cubicWeights.dw3[column]
-                    }
-                    vertexData[cursor++] =
+                    val rawProjectedX = (uDp + orbitX) * density * perspective + offsetXPx
+                    projected[gridIndex] = rawProjectedX
+                    vertices[cursor++] = rawProjectedX.toFloat()
+                    vertices[cursor++] =
+                        ((halfHeightG - (baseHeight + worldEta)) * density + offsetYPx).toFloat()
+                    vertices[cursor++] = slopeX
+                    vertices[cursor++] = slopeZ
+                    // `sample.z01[row]` 的定义就是 `row / (Z_ROWS - 1)`（见
+                    // FableSolContinuousSurface.Sample），逐位相同，省一次逐顶点除法。
+                    vertices[cursor++] = rowZ01Float
+                    val orbitDerivative =
+                        orbitXIndex * wdh00 +
+                            orbitXSlopeIndex * wdh10 +
+                            orbitXNext * wdh01 +
+                            orbitXSlopeNext * wdh11
+                    vertices[cursor++] =
                         FableSolDepthScatteringPolicy.crestPinch(orbitDerivative).toFloat()
-                    sheenSlopeX[gridIndex] = slopeX
-                    sheenSlopeZ[gridIndex] = slopeZ
-                    vertexData[cursor++] = slopeX
-                    vertexData[cursor++] = slopeZ
+                    sheenX[gridIndex] = slopeX
+                    sheenZ[gridIndex] = slopeZ
+                    // 分量 6/7 是 sheen slope，滤波后由下面的写回循环无条件覆盖
+                    // 每一个顶点；这里的写入是死存储，只推进游标即可。
+                    cursor += 2
+                }
+
+                // 透视与纵向轨道叠加后仍可能让一行投影 X 局部回折。扫描整行得到
+                // 唯一比例，再整体朝无轨道基线收回；这与 Python
+                // blend_rows_to_monotone 同式，不会产生 accumulate 平台或小阶梯。
+                val rowGridStart = row * fillColumns
+                val rowVertexStart = rowGridStart * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+                val baselinePerspective = 1.0 / (1.0 + 0.16 * rowZ01)
+                var rowScale = 1.0
+                var previousBaseline = (
+                    columnUDp[0] * density * baselinePerspective + offsetXPx
+                    )
+                var previousRaw = projected[rowGridStart]
+                for (column in 1 until fillColumns) {
+                    val baseline = (
+                        columnUDp[column] * density * baselinePerspective + offsetXPx
+                        )
+                    val raw = projected[rowGridStart + column]
+                    // `monotoneBlendBound` 在 rawStep ≥ ratio·baselineStep 时恒返回 1.0，
+                    // 对 rowScale 的 min 没有影响。这里 baselineStep 逐列取值不同
+                    // （两个乘积之差），不能像世界空间那样提成行常量，但可以把
+                    // floor 的乘法与整个调用推进到实际发生回折的稀有分支：常态帧
+                    // 内层只剩两次减法、一次乘法和一次比较。
+                    val baselineStep = baseline - previousBaseline
+                    val rawStep = raw - previousRaw
+                    if (rawStep < PROJECTED_MINIMUM_SPACING_RATIO * baselineStep) {
+                        rowScale = min(
+                            rowScale,
+                            FableSolCubicResampler.monotoneBlendBound(
+                                rawStep,
+                                baselineStep,
+                                PROJECTED_MINIMUM_SPACING_RATIO
+                            )
+                        )
+                    }
+                    previousBaseline = baseline
+                    previousRaw = raw
+                }
+                if (rowScale < 1.0) {
+                    // 诊断：投影单调修复实际触发的行数。若常态帧恒为 0，说明这条
+                    // 归约在真实参数下从不生效，可以进一步简化甚至前置跳过。
+                    perfRepairRows.incrementAndGet()
+                    for (column in 0 until fillColumns) {
+                        val baseline = (
+                            columnUDp[column] * density * baselinePerspective + offsetXPx
+                            )
+                        val gridIndex = rowGridStart + column
+                        val repaired = baseline + rowScale * (projected[gridIndex] - baseline)
+                        projected[gridIndex] = repaired
+                        vertices[rowVertexStart +
+                            column * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX] =
+                            repaired.toFloat()
+                    }
                 }
             }
         }
         var cursor = FableSolContinuousSurface.Z_ROWS * fillColumns *
             FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
-        FableSolSheenSlopeFilter.smooth(
+        val sheenStart = SystemClock.elapsedRealtimeNanos()
+        perfVertexNs = sheenStart - vertexStart
+        FableSolSheenSlopeFilter.smoothPair(
             sheenSlopeX,
-            sheenSlopeScratch,
-            FableSolContinuousSurface.Z_ROWS,
-            columns
-        )
-        FableSolSheenSlopeFilter.smooth(
+            sheenSlopeScratchX,
             sheenSlopeZ,
-            sheenSlopeScratch,
+            sheenSlopeScratchZ,
             FableSolContinuousSurface.Z_ROWS,
             columns
         )
@@ -663,6 +843,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET] = sheenSlopeX[vertex]
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
+        perfSheenNs = SystemClock.elapsedRealtimeNanos() - sheenStart
         // D156 v17 银丝太阳柱：row 0 可见跨度（与 Python crest_rim_x0/span 一比一）。
         crestRimX0Px = vertexData[0]
         crestRimSpanPx = (vertexData[(columns - 1) *
@@ -710,7 +891,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             frontData[cursor++] = 0f
         }
         frontFloatCount = cursor
+        val colorStart = SystemClock.elapsedRealtimeNanos()
         buildColors(fillBottom)
+        val opticsStart = SystemClock.elapsedRealtimeNanos()
+        perfColorNs = opticsStart - colorStart
         opticalFloatCount = optics.build(
             sim,
             params,
@@ -731,6 +915,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             interfaceWeightStop2 = interfaceWeightStop2,
             interfaceWeightEnd = interfaceWeightEnd
         )
+        perfOpticsNs = SystemClock.elapsedRealtimeNanos() - opticsStart
     }
 
     private fun buildColors(fillBottom: Double) {
@@ -1593,6 +1778,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         const val IDLE_SILENCE_MS = 200L
         const val MAX_PENDING_EVENTS = 128
         const val FILL_EXTRA_DP = 80.0
+        const val PROJECTED_MINIMUM_SPACING_RATIO = 0.12
         const val GL_ERROR_CHECK_INTERVAL_FRAMES = 129
         const val TARGET_MSAA_SAMPLES = 4
         const val PREPARED_PRESENTATION_ALPHA = 0.16f

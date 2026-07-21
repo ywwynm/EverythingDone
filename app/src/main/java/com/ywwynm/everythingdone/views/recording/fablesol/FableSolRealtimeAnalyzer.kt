@@ -10,11 +10,14 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * 实时特征链（对应 features.py 的 RealtimeAnalyzer）：A 加权响度、底噪追踪、自校准归一、
- * spectral flux onset、频段能量、频谱重心/平坦度、onset 密度→快慢、节拍、段落。
- * 采样率复用现有采集 44100Hz（D3），FRAME_RATE=SR/HOP 自适应。语义 MusiCNN 路径不移植。
+ * 实时特征链（对应 features.py 的 RealtimeAnalyzer）：原始 A 计权安全门、K 计权 W 水位、
+ * 四运动表面→S→K 输运、因果七境证据、SuperFlux onset、音色/节拍/段落与固定采集域校正。
+ * 采样率复用现有采集 44100Hz，FRAME_RATE=SR/HOP 自适应；不移植 MusiCNN/YAMNet 等模型路径。
  */
-class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
+class FableSolRealtimeAnalyzer(
+    private val sr: Int = 44100,
+    private val captureProfile: FableSolCaptureProfile? = null
+) {
 
     private val frameRate = sr.toDouble() / HOP
     private val halfN = N_FFT / 2
@@ -28,6 +31,7 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     private val idx2000 = FableSolMath.searchsorted(freqs, 2000.0)
     private val idx16000 = FableSolMath.searchsorted(freqs, 16000.0)
     private val bandIdx: IntArray
+    private val lowMotionBandCount: Int
     private val dbRef: Double
     private val dbRefA: Double
     private val fluxFloor: Double
@@ -36,6 +40,8 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     // 复用 scratch
     private val reArr = DoubleArray(N_FFT)
     private val imArr = DoubleArray(N_FFT)
+    private val rawReArr = DoubleArray(N_FFT)
+    private val rawImArr = DoubleArray(N_FFT)
     private val spec = DoubleArray(halfN + 1)
     private val wspec = DoubleArray(halfN + 1)
 
@@ -58,24 +64,40 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     private val rEnvAc = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
     private val rEnvBand = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
     private val rFluxCv = FableSolRunningMeanRing(Math.round(FLUX_CV_WIN_S * frameRate).toInt())
+    private val rHarmonicMotion = FableSolRunningMeanRing(Math.round(1.2 * frameRate).toInt())
+    private val rLowMotion = FableSolRunningMeanRing(Math.round(1.2 * frameRate).toInt())
+    private val calibrator = FableSolPerceptualCalibrator(frameRate)
+    private val calibrationInput = FableSolCalibrationInput()
+    private val conditioner = captureProfile?.let { FableSolCaptureConditioner(it, sr) }
+    private val loudnessTrimDb = captureProfile?.boundedLoudnessTrimDb ?: 0.0
+    private val stateGradeTrim01 = captureProfile?.boundedStateGradeTrim01 ?: 0.0
 
     @JvmField var agcWindowS = 24.0
     @JvmField var gateDb = 6.0
     @JvmField var expander = 0.32
+    @JvmField var relativeLoudnessMix = FableSolPerceptualCalibrator.DEFAULT_RELATIVE_MIX
 
     // 运行状态
+    // 定长复用缓冲：容量按需增长后不再回收，`bufSize`/`rawSize` 是有效样本数。
     private var buf = DoubleArray(0)
+    private var rawBuf = DoubleArray(0)
+    private var bufSize = 0
+    private var rawSize = 0
+    private var conditionedScratch = DoubleArray(0)
     private var nConsumed = 0
     private var tBase = 0.0
     private var silent = false
     private var belowSince = Double.NaN
+    private var outputSilent = true
+    private var silentRunS = 0.0
+    private var programStarted = false
     private var prevLogbands: DoubleArray? = null
     private var whitePeak: DoubleArray? = null
     private val envHist = DoubleArray(3)
     private val strHist = DoubleArray(3)
     private var percEnv = 0.0
-    private var speed01 = 0.0
     private var tempoSpeed01 = 0.5
+    private var motionLogEma: DoubleArray? = null
     private var emaFast: DoubleArray? = null
     private var emaSlow: DoubleArray? = null
     private val onsetTimes = ArrayDeque<DoubleArray>()   // [t, strength]
@@ -106,6 +128,8 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     init {
         val edges = FableSolMath.geomspace(60.0, 12000.0, 33)
         bandIdx = IntArray(33) { FableSolMath.searchsorted(freqs, edges[it]) }
+        lowMotionBandCount = max(
+            FableSolMath.searchsorted(edges.copyOfRange(1, edges.size), 350.0), 1)
         // dB 标定：满幅 1kHz 正弦 → 0 dB（近似 dBFS）
         for (i in 0 until N_FFT) { reArr[i] = sin(2.0 * Math.PI * 1000.0 * i / sr) * window[i]; imArr[i] = 0.0 }
         FableSolFft.transform(reArr, imArr)
@@ -125,22 +149,28 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     }
 
     fun reset(full: Boolean) {
-        buf = DoubleArray(0)
+        bufSize = 0
+        rawSize = 0
+        conditioner?.reset()
         nConsumed = 0
         tBase = 0.0
         // 从静音启动；通过相对门限和绝对可听度后才开放视觉驱动。
         silent = true
         belowSince = Double.NaN
+        outputSilent = true
+        silentRunS = 0.0
+        programStarted = false
         prevLogbands = null
         whitePeak = null
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
+        rHarmonicMotion.reset(); rLowMotion.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
         percEnv = 0.0
-        speed01 = 0.0
         tempoSpeed01 = 0.5
+        motionLogEma = null
         music01 = 0.0
         pitchBaseLog = Double.NaN
         pitchRelSm = 0.5
@@ -149,6 +179,7 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         hnrSm = 0.0; arousalSm = 0.0; loomSm = 0.0; previousShortDb = Double.NaN
         emaFast = null; emaSlow = null
         novelty.reset(full)
+        calibrator.reset(full)
         beat.reset()
         onsetTimes.clear()
         lastOnsetT = -10.0
@@ -167,19 +198,25 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
     fun setTimeBase(t: Double) {
         tBase = t
         nConsumed = 0
-        buf = DoubleArray(0)
+        bufSize = 0
+        rawSize = 0
+        conditioner?.reset()
         silent = true
         belowSince = Double.NaN
+        outputSilent = true
+        silentRunS = 0.0
+        programStarted = false
         prevLogbands = null
         whitePeak = null
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
+        rHarmonicMotion.reset(); rLowMotion.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
         percEnv = 0.0
-        speed01 = 0.0
         tempoSpeed01 = 0.5
+        motionLogEma = null
         syllableAbove = false; syllablePeakDb = -120.0; syllablePeakT = 0.0
         syllableTimes.clear(); lastProminenceT = -10.0
         onsetTimes.clear()
@@ -189,32 +226,72 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         startupReady = false
         emaFast = null; emaSlow = null
         novelty.reset(false)
+        calibrator.reset(false)
         beat.reset()
     }
 
     /** 喂入任意长度 mono（float，[-1,1]）；返回该批产生的 frames 与 events。 */
-    fun feed(mono: DoubleArray): Pair<List<FableSolFeatureFrame>, List<FableSolEvent>> {
+    fun feed(mono: DoubleArray): Pair<List<FableSolFeatureFrame>, List<FableSolEvent>> =
+        feed(mono, mono.size)
+
+    /**
+     * 与 [feed] 相同，但只消费 `mono` 的前 `count` 个样本——采集线程可以复用一只
+     * 定长缓冲，不必每次 read 都按实际长度新分配。
+     */
+    fun feed(mono: DoubleArray, count: Int):
+        Pair<List<FableSolFeatureFrame>, List<FableSolEvent>> {
+        require(count >= 0 && count <= mono.size)
         val frames = ArrayList<FableSolFeatureFrame>()
         val events = ArrayList<FableSolEvent>()
-        buf = if (buf.isEmpty()) mono.copyOf() else concat(buf, mono)
+        calibrator.configure(relativeLoudnessMix)
+        val conditioned = if (conditioner == null) {
+            mono
+        } else {
+            if (conditionedScratch.size < count) conditionedScratch = DoubleArray(count)
+            conditioner.process(mono, 0, count, conditionedScratch)
+            conditionedScratch
+        }
+        // 定长复用缓冲：原实现每次 feed 都要 concat 出新数组、末尾再 copyOfRange 出新
+        // 数组（有采集补偿时 raw 路径再翻一倍），稳态垃圾约 5.3 MB/s。GC 会暂停所有
+        // 线程、包括 GL 线程，直接抬高渲染的 p95。现在改成「按需扩容 + 就地压缩」，
+        // 稳态零分配。样本值与消费顺序完全不变。
+        if (buf.size < bufSize + count) {
+            buf = buf.copyOf(maxOf(bufSize + count, N_FFT * 4))
+        }
+        System.arraycopy(conditioned, 0, buf, bufSize, count)
+        bufSize += count
+        if (conditioner != null) {
+            if (rawBuf.size < rawSize + count) {
+                rawBuf = rawBuf.copyOf(maxOf(rawSize + count, N_FFT * 4))
+            }
+            System.arraycopy(mono, 0, rawBuf, rawSize, count)
+            rawSize += count
+        }
         var off = 0
-        while (buf.size - off >= N_FFT) {
+        while (bufSize - off >= N_FFT) {
             val t = tBase + (nConsumed + N_FFT / 2.0) / sr
-            process(buf, off, t, frames, events)
+            process(buf, off, if (conditioner == null) buf else rawBuf, off, t, frames, events)
             off += HOP
             nConsumed += HOP
         }
-        if (off > 0) buf = buf.copyOfRange(off, buf.size)
+        if (off > 0) {
+            System.arraycopy(buf, off, buf, 0, bufSize - off)
+            bufSize -= off
+            if (conditioner != null) {
+                System.arraycopy(rawBuf, off, rawBuf, 0, rawSize - off)
+                rawSize -= off
+            }
+        }
         return Pair(frames, events)
     }
 
-    private fun process(src: DoubleArray, srcOff: Int, t: Double,
+    private fun process(src: DoubleArray, srcOff: Int,
+                        rawSrc: DoubleArray, rawSrcOff: Int, t: Double,
                         frames: ArrayList<FableSolFeatureFrame>, events: ArrayList<FableSolEvent>) {
         val k = (agcWindowS * frameRate).toInt()
         for (i in 0 until N_FFT) { reArr[i] = src[srcOff + i] * window[i]; imArr[i] = 0.0 }
         FableSolFft.transform(reArr, imArr)
         var pTotal = 0.0
-        var pTotalA = 0.0
         for (i in 0..halfN) {
             val s = reArr[i] * reArr[i] + imArr[i] * imArr[i]
             spec[i] = s
@@ -222,20 +299,31 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             val ws = if (i < idx16000) s * kwPow[i] else 0.0
             wspec[i] = ws
             pTotal += ws
-            if (i < idx16000) pTotalA += s * awPow[i]
+        }
+        var pTotalA = 0.0
+        if (conditioner == null) {
+            for (i in 0 until idx16000) pTotalA += spec[i] * awPow[i]
+        } else {
+            for (i in 0 until N_FFT) {
+                rawReArr[i] = rawSrc[rawSrcOff + i] * window[i]
+                rawImArr[i] = 0.0
+            }
+            FableSolFft.transform(rawReArr, rawImArr)
+            for (i in 0 until idx16000) {
+                val power = rawReArr[i] * rawReArr[i] + rawImArr[i] * rawImArr[i]
+                pTotalA += power * awPow[i]
+            }
         }
         val db = 10.0 * log10(pTotalA + 1e-12) - dbRefA
         var pLow = 0.0; for (i in 0 until idx250) pLow += wspec[i]
         var pMid = 0.0; for (i in idx250 until idx2000) pMid += wspec[i]
         var pHigh = 0.0; for (i in idx2000 until idx16000) pHigh += wspec[i]
         if (suppressCaptureStartup(t, db, pLow, pMid, pHigh)) {
+            silentRunS += 1.0 / frameRate
+            outputSilent = true
             frames.add(startupSilentFrame(t, db))
             return
         }
-        rMomentary.push(pTotal)
-        rShortTerm.push(pTotal)
-        val dbM = 10.0 * log10(rMomentary.mean() + 1e-12) - dbRef
-        val dbS = 10.0 * log10(rShortTerm.mean() + 1e-12) - dbRef
         val envLinear = sqrt(max(pTotal, 0.0))
         val highPassed = envHighPassR * (envHighPassY + envLinear - envHighPassX)
         envHighPassX = envLinear
@@ -262,6 +350,25 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         val audibility = smoothstep(AUDIBILITY_ZERO_DB, AUDIBILITY_FULL_DB, db)
         // 相对门适配环境；绝对可听度只拦截极低电平电子噪声/AGC 泵动。
         val sil = silent || audibility <= AUDIBILITY_SILENT_CUTOFF
+        // 两秒左右的录音预留静音不属于歌曲的 400ms/3s 响度窗；只在首个可信有声帧因果重置。
+        if (sil) {
+            silentRunS += 1.0 / frameRate
+            outputSilent = true
+        } else {
+            if (!programStarted && outputSilent && silentRunS >= PROGRAM_SILENCE_RESET_S) {
+                rMomentary.reset()
+                rShortTerm.reset()
+            }
+            programStarted = true
+            outputSilent = false
+            silentRunS = 0.0
+        }
+        rMomentary.push(pTotal)
+        rShortTerm.push(pTotal)
+        val untrimmedDbM = 10.0 * log10(rMomentary.mean() + 1e-12) - dbRef + LKFS_OFFSET_DB
+        val untrimmedDbS = 10.0 * log10(rShortTerm.mean() + 1e-12) - dbRef + LKFS_OFFSET_DB
+        val dbM = untrimmedDbM + loudnessTrimDb
+        val dbS = untrimmedDbS + loudnessTrimDb
         // 响度混合归一
         if (!sil) rLoud.push(dbM)
         val rank = rLoud.span01(dbM, k, 5.0, 95.0, MIN_SPAN_DB)
@@ -300,6 +407,31 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         // 自适应白化 + SuperFlux；未白化 logb 继续供 Foote 段落检测。
         val bandpow = FableSolMath.sumAdjacentSegments(spec, bandIdx)
         val logb = DoubleArray(32) { log10(bandpow[it] + 1e-10) }
+        var harmonicFluxDb = 0.0
+        var lowFluxDb = 0.0
+        var motionState = motionLogEma
+        if (motionState == null || sil) {
+            if (motionState == null) {
+                motionState = DoubleArray(32)
+                motionLogEma = motionState
+            }
+            for (i in 0 until 32) motionState[i] = 10.0 * logb[i]
+        } else {
+            val motionAlpha = 1.0 - exp(-1.0 / (frameRate * 0.12))
+            for (i in 0 until 32) {
+                val previous = motionState[i]
+                motionState[i] += (10.0 * logb[i] - previous) * motionAlpha
+                val positive = max(motionState[i] - previous, 0.0) * audibility
+                harmonicFluxDb += positive
+                if (i < lowMotionBandCount) lowFluxDb += positive
+            }
+            harmonicFluxDb /= 32.0
+            lowFluxDb /= lowMotionBandCount.toDouble()
+        }
+        rHarmonicMotion.push(harmonicFluxDb)
+        rLowMotion.push(lowFluxDb)
+        val harmonicMotion01 = FableSolSpeed.spectralMotion01(rHarmonicMotion.mean(), 0.16)
+        val lowFrequencyMotion01 = FableSolSpeed.spectralMotion01(rLowMotion.mean(), 0.18)
         var peaks = whitePeak
         if (peaks == null) {
             peaks = DoubleArray(32) { max(bandpow[it], fluxFloor) }
@@ -400,13 +532,31 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         val fluct4hz01 = fluctRatio.coerceIn(0.0, 1.0) * audibility
         val slowRate = FableSolSpeed.effectiveEventRate(rawRate, salientRate, gatedBeatConf)
         val fastRate = FableSolSpeed.effectiveEventRate(fastRawRate, fastSalientRate, gatedBeatConf)
-        var rate = FableSolSpeed.surfaceEventRate(fastRate, slowRate)
+        val percussiveRate = FableSolSpeed.surfaceEventRate(fastRate, slowRate)
+        var rate = percussiveRate
         rate = max(rate, syllableRateHz * (1.0 - musicGate))
         tempoSpeed01 = FableSolSpeed.tempoEvidenceStep(
             tempoSpeed01, FableSolSpeed.tempo01(bpm), gatedBeatConf, frameRate)
-        val speedTarget = FableSolSpeed.fusePerceivedSpeed01(rate, tempoSpeed01, gatedBeatConf)
-        speed01 = FableSolSpeed.smoothStep(speed01, speedTarget, frameRate)
-        val flow01 = speed01
+        val percussiveMotion01 = FableSolSpeed.onsetDensity01(percussiveRate)
+        // Android 当前只接入 DSP 浊音/音节运动，不依赖可选的人声神经网络。
+        val vocalPresence01 = voiced01
+        val vocalMotion01 = FableSolSpeed.vocalMotion01(
+            syllableRateHz, vocalPresence01, harmonicMotion01)
+        val beatMotion01 = FableSolSpeed.beatMotion01(
+            lowFrequencyMotion01, tempoSpeed01, gatedBeatConf)
+        val grooveMotion01 = FableSolSpeed.grooveMotion01(percussiveMotion01, beatMotion01)
+        val harmonicConfidence = audibility * (0.55 + 0.45 * (1.0 - flat01))
+        val beatChannelConfidence = max(
+            0.55 * audibility, FableSolSpeed.tempoConfidence01(gatedBeatConf))
+        val speedAbs01 = FableSolSpeed.fuseMotionChannels01(
+            percussiveMotion01, vocalMotion01, harmonicMotion01, beatMotion01,
+            percussiveConfidence = audibility,
+            vocalConfidence = vocalPresence01,
+            harmonicConfidence = harmonicConfidence,
+            beatConfidence = beatChannelConfidence,
+            tempoComponent01 = tempoSpeed01,
+            tempoEvidenceConfidence = gatedBeatConf
+        )
         // 打击性质感
         val percTarget = (onsetEnv * (0.75 + 0.25 * flat01)).coerceIn(0.0, 1.0)
         val percTau = if (percTarget > percEnv) 0.035 else 0.28
@@ -462,12 +612,38 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
                 impulse01 = (fourth / impulseHistory.size - 3.0).div(9.0).coerceIn(0.0, 1.0)
             }
         }
+        calibrationInput.t = t
+        calibrationInput.silent = sil
+        calibrationInput.loudMDb = dbM
+        calibrationInput.loudSDb = dbS
+        calibrationInput.speedAbs01 = speedAbs01
+        calibrationInput.rawRateHz = rate
+        calibrationInput.onsetEnv = onsetEnv
+        calibrationInput.flux = flux
+        calibrationInput.tempoBpm = bpm
+        calibrationInput.tempoConf01 = gatedBeatConf
+        calibrationInput.centroid01 = centroid01
+        calibrationInput.bassRatio01 = pLow / max(pTotal, 1e-12)
+        calibrationInput.percussiveMotion01 = percussiveMotion01
+        calibrationInput.vocalMotion01 = vocalMotion01
+        calibrationInput.harmonicMotion01 = harmonicMotion01
+        calibrationInput.beatMotion01 = beatMotion01
+        calibrationInput.grooveMotion01 = grooveMotion01
+        calibrationInput.punch01 = punch01
+        calibrationInput.lowShare01 = relLow
+        calibrationInput.domainGradeTrim01 = stateGradeTrim01
+        val calibrated = calibrator.step(calibrationInput)
+        if (calibrated.dropTriggered) {
+            events.add(FableSolEvent.Drop(t, calibrated.dropConfidence01))
+        }
         for (event in events) if (event is FableSolEvent.Onset) {
             event.impulse01 = impulse01
             event.loom01 = loom01
         }
         // 性格档取值用的快/慢 EMA
-        val vec = doubleArrayOf(loud01, low01, mid01, high01, centroid01, flow01, flat01, punch01)
+        val vec = doubleArrayOf(
+            calibrated.energy01, low01, mid01, high01, centroid01,
+            calibrated.speed01, flat01, punch01)
         var ef = emaFast; var es = emaSlow
         if (ef == null) { ef = vec.copyOf(); es = vec.copyOf(); emaFast = ef; emaSlow = es }
         val kf = 1.0 - exp(-1.0 / (frameRate * 2.5))
@@ -480,6 +656,7 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         }
         frames.add(FableSolFeatureFrame(
             t = t,
+            // 旧字段留作兼容诊断；所有真实水位/状态/动画消费显式 waterDrive01。
             loudness01 = if (sil) 0.0 else loud01,
             bandLow = if (sil) 0.0 else low01,
             bandMid = if (sil) 0.0 else mid01,
@@ -489,7 +666,9 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             flatness01 = flat01, percussive01 = if (sil) 0.0 else percussive01,
             punch01 = if (sil) 0.0 else punch01,
             stereoWidth01 = stereoWidth01, pan01 = pan01,
-            onsetEnv = onsetEnv, flow01 = flow01, activity01 = activity01,
+            onsetEnv = onsetEnv,
+            flow01 = if (sil) 0.0 else calibrated.kineticDrive01,
+            activity01 = activity01,
             loudDb = db, floorDb = floorDb, isSilent = sil,
             tempoBpm = bpm, beatPhase01 = beatPh,
             beatConf01 = if (sil) 0.0 else gatedBeatConf,
@@ -500,7 +679,48 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
             f0Hz = f0Hz, pitch01 = pitch01, pitchRel01 = pitchRel01,
             voiced01 = voiced01, sylRateHz = syllableRateHz,
             hnr01 = hnr01, arousal01 = arousalSm,
-            loom01 = loom01, impulse01 = impulse01
+            loom01 = loom01, impulse01 = impulse01,
+            loudnessRaw01 = calibrated.loudnessRaw01,
+            loudnessAbsolute01 = calibrated.loudnessAbsolute01,
+            loudnessMomentary01 = calibrated.loudnessMomentary01,
+            loudnessTransientBoost01 = calibrated.loudnessTransientBoost01,
+            waterDrive01 = if (sil) 0.0 else calibrated.waterDrive01,
+            legacyLoudness01 = loud01,
+            loudP10Db = calibrated.loudP10Db,
+            loudP95Db = calibrated.loudP95Db,
+            loudMUntrimmedDb = untrimmedDbM,
+            loudSUntrimmedDb = untrimmedDbS,
+            inputLoudnessTrimDb = loudnessTrimDb,
+            speed01 = if (sil) 0.0 else calibrated.speed01,
+            speedAbs01 = speedAbs01,
+            speedRank01 = calibrated.speedRank01,
+            kineticDrive01 = if (sil) 0.0 else calibrated.kineticDrive01,
+            kineticTarget01 = calibrated.kineticTarget01,
+            motionContextBoost01 = calibrated.motionContextBoost01,
+            percussiveMotion01 = percussiveMotion01,
+            vocalMotion01 = vocalMotion01,
+            harmonicMotion01 = harmonicMotion01,
+            beatMotion01 = beatMotion01,
+            grooveMotion01 = grooveMotion01,
+            intensityDrive01 = calibrated.intensityDrive01,
+            targetDps = if (sil) 0.0 else calibrated.targetDps,
+            musicArousal01 = calibrated.musicArousal01,
+            punchLu01 = calibrated.punchLu01,
+            energy01 = calibrated.energy01,
+            energyRising01 = calibrated.energyRising01,
+            buildUp01 = calibrated.buildUp01,
+            gradeDrive01 = calibrated.gradeDrive01,
+            liftScore01 = calibrated.liftScore01,
+            climaxScore01 = calibrated.climaxScore01,
+            gradeAbsolute01 = calibrated.gradeAbsolute01,
+            gradeContext01 = calibrated.gradeContext01,
+            vocalSoloPenalty01 = calibrated.vocalSoloPenalty01,
+            zLoud = calibrated.zLoud,
+            zFlux = calibrated.zFlux,
+            zOnsetRate = calibrated.zOnsetRate,
+            zBass = calibrated.zBass,
+            zCentroid = calibrated.zCentroid,
+            novelty01 = calibrated.motionContextBoost01
         ))
     }
 
@@ -688,12 +908,6 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         return 20.0 * log10(ra) + 2.0
     }
 
-    private fun concat(a: DoubleArray, b: DoubleArray): DoubleArray {
-        val out = DoubleArray(a.size + b.size)
-        System.arraycopy(a, 0, out, 0, a.size)
-        System.arraycopy(b, 0, out, a.size, b.size)
-        return out
-    }
 
     companion object {
         const val N_FFT = 2048
@@ -705,6 +919,8 @@ class FableSolRealtimeAnalyzer(private val sr: Int = 44100) {
         private const val AUDIBILITY_ZERO_DB = -66.0
         private const val AUDIBILITY_FULL_DB = -54.0
         private const val AUDIBILITY_SILENT_CUTOFF = 0.02
+        private const val PROGRAM_SILENCE_RESET_S = 1.50
+        private const val LKFS_OFFSET_DB = -3.010299956639812
         private const val MOMENTARY_S = 0.4
         private const val SHORTTERM_S = 3.0
         private const val WHITEN_HALFLIFE_S = 3.0

@@ -16,8 +16,38 @@ internal class FableSolMetricWindow(capacity: Int) {
 
     fun percentile(q: Double): Double {
         if (size == 0) return 0.0
-        val sorted = values.copyOf(size)
-        sorted.sort()
+        val sorted = sortedSnapshot()
+        return interpolate(sorted, q)
+    }
+
+    /**
+     * 一次排序取三个分位数。摘要与 HUD 每次都要 p50/p95/p99，逐个调用
+     * [percentile] 会对同一份数据复制并排序三遍；这些代码跑在 GL 线程上。
+     */
+    fun percentiles(into: DoubleArray, q0: Double, q1: Double, q2: Double) {
+        if (size == 0) {
+            into[0] = 0.0; into[1] = 0.0; into[2] = 0.0
+            return
+        }
+        val sorted = sortedSnapshot()
+        into[0] = interpolate(sorted, q0)
+        into[1] = interpolate(sorted, q1)
+        into[2] = interpolate(sorted, q2)
+    }
+
+    /** 快照缓冲跨调用复用；窗口容量固定，稳态不分配。 */
+    private fun sortedSnapshot(): DoubleArray {
+        var buffer = snapshot
+        if (buffer == null || buffer.size != size) {
+            buffer = DoubleArray(size)
+            snapshot = buffer
+        }
+        System.arraycopy(values, 0, buffer, 0, size)
+        buffer.sort()
+        return buffer
+    }
+
+    private fun interpolate(sorted: DoubleArray, q: Double): Double {
         if (size == 1) return sorted[0]
         val position = q.coerceIn(0.0, 100.0) / 100.0 * (size - 1)
         val lower = position.toInt()
@@ -25,4 +55,6 @@ internal class FableSolMetricWindow(capacity: Int) {
         val fraction = position - lower
         return sorted[lower] * (1.0 - fraction) + sorted[upper] * fraction
     }
+
+    private var snapshot: DoubleArray? = null
 }

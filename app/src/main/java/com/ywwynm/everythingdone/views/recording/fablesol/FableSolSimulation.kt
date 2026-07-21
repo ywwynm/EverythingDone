@@ -50,6 +50,24 @@ class FableSolLayerSim(index: Int) {
     @JvmField val heroBandTargetDp = DoubleArray(3)
     @JvmField val heroBandFieldDp = Array(3) { DoubleArray(N_POINTS) }
     @JvmField internal val heroBandScratchDp = Array(3) { DoubleArray(N_POINTS) }
+    @JvmField internal val ambientSampleDp = DoubleArray(N_POINTS)
+    @JvmField internal val heroSampleDp = DoubleArray(N_POINTS)
+    /**
+     * 注入渐入期的 Hann 轮廓缓冲。原先每条 pending 每个物理子步分配一只
+     * `DoubleArray(i1 - i0)`（注入高峰期数百次/s）。按最大宽度预分配复用，
+     * 有效区间恒为 `[0, i1 - i0)`，由调用方显式传长度——下游不得依赖数组长度。
+     * 归层所有，物理层循环并行时各层互不干扰。
+     */
+    @JvmField internal val injectBumpDp = DoubleArray(N_POINTS)
+    /**
+     * 原先挂在 Simulation 上、被九层逐层复写的四组 scratch：三频段目标、Hero 采样的
+     * 空间平移网格、以及包络平流的插值索引/权重。它们只在本层的 perFrame 片段里
+     * 生灭，归层所有之后层循环才能并行（C3）。
+     */
+    @JvmField internal val heroBandTargetScratch = DoubleArray(3)
+    @JvmField internal val heroShiftedX = DoubleArray(N_POINTS)
+    @JvmField internal val heroInterpIndex = IntArray(N_POINTS)
+    @JvmField internal val heroInterpFraction = DoubleArray(N_POINTS)
     @JvmField var roughness01 = 0.0
     @JvmField var roughnessTarget01 = 0.0
     @JvmField var shapeRoughness01 = 0.0
@@ -101,6 +119,22 @@ class FableSolSimulation(private val p: FableSolParams) {
     private val auAbs = DoubleArray(N_POINTS) { abs(uGrid[it]) }
     @JvmField val layers = Array(N_LAYERS) { FableSolLayerSim(it) }
     @JvmField val heights = Array(N_LAYERS) { DoubleArray(N_POINTS) }
+    @JvmField val grandWave = FableSolGrandWave(N_POINTS)
+
+    // Hero 热路径 scratch：这两项在层循环之前一次写好、循环内只读，可以跨层共享。
+    // 逐层复写的那四组已迁入 FableSolLayerSim（C3 层并行的前置条件）。
+    private val heroVisibleMask = BooleanArray(N_POINTS)
+    private val heroSourceWeight = DoubleArray(N_POINTS)
+
+    /**
+     * 物理子步层循环（C8）与 perFrame 层循环（C3）的串行回退开关（永久保留）。
+     * 默认并行；真机若出现异常可即时切回串行。两条路径共用同一份逐层代码，
+     * 只有投放方式不同——对拍测试正是拿串行结果当稳定基准来验并行无竞态。
+     */
+    @Volatile internal var parallelLayerLoopsEnabled = true
+    // 三频段攻击/释放的一阶系数：层循环前算一次，循环内只读。
+    private val heroBandAttackK = DoubleArray(3)
+    private val heroBandReleaseK = DoubleArray(3)
 
     @JvmField var flow01 = 0.0
     @JvmField var flow01Deep = 0.0   // 深层流速驱动：mapper 的数十秒积分（D16）
@@ -108,6 +142,15 @@ class FableSolSimulation(private val p: FableSolParams) {
     @JvmField var sparkle01 = 0.0    // 闪点活跃度（mapper：慢响度×材质档；渲染侧消费）
     @JvmField var calm01 = 1.0       // 平静度（idle/silence 权重→顶边羽化；渲染侧消费）
     @JvmField var resonance01 = 0.0  // 共鸣度（melodic/loud 权重→墙侧驻波）
+    @JvmField var glintCapacity01 = 1.0
+    @JvmField var layerSpread = 1.0  // 七境层距执行器；1=原始作者层距，0=九层收束到第 0 层
+    @JvmField var visualState = "IDLE"
+    @JvmField var visualStateLabel = "镜塘"
+    @JvmField var visualWaterDrive01 = 0.0
+    @JvmField var visualLevelTargetDp = 0.0
+    @JvmField var visualLevelDp = 0.0
+    @JvmField var visualWaveScale = 0.0
+    @JvmField var visualTargetDps = 0.0
     @JvmField var tension01 = 0.0    // 张力（A6 相位试验：波速相干偏置）；请经 setTension01 写入
     private var cMean = 150.0        // wave_speed_dps 九层均值（setTension01 时缓存）
 
@@ -135,12 +178,9 @@ class FableSolSimulation(private val p: FableSolParams) {
     private var spatialTargetWidth = 0.0
     private var spatialTargetPan = 0.5
 
-    // 性格档
-    @JvmField var moodLevelDp = 0.0
-    private var moodFlow01 = 0.0
+    // 段落性格只保留缓慢明度；水位、流速、层距由七境执行器唯一负责。
     @JvmField var moodBright = 0.0
-    private var moodSpread01 = 0.0
-    private val moodTargets = DoubleArray(4)
+    private var moodBrightTarget = 0.0
 
     // 倾斜
     @JvmField var thetaDeg = 0.0
@@ -269,6 +309,13 @@ class FableSolSimulation(private val p: FableSolParams) {
     fun injectDepthPacket(strength: Double, pan01: Double = 0.5, zDominant: Boolean = false) {
         surface2d.injectPacket(this, strength.coerceIn(0.0, 1.0), pan01, zDominant)
     }
+
+    /** 触发第 0 层有限支撑事件浪；已有事件浪尚未离场时返回 false。 */
+    fun triggerGrandWave(expressionGain: Double = 1.0, prelaunchS: Double = 0.0): Boolean =
+        grandWave.trigger(this, expressionGain, prelaunchS)
+
+    internal fun layerWaveSpeedDps(layerIndex: Int): Double =
+        p.lget("wave_speed_dps", layerIndex)
 
     /** 当前锁定 BPM（mapper 计算下一拍时刻用）。 */
     fun currentBeatBpm(): Double = beatBpm
@@ -438,6 +485,68 @@ class FableSolSimulation(private val p: FableSolParams) {
         for (ls in layers) injectLayer(ls.i, xDp, widthDp, ampDp * layerAmps[ls.i], travel, stepS * ls.i)
     }
 
+    /**
+     * 单个物理子步内某一层的推进。所有写入都落在 `ls` 自身（相位、θ 惯性、波场、
+     * pending 列表）；唯一的 sim 级写是第 0 层的 [visualTargetDps]，只有一个写者、
+     * 循环内没有读者，层循环的汇合屏障之后才被消费。
+     */
+    private fun physicsLayerStep(
+        ls: FableSolLayerSim,
+        beatSurge: Double,
+        thInRad: Double,
+        thRenderRad: Double,
+        dRender: Double,
+        calm: Double,
+        agitC: Double
+    ) {
+        val base = p.lget("flow_base_dps", ls.i)
+        val idle = p.get("idle_flow_ratio")
+        // 深层无动于衷（D16）：流速只跟数十秒能量积分，不吃逐帧感知速度
+        val driveRaw = if (ls.i >= DEEP_LAYER_START) flow01Deep.coerceIn(0.0, 1.0)
+                       else flow01.coerceIn(0.0, 1.0)
+        val target = FLOW_DIR * FableSolFlowPolicy.targetFlowDps(
+            speed01 = driveRaw,
+            baseDps = base,
+            gain = p.get("flow_gain"),
+            curve = p.get("flow_curve"),
+            idleRatio = idle
+        )
+        if (ls.i == 0) visualTargetDps = abs(target)
+        val tau = max(p.get("flow_smooth_s"), 1e-2)
+        ls.flowDps += (target - ls.flowDps) * (1.0 - exp(-PHYSICS_DT / tau))
+        // 深层不吃节拍脉冲（D16 无动于衷）
+        val pulse = if (ls.i >= DEEP_LAYER_START) 1.0
+                    else 1.0 + beatSurge * (1.0 - 0.5 * ls.depth01)
+        ls.ambient.retune(p.lget("ambient_len_dp", ls.i))
+        ls.ambient.advance(PHYSICS_DT, ls.flowDps * pulse)
+        ls.hero.retune(p.get("hero_len_dp"))
+        val spatialRate = 1.0 + stereoWidth01 * (ls.depth01 - 0.5) * 0.36
+        ls.hero.advance(PHYSICS_DT, ls.flowDps * 1.5 * spatialRate)
+        ls.optical.advance(PHYSICS_DT, ls.flowDps * spatialRate)
+        val oldEff = ls.thetaEff
+        ls.thetaEff += (thInRad - ls.thetaEff) * (1.0 - exp(-PHYSICS_DT / ls.tiltTau))
+        val dLag = ((ls.thetaEff - oldEff) - dRender).coerceIn(-0.02, 0.02)
+        val dDyn: Double
+        if (calm > 1e-6) {
+            val gap = abs(ls.thetaEff - thRenderRad)
+            val g0 = max(0.30 - 0.24 * calm, 0.02)
+            val kDyn = 0.02 * (1.0 - 0.75 * calm)
+            dDyn = kDyn * tanh(dLag / kDyn) / (1.0 + (gap / g0) * (gap / g0))
+        } else dDyn = dLag
+        if (abs(dDyn) > 1e-9) {
+            val wu = ls.wave.u; val lt = lagTaper[ls.i]; val ls2 = ls.lagShape
+            for (n in 0 until N_POINTS) wu[n] -= dDyn * uGrid[n] * lt[n] * ls2[n]
+        }
+        var c = p.lget("wave_speed_dps", ls.i)
+        applyInjections(ls, c)   // 注入用原生波速：绝不同步化注入
+        // 张力（A6）：注入之后波速才向九层均值相干偏置（混合上限 0.6）
+        if (tension01 > 1e-3) c += 0.6 * tension01 * (cMean - c)
+        var hl = p.lget("damp_halflife_s", ls.i)
+        if (agitC > 1e-3) hl *= 1.0 - 0.60 * agitC
+        ls.wave.step(PHYSICS_DT, c, hl, spongeDecay[ls.i], cScale[ls.i],
+                vDecay[ls.i], visc[ls.i], ls.flowDps)
+    }
+
     private fun applyInjections(ls: FableSolLayerSim, cDps: Double) {
         var idx = 0
         val list = ls.pending
@@ -451,7 +560,9 @@ class FableSolSimulation(private val p: FableSolParams) {
             if (i1 - i0 >= 3) {
                 val pk = item.peak
                 val sharp = abs(pk - 1.0) > 1e-3
-                val bump = DoubleArray(i1 - i0)
+                // 复用层内 scratch；有效区间显式限定为 [0, i1 - i0)，每个元素都在
+                // 使用前被写满，不依赖数组默认零值，也不读区间外的陈旧数据。
+                val bump = ls.injectBumpDp
                 for (k in 0 until i1 - i0) {
                     var win = 0.5 * (1.0 + cos(Math.PI * ((uGrid[i0 + k] - item.u) / halfW).coerceIn(-1.0, 1.0)))
                     if (sharp) win = win.pow(pk)
@@ -481,11 +592,8 @@ class FableSolSimulation(private val p: FableSolParams) {
         return (1.0 - beatPhase % 1.0) * 60.0 / beatBpm
     }
 
-    fun setMood(energy01: Double, brightness01: Double) {
-        moodTargets[0] = 16.0 * (energy01 - 0.35)
-        moodTargets[1] = 0.45 * (energy01 - 0.5)
-        moodTargets[2] = (brightness01 - 0.5) * 2.0
-        moodTargets[3] = (energy01 - 0.5) * 2.0
+    fun setMood(@Suppress("UNUSED_PARAMETER") energy01: Double, brightness01: Double) {
+        moodBrightTarget = (brightness01 - 0.5) * 2.0
     }
 
     // ---- 演示驱动（无声源测试；demo_mode 默认 0，不触发）----
@@ -520,6 +628,7 @@ class FableSolSimulation(private val p: FableSolParams) {
             substeps++
             acc -= PHYSICS_DT
             t += PHYSICS_DT
+            grandWave.advance(this)
             if (shakeT >= 0.0) shakeT += PHYSICS_DT
             if (p.get("demo_mode") >= 0.5) demoTick()
             val thetaIn = thetaDeg + wobbleDeg()
@@ -558,47 +667,22 @@ class FableSolSimulation(private val p: FableSolParams) {
             val thRenderRad = Math.toRadians(thetaDeg)
             val dRender = thRenderRad - prevThRender
             prevThRender = thRenderRad
-            for (ls in layers) {
-                val base = p.lget("flow_base_dps", ls.i)
-                val idle = p.get("idle_flow_ratio")
-                // 深层无动于衷（D16）：流速只跟数十秒能量积分，不吃逐帧感知速度
-                val driveRaw = if (ls.i >= DEEP_LAYER_START) flow01Deep.coerceIn(0.0, 1.0)
-                               else (flow01 + moodFlow01).coerceIn(0.0, 1.0)
-                val drive01 = driveRaw.pow(p.get("flow_curve"))
-                val target = FLOW_DIR * base * (idle + (1.0 - idle) * drive01 * p.get("flow_gain"))
-                val tau = max(p.get("flow_smooth_s"), 1e-2)
-                ls.flowDps += (target - ls.flowDps) * (1.0 - exp(-PHYSICS_DT / tau))
-                // 深层不吃节拍脉冲（D16 无动于衷）
-                val pulse = if (ls.i >= DEEP_LAYER_START) 1.0
-                            else 1.0 + beatSurge * (1.0 - 0.5 * ls.depth01)
-                ls.ambient.retune(p.lget("ambient_len_dp", ls.i))
-                ls.ambient.advance(PHYSICS_DT, ls.flowDps * pulse)
-                ls.hero.retune(p.get("hero_len_dp"))
-                val spatialRate = 1.0 + stereoWidth01 * (ls.depth01 - 0.5) * 0.36
-                ls.hero.advance(PHYSICS_DT, ls.flowDps * 1.5 * spatialRate)
-                ls.optical.advance(PHYSICS_DT, ls.flowDps * spatialRate)
-                val oldEff = ls.thetaEff
-                ls.thetaEff += (thInRad - ls.thetaEff) * (1.0 - exp(-PHYSICS_DT / ls.tiltTau))
-                var dLag = ((ls.thetaEff - oldEff) - dRender).coerceIn(-0.02, 0.02)
-                val dDyn: Double
-                if (calm > 1e-6) {
-                    val gap = abs(ls.thetaEff - thRenderRad)
-                    val g0 = max(0.30 - 0.24 * calm, 0.02)
-                    val kDyn = 0.02 * (1.0 - 0.75 * calm)
-                    dDyn = kDyn * tanh(dLag / kDyn) / (1.0 + (gap / g0) * (gap / g0))
-                } else dDyn = dLag
-                if (abs(dDyn) > 1e-9) {
-                    val wu = ls.wave.u; val lt = lagTaper[ls.i]; val ls2 = ls.lagShape
-                    for (n in 0 until N_POINTS) wu[n] -= dDyn * uGrid[n] * lt[n] * ls2[n]
+            // 九层的三条相位推进、注入与波动方程都只写本层状态：ambient/hero/optical
+            // 是层自有对象，pending 与 wave 按层隔离，注入 scratch 也已归层（C10）。
+            // beatSurge / thInRad / thRenderRad / dRender / calm / agitC / tension01 /
+            // cMean 都在循环前算好，循环内只读。surface2d.advance 依赖全部九层的结果，
+            // 必须留在层循环之后串行。
+            val physicsBody = FableSolRowBody { startLayer, endLayer ->
+                for (index in startLayer until endLayer) {
+                    physicsLayerStep(
+                        layers[index], beatSurge, thInRad, thRenderRad, dRender, calm, agitC
+                    )
                 }
-                var c = p.lget("wave_speed_dps", ls.i)
-                applyInjections(ls, c)   // 注入用原生波速：绝不同步化注入
-                // 张力（A6）：注入之后波速才向九层均值相干偏置（混合上限 0.6）
-                if (tension01 > 1e-3) c += 0.6 * tension01 * (cMean - c)
-                var hl = p.lget("damp_halflife_s", ls.i)
-                if (agitC > 1e-3) hl *= 1.0 - 0.60 * agitC
-                ls.wave.step(PHYSICS_DT, c, hl, spongeDecay[ls.i], cScale[ls.i],
-                        vDecay[ls.i], visc[ls.i], ls.flowDps)
+            }
+            if (parallelLayerLoopsEnabled) {
+                FableSolRowParallel.runUnits(N_LAYERS, physicsBody)
+            } else {
+                physicsBody.run(0, N_LAYERS)
             }
             waveNs += System.nanoTime() - waveStart
             // A/B 回退关闭时仍推进二维状态，重新启用不会从静止相位重新开始。
@@ -617,12 +701,9 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     private fun perFrame(dt: Double, span: Double, thRender: Double) {
-        // 性格档过渡固化 1.5s（原 mood_transition_s，2026-07-18 参数移除）。
+        // 段落性格只慢追明度；水位、流速与层距由七境的独立执行器负责。
         val kMood = 1.0 - exp(-dt / 1.5)
-        moodLevelDp += (moodTargets[0] - moodLevelDp) * kMood
-        moodFlow01 += (moodTargets[1] - moodFlow01) * kMood
-        moodBright += (moodTargets[2] - moodBright) * kMood
-        moodSpread01 += (moodTargets[3] - moodSpread01) * kMood
+        moodBright += (moodBrightTarget - moodBright) * kMood
         colorBright01 += (colorTargetBright - colorBright01) * (1.0 - exp(-dt / 2.0))
         colorEnergy01 += (colorTargetEnergy - colorEnergy01) * (1.0 - exp(-dt / 1.2))
         roughness01 += (materialTargetRough - roughness01) * (1.0 - exp(-dt / 0.24))
@@ -631,13 +712,62 @@ class FableSolSimulation(private val p: FableSolParams) {
         pan01 += (spatialTargetPan - pan01) * (1.0 - exp(-dt / 0.22))
         val cTh = abs(cos(thRender)); val sTh = abs(sin(thRender))
         val half = span / 2.0
-        val vis = BooleanArray(N_POINTS) { auAbs[it] <= half }
+        for (n in 0 until N_POINTS) heroVisibleMask[n] = auAbs[n] <= half
+        prepareHeroSourceBlend(half)
+        val grandProfile = grandWave.sample(uGrid)
         val heroBreath = p.get("hero_breath")
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
         val heroGain = p.get("hero_gain")
         val wanderGain = p.get("wander_gain")
-        for (ls in layers) {
+        val baseLevel0 = p.lget("base_level_dp", 0)
+        // 三频段的攻击/释放系数只由频段与升降方向决定，九层共享同一组 tau；
+        // 逐层重算等于每帧 27 次 exp。粗糙度两条更是层无关，18 次降到 2 次。
+        // 值与逐层重算逐位相同（同一表达式、同一输入）。
+        val heroAttackS = p.get("hero_attack_s")
+        val heroReleaseS = p.get("hero_release_s")
+        for (j in 0 until 3) {
+            heroBandAttackK[j] = 1.0 - exp(-dt / max(heroAttackS * ATK_MULT[j], 1e-3))
+            heroBandReleaseK[j] = 1.0 - exp(-dt / max(heroReleaseS * REL_MULT[j], 1e-3))
+        }
+        val roughnessK = 1.0 - exp(-dt / 0.26)
+        val shapeRoughnessK = 1.0 - exp(-dt / 1.2)
+        // 九层的包络推进、Ambient/Hero 采样、平流与 heights 行写彼此独立：每层只写
+        // 自身状态与 heights[i]，heroVisibleMask / heroSourceWeight / grandProfile 都是
+        // 层循环之前写好的只读量。层内数学与串行逐位一致，只是完成顺序不同。
+        val composeBody = FableSolRowBody { startLayer, endLayer ->
+            for (index in startLayer until endLayer) {
+                perFrameLayer(
+                    layers[index], dt, cTh, sTh, grandProfile, heroBreath, ambientBreath,
+                    ambientGain, heroGain, wanderGain, baseLevel0,
+                    roughnessK, shapeRoughnessK, thRender
+                )
+            }
+        }
+        if (parallelLayerLoopsEnabled) {
+            FableSolRowParallel.runUnits(N_LAYERS, composeBody)
+        } else {
+            composeBody.run(0, N_LAYERS)
+        }
+    }
+
+    private fun perFrameLayer(
+        ls: FableSolLayerSim,
+        dt: Double,
+        cTh: Double,
+        sTh: Double,
+        grandProfile: DoubleArray?,
+        heroBreath: Double,
+        ambientBreath: Double,
+        ambientGain: Double,
+        heroGain: Double,
+        wanderGain: Double,
+        baseLevel0: Double,
+        roughnessK: Double,
+        shapeRoughnessK: Double,
+        thRender: Double
+    ) {
+        run {
             val target = ls.swellTargetDp
             val rising = target > ls.swellDp
             val tau = if (rising) p.get("swell_attack_s") * ls.attackMult else p.get("swell_release_s") * ls.releaseMult
@@ -646,7 +776,10 @@ class FableSolSimulation(private val p: FableSolParams) {
             val hTarget = min(ls.heroTargetDp, 1.25 * heroMax)
             val hTau = if (hTarget > ls.heroDp) p.get("hero_attack_s") * ls.attackMult else p.get("hero_release_s") * ls.releaseMult
             ls.heroDp += (hTarget - ls.heroDp) * (1.0 - exp(-dt / max(hTau, 1e-3)))
-            val bandTarget = doubleArrayOf(ls.heroBandTargetDp[0], ls.heroBandTargetDp[1], ls.heroBandTargetDp[2])
+            val bandTarget = ls.heroBandTargetScratch
+            bandTarget[0] = ls.heroBandTargetDp[0]
+            bandTarget[1] = ls.heroBandTargetDp[1]
+            bandTarget[2] = ls.heroBandTargetDp[2]
             if (bandTarget[0] + bandTarget[1] + bandTarget[2] < 1e-6 && ls.heroTargetDp > 0.0) {
                 bandTarget[0] = ls.heroTargetDp * 0.48; bandTarget[1] = ls.heroTargetDp * 0.34; bandTarget[2] = ls.heroTargetDp * 0.18
             }
@@ -657,33 +790,49 @@ class FableSolSimulation(private val p: FableSolParams) {
             }
             for (j in 0 until 3) {
                 val risingB = bandTarget[j] > ls.heroBandDp[j]
-                val tauB = if (risingB) p.get("hero_attack_s") * ATK_MULT[j] else p.get("hero_release_s") * REL_MULT[j]
-                ls.heroBandDp[j] += (bandTarget[j] - ls.heroBandDp[j]) * (1.0 - exp(-dt / max(tauB, 1e-3)))
+                val kB = if (risingB) heroBandAttackK[j] else heroBandReleaseK[j]
+                ls.heroBandDp[j] += (bandTarget[j] - ls.heroBandDp[j]) * kB
             }
-            advectHeroEnvelope(ls, dt, half)
-            ls.roughness01 += (ls.roughnessTarget01 - ls.roughness01) * (1.0 - exp(-dt / 0.26))
-            ls.shapeRoughness01 += (ls.roughnessTarget01 - ls.shapeRoughness01) * (1.0 - exp(-dt / 1.2))
+            advectHeroEnvelope(ls, dt)
+            ls.roughness01 += (ls.roughnessTarget01 - ls.roughness01) * roughnessK
+            ls.shapeRoughness01 += (ls.roughnessTarget01 - ls.shapeRoughness01) * shapeRoughnessK
             val wander = p.lget("wander_amp_dp", ls.i) * wanderGain *
                     sin(2.0 * Math.PI * t / max(p.lget("wander_period_s", ls.i), 1.0) + ls.wanderPhi)
-            // 能量档层距撑开固化 12dp（原 mood_spread_dp，2026-07-18 参数移除）。
-            val mood = moodLevelDp * (1.0 - 0.3 * ls.depth01) +
-                    12.0 * moodSpread01 * (ls.depth01 - 0.5) * 2.0
-            val level = tiltLevel(p.lget("base_level_dp", ls.i), cTh, sTh) +
-                    wander + ls.swellDp + mood
+            val baseSpread = baseLevel0 +
+                    (p.lget("base_level_dp", ls.i) - baseLevel0) * layerSpread
+            val level = tiltLevel(baseSpread, cTh, sTh) + wander + ls.swellDp
             // 4Hz 音节呼吸只调制环境波振幅（浅层强、深层无）——运动学振幅包络，
             // 与 ambient_breath 同类机制，不改动已成形的动态浪（D12）。
             val breathGain = if (ls.i >= DEEP_LAYER_START) 1.0
                              else 1.0 + 0.30 * breath01 * (1.0 - 0.55 * ls.depth01)
-            val amb = ls.ambient.sample(uGrid, t,
+            val amb = ls.ambientSampleDp
+            ls.ambient.sampleInto(uGrid, t,
                 p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain,
-                ambientBreath)
+                ambientBreath, amb)
             val lagK = ls.thetaEff - thRender
             val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
-            val xShift = DoubleArray(N_POINTS) { uGrid[it] + spatialShift }
-            val hero = ls.hero.sample(xShift, ls.heroBandFieldDp, t, heroBreath, vis, ls.shapeRoughness01)
+            val heroShiftedX = ls.heroShiftedX
+            for (n in 0 until N_POINTS) heroShiftedX[n] = uGrid[n] + spatialShift
+            val hero = ls.heroSampleDp
+            ls.hero.sampleInto(
+                heroShiftedX,
+                ls.heroBandFieldDp,
+                t,
+                heroBreath,
+                heroVisibleMask,
+                ls.shapeRoughness01,
+                hero
+            )
             val wu = ls.wave.u
             val row = heights[ls.i]
-            for (n in 0 until N_POINTS) row[n] = level + wu[n] + amb[n] + hero[n] + lagK * uGrid[n]
+            for (n in 0 until N_POINTS) {
+                var detail = wu[n] + amb[n] + hero[n]
+                if (ls.i == FableSolGrandWave.LAYER_INDEX && grandProfile != null) {
+                    val profile = grandProfile[n]
+                    detail = detail * grandWave.backgroundKeep(profile) + profile
+                }
+                row[n] = level + detail + lagK * uGrid[n]
+            }
         }
     }
 
@@ -691,35 +840,75 @@ class FableSolSimulation(private val p: FableSolParams) {
      * Hero 声音包络的出生与传播（D17）：[heroBandDp] 是上游源的慢目标，只有源区会被写入；
      * 可见区里的包络只做平流，不因下一帧响度、频段或音高变化而整体改形。
      */
-    private fun advectHeroEnvelope(ls: FableSolLayerSim, dt: Double, visibleHalf: Double) {
+    private fun prepareHeroSourceBlend(visibleHalf: Double) {
+        val upstreamEdge = if (FLOW_DIR < 0.0) uGrid[N_POINTS - 1] else uGrid[0]
+        val available = max(abs(upstreamEdge) - visibleHalf - DX_DP, DX_DP)
+        val sourceGap = min(HERO_ENVELOPE_SOURCE_GAP_DP, available)
+        val sourceBoundary = if (FLOW_DIR < 0.0) {
+            visibleHalf + sourceGap
+        } else {
+            -visibleHalf - sourceGap
+        }
+        val blendWidth = max(HERO_ENVELOPE_BLEND_DP, 6.0 * DX_DP)
+        for (n in 0 until N_POINTS) {
+            val q = if (FLOW_DIR < 0.0) {
+                (uGrid[n] - (sourceBoundary - blendWidth)) / blendWidth
+            } else {
+                ((sourceBoundary + blendWidth) - uGrid[n]) / blendWidth
+            }.coerceIn(0.0, 1.0)
+            heroSourceWeight[n] = q * q * q * (q * (q * 6.0 - 15.0) + 10.0)
+        }
+    }
+
+    private fun advectHeroEnvelope(ls: FableSolLayerSim, dt: Double) {
         if (dt <= 0.0) return
         val waveSpeed = p.lget("wave_speed_dps", ls.i)
         val transport = FLOW_DIR * (abs(ls.flowDps) * 1.5 + HERO_ENVELOPE_GROUP_SPEED * waveSpeed)
-        val upstreamEdge = if (FLOW_DIR < 0) uGrid[N_POINTS - 1] else uGrid[0]
-        val available = max(abs(upstreamEdge) - visibleHalf - DX_DP, DX_DP)
-        val sourceGap = min(HERO_ENVELOPE_SOURCE_GAP_DP, available)
-        val sourceBoundary = if (FLOW_DIR < 0) visibleHalf + sourceGap else -visibleHalf - sourceGap
+
+        // uGrid 等距，因此每个频段共用同一套平流插值位置；索引 -1/-2 表示左右越界。
+        // 插值索引/权重按层持有（C3），层任务之间不会互相踩踏。
+        val heroInterpIndex = ls.heroInterpIndex
+        val heroInterpFraction = ls.heroInterpFraction
+        val positionOffset = -transport * dt / DX_DP
+        val last = N_POINTS - 1
+        for (n in 0 until N_POINTS) {
+            val position = n + positionOffset
+            when {
+                position < 0.0 -> {
+                    heroInterpIndex[n] = HERO_INTERP_LEFT
+                    heroInterpFraction[n] = 0.0
+                }
+                position > last.toDouble() -> {
+                    heroInterpIndex[n] = HERO_INTERP_RIGHT
+                    heroInterpFraction[n] = 0.0
+                }
+                position >= last.toDouble() -> {
+                    heroInterpIndex[n] = last - 1
+                    heroInterpFraction[n] = 1.0
+                }
+                else -> {
+                    val i0 = position.toInt()
+                    heroInterpIndex[n] = i0
+                    heroInterpFraction[n] = position - i0
+                }
+            }
+        }
 
         for (band in 0 until 3) {
             val field = ls.heroBandFieldDp[band]
             val scratch = ls.heroBandScratchDp[band]
             val source = ls.heroBandDp[band]
             for (n in 0 until N_POINTS) {
-                val xq = uGrid[n] - transport * dt
-                val pos = (xq - uGrid[0]) / DX_DP
-                scratch[n] = when {
-                    pos <= 0.0 -> if (FLOW_DIR > 0) source else field[0]
-                    pos >= N_POINTS - 1.0 -> if (FLOW_DIR < 0) source else field[N_POINTS - 1]
-                    else -> {
-                        val i0 = pos.toInt()
-                        val frac = pos - i0
-                        field[i0] + (field[i0 + 1] - field[i0]) * frac
-                    }
+                val i0 = heroInterpIndex[n]
+                scratch[n] = when (i0) {
+                    HERO_INTERP_LEFT -> if (FLOW_DIR > 0.0) source else field[0]
+                    HERO_INTERP_RIGHT -> if (FLOW_DIR < 0.0) source else field[last]
+                    else -> field[i0] + (field[i0 + 1] - field[i0]) * heroInterpFraction[n]
                 }
             }
             for (n in 0 until N_POINTS) {
-                field[n] = if ((FLOW_DIR < 0 && uGrid[n] >= sourceBoundary) ||
-                    (FLOW_DIR > 0 && uGrid[n] <= sourceBoundary)) source else scratch[n]
+                val advected = scratch[n]
+                field[n] = advected + (source - advected) * heroSourceWeight[n]
             }
         }
     }
@@ -788,6 +977,9 @@ class FableSolSimulation(private val p: FableSolParams) {
     companion object {
         private const val HERO_ENVELOPE_GROUP_SPEED = 0.45
         private const val HERO_ENVELOPE_SOURCE_GAP_DP = 48.0
+        private const val HERO_ENVELOPE_BLEND_DP = 24.0
+        private const val HERO_INTERP_LEFT = -1
+        private const val HERO_INTERP_RIGHT = -2
         private const val SPONGE_RATE = 9.0
         private const val SPONGE_FREE_DP = 96.0
         private const val EDGE_BIRTH_GAP_DP = 8.0  // 出生支撑外缘到可见边的最小间隙

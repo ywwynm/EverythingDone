@@ -62,7 +62,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
 
     // 波群/装饰层/旋律层调度状态
     private var groupEndT = -10.0
-    private var stGroup = 1.0
+    private var stGroup = 0.11
     private var groupTexturePtr = 0
     private var ornamentPtr = 0
     private var lastOrnamentT = -10.0
@@ -70,9 +70,19 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     private var pitchSm = 0.5        // 旋律层音高高度（相对说话人基线）
     private var breathSm = 0.0       // 4Hz 音节调制 → 呼吸容积
 
-    // 境状态机：权重向量（初始 idle=1）与静默追踪
-    private val stateW = DoubleArray(N_STATES).also { it[ST_IDLE] = 1.0 }
-    private var heard = false
+    // 七境由持续等级 + LIFT/CLIMAX 阶段组成；所有对象和输出均在热路径复用。
+    private val perceptualFrame = FableSolPerceptualFrame()
+    private val stateEvidence = FableSolStateEvidence()
+    private val stateMachine = FableSolSevenStateMachine()
+    private val stateDecision = FableSolStateDecision()
+    private val continuousState = FableSolContinuousStateChannels()
+    private val visualChannels = FableSolContinuousVisualChannels()
+    private val grandWaveGate = FableSolGrandWaveEventGate()
+    private val grandWaveRequest = FableSolGrandWaveRequest()
+    private var deepLevelDp = 0.0
+    private var levelT = Double.NaN
+
+    // 旧短语悬停仅继续服务 shape register；水位只由 continuousState 写入。
     private var silenceRunS = 0.0
     private var suspended = false
     private var pitchRelLast = 0.5
@@ -81,7 +91,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     private val bandsSlow = DoubleArray(3)
     private val rel = DoubleArray(3)
     private val contribution = DoubleArray(3)
-    private val mults = DoubleArray(5)          // (hero, swell, chop, group, breath)
     private val scratchBands = DoubleArray(3)   // onset/test 事件的频段向量
 
     // ---- 双 register 目标值 ----
@@ -89,13 +98,14 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
 
     private fun deep01(): Double = min(max(deepEnergy, 0.0).pow(0.82) * 1.04, 1.0)
 
-    /** 深层（7~8）的全部驱动：只由长积分决定，静音与否路径相同。 */
-    private fun applyDeepTargets(sim: FableSolSimulation) {
+    /** 深层只保留长积分 shape；基础水位由七境连续通道统一写入。 */
+    private fun applyDeepTargets(sim: FableSolSimulation, waveScale: Double) {
         val d = deep01()
+        val stateGain = waveScale.coerceIn(0.0, 1.25)
         for (li in DEEP_LAYER_START until sim.layers.size) {
             val ls = sim.layers[li]
-            ls.swellTargetDp = p.lget("swell_max_dp", li) * p.get("swell_gain") * d
-            val overall = p.lget("hero_max_dp", li) * p.get("hero_gain") * d.pow(0.8)
+            val overall = p.lget("hero_max_dp", li) * p.get("hero_gain") *
+                d.pow(0.8) * stateGain
             ls.heroTargetDp = overall
             ls.heroBandTargetDp[0] = overall * 0.55
             ls.heroBandTargetDp[1] = overall * 0.33
@@ -104,8 +114,157 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         }
     }
 
+    private fun fillPerceptualInput(fr: FableSolFeatureFrame) {
+        perceptualFrame.t = fr.t
+        perceptualFrame.silent = fr.isSilent
+        perceptualFrame.waterDrive01 = fr.waterDrive01
+        perceptualFrame.intensityDrive01 = fr.intensityDrive01
+        perceptualFrame.kineticDrive01 = fr.kineticDrive01
+        perceptualFrame.percussiveMotion01 = fr.percussiveMotion01
+        perceptualFrame.vocalMotion01 = fr.vocalMotion01
+        perceptualFrame.harmonicMotion01 = fr.harmonicMotion01
+        perceptualFrame.grooveMotion01 = fr.grooveMotion01
+        perceptualFrame.musicArousal01 = fr.musicArousal01
+        perceptualFrame.energy01 = fr.energy01
+        perceptualFrame.energyRising01 = fr.energyRising01
+        perceptualFrame.buildUp01 = fr.buildUp01
+        perceptualFrame.positiveNovelty01 = fr.novelty01
+        perceptualFrame.punch01 = fr.punch01
+        perceptualFrame.punchLu01 = fr.punchLu01
+        perceptualFrame.lowShare01 = fr.relLow
+        perceptualFrame.domainGradeTrim01 = 0.0
+        perceptualFrame.gradeDrive01 = fr.gradeDrive01
+        perceptualFrame.motionContextBoost01 = fr.motionContextBoost01
+        perceptualFrame.centroid01 = fr.centroid01
+
+        stateEvidence.gradeDrive01 = fr.gradeDrive01
+        stateEvidence.liftScore01 = fr.liftScore01
+        stateEvidence.climaxScore01 = fr.climaxScore01
+        stateEvidence.gradeAbsolute01 = fr.gradeAbsolute01
+        stateEvidence.gradeContext01 = fr.gradeContext01
+        stateEvidence.vocalSoloPenalty01 = fr.vocalSoloPenalty01
+    }
+
+    private fun fillSilenceInput(t: Double) {
+        perceptualFrame.t = t
+        perceptualFrame.silent = true
+        perceptualFrame.waterDrive01 = 0.0
+        perceptualFrame.intensityDrive01 = 0.0
+        perceptualFrame.kineticDrive01 = 0.0
+        perceptualFrame.percussiveMotion01 = 0.0
+        perceptualFrame.vocalMotion01 = 0.0
+        perceptualFrame.harmonicMotion01 = 0.0
+        perceptualFrame.grooveMotion01 = 0.0
+        perceptualFrame.musicArousal01 = 0.0
+        perceptualFrame.energy01 = 0.0
+        perceptualFrame.energyRising01 = 0.0
+        perceptualFrame.buildUp01 = 0.0
+        perceptualFrame.positiveNovelty01 = 0.0
+        perceptualFrame.punch01 = 0.0
+        perceptualFrame.punchLu01 = 0.0
+        perceptualFrame.lowShare01 = 0.0
+        perceptualFrame.domainGradeTrim01 = 0.0
+        perceptualFrame.gradeDrive01 = 0.0
+        perceptualFrame.motionContextBoost01 = 0.0
+        perceptualFrame.centroid01 = 0.5
+        stateEvidence.gradeDrive01 = 0.0
+        stateEvidence.liftScore01 = 0.0
+        stateEvidence.climaxScore01 = 0.0
+        stateEvidence.gradeAbsolute01 = 0.0
+        stateEvidence.gradeContext01 = 0.0
+        stateEvidence.vocalSoloPenalty01 = 0.0
+    }
+
+    /** 七境、连续执行通道、巨浪鉴权和基础水位只有这一处生产写入口。 */
+    private fun advanceState(sim: FableSolSimulation): FableSolContinuousVisualChannels {
+        val expressionGain = p.get("expression_gain")
+        val transitionSpeed = p.get("transition_speed")
+        stateMachine.step(
+            perceptualFrame,
+            stateEvidence,
+            stateSensitivity = p.get("state_sensitivity"),
+            transitionSpeed = transitionSpeed,
+            output = stateDecision
+        )
+        continuousState.step(
+            t = perceptualFrame.t,
+            state = stateDecision.state,
+            silent = perceptualFrame.silent,
+            waterDrive01 = perceptualFrame.waterDrive01,
+            kineticDrive01 = perceptualFrame.kineticDrive01,
+            musicArousal01 = perceptualFrame.musicArousal01,
+            punchLu01 = perceptualFrame.punchLu01,
+            punch01 = perceptualFrame.punch01,
+            centroid01 = perceptualFrame.centroid01,
+            expressionGain = expressionGain,
+            transitionSpeed = transitionSpeed,
+            output = visualChannels
+        )
+
+        sim.flow01 = visualChannels.flow01
+        sim.layerSpread = visualChannels.spread
+        sim.visualState = stateDecision.state.name
+        sim.visualStateLabel = stateDecision.state.label
+        sim.visualWaterDrive01 = visualChannels.waterDrive01
+        sim.visualLevelTargetDp = visualChannels.levelGoalDp
+        sim.visualLevelDp = visualChannels.levelDp
+        sim.visualWaveScale = visualChannels.waveScale
+        sim.visualTargetDps = visualChannels.targetDps
+        sim.sparkle01 = visualChannels.rim01
+        sim.glintCapacity01 = visualChannels.cap01
+        sim.calm01 = when (stateDecision.state) {
+            FableSolVisualState.IDLE, FableSolVisualState.SILENCE -> 1.0
+            FableSolVisualState.CALM -> 0.55
+            else -> 0.0
+        }
+        sim.resonance01 = when (stateDecision.state) {
+            FableSolVisualState.PEAK, FableSolVisualState.CLIMAX -> 1.0
+            FableSolVisualState.GROOVE -> 0.55
+            else -> 0.0
+        }
+
+        if (grandWaveGate.step(
+                perceptualFrame,
+                stateEvidence.gradeDrive01,
+                stateDecision.state,
+                grandWaveRequest
+            )
+        ) {
+            val accepted = sim.triggerGrandWave(expressionGain)
+            grandWaveGate.resolve(grandWaveRequest, accepted)
+        }
+        applyLevelTargets(sim, visualChannels, perceptualFrame.t, transitionSpeed)
+        return visualChannels
+    }
+
+    private fun applyLevelTargets(
+        sim: FableSolSimulation,
+        channels: FableSolContinuousVisualChannels,
+        frameT: Double,
+        transitionSpeed: Double
+    ) {
+        val dt = if (levelT.isNaN() || frameT <= levelT) {
+            1.0 / 60.0
+        } else {
+            (frameT - levelT).coerceIn(0.0, 0.10)
+        }
+        levelT = frameT
+        val deepTau = 2.25 * 2.0.pow(-0.65 * transitionSpeed.coerceIn(-1.0, 1.0))
+        deepLevelDp += (channels.levelDp - deepLevelDp) *
+            (1.0 - exp(-dt / max(deepTau, 0.10)))
+        for (ls in sim.layers) {
+            ls.swellTargetDp = max(
+                if (ls.i >= DEEP_LAYER_START) deepLevelDp else channels.levelDp,
+                0.0
+            )
+        }
+    }
+
+    internal fun currentVisualState(): FableSolVisualState = stateDecision.state
+
+    internal fun currentWaveScale(): Double = visualChannels.waveScale
+
     fun applySilence(sim: FableSolSimulation) {
-        sim.flow01 = 0.0
         smT = Double.NaN
         slowLoud *= 0.94; slowLow *= 0.94; slowMid *= 0.94; slowHigh *= 0.94
         tFlat *= 0.94; tPerc *= 0.94; tPunch *= 0.94; tWidth *= 0.94
@@ -127,23 +286,19 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         sim.setSpatialDrive(0.0, 0.5)
         tension01 *= 0.94   // 静息回失谐（A6 张力试验）
         sim.setTension01(tension01)
-        sim.sparkle01 *= 0.94
-        sim.calm01 += (1.0 - sim.calm01) * 0.02
-        sim.resonance01 *= 0.97
-        val swell01v = swell01()
+        fillSilenceInput(sim.t)
+        val channels = advanceState(sim)
         for (li in 0 until DEEP_LAYER_START) {
             val ls = sim.layers[li]
-            // 水位不清零：随涌浪半衰期自然沉降；浪形能量清零（浪自然平息）。
-            ls.swellTargetDp = p.lget("swell_max_dp", ls.i) * p.get("swell_gain") * swell01v
+            // 基础水位已由 advanceState 写入；这里只释放旧 shape 能量。
             ls.heroTargetDp = 0.0
             ls.heroBandTargetDp[0] = 0.0; ls.heroBandTargetDp[1] = 0.0; ls.heroBandTargetDp[2] = 0.0
             ls.roughnessTarget01 = 0.0
         }
-        applyDeepTargets(sim)
+        applyDeepTargets(sim, channels.waveScale)
     }
 
     fun applyFrame(sim: FableSolSimulation, fr: FableSolFeatureFrame) {
-        sim.flow01 = fr.flow01
         val silent = fr.isSilent
         val t = fr.t
         val dt = if (smT.isNaN()) 1.0 / 60.0 else (t - smT).coerceIn(0.0, 0.1)
@@ -152,7 +307,10 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val ke = if (dt > 0) 1.0 - exp(-dt / 0.28) else 0.0
         val kt = if (dt > 0) 1.0 - exp(-dt / 0.24) else 0.0
         val kr = if (dt > 0) 1.0 - exp(-dt / 0.85) else 0.0
-        slowLoud += ((if (silent) 0.0 else fr.loudness01) - slowLoud) * ke
+        // loudness01 is kept only for legacy diagnostics.  The animation contract is
+        // the fixed-domain perceptual water drive, so capture/master parity cannot leak
+        // back through the old shape register.
+        slowLoud += ((if (silent) 0.0 else fr.waterDrive01) - slowLoud) * ke
         slowLow += ((if (silent) 0.0 else fr.bandLow) - slowLow) * ke
         slowMid += ((if (silent) 0.0 else fr.bandMid) - slowMid) * ke
         slowHigh += ((if (silent) 0.0 else fr.bandHigh) - slowHigh) * ke
@@ -169,7 +327,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         sim.setBeat(fr.tempoBpm, fr.beatPhase01, if (silent) 0.0 else fr.beatConf01)
         bandsSlow[0] = slowLow; bandsSlow[1] = slowMid; bandsSlow[2] = slowHigh
         val levelIn = if (silent) 0.0
-        else 0.86 * fr.loudness01 + 0.14 * (fr.bandLow + fr.bandMid + fr.bandHigh) / 3.0
+        else 0.86 * fr.waterDrive01 + 0.14 * (fr.bandLow + fr.bandMid + fr.bandHigh) / 3.0
         val levelTau = if (levelIn > levelEnergy) p.get("swell_presmooth_s")
         else p.get("swell_presmooth_release_s")
         if (dt > 0.0) {
@@ -184,7 +342,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             }
             val kDeep = 1.0 - exp(-dt / max(p.get("deep_integral_s"), 1.0))
             deepEnergy += (levelEnergy - deepEnergy) * kDeep
-            deepFlow += (fr.flow01 - deepFlow) * kDeep
+            deepFlow += (fr.kineticDrive01 - deepFlow) * kDeep
         }
         sim.flow01Deep = deepFlow
         val relSum = max(tRelLow + tRelMid + tRelHigh, 1e-6)
@@ -222,16 +380,10 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         }
         sim.setTension01(tension01)
         silenceTrack(fr, silent, dt)
-        stateStep(fr, silent, dt, musicGate)
-        stateMults()
-        val stHero = mults[0]; val stSwell = mults[1]; val stChop = mults[2]; val stBreath = mults[4]
-        stGroup = mults[3]
-        // 渲染驱动场：闪点活跃度/平静度/共鸣度（连续、已被境权重平滑）
-        sim.sparkle01 = (slowLoud * (0.35 + 0.65 * stChop)).coerceIn(0.0, 1.0)
-        sim.calm01 = (stateW[ST_IDLE] + stateW[ST_SILENCE] + 0.5 * stateW[ST_QUIET]).coerceIn(0.0, 1.0)
-        sim.resonance01 = (stateW[ST_MELODIC] + stateW[ST_LOUD]).coerceIn(0.0, 1.0)
-        sim.breath01 = (breathSm * 2.2 * stBreath).coerceIn(0.0, 1.0)
-        val swell01v = min(swell01() * stSwell, 1.0)
+        fillPerceptualInput(fr)
+        val channels = advanceState(sim)
+        stGroup = channels.waveScale
+        sim.breath01 = (breathSm * 2.2).coerceIn(0.0, 1.0)
         for (li in 0 until DEEP_LAYER_START) {
             val ls = sim.layers[li]
             val role = bandWeights(ls.depth01)
@@ -240,13 +392,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             val identityGain = (0.78 + 1.25 * (identity - 1.0 / 3)).coerceIn(0.58, 1.22)
             var shapeMix = (0.45 * slowLoud + 0.55 * drive) * identityGain
             shapeMix = min(shapeMix.pow(0.7) * 1.15, 1.0)
-            // 水位吃涌浪 register（短语记忆），不再吃快 register。
-            val rawT = p.lget("swell_max_dp", ls.i) * p.get("swell_gain") * swell01v
-            val db = p.get("swell_deadband_pct") * 0.01 * p.lget("swell_max_dp", ls.i)
-            if (db <= 1e-6 || rawT > ls.swellTargetDp + db) ls.swellTargetDp = rawT
-            else if (rawT < ls.swellTargetDp - db) ls.swellTargetDp = rawT
             var overall = p.lget("hero_max_dp", ls.i) * p.get("hero_gain") * shapeMix.pow(0.8)
-            overall *= stHero
+            overall *= channels.waveScale
             // 旋律层（A3）：主浪高度随音高相对说话人基线抬落（音高↔高度强映射）。
             if (ls.i == MELODY_LAYERS[0] || ls.i == MELODY_LAYERS[1]) {
                 overall *= 0.74 + 0.62 * pitchSm
@@ -259,9 +406,9 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             }
             cSum = max(cSum, 1e-6)
             for (j in 0 until 3) ls.heroBandTargetDp[j] = overall * contribution[j] / cSum
-            ls.roughnessTarget01 = rough * (0.82 + 0.18 * role[2]) * stChop
+            ls.roughnessTarget01 = rough * (0.82 + 0.18 * role[2])
         }
-        applyDeepTargets(sim)
+        applyDeepTargets(sim, channels.waveScale)
     }
 
     /**
@@ -280,7 +427,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         if (s >= 0.75 && sim.t - lastIncomingT >= cd
             && rng.nextDouble() < 0.50) {
             lastIncomingT = sim.t
-            val amp = s * 36.0
+            val amp = s * 36.0 * visualChannels.waveScale.coerceIn(0.2, 2.0)
             // 重音装弹、拍点发射：锁拍时注入时刻吸附到预测的下一拍
             var delay0 = 0.0
             if (sim.beat01 > 0.45) {
@@ -312,6 +459,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val width = max(ORNAMENT_MIN_WIDTH_DP, 136.0 - 44.0 * centroid) * rng.uniform(0.95, 1.18)
         var amp = (2.2 + 6.0 * (s - ORNAMENT_MIN_STRENGTH) / (1.0 - ORNAMENT_MIN_STRENGTH)) *
             (0.62 + 0.38 * low)
+        amp *= visualChannels.waveScale.coerceIn(0.2, 2.0)
         amp = min(amp, AMP_WIDTH_SLOPE * width)   // 高宽联动：不尖窄
         val span = sim.geometrySpan()
         val side = if (FLOW_DIR < 0) 1.0 else -1.0
@@ -331,7 +479,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
                                   bandVec: DoubleArray): Boolean {
         val strength = ev.strength01
         // 节奏波包门槛固化 0.25（原 rhythm_wave_min_strength）。
-        if (strength < 0.25) return false
+        val threshold = if (stateDecision.state == FableSolVisualState.LIFT) 0.50 else 0.25
+        if (strength < threshold) return false
         if (swellEnergy < GROUP_MIN_SWELL) return false
         val span = sim.geometrySpan()
         val probe = sim.layers[TEXTURE_LAYERS[1]]
@@ -371,42 +520,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         return true
     }
 
-    /** 境权重 → 五乘子 (hero, swell, chop, group, breath) 的加权混合，写入 [mults]。 */
-    private fun stateMults() {
-        mults[0] = 0.0; mults[1] = 0.0; mults[2] = 0.0; mults[3] = 0.0; mults[4] = 0.0
-        for (n in 0 until N_STATES) {
-            val w = stateW[n]
-            val preset = STATE_PRESETS[n]
-            for (j in 0 until 5) mults[j] += w * preset[j]
-        }
-    }
-
-    /** 证据 → 目标境（one-hot）→ 不对称 EMA（升快降慢=迟滞）→ 归一。 */
-    private fun stateStep(fr: FableSolFeatureFrame, silent: Boolean, dt: Double, musicGate: Double) {
-        val loudSlow = slowLoud
-        val syl = fr.sylRateHz
-        // A6：arousal 复合偏置境阈值。基准点 0.35≈平淡语音的典型复合值——
-        // 平淡语音阈值不动（回归要求），激动的声音更早进入 active/loud。
-        val arBias = fr.arousal01 - 0.35
-        if (!silent && loudSlow > 0.25) heard = true
-        val target: Int = if (silent) {
-            if (!heard) ST_IDLE else ST_SILENCE
-        } else if (musicGate > 0.5) {
-            if (loudSlow > 0.62 - 0.22 * arBias) ST_LOUD else ST_MELODIC
-        } else {
-            if (syl > 2.2 - 1.3 * arBias || loudSlow > 0.55 - 0.22 * arBias) ST_ACTIVE else ST_QUIET
-        }
-        var total = 0.0
-        for (n in 0 until N_STATES) {
-            val goal = if (n == target) 1.0 else 0.0
-            val tau = if (goal > stateW[n]) STATE_TAU_UP_S else STATE_TAU_DOWN_S
-            stateW[n] += (goal - stateW[n]) * (1.0 - exp(-dt / tau))
-            total += stateW[n]
-        }
-        total = max(total, 1e-6)
-        for (n in 0 until N_STATES) stateW[n] /= total
-    }
-
     /**
      * 三种静默：句中悬停（短停顿+非终结语调，冻结涌浪衰减）/句末沉降/
      * 结束尾声（applySilence 路径）。悬停最长 [SUSPEND_MAX_S]。
@@ -436,6 +549,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val side = if (FLOW_DIR < 0) 1.0 else -1.0
         var width = (176.0 + 60.0 * (1.0 - pr)) * rng.uniform(0.92, 1.15)
         var amp = (5.0 + 9.0 * s) * (0.72 + 0.56 * pr)
+        amp *= visualChannels.waveScale.coerceIn(0.2, 2.0)
         width *= 1.0 + 0.16 * loom01   // A6：渐强下重音浪随之生长（宽随幅长）
         amp *= 1.0 + 0.30 * loom01
         amp = min(amp, AMP_WIDTH_SLOPE * width)
@@ -529,12 +643,31 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         sim.injectLayer(li, 0.0, wi, ampI, travel, delay, uDp = uBase + jit + deep, peak = peak)
     }
 
-    /**
-     * 段落切换只换性格档（段涌巨浪已于 2026-07-18 连根移除——
-     * surge_gain 在 git 化之前即默认 0、从未启用）。
-     */
+    /** 段落边界保留 mood，并只为独立巨浪门控开启短鉴权窗；七境本身不读取 section。 */
     fun applySection(sim: FableSolSimulation, ev: FableSolEvent.Section) {
+        stateMachine.notifySection()
+        grandWaveGate.notifySection(
+            intensity01 = ev.energy01,
+            surge = ev.surge,
+            now = sim.t,
+            sourceT = ev.t
+        )
         sim.setMood(ev.energy01, ev.brightness01)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun applyDrop(sim: FableSolSimulation, ev: FableSolEvent.Drop) {
+        // sim 参数保留在签名中，使所有结构事件入口一致；门控只使用下一 authoritative audio frame。
+        stateMachine.notifyDrop(ev.confidence01)
+        grandWaveGate.notifyDrop(ev.confidence01)
+    }
+
+    fun applyStructuralEvent(sim: FableSolSimulation, ev: FableSolEvent) {
+        when (ev) {
+            is FableSolEvent.Section -> applySection(sim, ev)
+            is FableSolEvent.Drop -> applyDrop(sim, ev)
+            else -> Unit
+        }
     }
 
     /** 返回最近的水体角色权重行（共享只读表行，不得修改；depth01 入参保持旧接口兼容）。 */
@@ -574,28 +707,6 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         // 波高/宽度联动红线：注入幅度 ≤ 系数×宽度（高浪必须宽）。
         private const val AMP_WIDTH_SLOPE = 0.09
 
-        // ---- 境状态机（D15）：锚点配方 + 连续插值 + 迟滞 ----
-        // 境是查询表不是旅程；文档对照《水图》：idle=镜塘、silence=寒塘清浅、quiet=洞庭
-        // 风细、active=湖光潋滟、melodic=秋水回波、loud=层波叠浪；settle（细浪漂漂）由
-        // 涌浪半衰期沉降承担，climax（云舒浪卷）瞬态留待渲染批。
-        // 每境 = (hero, swell, chop, group, breath) 五个温和乘子；运行时按证据加权混合。
-        private const val ST_IDLE = 0
-        private const val ST_SILENCE = 1
-        private const val ST_QUIET = 2
-        private const val ST_ACTIVE = 3
-        private const val ST_MELODIC = 4
-        private const val ST_LOUD = 5
-        private const val N_STATES = 6
-        private val STATE_PRESETS = arrayOf(
-            doubleArrayOf(0.55, 0.60, 0.45, 0.0, 0.40),    // idle
-            doubleArrayOf(0.45, 0.75, 0.40, 0.0, 0.30),    // silence
-            doubleArrayOf(0.75, 0.85, 0.70, 0.6, 0.85),    // quiet
-            doubleArrayOf(1.00, 1.00, 1.00, 1.0, 1.00),    // active
-            doubleArrayOf(1.15, 1.05, 0.80, 1.1, 0.70),    // melodic
-            doubleArrayOf(1.25, 1.15, 1.15, 1.25, 0.60)    // loud
-        )
-        private const val STATE_TAU_UP_S = 0.8     // 升快
-        private const val STATE_TAU_DOWN_S = 2.2   // 降慢
         // 三种静默：句中悬停阈值（非终结语调 + 短停顿 → 冻结涌浪衰减）
         private const val SUSPEND_MAX_S = 0.6
         private const val SUSPEND_PITCH_FLOOR = 0.47

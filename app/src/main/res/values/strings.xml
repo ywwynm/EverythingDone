@@ -974,6 +974,11 @@
     <string name="fablesol_param_agc_window_s">Self-calibration window</string>
     <string name="fablesol_param_silence_gate_db">Silence gate (above noise floor)</string>
     <string name="fablesol_param_expander_amount">Dynamic expansion</string>
+    <string name="fablesol_group_audio_visual_coupling">Audio-visual coupling</string>
+    <string name="fablesol_param_expression_gain">Expression amplitude</string>
+    <string name="fablesol_param_state_sensitivity">State sensitivity</string>
+    <string name="fablesol_param_transition_speed">Transition speed</string>
+    <string name="fablesol_param_relative_loudness_mix">Loudness transient boost</string>
     <string name="fablesol_param_uplift_thick_glow">Thickness glow strength</string>
     <string name="fablesol_param_uplift_glow_boost">Glow-derived lightening</string>
     <string name="fablesol_param_uplift_crest_rim">Crest silver-thread strength</string>

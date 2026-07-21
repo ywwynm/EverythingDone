@@ -777,6 +777,11 @@
     <string name="fablesol_param_agc_window_s">自動校準視窗</string>
     <string name="fablesol_param_silence_gate_db">靜音門（高於底噪）</string>
     <string name="fablesol_param_expander_amount">動態擴展</string>
+    <string name="fablesol_group_audio_visual_coupling">音畫耦合</string>
+    <string name="fablesol_param_expression_gain">表達幅度</string>
+    <string name="fablesol_param_state_sensitivity">狀態靈敏度</string>
+    <string name="fablesol_param_transition_speed">過渡速度</string>
+    <string name="fablesol_param_relative_loudness_mix">響度瞬態加成</string>
     <string name="fablesol_param_uplift_thick_glow">厚度透光強度</string>
     <string name="fablesol_param_uplift_glow_boost">透光派生提亮</string>
     <string name="fablesol_param_uplift_crest_rim">波峰銀絲強度</string>

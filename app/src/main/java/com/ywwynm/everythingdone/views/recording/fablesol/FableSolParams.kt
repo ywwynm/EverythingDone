@@ -54,8 +54,10 @@ class FableSolParams {
         v("analytic_halo_strength", 0.0)
         // 环境波 / 流动
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
-        v("idle_flow_ratio", 0.18); v("flow_gain", 1.8)
-        v("flow_curve", 1.29); v("flow_smooth_s", 0.48)
+        // 2026-07-21：与实时感知速度执行器重新对齐。数字静音严格为零，
+        // 非静音的 +10dp/s 听感补偿由 FableSolFlowPolicy 在 K=0..0.25 平滑淡入。
+        v("idle_flow_ratio", 0.0); v("flow_gain", 1.0)
+        v("flow_curve", 1.0); v("flow_smooth_s", 0.36)
         v("wander_gain", 1.0); v("wall_soft", 0.6); v("tilt_calm", 0.75)
         // 踩拍只短暂加速环境纹理相位，不改写主浪相位或振幅。
         v("beat_gain", 1.0)
@@ -67,14 +69,16 @@ class FableSolParams {
         v("swell_presmooth_s", 0.55); v("swell_presmooth_release_s", 1.60)
         v("swell_deadband_pct", 0.0); v("swell_attack_s", 0.38)
         v("swell_release_s", 1.60); v("swell_gain", 1.0)
-        // 2026-07-17 补注册：FeatureMapper 一直在读这两个 key，但移植时漏了注册，
-        // get 走 0.0 兜底后又被 max(…, 0.5)/max(…, 1.0) 钳制。按既有实效值入表以
-        // 保持观感不变（Python 原版默认 3.0 / 30.0，差异记录在 followups）。
-        v("swell_halflife_s", 0.5); v("deep_integral_s", 1.0)
+        // 2026-07-21：恢复 Python 蓝本的短语记忆与深层长积分；水位的快慢由
+        // 独立感知弹簧负责，不再用 Android 遗留的 0.5s/1s 近即时值替代。
+        v("swell_halflife_s", 3.0); v("deep_integral_s", 30.0)
         // 注入组已于 2026-07-18 整组固化进实现（Python 同步；机制保留，
         // 连续水面主路径均值化行波形态，调参无可感变化）。
         // 声音分析与灵敏度
         v("agc_window_s", 24.0); v("silence_gate_db", 6.0); v("expander_amount", 0.32)
+        // 音画耦合母旋钮（与 Python 七境/连续通道同源）。
+        v("expression_gain", 1.0); v("state_sensitivity", 0.0)
+        v("transition_speed", 0.0); v("relative_loudness_mix", 0.20)
         // 段落组已于 2026-07-18 整组移除（Python 同步）：段涌连根删，
         // mood_transition_s/mood_spread_dp 固化 1.5s/12dp 进实现。
         // 系统
@@ -83,7 +87,7 @@ class FableSolParams {
         // ---- 逐层（9 层，index 0=最近 … 8=最远）----
         l("base_level_dp", doubleArrayOf(96.0, 108.0, 114.0, 120.0, 129.0, 136.0, 145.0, 154.0, 160.0))
         l("wave_speed_dps", doubleArrayOf(216.0, 160.0, 150.0, 129.0, 120.0, 108.0, 96.0, 84.0, 75.0))
-        l("flow_base_dps", doubleArrayOf(129.0, 120.0, 108.0, 96.0, 91.0, 84.0, 75.0, 72.0, 64.0))
+        l("flow_base_dps", doubleArrayOf(180.0, 167.0, 151.0, 134.0, 127.0, 117.0, 105.0, 100.0, 89.0))
         l("swell_max_dp", doubleArrayOf(124.0, 122.0, 120.0, 118.0, 119.0, 120.0, 120.0, 118.0, 117.0))
         l("hero_max_dp", doubleArrayOf(64.0, 50.0, 46.0, 42.0, 39.0, 37.0, 35.0, 34.0, 33.0))
         l("damp_halflife_s", doubleArrayOf(0.75, 0.96, 1.20, 1.29, 1.50, 1.60, 1.91, 2.16, 2.40))

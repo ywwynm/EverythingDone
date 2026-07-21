@@ -16,6 +16,7 @@ import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolCaptureProfile
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrameReceiver
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolRealtimeAnalyzer
@@ -420,7 +421,10 @@ open class AudioRecorder(private val appContext: Context?) {
         private val mOpusAnalyzer: WaveAudioAnalyzerOpus =
             WaveAudioAnalyzerOpus(RECORDING_SAMPLE_RATE)
         private val mFableSolAnalyzer: FableSolRealtimeAnalyzer =
-            FableSolRealtimeAnalyzer(RECORDING_SAMPLE_RATE)
+            FableSolRealtimeAnalyzer(
+                RECORDING_SAMPLE_RATE,
+                FableSolCaptureProfile.PHONE_CAPTURE_V1
+            )
         private var mLastLogTime: Long = 0L
         @Volatile private var mShouldRun: Boolean = true
 
@@ -441,6 +445,9 @@ open class AudioRecorder(private val appContext: Context?) {
                 .coerceAtMost(mBufSize)
                 .coerceAtLeast(RECORDING_BYTES_PER_FRAME)
             val audioBytes = ByteArray(readBufferBytes - readBufferBytes % RECORDING_BYTES_PER_FRAME)
+            // 单声道 float 缓冲按最大读长预分配复用；原先每次 read 都新建一只
+            // DoubleArray(sampleCount)，在采集线程上持续制造 GC 压力。
+            val mono = DoubleArray(audioBytes.size / 2)
             while (mShouldRun) {
                 readSize = audioRecord.read(audioBytes, 0, audioBytes.size)
                 if (!mShouldRun) {
@@ -457,7 +464,6 @@ open class AudioRecorder(private val appContext: Context?) {
                         // FableSol 自带滑窗分析器：单声道 16-bit PCM 转 float 直接 feed，
                         // 立即产出 frames/events 并分发（与 20ms 采样间隔解耦）。
                         val sampleCount = readSize / 2
-                        val mono = DoubleArray(sampleCount)
                         var bi = 0
                         for (s in 0 until sampleCount) {
                             val v = ((audioBytes[bi].toInt() and 0xff) or
@@ -466,7 +472,7 @@ open class AudioRecorder(private val appContext: Context?) {
                             bi += 2
                         }
                         mFableSolFrontEndTuning.applyTo(mFableSolAnalyzer)
-                        val (fsFrames, fsEvents) = mFableSolAnalyzer.feed(mono)
+                        val (fsFrames, fsEvents) = mFableSolAnalyzer.feed(mono, sampleCount)
                         if (fsFrames.isNotEmpty() || fsEvents.isNotEmpty()) {
                             for (r in mFableSolReceivers.indices) {
                                 mFableSolReceivers[r].onAudioFrames(fsFrames, fsEvents)

@@ -15,6 +15,8 @@ class FableSolDynamicWave(private val n: Int, private val dx: Double) {
     private val lap = DoubleArray(n)
     private val advU = DoubleArray(n)
     private val advV = DoubleArray(n)
+    // 注入行波速度对的梯度缓冲；按最大网格宽度预分配，有效区间由 inject 的 len 限定。
+    private val injectGradient = DoubleArray(n)
 
     /**
      * c_scale：每列波速缩放（0 处波无法传播 → 反弹壁）。
@@ -68,12 +70,18 @@ class FableSolDynamicWave(private val n: Int, private val dx: Double) {
         for (i in 0 until n) u[i] -= sub
     }
 
-    /** bump 为已含幅度的 Hann 轮廓（dp）。travel∈[-1,1]：0 对称铺开，±1 纯行波。 */
+    /**
+     * bump 为已含幅度的 Hann 轮廓（dp）。travel∈[-1,1]：0 对称铺开，±1 纯行波。
+     *
+     * bump 允许比 `i1 - i0` 长（调用方复用 scratch）；只读前 `i1 - i0` 个元素，
+     * 梯度也只在这段上求，与传入恰好等长数组时逐位一致。
+     */
     fun inject(i0: Int, i1: Int, bump: DoubleArray, travel: Double, cDps: Double) {
         val len = i1 - i0
         for (k in 0 until len) u[i0 + k] += bump[k]
         if (abs(travel) > 1e-6) {
-            val grad = FableSolMath.gradient(bump, dx)
+            val grad = injectGradient
+            FableSolMath.gradientInto(bump, len, dx, grad)
             val f = -travel * cDps
             for (k in 0 until len) v[i0 + k] += f * grad[k]
         }

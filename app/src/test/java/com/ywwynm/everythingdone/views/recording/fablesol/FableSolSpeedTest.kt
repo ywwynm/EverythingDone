@@ -44,4 +44,22 @@ class FableSolSpeedTest {
 
         assertTrue("state=$state", state > 0.90)
     }
+
+    @Test
+    fun reliableFastMotionChannelCannotBeAveragedAway() {
+        val baseline = FableSolSpeed.fuseMotionChannels01(0.30, 0.30, 0.30, 0.30)
+        val fastVocal = FableSolSpeed.fuseMotionChannels01(0.30, 0.92, 0.30, 0.30)
+
+        assertTrue("baseline=$baseline fastVocal=$fastVocal", fastVocal > baseline + 0.20)
+    }
+
+    @Test
+    fun kineticEvidenceOnlyRaisesPerceivedSpeed() {
+        val speed = 0.62
+        val kinetic = FableSolSpeed.kineticDriveTarget01(
+            speed, groove01 = 0.8, intensity01 = 0.9, positiveNovelty01 = 0.7)
+
+        assertTrue("kinetic=$kinetic", kinetic >= speed)
+        assertTrue(kinetic <= 1.0)
+    }
 }

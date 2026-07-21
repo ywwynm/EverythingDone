@@ -32,6 +32,17 @@ class FableSolAmbientSet(seed: Long, baseLenDp: Double, private val n: Int = 4) 
     private val dispersionJitter: DoubleArray
     private var travelDir = -1.0
     private var baseLen: Double
+    private val ampScratch = DoubleArray(n)
+    /** 测试专用：强制走逐点直接求值分支，用于与递推路径做逐点对照。 */
+    internal var forceDirectEvaluationForTest = false
+    private val sinState = DoubleArray(n)
+    private val cosState = DoubleArray(n)
+    private val stepSinState = DoubleArray(n)
+    private val stepCosState = DoubleArray(n)
+    // 步进旋转只依赖 k[c]·dx；k 仅在 retune 改变（同时改 baseLen），dx 是采样网格步长。
+    // 两者都未变时跨帧复用，每帧再省 2n 次 libm。NaN 初值保证首帧必算。
+    private var stepCacheDx = Double.NaN
+    private var stepCacheBaseLen = Double.NaN
 
     init {
         val rng = FableSolRng(seed)
@@ -67,17 +78,134 @@ class FableSolAmbientSet(seed: Long, baseLenDp: Double, private val n: Int = 4) 
     }
 
     fun sample(xDp: DoubleArray, t: Double, ampDp: Double, breathDepth: Double): DoubleArray {
-        val amps = DoubleArray(n) {
-            ampDp * relAmp[it] * (1.0 + breathDepth * sin(TWO_PI * t / breathT[it] + breathPhi[it]))
-        }
         val out = DoubleArray(xDp.size)
+        sampleInto(xDp, t, ampDp, breathDepth, out)
+        return out
+    }
+
+    fun sampleInto(
+        xDp: DoubleArray,
+        t: Double,
+        ampDp: Double,
+        breathDepth: Double,
+        out: DoubleArray
+    ) {
+        require(out.size >= xDp.size)
+        for (c in 0 until n) {
+            ampScratch[c] = ampDp * relAmp[c] *
+                (1.0 + breathDepth * sin(TWO_PI * t / breathT[c] + breathPhi[c]))
+        }
+        val lenX = xDp.size
+        if (!forceDirectEvaluationForTest &&
+            lenX >= 2 && FableSolWaveRecurrence.isUniform(xDp, lenX)
+        ) {
+            // 与 Hero 同构的相位递推：每帧 libm 从 9 层 × 216 点 × 4 模态 = 7776 次
+            // 降到 4 × 2 = 8 次。这条路径没有"能量过低"早退，静音时同样在跑。
+            // 四组 (s, c) 交错推进，累加顺序仍是 c = 0→n-1。
+            val dx = xDp[1] - xDp[0]
+            val x0 = xDp[0]
+            if (dx != stepCacheDx || baseLen != stepCacheBaseLen) {
+                for (c in 0 until n) {
+                    val stepPhase = k[c] * dx
+                    stepSinState[c] = sin(stepPhase)
+                    stepCosState[c] = cos(stepPhase)
+                }
+                stepCacheDx = dx
+                stepCacheBaseLen = baseLen
+            }
+            for (c in 0 until n) {
+                val base = x0 * k[c] + phase[c]
+                sinState[c] = sin(base)
+                cosState[c] = cos(base)
+            }
+            for (i in 0 until lenX) {
+                var s = 0.0
+                for (c in 0 until n) {
+                    val sc = sinState[c]
+                    val cc = cosState[c]
+                    s += sc * ampScratch[c]
+                    val stepCos = stepCosState[c]
+                    val stepSin = stepSinState[c]
+                    cosState[c] = cc * stepCos - sc * stepSin
+                    sinState[c] = sc * stepCos + cc * stepSin
+                }
+                out[i] = s
+            }
+            return
+        }
         for (i in xDp.indices) {
             val x = xDp[i]
             var s = 0.0
-            for (c in 0 until n) s += sin(x * k[c] + phase[c]) * amps[c]
+            for (c in 0 until n) s += sin(x * k[c] + phase[c]) * ampScratch[c]
             out[i] = s
         }
-        return out
+    }
+}
+
+/**
+ * 相位旋转递推的公共前置条件。
+ *
+ * 递推 `cos(φ + iΔ)` 只在采样点严格等距时成立。生产调用点传入的都是
+ * `uGrid`（`(i − (N−1)/2)·DX_DP`）或它加一个常量平移，天然等距；这里做一次
+ * O(1) 校验，任何未来传入非均匀网格的调用点都会自动落回逐点直接求值，
+ * 不会静默算错。
+ */
+internal object FableSolWaveRecurrence {
+    /**
+     * 容差按首步长取相对值。生产网格是 `(i − (N−1)/2)·DX_DP` 再加常量平移，相邻差
+     * 的浮点误差约 1.7e-14 相对，留足余量；而 216 步递推在 1e-12 相对失配下的
+     * 相位漂移只有约 1e-10 弧度，远低于下游 float32 的 6e-8。
+     */
+    private const val RELATIVE_TOLERANCE = 1e-12
+
+    /**
+     * 全量扫描而非抽样：均值与中点抽查会漏掉中段的单点扭结（例如整体等距、
+     * 只有第 40 点被推移），那种网格用递推会静默算错。216 次比较相对于本次
+     * 省下的三万余次 libm 调用可以忽略。
+     */
+    fun isUniform(xDp: DoubleArray, lenX: Int): Boolean {
+        if (lenX < 2) return false
+        val firstStep = xDp[1] - xDp[0]
+        if (firstStep == 0.0 || !firstStep.isFinite()) return false
+        val tolerance = abs(firstStep) * RELATIVE_TOLERANCE
+        for (i in 2 until lenX) {
+            if (abs((xDp[i] - xDp[i - 1]) - firstStep) > tolerance) return false
+        }
+        return true
+    }
+
+    /** [scanSteps] 的输出；由调用方持有并复用，热路径零分配、天然线程隔离。 */
+    internal class StepScan {
+        /** 与 `min_{i≥1}(xDp[i] − xDp[i−1])` 同义；`lenX < 2` 时为 [Double.MAX_VALUE]。 */
+        @JvmField var minimumStep = Double.MAX_VALUE
+        /** 与 [isUniform] 同判定。 */
+        @JvmField var uniform = false
+    }
+
+    /**
+     * 一趟同时求最小步长与均匀性。判定式与容差与 [isUniform] 逐字相同，只是不再
+     * 提前返回——最小步长本来就要扫完整段，两趟合一没有额外代价。
+     */
+    fun scanSteps(xDp: DoubleArray, lenX: Int, into: StepScan) {
+        if (lenX < 2) {
+            into.minimumStep = Double.MAX_VALUE
+            into.uniform = false
+            return
+        }
+        val firstStep = xDp[1] - xDp[0]
+        var uniform = firstStep != 0.0 && firstStep.isFinite()
+        val tolerance = abs(firstStep) * RELATIVE_TOLERANCE
+        // 起点保持 MAX_VALUE 再比一次首步：NaN 步长在 `<` 下恒为 false，与旧的
+        // 「MAX_VALUE 起步、i=1 开始扫」逐位同结果（NaN 步长被跳过而非污染最小值）。
+        var minimum = Double.MAX_VALUE
+        if (firstStep < minimum) minimum = firstStep
+        for (i in 2 until lenX) {
+            val step = xDp[i] - xDp[i - 1]
+            if (step < minimum) minimum = step
+            if (uniform && abs(step - firstStep) > tolerance) uniform = false
+        }
+        into.minimumStep = minimum
+        into.uniform = uniform
     }
 }
 
@@ -95,6 +223,23 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
     private val breathPhi: DoubleArray
     private var travelDir = -1.0
     private var baseLen = 360.0
+    private val kScratch = DoubleArray(6)
+    private val weightScratch = DoubleArray(6)
+    /** 测试专用：强制走逐点直接求值分支，用于与递推路径做逐点对照。 */
+    internal var forceDirectEvaluationForTest = false
+    private val heroSin = DoubleArray(6)
+    private val heroCos = DoubleArray(6)
+    private val heroStepSin = DoubleArray(6)
+    private val heroStepCos = DoubleArray(6)
+    // 步进旋转只依赖 kScratch[m]·dx，而 kScratch 只由 baseLen 与不可变的 lenMult 决定；
+    // baseLen 与 dx 都未变时跨帧复用。NaN 初值保证首帧必算。
+    private var stepCacheDx = Double.NaN
+    private var stepCacheBaseLen = Double.NaN
+    private val stepScan = FableSolWaveRecurrence.StepScan()
+    private var profileLagScratch = DoubleArray(FableSolSpec.N_POINTS)
+    private var displacementScratch = DoubleArray(FableSolSpec.N_POINTS)
+    private var gradientScratch = DoubleArray(FableSolSpec.N_POINTS)
+    private var advectedXScratch = DoubleArray(FableSolSpec.N_POINTS)
 
     init {
         val rng = FableSolRng(seed)
@@ -131,31 +276,96 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
      */
     fun sample(xDp: DoubleArray, ampField3: Array<DoubleArray>, t: Double, breathDepth: Double,
                meanMask: BooleanArray?, roughness01: Double): DoubleArray {
+        val out = DoubleArray(xDp.size)
+        sampleInto(xDp, ampField3, t, breathDepth, meanMask, roughness01, out)
+        return out
+    }
+
+    /** Simulation 热路径的无分配采样入口；scratch 由每个 HeroWave 实例持有并复用。 */
+    fun sampleInto(
+        xDp: DoubleArray,
+        ampField3: Array<DoubleArray>,
+        t: Double,
+        breathDepth: Double,
+        meanMask: BooleanArray?,
+        roughness01: Double,
+        out: DoubleArray
+    ) {
         val lenX = xDp.size
+        require(lenX > 0 && out.size >= lenX)
+        ensurePointCapacity(lenX)
         var maxAmp = 0.0
         for (band in 0 until 3) {
             val field = ampField3[band]
             for (i in 0 until lenX) if (field[i] > maxAmp) maxAmp = field[i]
         }
-        if (maxAmp < 0.05) return DoubleArray(lenX)
-        val kk = DoubleArray(6) { TWO_PI / (baseLen * lenMult[it]) }
-        val w = DoubleArray(6) {
-            weight[it] * (1.0 + breathDepth * 0.20 *
-                    sin(TWO_PI * t / breathT[it] + breathPhi[it]))
+        if (maxAmp < 0.05) {
+            for (i in 0 until lenX) out[i] = 0.0
+            return
         }
-        val profLag = DoubleArray(lenX)
-        val disp = DoubleArray(lenX)
-        for (i in 0 until lenX) {
-            val x = xDp[i]
-            var sinSum = 0.0; var cosSum = 0.0
-            for (m in 0 until 6) {
-                val ph = x * kk[m] + phase[m]
-                val localAmp = ampField3[group[m]][i]
-                sinSum += sin(ph) * w[m] * localAmp
-                cosSum += cos(ph) * w[m] * localAmp
+        for (m in 0 until 6) {
+            kScratch[m] = TWO_PI / (baseLen * lenMult[m])
+            weightScratch[m] = weight[m] * (1.0 + breathDepth * 0.20 *
+                sin(TWO_PI * t / breathT[m] + breathPhi[m]))
+        }
+        val profLag = profileLagScratch
+        val disp = displacementScratch
+        // 均匀性判定与「最小采样间隔」原本是对 xDp 的两趟独立全扫描；合成一趟，
+        // 两个结果的定义与逐位取值都不变（最小值仍覆盖 i=1..lenX-1）。
+        FableSolWaveRecurrence.scanSteps(xDp, lenX, stepScan)
+        if (!forceDirectEvaluationForTest && lenX >= 2 && stepScan.uniform) {
+            // 等距网格上把 sin/cos 换成相位旋转递推：每帧 libm 从
+            // 9 层 × 216 点 × 6 模态 × 2 = 23328 次降到 6 × 2 = 12 次。
+            // 六个模态的 (s, c) 交错推进，累加顺序仍是 m = 0→5，与逐点直接求值
+            // 的求和次序和乘法结合序完全一致，只有递推自身约 1e-14 的漂移。
+            // 附带好处：`phase[m]` 在 advance() 里无界累加，长时间运行后会进
+            // libm 的 Payne-Hanek 慢路径，递推版天然免疫。
+            val dx = xDp[1] - xDp[0]
+            val x0 = xDp[0]
+            if (dx != stepCacheDx || baseLen != stepCacheBaseLen) {
+                for (m in 0 until 6) {
+                    val stepPhase = kScratch[m] * dx
+                    heroStepSin[m] = sin(stepPhase)
+                    heroStepCos[m] = cos(stepPhase)
+                }
+                stepCacheDx = dx
+                stepCacheBaseLen = baseLen
             }
-            profLag[i] = sinSum
-            disp[i] = cosSum
+            for (m in 0 until 6) {
+                val base = x0 * kScratch[m] + phase[m]
+                heroSin[m] = sin(base)
+                heroCos[m] = cos(base)
+            }
+            for (i in 0 until lenX) {
+                var sinSum = 0.0
+                var cosSum = 0.0
+                for (m in 0 until 6) {
+                    val s = heroSin[m]
+                    val c = heroCos[m]
+                    val localAmp = ampField3[group[m]][i]
+                    sinSum += s * weightScratch[m] * localAmp
+                    cosSum += c * weightScratch[m] * localAmp
+                    val stepCos = heroStepCos[m]
+                    val stepSin = heroStepSin[m]
+                    heroCos[m] = c * stepCos - s * stepSin
+                    heroSin[m] = s * stepCos + c * stepSin
+                }
+                profLag[i] = sinSum
+                disp[i] = cosSum
+            }
+        } else {
+            for (i in 0 until lenX) {
+                val x = xDp[i]
+                var sinSum = 0.0; var cosSum = 0.0
+                for (m in 0 until 6) {
+                    val ph = x * kScratch[m] + phase[m]
+                    val localAmp = ampField3[group[m]][i]
+                    sinSum += sin(ph) * weightScratch[m] * localAmp
+                    cosSum += cos(ph) * weightScratch[m] * localAmp
+                }
+                profLag[i] = sinSum
+                disp[i] = cosSum
+            }
         }
         // 有界 Gerstner 水平轨道位移：采样点向波峰聚集，形成窄峰宽谷
         val rough = roughness01.coerceIn(0.0, 1.0)
@@ -164,33 +374,53 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
         val dsign = -travelDir * chop
         for (i in 0 until lenX) disp[i] = dsign * disp[i]
         val dx = if (lenX >= 2) xDp[1] - xDp[0] else 1.0
-        val grad = FableSolMath.gradient(disp, dx)
+        val grad = gradientScratch
+        FableSolMath.gradientInto(disp, lenX, dx, grad)
         var maxGrad = 0.0
-        for (g in grad) { val a = abs(g); if (a > maxGrad) maxGrad = a }
+        for (i in 0 until lenX) { val a = abs(grad[i]); if (a > maxGrad) maxGrad = a }
         if (maxGrad > 0.52) { val f = 0.52 / maxGrad; for (i in 0 until lenX) disp[i] *= f }
         // 数值保险：强制最小采样间隔，随后重采样回单调 heightfield
-        var minDiff = Double.MAX_VALUE
-        for (i in 1 until lenX) { val d = xDp[i] - xDp[i - 1]; if (d < minDiff) minDiff = d }
-        val minStep = max(minDiff * 0.24, 1e-4)
-        val adv = DoubleArray(lenX)
+        val minStep = max(stepScan.minimumStep * 0.24, 1e-4)
+        val adv = advectedXScratch
         var run = -Double.MAX_VALUE
         for (i in 0 until lenX) {
             val tmp = (xDp[i] + disp[i]) - i * minStep
             if (tmp > run) run = tmp
             adv[i] = run + i * minStep
         }
-        val prof = FableSolMath.interp(xDp, adv, profLag, profLag[0], profLag[lenX - 1])
+        // xDp 与 adv 均严格递增，用单调游标完成 np.interp 等价重采样，不创建临时数组。
+        var segment = 0
+        for (i in 0 until lenX) {
+            val query = xDp[i]
+            out[i] = when {
+                query <= adv[0] -> profLag[0]
+                query >= adv[lenX - 1] -> profLag[lenX - 1]
+                else -> {
+                    while (segment + 1 < lenX - 1 && adv[segment + 1] < query) segment++
+                    val fraction = (query - adv[segment]) /
+                        (adv[segment + 1] - adv[segment])
+                    profLag[segment] + (profLag[segment + 1] - profLag[segment]) * fraction
+                }
+            }
+        }
         var m = 0.0
         if (meanMask != null) {
             var cnt = 0
-            for (i in 0 until lenX) if (meanMask[i]) { m += prof[i]; cnt++ }
+            for (i in 0 until lenX) if (meanMask[i]) { m += out[i]; cnt++ }
             m = if (cnt > 0) m / cnt else 0.0
         } else {
-            for (i in 0 until lenX) m += prof[i]
+            for (i in 0 until lenX) m += out[i]
             m /= lenX
         }
-        for (i in 0 until lenX) prof[i] -= m
-        return prof
+        for (i in 0 until lenX) out[i] -= m
+    }
+
+    private fun ensurePointCapacity(pointCount: Int) {
+        if (profileLagScratch.size >= pointCount) return
+        profileLagScratch = DoubleArray(pointCount)
+        displacementScratch = DoubleArray(pointCount)
+        gradientScratch = DoubleArray(pointCount)
+        advectedXScratch = DoubleArray(pointCount)
     }
 }
 

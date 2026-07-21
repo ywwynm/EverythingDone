@@ -11,12 +11,13 @@
 - 实时音频特征链：`features.py` / `speed.py`
 - 音频→驱动映射：`mapping.py`
 - 九层水体物理：`simulation.py` / `waves.py` / `ambient.py`
-- 渲染：`canvas.py`（环境天空、九层水面、Catmull-Rom、镜面/菲涅尔高光、波峰透光、波冠轻纱、珍珠色）
+- 渲染：`canvas.py`（环境天空、九层水面、C2 B-spline fairing + Hermite 重建、镜面/菲涅尔高光、波峰透光、波冠轻纱、珍珠色）
 - 常量/参数：`spec.py` / `params.py`（参数取默认值硬编码）
 
-**不移植**：文件读取（`decode.py`/`offline.py`/`engine.py` 播放段）、参数调整 UI
-（`panel.py`/`meters.py`/`main_window.py`）、语义段落（`semantic.py`，原版默认停用
-`SEMANTIC_REALTIME=False`）、离线段落导演（`sections.py`）、进程/IPC（`ipc.py`/`audio_client.py`）。
+**不移植**：桌面文件读取/播放 UI（`decode.py`/`offline.py`/`engine.py`、`panel.py`/
+`meters.py`/`main_window.py`）、可选神经人声模型、离线前瞻导演和进程 IPC。Android 使用
+自己的实时 PCM 输入、原生调参 Dialog 与线程模型；实时 Foote 段落、因果 Drop 和 DSP 人声
+运动证据属于实时分析链，已随 FableSol 移植。
 
 ## 关键决策
 
@@ -41,6 +42,12 @@
 - **浪形连续性**：onset 不再直接修改程序化主浪；快速能量只进入 DynamicWave 物理注入。
   HeroWave 只按慢包络改变，几何粗糙度与快速光学材质分离。见 decisions.md D12。
 - **段落检测**：移植实时 Foote 新奇度 `_NoveltyDetector`（驱动性格档切换；段涌 surge_gain 默认 0）。
+- **因果感知标定**：动画主链消费固定声学域的 `W/S/K/I`、四类音乐运动、能量上升与
+  grade 证据；旧 `loudness01` 只保留诊断兼容，不再驱动水位或浪形。麦克风采集显式套用
+  手机录音补偿，原始 A 计权静音门始终读取未补偿 PCM。
+- **七境与巨浪**：七境以软时长、迟滞和证据释放实时解码；`LIFT` / `CLIMAX` 可持续。
+  巨浪只在 `PEAK` / `CLIMAX` 的有效音乐运动到达时触发，全局冷却 14 秒、无每段配额；
+  物理实体固定为第 0 层 840dp × 144dp C2 宽峰，按真实流速从画外自然通过。
 - **录音状态**：PREPARED/STOPPED 继续监听并驱动低透明度水面，开始录音不重置 Analyzer；
   这是 Android 录音预览设计，不要求跟随 Python 播放器状态机。见 decisions.md D7。
 
@@ -48,9 +55,11 @@
 
 - **音频线程**（`AudioRecorder.RecordingThread`）：PCM(16bit)→float → `FableSolRealtimeAnalyzer.feed()`
   → `(frames, events)` → 经 `FableSolFrameReceiver` 塞进 View 的并发队列。
-- **UI 线程**（View vsync `onDraw`）：drain 队列 → 只对最新 frame `applyFrame`、对每个 event
-  `applyOnset`/`applySection` → `Simulation.update(dt)` → 渲染。
-- `Simulation` 只被 UI 线程访问，无需加锁；音频线程只生产 frames/events。
+- **渲染线程 / Canvas 回退 UI 线程**：drain 队列 → 按音频时间逐个消费所有 authoritative
+  frame，并把稀疏 event 稳定交织回相邻 hop → `Simulation.update(dt)` → 渲染。不能只取最新
+  frame，否则会漏掉 0.2 秒证据窗并让 60/120Hz 屏幕得到不同状态。
+- `Simulation` 只被当前渲染所有者单线程访问：GLES 主路径为 GL 线程，Canvas 回退为 UI
+  线程，因此无需加锁；音频线程只生产 frames/events。
 
 ## 命名映射（Python → Kotlin，包 `views.recording.fablesol`）
 
@@ -62,6 +71,9 @@
 | `core/ambient.py` Ambient/Hero/Optical | `FableSolWaveSets.kt` |
 | `core/simulation.py` Simulation/LayerSim | `FableSolSimulation.kt` / `FableSolLayerSim` |
 | `core/mapping.py` FeatureMapper | `FableSolFeatureMapper.kt` |
+| `audio/state_evidence.py` | `FableSolCausalStateEvidence.kt` |
+| `core/state_decoder.py` / `core/states.py` | `FableSolSoftDurationGradeDecoder.kt` / `FableSolSevenStateMachine.kt` / `FableSolContinuousStateChannels.kt` |
+| `core/grand_wave_gate.py` / `core/grand_wave.py` | `FableSolGrandWaveEventGate.kt` / `FableSolGrandWave.kt` |
 | `audio/speed.py` | `FableSolSpeed.kt` |
 | `audio/features.py` RealtimeAnalyzer/RingStat/BeatTracker/NoveltyDetector | `FableSolRealtimeAnalyzer.kt` / `FableSolRingStat.kt` / `FableSolBeatTracker.kt` / `FableSolNoveltyDetector.kt` |
 | feature dict / event dict | `FableSolFeatureFrame.kt` / `FableSolEvent.kt` |

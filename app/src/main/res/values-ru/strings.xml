@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">Окно автокалибровки</string>
     <string name="fablesol_param_silence_gate_db">Порог тишины (выше уровня шума)</string>
     <string name="fablesol_param_expander_amount">Расширение динамики</string>
+    <string name="fablesol_group_audio_visual_coupling">Аудиовизуальная связь</string>
+    <string name="fablesol_param_expression_gain">Амплитуда выразительности</string>
+    <string name="fablesol_param_state_sensitivity">Чувствительность состояния</string>
+    <string name="fablesol_param_transition_speed">Скорость перехода</string>
+    <string name="fablesol_param_relative_loudness_mix">Усиление переходов громкости</string>
     <string name="fablesol_param_uplift_thick_glow">Сила свечения толщины</string>
     <string name="fablesol_param_uplift_glow_boost">Осветление от свечения</string>
     <string name="fablesol_param_uplift_crest_rim">Сила серебряной нити гребня</string>

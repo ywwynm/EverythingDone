@@ -169,7 +169,14 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         attributes.preferredRefreshRate = TARGET_REFRESH_RATE
         window.attributes = attributes
         if (Build.VERSION.SDK_INT >= 35) {
-            mVisualizer?.setRequestedFrameRate(TARGET_REFRESH_RATE)
+            // Android 15 的自适应刷新率默认给窗口投「省电平衡」票，会把对话框里的
+            // 普通 View 压到 NORMAL（约 60Hz）。水面是连续动画，需要显式退出该策略；
+            // 只作用于本对话框窗口，不影响背后的 Activity。
+            window.isFrameRatePowerSavingsBalanced = false
+            // 注意：不要对 mVisualizer（FrameLayout 宿主）调 setRequestedFrameRate——
+            // 该偏好既不向子 View 传播，其聚合到的窗口图层又被 ViewRootImpl 以
+            // FRAME_RATE_SELECTION_STRATEGY_SELF 禁止下传给 SurfaceView 子图层。
+            // GL 图层的帧率票由 WaveVisualizerFableSolGl 直接对 Surface 投。
         }
         if (BuildConfig.DEBUG && mPerformanceMonitor == null) {
             val monitor = FableSolPerformanceMonitor(window.context)

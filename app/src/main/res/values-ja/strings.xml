@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">自動校正ウィンドウ</string>
     <string name="fablesol_param_silence_gate_db">無音ゲート（ノイズフロア超過）</string>
     <string name="fablesol_param_expander_amount">ダイナミック拡張</string>
+    <string name="fablesol_group_audio_visual_coupling">音画連動</string>
+    <string name="fablesol_param_expression_gain">表現振幅</string>
+    <string name="fablesol_param_state_sensitivity">状態感度</string>
+    <string name="fablesol_param_transition_speed">遷移速度</string>
+    <string name="fablesol_param_relative_loudness_mix">ラウドネス過渡強調</string>
     <string name="fablesol_param_uplift_thick_glow">厚み透過光の強さ</string>
     <string name="fablesol_param_uplift_glow_boost">透過光による明るさ上げ</string>
     <string name="fablesol_param_uplift_crest_rim">波頭シルバーラインの強さ</string>

@@ -2,9 +2,14 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.model.ThingBackground
 import kotlin.math.min
 
@@ -28,6 +33,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     private var gravityY = 1f
     private var gravityZ = 0f
     private var performanceMonitor: FableSolPerformanceMonitor? = null
+    private var perfHud: TextView? = null
     private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
     private var presentationAnimator: ValueAnimator? = null
 
@@ -53,9 +59,45 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     }
 
     internal fun setPerformanceMonitor(monitor: FableSolPerformanceMonitor?) {
+        performanceMonitor?.onHudUpdate = null
         performanceMonitor = monitor
         glView.setPerformanceMonitor(if (fallbackActive) null else monitor)
         canvasFallback.setPerformanceMonitor(if (fallbackActive) monitor else null)
+        attachPerfHud(monitor)
+    }
+
+    /**
+     * Debug 构建的屏幕内帧率仪表：直接把 GL 线程分阶段耗时叠在水面上，
+     * 免去为了读一次帧率而拉设备日志。release 构建里 [BuildConfig.DEBUG] 为常量 false，
+     * 整段会被 R8 消除。
+     *
+     * 性能定位阶段结束后默认隐藏（[SHOW_PERF_HUD]）；监控与 perf 文件日志照常工作，
+     * 需要屏幕读数时把开关改回 true 即可。
+     */
+    private fun attachPerfHud(monitor: FableSolPerformanceMonitor?) {
+        if (!BuildConfig.DEBUG || !SHOW_PERF_HUD) return
+        if (monitor == null) {
+            perfHud?.let(::removeView)
+            perfHud = null
+            return
+        }
+        val hud = perfHud ?: TextView(context).apply {
+            setBackgroundColor(HUD_BACKGROUND)
+            setTextColor(HUD_FOREGROUND)
+            textSize = HUD_TEXT_SP
+            typeface = Typeface.MONOSPACE
+            includeFontPadding = false
+            val padding = (resources.displayMetrics.density * 4f).toInt()
+            setPadding(padding, padding, padding, padding)
+            addView(
+                this,
+                LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.TOP
+                }
+            )
+            perfHud = this
+        }
+        monitor.onHudUpdate = { text -> hud.post { hud.text = text } }
     }
 
     fun setPresentationAlpha(alpha: Float) {
@@ -161,5 +203,10 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         const val INTRINSIC_W_DP = 280f
         const val INTRINSIC_H_DP = 420f
         const val PREPARED_PRESENTATION_ALPHA = 0.16f
+        /** 屏幕内帧率 HUD 开关；性能定位轮结束后默认隐藏，需要时改回 true。 */
+        const val SHOW_PERF_HUD = false
+        const val HUD_TEXT_SP = 8f
+        val HUD_BACKGROUND = Color.argb(150, 0, 0, 0)
+        val HUD_FOREGROUND = Color.argb(255, 120, 255, 160)
     }
 }

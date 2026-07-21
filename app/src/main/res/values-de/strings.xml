@@ -511,6 +511,11 @@
     <string name="fablesol_param_agc_window_s">Selbstkalibrierungsfenster</string>
     <string name="fablesol_param_silence_gate_db">Stille-Schwelle (über Grundrauschen)</string>
     <string name="fablesol_param_expander_amount">Dynamikerweiterung</string>
+    <string name="fablesol_group_audio_visual_coupling">Audio-visuelle Kopplung</string>
+    <string name="fablesol_param_expression_gain">Ausdrucksstärke</string>
+    <string name="fablesol_param_state_sensitivity">Zustandsempfindlichkeit</string>
+    <string name="fablesol_param_transition_speed">Übergangsgeschwindigkeit</string>
+    <string name="fablesol_param_relative_loudness_mix">Lautheits-Transientenverstärkung</string>
     <string name="fablesol_param_uplift_thick_glow">Dickenglühen-Stärke</string>
     <string name="fablesol_param_uplift_glow_boost">Glühen-Aufhellung</string>
     <string name="fablesol_param_uplift_crest_rim">Kamm-Silberfaden-Stärke</string>
