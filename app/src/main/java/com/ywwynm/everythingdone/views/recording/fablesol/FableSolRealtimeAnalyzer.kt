@@ -45,7 +45,7 @@ class FableSolRealtimeAnalyzer(
     private val spec = DoubleArray(halfN + 1)
     private val wspec = DoubleArray(halfN + 1)
 
-    private val novelty = FableSolNoveltyDetector(frameRate, 13, 24, 4.2)
+    private val novelty = FableSolNoveltyDetector(frameRate)
     private val beat = FableSolBeatTracker(frameRate)
     private val cap = (30.0 * frameRate).toInt()
     private val rateCap = (20.0 * frameRate).toInt()
@@ -64,10 +64,15 @@ class FableSolRealtimeAnalyzer(
     private val rEnvAc = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
     private val rEnvBand = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
     private val rFluxCv = FableSolRunningMeanRing(Math.round(FLUX_CV_WIN_S * frameRate).toInt())
-    private val rHarmonicMotion = FableSolRunningMeanRing(Math.round(1.2 * frameRate).toInt())
-    private val rLowMotion = FableSolRunningMeanRing(Math.round(1.2 * frameRate).toInt())
+    private val rHarmonicMotion = FableSolRunningMeanRing(
+        FableSolMath.roundedFrameCount(1.2 * frameRate)
+    )
+    private val rLowMotion = FableSolRunningMeanRing(
+        FableSolMath.roundedFrameCount(1.2 * frameRate)
+    )
     private val calibrator = FableSolPerceptualCalibrator(frameRate)
     private val calibrationInput = FableSolCalibrationInput()
+    private val displaySpectralScratch = DoubleArray(4)
     private val conditioner = captureProfile?.let { FableSolCaptureConditioner(it, sr) }
     private val loudnessTrimDb = captureProfile?.boundedLoudnessTrimDb ?: 0.0
     private val stateGradeTrim01 = captureProfile?.boundedStateGradeTrim01 ?: 0.0
@@ -76,6 +81,15 @@ class FableSolRealtimeAnalyzer(
     @JvmField var gateDb = 6.0
     @JvmField var expander = 0.32
     @JvmField var relativeLoudnessMix = FableSolPerceptualCalibrator.DEFAULT_RELATIVE_MIX
+    var stateSensitivity = 0.0
+        set(value) {
+            field = value.coerceIn(-1.0, 1.0)
+            novelty.configureFireZ(
+                FableSolNoveltyDetector.DEFAULT_FIRE_Z - 0.4 * field
+            )
+        }
+
+    internal fun noveltyFireZ(): Double = novelty.currentFireZ()
 
     // 运行状态
     // 定长复用缓冲：容量按需增长后不再回收，`bufSize`/`rawSize` 是有效样本数。
@@ -396,6 +410,23 @@ class FableSolRealtimeAnalyzer(
         for (i in 0..halfN) cAcc += freqs[i] * wspec[i]
         val cHz = cAcc / (pTotal + 1e-12)
         val centroid01 = (ln(max(cHz, 200.0) / 200.0) / ln(8000.0 / 200.0)).coerceIn(0.0, 1.0)
+        var displayRelLow = relLow
+        var displayRelMid = relMid
+        var displayRelHigh = relHigh
+        var displayCentroid01 = centroid01
+        if (captureProfile != null && !sil) {
+            captureProfile.displaySpectralIdentity(
+                relLow,
+                relMid,
+                relHigh,
+                centroid01,
+                displaySpectralScratch
+            )
+            displayRelLow = displaySpectralScratch[0]
+            displayRelMid = displaySpectralScratch[1]
+            displayRelHigh = displaySpectralScratch[2]
+            displayCentroid01 = displaySpectralScratch[3]
+        }
         // 谱平坦度（固定 dB 映射）
         var logSum = 0.0; var linSum = 0.0
         for (i in 1 until idx16000) { logSum += log10(spec[i] + 1e-12); linSum += spec[i] }
@@ -635,6 +666,15 @@ class FableSolRealtimeAnalyzer(
         // FableSolPerceptualCalibrator.NEAR_FLOOR_SPAN_DB。采集调理对该通道不可见。
         calibrationInput.aboveFloorDb = db - floorDb
         calibrationInput.domainGradeTrim01 = stateGradeTrim01
+        if (captureProfile == null) {
+            calibrationInput.displayLoudMDb = Double.NaN
+            calibrationInput.displayLoudSDb = Double.NaN
+            calibrationInput.displayLoudnessBlend01 = 0.0
+        } else {
+            calibrationInput.displayLoudMDb = captureProfile.displayLoudnessDb(untrimmedDbM)
+            calibrationInput.displayLoudSDb = captureProfile.displayLoudnessDb(untrimmedDbS)
+            calibrationInput.displayLoudnessBlend01 = captureProfile.boundedDisplayLoudnessBlend01
+        }
         val calibrated = calibrator.step(calibrationInput)
         if (calibrated.dropTriggered) {
             events.add(FableSolEvent.Drop(t, calibrated.dropConfidence01))
@@ -655,7 +695,25 @@ class FableSolRealtimeAnalyzer(
         // 段落边界（倒谱路径；学习期不发段落）
         val sec = novelty.push(logb, !sil, t)
         if (sec != null && centerAge > 6.0) {
-            events.add(FableSolEvent.Section(sec.t, sec.magnitude01, ef[0], ef[4]))
+            if (sec.minor) {
+                events.add(
+                    FableSolEvent.NoveltyMinor(
+                        sec.t,
+                        sec.magnitude01,
+                        sec.confidence01
+                    )
+                )
+            } else {
+                events.add(
+                    FableSolEvent.Section(
+                        sec.t,
+                        sec.magnitude01,
+                        ef[0],
+                        ef[4],
+                        sec.confidence01
+                    )
+                )
+            }
         }
         frames.add(FableSolFeatureFrame(
             t = t,
@@ -723,7 +781,15 @@ class FableSolRealtimeAnalyzer(
             zOnsetRate = calibrated.zOnsetRate,
             zBass = calibrated.zBass,
             zCentroid = calibrated.zCentroid,
-            novelty01 = calibrated.motionContextBoost01
+            novelty01 = calibrated.motionContextBoost01,
+            displayWaterDrive01 = if (sil) 0.0 else calibrated.displayWaterDrive01,
+            displayGradeDrive01 = calibrated.displayGradeDrive01,
+            displayLiftScore01 = calibrated.displayLiftScore01,
+            displayClimaxScore01 = calibrated.displayClimaxScore01,
+            displayRelLow = displayRelLow,
+            displayRelMid = displayRelMid,
+            displayRelHigh = displayRelHigh,
+            displayCentroid01 = displayCentroid01
         ))
     }
 
@@ -845,7 +911,7 @@ class FableSolRealtimeAnalyzer(
      */
     private fun suppressCaptureStartup(t: Double, db: Double,
                                        pLow: Double, pMid: Double, pHigh: Double): Boolean {
-        if (startupReady) return false
+        if (startupReady || conditioner == null) return false
         if (startupFirstT.isNaN()) startupFirstT = t
         val total = max(pLow + pMid + pHigh, 1e-20)
         val lowShare = pLow / total
@@ -894,7 +960,15 @@ class FableSolRealtimeAnalyzer(
             isSilent = true,
             tempoBpm = 0.0,
             beatPhase01 = 0.0,
-            beatConf01 = 0.0
+            beatConf01 = 0.0,
+            displayWaterDrive01 = 0.0,
+            displayGradeDrive01 = 0.0,
+            displayLiftScore01 = 0.0,
+            displayClimaxScore01 = 0.0,
+            displayRelLow = 1.0 / 3.0,
+            displayRelMid = 1.0 / 3.0,
+            displayRelHigh = 1.0 / 3.0,
+            displayCentroid01 = 0.5
         )
     }
 

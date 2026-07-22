@@ -12,11 +12,61 @@ class FableSolCaptureProfile(
     @JvmField val loudnessTrimDb: Double = 10.5,
     @JvmField val lowShelfGainDb: Double = 18.0,
     @JvmField val lowShelfHz: Double = 250.0,
-    @JvmField val stateGradeTrim01: Double = -0.01
+    @JvmField val stateGradeTrim01: Double = -0.01,
+    @JvmField val displayLoudnessPivotDb: Double = -26.6,
+    @JvmField val displayLoudnessRatio: Double = 1.76,
+    @JvmField val displayLoudnessBlend01: Double = 0.65,
+    @JvmField val displayLowShareGain: Double = 2.0,
+    @JvmField val displayMidShareGain: Double = 0.90,
+    @JvmField val displayHighShareGain: Double = 0.65
 ) {
     val boundedLoudnessTrimDb: Double get() = loudnessTrimDb.coerceIn(-12.0, 12.0)
     val boundedLowShelfGainDb: Double get() = lowShelfGainDb.coerceIn(0.0, 18.0)
     val boundedStateGradeTrim01: Double get() = stateGradeTrim01.coerceIn(-0.08, 0.08)
+    val boundedDisplayLoudnessPivotDb: Double
+        get() = displayLoudnessPivotDb.coerceIn(-40.0, -12.0)
+    val boundedDisplayLoudnessRatio: Double get() = displayLoudnessRatio.coerceIn(1.0, 2.0)
+    val boundedDisplayLoudnessBlend01: Double get() = displayLoudnessBlend01.coerceIn(0.0, 1.0)
+
+    /** 只校正展示轨的固定设备域动态范围；输入必须是尚未叠加 capture trim 的 dB。 */
+    fun displayLoudnessDb(untrimmedDb: Double): Double {
+        val pivot = boundedDisplayLoudnessPivotDb
+        return pivot + boundedDisplayLoudnessRatio * (untrimmedDb - pivot)
+    }
+
+    /**
+     * 只校正展示轨的低/中/高身份与质心，原始频谱和巨浪判定字段保持不变。
+     * [output] 依次写入 low/mid/high/centroid，供实时分析器复用同一缓冲。
+     */
+    fun displaySpectralIdentity(
+        low: Double,
+        mid: Double,
+        high: Double,
+        centroid01: Double,
+        output: DoubleArray
+    ) {
+        require(output.size >= 4)
+        val originalLow = maxOf(low, 0.0)
+        val originalMid = maxOf(mid, 0.0)
+        val originalHigh = maxOf(high, 0.0)
+        val originalSum = maxOf(originalLow + originalMid + originalHigh, 1e-12)
+        val normalizedLow = originalLow / originalSum
+        val normalizedMid = originalMid / originalSum
+        val normalizedHigh = originalHigh / originalSum
+        val correctedLowRaw = normalizedLow * displayLowShareGain.coerceIn(0.25, 4.0)
+        val correctedMidRaw = normalizedMid * displayMidShareGain.coerceIn(0.25, 4.0)
+        val correctedHighRaw = normalizedHigh * displayHighShareGain.coerceIn(0.25, 4.0)
+        val correctedSum = maxOf(correctedLowRaw + correctedMidRaw + correctedHighRaw, 1e-12)
+        val correctedLow = correctedLowRaw / correctedSum
+        val correctedMid = correctedMidRaw / correctedSum
+        val correctedHigh = correctedHighRaw / correctedSum
+        output[0] = correctedLow
+        output[1] = correctedMid
+        output[2] = correctedHigh
+        output[3] = (centroid01 +
+            (correctedMid - normalizedMid) * 0.342 +
+            (correctedHigh - normalizedHigh) * 0.906).coerceIn(0.0, 1.0)
+    }
 
     companion object {
         @JvmField val PHONE_CAPTURE_V1 = FableSolCaptureProfile()

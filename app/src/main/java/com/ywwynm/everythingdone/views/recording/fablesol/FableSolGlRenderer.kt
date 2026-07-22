@@ -68,8 +68,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val sim = FableSolSimulation(params)
     private val mapper = FableSolFeatureMapper(params)
     private val inputLock = Any()
-    private var pendingFrames = ArrayList<FableSolFeatureFrame>()
-    private var pendingEvents = ArrayList<FableSolEvent>()
+    private val audioInbox = FableSolAnalysisBatchInbox()
     private val pendingTuning = HashMap<String, Double>()
 
     // build 段的分解计时与本帧消费的音频 hop 数（2026-07-21 帧率排查仪表）。
@@ -356,14 +355,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 
     fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
-        if (frames.isEmpty() && events.isEmpty()) return
-        synchronized(inputLock) {
-            pendingFrames.addAll(frames)
-            pendingEvents.addAll(events)
-            if (pendingEvents.size > MAX_PENDING_EVENTS) {
-                pendingEvents.subList(0, pendingEvents.size - MAX_PENDING_EVENTS).clear()
-            }
-        }
+        audioInbox.offer(frames, events)
     }
 
     /** 运行时调参（UI 线程调用）：入待应用表，渲染帧起始在 GL 线程统一写入 params。 */
@@ -467,22 +459,17 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     }
 
     private fun drainAndApply(now: Long) {
-        val frames: ArrayList<FableSolFeatureFrame>?
-        val events: ArrayList<FableSolEvent>
+        val batches = audioInbox.drain()
         var tuned = false
         synchronized(inputLock) {
-            frames = if (pendingFrames.isEmpty()) null else pendingFrames
-            pendingFrames = ArrayList()
-            events = pendingEvents
-            pendingEvents = ArrayList()
             if (pendingTuning.isNotEmpty()) {
                 for ((key, value) in pendingTuning) params.set(key, value)
                 pendingTuning.clear()
                 tuned = true
             }
         }
-        perfAudioFrames = frames?.size ?: 0
-        perfAudioEvents = events.size
+        perfAudioFrames = batches.sumOf { it.frames.size }
+        perfAudioEvents = batches.sumOf { it.events.size }
         if (tuned) {
             // 静态材质色缓存读 lighten_far/color_breath/environment_tint 等参数，
             // 调参后强制下一帧重建。
@@ -494,29 +481,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             if (lastAudioElapsed != 0L) lastAudioElapsed = now
             return
         }
-        if (frames != null) {
+        val hasFrames = batches.any { it.frames.isNotEmpty() }
+        if (hasFrames) {
             // 七境、突发确认和巨浪门控以音频 hop 的 authoritative 时钟积分。
-            // 渲染帧可能一次收到多个 hop；必须逐个消费，并按音频时间把稀疏事件
-            // 放回相邻 hop 之间。事件与同时间 hop 同批产生，先应用该 hop、再应用
-            // 事件，保证 Drop/Section 从下一权威帧开始生效，与实时 Python 链一致。
-            events.sortBy { it.t }
-            var eventIndex = 0
-            for (frame in frames) {
-                while (eventIndex < events.size && events[eventIndex].t < frame.t) {
-                    applyAudioEvent(events[eventIndex++])
-                }
-                mapper.applyFrame(sim, frame)
-                while (eventIndex < events.size && events[eventIndex].t <= frame.t) {
-                    applyAudioEvent(events[eventIndex++])
-                }
-            }
-            while (eventIndex < events.size) applyAudioEvent(events[eventIndex++])
+            // 多次 feed 在一个渲染帧内到达时仍保留观测 batch；批内同 t 先 frame 后 event。
+            FableSolAnalysisBatchConsumer.consume(
+                batches,
+                { mapper.applyFrame(sim, it) },
+                ::applyAudioEvent
+            )
             lastAudioElapsed = now
         } else if (lastAudioElapsed != 0L && now - lastAudioElapsed > IDLE_SILENCE_MS) {
             mapper.applySilence(sim)
-            for (event in events) applyAudioEvent(event)
+            FableSolAnalysisBatchConsumer.consume(batches, {}, ::applyAudioEvent)
         } else {
-            for (event in events) applyAudioEvent(event)
+            FableSolAnalysisBatchConsumer.consume(batches, {}, ::applyAudioEvent)
         }
 
     }
@@ -527,6 +506,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             is FableSolEvent.Section -> mapper.applySection(sim, event)
             is FableSolEvent.Prominence -> mapper.applyProminence(sim, event)
             is FableSolEvent.Drop -> mapper.applyDrop(sim, event)
+            is FableSolEvent.NoveltyMinor -> Unit
         }
     }
 
@@ -609,11 +589,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val sample = sim.surface2d.sample(sim, info)
         perfSampleNs = SystemClock.elapsedRealtimeNanos() - sampleStart
         val vertexStart = perfSampleNs + sampleStart
-        for (layer in layerMeans.indices) {
-            var sum = 0.0
-            for (value in sim.heights[layer]) sum += value
-            layerMeans[layer] = sum / sim.heights[layer].size
-        }
+        sim.fillLayerDcDp(layerMeans)   // 巨浪的局部隆起不计入基准高度（D178）
         FableSolDepthBaseline.updateTangents(layerMeans, layerMeanTangents)
         val viewBase = params.get("surface_view_elev_deg")
         val viewElevation = FableSolPitchPolicy.viewElevationDeg(sim.pitchDeg, viewBase)
@@ -1776,7 +1752,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         const val COLOR_TRANSITION_MS = 1600f
         const val COLOR_REVEAL_SOFT_DP = 72.0
         const val IDLE_SILENCE_MS = 200L
-        const val MAX_PENDING_EVENTS = 128
         const val FILL_EXTRA_DP = 80.0
         const val PROJECTED_MINIMUM_SPACING_RATIO = 0.12
         const val GL_ERROR_CHECK_INTERVAL_FRAMES = 129

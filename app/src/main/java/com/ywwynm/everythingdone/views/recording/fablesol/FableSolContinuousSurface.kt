@@ -194,13 +194,17 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private fun prepareComposeMeans(layerHeights: Array<DoubleArray>,
                                     directionalEta: Array<DoubleArray>,
                                     lo: Int = 0,
-                                    hi: Int = N_POINTS - 1) {
+                                    hi: Int = N_POINTS - 1,
+                                    grandDcBiasDp: Double = 0.0) {
         // layerMean 必须保留全 216 列——它是各层的 DC 去除项，裁窗会改变水位。
+        // grandDcBiasDp 扣掉巨浪引入的局部 DC，与 FableSolSimulation.fillLayerDcDp
+        // 是同一口径的两个消费点，改动必须同步（D178）。
         for (i in 0 until N_LAYERS) {
             var sum = 0.0
             for (v in layerHeights[i]) sum += v
             layerMean[i] = sum / layerHeights[i].size
         }
+        layerMean[FableSolGrandWave.LAYER_INDEX] -= grandDcBiasDp
         // depthMeanX 是逐列的纵深均值，只有窗口内的列会被消费，可以裁。
         // 行外层、列内层：directionalEta 是行主序 [97][216]，列外层遍历每一步都要
         // 换 cache line 并重做一次外层解引用。每列的加法到达顺序仍是 r=0→96，
@@ -375,17 +379,24 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
      * 都只依赖本行的 field 结果，逐行数学与拆开时逐位一致，省掉一次汇合和
      * eta/orbitX/orbitZ 三数组的整轮重读重写。
      */
-    private fun limitRow(r: Int, rawLo: Int, rawHi: Int, lag: Double, depth: Double) {
+    private fun limitRow(r: Int, rawLo: Int, rawHi: Int, lag: Double, depth: Double,
+                         grandKeep: DoubleArray) {
         val etaRow = sample.eta[r]
         val orbitXRow = rawOrbitX[r]
         val orbitZRow = rawOrbitZ[r]
         val lift = lag * (sample.zDp[r] - 0.5 * depth)
         for (x in rawLo..rawHi) {
-            etaRow[x] += lift
+            // 冠部支配 mask 必须同时覆盖方向场与轨道（D178）。它此前只作用于 L0
+            // 的锚点 detail，而这两项是在锚层之后合成的，于是巨浪平顶上仍浮着约
+            // 14dp 的方向模态与波包、外加 ±10dp 轨道位移，正是「顶不平」的来源。
+            // 倾斜滞后 lift 是整体斜面而非水面细节，不参与压制。
+            val keep = grandKeep[x]
+            etaRow[x] = etaRow[x] * keep + lift
             // 硬裁剪会在 ±10dp 处突然把导数归零。高阶软饱和保留
             // 常用区间，同时让极值仍有连续导数，不产生平台或尖点。
-            orbitXRow[x] = FableSolCubicResampler.softLimit(orbitXRow[x], 10.0)
-            orbitZRow[x] = FableSolCubicResampler.softLimit(orbitZRow[x], 10.0)
+            // 在压制之后施加，使上限仍作用于实际位移。
+            orbitXRow[x] = FableSolCubicResampler.softLimit(orbitXRow[x] * keep, 10.0)
+            orbitZRow[x] = FableSolCubicResampler.softLimit(orbitZRow[x] * keep, 10.0)
         }
         // 若多源叠加逼近横向翻折，只用一个全行比例把 X 轨道朝无轨道
         // 基线收回；禁止逐点 accumulate/clip 制造局部平段与阶梯。
@@ -624,7 +635,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
                 } else {
                     accumulateFieldRowColumnOuter(r, rawLo, rawHi, modeCount, packetCount)
                 }
-                limitRow(r, rawLo, rawHi, lag, depth)
+                limitRow(r, rawLo, rawHi, lag, depth, sim.grandKeep)
             }
         }
         // 合成真渲染面 worldEta（各层轮廓 + 二维方向场）并 fair 化。打光法线从
@@ -638,7 +649,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         perfFieldNs = fairStart - fieldStart
         // limit 已并回 field 派发（C6），不再单独读数；字段与 HUD 布局保持不变。
         perfLimitNs = 0L
-        prepareComposeMeans(sim.heights, sample.eta, rawLo, rawHi)
+        prepareComposeMeans(sim.heights, sample.eta, rawLo, rawHi, sim.grandDcBiasDp)
         val heights = sim.heights
         FableSolRowParallel.run(Z_ROWS) { startRow, endRow ->
             for (r in startRow until endRow) {

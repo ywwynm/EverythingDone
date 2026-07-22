@@ -28,6 +28,11 @@ class FableSolPerceptualFrame {
     @JvmField var gradeDrive01 = Double.NaN
     @JvmField var motionContextBoost01 = 0.0
     @JvmField var centroid01 = 0.5
+    // 巨浪 gate 的原始响度/上下文诊断；展示轨不得覆盖这些字段。
+    @JvmField var loudSDb = -120.0
+    @JvmField var loudP10Db = 0.0
+    @JvmField var loudP95Db = 0.0
+    @JvmField var gradeContext01 = 0.0
 }
 
 /** 七境的持续等级。使用 Int 而不是 enum 进入解码器内环，避免装箱。 */
@@ -97,7 +102,6 @@ class FableSolStateDecision {
 
 enum class FableSolGrandWaveReason {
     DROP,
-    SECTION_LIFT,
     CAUSAL_ARRIVAL,
     PEAK_PHRASE_REPEAT
 }

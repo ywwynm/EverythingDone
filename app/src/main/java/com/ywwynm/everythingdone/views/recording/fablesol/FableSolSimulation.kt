@@ -123,6 +123,18 @@ class FableSolSimulation(private val p: FableSolParams) {
     @JvmField val heights = Array(N_LAYERS) { DoubleArray(N_POINTS) }
     @JvmField val grandWave = FableSolGrandWave(N_POINTS)
 
+    /**
+     * 巨浪引入的 L0 直流变化（隆起 + 冠部压制），逐帧由 [perFrame] 写入。
+     * 它是局部的，不属于任何一层的直流分量，见 [fillLayerDcDp]。
+     */
+    @JvmField var grandDcBiasDp = 0.0
+
+    /**
+     * 冠部支配 mask 的逐列值。此前它只作用于锚点 detail，方向场与轨道从未被
+     * 覆盖，巨浪平顶上因此一直浮着方向模态、波包与轨道位移（D178）。
+     */
+    @JvmField val grandKeep = DoubleArray(N_POINTS) { 1.0 }
+
     // Hero 热路径 scratch：这两项在层循环之前一次写好、循环内只读，可以跨层共享。
     // 逐层复写的那四组已迁入 FableSolLayerSim（C3 层并行的前置条件）。
     private val heroVisibleMask = BooleanArray(N_POINTS)
@@ -717,6 +729,14 @@ class FableSolSimulation(private val p: FableSolParams) {
         for (n in 0 until N_POINTS) heroVisibleMask[n] = auAbs[n] <= half
         prepareHeroSourceBlend(half)
         val grandProfile = grandWave.sample(uGrid)
+        if (grandProfile == null) {
+            grandDcBiasDp = 0.0
+            java.util.Arrays.fill(grandKeep, 1.0)
+        } else {
+            for (n in 0 until N_POINTS) {
+                grandKeep[n] = grandWave.backgroundKeep(grandProfile[n])
+            }
+        }
         val heroBreath = p.get("hero_breath")
         val ambientBreath = p.get("ambient_breath")
         val ambientGain = p.get("ambient_gain")
@@ -855,14 +875,24 @@ class FableSolSimulation(private val p: FableSolParams) {
             )
             val wu = ls.wave.u
             val row = heights[ls.i]
+            // 层判定提到循环外：巨浪只在 L0，逐点重判等于每帧多 216 次比较。
+            val dominatedLayer =
+                ls.i == FableSolGrandWave.LAYER_INDEX && grandProfile != null
+            var biasSum = 0.0
             for (n in 0 until N_POINTS) {
                 var detail = wu[n] + amb[n] + hero[n]
-                if (ls.i == FableSolGrandWave.LAYER_INDEX && grandProfile != null) {
-                    val profile = grandProfile[n]
-                    detail = detail * grandWave.backgroundKeep(profile) + profile
+                if (dominatedLayer) {
+                    val plain = detail
+                    detail = detail * grandKeep[n] + grandProfile!![n]
+                    biasSum += detail - plain
                 }
                 row[n] = level + detail + lagK * uGrid[n]
             }
+            // 巨浪对本层均值的全部影响：自身隆起，加上冠部压掉的背景。两者都是
+            // 局部的（主要落在画外），都不是本层的直流分量，必须一起从去 DC 与
+            // 基准高度里扣掉，否则整层会在浪进出网格时瞬间上下跳（D178）。
+            // 只有持有 L0 的那个 worker 会写，行并行的汇合建立 happens-before。
+            if (dominatedLayer) grandDcBiasDp = biasSum / N_POINTS
         }
     }
 
@@ -982,6 +1012,22 @@ class FableSolSimulation(private val p: FableSolParams) {
         while (i1 > i0 && uGrid[i1 - 1] > requiredHalf) i1--
         i1 = min(i1 + 1, N_POINTS)
         return FableSolRenderInfo(i0, i1, th, hG)
+    }
+
+    /**
+     * 各层的直流分量：既用于 compose 的去 DC，也用于渲染的深度基准高度。
+     *
+     * 巨浪出生在网格右端之外，但侧翼会盖住最右侧几十列；它的隆起与冠部压制都是
+     * 局部的，不属于任何一层的直流。所有消费点必须用同一个口径，漏掉任何一个，
+     * 浪进出网格时整层就会瞬间上下跳（D178）。
+     */
+    fun fillLayerDcDp(out: DoubleArray) {
+        for (i in 0 until N_LAYERS) {
+            var sum = 0.0
+            for (v in heights[i]) sum += v
+            out[i] = sum / heights[i].size
+        }
+        out[FableSolGrandWave.LAYER_INDEX] -= grandDcBiasDp
     }
 
     /** 连续曲面的实际渲染列数；由 View 与回归测试共享。 */

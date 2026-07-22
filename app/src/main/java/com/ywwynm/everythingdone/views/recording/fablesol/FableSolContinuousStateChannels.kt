@@ -5,6 +5,7 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 /** 七境离散决策之后、Simulation 之前的连续执行通道。默认调用路径逐帧零分配。 */
 internal class FableSolContinuousVisualChannels {
@@ -66,7 +67,7 @@ internal class FableSolContinuousStateChannels {
 
         val expression = expressionGain.coerceIn(0.5, 1.5)
         val water = if (silent) 0.0 else waterDrive01.coerceIn(0.0, 1.0)
-        val levelGoal = 160.0 * water
+        val levelGoal = waterLevelGoalDp(water)
         val punch = max(punchLu01, punch01).coerceIn(0.0, 1.0)
         val withinGrade = min(
             0.75 + 0.50 * musicArousal01.coerceIn(0.0, 1.0) + 0.25 * punch,
@@ -88,7 +89,16 @@ internal class FableSolContinuousStateChannels {
 
         level.step(levelGoal, dt, 0.75 * timeScale, 33.6)
         wave.step(waveGoal, dt, 0.32 * timeScale)
-        flow.step(flowGoal, dt, 0.18 * timeScale, 1.50)
+        // 加速与减速用不同半衰期（D178）：推动水体时驱动力大，响应仍保持 0.18s；
+        // 撤掉驱动后只剩粘性耗散，用十倍的半衰期让流速带着惯性滑停，而不是在
+        // PEAK→CALM 的档位切换上瞬间停滞。半衰期改变时弹簧的位置与速度都连续，
+        // 变的只是加速度。
+        val flowHalflife = if (flowGoal >= flow.value) {
+            FLOW_HALFLIFE_ACCEL_S
+        } else {
+            FLOW_HALFLIFE_DECEL_S
+        }
+        flow.step(flowGoal, dt, flowHalflife * timeScale, 1.50)
         spread.step(spreadGoal, dt, 1.0 * timeScale)
         rim.step(rimGoal, dt, 0.16 * timeScale)
         cap.step(capGoal, dt, 0.16 * timeScale)
@@ -130,6 +140,30 @@ internal class FableSolContinuousStateChannels {
         destination.rim01 = source.rim01
         destination.cap01 = source.cap01
         return destination
+    }
+
+    companion object {
+        /**
+         * 水位映射（D178，对应 Python `states.water_level_goal_dp`）。
+         *
+         * 斜率是低响度段的 dp/单位驱动，与改前一致，保证安静时的水位观感不变；
+         * 满驱动值是 waterDrive01=1.0 时的静水面涨幅，L0 静水面因此落在
+         * 96+120=216dp，为 420dp 容器上叠加的巨浪留出余量。渐近线由两者反解，
+         * 使映射在全区间 C1 单调——硬钳位会让高响度整段贴在同一高度、失去分辨。
+         */
+        private const val LEVEL_SLOPE_DP = 160.0
+        private const val LEVEL_AT_FULL_DP = 120.0
+        private val LEVEL_ASYMPTOTE_DP = LEVEL_SLOPE_DP /
+            sqrt((LEVEL_SLOPE_DP / LEVEL_AT_FULL_DP).pow(2) - 1.0)
+
+        /** 流速加速/减速半衰期（D178）。对称的 0.18s 让减速看起来像瞬间停滞。 */
+        private const val FLOW_HALFLIFE_ACCEL_S = 0.18
+        private const val FLOW_HALFLIFE_DECEL_S = 1.80
+
+        fun waterLevelGoalDp(waterDrive01: Double): Double {
+            val drive = LEVEL_SLOPE_DP * waterDrive01.coerceIn(0.0, 1.0)
+            return drive / sqrt(1.0 + (drive / LEVEL_ASYMPTOTE_DP).pow(2))
+        }
     }
 
     private class CriticalSpring(initialValue: Double) {

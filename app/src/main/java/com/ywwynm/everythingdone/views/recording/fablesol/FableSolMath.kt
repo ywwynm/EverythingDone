@@ -27,6 +27,12 @@ object FableSolMath {
         }
     }
 
+    /** 与 Python `round` 一致：半整数舍入到最近的偶数。 */
+    internal fun roundTiesToEven(value: Double): Double = Math.rint(value)
+
+    /** 用 Python `round` 语义把采样帧数离散为整数。 */
+    internal fun roundedFrameCount(value: Double): Int = roundTiesToEven(value).toInt()
+
     /** np.gradient(y, dx)：内部中心差分，端点单边差分。 */
     fun gradient(y: DoubleArray, dx: Double): DoubleArray {
         val n = y.size

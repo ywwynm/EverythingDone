@@ -24,6 +24,10 @@ class FableSolFrontEndTuning {
     var relativeLoudnessMix: Double = DEFAULT_RELATIVE_LOUDNESS_MIX
         private set
 
+    @Volatile
+    var stateSensitivity: Double = DEFAULT_STATE_SENSITIVITY
+        private set
+
     /** 写入单项调参；未知 key 返回 false，合法 key 在这里统一钳位。 */
     fun set(key: String, value: Double): Boolean {
         when (key) {
@@ -31,6 +35,7 @@ class FableSolFrontEndTuning {
             KEY_SILENCE_GATE_DB -> silenceGateDb = value.coerceIn(0.0, 18.0)
             KEY_EXPANDER_AMOUNT -> expanderAmount = value.coerceIn(0.0, 1.0)
             KEY_RELATIVE_LOUDNESS_MIX -> relativeLoudnessMix = value.coerceIn(0.0, 0.6)
+            KEY_STATE_SENSITIVITY -> stateSensitivity = value.coerceIn(-1.0, 1.0)
             else -> return false
         }
         return true
@@ -42,6 +47,7 @@ class FableSolFrontEndTuning {
         analyzer.gateDb = silenceGateDb
         analyzer.expander = expanderAmount
         analyzer.relativeLoudnessMix = relativeLoudnessMix
+        analyzer.stateSensitivity = stateSensitivity
     }
 
     companion object {
@@ -49,17 +55,20 @@ class FableSolFrontEndTuning {
         const val KEY_SILENCE_GATE_DB = "silence_gate_db"
         const val KEY_EXPANDER_AMOUNT = "expander_amount"
         const val KEY_RELATIVE_LOUDNESS_MIX = "relative_loudness_mix"
+        const val KEY_STATE_SENSITIVITY = "state_sensitivity"
 
         const val DEFAULT_AGC_WINDOW_S = 24.0
         const val DEFAULT_SILENCE_GATE_DB = 6.0
         const val DEFAULT_EXPANDER_AMOUNT = 0.32
         const val DEFAULT_RELATIVE_LOUDNESS_MIX = FableSolPerceptualCalibrator.DEFAULT_RELATIVE_MIX
+        const val DEFAULT_STATE_SENSITIVITY = 0.0
 
         fun defaultValue(key: String): Double = when (key) {
             KEY_AGC_WINDOW_S -> DEFAULT_AGC_WINDOW_S
             KEY_SILENCE_GATE_DB -> DEFAULT_SILENCE_GATE_DB
             KEY_EXPANDER_AMOUNT -> DEFAULT_EXPANDER_AMOUNT
             KEY_RELATIVE_LOUDNESS_MIX -> DEFAULT_RELATIVE_LOUDNESS_MIX
+            KEY_STATE_SENSITIVITY -> DEFAULT_STATE_SENSITIVITY
             else -> throw IllegalArgumentException("Unknown FableSol front-end key: $key")
         }
     }

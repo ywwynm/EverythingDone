@@ -63,9 +63,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private val fillPath = Path()
     private val bandPath = Path()
 
-    private val lock = Any()
-    private var pendingFrames = ArrayList<FableSolFeatureFrame>()
-    private var pendingEvents = ArrayList<FableSolEvent>()
+    private val audioInbox = FableSolAnalysisBatchInbox()
 
     private var mLastFrameTimeNanos = 0L
     private var mAnimating = false
@@ -292,11 +290,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
     // ------------------------------------------------------------------ 音频接收（采集线程）
     override fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
-        if (frames.isEmpty() && events.isEmpty()) return
-        synchronized(lock) {
-            pendingFrames.addAll(frames)
-            pendingEvents.addAll(events)
-        }
+        audioInbox.offer(frames, events)
     }
 
     // ------------------------------------------------------------------ 帧循环
@@ -342,39 +336,26 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     }
 
     private fun drainAndApply(now: Long) {
-        val frames: ArrayList<FableSolFeatureFrame>?
-        val events: ArrayList<FableSolEvent>
-        synchronized(lock) {
-            frames = if (pendingFrames.isEmpty()) null else pendingFrames
-            if (frames != null) pendingFrames = ArrayList()
-            events = pendingEvents
-            pendingEvents = ArrayList()
-        }
+        val batches = audioInbox.drain()
         if (simulationPaused) {
             // 冻结：丢弃本帧特征与事件，静默衰减计时锚随帧推移一并冻结。
             if (mLastAudioElapsed != 0L) mLastAudioElapsed = now
             return
         }
-        if (frames != null) {
+        val hasFrames = batches.any { it.frames.isNotEmpty() }
+        if (hasFrames) {
             // Canvas 回退与 GLES 主路径共享同一 authoritative 音频时钟和事件交织。
-            events.sortBy { it.t }
-            var eventIndex = 0
-            for (frame in frames) {
-                while (eventIndex < events.size && events[eventIndex].t < frame.t) {
-                    applyAudioEvent(events[eventIndex++])
-                }
-                mapper.applyFrame(sim, frame)
-                while (eventIndex < events.size && events[eventIndex].t <= frame.t) {
-                    applyAudioEvent(events[eventIndex++])
-                }
-            }
-            while (eventIndex < events.size) applyAudioEvent(events[eventIndex++])
+            FableSolAnalysisBatchConsumer.consume(
+                batches,
+                { mapper.applyFrame(sim, it) },
+                ::applyAudioEvent
+            )
             mLastAudioElapsed = now
         } else if (mLastAudioElapsed != 0L && now - mLastAudioElapsed > IDLE_SILENCE_MS) {
             mapper.applySilence(sim)
-            for (event in events) applyAudioEvent(event)
+            FableSolAnalysisBatchConsumer.consume(batches, {}, ::applyAudioEvent)
         } else {
-            for (event in events) applyAudioEvent(event)
+            FableSolAnalysisBatchConsumer.consume(batches, {}, ::applyAudioEvent)
         }
 
     }
@@ -385,6 +366,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
             is FableSolEvent.Section -> mapper.applySection(sim, event)
             is FableSolEvent.Prominence -> mapper.applyProminence(sim, event)
             is FableSolEvent.Drop -> mapper.applyDrop(sim, event)
+            is FableSolEvent.NoveltyMinor -> Unit
         }
     }
 
@@ -572,11 +554,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val samplingStart = SystemClock.elapsedRealtimeNanos()
         val sample = sim.surface2d.sample(sim)
         val means = layerMeans
-        for (i in means.indices) {
-            var sum = 0.0
-            for (v in sim.heights[i]) sum += v
-            means[i] = sum / sim.heights[i].size
-        }
+        sim.fillLayerDcDp(means)   // 巨浪的局部隆起不计入基准高度（D178）
         FableSolDepthBaseline.updateTangents(means, layerMeanTangents)
         val viewBase = params.get("surface_view_elev_deg")
         val viewElev = FableSolPitchPolicy.viewElevationDeg(sim.pitchDeg, viewBase)

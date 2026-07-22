@@ -24,7 +24,10 @@ class FableSolFeatureMapperStateIntegrationTest {
         assertEquals(FableSolVisualState.PEAK, mapper.currentVisualState())
         assertEquals("PEAK", sim.visualState)
         assertEquals("层波叠浪", sim.visualStateLabel)
-        assertEquals(128.0, sim.visualLevelTargetDp, 1e-12)
+        assertEquals(
+            FableSolContinuousStateChannels.waterLevelGoalDp(0.8),
+            sim.visualLevelTargetDp, 1e-12
+        )
         assertEquals(sim.visualLevelDp, sim.layers[0].swellTargetDp, 0.0)
         assertTrue(sim.layers[8].swellTargetDp < sim.layers[0].swellTargetDp)
         assertTrue(sim.flow01 > 0.85)
@@ -97,7 +100,7 @@ class FableSolFeatureMapperStateIntegrationTest {
         repeat(45) { index ->
             mapper.applyFrame(sim, frame(
                 t = index / 60.0,
-                water = 0.84,
+                water = 0.90,
                 kinetic = 0.90,
                 grade = 0.96,
                 arousal = 0.88,
@@ -109,6 +112,70 @@ class FableSolFeatureMapperStateIntegrationTest {
         assertEquals(FableSolVisualState.PEAK, mapper.currentVisualState())
         assertEquals(1, sim.grandWave.triggerCount)
         assertTrue(sim.grandWave.active)
+    }
+
+    @Test
+    fun loudContextWithoutPhysicalAttackDoesNotTriggerTheSimulationGrandWave() {
+        val params = FableSolParams()
+        val mapper = FableSolFeatureMapper(params)
+        val sim = FableSolSimulation(params)
+        repeat(180) { index ->
+            mapper.applyFrame(sim, frame(
+                t = index / 60.0,
+                water = 0.90,
+                kinetic = 0.93,
+                grade = 0.96,
+                arousal = 0.88,
+                context = 0.82,
+                rising = 0.0
+            ))
+        }
+
+        assertEquals(FableSolVisualState.PEAK, mapper.currentVisualState())
+        assertEquals(0, sim.grandWave.triggerCount)
+    }
+
+    @Test
+    fun sectionBoundaryOnlyAuthorizesAQualifiedPresentPhrase() {
+        val params = FableSolParams()
+        val mapper = FableSolFeatureMapper(params)
+        val sim = FableSolSimulation(params)
+        repeat(180) { index ->
+            mapper.applyFrame(sim, frame(
+                t = index / 60.0,
+                water = 0.86,
+                kinetic = 0.82,
+                grade = 0.96,
+                arousal = 0.88
+            ))
+        }
+        assertEquals(FableSolVisualState.PEAK, mapper.currentVisualState())
+        assertEquals(0, sim.grandWave.triggerCount)
+
+        mapper.applySection(
+            sim,
+            FableSolEvent.Section(
+                t = 3.0,
+                magnitude01 = 0.90,
+                energy01 = 0.35,
+                brightness01 = 0.50,
+                surge = true
+            )
+        )
+        assertEquals(0, sim.grandWave.triggerCount)
+
+        repeat(24) { index ->
+            mapper.applyFrame(sim, frame(
+                t = 3.0 + index / 60.0,
+                water = 0.83,
+                kinetic = 0.81,
+                grade = 0.96,
+                arousal = 0.88,
+                context = 0.22,
+                rising = 0.0
+            ))
+        }
+        assertEquals(1, sim.grandWave.triggerCount)
     }
 
     @Test
@@ -141,6 +208,65 @@ class FableSolFeatureMapperStateIntegrationTest {
         assertEquals(1, sim.grandWave.triggerCount)
     }
 
+    @Test
+    fun displayPeakCannotRaiseRawGateStateOrAuthorizeGrandWave() {
+        val params = FableSolParams()
+        val mapper = FableSolFeatureMapper(params)
+        val sim = FableSolSimulation(params)
+        repeat(600) { index ->
+            mapper.applyFrame(
+                sim,
+                frame(
+                    t = index / 60.0,
+                    water = 0.68,
+                    kinetic = 0.62,
+                    grade = 0.50,
+                    arousal = 0.52,
+                    rising = 0.85,
+                    displayWater = 0.96,
+                    displayGrade = 0.98,
+                    displayLift = 0.0,
+                    displayClimax = 0.0
+                )
+            )
+        }
+
+        assertEquals(FableSolVisualState.PEAK, mapper.currentVisualState())
+        assertTrue(
+            "gateState=${mapper.currentGateState()}",
+            mapper.currentGateState() != FableSolVisualState.PEAK &&
+                mapper.currentGateState() != FableSolVisualState.CLIMAX
+        )
+        assertEquals(0, sim.grandWave.triggerCount)
+    }
+
+    @Test
+    fun presentationLevelReadsDisplayWaterWithoutBandDilution() {
+        val params = FableSolParams()
+        val mapper = FableSolFeatureMapper(params)
+        val sim = FableSolSimulation(params)
+        repeat(360) { index ->
+            mapper.applyFrame(
+                sim,
+                frame(
+                    t = index / 60.0,
+                    water = 0.95,
+                    kinetic = 0.60,
+                    grade = 0.58,
+                    arousal = 0.52,
+                    displayWater = 0.45,
+                    displayGrade = 0.58
+                )
+            )
+        }
+
+        assertEquals(
+            FableSolContinuousStateChannels.waterLevelGoalDp(0.45),
+            sim.visualLevelTargetDp,
+            1e-12
+        )
+    }
+
     private fun frame(
         t: Double,
         water: Double,
@@ -150,7 +276,11 @@ class FableSolFeatureMapperStateIntegrationTest {
         context: Double = 0.0,
         rising: Double = 0.0,
         climax: Double = 0.0,
-        diagnosticLoudness: Double = water
+        diagnosticLoudness: Double = water,
+        displayWater: Double = -1.0,
+        displayGrade: Double = -1.0,
+        displayLift: Double = -1.0,
+        displayClimax: Double = -1.0
     ) = FableSolFeatureFrame(
         t = t,
         loudness01 = diagnosticLoudness,
@@ -195,6 +325,10 @@ class FableSolFeatureMapperStateIntegrationTest {
         liftScore01 = 0.0,
         climaxScore01 = climax,
         gradeAbsolute01 = grade,
-        novelty01 = context
+        novelty01 = context,
+        displayWaterDrive01 = displayWater,
+        displayGradeDrive01 = displayGrade,
+        displayLiftScore01 = displayLift,
+        displayClimaxScore01 = displayClimax
     )
 }

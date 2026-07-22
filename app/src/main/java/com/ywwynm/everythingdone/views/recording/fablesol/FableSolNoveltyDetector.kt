@@ -6,21 +6,29 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.sqrt
 
-/** 段落命中（对应 push 返回的 {t, magnitude01}）。 */
-class FableSolNoveltyHit(@JvmField val t: Double, @JvmField val magnitude01: Double)
+/** 段落命中（对应 Python push 返回的完整事件字段）。 */
+class FableSolNoveltyHit(
+    @JvmField val t: Double,
+    @JvmField val magnitude01: Double,
+    @JvmField val confidence01: Double,
+    @JvmField val minor: Boolean,
+    @JvmField val noveltyZ: Double
+)
 
 /**
  * 因果 Foote 新奇度段落检测（对应 features.py 的 _NoveltyDetector 倒谱路径）：32 对数频带的
  * 1~12 阶倒谱系数 → 0.5s 块平均 → 逐维滚动 z 分数 → L2 归一 → 自相似矩阵对角线滑动高斯棋盘核。
- * 语义 MusiCNN 路径不移植，固定走倒谱回退（use_z=True, fire_z=4.2）。
+ * 语义 MusiCNN 路径不移植，固定走倒谱回退；阈值与 Python 实时 fallback 同值。
  */
 class FableSolNoveltyDetector(
     private val frameRate: Double,
     private val kWin: Int = 13,
     private val warmupBlocks: Int = 24,
-    private val fireZ: Double = 4.2,
-    private val minGapS: Double = 9.0
+    fireZ: Double = DEFAULT_FIRE_Z,
+    private val minGapS: Double = DEFAULT_MIN_GAP_S,
+    private val minorZ: Double = DEFAULT_MINOR_Z
 ) {
+    private var fireZ = fireZ
     private val blockN = (0.5 * frameRate).toInt()
     private val dct = Array(12) { k ->
         DoubleArray(32) { j -> cos(Math.PI / 32.0 * (j + 0.5) * (k + 1)) }
@@ -33,6 +41,11 @@ class FableSolNoveltyDetector(
     private val blocks = ArrayDeque<BlockEntry>()
     private val nov = ArrayDeque<DoubleArray>()   // [tCenter, novValue]
     private var lastFire = -100.0
+    private var lastMinor = -100.0
+    var latestNovelty01 = 0.0
+        private set
+    var latestZ = 0.0
+        private set
     private var mean: DoubleArray? = null
     private var variance: DoubleArray? = null
     private var statN = 0
@@ -56,8 +69,17 @@ class FableSolNoveltyDetector(
         accFrames = 0; accVoiced = 0
         blocks.clear(); nov.clear()
         lastFire = -100.0
+        lastMinor = -100.0
+        latestNovelty01 = 0.0
+        latestZ = 0.0
         if (full) { mean = null; variance = null; statN = 0 }
     }
+
+    fun configureFireZ(value: Double) {
+        fireZ = value.coerceAtLeast(1e-6)
+    }
+
+    internal fun currentFireZ(): Double = fireZ
 
     /** 倒谱回退路径：32 频带 log 能量逐帧累积成 0.5s 块 → 1~12 阶 DCT。 */
     fun push(logb: DoubleArray, voiced: Boolean, t: Double): FableSolNoveltyHit? {
@@ -133,12 +155,35 @@ class FableSolNoveltyDetector(
         val absDev = DoubleArray(histArr.size) { abs(histArr[it] - med) }
         val mad = FableSolMath.percentile(absDev, 50.0) + 1e-4
         val zScore = (n1 - med) / mad
-        if (zScore <= fireZ) return null
+        latestZ = zScore
+        latestNovelty01 = (zScore / max(fireZ * 1.5, 1e-6)).coerceIn(0.0, 1.0)
+        if (zScore <= fireZ) {
+            if (zScore > minorZ && t1 - lastMinor >= MINOR_GAP_S) {
+                lastMinor = t1
+                return FableSolNoveltyHit(
+                    t = t1,
+                    magnitude01 = ((zScore - minorZ) / max(fireZ - minorZ, 1e-6))
+                        .coerceIn(0.0, 1.0),
+                    confidence01 = (zScore / fireZ).coerceIn(0.0, 1.0),
+                    minor = true,
+                    noveltyZ = zScore
+                )
+            }
+            return null
+        }
         val mag = (zScore / (3.0 * fireZ)).coerceIn(0.0, 1.0)
+        val confidence = (zScore / (1.8 * fireZ)).coerceIn(0.0, 1.0)
         lastFire = t1
-        return FableSolNoveltyHit(t1, mag)
+        return FableSolNoveltyHit(t1, mag, confidence, false, zScore)
     }
 
     private fun capBlocks() { while (blocks.size > 64) blocks.removeFirst() }
     private fun capNov() { while (nov.size > 80) nov.removeFirst() }
+
+    companion object {
+        const val DEFAULT_FIRE_Z = 3.6
+        const val DEFAULT_MIN_GAP_S = 12.0
+        const val DEFAULT_MINOR_Z = 2.2
+        private const val MINOR_GAP_S = 4.0
+    }
 }

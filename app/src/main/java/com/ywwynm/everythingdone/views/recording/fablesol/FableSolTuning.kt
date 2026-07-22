@@ -166,6 +166,14 @@ object FableSolTuning {
                 storedValue(context, spec, FableSolFrontEndTuning.defaultValue(spec.key))
             )
         }
+        // state_sensitivity 同时驱动 mapper 的档位阈值与实时 Foote fire_z；虽然 UI
+        // 归属 renderer 组，音频线程也必须收到同一持久化值。
+        val stateSpec = GROUPS.asSequence().flatMap { it.specs.asSequence() }
+            .first { it.key == FableSolFrontEndTuning.KEY_STATE_SENSITIVITY }
+        tuning.set(
+            stateSpec.key,
+            storedValue(context, stateSpec, FableSolFrontEndTuning.DEFAULT_STATE_SENSITIVITY)
+        )
     }
 
     /** 读取某个参数当前应显示的值：有存储用存储，否则用 [defaultValue]。 */

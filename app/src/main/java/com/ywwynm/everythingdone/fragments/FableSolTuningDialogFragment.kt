@@ -43,6 +43,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolParams
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
@@ -560,7 +561,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
     private fun applyRuntimeTuning(spec: FableSolTuning.Spec, value: Double) {
         when (spec.target) {
-            FableSolTuning.Target.RENDERER -> mVisualizer?.setTuningValue(spec.key, value)
+            FableSolTuning.Target.RENDERER -> {
+                mVisualizer?.setTuningValue(spec.key, value)
+                if (spec.key == FableSolFrontEndTuning.KEY_STATE_SENSITIVITY) {
+                    mRecorder?.setFableSolFrontEndTuning(spec.key, value)
+                }
+            }
             FableSolTuning.Target.AUDIO_FRONT_END ->
                 mRecorder?.setFableSolFrontEndTuning(spec.key, value)
         }

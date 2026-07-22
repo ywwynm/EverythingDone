@@ -38,8 +38,36 @@ class FableSolContinuousStateChannelsTest {
                 0.0, state, false,
                 0.72, 0.8, 0.7, 0.6, 0.6, 0.5, 1.0, 0.0
             )
-            assertEquals(115.2, output.levelGoalDp, 1e-12)
+            assertEquals(
+                FableSolContinuousStateChannels.waterLevelGoalDp(0.72),
+                output.levelGoalDp, 1e-12
+            )
         }
+    }
+
+    @Test
+    fun waterLevelMappingKeepsQuietSlopeAndCapsFullDrive() {
+        // 低响度段保持改前斜率，安静时的水位观感不变。
+        assertEquals(
+            160.0,
+            FableSolContinuousStateChannels.waterLevelGoalDp(0.01) / 0.01, 0.1
+        )
+        // 满驱动落在 120dp：L0 基准 96dp，静水面 216dp，为 144dp 的巨浪在 420dp
+        // 容器里留出余量。
+        assertEquals(120.0, FableSolContinuousStateChannels.waterLevelGoalDp(1.0), 1e-12)
+        assertEquals(0.0, FableSolContinuousStateChannels.waterLevelGoalDp(0.0), 0.0)
+        // 全区间严格单调——硬钳位会把高响度整段压平、失去分辨。
+        var previous = -1.0
+        for (i in 0..200) {
+            val value = FableSolContinuousStateChannels.waterLevelGoalDp(i / 200.0)
+            assertTrue("水位映射必须严格单调", value > previous)
+            previous = value
+        }
+        assertEquals(
+            FableSolContinuousStateChannels.waterLevelGoalDp(1.0),
+            FableSolContinuousStateChannels.waterLevelGoalDp(1.5), 0.0
+        )
+        assertEquals(0.0, FableSolContinuousStateChannels.waterLevelGoalDp(-0.2), 0.0)
     }
 
     @Test

@@ -33,6 +33,10 @@ class FableSolCalibrationInput {
      * 缺省 999 表示调用方未提供（合成帧/旧测试），此时不做任何折减。
      */
     @JvmField var aboveFloorDb = 999.0
+    /** 固定采集设备校正后的展示轨 dB；NaN 表示 master/旧调用方采用严格 identity。 */
+    @JvmField var displayLoudMDb = Double.NaN
+    @JvmField var displayLoudSDb = Double.NaN
+    @JvmField var displayLoudnessBlend01 = 0.0
 }
 
 /** 原地写入的实时感知输出。 */
@@ -43,6 +47,7 @@ class FableSolPerceptualCalibration {
     @JvmField var loudnessMomentary01 = 0.0
     @JvmField var loudnessTransientBoost01 = 0.0
     @JvmField var waterDrive01 = 0.0
+    @JvmField var displayWaterDrive01 = 0.0
     @JvmField var loudP10Db = 0.0
     @JvmField var loudP95Db = 0.0
     @JvmField var speed01 = 0.0
@@ -61,6 +66,9 @@ class FableSolPerceptualCalibration {
     @JvmField var gradeDrive01 = 0.0
     @JvmField var liftScore01 = 0.0
     @JvmField var climaxScore01 = 0.0
+    @JvmField var displayGradeDrive01 = 0.0
+    @JvmField var displayLiftScore01 = 0.0
+    @JvmField var displayClimaxScore01 = 0.0
     @JvmField var gradeAbsolute01 = 0.0
     @JvmField var gradeContext01 = 0.0
     @JvmField var vocalSoloPenalty01 = 0.0
@@ -89,8 +97,8 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
     private val loudRange = AdaptiveRange(this.frameRate, 96.0, 10.0, 95.0, 6.0)
     private val rateRange = AdaptiveRange(this.frameRate, 64.0, 10.0, 90.0, 0.5)
     private val loudMomentary = ScalarRing((6.0 * this.frameRate).toInt())
-    private val onset = ScalarRing((2.0 * this.frameRate).toInt())
-    private val centroid = ScalarRing((2.0 * this.frameRate).toInt())
+    private val onset = ScalarRing(FableSolMath.roundedFrameCount(2.0 * this.frameRate))
+    private val centroid = ScalarRing(FableSolMath.roundedFrameCount(2.0 * this.frameRate))
     private val robust = Array(5) { ScalarRing((64.0 * this.frameRate).toInt()) }
     private val robustMedian = DoubleArray(5)
     private val robustScale = DoubleArray(5) { 1.0 }
@@ -111,16 +119,19 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
     private val trendRanks = DoubleArray(96)
     private var buildTarget = 0.0
 
-    private val motionContext = ScalarRing((10.0 * this.frameRate).toInt())
-    private val loudContext = ScalarRing((10.0 * this.frameRate).toInt())
-    private val centroidContext = ScalarRing((10.0 * this.frameRate).toInt())
+    private val motionContext = ScalarRing(FableSolMath.roundedFrameCount(10.0 * this.frameRate))
+    private val loudContext = ScalarRing(FableSolMath.roundedFrameCount(10.0 * this.frameRate))
+    private val centroidContext = ScalarRing(FableSolMath.roundedFrameCount(10.0 * this.frameRate))
     private val stateEvidence = FableSolCausalStateEvidence(this.frameRate)
+    private val displayStateEvidence = FableSolCausalStateEvidence(this.frameRate)
     private val stateFrame = FableSolPerceptualFrame()
+    private val displayStateFrame = FableSolPerceptualFrame()
     private val output = FableSolPerceptualCalibration()
 
     private var audibleS = 0.0
     private var loudStatsReady = false
     private var loudness01 = 0.0
+    private var displayLoudness01 = 0.0
     private var speed01 = 0.0
     private var kinetic01 = 0.0
     private var positiveNovelty01 = 0.0
@@ -148,6 +159,7 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         audibleS = 0.0
         loudStatsReady = false
         loudness01 = 0.0
+        displayLoudness01 = 0.0
         speed01 = 0.0
         kinetic01 = 0.0
         positiveNovelty01 = 0.0
@@ -167,6 +179,7 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         trendCentroid.clear(); trendRate.clear(); trendBass.clear()
         motionContext.clear(); loudContext.clear(); centroidContext.clear()
         stateEvidence.reset()
+        displayStateEvidence.reset()
         if (full) {
             loudRange.clear(); rateRange.clear()
             loudMomentary.clear(); onset.clear(); centroid.clear()
@@ -202,6 +215,36 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
             smoothstep(0.0, NEAR_FLOOR_SPAN_DB, input.aboveFloorDb)
         val loudTarget = if (input.silent) 0.0 else loudRaw
         loudness01 = follow(loudness01, loudTarget, if (loudTarget > loudness01) 0.120 else 1.200)
+
+        val displayEnabled = !input.displayLoudMDb.isNaN() &&
+            !input.displayLoudSDb.isNaN() && input.displayLoudnessBlend01 > 0.0
+        val displayWater: Double
+        if (displayEnabled) {
+            val displayAbsolute = fixedLoudness01(input.displayLoudSDb)
+            val displayMomentary = fixedLoudness01(input.displayLoudMDb)
+            val displayTransient = min(0.90 * relativeLoudnessMix, 0.35) *
+                max(displayMomentary - displayAbsolute, 0.0)
+            val displayRaw = clip01(displayAbsolute + displayTransient) *
+                smoothstep(0.0, NEAR_FLOOR_SPAN_DB, input.aboveFloorDb)
+            val displayTarget = if (input.silent) 0.0 else displayRaw
+            displayLoudness01 = follow(
+                displayLoudness01,
+                displayTarget,
+                if (displayTarget > displayLoudness01) 0.120 else 1.200
+            )
+            displayWater = if (input.silent) {
+                0.0
+            } else {
+                clip01(
+                    loudness01 + input.displayLoudnessBlend01.coerceIn(0.0, 1.0) *
+                        (displayLoudness01 - loudness01)
+                )
+            }
+        } else {
+            // master 与旧测试保持逐值 identity，也不引入第二套近似证据历史。
+            displayLoudness01 = loudness01
+            displayWater = clip01(loudness01)
+        }
 
         val rateRank = rateRange.score(input.rawRateHz)
         val speedTarget = if (input.silent) 0.0 else clip01(input.speedAbs01)
@@ -275,6 +318,31 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         stateFrame.motionContextBoost01 = positiveNovelty
         stateFrame.centroid01 = input.centroid01
         val evidence = stateEvidence.step(stateFrame)
+        val displayEvidence = if (displayEnabled) {
+            displayStateFrame.t = input.t
+            displayStateFrame.silent = input.silent
+            displayStateFrame.waterDrive01 = displayWater
+            displayStateFrame.intensityDrive01 = intensity
+            displayStateFrame.kineticDrive01 = kinetic01
+            displayStateFrame.percussiveMotion01 = input.percussiveMotion01
+            displayStateFrame.vocalMotion01 = input.vocalMotion01
+            displayStateFrame.harmonicMotion01 = input.harmonicMotion01
+            displayStateFrame.grooveMotion01 = input.grooveMotion01
+            displayStateFrame.musicArousal01 = musicArousal01
+            displayStateFrame.energy01 = energy
+            displayStateFrame.energyRising01 = rising01
+            displayStateFrame.buildUp01 = currentBuild
+            displayStateFrame.positiveNovelty01 = positiveNovelty
+            displayStateFrame.punch01 = input.punch01
+            displayStateFrame.punchLu01 = punchLu
+            displayStateFrame.lowShare01 = input.lowShare01
+            displayStateFrame.domainGradeTrim01 = input.domainGradeTrim01
+            displayStateFrame.motionContextBoost01 = positiveNovelty
+            displayStateFrame.centroid01 = input.centroid01
+            displayStateEvidence.step(displayStateFrame)
+        } else {
+            evidence
+        }
 
         var dropTriggered = false
         var dropConfidence = 0.0
@@ -293,6 +361,7 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         output.loudnessMomentary01 = loudMomentary01
         output.loudnessTransientBoost01 = clip01(transientBoost)
         output.waterDrive01 = clip01(loudness01)
+        output.displayWaterDrive01 = displayWater
         output.loudP10Db = loudRange.lo
         output.loudP95Db = loudRange.hi
         output.speed01 = clip01(speed01)
@@ -311,6 +380,9 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         output.gradeDrive01 = evidence.gradeDrive01
         output.liftScore01 = evidence.liftScore01
         output.climaxScore01 = evidence.climaxScore01
+        output.displayGradeDrive01 = displayEvidence.gradeDrive01
+        output.displayLiftScore01 = displayEvidence.liftScore01
+        output.displayClimaxScore01 = displayEvidence.climaxScore01
         output.gradeAbsolute01 = evidence.gradeAbsolute01
         output.gradeContext01 = evidence.gradeContext01
         output.vocalSoloPenalty01 = evidence.vocalSoloPenalty01
@@ -437,6 +509,10 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         // reset 很低频；逐字段写清楚可避免把输出对象替换后破坏外部引用。
         output.loudness01 = blank.loudness01
         output.waterDrive01 = 0.0
+        output.displayWaterDrive01 = 0.0
+        output.displayGradeDrive01 = 0.0
+        output.displayLiftScore01 = 0.0
+        output.displayClimaxScore01 = 0.0
         output.speed01 = 0.0
         output.kineticDrive01 = 0.0
         output.targetDps = 0.0

@@ -66,8 +66,12 @@ class FableSolRealtimeAnalyzerNoiseTest {
             val amp = if (t < 4.2) 0.055 * kotlin.math.exp(-t / 3.0) else 0.00035
             amp * (0.78 * sin(2.0 * PI * 82.0 * t) + 0.22 * sin(2.0 * PI * 116.0 * t))
         }
-        val analyzer = FableSolRealtimeAnalyzer(sr)
+        val analyzer = FableSolRealtimeAnalyzer(
+            sr,
+            FableSolCaptureProfile.PHONE_CAPTURE_V1
+        )
         var maxStartupLoudness = 0.0
+        var maxStartupDisplayWater = 0.0
         var startupOnsets = 0
         var offset = 0
         while (offset < samples.size) {
@@ -75,12 +79,14 @@ class FableSolRealtimeAnalyzerNoiseTest {
             val (frames, events) = analyzer.feed(samples.copyOfRange(offset, end))
             for (frame in frames) if (frame.t < 4.0) {
                 maxStartupLoudness = maxOf(maxStartupLoudness, frame.loudness01)
+                maxStartupDisplayWater = maxOf(maxStartupDisplayWater, frame.displayWaterDrive01)
             }
             startupOnsets += events.count { it is FableSolEvent.Onset && it.t < 4.0 }
             offset = end
         }
 
         assertTrue("maxStartupLoudness=$maxStartupLoudness", maxStartupLoudness < 0.01)
+        assertTrue("maxStartupDisplayWater=$maxStartupDisplayWater", maxStartupDisplayWater < 0.01)
         assertTrue("startupOnsets=$startupOnsets", startupOnsets == 0)
     }
 
@@ -91,7 +97,10 @@ class FableSolRealtimeAnalyzerNoiseTest {
             val t = index.toDouble() / sr
             0.045 * sin(2.0 * PI * 620.0 * t) + 0.025 * sin(2.0 * PI * 1280.0 * t)
         }
-        val analyzer = FableSolRealtimeAnalyzer(sr)
+        val analyzer = FableSolRealtimeAnalyzer(
+            sr,
+            FableSolCaptureProfile.PHONE_CAPTURE_V1
+        )
         var audibleAfterWarmup = false
         var offset = 0
         while (offset < samples.size) {
@@ -102,6 +111,25 @@ class FableSolRealtimeAnalyzerNoiseTest {
         }
 
         assertTrue("真实中频声音不应等待完整预热超时", audibleAfterWarmup)
+    }
+
+    @Test
+    fun lowFrequencyMasterBypassesCaptureStartupGate() {
+        val sr = 44100
+        val samples = DoubleArray(sr) { index ->
+            0.055 * sin(2.0 * PI * 82.0 * index / sr)
+        }
+        val analyzer = FableSolRealtimeAnalyzer(sr)
+        var masterWasAudibleImmediately = false
+        var offset = 0
+        while (offset < samples.size && !masterWasAudibleImmediately) {
+            val end = minOf(offset + 512, samples.size)
+            val (frames, _) = analyzer.feed(samples.copyOfRange(offset, end))
+            masterWasAudibleImmediately = frames.any { it.t < 0.20 && !it.isSilent }
+            offset = end
+        }
+
+        assertTrue("磁盘母带没有 MIC/HAL 启动暂态，不得套用采集预热", masterWasAudibleImmediately)
     }
 
     @Test

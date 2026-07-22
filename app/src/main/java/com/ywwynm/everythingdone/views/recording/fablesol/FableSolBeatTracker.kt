@@ -84,7 +84,8 @@ class FableSolBeatTracker(private val frameRate: Double) {
         for (mult in mults) {
             val bpmC = bpms[b] * mult
             if (bpmC < 55.0 || bpmC > 180.0) continue
-            val bi = (Math.round(60.0 * frameRate / bpmC).toInt() - lagMin).coerceIn(0, scoreRaw.size - 1)
+            val bi = (FableSolMath.roundedFrameCount(60.0 * frameRate / bpmC) - lagMin)
+                .coerceIn(0, scoreRaw.size - 1)
             val rc = phaseQuality(60.0 * frameRate / bpmC).second
             val total = scoreRaw[bi] * max(rc - 1.0, 0.02).pow(1.5)
             if (bestTotal < 0.0 || total > bestTotal) { bestTotal = total; bestB = bi }
@@ -102,7 +103,11 @@ class FableSolBeatTracker(private val frameRate: Double) {
         } else {
             if (candBpm > 0.0 && abs(bpmNew - candBpm) / candBpm < 0.06) candCnt += 1
             else { candBpm = bpmNew; candCnt = 1 }
-            if (candCnt >= 3 || bpm <= 0.0) { bpm = bpmNew; candCnt = 0; tBeat = Double.NaN }
+            if (candCnt >= SWITCH_CONFIRMATIONS || bpm <= 0.0) {
+                bpm = bpmNew
+                candCnt = 0
+                tBeat = Double.NaN
+            }
         }
         val perF = 60.0 * frameRate / bpm
         val pq = phaseQuality(perF)
@@ -113,7 +118,7 @@ class FableSolBeatTracker(private val frameRate: Double) {
         if (tBeat.isNaN()) {
             tBeat = tMeas
         } else {
-            val kB = Math.round((tMeas - tBeat) / perS).toDouble()
+            val kB = FableSolMath.roundTiesToEven((tMeas - tBeat) / perS)
             val pred = tBeat + kB * perS
             tBeat = pred + 0.3 * (tMeas - pred)
         }
@@ -142,7 +147,7 @@ class FableSolBeatTracker(private val frameRate: Double) {
         val s = DoubleArray(offsLen)
         val kMax = max(nK, 1)
         for (k2 in 0 until kMax) {
-            val shift = Math.round(k2 * perF).toInt()
+            val shift = FableSolMath.roundedFrameCount(k2 * perF)
             val w = 0.8.pow(k2)
             for (off in 0 until offsLen) {
                 val idx = nWin - 1 - off - shift
@@ -174,6 +179,8 @@ class FableSolBeatTracker(private val frameRate: Double) {
     companion object {
         private const val WIN_S = 9.6
         private const val STEP = 16
+        private const val SWITCH_CONFIRMATIONS = 3
         private val LN2 = ln(2.0)
+
     }
 }

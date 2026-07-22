@@ -72,9 +72,13 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
 
     // 七境由持续等级 + LIFT/CLIMAX 阶段组成；所有对象和输出均在热路径复用。
     private val perceptualFrame = FableSolPerceptualFrame()
+    private val gatePerceptualFrame = FableSolPerceptualFrame()
     private val stateEvidence = FableSolStateEvidence()
+    private val gateStateEvidence = FableSolStateEvidence()
     private val stateMachine = FableSolSevenStateMachine()
+    private val gateStateMachine = FableSolSevenStateMachine()
     private val stateDecision = FableSolStateDecision()
+    private val gateStateDecision = FableSolStateDecision()
     private val continuousState = FableSolContinuousStateChannels()
     private val visualChannels = FableSolContinuousVisualChannels()
     private val grandWaveGate = FableSolGrandWaveEventGate()
@@ -115,65 +119,107 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     }
 
     private fun fillPerceptualInput(fr: FableSolFeatureFrame) {
-        perceptualFrame.t = fr.t
-        perceptualFrame.silent = fr.isSilent
-        perceptualFrame.waterDrive01 = fr.waterDrive01
-        perceptualFrame.intensityDrive01 = fr.intensityDrive01
-        perceptualFrame.kineticDrive01 = fr.kineticDrive01
-        perceptualFrame.percussiveMotion01 = fr.percussiveMotion01
-        perceptualFrame.vocalMotion01 = fr.vocalMotion01
-        perceptualFrame.harmonicMotion01 = fr.harmonicMotion01
-        perceptualFrame.grooveMotion01 = fr.grooveMotion01
-        perceptualFrame.musicArousal01 = fr.musicArousal01
-        perceptualFrame.energy01 = fr.energy01
-        perceptualFrame.energyRising01 = fr.energyRising01
-        perceptualFrame.buildUp01 = fr.buildUp01
-        perceptualFrame.positiveNovelty01 = fr.novelty01
-        perceptualFrame.punch01 = fr.punch01
-        perceptualFrame.punchLu01 = fr.punchLu01
-        perceptualFrame.lowShare01 = fr.relLow
-        perceptualFrame.domainGradeTrim01 = 0.0
-        perceptualFrame.gradeDrive01 = fr.gradeDrive01
-        perceptualFrame.motionContextBoost01 = fr.motionContextBoost01
-        perceptualFrame.centroid01 = fr.centroid01
+        fillRawPerceptualFrame(perceptualFrame, fr)
+        fillRawPerceptualFrame(gatePerceptualFrame, fr)
+        // 展示轨只替换连续响度、七境证据与谱身份；物理运动和巨浪 gate 始终保留 raw。
+        perceptualFrame.waterDrive01 = displayOrRaw(fr.displayWaterDrive01, fr.waterDrive01)
+        perceptualFrame.lowShare01 = displayOrRaw(fr.displayRelLow, fr.relLow)
+        perceptualFrame.centroid01 = displayOrRaw(fr.displayCentroid01, fr.centroid01)
+        perceptualFrame.gradeDrive01 = displayOrRaw(fr.displayGradeDrive01, fr.gradeDrive01)
 
-        stateEvidence.gradeDrive01 = fr.gradeDrive01
-        stateEvidence.liftScore01 = fr.liftScore01
-        stateEvidence.climaxScore01 = fr.climaxScore01
+        stateEvidence.gradeDrive01 = displayOrRaw(fr.displayGradeDrive01, fr.gradeDrive01)
+        stateEvidence.liftScore01 = displayOrRaw(fr.displayLiftScore01, fr.liftScore01)
+        stateEvidence.climaxScore01 = displayOrRaw(fr.displayClimaxScore01, fr.climaxScore01)
         stateEvidence.gradeAbsolute01 = fr.gradeAbsolute01
         stateEvidence.gradeContext01 = fr.gradeContext01
         stateEvidence.vocalSoloPenalty01 = fr.vocalSoloPenalty01
+
+        gateStateEvidence.gradeDrive01 = fr.gradeDrive01
+        gateStateEvidence.liftScore01 = fr.liftScore01
+        gateStateEvidence.climaxScore01 = fr.climaxScore01
+        gateStateEvidence.gradeAbsolute01 = fr.gradeAbsolute01
+        gateStateEvidence.gradeContext01 = fr.gradeContext01
+        gateStateEvidence.vocalSoloPenalty01 = fr.vocalSoloPenalty01
+    }
+
+    private fun fillRawPerceptualFrame(
+        target: FableSolPerceptualFrame,
+        fr: FableSolFeatureFrame
+    ) {
+        target.t = fr.t
+        target.silent = fr.isSilent
+        target.waterDrive01 = fr.waterDrive01
+        target.intensityDrive01 = fr.intensityDrive01
+        target.kineticDrive01 = fr.kineticDrive01
+        target.percussiveMotion01 = fr.percussiveMotion01
+        target.vocalMotion01 = fr.vocalMotion01
+        target.harmonicMotion01 = fr.harmonicMotion01
+        target.grooveMotion01 = fr.grooveMotion01
+        target.musicArousal01 = fr.musicArousal01
+        target.energy01 = fr.energy01
+        target.energyRising01 = fr.energyRising01
+        target.buildUp01 = fr.buildUp01
+        target.positiveNovelty01 = fr.novelty01
+        target.punch01 = fr.punch01
+        target.punchLu01 = fr.punchLu01
+        target.lowShare01 = fr.relLow
+        target.domainGradeTrim01 = 0.0
+        target.gradeDrive01 = fr.gradeDrive01
+        target.motionContextBoost01 = fr.motionContextBoost01
+        target.centroid01 = fr.centroid01
+        target.loudSDb = fr.loudSDb
+        target.loudP10Db = fr.loudP10Db
+        target.loudP95Db = fr.loudP95Db
+        target.gradeContext01 = fr.gradeContext01
     }
 
     private fun fillSilenceInput(t: Double) {
-        perceptualFrame.t = t
-        perceptualFrame.silent = true
-        perceptualFrame.waterDrive01 = 0.0
-        perceptualFrame.intensityDrive01 = 0.0
-        perceptualFrame.kineticDrive01 = 0.0
-        perceptualFrame.percussiveMotion01 = 0.0
-        perceptualFrame.vocalMotion01 = 0.0
-        perceptualFrame.harmonicMotion01 = 0.0
-        perceptualFrame.grooveMotion01 = 0.0
-        perceptualFrame.musicArousal01 = 0.0
-        perceptualFrame.energy01 = 0.0
-        perceptualFrame.energyRising01 = 0.0
-        perceptualFrame.buildUp01 = 0.0
-        perceptualFrame.positiveNovelty01 = 0.0
-        perceptualFrame.punch01 = 0.0
-        perceptualFrame.punchLu01 = 0.0
-        perceptualFrame.lowShare01 = 0.0
-        perceptualFrame.domainGradeTrim01 = 0.0
-        perceptualFrame.gradeDrive01 = 0.0
-        perceptualFrame.motionContextBoost01 = 0.0
-        perceptualFrame.centroid01 = 0.5
+        fillSilenceFrame(perceptualFrame, t)
+        fillSilenceFrame(gatePerceptualFrame, t)
         stateEvidence.gradeDrive01 = 0.0
         stateEvidence.liftScore01 = 0.0
         stateEvidence.climaxScore01 = 0.0
         stateEvidence.gradeAbsolute01 = 0.0
         stateEvidence.gradeContext01 = 0.0
         stateEvidence.vocalSoloPenalty01 = 0.0
+        gateStateEvidence.gradeDrive01 = 0.0
+        gateStateEvidence.liftScore01 = 0.0
+        gateStateEvidence.climaxScore01 = 0.0
+        gateStateEvidence.gradeAbsolute01 = 0.0
+        gateStateEvidence.gradeContext01 = 0.0
+        gateStateEvidence.vocalSoloPenalty01 = 0.0
     }
+
+    private fun fillSilenceFrame(target: FableSolPerceptualFrame, t: Double) {
+        target.t = t
+        target.silent = true
+        target.waterDrive01 = 0.0
+        target.intensityDrive01 = 0.0
+        target.kineticDrive01 = 0.0
+        target.percussiveMotion01 = 0.0
+        target.vocalMotion01 = 0.0
+        target.harmonicMotion01 = 0.0
+        target.grooveMotion01 = 0.0
+        target.musicArousal01 = 0.0
+        target.energy01 = 0.0
+        target.energyRising01 = 0.0
+        target.buildUp01 = 0.0
+        target.positiveNovelty01 = 0.0
+        target.punch01 = 0.0
+        target.punchLu01 = 0.0
+        target.lowShare01 = 0.0
+        target.domainGradeTrim01 = 0.0
+        target.gradeDrive01 = 0.0
+        target.motionContextBoost01 = 0.0
+        target.centroid01 = 0.5
+        target.loudSDb = -120.0
+        target.loudP10Db = 0.0
+        target.loudP95Db = 0.0
+        target.gradeContext01 = 0.0
+    }
+
+    private fun displayOrRaw(display: Double, raw: Double): Double =
+        if (display >= 0.0) display else raw
 
     /** 七境、连续执行通道、巨浪鉴权和基础水位只有这一处生产写入口。 */
     private fun advanceState(sim: FableSolSimulation): FableSolContinuousVisualChannels {
@@ -185,6 +231,13 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             stateSensitivity = p.get("state_sensitivity"),
             transitionSpeed = transitionSpeed,
             output = stateDecision
+        )
+        gateStateMachine.step(
+            gatePerceptualFrame,
+            gateStateEvidence,
+            stateSensitivity = p.get("state_sensitivity"),
+            transitionSpeed = transitionSpeed,
+            output = gateStateDecision
         )
         continuousState.step(
             t = perceptualFrame.t,
@@ -224,9 +277,9 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         }
 
         if (grandWaveGate.step(
-                perceptualFrame,
-                stateEvidence.gradeDrive01,
-                stateDecision.state,
+                gatePerceptualFrame,
+                gateStateEvidence.gradeDrive01,
+                gateStateDecision.state,
                 grandWaveRequest
             )
         ) {
@@ -261,6 +314,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     }
 
     internal fun currentVisualState(): FableSolVisualState = stateDecision.state
+
+    internal fun currentGateState(): FableSolVisualState = gateStateDecision.state
 
     internal fun currentWaveScale(): Double = visualChannels.waveScale
 
@@ -303,6 +358,11 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         val t = fr.t
         val dt = if (smT.isNaN()) 1.0 / 60.0 else (t - smT).coerceIn(0.0, 0.1)
         smT = t
+        val displayWater = displayOrRaw(fr.displayWaterDrive01, fr.waterDrive01)
+        val displayRelLow = displayOrRaw(fr.displayRelLow, fr.relLow)
+        val displayRelMid = displayOrRaw(fr.displayRelMid, fr.relMid)
+        val displayRelHigh = displayOrRaw(fr.displayRelHigh, fr.relHigh)
+        val displayCentroid = displayOrRaw(fr.displayCentroid01, fr.centroid01)
         // 浪形能量保持灵敏；基础水位另有更慢、更稳定的独立状态。
         val ke = if (dt > 0) 1.0 - exp(-dt / 0.28) else 0.0
         val kt = if (dt > 0) 1.0 - exp(-dt / 0.24) else 0.0
@@ -310,24 +370,23 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         // loudness01 is kept only for legacy diagnostics.  The animation contract is
         // the fixed-domain perceptual water drive, so capture/master parity cannot leak
         // back through the old shape register.
-        slowLoud += ((if (silent) 0.0 else fr.waterDrive01) - slowLoud) * ke
+        slowLoud += ((if (silent) 0.0 else displayWater) - slowLoud) * ke
         slowLow += ((if (silent) 0.0 else fr.bandLow) - slowLow) * ke
         slowMid += ((if (silent) 0.0 else fr.bandMid) - slowMid) * ke
         slowHigh += ((if (silent) 0.0 else fr.bandHigh) - slowHigh) * ke
-        tCent += ((if (silent) 0.5 else fr.centroid01) - tCent) * kt
+        tCent += ((if (silent) 0.5 else displayCentroid) - tCent) * kt
         tTilt += (fr.spectralTilt01 - tTilt) * kt
         tFlat += ((if (silent) 0.0 else fr.flatness01) - tFlat) * kt
         tPerc += ((if (silent) 0.0 else fr.percussive01) - tPerc) * kt
         tPunch += ((if (silent) 0.0 else fr.punch01) - tPunch) * kt
         tWidth += ((if (silent) 0.0 else fr.stereoWidth01) - tWidth) * kt
         tPan += (fr.pan01 - tPan) * kt
-        tRelLow += (fr.relLow - tRelLow) * kr
-        tRelMid += (fr.relMid - tRelMid) * kr
-        tRelHigh += (fr.relHigh - tRelHigh) * kr
+        tRelLow += (displayRelLow - tRelLow) * kr
+        tRelMid += (displayRelMid - tRelMid) * kr
+        tRelHigh += (displayRelHigh - tRelHigh) * kr
         sim.setBeat(fr.tempoBpm, fr.beatPhase01, if (silent) 0.0 else fr.beatConf01)
         bandsSlow[0] = slowLow; bandsSlow[1] = slowMid; bandsSlow[2] = slowHigh
-        val levelIn = if (silent) 0.0
-        else 0.86 * fr.waterDrive01 + 0.14 * (fr.bandLow + fr.bandMid + fr.bandHigh) / 3.0
+        val levelIn = if (silent) 0.0 else displayWater
         val levelTau = if (levelIn > levelEnergy) p.get("swell_presmooth_s")
         else p.get("swell_presmooth_release_s")
         if (dt > 0.0) {
@@ -646,6 +705,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     /** 段落边界保留 mood，并只为独立巨浪门控开启短鉴权窗；七境本身不读取 section。 */
     fun applySection(sim: FableSolSimulation, ev: FableSolEvent.Section) {
         stateMachine.notifySection()
+        gateStateMachine.notifySection()
         grandWaveGate.notifySection(
             intensity01 = ev.energy01,
             surge = ev.surge,
@@ -659,6 +719,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     fun applyDrop(sim: FableSolSimulation, ev: FableSolEvent.Drop) {
         // sim 参数保留在签名中，使所有结构事件入口一致；门控只使用下一 authoritative audio frame。
         stateMachine.notifyDrop(ev.confidence01)
+        gateStateMachine.notifyDrop(ev.confidence01)
         grandWaveGate.notifyDrop(ev.confidence01)
     }
 

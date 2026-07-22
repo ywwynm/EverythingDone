@@ -85,7 +85,16 @@ class FableSolFeatureFrame(
     @JvmField val zOnsetRate: Double = 0.0,
     @JvmField val zBass: Double = 0.0,
     @JvmField val zCentroid: Double = 0.0,
-    @JvmField val novelty01: Double = 0.0
+    @JvmField val novelty01: Double = 0.0,
+    // 可选的展示轨。合成帧默认 -1 以保持旧调用方 identity；产品分析帧始终显式写值。
+    @JvmField val displayWaterDrive01: Double = -1.0,
+    @JvmField val displayGradeDrive01: Double = -1.0,
+    @JvmField val displayLiftScore01: Double = -1.0,
+    @JvmField val displayClimaxScore01: Double = -1.0,
+    @JvmField val displayRelLow: Double = -1.0,
+    @JvmField val displayRelMid: Double = -1.0,
+    @JvmField val displayRelHigh: Double = -1.0,
+    @JvmField val displayCentroid01: Double = -1.0
 )
 
 /** 离散事件（对应 features.py 产出的 onset / section event dict）。 */
@@ -120,7 +129,15 @@ sealed class FableSolEvent {
         @JvmField val magnitude01: Double,
         @JvmField val energy01: Double,
         @JvmField val brightness01: Double,
+        @JvmField val confidence01: Double = 0.0,
         @JvmField val surge: Boolean = true
+    ) : FableSolEvent()
+
+    /** 未达到主段落阈值的可诊断新奇度峰；与 Python 一样不驱动动画。 */
+    class NoveltyMinor(
+        override val t: Double,
+        @JvmField val magnitude01: Double,
+        @JvmField val confidence01: Double
     ) : FableSolEvent()
 
     /** 因果 build-up 后的低频/响度共同到达，不依赖离线标签或神经网络。 */

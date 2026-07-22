@@ -19,11 +19,14 @@ class FableSolFrontEndTuningTest {
         assertEquals(6.0, analyzer.gateDb, 0.0)
         assertEquals(0.32, analyzer.expander, 0.0)
         assertEquals(0.20, analyzer.relativeLoudnessMix, 0.0)
+        assertEquals(0.0, analyzer.stateSensitivity, 0.0)
+        assertEquals(3.6, analyzer.noveltyFireZ(), 0.0)
 
         assertTrue(tuning.set("agc_window_s", 100.0))
         assertTrue(tuning.set("silence_gate_db", -2.0))
         assertTrue(tuning.set("expander_amount", 0.75))
         assertTrue(tuning.set("relative_loudness_mix", 2.0))
+        assertTrue(tuning.set("state_sensitivity", -2.0))
         assertFalse(tuning.set("unknown", 1.0))
         tuning.applyTo(analyzer)
 
@@ -31,6 +34,8 @@ class FableSolFrontEndTuningTest {
         assertEquals(0.0, analyzer.gateDb, 0.0)
         assertEquals(0.75, analyzer.expander, 0.0)
         assertEquals(0.60, analyzer.relativeLoudnessMix, 0.0)
+        assertEquals(-1.0, analyzer.stateSensitivity, 0.0)
+        assertEquals(4.0, analyzer.noveltyFireZ(), 0.0)
     }
 
     @Test

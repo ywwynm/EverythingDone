@@ -5,9 +5,9 @@ import kotlin.math.max
 /**
  * 严格因果、可重复的巨浪事件门控，对应 Python `core/grand_wave_gate.py`。
  *
- * 七境描述持续听感；840dp 巨浪是一道短语重音，因此独立鉴权。历史仅保留 trailing 2.5s，
- * 使用固定 primitive ring；长 PEAK/CLIMAX 没有次数配额，每次真实短语释放并经过 14s 可读间隔后
- * 都可再次触发。调用方必须对每个 true 结果调用 [resolve]，无论物理层最终是否接受。
+ * 七境描述持续听感，巨浪则是一次性的短语重音，因此由独立门控鉴权。所有统计都只读取
+ * trailing 2.5s；长 PEAK/CLIMAX 不设次数配额，但每次都必须重新满足声学到达条件与 14s
+ * 可读间隔。调用方必须对每个候选调用 [resolve]，无论物理层最终是否接受。
  */
 class FableSolGrandWaveEventGate {
 
@@ -19,16 +19,19 @@ class FableSolGrandWaveEventGate {
     private val sharedRequest = FableSolGrandWaveRequest()
 
     private var lastT = Double.NaN
+    private var audibleHistoryS = 0.0
     private var sectionIntensity = Double.NaN
     private var sectionWindowEnd = -100.0
-    private var sectionConfirmS = 0.0
     private var localConfirmS = 0.0
+    private var denseConfirmS = 0.0
+    private var relativeConfirmS = 0.0
+    private var sectionPhraseConfirmS = 0.0
     private var repeatConfirmS = 0.0
+    private var resurgentRepeatConfirmS = 0.0
     private var dropPending = false
     private var dropConfidence = 0.0
     private var peakBandLast = false
     private var episodeCount = 0
-    /** 本 episode 内已发出的重复短语巨浪次数，上限 [REPEAT_PER_EPISODE]。 */
     private var episodeRepeats = 0
     private var localArmed = true
     private var localReleaseS = 0.0
@@ -39,11 +42,10 @@ class FableSolGrandWaveEventGate {
     fun reset() {
         clearHistory()
         lastT = Double.NaN
+        audibleHistoryS = 0.0
         sectionIntensity = Double.NaN
         sectionWindowEnd = -100.0
-        sectionConfirmS = 0.0
-        localConfirmS = 0.0
-        repeatConfirmS = 0.0
+        clearConfirmation()
         dropPending = false
         dropConfidence = 0.0
         peakBandLast = false
@@ -60,17 +62,16 @@ class FableSolGrandWaveEventGate {
     fun setSectionContext(intensity01: Double) {
         sectionIntensity = intensity01.coerceIn(0.0, 1.0)
         sectionWindowEnd = -100.0
-        sectionConfirmS = 0.0
     }
 
     fun clearSectionContext() {
         sectionIntensity = Double.NaN
         sectionWindowEnd = -100.0
-        sectionConfirmS = 0.0
     }
 
     /**
-     * 段落强度有序抬升时开启 4.5s 鉴权窗。优先使用最后一帧音频时钟，避免暂停时间拉长窗口。
+     * 实时 Foote 边界通常晚于声学中心约 3.7s，因此 Section 只为下一处当前短语开启短鉴权窗，
+     * 绝不因事件本身直接制造巨浪。优先使用最后一帧音频时钟，避免暂停时间拉长窗口。
      */
     fun notifySection(
         intensity01: Double,
@@ -78,20 +79,14 @@ class FableSolGrandWaveEventGate {
         now: Double = Double.NaN,
         sourceT: Double = 0.0
     ) {
-        val intensity = intensity01.coerceIn(0.0, 1.0)
-        val previous = sectionIntensity
-        sectionIntensity = intensity
+        sectionIntensity = intensity01.coerceIn(0.0, 1.0)
         sectionWindowEnd = -100.0
-        sectionConfirmS = 0.0
-        if (previous.isNaN()) return
         val arrivalT = when {
             !lastT.isNaN() -> lastT
             !now.isNaN() -> now
             else -> sourceT
         }
-        if (surge && intensity >= 0.65 && intensity - previous >= 0.15) {
-            sectionWindowEnd = arrivalT + SECTION_WINDOW_S
-        }
+        if (surge) sectionWindowEnd = arrivalT + SECTION_WINDOW_S
     }
 
     fun notifyDrop(confidence01: Double = 1.0) {
@@ -101,7 +96,11 @@ class FableSolGrandWaveEventGate {
 
     fun episodeCount(): Int = episodeCount
 
+    fun episodeRepeatCount(): Int = episodeRepeats
+
     fun lastWaveTime(): Double = lastWaveT
+
+    fun audibleHistorySeconds(): Double = audibleHistoryS
 
     fun isLocalArmed(): Boolean = localArmed
 
@@ -152,6 +151,8 @@ class FableSolGrandWaveEventGate {
         }
         lastT = t
 
+        if (!frame.silent) audibleHistoryS += dt
+
         appendHistory(t, frame.energyRising01, frame.punch01)
         pruneHistory(t - 2.5)
         val rising08 = historyMean(CHANNEL_RISING, t - 0.80, t)
@@ -170,8 +171,16 @@ class FableSolGrandWaveEventGate {
         val punch = frame.punch01
         val musicMotion = max(frame.percussiveMotion01, frame.harmonicMotion01)
         val vocalOnly = frame.vocalMotion01 > musicMotion + 0.16 && musicMotion < 0.58
-        val attack = max(frame.motionContextBoost01, max(rising08, punchDelta01))
         val context = frame.motionContextBoost01
+        val physicalAttack = max(rising08, punchDelta01)
+        val attack = max(context, physicalAttack)
+        val arousal = frame.musicArousal01
+        val novelty = frame.positiveNovelty01
+        val gradeContext = frame.gradeContext01
+        val loudRelative = (
+            (frame.loudSDb - frame.loudP10Db) /
+                max(frame.loudP95Db - frame.loudP10Db, 6.0)
+            ).coerceIn(0.0, 1.5)
 
         val peakBand = state == FableSolVisualState.PEAK || state == FableSolVisualState.CLIMAX
         if (peakBand && !peakBandLast) {
@@ -203,34 +212,64 @@ class FableSolGrandWaveEventGate {
         }
 
         val sectionActive = t <= sectionWindowEnd
-        val sectionGradeOk = peakBand ||
-            (context >= 0.55 && gradeDrive01 >= 0.47 && !vocalOnly)
-        val sectionOk = sectionGradeOk && sectionActive &&
-            t - lastWaveT >= REPEAT_MIN_GAP_S &&
-            water >= 0.76 && kinetic >= 0.72 && intensity >= 0.60 &&
-            musicMotion >= 0.58 && attack >= 0.22
-        sectionConfirmS = advance(sectionConfirmS, sectionOk, dt)
-        if (sectionConfirmS >= SECTION_CONFIRM_S) {
-            fill(
-                output,
-                t,
-                FableSolGrandWaveReason.SECTION_LIFT,
-                mean5(water, kinetic, intensity, musicMotion, attack)
-            )
-            return true
-        }
-
-        val localCommon = peakBand && localArmed && !sectionActive &&
+        val localCommon = peakBand && localArmed &&
             t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly
-        val strictLocal = water >= 0.79 && kinetic >= 0.75 && intensity >= 0.64 &&
-            musicMotion >= 0.64 && attack >= LOCAL_MIN_ATTACK
-        // 强编曲新颖度可在水位慢包络尚未完全追上时桥接，但只能发生在 PEAK/CLIMAX，且仍受
-        // 14s、音乐质量和 vocal-only 门约束；普通高能平台脉冲继续使用 strictLocal。
-        val strongNoveltyBridge = context >= 0.55 && gradeDrive01 >= 0.70 &&
-            water >= 0.74 && kinetic >= 0.85 && intensity >= 0.62 && musicMotion >= 0.70
-        val localOk = localCommon && (strictLocal || strongNoveltyBridge)
+        val strictLocal = water >= LOCAL_MIN_WATER && kinetic >= LOCAL_MIN_KINETIC &&
+            intensity >= 0.64 && musicMotion >= 0.64 &&
+            physicalAttack >= LOCAL_MIN_ATTACK
+        val strongNoveltyBridge = audibleHistoryS >= NOVELTY_HISTORY_S &&
+            context >= NOVELTY_CONTEXT_MIN && gradeDrive01 >= NOVELTY_MIN_GRADE &&
+            water >= 0.74 && water < BRIDGE_MAX_WATER && kinetic >= 0.85 &&
+            intensity >= 0.62 && musicMotion >= 0.64
+        val kineticDenseBridge = context >= 0.50 && gradeDrive01 >= 0.75 &&
+            water >= 0.76 && water < BRIDGE_MAX_WATER && kinetic >= KINETIC_BRIDGE_MIN &&
+            intensity >= 0.64 && musicMotion >= 0.76
+        val massiveAttackArrival = water >= MASS_ARRIVAL_MIN_WATER &&
+            kinetic >= MASS_ARRIVAL_MIN_KINETIC && intensity >= 0.68 &&
+            gradeDrive01 >= 0.78 && musicMotion >= 0.60 &&
+            context >= MASS_ARRIVAL_MIN_CONTEXT &&
+            physicalAttack >= MASS_ARRIVAL_MIN_ATTACK
+        val midWaterContextualArrival = water >= MID_WATER_MIN && water < MID_WATER_MAX &&
+            kinetic >= MID_WATER_MIN_KINETIC && intensity >= MID_WATER_MIN_INTENSITY &&
+            gradeDrive01 >= MID_WATER_MIN_GRADE && musicMotion >= MID_WATER_MIN_MUSIC &&
+            context >= MID_WATER_MIN_CONTEXT && physicalAttack >= MID_WATER_MIN_ATTACK
+        val sectionPhraseBridge = sectionActive && context >= 0.12 &&
+            water >= 0.79 && kinetic >= 0.80 && intensity >= 0.65 && punch >= 0.80 &&
+            musicMotion >= 0.64 && attack >= 0.20
+
+        val localOk = localCommon &&
+            (strictLocal || strongNoveltyBridge || massiveAttackArrival || midWaterContextualArrival)
         localConfirmS = advance(localConfirmS, localOk, dt)
-        if (localConfirmS >= LOCAL_CONFIRM_S) {
+        val denseOk = localCommon && kineticDenseBridge
+        denseConfirmS = advance(denseConfirmS, denseOk, dt)
+        sectionPhraseConfirmS = advance(
+            sectionPhraseConfirmS,
+            localCommon && sectionPhraseBridge,
+            dt
+        )
+
+        val relativeHistoryReady = audibleHistoryS >= RELATIVE_MIN_HISTORY_S
+        val relativeNoveltyOk = novelty >= RELATIVE_MIN_NOVELTY
+        val relativeContextOk = gradeContext >= RELATIVE_MIN_GRADE_CONTEXT &&
+            gradeContext <= RELATIVE_MAX_GRADE_CONTEXT
+        val relativeLoudOk = loudRelative >= RELATIVE_MIN_LOUDNESS
+        val relativePeak = localCommon && relativeHistoryReady && relativeNoveltyOk &&
+            relativeLoudOk && relativeContextOk && water >= 0.70 && water < 0.80 &&
+            kinetic >= 0.79 && intensity >= 0.64 && gradeDrive01 >= 0.70 &&
+            musicMotion >= 0.60 && physicalAttack >= 0.19 && arousal >= 0.45
+        val relativeLift = state == FableSolVisualState.LIFT && localArmed &&
+            relativeHistoryReady && relativeNoveltyOk &&
+            t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly &&
+            relativeLoudOk && relativeContextOk && water >= 0.65 && water < 0.80 &&
+            kinetic >= 0.80 && intensity >= 0.60 && gradeDrive01 >= 0.68 &&
+            musicMotion >= 0.70 && physicalAttack >= 0.30 &&
+            context >= 0.30 && arousal >= 0.35
+        relativeConfirmS = advance(relativeConfirmS, relativePeak || relativeLift, dt)
+        if (localConfirmS >= LOCAL_CONFIRM_S ||
+            denseConfirmS >= DENSE_CONFIRM_S ||
+            relativeConfirmS >= RELATIVE_CONFIRM_S ||
+            sectionPhraseConfirmS >= SECTION_PHRASE_CONFIRM_S
+        ) {
             fill(
                 output,
                 t,
@@ -240,13 +279,46 @@ class FableSolGrandWaveEventGate {
             return true
         }
 
-        val repeatOk = peakBand && episodeCount >= 1 &&
-            episodeRepeats < REPEAT_PER_EPISODE && repeatArmed &&
-            t - lastWaveT >= REPEAT_MIN_GAP_S &&
-            water >= 0.79 && kinetic >= 0.75 && intensity >= 0.62 &&
-            punch >= 0.80 && musicMotion >= 0.58 && !vocalOnly
+        val repeatCommon = peakBand && episodeCount >= 1 && repeatArmed &&
+            t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly
+        val firstPunchRepeat = episodeRepeats == 0 &&
+            t - lastWaveT <= FIRST_REPEAT_MAX_GAP_S &&
+            water >= 0.79 && kinetic >= FIRST_REPEAT_MIN_KINETIC && intensity >= 0.62 &&
+            punch >= 0.80 && musicMotion >= 0.58 &&
+            physicalAttack >= FIRST_PUNCH_MIN_ATTACK
+        val firstKineticRepeat = episodeRepeats == 0 &&
+            t - lastWaveT <= FIRST_REPEAT_MAX_GAP_S &&
+            water >= 0.79 && kinetic >= FIRST_REPEAT_MIN_KINETIC &&
+            intensity >= 0.74 && punch >= 0.74 &&
+            musicMotion >= 0.74 && physicalAttack >= 0.24
+        val structuredLaterRepeat = episodeRepeats >= 1 && sectionActive &&
+            water >= 0.79 && kinetic >= 0.80 && intensity >= 0.65 && punch >= 0.80 &&
+            musicMotion >= 0.64 && attack >= 0.20 && context >= 0.12
+        val resurgentLaterRepeat =
+            (episodeRepeats >= 2 || (episodeRepeats >= 1 && sectionActive)) &&
+                water >= 0.82 && kinetic >= 0.80 && intensity >= 0.60 && punch >= 0.72 &&
+                musicMotion >= 0.64 && attack >= 0.30 && context >= 0.15
+        val structuredMassRepeat = episodeRepeats >= 1 && sectionActive &&
+            water >= STRUCTURED_MASS_MIN_WATER && kinetic >= 0.72 &&
+            intensity >= 0.68 && gradeDrive01 >= 0.68 &&
+            musicMotion >= 0.58 && context >= 0.12
+        val attackedLaterRepeat = episodeRepeats >= 2 &&
+            water >= ATTACKED_REPEAT_MIN_WATER && kinetic >= 0.80 &&
+            intensity >= 0.68 && punch >= 0.78 && musicMotion >= 0.64 &&
+            physicalAttack >= ATTACKED_REPEAT_MIN_ATTACK
+
+        val repeatOk = repeatCommon &&
+            (firstPunchRepeat || firstKineticRepeat || structuredLaterRepeat ||
+                structuredMassRepeat || attackedLaterRepeat)
         repeatConfirmS = advance(repeatConfirmS, repeatOk, dt)
-        if (repeatConfirmS >= REPEAT_CONFIRM_S) {
+        resurgentRepeatConfirmS = advance(
+            resurgentRepeatConfirmS,
+            repeatCommon && resurgentLaterRepeat,
+            dt
+        )
+        if (repeatConfirmS >= REPEAT_CONFIRM_S ||
+            resurgentRepeatConfirmS >= RESURGENT_REPEAT_CONFIRM_S
+        ) {
             fill(
                 output,
                 t,
@@ -262,7 +334,6 @@ class FableSolGrandWaveEventGate {
     fun resolve(request: FableSolGrandWaveRequest, accepted: Boolean) {
         clearConfirmation()
         when (request.reason) {
-            FableSolGrandWaveReason.SECTION_LIFT -> sectionWindowEnd = -100.0
             FableSolGrandWaveReason.CAUSAL_ARRIVAL -> if (!accepted) {
                 localArmed = false
                 localReleaseS = 0.0
@@ -299,9 +370,12 @@ class FableSolGrandWaveEventGate {
     }
 
     private fun clearConfirmation() {
-        sectionConfirmS = 0.0
         localConfirmS = 0.0
+        denseConfirmS = 0.0
+        relativeConfirmS = 0.0
+        sectionPhraseConfirmS = 0.0
         repeatConfirmS = 0.0
+        resurgentRepeatConfirmS = 0.0
     }
 
     private fun appendHistory(t: Double, rising: Double, punch: Double) {
@@ -365,22 +439,47 @@ class FableSolGrandWaveEventGate {
         ((a + b + c + d + e) * 0.20).coerceIn(0.0, 1.0)
 
     companion object {
-        const val SECTION_WINDOW_S = 4.5
-        const val SECTION_CONFIRM_S = 0.20
-        const val LOCAL_CONFIRM_S = 0.20
-        const val REPEAT_CONFIRM_S = 0.30
+        const val SECTION_WINDOW_S = 5.5
+        const val LOCAL_CONFIRM_S = 0.18
+        const val DENSE_CONFIRM_S = 0.05
+        const val RELATIVE_CONFIRM_S = 0.05
+        const val SECTION_PHRASE_CONFIRM_S = 0.05
+        const val REPEAT_CONFIRM_S = 0.20
+        const val RESURGENT_REPEAT_CONFIRM_S = 0.20
         const val REPEAT_MIN_GAP_S = 14.0
         const val LOCAL_RELEASE_S = 1.0
         const val PUNCH_RELEASE_S = 0.50
-        // 每个高潮 episode 最多两道巨浪：段落抬升/本地到达开局，重复短语补一道。
-        // 2026-07-21 用户裁定"比之前稍微多一些、但别太多"——段落通道保持不限次
-        // （结构证据本身足够稀有），只把无结构支撑的 repeat 通道压回每 episode
-        // 一次。实测 Lose My Mind 母带：多出来的 98.5s 与 174.8s 正是同一
-        // episode 里的第三、第四记重击。
-        const val REPEAT_PER_EPISODE = 1
-        // 本地到达（无段落、无重复短语支撑）必须有足够强的当下攻击证据。
-        // 实测录音版：想要的 54.1s attack≥0.45，多出来的 39.1s 只有 0.34。
         const val LOCAL_MIN_ATTACK = 0.40
+        const val LOCAL_MIN_WATER = 0.89
+        const val LOCAL_MIN_KINETIC = 0.875
+        const val BRIDGE_MAX_WATER = 0.84
+        const val NOVELTY_CONTEXT_MIN = 0.90
+        const val NOVELTY_MIN_GRADE = 0.70
+        const val NOVELTY_HISTORY_S = 12.0
+        const val KINETIC_BRIDGE_MIN = 0.92
+        const val MASS_ARRIVAL_MIN_WATER = 0.91
+        const val MASS_ARRIVAL_MIN_KINETIC = 0.80
+        const val MASS_ARRIVAL_MIN_ATTACK = 0.30
+        const val MASS_ARRIVAL_MIN_CONTEXT = 0.50
+        const val MID_WATER_MIN = 0.84
+        const val MID_WATER_MAX = 0.89
+        const val MID_WATER_MIN_KINETIC = 0.86
+        const val MID_WATER_MIN_INTENSITY = 0.70
+        const val MID_WATER_MIN_GRADE = 0.82
+        const val MID_WATER_MIN_MUSIC = 0.70
+        const val MID_WATER_MIN_CONTEXT = 0.75
+        const val MID_WATER_MIN_ATTACK = 0.28
+        const val RELATIVE_MIN_HISTORY_S = NOVELTY_HISTORY_S
+        const val RELATIVE_MIN_LOUDNESS = 1.0
+        const val RELATIVE_MIN_NOVELTY = 0.20
+        const val RELATIVE_MIN_GRADE_CONTEXT = 0.02
+        const val RELATIVE_MAX_GRADE_CONTEXT = 0.11
+        const val FIRST_PUNCH_MIN_ATTACK = 0.30
+        const val FIRST_REPEAT_MIN_KINETIC = 0.84
+        const val FIRST_REPEAT_MAX_GAP_S = 28.0
+        const val STRUCTURED_MASS_MIN_WATER = 0.90
+        const val ATTACKED_REPEAT_MIN_WATER = 0.88
+        const val ATTACKED_REPEAT_MIN_ATTACK = 0.38
 
         private const val HISTORY_CAPACITY = 1024
         private const val CHANNEL_RISING = 0

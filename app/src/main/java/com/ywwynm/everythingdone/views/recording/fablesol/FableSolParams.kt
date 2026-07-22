@@ -56,7 +56,8 @@ class FableSolParams {
         v("ambient_gain", 1.2); v("ambient_breath", 0.27)
         // 2026-07-21：与实时感知速度执行器重新对齐。数字静音严格为零，
         // 非静音的 +10dp/s 听感补偿由 FableSolFlowPolicy 在 K=0..0.25 平滑淡入。
-        v("idle_flow_ratio", 0.0); v("flow_gain", 1.0)
+        // D179：静息流速回归（0.24→0.18→0.0→0.10）。只抬低端，满速不变。
+        v("idle_flow_ratio", 0.16); v("flow_gain", 1.0)
         v("flow_curve", 1.0); v("flow_smooth_s", 0.36)
         v("wander_gain", 1.0); v("wall_soft", 0.6); v("tilt_calm", 0.75)
         // 踩拍只短暂加速环境纹理相位，不改写主浪相位或振幅。

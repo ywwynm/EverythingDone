@@ -68,6 +68,80 @@ class FableSolPerceptualCalibratorTest {
     }
 
     @Test
+    fun fixedDisplayProfileExpandsLoudnessMonotonicallyAndRebalancesSpectralIdentity() {
+        val profile = FableSolCaptureProfile.PHONE_CAPTURE_V1
+        assertEquals(-26.6, profile.displayLoudnessPivotDb, 0.0)
+        assertEquals(1.76, profile.displayLoudnessRatio, 0.0)
+        assertEquals(0.65, profile.displayLoudnessBlend01, 0.0)
+        assertTrue(profile.displayLoudnessDb(-18.0) > profile.displayLoudnessDb(-24.0))
+
+        val spectral = DoubleArray(4)
+        profile.displaySpectralIdentity(0.20, 0.45, 0.35, 0.58, spectral)
+        assertEquals(1.0, spectral[0] + spectral[1] + spectral[2], 1e-12)
+        assertTrue("low=${spectral[0]}", spectral[0] > 0.20)
+        assertTrue("high=${spectral[2]}", spectral[2] < 0.35)
+        assertTrue("centroid=${spectral[3]}", spectral[3] < 0.58)
+    }
+
+    @Test
+    fun displayCalibrationCannotChangeAuthoritativeRawCalibration() {
+        val rawCalibrator = FableSolPerceptualCalibrator(100.0)
+        val displayCalibrator = FableSolPerceptualCalibrator(100.0)
+        val rawInput = energeticInput().also {
+            it.loudMDb = -18.0
+            it.loudSDb = -20.0
+        }
+        val displayInput = energeticInput().also {
+            it.loudMDb = -18.0
+            it.loudSDb = -20.0
+            it.displayLoudMDb = -10.0
+            it.displayLoudSDb = -12.0
+            it.displayLoudnessBlend01 = 0.65
+        }
+
+        val raw = rawCalibrator.step(rawInput)
+        val withDisplay = displayCalibrator.step(displayInput)
+
+        assertEquals(raw.waterDrive01, withDisplay.waterDrive01, 0.0)
+        assertEquals(raw.kineticDrive01, withDisplay.kineticDrive01, 0.0)
+        assertEquals(raw.gradeDrive01, withDisplay.gradeDrive01, 0.0)
+        assertEquals(raw.liftScore01, withDisplay.liftScore01, 0.0)
+        assertEquals(raw.climaxScore01, withDisplay.climaxScore01, 0.0)
+        assertTrue(withDisplay.displayWaterDrive01 > withDisplay.waterDrive01)
+    }
+
+    @Test
+    fun displayEnvelopeAndEvidenceResetReplayExactly() {
+        val calibrator = FableSolPerceptualCalibrator(100.0)
+        val input = energeticInput().also {
+            it.displayLoudMDb = -10.0
+            it.displayLoudSDb = -12.0
+            it.displayLoudnessBlend01 = 0.65
+        }
+        val first = ArrayList<DoubleArray>()
+        repeat(160) { index ->
+            input.t = index / 100.0
+            val out = calibrator.step(input)
+            first.add(doubleArrayOf(
+                out.displayWaterDrive01,
+                out.displayGradeDrive01,
+                out.displayLiftScore01,
+                out.displayClimaxScore01
+            ))
+        }
+
+        calibrator.reset(true)
+        repeat(160) { index ->
+            input.t = index / 100.0
+            val out = calibrator.step(input)
+            assertEquals(first[index][0], out.displayWaterDrive01, 0.0)
+            assertEquals(first[index][1], out.displayGradeDrive01, 0.0)
+            assertEquals(first[index][2], out.displayLiftScore01, 0.0)
+            assertEquals(first[index][3], out.displayClimaxScore01, 0.0)
+        }
+    }
+
+    @Test
     fun analyzerDefaultsToMasterWhileExplicitCaptureRestoresDeviceLoss() {
         val sr = 44100
         val samples = DoubleArray(5 * sr) { index ->
@@ -85,6 +159,14 @@ class FableSolPerceptualCalibratorTest {
             "masterW=${master.waterDrive01} captureW=${capture.waterDrive01}",
             capture.waterDrive01 > master.waterDrive01 + 0.20
         )
+        assertEquals(master.waterDrive01, master.displayWaterDrive01, 0.0)
+        assertEquals(master.gradeDrive01, master.displayGradeDrive01, 0.0)
+        assertEquals(master.liftScore01, master.displayLiftScore01, 0.0)
+        assertEquals(master.climaxScore01, master.displayClimaxScore01, 0.0)
+        assertEquals(master.relLow, master.displayRelLow, 0.0)
+        assertEquals(master.relMid, master.displayRelMid, 0.0)
+        assertEquals(master.relHigh, master.displayRelHigh, 0.0)
+        assertEquals(master.centroid01, master.displayCentroid01, 0.0)
     }
 
     private fun energeticInput() = FableSolCalibrationInput().also {
