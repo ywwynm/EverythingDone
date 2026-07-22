@@ -79,7 +79,13 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     private var mPitchHz = 0f
     private var mPitchConfidence = 0f
     private var mPitchNormalized = 0.5f
-    private val mYinBuffer = FloatArray(YIN_MAX_TAU + 1)
+    // 2026-07-22：由写死的 44100 常量改为按实际采样率推导。采集率改成运行期协商
+    // （优先 48000）之后，写死的 73/588 会把音高范围从 75~600Hz 偏成 82~657Hz。
+    private val mYinMinTau: Int =
+        (sampleRate / YIN_MAX_HZ).toInt().coerceAtLeast(2)
+    private val mYinMaxTau: Int =
+        (sampleRate / YIN_MIN_HZ).toInt().coerceAtLeast(mYinMinTau + 1)
+    private val mYinBuffer = FloatArray(mYinMaxTau + 1)
 
     init {
         val nyquist = FFT_SIZE / 2
@@ -433,14 +439,14 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             return
         }
         val available = mSampleCount.coerceAtMost(FFT_SIZE)
-        if (available < YIN_MAX_TAU * 2) return
+        if (available < mYinMaxTau * 2) return
         val start = (mWriteIndex - available + FFT_SIZE) % FFT_SIZE
         val w = available
         // 差分函数
         mYinBuffer[0] = 1f
         var runningSum = 0f
         var bestTau = -1
-        for (tau in YIN_MIN_TAU..YIN_MAX_TAU) {
+        for (tau in mYinMinTau..mYinMaxTau) {
             var d = 0f
             var j = 0
             val lim = w - tau
@@ -454,9 +460,9 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
             runningSum += d
             mYinBuffer[tau] = if (runningSum > 1e-9f) d * tau / runningSum else 1f
             if (mYinBuffer[tau] < YIN_THRESHOLD &&
-                (tau == YIN_MIN_TAU || mYinBuffer[tau] <= mYinBuffer[tau - 1])) {
+                (tau == mYinMinTau || mYinBuffer[tau] <= mYinBuffer[tau - 1])) {
                 // 继续到局部极小
-                if (tau + 1 <= YIN_MAX_TAU) {
+                if (tau + 1 <= mYinMaxTau) {
                     // 简化：找到首个低于阈值即接受
                 }
                 bestTau = tau
@@ -466,7 +472,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         if (bestTau < 0) {
             // 取全局最小作为兜底（低置信）
             var minVal = Float.MAX_VALUE; var minTau = -1
-            for (tau in YIN_MIN_TAU..YIN_MAX_TAU) {
+            for (tau in mYinMinTau..mYinMaxTau) {
                 if (mYinBuffer[tau] < minVal) { minVal = mYinBuffer[tau]; minTau = tau }
             }
             if (minTau < 0 || minVal > YIN_FALLBACK_MAX) { mPitchConfidence *= PITCH_CONF_DECAY; return }
@@ -482,7 +488,7 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
     }
 
     private fun parabolicTau(tau: Int): Float {
-        if (tau <= YIN_MIN_TAU || tau >= YIN_MAX_TAU) return tau.toFloat()
+        if (tau <= mYinMinTau || tau >= mYinMaxTau) return tau.toFloat()
         val s0 = mYinBuffer[tau - 1]; val s1 = mYinBuffer[tau]; val s2 = mYinBuffer[tau + 1]
         val denom = 2f * (2f * s1 - s0 - s2)
         if (abs(denom) < 1e-9f) return tau.toFloat()
@@ -620,8 +626,9 @@ class WaveAudioAnalyzerOpus(private val sampleRate: Int) {
         private const val PITCH_EVERY = 3
         private const val PITCH_MIN_HZ = 75f
         private const val PITCH_MAX_HZ = 600f
-        private const val YIN_MIN_TAU = 73    // 44100/600
-        private const val YIN_MAX_TAU = 588   // 44100/75
+        // 人声/乐音音高范围（Hz）；tau 上下界由实际采样率推导，见 mYinMinTau/mYinMaxTau。
+        private const val YIN_MIN_HZ = 75.0
+        private const val YIN_MAX_HZ = 600.0
         private const val YIN_THRESHOLD = 0.16f
         private const val YIN_FALLBACK_MAX = 0.55f
         private const val PITCH_LEVEL_GATE = 0.08f

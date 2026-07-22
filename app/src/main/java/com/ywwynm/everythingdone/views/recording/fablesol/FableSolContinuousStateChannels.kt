@@ -167,12 +167,16 @@ internal class FableSolContinuousStateChannels {
             var nextValue = decay * (j0 + j1 * elapsed) + goal
             var nextVelocity = decay * (velocity - j1 * y * elapsed)
             if (hasSlew) {
+                // 软饱和，不硬钳位。硬钳位每帧把 velocity 改写成 ±slew，下一帧
+                // 弹簧又从这个被压低的速度算出更大的位移，于是在"贴限速"和
+                // "弹簧自由"之间逐帧来回跳（2026-07-22 实测：33% 的帧贴着限速，
+                // |加速度| 峰值 434dp/s²，肉眼就是水位涨到一半"卡一下、抽搐一下"）。
+                // softLimit 是 C∞ 的：常用区间几乎不动，接近上限时平滑收住，
+                // 速度与位移始终一致，不会再产生逐帧交替。
                 val delta = slewPerS * elapsed
-                val clipped = nextValue.coerceIn(old - delta, old + delta)
-                if (clipped != nextValue) {
-                    nextVelocity = (clipped - old) / elapsed
-                    nextValue = clipped
-                }
+                val limited = FableSolCubicResampler.softLimit(nextValue - old, delta)
+                nextValue = old + limited
+                nextVelocity = limited / elapsed
             }
             value = nextValue
             velocity = nextVelocity

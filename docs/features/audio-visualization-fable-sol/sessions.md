@@ -2638,3 +2638,101 @@ worker 承担 19906/27000 个单元），所以并行是真的在跑，但**竞�
   发布记录。Python 仓库（audioVisualizerSimulatorFable）同步提交 D172 零神经因果
   七境解码轮，提交前复跑全量 pytest：281 passed + 23 subtests。
 - 两笔提交按用户指定共同署名：GPT 5.6 Sol 在前、Claude Fable 5 在后。
+
+## 2026-07-21（十一）五项观感修正 + Python/Android 实时 parity 审计
+
+- **先定量再动手**。新建 `scratch/av_probe.py`（真实音频离屏回放，逐帧记录
+  state/流速/九层高度，量化流速、巨浪、响应时延、改形残差、波峰高宽比五项指标）、
+  `scratch/churn_source.py`（冻结音频 vs 真实音频，分离"音频驱动改形"与"场固有色散"）、
+  `scratch/ablate_churn.py` / `ab_steepness.py` / `ab_hero_churn.py`（逐项消融）。
+  基线：安静段 L0 流速 1.8dp/s（穿屏 176 秒）；母带巨浪 6 次（多出 98.5s / 174.8s）、
+  录音版 2 次（多出 39.1s）；PEAK 段驻留 2.7s 而期间平均 water 仅 0.17；深层流速比
+  近层慢 20.4 秒；CLIMAX 波峰 height/width p90 = 0.134（Stokes 破碎线是 0.142）。
+- **五项修改见 D173**。Python 全量 pytest 287 passed + 26 subtests；
+  `grand_wave_audio_validation` 八项检查全绿（母带 4 次、录音版 1 次、HOYO 保留 143.3s）。
+  三处测试随契约更新：流速锚点表、巨浪"长高潮可反复"改为"每 episode 一道"、
+  静默期解码器 posterior 会像正常帧一样重新绑定（并新增"静默必须立刻开始退潮"一项）。
+  `test_audio_visual_continuity` 的二阶差分软界 10 → 13：直接的尖点判据
+  （相邻切线夹角）只从 2.25° 动到 2.37°，最差邻域是单调的边缘斜坡而非尖峰。
+- **parity 审计**：详见 `analysis-2026-07-21-python-android-runtime-parity.md`。
+  新增 Android 侧 JVM 离线回放探针 `FableSolAudioTimelineProbe`（默认跳过，
+  靠三个 `-Dfablesol.probe.*` 属性启用，`app/build.gradle` 已透传）与 Python 侧
+  `scratch/rt_probe.py`，两端同口径导出 CSV 比对。定位到唯一实质差异：Python
+  缺少 Android 的采集启动抑制与底噪播种，导致 −51dB 的房间底噪被当成音乐几十秒
+  （K01 0.83、水流 130dp/s）。回移后状态一致率 73.0% → 92.9%，水位差 10.5 → 3.1dp，
+  巨浪次数 2 vs 1 → 1 vs 1。
+- **结论**：耦合逻辑两端本就一致，用户看到的"Android 更夸张"来自输入域差异
+  （手机麦克风 + `PHONE_CAPTURE_V1` 校正 vs 笔记本麦克风）叠加 Python 少了启动抑制。
+  同一个 WAV 喂进去，Python 同样会因那次咳嗽进入 CLIMAX——所以那是本轮问题 3/5
+  的表现，两端一并修好。
+- Android 侧同步 D173 全部五项，`:app:assembleDebug` + 全量 `:app:testDebugUnitTest`
+  通过（223 项、1 skip）。CPU 帧成本探针（桌面 JVM 相对口径）：`sim.update`
+  11.1 → 12.0µs，其余阶段在噪声内；逐组包络输运把索引循环从 1 遍变 3 遍，是唯一
+  新增开销，占 120fps 预算的 0.15%。
+
+## 2026-07-22 用户新录音复现"两端差异巨大"，定位为 WAV 缺前导 + 两个真实缺陷
+
+- 用户给出 `20260722001826.wav` 并自问"是不是 android 录制时读到的音频跟最终 wav
+  不一样"。**是的**：`AudioRecorder.RecordingThread` 从 `startListening()` 就喂
+  FableSol 分析器，却只在 `mIsRecording` 之后写文件（见 D174 与
+  `analysis-2026-07-22-live-vs-recorded-wav.md`）。新增 `scratch/preroll_test.py`
+  做对照：同一段音频只改前导，就能在"最多 CLIMAX 0.9 秒"和"几乎全程满水位"之间切换。
+- 两个由此暴露的真实缺陷已修：水位缺"贴地过渡"（贴着底噪的房间声会直接撑满水位）、
+  `CriticalSpring` 的限速硬钳位在抖动（33.2% 的帧贴限速、|加速度| 峰值 434dp/s²，
+  就是用户说的"卡一下、抽搐一下"）。修复后贴限速帧 0%，双端 PEAK/CLIMAX 档一致 100%、
+  `level` mean|Δ| 0.48dp。
+- **踩坑记录**：中途用 `(Get-Content x.py) | Set-Content -Encoding utf8 x.py` 删两行，
+  把 `features.py` 一千六百行的中文注释全毁了（PS 5.1 按 ANSI 读 UTF-8，再写回，
+  无映射字节已变 `?`，**转码无法逆转**）。当时全部改动未提交，只能 `git checkout`
+  回退后手工重放本轮八处编辑。此后改文件一律走 Edit/Write，批量改写用 Python 脚本。
+- 复验：Python 287 passed + 26 subtests；巨浪验证八项全绿（母带 4 次、录音版 1 次）；
+  Android `:app:assembleDebug` + 全量 `:app:testDebugUnitTest` 通过。
+
+## 2026-07-22（二）第三段录音：离线路径丢 hop + 采集采样率，双端在 48kHz 上对齐
+
+- 用户第三段录音（开 dialog 后立刻录，前导极短）仍不一致。三条路径实测把问题劈开：
+  Android 实时 3 道巨浪、Python **实时链** 3 道（与 Android 98.5% 一致）、Python
+  **离线路径**只有 1 道。**所以不是 Android vs Python，是实时链 vs 离线路径。**
+- 离线路径两处缺陷（见 D175）：把因果特征 hold 到 librosa 的 43Hz 网格上丢掉一半 hop；
+  `OfflineDirector.drive` 每渲染帧只喂最后一个 hop。修完后离线 ≡ 实时（同采样率下
+  状态一致 99.5%、相关 1.000）。顺带发现并修了 `tools/av_probe.py` 绕过 `drive()`
+  导致**完全不回放 onset**——此前几轮离线测量都偏低。
+- 剩余差异全部是采样率（44.1k 3 道 vs 48k 1 道）。**用户提出"为什么不是让 Android 改
+  48kHz"，采纳**：现代 Android HAL 原生 48kHz，请求 44100 会插一层重采样抹平瞬态；
+  且全部标定都在 48kHz 上做，改设备才是让真机对上工具。实现为运行期协商
+  `[48000, 44100]`（不能直接改常量：不支持时 `getMinBufferSize` 返回 ERROR_BAD_VALUE、
+  旧代码会静默录不到音），实际值贯穿三个分析器与 WAV 头；顺带修 Opus 分析器里按
+  44100 写死的 YIN tau 上下界。
+- 48kHz 输入下双端 water/flow/level 相关 1.000、`level` mean|Δ| 0.021dp、巨浪 1 vs 1。
+  Python 287 tests + 巨浪验证 8/8；Android assembleDebug + 全量单测通过。
+  `grade_drive01` 仍有 0.05 均值差，已记 followups。
+
+## 2026-07-22（第九节）分析链 parity 收口：三个真 bug，Android 侧零改动
+
+承接前一节的 D175。用户当天用"打开录音界面后立刻点录"的方式又录了两段，两端仍然
+对不上：真机一上来就有巨浪、水位高，模拟器打开同一个 wav 什么都没有。
+
+**排查路径**（值得记下来，因为分岔点在这里）：先把"Android vs Python"这个提法拆成
+三条路径分别测——Android 实时、Python **实时链**、Python **离线路径**（GUI 打开文件
+走的这条）。结果是 Android 3 道巨浪、Python 实时链 3 道（与 Android 98.5% 一致）、
+Python 离线路径只有 1 道。**所以根本不是 Android vs Python，是实时链 vs 离线路径。**
+这一步把问题域缩小了一个数量级。
+
+随后逐层剥：改 onset 来源→只动了 `wave_scale` 一点点；补齐音色字段→仍然不动；
+于是把 timeline 的因果字段与实时链的 hop 流**逐 hop 对拍**，发现连 `water_drive01`
+都不一致——问题在更上游。再往上，做**喂入块大小的不变性测试**（512/1024/4096 vs
+8192），抓到 `grade_drive01` 差 0.16；最后做**解码入口逐样本对拍**，比值中位
+`0.70710677` = 1/√2，`ffmpeg -ac 2` 的等功率上混，−3.01dB 实锤。
+
+三个 bug 与验证结果见 D176。要点是它们都不是调参问题，而且解码那个 −3dB 正是用户
+从一开始就在说的"android 水位比 python 高不少"。
+
+**本轮 Android 侧零改动**，因此没有发布阿里云（用户裁定：App 行为没变就不必发）。
+
+**方法教训**：
+- "A 和 B 不一样"这类报告，第一步永远是把 A、B 各自拆成可独立测量的路径，而不是
+  直接去比 A 和 B。这次三分之后，问题在第一步就定位到了离线路径。
+- 我在本轮之前用 `tools/av_probe.py` 报过几轮离线数值，而当时那个探针**绕过了
+  `drive()`、完全不回放 onset**——所以那几轮数字都偏低。自制探针必须先证明它走的是
+  和产品同一条路径，否则它测的是它自己。
+- 上一节把"离线 ≡ 实时"写成了结论，其实只在一个文件上验过。一个样本不叫等价。

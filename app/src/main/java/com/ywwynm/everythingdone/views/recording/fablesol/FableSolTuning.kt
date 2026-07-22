@@ -88,7 +88,7 @@ object FableSolTuning {
             Spec("swell_presmooth_s", R.string.fablesol_param_swell_presmooth_s, "s", 0.10, 2.00, 0.01),
             Spec("swell_presmooth_release_s", R.string.fablesol_param_swell_presmooth_release_s, "s", 0.20, 4.00, 0.05),
             Spec("swell_halflife_s", R.string.fablesol_param_swell_halflife_s, "s", 1.5, 10.0, 0.5),
-            Spec("deep_integral_s", R.string.fablesol_param_deep_integral_s, "s", 10.0, 60.0, 1.0),
+            Spec("deep_integral_s", R.string.fablesol_param_deep_integral_s, "s", 6.0, 60.0, 1.0),
             Spec("swell_deadband_pct", R.string.fablesol_param_swell_deadband_pct, "%", 0.0, 15.0, 0.5),
             Spec("swell_attack_s", R.string.fablesol_param_swell_attack_s, "s", 0.02, 1.20, 0.01),
             Spec("swell_release_s", R.string.fablesol_param_swell_release_s, "s", 0.10, 3.00, 0.01),

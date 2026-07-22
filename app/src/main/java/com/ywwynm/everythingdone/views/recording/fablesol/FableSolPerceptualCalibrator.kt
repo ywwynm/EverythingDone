@@ -28,6 +28,11 @@ class FableSolCalibrationInput {
     @JvmField var punch01 = 0.0
     @JvmField var lowShare01 = 0.0
     @JvmField var domainGradeTrim01 = 0.0
+    /**
+     * A 计权安全通道给出的"本帧比底噪高多少 dB"。水位用它做贴地衰减；
+     * 缺省 999 表示调用方未提供（合成帧/旧测试），此时不做任何折减。
+     */
+    @JvmField var aboveFloorDb = 999.0
 }
 
 /** 原地写入的实时感知输出。 */
@@ -188,7 +193,13 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         val loudMomentary01 = fixedLoudness01(input.loudMDb)
         val transientDelta = max(loudMomentary01 - loudAbsolute, 0.0)
         val transientBoost = min(0.90 * relativeLoudnessMix, 0.35) * transientDelta
-        val loudRaw = clip01(loudAbsolute + transientBoost)
+        // 贴地衰减（2026-07-22）：只比底噪高一点点的内容不该撑满水位。采集档给
+        // 低频加了 18dB 搁架、又整体 +10.5dB，房间轰鸣的 K 计权短时响度足以落进
+        // 满刻度区；此前唯一的拦截是 A 计权静音门，门一开水位就直接冲到 ~1.0，
+        // 中间没有过渡——真机上就是"水位几乎一直都是满的"。这条连续折减让水位
+        // 随"高出底噪多少 dB"平滑起来，真正的说话/音乐（远高于 14dB）不受影响。
+        val loudRaw = clip01(loudAbsolute + transientBoost) *
+            smoothstep(0.0, NEAR_FLOOR_SPAN_DB, input.aboveFloorDb)
         val loudTarget = if (input.silent) 0.0 else loudRaw
         loudness01 = follow(loudness01, loudTarget, if (loudTarget > loudness01) 0.120 else 1.200)
 
@@ -526,6 +537,8 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         const val DEFAULT_RELATIVE_MIX = 0.20
         private const val LOUDNESS_FLOOR_DB = -30.0
         private const val LOUDNESS_CEILING_DB = -2.0
+        /** 贴地余量：内容高出 A 计权底噪不足这么多 dB 时，水位按 smoothstep 连续折减。 */
+        const val NEAR_FLOOR_SPAN_DB = 14.0
 
         fun fixedLoudness01(valueDb: Double): Double = clip01(
             (valueDb - LOUDNESS_FLOOR_DB) / (LOUDNESS_CEILING_DB - LOUDNESS_FLOOR_DB))

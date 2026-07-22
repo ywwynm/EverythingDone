@@ -100,6 +100,16 @@ android {
                 systemProperty 'fablesol.perf', perfFlag
                 testLogging { showStandardStreams = true }
             }
+            // 音画耦合离线回放探针（Android/Python parity 比对）：只有显式传三个
+            // fablesol.probe.* 属性时才产出 CSV，常规单测不受影响。
+            ['fablesol.probe.wav', 'fablesol.probe.out',
+             'fablesol.probe.profile'].each { key ->
+                def value = System.getProperty(key)
+                if (value != null) {
+                    systemProperty key, value
+                    testLogging { showStandardStreams = true }
+                }
+            }
         }
     }
 }

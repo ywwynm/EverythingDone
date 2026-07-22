@@ -28,6 +28,8 @@ class FableSolGrandWaveEventGate {
     private var dropConfidence = 0.0
     private var peakBandLast = false
     private var episodeCount = 0
+    /** 本 episode 内已发出的重复短语巨浪次数，上限 [REPEAT_PER_EPISODE]。 */
+    private var episodeRepeats = 0
     private var localArmed = true
     private var localReleaseS = 0.0
     private var repeatArmed = false
@@ -46,6 +48,7 @@ class FableSolGrandWaveEventGate {
         dropConfidence = 0.0
         peakBandLast = false
         episodeCount = 0
+        episodeRepeats = 0
         localArmed = true
         localReleaseS = 0.0
         repeatArmed = false
@@ -220,7 +223,7 @@ class FableSolGrandWaveEventGate {
         val localCommon = peakBand && localArmed && !sectionActive &&
             t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly
         val strictLocal = water >= 0.79 && kinetic >= 0.75 && intensity >= 0.64 &&
-            musicMotion >= 0.64 && attack >= 0.28
+            musicMotion >= 0.64 && attack >= LOCAL_MIN_ATTACK
         // 强编曲新颖度可在水位慢包络尚未完全追上时桥接，但只能发生在 PEAK/CLIMAX，且仍受
         // 14s、音乐质量和 vocal-only 门约束；普通高能平台脉冲继续使用 strictLocal。
         val strongNoveltyBridge = context >= 0.55 && gradeDrive01 >= 0.70 &&
@@ -237,7 +240,8 @@ class FableSolGrandWaveEventGate {
             return true
         }
 
-        val repeatOk = peakBand && episodeCount >= 1 && repeatArmed &&
+        val repeatOk = peakBand && episodeCount >= 1 &&
+            episodeRepeats < REPEAT_PER_EPISODE && repeatArmed &&
             t - lastWaveT >= REPEAT_MIN_GAP_S &&
             water >= 0.79 && kinetic >= 0.75 && intensity >= 0.62 &&
             punch >= 0.80 && musicMotion >= 0.58 && !vocalOnly
@@ -271,6 +275,9 @@ class FableSolGrandWaveEventGate {
         }
         if (!accepted) return
         episodeCount += 1
+        if (request.reason == FableSolGrandWaveReason.PEAK_PHRASE_REPEAT) {
+            episodeRepeats += 1
+        }
         lastWaveT = request.audioT
         sectionWindowEnd = -100.0
         localArmed = false
@@ -283,6 +290,7 @@ class FableSolGrandWaveEventGate {
         val recentPrePeakAccent = t - lastWaveT < REPEAT_MIN_GAP_S
         if (!recentPrePeakAccent) {
             episodeCount = 0
+            episodeRepeats = 0
             localArmed = true
         }
         repeatArmed = false
@@ -364,6 +372,15 @@ class FableSolGrandWaveEventGate {
         const val REPEAT_MIN_GAP_S = 14.0
         const val LOCAL_RELEASE_S = 1.0
         const val PUNCH_RELEASE_S = 0.50
+        // 每个高潮 episode 最多两道巨浪：段落抬升/本地到达开局，重复短语补一道。
+        // 2026-07-21 用户裁定"比之前稍微多一些、但别太多"——段落通道保持不限次
+        // （结构证据本身足够稀有），只把无结构支撑的 repeat 通道压回每 episode
+        // 一次。实测 Lose My Mind 母带：多出来的 98.5s 与 174.8s 正是同一
+        // episode 里的第三、第四记重击。
+        const val REPEAT_PER_EPISODE = 1
+        // 本地到达（无段落、无重复短语支撑）必须有足够强的当下攻击证据。
+        // 实测录音版：想要的 54.1s attack≥0.45，多出来的 39.1s 只有 0.34。
+        const val LOCAL_MIN_ATTACK = 0.40
 
         private const val HISTORY_CAPACITY = 1024
         private const val CHANNEL_RISING = 0

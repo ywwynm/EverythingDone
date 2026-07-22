@@ -58,6 +58,17 @@ open class AudioRecorder(private val appContext: Context?) {
 
     private var mBufSize: Int = 0
 
+    /**
+     * 实际协商到的采集采样率（[RECORDING_SAMPLE_RATES] 里第一个真正 INITIALIZED 的）。
+     *
+     * 2026-07-22：由 44100 常量改为运行期协商，优先 48000。现代 Android 的音频 HAL
+     * 原生跑 48kHz，请求 44100 会让框架插一个重采样器——而重采样恰好抹平瞬态，
+     * 偏偏 FableSol 的巨浪门就靠 punch / energy_rising 这类瞬态证据判定。同时
+     * Python 模拟器的全部标定（含母带四个巨浪窗口）都在 48kHz 上做，设备对齐到
+     * 48kHz 才是让真机对上工具。三个分析器与 WAV 头都吃这个运行期值。
+     */
+    private var mSampleRate: Int = RECORDING_SAMPLE_RATES[0]
+
     private val mWaveReceivers: MutableList<RecordingWaveFrameReceiver> = ArrayList()
     private val mOpusReceivers: MutableList<WaveFrameReceiverOpus> = ArrayList()
     private val mFableSolReceivers: MutableList<FableSolFrameReceiver> = ArrayList()
@@ -128,36 +139,45 @@ open class AudioRecorder(private val appContext: Context?) {
 
     private fun initAudioRecord() {
         // D6：单声道采集（多数手机 stereo 只是复制单声道，mono 减半数据/计算，特征全可从单声道得出）。
-        val bufSize: Int = AudioRecord.getMinBufferSize(
-                RECORDING_SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-        )
-        if (bufSize <= 0) return
+        // 采样率优先 48000、回退 44100：不能直接把常量改成 48000，万一某台设备的
+        // AudioRecord 不支持，getMinBufferSize 会返回 ERROR_BAD_VALUE，旧写法直接
+        // return 就是**静默录不到音**。协商到的值写进 mSampleRate，贯穿三个分析器与 WAV 头。
+        for (rate in RECORDING_SAMPLE_RATES) {
+            val bufSize: Int = AudioRecord.getMinBufferSize(
+                    rate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+            )
+            if (bufSize <= 0) continue
 
-        // 依次尝试候选采集源，直到某个真正 INITIALIZED；避免"报告支持但实际失败"时静默无数据。
-        for (source in candidateSources()) {
-            val record: AudioRecord = try {
-                AudioRecord(
-                        source,
-                        RECORDING_SAMPLE_RATE,
-                        AudioFormat.CHANNEL_IN_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT,
-                        bufSize
-                )
-            } catch (e: Exception) {
-                continue
+            // 依次尝试候选采集源，直到某个真正 INITIALIZED；避免"报告支持但实际失败"时静默无数据。
+            for (source in candidateSources()) {
+                val record: AudioRecord = try {
+                    AudioRecord(
+                            source,
+                            rate,
+                            AudioFormat.CHANNEL_IN_MONO,
+                            AudioFormat.ENCODING_PCM_16BIT,
+                            bufSize
+                    )
+                } catch (e: Exception) {
+                    continue
+                }
+                if (record.state == AudioRecord.STATE_INITIALIZED) {
+                    mAudioRecord = record
+                    mBufSize = bufSize
+                    mSampleRate = rate
+                    // 无论哪种源都尝试关 AGC/NS/AEC：AGC 实时压动态、NS 削小声/高频，都会抹平"大声 vs 小声"。
+                    // 部分定制 ROM 在 HAL 层压、关不掉（setEnabled 返回成功却无效），此时靠可视化侧半绝对映射兜底（D21）。
+                    val preproc = disablePreprocessing(record.audioSessionId)
+                    if (BuildConfig.DEBUG) {
+                        Log.i(TAG, "AudioRecord source=$source rate=$rate " +
+                                "preferMic=$PREFER_MIC preproc=$preproc")
+                    }
+                    return
+                }
+                try { record.release() } catch (_: Exception) {}
             }
-            if (record.state == AudioRecord.STATE_INITIALIZED) {
-                mAudioRecord = record
-                mBufSize = bufSize
-                // 无论哪种源都尝试关 AGC/NS/AEC：AGC 实时压动态、NS 削小声/高频，都会抹平"大声 vs 小声"。
-                // 部分定制 ROM 在 HAL 层压、关不掉（setEnabled 返回成功却无效），此时靠可视化侧半绝对映射兜底（D21）。
-                val preproc = disablePreprocessing(record.audioSessionId)
-                if (BuildConfig.DEBUG) Log.i(TAG, "AudioRecord source=$source preferMic=$PREFER_MIC preproc=$preproc")
-                return
-            }
-            try { record.release() } catch (_: Exception) {}
         }
     }
 
@@ -306,7 +326,7 @@ open class AudioRecorder(private val appContext: Context?) {
 
             // D6：单声道，channels=1、byteRate 相应减半。
             writeWaveFileHeader(out, audioLength, dataLength,
-                    RECORDING_SAMPLE_RATE.toLong(), 1, (16 * RECORDING_SAMPLE_RATE * 1 / 8).toLong())
+                    mSampleRate.toLong(), 1, (16 * mSampleRate * 1 / 8).toLong())
 
             val data = ByteArray(mBufSize)
 
@@ -417,12 +437,13 @@ open class AudioRecorder(private val appContext: Context?) {
     ) : Thread() {
 
         var time: Long = System.currentTimeMillis()
-        private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(RECORDING_SAMPLE_RATE)
+        // 三个分析器都吃运行期协商到的采样率（各自内部由 sr 推导频段、帧率与滤波器）。
+        private val mAnalyzer: RecordingAudioAnalyzer = RecordingAudioAnalyzer(mSampleRate)
         private val mOpusAnalyzer: WaveAudioAnalyzerOpus =
-            WaveAudioAnalyzerOpus(RECORDING_SAMPLE_RATE)
+            WaveAudioAnalyzerOpus(mSampleRate)
         private val mFableSolAnalyzer: FableSolRealtimeAnalyzer =
             FableSolRealtimeAnalyzer(
-                RECORDING_SAMPLE_RATE,
+                mSampleRate,
                 FableSolCaptureProfile.PHONE_CAPTURE_V1
             )
         private var mLastLogTime: Long = 0L
@@ -1233,7 +1254,14 @@ open class AudioRecorder(private val appContext: Context?) {
         // 两种模式现在都会尝试关 AGC/NS/AEC 以保留动态（D21）；能否真正关掉由 disablePreprocessing 的 log 判断。
         private const val PREFER_MIC: Boolean = true
 
-        private const val RECORDING_SAMPLE_RATE: Int = 44100
+        /**
+         * 采集采样率候选，按优先级排列；实际生效值见 [mSampleRate]。
+         *
+         * 48000 在前：现代 Android 的音频 HAL 原生就是 48kHz，请求 44100 会让框架
+         * 插一层重采样，把瞬态抹平（FableSol 的巨浪门正是靠瞬态证据判定）。44100
+         * 保留为兼容回退——它是 AudioRecord 唯一被规范保证支持的采样率。
+         */
+        private val RECORDING_SAMPLE_RATES: IntArray = intArrayOf(48000, 44100)
         private const val DEBUG_FRAME_LOG_INTERVAL_MS: Long = 400L
         private const val VISUAL_READ_FRAMES: Int = 512
         private const val RECORDING_BYTES_PER_FRAME: Int = 2  // 单声道 16-bit

@@ -341,3 +341,26 @@
   跨层共享写（线程交错不保证发生），现有保障是结构门禁 + 逐项共享写审计。若将来往
   `perFrameLayer` / `physicsLayerStep` / `LayerScratch` 里加新状态，必须人工复核归属，
   不能依赖测试变红。
+
+- ~~**`grade_drive01` 两端仍有 0.05 均值差（2026-07-22，D175 之后）**~~ **已解决
+  （2026-07-22，D176）**。当时"怀疑来自 Python 侧可选人声模型路径"的方向是对的，但
+  机制猜错了：不是"模型存在与否"这么简单，而是**该模型的推理排程跟着喂入块边界跑**
+  （`now = time_base + samples_seen/sr` 取块尾时刻，推理窗口又取"当前缓冲最后 3 秒"）。
+  Android 每次 feed 512 帧、Python 离线前端 8192，实测三种块长下 `grade_drive01`
+  最大差 **0.16**（PEAK 阈值才 0.54）。而 Android 侧根本没有这个模型
+  （`FableSolCausalStateEvidence` 只用 DSP `vocalSolo`、assets 无任何 onnx），模拟器
+  却在自动加载——已改为默认不加载，并新增块无关性门禁
+  （Python `tests/test_feed_chunk_invariance.py`）。同轮还修掉解码 −3dB 与离线路径
+  降采样两项，现全通道相关 1.000、状态一致 100.0%。详见 Python 侧 ADR-0019。
+
+- **`CaptureInputProfile.loudness_trim_db = 10.5` 可能需要重新拟合（2026-07-22）**：
+  该值是在**偏低 3.01dB** 的离线路径上标定的（`ffmpeg -ac 2` 对单声道走等功率律，
+  每声道乘 1/√2），而真机直接读 PCM、从来没有这 3dB 亏损。也就是说真机一直比这个
+  标定假设的热 3dB。解码 bug 已修，但 trim 本身是否要跟着降尚未评估——需要重新拟合的
+  话会影响所有 capture 输入的响度基准。评估前不要改动该常量。
+
+- **旧的 44.1kHz 录音 fixture 已失效（2026-07-22）**：
+  `20260707165742.wav` 不再是有效的 parity 参照——模拟器会把它重采样到 48k，Android
+  探针按原生 44.1k 读，两端分析的已不是同一个东西（实测 Android 只有一道 18.63s 巨浪）。
+  `tools/grand_wave_audio_validation.py` 的 `CAPTURE_WINDOWS` 因此是陈旧的（该脚本是
+  独立工具，**不在 pytest 门禁内**，不会让测试变红）。用户将重录 48kHz 版本后替换。

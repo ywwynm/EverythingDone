@@ -86,6 +86,8 @@ class FableSolLayerSim(index: Int) {
     @JvmField var swellDp = 0.0
     @JvmField var swellTargetDp = 0.0
     @JvmField var flowDps = 0.0
+    /** 声像几何位移的限速状态（见 Simulation.perFrame）。 */
+    @JvmField var panShiftDp = 0.0
     @JvmField internal val pending = ArrayList<FableSolPending>()
 
     @JvmField var lagShape = DoubleArray(N_POINTS) { 1.0 }   // 由 Simulation 初始化
@@ -783,10 +785,30 @@ class FableSolSimulation(private val p: FableSolParams) {
             if (bandTarget[0] + bandTarget[1] + bandTarget[2] < 1e-6 && ls.heroTargetDp > 0.0) {
                 bandTarget[0] = ls.heroTargetDp * 0.48; bandTarget[1] = ls.heroTargetDp * 0.34; bandTarget[2] = ls.heroTargetDp * 0.18
             }
-            val totalB = bandTarget[0] + bandTarget[1] + bandTarget[2]
+            var totalB = bandTarget[0] + bandTarget[1] + bandTarget[2]
             if (totalB > 1.25 * heroMax && totalB > 1e-6) {
                 val f = 1.25 * heroMax / totalB
                 for (j in 0 until 3) bandTarget[j] *= f
+                totalB = 1.25 * heroMax
+            }
+            // 陡峭度红线（2026-07-21）：每个尺度组的振幅不得超过它自己波长允许的
+            // 高度，被削掉的能量转给还有余量的更长模态。于是响度上去时浪会变高，
+            // 但高度只能长在长浪上——"要高就必须也宽"，而不是把短浪拉尖。
+            val ceiling = ls.hero.bandCeilingDp
+            var cappedSum = 0.0
+            var headroomSum = 0.0
+            for (j in 0 until 3) {
+                val capped = min(bandTarget[j], ceiling[j])
+                bandTarget[j] = capped
+                cappedSum += capped
+                headroomSum += ceiling[j] - capped
+            }
+            val spare = totalB - cappedSum
+            if (spare > 1e-9 && headroomSum > 1e-9) {
+                val share = min(spare / headroomSum, 1.0)
+                for (j in 0 until 3) {
+                    bandTarget[j] += (ceiling[j] - bandTarget[j]) * share
+                }
             }
             for (j in 0 until 3) {
                 val risingB = bandTarget[j] > ls.heroBandDp[j]
@@ -810,7 +832,15 @@ class FableSolSimulation(private val p: FableSolParams) {
                 p.lget("ambient_amp_dp", ls.i) * ambientGain * breathGain,
                 ambientBreath, amb)
             val lagK = ls.thetaEff - thRender
-            val spatialShift = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
+            // 声像位移会把整片已显示的主浪一起横向平移，最多 ±24dp。pan01 的
+            // 时间常数只有 0.22s，立体声像一动，屏幕里的浪就整体瞬移——正是
+            // "已有的浪不该瞬间改变"要禁止的东西。这里对几何位移单独限速：
+            // 每秒最多走 PAN_SHIFT_SLEW_DPS，读作缓慢的声场偏移而不是跳变。
+            // 光学（pan01 本身）不受影响，仍按 0.22s 跟随。
+            val panGoal = (pan01 - 0.5) * 48.0 * (0.35 + 0.65 * ls.depth01)
+            val panDelta = PAN_SHIFT_SLEW_DPS * dt
+            ls.panShiftDp += (panGoal - ls.panShiftDp).coerceIn(-panDelta, panDelta)
+            val spatialShift = ls.panShiftDp
             val heroShiftedX = ls.heroShiftedX
             for (n in 0 until N_POINTS) heroShiftedX[n] = uGrid[n] + spatialShift
             val hero = ls.heroSampleDp
@@ -860,41 +890,46 @@ class FableSolSimulation(private val p: FableSolParams) {
         }
     }
 
+    /**
+     * Hero 的声音能量只在上游出生，随后随载波一起进入可见区。
+     *
+     * 2026-07-21：三个尺度组过去共用一个"流速×1.5 + 0.45×波速"的输运速度，
+     * 但每个组的载波各按自己的 `c=sqrt(g/k)` 行进。L0 安静时包络 142dp/s、
+     * 载波只有 93dp/s，包络于是从自己的波峰上滑过去——屏幕里的浪原地长高变矮，
+     * 正是"浪自己变来变去"的主要来源。现在每组的包络与它自己的载波同速。
+     */
     private fun advectHeroEnvelope(ls: FableSolLayerSim, dt: Double) {
         if (dt <= 0.0) return
-        val waveSpeed = p.lget("wave_speed_dps", ls.i)
-        val transport = FLOW_DIR * (abs(ls.flowDps) * 1.5 + HERO_ENVELOPE_GROUP_SPEED * waveSpeed)
-
-        // uGrid 等距，因此每个频段共用同一套平流插值位置；索引 -1/-2 表示左右越界。
-        // 插值索引/权重按层持有（C3），层任务之间不会互相踩踏。
+        val last = N_POINTS - 1
         val heroInterpIndex = ls.heroInterpIndex
         val heroInterpFraction = ls.heroInterpFraction
-        val positionOffset = -transport * dt / DX_DP
-        val last = N_POINTS - 1
-        for (n in 0 until N_POINTS) {
-            val position = n + positionOffset
-            when {
-                position < 0.0 -> {
-                    heroInterpIndex[n] = HERO_INTERP_LEFT
-                    heroInterpFraction[n] = 0.0
-                }
-                position > last.toDouble() -> {
-                    heroInterpIndex[n] = HERO_INTERP_RIGHT
-                    heroInterpFraction[n] = 0.0
-                }
-                position >= last.toDouble() -> {
-                    heroInterpIndex[n] = last - 1
-                    heroInterpFraction[n] = 1.0
-                }
-                else -> {
-                    val i0 = position.toInt()
-                    heroInterpIndex[n] = i0
-                    heroInterpFraction[n] = position - i0
+        for (band in 0 until 3) {
+            val transport = FLOW_DIR * (abs(ls.flowDps) + ls.hero.bandPhaseSpeedDps[band])
+            // uGrid 等距；索引 -1/-2 表示左右越界。插值索引/权重按层持有（C3），
+            // 层任务之间不会互相踩踏。
+            val positionOffset = -transport * dt / DX_DP
+            for (n in 0 until N_POINTS) {
+                val position = n + positionOffset
+                when {
+                    position < 0.0 -> {
+                        heroInterpIndex[n] = HERO_INTERP_LEFT
+                        heroInterpFraction[n] = 0.0
+                    }
+                    position > last.toDouble() -> {
+                        heroInterpIndex[n] = HERO_INTERP_RIGHT
+                        heroInterpFraction[n] = 0.0
+                    }
+                    position >= last.toDouble() -> {
+                        heroInterpIndex[n] = last - 1
+                        heroInterpFraction[n] = 1.0
+                    }
+                    else -> {
+                        val i0 = position.toInt()
+                        heroInterpIndex[n] = i0
+                        heroInterpFraction[n] = position - i0
+                    }
                 }
             }
-        }
-
-        for (band in 0 until 3) {
             val field = ls.heroBandFieldDp[band]
             val scratch = ls.heroBandScratchDp[band]
             val source = ls.heroBandDp[band]
@@ -975,7 +1010,8 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     companion object {
-        private const val HERO_ENVELOPE_GROUP_SPEED = 0.45
+        /** 声像几何位移的最大速率（dp/s），见 perFrame 里的 panShiftDp。 */
+        private const val PAN_SHIFT_SLEW_DPS = 9.0
         private const val HERO_ENVELOPE_SOURCE_GAP_DP = 48.0
         private const val HERO_ENVELOPE_BLEND_DP = 24.0
         private const val HERO_INTERP_LEFT = -1

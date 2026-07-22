@@ -14,6 +14,12 @@ private const val GRAVITY_DP_S2 = 32.0
 private const val CAPILLARY_LENGTH_DP = 6.0
 private const val TWO_PI = 2.0 * Math.PI
 
+// 主浪的陡峭度红线：单模态波高 / 波长。Stokes 破碎极限是 0.142，而 2026-07-21
+// 实测 CLIMAX 段波峰 height/width 的 p90 已到 0.134——贴着破碎线，正是"尖锐的浪"。
+// 0.085 把最陡的十分位压到约 0.072（宽度仍是高度的 14 倍以上），可见起伏 RMS 只掉
+// 2~5%：浪要更高，能量就必须转到更长的模态上，"高"总是伴随"宽"。
+const val MAX_HEIGHT_OVER_LENGTH = 0.085
+
 /** 流速接近零时沿用旧方向，避免相位方向在零点来回翻转。 */
 private fun travelSign(velocity: Double, previous: Double): Double =
     if (abs(velocity) > 1e-3) Math.signum(velocity) else previous
@@ -223,6 +229,10 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
     private val breathPhi: DoubleArray
     private var travelDir = -1.0
     private var baseLen = 360.0
+    /** 每个尺度组的振幅上限（陡峭度红线）；由 [retuneDerived] 维护。 */
+    @JvmField val bandCeilingDp = DoubleArray(3)
+    /** 每个尺度组载波的相速度 dp/s；空间能量包络必须以它输运。 */
+    @JvmField val bandPhaseSpeedDps = DoubleArray(3)
     private val kScratch = DoubleArray(6)
     private val weightScratch = DoubleArray(6)
     /** 测试专用：强制走逐点直接求值分支，用于与递推路径做逐点对照。 */
@@ -245,7 +255,12 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
         val rng = FableSolRng(seed)
         val near = max(0.0, 1.0 - 4.0 * depth01)   // 层0=1.0、层1=0.5、层2起=0
         val base = rng.uniform(0.90, 1.12) * (1.0 + 0.18 * depth01 + 0.30 * near)
-        val mult = doubleArrayOf(2.20, 1.62, 1.18, 0.91, 0.68, 0.50)
+        // 2026-07-21 收窄谱宽：旧表 2.20~0.50 跨 4.4 倍波长，相速度差 2.1 倍，
+        // 六条模态的相对相位每秒漂 0.55rad——即使音频完全不变，可见剖面每 0.1s
+        // 仍有 10% 的改形残差，这正是"浪自己变来变去"的主体。收到 2.9 倍跨度后
+        // 残差降到 8%，同时因为能量更集中，可见起伏 RMS 反而从 8.2 涨到 9.6dp。
+        // 六个数值仍互不成小整数比（最接近的 1.84/0.63≈2.92），避免拍频。
+        val mult = doubleArrayOf(1.84, 1.42, 1.19, 0.96, 0.79, 0.63)
         lenMult = DoubleArray(6) { base * mult[it] }
         dispersionJitter = rng.uniform(0.94, 1.06, 6)
         phase = rng.uniform(0.0, TWO_PI, 6)
@@ -257,9 +272,36 @@ class FableSolHeroWave(seed: Long, private val depth01: Double) {
         val bt = rng.uniform(5.5, 13.0, 6)
         breathT = DoubleArray(6) { bt[it] * (1.0 + 0.45 * depth01) }
         breathPhi = rng.uniform(0.0, TWO_PI, 6)
+        retuneDerived()
     }
 
-    fun retune(baseLenDp: Double) { baseLen = max(baseLenDp, 48.0) }
+    /**
+     * 随基准波长变化的两张逐尺度表（对应 Python `HeroWave._retune_derived`）。
+     *
+     * 组 j 的两个模态是 `lenMult[2j]`（长）与 `lenMult[2j+1]`（短）。
+     *
+     * * [bandCeilingDp]：振幅上限，由该组最短模态的波长定——越短的浪越矮。
+     * * [bandPhaseSpeedDps]：该组载波的相速度 `c=sqrt(g/k)`，按权重 0.58/0.42
+     *   加权。空间能量包络必须以它输运，否则包络会从自己的波峰上滑过去，
+     *   屏幕里的浪就会原地长高变矮。
+     */
+    private fun retuneDerived() {
+        for (j in 0 until 3) {
+            val longLen = baseLen * lenMult[2 * j]
+            val shortLen = baseLen * lenMult[2 * j + 1]
+            bandCeilingDp[j] = MAX_HEIGHT_OVER_LENGTH * shortLen / 2.0
+            bandPhaseSpeedDps[j] =
+                0.58 * sqrt(GRAVITY_DP_S2 * longLen / TWO_PI) +
+                    0.42 * sqrt(GRAVITY_DP_S2 * shortLen / TWO_PI)
+        }
+    }
+
+    fun retune(baseLenDp: Double) {
+        val next = max(baseLenDp, 48.0)
+        if (next == baseLen) return
+        baseLen = next
+        retuneDerived()
+    }
 
     fun advance(dt: Double, velDps: Double) {
         travelDir = travelSign(velDps, travelDir)

@@ -55,13 +55,15 @@ class FableSolSevenStateMachineTest {
 
     @Test
     fun flowPolicyMatchesTheUncompressedDesignAnchors() {
+        // 2026-07-21：低端整体抬高（安静段原本 176 秒才穿屏一次，读作"完全不动"），
+        // 高端几乎不动——K=1.0 只从 190 抬到 200dp/s。
         val anchors = arrayOf(
             0.0 to 0.0,
-            0.25 to 34.0,
-            0.50 to 72.0,
-            0.70 to 115.0,
-            0.85 to 155.0,
-            1.0 to 190.0
+            0.25 to 62.0,
+            0.50 to 88.0,
+            0.70 to 126.0,
+            0.85 to 166.0,
+            1.0 to 200.0
         )
         for ((drive, expected) in anchors) {
             assertEquals(expected, FableSolFlowPolicy.targetFlowDps(drive), 1e-9)
@@ -69,6 +71,10 @@ class FableSolSevenStateMachineTest {
         assertTrue(FableSolFlowPolicy.targetFlowDps(0.01) > 0.0)
         assertTrue(FableSolFlowPolicy.targetFlowDps(0.02) >
             FableSolFlowPolicy.targetFlowDps(0.01))
+        // 安静段（K≈0.1~0.2）必须在 10 秒内穿屏一次，否则读作静止画面。
+        for (drive in doubleArrayOf(0.10, 0.15, 0.20)) {
+            assertTrue(FableSolFlowPolicy.targetFlowDps(drive) > 320.0 / 10.0)
+        }
     }
 
     private class Fixture {

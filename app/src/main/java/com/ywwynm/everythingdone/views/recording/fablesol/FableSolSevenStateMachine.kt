@@ -171,12 +171,22 @@ class FableSolSevenStateMachine {
             }
             return writeOutput(output, output.changed, output.reason)
         }
-        if (frame.silent) return writeOutput(output, false, FableSolStateReason.NONE)
 
-        output.gradeDrive01 = evidence.gradeDrive01.coerceIn(0.0, 1.0)
-        output.liftScore01 = evidence.liftScore01.coerceIn(0.0, 1.0)
-        output.climaxScore01 = evidence.climaxScore01.coerceIn(0.0, 1.0)
-        if (!heard || state == FableSolVisualState.IDLE || state == FableSolVisualState.SILENCE) {
+        // 静音是证据，不是"没有证据"。旧实现在确认静音的 2 秒里直接 return，
+        // 于是一次咳嗽推上 CLIMAX 后，声音停了画面仍在 CLIMAX 里挂满 2 秒才塌到
+        // SILENCE（2026-07-21 实测 PEAK 段驻留 2.7s、平均 water 仅 0.17）。现在
+        // 照常解码，只是喂零证据：档位顺着 semi-Markov 正常往下走，LIFT/CLIMAX
+        // 的 charge 也照常释放。
+        output.gradeDrive01 =
+            if (frame.silent) 0.0 else evidence.gradeDrive01.coerceIn(0.0, 1.0)
+        output.liftScore01 =
+            if (frame.silent) 0.0 else evidence.liftScore01.coerceIn(0.0, 1.0)
+        output.climaxScore01 =
+            if (frame.silent) 0.0 else evidence.climaxScore01.coerceIn(0.0, 1.0)
+        if (!frame.silent &&
+            (!heard || state == FableSolVisualState.IDLE ||
+                state == FableSolVisualState.SILENCE)
+        ) {
             heard = true
             decoder.reset(FableSolSustainedGrade.CALM)
             baseState = FableSolVisualState.CALM
@@ -188,6 +198,8 @@ class FableSolSevenStateMachine {
             enter(FableSolVisualState.CALM, output, FableSolStateReason.HEARD)
             return writeOutput(output, output.changed, output.reason)
         }
+        // 从未听到过声音：开机静默期保持 IDLE 镜面，不进解码。
+        if (!heard) return writeOutput(output, false, FableSolStateReason.NONE)
 
         decoder.step(
             output.gradeDrive01,
@@ -223,19 +235,26 @@ class FableSolSevenStateMachine {
             (baseState == FableSolVisualState.PEAK && peakSupportAge >= 0.65 / speed) ||
                 (dropConfidence > 0.0 &&
                     (baseState == FableSolVisualState.PEAK || output.gradeDrive01 >= 0.82))
+        var dropSeeded = false
         if (dropConfidence > 0.0 && climaxArmed && climaxSupport &&
             (output.gradeDrive01 >= 0.78 || output.climaxScore01 >= 0.55)
         ) {
             climaxCharge = max(climaxCharge, 0.82 + 0.28 * dropConfidence)
+            dropSeeded = true
         }
-        if (climaxSupport && output.climaxScore01 >= 0.52 && (climaxActive || climaxArmed)) {
+        val climaxCharging = dropSeeded ||
+            (climaxSupport && output.climaxScore01 >= 0.52 && (climaxActive || climaxArmed))
+        if (climaxCharging) {
             val arrivalGain = 3.4 + 4.2 * output.climaxScore01
             climaxCharge = min(climaxCharge + dt * speed * arrivalGain, 1.5)
         } else {
             climaxCharge = max(climaxCharge - dt * speed * 1.35, 0.0)
         }
 
-        if (!climaxActive && climaxArmed && climaxCharge >= 0.80 &&
+        // 只有"正在充能"才可以点亮相位。旧实现允许一段正在释放的 charge 在跌过
+        // 阈值的途中重新触发：声音停下后档位一路往下走时，会凭残余电量再点一次
+        // LIFT/CLIMAX（2026-07-21 实测 19.7s 处出现 water=0 的 LIFT 段）。
+        if (climaxCharging && !climaxActive && climaxArmed && climaxCharge >= 0.80 &&
             t >= climaxRefractoryUntil
         ) {
             climaxActive = true
@@ -254,7 +273,8 @@ class FableSolSevenStateMachine {
             liftCharge = max(liftCharge - dt * speed * 2.4, 0.0)
             liftActive = false
         } else {
-            if (output.liftScore01 >= 0.50) {
+            val liftCharging = output.liftScore01 >= 0.50
+            if (liftCharging) {
                 liftCharge = min(
                     liftCharge + dt * speed * (3.8 + 3.2 * output.liftScore01),
                     1.4
@@ -263,7 +283,9 @@ class FableSolSevenStateMachine {
                 liftCharge = max(liftCharge - dt * speed * 1.75, 0.0)
                 if (output.liftScore01 <= 0.32) liftArmed = true
             }
-            if (!liftActive && liftArmed && t >= liftRefractoryUntil && liftCharge >= 0.72) {
+            if (liftCharging && !liftActive && liftArmed &&
+                t >= liftRefractoryUntil && liftCharge >= 0.72
+            ) {
                 liftActive = true
                 liftArmed = false
             } else if (liftActive && liftCharge <= 0.14) {

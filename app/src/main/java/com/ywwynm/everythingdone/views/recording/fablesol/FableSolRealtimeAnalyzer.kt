@@ -631,6 +631,9 @@ class FableSolRealtimeAnalyzer(
         calibrationInput.grooveMotion01 = grooveMotion01
         calibrationInput.punch01 = punch01
         calibrationInput.lowShare01 = relLow
+        // A 计权安全通道的"高出底噪多少 dB"：水位的贴地衰减用它，见
+        // FableSolPerceptualCalibrator.NEAR_FLOOR_SPAN_DB。采集调理对该通道不可见。
+        calibrationInput.aboveFloorDb = db - floorDb
         calibrationInput.domainGradeTrim01 = stateGradeTrim01
         val calibrated = calibrator.step(calibrationInput)
         if (calibrated.dropTriggered) {

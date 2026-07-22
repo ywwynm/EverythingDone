@@ -134,7 +134,10 @@ class FableSolGrandWaveEventGateTest {
     }
 
     @Test
-    fun longClimaxCanRepeatAfterEveryFourteenSecondPhraseRelease() {
+    fun longClimaxRepeatsOnceThenWaitsForANewEpisode() {
+        // 一个高潮 episode 里最多补一道重复短语巨浪（2026-07-21 用户裁定）。
+        // 取消每 episode 配额后，同一段副歌平台上的第三、第四记重击也会变成巨浪
+        // （Lose My Mind 母带的 98.5s / 174.8s）。段落通道仍不限次。
         val gate = FableSolGrandWaveEventGate()
         val request = FableSolGrandWaveRequest()
         val frame = feature(0.0, context = 0.55)
@@ -151,12 +154,13 @@ class FableSolGrandWaveEventGateTest {
         assertEquals(FableSolGrandWaveReason.PEAK_PHRASE_REPEAT, request.reason)
         assertEquals(2, gate.episodeCount())
 
+        // 同一 episode 内后续的重击不再合格，平台再长也一样。
         frame.punch01 = 0.50
         assertEquals(0, drive(gate, frame, 14.9, 13.9, FableSolVisualState.CLIMAX, request))
         frame.punch01 = 0.86
-        assertEquals(1, drive(gate, frame, 28.8, 0.5, FableSolVisualState.CLIMAX, request))
-        assertEquals(FableSolGrandWaveReason.PEAK_PHRASE_REPEAT, request.reason)
-        assertEquals(3, gate.episodeCount())
+        assertEquals(0, drive(gate, frame, 28.8, 0.5, FableSolVisualState.CLIMAX, request))
+        assertEquals(0, drive(gate, frame, 29.3, 20.0, FableSolVisualState.CLIMAX, request))
+        assertEquals(2, gate.episodeCount())
     }
 
     @Test
