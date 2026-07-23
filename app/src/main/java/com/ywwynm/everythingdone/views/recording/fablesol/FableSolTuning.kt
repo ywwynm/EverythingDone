@@ -60,29 +60,33 @@ object FableSolTuning {
             Spec("hue_temp_deg", R.string.fablesol_param_hue_temp_deg, "°", -30.0, 30.0, 1.0)
         )),
         Group(R.string.fablesol_group_surface, listOf(
-            Spec("surface_heading_deg", R.string.fablesol_param_surface_heading_deg, "°", 6.0, 42.0, 1.0),
-            Spec("surface_spread_deg", R.string.fablesol_param_surface_spread_deg, "°", 4.0, 48.0, 1.0),
-            Spec("surface_decay_dp", R.string.fablesol_param_surface_decay_dp, "dp", 80.0, 720.0, 10.0),
             Spec("surface_view_elev_deg", R.string.fablesol_param_surface_view_elev_deg, "°", 26.0, 54.0, 1.0)
         )),
-        Group(R.string.fablesol_group_ambient_flow, listOf(
+        Group(R.string.fablesol_group_wave_shape, listOf(
+            Spec("hero_gain", R.string.fablesol_param_hero_gain, "×", 0.0, 2.0, 0.01),
+            Spec("hero_len_dp", R.string.fablesol_param_hero_len_dp, "dp", 160.0, 640.0, 1.0),
+            Spec("hero_attack_s", R.string.fablesol_param_hero_attack_s, "s", 0.02, 1.50, 0.01),
+            Spec("hero_release_s", R.string.fablesol_param_hero_release_s, "s", 0.10, 3.00, 0.01),
+            Spec("hero_breath", R.string.fablesol_param_hero_breath, "", 0.0, 0.9, 0.02),
             Spec("ambient_gain", R.string.fablesol_param_ambient_gain, "×", 0.0, 3.0, 0.01),
             Spec("ambient_breath", R.string.fablesol_param_ambient_breath, "", 0.0, 0.6, 0.01),
+            Spec("ambient_shape_stability", R.string.fablesol_param_ambient_shape_stability, "", 0.0, 1.0, 0.02),
+            Spec("surface_heading_deg", R.string.fablesol_param_surface_heading_deg, "°", 6.0, 42.0, 1.0),
+            Spec("surface_spread_deg", R.string.fablesol_param_surface_spread_deg, "°", 4.0, 48.0, 1.0),
+            Spec("surface_spectrum_gain", R.string.fablesol_param_surface_spectrum_gain, "×", 0.0, 1.5, 0.02),
+            Spec("surface_spectrum_audio_response", R.string.fablesol_param_surface_spectrum_audio_response, "", 0.0, 1.0, 0.02),
+            Spec("surface_shape_stability", R.string.fablesol_param_surface_shape_stability, "", 0.0, 1.0, 0.02),
+            Spec("surface_decay_dp", R.string.fablesol_param_surface_decay_dp, "dp", 80.0, 720.0, 10.0),
+            Spec("wall_soft", R.string.fablesol_param_wall_soft, "", 0.0, 1.0, 0.02)
+        )),
+        Group(R.string.fablesol_group_ambient_flow, listOf(
             Spec("idle_flow_ratio", R.string.fablesol_param_idle_flow_ratio, "", 0.0, 1.0, 0.01),
             Spec("flow_gain", R.string.fablesol_param_flow_gain, "×", 0.0, 3.0, 0.01),
             Spec("flow_curve", R.string.fablesol_param_flow_curve, "", 0.5, 2.0, 0.05),
             Spec("flow_smooth_s", R.string.fablesol_param_flow_smooth_s, "s", 0.2, 5.0, 0.01),
             Spec("wander_gain", R.string.fablesol_param_wander_gain, "×", 0.0, 2.0, 0.01),
-            Spec("wall_soft", R.string.fablesol_param_wall_soft, "", 0.0, 1.0, 0.02),
             Spec("tilt_calm", R.string.fablesol_param_tilt_calm, "", 0.0, 1.0, 0.02),
             Spec("beat_gain", R.string.fablesol_param_beat_gain, "×", 0.0, 2.0, 0.02)
-        )),
-        Group(R.string.fablesol_group_hero, listOf(
-            Spec("hero_gain", R.string.fablesol_param_hero_gain, "×", 0.0, 2.0, 0.01),
-            Spec("hero_len_dp", R.string.fablesol_param_hero_len_dp, "dp", 160.0, 640.0, 1.0),
-            Spec("hero_attack_s", R.string.fablesol_param_hero_attack_s, "s", 0.02, 1.50, 0.01),
-            Spec("hero_release_s", R.string.fablesol_param_hero_release_s, "s", 0.10, 3.00, 0.01),
-            Spec("hero_breath", R.string.fablesol_param_hero_breath, "", 0.0, 0.9, 0.02)
         )),
         Group(R.string.fablesol_group_swell, listOf(
             Spec("swell_presmooth_s", R.string.fablesol_param_swell_presmooth_s, "s", 0.10, 2.00, 0.01),

@@ -52,9 +52,9 @@ class FableSolContinuousStateChannelsTest {
             160.0,
             FableSolContinuousStateChannels.waterLevelGoalDp(0.01) / 0.01, 0.1
         )
-        // 满驱动落在 120dp：L0 基准 96dp，静水面 216dp，为 144dp 的巨浪在 420dp
-        // 容器里留出余量。
-        assertEquals(120.0, FableSolContinuousStateChannels.waterLevelGoalDp(1.0), 1e-12)
+        // D196：120→150 修顶带区分度；D202/D203：150→144→129（顶层浪让位
+        // TimelyClockView——144 仍不够，持续高潮的层距放大+深层超驱叠加过钟心）。
+        assertEquals(129.0, FableSolContinuousStateChannels.waterLevelGoalDp(1.0), 1e-12)
         assertEquals(0.0, FableSolContinuousStateChannels.waterLevelGoalDp(0.0), 0.0)
         // 全区间严格单调——硬钳位会把高响度整段压平、失去分辨。
         var previous = -1.0

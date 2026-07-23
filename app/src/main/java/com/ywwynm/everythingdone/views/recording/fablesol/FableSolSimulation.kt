@@ -325,8 +325,11 @@ class FableSolSimulation(private val p: FableSolParams) {
     }
 
     /** 触发第 0 层有限支撑事件浪；已有事件浪尚未离场时返回 false。 */
-    fun triggerGrandWave(expressionGain: Double = 1.0, prelaunchS: Double = 0.0): Boolean =
-        grandWave.trigger(this, expressionGain, prelaunchS)
+    fun triggerGrandWave(
+        expressionGain: Double = 1.0,
+        prelaunchS: Double = 0.0,
+        amplitude01: Double = 1.0
+    ): Boolean = grandWave.trigger(this, expressionGain, prelaunchS, amplitude01)
 
     internal fun layerWaveSpeedDps(layerIndex: Int): Double =
         p.lget("wave_speed_dps", layerIndex)
@@ -532,7 +535,11 @@ class FableSolSimulation(private val p: FableSolParams) {
         val pulse = if (ls.i >= DEEP_LAYER_START) 1.0
                     else 1.0 + beatSurge * (1.0 - 0.5 * ls.depth01)
         ls.ambient.retune(p.lget("ambient_len_dp", ls.i))
-        ls.ambient.advance(PHYSICS_DT, ls.flowDps * pulse)
+        ls.ambient.advance(
+            PHYSICS_DT,
+            ls.flowDps * pulse,
+            shapeStability = p.get("ambient_shape_stability")
+        )
         ls.hero.retune(p.get("hero_len_dp"))
         val spatialRate = 1.0 + stereoWidth01 * (ls.depth01 - 0.5) * 0.36
         ls.hero.advance(PHYSICS_DT, ls.flowDps * 1.5 * spatialRate)

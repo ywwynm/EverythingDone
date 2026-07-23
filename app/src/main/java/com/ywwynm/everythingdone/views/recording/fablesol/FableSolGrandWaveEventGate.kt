@@ -38,6 +38,16 @@ class FableSolGrandWaveEventGate {
     private var repeatArmed = false
     private var punchReleaseS = 0.0
     private var lastWaveT = -100.0
+    private var speechArmed = true
+    private var speechLowS = 0.0
+    private var speechConfirmS = 0.0
+    private var speechPeakEffort = 0.0
+    private var speechAttackPeak = 0.0
+    private var speechSylPeak = 0.0
+    private var speechFluctEnv = 0.0
+    private var arrivalArmed = true
+    private var arrivalLowS = 0.0
+    private var arrivalConfirmS = 0.0
 
     fun reset() {
         clearHistory()
@@ -56,6 +66,16 @@ class FableSolGrandWaveEventGate {
         repeatArmed = false
         punchReleaseS = 0.0
         lastWaveT = -100.0
+        speechArmed = true
+        speechLowS = 0.0
+        speechConfirmS = 0.0
+        speechPeakEffort = 0.0
+        speechAttackPeak = 0.0
+        speechSylPeak = 0.0
+        speechFluctEnv = 0.0
+        arrivalArmed = true
+        arrivalLowS = 0.0
+        arrivalConfirmS = 0.0
     }
 
     /** 只建立稳定段落基线，不制造边界重音。 */
@@ -190,6 +210,54 @@ class FableSolGrandWaveEventGate {
         }
         peakBandLast = peakBand
 
+        // ---- 说话域（D192/D193，与 Python grand_wave_gate.py 同构）----
+        val dominance = frame.voiceDominance01
+        val effort = frame.speechEffort01
+        val speechDominant = dominance >= SPEECH_DOM_MIN && frame.music01 < SPEECH_MUSIC_MAX
+        val silentFrame = frame.silent
+        speechLowS = advance(speechLowS, silentFrame || effort < SPEECH_REARM_EFFORT, dt)
+        if (speechLowS >= SPEECH_REARM_S) speechArmed = true
+        if (!silentFrame) {
+            speechFluctEnv += (frame.fluct4hz01 - speechFluctEnv) *
+                (1.0 - kotlin.math.exp(-dt / 0.8))
+        }
+        val speechRise = speechDominant && speechArmed && !silentFrame &&
+            effort >= SPEECH_TRIGGER_EFFORT &&
+            speechFluctEnv >= SPEECH_MIN_FLUCT &&
+            t - lastWaveT >= SPEECH_MIN_GAP_S
+        if (speechRise) {
+            speechConfirmS += dt
+            speechPeakEffort = max(speechPeakEffort, effort)
+            speechAttackPeak = max(speechAttackPeak, physicalAttack)
+            speechSylPeak = max(speechSylPeak, max(frame.sylRateHz, 0.0))
+            // 转变窗时限：巨浪属于"那一下"，1.2s 内没凑齐资格即平台期，缴械等回落。
+            if (speechConfirmS > 1.2) {
+                speechArmed = false
+                speechConfirmS = 0.0
+                speechPeakEffort = 0.0
+                speechAttackPeak = 0.0
+                speechSylPeak = 0.0
+            }
+        } else if (effort < SPEECH_TRIGGER_EFFORT) {
+            speechConfirmS = 0.0
+            speechPeakEffort = 0.0
+            speechAttackPeak = 0.0
+            speechSylPeak = 0.0
+        }
+        if (speechConfirmS >= SPEECH_CONFIRM_S &&
+            speechAttackPeak >= SPEECH_MIN_ATTACK &&
+            speechSylPeak >= SPEECH_MIN_SYL_RATE
+        ) {
+            val tier = ((speechPeakEffort - SPEECH_TIER_LO) /
+                (SPEECH_TIER_HI - SPEECH_TIER_LO)).coerceIn(0.0, 1.0)
+            fill(
+                output, t, FableSolGrandWaveReason.SPEECH_TRANSITION,
+                ((effort + dominance + speechAttackPeak) / 3.0).coerceIn(0.0, 1.0)
+            )
+            output.amplitude01 = 0.556 + 0.444 * tier
+            return true
+        }
+
         localReleaseS = advance(localReleaseS, water < 0.76, dt)
         if (localReleaseS >= LOCAL_RELEASE_S) localArmed = true
 
@@ -202,7 +270,8 @@ class FableSolGrandWaveEventGate {
 
         if (dropPending) {
             dropPending = false
-            val dropOk = peakBand && t - lastWaveT >= REPEAT_MIN_GAP_S &&
+            val dropOk = peakBand && !speechDominant &&
+                t - lastWaveT >= REPEAT_MIN_GAP_S &&
                 water >= 0.72 && kinetic >= 0.65 &&
                 intensity >= 0.56 && musicMotion >= 0.54 && !vocalOnly
             if (dropOk) {
@@ -211,8 +280,46 @@ class FableSolGrandWaveEventGate {
             }
         }
 
+        // ---- 录音域到达门（D200）：capture 走连续评分，下方母带分支只留给 master ----
+        if (frame.captureDomain) {
+            val risingNow = frame.energyRising01
+            val arrival = 0.30 * max(
+                smooth(novelty, 0.12, 0.45), smooth(context, 0.45, 0.95)) +
+                0.22 * smooth(risingNow, 0.35, 0.90) +
+                0.18 * smooth(musicMotion, 0.55, 0.85) +
+                0.15 * smooth(punch, 0.60, 0.95) +
+                0.15 * smooth(loudRelative, 0.75, 1.05)
+            val resurgence = Math.pow(
+                smooth(water, 0.78, 0.90) * smooth(kinetic, 0.76, 0.90) *
+                    smooth(punch, 0.62, 0.88) * smooth(musicMotion, 0.55, 0.80) *
+                    smooth(loudRelative, 0.80, 1.05),
+                0.2
+            )
+            var score = max(arrival, 0.92 * resurgence)
+            score *= smooth(water, 0.55, 0.72)
+            score *= smooth(frame.music01, 0.45, 0.75)
+            score *= smooth(gradeDrive01, 0.50, 0.62)
+            if (vocalOnly) score *= 0.4
+            if (speechDominant || silentFrame) score = 0.0
+            if (score <= CAPTURE_ARRIVAL_TH - CAPTURE_ARRIVAL_REARM_DROP) {
+                arrivalLowS += dt
+                if (arrivalLowS >= CAPTURE_ARRIVAL_REARM_S) arrivalArmed = true
+            } else {
+                arrivalLowS = 0.0
+            }
+            val arrivalOk = arrivalArmed && score >= CAPTURE_ARRIVAL_TH &&
+                t - lastWaveT >= REPEAT_MIN_GAP_S
+            arrivalConfirmS = if (arrivalOk) arrivalConfirmS + dt else 0.0
+            if (arrivalConfirmS >= CAPTURE_ARRIVAL_CONFIRM_S) {
+                fill(output, t, FableSolGrandWaveReason.CAPTURE_ARRIVAL,
+                    score.coerceIn(0.0, 1.0))
+                return true
+            }
+            return false
+        }
+
         val sectionActive = t <= sectionWindowEnd
-        val localCommon = peakBand && localArmed &&
+        val localCommon = peakBand && localArmed && !speechDominant &&
             t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly
         val strictLocal = water >= LOCAL_MIN_WATER && kinetic >= LOCAL_MIN_KINETIC &&
             intensity >= 0.64 && musicMotion >= 0.64 &&
@@ -258,6 +365,7 @@ class FableSolGrandWaveEventGate {
             kinetic >= 0.79 && intensity >= 0.64 && gradeDrive01 >= 0.70 &&
             musicMotion >= 0.60 && physicalAttack >= 0.19 && arousal >= 0.45
         val relativeLift = state == FableSolVisualState.LIFT && localArmed &&
+            !speechDominant &&
             relativeHistoryReady && relativeNoveltyOk &&
             t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly &&
             relativeLoudOk && relativeContextOk && water >= 0.65 && water < 0.80 &&
@@ -280,6 +388,7 @@ class FableSolGrandWaveEventGate {
         }
 
         val repeatCommon = peakBand && episodeCount >= 1 && repeatArmed &&
+            !speechDominant &&
             t - lastWaveT >= REPEAT_MIN_GAP_S && !vocalOnly
         val firstPunchRepeat = episodeRepeats == 0 &&
             t - lastWaveT <= FIRST_REPEAT_MAX_GAP_S &&
@@ -343,6 +452,20 @@ class FableSolGrandWaveEventGate {
                 punchReleaseS = 0.0
             }
             else -> Unit
+        }
+        if (request.reason == FableSolGrandWaveReason.SPEECH_TRANSITION) {
+            // 无论物理端是否接受都消耗本次转变；重武装只能靠回落低档/静音。
+            speechArmed = false
+            speechLowS = 0.0
+            speechConfirmS = 0.0
+            speechPeakEffort = 0.0
+            speechAttackPeak = 0.0
+            speechSylPeak = 0.0
+        }
+        if (request.reason == FableSolGrandWaveReason.CAPTURE_ARRIVAL) {
+            arrivalArmed = false
+            arrivalLowS = 0.0
+            arrivalConfirmS = 0.0
         }
         if (!accepted) return
         episodeCount += 1
@@ -427,10 +550,17 @@ class FableSolGrandWaveEventGate {
         output.audioT = audioT
         output.reason = reason
         output.score01 = score01.coerceIn(0.0, 1.0)
+        // 共享请求对象复用：音乐分支恒全高，说话分支在 fill 之后覆写分级。
+        output.amplitude01 = 1.0
     }
 
     private fun advance(runS: Double, condition: Boolean, dt: Double): Double =
         if (condition) runS + dt else 0.0
+
+    private fun smooth(value: Double, lo: Double, hi: Double): Double {
+        val q = ((value - lo) / kotlin.math.max(hi - lo, 1e-9)).coerceIn(0.0, 1.0)
+        return q * q * (3.0 - 2.0 * q)
+    }
 
     private fun mean4(a: Double, b: Double, c: Double, d: Double): Double =
         ((a + b + c + d) * 0.25).coerceIn(0.0, 1.0)
@@ -480,6 +610,25 @@ class FableSolGrandWaveEventGate {
         const val STRUCTURED_MASS_MIN_WATER = 0.90
         const val ATTACKED_REPEAT_MIN_WATER = 0.88
         const val ATTACKED_REPEAT_MIN_ATTACK = 0.38
+
+        // ---- 说话域（D192/D193，与 Python 同值）----
+        const val SPEECH_DOM_MIN = 0.60
+        const val SPEECH_MUSIC_MAX = 0.60
+        const val SPEECH_TRIGGER_EFFORT = 0.55
+        const val SPEECH_REARM_EFFORT = 0.30
+        const val SPEECH_REARM_S = 2.0
+        const val SPEECH_MIN_GAP_S = 8.0
+        const val SPEECH_CONFIRM_S = 0.30
+        const val SPEECH_MIN_ATTACK = 0.22
+        const val SPEECH_TIER_LO = 0.58
+        const val SPEECH_TIER_HI = 0.76
+        const val SPEECH_MIN_SYL_RATE = 0.5
+        const val SPEECH_MIN_FLUCT = 0.22
+        // ---- 录音域到达门（D199/D200，与 Python 同值）----
+        const val CAPTURE_ARRIVAL_TH = 0.55
+        const val CAPTURE_ARRIVAL_CONFIRM_S = 0.12
+        const val CAPTURE_ARRIVAL_REARM_DROP = 0.10
+        const val CAPTURE_ARRIVAL_REARM_S = 1.0
 
         private const val HISTORY_CAPACITY = 1024
         private const val CHANNEL_RISING = 0

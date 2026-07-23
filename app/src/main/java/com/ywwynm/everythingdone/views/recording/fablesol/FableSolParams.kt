@@ -24,7 +24,7 @@ class FableSolParams {
         v("crest_width_dp", 1.25)
         // 波背自阴影（D169，2026-07-18 应用户要求从 D164 移除名单中恢复；
         // Python 同步）：背光坡×脊线邻近的随层保色暗带。
-        v("back_shade_gain", 0.80)
+        v("back_shade_gain", 0.84)
         // 2026-07-18 用户裁决：镜面高光/高光提亮/波峰透光（含纵深）/波冠轻纱/
         // 毛细闪光/薄峰透光/表面流光/轨道摆幅/波背自阴影/空气透视/1/f 慢调制/
         // 微法线带限/全局 1/f 呼吸/风梳微法线/朝阳次表面散射（含收束）共 17 项
@@ -49,40 +49,44 @@ class FableSolParams {
         // 旧九层填充路径保留为内部回退，便于真机对照与低风险回滚。
         v("surface2d_on", 1.0)
         v("surface_heading_deg", 30.0); v("surface_spread_deg", 24.0)
-        v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 38.0)
+        v("surface_spectrum_gain", 0.96); v("surface_spectrum_audio_response", 0.25)
+        v("surface_shape_stability", 0.0)
+        v("surface_decay_dp", 280.0); v("surface_view_elev_deg", 36.0)
         // D135：离散闪点不再绘制解析外晕，避免圆环状扩张/收缩光斑。
         v("analytic_halo_strength", 0.0)
         // 环境波 / 流动
-        v("ambient_gain", 1.2); v("ambient_breath", 0.27)
+        v("ambient_gain", 0.42); v("ambient_breath", 0.27)
+        v("ambient_shape_stability", 0.0)
         // 2026-07-21：与实时感知速度执行器重新对齐。数字静音严格为零，
         // 非静音的 +10dp/s 听感补偿由 FableSolFlowPolicy 在 K=0..0.25 平滑淡入。
-        // D179：静息流速回归（0.24→0.18→0.0→0.10）。只抬低端，满速不变。
-        v("idle_flow_ratio", 0.16); v("flow_gain", 1.0)
+        // D179：静息流速回归（0.24→0.18→0.0→0.10→0.16）。D194（2026-07-23）：
+        // 用户反馈静止时偏慢，0.16→0.20（静息 L0=36dp/s）。只抬低端，满速不变。
+        v("idle_flow_ratio", 0.20); v("flow_gain", 1.0)
         v("flow_curve", 1.0); v("flow_smooth_s", 0.36)
         v("wander_gain", 1.0); v("wall_soft", 0.6); v("tilt_calm", 0.75)
         // 踩拍只短暂加速环境纹理相位，不改写主浪相位或振幅。
         v("beat_gain", 1.0)
         // 主浪
         v("hero_gain", 1.0); v("hero_len_dp", 360.0)
-        v("hero_attack_s", 0.85); v("hero_release_s", 1.60)
+        v("hero_attack_s", 0.84); v("hero_release_s", 1.60)
         v("hero_breath", 0.42)
         // 涨落
-        v("swell_presmooth_s", 0.55); v("swell_presmooth_release_s", 1.60)
-        v("swell_deadband_pct", 0.0); v("swell_attack_s", 0.38)
+        v("swell_presmooth_s", 0.54); v("swell_presmooth_release_s", 1.60)
+        v("swell_deadband_pct", 0.0); v("swell_attack_s", 0.36)
         v("swell_release_s", 1.60); v("swell_gain", 1.0)
         // 2026-07-21：恢复 Python 蓝本的短语记忆与深层长积分；水位的快慢由
         // 独立感知弹簧负责，不再用 Android 遗留的 0.5s/1s 近即时值替代。
         // 深两层"无动于衷"仍保留，但 30s 让第 8 层的流速比第 0 层整整慢 20.4 秒
         // （2026-07-21 互相关实测），安静下来后远景还在按几十秒前的氛围推浪。
         // 14s 把滞后压到约 10 秒：仍明显慢于近层、仍是参照系，但不再"过时"。
-        v("swell_halflife_s", 3.0); v("deep_integral_s", 14.0)
+        v("swell_halflife_s", 3.0); v("deep_integral_s", 15.0)
         // 注入组已于 2026-07-18 整组固化进实现（Python 同步；机制保留，
         // 连续水面主路径均值化行波形态，调参无可感变化）。
         // 声音分析与灵敏度
         v("agc_window_s", 24.0); v("silence_gate_db", 6.0); v("expander_amount", 0.32)
         // 音画耦合母旋钮（与 Python 七境/连续通道同源）。
         v("expression_gain", 1.0); v("state_sensitivity", 0.0)
-        v("transition_speed", 0.0); v("relative_loudness_mix", 0.20)
+        v("transition_speed", 0.0); v("relative_loudness_mix", 0.21)
         // 段落组已于 2026-07-18 整组移除（Python 同步）：段涌连根删，
         // mood_transition_s/mood_spread_dp 固化 1.5s/12dp 进实现。
         // 系统
@@ -93,7 +97,8 @@ class FableSolParams {
         l("wave_speed_dps", doubleArrayOf(216.0, 160.0, 150.0, 129.0, 120.0, 108.0, 96.0, 84.0, 75.0))
         l("flow_base_dps", doubleArrayOf(180.0, 167.0, 151.0, 134.0, 127.0, 117.0, 105.0, 100.0, 89.0))
         l("swell_max_dp", doubleArrayOf(124.0, 122.0, 120.0, 118.0, 119.0, 120.0, 120.0, 118.0, 117.0))
-        l("hero_max_dp", doubleArrayOf(64.0, 50.0, 46.0, 42.0, 39.0, 37.0, 35.0, 34.0, 33.0))
+        // D203：深两层 34/33→27/24（偏好数）——基准最高的两层曾在持续高潮时越过钟心。
+        l("hero_max_dp", doubleArrayOf(64.0, 50.0, 46.0, 42.0, 39.0, 37.0, 35.0, 27.0, 24.0))
         l("damp_halflife_s", doubleArrayOf(0.75, 0.96, 1.20, 1.29, 1.50, 1.60, 1.91, 2.16, 2.40))
         l("ambient_amp_dp", doubleArrayOf(5.5, 5.0, 4.6, 4.2, 3.9, 3.6, 3.3, 3.0, 2.8))
         l("ambient_len_dp", doubleArrayOf(160.0, 150.0, 141.0, 129.0, 120.0, 108.0, 96.0, 84.0, 72.0))

@@ -112,6 +112,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     // 波向量只依赖两个 params；参数未变时跳过重算（纯函数缓存，逐位一致）。
     private var waveVectorHeading = Double.NaN
     private var waveVectorSpread = Double.NaN
+    @JvmField internal var lastCommonTransportDpsForTest = 0.0
 
     // field 列外层推进用的逐行相位状态：前 modeCount 槽是模态，其后是波包。
     // 按行预分配（每行只由一个线程处理），热路径零分配。
@@ -496,8 +497,29 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         var flow = 0.0
         for (i in 0 until 7) flow += sim.layers[i].flowDps
         flow /= 7.0
-        for (j in wavelength.indices) {
-            phase[j] = (phase[j] - (sqrt(GRAVITY_DP_S2 * k[j]) + kx[j] * flow) * dt) % (2.0 * PI)
+        val stability = p.get("surface_shape_stability").coerceIn(0.0, 1.0)
+        if (stability <= 1e-12) {
+            for (j in wavelength.indices) {
+                phase[j] = (phase[j] -
+                    (sqrt(GRAVITY_DP_S2 * k[j]) + kx[j] * flow) * dt) % (2.0 * PI)
+            }
+        } else {
+            var weightedTransport = 0.0
+            var weightSum = 0.0
+            for (j in wavelength.indices) {
+                val rate = sqrt(GRAVITY_DP_S2 * k[j]) + kx[j] * flow
+                val weight = baseAmplitude[j] * baseAmplitude[j]
+                weightedTransport += rate / kx[j] * weight
+                weightSum += weight
+            }
+            val commonTransport = weightedTransport / weightSum
+            lastCommonTransportDpsForTest = commonTransport
+            for (j in wavelength.indices) {
+                val rate = sqrt(GRAVITY_DP_S2 * k[j]) + kx[j] * flow
+                val coherentRate = kx[j] * commonTransport
+                val blendedRate = rate + stability * (coherentRate - rate)
+                phase[j] = (phase[j] - blendedRate * dt) % (2.0 * PI)
+            }
         }
         for (b in 0 until 3) {
             var target = 0.0
@@ -581,10 +603,13 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         for (r in 0 until Z_ROWS) sample.zDp[r] = sample.z01[r] * depth
 
         val ambientScale = p.get("ambient_gain") / 1.2
+        val spectrumGain = p.get("surface_spectrum_gain")
+        val audioResponse = p.get("surface_spectrum_audio_response")
         val u0 = sim.uGrid[rawLo]
         val modeCount = wavelength.size
         for (j in 0 until modeCount) {
-            val amp = baseAmplitude[j] * ambientScale * (0.78 + 0.52 * energyBand[band[j]])
+            val amp = baseAmplitude[j] * ambientScale * spectrumGain *
+                (0.78 + 0.52 * audioResponse * energyBand[band[j]])
             val q = min(0.58, 0.46 / max(k[j] * amp * modeCount, 1e-4))
             modeAmp[j] = amp
             modeOrbitXWeight[j] = q * amp * (kx[j] / k[j])
@@ -704,6 +729,23 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         perfSlopeNs = System.nanoTime() - slopeStart
         perfWorldRepairRows = worldRepairRows.get()
         return sample
+    }
+
+    internal fun clearPacketsForTest() {
+        packets.clear()
+    }
+
+    internal fun setEnergyBandsForTest(low: Double, mid: Double, high: Double) {
+        energyBand[0] = low
+        energyBand[1] = mid
+        energyBand[2] = high
+    }
+
+    internal fun phaseForTest(): DoubleArray = phase.copyOf()
+
+    internal fun waveVectorXForTest(): DoubleArray {
+        updateWaveVectors()
+        return kx.copyOf()
     }
 
     companion object {

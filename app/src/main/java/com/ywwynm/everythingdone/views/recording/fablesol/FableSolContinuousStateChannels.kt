@@ -66,6 +66,8 @@ internal class FableSolContinuousStateChannels {
         lastT = t
 
         val expression = expressionGain.coerceIn(0.5, 1.5)
+        // 句间悬停在 Calibrator 的 display 轨实现（D197 修订）：display 帧在说话
+        // 主导的短静默里保持水位/档位并悬停 silent 标志，这里保持简单。
         val water = if (silent) 0.0 else waterDrive01.coerceIn(0.0, 1.0)
         val levelGoal = waterLevelGoalDp(water)
         val punch = max(punchLu01, punch01).coerceIn(0.0, 1.0)
@@ -87,7 +89,11 @@ internal class FableSolContinuousStateChannels {
         val capGoal = FableSolSevenStateMachine.cap01(state) * punch * expression
         val timeScale = 2.0.pow(-0.65 * transitionSpeed.coerceIn(-1.0, 1.0))
 
-        level.step(levelGoal, dt, 0.75 * timeScale, 33.6)
+        // 水位限速非对称（D197 修订二）：上涨 60.9dp/s（softLimit 平滑），
+        // 下落维持 33.6dp/s 潮位观感——满驱 150dp（D196）后对称限速会让说话段
+        // 的水位一直停在爬升半途。
+        val levelSlew = if (levelGoal > level.value) 60.9 else 33.6
+        level.step(levelGoal, dt, 0.75 * timeScale, levelSlew)
         wave.step(waveGoal, dt, 0.32 * timeScale)
         // 加速与减速用不同半衰期（D178）：推动水体时驱动力大，响应仍保持 0.18s；
         // 撤掉驱动后只剩粘性耗散，用十倍的半衰期让流速带着惯性滑停，而不是在
@@ -152,7 +158,11 @@ internal class FableSolContinuousStateChannels {
          * 使映射在全区间 C1 单调——硬钳位会让高响度整段贴在同一高度、失去分辨。
          */
         private const val LEVEL_SLOPE_DP = 160.0
-        private const val LEVEL_AT_FULL_DP = 120.0
+        // D196：120→150dp 修顶带区分度；D202/D203：150→144→129dp——144 仍不够，
+        // 持续高潮时 CLIMAX 层距放大 + 深层主浪超驱叠加把 L8 浪尖顶过钟心 364。
+        // 129（用户偏好数）配合深两层主浪收紧后：L8 解析上限 CLIMAX 最坏 ~338、
+        // 持续 PEAK 典型 ~326，含浪不过钟底 344。五档相邻差 22~31dp。
+        private const val LEVEL_AT_FULL_DP = 129.0
         private val LEVEL_ASYMPTOTE_DP = LEVEL_SLOPE_DP /
             sqrt((LEVEL_SLOPE_DP / LEVEL_AT_FULL_DP).pow(2) - 1.0)
 

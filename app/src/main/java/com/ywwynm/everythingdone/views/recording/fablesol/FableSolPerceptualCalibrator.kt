@@ -37,6 +37,16 @@ class FableSolCalibrationInput {
     @JvmField var displayLoudMDb = Double.NaN
     @JvmField var displayLoudSDb = Double.NaN
     @JvmField var displayLoudnessBlend01 = 0.0
+    // 说话锚定原料（plan-20260723）：旧调用方/合成帧默认值使新路径整体退化为恒等。
+    @JvmField var music01 = 0.0
+    @JvmField var fluct4hz01 = 0.0
+    @JvmField var voiced01 = 0.0
+    @JvmField var sylRateHz = 0.0
+    @JvmField var modRateHz = 0.0
+    @JvmField var modStrength01 = 0.0
+    @JvmField var effortSpectral01 = 0.0
+    @JvmField var untrimmedLoudMDb = Double.NaN
+    @JvmField var untrimmedLoudSDb = Double.NaN
 }
 
 /** 原地写入的实时感知输出。 */
@@ -79,6 +89,12 @@ class FableSolPerceptualCalibration {
     @JvmField var zCentroid = 0.0
     @JvmField var dropTriggered = false
     @JvmField var dropConfidence01 = 0.0
+    // 说话锚定（plan-20260723）
+    @JvmField var voiceDominance01 = 0.0
+    @JvmField var speechEffort01 = 0.0
+    @JvmField var speechWater01 = 0.0
+    @JvmField var displayKinetic01 = 0.0
+    @JvmField var displayIsSilent = true
 }
 
 /**
@@ -135,6 +151,18 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
     private var speed01 = 0.0
     private var kinetic01 = 0.0
     private var positiveNovelty01 = 0.0
+    // 说话锚定状态（plan-20260723）
+    private var voiceDom01 = 0.0
+    private var effortEnv01 = 0.0
+    private var effortSlow01 = 0.0
+    private var speechKinetic01 = 0.0
+    private var punchLuEnv01 = 0.0
+    private var voicedEnv01 = 0.0
+    private var fluctEnv01 = 0.0
+    // 潮位包络（D197 修订二）
+    private var displayTide01 = 0.0
+    private var displayGapS = 0.0
+    private var displayDomLatch = 0.0
     private var contextMotionFast = Double.NaN
     private var contextLoudFast = Double.NaN
     private var contextCentroidFast = Double.NaN
@@ -163,6 +191,16 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         speed01 = 0.0
         kinetic01 = 0.0
         positiveNovelty01 = 0.0
+        voiceDom01 = 0.0
+        effortEnv01 = 0.0
+        effortSlow01 = 0.0
+        speechKinetic01 = 0.0
+        punchLuEnv01 = 0.0
+        voicedEnv01 = 0.0
+        fluctEnv01 = 0.0
+        displayTide01 = 0.0
+        displayGapS = 0.0
+        displayDomLatch = 0.0
         contextMotionFast = Double.NaN
         contextLoudFast = Double.NaN
         contextCentroidFast = Double.NaN
@@ -216,9 +254,74 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         val loudTarget = if (input.silent) 0.0 else loudRaw
         loudness01 = follow(loudness01, loudTarget, if (loudTarget > loudness01) 0.120 else 1.200)
 
+        // ---- 说话锚定（plan-20260723，与 Python calibration.py 同构）----
+        val floorAtten = smoothstep(0.0, NEAR_FLOOR_SPAN_DB, input.aboveFloorDb)
+        val punchLu = if (input.silent) 0.0 else
+            clip01((input.loudMDb - input.loudSDb - 3.0) / 12.0)
+        if (!input.silent) {
+            var tau = if (input.voiced01 > voicedEnv01) 0.7 else 2.0
+            voicedEnv01 = follow(voicedEnv01, clip01(input.voiced01), tau)
+            tau = if (input.fluct4hz01 > fluctEnv01) 1.0 else 2.5
+            fluctEnv01 = follow(fluctEnv01, clip01(input.fluct4hz01), tau)
+        }
+        // music 罚项先按 4Hz 调制占比打折：说话的音节伪拍也能顶高 music01。
+        val musicPenalty = smoothstep(0.45, 0.75, input.music01) *
+            (1.0 - smoothstep(0.10, 0.28, fluctEnv01))
+        if (!input.silent) {
+            val domTarget = clip01(
+                0.40 * smoothstep(0.06, 0.30, fluctEnv01) +
+                    0.42 * smoothstep(0.22, 0.52, voicedEnv01) +
+                    0.18 * smoothstep(0.8, 3.2, input.sylRateHz) -
+                    0.62 * musicPenalty
+            )
+            voiceDom01 = follow(
+                voiceDom01, domTarget, if (domTarget > voiceDom01) 2.0 else 3.0)
+        }
+        punchLuEnv01 = follow(
+            punchLuEnv01, punchLu, if (punchLu > punchLuEnv01) 0.25 else 1.5)
+        val speechLevelDb = if (input.untrimmedLoudSDb.isNaN()) {
+            input.loudSDb - 10.5
+        } else {
+            input.untrimmedLoudSDb
+        }
+        val speechLevel01 = clip01(
+            (speechLevelDb - SPEECH_LEVEL_FLOOR_DB) /
+                (SPEECH_LEVEL_CEILING_DB - SPEECH_LEVEL_FLOOR_DB))
+        val spectralGate = smoothstep(0.12, 0.35, voicedEnv01)
+        val dynGate = smoothstep(0.20, 0.60, speechLevel01)
+        if (input.silent) {
+            effortEnv01 *= exp(-dt / 4.0)
+        } else {
+            val effortTarget = clip01(
+                0.35 * speechLevel01 +
+                    0.45 * clip01(input.effortSpectral01) * spectralGate +
+                    0.20 * punchLuEnv01 * dynGate
+            ) * floorAtten
+            effortEnv01 = follow(
+                effortEnv01, effortTarget, if (effortTarget > effortEnv01) 0.35 else 1.6)
+        }
+        if (!input.silent) {
+            effortSlow01 = follow(effortSlow01, effortEnv01, 6.0)
+        }
+        val effortRise = max(effortEnv01 - effortSlow01, 0.0)
+        val speechLift = smoothstep(0.06, 0.18, effortRise) *
+            smoothstep(0.24, 0.42, effortEnv01)
+        val speechClimax = smoothstep(0.60, 0.80, effortEnv01) *
+            smoothstep(0.08, 0.24, effortRise)
+        val speechWater = clip01(FableSolSpeed.interp(
+            effortEnv01, SPEECH_LADDER_X, SPEECH_LADDER_Y)) * floorAtten
+        val speechPresence = max(
+            smoothstep(0.25, 0.55, voicedEnv01),
+            smoothstep(0.28, 0.55, fluctEnv01))
+        val musicGate01 = smoothstep(0.45, 0.75, input.music01)
+        val domMix = max(
+            smoothstep(VOICE_DOM_MIX_LO, VOICE_DOM_MIX_HI, voiceDom01),
+            speechPresence * (1.0 - musicGate01))
+
         val displayEnabled = !input.displayLoudMDb.isNaN() &&
             !input.displayLoudSDb.isNaN() && input.displayLoudnessBlend01 > 0.0
         val displayWater: Double
+        var displaySilent = input.silent
         if (displayEnabled) {
             val displayAbsolute = fixedLoudness01(input.displayLoudSDb)
             val displayMomentary = fixedLoudness01(input.displayLoudMDb)
@@ -232,19 +335,52 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
                 displayTarget,
                 if (displayTarget > displayLoudness01) 0.120 else 1.200
             )
-            displayWater = if (input.silent) {
-                0.0
+            // 潮位包络（D197 修订二）：说话主导时展示水位骑在句子平台峰值上。
+            // 排水发生在静音标志亮起之前（句尾 1.2s 响度释放先拖塌 display），
+            // 因此 max 包络在整句期间贴平台走；句间静默平台 2.2s 后 τ2.2 缓落；
+            // 非说话内容（音乐/咳嗽）完全直通，D173 语义不变。
+            val speechMode = domMix >= 0.50 ||
+                (input.silent && displayDomLatch >= 0.50)
+            if (!input.silent) displayDomLatch = domMix
+            if (speechMode) {
+                if (input.silent) {
+                    displayGapS += dt
+                    if (displayGapS > 2.2) displayTide01 *= exp(-dt / 2.2)
+                    displayWater = clip01(displayTide01)
+                    displaySilent = displayGapS > 2.2 && displayTide01 < 0.05
+                } else {
+                    val deviceBlend = clip01(
+                        loudness01 + input.displayLoudnessBlend01.coerceIn(0.0, 1.0) *
+                            (displayLoudness01 - loudness01)
+                    )
+                    val routed = clip01(deviceBlend + domMix * (speechWater - deviceBlend))
+                    displayGapS = 0.0
+                    displayTide01 = max(routed, displayTide01 * exp(-dt / 2.4))
+                    displayWater = clip01(displayTide01)
+                    displaySilent = false
+                }
             } else {
-                clip01(
+                val deviceBlend = clip01(
                     loudness01 + input.displayLoudnessBlend01.coerceIn(0.0, 1.0) *
                         (displayLoudness01 - loudness01)
                 )
+                // 内容感知路由（plan-20260723 §2）：人声主导时展示水位向说话五档
+                // 梯子连续混合；音乐主导时保持设备域展开。raw 轨与巨浪门不读它。
+                val routed = clip01(deviceBlend + domMix * (speechWater - deviceBlend))
+                displayWater = if (input.silent) 0.0 else routed
+                displayTide01 = if (input.silent) 0.0 else routed
+                displayGapS = 0.0
+                displaySilent = input.silent
             }
         } else {
             // master 与旧测试保持逐值 identity，也不引入第二套近似证据历史。
             displayLoudness01 = loudness01
             displayWater = clip01(loudness01)
+            displaySilent = input.silent
         }
+        // 说话路由只作用于存在 capture display 轨的内容；master 保持逐值恒等
+        // （D185 契约——纯正弦这类"浊音非音乐"边界内容不得改写 master 展示）。
+        val displayMix = if (displayEnabled) domMix else 0.0
 
         val rateRank = rateRange.score(input.rawRateHz)
         val speedTarget = if (input.silent) 0.0 else clip01(input.speedAbs01)
@@ -270,8 +406,6 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
             if (arousalTarget > musicArousal01) 0.4 else 3.0
         )
 
-        val punchLu = if (input.silent) 0.0 else
-            clip01((input.loudMDb - input.loudSDb - 3.0) / 12.0)
         robustValues[0] = input.loudSDb
         robustValues[1] = input.flux
         robustValues[2] = input.rawRateHz
@@ -296,6 +430,29 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
             speed01, input.grooveMotion01, intensity, positiveNovelty)
         kinetic01 = follow(kinetic01, kineticTarget, if (kineticTarget > kinetic01) 0.18 else 0.78)
         kinetic01 = max(clip01(kinetic01), speed01)
+
+        // 展示动能（D194 双驱动）：语速为主、用力为辅。语速项 = 音节率曲线
+        //（正常整句）与包络调制率曲线（D198：快速连说/重复单字）failover 组合
+        //（调制谱峰对语速不敏感，音节核可靠时以它为准）；喊单字由爆发直通兜底。
+        val sylPace = 1.0 - exp(-Math.pow(max(input.sylRateHz, 0.0) / 3.6, 1.2))
+        val modGate = smoothstep(0.12, 0.34, input.modStrength01) *
+            (1.0 - smoothstep(0.5, 1.2, input.sylRateHz))
+        val modPace = (1.0 - exp(-Math.pow(max(input.modRateHz, 0.0) / 3.4, 1.3))) * modGate
+        val pace01 = clip01(max(sylPace, modPace))
+        val burstGate = smoothstep(0.55, 0.85, input.punch01) *
+            smoothstep(0.45, 0.65, effortEnv01)
+        val speechKinTarget = if (input.silent) 0.0 else clip01(maxOf(
+            0.52 * pace01 + 0.48 * (0.15 + 0.85 * effortEnv01),
+            1.12 * effortEnv01 - 0.05,
+            0.95 * pace01,  // 语速为主（D194）：快语即使小声也要快
+            clip01(input.speedAbs01) * burstGate
+        ))
+        speechKinetic01 = follow(
+            speechKinetic01, speechKinTarget,
+            if (speechKinTarget > speechKinetic01) 0.22 else 0.90)
+        var displayKinetic = clip01(
+            kinetic01 + displayMix * (clip01(speechKinetic01) - kinetic01))
+        if (input.silent && displaySilent) displayKinetic = 0.0
 
         stateFrame.t = input.t
         stateFrame.silent = input.silent
@@ -380,9 +537,16 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         output.gradeDrive01 = evidence.gradeDrive01
         output.liftScore01 = evidence.liftScore01
         output.climaxScore01 = evidence.climaxScore01
-        output.displayGradeDrive01 = displayEvidence.gradeDrive01
-        output.displayLiftScore01 = displayEvidence.liftScore01
-        output.displayClimaxScore01 = displayEvidence.climaxScore01
+        // 说话主导时展示档位向五档水位收敛，相位分数换"渐强/骤升"语义（D191/D192）。
+        output.displayGradeDrive01 = clip01(
+            displayEvidence.gradeDrive01 +
+                displayMix * (displayWater - displayEvidence.gradeDrive01))
+        output.displayLiftScore01 = clip01(
+            displayEvidence.liftScore01 +
+                displayMix * (speechLift - displayEvidence.liftScore01))
+        output.displayClimaxScore01 = clip01(
+            displayEvidence.climaxScore01 +
+                displayMix * (speechClimax - displayEvidence.climaxScore01))
         output.gradeAbsolute01 = evidence.gradeAbsolute01
         output.gradeContext01 = evidence.gradeContext01
         output.vocalSoloPenalty01 = evidence.vocalSoloPenalty01
@@ -393,6 +557,11 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
         output.zCentroid = robustZ[4]
         output.dropTriggered = dropTriggered
         output.dropConfidence01 = dropConfidence
+        output.voiceDominance01 = clip01(voiceDom01)
+        output.speechEffort01 = clip01(effortEnv01)
+        output.speechWater01 = speechWater
+        output.displayKinetic01 = displayKinetic
+        output.displayIsSilent = displaySilent
         return output
     }
 
@@ -610,11 +779,18 @@ class FableSolPerceptualCalibrator(frameRate: Double) {
     }
 
     companion object {
-        const val DEFAULT_RELATIVE_MIX = 0.20
+        const val DEFAULT_RELATIVE_MIX = 0.21
         private const val LOUDNESS_FLOOR_DB = -30.0
         private const val LOUDNESS_CEILING_DB = -2.0
         /** 贴地余量：内容高出 A 计权底噪不足这么多 dB 时，水位按 smoothstep 连续折减。 */
         const val NEAR_FLOOR_SPAN_DB = 14.0
+        // ---- 说话锚定（plan-20260723 / D191~D196，与 Python calibration.py 同值）----
+        private const val SPEECH_LEVEL_FLOOR_DB = -26.0
+        private const val SPEECH_LEVEL_CEILING_DB = -8.0
+        private val SPEECH_LADDER_X = doubleArrayOf(0.0, 0.20, 0.35, 0.52, 0.64, 0.74, 1.0)
+        private val SPEECH_LADDER_Y = doubleArrayOf(0.0, 0.14, 0.34, 0.52, 0.72, 0.94, 1.0)
+        private const val VOICE_DOM_MIX_LO = 0.35
+        private const val VOICE_DOM_MIX_HI = 0.65
 
         fun fixedLoudness01(valueDb: Double): Double = clip01(
             (valueDb - LOUDNESS_FLOOR_DB) / (LOUDNESS_CEILING_DB - LOUDNESS_FLOOR_DB))

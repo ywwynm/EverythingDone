@@ -45,6 +45,8 @@ class FableSolAmbientSet(seed: Long, baseLenDp: Double, private val n: Int = 4) 
     private val cosState = DoubleArray(n)
     private val stepSinState = DoubleArray(n)
     private val stepCosState = DoubleArray(n)
+    private val transportScratch = DoubleArray(n)
+    @JvmField internal var lastCommonTransportDpsForTest = 0.0
     // 步进旋转只依赖 k[c]·dx；k 仅在 retune 改变（同时改 baseLen），dx 是采样网格步长。
     // 两者都未变时跨帧复用，每帧再省 2n 次 libm。NaN 初值保证首帧必算。
     private var stepCacheDx = Double.NaN
@@ -75,11 +77,28 @@ class FableSolAmbientSet(seed: Long, baseLenDp: Double, private val n: Int = 4) 
         baseLen = baseLenDp
     }
 
-    fun advance(dt: Double, velDps: Double) {
+    fun advance(dt: Double, velDps: Double, shapeStability: Double = 0.0) {
         travelDir = travelSign(velDps, travelDir)
+        val stability = shapeStability.coerceIn(0.0, 1.0)
+        if (stability <= 1e-12) {
+            for (c in 0 until n) {
+                val omega = sqrt(GRAVITY_DP_S2 * k[c]) * dispersionJitter[c]
+                phase[c] -= (k[c] * velDps * speedJitter[c] + travelDir * omega) * dt
+            }
+            return
+        }
+        var commonTransport = 0.0
         for (c in 0 until n) {
             val omega = sqrt(GRAVITY_DP_S2 * k[c]) * dispersionJitter[c]
-            phase[c] -= (k[c] * velDps * speedJitter[c] + travelDir * omega) * dt
+            val transport = velDps * speedJitter[c] + travelDir * omega / k[c]
+            transportScratch[c] = transport
+            commonTransport += transport * relAmp[c]
+        }
+        lastCommonTransportDpsForTest = commonTransport
+        for (c in 0 until n) {
+            val transport = transportScratch[c]
+            val blended = transport + stability * (commonTransport - transport)
+            phase[c] -= k[c] * blended * dt
         }
     }
 

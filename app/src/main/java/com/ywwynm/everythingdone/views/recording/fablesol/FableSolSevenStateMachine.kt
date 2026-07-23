@@ -355,9 +355,11 @@ class FableSolSevenStateMachine {
 
     companion object {
         private val WAVE_MULTIPLIER = doubleArrayOf(0.20, 0.20, 0.50, 1.00, 0.80, 1.50, 2.00)
-        private val SPREAD = doubleArrayOf(0.70, 0.70, 0.90, 1.00, 1.10, 1.22, 1.30)
-        private val RIM = doubleArrayOf(0.0, 0.0, 0.18, 0.52, 0.78, 0.94, 1.0)
-        private val CAP = doubleArrayOf(0.0, 0.0, 0.10, 0.42, 0.62, 0.84, 1.0)
+        // D195（2026-07-23）：PEAK 是常见的顶部状态（CLIMAX 不常见），银边/白冠在
+        // PEAK 即拉满；GROOVE/LIFT/CALM 同步上调，层距高档微收。RIM 与 CAP 取值一致。
+        private val SPREAD = doubleArrayOf(0.70, 0.70, 0.90, 1.00, 1.08, 1.20, 1.29)
+        private val RIM = doubleArrayOf(0.0, 0.0, 0.24, 0.72, 0.90, 1.0, 1.0)
+        private val CAP = doubleArrayOf(0.0, 0.0, 0.24, 0.72, 0.90, 1.0, 1.0)
 
         fun waveMultiplier(state: FableSolVisualState): Double = WAVE_MULTIPLIER[state.ordinal]
         fun spread(state: FableSolVisualState): Double = SPREAD[state.ordinal]

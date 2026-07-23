@@ -2929,3 +2929,439 @@ state 66.09%、hero L0 8.583dp，仍有明显残差。随后继续消融固定 b
 level 降到 10.750dp、state 提高到 66.22%，同时让 Lose 的 wave/state 退化，均未合入。
 oracle 水位上界下《银花》state 仍只有 80.18%、wave 仍为 0.1607，确认剩余误差不能由
 单录音响度自适应消除。正式源码和已发布 APK 因此保持不变。
+
+## 2026-07-22（第十八节）Python 已成形波浪的改形源只读审计
+
+按用户要求，以 Python 仓库 `audioVisualizerSimulatorFable` 当前干净工作区、提交
+`13f387a` 为准，逐层追踪 `FeatureMapper → Simulation → DynamicWave/AmbientWave/HeroWave/GrandWave`
+以及 `ContinuousSurfacePrototype → GL/QPainter`。严格区分“某个已经生成的
+`DynamicWave` 状态”与“屏幕上看到的最终合成轮廓”：
+
+- `DynamicWave` 不会被音头、七境或主浪目标直接乘法重塑；它只按波动方程、阻尼、背景流
+  迎风平流、海绵区/软墙/黏滞、倾斜晃荡注入及新波叠加继续演化。巨浪经过第 0 层时是唯一
+  明确在最终合成阶段把原有细节局部降到冠顶 12% 的机制。
+- 最终轮廓仍会变化：四模态环境波含独立色散、速度抖动和周期呼吸；六模态主浪含模态干涉、
+  `hero_breath`、慢几何粗糙度、声像横移和画外能量包络；默认连续水面还叠加九模态二维方向场、
+  自动/稀有波包、Gerstner X/Z 轨道、俯仰滞后、单调修复与 C2 B-spline/Hermite 显示重建。
+- 水位、基础水位、慢漂和层距主要改变直流位置或层间布局，不直接改变单条去均值轮廓；
+  `OpticalWaveSet` 与颜色/高光参数只改变法线和材质，不改变可见边界。
+- 参数注册表中 `swell_gain`、`swell_deadband_pct`、`swell_max_dp` 当前均无产品源码消费者，
+  调整它们不会改变水位、浪形或渲染结果；其中 `swell_max_dp` 已有既存 follow-up。
+
+本轮未修改 Python 或 Android 产品实现；定向执行
+`tests/test_wave_shape_continuity.py` 与 `tests/test_offscreen_birth.py`，共 7 项通过。
+
+## 2026-07-22（第十九节）Python 临时浪形诊断开关原型
+
+按用户要求在 `audioVisualizerSimulatorFable` 增加只驻留内存的“浪形诊断（临时原型）”，
+用于直接目测已成形浪为何继续改形。17 个开关全部勾选时保持修改前行为，不进入 `Params`、
+JSON 预设或 Android；隐藏组件仍推进内部状态，重新打开不会从零相位重启。面板另有
+“恢复当前效果”和“只看 DynamicWave”快捷按钮。
+
+开关按四组覆盖：DynamicWave 显示/后续注入；环境波显示/相对色散/呼吸与 4Hz 音节包络；
+HeroWave 显示/后续能量/相对色散/模态呼吸/Gerstner 聚峰；连续面方向谱/二维波包/生灭包络/
+自动补包/X-Z 轨道，以及事件巨浪显示/冠部压制。相对色散关闭时不重置当前相位，而是从切换
+时刻起把环境波模态锁成共同输运速度，把 Hero 六模态及三段空间能量包络锁成同速刚性平移；
+这两项与后续注入是首轮目测优先级最高的变量。
+
+新增 `docs/prototypes/shape-change-diagnostics.md`，明确原型问题、观察顺序和删除条件。相关
+67 项回归先通过；17 个开关逐项离屏切换、有限值、快捷预设及不改写 `Params` 的交互检查通过；
+最终 Python 全量 333 项及 26 个 subtests 全绿。未修改 Android、未使用 ADB、未发布 Debug。
+正式行为等待用户目测裁决，原型开关不得直接长期保留或原样移植。
+
+## 2026-07-23（第二十节）Python 诊断面板“全关无效”根因定位
+
+用户反馈第十九节的 17 个开关全部取消仍无效果。按 `diagnose` 流程先建立三层反馈环：
+纯模拟锚层、连续曲面和最终 GL 几何。直接修改 live `ShapeDiagnostics` 后，下一帧九层横向
+轮廓范围确实归零，连续面起伏约 `1e-29dp`；说明开关公式本身接通。随后补上上一轮遗漏的
+真实产品顺序“先创建面板 → 加载音频 → checkpoint 恢复 → 手动全关”，稳定复现用户问题。
+
+根因是 `ControlPanel` 的复选框闭包捕获初始诊断对象，而
+`restore_visual_checkpoint()` 会清空并深拷贝恢复 `Simulation.__dict__`，替换
+`sim.shape_diagnostics`。加载音频以后，复选框改的是已脱离模拟的旧对象，渲染器使用的新对象
+仍为 17/17 全开；确定性探针中旧对象为 0/17、live 对象仍 17/17，第 0 层起伏仍为
+23.73dp。两个快捷按钮会在点击时重新取得 live 对象，因此不受同一闭包问题影响。
+
+同时量化了贯通修复后的剩余独立来源：全关几何时 `wander` 仍使各层 1 秒内最多移动
+3.02dp，并令 22,198 个 GL 像素变化超过 4/255；几何完全冻结时，银丝滑动仍使 4,183 个
+像素变化超过 1/255；只保留 DynamicWave 时，单浪扣除最佳刚性平移/缩放后 0.5 秒约有
+4.5% 改形残差。真实音频的 `swell` 还会改变纵深基准。这些不是“复选框失联”的同一根因，
+须在面板贯通后再独立裁决。
+
+本轮按诊断请求未修改产品实现。正确修复边界已明确：checkpoint 排除/保留 live 诊断对象，
+恢复后将 `surface2d.diagnostics` 重绑同一对象；复选框触发时动态解析 live 状态；回归覆盖
+真实 checkpoint 顺序。未修改 Android、未使用 ADB、未发布 Debug。
+
+## 2026-07-23（第二十一节）Python 诊断面板 checkpoint 失联修复
+
+按用户要求直接修复第二十节定位的问题。`restore_visual_checkpoint()` 现在把
+`ShapeDiagnostics` 视为 live UI 原型状态：恢复视觉历史时保留当前对象身份，并在深拷贝
+恢复 `surface2d` 后把 `surface2d.diagnostics` 重绑到该对象。面板复选框也不再捕获构建时
+的旧对象，而是在每次触发时从 `self.sim.shape_diagnostics` 取得当前 live 状态。
+
+先增加真实调用顺序“创建面板 → 恢复新音源 checkpoint → 手动关闭全部开关”的回归，修复前
+稳定红测：旧对象 0/17，live 对象仍 17/17；修复后转绿，并确认对象身份保持、连续面引用一致。
+按同一路径重新执行确定性探针后，live 开关为 0/17，第 0 层横向起伏从 23.73dp 降为
+0.0dp。`test_seek_rehydration.py` 13 项通过，当前 Python 完整测试 311 项全部通过。
+
+此次只修复诊断工具失联，没有把 `wander` / `swell`、GL 银丝滑动或 DynamicWave 自身物理
+演化混入同一改动。下一步需用户用已贯通的开关重新目测，再裁决哪些机制应改成正式稳定语义。
+未修改 Android、未使用 ADB、未发布 Debug。
+
+## 2026-07-23（第二十二节）环境波与二维方向谱连续弱化参数（D186）
+
+用户用修复后的诊断面板确认，环境波与二维方向谱是已成形轮廓持续重组的两个主要来源，但
+二者全关后画面又过于单调。源码审计确认：环境波四模态按不同深水色散相速运行并独立呼吸；
+二维方向谱九模态既按不同波长/方向推进相位，又以 3.2 秒状态按三个 Hero 波段分别改变振幅。
+既有 `ambient_gain` 还会同时缩放二维方向谱，后者没有独立强度与时间相干控制。
+
+联网调研采用三类一手资料：Tessendorf 海面合成说明多模态动画由色散频率决定；方向谱研究
+说明方向集中度是独立可调维度；NVIDIA GPU Gems 的实时水面实现把宏观几何与细小法线波分开，
+并指出细小法线细节可承担主要真实感。由此选择“降低几何时间重组、保留微法线和材质丰富度”，
+而不是继续用全关或只降总振幅处理。共同水平输运是从色散公式推导出的产品形态控制，不宣称
+比真实深水色散更物理。
+
+Python 参数面板新增四项可保存、实时生效的参数：`ambient_shape_stability`、
+`surface_spectrum_gain`、`surface_spectrum_audio_response`、`surface_shape_stability`。
+两个 stability 从 0 的当前色散连续混合到 1 的共同水平输运；方向谱强度只缩放几何，音乐响应
+只缩放三波段 Hero 能量调制，不关闭二维波包、微法线或材质。默认 `0/1/1/0`，保持现有效果。
+
+推荐首轮候选为 `ambient_gain=0.85`、`ambient_breath=0.10`、环境稳定 `0.70`，以及二维
+强度 `0.70`、音乐响应 `0.25`、稳定 `0.70`；先保留 heading/spread 的 `30°/24°`。
+固定种子 0.5 秒探针扣除最佳水平平移后，环境波保留 76% 细节、改形 RMS 从 0.420dp 降到
+0.102dp；二维谱保留 43% 细节、改形 RMS 从 0.203dp 降到 0.026dp。若远近交叉仍过多，
+第二轮再试 `22°/16°`，避免第一轮混入方向组织变量。
+
+四项机制回归均先红后绿；连续水面 16 项、浪形连续性 3 项、seek/checkpoint 13 项通过，
+当前 Python 完整测试 315 项全部通过。调研与参数说明已写入 Python 原型文档和 README。
+未修改 Android、未使用 ADB、未发布 Debug；正式默认值与 Android 移植等待用户动态目测。
+
+## 2026-07-23（第二十三节）六项浪形稳定参数集中到独立实验面板
+
+按用户要求，Python 右侧新增“浪形稳定调节（实验）”分组，集中展示环境波幅度、环境波
+呼吸深度、环境波形态稳定、二维方向谱强度、二维谱音乐响应与二维谱形态稳定。六项不再分散
+显示于“连续水面”和“环境与流动”，但参数键、取值范围、JSON 保存和既有默认效果均不变。
+
+面板按“环境波 / 二维方向谱”分区，并提供两个局部快捷按钮：“推荐起点”应用
+`0.85 / 0.10 / 0.70 / 0.70 / 0.25 / 0.70`；“恢复当前效果”只恢复这六项的原默认值
+`1.2 / 0.27 / 0 / 1 / 1 / 0`，不会重置其它参数。按钮执行后显式刷新六个滑杆，便于同一段
+音乐中反复 A/B。
+
+新增回归先确认旧实现缺少独立面板而失败，再锁定六项唯一归属、推荐/恢复数值与控件同步。
+专项 34 项通过；Python 完整测试 339 项及 26 个 subtests 全部通过，`git diff --check`
+无错误。未修改 Android、未使用 ADB、未发布 Debug；最终默认值继续等待用户目测裁决。
+
+## 2026-07-23（第二十四节）两端正式“浪形”分组与稳定参数移植（D187）
+
+用户完成目测并选定六项初始值：环境波强度 `0.42`、小浪强弱变化 `0.27`、小浪形状稳定
+`0.00`、斜向浪强度 `0.96`、斜向浪音乐响应 `0.25`、斜向浪形状稳定 `0.00`。这些数值已
+同时成为 Python 与 Android 的正式默认值，上一节的实验面板、推荐按钮和旧默认值不再保留。
+
+两端设置目录统一新增正式“浪形”组，Android 中紧跟在“连续水面”之后。该组集中 15 项直接
+影响轮廓的标量参数，按主浪、背景小浪、斜向浪和边缘四类组织；原“主浪”组取消，“连续水面”
+只保留观察角度，“环境与流动”继续保留流速、漂移、倾斜和节拍等运动参数。所有显示名称改成
+简短的影响导向文本，例如“主浪高度”“小浪形状稳定”“斜向浪音乐响应”和“边缘反弹柔和”。
+Android 的 13 套语言资源已同步补齐并通过资源完整性检查。
+
+Android 不只增加设置项，还移植了 Python 的实际消费语义：环境波稳定度把各模态相速连续混合
+到共同水平输运；斜向浪稳定度把九个方向谱模态连续混合到共同水平输运；斜向浪强度仅缩放谱
+几何，音乐响应仅缩放三个能量波段对谱振幅的调制。稳定度为 `0` 时保持原分支，避免默认行为
+发生隐式变化。
+
+Python 浪形/连续水面专项 34 项通过，完整回归为 339 项及 26 个 subtests 全部通过；Android
+相关专项、完整 JVM 单测和 `:app:assembleDebug` 均通过。两边 `git diff --check` 均无错误。
+
+随后发布阿里云 Debug `202607230300`（versionCode 43 / versionName 2.0.0），发布构建为
+21,034,556 bytes，SHA-256
+`25c1860c2aa9856fcb5d1a5095988f9e4ffe084ea67432d64e9cee6793a57d07`。远端
+`latest.json`、APK 大小、SHA-256 和本地发布产物全部一致，`releaseNotes` 已确认完整包含本次
+诊断、参数、设置重组、Android 移植与验证章节。未使用 ADB。
+
+## 2026-07-23（第二十五节）七项默认参数二次目测定稿（D188）
+
+用户按 Android 设置名称给出七项新默认值，并要求 Python 同步：相机仰角 `36°`、波背自阴影
+`0.84`、主浪增强时间 `0.84s`、背景小浪强度 `0.54`、水位上升预平滑 `0.54s`、涨落攻击
+`0.36s`、响度瞬态加成 `0.21`。已分别映射到 `surface_view_elev_deg`、
+`back_shade_gain`、`hero_attack_s`、`ambient_gain`、`swell_presmooth_s`、
+`swell_attack_s` 与 `relative_loudness_mix`，两端参数注册表保持完全一致。
+
+`relative_loudness_mix` 除可见参数表外还有声音分析器的独立初始化默认值，因此 Android 的
+`FableSolPerceptualCalibrator.DEFAULT_RELATIVE_MIX` 与 Python 的
+`audio.calibration.DEFAULT_RELATIVE_MIX` 也同步更新到 `0.21`，避免直接创建分析器时仍落回
+旧值 `0.20`。本轮没有改变参数范围、步长、分组、公式，也不改写已有 SharedPreferences 或
+Python JSON 预设。
+
+新增两端默认值一致性回归，Python 参数目录、seek 面板和感知标定专项 32 项通过；Android
+设置目录与声音前端专项通过。最终 Python 全量 340 项及 26 个 subtests 全部通过，Android
+完整 JVM 单测和 `:app:assembleDebug` 均成功，两边 `git diff --check` 均无错误。
+未使用 ADB。
+
+随后发布阿里云 Debug `202607230333`（versionCode 43 / versionName 2.0.0），发布 APK 为
+21,034,556 bytes，SHA-256
+`68d8773edf0cc387c71a8d69e39538aeec34bbe4a9f7d8c0a57a05d1aa870c81`。远端
+`latest.json`、APK 大小、SHA-256 与本地产物全部一致，`releaseNotes` 已确认完整包含七项
+新默认值、两端实现和验证结果。
+
+## 2026-07-23（第二十六节）Python 参数面板全分组折叠（D189）
+
+按用户要求，Python 参数控制面板的全部一级分组改为可独立折叠与展开。新增
+`CollapsibleGroupBox` 统一承接原 `_group()` 创建路径，并把此前单独实现的“检测”组也迁入
+同一路径，因此播放、检测、音画耦合、演示、临时诊断、外观、质感提升、连续水面、浪形、
+环境与流动、涨落、逐层水体、倾斜和参数预设等分组均已覆盖。
+
+所有组默认展开；点击标题状态可隐藏内容并回收纵向高度，折叠时收紧内边距和最大高度，展开后
+恢复完整布局。状态只存在于当前面板实例，不写入 `Params`、JSON 或 checkpoint。回归逐组执行
+折叠/展开，确认全部 `QGroupBox` 都使用统一容器、参数字典完全不变，并且播放按钮等原本因运行
+条件禁用的控件在重新展开后仍保持原 enabled 状态。
+
+离屏界面检查确认连续折叠前五组后高度正确回收，后续分组向上补位；面板、seek 和遗留分组专项
+25 项通过，最终 Python 全量 341 项及 26 个 subtests 全部通过。未修改 Android，未使用 ADB，
+未发布 Debug。
+
+## 2026-07-23（第二十七节）背景小浪强度恢复为 0.42 并发布（D190）
+
+用户要求把背景小浪强度默认值从 D188 的 `0.54` 恢复为 `0.42`，同时修改 Python 与 Android
+并发布阿里云。两端 `ambient_gain` 参数注册表及对应默认值回归已同步；其它六项 D188 默认值、
+参数范围、步长、浪形分组和环境波公式均未改变。已有 SharedPreferences 与 Python JSON 预设
+仍按原机制优先于默认值。
+
+首轮 Python 全量回归有一项宏观阴影着色器隔离测试失败：默认环境波减弱后，受影响像素从原门限
+要求的 `>200` 变为 `191`。该测试的目标是隔离阴影公式，不应借用产品默认几何，因此改为显式
+固定 `ambient_gain=0.54`；没有放宽像素门限。修正后该项通过，最终 Python 全量 341 项及
+26 个 subtests 全部通过，Android 完整 JVM 单测通过，两边 `git diff --check` 无错误。
+
+发布阿里云 Debug `202607230450`（versionCode 43 / versionName 2.0.0），APK 为
+21,034,556 bytes，SHA-256
+`6a093b057d8a387f00de055c2888c4d659e5add307e38ace9e55632d73881306`。远端
+`latest.json`、APK 大小、SHA-256 和本地产物完全一致，`releaseNotes` 已确认包含默认值恢复、
+验证与测试解耦说明。未使用 ADB。
+
+## 2026-07-23（第二十八节）音频→动画映射全链路数值分析与"说话像激情音乐"根因实测（只分析，未改代码）
+
+针对"真机录普通说话就出现高水位、波浪不断起伏"的问题，通读 Kotlin 全链路
+（采集 → RealtimeAnalyzer → PerceptualCalibrator → CausalStateEvidence/SevenState →
+ContinuousStateChannels → FlowPolicy → Simulation/WaveSets），整理水位、流速、
+波形三条链的完整数值范围与映射公式，并用 Python 模拟器 + 真实音频实测验证。
+
+实测（水位/状态报告 + 六文件对比 + AGC 模拟实验，脚本
+`audioVisualizerSimulatorFable/scratch/compare_water_states.py` 与
+`scratch/agc_speech_test.py`，结果 JSON 同目录）：
+
+- 母带音乐（银花 flac，master 档）：water 中位 0.71，PEAK 占 56.5%。
+- 同曲手机录音（capture 档）：water 中位 0.85，PEAK 75%；短时响度中位已到
+  -6.5dB，顶着 [-30,-2] 满刻度；display 轨压回 0.79 仍高于母带。
+- 桌面说话录音三段：water 中位 0.21~0.62，但 kineticDrive 中位 0.84~0.89
+  （流速≈160~180dp/s，与音乐高潮同级）；LIFT 占比最高 34.6%；musicArousal
+  中位 0.41~0.50，与音乐（0.42~0.44）无差别。
+- 决定性实验：把说话录音归一到手机采集实测电平 -19dBFS（三段手机录音 RMS 都
+  在 -19dBFS 附近）再走 capture 链路——water 中位 1.0（饱和），PEAK 22%+
+  CLIMAX 15%，grade 中位 0.95，targetDps 中位 182dp/s；-25dBFS 档同样
+  water 0.995、CLIMAX 9.5%。用户抱怨被完整复现。
+
+根因链（各环节相乘）：
+1) 手机 HAL 层增益/AGC 把说话推到与音乐外放相同的 -19dBFS 量级（MIC 音源，
+   audiofx 关 AGC 不保证 HAL 层生效；PREFER_MIC=true）；
+2) capture 档 +18dB@250Hz 低架正中说话基频区，+10.5dB trim 又按已修复的
+   -3dB 解码 bug 时代拟合而系统性偏热（followups 已有待重估标记）；
+3) 固定绝对刻度 [-30,-2] 下说话短时响度冲到刻度顶端甚至越顶 → 水位饱和；
+4) gradeDrive 52% 权重来自水位 LUT → 水位饱和直接抬 PEAK/CLIMAX；
+5) 防线失效：vocalSolo 罚项依赖 musicArousal<0.54 才生效，而 arousal 配方
+   （响度动态+flux+onset 率+质心）对说话读数≈0.5，罚项实测中位为 0；
+   music01（节拍置信）只门 beatMotion/tempo，不参与水位与 grade；
+6) 流速：vocalMotion（音节率）+harmonicMotion（语音谱变化）经 8 阶广义
+   max 融合，说话 kinetic 天然 0.85+，与音乐同速。
+
+网络调研（方案方向，未定案）：Dolby Dialogue Intelligence 的"对白锚定"
+思路（内容类别条件化的响度锚）、Scheirer-Slaney 语音/音乐判别特征（4Hz 调制
+能量已在链路内但未参与水位/档位）、Android UNPROCESSED 音源与
+MicrophoneInfo.getSensitivity()（可换算绝对 SPL，但设备覆盖碎片化）、
+WLED 声反应的 squelch/gain/AGC 用户档位实践、ISO 532 心理声学响度。
+ADR-0015/0016 边界确认：不得重新引入曲内自适应排名，设备补偿只能落在
+输入校准层——后续方案讨论以此为约束。本节只分析未改代码，与用户的
+方案讨论进行中。
+
+（第二十八节补充）用户提供专用说话分档测试录音 20260723140911 后的逐段实测
+（脚本 scratch/speech_levels_report.py，结果 JSON 同目录）：麦克风域 PCM 活动电平
+小声 -36.6 / 偏小声 -31.8 / 正常 -23.3 / 偏大声 -16.5 / 大声 -17.4 dBFS——低半区
+保留 8~13dB 台阶，高半区被设备 AGC/限幅器压到 1dB 以内（但 400ms 峰值 p95 仍保留
+正常 -21.0 → 偏大声 -13.1 → 大声 -10.2 的分离）。经 +18dB 低架 +10.5dB trim 后
+K 计权短时响度：小声 -13.9、偏小声 -7.2、其余四档 -1.1~+2.1dB——全部超出 [-30,-2]
+刻度天花板，五档说话有四档水位=1.0、CLIMAX 占比 18~40%，"动画差异不明显"被量化
+证实。说话段 spectral_tilt01 全程饱和 1.0、centroid01 中位 0.0（低架把谱身份特征
+推到极限），punch01 中位 0.7~1.0；kinetic 全段 0.85~0.90 与语速无关（快速喊单字反
+而降到 0.72）。巨浪门只读 raw 轨（gatePerceptualFrame/gateStateEvidence 全 raw），
+display 轨改动在架构上不影响巨浪鉴权；但 kinetic 目前无 display 分身，流速侧改动
+需新增展示动能通道或全量回归巨浪用例。
+
+（第二十八节补充二）巨浪基线核验（2026-07-23，只测未改）：运行
+tools/grand_wave_audio_validation.py（纯实时全 hop 路径）对五个音乐用例——Lose
+原曲 ncm / 短录音 145549 / 全录音 163150 / 银花 flac / 银花全录音 163541——
+全部 checks 通过（master 四窗、录音对应窗、无多余触发、rap 段无触发、银花 2:23
+含全录音）。当前代码的音乐巨浪基线健康。同一实时 replay 路径下，说话测试录音
+20260723140911 触发 3 道巨浪：33.19s（正常声音段，causal-arrival 0.81）、
+47.88s（偏大声段，peak-phrase-repeat 0.85）、109.47s（正常速偏大声段，
+causal-arrival 0.77）——"正常说话/偏大声即可出巨浪"是当前真实行为。
+另发现：OfflineDirector 60fps 驱动路径的巨浪结果与实时路径不一致（Lose 原曲
+1 道 vs 4 道、银花全录音 83.9s 假触发且 143s 缺失），巨浪验证必须以
+grand_wave_audio_validation.py 的实时路径为准，已记 followup。
+
+## 2026-07-23（第二十九节）说话/音乐双锚定 P0~P5 Python 实现与逐轮标定（进行中）
+
+按 plan-20260723 实施。P0：D195 执行表两端落地（states.py 与
+FableSolSevenStateMachine，SPREAD 1.08/1.20/1.29、RIM=CAP=0/0/0.24/0.72/0.90/1/1），
+两端状态测试通过。P1~P3（Python）：features.py 增 raw 域用力原料
+（80-300Hz/1-4kHz/80-8kHz 固定频段份额，取自 gate_spec 原始谱）与
+effort_spectral01（0.62×tilt+0.22×presence+0.16×pitch，无逐帧浊音门）；
+CalibrationInput 增 music01/fluct4hz01/voiced01/syl_rate_hz/effort_spectral01/
+untrimmed dB 七输入；calibration.py 增人声主导度（fluct 0.40+voiced 0.42+
+syl 0.18−music 罚 0.62，music 罚被 4Hz 占比打折，静音冻结）、发声用力包络
+（level 0.35[-26,-8dB]+spectral 0.45×浊音存在门+峰值动态 0.20×电平门，升 0.35s/
+降 1.6s/静音 τ4s 回落）、五档梯子（x=0/0.20/0.35/0.52/0.64/0.74/1 →
+y=0/0.16/0.31/0.50/0.70/0.88/1）、路由 route_mix=max(主导度滞回, 说话痕迹×
+(1−music_gate))、display 相位分数说话侧改"渐强/骤升"语义（effort 慢基线 τ6s）、
+displayKinetic 三路径 max（0.52×音节率曲线+0.48×用力、1.12×用力-0.05、
+speed_abs×punch×用力双门爆发直通）；mapping._DisplayFrame 增
+kinetic_drive01/flow01→display_kinetic01 别名（gate 帧保持 raw）；offline
+时间线增 10 个新字段、CACHE_VERSION 48→49。
+
+六轮标定实测（20260723140911 分段中位）：display 水位小声 0.23/偏小声 0.31/
+正常 0.49/偏大声 0.69/大声 0.85，全部落入 D191 档带且单调；displayKinetic
+0.44/0.34/0.54/0.71/0.77，快速段 0.65-0.70。踩过的坑：逐帧浊音门把偏大声段
+谱用力中位压零；音节伪拍抬 music01 压制主导度；相对归一的 punch/onset 密度
+把小声读成快（爆发直通加用力门、pace 改纯音节率曲线）；analyze 缓存按版本号
+命中旧结果（迭代期间需清 cache）。
+
+P4：GrandWaveRequest 增 amplitude01（默认 1.0，音乐分支恒全高 144dp）；
+gate 增说话域（SPEECH_DOM_MIN 0.60/SPEECH_MUSIC_MAX 0.60，music 分支加
+not speech_dominant）与转变分支（低档/静音 ≥2s 重武装、effort≥0.55 确认
+0.3s、攻击峰≥0.22、音节核峰≥0.5/s、4Hz 包络≥0.22、转变窗 1.2s 超时缴械、
+最小间隔 8s；tier=(峰值 effort−0.58)/(0.76−0.58)→amplitude01 0.556~1.0）；
+grand_wave.trigger 增 amplitude01 分级。11 条音乐素材主导度探针：dom 中位
+全 0.40、"说话主导"误判占比 ≤3.6%（银花软人声前奏），阈值成立；master
+display 恒等保持，录音版 display 水位顺带贴近母带（银花 0.74 vs 0.71）。
+说话文件实时回放：巨浪恰好 43.68/55.17/109.79s（三处正样本窗口），
+33s/64s/80s 负样本消除——64s 快速连说靠"音节核=0"指纹否决（连续快语无
+4dB 音节谷），80s 喊单字靠 4Hz 占比 0.09 否决。
+
+P5：idle_flow_ratio 0.16→0.20（Python，D194 静息偏慢；静息 L0=36dp/s）；
+音乐录音 display 已实测贴近母带（银花 0.74/母带 0.71，Lose 0.78/母带 0.83），
+不再额外调。官方五用例巨浪验收与全量 pytest 后台运行中。
+
+（第二十九节补充）官方巨浪验收（11 轨全参数：母带+短录音+两全录音+银花
++六首 positive-master）在 P4/P5 改动后全绿 pass:true——master 四窗无多余、
+每首母带均有巨浪（D184）、rap 负样本、无滞留浪全部保持。Python 全量
+341+26 通过。D196：用户目测指出偏大声/大声水位偏矮且区分度不足（数值核实
+顶带被压进 30dp），满驱水位 120→150dp、说话梯子顶带外扩，两端同步，新五档
+L0 静水面 28.2/35.7/42.3/49.4/56.7% 容器、相邻档差 6.6~7.5%；随此更新
+test_states_a4 满驱断言。方法教训入库（memory/visual-qa-needs-numbers）。
+
+（第二十九节补充二）D196/D197 与用户目测迭代：用户指出 PEAK/CLIMAX 样片偏矮且
+两轮无差，并要求直接从渲染图测占比、看多帧多秒而非单帧。建
+scratch/measure_water_occupancy.py（像素级 L0 含浪占比）与
+scratch/level_trace_report.py（全程逐帧 heights[0] 轨迹、按段聚合）。像素与轨迹
+共同定位三个机制：采样踩在弹簧爬升半途；句尾 1.2s 响度释放在静音标志亮起前就
+把 display 水位拖塌（悬停锁到已塌值）；对称 33.6dp/s 限速对 150dp 满驱太慢。
+最终机制（D197 修订二，两端同步）：说话主导（displayEnabled 且 dom/latch≥0.5）
+时展示水位改为潮位包络——非静默 max(routed, tide×e^(-dt/2.4)) 骑句子平台峰，
+静默平台 2.2s 后 τ2.2 缓落，display_is_silent 悬停（_DisplayFrame 别名
+is_silent→display_is_silent；gate 帧恒 raw）；水位限速非对称升 60.9/降 33.6dp/s；
+说话路由的展示档位/动能/相位混合以 displayEnabled 为前提，master 逐值恒等
+（D185 契约，Kotlin 正弦恒等测试回归揭示）。全程轨迹（说话文件，水面中位%）：
+小声 27.9 / 偏小声 29.0 / 正常 40.4 / 偏大声 45.6 / 大声 49.0 / 正常速偏大 46.9，
+句子平台期贴近 D196 目标（28/36/42/49/57%），段中位被段内长停顿的缓退拉低属
+潮位语义。说话巨浪三处 43.68/55.17/109.79 在潮位改动后保持不变。Android P7
+主体移植完成（FeatureFrame/CalibrationInput/Calibrator 含潮位/Analyzer raw 用力/
+Mapper 别名/Gate 说话分支/GrandWave 分级/idle_flow_ratio 0.20/水位曲线与限速），
+assembleDebug 与 JVM 全量通过（水位满驱断言随 D196 更新）。
+
+（第二十九节收尾）三段实时路径验收视频（说话五档全程 / 银花高潮 / Lose 双巨浪）
+交付用户；渲染脚本 scratch/render_clip.py 改走与官方验收相同的实时全 hop 批次
+路径（OfflineDirector 路径曾在视频里多渲一道 66s 假巨浪）。发布前最终一轮
+11 轨官方巨浪验收 pass:true。发布阿里云 Debug 202607231005（versionCode 43 /
+2.0.0），APK 21,034,556 bytes，SHA-256 cbe317d4...9762229，latest.json
+releaseNotes 已核对；回填 memory/debug-update-notes.md 顶部条目。真机验收由
+用户进行。遗留：巨浪矮/高两档与五档观感的真机裁决、必要时的常量微调
+（梯子锚点/限速/潮位 τ 都已参数化在固定常量表，两端同点位）。
+
+## 2026-07-23（第三十节）真机验收暴露泛化缺陷，D198 定向重构（进行中）
+
+用户新录三样本全部偏离预期并质疑模型过拟合。诊断：快速1/快速2 的音节率恒 0
+（音节核检测对快速连说/重复单字失明，属特征选型缺陷）；Lose 全2 与全1 电平
+（-18.0/-18.1dBFS）与连续通道（dW 0.79/0.78、rawW 均 0.89、dom 均 0.40）几乎
+一致——连续层跨会话泛化良好，但巨浪从 4 处全对变 1 处且在 17.7s 主歌：rawW
+中位恰骑 LOCAL_MIN_WATER=0.89 刀口，8 分支绝对阈值与门在录音微扰下混沌翻转，
+确认过拟合。调研支持：调制谱/比值特征是未知增益信道的标准不变量；音节核检测
+在恶劣条件不可靠是文献已知结论。用户裁决 D198 方案 B（两域统一评分门 +
+跨会话容差验收）。
+
+已完成（Python）：包络调制率（2.5s 高通包络环、2~9Hz 归一化自相关、4Hz 刷新、
+增益不变）+ failover 组合律（音节核可靠时为准、失明时调制率接管，防慢速被
+调制峰虚抬——调制谱峰对语速不敏感是文献结论）+ 说话动能加 0.95×pace 语速
+直通。实测：快速1 dK 0.52→0.86（~165dp/s）、快速2·小声 0.18→0.73（~135dp/s
+且低水位）、说话文件各段次序保持（小声 0.45/正常 0.56/大声 0.79/喊单字 0.89）。
+评分门扫参标定（gw_score_sweep.py，13 音频、三组权重×阈值网格、跨会话约束）
+后台运行中。CACHE_VERSION 49→50。
+
+（第三十节收尾）D198~D200 全部落地并验证。语速：包络调制率（宽带 hp 包络 2~9Hz
+归一化自相关；带通版因滤波器振铃拉偏读数已试且撤回）+ failover 组合律 + 0.95×
+pace 语速直通 + 强度软门(0.12,0.34)；快速1 dK 0.86（~165dp/s）、快速2·小声 0.78
+（~150dp/s，残差为 D194 响度辅项），说话文件各段次序不变。录音域到达门（D200/X1）：
+capture（input_loudness_trim_db>0）跳过母带音乐分支，连续"编曲到达"评分
+（novelty/context/rising/music_motion/punch/loud_rel + resurgence 几何均值，
+水位软下限×music01×grade 门，vocal_only×0.4、speech_dominant/静音归零），
+th 0.55/确认 0.12s/重武装 0.45×1.0s/间隔 14s。实时回放与标定逐点一致：全1
+[18.6,53.0,108.9,167.1]、全2 [18.6,56.4,105.3,126.1,174.2,198.6]（±5s 匹配 3）、
+短录音 53.3 ✓、银花全 145.2 ✓、说话仍 3 处 speech-transition、两母带逐点不变。
+验收工具改 D200 锚点级契约（capture_anchor_present/paced/sessions_consistent，
+新增 --lose-full-capture-2），契约测试随新契约更新（13 过）。Kotlin 同步全部完成
+（调制率环/pace/到达门/CAPTURE_ARRIVAL/captureDomain/novelty01 改回 Foote——
+修正一处旧的两端差异），JVM 全量与 assembleDebug 通过。Python 341+26 通过；
+12 轨官方验收 pass:true。另修 test_feed_chunk_invariance.py 缺 sys.path 注入头
+（全仓库唯一，单独收集时 wavesim 导入失败的假环境问题）。
+
+## 2026-07-23（第三十一节）录音启动静止 5 秒定位与 D201 预热缩短
+
+用户报告开始录音后动画约 5 秒不响应。定位：D11 采集预热门（0.3s 早退 / 4.5s
+上限）在该机型每次熬满——HAL AGC 关不掉，静音时底噪被抬到 -58dB 以上且低频
+主导，两个早退条件永不满足；另核实分析器是 RecordingThread 成员、每次
+startListening（dialog 首开/停止后自动重听/重录）都全冷启动，预热与全部热身
+重来。向用户完整交付了"一次性热身 / 持续时间窗"两张清单（预热门、说话证据包络
+1~2.5s、调制率 2s、grade warm 3s、music01 τ4s、段落学习期 12s、巨浪史料 12s；
+响度 0.4s/3s 窗、各弹簧/包络时间常数、robust z 64s 等）。用户裁决方案 3：仅缩
+预热上限 4.5→1.5s（D201，两端同步），视觉解耦与分析器跨会话复用记为后手。
+另应询解释段落/新奇度学习期 12s 的原理（≈两个 Foote 棋盘核宽度的最小诚实历史 +
+自校准漂移期，缩短只会换来开头假边界），维持不动。双端全量通过；发布阿里云
+Debug 202607231243（versionCode 43），APK 21,034,556 bytes，SHA-256
+80bbc3eea580bf82b9f7839b5821ccef17f3df3129520c8bc887f98f3b0c0bf4。
+
+## 2026-07-23（第三十二节）D202：满驱水位 150→144dp 让位 TimelyClockView
+
+用户报告高水位时最上层的浪常越过 TimelyClockView 中心。布局实测（fragment_
+record_audio.xml：容器 420dp、钟高 40dp、顶距 36dp）钟底 344 / 钟心 364 / 钟顶
+384dp；改前 L8 满驱静水 310dp 叠深层主浪后峰值 340~355dp，与报告一致。推导满驱
+138dp（L8 典型峰=钟底-16）；用户中途裁决两点：巨浪不必强到钟顶（总高随音量），
+数值取其偏好数字清单的邻近值——满驱定 144、巨浪振幅回 144（曾短暂改 150）。
+偏好清单 2026-07-23 版回写 memory/preferences.md（较 07-15 版增 9/115/120/256、
+删 50/121）。新建 scratch/clock_clearance_report.py（实时批次逐 hop 统计 heights
+对照钟线）实测四窗口：Lose 40-80s 非巨浪帧 92.4%≤328 / 98.2%≤344；Lose 130-170s
+69.0%≤328 / 98.1%≤344（最强段，三成帧进入 16dp 缓冲带但不碰钟底）；银花
+135-160s 90.7%≤328 / 100%≤344；说话全窗 100%≤328（峰 321.7）。钟心穿越全部
+消失；巨浪峰 349.5~379.6 随语境涨落，满驱恰平钟顶 384。双端全量绿（Python
+341+26、JVM fablesol 50 报告 285 项 0 失败）。发布阿里云 Debug 202607231311
+（versionCode 43），APK SHA-256
+e6efe505cf31b88f7d693b36b689e2986e7b06420774642eddb1e3568d59b0dc。
+备选：真机仍嫌高则满驱退偏好数 129。
+
+## 2026-07-23（第三十三节）D203：远层浪尖三刀收顶 + 深层积分 15s
+
+用户真机反馈 D202（满驱 144）后远两层含浪仍较易过钟心。复盘发现 D202 的窗口
+统计没错但不完备：解析上限 = CLIMAX 层距放大（L8 +82.6dp）+ 满驱 144 + 深层
+主浪超驱（33×1.25）≈ 371dp > 钟心 364，真机录音域（AGC 抬升、CLIMAX 常驻）
+恰好踩到；远浪注入排除（只落旋律/装饰/织体层）。三刀（详见 D203）：满驱
+144→129、深两层超驱 1.25→1.0、hero_max 深两层 34/33→27/24；另按用户指定
+deep_integral_s 14→15s。两端同步 9 处编辑。六窗口逐 hop 实测（新增 Lose 全2
+录音域两窗模拟真机）：非巨浪帧 100% ≤328，全场峰 319.5（钟心下 44.5dp）；
+巨浪峰 341~369 随语境涨落。双端全量绿。发布阿里云 Debug 202607231329
+（versionCode 43），APK SHA-256
+140dd3c402704a41 开头（完整见 memory/debug-update-notes.md 顶部）。
+用户偏好数字清单本轮实际用上：129、27、24。

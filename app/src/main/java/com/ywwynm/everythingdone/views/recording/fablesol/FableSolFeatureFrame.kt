@@ -86,6 +86,16 @@ class FableSolFeatureFrame(
     @JvmField val zBass: Double = 0.0,
     @JvmField val zCentroid: Double = 0.0,
     @JvmField val novelty01: Double = 0.0,
+    // 说话锚定（plan-20260723）：raw 用力原料 + 主导度/用力档/展示动能。
+    @JvmField val effortSpectral01: Double = 0.0,
+    @JvmField val rawLowShare01: Double = 0.0,
+    @JvmField val rawPresenceShare01: Double = 0.0,
+    @JvmField val voiceDominance01: Double = 0.0,
+    @JvmField val speechEffort01: Double = 0.0,
+    @JvmField val speechWater01: Double = 0.0,
+    @JvmField val displayKinetic01: Double = -1.0,
+    /** 句间悬停后的 display 侧静默标志；-1 表示旧调用方（回退 raw isSilent）。 */
+    @JvmField val displayIsSilent01: Double = -1.0,
     // 可选的展示轨。合成帧默认 -1 以保持旧调用方 identity；产品分析帧始终显式写值。
     @JvmField val displayWaterDrive01: Double = -1.0,
     @JvmField val displayGradeDrive01: Double = -1.0,

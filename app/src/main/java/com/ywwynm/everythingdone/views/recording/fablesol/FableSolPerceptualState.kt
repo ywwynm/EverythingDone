@@ -33,6 +33,14 @@ class FableSolPerceptualFrame {
     @JvmField var loudP10Db = 0.0
     @JvmField var loudP95Db = 0.0
     @JvmField var gradeContext01 = 0.0
+    // 说话域（plan-20260723）：巨浪 gate 的说话资格与转变分支输入；恒为 raw。
+    @JvmField var voiceDominance01 = 0.0
+    @JvmField var music01 = 0.0
+    @JvmField var speechEffort01 = 0.0
+    @JvmField var fluct4hz01 = 0.0
+    @JvmField var sylRateHz = 0.0
+    /** D200：capture 域标志（input_loudness_trim_db>0）；录音域走到达评分门。 */
+    @JvmField var captureDomain = false
 }
 
 /** 七境的持续等级。使用 Int 而不是 enum 进入解码器内环，避免装箱。 */
@@ -103,7 +111,9 @@ class FableSolStateDecision {
 enum class FableSolGrandWaveReason {
     DROP,
     CAUSAL_ARRIVAL,
-    PEAK_PHRASE_REPEAT
+    PEAK_PHRASE_REPEAT,
+    SPEECH_TRANSITION,
+    CAPTURE_ARRIVAL
 }
 
 /** 巨浪候选请求。只有 [FableSolGrandWaveEventGate.step] 返回 true 时字段才有效。 */
@@ -111,4 +121,6 @@ class FableSolGrandWaveRequest {
     @JvmField var audioT = 0.0
     @JvmField var reason = FableSolGrandWaveReason.CAUSAL_ARRIVAL
     @JvmField var score01 = 0.0
+    // D193：巨浪分级。音乐分支恒 1.0（144dp 现状不变）；说话转变分支 0.556~1.0。
+    @JvmField var amplitude01 = 1.0
 }

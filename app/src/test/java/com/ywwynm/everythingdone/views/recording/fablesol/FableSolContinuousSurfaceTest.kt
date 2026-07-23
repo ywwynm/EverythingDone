@@ -12,6 +12,66 @@ import kotlin.math.sin
 class FableSolContinuousSurfaceTest {
 
     @Test
+    fun ambientFullStabilityOnlyTranslatesItsExistingProfile() {
+        val actual = FableSolAmbientSet(1000L, 160.0)
+        val reference = FableSolAmbientSet(1000L, 160.0)
+        val x = DoubleArray(721) { -240.0 + it * (480.0 / 720.0) }
+        val dt = 0.5
+
+        actual.advance(dt, -120.0, shapeStability = 1.0)
+        val expectedX = DoubleArray(x.size) {
+            x[it] - actual.lastCommonTransportDpsForTest * dt
+        }
+        val expected = reference.sample(expectedX, 0.0, 6.0, 0.0)
+        val observed = actual.sample(x, dt, 6.0, 0.0)
+
+        assertArrayEquals(expected, observed, 1e-10)
+    }
+
+    @Test
+    fun directionalSpectrumStrengthAndAudioResponseAreIndependent() {
+        val params = FableSolParams()
+        params.setForTest("surface_spectrum_gain", 0.0)
+        params.setForTest("surface_spectrum_audio_response", 0.0)
+        val sim = FableSolSimulation(params)
+        sim.surface2d.clearPacketsForTest()
+
+        val zero = sim.surface2d.sample(sim)
+
+        for (row in zero.eta) {
+            assertTrue(row.all { abs(it) < 1e-12 })
+        }
+
+        params.setForTest("surface_spectrum_gain", 1.0)
+        sim.surface2d.setEnergyBandsForTest(0.0, 0.0, 0.0)
+        val baseline = sim.surface2d.sample(sim).eta.map { it.copyOf() }
+        sim.surface2d.setEnergyBandsForTest(1.0, 0.15, 0.70)
+        val changed = sim.surface2d.sample(sim).eta
+        for (row in changed.indices) {
+            assertArrayEquals(baseline[row], changed[row], 1e-12)
+        }
+    }
+
+    @Test
+    fun directionalFullStabilityUsesOneHorizontalTransport() {
+        val params = FableSolParams()
+        params.setForTest("surface_shape_stability", 1.0)
+        val sim = FableSolSimulation(params)
+        val before = sim.surface2d.phaseForTest()
+        val dt = 0.25
+
+        sim.surface2d.advance(dt, sim, 0.0)
+
+        val after = sim.surface2d.phaseForTest()
+        val kx = sim.surface2d.waveVectorXForTest()
+        val transport = sim.surface2d.lastCommonTransportDpsForTest
+        for (index in before.indices) {
+            val expected = (before[index] - kx[index] * transport * dt) % (2.0 * PI)
+            assertEquals(expected, after[index], 1e-12)
+        }
+    }
+
+    @Test
     fun continuousSurfaceIsTheDefaultAndroidPath() {
         assertEquals(1.0, FableSolParams().get("surface2d_on"), 0.0)
     }

@@ -105,7 +105,9 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     /** 深层只保留长积分 shape；基础水位由七境连续通道统一写入。 */
     private fun applyDeepTargets(sim: FableSolSimulation, waveScale: Double) {
         val d = deep01()
-        val stateGain = waveScale.coerceIn(0.0, 1.25)
+        // D203：深两层不吃 1.25 超驱（近中层逐帧上限仍 1.25×heroMax）——
+        // 它们基准最高，超驱叠加满驱水位曾把浪尖顶过 TimelyClockView 中心。
+        val stateGain = waveScale.coerceIn(0.0, 1.0)
         for (li in DEEP_LAYER_START until sim.layers.size) {
             val ls = sim.layers[li]
             val overall = p.lget("hero_max_dp", li) * p.get("hero_gain") *
@@ -121,11 +123,16 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
     private fun fillPerceptualInput(fr: FableSolFeatureFrame) {
         fillRawPerceptualFrame(perceptualFrame, fr)
         fillRawPerceptualFrame(gatePerceptualFrame, fr)
-        // 展示轨只替换连续响度、七境证据与谱身份；物理运动和巨浪 gate 始终保留 raw。
+        // 展示轨替换连续响度、七境证据、谱身份与可见动能（D194）；巨浪 gate 始终保留 raw。
         perceptualFrame.waterDrive01 = displayOrRaw(fr.displayWaterDrive01, fr.waterDrive01)
         perceptualFrame.lowShare01 = displayOrRaw(fr.displayRelLow, fr.relLow)
         perceptualFrame.centroid01 = displayOrRaw(fr.displayCentroid01, fr.centroid01)
         perceptualFrame.gradeDrive01 = displayOrRaw(fr.displayGradeDrive01, fr.gradeDrive01)
+        perceptualFrame.kineticDrive01 = displayOrRaw(fr.displayKinetic01, fr.kineticDrive01)
+        // 句间悬停（D197 修订）：display 侧短静默保持水位/档位；gate 帧保持 raw。
+        if (fr.displayIsSilent01 >= 0.0) {
+            perceptualFrame.silent = fr.displayIsSilent01 >= 0.5
+        }
 
         stateEvidence.gradeDrive01 = displayOrRaw(fr.displayGradeDrive01, fr.gradeDrive01)
         stateEvidence.liftScore01 = displayOrRaw(fr.displayLiftScore01, fr.liftScore01)
@@ -171,6 +178,13 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
         target.loudP10Db = fr.loudP10Db
         target.loudP95Db = fr.loudP95Db
         target.gradeContext01 = fr.gradeContext01
+        // 说话域（plan-20260723）：gate 的说话资格输入，恒为 raw。
+        target.voiceDominance01 = fr.voiceDominance01
+        target.music01 = fr.music01
+        target.speechEffort01 = fr.speechEffort01
+        target.fluct4hz01 = fr.fluct4hz01
+        target.sylRateHz = fr.sylRateHz
+        target.captureDomain = fr.inputLoudnessTrimDb > 0.0
     }
 
     private fun fillSilenceInput(t: Double) {
@@ -283,7 +297,8 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
                 grandWaveRequest
             )
         ) {
-            val accepted = sim.triggerGrandWave(expressionGain)
+            val accepted = sim.triggerGrandWave(
+                expressionGain, amplitude01 = grandWaveRequest.amplitude01)
             grandWaveGate.resolve(grandWaveRequest, accepted)
         }
         applyLevelTargets(sim, visualChannels, perceptualFrame.t, transitionSpeed)
@@ -401,7 +416,7 @@ class FableSolFeatureMapper(private val p: FableSolParams) {
             }
             val kDeep = 1.0 - exp(-dt / max(p.get("deep_integral_s"), 1.0))
             deepEnergy += (levelEnergy - deepEnergy) * kDeep
-            deepFlow += (fr.kineticDrive01 - deepFlow) * kDeep
+            deepFlow += (displayOrRaw(fr.displayKinetic01, fr.kineticDrive01) - deepFlow) * kDeep
         }
         sim.flow01Deep = deepFlow
         val relSum = max(tRelLow + tRelMid + tRelHigh, 1e-6)

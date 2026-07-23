@@ -18,7 +18,7 @@ class FableSolFrontEndTuningTest {
         assertEquals(24.0, analyzer.agcWindowS, 0.0)
         assertEquals(6.0, analyzer.gateDb, 0.0)
         assertEquals(0.32, analyzer.expander, 0.0)
-        assertEquals(0.20, analyzer.relativeLoudnessMix, 0.0)
+        assertEquals(0.21, analyzer.relativeLoudnessMix, 0.0)
         assertEquals(0.0, analyzer.stateSensitivity, 0.0)
         assertEquals(3.6, analyzer.noveltyFireZ(), 0.0)
 

@@ -57,7 +57,8 @@ class FableSolGrandWave(pointCount: Int = FableSolSpec.N_POINTS) {
     fun trigger(
         sim: FableSolSimulation,
         expressionGain: Double = 1.0,
-        prelaunchS: Double = 0.0
+        prelaunchS: Double = 0.0,
+        amplitude01: Double = 1.0
     ): Boolean {
         if (active) return false
 
@@ -67,8 +68,11 @@ class FableSolGrandWave(pointCount: Int = FableSolSpec.N_POINTS) {
         plateauDp = PLATEAU_DP
         flankDp = FLANK_DP
         widthDp = plateauDp + 2.0 * flankDp
+        // D193：按触发语境分级。音乐分支恒 1.0（144dp 现状不变）；说话转变分支
+        // 0.556~1.0（≈80~144dp）。低振幅永不逼近侧翼陡峭度上限。
         amplitudeDp = min(
-            AMPLITUDE_DP * expressionGain.coerceIn(0.5, 1.5),
+            AMPLITUDE_DP * amplitude01.coerceIn(0.25, 1.0) *
+                expressionGain.coerceIn(0.5, 1.5),
             MAX_FLANK_SLOPE * flankDp / SMOOTHERSTEP_MAX_SLOPE
         )
         transportDps = currentTransport(sim)
@@ -148,6 +152,8 @@ class FableSolGrandWave(pointCount: Int = FableSolSpec.N_POINTS) {
         const val FLANK_DP = 420.0
         const val PLATEAU_DP = 120.0
         const val WIDTH_DP = PLATEAU_DP + 2.0 * FLANK_DP   // 支撑全宽
+        // D202 复核后维持 144：巨浪总高=水位+浪高，随音量自然涨落；满驱水位 144
+        // 时 96+144+144=384 恰平 TimelyClockView 顶。
         const val AMPLITUDE_DP = 144.0
         const val OFFSCREEN_GAP_DP = 8.0
 

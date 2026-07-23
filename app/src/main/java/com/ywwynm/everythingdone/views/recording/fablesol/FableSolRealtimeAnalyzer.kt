@@ -30,6 +30,14 @@ class FableSolRealtimeAnalyzer(
     private val idx250 = FableSolMath.searchsorted(freqs, 250.0)
     private val idx2000 = FableSolMath.searchsorted(freqs, 2000.0)
     private val idx16000 = FableSolMath.searchsorted(freqs, 16000.0)
+    // 发声用力度（plan-20260723）：raw（未加低架）谱的固定频段。采集档 +18dB 低架
+    // 会把说话的 tilt/centroid 推饱和，用力证据必须取自原始 PCM 谱；AGC 只改增益
+    // 不改谱形，该证据对 AGC 鲁棒。
+    private val idxEffort80 = FableSolMath.searchsorted(freqs, 80.0)
+    private val idxEffort300 = FableSolMath.searchsorted(freqs, 300.0)
+    private val idxEffort1000 = FableSolMath.searchsorted(freqs, 1000.0)
+    private val idxEffort4000 = FableSolMath.searchsorted(freqs, 4000.0)
+    private val idxEffort8000 = FableSolMath.searchsorted(freqs, 8000.0)
     private val bandIdx: IntArray
     private val lowMotionBandCount: Int
     private val dbRef: Double
@@ -63,6 +71,18 @@ class FableSolRealtimeAnalyzer(
     private val envHighPassR = FableSolAudioFrontEnd.highPassPole(ENV_HP_HZ, frameRate)
     private val rEnvAc = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
     private val rEnvBand = FableSolRunningMeanRing(Math.round(FLUCT_WIN_S * frameRate).toInt())
+    // 包络调制率（D198）：2.5s 高通包络环 + 2~9Hz 归一化自相关（增益/AGC 不变的
+    // 语速传感器；音节核检测对快速连说/重复单字失明）。4Hz 刷新，零分配。
+    private val modRing = DoubleArray(Math.round(2.5 * frameRate).toInt().coerceAtLeast(8))
+    private val modScratch = DoubleArray(modRing.size)
+    private var modFill = 0
+    private var modPos = 0
+    private var modUntil = 0
+    private val modRefreshN = Math.round(0.25 * frameRate).toInt().coerceAtLeast(1)
+    private val modLagLo = Math.round(frameRate / 9.0).toInt().coerceAtLeast(2)
+    private val modLagHi = Math.round(frameRate / 2.0).toInt().coerceAtLeast(modLagLo + 2)
+    private var modRateHz = 0.0
+    private var modStrength01 = 0.0
     private val rFluxCv = FableSolRunningMeanRing(Math.round(FLUX_CV_WIN_S * frameRate).toInt())
     private val rHarmonicMotion = FableSolRunningMeanRing(
         FableSolMath.roundedFrameCount(1.2 * frameRate)
@@ -179,6 +199,9 @@ class FableSolRealtimeAnalyzer(
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
+        java.util.Arrays.fill(modRing, 0.0)
+        modFill = 0; modPos = 0; modUntil = 0
+        modRateHz = 0.0; modStrength01 = 0.0
         rHarmonicMotion.reset(); rLowMotion.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
@@ -225,6 +248,9 @@ class FableSolRealtimeAnalyzer(
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
+        java.util.Arrays.fill(modRing, 0.0)
+        modFill = 0; modPos = 0; modUntil = 0
+        modRateHz = 0.0; modStrength01 = 0.0
         rHarmonicMotion.reset(); rLowMotion.reset()
         java.util.Arrays.fill(envHist, 0.0)
         java.util.Arrays.fill(strHist, 0.0)
@@ -315,8 +341,19 @@ class FableSolRealtimeAnalyzer(
             pTotal += ws
         }
         var pTotalA = 0.0
+        var effortLowPow = 0.0
+        var effortPresencePow = 0.0
+        var effortTotalPow = 0.0
         if (conditioner == null) {
-            for (i in 0 until idx16000) pTotalA += spec[i] * awPow[i]
+            for (i in 0 until idx16000) {
+                val power = spec[i]
+                pTotalA += power * awPow[i]
+                if (i >= idxEffort80 && i < idxEffort8000) {
+                    effortTotalPow += power
+                    if (i < idxEffort300) effortLowPow += power
+                    else if (i >= idxEffort1000 && i < idxEffort4000) effortPresencePow += power
+                }
+            }
         } else {
             for (i in 0 until N_FFT) {
                 rawReArr[i] = rawSrc[rawSrcOff + i] * window[i]
@@ -326,8 +363,16 @@ class FableSolRealtimeAnalyzer(
             for (i in 0 until idx16000) {
                 val power = rawReArr[i] * rawReArr[i] + rawImArr[i] * rawImArr[i]
                 pTotalA += power * awPow[i]
+                if (i >= idxEffort80 && i < idxEffort8000) {
+                    effortTotalPow += power
+                    if (i < idxEffort300) effortLowPow += power
+                    else if (i >= idxEffort1000 && i < idxEffort4000) effortPresencePow += power
+                }
             }
         }
+        val rawLowShare01 = (effortLowPow / (effortTotalPow + 1e-20)).coerceIn(0.0, 1.0)
+        val rawPresenceShare01 =
+            (effortPresencePow / (effortTotalPow + 1e-20)).coerceIn(0.0, 1.0)
         val db = 10.0 * log10(pTotalA + 1e-12) - dbRefA
         var pLow = 0.0; for (i in 0 until idx250) pLow += wspec[i]
         var pMid = 0.0; for (i in idx250 until idx2000) pMid += wspec[i]
@@ -345,6 +390,51 @@ class FableSolRealtimeAnalyzer(
         val envBand = envBandPass.process(highPassed)
         rEnvAc.push(highPassed * highPassed)
         rEnvBand.push(envBand * envBand)
+        // 包络调制率（D198）
+        modRing[modPos] = highPassed
+        modPos = (modPos + 1) % modRing.size
+        modFill = min(modFill + 1, modRing.size)
+        modUntil--
+        if (modUntil <= 0) {
+            modUntil = modRefreshN
+            if (modFill >= (modRing.size * 0.8).toInt()) {
+                val n = modFill
+                val start = (modPos - n + modRing.size) % modRing.size
+                var mean = 0.0
+                for (i in 0 until n) {
+                    modScratch[i] = modRing[(start + i) % modRing.size]
+                    mean += modScratch[i]
+                }
+                mean /= n
+                var r0 = 0.0
+                for (i in 0 until n) {
+                    modScratch[i] -= mean
+                    r0 += modScratch[i] * modScratch[i]
+                }
+                if (r0 > 1e-12) {
+                    var bestR = 0.0
+                    var bestLag = 0
+                    val hiLag = min(modLagHi, n - 8)
+                    for (lag in modLagLo until hiLag) {
+                        var r = 0.0
+                        for (i in 0 until n - lag) r += modScratch[i] * modScratch[i + lag]
+                        r /= r0
+                        if (r > bestR) {
+                            bestR = r
+                            bestLag = lag
+                        }
+                    }
+                    if (bestLag > 0) {
+                        modRateHz = frameRate / bestLag
+                        modStrength01 = bestR.coerceIn(0.0, 1.0)
+                    } else {
+                        modStrength01 = 0.0
+                    }
+                } else {
+                    modStrength01 = 0.0
+                }
+            }
+        }
         // 底噪追踪
         if (db < floorDb) floorDb = db
         else {
@@ -643,6 +733,15 @@ class FableSolRealtimeAnalyzer(
                 impulse01 = (fourth / impulseHistory.size - 3.0).div(9.0).coerceIn(0.0, 1.0)
             }
         }
+        // ---- 发声用力度（谱证据，AGC 鲁棒；plan-20260723 §1，与 Python 同构）----
+        // 不做逐帧浊音门（辅音/间隙帧会把中位数压零），"必须是浊音说话"的门由
+        // 校准器的浊音存在度包络承担；音乐隔离由人声主导度路由负责。
+        val effortTilt = ((0.90 - rawLowShare01) / 0.72).coerceIn(0.0, 1.0)
+        val effortPresence = smoothstep(0.02, 0.15, rawPresenceShare01)
+        val effortPitch = smoothstep(0.56, 0.72, pitchRelSm)
+        val effortSpectral01 = (0.62 * effortTilt + 0.22 * effortPresence +
+            0.16 * effortPitch).coerceIn(0.0, 1.0) * audibility
+
         calibrationInput.t = t
         calibrationInput.silent = sil
         calibrationInput.loudMDb = dbM
@@ -666,6 +765,15 @@ class FableSolRealtimeAnalyzer(
         // FableSolPerceptualCalibrator.NEAR_FLOOR_SPAN_DB。采集调理对该通道不可见。
         calibrationInput.aboveFloorDb = db - floorDb
         calibrationInput.domainGradeTrim01 = stateGradeTrim01
+        calibrationInput.music01 = music01
+        calibrationInput.fluct4hz01 = if (sil) 0.0 else fluct4hz01
+        calibrationInput.voiced01 = voiced01
+        calibrationInput.sylRateHz = syllableRateHz
+        calibrationInput.modRateHz = modRateHz
+        calibrationInput.modStrength01 = if (sil) 0.0 else modStrength01
+        calibrationInput.effortSpectral01 = if (sil) 0.0 else effortSpectral01
+        calibrationInput.untrimmedLoudMDb = untrimmedDbM
+        calibrationInput.untrimmedLoudSDb = untrimmedDbS
         if (captureProfile == null) {
             calibrationInput.displayLoudMDb = Double.NaN
             calibrationInput.displayLoudSDb = Double.NaN
@@ -781,7 +889,17 @@ class FableSolRealtimeAnalyzer(
             zOnsetRate = calibrated.zOnsetRate,
             zBass = calibrated.zBass,
             zCentroid = calibrated.zCentroid,
-            novelty01 = calibrated.motionContextBoost01,
+            // 与 Python 帧对齐（D200 修正旧差异）：novelty01 是 Foote 新奇度，
+            // 不是 motionContextBoost——录音域到达评分依赖二者的区别。
+            novelty01 = novelty.latestNovelty01,
+            effortSpectral01 = if (sil) 0.0 else effortSpectral01,
+            rawLowShare01 = rawLowShare01,
+            rawPresenceShare01 = rawPresenceShare01,
+            voiceDominance01 = calibrated.voiceDominance01,
+            speechEffort01 = calibrated.speechEffort01,
+            speechWater01 = calibrated.speechWater01,
+            displayKinetic01 = calibrated.displayKinetic01,
+            displayIsSilent01 = if (calibrated.displayIsSilent) 1.0 else 0.0,
             displayWaterDrive01 = if (sil) 0.0 else calibrated.displayWaterDrive01,
             displayGradeDrive01 = calibrated.displayGradeDrive01,
             displayLiftScore01 = calibrated.displayLiftScore01,
@@ -1025,6 +1143,8 @@ class FableSolRealtimeAnalyzer(
         private const val STARTUP_QUIET_DB = -58.0
         private const val STARTUP_MAX_LOW_SHARE = 0.55
         private const val STARTUP_TRUST_S = 0.30
-        private const val STARTUP_MAX_S = 4.50
+        // D201：4.5s 上限在 AGC 关不掉的机型上每次熬满（"开始录音后静止约 5 秒"），
+        // 缩到 1.5s；超时仍把当前电平种成底噪起点，偏高由向下瞬跟自愈。
+        private const val STARTUP_MAX_S = 1.50
     }
 }
