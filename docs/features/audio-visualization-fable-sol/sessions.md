@@ -3437,3 +3437,25 @@ CALIBRATION_STRENGTH=3.6——k 换算与基准峰值表的对应不动，3.6 �
 assembleDebug + fablesol 测试包全绿，Python py_compile 通过。发布阿里云
 Debug 202607231705（versionCode 43），APK SHA-256 389483c5ecf3e932 开头
 （完整见 memory/debug-update-notes.md 顶部）。
+
+## 2026-07-24（第四十节）双仓提交 D204
+
+Android 8dc4f78a "Make FableSol HDR strength user-tunable, slim
+silver-thread defaults"（32 文件：HDR 强度模型全链路、恢复默认纳入 HDR、
+上限 9.6、默认=上限、银丝范围/步长/默认调整、13 语言字符串、策略测试重写、
+五个调试版日志与回填）；Python 962cb95 同步 uplift_rim_width 规格
+（0.16-2.0dp、步长 0.04、默认 0.28；HDR 强度是 Android 运行时乘子，
+共享峰值表不变故模拟器无其它改动）。
+
+## 2026-07-24（第四十一节）Python 光学机制八滑杆试验（D205）
+
+按用户要求先只改 `audioVisualizerSimulatorFable`：新增“光学机制试验（仅 GL
+后端 · Python）”组，接通折射法线强度、折射位移、清澈度／透射比例、
+Beer–Lambert 吸收、IOR、主体宏观直射光、微法线和连续流纹八个实时滑杆。
+Python 通过 `python_optics_shader.py` 在内存中覆盖共享 `water.frag`，没有修改
+Android shader 或 Kotlin；既有机制默认复现生产常量，微法线／流纹默认归零。
+
+验证：默认覆盖层与原共享 shader 在 320×420 SDR 离屏逐字节一致；极值组合分别
+让折射／透射与形体／流纹产生超过 5000 像素的显著差异，实图确认可推到夸张档且
+无越界或崩溃；默认快速 GPU 对照中位 9.15ms、未覆盖共享基线 9.39ms，无可测回退。
+Python 全套 `pytest` 345 项及 26 个 subtests 全绿；实现提交为 `e1243b6`。
