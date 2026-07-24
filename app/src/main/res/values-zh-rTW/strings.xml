@@ -766,6 +766,7 @@
     <string name="settings_fablesol_tuning">音訊海浪動畫參數調節</string>
     <string name="fablesol_tuning_hdr">HDR 高光增強</string>
     <string name="fablesol_tuning_hdr_unsupported">（裝置不支援）</string>
+    <string name="fablesol_tuning_hdr_off">關閉</string>
     <string name="fablesol_tuning_reset">恢復預設</string>
     <string name="fablesol_group_texture">質感</string>
     <string name="fablesol_group_appearance">外觀與光學</string>

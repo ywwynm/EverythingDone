@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">海の波アニメーションの調整</string>
     <string name="fablesol_tuning_hdr">HDR ハイライト</string>
     <string name="fablesol_tuning_hdr_unsupported">（この端末では未対応）</string>
+    <string name="fablesol_tuning_hdr_off">オフ</string>
     <string name="fablesol_tuning_reset">既定値に戻す</string>
     <string name="fablesol_group_texture">質感</string>
     <string name="fablesol_group_appearance">外観と光学</string>

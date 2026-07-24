@@ -961,6 +961,7 @@
     <string name="settings_fablesol_tuning">Ocean wave animation tuning</string>
     <string name="fablesol_tuning_hdr">HDR highlights</string>
     <string name="fablesol_tuning_hdr_unsupported">(not supported on this device)</string>
+    <string name="fablesol_tuning_hdr_off">off</string>
     <string name="fablesol_tuning_reset">Restore defaults</string>
     <string name="cd_fablesol_tuning_pause">Pause or resume the preview</string>
     <string name="cd_fablesol_tuning_switch_color">Switch water color</string>

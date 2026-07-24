@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">오디오 파도 애니메이션 조정</string>
     <string name="fablesol_tuning_hdr">HDR 하이라이트</string>
     <string name="fablesol_tuning_hdr_unsupported">(기기에서 지원되지 않음)</string>
+    <string name="fablesol_tuning_hdr_off">꺼짐</string>
     <string name="fablesol_tuning_reset">기본값 복원</string>
     <string name="fablesol_group_texture">질감</string>
     <string name="fablesol_group_appearance">외관 및 광학</string>

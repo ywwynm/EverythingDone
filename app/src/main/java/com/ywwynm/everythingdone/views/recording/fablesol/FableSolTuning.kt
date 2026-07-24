@@ -15,7 +15,8 @@ import kotlin.math.abs
  *   （fablesol_group_* / fablesol_param_*，中文文案与 Python GUI 一致）。
  * - 存储在独立 SharedPreferences 文件里，只存偏离默认值的键；未存储的键永远走
  *   [FableSolParams] 默认值，单元测试直接 new FableSolParams() 不受影响。
- * - HDR 开关也存这里（默认开）；真正能否生效仍由设备能力与录音态门控。
+ * - HDR 强度也存这里（1.0=关闭，默认=上限 9.6，标定档 3.6；旧布尔开关自动迁移）；
+ *   真正能否生效仍由设备能力与录音态门控。
  */
 object FableSolTuning {
 
@@ -43,7 +44,9 @@ object FableSolTuning {
             Spec("uplift_thick_glow", R.string.fablesol_param_uplift_thick_glow, "", 0.0, 1.5, 0.02),
             Spec("uplift_glow_boost", R.string.fablesol_param_uplift_glow_boost, "×", 1.0, 1.6, 0.01),
             Spec("uplift_crest_rim", R.string.fablesol_param_uplift_crest_rim, "", 0.0, 1.6, 0.02),
-            Spec("uplift_rim_width", R.string.fablesol_param_uplift_rim_width, "dp", 0.3, 2.0, 0.05),
+            // 2026-07-24 下限 0.3→0.16（shader 侧有 0.5px 采样地板，低密度屏自动钳住）；
+            // 步长同步 0.05→0.04；同日默认 0.6→0.28（第 3 格），上限 2.0 仍精确在栅格上。
+            Spec("uplift_rim_width", R.string.fablesol_param_uplift_rim_width, "dp", 0.16, 2.0, 0.04),
             Spec("uplift_rim_halo", R.string.fablesol_param_uplift_rim_halo, "", 0.0, 0.5, 0.01),
             Spec("uplift_rim_peak", R.string.fablesol_param_uplift_rim_peak, "×", 1.0, 3.6, 0.05),
             Spec("uplift_rim_slide", R.string.fablesol_param_uplift_rim_slide, "", 0.0, 1.0, 0.05),
@@ -135,7 +138,9 @@ object FableSolTuning {
 
     private const val PREFS_NAME = "fablesol_tuning"
     private const val KEY_PARAM_PREFIX = "param_"
+    /** D157 时代的布尔开关，仅作迁移来源；写入新强度时一并删除。 */
     private const val KEY_HDR_ENABLED = "hdr_enabled"
+    private const val KEY_HDR_STRENGTH = "hdr_strength"
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -200,7 +205,7 @@ object FableSolTuning {
         editor.apply()
     }
 
-    /** 清空全部参数覆盖（保留 HDR 开关）。 */
+    /** 清空全部参数覆盖；HDR 强度不在 param_ 键空间，由 [clearHdrStrength] 单独清除。 */
     fun clearAllParams(context: Context) {
         val sp = prefs(context)
         val editor = sp.edit()
@@ -210,10 +215,45 @@ object FableSolTuning {
         editor.apply()
     }
 
-    fun isHdrEnabled(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_HDR_ENABLED, true)
-
-    fun setHdrEnabled(context: Context, enabled: Boolean) {
-        prefs(context).edit().putBoolean(KEY_HDR_ENABLED, enabled).apply()
+    /** 清除 HDR 强度存储（含旧布尔键），回落默认档；恢复默认按钮用（2026-07-24 用户裁定）。 */
+    fun clearHdrStrength(context: Context) {
+        prefs(context).edit()
+            .remove(KEY_HDR_STRENGTH)
+            .remove(KEY_HDR_ENABLED)
+            .apply()
     }
+
+    /**
+     * 用户 HDR 强度（D204）：1.0 = 关闭，[FableSolHdrPolicy.MAX_STRENGTH] 封顶。
+     * 旧布尔开关按 true→默认档（2026-07-24 起 = 上限）、false→1.0 迁移读取。
+     */
+    fun hdrStrength(context: Context): Float {
+        val sp = prefs(context)
+        if (sp.contains(KEY_HDR_STRENGTH)) {
+            return sp.getFloat(KEY_HDR_STRENGTH, FableSolHdrPolicy.DEFAULT_STRENGTH)
+                .coerceIn(FableSolHdrPolicy.STRENGTH_OFF, FableSolHdrPolicy.MAX_STRENGTH)
+        }
+        if (sp.contains(KEY_HDR_ENABLED)) {
+            return if (sp.getBoolean(KEY_HDR_ENABLED, true)) {
+                FableSolHdrPolicy.DEFAULT_STRENGTH
+            } else {
+                FableSolHdrPolicy.STRENGTH_OFF
+            }
+        }
+        return FableSolHdrPolicy.DEFAULT_STRENGTH
+    }
+
+    fun setHdrStrength(context: Context, strength: Float) {
+        prefs(context).edit()
+            .putFloat(
+                KEY_HDR_STRENGTH,
+                strength.coerceIn(FableSolHdrPolicy.STRENGTH_OFF, FableSolHdrPolicy.MAX_STRENGTH)
+            )
+            .remove(KEY_HDR_ENABLED)
+            .apply()
+    }
+
+    /** 录音态 HDR 门控便捷判断：强度高于 1.0 才请求 HDR。 */
+    fun isHdrEnabled(context: Context): Boolean =
+        hdrStrength(context) > FableSolHdrPolicy.STRENGTH_OFF
 }

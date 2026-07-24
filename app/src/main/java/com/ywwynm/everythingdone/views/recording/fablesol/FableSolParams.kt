@@ -37,9 +37,9 @@ class FableSolParams {
         // D156 波峰银边（2026-07-17 模拟器 v12 定稿）：剪影掠射镜面线，
         // 场强另乘音频活跃度（0.30+0.70×sparkle01）。
         v("uplift_crest_rim", 1.0)
-        // 银丝四控制项（与 Python 模拟器 GUI 同名同默认）：粗细 dp、光晕
-        // 幅度、HDR 峰值（3.6 = 闪点核心档）、滑动调制深度（逆流视差）。
-        v("uplift_rim_width", 0.6); v("uplift_rim_halo", 0.16)
+        // 银丝四控制项（与 Python 模拟器 GUI 同名同默认）：粗细 dp（2026-07-24
+        // 默认 0.6→0.28）、光晕幅度、HDR 峰值（3.6 = 闪点核心档）、滑动调制深度（逆流视差）。
+        v("uplift_rim_width", 0.28); v("uplift_rim_halo", 0.16)
         v("uplift_rim_peak", 3.6); v("uplift_rim_slide", 1.0)
         // 闪点数量总门（2026-07-18 转正式可调项）：默认 0 关闭，调参 Dialog
         // 拉起即出闪点；出生场镜面强度固化 0.90（原 crest_glint_strength 默认）。

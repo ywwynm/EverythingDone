@@ -25,7 +25,6 @@ import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RelativeLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
@@ -44,6 +43,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrPolicy
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolParams
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
@@ -91,8 +91,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private val mAccentSeekBars = ArrayList<SeekBar>()
     private val mAccentCheckBoxes = ArrayList<CompoundButton>()
     private val mAccentRippleRows = ArrayList<View>()
-    private var mHdrCheckBox: CheckBox? = null
-    private var mHdrRow: View? = null
+    // HDR 强度行固定在布局里（index 0），不随 buildParamRows 重建，单独跟色。
+    private var mHdrSeekBar: SeekBar? = null
 
     private var mSensorManager: SensorManager? = null
     private var mGravitySensor: Sensor? = null
@@ -345,11 +345,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         for (row in mAccentRippleRows) {
             (row.background as? GradientRippleDrawable)?.updateBackground(bg)
         }
-        mHdrCheckBox?.let { checkBox ->
-            BackgroundUtil.applyCheckboxAccent(checkBox, bg)
-            (checkBox.background as? GradientRippleDrawable)?.updateBackground(bg)
-        }
-        (mHdrRow?.background as? GradientRippleDrawable)?.updateBackground(bg)
+        mHdrSeekBar?.let { DisplayUtil.setSeekBarBackground(it, bg) }
         applyDoneButtonAccent(bg)
     }
 
@@ -371,45 +367,76 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         )
     }
 
-    // ---- HDR 行 ----
+    // ---- HDR 强度行（D204）：1.0=关闭、默认=上限 9.6、标定档 3.6，实时生效、松手持久化 ----
 
     private fun setupHdrRow() {
         val ctx = mContentView!!.context
-        val row = f<RelativeLayout>(R.id.rl_fablesol_tuning_hdr)
-        val checkBox = f<CheckBox>(R.id.cb_fablesol_tuning_hdr)
         val label = f<TextView>(R.id.tv_fablesol_tuning_hdr)
-        mHdrRow = row
-        mHdrCheckBox = checkBox
-        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
-        // 复选框自身的圆形涟漪也换成强调渐变（设置界面同款），随换色更新。
-        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
-        row.background = GradientRippleDrawable(
-            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
-        )
-        val supported = isHdrDisplaySupported()
-        if (!supported) {
+        val value = f<TextView>(R.id.tv_fablesol_tuning_hdr_value)
+        val seekBar = f<SeekBar>(R.id.sb_fablesol_tuning_hdr)
+        mHdrSeekBar = seekBar
+        seekBar.max = HDR_STRENGTH_STEPS
+        DisplayUtil.setSeekBarBackground(seekBar, mAppliedBackground)
+        if (!isHdrDisplaySupported()) {
             label.text = getString(R.string.fablesol_tuning_hdr) + " " +
                 getString(R.string.fablesol_tuning_hdr_unsupported)
             label.alpha = 0.5f
-            checkBox.isEnabled = false
-            checkBox.isChecked = false
-            row.isClickable = false
+            value.text = formatHdrStrength(FableSolHdrPolicy.STRENGTH_OFF)
+            seekBar.progress = 0
+            seekBar.isEnabled = false
             return
         }
-        checkBox.isChecked = FableSolTuning.isHdrEnabled(ctx)
-        checkBox.setOnCheckedChangeListener { _, checked ->
-            FableSolTuning.setHdrEnabled(ctx, checked)
-            applyHdrPreference()
-        }
-        row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
+        val initial = FableSolTuning.hdrStrength(ctx)
+        seekBar.progress = hdrProgressOf(initial)
+        value.text = formatHdrStrength(initial)
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val strength = hdrStrengthOf(progress)
+                value.text = formatHdrStrength(strength)
+                if (fromUser) {
+                    applyHdrStrength(strength)
+                }
+            }
+
+            override fun onStartTrackingTouch(sb: SeekBar?) = Unit
+
+            override fun onStopTrackingTouch(sb: SeekBar?) {
+                FableSolTuning.setHdrStrength(ctx, hdrStrengthOf(seekBar.progress))
+            }
+        })
+    }
+
+    /** 强度实时下发：滑到 1.0 即关闭（等价旧开关取消勾选）。 */
+    private fun applyHdrStrength(strength: Float) {
+        mVisualizer?.setHdrStrength(strength)
+        mVisualizer?.setRecordingHdrActive(
+            isHdrDisplaySupported() && strength > FableSolHdrPolicy.STRENGTH_OFF
+        )
     }
 
     private fun applyHdrPreference() {
         val ctx = mContentView?.context ?: return
-        mVisualizer?.setRecordingHdrActive(
-            isHdrDisplaySupported() && FableSolTuning.isHdrEnabled(ctx)
-        )
+        applyHdrStrength(FableSolTuning.hdrStrength(ctx))
     }
+
+    private fun hdrStrengthOf(progress: Int): Float {
+        val fraction = progress.toFloat() / HDR_STRENGTH_STEPS
+        return FableSolHdrPolicy.STRENGTH_OFF +
+            (FableSolHdrPolicy.MAX_STRENGTH - FableSolHdrPolicy.STRENGTH_OFF) * fraction
+    }
+
+    private fun hdrProgressOf(strength: Float): Int {
+        val fraction = (strength - FableSolHdrPolicy.STRENGTH_OFF) /
+            (FableSolHdrPolicy.MAX_STRENGTH - FableSolHdrPolicy.STRENGTH_OFF)
+        return (fraction * HDR_STRENGTH_STEPS).roundToInt().coerceIn(0, HDR_STRENGTH_STEPS)
+    }
+
+    private fun formatHdrStrength(strength: Float): String =
+        if (strength <= FableSolHdrPolicy.STRENGTH_OFF) {
+            getString(R.string.fablesol_tuning_hdr_off)
+        } else {
+            String.format(Locale.US, "%.2f×", strength)
+        }
 
     /** 与 WaveVisualizerFableSolGl.canBuildHdrSurface 同判据（View 尚未 attach 时用 Activity 的 display）。 */
     private fun isHdrDisplaySupported(): Boolean {
@@ -551,11 +578,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private fun resetAllParams() {
         val ctx = mContentView?.context ?: return
         FableSolTuning.clearAllParams(ctx)
+        // 2026-07-24 用户裁定：恢复默认包含 HDR 强度（回默认档 3.6），不再保留用户设置。
+        FableSolTuning.clearHdrStrength(ctx)
         for (group in FableSolTuning.GROUPS) {
             for (spec in group.specs) {
                 applyRuntimeTuning(spec, mDefaults.get(spec.key))
             }
         }
+        applyHdrPreference()
+        setupHdrRow()
         buildParamRows()
     }
 
@@ -700,5 +731,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
         /** 角标图标不透明度（0-255）：亮色模式下避免实黑，浮在水面上更轻。 */
         private const val PREVIEW_BUTTON_ICON_ALPHA = 176
+
+        /** HDR 强度滑杆：1.0～9.6、步长 0.05（172 步），默认=上限 9.6（第 172 格）。 */
+        private const val HDR_STRENGTH_STEPS = 172
     }
 }

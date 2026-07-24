@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">Настройка анимации волн</string>
     <string name="fablesol_tuning_hdr">Блики HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(не поддерживается на этом устройстве)</string>
+    <string name="fablesol_tuning_hdr_off">выкл.</string>
     <string name="fablesol_tuning_reset">Восстановить по умолчанию</string>
     <string name="fablesol_group_texture">Текстура</string>
     <string name="fablesol_group_appearance">Внешний вид и оптика</string>

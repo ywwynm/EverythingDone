@@ -1,5 +1,69 @@
 # Current Debug Update Notes
 
+## 2026-07-24 - 出厂默认调整：HDR 强度=上限 9.6、银丝粗细 0.28dp（D204 修订三，第十版）
+
+用户裁定两项出厂默认：HDR 强度默认 3.6→9.6（=上限；DEFAULT_STRENGTH=
+MAX_STRENGTH，旧布尔 true 迁移目标随之），标定锚解耦为固定
+CALIBRATION_STRENGTH=3.6（k 换算与基准峰值表不动，3.6 档观感可复现）；银丝
+粗细默认 0.6→0.28dp（两端 params 同步，新栅格第 3 格）。已手动存过设置的
+设备不受影响，点恢复默认才取新默认。测试改名 CALIBRATION 锚点并新增
+"默认=上限、标定锚不动"断言；assembleDebug + fablesol 测试包全绿，Python
+py_compile 通过。其余与 202607231655 一致。
+
+发布号 202607231705（versionCode 43），APK 21035324 bytes，
+SHA-256 389483c5ecf3e932d1df59723be62507defff807f77323fe02dc41852534af86。latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 银丝粗细下限 0.3→0.16dp（第九版）
+
+用户确认 0.3dp 在低密度屏的亚像素疑虑后（银丝为半高斯 σ 语义 + shader 0.5px
+采样地板，脚印始终 ≥ 约 1.2px 半高宽），裁定下限放宽到 0.16dp。两端目录同步
+（FableSolTuning / Python params.py），步长 0.05→0.04 保证默认 0.60 与上限
+2.00 精确在栅格（46 步、默认第 11 格）。0.16 档在常见密度下各层落 0.5px 地板
+= 最细且不断裂。已存值不受影响。Android assembleDebug + fablesol 测试包全绿，
+Python py_compile 通过。其余与 202607231637 一致。
+
+发布号 202607231655（versionCode 43），APK 21035324 bytes，
+SHA-256 775b02a7b11d6a75f017a85a6381434430a6f8c4e8b8a3151cba6b0853cffb2b。latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - HDR 强度上限 7.5→9.6（D204 修订二，第八版）
+
+用户裁定上限提到 9.6。MAX_STRENGTH 单点改动（读取端 coerce 自动收敛旧存储，
+无需迁移），滑杆 130→172 步（步长 0.05、默认 3.6 精确落第 52 格），k 上限
+2.5→8.6/2.6≈3.31，第 0 层闪点/银边顶格 9.6，迎光薄处透射预算上限约 +1.15
+（7.5 档的 1.32 倍，面积泛白验收专项数字已同步）。测试同步后 assembleDebug
+与 fablesol 测试包全绿。其余与 202607231628 一致。
+
+发布号 202607231637（versionCode 43），APK 21035324 bytes，
+SHA-256 f2754539c78747f546329572c26de1613f938a74b0d776ed7a855bc7f68eb157。latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 恢复默认按钮纳入 HDR 强度（D204 修订，第七版）
+
+用户真机反馈：恢复默认按钮不恢复 HDR。系 D157 时代"重置保留 HDR 设置"约定的
+延续，按用户裁定废止。FableSolTuning.clearHdrStrength 连旧布尔键一起清除回落
+3.6；resetAllParams 清参数→清 HDR→实时下发→刷新滑杆行。其余与 202607231534
+逐字节一致。assembleDebug 与 fablesol 测试包全绿。
+
+发布号 202607231628（versionCode 43），APK 21035324 bytes，
+SHA-256 bd26af1de7729f3a6e7c691947d485224e86d27957c47ced4b47d4ba55a242a4。latest.json releaseNotes 已核对。
+
+
+## 2026-07-23 - HDR 强度用户可调 1.0～7.5（D204，第六版）
+
+调参 Dialog 的 HDR 开关升级为强度滑杆：1.0=严格关闭、3.6=既有标定档（默认，
+不动滑杆与上一版逐帧一致）、7.5=上限，步长 0.05。缩放对象是各效果超白增量
+（k=(S−1)/2.6），闪点/银边/连续透射/mode8 同源受控，九层比例结构与 SDR 基线
+任何档位不变；旧布尔 hdr_enabled 自动迁移（true→3.6、false→1.0）。
+setDesiredHdrHeadroom 改按当前强度申请（同值去重），实际峰值仍被显示实时授予
+钳制。fablesol 测试包全绿（FableSolHdrPolicyTest 重写为强度模型）。待真机验收：
+高档位（S≥5）面积型透射是否泛白、三档屏幕亮度下授予收缩表现。
+
+发布号 202607231534（versionCode 43），APK 21035324 bytes，
+SHA-256 1b3d31081874f9cd7228f5c5ba1212ff52106e7d6124df363208b258129c35ed。latest.json releaseNotes 已核对。
+
+
 ## 2026-07-23 - 远层浪尖收顶三刀 + 深层积分 15s（D203，第五版）
 
 用户真机反馈 D202 后远两层浪尖仍较易过 TimelyClockView 中心（解析上限：CLIMAX

@@ -945,6 +945,7 @@
     <string name="settings_fablesol_tuning">音频海浪动画参数调节</string>
     <string name="fablesol_tuning_hdr">HDR 高光增强</string>
     <string name="fablesol_tuning_hdr_unsupported">（设备不支持）</string>
+    <string name="fablesol_tuning_hdr_off">关闭</string>
     <string name="fablesol_tuning_reset">恢复默认</string>
     <string name="cd_fablesol_tuning_pause">暂停或继续预览</string>
     <string name="cd_fablesol_tuning_switch_color">切换水体颜色</string>

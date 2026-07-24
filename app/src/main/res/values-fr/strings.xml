@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">Réglage de l\'animation des vagues</string>
     <string name="fablesol_tuning_hdr">Hautes lumières HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non pris en charge sur cet appareil)</string>
+    <string name="fablesol_tuning_hdr_off">désactivé</string>
     <string name="fablesol_tuning_reset">Rétablir les valeurs par défaut</string>
     <string name="fablesol_group_texture">Texture</string>
     <string name="fablesol_group_appearance">Apparence et optique</string>

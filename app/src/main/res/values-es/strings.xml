@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">Ajuste de la animación de olas</string>
     <string name="fablesol_tuning_hdr">Brillos HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(no compatible con este dispositivo)</string>
+    <string name="fablesol_tuning_hdr_off">desactivado</string>
     <string name="fablesol_tuning_reset">Restaurar valores predeterminados</string>
     <string name="fablesol_group_texture">Textura</string>
     <string name="fablesol_group_appearance">Apariencia y óptica</string>

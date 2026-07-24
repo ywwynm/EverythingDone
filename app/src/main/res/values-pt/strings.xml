@@ -500,6 +500,7 @@
     <string name="settings_fablesol_tuning">Ajuste da animação das ondas</string>
     <string name="fablesol_tuning_hdr">Realces HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(sem suporte neste aparelho)</string>
+    <string name="fablesol_tuning_hdr_off">desligado</string>
     <string name="fablesol_tuning_reset">Restaurar padrões</string>
     <string name="fablesol_group_texture">Textura</string>
     <string name="fablesol_group_appearance">Aparência e óptica</string>

@@ -44,6 +44,7 @@ internal class FableSolGlRenderThread(
     @Volatile private var monitor: FableSolPerformanceMonitor? = null
     @Volatile private var lastLoggedHdrSdrRatio = Float.NaN
     @Volatile private var lastHdrRecordingRequested = false
+    @Volatile private var lastLoggedHdrStrength = Float.NaN
     private var thread: HandlerThread? = null
     private var handler: Handler? = null
     private var egl: FableSolEglSession? = null
@@ -326,6 +327,19 @@ internal class FableSolGlRenderThread(
             DebugFileLogger.log(
                 HDR_LOG_FILE,
                 "display-ratio=$ratio",
+                HDR_DEBUG_PREFIX,
+                startSession = true
+            )
+        }
+    }
+
+    fun setHdrStrength(strength: Float) {
+        renderer.setHdrStrength(strength)
+        if (BuildConfig.DEBUG && strength != lastLoggedHdrStrength) {
+            lastLoggedHdrStrength = strength
+            DebugFileLogger.log(
+                HDR_LOG_FILE,
+                "strength=$strength",
                 HDR_DEBUG_PREFIX,
                 startSession = true
             )

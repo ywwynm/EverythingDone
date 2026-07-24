@@ -3365,3 +3365,75 @@ deep_integral_s 14→15s。两端同步 9 处编辑。六窗口逐 hop 实测（
 （versionCode 43），APK SHA-256
 140dd3c402704a41 开头（完整见 memory/debug-update-notes.md 顶部）。
 用户偏好数字清单本轮实际用上：129、27、24。
+
+## 2026-07-23（第三十四节）双仓提交 D191-D203
+
+Android 88d5a0dc 与 Python 0ddca15，同题提交
+"Anchor (FableSol) speech display, generalize capture grand waves, clear
+the clock"。各含：说话-音乐展示锚定、语速调制率、巨浪三域分级、七境执行表、
+水位/远层收顶（D202/D203）、预热 1.5s（D201）、深层积分 15s；以及用户会话前
+的浪形调参组（Android 13 语言文案）与浪形诊断原型（Python）。Python 端把
+clock_clearance_report.py 从 scratch 转正到 tools/ 随库提交。五个调试版
+（202607231005~1329）的发布日志与回填一并入库。
+
+## 2026-07-23（第三十五节）D204：HDR 强度用户可调（1.0～7.5，只缩放超白增量）
+
+先按用户要求做纯分析（不改文件）：盘点 HDR 出现在哪些视觉效果（optical 闪点
+核心/mode8 肩部、水面连续背光透射、银边太阳段+apex 焦散、present 钳制；发现
+mode4/uHdrCrestPeak 为无发射者的休眠路径），并评估提高 headroom 的合理性——
+结论：单调大 MAX 几乎无效（各峰值表先行封顶），实质是整体预算重标定。用户
+随后裁定改为用户可调强度并采纳增量缩放方案（详见 D204）。实施：
+FableSolHdrPolicy 改为 k=(S−1)/2.6 缩放超白增量（基准表不动，Python parity
+保持）；FableSolTuning 布尔 hdr_enabled 迁移为 hdr_strength（isHdrEnabled 保留
+为派生判断，AudioRecordDialogFragment 零改动）；渲染器/渲染线程/GL 视图/宿主
+全链路 setHdrStrength 实时下发，uHdrTransmissionPeaks 从静态一次上传改为倍率
+变化时重传，setDesiredHdrHeadroom(S) 带同值去重；调参 Dialog HDR 行由复选框
+改为滑杆（0.05 步长 130 步，显示"关闭"/"x.xx×"），13 语言补 hdr_off 字符串。
+FableSolHdrPolicyTest 重写为强度模型（锚点 1/3.6/7.5、比例结构、斜坡时长不变
+性、立即下行）；fablesol 测试包全绿，assembleDebug 通过。高档位面积透射与
+三档亮度授予行为待真机验收（followups 有专项）。发布阿里云 Debug 202607231534
+（versionCode 43），APK SHA-256 1b3d31081874f9cd 开头（完整见
+memory/debug-update-notes.md 顶部）。
+
+## 2026-07-24（第三十六节）恢复默认按钮纳入 HDR 强度（D204 修订）
+
+用户真机反馈：调参 Dialog 的恢复默认按钮没有恢复 HDR 默认。该行为是 D157 时代
+"重置保留 HDR 开关"约定的延续，按用户裁定废止。FableSolTuning 新增
+clearHdrStrength（连旧布尔键一起清除、回落 3.6），resetAllParams 依次清参数、
+清 HDR、实时下发（applyHdrPreference）并刷新滑杆行（setupHdrRow 幂等重入）。
+assembleDebug 与 fablesol 测试包全绿。发布阿里云 Debug 202607231628
+（versionCode 43），APK SHA-256 bd26af1de7729f3a 开头（完整见
+memory/debug-update-notes.md 顶部）。
+
+## 2026-07-24（第三十七节）HDR 强度上限 7.5→9.6（D204 修订二）
+
+用户裁定上限提到 9.6。MAX_STRENGTH 单点改动（读取端 coerce 自动收敛旧存储，
+无迁移），滑杆 130→172 步（步长 0.05 不变，默认 3.6 精确落第 52 格），k 上限
+2.5→8.6/2.6≈3.31，第 0 层闪点/银边顶格 9.6，迎光薄处透射预算上限约 +1.15。
+测试同步（上限锚点、越界收敛、9.6 斜坡半程 5.3）；assembleDebug 与 fablesol
+测试包全绿。发布阿里云 Debug 202607231637（versionCode 43），APK SHA-256
+f2754539c78747f5 开头（完整见 memory/debug-update-notes.md 顶部）。
+
+## 2026-07-24（第三十八节）银丝粗细下限 0.3→0.16dp（两端同步）
+
+先回答用户疑问：0.3dp 在 density=2 是 0.6px，但银丝是半高斯亮脊（σ 语义）且
+shader 有 max(σ, 0.5px) 采样地板（water.frag crestRimProfile），渲染脚印始终
+≥ 约 1.2px 半高宽——亚像素设定表现为更淡更细的观感而非字面亚像素线。用户随后
+裁定下限放宽到 0.16dp：两端目录同步（FableSolTuning / Python params.py），
+步长同改 0.05→0.04 使默认 0.6 与上限 2.0 仍精确落在滑杆栅格（46 步、默认第
+11 格）。0.16dp 档在常见密度下各层全部落在 0.5px 地板上 = 最细可稳定采样档。
+Android assembleDebug + fablesol 测试包全绿；Python params.py py_compile 通过
+（tests 无该范围断言）。发布阿里云 Debug 202607231655（versionCode 43），
+APK SHA-256 775b02a7b11d6a75 开头（完整见 memory/debug-update-notes.md 顶部）。
+
+## 2026-07-24（第三十九节）默认档调整：HDR 强度=上限 9.6、银丝粗细 0.28dp（D204 修订三）
+
+用户裁定两项出厂默认：HDR 强度默认改为上限 9.6（DEFAULT_STRENGTH=MAX_STRENGTH，
+旧布尔 true 迁移目标随之）；关键动作是把标定锚从 DEFAULT 解耦为固定
+CALIBRATION_STRENGTH=3.6——k 换算与基准峰值表的对应不动，3.6 档观感可复现但
+不再是出厂值。银丝粗细默认 0.6→0.28dp（FableSolParams 与 Python params.py
+同步，新栅格第 3 格）。已手动存过设置的设备均不受影响。测试：DEFAULT 常量
+用途改名 CALIBRATION（3.6 锚点），新增"默认=上限、标定锚不动"断言；
+assembleDebug + fablesol 测试包全绿，Python py_compile 通过。发布阿里云
+Debug 202607231705（versionCode 43），APK SHA-256 389483c5ecf3e932 开头
+（完整见 memory/debug-update-notes.md 顶部）。

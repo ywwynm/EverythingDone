@@ -56,6 +56,10 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private var recordingHdrRequested = false
     private var hdrContentAvailable = false
     private var desiredHdrHeadroomRaised = false
+    // 用户 HDR 强度（D204）：构造时读持久化值，调参 Dialog 拖动时实时覆盖。
+    private var hdrStrength = FableSolTuning.hdrStrength(context)
+    // setDesiredHdrHeadroom 去重：拖动强度滑杆时避免每 tick 向系统重发同值请求。
+    private var appliedDesiredHdrHeadroom = 1f
     private val releaseHdrHeadroom = Runnable {
         if (!recordingHdrRequested) {
             desiredHdrHeadroomRaised = false
@@ -114,6 +118,18 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         updateDesiredHdrHeadroom()
     }
 
+    /** 用户 HDR 强度（1.0=关，9.6 封顶）：立即生效，已抬升的期望 headroom 同步改请求值。 */
+    internal fun setHdrStrength(strength: Float) {
+        val value = strength.coerceIn(
+            FableSolHdrPolicy.STRENGTH_OFF,
+            FableSolHdrPolicy.MAX_STRENGTH
+        )
+        if (value == hdrStrength) return
+        hdrStrength = value
+        renderThread.setHdrStrength(value)
+        updateDesiredHdrHeadroom()
+    }
+
     internal fun setTuningValue(key: String, value: Double) {
         renderThread.setTuningValue(key, value)
     }
@@ -156,6 +172,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             preferHdr,
             hdrSdrRatio
         )
+        renderThread.setHdrStrength(hdrStrength)
         renderThread.setHdrRecordingRequested(recordingHdrRequested)
         ensureAnimating()
     }
@@ -171,6 +188,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
                 canBuildHdrSurface(),
                 currentHdrSdrRatio()
             )
+            renderThread.setHdrStrength(hdrStrength)
             renderThread.setHdrRecordingRequested(recordingHdrRequested)
         } else {
             renderThread.resize(width, height)
@@ -419,7 +437,8 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         if (Build.VERSION.SDK_INT < 35) return
         if (recordingHdrRequested && hdrContentAvailable) {
             desiredHdrHeadroomRaised = true
-            applyDesiredHdrHeadroom(FableSolHdrPolicy.DESIRED_SURFACE_HEADROOM)
+            // 只向系统申请内容实际会用到的余量：期望值 = 当前用户强度。
+            applyDesiredHdrHeadroom(hdrStrength)
         } else if (hdrContentAvailable && desiredHdrHeadroomRaised) {
             postDelayed(releaseHdrHeadroom, HDR_RELEASE_DELAY_MS)
         } else {
@@ -429,7 +448,11 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     private fun applyDesiredHdrHeadroom(value: Float) {
-        if (Build.VERSION.SDK_INT >= 35) setDesiredHdrHeadroom(value)
+        if (Build.VERSION.SDK_INT >= 35) {
+            if (value == appliedDesiredHdrHeadroom) return
+            appliedDesiredHdrHeadroom = value
+            setDesiredHdrHeadroom(value)
+        }
     }
 
     private fun resetHdrSurfaceState() {

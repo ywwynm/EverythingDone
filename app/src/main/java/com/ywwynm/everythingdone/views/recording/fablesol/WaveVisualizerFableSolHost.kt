@@ -125,6 +125,11 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.setRecordingHdrActive(active && !fallbackActive)
     }
 
+    /** 用户 HDR 强度（1.0=关，9.6 封顶）；仅 GL 路径，Canvas 回退无 HDR。 */
+    fun setHdrStrength(strength: Float) {
+        glView.setHdrStrength(strength)
+    }
+
     /** 运行时调参（调参 Dialog 实时预览）：直达当前活动的渲染后端。 */
     fun setTuningValue(key: String, value: Double) {
         glView.setTuningValue(key, value)

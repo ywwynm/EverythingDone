@@ -148,11 +148,16 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     @Volatile private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
     @Volatile private var hdrRecordingRequested = false
     @Volatile private var displayHdrSdrRatio = 1f
+    // 用户 HDR 强度（D204）：1.0=关，3.6=峰值表标定档，默认=上限 9.6；只缩放超白增量。
+    @Volatile private var hdrStrength = FableSolHdrPolicy.DEFAULT_STRENGTH
     private val hdrTransition = FableSolHdrTransition()
     private var sceneLinear = false
     private var hdrContentEnabled = false
     private var hdrGain = 0f
     private var hdrHeadroom = 1f
+    private var hdrExcessScale = 1f
+    private val scaledTransmissionPeaks = FloatArray(FableSolSpec.N_LAYERS)
+    private var uploadedTransmissionScale = Float.NaN
 
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
@@ -236,6 +241,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         hdrGain = 0f
         hdrHeadroom = 1f
         hdrTransition.reset()
+        // 程序重建后 uniform 全部丢失；置 NaN 强制首帧重传透射峰值表。
+        uploadedTransmissionScale = Float.NaN
         materialColorKey = null
         framesUntilGlErrorCheck = GL_ERROR_CHECK_INTERVAL_FRAMES
         environmentUniformsDirty = true
@@ -311,6 +318,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         displayHdrSdrRatio = ratio
     }
 
+    fun setHdrStrength(strength: Float) {
+        hdrStrength = strength.coerceIn(
+            FableSolHdrPolicy.STRENGTH_OFF,
+            FableSolHdrPolicy.MAX_STRENGTH
+        )
+    }
+
     fun isHdrContentEnabled(): Boolean = hdrContentEnabled
 
     fun setThingBackground(background: ThingBackground) {
@@ -375,15 +389,19 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         lastFrameTimeNanos = frameTimeNanos
         if (dt <= 0.0) dt = TARGET_FRAME_SECONDS
         val boundedDt = dt.coerceAtMost(MAX_DT_SECONDS)
+        // 帧内一致地读一次用户强度：headroom 上限、增量倍率同源。
+        val strength = hdrStrength
         hdrHeadroom = if (hdrContentEnabled) {
             FableSolHdrPolicy.advanceHeadroom(
                 hdrHeadroom,
                 displayHdrSdrRatio,
+                strength,
                 boundedDt.toFloat()
             )
         } else {
             1f
         }
+        hdrExcessScale = FableSolHdrPolicy.excessScale(strength)
         hdrGain = hdrTransition.update(
             hdrContentEnabled && hdrRecordingRequested && hdrHeadroom > 1f,
             boundedDt.toFloat()
@@ -1462,15 +1480,15 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         }
         GLES30.glUniform1f(
             opticalProgram.uniform("uHdrCorePeak"),
-            FableSolHdrPolicy.glintCorePeak(layer)
+            FableSolHdrPolicy.glintCorePeak(layer, hdrExcessScale)
         )
         GLES30.glUniform1f(
             opticalProgram.uniform("uHdrCrestPeak"),
-            FableSolHdrPolicy.surfaceReflectionPeak(layer)
+            FableSolHdrPolicy.surfaceReflectionPeak(layer, hdrExcessScale)
         )
         GLES30.glUniform1f(
             opticalProgram.uniform("uHdrTransmissionPeak"),
-            FableSolHdrPolicy.transmissionPeak(layer)
+            FableSolHdrPolicy.transmissionPeak(layer, hdrExcessScale)
         )
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFuncSeparate(
@@ -1584,6 +1602,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // Step C：把 HDR 增益与实时 headroom 也喂给水面，用于掠射 Fresnel 超白光泽。
         GLES30.glUniform1f(waterProgram.uniform("uHdrGain"), hdrGain)
         GLES30.glUniform1f(waterProgram.uniform("uHdrHeadroom"), hdrHeadroom)
+        // 用户强度只缩放超白增量（D204）：透射峰值表在增量倍率变化时重传，
+        // 程序重建后由 initialize 置 NaN 强制重传；其余帧零上传成本。
+        if (uploadedTransmissionScale != hdrExcessScale) {
+            uploadedTransmissionScale = hdrExcessScale
+            FableSolHdrPolicy.fillContinuousTransmissionPeaks(
+                scaledTransmissionPeaks,
+                hdrExcessScale
+            )
+            GLES30.glUniform1fv(
+                waterProgram.uniform("uHdrTransmissionPeaks[0]"),
+                FableSolSpec.N_LAYERS,
+                scaledTransmissionPeaks,
+                0
+            )
+        }
         // D151/D152 厚度透光（SDR 透光与 HDR 透射 excess 同源）。
         GLES30.glUniform1f(
             waterProgram.uniform("uThicknessGlowStrength"),
@@ -1623,7 +1656,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
         GLES30.glUniform1f(
             waterProgram.uniform("uCrestRimPeakBoost"),
-            (params.get("uplift_rim_peak") - 1.0).coerceAtLeast(0.0).toFloat()
+            // uplift_rim_peak 仍是 3.6 档下的相对预算锚点；用户强度经增量倍率相乘。
+            ((params.get("uplift_rim_peak") - 1.0).coerceAtLeast(0.0) * hdrExcessScale).toFloat()
         )
         // v18：λ=360dp（取模必须等于波长，否则相位回绕跳变）；深度 0.60
         // （段间谷底 0.40，过渡更绵）。与 Python gl_renderer 一比一。
@@ -1710,12 +1744,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             FableSolMaterialPolicy.CREST_RIM_WEIGHTS,
             0
         )
-        GLES30.glUniform1fv(
-            waterProgram.uniform("uHdrTransmissionPeaks[0]"),
-            FableSolSpec.N_LAYERS,
-            FableSolHdrPolicy.CONTINUOUS_TRANSMISSION_PEAKS,
-            0
-        )
+        // uHdrTransmissionPeaks 随用户 HDR 强度缩放，改由 uploadWaterUniforms
+        // 在增量倍率变化时重传（D204），不再属于链接后不变的静态曲线。
     }
 
     private fun putSubsurfaceColor(layer: Int, palette: FableSolDepthScatteringPolicy.Palette,
