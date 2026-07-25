@@ -255,7 +255,7 @@
     <!--attachment-->
     <string name="images">張圖片</string>
     <string name="videos">個影片</string>
-    <string name="audios">段音頻</string>
+    <string name="audios">段音訊</string>
 
     <!--checklist-->
     <string name="some_checklist_items_finished">已完成%1$d項</string>
@@ -442,7 +442,7 @@
     <string name="act_take_photo">拍照</string>
     <string name="act_shoot_video">錄制影片</string>
     <string name="act_record_audio">錄音</string>
-    <string name="act_choose_media_files">選擇媒體文件</string>
+    <string name="act_choose_media_files">選擇媒體檔案</string>
     <string name="act_show_attachment_info">查看附件詳情</string>
     <string name="act_delete_attachment">刪除該附件</string>
 
@@ -485,7 +485,7 @@
 
 
     <!--——————————————————————General alerts, toasts and errors——————————————————————-->
-    <string name="success_clipboard">已成功複製到剪貼板</string>
+    <string name="success_clipboard">已成功複製到剪貼簿</string>
 
     <string name="error_permission_denied">未授予相關權限，無法繼續操作</string>
 
@@ -511,7 +511,7 @@
 
     <!--Wrong state of alarms found-->
     <string name="title_incorrect_reminder_habit">提醒類記事狀態錯誤</string>
-    <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的程式中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的資訊。\n點擊\"重新設定鬧鐘\"按鈕以修復記事狀態錯誤，同時重新激活對習慣的提醒。</string>
+    <string name="content_incorrect_reminder_habit">完事兒發現有些提醒、習慣或目標處於錯誤的狀態，它們沒有在正確的時間提醒您。\n請確保完事兒能夠在後台正常運行。您可以在多任務中鎖定完事兒，在電池優化類的程式中將它加入白名單，以及授予所有它申請的權限，以確保提醒功能正常。\n您還可以前往幫助頁面獲取更詳細的資訊。\n點擊\"重新設定鬧鐘\"按鈕以修復記事狀態錯誤，同時重新啟用對習慣的提醒。</string>
     <string name="act_reset_alarms">重新設定鬧鐘</string>
 
     <!--Alerts for finishing all with Habit or Goal included in things-->
@@ -571,8 +571,8 @@
     <string name="after_15_minutes">15 分鐘</string>
     <string name="custom">自定義</string>
 
-    <string name="error_unsupported_file_type">不支持的文件類型</string>
-    <string name="error_cannot_add_from_network">無法增加網路文件</string>
+    <string name="error_unsupported_file_type">不支援的檔案類型</string>
+    <string name="error_cannot_add_from_network">無法增加網路檔案</string>
 
     <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
 
@@ -580,12 +580,12 @@
     <string name="alert_shortcut_no_sticky">沒有置頂的記事</string>
 
     <!--ThingDoingDialogFragment-->
-    <string name="thing_doing_dialog_title">為該記事更改自動開始做事的設置</string>
+    <string name="thing_doing_dialog_title">為該記事更改自動開始做事的設定</string>
     <string name="auto_start_doing_time_title">自動做事時間</string>
-    <string name="auto_start_doing_follow_general">跟隨通用設置</string>
+    <string name="auto_start_doing_follow_general">跟隨通用設定</string>
 
     <!--AudioRecordDialogFragment-->
-    <string name="input_file_name">請輸入文件名</string>
+    <string name="input_file_name">請輸入檔案名</string>
 
     <!--DateTimeDialogFragment-->
     <string name="quick_remind_title_after">一段時間之後</string>
@@ -614,12 +614,12 @@
     <!--AttachmentInfoDialogFragment-->
     <string name="attachment_info_title">附件詳情</string>
     <string name="audio_bitrate">比特率</string>
-    <string name="audio_duration">音頻時長</string>
+    <string name="audio_duration">音訊時長</string>
     <string name="audio_sample_rate">採樣率</string>
-    <string name="file_last_modify_time">文件最後修改時間</string>
-    <string name="file_path">文件路徑</string>
+    <string name="file_last_modify_time">檔案最後修改時間</string>
+    <string name="file_path">檔案路徑</string>
     <string name="file_path_not_existed">永恆未知處</string>
-    <string name="file_size">文件大小</string>
+    <string name="file_size">檔案大小</string>
     <string name="image_create_time">圖片建立時間</string>
     <string name="image_size">圖片寬高</string>
     <string name="video_size">影片寬高</string>
@@ -635,7 +635,7 @@
     <string name="alert_cancel_goal_content">該操作無法復原，完事兒將無法記錄其倒數計時，也將無法與您一同慶祝它的完成</string>
 
     <!--Alerts for not creating daily to-do-->
-    <string name="alert_cancel_create_daily_todo_title">確定要取消創建今日待辦記事嗎？</string>
+    <string name="alert_cancel_create_daily_todo_title">確定要取消建立今日待辦記事嗎？</string>
     <string name="alert_cancel_create_daily_todo_content">完事兒建議您堅持這個習慣。提前想好要做的事情能讓您有目的性地利用時間，這樣您每天都可以過得更充實。</string>
 
 
@@ -661,18 +661,18 @@
     <string name="doing_left_time">剩餘時間:</string>
     <string name="doing_failed_careless">您沒有認真地做這件事, 已取消正在做的狀態</string>
     <string name="doing_failed_next_alarm">該習慣的下一次提醒時刻已經到來，已取消正在做的狀態</string>
-    <string name="doing_failed_change_language">您改變了應用語言, 已取消正在做事的狀態</string>
-    <string name="doing_failed_restore">您恢復了應用數據, 已取消正在做事的狀態</string>
+    <string name="doing_failed_change_language">您改變了應用程式語言, 已取消正在做事的狀態</string>
+    <string name="doing_failed_restore">您恢復了應用程式資料, 已取消正在做事的狀態</string>
     <string name="doing_click_to_dismiss">點擊刪除該通知</string>
     <string name="doing_alert_first_strict_mode_title">嚴格模式</string>
-    <string name="doing_alert_first_strict_mode_content">您現在已處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本介面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
+    <string name="doing_alert_first_strict_mode_content">您現在已處於嚴格模式，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了本介面（僅允許您查看通知欄、鎖定螢幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
     <string name="doing_alert_close_strict_twice_title">無法再次關閉嚴格模式</string>
     <string name="doing_alert_close_strict_twice_content">完事兒只允許您關閉一次嚴格模式。在一段時間內只做一件事是一個很好的習慣，請堅持下去！</string>
     <string name="doing_alert_stop_doing_content">確定要停止做這件事嗎？</string>
     <string name="doing_toast_add5_time_long_alarm">如果延遲 5 分鐘，您有可能無法在該習慣的下一個提醒到來前完成這一次</string>
     <string name="doing_toast_add5_time_long_t">如果延遲 5 分鐘，您有可能無法在本週期內完成一次該習慣</string>
     <string name="doing_toast_add5_above99">我無法觸及那片未來</string>
-    <string name="doing_toast_pass_data_error">無法開始做事，因為組件間數據傳遞時發生了錯誤</string>
+    <string name="doing_toast_pass_data_error">無法開始做事，因為元件間資料傳遞時發生了錯誤</string>
     <string name="doing_toast_already_strict_mode">已處於嚴格模式</string>
 
     <string name="auto_start_doing_start">自動開始做事</string>
@@ -687,7 +687,7 @@
     <!--SettingsActivity-->
     <string name="settings_group_ui">介面</string>
     <string name="settings_group_ringtone">鈴聲</string>
-    <string name="settings_group_data">數據</string>
+    <string name="settings_group_data">資料</string>
     <string name="settings_group_privacy">隱私</string>
     <string name="settings_group_start_doing">開始做事</string>
     <string name="settings_group_advanced">高級</string>
@@ -742,15 +742,15 @@
     <string name="settings_battery_optimization_off">未忽略 - 系統可能延遲你的提醒</string>
     <string name="settings_battery_optimization_on">已忽略 - 提醒可以準時送達</string>
     <string name="settings_autostart">自動啟動 / 背景權限</string>
-    <string name="settings_autostart_desc">點擊允許自動啟動，否則應用被滑掉後提醒不會響。小米 / 華為 / OPPO / vivo / 榮耀等國產 ROM 上必須打開。</string>
+    <string name="settings_autostart_desc">點擊允許自動啟動，否則應用程式被滑掉後提醒不會響。小米 / 華為 / OPPO / vivo / 榮耀等國產 ROM 上必須打開。</string>
     <string name="settings_autostart_not_needed">你的裝置無需此項 - Pixel / 原生 Android 類 ROM 預設會準時執行鬧鐘。</string>
-    <string name="settings_autostart_unavailable">沒找到對應的廠商設定頁，已為你開啟應用詳情，請在其中尋找「電池」或「背景執行」等選項。</string>
+    <string name="settings_autostart_unavailable">沒找到對應的廠商設定頁，已為你開啟應用程式資訊，請在其中尋找「電池」或「背景執行」等選項。</string>
     <string name="settings_notifications_enabled">通知權限</string>
     <string name="settings_notifications_enabled_off">未授予 - 提醒到時間也無法顯示，點擊授權</string>
     <string name="settings_notifications_enabled_on">已授予 - 提醒可以正常顯示</string>
     <string name="settings_full_screen_intent">全螢幕提醒權限</string>
-    <string name="settings_full_screen_intent_off">未授予 - 「更突出的提醒」無法彈出對話框，點擊授權</string>
-    <string name="settings_full_screen_intent_on">已授予 - 全螢幕提醒對話框可以彈出</string>
+    <string name="settings_full_screen_intent_off">未授予 - 「更突出的提醒」無法彈出對話方塊，點擊授權</string>
+    <string name="settings_full_screen_intent_on">已授予 - 全螢幕提醒對話方塊可以彈出</string>
     <string name="settings_channels_status">提醒 / 習慣 / 目標通知類別</string>
     <string name="settings_channels_all_on">%1$d 個通知類別全部開啟</string>
     <string name="settings_channels_some_off">%2$d 個中有 %1$d 個被關閉，點擊修復</string>
@@ -758,16 +758,16 @@
     <string name="post_notifications_rationale_content">完事兒需要通知權限才能在提醒、習慣、目標到時間時彈出通知。如果沒有授權，鬧鐘會響但你看不到任何東西。</string>
     <string name="settings_toggle_checklist_thing_card">在記事卡片中調整清單項的勾選狀態</string>
     <string name="settings_simple_finished_checklist">在正在進行的記事卡片中折疊已完成的清單項</string>
-    <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等添加鏈接</string>
-    <string name="settings_autoplay_cover_dynamic">在記事列表中自動播放作為封面的動態內容（視頻、動態照片、GIF）</string>
-    <string name="settings_autoplay_detail_dynamic">在記事詳情介面中自動播放動態內容（視頻、動態照片、GIF）</string>
+    <string name="settings_auto_link">查看記事時，自動為電話號碼、網頁地址等新增連結</string>
+    <string name="settings_autoplay_cover_dynamic">在記事列表中自動播放作為封面的動態內容（影片、動態照片、GIF）</string>
+    <string name="settings_autoplay_detail_dynamic">在記事詳情介面中自動播放動態內容（影片、動態照片、GIF）</string>
     <string name="detail_autoplay_title">詳情頁自動播放</string>
     <string name="detail_autoplay_off">關閉自動播放</string>
     <string name="detail_autoplay_one_by_one">逐一播放</string>
     <string name="detail_autoplay_all_once">同時播放一次</string>
     <string name="detail_autoplay_all_loop">同時循環播放</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
-    <string name="settings_create_animation_style">新建事項時使用屏幕邊框光效動畫</string>
+    <string name="settings_create_animation_style">新建事項時使用螢幕邊框光效動畫</string>
     <string name="settings_doing_digit_style">計時數字風格</string>
     <string name="settings_fablesol_tuning">音訊海浪動畫參數調節</string>
     <string name="fablesol_tuning_hdr">HDR 高光增強</string>
@@ -869,36 +869,36 @@
     <string name="ringtone_loading">正在載入鈴聲...</string>
 
     <!--group data-->
-    <string name="auto_save_edits_title">在編輯記事時，自動保存數據</string>
-    <string name="auto_save_edits_help_info">當創建或更新記事時，只要離開編輯介面，完事兒就將自動保存更新後的記事數據。
-        \n\n注意：完事兒不會自動保存提醒、習慣或目標的創建與變更。例如，你更改了某個記事的提醒時刻，這不會被自動保存。</string>
+    <string name="auto_save_edits_title">在編輯記事時，自動儲存資料</string>
+    <string name="auto_save_edits_help_info">當建立或更新記事時，只要離開編輯介面，完事兒就將自動儲存更新後的記事資料。
+        \n\n注意：完事兒不會自動儲存提醒、習慣或目標的建立與變更。例如，你更改了某個記事的提醒時刻，這不會被自動儲存。</string>
     <!--backup-->
     <string name="backup">備份</string>
-    <string name="backup_content">完事兒將會備份您建立的所有記事以及程式設定，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中增加的各類附件，若有需要，請您使用其它手段備份，附件所在文件夾為 SD卡/EverythingDone</string>
+    <string name="backup_content">完事兒將會備份您建立的所有記事以及程式設定，所有的提醒、習慣或目標也都將在恢復後正常執行。但是完事兒將不會備份您在記事中增加的各類附件，若有需要，請您使用其它手段備份，附件所在資料夾為 SD卡/EverythingDone</string>
     <string name="backup_failed_content">請重新嘗試，或者前往關於介面發送建議反映</string>
     <string name="backup_failed_title">備份失敗</string>
     <string name="backup_loading_content">請稍等片刻，先去喝點好喝的吧~</string>
     <string name="backup_loading_title">正在備份</string>
     <string name="backup_start">開始備份</string>
-    <string name="backup_success_content">備份文件位於 sdcard/EverythingDone/backup 文件夾下，以 \"ED_backup_\" 開頭，後綴名為 \".bak\"</string>
+    <string name="backup_success_content">備份檔案位於 sdcard/EverythingDone/backup 資料夾下，以 \"ED_backup_\" 開頭，後綴名為 \".bak\"</string>
     <string name="backup_success_title">備份已完成</string>
     <string name="last_backup">最近一次備份:</string>
     <string name="no_backup_before">暫無備份</string>
     <!--restore-->
     <string name="restore">恢復</string>
-    <string name="restore_content">請選擇有效的完事兒備份文件，後綴名為 \".bak\"。默認的備份文件儲存位置是 sdcard/EverythingDone/backup</string>
-    <string name="restore_failed_other">請確保該備份文件有效</string>
+    <string name="restore_content">請選擇有效的完事兒備份檔案，後綴名為 \".bak\"。預設的備份檔案儲存位置是 sdcard/EverythingDone/backup</string>
+    <string name="restore_failed_other">請確保該備份檔案有效</string>
     <string name="restore_failed_title">恢復失敗</string>
     <string name="restore_loading_content">請稍等片刻，先去吃點好吃的吧~</string>
     <string name="restore_loading_title">正在恢復</string>
-    <string name="restore_choose_backup_file">選擇備份文件</string>
-    <string name="restore_success_content">請等待程式重啟。為確保數據安全，請不要進行其它操作</string>
+    <string name="restore_choose_backup_file">選擇備份檔案</string>
+    <string name="restore_success_content">請等待程式重啟。為確保資料安全，請不要進行其它操作</string>
     <string name="restore_success_title">恢復成功</string>
 
     <!--group privacy-->
     <string name="set_app_password">設定程式密碼</string>
     <string name="change_app_password">更改程式密碼</string>
-    <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢復數據等</string>
+    <string name="set_app_password_detail">該密碼將用於對涉及隱私、安全的操作進行身份確認，包括查看私密記事，備份、恢復資料等</string>
     <string name="use_fingerprint">使用指紋</string>
 
     <!--pattern password-->
@@ -915,7 +915,7 @@
 
     <!--fingerprint-->
     <!--some of these strings appeared in DetailActivity, AuthenticationActivity and so on-->
-    <string name="not_support_fgprt">您的設備不支持標凖的 Android 指紋模組</string>
+    <string name="not_support_fgprt">您的裝置不支援標準的 Android 指紋模組</string>
     <string name="system_fgprt_not_set"><![CDATA[系統指紋模組未啟用，請前往系統設定 -> 安全 -> 指紋啟用指紋模組]]></string>
     <string name="fgprt_not_enrolled"><![CDATA[未找到可用的指紋，請前往系統設定 -> 安全 -> 指紋錄制一個指紋]]></string>
     <string name="check_private_thing">查看私密記事</string>
@@ -948,23 +948,23 @@
     <string name="auto_start_doing_time_reminder_title">自動做事時間 -「提醒」</string>
     <string name="auto_start_doing_time_habit_title">自動做事時間 -「習慣」</string>
     <string name="auto_strict_mode_title">開始做事後，自動進入嚴格模式</string>
-    <string name="auto_strict_mode_help_content">當您開始做事，並且開啟嚴格模式後，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了正在做事的介面（僅允許您查看通知欄、鎖定屏幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
+    <string name="auto_strict_mode_help_content">當您開始做事，並且開啟嚴格模式後，完事兒將會檢測您是否在用手機做其它的事情。如果您離開了正在做事的介面（僅允許您查看通知欄、鎖定螢幕）三次或者共五分鐘以上，將取消該記事正在做的狀態。</string>
 
     <!--group advanced-->
     <!--quick create-->
     <string name="quick_create_title">快速建立記事</string>
     <string name="quick_create_description">顯示一個常駐通知欄的通知，作為快速建立記事的入口</string>
-    <string name="ongoing_lockscreen">在鎖屏介面也顯示常駐通知欄的記事</string>
+    <string name="ongoing_lockscreen">在鎖定畫面也顯示常駐通知欄的記事</string>
     <!--noticeable notification-->
     <string name="close_notification_later">啟用更突出的提醒時，兩秒後才允許關閉提醒</string>
     <!--create daily to-do-->
-    <string name="create_daily_todo_automatically">每天早晨自動創建今日待辦記事</string>
-    <string name="daily_todo_set_time_title">設定自動創建時間</string>
-    <string name="create_daily_todo_help_info">每天早晨的指定時刻，完事兒將會自動打開創建記事的頁面，使標題為\"yyyy年M月d日要做的事情\"，並讓您編輯其內容（如果最終記事內容、附件均為空，則該記事將不會被創建）。
-        \n\n完事兒還會為該記事默認設置一個下午兩點的提醒，因此您可以更好地爭取完成您每天的任務。</string>
+    <string name="create_daily_todo_automatically">每天早晨自動建立今日待辦記事</string>
+    <string name="daily_todo_set_time_title">設定自動建立時間</string>
+    <string name="create_daily_todo_help_info">每天早晨的指定時刻，完事兒將會自動打開建立記事的頁面，使標題為\"yyyy年M月d日要做的事情\"，並讓您編輯其內容（如果最終記事內容、附件均為空，則該記事將不會被建立）。
+        \n\n完事兒還會為該記事預設設定一個下午兩點的提醒，因此您可以更好地爭取完成您每天的任務。</string>
     <!--automatic reminder-->
     <string name="auto_notify">自動提醒</string>
-    <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智能地決定是否自動提醒。</string>
+    <string name="auto_notify_help_info">設定一個時間，完事兒將會在您建立每件記事的相應時間後自動地提醒您。如果您建立的不是記錄，完事兒將會根據其提醒時刻，智慧地決定是否自動提醒。</string>
     <string name="auto_notify_set_time">設定自動提醒時間</string>
     <string name="auto_notify_ringtone">自動提醒鈴聲</string>
 
@@ -973,7 +973,7 @@
     <string name="statistic_start_from_part_1">我從</string>
     <string name="statistic_start_from_part_2">開始使用完事兒。在這</string>
     <string name="statistic_start_from_part_3">天裡，我完成、建立了：</string>
-    <string name="statistic_note_audio_count">音頻</string>
+    <string name="statistic_note_audio_count">音訊</string>
     <string name="statistic_note_char_count">文字</string>
     <string name="statistic_note_image_count">圖片</string>
     <string name="statistic_note_video_count">影片</string>
@@ -982,7 +982,7 @@
     <string name="statistic_reminder_finish_time">平均完成時間</string>
     <string name="statistic_reminder_in_advance">提前完成的比例</string>
     <string name="statistic_reminder_notify_time">平均提醒時長</string>
-    <string name="statistic_reminder_record">這兒是一些關於「提醒」的數據：</string>
+    <string name="statistic_reminder_record">這兒是一些關於「提醒」的資料：</string>
     <string name="statistic_second">秒</string>
     <string name="statistic_year">年</string>
     <string name="statistic_hour">小時</string>
@@ -1001,7 +1001,7 @@
 
 
     <!--AboutActivity-->
-    <string name="send_feedback_to_developer">通過 Email 發送建議、反映給開發者</string>
+    <string name="send_feedback_to_developer">透過 Email 發送建議、反映給開發者</string>
     <string name="support_donate">向我捐贈</string>
     <string name="support_star">去程式商店評分</string>
     <string name="support_content">您可以點擊介面上方的分享按鈕向您的朋友分享完事兒，也可以點擊建議反映按鈕向開發者發送您對完事兒的意見。除此之外，您還可以前往程式商店為本程式評分，或者向我捐贈。您的支持是我前進的動力。</string>
@@ -1054,7 +1054,7 @@
     <string name="all_types">全部類型</string>
     <string name="app_widget_config_alpha">透明度:</string>
     <string name="things_list_config_alpha_header">頂部欄同時透明</string>
-    <string name="things_list_config_simple_view">採用簡單的記事視圖</string>
+    <string name="things_list_config_simple_view">採用簡單的記事檢視</string>
     <string name="widget_type_filter_summary">記事類型：%1$s</string>
     <string name="widget_display_mode_label">顯示模式</string>
     <string name="widget_display_mode_list">列表</string>
@@ -1071,7 +1071,7 @@
 
     <!--App crash-->
     <string name="app_crash_title">完事兒剛剛好像爆炸了QAQ</string>
-    <string name="app_crash_content">現在您就可以向開發者發送錯誤報告，這樣就可以迫使他加班加點修復 bug 了。\n當然，您也可以在其它時刻前往關於介面反映這個問題，到時只需要在您的郵件中附上 SD卡/EverythingDone/log 目錄下相應的 log 文件(您可以根據它們名稱中的時間資訊，來選擇最合適的那個 log 文件作為郵件附件)即可。</string>
+    <string name="app_crash_content">現在您就可以向開發者發送錯誤報告，這樣就可以迫使他加班加點修復 bug 了。\n當然，您也可以在其它時刻前往關於介面反映這個問題，到時只需要在您的郵件中附上 SD卡/EverythingDone/log 目錄下相應的 log 檔案(您可以根據它們名稱中的時間資訊，來選擇最合適的那個 log 檔案作為郵件附件)即可。</string>
     <string name="app_crash_send_now">現在反映</string>
 
 
@@ -1090,7 +1090,7 @@
     <string name="export_loading_content">先去玩會兒好玩的吧~</string>
     <string name="export_success_title">成功導出到 SD 卡</string>
     <string name="export_success_content_part_1">已導出 %1$d 件記事</string>
-    <string name="export_success_content_part_2">，請前往 SD卡/EverythingDone/export 目錄下查看相應的 zip 文件</string>
+    <string name="export_success_content_part_2">，請前往 SD卡/EverythingDone/export 目錄下查看相應的 zip 檔案</string>
     <string name="export_failed_title">導出到 SD 卡失敗</string>
     <string name="export_failed_content">請稍後重新嘗試</string>
 
@@ -1138,7 +1138,7 @@
     <string name="cd_delete_checklist_item">刪除項目</string>
 
     <!--SettingsActivity-->
-    <string name="cd_help_auto_strict_mode">查看自動進入嚴格模式的幫助信息</string>
+    <string name="cd_help_auto_strict_mode">查看自動進入嚴格模式的幫助資訊</string>
     <string name="cd_help_automatic_reminder">查看自動提醒的幫助資訊</string>
 
     <!--ChooserDialogFragment-->
@@ -1152,22 +1152,22 @@
     <!--general-->
     <string name="cd_image_attachment">圖片類附件</string>
     <string name="cd_video_attachment">影片附件</string>
-    <string name="cd_audio_attachment">音頻附件</string>
+    <string name="cd_audio_attachment">音訊附件</string>
 
     <!--video attachment-->
-    <string name="cd_play_video_attachment">播放影片文件</string>
+    <string name="cd_play_video_attachment">播放影片檔案</string>
 
     <!--audio attachment-->
-    <string name="cd_play_audio_attachment">播放音頻文件</string>
-    <string name="cd_pause_play_audio_attachment">暫停音頻播放</string>
-    <string name="cd_stop_play_audio_attachment">停止播放音頻</string>
-    <string name="cd_delete_audio_attachment">刪除該音頻附件</string>
-    <string name="cd_audio_attachment_info">查看該音頻附件詳細資訊</string>
+    <string name="cd_play_audio_attachment">播放音訊檔案</string>
+    <string name="cd_pause_play_audio_attachment">暫停音訊播放</string>
+    <string name="cd_stop_play_audio_attachment">停止播放音訊</string>
+    <string name="cd_delete_audio_attachment">刪除該音訊附件</string>
+    <string name="cd_audio_attachment_info">查看該音訊附件詳細資訊</string>
 
     <!--record audio-->
     <string name="cd_start_record_audio">開始錄音</string>
     <string name="cd_stop_record_audio">停止錄音</string>
-    <string name="cd_save_recorded_audio_file">儲存錄音文件並返回</string>
+    <string name="cd_save_recorded_audio_file">儲存錄音檔案並返回</string>
     <string name="cd_re_recording_audio">重新錄音</string>
     <string name="cd_cancel_recording_audio">取消錄音</string>
 
@@ -1221,7 +1221,7 @@
         <item>為什麼“記錄”的完成、建立數目會算在完成率的計算公式裡，而在每個周期裡“習慣”的完成次數卻不會？</item>
         <item>為什麼現在還沒有同步的功能？</item>
         <item>還會有更多的記事顏色嗎？</item>
-        <item>為什麼不支持農曆？</item>
+        <item>為什麼不支援農曆？</item>
         <item>為什麼圖片附件縮圖裁剪的位置不恰當，而且大圖顯示不夠清晰？</item>
         <!--<item>為什麼我在 Google Play 無法搜尋到完事兒？</item>-->
         <item>完事兒裡有沒有彩蛋？(,,• ₃ •,,)</item>
@@ -1229,11 +1229,11 @@
 
     <string-array name="help_contents" formatted="false">
         <item>首先，我希望在這個頁面嘗試著答覆你在使用完事兒的過程中可能產生的疑問，盡可能快速地解決你遇到的問題。
-            \n\n其次，因為人與人是有差異的，開發者的想法和用戶可能會有許多不同，因此，我也希望在這個頁面向你解釋完事兒的某些設定中蘊含的理念，告訴你在設計那個功能的時候，我是如何思考的。這些思考可能與你所想的有所不同，有些甚至可以說很傻，但是正是這些理念形成了這個程式的獨特之處，希望你能夠理解，並且享受這種“不同”與“變化”。
+            \n\n其次，因為人與人是有差異的，開發者的想法和使用者可能會有許多不同，因此，我也希望在這個頁面向你解釋完事兒的某些設定中蘊含的理念，告訴你在設計那個功能的時候，我是如何思考的。這些思考可能與你所想的有所不同，有些甚至可以說很傻，但是正是這些理念形成了這個程式的獨特之處，希望你能夠理解，並且享受這種“不同”與“變化”。
             \n\n這個介面會一直保持更新。</item>
 
         <item>你可以：
-            \n\n1. 通過幫助、關於介面右上角的反映按鈕來向我發送電子郵件(當你遇到了這個頁面沒有提及到的問題，或者有新的建議、想法時);
+            \n\n1. 透過幫助、關於介面右上角的反映按鈕來向我發送電子郵件(當你遇到了這個頁面沒有提及到的問題，或者有新的建議、想法時);
             \n\n2. 前往酷安網，在完事兒的頁面下評論(當你同時還希望聽聽其他人對你的疑問、建議有什麼想法時);
             \n\n3. 向我捐贈的同時附上你想說的話(當你很喜歡這個程式，一定要向我表達謝意時^_^)。</item>
 
@@ -1243,7 +1243,7 @@
             \n\n目標：完事兒會提醒你這件記事的內容，而這個提醒應該至少發生在記事建立的 4 個星期之後，這件記事一般需要經過長期的努力才能完成。</item>
 
         <item>最主要的原因是：我希望你只關注要做的事情本身，而不要花費其它時間、精力來決定一件事情究竟是什麼類型的。你只需要告訴完事兒：你希望在什麼時候讓它提醒你(提醒你要開始做這件事了，或者提醒你這件事應該完成了，我沒有區分這兩種情況，但應該不會影響這件事的性質)、希望是一次性提醒還是重複提醒，完事兒就會根據這些資訊決定這件記事的類型——提醒是短期的，習慣是重複性的，目標則是長期的。
-            \n\n另一個原因是：如果現在允許你手動更改記事的類型，那麼整個程式就會冒出大量錯誤。因此即使用戶呼籲我提供這項功能，我也需要重新設計整個程式的結構，並且重寫許多代碼。在完事兒 2.0 之前，我可能都不會希望做這件事。</item>
+            \n\n另一個原因是：如果現在允許你手動更改記事的類型，那麼整個程式就會冒出大量錯誤。因此即使使用者呼籲我提供這項功能，我也需要重新設計整個程式的結構，並且重寫許多代碼。在完事兒 2.0 之前，我可能都不會希望做這件事。</item>
 
         <item>如果你的系統是 MIUI、flyme、EMUI 等第三方 Android 系統，請授予完事兒所有需要的權限，保證完事兒能夠開機自啟、保持在後台運行、能夠後台自啟動，同時允許完事兒通知消息；如果你的手機自帶了節電助手(如 EMUI)，也請前往其設定介面，將完事兒加入到白名單中。
             \n\n如果你使用了諸如 360 手機助手、綠色守護這樣的手機優化、清理程式，也請保證完事兒不在該程式的優化、清理範圍之內。
@@ -1254,10 +1254,10 @@
         <item>目前(版本號：1.3.8)，完事兒需要的權限包括：
             \n\n1. 開機自啟動，用於設定提醒，如果你不授予完事兒該權限，當你重啟手機後，完事兒將無法繼續提醒你的日程、習慣或目標；
             \n\n2. 讀寫儲存空間，用於插入附件、分享使用情況時儲存介面截圖等；
-            \n\n3. 錄音，用於錄制音頻文件作為記事附件；
+            \n\n3. 錄音，用於錄制音訊檔案作為記事附件；
             \n\n4. 使手機振動，用於更好地通知您完成記事；
             \n\n5. 在 Android 6.0 及以上需要指紋權限，用於使用指紋來解鎖私密記事；
-            \n\n6. 保持設備喚醒，用於開始做事後確保倒計時準確。
+            \n\n6. 保持裝置喚醒，用於開始做事後確保倒計時準確。
             \n\n在你的手機的權限管理、優化程式中，可能還會顯示完事兒需要後台自啟的權限，這也是用來保證提醒功能正常的。
             \n\n我承諾：絕對不申請不相干的權限，絕對不會使用已申請的權限做不對的事情。</item>
 
@@ -1269,11 +1269,11 @@
         <!--\n\n透明狀態欄、導航欄的實質正如其名：它可以讓狀態欄和導航欄透明化，程式的佈局不再局限於狀態欄之下、導航欄之上的這片區域，而是能夠利用整個螢幕空間來顯示，但頂部和底部都會加上一個黑色矩形作為狀態欄、導航欄的背景：在原生 Android 4.4 上，這個黑色矩形是透明的，而且透明度帶有一定的漸變，從螢幕中間向螢幕外逐漸變深（也就是逐漸不透明）；而在原生 Android 5.0 以上，這個黑色矩形的透明度各處都是 40%。-->
         <!--\n\n相比之下，變色狀態欄、導航欄實際上針對的就只是狀態欄及導航欄，並不會影響程式的佈局範圍，即程式的主要介面仍然是在狀態欄下方、導航欄上方這個區間顯示。不過，Google 為了實現讓側滑抽屜能夠全螢幕顯示，又做了一些特殊處理，讓某些佈局能夠在狀態欄、導航欄內顯示一部分，而開發者同樣可以使用這種佈局。-->
         <!--\n\n另一個值得一提的地方是各種第三方 ROM 對透明、變色狀態欄的適配。目前來看，無論是什麼 Android 版本，這些第三方 ROM 一般都會讓狀態欄徹底透明化，也就是每一處透明度都為100%，沒有漸變，也不是40%。但它們一般不會對變色狀態欄做自己的處理，會保持與 Material Design 的一致性。-->
-        <!--\n\n在完事兒中，我只使用了透明狀態欄這一種方式，因為我希望程式在 Android 4.4 上也能有一個比較漂亮的效果，而且在開發時，國內使用人數最多的 MIUI 也還是 Android 4.4。但我的主介面背景是偏白色的，而狀態欄裡的文字、圖示也是白色的，因此在這些把狀態欄透明度自動調整為 100% 的 ROM 裡，用戶就無法在主介面看清狀態欄裡的內容了。-->
+        <!--\n\n在完事兒中，我只使用了透明狀態欄這一種方式，因為我希望程式在 Android 4.4 上也能有一個比較漂亮的效果，而且在開發時，國內使用人數最多的 MIUI 也還是 Android 4.4。但我的主介面背景是偏白色的，而狀態欄裡的文字、圖示也是白色的，因此在這些把狀態欄透明度自動調整為 100% 的 ROM 裡，使用者就無法在主介面看清狀態欄裡的內容了。-->
         <!--\n\nMIUI 提供了一種方法，可以讓狀態欄裡的圖示變成黑色，而 flyme 甚至可以根據介面顏色自動調整狀態欄圖示的顏色，因此我並沒有擔心程式在這兩個 ROM 裡的顯示效果。但很顯然，並不是所有的第三方 ROM 都考慮到了這個問題，提供了解決方案(EMUI、ZUI 就沒有)，作為程式開發者確實也無能為力，只能向他們反映這個問題。-->
-        <!--\n\n最後，在 Android 6.0 以上，開發者終於可以通過設定主題的一些標誌，改變狀態欄圖示的顏色了（當然也只局限於黑白二色），不過這個效果無法和透明狀態欄共存……所以，儘管完事兒的主介面很適合讓狀態欄圖示暗色化，但為了向前的兼容性、全平台顯示效果的最優化，也為了儘量不改變寫好的代碼的結構，我也暫時不打算將透明狀態欄改為變色狀態欄。</item>-->
+        <!--\n\n最後，在 Android 6.0 以上，開發者終於可以透過設定主題的一些標誌，改變狀態欄圖示的顏色了（當然也只局限於黑白二色），不過這個效果無法和透明狀態欄共存……所以，儘管完事兒的主介面很適合讓狀態欄圖示暗色化，但為了向前的兼容性、全平台顯示效果的最優化，也為了儘量不改變寫好的代碼的結構，我也暫時不打算將透明狀態欄改為變色狀態欄。</item>-->
 
-        <item>全部完成某種類型的記事後，應該會有一個恭喜的提示，在我的設計中，就是通過自動建立一個新的記事來實現這個功能。
+        <item>全部完成某種類型的記事後，應該會有一個恭喜的提示，在我的設計中，就是透過自動建立一個新的記事來實現這個功能。
             \n\n如果沒有這個記事，介面就會顯得很空，而且因為“正在進行”等文字處於螢幕垂直方向靠中間的位置，而不是最上方，要使介面平衡就會比較困難。此外，設計空白狀態的提示是很難的，既要和程式的風格一致，又要新穎、漂亮，還要契合空白狀態的特性，比如是完成了全部記事導致的空白狀態(“正在進行”頁面)，還是一件記事都沒有完成導致的空白狀態(“已完成”頁面)……很有挑戰性，需要不少的時間。
             \n\n最後，如果現在改動這個設定，那麼也需要大量改變程式代碼，同樣是個費力的活兒。所以，只能請各位強迫症患者理解理解了……
             \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n其實，我也是強迫症呀！</item>
@@ -1283,8 +1283,8 @@
         <item>在一般情況下，完成率的統計公式是：已完成的記事數目(不包括每個周期裡習慣的完成次數) / 建立過的記事數目，你儘管刪除了一個記事，卻沒有改變它已經被建立了的事實，因此完成率不會發生改變。</item>
 
         <item>一開始我設想的是能讓你輸入每幾個周期提醒多少次的，但這會帶來一個重要的問題：到底在什麼時間提醒呢？是你來輸入每一次提醒的確切時間，還是完事兒來判斷在什麼時候提醒呢？
-            \n\n如果是前者，那麼你會需要輸入很多東西，而且這些輸入很難有一個標凖的形式：比如你想設定每 3 天 1 次的提醒，那麼應該在這 3 天中的哪一天、哪一個時刻提醒呢，怎麼向完事兒輸入你的預期呢？
-            \n\n如果是後者，我也無法智能地決定應該在什麼時候提醒。更何況，由於 Android 的限制，我只能把每個重複提醒的間隔設定成一樣的時間，這就意味著只能採用均分的方式得到提醒時刻，而這個提醒時刻肯定不會次次都是最恰當的那個時間。而即便不採用重複提醒的方式，而是在每一次提醒後動態地計算下一次提醒的時刻，同樣也難以決定哪個時刻是合適的。
+            \n\n如果是前者，那麼你會需要輸入很多東西，而且這些輸入很難有一個標準的形式：比如你想設定每 3 天 1 次的提醒，那麼應該在這 3 天中的哪一天、哪一個時刻提醒呢，怎麼向完事兒輸入你的預期呢？
+            \n\n如果是後者，我也無法智慧地決定應該在什麼時候提醒。更何況，由於 Android 的限制，我只能把每個重複提醒的間隔設定成一樣的時間，這就意味著只能採用均分的方式得到提醒時刻，而這個提醒時刻肯定不會次次都是最恰當的那個時間。而即便不採用重複提醒的方式，而是在每一次提醒後動態地計算下一次提醒的時刻，同樣也難以決定哪個時刻是合適的。
             \n\n因此，目前我只提供了每天/星期/月/年多少次的提醒形式，而在比較靈活的“每日”這個類型中，也限制了你最多設定 4 次提醒。那麼為什麼是 4 次呢？是因為我當時覺得 1 天最多吃 4 次藥……這個理由估計不太充分，但正如我說的，這就構成了完事兒獨特的模樣，在可見的未來應該是不會更改的。</item>
 
         <item>有些時候，我們會隨手記下一些要做的事情，但當時並不知道應該在什麼時候做完，因此我決定把“記錄”的數目也算在完成率的計算公式裡。
@@ -1294,19 +1294,19 @@
         <item>對於一個記事、提醒類程式而言，同步記事確實非常重要，但是由於開發者是一隻弱雞，因此還需要一定時間才能完成，希望你能理解。</item>
 
         <item>設計稿裡是有柔和、冷靜兩種色調的，但光選擇“冷靜”裡應該有哪些顏色，就耗費了將近一個星期……
-            \n\n現在如果要提供更多、柔和一些的顏色，還要考慮和已有的顏色協調，字體、對話框顏色搭配，不讓介面因多種顏色而讓人眼花繚亂等等問題。
+            \n\n現在如果要提供更多、柔和一些的顏色，還要考慮和已有的顏色協調，字體、對話方塊顏色搭配，不讓介面因多種顏色而讓人眼花繚亂等等問題。
             \n\n綠色和紫色已經在 1.2.2 版本中推出，橙色和紅色在 1.3.5 版本中推出，未來可能會以多主題的方式提供更多的顏色。</item>
 
-        <item>對目前的我來說，確定某一天的農曆日期的算法實在是高深、困難；對於用戶來說，輸入某個農曆日期也是一件麻煩的事情。加入農曆是少有的、我會感覺不知道從何入手的事情，因此你可以期待這個功能在10年內能不能加入了。</item>
+        <item>對目前的我來說，確定某一天的農曆日期的算法實在是高深、困難；對於使用者來說，輸入某個農曆日期也是一件麻煩的事情。加入農曆是少有的、我會感覺不知道從何入手的事情，因此你可以期待這個功能在10年內能不能加入了。</item>
 
-        <item>圖片與圖片是有差異的，有些圖片的主要內容在正中央，有些則在邊角，這是程序沒辦法判斷的，因此我只能規規矩矩地將圖片正中央的那部分展現在縮圖裡。
-            \n\n大圖顯示不清晰是因為載入原圖需要消耗大量資源，Android 系統不允許一個程式消耗整個手機硬件的大部分資源，因此我只能壓縮原圖，盡可能不丟失太多的畫面細節。但這種壓縮算法是系統原生的，不像快圖瀏覽這樣的程式有自己獨特的算法，所以難以達到最優的效果。</item>
+        <item>圖片與圖片是有差異的，有些圖片的主要內容在正中央，有些則在邊角，這是程式沒辦法判斷的，因此我只能規規矩矩地將圖片正中央的那部分展現在縮圖裡。
+            \n\n大圖顯示不清晰是因為載入原圖需要消耗大量資源，Android 系統不允許一個程式消耗整個手機硬體的大部分資源，因此我只能壓縮原圖，盡可能不丟失太多的畫面細節。但這種壓縮算法是系統原生的，不像快圖瀏覽這樣的程式有自己獨特的算法，所以難以達到最優的效果。</item>
 
         <!--<item>因為雖然我成年了，卻沒有穩定的經濟來源(還是大學生)，無法辦理信用卡，不能注冊 Google 開發者帳號，所以不可以在 Play Store 發布程式，因此你無法在 Google Play 搜尋到完事兒。-->
-            <!--\n\n實際上，我早就處理了程式的國際化問題：目前，完事兒能夠支持簡體中文、繁體中文以及英語三種語言，只要擁有了信用卡，相信可以很快發布到 Google Play。-->
+            <!--\n\n實際上，我早就處理了程式的國際化問題：目前，完事兒能夠支援簡體中文、繁體中文以及英語三種語言，只要擁有了信用卡，相信可以很快發布到 Google Play。-->
             <!--\n\n不過，在幫助頁面我倒沒有處理國際化，因為內容實在太多了，翻譯不完啊……</item>-->
 
-        <item>我故意設置的彩蛋一共有三個，如果都找齊了，可以連絡我，我給你發獎品哦~
+        <item>我故意設定的彩蛋一共有三個，如果都找齊了，可以連絡我，我給你發獎品哦~
             \n\n嗯，不過你是不可能找齊的哇哈哈哈哈哈哈哈。</item>
 
     </string-array>
@@ -1318,7 +1318,7 @@
 
     <!--App update information-->
     <string name="title_important_alert">這是一個很重要的提醒</string>
-    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的程式(如 360 手機衛士)，或者您的手機自帶了這樣的程式(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能夠正常地進行提醒。\n\n此外，請您在系統自帶的權限管理中授予完事兒請求的權限，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該權限，當您重啟手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫儲存空間，用於插入附件、分享使用情況時儲存介面截圖等;\n(3) 錄音，用於錄制音頻文件作為記事附件;\n(4) 使手機振動，用於更好地通知您完成記事。\n完事兒絕對不會惡意地使用這些權限，請您放心！</string>
+    <string name="content_important_reminder_permission">如果您正在使用一些系統優化類的程式(如 360 手機衛士)，或者您的手機自帶了這樣的程式(如華為的節電助手)，請將完事兒加入它們的白名單中，以確保完事兒能夠正常地進行提醒。\n\n此外，請您在系統自帶的權限管理中授予完事兒請求的權限，它們是：\n(1) 開機自啟動，用於設定鬧鐘，如果您不授予完事兒該權限，當您重啟手機後，完事兒將無法繼續提醒您的日程、習慣或目標;\n(2) 讀寫儲存空間，用於插入附件、分享使用情況時儲存介面截圖等;\n(3) 錄音，用於錄制音訊檔案作為記事附件;\n(4) 使手機振動，用於更好地通知您完成記事。\n完事兒絕對不會惡意地使用這些權限，請您放心！</string>
 
     <string name="from_1_1_4_to_1_1_5_title">您現在可以使用復原 / 重做功能了</string>
     <string name="from_1_1_4_to_1_1_5_content">點擊右上角的選單按鈕，即可看到復原 / 重做。借此，您可以讓記事自由地回到過去或者未來。</string>
@@ -1329,16 +1329,16 @@
     <string name="from_1_3_0_to_1_3_1_title">主動/自動開始做事</string>
     <string name="from_1_3_0_to_1_3_1_content">現在，在主介面右滑記事卡片，即可開始做事，隨時隨心。\n\n此外，我們還增加了提醒到來時，自動開始做事的功能，配合同樣新增的自動進入嚴格模式，相信完事兒能夠幫你防範拖延症。</string>
 
-    <string name="from_1_3_3_to_1_3_4_title">自動保存編輯與調整習慣完成記錄</string>
-    <string name="from_1_3_3_to_1_3_4_content">現在，你能夠啟用在創建或更新記事時，自動保存編輯的功能。
-    \n\n你也能夠調整最近的習慣完成記錄，彌補忘記點擊完成的遺憾。請前往查看記事的頁面，打開菜單，點擊“查看習慣詳情”，即可看到相應的操作。</string>
+    <string name="from_1_3_3_to_1_3_4_title">自動儲存編輯與調整習慣完成記錄</string>
+    <string name="from_1_3_3_to_1_3_4_content">現在，你能夠啟用在建立或更新記事時，自動儲存編輯的功能。
+    \n\n你也能夠調整最近的習慣完成記錄，彌補忘記點擊完成的遺憾。請前往查看記事的頁面，打開選單，點擊“查看習慣詳情”，即可看到相應的操作。</string>
 
     <!-- Notification Channels -->
     <string name="channel_reminder">提醒</string>
     <string name="channel_habit">習慣</string>
     <string name="channel_goal">目標</string>
     <string name="channel_doing">計時模式</string>
-    <string name="channel_quick_create">快速創建</string>
+    <string name="channel_quick_create">快速建立</string>
     <string name="channel_ongoing">持續通知</string>
     <string name="channel_auto_notify">自動提醒</string>
     <string name="detail_attachment_media_appearance_title">附件外觀</string>
