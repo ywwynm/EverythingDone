@@ -32,6 +32,15 @@ internal class FableSolStarField(private val density: Double) {
         private const val SETTLE_SECONDS = 0.18
         private const val FADE_SECONDS = 0.36
         private const val POSITION_SECONDS = 0.10
+        // D218 近层起晕偏置：层阈值再乘 1−bias×weight⁴（近层银丝视角
+        // 更大、更低亮度即可起晕；4 次方与簇内主从同指数——用户裁决
+        // L0 特效应始终最多：L0 越阈要求 −60%，L1/L2 与其拉开 51%/94%
+        // 但绝对值仍比偏置前宽松，远层不变；三段素材九桶实测 8 桶
+        // L0 居首）；包络参考波速把起振/稳定/位置跟随
+        // 折算成恒定空间距离（τ_layer = τ×min(1, 150/波速)，只缩短
+        // 快层）。淡出是消失美学，不随波速缩放。
+        private const val PROXIMITY_THRESHOLD_BIAS = 0.6
+        private const val ENVELOPE_REFERENCE_SPEED_DPS = 150.0
         private const val MATCH_DISTANCE_DP = 24.0
         private const val MIN_SEPARATION_DP = 12.0
         private const val LAYER_CAPACITY = 3
@@ -169,7 +178,12 @@ internal class FableSolStarField(private val density: Double) {
             if (layerTracks.isEmpty() && anchorCount == 0) continue
             applyDominance()
             val birthMin = BIRTH_MIN_EXCESS_SCALE * weight + 0.005
-            updateTracks(layerTracks, dt, birthMin, matchDistance)
+            val timeScale = min(
+                1.0,
+                ENVELOPE_REFERENCE_SPEED_DPS /
+                    max(params.lget("wave_speed_dps", layer), 1.0)
+            )
+            updateTracks(layerTracks, dt, birthMin, matchDistance, timeScale)
             if (layerTracks.isEmpty()) continue
             val depthGain = weight.pow(depthFalloff)
             val row = layer * FableSolContinuousSurface.ROWS_PER_LAYER
@@ -216,8 +230,11 @@ internal class FableSolStarField(private val density: Double) {
         val depth = layer.toDouble() / (FableSolSpec.N_LAYERS - 1)
         val meanY = layerMeanYPx[layer].toDouble()
         val range = max(thicknessRangePx, 1.0)
-        // 触发阈值按层权重等比放宽（活跃度留在辐亮度里做响度门，不进包络）。
-        val layerThreshold = 1.0 + (threshold - 1.0) * min(weight, 1.0)
+        // 触发阈值按层权重等比放宽（活跃度留在辐亮度里做响度门，不进包络），
+        // 再乘近层起晕偏置（D218）：L0 越阈要求恒为最低，随深度单调升高。
+        val weight01 = min(weight, 1.0)
+        val layerThreshold = 1.0 + (threshold - 1.0) * weight01 *
+            (1.0 - PROXIMITY_THRESHOLD_BIAS * weight01.pow(4))
         val center = (0.5 + tan(azimuthClamped) * 0.28 * (depth - 0.5))
             .coerceIn(0.18, 0.82)
         val halfWidth = 0.11 + (0.055 - 0.11) * depth
@@ -351,12 +368,13 @@ internal class FableSolStarField(private val density: Double) {
         layerTracks: ArrayList<Track>,
         dt: Double,
         birthMinExcess: Double,
-        matchDistance: Double
+        matchDistance: Double,
+        timeScale: Double
     ) {
         java.util.Arrays.fill(anchorUsed, 0, anchorCount, false)
-        val positionGain = 1.0 - exp(-dt / POSITION_SECONDS)
-        val attackGain = 1.0 - exp(-dt / ATTACK_SECONDS)
-        val settleGain = 1.0 - exp(-dt / SETTLE_SECONDS)
+        val positionGain = 1.0 - exp(-dt / max(POSITION_SECONDS * timeScale, 1e-3))
+        val attackGain = 1.0 - exp(-dt / max(ATTACK_SECONDS * timeScale, 1e-3))
+        val settleGain = 1.0 - exp(-dt / max(SETTLE_SECONDS * timeScale, 1e-3))
         for (track in layerTracks) {
             var best = -1
             var bestDistance = matchDistance

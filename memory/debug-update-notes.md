@@ -1,5 +1,19 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - 近层星芒优先（D218，第二十版）
+
+用户裁决 L0 特效应始终最多。两项修复（双端同步、不动 water.frag）：
+层阈值再乘 1−0.6×weight⁴（近层起晕偏置，L0 有效阈值 2.8→1.72，
+L1/L2 仍比之前宽松），起振/稳定/位置跟随时间常数 ×min(1, 150/波速)
+（快层包络折算成恒定空间距离，L0 起振 0.09→0.0625s）。三段素材九桶
+实测 8 桶 L0 星帧居首。Python 361 全绿，Android assembleDebug +
+fablesol 测试包全绿。
+
+发布号 202607250244（versionCode 43），APK 21044037 bytes，
+SHA-256 198878f3b5f10e9f3774106e530ed2edfaa71e854e85f7bb71a63ecedab8c860。
+latest.json releaseNotes 已核对。
+
+
 ## 2026-07-25 - 星芒亮度随 HDR 强度同步（D217，第十九版）
 
 星场 CPU 复算此前只用 3.6 标定档 peakBoost，星振幅与用户 HDR 强度
