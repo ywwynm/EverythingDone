@@ -187,7 +187,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
             mTvASD!!.text = mDoingHelper!!.getAutoStartDoingDesc()
             enableOrDisableASDTimeUi()
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(parentFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun showAutoStartDoingTimeChooser() {
@@ -207,7 +207,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
             mDoingHelper!!.setAutoDoingTimeStrategy(cdf.getPickedIndex())
             mTvASDTime!!.text = mDoingHelper!!.getAutoDoingTimeDesc()
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(parentFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun showAutoStrictModeChooser() {
@@ -228,7 +228,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
             mDoingHelper!!.setAutoStrictModeStrategy(cdf.getPickedIndex())
             mTvASM!!.text = mDoingHelper!!.getAutoStrictModeDesc()
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(parentFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun stimulateFeedbackForUserTouch(cv: CardView) {

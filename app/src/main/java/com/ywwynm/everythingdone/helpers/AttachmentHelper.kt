@@ -2,7 +2,7 @@
 
 package com.ywwynm.everythingdone.helpers
 
-import android.app.Activity
+import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
@@ -352,7 +352,7 @@ object AttachmentHelper {
     }
 
     @JvmStatic
-    fun showAttachmentInfoDialog(activity: Activity?, accentColor: Int, typePathName: String?) {
+    fun showAttachmentInfoDialog(activity: FragmentActivity?, accentColor: Int, typePathName: String?) {
         showAttachmentInfoDialog(activity, ThingBackground.pure(accentColor), typePathName)
     }
 
@@ -360,13 +360,13 @@ object AttachmentHelper {
      *  shader-painted gradient when `accentBg` is GRADIENT. The legacy
      *  int overload wraps the colour into a PURE background and delegates here. */
     @JvmStatic
-    fun showAttachmentInfoDialog(activity: Activity?, accentBg: ThingBackground?, typePathName: String?) {
+    fun showAttachmentInfoDialog(activity: FragmentActivity?, accentBg: ThingBackground?, typePathName: String?) {
         val aidf = AttachmentInfoDialogFragment()
         if (accentBg != null) {
             aidf.setAccentBackground(accentBg)
         }
         aidf.setItems(getAttachmentInfo(activity, typePathName))
-        aidf.show(activity!!.fragmentManager, AttachmentInfoDialogFragment.TAG)
+        aidf.show(activity!!.supportFragmentManager, AttachmentInfoDialogFragment.TAG)
     }
 
     private fun getAttachmentInfo(context: Context?, typePathName: String?): List<Pair<String, String>?>? {

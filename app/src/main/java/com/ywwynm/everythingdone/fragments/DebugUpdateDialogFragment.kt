@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.fragments
 

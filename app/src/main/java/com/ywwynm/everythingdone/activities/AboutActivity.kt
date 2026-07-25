@@ -187,7 +187,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
             if (mSupportDf == null) {
                 initSupportDialog()
             }
-            mSupportDf!!.show(fragmentManager, ThreeActionsAlertDialogFragment.TAG)
+            mSupportDf!!.show(supportFragmentManager, ThreeActionsAlertDialogFragment.TAG)
         }
 
         mTvCheckUpdate!!.setOnClickListener {
@@ -217,7 +217,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
                 if (mDonateDf == null) {
                     initDonateDialog()
                 }
-                mDonateDf!!.show(fragmentManager, AlertDialogFragment.TAG)
+                mDonateDf!!.show(supportFragmentManager, AlertDialogFragment.TAG)
             }
 
             override fun onThirdClicked() { }
@@ -249,7 +249,7 @@ open class AboutActivity : EverythingDoneBaseActivity() {
 
     open fun showLicenseDialog(view: View?) {
         val ldf = LicenseDialogFragment()
-        ldf.show(fragmentManager, LicenseDialogFragment.TAG)
+        ldf.show(supportFragmentManager, LicenseDialogFragment.TAG)
     }
 
     private fun getDebugUpdateHelper(): DebugApkUpdateHelper {

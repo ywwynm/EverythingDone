@@ -111,7 +111,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
         dialog.setContent(mActivity.getString(R.string.debug_update_checking_content))
         dialog.setAccentBackground(App.defaultAccentBackground)
         mCheckingDialog = dialog
-        dialog.show(mActivity.fragmentManager, LoadingDialogFragment.TAG)
+        dialog.show(mActivity.supportFragmentManager, LoadingDialogFragment.TAG)
     }
 
     private fun dismissCheckingDialog() {
@@ -127,7 +127,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
                 downloadAndInstall(info)
             }
         })
-        dialog.show(mActivity.fragmentManager, DebugUpdateDialogFragment.TAG)
+        dialog.show(mActivity.supportFragmentManager, DebugUpdateDialogFragment.TAG)
     }
 
     private fun downloadAndInstall(info: DebugApkUpdateInfo) {
@@ -141,7 +141,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
             }
         })
         mDownloadDialog = dialog
-        dialog.show(mActivity.fragmentManager, DebugUpdateDownloadDialogFragment.TAG)
+        dialog.show(mActivity.supportFragmentManager, DebugUpdateDownloadDialogFragment.TAG)
         dialog.updateProgress(0L, info.sizeBytes, formatBytes(0L), formatBytes(info.sizeBytes), formatBytes(0L))
 
         Thread {
@@ -320,7 +320,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
                 }
             }
         })
-        dialog.show(mActivity.fragmentManager, AlertDialogFragment.TAG)
+        dialog.show(mActivity.supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun launchInstaller(file: File) {
@@ -442,7 +442,7 @@ open class DebugApkUpdateHelper(private val mActivity: AboutActivity) {
         dialog.setTitle(mActivity.getString(titleRes))
         dialog.setContent(content)
         dialog.setConfirmText(mActivity.getString(R.string.act_get_it))
-        dialog.show(mActivity.fragmentManager, AlertDialogFragment.TAG)
+        dialog.show(mActivity.supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun getErrorMessage(e: Exception, fallbackRes: Int): String {

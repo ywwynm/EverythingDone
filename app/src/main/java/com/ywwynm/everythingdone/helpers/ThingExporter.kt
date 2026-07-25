@@ -2,7 +2,7 @@
 
 package com.ywwynm.everythingdone.helpers
 
-import android.app.Activity
+import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.os.AsyncTask
 
@@ -34,27 +34,27 @@ object ThingExporter {
     const val TAG: String = "ThingExporter"
 
     @JvmStatic
-    fun startExporting(activity: Activity?, accentColor: Int, vararg things: Thing?) {
+    fun startExporting(activity: FragmentActivity?, accentColor: Int, vararg things: Thing?) {
         startExporting(activity, ThingBackground.pure(accentColor), *things)
     }
 
     @JvmStatic
-    fun startExporting(activity: Activity?, accentBackground: ThingBackground?, vararg things: Thing?) {
+    fun startExporting(activity: FragmentActivity?, accentBackground: ThingBackground?, vararg things: Thing?) {
         ExportTask(activity, accentBackground ?: App.defaultAccentBackground).execute(*things)
     }
 
     private class ExportTask(
-        activity: Activity?,
+        activity: FragmentActivity?,
         accentBackground: ThingBackground
     ) : AsyncTask<Thing?, Any?, Int?>() {
 
-        private var mWrActivity: WeakReference<Activity?>? = WeakReference(activity)
+        private var mWrActivity: WeakReference<FragmentActivity?>? = WeakReference(activity)
         private var mWrLdf: WeakReference<LoadingDialogFragment?>? = null
         private var mAccentBackground: ThingBackground = accentBackground
         private var mParamsLength: Int = 0
 
         override fun onPreExecute() {
-            val activity: Activity = mWrActivity!!.get() ?: return
+            val activity: FragmentActivity = mWrActivity!!.get() ?: return
 
             val ldf = LoadingDialogFragment()
             ldf.setAccentBackground(mAccentBackground)
@@ -62,7 +62,7 @@ object ThingExporter {
             ldf.setContent(activity.getString(R.string.export_loading_content))
 
             mWrLdf = WeakReference(ldf)
-            ldf.show(activity.fragmentManager, LoadingDialogFragment.TAG)
+            ldf.show(activity.supportFragmentManager, LoadingDialogFragment.TAG)
         }
 
         override fun doInBackground(vararg params: Thing?): Int? {
@@ -73,7 +73,7 @@ object ThingExporter {
                     return null
                 }
 
-                val activity: Activity = mWrActivity!!.get() ?: continue
+                val activity: FragmentActivity = mWrActivity!!.get() ?: continue
 
                 if (export(activity, params[i])) {
                     successTimes++
@@ -95,7 +95,7 @@ object ThingExporter {
 
             ldf.dismiss()
 
-            val activity: Activity = mWrActivity!!.get() ?: return
+            val activity: FragmentActivity = mWrActivity!!.get() ?: return
 
             val adf = AlertDialogFragment()
             adf.setShowCancel(false)
@@ -119,7 +119,7 @@ object ThingExporter {
                 adf.setContent(activity.getString(R.string.export_failed_content))
             }
 
-            adf.show(activity.fragmentManager, AlertDialogFragment.TAG)
+            adf.show(activity.supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 

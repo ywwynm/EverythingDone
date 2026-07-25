@@ -285,7 +285,7 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             mLdf!!.setTitle(getString(R.string.please_wait))
             mLdf!!.setContent(getString(R.string.generating_screenshot))
         }
-        mLdf!!.show(fragmentManager, LoadingDialogFragment.TAG)
+        mLdf!!.show(supportFragmentManager, LoadingDialogFragment.TAG)
 
         ScreenshotHelper.startScreenshot(
             mScrollView,

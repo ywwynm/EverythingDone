@@ -1,5 +1,31 @@
 # Current Debug Update Notes
 
+## 2026-07-26 - DialogFragment 全量迁到 AndroidX（第四十一版）
+
+`BaseDialogFragment` 由 `android.app.DialogFragment`（API 28 起弃用）迁到
+`androidx.fragment.app.DialogFragment`，27 个对话框随基类一次生效。`GestureAnchoredDialog`
+的基类同时从 `Dialog` 换成 `ComponentDialog`——androidx 的 `onCreateDialog` 默认返回后者，
+它带的 `OnBackPressedDispatcher` 是返回键与 predictive back 的落点。
+
+宿主侧 103 处 `fragmentManager` → `supportFragmentManager`，对话框内部 3 处 →
+`parentFragmentManager`，7 个 helper/adapter 的 `Activity?` 签名 → `FragmentActivity?`
+（`ThingExporter` 连 `WeakReference<Activity?>` 一起），19 个对话框文件多余的
+`OVERRIDE_DEPRECATION` 抑制一并清掉。
+
+**最值得记的坑**：4 个 Activity 里 5 处 `is` / `as? android.app.DialogFragment`
+与 androidx 类型毫无继承关系，`is` 恒 false、`as?` 恒 null，三处
+`dismissAllowingStateLoss()` 会静默永不执行；Kotlin 对这种不相交类型的运行时检查既不报错
+也不告警，编译完全通过。这类迁移的收尾必须 grep 旧包名，不能以编译通过为准。
+
+前提本就具备：全部 Activity 都是 `AppCompatActivity`，`androidx.fragment` 早在依赖里，
+普通 Fragment 那一支（`HelpDetailFragment`）早就是 androidx 了。项目没有
+`retainInstance` / `setTargetFragment` / `onActivityCreated` / `FragmentPagerAdapter`
+这些真正难迁的 API。编译警告去重后 3 条，与迁移前完全一致。详见
+`docs/features/androidx-dialogfragment-migration/`。
+
+发布号 202607251708（versionCode 43），APK 21108633 bytes，
+SHA-256 38df42a5fdea8770ccb45aa01ab9230ba0a63e07fe23c85ce0b6166fc86eb5c9。
+
 ## 2026-07-26 - dialog 从内部滑到外面松手会误关闭（第四十版）
 
 framework 的 `Window.shouldCloseOnTouch` 只判断 `ACTION_UP`（及 `ACTION_OUTSIDE`）的

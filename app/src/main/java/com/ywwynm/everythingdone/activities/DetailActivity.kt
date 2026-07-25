@@ -795,7 +795,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                                     R.string.act_open_in_map, startListener)
                             }
                             df.setEndAction(R.drawable.act_edit, R.string.act_edit, endListener)
-                            df.show(fragmentManager, TwoOptionsDialogFragment.TAG)
+                            df.show(supportFragmentManager, TwoOptionsDialogFragment.TAG)
                             return true
                         }
                     } else if (action == MotionEvent.ACTION_MOVE) {
@@ -1250,7 +1250,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 } else {
                     val tddf = ThingDoingDialogFragment()
                     tddf.setThing(mThing)
-                    tddf.show(fragmentManager, ThingDoingDialogFragment.TAG)
+                    tddf.show(supportFragmentManager, ThingDoingDialogFragment.TAG)
                 }
             }
 
@@ -1560,7 +1560,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val itemId = item.itemId
         if (itemId == R.id.act_add_attachment) {
             AddAttachmentDialogFragment.newInstance().show(
-                fragmentManager, AddAttachmentDialogFragment.TAG
+                supportFragmentManager, AddAttachmentDialogFragment.TAG
             )
         } else if (itemId == R.id.act_check_list) {
             toggleCheckList()
@@ -1579,7 +1579,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 val hddf = HabitDetailDialogFragment.newInstance()
                 mHabit = HabitDAO.getInstance(this)!!.getHabitById(mHabit!!.id)
                 hddf.setHabit(mHabit)
-                hddf.show(fragmentManager, HabitDetailDialogFragment.TAG)
+                hddf.show(supportFragmentManager, HabitDetailDialogFragment.TAG)
             }
         } else if (itemId == R.id.act_check_update_habit_record) {
             if (mHabit != null) {
@@ -1587,7 +1587,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mHabit = HabitDAO.getInstance(this)!!.getHabitById(mHabit!!.id)
                 hrdf.setHabit(mHabit)
                 hrdf.setEditable(mEditable)
-                hrdf.show(fragmentManager, HabitRecordDialogFragment.TAG)
+                hrdf.show(supportFragmentManager, HabitRecordDialogFragment.TAG)
             }
         } else if (itemId == R.id.act_share) {
             chooseHowToShareThing()
@@ -1800,7 +1800,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         adf.setTitle(getString(R.string.set_password_first_title))
         adf.setContent(getString(R.string.warning_should_set_password_first))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun tryToCancelPrivateThing() {
@@ -2009,7 +2009,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             todf.dismiss()
             shareThingInScreenshot()
         }
-        todf.show(fragmentManager, TwoOptionsDialogFragment.TAG)
+        todf.show(supportFragmentManager, TwoOptionsDialogFragment.TAG)
     }
 
     private fun shareThingInScreenshot() {
@@ -2018,7 +2018,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         ldf.setAccentBackground(getAccentBackground() ?: ThingBackground.pure(color))
         ldf.setTitle(getString(R.string.please_wait))
         ldf.setContent(getString(R.string.generating_screenshot))
-        ldf.show(fragmentManager, LoadingDialogFragment.TAG)
+        ldf.show(supportFragmentManager, LoadingDialogFragment.TAG)
 
         val typeInfoLayout: View = f(R.id.ll_type_info_screenshot)!!
         val didList: List<Int?> = prepareForScreenshot(typeInfoLayout)
@@ -2197,8 +2197,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             TwoOptionsDialogFragment.TAG
         )
         for (tag in tags) {
-            val fragment = fragmentManager.findFragmentByTag(tag)
-            if (fragment is android.app.DialogFragment) {
+            val fragment = supportFragmentManager.findFragmentByTag(tag)
+            if (fragment is androidx.fragment.app.DialogFragment) {
                 fragment.dismissAllowingStateLoss()
             }
         }
@@ -2849,7 +2849,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
             mBgEditorSheet = null
         }
-        sheet.show(fragmentManager, ThingBackgroundEditorBottomSheet.TAG)
+        sheet.show(supportFragmentManager, ThingBackgroundEditorBottomSheet.TAG)
     }
 
     /** 编辑器实时预览：立即套用到屏幕背景（不带动画、不记 undo），由会话结束统一记一条。 */
@@ -2863,7 +2863,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun showColorInfoDialog() {
         val df = ColorInfoDialogFragment()
         df.setThingBackground(getAccentBackground())
-        df.show(fragmentManager, ColorInfoDialogFragment.TAG)
+        df.show(supportFragmentManager, ColorInfoDialogFragment.TAG)
     }
 
     private fun openCameraColorSampler() {
@@ -2898,7 +2898,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             override fun onCancelColorSampling() {
             }
         })
-        df.show(fragmentManager, CameraColorSamplingDialogFragment.TAG)
+        df.show(supportFragmentManager, CameraColorSamplingDialogFragment.TAG)
     }
 
     private fun renderCameraPreviewBackground(bg: ThingBackground?) {
@@ -3167,7 +3167,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val pickedAfter  = quickRemindPicker!!.getPickedIndex()
             if (pickedAfter == 9) {
                 mDateTimeDialogFragment!!.setPickedBefore(pickedBefore)
-                mDateTimeDialogFragment!!.show(fragmentManager, DateTimeDialogFragment.TAG)
+                mDateTimeDialogFragment!!.show(supportFragmentManager, DateTimeDialogFragment.TAG)
             } else {
                 val before = ReminderHabitParams(rhParams)
                 val isChecked = cbQuickRemind!!.isChecked
@@ -3225,7 +3225,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         adf.setContent(getString(contentRes))
         adf.setConfirmListener(confirmListener)
         adf.setCancelListener(cancelListener)
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun alertForChangingHabit(updateHabit: Boolean) {
@@ -4031,13 +4031,13 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun showDetailAttachmentMediaAppearanceEditor(position: Int) {
-        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
             MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT,
             position
         ).show(
-            fragmentManager,
+            supportFragmentManager,
             MediaCropAppearanceDialogFragment.TAG
         )
     }

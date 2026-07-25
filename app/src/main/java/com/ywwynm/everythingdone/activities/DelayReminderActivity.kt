@@ -87,7 +87,7 @@ open class DelayReminderActivity : AppCompatActivity() {
                 }
             }
         })
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     /**

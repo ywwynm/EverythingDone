@@ -1,17 +1,16 @@
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-
 package com.ywwynm.everythingdone.fragments
 
 import android.app.Dialog
-import android.app.DialogFragment
-import android.app.FragmentManager
 import android.content.Context
 import android.graphics.Outline
 import android.os.Bundle
 import android.view.ContextThemeWrapper
+import androidx.activity.ComponentDialog
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -43,7 +42,8 @@ abstract class BaseDialogFragment : DialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val themedInflater = inflater.cloneInContext(
-            dialog?.context ?: ContextThemeWrapper(activity!!, R.style.EverythingDoneTheme_Dialog)
+            dialog?.context
+                ?: ContextThemeWrapper(requireContext(), R.style.EverythingDoneTheme_Dialog)
         )
         mContentView = themedInflater.inflate(getLayoutResource(), container, false)
         installRoundedOutline(mContentView)
@@ -67,7 +67,7 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // 与 super.onCreateDialog 唯一的差别是 dialog 实现类，主题、样式仍由 setStyle 决定
-        val dialog = GestureAnchoredDialog(activity!!, theme)
+        val dialog = GestureAnchoredDialog(requireContext(), theme)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         return dialog
     }
@@ -148,10 +148,13 @@ abstract class BaseDialogFragment : DialogFragment() {
  *
  * 只拦截取消判定这一条路径，其余行为不变：back 键取消、[setCancelable]、
  * [setCanceledOnTouchOutside]、cancel/dismiss 回调、dialog 内控件的事件分发都照原样走。
+ *
+ * 继承 [ComponentDialog] 而不是 [Dialog]：androidx 的 [DialogFragment.onCreateDialog] 默认返回
+ * 前者，它带的 `OnBackPressedDispatcher` 是返回键与 predictive back 的落点，不能退化掉。
  */
 private class GestureAnchoredDialog(
     context: Context, themeResId: Int
-) : Dialog(context, themeResId) {
+) : ComponentDialog(context, themeResId) {
 
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
     private var downOutside = true

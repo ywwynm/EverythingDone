@@ -16,6 +16,10 @@ Migrated from global `memory/decisions.md` on 2026-06-06. This file keeps featur
 `BaseDialogFragment` 子类，且此前只有基类覆写 `onCreateDialog`，因此这一处改动即
 全量生效。
 
+同日后续：`BaseDialogFragment` 已迁到 androidx，`GestureAnchoredDialog` 随之改为继承
+`ComponentDialog` 以保住 `OnBackPressedDispatcher`，见
+[androidx-dialogfragment-migration](../androidx-dialogfragment-migration/decisions.md)。
+
 ## 2026-05-29 - NoticeableNotificationActivity keeps its embedded Thing row square
 
 `NoticeableNotificationActivity` is a Hybrid Chrome Surface: the outer

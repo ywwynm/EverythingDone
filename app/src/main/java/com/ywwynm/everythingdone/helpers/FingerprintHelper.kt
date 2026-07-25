@@ -2,7 +2,6 @@
 
 package com.ywwynm.everythingdone.helpers
 
-import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.SharedPreferences
@@ -129,7 +128,7 @@ open class FingerprintHelper private constructor(context: Context?) {
     }
 
     open fun tryToAuthenticatingByFingerprint(
-            activity: Activity?, accentColor: Int, title: String?, correctPassword: String?,
+            activity: FragmentActivity?, accentColor: Int, title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         tryToAuthenticatingByFingerprint(activity,
                 com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor),
@@ -138,7 +137,7 @@ open class FingerprintHelper private constructor(context: Context?) {
 
     /** Phase 8: ThingBackground-aware overload — gradient flows into the pattern-lock fallback. */
     open fun tryToAuthenticatingByFingerprint(
-            activity: Activity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
+            activity: FragmentActivity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
             title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         if (isFingerprintReady() && isFingerprintEnabledInEverythingDone() && initFingerprintCipher()) {
@@ -149,7 +148,7 @@ open class FingerprintHelper private constructor(context: Context?) {
     }
 
     private fun authenticateWithBiometricPrompt(
-            activity: Activity?, title: String?,
+            activity: FragmentActivity?, title: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         val executor: Executor = ContextCompat.getMainExecutor(mContext!!)
         val promptInfo: BiometricPrompt.PromptInfo = BiometricPrompt.PromptInfo.Builder()
@@ -185,7 +184,7 @@ open class FingerprintHelper private constructor(context: Context?) {
     }
 
     private fun showPatternLock(
-            activity: Activity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
+            activity: FragmentActivity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
             title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         val pldf = PatternLockDialogFragment()
@@ -197,7 +196,7 @@ open class FingerprintHelper private constructor(context: Context?) {
         pldf.setValidateTitle(title)
         pldf.setCorrectPassword(correctPassword)
         pldf.setAuthenticationCallback(callback)
-        pldf.show(activity!!.fragmentManager, PatternLockDialogFragment.TAG)
+        pldf.show(activity!!.supportFragmentManager, PatternLockDialogFragment.TAG)
     }
 
     companion object {

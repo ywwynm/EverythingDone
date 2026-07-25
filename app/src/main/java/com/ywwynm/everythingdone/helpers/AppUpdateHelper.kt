@@ -2,7 +2,7 @@
 
 package com.ywwynm.everythingdone.helpers
 
-import android.app.Activity
+import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.content.SharedPreferences
 import android.database.Cursor
@@ -40,7 +40,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
         updateFrom1_0_3To1_0_4(sp)
     }
 
-    open fun showInfo(activity: Activity?) {
+    open fun showInfo(activity: FragmentActivity?) {
         val sp: SharedPreferences = mContext!!.getSharedPreferences(
                 META_DATA_NAME, Context.MODE_PRIVATE)
 
@@ -71,7 +71,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
         sp.edit().putBoolean(KEY_1_0_3_TO_1_0_4, true).apply()
     }
 
-    private fun showFrom1_0_4To1_0_5(sp: SharedPreferences, activity: Activity?): Boolean {
+    private fun showFrom1_0_4To1_0_5(sp: SharedPreferences, activity: FragmentActivity?): Boolean {
         val updated: Boolean = sp.getBoolean(KEY_1_0_4_TO_1_0_5, false)
         if (updated) {
             return false
@@ -79,13 +79,13 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: LongTextDialogFragment = createLongTextDialog(
                 R.string.title_important_alert, R.string.content_important_reminder_permission)
-        ltdf.show(activity!!.fragmentManager, LongTextDialogFragment.TAG)
+        ltdf.show(activity!!.supportFragmentManager, LongTextDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_0_4_TO_1_0_5, true).apply()
         return true
     }
 
-    private fun showFrom1_2_7To1_3_0(sp: SharedPreferences, activity: Activity?): Boolean {
+    private fun showFrom1_2_7To1_3_0(sp: SharedPreferences, activity: FragmentActivity?): Boolean {
         val updated: Boolean = sp.getBoolean(KEY_1_2_7_TO_1_3_0, false)
         if (updated) {
             return false
@@ -93,13 +93,13 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_2_7_to_1_3_0_title, R.string.from_1_2_7_to_1_3_0_content)
-        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
+        ltdf.show(activity!!.supportFragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_2_7_TO_1_3_0, true).apply()
         return true
     }
 
-    private fun showFrom1_3_0To1_3_1(sp: SharedPreferences, activity: Activity?): Boolean {
+    private fun showFrom1_3_0To1_3_1(sp: SharedPreferences, activity: FragmentActivity?): Boolean {
         val updated: Boolean = sp.getBoolean(KEY_1_3_0_TO_1_3_1, false)
         if (updated) {
             return false
@@ -107,13 +107,13 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_3_0_to_1_3_1_title, R.string.from_1_3_0_to_1_3_1_content)
-        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
+        ltdf.show(activity!!.supportFragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_3_0_TO_1_3_1, true).apply()
         return true
     }
 
-    private fun showFrom1_3_3To1_3_4(sp: SharedPreferences, activity: Activity?): Boolean {
+    private fun showFrom1_3_3To1_3_4(sp: SharedPreferences, activity: FragmentActivity?): Boolean {
         val updated: Boolean = sp.getBoolean(KEY_1_3_3_TO_1_3_4, false)
         if (updated) {
             return false
@@ -121,7 +121,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
 
         val ltdf: AlertDialogFragment = createDialog(
                 R.string.from_1_3_3_to_1_3_4_title, R.string.from_1_3_3_to_1_3_4_content)
-        ltdf.show(activity!!.fragmentManager, AlertDialogFragment.TAG)
+        ltdf.show(activity!!.supportFragmentManager, AlertDialogFragment.TAG)
 
         sp.edit().putBoolean(KEY_1_3_3_TO_1_3_4, true).apply()
         return true
@@ -167,7 +167,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
         }
 
         @JvmStatic
-        fun updateFrom1_1_4To1_1_5(activity: Activity?, color: Int): Boolean {
+        fun updateFrom1_1_4To1_1_5(activity: FragmentActivity?, color: Int): Boolean {
             val sp: SharedPreferences = activity!!.getSharedPreferences(
                     META_DATA_NAME, Context.MODE_PRIVATE)
             val updated: Boolean = sp.getBoolean(KEY_1_1_4_TO_1_1_5, false)
@@ -181,7 +181,7 @@ open class AppUpdateHelper private constructor(context: Context?) {
             adf.setConfirmColor(color)
             adf.setTitle(activity.getString(R.string.from_1_1_4_to_1_1_5_title))
             adf.setContent(activity.getString(R.string.from_1_1_4_to_1_1_5_content))
-            adf.show(activity.fragmentManager, AlertDialogFragment.TAG)
+            adf.show(activity.supportFragmentManager, AlertDialogFragment.TAG)
 
             sp.edit().putBoolean(KEY_1_1_4_TO_1_1_5, true).apply()
 

@@ -1,4 +1,4 @@
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.fragments
 
@@ -52,7 +52,7 @@ import java.util.concurrent.Executors
 /**
  * Created by ywwynm on 2015/9/29.
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
- * A subclass of [android.app.DialogFragment] used to record audio.
+ * A subclass of [androidx.fragment.app.DialogFragment] used to record audio.
  */
 open class AudioRecordDialogFragment : BaseDialogFragment() {
 

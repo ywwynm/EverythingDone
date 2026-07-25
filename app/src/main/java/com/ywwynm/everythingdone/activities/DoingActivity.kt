@@ -598,7 +598,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                     finishWithStoppingService()
                 }
             })
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -638,7 +638,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         adf.setShowCancel(false)
         adf.setTitle(getString(titleRes))
         adf.setContent(getString(contentRes))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun finishWithStoppingService() {

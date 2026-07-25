@@ -527,7 +527,7 @@ class ThingsActivity :
                     deleteFeedbackFile()
                 }
             })
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -606,7 +606,7 @@ class ThingsActivity :
                     }
                 }
                 if (mCanSeeUi) {
-                    ltdf.show(fragmentManager, LongTextDialogFragment.TAG)
+                    ltdf.show(supportFragmentManager, LongTextDialogFragment.TAG)
                 }
             } else {
                 val adf = AlertDialogFragment()
@@ -626,7 +626,7 @@ class ThingsActivity :
                     }
                 })
                 if (mCanSeeUi) {
-                    adf.show(fragmentManager, AlertDialogFragment.TAG)
+                    adf.show(supportFragmentManager, AlertDialogFragment.TAG)
                 }
             }
         }
@@ -1361,7 +1361,7 @@ class ThingsActivity :
         val background = getCurrentFolderBackgroundForChrome() ?: return
         val df = ColorInfoDialogFragment()
         df.setThingBackground(background)
-        df.show(fragmentManager, ColorInfoDialogFragment.TAG)
+        df.show(supportFragmentManager, ColorInfoDialogFragment.TAG)
     }
 
     private var lastClickBack: Long = -1
@@ -4088,7 +4088,7 @@ class ThingsActivity :
 
             override fun onCancelColorSampling() {}
         })
-        dialog.show(fragmentManager, CameraColorSamplingDialogFragment.TAG)
+        dialog.show(supportFragmentManager, CameraColorSamplingDialogFragment.TAG)
     }
 
     private fun applyThingCardAppearanceAccentText(textView: TextView?) {
@@ -4364,12 +4364,12 @@ class ThingsActivity :
     }
 
     private fun openThingCardCropEditor() {
-        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
                 MediaCropAppearanceDialogFragment.REQUEST_THING_CARD_CROP
         ).show(
-                fragmentManager,
+                supportFragmentManager,
                 MediaCropAppearanceDialogFragment.TAG
         )
     }
@@ -7238,7 +7238,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun confirmThingsOnlyStateChange(stateAfter: Int, selectedThings: List<Thing>) {
@@ -7280,7 +7280,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun confirmMixedStateChange(
@@ -7343,7 +7343,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /** In-scope Things contributed by one selected Folder for the given verb. */
@@ -7503,7 +7503,7 @@ class ThingsActivity :
                 mUndoLocations!!.clear()
             }
         })
-        df.show(fragmentManager, ThreeActionsAlertDialogFragment.TAG)
+        df.show(supportFragmentManager, ThreeActionsAlertDialogFragment.TAG)
     }
 
     private fun handleUpdateStates(stateBefore: Int, stateAfter: Int) {
@@ -7721,7 +7721,7 @@ class ThingsActivity :
                 content = reminder.getCelebrationText(mApp)
             }
             adf.setContent(content)
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -8178,7 +8178,7 @@ class ThingsActivity :
         adf.setConfirmBackground(folder.getBackground())
         adf.setTitle(HomeActionWordingHelper.noPasswordTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun showMoveThingFolderDialog(folder: ThingFolder) {
@@ -8211,7 +8211,7 @@ class ThingsActivity :
                 }
             }
         })
-        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
+        dialog.show(supportFragmentManager, MoveToThingFolderDialogFragment.TAG)
     }
 
     private fun showMoveSelectedThingsDialog() {
@@ -8247,7 +8247,7 @@ class ThingsActivity :
                 }
             }
         })
-        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
+        dialog.show(supportFragmentManager, MoveToThingFolderDialogFragment.TAG)
     }
 
     private fun getForbiddenFolderMoveTargetIds(folder: ThingFolder): Set<Long> {
@@ -8682,7 +8682,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun showFinishScopeHabitGoalDialog(things: List<Thing>, background: ThingBackground) {
@@ -8706,7 +8706,7 @@ class ThingsActivity :
                 // Cancelled: leave everything as is.
             }
         })
-        df.show(fragmentManager, ThreeActionsAlertDialogFragment.TAG)
+        df.show(supportFragmentManager, ThreeActionsAlertDialogFragment.TAG)
     }
 
     private fun applyFinishScope(things: List<Thing>) {
@@ -8761,7 +8761,7 @@ class ThingsActivity :
                 refreshHomeAfterScopeStateChange()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /** Recursively restore a folder's trashed Things to their pre-trash state (recycle bin). */
@@ -8796,7 +8796,7 @@ class ThingsActivity :
                 refreshHomeAfterScopeStateChange()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /**
@@ -8835,7 +8835,7 @@ class ThingsActivity :
                 refreshHomeAfterScopeStateChange()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /**
@@ -8878,7 +8878,7 @@ class ThingsActivity :
                 refreshHomeAfterScopeStateChange()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /**
@@ -9006,7 +9006,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     /**
@@ -9046,7 +9046,7 @@ class ThingsActivity :
                 refreshHomeAfterScopeStateChange()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun showDeleteThingFolderForeverDialog(
@@ -9083,7 +9083,7 @@ class ThingsActivity :
                 }
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun exitSelectingModeIfNeeded() {
@@ -9139,7 +9139,7 @@ class ThingsActivity :
         dialog.setInitialTitle(initialTitle)
         dialog.setAccentBackground(folder.getBackground())
         dialog.setListener(listener)
-        dialog.show(fragmentManager, ThingFolderNameDialogFragment.TAG)
+        dialog.show(supportFragmentManager, ThingFolderNameDialogFragment.TAG)
     }
 
     private fun cancelCreatedThingFolderDrop(createdDrop: CreatedThingFolderDrop) {
@@ -11655,7 +11655,7 @@ class ThingsActivity :
                 }
             }
         })
-        dialog.show(fragmentManager, MoveToThingFolderDialogFragment.TAG)
+        dialog.show(supportFragmentManager, MoveToThingFolderDialogFragment.TAG)
     }
 
     private fun moveSelectedMixedToFolder(
@@ -11938,7 +11938,7 @@ class ThingsActivity :
         adf.setConfirmBackground(thing.getBackground())
         adf.setTitle(HomeActionWordingHelper.noPasswordTitle(this))
         adf.setContent(getString(R.string.warning_should_set_password_first))
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     internal inner class OnContextualMenuClickedListener : Toolbar.OnMenuItemClickListener {

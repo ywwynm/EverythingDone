@@ -93,7 +93,7 @@ open class StartDoingActivity : AppCompatActivity() {
                 }
             }
         })
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun tryToStopAnotherDoingAndStartThis(cdf: ChooserDialogFragment) {
@@ -109,7 +109,7 @@ open class StartDoingActivity : AppCompatActivity() {
                 tryToStartDoingAlarmUser(cdf)
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun tryToStartDoingAlarmUser(cdf: ChooserDialogFragment) {

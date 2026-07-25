@@ -861,7 +861,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                     }
                 }
             })
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
             return true
         }
         return false
@@ -976,7 +976,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         delegate.applyDayNight()
 
         val attachmentInfoWasShowing =
-            fragmentManager.findFragmentByTag(AttachmentInfoDialogFragment.TAG) is AttachmentInfoDialogFragment
+            supportFragmentManager.findFragmentByTag(AttachmentInfoDialogFragment.TAG) is AttachmentInfoDialogFragment
         dismissDialogFragment(AttachmentInfoDialogFragment.TAG)
         dismissDialogFragment(AlertDialogFragment.TAG)
 
@@ -990,8 +990,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun dismissDialogFragment(tag: String) {
-        val fragment = fragmentManager.findFragmentByTag(tag)
-        if (fragment is android.app.DialogFragment) {
+        val fragment = supportFragmentManager.findFragmentByTag(tag)
+        if (fragment is androidx.fragment.app.DialogFragment) {
             fragment.dismissAllowingStateLoss()
         }
     }

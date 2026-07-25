@@ -20,8 +20,8 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.ThingBackgroundEditor
 
 /**
- * 详情页改变记事颜色的底部面板。是平台 [android.app.DialogFragment]（经 [BaseDialogFragment]，
- * 平台 fragmentManager 显示），靠窗口 gravity 固定在底部——**不是**可拖拽的 Material BottomSheet，
+ * 详情页改变记事颜色的底部面板。是 [androidx.fragment.app.DialogFragment]（经 [BaseDialogFragment]，
+ * 由 supportFragmentManager 显示），靠窗口 gravity 固定在底部——**不是**可拖拽的 Material BottomSheet，
  * 因此打开即按内容全展开，不需要用户上滑。内容靠 `ScrollAwareColumn` 在空间不足(键盘弹出)时让
  * 中间编辑器内部滚动，标题与取消/确定固定。取消=放弃(回到打开时颜色)，确定=提交。
  */

@@ -191,7 +191,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
     open fun showRecordAudioDialog() {
         val audioRecordDialogFragment = AudioRecordDialogFragment()
         audioRecordDialogFragment.show(
-            mActivity!!.fragmentManager, AudioRecordDialogFragment.TAG
+            mActivity!!.supportFragmentManager, AudioRecordDialogFragment.TAG
         )
         dismiss()
     }

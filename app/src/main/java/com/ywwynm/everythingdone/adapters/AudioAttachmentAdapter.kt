@@ -2,7 +2,7 @@
 
 package com.ywwynm.everythingdone.adapters
 
-import android.app.Activity
+import androidx.fragment.app.FragmentActivity
 import android.media.MediaPlayer
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -31,14 +31,14 @@ import java.io.File
  * adapter for audio attachment
  */
 open class AudioAttachmentAdapter(
-    activity: Activity?,
+    activity: FragmentActivity?,
     accentColor: Int,
     editable: Boolean,
     items: List<String?>?,
     callback: RemoveCallback?
 ) : RecyclerView.Adapter<AudioAttachmentAdapter.AudioCardViewHolder>() {
 
-    private var mActivity: Activity? = activity
+    private var mActivity: FragmentActivity? = activity
 
     private var mAccentColor: Int = accentColor
     /** Phase 8: full accent so the attachment-info dialog launched from a tap
@@ -202,7 +202,7 @@ open class AudioAttachmentAdapter(
             if (i == position) startIndex = paths.size
             paths.add(item.substring(1))
         }
-        AudioPlayDialogFragment.show(activity.fragmentManager, paths, startIndex)
+        AudioPlayDialogFragment.show(activity.supportFragmentManager, paths, startIndex)
     }
 
     private fun startPlaying(index: Int) {

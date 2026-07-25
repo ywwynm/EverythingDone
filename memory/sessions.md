@@ -2,6 +2,17 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-07-26 - DialogFragment 全量迁到 AndroidX
+
+- `BaseDialogFragment` 由 `android.app.DialogFragment`（API 28 起弃用）迁到
+  `androidx.fragment.app.DialogFragment`，27 个对话框随基类一次生效；宿主侧 103 处
+  `fragmentManager` 改 `supportFragmentManager`，对话框内部 3 处改 `parentFragmentManager`，
+  7 个 helper/adapter 的 `Activity?` 签名改 `FragmentActivity?`。
+- 关键坑：4 个 Activity 里 5 处 `is / as? android.app.DialogFragment` 与 androidx 类型不相交，
+  编译器既不报错也不告警，`as?` 恒为 null 会让三处 `dismissAllowingStateLoss()` 静默失效。
+  这类迁移的收尾必须 grep 旧包名，不能以编译通过为准。
+- 详情见 `docs/features/androidx-dialogfragment-migration/`。真机未验证。
+
 ## 2026-07-17 - 未跟踪产物分类清理与调研归档
 
 - 将 `tmp/` 下 9 个 `timely-*` 字体调研中间产物目录移入 `docs/features/timely-digit-typography/`；删除 `tmp/` 中与已提交 `research-2026-07-12-*` 三篇内容完全相同的重复副本（仅换行符差异，已逐一比对）。

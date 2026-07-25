@@ -1,9 +1,8 @@
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+@file:Suppress("DEPRECATION")
 
 package com.ywwynm.everythingdone.fragments
 
 import android.app.Activity
-import android.app.FragmentManager
 import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
@@ -19,6 +18,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View

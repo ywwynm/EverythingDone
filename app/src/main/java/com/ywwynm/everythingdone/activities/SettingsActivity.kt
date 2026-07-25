@@ -1031,7 +1031,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.rl_doing_digit_style_as_bt).setOnClickListener {
             val df = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment()
             df.setOnChosen { updateDoingDigitStyleValue() }
-            df.show(fragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
+            df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
         }
         f<View>(R.id.rl_fablesol_tuning_as_bt).setOnClickListener {
             // 调参 Dialog 的实时预览由麦克风驱动，须先拿到录音权限。
@@ -1039,7 +1039,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 object : SimplePermissionCallback(this@SettingsActivity) {
                     override fun onGranted() {
                         val df = com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment()
-                        df.show(fragmentManager, com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG)
+                        df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG)
                     }
                 },
                 Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
@@ -1075,7 +1075,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mPreferences!!.edit().putInt(Def.Meta.KEY_AUTOPLAY_DETAIL_DYNAMIC, picked).apply()
             updateAutoplayDetailDynamicValue()
         })
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun updateAutoplayDetailDynamicValue() {
@@ -1109,7 +1109,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                     val ldf: LoadingDialogFragment = createLoadingDialog(
                         R.string.please_wait, R.string.ringtone_loading
                     )
-                    ldf.show(fragmentManager, LoadingDialogFragment.TAG)
+                    ldf.show(supportFragmentManager, LoadingDialogFragment.TAG)
                     initSystemRingtoneList(ldf, j)
                 } else {
                     showRingtoneDialog(j)
@@ -1122,7 +1122,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         if (mCdfsRingtone!![index] == null) {
             initRingtoneFragment(index)
         }
-        mCdfsRingtone!![index]!!.show(fragmentManager, ChooserDialogFragment.TAG)
+        mCdfsRingtone!![index]!!.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun setDataEvents() {
@@ -1141,13 +1141,13 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 mAutoSaveEdits = picked == 0
                 mTvASE!!.setText(if (mAutoSaveEdits) R.string.enabled else R.string.disabled)
             }
-            cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+            cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
         }
         f<View>(R.id.iv_auto_save_edits_help_as_bt).setOnClickListener {
             createAlertDialog(
                 false, R.string.auto_save_edits_title, R.string.auto_save_edits_help_info,
                 R.string.act_get_it
-            ).show(fragmentManager, AlertDialogFragment.TAG)
+            ).show(supportFragmentManager, AlertDialogFragment.TAG)
         }
 
         f<View>(R.id.tv_backup_as_bt).setOnClickListener {
@@ -1185,7 +1185,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 })
                 pldf.setAccentBackground(App.defaultAccentBackground)
                 pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
-                pldf.show(fragmentManager, PatternLockDialogFragment.TAG)
+                pldf.show(supportFragmentManager, PatternLockDialogFragment.TAG)
             } else {
                 mCbFgprt!!.isChecked = true
             }
@@ -1201,7 +1201,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 .putString(Def.Meta.KEY_PRIVATE_PASSWORD, pldf.getPassword()).apply()
             initUiPrivacy()
         }
-        pldf.show(fragmentManager, PatternLockDialogFragment.TAG)
+        pldf.show(supportFragmentManager, PatternLockDialogFragment.TAG)
     }
 
     private fun beginChangePassword(passwordBefore: String) {
@@ -1217,7 +1217,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
             override fun onCancel() {}
         })
-        pldf.show(fragmentManager, PatternLockDialogFragment.TAG)
+        pldf.show(supportFragmentManager, PatternLockDialogFragment.TAG)
     }
 
     private fun setStartDoingEvents() {
@@ -1240,7 +1240,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 false, R.string.doing_alert_first_strict_mode_title,
                 R.string.auto_strict_mode_help_content, R.string.act_get_it
             )
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -1260,7 +1260,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             val items: List<String?> = ThingDoingHelper.getStartDoingTimeItems(applicationContext)
             mTvASDTimes!![index]!!.text = items[picked]
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun showAutoStartDoingDialog() {
@@ -1273,7 +1273,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mTvASD!!.text = states[mASDPicked]
             enableOrDisableASDTimesUi()
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun showAutoStrictModeDialog() {
@@ -1285,7 +1285,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mASMPicked = cdf.getPickedIndex()
             mTvASM!!.text = states[mASMPicked]
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun createChooserDialogForStartDoing(): ChooserDialogFragment {
@@ -1318,20 +1318,20 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 false, R.string.create_daily_todo_automatically,
                 R.string.create_daily_todo_help_info, R.string.act_get_it
             )
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
 
         f<View>(R.id.ll_advanced_auto_notify_as_bt).setOnClickListener {
             if (mCdfAN == null) {
                 initAutoNotifyFragment()
             }
-            mCdfAN!!.show(fragmentManager, ChooserDialogFragment.TAG)
+            mCdfAN!!.show(supportFragmentManager, ChooserDialogFragment.TAG)
         }
         f<View>(R.id.iv_auto_notify_help_as_bt).setOnClickListener {
             val adf: AlertDialogFragment = createAlertDialog(
                 false, R.string.auto_notify, R.string.auto_notify_help_info, R.string.act_get_it
             )
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -1346,7 +1346,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mDTPicked = cdf.getPickedIndex()
             updateUiDailyTodo()
         }
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun setQuickCreateEvents() {
@@ -1408,7 +1408,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 showDrawerHeaderCropEditor()
             }
         }
-        todf.show(fragmentManager, ThreeOptionsDialogFragment.TAG)
+        todf.show(supportFragmentManager, ThreeOptionsDialogFragment.TAG)
     }
 
     private fun startChooseImageAsDrawerHeader() {
@@ -1436,11 +1436,11 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
     private fun showDrawerHeaderCropEditor() {
         if (currentDrawerHeaderPath() == null) return
-        (fragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? android.app.DialogFragment)?.dismissAllowingStateLoss()
+        (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
+                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
             MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER
-        ).show(fragmentManager, MediaCropAppearanceDialogFragment.TAG)
+        ).show(supportFragmentManager, MediaCropAppearanceDialogFragment.TAG)
     }
 
     override fun getMediaCropAppearanceDialogWidthPx(
@@ -1672,7 +1672,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 am, System.currentTimeMillis() + 1600, pendingIntent
             )
         })
-        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
     }
 
     private fun showBackupDialog() {
@@ -1685,7 +1685,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 authenticateToBackup()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun authenticateToBackup() {
@@ -1718,7 +1718,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 R.string.backup_loading_title, R.string.backup_loading_content
             )
         }
-        mLdfBackup!!.show(fragmentManager, LoadingDialogFragment.TAG)
+        mLdfBackup!!.show(supportFragmentManager, LoadingDialogFragment.TAG)
     }
 
     private fun showRestoreDialog() {
@@ -1731,7 +1731,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 authenticateToRestore()
             }
         })
-        adf.show(fragmentManager, AlertDialogFragment.TAG)
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun authenticateToRestore() {
@@ -1768,7 +1768,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 R.string.restore_loading_title, R.string.restore_loading_content
             )
         }
-        mLdfRestore!!.show(fragmentManager, LoadingDialogFragment.TAG)
+        mLdfRestore!!.show(supportFragmentManager, LoadingDialogFragment.TAG)
     }
 
     private fun initRingtoneFragment(index: Int) {
@@ -2036,7 +2036,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 contentRes = R.string.backup_failed_content
             }
             val adf: AlertDialogFragment = createAlertDialog(false, titleRes, contentRes)
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
     }
 
@@ -2102,7 +2102,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             adf.setConfirmBackground(App.defaultAccentBackground)
             adf.setTitle(title)
             adf.setContent(content)
-            adf.show(fragmentManager, AlertDialogFragment.TAG)
+            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
 
             val context: Context = this@SettingsActivity
             if (restoreSuccessfully) {
