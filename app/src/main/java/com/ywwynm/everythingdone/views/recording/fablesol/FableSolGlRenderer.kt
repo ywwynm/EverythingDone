@@ -198,6 +198,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val optics = FableSolGlOptics(density)
     private val opticalUpload: FloatBuffer = ByteBuffer.allocateDirect(optics.vertices.size * 4)
         .order(ByteOrder.nativeOrder()).asFloatBuffer()
+    // 人眼眩光（D206~D209）：CPU 星光轨迹 + present 前 PSF pass。
+    private val starField = FableSolStarField(density)
+    private val glarePass = FableSolGlarePass(context.assets)
     private val layerStart = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStop1 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStop2 = FloatArray(FableSolSpec.N_LAYERS * 3)
@@ -241,6 +244,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         hdrGain = 0f
         hdrHeadroom = 1f
         hdrTransition.reset()
+        // EGL 上下文重建：眩光 pass 的 GL 名字已随旧上下文失效。
         // 程序重建后 uniform 全部丢失；置 NaN 强制首帧重传透射峰值表。
         uploadedTransmissionScale = Float.NaN
         materialColorKey = null
@@ -269,6 +273,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         )
         waterProgram.use()
         uploadStaticWaterUniforms()
+        // 眩光 program 随场景 program 一起预编译（消除首星帧卡顿，D214）。
+        glarePass.invalidateGlObjects()
+        glarePass.prewarm()
         val buffers = IntArray(4)
         GLES30.glGenBuffers(4, buffers, 0)
         vertexBufferId = buffers[0]
@@ -445,6 +452,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         if (::waterProgram.isInitialized) waterProgram.release()
         if (::opticalProgram.isInitialized) opticalProgram.release()
         if (::presentationProgram.isInitialized) presentationProgram.release()
+        glarePass.release()
         if (vertexBufferId != 0) {
             GLES30.glDeleteBuffers(
                 4,
@@ -909,6 +917,24 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             interfaceWeightStop2 = interfaceWeightStop2,
             interfaceWeightEnd = interfaceWeightEnd
         )
+        // 人眼眩光星光轨迹：银边辐亮度场的 CPU 复算 + 同步涨落 + 前层遮挡。
+        // strength=0 时 update 内部清空轨迹并零输出，眩光 pass 不会介入。
+        // D217：星振幅随银丝实际超白同步——银丝 shader 端超白 =
+        // 标定超白 × excessScale × hdrGain，星芒出射振幅乘同一比值
+        // （下限 1 = SDR/低强度锚定在标定观感，绝不暗于既有画面）。
+        starField.update(
+            sim,
+            params,
+            columns,
+            vertexData,
+            layerMeanYPx,
+            22.0 * density,
+            crestRimX0Px.toDouble(),
+            crestRimSpanPx.toDouble(),
+            0.30 + 0.70 * sim.sparkle01.coerceIn(0.0, 1.0),
+            layerSubsurfaceStart,
+            hdrAmplitudeScale = max(1.0, hdrExcessScale.toDouble() * hdrGain)
+        )
         perfOpticsNs = SystemClock.elapsedRealtimeNanos() - opticsStart
     }
 
@@ -1115,7 +1141,29 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             GLES30.glBindVertexArray(vertexArrayId)
         }
         if (sceneSamples > 1) resolveSceneMsaa()
-        presentScene()
+        // 人眼眩光 pass：显示 cap SDR 态=1、录音态随增益过渡到 headroom
+        // （与既有钳制一致）。pass 失败或未启用时回退原场景纹理。
+        var presentSourceId = sceneTextureId
+        if (params.get("glare_strength") > 1e-4) {
+            val glareOutput = glarePass.render(
+                sceneTextureId,
+                width,
+                height,
+                sceneLinear,
+                1f + (hdrHeadroom - 1f) * hdrGain,
+                rotationRad,
+                density,
+                params.get("glare_strength").toFloat(),
+                params.get("glare_halo").toFloat(),
+                params.get("glare_needle_length").toFloat(),
+                params.get("glare_needle_count").toInt(),
+                params.get("glare_needle_variance").toFloat(),
+                sim.t,
+                starField
+            )
+            if (glareOutput != 0) presentSourceId = glareOutput
+        }
+        presentScene(presentSourceId)
         framesUntilGlErrorCheck--
         if (framesUntilGlErrorCheck <= 0) {
             checkGl("drawFrame sampled")
@@ -1392,7 +1440,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
     }
 
-    private fun presentScene() {
+    private fun presentScene(sourceTextureId: Int) {
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glViewport(0, 0, width, height)
         GLES30.glDisable(GLES30.GL_BLEND)
@@ -1400,7 +1448,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         presentationProgram.use()
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sceneTextureId)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sourceTextureId)
         GLES30.glUniform1i(presentationProgram.uniform("uScene"), 0)
         GLES30.glUniform3fv(
             presentationProgram.uniform("uBackdropColor"),

@@ -10,7 +10,6 @@ class FableSolMaterialPolicyTest {
     fun cleanFillKeepsLocalOpticsAndAlignedDefaults() {
         val params = FableSolParams()
 
-        assertEquals(0.0, params.get("body_light_strength"), 0.0)
         assertEquals(1.29, params.get("uplift_thick_glow"), 0.0)
         assertEquals(1.6, params.get("uplift_glow_boost"), 0.0)
         assertEquals(0.0, params.get("analytic_halo_strength"), 0.0)

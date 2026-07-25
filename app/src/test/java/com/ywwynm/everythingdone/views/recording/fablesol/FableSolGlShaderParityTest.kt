@@ -266,7 +266,10 @@ class FableSolGlShaderParityTest {
         assertFalse(hdrBlock.contains("/ opticalAlpha"))
         assertFalse(hdrBlock.contains("vOpticalMode > 1.5"))
         assertFalse(hdrBlock.contains("vOpticalMode > 6.5"))
-        assertTrue(optics.contains("hdrEligibility[i] = volume"))
+        // D216：体光带（原 hdrEligibility[i] = volume 来源）已移除；
+        // vHdrEligibility 的活体生产者只剩闪点包络。
+        assertTrue(optics.contains("FableSolGlintEnvelopePolicy.hdrEligibility(intensity)"))
+        assertFalse(optics.contains("buildBodyLight"))
     }
 
     @Test

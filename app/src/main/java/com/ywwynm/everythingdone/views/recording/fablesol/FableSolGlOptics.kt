@@ -72,7 +72,6 @@ internal class FableSolGlOptics(private val density: Double) {
     internal val glintMinimumSegmentsForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val glintMaximumSegmentsForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val glintPackedHaloModeMaxForTest = FloatArray(FableSolSpec.N_LAYERS)
-    internal val bodyLightVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
     internal val interfaceShoulderVertexCountForTest = IntArray(FableSolSpec.N_LAYERS)
 
     private val glints = Array(FableSolSpec.N_LAYERS) { ArrayList<Track>(4) }
@@ -157,7 +156,6 @@ internal class FableSolGlOptics(private val density: Double) {
         java.util.Arrays.fill(glintMinimumSegmentsForTest, Int.MAX_VALUE)
         java.util.Arrays.fill(glintMaximumSegmentsForTest, 0)
         java.util.Arrays.fill(glintPackedHaloModeMaxForTest, 0f)
-        java.util.Arrays.fill(bodyLightVertexCountForTest, 0)
         java.util.Arrays.fill(interfaceShoulderVertexCountForTest, 0)
         java.util.Arrays.fill(backShadeVertexCountForTest, 0)
         glitterCandidateCount = 0
@@ -174,9 +172,8 @@ internal class FableSolGlOptics(private val density: Double) {
             params.get("glint_capacity_gain") * sim.glintCapacity01
             ).coerceIn(0.0, 1.0)
         val glintsEnabled = capacityGain > 0.0
-        val bodyLightEnabled = params.get("body_light_strength") > 1e-3
-        // 微法线只有闪点和体光两个消费者；都关闭时不必采样。
-        val microNeeded = glintsEnabled || bodyLightEnabled
+        // 微法线只剩闪点一个消费者（体光已随 D216 移除）；关闭时不必采样。
+        val microNeeded = glintsEnabled
         if (!glintsEnabled && glintsWereEnabled) {
             // 边沿触发：关闭瞬间清一次轨迹，避免下次开启时从冻结状态复现旧闪点。
             for (index in glints.indices) glints[index].clear()
@@ -398,7 +395,6 @@ internal class FableSolGlOptics(private val density: Double) {
         private val microCurvature = DoubleArray(FableSolSpec.N_POINTS)
         private val field = DoubleArray(FableSolSpec.N_POINTS)
         private val smooth = DoubleArray(FableSolSpec.N_POINTS)
-        private val hdrEligibility = DoubleArray(FableSolSpec.N_POINTS)
         private val bandTop = DoubleArray(FableSolSpec.N_POINTS)
         private val bandThickness = DoubleArray(FableSolSpec.N_POINTS)
         private val backShadeColors = Array(FableSolSpec.N_POINTS) { IntArray(3) }
@@ -498,12 +494,6 @@ internal class FableSolGlOptics(private val density: Double) {
                     (cursor - startVertex) / COMPONENTS_PER_VERTEX
             }
 
-            if (params.get("body_light_strength") > 1e-3) {
-                val startVertex = cursor
-                buildBodyLight(params, layer, columns, layerStart[layer], layerEnd[layer])
-                bodyLightVertexCountForTest[layer] =
-                    (cursor - startVertex) / COMPONENTS_PER_VERTEX
-            }
             // 闪点核心最后进入同层序列，不能被透射 source-over 衰减。
             if (glintsEnabled && FableSolMaterialPolicy.glintCapacity(layer) > 0) {
                 glintSegmentOffset = cursor - segmentStart
@@ -583,8 +573,8 @@ internal class FableSolGlOptics(private val density: Double) {
             smoothThree(curvatureRaw, curvature, columns)
             java.util.Arrays.fill(microSlope, 0, columns, 0.0)
             java.util.Arrays.fill(microCurvature, 0, columns, 0.0)
-            // 微法线的消费者只有 buildBodyLight 与 buildGlints；两者都关闭时这两个
-            // 数组保持全零，与采样后再被门挡住的结果一致。
+            // 微法线的消费者只剩 buildGlints（体光带随 D216 移除）；闪点关闭时
+            // 这两个数组保持全零，与采样后再被门挡住的结果一致。
             if (microNeeded && FableSolMaterialPolicy.glintCapacity(layer) > 0) {
                 val ls = sim.layers[layer]
                 ls.optical.sampleInto(uDp, columns, ls.roughness01,
@@ -757,34 +747,6 @@ internal class FableSolGlOptics(private val density: Double) {
                 backShadeColors,
                 alpha,
                 OPTICAL_MODE_BACK_SHADE
-            )
-        }
-
-        private fun buildBodyLight(params: FableSolParams, layer: Int, columns: Int,
-                                   start: IntArray, end: IntArray) {
-            val strength = params.get("body_light_strength")
-            val sinElevation = sin(Math.toRadians(VIEW_ELEVATION_DEG))
-            for (i in 0 until columns) {
-                val opticalSlope = slope[i] + microSlope[i]
-                val cosine = (sinElevation / sqrt(1.0 + opticalSlope * opticalSlope))
-                    .coerceIn(0.0, 1.0)
-                val fresnel = WATER_F0 + (1.0 - WATER_F0) * (1.0 - cosine).pow(5)
-                val volume = (0.16 * (1.0 - fresnel) * strength).coerceIn(0.0, 1.0)
-                hdrEligibility[i] = volume
-                bandTop[i] = y[i] + 0.35 * density
-                bandThickness[i] = 2.0 * density * (0.34 + 0.66 * volume)
-            }
-            val highlight = highlightColor(start, end)
-            val color = FableSolColor.mixOklab(start, highlight, 0.46)
-            val alpha = (72.0 / 255.0 * params.lget("alpha", layer) * strength).toFloat()
-            addContourBand(
-                columns,
-                bandTop,
-                bandThickness,
-                color,
-                alpha,
-                OPTICAL_MODE_TRANSMISSION,
-                hdrEligibility
             )
         }
 
@@ -1011,41 +973,6 @@ internal class FableSolGlOptics(private val density: Double) {
                 max(denominator[layer].toDouble(), 1e-6)).coerceIn(0.0, 1.0)
         }
 
-        private fun addContourBand(columns: Int, top: DoubleArray, thickness: DoubleArray,
-                                   color: IntArray, alpha: Float, opticalMode: Float,
-                                   hdrEligibility: DoubleArray? = null) {
-            if (alpha <= 1f / 255f) return
-            val profiledAlpha = (alpha * CONTOUR_PROFILE_PEAK.toFloat()).coerceIn(0f, 1f)
-            // 整条带同一颜色：归一化只做一次。
-            val red = color[0] / 255f
-            val green = color[1] / 255f
-            val blue = color[2] / 255f
-            for (column in 0 until columns - 1) {
-                if (thickness[column] <= 1e-4 && thickness[column + 1] <= 1e-4) continue
-                requireVertexCapacity(VERTICES_PER_QUAD)
-                val q0 = -1.0 + 2.0 * column / max(columns - 1, 1)
-                val q1 = -1.0 + 2.0 * (column + 1) / max(columns - 1, 1)
-                val bottom0 = top[column] + max(thickness[column], 0.0)
-                val bottom1 = top[column + 1] + max(thickness[column + 1], 0.0)
-                val eligibility0 = (hdrEligibility?.get(column)?.toFloat() ?: 0f).coerceIn(0f, 1f)
-                val eligibility1 = (hdrEligibility?.get(column + 1)?.toFloat() ?: 0f).coerceIn(0f, 1f)
-                putVertexNormalized(x[column], top[column], q0, 0.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility0)
-                putVertexNormalized(x[column], bottom0, q0, 1.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility0)
-                putVertexNormalized(x[column + 1], top[column + 1], q1, 0.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility1)
-                putVertexNormalized(x[column + 1], top[column + 1], q1, 0.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility1)
-                putVertexNormalized(x[column], bottom0, q0, 1.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility0)
-                putVertexNormalized(x[column + 1], bottom1, q1, 1.0, red, green, blue,
-                    profiledAlpha, opticalMode, red, green, blue, eligibility1)
-            }
-        }
-
-        /** 按可见弧的 3.2dp 目标段长一次确定 12～32 段，避免短光迹退化成折线。 */
-        @Suppress("UNUSED_PARAMETER")
         private fun prepareCurvedBandSegments(centerX: Double, halfLength: Double,
                                               columns: Int): Int {
             val targetLength = CURVED_BAND_TARGET_SEGMENT_DP * density
@@ -1123,8 +1050,7 @@ internal class FableSolGlOptics(private val density: Double) {
 
         /** 显式波背带逐列携带当前 Thing 渐变色，避免整条带固定使用起点身份色。 */
         private fun addContourBand(columns: Int, top: DoubleArray, thickness: DoubleArray,
-                                   colors: Array<IntArray>, alpha: Float, opticalMode: Float,
-                                   hdrEligibility: DoubleArray? = null) {
+                                   colors: Array<IntArray>, alpha: Float, opticalMode: Float) {
             if (alpha <= 1f / 255f) return
             // 界面肩把 0.66 峰值明确留给 shader 的 mode 10 剖面；其它轮廓带继续在
             // 顶点 alpha 预乘相同峰值。两条路径都只应用一次，最终能量一致。
@@ -1158,20 +1084,18 @@ internal class FableSolGlOptics(private val density: Double) {
                 val red1 = color1[0] / 255f
                 val green1 = color1[1] / 255f
                 val blue1 = color1[2] / 255f
-                val eligibility0 = (hdrEligibility?.get(column)?.toFloat() ?: 0f).coerceIn(0f, 1f)
-                val eligibility1 = (hdrEligibility?.get(column + 1)?.toFloat() ?: 0f).coerceIn(0f, 1f)
                 putVertexNormalized(x[column], top[column], q0, 0.0, red0, green0, blue0,
-                    profiledAlpha, opticalMode, red0, green0, blue0, eligibility0)
+                    profiledAlpha, opticalMode, red0, green0, blue0, 0f)
                 putVertexNormalized(x[column], bottom0, q0, 1.0, red0, green0, blue0,
-                    profiledAlpha, opticalMode, red0, green0, blue0, eligibility0)
+                    profiledAlpha, opticalMode, red0, green0, blue0, 0f)
                 putVertexNormalized(x[column + 1], top[column + 1], q1, 0.0, red1, green1, blue1,
-                    profiledAlpha, opticalMode, red1, green1, blue1, eligibility1)
+                    profiledAlpha, opticalMode, red1, green1, blue1, 0f)
                 putVertexNormalized(x[column + 1], top[column + 1], q1, 0.0, red1, green1, blue1,
-                    profiledAlpha, opticalMode, red1, green1, blue1, eligibility1)
+                    profiledAlpha, opticalMode, red1, green1, blue1, 0f)
                 putVertexNormalized(x[column], bottom0, q0, 1.0, red0, green0, blue0,
-                    profiledAlpha, opticalMode, red0, green0, blue0, eligibility0)
+                    profiledAlpha, opticalMode, red0, green0, blue0, 0f)
                 putVertexNormalized(x[column + 1], bottom1, q1, 1.0, red1, green1, blue1,
-                    profiledAlpha, opticalMode, red1, green1, blue1, eligibility1)
+                    profiledAlpha, opticalMode, red1, green1, blue1, 0f)
                 // 下一列的左端就是本列的右端，颜色可以直接顺延。
                 red0 = red1
                 green0 = green1

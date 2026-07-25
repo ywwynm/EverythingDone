@@ -1197,8 +1197,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val sinElev = sin(Math.toRadians(VIEW_ELEVATION_DEG))
         val flatFres = WATER_F0 + (1.0 - WATER_F0) * (1.0 - sinElev).pow(5)
         val skyStrength = params.get("sky_reflection_strength")
-        val bodyStrength = params.get("body_light_strength")
-        val fres = scratchZero(cnt)
         val edge = scratchZero(cnt)
         // 镜面反射项（2026-07-18 恢复闪点出生）：强度固化 0.90（原
         // crest_glint_strength 默认，参数不恢复），数量总门 glint_capacity_gain。
@@ -1209,7 +1207,6 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
                 .coerceIn(0.0, 1.0).pow(0.58)
             val cosTheta = (sinElev / sqrt(1.0 + os * os)).coerceIn(0.0, 1.0)
             val fr = WATER_F0 + (1.0 - WATER_F0) * (1.0 - cosTheta).pow(5)
-            fres[j] = fr
             val fresDetail = ((fr - flatFres) * 4.0).coerceIn(0.0, 1.0)
             val edgeRaw = (glint * facet * 0.90 + fresDetail * skyStrength * 0.24)
                 .coerceIn(0.0, 1.0)
@@ -1217,21 +1214,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         }
         val edgeS = smoothSignal(edge, cnt, 3)
         for (j in 0 until cnt) if (edgeS[j] < 0.015) edgeS[j] = 0.0
-        val volume = scratchArray(cnt) {
-            (0.16 * (1.0 - fres[it]) * bodyStrength).coerceIn(0.0, 1.0)
-        }
 
+        // 体光带已随 D216 整项移除（无感 + HDR 资格门数学死路）。
         val hc = FableSolColor.mix(c1, c2, 0.3)
-        val bodyColor = FableSolColor.mixOklab(c1, hc, 0.46)
         val a01 = a255 / 255.0
-
-        if (bodyStrength > 1e-3) {
-            val dPx = 2.0 * density
-            val topArr = scratchArray(cnt) { ys[it] + 0.35 * density }
-            val thickness = scratchArray(cnt) { dPx * (0.34 + 0.66 * volume[it]) }
-            drawOneSidedBand(canvas, cnt, topArr, thickness, bodyColor,
-                (72 * a01 * bodyStrength).toInt(), true)
-        }
         // 闪点最后绘制，不能再被半透明介质衰减。
         var mx = 0.0; for (v in edgeS) if (v > mx) mx = v
         if (mx > 1e-3) {

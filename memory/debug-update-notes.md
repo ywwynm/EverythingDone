@@ -1,5 +1,129 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - 星芒亮度随 HDR 强度同步（D217，第十九版）
+
+星场 CPU 复算此前只用 3.6 标定档 peakBoost，星振幅与用户 HDR 强度
+（上限 9.6，D204）脱钩——也是 96→129dp 针长无差异的根因。修复：扫描/
+阈值/出生/主从保持标定档，仅出射振幅乘 max(1, excessScale×hdrGain)，
+与银丝 shader 端超白缩放一致。S=9.6 满增益最亮星核与银丝同顶 9.6，
+可见针芒 ≈ 132dp（129dp 上限生效）；SDR 与 S=3.6 逐位不变。Android
+assembleDebug + fablesol 测试包 267 全绿。
+
+发布号 202607250205（versionCode 43），APK 21044037 bytes，
+SHA-256 d6b7fd5cfce930cc1429ec665975479e8783cba19241632472bb38b520c383d5。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-25 - 针芒长度上限放宽到 129dp（第十八版）
+
+调参对话框"星芒"组"针芒长度"上限 96→129dp（默认 48dp 不变，双端
+Spec 同步），供真机继续探索长针芒观感。
+
+发布号 202607250152（versionCode 43），APK 21044037 bytes，
+SHA-256 a28b0ef793ea66e067ce9de136f0e8621d8bcd083725165f286c3f40ae900e46。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-25 - 移除体光带强度参数（D216，第十七版）
+
+body_light_strength 整项移除：实测最大强度仅 1.5% 像素有 >1/255 变化、
+HDR 资格门数学死路（volume≤0.192<0.24），职责由厚度透光承担。清理范围：
+参数注册、调参对话框水体透光组条目、GL 构建分支（buildBodyLight + 单色
+addContourBand 重载 + 逐列 hdrEligibility 数组）、旧 QPainter 路径体光块、
+13 语言字符串；Python 端同步（params/gl_optics/canvas + 测试）。
+Python pytest 361 全绿；Android assembleDebug + fablesol 测试包 267 全绿。
+默认画面无变化。
+
+发布号 202607250137（versionCode 43），APK 21044037 bytes，
+SHA-256 7ae50c2eafe91db9c66f408df4a6f16e6678e069e161f4ab282cbf8729a73ffc。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-25 - 调参对话框按特效分组（D215，第十六版）
+
+原"质感"大组拆成水体透光（含自外观移入的 body_light_strength）/ 银丝 /
+星芒 / 闪点四个独立特效组；"眩光"命名统一改"星芒"、组内标签去重复前缀
+（7 项 ×13 语言重译，fablesol_group_texture 字符串移除）。参数键与已存
+调参值不变。Android assembleDebug + fablesol 测试包全绿。
+
+发布号 202607241603（versionCode 43），APK 21045065 bytes，
+SHA-256 9efaeb640fb5dee377f257e9538d4f64e795d5a2af2c8f32496427c7dbc951ca。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 星芒性能优化（D214，第十五版）
+
+星系统耗时回归治理：太阳柱窗口裁剪（apex 门窗外精确零，扫描列近层省
+~45%/远层 ~70%）、VBO 定容 + SubData（逐帧 glBufferData 是偶发卡顿源）、
+逐星图案零分配推导、轨迹整理去 lambda/装箱、模糊 tap 按 σ 收敛（±4/±12）、
+眩光 program 预编译移到表面初始化（消除首星帧编译大卡顿）。Python 端另做
+九层合批（小数组 numpy 固定开销主导，合批 ÷9），实测星系统每帧
+1.52→0.86ms、行为逐位不变；pytest 362 全绿。Android assembleDebug +
+fablesol 测试包全绿。视觉无变化。
+
+发布号 202607241357（versionCode 43），APK 21042657 bytes，
+SHA-256 6cc6561db8f7c92aa23b57315c81fbade61918a3d3db6362d2eff313aa0ff604。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 星芒主刃偏水平 + 逐星差异（D213，第十四版）
+
+针表整体旋转 90°（主刃偏水平起始）；针芒重构为逐星解析精灵：朝向偏移
+（±26°）/转速与相位/参差/针长由出生种子决定、终生稳定、星星互不相同
+（不同视场方向穿过泪膜/晶状体不同区域的物理依据），全分辨率解析求值。
+新增 glare_halo.frag（光轮+宽晕合成）、glare_needle.frag 重写为精灵；
+FableSolStarField 输出带 seed（FLOATS_PER_STAR=7）。双端同步；Android
+assembleDebug + fablesol 测试包全绿。
+
+发布号 202607241325（versionCode 43），APK 21042657 bytes，
+SHA-256 fcc5d9504eb8f2f4e6ade6eeeceb3a4d5b484a3fc9b5b9bb8f0d3d8df16e981b。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 星芒长度-强度耦合 + 宽晕去格点（D212，第十三版）
+
+参差立体化：芒长因子同时作振幅权重（长芒亮而长、短芒暗而短——可见长度
+∝ √振幅 同一支配律），参差范围 0~2.4→0~4，高档呈"修长主刃 + 弱芒"的电影
+感。宽晕"小方格/雪花"= 模糊 tap 栅格伪影（σ/2 间距超过源平滑尺度，二维
+梳齿格点被 ~18× 增益放大）：模糊核 7→13 权重（±12 tap）、宽晕间距 σ/4，
+覆盖仍 ±3σ。双端同步；Python pytest 眩光/审计包通过，Android
+assembleDebug + fablesol 测试包全绿。
+
+发布号 202607241304（versionCode 43），APK 21042575 bytes，
+SHA-256 4a3fd2ee0f8b8d5c51640aa7ca99367eb58ef3b96b23e548b8ee07705c67a25d。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 星芒梦幻化 + 探索档位放宽（D210/D211，第十二版）
+
+梦幻宽晕（σ≈7.4dp 二级模糊 + glare_halo 滑杆 0.27）、星芒慢旋（±16.6° 有界
+摆动 9.6/23.4s 双周期，全画面同向）与芒长呼吸（0.29Hz 值噪声）、星裙水色
+（向白 0.888→0.62）；针长/线数上限 96dp/16（黄金角表延展至 16 线，默认
+48/9）、远层衰减默认 1.29、新滑杆眩光芒长参差（幂指数，默认 1.6）；针芒
+gather 32→48 tap。眩光滑杆共 7 项；与 Python 模拟器同日定档一致（Python 端
+pytest 全绿）。Android assembleDebug + fablesol 测试包（50 类 0 失败）全绿。
+
+发布号 202607241241（versionCode 43），APK 21042575 bytes，
+SHA-256 b799f47df191a5ba976b038bb700a525d812cb894b6fa95a4595b3af0b78bda3。
+latest.json releaseNotes 已核对。
+
+
+## 2026-07-24 - 波顶人眼眩光星芒（D206~D209 移植，第十一版）
+
+从 Python 模拟器移植人眼眩光星芒：CPU 星光轨迹（FableSolStarField，银边辐
+亮度场逐式同构复算 + apex 门 + 层权重相对阈值 + 簇内四次方主从 + 前层遮挡
++ 瞬时同步包络/0.36s 失锚淡出）+ present 前 PSF pass（FableSolGlarePass，
+半分辨率星点注入/σ1.2dp 弥散/6 线×32tap 针芒 gather + 全分辨率显示 cap
+resolve，FP16 失败回退 RGBA8）。新增 glare_*.vert/frag 五个 shader（共享
+七文件未动）；调参 Dialog"质感"组新增五项（强度 0.9 / 触发 2.8×白 / 针长
+24dp / 线数 6 / 远层衰减 0.5，13 语言字符串）；SDR 与录音态均可见，
+strength=0 逐位回落。assembleDebug + fablesol 测试包（50 类）全绿。
+
+发布号 202607241136（versionCode 43），APK 21040551 bytes，
+SHA-256 6d88c7ba74216a93c5b23e88ce3532e2e5cff63016ea1b8976054e7730933e6a。
+latest.json releaseNotes 已核对。
+
+
 ## 2026-07-24 - 出厂默认调整：HDR 强度=上限 9.6、银丝粗细 0.28dp（D204 修订三，第十版）
 
 用户裁定两项出厂默认：HDR 强度默认 3.6→9.6（=上限；DEFAULT_STRENGTH=

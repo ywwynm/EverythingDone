@@ -40,23 +40,39 @@ object FableSolTuning {
     class Group(@StringRes val titleRes: Int, val specs: List<Spec>)
 
     val GROUPS: List<Group> = listOf(
-        Group(R.string.fablesol_group_texture, listOf(
+        // 2026-07-25 用户裁决：每种特效独立成组（原"质感"大组拆分），
+        // "眩光"命名统一改"星芒"。
+        Group(R.string.fablesol_group_thickness_glow, listOf(
             Spec("uplift_thick_glow", R.string.fablesol_param_uplift_thick_glow, "", 0.0, 1.5, 0.02),
-            Spec("uplift_glow_boost", R.string.fablesol_param_uplift_glow_boost, "×", 1.0, 1.6, 0.01),
+            Spec("uplift_glow_boost", R.string.fablesol_param_uplift_glow_boost, "×", 1.0, 1.6, 0.01)
+        )),
+        Group(R.string.fablesol_group_silver_thread, listOf(
             Spec("uplift_crest_rim", R.string.fablesol_param_uplift_crest_rim, "", 0.0, 1.6, 0.02),
             // 2026-07-24 下限 0.3→0.16（shader 侧有 0.5px 采样地板，低密度屏自动钳住）；
             // 步长同步 0.05→0.04；同日默认 0.6→0.28（第 3 格），上限 2.0 仍精确在栅格上。
             Spec("uplift_rim_width", R.string.fablesol_param_uplift_rim_width, "dp", 0.16, 2.0, 0.04),
             Spec("uplift_rim_halo", R.string.fablesol_param_uplift_rim_halo, "", 0.0, 0.5, 0.01),
             Spec("uplift_rim_peak", R.string.fablesol_param_uplift_rim_peak, "×", 1.0, 3.6, 0.05),
-            Spec("uplift_rim_slide", R.string.fablesol_param_uplift_rim_slide, "", 0.0, 1.0, 0.05),
+            Spec("uplift_rim_slide", R.string.fablesol_param_uplift_rim_slide, "", 0.0, 1.0, 0.05)
+        )),
+        // 星芒（D206~D213）：范围/步长与 Python 模拟器 GUI 同源。
+        Group(R.string.fablesol_group_starburst, listOf(
+            Spec("glare_strength", R.string.fablesol_param_glare_strength, "", 0.0, 2.0, 0.05),
+            Spec("glare_halo", R.string.fablesol_param_glare_halo, "", 0.0, 0.8, 0.01),
+            Spec("glare_threshold", R.string.fablesol_param_glare_threshold, "×", 1.6, 4.0, 0.1),
+            // D211：上限放宽（96dp/16 线）供继续探索；参差 = 芒长因子幂指数。
+            Spec("glare_needle_length", R.string.fablesol_param_glare_needle_length, "dp", 6.0, 129.0, 1.0),
+            Spec("glare_needle_count", R.string.fablesol_param_glare_needle_count, "", 3.0, 16.0, 1.0),
+            Spec("glare_needle_variance", R.string.fablesol_param_glare_needle_variance, "", 0.0, 4.0, 0.05),
+            Spec("glare_depth_falloff", R.string.fablesol_param_glare_depth_falloff, "", 0.0, 2.0, 0.05)
+        )),
+        Group(R.string.fablesol_group_glints, listOf(
             Spec("glint_capacity_gain", R.string.fablesol_param_glint_capacity_gain, "×", 0.0, 1.0, 0.05)
         )),
         Group(R.string.fablesol_group_appearance, listOf(
             Spec("lighten_far", R.string.fablesol_param_lighten_far, "", 0.0, 0.864, 0.01),
             Spec("environment_tint", R.string.fablesol_param_environment_tint, "", 0.0, 0.5, 0.02),
             Spec("sky_reflection_strength", R.string.fablesol_param_sky_reflection_strength, "", 0.0, 1.2, 0.02),
-            Spec("body_light_strength", R.string.fablesol_param_body_light_strength, "", 0.0, 1.2, 0.02),
             Spec("light_azimuth_deg", R.string.fablesol_param_light_azimuth_deg, "°", -60.0, 60.0, 1.0),
             Spec("back_shade_gain", R.string.fablesol_param_back_shade_gain, "", 0.0, 1.2, 0.02),
             Spec("color_breath", R.string.fablesol_param_color_breath, "", 0.0, 1.5, 0.02),

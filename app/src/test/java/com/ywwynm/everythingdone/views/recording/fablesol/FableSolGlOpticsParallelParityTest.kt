@@ -55,10 +55,6 @@ class FableSolGlOpticsParallelParityTest {
                 serial.interfaceShoulderCount, parallel.interfaceShoulderCount
             )
             assertArrayEquals(
-                "场景 $scenario 的 bodyLight 顶点数不同",
-                serial.bodyLightCount, parallel.bodyLightCount
-            )
-            assertArrayEquals(
                 "场景 $scenario 的 glint 顶点数不同",
                 serial.glintCount, parallel.glintCount
             )
@@ -89,11 +85,10 @@ class FableSolGlOpticsParallelParityTest {
         }
         // 默认色板下闪点与体光整段不进入，暗带是唯一几何来源。
         assertTrue(serial.glintCount.all { it == 0 })
-        assertTrue(serial.bodyLightCount.all { it == 0 })
         assertTrue(serial.backShadeCount.any { it > 0 })
     }
 
-    private enum class Scenario { DEFAULT_PALETTE, GLINTS_ON, GLINTS_AND_BODY_LIGHT }
+    private enum class Scenario { DEFAULT_PALETTE, GLINTS_ON }
 
     private class Snapshot(
         val floatCount: Int,
@@ -102,7 +97,6 @@ class FableSolGlOpticsParallelParityTest {
         val layerVertexCount: IntArray,
         val backShadeCount: IntArray,
         val interfaceShoulderCount: IntArray,
-        val bodyLightCount: IntArray,
         val glintCount: IntArray,
         val glintTrackCount: IntArray,
         val glitterBirths: Int
@@ -117,9 +111,6 @@ class FableSolGlOpticsParallelParityTest {
         val params = FableSolParams()
         if (scenario != Scenario.DEFAULT_PALETTE) {
             params.setForTest("glint_capacity_gain", 1.0)
-        }
-        if (scenario == Scenario.GLINTS_AND_BODY_LIGHT) {
-            params.setForTest("body_light_strength", 0.6)
         }
         val sim = FableSolSimulation(params)
         val optics = FableSolGlOptics(DENSITY)
@@ -158,7 +149,6 @@ class FableSolGlOpticsParallelParityTest {
             layerVertexCount = optics.layerVertexCount.copyOf(),
             backShadeCount = optics.backShadeVertexCountForTest.copyOf(),
             interfaceShoulderCount = optics.interfaceShoulderVertexCountForTest.copyOf(),
-            bodyLightCount = optics.bodyLightVertexCountForTest.copyOf(),
             glintCount = optics.glintVertexCountForTest.copyOf(),
             glintTrackCount = IntArray(FableSolSpec.N_LAYERS) {
                 optics.glintTrackCountForTest(it)

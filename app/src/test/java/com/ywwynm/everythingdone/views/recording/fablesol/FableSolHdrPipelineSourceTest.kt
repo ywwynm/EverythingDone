@@ -72,7 +72,7 @@ class FableSolHdrPipelineSourceTest {
     }
 
     @Test
-    fun opticalBuilderKeepsVolumeBehindSurfaceAndGlintsLast() {
+    fun opticalBuilderKeepsBackShadeBehindShoulderAndGlintsLast() {
         val source = source("FableSolGlOptics.kt")
         // C2 之后逐层构面搬进 LayerScratch.buildLayer（层循环本身只剩压实），
         // 守的仍是同一条契约：单层内部的发射顺序，以及已移除的建带函数不得复活。
@@ -82,20 +82,20 @@ class FableSolHdrPipelineSourceTest {
         val loop = source.substring(loopStart, loopEnd)
 
         // D160：表面亮带（buildSurfaceBand）已整项移除；2026-07-18 薄峰透光/
-        // 波冠轻纱/流光随参数删除；波背自阴影经 D169 恢复，序列为
-        // 界面肩→波背暗带→体光→闪点（暗带不得压脏其后的光学分瓣）。
+        // 波冠轻纱/流光随参数删除；体光带随 D216（2026-07-25）整项移除；
+        // 波背自阴影经 D169 恢复，序列为界面肩→波背暗带→闪点
+        // （暗带不得压脏其后的光学分瓣）。
         val shoulder = loop.indexOf("buildInterfaceShoulder(")
         val backShade = loop.indexOf("buildBackShade(")
-        val body = loop.indexOf("buildBodyLight(")
         val glint = loop.indexOf("buildGlints(")
-        assertTrue(listOf(shoulder, backShade, body, glint).all { it >= 0 })
+        assertTrue(listOf(shoulder, backShade, glint).all { it >= 0 })
         assertTrue(loop.indexOf("buildSurfaceBand(") < 0)
         assertTrue(loop.indexOf("buildThinGlow(") < 0)
         assertTrue(loop.indexOf("buildCrestVeil(") < 0)
         assertTrue(loop.indexOf("buildStreaks(") < 0)
+        assertTrue(loop.indexOf("buildBodyLight(") < 0)
         assertTrue(shoulder < backShade)
-        assertTrue(backShade < body)
-        assertTrue(body < glint)
+        assertTrue(backShade < glint)
     }
 
     private fun source(name: String): String {

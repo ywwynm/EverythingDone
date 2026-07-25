@@ -17,9 +17,10 @@ class FableSolParams {
         // D135：lighten_far 恢复为静态 OKLab 混白比例，最远层硬封顶 86.4%。
         v("lighten_far", 0.864); v("color_breath", 1.0)
         v("environment_tint", 0.16); v("sky_reflection_strength", 0.42)
-        // Step B（2026-07-13）：体光是九层平铺的中间调抬升、对比负项，且真机开关无感，改默认关闭；
-        // 显式阴影从当前层当前位置派生，subsurface 身份色只供日出 SSS。三项表层光学仍为 Debug 202607130749。
-        v("body_light_strength", 0.0); v("pearl_shift_deg", 0.0)
+        // 体光（body_light_strength）已随 D216（2026-07-25）整项移除：Step B
+        // 时代即判"真机开关无感"，实测最大强度仅 1.5% 像素有 >1/255 变化、
+        // HDR 资格门数学死路；透光职责由厚度透光（uplift_thick_glow）承担。
+        v("pearl_shift_deg", 0.0)
         v("crest_on", 1.0); v("light_azimuth_deg", 27.0)
         v("crest_width_dp", 1.25)
         // 波背自阴影（D169，2026-07-18 应用户要求从 D164 移除名单中恢复；
@@ -44,6 +45,16 @@ class FableSolParams {
         // 闪点数量总门（2026-07-18 转正式可调项）：默认 0 关闭，调参 Dialog
         // 拉起即出闪点；出生场镜面强度固化 0.90（原 crest_glint_strength 默认）。
         v("glint_capacity_gain", 0.0)
+        // 人眼眩光（D206~D209，与 Python 定档一致）：星振幅是银丝辐亮度的
+        // 瞬时同步函数，触发阈值随层权重放宽、远层衰减指数额外压暗；
+        // strength=0 = 关闭 = 输出逐位与既有一致。
+        v("glare_strength", 0.9); v("glare_halo", 0.27)
+        v("glare_threshold", 2.8)
+        // D211（2026-07-24 用户真机定档）：针长/线数默认 48dp/9、远层衰减
+        // 1.29；参差 = 静态芒长因子的幂指数（0=齐长、越大长短差距越夸张）。
+        v("glare_needle_length", 48.0); v("glare_needle_count", 9.0)
+        v("glare_needle_variance", 1.6)
+        v("glare_depth_falloff", 1.29)
         v("hue_temp_deg", 0.0)
         // 连续 2.5D 水面（2026-07-12 FableSol 蓝本定稿参数）。Android 默认启用，
         // 旧九层填充路径保留为内部回退，便于真机对照与低风险回滚。

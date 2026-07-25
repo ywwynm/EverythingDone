@@ -91,7 +91,6 @@ class FableSolGlOpticsTest {
             assertTrue(optics.layerFirstVertex[layer] + optics.layerVertexCount[layer] <=
                 floatCount / FableSolGlOptics.COMPONENTS_PER_VERTEX)
         }
-        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         for (offset in 0 until floatCount step FableSolGlOptics.COMPONENTS_PER_VERTEX) {
             for (component in 0 until FableSolGlOptics.COMPONENTS_PER_VERTEX) {
                 assertTrue(optics.vertices[offset + component].isFinite())
@@ -167,7 +166,6 @@ class FableSolGlOpticsTest {
         // 默认参数下唯一的几何光学是波背自阴影（D169 恢复，默认 0.80）；
         // 水体透光默认 0、闪点默认 0、界面肩未接线。
         assertTrue(floatCount > 0)
-        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
         assertTrue((0..8).all { optics.glintVertexCountForTest[it] == 0 })
         assertTrue((0..6).sumOf { optics.backShadeVertexCountForTest[it] } > 0)
         assertTrue((7..8).all { optics.backShadeVertexCountForTest[it] == 0 })
@@ -278,21 +276,6 @@ class FableSolGlOpticsTest {
         assertTrue(shadeVertices > 0)
         assertTrue(maximumRed - minimumRed > 0.20f)
         assertTrue(maximumBlue - minimumBlue > 0.20f)
-    }
-
-    @Test
-    fun bodyLightIsOffByDefault() {
-        val params = FableSolParams()
-        val sim = FableSolSimulation(params)
-        val optics = FableSolGlOptics(DENSITY)
-        val water = syntheticWater(COLUMNS)
-        val start = Array(FableSolSpec.N_LAYERS) { intArrayOf(60, 112, 182) }
-        val end = Array(FableSolSpec.N_LAYERS) { intArrayOf(94, 154, 211) }
-
-        sim.update(1.0 / 60.0)
-        optics.build(sim, params, COLUMNS, water, start, end, HORIZON)
-
-        assertTrue((0..8).all { optics.bodyLightVertexCountForTest[it] == 0 })
     }
 
     @Test
