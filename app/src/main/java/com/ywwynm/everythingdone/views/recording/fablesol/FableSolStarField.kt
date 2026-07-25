@@ -16,7 +16,8 @@ import kotlin.math.tan
  *
  * 星光源不取渲染像素：CPU 按与 water.frag 银边严格同构的公式复算九层波顶
  * 物理辐亮度场（不含显示端 uHdrGain/headroom——SDR 与录音态共用的"预显示"
- * 光源真值），apex 门内的越阈局部峰成为锚点；轨迹带攻击/位置低通，星振幅是
+ * 光源真值；强度与峰值恒取银丝标定档，D222：星芒不随银丝滑杆一起消失），
+ * apex 门内的越阈局部峰成为锚点；轨迹带攻击/位置低通，星振幅是
  * 银丝辐亮度的**瞬时同步函数**（涨落节奏完全来自银丝自身，无独立余辉包络），
  * 仅锚点不连续消失（遮挡/离场）走固定短淡出。簇内伴星按与最亮者的比值四次方
  * 压暗；被更近层水面轮廓盖住的星连同针芒整体消失（PSF 发生在人眼）。
@@ -53,6 +54,13 @@ internal class FableSolStarField(private val density: Double) {
         private const val OCCLUSION_SOFT_DP = 4.0
         private const val DOMINANCE_RADIUS_DP = 32.0
         private const val DOMINANCE_EXPONENT = 4.0
+        // D222 星芒触发场的银丝标定档（与 Python STAR_FIELD_RIM_* 同源）：
+        // 波顶辐亮度恒按"强度 1.0 / 峰值亮度 3.6"复算，不跟随"银丝"组的
+        // uplift_crest_rim / uplift_rim_peak 两个外观滑杆。星芒与银丝在调参
+        // 对话框里是两个独立特效组（D215），银丝强度归零只该让银丝自身隐去，
+        // 星芒的存在与否由"星芒强度"独立掌管。默认档下逐位不变。
+        private const val FIELD_RIM_STRENGTH = 1.0
+        private const val FIELD_RIM_PEAK = 3.6
         private const val MAX_ANCHORS = LAYER_CAPACITY + 1
         private const val MAX_TRACKING_DT_SECONDS = 1.0 / 15.0
 
@@ -147,11 +155,12 @@ internal class FableSolStarField(private val density: Double) {
         val dt = (sim.t - lastTrackTime).coerceIn(0.0, MAX_TRACKING_DT_SECONDS)
         lastTrackTime = sim.t
 
-        val rimStrength = params.get("uplift_crest_rim") * crestRimActivity
-        // 辐亮度场恒用 3.6 标定档（触发频率/阈值/主从的既定标定不随用户
-        // HDR 强度漂移）；用户强度对亮度的抬升由 hdrAmplitudeScale 在
+        // 辐亮度场恒用银丝标定档（D222：强度 1.0 / 峰值 3.6）——触发频率/
+        // 阈值/出生/主从的既定标定不随任何用户滑杆漂移，银丝滑杆只管银丝
+        // 自身可见度；用户 HDR 强度对亮度的抬升由 hdrAmplitudeScale 在
         // 出射振幅上补（D217），与银丝 shader 端 boost×excessScale 同步。
-        val peakBoost = max(params.get("uplift_rim_peak") - 1.0, 0.0)
+        val rimStrength = FIELD_RIM_STRENGTH * crestRimActivity
+        val peakBoost = FIELD_RIM_PEAK - 1.0
         val threshold = params.get("glare_threshold")
         val depthFalloff = max(params.get("glare_depth_falloff"), 0.0)
         val azimuth = Math.toRadians(params.get("light_azimuth_deg"))
@@ -165,7 +174,8 @@ internal class FableSolStarField(private val density: Double) {
         for (layer in 0 until FableSolSpec.N_LAYERS) {
             val layerTracks = tracks[layer]
             val weight = FableSolMaterialPolicy.CREST_RIM_WEIGHTS[layer].toDouble()
-            val fieldReady = weight > 0.005 && rimStrength > 1e-4 && peakBoost > 1e-4
+            // 标定档是常量，场恒可用；只剩权重塌陷层（当前九层都在门内）除外。
+            val fieldReady = weight > 0.005
             anchorCount = 0
             if (fieldReady) {
                 scanLayer(

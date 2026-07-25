@@ -3669,3 +3669,22 @@ REPORT-final-2.md。
 checkbox 为空操作）。全量测试保持全绿；修正版已装 9018f404，用户目验通过。
 随后重发阿里云并按用户指示在 Android 与 Python 两仓分别提交
 （Co-Authored-By 仅 Claude Fable 5）。
+
+## 2026-07-25（续）星芒与银丝滑杆解耦（D222）
+
+- 用户反馈：银丝强度（`uplift_crest_rim`）拉到 0 时星芒也全灭。根因是 CPU 星光源
+  的辐亮度复算直接读了两个银丝外观滑杆，任一到下限就把场压成恒等于 1、`excess`
+  全零。修复为恒用银丝标定档（强度 1.0 / 峰值 3.6），是 D217"标定不随用户滑杆
+  漂移"原则的延伸；`uplift_rim_slide` 继续耦合（属"与银丝同步"的节奏来源，且不会
+  把场压成零）。
+- 先 Python 后 Android，两端同构：`gl_optics.STAR_FIELD_RIM_STRENGTH/PEAK` 与
+  `FableSolStarField.FIELD_RIM_STRENGTH/PEAK`，`field_ready`/`fieldReady` 只剩
+  层权重门。
+- 验证：Python 600 帧四档对比，默认档与"银丝强度 0"/"峰值 1.0"/"两项到底"星表逐位
+  一致（588/600 有星帧、1491 星次、峰值振幅 2.116、层分布相同），"星芒强度 0"仍零
+  输出；把标定档常量按到 0 可复现改前的全灭。Python test_gl_backend 35 项 +
+  test_glare_pass 17 项全绿；Android 全量 fablesol 单测 272 项 0 失败，新增
+  `FableSolStarFieldTest`（合成波峰水面单帧扫描）钉住解耦与"星芒强度是唯一静音
+  开关"。
+- 默认档代码路径与常量完全等同改前，性能逐位不变；仅用户主动把银丝强度调到 0 时
+  星芒扫描照常运行。顺带更正 Python 两个诊断脚本里已失效的 `norim`/"关星残余"文案。

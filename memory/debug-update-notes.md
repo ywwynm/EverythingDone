@@ -1,5 +1,21 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - 银丝强度归零后星芒不再一起消失（第二十八版）
+
+星芒的 CPU 星光源此前直接读两个银丝外观滑杆（`uplift_crest_rim` × 活跃度、
+`uplift_rim_peak` − 1），任一到下限就把波顶辐亮度场压成恒等于 1、excess 全零，
+星芒整体失去光源。改为恒用银丝标定档（强度 1.0 / 峰值 3.6），银丝滑杆不再进入
+星芒路径；`glare_strength` 仍是唯一静音开关，`uplift_rim_slide` 继续耦合（节奏
+同源且不会把场压成零）。D222，Python 与 Android 同构。默认档逐位不变。
+Python 600 帧四档星表逐位一致 + 363 测试全绿；Android 272 项 fablesol 单测全绿，
+新增 FableSolStarFieldTest。
+
+发布号 202607251054（versionCode 43），APK 21098013 bytes，
+SHA-256 095a1c091554506ef43e5a482fd6874973bd914bcbb7a44841a055ae50c818d4。
+远端 latest.json 的 debugUpdateCode / sha256 / sizeBytes / releaseNotes（341 字符）
+已逐项核对一致。
+
+
 ## 2026-07-25 - 性能面板开关 ripple 修正并重发（第二十七版）
 
 用户指出开关行右侧 checkbox 的按压水波纹未跟随当前渐变（仍为系统默认半透明黑），
