@@ -28,6 +28,9 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -42,6 +45,7 @@ import android.graphics.drawable.Drawable
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.github.chrisbanes.photoview.OnPhotoTapListener
 import com.github.chrisbanes.photoview.PhotoView
@@ -117,6 +121,29 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     private val mMotionMatrix = Matrix()
     private var mMotionRevealed = false
 
+    // —— 普通视频页的播放（ADR-0017 / decisions.md D11–D12）——
+
+    /** 与 [mTypePathNames] 等长的 Thing Card Video Frame（毫秒），-1 表示未设置。 */
+    private var mVideoFrameMs: MutableList<Long> = ArrayList()
+
+    /** 当前播放的是普通视频（true）还是 Motion Photo 的内嵌视频（false）。 */
+    private var mPlayingPlainVideo: Boolean = false
+
+    /** 视频页长按的播放头：第一次从头，之后从上次松手处继续；翻页 / 播完 / 退出重置为 0。 */
+    private var mVideoResumeMs: Int = 0
+
+    /** 本次播放是否已播到结尾——播完就把播放头归零，否则下次长按会瞬间又结束。 */
+    private var mVideoPlaybackCompleted: Boolean = false
+
+    /** 自动播放那 3 秒的定时停止；翻页 / 长按接管 / 停止时必须取消。 */
+    private var mAutoStopRunnable: Runnable? = null
+
+    /** 翻页防抖与 TextureView 就绪重试用的待执行起播任务。 */
+    private var mAutoplayRunnable: Runnable? = null
+
+    /** 播放期间持有的瞬时音频焦点（可 duck），Motion Photo 与视频共用。 */
+    private var mAudioFocusRequest: AudioFocusRequest? = null
+
     override fun getLayoutResource(): Int = R.layout.activity_image_viewer
 
     override fun initMembers() {
@@ -141,6 +168,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mHasGainmap = BooleanArray(size)
         mForcedSdr = BooleanArray(size)
         mMotionInfos = arrayOfNulls(size)
+
+        val frames = intent.getLongArrayExtra(Def.Communication.KEY_VIDEO_FRAME_MS_LIST)
+        mVideoFrameMs = ArrayList(size)
+        for (i in 0 until size) {
+            mVideoFrameMs.add(frames?.getOrNull(i) ?: -1L)
+        }
     }
 
     override fun findViews() {
@@ -188,10 +221,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 iv.contentDescription = getString(R.string.cd_video_attachment)
                 videoSignal.visibility = View.VISIBLE
                 videoSignal.setOnClickListener(videoListener)
-                iv.isZoomable = false
+                // 视频页此前禁用缩放（那时它只是一张不会动的封面帧）。现在它会自动播放、
+                // 长按还能接着看正片，而播放层本就跟随 PhotoView 的 displayRect，
+                // 所以放开缩放，与 Motion Photo 一致。见 ADR-0017。
+                iv.isZoomable = true
             }
 
-            loadImage(index, pathName, iv, pb, size)
+            loadImage(index, pathName, iv, pb, size, videoFrameMsOf(index))
 
             if (type == AttachmentHelper.IMAGE && AttachmentHelper.isMotionPhotoCandidate(pathName)) {
                 detectMotionPhotoAsync(index)
@@ -207,7 +243,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
         mMotionGesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onLongPress(e: MotionEvent) {
-                startMotionPlaybackForCurrentPage()
+                val page = mVpImage?.currentItem ?: return
+                if (isVideoPage(page)) {
+                    startVideoPlaybackForCurrentPage()
+                } else {
+                    startMotionPlaybackForCurrentPage()
+                }
             }
         })
 
@@ -273,7 +314,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     private fun loadImage(
         position: Int, pathName: String, iv: PhotoView,
-        pb: ProgressBar, size: IntArray
+        pb: ProgressBar, size: IntArray, videoFrameMs: Long
     ) {
         // Animated Image (GIF / animated WebP) carries no HDR gain map, so the
         // asBitmap HDR path has nothing to preserve here; load it as a Drawable so
@@ -286,11 +327,17 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         // an ARGB_8888 bitmap that still carries the UltraHDR gain map, with no
         // software-Canvas transform step that would flatten it to SDR. PhotoView
         // does its own matrix fit/zoom, so no Glide fitting transform is needed.
-        Glide.with(this)
+        var request = Glide.with(this)
             .asBitmap()
             .load(pathName)
             .dontTransform()
             .disallowHardwareConfig()
+        if (videoFrameMs > 0L) {
+            // 视频页的静帧用 Thing Card Video Frame，与详情网格看到的是同一帧；
+            // 自动播放也从这里起播、播完回到这里。见 ADR-0017。
+            request = request.apply(RequestOptions.frameOf(videoFrameMs * 1000L))
+        }
+        request
             .listener(object : RequestListener<Bitmap> {
                 override fun onLoadFailed(
                     e: GlideException?, model: Any?, target: Target<Bitmap>,
@@ -385,6 +432,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val pathName = typePathName.substring(1)
         val texture: TextureView = tab.findViewById(R.id.tv_motion_surface) ?: return
         val photoView: PhotoView = tab.findViewById(R.id.iv_image_attachment) ?: return
+        // 长按可以从"自动播放一遍"手里接管：不然那 1–3 秒里的长按会被静默吞掉。
+        if (mMotionPlayer != null) {
+            if (mMotionHoldToPlay) return
+            stopMotionPlayback()
+        }
         startMotionPlayback(page, pathName, info, texture, photoView, loop = true)
     }
 
@@ -401,10 +453,154 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         startMotionPlayback(page, pathName, info, texture, photoView, loop = false)
     }
 
+    // —— 普通视频页：自动播关键帧起 3 秒，长按接着看正片 ——
+
+    private fun isVideoPage(page: Int): Boolean =
+        mTypePathNames?.getOrNull(page)?.firstOrNull() == '1'
+
+    private fun videoFrameMsOf(page: Int): Long = mVideoFrameMs.getOrNull(page) ?: -1L
+
+    /**
+     * 翻页/进入时安排当前页的自动播放。**停稳后**才起播（[AUTOPLAY_SETTLE_MS]）：视频不静音，
+     * 快速左右连续翻页若立刻起播会产生一串声音碎片。见 decisions.md D12。
+     */
+    private fun scheduleAutoplayForCurrentPage() {
+        cancelScheduledAutoplay()
+        val page = mVpImage?.currentItem ?: return
+        if (!isVideoPage(page)) {
+            // Motion Photo 走既有路径：检测完成回调本身就是"已稳定"的时刻。
+            maybeAutoplayCurrentMotionPage()
+            return
+        }
+        postAutoplay(page, 0, AUTOPLAY_SETTLE_MS)
+    }
+
+    /**
+     * TextureView 的 SurfaceTexture 未必已就绪（首次进入尤其如此），故带重试；
+     * 每次只保留一个待执行任务，翻页时统一撤销。
+     */
+    private fun postAutoplay(page: Int, attempt: Int, delayMs: Long) {
+        if (attempt > AUTOPLAY_SURFACE_RETRY) return
+        val runnable = Runnable {
+            mAutoplayRunnable = null
+            if (isFinishing || isDestroyed) return@Runnable
+            if (mVpImage?.currentItem != page) return@Runnable
+            if (mMotionPlayer != null) return@Runnable
+            val tab = mTabs?.getOrNull(page) ?: return@Runnable
+            val texture: TextureView = tab.findViewById(R.id.tv_motion_surface) ?: return@Runnable
+            if (!texture.isAvailable) {
+                postAutoplay(page, attempt + 1, AUTOPLAY_SURFACE_RETRY_MS)
+                return@Runnable
+            }
+            val typePathName = mTypePathNames?.getOrNull(page) ?: return@Runnable
+            val photoView: PhotoView = tab.findViewById(R.id.iv_image_attachment) ?: return@Runnable
+            val frameMs = videoFrameMsOf(page)
+            startMotionPlayback(
+                page, typePathName.substring(1), null, texture, photoView,
+                loop = false,
+                startMs = if (frameMs > 0L) frameMs.toInt() else 0,
+                autoStopAfterMs = AUTOPLAY_DURATION_MS,
+                holdToPlay = false
+            )
+        }
+        mAutoplayRunnable = runnable
+        mVpImage?.postDelayed(runnable, delayMs)
+    }
+
+    private fun cancelScheduledAutoplay() {
+        mAutoplayRunnable?.let { mVpImage?.removeCallbacks(it) }
+        mAutoplayRunnable = null
+    }
+
+    /**
+     * 长按视频页：第一次从视频**开头**播（不受自动播放那 3 秒窗口限制），松手回静帧并
+     * 记住播放头，再长按从那里继续。见 decisions.md D12。
+     */
+    private fun startVideoPlaybackForCurrentPage() {
+        val page = mVpImage?.currentItem ?: return
+        if (!isVideoPage(page)) return
+        val tab = mTabs?.getOrNull(page) ?: return
+        val typePathName = mTypePathNames?.getOrNull(page) ?: return
+        val texture: TextureView = tab.findViewById(R.id.tv_motion_surface) ?: return
+        if (!texture.isAvailable) return
+        val photoView: PhotoView = tab.findViewById(R.id.iv_image_attachment) ?: return
+        if (mMotionPlayer != null) {
+            if (mMotionHoldToPlay) return
+            // 从自动播放那 3 秒手里接管。
+            stopMotionPlayback()
+        }
+        cancelScheduledAutoplay()
+        startMotionPlayback(
+            page, typePathName.substring(1), null, texture, photoView,
+            loop = false, startMs = mVideoResumeMs, autoStopAfterMs = 0L, holdToPlay = true
+        )
+    }
+
+    /**
+     * 播放期间隐藏中央播放按钮（它是操作入口，会盖在动起来的画面上）。
+     * 遍历全部页而不是只改当前页：停止播放常发生在翻页途中（此时 currentItem 已是新页），
+     * 只改当前页会把刚离开那页的按钮永久留在隐藏态。
+     */
+    private fun updateVideoSignalVisibility() {
+        val tabs = mTabs ?: return
+        for ((index, tab) in tabs.withIndex()) {
+            if (tab == null || !isVideoPage(index)) continue
+            val signal: ImageView = tab.findViewById(R.id.iv_video_signal) ?: continue
+            val playingHere = mMotionPlayer != null && mMotionPlayingPage == index
+            signal.visibility = if (playingHere) View.GONE else View.VISIBLE
+        }
+    }
+
+    /**
+     * 播放不静音（与 Motion Photo 现状一致），因此必须请求瞬时音频焦点，否则会直接盖在
+     * 用户正在放的音乐上。Motion Photo 与视频共用这一条路径。见 decisions.md D12。
+     */
+    private fun requestPlaybackAudioFocus() {
+        if (mAudioFocusRequest != null) return
+        val am = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
+        val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                    .build()
+            )
+            .setOnAudioFocusChangeListener { }
+            .build()
+        try {
+            am.requestAudioFocus(request)
+            mAudioFocusRequest = request
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun abandonPlaybackAudioFocus() {
+        val request = mAudioFocusRequest ?: return
+        mAudioFocusRequest = null
+        val am = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
+        try { am.abandonAudioFocusRequest(request) } catch (_: Exception) {}
+    }
+
+    private fun cancelAutoStop() {
+        mAutoStopRunnable?.let { mVpImage?.removeCallbacks(it) }
+        mAutoStopRunnable = null
+    }
+
+    /**
+     * @param info 为 null 表示这是一个普通视频文件（整文件就是数据源）；非 null 时用
+     *             Motion Photo 的内嵌区间。
+     * @param startMs 起播位置，0 表示从头。
+     * @param autoStopAfterMs 大于 0 时在起播后该毫秒数停止（自动播放那 3 秒用它；
+     *                        MediaPlayer 没有"播到某时刻停"的原生能力）。
+     * @param holdToPlay true 表示这是"按住播放"，抬手即停。
+     */
     private fun startMotionPlayback(
         page: Int, pathName: String,
-        info: MotionPhotoDetector.MotionPhotoInfo,
-        texture: TextureView, photoView: PhotoView, loop: Boolean
+        info: MotionPhotoDetector.MotionPhotoInfo?,
+        texture: TextureView, photoView: PhotoView, loop: Boolean,
+        startMs: Int = 0,
+        autoStopAfterMs: Long = 0L,
+        holdToPlay: Boolean = loop
     ) {
         if (mMotionPlayer != null) return
         if (!texture.isAvailable) return
@@ -433,7 +629,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         }
         val mp = MediaPlayer()
         try {
-            mp.setDataSource(pfd.fileDescriptor, info.videoOffset, info.videoLength)
+            if (info != null) {
+                mp.setDataSource(pfd.fileDescriptor, info.videoOffset, info.videoLength)
+            } else {
+                mp.setDataSource(pfd.fileDescriptor)
+            }
             mp.setSurface(surface)
             mp.isLooping = loop
             mp.setOnVideoSizeChangedListener { _, w, h ->
@@ -451,7 +651,20 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 }
                 // 在首帧之前就把基准变换套好(此刻 alpha 仍 0、不显示),避免揭示瞬间闪现未变换的拉伸帧。
                 setupMotionBaseTransform(texture)
+                if (startMs > 0) {
+                    try { player.seekTo(startMs) } catch (_: Exception) {}
+                }
                 player.start()
+                if (autoStopAfterMs > 0L) {
+                    // MediaPlayer 没有"播到某时刻停"的原生能力，用定时停实现那 3 秒。
+                    cancelAutoStop()
+                    val stop = Runnable {
+                        mAutoStopRunnable = null
+                        if (mMotionPlayer === player) stopMotionPlayback()
+                    }
+                    mAutoStopRunnable = stop
+                    mVpImage?.postDelayed(stop, autoStopAfterMs)
+                }
                 // 兜底:个别机型不发 VIDEO_RENDERING_START 时,延迟揭示避免卡在照片。
                 mVpImage?.postDelayed({ revealMotionSurface() }, 180L)
             }
@@ -464,7 +677,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             }
             if (!loop) {
                 // 自动播放一遍后回到静态。
-                mp.setOnCompletionListener { stopMotionPlayback() }
+                mp.setOnCompletionListener {
+                    mVideoPlaybackCompleted = true
+                    stopMotionPlayback()
+                }
             }
             mp.setOnErrorListener { _, _, _ -> stopMotionPlayback(); true }
             mp.prepareAsync()
@@ -473,7 +689,11 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             mMotionSurface = surface
             mMotionTexture = texture
             mMotionPlayingPage = page
-            mMotionHoldToPlay = loop
+            mMotionHoldToPlay = holdToPlay
+            mPlayingPlainVideo = info == null
+            mVideoPlaybackCompleted = false
+            requestPlaybackAudioFocus()
+            updateVideoSignalVisibility()
             // 起播触感(自动与长按都给,遵循系统触感设置)。
             mVpImage?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         } catch (e: Exception) {
@@ -530,13 +750,25 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun stopMotionPlayback() {
+        cancelAutoStop()
         val mp = mMotionPlayer
         if (mp != null) {
+            if (mPlayingPlainVideo && mMotionHoldToPlay) {
+                // 长按松手：记住播放头，下次长按接着往下看；播到结尾则归零。
+                mVideoResumeMs = if (mVideoPlaybackCompleted) {
+                    0
+                } else {
+                    try { mp.currentPosition } catch (_: Exception) { mVideoResumeMs }
+                }
+            }
             try { if (mp.isPlaying) mp.stop() } catch (_: Exception) {}
             try { mp.reset() } catch (_: Exception) {}
             try { mp.release() } catch (_: Exception) {}
         }
         mMotionPlayer = null
+        mPlayingPlainVideo = false
+        mVideoPlaybackCompleted = false
+        abandonPlaybackAudioFocus()
         try { mMotionPfd?.close() } catch (_: Exception) {}
         mMotionPfd = null
         mMotionRevealed = false
@@ -554,6 +786,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mMotionPhotoView = null
         mMotionPlayingPage = -1
         mMotionHoldToPlay = false
+        updateVideoSignalVisibility()
         updateLiveBadge()
     }
 
@@ -616,6 +849,10 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 override fun onConfirm() {
                     val currentIndex = mVpImage!!.currentItem
                     mTypePathNames!!.removeAt(currentIndex)
+                    // 与 mTypePathNames 逐位对齐，删除后必须同步移除，否则关键帧会错位。
+                    if (currentIndex in mVideoFrameMs.indices) {
+                        mVideoFrameMs.removeAt(currentIndex)
+                    }
                     mAdapter!!.removeTab(mVpImage, currentIndex)
                     updateAttachmentNumber()
                     mUpdated = true
@@ -648,12 +885,18 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mVpImage!!.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 stopMotionPlayback()
+                // 播放头只在本页内有意义，翻页即重置（见 decisions.md D12）。
+                mVideoResumeMs = 0
                 updateAttachmentNumber()
                 applyHdrStateForCurrentPage()
                 updateLiveBadge()
-                maybeAutoplayCurrentMotionPage()
+                updateVideoSignalVisibility()
+                scheduleAutoplayForCurrentPage()
             }
         })
+
+        // ViewPager 的初始页不会触发 onPageSelected，首页的自动播放要自己安排。
+        mVpImage!!.post { scheduleAutoplayForCurrentPage() }
     }
 
     private fun updateAttachmentNumber() {
@@ -767,7 +1010,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         val page = mVpImage?.currentItem ?: -1
         val isMotionPage = page in mMotionInfos.indices && mMotionInfos[page] != null
-        if (isMotionPage && mMotionPlayer == null) {
+        // 自动播放进行中也接受长按（由它接管），只有"按住播放"进行中不再重复触发。
+        if ((isMotionPage || isVideoPage(page)) && !mMotionHoldToPlay) {
             mMotionGesture?.onTouchEvent(ev)
         }
         // 仅“长按按住播放”在抬手/取消时停止；自动播放一遍时任何触摸都不打断(播完由 OnCompletion 收尾)。
@@ -781,10 +1025,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     override fun onPause() {
         super.onPause()
+        cancelScheduledAutoplay()
         stopMotionPlayback()
+        mVideoResumeMs = 0
     }
 
     override fun onDestroy() {
+        cancelScheduledAutoplay()
         stopMotionPlayback()
         mMotionDetectExecutor.shutdownNow()
         super.onDestroy()
@@ -792,5 +1039,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     companion object {
         const val TAG: String = "ImageViewerActivity"
+
+        /** 翻页停稳多久后才起播——视频不静音，快速划过时不该发出声音碎片。 */
+        private const val AUTOPLAY_SETTLE_MS = 360L
+
+        /** 自动播放的时长，与 Thing Card Video Preview 的单次循环时长一致。 */
+        private const val AUTOPLAY_DURATION_MS = 3000L
+
+        /** TextureView 就绪的重试次数与间隔（首次进入时 SurfaceTexture 未必已可用）。 */
+        private const val AUTOPLAY_SURFACE_RETRY = 12
+        private const val AUTOPLAY_SURFACE_RETRY_MS = 120L
     }
 }

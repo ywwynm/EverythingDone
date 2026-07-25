@@ -29,3 +29,7 @@
 - **性能**：GIF 无硬件解码，逐帧 CPU 软解；沿用 M1（屏外暂停），主动加 M2（快滑暂停）。最终 fps 真机实测定。
 - **HDR**：派生 GIF 为 SDR；但卡片封面本就走烘焙 SDR 路径（ADR-0006/0007），无回归。
 - 详细决策见 [animated-video-cover/decisions.md](../features/animated-video-cover/decisions.md)，术语见根目录 [CONTEXT.md](../../CONTEXT.md) 的 **Thing Card Video Preview** / **Cover Autoplay**。
+
+## 更新（2026-07-25）
+
+[ADR-0017](0017-detail-animated-playback-modes.md) 使本文"**详情附件列表与全屏预览不受开关影响、照旧无条件播放**"这句作废：详情附件网格改由一个**独立的**四档 **Detail Autoplay** 设置管控（Cover Autoplay 本身不动，仍是布尔、仍只管 Thing Card 各面），且详情页首次接入 Thing Card Video Preview——复用本文定义的同一份 720px 派生产物与 `enqueueUniqueWork(KEEP)` 去重，不新增第二套分辨率。全屏预览仍不受设置管控，但普通视频在那里改为自动播放真视频（本文"详情/全屏的视频停在单帧"随之失效）。

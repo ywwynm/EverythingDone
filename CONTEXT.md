@@ -229,8 +229,16 @@ _Avoid_: GIF as the blanket term, video attachment
 _Avoid_: GIF support as a blanket term, autoplay as a file property
 
 **Cover Autoplay**:
-用户偏好:是否在 Thing Card 封面上真正对动态内容(Animated Image 与 Thing Card Video Preview)进行 Animated Playback。它统一管控所有应用内 Thing Card 面的封面动态播放;关闭时封面停在静态首帧 / Thing Card Video Frame。它不作用于详情附件列表与全屏预览这类主动查看附件的界面,那里照旧无条件播放。
-_Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看界面、把它与逐帧裁切混为一谈
+用户偏好:是否在 Thing Card 封面上真正对动态内容(Animated Image 与 Thing Card Video Preview)进行 Animated Playback。它统一管控所有应用内 Thing Card 面的封面动态播放;关闭时封面停在静态首帧 / Thing Card Video Frame。它不作用于详情附件网格(那里归 **Detail Autoplay**)与全屏预览。
+_Avoid_: 把它当成 GIF/视频的文件属性、把范围扩大到附件查看界面、把它与逐帧裁切混为一谈、与 Detail Autoplay 混为一谈
+
+**Detail Autoplay**:
+用户偏好:详情附件网格里的动态内容(Animated Image、Motion Photo、Thing Card Video Preview)以何种方式自动 Animated Playback。它有四档——关闭自动播放 / 逐一播放 / 同时播放一次 / 同时循环播放,默认同时循环播放;全部档位只对当前在滚动视口内的附件生效。它与 **Cover Autoplay** 互相独立,不作用于 Thing Card 面与全屏预览。
+_Avoid_: 把它当成 Cover Autoplay 的子项或总开关、当成布尔开关、把范围扩大到 Thing Card 面或全屏预览
+
+**Detail Static Representative Frame**:
+详情附件网格里一个动态附件"不播放时"应当显示的那一帧:Animated Image 是首帧,视频是 Thing Card Video Frame,Motion Photo 是其高画质静态主图。播放一次结束、滚出视口、以及关闭自动播放档下,显示的都是它。
+_Avoid_: 与"派生 GIF 的第 0 帧"划等号(对 Motion Photo 不成立)、让它停在播放结束时的尾帧
 
 **Motion Photo**:
 一个静态图片附件，其文件本身同时携带一段内嵌的短视频动态成分（对应 Android 阵营各厂商的“动态照片/实况照片”）。它默认在所有界面显示为静态图，只有支持的界面才呈现其动态成分；它是图片附件被检测出的一种本性，而非独立于 IMAGE/VIDEO 的附件类型，与 **HDR Media**、**Animated Image** 同属“同一个文件、额外能力按界面分级呈现”。
@@ -383,7 +391,12 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card Video Preview** receives **Animated Playback** only on in-app Thing Card surfaces that support it and only when cover autoplay is enabled; otherwise the video shows its static **Thing Card Video Frame**, mirroring how an **Animated Image** falls back to its first frame.
 - A **Thing Card Video Preview** is a derived presentation artifact; it does not make the video an **Animated Image** and does not change the underlying video file or its playback.
 - **Cover Autoplay** is the user preference that gates **Animated Playback** of cover dynamic content (**Animated Image** and **Thing Card Video Preview**) across all in-app **Thing Card** surfaces uniformly.
-- **Cover Autoplay** does not affect the detail attachment list or the full-screen viewer, where animated attachments keep playing unconditionally because the user opened them to view.
+- **Cover Autoplay** does not affect the detail attachment grid, which is gated by **Detail Autoplay**, nor the full-screen viewer, where animated attachments keep playing unconditionally because the user opened them to view.
+- **Detail Autoplay** is the user preference that selects how dynamic attachments (**Animated Image**, **Motion Photo**, **Thing Card Video Preview**) automatically receive **Animated Playback** in the detail attachment grid, among four modes: off, one at a time, all once, all looping.
+- **Detail Autoplay** applies only to attachments currently inside the scroll viewport, because the detail attachment grid lays out every item at once and therefore defeats off-screen pausing.
+- A dynamic attachment that is not playing in the detail attachment grid shows its **Detail Static Representative Frame**.
+- A video attachment receives **Animated Playback** in the detail attachment grid through the same **Thing Card Video Preview** artifact used by **Thing Card** surfaces; no separate higher-resolution artifact is derived for the detail surface.
+- The full-screen viewer plays a video attachment as the real video rather than as its **Thing Card Video Preview**, mirroring how it plays a **Motion Photo**'s embedded video rather than a derived artifact.
 - A **Thing Card Media Source** may have separate **Thing Card Media Target Aspect Ratio** values for foreground thumbnail, side panel, and media background presentations.
 - A **Thing Card Media Source** may have separate **Thing Card Media Crop** values for foreground thumbnail, side panel, and media background presentations.
 - A **Thing Card** may have one **Thing Card Media Crop** when the Thing has Thing Card Media.

@@ -86,6 +86,17 @@ object FrequentSettings {
     }
 
     @JvmStatic
+    fun getInt(key: String?, defValue: Int): Int {
+        if (settingsMap!!.containsKey(key)) {
+            return settingsMap!![key] as Int
+        } else {
+            val value: Int = getIntFromSp(key, defValue)
+            put(key, value)
+            return value
+        }
+    }
+
+    @JvmStatic
     fun getLong(key: String?): Long {
         return getLong(key, -1L)
     }
@@ -119,6 +130,10 @@ object FrequentSettings {
 
     private fun getBooleanFromSp(key: String?, defValue: Boolean): Boolean {
         return getSp().getBoolean(key, defValue)
+    }
+
+    private fun getIntFromSp(key: String?, defValue: Int): Int {
+        return getSp().getInt(key, defValue)
     }
 
     private fun getLongFromSp(key: String?, defValue: Long): Long {

@@ -1,5 +1,97 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - zh-rHK 也全量改用「介面」（第三十三版）
+
+用户确认港台在软件 interface 这个义项上用词一致，遂把 `values-zh-rHK` 的 26 处「界面」
+也全部替换为「介面」。两个繁体 locale 现在各 26 处「介面」、0 处「界面」；zh-rCN 维持
+「界面」不动。约定与已知遗留（两个繁体文件仍留着「視頻」等大陆用词，本次未动）见
+docs/features/localization/preferences.md 的「繁體用詞」一节。
+
+发布号 202607251321（versionCode 43），APK 21105413 bytes，
+SHA-256 53277e820460a4e7d8ca2e84832b578e4eea3ff7f5be3b78659d6be790bd9961。
+releaseNotes 120 字符、单节。
+
+
+## 2026-07-25 - zh-rTW 全量改用「介面」（第三十二版）
+
+用户裁定 `values-zh-rTW` 一律用「介面」。该文件 26 处「界面」全部替换（设置分组标题、
+说明文字、帮助正文、以及一处注释掉的 item）。用 Edit 工具的 replace_all 做，**不得**用
+PowerShell 改这类含中文的资源文件。
+
+**zh-rHK 未动**：它本来就是混用（21 处「界面」+ 5 处「介面」），属于用户未点名的另一个
+locale，按项目规则（发现额外候选先报告、等确认）只报告不改。约定与后续动作记在
+docs/features/localization/preferences.md 的「繁體用詞」一节。
+
+发布号 202607251318（versionCode 43），APK 21106625 bytes，
+SHA-256 43a04d47f6d83481afb3c4ccd23872c087e517bd62fb545420dcfa0adbf5c3c2。
+releaseNotes 107 字符、单节。
+
+
+## 2026-07-25 - 两条自动播放设置文案补齐动态照片（第三十一版）
+
+`settings_autoplay_cover_dynamic` → "在记事列表中自动播放作为封面的动态内容（视频、动态
+照片、GIF）"；`settings_autoplay_detail_dynamic` → "在记事详情界面中自动播放动态内容
+（视频、动态照片、GIF）"。原封面文案漏掉动态照片，而它一直在 Cover Autoplay 管辖内。
+十三个语种译文同步（术语用"动态照片"，遵循 CONTEXT.md 对 Motion Photo 不用 Live Photo
+商标的约定；zh-rTW/HK 沿用项目既有的"界面"而非"介面"）。
+
+顺带把 `rl_autoplay_cover_dynamic_as_bt` 的固定 56dp 改为 wrap_content + minHeight 56dp
++ 上下 10dp padding：文案变长后德语/俄语/葡语在 16sp 下会排三行（约 66dp），固定行高会
+裁掉最后一行。详情那一行在第三十版已是两行竖排结构，不受影响。
+
+发布号 202607251315（versionCode 43），APK 21105413 bytes，
+SHA-256 a11934917b97ee75ea97fc95231a99c083ac4c184f3bd78b501dec5d60f8862b。
+releaseNotes 249 字符、单节。
+
+
+## 2026-07-25 - Detail Autoplay 首版真机反馈四处修正（第三十版）
+
+D17–D20（docs/features/detail-animated-playback/decisions.md）。
+
+1. **逐一播放队列卡死**（真 bug）：首版把全部可见项排进队列，静态图片排到队首后占住
+   `sequentialPlaying` 且永不发 `onAnimationEnd`，队列就此停摆。`pumpQueue` 改为循环出队
+   并用新增的 `ImageAttachmentAdapter.isPlayableNow` 筛选（**以派生 GIF 是否真的存在为准**，
+   不能只看 `isMotionPhotoCandidate` 这种扩展名候选，否则普通 JPEG 也算数）；生成期间落选的
+   由新增 `onDerivedPreviewReady` 重新入队。另加两道放行：加载失败、拿回非 GifDrawable。
+   放行必须 `imageView.post` 出去——同步回调会在 Glide 回调内重新绑定同一 View，外层返回后
+   Glide 再把旧资源塞回来顶掉画面。
+2. **静/动切换闪白**：Glide 起新请求时 `onLoadCleared`/`onLoadStarted` 都会把 View 置空。
+   `.into()` 改用 `KeepCurrentImageTarget`（继承 `DrawableImageViewTarget`，两个回调改为
+   不动画面）。否决了"把当前 Drawable 当 placeholder"（旧资源会被释放回 BitmapPool）与
+   "改用 CustomTarget"（丢掉视图尺寸解析与生命周期清理）。
+3. 设置项档位改为标题下一行两行竖排（`RelativeLayout` → `LinearLayout`，id 改
+   `ll_autoplay_detail_dynamic_as_bt`），避免长译文挤压。
+4. 全屏视频页 `iv.isZoomable` 由 false 改 true——缩放跟随本就由 `trackMotionZoom` 实现，
+   只是被这一行挡着；按住播放期间多指缩放不误停（只认 ACTION_UP/CANCEL）。
+
+发布号 202607251257（versionCode 43），APK 21104557 bytes，
+SHA-256 712a5b646d6c110d8ac8918f2890cc68c55e6f298b564a89a5cf166d15b6ed37。
+releaseNotes 352 字符、单节。
+
+
+## 2026-07-25 - 详情页动态内容四档自动播放 + 全屏视频自动播放（第二十九版）
+
+新特性 Detail Autoplay（ADR-0017，docs/features/detail-animated-playback/）。详情附件
+网格的 GIF / Motion Photo / 视频改由四档设置 `KEY_AUTOPLAY_DETAIL_DYNAMIC` 管控
+（0 关 / 1 逐一 / 2 同时一次 / 3 同时循环，默认 3 = 与改动前无条件循环等价）；视频
+首次在详情接入 Thing Card Video Preview（复用卡片那份 720px 产物）。全部档位按滚动
+视口生效——详情 RecyclerView 全量布局、不回收，Glide 屏外暂停在那里失效，故新增
+`DetailAttachmentPlaybackController` 用 `getGlobalVisibleRect` 算露出比例 + 滞回
+（进 0.6 / 出 0.3）。长按手动播一遍走 RecyclerView 级 OnItemTouchListener（item 的
+OnLongClickListener 会被 ItemTouchHelper 拖拽的 ACTION_CANCEL 掐掉），与拖拽排序刻意共存。
+全屏预览新增普通视频的自动播放：翻页停稳 360ms → 关键帧起 3 秒真视频（postDelayed 定时停）
+→ 回静帧；长按第一次从 0 播、松手记播放头、再长按续播。顺带补齐 Motion Photo 与视频
+共用的音频焦点（TRANSIENT_MAY_DUCK），并把全屏视频的静帧改为 Thing Card Video Frame。
+
+发布号 202607251240（versionCode 43），APK 21104557 bytes，
+SHA-256 b0ad7e7870341e07c8f37591e4d1c3adb79f4a08b133e3b966e1b063b61182ff。
+releaseNotes 884 字符、含全屏一节。同日 202607251239 为首次发布，因日志被拆成两个
+`## ` 节而只上传了前半，已重发覆盖——发布任务只取第一个 `## ` 条目，日志必须单节。
+
+尚未真机验证（验收 1–16 见 docs/features/detail-animated-playback/plan.md），
+性能护栏（同时档并发上限）留待实测。
+
+
 ## 2026-07-25 - 银丝强度归零后星芒不再一起消失（第二十八版）
 
 星芒的 CPU 星光源此前直接读两个银丝外观滑杆（`uplift_crest_rim` × 活跃度、

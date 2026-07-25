@@ -493,7 +493,13 @@
     <string name="settings_toggle_checklist_thing_card">Alternar elemento de lista de verificación en tarjeta de objeto</string>
     <string name="settings_simple_finished_checklist">Doblar los elementos de la lista de verificación terminados en la tarjeta de cosas en marcha</string>
     <string name="settings_auto_link">Vincula automáticamente un número de teléfono, una página web y más al comprobar algo</string>
-    <string name="settings_autoplay_cover_dynamic">Reproduce automáticamente las portadas de GIF y vídeo en la lista de notas</string>
+    <string name="settings_autoplay_cover_dynamic">Reproducir automáticamente las portadas dinámicas (vídeo, foto en movimiento, GIF) en la lista de notas</string>
+    <string name="settings_autoplay_detail_dynamic">Reproducir automáticamente el contenido dinámico (vídeo, foto en movimiento, GIF) en la vista de nota</string>
+    <string name="detail_autoplay_title">Reproducción automática en la vista de nota</string>
+    <string name="detail_autoplay_off">No reproducir automáticamente</string>
+    <string name="detail_autoplay_one_by_one">Uno a uno</string>
+    <string name="detail_autoplay_all_once">Todos a la vez, una vez</string>
+    <string name="detail_autoplay_all_loop">Todos a la vez, en bucle</string>
     <string name="settings_twice_back">Presione Atrás dos veces para salir</string>
     <string name="settings_create_animation_style">Animación de luz de borde al crear algo nuevo.</string>
     <string name="settings_doing_digit_style">Estilo de dígitos del temporizador</string>

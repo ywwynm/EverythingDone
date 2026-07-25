@@ -954,7 +954,13 @@
     <string name="settings_toggle_checklist_thing_card">Toggle checklist item on thing card</string>
     <string name="settings_simple_finished_checklist">Fold finished checklist items on underway thing card</string>
     <string name="settings_auto_link">Automatically link phone number, web page and more when checking a thing</string>
-    <string name="settings_autoplay_cover_dynamic">Automatically play animated GIF and video covers in the thing list</string>
+    <string name="settings_autoplay_cover_dynamic">Automatically play dynamic cover content (video, motion photo, GIF) in the thing list</string>
+    <string name="settings_autoplay_detail_dynamic">Automatically play dynamic content (video, motion photo, GIF) on the thing detail screen</string>
+    <string name="detail_autoplay_title">Autoplay on detail screen</string>
+    <string name="detail_autoplay_off">Do not autoplay</string>
+    <string name="detail_autoplay_one_by_one">One at a time</string>
+    <string name="detail_autoplay_all_once">All at once, play once</string>
+    <string name="detail_autoplay_all_loop">All at once, loop</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
     <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
     <string name="settings_doing_digit_style">Timer digit style</string>

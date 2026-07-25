@@ -32,3 +32,7 @@
 ## 更新（2026-06-30）
 
 [ADR-0012](0012-thing-card-video-preview-derived-animated-image.md) 修订了本文"任何视频缩略图一律停在单帧"的结论：应用内 Thing Card 封面面在 **Cover Autoplay** 开启时，视频封面改为播放从视频派生的 **Thing Card Video Preview**（GIF 动图产物），复用本文确立的逐帧裁切动图管线。裁切编辑器、RemoteViews、HDR 基帧、以及详情/全屏的视频仍停在单帧/原样。
+
+## 更新（2026-07-25）
+
+[ADR-0017](0017-detail-animated-playback-modes.md) 修订了本文"详情附件列表（默认与定制模式）播放"的无条件结论：详情附件网格的播放改由新的四档 **Detail Autoplay** 设置管控（默认「同时循环播放」，即行为不变），且全部档位**按滚动视口生效**——因为该网格一次性全量布局、不按视口回收，本文所依赖的 Glide 屏外自动暂停在那里是失效的。同时详情页的视频首次接入 Thing Card Video Preview，全屏预览的普通视频改为自动播放真视频。本文对全屏预览、Thing Card 各面、裁切编辑器、RemoteViews 的结论不变。

@@ -493,7 +493,13 @@
     <string name="settings_toggle_checklist_thing_card">चीज़ कार्ड पर चेकलिस्ट आइटम टॉगल करें</string>
     <string name="settings_simple_finished_checklist">चल रहे चीज़ कार्ड पर तैयार चेकलिस्ट आइटम को मोड़ें</string>
     <string name="settings_auto_link">किसी चीज़ की जाँच करते समय स्वचालित रूप से फ़ोन नंबर, वेब पेज और बहुत कुछ लिंक करें</string>
-    <string name="settings_autoplay_cover_dynamic">नोट सूची में कवर के रूप में सेट GIF और वीडियो स्वचालित रूप से चलाएँ</string>
+    <string name="settings_autoplay_cover_dynamic">नोट सूची में कवर की गतिशील सामग्री (वीडियो, मोशन फ़ोटो, GIF) स्वचालित रूप से चलाएँ</string>
+    <string name="settings_autoplay_detail_dynamic">नोट विवरण स्क्रीन में गतिशील सामग्री (वीडियो, मोशन फ़ोटो, GIF) स्वचालित रूप से चलाएँ</string>
+    <string name="detail_autoplay_title">विवरण में स्वतः चलाना</string>
+    <string name="detail_autoplay_off">स्वतः न चलाएँ</string>
+    <string name="detail_autoplay_one_by_one">एक-एक करके</string>
+    <string name="detail_autoplay_all_once">सभी एक साथ, एक बार</string>
+    <string name="detail_autoplay_all_loop">सभी एक साथ, लूप में</string>
     <string name="settings_twice_back">बाहर निकलने के लिए वापस दो बार दबाएँ</string>
     <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
     <string name="settings_doing_digit_style">टाइमर अंक शैली</string>

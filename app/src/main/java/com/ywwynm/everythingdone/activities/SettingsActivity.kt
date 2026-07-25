@@ -58,6 +58,7 @@ import com.ywwynm.everythingdone.helpers.BackupHelper
 import com.ywwynm.everythingdone.helpers.DailyTodoHelper
 import com.ywwynm.everythingdone.helpers.FingerprintHelper
 import com.ywwynm.everythingdone.helpers.NotificationReliabilityHelper
+import com.ywwynm.everythingdone.model.DetailAutoplayMode
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.HabitReminder
@@ -1018,6 +1019,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.rl_autoplay_cover_dynamic_as_bt).setOnClickListener {
             mCbAutoplayCoverDynamic!!.isChecked = !mCbAutoplayCoverDynamic!!.isChecked
         }
+        f<View>(R.id.ll_autoplay_detail_dynamic_as_bt).setOnClickListener {
+            showChooseDetailAutoplayModeDialog()
+        }
         f<View>(R.id.rl_twice_back_as_bt).setOnClickListener {
             mCbTwiceBack!!.isChecked = !mCbTwiceBack!!.isChecked
         }
@@ -1043,6 +1047,40 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             )
         }
         updateDoingDigitStyleValue()
+        updateAutoplayDetailDynamicValue()
+    }
+
+    /**
+     * Detail Autoplay 四档选择。与语言项一致，确认后**立即**落盘，不走 [saveSettings] 的批量
+     * 路径——那条路径只在退出设置页时跑，而详情页可能在设置页之前就被打开着。见 ADR-0017。
+     */
+    private fun showChooseDetailAutoplayModeDialog() {
+        val cdf = ChooserDialogFragment()
+        cdf.setAccentBackground(App.defaultAccentBackground)
+        cdf.setTitle(getString(R.string.detail_autoplay_title))
+        cdf.setShouldShowMore(false)
+        val items: MutableList<String?> = DetailAutoplayMode.ALL_MODES
+            .map { getString(DetailAutoplayMode.labelResOf(it)) as String? }
+            .toMutableList()
+        cdf.setItems(items)
+        // 档位值即选项索引（DetailAutoplayMode.ALL_MODES 按值升序），无需来回换算。
+        val initialIndex: Int = DetailAutoplayMode.current()
+        cdf.setInitialIndex(initialIndex)
+        cdf.setConfirmListener(View.OnClickListener {
+            val picked: Int = DetailAutoplayMode.fromValue(cdf.getPickedIndex())
+            if (picked == initialIndex) {
+                return@OnClickListener
+            }
+            FrequentSettings.put(Def.Meta.KEY_AUTOPLAY_DETAIL_DYNAMIC, picked)
+            mPreferences!!.edit().putInt(Def.Meta.KEY_AUTOPLAY_DETAIL_DYNAMIC, picked).apply()
+            updateAutoplayDetailDynamicValue()
+        })
+        cdf.show(fragmentManager, ChooserDialogFragment.TAG)
+    }
+
+    private fun updateAutoplayDetailDynamicValue() {
+        f<TextView>(R.id.tv_autoplay_detail_dynamic_value).text =
+            getString(DetailAutoplayMode.labelResOf(DetailAutoplayMode.current()))
     }
 
     private fun updateDoingDigitStyleValue() {

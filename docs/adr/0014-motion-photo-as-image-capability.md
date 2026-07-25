@@ -28,3 +28,7 @@
 - **HEIC**：解码需 API 28+，本 app minSdk 26；API 26/27 上 HEIC（含静态图）本就无法解码，属既有限制。
 - **性能**：派生 GIF 沿用现有屏外暂停/回收/LRU；检测首次读文件、之后命中缓存，后台限并发。
 - 详细决策见 [motion-photo-playback/decisions.md](../features/motion-photo-playback/decisions.md)，术语见 [CONTEXT.md](../../CONTEXT.md) 的 **Motion Photo**。
+
+## 更新（2026-07-25）
+
+[ADR-0017](0017-detail-animated-playback-modes.md) 把本文"全屏内的真视频播放"从 Motion Photo 专属扩展到**普通视频附件**：全屏翻到视频页时自动播真视频（Thing Card Video Frame 起 3 秒、有声、带触感）→ 回静帧，长按从视频开头播、松手回静帧、再长按续播，复用本文建立的 `MediaPlayer` + `TextureView` 组件。同时本文"详情列表播派生 GIF"的无条件结论改为受四档 Detail Autoplay 管控（默认档下行为不变），且 Motion Photo 在详情页播完后回**高画质静态主图**而非停在派生 GIF 尾帧。顺带补齐本文实现中缺失的音频焦点请求。

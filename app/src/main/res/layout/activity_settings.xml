@@ -317,12 +317,17 @@
 
                     </RelativeLayout>
 
+                    <!-- 高度可撑开：文案带上"（视频、动态照片、GIF）"后，德语/俄语/葡语在
+                         16sp 下会排到三行，固定 56dp 会把最后一行裁掉。 -->
                     <RelativeLayout
                         android:id="@+id/rl_autoplay_cover_dynamic_as_bt"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
                         android:paddingLeft="16dp"
                         android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         android:background="@drawable/selectable_item_background">
 
                         <CheckBox
@@ -351,6 +356,37 @@
                             tools:ignore="RelativeOverlap"/>
 
                     </RelativeLayout>
+
+                    <!-- 当前档位放标题下一行而不是右侧：标题本身就长，右侧再挂一个档位名在
+                         中文下已经紧，德语/俄语等更长的译文会挤成两段。 -->
+                    <LinearLayout
+                        android:id="@+id/ll_autoplay_detail_dynamic_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_autoplay_detail_dynamic"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_autoplay_detail_dynamic_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
 
                     <RelativeLayout
                         android:id="@+id/rl_twice_back_as_bt"

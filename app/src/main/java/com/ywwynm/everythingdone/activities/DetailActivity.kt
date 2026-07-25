@@ -82,6 +82,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
+import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.appwidgets.CreateWidget
 import com.ywwynm.everythingdone.collections.ThingActionsList
@@ -232,6 +233,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private var mRvImageAttachment: RecyclerView? = null
     private var mImageAttachmentAdapter: ImageAttachmentAdapter? = null
+
+    /** 详情附件网格的 Detail Autoplay 调度器，见 ADR-0017。 */
+    private var mAttachmentPlaybackController: DetailAttachmentPlaybackController? = null
     private var mImageLayoutManager: GridLayoutManager? = null
 
     private var mScrollView: NestedScrollView? = null
@@ -825,6 +829,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mRvImageAttachment!!.isNestedScrollingEnabled = false
 
         mScrollView   = f(R.id.sv_detail)
+        // Detail Autoplay 调度器只建一次：它把监听挂在 ScrollView / RecyclerView 的
+        // ViewTreeObserver 上，随附件适配器反复重建会不断累积监听。见 ADR-0017。
+        mAttachmentPlaybackController = DetailAttachmentPlaybackController(
+            mScrollView!!, mRvImageAttachment!!
+        )
         mEtTitle      = f(R.id.et_title)
         mEtContent    = f(R.id.et_content)
         mTvThingFolderPath = f(R.id.tv_thing_folder_path)
@@ -2203,6 +2212,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     override fun onResume() {
         super.onResume()
         refreshFromExternalUpdateIfNeeded()
+        // 用户可能刚从设置页改了 Detail Autoplay 档位。
+        mAttachmentPlaybackController?.onResume()
     }
 
     override fun onPause() {
@@ -2517,6 +2528,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mDetailAttachmentMediaAppearance
         )
         mImageAttachmentAdapter!!.setAccentBackground(getAccentBackground())
+        mAttachmentPlaybackController?.setAdapter(mImageAttachmentAdapter)
         mImageLayoutManager = GridLayoutManager(this, getImageAttachmentSpanCount(size))
         mRvImageAttachment!!.adapter = mImageAttachmentAdapter
         mRvImageAttachment!!.layoutManager = mImageLayoutManager
@@ -2581,6 +2593,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         if (notify) {
             adapter.notifyDataSetChanged()
+            // 附件增删/重排后 position 全部作废，播放调度必须整体重来。
+            mAttachmentPlaybackController?.onItemsChanged()
         }
     }
 
@@ -4950,9 +4964,17 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 intent.putExtra(Def.Communication.KEY_BACKGROUND, accentBg.toJson())
             }
             intent.putExtra(Def.Communication.KEY_EDITABLE, mEditable)
-            intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME,
-                mImageAttachmentAdapter!!.getItems() as ArrayList<String?>?)
+            val items = mImageAttachmentAdapter!!.getItems() as ArrayList<String?>?
+            intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME, items)
             intent.putExtra(Def.Communication.KEY_POSITION, pos)
+            // 把每个附件的 Thing Card Video Frame 一并带过去：全屏的视频静帧与自动播放的
+            // 起点都用它，才能与详情网格看到的是同一帧。见 ADR-0017。
+            if (items != null) {
+                val frames = LongArray(items.size) { i ->
+                    mDetailAttachmentMediaAppearance.source(items[i])?.videoFrameMs ?: -1L
+                }
+                intent.putExtra(Def.Communication.KEY_VIDEO_FRAME_MS_LIST, frames)
+            }
 
             val w = v!!.width
             var startX = 0

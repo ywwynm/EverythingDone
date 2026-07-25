@@ -493,7 +493,13 @@
     <string name="settings_toggle_checklist_thing_card">Basculer l\'élément de la liste de contrôle sur la carte d\'objet</string>
     <string name="settings_simple_finished_checklist">Pliez les éléments de la liste de contrôle terminés sur la carte d\'objet en cours</string>
     <string name="settings_auto_link">Associez automatiquement un numéro de téléphone, une page Web et plus encore lors de la vérification d\'un élément</string>
-    <string name="settings_autoplay_cover_dynamic">Lire automatiquement les couvertures GIF et vidéo dans la liste des notes</string>
+    <string name="settings_autoplay_cover_dynamic">Lire automatiquement les couvertures animées (vidéo, photo animée, GIF) dans la liste des notes</string>
+    <string name="settings_autoplay_detail_dynamic">Lire automatiquement les contenus animés (vidéo, photo animée, GIF) dans le détail de la note</string>
+    <string name="detail_autoplay_title">Lecture automatique dans le détail</string>
+    <string name="detail_autoplay_off">Ne pas lire automatiquement</string>
+    <string name="detail_autoplay_one_by_one">Un par un</string>
+    <string name="detail_autoplay_all_once">Tous en même temps, une fois</string>
+    <string name="detail_autoplay_all_loop">Tous en même temps, en boucle</string>
     <string name="settings_twice_back">Appuyez deux fois sur Retour pour quitter</string>
     <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
     <string name="settings_doing_digit_style">Style des chiffres du minuteur</string>

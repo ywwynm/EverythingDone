@@ -493,7 +493,13 @@
     <string name="settings_toggle_checklist_thing_card">Attiva/disattiva l\'elemento dell\'elenco di controllo sulla scheda oggetto</string>
     <string name="settings_simple_finished_checklist">Piega gli elementi della lista di controllo finiti sulla scheda delle cose in corso</string>
     <string name="settings_auto_link">Collega automaticamente numero di telefono, pagina web e altro quando controlli qualcosa</string>
-    <string name="settings_autoplay_cover_dynamic">Riproduci automaticamente le copertine GIF e video nell\'elenco delle note</string>
+    <string name="settings_autoplay_cover_dynamic">Riproduci automaticamente le copertine animate (video, foto in movimento, GIF) nell\'elenco delle note</string>
+    <string name="settings_autoplay_detail_dynamic">Riproduci automaticamente i contenuti animati (video, foto in movimento, GIF) nel dettaglio della nota</string>
+    <string name="detail_autoplay_title">Riproduzione automatica nel dettaglio</string>
+    <string name="detail_autoplay_off">Non riprodurre automaticamente</string>
+    <string name="detail_autoplay_one_by_one">Uno alla volta</string>
+    <string name="detail_autoplay_all_once">Tutti insieme, una volta</string>
+    <string name="detail_autoplay_all_loop">Tutti insieme, in loop</string>
     <string name="settings_twice_back">Premere Indietro due volte per uscire</string>
     <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
     <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
