@@ -1,5 +1,25 @@
 # Current Debug Update Notes
 
+## 2026-07-26 - 录音对话框停止后侧边键点不动（第三十九版）
+
+`stopRecordingWithoutBlocking()` 先 `recordingToStopped()`（侧边两键置可点 + 淡入 360ms），
+紧接着 `setRecorderTransitionInProgress(true)` 又把它们一并禁用，于是整个收尾窗口
+（线程 join 上限 600ms + raw→wav 全量抄写）里按钮正在淡入却点不动。
+
+那个禁用原本在挡真实并发：取消走 `dismiss()` → 另起线程 `release()`，会与收尾线程里的
+`startListening()` 撞车（`startListening` 没有 @Synchronized，`release()` 会释放并置空
+`mAudioRecord`）；取消时删 wav 也可能早于 `saveToWaveFile()` 打开输出流，删完又被建出来，
+留下无主音频文件。**改法是消掉并发本身**：收尾/重启/释放全走同一条单线程队列
+`mRecorderTasks`，取消时的删除也排进去、排在收尾之后；侧边两键只按状态可点，
+主按钮仍在收尾期间禁用（保存要改名那份可能还在写的 wav）。
+
+顺带：`onCreateView` 末尾补一次 `updateControlsEnabled()`——`setOnClickListener` 会把
+alpha=0 的侧边键置为 clickable，准备态下点到取消键的位置本来会直接关掉对话框。
+
+发布号 202607251626（versionCode 43），APK 21108633 bytes，
+SHA-256 efb1360fed14b18896994830f7c60f9e2535b415d4c3fad251bb8339e3cef0b5。
+releaseNotes 229 字符、单节。
+
 ## 2026-07-25 - 滑杆未播段再调淡（第三十八版）
 
 极性不动，`INACTIVE_TRACK_ALPHA_SCALE` 0.75 → 0.6（亮色 26%→16%、暗色 40%→24%）。

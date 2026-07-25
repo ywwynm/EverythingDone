@@ -3699,3 +3699,24 @@ checkbox 为空操作）。全量测试保持全绿；修正版已装 9018f404�
 对 FableSol 本身零改动；CONTEXT.md 里 **Voice Waveform**「只出现在实时录音界面」与
 HDR「只有录音态」两条不变式已相应改写。详见
 [audio-attachment-playback](../audio-attachment-playback/README.md)。
+
+## 2026-07-26 录音对话框：停止后立刻点取消/重录点不动（收尾任务把侧边键一起禁掉了）
+
+用户报告：录音中点停止后立刻点右侧叉号，点不动，等一会儿才行。
+
+定位：`stopRecordingWithoutBlocking()` 的顺序是 `recordingToStopped()`（把两个侧边键置为
+可点并淡入 360ms）→ `setRecorderTransitionInProgress(true)`，而后者在 STOPPED 态下把
+**侧边两键也一并置为不可点**。于是整个收尾窗口——线程 join 上限 600ms 加上 raw→wav 的全量
+抄写，长录音更久——按钮正在淡入、看起来完全可用，实际点不动。
+
+那个禁用不是无的放矢：取消走 `dismiss()` → `releaseRecorderInBackground` 另起一条线程
+`release()`，会与收尾线程里的 `startListening()` 并发（`startListening` 没有 @Synchronized，
+`release()` 会把 `mAudioRecord` 释放并置 null）；取消时删 wav 也可能早于收尾里
+`saveToWaveFile()` 打开输出流，删完又被重新建出来，留下一个没人认领的音频文件。
+
+改法是把并发本身消掉，而不是继续用禁用按钮回避：收尾、重启、释放全部走同一条单线程队列
+（`mRecorderTasks`），后到的操作只排队；取消时那份 wav 的删除也移进该队列、排在收尾之后。
+于是侧边两键只按状态可点（`updateControlsEnabled()`），主按钮仍在收尾期间禁用（保存要改名
+那份可能还在写的 wav）。顺带两处：`onCreateView` 末尾补一次 `updateControlsEnabled()`——
+`setOnClickListener` 会把 alpha=0 的侧边键置为 clickable，准备态下点到取消键的位置本来会
+直接关掉对话框；以及 `mDismissed` 标记，对话框已关就跳过队列里剩下的重新开麦。

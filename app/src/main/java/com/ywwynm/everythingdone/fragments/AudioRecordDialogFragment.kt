@@ -46,6 +46,8 @@ import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -74,6 +76,17 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private var mConfirmClicked: Boolean = false
     private var mRecorderTransitionInProgress: Boolean = false
+    /** 排队中或正在跑的录音器操作数；>0 时主按钮不可点。 */
+    private var mPendingRecorderTasks: Int = 0
+    /** 对话框已关闭；队列上还没跑的录音器操作据此跳过重新开麦。 */
+    @Volatile private var mDismissed: Boolean = false
+    /**
+     * 录音器的收尾、重启、释放全部走这一条单线程队列。它们改的是同一个 AudioRecord 与
+     * 同一份文件，各起一条线程会真的并发——例如取消时的 `release()` 撞上收尾里的
+     * `startListening()`，就是在已释放的 AudioRecord 上调用。
+     */
+    private val mRecorderTasks: ExecutorService =
+        Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "AudioRecordWork") }
     private var mClockBreathing: Boolean = false
     private var mSensorManager: SensorManager? = null
     private var mGravitySensor: Sensor? = null
@@ -156,6 +169,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mRecorder!!.startListening()
 
         setEvents()
+        // setOnClickListener 会把两个侧边键置为 clickable，但它们此刻 alpha=0：
+        // 不在这里按状态收一次，准备态下点到取消键的位置就会把对话框关掉。
+        updateControlsEnabled()
 
         return mContentView
     }
@@ -205,8 +221,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDismiss(dialog: DialogInterface) {
+        mDismissed = true
         val recorder: AudioRecorder? = mRecorder
         mRecorder = null
+        var fileToDiscard: File? = null
         if (mConfirmClicked) {
             val parent: File = mFileToSave!!.parentFile!!
 
@@ -221,9 +239,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             mActivity!!.attachmentTypePathName = AttachmentHelper.AUDIO.toString() + pathName
             mActivity!!.addAttachment(0)
         } else {
-            if (mFileToSave != null) {
-                FileUtil.deleteFile(mFileToSave!!.absolutePath)
-            }
+            fileToDiscard = mFileToSave
         }
         stopClockTicker()
         stopClockBreathing()
@@ -231,7 +247,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
-        releaseRecorderInBackground(recorder)
+        releaseRecorderInBackground(recorder, fileToDiscard)
 
         super.onDismiss(dialog)
     }
@@ -362,10 +378,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             }
         }
 
+        // 重录与取消不看 mRecorderTransitionInProgress：收尾/重启/释放都排在同一条单线程
+        // 队列上，后到的操作只会排队，不会与在跑的那次并发。
         mIvReRecording!!.setOnClickListener {
-            if (mRecorderTransitionInProgress) {
-                return@setOnClickListener
-            }
             restartRecordingWithoutBlocking()
         }
 
@@ -450,15 +465,14 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mFileToSave = fileToSave
         recordingToStopped()
         mState = STOPPED
-        setRecorderTransitionInProgress(true)
+        beginRecorderTask()
 
-        Thread({
+        mRecorderTasks.execute {
             recorder.stopListening(true)
-            recorder.startListening()
-            postRecorderTransitionResult(recorder) {
-                setRecorderTransitionInProgress(false)
-            }
-        }, "AudioRecordStop").start()
+            // 对话框已经关掉就不必再开一次麦克风，队列后面紧跟着的就是 release()。
+            if (!mDismissed) recorder.startListening()
+            postRecorderTransitionResult(recorder) { endRecorderTask() }
+        }
     }
 
     private fun restartRecordingWithoutBlocking() {
@@ -467,17 +481,17 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mFileToSave = null
         stoppedToPrepared()
         mState = PREPARED
-        setRecorderTransitionInProgress(true)
+        beginRecorderTask()
 
-        Thread({
+        mRecorderTasks.execute {
+            // 删除排在收尾任务之后：收尾正在把 raw 抄成 wav，先删会被它重新建出来，
+            // 留下一个没人认领的音频文件。
             if (fileToDelete != null) {
                 FileUtil.deleteFile(fileToDelete.absolutePath)
             }
-            recorder.restartListening()
-            postRecorderTransitionResult(recorder) {
-                setRecorderTransitionInProgress(false)
-            }
-        }, "AudioRecordRestart").start()
+            if (!mDismissed) recorder.restartListening()
+            postRecorderTransitionResult(recorder) { endRecorderTask() }
+        }
     }
 
     private fun postRecorderTransitionResult(recorder: AudioRecorder, action: () -> Unit) {
@@ -489,23 +503,44 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
     }
 
-    private fun setRecorderTransitionInProgress(inProgress: Boolean) {
-        mRecorderTransitionInProgress = inProgress
-        mIvMainAction!!.isClickable = !inProgress
-        if (mState == STOPPED) {
-            mIvReRecording!!.isClickable = !inProgress
-            mIvCancelRecording!!.isClickable = !inProgress
-        } else {
-            mIvReRecording!!.isClickable = false
-            mIvCancelRecording!!.isClickable = false
-        }
+    private fun beginRecorderTask() {
+        mPendingRecorderTasks++
+        updateControlsEnabled()
     }
 
-    private fun releaseRecorderInBackground(recorder: AudioRecorder?) {
-        Thread({
+    private fun endRecorderTask() {
+        mPendingRecorderTasks = maxOf(mPendingRecorderTasks - 1, 0)
+        updateControlsEnabled()
+    }
+
+    /**
+     * 主按钮在收尾任务跑完前不可点：保存要把 [mFileToSave] 改名，而那份 wav 可能还在写。
+     * 侧边两键只看状态——停止后它们随淡入一起可点。此前它们也跟着收尾任务禁用，于是
+     * 「点停止、立刻点叉号」在整个收尾窗口（线程 join 上限 600ms + raw→wav 全量抄写）
+     * 里都点不动，而按钮偏偏正在淡入、看起来完全可用。
+     */
+    private fun updateControlsEnabled() {
+        mRecorderTransitionInProgress = mPendingRecorderTasks > 0
+        mIvMainAction!!.isClickable = !mRecorderTransitionInProgress
+        val sideEnabled = mState == STOPPED
+        mIvReRecording!!.isClickable = sideEnabled
+        mIvCancelRecording!!.isClickable = sideEnabled
+    }
+
+    /**
+     * 释放排在同一条队列的末尾，因此一定晚于在跑的收尾/重启；[fileToDiscard]（取消录音时
+     * 那份 wav）也在这里删，同样是为了不与正在写它的收尾任务撞车。
+     */
+    private fun releaseRecorderInBackground(recorder: AudioRecorder?, fileToDiscard: File?) {
+        val rawPath = FileUtil.getTempPath(mActivity) + "/audio_raw"
+        mRecorderTasks.execute {
             recorder?.release()
-            FileUtil.deleteDirectory(FileUtil.getTempPath(mActivity) + "/audio_raw")
-        }, "AudioRecordRelease").start()
+            if (fileToDiscard != null) {
+                FileUtil.deleteFile(fileToDiscard.absolutePath)
+            }
+            FileUtil.deleteDirectory(rawPath)
+        }
+        mRecorderTasks.shutdown()
     }
 
     private fun saveFileAndLeave() {
