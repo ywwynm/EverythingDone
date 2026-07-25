@@ -33,3 +33,17 @@ with SHA-256 `e519e4ef8c9ba0a9109d56f7d5baa4f4710391c29d37bb6adbd7dc2ddde7acdc`.
 - Tightened `DateTimeDialogFragment` ViewPager clipping and page layout params so adjacent pages do not peek into the current page.
 - Added `app_chrome_dialog_divided_action_row_margin_top` for scroll/divider dialogs and adjusted Color Info / Chooser / License / Long Text / Debug Update boundaries so scroll content sits between the separators and the bottom action area.
 - Aligned the folder-name `EditText` in the Thing/Folder Card Appearance panel with the confirm action text by reusing `app_chrome_dialog_action_button_margin_end` as its trailing margin.
+
+## 2026-07-26 - dialog 触摸取消改为看手势起点
+- 现象：手指从 dialog 内部空白处按下、滑到 dialog 外抬起，dialog 被取消；起点落在能
+  消费 touch 的控件上时不会发生，因为后续事件都交给了那个控件，`Dialog.onTouchEvent`
+  根本不参与。
+- 根因：framework `Window.shouldCloseOnTouch` 只检查 `ACTION_UP`（及 `ACTION_OUTSIDE`）
+  的坐标是否出界，不记录 `ACTION_DOWN` 的位置。
+- 改动：`BaseDialogFragment.kt` 新增文件级 private 类 `GestureAnchoredDialog`，
+  `onCreateDialog` 由 `super.onCreateDialog(...)` 换成 `GestureAnchoredDialog(activity!!, theme)`
+  （主题、`STYLE_NO_TITLE` 仍由 `setStyle` 决定，`requestWindowFeature` 调用保持不变）。
+- 覆盖面：全部 27 个 dialog 均继承 `BaseDialogFragment`，项目内无 `AlertDialog.Builder`、
+  无直接 `new Dialog`、无其它 `onCreateDialog` 覆写，也没有 dialog 改过 window touch flag
+  或覆写 touch 分发，因此单点改动即全量生效且无冲突。
+- 验证：`:app:assembleDebug` BUILD SUCCESSFUL，产出含 `GestureAnchoredDialog.class`。

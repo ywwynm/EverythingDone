@@ -1,5 +1,27 @@
 # Current Debug Update Notes
 
+## 2026-07-26 - dialog 从内部滑到外面松手会误关闭（第四十版）
+
+framework 的 `Window.shouldCloseOnTouch` 只判断 `ACTION_UP`（及 `ACTION_OUTSIDE`）的
+坐标是否出界，从不记录 `ACTION_DOWN` 的位置。手指按在 dialog 内部没有控件消费 touch
+的位置（空白区、纯展示文本），滑到 dialog 外抬手，就被判成「点了外部」而 `cancel()`；
+起点落在能消费 touch 的控件上时反而没事，因为后续事件都交给了那个控件，
+`Dialog.onTouchEvent` 根本不参与。
+
+`BaseDialogFragment.kt` 加了文件级 private 类 `GestureAnchoredDialog`，`onCreateDialog`
+由 `super.onCreateDialog(...)`（等价于 `new Dialog(activity, theme)`）换成它。它在
+`ACTION_DOWN` 时用与 framework `Window.isOutOfBounds` 等价的算法（decorView 宽高 ±
+`scaledWindowTouchSlop`）记下起点，起点在内则整段手势直接返回 false、不进
+`super.onTouchEvent`；`ACTION_OUTSIDE` 视为起点在外，保留非 modal window 的默认行为。
+
+全部 27 个 dialog 都继承 `BaseDialogFragment`，项目内无 `AlertDialog.Builder`、无直接
+`new Dialog`、无第二处 `onCreateDialog` 覆写、也没有 dialog 改过 window touch flag 或
+覆写 touch 分发，所以一处改动即全量生效。`setCancelable` /
+`setCanceledOnTouchOutside(false)` / back 键 / cancel-dismiss 回调均未触及。
+
+发布号 202607251644（versionCode 43），APK 21108633 bytes，
+SHA-256 66e544a5f34857c56fc439c48bdebdf5ed6342a3624bba7e2b76ca09119c8986。
+
 ## 2026-07-26 - 录音对话框停止后侧边键点不动（第三十九版）
 
 `stopRecordingWithoutBlocking()` 先 `recordingToStopped()`（侧边两键置可点 + 淡入 360ms），
