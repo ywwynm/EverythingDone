@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">Hilos plateados</string>
     <string name="fablesol_group_starburst">Destellos estelares</string>
     <string name="fablesol_group_glints">Destellos</string>
+    <string name="fablesol_group_debug">Depuración</string>
+    <string name="fablesol_param_show_perf_hud">Panel de rendimiento en pantalla</string>
     <string name="fablesol_group_appearance">Apariencia y óptica</string>
     <string name="fablesol_group_surface">Superficie continua</string>
     <string name="fablesol_group_wave_shape">Forma de ola</string>

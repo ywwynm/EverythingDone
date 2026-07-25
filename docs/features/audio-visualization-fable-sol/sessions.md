@@ -3566,3 +3566,106 @@ L3 218/218、L8 146/146 = 100%）证实遮挡；最后发现 Android 的 `writeD
 `|∇depth01|` 换成真实法向距离场，两端同步，并补上漏掉的横向位移分量。用户裁决不动
 水位（九层基准高度 95% 时刻反序的根治方案因 p95 14dp/最坏 33dp 的水位位移被否决）。
 阿里云发布号 202607250524。改动未提交。
+
+## 2026-07-25 定位新特效掉帧根因：rim 距离场的 ART 运行时锁车队（真机 simpleperf）
+
+- 症状：银丝/星芒/眩光三提交后，真机 work 5.3→20.8ms、约 48fps；触摸保持 grid 8.3 也
+  只有 50 上下，纯 CPU 受限。HUD sheen 段 11.5ms 与代码量级完全对不上。
+- 给 Timing/monitor/HUD 增加 rim（法向距离场）与 star（星芒扫描）两个细分字段后，
+  9018f404（OPD2515，SDK 36）实测：**rim p50=11.25ms**、sheen 滤波本身 0.197ms（与旧
+  基线一致）、star 1.23/2.9ms、optics.build 0.83ms——11ms 全部在
+  `writeRimContourDistance` 一个函数里，而它只有 18816 次迭代。
+- simpleperf 定因：GL 线程 37.5%、worker 47% 的采样落在 `art::Mutex::ExclusiveLock`，
+  另有 27% CAS、4% Generic JNI 跳板与 `Jit::MaybeEnqueueCompilation`。逐迭代的
+  `kotlin.math.sqrt` 库调用在 debuggable ART 下走运行时慢速通道，四个线程在同一把
+  运行时锁上车队化——与 field 循环（无库调用，36ns/迭代）对照成立。桌面探针对此
+  结构性失明（与 cbrt 教训同类）。
+- 修复一（位级等价）：切向/法向只依赖（锚行, 列），按 (带, 列) 预计算一次（sqrt
+  18816→1568 次/帧），行循环内零库调用；新增 196×97 伪随机几何的逐位对拍测试。
+- 修复二（位级等价）：StarField.scanLayer 重排——先算 apex，`apex ≤ APEX_GATE_LO` 时
+  excess 精确为 0，提前跳过 valueNoise（4 sin）/sin/sqrt/三个 smoothstep。
+- 全量 :app:testDebugUnitTest 通过；真机 A/B 复测进行中。Python 侧同症状（含瞬时完全
+  卡死掉到十几 fps）由独立诊断 agent 并行定位，结论未回。
+
+追记（同日，真机 A/B）：修复后 9018f404 热态复测——rim 11.25→0.49ms（21 倍）、
+star 1.23→0.35ms、build 16.4→5.8~6.1ms、逐位对拍与全量 223 项测试通过。复测窗口
+环境音更吵（packets p50 3→5），sample/waves 相应偏高，属场景差异而非回归。该设备
+派发仍 16.6ms（60Hz 服务 + work 尚在 8.33 边缘）；手机端（骁龙旗舰、热态其余分段
+更低）预期回到 120 预算内，待用户装新包验证 HUD 的 rim/star/optics 三字段。若手机
+optics（现为纯 build，星芒已拆出）仍在 3ms 量级，则 GlOptics 逐列 sqrt/pow/exp
+（波背暗带 704 行、quad 装配 1010~1032 行）是同类锁车队候选，同样的预计算/外提
+手法可复制。改动未提交。
+
+追记（同日，Python 侧诊断结论）：独立 agent 以约 9 万帧仪表化 + 同帧配对 A/B 完成
+定因（报告归档于 Python 仓库 scratch/perf_regression_20260725/REPORT.md）。稳态回归
+= 三提交合计 +1.2~1.4ms/帧（星芒链 +0.93、法向距离场 +0.36 且银丝关闭也照付），全在
+CPU 提交侧，把整帧从 14.7 抬到 15.6~16.2ms 贴住 16.7 预算线；GPU 无回归。瞬时卡死与
+新特效无关：GC gen2 全程 0 次且与尖峰帧零重叠，一次性路径与分配全排除；确证来源是
+滑杆调色板冷推导 14.5~24ms/档（lighten_far 一次拖动扫 257 档）、启动首帧 55.5ms、
+偶发驱动级 GPU 同步停顿（捕获 1 次 218ms，12 分钟两臂对照不可归因新特效），再被
+0.1s 追赶钳制的 12 子步放大（+5.6ms）；fps 表 0.5s 窗口平均把单次停顿显示为
+38fps/十几 fps。修复候选：针表合批（-0.18ms）、rim 距离场按银丝开关门控（关闭场景
+-0.36ms）、空星帧跳眩光 pass（需逐位验证）、调色板推导向量化（消除滑杆卡顿）、
+追赶子步限幅（行为政策，待用户裁决）；rim 本体合批已证无收益。
+
+追记（同日，用户验收与新一轮任务）：用户确认手机端更新 202607250808 后已能跑满
+120fps，Android 掉帧回归就此定案。Python 侧用户实测推翻滑杆归因——静置不动也会
+偶发卡死；诊断 agent 已带新任务书重启：真实窗口 GUI（D3D11/scRGB present + Qt +
+音频 IPC）静置 ≥20 分钟 + 帧看门狗抓全线程栈定卡顿；落地用户批准的 ①针表合批
+②rim 按银丝门控（需先核星场是否消费分量 8）④调色板推导向量化（全部同值约束 +
+全量 pytest）；并继续挖稳态（hermite 重采样/sample/readback），目标真实 GUI 整帧
+稳定 <15ms。
+
+追记（同日晚，Python 侧最终定案）：真实窗口（D3D11 scRGB present + Qt + 音频 IPC）
+三轮约 35 分钟看门狗长跑（第三轮 Lose My Mind 全曲静音驱动），静置卡顿共 6 起，
+栈级归因：5 起为 qt-native（主线程停在 app.exec() 原生消息循环内，无任何 Python
+帧/GC/段位，合成器背压期间窗口消息与呈现被挂起）、1 起为 hdr_present._upload 的
+D3D11 staging Map/memmove COM 阻塞（唯一 >10s 僵死，发生在用户看电影的高合成器
+争用时段）；同期最小 raster 对照窗口 0 卡顿 → 归因收敛为本 App 的 HDR 呈现链与
+DWM 的交互，GC 假设彻底排除（gen2 全程 0 次）。滑杆冷推导是并存问题而非用户所见。
+修复方案（未动，待裁决）：waitable swapchain + 最大帧延迟 1 + 超时跳帧呈现、
+staging Map DO_NOT_WAIT + 双缓冲轮换、连续超时重建 swapchain——均不改帧内容。
+稳态：①针表合批 −0.15ms、②rim 按银丝门控（关闭场景 −0.36ms）、④调色板向量化
+（14.46→3.3ms/档）、⑥闪点容量早退（optics −0.96ms）已落地，帧级新旧全等 +
+pytest 361 全绿、未提交；⑤hermite gather 复用无收益已撤销。离屏整帧 p50 12.8ms，
+真实 GUI 管线吞吐口径 p50 11.7ms（显示间隔受 Qt 16ms 定时器约束 15.8ms）。剩余
+候选（有风险待裁决）：readback PBO 双缓冲（呈现滞后一帧语义）、sample 矩阵重排与
+sheen 合核（非逐位）。附带发现真 bug：input_calibration.py:170 零长块 sosfilt
+崩溃会杀死分析线程（超范围未修）。完整报告见 Python 仓库
+scratch/perf_regression_20260725/REPORT-final.md。
+
+追记（同日夜，Python 第二批落地定案）：present 链三项 + PBO 异步读回 + 零长块防御
+全部落地。hdr_present 改为 FLIP_DISCARD + FRAME_LATENCY_WAITABLE_OBJECT（探测失败
+自动回退普通链）、Present 前 20ms 超时等待、staging Map 改 DO_NOT_WAIT + 双块轮换
+（双忙跳帧、屏幕保持上一帧）、连续跳帧 ≥30 自动重建 swapchain，跳帧/重建/回退全部
+计数进 diagnostics；hdr_compose 新增 compose_deferred（PBO 环 ×2，显示滞后一帧，
+首帧与 resize 后同步兜底），仅窗口显示分支切换，录制 capture_sdr 与 HDR 数值诊断
+保持当帧同步；input_calibration 空块透传且不动滤波器状态。验证：PBO 逐位（当帧与
+偏移一帧全等）、新旧树三配置帧级全等保持、pytest 363+26 全绿、git diff --check
+干净。修复后 21.7 分钟歌曲静音长跑：稳态 0 卡顿（修复前 35 分钟 6 起 + 1 次 >10s
+僵死）、skip/rebuild 均 0（防护激活待命未被触发）；诚实注记：0 卡顿含环境因素，
+结构性结论是两个实测挂死点已改为有超时、可跳帧、可自愈。两批合计 10 文件
++468/−66，未提交，待用户处置。sample 矩阵重排与 sheen 合核（非逐位）留作未来带
+数值门禁的独立批次。完整报告见 Python 仓库 scratch/perf_regression_20260725/
+REPORT-final-2.md。
+
+## 2026-07-25（尾）性能面板改设置开关并发布、单仓提交
+
+- 调参 Dialog 末尾新增 debug 专属"调试"组与「屏上性能面板」开关（默认关闭，
+  SharedPreferences `show_perf_hud`，独立于恢复默认；release 构建整组不出现）。
+  `WaveVisualizerFableSolHost.attachPerfHud` 改读该设置，删除 `SHOW_PERF_HUD` 常量；
+  关闭时 HUD 回调不注册、监控分位数格式化整段跳过。13 语言文案同步
+  （`fablesol_group_debug` / `fablesol_param_show_perf_hud`）。
+- 发布阿里云 debug `202607251018`（面板默认不显示），远端元数据逐项核对一致；
+  回填 memory/debug-update-notes.md 第二十六版。全量 :app:testDebugUnitTest
+  273 项、1 skip、0 失败。
+- 按用户指示提交 Android 仓库全部未提交改动（rim 锁车队修复 + 细分探针 + 面板
+  开关 + 发布记录与文档），Co-Authored-By 仅 Claude Fable 5。
+
+追记（同日，ripple 修正与重发）：用户指出性能面板行右侧 checkbox 的按压水波纹仍是
+系统默认半透明黑、未跟随当前渐变，撤回提交修正——checkbox 在 addView 后套
+`GradientRippleDrawable.applyCheckboxRipple`（圆形渐变纹、父容器关裁剪），
+`applyUiAccent` 的 checkbox 循环补 `updateBackground` 跟色（无渐变背景的普通
+checkbox 为空操作）。全量测试保持全绿；修正版已装 9018f404，用户目验通过。
+随后重发阿里云并按用户指示在 Android 与 Python 两仓分别提交
+（Co-Authored-By 仅 Claude Fable 5）。

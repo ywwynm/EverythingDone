@@ -969,6 +969,8 @@
     <string name="fablesol_group_silver_thread">Silver threads</string>
     <string name="fablesol_group_starburst">Starburst</string>
     <string name="fablesol_group_glints">Glints</string>
+    <string name="fablesol_group_debug">Debug</string>
+    <string name="fablesol_param_show_perf_hud">On-screen performance panel</string>
     <string name="fablesol_group_appearance">Appearance &amp; optics</string>
     <string name="fablesol_group_surface">Continuous surface</string>
     <string name="fablesol_group_wave_shape">Wave shape</string>

@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">Fils argentés</string>
     <string name="fablesol_group_starburst">Étoilement</string>
     <string name="fablesol_group_glints">Scintillements</string>
+    <string name="fablesol_group_debug">Débogage</string>
+    <string name="fablesol_param_show_perf_hud">Panneau de performances à l\'écran</string>
     <string name="fablesol_group_appearance">Apparence et optique</string>
     <string name="fablesol_group_surface">Surface continue</string>
     <string name="fablesol_group_wave_shape">Forme des vagues</string>

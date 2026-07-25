@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">Серебряные нити</string>
     <string name="fablesol_group_starburst">Звёздные лучи</string>
     <string name="fablesol_group_glints">Блики</string>
+    <string name="fablesol_group_debug">Отладка</string>
+    <string name="fablesol_param_show_perf_hud">Экранная панель производительности</string>
     <string name="fablesol_group_appearance">Внешний вид и оптика</string>
     <string name="fablesol_group_surface">Непрерывная поверхность</string>
     <string name="fablesol_group_wave_shape">Форма волн</string>

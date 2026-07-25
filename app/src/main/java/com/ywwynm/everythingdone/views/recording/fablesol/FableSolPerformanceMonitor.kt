@@ -138,6 +138,8 @@ internal class FableSolPerformanceMonitor(context: Context) {
         sheenNs: Long,
         colorNs: Long,
         opticsNs: Long,
+        rimNs: Long,
+        starNs: Long,
         audioFrames: Int,
         audioEvents: Int,
         packetCount: Int,
@@ -168,6 +170,8 @@ internal class FableSolPerformanceMonitor(context: Context) {
         glBuildWindows[6].add(audioEvents.toDouble())
         glBuildWindows[7].add(packetCount.toDouble())
         glBuildWindows[8].add(repairRows.toDouble())
+        glBuildWindows[9].add(rimNs / NS_PER_MS)
+        glBuildWindows[10].add(starNs / NS_PER_MS)
         glSampleWindows[0].add(samplePrepNs / NS_PER_MS)
         glSampleWindows[1].add(sampleFieldNs / NS_PER_MS)
         glSampleWindows[2].add(sampleLimitNs / NS_PER_MS)
@@ -286,6 +290,11 @@ internal class FableSolPerformanceMonitor(context: Context) {
             append(" color ").append(format1(glBuildWindows[3].percentile(50.0)))
             append(" optics ").append(format1(glBuildWindows[4].percentile(50.0)))
             append('/').append(format1(glBuildWindows[4].percentile(95.0)))
+            // 2026-07-25 掉帧排查：银丝法向距离场（rim）与星芒扫描（star）单列。
+            append(" rim ").append(format1(glBuildWindows[9].percentile(50.0)))
+            append('/').append(format1(glBuildWindows[9].percentile(95.0)))
+            append(" star ").append(format1(glBuildWindows[10].percentile(50.0)))
+            append('/').append(format1(glBuildWindows[10].percentile(95.0)))
             append('\n')
             append("prep ").append(format1(glSampleWindows[0].percentile(50.0)))
             append(" field ").append(format1(glSampleWindows[1].percentile(50.0)))
@@ -425,7 +434,7 @@ internal class FableSolPerformanceMonitor(context: Context) {
         val GL_PHYSICS_NAMES = arrayOf("steps", "bcLayers", "bc", "waves", "surface", "compose")
         val GL_BUILD_NAMES = arrayOf(
             "sample", "vertex", "sheen", "color", "optics", "hops", "events", "packets",
-            "repairRows"
+            "repairRows", "rim", "star"
         )
         val GL_SAMPLE_NAMES = arrayOf("prep", "field", "limit", "fair", "slope")
     }

@@ -39,6 +39,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val sheenNs: Long,
         val colorNs: Long,
         val opticsNs: Long,
+        // 2026-07-25 掉帧排查：银丝法向距离场与星芒 CPU 扫描单列，定位新特效成本。
+        val rimNs: Long,
+        val starNs: Long,
         val audioFrames: Int,
         val audioEvents: Int,
         val packetCount: Int,
@@ -79,6 +82,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var perfSheenNs = 0L
     private var perfColorNs = 0L
     private var perfOpticsNs = 0L
+    private var perfRimNs = 0L
+    private var perfStarNs = 0L
     private var perfAudioFrames = 0
     private var perfAudioEvents = 0
     /** 投影单调修复触发的行数；顶点填充在行并行区内，故用原子计数。 */
@@ -437,6 +442,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             perfSheenNs,
             perfColorNs,
             perfOpticsNs,
+            perfRimNs,
+            perfStarNs,
             perfAudioFrames,
             perfAudioEvents,
             sim.surface2d.perfPacketCount,
@@ -849,9 +856,11 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
         // 分量 8：到本层上轮廓的法向距离。必须排在投影单调修复之后（x 已定稿）。
+        val rimStart = SystemClock.elapsedRealtimeNanos()
+        perfSheenNs = rimStart - sheenStart
         FableSolGlMeshLayout.writeRimContourDistance(
             vertexData, FableSolContinuousSurface.Z_ROWS, columns)
-        perfSheenNs = SystemClock.elapsedRealtimeNanos() - sheenStart
+        perfRimNs = SystemClock.elapsedRealtimeNanos() - rimStart
         // D156 v17 银丝太阳柱：row 0 可见跨度（与 Python crest_rim_x0/span 一比一）。
         crestRimX0Px = vertexData[0]
         crestRimSpanPx = (vertexData[(columns - 1) *
@@ -947,6 +956,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // D217：星振幅随银丝实际超白同步——银丝 shader 端超白 =
         // 标定超白 × excessScale × hdrGain，星芒出射振幅乘同一比值
         // （下限 1 = SDR/低强度锚定在标定观感，绝不暗于既有画面）。
+        val starStart = SystemClock.elapsedRealtimeNanos()
+        perfOpticsNs = starStart - opticsStart
         starField.update(
             sim,
             params,
@@ -960,7 +971,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             layerSubsurfaceStart,
             hdrAmplitudeScale = max(1.0, hdrExcessScale.toDouble() * hdrGain)
         )
-        perfOpticsNs = SystemClock.elapsedRealtimeNanos() - opticsStart
+        perfStarNs = SystemClock.elapsedRealtimeNanos() - starStart
     }
 
     private fun buildColors(fillBottom: Double) {

@@ -274,9 +274,18 @@ internal class FableSolStarField(private val density: Double) {
             val y = waterVertices[offset + 1].toDouble()
             val sheenX =
                 waterVertices[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET].toDouble()
+            val prominence = (meanY - y) / range
+            val flatTop = 1.0 - smoothstep(0.03, 0.30, abs(sheenX))
+            val lifted = smoothstep(0.05, 0.35, prominence)
+            val x01 = ((x - crestRimX0Px) / span).coerceIn(0.0, 1.0)
+            val columnDelta = (x01 - center) / halfWidth
+            val apex = flatTop * lifted * exp(-0.5 * columnDelta * columnDelta)
+            // apex ≤ 门限下沿时 smoothstep 精确为 0 → excess 恒为 0（数组已预清零），
+            // 提前跳过本列剩余的 valueNoise（4 次 sin）、sin、sqrt 与三个 smoothstep。
+            // 与完整计算逐位一致（0.0 == 0.0）；不平坦/未抬升/窗边列全部走此捷径。
+            if (apex <= APEX_GATE_LO) continue
             val sheenZ =
                 waterVertices[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET].toDouble()
-            val prominence = (meanY - y) / range
             val crestGate = 0.55 + 0.45 * smoothstep(0.0, 0.18, prominence)
             val knotMix = if (slideDepth > 1e-4) {
                 val u01 = (x - slidePhasePx) / (360.0 * density)
@@ -290,11 +299,6 @@ internal class FableSolStarField(private val density: Double) {
             val normalX = -sheenX / sqrt(1.0 + sheenX * sheenX + sheenZ * sheenZ)
             val alignRaw = (0.5 + 1.1 * sunSide * normalX).coerceIn(0.0, 1.0)
             val align = smoothstep(0.40, 0.82, alignRaw)
-            val flatTop = 1.0 - smoothstep(0.03, 0.30, abs(sheenX))
-            val lifted = smoothstep(0.05, 0.35, prominence)
-            val x01 = ((x - crestRimX0Px) / span).coerceIn(0.0, 1.0)
-            val columnDelta = (x01 - center) / halfWidth
-            val apex = flatTop * lifted * exp(-0.5 * columnDelta * columnDelta)
             val radiance = 1.0 + peakBoost * body * (align + 2.2 * apex)
             val apexGate = smoothstep(APEX_GATE_LO, APEX_GATE_HI, apex)
             excess[column] = max(radiance - layerThreshold, 0.0) * apexGate

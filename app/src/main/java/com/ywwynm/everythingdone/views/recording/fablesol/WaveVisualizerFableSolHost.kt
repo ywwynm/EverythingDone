@@ -71,12 +71,13 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
      * 免去为了读一次帧率而拉设备日志。release 构建里 [BuildConfig.DEBUG] 为常量 false，
      * 整段会被 R8 消除。
      *
-     * 性能定位阶段结束后默认隐藏（[SHOW_PERF_HUD]）；监控与 perf 文件日志照常工作，
-     * 需要屏幕读数时把开关改回 true 即可。
+     * 是否显示由设置里波浪调参 Dialog 末尾的开关决定（[FableSolTuning.isPerfHudEnabled]，
+     * 默认关闭）；关闭时 HUD 回调不注册，监控的分位数格式化也随之整段跳过，
+     * perf 文件日志照常工作。
      */
     private fun attachPerfHud(monitor: FableSolPerformanceMonitor?) {
-        if (!BuildConfig.DEBUG || !SHOW_PERF_HUD) return
-        if (monitor == null) {
+        if (!BuildConfig.DEBUG) return
+        if (monitor == null || !FableSolTuning.isPerfHudEnabled(context)) {
             perfHud?.let(::removeView)
             perfHud = null
             return
@@ -208,8 +209,6 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         const val INTRINSIC_W_DP = 280f
         const val INTRINSIC_H_DP = 420f
         const val PREPARED_PRESENTATION_ALPHA = 0.16f
-        /** 屏幕内帧率 HUD 开关；性能定位轮结束后默认隐藏，需要时改回 true。 */
-        const val SHOW_PERF_HUD = false
         const val HUD_TEXT_SP = 8f
         val HUD_BACKGROUND = Color.argb(150, 0, 0, 0)
         val HUD_FOREGROUND = Color.argb(255, 120, 255, 160)

@@ -155,4 +155,68 @@ class FableSolGlMeshLayoutTest {
         assertEquals(1.0, FableSolGlOpticalBlendPolicy.resultingAlpha(1.0), 0.0)
     }
 
+    @Test
+    fun `rim distance band-tangent fast path is bit-identical to the per-row reference`() {
+        // 2026-07-25 掉帧修复：切向/法向按 (带, 列) 预计算一次。此对拍把优化前的
+        // 逐行原式作为参考实现，在起伏+轨道扰动的伪随机几何上要求逐位相同。
+        val columns = 196
+        val rows = FableSolContinuousSurface.Z_ROWS
+        val rowsPerLayer = FableSolContinuousSurface.ROWS_PER_LAYER
+        val stride = FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+        val data = FloatArray(rows * columns * stride)
+        var seed = 0x2545F4914F6CDD1DL
+        fun nextFloat(): Float {
+            seed = seed xor (seed shl 13); seed = seed xor (seed ushr 7); seed = seed xor (seed shl 17)
+            return ((seed ushr 11).toDouble() / (1L shl 53).toDouble()).toFloat()
+        }
+        for (row in 0 until rows) {
+            for (column in 0 until columns) {
+                val base = (row * columns + column) * stride
+                data[base] = column * 1.6f + (nextFloat() - 0.5f) * 1.2f
+                data[base + 1] = 500f - row * 2f + (nextFloat() - 0.5f) * 9f
+            }
+        }
+        val reference = FloatArray(rows * columns)
+        run {
+            val lastColumn = columns - 1
+            for (row in 0 until rows - 1) {
+                val anchorBase = (row / rowsPerLayer + 1) * rowsPerLayer * columns
+                for (column in 0 until columns) {
+                    val columnPrev = (column - 1).coerceAtLeast(0)
+                    val columnNext = (column + 1).coerceAtMost(lastColumn)
+                    val columnSpan =
+                        if (columnNext == columnPrev) 1.0
+                        else (columnNext - columnPrev).toDouble()
+                    val aPrev = (anchorBase + columnPrev) * stride
+                    val aNext = (anchorBase + columnNext) * stride
+                    val alongX = (data[aNext] - data[aPrev]) / columnSpan
+                    val alongY = (data[aNext + 1] - data[aPrev + 1]) / columnSpan
+                    val norm = kotlin.math.sqrt(alongX * alongX + alongY * alongY)
+                        .coerceAtLeast(1e-6)
+                    val anchorOffset = (anchorBase + column) * stride
+                    val here = (row * columns + column) * stride
+                    val deltaX = data[here] - data[anchorOffset]
+                    val deltaY = data[here + 1] - data[anchorOffset + 1]
+                    reference[row * columns + column] =
+                        ((deltaX * -alongY + deltaY * alongX) / norm).toFloat()
+                }
+            }
+        }
+
+        FableSolGlMeshLayout.writeRimContourDistance(data, rows, columns)
+
+        for (row in 0 until rows - 1) {
+            for (column in 0 until columns) {
+                val actual = data[(row * columns + column) * stride +
+                    FableSolGlMeshLayout.RIM_DISTANCE_OFFSET]
+                val expected = reference[row * columns + column]
+                assertEquals(
+                    "row=$row col=$column",
+                    expected.toRawBits(),
+                    actual.toRawBits()
+                )
+            }
+        }
+    }
+
 }

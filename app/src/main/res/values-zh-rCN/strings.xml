@@ -953,6 +953,8 @@
     <string name="fablesol_group_silver_thread">银丝</string>
     <string name="fablesol_group_starburst">星芒</string>
     <string name="fablesol_group_glints">闪点</string>
+    <string name="fablesol_group_debug">调试</string>
+    <string name="fablesol_param_show_perf_hud">屏上性能面板</string>
     <string name="fablesol_group_appearance">外观与光学</string>
     <string name="fablesol_group_surface">连续水面</string>
     <string name="fablesol_group_wave_shape">浪形</string>

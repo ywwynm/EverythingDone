@@ -181,6 +181,8 @@ internal class FableSolGlRenderThread(
                         timing.sheenNs,
                         timing.colorNs,
                         timing.opticsNs,
+                        timing.rimNs,
+                        timing.starNs,
                         timing.audioFrames,
                         timing.audioEvents,
                         timing.packetCount,

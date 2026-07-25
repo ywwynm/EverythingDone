@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">銀糸</string>
     <string name="fablesol_group_starburst">スターバースト</string>
     <string name="fablesol_group_glints">きらめき</string>
+    <string name="fablesol_group_debug">デバッグ</string>
+    <string name="fablesol_param_show_perf_hud">画面上のパフォーマンスパネル</string>
     <string name="fablesol_group_appearance">外観と光学</string>
     <string name="fablesol_group_surface">連続水面</string>
     <string name="fablesol_group_wave_shape">波形</string>

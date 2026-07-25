@@ -31,6 +31,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity
@@ -341,7 +342,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 }
             }
         }
-        for (checkBox in mAccentCheckBoxes) BackgroundUtil.applyCheckboxAccent(checkBox, bg)
+        for (checkBox in mAccentCheckBoxes) {
+            BackgroundUtil.applyCheckboxAccent(checkBox, bg)
+            // 带圆形渐变 ripple 的指示 checkbox（性能面板行）同步换色；
+            // 背景不是 GradientRippleDrawable 的普通 checkbox 此处为空操作。
+            (checkBox.background as? GradientRippleDrawable)?.updateBackground(bg)
+        }
         for (row in mAccentRippleRows) {
             (row.background as? GradientRippleDrawable)?.updateBackground(bg)
         }
@@ -466,6 +472,51 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 )
             }
         }
+        // debug 专属的调试组固定排在所有参数组之后；release 构建整段不出现。
+        if (BuildConfig.DEBUG) {
+            container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_debug)))
+            container.addView(makePerfHudRow(ctx))
+        }
+    }
+
+    /**
+     * 屏上性能面板开关（默认关闭）。它是调试工具偏好而非波浪参数：不进
+     * [FableSolTuning.GROUPS] 目录、不参与"恢复默认"，只在下一次打开录音
+     * Dialog 时生效（面板宿主在那边按存储值挂载）。
+     */
+    private fun makePerfHudRow(ctx: Context): View {
+        val row = LinearLayout(ctx)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.setPadding(dp(20f), 0, dp(20f), 0)
+        row.minimumHeight = dp(48f)
+        row.background = GradientRippleDrawable(
+            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
+        )
+        mAccentRippleRows.add(row)
+
+        val tvLabel = TextView(ctx)
+        tvLabel.text = getString(R.string.fablesol_param_show_perf_hud)
+        tvLabel.textSize = 13f
+        tvLabel.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        )
+        val checkBox = CheckBox(ctx)
+        checkBox.isChecked = FableSolTuning.isPerfHudEnabled(ctx)
+        checkBox.isClickable = false
+        checkBox.isFocusable = false
+        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
+        mAccentCheckBoxes.add(checkBox)
+        checkBox.setOnCheckedChangeListener { _, checked ->
+            FableSolTuning.setPerfHudEnabled(ctx, checked)
+        }
+        row.addView(tvLabel)
+        row.addView(checkBox)
+        // 圆形渐变 ripple 替换系统默认的半透明黑波纹；必须在 addView 之后调用，
+        // 它要顺带关掉父容器的裁剪。换色跟随见 applyUiAccent。
+        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
+        row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
+        return row
     }
 
     private fun makeGroupHeader(ctx: Context, title: String): View {

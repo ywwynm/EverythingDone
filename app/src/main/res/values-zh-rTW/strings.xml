@@ -772,6 +772,8 @@
     <string name="fablesol_group_silver_thread">銀絲</string>
     <string name="fablesol_group_starburst">星芒</string>
     <string name="fablesol_group_glints">閃點</string>
+    <string name="fablesol_group_debug">偵錯</string>
+    <string name="fablesol_param_show_perf_hud">螢幕效能面板</string>
     <string name="fablesol_group_appearance">外觀與光學</string>
     <string name="fablesol_group_surface">連續水面</string>
     <string name="fablesol_group_wave_shape">浪形</string>

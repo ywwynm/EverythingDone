@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">चांदी के धागे</string>
     <string name="fablesol_group_starburst">तारा किरणें</string>
     <string name="fablesol_group_glints">चमक बिंदु</string>
+    <string name="fablesol_group_debug">डीबग</string>
+    <string name="fablesol_param_show_perf_hud">स्क्रीन पर प्रदर्शन पैनल</string>
     <string name="fablesol_group_appearance">रूप और प्रकाशिकी</string>
     <string name="fablesol_group_surface">सतत सतह</string>
     <string name="fablesol_group_wave_shape">लहर का आकार</string>

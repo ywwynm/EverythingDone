@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">Silberfäden</string>
     <string name="fablesol_group_starburst">Sternenstrahlen</string>
     <string name="fablesol_group_glints">Glitzerpunkte</string>
+    <string name="fablesol_group_debug">Debug</string>
+    <string name="fablesol_param_show_perf_hud">Leistungsanzeige auf dem Bildschirm</string>
     <string name="fablesol_group_appearance">Aussehen &amp; Optik</string>
     <string name="fablesol_group_surface">Kontinuierliche Oberfläche</string>
     <string name="fablesol_group_wave_shape">Wellenform</string>

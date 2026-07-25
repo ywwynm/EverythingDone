@@ -506,6 +506,8 @@
     <string name="fablesol_group_silver_thread">은실</string>
     <string name="fablesol_group_starburst">스타버스트</string>
     <string name="fablesol_group_glints">반짝임</string>
+    <string name="fablesol_group_debug">디버그</string>
+    <string name="fablesol_param_show_perf_hud">화면 성능 패널</string>
     <string name="fablesol_group_appearance">외관 및 광학</string>
     <string name="fablesol_group_surface">연속 수면</string>
     <string name="fablesol_group_wave_shape">파형</string>

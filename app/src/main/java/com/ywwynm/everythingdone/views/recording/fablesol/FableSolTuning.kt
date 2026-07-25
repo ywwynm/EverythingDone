@@ -157,6 +157,7 @@ object FableSolTuning {
     /** D157 时代的布尔开关，仅作迁移来源；写入新强度时一并删除。 */
     private const val KEY_HDR_ENABLED = "hdr_enabled"
     private const val KEY_HDR_STRENGTH = "hdr_strength"
+    private const val KEY_SHOW_PERF_HUD = "show_perf_hud"
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -272,4 +273,15 @@ object FableSolTuning {
     /** 录音态 HDR 门控便捷判断：强度高于 1.0 才请求 HDR。 */
     fun isHdrEnabled(context: Context): Boolean =
         hdrStrength(context) > FableSolHdrPolicy.STRENGTH_OFF
+
+    /**
+     * debug 构建的屏上性能面板开关；默认关闭，独立于"恢复默认"（它是调试工具偏好，
+     * 不是波浪参数）。release 构建不读它——HUD 整段被 BuildConfig.DEBUG 编译期移除。
+     */
+    fun isPerfHudEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SHOW_PERF_HUD, false)
+
+    fun setPerfHudEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SHOW_PERF_HUD, enabled).apply()
+    }
 }

@@ -73,6 +73,12 @@ internal object FableSolGlMeshLayout {
      * 需要的正是本带带高，与存储值一致。与 Python
      * `gl_scene._rim_contour_distance` 一比一。
      */
+    // 按 (带, 列) 预计算的锚行切向/法向长度。单一 GL 线程调用者，跨帧复用；
+    // 列数变化时按需扩容。
+    private var rimAlongX = DoubleArray(0)
+    private var rimAlongY = DoubleArray(0)
+    private var rimNorm = DoubleArray(0)
+
     fun writeRimContourDistance(vertexData: FloatArray, rows: Int, columns: Int) {
         require(rows >= 2 && columns >= 2)
         val stride = COMPONENTS_PER_VERTEX
@@ -83,28 +89,54 @@ internal object FableSolGlMeshLayout {
         for (column in 0 until columns) {
             vertexData[(lastAnchorBase + column) * stride + RIM_DISTANCE_OFFSET] = 0f
         }
+        // 切向、法向长度只依赖 (锚行, 列)，同一锚行被带内 12 行共享。原实现逐行
+        // 重复计算，每帧 18816 次 sqrt——debuggable ART 下这是逐次穿越运行时慢速
+        // 通道的库调用，2026-07-25 真机 simpleperf 实测四个线程全部收敛在
+        // art::Mutex::ExclusiveLock 上（GL 线程 37.5%、worker 47%），单这一个
+        // 函数 11.25ms。现按 (带, 列) 预计算一遍（1568 次），行循环内不再有任何
+        // 库调用。预计算与原式同输入、同运算、同顺序，最终写入逐位一致。
+        val bandCount = (rows - 1) / rowsPerLayer
+        val tangentCount = bandCount * columns
+        if (rimNorm.size < tangentCount) {
+            rimAlongX = DoubleArray(tangentCount)
+            rimAlongY = DoubleArray(tangentCount)
+            rimNorm = DoubleArray(tangentCount)
+        }
+        val alongXs = rimAlongX
+        val alongYs = rimAlongY
+        val norms = rimNorm
+        for (band in 0 until bandCount) {
+            val anchorBase = (band + 1) * rowsPerLayer * columns
+            val tangentBase = band * columns
+            for (column in 0 until columns) {
+                val columnPrev = (column - 1).coerceAtLeast(0)
+                val columnNext = (column + 1).coerceAtMost(lastColumn)
+                val columnSpan =
+                    if (columnNext == columnPrev) 1.0
+                    else (columnNext - columnPrev).toDouble()
+                val aPrev = (anchorBase + columnPrev) * stride
+                val aNext = (anchorBase + columnNext) * stride
+                // 轮廓切向（x 递增方向）；差分规则与 np.gradient 一比一。
+                val alongX = (vertexData[aNext] - vertexData[aPrev]) / columnSpan
+                val alongY = (vertexData[aNext + 1] - vertexData[aPrev + 1]) / columnSpan
+                // 左法向 n = (−alongY, alongX)/|along|；alongX>0 且轮廓水平时
+                // n=(0,1)，指向屏幕下方＝水体内侧，故内侧为正。相邻列的 x 间距是
+                // 网格常量（约 1.6px），norm 不会接近 0。
+                alongXs[tangentBase + column] = alongX
+                alongYs[tangentBase + column] = alongY
+                norms[tangentBase + column] = kotlin.math.sqrt(alongX * alongX + alongY * alongY)
+                    .coerceAtLeast(1e-6)
+            }
+        }
         // 单次并行调度覆盖 row 0..rows−2：row 所属层带由 row/ROWS_PER_LAYER+1 得出
         // （row 12 属于带 2，距离量到 row 24），逐层各调一次会付 8 份调度开销。
         FableSolRowParallel.run(rows - 1) { startRow, endRow ->
             for (row in startRow until endRow) {
-                val anchorBase = (row / rowsPerLayer + 1) * rowsPerLayer * columns
+                val band = row / rowsPerLayer
+                val anchorBase = (band + 1) * rowsPerLayer * columns
+                val tangentBase = band * columns
                 val rowBase = row * columns
                 for (column in 0 until columns) {
-                    val columnPrev = (column - 1).coerceAtLeast(0)
-                    val columnNext = (column + 1).coerceAtMost(lastColumn)
-                    val columnSpan =
-                        if (columnNext == columnPrev) 1.0
-                        else (columnNext - columnPrev).toDouble()
-                    val aPrev = (anchorBase + columnPrev) * stride
-                    val aNext = (anchorBase + columnNext) * stride
-                    // 轮廓切向（x 递增方向）；差分规则与 np.gradient 一比一。
-                    val alongX = (vertexData[aNext] - vertexData[aPrev]) / columnSpan
-                    val alongY = (vertexData[aNext + 1] - vertexData[aPrev + 1]) / columnSpan
-                    // 左法向 n = (−alongY, alongX)/|along|；alongX>0 且轮廓水平时
-                    // n=(0,1)，指向屏幕下方＝水体内侧，故内侧为正。相邻列的 x 间距是
-                    // 网格常量（约 1.6px），norm 不会接近 0。
-                    val norm = kotlin.math.sqrt(alongX * alongX + alongY * alongY)
-                        .coerceAtLeast(1e-6)
                     val anchorOffset = (anchorBase + column) * stride
                     val here = (rowBase + column) * stride
                     // 必须取完整法向投影：orbit_x 让同一列索引的相邻行也有横向位移，
@@ -112,7 +144,9 @@ internal object FableSolGlMeshLayout {
                     val deltaX = vertexData[here] - vertexData[anchorOffset]
                     val deltaY = vertexData[here + 1] - vertexData[anchorOffset + 1]
                     vertexData[here + RIM_DISTANCE_OFFSET] =
-                        ((deltaX * -alongY + deltaY * alongX) / norm).toFloat()
+                        ((deltaX * -alongYs[tangentBase + column] +
+                            deltaY * alongXs[tangentBase + column]) /
+                            norms[tangentBase + column]).toFloat()
                 }
             }
         }

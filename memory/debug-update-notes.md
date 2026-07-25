@@ -1,5 +1,62 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - 性能面板开关 ripple 修正并重发（第二十七版）
+
+用户指出开关行右侧 checkbox 的按压水波纹未跟随当前渐变（仍为系统默认半透明黑），
+撤回提交修正：checkbox 在 addView 后套 `GradientRippleDrawable.applyCheckboxRipple`
+（圆形渐变纹 + 父容器关裁剪），`applyUiAccent` 的 checkbox 循环补 `updateBackground`
+跟色（无渐变背景的普通 checkbox 为空操作）。修正版先装 9018f404 经用户目验通过后
+重发，取代 202607251018。
+
+发布号 202607251030（versionCode 43），APK 21098013 bytes，
+SHA-256 bbe7660ea9b5ca749c8ab150dae0a5a3f2b86b58db0584b7011100fe1d530d27。
+远端 latest.json 元数据与说明（246 字符）已核对一致。
+
+
+## 2026-07-25 - 性能面板改设置开关，默认关闭（第二十六版）
+
+调参 Dialog 末尾新增 debug 专属"调试"组：「屏上性能面板」开关（SharedPreferences
+`show_perf_hud`，默认 false，独立于恢复默认），`WaveVisualizerFableSolHost.attachPerfHud`
+改读该设置并删除 `SHOW_PERF_HUD` 常量；关闭时 HUD 回调不注册、分位数格式化整段跳过。
+13 语言新增 `fablesol_group_debug` / `fablesol_param_show_perf_hud`。无视觉与水体行为
+改动。全量 :app:testDebugUnitTest 全绿。
+
+发布号 202607251018（versionCode 43），APK 21098013 bytes，
+SHA-256 921bd0df78bc5d783adc0052b31666bf1bc523c6ea6a1a97e38cc9bd737f0555。
+远端 latest.json 的 debugUpdateCode / sha256 / sizeBytes / releaseNotes（243 字符）
+已逐项核对一致。
+
+
+## 2026-07-25 - 修复银丝/星芒掉帧：rim 距离场按带预计算（第二十五版）
+
+真机 simpleperf 定因：`writeRimContourDistance` 每帧 18816 次 `kotlin.math.sqrt`
+在 debuggable ART 下走 Generic JNI 慢速通道并触发 JIT 反复入队，GL 线程 37.5%、
+行 worker 47% 的采样落在 `art::Mutex::ExclusiveLock`（四线程锁车队）——单段
+11.25ms，即近几版 120→50fps 的主因。修复均位级等价：①切向/法向按（带, 列）预
+计算（sqrt 18816→1568 次/帧），行循环零库调用，OPD2515 实测 11.25→0.49ms（21 倍）、
+带 196×97 逐位对拍测试；②星芒扫描 apex 门提前剪枝，1.23→0.35ms。HUD 第五行新增
+rim/star 字段，optics 改为纯光学实体构建。无视觉改动。全量 :app:testDebugUnitTest
+通过（223+1 项）。
+
+发布号 202607250808（versionCode 43），APK 21096141 bytes，
+SHA-256 abc3789a9ea5ee534f4e6c660b92477171aed72ec88be4837e0d30a6ef3b7172。
+远端 latest.json 的 debugUpdateCode / sha256 / sizeBytes / releaseNotes（524 字符）
+已逐项核对一致。
+
+
+## 2026-07-25 - 打开屏上性能 HUD（第二十四版）
+
+`WaveVisualizerFableSolHost.SHOW_PERF_HUD` false→true，仅此一行。debug 版录音
+对话框顶部恢复显示 GL 分段耗时面板（fps / gl 间隔 p50p95 / hz+rr / vsync+skip /
+drain·phys·build·draw·swap / sample·vtx·sheen·color·optics / prep·field·fair·slope
+/ 物理步数）。release 由 BuildConfig.DEBUG 常量折叠消除；HUD 的分位数与格式化都在
+监控自己的 HandlerThread 上，不占 GL 线程。无视觉与功能改动。看完记得关回 false。
+
+发布号 202607250541（versionCode 43），APK 21096141 bytes，
+SHA-256 d69d737743a6141724857aca1b05648daa660aacdbbc181da498512b1d234e15。
+latest.json releaseNotes 已核对（313 字符）。
+
+
 ## 2026-07-25 - 银丝改用真实法向距离场（D221，第二十三版）
 
 用户在 D220 版上继续反馈"小矩形"，并猜测粗细变化 / Z 轴翻滚遮挡——**两个都对，
