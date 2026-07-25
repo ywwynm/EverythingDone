@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15 मिनट</string>
     <string name="custom">कस्टम</string>
     <string name="error_unsupported_file_type">असमर्थित फ़ाइल प्रकार</string>
+    <string name="error_play_audio_attachment">यह ऑडियो फ़ाइल नहीं चलाई जा सकती</string>
     <string name="error_cannot_add_from_network">इंटरनेट से अनुलग्नक नहीं जोड़ा जा सकता</string>
     <string name="alert_cannot_share_empty_thing">खाली चीज़ साझा नहीं कर सकते</string>
     <string name="alert_shortcut_no_upcoming">कोई आगामी बात नहीं</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">ऑडियो चलाएं</string>
     <string name="cd_pause_play_audio_attachment">ऑडियो चलाना रोकें</string>
     <string name="cd_stop_play_audio_attachment">ऑडियो चलाना बंद करें</string>
+    <string name="cd_play_previous_audio_attachment">पिछला ऑडियो चलाएँ</string>
+    <string name="cd_play_next_audio_attachment">अगला ऑडियो चलाएँ</string>
+    <string name="cd_seek_audio_attachment">ऑडियो की प्रगति</string>
     <string name="cd_delete_audio_attachment">इस ऑडियो अनुलग्नक को हटाएँ</string>
     <string name="cd_audio_attachment_info">ऑडियो फ़ाइल विवरण</string>
     <string name="cd_start_record_audio">रिकॉर्डिंग प्रारंभ करें</string>

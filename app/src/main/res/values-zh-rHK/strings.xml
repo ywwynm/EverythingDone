@@ -572,6 +572,7 @@
     <string name="custom">自定義</string>
 
     <string name="error_unsupported_file_type">不支援的檔案類型</string>
+    <string name="error_play_audio_attachment">無法播放這個音訊檔案</string>
     <string name="error_cannot_add_from_network">無法新增網絡檔案</string>
 
     <string name="alert_cannot_share_empty_thing">無法分享空白記事</string>
@@ -1161,6 +1162,9 @@
     <string name="cd_play_audio_attachment">播放音訊檔案</string>
     <string name="cd_pause_play_audio_attachment">暫停音訊播放</string>
     <string name="cd_stop_play_audio_attachment">停止播放音訊</string>
+    <string name="cd_play_previous_audio_attachment">播放上一個音訊</string>
+    <string name="cd_play_next_audio_attachment">播放下一個音訊</string>
+    <string name="cd_seek_audio_attachment">音訊播放進度</string>
     <string name="cd_delete_audio_attachment">删除該音訊附件</string>
     <string name="cd_audio_attachment_info">查看該音訊附件詳細資訊</string>
 

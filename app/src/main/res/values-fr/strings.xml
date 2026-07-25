@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15 minutes</string>
     <string name="custom">personnalisé</string>
     <string name="error_unsupported_file_type">Type de fichier non pris en charge</string>
+    <string name="error_play_audio_attachment">Impossible de lire ce fichier audio</string>
     <string name="error_cannot_add_from_network">Impossible d\'ajouter une pièce jointe depuis Internet</string>
     <string name="alert_cannot_share_empty_thing">Impossible de partager une chose vide</string>
     <string name="alert_shortcut_no_upcoming">Rien à venir</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">Lire du son</string>
     <string name="cd_pause_play_audio_attachment">Suspendre la lecture audio</string>
     <string name="cd_stop_play_audio_attachment">Arrêter la lecture audio</string>
+    <string name="cd_play_previous_audio_attachment">Lire l\'audio précédent</string>
+    <string name="cd_play_next_audio_attachment">Lire l\'audio suivant</string>
+    <string name="cd_seek_audio_attachment">Progression de l\'audio</string>
     <string name="cd_delete_audio_attachment">Supprimer cette pièce jointe audio</string>
     <string name="cd_audio_attachment_info">Détails du fichier audio</string>
     <string name="cd_start_record_audio">Commencer l\'enregistrement</string>

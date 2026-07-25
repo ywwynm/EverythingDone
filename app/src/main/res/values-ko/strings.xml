@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15분</string>
     <string name="custom">관습</string>
     <string name="error_unsupported_file_type">지원되지 않는 파일 형식</string>
+    <string name="error_play_audio_attachment">이 오디오 파일을 재생할 수 없습니다</string>
     <string name="error_cannot_add_from_network">인터넷에서 첨부파일을 추가할 수 없습니다.</string>
     <string name="alert_cannot_share_empty_thing">빈 것을 공유할 수 없습니다</string>
     <string name="alert_shortcut_no_upcoming">예정된 내용 없음</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">오디오 재생</string>
     <string name="cd_pause_play_audio_attachment">오디오 재생 일시 중지</string>
     <string name="cd_stop_play_audio_attachment">오디오 재생 중지</string>
+    <string name="cd_play_previous_audio_attachment">이전 오디오 재생</string>
+    <string name="cd_play_next_audio_attachment">다음 오디오 재생</string>
+    <string name="cd_seek_audio_attachment">오디오 재생 위치</string>
     <string name="cd_delete_audio_attachment">이 오디오 첨부 파일 삭제</string>
     <string name="cd_audio_attachment_info">오디오 파일 세부정보</string>
     <string name="cd_start_record_audio">녹음 시작</string>

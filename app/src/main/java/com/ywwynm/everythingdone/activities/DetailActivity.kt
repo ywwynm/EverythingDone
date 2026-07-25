@@ -93,6 +93,7 @@ import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
+import com.ywwynm.everythingdone.fragments.AudioPlayDialogFragment
 import com.ywwynm.everythingdone.fragments.AudioRecordDialogFragment
 import com.ywwynm.everythingdone.fragments.CameraColorSamplingDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
@@ -2180,6 +2181,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             AddAttachmentDialogFragment.TAG,
             AlertDialogFragment.TAG,
             AttachmentInfoDialogFragment.TAG,
+            AudioPlayDialogFragment.TAG,
             AudioRecordDialogFragment.TAG,
             CameraColorSamplingDialogFragment.TAG,
             ChooserDialogFragment.TAG,

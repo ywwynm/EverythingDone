@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15 Minuten</string>
     <string name="custom">Brauch</string>
     <string name="error_unsupported_file_type">Nicht unterstützter Dateityp</string>
+    <string name="error_play_audio_attachment">Diese Audiodatei kann nicht abgespielt werden</string>
     <string name="error_cannot_add_from_network">Anhang aus dem Internet kann nicht hinzugefügt werden</string>
     <string name="alert_cannot_share_empty_thing">Ein leeres Ding kann nicht geteilt werden</string>
     <string name="alert_shortcut_no_upcoming">Keine bevorstehende Sache</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">Audio abspielen</string>
     <string name="cd_pause_play_audio_attachment">Unterbrechen Sie die Audiowiedergabe</string>
     <string name="cd_stop_play_audio_attachment">Hören Sie auf, Audio abzuspielen</string>
+    <string name="cd_play_previous_audio_attachment">Vorheriges Audio abspielen</string>
+    <string name="cd_play_next_audio_attachment">Nächstes Audio abspielen</string>
+    <string name="cd_seek_audio_attachment">Audio-Fortschritt</string>
     <string name="cd_delete_audio_attachment">Löschen Sie diesen Audioanhang</string>
     <string name="cd_audio_attachment_info">Details zur Audiodatei</string>
     <string name="cd_start_record_audio">Starten Sie die Aufnahme</string>

@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15 minuti</string>
     <string name="custom">personalizzato</string>
     <string name="error_unsupported_file_type">Tipo di file non supportato</string>
+    <string name="error_play_audio_attachment">Impossibile riprodurre questo file audio</string>
     <string name="error_cannot_add_from_network">Impossibile aggiungere allegati da Internet</string>
     <string name="alert_cannot_share_empty_thing">Non è possibile condividere una cosa vuota</string>
     <string name="alert_shortcut_no_upcoming">Nessuna cosa in arrivo</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">Riproduci l\'audio</string>
     <string name="cd_pause_play_audio_attachment">Metti in pausa la riproduzione dell\'audio</string>
     <string name="cd_stop_play_audio_attachment">Interrompi la riproduzione dell\'audio</string>
+    <string name="cd_play_previous_audio_attachment">Riproduci l\'audio precedente</string>
+    <string name="cd_play_next_audio_attachment">Riproduci l\'audio successivo</string>
+    <string name="cd_seek_audio_attachment">Avanzamento dell\'audio</string>
     <string name="cd_delete_audio_attachment">Elimina questo allegato audio</string>
     <string name="cd_audio_attachment_info">Dettagli del file audio</string>
     <string name="cd_start_record_audio">Inizia a registrare</string>

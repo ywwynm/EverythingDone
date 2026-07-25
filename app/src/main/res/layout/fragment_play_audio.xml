@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BaseDialogFragment 以 null parent 充气：根节点 layout_width/height 会被丢弃，
+     必须用 minWidth/minHeight 声明固有尺寸，否则 FrameLayout 叠层会塌到最高子项（按钮行 96dp）。
+     比 fragment_record_audio 高 30dp，多出来的高度留给进度滑杆；水体仍按 420dp 逻辑坐标
+     渲染，由 AudioPlayDialogFragment 的取景平移把水线按回与录音对话框相同的贴底位置。 -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="450dp"
+    android:minWidth="280dp"
+    android:minHeight="450dp">
+
+    <!-- 与录音对话框同一个可视化宿主：实时分析链，PCM 来自播放中的文件。 -->
+    <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
+        android:id="@+id/voice_visualizer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <TextView
+        android:id="@+id/tv_playing_audio_file_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginStart="20dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:ellipsize="middle"
+        android:gravity="center_horizontal"
+        android:singleLine="true"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="14sp"/>
+
+    <com.github.adnansm.timelytextview.TimelyClockView
+        android:id="@+id/clock_play_audio"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginStart="24dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginTop="52dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginRight="24dp"/>
+
+    <SeekBar
+        android:id="@+id/sb_audio_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginStart="20dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="100dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:contentDescription="@string/cd_seek_audio_attachment"
+        android:max="1000"/>
+
+    <!-- 三个走带控件都是裸 icon 按钮（无 FAB 悬浮面、无 elevation）：圆形涟漪与图标
+         颜色由 AudioPlayDialogFragment 按记事颜色装配。 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom|center_horizontal">
+
+        <ImageView
+            android:id="@+id/iv_play_previous_audio"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="@dimen/iv_fab_audio_margin"
+            android:layout_marginRight="@dimen/iv_fab_audio_margin"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/act_fablesol_previous"
+            android:contentDescription="@string/cd_play_previous_audio_attachment"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <ImageView
+            android:id="@+id/iv_play_main_action"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center_vertical"
+            android:padding="14dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/act_fablesol_pause"
+            android:contentDescription="@string/cd_pause_play_audio_attachment"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <ImageView
+            android:id="@+id/iv_play_next_audio"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/iv_fab_audio_margin"
+            android:layout_marginLeft="@dimen/iv_fab_audio_margin"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/act_fablesol_next"
+            android:contentDescription="@string/cd_play_next_audio_attachment"
+            android:clickable="true"
+            android:focusable="true"/>
+
+    </LinearLayout>
+
+</FrameLayout>

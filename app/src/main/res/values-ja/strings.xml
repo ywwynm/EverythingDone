@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15分</string>
     <string name="custom">カスタム</string>
     <string name="error_unsupported_file_type">サポートされていないファイル形式です</string>
+    <string name="error_play_audio_attachment">このオーディオファイルは再生できません</string>
     <string name="error_cannot_add_from_network">インターネットから添付ファイルを追加できない</string>
     <string name="alert_cannot_share_empty_thing">空のものは共有できない</string>
     <string name="alert_shortcut_no_upcoming">今後のことは何もない</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">オーディオを再生する</string>
     <string name="cd_pause_play_audio_attachment">オーディオの再生を一時停止する</string>
     <string name="cd_stop_play_audio_attachment">オーディオの再生を停止する</string>
+    <string name="cd_play_previous_audio_attachment">前のオーディオを再生する</string>
+    <string name="cd_play_next_audio_attachment">次のオーディオを再生する</string>
+    <string name="cd_seek_audio_attachment">オーディオの再生位置</string>
     <string name="cd_delete_audio_attachment">この音声添付ファイルを削除します</string>
     <string name="cd_audio_attachment_info">音声ファイルの詳細</string>
     <string name="cd_start_record_audio">録音を開始する</string>

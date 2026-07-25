@@ -751,6 +751,7 @@
     <string name="custom">自定义</string>
 
     <string name="error_unsupported_file_type">不支持的文件类型</string>
+    <string name="error_play_audio_attachment">无法播放这个音频文件</string>
     <string name="error_cannot_add_from_network">无法添加网络文件</string>
 
     <string name="alert_cannot_share_empty_thing">无法分享空白记事</string>
@@ -1356,6 +1357,9 @@
     <string name="cd_play_audio_attachment">播放音频文件</string>
     <string name="cd_pause_play_audio_attachment">暂停音频播放</string>
     <string name="cd_stop_play_audio_attachment">停止播放音频</string>
+    <string name="cd_play_previous_audio_attachment">播放上一个音频</string>
+    <string name="cd_play_next_audio_attachment">播放下一个音频</string>
+    <string name="cd_seek_audio_attachment">音频播放进度</string>
     <string name="cd_delete_audio_attachment">删除该音频附件</string>
     <string name="cd_audio_attachment_info">查看该音频附件详细信息</string>
 

@@ -3688,3 +3688,14 @@ checkbox 为空操作）。全量测试保持全绿；修正版已装 9018f404�
   开关"。
 - 默认档代码路径与常量完全等同改前，性能逐位不变；仅用户主动把银丝强度调到 0 时
   星芒扫描照常运行。顺带更正 Python 两个诊断脚本里已失效的 `norim`/"关星残余"文案。
+
+## 2026-07-25（再续）Voice Waveform 多出一处宿主：音频附件播放对话框
+
+详情页点音频附件卡片本身改为进入新的播放对话框，水体沿用同一个
+`WaveVisualizerFableSolHost` 与 `FableSolRealtimeAnalyzer(sr, PHONE_CAPTURE_V1)`，
+只是 PCM 来自新增的 `FableSolAudioFilePlayer`（MediaCodec 解码 → AudioTrack →
+按 `playbackHeadPosition` 以 512 样本一批喂入，保证声画同步），**不引入任何离线分析**。
+
+对 FableSol 本身零改动；CONTEXT.md 里 **Voice Waveform**「只出现在实时录音界面」与
+HDR「只有录音态」两条不变式已相应改写。详见
+[audio-attachment-playback](../audio-attachment-playback/README.md)。

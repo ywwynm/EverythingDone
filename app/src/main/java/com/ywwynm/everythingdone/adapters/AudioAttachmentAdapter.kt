@@ -15,6 +15,7 @@ import android.widget.ImageView
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.fragments.AudioPlayDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.DateTimeUtil
@@ -182,6 +183,28 @@ open class AudioAttachmentAdapter(
         holder.ivThird!!.background = GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = 0f)
     }
 
+    /**
+     * 点卡片本身 → FableSol 播放对话框（带水体动画、计时器与进度滑杆）；
+     * 右侧的播放/暂停按钮仍是原来的就地播放。两者不能同时出声，所以先停掉就地播放。
+     */
+    private fun openFableSolPlayer(position: Int) {
+        if (position < 0 || mTakingScreenshot) return
+        val activity = mActivity ?: return
+        if (mPlayingIndex != -1) {
+            val index = mPlayingIndex
+            stopPlaying()
+            notifyItemChanged(index)
+        }
+        val paths = ArrayList<String>(mItems!!.size)
+        var startIndex = 0
+        for ((i, item) in mItems!!.withIndex()) {
+            if (item == null) continue
+            if (i == position) startIndex = paths.size
+            paths.add(item.substring(1))
+        }
+        AudioPlayDialogFragment.show(activity.fragmentManager, paths, startIndex)
+    }
+
     private fun startPlaying(index: Int) {
         mPlayingIndex = index
         val typePathName = mItems!![index]
@@ -220,7 +243,7 @@ open class AudioAttachmentAdapter(
             setAudioIcon(ivThird, R.drawable.act_show_attachment_info)
 
             cv!!.setOnClickListener {
-                togglePlay()
+                openFableSolPlayer(adapterPosition)
             }
 
             ivThird!!.setOnClickListener {

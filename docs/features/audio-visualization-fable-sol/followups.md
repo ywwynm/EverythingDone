@@ -483,3 +483,14 @@
 比平坦处宽 41%。改成梯度模长可得各向同性的 1px 抗锯齿，但会让全部九条层界
 略微变锐，属于会改变既定观感的改动，D219 未一并处理。若后续用户反馈层界在陡
 坡处偏软/发虚，可作为单变量 A/B 的第一候选。
+
+## 离线分析在自定义 tuning 下多跑一遍因果前端（2026-07-25，问答中发现）
+
+`src/wavesim/audio/offline.py:481` 先无条件用**默认** tuning 跑一遍
+`_run_causal_front_end`，再在 `custom_tuning` 为真时用实际 tuning 重跑一遍；
+`base_causal_frames` / `base_causal_events` 只在 `custom_tuning` 为假时被复用，
+为真时整份结果直接丢弃（grep 确认无其他引用）。而拖动前端调参 slider 触发的
+`_reanalyze_loaded_audio` 正好总是自定义 tuning 路径，等于每次调参重算都白跑一
+遍整曲因果前端——那是离线分析里最贵的一段（29.77s 录音全量分析实测 7.28s）。
+改法：把默认那遍收进 `else` 分支，或直接只跑 `tuning` 一遍（不自定义时
+`tuning == default_tuning`，语义不变）。属纯性能项，不改任何数值输出。

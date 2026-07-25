@@ -764,6 +764,7 @@
     <string name="custom">custom</string>
 
     <string name="error_unsupported_file_type">Unsupported file type</string>
+    <string name="error_play_audio_attachment">Cannot play this audio file</string>
     <string name="error_cannot_add_from_network">Cannot add attachment from Internet</string>
 
     <string name="alert_cannot_share_empty_thing">Cannot share an empty thing</string>
@@ -1366,6 +1367,9 @@
     <string name="cd_play_audio_attachment">Play audio</string>
     <string name="cd_pause_play_audio_attachment">Pause playing audio</string>
     <string name="cd_stop_play_audio_attachment">Stop playing audio</string>
+    <string name="cd_play_previous_audio_attachment">Play previous audio</string>
+    <string name="cd_play_next_audio_attachment">Play next audio</string>
+    <string name="cd_seek_audio_attachment">Audio progress</string>
     <string name="cd_delete_audio_attachment">Delete this audio attachment</string>
     <string name="cd_audio_attachment_info">Audio file details</string>
 

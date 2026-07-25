@@ -343,6 +343,7 @@
     <string name="after_15_minutes">15 минут</string>
     <string name="custom">обычай</string>
     <string name="error_unsupported_file_type">Неподдерживаемый тип файла</string>
+    <string name="error_play_audio_attachment">Не удалось воспроизвести этот аудиофайл</string>
     <string name="error_cannot_add_from_network">Невозможно добавить вложение из Интернета</string>
     <string name="alert_cannot_share_empty_thing">Не могу поделиться пустой вещью</string>
     <string name="alert_shortcut_no_upcoming">Ничего предстоящего</string>
@@ -799,6 +800,9 @@
     <string name="cd_play_audio_attachment">Воспроизвести аудио</string>
     <string name="cd_pause_play_audio_attachment">Приостановить воспроизведение звука</string>
     <string name="cd_stop_play_audio_attachment">Остановить воспроизведение звука</string>
+    <string name="cd_play_previous_audio_attachment">Воспроизвести предыдущее аудио</string>
+    <string name="cd_play_next_audio_attachment">Воспроизвести следующее аудио</string>
+    <string name="cd_seek_audio_attachment">Ход воспроизведения аудио</string>
     <string name="cd_delete_audio_attachment">Удалить это аудиоприложение</string>
     <string name="cd_audio_attachment_info">Подробности об аудиофайле</string>
     <string name="cd_start_record_audio">Начать запись</string>

@@ -770,14 +770,25 @@ object DisplayUtil {
         setSeekBarBackground(seekBar, ThingBackground.pure(color))
     }
 
+    /**
+     * [inactiveTrackColor] 为未播/未选中那段轨道的颜色；默认 [R.color.app_chrome_on_surface_hint]
+     * 是给 App Chrome 面用的，压在彩色内容（如 FableSol 水体）上会偏深，这类调用方可以自己
+     * 传一个更淡的颜色，其余调用方行为不变。
+     */
     @JvmStatic
-    fun setSeekBarBackground(seekBar: SeekBar?, background: ThingBackground?) {
+    @JvmOverloads
+    fun setSeekBarBackground(
+            seekBar: SeekBar?,
+            background: ThingBackground?,
+            inactiveTrackColor: Int? = null
+    ) {
         if (seekBar == null) return
         val safeBackground = background ?: App.defaultAccentBackground
         seekBar.progressTintList = null
         seekBar.progressBackgroundTintList = null
         seekBar.secondaryProgressTintList = null
-        seekBar.progressDrawable = buildSeekBarProgressDrawable(seekBar, safeBackground)
+        seekBar.progressDrawable =
+                buildSeekBarProgressDrawable(seekBar, safeBackground, inactiveTrackColor)
         seekBar.thumb = buildSeekBarThumbDrawable(seekBar, safeBackground)
     }
 
@@ -801,7 +812,8 @@ object DisplayUtil {
 
     private fun buildSeekBarProgressDrawable(
             seekBar: SeekBar,
-            background: ThingBackground
+            background: ThingBackground,
+            inactiveTrackColor: Int? = null
     ): Drawable {
         val density = seekBar.resources.displayMetrics.density
         val trackHeight = max(2, (4f * density).toInt())
@@ -815,7 +827,7 @@ object DisplayUtil {
         return LayerDrawable(
                 arrayOf(
                         SeekBarTrackDrawable(
-                                ThingBackground.pure(ContextCompat.getColor(
+                                ThingBackground.pure(inactiveTrackColor ?: ContextCompat.getColor(
                                         seekBar.context,
                                         R.color.app_chrome_on_surface_hint
                                 )),

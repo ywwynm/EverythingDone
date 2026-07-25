@@ -1,5 +1,72 @@
 # Current Debug Update Notes
 
+## 2026-07-25 - 滑杆未播段再调淡（第三十八版）
+
+极性不动，`INACTIVE_TRACK_ALPHA_SCALE` 0.75 → 0.6（亮色 26%→16%、暗色 40%→24%）。
+
+发布号 202607251524（versionCode 43），APK 21108633 bytes，
+SHA-256 b5427423e24cba359a7e8a3dc6f440df8c963c00aba2bc0d20ea79479ea84fc0。
+releaseNotes 72 字符、单节。
+
+## 2026-07-25 - 滑杆未播段极性修正（第三十七版）
+
+上一版把播放对话框的滑杆未播段改成 `onColor(accentBg, 0.18f)`，用户实测"淡得根本看不到"。
+根因不是 alpha 太低，是**极性取错了**：滑杆压在水面**上方的天空**上，而天空 =
+主题的 `colorBackground` 与记事色 72%~84% 白化版混成（`FableSolGlRenderer.environmentBase`），
+**亮色主题的天空恒浅、暗色主题恒深，与记事颜色深浅无关**。深色/渐变记事在亮色主题下被
+`onColor` 判成"该用白"，白线画在浅色天空上直接消失。
+
+结论：**FableSol 场景里，压在水体上的元素按记事色取黑白（图标、涟漪），压在天空上的元素
+按主题取黑白。** 现在滑杆沿用 `app_chrome_on_surface_hint` 的极性、alpha 乘 0.75
+（亮色 26%→20%、暗色 40%→30%）。
+
+发布号 202607251511（versionCode 43），APK 21108633 bytes，
+SHA-256 d5490428745ee18996f8ed2ba7ad7e69976c686565f6f0d60db88813739c3edc。
+releaseNotes 194 字符、单节。
+
+## 2026-07-25 - 音频播放对话框首轮修复（第三十六版）
+
+真机反馈四条，全修。两个是播放态 bug：
+
+**收尾死等播放头会永久卡住**。原实现等 `playbackHeadPosition >= ringWrite` 才算放完，
+但末尾不足一个 HAL 缓冲的残帧未必被播出并计入播放头——在结尾附近暂停过一次尤其明显。
+现象是播放永不结束、按钮停在「暂停」图标，反复点播放/暂停才被踢动几帧。改为**播放头
+在非暂停状态下停滞 320ms 即判定放完**（暂停与 seek 都重置计时器，否则一次几秒的暂停会
+让恢复那一刻直接误判），并把剩余样本一次性补喂分析器。同时补上不变式「非暂停 ⇒
+AudioTrack 必须 PLAYING」，依据 `playState` 硬件态而非自己的 `mPlaying` 记账。
+
+**拖到结尾再点播放只闪一下**：一起播就 EOS。改为位置 ≥ 时长−250ms 或已播完时，
+按播放键从头重放当前这条；自动续播仍只由真正播完触发。
+
+另两条是配色：涟漪改 `installCircleRipple` + `adaptiveRippleColor`（按记事明暗取黑/白，
+不再用记事色本身）；滑杆未播段给 `DisplayUtil.setSeekBarBackground` 加可选第三参
+`inactiveTrackColor`（默认 null = 原行为，**其余滑杆零影响**），本对话框传
+`onColor(accentBg, 0.18f)`，比 App Chrome 的 hint 色淡。
+
+发布号 202607251455（versionCode 43），APK 21108633 bytes，
+SHA-256 4f82ba8eb6b681196c789242e06d8188e72d6a93fd897825f16a0db61f494dd2。
+releaseNotes 289 字符、单节。
+
+## 2026-07-25 - 音频附件播放对话框（第三十五版）
+
+详情页点音频附件**卡片本身**改为进入新的 FableSol 播放对话框（文件名 + TimelyClockView
+计时器 + 进度滑杆 + 上一曲/播放暂停/下一曲，播完按附件顺序续播）；右侧按钮的就地播放不变，
+两者互斥出声。新增 `FableSolAudioFilePlayer`（MediaCodec → AudioTrack → 按
+`playbackHeadPosition` 以 512 样本一批喂 `FableSolRealtimeAnalyzer`）与
+`AudioPlayDialogFragment`。**没有引入任何离线分析**，Android 侧也不具备该储备。
+
+两个坑：**喂分析器必须按已播出的采样位置**，按解码进度喂会让水面早于声音一整个 AudioTrack
+缓冲（约 100~200ms）；**FableSol 的模拟容器高度是写死的 420dp**（`FableSolSpec.HEIGHT_DP`，
+只有宽度运行期实测）且 `water.vert` 按 `uViewportPx * 0.5` 对齐视口中心，所以对话框加高到
+450dp 后水线会凭空上抬 (450−420)/2 = 15dp，必须用 `setContentVerticalOffsetDp(+15f)` 按回去。
+走带键按用户要求不用 FAB：裸 icon + `GradientRippleDrawable(shapeOval=true)` 记事色圆形涟漪，
+图标色走 `BackgroundUtil.onColor`（按记事明暗取黑/白）。
+
+**未真机验证**，验收点见 docs/features/audio-attachment-playback/followups.md。
+发布号 202607251430（versionCode 43），APK 21108633 bytes，
+SHA-256 b4bca2cbffb52fb19102c81fddfab578fe1bc1053660f12587a8ec3c1dd2245e。
+releaseNotes 336 字符、单节。
+
 ## 2026-07-25 - 繁体中文全量改用台港惯用词（第三十四版）
 
 两个繁体文件本是从简体轻度转换来的，底下压着大陆用词。全量扫描替换 236 行，完整对照表
