@@ -387,11 +387,20 @@ class FableSolGlShaderParityTest {
         return projectFile("shared/fablesol/glsl/$name")
     }
 
+    /**
+     * 读取仓库文件并把行尾规范化为 LF。
+     *
+     * 仓库的 `core.autocrlf=true`，工作区是 CRLF；本类有若干断言按 `"\n}\n"`
+     * 之类的换行模式切函数体，直接读原文会因行尾而失配（D221 踩到）。断言的都是
+     * shader 内容本身，与行尾无关，因此在入口统一规范化。
+     */
     private fun projectFile(relativePath: String): String {
         var directory = File(System.getProperty("user.dir") ?: ".").absoluteFile
         repeat(5) {
             val candidate = File(directory, relativePath)
-            if (candidate.isFile) return candidate.readText(Charsets.UTF_8)
+            if (candidate.isFile) {
+                return candidate.readText(Charsets.UTF_8).replace("\r\n", "\n")
+            }
             directory = directory.parentFile ?: return@repeat
         }
         error("找不到 $relativePath")

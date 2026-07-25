@@ -5,9 +5,15 @@ import kotlin.math.min
 /** OpenGL 连续水面静态索引布局；列数不变时可跨帧复用。 */
 internal object FableSolGlMeshLayout {
 
-    const val COMPONENTS_PER_VERTEX = 8
+    // 分量 8 是"到上方最近锚行（层轮廓）的法向距离"（未旋转水面空间，px）：银丝
+    // 直接消费这个真实距离——片元里的 dFdx/dFdy 逐三角形恒定会把窄银丝切成逐网格
+    // 四边形错位的小段（D220），而 depth01 换算又会被 orbit_z 的行挤压破坏（D221）。
+    // 与 Python gl_scene 的分量 8 一比一。
+    const val COMPONENTS_PER_VERTEX = 9
     const val SHEEN_SLOPE_X_OFFSET = 6
     const val SHEEN_SLOPE_Z_OFFSET = 7
+    /** 分量 8：到上方最近锚行（层轮廓）的法向距离，未旋转水面空间的 px（D221）。 */
+    const val RIM_DISTANCE_OFFSET = 8
     const val GROUP_COUNT = FableSolSpec.N_LAYERS - 1
     private const val MAX_UNSIGNED_SHORT_VERTEX_COUNT = 0x10000
 
@@ -46,6 +52,70 @@ internal object FableSolGlMeshLayout {
         }
         check(cursor == indices.size)
         return indices
+    }
+
+    /**
+     * 把"到上方最近锚行（层轮廓）的法向距离"写进每个顶点的分量 8（D221）。
+     *
+     * 银丝的宽度是屏幕尺度的量，因此这里给出真实法向距离，而不是由
+     * `insideDistance / |∇depth01|` 换算。那个换算有两重致命问题：一是它只在
+     * `|∇depth01|` 沿深度恒定时成立，而 `orbit_z` 的纵向轨道会挤压或拉开相邻行
+     * ——同一帧内"每 depth01 单位对应多少屏幕像素"实测从 24px 变到 200+px；二是
+     * 它要除雅可比行列式，而层带在波形起伏下可以极薄甚至倒转（实测层带屏幕高度
+     * 到过 −6.1px），此时 det→0 被钳到 1e-9、梯度爆到约 1e7，`distancePx` 变成
+     * 约 0，那一整列的层带高度上银丝全是峰值亮度，渲染成一个竖直亮块——亮块与
+     * 正常细线交替，就是用户看到的"一个个小矩形连在一起"。新算法只做减法与一次
+     * 沿列切向归一化，没有行列式、没有除以小量。
+     *
+     * 锚行同属相邻两个层带而只能存一个值：这里存"到它**上方**那个锚行的距离"
+     * （即更远那条带的带高）。绘制层带 L 时 `row L*ROWS_PER_LAYER` 需要的 0 由
+     * water.vert 按 `uStartLayer` 判定归零；`row (L−1)*ROWS_PER_LAYER` 作为下界
+     * 需要的正是本带带高，与存储值一致。与 Python
+     * `gl_scene._rim_contour_distance` 一比一。
+     */
+    fun writeRimContourDistance(vertexData: FloatArray, rows: Int, columns: Int) {
+        require(rows >= 2 && columns >= 2)
+        val stride = COMPONENTS_PER_VERTEX
+        val rowsPerLayer = FableSolContinuousSurface.ROWS_PER_LAYER
+        val lastColumn = columns - 1
+        // 最远锚行只可能作为最后一条带的上轮廓出现，vertex 会把它归零。
+        val lastAnchorBase = (rows - 1) * columns
+        for (column in 0 until columns) {
+            vertexData[(lastAnchorBase + column) * stride + RIM_DISTANCE_OFFSET] = 0f
+        }
+        // 单次并行调度覆盖 row 0..rows−2：row 所属层带由 row/ROWS_PER_LAYER+1 得出
+        // （row 12 属于带 2，距离量到 row 24），逐层各调一次会付 8 份调度开销。
+        FableSolRowParallel.run(rows - 1) { startRow, endRow ->
+            for (row in startRow until endRow) {
+                val anchorBase = (row / rowsPerLayer + 1) * rowsPerLayer * columns
+                val rowBase = row * columns
+                for (column in 0 until columns) {
+                    val columnPrev = (column - 1).coerceAtLeast(0)
+                    val columnNext = (column + 1).coerceAtMost(lastColumn)
+                    val columnSpan =
+                        if (columnNext == columnPrev) 1.0
+                        else (columnNext - columnPrev).toDouble()
+                    val aPrev = (anchorBase + columnPrev) * stride
+                    val aNext = (anchorBase + columnNext) * stride
+                    // 轮廓切向（x 递增方向）；差分规则与 np.gradient 一比一。
+                    val alongX = (vertexData[aNext] - vertexData[aPrev]) / columnSpan
+                    val alongY = (vertexData[aNext + 1] - vertexData[aPrev + 1]) / columnSpan
+                    // 左法向 n = (−alongY, alongX)/|along|；alongX>0 且轮廓水平时
+                    // n=(0,1)，指向屏幕下方＝水体内侧，故内侧为正。相邻列的 x 间距是
+                    // 网格常量（约 1.6px），norm 不会接近 0。
+                    val norm = kotlin.math.sqrt(alongX * alongX + alongY * alongY)
+                        .coerceAtLeast(1e-6)
+                    val anchorOffset = (anchorBase + column) * stride
+                    val here = (rowBase + column) * stride
+                    // 必须取完整法向投影：orbit_x 让同一列索引的相邻行也有横向位移，
+                    // 只按 Δy×cosθ 折算会漏掉 Δx 分量。
+                    val deltaX = vertexData[here] - vertexData[anchorOffset]
+                    val deltaY = vertexData[here + 1] - vertexData[anchorOffset + 1]
+                    vertexData[here + RIM_DISTANCE_OFFSET] =
+                        ((deltaX * -alongY + deltaY * alongX) / norm).toFloat()
+                }
+            }
+        }
     }
 }
 

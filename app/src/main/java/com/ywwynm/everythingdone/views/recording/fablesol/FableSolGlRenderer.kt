@@ -10,12 +10,14 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /** Stage 1 连续水面 GLES 渲染器。Simulation、采样与 GL 调用都只在独立 GL 线程执行。 */
 internal class FableSolGlRenderer(context: Context, private val density: Double) {
@@ -769,9 +771,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
                         FableSolDepthScatteringPolicy.crestPinch(orbitDerivative).toFloat()
                     sheenX[gridIndex] = slopeX
                     sheenZ[gridIndex] = slopeZ
-                    // 分量 6/7 是 sheen slope，滤波后由下面的写回循环无条件覆盖
-                    // 每一个顶点；这里的写入是死存储，只推进游标即可。
-                    cursor += 2
+                    // 分量 6/7 是 sheen slope、分量 8 是 |∇depth01|，都由下面的
+                    // 写回循环无条件覆盖每一个顶点；这里的写入是死存储，只推进
+                    // 游标即可。
+                    cursor += 3
                 }
 
                 // 透视与纵向轨道叠加后仍可能让一行投影 X 局部回折。扫描整行得到
@@ -845,6 +848,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET] = sheenSlopeX[vertex]
             vertexData[offset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET] = sheenSlopeZ[vertex]
         }
+        // 分量 8：到本层上轮廓的法向距离。必须排在投影单调修复之后（x 已定稿）。
+        FableSolGlMeshLayout.writeRimContourDistance(
+            vertexData, FableSolContinuousSurface.Z_ROWS, columns)
         perfSheenNs = SystemClock.elapsedRealtimeNanos() - sheenStart
         // D156 v17 银丝太阳柱：row 0 可见跨度（与 Python crest_rim_x0/span 一比一）。
         crestRimX0Px = vertexData[0]
@@ -870,27 +876,46 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         // D155：fill 宏观坡度 x 恒 0，闲置的 aSlope.y（slopeZ 分量）改运本列
         // 水面 y（上下两排同值），供片元按"水面下深度"做 Beer–Lambert 衰减；
         // 顶边另继承 row 0 的 sheen slope，迎光门在水线接缝处连续（底边 0）。
+        val stride = FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+        val lastColumn = columns - 1
         for (column in 0 until columns) {
-            val sourceOffset = column * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
+            val sourceOffset = column * stride
+            // fill 到第 0 层水线的法向距离（D221）：顶排恒 0（它就是轮廓），底排取
+            // 到底边的竖直跨度按轮廓法向折算。与 Python gl_scene 的 front 分量 8
+            // 一比一。
+            val topY = vertexData[sourceOffset + 1]
+            val spanY = (fillBottom - topY).coerceAtLeast(1.0)
+            val columnPrev = (column - 1).coerceAtLeast(0)
+            val columnNext = (column + 1).coerceAtMost(lastColumn)
+            val columnSpan =
+                if (columnNext == columnPrev) 1.0 else (columnNext - columnPrev).toDouble()
+            val dxdc = (vertexData[columnNext * stride] -
+                vertexData[columnPrev * stride]) / columnSpan
+            val dydc = (vertexData[columnNext * stride + 1] -
+                vertexData[columnPrev * stride + 1]) / columnSpan
+            // 底排与顶排同 x，位移纯竖直，法向投影退化为 Δy×|dx|/|(dx,dy)|。
+            val cosineTop = abs(dxdc) / sqrt(dxdc * dxdc + dydc * dydc).coerceAtLeast(1e-6)
             frontData[cursor++] = vertexData[sourceOffset]
-            frontData[cursor++] = vertexData[sourceOffset + 1]
+            frontData[cursor++] = topY
             frontData[cursor++] = 0f
-            frontData[cursor++] = vertexData[sourceOffset + 1]
+            frontData[cursor++] = topY
             frontData[cursor++] = 0f
             frontData[cursor++] = vertexData[sourceOffset + 5]
             frontData[cursor++] =
                 vertexData[sourceOffset + FableSolGlMeshLayout.SHEEN_SLOPE_X_OFFSET]
             frontData[cursor++] =
                 vertexData[sourceOffset + FableSolGlMeshLayout.SHEEN_SLOPE_Z_OFFSET]
+            frontData[cursor++] = 0f
             frontData[cursor++] = vertexData[sourceOffset]
             frontData[cursor++] = fillBottom.toFloat()
             frontData[cursor++] = 0f
-            frontData[cursor++] = vertexData[sourceOffset + 1]
+            frontData[cursor++] = topY
             // front fill 顶边使用 depth=0，向水体内部递减；fragment shader 据此构造 1px coverage。
             frontData[cursor++] = -1f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
             frontData[cursor++] = 0f
+            frontData[cursor++] = (spanY * cosineTop).toFloat()
         }
         frontFloatCount = cursor
         val colorStart = SystemClock.elapsedRealtimeNanos()
@@ -1590,6 +1615,8 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         GLES30.glVertexAttribPointer(3, 1, GLES30.GL_FLOAT, false, stride, 20)
         GLES30.glEnableVertexAttribArray(4)
         GLES30.glVertexAttribPointer(4, 2, GLES30.GL_FLOAT, false, stride, 24)
+        GLES30.glEnableVertexAttribArray(5)
+        GLES30.glVertexAttribPointer(5, 1, GLES30.GL_FLOAT, false, stride, 32)
     }
 
     private fun specifyOpticalVertexLayout() {

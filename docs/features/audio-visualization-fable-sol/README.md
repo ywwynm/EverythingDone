@@ -4,6 +4,12 @@
 链路移植进 EverythingDone，作为录音对话框的水波可视化。目标：视觉效果、物理效果
 一比一复刻原版；命名统一用 `FableSol` 后缀（对照现有 `Opus` 后缀）；现有 Opus 代码保留。
 
+## 本目录文档
+
+- `decisions.md` / `sessions.md` / `followups.md` / `preferences.md` — 决策、会话、遗留项与偏好
+- `on-device-perf-testing.md` — 实机性能测量方法
+- `rim-edge-testing.md` — 银丝沿轮廓连续性的测量方法（栅格相位相关判据、D219 基线数字、暗带排除性检查）
+
 ## 范围
 
 **移植**（原版纯数学核心 + 渲染，作者已注明是"Android 移植蓝本"）：

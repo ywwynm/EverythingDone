@@ -6,6 +6,10 @@ layout(location = 1) in vec2 aSlope;
 layout(location = 2) in float aDepth01;
 layout(location = 3) in float aCrestPinch;
 layout(location = 4) in vec2 aSheenSlope;
+// |∇depth01|（未旋转水面空间，1/px）：CPU 侧按雅可比解析求出的"相邻行沿轮廓
+// 法向垂直间距的倒数"。片元用它把 depth 差换算成到本层轮廓的垂直像素距离；
+// dFdx/dFdy 逐三角形恒定，会把窄银丝按网格四边形切成错位小段（D220）。
+layout(location = 5) in float aRimDistancePx;
 
 uniform vec2 uViewportPx;
 uniform float uRotationRad;
@@ -59,6 +63,7 @@ out float vThickness01;
 out float vThicknessSurface;
 out float vThicknessGlowWeight;
 out float vCrestRimWeight;
+out float vRimDistancePx;
 flat out int vFrontFill;
 
 float srgbToLinearChannel(float c) {
@@ -275,5 +280,13 @@ void main() {
         (layerMeanY - surfaceYPx) / max(uThicknessRangePx, 1.0) + nearBias;
     vThicknessGlowWeight = sampleLayerCurve(uThicknessGlowWeights, aDepth01);
     vCrestRimWeight = sampleLayerCurve(uCrestRimWeights, aDepth01);
+    // 到本层上轮廓的法向距离（D221）。位置变换是 rot(−θ)·pos·rasterScale，
+    // 等距旋转不改变长度，只需按同一缩放折算到屏幕像素。
+    // 锚行同属相邻两个层带、只能存一个值：CPU 存的是"到上方那个锚行的距离"，
+    // 因此本次 draw 把它当上轮廓时必须归零，当下界时存储值正是本带带高。
+    float anchorDepth = float(uStartLayer) / 8.0;
+    bool topContour = !uFrontFill &&
+        abs(aDepth01 - anchorDepth) < 0.5 / float(96);
+    vRimDistancePx = topContour ? 0.0 : aRimDistancePx * uRasterScale;
     vFrontFill = uFrontFill ? 1 : 0;
 }

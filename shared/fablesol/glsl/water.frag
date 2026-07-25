@@ -17,6 +17,7 @@ in float vThickness01;
 in float vThicknessSurface;
 in float vThicknessGlowWeight;
 in float vCrestRimWeight;
+in float vRimDistancePx;
 flat in int vFrontFill;
 
 uniform sampler2D uPreWaterScene;
@@ -190,27 +191,57 @@ float thicknessExcessMask(vec3 normal) {
 // 光晕铺展在细线上形成"打结"般的光斑，不好看。顶点强调只走能量
 // （调用方按 apex01 做亮度渐变），线的粗细与光晕形状全程不变。
 float crestRimProfile() {
-    // 到本层上轮廓（自身剪影）的屏幕像素距离，与 waterEdgeCoverage 同源。
-    float insideDistance = vFrontFill == 1
-        ? -vDepth01
-        : float(uStartLayer) / 8.0 - vDepth01;
-    float pixelDepth = max(fwidth(vDepth01), 1e-6);
-    float distancePx = max(insideDistance / pixelDepth, 0.0);
+    // v21（2026-07-25，D221）：直接用顶点侧算好的"到本层上轮廓的法向像素
+    // 距离"，不再由 depth01 换算。换算 insideDistance/|∇depth01| 只在
+    // |∇depth01| 沿深度恒定时成立，而 orbit_z 的纵向轨道会挤压或拉开相邻
+    // 行——同一帧内"每 depth01 单位对应多少屏幕像素"实测从 24px 变到 200+px、
+    // 层带屏幕高度能到 −6.1px（局部翻转）。于是银丝实测 FWHM 在 1.5~9.1px
+    // 之间跳（L1）、峰位摆 1.5px、L2/L3 有 20~39% 的列整段消失，这才是用户
+    // 从一开始就看到的"一个个小矩形拼成的线"。真实距离沿列由 varying 线性
+    // 插值，宽度与位置从此与层带的纵向挤压完全解耦。
+    // 负值保留：轮廓外（空气侧）不再钳成亮芯峰值，改由高斯自然衰减。
+    float distancePx = vRimDistancePx;
+    // 像素方盒沿轮廓法向的支撑宽度。真实距离场不提供各向异性信息，取 1 个
+    // 像素：它是方盒支撑的下界（斜向最多到 √2），少算的那部分只让有效 σ 偏
+    // 小约 5%。
+    float footprint = 1.0;
     // 空气透视变细（2026-07-17 三轮目测加陡）：远层银丝按层级权重收窄，
     // 近层最粗最明显、越远越纤细。
     float width = max(
         uCrestRimWidthPx * (0.45 + 0.55 * clamp(vCrestRimWeight, 0.0, 1.0)),
         0.5);
-    float cutoff = width * 7.0;
+    // 抗锯齿有效 σ：像素盒卷积（方差 footprint²/12）之后再取 1px 下限。
+    // 采样定理——要让一条线在像素网格上连续，它在法向的支撑必须覆盖至少一个
+    // 采样间隔。σ=0.63px 时相邻像素中心的高斯值差 27%，而银丝中心的亚像素
+    // 位置随波形沿列连续漂移，于是每列只点亮 1~2 个像素、亮度逐列跳变，读作
+    // "一个个小矩形拼起来"（D220 实测逐像素粗糙度 0.17；σ 抬到 1px 后 ~0.05）。
+    // 峰值按 width/σ 归一，线积分能量守恒——细档变淡而不是变断，"细"的观感
+    // 由亮度而不是由亚像素宽度承担。
+    float sigma = max(sqrt(width * width + footprint * footprint / 12.0), 1.0);
+    // v19 亮芯内移：轮廓那一行同时是 waterEdgeCoverage 的软过渡中心与 MSAA
+    // 几何覆盖过渡带，把亮芯放在那里会被两者相乘衰减到约 1/4，且亮度随"轮廓
+    // 落在像素中心还是像素边界"的亚像素相位振荡 2.5 倍（Python 实测
+    // L0 0.148↔0.363、L1 0.359↔0.892，|相位|与峰值相关 −0.55）——细银丝断续
+    // 与上缘暗点的根因。内移到 coverage 已饱和的深度后亮芯全程满覆盖。
+    // 内移量封顶 1.5px：过渡区只有 footprint(≤√2)px 宽，细银丝按 1.5σ 就能
+    // 完全脱出；若让它随 σ 线性增长，用户把银丝调到 2dp 时亮芯会离唇线 3dp、
+    // 中间露出一条水体色，破坏"银丝贴住水面"的既定语义。
+    float centerPx = 0.5 * footprint + min(1.5 * sigma, 1.5);
+    float signedDistance = distancePx - centerPx;
+    float cutoff = centerPx + width * 7.0;
     if (distancePx > cutoff) {
         return 0.0;
     }
-    float core = exp(-0.5 * distancePx * distancePx / (width * width));
-    // 晕幅经 uniform 可调（2026-07-17 用户定档基准 0.16）。
-    float halo = uCrestRimHaloAmp * exp(-distancePx / (width * 3.2));
+    float core = (width / sigma) *
+        exp(-0.5 * signedDistance * signedDistance / (sigma * sigma));
+    // 晕幅经 uniform 可调（2026-07-17 用户定档基准 0.16）；只向水体内侧铺开，
+    // 起点与亮芯同心。
+    float halo = uCrestRimHaloAmp *
+        exp(-max(signedDistance, 0.0) / (width * 3.2));
     // 平滑窗：晕尾在 cutoff 处连续归零——硬截止会在水体内部留下一条
     // 可见的等距边界（2026-07-17 首轮目测缺陷）。
-    float window = 1.0 - smoothstep(width * 3.5, cutoff, distancePx);
+    float window = 1.0 -
+        smoothstep(centerPx + width * 3.5, cutoff, distancePx);
     return min(core + halo, 1.0) * window;
 }
 
