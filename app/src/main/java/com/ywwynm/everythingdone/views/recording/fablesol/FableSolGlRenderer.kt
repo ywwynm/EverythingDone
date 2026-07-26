@@ -19,6 +19,20 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+/**
+ * 最终呈现的接管点。屏上不装（走渲染器自己的 present），离线导出装上把场景合成进画框、
+ * 套传递函数并写进编码器 input surface 的实现。
+ */
+internal interface ScenePresenter {
+    fun present(
+        sceneTextureId: Int,
+        sceneWidthPx: Int,
+        sceneHeightPx: Int,
+        sceneLinear: Boolean,
+        hdrHeadroom: Float
+    )
+}
+
 /** Stage 1 连续水面 GLES 渲染器。Simulation、采样与 GL 调用都只在独立 GL 线程执行。 */
 internal class FableSolGlRenderer(context: Context, private val density: Double) {
 
@@ -160,6 +174,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val hdrTransition = FableSolHdrTransition()
     private var sceneLinear = false
     private var hdrContentEnabled = false
+    @Volatile private var scenePresenter: ScenePresenter? = null
+    @Volatile private var offlineTimebase = false
+    @Volatile private var offlineFixedDt = 0.0
     private var hdrGain = 0f
     private var hdrHeadroom = 1f
     private var hdrExcessScale = 1f
@@ -245,9 +262,16 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     // 每帧上传光学顶点后置位；帧内全层共享的光学 uniform 只在首个光学层上传。
     private var opticalUniformsDirty = true
 
-    fun initialize(hdrOutput: Boolean) {
-        sceneLinear = hdrOutput
-        hdrContentEnabled = hdrOutput
+    /**
+     * [linearScene] = 场景以线性光合成、并允许超过 SDR reference white 的值。
+     *
+     * 屏上由 EGL 窗口是否建成 FP16 linear scRGB 决定；**离线导出自行决定**，与任何显示器
+     * 无关（fablesol-video-export D5）——超白值算不算得出来只取决于 `GL_RGBA16F` 能否
+     * 渲染，而那是 GL 能力，不是显示能力。
+     */
+    fun initialize(linearScene: Boolean) {
+        sceneLinear = linearScene
+        hdrContentEnabled = linearScene
         hdrGain = 0f
         hdrHeadroom = 1f
         hdrTransition.reset()
@@ -341,6 +365,67 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
 
     fun isHdrContentEnabled(): Boolean = hdrContentEnabled
 
+    /**
+     * 接管最终呈现。为 null 时走屏上的 [presentScene]（输出到默认 framebuffer）；
+     * 离线导出装上自己的实现，把场景纹理合成进画框再编码。
+     */
+    internal fun setScenePresenter(presenter: ScenePresenter?) {
+        scenePresenter = presenter
+    }
+
+    /**
+     * 离线时基：`now` 改由 [render] 的 frameTimeNanos 推出，不读挂钟。
+     *
+     * 必须这么做——[drainAndApply] 用 `now - lastAudioElapsed > IDLE_SILENCE_MS` 判静默，
+     * 而导出的挂钟推进速度与音频时间无关（120fps 导出比实时还慢），沿用挂钟会在两个音频
+     * hop 之间误判成静默并调用 `applySilence`。
+     */
+    internal fun setOfflineTimebase(enabled: Boolean) {
+        offlineTimebase = enabled
+    }
+
+    /**
+     * 预置上一帧的时间戳，使**第一帧的 dt 也等于导出步长**。
+     *
+     * 不预置的话 `lastFrameTimeNanos == 0` 会走 [TARGET_FRAME_SECONDS]（1/60）分支：
+     * 120fps 导出的首帧会多推进一个物理子步，之后整段一直领先半步。
+     */
+    internal fun primeFrameTime(nanos: Long) {
+        lastFrameTimeNanos = nanos
+    }
+
+    /**
+     * 离线导出的**精确**步长（秒）；<= 0 表示仍按时间戳差推 dt。
+     *
+     * 必须有这一条：帧时间戳是整数纳秒，`1e9/120` 截断后每帧比 [FableSolSpec.PHYSICS_DT]
+     * 少约 0.33ns，定步长累加器于是给出 `0,1,2,0,1,2…` 的子步序列——平均速度对，但相邻帧
+     * 要么原地不动要么跳两步，"120fps 每帧正好一个物理步"根本不成立。直接下发有理数步长
+     * 后，120fps 恒 1 步、60fps 恒 2 步。
+     */
+    internal fun setOfflineFixedDt(seconds: Double) {
+        offlineFixedDt = seconds
+    }
+
+    /**
+     * 导出的 HDR 亮度基准：直接钉在用户强度档，且增益从第一帧就是满的。
+     *
+     * 与屏上不同，这里不存在"显示器当前余量"这个概念——文件的 headroom 是文件自己的属性，
+     * 还原交给播放端（fablesol-video-export D5）。
+     */
+    internal fun primeHdrForExport(strength: Float) {
+        val value = strength.coerceIn(
+            FableSolHdrPolicy.STRENGTH_OFF,
+            FableSolHdrPolicy.MAX_STRENGTH
+        )
+        hdrStrength = value
+        displayHdrSdrRatio = value
+        hdrRecordingRequested = true
+        hdrHeadroom = if (hdrContentEnabled) value else 1f
+        hdrExcessScale = FableSolHdrPolicy.excessScale(value)
+        hdrTransition.snapTo(if (hdrContentEnabled && value > 1f) 1f else 0f)
+        hdrGain = hdrTransition.value
+    }
+
     fun setThingBackground(background: ThingBackground) {
         this.background = BackgroundSnapshot(
             background.color,
@@ -393,13 +478,20 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
 
     fun render(frameTimeNanos: Long): Timing {
         val drainStart = SystemClock.elapsedRealtimeNanos()
-        val now = SystemClock.elapsedRealtime()
+        val now = if (offlineTimebase) {
+            frameTimeNanos / 1_000_000L
+        } else {
+            SystemClock.elapsedRealtime()
+        }
         drainAndApply(now)
         if (!simulationPaused) applyLatestGravity()
         advanceColorTransition(now)
         val physicsStart = SystemClock.elapsedRealtimeNanos()
-        var dt = if (lastFrameTimeNanos == 0L) TARGET_FRAME_SECONDS else
-            (frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0
+        var dt = when {
+            offlineFixedDt > 0.0 -> offlineFixedDt
+            lastFrameTimeNanos == 0L -> TARGET_FRAME_SECONDS
+            else -> (frameTimeNanos - lastFrameTimeNanos) / 1_000_000_000.0
+        }
         lastFrameTimeNanos = frameTimeNanos
         if (dt <= 0.0) dt = TARGET_FRAME_SECONDS
         val boundedDt = dt.coerceAtMost(MAX_DT_SECONDS)
@@ -1199,7 +1291,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             )
             if (glareOutput != 0) presentSourceId = glareOutput
         }
-        presentScene(presentSourceId)
+        val presenter = scenePresenter
+        if (presenter != null) {
+            presenter.present(presentSourceId, width, height, sceneLinear, hdrHeadroom)
+        } else {
+            presentScene(presentSourceId)
+        }
         framesUntilGlErrorCheck--
         if (framesUntilGlErrorCheck <= 0) {
             checkGl("drawFrame sampled")

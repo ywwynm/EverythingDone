@@ -101,7 +101,16 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
         val clamped = positionMs.coerceAtLeast(0)
         // 让 UI 立刻跟手：真实位置在解码线程完成 flush 后再覆盖。
         mPositionMs = clamped
-        thread.requestSeek(clamped * 1000L)
+        if (FableSolPlaybackRestartPolicy.shouldRestartForSeek(
+                completedNaturally = thread.completedNaturally
+            )
+        ) {
+            // 自然结束后 decodeLoop 已经 return，finally 也释放了 codec/AudioTrack。
+            // 给旧线程发 seek/play 都不会再被消费；以暂停态重建，保留“拖完再点播放”的交互。
+            restartFrom(thread.path, clamped)
+        } else {
+            thread.requestSeek(clamped * 1000L)
+        }
     }
 
     /** 停止播放并释放解码器/AudioTrack；调用后本实例不再回调。 */
@@ -117,6 +126,19 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
         thread.quit()
     }
 
+    private fun restartFrom(path: String, positionMs: Int) {
+        stopCurrentThread()
+        mPositionMs = positionMs
+        mPlaying = false
+        val thread = PlaybackThread(
+            path = path,
+            startPaused = true,
+            initialSeekUs = positionMs * 1000L
+        )
+        mThread = thread
+        thread.start()
+    }
+
     private fun postPlaying(thread: PlaybackThread, playing: Boolean) {
         mPlaying = playing
         mMainHandler.post {
@@ -125,14 +147,17 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
     }
 
     private inner class PlaybackThread(
-        private val path: String,
-        startPaused: Boolean
+        val path: String,
+        startPaused: Boolean,
+        initialSeekUs: Long = NO_SEEK
     ) : Thread("FableSolAudioPlayback") {
 
         private val lock = Object()
         @Volatile private var shouldRun = true
         @Volatile private var paused = startPaused
-        @Volatile private var seekRequestUs = NO_SEEK
+        @Volatile private var seekRequestUs = initialSeekUs
+        @Volatile var completedNaturally = false
+            private set
 
         private var extractor: MediaExtractor? = null
         private var codec: MediaCodec? = null
@@ -221,6 +246,9 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
                 return false
             }
             mediaExtractor.selectTrack(trackIndex)
+            // 初始 seek 会发生在首个输出格式回调之前；先用输入轨采样率建立时间基准，
+            // 否则结束态重建线程的 flushBaseFrames 会暂时落成 0，进度从所选位置跳回开头。
+            sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             val durationUs = if (format.containsKey(MediaFormat.KEY_DURATION)) {
                 format.getLong(MediaFormat.KEY_DURATION)
             } else {
@@ -356,6 +384,10 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
             ringRead = 0L
 
             analyzer = FableSolRealtimeAnalyzer(sampleRate, FableSolCaptureProfile.PHONE_CAPTURE_V1)
+                // 预热门拦的是麦克风冷启动暂态，文件输入没有这回事。播放与导出必须做同样的
+                // 处理，否则同一个文件在这两条路径上的开头事件序列就对不上
+                // （fablesol-video-export 第五轮：统一"文件输入不过预热门"这条契约）。
+                .also { it.skipStartupGate() }
             if (!paused) {
                 track.play()
                 postPlaying(this, true)
@@ -590,6 +622,7 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
         }
 
         private fun complete() {
+            completedNaturally = true
             mPlaying = false
             if (mDurationMs > 0) mPositionMs = mDurationMs
             postToMain {
@@ -650,4 +683,12 @@ class FableSolAudioFilePlayer(private val appContext: Context) {
         private const val THREAD_JOIN_MS = 200L
         private const val NO_SEEK = -1L
     }
+}
+
+/**
+ * MediaCodec/AudioTrack 无法在工作线程自然退出并释放后原地复活。把这条生命周期规则抽成
+ * 纯策略，JVM 回归测试无需实例化 Android media stack 也能钉住结束态 seek 的分叉。
+ */
+internal object FableSolPlaybackRestartPolicy {
+    fun shouldRestartForSeek(completedNaturally: Boolean): Boolean = completedNaturally
 }

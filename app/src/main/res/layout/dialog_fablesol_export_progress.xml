@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 导出进度对话框。导出本身**始终**在前台服务里跑、通知栏也始终有通知；这个对话框只是
+     同一份状态的另一个观察者，关掉它不影响导出（fablesol-video-export 第二轮反馈）。
+     结构与边距对齐 dialog_doing_digit_style：根节点顶部内边距 18dp，操作行底边距 8dp，标题 20dp 起、
+     18sp 加粗并由代码套记事强调色，动作行走 app_chrome_dialog_* 系列。 -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="18dp">
+
+    <TextView
+        android:id="@+id/tv_fablesol_export_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginLeft="20dp"
+        android:text="@string/fablesol_export_title"
+        android:textSize="18sp"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/tv_fablesol_export_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="14sp"/>
+
+    <ProgressBar
+        android:id="@+id/pb_fablesol_export"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginRight="20dp"
+        android:max="1000"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/app_chrome_dialog_action_row_margin_horizontal"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_action_row_margin_horizontal"
+        android:layout_marginTop="@dimen/app_chrome_dialog_action_row_margin_top"
+        android:layout_marginEnd="@dimen/app_chrome_dialog_action_row_margin_horizontal"
+        android:layout_marginRight="@dimen/app_chrome_dialog_action_row_margin_horizontal"
+        android:layout_marginBottom="@dimen/app_chrome_dialog_action_row_margin_bottom"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_fablesol_export_secondary_as_bt"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:gravity="center"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:textColor="@color/app_chrome_dialog_cancel"
+            android:textAllCaps="true"
+            android:text="@string/fablesol_export_cancel"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
+
+        <TextView
+            android:id="@+id/tv_fablesol_export_primary_as_bt"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/app_chrome_dialog_action_button_height"
+            android:layout_marginEnd="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:layout_marginRight="@dimen/app_chrome_dialog_action_button_margin_end"
+            android:gravity="center"
+            android:paddingLeft="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingTop="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:paddingRight="@dimen/app_chrome_dialog_action_button_padding_horizontal"
+            android:paddingBottom="@dimen/app_chrome_dialog_action_button_padding_vertical"
+            android:textStyle="bold"
+            android:textAllCaps="true"
+            android:text="@string/fablesol_export_run_in_background"
+            android:textSize="@dimen/app_chrome_dialog_action_text_size"/>
+
+    </LinearLayout>
+
+</LinearLayout>

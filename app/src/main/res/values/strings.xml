@@ -965,7 +965,7 @@
     <string name="settings_twice_back">Press Back twice to exit</string>
     <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
     <string name="settings_doing_digit_style">Timer digit style</string>
-    <string name="settings_fablesol_tuning">Ocean wave animation tuning</string>
+    <string name="settings_fablesol_tuning">Ocean wave animation settings</string>
     <string name="fablesol_tuning_hdr">HDR highlights</string>
     <string name="fablesol_tuning_hdr_unsupported">(not supported on this device)</string>
     <string name="fablesol_tuning_hdr_off">off</string>
@@ -1553,4 +1553,42 @@
     <string name="cd_hdr_badge_off">HDR off, tap to enable HDR</string>
     <string name="image_viewer_no_video_player">No app can play this video</string>
 
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">Exporting the ocean wave video</string>
+    <string name="fablesol_export_preparing">Preparing…</string>
+    <string name="fablesol_export_progress">%1$d%%, %2$s left</string>
+    <string name="fablesol_export_progress_unknown">Rendering…</string>
+    <string name="fablesol_export_eta_minutes">%1$dm %2$ds</string>
+    <string name="fablesol_export_eta_seconds">%1$ds</string>
+    <string name="fablesol_export_cancel">Cancel</string>
+    <string name="fablesol_export_done">Saved to Movies/EverythingDone · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">Export cancelled</string>
+    <string name="fablesol_export_failed">Export failed: %1$s</string>
+    <string name="fablesol_export_no_space">Not enough storage for this export</string>
+    <string name="fablesol_export_started">Exporting the water video…</string>
+    <string name="cd_export_fablesol_video">Export water video</string>
+    <string name="fablesol_group_export">Video export</string>
+    <string name="fablesol_param_export_frame_rate">Frame rate cap</string>
+    <string name="fablesol_param_export_cq">Constant quality</string>
+    <string name="fablesol_param_export_quality">Quality</string>
+    <string name="fablesol_param_export_bitrate">Target bitrate</string>
+    <string name="fablesol_param_export_keyframe">Keyframe interval</string>
+    <string name="fablesol_export_estimate">%1$s MB per minute · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">Encoding mode</string>
+    <string name="fablesol_export_mode_quality">Constant quality</string>
+    <string name="fablesol_export_mode_bitrate">Constant bitrate</string>
+    <string name="fablesol_param_export_quality_value">Quality parameter (CQ)</string>
+    <string name="fablesol_param_export_hdr">Export HDR video</string>
+    <string name="fablesol_export_estimate_bitrate">About %1$s MB per minute · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">Video size varies with scene complexity · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">Exporting the animation</string>
+    <string name="fablesol_export_run_in_background">Run in background</string>
+    <string name="fablesol_export_share">Share</string>
+    <string name="fablesol_export_add_attachment">Add as attachment</string>
+    <string name="fablesol_export_dialog_done">Export finished\nSpecification: %1$s, %2$d fps\nVideo size: %3$s\nLocation: %4$s</string>
+    <string name="fablesol_export_dialog_failed">Export failed: %1$s</string>
+    <string name="fablesol_export_timeout">Export stopped: the system 6-hour limit for background processing was reached</string>
 </resources>

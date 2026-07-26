@@ -8,7 +8,9 @@
     android:layout_width="280dp"
     android:layout_height="450dp"
     android:minWidth="280dp"
-    android:minHeight="450dp">
+    android:minHeight="450dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <!-- 与录音对话框同一个可视化宿主：实时分析链，PCM 来自播放中的文件。 -->
     <com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
@@ -32,9 +34,12 @@
         android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="14sp"/>
 
+    <!-- wrap_content 保留 TimelyClockView 按当前字体 advance 测得的固有宽度。
+         advance 字槽仍含字体侧边留白，不等于实际着墨边界；进度条和导出图标由
+         AudioPlayDialogFragment 在测量完成后按 TimelyClockView 的稳定着墨包络对齐。 -->
     <com.github.adnansm.timelytextview.TimelyClockView
         android:id="@+id/clock_play_audio"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="40dp"
         android:layout_gravity="top|center_horizontal"
         android:layout_marginStart="24dp"
@@ -43,18 +48,39 @@
         android:layout_marginEnd="24dp"
         android:layout_marginRight="24dp"/>
 
+    <!-- 重力必须是 start 不能是 center_horizontal：FrameLayout 对居中的子项是"先居中、
+         再把左右外边距当成差值偏移"，marginStart 因此不等于"左缘落在这里"，运行时按时钟
+         内容边缘设的边距会被折算掉一半（fablesol-video-export 第三轮反馈）。 -->
     <SeekBar
         android:id="@+id/sb_audio_progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginStart="20dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="100dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="24dp"
+        android:layout_marginLeft="24dp"
+        android:layout_marginTop="110dp"
+        android:layout_marginEnd="64dp"
+        android:layout_marginRight="64dp"
         android:contentDescription="@string/cd_seek_audio_attachment"
         android:max="1000"/>
+
+    <!-- 导出水体视频：与录音对话框那个 FAB 共用补全左、上画框的 Material
+         video_frame_save 图标。
+         GLES 不可用时整个按钮不出现（fablesol-video-export D14）。 -->
+    <ImageView
+        android:id="@+id/iv_export_fablesol_video"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="98dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:padding="10dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/act_fablesol_export_video"
+        android:contentDescription="@string/cd_export_fablesol_video"
+        android:clickable="true"
+        android:focusable="true"/>
 
     <!-- 三个走带控件都是裸 icon 按钮（无 FAB 悬浮面、无 elevation）：圆形涟漪与图标
          颜色由 AudioPlayDialogFragment 按记事颜色装配。 -->
@@ -82,8 +108,8 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:layout_gravity="center_vertical"
-            android:padding="14dp"
-            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/act_fablesol_pause"
             android:contentDescription="@string/cd_pause_play_audio_attachment"
             android:clickable="true"

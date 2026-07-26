@@ -19,6 +19,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolCaptureProfile
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrameReceiver
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolGravityTrack
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolRealtimeAnalyzer
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 
@@ -88,6 +89,13 @@ open class AudioRecorder(private val appContext: Context?) {
 
     private var mRawFile: File? = null
     private var mOutputFile: File? = null
+
+    /**
+     * 重力轨迹收集器（fablesol-video-export D13）：录音期间与 PCM 一同记录设备重力方向，
+     * 随 WAV 写进自定义 RIFF chunk，供日后离线重新渲染复现当时的水体倾斜。
+     * 采样点由宿主对话框的传感器线程投递，这里只做追加。
+     */
+    private val mGravityTrack = FableSolGravityTrack.Collector()
 
     init {
         initAudioRecord()
@@ -275,6 +283,7 @@ open class AudioRecorder(private val appContext: Context?) {
     @Synchronized
     fun stopListening(saveFile: Boolean) {
         mIsRecording = false
+        mGravityTrack.stop()
         stopListeningThread()
 
         if (saveFile) {
@@ -306,7 +315,16 @@ open class AudioRecorder(private val appContext: Context?) {
         if (mOutputFile == null) {
             return
         }
+        mGravityTrack.start()
         mIsRecording = true
+    }
+
+    /**
+     * 投递一个重力方向采样点（宿主对话框的传感器线程调用）。未在录音时静默丢弃，
+     * 因此准备态与停止态的读数不会混进轨迹。
+     */
+    fun offerGravitySample(x: Float, y: Float, z: Float) {
+        mGravityTrack.offer(x, y, z)
     }
 
     fun getSavedFile(): File? {
@@ -322,7 +340,11 @@ open class AudioRecorder(private val appContext: Context?) {
             input = FileInputStream(rawFile)
             out = FileOutputStream(outputFile)
             val audioLength: Long = input.getChannel().size()
-            val dataLength: Long = audioLength + 36
+            // 重力轨迹 chunk 排在 data 之后；RIFF 长度字段必须把它算进去，否则文件是畸形的。
+            val gravityChunk = mGravityTrack.buildChunk(
+                audioLength.toDouble() / (2.0 * mSampleRate)
+            )
+            val dataLength: Long = audioLength + 36 + (gravityChunk?.size?.toLong() ?: 0L)
 
             // D6：单声道，channels=1、byteRate 相应减半。
             writeWaveFileHeader(out, audioLength, dataLength,
@@ -333,6 +355,9 @@ open class AudioRecorder(private val appContext: Context?) {
             var readSize: Int
             while (input.read(data).also { readSize = it } != -1) {
                 out.write(data, 0, readSize)
+            }
+            if (gravityChunk != null) {
+                out.write(gravityChunk)
             }
         } catch (e: IOException) {
             e.printStackTrace()

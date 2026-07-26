@@ -126,6 +126,15 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.setRecordingHdrActive(active && !fallbackActive)
     }
 
+    /**
+     * GLES 是否仍在跑（未落到 Canvas 回退）。视频导出同样依赖 GLES，回退设备上入口
+     * 直接不出现（fablesol-video-export D14）。
+     */
+    fun isGlActive(): Boolean = !fallbackActive
+
+    /** GLES 异步失败、切到 Canvas 回退时回调一次；导出入口据此立刻隐藏，而不是等下次点击。 */
+    var onGlFallback: (() -> Unit)? = null
+
     /** 用户 HDR 强度（1.0=关，9.6 封顶）；仅 GL 路径，Canvas 回退无 HDR。 */
     fun setHdrStrength(strength: Float) {
         glView.setHdrStrength(strength)
@@ -192,6 +201,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         canvasFallback.setContainerGravity(gravityX, gravityY, gravityZ)
         canvasFallback.setPerformanceMonitor(performanceMonitor)
         canvasFallback.visibility = View.VISIBLE
+        onGlFallback?.invoke()
     }
 
     private fun resolveIntrinsic(spec: Int, dp: Float): Int {

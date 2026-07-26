@@ -3720,3 +3720,37 @@ HDR「只有录音态」两条不变式已相应改写。详见
 那份可能还在写的 wav）。顺带两处：`onCreateView` 末尾补一次 `updateControlsEnabled()`——
 `setOnClickListener` 会把 alpha=0 的侧边键置为 clickable，准备态下点到取消键的位置本来会
 直接关掉对话框；以及 `mDismissed` 标记，对话框已关就跳过队列里剩下的重新开麦。
+
+## 2026-07-26 FableSol 可视化视频导出：设计评审（尚未动代码）
+
+评审"录音时同步录制可视化视频"与"从音频附件导出可视化视频"两个诉求，结论是**收拢成一个
+功能**：产物一律由音频**离线重新渲染**得到，录音期间只多记一条重力轨迹。新功能目录
+[fablesol-video-export](../fablesol-video-export/README.md)，架构裁决
+[ADR-0018](../../adr/0018-fablesol-visualization-video-offline-render.md)。
+
+对 FableSol 主体的影响集中在两处，其余全部是新增代码：
+
+1. **HDR 三层解耦**。`hdrContentEnabled` / `sceneLinear` 目前与 EGL 窗口是否 HDR 绑死
+   （`attach()` 里 `renderer.initialize(session.isHdrOutput)`），导致"屏幕 SDR 但导出 HDR"
+   无法表达。改为场景 FBO 能建就恒 `GL_RGBA16F`，窗口与导出各自呈现。零视觉变化，
+   要求改前改后逐位相同。
+2. **确定性时钟**。`TimelyClockView` 的形变由 `ValueAnimator` 驱动、跟随挂钟，离线渲染
+   用不了，需加一个按形变进度直接求值的入口。
+
+评审中确认的两件事值得单独记下：
+
+- **`CONTEXT.md` 那条"不得改用整曲离线分析"盖住了两个不同的东西。** 被禁止的是**整曲
+  前瞻分析**（用尚未播到的段落/节拍结构驱动画面，破坏因果性），而**非实时驱动**（同一条
+  因果实时链逐样本喂、按固定步长推进，只是不跟挂钟）每帧信息量与实时完全相同，不在禁止
+  之列。术语已在 `CONTEXT.md` 精确化。代码依据：`fablesol/` 下所有 `SystemClock` /
+  `System.nanoTime` 全是性能探针，唯一有功能作用的 `FableSolGlRenderer.kt:396` 只喂调参
+  下发与换色过渡，不碰物理。
+- **实时旁路与"导出亮度取用户强度"不相容。** HDR headroom 是在**着色阶段**写进场景 FBO 的
+  （`optical.frag:96/101/106`、`water.frag:519/605` 的 `min(..., uHdrHeadroom)`），一次场景
+  渲染只能对应一个 headroom；而屏幕取实时余量、导出取用户强度，两者几乎总是不同。这是
+  否掉实时旁路的决定性理由，不是性能问题。
+
+另外核实到一处与文档不符的既有事实：**录音/播放对话框的宽度不是 280dp**。窗口是
+`WRAP_CONTENT`，宽度由 `TimelyClockView` 的固有宽（`advance × 6.84 × 40dp`）决定，
+随用户选的数字字形在 280～383dp 之间变化，默认 poppins 是 310dp。README 里"物理容器宽度
+来自实测、不读 XML 的 280dp"这句话因此是准确的，实际浮动幅度比字面读起来更大。

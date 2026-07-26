@@ -504,7 +504,7 @@
     <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
     <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
     <string name="settings_doing_digit_style">Стиль цифр таймера</string>
-    <string name="settings_fablesol_tuning">Настройка анимации волн</string>
+    <string name="settings_fablesol_tuning">Настройки анимации волн</string>
     <string name="fablesol_tuning_hdr">Блики HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(не поддерживается на этом устройстве)</string>
     <string name="fablesol_tuning_hdr_off">выкл.</string>
@@ -964,4 +964,42 @@
     <string name="home_structure_delete_folder_forever_body">Навсегда удалить %1$s и все ее содержимое, всего %2$s. Это действие нельзя отменить.</string>
     <string name="home_structure_delete_folder_forever_empty_body">Навсегда удалить %1$s. В ней нет содержимого, но саму папку нельзя будет восстановить.</string>
     <string name="home_structure_delete_items_forever_body">Навсегда удалить выбранные элементы: выбранные папки со всем содержимым и выбранные записи. Всего %1$s. Это действие нельзя отменить.</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">Экспорт видео анимации волн</string>
+    <string name="fablesol_export_preparing">Подготовка…</string>
+    <string name="fablesol_export_progress">%1$d%%, осталось %2$s</string>
+    <string name="fablesol_export_progress_unknown">Рендеринг…</string>
+    <string name="fablesol_export_eta_minutes">%1$d мин %2$d с</string>
+    <string name="fablesol_export_eta_seconds">%1$d с</string>
+    <string name="fablesol_export_cancel">Отмена</string>
+    <string name="fablesol_export_done">Сохранено в Movies/EverythingDone · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">Экспорт отменён</string>
+    <string name="fablesol_export_failed">Ошибка экспорта: %1$s</string>
+    <string name="fablesol_export_no_space">Недостаточно места для экспорта</string>
+    <string name="fablesol_export_started">Экспорт видео воды…</string>
+    <string name="cd_export_fablesol_video">Экспортировать видео воды</string>
+    <string name="fablesol_group_export">Экспорт видео</string>
+    <string name="fablesol_param_export_frame_rate">Предел частоты кадров</string>
+    <string name="fablesol_param_export_cq">Постоянное качество</string>
+    <string name="fablesol_param_export_quality">Качество</string>
+    <string name="fablesol_param_export_bitrate">Целевой битрейт</string>
+    <string name="fablesol_param_export_keyframe">Интервал ключевых кадров</string>
+    <string name="fablesol_export_estimate">%1$s МБ в минуту · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">Режим кодирования</string>
+    <string name="fablesol_export_mode_quality">Постоянное качество</string>
+    <string name="fablesol_export_mode_bitrate">Постоянный битрейт</string>
+    <string name="fablesol_param_export_quality_value">Параметр качества (CQ)</string>
+    <string name="fablesol_param_export_hdr">Экспортировать HDR-видео</string>
+    <string name="fablesol_export_estimate_bitrate">Примерно %1$s МБ в минуту · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">Размер видео зависит от сложности сцены · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">Экспорт анимации</string>
+    <string name="fablesol_export_run_in_background">Выполнять в фоне</string>
+    <string name="fablesol_export_share">Поделиться</string>
+    <string name="fablesol_export_add_attachment">Добавить как вложение</string>
+    <string name="fablesol_export_dialog_done">Экспорт завершён\nПараметры: %1$s, %2$d кадров/с\nРазмер видео: %3$s\nРасположение: %4$s</string>
+    <string name="fablesol_export_dialog_failed">Ошибка экспорта: %1$s</string>
+    <string name="fablesol_export_timeout">Экспорт остановлен: достигнут системный лимит в 6 часов</string>
 </resources>

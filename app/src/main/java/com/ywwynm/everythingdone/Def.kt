@@ -260,6 +260,7 @@ object Def {
         const val REQUEST_CREATE_BACKUP_FILE: Int            = 19
 
         const val REQUEST_PERMISSION_NOTIFICATION: Int        = 20
+        const val REQUEST_PERMISSION_EXPORT_VIDEO: Int        = 21
 
         const val KEY_SENDER_NAME: String          = PREFIX + "key.sender_name"
         const val KEY_DETAIL_ACTIVITY_TYPE: String = PREFIX + "key.detail_activity_type"

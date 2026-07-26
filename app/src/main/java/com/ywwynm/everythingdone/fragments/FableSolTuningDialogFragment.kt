@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Process
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
@@ -44,8 +45,10 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrExportCapability
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrPolicy
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolParams
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportOptions
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
@@ -91,6 +94,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private val mAccentHeaders = ArrayList<TextView>()
     private val mAccentSeekBars = ArrayList<SeekBar>()
     private val mAccentCheckBoxes = ArrayList<CompoundButton>()
+    /** 档位标签的重绘回调；换色时与其余控件一起刷新。 */
+    private val mAccentChipPainters = ArrayList<() -> Unit>()
     private val mAccentRippleRows = ArrayList<View>()
     // HDR 强度行固定在布局里（index 0），不随 buildParamRows 重建，单独跟色。
     private var mHdrSeekBar: SeekBar? = null
@@ -102,6 +107,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private var mOriginalRequestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked = false
     private var mLockedRotation = Surface.ROTATION_0
+    /** 让已经离开 Dialog 的后台 HDR 探测结果失效，不再回写旧 View。 */
+    private var mHdrCapabilityGeneration = 0
 
     override fun getLayoutResource(): Int = R.layout.dialog_fablesol_tuning
 
@@ -169,6 +176,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDestroyView() {
+        mHdrCapabilityGeneration++
         mColorAnimator?.cancel()
         mColorAnimator = null
         stopTiltSensor()
@@ -351,6 +359,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         for (row in mAccentRippleRows) {
             (row.background as? GradientRippleDrawable)?.updateBackground(bg)
         }
+        for (paint in mAccentChipPainters) paint()
         mHdrSeekBar?.let { DisplayUtil.setSeekBarBackground(it, bg) }
         applyDoneButtonAccent(bg)
     }
@@ -463,6 +472,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         mAccentSeekBars.clear()
         mAccentCheckBoxes.clear()
         mAccentRippleRows.clear()
+        mAccentChipPainters.clear()
         val ctx = container.context
         for (group in FableSolTuning.GROUPS) {
             container.addView(makeGroupHeader(ctx, getString(group.titleRes)))
@@ -472,6 +482,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 )
             }
         }
+        addExportGroup(container, ctx)
         // debug 专属的调试组固定排在所有参数组之后；release 构建整段不出现。
         if (BuildConfig.DEBUG) {
             container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_debug)))
@@ -517,6 +528,397 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
         row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
         return row
+    }
+
+    /**
+     * 导出编码参数（fablesol-video-export D10）：帧率、编码模式、质量参数或目标码率、
+     * 关键帧间隔、是否导出 HDR。全部 release 可见、用户可调。
+     *
+     * 这组没有实时预览，所以末尾带一行**推导结果**作为反馈回路。恒定质量档下不给体积估算
+     * ——那个档位里 `KEY_BIT_RATE` 只是提示，实际体积由画面复杂度决定，给数字反而误导。
+     */
+    private fun addExportGroup(container: LinearLayout, ctx: Context) {
+        container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_export)))
+
+        val qualityRange = FableSolExportOptions.settingsQualityRange()
+        val estimate = TextView(ctx)
+        estimate.textSize = 12f
+        estimate.alpha = 0.6f
+        estimate.setPadding(dp(20f), dp(2f), dp(20f), dp(8f))
+
+        fun refreshEstimate() {
+            val frameRate = FableSolTuning.exportFrameRateCap(ctx)
+            val options = FableSolExportOptions.read(ctx)
+            estimate.text = if (options.constantQuality && qualityRange != null) {
+                getString(R.string.fablesol_export_estimate_quality, frameRate.toString())
+            } else {
+                val megabytesPerMinute = options.bitrateBps(frameRate) * 60.0 / 8.0 / 1_000_000.0
+                getString(
+                    R.string.fablesol_export_estimate_bitrate,
+                    String.format(java.util.Locale.US, "%.0f", megabytesPerMinute),
+                    frameRate.toString()
+                )
+            }
+        }
+
+        // 先把两条互斥的行造出来，再定义切换逻辑——它们互相引用，顺序反了 Kotlin 会认为
+        // 变量可能未初始化。
+        val qualityRow: View? = qualityRange?.let { range ->
+            val lower = range.lower
+            val upper = range.upper
+            makeExportSliderRow(
+                ctx,
+                getString(R.string.fablesol_param_export_quality_value),
+                lower.toFloat(),
+                upper.toFloat(),
+                (upper - lower).coerceAtLeast(1),
+                FableSolExportOptions.read(ctx).resolveWithin(range).toFloat(),
+                { value ->
+                    String.format(java.util.Locale.US, "%.0f  (%d-%d)", value, lower, upper)
+                }
+            ) { value ->
+                FableSolTuning.setExportQualityValue(ctx, value.toInt())
+            }
+        }
+        val bitrateRow: View = makeExportSliderRow(
+            ctx,
+            getString(R.string.fablesol_param_export_bitrate),
+            FableSolExportOptions.MIN_BITRATE_MBPS,
+            FableSolExportOptions.MAX_BITRATE_MBPS,
+            58,
+            FableSolTuning.exportBitrateMbps(ctx),
+            { value -> String.format(java.util.Locale.US, "%.0f Mbps", value) }
+        ) { value ->
+            FableSolTuning.setExportBitrateMbps(ctx, value)
+            refreshEstimate()
+        }
+
+        fun refreshModeRows() {
+            val constant = FableSolTuning.exportConstantQuality(ctx) && qualityRange != null
+            qualityRow?.visibility = if (constant) View.VISIBLE else View.GONE
+            bitrateRow.visibility = if (constant) View.GONE else View.VISIBLE
+            refreshEstimate()
+        }
+
+        container.addView(
+            makeExportChoiceRow(
+                ctx,
+                getString(R.string.fablesol_param_export_frame_rate),
+                listOf("60 fps", "120 fps"),
+                if (FableSolTuning.exportFrameRateCap(ctx) >= FableSolExportOptions.FRAME_RATE_HIGH) 1 else 0
+            ) { index ->
+                FableSolTuning.setExportFrameRateCap(
+                    ctx,
+                    if (index == 1) {
+                        FableSolExportOptions.FRAME_RATE_HIGH
+                    } else {
+                        FableSolExportOptions.FRAME_RATE_BASE
+                    }
+                )
+                refreshEstimate()
+            }
+        )
+        if (qualityRange != null) {
+            container.addView(
+                makeExportChoiceRow(
+                    ctx,
+                    getString(R.string.fablesol_param_export_bitrate_mode),
+                    listOf(
+                        getString(R.string.fablesol_export_mode_quality),
+                        getString(R.string.fablesol_export_mode_bitrate)
+                    ),
+                    if (FableSolTuning.exportConstantQuality(ctx)) 0 else 1
+                ) { index ->
+                    FableSolTuning.setExportConstantQuality(ctx, index == 0)
+                    refreshModeRows()
+                }
+            )
+        }
+        if (qualityRow != null) container.addView(qualityRow)
+        container.addView(bitrateRow)
+        container.addView(
+            makeExportSliderRow(
+                ctx,
+                getString(R.string.fablesol_param_export_keyframe),
+                FableSolExportOptions.MIN_KEYFRAME_SECONDS,
+                FableSolExportOptions.MAX_KEYFRAME_SECONDS,
+                19,
+                FableSolTuning.exportKeyframeSeconds(ctx),
+                { value -> String.format(java.util.Locale.US, "%.1f s", value) }
+            ) { value ->
+                FableSolTuning.setExportKeyframeSeconds(ctx, value)
+            }
+        )
+        val hdrSwitch = makeExportSwitchRow(
+            ctx,
+            getString(R.string.fablesol_param_export_hdr),
+            initial = false
+        ) { checked -> FableSolTuning.setExportHdrEnabled(ctx, checked) }
+        setHdrExportSwitchState(hdrSwitch, enabled = false, unsupported = false)
+        container.addView(hdrSwitch.row)
+        probeHdrExportCapability(ctx.applicationContext, hdrSwitch)
+
+        refreshModeRows()
+        container.addView(estimate)
+    }
+
+    /**
+     * 二选一的档位行：标签在左，若干个可点的圆角标签在右。
+     *
+     * 选中项用强调色填底，文字取 [BackgroundUtil.onColor]——它按底色明暗自动给偏黑或偏白，
+     * 而不是固定白字（浅色强调色上固定白字读不出来）。触摸涟漪与面板其余控件同源，
+     * 换色时随 [applyUiAccent] 一起刷新。
+     */
+    private fun makeExportChoiceRow(
+        ctx: Context,
+        label: String,
+        options: List<String>,
+        selectedIndex: Int,
+        onSelect: (Int) -> Unit
+    ): View {
+        val row = LinearLayout(ctx)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.setPadding(dp(20f), dp(6f), dp(20f), dp(6f))
+        row.minimumHeight = dp(48f)
+
+        val tvLabel = TextView(ctx)
+        tvLabel.text = label
+        tvLabel.textSize = 13f
+        tvLabel.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        )
+        row.addView(tvLabel)
+
+        val chips = ArrayList<TextView>(options.size)
+        var current = selectedIndex
+        val cornerRadius = dp(14f).toFloat()
+
+        fun paint() {
+            for ((index, chip) in chips.withIndex()) {
+                if (index == current) {
+                    // 胶囊填充必须保留 ThingBackground 的完整起止色与方向；只取 color
+                    // 会在换色时把渐变压成起点单色。
+                    val fill = BackgroundUtil.fillDrawable(mAppliedBackground)
+                    (fill as? android.graphics.drawable.GradientDrawable)?.cornerRadius =
+                        cornerRadius
+                    chip.background = fill
+                    // 必须走 applyTextBackground 的纯色分支而不是 setTextColor：渐变强调色
+                    // 会在 TextPaint 上留一个 shader，直接 setTextColor 盖不住它，切换选中
+                    // 状态时文字就还是渐变色，看不出黑白自适应。
+                    BackgroundUtil.applyTextBackground(
+                        chip,
+                        ThingBackground.pure(BackgroundUtil.onColor(mAppliedBackground, 1f))
+                    )
+                } else {
+                    // GradientDrawable 的 stroke 只能接收单个 int；这里用自绘描边让未选中
+                    // 胶囊同样保留完整渐变，并以统一 alpha 淡化整条渐变，而非取代表色。
+                    chip.background = BackgroundUtil.GradientStrokeDrawable(
+                        mAppliedBackground,
+                        cornerRadius,
+                        dp(1f).toFloat()
+                    ).apply {
+                        alpha = CHOICE_OUTLINE_ALPHA
+                    }
+                    BackgroundUtil.applyTextBackground(chip, mAppliedBackground)
+                }
+                // 涟漪走 foreground：background 位置被填底/描边占着，而 foreground 同样
+                // 会收到按下态与 hotspot。
+                val existing = chip.foreground as? GradientRippleDrawable
+                if (existing != null) {
+                    existing.updateBackground(mAppliedBackground)
+                } else {
+                    chip.foreground = GradientRippleDrawable(
+                        mAppliedBackground, shapeOval = false, cornerRadiusPx = cornerRadius
+                    )
+                }
+            }
+        }
+
+        for ((index, optionText) in options.withIndex()) {
+            val chip = TextView(ctx)
+            chip.text = optionText
+            chip.textSize = 12f
+            chip.setPadding(dp(12f), dp(5f), dp(12f), dp(5f))
+            chip.isClickable = true
+            chip.isFocusable = true
+            val lp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            if (index > 0) lp.leftMargin = dp(6f)
+            chip.layoutParams = lp
+            chip.setOnClickListener {
+                if (current == index) return@setOnClickListener
+                current = index
+                paint()
+                onSelect(index)
+            }
+            chips.add(chip)
+            row.addView(chip)
+        }
+        paint()
+        mAccentChipPainters.add(::paint)
+        return row
+    }
+
+    private fun makeExportSwitchRow(
+        ctx: Context,
+        label: String,
+        initial: Boolean,
+        onChange: (Boolean) -> Unit
+    ): ExportSwitchControl {
+        val row = LinearLayout(ctx)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.setPadding(dp(20f), 0, dp(20f), 0)
+        row.minimumHeight = dp(48f)
+        row.background = GradientRippleDrawable(
+            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
+        )
+        mAccentRippleRows.add(row)
+
+        val tvLabel = TextView(ctx)
+        tvLabel.text = label
+        tvLabel.textSize = 13f
+        tvLabel.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        )
+        val checkBox = CheckBox(ctx)
+        checkBox.isChecked = initial
+        checkBox.isClickable = false
+        checkBox.isFocusable = false
+        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
+        mAccentCheckBoxes.add(checkBox)
+        checkBox.setOnCheckedChangeListener { _, checked -> onChange(checked) }
+        row.addView(tvLabel)
+        row.addView(checkBox)
+        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
+        row.setOnClickListener {
+            if (row.isEnabled) checkBox.isChecked = !checkBox.isChecked
+        }
+        return ExportSwitchControl(row, tvLabel, checkBox)
+    }
+
+    private fun setHdrExportSwitchState(
+        control: ExportSwitchControl,
+        enabled: Boolean,
+        unsupported: Boolean
+    ) {
+        control.row.isEnabled = enabled
+        control.row.isClickable = enabled
+        // 顶部“HDR 高光增强（设备不支持）”保持 TextView 的 enabled 色，仅把 alpha 设为
+        // 0.5。这里采用完全相同的方式，不能再叠加 TextView disabled 色与整行 0.38 alpha。
+        control.label.isEnabled = true
+        control.label.text = getString(R.string.fablesol_param_export_hdr) +
+            if (unsupported) {
+                " " + getString(R.string.fablesol_tuning_hdr_unsupported)
+            } else {
+                ""
+            }
+        control.label.alpha = if (enabled) 1f else HDR_UNSUPPORTED_TEXT_ALPHA
+        control.checkBox.isEnabled = enabled
+        control.row.alpha = 1f
+    }
+
+    /**
+     * codec 广告只能作候选筛选；真正交换并封装一帧后仍是 HDR，开关才可操作。
+     * 已有进程缓存时立即恢复；否则先让 Dialog 完成首帧和预览初始化，再以后台低优先级读取
+     * 持久化结果或执行真实编码。未知期间与明确不支持时都保持置灰。
+     */
+    private fun probeHdrExportCapability(
+        appContext: Context,
+        control: ExportSwitchControl
+    ) {
+        val generation = ++mHdrCapabilityGeneration
+        FableSolHdrExportCapability.peekCachedResult()?.let { supported ->
+            applyHdrExportCapabilityResult(appContext, control, supported)
+            return
+        }
+
+        control.row.postDelayed({
+            if (!isAdded || generation != mHdrCapabilityGeneration) return@postDelayed
+            Thread({
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+                val supported = FableSolHdrExportCapability.probe(appContext)
+                control.row.post {
+                    if (!isAdded || generation != mHdrCapabilityGeneration) return@post
+                    applyHdrExportCapabilityResult(appContext, control, supported)
+                }
+            }, "FableSolHdrCapability").apply {
+                isDaemon = true
+                start()
+            }
+        }, HDR_CAPABILITY_PROBE_DELAY_MS)
+    }
+
+    private fun applyHdrExportCapabilityResult(
+        appContext: Context,
+        control: ExportSwitchControl,
+        supported: Boolean
+    ) {
+        if (supported) {
+            control.checkBox.isChecked = FableSolTuning.exportHdrEnabled(appContext)
+            setHdrExportSwitchState(control, enabled = true, unsupported = false)
+        } else {
+            FableSolTuning.setExportHdrEnabled(appContext, false)
+            control.checkBox.isChecked = false
+            setHdrExportSwitchState(control, enabled = false, unsupported = true)
+        }
+    }
+
+    private fun makeExportSliderRow(
+        ctx: Context,
+        label: String,
+        lo: Float,
+        hi: Float,
+        steps: Int,
+        initial: Float,
+        format: (Float) -> String,
+        onChange: (Float) -> Unit
+    ): View {
+        val column = LinearLayout(ctx)
+        column.orientation = LinearLayout.VERTICAL
+        column.setPadding(dp(20f), dp(9f), dp(20f), dp(5f))
+
+        val headerRow = LinearLayout(ctx)
+        headerRow.orientation = LinearLayout.HORIZONTAL
+        val tvLabel = TextView(ctx)
+        tvLabel.text = label
+        tvLabel.textSize = 13f
+        tvLabel.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        )
+        val tvValue = TextView(ctx)
+        tvValue.textSize = 12f
+        tvValue.alpha = 0.6f
+        tvValue.text = format(initial)
+        headerRow.addView(tvLabel)
+        headerRow.addView(tvValue)
+        column.addView(headerRow)
+
+        val seekBar = SeekBar(ctx)
+        seekBar.max = steps
+        val span = if (hi > lo) hi - lo else 1f
+        seekBar.progress = (((initial - lo) / span) * steps).toInt().coerceIn(0, steps)
+        DisplayUtil.setSeekBarBackground(seekBar, mAppliedBackground)
+        mAccentSeekBars.add(seekBar)
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = lo + span * progress / steps
+                tvValue.text = format(value)
+                if (fromUser) onChange(value)
+            }
+
+            override fun onStartTrackingTouch(sb: SeekBar?) = Unit
+            override fun onStopTrackingTouch(sb: SeekBar?) = Unit
+        })
+        column.addView(
+            seekBar,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+        return column
     }
 
     private fun makeGroupHeader(ctx: Context, title: String): View {
@@ -631,6 +1033,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         FableSolTuning.clearAllParams(ctx)
         // 2026-07-24 用户裁定：恢复默认包含 HDR 强度（回默认档 3.6），不再保留用户设置。
         FableSolTuning.clearHdrStrength(ctx)
+        // 导出参数同样纳入「恢复默认」（fablesol-video-export D10）。
+        FableSolTuning.clearExportOptions(ctx)
         for (group in FableSolTuning.GROUPS) {
             for (spec in group.specs) {
                 applyRuntimeTuning(spec, mDefaults.get(spec.key))
@@ -779,6 +1183,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         /** 与 GL 端 FableSolGlRenderer.COLOR_TRANSITION_MS 同步。 */
         private const val COLOR_TRANSITION_MS = 1600L
         private const val UI_COLOR_STEPS = 12
+        /** 未选中胶囊的完整渐变描边 alpha（0-255）。 */
+        private const val CHOICE_OUTLINE_ALPHA = 96
+        /** 与顶部“HDR 高光增强（设备不支持）”标签完全一致的不可用态透明度。 */
+        private const val HDR_UNSUPPORTED_TEXT_ALPHA = 0.5f
+        /** 避开 Dialog 首帧、录音预览与 GL 预热，随后才允许后台真实编码。 */
+        private const val HDR_CAPABILITY_PROBE_DELAY_MS = 800L
 
         /** 角标图标不透明度（0-255）：亮色模式下避免实黑，浮在水面上更轻。 */
         private const val PREVIEW_BUTTON_ICON_ALPHA = 176
@@ -786,4 +1196,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         /** HDR 强度滑杆：1.0～9.6、步长 0.05（172 步），默认=上限 9.6（第 172 格）。 */
         private const val HDR_STRENGTH_STEPS = 172
     }
+
+    private data class ExportSwitchControl(
+        val row: LinearLayout,
+        val label: TextView,
+        val checkBox: CheckBox
+    )
 }

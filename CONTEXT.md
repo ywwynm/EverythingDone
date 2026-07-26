@@ -273,8 +273,8 @@ A surface that wraps Thing-owned content in App Chrome, such as a reminder dialo
 _Avoid_: treating the whole surface as either pure chrome or pure thing UI
 
 **Voice Waveform**:
-录音对话框与音频附件播放对话框里随实时音量起伏的可视化，呈现为一片由所属记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。两处都由同一条实时分析链驱动，只是输入不同——录音取麦克风 PCM，播放取正在播出的那段 PCM（按已播出的采样位置对齐喂入），都不做整曲离线分析；配色取自 Thing Background——主体水体保留 **记事身份色锚点**，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事保留其横向渐变关系；表面反射与薄层透射不得被统一拉向固定青蓝/蓝绿色，只有最深传播路径可相对身份色产生不超过约 2°的轻微冷移；更远波浪使用 **水层景深阶梯** 表现景深，与 Appearance Mode 无关。
-_Avoid_: 把它当成整段音频的静态波形图或离线分析产物、当成 App Chrome 的中性控件配色、竖直柱子可视化
+录音对话框与音频附件播放对话框里随实时音量起伏的可视化，呈现为一片由所属记事的 Thing Background 派生配色的“水体”：多层半透明波浪叠成水面，音量越大水位越高、浪越大。两处都由同一条实时分析链驱动，只是输入不同——录音取麦克风 PCM，播放取正在播出的那段 PCM（按已播出的采样位置对齐喂入），都不做整曲前瞻分析；配色取自 Thing Background——主体水体保留 **记事身份色锚点**，并叠一层克制的竖直明暗（波峰稍提亮、最下方深水区稍压暗）呈现自然水的上亮下暗：纯色记事用同色系提亮/压暗，渐变记事保留其横向渐变关系；表面反射与薄层透射不得被统一拉向固定青蓝/蓝绿色，只有最深传播路径可相对身份色产生不超过约 2°的轻微冷移；更远波浪使用 **水层景深阶梯** 表现景深，与 Appearance Mode 无关。
+_Avoid_: 把它当成整段音频的静态波形图或整曲前瞻分析的产物、当成 App Chrome 的中性控件配色、竖直柱子可视化、把它与 **Voice Waveform Video** 混为一谈
 
 **记事身份色锚点**:
 Voice Waveform 中由最靠近观察者的首层水体低频主体保留的被录音记事原始纯色或横向渐变视觉基准。
@@ -293,6 +293,26 @@ _Avoid_: 黑色或灰色 overlay、从第一层或原始 Thing 色派生所有�
 **身份色体积吸收**:
 Voice Waveform 中只作用于穿过水体介质的透射光路、由记事身份色关系约束的有界颜色衰减；光程增加时可以自然变深和改变饱和度，但不压暗主体、环境反射或高光。
 _Avoid_: 把体积吸收当作阴影、乘暗最终材质总和、以黑色覆盖制造介质深度
+
+**Voice Waveform Video**:
+由一个音频附件重新渲染得到的视频文件，画面是该音频的 Voice Waveform，并自带该音频的声音。它是被生成出来的作品，不是对任何界面的屏幕录制；具备条件时它本身就是一个 **HDR Media**。
+_Avoid_: 屏幕录制、录制界面上的控件、把它当成 Voice Waveform 本身、认为它必须在播放或录音的同时产生
+
+**整曲前瞻分析**:
+先扫描整段音频取得段落、节拍等结构，再用这些尚未播到的信息驱动画面的做法。它让画面"预知"后续内容，破坏因果性。
+_Avoid_: 把它与 **非实时驱动** 混为一谈、把任何脱离挂钟的渲染都称为前瞻
+
+**非实时驱动**:
+同一条因果实时链按音频时间逐样本喂入、按固定步长推进，只是不跟随挂钟。每一帧掌握的信息量与实时完全相同，因此不构成 **整曲前瞻分析**。
+_Avoid_: 称之为离线分析、认为它可以顺带取得未来信息
+
+**重力轨迹**:
+录音期间与声音一同记录下来的设备重力方向序列，使日后重新渲染能复现当时的水体倾斜。它是源数据，丢失即不可再生。
+_Avoid_: 当成可重算的派生缓存、当成录音本身的一部分内容、期望历史录音也具备
+
+**导出画框**:
+**Voice Waveform Video** 画面中包裹水体卡片的那一圈背景、投影与描边。它属于 **App Chrome**，跟随 **Appearance Mode**；画框之内的水体与时钟墨色属于 Thing。
+_Avoid_: 让画框携带记事身份色、把画框计入 **平均画面亮度**、用画框弥补水体对比不足
 
 **Activity Header**:
 首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
@@ -418,10 +438,16 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **HDR Display** depends on the surface, the device, and the display, so it is never guaranteed by the **HDR Media** file alone.
 - FableSol 可以在能力满足时使用 **HDR UI 渲染**；其非 HDR 输出与 HDR 输出共享几何、动画、材质语义、ThingBackground 身份色和 SDR 基线，录音 HDR 态可以增强受控的局部反射、透射及其它受光结构，但不得通过大面积中性提亮抹平水层边界。
 - **HDR UI 渲染** 依赖 Android 版本、窗口、渲染 surface、显示器和实时可用 headroom；任何条件不满足时都回退为同源 SDR 输出。
-- FableSol 只有在 **Voice Waveform** 表达正在录音或正在播放音频附件时才获得 **HDR UI 渲染** 的额外局部光学响应；准备态、暂停态与停止态保持 SDR。
-- **Voice Waveform** 出现在录音对话框与音频附件播放对话框两处；两处的输入都是实时 PCM 流，播放侧按 AudioTrack 已播出的采样位置喂入以保证声画同步，不得改用整曲离线分析。
+- FableSol 只有在 **Voice Waveform** 表达正在录音或正在播放音频附件时才获得 **HDR UI 渲染** 的额外局部光学响应；准备态、暂停态与停止态保持 SDR。渲染 **Voice Waveform Video** 时全程按录音态处理，因为产物没有准备与停止这两个状态。
+- **Voice Waveform** 出现在录音对话框与音频附件播放对话框两处；两处的输入都是实时 PCM 流，播放侧按 AudioTrack 已播出的采样位置喂入以保证声画同步，不得改用整曲前瞻分析。
 - **Voice Waveform** 的声音输入通过改变水面与光学条件间接改变 HDR 高光分布，不直接控制单个高光的 HDR 增益。
 - **Voice Waveform** 的最高 HDR 镜面核心可以接近中性白；较低亮度的受光浪峰与薄层透射仍按层级保留 **Thing Background** 身份色。
+- A **Voice Waveform Video** is produced from an audio attachment by rendering it again, never by capturing a screen; the surfaces that show a live **Voice Waveform** are unaffected by whether one is being produced.
+- **Voice Waveform Video** 使用 **非实时驱动**，这不违反"不得整曲前瞻分析"——两者的分界是画面是否使用了尚未播到的信息，而不是渲染是否跟随挂钟。
+- **Voice Waveform Video** 的 HDR 亮度上限取用户设定的 HDR 强度，不取导出设备当时的显示余量；因此一台 SDR 显示器上也可以导出 **HDR Media**，而观看条件由播放端自行还原。
+- 当设备无法编码 **Voice Waveform Video** 所需的 HDR 信号时，产物改用 FableSol 自己的 SDR 输出重新渲染，而不是把 HDR 结果压回 SDR。
+- **Voice Waveform Video** 的水体倾斜来自录音时记录的 **重力轨迹**；没有轨迹的历史录音按竖直渲染，其余表现不变。
+- **Voice Waveform Video** 的构图与触发它的界面无关：同一个音频附件从任何入口导出都得到相同构图。
 - A **Thing Card Media** or **Detail Attachment** may be backed by an **Animated Image** file.
 - A single **Animated Image** may receive **Animated Playback** on a surface that supports it while appearing as its first static frame on every other surface, mirroring how an **HDR Media** receives **HDR Display** only where supported.
 - A crop editor, a RemoteViews surface (widget preview or placed widget), an HDR base frame, or a video thumbnail shows an **Animated Image** as a single frame; an in-app view surface that applies the same crop per frame still gives it **Animated Playback**.

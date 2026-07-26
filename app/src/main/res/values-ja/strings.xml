@@ -504,7 +504,7 @@
     <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
     <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
     <string name="settings_doing_digit_style">タイマーの数字スタイル</string>
-    <string name="settings_fablesol_tuning">海の波アニメーションの調整</string>
+    <string name="settings_fablesol_tuning">海の波アニメーションの設定</string>
     <string name="fablesol_tuning_hdr">HDR ハイライト</string>
     <string name="fablesol_tuning_hdr_unsupported">（この端末では未対応）</string>
     <string name="fablesol_tuning_hdr_off">オフ</string>
@@ -1018,4 +1018,42 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="home_structure_delete_folder_forever_body">%1$sとそのすべての内容（合計%2$s）を完全に削除します。元に戻せません。</string>
     <string name="home_structure_delete_folder_forever_empty_body">%1$sを完全に削除します。内容はありませんが、フォルダー自体は元に戻せません。</string>
     <string name="home_structure_delete_items_forever_body">選択項目（選択したフォルダーとそのすべての内容、および選択したメモ）を完全に削除します。合計%1$s。元に戻せません。</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">海の波アニメーション動画の書き出し</string>
+    <string name="fablesol_export_preparing">準備中…</string>
+    <string name="fablesol_export_progress">%1$d%%、残り %2$s</string>
+    <string name="fablesol_export_progress_unknown">レンダリング中…</string>
+    <string name="fablesol_export_eta_minutes">%1$d 分 %2$d 秒</string>
+    <string name="fablesol_export_eta_seconds">%1$d 秒</string>
+    <string name="fablesol_export_cancel">キャンセル</string>
+    <string name="fablesol_export_done">Movies/EverythingDone に保存 · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">書き出しをキャンセルしました</string>
+    <string name="fablesol_export_failed">書き出しに失敗: %1$s</string>
+    <string name="fablesol_export_no_space">空き容量が足りません</string>
+    <string name="fablesol_export_started">水面動画を書き出し中…</string>
+    <string name="cd_export_fablesol_video">水面動画を書き出す</string>
+    <string name="fablesol_group_export">動画書き出し</string>
+    <string name="fablesol_param_export_frame_rate">フレームレート上限</string>
+    <string name="fablesol_param_export_cq">固定品質</string>
+    <string name="fablesol_param_export_quality">品質</string>
+    <string name="fablesol_param_export_bitrate">目標ビットレート</string>
+    <string name="fablesol_param_export_keyframe">キーフレーム間隔</string>
+    <string name="fablesol_export_estimate">%1$s MB/分 · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">エンコードモード</string>
+    <string name="fablesol_export_mode_quality">固定品質</string>
+    <string name="fablesol_export_mode_bitrate">固定ビットレート</string>
+    <string name="fablesol_param_export_quality_value">品質パラメータ (CQ)</string>
+    <string name="fablesol_param_export_hdr">HDR で書き出す</string>
+    <string name="fablesol_export_estimate_bitrate">約 %1$s MB/分 · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">動画サイズは映像の複雑さによって変わります · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">アニメーションを書き出し中</string>
+    <string name="fablesol_export_run_in_background">バックグラウンドで実行</string>
+    <string name="fablesol_export_share">共有</string>
+    <string name="fablesol_export_add_attachment">添付として追加</string>
+    <string name="fablesol_export_dialog_done">書き出し完了\n仕様：%1$s、%2$d fps\n動画サイズ：%3$s\n保存先：%4$s</string>
+    <string name="fablesol_export_dialog_failed">書き出しに失敗: %1$s</string>
+    <string name="fablesol_export_timeout">書き出しを停止しました：バックグラウンド処理の 6 時間上限に達しました</string>
 </resources>

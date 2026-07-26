@@ -158,6 +158,12 @@ object FableSolTuning {
     private const val KEY_HDR_ENABLED = "hdr_enabled"
     private const val KEY_HDR_STRENGTH = "hdr_strength"
     private const val KEY_SHOW_PERF_HUD = "show_perf_hud"
+    private const val KEY_EXPORT_FRAME_RATE = "export_frame_rate"
+    private const val KEY_EXPORT_PREFER_CQ = "export_prefer_cq"
+    private const val KEY_EXPORT_QUALITY = "export_quality"
+    private const val KEY_EXPORT_BITRATE = "export_bitrate"
+    private const val KEY_EXPORT_KEYFRAME = "export_keyframe"
+    private const val KEY_EXPORT_HDR = "export_hdr"
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -283,5 +289,74 @@ object FableSolTuning {
 
     fun setPerfHudEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_SHOW_PERF_HUD, enabled).apply()
+    }
+
+    // ---- 导出编码参数（fablesol-video-export D10）----
+    //
+    // 它们不走 param_ 键空间，也不推给 GL 线程——导出时才读一次。但参与「恢复默认」。
+
+    fun exportFrameRateCap(context: Context): Int =
+        prefs(context).getInt(KEY_EXPORT_FRAME_RATE, FableSolExportOptions.FRAME_RATE_HIGH)
+
+    fun setExportFrameRateCap(context: Context, value: Int) {
+        prefs(context).edit().putInt(KEY_EXPORT_FRAME_RATE, value).apply()
+    }
+
+    fun exportConstantQuality(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_PREFER_CQ, true)
+
+    fun setExportConstantQuality(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_PREFER_CQ, value).apply()
+    }
+
+    /** CQ 档位原值；[FableSolExportOptions.UNSET_QUALITY] 表示未设置，由区间的 80% 处兜底。 */
+    fun exportQualityValue(context: Context): Int =
+        prefs(context).getInt(KEY_EXPORT_QUALITY, FableSolExportOptions.UNSET_QUALITY)
+
+    fun setExportQualityValue(context: Context, value: Int) {
+        prefs(context).edit().putInt(KEY_EXPORT_QUALITY, value).apply()
+    }
+
+    fun exportHdrEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_HDR, true)
+
+    fun setExportHdrEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_HDR, value).apply()
+    }
+
+    fun exportBitrateMbps(context: Context): Float =
+        prefs(context).getFloat(
+            KEY_EXPORT_BITRATE, FableSolExportOptions.DEFAULT_BITRATE_MBPS
+        ).coerceIn(
+            FableSolExportOptions.MIN_BITRATE_MBPS,
+            FableSolExportOptions.MAX_BITRATE_MBPS
+        )
+
+    fun setExportBitrateMbps(context: Context, value: Float) {
+        prefs(context).edit().putFloat(KEY_EXPORT_BITRATE, value).apply()
+    }
+
+    fun exportKeyframeSeconds(context: Context): Float =
+        prefs(context).getFloat(
+            KEY_EXPORT_KEYFRAME, FableSolExportOptions.DEFAULT_KEYFRAME_SECONDS
+        ).coerceIn(
+            FableSolExportOptions.MIN_KEYFRAME_SECONDS,
+            FableSolExportOptions.MAX_KEYFRAME_SECONDS
+        )
+
+    fun setExportKeyframeSeconds(context: Context, value: Float) {
+        prefs(context).edit().putFloat(KEY_EXPORT_KEYFRAME, value).apply()
+    }
+
+    /** 「恢复默认」一并清掉导出参数。 */
+    fun clearExportOptions(context: Context) {
+        prefs(context).edit()
+            .remove(KEY_EXPORT_FRAME_RATE)
+            .remove(KEY_EXPORT_PREFER_CQ)
+            .remove(KEY_EXPORT_QUALITY)
+            .remove(KEY_EXPORT_BITRATE)
+            .remove(KEY_EXPORT_KEYFRAME)
+            .remove(KEY_EXPORT_HDR)
+            .apply()
     }
 }

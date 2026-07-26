@@ -118,4 +118,12 @@ internal class FableSolHdrTransition {
         target = 0f
         elapsedSeconds = FableSolHdrPolicy.TRANSITION_SECONDS
     }
+
+    /** 直接落到某个增益并视为过渡已完成；离线导出第一帧就要满增益，没有淡入这一说。 */
+    fun snapTo(newValue: Float) {
+        value = newValue
+        start = newValue
+        target = newValue
+        elapsedSeconds = FableSolHdrPolicy.TRANSITION_SECONDS
+    }
 }

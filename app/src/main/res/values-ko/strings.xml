@@ -504,7 +504,7 @@
     <string name="settings_twice_back">종료하려면 뒤로를 두 번 누르세요.</string>
     <string name="settings_create_animation_style">새로운 것을 만들 때 테두리 조명 애니메이션</string>
     <string name="settings_doing_digit_style">타이머 숫자 스타일</string>
-    <string name="settings_fablesol_tuning">오디오 파도 애니메이션 조정</string>
+    <string name="settings_fablesol_tuning">오디오 파도 애니메이션 설정</string>
     <string name="fablesol_tuning_hdr">HDR 하이라이트</string>
     <string name="fablesol_tuning_hdr_unsupported">(기기에서 지원되지 않음)</string>
     <string name="fablesol_tuning_hdr_off">꺼짐</string>
@@ -1018,4 +1018,42 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="home_structure_delete_folder_forever_body">%1$s와 모든 내용을 영구 삭제합니다. 총%2$s. 되돌릴 수 없습니다.</string>
     <string name="home_structure_delete_folder_forever_empty_body">%1$s를 영구 삭제합니다. 내용은 없지만 폴더 자체는 복원할 수 없습니다.</string>
     <string name="home_structure_delete_items_forever_body">선택 항목（선택한 폴더와 그 모든 내용, 선택한 항목）을 영구 삭제합니다. 총%1$s. 되돌릴 수 없습니다.</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">오디오 파도 애니메이션 영상 내보내기</string>
+    <string name="fablesol_export_preparing">준비 중…</string>
+    <string name="fablesol_export_progress">%1$d%%, %2$s 남음</string>
+    <string name="fablesol_export_progress_unknown">렌더링 중…</string>
+    <string name="fablesol_export_eta_minutes">%1$d분 %2$d초</string>
+    <string name="fablesol_export_eta_seconds">%1$d초</string>
+    <string name="fablesol_export_cancel">취소</string>
+    <string name="fablesol_export_done">Movies/EverythingDone에 저장됨 · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">내보내기 취소됨</string>
+    <string name="fablesol_export_failed">내보내기 실패: %1$s</string>
+    <string name="fablesol_export_no_space">저장 공간이 부족합니다</string>
+    <string name="fablesol_export_started">물결 영상을 내보내는 중…</string>
+    <string name="cd_export_fablesol_video">물결 영상 내보내기</string>
+    <string name="fablesol_group_export">영상 내보내기</string>
+    <string name="fablesol_param_export_frame_rate">프레임 상한</string>
+    <string name="fablesol_param_export_cq">고정 품질</string>
+    <string name="fablesol_param_export_quality">품질</string>
+    <string name="fablesol_param_export_bitrate">목표 비트레이트</string>
+    <string name="fablesol_param_export_keyframe">키프레임 간격</string>
+    <string name="fablesol_export_estimate">분당 %1$s MB · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">인코딩 모드</string>
+    <string name="fablesol_export_mode_quality">고정 품질</string>
+    <string name="fablesol_export_mode_bitrate">고정 비트레이트</string>
+    <string name="fablesol_param_export_quality_value">품질 매개변수 (CQ)</string>
+    <string name="fablesol_param_export_hdr">HDR 영상으로 내보내기</string>
+    <string name="fablesol_export_estimate_bitrate">분당 약 %1$s MB · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">동영상 크기는 장면 복잡도에 따라 달라집니다 · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">애니메이션 내보내는 중</string>
+    <string name="fablesol_export_run_in_background">백그라운드에서 실행</string>
+    <string name="fablesol_export_share">공유</string>
+    <string name="fablesol_export_add_attachment">첨부로 추가</string>
+    <string name="fablesol_export_dialog_done">내보내기 완료\n사양: %1$s, %2$d fps\n동영상 크기: %3$s\n위치: %4$s</string>
+    <string name="fablesol_export_dialog_failed">내보내기 실패: %1$s</string>
+    <string name="fablesol_export_timeout">내보내기 중지됨: 백그라운드 처리 6시간 제한에 도달</string>
 </resources>

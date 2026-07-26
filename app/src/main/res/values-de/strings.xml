@@ -504,7 +504,7 @@
     <string name="settings_twice_back">Drücken Sie zweimal Zurück, um den Vorgang zu beenden</string>
     <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
     <string name="settings_doing_digit_style">Timer-Ziffernstil</string>
-    <string name="settings_fablesol_tuning">Ozeanwellen-Animation abstimmen</string>
+    <string name="settings_fablesol_tuning">Ozeanwellen-Animation</string>
     <string name="fablesol_tuning_hdr">HDR-Glanzlichter</string>
     <string name="fablesol_tuning_hdr_unsupported">(auf diesem Gerät nicht unterstützt)</string>
     <string name="fablesol_tuning_hdr_off">aus</string>
@@ -964,4 +964,42 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="home_structure_delete_folder_forever_body">%1$s und den gesamten Inhalt endgültig löschen, insgesamt %2$s. Dies kann nicht rückgängig gemacht werden.</string>
     <string name="home_structure_delete_folder_forever_empty_body">%1$s endgültig löschen. Der Ordner enthält nichts, kann aber selbst nicht wiederhergestellt werden.</string>
     <string name="home_structure_delete_items_forever_body">Die ausgewählten Elemente endgültig löschen: ausgewählte Ordner mit ihrem gesamten Inhalt sowie ausgewählte Dinge. Insgesamt %1$s. Dies kann nicht rückgängig gemacht werden.</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">Ozeanwellen-Video exportieren</string>
+    <string name="fablesol_export_preparing">Wird vorbereitet…</string>
+    <string name="fablesol_export_progress">%1$d%%, noch %2$s</string>
+    <string name="fablesol_export_progress_unknown">Wird gerendert…</string>
+    <string name="fablesol_export_eta_minutes">%1$d Min. %2$d Sek.</string>
+    <string name="fablesol_export_eta_seconds">%1$d Sek.</string>
+    <string name="fablesol_export_cancel">Abbrechen</string>
+    <string name="fablesol_export_done">In Movies/EverythingDone gespeichert · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">Export abgebrochen</string>
+    <string name="fablesol_export_failed">Export fehlgeschlagen: %1$s</string>
+    <string name="fablesol_export_no_space">Nicht genug Speicherplatz für den Export</string>
+    <string name="fablesol_export_started">Wasser-Video wird exportiert…</string>
+    <string name="cd_export_fablesol_video">Wasser-Video exportieren</string>
+    <string name="fablesol_group_export">Video-Export</string>
+    <string name="fablesol_param_export_frame_rate">Bildratenobergrenze</string>
+    <string name="fablesol_param_export_cq">Konstante Qualität</string>
+    <string name="fablesol_param_export_quality">Qualität</string>
+    <string name="fablesol_param_export_bitrate">Ziel-Bitrate</string>
+    <string name="fablesol_param_export_keyframe">Keyframe-Intervall</string>
+    <string name="fablesol_export_estimate">%1$s MB pro Minute · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">Kodierungsmodus</string>
+    <string name="fablesol_export_mode_quality">Konstante Qualität</string>
+    <string name="fablesol_export_mode_bitrate">Konstante Bitrate</string>
+    <string name="fablesol_param_export_quality_value">Qualitätsparameter (CQ)</string>
+    <string name="fablesol_param_export_hdr">HDR-Video exportieren</string>
+    <string name="fablesol_export_estimate_bitrate">Etwa %1$s MB pro Minute · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">Videogröße variiert mit der Szenenkomplexität · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">Animation wird exportiert</string>
+    <string name="fablesol_export_run_in_background">Im Hintergrund ausführen</string>
+    <string name="fablesol_export_share">Teilen</string>
+    <string name="fablesol_export_add_attachment">Als Anhang hinzufügen</string>
+    <string name="fablesol_export_dialog_done">Export abgeschlossen\nSpezifikation: %1$s, %2$d fps\nVideogröße: %3$s\nSpeicherort: %4$s</string>
+    <string name="fablesol_export_dialog_failed">Export fehlgeschlagen: %1$s</string>
+    <string name="fablesol_export_timeout">Export gestoppt: 6-Stunden-Systemlimit für Hintergrundverarbeitung erreicht</string>
 </resources>

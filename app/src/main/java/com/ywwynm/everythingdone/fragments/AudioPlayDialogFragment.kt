@@ -23,6 +23,7 @@ import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
@@ -40,6 +41,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.recording.FableSolAudioFilePlayer
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
@@ -70,6 +72,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     private var mIvMainAction: ImageView? = null
     private var mIvPrevious: ImageView? = null
     private var mIvNext: ImageView? = null
+    private var mIvExportVideo: ImageView? = null
 
     private var mAccentBackground: ThingBackground? = null
 
@@ -113,6 +116,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         mIvMainAction = f(R.id.iv_play_main_action)
         mIvPrevious   = f(R.id.iv_play_previous_audio)
         mIvNext       = f(R.id.iv_play_next_audio)
+        mIvExportVideo = f(R.id.iv_export_fablesol_video)
 
         val detail = mActivity as? DetailActivity
         mAccentBackground = detail?.getAccentBackground()
@@ -124,6 +128,9 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         installTransportRipple(mIvNext, accentBg)
         tintTransportIcon(mIvPrevious, R.drawable.act_fablesol_previous, accentBg)
         tintTransportIcon(mIvNext, R.drawable.act_fablesol_next, accentBg)
+        setUpExportVideoAction(accentBg)
+        DisplayUtil.setSeekBarBackground(mSeekBar, accentBg, inactiveTrackColor())
+        installClockContentAlignment()
 
         configureClockView(accentBg)
         mVisualizer!!.setThingBackground(accentBg)
@@ -131,7 +138,6 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         // 不补偿的话水线会比录音对话框高出 (450-420)/2 = 15dp。取景整体下移 15dp，
         // 让水线与录音对话框贴底位置逐 dp 一致，多出的 30dp 全部留在上方给滑杆。
         mVisualizer!!.setContentVerticalOffsetDp(CONTENT_OFFSET_DP)
-        DisplayUtil.setSeekBarBackground(mSeekBar, accentBg, inactiveTrackColor())
 
         val player = FableSolAudioFilePlayer(mActivity!!.applicationContext)
         mPlayer = player
@@ -175,6 +181,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDestroyView() {
+        removeClockContentAlignment()
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
@@ -245,7 +252,12 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         override fun onPrepared(durationMs: Int) {
             if (!isAdded) return
             mSeekBar!!.max = if (durationMs > 0) durationMs else PROGRESS_UNKNOWN_MAX
-            mSeekBar!!.progress = 0
+            // 自然结束后的 seek 会以暂停态重建解码线程；不能让 onPrepared 再把用户选定位置
+            // 擦回 0，否则随后的播放虽然能启动，UI 与声音却从一开始就错位。
+            val preparedPosition = (mPlayer?.positionMs() ?: 0)
+                .coerceIn(0, mSeekBar!!.max)
+            mSeekBar!!.progress = preparedPosition
+            updateClock(preparedPosition.toLong())
         }
 
         override fun onPlayingChanged(playing: Boolean) {
@@ -418,6 +430,141 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
     }
 
+    /**
+     * 把进度条与导出图标对齐到时钟**实际绘制的内容**边缘，而不是它的布局边界。
+     *
+     * `TimelyClockView.onMeasure()` 上报的是字体 advance 字槽宽度，真正的字形只按字高 80%
+     * 绘制，还带各字体自己的侧边留白。这里使用 View 在测量后按轮廓算出的稳定着墨包络；
+     * 不能把 View 的 left/right 当成数字边缘。
+     *
+     * 挂在整棵树的 `OnGlobalLayoutListener` 上，而不是时钟自己的 `addOnLayoutChangeListener`
+     * 或一次性的 `post`：后两者在这个对话框里实测都不会兑现（对话框的窗口宽度是 wrap_content，
+     * 测量要反复几轮，单次回调很容易落在还没定型的那一轮上）。全局回调每次布局都来，
+     * 内部按值判等，稳定后自然不再改动。
+     */
+    private val mAlignListener = ViewTreeObserver.OnGlobalLayoutListener {
+        alignToClockContent()
+    }
+
+    private fun installClockContentAlignment() {
+        val seekBar = mSeekBar ?: return
+        // AbsSeekBar 在进度为 0 时把 thumb 画在
+        // x = paddingLeft - thumbOffset；setThumb() 又会把 thumbOffset 自动设成
+        // thumb 固有宽度的一半。水平 padding 因而必须等于实际 thumbOffset，才能让
+        // handle 外缘（而不是轨道外缘）与 View 左右缘重合。
+        val thumbInset = seekBar.thumbOffset.coerceAtLeast(0)
+        seekBar.setPadding(
+            thumbInset,
+            seekBar.paddingTop,
+            thumbInset,
+            seekBar.paddingBottom
+        )
+        mContentView?.viewTreeObserver?.addOnGlobalLayoutListener(mAlignListener)
+    }
+
+    private fun removeClockContentAlignment() {
+        val observer = mContentView?.viewTreeObserver ?: return
+        if (observer.isAlive) observer.removeOnGlobalLayoutListener(mAlignListener)
+    }
+
+    private fun alignToClockContent() {
+        val clock = mClockView ?: return
+        val seekBar = mSeekBar ?: return
+        val export = mIvExportVideo ?: return
+        if (clock.width <= 0 || clock.height <= 0) return
+        val parentWidth = (clock.parent as? View)?.width ?: return
+        if (parentWidth <= 0) return
+
+        val contentLeft = (clock.left + clock.contentLeftPx()).roundToInt()
+        val contentRight = (clock.left + clock.contentRightPx()).roundToInt()
+
+        // video_frame_save 的最右侧保存横线在 x=23 结束，右侧还留 1dp；对齐的是可见
+        // 图形而不是 ImageView 内容盒，因此除 paddingRight 外还要扣掉这 1dp。
+        val exportParams = export.layoutParams as? ViewGroup.MarginLayoutParams
+        var exportMarginEnd = exportParams?.marginEnd ?: 0
+        if (exportParams != null) {
+            val iconRightInset = (
+                EXPORT_ICON_RIGHT_INSET_DP * clock.resources.displayMetrics.density
+            ).roundToInt()
+            val target = (
+                parentWidth - contentRight - export.paddingRight - iconRightInset
+            ).coerceAtLeast(0)
+            if (exportParams.marginEnd != target || exportParams.rightMargin != target) {
+                exportParams.marginEnd = target
+                exportParams.rightMargin = target
+                export.layoutParams = exportParams
+            }
+            exportMarginEnd = target
+        }
+
+        val seekParams = seekBar.layoutParams as? ViewGroup.MarginLayoutParams
+        if (seekParams != null) {
+            val gap = (SEEK_TO_EXPORT_GAP_DP * clock.resources.displayMetrics.density).toInt()
+            val exportWidth = if (export.width > 0) export.width else export.layoutParams.width
+            // 几何上 handle 外缘已与数字着墨左缘相等；再把整条 SeekBar（handle + 轨道）
+            // 固定左移 2dp，补偿圆形 handle 相对竖直数字边缘产生的视觉内缩。
+            val opticalOverhang = (
+                SEEK_OPTICAL_START_OVERHANG_DP * clock.resources.displayMetrics.density
+            ).roundToInt()
+            val startTarget = (contentLeft - opticalOverhang).coerceAtLeast(0)
+            val endTarget = (exportMarginEnd + exportWidth + gap).coerceAtLeast(0)
+            if (seekParams.marginStart != startTarget ||
+                seekParams.leftMargin != startTarget ||
+                seekParams.marginEnd != endTarget ||
+                seekParams.rightMargin != endTarget
+            ) {
+                seekParams.marginStart = startTarget
+                seekParams.leftMargin = startTarget
+                seekParams.marginEnd = endTarget
+                seekParams.rightMargin = endTarget
+                seekBar.layoutParams = seekParams
+            }
+        }
+    }
+
+    /**
+     * 导出水体视频。GLES 不可用（走了 Canvas 回退）时整个按钮不出现，而不是点了才失败
+     * ——离线渲染同样依赖 GLES（fablesol-video-export D14）。
+     */
+    private fun setUpExportVideoAction(accentBg: ThingBackground) {
+        val button = mIvExportVideo ?: return
+        if (!FableSolVideoExportLauncher.isSupported(mVisualizer)) {
+            button.visibility = View.GONE
+            return
+        }
+        // Material 的 video_frame_save 图标直接使用完整 ThingBackground；渐变不能退化成
+        // representativeColor。触摸范围仍属于 App Chrome，保留其中性的圆形 ripple。
+        // GLES 是异步失败的：回退发生时立刻隐藏，不用等到用户点一下才发现。
+        mVisualizer?.onGlFallback = { button.post { button.visibility = View.GONE } }
+        BackgroundUtil.installAppChromeCircleRipple(button, mActivity!!)
+        button.imageTintList = null
+        button.setImageDrawable(
+            BackgroundUtil.tintDrawable(
+                button.resources,
+                ContextCompat.getDrawable(
+                    mActivity!!, R.drawable.act_fablesol_export_video
+                ),
+                accentBg
+            )
+        )
+        button.setOnClickListener {
+            val path = mPaths.getOrNull(mIndex) ?: return@setOnClickListener
+            // 装配时查过一次还不够：GLES 是异步失败的，可能在对话框开着的时候才回退到
+            // Canvas，那时再点会启动一个必然失败的离线 GLES 导出。
+            if (!FableSolVideoExportLauncher.isSupported(mVisualizer)) {
+                button.visibility = View.GONE
+                return@setOnClickListener
+            }
+            FableSolVideoExportLauncher.launch(
+                mActivity!!,
+                path,
+                accentBg,
+                accentBg,
+                mVisualizer
+            )
+        }
+    }
+
     private fun dispatchGravityToVisualizer(gx: Float, gy: Float, gz: Float) {
         val (screenX, screenY) = when (mLockedRotation) {
             Surface.ROTATION_90 -> -gy to gx
@@ -486,6 +633,13 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     }
 
     companion object {
+
+        /** 进度条轨道右缘与导出按钮之间的间隙。 */
+        private const val SEEK_TO_EXPORT_GAP_DP = 6f
+        /** handle 与轨道整体越过 Timely 着墨左缘的光学校正。 */
+        private const val SEEK_OPTICAL_START_OVERHANG_DP = 2f
+        /** video_frame_save 的最右侧保存横线在 960 viewport 的 x=920，即 24dp 中的 x=23。 */
+        private const val EXPORT_ICON_RIGHT_INSET_DP = 1f
         const val TAG: String = "AudioPlayDialogFragment"
 
         private const val KEY_PATHS = "paths"

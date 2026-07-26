@@ -1,5 +1,413 @@
 # Current Debug Update Notes
 
+## 2026-07-26 - 导出图标尺寸与编码设置文案
+
+用户反馈信息较丰富的 Material `video_frame_save` 以原 24dp 放入录音 Dialog FAB 和音频附件
+Dialog 进度条右侧按钮时略显偏大，要求稍微缩小；同时要求把 FableSol 导出设置中的
+“码率模式”改为“编码模式”，把“体积随画面复杂度变化”改为“视频大小随画面复杂度变化”，
+并同步其它语言。
+
+录音 Dialog 的 56dp FAB padding 由 16dp 增至 17dp，音频附件 Dialog 的 40dp 按钮 padding
+由 8dp 增至 9dp，因此两处图标可见尺寸统一由 24dp 收到 22dp，touch ripple、位置和完整
+`ThingBackground` 渐变着色不变。13 套语言中的两个字符串已按“Encoding mode”和
+“Video size varies with scene complexity”的对应语义同步修改。
+
+本轮未运行单元测试、截图测试或 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726230935.md`。
+`:app:publishDebugUpdate` 构建并发布成功，更新码 `202607261510`；本地发布 APK、远端
+`latest.json` 与重新下载 APK 的 SHA-256 均为
+`499c59a302eba317885d288c68fa05b2d34462548fdeb59ffb0d0194bee5106e`。
+
+## 2026-07-26 - Material 导出图标与 HDR 探测缓存
+
+用户要求放弃海浪导出图标，最终指定使用 Material Symbols 的 `video_frame_save`，并补全
+左边框和上边框；同时反馈打开“音频海浪动画设置”有卡顿，质疑 HDR 真实编码是否在后台以及
+是否每次都重新执行；设备不支持 HDR 导出时，置灰标签还要与顶部 HDR 高光增强的不支持态
+使用同一颜色，并明确显示“设备不支持”。用户明确要求不运行测试，完成后直接发布阿里云。
+
+源码调用路径确认：HDR 探测虽然在独立线程，但每次创建 Dialog 都立即启动，并会创建
+视频/AAC 编码器、RGB10_A2 BT.2020/HLG EGL、最大画布 FP16 scene targets 和完整
+`FableSolGlRenderer`；这会与 Dialog 首帧和实时预览争用 GPU、codec 与内存带宽。
+`FableSolExportOptions.settingsQualityRange()` 还会在设置构建时同步枚举 codec。
+
+`FableSolHdrExportCapability` 现按探测实现版本、App `VERSION_CODE`、Android API 与
+`Build.FINGERPRINT` 持久化结果：成功结果在签名不变时长期有效，失败结果缓存 24 小时；
+进程内缓存可以立即恢复。首次未缓存解析延后到 Dialog 首帧之后，并设置为后台低优先级。
+探测仍走正式视频编码器、10-bit HLG EGL、AAC/MP4 封装和最终输出格式校验，但不再初始化
+整套水体 renderer；正式导出仍验证实际 FP16 scene targets。CQ 范围（包括 null）也增加
+进程缓存。
+
+HDR 导出不支持时，标签追加现有 `fablesol_tuning_hdr_unsupported` 文案，保持 enabled
+文本色并使用与顶部一致的 `0.5` alpha，不再对整行施加 `0.38` alpha。图标采用 Google
+Material Symbols Outlined `video_frame_save` 的官方几何，额外补齐顶部中央和左侧中央两段
+画框缺口；播放 Dialog 的完整 `ThingBackground` 渐变着色保持不变。
+
+按用户要求，本轮未运行单元测试、截图测试、独立 Gradle 测试任务或 adb；仅做源码、线程
+边界、缓存有效期、资源清理和 vector 路径静态复核。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726225611.md`。
+`:app:publishDebugUpdate` 构建并发布成功，更新码 `202607261457`；本地发布 APK、远端
+`latest.json` 和重新下载 APK 的 SHA-256 均为
+`4b5c2f9cbd16c97e2d53911f2f34fb211140cf07651a963b478d8788101f20f5`。
+
+## 2026-07-26 - HDR 能力门控、播放结束态恢复与双层水波图标
+
+用户继续反馈三项问题：导出图标要有两层不等高水波，底层横贯画框、上层从中间偏左出现；
+三星设备可以勾选“导出 HDR 视频”，但产物似乎总是 SDR，希望设备不支持实际 HDR 编码时
+直接置灰；音频附件自然播放完成后，拖动进度并再次点击播放没有反应，同时主播放/暂停图标
+要增大到 32dp，但 56dp ripple 保持不变。
+
+诊断确认播放结束时 `FableSolAudioFilePlayer.PlaybackThread` 已退出并在 `finally` 中释放
+MediaCodec/AudioTrack，但原 `seekTo()` 和 `play()` 仍只向该死亡线程发请求。现在自然结束后
+第一次 seek 会用原文件路径重建暂停的解码线程、携带初始 seek；首个输出格式前先读取输入
+采样率建立正确时间基准，`AudioPlayDialogFragment.onPrepared()` 也不再把所选位置清零。
+主按钮保留 56dp 容器与 ripple，padding 从 14dp 改为 12dp，可见图标精确变为 32dp。
+
+HDR 设置此前只保存偏好，没有设备能力门；正式导出还会在 120fps HDR 失败后先返回
+120fps SDR，漏掉可能可用的 60fps HDR。新增 `FableSolHdrExportCapability`，在设置页后台
+按 383dp 最大卡片画布执行一帧真实短编码，复用正式导出的 tier、视频/AAC 编码器、MP4
+muxer、RGB10_A2 BT.2020/HLG EGL surface、FP16 scene targets 和最终输出格式校验。探测期间
+以及失败后开关置灰，失败时同时清除无效 HDR 偏好。正式尝试顺序改为 HDR 120fps、
+HDR 60fps、SDR 120fps、SDR 60fps。
+
+图标使用 Python 模拟器对真实录音离线渲染 4 秒帧，分别从 y=595～602px 和
+y=579～586px 两层水面提取轮廓。新 24dp vector 的底层浪从内框左缘覆盖到右缘，上层从
+x=9.2dp 开始，两层峰谷位置与振幅不同；24dp 预览确认可分辨，临时帧与预览已清理。
+
+新增并扩展回归测试，先失败后通过；完整 `:app:testDebugUnitTest` 共 298 项，0 失败、
+1 跳过，`:app:assembleDebug` 成功。未使用 adb。已发布阿里云 debug 更新
+`202607261422`；本地、远端元数据与重新下载 APK 的 SHA-256 均为
+`ed068f54312b407855805fb919f260a41684d833d8e2bf3689fe2228228188ce`。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726221851.md`。
+
+## 2026-07-26 - 导出画布分享兼容与播放界面视觉修复
+
+用户反馈导出进度/完成 Dialog 的按钮文字没有居中于 ripple；视频分享到微信或朋友圈后右侧
+背景被裁，明确要求宽高都按 64px 倍数重绘背景；同时要求用 Python 真实离线水面重做导出
+图标，并让播放 Dialog 的导出图标支持记事渐变、主播放/暂停图标真正大于两侧图标。
+
+诊断确认两个动作 `TextView` 固定 36dp 高但没有 `gravity`；现在补
+`android:gravity="center"`。编码候选尺寸改为 codec alignment 与 64px 的最小公倍数，
+补齐像素只对称扩展中性画框并重新居中原卡片；输出 crop keys 必须覆盖完整画幅，否则放弃
+候选。默认 310dp 卡片由非块对齐尺寸改为 `1152×1472`，左右画框均为 97px。
+
+调用 `E:\projects\audioVisualizerSimulatorFable\tools\shoot_frames.py` 对真实录音生成 2/4/6 秒
+离线帧，从 4 秒帧逐列提取顶层水面并拟合为新的 24dp 开放贝塞尔图标轮廓，临时帧已清理。
+`AudioPlayDialogFragment` 的导出图标改用 `BackgroundUtil.tintDrawable()` 消费完整
+`ThingBackground`；主播放/暂停按钮由 `centerInside` 改为 `fitCenter`，在原 56dp ripple
+内把实际 icon 从 24dp 放大到 28dp。
+
+五项新回归先失败后通过；完整 `:app:testDebugUnitTest` 共 292 项，0 失败、1 跳过，
+`:app:assembleDebug` 成功。未使用 adb。已发布阿里云 debug 更新 `202607261333`；本地 APK
+与远端元数据记录的 SHA-256 均为
+`b46e7416668c20b7763845db99af6b1793b95ad89fae8448fbf7cc1af6378f83`。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726213302.md`。
+
+## 2026-07-26 - 导出完成通知与海浪图标优化
+
+用户要求导出完成通知与完成 Dialog 显示同一份结果信息，并重新设计导出海浪视频图标中
+像山峰的水体形状。
+
+检查发现 `FableSolVideoExportService` 原先为通知单独拼接摘要，只显示 HDR/SDR 和帧率；
+完成 Dialog 则从 `FableSolVideoExportBus.State.Done` 读取实际文件大小和保存位置。现在
+Service 先生成并发布唯一的 `Done` 状态，通知随后读取其中的 HDR/SDR、实际帧率、实际大小、
+保存位置和分享 URI，并复用 `fablesol_export_dialog_done` 的四行文案，避免两处结果分叉。
+
+`act_fablesol_export_video.xml` 保留原有圆角视频画框，把内部 2.5dp 高振幅实心波带改为
+1.8dp 圆头描边的低振幅开放贝塞尔水波，使 24dp 图标不再呈现尖锐山峰感。
+`FableSolExportPipelineSourceTest` 新增完成结果同源和图标结构两项回归约束。
+
+`:app:testDebugUnitTest` 与 `:app:assembleDebug` 已通过；未使用 adb。已发布阿里云 debug
+更新 `202607261307`，本地 APK 与远端元数据记录的 SHA-256 均为
+`00c4996ed83661033312f49067a7fbe81a606b8bdbbab1420171c7f1030633bc`。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726210619.md`。
+
+## 2026-07-26 - 视频导出完整链路可靠性修复
+
+发布号 `202607261246`，APK SHA-256
+`47c17e73260f24ae33c4388f8c373032692dc7920f1d5ed29afa5a9be811df85`。
+日志文件
+`docs/features/fablesol-video-export/debug-updates/update-20260726204419.md`。
+
+用户在 Claude 多轮修复后要求由 Codex 直接接手。根据第四次静态评审，对导出链路做了事务级
+重构，而不是继续在原有生命周期上打补丁：
+
+1. `FableSolExportEncoder.finish()` 现在必须完成并检查音视频 EOS、
+   `MediaMuxer.stop()/release()`；只有之后才允许 `FableSolExportSink.commit()` 解除
+   MediaStore pending 或执行媒体扫描，封装失败不能再报成功。
+2. 每个编码候选从音频、muxer、codec、EGL 和 renderer 完整重建。创建、首帧交换、实际输出
+   格式、`addTrack()`、后续编码或封装失败，都清理半成品并尝试下一档；发布失败不重复渲染。
+3. 实际输出格式验证 10-bit profile、尺寸与 BT.2020/HLG 或 BT.709 标记；FP16 scene target
+   静默回退 RGBA8 时放弃 HDR。profile 与 level 成对设置，尺寸按具体编码器对齐，H.264
+   补 High/Main/Baseline 阶梯。
+4. 编码器与音频解码源把资源创建移进受保护的 init 流程，第二个 codec、configure 或 start
+   失败时同样释放第一个 codec、Surface、MediaExtractor 与 muxer。
+5. API 26–28 发起前申请 `WRITE_EXTERNAL_STORAGE`，只写公共
+   `Movies/EverythingDone/`。文件用 `createNewFile()` 原子占位、冲突改名，媒体扫描回调确认
+   后才提交；`discard()` 只删除本 sink 本次拥有的文件。
+6. Service 改为主线程任务状态机 + 单工作线程；取消按 jobId，foreground 和
+   `stopSelfResult()` 不再由旧 worker 在锁外执行。Bus 使用每任务状态表，系统超时立即给当前
+   与排队任务写失败终态，旧进度/Cancelled 无法覆盖。
+7. CQ 不再拿提示码率硬拦截，改为 64MB 实际空间保底并每 30 帧复查；CBR 估算加入 AAC
+   192kbps。完成 Dialog 和排队态按钮只提供实际可执行动作。
+
+新增 `FableSolExportStateRegistryTest`、`FableSolExportGeometryTest`、
+`FableSolExportPipelineSourceTest`；全量 `:app:testDebugUnitTest` 与
+`:app:assembleDebug` 通过。额外全量 Lint 仍被项目旧基线挡住（488 errors / 1033 warnings，
+首项为 `AutoNotifyReceiver.kt` 的既有 `MissingPermission`）；本功能筛选无 error。未使用 adb。
+
+## 2026-07-26 - 第三轮静态评审的八条修复（第五十五版）
+
+发布号 `202607261133`，APK SHA-256 `125d3ba7d9b93f091adab9ab88f8164b6cf4a57b0ce2570bfdbbd8ee96615908`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726234500.md`。
+
+外部模型第三轮评审，**八条全部属实**（其中三条 P1 会直接导致导出失败），全部已修：
+
+1. **P1** API 26–28 写不进公共 Movies：`WRITE_EXTERNAL_STORAGE` 在 Manifest 带
+   `maxSdkVersion="28"` 但**运行时从未申请**。改为查权限——没有就写应用自己的外部 Movies
+   目录（免权限、API 29 前照样可扫进相册）。
+2. **P1** `FEATURE_HlgEditing` 是 **API 35** 的能力位，我从 34 起就拿它过滤 → Android 14 上
+   HDR 候选被全部误杀并静默降 SDR。门槛改到 35。
+3. **P1** 旧 worker 收尾仍会停掉新任务：上一轮判决进了锁、**执行还在锁外**。改为 WakeLock
+   每 worker 各持各释放 + `stopSelfResult(latestStartId)`。
+4. **P2** Bus 全局无 jobId，两个排队任务串状态（会让用户分享错文件）→ 每个 State 带
+   `jobId`，新增 `Queued`，对话框只消费自己那一个。
+5. **P2** `commit()` 失败仍报成功 → 返回 `Boolean` 并检查 `update()` 行数，移进成功路径。
+6. **P2** 播放/导出的分析器起始状态不一致 → 统一"文件输入不过预热门"，播放侧补
+   `skipStartupGate()`；"复现录音预热"做不到，D15 ① 判据已在 followups.md 改写。
+7. **P2** 降级尝试泄漏 EGL（`attemptEgl` 是 try 内局部变量，`start()` 失败时够不着）。
+8. **P2** 系统超时被随后的 Cancelled 覆盖 → `timedOut` 旗 + 结果映射。
+
+新增 JVM 门禁 `FableSolExportFixedDtTest`，钉住「120fps 恒 1 子步、60fps 恒 2 子步」并把
+整数纳秒截断的失败形态作为反例留档。其余测试项（事件一致性、排队不串、worker 收尾、
+失败路径、Android 14 HDR）需要 MediaCodec/Service/Robolectric，项目无此环境，记入 followups。
+
+## 2026-07-26 - 第二轮静态评审的八条修复（第五十四版）
+
+发布号 `202607261050`，APK SHA-256 `1ed4bf77f7f41929f72ea4002dde9aa3bd3fec5b84136fd95e6ea54f2079497e`。
+按用户要求原样重发一次：发布号 `202607261052`，SHA-256
+`5eef819c34cfed86c1e2725b32dc29555c8dc54afca698d6a82c4bcb564396d0`
+（源码零改动，两次内容一致；APK 哈希不同是构建时间戳等元数据所致）。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726223000.md`。
+
+外部模型第二轮评审，八条实质问题**七条属实**，全部已修：
+
+1. 帧时间戳整数纳秒截断使 dt 比 `PHYSICS_DT` 少约 0.33ns，累加器给出 `0,1,2` 子步序列
+   ——"120fps 每帧正好一步"从未成立。新增 `setOfflineFixedDt(1.0/fps)` 下发有理数步长。
+2. 实时/离线初值不同导致 `max|Δ|=0` 判据不可达：初值差异是有意设计，**改判据不改代码**
+   （见 followups.md 改写）；代码侧只修预热门——离线调 `skipStartupGate()`。
+3. 队列竞态**收尾窗口**仍开着：旧线程 finally 会释放新线程的 WakeLock、`quitSafely()`
+   新线程、`stopSelf()`。改为锁内确认 `worker === thread && !running` 才收尾；取消改为
+   按任务令牌，不再 `queue.clear()` 误伤后来者。
+4. 编码器构造失败泄漏（对象不可达、调用方无从释放）+ `inputSurface` 从未释放 → 构造体
+   移进 `configureCodecs()`，init try/catch → `release()` 再抛；`release()` 补 surface。
+5. HDR 判定：API 34+ 加 `FEATURE_HlgEditing` 过滤；AV1 限 API 34+（更早 MediaMuxer 不支持
+   MP4 封 AV1）；`encoder.start()` 移进重试范围。
+6. `commit()` 在 finally 裸抛会顶掉 Success → 包 try/catch，服务侧 `runJob` 也包一层。
+7. Android 15+ `mediaProcessing` 六小时上限 → 覆写 `onTimeout(startId, fgsType)`。
+8. 重力轨迹 t=0 被第一个**未来**采样反填 → `start()` 落"此刻姿态"种子。
+
+零散项：GLES 回退新增 `onGlFallback`，两处入口立刻隐藏；候选编码器按用户 CQ/CBR 模式排序；
+导出时钟补录音开始那 360ms 淡入再进呼吸。
+
+## 2026-07-26 - 导出链路静态评审的十条修复（第五十三版）
+
+发布号 `202607261017`，APK SHA-256 `254cb20a980536ce2b0107496edbd804b76894f97f3b17adbd5b9e1c1cb759a2`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726211500.md`。
+
+用户请外部模型对导出链路做了一次静态评审，逐条核实后**十条里九条属实**（第九条"码率范围
+硬编"是注释不实、行为可控，也一并修）。全部已修：
+
+1. `finish()` 一次 `drain()` 无产出即退出 → 改为只受 30s 总时限约束，循环到两条轨真报 EOS，
+   并 `check(muxing)` 防畸形 MP4。
+2. 离线时间轴喂到 `(i+1)/fps` = 每帧前瞻一帧（正是 D7 明令禁止的） → 改 `i/fps`；
+   新增 `FableSolGlRenderer.primeFrameTime()`，修掉 120fps 首帧按 1/60 推进、之后一直领先半步。
+3. 离线分析器漏套 `applyFrontEndStored` → 补齐，与录音/播放三处一致。
+4. `select()` → `candidates()` 返回**带编码器名字**的有序候选，`createByCodecName` 创建；
+   建编码器或建 EGL 失败沿阶梯换下一档（含 120→60），每次失败 `sink.discard()`。
+5. 服务 `running` 竞态丢任务 → 入队与"队列空即停工"同 `queueLock`。
+6. 无 wake lock（前台服务不阻止 CPU suspend）→ 加 `PARTIAL_WAKE_LOCK`，6 小时兜底。
+7. 老系统 `Uri.fromFile` 外发必崩（minSdk 26）→ 改走 `FileProvider`。
+8. HEVC Main10 SDR 走 8-bit 表面且因 `eightBit=false` 关了抖动 → EGL 位深改跟随 `!eightBit`。
+9. 「恒定码率」配成 VBR → 支持就用 CBR；码率下发前 `tier.clampBitrate()` 夹到设备区间。
+10. GLES 异步回退后入口不隐藏 → 两处点击回调再查一次 `isSupported`。
+
+外加自查发现、评审未提的一条：帧循环只喂到最后一帧时间点，**不足一帧的音频尾巴从未进
+编码器**，音轨恒比画面短一帧；收尾前补一次排空。
+
+## 2026-07-26 - 导出完成信息与双按钮操作（第五十二版）
+
+发布号 `202607260941`，APK SHA-256
+`378bf18ce36d59d37ddc483e0b1d422bd371a52c429380d8ba7cbde50bb517b4`。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726203000.md`。
+
+用户指出视频成功后默认已经保存到相册，因此完成态不需要「保存到相册」操作；要求恢复
+分享、添加到附件两个按钮，同时显示 HDR/SDR、实际帧率、视频大小和保存位置，并让两个按钮
+都使用记事颜色。
+
+`FableSolExportSink` 现在会在成功提交后读取实际产物信息：MediaStore 优先查询 `SIZE`，
+失败时读取文件描述符长度，旧系统读取文件长度；位置优先真实路径，取不到时回落到
+`Movies/EverythingDone/文件名`。结果随 `FableSolVideoExportBus.State.Done` 传递，不使用
+码率估算。
+
+完成态恢复为原导出 Dialog 内的两个横向按钮；分享与添加到附件的文字、涟漪都消费完整
+`ThingBackground`，支持渐变。上一版对 `ThreeActionsAlertDialogFragment` 的第三操作扩展
+以及保存相册文案均已清理。13 套语言资源、源码反馈回路、`:app:testDebugUnitTest` 与
+`:app:assembleDebug` 均已通过；本地与远端元数据完全一致，远端 APK 实体哈希也已核对，
+未使用 adb。
+
+## 2026-07-26 - 播放进度光学校正与导出完成操作完善（第五十一版）
+
+发布号 `202607260920`，APK SHA-256
+`8162db3198cd417830915242b3ef1502c80b7a65786ab266f32944099106fe27`。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726200000.md`。
+
+用户要求在 handle 外缘几何对齐基础上，让 handle 与轨道共同再向左一点以形成视觉对齐；
+同时要求导出进度 Dialog 的底部间距参照标准取消/确定 Dialog，标题统一为通知栏使用的
+「导出音频海浪动画视频」；导出完成态还要改成应用既有的纵向三行操作，新增「保存到相册」，
+且分享、添加到附件、保存到相册三项都使用相同的完整强调色。
+
+SeekBar 现在保持 Timely 字体稳定着墨包络算法，仅把起始边界固定向左越过 2dp，因此 handle
+与轨道作为一组移动。导出进度布局移除根节点 12dp 底部 padding，改用标准动作行的 8dp
+底边距，并直接引用 `fablesol_export_title`。
+
+完成态切换为 `ThreeActionsAlertDialogFragment`，第三行可配置为普通操作；三项文字与涟漪
+共用完整 `ThingBackground`，支持渐变，返回键或点击外部不会误触发第三项。导出成功时视频
+本来已经提交 `MediaStore`，所以保存操作只确认现有条目，旧系统补媒体扫描，不再复制一份。
+
+源码反馈回路、13 套语言资源检查、`:app:testDebugUnitTest` 与 `:app:assembleDebug` 均通过，
+本地与远端 `latest.json` 完全一致，远端 APK 实体哈希也与元数据一致；未使用 adb。
+
+## 2026-07-26 - handle 外缘对齐与选项胶囊完整渐变（第五十版）
+
+发布号 `202607260708`，APK SHA-256
+`2a93c469059b354a3884f301c91bd0bee4fd47ecd63df2e3a706f3f334843f8a`。
+
+用户复核第四十九版后指出，进度条目前对齐的是轨道，不是滑杆 handle；同时指出音频海浪动画
+设置中的「帧率上限」「码率模式」选项胶囊在海浪换色时没有正确跟色，要求未选中轮廓和选中
+填充都支持完整渐变，不得使用 `representativeColor()`。
+
+按 AOSP `AbsSeekBar` 源码公式复现：自定义 20dp thumb 的 `thumbOffset` 自动为 10dp，原先把
+SeekBar 水平 padding 清零后，最小进度的 handle 左缘必然位于 View 左缘外 10dp。现在先安装
+自定义 thumb，再把左右 padding 设为实际 `thumbOffset`，handle 外缘因此精确落在 Timely 数字
+稳定着墨包络左缘。
+
+选项胶囊原先虽进入换色回调，但选中填充和未选中描边都只读取
+`mAppliedBackground.color`，丢掉渐变终点与方向。现分别改用
+`BackgroundUtil.fillDrawable()` 和 `BackgroundUtil.GradientStrokeDrawable` 消费完整
+`ThingBackground`；描边统一降低整个 shader 的 alpha，换色动画每个 UI 色阶继续同步刷新。
+
+修复前后反馈回路从「handle −10dp、渐变丢失」变为「handle 0dp、完整 ThingBackground」；
+`:app:testDebugUnitTest` 与 `:app:assembleDebug` 通过，未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260726193000.md`。
+
+## 2026-07-26 - 按 Timely 字形真实着墨边界对齐（第四十九版）
+
+发布号 `202607260649`，APK SHA-256
+`0b466bc0ba7568804891ed22d33da2739ded2748cc349e55602e40f8ae73aba6`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726190000.md`。
+
+用户反馈上一版把 `TimelyClockView` 改成 `wrap_content` 后仍未对齐。复核后确认上一版把
+`onMeasure()` 的 `advance × 6.84 × height` 误当成了数字真实宽度；它实际是字槽宽度，而
+`onDraw()` 又把轮廓按 0.8 字高绘制，字体各自还带不同侧边留白。33 套字形在 40dp 下左右
+可见留白差异可达约 10dp，故 View 边界天然不等于着墨边界。
+
+`TimelyClockView.contentLeftPx()/contentRightPx()` 现按字形轮廓、实心/描边 stroke、绘制缩放
+和 Stencil 秒钟 kerning 计算稳定着墨包络；`AudioPlayDialogFragment` 按该包络对齐进度条与
+导出按钮，并补偿图标 viewport 的 1dp 右侧留白。移除临时对齐日志。33 套字体 × 两种渲染模式
+的 66 组几何检查通过，`:app:testDebugUnitTest` 与 `:app:assembleDebug` 通过，未使用 adb。
+
+## 2026-07-26 - 计时器改 wrap_content，对齐一步到位（第四十八版）
+
+发布号 `202607260621`，APK SHA-256 `c0b0c65febe46cc7652d63de55876e66ac0789b49af51bc699164756ca3910e5`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726183000.md`。
+
+前三轮都在算"控件宽 − 数字宽再折半"，方向就绕了。`TimelyClockView.onMeasure` 的固有宽
+`advance × 6.84 × height` **本来就是数字真实宽度**，但布局写的是 `match_parent`，最终 EXACTLY
+分支把固有宽丢掉、控件拉满，数字只好居中，控件边界才不等于数字边界。改成 `wrap_content`
+走 AT_MOST，`resolveSize` 返回固有宽，**控件边界即数字边界**，进度条与导出图标直接按
+`clock.left / clock.right` 对齐，窄字体宽字体自动跟随。对话框整体宽度不变——它本来就是由
+计时器固有宽撑出来的。debug 构建加了 `FableSolExportAlign` 日志输出三组边界数。
+
+## 2026-07-26 - 播放对话框对齐换挂载点（第四十七版）
+
+发布号 `202607260614`，APK SHA-256 `bd5c91bd10e1122ea74ea42df7adacece0bc9df5a8bcd25dbf9c4725c16f8559`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726173000.md`。
+
+第四十六版把重力改对之后仍未对齐——因为**运行时那段对齐一次都没跑起来**，两者都停在 XML
+边距上；导出图标看着接近对齐只是它多了 8dp padding。原挂载点是时钟自己的
+`addOnLayoutChangeListener` + `post` 单次应用，而这个对话框窗口宽度是 WRAP_CONTENT、测量要
+反复多轮，单次回调容易落在未定型的那一轮，之后再无修正机会。改挂 `mContentView` 的
+`ViewTreeObserver.OnGlobalLayoutListener`（每次布局都核对、按值判等），并把 XML 基线边距
+校正为 24dp，使运行时计算即便失效初始位置也正确。进度条与导出图标上边距各 +10dp。
+
+## 2026-07-26 - 播放对话框进度条对齐（第四十六版）
+
+发布号 `202607260608`，APK SHA-256 `71d436a52c0d64932a591207b1c3a423b9c3f2ee731b5a686319ddcf1bfe06aa`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726164500.md`。
+
+根因：`sb_audio_progress` 的 `layout_gravity` 是 `top|center_horizontal`，而 FrameLayout 对
+居中子项的定位是 `childLeft = (parentW − childW)/2 + leftMargin − rightMargin`——**左右外边距
+被当成差值偏移**，运行时设 `marginStart` 根本不等于"左缘落在这里"。导出图标是 `top|end`，
+`marginEnd` 被逐像素兑现，所以同一段对齐代码只有它生效。改成 `top|start` 即可。
+
+教训：FrameLayout 里凡是要按边距精确定位的子项，重力必须是 start / end，不能是
+center_horizontal。
+
+## 2026-07-26 - 海浪动画视频导出：阴影裁切与对齐失效（第四十五版）
+
+发布号 `202607260601`，APK SHA-256 `0fcfd10a09e170f7591e5d31804425aec09171e06a9c46b3f84a064dc9d9cc21`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726155000.md`。
+
+四处根因：①按钮行 wrap_content + FAB 4dp elevation，副按钮改 GONE 后准备态整行只剩 56dp，
+阴影被裁——两处 `clipChildren/clipToPadding=false`。②上一版的对齐**一次都没生效**：在
+`onLayoutChange` 里同步改 layoutParams，布局遍历中的 `requestLayout()` 被框架丢弃；改为
+`post` 到下一帧，并把 SeekBar 左右 padding 归零使算术不依赖样式。③进度对话框标题补
+`applyTextBackground`，结构与边距改为参照 `dialog_doing_digit_style`（根 18/12dp、标题
+20dp/18sp bold、动作行走 `app_chrome_dialog_*`）。④档位标签选中态文字：渐变强调色会在
+TextPaint 上留 shader，`setTextColor` 盖不住，改走 `applyTextBackground` 的纯色分支
+（该分支会先清 shader）。
+
+## 2026-07-26 - 海浪动画视频导出：尺寸、对齐与配色（第四十四版）
+
+发布号 `202607260546`，APK SHA-256 `b64cf160416bcb772041877e46896e45957e8d7b68c65b26e8e14ad61a634e7d`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726143000.md`。
+
+重录/取消从 wrap_content 改为固定 40dp——图标素材本身 40dp，加 8dp padding 恰好也是 56dp，
+与两个 FAB 等大。`TimelyClockView` 新增 `contentLeftPx()/contentRightPx()`，播放对话框按
+**数字实际绘制区域**而非布局边界对齐进度条与导出图标；导出图标矢量重画为左右对称。
+进度对话框补上记事强调色（进度条 tint、按钮文字与渐变涟漪）与 `app_chrome_dialog_*` 边距。
+设置里的档位标签补上渐变涟漪、随换色刷新（`mAccentChipPainters`），选中态文字改用
+`BackgroundUtil.onColor` 按底色明暗自适应。
+
+## 2026-07-26 - 海浪动画视频导出：交互与设置修正（第四十三版）
+
+发布号 `202607260531`，APK SHA-256 `96155de17f2e363857ddc5af03f1856899d80ec5fefed639d41556dfcdffa07d`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726131500.md`。
+
+录音对话框按钮行改为 visibility 驱动（准备/录音态只有主按钮、严格居中；停止态三个副按钮
+才出现），导出 FAB 与对号等大 56dp。播放对话框进度条与导出 icon 分别对齐时钟左右缘，
+导出 icon 着色与涟漪改为跟随 App Chrome。新增导出进度对话框（进度 + 取消 + 在后台运行，
+完成后转为分享 / 添加为附件），配 `FableSolVideoExportBus`；通知标题改为「导出音频海浪动画
+视频」并在完成后带分享按钮。设置入口改名「音频海浪动画设置」，导出组的帧率与码率模式改为
+二选一标签、恒定质量档显示 CQ 原值并隐藏码率、新增导出 HDR 开关、体积估算只在恒定码率档
+出现（恒定质量档下 `KEY_BIT_RATE` 只是提示，实测约 3 Mbps 而非标称 24）。
+
+## 2026-07-26 - FableSol 可视化视频导出（第四十二版）
+
+发布号 `202607260349`，APK SHA-256 `dbae3de04491a47ed8e3a56872d6a269f0e5ef827e518450f96d61d2d09bd0ec`。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260726114830.md`。
+
+音频附件可导出成一段 FableSol 水体视频（水体 + 计时时钟 + 圆角卡片 + 留边画框，自带音轨，
+条件满足时是 HDR）。两个入口：录音停止态的「保存并导出视频」FAB，以及播放对话框进度条右侧
+的图标按钮；产物构图与入口无关。全部离线渲染、跑在前台服务里，通知带 ETA 与取消。录音侧
+新增重力轨迹（写进 WAV 的自定义 RIFF chunk），供导出复现当时的水体倾斜；本次之前的历史
+录音按竖直渲染。调参 Dialog 新增「视频导出」分组（帧率上限 / 恒定质量 / 质量档 / 目标码率 /
+关键帧间隔 + 推导结果行），纳入恢复默认；13 语言文案齐。
+
+真机验收未做；码率与质量默认值待标定；HLG 超白余量只有约 3.77 倍（强度上限 9.6），
+超出部分用线性域软肩承接，观感待真机确认。详见
+`docs/features/fablesol-video-export/execution.md`。
+
 ## 2026-07-26 - DialogFragment 全量迁到 AndroidX（第四十一版）
 
 `BaseDialogFragment` 由 `android.app.DialogFragment`（API 28 起弃用）迁到

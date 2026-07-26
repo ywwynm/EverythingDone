@@ -504,7 +504,7 @@
     <string name="settings_twice_back">बाहर निकलने के लिए वापस दो बार दबाएँ</string>
     <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
     <string name="settings_doing_digit_style">टाइमर अंक शैली</string>
-    <string name="settings_fablesol_tuning">समुद्री लहर एनीमेशन समायोजन</string>
+    <string name="settings_fablesol_tuning">समुद्री लहर एनीमेशन सेटिंग्स</string>
     <string name="fablesol_tuning_hdr">HDR हाइलाइट्स</string>
     <string name="fablesol_tuning_hdr_unsupported">(इस डिवाइस पर समर्थित नहीं)</string>
     <string name="fablesol_tuning_hdr_off">बंद</string>
@@ -964,4 +964,42 @@
     <string name="home_structure_delete_folder_forever_body">%1$s और उसकी सारी सामग्री स्थायी रूप से हटाएँ, कुल %2$s। इसे वापस नहीं किया जा सकता।</string>
     <string name="home_structure_delete_folder_forever_empty_body">%1$s को स्थायी रूप से हटाएँ। इसमें कोई सामग्री नहीं है, लेकिन फ़ोल्डर वापस नहीं लाया जा सकेगा।</string>
     <string name="home_structure_delete_items_forever_body">चुने गए आइटम स्थायी रूप से हटाएँ: चुने गए फ़ोल्डर उनकी पूरी सामग्री सहित, और चुनी गई चीज़ें। कुल %1$s। इसे वापस नहीं किया जा सकता।</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">समुद्री लहर एनीमेशन वीडियो निर्यात</string>
+    <string name="fablesol_export_preparing">तैयार हो रहा है…</string>
+    <string name="fablesol_export_progress">%1$d%%, %2$s बाकी</string>
+    <string name="fablesol_export_progress_unknown">रेंडर हो रहा है…</string>
+    <string name="fablesol_export_eta_minutes">%1$d मिनट %2$d सेकंड</string>
+    <string name="fablesol_export_eta_seconds">%1$d सेकंड</string>
+    <string name="fablesol_export_cancel">रद्द करें</string>
+    <string name="fablesol_export_done">Movies/EverythingDone में सहेजा गया · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">निर्यात रद्द</string>
+    <string name="fablesol_export_failed">निर्यात विफल: %1$s</string>
+    <string name="fablesol_export_no_space">निर्यात के लिए पर्याप्त स्थान नहीं</string>
+    <string name="fablesol_export_started">जल वीडियो निर्यात हो रहा है…</string>
+    <string name="cd_export_fablesol_video">जल वीडियो निर्यात करें</string>
+    <string name="fablesol_group_export">वीडियो निर्यात</string>
+    <string name="fablesol_param_export_frame_rate">फ्रेम दर सीमा</string>
+    <string name="fablesol_param_export_cq">स्थिर गुणवत्ता</string>
+    <string name="fablesol_param_export_quality">गुणवत्ता</string>
+    <string name="fablesol_param_export_bitrate">लक्षित बिटरेट</string>
+    <string name="fablesol_param_export_keyframe">कीफ्रेम अंतराल</string>
+    <string name="fablesol_export_estimate">%1$s MB प्रति मिनट · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">एन्कोडिंग मोड</string>
+    <string name="fablesol_export_mode_quality">स्थिर गुणवत्ता</string>
+    <string name="fablesol_export_mode_bitrate">स्थिर बिटरेट</string>
+    <string name="fablesol_param_export_quality_value">गुणवत्ता पैरामीटर (CQ)</string>
+    <string name="fablesol_param_export_hdr">HDR वीडियो निर्यात करें</string>
+    <string name="fablesol_export_estimate_bitrate">लगभग %1$s MB प्रति मिनट · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">वीडियो का आकार दृश्य की जटिलता के अनुसार बदलता है · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">एनीमेशन निर्यात हो रहा है</string>
+    <string name="fablesol_export_run_in_background">पृष्ठभूमि में चलाएँ</string>
+    <string name="fablesol_export_share">साझा करें</string>
+    <string name="fablesol_export_add_attachment">अनुलग्नक के रूप में जोड़ें</string>
+    <string name="fablesol_export_dialog_done">निर्यात पूर्ण\nविशिष्टताएँ: %1$s, %2$d fps\nवीडियो का आकार: %3$s\nस्थान: %4$s</string>
+    <string name="fablesol_export_dialog_failed">निर्यात विफल: %1$s</string>
+    <string name="fablesol_export_timeout">निर्यात रुका: पृष्ठभूमि प्रोसेसिंग की 6 घंटे की सीमा पूरी</string>
 </resources>

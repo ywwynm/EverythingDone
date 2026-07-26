@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    基于 Google Material Symbols Outlined 的 video_frame_save（24px，Apache-2.0）。
+    原图标用四段取景角标表示视频画框；按产品要求补上 x=320..640 的顶部缺口和
+    y=400..560 的左侧缺口，使左边框、上边框连续完整。播放三角、保存箭头及其余
+    Material 几何保持不变。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M800,400L800,240L640,240L640,160L800,160Q833,160 856.5,183.5Q880,207 880,240L880,400L800,400ZM80,400L80,240Q80,207 103.5,183.5Q127,160 160,160L320,160L320,240L160,240L160,400L80,400ZM160,800Q127,800 103.5,776.5Q80,753 80,720L80,560L160,560L160,720L320,720L320,800L160,800ZM380,660L380,300L660,480L380,660ZM600,959L600,879L920,879L920,959L600,959ZM760,840L600,680L656,624L720,686L720,520L800,520L800,686L864,624L920,680L760,840ZM320,160L640,160L640,240L320,240ZM80,400L160,400L160,560L80,560Z" />
+</vector>

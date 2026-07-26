@@ -23,6 +23,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <!-- Android 12 (API 31-32) uses SCHEDULE_EXACT_ALARM, default-granted but
@@ -886,6 +887,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="countdown_timer_for_active_task_tracking" />
         </service>
+
+        <!-- FableSol 可视化视频导出：明确发起、有明确终点的长任务，用户可以离开界面。 -->
+        <service
+            android:name=".services.FableSolVideoExportService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProcessing" />
 
         <receiver
             android:name=".receivers.DoingNotificationActionReceiver"

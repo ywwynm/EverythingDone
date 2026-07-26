@@ -60,6 +60,8 @@ public class TimelyClockView extends View {
     private static final float GLOW_ALPHA = 0.32f;
     private static final float GLOW_BASE_MIX = 0.64f;
     private static final float GLOW_THING_MIX = 0.36f;
+    private static final float GLYPH_HEIGHT_FRACTION = 0.80f;
+    private static final float OUTLINE_STROKE_FRACTION = 0.030f;
 
     private static final long ANIM_DURATION_MS = 300L;
 
@@ -85,6 +87,7 @@ public class TimelyClockView extends View {
     private final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final RectF layerBounds = new RectF();
+    private final RectF stableInkBounds = new RectF();
     private final DigitSlot[] slots = new DigitSlot[DIGIT_COUNT];
 
     private String styleName = DEFAULT_STYLE;
@@ -220,6 +223,53 @@ public class TimelyClockView extends View {
         lastDigits = copyDigits(digits);
     }
 
+    /**
+     * 把时钟直接置为「经过 millis 时应有的样子」，包含此刻正在进行的数字形变。
+     *
+     * 与 {@link #setTimeMillis(long, boolean)} 的区别是它不启动 ValueAnimator，形变进度由
+     * millis 自身解析求出：每一秒的形变锚定在该秒的整秒边界，持续 {@link #ANIM_DURATION_MS}。
+     * 因此同一个 millis 恒得同一画面，可以脱离挂钟逐帧渲染（FableSol 可视化视频导出）。
+     *
+     * 该方法只写入形状，不触碰任何 slot 的 animator，也不要求 View 已附着到窗口。
+     */
+    public void showTimeAtElapsed(long millis) {
+        if (millis < 0L) {
+            setInfinite(true);
+            return;
+        }
+        setInfinite(false);
+        updateHourVisibility(millis);
+        ensureLoaded();
+        int[] to = digitsForMillis(millis);
+        long secondStartMs = (millis / 1000L) * 1000L;
+        int[] from = digitsForMillis(Math.max(0L, secondStartMs - 1000L));
+        float fraction = ANIM_DURATION_MS <= 0L
+                ? 1f
+                : Math.min(1f, (float) (millis - secondStartMs) / (float) ANIM_DURATION_MS);
+        ShapeEvaluator evaluator = new ShapeEvaluator();
+        for (int i = 0; i < DIGIT_COUNT; i++) {
+            cancelSlot(i);
+            Shape[] pair = buildPair(i, from[i], to[i]);
+            slots[i].shape = (from[i] == to[i] || fraction >= 1f)
+                    ? pair[1]
+                    : evaluator.evaluate(fraction, pair[0], pair[1]);
+        }
+        lastDigits = copyDigits(to);
+        invalidate();
+    }
+
+    /** 录音态时钟呼吸的解析形式：与 {@code animate().alpha()} 的往返一致，供离线渲染复现。 */
+    public static float breathingAlphaAtElapsed(long millis, float low, float high, long legMs) {
+        if (legMs <= 0L) return high;
+        long period = legMs * 2L;
+        float phase = (float) (Math.floorMod(millis, period)) / (float) legMs;
+        // 第一段 high→low，第二段 low→high；两段都套 AccelerateDecelerate（动画默认插值器）。
+        boolean falling = phase < 1f;
+        float linear = falling ? phase : phase - 1f;
+        float eased = (float) (Math.cos((linear + 1f) * Math.PI) / 2f + 0.5f);
+        return falling ? high + (low - high) * eased : low + (high - low) * eased;
+    }
+
     public void showDigits(int[] digits, long visibleMillis) {
         if (digits == null || digits.length < DIGIT_COUNT) return;
         setInfinite(false);
@@ -340,6 +390,115 @@ public class TimelyClockView extends View {
                 : advance * 4f + colon;
     }
 
+    /**
+     * 当前字体下数字稳定着墨包络的左边缘（相对 View 自身，px）。
+     *
+     * {@link #onMeasure(int, int)} 上报的是 advance 字槽宽度；真正绘制时字形轮廓只按
+     * {@link #GLYPH_HEIGHT_FRACTION} 缩放，并且各字体有不同的左右侧边留白，所以 View 边界
+     * 不是可见数字边界。这里按与 {@link #onDraw(Canvas)} 完全相同的缩放、字重 stroke 和
+     * Stencil 秒钟 kerning 计算所有数字组合的稳定包络，供外部控件做视觉对齐。
+     *
+     * 使用稳定包络而不是当前一帧的 Path bounds，是为了避免末位数字每秒形变时让相邻控件跳动。
+     */
+    public float contentLeftPx() {
+        updateStableInkBounds();
+        return stableInkBounds.left;
+    }
+
+    /** 当前字体下数字稳定着墨包络的右边缘（相对 View 自身，px）。见 {@link #contentLeftPx()}。 */
+    public float contentRightPx() {
+        updateStableInkBounds();
+        return stableInkBounds.right;
+    }
+
+    private void updateStableInkBounds() {
+        ensureLoaded();
+        int contentW = getWidth() - getPaddingLeft() - getPaddingRight();
+        int contentH = getHeight() - getPaddingTop() - getPaddingBottom();
+        if (styleData == null || contentW <= 0 || contentH <= 0) {
+            stableInkBounds.set(
+                    getPaddingLeft(), 0f,
+                    Math.max(getPaddingLeft(), getWidth() - getPaddingRight()), 1f
+            );
+            return;
+        }
+        float units = widthUnits();
+        float drawH = Math.min(contentH, contentW / units);
+        float totalW = units * drawH;
+        float left = getPaddingLeft() + (contentW - totalW) / 2f;
+        if (infinite) {
+            stableInkBounds.set(left, 0f, left + totalW, 1f);
+            return;
+        }
+
+        stableInkBounds.set(Float.MAX_VALUE, 0f, -Float.MAX_VALUE, 1f);
+        float cursor = 0f;
+        int startSlot = showHour ? 0 : 2;
+        float advance = styleData.advance * drawH;
+        float colonW = advance * colonWidthFactor;
+        float glyphH = drawH * GLYPH_HEIGHT_FRACTION;
+        for (int slotIndex = startSlot; slotIndex < DIGIT_COUNT; slotIndex++) {
+            float center = left + cursor + advance / 2f;
+            float outset = inkOutsetPx(slotIndex, glyphH);
+            if (slotIndex == DIGIT_COUNT - 1 && isStencilStyle()) {
+                // Stencil 的个位秒会按十位/个位轮廓动态左移；枚举组合得到不会随秒数跳动的包络。
+                for (int tens = 0; tens < 10; tens++) {
+                    for (int ones = 0; ones < 10; ones++) {
+                        RawGlyph glyph = styleData.glyphs[2][ones];
+                        float pairCenter = center - secondPairTightenUnits(tens, ones) * drawH;
+                        expandStableInkBounds(glyph, pairCenter, glyphH, outset);
+                    }
+                }
+            } else {
+                int level = levelIndexForSlot(slotIndex);
+                for (int digit = 0; digit < 10; digit++) {
+                    expandStableInkBounds(
+                            styleData.glyphs[level][digit], center, glyphH, outset
+                    );
+                }
+            }
+            cursor += advance;
+            if ((slotIndex == 1 && showHour) || slotIndex == 3) {
+                cursor += colonW;
+            }
+        }
+        if (stableInkBounds.left == Float.MAX_VALUE ||
+                stableInkBounds.right == -Float.MAX_VALUE) {
+            stableInkBounds.set(left, 0f, left + totalW, 1f);
+        } else {
+            // View 自己的 Canvas 仍会裁到 [0, width]；父容器 clipChildren=false 不能放宽这层裁剪。
+            stableInkBounds.left = Math.max(0f, stableInkBounds.left);
+            stableInkBounds.right = Math.min(getWidth(), stableInkBounds.right);
+        }
+    }
+
+    private void expandStableInkBounds(RawGlyph glyph, float center, float glyphH,
+                                       float outset) {
+        if (glyph == null) return;
+        stableInkBounds.left = Math.min(
+                stableInkBounds.left,
+                center + glyphMinX(glyph) * glyphH - outset
+        );
+        stableInkBounds.right = Math.max(
+                stableInkBounds.right,
+                center + glyphMaxX(glyph) * glyphH + outset
+        );
+    }
+
+    private float inkOutsetPx(int slotIndex, float glyphH) {
+        float glowOutset = Math.max(1f, glyphH * GLOW_STROKE_FRACTION) / 2f;
+        float weight = weightStroke(slotIndex);
+        float mainOutset;
+        if (fillMode) {
+            mainOutset = weight > 0f ? glyphH * weight / 2f : 0f;
+        } else {
+            mainOutset = Math.max(
+                    2f, glyphH * (OUTLINE_STROKE_FRACTION + weight)
+            ) / 2f;
+        }
+        return Math.max(glowOutset, mainOutset);
+    }
+
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         ensureLoaded();
@@ -396,6 +555,11 @@ public class TimelyClockView extends View {
         }
         int tens = lastDigits[4];
         int ones = lastDigits[5];
+        return secondPairTightenUnits(tens, ones);
+    }
+
+    private float secondPairTightenUnits(int tens, int ones) {
+        if (!isStencilStyle() || styleData == null) return 0f;
         if (tens < 0 || tens > 9 || ones < 0 || ones > 9) return 0f;
         RawGlyph left = styleData.glyphs[2][tens];
         RawGlyph right = styleData.glyphs[2][ones];
@@ -468,7 +632,7 @@ public class TimelyClockView extends View {
                            float contentH, boolean glow) {
         Shape shape = slots[slotIndex].shape;
         if (shape == null || shape.outer == null) return;
-        float glyphH = contentH * 0.80f;
+        float glyphH = contentH * GLYPH_HEIGHT_FRACTION;
         float oy = top + contentH * 0.86f - glyphH;
         path.reset();
         path.setFillType(Path.FillType.EVEN_ODD);
@@ -489,13 +653,15 @@ public class TimelyClockView extends View {
             }
         } else {
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(2f, glyphH * (0.03f + weightStroke(slotIndex))));
+            paint.setStrokeWidth(Math.max(
+                    2f, glyphH * (OUTLINE_STROKE_FRACTION + weightStroke(slotIndex))
+            ));
         }
         canvas.drawPath(path, paint);
     }
 
     private void drawColon(Canvas canvas, float cx, float top, float contentH, boolean glow) {
-        float glyphH = contentH * 0.80f;
+        float glyphH = contentH * GLYPH_HEIGHT_FRACTION;
         float baseY = top + contentH * 0.86f;
         float radius = glyphH * 0.045f;
         if (glow) {

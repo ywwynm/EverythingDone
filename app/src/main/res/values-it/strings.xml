@@ -504,7 +504,7 @@
     <string name="settings_twice_back">Premere Indietro due volte per uscire</string>
     <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
     <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
-    <string name="settings_fablesol_tuning">Regolazione dell\'animazione delle onde</string>
+    <string name="settings_fablesol_tuning">Impostazioni dell\'animazione delle onde</string>
     <string name="fablesol_tuning_hdr">Luci HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non supportato su questo dispositivo)</string>
     <string name="fablesol_tuning_hdr_off">spento</string>
@@ -964,4 +964,42 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="home_structure_delete_folder_forever_body">Eliminare definitivamente %1$s e tutto il suo contenuto, %2$s in totale. Questa azione non può essere annullata.</string>
     <string name="home_structure_delete_folder_forever_empty_body">Eliminare definitivamente %1$s. Non contiene elementi, ma la cartella non potrà essere ripristinata.</string>
     <string name="home_structure_delete_items_forever_body">Eliminare definitivamente gli elementi selezionati: cartelle selezionate con tutto il loro contenuto più elementi selezionati. %1$s in totale. Questa azione non può essere annullata.</string>
+
+    <!-- fablesol-video-export -->
+    <string name="fablesol_export_title">Esportazione del video delle onde</string>
+    <string name="fablesol_export_preparing">Preparazione…</string>
+    <string name="fablesol_export_progress">%1$d%%, %2$s rimanenti</string>
+    <string name="fablesol_export_progress_unknown">Rendering…</string>
+    <string name="fablesol_export_eta_minutes">%1$d min %2$d s</string>
+    <string name="fablesol_export_eta_seconds">%1$d s</string>
+    <string name="fablesol_export_cancel">Annulla</string>
+    <string name="fablesol_export_done">Salvato in Movies/EverythingDone · %1$s · %2$d fps</string>
+    <string name="fablesol_export_cancelled">Esportazione annullata</string>
+    <string name="fablesol_export_failed">Esportazione non riuscita: %1$s</string>
+    <string name="fablesol_export_no_space">Spazio insufficiente per l\'esportazione</string>
+    <string name="fablesol_export_started">Esportazione del video dell\'acqua…</string>
+    <string name="cd_export_fablesol_video">Esporta video dell\'acqua</string>
+    <string name="fablesol_group_export">Esportazione video</string>
+    <string name="fablesol_param_export_frame_rate">Limite frame rate</string>
+    <string name="fablesol_param_export_cq">Qualità costante</string>
+    <string name="fablesol_param_export_quality">Qualità</string>
+    <string name="fablesol_param_export_bitrate">Bitrate di destinazione</string>
+    <string name="fablesol_param_export_keyframe">Intervallo keyframe</string>
+    <string name="fablesol_export_estimate">%1$s MB al minuto · %2$s</string>
+
+    <!-- fablesol-video-export 第二轮 -->
+    <string name="fablesol_param_export_bitrate_mode">Modalità di codifica</string>
+    <string name="fablesol_export_mode_quality">Qualità costante</string>
+    <string name="fablesol_export_mode_bitrate">Bitrate costante</string>
+    <string name="fablesol_param_export_quality_value">Parametro di qualità (CQ)</string>
+    <string name="fablesol_param_export_hdr">Esporta video HDR</string>
+    <string name="fablesol_export_estimate_bitrate">Circa %1$s MB al minuto · %2$s fps</string>
+    <string name="fablesol_export_estimate_quality">Le dimensioni del video variano con la complessità della scena · %1$s fps</string>
+    <string name="fablesol_export_dialog_title">Esportazione dell\'animazione</string>
+    <string name="fablesol_export_run_in_background">Esegui in background</string>
+    <string name="fablesol_export_share">Condividi</string>
+    <string name="fablesol_export_add_attachment">Aggiungi come allegato</string>
+    <string name="fablesol_export_dialog_done">Esportazione completata\nSpecifiche: %1$s, %2$d fps\nDimensioni video: %3$s\nPosizione: %4$s</string>
+    <string name="fablesol_export_dialog_failed">Esportazione non riuscita: %1$s</string>
+    <string name="fablesol_export_timeout">Esportazione interrotta: raggiunto il limite di sistema di 6 ore</string>
 </resources>

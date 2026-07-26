@@ -159,6 +159,17 @@ class FableSolRealtimeAnalyzer(
     private var startupTrustedSince = Double.NaN
     private var startupReady = false
 
+    /**
+     * 直接放行预热门。
+     *
+     * 预热门拦的是 **AudioRecord/MIC 打开后的硬件暂态**，读文件根本没有这回事；而且实时
+     * 录音时这道门早在准备态就已放行，WAV 的头几秒在屏上并没有被压制。离线导出若再拦一次，
+     * 产物开头会比用户当时看到的平——所以文件输入一律跳过（fablesol-video-export 第四轮）。
+     */
+    fun skipStartupGate() {
+        startupReady = true
+    }
+
     init {
         val edges = FableSolMath.geomspace(60.0, 12000.0, 33)
         bandIdx = IntArray(33) { FableSolMath.searchsorted(freqs, edges[it]) }

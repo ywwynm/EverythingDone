@@ -7,7 +7,9 @@
     android:layout_width="280dp"
     android:layout_height="420dp"
     android:minWidth="280dp"
-    android:minHeight="420dp">
+    android:minHeight="420dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <!-- Voice Waveform：波浪水体（FableSol 方案），铺满全区，绘制在文字与按钮之下。
          高度 420dp 对齐 Fable 逻辑坐标 HEIGHT_DP；宽度随上方 TimelyClockView 自适应。 -->
@@ -64,15 +66,20 @@
 
     </LinearLayout>
 
+    <!-- clipChildren=false：FAB 的 4dp 高程阴影画在自身边界之外，按钮行是 wrap_content，
+         不关裁剪的话准备态只剩主按钮时四周的阴影会被切掉。 -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="96dp"
-        android:layout_gravity="bottom|center_horizontal">
+        android:layout_gravity="bottom|center_horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <ImageView
             android:id="@+id/iv_re_recording_audio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerInside"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="@dimen/iv_fab_audio_margin"
             android:layout_marginRight="@dimen/iv_fab_audio_margin"
@@ -80,6 +87,7 @@
             android:src="@drawable/act_re_recording_audio"
             android:tint="@color/app_chrome_control_unchecked"
             android:contentDescription="@string/cd_re_recording_audio"
+            android:visibility="gone"
             android:alpha="0"/>
 
         <ImageView
@@ -95,10 +103,31 @@
             android:clickable="true"
             android:focusable="true"/>
 
+        <!-- 保存并导出水体视频：与对号 FAB 并列，使用补全左、上画框的 Material
+             video_frame_save 图标。
+             只在停止态出现（alpha=0 起步，recordingToStopped 里淡入）。 -->
+        <ImageView
+            android:id="@+id/iv_export_fablesol_video"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/iv_fab_audio_margin"
+            android:layout_marginLeft="@dimen/iv_fab_audio_margin"
+            android:elevation="4dp"
+            android:padding="18dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/act_fablesol_export_video"
+            android:contentDescription="@string/cd_export_fablesol_video"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone"
+            android:alpha="0"/>
+
         <ImageView
             android:id="@+id/iv_cancel_recording_audio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerInside"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="@dimen/iv_fab_audio_margin"
             android:layout_marginLeft="@dimen/iv_fab_audio_margin"
@@ -106,6 +135,7 @@
             android:src="@drawable/act_cancel_recording_audio"
             android:tint="@color/app_chrome_control_unchecked"
             android:contentDescription="@string/cd_cancel_recording_audio"
+            android:visibility="gone"
             android:alpha="0"/>
 
     </LinearLayout>

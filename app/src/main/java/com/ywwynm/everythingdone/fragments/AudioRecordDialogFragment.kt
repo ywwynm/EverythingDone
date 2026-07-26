@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
@@ -69,6 +70,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mVisualizer: WaveVisualizerFableSolHost? = null
 
     private var mIvMainAction: ImageView? = null
+    private var mIvExportVideo: ImageView? = null
+    /** 用户点的是"保存并导出视频"，而不是普通的对号保存。 */
+    private var mExportVideoRequested: Boolean = false
     private var mIvReRecording: ImageView? = null
     private var mIvCancelRecording: ImageView? = null
 
@@ -126,6 +130,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mIvMainAction      = f(R.id.iv_record_main_action)
         mIvReRecording     = f(R.id.iv_re_recording_audio)
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
+        mIvExportVideo     = f(R.id.iv_export_fablesol_video)
         BackgroundUtil.installAppChromeCircleRipple(mIvMainAction, mActivity!!)
         BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, mActivity!!)
         BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, mActivity!!)
@@ -238,6 +243,15 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
             mActivity!!.attachmentTypePathName = AttachmentHelper.AUDIO.toString() + pathName
             mActivity!!.addAttachment(0)
+            if (mExportVideoRequested) {
+                FableSolVideoExportLauncher.launch(
+                    mActivity!!,
+                    pathName,
+                    currentAccentBackground(),
+                    currentAccentBackground(),
+                    mVisualizer
+                )
+            }
         } else {
             fileToDiscard = mFileToSave
         }
@@ -326,6 +340,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             else -> gx to gy
         }
         mVisualizer?.setContainerGravity(-screenX, screenY, gz)
+        // 记进重力轨迹的是**送给可视化的那三个分量**，不是原始传感器读数：屏幕旋转补偿
+        // 已经在上面做完，离线重新渲染时直接回放即可，无需再关心当时锁的是哪个方向。
+        mRecorder?.offerGravitySample(-screenX, screenY, gz)
     }
 
     private fun setEvents() {
@@ -385,6 +402,43 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
 
         mIvCancelRecording!!.setOnClickListener { dismiss() }
+
+        mIvExportVideo!!.setOnClickListener {
+            if (mRecorderTransitionInProgress) return@setOnClickListener
+            // GLES 可能在对话框开着的时候才异步回退到 Canvas；那之后这个按钮点了也只会
+            // 启动一个必然失败的离线 GLES 导出，所以按下时再查一次。
+            if (!FableSolVideoExportLauncher.isSupported(mVisualizer)) {
+                mIvExportVideo!!.visibility = View.GONE
+                return@setOnClickListener
+            }
+            mExportVideoRequested = true
+            saveFileAndLeave()
+        }
+    }
+
+    /**
+     * 停止态才出现的"保存并导出视频"。GLES 不可用（走了 Canvas 回退）时整个按钮不出现，
+     * 而不是点了才失败——离线渲染同样依赖 GLES（fablesol-video-export D14）。
+     */
+    private fun showExportVideoAction(confirmBg: ThingBackground) {
+        val button = mIvExportVideo ?: return
+        if (!FableSolVideoExportLauncher.isSupported(mVisualizer)) return
+        // GLES 是异步失败的：回退发生时立刻隐藏，不用等到用户点一下才发现。
+        mVisualizer?.onGlFallback = { button.post { button.visibility = View.GONE } }
+        button.visibility = View.VISIBLE
+        BackgroundUtil.applyOvalBackground(button, confirmBg)
+        button.foreground = BackgroundUtil.circularRipple(
+            BackgroundUtil.adaptiveRippleColor(confirmBg)
+        )
+        button.setImageDrawable(
+            DisplayUtil.opaqueTintDrawable(
+                mActivity!!,
+                ContextCompat.getDrawable(mActivity!!, R.drawable.act_fablesol_export_video),
+                BackgroundUtil.onColor(confirmBg, MAIN_BUTTON_CONFIRM_ICON_ALPHA)
+            )
+        )
+        button.isClickable = true
+        button.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
     }
 
     private fun preparedToRecording() {
@@ -428,10 +482,15 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         applyMainButtonConfirmStyle(confirmBg)
         setMainButtonIcon(R.drawable.act_save_audio, BackgroundUtil.onColor(confirmBg, MAIN_BUTTON_CONFIRM_ICON_ALPHA))
 
+        // 三个副按钮此前只改 alpha、始终占位，主按钮因此在准备/录音态被挤得偏心。
+        // 改为 visibility 驱动：准备与录音态整行只有主按钮，它严格居中。
         mIvReRecording!!.isClickable = true
         mIvCancelRecording!!.isClickable = true
+        mIvReRecording!!.visibility = View.VISIBLE
+        mIvCancelRecording!!.visibility = View.VISIBLE
         mIvReRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
         mIvCancelRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
+        showExportVideoAction(confirmBg)
 
         mIvMainAction!!.contentDescription = getString(R.string.cd_save_recorded_audio_file)
     }
@@ -453,8 +512,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mIvReRecording!!.isClickable = false
         mIvCancelRecording!!.isClickable = false
-        mIvReRecording!!.animate().alpha(0f).setDuration((ANIM_DURATION shr 4).toLong())
-        mIvCancelRecording!!.animate().alpha(0f).setDuration((ANIM_DURATION shr 4).toLong())
+        hideSecondaryAction(mIvReRecording)
+        hideSecondaryAction(mIvCancelRecording)
+        hideSecondaryAction(mIvExportVideo)
 
         mIvMainAction!!.contentDescription = getString(R.string.cd_start_record_audio)
     }
@@ -553,6 +613,15 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         mConfirmClicked = true
         dismiss()
+    }
+
+    /** 淡出后收回占位——留在原地会让主按钮在准备态重新偏心。 */
+    private fun hideSecondaryAction(view: ImageView?) {
+        if (view == null) return
+        view.animate()
+            .alpha(0f)
+            .setDuration((ANIM_DURATION shr 4).toLong())
+            .withEndAction { view.visibility = View.GONE }
     }
 
     private fun setMainButtonIcon(iconRes: Int, tintColor: Int? = null) {
