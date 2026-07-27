@@ -1009,13 +1009,18 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="fablesol_param_export_highlight_start">Lichter-Schwelle</string>
     <string name="fablesol_export_estimate_white"> · Diffusweiß %1$s Nits · Spitze %2$s Nits</string>
     <string name="fablesol_export_estimate_highlight"> · Lichter ab %1$d%%</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s Nits</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">nicht angegeben (von der Berechnung ausgeschlossen)</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\nDisplay-Leuchtdichte: HDR-Spitzenwert %1$s; maximale mittlere Bildleuchtdichte %2$s.\nBerechnung: %3$s = %4$s Nits; nach Begrenzung auf den Automatikbereich von %5$s–%6$s Nits und Abrundung auf eine Schrittweite von %7$s Nits ergibt sich %8$s Nits.</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\nEs wurde weder ein nutzbarer HDR-Spitzenwert noch eine maximale mittlere Bildleuchtdichte angegeben; der sichere Rückfallwert wird verwendet.</string>
+    <string name="fablesol_export_estimate_white_manual">\nDiffusweiß verwendet derzeit einen manuellen Wert. Durch Wiederherstellen der Standardwerte wird er aus HDR-Spitzenwert, maximaler mittlerer Bildleuchtdichte und HDR-Stärke neu berechnet.</string>
     <string name="fablesol_param_export_pq_white">Diffusweiß (PQ)</string>
     <string name="fablesol_param_export_hdr_format">Exportiertes HDR-Format</string>
     <string name="fablesol_export_hdr_format_auto">Automatisch</string>
     <string name="fablesol_export_diagnostics_loading">Gerätefähigkeiten werden gelesen…</string>
     <string name="fablesol_export_hdr_format_probing">Es wird geprüft, welche Formate dieses Gerät codieren kann.</string>
     <string name="fablesol_export_hdr_format_none">Auf diesem Gerät ist kein HDR-Codierformat verfügbar.</string>
-    <string name="fablesol_export_hdr_desc_auto">Wählt in der Reihenfolge der Kompatibilität das erste Format, dessen Codierung auf diesem Gerät verifiziert wurde. Derzeit %1$s.</string>
+    <string name="fablesol_export_hdr_desc_auto">Ordnet die Formate nach HDR-Spezifikation und Bildqualitätsmerkmalen von hoch nach niedrig und wählt das erste Format, dessen Codierung auf diesem Gerät verifiziert wurde. Derzeit %1$s.</string>
     <string name="fablesol_export_hdr_desc_hdr10">Absolute PQ-Luminanzkurve mit statischen Mastering-Metadaten. Der Spitzenwert ergibt sich direkt aus Diffusweiß und HDR-Stärke, eine Kompression ist nicht erforderlich. Größte Player-Kompatibilität.</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">Ergänzt HDR10 um szenenweise dynamische Metadaten nach ST 2094-40. Spitzenwert, Mittelwert und Luminanzverteilung werden pro Bild gemessen und daraus eine Tone-Mapping-Kurve abgeleitet: Inhalt unterhalb der Lichter-Schwelle bleibt unverändert, darüber wird komprimiert. Die Übertragungsfunktion bleibt PQ, der Spielraum entspricht HDR10.</string>
     <string name="fablesol_export_hdr_desc_hlg">Relative Luminanzkurve; die Verschlechterung auf Playern ohne HDR-Unterstützung verläuft gleichmäßiger. Oberhalb von Diffusweiß stehen nur etwa 3,77-fache Reserven zur Verfügung, sodass Unterschiede ab einer HDR-Stärke von 4 kaum noch erkennbar sind.</string>

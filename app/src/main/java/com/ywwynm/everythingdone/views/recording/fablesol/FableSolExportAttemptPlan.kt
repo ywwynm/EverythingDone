@@ -19,7 +19,7 @@ internal data class FableSolExportModeAttempt(
 internal object FableSolExportAttemptPlan {
 
     /**
-     * @param hdrFormats 本机可用的 HDR 输出格式，按偏好排序。空表示只能出 SDR。
+     * @param hdrFormats 本机可用的 HDR 输出格式，按规格/画质能力排序。空表示只能出 SDR。
      */
     fun ordered(
         hdrFormats: List<FableSolExportHdrFormat>,

@@ -45,7 +45,7 @@ internal class FableSolVideoExporter(
             val sink: FableSolExportSink,
             val tierLabel: String,
             val hdr: Boolean,
-            /** 用户看得懂的格式名："HDR10+"、"Dolby Vision 8.4"、"SDR"。 */
+            /** 当前 locale 的用户可见格式名，例如“HDR10+”“杜比视界 8.4”“SDR”。 */
             val formatLabel: String,
             val frameRate: Int,
             val frames: Int,
@@ -88,7 +88,7 @@ internal class FableSolVideoExporter(
 
             var lastFailure: String? = null
             var foundCandidate = false
-            // 用户可以钉死某一种格式；默认「自动」= 设备支持哪些就按偏好顺序试。
+            // 用户可以钉死某一种格式；默认「自动」按 AUTO_ORDER 的规格/画质能力顺序尝试。
             // 这里只按 EGL 能出哪种色彩空间做粗筛，不查探测缓存：缓存可能过期，而降级
             // 阶梯本来就会把真正编不出来的档一个个淘汰掉。
             val availableTransfers = capability.availableHdrTransfers()
@@ -138,8 +138,12 @@ internal class FableSolVideoExporter(
                             publish.message ?: "Failed to publish the exported video"
                         )
                     } catch (error: Exception) {
+                        val detail = FableSolExportHdrFormat.localizeStableLabels(
+                            context,
+                            error.message ?: error.javaClass.simpleName
+                        )
                         lastFailure =
-                            "${tier.label}: ${error.message ?: error.javaClass.simpleName}"
+                            "${tier.displayLabel(context)}：$detail"
                     }
                 }
             }
@@ -152,7 +156,12 @@ internal class FableSolVideoExporter(
                 }
             )
         } catch (error: Throwable) {
-            Result.Failure(error.message ?: error.javaClass.simpleName)
+            Result.Failure(
+                FableSolExportHdrFormat.localizeStableLabels(
+                    context,
+                    error.message ?: error.javaClass.simpleName
+                )
+            )
         }
     }
 
@@ -393,9 +402,9 @@ internal class FableSolVideoExporter(
             reportProgress(attemptStartedAt, frameIndex, frameIndex)
             return Result.Success(
                 request.sink,
-                tier.label,
+                tier.displayLabel(context),
                 tier.hdr,
-                tier.hdrFormat?.label ?: FableSolExportHdrFormat.SDR_LABEL,
+                tier.hdrFormat?.displayName(context) ?: FableSolExportHdrFormat.SDR_LABEL,
                 frameRate,
                 frameIndex,
                 SystemClock.elapsedRealtime() - exportStartedAt,

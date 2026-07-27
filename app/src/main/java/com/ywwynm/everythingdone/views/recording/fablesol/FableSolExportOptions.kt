@@ -33,7 +33,7 @@ internal data class FableSolExportOptions(
     val keyframeIntervalSeconds: Float,
     /** 是否导出 HDR；关掉就走 FableSol 自己的 SDR 分支重新渲染（D6）。 */
     val hdrEnabled: Boolean,
-    /** 指定 HDR 信号格式；默认自动 = 设备支持哪些就按偏好顺序试。 */
+    /** 指定 HDR 信号格式；默认自动 = 设备支持哪些就按规格/画质能力顺序试。 */
     val hdrFormat: HdrFormatPreference = HdrFormatPreference.AUTO,
     /**
      * PQ 系导出里，漫反射白（水体与卡片）钉在多少尼特。

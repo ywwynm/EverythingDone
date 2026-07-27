@@ -1,8 +1,11 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
+import androidx.annotation.StringRes
+import com.ywwynm.everythingdone.R
 import kotlin.math.max
 
 /** 编码阶梯上的一个候选：MIME 加 profile。SDR 与各 HDR 格式共用这一结构。 */
@@ -20,17 +23,19 @@ internal class FableSolExportCodecEntry(
  * 与导出 shader），格式还额外决定**用哪个编码器、写什么元数据**。所以"PQ 和 HDR10 并列"
  * 是重复的，两者是同一件事的两个说法：HDR10 = PQ 曲线 + BT.2020 + 静态母版元数据。
  *
- * 五种格式沿两个轴排开——**基层曲线**决定高光余量，**元数据**决定播放端能不能按场景适配：
+ * 六种格式沿两个轴区分——**基层曲线**决定高光余量，**元数据**决定播放端是否具备按场景
+ * 适配的依据：
  *
  * | 格式 | 基层 | 余量 | 元数据 |
  * |---|---|---|---|
+ * | 杜比视界 5 | PQ | 10000 尼特 | 杜比动态（RPU） |
  * | 杜比视界 8.1 | PQ | 10000 尼特 | 杜比动态（RPU） |
  * | HDR10+ | PQ | 10000 尼特 | ST 2094-40 动态 |
  * | HDR10 | PQ | 10000 尼特 | 静态，且我们写的是精确值 |
  * | 杜比视界 8.4 | HLG | 约 3.77 倍 | 杜比动态（RPU） |
  * | HLG | HLG | 约 3.77 倍 | 无 |
  *
- * 两个必须记住的事实：
+ * 两项实现约束：
  *
  * - **杜比视界不需要应用自己产 RPU**。按 Dolby 官方第三方样例
  *   （`DolbyLaboratories/dolby-vision-editor`）的做法，把 MIME 设成 `video/dolby-vision`、
@@ -44,12 +49,22 @@ internal class FableSolExportCodecEntry(
 @SuppressLint("InlinedApi")
 internal enum class FableSolExportHdrFormat(
     val transfer: FableSolExportTransfer,
-    /** 用户可见短名；同时进诊断行与完成态提示。 */
-    val label: String
+    /** 固定英文内部标识；用于能力缓存、诊断关联和编码档位，不得随 locale 改变。 */
+    val stableLabel: String,
+    /** 面向用户的本地化名称。 */
+    @StringRes val displayNameRes: Int
 ) {
 
-    HDR10(FableSolExportTransfer.PQ, "HDR10"),
-    HDR10_PLUS(FableSolExportTransfer.PQ, "HDR10+"),
+    HDR10(
+        FableSolExportTransfer.PQ,
+        "HDR10",
+        R.string.fablesol_export_hdr_format_name_hdr10
+    ),
+    HDR10_PLUS(
+        FableSolExportTransfer.PQ,
+        "HDR10+",
+        R.string.fablesol_export_hdr_format_name_hdr10_plus
+    ),
 
     /**
      * 杜比视界 profile 8.1：**PQ 基层**，与 HDR10 兼容。
@@ -62,18 +77,36 @@ internal enum class FableSolExportHdrFormat(
     /**
      * 杜比视界 profile 5：单层、PQ、IPT-PQ-c2 色彩空间，**不向下兼容**。
      *
-     * 规格上它是杜比自家最"纯"的一档，但代价很实在：任何不支持杜比视界的播放端打开它都会
-     * 是一片绿紫，而 8.1 在同样场合会正常按 HDR10 播。所以它排在最前只是遵循"能多高就多高"
-     * 的排序，选它之前应该知道这个取舍。
+     * 它使用原生单层杜比信号，不包含 HDR10 兼容基层；不支持杜比视界的播放端可能显示明显
+     * 的绿紫色偏。Profile 8.1 则保留 HDR10 兼容基层。自动顺序遵循用户指定的格式优先级，
+     * 界面说明必须明确这一兼容性差异。
      */
-    DOLBY_VISION_5(FableSolExportTransfer.PQ, "Dolby Vision 5"),
+    DOLBY_VISION_5(
+        FableSolExportTransfer.PQ,
+        "Dolby Vision 5",
+        R.string.fablesol_export_hdr_format_name_dolby_vision_5
+    ),
 
-    DOLBY_VISION_81(FableSolExportTransfer.PQ, "Dolby Vision 8.1"),
+    DOLBY_VISION_81(
+        FableSolExportTransfer.PQ,
+        "Dolby Vision 8.1",
+        R.string.fablesol_export_hdr_format_name_dolby_vision_81
+    ),
 
-    HLG(FableSolExportTransfer.HLG, "HLG"),
+    HLG(
+        FableSolExportTransfer.HLG,
+        "HLG",
+        R.string.fablesol_export_hdr_format_name_hlg
+    ),
 
     /** 杜比视界 profile 8.4：HLG 基层，余量与 HLG 相同。8.1 建不起来时的退路。 */
-    DOLBY_VISION_84(FableSolExportTransfer.HLG, "Dolby Vision 8.4");
+    DOLBY_VISION_84(
+        FableSolExportTransfer.HLG,
+        "Dolby Vision 8.4",
+        R.string.fablesol_export_hdr_format_name_dolby_vision_84
+    );
+
+    fun displayName(context: Context): String = context.getString(displayNameRes)
 
     /** PQ 系两种格式都要 CTA-861.3 静态母版元数据，播放端才知道按多高的峰值还原。 */
     val writesStaticMetadata: Boolean
@@ -135,24 +168,18 @@ internal enum class FableSolExportHdrFormat(
     val needsDolbyVisionLevel: Boolean
         get() = isDolbyVision
 
-    /**
-     * 编码器"收下配置却把 profile 降回去"时，除了陈述事实还能补的一句：这条路还有没有戏。
-     *
-     * 三星 S23 Ultra 上 HDR10+ 正是这样——`Encoder changed profile 8192 to 2`（8192 =
-     * `HEVCProfileMain10HDR10Plus`，2 = `HEVCProfileMain10`）。这不是配置写错了：HDR10+ 的
-     * 动态元数据是**随码流内嵌**的 SEI，只能由应用逐帧提供或由编码器自己分析生成；而前者在
-     * surface 输入模式下被 Android 明确排除，后者这台机器不做。所以没有别的办法。
-     */
-    val downgradeHint: String?
+    /** 编码器改写 profile 或传递函数时，对该格式验证范围的正式补充说明。 */
+    val validationFollowUp: String?
         get() = when (this) {
             HDR10_PLUS ->
-                "HDR10+ 走的是字节缓冲输入并由我们逐帧提供动态元数据；这台设备连这条路都" +
-                    "不接受，就没有别的办法了"
+                "当前验证已使用字节缓冲输入并逐帧提交 ST 2094-40 动态元数据；Android " +
+                    "公开接口未提供其他可用的应用级 HDR10+ 动态元数据注入路径"
             DOLBY_VISION_5 ->
-                "这台设备的杜比视界编码器不做单层 profile 5；8.1 / 8.4 那两档还有机会"
+                "该结论仅适用于单层 Profile 5；Profile 8.1 与 Profile 8.4 按独立候选验证"
             DOLBY_VISION_81 ->
-                "这台设备的杜比视界编码器不接受 PQ 基层；8.4（HLG 基层）那一档还有机会"
-            DOLBY_VISION_84 -> "这台设备的杜比视界编码器不接受我们这一档配置"
+                "该结论仅适用于采用 PQ 基层的 Profile 8.1；采用 HLG 基层的 Profile 8.4 " +
+                    "按独立候选验证"
+            DOLBY_VISION_84 -> null
             else -> null
         }
 
@@ -171,20 +198,20 @@ internal enum class FableSolExportHdrFormat(
          *
          * 按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格）：
          *
-         * 1. **杜比视界 5**——单层 PQ + IPT-PQ-c2，杜比自家最纯的一档（代价见该枚举项）；
+         * 1. **杜比视界 5**——单层 PQ + IPT-PQ-c2，不包含 HDR10 兼容基层；
          * 2. **杜比视界 8.1**——PQ 基层（余量到 10000 尼特）+ 杜比动态元数据，且与 HDR10 兼容；
          * 3. **HDR10+**——PQ + 动态元数据，但没有杜比那套显示端适配；
-         * 4. **HDR10**——PQ + 静态元数据，我们的峰值本来就写的是精确值；
-         * 5. **杜比视界 8.4**——有动态元数据，但基层退回 HLG，余量只剩约 3.77 倍；
-         * 6. **HLG**——余量同上且没有动态元数据，只在前面全都建不起来时兜底。
+         * 4. **杜比视界 8.4**——HLG 基层 + 杜比动态元数据；
+         * 5. **HDR10**——PQ + 静态元数据，峰值按本次导出参数精确写入；
+         * 6. **HLG**——HLG 基层且没有动态元数据，作为最后候选。
          *
-         * 每一档都要真编出一帧才会进这个列表，所以"排在前面"不等于"一定被选中"。
+         * 每一种格式均须通过单帧编码与封装验证；排序只决定候选优先级，不代表设备必然支持。
          */
         /** 非 HDR 产物在文件名与各处提示里的写法。 */
         const val SDR_LABEL = "SDR"
 
         val AUTO_ORDER = listOf(
-            DOLBY_VISION_5, DOLBY_VISION_81, HDR10_PLUS, HDR10, DOLBY_VISION_84, HLG
+            DOLBY_VISION_5, DOLBY_VISION_81, HDR10_PLUS, DOLBY_VISION_84, HDR10, HLG
         )
 
         private val TEN_BIT_ENTRIES = listOf(
@@ -279,7 +306,24 @@ internal enum class FableSolExportHdrFormat(
             }
         }
 
-        fun fromLabel(label: String?): FableSolExportHdrFormat? =
-            label?.let { value -> entries.firstOrNull { it.label == value } }
+        fun fromStableLabel(label: String?): FableSolExportHdrFormat? =
+            label?.let { value -> entries.firstOrNull { it.stableLabel == value } }
+
+        /**
+         * 将旧缓存或内部档位文本中的固定格式标识转换为当前 locale 的显示名称。
+         *
+         * 先替换完整名称，再替换不带 profile 的品牌名，避免中文 locale 在通知、完成态和
+         * 诊断技术详情中泄漏英文 “Dolby Vision”。
+         */
+        fun localizeStableLabels(context: Context, text: String): String {
+            var localized = text
+            for (format in entries.sortedByDescending { it.stableLabel.length }) {
+                localized = localized.replace(format.stableLabel, format.displayName(context))
+            }
+            return localized.replace(
+                "Dolby Vision",
+                context.getString(R.string.fablesol_export_hdr_brand_dolby_vision)
+            )
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaCodecList
@@ -653,6 +654,10 @@ internal data class FableSolExportTier(
 
     val hdr: Boolean get() = transfer.isHdr
 
+    /** 将内部稳定档位名转换为当前 locale 的用户可见名称。 */
+    fun displayLabel(context: Context): String =
+        FableSolExportHdrFormat.localizeStableLabels(context, label)
+
     fun clampBitrate(value: Int): Int {
         val range = bitrateRange ?: return value
         return value.coerceIn(range.lower, range.upper)
@@ -809,7 +814,9 @@ internal data class FableSolExportTier(
                         encodedHeightPx = encodedHeight,
                         // 档位名带上格式：HDR10 与 HLG 用的是同一个 HEVC Main10 编码器，
                         // 不写格式的话完成提示里两者一模一样，看不出自动档最后落到了哪种。
-                        label = format?.let { "${it.label} ${entry.label} (${info.name})" }
+                        label = format?.let {
+                            "${it.stableLabel} ${entry.label} (${info.name})"
+                        }
                             ?: "${entry.label} (${info.name})"
                     )
                 )

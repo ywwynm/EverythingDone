@@ -10,7 +10,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * 单独探一件事：**换成字节缓冲输入之后，这台机器肯不肯真的产出 HDR10+。**
+ * 独立验证字节缓冲输入路径能否生成包含 ST 2094-40 动态元数据的 HDR10+ 码流。
  *
  * 背景。我们的正式导出走 surface 输入（GL 直接画进 `MediaCodec.createInputSurface()`），
  * 而 HDR10+ 的动态元数据（ST 2094-40）是内嵌 SEI，在 surface 模式下**应用无法提供**——
@@ -45,26 +45,32 @@ internal object FableSolHdr10PlusProbe {
     fun run(widthPx: Int, heightPx: Int, frameRate: Int): Result {
         // P010 的字节缓冲常量与元数据参数都是 API 31 才有的；更早的系统没有这条路可谈。
         if (Build.VERSION.SDK_INT < 31) {
-            return Result(null, false, "系统低于 Android 12，无此通路", "—")
+            return Result(null, false, "Android 12 以下不支持该公开接口", "—")
         }
-        val info = findEncoder() ?: return Result(null, false, "无编码器广告 HDR10+", "—")
+        val info = findEncoder()
+            ?: return Result(null, false, "未发现声明 HDR10+ Profile 的编码器", "—")
         val capabilities = try {
             info.getCapabilitiesForType(MediaFormat.MIMETYPE_VIDEO_HEVC)
         } catch (error: Throwable) {
-            return Result(info.name, false, "读能力失败：${error.javaClass.simpleName}", "—")
+            return Result(
+                info.name,
+                false,
+                "读取编码器能力失败（${error.javaClass.simpleName}）",
+                "—"
+            )
         }
         val p010 = capabilities.colorFormats.contains(
             MediaCodecInfo.CodecCapabilities.COLOR_FormatYUVP010
         )
         if (!p010) {
-            return Result(info.name, false, "编码器不接受 P010 字节缓冲输入", "—")
+            return Result(info.name, false, "编码器不支持 P010 字节缓冲输入", "—")
         }
         val level = capabilities.profileLevels
             .filter { it.profile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10Plus }
             .maxByOrNull { it.level }
             ?.level ?: 0
-        // 两次分开跑，才分得清"字节缓冲本身就够"与"还必须带元数据"。分不清的话，一旦失败
-        // 就无法判断是通路不行还是我这份元数据写得不对。
+        // 分别验证基础 P010 编码与逐帧提交 ST 2094-40 的条件，以区分编码输入能力和
+        // 动态元数据提交能力。
         val without = attempt(info.name, level, widthPx, heightPx, frameRate, metadata = null)
         val with = attempt(
             info.name, level, widthPx, heightPx, frameRate, metadata = hdr10PlusPayload()
@@ -140,8 +146,8 @@ internal object FableSolHdr10PlusProbe {
             }
 
             val index = codec.dequeueInputBuffer(TIMEOUT_US)
-            if (index < 0) return "编码器不收输入缓冲"
-            val buffer = codec.getInputBuffer(index) ?: return "拿不到输入缓冲"
+            if (index < 0) return "未在限定时间内取得编码器输入缓冲"
+            val buffer = codec.getInputBuffer(index) ?: return "编码器未提供输入缓冲"
             val written = fillFlatP010(buffer, stride, sliceHeight, heightPx)
             codec.queueInputBuffer(index, 0, written, 0L, 0)
 
@@ -153,7 +159,7 @@ internal object FableSolHdr10PlusProbe {
             }
             drainForProfile(codec)
         } catch (error: Throwable) {
-            "${error.javaClass.simpleName}: ${error.message ?: "无消息"}"
+            "${error.javaClass.simpleName}: ${error.message ?: "未提供详细信息"}"
         } finally {
             try {
                 codec?.stop()
@@ -193,14 +199,16 @@ internal object FableSolHdr10PlusProbe {
                     val buffer = codec.getOutputBuffer(out)
                     val hasSei = buffer != null && containsHdr10PlusSei(buffer, bufferInfo)
                     codec.releaseOutputBuffer(out, false)
-                    if (hasSei) return "码流带 HDR10+ SEI（profile 回报 $reportedProfile）"
+                    if (hasSei) {
+                        return "检测到 HDR10+ ST 2094-40 SEI（输出 Profile：$reportedProfile）"
+                    }
                     if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
                 }
             }
         }
         return when {
-            !sawOutput -> "超时，没编出任何输出"
-            else -> "码流里没有 HDR10+ SEI（profile 回报 $reportedProfile）"
+            !sawOutput -> "在限定时间内未检测到编码输出"
+            else -> "未检测到 HDR10+ ST 2094-40 SEI（输出 Profile：$reportedProfile）"
         }
     }
 

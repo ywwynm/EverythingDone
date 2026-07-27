@@ -44,6 +44,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportDisplayLuminance
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdr10PlusCurve
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdrFormat
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
@@ -120,6 +121,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private var mResolvedExportFormat: String? = null
     /** 解析出的格式若是 PQ 系，指示行还要带上漫反射白与峰值。 */
     private var mResolvedExportPqFormat: FableSolExportHdrFormat? = null
+    /** HDR 强度拖动时，让导出组的自动白锚滑杆与推导文字同步预览。 */
+    private var mRefreshExportDerivedInfo: ((Float) -> Unit)? = null
 
     override fun getLayoutResource(): Int = R.layout.dialog_fablesol_tuning
 
@@ -188,6 +191,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
     override fun onDestroyView() {
         mHdrCapabilityGeneration++
+        mRefreshExportDerivedInfo = null
         mColorAnimator?.cancel()
         mColorAnimator = null
         stopTiltSensor()
@@ -422,6 +426,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 value.text = formatHdrStrength(strength)
                 if (fromUser) {
                     applyHdrStrength(strength)
+                    mRefreshExportDerivedInfo?.invoke(strength)
                 }
             }
 
@@ -476,6 +481,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
     private fun buildParamRows() {
         val container = f<LinearLayout>(R.id.ll_fablesol_tuning_params)
+        mRefreshExportDerivedInfo = null
         // 保留 index 0 的 HDR 行，其余（重建时的旧参数行）全部移除。
         while (container.childCount > 1) {
             container.removeViewAt(container.childCount - 1)
@@ -531,7 +537,9 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         estimate.alpha = 0.6f
         estimate.setPadding(dp(20f), dp(2f), dp(20f), dp(8f))
 
-        fun refreshEstimate() {
+        fun refreshEstimate(
+            strength: Float = FableSolTuning.hdrStrength(ctx)
+        ) {
             val frameRate = FableSolTuning.exportFrameRateCap(ctx)
             val options = FableSolExportOptions.read(ctx)
             val base = if (options.constantQuality && qualityRange != null) {
@@ -552,8 +560,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             pieces.append(" · ").append(mResolvedExportFormat ?: "…")
             val pqFormat = mResolvedExportPqFormat
             if (pqFormat != null) {
-                val white = FableSolTuning.exportPqWhiteNits(ctx)
-                val peak = white * FableSolTuning.hdrStrength(ctx)
+                val automatic = FableSolTuning.isExportPqWhiteAutomatic(ctx)
+                val recommendation = if (automatic) {
+                    FableSolTuning.exportPqWhiteRecommendation(ctx, strength)
+                } else {
+                    null
+                }
+                val white = recommendation?.whiteNits
+                    ?: FableSolTuning.exportPqWhiteNits(ctx, strength)
+                val peak = white * strength
                 pieces.append(
                     getString(
                         R.string.fablesol_export_estimate_white,
@@ -567,6 +582,50 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                             R.string.fablesol_export_estimate_highlight,
                             FableSolTuning.exportHighlightStart(ctx)
                         )
+                    )
+                }
+                if (recommendation != null) {
+                    fun luminanceCapability(value: Float?): String =
+                        value?.let {
+                            getString(
+                                R.string.fablesol_export_estimate_luminance_nits,
+                                FableSolExportDisplayLuminance.formatDerivationNumber(it)
+                            )
+                        } ?: getString(
+                            R.string.fablesol_export_estimate_luminance_unavailable
+                        )
+
+                    pieces.append(
+                        getString(
+                            R.string.fablesol_export_estimate_white_auto_formula,
+                            luminanceCapability(recommendation.panelPeakNits),
+                            luminanceCapability(recommendation.panelMaxAverageNits),
+                            FableSolExportDisplayLuminance.constraintFormula(recommendation),
+                            FableSolExportDisplayLuminance.formatDerivationNumber(
+                                recommendation.rawConstraintWhiteNits
+                            ),
+                            FableSolExportDisplayLuminance.formatDerivationNumber(
+                                FableSolExportOptions.MIN_PQ_WHITE_NITS
+                            ),
+                            FableSolExportDisplayLuminance.formatDerivationNumber(
+                                FableSolExportDisplayLuminance.AUTO_WHITE_MAX_NITS
+                            ),
+                            FableSolExportDisplayLuminance.formatDerivationNumber(
+                                FableSolExportDisplayLuminance.AUTO_WHITE_STEP_NITS
+                            ),
+                            FableSolExportDisplayLuminance.formatDerivationNumber(white)
+                        )
+                    )
+                    if (recommendation.fallbackUsed) {
+                        pieces.append(
+                            getString(
+                                R.string.fablesol_export_estimate_white_auto_fallback
+                            )
+                        )
+                    }
+                } else {
+                    pieces.append(
+                        getString(R.string.fablesol_export_estimate_white_manual)
                     )
                 }
             }
@@ -675,6 +734,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         )
         // 漫反射白只有 PQ 系用得到（HLG 是相对亮度，没有绝对锚点），所以先造出来、
         // 默认藏着，等格式定下来再决定露不露。
+        var setWhiteSliderValue: ((Float) -> Unit)? = null
         val whiteRow: View = makeExportSliderRow(
             ctx,
             getString(R.string.fablesol_param_export_pq_white),
@@ -682,9 +742,11 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             FableSolExportOptions.MAX_PQ_WHITE_NITS,
             PQ_WHITE_STEPS,
             FableSolTuning.exportPqWhiteNits(ctx),
-            { value -> String.format(java.util.Locale.US, "%.0f nits", value) }
+            { value -> String.format(java.util.Locale.US, "%.0f nits", value) },
+            onValueSetterReady = { setter -> setWhiteSliderValue = setter }
         ) { value ->
             FableSolTuning.setExportPqWhiteNits(ctx, value)
+            refreshEstimate()
         }
         whiteRow.visibility = View.GONE
 
@@ -719,6 +781,14 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         container.addView(whiteRow)
         container.addView(highlightRow)
 
+        mRefreshExportDerivedInfo = { strength ->
+            if (FableSolTuning.isExportPqWhiteAutomatic(ctx)) {
+                setWhiteSliderValue?.invoke(
+                    FableSolTuning.exportPqWhiteNits(ctx, strength)
+                )
+            }
+            refreshEstimate(strength)
+        }
         refreshModeRows()
         container.addView(estimate)
         // 编码器清单放在指示性文字之后：那是排查用的细节，不该挡在结论前面。
@@ -845,7 +915,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             labels += getString(R.string.fablesol_export_hdr_format_auto)
             for (format in formats) {
                 choices += FableSolExportOptions.HdrFormatPreference.of(format)
-                labels += format.label
+                labels += format.displayName(ctx)
             }
         }
 
@@ -865,7 +935,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             choice?.let { FableSolTuning.setExportHdrFormat(appContext, it) }
             description.text = hdrChoiceDescription(choice, auto)
             val resolved = if (choice == null) null else choice.format ?: auto
-            mResolvedExportFormat = resolvedExportFormatLabel(choice, auto)
+            mResolvedExportFormat = resolvedExportFormatLabel(ctx, choice, auto)
             onFormatChanged(resolved)
         }
 
@@ -910,12 +980,13 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
     /** 这一次导出最终会落到哪种格式；写进指示性文字，不让用户自己回头去胶囊那里推。 */
     private fun resolvedExportFormatLabel(
+        context: Context,
         preference: FableSolExportOptions.HdrFormatPreference?,
         auto: FableSolExportHdrFormat?
     ): String = when {
         preference == null -> FableSolExportHdrFormat.SDR_LABEL
-        preference.format != null -> preference.format.label
-        else -> auto?.label ?: FableSolExportHdrFormat.SDR_LABEL
+        preference.format != null -> preference.format.displayName(context)
+        else -> auto?.displayName(context) ?: FableSolExportHdrFormat.SDR_LABEL
     }
 
     /** null 就是「关闭」那一项。 */
@@ -935,7 +1006,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     ): String = when (preference.format) {
         null -> getString(
             R.string.fablesol_export_hdr_desc_auto,
-            auto?.label ?: getString(R.string.fablesol_export_hdr_format_auto)
+            auto?.displayName(requireContext()) ?:
+                getString(R.string.fablesol_export_hdr_format_auto)
         )
         FableSolExportHdrFormat.HDR10 -> getString(R.string.fablesol_export_hdr_desc_hdr10)
         FableSolExportHdrFormat.HDR10_PLUS ->
@@ -1119,6 +1191,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         steps: Int,
         initial: Float,
         format: (Float) -> String,
+        onValueSetterReady: (((Float) -> Unit) -> Unit)? = null,
         onChange: (Float) -> Unit
     ): View {
         val column = LinearLayout(ctx)
@@ -1157,6 +1230,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             override fun onStartTrackingTouch(sb: SeekBar?) = Unit
             override fun onStopTrackingTouch(sb: SeekBar?) = Unit
         })
+        onValueSetterReady?.invoke { requested ->
+            val progress = (((requested - lo) / span) * steps).toInt().coerceIn(0, steps)
+            if (seekBar.progress != progress) {
+                seekBar.progress = progress
+            } else {
+                val value = lo + span * progress / steps
+                tvValue.text = format(value)
+            }
+        }
         column.addView(
             seekBar,
             LinearLayout.LayoutParams(

@@ -38,7 +38,7 @@ internal object FableSolVideoExportBus {
             val displayLocation: String,
             val tierLabel: String,
             val hdr: Boolean,
-            /** 用户看得懂的格式名："HDR10+"、"Dolby Vision 8.4"、"SDR"。 */
+            /** 当前 locale 的用户可见格式名，例如“HDR10+”“杜比视界 8.4”“SDR”。 */
             val formatLabel: String,
             val frameRate: Int,
             val frames: Int,

@@ -1463,18 +1463,30 @@
     <string name="fablesol_param_export_highlight_start">亮部起點</string>
     <string name="fablesol_export_estimate_white"> · 漫反射白 %1$s 尼特 · 峰值 %2$s 尼特</string>
     <string name="fablesol_export_estimate_highlight"> · 亮部起點 %1$d%%</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s 尼特</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">未聲明（不參與計算）</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\n顯示裝置 HDR 亮度能力：可用峰值 %1$s；可用最大畫格平均亮度 %2$s。\n自動漫反射白推導：%3$s = %4$s 尼特；將結果約束在 %5$s–%6$s 尼特，並以 %7$s 尼特為步長向下量化，最終為 %8$s 尼特。</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\n顯示裝置未聲明可用的 HDR 峰值或最大畫格平均亮度，本次採用安全回退值。</string>
+    <string name="fablesol_export_estimate_white_manual">\n目前漫反射白為手動值，因此不執行自動推導。執行「恢復預設」後，將重新依據顯示裝置 HDR 峰值、最大畫格平均亮度和 HDR 強度計算。</string>
     <string name="fablesol_param_export_pq_white">漫反射白（PQ）</string>
     <string name="fablesol_param_export_hdr_format">匯出 HDR 影片格式</string>
+    <string name="fablesol_export_hdr_brand_dolby_vision">杜比視界</string>
+    <string name="fablesol_export_hdr_format_name_hdr10">HDR10</string>
+    <string name="fablesol_export_hdr_format_name_hdr10_plus">HDR10+</string>
+    <string name="fablesol_export_hdr_format_name_hlg">HLG</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_5">杜比視界 5</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_81">杜比視界 8.1</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_84">杜比視界 8.4</string>
     <string name="fablesol_export_hdr_format_auto">自動</string>
     <string name="fablesol_export_diagnostics_loading">正在讀取裝置能力…</string>
     <string name="fablesol_export_hdr_format_probing">正在偵測本機可編碼的格式。</string>
     <string name="fablesol_export_hdr_format_none">本機無可用的 HDR 編碼格式。</string>
-    <string name="fablesol_export_hdr_desc_auto">依相容性優先的順序，選用本機實測可編碼的第一種格式。目前為 %1$s。</string>
-    <string name="fablesol_export_hdr_desc_hdr10">PQ 絕對亮度曲線，搭配靜態母版中繼資料。峰值由漫反射白與 HDR 強度直接算得，無需壓縮。播放端相容性最廣。</string>
-    <string name="fablesol_export_hdr_desc_hdr10_plus">在 HDR10 基礎上增加 ST 2094-40 逐場景動態中繼資料。峰值、平均值與亮度分布取自逐格實測，並據此產生色調對應曲線：亮部起點以下維持原樣，以上進行壓縮。轉換函數仍為 PQ，餘裕與 HDR10 相同。</string>
-    <string name="fablesol_export_hdr_desc_hlg">相對亮度曲線，在不支援 HDR 的播放端上降級過渡較為平緩。漫反射白之上僅約 3.77 倍餘裕，HDR 強度超過 4 之後差異不明顯。</string>
-    <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。HLG 基層搭配杜比動態中繼資料，中繼資料由裝置編碼器產生。基層為 HLG，亮部餘裕與 HLG 相同，不高於 HDR10。</string>
-    <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。PQ 基層，與 HDR10 相容，搭配杜比動態中繼資料，中繼資料由裝置編碼器產生。餘裕與 HDR10 相同，並具備逐場景顯示調適，為可選格式中規格最高的一檔。</string>
+    <string name="fablesol_export_hdr_desc_auto">依 HDR 規格與畫質能力由高至低，選用本機實測可編碼的首個格式。目前為 %1$s。</string>
+    <string name="fablesol_export_hdr_desc_hdr10">採用 PQ 絕對亮度轉換函數與靜態母版中繼資料。母版峰值和最大畫格平均亮度由漫反射白及 HDR 強度推導，播放裝置依據這些靜態參數完成顯示對應；HDR 播放相容範圍最廣。</string>
+    <string name="fablesol_export_hdr_desc_hdr10_plus">在 HDR10 基礎上增加 ST 2094-40 動態中繼資料。逐格量測峰值、畫格平均亮度和亮度分布，並產生相應對應參數：亮部起點以下維持線性對應，以上採用受控滾降；基層轉換函數仍為 PQ。</string>
+    <string name="fablesol_export_hdr_desc_hlg">採用場景相對的 HLG 轉換函數，不寫入由應用程式產生的動態中繼資料。參考白以上的標稱亮部餘裕約為 3.77 倍，因此 HDR 強度超過約 4 後，可見層次增量有限。</string>
+    <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。採用 HLG 基層，並由裝置編碼器產生杜比動態中繼資料。基層亮部餘裕與 HLG 一致；相容的播放裝置可依據動態中繼資料進行顯示調適。</string>
+    <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。採用 PQ 基層並保留 HDR10 相容性，由裝置編碼器產生杜比動態中繼資料。在保留 PQ 絕對亮度餘裕的同時，相容的播放裝置可進行逐場景顯示調適。</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profile 5。單層 PQ，採用杜比 IPT 色彩空間。不向下相容：在不支援杜比視界的播放端上會出現綠紫色偏。需要分享時建議改用 Profile 8.1。</string>
     <string name="fablesol_param_export_tilt">保留錄音過程中的畫面傾斜</string>
 </resources>

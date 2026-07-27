@@ -88,14 +88,19 @@ internal object FableSolHdrExportCapability {
 
         val supported = try {
             probeInternal(context)
-        } catch (ignored: Throwable) {
+        } catch (error: Throwable) {
+            lastSupportedFormats = emptyList()
+            lastCandidateFailures = emptyList()
+            lastFailureReason = "HDR 能力探测异常（${error.javaClass.simpleName}：${
+                error.message ?: "未提供详细信息"
+            }）"
             false
         }
         val resolved = CachedResult(
             signature = cacheSignature(context),
             supported = supported,
             checkedAtMs = now,
-            formats = lastSupportedFormats.map { it.label },
+            formats = lastSupportedFormats.map { it.stableLabel },
             reason = lastFailureReason,
             failures = lastCandidateFailures
         )
@@ -126,50 +131,63 @@ internal object FableSolHdrExportCapability {
         val egl = FableSolExportEgl.probe()
         val lines = ArrayList<String>(8)
         lines += if (supported) {
-            "HDR 导出：可用 — 实测通过 " +
-                lastSupportedFormats.joinToString(" / ") { it.label } +
-                "；自动档用 " + (autoFormat?.label ?: "—")
+            "HDR 导出能力：可用；单帧编码与封装验证通过：" +
+                lastSupportedFormats.joinToString(" / ") { it.displayName(context) } +
+                "；自动选择：" + (autoFormat?.displayName(context) ?: "—") + "。"
         } else {
-            "HDR 导出：不可用" + (lastFailureReason?.let { " — $it" } ?: "")
+            "HDR 导出能力：不可用。" + (
+                lastFailureReason?.let {
+                    " " + FableSolExportHdrFormat.localizeStableLabels(context, it)
+                } ?: ""
+                )
         }
         for (failure in lastCandidateFailures.take(MAX_REPORTED_FAILURES)) {
-            lines += "  · $failure"
-        }
-        val panelPeak = FableSolExportDisplayLuminance.panelPeakNits(context)
-        lines += "屏幕 HDR 峰值：" +
-            (panelPeak?.let { "%.0f 尼特".format(it) } ?: "未声明") +
-            " · 自动漫反射白 %.0f 尼特".format(
-                FableSolExportDisplayLuminance.autoWhiteNits(context)
+            lines += "  · " + FableSolExportHdrFormat.localizeStableLabels(
+                context,
+                failure
             )
-        lines += "EGL：FP16 场景 " + tick(egl.linearSceneSupported) +
-            " · PQ " + tick(egl.bt2020PqSupported) +
-            " · HLG " + tick(egl.bt2020HlgSupported) +
+        }
+        val strength = FableSolTuning.hdrStrength(context)
+        val white = FableSolExportDisplayLuminance.autoWhiteRecommendation(context, strength)
+        lines += "显示设备亮度能力：HDR 峰值 " +
+            (white.panelPeakNits?.let { "%.0f 尼特".format(it) } ?: "未声明") +
+            "；最大帧平均亮度 " +
+            (white.panelMaxAverageNits?.let { "%.0f 尼特".format(it) } ?: "未声明") +
+            "；当前 HDR 强度 %.2f×".format(white.hdrStrength) +
+            "；建议漫反射白 %.0f 尼特".format(white.whiteNits) +
+            if (white.fallbackUsed) "（采用安全回退值）。" else "。"
+        lines += "EGL 能力：FP16 场景缓冲 " + supportState(egl.linearSceneSupported) +
+            "；BT.2020 PQ " + supportState(egl.bt2020PqSupported) +
+            "；BT.2020 HLG " + supportState(egl.bt2020HlgSupported) +
             // 广告了色彩空间不代表建得起 10-bit 表面：华为平板两者都有，却整机卡在这一步。
-            " · 10-bit 表面 " + (egl.tenBitWindowConfig ?: "无")
-        lines += "编码器 " + encoderSummary(
+            "；10-bit 窗口配置：" + (egl.tenBitWindowConfig ?: "未发现") + "。"
+        lines += "编码器能力：" + encoderSummary(
             MediaFormat.MIMETYPE_VIDEO_HEVC,
             "HEVC Main10",
             MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10
         )
-        lines += "编码器 " + encoderSummary(
+        lines += "编码器能力：" + encoderSummary(
             MediaFormat.MIMETYPE_VIDEO_HEVC,
             "HEVC HDR10+",
             MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10Plus
         )
-        lines += "编码器 " + encoderSummary(
+        lines += "编码器能力：" + encoderSummary(
             MediaFormat.MIMETYPE_VIDEO_AV1,
             "AV1 Main10",
             MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10
         )
-        lines += "编码器 " + encoderSummary(
+        val dolbyVisionName = context.getString(
+            R.string.fablesol_export_hdr_brand_dolby_vision
+        )
+        lines += "编码器能力：" + encoderSummary(
             MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION,
-            "Dolby Vision",
+            dolbyVisionName,
             0
         )
         dolbyVisionProfiles()?.let {
-            lines += "  · DV profile：$it"
+            lines += "  · $dolbyVisionName Profile：$it"
             vendorParameters(MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION)?.let { params ->
-                lines += "  · DV 厂商参数：$params"
+                lines += "  · $dolbyVisionName 厂商参数：$params"
             }
         }
         // HDR10+ 走 surface 输入拿不到，但字节缓冲输入是另一条路（也是 AOSP CTS 用的那条）。
@@ -183,8 +201,8 @@ internal object FableSolHdrExportCapability {
     /**
      * 字节缓冲输入这条路上，HDR10+ 到底成不成立。
      *
-     * 这一行是为了回答一个具体的问题：surface 模式编不出 HDR10+，换字节缓冲模式行不行。
-     * 分「裸通路」与「带元数据」两次报，才分得清是通路本身不行，还是元数据写得不对。
+     * 分别验证不提交动态元数据与提交 ST 2094-40 元数据两种条件，以区分基础编码通路能力
+     * 与动态元数据提交能力。
      */
     private fun hdr10PlusByteBufferReport(context: Context): String {
         val plan = FableSolExportSpec.plan(context, FableSolExportSpec.MAX_CARD_WIDTH_DP)
@@ -195,11 +213,15 @@ internal object FableSolHdrExportCapability {
                 frameRate = FableSolExportOptions.FRAME_RATE_BASE
             )
         } catch (error: Throwable) {
-            return "HDR10+ 字节缓冲：探测异常（${error.javaClass.simpleName}）"
+            return "HDR10+ 字节缓冲验证：探测异常（${error.javaClass.simpleName}）。"
         }
-        if (result.codecName == null) return "HDR10+ 字节缓冲：${result.withoutMetadata}"
-        return "HDR10+ 字节缓冲（${result.codecName}）：P010 " + tick(result.p010Supported) +
-            " · 裸通路 ${result.withoutMetadata} · 带元数据 ${result.withMetadata}"
+        if (result.codecName == null) {
+            return "HDR10+ 字节缓冲验证：${result.withoutMetadata}。"
+        }
+        return "HDR10+ 字节缓冲验证（${result.codecName}）：P010 输入" +
+            supportState(result.p010Supported) +
+            "；未提交动态元数据：${result.withoutMetadata}；提交 ST 2094-40 元数据：" +
+            "${result.withMetadata}。"
     }
 
     /**
@@ -228,8 +250,8 @@ internal object FableSolHdrExportCapability {
             }
             when {
                 interesting.isNotEmpty() -> interesting.joinToString(", ")
-                codec.supportedVendorParameters.isEmpty() -> "无"
-                else -> "有 ${codec.supportedVendorParameters.size} 项，但没有与 HDR 相关的"
+                codec.supportedVendorParameters.isEmpty() -> "未声明"
+                else -> "共 ${codec.supportedVendorParameters.size} 项，未发现与 HDR 相关的参数"
             }
         } catch (ignored: Throwable) {
             null
@@ -241,10 +263,47 @@ internal object FableSolHdrExportCapability {
         }
     }
 
-    private fun moreFailures(all: List<String>): String =
-        if (all.size > 1) "（另有 ${all.size - 1} 档同样失败）" else ""
+    private fun moreFailures(all: List<*>): String =
+        if (all.size > 1) "；另有 ${all.size - 1} 个编码候选未通过验证" else ""
 
-    private fun tick(value: Boolean): String = if (value) "有" else "无"
+    private fun supportState(value: Boolean): String = if (value) "支持" else "不支持"
+
+    private fun transferMismatchDescription(detail: String): String {
+        val values = TRANSFER_CHANGE_REGEX.find(detail)
+        return if (values == null) {
+            "编码器输出的传递函数与请求值不一致，目标格式验证未通过"
+        } else {
+            val requested = values.groupValues[1].toIntOrNull()
+            val actual = values.groupValues[2].toIntOrNull()
+            "编码器输出的传递函数与请求值不一致（请求 ${transferCodeName(requested)}，" +
+                "实际 ${transferCodeName(actual)}），目标格式验证未通过"
+        }
+    }
+
+    private fun profileMismatchDescription(detail: String): String {
+        val values = PROFILE_CHANGE_REGEX.find(detail)
+        return if (values == null) {
+            "编码器输出的 Profile 与请求值不一致，目标格式验证未通过"
+        } else {
+            "编码器输出的 Profile 与请求值不一致（请求 ${values.groupValues[1]}，实际 " +
+                "${values.groupValues[2]}），目标格式验证未通过"
+        }
+    }
+
+    private fun transferCodeName(value: Int?): String = when (value) {
+        MediaFormat.COLOR_TRANSFER_ST2084 -> "PQ / ST 2084 ($value)"
+        MediaFormat.COLOR_TRANSFER_HLG -> "HLG ($value)"
+        MediaFormat.COLOR_TRANSFER_SDR_VIDEO -> "SDR 视频 ($value)"
+        MediaFormat.COLOR_TRANSFER_LINEAR -> "线性传递函数 ($value)"
+        null -> "未知"
+        else -> value.toString()
+    }
+
+    private fun transferDisplayName(transfer: FableSolExportTransfer): String = when (transfer) {
+        FableSolExportTransfer.PQ -> "BT.2020 PQ"
+        FableSolExportTransfer.HLG -> "BT.2020 HLG"
+        FableSolExportTransfer.SDR -> "SDR"
+    }
 
     /**
      * 杜比视界编码器广告的 profile。存在编码器不等于第三方能用——授权与逐帧动态映射
@@ -300,12 +359,18 @@ internal object FableSolHdrExportCapability {
             }
         } catch (ignored: Throwable) {
         }
-        return if (names.isEmpty()) "$label：无" else "$label：" + names.joinToString(", ")
+        return if (names.isEmpty()) {
+            "$label：未发现"
+        } else {
+            "$label：" + names.joinToString(", ")
+        }
     }
 
     /** 把缓存里存下来的诊断细节放回可读字段，使命中缓存时设置页照样有原因可显示。 */
     private fun restoreDiagnostics(cached: CachedResult) {
-        lastSupportedFormats = cached.formats.mapNotNull { FableSolExportHdrFormat.fromLabel(it) }
+        lastSupportedFormats = cached.formats.mapNotNull {
+            FableSolExportHdrFormat.fromStableLabel(it)
+        }
         lastFailureReason = cached.reason
         lastCandidateFailures = cached.failures
     }
@@ -347,7 +412,11 @@ internal object FableSolHdrExportCapability {
         for (format in FableSolExportHdrFormat.AUTO_ORDER) {
             if (format.requiresEglColorSpace &&
                 !availableTransfers.contains(format.transfer)
-            ) continue
+            ) {
+                failures += "${format.stableLabel}：EGL 未提供目标格式所需的 " +
+                    "${transferDisplayName(format.transfer)} 窗口色彩空间，未执行编码验证。"
+                continue
+            }
             val attempts = FableSolExportAttemptPlan.ordered(
                 hdrFormats = listOf(format),
                 requestedFrameRate = FableSolExportOptions.FRAME_RATE_HIGH
@@ -370,7 +439,7 @@ internal object FableSolHdrExportCapability {
                         break
                     }
                     // 档位名本身已经带上格式，这里不再重复前缀。
-                    formatFailures += "${attempt.frameRate}fps ${tier.label}：$failure"
+                    formatFailures += "${attempt.frameRate} fps ${tier.label}：$failure"
                 }
             }
             if (formatOk) {
@@ -381,20 +450,20 @@ internal object FableSolHdrExportCapability {
             // 全列出来会把另外三种格式的原因挤出可见范围，而那才是用户想看的。
             val first = formatFailures.firstOrNull()
             failures += when {
-                first == null -> "${format.label}：没有编码器通过候选筛选（profile / 尺寸 / 帧率）"
-                // "Encoder changed profile A to B" 是编码器在说"我收下了配置，但不打算
-                // 产出这种格式"。原始异常串对用户毫无意义，翻成人话并说清有没有别的办法。
-                // 编码器改写传递函数，说的是"我这一档基层曲线就只有这一种"。对杜比视界
-                // 8.1 来说，这等同于"本机只出 8.4"，比甩一句原始异常有用得多。
+                first == null ->
+                    "${format.stableLabel}：未找到同时满足目标 Profile、画布尺寸和帧率要求的" +
+                        "编码器候选。"
                 first.contains(TRANSFER_DOWNGRADE_MARKER) ->
-                    "${format.label}：编码器把基层的亮度曲线改回去了，说明它这一档只出另一种" +
-                        "曲线" + (format.downgradeHint?.let { "；$it" } ?: "") +
-                        moreFailures(formatFailures)
+                    "${format.stableLabel}：${transferMismatchDescription(first)}" +
+                        (format.validationFollowUp?.let { "；$it" } ?: "") +
+                        moreFailures(formatFailures) + "。"
                 first.contains(PROFILE_DOWNGRADE_MARKER) ->
-                    "${format.label}：编码器接受了配置却把 profile 降了回去，说明它不打算产出" +
-                        "这种格式" + (format.downgradeHint?.let { "；$it" } ?: "") +
-                        moreFailures(formatFailures)
-                else -> "${format.label}：$first" + moreFailures(formatFailures)
+                    "${format.stableLabel}：${profileMismatchDescription(first)}" +
+                        (format.validationFollowUp?.let { "；$it" } ?: "") +
+                        moreFailures(formatFailures) + "。"
+                else ->
+                    "${format.stableLabel}：编码候选验证未通过（技术详情：$first）" +
+                        moreFailures(formatFailures) + "。"
             }
         }
 
@@ -408,9 +477,9 @@ internal object FableSolHdrExportCapability {
         }
         lastCandidateFailures = failures
         lastFailureReason = if (failures.isEmpty()) {
-            "没有编码器支持导出画布的尺寸与帧率"
+            "未找到可执行完整 HDR 验证的格式或编码器候选。"
         } else {
-            "色彩空间与编码器都在，但每一档都编不出一帧"
+            "所有 HDR 格式均未通过完整的单帧编码与封装验证。"
         }
         return false
     }
@@ -490,15 +559,17 @@ internal object FableSolHdrExportCapability {
             val silence = ShortArray(PROBE_AUDIO_SAMPLES)
             encoder.feedAudio(silence, silence.size)
             when {
-                !encoder.finish(timeoutMs = PROBE_TIMEOUT_MS) -> "封装未完成（finish 返回 false）"
+                !encoder.finish(timeoutMs = PROBE_TIMEOUT_MS) ->
+                    "编码与封装流程未在限定时间内完成"
                 // 编出来了还不够：HDR10+ 要码流里真的带上那段 SEI 才算数。
-                byteBuffer && !encoder.hdr10PlusSeiSeen -> "编出来了，但码流里没有 HDR10+ SEI"
+                byteBuffer && !encoder.hdr10PlusSeiSeen ->
+                    "输出码流未检测到 HDR10+ ST 2094-40 SEI"
                 else -> null
             }
         } catch (error: Throwable) {
             // 这句就是我们要的东西：三星那台机器色彩空间与 Main10 编码器一应俱全却仍失败，
             // 只有异常本身能说清卡在 configure、EGL、start 还是输出格式核验。
-            "${error.javaClass.simpleName}: ${error.message ?: "无消息"}"
+            "${error.javaClass.simpleName}: ${error.message ?: "未提供详细信息"}"
         } finally {
             try {
                 // bridge 的 GL 资源要在 EGL 上下文还在的时候释放。
@@ -617,6 +688,9 @@ internal object FableSolHdrExportCapability {
     /** `FableSolExportEncoder.validateVideoOutputFormat` 抛出的那两句话里的固定片段。 */
     private const val PROFILE_DOWNGRADE_MARKER = "changed profile"
     private const val TRANSFER_DOWNGRADE_MARKER = "changed color-transfer"
+    private val PROFILE_CHANGE_REGEX = Regex("""changed profile (\d+) to (\d+)""")
+    private val TRANSFER_CHANGE_REGEX =
+        Regex("""changed color-transfer from (\d+) to (\d+)""")
 
     /** 厂商参数只留这些关键词命中的，否则一屏都放不下。 */
     private val VENDOR_PARAMETER_HINTS = listOf(
@@ -629,7 +703,8 @@ internal object FableSolHdrExportCapability {
     // 2：缓存条目开始携带诊断细节；旧条目必须失效，否则依然问不出原因。
     // 3：色彩范围改为采纳编码器回报值，此前被误判为不支持的机器必须重新探测。
     // 4：改为逐格式探测（HDR10 / HDR10+ / HLG / 杜比视界各自编一帧），缓存结构随之改变。
-    private const val PROBE_CONTRACT_VERSION = 4
+    // 5：诊断改为结构化、正式措辞，并将格式稳定标识与本地化显示名称分离。
+    private const val PROBE_CONTRACT_VERSION = 5
     private const val NEGATIVE_RESULT_TTL_MS = 24L * 60L * 60L * 1_000L
 
     private const val CACHE_PREFERENCES = "fablesol_hdr_export_capability"

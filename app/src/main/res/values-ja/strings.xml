@@ -1063,13 +1063,18 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_param_export_highlight_start">ハイライトの起点</string>
     <string name="fablesol_export_estimate_white"> · 拡散白 %1$s ニト · ピーク %2$s ニト</string>
     <string name="fablesol_export_estimate_highlight"> · ハイライト起点 %1$d%%</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s ニト</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">未申告（計算対象外）</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\n画面輝度性能：HDR ピーク %1$s、最大フレーム平均輝度 %2$s。\n計算：%3$s = %4$s ニト。%5$s～%6$s ニトの自動範囲を適用し、%7$s ニト刻みで切り下げた最終値は %8$s ニトです。</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\n利用可能な HDR ピークまたは最大フレーム平均輝度が申告されていないため、安全なフォールバック値を使用します。</string>
+    <string name="fablesol_export_estimate_white_manual">\n拡散白は現在、手動値を使用しています。「初期設定に戻す」を実行すると、画面の HDR ピーク、最大フレーム平均輝度、HDR 強度から自動的に再計算します。</string>
     <string name="fablesol_param_export_pq_white">拡散白（PQ）</string>
     <string name="fablesol_param_export_hdr_format">書き出す HDR 形式</string>
     <string name="fablesol_export_hdr_format_auto">自動</string>
     <string name="fablesol_export_diagnostics_loading">デバイスの対応状況を確認中…</string>
     <string name="fablesol_export_hdr_format_probing">この端末がエンコードできる形式を確認しています。</string>
     <string name="fablesol_export_hdr_format_none">この端末で利用できる HDR エンコード形式はありません。</string>
-    <string name="fablesol_export_hdr_desc_auto">互換性の高い順に、この端末でエンコードが確認された最初の形式を選択します。現在は %1$s です。</string>
+    <string name="fablesol_export_hdr_desc_auto">HDR 仕様と画質能力の高い順に、この端末でエンコードが確認された最初の形式を選択します。現在は %1$s です。</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 絶対輝度カーブと静的マスタリングメタデータ。ピーク値は拡散白と HDR 強度から直接求まるため、圧縮は不要です。プレーヤーの互換性が最も広い形式です。</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">HDR10 に ST 2094-40 のシーン単位の動的メタデータを追加します。ピーク値・平均値・輝度分布をフレームごとに実測し、それに基づいてトーンマッピング曲線を生成します。ハイライトの起点より下は維持し、それより上を圧縮します。伝達関数は PQ のままで、余裕は HDR10 と同等です。</string>
     <string name="fablesol_export_hdr_desc_hlg">相対輝度カーブ。HDR 非対応のプレーヤーでの劣化がより緩やかです。拡散白より上の余裕は約 3.77 倍にとどまるため、HDR 強度が 4 を超えると差はほとんど分かりません。</string>

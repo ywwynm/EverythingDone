@@ -1063,13 +1063,18 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_param_export_highlight_start">하이라이트 시작점</string>
     <string name="fablesol_export_estimate_white"> · 확산 백색 %1$s 니트 · 피크 %2$s 니트</string>
     <string name="fablesol_export_estimate_highlight"> · 하이라이트 시작 %1$d%%</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s 니트</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">보고되지 않음(계산에서 제외)</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\n화면 휘도 성능: HDR 피크 %1$s, 최대 프레임 평균 휘도 %2$s.\n계산: %3$s = %4$s 니트. %5$s–%6$s 니트 자동 범위를 적용하고 %7$s 니트 단위로 내림한 최종 값은 %8$s 니트입니다.</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\n사용 가능한 HDR 피크 또는 최대 프레임 평균 휘도가 보고되지 않아 안전 대체 값을 사용합니다.</string>
+    <string name="fablesol_export_estimate_white_manual">\n확산 백색은 현재 수동 값을 사용합니다. 기본값을 복원하면 화면 HDR 피크, 최대 프레임 평균 휘도 및 HDR 강도를 기준으로 자동 재계산합니다.</string>
     <string name="fablesol_param_export_pq_white">확산 백색(PQ)</string>
     <string name="fablesol_param_export_hdr_format">내보낼 HDR 형식</string>
     <string name="fablesol_export_hdr_format_auto">자동</string>
     <string name="fablesol_export_diagnostics_loading">기기 지원 상태 확인 중…</string>
     <string name="fablesol_export_hdr_format_probing">이 기기가 인코딩할 수 있는 형식을 확인하는 중입니다.</string>
     <string name="fablesol_export_hdr_format_none">이 기기에서 사용할 수 있는 HDR 인코딩 형식이 없습니다.</string>
-    <string name="fablesol_export_hdr_desc_auto">호환성이 높은 순서로, 이 기기에서 인코딩이 확인된 첫 번째 형식을 선택합니다. 현재 %1$s입니다.</string>
+    <string name="fablesol_export_hdr_desc_auto">HDR 규격과 화질 역량이 높은 순서로, 이 기기에서 인코딩이 확인된 첫 번째 형식을 선택합니다. 현재 %1$s입니다.</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 절대 휘도 곡선과 정적 마스터링 메타데이터. 피크값은 확산 백색과 HDR 강도에서 직접 산출되므로 압축이 필요하지 않습니다. 플레이어 호환성이 가장 넓습니다.</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">HDR10에 ST 2094-40 장면별 동적 메타데이터를 추가합니다. 피크값, 평균값, 휘도 분포를 프레임마다 측정하여 톤 매핑 곡선을 생성합니다. 하이라이트 시작점 아래는 그대로 유지하고 그 위를 압축합니다. 전달 함수는 PQ이므로 여유는 HDR10과 동일합니다.</string>
     <string name="fablesol_export_hdr_desc_hlg">상대 휘도 곡선으로, HDR을 지원하지 않는 플레이어에서의 저하가 더 완만합니다. 확산 백색 위의 여유가 약 3.77배에 그치므로 HDR 강도가 4를 넘으면 차이가 뚜렷하지 않습니다.</string>

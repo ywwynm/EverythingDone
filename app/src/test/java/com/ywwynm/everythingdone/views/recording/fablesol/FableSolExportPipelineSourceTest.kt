@@ -172,6 +172,106 @@ class FableSolExportPipelineSourceTest {
         assertTrue(exporter.contains("FableSolExportAttemptPlan.ordered("))
     }
 
+    @Test
+    fun automaticDiffuseWhiteUsesDisplayLimitsAndTracksHdrStrengthInSettings() {
+        val luminance = projectFile("FableSolExportDisplayLuminance.kt")
+        val tuning = projectFile("FableSolTuning.kt")
+        val dialog = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+        val chineseStrings = projectRelative(
+            "app/src/main/res/values-zh-rCN/strings.xml"
+        )
+
+        assertTrue(luminance.contains("desiredMaxLuminance"))
+        assertTrue(luminance.contains("desiredMaxAverageLuminance"))
+        assertTrue(luminance.contains("it * CONTENT_PEAK_ALLOWANCE / strength"))
+        assertTrue(luminance.contains("AUTO_WHITE_MAX_NITS"))
+        // 手动拖过后必须退出自动档；恢复默认会清除此键，再重新按设备能力计算。
+        assertTrue(tuning.contains("!prefs(context).contains(KEY_EXPORT_PQ_WHITE)"))
+        assertTrue(tuning.contains(".remove(KEY_EXPORT_PQ_WHITE)"))
+        // 强度滑杆拖动期间，自动白锚和下方推导公式都要即时刷新。
+        assertTrue(dialog.contains("mRefreshExportDerivedInfo?.invoke(strength)"))
+        assertTrue(dialog.contains("FableSolTuning.isExportPqWhiteAutomatic(ctx)"))
+        assertTrue(dialog.contains("R.string.fablesol_export_estimate_white_auto_formula"))
+        assertTrue(dialog.contains("recommendation.panelPeakNits"))
+        assertTrue(dialog.contains("recommendation.panelMaxAverageNits"))
+        assertTrue(dialog.contains("constraintFormula(recommendation)"))
+        assertTrue(chineseStrings.contains("显示设备 HDR 亮度能力"))
+        assertTrue(chineseStrings.contains("未声明（不参与计算）"))
+        assertFalse(chineseStrings.contains("min（"))
+    }
+
+    @Test
+    fun automaticHdrDescriptionStatesTheActualHighestSpecOrdering() {
+        val format = projectFile("FableSolExportHdrFormat.kt")
+        val chineseStrings = projectRelative(
+            "app/src/main/res/values-zh-rCN/strings.xml"
+        )
+
+        assertTrue(chineseStrings.contains("按 HDR 规格与画质能力由高到低"))
+        assertFalse(chineseStrings.contains("按兼容性优先的顺序"))
+        val order = format.substringAfter("val AUTO_ORDER = listOf(")
+            .substringBefore(")")
+            .split(",")
+            .map { it.trim() }
+        assertTrue(
+            order.indexOf("DOLBY_VISION_84") < order.indexOf("HDR10")
+        )
+    }
+
+    @Test
+    fun hdrDisplayNamesAreLocalizedWithoutChangingStableCacheKeys() {
+        val format = projectFile("FableSolExportHdrFormat.kt")
+        val exporter = projectFile("FableSolVideoExporter.kt")
+        val dialog = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+        val chineseStrings = projectRelative(
+            "app/src/main/res/values-zh-rCN/strings.xml"
+        )
+
+        assertTrue(format.contains("val stableLabel: String"))
+        assertTrue(format.contains("fun displayName(context: Context)"))
+        assertTrue(format.contains("fun fromStableLabel("))
+        assertTrue(format.contains("fun localizeStableLabels("))
+        assertTrue(dialog.contains("format.displayName(ctx)"))
+        assertTrue(exporter.contains("tier.displayLabel(context)"))
+        assertTrue(exporter.contains("tier.hdrFormat?.displayName(context)"))
+        assertTrue(chineseStrings.contains(
+            """name="fablesol_export_hdr_format_name_dolby_vision_84">杜比视界 8.4"""
+        ))
+        assertFalse(chineseStrings.contains(">Dolby Vision"))
+    }
+
+    @Test
+    fun hdrDiagnosticsUseFormalFactualLanguage() {
+        val capability = projectFile("FableSolHdrExportCapability.kt")
+        val hdr10PlusProbe = projectFile("FableSolHdr10PlusProbe.kt")
+        val format = projectFile("FableSolExportHdrFormat.kt")
+        val visibleHdrText = capability + hdr10PlusProbe + format
+
+        listOf(
+            "编码器把基层的亮度曲线改回去了",
+            "那一档还有机会",
+            "不打算产出",
+            "没有别的办法",
+            "裸通路",
+            "带元数据",
+            "编出来了，但",
+            "无消息"
+        ).forEach { phrase ->
+            assertFalse("HDR 文案仍含口语化表述：$phrase", visibleHdrText.contains(phrase))
+        }
+        assertTrue(capability.contains("请求 \${transferCodeName(requested)}"))
+        assertTrue(capability.contains("实际 \${transferCodeName(actual)}"))
+        assertTrue(capability.contains("目标格式验证未通过"))
+        assertTrue(capability.contains("单帧编码与封装验证通过"))
+        assertTrue(capability.contains("提交 ST 2094-40 元数据"))
+    }
+
     /**
      * 产物必须复现**界面实际的**外观。Service 拿到的 Application Context 两样都不对：主题是
      * 平台默认的浅色主题（`<application>` 没有 android:theme），配置也读不到 AppCompat 对

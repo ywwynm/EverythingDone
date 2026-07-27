@@ -1009,13 +1009,18 @@
     <string name="fablesol_param_export_highlight_start">हाइलाइट की शुरुआत</string>
     <string name="fablesol_export_estimate_white"> · डिफ़्यूज़ सफ़ेद %1$s निट · शिखर %2$s निट</string>
     <string name="fablesol_export_estimate_highlight"> · हाइलाइट %1$d%% से</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s निट</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">घोषित नहीं (गणना में शामिल नहीं)</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\nस्क्रीन चमक क्षमता: HDR शिखर %1$s; अधिकतम फ़्रेम-औसत चमक %2$s।\nगणना: %3$s = %4$s निट; %5$s–%6$s निट की स्वचालित सीमा लागू करके और %7$s निट के चरण तक नीचे पूर्णांकित करने पर अंतिम मान %8$s निट है।</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\nउपयोग योग्य HDR शिखर या अधिकतम फ़्रेम-औसत चमक घोषित नहीं है; सुरक्षित फ़ॉलबैक मान उपयोग किया जाता है।</string>
+    <string name="fablesol_export_estimate_white_manual">\nडिफ़्यूज़ सफ़ेद अभी मैन्युअल मान उपयोग करता है। डिफ़ॉल्ट पुनर्स्थापित करने पर इसे स्क्रीन HDR शिखर, अधिकतम फ़्रेम-औसत चमक और HDR तीव्रता से फिर गणना किया जाता है।</string>
     <string name="fablesol_param_export_pq_white">डिफ़्यूज़ सफ़ेद (PQ)</string>
     <string name="fablesol_param_export_hdr_format">निर्यात का HDR फ़ॉर्मैट</string>
     <string name="fablesol_export_hdr_format_auto">स्वचालित</string>
     <string name="fablesol_export_diagnostics_loading">डिवाइस क्षमता पढ़ी जा रही है…</string>
     <string name="fablesol_export_hdr_format_probing">जाँच की जा रही है कि यह डिवाइस कौन-से फ़ॉर्मैट एन्कोड कर सकता है।</string>
     <string name="fablesol_export_hdr_format_none">इस डिवाइस पर कोई HDR एन्कोडिंग फ़ॉर्मैट उपलब्ध नहीं है।</string>
-    <string name="fablesol_export_hdr_desc_auto">अनुकूलता के क्रम में, इस डिवाइस पर जिसकी एन्कोडिंग सत्यापित है वह पहला फ़ॉर्मैट चुनता है। वर्तमान में %1$s।</string>
+    <string name="fablesol_export_hdr_desc_auto">HDR विनिर्देश और चित्र-गुणवत्ता क्षमता के उच्च से निम्न क्रम में, इस डिवाइस पर सत्यापित एन्कोडिंग वाला पहला फ़ॉर्मैट चुनता है। वर्तमान में %1$s।</string>
     <string name="fablesol_export_hdr_desc_hdr10">स्थिर मास्टरिंग मेटाडेटा के साथ PQ निरपेक्ष प्रदीप्ति वक्र। शिखर डिफ़्यूज़ सफ़ेद और HDR तीव्रता से सीधे निकलता है, इसलिए संपीड़न की आवश्यकता नहीं। प्लेयर अनुकूलता सर्वाधिक व्यापक।</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">HDR10 के ऊपर ST 2094-40 दृश्य-वार गतिशील मेटाडेटा जोड़ता है। शिखर, औसत और प्रदीप्ति वितरण प्रति फ़्रेम मापे जाते हैं और उनसे टोन मैपिंग वक्र बनाया जाता है: हाइलाइट की शुरुआत से नीचे की सामग्री अपरिवर्तित रहती है, उससे ऊपर संपीड़ित होती है। ट्रांसफ़र फलन PQ ही रहता है, इसलिए गुंजाइश HDR10 के बराबर है।</string>
     <string name="fablesol_export_hdr_desc_hlg">सापेक्ष प्रदीप्ति वक्र; HDR समर्थन रहित प्लेयर पर गिरावट अधिक क्रमिक होती है। डिफ़्यूज़ सफ़ेद के ऊपर लगभग 3.77 गुना ही गुंजाइश है, इसलिए HDR तीव्रता 4 से आगे अंतर नगण्य हो जाता है।</string>

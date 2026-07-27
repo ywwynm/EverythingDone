@@ -1009,13 +1009,18 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="fablesol_param_export_highlight_start">Soglia delle alte luci</string>
     <string name="fablesol_export_estimate_white"> · bianco diffuso %1$s nit · picco %2$s nit</string>
     <string name="fablesol_export_estimate_highlight"> · alte luci dal %1$d%%</string>
+    <string name="fablesol_export_estimate_luminance_nits">%1$s nit</string>
+    <string name="fablesol_export_estimate_luminance_unavailable">non dichiarata (esclusa dal calcolo)</string>
+    <string name="fablesol_export_estimate_white_auto_formula">\nCapacità di luminanza del display: picco HDR %1$s; luminanza media massima del fotogramma %2$s.\nCalcolo: %3$s = %4$s nit; dopo il limite all’intervallo automatico di %5$s–%6$s nit e l’arrotondamento per difetto a passi di %7$s nit, il valore finale è %8$s nit.</string>
+    <string name="fablesol_export_estimate_white_auto_fallback">\nNon sono dichiarati un picco HDR o una luminanza media massima del fotogramma utilizzabili; viene applicato il valore di ripiego sicuro.</string>
+    <string name="fablesol_export_estimate_white_manual">\nIl bianco diffuso utilizza attualmente un valore manuale. Il ripristino dei valori predefiniti lo ricalcola dal picco HDR del display, dalla luminanza media massima del fotogramma e dall’intensità HDR.</string>
     <string name="fablesol_param_export_pq_white">Bianco diffuso (PQ)</string>
     <string name="fablesol_param_export_hdr_format">Formato HDR di esportazione</string>
     <string name="fablesol_export_hdr_format_auto">Automatico</string>
     <string name="fablesol_export_diagnostics_loading">Lettura delle capacità del dispositivo…</string>
     <string name="fablesol_export_hdr_format_probing">Verifica dei formati che questo dispositivo può codificare.</string>
     <string name="fablesol_export_hdr_format_none">Nessun formato di codifica HDR è disponibile su questo dispositivo.</string>
-    <string name="fablesol_export_hdr_desc_auto">Seleziona il primo formato la cui codifica è verificata su questo dispositivo, in ordine di compatibilità. Attualmente %1$s.</string>
+    <string name="fablesol_export_hdr_desc_auto">Ordina i formati dal livello più alto al più basso di specifica HDR e capacità di qualità dell’immagine, quindi seleziona il primo la cui codifica è verificata su questo dispositivo. Attualmente %1$s.</string>
     <string name="fablesol_export_hdr_desc_hdr10">Curva di luminanza assoluta PQ con metadati statici di masterizzazione. Il picco deriva direttamente dal bianco diffuso e dall\'intensità HDR, quindi non è necessaria alcuna compressione. Massima compatibilità con i lettori.</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">Aggiunge ad HDR10 metadati dinamici per scena ST 2094-40. Picco, media e distribuzione della luminanza sono misurati per fotogramma e da essi si ricava una curva di mappatura tonale: il contenuto sotto la soglia delle alte luci resta invariato, quello sopra viene compresso. La funzione di trasferimento resta PQ, quindi il margine coincide con HDR10.</string>
     <string name="fablesol_export_hdr_desc_hlg">Curva di luminanza relativa; il degrado sui lettori senza supporto HDR è più graduale. Sopra il bianco diffuso il margine è di circa 3,77 volte, quindi oltre un\'intensità HDR di 4 le differenze diventano marginali.</string>

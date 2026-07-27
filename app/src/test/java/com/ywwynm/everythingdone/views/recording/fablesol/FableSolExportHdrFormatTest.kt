@@ -11,8 +11,8 @@ class FableSolExportHdrFormatTest {
 
     /**
      * 自动档按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格）。
-     * 关键是两条：PQ 基层的三种必须全排在 HLG 基层的两种之前（余量 10000 尼特 vs 3.77 倍），
-     * 带动态元数据的必须排在同基层的静态档之前。
+     * 前三项保持杜比视界 5、杜比视界 8.1、HDR10+；用户进一步裁定带动态元数据的
+     * 杜比视界 8.4 位于静态元数据 HDR10 之前，HLG 最后。
      */
     @Test
     fun autoIsOrderedFromHighestSpecDown() {
@@ -21,8 +21,8 @@ class FableSolExportHdrFormatTest {
                 FableSolExportHdrFormat.DOLBY_VISION_5,
                 FableSolExportHdrFormat.DOLBY_VISION_81,
                 FableSolExportHdrFormat.HDR10_PLUS,
-                FableSolExportHdrFormat.HDR10,
                 FableSolExportHdrFormat.DOLBY_VISION_84,
+                FableSolExportHdrFormat.HDR10,
                 FableSolExportHdrFormat.HLG
             ),
             FableSolExportHdrFormat.AUTO_ORDER
@@ -172,11 +172,14 @@ class FableSolExportHdrFormatTest {
     )
 
     @Test
-    fun labelRoundTripsSoCachedDiagnosticsCanBeRestored() {
+    fun stableLabelRoundTripsSoCachedDiagnosticsCanBeRestored() {
         for (format in FableSolExportHdrFormat.entries) {
-            assertEquals(format, FableSolExportHdrFormat.fromLabel(format.label))
+            assertEquals(
+                format,
+                FableSolExportHdrFormat.fromStableLabel(format.stableLabel)
+            )
         }
-        assertEquals(null, FableSolExportHdrFormat.fromLabel("Nope"))
-        assertEquals(null, FableSolExportHdrFormat.fromLabel(null))
+        assertEquals(null, FableSolExportHdrFormat.fromStableLabel("Nope"))
+        assertEquals(null, FableSolExportHdrFormat.fromStableLabel(null))
     }
 }

@@ -642,6 +642,31 @@ OPPO 的 8.1 失败于 `Encoder changed color-transfer from 6 to 7`（PQ→HLG�
   `202607270448`，APK SHA-256
   `81e4558f66e6ab68e87edd31b6739a412f5af5aef6fd7c48d8f78840cbfc7aff`。
 
+## 2026-07-27 第二十九轮：自动漫反射白纳入屏幕平均亮度与 HDR 强度（见 D45）
+
+上一轮对 HDR10+ 200/500/800 尼特样片的逐像素分析确认：800 尼特产物的基础像素颜色比例
+基本正确，偏白、偏浅主要来自高绝对白锚、高 APL 与 7680 尼特母版峰值共同触发显示端映射。
+因此把旧的 `屏幕峰值÷4` 自动值改为设备与强度共同约束的保真默认：
+
+```text
+raw = min（所有可用约束：面板峰值×1.75÷HDR 强度，最大帧平均亮度，400）
+autoWhite = floor(clamp(raw, 200, 400)÷25)×25
+```
+
+- `FableSolExportDisplayLuminance` 新增纯计算推荐结果，同时读取并校验 Android
+  `desiredMaxLuminance` / `desiredMaxAverageLuminance`。缺一项只忽略该约束，两项都缺失才
+  回退 400 尼特。
+- `FableSolTuning` 保留“未存键即自动、存键即手动”的状态语义；手动范围在写入时再次夹到
+  200～800 尼特。
+- 设置 Dialog 的 HDR 强度拖动会即时重算自动白锚、更新白锚滑杆与
+  `峰值=漫反射白×HDR强度`；手动档不联动。PQ 推导文字新增完整公式，手动档新增状态说明，
+  共同步 13 套语言。
+- 诊断文字新增屏幕最大帧平均亮度、当前 HDR 强度、自动结果及安全回退标记。
+- 新增 `FableSolExportDisplayLuminanceTest` 7 个数值边界测试，并为设置联动补源码契约。
+  定向测试与 `:app:assembleDebug` 通过；未使用 adb。阿里云 debug 更新 `202607270804`，
+  APK SHA-256
+  `ff8802fef0a1a07089ffe98479e130ae7102e4330c19d7b6ae5621a978eed06b`。
+
 ---
 
 ## 待办（首轮未做）

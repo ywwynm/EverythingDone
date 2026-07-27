@@ -354,13 +354,20 @@ object FableSolTuning {
     }
 
     /**
-     * 用户没动过就用**从屏幕能力推出来的**值：屏幕越亮，背景该坐得越高，这个数不该是常量。
+     * 用户没动过就用屏幕峰值、最大帧平均亮度与当前 HDR 强度共同推出来的值。
      * 一旦拖过滑杆就以用户的为准，「恢复默认」会把它清回自动。
      */
-    fun exportPqWhiteNits(context: Context): Float {
+    fun exportPqWhiteNits(context: Context): Float =
+        exportPqWhiteNits(context, hdrStrength(context))
+
+    /**
+     * 设置 Dialog 拖动 HDR 强度但尚未松手时，需要按屏上这一刻的强度预览自动白锚；
+     * 正式导出仍走无第二参数的入口，读取已经持久化的最终强度。
+     */
+    internal fun exportPqWhiteNits(context: Context, strength: Float): Float {
         val stored = prefs(context)
         if (!stored.contains(KEY_EXPORT_PQ_WHITE)) {
-            return FableSolExportDisplayLuminance.autoWhiteNits(context)
+            return exportPqWhiteRecommendation(context, strength).whiteNits
         }
         return stored.getFloat(
             KEY_EXPORT_PQ_WHITE, FableSolExportOptions.DEFAULT_PQ_WHITE_NITS
@@ -370,8 +377,23 @@ object FableSolTuning {
         )
     }
 
+    internal fun exportPqWhiteRecommendation(
+        context: Context,
+        strength: Float = hdrStrength(context)
+    ): FableSolExportDisplayLuminance.Recommendation =
+        FableSolExportDisplayLuminance.autoWhiteRecommendation(context, strength)
+
+    internal fun isExportPqWhiteAutomatic(context: Context): Boolean =
+        !prefs(context).contains(KEY_EXPORT_PQ_WHITE)
+
     fun setExportPqWhiteNits(context: Context, value: Float) {
-        prefs(context).edit().putFloat(KEY_EXPORT_PQ_WHITE, value).apply()
+        prefs(context).edit().putFloat(
+            KEY_EXPORT_PQ_WHITE,
+            value.coerceIn(
+                FableSolExportOptions.MIN_PQ_WHITE_NITS,
+                FableSolExportOptions.MAX_PQ_WHITE_NITS
+            )
+        ).apply()
     }
 
     fun exportHighlightStart(context: Context): Int =
