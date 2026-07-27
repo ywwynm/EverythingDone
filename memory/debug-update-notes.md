@@ -1,5 +1,470 @@
 # Current Debug Update Notes
 
+## 2026-07-27 - 重写设置中的 HDR 文案（13 套语言）
+
+用户要求去掉口语与不专业表述（第一人称"我们"、破折号、"不用压""代价是""要分享给别人就选"）。
+重写 10 条文案时连带发现：
+
+- **两处过期内容**：HDR10 说明写死"203 尼特"（漫反射白早已可调），HDR10+ 说明仍称「膝点」
+  （已改名「高光起点」）。**改术语时必须同步搜一遍文案，代码里改完不等于改完。**
+- **一处真实缺陷**：Profile 5 说明里有 Markdown 粗体 `**不向下兼容**`——**Android 字符串资源
+  不解析 Markdown**，星号会原样显示给用户。
+- 13 套语言全部重写；fr/it 撇号按资源规则转义为 `'`；简繁分别用各自惯用术语。
+- 发现三条死字符串（`fablesol_export_started` 仍写"水体视频"、`fablesol_export_estimate`、
+  `fablesol_param_export_hdr`），未动，记入 followups。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729060000.md`。
+更新码 `202607270448`，APK SHA-256
+`81e4558f66e6ab68e87edd31b6739a412f5af5aef6fd7c48d8f78840cbfc7aff`。
+
+## 2026-07-27 - 完成对话框与通知补上色彩规格
+
+完成态新增一行「色彩：漫反射白 X 尼特，峰值 Y 尼特，高光起点 Z%」。新增
+`FableSolExportSpecText` 让对话框与通知**共用同一处生成逻辑**（各写一遍迟早漂移）。
+`Result.Success` / `State.Done` 增 `pqWhiteNits` / `peakNits` / `highlightStartPercent`，
+**只在真正生效时才带出去**：HLG 系（含 DV 8.4）是相对亮度没有绝对锚点，高光起点只对 HDR10+
+成立（只有它带曲线）。不生效还写出来等于给用户一个不影响产物的数。
+
+完成文案增第 6 个参数（不适用时空串），13 套语言同步。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729030000.md`。
+更新码 `202607270437`，APK SHA-256
+`b4f4c55d15890101f45d77f53a07fad902ca5fadc9b54447fc0f7e8ed1279d0f`。
+
+## 2026-07-27 - 进度条渐变、峰值可见、「高光起点」可调
+
+- **进度条确实偷懒了**：用的是 `progressTintList = ColorStateList.valueOf(accent.color)`，
+  只是渐变起点单色。新增 `DisplayUtil.setProgressBarBackground()` 复用 `SeekBarTrackDrawable`。
+  不定长档仍只能单色（平台动画是另一个 drawable，只接受 tint）。
+- **深红→粉红的成因**：渲染没错（R:G:B 比例准确），掉饱和来自**下游逐通道压缩**——深红的 R
+  压得最狠、G/B 几乎不动，比例被拉近就朝白走。压多狠取决于
+  **`峰值 = 漫反射白 × HDR 强度`** 超出屏幕能力多少：203→800 而强度仍 9.6 时峰值 1949→7680，
+  对 2000 尼特屏要硬压近四倍。**不是能修掉的 bug**，是乘法关系；已把峰值写进指示行让它可见。
+- 「膝点」是黑话，改名**「高光起点」**并开放为参数（50–99%，默认 90），**仅 HDR10+ 显示**
+  （只有它带曲线）。`nitsAtPercent()` 在 9 个标准分位点间线性插值，否则滑杆推到某些位置膝点
+  原地不动。指示行完整写出：格式 · 漫反射白 · 峰值 · 高光起点。
+- **滑杆可见条件要按"这个参数真的起作用吗"定，而不是按"它属于哪一组"**：漫反射白对所有 PQ
+  系有效，高光起点只对 HDR10+ 有效。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿（325 例）。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729000000.md`。
+更新码 `202607270344`，APK SHA-256
+`e62440dcec364a7743667e80db136d9531e1e903e02361c0af828786d9273201`。
+
+## 2026-07-27 - 外部评审九条：八条属实并修复
+
+用户请 GPT 静态评审 HDR10+ / P010 通路，**质量很高**：四条 P1 全部成立，三条中等问题也成立。
+
+- **单位错一万倍（最严重）**：`targeted_system_display_maximum_luminance` 单位是 **0.0001 尼特**，
+  实现按 1 尼特写，播放端把 1000 尼特读成 0.1 尼特。**27 位的宽度本身就是证据**（10000 ÷ 0.0001
+  = 1e8 恰好 27 位；按尼特存 14 位就够）。同一载荷里 maxscl / average / distribution 是归一化
+  [0,1]、步长 0.00001 的量，原实现 `nits × 10` 恰好等价，未错。新增逐字段解码测试——
+  **只校验结构（固定头 + 总长）的测试挡不住单位错误。**
+- 正式导出 commit 前未验 SEI → 加 `check(!byteBuffer || hdr10PlusSeiSeen)`。
+- 字节缓冲模式强制 LIMITED：D28 的"编码器是权威"**只适用于 surface 模式**，原则收敛为
+  **谁做的转换谁是权威**。
+- `KEY_STRIDE` / `KEY_SLICE_HEIGHT` 回报 0 未处理（Android 明确允许），0 会让色度偏移与入队
+  长度归零、画面全废且不报错 → `takeIf { it > 0 }`。
+- HDR10+ 被 `anyHdrColorSpace` / 传递函数列表 / 10-bit pbuffer 三处无关门禁拦截 → 新增
+  `requiresEglColorSpace` 放开。
+- `probeInternal` 每轮开头未重置诊断状态 → 已重置。
+- 删 HDR 开关时丢了 D24 的 800ms 延后探测 → 已恢复。
+- MaxFALL 写死 203 而漫反射白可调到 800 → 跟随漫反射白。
+- **唯一需区分的一条**：分位点用块平均而非逐像素，评审说得对；但该数有两个用途——定膝点时
+  恰恰不希望几像素星芒顶高膝点（块平均合适），写进元数据时才失真。**问题是一个数被当成两个
+  用途**，正确修法是逐像素直方图，列入遗留项未仓促改。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728210000.md`。
+更新码 `202607270327`，APK SHA-256
+`c6da788dbeb55dd9a5b7234ee43abb9106b8eb537a2addfdf0984a56db1b2c08`。
+
+## 2026-07-27 - 高漫反射白下曲线退化导致背景偏青
+
+用户把漫反射白拉到 800 后，HDR10+ 产物在星芒出现时背景**间歇性发青蓝**（400 时不出现）。
+
+**根因是曲线退化，不是设备问题。** 肩部第一个控制点由斜率连续解出：
+`P[1] = (M − k) / (N(T − k))`。D38 把目标峰值 T **写死成 1000**；漫反射白 800 时
+M = 800 × 9.6 = 7680，要把 800→7680 压进 800→1000，`P[1]` 远大于 1 只能夹到 1——**所有控制点
+随之全为 1**，肩部从膝点垂直冲顶，膝点以上一切压成同一亮度。三通道在各自不同亮度处先后撞崖，
+星芒偏暖故 R 先撞顶被压掉，剩 G/B 显青蓝；"有时有有时没有"取决于画面里有没有足够亮的高光。
+
+修正两处：① `targetNitsFor(mastering, white, panelPeak)` 取屏幕声明峰值，下限 ≥ 白点 × 2、
+上限 ≤ 母版峰值；② 膝点上限追加 `(N·T − M)/(N − 1)`，由 `P[1] ≤ 1` 直接解出。
+800 白点 + 2000 目标 ⇒ `P[1] = 0.57`，稳在合法域。
+
+**一般教训：凡是"解出来再 clamp"的参数，clamp 触发就意味着约束不成立——必须回头调整输入让解
+落进合法域，而不是夹死了事。夹死不会报错，只会让产物悄悄变形。**
+
+另：用户问屏幕峰值读数 2000 vs 宣传 3600——不是同一个量。宣传值是极小面积瞬时峰值，系统报的
+是持续给内容用的峰值；且该接口在 API 34 已被标"厂商值不可靠"。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728180000.md`。
+更新码 `202607270248`，APK SHA-256
+`5ebbcaf901f5262c24de2673b0bc6e8d6b6d88e114b3a1a76f7d0a24ef109ec4`。
+
+## 2026-07-27 - 修 ADPF tid 快照竞态崩溃；漫反射白默认值由屏幕推出
+
+**崩溃**（OPPO PMA110，`ArrayIndexOutOfBoundsException: length=0; index=0`，栈顶
+`FableSolRowParallel.workerThreadIds` → `toIntArray`）：**与本轮导出功能无关**，是实时渲染
+路径上一直存在的竞态。Kotlin 的 `Collection<Int>.toIntArray()` 先读 `size` 建数组、再迭代
+填充；被读的 `CopyOnWriteArrayList` 正被 worker 启动时并发写入，两步之间完成一次注册就会拿
+length=0 的数组写 index=0。改为 `ArrayList(collection)`（走 COW 的 `toArray()`，原子拷贝）
+再转数组。**一般教训：并发容器上任何"先问长度再遍历"的两步写法都是错的，哪怕容器线程安全。**
+
+**漫反射白自动默认值**（用户提议"从设备读屏幕峰值自动算"）：新增
+`FableSolExportDisplayLuminance`，读 `Display.HdrCapabilities.getDesiredMaxLuminance()`
+（该 API 在 34 被标过时因厂商值不可靠，故自夹 300–10000），默认 = 峰值 ÷ 4，夹到 200–800。
+1600 尼特屏得 400，2600 尼特屏得 650。仅作滑杆初值，拖过即以用户为准。
+
+**为什么固定四分之一而非按 HDR 强度反推**：漫反射白对标"屏幕能多亮"，HDR 强度是作者意图，
+不该被屏幕改写；按"高光正好落在屏幕峰值"反推（÷9.6）会让 2600 尼特屏只得 271 尼特——屏幕越好
+画面越暗，方向反了。**读能力不读当前状态**：`getHdrSdrRatio` 随亮度滑杆变，用它会让同一段音频
+在不同亮度下导出成不同亮度的文件（D5 已为此拒绝过读它）。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728150000.md`。
+更新码 `202607270232`，APK SHA-256
+`4a84963ee294e98db0f1c88d348ff6f5d9176a48f122dc1426538ba65def7e94`。
+
+## 2026-07-27 - PQ 漫反射白锚点改为可调；"没有动态感"的根因不是曲线
+
+用户澄清：DV 8.4 开头背景亮、有星芒后背景变暗衬托高光；HDR10 / HLG / 带曲线的 HDR10+
+**从一开始背景就暗**。
+
+**根因不在曲线，在漫反射白锚点。** PQ 是绝对亮度，我们把水体与卡片钉在 BT.2408 的 203 尼特，
+而手机高亮度下 SDR 白在 500–800 尼特——产物比同一台手机的普通白还暗（"HDR 比 SDR 更暗"）。
+**同一个原因解释了"没有动态感"**：背景坐 203 尼特时 1000 尼特的屏幕还剩五倍余量，从不需要
+在背景与高光间取舍，所以什么都不动。**DV 的动态感恰恰来自它的背景坐得够高，高到屏幕不得不
+取舍**（其基层是 HLG，相对亮度，跟随显示端参考白）。
+
+用户裁定"做成可调的吧，只有用户选择了相关的选项才出现这个滑杆"：新增 `pqWhiteNits`
+（200–800 尼特、每档 25、**默认 400**），滑杆**仅在 PQ 系格式（HDR10 / HDR10+ / DV 8.1）
+选中时显示**——HLG 与 DV 8.4 是相对亮度，没有绝对锚点。锚点同时驱动 shader 的
+`uSdrWhiteNits`、静态元数据峰值、HDR10+ 曲线的母版峰值，**三者必须同源**。
+
+按 400 算满强度峰值 3840 尼特，1000 尼特屏装不下，必须取舍——D38 的曲线到这时才真正起作用。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728120000.md`。
+更新码 `202607270224`，APK SHA-256
+`4b3695a1fee2487486ff9458bed113b8e23910f577119bcfa44827bf38f8bc2a`。
+
+## 2026-07-27 - HDR10+ 的色调映射曲线
+
+用户授权做 D37 列出的曲线。语义照 libplacebo 的 ST2094-40 实现推出（无歧义）：
+x 按**母版峰值**归一、y 按 `targeted_system_display_maximum_luminance` 归一，
+**两轴基准不同**——"绝对亮度不变"的斜率是 `母版峰值/目标峰值` 而非 1，写错画面亮度整体跑偏。
+膝点 12 位（/4095）、锚点 10 位（/1023）、锚点数 4 位（取 9）。
+
+目标峰值取 **1000 尼特**而非母版峰值：曲线的用处正是"够不到母版峰值时怎么压"，两者相等等于
+说"不用压"，曲线就没有信息量。
+
+形状：膝点以下原样、以上压缩（水体是主体，银丝星芒是点缀，要压就压点缀）。膝点取该帧实测
+第 90 百分位；整帧装得下目标显示时膝点直接放峰值＝不压。第一个锚点由**斜率连续**解出
+（`P[1] = Ky(1−Kx)/(Kx(1−Ky)N)`），接不上会在水体与高光交界留折痕。
+
+**膝点必须时间平滑且快起慢落**（τ 0.08s / 0.80s）：逐帧分位点会抖，膝点跟着抖背景会"呼吸"；
+慢了削顶，快了闪。**平滑的是意图，不是测量**——统计量仍逐帧实测原值写入。
+
+连带：`FableSolHdr10PlusProbe` 自带的 ST 2094-40 写入器删除，统一用正式通路那一份（两份实现
+迟早漂移，错一位后面全错）。载荷 49 → 64 字节。新增 `FableSolExportHdr10PlusCurveTest`（4 例）。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728090000.md`。
+更新码 `202607270203`，APK SHA-256
+`6848727c15d6e6d771c370655abdebdec34f81cc2ab3b242ac0a4a2b85550012`。
+
+## 2026-07-27 - HDR 开关并入格式选择；产物带格式与真实码率
+
+用户实测：**杜比视界 8.4 有"高光出现时压暗背景衬托"的动态适配，HDR10+ 没有**。根因是我们发的
+ST 2094-40 里 `tone_mapping_flag = 0`——D33 当时的理由是"没有艺术调整要表达，编曲线不诚实"，
+但那条曲线正是效果来源，且**能从已有实测统计（maxscl / 均值 / 分位点）诚实推出**。已列入
+followups，需先与用户确认再做（会改变各类屏幕上的观感，属"调子"范畴）。这暴露了 D36 的盲区：
+余量结论成立，但"HDR10+ 更好"忽略了它当前没有曲线。
+
+改动：删除单独的"导出 HDR 视频"开关（连带 106 行死代码），并入「导出 HDR 视频格式」胶囊、
+首项「关闭」；指示性文字末尾追加最终格式，编码器诊断清单移到其后；
+`FableSolExportSink.displayName` 改为推导属性 + `tagFormat()` 使文件名带格式后缀；
+`State.Done` 增 `formatLabel` / `frames` / `bitrateBps`（文件大小 ÷ 时长，**CQ 档同样算得出**），
+完成对话框与通知改为 5 参文案，13 套语言同步。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿（315 例）。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728060000.md`。
+更新码 `202607270150`，APK SHA-256
+`0baa96ccfbd6c9059b0daec6a7a01a77a9c9fcdb805c1c3774fcac66436eb4f5`。
+
+## 2026-07-27 - HDR10+ 元数据是动态的；本功能优先 HDR10+ 而非杜比视界 8.4
+
+用户发现 `developer.android.com/media/platform/supported-formats` 把 HDR10+ 的「元数据」栏
+填成**静态**，追问到底哪个对，以及对本功能 HDR10+ 与 DV 8.4 哪个更好。
+
+**那一格不可信。** 反证三条：`PARAMETER_KEY_HDR10_PLUS_INFO` 文档原文是"设置下一个入队输入
+帧的 HDR10+ 元数据"、格式为 **ST 2094-40**（该系列即动态元数据标准）；`KEY_HDR10_PLUS_INFO`
+写明"每一帧输出都可能不同"；本项目实测不逐帧提供码流就没有那段 SEI。准确表述是**两份都有**：
+静态母版 + 逐场景动态，我们的实现也是两份都写。
+
+**格式取舍：本功能选 HDR10+。** 决定性的是基层曲线而非元数据——DV 8.4 基层是 HLG，本管线里
+普通白之上只剩约 3.77 倍，而 HDR 强度上限 9.6，过 4 即被压；HDR10+ 走 PQ，1949 尼特绝对亮度
+放得下不用压。FableSol 的视觉身份正是水面上远高于漫反射白的细亮高光与星芒，恰好落在 HLG 压掉
+的那一段。另：HDR10+ 的动态元数据是我们实测的、可核；DV 的 RPU 由设备生成且描述的是顶端已被
+压掉的信号。`AUTO_ORDER` 已是该顺序。例外：HDR 强度长期 ≤3 时两者接近。
+
+连带修正：13 套语言里 HDR10+ 的说明仍写着"只能由设备自行生成，我们既设不了也验不了"——那是
+surface 输入时的实情，D33 之后正好相反，已全部改为"由我们逐帧从画面实测得出"。
+**界面上留一句与实现相反的话，比没有这句话更糟。**
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728030000.md`。
+更新码 `202607270120`，APK SHA-256
+`895f3b6b031a7d85ad0aff401715a38cf2f0c4303b684e96c0d45ea7ff9a3a1d`。
+
+## 2026-07-27 - OPPO 也能编 HDR10+；杜比视界 8.1 定论为做不到
+
+用户的 OPPO 截图来自 D34 修复**之前**的版本，其 HDR10+ 失败正是那个白名单 bug。但同一张截图
+的独立探测行 `带元数据 码流带 HDR10+ SEI` 不经过该校验——**两台设备都能编 HDR10+**。
+
+杜比视界 8.1 三条证据定论做不到：① OPPO 只广告 profile 8；② 明确要求 PQ 而编码器改回 HLG
+（`changed color-transfer from 6 to 7`）；③ **Dolby 官方样例发行说明只声称
+"encoding and transcoding to Dolby Vision 8.4"**，8.1 与 profile 5 一字未提。即这不只是这台
+机器的限制，Android 上第三方能走到的杜比视界就是 8.4。
+
+**不放松传递函数校验**（与 D28 的色彩范围相反）：色彩范围是编码器那步转换的属性，编码器是
+权威；传递函数是**我们画出来的像素的属性**，放行只会产出标着 HLG 而内容是 PQ 的文件。
+
+新增 `vendorParameters()`：Qualcomm 的 MediaCodec 扩展文档站是 JS 渲染的抓不到，改用 API 31
+的 `MediaCodec.getSupportedVendorParameters()` **直接向编码器查询私有参数**，按
+dv/dolby/hdr/profile/color/transfer 过滤后进诊断——比猜键名可靠，也是 8.1 是否还有指望的唯一
+线索。`changed color-transfer` 类失败改为人话措辞。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260728000000.md`。
+更新码 `202607270113`，APK SHA-256
+`d49d97c463dfb7d8429407809ab8691feb7199ca2212b3c6acb932349348cc2b`。
+
+## 2026-07-27 - HDR10+ 仍显示为 HDR10：D33 只修了一半
+
+用户反馈设置里的胶囊与自动档文本仍是 HDR10。根因：D32/D33 把 HDR10+ 移出
+`requiresExactProfile`，但 `acceptsTenBitProfile` 的白名单**没同步加上 `HEVCProfileMain10`**。
+申请 8192 → 回报 2 → 不再直接拒，可 2 不在白名单 → 仍判失败 → 永远进不了「实测通过」列表。
+**解除一道门禁却没检查下游那道门认不认新值，等于没修。**
+
+白名单加入 `HEVCProfileMain10` / `AV1ProfileMain10`（不影响 HDR10 / HLG，它们走相等判断）。
+HDR10+ 的真正判据仍是 `hdr10PlusSeiSeen`。由
+`FableSolExportHdrFormatTest.hdr10PlusAcceptsMain10AsTheReportedProfile` 钉住，同时钉住
+8-bit Main 仍要拒、杜比视界仍只认原样回报。
+
+顺带：`writeInto` 返回规范帧长 `stride × sliceHeight × 3 / 2`（部分实现按此校验）；
+HDR10+ 档位名去掉重复格式词（曾出现「HDR10+ HEVC Main10 HDR10+」）。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727210000.md`。
+更新码 `202607270101`，APK SHA-256
+`41bd4ba0a8fa3801cd42779f8dfb470b4147380be5c9fd1292dd36932f1f1478`。
+
+## 2026-07-27 - HDR10+ 字节缓冲通路落地；杜比视界补 profile 5
+
+两台设备的实测把两个问题都定死了：
+
+- **三星**：「裸通路 码流里没有 HDR10+ SEI · 带元数据 码流带 HDR10+ SEI」——**字节缓冲 +
+  逐帧元数据这条路可行**，HDR10+ 是真能编的。
+- **OPPO**：8.1 失败于 `Encoder changed color-transfer from 6 to 7`（6=PQ，7=HLG），
+  即 `c2.qti.dv.encoder` **只出 HLG 基层也就是只出 8.4**；8.4 已实测通过。profile 5 未广告。
+
+实现（见 D33）：新增 `FableSolExportP010Bridge` 与三个着色器（`p010_luma` / `p010_chroma` /
+`p010_stats`）——离屏 RGB10_A2 呈现 → 两趟转出 P010 双平面 → 一趟归约成 32×32 亮度统计。
+**输出目标必须是 RGBA8**：ES 3.0 只保证 `GL_RGBA` + `GL_UNSIGNED_BYTE` 这一组 glReadPixels
+组合，整数纹理回读格式是实现自定的；一个 texel 装两个 16 位样本，回读字节序直接就是 P010。
+**统计必须在 GPU 上做**：CPU 逐像素扫全帧每帧几十毫秒，乘 120fps 不可接受。
+
+`FableSolExportEncoder` 增字节缓冲输入（`COLOR_FormatYUVP010`、`queueVideoFrame`——
+`setParameters` 必须先于 `queueInputBuffer`、`hdr10PlusSeiSeen`）；`FableSolExportEgl` 增离屏
+pbuffer 模式。`requiresExactProfile` 去掉 HDR10+，改以**码流里有没有 SEI** 为判据。
+
+新增 `DOLBY_VISION_5`（单层 PQ + IPT-PQ-c2，**不向下兼容**，非 DV 播放端会是绿紫；界面说明
+已写明）。`AUTO_ORDER` 变为 5 → 8.1 → HDR10+ → HDR10 → 8.4 → HLG。
+
+第三次更正"不伪造元数据"的适用范围：那句话只在 surface 输入下成立；字节缓冲下画面在我们
+手里，maxscl / 均值 / 分位点全是量出来的。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿（313 例）。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727180000.md`。
+更新码 `202607262244`，APK SHA-256
+`459c5784361c7911da5fea2c77ec358afc997272cf75deadd52b16c9852b649f`。
+
+## 2026-07-27 - 缓存签名假失效；杜比视界 8.1；HDR10+ 判据改按 SEI
+
+用户三星截图暴露：**上一版看到的三行失败原因全是旧缓存**。`cacheSignature()` 用
+`BuildConfig.VERSION_CODE` 做区分量，而它在 `app/build.gradle` 里**写死为 43**，两次 debug
+发布之间不变——D30 删掉 `FEATURE_HlgEditing` 后，设置页仍读出改动前的结论，"HLG：没有编码器
+广告支持这个 profile"连措辞都还是 D29 时期的。改用 `R.string.debug_update_code`（发布任务
+`generateDebugUpdateValues` 生成的时间戳，每发一版必变），`peekCachedResult()` 相应需要
+Context；源码契约测试钉住签名必须含该资源。**这是 D28 那条推论的第二次踩坑：真正的问题不是
+忘记推进契约版本，而是不该依赖一个需要人记得去改的量。**
+
+杜比视界拆成 `DOLBY_VISION_81`（PQ 基层，余量 10000 尼特，与 HDR10 兼容）与
+`DOLBY_VISION_84`（HLG 基层，余量约 3.77 倍）：**profile 常量相同，唯一区别是传递函数**
+（PQ → 8.1，HLG → 8.4）。Dolby 官方样例只演示 8.4，但无依据说 8.1 不成立，故各自真编一帧
+判定。`AUTO_ORDER` 按规格从高到低重排为 8.1 → HDR10+ → HDR10 → 8.4 → HLG（用户明确裁定
+"不用考虑收益，能支持多高规格就支持多高规格"）。`HdrFormatPreference` 新增项续在末尾。
+
+HDR10+ 判据修正：D31 按输出 `KEY_PROFILE` 判断是**错的**——HEVC 没有 HDR10+ 这个 profile，
+码流 `general_profile_idc` 本来就是 Main10(2)，8192 是 Android 框架层合成常量。改为在输出
+字节里匹配 SEI 签名 `B5 00 3C 00 01`（五字节内无连续 `00 00`，不会被防竞争字节打断）。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿（312 例）。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727150000.md`。
+更新码 `202607262220`，APK SHA-256
+`de094905d0bd9e907dadbf786164713dd3e1905c4d99b38214b8938b4bf44c10`。
+
+## 2026-07-27 - HDR10+ 字节缓冲通路探测；更正 D30 的结论范围
+
+用户追问"surface 模式编不了 HDR10+，其它模式行不行"。**行。** D30 里"HDR10+ 做不到"的
+**范围写错了**——做不到的是当前 surface 输入链路，不是设备。字节缓冲输入是
+`PARAMETER_KEY_HDR10_PLUS_INFO` 唯一被允许的模式，也是 AOSP CTS `HDREncoderTestBase`
+采用的模式（逐帧 `setParameters` 送元数据）；凡广告 `HEVCProfileMain10HDR10Plus` 的设备
+在这条路上都必须真能编，否则过不了 CTS。
+
+新增 `FableSolHdr10PlusProbe`（与导出管线完全隔离）：按 `COLOR_FormatYUVP010` 配置编码器、
+喂一帧平场 P010、读输出格式回报的 profile；分「裸通路」与「带元数据」两问以区分通路不通与
+载荷写错。ST 2094-40 载荷逐位打包，单窗口 + 9 个百分位 + `tone_mapping_flag = 0` = 387 位
+= 49 字节，`FableSolHdr10PlusPayloadTest` 钉住固定头 `B5 00 3C 00 01 04 01` 与总长。
+
+同时更正 D30 里"不伪造元数据"的适用范围：那句话只在 surface 模式下成立（画面已交出，统计量
+只能猜）；字节缓冲模式下画面在我们手里，maxscl / average_maxrgb / 百分位分布都是测得出来的
+实数，元数据不是诚信问题而是工作量问题。真要建需自己做 RGB→P010 转换与逐帧统计——**先探后
+建，不见设备认账不动管线**。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727120000.md`。
+更新码 `202607262206`，APK SHA-256
+`6405abbd9721082296e589b1d79371bb688fd864037bec01646592c48995940e`。
+
+## 2026-07-27 - 三台设备各一个"被自己人挡住"的问题；HDR10+ 与 HDR Vivid 结论
+
+三台设备的三个问题根子相同：**拿设备广告的某一位提前否决，而不是让真实编码判定**。
+
+- **导出通知图标是加号**：`FableSolVideoExportService` 两处 `setSmallIcon` 用的是
+  `R.drawable.act_create_white`（新建图标），改为 `act_fablesol_export_video`。
+- **三星 HLG 缺失**：`FEATURE_HlgEditing` 那道筛把 API 35 上的 HLG 候选整批筛光——高通编码器
+  一个都不广告这个能力位。该能力位描述的是 HLG 编辑/转码用例，与"把已编好的 HLG 画面交给
+  Main10 编码器"无关。已删除，`FableSolExportPipelineSourceTest` 改为
+  `assertFalse(encoder.contains("isFeatureSupported("))` 钉住不许回来。
+- **华为平板整机 HDR 不可用**：每一档失败于 `eglChooseConfig failed (tenBit=true)`。原先只试
+  10/10/10 + alpha 2 + `EGL_RECORDABLE_ANDROID` 一种组合；不少厂商驱动不给 10-bit config 打
+  recordable 标记。改为四级阶梯 `RGB10_A2+recordable` → `RGB10+recordable` → `RGB10_A2` →
+  `RGB10`（放弃 recordable 安全：表面来自 `createInputSurface()`，该属性只是提示）。
+  `Capability` 增 `tenBitWindowConfig`，诊断新增「10-bit 表面」一项——广告 PQ 扩展 ≠ 建得起
+  10-bit 表面，此前被混为一谈。
+- **HDR10+ 做不到（有实证）**：`Encoder changed profile 8192 to 2`（8192 =
+  `HEVCProfileMain10HDR10Plus`，2 = `HEVCProfileMain10`）是编码器在说它只产 HDR10。
+  ST 2094-40 动态元数据是内嵌 SEI，来源只有"应用逐帧提供"（`PARAMETER_KEY_HDR10_PLUS_INFO`
+  文档明确不适用于 surface 输入模式）或"编码器自行生成"（该机不做）。**明确不伪造元数据**：
+  自造 blob 里的百分位分布是没测过的数，等于把验证不了的东西写进用户文件。
+- **HDR Vivid 做不到**：Android 官方支持格式页的 HDR 视频格式只有 HLG10 / HDR10 / HDR10+ /
+  Dolby Vision 8.4 四种，通篇没有 HDR Vivid，连 AOSP profile 常量都没有；华为自己的编码路径
+  走鸿蒙接口或相机管线。**我们已实现的四种正好就是官方那四种，这条线已到头。** 华为平板可
+  达成的结果是 HDR10。
+
+失败原因改为翻成人话（新增 `FableSolExportHdrFormat.downgradeHint`），空失败列表的措辞也从
+"没有编码器广告支持这个 profile"改为"没有编码器通过候选筛选（profile / 尺寸 / 帧率）"。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿（309 例）。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727090000.md`。
+更新码 `202607262154`，APK SHA-256
+`dafd6f10d8de1ba8ab3255994e82927cf11a7deb7e14fa910e9edb48816f1f5f`。
+
+## 2026-07-27 - 四种 HDR 格式开放选择；杜比视界结论翻案
+
+两台机器修好后默认都落 HDR10。用户要求把 HDR 格式做成可选、界面上说明各自区别、自动档
+要写出实际落到哪一种，并且**只有真能编出来的格式才允许出现**；同时要求重新上网调研杜比
+视界与 HDR10+。
+
+调研结论（两条都改变了先前判断）：
+
+- **杜比视界能做**。Dolby 官方第三方样例 `DolbyLaboratories/dolby-vision-editor`（BSD-3）的
+  `VideoEncoder.java` 用标准 `MediaCodec` + `createInputSurface()` 编 profile 8.4：MIME
+  `video/dolby-vision`、profile `DolbyVisionProfileDvheSt`、transfer HLG、standard BT.2020、
+  range LIMITED、level 按像素率现算，**应用不提供任何 RPU**，元数据层由编码器生成。
+  D27 里"没有公开接口所以做不了"是没查证就下的结论，已在该条标注推翻并记入 D29。
+  OPPO 枚举到的 profile 256 正是 `DolbyVisionProfileDvheSt`。
+- **HDR10+ 的动态元数据我们提供不了**。`MediaCodec.PARAMETER_KEY_HDR10_PLUS_INFO` 文档原文：
+  "This parameter shouldn't be set if the encoder is not configured for an HDR10+ profile,
+  or if it's operating in surface input mode." 我们整条链路是 surface 输入。所以选 HDR10+
+  等于让设备编码器自行生成元数据，既不能干预也无从校验——因此自动档仍以 HDR10 为首选。
+
+实现：新增 `FableSolExportHdrFormat`（HDR10 / HDR10+ / HLG / 杜比视界）作为第三条轴，
+编码阶梯归格式自己持有；`FableSolExportTier` 增 `hdrFormat`，`FableSolExportModeAttempt`
+改携带 format（null = SDR）。静态元数据条件改为 `writesStaticMetadata`；HDR10+ 与 DV 要求
+输出 profile 原样回报（`requiresExactProfile`），防止静默降级后挂着别的名字。
+`FEATURE_HlgEditing` 的门从 transfer 收窄到 format，否则 API 35+ 会把 DV 筛光。DV level
+必须在 64px 分享对齐**之后**才算。能力探测改为逐格式各走一遍真实编码 + 封装，缓存改存
+通过的格式列表，`PROBE_CONTRACT_VERSION` 3→4；每种失败格式只留第一条原因。删掉上一版的
+「DV 封装」探测——三星没有 DV 编码器却同样答"接受"，`addTrack` 只认 MIME，不构成证据。
+
+设置页 HDR 格式改为按实测结果动态生成的胶囊（贪心换行），下方一段随选择变化的说明，
+选「自动」直接写出本机落到哪一种；存着的格式若本机编不出来则退回自动并同步改偏好。
+13 套语言新增 7 条文案。新增 `FableSolExportHdrFormatTest`（6 例）。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260727063000.md`。
+更新码 `202607261657`，APK SHA-256
+`44826f5eeac6ce24d06bee1cb5a1639ef21c288a4d4ec4927e2e867008bb073c`。
+
+## 2026-07-27 - 色彩范围校验误杀整机 HDR
+
+三星 S23 Ultra 的诊断终于给出逐档失败原因，四档全部是同一句
+`IllegalStateException: Encoder changed color-range from 2 to 1`——**是本项目自己的输出
+格式校验抛的**，与设备无关。高通编码器回报 full range（1），代码申请的是 limited（2），
+`preserveOrInstallColorKey` 对色彩范围也按"不一致即判该档不可用"处理，于是色彩空间与
+Main10 编码器齐备的机器被整机判成不支持 HDR。
+
+修法基于**谁是权威**：色域与传递函数是我们绘制的像素自身属性（EGL 表面色彩空间 + 导出
+shader 决定），编码器无法改变其含义，回报不符仍视为该档不可用；色彩范围描述的是编码器
+自己执行的 RGB→YUV 转换，编码器才是权威。新增 `FableSolExportColorRange.resolveForMuxer`
+（编码器报了就采纳，没报才补 limited），写入 muxer 轨道格式。
+
+同时修掉两处误导：HDR 阶梯的档位名写死 `HLG`，与独立的传递函数轴叠加后产生
+"HDR10 120fps HEVC Main10 HLG"这种自相矛盾的诊断行，改为 `HEVC Main10` / `AV1 Main10`；
+「DV 封装」在无 DV 编码器的三星上同样答"接受"，说明 `MediaMuxer.addTrack` 只认 MIME、
+证据太弱，改为仅在存在 DV 编码器时显示，措辞改为"接受该轨类型"。
+`PROBE_CONTRACT_VERSION` 2→3 使旧的否定结果立即失效。
+
+新增 `FableSolExportColorRangeTest`（2 例）钉住该回归。`:app:assembleDebug` 与
+`:app:testDebugUnitTest` 全绿（6 个 FableSolExport* 测试类共 25 例，0 失败）。本轮未使用
+adb。详细日志：`docs/features/fablesol-video-export/debug-updates/update-20260727043000.md`。
+更新码 `202607261618`，APK SHA-256
+`2cefedc1b8c8b664d1d58f2a92b3abf3f82d4c9a6e10e5186526a5c5050d89a3`。
+
+## 2026-07-26/27 - HDR10（PQ）通路、能力诊断与杜比视界检测（三次连续发布）
+
+用户提出两台设备的疑问：OPPO Find X9 Ultra 系统相机能录杜比视界，三星 S23 Ultra 有自家
+HDR 格式，但设置里都显示 HDR 编码不可用。要求 A（做 PQ 通路）、B（可见的能力诊断）、
+C（检测杜比视界）三项全做。
+
+- `202607261547`——新增 `FableSolExportTransfer`（SDR / HLG / PQ）把传递函数与编码档位
+  拆成两条独立的轴，HDR 默认优先 PQ；`FableSolExportEgl` 支持 `bt2020_pq` 扩展；
+  `export_present.frag` 增加 PQ 分支与 `uSdrWhiteNits`；HDR10 产物写入
+  `KEY_HDR_STATIC_INFO`（峰值可由 HDR 强度 × 203 nits 精确算出，无需估计）；设置新增
+  「HDR 格式」自动 / HDR10 / HLG。日志 `update-20260727010000.md`。
+- `202607261557`——上一版诊断行永远显示"尚未探测"：诊断文字在后台探测之前就已生成。
+  改为 `diagnostics()` 先调 `probe()`，并列出逐档失败原因。日志 `update-20260727020000.md`。
+- `202607261604`——仍然问不出原因：缓存条目只存布尔结论，命中缓存时 `probeInternal`
+  不执行，`lastFailureReason` 恒为空，而否定结果 TTL 24 小时。改为诊断细节随
+  `CachedResult` 一并持久化，`PROBE_CONTRACT_VERSION` 1→2 作废旧条目；新增
+  `describeDolbyProfile`（OPPO 报 256 = profile 8 / dvhe.st）与 DV 封装探测。
+  日志 `update-20260727030000.md`。
+
+这三次发布的 APK SHA-256 仅记录到最后一次
+`fcbd2c2ca22d3d2f8faae609544889b15575522e0dab30adb8f2d3c59ae413d0`（`202607261604`）；
+前两次未及时回填、APK 已被后续构建覆盖，无法补算。
+
+另需注意：上述三份日志文件各自写了多个 `## ` 小节，而 `:app:publishDebugUpdate` 只提取
+**第一个** `## ` 条目，因此应用内看到的更新说明被截断。规则早有明文，仍然再犯一次。
+
 ## 2026-07-26 - 导出图标尺寸与编码设置文案
 
 用户反馈信息较丰富的 Material `video_frame_save` 以原 24dp 放入录音 Dialog FAB 和音频附件

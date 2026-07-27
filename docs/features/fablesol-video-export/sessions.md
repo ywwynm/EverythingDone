@@ -154,3 +154,13 @@
 - 资产几何检查覆盖 33 套字体的实心/描边 66 组组合；`:app:testDebugUnitTest` 与
   `:app:assembleDebug` 通过。已发布阿里云 debug 更新 `202607260649` 并核对远端元数据；
   未使用 adb，待真机视觉确认。
+
+## 2026-07-27 — HDR 多格式导出静态代码审查
+
+- 针对尚未提交的 Dolby Vision 5 / 8.1 / 8.4、HDR10+、HDR10、HLG 导出改动，梳理了设置页
+  能力探测、编码候选、EGL surface/离屏 P010 两条链路、位级元数据、封装与发布门禁。
+- 对照 Android `MediaCodec` / `MediaFormat` 与 FFmpeg 的 SMPTE ST 2094-40 字段定义，确认
+  HDR10+ 目标显示峰值单位、正式 SEI 验收、P010 色彩范围、EGL 误门控、分位点统计口径、
+  `slice-height=0`、探测旧状态和 Dialog 延后探测等问题；待修复项已写入 `followups.md`。
+- `:app:testDebugUnitTest :app:assembleDebug` 通过；现有 HDR10+ payload 单测只覆盖固定头与
+  总长度，无法发现字段语义错误。本轮未修改实现、未使用 adb，也未进行真机或产物播放验收。

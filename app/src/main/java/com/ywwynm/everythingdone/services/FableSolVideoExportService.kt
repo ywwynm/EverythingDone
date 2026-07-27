@@ -17,7 +17,9 @@ import android.text.format.Formatter
 import androidx.core.app.NotificationCompat
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportBitrateText
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportSink
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportSpecText
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportBus
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExporter
 import java.util.ArrayDeque
@@ -287,7 +289,12 @@ class FableSolVideoExportService : Service() {
                 displayLocation = sink?.displayLocation().orEmpty(),
                 tierLabel = result.tierLabel,
                 hdr = result.hdr,
-                frameRate = result.frameRate
+                formatLabel = result.formatLabel,
+                frameRate = result.frameRate,
+                frames = result.frames,
+                pqWhiteNits = result.pqWhiteNits,
+                peakNits = result.peakNits,
+                highlightStartPercent = result.highlightStartPercent
             )
         FableSolVideoExporter.Result.Cancelled ->
             FableSolVideoExportBus.State.Cancelled(jobId)
@@ -400,15 +407,22 @@ class FableSolVideoExportService : Service() {
                 if (done != null) {
                     getString(
                         R.string.fablesol_export_dialog_done,
-                        if (done.hdr) "HDR" else "SDR",
+                        done.formatLabel,
                         done.frameRate,
                         Formatter.formatFileSize(this, done.fileSizeBytes),
-                        done.displayLocation
+                        FableSolExportBitrateText.of(done.bitrateBps),
+                        done.displayLocation,
+                        FableSolExportSpecText.detail(
+                            this,
+                            done.pqWhiteNits,
+                            done.peakNits,
+                            done.highlightStartPercent
+                        )
                     )
                 } else {
                     getString(
                         R.string.fablesol_export_done,
-                        if (result.hdr) "HDR" else "SDR",
+                        result.formatLabel,
                         result.frameRate
                     )
                 }
@@ -475,7 +489,8 @@ class FableSolVideoExportService : Service() {
 
     private fun resultNotificationBuilder(text: String): NotificationCompat.Builder =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.act_create_white)
+            // 用导出图标本身，不要拿"新建"的加号顶替——通知栏里显示出来就是个加号。
+            .setSmallIcon(R.drawable.act_fablesol_export_video)
             .setContentTitle(getString(R.string.fablesol_export_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -496,7 +511,8 @@ class FableSolVideoExportService : Service() {
             putExtra(EXTRA_JOB_ID, jobId)
         }
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.act_create_white)
+            // 用导出图标本身，不要拿"新建"的加号顶替——通知栏里显示出来就是个加号。
+            .setSmallIcon(R.drawable.act_fablesol_export_video)
             .setContentTitle(getString(R.string.fablesol_export_title))
             .setContentText(text)
             .setOngoing(true)

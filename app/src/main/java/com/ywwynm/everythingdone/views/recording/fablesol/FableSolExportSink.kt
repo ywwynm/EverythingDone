@@ -27,7 +27,31 @@ import java.util.concurrent.TimeUnit
  * API 29+ 用 MediaStore + `IS_PENDING`，编码直接写进最终位置，失败就删条目；老系统写
  * 公共 Movies 目录再触发一次扫描。两条路都**不做整份文件的二次拷贝**。
  */
-internal abstract class FableSolExportSink(val displayName: String) {
+internal abstract class FableSolExportSink(private val baseName: String) {
+
+    @Volatile
+    private var formatTag: String? = null
+
+    /**
+     * 最终文件名。它**要等定档之后才算得出来**——用户想在文件名里看到具体是哪种 HDR 格式，
+     * 而格式是降级阶梯跑完才定的。好在两个实现都在 [createMuxer] 那一刻才真正落名，
+     * 所以这里做成推导属性即可，不必推迟 sink 的创建。
+     */
+    val displayName: String
+        get() {
+            val tag = formatTag ?: return baseName
+            val dot = baseName.lastIndexOf('.')
+            return if (dot > 0) {
+                baseName.substring(0, dot) + "_" + tag + baseName.substring(dot)
+            } else {
+                baseName + "_" + tag
+            }
+        }
+
+    /** 定档之后、建 muxer 之前调用。重试换档时会被覆盖，以最后一次成功的为准。 */
+    fun tagFormat(tag: String) {
+        formatTag = tag
+    }
 
     abstract fun createMuxer(): MediaMuxer
 

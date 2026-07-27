@@ -18,7 +18,13 @@ internal class FableSolExportPresenter(
     /** 0 = BT.709 SDR；1 = BT.2020 HLG。 */
     private val transfer: Int,
     /** 8-bit 编码档位必须重新启用抖动（D9）。 */
-    private val dither: Boolean
+    private val dither: Boolean,
+    /**
+     * PQ 分支里漫反射白钉在多少尼特。**只有 PQ 用得到**——HLG 是相对亮度，没有绝对锚点。
+     * 它决定水体与卡片在正确显示设备上的实际亮度，也决定屏幕会不会被逼着在背景与高光
+     * 之间做取舍（锚点太低就永远不需要取舍，画面自然是静的）。
+     */
+    private val whiteNits: Float = FableSolExportTransfer.SDR_WHITE_NITS.toFloat()
 ) : ScenePresenter {
 
     private val program = FableSolGlProgram(
@@ -35,6 +41,13 @@ internal class FableSolExportPresenter(
 
     /** 本帧的音频时间；驱动循环在 render 之前写入。 */
     @Volatile var elapsedMs: Long = 0L
+
+    /**
+     * 呈现的目标 framebuffer。0 = 默认帧缓冲（surface 输入那条路，直接画进编码器表面）。
+     * HDR10+ 走字节缓冲输入时改画进离屏的 RGB10_A2，再由 [FableSolExportP010Bridge] 转成
+     * P010——因为动态元数据在 surface 输入模式下根本没法提供。
+     */
+    @Volatile var targetFramebufferId: Int = 0
 
     init {
         val arrays = IntArray(1)
@@ -68,7 +81,7 @@ internal class FableSolExportPresenter(
     ) {
         uploadClock()
 
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, targetFramebufferId)
         GLES30.glViewport(0, 0, plan.canvasWidthPx, plan.canvasHeightPx)
         GLES30.glDisable(GLES30.GL_BLEND)
         GLES30.glBindVertexArray(vertexArrayId)
@@ -120,6 +133,7 @@ internal class FableSolExportPresenter(
         GLES30.glUniform1i(program.uniform("uDither"), if (dither) 1 else 0)
         GLES30.glUniform1f(program.uniform("uHlgDiffuseScene"), HLG_DIFFUSE_WHITE_SCENE)
         GLES30.glUniform1f(program.uniform("uHlgKnee"), HLG_SHOULDER_KNEE)
+        GLES30.glUniform1f(program.uniform("uSdrWhiteNits"), whiteNits)
 
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
@@ -159,6 +173,14 @@ internal class FableSolExportPresenter(
     companion object {
         const val TRANSFER_BT709 = 0
         const val TRANSFER_HLG = 1
+        const val TRANSFER_PQ = 2
+
+        /** 把导出信号类型换算成 shader 里的分支号。 */
+        fun shaderTransfer(transfer: FableSolExportTransfer): Int = when (transfer) {
+            FableSolExportTransfer.SDR -> TRANSFER_BT709
+            FableSolExportTransfer.HLG -> TRANSFER_HLG
+            FableSolExportTransfer.PQ -> TRANSFER_PQ
+        }
 
         /**
          * BT.2408：HLG 的漫反射白落在信号 0.75，对应场景线性 0.26497。

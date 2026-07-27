@@ -52,8 +52,20 @@ internal object FableSolRowParallel {
     val activeWorkerCount: Int get() = workerCount
     val visibleCoreCount: Int get() = Runtime.getRuntime().availableProcessors()
 
-    /** 供 ADPF 提示会话绑定：常驻 worker 的内核线程 id 快照。 */
-    fun workerThreadIds(): IntArray = workerTids.toIntArray()
+    /**
+     * 供 ADPF 提示会话绑定：常驻 worker 的内核线程 id 快照。
+     *
+     * **必须先取一次原子快照再转数组。** Kotlin 的 `Collection<Int>.toIntArray()` 是
+     * "先读 size 建数组、再迭代填充"两步；而这个列表正被 worker 线程在启动时并发写入，
+     * 两步之间恰好完成一次注册，就会拿着 length=0 的数组去写 index=0——
+     * OPPO PMA110 上实际崩过一次（`ArrayIndexOutOfBoundsException: length=0; index=0`）。
+     * `ArrayList(collection)` 走的是 `CopyOnWriteArrayList.toArray()`，那是对当前数组的
+     * 一次原子拷贝，长度与内容必然自洽。
+     */
+    fun workerThreadIds(): IntArray {
+        val snapshot = ArrayList(workerTids)
+        return IntArray(snapshot.size) { snapshot[it] }
+    }
 
     fun run(total: Int, body: FableSolRowBody) {
         run(total, MIN_PARALLEL_ROWS, CHUNK_ROWS, body)

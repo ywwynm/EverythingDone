@@ -29,12 +29,20 @@ uniform float uClockAlpha;
 
 uniform bool  uSceneLinear;
 uniform float uHdrHeadroom;
-uniform int   uTransfer;         // 0 = BT.709 SDR，1 = BT.2020 HLG
+uniform int   uTransfer;         // 0 = BT.709 SDR，1 = BT.2020 HLG，2 = BT.2020 PQ
 uniform bool  uDither;
 uniform float uHlgDiffuseScene;  // SDR 参考白对应的 HLG 场景线性值（BT.2408 = 0.26497）
-uniform float uHlgKnee;          // 该倍数以下完全线性，之上软肩压缩
+uniform float uHlgKnee;          // 该倍数以下完全线性，之上渐进压缩
+uniform float uSdrWhiteNits;     // SDR 参考白的绝对亮度（PQ 用；BT.2408 = 203 尼特）
 
 out vec4 fragColor;
+
+const float PQ_M1 = 0.1593017578125;
+const float PQ_M2 = 78.84375;
+const float PQ_C1 = 0.8359375;
+const float PQ_C2 = 18.8515625;
+const float PQ_C3 = 18.6875;
+const float PQ_MAX_NITS = 10000.0;
 
 const float HLG_A = 0.17883277;
 const float HLG_B = 0.28466892;
@@ -72,6 +80,17 @@ vec3 bt709ToBt2020(vec3 c) {
         dot(c, vec3(0.06909729, 0.91954040, 0.01136231)),
         dot(c, vec3(0.01639144, 0.08801331, 0.89559525))
     );
+}
+
+/**
+ * PQ（ST.2084）的反 EOTF。绝对亮度曲线：先把线性值按 uSdrWhiteNits 折成尼特，再对 10000
+ * 归一。强度 9.6 折合约 1949 尼特，远在上限之内——**因此 PQ 分支不需要任何压缩**，
+ * 下面那条渐进压缩只服务 HLG。
+ */
+float pqInverseEotfChannel(float nits) {
+    float y = clamp(nits / PQ_MAX_NITS, 0.0, 1.0);
+    float ym = pow(y, PQ_M1);
+    return pow((PQ_C1 + PQ_C2 * ym) / (1.0 + PQ_C3 * ym), PQ_M2);
 }
 
 float hlgOetfChannel(float e) {
@@ -154,7 +173,14 @@ void main() {
 
     // ---- 传递函数 ----
     vec3 encoded;
-    if (uTransfer == 1) {
+    if (uTransfer == 2) {
+        vec3 wide = max(bt709ToBt2020(color), vec3(0.0)) * uSdrWhiteNits;
+        encoded = vec3(
+            pqInverseEotfChannel(wide.r),
+            pqInverseEotfChannel(wide.g),
+            pqInverseEotfChannel(wide.b)
+        );
+    } else if (uTransfer == 1) {
         vec3 wide = max(bt709ToBt2020(color), vec3(0.0));
         float ceiling = 1.0 / max(uHlgDiffuseScene, 1e-4);
         wide = vec3(

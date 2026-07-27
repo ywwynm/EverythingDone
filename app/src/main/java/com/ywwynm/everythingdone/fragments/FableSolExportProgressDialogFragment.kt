@@ -19,7 +19,10 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.FableSolVideoExportService
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportBitrateText
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportSpecText
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportBus
 import java.io.File
 
@@ -90,8 +93,9 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
         // 标题与其余对话框一致：跟随记事强调色，而不是留在系统默认色上。
         mTvTitle?.let { BackgroundUtil.applyTextBackground(it, accent) }
         mProgressBar?.let { bar ->
-            bar.progressTintList = ColorStateList.valueOf(accent.color)
-            bar.indeterminateTintList = ColorStateList.valueOf(accent.color)
+            // 走与调参滑杆同源的渐变轨道。此前只用 accent.color 给 tint，那是渐变的起点
+            // 单色——换色时看不出渐变方向，也和同一个 Dialog 里其它强调色元素对不上。
+            DisplayUtil.setProgressBarBackground(bar, accent)
         }
         val fallback = ContextCompat.getColor(
             requireContext(), R.color.app_chrome_on_surface_strong
@@ -146,10 +150,17 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
                 bar.visibility = View.GONE
                 status.text = getString(
                     R.string.fablesol_export_dialog_done,
-                    if (state.hdr) "HDR" else "SDR",
+                    state.formatLabel,
                     state.frameRate,
                     Formatter.formatFileSize(requireContext(), state.fileSizeBytes),
-                    state.displayLocation
+                    FableSolExportBitrateText.of(state.bitrateBps),
+                    state.displayLocation,
+                    FableSolExportSpecText.detail(
+                        requireContext(),
+                        state.pqWhiteNits,
+                        state.peakNits,
+                        state.highlightStartPercent
+                    )
                 )
                 val canShare = state.uri != null
                 val canAttach = state.localPath

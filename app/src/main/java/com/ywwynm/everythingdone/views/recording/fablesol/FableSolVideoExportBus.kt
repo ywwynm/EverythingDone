@@ -38,8 +38,31 @@ internal object FableSolVideoExportBus {
             val displayLocation: String,
             val tierLabel: String,
             val hdr: Boolean,
-            val frameRate: Int
-        ) : State()
+            /** 用户看得懂的格式名："HDR10+"、"Dolby Vision 8.4"、"SDR"。 */
+            val formatLabel: String,
+            val frameRate: Int,
+            val frames: Int,
+            /** 漫反射白（尼特）；0 表示不是 PQ 系，完成态不显示色彩规格那一行。 */
+            val pqWhiteNits: Double = 0.0,
+            val peakNits: Double = 0.0,
+            /** 高光起点百分位；0 表示不是 HDR10+。 */
+            val highlightStartPercent: Int = 0
+        ) : State() {
+
+            /**
+             * 产物的**实际**平均码率（bps）；算不出来时为 0。
+             *
+             * 恒定质量档下 `KEY_BIT_RATE` 只是提示，事前给不出数字；但产物落盘之后，
+             * 用文件大小除以时长就是真实码率——这才是用户想知道的那个数。
+             */
+            val bitrateBps: Long
+                get() {
+                    if (fileSizeBytes <= 0L || frames <= 0 || frameRate <= 0) return 0L
+                    val seconds = frames.toDouble() / frameRate
+                    if (seconds <= 0.0) return 0L
+                    return (fileSizeBytes * 8.0 / seconds).toLong()
+                }
+        }
 
         data class Cancelled(override val jobId: Long) : State()
         data class Failed(override val jobId: Long, val message: String) : State()

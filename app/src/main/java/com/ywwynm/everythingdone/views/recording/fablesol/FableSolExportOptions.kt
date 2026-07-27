@@ -32,8 +32,57 @@ internal data class FableSolExportOptions(
     val bitrateMbps: Float,
     val keyframeIntervalSeconds: Float,
     /** 是否导出 HDR；关掉就走 FableSol 自己的 SDR 分支重新渲染（D6）。 */
-    val hdrEnabled: Boolean
+    val hdrEnabled: Boolean,
+    /** 指定 HDR 信号格式；默认自动 = 设备支持哪些就按偏好顺序试。 */
+    val hdrFormat: HdrFormatPreference = HdrFormatPreference.AUTO,
+    /**
+     * PQ 系导出里，漫反射白（水体与卡片）钉在多少尼特。
+     *
+     * PQ 是**绝对**亮度曲线：这个数写多少，正确的显示设备就渲染多亮。BT.2408 的 203 尼特
+     * 是给暗室监视器定的，而手机在高亮度下显示普通 SDR 白在 500–800 尼特——所以按 203 导出
+     * 的产物在手机上看反而比 SDR 还暗，这就是常说的"HDR 看起来更暗"。
+     *
+     * 它同时决定**有没有动态感**：锚点太低时，一块 1000 尼特的屏幕对背景和高光都绰绰有余，
+     * 永远不需要取舍，画面自然是静的；锚点抬上去，屏幕才会在高光涌上来时把背景让回去。
+     *
+     * 高光峰值 = 本值 × HDR 强度。HLG 系（含杜比视界 8.4）是相对亮度，用不到这个数。
+     */
+    val pqWhiteNits: Float = DEFAULT_PQ_WHITE_NITS,
+    /**
+     * 「高光起点」：画面亮度分布的第几个百分位开始算高光。只有 HDR10+ 用得到——只有它带
+     * 色调映射曲线。以下原样保留，以上才压缩。
+     */
+    val highlightStartPercent: Int =
+        FableSolExportHdr10PlusCurve.DEFAULT_HIGHLIGHT_START_PERCENT
 ) {
+
+    /**
+     * 用户对 HDR 输出格式的偏好。
+     *
+     * 枚举顺序即持久化的序号，**不能重排**：早先只有 AUTO / PQ / HLG 三项，PQ 就是现在的
+     * HDR10。新增的两项只能续在末尾，否则老用户存下的 2 会被读成别的格式。
+     */
+    enum class HdrFormatPreference(val format: FableSolExportHdrFormat?) {
+        /** 设备支持哪些就按 [FableSolExportHdrFormat.AUTO_ORDER] 依次试。 */
+        AUTO(null),
+        HDR10(FableSolExportHdrFormat.HDR10),
+        HLG(FableSolExportHdrFormat.HLG),
+        HDR10_PLUS(FableSolExportHdrFormat.HDR10_PLUS),
+        DOLBY_VISION_84(FableSolExportHdrFormat.DOLBY_VISION_84),
+        DOLBY_VISION_81(FableSolExportHdrFormat.DOLBY_VISION_81),
+        DOLBY_VISION_5(FableSolExportHdrFormat.DOLBY_VISION_5);
+
+        fun allows(candidate: FableSolExportHdrFormat): Boolean =
+            format == null || format == candidate
+
+        companion object {
+            fun fromStored(value: Int): HdrFormatPreference =
+                entries.getOrElse(value) { AUTO }
+
+            fun of(format: FableSolExportHdrFormat): HdrFormatPreference =
+                entries.first { it.format == format }
+        }
+    }
 
     /** 解析出要写进 `KEY_QUALITY` 的档位；返回 null 表示该档位走恒定码率。 */
     fun resolvedQuality(tier: FableSolExportTier): Int? {
@@ -74,6 +123,11 @@ internal data class FableSolExportOptions(
         const val DEFAULT_KEYFRAME_SECONDS = 2f
         const val MIN_BITRATE_MBPS = 2f
         const val MAX_BITRATE_MBPS = 60f
+        /** 默认 400 尼特：约等于手机 HDR 拍摄内容的常用漫反射白，比 203 明显亮。 */
+        const val DEFAULT_PQ_WHITE_NITS = 400f
+        const val MIN_PQ_WHITE_NITS = 200f
+        const val MAX_PQ_WHITE_NITS = 800f
+
         const val MIN_KEYFRAME_SECONDS = 0.5f
         const val MAX_KEYFRAME_SECONDS = 10f
 
@@ -83,7 +137,10 @@ internal data class FableSolExportOptions(
             qualityValue = FableSolTuning.exportQualityValue(context),
             bitrateMbps = FableSolTuning.exportBitrateMbps(context),
             keyframeIntervalSeconds = FableSolTuning.exportKeyframeSeconds(context),
-            hdrEnabled = FableSolTuning.exportHdrEnabled(context)
+            hdrEnabled = FableSolTuning.exportHdrEnabled(context),
+            hdrFormat = FableSolTuning.exportHdrFormat(context),
+            pqWhiteNits = FableSolTuning.exportPqWhiteNits(context),
+            highlightStartPercent = FableSolTuning.exportHighlightStart(context)
         )
 
         /**

@@ -810,6 +810,58 @@ object DisplayUtil {
         }
     }
 
+    /**
+     * 给普通 [android.widget.ProgressBar] 套上与滑杆**完全同源**的渐变轨道。
+     *
+     * 之前导出进度条用的是 `progressTintList = ColorStateList.valueOf(accent.color)`——那只是
+     * 渐变的起点单色，换色时看不出渐变方向，与同一个 Dialog 里的其它强调色元素也对不上。
+     * 复用 [SeekBarTrackDrawable] 就不会再出现两套着色逻辑。
+     *
+     * 不定长（indeterminate）那一档仍只能用单色：平台的不定长动画是另一个 drawable，
+     * 只接受 tint，塞不进渐变。
+     */
+    @JvmOverloads
+    @JvmStatic
+    fun setProgressBarBackground(
+            progressBar: android.widget.ProgressBar?,
+            background: ThingBackground?,
+            inactiveTrackColor: Int? = null
+    ) {
+        if (progressBar == null) return
+        val safeBackground = background ?: App.defaultAccentBackground
+        progressBar.progressTintList = null
+        progressBar.progressBackgroundTintList = null
+        progressBar.secondaryProgressTintList = null
+        val density = progressBar.resources.displayMetrics.density
+        val trackHeight = max(2, (4f * density).toInt())
+        progressBar.progressDrawable = LayerDrawable(
+                arrayOf(
+                        SeekBarTrackDrawable(
+                                ThingBackground.pure(
+                                        inactiveTrackColor ?: ContextCompat.getColor(
+                                                progressBar.context,
+                                                R.color.app_chrome_on_surface_hint
+                                        )
+                                ),
+                                trackHeight
+                        ),
+                        SeekBarTrackDrawable(
+                                ThingBackground.pure(Color.TRANSPARENT), trackHeight
+                        ),
+                        ClipDrawable(
+                                SeekBarTrackDrawable(safeBackground, trackHeight),
+                                Gravity.LEFT,
+                                ClipDrawable.HORIZONTAL
+                        )
+                )
+        ).apply {
+            setId(0, android.R.id.background)
+            setId(1, android.R.id.secondaryProgress)
+            setId(2, android.R.id.progress)
+        }
+        progressBar.indeterminateTintList = ColorStateList.valueOf(safeBackground.color)
+    }
+
     private fun buildSeekBarProgressDrawable(
             seekBar: SeekBar,
             background: ThingBackground,

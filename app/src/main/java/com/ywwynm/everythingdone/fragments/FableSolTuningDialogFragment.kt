@@ -44,11 +44,14 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdr10PlusCurve
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdrFormat
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolFrontEndTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrExportCapability
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolHdrPolicy
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolParams
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportOptions
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportTransfer
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolGl
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
@@ -109,6 +112,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private var mLockedRotation = Surface.ROTATION_0
     /** 让已经离开 Dialog 的后台 HDR 探测结果失效，不再回写旧 View。 */
     private var mHdrCapabilityGeneration = 0
+    /** 指示性文字末尾那一段：最终会用哪种格式。探测回来或改选之后刷新。 */
+    private var mResolvedExportFormat: String? = null
+    /** 解析出的格式若是 PQ 系，指示行还要带上漫反射白与峰值。 */
+    private var mResolvedExportPqFormat: FableSolExportHdrFormat? = null
 
     override fun getLayoutResource(): Int = R.layout.dialog_fablesol_tuning
 
@@ -549,7 +556,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         fun refreshEstimate() {
             val frameRate = FableSolTuning.exportFrameRateCap(ctx)
             val options = FableSolExportOptions.read(ctx)
-            estimate.text = if (options.constantQuality && qualityRange != null) {
+            val base = if (options.constantQuality && qualityRange != null) {
                 getString(R.string.fablesol_export_estimate_quality, frameRate.toString())
             } else {
                 val megabytesPerMinute = options.bitrateBps(frameRate) * 60.0 / 8.0 / 1_000_000.0
@@ -559,6 +566,33 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                     frameRate.toString()
                 )
             }
+            // 这一行是这一组设置的**推导结果**：不只写落到哪种格式，还要把由它派生出来的
+            // 关键数值一并摆出来——尤其是**峰值**。峰值 = 漫反射白 × HDR 强度，两个滑杆
+            // 各调各的，很容易在不知不觉间把峰值推到屏幕根本装不下的量级（那正是画面
+            // 发白、掉饱和的来源），所以必须让这个乘积可见。
+            val pieces = StringBuilder(base)
+            pieces.append(" · ").append(mResolvedExportFormat ?: "…")
+            val pqFormat = mResolvedExportPqFormat
+            if (pqFormat != null) {
+                val white = FableSolTuning.exportPqWhiteNits(ctx)
+                val peak = white * FableSolTuning.hdrStrength(ctx)
+                pieces.append(
+                    getString(
+                        R.string.fablesol_export_estimate_white,
+                        String.format(java.util.Locale.US, "%.0f", white),
+                        String.format(java.util.Locale.US, "%.0f", peak)
+                    )
+                )
+                if (pqFormat == FableSolExportHdrFormat.HDR10_PLUS) {
+                    pieces.append(
+                        getString(
+                            R.string.fablesol_export_estimate_highlight,
+                            FableSolTuning.exportHighlightStart(ctx)
+                        )
+                    )
+                }
+            }
+            estimate.text = pieces.toString()
         }
 
         // 先把两条互斥的行造出来，再定义切换逻辑——它们互相引用，顺序反了 Kotlin 会认为
@@ -649,17 +683,56 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 FableSolTuning.setExportKeyframeSeconds(ctx, value)
             }
         )
-        val hdrSwitch = makeExportSwitchRow(
+        // 漫反射白只有 PQ 系用得到（HLG 是相对亮度，没有绝对锚点），所以先造出来、
+        // 默认藏着，等格式定下来再决定露不露。
+        val whiteRow: View = makeExportSliderRow(
             ctx,
-            getString(R.string.fablesol_param_export_hdr),
-            initial = false
-        ) { checked -> FableSolTuning.setExportHdrEnabled(ctx, checked) }
-        setHdrExportSwitchState(hdrSwitch, enabled = false, unsupported = false)
-        container.addView(hdrSwitch.row)
-        probeHdrExportCapability(ctx.applicationContext, hdrSwitch)
+            getString(R.string.fablesol_param_export_pq_white),
+            FableSolExportOptions.MIN_PQ_WHITE_NITS,
+            FableSolExportOptions.MAX_PQ_WHITE_NITS,
+            PQ_WHITE_STEPS,
+            FableSolTuning.exportPqWhiteNits(ctx),
+            { value -> String.format(java.util.Locale.US, "%.0f nits", value) }
+        ) { value ->
+            FableSolTuning.setExportPqWhiteNits(ctx, value)
+        }
+        whiteRow.visibility = View.GONE
+
+        // 「高光起点」只有 HDR10+ 用得到——只有它带色调映射曲线。
+        val highlightRow: View = makeExportSliderRow(
+            ctx,
+            getString(R.string.fablesol_param_export_highlight_start),
+            FableSolExportHdr10PlusCurve.MIN_HIGHLIGHT_START_PERCENT.toFloat(),
+            FableSolExportHdr10PlusCurve.MAX_HIGHLIGHT_START_PERCENT.toFloat(),
+            FableSolExportHdr10PlusCurve.MAX_HIGHLIGHT_START_PERCENT -
+                FableSolExportHdr10PlusCurve.MIN_HIGHLIGHT_START_PERCENT,
+            FableSolTuning.exportHighlightStart(ctx).toFloat(),
+            { value -> String.format(java.util.Locale.US, "%.0f%%", value) }
+        ) { value ->
+            FableSolTuning.setExportHighlightStart(ctx, value.toInt())
+            refreshEstimate()
+        }
+        highlightRow.visibility = View.GONE
+
+        // 不再单独给一个"导出 HDR 视频"开关：那个开关与下面的格式选择说的是同一件事，
+        // 摆两处只会让人问"关掉开关但选了 HDR10 会怎样"。格式列表里第一项就是「关闭」。
+        val diagnostics = addHdrFormatBlock(container, ctx) { format ->
+            whiteRow.visibility =
+                if (format?.transfer == FableSolExportTransfer.PQ) View.VISIBLE else View.GONE
+            highlightRow.visibility =
+                if (format == FableSolExportHdrFormat.HDR10_PLUS) View.VISIBLE else View.GONE
+            mResolvedExportPqFormat = format?.takeIf {
+                it.transfer == FableSolExportTransfer.PQ
+            }
+            refreshEstimate()
+        }
+        container.addView(whiteRow)
+        container.addView(highlightRow)
 
         refreshModeRows()
         container.addView(estimate)
+        // 编码器清单放在指示性文字之后：那是排查用的细节，不该挡在结论前面。
+        container.addView(diagnostics)
     }
 
     /**
@@ -669,6 +742,223 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
      * 而不是固定白字（浅色强调色上固定白字读不出来）。触摸涟漪与面板其余控件同源，
      * 换色时随 [applyUiAccent] 一起刷新。
      */
+    /**
+     * HDR 输出格式选择块：标题、按**实测能力**动态生成的胶囊、随选择变化的说明，以及
+     * 设备能力诊断。
+     *
+     * 胶囊不能在这里就摆好：哪些格式真的能用，只有在后台**实际编出一帧**之后才知道。
+     * `MediaCodecList` 广告支持而 `configure()` 时静默降级的情况是存在的，照广告摆选项
+     * 等于让用户选一个其实不成立的东西。所以先占位，探测回来再填。
+     */
+    private fun addHdrFormatBlock(
+        container: LinearLayout,
+        ctx: Context,
+        /** 参数是这次导出最终落到的格式；null = 关闭（SDR）。 */
+        onFormatChanged: (FableSolExportHdrFormat?) -> Unit
+    ): TextView {
+        val block = LinearLayout(ctx)
+        block.orientation = LinearLayout.VERTICAL
+        block.setPadding(dp(20f), dp(6f), dp(20f), dp(10f))
+
+        val title = TextView(ctx)
+        title.text = getString(R.string.fablesol_param_export_hdr_format)
+        title.textSize = 13f
+        block.addView(title)
+
+        val chipsHost = LinearLayout(ctx)
+        chipsHost.orientation = LinearLayout.VERTICAL
+        block.addView(chipsHost, stackedBlockParams(dp(8f)))
+
+        val description = TextView(ctx)
+        description.textSize = 11f
+        description.alpha = 0.62f
+        description.setText(R.string.fablesol_export_hdr_format_probing)
+        block.addView(description, stackedBlockParams(dp(8f)))
+
+        container.addView(block)
+
+        // 设备实际提供了什么。**不加进 block**：调用方要把它放到指示性文字之后，
+        // 那是排查用的细节，不该挡在结论前面。
+        val diagnostics = TextView(ctx)
+        diagnostics.textSize = 11f
+        diagnostics.alpha = 0.55f
+        diagnostics.setPadding(dp(20f), dp(4f), dp(20f), dp(10f))
+        diagnostics.setText(R.string.fablesol_export_diagnostics_loading)
+
+        val appContext = ctx.applicationContext
+        val generation = mHdrCapabilityGeneration
+        // **必须延后到首帧之后**（D24）。这里跑的是真实编码探测，会创建 codec 与 EGL；
+        // 与 Dialog 首帧、实时预览初始化抢 GPU 和 codec 会让第一次打开明显卡顿。
+        // 删掉旧的 HDR 开关时把这条约束一起弄丢了，这里补回来。
+        val probe = Thread({
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+            val formats = try {
+                FableSolHdrExportCapability.supportedFormats(appContext)
+            } catch (ignored: Throwable) {
+                emptyList()
+            }
+            val auto = FableSolHdrExportCapability.autoFormat
+            val report = try {
+                FableSolHdrExportCapability.diagnostics(appContext)
+            } catch (error: Throwable) {
+                error.message ?: error.javaClass.simpleName
+            }
+            chipsHost.post {
+                if (!isAdded || generation != mHdrCapabilityGeneration) return@post
+                diagnostics.text = report
+                populateHdrFormatChips(
+                    appContext, chipsHost, description, formats, auto, onFormatChanged
+                )
+            }
+        }, "FableSolExportDiagnostics").apply {
+            isDaemon = true
+            priority = Thread.MIN_PRIORITY
+        }
+        chipsHost.postDelayed({
+            // Dialog 已经关掉就不必再探；下一次打开会自己重来。
+            if (isAdded && generation == mHdrCapabilityGeneration) probe.start()
+        }, HDR_CAPABILITY_PROBE_DELAY_MS)
+        return diagnostics
+    }
+
+    private fun stackedBlockParams(topMarginPx: Int): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = topMarginPx }
+
+    /**
+     * 胶囊列表：**关闭 / 自动 / 各实测通过的格式**。
+     *
+     * 「关闭」就是原来那个单独的"导出 HDR 视频"开关——把它并进来，是因为开关与格式选择说的
+     * 是同一件事，分成两处只会让人问"关掉开关但选了 HDR10 会怎样"。设备一种 HDR 格式都编不出
+     * 来时，列表里只剩「关闭」，也就不需要再额外解释"为什么开关是灰的"。
+     */
+    private fun populateHdrFormatChips(
+        appContext: Context,
+        host: LinearLayout,
+        description: TextView,
+        formats: List<FableSolExportHdrFormat>,
+        auto: FableSolExportHdrFormat?,
+        onFormatChanged: (FableSolExportHdrFormat?) -> Unit
+    ) {
+        host.removeAllViews()
+        val ctx = host.context
+        // 即使一种格式都编不出来，也要照常走完下面的 apply()——那会把偏好收敛到「关闭」
+        // 并刷新指示性文字；直接 return 会让界面停在"检测中"。
+        // null 代表「关闭」这一项；其余项对应一个具体偏好。
+        val choices = ArrayList<FableSolExportOptions.HdrFormatPreference?>(formats.size + 2)
+        val labels = ArrayList<String>(formats.size + 2)
+        choices += null
+        labels += getString(R.string.fablesol_export_hdr_format_off)
+        if (formats.isNotEmpty()) {
+            choices += FableSolExportOptions.HdrFormatPreference.AUTO
+            labels += getString(R.string.fablesol_export_hdr_format_auto)
+            for (format in formats) {
+                choices += FableSolExportOptions.HdrFormatPreference.of(format)
+                labels += format.label
+            }
+        }
+
+        // 存着的格式如果这台机器实测编不出来，就退回自动并把偏好一起改掉——界面上不能
+        // 留着一个选中态却根本不会生效的选项。设备完全不支持 HDR 时一并关掉。
+        val hdrOn = FableSolTuning.exportHdrEnabled(appContext) && formats.isNotEmpty()
+        if (!hdrOn) FableSolTuning.setExportHdrEnabled(appContext, false)
+        val stored = FableSolTuning.exportHdrFormat(appContext)
+        val selected = if (!hdrOn) 0 else choices.indexOf(stored).takeIf { it >= 1 } ?: 1
+        choices[selected]?.let {
+            if (it != stored) FableSolTuning.setExportHdrFormat(appContext, it)
+        }
+
+        fun apply(index: Int) {
+            val choice = choices[index]
+            FableSolTuning.setExportHdrEnabled(appContext, choice != null)
+            choice?.let { FableSolTuning.setExportHdrFormat(appContext, it) }
+            description.text = hdrChoiceDescription(choice, auto)
+            val resolved = if (choice == null) null else choice.format ?: auto
+            mResolvedExportFormat = resolvedExportFormatLabel(choice, auto)
+            onFormatChanged(resolved)
+        }
+
+        val built = buildChoiceChips(ctx, labels, selected) { index -> apply(index) }
+        packChips(ctx, host, built.views)
+        apply(selected)
+    }
+
+    /** 胶囊按可用宽度贪心换行：最多五个选项，在 320dp 的对话框里排不下一行。 */
+    private fun packChips(ctx: Context, host: LinearLayout, chips: List<TextView>) {
+        val gap = dp(6f)
+        val available = getDialogWindowWidthPx() - dp(40f)
+        val unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        var row: LinearLayout? = null
+        var used = 0
+        for (chip in chips) {
+            chip.measure(unspecified, unspecified)
+            val width = chip.measuredWidth
+            val currentRow = row
+            if (currentRow == null || used + gap + width > available) {
+                val fresh = LinearLayout(ctx)
+                fresh.orientation = LinearLayout.HORIZONTAL
+                host.addView(
+                    fresh,
+                    stackedBlockParams(if (host.childCount > 0) gap else 0)
+                )
+                chip.layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                fresh.addView(chip)
+                row = fresh
+                used = width
+            } else {
+                chip.layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { leftMargin = gap }
+                currentRow.addView(chip)
+                used += gap + width
+            }
+        }
+    }
+
+    /** 这一次导出最终会落到哪种格式；写进指示性文字，不让用户自己回头去胶囊那里推。 */
+    private fun resolvedExportFormatLabel(
+        preference: FableSolExportOptions.HdrFormatPreference?,
+        auto: FableSolExportHdrFormat?
+    ): String = when {
+        preference == null -> FableSolExportHdrFormat.SDR_LABEL
+        preference.format != null -> preference.format.label
+        else -> auto?.label ?: FableSolExportHdrFormat.SDR_LABEL
+    }
+
+    /** null 就是「关闭」那一项。 */
+    private fun hdrChoiceDescription(
+        preference: FableSolExportOptions.HdrFormatPreference?,
+        auto: FableSolExportHdrFormat?
+    ): String =
+        if (preference == null) {
+            getString(R.string.fablesol_export_hdr_desc_off)
+        } else {
+            hdrFormatDescription(preference, auto)
+        }
+
+    private fun hdrFormatDescription(
+        preference: FableSolExportOptions.HdrFormatPreference,
+        auto: FableSolExportHdrFormat?
+    ): String = when (preference.format) {
+        null -> getString(
+            R.string.fablesol_export_hdr_desc_auto,
+            auto?.label ?: getString(R.string.fablesol_export_hdr_format_auto)
+        )
+        FableSolExportHdrFormat.HDR10 -> getString(R.string.fablesol_export_hdr_desc_hdr10)
+        FableSolExportHdrFormat.HDR10_PLUS ->
+            getString(R.string.fablesol_export_hdr_desc_hdr10_plus)
+        FableSolExportHdrFormat.HLG -> getString(R.string.fablesol_export_hdr_desc_hlg)
+        FableSolExportHdrFormat.DOLBY_VISION_5 ->
+            getString(R.string.fablesol_export_hdr_desc_dolby_5)
+        FableSolExportHdrFormat.DOLBY_VISION_81 ->
+            getString(R.string.fablesol_export_hdr_desc_dolby_81)
+        FableSolExportHdrFormat.DOLBY_VISION_84 ->
+            getString(R.string.fablesol_export_hdr_desc_dolby)
+    }
+
     private fun makeExportChoiceRow(
         ctx: Context,
         label: String,
@@ -690,6 +980,33 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         )
         row.addView(tvLabel)
 
+        val built = buildChoiceChips(ctx, options, selectedIndex, onSelect)
+        for ((index, chip) in built.views.withIndex()) {
+            val lp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            if (index > 0) lp.leftMargin = dp(6f)
+            chip.layoutParams = lp
+            row.addView(chip)
+        }
+        return row
+    }
+
+    private class ChoiceChips(val views: List<TextView>)
+
+    /**
+     * 造一组档位胶囊并完成着色、涟漪与换色登记；调用方只负责把它们摆进容器。
+     *
+     * 单行布局与换行布局必须共用这段：选中态要走 `applyTextBackground` 的纯色分支才能让
+     * 文字自适应黑白（渐变强调色会在 TextPaint 上留 shader，`setTextColor` 盖不住），
+     * 未选中态要自绘描边才能保住完整渐变——这两件事各错一次就够难查了，不该维护两份。
+     */
+    private fun buildChoiceChips(
+        ctx: Context,
+        options: List<String>,
+        selectedIndex: Int,
+        onSelect: (Int) -> Unit
+    ): ChoiceChips {
         val chips = ArrayList<TextView>(options.size)
         var current = selectedIndex
         val cornerRadius = dp(14f).toFloat()
@@ -742,11 +1059,6 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             chip.setPadding(dp(12f), dp(5f), dp(12f), dp(5f))
             chip.isClickable = true
             chip.isFocusable = true
-            val lp = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            if (index > 0) lp.leftMargin = dp(6f)
-            chip.layoutParams = lp
             chip.setOnClickListener {
                 if (current == index) return@setOnClickListener
                 current = index
@@ -754,117 +1066,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 onSelect(index)
             }
             chips.add(chip)
-            row.addView(chip)
         }
         paint()
         mAccentChipPainters.add(::paint)
-        return row
+        return ChoiceChips(chips)
     }
 
-    private fun makeExportSwitchRow(
-        ctx: Context,
-        label: String,
-        initial: Boolean,
-        onChange: (Boolean) -> Unit
-    ): ExportSwitchControl {
-        val row = LinearLayout(ctx)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = android.view.Gravity.CENTER_VERTICAL
-        row.setPadding(dp(20f), 0, dp(20f), 0)
-        row.minimumHeight = dp(48f)
-        row.background = GradientRippleDrawable(
-            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
-        )
-        mAccentRippleRows.add(row)
 
-        val tvLabel = TextView(ctx)
-        tvLabel.text = label
-        tvLabel.textSize = 13f
-        tvLabel.layoutParams = LinearLayout.LayoutParams(
-            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
-        )
-        val checkBox = CheckBox(ctx)
-        checkBox.isChecked = initial
-        checkBox.isClickable = false
-        checkBox.isFocusable = false
-        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
-        mAccentCheckBoxes.add(checkBox)
-        checkBox.setOnCheckedChangeListener { _, checked -> onChange(checked) }
-        row.addView(tvLabel)
-        row.addView(checkBox)
-        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
-        row.setOnClickListener {
-            if (row.isEnabled) checkBox.isChecked = !checkBox.isChecked
-        }
-        return ExportSwitchControl(row, tvLabel, checkBox)
-    }
 
-    private fun setHdrExportSwitchState(
-        control: ExportSwitchControl,
-        enabled: Boolean,
-        unsupported: Boolean
-    ) {
-        control.row.isEnabled = enabled
-        control.row.isClickable = enabled
-        // 顶部“HDR 高光增强（设备不支持）”保持 TextView 的 enabled 色，仅把 alpha 设为
-        // 0.5。这里采用完全相同的方式，不能再叠加 TextView disabled 色与整行 0.38 alpha。
-        control.label.isEnabled = true
-        control.label.text = getString(R.string.fablesol_param_export_hdr) +
-            if (unsupported) {
-                " " + getString(R.string.fablesol_tuning_hdr_unsupported)
-            } else {
-                ""
-            }
-        control.label.alpha = if (enabled) 1f else HDR_UNSUPPORTED_TEXT_ALPHA
-        control.checkBox.isEnabled = enabled
-        control.row.alpha = 1f
-    }
 
-    /**
-     * codec 广告只能作候选筛选；真正交换并封装一帧后仍是 HDR，开关才可操作。
-     * 已有进程缓存时立即恢复；否则先让 Dialog 完成首帧和预览初始化，再以后台低优先级读取
-     * 持久化结果或执行真实编码。未知期间与明确不支持时都保持置灰。
-     */
-    private fun probeHdrExportCapability(
-        appContext: Context,
-        control: ExportSwitchControl
-    ) {
-        val generation = ++mHdrCapabilityGeneration
-        FableSolHdrExportCapability.peekCachedResult()?.let { supported ->
-            applyHdrExportCapabilityResult(appContext, control, supported)
-            return
-        }
-
-        control.row.postDelayed({
-            if (!isAdded || generation != mHdrCapabilityGeneration) return@postDelayed
-            Thread({
-                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-                val supported = FableSolHdrExportCapability.probe(appContext)
-                control.row.post {
-                    if (!isAdded || generation != mHdrCapabilityGeneration) return@post
-                    applyHdrExportCapabilityResult(appContext, control, supported)
-                }
-            }, "FableSolHdrCapability").apply {
-                isDaemon = true
-                start()
-            }
-        }, HDR_CAPABILITY_PROBE_DELAY_MS)
-    }
-
-    private fun applyHdrExportCapabilityResult(
-        appContext: Context,
-        control: ExportSwitchControl,
-        supported: Boolean
-    ) {
-        if (supported) {
-            control.checkBox.isChecked = FableSolTuning.exportHdrEnabled(appContext)
-            setHdrExportSwitchState(control, enabled = true, unsupported = false)
-        } else {
-            FableSolTuning.setExportHdrEnabled(appContext, false)
-            control.checkBox.isChecked = false
-            setHdrExportSwitchState(control, enabled = false, unsupported = true)
-        }
-    }
 
     private fun makeExportSliderRow(
         ctx: Context,
@@ -1184,11 +1394,14 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         private const val COLOR_TRANSITION_MS = 1600L
         private const val UI_COLOR_STEPS = 12
         /** 未选中胶囊的完整渐变描边 alpha（0-255）。 */
+        /** 漫反射白滑杆：200–800 尼特，每档 25。 */
+        /** 真实编码探测要等 Dialog 首帧过去再跑，否则第一次打开会卡（D24）。 */
+        private const val HDR_CAPABILITY_PROBE_DELAY_MS = 800L
+
+        private const val PQ_WHITE_STEPS = 24
         private const val CHOICE_OUTLINE_ALPHA = 96
         /** 与顶部“HDR 高光增强（设备不支持）”标签完全一致的不可用态透明度。 */
-        private const val HDR_UNSUPPORTED_TEXT_ALPHA = 0.5f
         /** 避开 Dialog 首帧、录音预览与 GL 预热，随后才允许后台真实编码。 */
-        private const val HDR_CAPABILITY_PROBE_DELAY_MS = 800L
 
         /** 角标图标不透明度（0-255）：亮色模式下避免实黑，浮在水面上更轻。 */
         private const val PREVIEW_BUTTON_ICON_ALPHA = 176
@@ -1197,9 +1410,4 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         private const val HDR_STRENGTH_STEPS = 172
     }
 
-    private data class ExportSwitchControl(
-        val row: LinearLayout,
-        val label: TextView,
-        val checkBox: CheckBox
-    )
 }

@@ -26,7 +26,16 @@ internal class FableSolExportEncoder(
     private val tier: FableSolExportTier,
     private val options: FableSolExportOptions,
     private val audioSampleRate: Int,
-    private val muxer: MediaMuxer
+    private val muxer: MediaMuxer,
+    /** PQ 静态元数据用的峰值亮度（尼特）；非 PQ 档位忽略。 */
+    private val peakNits: Double = FableSolExportTransfer.SDR_WHITE_NITS,
+    /**
+     * 漫反射白（尼特），用来给 MaxFALL 一个说得通的值。
+     *
+     * 这个数现在用户可调（200–800），再把 MaxFALL 写死成 203 就与画面对不上了——水体与
+     * 卡片的大面积亮度本来就落在漫反射白这一档，帧平均亮度以它为准才是诚实的。
+     */
+    private val diffuseWhiteNits: Double = FableSolExportTransfer.SDR_WHITE_NITS
 ) {
 
     // 必须在 init 的保护范围内逐个创建。若把两个实例写成抛异常的属性初始化器，第二个创建
@@ -58,6 +67,24 @@ internal class FableSolExportEncoder(
     val inputSurface: Surface
         get() = checkNotNull(codecInputSurface) { "Video input surface is not available" }
 
+    /**
+     * true 时走**字节缓冲输入**而不是 input surface。
+     *
+     * 只有 HDR10+ 需要：它的动态元数据必须逐帧通过 `PARAMETER_KEY_HDR10_PLUS_INFO` 提供，
+     * 而该参数在 surface 输入模式下被系统明确禁止。代价是 RGB→YUV 不再由编码器代劳，
+     * 得由 [FableSolExportP010Bridge] 交出 P010。
+     */
+    private val byteBufferInput: Boolean = tier.hdrFormat?.usesByteBufferInput == true
+
+    /** 字节缓冲模式下编码器要求的行距与平面高度；start() 之后才知道。 */
+    private var inputStride = widthPx * 2
+    private var inputSliceHeight = heightPx
+    private var lastVideoPresentationTimeUs = 0L
+
+    /** 字节缓冲模式下，编出来的码流里是否真的带上了 HDR10+ 的动态元数据。 */
+    var hdr10PlusSeiSeen = false
+        private set
+
     init {
         try {
             // 按**具体编码器名字**创建，而不是 createEncoderByType：后者返回系统首选实现，
@@ -79,7 +106,11 @@ internal class FableSolExportEncoder(
         val videoFormat = MediaFormat.createVideoFormat(tier.videoMime, widthPx, heightPx).apply {
             setInteger(
                 MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface
+                if (byteBufferInput) {
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatYUVP010
+                } else {
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface
+                }
             )
             setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
             setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, options.keyframeIntervalSeconds)
@@ -90,12 +121,15 @@ internal class FableSolExportEncoder(
                 setInteger(MediaFormat.KEY_PROFILE, tier.profile)
                 setInteger(MediaFormat.KEY_LEVEL, tier.level)
             }
-            if (tier.hdr) {
-                setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT2020)
-                setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_HLG)
-            } else {
-                setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT709)
-                setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_SDR_VIDEO)
+            setInteger(MediaFormat.KEY_COLOR_STANDARD, tier.transfer.mediaFormatStandard)
+            setInteger(MediaFormat.KEY_COLOR_TRANSFER, tier.transfer.mediaFormatTransfer)
+            if (tier.hdrFormat?.writesStaticMetadata == true) {
+                // PQ 系（HDR10 / HDR10+）要静态母版元数据，播放端才知道按多高的峰值还原。
+                // 杜比视界不写：它的基层是 HLG，元数据层由编码器自己生成。
+                setByteBuffer(
+                    MediaFormat.KEY_HDR_STATIC_INFO,
+                    FableSolExportTransfer.hdr10StaticInfo(peakNits, diffuseWhiteNits)
+                )
             }
             setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED)
             // 码率必须夹到本编码器实际支持的区间：超界的值会让 configure() 直接抛。
@@ -129,8 +163,10 @@ internal class FableSolExportEncoder(
             }
         }
         video.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-        // 立刻登记所有权：随后音频 configure 失败时 release() 才能释放这张 surface。
-        codecInputSurface = video.createInputSurface()
+        if (!byteBufferInput) {
+            // 立刻登记所有权：随后音频 configure 失败时 release() 才能释放这张 surface。
+            codecInputSurface = video.createInputSurface()
+        }
 
         val audioFormat = MediaFormat.createAudioFormat(AUDIO_MIME, audioSampleRate, 1).apply {
             setInteger(
@@ -148,8 +184,68 @@ internal class FableSolExportEncoder(
         val audio = checkNotNull(audioCodec)
         video.start()
         videoStarted = true
+        if (byteBufferInput) {
+            // 行距与平面高度是编码器说了算的，start() 之后才在 inputFormat 里给出；
+            // 按宽高硬算会在需要对齐的实现上错位成花屏。
+            val input = video.inputFormat
+            // **0 要当成"没告诉我"，不能当成真值。** Android 明确允许厂商回报 0，而 0 会让
+            // 色度平面的起始偏移和入队长度一起变成 0——画面直接废掉，还不会报错。
+            inputStride = input.intOrNull(MediaFormat.KEY_STRIDE)
+                ?.takeIf { it > 0 } ?: (widthPx * 2)
+            inputSliceHeight = input.intOrNull(MediaFormat.KEY_SLICE_HEIGHT)
+                ?.takeIf { it > 0 } ?: heightPx
+        }
         audio.start()
         audioStarted = true
+    }
+
+    /**
+     * 字节缓冲模式下提交一帧，并（如果给了）把这一帧的 HDR10+ 动态元数据一并附上。
+     *
+     * `setParameters` 必须**先于** `queueInputBuffer`：文档的措辞是"设置到下一个入队的输入
+     * 缓冲上"，顺序反了元数据就落到再下一帧去了。
+     */
+    fun queueVideoFrame(
+        presentationTimeUs: Long,
+        hdr10PlusInfo: ByteBuffer?,
+        fill: (ByteBuffer, Int, Int) -> Int
+    ) {
+        val video = checkNotNull(videoCodec)
+        check(byteBufferInput) { "queueVideoFrame requires byte-buffer input" }
+        var index = video.dequeueInputBuffer(TIMEOUT_US)
+        while (index < 0) {
+            drain(endOfStream = false)
+            index = video.dequeueInputBuffer(TIMEOUT_US)
+        }
+        hdr10PlusInfo?.let { info ->
+            val bytes = ByteArray(info.remaining())
+            info.duplicate().get(bytes)
+            video.setParameters(
+                android.os.Bundle().apply {
+                    putByteArray(MediaCodec.PARAMETER_KEY_HDR10_PLUS_INFO, bytes)
+                }
+            )
+        }
+        val buffer = checkNotNull(video.getInputBuffer(index))
+        val written = fill(buffer, inputStride, inputSliceHeight)
+        video.queueInputBuffer(index, 0, written, presentationTimeUs, 0)
+        lastVideoPresentationTimeUs = presentationTimeUs
+    }
+
+    /** 字节缓冲模式下补一个流结束标记；surface 模式由 signalEndOfInputStream 负责。 */
+    private fun queueVideoEndOfStream(presentationTimeUs: Long) {
+        val video = videoCodec ?: return
+        var index = video.dequeueInputBuffer(TIMEOUT_US)
+        var attempts = 0
+        while (index < 0 && attempts < END_OF_STREAM_ATTEMPTS) {
+            drain(endOfStream = false)
+            index = video.dequeueInputBuffer(TIMEOUT_US)
+            attempts++
+        }
+        if (index < 0) return
+        video.queueInputBuffer(
+            index, 0, 0, presentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM
+        )
     }
 
     /** 顺序喂入单声道 16-bit PCM；PTS 由累计样本数推出，与视频共用同一条时间轴。 */
@@ -216,7 +312,12 @@ internal class FableSolExportEncoder(
     ): Boolean {
         val video = checkNotNull(videoCodec)
         if (!signalAudioEnd(isCancelled, timeoutMs)) return false
-        video.signalEndOfInputStream()
+        if (byteBufferInput) {
+            // 字节缓冲模式没有 input surface，signalEndOfInputStream 会直接抛。
+            queueVideoEndOfStream(lastVideoPresentationTimeUs + 1L)
+        } else {
+            video.signalEndOfInputStream()
+        }
         val deadline = SystemClock.elapsedRealtime() + timeoutMs
         while (!videoOutputDone || !audioOutputDone) {
             if (isCancelled()) return false
@@ -284,6 +385,13 @@ internal class FableSolExportEncoder(
         if (buffer == null) return
         if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) return
         if (info.size <= 0) return
+        if (byteBufferInput && track == videoTrack && !hdr10PlusSeiSeen) {
+            // HDR10+ 唯一作数的证据就是码流里那段 SEI——输出格式回报的 profile 本来就是
+            // Main10，拿它判断只会误杀。这里在样本写出去之前顺手确认一次。
+            hdr10PlusSeiSeen = FableSolExportHdr10PlusMetadata.containsSei(
+                buffer, info.offset, info.size
+            )
+        }
         buffer.position(info.offset)
         buffer.limit(info.offset + info.size)
         if (muxing) {
@@ -332,24 +440,26 @@ internal class FableSolExportEncoder(
                 "Encoder changed profile ${tier.profile} to $actualProfile"
             }
         }
-        val expectedStandard = if (tier.hdr) {
-            MediaFormat.COLOR_STANDARD_BT2020
-        } else {
-            MediaFormat.COLOR_STANDARD_BT709
-        }
-        val expectedTransfer = if (tier.hdr) {
-            MediaFormat.COLOR_TRANSFER_HLG
-        } else {
-            MediaFormat.COLOR_TRANSFER_SDR_VIDEO
-        }
+        val expectedStandard = tier.transfer.mediaFormatStandard
+        val expectedTransfer = tier.transfer.mediaFormatTransfer
         preserveOrInstallColorKey(
             format, MediaFormat.KEY_COLOR_STANDARD, expectedStandard
         )
         preserveOrInstallColorKey(
             format, MediaFormat.KEY_COLOR_TRANSFER, expectedTransfer
         )
-        preserveOrInstallColorKey(
-            format, MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED
+        format.setInteger(
+            MediaFormat.KEY_COLOR_RANGE,
+            if (byteBufferInput) {
+                // 字节缓冲模式下 RGB→YUV 是**我们**做的，样本就是有限范围。此时编码器只是
+                // 透传，它回报什么都不改变已经写进去的像素——采纳它的值只会让容器标记与
+                // 样本冲突（发灰、黑位抬高）。谁做的转换谁是权威：这一模式下是我们。
+                MediaFormat.COLOR_RANGE_LIMITED
+            } else {
+                FableSolExportColorRange.resolveForMuxer(
+                    format.intOrNull(MediaFormat.KEY_COLOR_RANGE)
+                )
+            }
         )
     }
 
@@ -491,7 +601,29 @@ internal class FableSolExportEncoder(
         private const val TIMEOUT_US = 10_000L
         /** 收尾总时限：硬编排空通常一秒内完成，给足余量后仍卡住就是真出问题了。 */
         private const val FINISH_TIMEOUT_MS = 30_000L
+        /** 字节缓冲模式收尾时，为拿到一个输入缓冲最多让排空循环转几轮。 */
+        private const val END_OF_STREAM_ATTEMPTS = 64
     }
+}
+
+/**
+ * 交给 MediaMuxer 的色彩范围由**编码器**说了算，不是我们。
+ *
+ * 色域（BT.2020）与传递函数（PQ / HLG）是我们画出来的像素本身的属性——EGL 表面的色彩
+ * 空间加导出 shader 已经把它们钉死，编码器改不了其含义，所以那两个键不一致就是这一档
+ * 真的用不了。**色彩范围不同**：它描述的是编码器自己做的 RGB→YUV 转换选了哪一档，编码
+ * 器才是权威。
+ *
+ * 之前这里和另外两个键一样按"不一致就抛"处理，代价是三星 S23 Ultra 上高通编码器一律
+ * 回报 full range（1）而我们申请 limited（2），于是**每一档 HDR 候选都抛
+ * IllegalStateException，整机 HDR 判成不可用**——色彩空间、Main10 编码器一样不缺，纯粹
+ * 被这道校验挡死。正确做法是采纳编码器报的值写进轨道格式，让容器标记与码流一致。
+ */
+internal object FableSolExportColorRange {
+
+    /** 编码器报了就采纳它的；没报才补上我们请求的 limited，保证容器一定带标记。 */
+    fun resolveForMuxer(encoderReported: Int?): Int =
+        encoderReported ?: MediaFormat.COLOR_RANGE_LIMITED
 }
 
 /**
@@ -505,7 +637,10 @@ internal data class FableSolExportTier(
     val videoMime: String,
     val profile: Int,
     val level: Int,
-    val hdr: Boolean,
+    /** 该次尝试要输出的传递函数；与 codec/profile 是两条独立的轴。 */
+    val transfer: FableSolExportTransfer,
+    /** 本档属于哪种用户可选的 HDR 格式；null 表示 SDR。 */
+    val hdrFormat: FableSolExportHdrFormat?,
     /** 8-bit 档位必须在 shader 里重新启用抖动（D9）。 */
     val eightBit: Boolean,
     val supportsCbr: Boolean,
@@ -516,6 +651,8 @@ internal data class FableSolExportTier(
     val label: String
 ) {
 
+    val hdr: Boolean get() = transfer.isHdr
+
     fun clampBitrate(value: Int): Int {
         val range = bitrateRange ?: return value
         return value.coerceIn(range.lower, range.upper)
@@ -524,13 +661,23 @@ internal data class FableSolExportTier(
     @SuppressLint("InlinedApi")
     fun acceptsTenBitProfile(actualProfile: Int): Boolean {
         if (actualProfile == profile) return true
+        // HDR10+ / 杜比视界不接受"等价替换"：HDR10+ 若被静默降成 Main10，产物就只是
+        // HDR10 换了个名字挂在界面上，等于骗用户。这两档必须原样回报。
+        if (hdrFormat?.requiresExactProfile == true) return false
+        // **Main10 必须在这张表里**，否则申请 HDR10+ 时会被自己挡死：HDR10+ 申请的是
+        // Main10HDR10Plus（8192），而码流的真实 profile 本来就是 Main10（2）——HEVC 层面
+        // 没有"HDR10+ profile"这种东西，8192 是 Android 框架层的合成常量。少了这一项，
+        // 一个真正带上了 HDR10+ SEI 的产物照样会被判成"编码器降了档"。
+        // 反方向不会因此放松：HDR10 / HLG 申请的就是 Main10，命中的是上面那行相等判断。
         return when (videoMime) {
             MediaFormat.MIMETYPE_VIDEO_HEVC ->
-                actualProfile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10 ||
+                actualProfile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10 ||
+                    actualProfile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10 ||
                     actualProfile ==
                     MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10Plus
             MediaFormat.MIMETYPE_VIDEO_AV1 ->
-                actualProfile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10 ||
+                actualProfile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10 ||
+                    actualProfile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10 ||
                     actualProfile ==
                     MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10Plus
             else -> false
@@ -543,55 +690,27 @@ internal data class FableSolExportTier(
          * 按 D9 的阶梯列出**所有**可用档位，顺序即优先级。调用方逐个尝试：创建编码器或
          * 建 EGL 链路失败就换下一个，全部失败才算导出失败。
          */
-        fun candidates(
-            wantHdr: Boolean,
-            widthPx: Int,
-            heightPx: Int,
-            frameRate: Int,
-            /** 用户选的是恒定质量还是恒定码率；同一档里优先排能满足该模式的编码器。 */
-            preferConstantQuality: Boolean = true
-        ): List<FableSolExportTier> {
-            val result = ArrayList<FableSolExportTier>(4)
-            if (wantHdr) {
-                for (entry in HDR_LADDER) {
-                    collect(entry, widthPx, heightPx, frameRate, result, preferConstantQuality)
-                }
-            }
-            for (entry in SDR_LADDER) {
-                collect(entry, widthPx, heightPx, frameRate, result, preferConstantQuality)
-            }
-            return result
-        }
-
-        /**
-         * 只列出一种信号类型的候选。正式导出用它把“HDR 的 120→60”放在任何 SDR 尝试之前；
-         * 设置页的一帧能力探测也复用同一候选集合。
-         */
+        /** @param format null 表示 SDR——SDR 不是一种 HDR 格式。 */
         fun candidatesForMode(
-            hdr: Boolean,
+            format: FableSolExportHdrFormat?,
             widthPx: Int,
             heightPx: Int,
             frameRate: Int,
             preferConstantQuality: Boolean = true
         ): List<FableSolExportTier> {
             val result = ArrayList<FableSolExportTier>(4)
-            val ladder = if (hdr) HDR_LADDER else SDR_LADDER
+            val ladder = format?.codecEntries ?: SDR_LADDER
             for (entry in ladder) {
-                collect(entry, widthPx, heightPx, frameRate, result, preferConstantQuality)
+                collect(
+                    entry, format, widthPx, heightPx, frameRate, result, preferConstantQuality
+                )
             }
             return result
         }
-
-        private class LadderEntry(
-            val mime: String,
-            val profile: Int,
-            val hdr: Boolean,
-            val eightBit: Boolean,
-            val label: String
-        )
 
         private fun collect(
-            entry: LadderEntry,
+            entry: FableSolExportCodecEntry,
+            format: FableSolExportHdrFormat?,
             widthPx: Int,
             heightPx: Int,
             frameRate: Int,
@@ -601,6 +720,7 @@ internal data class FableSolExportTier(
             // MediaMuxer 的 MP4 容器到 API 34 才正式支持封装 AV1；更早的系统上即便厂商
             // 提前给了 AV1 编码器，也会在 addTrack 时失败，而那已经在降级循环之外了。
             if (entry.mime == MediaFormat.MIMETYPE_VIDEO_AV1 && Build.VERSION.SDK_INT < 34) return
+            val transfer = format?.transfer ?: FableSolExportTransfer.SDR
             val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
             val batch = ArrayList<FableSolExportTier>(2)
             for (info in list.codecInfos) {
@@ -611,28 +731,18 @@ internal data class FableSolExportTier(
                 } catch (ignored: Throwable) {
                     continue
                 }
-                val profileLevel = if (entry.profile != 0) {
-                    capabilities.profileLevels
-                        .filter { it.profile == entry.profile }
-                        .maxByOrNull { it.level }
-                        ?: continue
-                } else {
-                    null
-                }
-                // HDR 档另加一道：Main10 只说明能编 10-bit，不代表接受 HLG 输入。
-                // 但 FEATURE_HlgEditing 是 **API 35** 才加入的能力位——在 API 34 上查它
-                // 会一律返回 false，把所有 HDR 候选静默筛光、悄悄降成 SDR。所以只在
-                // API 35+ 才作为过滤条件，更早的系统交给 configure/EGL 的降级重试兜底。
-                if (entry.hdr && Build.VERSION.SDK_INT >= 35) {
-                    val hlgOk = try {
-                        capabilities.isFeatureSupported(
-                            MediaCodecInfo.CodecCapabilities.FEATURE_HlgEditing
-                        )
-                    } catch (ignored: Throwable) {
-                        false
-                    }
-                    if (!hlgOk) continue
-                }
+                val advertised = capabilities.profileLevels
+                    .filter { it.profile == entry.profile }
+                if (entry.profile != 0 && advertised.isEmpty()) continue
+                // 这里曾经用 FEATURE_HlgEditing 给 HLG 档再加一道筛。它必须去掉：
+                // 三星 S23 Ultra 的高通编码器一个都不广告这个能力位，于是 API 35 上 HLG
+                // 的候选被整批筛光，诊断里只剩一句"没有编码器广告支持这个 profile"——而
+                // 这台机器的 HEVC Main10 编码器一整排都在，EGL 的 HLG 色彩空间也有。
+                //
+                // 根本原因是这个能力位问的不是我们要的事：它描述的是「HLG 编辑」这一套
+                // 转码用例，而我们只是把一张已经编码好的 HLG 画面交给 Main10 编码器。
+                // 既然每一档最后都要真编一帧才算数，就没有必要再拿一个语义不对的广告位
+                // 提前否决——真编不出来自然会被淘汰，编得出来就不该拦。
                 val video = capabilities.videoCapabilities ?: continue
                 // 宽高同时满足具体编码器能力与 64px 分享兼容边界。只把中性画框向外补齐，
                 // 卡片和 density 不变；微信等二次转码链路因而无需从右侧/底部截去编码块余数。
@@ -646,6 +756,23 @@ internal data class FableSolExportTier(
                     false
                 }
                 if (!supported) continue
+                // level 必须在**对齐之后**才算：64px 分享兼容对齐会把画布撑大，像素率跟着
+                // 变，算早了可能刚好落在阶梯的错误一档上。
+                val profileLevel = if (entry.profile != 0) {
+                    if (format?.needsDolbyVisionLevel == true) {
+                        // 杜比视界的 level 是一条像素率阶梯，必须按实际画布与帧率现算，
+                        // 再取编码器广告里**刚好够用**的那一档；直接给最高档会超出它的能力。
+                        val required = FableSolExportHdrFormat.dolbyVisionLevel(
+                            encodedWidth, encodedHeight, frameRate
+                        )
+                        advertised.filter { it.level >= required }.minByOrNull { it.level }
+                            ?: advertised.maxByOrNull { it.level }
+                    } else {
+                        advertised.maxByOrNull { it.level }
+                    }
+                } else {
+                    null
+                }
                 val encoder = capabilities.encoderCapabilities
                 val supportsCq = encoder?.isBitrateModeSupported(
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ
@@ -668,7 +795,8 @@ internal data class FableSolExportTier(
                         videoMime = entry.mime,
                         profile = entry.profile,
                         level = profileLevel?.level ?: 0,
-                        hdr = entry.hdr,
+                        transfer = transfer,
+                        hdrFormat = format,
                         eightBit = entry.eightBit,
                         supportsCbr = supportsCbr,
                         qualityRange = qualityRange,
@@ -679,7 +807,10 @@ internal data class FableSolExportTier(
                         },
                         encodedWidthPx = encodedWidth,
                         encodedHeightPx = encodedHeight,
-                        label = "${entry.label} (${info.name})"
+                        // 档位名带上格式：HDR10 与 HLG 用的是同一个 HEVC Main10 编码器，
+                        // 不写格式的话完成提示里两者一模一样，看不出自动档最后落到了哪种。
+                        label = format?.let { "${it.label} ${entry.label} (${info.name})" }
+                            ?: "${entry.label} (${info.name})"
                     )
                 )
             }
@@ -717,57 +848,36 @@ internal data class FableSolExportTier(
         /** 微信等二次转码链路按 64px 编码块处理时，不把余数从右侧或底部截掉。 */
         private const val SHARE_COMPATIBILITY_ALIGNMENT_PX = 64
 
-        @SuppressLint("InlinedApi")
-        private val HDR_LADDER = listOf(
-            LadderEntry(
-                MediaFormat.MIMETYPE_VIDEO_HEVC,
-                MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
-                hdr = true,
-                eightBit = false,
-                label = "HEVC Main10 HLG"
-            ),
-            LadderEntry(
-                MediaFormat.MIMETYPE_VIDEO_AV1,
-                MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10,
-                hdr = true,
-                eightBit = false,
-                label = "AV1 Main10 HLG"
-            )
-        )
-
+        // HDR 各格式的阶梯归 FableSolExportHdrFormat 自己持有：档位与格式一一对应，
+        // 分开放两处只会让"HDR10+ 该用哪个 profile"这类问题散落在两个文件里。
         private val SDR_LADDER = listOf(
-            LadderEntry(
+            FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_HEVC,
                 MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
-                hdr = false,
                 eightBit = false,
                 label = "HEVC Main10 SDR"
             ),
-            LadderEntry(
+            FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_HEVC,
                 MediaCodecInfo.CodecProfileLevel.HEVCProfileMain,
-                hdr = false,
                 eightBit = true,
                 label = "HEVC Main SDR"
             ),
-            LadderEntry(
+            FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_AVC,
                 MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
-                hdr = false,
                 eightBit = true,
                 label = "H.264 High SDR"
             ),
-            LadderEntry(
+            FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_AVC,
                 MediaCodecInfo.CodecProfileLevel.AVCProfileMain,
-                hdr = false,
                 eightBit = true,
                 label = "H.264 Main SDR"
             ),
-            LadderEntry(
+            FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_AVC,
                 MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline,
-                hdr = false,
                 eightBit = true,
                 label = "H.264 Baseline SDR"
             )

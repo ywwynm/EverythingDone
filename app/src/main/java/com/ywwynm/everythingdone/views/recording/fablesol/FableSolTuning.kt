@@ -164,6 +164,9 @@ object FableSolTuning {
     private const val KEY_EXPORT_BITRATE = "export_bitrate"
     private const val KEY_EXPORT_KEYFRAME = "export_keyframe"
     private const val KEY_EXPORT_HDR = "export_hdr"
+    private const val KEY_EXPORT_HDR_FORMAT = "export_hdr_format"
+    private const val KEY_EXPORT_PQ_WHITE = "export_pq_white"
+    private const val KEY_EXPORT_HIGHLIGHT_START = "export_highlight_start"
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -324,6 +327,52 @@ object FableSolTuning {
         prefs(context).edit().putBoolean(KEY_EXPORT_HDR, value).apply()
     }
 
+    internal fun exportHdrFormat(context: Context): FableSolExportOptions.HdrFormatPreference =
+        FableSolExportOptions.HdrFormatPreference.fromStored(
+            prefs(context).getInt(KEY_EXPORT_HDR_FORMAT, 0)
+        )
+
+    internal fun setExportHdrFormat(
+        context: Context,
+        value: FableSolExportOptions.HdrFormatPreference
+    ) {
+        prefs(context).edit().putInt(KEY_EXPORT_HDR_FORMAT, value.ordinal).apply()
+    }
+
+    /**
+     * 用户没动过就用**从屏幕能力推出来的**值：屏幕越亮，背景该坐得越高，这个数不该是常量。
+     * 一旦拖过滑杆就以用户的为准，「恢复默认」会把它清回自动。
+     */
+    fun exportPqWhiteNits(context: Context): Float {
+        val stored = prefs(context)
+        if (!stored.contains(KEY_EXPORT_PQ_WHITE)) {
+            return FableSolExportDisplayLuminance.autoWhiteNits(context)
+        }
+        return stored.getFloat(
+            KEY_EXPORT_PQ_WHITE, FableSolExportOptions.DEFAULT_PQ_WHITE_NITS
+        ).coerceIn(
+            FableSolExportOptions.MIN_PQ_WHITE_NITS,
+            FableSolExportOptions.MAX_PQ_WHITE_NITS
+        )
+    }
+
+    fun setExportPqWhiteNits(context: Context, value: Float) {
+        prefs(context).edit().putFloat(KEY_EXPORT_PQ_WHITE, value).apply()
+    }
+
+    fun exportHighlightStart(context: Context): Int =
+        prefs(context).getInt(
+            KEY_EXPORT_HIGHLIGHT_START,
+            FableSolExportHdr10PlusCurve.DEFAULT_HIGHLIGHT_START_PERCENT
+        ).coerceIn(
+            FableSolExportHdr10PlusCurve.MIN_HIGHLIGHT_START_PERCENT,
+            FableSolExportHdr10PlusCurve.MAX_HIGHLIGHT_START_PERCENT
+        )
+
+    fun setExportHighlightStart(context: Context, value: Int) {
+        prefs(context).edit().putInt(KEY_EXPORT_HIGHLIGHT_START, value).apply()
+    }
+
     fun exportBitrateMbps(context: Context): Float =
         prefs(context).getFloat(
             KEY_EXPORT_BITRATE, FableSolExportOptions.DEFAULT_BITRATE_MBPS
@@ -357,6 +406,9 @@ object FableSolTuning {
             .remove(KEY_EXPORT_BITRATE)
             .remove(KEY_EXPORT_KEYFRAME)
             .remove(KEY_EXPORT_HDR)
+            .remove(KEY_EXPORT_HDR_FORMAT)
+            .remove(KEY_EXPORT_PQ_WHITE)
+            .remove(KEY_EXPORT_HIGHLIGHT_START)
             .apply()
     }
 }

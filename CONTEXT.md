@@ -314,6 +314,10 @@ _Avoid_: 当成可重算的派生缓存、当成录音本身的一部分内容�
 **Voice Waveform Video** 画面中包裹水体卡片的那一圈背景、投影与描边。它属于 **App Chrome**，跟随 **Appearance Mode**；画框之内的水体与时钟墨色属于 Thing。
 _Avoid_: 让画框携带记事身份色、把画框计入 **平均画面亮度**、用画框弥补水体对比不足
 
+**HDR 输出格式**:
+一个 **Voice Waveform Video** 把高动态范围信息写进文件所用的那一套约定，包含亮度曲线与随附的元数据（当前为 HDR10、HDR10+、HLG、杜比视界四种）。它由设备是否**真的编得出来**决定可选与否，与画面内容无关；同一段水体用哪一种输出，画的东西不变，变的是文件如何描述自己的亮度。
+_Avoid_: 把 PQ 与 HDR10 当作两种并列格式、把它与 **HDR UI 渲染** 或 **HDR Display** 混为一谈、以设备广告支持代替实测可用、认为格式更"高级"就意味着高光余量更大
+
 **Activity Header**:
 首页 Thing 列表顶部的标题区，显示当前 Thing Scope 的名称（All Things Scope 或某个 Thing Folder 名）与其子项计数；随列表滚动从展开的大标题折叠为 actionbar 内的小标题，只有滚动回列表顶部才重新展开。
 _Avoid_: 把它等同于 actionbar 或系统状态栏、把它当成 App Chrome 的全部
