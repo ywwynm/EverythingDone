@@ -1,5 +1,35 @@
 # fablesol-video-export 会话记录
 
+## 2026-07-27 — 倾斜可关；导出改用应用实际外观（深色卡片）
+
+- 用户提两项：导出时可以不加入手机倾斜数据（设置里加开关，只对实时录音有意义）；
+  深色模式下导出的 dialog 卡片也应当是深色，现在只有画框变黑、卡片恒白。
+- 倾斜：新增 `export_tilt` 偏好（默认开启）与设置页第一行勾选框「保留录音过程中可能的画面
+  倾斜」，`FableSolVideoExporter` 关掉时不读 `EDmo` chunk，直接走与历史录音相同的竖直渲染
+  路径。控件形态先做成胶囊，用户裁定改为勾选框；该勾选框未选中态也用完整渐变描边
+  （`applyCheckboxAccent(uncheckedGradient = true)`，默认关闭），连同行涟漪与圆形 checkbox
+  涟漪一起跟随换色。用户复核后再定两条：描边**不降 alpha**（试过 160/255，发虚），选中态
+  对号按填充色明暗自适应；并把这套外观推广到本 Dialog 的全部勾选行与 `SettingsActivity`
+  的 13 个勾选框（见 `memory/decisions.md` 2026-07-27）。本 Dialog 的三种勾选行合并为
+  `makeCheckRow` 一份实现。
+- 卡片恒白的根因是 Context：Service 拿的是 Application Context，而 `<application>` 没有
+  `android:theme`，其主题是平台默认的 `Theme.DeviceDefault.Light.DarkActionBar`，
+  `android.R.attr.colorBackground` 恒为浅色，与夜间资源无关；同时它的 `uiMode` 也读不到
+  AppCompat 对 Activity 的夜间覆写。新增 `FableSolExportAppearance.themedContext()`：按
+  `AppearanceUtil.isDarkModeApplied()` 钉死夜间位后套 `EverythingDoneTheme.Dialog`，
+  导出全程只用这一个 Context，画框、卡片、时钟 hostDark 三者不再各判各的。
+- 顺带修正一处潜在不一致：应用固定浅色而系统深色时，原先画框会按系统判成深色。
+- `:app:assembleDebug` 与 `:app:testDebugUnitTest`（64 个套件）通过；新增两条源码契约测试。
+  未使用 adb，深浅两种模式的产物外观待真机确认。
+- 已发布阿里云 debug 更新 `202607270608`；本地、暂存与远端 `latest.json` 的 APK SHA-256 均为
+  `e5bfd8a3fb5be1b8da6aed2ab58f8f4f424722fd97ecc0ee8bda59b5690cefcc`，`releaseNotes` 字段存在。
+- 胶囊改勾选框后重新发布 `202607270628`，三处 SHA-256 均为
+  `023c8da7e96c955c2506dde9b2bc6e4db8bbbf1fb63d8843542b65b73cf15ef7`，远端 `releaseNotes` 517 字。
+- 勾选框外观定案（描边不降 alpha、对号自适应、推广到设置页）后发布 `202607270646`，三处
+  SHA-256 均为 `2dbf44295434414aa821a568cadb7a012840eef10fc8c525d13e3161f809fd32`。
+- 文案去掉「可能的」后发布 `202607270654`，三处 SHA-256 均为
+  `758d453adb8138806642c7db9afb290c793e89f50319c68f454f1b0582126826`。
+
 ## 2026-07-26 — 导出图标缩至 22dp 与编码设置术语统一
 
 - 用户反馈 `video_frame_save` 内容较丰富，24dp 放进录音 FAB 和附件播放 Dialog 时略大；

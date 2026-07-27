@@ -1022,4 +1022,5 @@ Bem, você nunca vai encontrar todos. Hahahahaha.</item>
     <string name="fablesol_export_hdr_desc_dolby">Perfil 8.4. Camada base HLG com metadados dinâmicos Dolby gerados pelo codificador do dispositivo. Sendo a camada base HLG, a margem nas altas luzes é igual à do HLG e não excede a do HDR10.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Perfil 8.1. Camada base PQ, compatível com HDR10, com metadados dinâmicos Dolby gerados pelo codificador do dispositivo. A margem é igual à do HDR10 e acrescenta adaptação por cena no ecrã, sendo a especificação mais alta entre os formatos disponíveis.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Perfil 5. PQ de camada única no espaço de cor IPT da Dolby. Sem retrocompatibilidade: os leitores sem suporte para Dolby Vision apresentam uma dominante verde e roxa. Recomenda-se o perfil 8.1 quando o ficheiro for partilhado.</string>
+    <string name="fablesol_param_export_tilt">Manter a inclinação da gravação</string>
 </resources>

@@ -678,7 +678,10 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             if (it != null) {
                 BackgroundUtil.applyCheckboxAccent(
                     it, bg,
-                    footprintDp = BackgroundUtil.CHECKBOX_LABEL_ROW_FOOTPRINT_DP
+                    footprintDp = BackgroundUtil.CHECKBOX_LABEL_ROW_FOOTPRINT_DP,
+                    // 未选中的方框同样用完整强调渐变描边，不退回中性灰：整页的勾选框在两种
+                    // 状态下都跟着强调色走（2026-07-27 用户裁定）。
+                    uncheckedGradient = true
                 )
             }
         }

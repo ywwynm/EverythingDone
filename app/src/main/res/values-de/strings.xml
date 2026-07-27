@@ -1022,4 +1022,5 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="fablesol_export_hdr_desc_dolby">Profil 8.4. HLG-Basisschicht mit dynamischen Dolby-Metadaten, die vom Encoder des Geräts erzeugt werden. Da die Basisschicht HLG ist, entspricht der Lichterspielraum dem von HLG und übersteigt HDR10 nicht.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profil 8.1. PQ-Basisschicht, HDR10-kompatibel, mit dynamischen Dolby-Metadaten, die vom Encoder des Geräts erzeugt werden. Der Spielraum entspricht HDR10 und wird um szenenweise Displayanpassung ergänzt, womit dies die höchste Stufe der verfügbaren Formate ist.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profil 5. Einschichtiges PQ im Dolby-IPT-Farbraum. Nicht abwärtskompatibel: Player ohne Dolby-Vision-Unterstützung zeigen einen Grün-Violett-Stich. Für Dateien, die geteilt werden sollen, wird Profil 8.1 empfohlen.</string>
+    <string name="fablesol_param_export_tilt">Neigung aus der Aufnahme beibehalten</string>
 </resources>

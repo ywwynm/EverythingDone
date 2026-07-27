@@ -172,6 +172,71 @@ class FableSolExportPipelineSourceTest {
         assertTrue(exporter.contains("FableSolExportAttemptPlan.ordered("))
     }
 
+    /**
+     * 产物必须复现**界面实际的**外观。Service 拿到的 Application Context 两样都不对：主题是
+     * 平台默认的浅色主题（`<application>` 没有 android:theme），配置也读不到 AppCompat 对
+     * Activity 的夜间覆写。于是深色模式下画框已经变黑、卡片却仍是白的。
+     */
+    @Test
+    fun exportResolvesCardColourFromTheAppliedAppearanceNotTheServiceTheme() {
+        val exporter = projectFile("FableSolVideoExporter.kt")
+        val appearance = projectFile("FableSolExportAppearance.kt")
+
+        assertTrue(exporter.contains("FableSolExportAppearance.themedContext(baseContext)"))
+        assertTrue(appearance.contains("AppearanceUtil.isDarkModeApplied("))
+        assertTrue(appearance.contains("R.style.EverythingDoneTheme_Dialog"))
+        assertTrue(appearance.contains("createConfigurationContext(configuration)"))
+        assertTrue(appearance.contains("UI_MODE_NIGHT_MASK.inv()"))
+    }
+
+    /** 倾斜可关；关掉后走的就是"这份录音没有轨迹"那条竖直渲染路径，不另立第二种表达。 */
+    @Test
+    fun tiltPlaybackIsOptionalAndFallsBackToTheVerticalPath() {
+        val exporter = projectFile("FableSolVideoExporter.kt")
+        val options = projectFile("FableSolExportOptions.kt")
+        val tuning = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+
+        assertTrue(exporter.contains("if (options.tiltEnabled) {"))
+        assertTrue(exporter.contains("FableSolGravityTrack.readFrom(File(request.audioPath))"))
+        assertTrue(options.contains("tiltEnabled = FableSolTuning.exportTiltEnabled(context)"))
+        assertTrue(tuning.contains("FableSolTuning.setExportTiltEnabled(ctx, checked)"))
+        assertTrue(tuning.contains("GradientRippleDrawable.applyCheckboxRipple(checkBox"))
+    }
+
+    /**
+     * 勾选框两种状态与触摸涟漪都必须吃完整强调背景：未选中不许退回中性描边。漏掉
+     * `uncheckedGradient` 不会报错，只会在下一次换色时悄悄变灰，所以按"每一次
+     * `applyCheckboxAccent` 都必须带着它"来钉，而不是数某个固定次数。
+     */
+    @Test
+    fun everyCheckboxKeepsTheAccentInBothStates() {
+        val tuning = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+        val settings = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/activities/SettingsActivity.kt"
+        )
+        val background = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/utils/BackgroundUtil.kt"
+        )
+
+        for (source in listOf(tuning, settings)) {
+            val applied = Regex("""applyCheckboxAccent\(""").findAll(source).count()
+            assertTrue(applied > 0)
+            assertEquals(
+                applied,
+                Regex("""uncheckedGradient = true""").findAll(source).count()
+            )
+        }
+        // 未选中描边不降 alpha；对号按填充色明暗自适应，不再固定白色。
+        assertTrue(background.contains("strokePaint.alpha = fade.toInt()"))
+        assertTrue(background.contains("color = onColor(background, 1f)"))
+    }
+
     @Test
     fun completedAudioPlaybackRestartsItsDecoderWhenTheUserSeeks() {
         val player = projectRelative(

@@ -1476,4 +1476,5 @@
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。HLG 基層搭配杜比動態中繼資料，中繼資料由裝置編碼器產生。基層為 HLG，亮部餘裕與 HLG 相同，不高於 HDR10。</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。PQ 基層，與 HDR10 相容，搭配杜比動態中繼資料，中繼資料由裝置編碼器產生。餘裕與 HDR10 相同，並具備逐場景顯示調適，為可選格式中規格最高的一檔。</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profile 5。單層 PQ，採用杜比 IPT 色彩空間。不向下相容：在不支援杜比視界的播放端上會出現綠紫色偏。需要分享時建議改用 Profile 8.1。</string>
+    <string name="fablesol_param_export_tilt">保留錄音過程中的畫面傾斜</string>
 </resources>

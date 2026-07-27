@@ -1,5 +1,78 @@
 # Current Debug Update Notes
 
+## 2026-07-27 - 倾斜选项文案去掉「可能的」
+
+「保留录音过程中可能的画面倾斜」→「保留录音过程中的画面倾斜」。限定词是多余的：有没有
+倾斜是事实，选项只回答要不要保留。英文同步去掉 `any`；其余 11 种语言原本就没有该限定词，
+不动。功能与外观未变。
+
+更新码 `202607270654`，APK SHA-256
+`758d453adb8138806642c7db9afb290c793e89f50319c68f454f1b0582126826`。日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729180000.md`。
+
+## 2026-07-27 - 勾选框外观定案并推广到设置页
+
+用户复核上一版后定三条：未选中描边**不降 alpha**；选中态对号按填充色明暗自适应；
+这套外观推广到 FableSol 调参 Dialog 的性能面板行与 `SettingsActivity` 的 13 个勾选框。
+
+- 160/255 那档是我拍的，用户否决——2dp 描边淡一点就发虚。**这类"看起来更克制"的自作主张
+  在细控件上通常是错的**，宽度小到一定程度时对比度比克制重要。
+- 对号原本固定 `Color.WHITE`，浅色强调色（明黄）上等于没有。改 `onColor(background, 1f)`，
+  **全部** checkbox 一并生效；走 ThingBackground 重载而非 `representativeColor()`，
+  否则认不出 App 默认强调渐变。
+- 调参 Dialog 里三种勾选行（倾斜、性能面板、boolLike 参数）合并为 `makeCheckRow` 一份实现；
+  `mAccentCheckBoxes` 收敛成唯一一条跟色链路，杜绝"有的带 uncheckedGradient 有的不带"。
+- 契约测试改为按**不变式**钉：每一次 `applyCheckboxAccent(` 调用都必须带
+  `uncheckedGradient = true`（两个文件各自计数相等），而不是数固定次数。
+
+跨功能裁决已记入 `memory/decisions.md`。`:app:assembleDebug` 与 `:app:testDebugUnitTest`
+（64 套件）全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729150000.md`。
+更新码 `202607270646`，APK SHA-256
+`2dbf44295434414aa821a568cadb7a012840eef10fc8c525d13e3161f809fd32`。
+
+## 2026-07-27 - 倾斜选项改为勾选框，未选中描边也吃渐变
+
+用户裁定：倾斜那一项不要档位胶囊，改成勾选框，文案「保留录音过程中可能的画面倾斜」，
+默认开启；并要求行本身与右侧 checkbox 都适配渐变——**未选中、选中的控件本体加触摸涟漪**。
+
+- 胶囊适合若干并列档位，是非开关摆两个胶囊等于把二值伪装成多选。
+- 关键一条：**未选中态不能退回中性灰描边**。给 `BackgroundUtil.applyCheckboxAccent` 加
+  `uncheckedGradient`（**默认 false**，只此一处打开），未选中用完整渐变描边、整体降 alpha
+  到 160/255——即 D18 给胶囊定的"不把渐变压成单色"延伸到勾选框。取 160 是判断：满值会读成
+  "已经选上了"，胶囊那档 96 放在 2dp 描边上又发虚。
+- 换色时 `applyUiAccent` 必须把该参数一起带上，**漏了不报错、只会悄悄变灰**，因此另开
+  `mAccentGradientCheckBoxes` 一条链路，并由源码契约测试钉住两处调用点都带着它。
+- 标签文字保持普通文字色（同组其它行一致），未做成渐变文字；已向用户说明。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest` 全绿。本轮未使用 adb。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729120000.md`。
+更新码 `202607270628`，APK SHA-256
+`023c8da7e96c955c2506dde9b2bc6e4db8bbbf1fb63d8843542b65b73cf15ef7`。
+
+## 2026-07-27 - 导出可关闭手机倾斜；深色模式导出深色卡片
+
+用户提两项：导出时可以不加入倾斜数据（设置里加开关）；深色模式下导出的 dialog 卡片也应当
+是深色。
+
+- **倾斜**：新增 `export_tilt` 偏好（默认保留），设置页导出组第一行胶囊「保留 / 忽略」。
+  关掉时**连轨迹都不读**，直接落到既有的"这份录音没有轨迹"分支按竖直渲染——不为新增的
+  用户意图另造一条路径。只有本应用录制的 WAV 带得动轨迹，所以它只对实时录音有意义。
+- **深色卡片**：根因不是取色写错，是**问错了对象**。卡片底色取 `context.theme` 的
+  `colorBackground`；屏上来自对话框 Context（`EverythingDoneTheme.Dialog` → 随 `-night` 翻），
+  导出拿的却是 Application Context——`<application>` 没写 `android:theme`，它用的是平台默认
+  的 `Theme.DeviceDefault.Light.DarkActionBar`，`colorBackground` 恒浅；其 `uiMode` 也读不到
+  AppCompat 对 Activity 的夜间覆写。画框恰好绕开主题，所以只有画框变黑。
+- 新增 `FableSolExportAppearance.themedContext()` + `AppearanceUtil.isDarkModeApplied()`
+  （与 `getDefaultNightMode()` 同源，不看调用者 Context），导出全程只用这一个 Context。
+  顺带修掉"应用固定浅色而系统深色时画框判成深色"这处原有不一致。
+
+`:app:assembleDebug` 与 `:app:testDebugUnitTest`（64 套件）全绿；新增两条源码契约测试。
+本轮未使用 adb，深浅两种模式的产物外观待真机确认。详细日志：
+`docs/features/fablesol-video-export/debug-updates/update-20260729090000.md`。
+更新码 `202607270608`，APK SHA-256
+`e5bfd8a3fb5be1b8da6aed2ab58f8f4f424722fd97ecc0ee8bda59b5690cefcc`。
+
 ## 2026-07-27 - 重写设置中的 HDR 文案（13 套语言）
 
 用户要求去掉口语与不专业表述（第一人称"我们"、破折号、"不用压""代价是""要分享给别人就选"）。

@@ -1302,3 +1302,59 @@ Android 明确允许厂商回报 0，而 0 会让色度平面起始偏移与入�
 
 **滑杆的显示条件要按"这个参数真的起作用吗"来定，而不是按"它属于哪一组"**：漫反射白对所有
 PQ 系格式有效，高光起点只对 HDR10+ 有效，两者的可见条件因此不同。
+
+---
+
+## D44（2026-07-27）倾斜可关；外观按应用**实际生效**的夜间模式，不按 Context 碰巧带的那份
+
+### 倾斜做成开关，关掉即复用"没有轨迹"那条路
+
+D13 把倾斜存进 WAV 的 `EDmo` chunk，导出时一律重放。现在加一个设置项（默认保留），关掉时
+**连读都不读**轨迹——直接落到 `gravityTrack == null` 那条既有分支，与本功能之前的历史录音
+走同一条竖直渲染路径。不为"用户关掉了"另造一种表达：两者要的结果完全一样。
+
+它**只对本应用录制的音频有效**，因为只有那些 WAV 带得动轨迹；导入的音频本来就没有倾斜
+可言。设置项因此写作「保留录音过程中可能的画面倾斜」，不写成泛指的"导出时是否倾斜"。
+
+位置排在导出组**第一行**：倾斜是画面内容，其余各项是编码参数，两类不该混在一起。
+
+**控件形态是勾选框，不是档位胶囊**（用户裁定）。胶囊适合"若干并列的档位"，而这一项是一个
+是非开关，摆两个胶囊等于把二值伪装成多选。随之要求**未选中的方框也用完整强调背景描边**，
+而不是全应用 checkbox 通用的中性色——即 D18 给胶囊定的"未选中不把渐变压成单色"延伸到勾选框。
+
+描边**不降 alpha**（第一版试过 160/255，用户否决）：checkbox 的描边只有 2dp 宽，淡一点就比
+旁边的控件明显发虚。选中态的对号也从固定白色改为按填充色明暗自适应。
+
+这两条随后被用户推广成全局规则，见 `memory/decisions.md` 2026-07-27 那条：本 Dialog 的
+全部勾选行与 `SettingsActivity` 的 13 个勾选框统一采用，因此本目录不再单独维护它的细节。
+
+### 深色模式下卡片恒白，根因是 Context 而不是取色逻辑
+
+现象：深色模式下画框（`FableSolExportSpec` 的 backdrop）已经是黑的，卡片却仍是白的。
+
+`FableSolGlRenderer` 的 `environmentBase` 取 `context.theme` 的
+`android.R.attr.colorBackground`——屏上那份来自对话框 Context，主题
+`EverythingDoneTheme.Dialog` 把它指向 `@color/app_chrome_surface_elevated`
+（#FFFFFF / 夜间 #1E1E1E）。而导出跑在 Service 里，拿到的是 Application Context，
+它两样都不对：
+
+| | 屏上（对话框 Context） | 导出（Application Context） |
+|---|---|---|
+| 主题 | `EverythingDoneTheme.Dialog` | **平台默认**的 `Theme.DeviceDefault.Light.DarkActionBar`——`<application>` 根本没写 `android:theme` |
+| `colorBackground` | `app_chrome_surface_elevated`，随 `-night` 翻 | 平台自带的浅色值，**与夜间资源无关** |
+| `uiMode` | AppCompat 按默认夜间模式覆写过 | 只跟系统走，读不到应用自己的设置 |
+
+所以这不是"取色写错了"，是**问错了对象**。新增 `FableSolExportAppearance.themedContext()`：
+先按 `AppearanceUtil.isDarkModeApplied()` 把配置里的夜间位钉死，再套上
+`EverythingDoneTheme.Dialog`，导出全程只用这一个 Context。画框、卡片、时钟 `hostDark`
+三处从此不可能各判各的——它们本来就该是同一个判定。
+
+### `isDarkMode()` 对后台工作不成立，因此另立一条
+
+`AppearanceUtil.isDarkMode()` 读的是调用者 Context 的配置，只有 Activity 上准确。
+新增的 `isDarkModeApplied()` 与 `getDefaultNightMode()` 同源：跟随系统时读系统配置，
+否则直接看强制深色开关。它顺带修掉一处原有的不一致——**应用固定浅色而系统深色**时，
+旧逻辑会把画框判成深色，与界面相反。
+
+**沿用 D4 的原则**：产物是"此刻这个界面的忠实记录"，所以这里不提供浅色/深色的导出选择，
+只保证跟随应用当前外观。要不要让用户挑，是另一件事。

@@ -1022,4 +1022,5 @@ Bueno, nunca los encontrarás todos. Jajajajaja.</item>
     <string name="fablesol_export_hdr_desc_dolby">Perfil 8.4. Capa base HLG con metadatos dinámicos Dolby generados por el codificador del dispositivo. Al ser HLG la capa base, el margen de altas luces coincide con el de HLG y no supera el de HDR10.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Perfil 8.1. Capa base PQ, compatible con HDR10, con metadatos dinámicos Dolby generados por el codificador del dispositivo. El margen coincide con HDR10 y se añade adaptación por escena en la pantalla, lo que la convierte en la especificación más alta entre los formatos disponibles.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Perfil 5. PQ de una sola capa en el espacio de color IPT de Dolby. Sin retrocompatibilidad: los reproductores sin compatibilidad con Dolby Vision muestran una dominante verde y morada. Se recomienda el perfil 8.1 cuando el archivo vaya a compartirse.</string>
+    <string name="fablesol_param_export_tilt">Conservar la inclinación de la grabación</string>
 </resources>

@@ -1076,4 +1076,5 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。HLG ベースレイヤーと、端末のエンコーダーが生成する Dolby 動的メタデータ。ベースレイヤーが HLG のため、ハイライトの余裕は HLG と同等で、HDR10 を上回りません。</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。HDR10 互換の PQ ベースレイヤーと、端末のエンコーダーが生成する Dolby 動的メタデータ。余裕は HDR10 と同等で、さらにシーン単位の表示適応が加わるため、利用可能な形式の中で最も規格が高い形式です。</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profile 5。Dolby IPT 色空間による単層 PQ。下位互換性はありません。Dolby Vision 非対応のプレーヤーでは緑と紫の色かぶりが生じます。共有する場合は Profile 8.1 を推奨します。</string>
+    <string name="fablesol_param_export_tilt">録音中の画面の傾きを保持する</string>
 </resources>

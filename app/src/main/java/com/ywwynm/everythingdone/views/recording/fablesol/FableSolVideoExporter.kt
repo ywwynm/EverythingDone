@@ -15,10 +15,17 @@ import kotlin.math.roundToInt
  * 下一档，避免“configure 成功但首帧、输出格式或 muxer.addTrack 失败”直接终止整个导出。
  */
 internal class FableSolVideoExporter(
-    private val context: Context,
+    baseContext: Context,
     private val request: Request,
     private val listener: Listener
 ) {
+
+    /**
+     * 全流程只认这一个 Context。Service 传进来的是 Application Context——它的主题是平台
+     * 默认的浅色主题、配置也读不到应用自己的夜间模式，直接用会导出一张与屏上不同外观的
+     * 卡片（见 [FableSolExportAppearance]）。
+     */
+    private val context: Context = FableSolExportAppearance.themedContext(baseContext)
 
     internal data class Request(
         val audioPath: String,
@@ -255,7 +262,13 @@ internal class FableSolVideoExporter(
             renderer.primeFrameTime(TIMEBASE_ORIGIN_NANOS)
             renderer.setOfflineFixedDt(1.0 / frameRate)
 
-            val gravityTrack = FableSolGravityTrack.readFrom(File(request.audioPath))
+            // 用户关掉倾斜时连读都不读：与"这份录音本来就没有轨迹"走同一条竖直渲染路径，
+            // 不需要第二种表达方式。
+            val gravityTrack = if (options.tiltEnabled) {
+                FableSolGravityTrack.readFrom(File(request.audioPath))
+            } else {
+                null
+            }
             val gravity = FloatArray(3)
             val analyzer = FableSolRealtimeAnalyzer(
                 sampleRate,

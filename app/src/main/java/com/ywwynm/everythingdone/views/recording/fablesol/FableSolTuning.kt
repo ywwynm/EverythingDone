@@ -167,6 +167,7 @@ object FableSolTuning {
     private const val KEY_EXPORT_HDR_FORMAT = "export_hdr_format"
     private const val KEY_EXPORT_PQ_WHITE = "export_pq_white"
     private const val KEY_EXPORT_HIGHLIGHT_START = "export_highlight_start"
+    private const val KEY_EXPORT_TILT = "export_tilt"
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -320,6 +321,19 @@ object FableSolTuning {
         prefs(context).edit().putInt(KEY_EXPORT_QUALITY, value).apply()
     }
 
+    /**
+     * 导出时是否重放录音期间记下的重力轨迹（fablesol-video-export D13）。
+     *
+     * 关掉即按竖直渲染，与没有轨迹的历史录音同一条路径。它只对**本应用录制**的音频有意义
+     * ——只有那些 WAV 里才有 `EDmo` chunk，导入的音频本来就没有倾斜可言。
+     */
+    fun exportTiltEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_TILT, true)
+
+    fun setExportTiltEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_TILT, value).apply()
+    }
+
     fun exportHdrEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_EXPORT_HDR, true)
 
@@ -409,6 +423,7 @@ object FableSolTuning {
             .remove(KEY_EXPORT_HDR_FORMAT)
             .remove(KEY_EXPORT_PQ_WHITE)
             .remove(KEY_EXPORT_HIGHLIGHT_START)
+            .remove(KEY_EXPORT_TILT)
             .apply()
     }
 }

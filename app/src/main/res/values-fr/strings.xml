@@ -1022,4 +1022,5 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="fablesol_export_hdr_desc_dolby">Profil 8.4. Couche de base HLG avec métadonnées dynamiques Dolby générées par l\'encodeur de l\'appareil. La couche de base étant en HLG, la marge dans les hautes lumières correspond à celle du HLG et ne dépasse pas celle du HDR10.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profil 8.1. Couche de base PQ, compatible HDR10, avec métadonnées dynamiques Dolby générées par l\'encodeur de l\'appareil. La marge est identique à celle du HDR10, avec en plus une adaptation par scène à l\'écran, ce qui en fait la spécification la plus élevée parmi les formats disponibles.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profil 5. PQ monocouche dans l\'espace colorimétrique IPT de Dolby. Non rétrocompatible : les lecteurs sans prise en charge du Dolby Vision affichent une dominante verte et violette. Le profil 8.1 est recommandé si le fichier doit être partagé.</string>
+    <string name="fablesol_param_export_tilt">Conserver l\'inclinaison de l\'enregistrement</string>
 </resources>

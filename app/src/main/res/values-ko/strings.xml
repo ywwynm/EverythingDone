@@ -1076,4 +1076,5 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4. HLG 기본 레이어와 기기 인코더가 생성하는 Dolby 동적 메타데이터. 기본 레이어가 HLG이므로 하이라이트 여유는 HLG와 같으며 HDR10을 넘지 않습니다.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1. HDR10과 호환되는 PQ 기본 레이어와 기기 인코더가 생성하는 Dolby 동적 메타데이터. 여유는 HDR10과 동일하며 장면별 디스플레이 적응이 추가되어, 사용 가능한 형식 중 규격이 가장 높습니다.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profile 5. Dolby IPT 색공간의 단일 레이어 PQ입니다. 하위 호환되지 않습니다. Dolby Vision을 지원하지 않는 플레이어에서는 초록과 보라 색조가 나타납니다. 파일을 공유할 경우 Profile 8.1을 권장합니다.</string>
+    <string name="fablesol_param_export_tilt">녹음 중 화면 기울기 유지</string>
 </resources>

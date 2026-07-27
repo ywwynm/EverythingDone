@@ -53,7 +53,14 @@ internal data class FableSolExportOptions(
      * 色调映射曲线。以下原样保留，以上才压缩。
      */
     val highlightStartPercent: Int =
-        FableSolExportHdr10PlusCurve.DEFAULT_HIGHLIGHT_START_PERCENT
+        FableSolExportHdr10PlusCurve.DEFAULT_HIGHLIGHT_START_PERCENT,
+    /**
+     * 是否重放录音期间的手机倾斜（重力轨迹，D13）。关掉即按竖直渲染。
+     *
+     * 只有本应用录制的 WAV 带得动这份轨迹，所以这个开关实际只对实时录音产生的音频有效；
+     * 导入的音频与本功能之前的历史录音本来就没有轨迹可放。
+     */
+    val tiltEnabled: Boolean = true
 ) {
 
     /**
@@ -140,7 +147,8 @@ internal data class FableSolExportOptions(
             hdrEnabled = FableSolTuning.exportHdrEnabled(context),
             hdrFormat = FableSolTuning.exportHdrFormat(context),
             pqWhiteNits = FableSolTuning.exportPqWhiteNits(context),
-            highlightStartPercent = FableSolTuning.exportHighlightStart(context)
+            highlightStartPercent = FableSolTuning.exportHighlightStart(context),
+            tiltEnabled = FableSolTuning.exportTiltEnabled(context)
         )
 
         /**

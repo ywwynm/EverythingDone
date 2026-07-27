@@ -1569,7 +1569,13 @@ object BackgroundUtil {
         uncheckedColor: Int = ContextCompat.getColor(
             button.context, R.color.app_chrome_control_unchecked
         ),
-        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP
+        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP,
+        /**
+         * 未选中的方框描边是否也用 [bg] 本身（整体降 alpha，不把渐变压成单色）而不是中性色。
+         * 默认 false：全应用的 checkbox 未选中态一律是中性描边，只有明确要求"两种状态都跟着
+         * 强调色走"的入口才打开它。
+         */
+        uncheckedGradient: Boolean = false
     ) {
         button.buttonTintList = null
         if (button is androidx.appcompat.widget.AppCompatCheckBox) {
@@ -1582,7 +1588,8 @@ object BackgroundUtil {
             initialChecked = button.isChecked,
             animate = false,
             stateDriven = true,
-            footprintDp = footprintDp
+            footprintDp = footprintDp,
+            uncheckedGradient = uncheckedGradient
         )
         button.refreshDrawableState()
     }
@@ -1613,7 +1620,8 @@ object BackgroundUtil {
         initialChecked: Boolean,
         animate: Boolean,
         private val stateDriven: Boolean,
-        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP
+        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP,
+        private val uncheckedGradient: Boolean = false
     ) : Drawable(), PreTintedGradientDrawable {
 
         private val density = context.resources.displayMetrics.density
@@ -1642,7 +1650,10 @@ object BackgroundUtil {
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             strokeWidth = 2.4f * density
-            color = Color.WHITE
+            // 对号压在填充色上，因此按填充色明暗取偏黑或偏白，而不是固定白色——浅色强调色
+            // （例如明黄）上的白对号根本看不出来。走 ThingBackground 那个重载：它认得 App
+            // 默认强调渐变，渐变两端的信息不会先被代表色抹平。
+            color = onColor(background, 1f)
         }
         private var checked = initialChecked
         private var enabled = true
@@ -1708,11 +1719,29 @@ object BackgroundUtil {
                 canvas.drawPath(checkPath, checkPaint)
             }
             if (progress < 1f) {
-                strokePaint.color = uncheckedColor
-                strokePaint.alpha = (
-                    stateAlpha * Color.alpha(uncheckedColor) / 255f * (1f - progress)
-                ).toInt()
+                val fade = stateAlpha * (1f - progress)
+                if (uncheckedGradient) {
+                    // 未选中同样保留**完整**渐变，不把它压成起点单色（D18 给胶囊定的规则），
+                    // 也**不降 alpha**：描边只有 2dp 宽，淡一点就比旁边的控件明显发虚。
+                    if (background.mode === ThingBackground.Mode.GRADIENT) {
+                        val shader = linearGradientFor(background, side, side)
+                        gradientMatrix.setTranslate(left, top)
+                        shader.setLocalMatrix(gradientMatrix)
+                        strokePaint.shader = shader
+                    } else {
+                        strokePaint.shader = null
+                        strokePaint.color = background.color
+                    }
+                    strokePaint.alpha = fade.toInt()
+                } else {
+                    strokePaint.shader = null
+                    strokePaint.color = uncheckedColor
+                    strokePaint.alpha = (
+                        fade * Color.alpha(uncheckedColor) / 255f
+                    ).toInt()
+                }
                 canvas.drawRoundRect(rect, radius, radius, strokePaint)
+                strokePaint.shader = null
             }
         }
 

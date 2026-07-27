@@ -2,6 +2,14 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-07-27 - 勾选框两种状态都跟随强调背景，对号颜色自适应
+
+`BackgroundUtil.applyCheckboxAccent` 新增 `uncheckedGradient`：打开后**未选中**的方框描边也用完整 `ThingBackground`（渐变保留起止色与方向，**不降 alpha**——描边只有 2dp 宽，淡一点就发虚），而不是中性的 `app_chrome_control_unchecked`。已在 FableSol 调参 Dialog 的全部勾选行与 `SettingsActivity` 的 13 个勾选框打开；该参数默认 false，其余调用点（Detail、Widget 配置、`DisplayUtil.setCheckBoxColor`）外观不变。
+
+选中态的对号由固定白色改为 `onColor(background, 1f)`，**全部**勾选框一并生效：浅色强调色（例如明黄）上的白对号本来就看不出来。走 `ThingBackground` 那个重载而不是先取 `representativeColor()`，否则认不出 App 默认强调渐变。
+
+一条实现约束：换色重建时必须把 `uncheckedGradient` 一起带上，漏掉不会报错，只会在第一次换色后悄悄退回灰描边。因此按“每一次 `applyCheckboxAccent` 调用都必须带着它”由源码契约测试钉住，而不是数固定次数。
+
 ## 2026-07-17 - 调研归档产物随 feature 目录本地存放且不进版本库
 
 大体积或一次性的调研产物（LaTeX 报告及配图、对比图集、字体候选与子集化中间产物）归档在所属 `docs/features/<slug>/` 目录下，并在根 `.gitignore` 中按具体路径忽略，不进入版本库；已提交文档按目录名提及它们即可。本仓库亦不跟踪 `Everything-Android/`（独立 git 仓库，仅本地参考）。轻量调研 md 是否入库由用户逐一决定。

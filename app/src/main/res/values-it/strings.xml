@@ -1022,4 +1022,5 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="fablesol_export_hdr_desc_dolby">Profilo 8.4. Livello base HLG con metadati dinamici Dolby generati dal codificatore del dispositivo. Poiché il livello base è HLG, il margine sulle alte luci coincide con quello di HLG e non supera HDR10.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profilo 8.1. Livello base PQ, compatibile con HDR10, con metadati dinamici Dolby generati dal codificatore del dispositivo. Il margine coincide con HDR10 e si aggiunge l\'adattamento per scena sul display, il che ne fa la specifica più alta tra i formati disponibili.</string>
     <string name="fablesol_export_hdr_desc_dolby_5">Profilo 5. PQ a livello singolo nello spazio colore IPT di Dolby. Non retrocompatibile: i lettori privi di supporto Dolby Vision mostrano una dominante verde e viola. Se il file verrà condiviso, si consiglia il profilo 8.1.</string>
+    <string name="fablesol_param_export_tilt">Mantieni l\'inclinazione della registrazione</string>
 </resources>

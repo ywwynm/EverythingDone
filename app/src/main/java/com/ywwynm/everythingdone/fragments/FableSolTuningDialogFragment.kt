@@ -96,6 +96,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     // 换色动画需要跟随的强调色元素；参数区的随 buildParamRows 重建重收。
     private val mAccentHeaders = ArrayList<TextView>()
     private val mAccentSeekBars = ArrayList<SeekBar>()
+    /**
+     * 本 Dialog 的全部 checkbox。**未选中态一律也用完整渐变描边**，因此换色重建时必须带上
+     * `uncheckedGradient`——只此一条链路，不留"有的带有的不带"的余地。
+     */
     private val mAccentCheckBoxes = ArrayList<CompoundButton>()
     /** 档位标签的重绘回调；换色时与其余控件一起刷新。 */
     private val mAccentChipPainters = ArrayList<() -> Unit>()
@@ -358,9 +362,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             }
         }
         for (checkBox in mAccentCheckBoxes) {
-            BackgroundUtil.applyCheckboxAccent(checkBox, bg)
-            // 带圆形渐变 ripple 的指示 checkbox（性能面板行）同步换色；
-            // 背景不是 GradientRippleDrawable 的普通 checkbox 此处为空操作。
+            // 未选中描边也吃完整渐变，重建时必须把这个参数带上——漏了就会在第一次换色时
+            // 悄悄退回中性描边。
+            BackgroundUtil.applyCheckboxAccent(checkBox, bg, uncheckedGradient = true)
+            // 圆形渐变 ripple 同步换色；背景不是 GradientRippleDrawable 时此处为空操作。
             (checkBox.background as? GradientRippleDrawable)?.updateBackground(bg)
         }
         for (row in mAccentRippleRows) {
@@ -502,39 +507,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
      * [FableSolTuning.GROUPS] 目录、不参与"恢复默认"，只在下一次打开录音
      * Dialog 时生效（面板宿主在那边按存储值挂载）。
      */
-    private fun makePerfHudRow(ctx: Context): View {
-        val row = LinearLayout(ctx)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = android.view.Gravity.CENTER_VERTICAL
-        row.setPadding(dp(20f), 0, dp(20f), 0)
-        row.minimumHeight = dp(48f)
-        row.background = GradientRippleDrawable(
-            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
-        )
-        mAccentRippleRows.add(row)
-
-        val tvLabel = TextView(ctx)
-        tvLabel.text = getString(R.string.fablesol_param_show_perf_hud)
-        tvLabel.textSize = 13f
-        tvLabel.layoutParams = LinearLayout.LayoutParams(
-            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
-        )
-        val checkBox = CheckBox(ctx)
-        checkBox.isChecked = FableSolTuning.isPerfHudEnabled(ctx)
-        checkBox.isClickable = false
-        checkBox.isFocusable = false
-        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
-        mAccentCheckBoxes.add(checkBox)
-        checkBox.setOnCheckedChangeListener { _, checked ->
-            FableSolTuning.setPerfHudEnabled(ctx, checked)
-        }
-        row.addView(tvLabel)
-        row.addView(checkBox)
-        // 圆形渐变 ripple 替换系统默认的半透明黑波纹；必须在 addView 之后调用，
-        // 它要顺带关掉父容器的裁剪。换色跟随见 applyUiAccent。
-        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
-        row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
-        return row
+    private fun makePerfHudRow(ctx: Context): View = makeCheckRow(
+        ctx,
+        getString(R.string.fablesol_param_show_perf_hud),
+        FableSolTuning.isPerfHudEnabled(ctx)
+    ) { checked ->
+        FableSolTuning.setPerfHudEnabled(ctx, checked)
     }
 
     /**
@@ -633,6 +611,18 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             bitrateRow.visibility = if (constant) View.GONE else View.VISIBLE
             refreshEstimate()
         }
+
+        // 倾斜是**画面内容**，不是编码参数，所以排在这一组最前面。它只对本应用录制的音频
+        // 有效：只有那些 WAV 里带重力轨迹。
+        container.addView(
+            makeCheckRow(
+                ctx,
+                getString(R.string.fablesol_param_export_tilt),
+                FableSolTuning.exportTiltEnabled(ctx)
+            ) { checked ->
+                FableSolTuning.setExportTiltEnabled(ctx, checked)
+            }
+        )
 
         container.addView(
             makeExportChoiceRow(
@@ -959,6 +949,51 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             getString(R.string.fablesol_export_hdr_desc_dolby)
     }
 
+    /**
+     * 本 Dialog 里所有勾选行的唯一实现：整行可点、行涟漪与勾选框圆形涟漪都是渐变，
+     * 勾选框**两种状态**都跟着强调背景走——未选中用完整渐变描边（不降 alpha），选中用完整
+     * 渐变填充，对号按填充色明暗自适应偏黑或偏白。
+     */
+    private fun makeCheckRow(
+        ctx: Context,
+        label: String,
+        checked: Boolean,
+        onChange: (Boolean) -> Unit
+    ): View {
+        val row = LinearLayout(ctx)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.setPadding(dp(20f), 0, dp(20f), 0)
+        row.minimumHeight = dp(48f)
+        row.background = GradientRippleDrawable(
+            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
+        )
+        mAccentRippleRows.add(row)
+
+        val tvLabel = TextView(ctx)
+        tvLabel.text = label
+        tvLabel.textSize = 13f
+        tvLabel.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        )
+        val checkBox = CheckBox(ctx)
+        checkBox.isChecked = checked
+        checkBox.isClickable = false
+        checkBox.isFocusable = false
+        BackgroundUtil.applyCheckboxAccent(
+            checkBox, mAppliedBackground, uncheckedGradient = true
+        )
+        mAccentCheckBoxes.add(checkBox)
+        checkBox.setOnCheckedChangeListener { _, value -> onChange(value) }
+        row.addView(tvLabel)
+        row.addView(checkBox)
+        // 圆形渐变 ripple 替换系统默认的半透明黑波纹；必须在 addView 之后调用，
+        // 它要顺带关掉父容器的裁剪。换色跟随见 applyUiAccent。
+        GradientRippleDrawable.applyCheckboxRipple(checkBox, mAppliedBackground)
+        row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
+        return row
+    }
+
     private fun makeExportChoiceRow(
         ctx: Context,
         label: String,
@@ -1204,38 +1239,11 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private fun makeSwitchRow(ctx: Context, spec: FableSolTuning.Spec): View {
         val defaultValue = mDefaults.get(spec.key)
         val initial = FableSolTuning.storedValue(ctx, spec, defaultValue)
-
-        val row = LinearLayout(ctx)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = android.view.Gravity.CENTER_VERTICAL
-        row.setPadding(dp(20f), 0, dp(20f), 0)
-        row.minimumHeight = dp(48f)
-        row.background = GradientRippleDrawable(
-            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
-        )
-        mAccentRippleRows.add(row)
-
-        val tvLabel = TextView(ctx)
-        tvLabel.text = getString(spec.labelRes)
-        tvLabel.textSize = 13f
-        tvLabel.layoutParams = LinearLayout.LayoutParams(
-            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
-        )
-        val checkBox = CheckBox(ctx)
-        checkBox.isChecked = initial >= 0.5
-        checkBox.isClickable = false
-        checkBox.isFocusable = false
-        BackgroundUtil.applyCheckboxAccent(checkBox, mAppliedBackground)
-        mAccentCheckBoxes.add(checkBox)
-        checkBox.setOnCheckedChangeListener { _, checked ->
+        return makeCheckRow(ctx, getString(spec.labelRes), initial >= 0.5) { checked ->
             val value = if (checked) 1.0 else 0.0
             applyRuntimeTuning(spec, value)
             FableSolTuning.putValue(ctx, spec, value, defaultValue)
         }
-        row.addView(tvLabel)
-        row.addView(checkBox)
-        row.setOnClickListener { checkBox.isChecked = !checkBox.isChecked }
-        return row
     }
 
     private fun resetAllParams() {
