@@ -4521,3 +4521,31 @@ D225 的三项合成在 Python 落地后实测出三处标定错误，都不是�
 - CPU：焦散场 0.125ms/帧（桌面），`build_gl_frame` 开关前后 5.85 vs 5.99ms，落在噪声里。
   ART 上的真实开销待实机测（桌面 JVM/CPython 探针对移动端热点失明）。
 - 画面：开启后受影响区域是画面底部 192~207 行（约 24% 像素），与 front fill 的可见范围一致。
+
+## D227（2026-07-27）新增「画面响应设备倾斜」开关，关掉即恢复详情页自动旋转并停写重力轨迹
+
+调参对话框里原本只有导出侧的「保留录音过程中的画面倾斜」（fablesol-video-export D13）
+——它决定**离线重渲染**要不要回放 WAV 里的 `EDmo` 轨迹，管不到实时画面。实时侧的倾斜
+一直是无条件开启的，代价是录音对话框与音频附件对话框打开期间会把宿主
+`DetailActivity` 的方向锁死（`SCREEN_ORIENTATION_LOCKED`）。
+
+新开关 `FableSolTuning.liveTiltEnabled`（键 `live_tilt`，默认开）排在 HDR 强度行之下、
+第一个波浪参数组之前：它与 HDR 一样是"这块画面怎么呈现"的偏好，不属于任何一个参数组。
+外观与行为完全复用 `makeCheckRow`，与导出侧那条勾选行一致。
+
+关掉之后三处联动：
+
+1. **不注册重力传感器**。录音、音频附件与调参预览三处的水体恒按竖直渲染。调参预览
+   即时跟随勾选状态（勾掉时显式 `setContainerGravity(0,1,0)` 扶正）——否则用户刚关掉
+   开关、上方水面却还在随手腕晃，看起来就像开关没生效。
+2. **不锁宿主方向**。锁方向本来只为倾斜服务（重力→屏幕坐标的换算按打开时的 rotation
+   定死，中途转屏就会算错），没有倾斜就没有锁的理由，详情页恢复自动旋转。调参对话框
+   例外，仍然锁：`SettingsActivity` 自己吃 `orientation` configChange 不重建，而该对话框
+   648dp 的窗口高度只在 `onStart` 按屏高算过一次，转屏后不会重算。
+3. **WAV 不写 `EDmo` chunk**。`AudioRecorder.setGravityTrackEnabled(false)` 让
+   `startRecording()` 跳过 `mGravityTrack.start()`，Collector 停在 `collecting=false`、
+   `count=0`，收尾时 `buildChunk()` 返回 null。注意不能只靠"不投递采样"：`start()` 本身
+   会把当前姿态落成 t=0 的种子，那样仍会写出一个单采样点的 chunk。
+
+已经录好的音频里那条轨迹不受影响；导出要不要回放它仍由 `exportTiltEnabled` 单独决定。
+与 HDR 强度同属画面偏好，因此「恢复默认」把它一并复位（`clearLiveTilt`）。

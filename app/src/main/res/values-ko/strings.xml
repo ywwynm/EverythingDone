@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">HDR 하이라이트</string>
     <string name="fablesol_tuning_hdr_unsupported">(기기에서 지원되지 않음)</string>
     <string name="fablesol_tuning_hdr_off">꺼짐</string>
+    <string name="fablesol_param_live_tilt">화면이 기기 기울기에 반응</string>
     <string name="fablesol_tuning_reset">기본값 복원</string>
     <string name="fablesol_group_thickness_glow">물 투광</string>
     <string name="fablesol_group_silver_thread">은실</string>

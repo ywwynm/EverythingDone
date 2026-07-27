@@ -158,6 +158,7 @@ object FableSolTuning {
     private const val KEY_HDR_ENABLED = "hdr_enabled"
     private const val KEY_HDR_STRENGTH = "hdr_strength"
     private const val KEY_SHOW_PERF_HUD = "show_perf_hud"
+    private const val KEY_LIVE_TILT = "live_tilt"
     private const val KEY_EXPORT_FRAME_RATE = "export_frame_rate"
     private const val KEY_EXPORT_PREFER_CQ = "export_prefer_cq"
     private const val KEY_EXPORT_QUALITY = "export_quality"
@@ -283,6 +284,26 @@ object FableSolTuning {
     /** 录音态 HDR 门控便捷判断：强度高于 1.0 才请求 HDR。 */
     fun isHdrEnabled(context: Context): Boolean =
         hdrStrength(context) > FableSolHdrPolicy.STRENGTH_OFF
+
+    /**
+     * 录音 Dialog、音频附件 Dialog 与调参预览里的水体是否跟随设备姿态倾斜；默认开。
+     *
+     * 关掉之后这三处都不再注册重力传感器，水体恒按竖直渲染。它还牵动两件与画面无关的事：
+     * 录音与播放对话框不再锁定宿主 Activity 的方向（详情页恢复自动旋转），录音写出的 WAV
+     * 也不再带 `EDmo` 重力轨迹——既然当时的画面本就不倾斜，记下来的姿态没有可复现的对象。
+     * 已经录好的音频里那条轨迹不受影响，是否重放由 [exportTiltEnabled] 单独决定。
+     */
+    fun liveTiltEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_LIVE_TILT, true)
+
+    fun setLiveTiltEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_LIVE_TILT, value).apply()
+    }
+
+    /** 「恢复默认」把它一并复位（与 HDR 强度同属画面偏好，不是调试工具偏好）。 */
+    fun clearLiveTilt(context: Context) {
+        prefs(context).edit().remove(KEY_LIVE_TILT).apply()
+    }
 
     /**
      * debug 构建的屏上性能面板开关；默认关闭，独立于"恢复默认"（它是调试工具偏好，

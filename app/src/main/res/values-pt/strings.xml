@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">Realces HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(sem suporte neste aparelho)</string>
     <string name="fablesol_tuning_hdr_off">desligado</string>
+    <string name="fablesol_param_live_tilt">A imagem responde à inclinação do dispositivo</string>
     <string name="fablesol_tuning_reset">Restaurar padrões</string>
     <string name="fablesol_group_thickness_glow">Translucidez da água</string>
     <string name="fablesol_group_silver_thread">Fios prateados</string>

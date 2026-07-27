@@ -97,6 +97,13 @@ open class AudioRecorder(private val appContext: Context?) {
      */
     private val mGravityTrack = FableSolGravityTrack.Collector()
 
+    /**
+     * 是否随 PCM 记录重力轨迹。宿主对话框在构造后立即告知——它与"要不要注册传感器"是同一个
+     * 决定（[FableSolTuning.liveTiltEnabled]）：画面本就不跟随倾斜时既收不到姿态采样，写进
+     * WAV 的 `EDmo` chunk 也没有可复现的对象，不如整段不写。
+     */
+    private var mGravityTrackEnabled: Boolean = true
+
     init {
         initAudioRecord()
     }
@@ -315,8 +322,17 @@ open class AudioRecorder(private val appContext: Context?) {
         if (mOutputFile == null) {
             return
         }
-        mGravityTrack.start()
+        // 不开采集就不 start()：Collector 会一直停在 collecting=false、count=0，
+        // 收尾时 buildChunk 返回 null，WAV 里彻底没有这个 chunk。
+        if (mGravityTrackEnabled) {
+            mGravityTrack.start()
+        }
         mIsRecording = true
+    }
+
+    /** 见 [mGravityTrackEnabled]；须在 [startRecording] 之前调用。 */
+    fun setGravityTrackEnabled(enabled: Boolean) {
+        mGravityTrackEnabled = enabled
     }
 
     /**

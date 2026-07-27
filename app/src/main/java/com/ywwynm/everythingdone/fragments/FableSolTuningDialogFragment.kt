@@ -492,6 +492,9 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         mAccentRippleRows.clear()
         mAccentChipPainters.clear()
         val ctx = container.context
+        // 紧跟 HDR 强度行：两者都是"这块画面怎么呈现"的偏好，不属于任何一个波浪参数组，
+        // 因此排在第一个组标题之前。
+        container.addView(makeLiveTiltRow(ctx))
         for (group in FableSolTuning.GROUPS) {
             container.addView(makeGroupHeader(ctx, getString(group.titleRes)))
             for (spec in group.specs) {
@@ -506,6 +509,22 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_debug)))
             container.addView(makePerfHudRow(ctx))
         }
+    }
+
+    /**
+     * 画面是否跟随设备姿态倾斜（[FableSolTuning.liveTiltEnabled]）。勾掉之后录音与音频附件
+     * 对话框不再锁死详情页的屏幕方向、录音写出的 WAV 也不再带重力轨迹。
+     *
+     * 这里的预览即时跟随勾选状态：否则用户刚把它关掉，上方水面却还在随手腕晃动，看起来
+     * 就像这个开关没生效。
+     */
+    private fun makeLiveTiltRow(ctx: Context): View = makeCheckRow(
+        ctx,
+        getString(R.string.fablesol_param_live_tilt),
+        FableSolTuning.liveTiltEnabled(ctx)
+    ) { checked ->
+        FableSolTuning.setLiveTiltEnabled(ctx, checked)
+        applyLiveTiltPreference()
     }
 
     /**
@@ -1335,12 +1354,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         FableSolTuning.clearHdrStrength(ctx)
         // 导出参数同样纳入「恢复默认」（fablesol-video-export D10）。
         FableSolTuning.clearExportOptions(ctx)
+        // 倾斜跟随与 HDR 强度同属画面偏好，一并复位。
+        FableSolTuning.clearLiveTilt(ctx)
         for (group in FableSolTuning.GROUPS) {
             for (spec in group.specs) {
                 applyRuntimeTuning(spec, mDefaults.get(spec.key))
             }
         }
         applyHdrPreference()
+        applyLiveTiltPreference()
         setupHdrRow()
         buildParamRows()
     }
@@ -1440,10 +1462,26 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     }
 
+    /**
+     * 预览的倾斜跟随开关状态即时切换。关掉时要显式把容器重力推回竖直——传感器已经停了，
+     * 不会再有回调替我们把水面扶正。
+     */
+    private fun applyLiveTiltPreference() {
+        val ctx = mContentView?.context ?: mActivity ?: return
+        if (FableSolTuning.liveTiltEnabled(ctx)) {
+            startTiltSensor()
+        } else {
+            stopTiltSensor()
+            mVisualizer?.setContainerGravity(0f, 1f, 0f)
+        }
+    }
+
     private fun startTiltSensor() {
         val manager = mSensorManager ?: return
         val sensor = mGravitySensor ?: return
         if (mTiltSensorRegistered) return
+        val ctx = mContentView?.context ?: mActivity ?: return
+        if (!FableSolTuning.liveTiltEnabled(ctx)) return
         val thread = HandlerThread("FableSolTuningTilt").also { it.start() }
         mSensorThread = thread
         mTiltSensorRegistered = manager.registerListener(

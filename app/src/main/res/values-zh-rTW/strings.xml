@@ -774,6 +774,7 @@
     <string name="fablesol_tuning_hdr">HDR 高光增強</string>
     <string name="fablesol_tuning_hdr_unsupported">（裝置不支援）</string>
     <string name="fablesol_tuning_hdr_off">關閉</string>
+    <string name="fablesol_param_live_tilt">畫面響應裝置傾斜</string>
     <string name="fablesol_tuning_reset">恢復預設</string>
     <string name="fablesol_group_thickness_glow">水體透光</string>
     <string name="fablesol_group_silver_thread">銀絲</string>

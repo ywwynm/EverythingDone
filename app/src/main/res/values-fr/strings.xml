@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">Hautes lumières HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non pris en charge sur cet appareil)</string>
     <string name="fablesol_tuning_hdr_off">désactivé</string>
+    <string name="fablesol_param_live_tilt">L\'image réagit à l\'inclinaison de l\'appareil</string>
     <string name="fablesol_tuning_reset">Rétablir les valeurs par défaut</string>
     <string name="fablesol_group_thickness_glow">Translucidité de l’eau</string>
     <string name="fablesol_group_silver_thread">Fils argentés</string>

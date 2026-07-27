@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">HDR-Glanzlichter</string>
     <string name="fablesol_tuning_hdr_unsupported">(auf diesem Gerät nicht unterstützt)</string>
     <string name="fablesol_tuning_hdr_off">aus</string>
+    <string name="fablesol_param_live_tilt">Bild reagiert auf die Neigung des Geräts</string>
     <string name="fablesol_tuning_reset">Standardwerte wiederherstellen</string>
     <string name="fablesol_group_thickness_glow">Wasser-Transluzenz</string>
     <string name="fablesol_group_silver_thread">Silberfäden</string>

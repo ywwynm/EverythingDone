@@ -96,6 +96,12 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mGravitySensor: Sensor? = null
     private var mSensorThread: HandlerThread? = null
     private var mTiltSensorRegistered: Boolean = false
+    /**
+     * 画面是否跟随设备姿态（[FableSolTuning.liveTiltEnabled]）。对话框打开时读一次并固定：
+     * 它同时决定要不要锁方向、要不要注册传感器、录音要不要记重力轨迹，中途换值会让这三件
+     * 事对不上。关掉时详情页恢复自动旋转。
+     */
+    private var mLiveTiltEnabled: Boolean = true
     private var mPerformanceMonitor: FableSolPerformanceMonitor? = null
     private var mOriginalRequestedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked: Boolean = false
@@ -118,9 +124,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         super.onCreateView(inflater, container, savedInstanceState)
 
         mActivity = activity as DetailActivity
+        mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(mActivity!!)
         lockHostOrientation()
         prepareTiltSensor()
         mRecorder = AudioRecorder(mActivity)
+        mRecorder!!.setGravityTrackEnabled(mLiveTiltEnabled)
 
         mLlFileName  = f(R.id.ll_audio_file_name)
         mEtFileName  = f(R.id.et_audio_file_name)
@@ -275,8 +283,13 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
     }
 
+    /**
+     * 锁方向只为倾斜服务：重力到屏幕坐标的换算按打开时的 rotation 定死，中途转屏就会算错。
+     * 因此画面不跟随倾斜时不锁——详情页照常自动旋转。
+     */
     private fun lockHostOrientation() {
         val host = mActivity ?: return
+        if (!mLiveTiltEnabled) return
         if (mOrientationLocked) return
         mLockedRotation = host.windowManager.defaultDisplay.rotation
         mOriginalRequestedOrientation = host.requestedOrientation
@@ -292,6 +305,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun prepareTiltSensor() {
+        if (!mLiveTiltEnabled) return
         val host = mActivity ?: return
         val manager = host.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
         mSensorManager = manager

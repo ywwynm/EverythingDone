@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">Brillos HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(no compatible con este dispositivo)</string>
     <string name="fablesol_tuning_hdr_off">desactivado</string>
+    <string name="fablesol_param_live_tilt">La imagen responde a la inclinación del dispositivo</string>
     <string name="fablesol_tuning_reset">Restaurar valores predeterminados</string>
     <string name="fablesol_group_thickness_glow">Translucidez del agua</string>
     <string name="fablesol_group_silver_thread">Hilos plateados</string>

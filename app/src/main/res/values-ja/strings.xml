@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">HDR ハイライト</string>
     <string name="fablesol_tuning_hdr_unsupported">（この端末では未対応）</string>
     <string name="fablesol_tuning_hdr_off">オフ</string>
+    <string name="fablesol_param_live_tilt">画面が端末の傾きに反応する</string>
     <string name="fablesol_tuning_reset">既定値に戻す</string>
     <string name="fablesol_group_thickness_glow">水の透光</string>
     <string name="fablesol_group_silver_thread">銀糸</string>

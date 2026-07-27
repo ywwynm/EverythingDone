@@ -1,5 +1,29 @@
 # Current Debug Update Notes
 
+## 2026-07-27 - FableSol 新增「画面响应设备倾斜」开关
+
+设置里此前只有导出侧的「保留录音过程中的画面倾斜」，管不到实时画面；实时倾斜一直无条件
+开启，代价是录音与音频附件对话框打开期间锁死详情页方向。本次新增同类勾选行，位置在
+「HDR 高光增强」下方，默认开启。
+
+- 关掉后三处联动：录音、音频附件、调参预览均不注册重力传感器；两个对话框不再锁方向，
+  详情页恢复自动旋转；录音写出的 WAV 不再包含 `EDmo` 重力轨迹。
+- `FableSolTuning` 新增 `live_tilt` 键与 `liveTiltEnabled` / `setLiveTiltEnabled` /
+  `clearLiveTilt`，纳入「恢复默认」。
+- `AudioRecorder.setGravityTrackEnabled(false)` 让 `startRecording()` 跳过收集器启动——
+  仅靠"不投递采样"不够，收集器启动本身会把当前姿态落成起始采样点。
+- 调参预览随勾选即时启停并回正水面；调参对话框本身仍锁方向（SettingsActivity 不重建，
+  648dp 窗口高度只在 onStart 算过一次）。
+- 13 个 locale 补 `fablesol_param_live_tilt`；`:app:assembleDebug` 通过；未使用 adb，
+  实机行为未验证。
+- 已发布阿里云 debug 更新 `202607271327`；本地 APK、本地与远端元数据、远端 APK 的
+  SHA-256 均为
+  `20666195dbada67f2032587deae8b865385d8466133eca541b1195f721dece17`，
+  文件大小均为 21,204,365 字节；远端发布说明与本地逐字符一致（1022 字）。
+
+详细日志：
+`docs/features/audio-visualization-fable-sol/debug-updates/update-20260727212617.md`。
+
 ## 2026-07-27 - FableSol HDR 格式顺序、本地化与能力信息专业化
 
 用户在复核自动漫反射白和 HDR 格式信息后要求：公式使用标准 `min(...)` 语法并显示本机可用

@@ -3808,3 +3808,24 @@ A/B 渲染逐位一致，全量 363 条测试全绿。Android 移植与实机性
 同时补一条通用回归 `test_every_registered_parameter_reaches_the_panel`：逐 key 断言
 `GLOBAL_SPECS` 里每个非 `kind="c"` 的参数都出现在 `panel.rows` 中。比断言组标题更严，
 改组名也不会失效；已做负向验证（去掉注册行后该测试确实失败）。
+
+## 2026-07-27 「画面响应设备倾斜」开关（D227）
+
+调参对话框新增一条勾选行，排在「HDR 高光增强」滑杆之下、第一个参数组之前，外观行为与
+导出组的「保留录音过程中的画面倾斜」一致。
+
+改动落点：
+
+- `FableSolTuning`：新键 `live_tilt`（默认开）+ `liveTiltEnabled` / `setLiveTiltEnabled` /
+  `clearLiveTilt`；`clearLiveTilt` 接进调参对话框的「恢复默认」。
+- `FableSolTuningDialogFragment`：`makeLiveTiltRow` + `applyLiveTiltPreference`，预览的
+  传感器随勾选即时启停，关掉时把容器重力扶正到 (0,1,0)。方向锁在这里保持无条件。
+- `AudioRecordDialogFragment` / `AudioPlayDialogFragment`：打开时读一次存进
+  `mLiveTiltEnabled`，据此跳过 `lockHostOrientation()` 与 `prepareTiltSensor()`
+  ——后者不初始化 `mSensorManager`，`startTiltSensor()` 自然空转。
+- `AudioRecorder`：新增 `setGravityTrackEnabled`，关掉时 `startRecording()` 不调
+  `mGravityTrack.start()`，WAV 里彻底没有 `EDmo` chunk。
+- 13 个 locale 补 `fablesol_param_live_tilt`。
+
+`:app:assembleDebug` 通过。实机验证（关掉后详情页能自动旋转、录出的 WAV 无 `EDmo`）
+未做——本会话不连设备。

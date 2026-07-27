@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">HDR हाइलाइट्स</string>
     <string name="fablesol_tuning_hdr_unsupported">(इस डिवाइस पर समर्थित नहीं)</string>
     <string name="fablesol_tuning_hdr_off">बंद</string>
+    <string name="fablesol_param_live_tilt">छवि डिवाइस के झुकाव पर प्रतिक्रिया करे</string>
     <string name="fablesol_tuning_reset">डिफ़ॉल्ट बहाल करें</string>
     <string name="fablesol_group_thickness_glow">जल पारभासिता</string>
     <string name="fablesol_group_silver_thread">चांदी के धागे</string>

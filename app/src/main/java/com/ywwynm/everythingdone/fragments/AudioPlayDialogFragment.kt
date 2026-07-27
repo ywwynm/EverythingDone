@@ -83,6 +83,12 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     private var mGravitySensor: Sensor? = null
     private var mSensorThread: HandlerThread? = null
     private var mTiltSensorRegistered: Boolean = false
+    /**
+     * 画面是否跟随设备姿态（[FableSolTuning.liveTiltEnabled]）。对话框打开时读一次并固定：
+     * 它同时决定要不要锁方向与要不要注册传感器，中途换值会让两者对不上。关掉时详情页恢复
+     * 自动旋转。
+     */
+    private var mLiveTiltEnabled: Boolean = true
     private var mPerformanceMonitor: FableSolPerformanceMonitor? = null
     private var mOriginalRequestedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked: Boolean = false
@@ -105,6 +111,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
             return mContentView
         }
 
+        mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(requireContext())
         lockHostOrientation()
         prepareTiltSensor()
 
@@ -575,8 +582,13 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         mVisualizer?.setContainerGravity(-screenX, screenY, gz)
     }
 
+    /**
+     * 锁方向只为倾斜服务：重力到屏幕坐标的换算按打开时的 rotation 定死，中途转屏就会算错。
+     * 因此画面不跟随倾斜时不锁——详情页照常自动旋转。
+     */
     private fun lockHostOrientation() {
         val host = mActivity ?: return
+        if (!mLiveTiltEnabled) return
         if (mOrientationLocked) return
         mLockedRotation = host.windowManager.defaultDisplay.rotation
         mOriginalRequestedOrientation = host.requestedOrientation
@@ -592,6 +604,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     }
 
     private fun prepareTiltSensor() {
+        if (!mLiveTiltEnabled) return
         val host = mActivity ?: return
         val manager = host.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
         mSensorManager = manager

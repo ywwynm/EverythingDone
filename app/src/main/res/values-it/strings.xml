@@ -508,6 +508,7 @@
     <string name="fablesol_tuning_hdr">Luci HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non supportato su questo dispositivo)</string>
     <string name="fablesol_tuning_hdr_off">spento</string>
+    <string name="fablesol_param_live_tilt">L\'immagine reagisce all\'inclinazione del dispositivo</string>
     <string name="fablesol_tuning_reset">Ripristina predefiniti</string>
     <string name="fablesol_group_thickness_glow">Translucenza dell’acqua</string>
     <string name="fablesol_group_silver_thread">Fili argentati</string>
