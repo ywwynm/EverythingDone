@@ -40,6 +40,10 @@ internal object FableSolVideoExportBus {
             val hdr: Boolean,
             /** 当前 locale 的用户可见格式名，例如“HDR10+”“杜比视界 8.4”“SDR”。 */
             val formatLabel: String,
+            /** 实际使用的编码器族，例如“HEVC”“AV1”“H.264”。 */
+            val codecLabel: String,
+            /** 实际使用的编码器实现是否为纯软件。 */
+            val softwareCodec: Boolean,
             val frameRate: Int,
             val frames: Int,
             /** 漫反射白（尼特）；0 表示不是 PQ 系，完成态不显示色彩规格那一行。 */

@@ -1564,7 +1564,7 @@
     <string name="fablesol_export_started">正在导出水体视频…</string>
     <string name="cd_export_fablesol_video">导出水体视频</string>
     <string name="fablesol_group_export">视频导出</string>
-    <string name="fablesol_param_export_frame_rate">帧率上限</string>
+    <string name="fablesol_param_export_frame_rate">帧率</string>
     <string name="fablesol_param_export_cq">恒定质量</string>
     <string name="fablesol_param_export_quality">质量</string>
     <string name="fablesol_param_export_bitrate">目标码率</string>
@@ -1609,7 +1609,18 @@
     <string name="fablesol_export_hdr_format_name_dolby_vision_84">杜比视界 8.4</string>
     <string name="fablesol_export_hdr_format_auto">自动</string>
     <string name="fablesol_export_diagnostics_loading">正在读取设备能力…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">长按可复制以上信息。</string>
     <string name="fablesol_export_hdr_format_probing">正在检测本机可编码的格式。</string>
+    <string name="fablesol_param_export_codec">视频编码器</string>
+    <string name="fablesol_export_codec_desc">灰色选项表示该组合在本机未通过单帧编码验证。</string>
+    <string name="fablesol_export_codec_software_suffix">（软件编码）</string>
+    <string name="fablesol_export_codec_desc_auto">自动：在当前输出格式与帧率下，选择规格最高且已通过本机实测验证的硬件编码器。</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC（H.265）：同码率下画质明显优于 H.264，且是本机全部 HDR 格式的承载通路。</string>
+    <string name="fablesol_export_codec_desc_av1">AV1：同等码率下压缩效率最高，但硬件编码器普及度低，部分播放器与分享链路尚不支持。</string>
+    <string name="fablesol_export_codec_desc_avc">H.264：兼容性最好，几乎任何设备与平台都能播放；同码率下画质低于 HEVC 与 AV1，且不承载任何 HDR 格式。</string>
+    <string name="fablesol_export_codec_desc_resolved">当前实际使用：%1$s。</string>
+    <string name="fablesol_export_codec_hardware_suffix">（硬件编码）</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">本机无可用的 HDR 编码格式。</string>
     <string name="fablesol_export_hdr_desc_auto">按 HDR 规格与画质能力由高到低，选用本机实测可编码的首个格式。当前为 %1$s。</string>
     <string name="fablesol_export_hdr_desc_hdr10">采用 PQ 绝对亮度传递函数与静态母版元数据。母版峰值和最大帧平均亮度由漫反射白及 HDR 强度推导，播放设备依据这些静态参数完成显示映射；HDR 播放兼容范围最广。</string>

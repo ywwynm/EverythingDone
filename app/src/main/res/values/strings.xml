@@ -1570,7 +1570,7 @@
     <string name="fablesol_export_started">Exporting the water video…</string>
     <string name="cd_export_fablesol_video">Export water video</string>
     <string name="fablesol_group_export">Video export</string>
-    <string name="fablesol_param_export_frame_rate">Frame rate cap</string>
+    <string name="fablesol_param_export_frame_rate">Frame rate</string>
     <string name="fablesol_param_export_cq">Constant quality</string>
     <string name="fablesol_param_export_quality">Quality</string>
     <string name="fablesol_param_export_bitrate">Target bitrate</string>
@@ -1615,7 +1615,18 @@
     <string name="fablesol_export_hdr_format_name_dolby_vision_84">Dolby Vision 8.4</string>
     <string name="fablesol_export_hdr_format_auto">Auto</string>
     <string name="fablesol_export_diagnostics_loading">Reading device capability…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">Long-press this report to copy it.</string>
     <string name="fablesol_export_hdr_format_probing">Checking which formats this device can encode.</string>
+    <string name="fablesol_param_export_codec">Video codec</string>
+    <string name="fablesol_export_codec_desc">Greyed options are combinations this device failed to encode.</string>
+    <string name="fablesol_export_codec_software_suffix"> (software)</string>
+    <string name="fablesol_export_codec_desc_auto">Auto picks the highest-specification hardware encoder verified on this device for the current format and frame rate.</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC (H.265) delivers clearly better quality than H.264 at the same bitrate and carries every HDR format this device supports.</string>
+    <string name="fablesol_export_codec_desc_av1">AV1 has the highest compression efficiency, but hardware encoders for it are uncommon and some players and sharing services still cannot open it.</string>
+    <string name="fablesol_export_codec_desc_avc">H.264 plays everywhere, but at the same bitrate its quality is below HEVC and AV1, and it carries no HDR format.</string>
+    <string name="fablesol_export_codec_desc_resolved"> Currently using %1$s.</string>
+    <string name="fablesol_export_codec_hardware_suffix"> (hardware)</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">No HDR encoding format is available on this device.</string>
     <string name="fablesol_export_hdr_desc_auto">Orders formats from highest to lowest HDR specification and image-quality capability, then selects the first one this device is verified to encode. Currently %1$s.</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ absolute-luminance transfer with static mastering metadata. Mastering peak and MaxFALL are derived from diffuse white and HDR strength; the playback display maps the signal from those static values. This format has the broadest HDR playback compatibility.</string>

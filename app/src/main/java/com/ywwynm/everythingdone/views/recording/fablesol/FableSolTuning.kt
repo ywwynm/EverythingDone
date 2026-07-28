@@ -166,6 +166,7 @@ object FableSolTuning {
     private const val KEY_EXPORT_KEYFRAME = "export_keyframe"
     private const val KEY_EXPORT_HDR = "export_hdr"
     private const val KEY_EXPORT_HDR_FORMAT = "export_hdr_format"
+    private const val KEY_EXPORT_CODEC = "export_codec"
     private const val KEY_EXPORT_PQ_WHITE = "export_pq_white"
     private const val KEY_EXPORT_HIGHLIGHT_START = "export_highlight_start"
     private const val KEY_EXPORT_TILT = "export_tilt"
@@ -355,11 +356,32 @@ object FableSolTuning {
         prefs(context).edit().putBoolean(KEY_EXPORT_TILT, value).apply()
     }
 
+    /**
+     * 是否导出 HDR 视频。**只记录用户自己的选择。**
+     *
+     * 曾经它也承担"这台设备编不出 HDR"这个能力结论：设置页发现一种格式都编不出来时会把它
+     * 写成 false。代价是这个写入不可逆——`false` 之后即便探测重新通过，界面仍以偏好为准
+     * 落在「关闭」上，于是又写一次 false。三星 Z Fold4 上实际发生过：设备明明能编 HDR10 和
+     * HLG，默认却停在关闭（2026-07-27）。能力是能力，偏好是偏好，能力驱动的收敛只允许影响
+     * 当次显示，不得回写这个键。
+     */
     fun exportHdrEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_EXPORT_HDR, true)
 
     fun setExportHdrEnabled(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_EXPORT_HDR, value).apply()
+    }
+
+    internal fun exportCodec(context: Context): FableSolExportOptions.CodecPreference =
+        FableSolExportOptions.CodecPreference.fromStored(
+            prefs(context).getInt(KEY_EXPORT_CODEC, 0)
+        )
+
+    internal fun setExportCodec(
+        context: Context,
+        value: FableSolExportOptions.CodecPreference
+    ) {
+        prefs(context).edit().putInt(KEY_EXPORT_CODEC, value.ordinal).apply()
     }
 
     internal fun exportHdrFormat(context: Context): FableSolExportOptions.HdrFormatPreference =
@@ -464,6 +486,7 @@ object FableSolTuning {
             .remove(KEY_EXPORT_KEYFRAME)
             .remove(KEY_EXPORT_HDR)
             .remove(KEY_EXPORT_HDR_FORMAT)
+            .remove(KEY_EXPORT_CODEC)
             .remove(KEY_EXPORT_PQ_WHITE)
             .remove(KEY_EXPORT_HIGHLIGHT_START)
             .remove(KEY_EXPORT_TILT)

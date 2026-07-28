@@ -981,7 +981,7 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="fablesol_export_started">Esportazione del video dell\'acqua…</string>
     <string name="cd_export_fablesol_video">Esporta video dell\'acqua</string>
     <string name="fablesol_group_export">Esportazione video</string>
-    <string name="fablesol_param_export_frame_rate">Limite frame rate</string>
+    <string name="fablesol_param_export_frame_rate">Frame rate</string>
     <string name="fablesol_param_export_cq">Qualità costante</string>
     <string name="fablesol_param_export_quality">Qualità</string>
     <string name="fablesol_param_export_bitrate">Bitrate di destinazione</string>
@@ -1019,7 +1019,18 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="fablesol_param_export_hdr_format">Formato HDR di esportazione</string>
     <string name="fablesol_export_hdr_format_auto">Automatico</string>
     <string name="fablesol_export_diagnostics_loading">Lettura delle capacità del dispositivo…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">Tieni premuto questo rapporto per copiarlo.</string>
     <string name="fablesol_export_hdr_format_probing">Verifica dei formati che questo dispositivo può codificare.</string>
+    <string name="fablesol_param_export_codec">Codec video</string>
+    <string name="fablesol_export_codec_desc">Le opzioni in grigio sono combinazioni che questo dispositivo non è riuscito a codificare.</string>
+    <string name="fablesol_export_codec_software_suffix"> (software)</string>
+    <string name="fablesol_export_codec_desc_auto">Automatico seleziona il codificatore hardware con la specifica più elevata verificato su questo dispositivo per il formato e il frame rate correnti.</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC (H.265) offre una qualità nettamente migliore di H.264 a parità di bitrate e supporta tutti i formati HDR di questo dispositivo.</string>
+    <string name="fablesol_export_codec_desc_av1">AV1 ha la massima efficienza di compressione, ma i codificatori hardware sono rari e alcuni lettori e servizi non lo aprono ancora.</string>
+    <string name="fablesol_export_codec_desc_avc">H.264 si riproduce ovunque, ma a parità di bitrate la qualità è inferiore a HEVC e AV1 e non supporta alcun formato HDR.</string>
+    <string name="fablesol_export_codec_desc_resolved"> Attualmente in uso: %1$s.</string>
+    <string name="fablesol_export_codec_hardware_suffix"> (hardware)</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">Nessun formato di codifica HDR è disponibile su questo dispositivo.</string>
     <string name="fablesol_export_hdr_desc_auto">Ordina i formati dal livello più alto al più basso di specifica HDR e capacità di qualità dell’immagine, quindi seleziona il primo la cui codifica è verificata su questo dispositivo. Attualmente %1$s.</string>
     <string name="fablesol_export_hdr_desc_hdr10">Curva di luminanza assoluta PQ con metadati statici di masterizzazione. Il picco deriva direttamente dal bianco diffuso e dall\'intensità HDR, quindi non è necessaria alcuna compressione. Massima compatibilità con i lettori.</string>

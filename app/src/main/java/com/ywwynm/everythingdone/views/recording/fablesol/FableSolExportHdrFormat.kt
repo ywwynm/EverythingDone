@@ -14,7 +14,18 @@ internal class FableSolExportCodecEntry(
     val profile: Int,
     val eightBit: Boolean,
     val label: String
-)
+) {
+    /**
+     * 这一候选属于哪个用户可选的编码器族。
+     *
+     * 杜比视界的 MIME 是 `video/dolby-vision`，但基层与编码器都是 HEVC，所以归 HEVC 族；
+     * 界面上不该为它单列一个编码器选项。
+     */
+    val family: FableSolExportCodecFamily
+        get() = checkNotNull(FableSolExportCodecFamily.of(mime)) {
+            "Unmapped codec family for $mime"
+        }
+}
 
 /**
  * 用户可选的 HDR 输出格式。

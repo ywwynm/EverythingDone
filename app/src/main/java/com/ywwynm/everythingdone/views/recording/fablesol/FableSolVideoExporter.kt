@@ -47,6 +47,10 @@ internal class FableSolVideoExporter(
             val hdr: Boolean,
             /** 当前 locale 的用户可见格式名，例如“HDR10+”“杜比视界 8.4”“SDR”。 */
             val formatLabel: String,
+            /** 实际使用的编码器族，例如“HEVC”“AV1”“H.264”。 */
+            val codecLabel: String,
+            /** 实际使用的编码器实现是否为纯软件；完成态要标出来。 */
+            val softwareCodec: Boolean,
             val frameRate: Int,
             val frames: Int,
             val elapsedMs: Long,
@@ -111,7 +115,12 @@ internal class FableSolVideoExporter(
                     basePlan.canvasWidthPx,
                     basePlan.canvasHeightPx,
                     attempt.frameRate,
-                    preferConstantQuality = options.constantQuality
+                    preferConstantQuality = options.constantQuality,
+                    // 用户钉死某个编码器族时只走那一族；自动档不使用软件编码器——本项目的
+                    // 画布接近两百万像素，让软件编码作为静默退路等于在用户毫不知情的情况下
+                    // 把一次导出拖长几十倍（三星 Z Fold4 上实际落到过软件 AV1 的 60fps）。
+                    family = options.codec.family,
+                    allowSoftware = options.codec.allowsSoftware
                 )
                 for (tier in candidates) {
                     foundCandidate = true
@@ -388,6 +397,13 @@ internal class FableSolVideoExporter(
             check(!byteBuffer || encoder.hdr10PlusSeiSeen) {
                 "HDR10+ metadata never reached the bitstream"
             }
+            // **同一道门的另一半：编码器有没有真的产出东西。** `INFO_OUTPUT_FORMAT_CHANGED`
+            // 一来就能 addTrack 并启动 muxer，随后一个样本都没有，`finish()` 照样成功返回，
+            // 产物是 0 字节。华为平板上每一档 HEVC 都这样（10 位输入表面拿不到带 recordable
+            // 的 config），只有 8 位的 H.264 有数据（2026-07-28）。抛出去让阶梯换下一档。
+            check(encoder.videoSamplesWritten > 0L) {
+                "Encoder produced no video samples for ${tier.label}"
+            }
 
             // finish() 已完成并验证 muxer.stop()/release()；现在才允许关闭 PFD、清 pending 或
             // 触发 MediaScanner。发布失败仍属于整次候选失败。
@@ -398,6 +414,11 @@ internal class FableSolVideoExporter(
             if (!committed) {
                 throw PublishFailure("Failed to publish the exported video")
             }
+            // 兜底：样本计数正常但落盘仍是空文件时，绝不能把它留在图库里。这一步失败也算
+            // 本候选失败，阶梯会换下一档重来。
+            if (request.sink.fileSizeBytes() <= 0L) {
+                error("Published file is empty for ${tier.label}")
+            }
             published = true
             reportProgress(attemptStartedAt, frameIndex, frameIndex)
             return Result.Success(
@@ -405,6 +426,9 @@ internal class FableSolVideoExporter(
                 tier.displayLabel(context),
                 tier.hdr,
                 tier.hdrFormat?.displayName(context) ?: FableSolExportHdrFormat.SDR_LABEL,
+                // 位深要写出来：10 位 HEVC 的分享兼容性明显差于 8 位。
+                tier.family.stableLabel + if (tier.eightBit) " 8-bit" else " 10-bit",
+                tier.softwareOnly,
                 frameRate,
                 frameIndex,
                 SystemClock.elapsedRealtime() - exportStartedAt,

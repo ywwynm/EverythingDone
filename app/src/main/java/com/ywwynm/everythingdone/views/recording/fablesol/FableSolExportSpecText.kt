@@ -17,6 +17,35 @@ import java.util.Locale
 internal object FableSolExportSpecText {
 
     /**
+     * 完成态"规格"那一栏：输出格式加实际使用的编码器。
+     *
+     * 编码器必须写出来。降级阶梯会在格式、帧率与编码器三条轴上依次退让，退到哪里此前完全
+     * 看不出来——三星 Z Fold4 上一次 HDR 导出实际落在软件 AV1 的 60fps 上，而完成提示只说
+     * 了"HDR10，60 fps"（2026-07-27）。软件编码耗时与硬件差一到两个数量级，更要标出来。
+     *
+     * @param codecLabel 编码器族的固定标识，例如 “HEVC”“AV1”“H.264”。
+     */
+    fun specification(
+        context: Context,
+        formatLabel: String,
+        codecLabel: String,
+        softwareCodec: Boolean
+    ): String {
+        // 软硬件**两种都要写出来**。只在软件时加后缀，看到没有后缀的人无从判断那是"硬件"
+        // 还是"这一项没做"（用户 2026-07-28 指出）。
+        val codec = codecLabel + context.getString(
+            if (softwareCodec) {
+                R.string.fablesol_export_codec_software_suffix
+            } else {
+                R.string.fablesol_export_codec_hardware_suffix
+            }
+        )
+        return context.getString(
+            R.string.fablesol_export_spec_format_codec, formatLabel, codec
+        )
+    }
+
+    /**
      * @param whiteNits 漫反射白；≤0 表示这次导出不是 PQ 系，整行不出现。
      * @param peakNits 峰值 = 漫反射白 × HDR 强度。
      * @param highlightStartPercent 高光起点百分位；≤0 表示不是 HDR10+，该项不出现。

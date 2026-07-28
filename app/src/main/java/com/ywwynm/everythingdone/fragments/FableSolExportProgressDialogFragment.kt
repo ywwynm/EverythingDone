@@ -150,7 +150,12 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
                 bar.visibility = View.GONE
                 status.text = getString(
                     R.string.fablesol_export_dialog_done,
-                    state.formatLabel,
+                    FableSolExportSpecText.specification(
+                        requireContext(),
+                        state.formatLabel,
+                        state.codecLabel,
+                        state.softwareCodec
+                    ),
                     state.frameRate,
                     Formatter.formatFileSize(requireContext(), state.fileSizeBytes),
                     FableSolExportBitrateText.of(state.bitrateBps),

@@ -86,6 +86,18 @@ internal class FableSolExportEncoder(
     var hdr10PlusSeiSeen = false
         private set
 
+    /**
+     * 真正写进容器的视频样本数（不含 codec-config）。
+     *
+     * **"拿到了输出格式并走到了 EOS"不等于"编出了东西"。** `INFO_OUTPUT_FORMAT_CHANGED` 一来
+     * 就能 `addTrack` 并启动 muxer，随后即便一个实际样本都没有，`finish()` 依然会成功返回，
+     * 产物则是一个 0 字节的文件。华为平板上 `OMX.hisi.video.encoder.hevc` 正是如此：10 位
+     * 输入表面拿不到带 `EGL_RECORDABLE_ANDROID` 的 config，编码器不报错也不产出，SDR 与 HDR
+     * 的每一档 HEVC 都导出成 0 字节，只有 8 位的 H.264 有数据（2026-07-28）。
+     */
+    var videoSamplesWritten = 0L
+        private set
+
     init {
         try {
             // 按**具体编码器名字**创建，而不是 createEncoderByType：后者返回系统首选实现，
@@ -386,6 +398,7 @@ internal class FableSolExportEncoder(
         if (buffer == null) return
         if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) return
         if (info.size <= 0) return
+        if (track == videoTrack) videoSamplesWritten++
         if (byteBufferInput && track == videoTrack && !hdr10PlusSeiSeen) {
             // HDR10+ 唯一作数的证据就是码流里那段 SEI——输出格式回报的 profile 本来就是
             // Main10，拿它判断只会误杀。这里在样本写出去之前顺手确认一次。
@@ -436,8 +449,16 @@ internal class FableSolExportEncoder(
         }
         validateFullFrameCrop(format)
         if (tier.profile != 0 && !tier.eightBit) {
+            // **没回报不等于被改掉。** 不少编码器（尤其是 OMX 系）压根不把 KEY_PROFILE 写进
+            // outputFormat，此前这里把 null 一律判成"降了档"，于是一台明明已经产出 10-bit
+            // HDR 输出的华为平板被自己的校验否掉，报的是 `changed profile 2 to null`
+            // （2026-07-28）。与色彩键的处理保持一致：缺失就是没有信息，只有回报了**别的
+            // 值**才算真的换了东西。
+            //
+            // 放过 null 不会让 HDR10+ 或杜比视界蒙混过关：前者的判据本来就是码流里那段 SEI，
+            // 后者换的是 MIME，而传递函数另有一道校验。
             val actualProfile = format.intOrNull(MediaFormat.KEY_PROFILE)
-            check(actualProfile != null && tier.acceptsTenBitProfile(actualProfile)) {
+            check(actualProfile == null || tier.acceptsTenBitProfile(actualProfile)) {
                 "Encoder changed profile ${tier.profile} to $actualProfile"
             }
         }
@@ -642,6 +663,16 @@ internal data class FableSolExportTier(
     val transfer: FableSolExportTransfer,
     /** 本档属于哪种用户可选的 HDR 格式；null 表示 SDR。 */
     val hdrFormat: FableSolExportHdrFormat?,
+    /** 本档属于哪个用户可选的编码器族。 */
+    val family: FableSolExportCodecFamily,
+    /**
+     * 这个编码器实现是不是纯软件的。
+     *
+     * 自动档不使用软件编码器：本项目的导出画布接近两百万像素，软件编码与硬件编码的耗时
+     * 差一到两个数量级，让它作为静默退路等于在用户毫不知情的情况下把一次导出拖长几十倍。
+     * 用户明确选中该编码器族时才走这条路，届时界面已经标出"软件编码"。
+     */
+    val softwareOnly: Boolean,
     /** 8-bit 档位必须在 shader 里重新启用抖动（D9）。 */
     val eightBit: Boolean,
     val supportsCbr: Boolean,
@@ -649,7 +680,15 @@ internal data class FableSolExportTier(
     val bitrateRange: Range<Int>?,
     val encodedWidthPx: Int,
     val encodedHeightPx: Int,
-    val label: String
+    val label: String,
+    /**
+     * 阶梯项本身的名字，例如 “HEVC Main10”“HEVC Main SDR”“H.264 High SDR”。
+     *
+     * 与 [label] 的区别是不带格式前缀与编码器实现名。能力报告需要它：同一个编码器族里
+     * 10-bit 与 8-bit 是两个阶梯项，只写 “HEVC” 就分不出这台机器到底是 10-bit 编不了，
+     * 还是仅仅 HDR 信号编不了。
+     */
+    val profileLabel: String = label
 ) {
 
     val hdr: Boolean get() = transfer.isHdr
@@ -695,23 +734,38 @@ internal data class FableSolExportTier(
          * 按 D9 的阶梯列出**所有**可用档位，顺序即优先级。调用方逐个尝试：创建编码器或
          * 建 EGL 链路失败就换下一个，全部失败才算导出失败。
          */
-        /** @param format null 表示 SDR——SDR 不是一种 HDR 格式。 */
+        /**
+         * @param format null 表示 SDR——SDR 不是一种 HDR 格式。
+         * @param family 只保留这个编码器族的候选；null 表示不限。
+         * @param allowSoftware false 时排除纯软件编码器（自动档就是这样）。
+         */
         fun candidatesForMode(
             format: FableSolExportHdrFormat?,
             widthPx: Int,
             heightPx: Int,
             frameRate: Int,
-            preferConstantQuality: Boolean = true
+            preferConstantQuality: Boolean = true,
+            family: FableSolExportCodecFamily? = null,
+            allowSoftware: Boolean = true
         ): List<FableSolExportTier> {
             val result = ArrayList<FableSolExportTier>(4)
-            val ladder = format?.codecEntries ?: SDR_LADDER
-            for (entry in ladder) {
+            for (entry in ladderFor(format)) {
+                if (family != null && entry.family != family) continue
                 collect(
-                    entry, format, widthPx, heightPx, frameRate, result, preferConstantQuality
+                    entry, format, widthPx, heightPx, frameRate, result,
+                    preferConstantQuality, allowSoftware
                 )
             }
             return result
         }
+
+        /** 该输出格式的编码阶梯；顺序即优先级。SDR 不属于任何 HDR 格式，单独一张表。 */
+        fun ladderFor(format: FableSolExportHdrFormat?): List<FableSolExportCodecEntry> =
+            format?.codecEntries ?: SDR_LADDER
+
+        /** 该输出格式**结构上**可能用到的编码器族，去重后保持阶梯顺序。 */
+        fun familiesFor(format: FableSolExportHdrFormat?): List<FableSolExportCodecFamily> =
+            ladderFor(format).map { it.family }.distinct()
 
         private fun collect(
             entry: FableSolExportCodecEntry,
@@ -720,7 +774,8 @@ internal data class FableSolExportTier(
             heightPx: Int,
             frameRate: Int,
             target: MutableList<FableSolExportTier>,
-            preferConstantQuality: Boolean
+            preferConstantQuality: Boolean,
+            allowSoftware: Boolean
         ) {
             // MediaMuxer 的 MP4 容器到 API 34 才正式支持封装 AV1；更早的系统上即便厂商
             // 提前给了 AV1 编码器，也会在 addTrack 时失败，而那已经在降级循环之外了。
@@ -731,6 +786,8 @@ internal data class FableSolExportTier(
             for (info in list.codecInfos) {
                 if (!info.isEncoder) continue
                 if (info.supportedTypes.none { it.equals(entry.mime, ignoreCase = true) }) continue
+                val softwareOnly = FableSolExportCodecFamily.isSoftwareOnly(info)
+                if (softwareOnly && !allowSoftware) continue
                 val capabilities = try {
                     info.getCapabilitiesForType(entry.mime)
                 } catch (ignored: Throwable) {
@@ -802,6 +859,8 @@ internal data class FableSolExportTier(
                         level = profileLevel?.level ?: 0,
                         transfer = transfer,
                         hdrFormat = format,
+                        family = entry.family,
+                        softwareOnly = softwareOnly,
                         eightBit = entry.eightBit,
                         supportsCbr = supportsCbr,
                         qualityRange = qualityRange,
@@ -817,15 +876,30 @@ internal data class FableSolExportTier(
                         label = format?.let {
                             "${it.stableLabel} ${entry.label} (${info.name})"
                         }
-                            ?: "${entry.label} (${info.name})"
+                            ?: "${entry.label} (${info.name})",
+                        profileLabel = entry.label
                     )
                 )
             }
-            // 同一档内，先排能满足用户所选编码模式的编码器，避免首个编码器不支持就静默换模式。
-            batch.sortByDescending {
-                if (preferConstantQuality) it.qualityRange != null else it.supportsCbr
-            }
-            target.addAll(batch)
+            // 同一档内，**硬件编码器一律排在软件编码器之前**；其次才是能满足用户所选编码
+            // 模式的编码器，避免首个编码器不支持就静默换模式。软件编码器在自动档下已经被
+            // allowSoftware 挡掉，这里的排序是用户显式选中某个族、而该族软硬件实现并存时
+            // 的兜底。
+            val ordered = batch.sortedWith(
+                compareBy(
+                    { it.softwareOnly },
+                    {
+                        !(
+                            if (preferConstantQuality) {
+                                it.qualityRange != null
+                            } else {
+                                it.supportsCbr
+                            }
+                            )
+                    }
+                )
+            )
+            target.addAll(ordered)
         }
 
         internal fun alignForEncoder(value: Int, alignment: Int): Int {
@@ -869,6 +943,20 @@ internal data class FableSolExportTier(
                 MediaCodecInfo.CodecProfileLevel.HEVCProfileMain,
                 eightBit = true,
                 label = "HEVC Main SDR"
+            ),
+            // AV1 此前只在 HDR 阶梯里出现，SDR 完全没有——于是"用户想选 AV1"这件事在关掉
+            // HDR 之后根本无从谈起。补上之后 SDR 也成了三个编码器族齐全的一档。
+            FableSolExportCodecEntry(
+                MediaFormat.MIMETYPE_VIDEO_AV1,
+                MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10,
+                eightBit = false,
+                label = "AV1 Main10 SDR"
+            ),
+            FableSolExportCodecEntry(
+                MediaFormat.MIMETYPE_VIDEO_AV1,
+                MediaCodecInfo.CodecProfileLevel.AV1ProfileMain8,
+                eightBit = true,
+                label = "AV1 Main8 SDR"
             ),
             FableSolExportCodecEntry(
                 MediaFormat.MIMETYPE_VIDEO_AVC,

@@ -35,6 +35,8 @@ internal data class FableSolExportOptions(
     val hdrEnabled: Boolean,
     /** 指定 HDR 信号格式；默认自动 = 设备支持哪些就按规格/画质能力顺序试。 */
     val hdrFormat: HdrFormatPreference = HdrFormatPreference.AUTO,
+    /** 指定视频编码器族；默认自动 = 按阶梯顺序试，且不使用软件编码器。 */
+    val codec: CodecPreference = CodecPreference.AUTO,
     /**
      * PQ 系导出里，漫反射白（水体与卡片）钉在多少尼特。
      *
@@ -88,6 +90,29 @@ internal data class FableSolExportOptions(
 
             fun of(format: FableSolExportHdrFormat): HdrFormatPreference =
                 entries.first { it.format == format }
+        }
+    }
+
+    /**
+     * 用户对视频编码器的偏好。枚举顺序即持久化的序号，**不能重排**。
+     *
+     * [AUTO] 与"随便挑一个"不是一回事：自动档按阶梯顺序取规格最高且实测可用的**硬件**
+     * 编码器，软件编码器只有在用户明确选中该族时才使用。
+     */
+    enum class CodecPreference(val family: FableSolExportCodecFamily?) {
+        AUTO(null),
+        HEVC(FableSolExportCodecFamily.HEVC),
+        AV1(FableSolExportCodecFamily.AV1),
+        AVC(FableSolExportCodecFamily.AVC);
+
+        /** 自动档不使用软件编码器；用户明确选中某个族时才允许。 */
+        val allowsSoftware: Boolean get() = family != null
+
+        companion object {
+            fun fromStored(value: Int): CodecPreference = entries.getOrElse(value) { AUTO }
+
+            fun of(family: FableSolExportCodecFamily): CodecPreference =
+                entries.first { it.family == family }
         }
     }
 
@@ -146,6 +171,7 @@ internal data class FableSolExportOptions(
             keyframeIntervalSeconds = FableSolTuning.exportKeyframeSeconds(context),
             hdrEnabled = FableSolTuning.exportHdrEnabled(context),
             hdrFormat = FableSolTuning.exportHdrFormat(context),
+            codec = FableSolTuning.exportCodec(context),
             pqWhiteNits = FableSolTuning.exportPqWhiteNits(context),
             highlightStartPercent = FableSolTuning.exportHighlightStart(context),
             tiltEnabled = FableSolTuning.exportTiltEnabled(context)
@@ -154,16 +180,30 @@ internal data class FableSolExportOptions(
         /**
          * 设置界面用的代表性 CQ 区间：优先 HEVC（导出阶梯的首选），退到 H.264。
          * 返回 null 表示本机没有任何编码器支持恒定质量，界面上该档位应当整个不出现。
+         *
+         * **候选编码器必须真的编得了本次画布。** 恒定质量与编码器是绑在一起的：三星 Z Fold4
+         * 上支持 CQ 的只有 `c2.qti.hevc.encoder.cq`，而它的尺寸上限是 512×512，本项目的画布
+         * （约 1344×1472）根本轮不到它。此前不查尺寸，于是设置里摆着一个恒定质量档，导出时
+         * `resolvedQuality` 解出 null，静默换成恒定码率——面板上写的和实际下发的不是一回事
+         * （2026-07-28）。
          */
-        fun settingsQualityRange(): Range<Int>? {
+        fun settingsQualityRange(context: Context): Range<Int>? {
             if (settingsQualityRangeResolved) return cachedSettingsQualityRange
             return synchronized(this) {
                 if (!settingsQualityRangeResolved) {
+                    val plan = FableSolExportSpec.plan(
+                        context, FableSolExportSpec.MAX_CARD_WIDTH_DP
+                    )
                     cachedSettingsQualityRange = if (Build.VERSION.SDK_INT < 28) {
                         null
                     } else {
-                        qualityRange(MediaFormat.MIMETYPE_VIDEO_HEVC)
-                            ?: qualityRange(MediaFormat.MIMETYPE_VIDEO_AVC)
+                        qualityRange(
+                            MediaFormat.MIMETYPE_VIDEO_HEVC,
+                            plan.canvasWidthPx, plan.canvasHeightPx
+                        ) ?: qualityRange(
+                            MediaFormat.MIMETYPE_VIDEO_AVC,
+                            plan.canvasWidthPx, plan.canvasHeightPx
+                        )
                     }
                     // 即使结果为 null 也要缓存；否则不支持 CQ 的设备仍会每次打开设置都枚举 codec。
                     settingsQualityRangeResolved = true
@@ -172,7 +212,7 @@ internal data class FableSolExportOptions(
             }
         }
 
-        private fun qualityRange(mime: String): Range<Int>? {
+        private fun qualityRange(mime: String, widthPx: Int, heightPx: Int): Range<Int>? {
             if (Build.VERSION.SDK_INT < 28) return null
             val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
             for (info in list.codecInfos) {
@@ -188,6 +228,23 @@ internal data class FableSolExportOptions(
                         MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ
                     )
                 ) continue
+                // 编不了这块画布的编码器不能代表本机的恒定质量能力。60fps 是导出阶梯的底档，
+                // 连它都撑不住就一定进不了候选。
+                val video = capabilities.videoCapabilities ?: continue
+                val encodedWidth = FableSolExportTier.alignForEncoder(
+                    widthPx, video.widthAlignment
+                )
+                val encodedHeight = FableSolExportTier.alignForEncoder(
+                    heightPx, video.heightAlignment
+                )
+                val fits = try {
+                    video.areSizeAndRateSupported(
+                        encodedWidth, encodedHeight, FRAME_RATE_BASE.toDouble()
+                    )
+                } catch (ignored: Throwable) {
+                    false
+                }
+                if (!fits) continue
                 val range = try {
                     encoder.qualityRange
                 } catch (ignored: Throwable) {

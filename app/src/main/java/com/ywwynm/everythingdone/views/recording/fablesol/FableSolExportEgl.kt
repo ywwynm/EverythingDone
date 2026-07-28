@@ -113,11 +113,18 @@ internal class FableSolExportEgl(
      * 10-bit 表面的 config **不能只试一种组合**。
      *
      * 华为平板（Kirin / `OMX.hisi.video.encoder.hevc`）上原先那一种组合直接
-     * `eglChooseConfig failed`，整机 HDR 因此全灭。但失败的多半不是"这台机器没有 10-bit"，
-     * 而是**没有同时满足 alpha≥2 与 `EGL_RECORDABLE_ANDROID` 的那一个 config**——不少厂商
-     * 驱动根本不给 10-bit config 打 recordable 标记。而编码器输入表面本来就来自
-     * `MediaCodec.createInputSurface()`，recordable 只是给驱动的一个提示；拿不到就退一档，
-     * 好过整条 HDR 通路不可用。
+     * `eglChooseConfig failed`，整机 HDR 因此全灭。所以这里改成一条阶梯逐档放宽。
+     *
+     * **但"退到不带 recordable 的那一档"是有真实代价的，此前这里的注释把它写成了"只是给驱动
+     * 的一个提示"，那是错的。** `EGL_RECORDABLE_ANDROID` 决定分配出来的缓冲带不带视频编码器
+     * 用途位；少了它，交给 `MediaCodec.createInputSurface()` 的缓冲编码器根本消费不了。三星
+     * Z Fold4 上 10-bit 各档一律以编码器"已被释放"告终，而 8-bit 档走的是带 recordable 的
+     * 那一档，一切正常（2026-07-28）。
+     *
+     * 因此真正该做的是**先把 config 找全**：`EGL_RECORDABLE_ANDROID` 是厂商扩展属性，部分驱动
+     * 不把它纳入 `eglChooseConfig` 的匹配，却在 `eglGetConfigAttrib` 里如实回报。[pickConfig]
+     * 在 `eglChooseConfig` 落空后会自己枚举全部 config 逐个核对。放宽的那两档保留，作为枚举
+     * 也找不到时的最后退路——那种设备上这条通路本来就走不通，留着至少让真实编码探测去判定。
      */
     private fun chooseConfig(
         display: EGLDisplay,
@@ -194,12 +201,91 @@ internal class FableSolExportEgl(
             } catch (ignored: Throwable) {
                 false
             }
-            return if (ok) configs[0] else null
+            // **`eglChooseConfig` 匹配不到不等于这台机器没有。** `EGL_RECORDABLE_ANDROID` 是
+            // 厂商扩展属性，部分驱动不把它纳入 eglChooseConfig 的匹配，却在
+            // eglGetConfigAttrib 里如实回报。这时自己枚举全部 config 逐个核对才拿得到。
+            //
+            // 这一步对本项目是要害：recordable 不是"给驱动的提示"，它决定分配出来的缓冲带不
+            // 带视频编码器用途位。少了它，交给 MediaCodec 输入表面的缓冲编码器根本消费不了
+            // ——三星 Z Fold4 上 10-bit 档一律以编码器"已被释放"告终，而 8-bit 档（走的是带
+            // recordable 的那一档）一切正常（2026-07-28）。
+            return if (ok) configs[0] else enumerateConfig(display, variant, offscreen)
+        }
+
+        /** 枚举全部 config 并逐个核对，绕开 eglChooseConfig 对厂商属性的匹配差异。 */
+        private fun enumerateConfig(
+            display: EGLDisplay,
+            variant: ConfigVariant,
+            offscreen: Boolean
+        ): EGLConfig? = try {
+            allConfigs(display).firstOrNull { matches(display, it, variant, offscreen) }
+        } catch (ignored: Throwable) {
+            null
+        }
+
+        private fun allConfigs(display: EGLDisplay): List<EGLConfig> {
+            val total = IntArray(1)
+            if (!EGL14.eglGetConfigs(display, null, 0, 0, total, 0) || total[0] <= 0) {
+                return emptyList()
+            }
+            val configs = arrayOfNulls<EGLConfig>(total[0])
+            val count = IntArray(1)
+            if (!EGL14.eglGetConfigs(display, configs, 0, total[0], count, 0)) return emptyList()
+            return configs.take(count[0]).filterNotNull()
+        }
+
+        private fun attribute(display: EGLDisplay, config: EGLConfig, key: Int): Int? {
+            val value = IntArray(1)
+            return if (EGL14.eglGetConfigAttrib(display, config, key, value, 0)) value[0] else null
+        }
+
+        private fun matches(
+            display: EGLDisplay,
+            config: EGLConfig,
+            variant: ConfigVariant,
+            offscreen: Boolean
+        ): Boolean {
+            val surfaceBit = if (offscreen) EGL14.EGL_PBUFFER_BIT else EGL14.EGL_WINDOW_BIT
+            val surfaceType = attribute(display, config, EGL14.EGL_SURFACE_TYPE) ?: return false
+            if (surfaceType and surfaceBit == 0) return false
+            val renderable = attribute(display, config, EGL14.EGL_RENDERABLE_TYPE) ?: return false
+            if (renderable and EGL_OPENGL_ES3_BIT_KHR == 0) return false
+            for (channel in intArrayOf(
+                EGL14.EGL_RED_SIZE, EGL14.EGL_GREEN_SIZE, EGL14.EGL_BLUE_SIZE
+            )) {
+                if (attribute(display, config, channel) != variant.componentBits) return false
+            }
+            val alpha = attribute(display, config, EGL14.EGL_ALPHA_SIZE) ?: return false
+            if (alpha < variant.alphaBits) return false
+            if (variant.recordable && !offscreen) {
+                // 读不到这个属性就当作没有：宁可退到下一档，也不要拿一个不确定的 config 去
+                // 喂编码器。
+                if (attribute(display, config, EGL_RECORDABLE_ANDROID) != 1) return false
+            }
+            return true
         }
 
         /** 这台机器究竟有没有 10-bit 窗口 config，以及要放宽到哪一档才拿得到。 */
         private fun tenBitWindowConfigLabel(display: EGLDisplay): String? =
             configVariants(tenBit = true).firstOrNull { pickConfig(display, it) != null }?.label
+
+        /**
+         * 10-bit 窗口 config 的清点：一共几个、其中几个带 `EGL_RECORDABLE_ANDROID`。
+         *
+         * 这两个数直接决定 10-bit 编码在这台机器上成不成立，比"退到了哪一档"更有说服力。
+         */
+        private fun tenBitConfigCensus(display: EGLDisplay): Pair<Int, Int> = try {
+            val tenBit = allConfigs(display).filter { config ->
+                val surfaceType = attribute(display, config, EGL14.EGL_SURFACE_TYPE) ?: 0
+                surfaceType and EGL14.EGL_WINDOW_BIT != 0 &&
+                    attribute(display, config, EGL14.EGL_RED_SIZE) == 10
+            }
+            tenBit.size to tenBit.count {
+                attribute(display, it, EGL_RECORDABLE_ANDROID) == 1
+            }
+        } catch (ignored: Throwable) {
+            0 to 0
+        }
         private const val EGL_GL_COLORSPACE_KHR = 0x309D
         private const val EXTENSION_COLORSPACE = "EGL_KHR_gl_colorspace"
         private const val GL_EXT_COLOR_BUFFER_HALF_FLOAT = "GL_EXT_color_buffer_half_float"
@@ -232,6 +318,7 @@ internal class FableSolExportEgl(
                 // 扩展串说"有 PQ"不代表建得起 10-bit 表面：华为平板两者都广告，却在
                 // eglChooseConfig 这一步整机 HDR 全灭。所以把它单独探出来如实显示。
                 val tenBit = tenBitWindowConfigLabel(display)
+                val census = tenBitConfigCensus(display)
 
                 val attributes = intArrayOf(
                     EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT,
@@ -246,7 +333,7 @@ internal class FableSolExportEgl(
                 val count = IntArray(1)
                 if (!EGL14.eglChooseConfig(display, attributes, 0, configs, 0, 1, count, 0) ||
                     count[0] <= 0
-                ) return Capability(false, hlg, pq, tenBit)
+                ) return Capability(false, hlg, pq, tenBit, census.first, census.second)
                 context = EGL14.eglCreateContext(
                     display,
                     configs[0],
@@ -254,21 +341,21 @@ internal class FableSolExportEgl(
                     intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE),
                     0
                 )
-                if (context == EGL14.EGL_NO_CONTEXT) return Capability(false, hlg, pq, tenBit)
+                if (context == EGL14.EGL_NO_CONTEXT) return Capability(false, hlg, pq, tenBit, census.first, census.second)
                 surface = EGL14.eglCreatePbufferSurface(
                     display,
                     configs[0],
                     intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE),
                     0
                 )
-                if (surface == EGL14.EGL_NO_SURFACE) return Capability(false, hlg, pq, tenBit)
+                if (surface == EGL14.EGL_NO_SURFACE) return Capability(false, hlg, pq, tenBit, census.first, census.second)
                 if (!EGL14.eglMakeCurrent(display, surface, surface, context)) {
-                    return Capability(false, hlg, pq, tenBit)
+                    return Capability(false, hlg, pq, tenBit, census.first, census.second)
                 }
                 val glExtensions = GLES30.glGetString(GLES30.GL_EXTENSIONS) ?: ""
                 val halfFloat = glExtensions.contains(GL_EXT_COLOR_BUFFER_HALF_FLOAT) ||
                     glExtensions.contains(GL_EXT_COLOR_BUFFER_FLOAT)
-                return Capability(halfFloat, hlg, pq, tenBit)
+                return Capability(halfFloat, hlg, pq, tenBit, census.first, census.second)
             } catch (ignored: Throwable) {
                 return Capability(false, false, false)
             } finally {
@@ -300,7 +387,18 @@ internal class FableSolExportEgl(
          * 广告了 PQ 扩展**不等于**建得起 10-bit 表面：华为平板两者都广告，却整机卡在
          * `eglChooseConfig`。这一项是把那种情况说清楚的唯一依据。
          */
-        val tenBitWindowConfig: String? = null
+        val tenBitWindowConfig: String? = null,
+        /** 本机 10-bit 窗口 config 总数。 */
+        val tenBitWindowConfigCount: Int = 0,
+        /**
+         * 其中带 `EGL_RECORDABLE_ANDROID` 的个数。
+         *
+         * 这个数决定 10-bit 编码在这台机器上成不成立。recordable 不是"给驱动的提示"：它决定
+         * 分配出来的缓冲带不带视频编码器用途位，少了它，交给 `MediaCodec` 输入表面的缓冲编码
+         * 器根本消费不了。三星 Z Fold4 上 10-bit 各档一律以编码器"已被释放"告终，而 8-bit 档
+         * 走的是带 recordable 的那一档，一切正常（2026-07-28）。
+         */
+        val tenBitRecordableConfigCount: Int = 0
     ) {
 
         val anyHdrColorSpace: Boolean get() = bt2020HlgSupported || bt2020PqSupported

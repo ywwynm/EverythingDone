@@ -162,6 +162,8 @@ class FableSolExportHdrFormatTest {
         level = 1,
         transfer = format.transfer,
         hdrFormat = format,
+        family = format.codecEntries.first().family,
+        softwareOnly = false,
         eightBit = false,
         supportsCbr = true,
         qualityRange = null,

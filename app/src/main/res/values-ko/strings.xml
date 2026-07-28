@@ -1035,7 +1035,7 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_export_started">물결 영상을 내보내는 중…</string>
     <string name="cd_export_fablesol_video">물결 영상 내보내기</string>
     <string name="fablesol_group_export">영상 내보내기</string>
-    <string name="fablesol_param_export_frame_rate">프레임 상한</string>
+    <string name="fablesol_param_export_frame_rate">프레임 속도</string>
     <string name="fablesol_param_export_cq">고정 품질</string>
     <string name="fablesol_param_export_quality">품질</string>
     <string name="fablesol_param_export_bitrate">목표 비트레이트</string>
@@ -1073,7 +1073,18 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_param_export_hdr_format">내보낼 HDR 형식</string>
     <string name="fablesol_export_hdr_format_auto">자동</string>
     <string name="fablesol_export_diagnostics_loading">기기 지원 상태 확인 중…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">이 보고서를 길게 누르면 복사됩니다.</string>
     <string name="fablesol_export_hdr_format_probing">이 기기가 인코딩할 수 있는 형식을 확인하는 중입니다.</string>
+    <string name="fablesol_param_export_codec">비디오 코덱</string>
+    <string name="fablesol_export_codec_desc">흐리게 표시된 항목은 이 기기에서 인코딩하지 못한 조합입니다.</string>
+    <string name="fablesol_export_codec_software_suffix"> (소프트웨어)</string>
+    <string name="fablesol_export_codec_desc_auto">자동은 현재 형식과 프레임 속도에 대해 이 기기에서 검증된 사양이 가장 높은 하드웨어 인코더를 선택합니다.</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC(H.265)는 같은 비트레이트에서 H.264보다 품질이 분명히 좋으며 이 기기의 모든 HDR 형식을 지원합니다.</string>
+    <string name="fablesol_export_codec_desc_av1">AV1은 압축 효율이 가장 높지만 하드웨어 인코더가 드물고 일부 플레이어와 공유 서비스에서는 아직 열리지 않습니다.</string>
+    <string name="fablesol_export_codec_desc_avc">H.264는 어디서든 재생되지만 같은 비트레이트에서 품질은 HEVC나 AV1보다 낮고 HDR 형식을 지원하지 않습니다.</string>
+    <string name="fablesol_export_codec_desc_resolved"> 현재 사용 중: %1$s.</string>
+    <string name="fablesol_export_codec_hardware_suffix"> (하드웨어)</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">이 기기에서 사용할 수 있는 HDR 인코딩 형식이 없습니다.</string>
     <string name="fablesol_export_hdr_desc_auto">HDR 규격과 화질 역량이 높은 순서로, 이 기기에서 인코딩이 확인된 첫 번째 형식을 선택합니다. 현재 %1$s입니다.</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 절대 휘도 곡선과 정적 마스터링 메타데이터. 피크값은 확산 백색과 HDR 강도에서 직접 산출되므로 압축이 필요하지 않습니다. 플레이어 호환성이 가장 넓습니다.</string>

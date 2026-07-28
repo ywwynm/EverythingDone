@@ -981,7 +981,7 @@
     <string name="fablesol_export_started">जल वीडियो निर्यात हो रहा है…</string>
     <string name="cd_export_fablesol_video">जल वीडियो निर्यात करें</string>
     <string name="fablesol_group_export">वीडियो निर्यात</string>
-    <string name="fablesol_param_export_frame_rate">फ्रेम दर सीमा</string>
+    <string name="fablesol_param_export_frame_rate">फ़्रेम दर</string>
     <string name="fablesol_param_export_cq">स्थिर गुणवत्ता</string>
     <string name="fablesol_param_export_quality">गुणवत्ता</string>
     <string name="fablesol_param_export_bitrate">लक्षित बिटरेट</string>
@@ -1019,7 +1019,18 @@
     <string name="fablesol_param_export_hdr_format">निर्यात का HDR फ़ॉर्मैट</string>
     <string name="fablesol_export_hdr_format_auto">स्वचालित</string>
     <string name="fablesol_export_diagnostics_loading">डिवाइस क्षमता पढ़ी जा रही है…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">इस रिपोर्ट को कॉपी करने के लिए देर तक दबाएँ।</string>
     <string name="fablesol_export_hdr_format_probing">जाँच की जा रही है कि यह डिवाइस कौन-से फ़ॉर्मैट एन्कोड कर सकता है।</string>
+    <string name="fablesol_param_export_codec">वीडियो कोडेक</string>
+    <string name="fablesol_export_codec_desc">धूसर विकल्प वे संयोजन हैं जिन्हें यह डिवाइस एन्कोड नहीं कर सका।</string>
+    <string name="fablesol_export_codec_software_suffix"> (सॉफ़्टवेयर)</string>
+    <string name="fablesol_export_codec_desc_auto">स्वतः वर्तमान फ़ॉर्मैट और फ्रेम दर के लिए इस डिवाइस पर सत्यापित उच्चतम विनिर्देश वाला हार्डवेयर एन्कोडर चुनता है।</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC (H.265) समान बिटरेट पर H.264 से काफ़ी बेहतर गुणवत्ता देता है और इस डिवाइस के सभी HDR फ़ॉर्मैट समर्थित करता है।</string>
+    <string name="fablesol_export_codec_desc_av1">AV1 की संपीड़न दक्षता सबसे अधिक है, पर इसके हार्डवेयर एन्कोडर कम हैं और कुछ प्लेयर और सेवाएँ इसे अब भी नहीं खोल पातीं।</string>
+    <string name="fablesol_export_codec_desc_avc">H.264 हर जगह चलता है, पर समान बिटरेट पर इसकी गुणवत्ता HEVC और AV1 से कम है, और यह कोई HDR फ़ॉर्मैट समर्थित नहीं करता।</string>
+    <string name="fablesol_export_codec_desc_resolved"> वर्तमान में उपयोग में: %1$s।</string>
+    <string name="fablesol_export_codec_hardware_suffix"> (हार्डवेयर)</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">इस डिवाइस पर कोई HDR एन्कोडिंग फ़ॉर्मैट उपलब्ध नहीं है।</string>
     <string name="fablesol_export_hdr_desc_auto">HDR विनिर्देश और चित्र-गुणवत्ता क्षमता के उच्च से निम्न क्रम में, इस डिवाइस पर सत्यापित एन्कोडिंग वाला पहला फ़ॉर्मैट चुनता है। वर्तमान में %1$s।</string>
     <string name="fablesol_export_hdr_desc_hdr10">स्थिर मास्टरिंग मेटाडेटा के साथ PQ निरपेक्ष प्रदीप्ति वक्र। शिखर डिफ़्यूज़ सफ़ेद और HDR तीव्रता से सीधे निकलता है, इसलिए संपीड़न की आवश्यकता नहीं। प्लेयर अनुकूलता सर्वाधिक व्यापक।</string>

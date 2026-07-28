@@ -6,8 +6,11 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.DialogInterface
+import android.graphics.Typeface
 import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -18,6 +21,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
@@ -29,6 +35,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 
 import com.ywwynm.everythingdone.App
@@ -44,6 +51,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.recording.AudioRecorder
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportCapabilityMatrix
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportCodecFamily
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportDisplayLuminance
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdr10PlusCurve
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportHdrFormat
@@ -119,6 +128,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private var mHdrCapabilityGeneration = 0
     /** 指示性文字末尾那一段：最终会用哪种格式。探测回来或改选之后刷新。 */
     private var mResolvedExportFormat: String? = null
+    /** 同一行里还要写清最终落到哪个编码器：自动档解析到哪一族，用户自己是看不出来的。 */
+    private var mResolvedExportCodec: String? = null
+    /**
+     * 这次导出**真正**能达到的帧率。
+     *
+     * 设置里那一项是上限，当前组合达不到时导出会自己降级。体积估算和提示语必须按降级后的
+     * 帧率算，否则会同时给出两个互相矛盾的数（面板上写 120 fps，产物是 60 fps）。
+     */
+    private var mResolvedExportFrameRate: Int? = null
     /** 解析出的格式若是 PQ 系，指示行还要带上漫反射白与峰值。 */
     private var mResolvedExportPqFormat: FableSolExportHdrFormat? = null
     /** HDR 强度拖动时，让导出组的自动白锚滑杆与推导文字同步预览。 */
@@ -550,16 +568,17 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private fun addExportGroup(container: LinearLayout, ctx: Context) {
         container.addView(makeGroupHeader(ctx, getString(R.string.fablesol_group_export)))
 
-        val qualityRange = FableSolExportOptions.settingsQualityRange()
+        val qualityRange = FableSolExportOptions.settingsQualityRange(ctx)
         val estimate = TextView(ctx)
         estimate.textSize = 12f
         estimate.alpha = 0.6f
-        estimate.setPadding(dp(20f), dp(2f), dp(20f), dp(8f))
+        estimate.setPadding(dp(20f), dp(2f), dp(20f), 0)
 
         fun refreshEstimate(
             strength: Float = FableSolTuning.hdrStrength(ctx)
         ) {
-            val frameRate = FableSolTuning.exportFrameRateCap(ctx)
+            // 上限达不到时导出会自己降级，估算必须按降级后的帧率算。
+            val frameRate = mResolvedExportFrameRate ?: FableSolTuning.exportFrameRateCap(ctx)
             val options = FableSolExportOptions.read(ctx)
             val base = if (options.constantQuality && qualityRange != null) {
                 getString(R.string.fablesol_export_estimate_quality, frameRate.toString())
@@ -577,6 +596,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             // 发白、掉饱和的来源），所以必须让这个乘积可见。
             val pieces = StringBuilder(base)
             pieces.append(" · ").append(mResolvedExportFormat ?: "…")
+            mResolvedExportCodec?.let { pieces.append(" · ").append(it) }
             val pqFormat = mResolvedExportPqFormat
             if (pqFormat != null) {
                 val automatic = FableSolTuning.isExportPqWhiteAutomatic(ctx)
@@ -648,7 +668,21 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                     )
                 }
             }
-            estimate.text = pieces.toString()
+            // 第一行是这一组设置的结论，其余是推导过程。把结论加粗并空一行隔开，读的时候
+            // 一眼就能分清"我得到了什么"和"它是怎么来的"。
+            val text = pieces.toString()
+            val firstBreak = text.indexOf('\n')
+            estimate.text = if (firstBreak < 0) {
+                SpannableStringBuilder(text).apply {
+                    setSpan(StyleSpan(Typeface.BOLD), 0, length, SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            } else {
+                SpannableStringBuilder(text.substring(0, firstBreak)).apply {
+                    setSpan(StyleSpan(Typeface.BOLD), 0, length, SPAN_EXCLUSIVE_EXCLUSIVE)
+                    append("\n\n")
+                    append(text.substring(firstBreak + 1))
+                }
+            }
         }
 
         // 先把两条互斥的行造出来，再定义切换逻辑——它们互相引用，顺序反了 Kotlin 会认为
@@ -702,21 +736,24 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             }
         )
 
+        // 帧率行比能力探测先造出来，可用状态与联动却要等探测回来才能接上，所以留两个句柄。
+        var frameRateChips: ChoiceChips? = null
+        var frameRateSelected: ((Int) -> Unit)? = null
         container.addView(
             makeExportChoiceRow(
                 ctx,
                 getString(R.string.fablesol_param_export_frame_rate),
                 listOf("60 fps", "120 fps"),
-                if (FableSolTuning.exportFrameRateCap(ctx) >= FableSolExportOptions.FRAME_RATE_HIGH) 1 else 0
+                if (FableSolTuning.exportFrameRateCap(ctx) >= FableSolExportOptions.FRAME_RATE_HIGH) 1 else 0,
+                onChipsReady = { frameRateChips = it }
             ) { index ->
-                FableSolTuning.setExportFrameRateCap(
-                    ctx,
-                    if (index == 1) {
-                        FableSolExportOptions.FRAME_RATE_HIGH
-                    } else {
-                        FableSolExportOptions.FRAME_RATE_BASE
-                    }
-                )
+                val handled = frameRateSelected
+                if (handled != null) {
+                    // 探测回来之后，帧率与格式、编码器同属一套联动，写偏好交给那边统一做。
+                    handled(index)
+                } else {
+                    FableSolTuning.setExportFrameRateCap(ctx, rateOrder[index])
+                }
                 refreshEstimate()
             }
         )
@@ -787,7 +824,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
         // 不再单独给一个"导出 HDR 视频"开关：那个开关与下面的格式选择说的是同一件事，
         // 摆两处只会让人问"关掉开关但选了 HDR10 会怎样"。格式列表里第一项就是「关闭」。
-        val diagnostics = addHdrFormatBlock(container, ctx) { format ->
+        val diagnostics = addHdrFormatBlock(
+            container,
+            ctx,
+            { frameRateChips },
+            { handler -> frameRateSelected = handler }
+        ) { format ->
             whiteRow.visibility =
                 if (format?.transfer == FableSolExportTransfer.PQ) View.VISIBLE else View.GONE
             highlightRow.visibility =
@@ -812,6 +854,45 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         container.addView(estimate)
         // 编码器清单放在指示性文字之后：那是排查用的细节，不该挡在结论前面。
         container.addView(diagnostics)
+
+        // 这两段是排查用的原始材料，长按任意一段复制两段全文。此前只能靠截图往外传，
+        // 一屏放不下就得截好几张，还没法搜索。
+        val copyReport = View.OnLongClickListener {
+            copyExportReport(
+                ctx,
+                listOf(estimate.text, diagnostics.text)
+                    .mapNotNull { line -> line?.toString()?.takeIf { it.isNotBlank() } }
+                    .joinToString(System.lineSeparator())
+            )
+        }
+        for (view in listOf(estimate, diagnostics)) {
+            view.isLongClickable = true
+            view.setOnLongClickListener(copyReport)
+        }
+        val copyHint = TextView(ctx)
+        copyHint.setText(R.string.fablesol_export_diagnostics_copy_hint)
+        copyHint.textSize = 11f
+        copyHint.alpha = 0.45f
+        copyHint.setPadding(dp(20f), 0, dp(20f), dp(10f))
+        container.addView(copyHint)
+    }
+
+    /** @return true 表示已消费这次长按（复制成功与否都不该把手势漏给下层）。 */
+    private fun copyExportReport(ctx: Context, text: String): Boolean {
+        if (text.isBlank()) return true
+        try {
+            val manager = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                ?: return true
+            manager.setPrimaryClip(
+                ClipData.newPlainText(
+                    getString(R.string.fablesol_group_export), text
+                )
+            )
+            Toast.makeText(ctx, R.string.success_clipboard, Toast.LENGTH_SHORT).show()
+        } catch (ignored: Throwable) {
+            // 剪贴板在部分受限环境下不可用；长按仍然算被消费掉，不做别的反应。
+        }
+        return true
     }
 
     /**
@@ -832,36 +913,28 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private fun addHdrFormatBlock(
         container: LinearLayout,
         ctx: Context,
+        /** 帧率胶囊的句柄；它比本块先造出来，可用状态却要按本块的选择刷新。 */
+        frameRateChips: () -> ChoiceChips?,
+        /** 把帧率行的点击接进三条轴的联动；参数是胶囊下标。 */
+        onFrameRateSelected: (((Int) -> Unit) -> Unit),
         /** 参数是这次导出最终落到的格式；null = 关闭（SDR）。 */
         onFormatChanged: (FableSolExportHdrFormat?) -> Unit
     ): TextView {
-        val block = LinearLayout(ctx)
-        block.orientation = LinearLayout.VERTICAL
-        block.setPadding(dp(20f), dp(6f), dp(20f), dp(10f))
-
-        val title = TextView(ctx)
-        title.text = getString(R.string.fablesol_param_export_hdr_format)
-        title.textSize = 13f
-        block.addView(title)
-
-        val chipsHost = LinearLayout(ctx)
-        chipsHost.orientation = LinearLayout.VERTICAL
-        block.addView(chipsHost, stackedBlockParams(dp(8f)))
-
-        val description = TextView(ctx)
-        description.textSize = 11f
-        description.alpha = 0.62f
-        description.setText(R.string.fablesol_export_hdr_format_probing)
-        block.addView(description, stackedBlockParams(dp(8f)))
-
-        container.addView(block)
+        val formatBlock = makeCapabilityBlock(
+            ctx, getString(R.string.fablesol_param_export_hdr_format)
+        )
+        container.addView(formatBlock.root)
+        val codecBlock = makeCapabilityBlock(
+            ctx, getString(R.string.fablesol_param_export_codec)
+        )
+        container.addView(codecBlock.root)
 
         // 设备实际提供了什么。**不加进 block**：调用方要把它放到指示性文字之后，
         // 那是排查用的细节，不该挡在结论前面。
         val diagnostics = TextView(ctx)
         diagnostics.textSize = 11f
         diagnostics.alpha = 0.55f
-        diagnostics.setPadding(dp(20f), dp(4f), dp(20f), dp(10f))
+        diagnostics.setPadding(dp(20f), 0, dp(20f), dp(10f))
         diagnostics.setText(R.string.fablesol_export_diagnostics_loading)
 
         val appContext = ctx.applicationContext
@@ -876,28 +949,72 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             } catch (ignored: Throwable) {
                 emptyList()
             }
-            val auto = FableSolHdrExportCapability.autoFormat
+            val matrix = FableSolHdrExportCapability.lastMatrix
             val report = try {
                 FableSolHdrExportCapability.diagnostics(appContext)
             } catch (error: Throwable) {
                 error.message ?: error.javaClass.simpleName
             }
-            chipsHost.post {
+            formatBlock.chipsHost.post {
                 if (!isAdded || generation != mHdrCapabilityGeneration) return@post
                 diagnostics.text = report
-                populateHdrFormatChips(
-                    appContext, chipsHost, description, formats, auto, onFormatChanged
+                populateExportCapabilityChips(
+                    appContext = appContext,
+                    formatBlock = formatBlock,
+                    codecBlock = codecBlock,
+                    frameRateChips = frameRateChips(),
+                    onFrameRateSelected = onFrameRateSelected,
+                    formats = formats,
+                    matrix = matrix,
+                    onFormatChanged = onFormatChanged
                 )
             }
         }, "FableSolExportDiagnostics").apply {
             isDaemon = true
             priority = Thread.MIN_PRIORITY
         }
-        chipsHost.postDelayed({
+        formatBlock.chipsHost.postDelayed({
             // Dialog 已经关掉就不必再探；下一次打开会自己重来。
             if (isAdded && generation == mHdrCapabilityGeneration) probe.start()
         }, HDR_CAPABILITY_PROBE_DELAY_MS)
         return diagnostics
+    }
+
+    /** 标题 + 胶囊容器 + 说明这一套结构，HDR 格式与编码器两块完全一致。 */
+    private class CapabilityBlock(
+        val root: LinearLayout,
+        val chipsHost: LinearLayout,
+        val description: TextView
+    )
+
+    /** 导出那三条互相约束的轴；[reconcile] 用它记住"刚动过的是哪一条"。 */
+    private enum class Axis { FORMAT, CODEC, RATE }
+
+    /** 帧率胶囊的排列顺序（低在前），与矩阵里从高到低的遍历顺序相反。 */
+    private val rateOrder = listOf(
+        FableSolExportOptions.FRAME_RATE_BASE, FableSolExportOptions.FRAME_RATE_HIGH
+    )
+
+    private fun makeCapabilityBlock(ctx: Context, title: String): CapabilityBlock {
+        val block = LinearLayout(ctx)
+        block.orientation = LinearLayout.VERTICAL
+        block.setPadding(dp(20f), dp(6f), dp(20f), dp(10f))
+
+        val titleView = TextView(ctx)
+        titleView.text = title
+        titleView.textSize = 13f
+        block.addView(titleView)
+
+        val chipsHost = LinearLayout(ctx)
+        chipsHost.orientation = LinearLayout.VERTICAL
+        block.addView(chipsHost, stackedBlockParams(dp(8f)))
+
+        val description = TextView(ctx)
+        description.textSize = 11f
+        description.alpha = 0.62f
+        description.setText(R.string.fablesol_export_hdr_format_probing)
+        block.addView(description, stackedBlockParams(dp(8f)))
+        return CapabilityBlock(block, chipsHost, description)
     }
 
     private fun stackedBlockParams(topMarginPx: Int): LinearLayout.LayoutParams =
@@ -912,55 +1029,326 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
      * 是同一件事，分成两处只会让人问"关掉开关但选了 HDR10 会怎样"。设备一种 HDR 格式都编不出
      * 来时，列表里只剩「关闭」，也就不需要再额外解释"为什么开关是灰的"。
      */
-    private fun populateHdrFormatChips(
+    private fun populateExportCapabilityChips(
         appContext: Context,
-        host: LinearLayout,
-        description: TextView,
+        formatBlock: CapabilityBlock,
+        codecBlock: CapabilityBlock,
+        frameRateChips: ChoiceChips?,
+        onFrameRateSelected: (((Int) -> Unit) -> Unit),
         formats: List<FableSolExportHdrFormat>,
-        auto: FableSolExportHdrFormat?,
+        // 「自动」的落点由本函数按当前编码器现算（见 autoFormatFor）；探测那个不带编码器
+        // 约束的全局值不能直接拿来显示。
+        matrix: FableSolExportCapabilityMatrix,
         onFormatChanged: (FableSolExportHdrFormat?) -> Unit
     ) {
-        host.removeAllViews()
-        val ctx = host.context
-        // 即使一种格式都编不出来，也要照常走完下面的 apply()——那会把偏好收敛到「关闭」
+        val ctx = formatBlock.chipsHost.context
+        formatBlock.chipsHost.removeAllViews()
+        codecBlock.chipsHost.removeAllViews()
+
+        // 即使一种格式都编不出来，也要照常走完下面的 apply()——那会把界面收敛到「关闭」
         // 并刷新指示性文字；直接 return 会让界面停在"检测中"。
         // null 代表「关闭」这一项；其余项对应一个具体偏好。
-        val choices = ArrayList<FableSolExportOptions.HdrFormatPreference?>(formats.size + 2)
-        val labels = ArrayList<String>(formats.size + 2)
-        choices += null
-        labels += getString(R.string.fablesol_export_hdr_format_off)
+        val formatChoices = ArrayList<FableSolExportOptions.HdrFormatPreference?>(
+            formats.size + 2
+        )
+        val formatLabels = ArrayList<String>(formats.size + 2)
+        formatChoices += null
+        formatLabels += getString(R.string.fablesol_export_hdr_format_off)
         if (formats.isNotEmpty()) {
-            choices += FableSolExportOptions.HdrFormatPreference.AUTO
-            labels += getString(R.string.fablesol_export_hdr_format_auto)
+            formatChoices += FableSolExportOptions.HdrFormatPreference.AUTO
+            formatLabels += getString(R.string.fablesol_export_hdr_format_auto)
             for (format in formats) {
-                choices += FableSolExportOptions.HdrFormatPreference.of(format)
-                labels += format.displayName(ctx)
+                formatChoices += FableSolExportOptions.HdrFormatPreference.of(format)
+                formatLabels += format.displayName(ctx)
             }
         }
 
-        // 存着的格式如果这台机器实测编不出来，就退回自动并把偏好一起改掉——界面上不能
-        // 留着一个选中态却根本不会生效的选项。设备完全不支持 HDR 时一并关掉。
+        // 整机一个组合都编不出来的编码器族不摆出来：那不是"当前选择下不可用"，而是根本
+        // 不存在，摆一个永远灰着的胶囊只会让人以为选错了别的东西。
+        val codecChoices = ArrayList<FableSolExportOptions.CodecPreference>(4)
+        val codecLabels = ArrayList<String>(4)
+        codecChoices += FableSolExportOptions.CodecPreference.AUTO
+        codecLabels += getString(R.string.fablesol_export_hdr_format_auto)
+        for (family in FableSolExportCodecFamily.entries) {
+            if (!matrix.hasUsable(family = family)) continue
+            codecChoices += FableSolExportOptions.CodecPreference.of(family)
+            codecLabels += family.stableLabel
+        }
+
+        // **能力不回写偏好。** 这里曾经在设备编不出 HDR 时写一次
+        // `setExportHdrEnabled(false)`，而那个写入不可逆：偏好一旦为 false，之后即便探测
+        // 重新通过，界面仍以偏好为准落在「关闭」上，于是又写一次 false。三星 Z Fold4 上
+        // 实际发生过（2026-07-27）。能力只允许影响本次显示。
         val hdrOn = FableSolTuning.exportHdrEnabled(appContext) && formats.isNotEmpty()
-        if (!hdrOn) FableSolTuning.setExportHdrEnabled(appContext, false)
-        val stored = FableSolTuning.exportHdrFormat(appContext)
-        val selected = if (!hdrOn) 0 else choices.indexOf(stored).takeIf { it >= 1 } ?: 1
-        choices[selected]?.let {
-            if (it != stored) FableSolTuning.setExportHdrFormat(appContext, it)
+        val storedFormat = FableSolTuning.exportHdrFormat(appContext)
+        val storedCodec = FableSolTuning.exportCodec(appContext)
+        var formatIndex = if (hdrOn) {
+            formatChoices.indexOf(storedFormat).takeIf { it >= 1 } ?: 1
+        } else {
+            0
+        }
+        var codecIndex = codecChoices.indexOf(storedCodec).takeIf { it >= 0 } ?: 0
+
+        // 帧率行的胶囊顺序是 60、120，与 FRAME_RATES（从高到低）相反，单独记一份免得记混。
+        var rateIndex = if (
+            FableSolTuning.exportFrameRateCap(appContext) >= FableSolExportOptions.FRAME_RATE_HIGH
+        ) {
+            1
+        } else {
+            0
         }
 
-        fun apply(index: Int) {
-            val choice = choices[index]
-            FableSolTuning.setExportHdrEnabled(appContext, choice != null)
-            choice?.let { FableSolTuning.setExportHdrFormat(appContext, it) }
-            description.text = hdrChoiceDescription(choice, auto)
-            val resolved = if (choice == null) null else choice.format ?: auto
-            mResolvedExportFormat = resolvedExportFormatLabel(ctx, choice, auto)
-            onFormatChanged(resolved)
+        var formatChips: ChoiceChips? = null
+        var codecChips: ChoiceChips? = null
+
+        fun formatFilterOf(
+            preference: FableSolExportOptions.HdrFormatPreference?
+        ): FableSolExportCapabilityMatrix.FormatFilter = when {
+            // 「关闭」只看 SDR；「自动」HDR 与 SDR 都可能落到，所以不限。
+            preference == null ->
+                FableSolExportCapabilityMatrix.FormatFilter.Exactly(null)
+            preference.format == null ->
+                FableSolExportCapabilityMatrix.FormatFilter.Unrestricted
+            else ->
+                FableSolExportCapabilityMatrix.FormatFilter.Exactly(preference.format)
         }
 
-        val built = buildChoiceChips(ctx, labels, selected) { index -> apply(index) }
-        packChips(ctx, host, built.views)
-        apply(selected)
+        /**
+         * 「自动」在**当前编码器选择下**会落到哪种格式。
+         *
+         * 必须带上编码器这条约束。此前这里直接用探测得出的全局 `autoFormat`，那是"编码器也
+         * 取自动"时的答案：OPPO 上把编码器钉成 AV1 之后，格式胶囊已经正确地只留下 HDR10 与
+         * HLG，说明文字却仍然写着「当前为 HDR10+」——而 AV1 根本编不出 HDR10+
+         * （2026-07-27）。顺序与导出阶梯一致，取第一个在该编码器下成立的格式。
+         */
+        fun autoFormatFor(
+            codec: FableSolExportOptions.CodecPreference
+        ): FableSolExportHdrFormat? =
+            matrix.autoFormat(codec.family, allowSoftware = codec.allowsSoftware)
+
+        /**
+         * 这个三元组在本机成不成立。
+         *
+         * **帧率是硬约束，不再是"上限，不行就自己降"。** 那样的语义会让界面同时摆出三个各自
+         * 看着都合理、合起来却不成立的选择：Z Fold4 上选了 120fps 仍可选 AV1，点下去帧率被
+         * 悄悄改成 60；HDR10 与 HLG 也一样摆着，而它们在 120fps 下根本没有通路
+         * （用户 2026-07-28 指出）。
+         */
+        fun feasible(
+            formatPreference: FableSolExportOptions.HdrFormatPreference?,
+            codec: FableSolExportOptions.CodecPreference,
+            frameRate: Int
+        ): Boolean = matrix.hasUsable(
+            format = formatFilterOf(formatPreference),
+            family = codec.family,
+            frameRate = frameRate,
+            allowSoftware = codec.allowsSoftware
+        )
+
+        fun formatEnabled(
+            choice: FableSolExportOptions.HdrFormatPreference?,
+            codec: FableSolExportOptions.CodecPreference,
+            frameRate: Int
+        ): Boolean = when {
+            // 「关闭」永远可选：SDR 是所有降级的终点。
+            choice == null -> true
+            // 「自动」不使用软件编码器，所以它要求这台机器在这个帧率下有硬件 HDR 通路。
+            choice.format == null -> matrix.hasUsable(
+                format = FableSolExportCapabilityMatrix.FormatFilter.AnyHdr,
+                family = codec.family,
+                frameRate = frameRate,
+                allowSoftware = codec.allowsSoftware
+            )
+            // 具体格式则允许软件实现：用户点它就是明确要这种格式，编码器会随之迁到唯一能编
+            // 它的那一族，并在界面上标明是软件编码。
+            else -> matrix.hasUsable(
+                format = FableSolExportCapabilityMatrix.FormatFilter.Exactly(choice.format),
+                family = codec.family,
+                frameRate = frameRate,
+                allowSoftware = true
+            )
+        }
+
+        fun codecEnabled(
+            choice: FableSolExportOptions.CodecPreference,
+            formatPreference: FableSolExportOptions.HdrFormatPreference?,
+            frameRate: Int
+        ): Boolean = feasible(formatPreference, choice, frameRate)
+
+        /**
+         * 按当前选择重算三条轴各自的可用状态。
+         *
+         * 每一条轴的判据都是"另外两条保持现值时这一项成不成立"。这样界面上不会同时摆出三个
+         * 各自看着合理、合起来却不成立的选择；代价是从某些组合切到另一些需要按顺序点两三下，
+         * 那好过点下去之后另一条轴被悄悄改掉。
+         */
+        fun refreshAxes() {
+            // 表还没建起来时不要把界面锁死。
+            if (matrix.isEmpty) return
+            val codec = codecChoices[codecIndex]
+            val formatPreference = formatChoices[formatIndex]
+            val rate = rateOrder[rateIndex]
+            formatChips?.setEnabledStates?.invoke(
+                formatChoices.map { choice -> formatEnabled(choice, codec, rate) }
+            )
+            codecChips?.setEnabledStates?.invoke(
+                codecChoices.map { choice -> codecEnabled(choice, formatPreference, rate) }
+            )
+            frameRateChips?.setEnabledStates?.invoke(
+                rateOrder.map { feasible(formatPreference, codec, it) }
+            )
+        }
+
+        /**
+         * 把两条轴解析出的结论写进指示性文字。
+         *
+         * 编码器必须写出来：自动档最终落到哪一族、是不是软件实现，用户自己是推不出来的，
+         * 而这正是"选了 120fps 却出 60fps 的软件 AV1"当初无从察觉的原因。
+         */
+        fun notifyResolved() {
+            val choice = formatChoices[formatIndex]
+            val codec = codecChoices[codecIndex]
+            // 「自动」的落点随编码器变化，不能用探测得出的全局值。
+            val autoForCodec = autoFormatFor(codec)
+            val resolvedFormat = if (choice == null) null else choice.format ?: autoForCodec
+            // 说明文字也要跟着编码器刷新：格式选「自动」时换编码器会改变落点，说明却停在
+            // 上一个答案上，那正是 OPPO 上「显示当前为 HDR10+」的那一幕。
+            formatBlock.description.text = hdrChoiceDescription(choice, autoForCodec)
+            mResolvedExportFormat = resolvedExportFormatLabel(ctx, choice, autoForCodec)
+            val cap = FableSolTuning.exportFrameRateCap(appContext)
+            // 帧率与编码器要一起解出来：降级发生在同一次遍历里，分两处各算一遍迟早会得出
+            // 一对互不相容的答案。
+            val resolved = FableSolExportCapabilityMatrix.FRAME_RATES
+                .filter { it <= cap }
+                .firstNotNullOfOrNull { rate ->
+                    val family = codec.family ?: matrix.autoFamily(resolvedFormat, rate)
+                    val outcome = family?.let { matrix.outcome(resolvedFormat, it, rate) }
+                    if (outcome?.usable != true) {
+                        null
+                    } else if (outcome.softwareOnly && !codec.allowsSoftware) {
+                        null
+                    } else {
+                        // 硬件也要写出来：只标软件的话，看到没有标注的人分不清那是"硬件"
+                        // 还是"这一项没解出来"。位深同理：SDR 阶梯首选也是 10 位，而 10 位
+                        // HEVC 的分享兼容性明显差于 8 位。
+                        val label = family.stableLabel +
+                            (if (outcome.tenBit) " 10-bit" else " 8-bit") + getString(
+                            if (outcome.softwareOnly) {
+                                R.string.fablesol_export_codec_software_suffix
+                            } else {
+                                R.string.fablesol_export_codec_hardware_suffix
+                            }
+                        )
+                        rate to label
+                    }
+                }
+            mResolvedExportFrameRate = resolved?.first
+            mResolvedExportCodec = resolved?.second
+            // 编码器那段说明也要跟着刷新：选「自动」时它落到哪一族、是硬件还是软件，用户
+            // 自己是推不出来的，而这正是当初"选了 120fps 却出 60fps 软件 AV1"无从察觉的原因。
+            codecBlock.description.text = codecChoiceDescription(codec, resolved?.second)
+            onFormatChanged(resolvedFormat)
+        }
+
+        /** @param fromUser false 表示这是初始化或迁移，不得回写偏好。 */
+        fun applyFormat(index: Int, fromUser: Boolean) {
+            formatIndex = index
+            val choice = formatChoices[index]
+            if (fromUser) {
+                FableSolTuning.setExportHdrEnabled(appContext, choice != null)
+                choice?.let { FableSolTuning.setExportHdrFormat(appContext, it) }
+            }
+            notifyResolved()
+        }
+
+        fun applyCodec(index: Int, fromUser: Boolean) {
+            codecIndex = index
+            if (fromUser) FableSolTuning.setExportCodec(appContext, codecChoices[index])
+            // 说明文字由 notifyResolved 统一写：它要带上解析出来的实际编码器。
+            notifyResolved()
+        }
+
+        fun applyRate(index: Int, fromUser: Boolean) {
+            rateIndex = index
+            if (fromUser) FableSolTuning.setExportFrameRateCap(appContext, rateOrder[index])
+            notifyResolved()
+        }
+
+        /**
+         * 把三条轴拉回一个**确实成立**的组合上。
+         *
+         * 三条轴互相约束，逐条贪心地修容易来回摆动；可行组合总共不过几十个，直接枚举取"与
+         * 当前差得最少、且保住刚动过那条轴"的一个，结果稳定也讲得清。
+         *
+         * 迁移要落盘：冲突是用户自己造成的，解决冲突属于这次操作的一部分。界面显示与真正
+         * 导出的组合不一致才是更糟的事。初始化时（[changed] 为 null）同样修，但不动格式
+         * ——格式是明确的意图，不该因为一次探测结论被抹掉。
+         */
+        fun reconcile(changed: Axis?) {
+            if (matrix.isEmpty) return
+            if (!feasible(formatChoices[formatIndex], codecChoices[codecIndex], rateOrder[rateIndex])) {
+                // 初始化时也钉住格式：它是明确的意图，不该因为一次探测结论被抹掉。
+                val keepFormat = changed == Axis.FORMAT || changed == null
+                val best = buildList {
+                    for (format in formatChoices.indices) {
+                        if (keepFormat && format != formatIndex) continue
+                        for (codec in codecChoices.indices) {
+                            if (changed == Axis.CODEC && codec != codecIndex) continue
+                            for (rate in rateOrder.indices) {
+                                if (changed == Axis.RATE && rate != rateIndex) continue
+                                if (feasible(
+                                        formatChoices[format], codecChoices[codec], rateOrder[rate]
+                                    )
+                                ) {
+                                    add(Triple(format, codec, rate))
+                                }
+                            }
+                        }
+                    }
+                }.minByOrNull { (format, codec, rate) ->
+                    // 改动越少越好；同样多时优先保住格式，其次优先高帧率与「自动」编码器。
+                    var cost = 0
+                    if (format != formatIndex) cost += 4
+                    if (codec != codecIndex) cost += 2
+                    if (rate != rateIndex) cost += 1
+                    cost * 8 + codec + (rateOrder.size - 1 - rate)
+                }
+                if (best != null) {
+                    if (best.first != formatIndex) {
+                        formatChips?.select?.invoke(best.first)
+                        applyFormat(best.first, fromUser = true)
+                    }
+                    if (best.second != codecIndex) {
+                        codecChips?.select?.invoke(best.second)
+                        applyCodec(best.second, fromUser = true)
+                    }
+                    if (best.third != rateIndex) {
+                        frameRateChips?.select?.invoke(best.third)
+                        applyRate(best.third, fromUser = true)
+                    }
+                }
+            }
+            refreshAxes()
+        }
+
+        formatChips = buildChoiceChips(ctx, formatLabels, formatIndex) { index ->
+            applyFormat(index, fromUser = true)
+            reconcile(Axis.FORMAT)
+        }
+        codecChips = buildChoiceChips(ctx, codecLabels, codecIndex) { index ->
+            applyCodec(index, fromUser = true)
+            reconcile(Axis.CODEC)
+        }
+        // 帧率行早就造好了，这里把它接进同一套联动。
+        onFrameRateSelected { index ->
+            applyRate(index, fromUser = true)
+            reconcile(Axis.RATE)
+        }
+        packChips(ctx, formatBlock.chipsHost, formatChips.views)
+        packChips(ctx, codecBlock.chipsHost, codecChips.views)
+        applyFormat(formatIndex, fromUser = false)
+        applyCodec(codecIndex, fromUser = false)
+        reconcile(null)
     }
 
     /** 胶囊按可用宽度贪心换行：最多五个选项，在 320dp 的对话框里排不下一行。 */
@@ -1006,6 +1394,35 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         preference == null -> FableSolExportHdrFormat.SDR_LABEL
         preference.format != null -> preference.format.displayName(context)
         else -> auto?.displayName(context) ?: FableSolExportHdrFormat.SDR_LABEL
+    }
+
+    /**
+     * 编码器胶囊下面那段说明：这一档的特点、当前实际落到哪个编码器、以及置灰的含义。
+     *
+     * 三件事缺一不可。只写"自动会挑规格最高的"，用户看不出这台机器上究竟挑中了谁；而各个
+     * 编码器之间的取舍（兼容性、压缩效率、有没有硬件实现）本来就该像 HDR 格式那样讲清楚。
+     *
+     * @param resolved 已带硬件/软件标注的实际编码器名；解析不出来时为 null。
+     */
+    private fun codecChoiceDescription(
+        preference: FableSolExportOptions.CodecPreference,
+        resolved: String?
+    ): String {
+        val builder = StringBuilder(
+            getString(
+                when (preference.family) {
+                    null -> R.string.fablesol_export_codec_desc_auto
+                    FableSolExportCodecFamily.HEVC -> R.string.fablesol_export_codec_desc_hevc
+                    FableSolExportCodecFamily.AV1 -> R.string.fablesol_export_codec_desc_av1
+                    FableSolExportCodecFamily.AVC -> R.string.fablesol_export_codec_desc_avc
+                }
+            )
+        )
+        resolved?.let {
+            builder.append(getString(R.string.fablesol_export_codec_desc_resolved, it))
+        }
+        builder.append(getString(R.string.fablesol_export_codec_desc))
+        return builder.toString()
     }
 
     /** null 就是「关闭」那一项。 */
@@ -1090,6 +1507,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         label: String,
         options: List<String>,
         selectedIndex: Int,
+        onChipsReady: ((ChoiceChips) -> Unit)? = null,
         onSelect: (Int) -> Unit
     ): View {
         val row = LinearLayout(ctx)
@@ -1115,10 +1533,23 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             chip.layoutParams = lp
             row.addView(chip)
         }
+        onChipsReady?.invoke(built)
         return row
     }
 
-    private class ChoiceChips(val views: List<TextView>)
+    /**
+     * 一组档位胶囊的操作句柄。
+     *
+     * 导出那三条轴（HDR 格式、编码器、帧率）互相约束，某一轴的选择会让另两轴的部分取值
+     * 不再成立，所以调用方需要在**不触发回调**的前提下改选中项与可用状态。
+     */
+    private class ChoiceChips(
+        val views: List<TextView>,
+        /** 改选中项但不回调 onSelect，用于按可行组合表迁移选择。 */
+        val select: (Int) -> Unit,
+        /** 逐项设置是否可选；不可选的胶囊淡出并停止响应点击。 */
+        val setEnabledStates: (List<Boolean>) -> Unit
+    )
 
     /**
      * 造一组档位胶囊并完成着色、涟漪与换色登记；调用方只负责把它们摆进容器。
@@ -1135,10 +1566,16 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     ): ChoiceChips {
         val chips = ArrayList<TextView>(options.size)
         var current = selectedIndex
+        val enabled = BooleanArray(options.size) { true }
         val cornerRadius = dp(14f).toFloat()
 
         fun paint() {
             for ((index, chip) in chips.withIndex()) {
+                // 不可选的组合必须看得出来也点不动。淡出整枚胶囊即可：填充、描边与涟漪都是
+                // 渐变，逐个换色反而会把"选中"与"不可用"两种状态混在一起。
+                chip.isEnabled = enabled[index]
+                chip.isClickable = enabled[index]
+                chip.alpha = if (enabled[index]) 1f else DISABLED_CHIP_ALPHA
                 if (index == current) {
                     // 胶囊填充必须保留 ThingBackground 的完整起止色与方向；只取 color
                     // 会在换色时把渐变压成起点单色。
@@ -1186,7 +1623,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             chip.isClickable = true
             chip.isFocusable = true
             chip.setOnClickListener {
-                if (current == index) return@setOnClickListener
+                if (current == index || !enabled[index]) return@setOnClickListener
                 current = index
                 paint()
                 onSelect(index)
@@ -1195,7 +1632,21 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         }
         paint()
         mAccentChipPainters.add(::paint)
-        return ChoiceChips(chips)
+        return ChoiceChips(
+            views = chips,
+            select = { index ->
+                if (index in chips.indices) {
+                    current = index
+                    paint()
+                }
+            },
+            setEnabledStates = { states ->
+                for (index in enabled.indices) {
+                    enabled[index] = states.getOrElse(index) { true }
+                }
+                paint()
+            }
+        )
     }
 
 
@@ -1528,6 +1979,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
 
         private const val PQ_WHITE_STEPS = 24
         private const val CHOICE_OUTLINE_ALPHA = 96
+        /** 该组合在本机未通过验证时的胶囊透明度。 */
+        private const val DISABLED_CHIP_ALPHA = 0.32f
         /** 与顶部“HDR 高光增强（设备不支持）”标签完全一致的不可用态透明度。 */
         /** 避开 Dialog 首帧、录音预览与 GL 预热，随后才允许后台真实编码。 */
 

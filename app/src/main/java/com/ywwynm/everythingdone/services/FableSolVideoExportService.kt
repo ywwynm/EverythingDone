@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -290,6 +291,8 @@ class FableSolVideoExportService : Service() {
                 tierLabel = result.tierLabel,
                 hdr = result.hdr,
                 formatLabel = result.formatLabel,
+                codecLabel = result.codecLabel,
+                softwareCodec = result.softwareCodec,
                 frameRate = result.frameRate,
                 frames = result.frames,
                 pqWhiteNits = result.pqWhiteNits,
@@ -407,7 +410,9 @@ class FableSolVideoExportService : Service() {
                 if (done != null) {
                     getString(
                         R.string.fablesol_export_dialog_done,
-                        done.formatLabel,
+                        FableSolExportSpecText.specification(
+                            this, done.formatLabel, done.codecLabel, done.softwareCodec
+                        ),
                         done.frameRate,
                         Formatter.formatFileSize(this, done.fileSizeBytes),
                         FableSolExportBitrateText.of(done.bitrateBps),
@@ -422,7 +427,12 @@ class FableSolVideoExportService : Service() {
                 } else {
                     getString(
                         R.string.fablesol_export_done,
-                        result.formatLabel,
+                        FableSolExportSpecText.specification(
+                            this,
+                            result.formatLabel,
+                            result.codecLabel,
+                            result.softwareCodec
+                        ),
                         result.frameRate
                     )
                 }
@@ -437,44 +447,69 @@ class FableSolVideoExportService : Service() {
         val builder = resultNotificationBuilder(text)
         if (result is FableSolVideoExporter.Result.Success) {
             (state as? FableSolVideoExportBus.State.Done)?.uri?.let { uri ->
-                val view = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, VIDEO_MIME)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                builder.setContentIntent(
-                    PendingIntent.getActivity(
-                        this,
-                        requestCode(jobId, 0),
-                        view,
-                        PendingIntent.FLAG_UPDATE_CURRENT or
-                            PendingIntent.FLAG_IMMUTABLE
+                try {
+                    val view = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, VIDEO_MIME)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    builder.setContentIntent(
+                        PendingIntent.getActivity(
+                            this,
+                            requestCode(jobId, 0),
+                            view,
+                            PendingIntent.FLAG_UPDATE_CURRENT or
+                                PendingIntent.FLAG_IMMUTABLE
+                        )
                     )
-                )
-                val send = Intent(Intent.ACTION_SEND).apply {
-                    type = VIDEO_MIME
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (ignored: Throwable) {
+                    // 同上：点不开也比崩掉好。
                 }
-                val chooser = Intent.createChooser(
-                    send, getString(R.string.fablesol_export_share)
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                builder.addAction(
-                    0,
-                    getString(R.string.fablesol_export_share),
-                    PendingIntent.getActivity(
-                        this,
-                        requestCode(jobId, 1),
-                        chooser,
-                        PendingIntent.FLAG_UPDATE_CURRENT or
-                            PendingIntent.FLAG_IMMUTABLE
-                    )
-                )
+                // **分享动作可能建不出来，而那绝不能拖垮一次已经成功的导出。**
+                // `Intent.createChooser` 带着 EXTRA_STREAM 时，`PendingIntent.getActivity`
+                // 会当场走一遍 URI 授权（`migrateExtraStreamToClipData`）；授权被拒就抛
+                // SecurityException。华为平板（EMUI，Android 12）上实测抛出
+                // `UID … does not have permission to content://media/external/video/media/…`，
+                // 视频已经写完并入库，进程却在发通知这一步崩掉（2026-07-28）。
+                //
+                // 授权失败的原因在厂商实现里，我们改不了；但产物是好的，通知本身也是好的，
+                // 少一个分享按钮而已。对话框里的分享走 Activity 上下文，不受影响。
+                shareIntent(uri, jobId)?.let { pending ->
+                    builder.addAction(0, getString(R.string.fablesol_export_share), pending)
+                }
             }
         }
         val manager = getSystemService(
             Context.NOTIFICATION_SERVICE
         ) as NotificationManager
-        manager.notify(RESULT_NOTIFICATION_ID, builder.build())
+        try {
+            manager.notify(RESULT_NOTIFICATION_ID, builder.build())
+        } catch (ignored: Throwable) {
+            // 终态已经通过 Bus 发给界面了；通知发不出去不该再影响任何东西。
+        }
+    }
+
+    /**
+     * 通知栏那个分享按钮的 PendingIntent；建不出来就返回 null，由调用方省掉这个动作。
+     *
+     * 不能让它抛出去：产物已经落盘入库，一次成功的导出不该因为通知栏少不了一个按钮而崩。
+     */
+    private fun shareIntent(uri: Uri, jobId: Long): PendingIntent? = try {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = VIDEO_MIME
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(
+            send, getString(R.string.fablesol_export_share)
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        PendingIntent.getActivity(
+            this,
+            requestCode(jobId, 1),
+            chooser,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    } catch (ignored: Throwable) {
+        null
     }
 
     private fun notifyFailureText(text: String) {

@@ -1035,7 +1035,7 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_export_started">水面動画を書き出し中…</string>
     <string name="cd_export_fablesol_video">水面動画を書き出す</string>
     <string name="fablesol_group_export">動画書き出し</string>
-    <string name="fablesol_param_export_frame_rate">フレームレート上限</string>
+    <string name="fablesol_param_export_frame_rate">フレームレート</string>
     <string name="fablesol_param_export_cq">固定品質</string>
     <string name="fablesol_param_export_quality">品質</string>
     <string name="fablesol_param_export_bitrate">目標ビットレート</string>
@@ -1073,7 +1073,18 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_param_export_hdr_format">書き出す HDR 形式</string>
     <string name="fablesol_export_hdr_format_auto">自動</string>
     <string name="fablesol_export_diagnostics_loading">デバイスの対応状況を確認中…</string>
+    <string name="fablesol_export_diagnostics_copy_hint">このレポートを長押しするとコピーできます。</string>
     <string name="fablesol_export_hdr_format_probing">この端末がエンコードできる形式を確認しています。</string>
+    <string name="fablesol_param_export_codec">動画コーデック</string>
+    <string name="fablesol_export_codec_desc">淡色表示の項目は、本端末でエンコードできなかった組み合わせです。</string>
+    <string name="fablesol_export_codec_software_suffix">（ソフトウェア）</string>
+    <string name="fablesol_export_codec_desc_auto">「自動」は、現在の形式とフレームレートについて本端末で検証済みの、最も仕様の高いハードウェアエンコーダーを選択します。</string>
+    <string name="fablesol_export_codec_desc_hevc">HEVC（H.265）は同じビットレートで H.264 より明らかに高画質で、本端末のすべての HDR 形式を扱えます。</string>
+    <string name="fablesol_export_codec_desc_av1">AV1 は圧縮効率が最も高い一方、ハードウェアエンコーダーは少なく、一部のプレーヤーや共有先ではまだ開けません。</string>
+    <string name="fablesol_export_codec_desc_avc">H.264 はどこでも再生できますが、同じビットレートでの画質は HEVC や AV1 より低く、HDR 形式には対応しません。</string>
+    <string name="fablesol_export_codec_desc_resolved">現在の使用：%1$s。</string>
+    <string name="fablesol_export_codec_hardware_suffix">（ハードウェア）</string>
+    <string name="fablesol_export_spec_format_codec">%1$s · %2$s</string>
     <string name="fablesol_export_hdr_format_none">この端末で利用できる HDR エンコード形式はありません。</string>
     <string name="fablesol_export_hdr_desc_auto">HDR 仕様と画質能力の高い順に、この端末でエンコードが確認された最初の形式を選択します。現在は %1$s です。</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 絶対輝度カーブと静的マスタリングメタデータ。ピーク値は拡散白と HDR 強度から直接求まるため、圧縮は不要です。プレーヤーの互換性が最も広い形式です。</string>
