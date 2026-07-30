@@ -1610,7 +1610,9 @@ internal object FableSolHdrExportCapability {
     //     探的链路变了，旧结论不能沿用。
     // 14：矩阵行新增 highComplexityFormId（D149 复杂度阶梯，评审 P20）。
     // 15：加入 HDR Vivid 显式格式；探测必须逐样本验证 T/UWA 005 SEI，并补写、回读 cuvv。
-    private const val PROBE_CONTRACT_VERSION = 15
+    // 16：双机实导证明 AOSP 软件 AV1 的 HDR VBR 即使 QP=1 仍会产生矩形块（D191）；
+    //     有效能力不再包含 VBR，目标码率仅允许回退 CBR，旧矩阵不能继续复用。
+    private const val PROBE_CONTRACT_VERSION = 16
 
     /** 结构上就没有候选时的固定说明；与编码器抛出的技术细节区分开。 */
     private const val NO_CANDIDATE_REASON =

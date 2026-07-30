@@ -449,32 +449,75 @@ class FableSolExportEncodingStrategyTest {
     }
 
     @Test
-    fun aospAv1HdrMaximumQualityUsesTheMeasuredGradientProtection() {
-        fun guard(
-            codecName: String = FableSolExportCqQualityGuard.AOSP_AV1_ENCODER,
+    fun aospAv1HdrUsesMeasuredCqProtectionAndRejectsUnreliableVbr() {
+        fun rejectsVbr(
+            codecName: String = FableSolExportAospAv1HdrPolicy.AOSP_AV1_ENCODER,
+            videoMime: String = MediaFormat.MIMETYPE_VIDEO_AV1,
+            family: FableSolExportCodecFamily = FableSolExportCodecFamily.AV1,
             hdr: Boolean = true,
-            supportsQpBounds: Boolean = true,
-            maximumQuality: Boolean = true
-        ) = FableSolExportCqQualityGuard.maxQp(
+            softwareOnly: Boolean = true
+        ) = FableSolExportAospAv1HdrPolicy.rejectsVbr(
             codecName = codecName,
-            videoMime = MediaFormat.MIMETYPE_VIDEO_AV1,
-            family = FableSolExportCodecFamily.AV1,
-            softwareOnly = true,
-            hdr = hdr,
-            supportsQpBounds = supportsQpBounds,
-            maximumQuality = maximumQuality
+            videoMime = videoMime,
+            family = family,
+            softwareOnly = softwareOnly,
+            hdr = hdr
         )
 
+        assertTrue(rejectsVbr())
+        // VBR 的双机拒绝结论与 CQ 质量滑杆无关；CQ 入口仍只允许最高质量触发。
+        fun cqGuard(
+            maximumQuality: Boolean = true,
+            supportsQpBounds: Boolean = true,
+            codecName: String = FableSolExportAospAv1HdrPolicy.AOSP_AV1_ENCODER,
+            hdr: Boolean = true
+        ) =
+            FableSolExportAospAv1HdrPolicy.cqMaxQp(
+                codecName = codecName,
+                videoMime = MediaFormat.MIMETYPE_VIDEO_AV1,
+                family = FableSolExportCodecFamily.AV1,
+                softwareOnly = true,
+                hdr = hdr,
+                supportsQpBounds = supportsQpBounds,
+                maximumQuality = maximumQuality
+            )
         assertEquals(
-            FableSolExportCqQualityGuard.AOSP_AV1_HDR_MAX_QP,
-            guard()
+            FableSolExportAospAv1HdrPolicy.AOSP_AV1_HDR_CQ_MAX_QP,
+            cqGuard()
         )
-        // 用户降低质量值时不得由内部保护擅自覆盖其文件大小取舍。
-        assertNull(guard(maximumQuality = false))
-        // 厂商 AV1、SDR 与未声明 QP bounds 的实现没有同一份实测依据。
-        assertNull(guard(codecName = "c2.vendor.av1.encoder"))
-        assertNull(guard(hdr = false))
-        assertNull(guard(supportsQpBounds = false))
+        assertNull(cqGuard(maximumQuality = false))
+        assertNull(cqGuard(supportsQpBounds = false))
+        assertNull(cqGuard(codecName = "c2.vendor.av1.encoder"))
+        assertNull(cqGuard(hdr = false))
+        // 厂商 AV1、SDR 与硬件实现没有同一份实测依据。
+        assertFalse(rejectsVbr(codecName = "c2.vendor.av1.encoder"))
+        assertFalse(rejectsVbr(videoMime = MediaFormat.MIMETYPE_VIDEO_HEVC))
+        assertFalse(rejectsVbr(family = FableSolExportCodecFamily.HEVC))
+        assertFalse(rejectsVbr(hdr = false))
+        assertFalse(rejectsVbr(softwareOnly = false))
+
+        val targetBitrate = FableSolExportOptions(
+            frameRate = FableSolExportOptions.FRAME_RATE_BASE,
+            colorMode = FableSolExportColorMode.HDR10,
+            sdrMapping = FableSolExportSdrMapping.DEFAULT,
+            sdrBitDepth = FableSolExportSdrBitDepth.AUTO,
+            hlgSignalRange = FableSolExportHlgSignalRange.DEFAULT,
+            rateControl = FableSolExportRateControl.TARGET_BITRATE,
+            qualityBySignature = emptyMap(),
+            pendingLegacyQuality = null,
+            bitrateMbps = 24f,
+            keyframeIntervalSeconds = FableSolExportOptions.DEFAULT_KEYFRAME_SECONDS
+        )
+        assertEquals(
+            FableSolExportRateControlForm.CONSTANT_BITRATE,
+            FableSolExportRateControlForm.resolve(
+                targetBitrate,
+                tier(FableSolExportCodecFamily.AV1, 0).copy(
+                    supportsVbr = false,
+                    supportsCbr = true
+                )
+            )
+        )
     }
 
     // ---- 下发的那份 MediaFormat（D145～D152、D163、D167）----
@@ -504,7 +547,12 @@ class FableSolExportEncodingStrategyTest {
         assertTrue(encoder.contains("options.complexFrameGuardEnabled && tier.supportsQpBounds"))
         assertTrue(encoder.contains("MediaFormat.KEY_VIDEO_QP_MAX, QP_MAX_GUARD"))
         assertEquals(40, FableSolExportEncoder.QP_MAX_GUARD)
-        assertTrue(encoder.contains("FableSolExportCqQualityGuard.maxQp(tier, quality)"))
+        assertTrue(
+            encoder.contains(
+                "FableSolExportAospAv1HdrPolicy.cqMaxQp(tier, quality)"
+            )
+        )
+        assertTrue(encoder.contains("!FableSolExportAospAv1HdrPolicy.rejectsVbr("))
 
         // B 帧：API 29 起可请求，上限固定 1；关闭或初始化被拒后的重试（applyBFrames=false）
         // 显式写 0 而不是省略（D148）。

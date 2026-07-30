@@ -241,7 +241,7 @@ internal class FableSolExportEncoder(
                     )
                     val quality = checkNotNull(options.resolvedQuality(tier))
                     setInteger(MediaFormat.KEY_QUALITY, quality)
-                    FableSolExportCqQualityGuard.maxQp(tier, quality)?.let { maxQp ->
+                    FableSolExportAospAv1HdrPolicy.cqMaxQp(tier, quality)?.let { maxQp ->
                         setInteger(MediaFormat.KEY_VIDEO_QP_MAX, maxQp)
                     }
                     // 默认**不**同时下发码率：Android 明确说同时设置质量与码率行为未定义
@@ -895,24 +895,29 @@ internal class FableSolExportEncoder(
 }
 
 /**
- * AOSP 软件 AV1 在 HDR 最高 CQ 档位下的量化保护。
+ * AOSP 软件 AV1 的 HDR 质量与码控例外。
  *
  * Android 的公开质量区间只能表达编码器自定义的相对档位。AOSP
  * `c2.android.av1.encoder` 把最高值 100 映射为 libaom CQ 15；在 OPPO PLZ110 的
- * 1152×1472、10-bit HDR 渐变实测中，该档仍会在水体产生可见块状量化。追加 QP 上限 8
- * 后，编码器报告的 I/P/B 最大 QP 为 8/11/14，水体块状量化消失，且输出仍可完整解码。
- * 编码器同时明确广告 QP bounds，因此只对这一项、只在用户采用最高质量值时补充该上限。
+ * 1152×1472、10-bit HDR 渐变实测中，CQ 最高质量仍会在水体产生可见块状量化；追加
+ * QP 上限 8 后画面干净，因而保留这条窄保护。
  *
- * 其它编码器、SDR、非最高质量值或未广告 QP bounds 的路径没有同一份证据，不应用该限制。
+ * VBR 则是另一类问题：三星与 OPPO 的 HDR VBR 都出现矩形块，QP 40→8→4→1 仍不能
+ * 消除；最严 QP=1 还让 12 Mbps 请求实际升至约 19.6 Mbps。AOSP 组件的 VBR 固定启用
+ * cyclic-refresh AQ，这条组合不能继续当作可靠 VBR。候选枚举会把它的有效 VBR 能力关掉，
+ * 若组件同时支持 CBR，目标码率模式如实落到 CBR；否则不提供该目标码率候选（D191）。
+ *
+ * 其它编码器、SDR、CQ 非最高质量值或未广告 QP bounds 的路径没有同一份证据，不应用
+ * 该限制。
  */
-internal object FableSolExportCqQualityGuard {
+internal object FableSolExportAospAv1HdrPolicy {
 
     const val AOSP_AV1_ENCODER = "c2.android.av1.encoder"
-    const val AOSP_AV1_HDR_MAX_QP = 8
+    const val AOSP_AV1_HDR_CQ_MAX_QP = 8
 
-    fun maxQp(tier: FableSolExportTier, resolvedQuality: Int): Int? {
+    fun cqMaxQp(tier: FableSolExportTier, resolvedQuality: Int): Int? {
         val range = tier.qualityRange ?: return null
-        return maxQp(
+        return cqMaxQp(
             codecName = tier.codecName,
             videoMime = tier.videoMime,
             family = tier.family,
@@ -923,7 +928,7 @@ internal object FableSolExportCqQualityGuard {
         )
     }
 
-    internal fun maxQp(
+    internal fun cqMaxQp(
         codecName: String,
         videoMime: String,
         family: FableSolExportCodecFamily,
@@ -932,12 +937,22 @@ internal object FableSolExportCqQualityGuard {
         supportsQpBounds: Boolean,
         maximumQuality: Boolean
     ): Int? {
-        if (!maximumQuality) return null
-        if (codecName != AOSP_AV1_ENCODER) return null
-        if (videoMime != MediaFormat.MIMETYPE_VIDEO_AV1) return null
-        if (family != FableSolExportCodecFamily.AV1) return null
-        if (!softwareOnly || !hdr || !supportsQpBounds) return null
-        return AOSP_AV1_HDR_MAX_QP
+        if (!maximumQuality || !supportsQpBounds) return null
+        if (!rejectsVbr(codecName, videoMime, family, softwareOnly, hdr)) return null
+        return AOSP_AV1_HDR_CQ_MAX_QP
+    }
+
+    internal fun rejectsVbr(
+        codecName: String,
+        videoMime: String,
+        family: FableSolExportCodecFamily,
+        softwareOnly: Boolean,
+        hdr: Boolean
+    ): Boolean {
+        if (codecName != AOSP_AV1_ENCODER) return false
+        if (videoMime != MediaFormat.MIMETYPE_VIDEO_AV1) return false
+        if (family != FableSolExportCodecFamily.AV1) return false
+        return softwareOnly && hdr
     }
 }
 
@@ -1255,9 +1270,20 @@ internal data class FableSolExportTier(
                 val supportsCbr = encoder?.isBitrateModeSupported(
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
                 ) ?: false
-                val supportsVbr = encoder?.isBitrateModeSupported(
+                val advertisedSupportsVbr = encoder?.isBitrateModeSupported(
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
                 ) ?: true
+                // AOSP 软件 AV1 的 HDR VBR 在双机实导中无法避免 cyclic-refresh 矩形块：
+                // 即使 QP 压到 libaom 接受的最严 1 也不干净。把它从“有效 VBR”中剔除；
+                // 同组件若支持 CBR，目标码率会按既有 resolve 规则如实落到 CBR（D191）。
+                val supportsVbr = advertisedSupportsVbr &&
+                    !FableSolExportAospAv1HdrPolicy.rejectsVbr(
+                        codecName = info.name,
+                        videoMime = entry.mime,
+                        family = entry.family,
+                        softwareOnly = softwareOnly,
+                        hdr = transfer.isHdr
+                    )
                 val qualityRange = if (supportsCq && Build.VERSION.SDK_INT >= 28) {
                     try {
                         encoder?.qualityRange?.takeIf { it.upper > it.lower }
