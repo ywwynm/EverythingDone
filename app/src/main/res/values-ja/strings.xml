@@ -1101,7 +1101,7 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_export_desc_b_frames_av1">\n現在の組み合わせは AV1 になります。参照フレーム構造はエンコーダー自身が決定するため、この要求キーは使用しません。</string>
     <string name="fablesol_export_desc_b_frames_baseline">\n現在の組み合わせは H.264 Baseline になります。このプロファイルの構文に B フレームはありません。</string>
     <string name="fablesol_export_desc_keyframe">キーフレーム間隔が短いほどシークやトリミングの位置が正確になり、破損した区間の影響範囲も狭くなりますが、同じ画質でのファイルサイズは大きくなります。長いほど圧縮効率は上がります。この間隔はすべてのフォールバック候補で同じで、エンコーダーによって勝手に変わることはありません。</string>
-    <string name="fablesol_export_desc_highlight_start">ハイライト開始点には、シーン全体の実測輝度分布から選択したパーセンタイルを使用します。このしきい値未満はリニアマッピングを維持し、しきい値以上は制御されたロールオフを適用します。低いパーセンタイルでは圧縮範囲が拡大し、最も明るい領域の階調分離が向上します。高いパーセンタイルではリニア領域が拡大する一方、しきい値以上の圧縮が強くなります。この設定は HDR10+ 動的メタデータにのみ影響し、基礎となる PQ ピクセルは変更しません。</string>
+    <string name="fablesol_export_desc_highlight_start">ハイライト開始点には、シーン全体の実測輝度分布から選択したパーセンタイルを使用します。このしきい値未満はリニアマッピングを維持し、しきい値以上は制御されたロールオフを適用します。低いパーセンタイルでは圧縮範囲が拡大し、最も明るい領域の階調分離が向上します。高いパーセンタイルではリニア領域が拡大する一方、しきい値以上の圧縮が強くなります。この設定は HDR10+ または HDR Vivid の動的メタデータにのみ影響し、基礎となる PQ ピクセルは変更しません。</string>
     <string name="fablesol_export_detail_encoding">\nエンコード: %1$s · %2$s</string>
     <string name="fablesol_export_rate_control_cq">固定品質</string>
     <string name="fablesol_export_rate_control_vbr">目標ビットレート（VBR）</string>
@@ -1136,7 +1136,7 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_export_reference_peak_shortcut">%1$d</string>
     <string name="fablesol_export_reference_peak_panel">この画面のピーク（%1$s nits）</string>
     <string name="fablesol_export_estimate_reference_peak"> · 基準ディスプレイ %1$s ニト</string>
-    <string name="fablesol_export_reference_peak_desc">\n基準ディスプレイのピーク輝度は、このトーンマッピングカーブをどれだけ明るいディスプレイ向けに作ったかを表します。変わるのは HDR10+ の動的メタデータだけで、PQ のピクセル、マスタリング範囲、MaxCLL、MaxFALL は変わりません。「この端末」は現在のディスプレイが申告する希望コンテンツピークを一度だけ読み取って数値として保存します。省電力・温度・ウインドウ面積・パネルの電力制限により、実際の再生輝度はこの値より低くなることがあります。</string>
+    <string name="fablesol_export_reference_peak_desc">\n基準ディスプレイのピーク輝度は、このトーンマッピングカーブをどれだけ明るいディスプレイ向けに作ったかを表します。変わるのは HDR10+ または HDR Vivid の動的メタデータだけで、PQ のピクセル、マスタリング範囲、MaxCLL、MaxFALL は変わりません。「この端末」は現在のディスプレイが申告する希望コンテンツピークを一度だけ読み取って数値として保存します。省電力・温度・ウインドウ面積・パネルの電力制限により、実際の再生輝度はこの値より低くなることがあります。</string>
     <string name="fablesol_export_reference_peak_low">\n低ピークの HDR ターゲットです。通常の明部が早めに圧縮に入り、600 や 1000 ニトのターゲットに比べて明るさの妥協がはっきり出ます。</string>
     <string name="fablesol_export_reference_peak_infeasible">\n現在のパラメーターでは HDR10+ シーンのトーンマッピングカーブを生成できません。実測したシーンソースピークは %1$d ニトで、基準ディスプレイピークには %2$d ニト以上が必要です。拡散白または HDR 強度を低くすると、必要なマッピング範囲も縮小します。</string>
     <string name="fablesol_export_reference_peak_no_local_hdr10plus">\nこのディスプレイは HDR10+ 対応を申告していないため、端末での再生は HDR10 に戻る場合があります。この端末のピークを選んでも、ここで HDR10+ の動的レイヤーが有効になるわけではありません。</string>
@@ -1165,6 +1165,8 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="fablesol_export_hdr_desc_auto">HDR 仕様と画質能力の高い順に、この端末でエンコードが確認された最初の形式を選択します。現在は %1$s です。</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 絶対輝度カーブと静的マスタリングメタデータ。ピーク値は拡散白と HDR 強度から直接求まるため、圧縮は不要です。プレーヤーの互換性が最も広い形式です。</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">HDR10 に ST 2094-40 動的メタデータを追加します。事前解析でシーン全体をフレーム単位に測定し、ピーク値、平均輝度、輝度分布を集約して、1 本のシーン単位トーンマッピングカーブを生成します。ハイライト開始点未満はリニアマッピングを維持し、以上は制御されたロールオフを適用します。各フレームには同一のシーンメタデータを書き込みます。基礎伝達関数は PQ のままです。</string>
+    <string name="fablesol_export_hdr_format_name_hdr_vivid">中国標準HDR Vivid</string>
+    <string name="fablesol_export_hdr_desc_hdr_vivid">PQ/BT.2020 と HDR Vivid 1.0 動的メタデータを使用します。シーン全体の事前解析で基準ディスプレイのピーク輝度に合わせた Base Parameters と 2 つの 3Spline 区間を作成し、各フレームにペイロードを書き込んで MP4 に cuvv ボックスを追加します。明確なシーン切り替えでは時間履歴をリセットし、連続的な変化は平滑化します。ベースレイヤーには HDR10 の静的メタデータを維持します。この形式は明示的に選択する必要があり、HDR 自動では使用しません。</string>
     <string name="fablesol_export_hdr_desc_hlg">シーン相対の HLG 伝達関数を使用し、アプリが生成する動的メタデータは書き込みません。基準の視聴条件では中性のハイライトが基準白の約 4.92 倍まで、拡張信号範囲が検証された場合は高彩度色が約 5.50 倍まで使えます。それを超える分はクリップせず、全体で固定のショルダーで滑らかに収めます。</string>
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。HLG ベースレイヤーと、端末のエンコーダーが生成する Dolby 動的メタデータ。ベースレイヤーが HLG のため、ハイライトの余裕は HLG と同等で、HDR10 を上回りません。</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。HDR10 互換の PQ ベースレイヤーと、端末のエンコーダーが生成する Dolby 動的メタデータ。余裕は HDR10 と同等で、さらにシーン単位の表示適応が加わるため、利用可能な形式の中で最も規格が高い形式です。</string>

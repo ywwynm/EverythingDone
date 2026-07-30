@@ -80,6 +80,8 @@ internal object FableSolExportDisplayLuminance {
         context: Context,
         format: FableSolExportHdrFormat
     ): Boolean? {
+        // Android 没有 HDR Vivid 的显示能力常量。返回“未知”，不能拿 HDR10 支持冒充。
+        if (format == FableSolExportHdrFormat.HDR_VIVID) return null
         if (format == FableSolExportHdrFormat.HDR10_PLUS) {
             return panelSupportsHdr10Plus(context)
         }
@@ -94,6 +96,7 @@ internal object FableSolExportDisplayLuminance {
                 FableSolExportHdrFormat.DOLBY_VISION_84 ->
                     Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION
                 FableSolExportHdrFormat.HDR10_PLUS -> return panelSupportsHdr10Plus(context)
+                FableSolExportHdrFormat.HDR_VIVID -> return null
             }
             types.any { it == wanted }
         } catch (ignored: Throwable) {

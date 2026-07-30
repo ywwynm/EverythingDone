@@ -63,11 +63,11 @@ internal data class FableSolExportOptions(
     val pqWhiteNits: Float = DEFAULT_PQ_WHITE_NITS,
     /** `标准（203 尼特）`还是`自定义（N 尼特）`（D84）。 */
     val pqWhiteMode: FableSolExportPqWhiteMode = FableSolExportPqWhiteMode.DEFAULT,
-    /** HDR10+ 的参考显示峰值（尼特，D94）；只改动态元数据的引导曲线，不改 PQ 基础像素。 */
+    /** HDR10+／HDR Vivid 的参考显示峰值（尼特，D94、D11）；只改动态曲线，不改 PQ 像素。 */
     val referenceDisplayPeakNits: Float = DEFAULT_REFERENCE_PEAK_NITS,
     /**
-     * 「高光起点」：画面亮度分布的第几个百分位开始算高光。只有 HDR10+ 用得到——只有它带
-     * 色调映射曲线。以下原样保留，以上才压缩。
+     * 「高光起点」：画面亮度分布的第几个百分位开始算高光。HDR10+ 与 HDR Vivid 使用；
+     * 以下原样保留，以上才压缩。
      */
     val highlightStartPercent: Int =
         FableSolExportHdr10PlusCurve.DEFAULT_HIGHLIGHT_START_PERCENT,

@@ -1,7 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 /**
- * HDR10+「参考显示峰值」滑杆的档位刻度（fablesol-video-export D94、D116）。
+ * HDR10+／HDR Vivid「参考显示峰值」滑杆的档位刻度（D94、D116、D11）。
  *
  * 档距不是均匀的：`300～1000` 每档 25 尼特、`1000～4000` 每档 100 尼特、`4000～10000` 每档
  * 500 尼特。理由是人眼对亮度的分辨随绝对值增大而变粗——低端 25 尼特已经看得出差别，而在

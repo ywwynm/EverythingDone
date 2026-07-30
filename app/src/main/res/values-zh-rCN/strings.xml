@@ -1630,7 +1630,7 @@
     <string name="fablesol_export_desc_b_frames_av1">\n当前组合落在 AV1：参考帧结构由编码器自行决定，不使用本请求键。</string>
     <string name="fablesol_export_desc_b_frames_baseline">\n当前组合落在 H.264 Baseline：该 Profile 的语法不含 B 帧。</string>
     <string name="fablesol_export_desc_keyframe">关键帧间隔越短，拖动进度与剪辑落点越精确，损坏片段的影响范围也越小，代价是同画质下文件更大；越长则压缩效率更好。该间隔在全部降级候选间保持完全相同，不会随实际编码器静默改变。</string>
-    <string name="fablesol_export_desc_highlight_start">高光起点取自完整场景实测亮度分布的指定分位。低于该阈值的内容保持线性映射，高于该阈值的内容采用受控滚降。较低的分位会扩大压缩范围并提高极亮区域的层次分离；较高的分位会扩大线性区，同时增强阈值以上的压缩。该参数仅影响 HDR10+ 动态元数据，不修改 PQ 基础像素。</string>
+    <string name="fablesol_export_desc_highlight_start">高光起点取自完整场景实测亮度分布的指定分位。低于该阈值的内容保持线性映射，高于该阈值的内容采用受控滚降。较低的分位会扩大压缩范围并提高极亮区域的层次分离；较高的分位会扩大线性区，同时增强阈值以上的压缩。该参数仅影响 HDR10+ 或 HDR Vivid 动态元数据，不修改 PQ 基础像素。</string>
     <string name="fablesol_export_detail_encoding">\n编码：%1$s · %2$s</string>
     <string name="fablesol_export_rate_control_cq">恒定质量</string>
     <string name="fablesol_export_rate_control_vbr">目标码率（VBR）</string>
@@ -1665,7 +1665,7 @@
     <string name="fablesol_export_reference_peak_shortcut">%1$d</string>
     <string name="fablesol_export_reference_peak_panel">本机屏幕峰值（%1$s 尼特）</string>
     <string name="fablesol_export_estimate_reference_peak"> · 参考显示 %1$s 尼特</string>
-    <string name="fablesol_export_reference_peak_desc">\n参考显示峰值表示这条色调映射曲线按多亮的显示器创作，只改变 HDR10+ 动态元数据，不改变 PQ 基础像素、虚拟母版范围、MaxCLL 与 MaxFALL。“本机”读取当前显示设备声明的期望内容峰值，取值一次并保存为数值，不建立持续跟随关系；省电、温度、窗口面积与面板功率限制仍可能使实际播放亮度低于该值。</string>
+    <string name="fablesol_export_reference_peak_desc">\n参考显示峰值表示这条色调映射曲线按多亮的显示器创作，只改变 HDR10+ 或 HDR Vivid 动态元数据，不改变 PQ 基础像素、虚拟母版范围、MaxCLL 与 MaxFALL。“本机”读取当前显示设备声明的期望内容峰值，取值一次并保存为数值，不建立持续跟随关系；省电、温度、窗口面积与面板功率限制仍可能使实际播放亮度低于该值。</string>
     <string name="fablesol_export_reference_peak_low">\n当前属于低峰值 HDR 目标：普通亮部会更早进入压缩，画面与 600 或 1000 尼特目标相比有更明显的亮度取舍。</string>
     <string name="fablesol_export_reference_peak_infeasible">\n当前参数无法生成 HDR10+ 场景色调映射曲线。实测场景源峰值为 %1$d 尼特，参考显示峰值至少需为 %2$d 尼特；降低漫反射白或 HDR 强度也可缩小所需映射范围。</string>
     <string name="fablesol_export_reference_peak_no_local_hdr10plus">\n当前显示设备未声明支持 HDR10+，本机播放可能退回 HDR10；选择本机峰值不会让 HDR10+ 动态层在本机生效。</string>
@@ -1679,6 +1679,7 @@
     <string name="fablesol_export_hdr_brand_dolby_vision">杜比视界</string>
     <string name="fablesol_export_hdr_format_name_hdr10">HDR10</string>
     <string name="fablesol_export_hdr_format_name_hdr10_plus">HDR10+</string>
+    <string name="fablesol_export_hdr_format_name_hdr_vivid">国产标准HDR Vivid</string>
     <string name="fablesol_export_hdr_format_name_hlg">HLG</string>
     <string name="fablesol_export_hdr_format_name_dolby_vision_84">杜比视界 8.4</string>
     <string name="fablesol_export_hdr_format_auto">自动</string>
@@ -1699,6 +1700,7 @@
     <string name="fablesol_export_hdr_desc_auto">按 HDR 规格与画质能力由高到低，选用本机实测可编码的首个格式。当前为 %1$s。</string>
     <string name="fablesol_export_hdr_desc_hdr10">采用 PQ 绝对亮度传递函数与静态母版元数据。母版峰值和最大帧平均亮度由漫反射白及 HDR 强度推导，播放设备依据这些静态参数完成显示映射；HDR 播放兼容范围最广。</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">在 HDR10 基础上增加 ST 2094-40 动态元数据。预分析对完整场景逐帧测量，并汇总峰值、平均亮度和亮度分布，由此生成一条场景级色调映射曲线。高光起点以下保持线性映射，以上采用受控滚降；各帧写入相同的场景元数据。基础传递函数仍为 PQ。</string>
+    <string name="fablesol_export_hdr_desc_hdr_vivid">采用 PQ/BT.2020 与 HDR Vivid 1.0 动态元数据。完整场景预分析会根据参考显示峰值创作 Base Parameters 与两段 3Spline，逐帧写入载荷并在 MP4 中写入 cuvv；硬场景切换会重置时域历史，连续变化则进行平滑。基础层保留 HDR10 静态元数据；该格式需显式选择，不参与 HDR 自动档。</string>
     <string name="fablesol_export_hdr_desc_hlg">采用场景相对的 HLG 传递函数，不写入由应用生成的动态元数据。在参考显示条件下，中性高光可用到约 4.92 倍参考白；验证通过扩展信号范围后，高饱和颜色可用到约 5.50 倍。超出部分由整段固定的肩部平滑收纳，不做裁切。</string>
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4。采用 HLG 基层，并由设备编码器生成杜比动态元数据。基层高光余量与 HLG 一致；兼容的播放设备可依据动态元数据进行显示适配。</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1。采用 PQ 基层并保留 HDR10 兼容性，由设备编码器生成杜比动态元数据。在保留 PQ 绝对亮度余量的同时，兼容的播放设备可进行逐场景显示适配。</string>

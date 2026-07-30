@@ -49,6 +49,12 @@ internal data class FableSolExportFailure(
         /** 输出码流未检测到 ST 2094-40 SEI。 */
         HDR10_PLUS_SEI_MISSING("hdr10plus-sei-missing"),
 
+        /** HDR Vivid 访问单元没有全部携带 T/UWA 005 动态元数据。 */
+        HDR_VIVID_SEI_MISSING("hdr-vivid-sei-missing"),
+
+        /** HDR Vivid 短探测产物无法写入或验证 `cuvv` Configuration Box。 */
+        HDR_VIVID_CONTAINER_MISSING("hdr-vivid-container-missing"),
+
         /** 短探测产物里的静态 HDR 元数据与应用生成的描述符冲突（D91、D166）。 */
         STATIC_METADATA_MISMATCH("static-metadata-mismatch"),
 

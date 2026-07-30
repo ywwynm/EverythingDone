@@ -69,7 +69,7 @@ internal data class FableSolExportResolvedCandidate(
     val pqWhiteNits: Double,
     /** 仅 PQ 系有意义：峰值 = 漫反射白 × HDR 强度。 */
     val peakNits: Double,
-    /** 仅 HDR10+ 有意义：高光起点百分位。 */
+    /** 仅使用应用创作 Tone Mapping 曲线的 HDR 格式有意义：高光起点百分位。 */
     val highlightStartPercent: Int
 ) {
 
@@ -216,7 +216,7 @@ internal data class FableSolExportResolvedCandidate(
                 pqWhiteNits = if (tier.transfer == FableSolExportTransfer.PQ) pqWhiteNits else 0.0,
                 peakNits = if (tier.transfer == FableSolExportTransfer.PQ) peakNits else 0.0,
                 highlightStartPercent =
-                    if (tier.hdrFormat == FableSolExportHdrFormat.HDR10_PLUS) {
+                    if (tier.hdrFormat?.usesAuthoredToneMappingCurve == true) {
                         options.highlightStartPercent
                     } else {
                         0

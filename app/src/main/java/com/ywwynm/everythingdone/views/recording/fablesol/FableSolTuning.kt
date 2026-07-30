@@ -557,7 +557,7 @@ object FableSolTuning {
         prefs(context).edit().putBoolean(KEY_EXPORT_QP_GUARD, value).apply()
     }
 
-    /** HDR10+ 参考显示峰值（D94）；标准 1000 尼特。 */
+    /** HDR10+／HDR Vivid 参考显示峰值（D94、D11）；标准 1000 尼特。 */
     internal fun exportReferenceDisplayPeakNits(context: Context): Float =
         prefs(context).getFloat(
             KEY_EXPORT_REFERENCE_PEAK, FableSolExportOptions.DEFAULT_REFERENCE_PEAK_NITS

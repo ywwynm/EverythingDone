@@ -488,12 +488,15 @@ class FableSolExportCapabilityMatrixTest {
         assertEquals("HEVC 8-bit", reach.compactLabel)
     }
 
-    /** 杜比视界换的是 MIME，编码器仍是那颗 HEVC；界面上不该为它单列一个编码器选项。 */
+    /** 杜比视界与首版 HDR Vivid 都只走 HEVC；其它 HDR 格式仍可落 HEVC 或 AV1。 */
     @Test
     fun dolbyVisionBelongsToTheHevcFamily() {
         for (format in FableSolExportHdrFormat.entries) {
             val families = FableSolExportTier.familiesFor(format)
-            if (format.isDolbyVision) {
+            if (
+                format.isDolbyVision ||
+                format == FableSolExportHdrFormat.HDR_VIVID
+            ) {
                 assertEquals(listOf(FableSolExportCodecFamily.HEVC), families)
             } else {
                 assertTrue(families.contains(FableSolExportCodecFamily.HEVC))

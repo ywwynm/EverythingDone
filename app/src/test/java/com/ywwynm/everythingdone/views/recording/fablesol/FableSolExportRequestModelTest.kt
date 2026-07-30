@@ -132,8 +132,12 @@ class FableSolExportRequestModelTest {
         }
         // 每一种可导出的 HDR 格式都必须有对应的显式模式，否则界面上摆得出、请求不出来。
         assertEquals(
-            FableSolExportHdrFormat.AUTO_ORDER.toSet(),
+            FableSolExportHdrFormat.SELECTABLE_ORDER.toSet(),
             FableSolExportColorMode.entries.mapNotNull { it.explicitFormat }.toSet()
+        )
+        assertEquals(
+            "hdr-vivid",
+            FableSolExportColorMode.HDR_VIVID.stableId
         )
     }
 

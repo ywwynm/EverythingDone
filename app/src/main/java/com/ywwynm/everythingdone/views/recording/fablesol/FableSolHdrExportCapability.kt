@@ -48,7 +48,8 @@ internal object FableSolHdrExportCapability {
         private set
 
     /**
-     * 最近一次探测中**真的编出了一帧**的格式，按 [FableSolExportHdrFormat.AUTO_ORDER] 排序。
+     * 最近一次探测中**真的编出了一帧**的格式，按
+     * [FableSolExportHdrFormat.SELECTABLE_ORDER] 排序。
      *
      * 设置页只允许用户选中这个列表里的格式。仅凭 `MediaCodecList` 广告是不够的：广告说有
      * Main10HDR10Plus 而 configure 时静默降成 Main10 的情况完全存在，那样界面上摆着一个
@@ -419,7 +420,7 @@ internal object FableSolHdrExportCapability {
         rateControl: FableSolExportRateControl
     ): List<String> {
         val grouped = LinkedHashMap<String, MutableList<String>>()
-        for (format in FableSolExportHdrFormat.AUTO_ORDER + listOf(null)) {
+        for (format in FableSolExportHdrFormat.SELECTABLE_ORDER + listOf(null)) {
             for (family in FableSolExportTier.familiesFor(format)) {
                 for (tenBit in FableSolExportCapabilityMatrix.BIT_DEPTHS) {
                     if (!FableSolExportTier.supportsBitDepth(format, tenBit)) continue
@@ -610,6 +611,11 @@ internal object FableSolHdrExportCapability {
             FableSolExportFailure.Code.NO_VIDEO_SAMPLES -> "编码器未产出任何视频样本，产物为空"
             FableSolExportFailure.Code.HDR10_PLUS_SEI_MISSING ->
                 "输出码流未检测到 HDR10+ ST 2094-40 SEI"
+            FableSolExportFailure.Code.HDR_VIVID_SEI_MISSING ->
+                "输出码流没有逐访问单元携带 HDR Vivid T/UWA 005 动态元数据"
+            FableSolExportFailure.Code.HDR_VIVID_CONTAINER_MISSING ->
+                "短探测产物无法写入或验证 HDR Vivid cuvv 配置盒（" +
+                    "${failure.detail.orEmpty()}）"
             FableSolExportFailure.Code.STATIC_METADATA_MISMATCH ->
                 "短探测产物中的静态 HDR 元数据与应用生成的描述符冲突（" +
                     "${failure.detail.orEmpty()}）"
@@ -784,13 +790,15 @@ internal object FableSolHdrExportCapability {
             FableSolExportSpec.MAX_CARD_WIDTH_DP
         )
         val availableTransfers = eglCapability.availableHdrTransfers()
-        val supported = ArrayList<FableSolExportHdrFormat>(2)
+        val supported = ArrayList<FableSolExportHdrFormat>(
+            FableSolExportHdrFormat.SELECTABLE_ORDER.size
+        )
 
         // 每一种格式都要**单独走完一遍真实编码**，不能一成功就收工：设置页要摆出全部可选
         // 项，而"HDR10 能编"完全不蕴含"HDR10+ 或杜比视界也能编"。SDR（列表末尾的 null）
         // 同样要探——关掉 HDR 之后编码器仍然要选，那一列不能是空的。
         val probeFormats: List<FableSolExportHdrFormat?> =
-            FableSolExportHdrFormat.AUTO_ORDER + listOf(null)
+            FableSolExportHdrFormat.SELECTABLE_ORDER + listOf(null)
         for (format in probeFormats) {
             var formatOk = false
             val formatFailures = ArrayList<FableSolExportCandidateFailure>(4)
@@ -1232,6 +1240,20 @@ internal object FableSolHdrExportCapability {
         var bridge: FableSolExportP010Bridge? = null
         lastProbeChromaSiting = null
         return try {
+            val hdrVivid = tier.hdrFormat == FableSolExportHdrFormat.HDR_VIVID
+            val hdrVividPayload = if (hdrVivid) {
+                // 短探测只验证结构能否贯通；纯黑帧用全零统计，四项值均符合 12-bit 语义。
+                FableSolHdrVividMetadata.payload(
+                    FableSolHdrVividStatistics(
+                        minimumMaxRgbPq = 0,
+                        averageMaxRgbPq = 0,
+                        varianceMaxRgbPq = 0,
+                        maximumMaxRgbPq = 0
+                    )
+                )
+            } else {
+                null
+            }
             val muxer = MediaMuxer(
                 temporary.absolutePath,
                 MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4
@@ -1250,13 +1272,16 @@ internal object FableSolHdrExportCapability {
                 luminance = FableSolExportLuminanceStats.theoretical(
                     FableSolHdrPolicy.MAX_STRENGTH.toDouble()
                 ),
+                hdrVividInfo = hdrVividPayload?.let { payload ->
+                    { _: Long -> payload }
+                },
                 form = form,
                 applyHighComplexity = applyHighComplexity
             )
             // 输入通路必须按它正式导出时的样子探（D158）：应用自有 P010 与编码器 Surface
             // 是两条真正不同的链路，用其中一条去探另一条，探到的是另一件事。
             val byteBuffer = tier.usesAppP010
-            val hdr10Plus = tier.hdrFormat?.usesByteBufferInput == true
+            val hdr10Plus = tier.hdrFormat == FableSolExportHdrFormat.HDR10_PLUS
             egl = FableSolExportEgl(
                 if (byteBuffer) null else encoder.inputSurface,
                 transfer = tier.transfer,
@@ -1343,25 +1368,56 @@ internal object FableSolHdrExportCapability {
                     ),
                     retryable = false
                 )
+                hdrVivid && (
+                    !encoder.hdrVividSeiSeen ||
+                        encoder.hdrVividSeiSamples != encoder.videoSamplesWritten
+                    ) -> ProbeFailure(
+                    FableSolExportFailure(
+                        code = FableSolExportFailure.Code.HDR_VIVID_SEI_MISSING,
+                        detail = "${encoder.hdrVividSeiSamples}/" +
+                            "${encoder.videoSamplesWritten}"
+                    ),
+                    retryable = false
+                )
                 else -> {
-                    // 静态元数据的逐字段回读核对定位在**短探测产物**上（D166）：这里是一个
-                    // 单帧小文件，核对接近零成本；放到正式导出之后核对，一次失败就意味着把
-                    // 整段渲染推倒重来，正是 D142 否定的行为。
-                    val conflict = encoder.expectedStaticInfo()?.let {
-                        FableSolExportStaticMetadataCheck.verify(temporary, it)
+                    val vividContainerFailure = if (hdrVivid) {
+                        try {
+                            FableSolHdrVividMp4.patchInPlace(temporary)
+                            null
+                        } catch (error: Throwable) {
+                            "${error.javaClass.simpleName}: ${error.message.orEmpty()}"
+                        }
+                    } else {
+                        null
                     }
-                    if (conflict != null) {
+                    if (vividContainerFailure != null) {
                         ProbeFailure(
                             FableSolExportFailure(
-                                code = FableSolExportFailure.Code.STATIC_METADATA_MISMATCH,
-                                detail = conflict
+                                code = FableSolExportFailure.Code.HDR_VIVID_CONTAINER_MISSING,
+                                detail = vividContainerFailure
                             ),
                             retryable = false
                         )
                     } else {
-                        // 这一档真的编出来了：把码流声明的色度位置带回去，正式导出据此选相位。
-                        lastProbeChromaSiting = encoder.videoChromaSiting
-                        null
+                        // 静态元数据的逐字段回读核对定位在**短探测产物**上（D166）：这里是一个
+                        // 单帧小文件，核对接近零成本；放到正式导出之后核对，一次失败就意味着把
+                        // 整段渲染推倒重来，正是 D142 否定的行为。
+                        val conflict = encoder.expectedStaticInfo()?.let {
+                            FableSolExportStaticMetadataCheck.verify(temporary, it)
+                        }
+                        if (conflict != null) {
+                            ProbeFailure(
+                                FableSolExportFailure(
+                                    code = FableSolExportFailure.Code.STATIC_METADATA_MISMATCH,
+                                    detail = conflict
+                                ),
+                                retryable = false
+                            )
+                        } else {
+                            // 这一档真的编出来了：把码流声明的色度位置带回去，正式导出据此选相位。
+                            lastProbeChromaSiting = encoder.videoChromaSiting
+                            null
+                        }
                     }
                 }
             }
@@ -1553,7 +1609,8 @@ internal object FableSolHdrExportCapability {
     //     Surface；表里同时记下真正编出一帧的那一条通路与码流声明的色度位置（D154/D170）。
     //     探的链路变了，旧结论不能沿用。
     // 14：矩阵行新增 highComplexityFormId（D149 复杂度阶梯，评审 P20）。
-    private const val PROBE_CONTRACT_VERSION = 14
+    // 15：加入 HDR Vivid 显式格式；探测必须逐样本验证 T/UWA 005 SEI，并补写、回读 cuvv。
+    private const val PROBE_CONTRACT_VERSION = 15
 
     /** 结构上就没有候选时的固定说明；与编码器抛出的技术细节区分开。 */
     private const val NO_CANDIDATE_REASON =

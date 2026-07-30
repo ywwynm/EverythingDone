@@ -83,7 +83,7 @@ internal object FableSolVideoExportBus {
             /** 漫反射白（尼特）；0 表示不是 PQ 系，完成态不显示色彩规格那一行。 */
             val pqWhiteNits: Double = 0.0,
             val peakNits: Double = 0.0,
-            /** 高光起点百分位；0 表示不是 HDR10+。 */
+            /** 高光起点百分位；0 表示未使用应用创作曲线。 */
             val highlightStartPercent: Int = 0,
             /** 高光起点百分位查询所得的膝点亮度（尼特）；0 表示不适用（D115）。 */
             val hdr10PlusRequestedKneeNits: Double = 0.0,

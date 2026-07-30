@@ -707,7 +707,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                             String.format(java.util.Locale.US, "%.0f", peak)
                         )
                     )
-                    if (pqFormat == FableSolExportHdrFormat.HDR10_PLUS) {
+                    if (pqFormat?.usesAuthoredToneMappingCurve == true) {
                         val referencePeak = FableSolTuning.exportReferenceDisplayPeakNits(ctx)
                         pieces.append(
                             getString(
@@ -897,9 +897,9 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             // 漫反射白：标准/自定义的语义，以及本机屏幕亮度**作为观看参考**的读数（D82、D84）。
             // 后者必须明确标成设备诊断，不能读成默认导出参数。
             val pqFormat = mResolvedExportPqFormat
-            // 高光起点只对 HDR10+ 成立——只有它带场景级色调映射曲线（D43、D177）。
+            // HDR10+ 与 HDR Vivid 都使用按完整场景创作的色调映射曲线（D43、D177、D11）。
             highlightNote.setNote(
-                if (pqFormat == FableSolExportHdrFormat.HDR10_PLUS) {
+                if (pqFormat?.usesAuthoredToneMappingCurve == true) {
                     getString(R.string.fablesol_export_desc_highlight_start)
                 } else {
                     ""
@@ -953,11 +953,11 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                         }
                     }
                 )
-                if (pqFormat != FableSolExportHdrFormat.HDR10_PLUS) {
+                if (pqFormat?.usesAuthoredToneMappingCurve != true) {
                     referencePeakNote.setNote("")
                 } else {
-                    // 参考显示峰值的说明（D94、D177）：面板声明值不等于实际播放亮度，
-                    // 低峰值目标有更强压缩取舍，本机也未必支持 HDR10+ 播放。
+                    // 参考显示峰值的说明（D94、D177、D11）：面板声明值不等于实际播放亮度，
+                    // 低峰值目标有更强压缩取舍；HDR10+ 还可核对 Android 的本机播放能力。
                     val referencePeak = FableSolTuning.exportReferenceDisplayPeakNits(ctx)
                     referencePeakNote.setNote(
                         buildString {
@@ -966,6 +966,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                                 append(getString(R.string.fablesol_export_reference_peak_low))
                             }
                             if (
+                                pqFormat == FableSolExportHdrFormat.HDR10_PLUS &&
                                 FableSolExportDisplayLuminance.panelSupportsHdr10Plus(ctx) == false
                             ) {
                                 append(
@@ -1142,8 +1143,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         }
         whiteRow.visibility = View.GONE
 
-        // 「参考显示峰值」只有 HDR10+ 用得到：它写进 targeted_system_display_maximum_luminance，
-        // 是"这条曲线按多亮的显示器创作"的**创作意图**，不是本机屏幕有多亮（D82、D93）。
+        // 「参考显示峰值」供 HDR10+ 与 HDR Vivid 的动态曲线使用：它表达“这条曲线按多亮的
+        // 显示器创作”的**创作意图**，不是本机屏幕有多亮（D82、D93、D11）。
         // 档距不均匀，所以滑杆的 progress 是档位下标，尼特换算只在 FableSolExportReferencePeak
         // 一处（D94）。
         var referencePeakSetter: ((Float) -> Unit)? = null
@@ -1218,7 +1219,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         }
         referenceShortcutRow.visibility = View.GONE
 
-        // 「高光起点」只有 HDR10+ 用得到——只有它带色调映射曲线。
+        // 「高光起点」供 HDR10+ 与 HDR Vivid 的内容感知色调映射曲线共同使用。
         val highlightRow: View = makeExportSliderRow(
             ctx,
             getString(R.string.fablesol_param_export_highlight_start),
@@ -1427,10 +1428,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             )
             whiteRow.visibility =
                 if (format?.transfer == FableSolExportTransfer.PQ) View.VISIBLE else View.GONE
-            val hdr10Plus = format == FableSolExportHdrFormat.HDR10_PLUS
-            highlightRow.visibility = if (hdr10Plus) View.VISIBLE else View.GONE
-            referencePeakRow.visibility = if (hdr10Plus) View.VISIBLE else View.GONE
-            referenceShortcutRow.visibility = if (hdr10Plus) View.VISIBLE else View.GONE
+            val authoredToneMapping = format?.usesAuthoredToneMappingCurve == true
+            highlightRow.visibility = if (authoredToneMapping) View.VISIBLE else View.GONE
+            referencePeakRow.visibility = if (authoredToneMapping) View.VISIBLE else View.GONE
+            referenceShortcutRow.visibility = if (authoredToneMapping) View.VISIBLE else View.GONE
             mResolvedExportHlgFormat = format?.takeIf { it.usesHlgBaseLayer }
             mResolvedExportPqFormat = format?.takeIf {
                 it.transfer == FableSolExportTransfer.PQ
@@ -1757,15 +1758,20 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         // 选项是**导出色彩模式**（D62），不是"HDR 开关 + 格式"两件事：前两项是两种 SDR，
         // 它们表达的是两种不同的创作意图，不是同一件事的开关。
         //
-        // **HDR 排在 SDR 前面。** 默认就是「自动」（HDR），而本功能的取向是能支持多高规格就
-        // 支持多高规格；把两个 SDR 摆在最前面，等于让用户先读完两个降级选项才看到默认值。
-        // 顺序：自动 → 各具体 HDR 格式（按 AUTO_ORDER）→ 两种 SDR。
+        // **HDR 主序列排在 SDR 前面。** 默认就是「自动」（HDR），而本功能的取向是能支持多高
+        // 规格就支持多高规格；把两个 SDR 摆在最前面，等于让用户先读完两个降级选项才看到
+        // 默认值。HDR Vivid 是显式、特殊的中国标准格式，按 D11 单独放到整个列表末尾。
+        // 顺序：自动 → 其它具体 HDR 格式 → 两种 SDR → HDR Vivid。
         val formatChoices = ArrayList<FableSolExportColorMode>(formats.size + 3)
         val formatLabels = ArrayList<String>(formats.size + 3)
+        val tailFormat = formats.firstOrNull {
+            it == FableSolExportHdrFormat.HDR_VIVID
+        }
         if (formats.isNotEmpty()) {
             formatChoices += FableSolExportColorMode.HDR_AUTO
             formatLabels += getString(R.string.fablesol_export_hdr_format_auto)
             for (format in formats) {
+                if (format == tailFormat) continue
                 formatChoices += FableSolExportColorMode.entries.first {
                     it.explicitFormat == format
                 }
@@ -1776,6 +1782,10 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         formatLabels += getString(R.string.fablesol_export_color_mode_sdr_native)
         formatChoices += FableSolExportColorMode.SDR_TONE_MAPPED
         formatLabels += getString(R.string.fablesol_export_color_mode_sdr_tone_mapped)
+        if (tailFormat != null) {
+            formatChoices += FableSolExportColorMode.HDR_VIVID
+            formatLabels += tailFormat.displayName(ctx)
+        }
 
         // 整机一个组合都编不出来的编码器族不摆出来：那不是"当前选择下不可用"，而是根本
         // 不存在，摆一个永远灰着的胶囊只会让人以为选错了别的东西。
@@ -2290,6 +2300,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         FableSolExportHdrFormat.HDR10 -> getString(R.string.fablesol_export_hdr_desc_hdr10)
         FableSolExportHdrFormat.HDR10_PLUS ->
             getString(R.string.fablesol_export_hdr_desc_hdr10_plus)
+        FableSolExportHdrFormat.HDR_VIVID ->
+            getString(R.string.fablesol_export_hdr_desc_hdr_vivid)
         FableSolExportHdrFormat.HLG -> getString(R.string.fablesol_export_hdr_desc_hlg)
         FableSolExportHdrFormat.DOLBY_VISION_84 ->
             getString(R.string.fablesol_export_hdr_desc_dolby)

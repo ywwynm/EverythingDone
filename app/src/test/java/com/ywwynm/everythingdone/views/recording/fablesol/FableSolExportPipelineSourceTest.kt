@@ -229,7 +229,7 @@ class FableSolExportPipelineSourceTest {
         assertTrue(capability.contains("KEY_MATRIX"))
         assertTrue(capability.contains("FableSolExportCapabilityMatrix.decode(cached.matrix)"))
         // SDR 也要进表：关掉 HDR 之后编码器仍然要选，那一列不能是空的。
-        assertTrue(capability.contains("FableSolExportHdrFormat.AUTO_ORDER + listOf(null)"))
+        assertTrue(capability.contains("FableSolExportHdrFormat.SELECTABLE_ORDER + listOf(null)"))
     }
 
     /**
@@ -574,7 +574,7 @@ class FableSolExportPipelineSourceTest {
         val capability = projectFile("FableSolHdrExportCapability.kt")
 
         assertTrue(encoder.contains("var videoSamplesWritten = 0L"))
-        assertTrue(encoder.contains("if (track == videoTrack) videoSamplesWritten++"))
+        assertTrue(encoder.contains("if (videoSample) videoSamplesWritten++"))
         assertTrue(capability.contains("encoder.videoSamplesWritten <= 0L"))
         assertTrue(exporter.contains("check(encoder.videoSamplesWritten > 0L)"))
         // 样本计数正常但落盘仍为空时，也不能把它留在图库里。
@@ -704,6 +704,37 @@ class FableSolExportPipelineSourceTest {
     }
 
     @Test
+    fun hdrVividIsTheLastColorModeAndExposesItsCurveControls() {
+        val format = projectFile("FableSolExportHdrFormat.kt")
+        val resolved = projectFile("FableSolExportResolvedCandidate.kt")
+        val dialog = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+
+        val selectable = format.substringAfter("val SELECTABLE_ORDER =")
+            .substringAfter("listOf(")
+            .substringBefore(")")
+            .split(",")
+            .map { it.trim() }
+        assertEquals("HDR_VIVID", selectable.last())
+
+        val choices = dialog.substringAfter(
+            "val formatChoices = ArrayList<FableSolExportColorMode>"
+        ).substringBefore("// 整机一个组合都编不出来")
+        assertTrue(
+            choices.indexOf(
+                "formatChoices += FableSolExportColorMode.SDR_TONE_MAPPED"
+            ) < choices.lastIndexOf(
+                "formatChoices += FableSolExportColorMode.HDR_VIVID"
+            )
+        )
+        assertTrue(dialog.contains("format?.usesAuthoredToneMappingCurve == true"))
+        assertTrue(dialog.contains("pqFormat?.usesAuthoredToneMappingCurve == true"))
+        assertTrue(resolved.contains("tier.hdrFormat?.usesAuthoredToneMappingCurve == true"))
+    }
+
+    @Test
     fun hdrDiagnosticsUseFormalFactualLanguage() {
         val capability = projectFile("FableSolHdrExportCapability.kt")
         val hdr10PlusProbe = projectFile("FableSolHdr10PlusProbe.kt")
@@ -828,6 +859,18 @@ class FableSolExportPipelineSourceTest {
         assertTrue(loopBody.contains("checkNotNull(hdr10PlusPayload)"))
         assertFalse(loopBody.contains("activeBridge.stats()"))
         assertFalse(loopBody.contains("FableSolExportHdr10PlusMetadata.payload("))
+    }
+
+    /** HDR Vivid 必须按呈现时间取逐场景载荷，不能让 B 帧的编码输出顺序冒充画面顺序。 */
+    @Test
+    fun hdrVividBuildsASceneTimelineAndSelectsPayloadsByOutputPts() {
+        val exporter = projectFile("FableSolVideoExporter.kt")
+        val encoder = projectFile("FableSolExportEncoder.kt")
+
+        assertTrue(exporter.contains("FableSolHdrVividTimeline.Builder("))
+        assertTrue(exporter.contains("timeline.payloadAt(presentationTimeUs)"))
+        assertTrue(encoder.contains("invoke(info.presentationTimeUs)"))
+        assertFalse(exporter.contains("var hdrVividPayload: ByteArray?"))
     }
 
     private fun projectFile(name: String): String {

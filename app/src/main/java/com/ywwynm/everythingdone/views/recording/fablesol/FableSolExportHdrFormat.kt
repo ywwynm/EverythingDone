@@ -34,12 +34,13 @@ internal class FableSolExportCodecEntry(
  * 与导出 shader），格式还额外决定**用哪个编码器、写什么元数据**。所以"PQ 和 HDR10 并列"
  * 是重复的，两者是同一件事的两个说法：HDR10 = PQ 曲线 + BT.2020 + 静态母版元数据。
  *
- * 四种格式沿两个轴区分——**基层曲线**决定高光余量，**元数据**决定播放端是否具备按场景
+ * 五种格式沿两个轴区分——**基层曲线**决定高光余量，**元数据**决定播放端是否具备按场景
  * 适配的依据：
  *
  * | 格式 | 基层 | 余量 | 元数据 |
  * |---|---|---|---|
  * | HDR10+ | PQ | 10000 尼特 | ST 2094-40 动态 |
+ * | HDR Vivid | PQ | 10000 尼特 | T/UWA 005 动态 |
  * | 杜比视界 8.4 | HLG | 约 3.77 倍 | 杜比动态（RPU） |
  * | HDR10 | PQ | 10000 尼特 | 静态，且我们写的是精确值 |
  * | HLG | HLG | 约 3.77 倍 | 无 |
@@ -79,6 +80,11 @@ internal enum class FableSolExportHdrFormat(
         "HDR10+",
         R.string.fablesol_export_hdr_format_name_hdr10_plus
     ),
+    HDR_VIVID(
+        FableSolExportTransfer.PQ,
+        "HDR Vivid",
+        R.string.fablesol_export_hdr_format_name_hdr_vivid
+    ),
 
     HLG(
         FableSolExportTransfer.HLG,
@@ -95,7 +101,7 @@ internal enum class FableSolExportHdrFormat(
 
     fun displayName(context: Context): String = context.getString(displayNameRes)
 
-    /** PQ 系两种格式都要 CTA-861.3 静态母版元数据，播放端才知道按多高的峰值还原。 */
+    /** PQ 系格式都要 CTA-861.3 静态母版元数据，播放端才知道按多高的峰值还原。 */
     val writesStaticMetadata: Boolean
         get() = transfer == FableSolExportTransfer.PQ
 
@@ -126,12 +132,22 @@ internal enum class FableSolExportHdrFormat(
         get() = when (this) {
             HDR10 -> "HDR10"
             HDR10_PLUS -> "HDR10Plus"
+            HDR_VIVID -> "HDRVivid"
             DOLBY_VISION_84 -> "DV84"
             HLG -> "HLG"
         }
 
     val isDolbyVision: Boolean
         get() = this == DOLBY_VISION_84
+
+    /**
+     * 该格式是否使用应用根据完整场景创作的 Tone Mapping 曲线。
+     *
+     * HDR10+ 和 HDR Vivid 的载荷语法不同，但都读取同一组“参考显示峰值／高光起点”
+     * 创作参数。设置页与结果摘要应按这个语义判断，不能再把控件写死为仅 HDR10+ 可见。
+     */
+    val usesAuthoredToneMappingCurve: Boolean
+        get() = this == HDR10_PLUS || this == HDR_VIVID
 
     /**
      * 只有 HDR10+ 走字节缓冲输入。
@@ -166,6 +182,9 @@ internal enum class FableSolExportHdrFormat(
             HDR10_PLUS ->
                 "当前验证已使用字节缓冲输入并逐帧提交 ST 2094-40 动态元数据；Android " +
                     "公开接口未提供其他可用的应用级 HDR10+ 动态元数据注入路径"
+            HDR_VIVID ->
+                "当前实现逐帧注入包含 Base Parameters 与两段 3Spline 的 T/UWA 005.1 " +
+                    "动态元数据，并在 MP4 中写入 cuvv；终端识别与分享链路兼容性需分别验证"
             DOLBY_VISION_84 ->
                 "该结论仅适用于采用 HLG 基层的 Profile 8.4；Profile 5 与 Profile 8.1 " +
                     "不属于本应用的产品能力"
@@ -176,6 +195,7 @@ internal enum class FableSolExportHdrFormat(
         get() = when (this) {
             HDR10, HLG -> TEN_BIT_ENTRIES
             HDR10_PLUS -> HDR10_PLUS_ENTRIES
+            HDR_VIVID -> HDR_VIVID_ENTRIES
             DOLBY_VISION_84 -> DOLBY_VISION_ENTRIES
         }
 
@@ -195,8 +215,19 @@ internal enum class FableSolExportHdrFormat(
          * 4. **HLG**——HLG 基层且没有动态元数据，作为最后候选。
          *
          * 每一种格式均须通过单帧编码与封装验证；排序只决定候选优先级，不代表设备必然支持。
+         *
+         * HDR Vivid 首版不进入自动档：应用侧能够在普通 HEVC Main10 上生成其结构，并不等于
+         * 目标终端与分享平台已经验证兼容。它先作为显式格式开放，见
+         * `fablesol-hdr-vivid-export` D6。
          */
         val AUTO_ORDER = listOf(HDR10_PLUS, DOLBY_VISION_84, HDR10, HLG)
+
+        /**
+         * 设置页与能力矩阵需要验证的全部显式 HDR 格式。HDR Vivid 固定放在末位；
+         * 设置页会进一步把它移到两种 SDR 之后，见功能 D11。
+         */
+        val SELECTABLE_ORDER =
+            listOf(HDR10_PLUS, DOLBY_VISION_84, HDR10, HLG, HDR_VIVID)
 
         private val TEN_BIT_ENTRIES = listOf(
             FableSolExportCodecEntry(
@@ -225,6 +256,16 @@ internal enum class FableSolExportHdrFormat(
                 MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10Plus,
                 eightBit = false,
                 label = "AV1 Main10"
+            )
+        )
+
+        /** T/UWA 005 首版只实现 PQ/HEVC Main10，不把 AV1 冒充 HDR Vivid 承载。 */
+        private val HDR_VIVID_ENTRIES = listOf(
+            FableSolExportCodecEntry(
+                MediaFormat.MIMETYPE_VIDEO_HEVC,
+                MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
+                eightBit = false,
+                label = "HEVC Main10"
             )
         )
 

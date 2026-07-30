@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.media.MediaCodecInfo.CodecProfileLevel
+import android.media.MediaFormat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -24,11 +25,41 @@ class FableSolExportHdrFormatTest {
             ),
             FableSolExportHdrFormat.AUTO_ORDER
         )
-        // 漏掉任何一种格式就等于它永远不会被自动档选中，而界面上却摆着它。
+        assertFalse(FableSolExportHdrFormat.HDR_VIVID in FableSolExportHdrFormat.AUTO_ORDER)
+    }
+
+    /** HDR Vivid 首版可显式选择，但终端/平台兼容性验证完成前不改变“自动”的既有结果。 */
+    @Test
+    fun selectableFormatsIncludeExplicitOnlyHdrVivid() {
         assertEquals(
-            FableSolExportHdrFormat.entries.size,
-            FableSolExportHdrFormat.AUTO_ORDER.size
+            listOf(
+                FableSolExportHdrFormat.HDR10_PLUS,
+                FableSolExportHdrFormat.DOLBY_VISION_84,
+                FableSolExportHdrFormat.HDR10,
+                FableSolExportHdrFormat.HLG,
+                FableSolExportHdrFormat.HDR_VIVID
+            ),
+            FableSolExportHdrFormat.SELECTABLE_ORDER
         )
+        assertEquals(
+            FableSolExportHdrFormat.entries.toSet(),
+            FableSolExportHdrFormat.SELECTABLE_ORDER.toSet()
+        )
+    }
+
+    /** 两种动态格式共享参考显示峰值和高光起点，但各自生成独立标准载荷。 */
+    @Test
+    fun authoredToneMappingParametersBelongToHdr10PlusAndHdrVivid() {
+        assertTrue(FableSolExportHdrFormat.HDR10_PLUS.usesAuthoredToneMappingCurve)
+        assertTrue(FableSolExportHdrFormat.HDR_VIVID.usesAuthoredToneMappingCurve)
+        for (format in FableSolExportHdrFormat.entries) {
+            if (
+                format != FableSolExportHdrFormat.HDR10_PLUS &&
+                format != FableSolExportHdrFormat.HDR_VIVID
+            ) {
+                assertFalse(format.usesAuthoredToneMappingCurve)
+            }
+        }
     }
 
     /**
@@ -63,6 +94,7 @@ class FableSolExportHdrFormatTest {
     fun onlyDolbyVisionDemandsTheExactProfile() {
         assertTrue(FableSolExportHdrFormat.DOLBY_VISION_84.requiresExactProfile)
         assertFalse(FableSolExportHdrFormat.HDR10_PLUS.requiresExactProfile)
+        assertFalse(FableSolExportHdrFormat.HDR_VIVID.requiresExactProfile)
         assertFalse(FableSolExportHdrFormat.HDR10.requiresExactProfile)
         assertFalse(FableSolExportHdrFormat.HLG.requiresExactProfile)
     }
@@ -91,6 +123,18 @@ class FableSolExportHdrFormatTest {
         assertFalse(FableSolExportHdrFormat.DOLBY_VISION_84.writesStaticMetadata)
         assertTrue(FableSolExportHdrFormat.HDR10.writesStaticMetadata)
         assertTrue(FableSolExportHdrFormat.HDR10_PLUS.writesStaticMetadata)
+        assertTrue(FableSolExportHdrFormat.HDR_VIVID.writesStaticMetadata)
+    }
+
+    /** 首版承载严格限定为 PQ/HEVC Main10；不把 AV1 Main10 当成 HDR Vivid。 */
+    @Test
+    fun hdrVividUsesOnlyHevcMain10() {
+        val entries = FableSolExportHdrFormat.HDR_VIVID.codecEntries
+        assertEquals(1, entries.size)
+        assertEquals(MediaFormat.MIMETYPE_VIDEO_HEVC, entries.single().mime)
+        assertEquals(CodecProfileLevel.HEVCProfileMain10, entries.single().profile)
+        assertFalse(entries.single().eightBit)
+        assertFalse(FableSolExportHdrFormat.HDR_VIVID.usesByteBufferInput)
     }
 
     @Test

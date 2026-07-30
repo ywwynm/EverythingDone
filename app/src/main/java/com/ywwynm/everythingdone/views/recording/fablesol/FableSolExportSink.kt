@@ -56,6 +56,13 @@ internal abstract class FableSolExportSink(private val baseName: String) {
     abstract fun createMuxer(): MediaMuxer
 
     /**
+     * MediaMuxer 完成后、发布前为 HDR Vivid 补写 `cuvv`。
+     *
+     * 这是格式成立的一部分，不是可忽略的装饰；失败必须让当前候选失败并删除半成品。
+     */
+    abstract fun patchHdrVividConfiguration(): FableSolHdrVividMp4.PatchResult
+
+    /**
      * 成功收尾：让产物对相册可见。**返回是否真的成功**——它是成功路径的一部分，不是
      * finally 里可以吞掉的收尾动作：提交失败意味着产物仍是 pending、相册里看不见，
      * 此时报"导出成功"就是在骗人。
@@ -137,6 +144,26 @@ internal abstract class FableSolExportSink(private val baseName: String) {
             }
             descriptor = pfd
             return MediaMuxer(pfd.fileDescriptor, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        }
+
+        override fun patchHdrVividConfiguration(): FableSolHdrVividMp4.PatchResult {
+            val target = checkNotNull(uri) { "MediaStore export is not open" }
+            val readDescriptor = checkNotNull(resolver.openFileDescriptor(target, "r")) {
+                "Cannot reopen MediaStore export for HDR Vivid verification"
+            }
+            val writeDescriptor = try {
+                checkNotNull(resolver.openFileDescriptor(target, "rw")) {
+                    "Cannot reopen MediaStore export for HDR Vivid patching"
+                }
+            } catch (error: Throwable) {
+                readDescriptor.close()
+                throw error
+            }
+            return ParcelFileDescriptor.AutoCloseInputStream(readDescriptor).use { input ->
+                ParcelFileDescriptor.AutoCloseOutputStream(writeDescriptor).use { output ->
+                    FableSolHdrVividMp4.patchInPlace(input.channel, output.channel)
+                }
+            }
         }
 
         override fun commit(isCancelled: () -> Boolean): Boolean {
@@ -274,6 +301,12 @@ internal abstract class FableSolExportSink(private val baseName: String) {
                 target.absolutePath,
                 MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4
             )
+        }
+
+        override fun patchHdrVividConfiguration(): FableSolHdrVividMp4.PatchResult {
+            val target = checkNotNull(file) { "Legacy export is not open" }
+            check(ownsFile && target.isFile) { "Legacy export file is unavailable" }
+            return FableSolHdrVividMp4.patchInPlace(target)
         }
 
         override fun commit(isCancelled: () -> Boolean): Boolean {

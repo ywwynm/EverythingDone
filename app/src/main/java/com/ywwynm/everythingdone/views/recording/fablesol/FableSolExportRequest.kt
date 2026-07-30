@@ -24,8 +24,8 @@ private fun <T> Array<T>.byStableId(value: String?, fallback: T): T
 /**
  * 导出色彩模式：单一互斥选择器（D62），取代原先"HDR 开关 + HDR 格式"两处表达同一件事。
  *
- * 排列顺序即设置页胶囊顺序：两种 SDR、`HDR（自动）`、各具体 HDR 格式（与
- * [FableSolExportHdrFormat.AUTO_ORDER] 一致）。
+ * 设置页顺序由 [FableSolExportHdrFormat.SELECTABLE_ORDER] 决定；`HDR（自动）` 仍只使用
+ * [FableSolExportHdrFormat.AUTO_ORDER]，首版 HDR Vivid 仅允许显式选择。
  */
 internal enum class FableSolExportColorMode(
     override val stableId: String,
@@ -43,6 +43,7 @@ internal enum class FableSolExportColorMode(
 
     HDR_AUTO("hdr-auto", null, true),
     HDR10_PLUS("hdr10-plus", FableSolExportHdrFormat.HDR10_PLUS, false),
+    HDR_VIVID("hdr-vivid", FableSolExportHdrFormat.HDR_VIVID, false),
     DOLBY_VISION_84("dolby-vision-84", FableSolExportHdrFormat.DOLBY_VISION_84, false),
     HDR10("hdr10", FableSolExportHdrFormat.HDR10, false),
     HLG("hlg", FableSolExportHdrFormat.HLG, false);

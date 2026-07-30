@@ -88,6 +88,51 @@ class FableSolExportLocalizationTest {
     }
 
     @Test
+    fun hdrVividNameDistinguishesDomesticAndChinaStandardRegions() {
+        val expected = mapOf(
+            "values" to "HDR Vivid (China standard)",
+            "values-zh-rCN" to "国产标准HDR Vivid",
+            "values-zh-rHK" to "國產標準HDR Vivid",
+            "values-zh-rTW" to "國產標準HDR Vivid",
+            "values-ja" to "中国標準HDR Vivid",
+            "values-ko" to "중국 표준 HDR Vivid",
+            "values-de" to "HDR Vivid (chinesischer Standard)",
+            "values-es" to "HDR Vivid (estándar chino)",
+            "values-fr" to "HDR Vivid (norme chinoise)",
+            "values-it" to "HDR Vivid (standard cinese)",
+            "values-pt" to "HDR Vivid (padrão chinês)",
+            "values-ru" to "HDR Vivid (китайский стандарт)",
+            "values-hi" to "HDR Vivid (चीनी मानक)"
+        )
+        for ((locale, value) in expected) {
+            assertEquals(
+                "$locale 的 HDR Vivid 地区名称不符合产品规则",
+                value,
+                stringsOf(locale).getValue("fablesol_export_hdr_format_name_hdr_vivid")
+            )
+        }
+    }
+
+    @Test
+    fun hdrVividDescriptionsMatchTheCompleteCurveImplementation() {
+        for (locale in locales) {
+            val strings = stringsOf(locale)
+            val description = strings.getValue("fablesol_export_hdr_desc_hdr_vivid")
+            assertTrue("$locale 未说明 Base Parameters", description.contains("Base Parameters"))
+            assertTrue("$locale 未说明 3Spline", description.contains("3Spline"))
+            assertTrue("$locale 未说明 cuvv", description.contains("cuvv"))
+            assertTrue(
+                "$locale 的高光起点仍未覆盖 HDR Vivid",
+                strings.getValue("fablesol_export_desc_highlight_start").contains("HDR Vivid")
+            )
+            assertTrue(
+                "$locale 的参考显示峰值仍未覆盖 HDR Vivid",
+                strings.getValue("fablesol_export_reference_peak_desc").contains("HDR Vivid")
+            )
+        }
+    }
+
+    @Test
     fun stringsWithLiteralPercentDeclareThemselvesUnformatted() {
         // 同一条字符串里出现多个"裸 %"时，aapt2 会拒绝编译；而只有一个时它能过，
         // 却会在 String.format 那条路上炸。规则统一成：带裸 % 的必须 formatted="false"。

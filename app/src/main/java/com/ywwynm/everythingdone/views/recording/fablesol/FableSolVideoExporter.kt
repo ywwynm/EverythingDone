@@ -85,7 +85,7 @@ internal class FableSolVideoExporter(
             val pqWhiteNits: Double = 0.0,
             /** 峰值 = 漫反射白 × HDR 强度。 */
             val peakNits: Double = 0.0,
-            /** 高光起点百分位；0 表示不是 HDR10+，该项不适用。 */
+            /** 高光起点百分位；0 表示未使用应用创作曲线，该项不适用。 */
             val highlightStartPercent: Int = 0,
             /** 高光起点百分位查询所得的膝点亮度（尼特）；0 表示不适用（D115）。 */
             val hdr10PlusRequestedKneeNits: Double = 0.0,
@@ -604,11 +604,12 @@ internal class FableSolVideoExporter(
         var presenter: FableSolExportPresenter? = null
         var clock: FableSolExportClock? = null
         var bridge: FableSolExportP010Bridge? = null
-        // 当前连续动画只有一个场景：预分析结束后只求解一次，并把同一份载荷写入每一帧。
+        // HDR10+ 当前仍按一个连续场景求解；HDR Vivid 单独持有逐场景、逐 PTS 的载荷时间线。
         var hdrCurve: FableSolExportHdr10PlusCurve? = null
         var hdr10PlusShape: FableSolExportHdr10PlusCurve.Shape? = null
         var hdr10PlusFbpUnavailable = false
         var hdr10PlusPayload: ByteBuffer? = null
+        var hdrVividTimeline: FableSolHdrVividTimeline? = null
         var published = false
         try {
             audio = FableSolExportAudioSource(request.audioPath)
@@ -673,13 +674,16 @@ internal class FableSolVideoExporter(
             // 扩散到其它编码器或输入路径。
             FableSolTuning.bindLegacyQualityValue(context, resolved.qualitySignature)
 
-            val hdr10Plus = tier.hdrFormat?.usesByteBufferInput == true
-            var hdr10PlusSceneStats: FableSolHdr10PlusStats? = null
+            val hdr10Plus = tier.hdrFormat == FableSolExportHdrFormat.HDR10_PLUS
+            val hdrVivid = tier.hdrFormat == FableSolExportHdrFormat.HDR_VIVID
+            val needsDynamicSceneStats = hdr10Plus || hdrVivid
+            var dynamicSceneStats: FableSolHdr10PlusStats? = null
 
             // **静态元数据要的是实测统计，不是参数。** HDR10/HDR10+ 在配置编码器之前先跑一次
             // 全片亮度预分析（D85）；成功结果按完整渲染指纹缓存，同一份录音与同一套渲染条件
-            // 不必重跑（D92）。HDR10+ 还要在这次预分析里累计整个连续场景的精确统计（D177）；
-            // 这组大直方图不进轻量缓存，因此 HDR10+ 即使命中静态亮度缓存也仍需跑预分析。
+            // 不必重跑（D92）。HDR10+ 还要累计整个连续场景；HDR Vivid 则在同一批逐帧 CFD
+            // 上检测场景、生成曲线时间线。这组大直方图不进轻量缓存，因此动态格式即使命中
+            // 静态亮度缓存也仍需跑预分析。
             // 杜比视界 8.4 是 HLG 基层，不走 PQ 静态元数据这条路。
             var luminance = FableSolExportLuminanceStats.theoretical(strength.toDouble())
             var progressTotal = totalFrames
@@ -697,7 +701,7 @@ internal class FableSolVideoExporter(
                     backdropColor = plan.backdropColor,
                     rimColor = plan.rimColor
                 )
-                val cached = if (hdr10Plus) {
+                val cached = if (needsDynamicSceneStats) {
                     null
                 } else {
                     FableSolExportLuminanceCache.read(context, fingerprint)
@@ -715,18 +719,20 @@ internal class FableSolVideoExporter(
                         frameRate = frameRate,
                         plan = plan,
                         progressTotal = progressTotal,
-                        collectHdr10PlusScene = hdr10Plus
+                        collectDynamicScene = needsDynamicSceneStats,
+                        collectHdrVividTimeline = hdrVivid
                     )
                     if (listener.isCancelled()) return Result.Cancelled
                     if (measured != null) {
                         luminance = measured.luminance
-                        hdr10PlusSceneStats = measured.hdr10PlusStats
+                        dynamicSceneStats = measured.dynamicSceneStats
+                        hdrVividTimeline = measured.hdrVividTimeline
                         // 只写完整成功的实测结果；取消、部分结果与 D90 回退都不进缓存。
                         FableSolExportLuminanceCache.write(
                             context, fingerprint, measured.luminance
                         )
-                    } else if (hdr10Plus) {
-                        error("HDR10+ scene statistics unavailable")
+                    } else if (needsDynamicSceneStats) {
+                        error("${tier.hdrFormat?.stableLabel} scene statistics unavailable")
                     }
                 }
             }
@@ -736,7 +742,7 @@ internal class FableSolVideoExporter(
             // 模式下被系统禁止；其余 10-bit 档位是"优先"，失败后由候选阶梯退到同格式 Surface。
             val byteBuffer = tier.usesAppP010
             if (hdr10Plus) {
-                val stats = checkNotNull(hdr10PlusSceneStats) {
+                val stats = checkNotNull(dynamicSceneStats) {
                     "HDR10+ scene statistics were not produced"
                 }
                 // FBP 的规范零值（未计算）必须在完成信息里说明（D109）。计算成功的 FBP
@@ -790,6 +796,11 @@ internal class FableSolVideoExporter(
                     stats, curve, targetNits
                 )
             }
+            if (hdrVivid) {
+                checkNotNull(hdrVividTimeline) {
+                    "HDR Vivid metadata timeline was not produced"
+                }
+            }
 
             // 文件名里要带格式，而格式是降级阶梯定下来才知道的；sink 在建 muxer 那一刻
             // 才真正落名，所以这里补标签正好赶得上。
@@ -806,6 +817,9 @@ internal class FableSolVideoExporter(
                 peakNits = peakNits,
                 diffuseWhiteNits = whiteNits,
                 luminance = luminance,
+                hdrVividInfo = hdrVividTimeline?.let { timeline ->
+                    { presentationTimeUs: Long -> timeline.payloadAt(presentationTimeUs) }
+                },
                 form = rateControlForm,
                 applyHighComplexity = applyHighComplexity,
                 applyBFrames = applyBFrames
@@ -1025,6 +1039,25 @@ internal class FableSolVideoExporter(
             // 的 config），只有 8 位的 H.264 有数据（2026-07-28）。抛出去让阶梯换下一档。
             check(encoder.videoSamplesWritten > 0L) {
                 "Encoder produced no video samples for ${tier.label}"
+            }
+            if (hdrVivid) {
+                check(
+                    encoder.hdrVividSeiSeen &&
+                        encoder.hdrVividSeiSamples == encoder.videoSamplesWritten
+                ) {
+                    "HDR Vivid metadata coverage is ${encoder.hdrVividSeiSamples}/" +
+                        "${encoder.videoSamplesWritten}"
+                }
+                val patch = request.sink.patchHdrVividConfiguration()
+                val vividTimeline = checkNotNull(hdrVividTimeline)
+                FableSolExportRuntimeDiagnostics.record(
+                    "HDR Vivid SEI 覆盖：${encoder.hdrVividSeiSamples}/" +
+                        "${encoder.videoSamplesWritten} 个视频样本；" +
+                        "场景：${vividTimeline.sceneCount}，" +
+                        "硬切：${vividTimeline.hardBoundaryCount}，" +
+                        "不同载荷：${vividTimeline.uniquePayloadCount}；" +
+                        "cuvv 封装位置：${patch.placement}。"
+                )
             }
 
             // finish() 已完成并验证 muxer.stop()/release()；现在才允许关闭 PFD、清 pending 或
@@ -1410,11 +1443,12 @@ internal class FableSolVideoExporter(
      * 全片 HDR 预分析（D85、D86、D177）。
      *
      * 用确定性离线渲染跑完整段动画，读最终可见合成的线性 BT.2020 画面。普通 HDR10 只归约
-     * `MaxCLL` / `MaxFALL`；HDR10+ 则逐帧精确测量后累计成一个连续场景，同时得到静态亮度。
+     * `MaxCLL` / `MaxFALL`；HDR10+ 累计成一个连续场景；HDR Vivid 在同一份逐帧 CFD 上
+     * 建立多场景曲线时间线。
      * 这一步不做任何视频或音频编码。
      *
      * @return null 表示 FP16 中间面或静态归约不可用；普通 HDR10 按 D90 使用理论回退，
-     *   HDR10+ 因缺少规范场景统计而判当前候选失败。
+     *   HDR10+ / HDR Vivid 因缺少规范场景统计而判当前候选失败。
      */
     private fun analyseLuminance(
         capability: FableSolExportEgl.Capability,
@@ -1424,7 +1458,8 @@ internal class FableSolVideoExporter(
         frameRate: Int,
         plan: FableSolExportPlan,
         progressTotal: Int,
-        collectHdr10PlusScene: Boolean
+        collectDynamicScene: Boolean,
+        collectHdrVividTimeline: Boolean
     ): HdrPreanalysis? {
         var audio: FableSolExportAudioSource? = null
         var egl: FableSolExportEgl? = null
@@ -1434,8 +1469,18 @@ internal class FableSolVideoExporter(
         var reducer: FableSolExportLuminanceReducer? = null
         var sceneTarget: FableSolExportPresentTarget? = null
         var sceneBackend: FableSolExportHdr10PlusStatsBackend? = null
-        val sceneAccumulator = if (collectHdr10PlusScene) {
+        val sceneAccumulator = if (collectDynamicScene && !collectHdrVividTimeline) {
             FableSolExportHdr10PlusSceneAccumulator(options.pqWhiteNits.toDouble())
+        } else {
+            null
+        }
+        val vividTimelineBuilder = if (collectHdrVividTimeline) {
+            FableSolHdrVividTimeline.Builder(
+                frameRate = frameRate,
+                diffuseWhiteNits = options.pqWhiteNits.toDouble(),
+                targetNits = options.referenceDisplayPeakNits.toDouble(),
+                highlightStartPercent = options.highlightStartPercent
+            )
         } else {
             null
         }
@@ -1443,7 +1488,7 @@ internal class FableSolVideoExporter(
             audio = FableSolExportAudioSource(request.audioPath)
             // 没有编码器，也就没有 input surface：EGL 走离屏 pbuffer，只为持有 GL 上下文。
             egl = FableSolExportEgl(null, transfer = FableSolExportTransfer.SDR, tenBit = false)
-            if (collectHdr10PlusScene) {
+            if (collectDynamicScene) {
                 sceneTarget = FableSolExportPresentTarget.createHighPrecision(
                     plan.canvasWidthPx, plan.canvasHeightPx
                 ) ?: return null
@@ -1529,7 +1574,7 @@ internal class FableSolVideoExporter(
                 // 取消也要立刻生效：预分析可能与正式编码一样长。
                 if (listener.isCancelled()) return null
                 if (!drive.advance(frameIndex, onAudio = null)) break
-                if (collectHdr10PlusScene) {
+                if (collectDynamicScene) {
                     val target = checkNotNull(sceneTarget)
                     val backend = checkNotNull(sceneBackend)
                     val stats = backend.measure(target.textureId)
@@ -1537,7 +1582,11 @@ internal class FableSolVideoExporter(
                             "HDR10+ statistics unavailable: " +
                                 (backend.failure ?: "unknown")
                         )
-                    checkNotNull(sceneAccumulator).add(stats)
+                    if (collectHdrVividTimeline) {
+                        checkNotNull(vividTimelineBuilder).add(stats)
+                    } else {
+                        checkNotNull(sceneAccumulator).add(stats)
+                    }
                 } else {
                     checkNotNull(reducer).accumulate()
                     if (reducer.failure != null) return null
@@ -1547,12 +1596,23 @@ internal class FableSolVideoExporter(
                     reportProgress(startedAt, frameIndex, progressTotal)
                 }
             }
-            if (collectHdr10PlusScene) {
+            if (collectDynamicScene) {
+                if (collectHdrVividTimeline) {
+                    val timeline = checkNotNull(vividTimelineBuilder).result() ?: return null
+                    return HdrPreanalysis(
+                        luminance = timeline.luminance,
+                        dynamicSceneStats = null,
+                        hdrVividTimeline = timeline
+                    )
+                }
                 val scene = checkNotNull(sceneAccumulator).result() ?: return null
-                return HdrPreanalysis(scene.luminance, scene.stats)
+                return HdrPreanalysis(
+                    luminance = scene.luminance,
+                    dynamicSceneStats = scene.stats
+                )
             }
             val luminance = checkNotNull(reducer).result() ?: return null
-            return HdrPreanalysis(luminance, hdr10PlusStats = null)
+            return HdrPreanalysis(luminance, dynamicSceneStats = null)
         } catch (ignored: OutOfMemoryError) {
             // 统计通路的资源问题按 D90 处理；渲染本身的错误仍会作为异常向上抛。
             return null
@@ -1571,7 +1631,8 @@ internal class FableSolVideoExporter(
 
     private data class HdrPreanalysis(
         val luminance: FableSolExportLuminanceStats,
-        val hdr10PlusStats: FableSolHdr10PlusStats?
+        val dynamicSceneStats: FableSolHdr10PlusStats?,
+        val hdrVividTimeline: FableSolHdrVividTimeline? = null
     )
 
     private data class CandidatePlan(

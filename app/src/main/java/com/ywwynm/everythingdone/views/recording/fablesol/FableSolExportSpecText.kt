@@ -11,7 +11,7 @@ import java.util.Locale
  * 两个版本。
  *
  * 三个数只在真正生效时才出现：漫反射白与峰值只对 PQ 系格式成立（HLG 系是相对亮度，没有
- * 绝对锚点），高光起点更是只对 HDR10+ 成立（只有它带色调映射曲线）。不生效还写出来，
+ * 绝对锚点），高光起点只对 HDR10+ 与 HDR Vivid 的应用创作曲线成立。不生效还写出来，
  * 等于告诉用户一个不影响产物的数。
  */
 internal object FableSolExportSpecText {
@@ -175,7 +175,7 @@ internal object FableSolExportSpecText {
     /**
      * @param whiteNits 漫反射白；≤0 表示这次导出不是 PQ 系，整行不出现。
      * @param peakNits 峰值 = 漫反射白 × HDR 强度。
-     * @param highlightStartPercent 高光起点百分位；≤0 表示不是 HDR10+，该项不出现。
+     * @param highlightStartPercent 高光起点百分位；≤0 表示不使用应用创作曲线，该项不出现。
      * @param hdr10PlusIdentity HDR10+ 的场景曲线是否退化成全片恒等（场景源峰值未超过参考
      *   显示峰值，D177）；null 表示这次不是 HDR10+。恒等时高光起点**没有生效**，因此那一项不
      *   显示，改为如实说明画面与 HDR10 一致——不得把它写成画质提升。

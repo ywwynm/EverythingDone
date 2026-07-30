@@ -1101,7 +1101,7 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_export_desc_b_frames_av1">\n현재 조합은 AV1로 결정됩니다. 참조 프레임 구조는 인코더가 스스로 결정하므로 이 요청 키를 사용하지 않습니다.</string>
     <string name="fablesol_export_desc_b_frames_baseline">\n현재 조합은 H.264 Baseline으로 결정됩니다. 이 프로파일의 구문에는 B 프레임이 없습니다.</string>
     <string name="fablesol_export_desc_keyframe">키프레임 간격이 짧을수록 탐색과 편집 지점이 정확해지고 손상된 구간의 영향 범위도 줄어들지만, 같은 품질에서 파일이 커집니다. 길수록 압축 효율은 좋아집니다. 이 간격은 모든 대체 후보에서 동일하게 유지되며 인코더에 따라 조용히 바뀌지 않습니다.</string>
-    <string name="fablesol_export_desc_highlight_start">하이라이트 시작점에는 전체 장면의 측정 휘도 분포에서 선택한 백분위수를 사용합니다. 이 임계값 미만은 선형 매핑을 유지하고, 이상은 제어된 롤오프를 적용합니다. 낮은 백분위수는 압축 범위를 확대하여 가장 밝은 영역의 계조 분리를 향상합니다. 높은 백분위수는 선형 범위를 확대하는 대신 임계값 이상의 압축을 강화합니다. 이 설정은 HDR10+ 동적 메타데이터에만 영향을 주며 기반 PQ 픽셀은 변경하지 않습니다.</string>
+    <string name="fablesol_export_desc_highlight_start">하이라이트 시작점에는 전체 장면의 측정 휘도 분포에서 선택한 백분위수를 사용합니다. 이 임계값 미만은 선형 매핑을 유지하고, 이상은 제어된 롤오프를 적용합니다. 낮은 백분위수는 압축 범위를 확대하여 가장 밝은 영역의 계조 분리를 향상합니다. 높은 백분위수는 선형 범위를 확대하는 대신 임계값 이상의 압축을 강화합니다. 이 설정은 HDR10+ 또는 HDR Vivid 동적 메타데이터에만 영향을 주며 기반 PQ 픽셀은 변경하지 않습니다.</string>
     <string name="fablesol_export_detail_encoding">\n인코딩: %1$s · %2$s</string>
     <string name="fablesol_export_rate_control_cq">고정 품질</string>
     <string name="fablesol_export_rate_control_vbr">목표 비트레이트(VBR)</string>
@@ -1136,7 +1136,7 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_export_reference_peak_shortcut">%1$d</string>
     <string name="fablesol_export_reference_peak_panel">이 화면의 피크(%1$s nit)</string>
     <string name="fablesol_export_estimate_reference_peak"> · 기준 디스플레이 %1$s 니트</string>
-    <string name="fablesol_export_reference_peak_desc">\n기준 디스플레이 피크는 이 톤 매핑 곡선을 어느 정도 밝기의 디스플레이에 맞춰 만들었는지를 나타냅니다. HDR10+ 동적 메타데이터만 바뀌며 PQ 픽셀, 마스터링 범위, MaxCLL, MaxFALL은 바뀌지 않습니다. 「이 기기」는 현재 디스플레이가 알리는 희망 콘텐츠 피크를 한 번만 읽어 숫자로 저장합니다. 절전, 온도, 창 면적, 패널 전력 제한 때문에 실제 재생 밝기는 이 값보다 낮을 수 있습니다.</string>
+    <string name="fablesol_export_reference_peak_desc">\n기준 디스플레이 피크는 이 톤 매핑 곡선을 어느 정도 밝기의 디스플레이에 맞춰 만들었는지를 나타냅니다. HDR10+ 또는 HDR Vivid 동적 메타데이터만 바뀌며 PQ 픽셀, 마스터링 범위, MaxCLL, MaxFALL은 바뀌지 않습니다. 「이 기기」는 현재 디스플레이가 알리는 희망 콘텐츠 피크를 한 번만 읽어 숫자로 저장합니다. 절전, 온도, 창 면적, 패널 전력 제한 때문에 실제 재생 밝기는 이 값보다 낮을 수 있습니다.</string>
     <string name="fablesol_export_reference_peak_low">\n저피크 HDR 타깃입니다. 일반적인 밝은 영역이 더 일찍 압축에 들어가고, 600니트나 1000니트 타깃보다 밝기 절충이 뚜렷하게 나타납니다.</string>
     <string name="fablesol_export_reference_peak_infeasible">\n현재 매개변수로는 HDR10+ 장면 톤 매핑 곡선을 생성할 수 없습니다. 측정된 장면 소스 피크는 %1$d니트이며, 기준 디스플레이 피크는 최소 %2$d니트여야 합니다. 확산 백색 또는 HDR 강도를 낮추면 필요한 매핑 범위도 줄어듭니다.</string>
     <string name="fablesol_export_reference_peak_no_local_hdr10plus">\n이 디스플레이는 HDR10+ 지원을 알리지 않으므로 기기에서의 재생은 HDR10으로 돌아갈 수 있습니다. 이 기기의 피크를 선택해도 여기서 HDR10+ 동적 레이어가 활성화되지는 않습니다.</string>
@@ -1165,6 +1165,8 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="fablesol_export_hdr_desc_auto">HDR 규격과 화질 역량이 높은 순서로, 이 기기에서 인코딩이 확인된 첫 번째 형식을 선택합니다. 현재 %1$s입니다.</string>
     <string name="fablesol_export_hdr_desc_hdr10">PQ 절대 휘도 곡선과 정적 마스터링 메타데이터. 피크값은 확산 백색과 HDR 강도에서 직접 산출되므로 압축이 필요하지 않습니다. 플레이어 호환성이 가장 넓습니다.</string>
     <string name="fablesol_export_hdr_desc_hdr10_plus">HDR10에 ST 2094-40 동적 메타데이터를 추가합니다. 사전 분석에서 전체 장면을 프레임별로 측정하고 피크값, 평균 휘도 및 휘도 분포를 집계하여 하나의 장면 단위 톤 매핑 곡선을 생성합니다. 하이라이트 시작점 미만은 선형 매핑을 유지하고 이상은 제어된 롤오프를 적용하며, 모든 프레임에 동일한 장면 메타데이터를 기록합니다. 기반 전달 함수는 PQ로 유지됩니다.</string>
+    <string name="fablesol_export_hdr_format_name_hdr_vivid">중국 표준 HDR Vivid</string>
+    <string name="fablesol_export_hdr_desc_hdr_vivid">PQ/BT.2020과 HDR Vivid 1.0 동적 메타데이터를 사용합니다. 전체 장면 사전 분석에서 기준 디스플레이 피크에 맞춘 Base Parameters와 두 개의 3Spline 구간을 만들고, 모든 프레임에 페이로드를 기록하며 MP4에 cuvv 박스를 추가합니다. 명확한 장면 전환은 시간 이력을 초기화하고 연속 변화는 평활화합니다. 기본 레이어에는 HDR10 정적 메타데이터를 유지합니다. 이 형식은 명시적으로 선택해야 하며 HDR 자동에서는 사용하지 않습니다.</string>
     <string name="fablesol_export_hdr_desc_hlg">장면 상대 HLG 전달 함수를 사용하며 앱이 생성하는 동적 메타데이터는 기록하지 않습니다. 기준 시청 조건에서 중성 하이라이트는 기준 백색의 약 4.92배까지, 확장 신호 범위가 검증된 경우 고채도 색상은 약 5.50배까지 사용합니다. 그 이상은 잘리지 않고 전구간 고정된 숙더로 부드럽게 담아냅니다.</string>
     <string name="fablesol_export_hdr_desc_dolby">Profile 8.4. HLG 기본 레이어와 기기 인코더가 생성하는 Dolby 동적 메타데이터. 기본 레이어가 HLG이므로 하이라이트 여유는 HLG와 같으며 HDR10을 넘지 않습니다.</string>
     <string name="fablesol_export_hdr_desc_dolby_81">Profile 8.1. HDR10과 호환되는 PQ 기본 레이어와 기기 인코더가 생성하는 Dolby 동적 메타데이터. 여유는 HDR10과 동일하며 장면별 디스플레이 적응이 추가되어, 사용 가능한 형식 중 규격이 가장 높습니다.</string>

@@ -45,6 +45,14 @@ internal class FableSolExportEncoder(
     private val luminance: FableSolExportLuminanceStats =
         FableSolExportLuminanceStats.theoretical(1.0),
     /**
+     * HDR Vivid 1.0 的逐 PTS T.35 载荷提供器；其它格式必须为 null。
+     *
+     * 时间线由完整预分析生成。编码器只负责 HEVC Main10；每个输出访问单元在交给
+     * MediaMuxer 之前按它自己的呈现时间取载荷并插入 prefix SEI，不能按编码输出顺序递增帧号，
+     * 否则 B 帧重排会把动态元数据挂到错误画面。
+     */
+    private val hdrVividInfo: ((Long) -> ByteArray)? = null,
+    /**
      * 本次实际下发的码控形态（D145、D167）。
      *
      * 与"用户选了什么"是两回事：CQ 有纯 CQ 与 CQ+码率提示两种**同模式**形态，目标码率在
@@ -131,6 +139,12 @@ internal class FableSolExportEncoder(
     /** 字节缓冲模式下，编出来的码流里是否真的带上了 HDR10+ 的动态元数据。 */
     val hdr10PlusSeiSeen: Boolean get() = hdr10PlusSeiSamples > 0L
 
+    /** 应用成功写入 HDR Vivid 1.0 T.35 SEI 的视频样本数。 */
+    var hdrVividSeiSamples = 0L
+        private set
+
+    val hdrVividSeiSeen: Boolean get() = hdrVividSeiSamples > 0L
+
     /**
      * 真正写进容器的视频样本数（不含 codec-config）。
      *
@@ -144,6 +158,12 @@ internal class FableSolExportEncoder(
         private set
 
     init {
+        require(
+            (tier.hdrFormat == FableSolExportHdrFormat.HDR_VIVID) ==
+                (hdrVividInfo != null)
+        ) {
+            "HDR Vivid output requires exactly one application-authored T.35 timeline"
+        }
         try {
             // 按**具体编码器名字**创建，而不是 createEncoderByType：后者返回系统首选实现，
             // 未必就是探测时确认支持该 profile / 尺寸 / 帧率的那一个。
@@ -548,8 +568,32 @@ internal class FableSolExportEncoder(
         if (buffer == null) return
         if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) return
         if (info.size <= 0) return
-        if (track == videoTrack) videoSamplesWritten++
-        if (byteBufferInput && track == videoTrack) {
+        val videoSample = track == videoTrack
+        var sampleBuffer = buffer.duplicate()
+        var sampleOffset = info.offset
+        var sampleSize = info.size
+        if (videoSample && tier.hdrFormat == FableSolExportHdrFormat.HDR_VIVID) {
+            val original = ByteArray(info.size)
+            sampleBuffer.position(info.offset)
+            sampleBuffer.limit(info.offset + info.size)
+            sampleBuffer.get(original)
+            val injection = FableSolHdrVividHevc.inject(
+                original,
+                checkNotNull(hdrVividInfo).invoke(info.presentationTimeUs)
+            )
+            check(FableSolHdrVividHevc.containsHdrVivid(injection.annexB)) {
+                "HDR Vivid metadata injection produced no recognizable T.35 signature"
+            }
+            sampleBuffer = ByteBuffer.wrap(injection.annexB)
+            sampleOffset = 0
+            sampleSize = injection.annexB.size
+            hdrVividSeiSamples++
+        }
+        if (
+            byteBufferInput &&
+            videoSample &&
+            tier.hdrFormat == FableSolExportHdrFormat.HDR10_PLUS
+        ) {
             // HDR10+ 唯一作数的证据就是码流里那段 SEI——输出格式回报的 profile 本来就是
             // Main10，拿它判断只会误杀。逐样本计数（不命中即停）：覆盖率要进诊断与完成
             // 信息，扫描成本在内存带宽量级，可忽略。
@@ -557,17 +601,27 @@ internal class FableSolExportEncoder(
                 hdr10PlusSeiSamples++
             }
         }
-        buffer.position(info.offset)
-        buffer.limit(info.offset + info.size)
+        if (videoSample) videoSamplesWritten++
+        sampleBuffer.position(sampleOffset)
+        sampleBuffer.limit(sampleOffset + sampleSize)
+        val effectiveInfo = if (sampleOffset != info.offset || sampleSize != info.size) {
+            MediaCodec.BufferInfo().apply {
+                set(sampleOffset, sampleSize, info.presentationTimeUs, info.flags)
+            }
+        } else {
+            info
+        }
         if (muxing) {
-            muxer.writeSampleData(track, buffer, info)
+            muxer.writeSampleData(track, sampleBuffer, effectiveInfo)
             return
         }
         // 两条轨都就绪前先攒着；样本数量很少（各自第一批）。
-        val copy = ByteBuffer.allocate(info.size)
-        copy.put(buffer)
+        val copy = ByteBuffer.allocate(sampleSize)
+        copy.put(sampleBuffer)
         copy.flip()
-        pending.add(PendingSample(track, copy, info.presentationTimeUs, info.flags))
+        pending.add(
+            PendingSample(track, copy, effectiveInfo.presentationTimeUs, effectiveInfo.flags)
+        )
     }
 
     private fun maybeStartMuxer() {
