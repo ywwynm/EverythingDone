@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 import android.media.MediaFormat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -84,28 +85,59 @@ internal enum class FableSolExportTransfer {
         /** PQ 的信号上限。 */
         const val PQ_MAX_NITS = 10000.0
 
+        /** ST 2086 虚拟母版的最低亮度，单位 0.0001 尼特（D89）。 */
+        const val MASTERING_MIN_LUMINANCE_UNITS = 1
+
+        /**
+         * 写进 ST 2086 MDCV 的**声明母版峰值**（尼特）。
+         *
+         * 只服务静态元数据这一处。HDR10+ 曲线的横轴是**场景 V8 百分位**（D177、D180），
+         * 不读本值——把它当成曲线的归一化母版是 D176 已被推翻的做法，不得恢复。
+         */
+        fun masteringPeakNits(
+            peakNits: Double,
+            diffuseWhiteNits: Double,
+            luminance: FableSolExportLuminanceStats
+        ): Int = ceil(peakNits).toInt()
+            .coerceAtLeast(luminance.maxContentLightLevel(diffuseWhiteNits))
+            .coerceIn(1, PQ_MAX_NITS.toInt())
+
         /**
          * HDR10 的静态母版元数据（CTA-861.3 Static Metadata Descriptor ID 0，25 字节）。
          *
-         * 我们的峰值是**解析可算**的（HDR 强度 × [SDR_WHITE_NITS]），不像实拍内容那样只能
-         * 估，所以 MaxCLL 给的是准确值而不是保守猜测。
+         * 四组字段各司其职，不能互相顶替（D89）：
+         *
+         * - **primaries + 白点 + 亮度范围**描述虚拟母版**显示色容积**。编码容器仍是 BT.2020，
+         *   母版 primaries 用 **P3-D65**（D88）：两者说的是不同的事——BT.2020 决定码值怎么
+         *   解释，P3-D65 描述承载创作意图的母版显示器。FableSol 的身份色是 Rec.709 子集，
+         *   完整落在 P3 之内，因此这不是虚报，也不做 Rec.709→P3 的创作扩色。
+         * - **MaxCLL** 是全片实际出现的最高 `maxRGB`；
+         * - **MaxFALL** 是全片实际出现的最高帧平均 `maxRGB`，未知时写 0（D90）。
+         *
+         * 母版最高亮度取 `ceil(漫反射白 × HDR 强度)`，并至少覆盖实测 MaxCLL——预分析可能因
+         * 数值边界测出略高的值，母版色容积不能反而装不下自己的内容。不按 1000/2000/4000
+         * 监视器档位取整：FableSol 没有实际调色监视器，任意抬高只会让"只看 MDCV、忽略
+         * CLLI"的播放端做不必要的强压缩。
          */
         fun hdr10StaticInfo(
             peakNits: Double,
-            frameAverageNits: Double = SDR_WHITE_NITS
+            diffuseWhiteNits: Double,
+            luminance: FableSolExportLuminanceStats
         ): ByteBuffer {
+            val maxContent = luminance.maxContentLightLevel(diffuseWhiteNits)
+            val masteringMax = masteringPeakNits(peakNits, diffuseWhiteNits, luminance)
             val buffer = ByteBuffer.allocate(25).order(ByteOrder.LITTLE_ENDIAN)
             buffer.put(0)                       // descriptor id
-            putPrimary(buffer, 0.708, 0.292)    // BT.2020 red
-            putPrimary(buffer, 0.170, 0.797)    // BT.2020 green
-            putPrimary(buffer, 0.131, 0.046)    // BT.2020 blue
-            putPrimary(buffer, 0.3127, 0.3290)  // D65 white point
-            buffer.putShort(peakNits.roundToInt().coerceIn(1, 10000).toShort())
-            buffer.putShort(1)                  // 最小亮度，单位 0.0001 尼特
-            buffer.putShort(peakNits.roundToInt().coerceIn(1, 65535).toShort()) // MaxCLL
-            // MaxFALL：水面的平均画面亮度远低于峰值，取漫反射白这一档是诚实且保守的估计。
-            // 漫反射白已经可调（200–800），所以这里必须跟着走，不能再写死 203。
-            buffer.putShort(frameAverageNits.roundToInt().coerceIn(1, 65535).toShort())
+            putPrimary(buffer, 0.680, 0.320)    // Display P3 red（D88）
+            putPrimary(buffer, 0.265, 0.690)    // Display P3 green
+            putPrimary(buffer, 0.150, 0.060)    // Display P3 blue
+            putPrimary(buffer, 0.3127, 0.3290)  // D65 white point（D87）
+            buffer.putShort(masteringMax.toShort())
+            buffer.putShort(MASTERING_MIN_LUMINANCE_UNITS.toShort())
+            buffer.putShort(maxContent.toShort())
+            buffer.putShort(
+                luminance.maxFrameAverageLightLevel(diffuseWhiteNits).toShort()
+            )
             buffer.rewind()
             return buffer
         }

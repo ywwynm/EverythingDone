@@ -28,6 +28,14 @@ import com.ywwynm.everythingdone.utils.AppearanceUtil
  */
 internal object FableSolExportAppearance {
 
+    /**
+     * 本次导出实际生效的夜间位。
+     *
+     * 全片亮度预分析的缓存指纹要它（D92）：深浅两套外观的画框底色、卡片底色与时钟墨色都不同，
+     * 帧平均亮度会跟着变，同一份录音在两种外观下不能共用一份统计。
+     */
+    fun isDark(base: Context): Boolean = AppearanceUtil.isDarkModeApplied(base)
+
     fun themedContext(base: Context): Context {
         val configuration = Configuration(base.resources.configuration)
         configuration.uiMode = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or

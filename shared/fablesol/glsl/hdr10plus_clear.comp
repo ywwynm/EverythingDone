@@ -1,0 +1,20 @@
+#version 310 es
+precision highp int;
+
+// 每帧把 HDR10+ 直方图清零。
+//
+// 400 KB 的计数器每帧从 CPU 上传一遍是白白占用一次同样量级的带宽；在 GPU 上写零则完全并行，
+// 也不会与统计 dispatch 争抢 CPU 侧的时间。
+
+layout(local_size_x = 256) in;
+
+layout(binding = 0, std430) buffer Histogram {
+    uint counts[];
+} histogram;
+
+uniform int uCount;
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index < uint(uCount)) histogram.counts[index] = 0u;
+}

@@ -123,10 +123,17 @@ internal object FableSolHdr10PlusProbe {
                 setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT2020)
                 setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_ST2084)
                 setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED)
+                // 探测只关心"这台机器能不能把 ST 2094-40 SEI 写进码流"，内容亮度无从测起，
+                // 因此用 D90 的理论回退填静态元数据：结构完整、数值有效，且不冒充实测。
                 setByteBuffer(
                     MediaFormat.KEY_HDR_STATIC_INFO,
                     FableSolExportTransfer.hdr10StaticInfo(
-                        FableSolHdrPolicy.MAX_STRENGTH * FableSolExportTransfer.SDR_WHITE_NITS
+                        peakNits = FableSolHdrPolicy.MAX_STRENGTH *
+                            FableSolExportTransfer.SDR_WHITE_NITS,
+                        diffuseWhiteNits = FableSolExportTransfer.SDR_WHITE_NITS,
+                        luminance = FableSolExportLuminanceStats.theoretical(
+                            FableSolHdrPolicy.MAX_STRENGTH.toDouble()
+                        )
                     )
                 )
             }
@@ -257,9 +264,15 @@ internal object FableSolHdr10PlusProbe {
      * 极难反查。探测要验证的是"设备认不认这条路"，用的载荷必须和正式导出是同一份代码。
      */
     internal fun hdr10PlusPayload(): ByteBuffer {
-        val stats = FableSolExportHdr10PlusMetadata.placeholder(PEAK_NITS.toDouble())
-        val curve = FableSolExportHdr10PlusCurve(PEAK_NITS.toDouble()).next(stats, 1.0 / 60.0)
-        return FableSolExportHdr10PlusMetadata.payload(stats, curve)
+        val stats = FableSolHdr10PlusStats.placeholder(
+            PEAK_NITS.toDouble() / FableSolExportTransfer.PQ_MAX_NITS
+        )
+        val curve = FableSolExportHdr10PlusCurve(
+            sourcePeakNits = FableSolExportHdr10PlusCurve.sourcePeakNits(stats)
+        ).shapeForScene(stats)
+        return FableSolExportHdr10PlusMetadata.payload(
+            stats, curve, FableSolExportHdr10PlusCurve.DEFAULT_TARGET_NITS
+        )
     }
 
     private fun MediaFormat.intOr(key: String, fallback: Int): Int = try {

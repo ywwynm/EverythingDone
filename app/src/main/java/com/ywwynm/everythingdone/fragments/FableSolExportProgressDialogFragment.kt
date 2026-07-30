@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.app.Activity
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
+import com.ywwynm.everythingdone.activities.SettingsActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.ywwynm.everythingdone.App
@@ -43,6 +45,7 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
     private var mProgressBar: ProgressBar? = null
     private var mTvSecondary: TextView? = null
     private var mTvPrimary: TextView? = null
+    private var mAwaitingConfirmation = false
 
     /** 本对话框负责的那一个导出；总线上其它任务的消息一律忽略。 */
     private var mJobId: Long = 0L
@@ -82,6 +85,17 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
     override fun onDestroyView() {
         FableSolVideoExportBus.removeListener(mListener)
         super.onDestroyView()
+    }
+
+    /**
+     * 等待确认时，系统返回键等同于“结束导出”。点击对话框外部已在 [render] 中禁用，因此
+     * 不会产生未说明的规格选择或任务状态。
+     */
+    override fun onCancel(dialog: DialogInterface) {
+        if (mAwaitingConfirmation && mJobId > 0L) {
+            FableSolVideoExportService.cancel(requireContext(), mJobId)
+        }
+        super.onCancel(dialog)
     }
 
     /**
@@ -126,16 +140,36 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
         val bar = mProgressBar ?: return
         val secondary = mTvSecondary ?: return
         val primary = mTvPrimary ?: return
+        mAwaitingConfirmation =
+            state is FableSolVideoExportBus.State.AwaitingConfirmation
+        dialog?.setCanceledOnTouchOutside(!mAwaitingConfirmation)
+        mTvTitle?.setText(
+            if (mAwaitingConfirmation) {
+                R.string.fablesol_export_confirmation_title
+            } else {
+                R.string.fablesol_export_title
+            }
+        )
         when (state) {
             is FableSolVideoExportBus.State.Running -> {
                 bar.visibility = View.VISIBLE
+                secondary.visibility = View.VISIBLE
+                primary.visibility = View.VISIBLE
                 if (state.total > 0 && state.total != Int.MAX_VALUE) {
                     bar.isIndeterminate = false
                     bar.progress = (state.done.toLong() * 1000L / state.total).toInt()
-                    status.text = progressText(state)
+                    status.text = FableSolExportSpecText.appendRetrySummary(
+                        requireContext(),
+                        progressText(state),
+                        state.retryNotice
+                    )
                 } else {
                     bar.isIndeterminate = true
-                    status.setText(R.string.fablesol_export_progress_unknown)
+                    status.text = FableSolExportSpecText.appendRetrySummary(
+                        requireContext(),
+                        getString(R.string.fablesol_export_progress_unknown),
+                        state.retryNotice
+                    )
                 }
                 secondary.setText(R.string.fablesol_export_cancel)
                 secondary.setOnClickListener {
@@ -148,24 +182,39 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
 
             is FableSolVideoExportBus.State.Done -> {
                 bar.visibility = View.GONE
-                status.text = getString(
-                    R.string.fablesol_export_dialog_done,
-                    FableSolExportSpecText.specification(
-                        requireContext(),
-                        state.formatLabel,
-                        state.codecLabel,
-                        state.softwareCodec
+                status.text = FableSolExportSpecText.appendRetrySummary(
+                    requireContext(),
+                    getString(
+                        R.string.fablesol_export_dialog_done,
+                        FableSolExportSpecText.specification(
+                            requireContext(),
+                            state.formatLabel,
+                            state.codecLabel,
+                            state.softwareCodec
+                        ),
+                        state.frameRate,
+                        Formatter.formatFileSize(requireContext(), state.fileSizeBytes),
+                        FableSolExportBitrateText.of(state.bitrateBps),
+                        state.displayLocation,
+                        FableSolExportSpecText.detail(
+                            requireContext(),
+                            state.pqWhiteNits,
+                            state.peakNits,
+                            state.highlightStartPercent,
+                            state.hdr10PlusIdentity,
+                            state.luminance,
+                            state.hlgRange,
+                            state.encoding,
+                            hdr10PlusRequestedKneeNits = state.hdr10PlusRequestedKneeNits,
+                            hdr10PlusKneeNits = state.hdr10PlusKneeNits,
+                            hdr10PlusFbpUnavailable = state.hdr10PlusFbpUnavailable,
+                            hdr10PlusSeiSamples = state.hdr10PlusSeiSamples,
+                            hdr10PlusSeiTotal = state.hdr10PlusSeiTotal,
+                            sdrFallbackNotice = state.sdrFallbackNotice,
+                            staticMetadataConflict = state.staticMetadataConflict
+                        )
                     ),
-                    state.frameRate,
-                    Formatter.formatFileSize(requireContext(), state.fileSizeBytes),
-                    FableSolExportBitrateText.of(state.bitrateBps),
-                    state.displayLocation,
-                    FableSolExportSpecText.detail(
-                        requireContext(),
-                        state.pqWhiteNits,
-                        state.peakNits,
-                        state.highlightStartPercent
-                    )
+                    state.retryNotice
                 )
                 val canShare = state.uri != null
                 val canAttach = state.localPath
@@ -199,17 +248,64 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
             is FableSolVideoExportBus.State.Failed -> {
                 bar.visibility = View.GONE
                 status.text = getString(R.string.fablesol_export_dialog_failed, state.message)
-                secondary.visibility = View.GONE
+                // 「调整导出设置」只属于与设置相关的失败——规格候选耗尽、无完整规格
+                // （D107、D183）；空间不足、超时、服务被杀这类环境性失败没有可调的规格，
+                // 不给一个无的放矢的入口。
+                val adjustable = state.adjustSettingsActionable
+                secondary.visibility = if (adjustable) View.VISIBLE else View.GONE
+                if (adjustable) {
+                    secondary.setText(R.string.fablesol_export_adjust_settings)
+                    secondary.setOnClickListener {
+                        openExportSettings()
+                        dismissAllowingStateLoss()
+                    }
+                } else {
+                    secondary.setOnClickListener(null)
+                }
+                primary.visibility = View.VISIBLE
                 primary.setText(R.string.confirm)
                 primary.setOnClickListener { dismissAllowingStateLoss() }
+                if (adjustable) applyCompletionActionAccent(secondary, primary)
             }
 
             is FableSolVideoExportBus.State.Cancelled -> dismissAllowingStateLoss()
 
-            is FableSolVideoExportBus.State.Queued -> {
+            is FableSolVideoExportBus.State.AwaitingConfirmation -> {
+                bar.visibility = View.GONE
+                status.text = FableSolExportSpecText.retryConfirmation(
+                    requireContext(),
+                    state.notice
+                )
+                secondary.visibility = View.VISIBLE
+                primary.visibility = View.VISIBLE
+                secondary.setText(R.string.fablesol_export_end_export)
+                secondary.setOnClickListener {
+                    FableSolVideoExportService.cancel(requireContext(), mJobId)
+                    dismissAllowingStateLoss()
+                }
+                primary.setText(R.string.fablesol_export_use_suggested_spec_retry)
+                primary.setOnClickListener {
+                    FableSolVideoExportService.acceptSuggested(requireContext(), mJobId)
+                }
+                applyCompletionActionAccent(secondary, primary)
+            }
+
+            // 排队与准备阶段的可用操作完全一致，区别只在状态文字：准备阶段能说清此刻在等
+            // 什么（当前是 HLG 扩展信号范围的回环验证，D138），排队只能说"正在准备"。
+            is FableSolVideoExportBus.State.Queued,
+            is FableSolVideoExportBus.State.Preparing -> {
                 bar.visibility = View.VISIBLE
                 bar.isIndeterminate = true
-                status.setText(R.string.fablesol_export_preparing)
+                val preparing = if (state is FableSolVideoExportBus.State.Preparing) {
+                    FableSolExportSpecText.preparingStage(requireContext(), state.stageId)
+                } else {
+                    getString(R.string.fablesol_export_preparing)
+                }
+                status.text = FableSolExportSpecText.appendRetrySummary(
+                    requireContext(),
+                    preparing,
+                    (state as? FableSolVideoExportBus.State.Preparing)?.retryNotice
+                )
                 secondary.visibility = View.VISIBLE
                 primary.visibility = View.VISIBLE
                 secondary.setText(R.string.fablesol_export_cancel)
@@ -252,6 +348,18 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
         if (chooser.resolveActivity(host.packageManager) == null) return false
         host.startActivity(chooser)
         return true
+    }
+
+    /**
+     * 「调整导出设置」（D107）：打开 FableSol 设置并定位到「视频导出」组。只做导航——
+     * 不改写用户偏好，也不自动重新发起导出。
+     */
+    private fun openExportSettings() {
+        val host = mActivity ?: return
+        host.startActivity(
+            Intent(host, SettingsActivity::class.java)
+                .putExtra(SettingsActivity.EXTRA_SHOW_FABLESOL_EXPORT, true)
+        )
     }
 
     private fun addAsAttachment(path: String?): Boolean {

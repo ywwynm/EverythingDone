@@ -1,23 +1,30 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import android.util.Range
+
 /**
- * 一次能力探测得出的**可行组合表**：(HDR 格式 × 编码器族 × 帧率) 三元组各自能不能真的编出来。
+ * 一次能力探测得出的**可行组合表**：
+ * (HDR 格式 × 编码器族 × 帧率 × 位深 × 编码模式) 五元组各自能不能真的编出来。
  *
- * 之所以要整张表而不是一句"HDR 可用"：这三个轴互相约束，而约束关系是设备相关的。HDR 各
+ * 之所以要整张表而不是一句"HDR 可用"：这几个轴互相约束，而约束关系是设备相关的。HDR 各
  * 格式的阶梯里没有 AVC，杜比视界只有一个 MIME，AV1 在某些机器上只有软件实现且撑不到
  * 120fps。界面要按用户当前的选择把不成立的选项置灰，就必须知道整张表，而不只是"至少有一
  * 种组合成立"。
  *
- * 这些数据本来就在探测过程中产生。此前每种格式一旦编成一帧就跳出循环，只留下"该格式可用"
- * 这一个布尔量，于是既说不出它落在哪个编码器、哪个帧率上，也无从判断别的组合成不成立。
+ * **位深是独立的一轴**（D160）：用户可以严格要求 10-bit 或 8-bit，因此"这台机器的 SDR 能
+ * 用 HEVC"不足以回答"它的 10-bit SDR 能不能用 HEVC"——8-bit 通过而 10-bit 失败的设备是真
+ * 实存在的（三星 Z Fold4）。
+ *
+ * 失败原因一律以 [FableSolExportFailure] 结构化保存，展示时才本地化：原因是设备事实，
+ * 与 locale 无关。
  */
 internal data class FableSolExportCombinationOutcome(
     /** 通过验证的具体编码器实现名；null 表示这一组合不成立。 */
     val codecName: String?,
-    /** 该实现是否为纯软件编码器。自动档不使用软件编码器，界面需要标出来。 */
+    /** 该实现是否为纯软件编码器；它属于公开规格字段，界面必须明确标注。 */
     val softwareOnly: Boolean,
-    /** 未通过时的原因；结构上就不存在候选时给出固定说明。 */
-    val failure: String?,
+    /** 未通过时的结构化原因；结构上就不存在候选时为 [FableSolExportFailure.NO_CANDIDATE]。 */
+    val failure: FableSolExportFailure?,
     /**
      * 通过验证的阶梯项名，例如 “HEVC Main10”“HEVC Main SDR”。
      *
@@ -26,14 +33,52 @@ internal data class FableSolExportCombinationOutcome(
      */
     val profileLabel: String? = null,
     /**
-     * 通过验证的档位是不是 10 位。
+     * 通过验证的输入通路稳定标识（D158）：应用自有 P010 还是编码器 Surface。
      *
-     * 位深要露出来：本项目的 SDR 阶梯首选也是 10 位（大面积缓变的水体最怕色带），但 10 位
-     * HEVC 的分享兼容性明显差于 8 位，用户有权知道自己拿到的是哪一种。
+     * 10-bit 的两条通路是同一档位下的子候选，探测按 P010 优先的顺序试，这里记的是真正编出
+     * 一帧的那一条。旧缓存里没有这个字段。
      */
-    val tenBit: Boolean = false
+    val inputPathId: String? = null,
+    /**
+     * 该编码器实际码流里声明的 4:2:0 色度位置稳定标识（D154、D170）；null 表示未声明。
+     *
+     * 相位必须在第一帧渲染之前定下来，而码流要到编码开始之后才有——因此正式导出只能读这份
+     * 探测结论。取不到时按 Type 0 兼容语义，不影响导出成败。
+     */
+    val chromaSitingId: String? = null,
+    /**
+     * 该组合实际通过验证的码控形态稳定标识（D167）；旧缓存里没有这个字段。
+     *
+     * CQ 有纯 CQ 与 CQ+码率提示两种同模式形态。正式导出必须用**探测通过的那一种**——探一种
+     * 用另一种，等于这次探测什么也没证明。
+     */
+    val rateControlFormId: String? = null,
+    /** CQ 质量原值的实际编码器区间；只在该精确组合的 CQ 探测通过时存在（D146、D183）。 */
+    val qualityLower: Int? = null,
+    val qualityUpper: Int? = null,
+    /**
+     * 探测通过时 `KEY_COMPLEXITY = upper` 的实际形态（D149）：[COMPLEXITY_UPPER] 表示带着
+     * 最高复杂度通过，[COMPLEXITY_OMITTED] 表示该键被拒、省略后才通过；null 表示探测没有
+     * 尝试该键（区间不可用），或旧缓存没有这个字段。正式导出必须与探测通过的形态同源。
+     */
+    val highComplexityFormId: String? = null
 ) {
     val usable: Boolean get() = codecName != null
+
+    val qualityRange: Range<Int>?
+        get() {
+            val lower = qualityLower ?: return null
+            val upper = qualityUpper ?: return null
+            return if (upper > lower) Range(lower, upper) else null
+        }
+
+    companion object {
+        /** [highComplexityFormId]：带 `KEY_COMPLEXITY = upper` 通过。 */
+        const val COMPLEXITY_UPPER = "upper"
+
+        /** [highComplexityFormId]：该键被拒，省略后才通过（D149 的阶梯落点）。 */
+        const val COMPLEXITY_OMITTED = "omitted"
+    }
 }
 
 internal class FableSolExportCapabilityMatrix private constructor(
@@ -43,7 +88,9 @@ internal class FableSolExportCapabilityMatrix private constructor(
     internal data class Key(
         val formatLabel: String,
         val familyLabel: String,
-        val frameRate: Int
+        val frameRate: Int,
+        val tenBit: Boolean,
+        val rateControlId: String
     )
 
     /**
@@ -74,36 +121,86 @@ internal class FableSolExportCapabilityMatrix private constructor(
     fun outcome(
         format: FableSolExportHdrFormat?,
         family: FableSolExportCodecFamily,
-        frameRate: Int
+        frameRate: Int,
+        tenBit: Boolean,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
     ): FableSolExportCombinationOutcome? =
-        rows[Key(labelOf(format), family.stableLabel, frameRate)]
+        rows[
+            Key(
+                labelOf(format),
+                family.stableLabel,
+                frameRate,
+                tenBit,
+                rateControl.stableId
+            )
+        ]
 
-    /** 通配查询：[family] / [frameRate] 传 null 即"这一轴不限"。 */
+    /**
+     * 该组合在任一位深下的最佳结论：10-bit 优先（画质优先的自动位深顺序），都不成立时返回
+     * 10-bit 那一条的失败原因。
+     */
+    fun bestOutcome(
+        format: FableSolExportHdrFormat?,
+        family: FableSolExportCodecFamily,
+        frameRate: Int,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): Pair<Boolean, FableSolExportCombinationOutcome>? {
+        for (tenBit in BIT_DEPTHS) {
+            val outcome = outcome(format, family, frameRate, tenBit, rateControl) ?: continue
+            if (outcome.usable) return tenBit to outcome
+        }
+        for (tenBit in BIT_DEPTHS) {
+            val outcome = outcome(format, family, frameRate, tenBit, rateControl) ?: continue
+            return tenBit to outcome
+        }
+        return null
+    }
+
+    /** 通配查询：[family] / [frameRate] / [tenBit] 传 null 即"这一轴不限"。 */
     fun hasUsable(
         format: FormatFilter = FormatFilter.Unrestricted,
         family: FableSolExportCodecFamily? = null,
         frameRate: Int? = null,
+        tenBit: Boolean? = null,
+        rateControl: FableSolExportRateControl? = null,
         allowSoftware: Boolean = true
     ): Boolean = rows.any { (key, outcome) ->
         outcome.usable &&
             (allowSoftware || !outcome.softwareOnly) &&
             format.matches(key.formatLabel) &&
             (family == null || key.familyLabel == family.stableLabel) &&
-            (frameRate == null || key.frameRate == frameRate)
+            (frameRate == null || key.frameRate == frameRate) &&
+            (tenBit == null || key.tenBit == tenBit) &&
+            (rateControl == null || key.rateControlId == rateControl.stableId)
     }
 
     /**
      * 自动档在这一格式与帧率下会落到哪个编码器族。
      *
-     * 顺序即 [FableSolExportCodecFamily] 的声明顺序（HEVC、AV1、H.264），与导出阶梯一致；
-     * 软件编码器不参与自动档。
+     * 顺序与导出建议一致：先比较全部硬件编码器族，再比较软件实现；公开规格发生变化时，
+     * 正式导出仍须按 D179 请求确认。
      */
     fun autoFamily(
         format: FableSolExportHdrFormat?,
-        frameRate: Int
-    ): FableSolExportCodecFamily? = FableSolExportCodecFamily.entries.firstOrNull { family ->
-        outcome(format, family, frameRate)?.let { it.usable && !it.softwareOnly } == true
-    }
+        frameRate: Int,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT,
+        tenBit: Boolean? = null
+    ): FableSolExportCodecFamily? = FableSolExportCodecFamily.entries
+        .mapNotNull { family ->
+            val best = if (tenBit == null) {
+                bestOutcome(format, family, frameRate, rateControl)
+            } else {
+                outcome(format, family, frameRate, tenBit, rateControl)?.let { tenBit to it }
+            }
+            best?.takeIf { it.second.usable }?.let { family to it.second }
+        }
+        .minWithOrNull(
+            compareBy<Pair<FableSolExportCodecFamily, FableSolExportCombinationOutcome>>(
+                { it.second.softwareOnly },
+                { it.first.ordinal }
+            )
+        )
+        ?.first
 
     /**
      * 「自动」格式在**给定编码器约束下**的落点；[family] 为 null 表示编码器也取自动。
@@ -114,16 +211,80 @@ internal class FableSolExportCapabilityMatrix private constructor(
      */
     fun autoFormat(
         family: FableSolExportCodecFamily?,
-        allowSoftware: Boolean
+        frameRate: Int,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
     ): FableSolExportHdrFormat? = FableSolExportHdrFormat.AUTO_ORDER.firstOrNull { format ->
         hasUsable(
             format = FormatFilter.Exactly(format),
             family = family,
-            allowSoftware = allowSoftware
+            frameRate = frameRate,
+            rateControl = rateControl
         )
     }
 
-    /** 某个编码器族在该格式下的落点：能达到的最高帧率，以及它是不是软件实现。 */
+    /**
+     * 设置页三轴的唯一解析入口（D179）。
+     *
+     * [frameRate] 是严格规格；格式说明、编码器说明、置灰状态和导出可用性都必须读取本方法的
+     * 同一份结论。格式优先于编码器实现；同格式、同位深内先比较全部硬件族，再比较软件族。
+     */
+    data class ResolvedSelection(
+        val format: FableSolExportHdrFormat?,
+        val family: FableSolExportCodecFamily,
+        val frameRate: Int,
+        val tenBit: Boolean,
+        val outcome: FableSolExportCombinationOutcome
+    )
+
+    fun resolve(
+        colorMode: FableSolExportColorMode,
+        codec: FableSolExportOptions.CodecPreference,
+        frameRate: Int,
+        sdrBitDepth: FableSolExportSdrBitDepth,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): ResolvedSelection? {
+        val formats: List<FableSolExportHdrFormat?> = when {
+            colorMode.isSdr -> listOf(null)
+            colorMode.explicitFormat != null -> listOf(colorMode.explicitFormat)
+            else -> FableSolExportHdrFormat.AUTO_ORDER + listOf(null)
+        }
+        val families = codec.family?.let(::listOf)
+            ?: FableSolExportCodecFamily.entries.toList()
+        for (format in formats) {
+            val bitDepths = if (format == null) {
+                sdrBitDepth.candidateOrder
+            } else {
+                listOf(true)
+            }
+            for (tenBit in bitDepths) {
+                val best = families
+                    .mapNotNull { family ->
+                        outcome(format, family, frameRate, tenBit, rateControl)
+                            ?.takeIf { it.usable }
+                            ?.let { family to it }
+                    }
+                    .minWithOrNull(
+                        compareBy<
+                            Pair<FableSolExportCodecFamily, FableSolExportCombinationOutcome>
+                        >(
+                            { it.second.softwareOnly },
+                            { it.first.ordinal }
+                        )
+                    )
+                    ?: continue
+                return ResolvedSelection(
+                    format = format,
+                    family = best.first,
+                    frameRate = frameRate,
+                    tenBit = tenBit,
+                    outcome = best.second
+                )
+            }
+        }
+        return null
+    }
+
+    /** 某个编码器族在该格式下的落点：能达到的最高帧率、位深，以及它是不是软件实现。 */
     data class FamilyReach(
         val family: FableSolExportCodecFamily,
         val frameRate: Int,
@@ -146,16 +307,19 @@ internal class FableSolExportCapabilityMatrix private constructor(
      * 必须给全。只报第一个落点会漏掉真实存在的选择：OPPO 上 HLG 的 HEVC 与 AV1 两条路都
      * 成立，能力报告却只写了 HEVC（2026-07-27）。
      */
-    fun reach(format: FableSolExportHdrFormat?): List<FamilyReach> {
+    fun reach(
+        format: FableSolExportHdrFormat?,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): List<FamilyReach> {
         val result = ArrayList<FamilyReach>(3)
         for (family in FableSolExportTier.familiesFor(format)) {
             // FRAME_RATES 从高到低，第一个成立的就是该编码器能达到的最高帧率。
             for (frameRate in FRAME_RATES) {
-                val outcome = outcome(format, family, frameRate) ?: continue
+                val best = bestOutcome(format, family, frameRate, rateControl) ?: continue
+                val (tenBit, outcome) = best
                 if (!outcome.usable) continue
                 result += FamilyReach(
-                    family, frameRate, outcome.softwareOnly, outcome.profileLabel,
-                    outcome.tenBit
+                    family, frameRate, outcome.softwareOnly, outcome.profileLabel, tenBit
                 )
                 break
             }
@@ -167,13 +331,13 @@ internal class FableSolExportCapabilityMatrix private constructor(
     fun bestFrameRate(
         format: FableSolExportHdrFormat?,
         family: FableSolExportCodecFamily?,
-        allowSoftware: Boolean
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
     ): Int? = FRAME_RATES.firstOrNull { rate ->
         hasUsable(
             format = FormatFilter.Exactly(format),
             family = family,
             frameRate = rate,
-            allowSoftware = allowSoftware
+            rateControl = rateControl
         )
     }
 
@@ -182,12 +346,82 @@ internal class FableSolExportCapabilityMatrix private constructor(
             key.formatLabel,
             key.familyLabel,
             key.frameRate.toString(),
+            if (key.tenBit) "1" else "0",
+            key.rateControlId,
             outcome.codecName.orEmpty(),
             if (outcome.softwareOnly) "1" else "0",
-            outcome.failure.orEmpty(),
+            outcome.failure?.encode().orEmpty(),
             outcome.profileLabel.orEmpty(),
-            if (outcome.tenBit) "1" else "0"
+            outcome.inputPathId.orEmpty(),
+            outcome.chromaSitingId.orEmpty(),
+            outcome.rateControlFormId.orEmpty(),
+            outcome.qualityLower?.toString().orEmpty(),
+            outcome.qualityUpper?.toString().orEmpty(),
+            outcome.highComplexityFormId.orEmpty()
         ).joinToString(FIELD_SEPARATOR) { sanitize(it) }
+    }
+
+    /**
+     * 该组合上一次真的编出一帧时，码流声明的色度位置。
+     *
+     * 只有编码器名字对得上才采纳：换了实现就换了码流，沿用上一个实现的声明等于凭空猜相位。
+     * 取不到时返回 null，调用方按 Type 0 兼容语义处理（D154 第 3 条、D170）。
+     */
+    fun chromaSiting(
+        format: FableSolExportHdrFormat?,
+        family: FableSolExportCodecFamily,
+        frameRate: Int,
+        tenBit: Boolean,
+        codecName: String,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): FableSolExportP010Math.ChromaSiting? {
+        val row = outcome(format, family, frameRate, tenBit, rateControl) ?: return null
+        if (row.codecName != codecName) return null
+        val id = row.chromaSitingId ?: return null
+        return FableSolExportP010Math.ChromaSiting.entries.firstOrNull { it.stableId == id }
+    }
+
+    /**
+     * 该组合上一次真的编出一帧时，实际通过的码控形态（D167）。
+     *
+     * 与 [chromaSiting] 同一条规则：编码器名字对不上就不采纳，取不到时返回 null，调用方按
+     * 当前档位能力自行解析（也就是从纯 CQ 重新开始那条阶梯）。
+     */
+    fun rateControlForm(
+        format: FableSolExportHdrFormat?,
+        family: FableSolExportCodecFamily,
+        frameRate: Int,
+        tenBit: Boolean,
+        codecName: String,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): FableSolExportRateControlForm? {
+        val row = outcome(format, family, frameRate, tenBit, rateControl) ?: return null
+        if (row.codecName != codecName) return null
+        val id = row.rateControlFormId ?: return null
+        return FableSolExportRateControlForm.entries.firstOrNull { it.stableId == id }
+    }
+
+    /**
+     * 该组合探测通过时是否带着 `KEY_COMPLEXITY = upper`（D149）。
+     *
+     * @return null 表示没有结论（编码器不同、旧缓存或探测未尝试该键），调用方按请求下发；
+     *   false 表示探测确认该编码器拒绝最高复杂度，正式导出必须省略该键。
+     */
+    fun highComplexityAccepted(
+        format: FableSolExportHdrFormat?,
+        family: FableSolExportCodecFamily,
+        frameRate: Int,
+        tenBit: Boolean,
+        codecName: String,
+        rateControl: FableSolExportRateControl = FableSolExportRateControl.DEFAULT
+    ): Boolean? {
+        val row = outcome(format, family, frameRate, tenBit, rateControl) ?: return null
+        if (row.codecName != codecName) return null
+        return when (row.highComplexityFormId) {
+            FableSolExportCombinationOutcome.COMPLEXITY_UPPER -> true
+            FableSolExportCombinationOutcome.COMPLEXITY_OMITTED -> false
+            else -> null
+        }
     }
 
     class Builder {
@@ -198,9 +432,36 @@ internal class FableSolExportCapabilityMatrix private constructor(
             format: FableSolExportHdrFormat?,
             family: FableSolExportCodecFamily,
             frameRate: Int,
+            tenBit: Boolean,
             outcome: FableSolExportCombinationOutcome
         ) {
-            rows[Key(labelOf(format), family.stableLabel, frameRate)] = outcome
+            put(
+                format,
+                family,
+                frameRate,
+                tenBit,
+                FableSolExportRateControl.DEFAULT,
+                outcome
+            )
+        }
+
+        fun put(
+            format: FableSolExportHdrFormat?,
+            family: FableSolExportCodecFamily,
+            frameRate: Int,
+            tenBit: Boolean,
+            rateControl: FableSolExportRateControl,
+            outcome: FableSolExportCombinationOutcome
+        ) {
+            rows[
+                Key(
+                    labelOf(format),
+                    family.stableLabel,
+                    frameRate,
+                    tenBit,
+                    rateControl.stableId
+                )
+            ] = outcome
         }
 
         fun build(): FableSolExportCapabilityMatrix = FableSolExportCapabilityMatrix(rows)
@@ -214,6 +475,9 @@ internal class FableSolExportCapabilityMatrix private constructor(
             FableSolExportOptions.FRAME_RATE_BASE
         )
 
+        /** 位深轴：10-bit 优先，与自动位深的候选顺序一致（D160）。 */
+        val BIT_DEPTHS = listOf(true, false)
+
         val EMPTY = FableSolExportCapabilityMatrix(emptyMap())
 
         internal fun labelOf(format: FableSolExportHdrFormat?): String =
@@ -225,15 +489,33 @@ internal class FableSolExportCapabilityMatrix private constructor(
             for (row in text.split(ROW_SEPARATOR)) {
                 if (row.isBlank()) continue
                 val fields = row.split(FIELD_SEPARATOR)
-                if (fields.size < 6) continue
+                if (fields.size < 8) continue
                 val frameRate = fields[2].toIntOrNull() ?: continue
-                rows[Key(fields[0], fields[1], frameRate)] = FableSolExportCombinationOutcome(
-                    codecName = fields[3].takeIf { it.isNotEmpty() },
-                    softwareOnly = fields[4] == "1",
-                    failure = fields[5].takeIf { it.isNotEmpty() },
-                    profileLabel = fields.getOrNull(6)?.takeIf { it.isNotEmpty() },
-                    tenBit = fields.getOrNull(7) == "1"
-                )
+                val rateControl = FableSolExportRateControl.entries
+                    .firstOrNull { it.stableId == fields[4] }
+                    ?: continue
+                rows[
+                    Key(
+                        fields[0],
+                        fields[1],
+                        frameRate,
+                        fields[3] == "1",
+                        rateControl.stableId
+                    )
+                ] =
+                    FableSolExportCombinationOutcome(
+                        codecName = fields[5].takeIf { it.isNotEmpty() },
+                        softwareOnly = fields[6] == "1",
+                        failure = FableSolExportFailure.decode(fields[7]),
+                        profileLabel = fields.getOrNull(8)?.takeIf { it.isNotEmpty() },
+                        inputPathId = fields.getOrNull(9)?.takeIf { it.isNotEmpty() },
+                        chromaSitingId = fields.getOrNull(10)?.takeIf { it.isNotEmpty() },
+                        rateControlFormId = fields.getOrNull(11)?.takeIf { it.isNotEmpty() },
+                        qualityLower = fields.getOrNull(12)?.toIntOrNull(),
+                        qualityUpper = fields.getOrNull(13)?.toIntOrNull(),
+                        highComplexityFormId =
+                            fields.getOrNull(14)?.takeIf { it.isNotEmpty() }
+                    )
             }
             return FableSolExportCapabilityMatrix(rows)
         }
@@ -242,7 +524,7 @@ internal class FableSolExportCapabilityMatrix private constructor(
         private fun sanitize(value: String): String =
             value.replace(ROW_SEPARATOR, " ").replace(FIELD_SEPARATOR, " ")
 
-        private const val ROW_SEPARATOR = "\u0001"
-        private const val FIELD_SEPARATOR = "\u0002"
+        private val ROW_SEPARATOR = 1.toChar().toString()
+        private val FIELD_SEPARATOR = 2.toChar().toString()
     }
 }

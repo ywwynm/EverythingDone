@@ -8,7 +8,8 @@ import org.junit.Test
 
 /**
  * 可行组合表是置灰规则的唯一依据，所以它的查询语义必须钉死：格式轴上 `null` 是 SDR 而不是
- * "不限"，软件编码器不参与自动档，帧率是上限而不是硬约束。
+ * “不限”，位深是独立的一轴（D160），帧率是严格约束（D179），软件实现是同规格内的最后
+ * 候选而不是被排除项（D53 修订）。
  */
 class FableSolExportCapabilityMatrixTest {
 
@@ -18,50 +19,173 @@ class FableSolExportCapabilityMatrixTest {
     private val softwareAv1 = FableSolExportCombinationOutcome(
         codecName = "c2.android.av1.encoder", softwareOnly = true, failure = null
     )
-    private fun failed(reason: String) = FableSolExportCombinationOutcome(
-        codecName = null, softwareOnly = false, failure = reason
+
+    private fun failed(detail: String) = FableSolExportCombinationOutcome(
+        codecName = null,
+        softwareOnly = false,
+        failure = FableSolExportFailure(
+            code = FableSolExportFailure.Code.ENCODER_ERROR, detail = detail
+        )
     )
+
+    @Test
+    fun rateControlAvailabilityBelongsToTheSameExactCombination() {
+        val matrix = FableSolExportCapabilityMatrix.Builder().apply {
+            // HDR10 + HEVC + 120 fps 只能使用目标码率。
+            put(
+                FableSolExportHdrFormat.HDR10,
+                FableSolExportCodecFamily.HEVC,
+                FableSolExportOptions.FRAME_RATE_HIGH,
+                true,
+                FableSolExportRateControl.CONSTANT_QUALITY,
+                failed("CQ unavailable")
+            )
+            put(
+                FableSolExportHdrFormat.HDR10,
+                FableSolExportCodecFamily.HEVC,
+                FableSolExportOptions.FRAME_RATE_HIGH,
+                true,
+                FableSolExportRateControl.TARGET_BITRATE,
+                hardwareHevc.copy(
+                    rateControlFormId =
+                        FableSolExportRateControlForm.VARIABLE_BITRATE.stableId
+                )
+            )
+            // 另一条 AV1 60 fps 路径支持 CQ，不能据此把上面的 HEVC 120 fps 判成 CQ 可用。
+            put(
+                FableSolExportHdrFormat.HDR10,
+                FableSolExportCodecFamily.AV1,
+                FableSolExportOptions.FRAME_RATE_BASE,
+                true,
+                FableSolExportRateControl.CONSTANT_QUALITY,
+                softwareAv1.copy(
+                    rateControlFormId =
+                        FableSolExportRateControlForm.CONSTANT_QUALITY.stableId,
+                    qualityLower = 0,
+                    qualityUpper = 100
+                )
+            )
+        }.build().let { FableSolExportCapabilityMatrix.decode(it.encode()) }
+
+        assertNull(
+            matrix.resolve(
+                colorMode = FableSolExportColorMode.HDR10,
+                codec = FableSolExportOptions.CodecPreference.HEVC,
+                frameRate = FableSolExportOptions.FRAME_RATE_HIGH,
+                sdrBitDepth = FableSolExportSdrBitDepth.AUTO,
+                rateControl = FableSolExportRateControl.CONSTANT_QUALITY
+            )
+        )
+        assertEquals(
+            FableSolExportCodecFamily.HEVC,
+            matrix.resolve(
+                colorMode = FableSolExportColorMode.HDR10,
+                codec = FableSolExportOptions.CodecPreference.HEVC,
+                frameRate = FableSolExportOptions.FRAME_RATE_HIGH,
+                sdrBitDepth = FableSolExportSdrBitDepth.AUTO,
+                rateControl = FableSolExportRateControl.TARGET_BITRATE
+            )?.family
+        )
+        val cqAv1 = matrix.resolve(
+            colorMode = FableSolExportColorMode.HDR10,
+            codec = FableSolExportOptions.CodecPreference.AV1,
+            frameRate = FableSolExportOptions.FRAME_RATE_BASE,
+            sdrBitDepth = FableSolExportSdrBitDepth.AUTO,
+            rateControl = FableSolExportRateControl.CONSTANT_QUALITY
+        )
+        assertEquals(0, cqAv1?.outcome?.qualityLower)
+        assertEquals(100, cqAv1?.outcome?.qualityUpper)
+    }
 
     /**
      * 三星 Z Fold4 的实测形状：HDR10 只有软件 AV1 能编，且只到 60fps；SDR 有硬件 HEVC。
-     * 这台机器上"HDR 导出能力：可用"读起来像是一切正常，实际落到的是软件 AV1 的 60fps。
+     * 该机没有任何可用的 10 位硬件输入通路，8 位一切正常。
      */
     private fun foldLikeMatrix(): FableSolExportCapabilityMatrix =
         FableSolExportCapabilityMatrix.Builder().apply {
             put(
                 FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_HIGH, failed("IllegalStateException")
+                FableSolExportOptions.FRAME_RATE_HIGH, true, failed("IllegalStateException")
             )
             put(
                 FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_BASE, failed("IllegalStateException")
+                FableSolExportOptions.FRAME_RATE_BASE, true, failed("IllegalStateException")
             )
             put(
                 FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.AV1,
-                FableSolExportOptions.FRAME_RATE_HIGH, failed("没有候选")
+                FableSolExportOptions.FRAME_RATE_HIGH, true,
+                FableSolExportCombinationOutcome(
+                    codecName = null, softwareOnly = false,
+                    failure = FableSolExportFailure.NO_CANDIDATE
+                )
             )
             put(
                 FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.AV1,
-                FableSolExportOptions.FRAME_RATE_BASE, softwareAv1
+                FableSolExportOptions.FRAME_RATE_BASE, true, softwareAv1
             )
-            put(
-                null, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_HIGH, hardwareHevc
-            )
-            put(
-                null, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_BASE, hardwareHevc
-            )
+            for (rate in FableSolExportCapabilityMatrix.FRAME_RATES) {
+                put(null, FableSolExportCodecFamily.HEVC, rate, true, failed("no samples"))
+                put(null, FableSolExportCodecFamily.HEVC, rate, false, hardwareHevc)
+            }
         }.build()
 
     /**
-     * **自动档不使用软件编码器。** 本项目的画布接近两百万像素，软件编码与硬件编码耗时差一到
-     * 两个数量级，让它作为静默退路等于在用户毫不知情的情况下把一次导出拖长几十倍。
+     * 三星 Z Fold4 回归：HDR10 + AV1 只在 60 fps 成立，120 fps 只有 SDR。格式“自动”在
+     * 120 fps 下必须解析为 SDR，不能借用 60 fps 的 HDR10 结论。
      */
     @Test
-    fun automaticSelectionSkipsSoftwareEncoders() {
+    fun automaticFormatUsesTheExactSelectedFrameRate() {
         val matrix = foldLikeMatrix()
+
         assertNull(
+            matrix.autoFormat(
+                family = null,
+                frameRate = FableSolExportOptions.FRAME_RATE_HIGH
+            )
+        )
+        assertEquals(
+            FableSolExportHdrFormat.HDR10,
+            matrix.autoFormat(
+                family = null,
+                frameRate = FableSolExportOptions.FRAME_RATE_BASE
+            )
+        )
+
+        val highRate = matrix.resolve(
+            colorMode = FableSolExportColorMode.HDR_AUTO,
+            codec = FableSolExportOptions.CodecPreference.AUTO,
+            frameRate = FableSolExportOptions.FRAME_RATE_HIGH,
+            sdrBitDepth = FableSolExportSdrBitDepth.AUTO
+        )
+        assertNull(highRate?.format)
+        assertEquals(FableSolExportCodecFamily.HEVC, highRate?.family)
+        assertEquals(false, highRate?.tenBit)
+        assertEquals(false, highRate?.outcome?.softwareOnly)
+
+        val baseRate = matrix.resolve(
+            colorMode = FableSolExportColorMode.HDR_AUTO,
+            codec = FableSolExportOptions.CodecPreference.AUTO,
+            frameRate = FableSolExportOptions.FRAME_RATE_BASE,
+            sdrBitDepth = FableSolExportSdrBitDepth.AUTO
+        )
+        assertEquals(FableSolExportHdrFormat.HDR10, baseRate?.format)
+        assertEquals(FableSolExportCodecFamily.AV1, baseRate?.family)
+        assertEquals(true, baseRate?.tenBit)
+        assertEquals(true, baseRate?.outcome?.softwareOnly)
+    }
+
+    /**
+     * **软件实现是同规格内的最后回退，不是被排除项。**
+     *
+     * D53 原先规定自动档完全不使用软件编码器；三星 Z Fold4 的实测（D58）证明该机的 HDR 只能
+     * 由软件 AV1 承担，据此撤销了完全排除规则。自动档因此不得仅仅因为路径是软件实现就整体
+     * 落到 SDR，速度与发热的代价由信息栏说明。
+     */
+    @Test
+    fun automaticSelectionFallsBackToSoftwareInsteadOfDroppingTheFormat() {
+        val matrix = foldLikeMatrix()
+        assertEquals(
+            FableSolExportCodecFamily.AV1,
             matrix.autoFamily(
                 FableSolExportHdrFormat.HDR10, FableSolExportOptions.FRAME_RATE_BASE
             )
@@ -70,15 +194,14 @@ class FableSolExportCapabilityMatrixTest {
             FableSolExportCodecFamily.HEVC,
             matrix.autoFamily(null, FableSolExportOptions.FRAME_RATE_HIGH)
         )
-        // 但用户显式选 AV1 时它必须是可用的：界面要摆出这个选项，只是标明是软件编码。
         assertTrue(
             matrix.hasUsable(
                 format = FableSolExportCapabilityMatrix.FormatFilter
                     .Exactly(FableSolExportHdrFormat.HDR10),
-                family = FableSolExportCodecFamily.AV1,
-                allowSoftware = true
+                family = FableSolExportCodecFamily.AV1
             )
         )
+        // 但"只看硬件"这个查询本身仍要能回答：诊断行要分得清硬件落点与软件落点。
         assertFalse(
             matrix.hasUsable(
                 format = FableSolExportCapabilityMatrix.FormatFilter
@@ -89,7 +212,7 @@ class FableSolExportCapabilityMatrixTest {
         )
     }
 
-    /** 格式轴上 `null` 是 SDR，不是通配——两者混淆会让「关闭」把 HDR 的结论也算进去。 */
+    /** 格式轴上 `null` 是 SDR，不是通配——两者混淆会让 SDR 把 HDR 的结论也算进去。 */
     @Test
     fun sdrIsAFormatValueNotAWildcard() {
         val matrix = foldLikeMatrix()
@@ -115,25 +238,52 @@ class FableSolExportCapabilityMatrixTest {
         )
     }
 
-    /** 120fps 编不出来时必须解出 60fps，而不是"这一组合不可用"。 */
+    /**
+     * **位深是独立的一轴（D160）。**
+     *
+     * 严格 10-bit 与严格 8-bit 都是用户可以明确要求的规格，因此"这台机器的 SDR 能用 HEVC"
+     * 不足以回答"它的 10-bit SDR 能不能用 HEVC"：三星 Z Fold4 上 8 位通过、10 位全灭。
+     */
     @Test
-    fun bestFrameRateFallsBackInsteadOfFailing() {
+    fun bitDepthIsAnIndependentAxis() {
+        val matrix = foldLikeMatrix()
+        assertFalse(
+            matrix.hasUsable(
+                format = FableSolExportCapabilityMatrix.FormatFilter.Exactly(null),
+                tenBit = true
+            )
+        )
+        assertTrue(
+            matrix.hasUsable(
+                format = FableSolExportCapabilityMatrix.FormatFilter.Exactly(null),
+                tenBit = false
+            )
+        )
+        // 10 位优先：bestOutcome 先看 10 位，不成立才给 8 位的结论。
+        val best = matrix.bestOutcome(
+            null, FableSolExportCodecFamily.HEVC, FableSolExportOptions.FRAME_RATE_HIGH
+        )
+        assertEquals(false, best?.first)
+        assertEquals("c2.qti.hevc.encoder", best?.second?.codecName)
+    }
+
+    /** 设备能力报告可以查询最高可用帧率；该方法不得用于修改用户选择的严格帧率。 */
+    @Test
+    fun bestFrameRateReportsCapabilityWithoutChangingTheRequestedRate() {
         val matrix = foldLikeMatrix()
         assertEquals(
             FableSolExportOptions.FRAME_RATE_BASE,
             matrix.bestFrameRate(
-                FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.AV1,
-                allowSoftware = true
+                FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.AV1
             )
         )
         assertEquals(
             FableSolExportOptions.FRAME_RATE_HIGH,
-            matrix.bestFrameRate(null, FableSolExportCodecFamily.HEVC, allowSoftware = true)
+            matrix.bestFrameRate(null, FableSolExportCodecFamily.HEVC)
         )
         assertNull(
             matrix.bestFrameRate(
-                FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.HEVC,
-                allowSoftware = true
+                FableSolExportHdrFormat.HDR10, FableSolExportCodecFamily.HEVC
             )
         )
     }
@@ -146,10 +296,12 @@ class FableSolExportCapabilityMatrixTest {
         for (format in listOf(FableSolExportHdrFormat.HDR10, null)) {
             for (family in FableSolExportCodecFamily.entries) {
                 for (rate in FableSolExportCapabilityMatrix.FRAME_RATES) {
-                    assertEquals(
-                        original.outcome(format, family, rate),
-                        restored.outcome(format, family, rate)
-                    )
+                    for (tenBit in FableSolExportCapabilityMatrix.BIT_DEPTHS) {
+                        assertEquals(
+                            original.outcome(format, family, rate, tenBit),
+                            restored.outcome(format, family, rate, tenBit)
+                        )
+                    }
                 }
             }
         }
@@ -157,32 +309,44 @@ class FableSolExportCapabilityMatrixTest {
         assertTrue(FableSolExportCapabilityMatrix.decode("").isEmpty)
     }
 
-    /** 失败原因是任意异常文本，里面若混进分隔符会把整张表解析歪。 */
+    /**
+     * 失败原因保存的是**结构**加厂商原文，不是拼好的句子：换系统语言之后同一份缓存仍要能
+     * 生成当前语言的说明。原文里若混进分隔符也不能把整张表解析歪。
+     */
     @Test
-    fun separatorsInsideAFailureReasonCannotCorruptTheTable() {
+    fun failuresAreStoredStructurallyAndSeparatorsCannotCorruptTheTable() {
+        val noisy = FableSolExportFailure(
+            code = FableSolExportFailure.Code.TRANSFER_MISMATCH,
+            detail = "boom\u0001still\u0002same\u0003row",
+            requested = 7,
+            actual = 3
+        )
         val matrix = FableSolExportCapabilityMatrix.Builder().apply {
             put(
                 FableSolExportHdrFormat.HLG, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_HIGH,
-                failed("boom\u0001still\u0002same row")
+                FableSolExportOptions.FRAME_RATE_HIGH, true,
+                FableSolExportCombinationOutcome(
+                    codecName = null, softwareOnly = false, failure = noisy
+                )
             )
             put(
                 FableSolExportHdrFormat.HLG, FableSolExportCodecFamily.AV1,
-                FableSolExportOptions.FRAME_RATE_HIGH, hardwareHevc
+                FableSolExportOptions.FRAME_RATE_HIGH, true, hardwareHevc
             )
         }.build()
         val restored = FableSolExportCapabilityMatrix.decode(matrix.encode())
-        assertEquals(
-            "boom still same row",
-            restored.outcome(
-                FableSolExportHdrFormat.HLG, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_HIGH
-            )?.failure
-        )
+        val failure = restored.outcome(
+            FableSolExportHdrFormat.HLG, FableSolExportCodecFamily.HEVC,
+            FableSolExportOptions.FRAME_RATE_HIGH, true
+        )?.failure
+        assertEquals(FableSolExportFailure.Code.TRANSFER_MISMATCH, failure?.code)
+        assertEquals("boom still same row", failure?.detail)
+        assertEquals(7, failure?.requested)
+        assertEquals(3, failure?.actual)
         assertTrue(
             restored.outcome(
                 FableSolExportHdrFormat.HLG, FableSolExportCodecFamily.AV1,
-                FableSolExportOptions.FRAME_RATE_HIGH
+                FableSolExportOptions.FRAME_RATE_HIGH, true
             )?.usable == true
         )
     }
@@ -195,18 +359,22 @@ class FableSolExportCapabilityMatrixTest {
             for (rate in FableSolExportCapabilityMatrix.FRAME_RATES) {
                 put(
                     FableSolExportHdrFormat.HDR10_PLUS, FableSolExportCodecFamily.HEVC,
-                    rate, hardwareHevc
+                    rate, true, hardwareHevc
                 )
                 put(
                     FableSolExportHdrFormat.HDR10_PLUS, FableSolExportCodecFamily.AV1,
-                    rate, failed("没有候选")
+                    rate, true,
+                    FableSolExportCombinationOutcome(
+                        codecName = null, softwareOnly = false,
+                        failure = FableSolExportFailure.NO_CANDIDATE
+                    )
                 )
                 for (format in listOf(
                     FableSolExportHdrFormat.HDR10, FableSolExportHdrFormat.HLG
                 )) {
-                    put(format, FableSolExportCodecFamily.HEVC, rate, hardwareHevc)
+                    put(format, FableSolExportCodecFamily.HEVC, rate, true, hardwareHevc)
                     put(
-                        format, FableSolExportCodecFamily.AV1, rate,
+                        format, FableSolExportCodecFamily.AV1, rate, true,
                         FableSolExportCombinationOutcome(
                             codecName = "c2.qti.av1.encoder", softwareOnly = false,
                             failure = null
@@ -228,29 +396,52 @@ class FableSolExportCapabilityMatrixTest {
         val matrix = oppoLikeMatrix()
         assertEquals(
             FableSolExportHdrFormat.HDR10_PLUS,
-            matrix.autoFormat(family = null, allowSoftware = false)
+            matrix.autoFormat(
+                family = null,
+                frameRate = FableSolExportOptions.FRAME_RATE_HIGH
+            )
         )
         assertEquals(
             FableSolExportHdrFormat.HDR10_PLUS,
-            matrix.autoFormat(FableSolExportCodecFamily.HEVC, allowSoftware = true)
+            matrix.autoFormat(
+                FableSolExportCodecFamily.HEVC,
+                FableSolExportOptions.FRAME_RATE_HIGH
+            )
         )
         // AUTO_ORDER 里 HDR10+ 在 HDR10 之前，AV1 编不出它，于是应当落到 HDR10。
         assertEquals(
             FableSolExportHdrFormat.HDR10,
-            matrix.autoFormat(FableSolExportCodecFamily.AV1, allowSoftware = true)
+            matrix.autoFormat(
+                FableSolExportCodecFamily.AV1,
+                FableSolExportOptions.FRAME_RATE_HIGH
+            )
         )
         // H.264 在任何 HDR 格式下都不成立，「自动」只能落到 SDR。
-        assertNull(matrix.autoFormat(FableSolExportCodecFamily.AVC, allowSoftware = true))
+        assertNull(
+            matrix.autoFormat(
+                FableSolExportCodecFamily.AVC,
+                FableSolExportOptions.FRAME_RATE_HIGH
+            )
+        )
     }
 
-    /** 只有硬件 AV1 能编 HDR10 时，自动档仍可用它；软件实现才是被排除的那一类。 */
+    /** 只有软件 AV1 能编 HDR10 时，自动档仍应落到它，而不是整体退回 SDR（D53 修订、D58）。 */
     @Test
-    fun automaticFormatUnderTheSoftwareRestriction() {
+    fun automaticFormatKeepsHdrEvenWhenOnlySoftwareCanEncodeIt() {
         val matrix = foldLikeMatrix()
-        assertNull(matrix.autoFormat(family = null, allowSoftware = false))
         assertEquals(
             FableSolExportHdrFormat.HDR10,
-            matrix.autoFormat(FableSolExportCodecFamily.AV1, allowSoftware = true)
+            matrix.autoFormat(
+                family = null,
+                frameRate = FableSolExportOptions.FRAME_RATE_BASE
+            )
+        )
+        assertEquals(
+            FableSolExportHdrFormat.HDR10,
+            matrix.autoFormat(
+                FableSolExportCodecFamily.AV1,
+                FableSolExportOptions.FRAME_RATE_BASE
+            )
         )
     }
 
@@ -291,28 +482,10 @@ class FableSolExportCapabilityMatrixTest {
         assertFalse(entries[0].eightBit)
         assertTrue(entries[1].eightBit)
 
-        val matrix = FableSolExportCapabilityMatrix.Builder().apply {
-            put(
-                null, FableSolExportCodecFamily.HEVC,
-                FableSolExportOptions.FRAME_RATE_HIGH,
-                FableSolExportCombinationOutcome(
-                    codecName = "OMX.hisi.video.encoder.hevc", softwareOnly = false,
-                    failure = null, profileLabel = "HEVC Main SDR", tenBit = false
-                )
-            )
-        }.build()
-        val reach = matrix.reach(null).single { it.family == FableSolExportCodecFamily.HEVC }
+        val reach = foldLikeMatrix().reach(null)
+            .single { it.family == FableSolExportCodecFamily.HEVC }
         assertFalse(reach.tenBit)
         assertEquals("HEVC 8-bit", reach.compactLabel)
-        // 位深要跨缓存保留，否则命中缓存时这一层信息就没了。
-        assertEquals(
-            reach.tenBit,
-            FableSolExportCapabilityMatrix.decode(matrix.encode())
-                .outcome(
-                    null, FableSolExportCodecFamily.HEVC,
-                    FableSolExportOptions.FRAME_RATE_HIGH
-                )?.tenBit
-        )
     }
 
     /** 杜比视界换的是 MIME，编码器仍是那颗 HEVC；界面上不该为它单列一个编码器选项。 */
@@ -340,5 +513,16 @@ class FableSolExportCapabilityMatrixTest {
             FableSolExportCodecFamily.entries.toList(),
             FableSolExportTier.familiesFor(null)
         )
+    }
+
+    /** HDR 一律 10-bit；H.264 没有 10 位档。位深轴的结构性存在性由此判定。 */
+    @Test
+    fun structuralBitDepthAvailabilityMatchesTheLadders() {
+        for (format in FableSolExportHdrFormat.entries) {
+            assertTrue(FableSolExportTier.supportsBitDepth(format, tenBit = true))
+            assertFalse(FableSolExportTier.supportsBitDepth(format, tenBit = false))
+        }
+        assertTrue(FableSolExportTier.supportsBitDepth(null, tenBit = true))
+        assertTrue(FableSolExportTier.supportsBitDepth(null, tenBit = false))
     }
 }

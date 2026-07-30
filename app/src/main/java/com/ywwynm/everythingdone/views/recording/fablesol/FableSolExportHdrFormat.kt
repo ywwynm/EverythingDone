@@ -34,24 +34,27 @@ internal class FableSolExportCodecEntry(
  * 与导出 shader），格式还额外决定**用哪个编码器、写什么元数据**。所以"PQ 和 HDR10 并列"
  * 是重复的，两者是同一件事的两个说法：HDR10 = PQ 曲线 + BT.2020 + 静态母版元数据。
  *
- * 六种格式沿两个轴区分——**基层曲线**决定高光余量，**元数据**决定播放端是否具备按场景
+ * 四种格式沿两个轴区分——**基层曲线**决定高光余量，**元数据**决定播放端是否具备按场景
  * 适配的依据：
  *
  * | 格式 | 基层 | 余量 | 元数据 |
  * |---|---|---|---|
- * | 杜比视界 5 | PQ | 10000 尼特 | 杜比动态（RPU） |
- * | 杜比视界 8.1 | PQ | 10000 尼特 | 杜比动态（RPU） |
  * | HDR10+ | PQ | 10000 尼特 | ST 2094-40 动态 |
- * | HDR10 | PQ | 10000 尼特 | 静态，且我们写的是精确值 |
  * | 杜比视界 8.4 | HLG | 约 3.77 倍 | 杜比动态（RPU） |
+ * | HDR10 | PQ | 10000 尼特 | 静态，且我们写的是精确值 |
  * | HLG | HLG | 约 3.77 倍 | 无 |
+ *
+ * **杜比视界只保留 Profile 8.4**（D141）：Dolby 官方 Android 第三方编辑样例只声明并演示编码
+ * 到 8.4；Profile 8.1 需要 PQ 兼容基层，而实机在申请 PQ 时把传递函数改回 HLG；Profile 5 的
+ * 单层 IPT-PQ-c2 表示没有可验证的公开输入与 RPU 创作契约。设备诊断仍可展示编码器广告的
+ * 其它 Profile，但那是设备声明，不是本应用可导出的格式。
  *
  * 两项实现约束：
  *
  * - **杜比视界不需要应用自己产 RPU**。按 Dolby 官方第三方样例
  *   （`DolbyLaboratories/dolby-vision-editor`）的做法，把 MIME 设成 `video/dolby-vision`、
  *   profile 设成 `DolbyVisionProfileDvheSt`、配一个按像素率算出的 level，编码器自己生成
- *   元数据层。8.1 与 8.4 的区别**只在传递函数**：PQ 是 8.1，HLG 是 8.4。
+ *   元数据层；基层传递函数为 HLG 即 Profile 8.4。
  * - **HDR10+ 必须走字节缓冲输入**：`MediaCodec.PARAMETER_KEY_HDR10_PLUS_INFO` 在 surface
  *   输入模式下被系统明确禁止，而那是提供 ST 2094-40 动态元数据的唯一接口。改走字节缓冲之后
  *   RGB→YUV 就得我们自己做（[FableSolExportP010Bridge]），统计量也由我们逐帧实测——
@@ -77,40 +80,13 @@ internal enum class FableSolExportHdrFormat(
         R.string.fablesol_export_hdr_format_name_hdr10_plus
     ),
 
-    /**
-     * 杜比视界 profile 8.1：**PQ 基层**，与 HDR10 兼容。
-     *
-     * 它比 8.4 高一档：基层是 PQ 就意味着高光余量到 10000 尼特，我们 9.6 倍强度那约 1949
-     * 尼特完全放得下；而 8.4 的基层是 HLG，余量只有约 3.77 倍。Dolby 官方样例只演示了
-     * 8.4，但 profile 常量是同一个（`DolbyVisionProfileDvheSt` = 8），**8.1 与 8.4 的区别
-     * 就在传递函数**——PQ 是 8.1，HLG 是 8.4。设备认不认由真实编码探测判定。
-     */
-    /**
-     * 杜比视界 profile 5：单层、PQ、IPT-PQ-c2 色彩空间，**不向下兼容**。
-     *
-     * 它使用原生单层杜比信号，不包含 HDR10 兼容基层；不支持杜比视界的播放端可能显示明显
-     * 的绿紫色偏。Profile 8.1 则保留 HDR10 兼容基层。自动顺序遵循用户指定的格式优先级，
-     * 界面说明必须明确这一兼容性差异。
-     */
-    DOLBY_VISION_5(
-        FableSolExportTransfer.PQ,
-        "Dolby Vision 5",
-        R.string.fablesol_export_hdr_format_name_dolby_vision_5
-    ),
-
-    DOLBY_VISION_81(
-        FableSolExportTransfer.PQ,
-        "Dolby Vision 8.1",
-        R.string.fablesol_export_hdr_format_name_dolby_vision_81
-    ),
-
     HLG(
         FableSolExportTransfer.HLG,
         "HLG",
         R.string.fablesol_export_hdr_format_name_hlg
     ),
 
-    /** 杜比视界 profile 8.4：HLG 基层，余量与 HLG 相同。8.1 建不起来时的退路。 */
+    /** 杜比视界 profile 8.4：HLG 基层，余量与 HLG 相同；本应用唯一支持的杜比视界档。 */
     DOLBY_VISION_84(
         FableSolExportTransfer.HLG,
         "Dolby Vision 8.4",
@@ -122,6 +98,15 @@ internal enum class FableSolExportHdrFormat(
     /** PQ 系两种格式都要 CTA-861.3 静态母版元数据，播放端才知道按多高的峰值还原。 */
     val writesStaticMetadata: Boolean
         get() = transfer == FableSolExportTransfer.PQ
+
+    /**
+     * 基层是不是 HLG。
+     *
+     * HLG 与杜比视界 8.4 共用同一条输出变换、同一套 super-white 验证与信号范围设置
+     * （D143～D144）；杜比视界 8.4 的那一项在界面上叫“HLG 基层信号范围”。
+     */
+    val usesHlgBaseLayer: Boolean
+        get() = transfer == FableSolExportTransfer.HLG
 
     /**
      * 输出格式必须原样回报申请的 profile，不接受任何"等价替换"。
@@ -141,16 +126,12 @@ internal enum class FableSolExportHdrFormat(
         get() = when (this) {
             HDR10 -> "HDR10"
             HDR10_PLUS -> "HDR10Plus"
-            DOLBY_VISION_5 -> "DV5"
-            DOLBY_VISION_81 -> "DV81"
             DOLBY_VISION_84 -> "DV84"
             HLG -> "HLG"
         }
 
     val isDolbyVision: Boolean
-        get() = this == DOLBY_VISION_5 ||
-            this == DOLBY_VISION_81 ||
-            this == DOLBY_VISION_84
+        get() = this == DOLBY_VISION_84
 
     /**
      * 只有 HDR10+ 走字节缓冲输入。
@@ -185,12 +166,9 @@ internal enum class FableSolExportHdrFormat(
             HDR10_PLUS ->
                 "当前验证已使用字节缓冲输入并逐帧提交 ST 2094-40 动态元数据；Android " +
                     "公开接口未提供其他可用的应用级 HDR10+ 动态元数据注入路径"
-            DOLBY_VISION_5 ->
-                "该结论仅适用于单层 Profile 5；Profile 8.1 与 Profile 8.4 按独立候选验证"
-            DOLBY_VISION_81 ->
-                "该结论仅适用于采用 PQ 基层的 Profile 8.1；采用 HLG 基层的 Profile 8.4 " +
-                    "按独立候选验证"
-            DOLBY_VISION_84 -> null
+            DOLBY_VISION_84 ->
+                "该结论仅适用于采用 HLG 基层的 Profile 8.4；Profile 5 与 Profile 8.1 " +
+                    "不属于本应用的产品能力"
             else -> null
         }
 
@@ -198,32 +176,27 @@ internal enum class FableSolExportHdrFormat(
         get() = when (this) {
             HDR10, HLG -> TEN_BIT_ENTRIES
             HDR10_PLUS -> HDR10_PLUS_ENTRIES
-            DOLBY_VISION_5 -> DOLBY_VISION_5_ENTRIES
-            DOLBY_VISION_81, DOLBY_VISION_84 -> DOLBY_VISION_ENTRIES
+            DOLBY_VISION_84 -> DOLBY_VISION_ENTRIES
         }
 
     companion object {
 
-        /**
-         * 自动档的尝试顺序。
-         *
-         * 按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格）：
-         *
-         * 1. **杜比视界 5**——单层 PQ + IPT-PQ-c2，不包含 HDR10 兼容基层；
-         * 2. **杜比视界 8.1**——PQ 基层（余量到 10000 尼特）+ 杜比动态元数据，且与 HDR10 兼容；
-         * 3. **HDR10+**——PQ + 动态元数据，但没有杜比那套显示端适配；
-         * 4. **杜比视界 8.4**——HLG 基层 + 杜比动态元数据；
-         * 5. **HDR10**——PQ + 静态元数据，峰值按本次导出参数精确写入；
-         * 6. **HLG**——HLG 基层且没有动态元数据，作为最后候选。
-         *
-         * 每一种格式均须通过单帧编码与封装验证；排序只决定候选优先级，不代表设备必然支持。
-         */
         /** 非 HDR 产物在文件名与各处提示里的写法。 */
         const val SDR_LABEL = "SDR"
 
-        val AUTO_ORDER = listOf(
-            DOLBY_VISION_5, DOLBY_VISION_81, HDR10_PLUS, DOLBY_VISION_84, HDR10, HLG
-        )
+        /**
+         * 自动档的尝试顺序（D141 收敛后固定为四项）。
+         *
+         * 按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格）：
+         *
+         * 1. **HDR10+**——PQ 基层（余量到 10000 尼特）+ ST 2094-40 逐帧动态元数据；
+         * 2. **杜比视界 8.4**——HLG 基层 + 杜比动态元数据；
+         * 3. **HDR10**——PQ + 静态元数据，峰值按本次导出参数精确写入；
+         * 4. **HLG**——HLG 基层且没有动态元数据，作为最后候选。
+         *
+         * 每一种格式均须通过单帧编码与封装验证；排序只决定候选优先级，不代表设备必然支持。
+         */
+        val AUTO_ORDER = listOf(HDR10_PLUS, DOLBY_VISION_84, HDR10, HLG)
 
         private val TEN_BIT_ENTRIES = listOf(
             FableSolExportCodecEntry(
@@ -252,15 +225,6 @@ internal enum class FableSolExportHdrFormat(
                 MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10Plus,
                 eightBit = false,
                 label = "AV1 Main10"
-            )
-        )
-
-        private val DOLBY_VISION_5_ENTRIES = listOf(
-            FableSolExportCodecEntry(
-                MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION,
-                MediaCodecInfo.CodecProfileLevel.DolbyVisionProfileDvheDtr,
-                eightBit = false,
-                label = "HEVC"
             )
         )
 

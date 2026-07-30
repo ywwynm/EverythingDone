@@ -23,12 +23,46 @@ internal object FableSolVideoExportBus {
 
         /** 已提交、还没轮到它跑。 */
         data class Queued(override val jobId: Long) : State()
+
+        /**
+         * 正在做一件正式渲染开始前必须完成的准备（D138）。
+         *
+         * [stageId] 是**稳定标识**，不是本地化文案：状态要跨进程边界与通知栏，展示时才按当前
+         * locale 取字符串；不认识的标识退回通用的"正在准备"，不显示一个内部代号。
+         */
+        data class Preparing(
+            override val jobId: Long,
+            val stageId: String,
+            val retryNotice: FableSolExportRetryNotice? = null
+        ) : State()
         data class Running(
             override val jobId: Long,
             val done: Int,
             val total: Int,
-            val etaMs: Long
+            val etaMs: Long,
+            val retryNotice: FableSolExportRetryNotice? = null
         ) : State()
+
+        /** 当前公开规格失败，等待用户确认建议规格；此状态不占用编码与渲染资源。 */
+        data class AwaitingConfirmation(
+            override val jobId: Long,
+            val failedSpec: FableSolExportPublicSpec,
+            val reason: FableSolExportRetryReason,
+            val suggestedSpec: FableSolExportPublicSpec,
+            val attemptedSpecCount: Int,
+            /** 已本地化的补充说明；确认文案在分类行之后追加显示（D115）。 */
+            val detail: String? = null
+        ) : State() {
+            val notice: FableSolExportRetryNotice
+                get() = FableSolExportRetryNotice(
+                    failedSpec = failedSpec,
+                    reason = reason,
+                    currentSpec = suggestedSpec,
+                    attemptedSpecCount = attemptedSpecCount,
+                    sameSpec = false,
+                    detail = detail
+                )
+        }
 
         data class Done(
             override val jobId: Long,
@@ -50,7 +84,39 @@ internal object FableSolVideoExportBus {
             val pqWhiteNits: Double = 0.0,
             val peakNits: Double = 0.0,
             /** 高光起点百分位；0 表示不是 HDR10+。 */
-            val highlightStartPercent: Int = 0
+            val highlightStartPercent: Int = 0,
+            /** 高光起点百分位查询所得的膝点亮度（尼特）；0 表示不适用（D115）。 */
+            val hdr10PlusRequestedKneeNits: Double = 0.0,
+            /** 实际采用的膝点亮度（尼特）；与请求值不同即发生了可行域调整（D115）。 */
+            val hdr10PlusKneeNits: Double = 0.0,
+            /** FBP 因代理帧缺失写了规范零值（未计算，D109）。 */
+            val hdr10PlusFbpUnavailable: Boolean = false,
+            /** 仅 HDR10+：携带 ST 2094-40 SEI 的视频样本数（D91 第 4 条修订）。 */
+            val hdr10PlusSeiSamples: Long = 0L,
+            /** 仅 HDR10+：视频样本总数；部分覆盖时完成信息如实说明。 */
+            val hdr10PlusSeiTotal: Long = 0L,
+            /** SDR 语义降级的本地化说明（D77、D78）；null 表示没有发生降级。 */
+            val sdrFallbackNotice: String? = null,
+            /**
+             * 正式产物的诊断性解析发现的容器静态元数据冲突摘要（D166）；null 表示一致、
+             * 未携带或不是 PQ 系。只进完成信息的补充说明，不改变成功终态。
+             */
+            val staticMetadataConflict: String? = null,
+            /**
+             * HDR10+ 的曲线是否全片恒等（D176）；null 表示不是 HDR10+。恒等时动态层在画面上
+             * 没有作用，完成信息如实说明"与 HDR10 一致"。
+             */
+            val hdr10PlusIdentity: Boolean? = null,
+            /** 全片静态亮度统计；null 表示不是 PQ 系，完成态不显示这一行（D90）。 */
+            val luminance: FableSolExportLuminanceStats? = null,
+            /**
+             * HLG 系产物**实际**使用的信号范围；null 表示不是 HLG 系（D135、D136、D144）。
+             */
+            val hlgRange: FableSolExportHlgRange? = null,
+            /** 本次实际下发的码控形态与编码工具（D145、D148～D151）。 */
+            val encoding: FableSolExportSpecText.Encoding? = null,
+            val attemptedSpecCount: Int = 1,
+            val retryNotice: FableSolExportRetryNotice? = null
         ) : State() {
 
             /**
@@ -69,8 +135,22 @@ internal object FableSolVideoExportBus {
         }
 
         data class Cancelled(override val jobId: Long) : State()
-        data class Failed(override val jobId: Long, val message: String) : State()
+        data class Failed(
+            override val jobId: Long,
+            val message: String,
+            val failedSpec: FableSolExportPublicSpec? = null,
+            val reason: FableSolExportRetryReason? = null,
+            val attemptedSpecCount: Int = 0,
+            /**
+             * 失败与导出设置相关（规格候选耗尽、无完整规格等），Dialog 应提供
+             * "调整导出设置"操作（D107）；空间不足、超时、服务被杀等环境性失败为 false。
+             */
+            val adjustSettingsActionable: Boolean = false
+        ) : State()
     }
+
+    /** 正在做 HLG 扩展信号范围的编码—解码回环验证（D138）。 */
+    const val STAGE_HLG_RANGE = "hlg-range"
 
     private val main = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArrayList<(State) -> Unit>()
@@ -137,7 +217,9 @@ internal class FableSolExportStateRegistry(
     fun hasActiveJobs(): Boolean =
         states.values.any {
             it is FableSolVideoExportBus.State.Queued ||
-                it is FableSolVideoExportBus.State.Running
+                it is FableSolVideoExportBus.State.Preparing ||
+                it is FableSolVideoExportBus.State.Running ||
+                it is FableSolVideoExportBus.State.AwaitingConfirmation
         }
 
     private fun FableSolVideoExportBus.State.isTerminal(): Boolean =

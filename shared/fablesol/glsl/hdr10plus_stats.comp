@@ -1,0 +1,69 @@
+#version 310 es
+precision highp float;
+precision highp int;
+
+// HDR10+ 逐像素统计的 GLES 3.1 首选后端（fablesol-video-export D104、D169）。
+//
+// 一次 dispatch 同时产出三样东西：
+//
+// 1. **完整 CFD 直方图**——线性归一化域 100001 个桶、桶宽 0.00001（以 PQ 10000 尼特归一，
+//    即 0.1 尼特），与 DistributionMaxRGB 的载荷量化网格完全对齐。全局 atomicAdd。
+// 2. **逐工作组的三通道峰值**——MaxSCL 不经过桶（D103、D169），保留源线性缓冲的有效精度。
+// 3. **逐工作组的 maxRGB 线性总和**——AverageMaxRGB 由线性总和与真实像素数计算，不从桶
+//    重建（D102）。`EOTF(mean(PQ)) != mean(EOTF(PQ))`，在 PQ 域求平均从定义上就不是它。
+//
+// 峰值与总和用工作组内的共享内存归约，每个工作组只写自己的槽位——不需要全局原子，也就没有
+// 32 位累加器溢出的问题（一帧上百万像素，按 1e-5 定点累加会直接越过 2^32）。CPU 端把几千个
+// 工作组的部分结果合并成整帧结果。
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, std430) buffer Histogram {
+    uint counts[];
+} histogram;
+
+// xyz = 该工作组内 R/G/B 各自的最大值，w = 该工作组内 max(R,G,B) 的总和。
+layout(binding = 1, std430) buffer Partials {
+    vec4 partials[];
+} partial;
+
+uniform sampler2D uSource;   // 最终可见合成的线性 BT.2020，漫反射白归一化
+uniform int uWidth;
+uniform int uHeight;
+uniform float uScale;        // 漫反射白尼特 / 10000：换算到载荷归一化域
+
+shared vec4 sPartial[256];
+
+// 桶下标用**乘法**求：与 CPU 端 bucketOf 同一条规则（D169）。100000 在 f32 精确可表示；
+// 除以 0.00001 则不然——1e-5 的浮点表示略小于真值，边界值会被除法推进错误的桶
+//（CPU 端注释里那条 1.0 落进 99999 号桶的教训，除法形式在 GPU 上同样成立）。
+const float BUCKETS_PER_UNIT = 100000.0;
+const float MAX_BUCKET = 100000.0;
+
+void main() {
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    vec4 local = vec4(0.0);
+    if (pixel.x < uWidth && pixel.y < uHeight) {
+        vec3 linearRgb = max(texelFetch(uSource, pixel, 0).rgb, vec3(0.0)) * uScale;
+        float maxRgb = max(linearRgb.r, max(linearRgb.g, linearRgb.b));
+        local = vec4(linearRgb, maxRgb);
+        uint bucket = uint(clamp(maxRgb * BUCKETS_PER_UNIT, 0.0, MAX_BUCKET));
+        atomicAdd(histogram.counts[bucket], 1u);
+    }
+
+    uint local1D = gl_LocalInvocationIndex;
+    sPartial[local1D] = local;
+    barrier();
+    for (uint stride = 128u; stride > 0u; stride >>= 1u) {
+        if (local1D < stride) {
+            vec4 other = sPartial[local1D + stride];
+            sPartial[local1D].rgb = max(sPartial[local1D].rgb, other.rgb);
+            sPartial[local1D].w += other.w;
+        }
+        barrier();
+    }
+    if (local1D == 0u) {
+        uint group = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+        partial.partials[group] = sPartial[0];
+    }
+}

@@ -39,7 +39,16 @@ class FableSolExportPipelineSourceTest {
         // 但 FEATURE_HlgEditing 那道筛**不能回来**：三星 S23 Ultra 的高通编码器一个都不
         // 广告这个能力位，加回去就会把 API 35 上的 HLG 候选整批筛光（2026-07-27 实测）。
         // 每一档最后都要真编一帧才算数，不需要再拿一个语义不对的广告位提前否决。
-        assertFalse(encoder.contains("isFeatureSupported("))
+        // 不能只搜 "FEATURE_HlgEditing" 四个字：源码里那条注释正是在讲它为什么被删掉，
+        // 删掉注释反而会丢掉这段教训。判据因此落在**实际的查询调用**上——能力位只允许用在
+        // 它自己描述的那件事上。FEATURE_QpBounds 就是 D151 要查的东西（编码器支不支持 QP
+        // 上下限），不是拿来给格式当门禁；这里逐个点名，多出一处新的 isFeatureSupported
+        // 就会让这条断言失败，逼着下一个人先说清它问的是什么。
+        val featureQueries = Regex("isFeatureSupported\\(\\s*\\n?\\s*MediaCodecInfo\\.CodecCapabilities\\.(\\w+)")
+            .findAll(encoder)
+            .map { it.groupValues[1] }
+            .toList()
+        assertEquals(listOf("FEATURE_QpBounds"), featureQueries)
         assertTrue(exporter.contains("renderer.isHdrContentEnabled()"))
         assertTrue(exporter.contains("setOfflineFixedDt(1.0 / frameRate)"))
     }
@@ -71,6 +80,7 @@ class FableSolExportPipelineSourceTest {
             "app/src/main/java/com/ywwynm/everythingdone/services/" +
                 "FableSolVideoExportService.kt"
         )
+        val exporter = projectFile("FableSolVideoExporter.kt")
 
         assertTrue(service.contains("private fun cancelJob(jobId: Long)"))
         assertTrue(service.contains("State.Cancelled(jobId)"))
@@ -141,7 +151,7 @@ class FableSolExportPipelineSourceTest {
     }
 
     @Test
-    fun hdrSwitchUsesARealOneFrameEncoderProbeAndExporterKeepsHdrAcrossFpsFallback() {
+    fun hdrSwitchUsesARealOneFrameEncoderProbeAndExporterUsesTheAttemptPlan() {
         val capability = projectFile("FableSolHdrExportCapability.kt")
         val tuning = projectRelative(
             "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
@@ -161,10 +171,14 @@ class FableSolExportPipelineSourceTest {
         // 继续从缓存里读出来（2026-07-27 实际发生过：HLG 那一行连措辞都还是旧版的）。
         assertTrue(capability.contains("R.string.debug_update_code"))
         assertFalse(capability.contains("FableSolGlRenderer("))
-        // 设置页只摆一处 HDR 入口：格式胶囊，第一项就是「关闭」。单独的开关已删除——
-        // 开关与格式选择说的是同一件事，摆两处只会让人问"关掉开关但选了 HDR10 会怎样"。
+        // 设置页只摆一处色彩入口：单一互斥的「导出色彩模式」选择器（D62）。单独的 HDR
+        // 开关已删除——开关与格式选择说的是同一件事，摆两处只会让人问"关掉开关但选了
+        // HDR10 会怎样"。前两项是两种 SDR，它们表达的是两种创作意图，不是一个开关的两态。
         assertTrue(tuning.contains("FableSolHdrExportCapability.supportedFormats("))
-        assertTrue(tuning.contains("R.string.fablesol_export_hdr_format_off"))
+        assertTrue(tuning.contains("R.string.fablesol_param_export_color_mode"))
+        assertTrue(tuning.contains("R.string.fablesol_export_color_mode_sdr_native"))
+        assertTrue(tuning.contains("R.string.fablesol_export_color_mode_sdr_tone_mapped"))
+        assertFalse(tuning.contains("R.string.fablesol_export_hdr_format_off"))
         assertTrue(tuning.contains("Process.THREAD_PRIORITY_BACKGROUND"))
         // **能力结论绝不能回写偏好。** 这里曾经断言相反的事：设备编不出 HDR 时写一次
         // `setExportHdrEnabled(appContext, false)`。那个写入不可逆——偏好一旦为 false，
@@ -181,20 +195,20 @@ class FableSolExportPipelineSourceTest {
     /**
      * 探测必须用**用户实际会用的那份编码参数**验证。
      *
-     * 此前这里固定 CBR，理由是"能力结论不能随偏好漂移"；代价是恒定质量档下发的是另一套
-     * `KEY_BITRATE_MODE` + `KEY_QUALITY`、候选排序也不同，于是设置页验过的 MediaFormat 与
-     * 真正导出的并不是同一份。"设置页说能编、真编时全档失败"就是这么来的。既然结论依赖
-     * 这个偏好，它就必须进缓存签名。
+     * CQ 与目标码率必须分别使用正式导出的 MediaFormat 探测，并同时保存在一份五维矩阵中。
+     * 切换模式后不应重新借用上一模式的结果，也不需要让偏好参与设备能力缓存签名。
      */
     @Test
-    fun capabilityProbeUsesTheSameEncodingModeAsTheExportAndKeysTheCacheOnIt() {
+    fun capabilityProbeRecordsBothEncodingModesInTheSameMatrix() {
         val capability = projectFile("FableSolHdrExportCapability.kt")
+        val matrix = projectFile("FableSolExportCapabilityMatrix.kt")
 
-        assertTrue(capability.contains("constantQuality = constantQuality"))
-        assertTrue(capability.contains("FableSolTuning.exportConstantQuality(context)"))
-        assertFalse(capability.contains("constantQuality = false,"))
-        // 签名里要有编码模式，否则换了模式仍会读出上一份结论。
-        assertTrue(capability.contains("|\$mode\""))
+        assertTrue(
+            capability.contains("for (rateControl in FableSolExportRateControl.entries)")
+        )
+        assertTrue(capability.contains("rateControl = rateControl"))
+        assertTrue(matrix.contains("val rateControlId: String"))
+        assertFalse(capability.contains("|\$mode\""))
     }
 
     /**
@@ -219,24 +233,32 @@ class FableSolExportPipelineSourceTest {
     }
 
     /**
-     * 自动档**不使用软件编码器**，用户显式选中某个族时才允许。
+     * **同规格内先穷尽硬件实现，软件实现是最后回退**（D53 修订 + D161）。
      *
-     * 本项目的导出画布接近两百万像素，软件编码与硬件编码耗时差一到两个数量级。让软件编码
-     * 器充当静默退路，等于在用户毫不知情的情况下把一次导出拖长几十倍——三星 Z Fold4 上
-     * 一次 120fps 的 HDR 导出实际落到了软件 AV1 的 60fps 上。
+     * D53 原先完全排除软件编码器；三星 Z Fold4 的实测（D58）证明该机的 HDR 只能由软件 AV1
+     * 承担，于是"自动档宁可落 SDR 也不用软件编码"反而丢掉了设备真有的规格。现在的规则是：
+     * 输出规格先于编码器实现，同规格内 `硬件 HEVC → 硬件 AV1 → 硬件 AVC → 软件 HEVC →
+     * 软件 AV1 → 软件 AVC`，速度与发热的代价由信息栏说明。
      */
     @Test
-    fun automaticLadderExcludesSoftwareEncodersAndHonoursThePinnedCodec() {
+    fun sameSpecCandidatesPreferHardwareThenFallBackToSoftware() {
         val encoder = projectFile("FableSolExportEncoder.kt")
         val exporter = projectFile("FableSolVideoExporter.kt")
-        val options = projectFile("FableSolExportOptions.kt")
 
         assertTrue(encoder.contains("if (softwareOnly && !allowSoftware) continue"))
-        // 硬件优先必须是**第一**排序键，落在编码模式之前。
-        assertTrue(encoder.contains("{ it.softwareOnly },"))
+        // 硬件优先是**第一**排序键，编码器族次之，Profile 阶梯再次之。
+        val comparator = encoder.substringAfter("return collected.sortedWith(")
+            .substringBefore(").map { it.second }")
+        val software = comparator.indexOf("tier.softwareOnly")
+        val family = comparator.indexOf("tier.family.ordinal")
+        val ladder = comparator.indexOf("{ (index, _) -> index }")
+        assertTrue(software in 0 until family)
+        assertTrue(family < ladder)
         assertTrue(exporter.contains("family = options.codec.family"))
-        assertTrue(exporter.contains("allowSoftware = options.codec.allowsSoftware"))
-        assertTrue(options.contains("val allowsSoftware: Boolean get() = family != null"))
+        // 显式格式的严格失败语义：不允许悄悄发布 SDR。
+        assertTrue(
+            exporter.contains("allowSdrFallback = options.colorMode.allowsSdrResult")
+        )
     }
 
     /**
@@ -264,33 +286,52 @@ class FableSolExportPipelineSourceTest {
     }
 
     /**
-     * 每一处推导出来的文字都必须在**当前编码器选择下**解析。
+     * 格式、编码器、位深与帧率必须由同一次精确组合查询解析。
      *
-     * 探测给出的 `autoFormat` 是"编码器也取自动"时的答案。OPPO 上把编码器钉成 AV1 之后，
-     * 格式胶囊已经正确地只留下 HDR10 与 HLG，说明文字却仍写着「当前为 HDR10+」，而 AV1
-     * 根本编不出 HDR10+（2026-07-27）。帧率同理：面板上的那一项是上限，达不到时导出会自己
-     * 降级，估算与提示语必须按降级后的帧率算。
+     * OPPO 上把编码器钉成 AV1 后，格式说明曾继续显示 HDR10+；Z Fold4 上选择 120 fps 后，
+     * 自动摘要又借用了仅在 60 fps 成立的 HDR10／AV1。两类错误都来自各轴分别推导或把帧率
+     * 当作上限。现在设置页只能使用当前精确帧率的同一个解析结果。
      */
     @Test
-    fun everyDerivedLabelResolvesUnderTheCurrentCodecAndAchievableFrameRate() {
+    fun everyDerivedLabelResolvesFromOneExactCapabilityTuple() {
         val tuning = projectRelative(
             "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
                 "FableSolTuningDialogFragment.kt"
         )
         val capability = projectFile("FableSolHdrExportCapability.kt")
+        val service = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/services/" +
+                "FableSolVideoExportService.kt"
+        )
+        val exporter = projectFile("FableSolVideoExporter.kt")
 
         assertFalse(tuning.contains("FableSolHdrExportCapability.autoFormat"))
-        assertTrue(tuning.contains("matrix.autoFormat(codec.family"))
-        // 帧率与编码器在同一次遍历里解出：分两处各算一遍迟早会给出一对互不相容的答案。
-        assertTrue(tuning.contains("mResolvedExportFrameRate = resolved?.first"))
-        assertTrue(tuning.contains("mResolvedExportCodec = resolved?.second"))
+        assertTrue(tuning.contains("return matrix.resolve("))
+        assertTrue(tuning.contains("val rate = rateOrder[rateIndex]"))
+        assertTrue(tuning.contains("mResolvedExportFrameRate = resolved?.frameRate"))
+        assertTrue(tuning.contains("mResolvedExportCodecFamily = resolved?.family"))
+        assertTrue(tuning.contains("rateControl = rateControl"))
+        // 编码模式的置灰同样带着当前的格式、编码器与精确帧率一起求值。
+        assertTrue(
+            tuning.contains("modeOrder.map { feasible(formatPreference, codec, rate, it) }")
+        )
         assertTrue(
             tuning.contains(
-                "mResolvedExportFrameRate ?: FableSolTuning.exportFrameRateCap(ctx)"
+                "mResolvedExportFrameRate ?: FableSolTuning.exportFrameRate(ctx)"
             )
         )
+        assertFalse(tuning.contains("FRAME_RATES.filter"))
+        assertFalse(tuning.contains("exportFrameRateCap"))
+        assertTrue(service.contains("matrix.resolve("))
+        assertTrue(service.contains("fablesol_export_no_exact_specification"))
+        assertTrue(exporter.contains("R.string.fablesol_export_no_exact_specification"))
+        assertFalse(
+            exporter.contains("No encoder supports the requested output specification")
+        )
+        assertTrue(service.contains("targetSpec = resolved?.let"))
+        assertTrue(service.contains("targetSpec = activeJob.targetSpec"))
         // 能力报告要列全部可用组合，不是第一个落点。
-        assertTrue(capability.contains("lastMatrix.reach(format)"))
+        assertTrue(capability.contains("lastMatrix.reach(format, rateControl)"))
     }
 
     /**
@@ -366,27 +407,100 @@ class FableSolExportPipelineSourceTest {
     }
 
     /**
-     * 三条轴（帧率、HDR 格式、编码器）必须互相约束。
+     * 四条轴（帧率、HDR 格式、编码器、编码模式）必须互相约束。
      *
      * 帧率此前是"上限，不行就自己降"，于是 Z Fold4 上选了 120fps 仍可选 AV1，点下去帧率被
      * 悄悄改成 60；HDR10 与 HLG 也照样摆着，而它们在 120fps 下根本没有通路
-     * （用户 2026-07-28 指出）。现在每一条轴的可选性都以另外两条的现值为前提。
+     * （用户 2026-07-28 指出）。现在每一条轴的可选性都以其余各条的现值为前提。
+     *
+     * 编码模式（恒定质量／目标码率）是 D183 加进矩阵的那一轴，此前只在 `feasible` 里当默认
+     * 参数用，没进 `reconcile` 的枚举——等于把它当成了硬约束，见下一个测试。
      */
     @Test
-    fun theThreeExportAxesConstrainEachOther() {
+    fun theFourExportAxesConstrainEachOther() {
         val tuning = projectRelative(
             "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
                 "FableSolTuningDialogFragment.kt"
         )
 
         assertTrue(tuning.contains("fun feasible("))
-        assertTrue(tuning.contains("enum class Axis { FORMAT, CODEC, RATE }"))
+        assertTrue(tuning.contains("enum class Axis { FORMAT, CODEC, RATE, MODE }"))
         // 格式与编码器的可选性都要带上当前帧率。
         assertTrue(tuning.contains("formatEnabled(choice, codec, rate)"))
         assertTrue(tuning.contains("codecEnabled(choice, formatPreference, rate)"))
         assertTrue(tuning.contains("rateOrder.map { feasible(formatPreference, codec, it) }"))
-        // 帧率行也要接进同一套联动，而不是各写各的。
+        assertTrue(
+            tuning.contains("modeOrder.map { feasible(formatPreference, codec, rate, it) }")
+        )
+        // 帧率行与编码模式行都要接进同一套联动，而不是各写各的。
         assertTrue(tuning.contains("reconcile(Axis.RATE)"))
+        assertTrue(tuning.contains("reconcile(Axis.MODE)"))
+        // 求解读的是界面下标，不是偏好——只写偏好会让这条轴的显示与求解分家。
+        assertTrue(tuning.contains("rateControl: FableSolExportRateControl = modeOrder[modeIndex]"))
+        assertTrue(tuning.contains("val rateControl = modeOrder[modeIndex]"))
+    }
+
+    /**
+     * 冲突时的让步顺序：编码模式 → 编码器族 → 输出格式 → 帧率。
+     *
+     * 此前编码模式压根不在 `reconcile` 的枚举里，`feasible` 拿它当固定前提，于是"120 fps 上
+     * 没有恒定质量通路"表现为**恢复默认后掉到 60 fps 的恒定质量**：拿一项真实的规格损失换了
+     * 一项本可无损替代的偏好——恒定质量编不出来时，把目标码率调高同样能提升画质
+     * （用户 2026-07-30 指出）。同时帧率的保护权重此前低于格式，与 D179"帧率固定，再保持
+     * 格式与位深，最后换编码器族"相反，而 D179 要求设置页与运行时建议共用同一份顺序。
+     *
+     * 判据落在权重的**相对大小**上：它就是让步顺序本身。
+     */
+    @Test
+    fun conflictsGiveUpTheEncodingModeBeforeTheFrameRate() {
+        val tuning = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+
+        val cost = tuning.substringAfter(".minByOrNull { (format, codec, rate, mode) ->")
+            .substringBefore("}")
+        val weights = Regex("""!= (\w+)Index\) cost \+= (\d+)""")
+            .findAll(cost)
+            .associate { it.groupValues[1] to it.groupValues[2].toInt() }
+        assertEquals(setOf("rate", "format", "codec", "mode"), weights.keys)
+        // 帧率最难被改动，编码模式最先让步。
+        assertTrue(weights.getValue("rate") > weights.getValue("format"))
+        assertTrue(weights.getValue("format") > weights.getValue("codec"))
+        assertTrue(weights.getValue("codec") > weights.getValue("mode"))
+        // 四条轴都要真的进枚举，否则再怎么排权重也轮不到它让步。
+        assertTrue(tuning.contains("if (changed == Axis.MODE && mode != modeIndex) continue"))
+        assertTrue(tuning.contains("rateControlChips?.select?.invoke(bestMode)"))
+        assertTrue(tuning.contains("applyMode(bestMode, fromUser = true)"))
+    }
+
+    /**
+     * 选项不存在时，它那行说明必须跟着收起。
+     *
+     * 复杂帧质量保护只作用于目标码率（D151），恒定质量下那一行是 GONE 的；D174 定的"说明常显"
+     * 只针对开关的开／关，不针对选项在不在。此前这段说明无条件写入，于是恒定质量下界面上留着
+     * 一段没有归属的文字（用户 2026-07-30 指出）。
+     *
+     * 判据不搜"有没有出现过这个字符串"——它在解释性注释里也会出现；而是要求它出现在一个以
+     * `prefersConstantQuality` 为条件的分支里。
+     */
+    @Test
+    fun anOptionNoteDisappearsWithItsOwnRow() {
+        val tuning = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
+
+        val note = tuning.substringAfter("qpGuardNote.setNote(").substringBefore("complexityNote")
+        assertTrue(note.contains("if (current.prefersConstantQuality)"))
+        assertTrue(note.contains("R.string.fablesol_export_desc_qp_guard"))
+        // 行的显隐与说明的显隐必须同源，否则两处判据迟早分家。
+        assertTrue(tuning.contains("qpGuardRow.visibility = if (constant) View.GONE else View.VISIBLE"))
+        // 其余只在特定色彩模式下出现的行，说明早就是按条件写空串收起的。
+        for (conditional in listOf("mappingNote", "bitDepthNote", "signalRangeNote")) {
+            val block = tuning.substringAfter("$conditional.setNote(").substringBefore("\n            )")
+            assertTrue(conditional, block.contains("\"\""))
+        }
     }
 
     /**
@@ -468,19 +582,27 @@ class FableSolExportPipelineSourceTest {
     }
 
     /**
-     * 恒定质量与编码器是绑在一起的：支持 CQ 却编不了本次画布的编码器不能代表本机能力。
+     * 恒定质量区间属于当前完整规格实际通过的编码器，不能使用设备上另一条路径的代表值。
      *
      * 三星 Z Fold4 上支持 CQ 的只有 `c2.qti.hevc.encoder.cq`，尺寸上限 512×512，本项目画布
-     * 根本轮不到它。此前不查尺寸，设置里摆着恒定质量档，导出时静默换成恒定码率
+     * 根本轮不到它。此前不查尺寸，设置里显示恒定质量档，导出时实际改用目标码率
      * （2026-07-28）。
      */
     @Test
-    fun constantQualityRangeComesFromAnEncoderThatCanTakeThisCanvas() {
+    fun constantQualityRangeComesFromTheExactProbedCombination() {
         val options = projectFile("FableSolExportOptions.kt")
+        val encoder = projectFile("FableSolExportEncoder.kt")
+        val matrix = projectFile("FableSolExportCapabilityMatrix.kt")
+        val tuning = projectRelative(
+            "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
+                "FableSolTuningDialogFragment.kt"
+        )
 
-        assertTrue(options.contains("fun settingsQualityRange(context: Context)"))
-        assertTrue(options.contains("areSizeAndRateSupported("))
-        assertTrue(options.contains("FableSolExportTier.alignForEncoder("))
+        assertFalse(options.contains("settingsQualityRange"))
+        assertTrue(encoder.contains("qualityRange == null"))
+        assertTrue(matrix.contains("val qualityLower: Int?"))
+        assertTrue(matrix.contains("val qualityUpper: Int?"))
+        assertTrue(tuning.contains("mResolvedExportQualityRange = resolved?.outcome?.qualityRange"))
     }
 
     /**
@@ -498,9 +620,17 @@ class FableSolExportPipelineSourceTest {
         )
     }
 
+    /**
+     * **母版亮度意图与导出设备无关**（D82/D83）。
+     *
+     * 曾经默认漫反射白由面板峰值、最大帧平均亮度与 HDR 强度共同推出（D45），于是同一份创作
+     * 参数在两台设备上会得到不同的 PQ 像素与不同的静态元数据。现在默认固定为 BT.2408 的
+     * 名义 HDR 参考白 203 尼特，本机显示能力只作诊断与观看参考。
+     */
     @Test
-    fun automaticDiffuseWhiteUsesDisplayLimitsAndTracksHdrStrengthInSettings() {
+    fun diffuseWhiteIsDeviceIndependentAndOnlyReportsDisplayCapabilityAsReference() {
         val luminance = projectFile("FableSolExportDisplayLuminance.kt")
+        val options = projectFile("FableSolExportOptions.kt")
         val tuning = projectFile("FableSolTuning.kt")
         val dialog = projectRelative(
             "app/src/main/java/com/ywwynm/everythingdone/fragments/" +
@@ -510,22 +640,22 @@ class FableSolExportPipelineSourceTest {
             "app/src/main/res/values-zh-rCN/strings.xml"
         )
 
+        // 设备能力仍然读，但只作参考；按设备反推白锚的那套公式必须消失。
         assertTrue(luminance.contains("desiredMaxLuminance"))
         assertTrue(luminance.contains("desiredMaxAverageLuminance"))
-        assertTrue(luminance.contains("it * CONTENT_PEAK_ALLOWANCE / strength"))
-        assertTrue(luminance.contains("AUTO_WHITE_MAX_NITS"))
-        // 手动拖过后必须退出自动档；恢复默认会清除此键，再重新按设备能力计算。
-        assertTrue(tuning.contains("!prefs(context).contains(KEY_EXPORT_PQ_WHITE)"))
+        assertFalse(luminance.contains("CONTENT_PEAK_ALLOWANCE"))
+        assertFalse(luminance.contains("AUTO_WHITE_MAX_NITS"))
+        assertTrue(options.contains("const val DEFAULT_PQ_WHITE_NITS = 203f"))
+        // 存过这个键就是自定义；恢复默认清除它，回到标准值。
+        assertTrue(tuning.contains("prefs(context).contains(KEY_EXPORT_PQ_WHITE)"))
         assertTrue(tuning.contains(".remove(KEY_EXPORT_PQ_WHITE)"))
-        // 强度滑杆拖动期间，自动白锚和下方推导公式都要即时刷新。
+        // 强度滑杆拖动期间只重算峰值那一行，不再改写白锚。
         assertTrue(dialog.contains("mRefreshExportDerivedInfo?.invoke(strength)"))
-        assertTrue(dialog.contains("FableSolTuning.isExportPqWhiteAutomatic(ctx)"))
-        assertTrue(dialog.contains("R.string.fablesol_export_estimate_white_auto_formula"))
-        assertTrue(dialog.contains("recommendation.panelPeakNits"))
-        assertTrue(dialog.contains("recommendation.panelMaxAverageNits"))
-        assertTrue(dialog.contains("constraintFormula(recommendation)"))
-        assertTrue(chineseStrings.contains("显示设备 HDR 亮度能力"))
+        assertTrue(dialog.contains("FableSolTuning.exportPqWhiteMode(ctx)"))
+        assertTrue(dialog.contains("R.string.fablesol_export_estimate_white_standard"))
+        assertTrue(dialog.contains("R.string.fablesol_export_estimate_white_custom"))
         assertTrue(chineseStrings.contains("未声明（不参与计算）"))
+        assertFalse(chineseStrings.contains("自动漫反射白推导"))
         assertFalse(chineseStrings.contains("min（"))
     }
 
@@ -565,7 +695,8 @@ class FableSolExportPipelineSourceTest {
         assertTrue(format.contains("fun localizeStableLabels("))
         assertTrue(dialog.contains("format.displayName(ctx)"))
         assertTrue(exporter.contains("tier.displayLabel(context)"))
-        assertTrue(exporter.contains("tier.hdrFormat?.displayName(context)"))
+        // 完成态的格式名来自**已解析候选**，不再由各处各自推一遍。
+        assertTrue(exporter.contains("resolved.formatLabel(context)"))
         assertTrue(chineseStrings.contains(
             """name="fablesol_export_hdr_format_name_dolby_vision_84">杜比视界 8.4"""
         ))
@@ -675,6 +806,28 @@ class FableSolExportPipelineSourceTest {
         assertTrue(player.contains("completedNaturally"))
         assertTrue(player.contains("initialSeekUs = positionMs * 1000L"))
         assertTrue(player.contains("sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)"))
+    }
+
+    /** HDR10+ VOD 按场景生成元数据，正式编码循环不得再逐帧重算统计或曲线（D177）。 */
+    @Test
+    fun hdr10PlusRepeatsOneScenePayloadAcrossTheWholeAnimation() {
+        val exporter = projectFile("FableSolVideoExporter.kt")
+        val payloadBuild = exporter.indexOf(
+            "hdr10PlusPayload = FableSolExportHdr10PlusMetadata.payload("
+        )
+        val encodingLoop = exporter.indexOf("while (frameIndex < totalFrames)")
+        assertTrue(payloadBuild >= 0)
+        assertTrue(payloadBuild < encodingLoop)
+        assertTrue(exporter.contains("FableSolExportHdr10PlusSceneAccumulator("))
+        assertTrue(exporter.contains("shapeForScene(stats)"))
+        assertTrue(exporter.contains("collectStats = false"))
+
+        val loopEnd = exporter.indexOf("// 输出格式验证", encodingLoop)
+        assertTrue(loopEnd > encodingLoop)
+        val loopBody = exporter.substring(encodingLoop, loopEnd)
+        assertTrue(loopBody.contains("checkNotNull(hdr10PlusPayload)"))
+        assertFalse(loopBody.contains("activeBridge.stats()"))
+        assertFalse(loopBody.contains("FableSolExportHdr10PlusMetadata.payload("))
     }
 
     private fun projectFile(name: String): String {

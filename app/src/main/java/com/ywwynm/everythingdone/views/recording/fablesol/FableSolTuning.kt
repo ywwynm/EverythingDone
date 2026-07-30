@@ -160,16 +160,41 @@ object FableSolTuning {
     private const val KEY_SHOW_PERF_HUD = "show_perf_hud"
     private const val KEY_LIVE_TILT = "live_tilt"
     private const val KEY_EXPORT_FRAME_RATE = "export_frame_rate"
-    private const val KEY_EXPORT_PREFER_CQ = "export_prefer_cq"
-    private const val KEY_EXPORT_QUALITY = "export_quality"
     private const val KEY_EXPORT_BITRATE = "export_bitrate"
     private const val KEY_EXPORT_KEYFRAME = "export_keyframe"
-    private const val KEY_EXPORT_HDR = "export_hdr"
-    private const val KEY_EXPORT_HDR_FORMAT = "export_hdr_format"
-    private const val KEY_EXPORT_CODEC = "export_codec"
     private const val KEY_EXPORT_PQ_WHITE = "export_pq_white"
     private const val KEY_EXPORT_HIGHLIGHT_START = "export_highlight_start"
     private const val KEY_EXPORT_TILT = "export_tilt"
+
+    // ---- 导出请求模型（fablesol-video-export 批次 1）：一律按稳定字符串持久化 ----
+    private const val KEY_EXPORT_COLOR_MODE = "export_color_mode"
+    private const val KEY_EXPORT_SDR_MAPPING = "export_sdr_mapping"
+    private const val KEY_EXPORT_SDR_BIT_DEPTH = "export_sdr_bit_depth"
+    private const val KEY_EXPORT_HLG_RANGE = "export_hlg_range"
+    private const val KEY_EXPORT_RATE_CONTROL = "export_rate_control"
+    private const val KEY_EXPORT_CODEC_FAMILY = "export_codec_family"
+    private const val KEY_EXPORT_REFERENCE_PEAK = "export_reference_peak"
+    private const val KEY_EXPORT_B_FRAMES = "export_b_frames"
+    private const val KEY_EXPORT_HIGH_COMPLEXITY = "export_high_complexity"
+    private const val KEY_EXPORT_QP_GUARD = "export_qp_guard"
+    /** 尚未归属到候选签名的旧版全局 CQ 原值；见 [bindLegacyQualityValue]。 */
+    private const val KEY_EXPORT_QUALITY_PENDING = "export_quality_pending"
+    /** 逐候选签名的 CQ 原值前缀（D146）。 */
+    private const val KEY_EXPORT_QUALITY_PREFIX = "export_quality@"
+    private const val KEY_EXPORT_PREFS_VERSION = "export_prefs_version"
+
+    // ---- 旧版键，仅作迁移来源；迁移完成后删除 ----
+    private const val LEGACY_KEY_EXPORT_PREFER_CQ = "export_prefer_cq"
+    private const val LEGACY_KEY_EXPORT_QUALITY = "export_quality"
+    private const val LEGACY_KEY_EXPORT_HDR = "export_hdr"
+    private const val LEGACY_KEY_EXPORT_HDR_FORMAT = "export_hdr_format"
+    private const val LEGACY_KEY_EXPORT_CODEC = "export_codec"
+
+    /** 当前导出偏好的存储版本；每次结构性变更加一并补一段迁移。 */
+    private const val EXPORT_PREFS_VERSION = 1
+
+    @Volatile
+    private var exportPreferencesMigrated = false
 
     /** 视为"等于默认值"的容差；差值小于它时删除存储而不是写入。 */
     private const val DEFAULT_EPSILON = 1e-6
@@ -321,26 +346,234 @@ object FableSolTuning {
     //
     // 它们不走 param_ 键空间，也不推给 GL 线程——导出时才读一次。但参与「恢复默认」。
 
-    fun exportFrameRateCap(context: Context): Int =
+    /**
+     * 把旧版导出偏好迁移到类型化请求模型（批次 1）。
+     *
+     * 幂等、只在进程内执行一次判定，并且**只迁移用户真的存过的键**：旧版缺省值与新默认值
+     * 一一对应（关闭 HDR 之外都落在默认上），凭空写入反而会让「恢复默认」失去意义。
+     *
+     * 迁移不做任何同步能力探测。旧版全局 CQ 原值只搬进"待归属"槽位，第一次真正解析出候选
+     * 时才归属给那一个签名（延迟绑定，见 [bindLegacyQualityValue]）——冷启动时能力矩阵可能
+     * 尚未就绪，在迁移路径上探测会把一次设置页打开变成一串编码。
+     */
+    private fun ensureExportMigration(context: Context) {
+        if (exportPreferencesMigrated) return
+        synchronized(this) {
+            if (exportPreferencesMigrated) return
+            val sp = prefs(context)
+            if (sp.getInt(KEY_EXPORT_PREFS_VERSION, 0) >= EXPORT_PREFS_VERSION) {
+                exportPreferencesMigrated = true
+                return
+            }
+            val editor = sp.edit()
+            if (sp.contains(LEGACY_KEY_EXPORT_HDR) || sp.contains(LEGACY_KEY_EXPORT_HDR_FORMAT)) {
+                val migrated = FableSolExportColorMode.migrateFromLegacy(
+                    hdrEnabled = sp.getBoolean(LEGACY_KEY_EXPORT_HDR, true),
+                    legacyFormatOrdinal = sp.getInt(LEGACY_KEY_EXPORT_HDR_FORMAT, 0)
+                )
+                editor.putString(KEY_EXPORT_COLOR_MODE, migrated.stableId)
+            }
+            if (sp.contains(LEGACY_KEY_EXPORT_PREFER_CQ)) {
+                // 旧「恒定码率」保留的是"控制文件体积和平均码率"这个意图，迁移为 VBR；
+                // 目标 Mbps 存在另一个键上，不受影响（D145）。
+                val rateControl = if (sp.getBoolean(LEGACY_KEY_EXPORT_PREFER_CQ, true)) {
+                    FableSolExportRateControl.CONSTANT_QUALITY
+                } else {
+                    FableSolExportRateControl.TARGET_BITRATE
+                }
+                editor.putString(KEY_EXPORT_RATE_CONTROL, rateControl.stableId)
+            }
+            if (sp.contains(LEGACY_KEY_EXPORT_CODEC)) {
+                editor.putString(
+                    KEY_EXPORT_CODEC_FAMILY,
+                    FableSolExportOptions.CodecPreference
+                        .fromLegacyOrdinal(sp.getInt(LEGACY_KEY_EXPORT_CODEC, 0)).stableId
+                )
+            }
+            if (sp.contains(LEGACY_KEY_EXPORT_QUALITY)) {
+                val legacy = sp.getInt(
+                    LEGACY_KEY_EXPORT_QUALITY, FableSolExportOptions.UNSET_QUALITY
+                )
+                if (legacy != FableSolExportOptions.UNSET_QUALITY) {
+                    editor.putInt(KEY_EXPORT_QUALITY_PENDING, legacy)
+                }
+            }
+            editor.remove(LEGACY_KEY_EXPORT_HDR)
+                .remove(LEGACY_KEY_EXPORT_HDR_FORMAT)
+                .remove(LEGACY_KEY_EXPORT_CODEC)
+                .remove(LEGACY_KEY_EXPORT_PREFER_CQ)
+                .remove(LEGACY_KEY_EXPORT_QUALITY)
+                .putInt(KEY_EXPORT_PREFS_VERSION, EXPORT_PREFS_VERSION)
+                .apply()
+            exportPreferencesMigrated = true
+        }
+    }
+
+    fun exportFrameRate(context: Context): Int =
         prefs(context).getInt(KEY_EXPORT_FRAME_RATE, FableSolExportOptions.FRAME_RATE_HIGH)
 
-    fun setExportFrameRateCap(context: Context, value: Int) {
+    fun setExportFrameRate(context: Context, value: Int) {
         prefs(context).edit().putInt(KEY_EXPORT_FRAME_RATE, value).apply()
     }
 
-    fun exportConstantQuality(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_EXPORT_PREFER_CQ, true)
-
-    fun setExportConstantQuality(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean(KEY_EXPORT_PREFER_CQ, value).apply()
+    /** 导出色彩模式（D62）：两种 SDR、HDR 自动或具体 HDR 格式。 */
+    internal fun exportColorMode(context: Context): FableSolExportColorMode {
+        ensureExportMigration(context)
+        return FableSolExportColorMode.fromStableId(
+            prefs(context).getString(KEY_EXPORT_COLOR_MODE, null)
+        )
     }
 
-    /** CQ 档位原值；[FableSolExportOptions.UNSET_QUALITY] 表示未设置，由区间的 80% 处兜底。 */
-    fun exportQualityValue(context: Context): Int =
-        prefs(context).getInt(KEY_EXPORT_QUALITY, FableSolExportOptions.UNSET_QUALITY)
+    internal fun setExportColorMode(context: Context, value: FableSolExportColorMode) {
+        ensureExportMigration(context)
+        prefs(context).edit().putString(KEY_EXPORT_COLOR_MODE, value.stableId).apply()
+    }
 
-    fun setExportQualityValue(context: Context, value: Int) {
-        prefs(context).edit().putInt(KEY_EXPORT_QUALITY, value).apply()
+    internal fun exportSdrMapping(context: Context): FableSolExportSdrMapping =
+        FableSolExportSdrMapping.fromStableId(
+            prefs(context).getString(KEY_EXPORT_SDR_MAPPING, null)
+        )
+
+    internal fun setExportSdrMapping(context: Context, value: FableSolExportSdrMapping) {
+        prefs(context).edit().putString(KEY_EXPORT_SDR_MAPPING, value.stableId).apply()
+    }
+
+    internal fun exportSdrBitDepth(context: Context): FableSolExportSdrBitDepth =
+        FableSolExportSdrBitDepth.fromStableId(
+            prefs(context).getString(KEY_EXPORT_SDR_BIT_DEPTH, null)
+        )
+
+    internal fun setExportSdrBitDepth(context: Context, value: FableSolExportSdrBitDepth) {
+        prefs(context).edit().putString(KEY_EXPORT_SDR_BIT_DEPTH, value.stableId).apply()
+    }
+
+    internal fun exportHlgSignalRange(context: Context): FableSolExportHlgSignalRange =
+        FableSolExportHlgSignalRange.fromStableId(
+            prefs(context).getString(KEY_EXPORT_HLG_RANGE, null)
+        )
+
+    internal fun setExportHlgSignalRange(
+        context: Context,
+        value: FableSolExportHlgSignalRange
+    ) {
+        prefs(context).edit().putString(KEY_EXPORT_HLG_RANGE, value.stableId).apply()
+    }
+
+    internal fun exportRateControl(context: Context): FableSolExportRateControl {
+        ensureExportMigration(context)
+        return FableSolExportRateControl.fromStableId(
+            prefs(context).getString(KEY_EXPORT_RATE_CONTROL, null)
+        )
+    }
+
+    internal fun setExportRateControl(context: Context, value: FableSolExportRateControl) {
+        ensureExportMigration(context)
+        prefs(context).edit().putString(KEY_EXPORT_RATE_CONTROL, value.stableId).apply()
+    }
+
+    /**
+     * 逐候选签名的 CQ 原值（D146）。
+     *
+     * 不跨编码器、MIME/Profile 或实质不同的输入路径套用：Android 的 `KEY_QUALITY` 是各厂商
+     * 自行映射的一段区间，同一个数字在两个编码器上不表示同一件事。
+     */
+    internal fun exportQualityValues(context: Context): Map<String, Int> {
+        ensureExportMigration(context)
+        val result = HashMap<String, Int>(4)
+        for ((key, value) in prefs(context).all) {
+            if (!key.startsWith(KEY_EXPORT_QUALITY_PREFIX)) continue
+            (value as? Int)?.let { result[key.removePrefix(KEY_EXPORT_QUALITY_PREFIX)] = it }
+        }
+        return result
+    }
+
+    /** 尚未归属到任何候选签名的旧版全局 CQ 原值；没有则为 null。 */
+    internal fun pendingLegacyQualityValue(context: Context): Int? {
+        ensureExportMigration(context)
+        val sp = prefs(context)
+        if (!sp.contains(KEY_EXPORT_QUALITY_PENDING)) return null
+        return sp.getInt(KEY_EXPORT_QUALITY_PENDING, FableSolExportOptions.UNSET_QUALITY)
+            .takeIf { it != FableSolExportOptions.UNSET_QUALITY }
+    }
+
+    internal fun exportQualityValue(context: Context, signature: String): Int {
+        ensureExportMigration(context)
+        val sp = prefs(context)
+        val key = KEY_EXPORT_QUALITY_PREFIX + signature
+        if (sp.contains(key)) {
+            return sp.getInt(key, FableSolExportOptions.UNSET_QUALITY)
+        }
+        return pendingLegacyQualityValue(context) ?: FableSolExportOptions.UNSET_QUALITY
+    }
+
+    /**
+     * @param signature null 表示尚未解析出候选（设置页刚打开、探测还没回来）。此时把值放进
+     *   "待归属"槽位，第一次真正解析出候选时再绑定，不会误落到某个不相干的编码器路径上。
+     */
+    internal fun setExportQualityValue(context: Context, signature: String?, value: Int) {
+        ensureExportMigration(context)
+        val editor = prefs(context).edit()
+        if (signature == null) {
+            editor.putInt(KEY_EXPORT_QUALITY_PENDING, value)
+        } else {
+            editor.putInt(KEY_EXPORT_QUALITY_PREFIX + signature, value)
+                // 用户已经为这条路径明确定了值，待归属的旧值不再有归属对象。
+                .remove(KEY_EXPORT_QUALITY_PENDING)
+        }
+        editor.apply()
+    }
+
+    /**
+     * 把待归属的旧版 CQ 原值一次性绑定到实际解析出的候选签名（延迟绑定）。
+     *
+     * 只归属一次，不扩散到其它编码器或输入路径；已经绑定过就什么也不做。
+     */
+    internal fun bindLegacyQualityValue(context: Context, signature: String) {
+        val pending = pendingLegacyQualityValue(context) ?: return
+        prefs(context).edit()
+            .putInt(KEY_EXPORT_QUALITY_PREFIX + signature, pending)
+            .remove(KEY_EXPORT_QUALITY_PENDING)
+            .apply()
+    }
+
+    internal fun exportBFramesEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_B_FRAMES, false)
+
+    internal fun setExportBFramesEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_B_FRAMES, value).apply()
+    }
+
+    internal fun exportHighComplexityEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_HIGH_COMPLEXITY, true)
+
+    internal fun setExportHighComplexityEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_HIGH_COMPLEXITY, value).apply()
+    }
+
+    internal fun exportComplexFrameGuardEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_EXPORT_QP_GUARD, true)
+
+    internal fun setExportComplexFrameGuardEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_QP_GUARD, value).apply()
+    }
+
+    /** HDR10+ 参考显示峰值（D94）；标准 1000 尼特。 */
+    internal fun exportReferenceDisplayPeakNits(context: Context): Float =
+        prefs(context).getFloat(
+            KEY_EXPORT_REFERENCE_PEAK, FableSolExportOptions.DEFAULT_REFERENCE_PEAK_NITS
+        ).coerceIn(
+            FableSolExportOptions.MIN_REFERENCE_PEAK_NITS,
+            FableSolExportOptions.MAX_REFERENCE_PEAK_NITS
+        )
+
+    internal fun setExportReferenceDisplayPeakNits(context: Context, value: Float) {
+        prefs(context).edit().putFloat(
+            KEY_EXPORT_REFERENCE_PEAK,
+            value.coerceIn(
+                FableSolExportOptions.MIN_REFERENCE_PEAK_NITS,
+                FableSolExportOptions.MAX_REFERENCE_PEAK_NITS
+            )
+        ).apply()
     }
 
     /**
@@ -356,78 +589,44 @@ object FableSolTuning {
         prefs(context).edit().putBoolean(KEY_EXPORT_TILT, value).apply()
     }
 
-    /**
-     * 是否导出 HDR 视频。**只记录用户自己的选择。**
-     *
-     * 曾经它也承担"这台设备编不出 HDR"这个能力结论：设置页发现一种格式都编不出来时会把它
-     * 写成 false。代价是这个写入不可逆——`false` 之后即便探测重新通过，界面仍以偏好为准
-     * 落在「关闭」上，于是又写一次 false。三星 Z Fold4 上实际发生过：设备明明能编 HDR10 和
-     * HLG，默认却停在关闭（2026-07-27）。能力是能力，偏好是偏好，能力驱动的收敛只允许影响
-     * 当次显示，不得回写这个键。
-     */
-    fun exportHdrEnabled(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_EXPORT_HDR, true)
-
-    fun setExportHdrEnabled(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean(KEY_EXPORT_HDR, value).apply()
-    }
-
-    internal fun exportCodec(context: Context): FableSolExportOptions.CodecPreference =
-        FableSolExportOptions.CodecPreference.fromStored(
-            prefs(context).getInt(KEY_EXPORT_CODEC, 0)
+    internal fun exportCodec(context: Context): FableSolExportOptions.CodecPreference {
+        ensureExportMigration(context)
+        return FableSolExportOptions.CodecPreference.fromStableId(
+            prefs(context).getString(KEY_EXPORT_CODEC_FAMILY, null)
         )
+    }
 
     internal fun setExportCodec(
         context: Context,
         value: FableSolExportOptions.CodecPreference
     ) {
-        prefs(context).edit().putInt(KEY_EXPORT_CODEC, value.ordinal).apply()
-    }
-
-    internal fun exportHdrFormat(context: Context): FableSolExportOptions.HdrFormatPreference =
-        FableSolExportOptions.HdrFormatPreference.fromStored(
-            prefs(context).getInt(KEY_EXPORT_HDR_FORMAT, 0)
-        )
-
-    internal fun setExportHdrFormat(
-        context: Context,
-        value: FableSolExportOptions.HdrFormatPreference
-    ) {
-        prefs(context).edit().putInt(KEY_EXPORT_HDR_FORMAT, value.ordinal).apply()
+        ensureExportMigration(context)
+        prefs(context).edit().putString(KEY_EXPORT_CODEC_FAMILY, value.stableId).apply()
     }
 
     /**
-     * 用户没动过就用屏幕峰值、最大帧平均亮度与当前 HDR 强度共同推出来的值。
-     * 一旦拖过滑杆就以用户的为准，「恢复默认」会把它清回自动。
+     * PQ 漫反射白（尼特）。
+     *
+     * 用户没动过就是与导出设备**无关**的标准值 203 尼特（ITU-R BT.2408 名义 HDR Reference
+     * White，D82/D83）。曾经这里返回由屏幕峰值、最大帧平均亮度与 HDR 强度共同推出的自动值，
+     * 那等于让"负责导出的是哪台设备"隐式改写内容的母版意图；本机显示能力现在只作诊断、
+     * 观看参考，或用户主动采用的一次性参考值。
      */
     fun exportPqWhiteNits(context: Context): Float =
-        exportPqWhiteNits(context, hdrStrength(context))
-
-    /**
-     * 设置 Dialog 拖动 HDR 强度但尚未松手时，需要按屏上这一刻的强度预览自动白锚；
-     * 正式导出仍走无第二参数的入口，读取已经持久化的最终强度。
-     */
-    internal fun exportPqWhiteNits(context: Context, strength: Float): Float {
-        val stored = prefs(context)
-        if (!stored.contains(KEY_EXPORT_PQ_WHITE)) {
-            return exportPqWhiteRecommendation(context, strength).whiteNits
-        }
-        return stored.getFloat(
+        prefs(context).getFloat(
             KEY_EXPORT_PQ_WHITE, FableSolExportOptions.DEFAULT_PQ_WHITE_NITS
         ).coerceIn(
             FableSolExportOptions.MIN_PQ_WHITE_NITS,
             FableSolExportOptions.MAX_PQ_WHITE_NITS
         )
-    }
 
-    internal fun exportPqWhiteRecommendation(
-        context: Context,
-        strength: Float = hdrStrength(context)
-    ): FableSolExportDisplayLuminance.Recommendation =
-        FableSolExportDisplayLuminance.autoWhiteRecommendation(context, strength)
-
-    internal fun isExportPqWhiteAutomatic(context: Context): Boolean =
-        !prefs(context).contains(KEY_EXPORT_PQ_WHITE)
+    /** `标准（203 尼特）`还是`自定义（N 尼特）`（D84）：存过这个键即自定义。 */
+    internal fun exportPqWhiteMode(context: Context): FableSolExportPqWhiteMode =
+        if (prefs(context).contains(KEY_EXPORT_PQ_WHITE)) {
+            FableSolExportPqWhiteMode.CUSTOM
+        } else {
+            FableSolExportPqWhiteMode.STANDARD
+        }
 
     fun setExportPqWhiteNits(context: Context, value: Float) {
         prefs(context).edit().putFloat(
@@ -452,13 +651,22 @@ object FableSolTuning {
         prefs(context).edit().putInt(KEY_EXPORT_HIGHLIGHT_START, value).apply()
     }
 
-    fun exportBitrateMbps(context: Context): Float =
-        prefs(context).getFloat(
+    /**
+     * 用户设定的目标码率；**null 表示自动态**（D147）。
+     *
+     * 自动态就是"没有保存过这个键"。这样现有的"恢复默认"（删键）天然把滑杆送回自动值，
+     * 不必为自动/自定义新增按钮、开关或标签组——那正是 D147 明令不要的东西。
+     */
+    fun exportBitrateMbps(context: Context): Float? {
+        val store = prefs(context)
+        if (!store.contains(KEY_EXPORT_BITRATE)) return null
+        return store.getFloat(
             KEY_EXPORT_BITRATE, FableSolExportOptions.DEFAULT_BITRATE_MBPS
         ).coerceIn(
             FableSolExportOptions.MIN_BITRATE_MBPS,
             FableSolExportOptions.MAX_BITRATE_MBPS
         )
+    }
 
     fun setExportBitrateMbps(context: Context, value: Float) {
         prefs(context).edit().putFloat(KEY_EXPORT_BITRATE, value).apply()
@@ -476,20 +684,36 @@ object FableSolTuning {
         prefs(context).edit().putFloat(KEY_EXPORT_KEYFRAME, value).apply()
     }
 
-    /** 「恢复默认」一并清掉导出参数。 */
+    /**
+     * 「恢复默认」一并清掉导出参数。
+     *
+     * 逐候选签名的 CQ 原值也要全部清掉：它们的键带签名后缀，漏掉的话恢复默认之后再解析到
+     * 同一个编码器路径，仍会读出上一次的手动值。存储版本号保留，避免恢复默认之后又把旧版
+     * 迁移跑一遍。
+     */
     fun clearExportOptions(context: Context) {
-        prefs(context).edit()
+        val sp = prefs(context)
+        val editor = sp.edit()
             .remove(KEY_EXPORT_FRAME_RATE)
-            .remove(KEY_EXPORT_PREFER_CQ)
-            .remove(KEY_EXPORT_QUALITY)
             .remove(KEY_EXPORT_BITRATE)
             .remove(KEY_EXPORT_KEYFRAME)
-            .remove(KEY_EXPORT_HDR)
-            .remove(KEY_EXPORT_HDR_FORMAT)
-            .remove(KEY_EXPORT_CODEC)
             .remove(KEY_EXPORT_PQ_WHITE)
             .remove(KEY_EXPORT_HIGHLIGHT_START)
             .remove(KEY_EXPORT_TILT)
-            .apply()
+            .remove(KEY_EXPORT_COLOR_MODE)
+            .remove(KEY_EXPORT_SDR_MAPPING)
+            .remove(KEY_EXPORT_SDR_BIT_DEPTH)
+            .remove(KEY_EXPORT_HLG_RANGE)
+            .remove(KEY_EXPORT_RATE_CONTROL)
+            .remove(KEY_EXPORT_CODEC_FAMILY)
+            .remove(KEY_EXPORT_REFERENCE_PEAK)
+            .remove(KEY_EXPORT_B_FRAMES)
+            .remove(KEY_EXPORT_HIGH_COMPLEXITY)
+            .remove(KEY_EXPORT_QP_GUARD)
+            .remove(KEY_EXPORT_QUALITY_PENDING)
+        for (key in sp.all.keys) {
+            if (key.startsWith(KEY_EXPORT_QUALITY_PREFIX)) editor.remove(key)
+        }
+        editor.apply()
     }
 }

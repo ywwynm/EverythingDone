@@ -31,12 +31,38 @@ internal class FableSolExportEncoder(
     /** PQ 静态元数据用的峰值亮度（尼特）；非 PQ 档位忽略。 */
     private val peakNits: Double = FableSolExportTransfer.SDR_WHITE_NITS,
     /**
-     * 漫反射白（尼特），用来给 MaxFALL 一个说得通的值。
+     * 漫反射白（尼特）。它是 PQ 绝对亮度的缩放锚点，把归一化统计换算成尼特要用。
      *
-     * 这个数现在用户可调（200–800），再把 MaxFALL 写死成 203 就与画面对不上了——水体与
-     * 卡片的大面积亮度本来就落在漫反射白这一档，帧平均亮度以它为准才是诚实的。
+     * 这个数用户可调（200～800），所以静态元数据里的每一个亮度字段都必须跟着它走。
      */
-    private val diffuseWhiteNits: Double = FableSolExportTransfer.SDR_WHITE_NITS
+    private val diffuseWhiteNits: Double = FableSolExportTransfer.SDR_WHITE_NITS,
+    /**
+     * 全片静态亮度统计（D85～D90）。
+     *
+     * 默认是 D90 的理论回退——`MaxCLL` 取理论峰值、`MaxFALL` 写未知。**不再把漫反射白当成
+     * MaxFALL**：漫反射白是缩放锚点，不保证是每帧平均 `maxRGB` 的上界，拿它顶替可能低报。
+     */
+    private val luminance: FableSolExportLuminanceStats =
+        FableSolExportLuminanceStats.theoretical(1.0),
+    /**
+     * 本次实际下发的码控形态（D145、D167）。
+     *
+     * 与"用户选了什么"是两回事：CQ 有纯 CQ 与 CQ+码率提示两种**同模式**形态，目标码率在
+     * 编码器不支持 VBR 时会落到 CBR。默认按当前档位能力解析，短探测在走 D167 阶梯时显式
+     * 指定——探测通过的是哪一种形态，正式导出就必须用哪一种。
+     */
+    private val form: FableSolExportRateControlForm =
+        FableSolExportRateControlForm.resolve(options, tier),
+    /**
+     * 是否下发 `KEY_COMPLEXITY = upper`（D149）。短探测的复杂度阶梯确认该编码器不接受
+     * 最高值时为假：省略该键、用厂商默认继续原格式，不判失败。
+     */
+    private val applyHighComplexity: Boolean = true,
+    /**
+     * 是否下发 `KEY_MAX_B_FRAMES = 1`（D148）。编码器初始化在申请 B 帧时失败过时为假：
+     * 以 0 个 B 帧完成原格式导出，不切换格式也不判失败。
+     */
+    private val applyBFrames: Boolean = true
 ) {
 
     // 必须在 init 的保护范围内逐个创建。若把两个实例写成抛异常的属性初始化器，第二个创建
@@ -71,20 +97,39 @@ internal class FableSolExportEncoder(
     /**
      * true 时走**字节缓冲输入**而不是 input surface。
      *
-     * 只有 HDR10+ 需要：它的动态元数据必须逐帧通过 `PARAMETER_KEY_HDR10_PLUS_INFO` 提供，
-     * 而该参数在 surface 输入模式下被系统明确禁止。代价是 RGB→YUV 不再由编码器代劳，
-     * 得由 [FableSolExportP010Bridge] 交出 P010。
+     * HDR10+ 必须如此：它的动态元数据只能逐帧通过 `PARAMETER_KEY_HDR10_PLUS_INFO` 提供，
+     * 而该参数在 surface 输入模式下被系统明确禁止。D158 之后所有 10-bit 档位都优先走这条路，
+     * 由 [FableSolExportP010Bridge] 交出 P010——色度位置、降采样相位、闭环修正与码值量化
+     * 握在应用手里，同一份画面在不同设备上才会得到同一种转换。
      */
-    private val byteBufferInput: Boolean = tier.hdrFormat?.usesByteBufferInput == true
+    private val byteBufferInput: Boolean = tier.usesAppP010
 
-    /** 字节缓冲模式下编码器要求的行距与平面高度；start() 之后才知道。 */
-    private var inputStride = widthPx * 2
-    private var inputSliceHeight = heightPx
+    /** 字节缓冲模式下编码器输入缓冲的实际排布；start() 之后才知道。 */
+    private var inputLayout = FableSolExportP010Layout.of(widthPx, heightPx)
+    private var inputLayoutRefined = false
     private var lastVideoPresentationTimeUs = 0L
 
-    /** 字节缓冲模式下，编出来的码流里是否真的带上了 HDR10+ 的动态元数据。 */
-    var hdr10PlusSeiSeen = false
+    /**
+     * 从实际码流读到的 4:2:0 色度位置（D154、D170）。
+     *
+     * 正式导出用不上它——相位必须在第一帧渲染之前定下来，而输出格式要到编码开始之后才到。
+     * 它的用途是**能力探测**：短探测把这一结论存进可行组合表，下一次正式导出据此选相位。
+     */
+    var videoChromaSiting: FableSolExportChromaSiting.Result? = null
         private set
+
+    /**
+     * 字节缓冲模式下，携带 ST 2094-40 SEI 的视频样本数（D91 第 4 条，2026-07-30 修订）。
+     *
+     * 逐样本计数而不是命中即停：输入侧每帧都注入，覆盖不完整意味着编码器丢了部分帧的
+     * SEI——发布门禁只要求"确实携带"（>0），覆盖率进诊断，部分覆盖另在完成信息如实说明，
+     * 不改报失败。
+     */
+    var hdr10PlusSeiSamples = 0L
+        private set
+
+    /** 字节缓冲模式下，编出来的码流里是否真的带上了 HDR10+ 的动态元数据。 */
+    val hdr10PlusSeiSeen: Boolean get() = hdr10PlusSeiSamples > 0L
 
     /**
      * 真正写进容器的视频样本数（不含 codec-config）。
@@ -113,6 +158,21 @@ internal class FableSolExportEncoder(
         }
     }
 
+    /**
+     * CQ 兼容形态要附带的码率提示（D167 第 2 条）。
+     *
+     * 取的是 D147 对**当前解析候选**的自动推导值，与 VBR 用的是同一个模型：它只是给那些
+     * configure 必须带码率键的编码器一个合理的数，不是把这一档改判成 VBR。
+     */
+    private fun hintBitrateBps(): Int = FableSolExportBitrateModel.autoBitrateBps(
+        widthPx = tier.encodedWidthPx,
+        heightPx = tier.encodedHeightPx,
+        frameRate = frameRate,
+        family = tier.family,
+        tenBit = !tier.eightBit,
+        hdr = tier.transfer.isHdr
+    )
+
     private fun configureCodecs() {
         val video = checkNotNull(videoCodec)
         val audio = checkNotNull(audioCodec)
@@ -139,39 +199,86 @@ internal class FableSolExportEncoder(
             if (tier.hdrFormat?.writesStaticMetadata == true) {
                 // PQ 系（HDR10 / HDR10+）要静态母版元数据，播放端才知道按多高的峰值还原。
                 // 杜比视界不写：它的基层是 HLG，元数据层由编码器自己生成。
-                setByteBuffer(
-                    MediaFormat.KEY_HDR_STATIC_INFO,
-                    FableSolExportTransfer.hdr10StaticInfo(peakNits, diffuseWhiteNits)
-                )
+                //
+                // **configure 阶段的注入必须始终保留**（D166）：`MediaMuxer` 把
+                // KEY_HDR_STATIC_INFO 落盘成容器级 mdcv/clli box 是较新 Android 才有的行为，
+                // 旧系统上实际承载的是编码器按这里的注入生成的码流 SEI。
+                setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO, staticInfo())
             }
             setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED)
+            // 离线文件生成，不要求编码器按播放帧率实时完成：声明为非实时、尽力而为，
+            // 好让最高复杂度在需要时慢慢编（D150）。**绝不设置 KEY_OPERATING_RATE**——
+            // 那是要求硬件在现实时间里达到某个吞吐，与这里的意图正好相反。
+            setInteger(MediaFormat.KEY_PRIORITY, PRIORITY_NON_REALTIME)
             // 码率必须夹到本编码器实际支持的区间：超界的值会让 configure() 直接抛。
-            val bitrate = tier.clampBitrate(options.bitrateBps(frameRate))
-            val quality = options.resolvedQuality(tier)
-            when {
-                quality != null && Build.VERSION.SDK_INT >= 28 -> {
+            val bitrate = tier.bitrateBps?.let { tier.clampBitrate(it) }
+            when (form) {
+                FableSolExportRateControlForm.CONSTANT_QUALITY,
+                FableSolExportRateControlForm.CONSTANT_QUALITY_WITH_BITRATE_HINT -> {
                     setInteger(
                         MediaFormat.KEY_BITRATE_MODE,
                         MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ
                     )
+                    val quality = checkNotNull(options.resolvedQuality(tier))
                     setInteger(MediaFormat.KEY_QUALITY, quality)
-                    // CQ 档位下仍给一个码率提示，部分厂商实现拿它当上界。
-                    setInteger(MediaFormat.KEY_BIT_RATE, bitrate)
+                    FableSolExportCqQualityGuard.maxQp(tier, quality)?.let { maxQp ->
+                        setInteger(MediaFormat.KEY_VIDEO_QP_MAX, maxQp)
+                    }
+                    // 默认**不**同时下发码率：Android 明确说同时设置质量与码率行为未定义
+                    // （D145）。个别 OMX 系编码器 configure 时必须带码率键，那条兼容形态由
+                    // 短探测按 D167 的同模式阶梯选出来，两处用的是同一个 form。
+                    if (form == FableSolExportRateControlForm.CONSTANT_QUALITY_WITH_BITRATE_HINT) {
+                        setInteger(
+                            MediaFormat.KEY_BIT_RATE,
+                            bitrate ?: tier.clampBitrate(hintBitrateBps())
+                        )
+                    }
                 }
-                // 面板上写的是「恒定码率」，那就真给 CBR；设备不支持才退到 VBR。
-                tier.supportsCbr -> {
+                // 离线文件导出没有固定瞬时带宽的要求：目标码率档一律 VBR，由编码器在复杂
+                // 水体、高光和高速运动帧上多分配码字。CBR 只在实际编码器不支持 VBR 时作为
+                // 内部后备，并须在完成信息里如实显示（D145）。
+                FableSolExportRateControlForm.CONSTANT_BITRATE -> {
                     setInteger(
                         MediaFormat.KEY_BITRATE_MODE,
                         MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
                     )
-                    setInteger(MediaFormat.KEY_BIT_RATE, bitrate)
+                    setInteger(MediaFormat.KEY_BIT_RATE, checkNotNull(bitrate))
                 }
-                else -> {
+                FableSolExportRateControlForm.VARIABLE_BITRATE -> {
                     setInteger(
                         MediaFormat.KEY_BITRATE_MODE,
                         MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
                     )
-                    setInteger(MediaFormat.KEY_BIT_RATE, bitrate)
+                    setInteger(MediaFormat.KEY_BIT_RATE, checkNotNull(bitrate))
+                    // 复杂帧质量保护只作用于 VBR（D151）：CQ 已经由质量值直接表达目标，
+                    // CBR 再加质量下限则会破坏它本身的固定码率约束。
+                    if (options.complexFrameGuardEnabled && tier.supportsQpBounds) {
+                        setInteger(MediaFormat.KEY_VIDEO_QP_MAX, QP_MAX_GUARD)
+                    }
+                }
+            }
+            // B 帧是**用户明确接受帧重排**的选项，默认关闭（D148）。API 29 起可以主动请求；
+            // `1` 是"任意两个 I/P 之间最多 1 个连续 B 帧"的上限，不是每个 GOP 只有一个。
+            // [applyBFrames] 为假表示该请求在本候选上被拒绝过，按 D148 以 0 个 B 帧继续
+            // 原格式导出。
+            if (Build.VERSION.SDK_INT >= 29 && tier.supportsBFrames) {
+                setInteger(
+                    MediaFormat.KEY_MAX_B_FRAMES,
+                    if (options.bFramesEnabled && applyBFrames) 1 else 0
+                )
+            } else if (Build.VERSION.SDK_INT < 29) {
+                // API 26～28 没有 KEY_MAX_B_FRAMES：按 D148 采用可用的低延迟约束——
+                // KEY_LATENCY = 1（延迟不超过 1 帧，蕴含无帧重排），阻止编码器自行产生
+                // B 帧后让 MediaMuxer 遇到乱序时间戳。这是标准可选键，编码器不支持时按
+                // 平台契约忽略，不会使 configure 失败。B 帧开关在这些版本按 D148 不适用。
+                setInteger(MediaFormat.KEY_LATENCY, 1)
+            }
+            // 高复杂度默认开启（D149）。关闭时**省略**这个键而不是下发下限：关闭表示"不额外
+            // 要求最高复杂度"，保留厂商默认，不是主动要求最低画质。[applyHighComplexity]
+            // 为假表示短探测按 D149 的阶梯确认该编码器不接受最高值，同样省略该键。
+            if (options.highComplexityEnabled && applyHighComplexity) {
+                tier.complexityRange?.let {
+                    setInteger(MediaFormat.KEY_COMPLEXITY, it.upper)
                 }
             }
         }
@@ -198,15 +305,18 @@ internal class FableSolExportEncoder(
         video.start()
         videoStarted = true
         if (byteBufferInput) {
-            // 行距与平面高度是编码器说了算的，start() 之后才在 inputFormat 里给出；
-            // 按宽高硬算会在需要对齐的实现上错位成花屏。
+            // 行距、平面高度与 crop 原点都是编码器说了算的，start() 之后才在 inputFormat 里
+            // 给出；按宽高硬算会在需要对齐的实现上错位成花屏。0 与缺失的处理见
+            // [FableSolExportP010Layout]。
             val input = video.inputFormat
-            // **0 要当成"没告诉我"，不能当成真值。** Android 明确允许厂商回报 0，而 0 会让
-            // 色度平面的起始偏移和入队长度一起变成 0——画面直接废掉，还不会报错。
-            inputStride = input.intOrNull(MediaFormat.KEY_STRIDE)
-                ?.takeIf { it > 0 } ?: (widthPx * 2)
-            inputSliceHeight = input.intOrNull(MediaFormat.KEY_SLICE_HEIGHT)
-                ?.takeIf { it > 0 } ?: heightPx
+            inputLayout = FableSolExportP010Layout.of(
+                widthPx = widthPx,
+                heightPx = heightPx,
+                reportedStride = input.intOrNull(MediaFormat.KEY_STRIDE),
+                reportedSliceHeight = input.intOrNull(MediaFormat.KEY_SLICE_HEIGHT),
+                cropLeft = input.intOrNull(CROP_LEFT_KEY) ?: 0,
+                cropTop = input.intOrNull(CROP_TOP_KEY) ?: 0
+            )
         }
         audio.start()
         audioStarted = true
@@ -221,7 +331,7 @@ internal class FableSolExportEncoder(
     fun queueVideoFrame(
         presentationTimeUs: Long,
         hdr10PlusInfo: ByteBuffer?,
-        fill: (ByteBuffer, Int, Int) -> Int
+        fill: (ByteBuffer, FableSolExportP010Layout) -> Int
     ) {
         val video = checkNotNull(videoCodec)
         check(byteBufferInput) { "queueVideoFrame requires byte-buffer input" }
@@ -239,10 +349,49 @@ internal class FableSolExportEncoder(
                 }
             )
         }
+        refineLayout(video, index)
         val buffer = checkNotNull(video.getInputBuffer(index))
-        val written = fill(buffer, inputStride, inputSliceHeight)
+        val written = fill(buffer, inputLayout)
         video.queueInputBuffer(index, 0, written, presentationTimeUs, 0)
         lastVideoPresentationTimeUs = presentationTimeUs
+    }
+
+    /**
+     * 用 `getInputImage()` 报出的平面参数校正排布，只做一次。
+     *
+     * `Image` 的平面行距比 `KEY_STRIDE` 更权威：后者是整帧一个数，而 P010 的色度平面行距
+     * 并不保证等于亮度行距。像素步长则是**门禁**：标准 P010 是半平面交错（Y 每样本 2 字节、
+     * Cb/Cr 各 4 字节），报出别的排布说明这个编码器给的根本不是我们要写的那种 P010——此时
+     * 判本候选失败，交由候选阶梯退到同格式 Surface（D158 第 5 条），而不是照写一帧花屏。
+     */
+    private fun refineLayout(video: MediaCodec, index: Int) {
+        if (inputLayoutRefined) return
+        inputLayoutRefined = true
+        val image = try {
+            video.getInputImage(index)
+        } catch (ignored: Throwable) {
+            null
+        } ?: return
+        // **不 close 这个 Image。** 紧接着的 getInputBuffer(index) 按 MediaCodec 的契约本来
+        // 就会让它失效；而部分 AOSP 版本的 MediaImage.close() 会去 free 底层直接缓冲，那正是
+        // 我们马上要写入的那块内存。
+        val planes = image.planes
+        if (planes.size < 3) return
+        check(planes[0].pixelStride == FableSolExportP010Layout.LUMA_PIXEL_STRIDE) {
+            "P010 luma pixel stride is ${planes[0].pixelStride}, expected " +
+                FableSolExportP010Layout.LUMA_PIXEL_STRIDE
+        }
+        check(
+            planes[1].pixelStride == FableSolExportP010Layout.CHROMA_PIXEL_STRIDE &&
+                planes[2].pixelStride == FableSolExportP010Layout.CHROMA_PIXEL_STRIDE
+        ) {
+            "P010 chroma is not semi-planar: pixel strides " +
+                "${planes[1].pixelStride}/${planes[2].pixelStride}"
+        }
+        inputLayout = inputLayout.withPlaneRowStrides(
+            luma = planes[0].rowStride,
+            chroma = planes[1].rowStride
+        )
     }
 
     /** 字节缓冲模式下补一个流结束标记；surface 模式由 signalEndOfInputStream 负责。 */
@@ -357,6 +506,7 @@ internal class FableSolExportEncoder(
                     check(videoTrack < 0) { "Video format changed twice" }
                     val outputFormat = video.outputFormat
                     validateVideoOutputFormat(outputFormat)
+                    ensureStaticMetadata(outputFormat)
                     videoTrack = muxer.addTrack(outputFormat)
                     hasVideoOutputFormat = true
                     maybeStartMuxer()
@@ -399,12 +549,13 @@ internal class FableSolExportEncoder(
         if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) return
         if (info.size <= 0) return
         if (track == videoTrack) videoSamplesWritten++
-        if (byteBufferInput && track == videoTrack && !hdr10PlusSeiSeen) {
+        if (byteBufferInput && track == videoTrack) {
             // HDR10+ 唯一作数的证据就是码流里那段 SEI——输出格式回报的 profile 本来就是
-            // Main10，拿它判断只会误杀。这里在样本写出去之前顺手确认一次。
-            hdr10PlusSeiSeen = FableSolExportHdr10PlusMetadata.containsSei(
-                buffer, info.offset, info.size
-            )
+            // Main10，拿它判断只会误杀。逐样本计数（不命中即停）：覆盖率要进诊断与完成
+            // 信息，扫描成本在内存带宽量级，可忽略。
+            if (FableSolExportHdr10PlusMetadata.containsSei(buffer, info.offset, info.size)) {
+                hdr10PlusSeiSamples++
+            }
         }
         buffer.position(info.offset)
         buffer.limit(info.offset + info.size)
@@ -435,6 +586,45 @@ internal class FableSolExportEncoder(
      * `configure()` 成功不代表编码器接受了请求：Android 允许 profile 静默切换。HDR 若被
      * 换成 8-bit 或丢掉 BT.2020/HLG 标记，继续发布会得到一份信号解释完全错误的视频。
      */
+    /** 本次要写入的 25 字节 ST 2086/CTA-861.3 静态描述符；应用是它唯一的权威（D91）。 */
+    private fun staticInfo(): ByteBuffer = FableSolExportTransfer.hdr10StaticInfo(
+        peakNits = peakNits,
+        diffuseWhiteNits = diffuseWhiteNits,
+        luminance = luminance
+    )
+
+    /**
+     * 本次**应当**写进产物的静态描述符；非 PQ 档位为 null。
+     *
+     * 短探测的回读核对读这一份，而不是自己另算一遍（D166）：两处各算各的，只要有一处的
+     * 参数漏传，核对就会稳定地判所有设备失败，而那种错误看起来完全像是设备问题。
+     */
+    fun expectedStaticInfo(): ByteBuffer? =
+        if (tier.hdrFormat?.writesStaticMetadata == true) staticInfo() else null
+
+    /**
+     * 编码器输出格式没回报静态元数据时，把应用生成的描述符补进交给 muxer 的轨格式（D91 第 1 条）。
+     *
+     * 回报了**不同**内容时不静默采纳，也不在这里推翻候选：正式导出的门禁是注入、有效样本与
+     * 真实错误（D166），逐字段核对定位在短探测产物上。这里只保证"应用生成的那一份"确实有
+     * 机会落进容器。
+     */
+    private fun ensureStaticMetadata(format: MediaFormat) {
+        if (tier.hdrFormat?.writesStaticMetadata != true) return
+        val reported = try {
+            format.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)
+        } catch (ignored: Throwable) {
+            null
+        }
+        if (reported != null && reported.remaining() >= STATIC_INFO_BYTES) return
+        try {
+            format.setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO, staticInfo())
+        } catch (ignored: Throwable) {
+            // 少数实现的 outputFormat 不接受写入。configure 阶段的注入仍然有效，码流 SEI
+            // 是这条路上的实际承载（D166）。
+        }
+    }
+
     private fun validateVideoOutputFormat(format: MediaFormat) {
         val mime = format.getString(MediaFormat.KEY_MIME)
         check(mime?.equals(tier.videoMime, ignoreCase = true) == true) {
@@ -448,6 +638,13 @@ internal class FableSolExportEncoder(
                 format.intOrNull(MediaFormat.KEY_HEIGHT)
         }
         validateFullFrameCrop(format)
+        // 码流实际声明的色度位置（D154、D170）。解析只读 csd-0，失败一律当"未声明"，不影响
+        // 本次导出成败——它服务的是下一次导出的相位选择。
+        videoChromaSiting = try {
+            FableSolExportChromaSiting.parse(tier.videoMime, format.getByteBuffer(CSD_KEY))
+        } catch (ignored: Throwable) {
+            FableSolExportChromaSiting.Result.UNDECLARED
+        }
         if (tier.profile != 0 && !tier.eightBit) {
             // **没回报不等于被改掉。** 不少编码器（尤其是 OMX 系）压根不把 KEY_PROFILE 写进
             // outputFormat，此前这里把 null 一律判成"降了档"，于是一台明明已经产出 10-bit
@@ -617,14 +814,76 @@ internal class FableSolExportEncoder(
         private const val CROP_RIGHT_KEY = "crop-right"
         private const val CROP_TOP_KEY = "crop-top"
         private const val CROP_BOTTOM_KEY = "crop-bottom"
+        /** HEVC 的 VPS/SPS/PPS 与 AV1 的 av1C 都在这个键里；色度位置从它解析。 */
+        private const val CSD_KEY = "csd-0"
         /** AAC-LC 192 kbps（D11）：单声道下远超透明，相对视频的量级可忽略。 */
         private const val AUDIO_BITRATE_BPS = 192_000
         private const val AUDIO_MAX_INPUT_BYTES = 32 * 1024
+
+        /** `KEY_PRIORITY` 的非实时、尽力而为档（D150）。 */
+        const val PRIORITY_NON_REALTIME = 1
+
+        /**
+         * VBR 复杂帧质量保护的 QP 上限（D151）。
+         *
+         * QP 越高量化越重；40 是 Android 分享编码文档给出的推荐上限，用来挡住复杂水体与
+         * 高速高光在码率压力下被压到更差的 QP，代价是实际码率可能高于目标。
+         */
+        const val QP_MAX_GUARD = 40
         private const val TIMEOUT_US = 10_000L
         /** 收尾总时限：硬编排空通常一秒内完成，给足余量后仍卡住就是真出问题了。 */
         private const val FINISH_TIMEOUT_MS = 30_000L
         /** 字节缓冲模式收尾时，为拿到一个输入缓冲最多让排空循环转几轮。 */
         private const val END_OF_STREAM_ATTEMPTS = 64
+        /** CTA-861.3 Static Metadata Descriptor ID 0 的长度。 */
+        const val STATIC_INFO_BYTES = 25
+    }
+}
+
+/**
+ * AOSP 软件 AV1 在 HDR 最高 CQ 档位下的量化保护。
+ *
+ * Android 的公开质量区间只能表达编码器自定义的相对档位。AOSP
+ * `c2.android.av1.encoder` 把最高值 100 映射为 libaom CQ 15；在 OPPO PLZ110 的
+ * 1152×1472、10-bit HDR 渐变实测中，该档仍会在水体产生可见块状量化。追加 QP 上限 8
+ * 后，编码器报告的 I/P/B 最大 QP 为 8/11/14，水体块状量化消失，且输出仍可完整解码。
+ * 编码器同时明确广告 QP bounds，因此只对这一项、只在用户采用最高质量值时补充该上限。
+ *
+ * 其它编码器、SDR、非最高质量值或未广告 QP bounds 的路径没有同一份证据，不应用该限制。
+ */
+internal object FableSolExportCqQualityGuard {
+
+    const val AOSP_AV1_ENCODER = "c2.android.av1.encoder"
+    const val AOSP_AV1_HDR_MAX_QP = 8
+
+    fun maxQp(tier: FableSolExportTier, resolvedQuality: Int): Int? {
+        val range = tier.qualityRange ?: return null
+        return maxQp(
+            codecName = tier.codecName,
+            videoMime = tier.videoMime,
+            family = tier.family,
+            softwareOnly = tier.softwareOnly,
+            hdr = tier.transfer.isHdr,
+            supportsQpBounds = tier.supportsQpBounds,
+            maximumQuality = resolvedQuality == range.upper
+        )
+    }
+
+    internal fun maxQp(
+        codecName: String,
+        videoMime: String,
+        family: FableSolExportCodecFamily,
+        softwareOnly: Boolean,
+        hdr: Boolean,
+        supportsQpBounds: Boolean,
+        maximumQuality: Boolean
+    ): Int? {
+        if (!maximumQuality) return null
+        if (codecName != AOSP_AV1_ENCODER) return null
+        if (videoMime != MediaFormat.MIMETYPE_VIDEO_AV1) return null
+        if (family != FableSolExportCodecFamily.AV1) return null
+        if (!softwareOnly || !hdr || !supportsQpBounds) return null
+        return AOSP_AV1_HDR_MAX_QP
     }
 }
 
@@ -668,16 +927,40 @@ internal data class FableSolExportTier(
     /**
      * 这个编码器实现是不是纯软件的。
      *
-     * 自动档不使用软件编码器：本项目的导出画布接近两百万像素，软件编码与硬件编码的耗时
-     * 差一到两个数量级，让它作为静默退路等于在用户毫不知情的情况下把一次导出拖长几十倍。
-     * 用户明确选中该编码器族时才走这条路，届时界面已经标出"软件编码"。
+     * 本项目的导出画布接近两百万像素，软件编码与硬件编码的耗时可相差一到两个数量级。
+     * 因此软件实现排在硬件实现之后，并作为公开规格字段明确显示；从硬件切换为软件前必须
+     * 获得用户确认（D179）。
      */
     val softwareOnly: Boolean,
     /** 8-bit 档位必须在 shader 里重新启用抖动（D9）。 */
     val eightBit: Boolean,
+    /**
+     * 交给编码器的输入通路（D158）。
+     *
+     * 它是同一档位下的**子候选**，不是另一种输出格式：10-bit 优先应用自有 P010，失败后退到
+     * 同格式、同 Profile、同编码器族的 Surface。HDR10+ 只有 P010 一种（动态元数据在 surface
+     * 输入模式下无法提交），8-bit 只有 Surface 一种。
+     */
+    val inputPath: FableSolExportInputPath = FableSolExportInputPath.SURFACE,
     val supportsCbr: Boolean,
+    /** 离线导出的目标码率模式优先 VBR；不支持时才退到 CBR（D145）。 */
+    val supportsVbr: Boolean,
     val qualityRange: Range<Int>?,
     val bitrateRange: Range<Int>?,
+    /**
+     * 本档**已解析**的目标码率（bps）；CQ 模式为 null。
+     *
+     * 码率必须在候选生成时定下来，不能等到 configure：D147 的自动值依赖对齐后的实际宽高、
+     * 帧率、编码器族与位深，而这些正是在这里才全部齐备的。Level 的码率分量读的也是这一份，
+     * 探测与正式导出因此不可能算出两个不同的数。
+     */
+    val bitrateBps: Int? = null,
+    /** 仅 HEVC 有意义：本档是否用到 High Tier（D152）。 */
+    val highTier: Boolean = false,
+    /** 实际编码器公开的复杂度区间；null 表示未公开，此时省略 `KEY_COMPLEXITY`（D149）。 */
+    val complexityRange: Range<Int>? = null,
+    /** 实际编码器是否声明 `FEATURE_QpBounds`（D151）。 */
+    val supportsQpBounds: Boolean = false,
     val encodedWidthPx: Int,
     val encodedHeightPx: Int,
     val label: String,
@@ -692,6 +975,40 @@ internal data class FableSolExportTier(
 ) {
 
     val hdr: Boolean get() = transfer.isHdr
+
+    /** 本档是否由应用自己生成 P010 字节缓冲。 */
+    val usesAppP010: Boolean get() = inputPath == FableSolExportInputPath.APP_P010
+
+    /**
+     * 本档能不能请求 B 帧（D148 的格式适用范围）。
+     *
+     * - H.264 High 与 Main 可以；Baseline 的语法里就没有 B 片。
+     * - 所有 HEVC 路径可以，含杜比视界 8.4——它换的是 MIME，基层仍是 HEVC。
+     * - **AV1 不套用 `KEY_MAX_B_FRAMES`**：它的复合预测与参考帧结构是另一套模型，
+     *   由 AV1 编码器自行决定，下发这个键既无意义也可能被拒。
+     */
+    val supportsBFrames: Boolean
+        get() = when (family) {
+            FableSolExportCodecFamily.AV1 -> false
+            FableSolExportCodecFamily.AVC ->
+                profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh ||
+                    profile == MediaCodecInfo.CodecProfileLevel.AVCProfileMain
+            FableSolExportCodecFamily.HEVC -> true
+        }
+
+    /**
+     * 本档是否需要 EGL 提供对应的 BT.2020 色彩空间扩展。
+     *
+     * 这是**输入通路**的属性，不是格式的属性。走应用自有 P010 时画面进的是我们自己的离屏
+     * framebuffer，传递函数由导出 shader 亲自编码，交给编码器的已经是 P010 字节；那张 1×1
+     * 的 pbuffer 只用来持有 GL 上下文，压根没打色彩空间属性。按格式一刀切会把"有 P010
+     * 编码能力、却没有对应 EGL 窗口扩展"的设备整格式降到 SDR——与 D30 的判据相悖。
+     */
+    val requiresEglColorSpace: Boolean get() = transfer.isHdr && !usesAppP010
+
+    /** CQ 自定义原值的归属签名（D146）；与 [FableSolExportResolvedCandidate] 同源。 */
+    val qualitySignature: String
+        get() = fableSolExportQualitySignature(codecName, hdrFormat, !eightBit, inputPath)
 
     /** 将内部稳定档位名转换为当前 locale 的用户可见名称。 */
     fun displayLabel(context: Context): String =
@@ -736,27 +1053,78 @@ internal data class FableSolExportTier(
          */
         /**
          * @param format null 表示 SDR——SDR 不是一种 HDR 格式。
+         * @param tenBit 只保留该位深的候选；null 表示不限（位深不是本次求值的轴）。
          * @param family 只保留这个编码器族的候选；null 表示不限。
-         * @param allowSoftware false 时排除纯软件编码器（自动档就是这样）。
+         * @param allowSoftware false 时排除纯软件编码器。
+         *
+         * 返回顺序即 D53 修订 + D161 定义的公开规格建议顺序：**先全部硬件实现、再全部软件
+         * 实现**，每种实现类型内部按 `HEVC → AV1 → AVC`。同一公开规格内有多个具体组件时，
+         * 保持阶梯里的 Profile 优先级，最后才按"是否满足用户所选码控模式"打破平局。
+         *
+         * 位深属于输出规格，由调用方作为独立的轴给出（D160）：自动位深先穷尽同规格 10-bit
+         * 候选，再进入 8-bit；严格位深只生成对应位深的候选，不跨位深后备。
          */
         fun candidatesForMode(
             format: FableSolExportHdrFormat?,
             widthPx: Int,
             heightPx: Int,
             frameRate: Int,
+            tenBit: Boolean? = null,
             preferConstantQuality: Boolean = true,
             family: FableSolExportCodecFamily? = null,
-            allowSoftware: Boolean = true
+            allowSoftware: Boolean = true,
+            /** 用户拖过滑杆之后的绝对目标码率；null 表示自动推导（D147）。 */
+            customBitrateMbps: Float? = null,
+            /** B 帧影响 Level 的参考结构约束（D152）。 */
+            bFrames: Boolean = false,
+            /**
+             * 复杂帧质量保护开关（D151）。开着时 VBR 的实际码率可以超过目标，Level 的
+             * 码率定档按 D152 乘保守余量；默认 false 即旧行为，真实调用方必须显式传
+             * `options.complexFrameGuardEnabled`。
+             */
+            complexFrameGuard: Boolean = false
         ): List<FableSolExportTier> {
-            val result = ArrayList<FableSolExportTier>(4)
-            for (entry in ladderFor(format)) {
-                if (family != null && entry.family != family) continue
-                collect(
-                    entry, format, widthPx, heightPx, frameRate, result,
-                    preferConstantQuality, allowSoftware
-                )
+            val ladder = ladderFor(format)
+            val rateControl = if (preferConstantQuality) {
+                FableSolExportRateControl.CONSTANT_QUALITY
+            } else {
+                FableSolExportRateControl.TARGET_BITRATE
             }
-            return result
+            val collected = ArrayList<Pair<Int, FableSolExportTier>>(4)
+            for ((index, entry) in ladder.withIndex()) {
+                if (family != null && entry.family != family) continue
+                if (tenBit != null && entry.eightBit == tenBit) continue
+                val batch = ArrayList<FableSolExportTier>(2)
+                collect(
+                    entry, format, widthPx, heightPx, frameRate, batch, allowSoftware,
+                    rateControl, customBitrateMbps, bFrames, complexFrameGuard
+                )
+                for (tier in batch) collected += index to tier
+            }
+            return collected.sortedWith(
+                compareBy(
+                    // 1. 硬件实现优先于软件实现（同规格内，D53 修订）。
+                    { (_, tier) -> tier.softwareOnly },
+                    // 2. 编码器族 HEVC → AV1 → AVC（枚举声明顺序，D161）。
+                    { (_, tier) -> tier.family.ordinal },
+                    // 3. 同族内保持阶梯里的 Profile 优先级（例如 H.264 High → Main → Baseline）。
+                    { (index, _) -> index },
+                    // 4. 同族同 Profile 有多个实现时，优先能满足用户所选码控模式的那个，
+                    //    避免首个编码器不支持就静默换模式。
+                    { (_, tier) ->
+                        val matches = if (preferConstantQuality) {
+                            tier.qualityRange != null
+                        } else {
+                            tier.supportsVbr || tier.supportsCbr
+                        }
+                        if (matches) 0 else 1
+                    },
+                    // 5. 输入通路是同一档位内的**子候选**（D158 第 5 条）：应用自有 P010 优先，
+                    //    失败后退到同格式、同 Profile、同编码器族的 Surface。它排在最后，因此
+                    //    永远不会把某个编码器的 Surface 提到另一个编码器的 P010 前面。
+                    { (_, tier) -> if (tier.usesAppP010) 0 else 1 }
+                )
+            ).map { it.second }
         }
 
         /** 该输出格式的编码阶梯；顺序即优先级。SDR 不属于任何 HDR 格式，单独一张表。 */
@@ -767,6 +1135,10 @@ internal data class FableSolExportTier(
         fun familiesFor(format: FableSolExportHdrFormat?): List<FableSolExportCodecFamily> =
             ladderFor(format).map { it.family }.distinct()
 
+        /** 该输出格式在给定位深下**结构上**是否存在阶梯项。 */
+        fun supportsBitDepth(format: FableSolExportHdrFormat?, tenBit: Boolean): Boolean =
+            ladderFor(format).any { it.eightBit != tenBit }
+
         private fun collect(
             entry: FableSolExportCodecEntry,
             format: FableSolExportHdrFormat?,
@@ -774,8 +1146,12 @@ internal data class FableSolExportTier(
             heightPx: Int,
             frameRate: Int,
             target: MutableList<FableSolExportTier>,
-            preferConstantQuality: Boolean,
-            allowSoftware: Boolean
+            allowSoftware: Boolean,
+            rateControl: FableSolExportRateControl,
+            /** null 表示用户没动过滑杆，按 D147 走自动推导。 */
+            customBitrateMbps: Float?,
+            bFrames: Boolean,
+            complexFrameGuard: Boolean
         ) {
             // MediaMuxer 的 MP4 容器到 API 34 才正式支持封装 AV1；更早的系统上即便厂商
             // 提前给了 AV1 编码器，也会在 addTrack 时失败，而那已经在降级循环之外了。
@@ -818,23 +1194,6 @@ internal data class FableSolExportTier(
                     false
                 }
                 if (!supported) continue
-                // level 必须在**对齐之后**才算：64px 分享兼容对齐会把画布撑大，像素率跟着
-                // 变，算早了可能刚好落在阶梯的错误一档上。
-                val profileLevel = if (entry.profile != 0) {
-                    if (format?.needsDolbyVisionLevel == true) {
-                        // 杜比视界的 level 是一条像素率阶梯，必须按实际画布与帧率现算，
-                        // 再取编码器广告里**刚好够用**的那一档；直接给最高档会超出它的能力。
-                        val required = FableSolExportHdrFormat.dolbyVisionLevel(
-                            encodedWidth, encodedHeight, frameRate
-                        )
-                        advertised.filter { it.level >= required }.minByOrNull { it.level }
-                            ?: advertised.maxByOrNull { it.level }
-                    } else {
-                        advertised.maxByOrNull { it.level }
-                    }
-                } else {
-                    null
-                }
                 val encoder = capabilities.encoderCapabilities
                 val supportsCq = encoder?.isBitrateModeSupported(
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ
@@ -842,6 +1201,9 @@ internal data class FableSolExportTier(
                 val supportsCbr = encoder?.isBitrateModeSupported(
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
                 ) ?: false
+                val supportsVbr = encoder?.isBitrateModeSupported(
+                    MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
+                ) ?: true
                 val qualityRange = if (supportsCq && Build.VERSION.SDK_INT >= 28) {
                     try {
                         encoder?.qualityRange?.takeIf { it.upper > it.lower }
@@ -851,55 +1213,149 @@ internal data class FableSolExportTier(
                 } else {
                     null
                 }
-                batch.add(
+                // 编码模式是用户意图，必须由当前格式、编码器、位深、尺寸和帧率的同一个精确
+                // 档位满足。不能因为设备上的另一条编码路径支持 CQ，就让本档静默改用 VBR。
+                if (
+                    rateControl == FableSolExportRateControl.CONSTANT_QUALITY &&
+                    qualityRange == null
+                ) {
+                    continue
+                }
+                if (
+                    rateControl == FableSolExportRateControl.TARGET_BITRATE &&
+                    !supportsVbr && !supportsCbr
+                ) {
+                    continue
+                }
+                // 输入通路是同一档位下的子候选（D158）。8-bit 继续走 Surface 与 D9 的抖动；
+                // 10-bit 只要编码器**公开列出**标准 P010 色彩格式就优先应用自有 P010，再以
+                // 同格式 Surface 兜底。HDR10+ 没有兜底：它的动态元数据只能逐帧交给字节缓冲，
+                // 用 Surface 冒充同格式后备等于发布一个名不副实的产物。
+                val listsP010 = try {
+                    capabilities.colorFormats.any { it == COLOR_FORMAT_YUV_P010 }
+                } catch (ignored: Throwable) {
+                    false
+                }
+                val p010Required = format?.usesByteBufferInput == true
+                val inputPaths = when {
+                    entry.eightBit -> listOf(FableSolExportInputPath.SURFACE)
+                    p010Required && listsP010 -> listOf(FableSolExportInputPath.APP_P010)
+                    p010Required -> emptyList()
+                    listsP010 -> listOf(
+                        FableSolExportInputPath.APP_P010, FableSolExportInputPath.SURFACE
+                    )
+                    else -> listOf(FableSolExportInputPath.SURFACE)
+                }
+                val bitrateRange = try {
+                    video.bitrateRange
+                } catch (ignored: Throwable) {
+                    null
+                }
+                // **码率先于 Level 解析**：D152 的最低充分档要拿解析后的码率算，而 D147 的
+                // 自动值又依赖对齐后的实际宽高、帧率、族与位深——它们到这一步才全部齐备。
+                // CQ 模式下 bitrate 为 null，Level 因此只按尺寸与像素率定档（D168）。
+                val constantQuality =
+                    rateControl == FableSolExportRateControl.CONSTANT_QUALITY
+                val resolvedBitrate = if (constantQuality && qualityRange != null) {
+                    null
+                } else {
+                    val value = customBitrateMbps?.let {
+                        FableSolExportBitrateModel.customBitrateBps(it)
+                    } ?: FableSolExportBitrateModel.autoBitrateBps(
+                        widthPx = encodedWidth,
+                        heightPx = encodedHeight,
+                        frameRate = frameRate,
+                        family = entry.family,
+                        tenBit = !entry.eightBit,
+                        hdr = transfer.isHdr
+                    )
+                    bitrateRange?.let { value.coerceIn(it.lower, it.upper) } ?: value
+                }
+                // QP 保护只作用于 VBR（D151）；它是否会跟着本候选跑，要在定档前就知道——
+                // 保护挡住压缩引起的码率上浮，正是 Level 码率余量（D152）要吃下的那一段。
+                val supportsQpBounds = Build.VERSION.SDK_INT >= 31 && try {
+                    capabilities.isFeatureSupported(
+                        MediaCodecInfo.CodecCapabilities.FEATURE_QpBounds
+                    )
+                } catch (ignored: Throwable) {
+                    false
+                }
+                // level 必须在**对齐之后**才算：64px 分享兼容对齐会把画布撑大，像素率跟着
+                // 变，算早了可能刚好落在阶梯的错误一档上。
+                val selection = if (entry.profile == 0) {
+                    null
+                } else if (format?.needsDolbyVisionLevel == true) {
+                    // 杜比视界的 level 是一条独立的像素率阶梯，不在 AVC/HEVC/AV1 的标准表里；
+                    // D152 要求把它纳入同一套"取刚好够用的一档"语义，算法一致、表不同。
+                    val required = FableSolExportHdrFormat.dolbyVisionLevel(
+                        encodedWidth, encodedHeight, frameRate
+                    )
+                    val level = advertised.filter { it.level >= required }
+                        .minByOrNull { it.level }
+                        ?: advertised.maxByOrNull { it.level }
+                    level?.let { FableSolExportLevel.Selection(it.level, highTier = false) }
+                } else {
+                    FableSolExportLevel.select(
+                        family = entry.family,
+                        advertised = advertised.map { it.level },
+                        widthPx = encodedWidth,
+                        heightPx = encodedHeight,
+                        frameRate = frameRate,
+                        profile = entry.profile,
+                        bitrateBps = resolvedBitrate,
+                        bFrames = bFrames,
+                        // 与运行时 qpGuardRequested 同一谓词：保护开启、形态会落 VBR、编码器
+                        // 声明 QpBounds。CQ 候选的 bitrateBps 为 null，这个标志天然无效。
+                        qpGuard = complexFrameGuard && supportsVbr && supportsQpBounds
+                    )
+                }
+                val complexityRange = try {
+                    encoder?.complexityRange?.takeIf { it.upper > it.lower }
+                } catch (ignored: Throwable) {
+                    null
+                }
+                for (inputPath in inputPaths) batch.add(
                     FableSolExportTier(
                         codecName = info.name,
                         videoMime = entry.mime,
                         profile = entry.profile,
-                        level = profileLevel?.level ?: 0,
+                        level = selection?.level ?: 0,
                         transfer = transfer,
                         hdrFormat = format,
                         family = entry.family,
                         softwareOnly = softwareOnly,
                         eightBit = entry.eightBit,
+                        inputPath = inputPath,
                         supportsCbr = supportsCbr,
+                        supportsVbr = supportsVbr,
                         qualityRange = qualityRange,
-                        bitrateRange = try {
-                            video.bitrateRange
-                        } catch (ignored: Throwable) {
-                            null
-                        },
+                        bitrateRange = bitrateRange,
+                        bitrateBps = resolvedBitrate,
+                        highTier = selection?.highTier == true,
+                        complexityRange = complexityRange,
+                        supportsQpBounds = supportsQpBounds,
                         encodedWidthPx = encodedWidth,
                         encodedHeightPx = encodedHeight,
                         // 档位名带上格式：HDR10 与 HLG 用的是同一个 HEVC Main10 编码器，
                         // 不写格式的话完成提示里两者一模一样，看不出自动档最后落到了哪种。
-                        label = format?.let {
-                            "${it.stableLabel} ${entry.label} (${info.name})"
-                        }
-                            ?: "${entry.label} (${info.name})",
+                        // 输入通路同理——同一个编码器的 P010 与 Surface 是两条真正不同的
+                        // 通路，诊断里必须分得出是哪一条失败了。
+                        label = buildString {
+                            if (format != null) append(format.stableLabel).append(' ')
+                            append(entry.label).append(" (").append(info.name).append(')')
+                            if (inputPath == FableSolExportInputPath.APP_P010) {
+                                append(" [P010]")
+                            }
+                        },
                         profileLabel = entry.label
                     )
                 )
             }
-            // 同一档内，**硬件编码器一律排在软件编码器之前**；其次才是能满足用户所选编码
-            // 模式的编码器，避免首个编码器不支持就静默换模式。软件编码器在自动档下已经被
-            // allowSoftware 挡掉，这里的排序是用户显式选中某个族、而该族软硬件实现并存时
-            // 的兜底。
-            val ordered = batch.sortedWith(
-                compareBy(
-                    { it.softwareOnly },
-                    {
-                        !(
-                            if (preferConstantQuality) {
-                                it.qualityRange != null
-                            } else {
-                                it.supportsCbr
-                            }
-                            )
-                    }
-                )
-            )
-            target.addAll(ordered)
+            // 公开规格及其内部候选的完整排序（硬件先于软件、族顺序、Profile 顺序、码控模式
+            // 匹配）统一在
+            // candidatesForMode 里做：那里才看得见全部阶梯项，才排得出 D161 要求的
+            // “硬件 HEVC → 硬件 AV1 → 硬件 AVC → 软件 HEVC → 软件 AV1 → 软件 AVC”。
+            target.addAll(batch)
         }
 
         internal fun alignForEncoder(value: Int, alignment: Int): Int {
@@ -928,6 +1384,16 @@ internal data class FableSolExportTier(
 
         /** 微信等二次转码链路按 64px 编码块处理时，不把余数从右侧或底部截掉。 */
         private const val SHARE_COMPATIBILITY_ALIGNMENT_PX = 64
+
+        /**
+         * `MediaCodecInfo.CodecCapabilities.COLOR_FormatYUVP010`。
+         *
+         * 直接写数值而不是引用常量：该常量到 API 33 才加入，而 D158 第 2 条明确要求**不以
+         * Android 版本单独作硬门禁**——较早系统若实际列出同一个标准值并通过短探测，同样
+         * 允许使用。只认这一个标准值，不认厂商私有的 P010 变体：后者的平面排布规则不同，
+         * 按标准 P010 写进去就是花屏。
+         */
+        internal const val COLOR_FORMAT_YUV_P010 = 54
 
         // HDR 各格式的阶梯归 FableSolExportHdrFormat 自己持有：档位与格式一一对应，
         // 分开放两处只会让"HDR10+ 该用哪个 profile"这类问题散落在两个文件里。

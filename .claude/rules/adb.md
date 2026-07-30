@@ -153,3 +153,74 @@ Specifically: don't dump-then-screencap-then-read-then-tap. The
 screencap+read round-trip adds ~3-5s with the vision-token cost; by
 then the drawer is gone. Prefer dump-then-tap (no screencap), and only
 screencap **after** the navigation has landed.
+
+## FableSol 视频导出的真机验证流程
+
+2026-07-29 建立并验证。整条链路约 40 秒一轮：`:app:assembleDebug` → `adb install -r` →
+启动 → uiautomator 定位点击 → 导出 → `adb pull` → `ffprobe`。
+
+### 入口路径
+
+- **导出**：记事列表 → 点记事 → **点音频卡片本体**（`tv_audio_file_name` 所在的那块，
+  不是右侧的播放按钮，点播放按钮只会开始播放）→ 播放 Dialog 里的
+  `iv_export_fablesol_video`。
+- **设置**：抽屉 → 「设置」→ 滚到「音频海浪动画设置」→ 打开调参 Dialog → 一路下滚到
+  「导出色彩模式」。`SettingsActivity` 是 `exported="false"`，`am start -n` 起不来，
+  必须走抽屉。
+- `FableSolVideoExportService` 同样 `exported="false"`，无法用 `am start-foreground-service`
+  直接发起导出（报 `Requires permission not exported from uid`）。
+
+### 两条必须遵守的定位规则
+
+1. **有 `resource-id` 就按 id 定位**，不要按本地化文案。用户的设备可能是英文系统
+   （OPPO 平板就是），中文 `content-desc` 直接找不到。终态文字匹配要同时接受中英文
+   （`导出完成|Export finished`、`位置：|Location: `）。
+2. **`uiautomator dump` 只输出屏幕上真的可见的节点。** 在长对话框里找控件必须"滚动 + 重复
+   dump"，一次 dump 找不到不等于控件不存在。调参 Dialog 从顶部滚到导出组约需 40 次
+   600px 的 swipe，一趟 14 次的扫描会卡在中间。
+
+### 产物检查
+
+```powershell
+& ffprobe -v error -select_streams v:0 `
+    -show_entries "stream=codec_name,profile,level,width,height,pix_fmt,color_range,color_space,color_transfer,color_primaries,chroma_location,r_frame_rate,bit_rate" `
+    -show_entries "format=duration,size,bit_rate" -of default=noprint_wrappers=1 <file>
+& ffprobe -v error -select_streams v:0 -read_intervals "%+#1" -show_frames -of json <file>
+```
+
+第二条给出 MDCV（母版 primaries/白点/亮度范围）、CLLI（MaxCLL/MaxFALL）与逐帧
+ST 2094-40。**容器 box 与码流 SEI 可能不一致**：最低母版亮度这一项，PLZ110 上被 MP4
+写入器多乘了 10000，OPD2515 上没有；stream 级与 frame 级 side data 要分开看。
+
+### 驱动脚本
+
+`export_once.ps1` / `set_color_mode.ps1` 放在会话 scratchpad 里，换会话要重建。两点提醒：
+含中文的 `.ps1` 必须存成 **UTF-8 with BOM**，否则 PS 5.1 按 ANSI 解析报假语法错误；
+脚本里用 `$ErrorActionPreference = 'Continue'`，且不要对 adb/monkey 加 `2>$null`——
+它们往 stderr 写正常输出，会被当成终止错误。
+
+## debug 版改设置：走 `run-as`，别驱动设置 Dialog
+
+调参 Dialog 从顶部滚到导出组约需 40 次 swipe，而导出设置全部落在
+`shared_prefs/fablesol_tuning.xml`。debug 版可以直接改：
+
+```powershell
+& $adb -s <serial> shell am force-stop com.ywwynm.everythingdone
+Start-Sleep -Milliseconds 800
+& $adb -s <serial> shell "run-as com.ywwynm.everythingdone sed -i 's|<string name=\`"export_color_mode\`">[a-z0-9-]*</string>|<string name=\`"export_color_mode\`">hlg</string>|' shared_prefs/fablesol_tuning.xml"
+& $adb -s <serial> shell "run-as com.ywwynm.everythingdone cat shared_prefs/fablesol_tuning.xml"
+```
+
+两点必须遵守：**先 `am force-stop`**（进程活着时 SharedPreferences 的内存副本会把改动盖
+回去），**改完再 `cat` 核对**。删一个键用 `/keyname/d`。验证结束后把用户原来的值改回去。
+
+同一条路也用来读回缓存结论，例如 HLG 回环的
+`shared_prefs/fablesol_export_hlg_range.xml`、亮度统计的
+`shared_prefs/fablesol_export_luminance.xml`。
+
+## 驱动脚本不要写中文字面量
+
+PS 5.1 按 ANSI 解析无 BOM 的 `.ps1`，脚本里的 `'导出完成'` 会变成乱码，匹配永远失败——
+而症状是"导出没完成"，很容易误判成应用的问题（2026-07-29 实际发生过）。定位一律按
+`resource-id`，终态判定用 `Movies/EverythingDone` 这类 ASCII 片段。中文只出现在**读回来
+打印**的那一步，不出现在脚本源码里。

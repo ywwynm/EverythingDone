@@ -10,16 +10,13 @@ import org.junit.Test
 class FableSolExportHdrFormatTest {
 
     /**
-     * 自动档按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格）。
-     * 前三项保持杜比视界 5、杜比视界 8.1、HDR10+；用户进一步裁定带动态元数据的
-     * 杜比视界 8.4 位于静态元数据 HDR10 之前，HLG 最后。
+     * 自动档按**规格从高到低**排（用户 2026-07-27 定：能支持多高规格就支持多高规格），
+     * D141 收敛杜比视界后固定为四项：HDR10+ → 杜比视界 8.4 → HDR10 → HLG。
      */
     @Test
     fun autoIsOrderedFromHighestSpecDown() {
         assertEquals(
             listOf(
-                FableSolExportHdrFormat.DOLBY_VISION_5,
-                FableSolExportHdrFormat.DOLBY_VISION_81,
                 FableSolExportHdrFormat.HDR10_PLUS,
                 FableSolExportHdrFormat.DOLBY_VISION_84,
                 FableSolExportHdrFormat.HDR10,
@@ -35,25 +32,25 @@ class FableSolExportHdrFormatTest {
     }
 
     /**
-     * 8.1 与 8.4 的**唯一**区别就是传递函数：profile 常量同为 `DolbyVisionProfileDvheSt`，
-     * PQ 基层是 8.1、HLG 基层是 8.4。把这条钉住，免得日后有人以为要换 profile 常量。
+     * **杜比视界只剩 Profile 8.4**（D141）。
+     *
+     * Profile 5 的单层 IPT-PQ-c2 没有可验证的公开输入与 RPU 创作契约；Profile 8.1 需要 PQ
+     * 兼容基层，而实机在申请 PQ 时把传递函数改回 HLG。两者都不得再作为产品选项、自动候选
+     * 或正式导出路径出现。
      */
     @Test
-    fun dolbyVisionVariantsDifferOnlyByTransfer() {
-        assertEquals(
-            FableSolExportTransfer.PQ,
-            FableSolExportHdrFormat.DOLBY_VISION_81.transfer
-        )
+    fun dolbyVisionIsNarrowedToProfileEightFour() {
+        val dolby = FableSolExportHdrFormat.entries.filter { it.isDolbyVision }
+        assertEquals(listOf(FableSolExportHdrFormat.DOLBY_VISION_84), dolby)
         assertEquals(
             FableSolExportTransfer.HLG,
             FableSolExportHdrFormat.DOLBY_VISION_84.transfer
         )
+        assertTrue(FableSolExportHdrFormat.DOLBY_VISION_84.usesHlgBaseLayer)
         assertEquals(
-            FableSolExportHdrFormat.DOLBY_VISION_81.codecEntries.map { it.profile },
+            listOf(CodecProfileLevel.DolbyVisionProfileDvheSt),
             FableSolExportHdrFormat.DOLBY_VISION_84.codecEntries.map { it.profile }
         )
-        assertTrue(FableSolExportHdrFormat.DOLBY_VISION_81.isDolbyVision)
-        assertTrue(FableSolExportHdrFormat.DOLBY_VISION_84.isDolbyVision)
     }
 
     /**
@@ -64,7 +61,6 @@ class FableSolExportHdrFormatTest {
      */
     @Test
     fun onlyDolbyVisionDemandsTheExactProfile() {
-        assertTrue(FableSolExportHdrFormat.DOLBY_VISION_81.requiresExactProfile)
         assertTrue(FableSolExportHdrFormat.DOLBY_VISION_84.requiresExactProfile)
         assertFalse(FableSolExportHdrFormat.HDR10_PLUS.requiresExactProfile)
         assertFalse(FableSolExportHdrFormat.HDR10.requiresExactProfile)
@@ -166,6 +162,7 @@ class FableSolExportHdrFormatTest {
         softwareOnly = false,
         eightBit = false,
         supportsCbr = true,
+        supportsVbr = true,
         qualityRange = null,
         bitrateRange = null,
         encodedWidthPx = 640,

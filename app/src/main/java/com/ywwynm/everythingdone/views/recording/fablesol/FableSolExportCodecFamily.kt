@@ -44,8 +44,8 @@ internal enum class FableSolExportCodecFamily(
          * 一直沿用的约定（`OMX.google.*` 与 `c2.android.*` 都是 AOSP 的软件实现）。
          *
          * 这件事必须知道：本项目导出的画布接近两百万像素，软件编码器编一段几十秒的录音要
-         * 花的时间与硬件编码器差一到两个数量级。自动档因此**不使用**软件编码器，只有用户
-         * 明确选中该编码器族时才走这条路。
+         * 花的时间与硬件编码器差一到两个数量级。软件实现因此排在所有同格式硬件实现之后，
+         * 且从硬件切换为软件属于公开规格变化，必须经用户确认（D179）。
          */
         fun isSoftwareOnly(info: MediaCodecInfo): Boolean {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

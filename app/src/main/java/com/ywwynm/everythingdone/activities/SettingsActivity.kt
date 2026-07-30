@@ -17,6 +17,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.graphics.drawable.Drawable
@@ -523,6 +524,18 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
         mLlsRingtone!![3] = mLlANRingtoneAsBt
         mTvsRingtone!![3] = mTvANRingtone
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // 导出失败的「调整导出设置」入口（D107）：打开设置页后直接进 FableSol 调参 Dialog
+        // 并定位到「视频导出」组。只在首次创建时触发；旋转重建由 FragmentManager 自行恢复
+        // Dialog，不得再叠开一个。
+        if (savedInstanceState == null &&
+            intent?.getBooleanExtra(EXTRA_SHOW_FABLESOL_EXPORT, false) == true
+        ) {
+            showFableSolTuningDialog(scrollToExport = true)
+        }
     }
 
     override fun initUI() {
@@ -1037,20 +1050,37 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
         }
         f<View>(R.id.rl_fablesol_tuning_as_bt).setOnClickListener {
-            // 调参 Dialog 的实时预览由麦克风驱动，须先拿到录音权限。
-            doWithPermissionChecked(
-                object : SimplePermissionCallback(this@SettingsActivity) {
-                    override fun onGranted() {
-                        val df = com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment()
-                        df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG)
-                    }
-                },
-                Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
-                Manifest.permission.RECORD_AUDIO
-            )
+            showFableSolTuningDialog(scrollToExport = false)
         }
         updateDoingDigitStyleValue()
         updateAutoplayDetailDynamicValue()
+    }
+
+    /**
+     * 打开 FableSol 调参 Dialog。实时预览由麦克风驱动，须先拿到录音权限。
+     *
+     * @param scrollToExport 打开后直接滚动到「视频导出」组；导出失败通知与失败 Dialog 的
+     *   「调整导出设置」入口经 [EXTRA_SHOW_FABLESOL_EXPORT] 走这条路（D107）。
+     */
+    private fun showFableSolTuningDialog(scrollToExport: Boolean) {
+        doWithPermissionChecked(
+            object : SimplePermissionCallback(this@SettingsActivity) {
+                override fun onGranted() {
+                    val df = if (scrollToExport) {
+                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment
+                            .newInstanceScrolledToExport()
+                    } else {
+                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment()
+                    }
+                    df.show(
+                        supportFragmentManager,
+                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG
+                    )
+                }
+            },
+            Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
+            Manifest.permission.RECORD_AUDIO
+        )
     }
 
     /**
@@ -2123,6 +2153,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
     companion object {
         const val TAG: String = "SettingsActivity"
+
+        /** 打开设置页后直接进入 FableSol 调参 Dialog 的导出组；导出失败入口用（D107）。 */
+        const val EXTRA_SHOW_FABLESOL_EXPORT: String = "show_fablesol_export_settings"
 
         const val DEFAULT_DRAWER_HEADER: String = "default_drawer_header"
         const val FOLLOW_SYSTEM: String = "follow_system"

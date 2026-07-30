@@ -292,10 +292,62 @@ internal class FableSolExportEgl(
         private const val GL_EXT_COLOR_BUFFER_FLOAT = "GL_EXT_color_buffer_float"
 
         /**
+         * 动态映射统计通路的已知图探测（D77）：FP16 目标清成已知超白值，经
+         * `sdr_peak.frag` 归约、RGBA8 回读与 16 位解码后必须还原出同一个数。
+         * 覆盖编译、FBO、绘制、回读、解码整条链；任何一步失败都按不可用处理。
+         */
+        private fun probeDynamicStats(assets: android.content.res.AssetManager): Boolean =
+            try {
+                val target = FableSolExportPresentTarget.createHighPrecision(
+                    DYNAMIC_PROBE_SIZE, DYNAMIC_PROBE_SIZE
+                )
+                if (target == null) {
+                    false
+                } else {
+                    try {
+                        GLES30.glBindFramebuffer(
+                            GLES30.GL_FRAMEBUFFER, target.framebufferId
+                        )
+                        GLES30.glViewport(0, 0, DYNAMIC_PROBE_SIZE, DYNAMIC_PROBE_SIZE)
+                        // 浮点颜色附件的 clear 值不被钳制（ES 3.0），正好用一个超白已知值
+                        // 走完整条通路。
+                        GLES30.glClearColor(DYNAMIC_PROBE_PEAK, 0f, 0f, 1f)
+                        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+                        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+                        val peak = FableSolExportScenePeak(
+                            assets, FableSolHdrPolicy.MAX_STRENGTH
+                        )
+                        try {
+                            val measured = peak.measure(
+                                target.textureId, DYNAMIC_PROBE_SIZE, DYNAMIC_PROBE_SIZE
+                            )
+                            peak.failure == null && kotlin.math.abs(
+                                measured - DYNAMIC_PROBE_PEAK.toDouble()
+                            ) < DYNAMIC_PROBE_TOLERANCE
+                        } finally {
+                            peak.release()
+                        }
+                    } finally {
+                        target.release()
+                    }
+                }
+            } catch (ignored: Throwable) {
+                false
+            }
+
+        private const val DYNAMIC_PROBE_SIZE = 4
+        private const val DYNAMIC_PROBE_PEAK = 2.5f
+        private const val DYNAMIC_PROBE_TOLERANCE = 0.05
+
+        /**
          * 建链之前先探一次能力：EGL 是否支持 BT.2020 HLG 色彩空间，GL 能否渲染
          * `GL_RGBA16F`。用一次性的 pbuffer 上下文完成，探完立刻拆掉，不影响后续建链。
+         *
+         * @param assets 传入时在同一上下文里追加**动态映射统计通路**的已知图探测（D77）：
+         *   真实构造 [FableSolExportScenePeak] 并对已知超白值跑一次完整的绘制—回读—解码。
+         *   FP16 场景可用只说明源画面存在，说明不了这条归约通路本身。
          */
-        fun probe(): Capability {
+        fun probe(assets: android.content.res.AssetManager? = null): Capability {
             var display: EGLDisplay = EGL14.EGL_NO_DISPLAY
             var context: EGLContext = EGL14.EGL_NO_CONTEXT
             var surface: EGLSurface = EGL14.EGL_NO_SURFACE
@@ -355,7 +407,12 @@ internal class FableSolExportEgl(
                 val glExtensions = GLES30.glGetString(GLES30.GL_EXTENSIONS) ?: ""
                 val halfFloat = glExtensions.contains(GL_EXT_COLOR_BUFFER_HALF_FLOAT) ||
                     glExtensions.contains(GL_EXT_COLOR_BUFFER_FLOAT)
-                return Capability(halfFloat, hlg, pq, tenBit, census.first, census.second)
+                val dynamicStats =
+                    halfFloat && assets != null && probeDynamicStats(assets)
+                return Capability(
+                    halfFloat, hlg, pq, tenBit, census.first, census.second,
+                    dynamicSdrStatsSupported = dynamicStats
+                )
             } catch (ignored: Throwable) {
                 return Capability(false, false, false)
             } finally {
@@ -398,7 +455,12 @@ internal class FableSolExportEgl(
          * 器根本消费不了。三星 Z Fold4 上 10-bit 各档一律以编码器"已被释放"告终，而 8-bit 档
          * 走的是带 recordable 的那一档，一切正常（2026-07-28）。
          */
-        val tenBitRecordableConfigCount: Int = 0
+        val tenBitRecordableConfigCount: Int = 0,
+        /**
+         * 动态映射的逐帧峰值统计通路是否通过已知图探测（D77）。只有 [probe] 收到 assets
+         * 时才实测；false 只驱动设置页置灰与说明，不改写偏好，正式导出仍以运行时为准。
+         */
+        val dynamicSdrStatsSupported: Boolean = false
     ) {
 
         val anyHdrColorSpace: Boolean get() = bt2020HlgSupported || bt2020PqSupported

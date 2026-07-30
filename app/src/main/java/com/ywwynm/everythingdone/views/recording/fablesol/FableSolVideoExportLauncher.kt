@@ -4,9 +4,11 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity
 import com.ywwynm.everythingdone.fragments.FableSolExportProgressDialogFragment
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -89,9 +91,11 @@ object FableSolVideoExportLauncher {
                 cardWidthDp
             )
         } catch (error: Throwable) {
+            Log.e(TAG, "Unable to start the FableSol export service", error)
             FableSolVideoExportBus.post(
                 FableSolVideoExportBus.State.Failed(
-                    jobId, error.message ?: error.javaClass.simpleName
+                    jobId,
+                    activity.getString(R.string.fablesol_export_internal_error)
                 )
             )
         }
@@ -141,4 +145,6 @@ object FableSolVideoExportLauncher {
         }
         return result.toString().ifBlank { "FableSol" }
     }
+
+    private const val TAG = "FableSolExportLauncher"
 }
