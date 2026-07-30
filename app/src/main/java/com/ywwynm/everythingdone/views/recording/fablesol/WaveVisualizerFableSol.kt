@@ -81,6 +81,9 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private var renderAssemblyNs = 0L
     private var glFallbackDiagnostic = false
     private var simulationPaused = false
+    private var frozen = false
+    /** 调参冻结与完全冻结在"运动是否推进"上同义；两者任一成立即停。 */
+    private val motionPaused: Boolean get() = simulationPaused || frozen
     private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
         mFrameCallbackPosted = false
         if (!shouldAnimate()) {
@@ -263,6 +266,20 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         simulationPaused = paused
     }
 
+    /**
+     * 完全冻结：连帧循环一起停。回退路径上其实触发不到——导出入口在 Canvas 回退设备上
+     * 根本不出现（fablesol-video-export D14）——这里只兜住 GLES 异步失败恰好落在冻结期间、
+     * 回退视图接管画面的那一瞬。
+     *
+     * 普通 View 的绘制内容留在 RenderNode 里，停循环不会变空白，因此不需要 GL 那侧的
+     * 按需单帧。
+     */
+    internal fun setFrozen(value: Boolean) {
+        if (frozen == value) return
+        frozen = value
+        if (value) stopFrameLoop() else ensureAnimating()
+    }
+
     /** 完整三维重力方向 → 左右滚转 + 连续水面的前后俯仰。 */
     fun setContainerGravity(x: Float, y: Float, z: Float) {
         gravityInbox.offer(x, y, z)
@@ -313,7 +330,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val drainStart = SystemClock.elapsedRealtimeNanos()
         drainAndApply(now)
         val physicsStart = SystemClock.elapsedRealtimeNanos()
-        if (!simulationPaused) {
+        if (!motionPaused) {
             applyLatestGravity()
             sim.update(dt.toDouble())
         }
@@ -337,7 +354,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
 
     private fun drainAndApply(now: Long) {
         val batches = audioInbox.drain()
-        if (simulationPaused) {
+        if (motionPaused) {
             // 冻结：丢弃本帧特征与事件，静默衰减计时锚随帧推移一并冻结。
             if (mLastAudioElapsed != 0L) mLastAudioElapsed = now
             return
@@ -396,8 +413,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         framePacer.reset()
     }
 
-    private fun shouldAnimate(): Boolean = isAttachedToWindow && width > 0 && height > 0 &&
-        windowVisibility == VISIBLE && isShown
+    private fun shouldAnimate(): Boolean = !frozen && isAttachedToWindow &&
+        width > 0 && height > 0 && windowVisibility == VISIBLE && isShown
 
     override fun onAttachedToWindow() { super.onAttachedToWindow(); ensureAnimating() }
     override fun onDetachedFromWindow() {

@@ -446,7 +446,7 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - **Voice Waveform** 出现在录音对话框与音频附件播放对话框两处；两处的输入都是实时 PCM 流，播放侧按 AudioTrack 已播出的采样位置喂入以保证声画同步，不得改用整曲前瞻分析。
 - **Voice Waveform** 的声音输入通过改变水面与光学条件间接改变 HDR 高光分布，不直接控制单个高光的 HDR 增益。
 - **Voice Waveform** 的最高 HDR 镜面核心可以接近中性白；较低亮度的受光浪峰与薄层透射仍按层级保留 **Thing Background** 身份色。
-- A **Voice Waveform Video** is produced from an audio attachment by rendering it again, never by capturing a screen; the surfaces that show a live **Voice Waveform** are unaffected by whether one is being produced.
+- A **Voice Waveform Video** is produced from an audio attachment by rendering it again, never by capturing a screen; its content never depends on what a live **Voice Waveform** is doing at the time. A surface showing a live **Voice Waveform** does, however, yield its own resources while the production's progress dialog is in front of it — it freezes and its playback pauses, because both run in the same process (D187).
 - **Voice Waveform Video** 使用 **非实时驱动**，这不违反"不得整曲前瞻分析"——两者的分界是画面是否使用了尚未播到的信息，而不是渲染是否跟随挂钟。
 - **Voice Waveform Video** 的 HDR 亮度上限取用户设定的 HDR 强度，不取导出设备当时的显示余量；因此一台 SDR 显示器上也可以导出 **HDR Media**，而观看条件由播放端自行还原。
 - 当设备无法编码 **Voice Waveform Video** 所需的 HDR 信号时，产物改用 FableSol 自己的 SDR 输出重新渲染，而不是把 HDR 结果压回 SDR。

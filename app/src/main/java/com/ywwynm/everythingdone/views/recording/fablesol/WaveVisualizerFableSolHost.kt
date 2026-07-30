@@ -153,6 +153,17 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     }
 
     /**
+     * 完全冻结（导出进度对话框在前台）：帧循环停掉，连 buildFrame / drawFrame 都不再发生，
+     * 画面停在最后一帧，帧率投票一并撤掉。与 [setSimulationPaused] 是两个独立开关。
+     *
+     * 谁来调它由调用方的生命周期决定，见 [FableSolExportFreezeGate]。
+     */
+    fun setFrozen(frozen: Boolean) {
+        glView.setFrozen(frozen)
+        canvasFallback.setFrozen(frozen)
+    }
+
+    /**
      * 渐变切换配色（调参 Dialog 换色）：GL 端新颜色的波浪从右缘涌入；
      * Canvas 回退无过渡动画、直切。
      */

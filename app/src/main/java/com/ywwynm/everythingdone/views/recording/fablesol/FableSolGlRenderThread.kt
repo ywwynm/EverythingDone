@@ -262,10 +262,39 @@ internal class FableSolGlRenderThread(
             animating = enabled
             if (enabled) {
                 framePacer.reset()
+                // 循环停过就必然有时间间隔，`lastFrameTimeNanos` 已经是过期的锚。不复位的话
+                // 恢复的第一帧 dt = 整段间隔，被 MAX_DT_SECONDS 夹住之后仍是常规步长的 6 倍，
+                // 是一次可见跳动。冻结解除、切后台回来、surface 重建走的都是这里，统一在
+                // 这一处复位——比在各个发起点各补一次可靠（发起点里至少 setFrozen(false)
+                // 那一次会在 handler 已被 detachBlocking 清空时整个丢掉）。
+                renderer.resetFrameTimeAnchor()
                 postFrameCallback()
             } else {
                 removeFrameCallback()
             }
+        }
+    }
+
+    /**
+     * 完全冻结的渲染器一侧。帧循环的启停由 [setAnimating] 负责，两者由
+     * `WaveVisualizerFableSolGl.shouldAnimate()` 那道门统一编排；解冻后第一帧的时间锚也在
+     * [setAnimating] 里复位，不在这里补——后台解冻时 handler 已被 `detachBlocking()` 清空，
+     * 在这里 post 会被整个丢掉。
+     */
+    fun setFrozen(frozen: Boolean) {
+        renderer.setFrozen(frozen)
+    }
+
+    /**
+     * 冻结态下补画一帧。SurfaceView 的 surface 在窗口不可见时会被销毁，回到前台重建出来的
+     * surface 一帧都没画过；不补这一帧，水体位置就是一块空白。
+     *
+     * 只在帧循环确实停着时才画：循环在跑时下一拍自然会覆盖，重复渲染只是白付一帧。
+     */
+    fun renderSingleFrame() {
+        handler?.post {
+            if (animating || !acceptingFrames) return@post
+            renderFrame(System.nanoTime())
         }
     }
 

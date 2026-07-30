@@ -1,5 +1,26 @@
 # fablesol-video-export 遗留项
 
+## 2026-07-30 - D187/D188 代码评审（已处理，见 D189）
+
+四项复核结论如下，三项已修、一项判定不成立。**留在这里只为防止后续按旧结论回退**，没有
+未完成项。
+
+- ~~冻结时仍禁用 API 35+ 的帧率省电平衡~~ — 属实，已修。`preferredRefreshRate` 与
+  `isFrameRatePowerSavingsBalanced` 合并进 `applyWindowFrameRatePolicy(animating)` 一起切换。
+- ~~Surface 不存在时的解冻会丢失时间锚复位~~ — 属实，但根因更早：`lastFrameTimeNanos`
+  本来就没有任何复位点，**每次切后台回来都有那个 6 倍步长的首帧**，与冻结无关。因此不补
+  "让解冻那次 post 活下来"，改为在 `FableSolGlRenderThread.setAnimating(true)` 里无条件复位，
+  一处覆盖解冻／后台返回／surface 重建三条路径。
+- **播放器 EOS 收尾后暂停不立即生效 — 判定不成立，不改。** `decodeLoop` 收尾分支是
+  `if (drainToEnd()) {…; return}` 后跟 `continue`，`continue` 回到 `while (shouldRun)` 顶部，
+  而顶部第二句就是 `if (!waitWhilePaused()) break`——暂停在下一次迭代生效，
+  `waitWhilePaused()` 里会 `audioTrack?.pause()` 并阻塞，恢复时还调 `resetDrainStall()`。
+  真实偏差仅为该次迭代内多跑一遍 `pumpAnalyzer()`、`drainToEnd` 自己那次
+  `lock.wait(BUFFER_FULL_WAIT_MS)` 被跳过，不是"声音跑到尾部"。
+- ~~领域文档仍保留旧合同~~ — 属实，已改。`CONTEXT.md` 的 Voice Waveform Video 不变式改为
+  "产物内容与实时水体无关，但实时水体在产物的进度对话框在前台时让出资源"；D16 的"导出期间
+  播放照常"加删除线并标注 D187 修订。
+
 ## 验收
 
 - **D15 ① 逐位门禁未建立，且判据本身要改写**（2026-07-26 第四轮修正）。

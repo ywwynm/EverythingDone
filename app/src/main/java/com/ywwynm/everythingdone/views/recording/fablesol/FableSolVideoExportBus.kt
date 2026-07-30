@@ -178,6 +178,15 @@ internal object FableSolVideoExportBus {
 
     fun currentFor(jobId: Long): State? = registry.currentFor(jobId)
 
+    /**
+     * 这个任务号是否由**本进程**铸出。
+     *
+     * 号是从 1 开始单调递增的，所以"号 ≥ 下一个待发号"等价于"本进程从未铸过它"——只可能
+     * 来自被杀之前的那个进程。用来区分 [currentFor] 返回 null 的两种情形：进程重启（任务
+     * 与服务都已不存在），还是终态被 registry 限长淘汰（任务确实跑完过）。
+     */
+    fun isKnownJobId(jobId: Long): Boolean = jobId in 1L until nextJobId.get()
+
     fun hasActiveJobs(): Boolean = registry.hasActiveJobs()
 
     fun addListener(listener: (State) -> Unit) {

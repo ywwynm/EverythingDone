@@ -1,5 +1,64 @@
 # Current Debug Update Notes
 
+## 2026-07-30 - D187 评审修正两项（D189）
+
+发布号 202607301023；APK SHA-256
+4feb59d515e537876835c5241c50e93a8920e304857c2f6617ef45bac1bf0063（22,160,344 字节）。
+`latest.json` 的 sha256 与 sizeBytes 与 APK 实测一致；`releaseNotes` 706 字，单 `## ` 节，
+首尾片段均在、未截断。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260730182240.md`。
+
+- 修正一：`isFrameRatePowerSavingsBalanced` 与 `preferredRefreshRate` 合并进
+  `applyWindowFrameRatePolicy(animating)` 一起切换。此前冻结撤了两笔显式帧率票，窗口却仍
+  处于"退出系统动态刷新率省电调节"的状态。
+- 修正二：帧时间锚改为在 `FableSolGlRenderThread.setAnimating(true)` 里无条件复位。评审只
+  指出后台解冻那次 post 会被 `detachBlocking()` 清空的 handler 丢掉，但根因更早——
+  `lastFrameTimeNanos` 从来没有复位点，**每次切后台回来都有 6 倍步长的首帧**，是 D187
+  之前就存在的问题。一处复位覆盖解冻／后台返回／surface 重建。
+- 判定不成立未改：评审称 EOS 收尾期间暂停不生效。`decodeLoop` 收尾分支的 `continue` 回到
+  循环顶部，顶部第二句就是 `waitWhilePaused()`，暂停下一轮即生效。理由记入 D189，防止
+  后续按错误结论改回去。
+- 文档：`CONTEXT.md` 的 Voice Waveform Video 不变式与 D16「导出期间播放照常」已按 D187
+  改写／加删除线。
+- 发布前验证：`:app:testDebugUnitTest` 本次实跑 79 个类 559 例、0 失败、1 跳过，报告时间戳
+  18:22:40 确认为本次执行；`:app:assembleDebug` 通过。未使用 adb，未安装到任何设备。
+
+## 2026-07-30 - 冻结不再改不透明度（D187 可见表现改判）
+
+发布号 202607300954；APK SHA-256
+dc13df4e8870d1b8cb2528369d155d79736bab6ab144cbef3ef5af6de96ef3a0（22,160,344 字节）。
+`app/build/outputs/update-debug-apk/latest.json` 的 sha256 与 sizeBytes 与 APK 实测一致；
+`releaseNotes` 897 字，单 `## ` 节，首尾片段均在、未截断。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260730175413.md`。
+
+- 内容：紧接 202607300946 的修正。冻结时不再把水体淡到 0.16——水体是播放对话框的内容
+  本身，淡下去被读成"内容没了"；退居背景那套语言属于录音对话框的空转态。改为不碰不透明度、
+  立即冻结，附带省掉 360ms 淡出的渲染。`animatePresentationAlpha` 的 `onEnd` 回调随之撤回。
+- 保留：`openTrack` 在冻结态直接给终值而不走淡入动画——冻结时循环停着，动画中间值可能被
+  surface 重建的按需单帧原样定住。
+- 发布前验证：`:app:testDebugUnitTest` 本次实跑 79 个类 559 例、0 失败、1 跳过，报告时间戳
+  确认为本次执行；`:app:assembleDebug` 通过。未使用 adb，未安装到任何设备。
+
+## 2026-07-30 - 导出期间完全冻结实时水体（D187、D188）
+
+发布号 202607300946；APK SHA-256
+de61dc8cac60cda6f43e9cb6e06d3ba8443a410eff27ea5771f67583a1f0462b（22,160,344 字节）。
+本地 `app/build/outputs/update-debug-apk/latest.json` 的 sha256 与 sizeBytes 与 APK 实测
+逐字节一致；`releaseNotes` 808 字，单 `## ` 节，首尾片段均在、未截断。
+日志文件 `docs/features/fablesol-video-export/debug-updates/update-20260730174528.md`。
+
+- 内容：导出进度对话框在前台期间，实时水体完全冻结（停帧循环 + 冻模拟 + 撤两笔帧率投票
+  + surface 重建时按需单帧）、音频暂停不自动续播、倾斜传感器注销而方向锁保持；解冻只看
+  对话框在不在。顺带修掉进程被杀后恢复出的僵尸进度对话框（原先永远转圈，现判为
+  「导出已中断」）。
+- 字节数与上一发布（202607300833）相同但 SHA 不同：dex 以 uncompressed + page-aligned
+  打包，本次的增量被对齐填充吸收，不是打包了旧产物。
+- 发布前验证：`:app:testDebugUnitTest` 本次实跑 79 个类 559 例（含新增
+  `FableSolExportFreezeGateTest` 9 例）、0 失败、1 跳过，报告时间戳确认为本次执行；
+  `:app:assembleDebug` 通过。未使用 adb，未安装到任何设备。
+- 待用户验收：水面淡出停住的观感；同一段录音在本版与上一版的导出耗时（交替各两轮取中位
+  数，避免热降频偏置）。
+
 ## 2026-07-30 - D62～D184 评审修复批次（P01～P29 + 7 项裁定）
 
 发布号 202607300833；APK SHA-256

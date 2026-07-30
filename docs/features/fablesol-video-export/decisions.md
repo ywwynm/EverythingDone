@@ -404,7 +404,9 @@ padding 这些 ①② 完全覆盖不到的错误——而这些恰是本功能�
 - **导出前检查剩余存储空间**，按预估体积 × 1.2 判断，不够直接不启动并说明。
 - **同时只跑一个导出**，第二次点击排队而非并发（两个 MediaCodec 实例 + 两套 GL 上下文
   会互相拖垮）。
-- **导出期间播放照常**，两者不冲突（离线导出不碰 AudioTrack）。
+- ~~**导出期间播放照常**，两者不冲突（离线导出不碰 AudioTrack）。~~ **D187 修订**：
+  离线导出确实不碰 AudioTrack，但两者同进程抢 CPU。进度对话框在前台期间播放暂停、
+  实时水体完全冻结；对话框关掉即恢复（播放不自动续播）。
 - **产物文件名** = 音频附件名 + 时间戳。
 - **老录音无重力轨迹** → 按竖直渲染，不提示（提示了用户也无法补救）。
 
@@ -4634,3 +4636,173 @@ configure 必须携带码率键的设备（每个 CQ 候选都以纯 CQ 失败�
 - **不回写矩阵**：矩阵只归探测写；下次进设置页重探归位。
 - HLG super-white 回环验证与正式编码继续共用同一份形态（D139）：重试形态贯通
   `resolveHlgPlan`。
+
+---
+
+## D187（2026-07-30）导出进度对话框在前台期间，实时水体完全冻结
+
+导出跑在与实时视图**同一个进程**里，而实时 GL 线程是 `THREAD_PRIORITY_DISPLAY`
+（`FableSolGlRenderThread.attach()`）、导出工作线程只有 `THREAD_PRIORITY_DEFAULT`
+（`FableSolVideoExportService.ensureWorker()`）。不让路的话，实时视图在 CPU 调度上一直
+压着导出。
+
+### 冻结的构成
+
+`frozen = setSimulationPaused(true) + 停帧循环 + 撤帧率投票 + 按需单帧`
+
+**只冻模拟是不够的。** 调参 Dialog 那个 `setSimulationPaused` 只跳过 `sim.update` 与重力
+应用，`buildFrame` + `drawFrame` 每帧照跑，而按 D9 的实测 `buildFrame` 占 CPU 帧路径 87%。
+字面意义的"暂停对声音和倾斜的响应"几乎省不出资源，只是让画面站住。因此新增一个与它并列
+的独立开关：两者语义不同，也不能合并成一个字段——那样解除其中一个会把另一个一起解除。
+
+**撤帧率投票是两笔。** SurfaceView 自己的 `setFrameRate` 由 `clearSurfaceFrameRate()` 撤
+（`stopFrameLoop()` 原本不撤），播放对话框窗口的 `preferredRefreshRate = 120` 由
+`applyWindowRefreshRateVote(false)` 撤。少撤任何一笔，面板都会为一张静止画面继续跑在
+120Hz。
+
+**否掉"冻结改为 1fps 限速"**：`FableSolFramePacer` 下限就是 1.0，现成可用，但限速只跳过
+build+draw，`postFrameCallback()` 在 `shouldRender` 之前无条件执行——每秒仍有 120 次 GL
+线程唤醒。
+
+### 判据是"门"，不是一次性命令
+
+三个子系统各有自己的恢复入口，只发一次"停"必然漏：
+
+| 子系统 | 会撤销冻结的路径 | 处理 |
+|---|---|---|
+| 帧循环 | `onResume` → `onVisibilityAggregated(true)` → `ensureAnimating()` | frozen 进 `shouldAnimate()` |
+| 倾斜传感器 | `onResume` → `startTiltSensor()` | 改由 `FableSolExportFreezeGate` 下发目标状态 |
+| surface | SurfaceView 的 surface 在窗口不可见时被销毁，重建出来的一帧未画 = 空白 | 冻结态的 `ensureAnimating()` 投一次"渲染一帧就停" |
+
+判据抽成不依赖 Android 的 `FableSolExportFreezeGate`，由 `FableSolExportFreezeGateTest`
+的 9 条事件序列用例钉住；View 与 Fragment 只负责幂等执行。
+
+### 触发条件：只看对话框在不在
+
+**进度对话框存在期间冻结，对话框消失即解冻**，不看导出跑到哪一步。完成态、等待确认态
+继续冻着是有意为之：水体被对话框盖住，而后台确认不设超时，冻着反而省电。
+
+否掉"还要看导出状态"（多一块总线状态机，且完成态下水面突然复活而声音仍暂停）；否掉
+"只要导出在跑就冻"（用户点「在后台运行」回到播放界面就是一潭死水，一旦允许手动解冻
+就退化回本规则）。
+
+**重试链路上判据是连续的**：自动重试与用户确认的重试都复用同一个 `ActiveJob`、jobId 不变
+（`acceptSuggestedSpec` 直接 post `Running`），对话框原地重渲染，不会消失重建。进度对话框
+全项目只有 `FableSolVideoExportLauncher.launchGranted` 一处 show，通知栏也没有把它拉回来的
+PendingIntent——因此"对话框在前台"只可能发生在播放对话框之上。
+
+### 播放：暂停，不自动续播
+
+与"对话框不可见就暂停"同一约定，何时接着听由用户按播放键决定。三条硬理由：
+
+1. `FableSolAnalysisBatchInbox` 无界且**只被渲染循环 drain**，停了帧循环而播放继续，分析帧
+   会一路堆到解冻。
+2. `onCompleted()` 会自动跳下一条附件并 `autoPlay = true`。导出一条 3 分钟录音可能跑十几
+   分钟，期间播放对话框会把剩下的音频附件一条条放完，还每次把 HDR headroom 顶上去。
+   （另在 `onCompleted` 里加了压制期不跳转的保险。）
+3. 播放线程是普通优先级的 `Thread("FableSolAudioPlayback")`，解码 + AudioTrack + 实时 FFT
+   全在上面，与导出工作线程同优先级正面抢 CPU。
+
+### 可见表现：不改不透明度，直接冻
+
+水体 280dp×450dp 铺满播放对话框，进度对话框只有 320dp 宽、高度 wrap_content，上下各露出
+一大截——冻结是用户看得见的。设计当日先定的是"淡到 0.16 再冻"（与录音停止后退居背景同一
+个值），实机看过之后由用户改判：**播放对话框里水体是内容本身，退到背景档会被读成"内容
+没了"**；退居背景那套语言属于录音对话框的空转态，不适用在这里。
+
+因此冻结不碰不透明度、立即生效。附带收益是省掉那 360ms 淡出的渲染——那同样是从编码
+那里抢来的。`animatePresentationAlpha` 上为此加的 `onEnd` 回调随之撤回。
+
+仍需注意：冻结态下渲染循环停着，`openTrack` 的淡入动画中间值虽然画不出来，却可能被
+surface 重建时的按需单帧原样定住，所以冻结态改为直接给终值。
+
+### 方向锁不动
+
+`mLockedRotation` 是对话框打开时按当时 rotation 定死的。冻结期间解锁让设备转过去，恢复后
+重力到屏幕坐标的换算就是错的。传感器注销、方向锁保持。
+
+### 信号通路：监听宿主 FragmentManager
+
+`FragmentManager.FragmentLifecycleCallbacks` 监听进度对话框的 attach/detach，注册时再自己
+扫一遍 `fragments` 做初始同步（重建时两个对话框谁先走 `onCreateView` 没有保证）。
+
+**否掉"启动导出时把回调交给进度对话框"**：配置变化会重建两个对话框、回调随之丢失，水面
+就再也解不了冻——三星 Z Fold4 折叠展开、暗色模式切换、关掉实时倾斜后的旋转都会触发重建。
+失效模式是"永久冻结的一潭死水"，不能赌它不发生。
+
+### 不在范围内
+
+录音对话框的 PREPARED / STOPPED 空转态（水面 alpha 只有 0.16、无音频输入却每帧
+build+draw）用同一个原语就能省下来，但那是产品行为变更而非纯优化，另记 followup。录音
+对话框与导出无关：点「保存并导出视频」先 `saveFileAndLeave()` 关闭对话框，导出在
+`onDismiss` 里才发起，那时它的 visualizer 已经 `onDetachedFromWindow` → `stopFrameLoop()`。
+
+---
+
+## D188（2026-07-30）进程被杀后恢复出的进度对话框判为"导出已中断"，不再回落成排队态
+
+`FableSolVideoExportBus.newJobId()` 在铸号那一刻就把排队态登记进 registry，所以只要任务是
+本进程发起的，`currentFor` 必然有值——**取不到只有一种可能：进程被杀过**。此时
+FragmentManager 会把对话框从 savedInstanceState 恢复出来，而服务、总线、任务全都不在了，
+再没有任何状态会送达。
+
+原先回落成 `Queued` 会转一个永远不停的圈。D187 之后这条路径的代价升级了：判据只看对话框
+在不在，僵尸对话框意味着水体永久冻结、播放永久暂停。因此直接判为"导出已中断"终态
+（复用 `fablesol_export_service_interrupted`），给出确认按钮。
+
+`currentFor` 返回 null 还有第二种成因——终态被 registry 限长淘汰（>64 个任务）。用
+`isKnownJobId`（号 < 下一个待发号 ⟺ 本进程铸过）区分：那种情形任务确实跑完过、结果也显示
+过，直接关掉即可，不报中断。dismiss 走 `view.post`，不在 `onCreateView` 里同步拆自己。
+
+---
+
+## D189（2026-07-30）D187 的两处生命周期修正；EOS 收尾暂停一项判定不成立
+
+外部评审对 D187/D188 提了四项，三项成立、一项不成立。记录在案是为了防止后续按错误结论
+改回去。
+
+### 修正一：帧率省电平衡要跟着冻结一起切
+
+`isFrameRatePowerSavingsBalanced = false` 的含义是让窗口**退出**系统按需下调刷新率的省电
+调节。动画期间需要它（水面是连续动画），冻结期间恰恰相反——静止画面应该把刷新率控制权
+还给系统。原先它在 `onStart()` 里无条件置 false，撤了两笔显式帧率票却仍占着这一项。
+
+现与 `preferredRefreshRate` 合并进 `applyWindowFrameRatePolicy(animating)`，两笔一起切。
+
+### 修正二：帧时间锚在 `setAnimating(true)` 里复位，不在解冻点补
+
+评审指出后台解冻时 `setFrozen(false)` 的 `handler?.post` 会被丢掉——`detachBlocking()`
+末尾 `handler = null`。属实，但根因更早：**`lastFrameTimeNanos` 本来就没有任何复位点**，
+每一次切后台再回来的首帧都以后台前的时间戳算 dt，被 `MAX_DT_SECONDS` 夹住之后仍是常规
+步长的 6 倍。这是 D187 之前就存在的问题，不是冻结引入的。
+
+因此不去补"让解冻那次 post 活下来"，改为在 `FableSolGlRenderThread.setAnimating(true)`
+里无条件复位：循环停过就必然有间隔，锚必然过期。一处覆盖解冻、后台返回、surface 重建
+三条路径，也不再依赖 handler 在某个时刻是否还活着。
+
+### 判定不成立：EOS 收尾期间暂停不生效
+
+评审称 `FableSolAudioFilePlayer.drainToEnd()` 不调 `waitWhilePaused()`，因此在末尾缓冲阶段
+发起导出时声音会继续跑到尾部。**不成立。** `decodeLoop` 的收尾分支是
+
+```
+if (sawOutputEos) {
+    if (drainToEnd()) { if (shouldRun) complete(); return }
+    continue
+}
+```
+
+`continue` 回到 `while (shouldRun)` 顶部，顶部第二句就是 `if (!waitWhilePaused()) break`。
+暂停在下一次迭代生效，`waitWhilePaused()` 里调 `audioTrack?.pause()`、发出 playing=false
+并阻塞在 `lock.wait()`，恢复时还调 `resetDrainStall()` 清掉收尾停滞计时——后者的存在本身
+就说明"收尾期间会被暂停"是设计内的情形。
+
+真实偏差只有一次迭代：`drainToEnd()` 在 `paused` 为真时跳过自己那次
+`lock.wait(BUFFER_FULL_WAIT_MS)` 并多跑一遍 `pumpAnalyzer()`。为此改动 EOS 收尾循环不划算，
+反而会与 `resetDrainStall` 的时序纠缠。
+
+### 顺带：领域文档的旧合同
+
+`CONTEXT.md` 原写"显示实时 Voice Waveform 的界面不受是否正在生成视频影响"，D16 原写
+"导出期间播放照常"。两句在 D187 之后都不成立，已分别改写与加删除线标注。产物内容确实
+仍与实时水体无关——被改变的只是资源让路。

@@ -73,11 +73,14 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
         mTvPrimary = f(R.id.tv_fablesol_export_primary_as_bt)
         mTvTitle = f(R.id.tv_fablesol_export_title)
         applyAccent()
-        // 排队中的任务在总线上还没有自己的消息，按"准备中"渲染而不是显示别人的进度。
-        render(
-            FableSolVideoExportBus.currentFor(mJobId)
-                ?: FableSolVideoExportBus.State.Queued(mJobId)
-        )
+        val restored = restoredState()
+        if (restored == null) {
+            // 不在 onCreateView 里同步 dismiss：那是在 FragmentManager 正装配本 fragment 的
+            // 时候拆它。
+            view.post { dismissAllowingStateLoss() }
+        } else {
+            render(restored)
+        }
         FableSolVideoExportBus.addListener(mListener)
         return view
     }
@@ -85,6 +88,30 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
     override fun onDestroyView() {
         FableSolVideoExportBus.removeListener(mListener)
         super.onDestroyView()
+    }
+
+    /**
+     * 装配时的初始状态。
+     *
+     * [FableSolVideoExportBus.newJobId] 在铸号那一刻就把排队态登记进 registry，所以只要任务
+     * 是本进程发起的，`currentFor` 必然有值——**取不到只有一种可能：进程被杀过**。此时
+     * FragmentManager 会把这个对话框从 savedInstanceState 里恢复出来，而服务、总线、任务
+     * 全都不在了，再没有任何状态会送达。
+     *
+     * 不做这个判定的话它会回落成排队态，转一个永远不停的圈；对播放对话框而言，那还意味着
+     * 水体永久冻结、播放永久暂停（判据只看对话框在不在）。因此直接判为"导出已中断"终态，
+     * 给出确认按钮让用户关掉。
+     *
+     * 返回 null 表示"没什么可显示的，关掉即可"。
+     */
+    private fun restoredState(): FableSolVideoExportBus.State? {
+        FableSolVideoExportBus.currentFor(mJobId)?.let { return it }
+        // 号是本进程铸的，只是终态被 registry 限长淘汰了：任务确实跑完过，结果那时也显示过。
+        if (FableSolVideoExportBus.isKnownJobId(mJobId)) return null
+        return FableSolVideoExportBus.State.Failed(
+            mJobId,
+            getString(R.string.fablesol_export_service_interrupted)
+        )
     }
 
     /**

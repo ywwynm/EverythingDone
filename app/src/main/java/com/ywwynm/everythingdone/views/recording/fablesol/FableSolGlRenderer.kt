@@ -116,6 +116,9 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     // 暂停冻结（与 Python canvas 同语义）：不推进模拟与音频泵，渲染循环
     // 照跑——冻结画面上调参、换色、HDR 切换仍逐帧实时生效。
     @Volatile private var simulationPaused = false
+    @Volatile private var frozen = false
+    /** 调参冻结与完全冻结在"运动是否推进"上同义；两者任一成立即停。 */
+    private val motionPaused: Boolean get() = simulationPaused || frozen
     private val gravityInbox = FableSolGravityInbox()
     private val gravityScratch = FloatArray(3)
     private var consumedGravitySequence = 0
@@ -463,6 +466,26 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         simulationPaused = paused
     }
 
+    /**
+     * 完全冻结（导出进度对话框在前台）：运动一侧与 [setSimulationPaused] 同语义，但帧循环
+     * 由 [FableSolGlRenderThread] 一并停掉，因此 buildFrame / drawFrame 也不再发生。
+     *
+     * 与调参那个冻结是两个独立开关。两者实际不会同时出现（调参在设置页，导出对话框在详情页），
+     * 但也不能合并成一个字段：那样解除其中一个会把另一个一起解除。
+     */
+    fun setFrozen(value: Boolean) {
+        frozen = value
+    }
+
+    /**
+     * 解冻后的第一帧不能拿"冻结前那一帧"当时间锚：那样 dt 等于整段冻结时长，被
+     * [MAX_DT_SECONDS] 夹住之后仍是常规步长的 6 倍，会看到一次可见的跳变。归零后
+     * [render] 走 [TARGET_FRAME_SECONDS] 分支，恢复的第一帧与常规帧无异。
+     */
+    fun resetFrameTimeAnchor() {
+        lastFrameTimeNanos = 0L
+    }
+
     fun setGravity(x: Float, y: Float, z: Float) {
         gravityInbox.offer(x, y, z)
     }
@@ -484,7 +507,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             SystemClock.elapsedRealtime()
         }
         drainAndApply(now)
-        if (!simulationPaused) applyLatestGravity()
+        if (!motionPaused) applyLatestGravity()
         advanceColorTransition(now)
         val physicsStart = SystemClock.elapsedRealtimeNanos()
         var dt = when {
@@ -512,7 +535,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             hdrContentEnabled && hdrRecordingRequested && hdrHeadroom > 1f,
             boundedDt.toFloat()
         )
-        if (!simulationPaused) sim.update(boundedDt)
+        if (!motionPaused) sim.update(boundedDt)
         val buildStart = SystemClock.elapsedRealtimeNanos()
         buildFrame()
         val drawStart = SystemClock.elapsedRealtimeNanos()
@@ -602,7 +625,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             // 调参后强制下一帧重建。
             materialColorKey = null
         }
-        if (simulationPaused) {
+        if (motionPaused) {
             // 冻结：丢弃本帧 drain 到的特征与事件（恢复后从最新实时输入继续），
             // 静默衰减计时锚随帧推移一并冻结。
             if (lastAudioElapsed != 0L) lastAudioElapsed = now

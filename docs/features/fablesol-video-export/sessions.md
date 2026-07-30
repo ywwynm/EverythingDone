@@ -1226,3 +1226,53 @@ CQ 选项与无 `qualityRange` 的精确档位，现有 `FableSolExportRateContr
   矩阵契约再升级）。评审文档记录裁定；followups.md 新增真机核查项（抽查两台真机
   `profileLevels` 条目形态，确见单条目再凭证据选改法）。
 - **至此评审的 8 项待裁定全部收口**（第 1 项随 P04、第 2～8 项本轮逐项裁定）。
+
+## 2026-07-30 — 导出期间完全冻结实时水体（D187、D188）
+
+- 用户提出：导出对话框在前台时暂停水体对声音与倾斜的响应，把资源让给编码。经 8 轮
+  grill 把"暂停响应"扩成**完全冻结**——查证 `setSimulationPaused` 只跳过 `sim.update`，
+  而 `buildFrame` 按 D9 实测占 CPU 帧路径 87%，字面做法几乎省不出资源。
+- 关键查证：导出与实时视图同进程，实时 GL 线程 `THREAD_PRIORITY_DISPLAY` 压着导出工作
+  线程的 `THREAD_PRIORITY_DEFAULT`；进度对话框只有一处 show、通知栏无法拉回，因此只可能
+  盖在播放对话框之上；重试链路 jobId 不变、对话框不重建；`FableSolAnalysisBatchInbox`
+  无界且只由渲染循环 drain；`onCompleted` 会自动放完剩下的音频附件。
+- 用户在过程中追问重试期间对话框是否会临时消失——查证不会，但由此暴露"进程被杀后恢复出
+  的僵尸进度对话框"这一既有缺陷，用户裁定一并修（D188）。
+- 用户否掉了把原语顺带用在录音对话框空转态上：那是产品行为变更，另记 followup。
+- 实现：新增 `FableSolExportFreezeGate`（纯 JVM 判据）+ `WaveVisualizerFableSolHost
+  .setFrozen`；GL 与 Canvas 两条路径各自加 frozen 门；GL 侧补"surface 重建时按需单帧"，
+  否则切后台回来是一块空白。播放对话框改为监听宿主 FragmentManager 的
+  `FragmentLifecycleCallbacks`（抗配置变化重建）。
+- 验证：`FableSolExportFreezeGateTest` 9 条事件序列用例全绿；`:app:testDebugUnitTest`
+  本次实跑 79 个类 / 559 条，0 失败 1 跳过；`:app:assembleDebug` 通过。真机观感与耗时
+  A/B 由用户自行验证。
+
+## 2026-07-30 — D187/D188 实现代码评审
+
+- 本轮只审查、不改业务代码。门控判据、FragmentManager attach/detach 同步、GL/Canvas
+  frozen 门、Surface 按需单帧与进程恢复终态的主路径成立，未发现崩溃或永久冻结问题。
+- 发现三个待修运行时边界：API 35+ 冻结时仍关闭帧率省电平衡；Surface 已销毁时解冻会丢失
+  `resetFrameTimeAnchor()`；播放器进入 EOS 收尾后不消费暂停标志，可能继续播放并做实时 FFT
+  直到尾部。另发现 `CONTEXT.md` 与 D16 仍保留 D187 之前的旧合同。
+- 详情已记入 `followups.md` 的“D187/D188 代码评审待修项”。验证重新强制执行
+  `:app:testDebugUnitTest`：79 个类、559 条测试、0 失败、1 跳过；此前
+  `:app:assembleDebug` 复核通过。现有 9 条 Gate 测试只覆盖纯状态判据，无法覆盖上述
+  Window、Surface 与 AudioTrack 生命周期边界。
+
+## 2026-07-30 — 评审四项的处理（D189）
+
+- ① 冻结时仍关闭帧率省电平衡：属实，已修。与 `preferredRefreshRate` 合并进
+  `applyWindowFrameRatePolicy(animating)` 一起切换。
+- ② Surface 已销毁时解冻丢失 `resetFrameTimeAnchor()`：属实，但根因更早——
+  `lastFrameTimeNanos` 从来没有复位点，每次切后台回来都有 6 倍步长的首帧，是 D187 之前
+  就存在的问题。因此不补"让那次 post 活下来"，改在 `FableSolGlRenderThread.setAnimating(true)`
+  里无条件复位，一处覆盖解冻／后台返回／surface 重建。
+- ③ EOS 收尾后暂停不生效：**判定不成立，未改动。** `decodeLoop` 收尾分支的 `continue`
+  回到 `while (shouldRun)` 顶部，顶部第二句就是 `if (!waitWhilePaused()) break`；暂停在
+  下一次迭代生效并真正 `audioTrack?.pause()`。`waitWhilePaused()` 恢复时调用
+  `resetDrainStall()` 这一事实本身就说明"收尾期间被暂停"是设计内情形。理由写入 D189，
+  防止后续按错误结论改回去。
+- ④ 领域文档旧合同：属实，已改。`CONTEXT.md` 的 Voice Waveform Video 不变式与 D16 的
+  「导出期间播放照常」均按 D187 修订。
+- 验证：`:app:assembleDebug` 通过；`:app:testDebugUnitTest` 本次实跑 79 个类 559 例、
+  0 失败 1 跳过。发布 202607301023。

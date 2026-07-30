@@ -41,6 +41,13 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     )
     internal var onGlFailure: ((String) -> Unit)? = null
     private var animating = false
+    /**
+     * 完全冻结。它是一道**门**而不是一次性命令：`ensureAnimating()` 有五个调用点
+     * （attach、surfaceCreated、surfaceChanged、sizeChanged、可见性变化），任何一个都会在
+     * 冻结期间把帧循环拉回来——切后台再切回来就足以撤销冻结。因此判据必须进
+     * [shouldAnimate]。
+     */
+    private var frozen = false
     private var surfaceReady = false
     private var votedFrameRate = 0f
     private var demotedPollStreak = 0
@@ -140,6 +147,26 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      */
     internal fun setSimulationPaused(paused: Boolean) {
         renderThread.setSimulationPaused(paused)
+    }
+
+    /**
+     * 完全冻结：停帧循环、冻住模拟、撤掉帧率投票。与 [setSimulationPaused]（只冻模拟、
+     * 渲染照跑）是两回事——这里连 buildFrame / drawFrame 都不再发生，SurfaceView 停在
+     * 最后一帧。
+     *
+     * 撤帧率投票是必须的：`stopFrameLoop()` 本身不动 `setFrameRate`，不撤的话面板会为一张
+     * 静止画面继续被顶在 120Hz。
+     */
+    internal fun setFrozen(value: Boolean) {
+        if (frozen == value) return
+        frozen = value
+        renderThread.setFrozen(value)
+        if (value) {
+            stopFrameLoop()
+            clearSurfaceFrameRate()
+        } else {
+            ensureAnimating()
+        }
     }
 
     internal fun beginBackgroundTransition(background: ThingBackground) {
@@ -245,6 +272,11 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     private fun ensureAnimating() {
+        if (frozen) {
+            // 冻结态不开循环，但刚建出来或刚改过尺寸的 surface 必须有内容：补一帧就停。
+            if (surfaceReady && width > 0 && height > 0) renderThread.renderSingleFrame()
+            return
+        }
         if (!shouldAnimate()) return
         if (!animating) {
             animating = true
@@ -463,7 +495,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         renderThread.setDisplayHdrSdrRatio(1f)
     }
 
-    private fun shouldAnimate(): Boolean = surfaceReady && isAttachedToWindow &&
+    private fun shouldAnimate(): Boolean = !frozen && surfaceReady && isAttachedToWindow &&
         width > 0 && height > 0 && windowVisibility == View.VISIBLE && isShown
 
     private fun resolveIntrinsic(spec: Int, dp: Float): Int {

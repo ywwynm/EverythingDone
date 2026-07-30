@@ -18,6 +18,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.Surface
@@ -39,6 +40,8 @@ import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.recording.FableSolAudioFilePlayer
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportFreezeGate
+import com.ywwynm.everythingdone.views.recording.fablesol.FableSolExportFreezeTarget
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
@@ -89,6 +92,12 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
      * 自动旋转。
      */
     private var mLiveTiltEnabled: Boolean = true
+    /**
+     * 导出进度对话框在前台时，实时水体完全冻结、播放暂停、传感器注销，把 CPU/GPU 全部让给
+     * 离线编码——实时 GL 线程是 `THREAD_PRIORITY_DISPLAY`，而导出工作线程只有
+     * `THREAD_PRIORITY_DEFAULT`，不让路的话实时视图一直压着导出。
+     */
+    private val mFreezeGate = FableSolExportFreezeGate()
     private var mPerformanceMonitor: FableSolPerformanceMonitor? = null
     private var mOriginalRequestedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked: Boolean = false
@@ -114,6 +123,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(requireContext())
         lockHostOrientation()
         prepareTiltSensor()
+        mFreezeGate.setTiltAvailable(mLiveTiltEnabled && mGravitySensor != null)
 
         mTvFileName = f(R.id.tv_playing_audio_file_name)
         mClockView  = f(R.id.clock_play_audio)
@@ -152,6 +162,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         player.setListener(mPlayerListener)
 
         setEvents()
+        observeExportDialog()
         openTrack(mIndex, autoPlay = true)
 
         return mContentView
@@ -160,13 +171,8 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     override fun onStart() {
         super.onStart()
         val window = dialog?.window ?: return
-        val attributes = window.attributes
-        attributes.preferredRefreshRate = TARGET_REFRESH_RATE
-        window.attributes = attributes
-        if (Build.VERSION.SDK_INT >= 35) {
-            // 与录音对话框同理：水面是连续动画，必须退出「省电平衡」的帧率投票。
-            window.isFrameRatePowerSavingsBalanced = false
-        }
+        // 冻结期间不投高刷：切后台再回来会走到这里，无条件投票会把撤掉的那笔票又加回去。
+        applyWindowFrameRatePolicy(animating = !mFrozenApplied)
         if (BuildConfig.DEBUG && mPerformanceMonitor == null) {
             val monitor = FableSolPerformanceMonitor(window.context)
             mPerformanceMonitor = monitor
@@ -177,11 +183,13 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        startTiltSensor()
+        // 不能直接 startTiltSensor()：导出对话框开着的时候切后台再切回来，这一行会把已经
+        // 注销掉的传感器重新注册上，冻结就漏了一个口子。统一走判据。
+        applyFreezeTarget(mFreezeGate.setHostResumed(true))
     }
 
     override fun onPause() {
-        stopTiltSensor()
+        applyFreezeTarget(mFreezeGate.setHostResumed(false))
         // 对话框不可见时不该继续出声：暂停后由用户自己决定何时续播。
         mPlayer?.pause()
         super.onPause()
@@ -189,6 +197,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
 
     override fun onDestroyView() {
         removeClockContentAlignment()
+        removeExportDialogObserver()
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
@@ -217,16 +226,23 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         mLastClockSecond = -1L
         mUserSeeking = false
 
+        // 导出对话框在前台时不许自动起播。
+        val target = mFreezeGate.target()
+        val play = autoPlay && !target.playbackSuppressed
+
         mTvFileName!!.text = File(mPaths[index]).name
         mSeekBar!!.max = PROGRESS_UNKNOWN_MAX
         mSeekBar!!.progress = 0
         mClockView!!.setTimeMillis(0L, false)
         updateTransportAvailability()
-        setMainButtonIcon(playing = autoPlay)
-        mVisualizer!!.setRecordingHdrActive(autoPlay && FableSolTuning.isHdrEnabled(mActivity!!))
-        mVisualizer!!.animatePresentationAlpha(1.0f, ANIM_DURATION.toLong())
+        setMainButtonIcon(playing = play)
+        mVisualizer!!.setRecordingHdrActive(play && FableSolTuning.isHdrEnabled(mActivity!!))
+        // 冻结态下渲染循环停着，动画的中间值不会被画出来，却可能被 surface 重建时的按需
+        // 单帧原样定住。这时直接给终值。
+        if (target.frozen) mVisualizer!!.setPresentationAlpha(1.0f)
+        else mVisualizer!!.animatePresentationAlpha(1.0f, ANIM_DURATION.toLong())
 
-        player.open(mPaths[index], autoPlay)
+        player.open(mPaths[index], play)
     }
 
     private fun togglePlay() {
@@ -281,6 +297,13 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
 
         override fun onCompleted() {
             if (!isAdded) return
+            // 导出对话框在前台时绝不自动跳下一条：那会让整叠音频附件在用户盯着进度条的时候
+            // 一条接一条自己放完，还每次把 HDR headroom 顶上去。
+            if (mFreezeGate.target().playbackSuppressed) {
+                mFinished = true
+                setMainButtonIcon(playing = false)
+                return
+            }
             if (mIndex < mPaths.size - 1) {
                 openTrack(mIndex + 1, autoPlay = true)
             } else {
@@ -423,6 +446,93 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
             ThingBackground.Orientation.RB_LT -> TimelyClockView.ORIENTATION_RB_LT
             ThingBackground.Orientation.RT_LB -> TimelyClockView.ORIENTATION_RT_LB
             ThingBackground.Orientation.LB_RT -> TimelyClockView.ORIENTATION_LB_RT
+        }
+    }
+
+    // ---- 导出期间冻结实时水体 ----
+
+    /**
+     * 不用"启动导出时把回调交给进度对话框"那种写法：配置变化会重建两个对话框，回调随之丢失，
+     * 水面就再也解不了冻。三星 Z Fold4 折叠/展开、暗色模式切换、关掉实时倾斜后的旋转都会
+     * 触发重建，这不是理论情况。监听宿主 FragmentManager 则天然抗重建。
+     */
+    private val mExportDialogObserver = object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
+            if (f is FableSolExportProgressDialogFragment) syncExportDialogPresence(fm)
+        }
+
+        override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
+            if (f is FableSolExportProgressDialogFragment) syncExportDialogPresence(fm)
+        }
+    }
+    private var mExportDialogObserved: FragmentManager? = null
+    private var mFrozenApplied = false
+
+    private fun observeExportDialog() {
+        val manager = parentFragmentManager
+        manager.registerFragmentLifecycleCallbacks(mExportDialogObserver, false)
+        mExportDialogObserved = manager
+        // 重建时两个对话框谁先走 onCreateView 没有保证，因此注册后必须自己扫一遍当前状态，
+        // 不能只等回调。
+        applyFreezeTarget(mFreezeGate.setExportDialogPresent(hasExportDialog(manager)))
+    }
+
+    private fun removeExportDialogObserver() {
+        mExportDialogObserved?.unregisterFragmentLifecycleCallbacks(mExportDialogObserver)
+        mExportDialogObserved = null
+    }
+
+    private fun syncExportDialogPresence(manager: FragmentManager) {
+        applyFreezeTarget(mFreezeGate.setExportDialogPresent(hasExportDialog(manager)))
+    }
+
+    private fun hasExportDialog(manager: FragmentManager): Boolean =
+        manager.fragments.any { it is FableSolExportProgressDialogFragment }
+
+    /**
+     * 把判据落到三个子系统上。每次都下发完整目标状态并幂等对齐——只在状态跳变时发一次
+     * "停"，任何一条生命周期恢复路径都能把它悄悄撤销。
+     */
+    private fun applyFreezeTarget(target: FableSolExportFreezeTarget) {
+        // 解除压制不等于续播：何时接着听由用户按播放键决定，与"对话框不可见就暂停"同一约定。
+        if (target.playbackSuppressed) mPlayer?.pause()
+        if (target.tiltSensorRegistered) startTiltSensor() else stopTiltSensor()
+        applyFrozen(target.frozen)
+    }
+
+    /**
+     * 冻结**不改不透明度**：水体是这个对话框的内容本身，退到背景档会被读成"内容没了"。
+     * 退居背景那套语言属于录音对话框的空转态，不适用在这里。因此冻结立即生效，不必等一段
+     * 淡出——那 360ms 的渲染同样是从编码那里抢来的。
+     */
+    private fun applyFrozen(frozen: Boolean) {
+        if (mFrozenApplied == frozen) return
+        // 取不到水体就不记账：记了却没落地，之后的解冻会被这条早退直接吞掉。
+        val visualizer = mVisualizer ?: return
+        mFrozenApplied = frozen
+        applyWindowFrameRatePolicy(animating = !frozen)
+        visualizer.setFrozen(frozen)
+    }
+
+    /**
+     * 窗口这一侧的帧率诉求，两件事必须一起切换：
+     *
+     * - `preferredRefreshRate`：与 SurfaceView 自己的 `setFrameRate` 是**两笔独立的票**，
+     *   只撤后者，面板仍会为一张静止画面被顶在 120Hz。
+     * - `isFrameRatePowerSavingsBalanced`：置 false 是让窗口**退出**系统按需下调刷新率的
+     *   省电调节。动画期间需要（水面是连续动画），冻结期间恰恰相反——静止画面应该把刷新率
+     *   控制权还给系统，所以要还原成 true。
+     */
+    private fun applyWindowFrameRatePolicy(animating: Boolean) {
+        val window = dialog?.window ?: return
+        val attributes = window.attributes
+        val desired = if (animating) TARGET_REFRESH_RATE else 0f
+        if (attributes.preferredRefreshRate != desired) {
+            attributes.preferredRefreshRate = desired
+            window.attributes = attributes
+        }
+        if (Build.VERSION.SDK_INT >= 35) {
+            window.isFrameRatePowerSavingsBalanced = !animating
         }
     }
 
