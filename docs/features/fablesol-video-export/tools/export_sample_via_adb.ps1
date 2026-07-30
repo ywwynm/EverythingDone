@@ -4,6 +4,8 @@
 
     [string]$Serial = "3B1629006YC00000",
 
+    [string]$NoteText = "测试音频呀",
+
     [int]$TimeoutSeconds = 900
 )
 
@@ -16,7 +18,8 @@ $package = "com.ywwynm.everythingdone"
 $mainActivity = "$package/.activities.ThingsActivity"
 $remoteUi = "/sdcard/fablesol-export-ui.xml"
 $remoteDirectory = "/sdcard/Movies/EverythingDone"
-$localUi = Join-Path ([System.IO.Path]::GetTempPath()) "fablesol-export-ui.xml"
+$safeSerial = $Serial -replace "[^A-Za-z0-9._-]", "_"
+$localUi = Join-Path ([System.IO.Path]::GetTempPath()) "fablesol-export-ui-$safeSerial.xml"
 
 if (-not (Test-Path -LiteralPath $adb)) {
     throw "ADB 不存在：$adb"
@@ -74,6 +77,10 @@ function Get-TopActivity {
     $line = Invoke-Adb shell dumpsys activity activities |
         Select-String "topResumedActivity" |
         Select-Object -First 1
+    if ($null -eq $line) {
+        # Activity 切换的极短窗口内，dumpsys 可能暂时没有 topResumedActivity。
+        return ""
+    }
     return $line.ToString()
 }
 
@@ -109,7 +116,11 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
     $top = Get-TopActivity
     if ($top -match "ThingsActivity") {
         $ui = Get-Ui
-        if ($ui.SelectSingleNode('//node[@text="测试音频呀"]')) {
+        $listedNote = @(
+            $ui.SelectNodes('//node[@text!=""]') |
+                Where-Object { $_.text -eq $NoteText }
+        ) | Select-Object -First 1
+        if ($listedNote) {
             break
         }
         # 冷启动时列表可能尚未绑定；此时返回键会直接退出主界面，应等待数据加载。
@@ -121,9 +132,12 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
 }
 
 $ui = Get-Ui
-$note = $ui.SelectSingleNode('//node[@text="测试音频呀"]')
+$note = @(
+    $ui.SelectNodes('//node[@text!=""]') |
+        Where-Object { $_.text -eq $NoteText }
+) | Select-Object -First 1
 if (-not $note) {
-    throw "主列表中未找到测试记事「测试音频呀」"
+    throw "主列表中未找到测试记事「$NoteText」"
 }
 $clickable = $note
 while ($clickable -and $clickable.clickable -ne "true") {

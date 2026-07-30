@@ -99,7 +99,10 @@ def frame_metrics(rgb: np.ndarray, frame_index: int, fps: float) -> dict[str, fl
     }
 
 
-def temporal_summary(rows: list[dict[str, float]]) -> dict[str, Any]:
+def temporal_summary(
+    rows: list[dict[str, float]],
+    fps: float,
+) -> dict[str, Any]:
     core = np.asarray([row["core_luma_median"] for row in rows], dtype=np.float64)
     core_trimmed = np.asarray(
         [row["core_luma_trimmed_mean"] for row in rows], dtype=np.float64
@@ -115,7 +118,34 @@ def temporal_summary(rows: list[dict[str, float]]) -> dict[str, Any]:
         dtype=np.float64,
     )
 
-    steps = np.abs(np.diff(core)) / np.maximum(np.abs(core[:-1]), 1e-9)
+    signed_steps = np.diff(core) / np.maximum(np.abs(core[:-1]), 1e-9)
+    steps = np.abs(signed_steps)
+    impulse = np.abs(
+        core[1:-1] - (core[:-2] + core[2:]) * 0.5
+    ) / np.maximum(np.abs(core[1:-1]), 1e-9)
+    alternating = (
+        (signed_steps[:-1] * signed_steps[1:] < 0.0)
+        & (np.abs(signed_steps[:-1]) >= 0.005)
+        & (np.abs(signed_steps[1:]) >= 0.005)
+    )
+
+    normalized_core = core / max(float(np.mean(core)), 1e-9) - 1.0
+    trend_window = max(3, int(round(max(fps, 1.0) * 0.5)))
+    if trend_window % 2 == 0:
+        trend_window += 1
+    pad = trend_window // 2
+    padded = np.pad(normalized_core, pad, mode="reflect")
+    trend = np.convolve(
+        padded,
+        np.ones(trend_window, dtype=np.float64) / trend_window,
+        mode="valid",
+    )
+    high_pass = normalized_core - trend
+    frequencies = np.fft.rfftfreq(len(high_pass), d=1.0 / max(fps, 1.0))
+    spectrum = np.abs(np.fft.rfft(high_pass)) ** 2
+    non_dc = frequencies > 0.0
+    total_power = float(np.sum(spectrum[non_dc]))
+    high_frequency_power = float(np.sum(spectrum[frequencies >= 8.0]))
     low_cut = np.percentile(highlights, 25.0)
     high_cut = np.percentile(highlights, 75.0)
     low_mask = highlights <= low_cut
@@ -139,7 +169,24 @@ def temporal_summary(rows: list[dict[str, float]]) -> dict[str, Any]:
             float(np.std(core_trimmed)), float(np.mean(core_trimmed))
         ),
         "core_luma_frame_step_p95": float(np.percentile(steps, 95.0)),
+        "core_luma_frame_step_p99": float(np.percentile(steps, 99.0)),
         "core_luma_frame_step_max": float(np.max(steps)),
+        "core_luma_frame_step_over_0_5pct_count": int(np.sum(steps >= 0.005)),
+        "core_luma_frame_step_over_1pct_count": int(np.sum(steps >= 0.01)),
+        "core_luma_alternating_step_over_0_5pct_count": int(np.sum(alternating)),
+        "core_luma_three_frame_impulse_p99": (
+            float(np.percentile(impulse, 99.0)) if len(impulse) else 0.0
+        ),
+        "core_luma_three_frame_impulse_max": (
+            float(np.max(impulse)) if len(impulse) else 0.0
+        ),
+        "core_luma_half_second_residual_rms": float(
+            np.sqrt(np.mean(high_pass * high_pass))
+        ),
+        "core_luma_half_second_residual_max": float(np.max(np.abs(high_pass))),
+        "core_luma_high_frequency_power_ratio_8hz": safe_ratio(
+            high_frequency_power, total_power
+        ),
         "surface_luma_p99_max": float(np.max(highlights)),
         "surface_luma_p99_p95": float(np.percentile(highlights, 95.0)),
         "core_highlight_correlation": correlation,
@@ -162,7 +209,12 @@ def metadata_summary(
     transfer: str,
 ) -> dict[str, Any]:
     if transfer != "smpte2084":
-        return {"hdr10plus_frame_count": 0, "hdr10plus_unique_payloads": 0}
+        return {
+            "hdr10plus_frame_count": 0,
+            "hdr10plus_unique_payloads": 0,
+            "hdr_vivid_frame_count": 0,
+            "hdr_vivid_unique_payloads": 0,
+        }
 
     frames = run_json(
         [
@@ -179,24 +231,36 @@ def metadata_summary(
             str(video),
         ]
     ).get("frames", [])
-    payload_hashes: set[str] = set()
-    payload_count = 0
-    first_payload: dict[str, Any] | None = None
+    hdr10plus_hashes: set[str] = set()
+    hdr10plus_count = 0
+    hdr10plus_first: dict[str, Any] | None = None
+    vivid_hashes: set[str] = set()
+    vivid_count = 0
+    vivid_first: dict[str, Any] | None = None
     for frame in frames:
         for side_data in frame.get("side_data_list", []):
-            if side_data.get("side_data_type") != "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)":
-                continue
-            payload_count += 1
-            if first_payload is None:
-                first_payload = side_data
             canonical = json.dumps(
                 side_data, ensure_ascii=False, sort_keys=True, separators=(",", ":")
             )
-            payload_hashes.add(hashlib.sha256(canonical.encode("utf-8")).hexdigest())
+            payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+            side_data_type = side_data.get("side_data_type")
+            if side_data_type == "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)":
+                hdr10plus_count += 1
+                if hdr10plus_first is None:
+                    hdr10plus_first = side_data
+                hdr10plus_hashes.add(payload_hash)
+            elif side_data_type == "HDR Dynamic Metadata CUVA 005.1 2021 (Vivid)":
+                vivid_count += 1
+                if vivid_first is None:
+                    vivid_first = side_data
+                vivid_hashes.add(payload_hash)
     return {
-        "hdr10plus_frame_count": payload_count,
-        "hdr10plus_unique_payloads": len(payload_hashes),
-        "hdr10plus_first_payload": first_payload,
+        "hdr10plus_frame_count": hdr10plus_count,
+        "hdr10plus_unique_payloads": len(hdr10plus_hashes),
+        "hdr10plus_first_payload": hdr10plus_first,
+        "hdr_vivid_frame_count": vivid_count,
+        "hdr_vivid_unique_payloads": len(vivid_hashes),
+        "hdr_vivid_first_payload": vivid_first,
     }
 
 
@@ -233,6 +297,53 @@ def create_contact_sheet(
             "0:v:0",
             "-vf",
             f"fps=1,{colour},scale=576:-2,tile=4x2:padding=4:margin=4",
+            "-frames:v",
+            "1",
+            "-y",
+            str(output),
+        ],
+        check=True,
+    )
+
+
+def create_water_detail_sheet(
+    ffmpeg: str,
+    video: Path,
+    transfer: str,
+    output: Path,
+) -> None:
+    if transfer in {"smpte2084", "arib-std-b67"}:
+        colour = (
+            "zscale=transfer=linear:npl=100,"
+            "format=gbrpf32le,"
+            "tonemap=mobius:param=0.3:desat=0,"
+            "zscale=primaries=bt709:transfer=iec61966-2-1:"
+            "matrix=bt709:range=full,"
+            "format=rgb24"
+        )
+    else:
+        colour = (
+            "zscale=primaries=bt709:transfer=iec61966-2-1:"
+            "matrix=bt709:range=full,"
+            "format=rgb24"
+        )
+    subprocess.run(
+        [
+            ffmpeg,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(video),
+            "-map",
+            "0:v:0",
+            "-vf",
+            (
+                f"fps=1,{colour},"
+                "crop=iw*0.84:ih*0.40:iw*0.08:ih*0.52,"
+                "scale=768:-2:flags=lanczos,"
+                "tile=4x2:padding=4:margin=4"
+            ),
             "-frames:v",
             "1",
             "-y",
@@ -330,7 +441,7 @@ def main() -> None:
     if not rows:
         raise RuntimeError("视频没有可分析帧")
 
-    temporal = temporal_summary(rows)
+    temporal = temporal_summary(rows, fps)
     video_bitrate = float(video_stream.get("bit_rate") or 0.0)
     temporal["bits_per_pixel_per_frame"] = safe_ratio(
         video_bitrate, width * height * fps
@@ -369,6 +480,12 @@ def main() -> None:
         video,
         transfer,
         output_dir / f"{label}.contact.png",
+    )
+    create_water_detail_sheet(
+        args.ffmpeg,
+        video,
+        transfer,
+        output_dir / f"{label}.water-detail.png",
     )
     print(summary_path)
     print(json.dumps(temporal, ensure_ascii=False, indent=2))

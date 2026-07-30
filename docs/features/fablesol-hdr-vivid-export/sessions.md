@@ -142,3 +142,8 @@
 - T/UWA 005.2-1-2026 定义 AVC、HEVC、VVC、AVS2、AVS3 的 HDR Vivid ES 承载，没有
   AV1。该机唯一可用的软件 AV1 HDR 通路不能改标成 HDR Vivid；当前不改代码，继续让能力
   矩阵隐藏不可达格式。
+- HDR Vivid 相关实现、资源、测试与本 feature 文档已选择性提交为
+  `95a3245d7476df79976c01a0448075af44d14406`：
+  `feat: add HDR Vivid video export / 新增 HDR Vivid 视频导出`，并使用
+  `Co-authored-by: Codex <codex@openai.com>`。提交未包含工作区内同步进行的分享截图、
+  Spatial Photo 与 memory 改动。
