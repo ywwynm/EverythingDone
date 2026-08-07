@@ -12,6 +12,110 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <com.ywwynm.everythingdone.spatial.SpatialPhotoView
+        android:id="@+id/spatial_photo_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/cd_spatial_photo_view"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        android:id="@+id/ll_spatial_strength"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="22dp"
+        android:background="@drawable/bg_spatial_strength"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_spatial_strength_icon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_spatial_effect"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"/>
+
+        <SeekBar
+            android:id="@+id/sb_spatial_strength"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:contentDescription="@string/spatial_effect_strength"/>
+
+        <Button
+            android:id="@+id/btn_spatial_render_mode"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="72dp"
+            android:minHeight="36dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/spatial_render_mode_p1_short"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFFFF"/>
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_spatial_generation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <ProgressBar
+                android:id="@+id/pb_spatial_generation"
+                android:layout_width="40dp"
+                android:layout_height="40dp"/>
+
+            <TextView
+                android:id="@+id/tv_spatial_generation_stage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/spatial_generation_preparing"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"/>
+
+            <Button
+                android:id="@+id/btn_cancel_spatial_generation"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/cancel"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFFFF"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/actionbar"
         android:layout_width="match_parent"

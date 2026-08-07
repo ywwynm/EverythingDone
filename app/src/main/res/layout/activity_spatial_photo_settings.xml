@@ -1,0 +1,1011 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_chrome_surface"
+    tools:context="com.ywwynm.everythingdone.activities.SpatialPhotoSettingsActivity">
+
+    <View
+        android:id="@+id/view_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"/>
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@id/view_status_bar"
+        android:background="@android:color/transparent"
+        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
+        app:contentInsetStart="72dp"
+        app:titleTextColor="@color/black_54p"/>
+
+    <ScrollView
+        android:id="@+id/sv_spatial_settings"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/actionbar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_runtime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_advanced_settings"
+                        android:drawableLeft="@drawable/ic_advanced_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_settings_runtime"/>
+
+                    <LinearLayout
+                        android:id="@+id/runtime_component"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_runtime_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/spatial_runtime_description"
+                                android:textColor="@color/app_chrome_on_surface_hint"
+                                android:textSize="13sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_runtime_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_runtime"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_runtime_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_depth_models"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_spatial_effect"
+                        android:drawableLeft="@drawable/ic_spatial_effect"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_settings_models"/>
+
+                    <LinearLayout
+                        android:id="@+id/model_zipdepth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_zipdepth"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_zipdepth"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_zipdepth_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_zipdepth_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_zipdepth"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_zipdepth_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_dav2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_dav2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_dav2"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_dav2_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_dav2_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_dav2"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_dav2_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_da3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_da3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_da3"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_da3_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_da3_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_da3"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_da3_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_inpainting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_spatial_effect"
+                        android:drawableLeft="@drawable/ic_spatial_effect"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_settings_inpainting"/>
+
+                    <LinearLayout
+                        android:id="@+id/model_migan"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_migan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_migan"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_migan_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_migan_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_migan"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_migan_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_aotgan"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_aotgan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_aotgan"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_aotgan_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_aotgan_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_aotgan"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_aotgan_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/ll_inpainting_quality"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <RelativeLayout
+                            android:id="@+id/row_inpainting_quality"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentLeft="true"
+                                android:layout_centerVertical="true"
+                                android:text="@string/spatial_inpainting_resolution"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_inpainting_quality_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_centerVertical="true"
+                                android:textColor="@color/app_chrome_on_surface_hint"
+                                android:textSize="14sp"/>
+
+                        </RelativeLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:paddingBottom="10dp"
+                            android:text="@string/spatial_inpainting_resolution_description"
+                            android:textColor="@color/app_chrome_on_surface_hint"
+                            android:textSize="12sp"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_matting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_spatial_effect"
+                        android:drawableLeft="@drawable/ic_spatial_effect"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_matting_group"/>
+
+                    <LinearLayout
+                        android:id="@+id/model_modnet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_modnet_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_modnet_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_modnet"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_modnet_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/spatial_matting_description"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_segmentation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_spatial_effect"
+                        android:drawableLeft="@drawable/ic_spatial_effect"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_segmentation_group"/>
+
+                    <LinearLayout
+                        android:id="@+id/model_rfdetr_seg"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_rfdetr_seg"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_rfdetr_seg"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_rfdetr_seg_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_rfdetr_seg_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_rfdetr_seg"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_rfdetr_seg_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                        android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_edgetam_refinement"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_edgetam_refinement"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_edgetam_refinement"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_edgetam_refinement_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_edgetam_refinement_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_edgetam_refinement"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_edgetam_refinement_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/spatial_segmentation_description"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="2dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_interaction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_user_interface_settings"
+                        android:drawableLeft="@drawable/ic_user_interface_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_settings_interaction"/>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_spatial_tilt_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <androidx.appcompat.widget.AppCompatCheckBox
+                            android:id="@+id/sw_spatial_tilt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:contentDescription="@string/spatial_device_tilt"/>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/sw_spatial_tilt"
+                            android:layout_toLeftOf="@id/sw_spatial_tilt"
+                            android:layout_marginEnd="12dp"
+                            android:layout_marginRight="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_device_tilt"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/spatial_device_tilt_description"
+                                android:textColor="@color/app_chrome_on_surface_hint"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/settings_card_margin_side"
+                android:layout_marginRight="@dimen/settings_card_margin_side"
+                android:layout_marginTop="@dimen/settings_card_margin_top"
+                android:layout_marginBottom="@dimen/settings_card_margin_top"
+                app:contentPaddingBottom="8dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/app_chrome_surface_elevated">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_title_group_spatial_storage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="20dp"
+                        android:layout_marginLeft="18dp"
+                        android:layout_marginRight="18dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:drawableStart="@drawable/ic_data_settings"
+                        android:drawableLeft="@drawable/ic_data_settings"
+                        android:drawablePadding="16dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="14sp"
+                        android:text="@string/spatial_settings_storage"/>
+
+                    <TextView
+                        android:id="@+id/tv_spatial_storage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="4dp"
+                        android:textColor="@color/app_chrome_on_surface_secondary"
+                        android:textSize="13sp"/>
+
+                    <TextView
+                        android:id="@+id/btn_clear_spatial_derivatives"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:textSize="16sp"
+                        android:text="@string/spatial_clear_derivatives"/>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="4dp"
+                        android:text="@string/spatial_privacy_note"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</RelativeLayout>

@@ -92,7 +92,8 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
         if (mFirstAction != null) {
             tvFirstAsBt.text = mFirstAction
             applyAccent(tvFirstAsBt, mContinueBg, mColors[2])
-            GradientRippleDrawable.applyAccentRipple(tvFirstAsBt, mContinueBg, mColors[2])
+            // 逐行选项与 ThreeOptionsDialogFragment 一致：整行矩形渐变 ripple，不用胶囊。
+            GradientRippleDrawable.applyAccentRowRipple(tvFirstAsBt, mContinueBg, mColors[2])
             tvFirstAsBt.setOnClickListener {
                 if (mOnClickListener != null) {
                     mOnClickListener!!.onFirstClicked()
@@ -107,7 +108,7 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
         if (mSecondAction != null) {
             tvSecondAsBt.text = mSecondAction
             applyAccent(tvSecondAsBt, mContinueBg, mColors[2])
-            GradientRippleDrawable.applyAccentRipple(tvSecondAsBt, mContinueBg, mColors[2])
+            GradientRippleDrawable.applyAccentRowRipple(tvSecondAsBt, mContinueBg, mColors[2])
             tvSecondAsBt.setOnClickListener {
                 if (mOnClickListener != null) {
                     mOnClickListener!!.onSecondClicked()
@@ -119,6 +120,7 @@ open class ThreeActionsAlertDialogFragment : BaseDialogFragment() {
             tvSecondAsBt.visibility = View.GONE
         }
 
+        GradientRippleDrawable.applyAccentRowRipple(tvThirdAsBt, mContinueBg, mColors[2])
         tvThirdAsBt.setOnClickListener {
             if (mOnClickListener != null) {
                 mOnClickListener!!.onThirdClicked()

@@ -22,6 +22,20 @@ def updateMetadataUrl = localProps.getProperty('everythingdone.update.metadataUr
 if (!updateMetadataUrl && updateBaseUrl) {
     updateMetadataUrl = updateBaseUrl.replaceAll('/+$', '') + '/debug/latest.json'
 }
+def spatialStableCatalogUrl = updateBaseUrl ?
+        updateBaseUrl.replaceAll('/+$', '') + '/models/spatial-depth/stable/catalog.json' : ''
+def spatialStagingCatalogUrl = updateBaseUrl ?
+        updateBaseUrl.replaceAll('/+$', '') + '/models/spatial-depth/staging/catalog.json' : ''
+def spatialDebugChannel = localProps.getProperty(
+        'everythingdone.spatial.catalog.channel', 'stable'
+).trim().toLowerCase(Locale.ROOT)
+if (!(spatialDebugChannel in ['stable', 'staging'])) {
+    throw new GradleException(
+            'everythingdone.spatial.catalog.channel must be stable or staging'
+    )
+}
+def spatialStablePublicKey = 'M91kx/QOfPoRzA4GiRrOGdrWhtGnHHS/yzyqaWAy+58='
+def spatialStagingPublicKey = 'XxdWGmclaCcBrafZE3d0gv7VZGzVDdlzCcb7PYrqOyQ='
 
 def quoteBuildConfigString(String value) {
     return '"' + value
@@ -60,11 +74,30 @@ android {
         debug {
             buildConfigField 'String', 'DEBUG_UPDATE_METADATA_URL',
                     quoteBuildConfigString(updateMetadataUrl)
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_CHANNEL',
+                    quoteBuildConfigString(spatialDebugChannel)
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_URL',
+                    quoteBuildConfigString(
+                            spatialDebugChannel == 'staging' ?
+                                    spatialStagingCatalogUrl : spatialStableCatalogUrl
+                    )
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_PUBLIC_KEY',
+                    quoteBuildConfigString(
+                            spatialDebugChannel == 'staging' ?
+                                    spatialStagingPublicKey : spatialStablePublicKey
+                    )
         }
         release {
             minifyEnabled true
             shrinkResources true
             buildConfigField 'String', 'DEBUG_UPDATE_METADATA_URL', quoteBuildConfigString('')
+            // release 构建硬性固定 stable URL 与 stable 信任根，不能由本机 staging 配置改写。
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_CHANNEL',
+                    quoteBuildConfigString('stable')
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_URL',
+                    quoteBuildConfigString(spatialStableCatalogUrl)
+            buildConfigField 'String', 'SPATIAL_MODEL_CATALOG_PUBLIC_KEY',
+                    quoteBuildConfigString(spatialStablePublicKey)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -90,6 +123,16 @@ android {
 
     androidResources {
         generateLocaleConfig true
+    }
+
+    packaging {
+        jniLibs {
+            // Java API 仍由 Maven AAR 提供；两份原生库按设备 ABI 在首次推理前下载。
+            excludes += [
+                    '**/libonnxruntime.so',
+                    '**/libonnxruntime4j_jni.so'
+            ]
+        }
     }
 
     testOptions {
@@ -357,6 +400,11 @@ dependencies {
     implementation 'io.github.waynejo:androidndkgif:1.0.1'
     implementation 'jp.wasabeef:blurry:4.0.1'
     implementation 'com.google.code.gson:gson:2.13.2'
+    // Java API 来自 app/libs 中可重复生成的 ORT 1.28.0 Java-only jar；原生运行组件不打进 APK，
+    // 按设备 ABI 从受信 catalog 下载。loader 补丁仅允许 Android 复用 ORT 自带的绝对路径分支。
+    // 见 ADR-0019 / spatial-photo-effect。
+    // Android 平台原生 Ed25519 只覆盖 API 33+；Tink 的纯 Java verifier 保持 minSdk 26 的同一信任根。
+    implementation 'com.google.crypto.tink:tink-android:1.23.0'
 
     testImplementation 'junit:junit:4.13.2'
 }

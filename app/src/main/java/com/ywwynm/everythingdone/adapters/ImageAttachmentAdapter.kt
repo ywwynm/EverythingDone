@@ -5,7 +5,11 @@ package com.ywwynm.everythingdone.adapters
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PorterDuff
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,13 +24,11 @@ import android.widget.TextView
 
 import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import com.bumptech.glide.Glide
-import android.graphics.drawable.Drawable
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.request.target.DrawableImageViewTarget
 import com.bumptech.glide.request.target.Target
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
@@ -38,6 +40,7 @@ import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.HdrImageDetector
 import com.ywwynm.everythingdone.helpers.MotionPhotoCoverHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
+import com.ywwynm.everythingdone.spatial.SpatialDerivativeStore
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -65,6 +68,10 @@ open class ImageAttachmentAdapter(
     detailAttachmentMediaAppearance: DetailAttachmentMediaAppearance =
         DetailAttachmentMediaAppearance.default()
 ) : RecyclerView.Adapter<ImageAttachmentAdapter.ImageViewHolder>() {
+
+    private companion object {
+        const val MAX_TRANSITION_SNAPSHOT_PIXELS = 1_048_576L
+    }
 
     private var mEditable: Boolean = editable
 
@@ -198,6 +205,21 @@ open class ImageAttachmentAdapter(
         bindAttachmentImage(holder, position)
     }
 
+    /**
+     * 附件增删/移动后重新应用当前播放决策，但不要求 RecyclerView 全量回收 holder。
+     * [bindAttachmentImage] 的完整请求 key 会让未改变资源的 holder 走无加载快路径。
+     */
+    open fun refreshAttachedPlayback() {
+        val rv = mRecyclerView ?: return
+        for (index in 0 until rv.childCount) {
+            val child = rv.getChildAt(index) ?: continue
+            val position = rv.getChildAdapterPosition(child)
+            if (position == RecyclerView.NO_POSITION) continue
+            val holder = rv.getChildViewHolder(child) as? ImageViewHolder ?: continue
+            bindAttachmentImage(holder, position)
+        }
+    }
+
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         val typePathName = mItems!![position]
         val pathName = typePathName!!.substring(1, typePathName.length)
@@ -291,36 +313,52 @@ open class ImageAttachmentAdapter(
         val animatedPlayback = derivedGifPath != null || (play && animated)
         val loadSource = derivedGifPath ?: pathName
 
-        // 把播放态折进 loadKey：静/动切换时 key 随之变化，绕过同 key 短路与 Glide 缓存复用。
-        val loadKey = if (customized) {
+        // 所有显示模式都记录完整请求身份。拖拽排序或播放调度只要没有改变实际资源，就只更新
+        // GifDrawable 状态，不清理并重新申请同一个 Glide 资源。
+        val baseLoadKey = if (customized) {
             getDetailAttachmentImageLoadKey(
                 pathName, size[0], size[1], videoFrameMs, presentation?.crop
-            ) + playbackKeySuffix(animatedPlayback, derivedGifPath)
+            )
         } else {
-            null
+            "$pathName|${size[0]}|${size[1]}|${videoFrameMs ?: -1L}|default"
         }
-        if (customized && loadKey != null && presentation != null) {
+        val loadKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath)
+        if (customized && presentation != null) {
             imageView.setTag(
                 R.id.tag_detail_attachment_image_render_request,
                 DetailAttachmentRenderRequest(loadKey, size[0], size[1], presentation.crop)
             )
-            if (imageView.getTag(R.id.tag_detail_attachment_image_load_key) == loadKey &&
-                imageView.drawable != null
-            ) {
-                holder.pbLoading!!.visibility = View.GONE
-                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                imageView.imageMatrix = null
-                applyGifPlaybackState(
-                    imageView, imageView.drawable, position, animatedPlayback, loop
-                )
-                updateOverlayVisibility(holder)
-                return
-            }
-            imageView.setTag(R.id.tag_detail_attachment_image_load_key, loadKey)
         } else {
-            imageView.setTag(R.id.tag_detail_attachment_image_load_key, null)
             imageView.setTag(R.id.tag_detail_attachment_image_render_request, null)
         }
+        if (imageView.getTag(R.id.tag_detail_attachment_image_load_key) == loadKey &&
+            imageView.drawable != null
+        ) {
+            holder.pbLoading!!.visibility = View.GONE
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            imageView.imageMatrix = null
+            applyGifPlaybackState(
+                imageView, imageView.drawable, position, animatedPlayback, loop
+            )
+            updateOverlayVisibility(holder)
+            return
+        }
+        if (imageView.getTag(R.id.tag_detail_attachment_image_request_key) == loadKey) {
+            // 同一请求仍在加载。占位快照不是“已就绪资源”，不能写入 load key；但也不能因
+            // 播放调度重复刷新而一遍遍取消并重启当前请求。
+            updateOverlayVisibility(holder)
+            return
+        }
+
+        // 只在同一附件的静态/动态资源切换时保留视觉连续性。快照拥有自己的 Bitmap，不会像旧
+        // Glide Drawable 一样在 clear 后被 BitmapPool 回收；绑定到另一附件时绝不沿用旧图。
+        val sameAttachment =
+            imageView.getTag(R.id.tag_detail_attachment_bound_source) == typePathName
+        val transitionPlaceholder =
+            if (sameAttachment) createTransitionPlaceholder(imageView) else null
+        imageView.setTag(R.id.tag_detail_attachment_bound_source, typePathName)
+        imageView.setTag(R.id.tag_detail_attachment_image_request_key, loadKey)
+        imageView.setTag(R.id.tag_detail_attachment_image_load_key, null)
 
         stopExistingGif(imageView)
 
@@ -343,15 +381,16 @@ open class ImageAttachmentAdapter(
             } else {
                 request.dontTransform().disallowHardwareConfig().dontAnimate()
             }
-            if (loadKey != null) {
-                request = request.signature(ObjectKey(loadKey))
-            }
+            request = request.signature(ObjectKey(loadKey))
         } else {
             request = request.centerCrop()
             if (!animatedPlayback) {
                 // 默认模式下 GIF 此前是无条件动的；不播时必须显式停在首帧。
                 request = request.dontAnimate()
             }
+        }
+        if (transitionPlaceholder != null) {
+            request = request.placeholder(transitionPlaceholder)
         }
         val boundDerivedGifPath = derivedGifPath
         request
@@ -360,6 +399,13 @@ open class ImageAttachmentAdapter(
                     e: GlideException?, model: Any?, target: Target<Drawable>,
                     isFirstResource: Boolean
                 ): Boolean {
+                    if (
+                        imageView.getTag(R.id.tag_detail_attachment_image_request_key) != loadKey
+                    ) {
+                        return true
+                    }
+                    imageView.setTag(R.id.tag_detail_attachment_image_request_key, null)
+                    imageView.setTag(R.id.tag_detail_attachment_image_load_key, null)
                     holder.pbLoading!!.visibility = View.GONE
                     if (boundDerivedGifPath != null) {
                         // 坏派生 GIF 自愈（每 key 只删一次，不会死循环）。
@@ -374,13 +420,21 @@ open class ImageAttachmentAdapter(
                     resource: Drawable, model: Any, target: Target<Drawable>?,
                     dataSource: DataSource, isFirstResource: Boolean
                 ): Boolean {
+                    if (
+                        imageView.getTag(R.id.tag_detail_attachment_image_request_key) != loadKey
+                    ) {
+                        return true
+                    }
                     updateOverlayVisibility(holder)
                     holder.pbLoading!!.visibility = View.GONE
-                    if (customized && loadKey != null && !animatedPlayback) {
+                    if (customized && !animatedPlayback) {
                         val renderRequest = imageView.getTag(
                             R.id.tag_detail_attachment_image_render_request
                         ) as? DetailAttachmentRenderRequest
                         if (renderRequest?.loadKey != loadKey) {
+                            imageView.setTag(
+                                R.id.tag_detail_attachment_image_request_key, null
+                            )
                             return true
                         }
                         val bakedBitmap = MediaCropBitmapRenderer.renderCrop(
@@ -390,6 +444,9 @@ open class ImageAttachmentAdapter(
                             getDetailAttachmentBitmapCrop(renderRequest.crop)
                         )
                         if (bakedBitmap != null) {
+                            imageView.setTag(
+                                R.id.tag_detail_attachment_image_load_key, loadKey
+                            )
                             imageView.setImageBitmap(bakedBitmap)
                             imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                             imageView.imageMatrix = null
@@ -399,28 +456,17 @@ open class ImageAttachmentAdapter(
                         imageView.imageMatrix = null
                     }
                     applyGifPlaybackState(imageView, resource, position, animatedPlayback, loop)
+                    imageView.setTag(R.id.tag_detail_attachment_image_load_key, loadKey)
+                    if (!animatedPlayback && resource is GifDrawable) {
+                        // RequestListener 先于 ImageViewTarget.onResourceReady 执行。若返回 false，
+                        // stock target 会在这里之后再次 start()；静态代表帧必须自行接管并返回 true。
+                        imageView.setImageDrawable(resource)
+                        return true
+                    }
                     return false
                 }
             })
-            .into(KeepCurrentImageTarget(imageView))
-    }
-
-    /**
-     * 静/动两条加载路径之间切换时不清空当前画面。
-     *
-     * Glide 起新请求时会先 `onLoadCleared` / `onLoadStarted`，两者都把 ImageView 置成
-     * placeholder（这里为 null），于是「逐一播放」里上一个刚停、下一个开播的那一瞬间会闪
-     * 一下空白。这里把这两个回调改成不动画面，旧图一直留到新资源就绪才被替换。
-     */
-    private class KeepCurrentImageTarget(view: ImageView) : DrawableImageViewTarget(view) {
-
-        override fun onLoadStarted(placeholder: Drawable?) {
-            // 刻意不调用 super：保留当前画面。
-        }
-
-        override fun onLoadCleared(placeholder: Drawable?) {
-            // 同上。ViewHolder 回收时由 onViewRecycled 停掉动图，重新绑定会覆盖画面。
-        }
+            .into(imageView)
     }
 
     /**
@@ -522,8 +568,12 @@ open class ImageAttachmentAdapter(
                 mPlaybackController?.onPlaybackFinished(position)
             }
         })
-        // 必须 startFromFirstFrame：内存缓存里回来的 GifDrawable 可能停在上一次的中间帧。
-        gif.startFromFirstFrame()
+        // 内存缓存里取回且已停止的 GifDrawable 要从首帧开始；但附件重排会重算播放决策，
+        // 可见性回调可能已让同一个实例继续播放。Glide 明确禁止对 running drawable 调用
+        // startFromFirstFrame，此时保留当前进度和刚更新的回调即可。
+        if (!gif.isRunning) {
+            gif.startFromFirstFrame()
+        }
     }
 
     /**
@@ -549,6 +599,32 @@ open class ImageAttachmentAdapter(
         }
     }
 
+    /**
+     * 为同一附件的静/动资源切换复制当前 ImageView 的最终显示结果。
+     *
+     * 不能把当前 Drawable 本身当 placeholder：Glide 清理旧请求后可能立即回收它。详情缩略图尺寸
+     * 很小；若异常布局超过像素预算则放弃快照，优先保证内存安全。
+     */
+    private fun createTransitionPlaceholder(imageView: ImageView): Drawable? {
+        if (imageView.drawable == null) return null
+        val width = imageView.width
+        val height = imageView.height
+        if (width <= 0 || height <= 0) return null
+        if (width.toLong() * height.toLong() > MAX_TRANSITION_SNAPSHOT_PIXELS) return null
+        val bitmap = try {
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        } catch (_: RuntimeException) {
+            return null
+        }
+        return try {
+            imageView.draw(Canvas(bitmap))
+            BitmapDrawable(imageView.resources, bitmap)
+        } catch (_: RuntimeException) {
+            bitmap.recycle()
+            null
+        }
+    }
+
     /** 异步回调可能在 Activity 已销毁 / View 已脱离窗口后才到；此时不能再起 Glide 加载。 */
     private fun isImageViewUsable(imageView: ImageView): Boolean {
         if (!imageView.isAttachedToWindow) return false
@@ -569,7 +645,9 @@ open class ImageAttachmentAdapter(
     private fun updateMediaBadges(
         holder: ImageViewHolder, typePathName: String, pathName: String, type: Int
     ) {
+        val badgeContext = mContext?.applicationContext
         holder.ivBadgeLive?.visibility = View.GONE
+        holder.ivBadgeSpatial?.visibility = View.GONE
         holder.tvBadgeHdr?.visibility = View.GONE
         holder.tvBadgeGif?.visibility = View.GONE
 
@@ -609,6 +687,35 @@ open class ImageAttachmentAdapter(
             }
         }
 
+        // 空间效果是 App 私有持久派生数据；只读取小型 manifest，不解压深度文件。
+        if (isImage &&
+            badgeContext != null &&
+            !AttachmentHelper.isAnimatedImageCandidate(pathName) &&
+            !AttachmentHelper.isMotionPhotoCandidate(pathName)
+        ) {
+            mBadgeExecutor.submit {
+                val ready = SpatialDerivativeStore(badgeContext).hasValid(pathName)
+                postBadgeUpdate(holder, typePathName) {
+                    holder.ivBadgeSpatial?.visibility =
+                        if (ready) View.VISIBLE else View.GONE
+                }
+            }
+        } else if (isImage &&
+            badgeContext != null &&
+            AttachmentHelper.isMotionPhotoCandidate(pathName)
+        ) {
+            // JPEG 候选需要等 Motion Photo 检测；只有确认不是动态照片才显示空间派生徽标。
+            mBadgeExecutor.submit {
+                val isMotion = MotionPhotoDetector.detect(pathName).isMotionPhoto
+                val ready = !isMotion &&
+                    SpatialDerivativeStore(badgeContext).hasValid(pathName)
+                postBadgeUpdate(holder, typePathName) {
+                    holder.ivBadgeSpatial?.visibility =
+                        if (ready) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
         updateBadgeContainerVisibility(holder)
     }
 
@@ -626,6 +733,7 @@ open class ImageAttachmentAdapter(
 
     private fun updateBadgeContainerVisibility(holder: ImageViewHolder) {
         val any = holder.ivBadgeLive?.visibility == View.VISIBLE ||
+                holder.ivBadgeSpatial?.visibility == View.VISIBLE ||
                 holder.tvBadgeHdr?.visibility == View.VISIBLE ||
                 holder.tvBadgeGif?.visibility == View.VISIBLE
         holder.llMediaBadges?.visibility = if (any) View.VISIBLE else View.GONE
@@ -686,7 +794,14 @@ open class ImageAttachmentAdapter(
 
     override fun onViewRecycled(holder: ImageViewHolder) {
         super.onViewRecycled(holder)
-        holder.ivImage?.let { stopExistingGif(it) }
+        holder.ivImage?.let { imageView ->
+            stopExistingGif(imageView)
+            Glide.with(imageView.context).clear(imageView)
+            imageView.setTag(R.id.tag_detail_attachment_image_load_key, null)
+            imageView.setTag(R.id.tag_detail_attachment_image_request_key, null)
+            imageView.setTag(R.id.tag_detail_attachment_image_render_request, null)
+            imageView.setTag(R.id.tag_detail_attachment_bound_source, null)
+        }
         (holder.fl?.foreground as? GradientRippleDrawable)?.stopAnimations()
         (holder.ivEditAppearance?.background as? GradientRippleDrawable)?.stopAnimations()
         (holder.ivDelete?.background as? GradientRippleDrawable)?.stopAnimations()
@@ -712,6 +827,7 @@ open class ImageAttachmentAdapter(
         val pbLoading: ProgressBar? = f(R.id.pb_image_attachment)
         val llMediaBadges: LinearLayout? = f(R.id.ll_media_badges)
         val ivBadgeLive: ImageView? = f(R.id.iv_badge_live)
+        val ivBadgeSpatial: ImageView? = f(R.id.iv_badge_spatial)
         val tvBadgeHdr: View? = f(R.id.tv_badge_hdr)
         val tvBadgeGif: View? = f(R.id.tv_badge_gif)
 

@@ -8,7 +8,9 @@
     <item name="tag_thing_card_media_background_bind_token" type="id"/>
     <item name="tag_thing_card_media_debug_info" type="id"/>
     <item name="tag_detail_attachment_image_load_key" type="id"/>
+    <item name="tag_detail_attachment_image_request_key" type="id"/>
     <item name="tag_detail_attachment_image_render_request" type="id"/>
+    <item name="tag_detail_attachment_bound_source" type="id"/>
     <item name="tag_thing_folder_thumbnail_surface" type="id"/>
     <item name="tag_thing_card_finger_down" type="id"/>
     <item name="tag_thing_card_drag_active" type="id"/>

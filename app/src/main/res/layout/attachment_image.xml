@@ -95,6 +95,17 @@
             android:contentDescription="@string/cd_motion_photo"
             android:visibility="gone"/>
 
+        <ImageView
+            android:id="@+id/iv_badge_spatial"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_spatial_effect"
+            android:alpha="0.76"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cd_spatial_effect_ready"
+            android:visibility="gone"/>
+
     </LinearLayout>
 
     <ProgressBar

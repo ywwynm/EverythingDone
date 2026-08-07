@@ -244,6 +244,26 @@ _Avoid_: 与"派生 GIF 的第 0 帧"划等号(对 Motion Photo 不成立)、让
 一个静态图片附件，其文件本身同时携带一段内嵌的短视频动态成分（对应 Android 阵营各厂商的“动态照片/实况照片”）。它默认在所有界面显示为静态图，只有支持的界面才呈现其动态成分；它是图片附件被检测出的一种本性，而非独立于 IMAGE/VIDEO 的附件类型，与 **HDR Media**、**Animated Image** 同属“同一个文件、额外能力按界面分级呈现”。
 _Avoid_: 把它当成视频附件、当成新的附件类型、用苹果商标 Live Photo 作为词汇表术语、把 VIVO 那种独立配对视频文件默认当作内嵌
 
+**Spatial Photo Effect**:
+一个从普通图片附件派生、让用户在应用内通过视点变化感受相对景深与视差的交互式 2.5D 呈现能力，原图片本身保持不变。
+_Avoid_: Apple Spatial Photo、空间媒体文件、真实三维重建、Motion Photo、新附件类型
+
+**Spatial Photo Derivative**:
+一张源图片在本机最多拥有一份的可重建持久派生数据，用于再次呈现其 Spatial Photo Effect，但不是附件或同步内容。
+_Avoid_: 普通可自动淘汰缓存、源图片副本、新附件、跨设备同步数据
+
+**Spatial Effect Badge**:
+详情附件缩略图上表示该图片在本机已有 Spatial Photo Derivative 的纯图形状态标识，本身不进入或播放 Spatial Photo Effect。
+_Avoid_: 文字“空间”、生成按钮、自动播放指示、Thing Card 徽标
+
+**Spatial Effect Strength**:
+每份 Spatial Photo Effect 独立保存的有界呈现偏好，用于调节交互视点可产生的视差幅度，不改变派生深度本身。
+_Avoid_: 模型质量、真实场景深度、重新生成、无限制视点位移
+
+**Spatial Video Effect**:
+一个从动态媒体派生、在原内容播放过程中以跨帧稳定景深响应用户视点变化的应用内交互式 2.5D 呈现能力，原动态媒体本身保持不变。
+_Avoid_: Apple Spatial Video、空间媒体文件导出、逐帧互不相关的空间照片效果、新附件类型
+
 **Sync Account**:
 以全局唯一用户名标识、绑定已验证邮箱的服务端账号；同一账号登录的所有设备共享同一份同步数据。登录方式挂在可扩展的 identity 层下（一期仅用户名+密码）。
 _Avoid_: 把邮箱当登录名、把本地无账号使用称为"账号"、user 泛称
@@ -458,6 +478,15 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - A **Thing Card Media** or **Detail Attachment** may be backed by a **Motion Photo** file.
 - A single **Motion Photo** shows its still image by default and presents its embedded motion only on surfaces that support it, mirroring how an **HDR Media** receives **HDR Display** and an **Animated Image** receives **Animated Playback** only where supported.
 - A **Motion Photo** is backed by an image attachment and does not change that attachment's type; its still image may itself be an **HDR Media**.
+- 图片 **Detail Attachment** 可以在支持的呈现面获得 **Spatial Photo Effect**，在其它位置仍是同一张原始图片。
+- 每个图片 **Detail Attachment** 在本机最多拥有一份 **Spatial Photo Derivative**；删除源附件会删除派生结果，移除派生结果不会改变源附件。
+- 完整的 **Spatial Photo Derivative** 会持久保存到用户明确移除或源附件被删除，不受普通缓存淘汰。
+- 图片 **Detail Attachment** 只有在本机 **Spatial Photo Derivative** 完整时才显示 **Spatial Effect Badge**；该徽标不改变附件的点击行为。
+- **Spatial Photo Effect** 从静态图片派生交互式深度视差；**Motion Photo** 呈现源文件自身携带的动态内容，二者互不蕴含。
+- 每个 **Spatial Photo Effect** 拥有一个 **Spatial Effect Strength**；生成时确定安全默认值，用户后续调整时不重新生成深度。
+- **Spatial Photo Effect** 与 **HDR Display** 是相互独立的呈现能力；同一份 **HDR Media** 在同一呈现面可以只获得其中一项。
+- **Animated Image**、**Motion Photo** 或视频附件可以在支持的呈现面获得 **Spatial Video Effect**，在其它位置仍是同一份原始动态媒体。
+- **Spatial Photo Effect** 为一张静态图片提供交互式深度；**Spatial Video Effect** 保留源时间轴，并使交互深度在该时间轴上保持稳定。
 - **Appearance Mode** applies to **App Chrome**.
 - A **Button-like Control** can appear on **App Chrome** or directly on a **Thing Background**.
 - **Thing Background Surfaces** do not recreate solely because **Appearance Mode** changes.
@@ -525,6 +554,11 @@ _Avoid_: 把组当成持久实体、跨组拖拽、按层级而非按组根判�
 - “让视频封面也能动”曾被读成“把视频当作 Animated Image 播放”或“在卡片里播放真实视频”；已解析为 **Thing Card Video Preview**：从视频派生一个动图预览产物，复用既有 Animated Playback 管线逐帧套用裁切，而视频本身仍不是 Animated Image。这修订了 ADR-0007“任何视频缩略图都停在单帧”的结论——应用内 Thing Card 面在开启封面自动播放时改播派生预览，而 RemoteViews、裁切编辑器、HDR 基帧仍为单帧。
 - "edge-to-edge" 既可指窗口本就绘制到系统栏之下（本 App 全局早已 `setDecorFitsSystemWindows(false)`、导航栏透明、列表底部已铺到导航栏之下），也可指首页顶部 chrome 随滚动收起让列表全铺；已解析为后者专用 **Immersive Thing List** 与 **Home Chrome Retraction**，避免与窗口级 edge-to-edge 混用。
 - "Live Photo"（苹果商标，HEIC+MOV 双文件配对）与 Android 的"动态照片"（多为单个 JPEG/HEIC 尾部内嵌视频）常被混用；已解析为词汇表统一使用 **Motion Photo**，并明确它是图片附件被检测出的一种本性、而非新的附件类型，除 VIVO 外均为单文件内嵌。
+- “空间照片”可能指 Apple 可交换的双目媒体文件，也可能指普通图片在应用内呈现的交互式景深视差；本功能已解析为后者，统一称 **Spatial Photo Effect**，不包含空间媒体导出。
+- “空间效果缓存”可能被理解为可由 LRU 随时淘汰的普通缓存；完整生成物已解析为 **Spatial Photo Derivative**，它本机持久但可重建，只有临时文件和孤儿数据可自动清理。
+- “空间徽标”可能被实现成文字标签或进入按钮；已解析为 **Spatial Effect Badge**，它是详情缩略图上的纯图形状态标识，点击图片仍先进入普通全屏查看。
+- “空间强度”可能被理解为模型改变了场景深度；已解析为 **Spatial Effect Strength**，它只控制有界的交互视差幅度，调整时不重新生成深度。
+- “空间视频”可能指可交换的双目/多视图视频文件，也可能指动态内容在应用内呈现的交互式景深视差；本项目已解析为后者，统一称 **Spatial Video Effect**，要求跨帧稳定但不包含新媒体文件导出。
 - "录音动画的颜色"曾在"属于 App Chrome 的中性控件配色"与"属于记事身份"之间含糊；已解析为 **Voice Waveform** 承载被录音记事的 **Thing Background** 身份（以 **记事身份色锚点** 保留颜色身份，并由九层低频主体外观独立保持 **水层景深阶梯**），而录音对话框外壳仍是 **App Chrome**——即该对话框是一个 **Hybrid Chrome Surface**。
 - “记事颜色本身”曾在“全部水体像素必须严格等于原色”与“画面必须保留可识别的记事颜色身份”之间含糊；已解析为 **记事身份色锚点**：它落在最靠近观察者的首层低频主体基线上，局部材质响应及其余水层可以有界变化。
 - “录音 HDR 态”曾被收窄为只能增强镜面和闪点；已解析为可以增强局部反射、薄峰透射及其它受光结构，但必须保留九层水体的相对边界和记事颜色身份，不得把第二、第三层或其它主体区域整体推成乳白。

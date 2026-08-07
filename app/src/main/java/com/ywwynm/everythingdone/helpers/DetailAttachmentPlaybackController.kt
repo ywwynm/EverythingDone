@@ -59,6 +59,13 @@ class DetailAttachmentPlaybackController(
 
     private val tmpRect = Rect()
 
+    private val applyItemsChanged = Runnable {
+        // 先把旧播放决策从仍存活的 holder 上撤掉，再按移动后的 position 重新评估。
+        // Adapter 的请求 key 会让静态/资源未变项不重新走 Glide。
+        adapter?.refreshAttachedPlayback()
+        evaluate()
+    }
+
     /**
      * 长按走 RecyclerView 级的 OnItemTouchListener，而不是 item 的 OnLongClickListener：
      * `ItemTouchHelper` 的拖拽也由长按触发，且它一旦开始拖拽就会给子 View 发 ACTION_CANCEL，
@@ -106,7 +113,8 @@ class DetailAttachmentPlaybackController(
         manual.clear()
         queue.clear()
         sequentialPlaying = -1
-        recyclerView.post { evaluate() }
+        recyclerView.removeCallbacks(applyItemsChanged)
+        recyclerView.post(applyItemsChanged)
     }
 
     /** 从设置页返回时档位可能已变；档位变了就整体重置，否则只重算可见性。 */

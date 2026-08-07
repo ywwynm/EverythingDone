@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false"/>
+
+    <!--
+      当前阿里云更新主机只提供 HTTP。模型 catalog 由离线 Ed25519 私钥签名，模型对象的字节数和
+      SHA-256 又由该签名 payload 固定，因此该例外不承担来源认证。URL 主机也在客户端与 catalog
+      校验中固定；其它域名仍禁止明文流量。
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">120.25.194.207</domain>
+    </domain-config>
+</network-security-config>

@@ -165,6 +165,22 @@
 - **否决"改用 CustomTarget 手动 setImageDrawable"**：会丢掉 Glide 的视图尺寸解析与随生命周期自动清理。
 - 代价：Glide 清理请求时不再自动停动图。回收路径已由 `onViewRecycled` 与每次加载前的 `stopExistingGif` 兜住。
 
+#### 2026-07-31 实现复盘
+
+两份线上闪退日志和确定性回归证明，最后一条假设不成立：`stopExistingGif` 只能停止当前
+`ImageView.drawable`，无法清空 `ImageViewTarget` 私有保存的 `animatable`。Glide 释放 GIF 后，
+Activity 再次进入 `onStart` 时仍会对这个旧引用调用 `start()`，最终启动已经回收的 decoder。
+
+D18 的产品目标“静/动切换不闪空白”仍然有效，但不得再通过吞掉
+`DrawableImageViewTarget.onLoadCleared` 实现。最终修正恢复 `.into(imageView)` 的标准
+`ImageViewTarget`，并在 holder 回收时显式调用 `Glide.clear(imageView)`；同一附件的静态/动态资源
+切换使用独立 Bitmap 快照作 placeholder，快照不引用 Glide 管理的旧资源。
+
+同时把“正在请求的 key”与“已经就绪的 key”分开：占位快照不能被误判为加载成功，失败后清掉请求
+key 以允许重试，播放调度重复刷新也不会反复取消同一个在途请求。附件拖拽改用
+`notifyItemMoved`，不再用 `notifyDataSetChanged` 清理整张网格的 target；重排后的播放状态只刷新
+当前 attached holder，资源身份未变时走无加载快路径。
+
 ### D19 设置项的当前档位放标题下一行
 
 首版是"标题在左、档位在右"的单行 56dp。中文下已经偏挤，德语/俄语等更长的译文会挤成两段。改为 `wrap_content` 的两行竖排（`minHeight="56dp"`，标题 16sp，档位 14sp / alpha 0.6 在下一行左对齐），控件也从 `RelativeLayout` 换成 `LinearLayout`（id 随之改为 `ll_autoplay_detail_dynamic_as_bt`）。
@@ -176,6 +192,23 @@
 `ImageViewerActivity` 对视频页一直设着 `iv.isZoomable = false`——那时它只是一张不会动的封面帧，缩放没有意义。现在它会自动播放、长按还能接着看正片，且播放层本就通过 `setOnMatrixChangeListener` + `trackMotionZoom` 跟随 PhotoView 的 `displayRect`，缩放能力是现成的，只是被这一行挡着。改为 `true`，与 Motion Photo 一致。
 
 按住播放期间的多指缩放也成立：`dispatchTouchEvent` 只在 `ACTION_UP` / `ACTION_CANCEL` 停止播放，第二根手指按下是 `ACTION_POINTER_DOWN`、第一根抬起是 `ACTION_POINTER_UP`，都不会误停。
+
+### D21 播放状态重应用必须对运行中的 GIF 幂等（2026-07-31）
+
+附件移动会重算“逐一播放”等调度状态；在 `RecyclerView` 布局、可见性监听与 posted 重排任务交错时，
+同一个 attached holder 可能在很短时间内收到多次相同的播放决定。此时允许更新循环次数和播放完成
+回调，但不得对仍在运行的同一个 `GifDrawable` 再调用 `startFromFirstFrame()`。
+
+Glide 4.16.0 明确把该调用视为非法状态并抛出
+`IllegalArgumentException: You cannot restart a currently running animation.`。因此：
+
+- 已停止、从内存缓存取回的 GIF 仍从首帧启动，避免继承上次停止位置；
+- 正在运行的 GIF 保持当前帧进度，只替换本次位置对应的动画回调；
+- `refreshAttachedPlayback()` 等无加载快路径必须具备幂等性，不能把“重新应用状态”解释成
+  “重新启动资源”。
+
+这一约束与 D18 的 Glide 生命周期修复共同成立：前者保证运行态重入安全，后者保证资源释放后不会被
+生命周期重新启动。
 
 ## 其它已定细则（未单列决策）
 

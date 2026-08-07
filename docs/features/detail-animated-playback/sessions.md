@@ -38,3 +38,56 @@
 第 3 条暴露了首版设计的一个盲点：D5 只定义了队列的**顺序**，没定义**成员资格**，默认了"可见即可播"。真实的详情网格里静态图片才是多数。
 
 尚未针对修正版再做真机验证，验收 1–16 见 [plan.md](plan.md)。
+
+## 2026-07-31 — 移动含 GIF 附件时的闪退诊断
+
+用户提供的 `crash_20260731104930.log` 与 `crash_20260731105110.log` 根因相同：
+Activity 在 `onStart` 分发生命周期时，Glide 的 `ImageViewTarget.onStart()` 重新启动了已经释放的
+`GifDrawable`；其 decoder header 已被清空，最终在 `StandardGifDecoder.getFrameCount()` 触发
+空指针。堆栈中没有空间照片、ONNX 或 OpenGL 调用。
+
+根因是 D18 引入的 `KeepCurrentImageTarget` 同时吞掉了 `onLoadCleared` 和 `onLoadStarted`。
+Glide 4.16.0 的父类实现会在 clear 时停止并清空 target 内部的 `animatable`，当前覆写绕过了这项
+生命周期不变式。附件拖动的全量重绑，以及“逐一播放”的播放状态重绑，会密集触发请求替换，因此
+显著放大窗口，但不是 decoder 损坏的根因。
+
+已在 `build/diagnose-gif-lifecycle/` 建立确定性 JVM harness，直接装载真实 App 私有 target：
+
+- 当前实现稳定退出 1，并报告已释放 GIF 被生命周期重启；
+- 恢复“停止并解除 animatable 引用”的对照实现退出 0；
+- 本轮只完成诊断，没有修改产品代码，也没有连接真机。
+
+## 2026-07-31 — GIF 生命周期闪退修复
+
+- 先增加 `ImageAttachmentGifLifecycleSourceTest`，旧实现因仍存在
+  `KeepCurrentImageTarget`、没有标准 `Glide.clear` 和安全过渡而稳定失败。
+- 删除吞掉 `onLoadCleared` 的私有 target，恢复 Glide 标准 `ImageViewTarget` 生命周期；holder
+  回收时显式停止当前 GIF、清理 Glide target 及全部绑定 key。
+- 同一附件的静态/动态切换改用有像素预算的独立 Bitmap 快照作 placeholder；加载中请求与已就绪
+  资源使用不同 key，避免占位图阻断失败重试，也避免播放状态刷新反复重启同一个请求。
+- 图片附件拖拽使用 `notifyItemMoved`，并只对 attached holder 重算播放决策，不再对整个网格做
+  `notifyDataSetChanged`。
+- 回归测试经历失败到通过。发布后在 OnePlus PLZ110 完成保留数据的覆盖安装与启动冒烟检查，
+  App 正常进入详情页且进程没有崩溃；尚未执行含普通 GIF、派生 GIF 和静态图混排的拖拽及
+  stop/start 定向验收，用户决定自行完成这部分测试。
+- 修复随空间低扭曲优化一并发布为阿里云 Debug 更新 `202607310414`；公网回下载 APK 的大小与
+  SHA-256 均和本地发布副本一致。物理设备验收仍保留在 [followups.md](followups.md)。
+
+## 2026-07-31 — 附件重排重复启动运行中 GIF 的闪退修复
+
+用户提供 `crash_20260731122203.log`。本次不是已释放 decoder 再启动：异常由 Glide 主动检查抛出，
+堆栈落在 `ImageAttachmentAdapter.applyGifPlaybackState()` 对一个仍在运行的 `GifDrawable` 调用
+`startFromFirstFrame()`。
+
+触发窗口是附件移动后的 posted 播放状态刷新与全局布局/可见性回调交错：后者已经让同一个 drawable
+继续播放，前者随后通过无加载快路径再次应用状态。修复保留回调和循环次数更新，只在
+`!gif.isRunning` 时从首帧启动；运行中的实例保留当前进度。
+
+先为该前置条件增加 `ImageAttachmentGifLifecycleSourceTest` 失败回归，旧实现 5 项中 1 项失败；
+实现后定向测试 5/5 通过。完整 `:app:testDebugUnitTest` 为 87 个套件、607 项测试，0 failure、
+0 error、1 项既有 skip。本轮按用户要求不连接物理设备，由用户自行完成拖拽混排验收。
+
+已发布阿里云 Debug 更新 `202607310433`。远端 `latest.json` 与本地发布元数据逐字节一致；公网
+回下载 APK 与本地发布副本均为 27,708,089 字节，SHA-256 均为
+`d19e58ad1d1368bc7b1c2e1bd34a6ac27bdc7dceccbf31b013a6e12756902b57`，APK 中仍为 0 个 ONNX
+Runtime 原生库。

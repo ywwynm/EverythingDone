@@ -5546,7 +5546,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         items.add(to, typePathName)
 
         if (isImageAttachment) {
-            refreshImageAttachmentLayout(true)
+            // 拖拽过程中 itemCount 不变，只需重算 span/总高度并发送细粒度移动事件。全量刷新会
+            // 清理、回收每个 Glide GIF target，是 2026-07-31 生命周期闪退的高频放大器。
+            refreshImageAttachmentLayout(false)
+            mImageAttachmentAdapter!!.notifyItemMoved(from, to)
+            mAttachmentPlaybackController?.onItemsChanged()
         } else {
             mAudioAttachmentAdapter!!.notifyItemMoved(from, to)
             if (mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {

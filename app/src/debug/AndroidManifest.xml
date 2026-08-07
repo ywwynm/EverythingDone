@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:replace="android:networkSecurityConfig">
 
         <!-- Debug 专用离屏基准入口：adb am broadcast 触发，锁屏可用。 -->
         <receiver
             android:name="com.ywwynm.everythingdone.views.recording.fablesol.FableSolBenchmarkReceiver"
             android:exported="true" />
+
+        <!-- Debug 专用双模型算子/延迟探针：模型由 adb 放入 app external files，不打包进 APK。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.spatial.SpatialDepthBenchmarkReceiver"
+            android:exported="true" />
+
+        <!-- Debug 专用产品纵向链路入口：打开模型设置或指定外部测试图，不读写用户记事。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.spatial.SpatialPhotoDebugLauncherReceiver"
+            android:exported="true" />
+
+        <!-- Debug 专用完整空间派生探针：锁屏时验证端侧模型、补景和持久化链。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.spatial.SpatialVNextGenerationProbeReceiver"
+            android:exported="true" />
+
+        <activity
+            android:name="com.ywwynm.everythingdone.spatial.SpatialPhotoDebugLauncherActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
     </application>
 
 </manifest>

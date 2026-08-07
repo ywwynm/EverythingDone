@@ -1049,6 +1049,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             df.setOnChosen { updateDoingDigitStyleValue() }
             df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
         }
+        f<View>(R.id.rl_spatial_photo_settings_as_bt).setOnClickListener {
+            startActivity(Intent(this, SpatialPhotoSettingsActivity::class.java))
+        }
         f<View>(R.id.rl_fablesol_tuning_as_bt).setOnClickListener {
             showFableSolTuningDialog(scrollToExport = false)
         }

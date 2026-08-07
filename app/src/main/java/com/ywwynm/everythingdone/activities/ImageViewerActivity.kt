@@ -11,7 +11,9 @@ import android.graphics.PorterDuff
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.viewpager.widget.ViewPager
+import androidx.work.WorkManager
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import android.view.LayoutInflater
@@ -20,6 +22,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import android.content.ActivityNotFoundException
@@ -28,6 +31,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.graphics.drawable.BitmapDrawable
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -56,17 +60,35 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.adapters.ImageViewerPagerAdapter
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
+import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.spatial.SpatialDepthEngine
+import com.ywwynm.everythingdone.spatial.SpatialDepthModel
+import com.ywwynm.everythingdone.spatial.SpatialDerivativeStore
+import com.ywwynm.everythingdone.spatial.SpatialInpaintingDownloadCoordinator
+import com.ywwynm.everythingdone.spatial.SpatialInpaintingEngine
+import com.ywwynm.everythingdone.spatial.SpatialInpaintingModel
+import com.ywwynm.everythingdone.spatial.SpatialInpaintingModelStore
+import com.ywwynm.everythingdone.spatial.SpatialModelDownloadCoordinator
+import com.ywwynm.everythingdone.spatial.SpatialModelStore
+import com.ywwynm.everythingdone.spatial.SpatialPhotoView
+import com.ywwynm.everythingdone.spatial.SpatialPreferences
+import com.ywwynm.everythingdone.spatial.SpatialRenderMode
+import com.ywwynm.everythingdone.spatial.SpatialRuntimeDownloadCoordinator
+import com.ywwynm.everythingdone.spatial.SpatialRuntimeStore
+import com.ywwynm.everythingdone.spatial.SpatialVNextBuilder
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.views.HdrBadgeView
 
 import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
@@ -99,6 +121,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     /** 每页 Motion Photo 检测结果(null = 非动态照片 / 尚未检测出)。 */
     private var mMotionInfos: Array<MotionPhotoDetector.MotionPhotoInfo?> = arrayOf()
+    /** 区分“不是 Motion Photo”与“检测尚未完成”。 */
+    private var mMotionDetectionComplete: BooleanArray = BooleanArray(0)
     /** 后台单线程做内容检测(读整文件),不阻塞主线程。 */
     private val mMotionDetectExecutor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "MotionPhotoDetect").apply { priority = Thread.MIN_PRIORITY }
@@ -144,6 +168,31 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     /** 播放期间持有的瞬时音频焦点（可 duck），Motion Photo 与视频共用。 */
     private var mAudioFocusRequest: AudioFocusRequest? = null
 
+    // —— 空间照片效果 ——
+
+    private var mSpatialPhotoView: SpatialPhotoView? = null
+    private var mSpatialStrengthPanel: View? = null
+    private var mSpatialStrength: SeekBar? = null
+    private var mSpatialRenderModeButton: TextView? = null
+    private var mSpatialGenerationOverlay: View? = null
+    private var mSpatialGenerationStage: TextView? = null
+    private var mSpatialMenuItem: MenuItem? = null
+    private var mSpatialRegenerateMenuItem: MenuItem? = null
+    private var mSpatialRemoveMenuItem: MenuItem? = null
+    private var mSpatialMode = false
+    private var mSpatialSourcePath: String? = null
+    private var mPendingSpatialGenerationSourcePath: String? = null
+    private var mPendingSpatialRegeneration = false
+    private var mSpatialModelObserversInstalled = false
+    private var mSpatialGenerationCancelled: AtomicBoolean? = null
+    private var mSpatialStrengthBinding = false
+    private var mSpatialRenderMode = SpatialRenderMode.SINGLE_LAYER
+    private var mSpatialHasLdiLite = false
+    private val mSpatialExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "SpatialPhoto").apply { priority = Thread.NORM_PRIORITY }
+    }
+    private val mSpatialStore by lazy { SpatialDerivativeStore(applicationContext) }
+
     override fun getLayoutResource(): Int = R.layout.activity_image_viewer
 
     override fun initMembers() {
@@ -168,6 +217,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mHasGainmap = BooleanArray(size)
         mForcedSdr = BooleanArray(size)
         mMotionInfos = arrayOfNulls(size)
+        mMotionDetectionComplete = BooleanArray(size)
 
         val frames = intent.getLongArrayExtra(Def.Communication.KEY_VIDEO_FRAME_MS_LIST)
         mVideoFrameMs = ArrayList(size)
@@ -181,6 +231,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mVpImage   = f(R.id.vp_image_viewer)
         mTvHdrBadge = f(R.id.tv_hdr_badge)
         mLiveBadge = f(R.id.ll_live_badge)
+        mSpatialPhotoView = f(R.id.spatial_photo_view)
+        mSpatialStrengthPanel = f(R.id.ll_spatial_strength)
+        mSpatialStrength = f(R.id.sb_spatial_strength)
+        mSpatialRenderModeButton = f(R.id.btn_spatial_render_mode)
+        mSpatialGenerationOverlay = f(R.id.fl_spatial_generation)
+        mSpatialGenerationStage = f(R.id.tv_spatial_generation_stage)
     }
 
     override fun initUI() {
@@ -189,6 +245,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
         decorView.systemUiVisibility = flags
+        DisplayUtil.applyBottomInsetAsMargin(mSpatialStrengthPanel)
+        applySpatialChromeAccent()
 
         val appAccent = App.defaultAccentBackground.representativeColor()
         EdgeEffectUtil.forViewPager(mVpImage, appAccent)
@@ -260,6 +318,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 mForcedSdr[pos] = !mForcedSdr[pos]
                 applyHdrStateForCurrentPage()
             }
+        }
+        mSpatialPhotoView?.setOnClickListener {
+            if (mSpatialMode) toggleSystemUI()
         }
     }
 
@@ -411,13 +472,16 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         val pathName = typePathName.substring(1)
         mMotionDetectExecutor.submit {
             val info = MotionPhotoDetector.detect(pathName)
-            if (!info.isMotionPhoto) return@submit
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                if (page in mMotionInfos.indices) mMotionInfos[page] = info
+                if (page in mMotionInfos.indices) {
+                    mMotionDetectionComplete[page] = true
+                    if (info.isMotionPhoto) mMotionInfos[page] = info
+                }
                 if (page == mVpImage?.currentItem) {
                     updateLiveBadge()
-                    maybeAutoplayCurrentMotionPage()
+                    if (info.isMotionPhoto) maybeAutoplayCurrentMotionPage()
+                    invalidateOptionsMenu()
                 }
             }
         }
@@ -828,17 +892,39 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_image_viewer, menu)
+        mSpatialMenuItem = menu.findItem(R.id.act_spatial_photo)
+        mSpatialRegenerateMenuItem = menu.findItem(R.id.act_regenerate_spatial_photo)
+        mSpatialRemoveMenuItem = menu.findItem(R.id.act_remove_spatial_photo)
         if (!mEditable) {
             val item: MenuItem = menu.findItem(R.id.act_delete_attachment)
             item.isVisible = false
             item.isEnabled = false
         }
+        updateSpatialActionState()
         return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        updateSpatialActionState()
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val id = item.itemId
-        if (id == R.id.act_show_attachment_info) {
+        if (id == R.id.act_spatial_photo) {
+            if (mSpatialMode) {
+                exitSpatialMode()
+            } else {
+                openOrGenerateSpatialEffect()
+            }
+            return true
+        } else if (id == R.id.act_regenerate_spatial_photo) {
+            confirmRegenerateSpatialEffect()
+            return true
+        } else if (id == R.id.act_remove_spatial_photo) {
+            confirmRemoveSpatialEffect()
+            return true
+        } else if (id == R.id.act_show_attachment_info) {
             showAttachmentInfoDialogForCurrentImage()
         } else if (id == R.id.act_delete_attachment) {
             val adf = AlertDialogFragment()
@@ -848,7 +934,24 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
                 override fun onConfirm() {
                     val currentIndex = mVpImage!!.currentItem
+                    val sourcePath = currentSourcePath()
+                    if (mSpatialMode) exitSpatialMode()
+                    if (sourcePath != null) {
+                        mSpatialExecutor.execute { mSpatialStore.remove(sourcePath) }
+                    }
                     mTypePathNames!!.removeAt(currentIndex)
+                    mHasGainmap = mHasGainmap
+                        .filterIndexed { index, _ -> index != currentIndex }
+                        .toBooleanArray()
+                    mForcedSdr = mForcedSdr
+                        .filterIndexed { index, _ -> index != currentIndex }
+                        .toBooleanArray()
+                    mMotionInfos = mMotionInfos
+                        .filterIndexed { index, _ -> index != currentIndex }
+                        .toTypedArray()
+                    mMotionDetectionComplete = mMotionDetectionComplete
+                        .filterIndexed { index, _ -> index != currentIndex }
+                        .toBooleanArray()
                     // 与 mTypePathNames 逐位对齐，删除后必须同步移除，否则关键帧会错位。
                     if (currentIndex in mVideoFrameMs.indices) {
                         mVideoFrameMs.removeAt(currentIndex)
@@ -875,15 +978,815 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         AttachmentHelper.showAttachmentInfoDialog(this, mAccentBackground, typePathNames[index])
     }
 
+    private fun openOrGenerateSpatialEffect() {
+        if (!isCurrentSpatialCompatible()) {
+            Toast.makeText(
+                this,
+                R.string.spatial_not_supported_for_media,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        if (mSpatialGenerationCancelled != null) return
+        val sourcePath = currentSourcePath() ?: return
+        val bitmap = currentSpatialBitmap()
+        if (bitmap == null) {
+            Toast.makeText(this, R.string.spatial_image_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val existing = mSpatialStore.loadManifest(sourcePath)
+        if (existing != null && mSpatialStore.isCurrentGeneration(existing)) {
+            loadSpatialDerivative(sourcePath, bitmap)
+            return
+        }
+
+        val model = SpatialPreferences.selectedModel(this)
+        if (!SpatialModelStore.isInstalled(this, model)) {
+            mPendingSpatialGenerationSourcePath = sourcePath
+            mPendingSpatialRegeneration = false
+            ensureSpatialModelObservers()
+            Toast.makeText(this, R.string.spatial_model_not_ready, Toast.LENGTH_LONG).show()
+            openSpatialSettings()
+            return
+        }
+        if (!SpatialModelStore.isDeviceEligible(this, model)) {
+            Toast.makeText(this, R.string.spatial_model_device_ineligible, Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!SpatialRuntimeStore.isInstalled(this)) {
+            mPendingSpatialGenerationSourcePath = sourcePath
+            mPendingSpatialRegeneration = false
+            ensureSpatialModelObservers()
+            Toast.makeText(this, R.string.spatial_runtime_not_ready, Toast.LENGTH_LONG).show()
+            openSpatialSettings()
+            return
+        }
+        val inpaintingIssue = currentInpaintingIssue()
+        if (inpaintingIssue != null) {
+            offerSingleLayerGeneration(
+                sourcePath,
+                bitmap,
+                model,
+                inpaintingIssue,
+                regenerate = false
+            )
+            return
+        }
+        generateSpatialDerivative(sourcePath, bitmap, model)
+    }
+
+    private fun loadSpatialDerivative(sourcePath: String, bitmap: Bitmap) {
+        val cancelled = AtomicBoolean(false)
+        mSpatialGenerationCancelled = cancelled
+        showSpatialGenerationStage(R.string.spatial_generation_preparing)
+        mSpatialExecutor.execute {
+            val derivative = if (!cancelled.get()) mSpatialStore.load(sourcePath) else null
+            runOnUiThread {
+                if (mSpatialGenerationCancelled === cancelled) {
+                    mSpatialGenerationCancelled = null
+                    hideSpatialGeneration()
+                }
+                if (!cancelled.get() && derivative != null &&
+                    sourcePath == currentSourcePath() && !isFinishing && !isDestroyed
+                ) {
+                    enterSpatialMode(sourcePath, bitmap, derivative)
+                } else if (!cancelled.get() && derivative == null) {
+                    Toast.makeText(
+                        this,
+                        R.string.spatial_derivative_invalid,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    derivative?.ldiLite?.backgroundBitmap?.recycle()
+                }
+            }
+        }
+    }
+
+    /** matting 只推理一次，且仅细化深度几何已经确认的遮挡边缘 alpha。 */
+    private fun generateOptionalSpatialMatte(
+        bitmap: Bitmap,
+        cancelled: java.util.concurrent.atomic.AtomicBoolean
+    ): Pair<
+        com.ywwynm.everythingdone.spatial.SpatialMattingModel,
+        com.ywwynm.everythingdone.spatial.SpatialAlphaData
+        >? {
+        val model = com.ywwynm.everythingdone.spatial.SpatialMattingModel.MODNET_PHOTOGRAPHIC
+        if (!com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+                .isInstalled(applicationContext, model) ||
+            !com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+                .hasSufficientAvailableMemory(applicationContext, model)
+        ) {
+            return null
+        }
+        return try {
+            val matte = com.ywwynm.everythingdone.spatial.SpatialMattingEngine(applicationContext)
+                .generate(bitmap, model, cancelled)
+            model to matte
+        } catch (error: Throwable) {
+            if (cancelled.get()) throw error
+            android.util.Log.w("ImageViewerActivity", "matting 生成失败，退回深度几何", error)
+            null
+        }
+    }
+
+    /**
+     * 可选实例分割只提供人物内部连续性与补图遮挡物条件，不创建 chart 或独立运动层。
+     * 模型未选择、未安装、内存不足或推理失败时安全退回 matting + 深度链。
+     */
+    private fun generateOptionalSpatialSegmentation(
+        bitmap: Bitmap,
+        cancelled: java.util.concurrent.atomic.AtomicBoolean
+    ): Pair<
+        com.ywwynm.everythingdone.spatial.SpatialSegmentationModel,
+        com.ywwynm.everythingdone.spatial.SpatialSegmentationData
+        >? {
+        val model = SpatialPreferences.selectedSegmentationModel(applicationContext) ?: return null
+        if (!com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+                .isInstalled(applicationContext, model) ||
+            !com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+                .isDeviceEligible(applicationContext, model) ||
+            !com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+                .hasSufficientAvailableMemory(applicationContext, model)
+        ) {
+            return null
+        }
+        return try {
+            val data = com.ywwynm.everythingdone.spatial
+                .SpatialSegmentationEngine(applicationContext)
+                .generate(bitmap, model, cancelled)
+            model to data
+        } catch (error: Throwable) {
+            if (cancelled.get()) throw error
+            android.util.Log.w("ImageViewerActivity", "实例连续性提案生成失败，退回深度几何", error)
+            null
+        }
+    }
+
+    /** EdgeTAM 只在 RF-DETR 外轮廓窄带内修正实例边界，不改变深度或运动场。 */
+    private fun generateOptionalSpatialBoundaryRefinement(
+        bitmap: Bitmap,
+        segmentation: com.ywwynm.everythingdone.spatial.SpatialSegmentationData,
+        cancelled: java.util.concurrent.atomic.AtomicBoolean
+    ): Pair<
+        com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModel,
+        com.ywwynm.everythingdone.spatial.SpatialSegmentationData
+        >? {
+        val model = SpatialPreferences.selectedBoundaryRefinementModel(applicationContext)
+            ?: return null
+        if (!com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+                .isInstalled(applicationContext, model) ||
+            !com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+                .isDeviceEligible(applicationContext, model) ||
+            !com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+                .hasSufficientAvailableMemory(applicationContext, model)
+        ) {
+            return null
+        }
+        return try {
+            val refined = com.ywwynm.everythingdone.spatial
+                .SpatialBoundaryRefinementEngine(applicationContext)
+                .refine(bitmap, segmentation, model, cancelled)
+            model to refined
+        } catch (error: Throwable) {
+            if (cancelled.get()) throw error
+            android.util.Log.w(
+                "ImageViewerActivity",
+                "实例边界细化失败，保留 RF-DETR 结果",
+                error
+            )
+            null
+        }
+    }
+
+    private fun generateSpatialDerivative(
+        sourcePath: String,
+        bitmap: Bitmap,
+        model: SpatialDepthModel,
+        includeLdi: Boolean = true
+    ) {
+        val cancelled = AtomicBoolean(false)
+        mSpatialGenerationCancelled = cancelled
+        showSpatialGenerationStage(R.string.spatial_generation_preparing)
+        mSpatialExecutor.execute {
+            var pendingLdi: com.ywwynm.everythingdone.spatial.SpatialLdiLiteData? = null
+            try {
+                val engine = SpatialDepthEngine(applicationContext)
+                val retainedStrength = mSpatialStore.retainedStrength(sourcePath)
+                val generatedDepth = engine.generate(bitmap, model, cancelled) { stage ->
+                    val text = when (stage) {
+                        SpatialDepthEngine.Stage.PREPARING ->
+                            R.string.spatial_generation_preparing
+                        SpatialDepthEngine.Stage.INFERENCE ->
+                            R.string.spatial_generation_inference
+                        SpatialDepthEngine.Stage.POST_PROCESSING ->
+                            R.string.spatial_generation_processing
+                    }
+                    runOnUiThread {
+                        if (mSpatialGenerationCancelled === cancelled && !cancelled.get()) {
+                            showSpatialGenerationStage(text)
+                        }
+                    }
+                }
+                val depth = retainedStrength?.let {
+                    generatedDepth.copy(defaultStrength = it)
+                } ?: generatedDepth
+                check(!cancelled.get()) { "任务已取消" }
+                if (includeLdi) {
+                    // 位移始终只消费连续单目深度。可选模型在生成期分别承担实例内部
+                    // 连续性、补景条件与边缘覆盖，不会创建语义运动层。
+                    val subjectMatte = generateOptionalSpatialMatte(bitmap, cancelled)
+                    check(!cancelled.get()) { "任务已取消" }
+                    var segmentation = generateOptionalSpatialSegmentation(bitmap, cancelled)
+                    val boundaryRefinement = segmentation?.let { (_, data) ->
+                        generateOptionalSpatialBoundaryRefinement(bitmap, data, cancelled)
+                    }
+                    if (segmentation != null && boundaryRefinement != null) {
+                        segmentation = segmentation.first to boundaryRefinement.second
+                    }
+                    check(!cancelled.get()) { "任务已取消" }
+                    val inpaintingModel =
+                        SpatialPreferences.selectedInpaintingModel(applicationContext)
+                    val inpaintingQuality =
+                        SpatialPreferences.inpaintingQuality(applicationContext)
+                    pendingLdi = SpatialVNextBuilder(
+                        SpatialInpaintingEngine(applicationContext)
+                    ).build(
+                        bitmap = bitmap,
+                        depth = depth,
+                        inpaintingModel = inpaintingModel,
+                        inpaintingQuality = inpaintingQuality,
+                        cancelled = cancelled,
+                        subjectMatte = subjectMatte,
+                        segmentation = segmentation,
+                        boundaryRefinementModel = boundaryRefinement?.first
+                    ) { stage ->
+                        val text = when (stage) {
+                            SpatialVNextBuilder.Stage.GEOMETRY ->
+                                R.string.spatial_generation_geometry
+                            SpatialVNextBuilder.Stage.INPAINTING ->
+                                R.string.spatial_generation_inpainting
+                        }
+                        runOnUiThread {
+                            if (mSpatialGenerationCancelled === cancelled &&
+                                !cancelled.get()
+                            ) {
+                                showSpatialGenerationStage(text)
+                            }
+                        }
+                    }
+                    check(!cancelled.get()) { "任务已取消" }
+                }
+                runOnUiThread {
+                    if (mSpatialGenerationCancelled === cancelled && !cancelled.get()) {
+                        showSpatialGenerationStage(R.string.spatial_generation_saving)
+                    }
+                }
+                val derivative = mSpatialStore.save(
+                    sourcePath = sourcePath,
+                    model = model,
+                    depth = depth,
+                    cancelled = cancelled,
+                    ldiLite = pendingLdi
+                )
+                pendingLdi = null
+                check(!cancelled.get()) { "任务已取消" }
+                runOnUiThread {
+                    if (mSpatialGenerationCancelled === cancelled) {
+                        mSpatialGenerationCancelled = null
+                        hideSpatialGeneration()
+                    }
+                    if (!cancelled.get() && sourcePath == currentSourcePath() &&
+                        !isFinishing && !isDestroyed
+                    ) {
+                        mUpdated = true
+                        enterSpatialMode(sourcePath, bitmap, derivative)
+                    }
+                }
+            } catch (error: Throwable) {
+                pendingLdi?.backgroundBitmap?.recycle()
+                runOnUiThread {
+                    if (mSpatialGenerationCancelled === cancelled) {
+                        mSpatialGenerationCancelled = null
+                        hideSpatialGeneration()
+                    }
+                    if (!cancelled.get() && !isFinishing && !isDestroyed) {
+                        val message = getString(
+                            R.string.spatial_generation_failed,
+                            error.message ?: error.javaClass.simpleName
+                        )
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                            // 完整错误进对话框：ORT 一类的长错误在 Toast 里读不完。
+                            val adf = AlertDialogFragment()
+                            adf.setTitleBackground(mAccentBackground)
+                            adf.setConfirmBackground(mAccentBackground)
+                            adf.setContentColor(
+                                ContextCompat.getColor(
+                                    this,
+                                    R.color.app_chrome_on_surface_medium
+                                )
+                            )
+                            adf.setShowCancel(false)
+                            adf.setContent(message)
+                            adf.show(supportFragmentManager, AlertDialogFragment.TAG)
+                        } else {
+                            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun enterSpatialMode(
+        sourcePath: String,
+        bitmap: Bitmap,
+        derivative: SpatialDerivativeStore.Derivative
+    ) {
+        stopMotionPlayback()
+        cancelScheduledAutoplay()
+        mSpatialMode = true
+        mSpatialSourcePath = sourcePath
+        mSpatialHasLdiLite = derivative.ldiLite != null
+        mSpatialRenderMode = SpatialRenderMode.resolve(
+            derivative.manifest.renderMode,
+            mSpatialHasLdiLite
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            window.colorMode = ActivityInfo.COLOR_MODE_DEFAULT
+        }
+        mTvHdrBadge?.visibility = View.GONE
+        mLiveBadge?.visibility = View.GONE
+        mVpImage?.isEnabled = false
+        mSpatialPhotoView?.apply {
+            visibility = View.VISIBLE
+            setScene(
+                bitmap,
+                derivative.depth,
+                derivative.manifest.strength,
+                derivative.ldiLite,
+                mSpatialRenderMode
+            )
+            activate(SpatialPreferences.deviceTiltEnabled(this@ImageViewerActivity))
+        }
+        bindSpatialStrength(derivative.manifest.strength)
+        updateSpatialRenderModeControl()
+        updateSpatialChromeVisibility()
+        updateSpatialActionState()
+
+        if (SpatialPreferences.shouldShowInteractionHint(this)) {
+            Toast.makeText(this, R.string.spatial_first_use_hint, Toast.LENGTH_LONG).show()
+            SpatialPreferences.markInteractionHintShown(this)
+        } else if (SpatialPreferences.deviceTiltEnabled(this) &&
+            mSpatialPhotoView?.hasTiltSensor() == false
+        ) {
+            Toast.makeText(this, R.string.spatial_tilt_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun exitSpatialMode() {
+        if (!mSpatialMode) return
+        mSpatialMode = false
+        mSpatialSourcePath = null
+        mSpatialHasLdiLite = false
+        mSpatialRenderMode = SpatialRenderMode.SINGLE_LAYER
+        mSpatialPhotoView?.deactivate()
+        mSpatialPhotoView?.visibility = View.GONE
+        mSpatialStrengthPanel?.visibility = View.GONE
+        mVpImage?.isEnabled = true
+        applyHdrStateForCurrentPage()
+        updateLiveBadge()
+        updateSpatialActionState()
+        scheduleAutoplayForCurrentPage()
+    }
+
+    private fun currentSourcePath(): String? {
+        val position = mVpImage?.currentItem ?: return null
+        val typePathName = mTypePathNames?.getOrNull(position) ?: return null
+        if (typePathName.isEmpty() || typePathName[0] != '0') return null
+        return typePathName.substring(1)
+    }
+
+    private fun currentSpatialBitmap(): Bitmap? {
+        val position = mVpImage?.currentItem ?: return null
+        val tab = mTabs?.getOrNull(position) ?: return null
+        val image = tab.findViewById<PhotoView>(R.id.iv_image_attachment) ?: return null
+        return (image.drawable as? BitmapDrawable)?.bitmap?.takeUnless { it.isRecycled }
+    }
+
+    private fun isCurrentSpatialCompatible(): Boolean {
+        val position = mVpImage?.currentItem ?: return false
+        val sourcePath = currentSourcePath() ?: return false
+        if (AttachmentHelper.isAnimatedImageCandidate(sourcePath)) return false
+        if (AttachmentHelper.isMotionPhotoCandidate(sourcePath)) {
+            if (!mMotionDetectionComplete.getOrElse(position) { false }) return false
+            if (mMotionInfos.getOrNull(position) != null) return false
+        }
+        return true
+    }
+
+    /** 空间效果的强度条、进度圈、按钮 ripple 与激活图标全部跟随记事强调色。 */
+    private fun applySpatialChromeAccent() {
+        val accent = mAccentBackground ?: return
+        mSpatialStrength?.let { DisplayUtil.setSeekBarBackground(it, accent) }
+        val strengthIcon = findViewById<ImageView>(R.id.iv_spatial_strength_icon)
+        ContextCompat.getDrawable(this, R.drawable.ic_spatial_effect)?.let { source ->
+            strengthIcon?.setImageDrawable(
+                BackgroundUtil.tintDrawable(resources, source, accent) ?: source
+            )
+        }
+        findViewById<ProgressBar>(R.id.pb_spatial_generation)?.let {
+            BackgroundUtil.applyProgressBarGradient(it, accent)
+        }
+        findViewById<View>(R.id.btn_cancel_spatial_generation)?.let {
+            GradientRippleDrawable.applyAccentRipple(it, accent, accent.representativeColor())
+        }
+        mSpatialRenderModeButton?.let {
+            GradientRippleDrawable.applyAccentRipple(it, accent, accent.representativeColor())
+        }
+    }
+
+    private fun updateSpatialActionState() {
+        val item = mSpatialMenuItem ?: return
+        item.isVisible = mSpatialMode || isCurrentSpatialCompatible()
+        item.isEnabled = item.isVisible && mSpatialGenerationCancelled == null
+        item.isChecked = mSpatialMode
+        item.title = getString(
+            if (mSpatialMode) R.string.act_exit_spatial_photo else R.string.act_spatial_photo
+        )
+        val baseIcon = ContextCompat.getDrawable(this, R.drawable.ic_spatial_effect)
+        item.icon = if (mSpatialMode && baseIcon != null) {
+            mAccentBackground?.let { BackgroundUtil.tintDrawable(resources, baseIcon, it) }
+                ?: baseIcon
+        } else {
+            baseIcon
+        }
+        val derivativeReady = item.isVisible &&
+            currentSourcePath()?.let(mSpatialStore::hasValid) == true
+        mSpatialRegenerateMenuItem?.apply {
+            isVisible = derivativeReady
+            isEnabled = derivativeReady && mSpatialGenerationCancelled == null
+        }
+        mSpatialRemoveMenuItem?.apply {
+            isVisible = derivativeReady
+            isEnabled = derivativeReady && mSpatialGenerationCancelled == null
+        }
+    }
+
+    private fun confirmRegenerateSpatialEffect() {
+        if (mSpatialGenerationCancelled != null) return
+        val sourcePath = currentSourcePath() ?: return
+        if (!mSpatialStore.hasValid(sourcePath)) {
+            updateSpatialActionState()
+            return
+        }
+        val bitmap = currentSpatialBitmap()
+        if (bitmap == null) {
+            Toast.makeText(this, R.string.spatial_image_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val model = SpatialPreferences.selectedModel(this)
+        if (!SpatialModelStore.isInstalled(this, model)) {
+            mPendingSpatialGenerationSourcePath = sourcePath
+            mPendingSpatialRegeneration = true
+            ensureSpatialModelObservers()
+            Toast.makeText(this, R.string.spatial_model_not_ready, Toast.LENGTH_LONG).show()
+            openSpatialSettings()
+            return
+        }
+        if (!SpatialModelStore.isDeviceEligible(this, model)) {
+            Toast.makeText(this, R.string.spatial_model_device_ineligible, Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!SpatialRuntimeStore.isInstalled(this)) {
+            mPendingSpatialGenerationSourcePath = sourcePath
+            mPendingSpatialRegeneration = true
+            ensureSpatialModelObservers()
+            Toast.makeText(this, R.string.spatial_runtime_not_ready, Toast.LENGTH_LONG).show()
+            openSpatialSettings()
+            return
+        }
+        val inpaintingIssue = currentInpaintingIssue()
+        if (inpaintingIssue != null) {
+            offerSingleLayerGeneration(
+                sourcePath,
+                bitmap,
+                model,
+                inpaintingIssue,
+                regenerate = true
+            )
+            return
+        }
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(mAccentBackground)
+        adf.setConfirmBackground(mAccentBackground)
+        adf.setContentColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_medium))
+        adf.setTitle(getString(R.string.spatial_regenerate_title))
+        adf.setContent(getString(R.string.spatial_regenerate_message, model.displayName))
+        adf.setConfirmText(getString(R.string.spatial_regenerate))
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                if (mSpatialMode) exitSpatialMode()
+                generateSpatialDerivative(sourcePath, bitmap, model)
+            }
+        })
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
+    }
+
+    /** 当前所选补图模型不可用时返回用户可读原因；可用时返回 null。 */
+    private fun currentInpaintingIssue(): String? {
+        val inpaintingModel = SpatialPreferences.selectedInpaintingModel(this)
+        if (!SpatialInpaintingModelStore.isInstalled(this, inpaintingModel)) {
+            return getString(R.string.spatial_inpainting_not_ready)
+        }
+        if (!SpatialInpaintingModelStore.isDeviceEligible(this, inpaintingModel)) {
+            return getString(R.string.spatial_model_device_ineligible)
+        }
+        val inpaintingQuality = SpatialPreferences.inpaintingQuality(this)
+            .takeIf {
+                inpaintingModel == SpatialInpaintingModel.AOTGAN_PLACES2_512
+            }
+        if (!SpatialInpaintingModelStore.hasSufficientAvailableMemory(
+                this,
+                inpaintingModel,
+                inpaintingQuality
+            )
+        ) {
+            return getString(R.string.spatial_inpainting_available_memory_required)
+        }
+        return null
+    }
+
+    /** 补图模型不可用不再封死生成：明确提供单层（P0）回退，或去设置准备模型。 */
+    private fun offerSingleLayerGeneration(
+        sourcePath: String,
+        bitmap: Bitmap,
+        model: SpatialDepthModel,
+        reason: String,
+        regenerate: Boolean
+    ) {
+        val replacesDual = regenerate &&
+            mSpatialStore.loadManifest(sourcePath)?.renderer != null
+        val content = buildString {
+            append(reason)
+            append("\n\n")
+            append(getString(R.string.spatial_generate_p0_only_message))
+            if (replacesDual) {
+                append("\n\n")
+                append(getString(R.string.spatial_p0_replaces_dual))
+            }
+        }
+        val df = ThreeActionsAlertDialogFragment()
+        df.setTitleBackground(mAccentBackground)
+        df.setContinueBackground(mAccentBackground)
+        df.setContentColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_medium))
+        df.setTitle(getString(R.string.spatial_inpainting_unavailable_title))
+        df.setContent(content)
+        df.setFirstAction(getString(R.string.spatial_generate_p0_only))
+        df.setSecondAction(getString(R.string.spatial_open_settings))
+        df.setOnClickListener(object : ThreeActionsAlertDialogFragment.OnClickListener {
+            override fun onFirstClicked() {
+                if (mSpatialMode) exitSpatialMode()
+                generateSpatialDerivative(sourcePath, bitmap, model, includeLdi = false)
+            }
+
+            override fun onSecondClicked() {
+                mPendingSpatialGenerationSourcePath = sourcePath
+                mPendingSpatialRegeneration = regenerate
+                ensureSpatialModelObservers()
+                openSpatialSettings()
+            }
+
+            override fun onThirdClicked() = Unit
+        })
+        df.show(supportFragmentManager, ThreeActionsAlertDialogFragment.TAG)
+    }
+
+    private fun confirmRemoveSpatialEffect() {
+        if (mSpatialGenerationCancelled != null) return
+        val sourcePath = currentSourcePath() ?: return
+        if (!mSpatialStore.hasValid(sourcePath)) {
+            updateSpatialActionState()
+            return
+        }
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(mAccentBackground)
+        adf.setConfirmBackground(mAccentBackground)
+        adf.setContentColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_medium))
+        adf.setTitle(getString(R.string.spatial_remove_title))
+        adf.setContent(getString(R.string.spatial_remove_message))
+        adf.setConfirmText(getString(R.string.act_delete))
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                if (mSpatialMode) exitSpatialMode()
+                mSpatialExecutor.execute {
+                    val removed = mSpatialStore.remove(sourcePath)
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        if (removed) {
+                            mUpdated = true
+                            Toast.makeText(
+                                this@ImageViewerActivity,
+                                R.string.spatial_remove_success,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                this@ImageViewerActivity,
+                                R.string.spatial_remove_failed,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        invalidateOptionsMenu()
+                    }
+                }
+            }
+        })
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
+    }
+
+    private fun showSpatialGenerationStage(text: Int) {
+        mSpatialGenerationStage?.setText(text)
+        mSpatialGenerationOverlay?.apply {
+            visibility = View.VISIBLE
+            // 生成期间必须覆盖 Toolbar 与顶部徽标，阻止删除附件等并发操作。
+            bringToFront()
+        }
+        mVpImage?.isEnabled = false
+    }
+
+    private fun hideSpatialGeneration() {
+        mSpatialGenerationOverlay?.visibility = View.GONE
+        if (!mSpatialMode) mVpImage?.isEnabled = true
+    }
+
+    private fun cancelSpatialGeneration(showMessage: Boolean) {
+        val cancelled = mSpatialGenerationCancelled ?: return
+        if (cancelled.compareAndSet(false, true)) {
+            hideSpatialGeneration()
+            if (showMessage) {
+                Toast.makeText(
+                    this,
+                    R.string.spatial_generation_cancelled,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun bindSpatialStrength(strength: Float) {
+        mSpatialStrengthBinding = true
+        mSpatialStrength?.progress = progressFromStrength(strength)
+        mSpatialStrengthBinding = false
+    }
+
+    private fun toggleSpatialRenderMode() {
+        if (!mSpatialMode || !mSpatialHasLdiLite) return
+        mSpatialRenderMode = when (mSpatialRenderMode) {
+            SpatialRenderMode.SINGLE_LAYER -> SpatialRenderMode.LDI_LITE
+            SpatialRenderMode.LDI_LITE -> SpatialRenderMode.SINGLE_LAYER
+            // 旧 manifest 的实验值通常已在 resolve 时迁移；保留防御性分支。
+            SpatialRenderMode.MPI -> SpatialRenderMode.LDI_LITE
+        }
+        mSpatialPhotoView?.setRenderMode(mSpatialRenderMode)
+        updateSpatialRenderModeControl()
+        val sourcePath = mSpatialSourcePath ?: return
+        val mode = mSpatialRenderMode
+        mSpatialExecutor.execute {
+            if (mSpatialStore.updateRenderMode(sourcePath, mode)) {
+                runOnUiThread { mUpdated = true }
+            }
+        }
+    }
+
+    private fun updateSpatialRenderModeControl() {
+        mSpatialRenderModeButton?.apply {
+            isEnabled = mSpatialHasLdiLite
+            text = when (mSpatialRenderMode) {
+                SpatialRenderMode.LDI_LITE ->
+                    getString(R.string.spatial_render_mode_p1_short)
+                SpatialRenderMode.MPI ->
+                    getString(R.string.spatial_render_mode_p1_short)
+                else -> getString(R.string.spatial_render_mode_p0_short)
+            }
+            contentDescription = getString(
+                R.string.spatial_render_mode_current,
+                text
+            )
+        }
+    }
+
+    private fun updateSpatialChromeVisibility() {
+        mSpatialStrengthPanel?.visibility =
+            if (mSpatialMode && mSystemUiVisible) View.VISIBLE else View.GONE
+    }
+
+    private fun strengthFromProgress(progress: Int): Float {
+        val fraction = progress.coerceIn(0, 100) / 100f
+        return SpatialDerivativeStore.MIN_STRENGTH +
+            fraction * (SpatialDerivativeStore.MAX_STRENGTH - SpatialDerivativeStore.MIN_STRENGTH)
+    }
+
+    private fun progressFromStrength(strength: Float): Int {
+        val fraction = (strength - SpatialDerivativeStore.MIN_STRENGTH) /
+            (SpatialDerivativeStore.MAX_STRENGTH - SpatialDerivativeStore.MIN_STRENGTH)
+        return (fraction.coerceIn(0f, 1f) * 100f).toInt()
+    }
+
+    private fun openSpatialSettings() {
+        startActivity(Intent(this, SpatialPhotoSettingsActivity::class.java))
+    }
+
+    private fun ensureSpatialModelObservers() {
+        if (mSpatialModelObserversInstalled) return
+        mSpatialModelObserversInstalled = true
+        val workManager = WorkManager.getInstance(applicationContext)
+        SpatialDepthModel.entries.forEach { model ->
+            workManager.getWorkInfosForUniqueWorkLiveData(
+                SpatialModelDownloadCoordinator.uniqueWorkName(model)
+            ).observe(this) {
+                maybeContinuePendingSpatialGeneration()
+            }
+        }
+        workManager.getWorkInfosForUniqueWorkLiveData(
+            SpatialRuntimeDownloadCoordinator.UNIQUE_WORK_NAME
+        ).observe(this) {
+            maybeContinuePendingSpatialGeneration()
+        }
+        SpatialInpaintingModel.entries.forEach { inpaintingModel ->
+            workManager.getWorkInfosForUniqueWorkLiveData(
+                SpatialInpaintingDownloadCoordinator.uniqueWorkName(
+                    inpaintingModel
+                )
+            ).observe(this) {
+                maybeContinuePendingSpatialGeneration()
+            }
+        }
+    }
+
+    private fun maybeContinuePendingSpatialGeneration() {
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
+            mSpatialGenerationCancelled != null
+        ) {
+            return
+        }
+        val sourcePath = mPendingSpatialGenerationSourcePath ?: return
+        if (sourcePath != currentSourcePath()) {
+            mPendingSpatialGenerationSourcePath = null
+            mPendingSpatialRegeneration = false
+            return
+        }
+        val model = SpatialPreferences.selectedModel(this)
+        val inpaintingModel = SpatialPreferences.selectedInpaintingModel(this)
+        val inpaintingQuality = SpatialPreferences.inpaintingQuality(this)
+            .takeIf {
+                inpaintingModel == SpatialInpaintingModel.AOTGAN_PLACES2_512
+            }
+        if (!SpatialModelStore.isInstalled(this, model) ||
+            !SpatialModelStore.isDeviceEligible(this, model) ||
+            !SpatialInpaintingModelStore.isInstalled(
+                this,
+                inpaintingModel
+            ) ||
+            !SpatialInpaintingModelStore.isDeviceEligible(
+                this,
+                inpaintingModel
+            ) ||
+            !SpatialInpaintingModelStore.hasSufficientAvailableMemory(
+                this,
+                inpaintingModel,
+                inpaintingQuality
+            ) ||
+            !SpatialRuntimeStore.isInstalled(this)
+        ) {
+            return
+        }
+        val bitmap = currentSpatialBitmap() ?: return
+        val regenerate = mPendingSpatialRegeneration
+        mPendingSpatialGenerationSourcePath = null
+        mPendingSpatialRegeneration = false
+        if (regenerate && mSpatialStore.hasValid(sourcePath)) {
+            confirmRegenerateSpatialEffect()
+        } else {
+            generateSpatialDerivative(sourcePath, bitmap, model)
+        }
+    }
+
     override fun setEvents() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                returnToDetailActivity()
+                if (mSpatialMode) {
+                    exitSpatialMode()
+                } else {
+                    returnToDetailActivity()
+                }
             }
         })
 
         mVpImage!!.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
+                if (mSpatialMode) exitSpatialMode()
                 stopMotionPlayback()
                 // 播放头只在本页内有意义，翻页即重置（见 decisions.md D12）。
                 mVideoResumeMs = 0
@@ -891,12 +1794,38 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 applyHdrStateForCurrentPage()
                 updateLiveBadge()
                 updateVideoSignalVisibility()
+                updateSpatialActionState()
                 scheduleAutoplayForCurrentPage()
             }
         })
 
         // ViewPager 的初始页不会触发 onPageSelected，首页的自动播放要自己安排。
         mVpImage!!.post { scheduleAutoplayForCurrentPage() }
+
+        findViewById<View>(R.id.btn_cancel_spatial_generation).setOnClickListener {
+            cancelSpatialGeneration(showMessage = true)
+        }
+        mSpatialRenderModeButton?.setOnClickListener {
+            toggleSpatialRenderMode()
+        }
+        mSpatialStrength?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (mSpatialStrengthBinding) return
+                mSpatialPhotoView?.setStrength(strengthFromProgress(progress))
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                val sourcePath = mSpatialSourcePath ?: return
+                val strength = strengthFromProgress(seekBar.progress)
+                mSpatialExecutor.execute {
+                    if (mSpatialStore.updateStrength(sourcePath, strength)) {
+                        runOnUiThread { mUpdated = true }
+                    }
+                }
+            }
+        })
     }
 
     private fun updateAttachmentNumber() {
@@ -916,6 +1845,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      * isn't boosted.
      */
     private fun applyHdrStateForCurrentPage() {
+        if (mSpatialMode) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                window.colorMode = ActivityInfo.COLOR_MODE_DEFAULT
+            }
+            mTvHdrBadge?.visibility = View.GONE
+            return
+        }
         val pos = mVpImage?.currentItem ?: return
         val isHdr = pos in mHasGainmap.indices && mHasGainmap[pos]
         val boostOn = isHdr && !(pos in mForcedSdr.indices && mForcedSdr[pos])
@@ -964,6 +1900,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mSystemUiVisible = !mSystemUiVisible
         applyHdrStateForCurrentPage()
         updateLiveBadge()
+        updateSpatialChromeVisibility()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -997,6 +1934,12 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun returnToDetailActivity() {
+        mPendingSpatialGenerationSourcePath = null
+        mPendingSpatialRegeneration = false
+        cancelSpatialGeneration(showMessage = false)
+        if (mSpatialMode) {
+            mSpatialPhotoView?.deactivate()
+        }
         if (mUpdated) {
             val intent = Intent()
             intent.putExtra(Def.Communication.KEY_TYPE_PATH_NAME, mTypePathNames)
@@ -1025,12 +1968,26 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     override fun onPause() {
         super.onPause()
+        cancelSpatialGeneration(showMessage = false)
+        if (mSpatialMode) mSpatialPhotoView?.deactivate()
         cancelScheduledAutoplay()
         stopMotionPlayback()
         mVideoResumeMs = 0
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (mSpatialMode) {
+            mSpatialPhotoView?.activate(SpatialPreferences.deviceTiltEnabled(this))
+        }
+        updateSpatialActionState()
+        mVpImage?.post { maybeContinuePendingSpatialGeneration() }
+    }
+
     override fun onDestroy() {
+        cancelSpatialGeneration(showMessage = false)
+        mSpatialPhotoView?.releaseRenderer()
+        mSpatialExecutor.shutdownNow()
         cancelScheduledAutoplay()
         stopMotionPlayback()
         mMotionDetectExecutor.shutdownNow()

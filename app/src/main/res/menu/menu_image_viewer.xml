@@ -4,6 +4,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/act_spatial_photo"
+        android:title="@string/act_spatial_photo"
+        android:icon="@drawable/ic_spatial_effect"
+        android:checkable="true"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/act_regenerate_spatial_photo"
+        android:title="@string/act_regenerate_spatial_photo"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/act_remove_spatial_photo"
+        android:title="@string/act_remove_spatial_photo"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_show_attachment_info"
         android:title="@string/act_show_attachment_info"
         android:icon="@drawable/act_show_attachment_info"

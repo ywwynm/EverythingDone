@@ -4,6 +4,8 @@
 .DS_Store
 /build
 **/build/
+**/__pycache__/
+*.py[cod]
 /captures
 /.idea
 findbugs-android-exclude.xml
@@ -18,3 +20,22 @@ memory/screenshots/
 /docs/features/audio-visualization-fable-sol/research-2026-07-16-water-quality-uplift-by-opus/
 /docs/features/audio-visualization-fable-sol/research-2026-07-16-water-look-uplift-latex/
 /docs/features/audio-visualization-fable-sol/research-sol-ultra-0716/
+
+# 空间照片桌面模型实验、一次性 demo、真机录屏与分析产物（产品代码与可重复构建工具不在此列）
+/tmp/InfiniSplat-*/
+/tmp/SHARP-eval/
+/tmp/MoGe-research/
+/tmp/NeuFlow_v2/
+/tmp/ml-sharp-research/
+/tmp/ntire2026-mobile-sr/
+/tmp/ovie-*/
+/tmp/plksr-official/
+/tmp/infinisplat-env/
+/tmp/micromamba/
+/tmp/new-device-spatial/
+/tmp/spatial-*/
+/tmp/tools/
+/tmp/*.whl
+/tmp/*.tar.bz2
+/memory/diagnose-spatial.txt
+/memory/spatial-*.txt
