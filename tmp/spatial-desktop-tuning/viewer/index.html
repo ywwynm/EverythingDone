@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>空间照片 vNext13 失败复现（已否决）</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d0e12;
+    --panel: #16181f;
+    --line: #2a2d37;
+    --muted: #969ba9;
+    --text: #edf0f7;
+    --accent: #61c6ff;
+    --ok: #67d394;
+    --warn: #ffcf70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    overflow: hidden;
+  }
+  #stage {
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(46, 52, 66, .38), transparent 56%),
+      #0d0e12;
+  }
+  #gl, #fallback {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    touch-action: none;
+    cursor: default;
+    box-shadow: 0 18px 64px rgba(0, 0, 0, .34);
+  }
+  #fallback { display: none; }
+  #diag {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: rgba(6, 7, 10, .76);
+    color: #e9edf7;
+    font: 12px/1.62 ui-monospace, "Cascadia Mono", monospace;
+    white-space: pre-wrap;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+  }
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 9, 12, .52);
+    color: #fff;
+    font-weight: 650;
+    letter-spacing: .02em;
+  }
+  #panel {
+    min-height: 0;
+    padding: 18px;
+    overflow-y: auto;
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+  }
+  h1 { margin: 0; font-size: 17px; letter-spacing: .01em; }
+  .subtitle { margin: 4px 0 16px; color: var(--muted); font-size: 12px; }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .025);
+    font-size: 12px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: 0 0 auto; }
+  .status.ready .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(103, 211, 148, .12); }
+  .status.error .dot { background: #ff6f78; }
+  .group { margin: 0 0 15px; }
+  label, .label { display: block; margin: 0 0 6px; color: #b4b8c4; font-size: 12px; }
+  select, button, input { font: inherit; }
+  select, button {
+    border: 1px solid #343845;
+    border-radius: 7px;
+    background: #20232c;
+    color: var(--text);
+  }
+  select { width: 100%; padding: 8px 9px; }
+  button { padding: 7px 9px; cursor: pointer; }
+  button:hover { border-color: #596072; }
+  button.active { color: #06121a; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+  .preset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .slider-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .value { color: var(--accent); font: 12px ui-monospace, "Cascadia Mono", monospace; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  #compare { user-select: none; -webkit-user-select: none; }
+  .contract {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .contract strong { color: #dfe3ec; font-weight: 650; }
+  #err { margin-top: 12px; color: #ff8a91; white-space: pre-wrap; font-size: 12px; }
+  @media (max-width: 820px) {
+    body { grid-template-columns: 1fr; grid-template-rows: minmax(52vh, 1fr) auto; overflow: auto; }
+    #panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+    #stage { min-height: 52vh; }
+  }
+</style>
+</head>
+<body>
+<main id="stage">
+  <canvas id="gl" aria-label="vNext13 空间照片最终渲染画面"></canvas>
+  <img id="fallback" alt="静态原图安全回退">
+  <pre id="diag">正在初始化 vNext13…</pre>
+  <div id="loading">正在加载场景…</div>
+</main>
+<aside id="panel">
+  <h1>空间照片 vNext13（已否决）</h1>
+  <p class="subtitle">连续深度微表面 · WebGL2 最终画面验收</p>
+  <div id="status" class="status"><span class="dot"></span><span id="statusText">初始化中</span></div>
+
+  <div class="group">
+    <label for="scene">测试图像（共 9 张）</label>
+    <select id="scene"></select>
+  </div>
+
+  <div class="group">
+    <span class="label">强度档位</span>
+    <div class="preset">
+      <button type="button" data-strength="0.15">最小</button>
+      <button type="button" data-strength="0.50">中等</button>
+      <button type="button" class="active" data-strength="1.00">最大</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="slider-head"><label for="strength">连续强度</label><span id="strengthVal" class="value">1.00</span></div>
+    <input id="strength" type="range" min="0.15" max="1" step="0.01" value="1">
+  </div>
+
+  <div class="group">
+    <label for="controlMode">视角控制</label>
+    <select id="controlMode">
+      <option value="manual">角度滑杆</option>
+      <option value="pointer">光标／触摸跟随</option>
+      <option value="orbit">自动完整圆周</option>
+    </select>
+  </div>
+
+  <div class="group">
+    <div class="slider-head"><label for="angle">角度</label><span id="angleVal" class="value">22°</span></div>
+    <input id="angle" type="range" min="0" max="360" step="0.5" value="22">
+  </div>
+
+  <div class="group">
+    <div class="slider-head"><label for="radius">视角半径</label><span id="radiusVal" class="value">1.00</span></div>
+    <input id="radius" type="range" min="0" max="1" step="0.01" value="1">
+  </div>
+
+  <div class="group actions">
+    <button id="recenter" type="button">视角回中</button>
+    <button id="compare" type="button">按住看原图</button>
+  </div>
+
+  <div class="contract">
+    <strong>失败原因：</strong>虽然目标空间深度测试能够处理遮挡和孔洞，但每个样本仍由同一张深度标量图独立平移；最大强度下九个场景的局部形变全部越界。本页只保留失败复现，不代表可交付候选。
+  </div>
+  <div id="err"></div>
+</aside>
+
+<script>
+"use strict";
+
+const SURFEL_MAGIC = 0x5350534651413031n;
+const MINIMUM_AMPLITUDE = 0.012;
+const REFERENCE_LONG_EDGE = 720;
+const canvas = document.getElementById("gl");
+const fallback = document.getElementById("fallback");
+const stage = document.getElementById("stage");
+const loading = document.getElementById("loading");
+const statusBox = document.getElementById("status");
+const statusText = document.getElementById("statusText");
+const err = document.getElementById("err");
+const diag = document.getElementById("diag");
+const sceneEl = document.getElementById("scene");
+const strengthEl = document.getElementById("strength");
+const strengthVal = document.getElementById("strengthVal");
+const controlModeEl = document.getElementById("controlMode");
+const angleEl = document.getElementById("angle");
+const angleVal = document.getElementById("angleVal");
+const radiusEl = document.getElementById("radius");
+const radiusVal = document.getElementById("radiusVal");
+
+const state = {
+  scene: "",
+  sceneNames: [],
+  guideWidth: 0,
+  guideHeight: 0,
+  guard: 0.05,
+  backgroundScalar: 0,
+  requestedAmplitude: 0.16,
+  scalarLow: 0,
+  scalarHigh: 0,
+  spanPx720: 0,
+  centerWidth: 0,
+  centerHeight: 0,
+  viewX: Math.cos(22 * Math.PI / 180),
+  viewY: Math.sin(22 * Math.PI / 180),
+  compareSource: false,
+  pointSize: 0,
+  loadToken: 0,
+  ready: false,
+  loadError: "",
+  sourceTexture: null,
+  plateTexture: null,
+  surfelBuffer: null,
+  surfelVao: null,
+  surfelCount: 0,
+  targets: null,
+  fallbackUrl: "",
+  lastFrameTime: performance.now(),
+  dirty: true,
+};
+
+function setStatus(kind, text) {
+  statusBox.className = `status ${kind || ""}`.trim();
+  statusText.textContent = text;
+}
+
+function setError(message) {
+  state.loadError = message || "";
+  err.textContent = state.loadError;
+}
+
+function clamp(value, low, high) { return Math.min(high, Math.max(low, value)); }
+
+function updateStrengthUi(value) {
+  const strength = clamp(Number(value), 0.15, 1);
+  strengthEl.value = strength.toFixed(2);
+  strengthVal.textContent = strength.toFixed(2);
+  document.querySelectorAll("[data-strength]").forEach(button => {
+    button.classList.toggle("active", Math.abs(Number(button.dataset.strength) - strength) < 0.005);
+  });
+  state.dirty = true;
+}
+
+function setPolar(angleDegrees, radius) {
+  const normalizedAngle = ((Number(angleDegrees) % 360) + 360) % 360;
+  const safeRadius = clamp(Number(radius), 0, 1);
+  const radians = normalizedAngle * Math.PI / 180;
+  state.viewX = Math.cos(radians) * safeRadius;
+  state.viewY = Math.sin(radians) * safeRadius;
+  angleEl.value = String(Math.round(normalizedAngle));
+  radiusEl.value = safeRadius.toFixed(2);
+  angleVal.textContent = `${Math.round(normalizedAngle)}°`;
+  radiusVal.textContent = safeRadius.toFixed(2);
+  state.dirty = true;
+}
+
+function currentPolar() {
+  const radius = Math.hypot(state.viewX, state.viewY);
+  const angle = radius < 1e-7 ? Number(angleEl.value) : (Math.atan2(state.viewY, state.viewX) * 180 / Math.PI + 360) % 360;
+  return { angle, radius };
+}
+
+function fallbackToStatic(message) {
+  state.ready = false;
+  canvas.style.display = "none";
+  fallback.style.display = "block";
+  if (state.fallbackUrl) fallback.src = state.fallbackUrl;
+  setStatus("error", "静态原图安全回退");
+  setError(message);
+  diag.textContent = "vNext13 WebGL2 不可用\n已停止空间变换并显示静态原图";
+  document.body.dataset.rendererState = "fallback";
+}
+
+const gl = canvas.getContext("webgl2", {
+  antialias: false,
+  alpha: false,
+  depth: true,
+  premultipliedAlpha: false,
+  preserveDrawingBuffer: true,
+});
+
+const QUAD_VS = `#version 300 es
+layout(location=0) in vec2 aPosition;
+out vec2 vUv;
+void main() {
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+  vUv = vec2(aPosition.x * 0.5 + 0.5, 0.5 - aPosition.y * 0.5);
+}`;
+
+const BACKGROUND_FS = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 outColor;
+uniform sampler2D uPlate;
+uniform sampler2D uSource;
+uniform vec2 uMotion;
+uniform vec2 uScalarToUv;
+uniform float uBackgroundScalar;
+uniform float uGuard;
+uniform bool uCompareSource;
+void main() {
+  if (uCompareSource) {
+    outColor = vec4(texture(uSource, vUv).rgb, 1.0);
+    return;
+  }
+  float cropScale = max(1.0 - 2.0 * uGuard, 0.000001);
+  vec2 uncroppedTargetUv = vec2(uGuard) + vUv * cropScale;
+  vec2 sourceUv = uncroppedTargetUv +
+    uMotion * uBackgroundScalar * uScalarToUv;
+  outColor = vec4(texture(uPlate, clamp(sourceUv, vec2(0.001), vec2(0.999))).rgb, 1.0);
+}`;
+
+const SURFEL_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 aSourceUv;
+layout(location=1) in float aMotionScalar;
+layout(location=2) in float aSurfaceDepth;
+uniform vec2 uMotion;
+uniform vec2 uScalarToUv;
+uniform float uGuard;
+uniform float uPointSize;
+out vec2 vSourceUv;
+out vec2 vTargetScreenUv;
+void main() {
+  vec2 targetUv = aSourceUv - uMotion * aMotionScalar * uScalarToUv;
+  vec2 canvasUv = (targetUv - vec2(uGuard)) /
+    max(vec2(1.0 - 2.0 * uGuard), vec2(0.000001));
+  gl_Position = vec4(
+    canvasUv.x * 2.0 - 1.0,
+    1.0 - canvasUv.y * 2.0,
+    1.0 - 2.0 * aSurfaceDepth,
+    1.0
+  );
+  gl_PointSize = uPointSize;
+  vSourceUv = aSourceUv;
+  vTargetScreenUv = canvasUv;
+}`;
+
+const SURFEL_FS = `#version 300 es
+precision highp float;
+in vec2 vSourceUv;
+in vec2 vTargetScreenUv;
+out vec4 outColor;
+uniform sampler2D uSource;
+uniform float uGuard;
+uniform vec2 uTargetSize;
+void main() {
+  vec2 fragmentScreenUv = vec2(
+    gl_FragCoord.x / uTargetSize.x,
+    1.0 - gl_FragCoord.y / uTargetSize.y
+  );
+  vec2 sourceUv = vSourceUv +
+    (fragmentScreenUv - vTargetScreenUv) * (1.0 - 2.0 * uGuard);
+  outColor = vec4(texture(uSource, clamp(sourceUv, vec2(0.001), vec2(0.999))).rgb, 1.0);
+}`;
+
+const COMPOSITE_FS = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 outColor;
+uniform sampler2D uSurfels;
+uniform vec2 uTargetTexel;
+float occupied(vec4 value) { return step(0.5, value.a); }
+void main() {
+  vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
+  vec4 center = texture(uSurfels, uv);
+  if (occupied(center) > 0.5) {
+    outColor = vec4(center.rgb, 1.0);
+    return;
+  }
+  vec4 left = texture(uSurfels, uv - vec2(uTargetTexel.x, 0.0));
+  vec4 right = texture(uSurfels, uv + vec2(uTargetTexel.x, 0.0));
+  vec4 top = texture(uSurfels, uv + vec2(0.0, uTargetTexel.y));
+  vec4 bottom = texture(uSurfels, uv - vec2(0.0, uTargetTexel.y));
+  vec4 topLeft = texture(uSurfels, uv + vec2(-uTargetTexel.x, uTargetTexel.y));
+  vec4 topRight = texture(uSurfels, uv + uTargetTexel);
+  vec4 bottomLeft = texture(uSurfels, uv - uTargetTexel);
+  vec4 bottomRight = texture(uSurfels, uv + vec2(uTargetTexel.x, -uTargetTexel.y));
+  float paired = max(
+    max(occupied(left) * occupied(right), occupied(top) * occupied(bottom)),
+    max(occupied(topLeft) * occupied(bottomRight), occupied(topRight) * occupied(bottomLeft))
+  );
+  if (paired < 0.5) {
+    outColor = vec4(0.0);
+    return;
+  }
+  vec4 selected = left;
+  if (occupied(selected) < 0.5) selected = right;
+  if (occupied(selected) < 0.5) selected = top;
+  if (occupied(selected) < 0.5) selected = bottom;
+  if (occupied(selected) < 0.5) selected = topLeft;
+  if (occupied(selected) < 0.5) selected = topRight;
+  if (occupied(selected) < 0.5) selected = bottomLeft;
+  if (occupied(selected) < 0.5) selected = bottomRight;
+  outColor = vec4(selected.rgb, 1.0);
+}`;
+
+let backgroundProgram = null;
+let surfelProgram = null;
+let compositeProgram = null;
+let quadVao = null;
+
+function compileShader(type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(`着色器编译失败：${log}`);
+  }
+  return shader;
+}
+
+function createProgram(vertexSource, fragmentSource) {
+  const program = gl.createProgram();
+  const vertex = compileShader(gl.VERTEX_SHADER, vertexSource);
+  const fragment = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const log = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error(`着色器链接失败：${log}`);
+  }
+  return program;
+}
+
+function uniform(program, name) {
+  const location = gl.getUniformLocation(program, name);
+  if (location === null) throw new Error(`缺少 uniform：${name}`);
+  return location;
+}
+
+function initializeGl() {
+  backgroundProgram = createProgram(QUAD_VS, BACKGROUND_FS);
+  surfelProgram = createProgram(SURFEL_VS, SURFEL_FS);
+  compositeProgram = createProgram(QUAD_VS, COMPOSITE_FS);
+  const quad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  quadVao = gl.createVertexArray();
+  gl.bindVertexArray(quadVao);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+async function fetchBitmap(url) {
+  const response = await fetch(`${url}?v=13`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`${response.status} ${url}`);
+  return createImageBitmap(await response.blob());
+}
+
+async function fetchOptionalBitmap(url) {
+  try { return await fetchBitmap(url); } catch (_) { return null; }
+}
+
+function createImageTexture(bitmap) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return texture;
+}
+
+function parseSurfelExport(buffer) {
+  const view = new DataView(buffer);
+  let offset = 0;
+  const takeBigUint64 = () => { const value = view.getBigUint64(offset, false); offset += 8; return value; };
+  const takeInt = () => { const value = view.getInt32(offset, false); offset += 4; return value; };
+  const takeFloat = () => { const value = view.getFloat32(offset, false); offset += 4; return value; };
+  if (takeBigUint64() !== SURFEL_MAGIC) throw new Error("vNext13 微表面资产标识不正确");
+  const width = takeInt();
+  const height = takeInt();
+  const guard = takeFloat();
+  const backgroundScalar = takeFloat();
+  const requestedAmplitude = takeFloat();
+  const count = takeInt();
+  if (width < 2 || height < 2 || count !== width * height || offset + count * 4 !== buffer.byteLength) {
+    throw new Error("vNext13 微表面资产尺寸不正确");
+  }
+  const scalars = new Float32Array(count);
+  let minimum = Infinity;
+  let maximum = -Infinity;
+  for (let index = 0; index < count; index++) {
+    const scalar = takeFloat();
+    if (!Number.isFinite(scalar)) throw new Error("vNext13 微表面资产含无效标量");
+    scalars[index] = scalar;
+    minimum = Math.min(minimum, scalar);
+    maximum = Math.max(maximum, scalar);
+  }
+  const ordered = Array.from(scalars).sort((a, b) => a - b);
+  const percentile = fraction => {
+    const position = (ordered.length - 1) * fraction;
+    const low = Math.floor(position);
+    const high = Math.ceil(position);
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low);
+  };
+  const vertices = new Float32Array(count * 4);
+  const inverseSpan = 1 / Math.max(maximum - minimum, 1e-6);
+  let output = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = y * width + x;
+      const scalar = scalars[index];
+      vertices[output++] = (x + 0.5) / width;
+      vertices[output++] = (y + 0.5) / height;
+      vertices[output++] = scalar;
+      vertices[output++] = (scalar - minimum) * inverseSpan;
+    }
+  }
+  return { width, height, guard, backgroundScalar, requestedAmplitude, count, vertices,
+    robustLow: percentile(0.05), robustHigh: percentile(0.95) };
+}
+
+function releaseSceneGl() {
+  if (!gl) return;
+  if (state.sourceTexture) gl.deleteTexture(state.sourceTexture);
+  if (state.plateTexture) gl.deleteTexture(state.plateTexture);
+  if (state.surfelBuffer) gl.deleteBuffer(state.surfelBuffer);
+  if (state.surfelVao) gl.deleteVertexArray(state.surfelVao);
+  state.sourceTexture = state.plateTexture = state.surfelBuffer = state.surfelVao = null;
+  state.surfelCount = 0;
+}
+
+function releaseTargets() {
+  if (!gl || !state.targets) return;
+  gl.deleteRenderbuffer(state.targets.depth);
+  gl.deleteFramebuffer(state.targets.framebuffer);
+  gl.deleteTexture(state.targets.color);
+  state.targets = null;
+}
+
+function ensureTargets() {
+  if (state.targets && state.targets.width === canvas.width && state.targets.height === canvas.height) return state.targets;
+  releaseTargets();
+  const color = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, color);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  const depth = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, canvas.width, canvas.height);
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color, 0);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+  const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  if (!complete) {
+    gl.deleteRenderbuffer(depth);
+    gl.deleteFramebuffer(framebuffer);
+    gl.deleteTexture(color);
+    throw new Error("浏览器无法创建 RGBA8＋深度离屏目标");
+  }
+  state.targets = { color, depth, framebuffer, width: canvas.width, height: canvas.height };
+  return state.targets;
+}
+
+async function loadScene(sceneName) {
+  const token = ++state.loadToken;
+  state.scene = sceneName;
+  state.ready = false;
+  state.fallbackUrl = `../assets/${sceneName}/center.jpg?v=13`;
+  fallback.src = state.fallbackUrl;
+  loading.style.display = "flex";
+  setStatus("", `正在加载 ${sceneName}`);
+  setError("");
+  document.body.dataset.rendererState = "loading";
+  try {
+    if (!gl) {
+      fallbackToStatic("当前浏览器不支持 WebGL2；未执行任何空间变换。");
+      return;
+    }
+    const base = `../assets/${sceneName}`;
+    const exportUrl = `../qa/android-surfel-vnext13-input/${sceneName}/depth-surfels.bin?v=13`;
+    const [center, primaryPlate, surfelResponse] = await Promise.all([
+      fetchBitmap(`${base}/center.jpg`),
+      fetchOptionalBitmap(`${base}/plate_ownership_biglama.png`),
+      fetch(exportUrl, { cache: "no-store" }),
+    ]);
+    if (!surfelResponse.ok) throw new Error(`${surfelResponse.status} ${exportUrl}`);
+    let plate = primaryPlate;
+    if (!plate) plate = await fetchOptionalBitmap(`${base}/plate.png`);
+    if (!plate) plate = center;
+    const surfels = parseSurfelExport(await surfelResponse.arrayBuffer());
+    if (token !== state.loadToken) {
+      center.close();
+      if (plate !== center) plate.close();
+      return;
+    }
+
+    releaseSceneGl();
+    state.sourceTexture = createImageTexture(center);
+    state.plateTexture = createImageTexture(plate);
+    state.centerWidth = center.width;
+    state.centerHeight = center.height;
+    center.close();
+    if (plate !== center) plate.close();
+
+    state.surfelBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, state.surfelBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, surfels.vertices, gl.STATIC_DRAW);
+    state.surfelVao = gl.createVertexArray();
+    gl.bindVertexArray(state.surfelVao);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 8);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 16, 12);
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    state.guideWidth = surfels.width;
+    state.guideHeight = surfels.height;
+    state.guard = surfels.guard;
+    state.backgroundScalar = surfels.backgroundScalar;
+    state.requestedAmplitude = surfels.requestedAmplitude;
+    state.scalarLow = surfels.robustLow;
+    state.scalarHigh = surfels.robustHigh;
+    state.spanPx720 = (surfels.robustHigh - surfels.robustLow) *
+      REFERENCE_LONG_EDGE / Math.max(surfels.width, surfels.height);
+    state.surfelCount = surfels.count;
+    state.ready = true;
+    canvas.style.display = "block";
+    fallback.style.display = "none";
+    resizeCanvas();
+    renderView();
+    const errorCode = gl.getError();
+    if (errorCode !== gl.NO_ERROR) throw new Error(`首次渲染发生 WebGL 错误 0x${errorCode.toString(16)}`);
+    setStatus("error", `${sceneName} · vNext13 已否决：局部形变超标`);
+    document.body.dataset.rendererState = "ready";
+    document.body.dataset.scene = sceneName;
+    sceneEl.value = sceneName;
+  } catch (loadFailure) {
+    if (token === state.loadToken) fallbackToStatic(`vNext13 加载失败：${loadFailure.message || loadFailure}`);
+  } finally {
+    if (token === state.loadToken) loading.style.display = "none";
+  }
+}
+
+function resizeCanvas() {
+  if (!state.centerWidth || !state.centerHeight || !gl) return;
+  const availableWidth = Math.max(1, stage.clientWidth);
+  const availableHeight = Math.max(1, stage.clientHeight);
+  const scale = Math.min(availableWidth / state.centerWidth, availableHeight / state.centerHeight);
+  const cssWidth = Math.max(1, state.centerWidth * scale);
+  const cssHeight = Math.max(1, state.centerHeight * scale);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.max(1, Math.round(cssWidth * dpr));
+  const pixelHeight = Math.max(1, Math.round(cssHeight * dpr));
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
+  fallback.style.width = `${cssWidth}px`;
+  fallback.style.height = `${cssHeight}px`;
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+    releaseTargets();
+  }
+}
+
+function bindTexture(program, name, unit, texture) {
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.uniform1i(uniform(program, name), unit);
+}
+
+function renderView() {
+  if (!state.ready || !gl || state.compareSource && !state.sourceTexture) return;
+  resizeCanvas();
+  if (!canvas.width || !canvas.height) return;
+  const targets = ensureTargets();
+  const strength = Number(strengthEl.value);
+  const maximum = state.requestedAmplitude;
+  const amplitude = Math.min(MINIMUM_AMPLITUDE, maximum) +
+    (maximum - Math.min(MINIMUM_AMPLITUDE, maximum)) * clamp(strength, 0.15, 1);
+  const motionX = state.viewX * amplitude;
+  const motionY = state.viewY * amplitude;
+  const scalarToUvX = 1 / (state.guideWidth * maximum);
+  const scalarToUvY = 1 / (state.guideHeight * maximum);
+  const cropScale = Math.max(1 - 2 * state.guard, 1e-6);
+  // 比理论覆盖尺寸多 1px，吸收 GL_POINTS 在亚像素中心上的取整空洞；真实显露区
+  // 的宽度由深度位移决定，远大于这一像素，不会被封死。
+  const requiredPointSize = Math.ceil(Math.max(
+    canvas.width / state.guideWidth,
+    canvas.height / state.guideHeight,
+    1
+  ) / cropScale) + 1;
+  const pointRange = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE);
+  if (requiredPointSize > pointRange[1] + 1e-3) {
+    fallbackToStatic(`所需点元 ${requiredPointSize}px 超过浏览器上限 ${pointRange[1]}px；未降级为整图 warp。`);
+    return;
+  }
+  state.pointSize = requiredPointSize;
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.disable(gl.DEPTH_TEST);
+  gl.disable(gl.BLEND);
+  gl.clearColor(0.05, 0.05, 0.06, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(backgroundProgram);
+  gl.bindVertexArray(quadVao);
+  bindTexture(backgroundProgram, "uPlate", 0, state.plateTexture);
+  bindTexture(backgroundProgram, "uSource", 1, state.sourceTexture);
+  gl.uniform2f(uniform(backgroundProgram, "uMotion"), motionX, motionY);
+  gl.uniform2f(uniform(backgroundProgram, "uScalarToUv"), scalarToUvX, scalarToUvY);
+  gl.uniform1f(uniform(backgroundProgram, "uBackgroundScalar"), state.backgroundScalar);
+  gl.uniform1f(uniform(backgroundProgram, "uGuard"), state.guard);
+  gl.uniform1i(uniform(backgroundProgram, "uCompareSource"), state.compareSource ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (state.compareSource) {
+    gl.bindVertexArray(null);
+    updateDiagnostics(amplitude);
+    state.dirty = false;
+    return;
+  }
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, targets.framebuffer);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clearDepth(1);
+  gl.depthMask(true);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.BLEND);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.useProgram(surfelProgram);
+  gl.bindVertexArray(state.surfelVao);
+  bindTexture(surfelProgram, "uSource", 0, state.sourceTexture);
+  gl.uniform2f(uniform(surfelProgram, "uMotion"), motionX, motionY);
+  gl.uniform2f(uniform(surfelProgram, "uScalarToUv"), scalarToUvX, scalarToUvY);
+  gl.uniform1f(uniform(surfelProgram, "uGuard"), state.guard);
+  gl.uniform1f(uniform(surfelProgram, "uPointSize"), requiredPointSize);
+  gl.uniform2f(uniform(surfelProgram, "uTargetSize"), canvas.width, canvas.height);
+  gl.drawArrays(gl.POINTS, 0, state.surfelCount);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LESS);
+  gl.depthMask(true);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.useProgram(compositeProgram);
+  gl.bindVertexArray(quadVao);
+  bindTexture(compositeProgram, "uSurfels", 0, targets.color);
+  gl.uniform2f(uniform(compositeProgram, "uTargetTexel"), 1 / canvas.width, 1 / canvas.height);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.disable(gl.BLEND);
+  gl.bindVertexArray(null);
+  updateDiagnostics(amplitude);
+  state.dirty = false;
+}
+
+function updateDiagnostics(amplitude) {
+  const { angle, radius } = currentPolar();
+  const normalizedAmplitude = state.requestedAmplitude > 0 ? amplitude / state.requestedAmplitude : 0;
+  const currentSpan = state.spanPx720 * radius * normalizedAmplitude;
+  diag.textContent = state.compareSource
+    ? `原图对照（未执行空间变换）\n${state.scene}`
+    : `vNext13 已否决  逐像素深度微表面\n` +
+      `θ ${angle.toFixed(0).padStart(3)}°  半径 ${radius.toFixed(2)}  强度 ${Number(strengthEl.value).toFixed(2)}\n` +
+      `当前视差 ≈ ${currentSpan.toFixed(1)} px@720（最大 ${state.spanPx720.toFixed(1)}）\n` +
+      `guide ${state.guideWidth}×${state.guideHeight}  点元 ${state.pointSize}px（含 1px 栅格余量）\n` +
+      `RGBA8＋depth  guard ${(state.guard * 100).toFixed(1)}%  p8 ${state.backgroundScalar.toFixed(2)}`;
+}
+
+function animationFrame(time) {
+  if (state.ready && controlModeEl.value === "orbit" && !state.compareSource) {
+    const delta = Math.min((time - state.lastFrameTime) / 1000, 0.1);
+    const polar = currentPolar();
+    setPolar(polar.angle + delta * 24, Math.max(polar.radius, 0.001));
+  }
+  state.lastFrameTime = time;
+  if (state.ready && state.dirty) {
+    try { renderView(); } catch (renderFailure) { fallbackToStatic(`vNext13 渲染失败：${renderFailure.message || renderFailure}`); }
+  }
+  requestAnimationFrame(animationFrame);
+}
+
+function updateManualView() {
+  controlModeEl.value = "manual";
+  setPolar(Number(angleEl.value), Number(radiusEl.value));
+}
+
+document.querySelectorAll("[data-strength]").forEach(button => {
+  button.addEventListener("click", () => updateStrengthUi(button.dataset.strength));
+});
+strengthEl.addEventListener("input", () => updateStrengthUi(strengthEl.value));
+angleEl.addEventListener("input", updateManualView);
+radiusEl.addEventListener("input", updateManualView);
+sceneEl.addEventListener("change", () => loadScene(sceneEl.value));
+document.getElementById("recenter").addEventListener("click", () => {
+  controlModeEl.value = "manual";
+  setPolar(Number(angleEl.value), 0);
+});
+
+canvas.addEventListener("pointermove", event => {
+  if (controlModeEl.value !== "pointer") return;
+  const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+  const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+  const length = Math.hypot(x, y);
+  const scale = length > 1 ? 1 / length : 1;
+  state.viewX = x * scale;
+  state.viewY = y * scale;
+  state.dirty = true;
+  const polar = currentPolar();
+  angleEl.value = String(Math.round(polar.angle));
+  radiusEl.value = polar.radius.toFixed(2);
+  angleVal.textContent = `${Math.round(polar.angle)}°`;
+  radiusVal.textContent = polar.radius.toFixed(2);
+});
+
+const compareButton = document.getElementById("compare");
+const beginCompare = event => { event.preventDefault(); state.compareSource = true; state.dirty = true; };
+const endCompare = event => { event.preventDefault(); state.compareSource = false; state.dirty = true; };
+compareButton.addEventListener("pointerdown", beginCompare);
+compareButton.addEventListener("pointerup", endCompare);
+compareButton.addEventListener("pointercancel", endCompare);
+compareButton.addEventListener("pointerleave", endCompare);
+
+window.addEventListener("resize", () => { if (state.ready) { resizeCanvas(); state.dirty = true; } });
+canvas.addEventListener("webglcontextlost", event => {
+  event.preventDefault();
+  fallbackToStatic("WebGL2 上下文已丢失；已停止空间变换。");
+});
+
+window.__setSpatialView = async function(sceneName, degrees, radius = 1, strength = 1) {
+  if (sceneName && sceneName !== state.scene) await loadScene(sceneName);
+  updateStrengthUi(strength);
+  controlModeEl.value = "manual";
+  setPolar(degrees, radius);
+  renderView();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  return window.__spatialQaState();
+};
+
+window.__spatialQaState = function() {
+  const polar = currentPolar();
+  return {
+    rendererState: document.body.dataset.rendererState || "initializing",
+    renderer: "webgl2-vnext13-depth-surfels",
+    scene: state.scene,
+    angle: polar.angle,
+    radius: polar.radius,
+    strength: Number(strengthEl.value),
+    canvas: [canvas.width, canvas.height],
+    guide: [state.guideWidth, state.guideHeight],
+    surfelCount: state.surfelCount,
+    pointSize: state.pointSize,
+    guard: state.guard,
+    spanPx720: state.spanPx720,
+    error: state.loadError,
+    glError: gl ? gl.getError() : null,
+  };
+};
+
+async function initialize() {
+  try {
+    if (gl) initializeGl();
+    const response = await fetch("../assets/index.json?v=13", { cache: "no-store" });
+    if (!response.ok) throw new Error(`${response.status} assets/index.json`);
+    const index = await response.json();
+    state.sceneNames = Array.isArray(index.scenes) ? index.scenes : [];
+    if (state.sceneNames.length !== 9) throw new Error(`场景索引应为 9 张，实际 ${state.sceneNames.length} 张`);
+    for (const sceneName of state.sceneNames) {
+      const option = document.createElement("option");
+      option.value = option.textContent = sceneName;
+      sceneEl.appendChild(option);
+    }
+    const params = new URLSearchParams(location.search);
+    const requestedScene = params.get("scene");
+    const firstScene = state.sceneNames.includes(requestedScene) ? requestedScene : state.sceneNames[0];
+    updateStrengthUi(params.get("strength") || 1);
+    controlModeEl.value = ["manual", "pointer", "orbit"].includes(params.get("mode")) ? params.get("mode") : "manual";
+    setPolar(Number(params.get("angle") || 22), Number(params.get("radius") || 1));
+    await loadScene(firstScene);
+  } catch (initializationFailure) {
+    fallbackToStatic(`网页初始化失败：${initializationFailure.message || initializationFailure}`);
+  }
+}
+
+initialize();
+requestAnimationFrame(animationFrame);
+</script>
+</body>
+</html>

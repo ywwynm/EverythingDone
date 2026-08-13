@@ -51,6 +51,16 @@ class SpatialDerivativeStore(
         val backgroundDepthSha256: String? = null,
         val connectivitySha256: String? = null,
         val motionBasisSha256: String? = null,
+        val backgroundMotionBasisSha256: String? = null,
+        val surfaceChartLabelsSha256: String? = null,
+        val surfaceChartCount: Int? = null,
+        val surfaceChartGuardFraction: Float? = null,
+        val depthSurfelSha256: String? = null,
+        val depthSurfelGuardFraction: Float? = null,
+        val depthSurfelBackgroundScalar: Float? = null,
+        val depthSurfelRequestedMaximumParallax: Float? = null,
+        /** 真透视档由生成期按真实位移场算出的取景内缩比例；其余档为 null。 */
+        val coverMarginFraction: Float? = null,
         val backgroundSha256: String? = null,
         // matting 边缘带细化（D54）的可选扩展；旧版 App 与旧派生均忽略。
         val mattingModelId: String? = null,
@@ -81,7 +91,7 @@ class SpatialDerivativeStore(
     fun isCurrentGeneration(manifest: Manifest): Boolean =
         manifest.renderer == null ||
             manifest.renderer ==
-            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX.stableId
+            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT15_TRUE_PERSPECTIVE_MESH.stableId
 
     /** 算法版本升级导致派生失效时，仍保留用户为同一源图选择的效果强度。 */
     fun retainedStrength(sourcePath: String): Float? {
@@ -124,7 +134,13 @@ class SpatialDerivativeStore(
                             (manifest.ownershipLabelsSha256 != null &&
                                 !File(directory, OWNERSHIP_LABELS_FILE).isFile) ||
                             (manifest.motionBasisSha256 != null &&
-                                !File(directory, MOTION_BASIS_FILE).isFile)
+                                !File(directory, MOTION_BASIS_FILE).isFile) ||
+                            (manifest.backgroundMotionBasisSha256 != null &&
+                                !File(directory, BACKGROUND_MOTION_BASIS_FILE).isFile) ||
+                            (manifest.surfaceChartLabelsSha256 != null &&
+                                !File(directory, SURFACE_CHART_LABELS_FILE).isFile) ||
+                            (manifest.depthSurfelSha256 != null &&
+                                !File(directory, DEPTH_SURFELS_FILE).isFile)
                         ))
             ) {
                 null
@@ -213,6 +229,14 @@ class SpatialDerivativeStore(
                         VNEXT10_SCHEMA_VERSION
                     SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX ->
                         VNEXT11_SCHEMA_VERSION
+                    SpatialLdiRenderer.SURFACE_CHARTS_VNEXT12_ALL_SURFACE_NORMALIZED_36PX ->
+                        VNEXT12_SCHEMA_VERSION
+                    SpatialLdiRenderer.SURFACE_DEPTH_VNEXT13_ADAPTIVE_SURFELS_36PX ->
+                        VNEXT13_SCHEMA_VERSION
+                    SpatialLdiRenderer.SURFACE_DEPTH_VNEXT14_TRUE_PERSPECTIVE ->
+                        VNEXT14_SCHEMA_VERSION
+                    SpatialLdiRenderer.SURFACE_DEPTH_VNEXT15_TRUE_PERSPECTIVE_MESH ->
+                        VNEXT15_SCHEMA_VERSION
                 },
                 sourceFingerprint = sourceFingerprint(source),
                 sourceSizeBytes = source.length(),
@@ -244,6 +268,16 @@ class SpatialDerivativeStore(
                 backgroundDepthSha256 = ldiHashes?.backgroundDepth,
                 connectivitySha256 = ldiHashes?.connectivity,
                 motionBasisSha256 = ldiHashes?.motionBasis,
+                backgroundMotionBasisSha256 = ldiHashes?.backgroundMotionBasis,
+                surfaceChartLabelsSha256 = ldiHashes?.surfaceChartLabels,
+                surfaceChartCount = ldiLite?.surfaceCharts?.chartCount,
+                surfaceChartGuardFraction = ldiLite?.surfaceCharts?.guardFraction,
+                depthSurfelSha256 = ldiHashes?.depthSurfels,
+                coverMarginFraction = ldiLite?.coverMarginFraction,
+                depthSurfelGuardFraction = ldiLite?.depthSurfels?.guardFraction,
+                depthSurfelBackgroundScalar = ldiLite?.depthSurfels?.backgroundScalar,
+                depthSurfelRequestedMaximumParallax =
+                    ldiLite?.depthSurfels?.requestedMaximumParallax,
                 backgroundSha256 = ldiHashes?.background,
                 mattingModelId = ldiLite?.takeIf {
                     it.displayAlpha != null || it.ownershipAlpha != null ||
@@ -478,6 +512,31 @@ class SpatialDerivativeStore(
             }
         }
         checkNotCancelled(cancelled)
+        // vNext10/11 能在回读时由表面运动 + cut + 包络确定性重建底板基，所以不落盘；
+        // 其余档必须存。真透视网格档（vNext15）既不是 chart 也不是 surfel，漏掉它会让
+        // manifest 缺 backgroundMotionBasisSha256，schema 校验直接判死。
+        val backgroundMotionBasis = geometry.backgroundMotionBasis?.takeIf {
+            data.renderer.usesNormalizedSurfaceCharts ||
+                data.renderer.usesDepthSurfels ||
+                data.renderer.usesTruePerspective
+        }?.let { basis ->
+            File(directory, BACKGROUND_MOTION_BASIS_FILE).also { file ->
+                writeMotionBasis(file, basis)
+            }
+        }
+        checkNotCancelled(cancelled)
+        val surfaceChartLabels = data.surfaceCharts?.let { charts ->
+            File(directory, SURFACE_CHART_LABELS_FILE).also { file ->
+                writeSurfaceCharts(file, charts)
+            }
+        }
+        checkNotCancelled(cancelled)
+        val depthSurfels = data.depthSurfels?.let { surfels ->
+            File(directory, DEPTH_SURFELS_FILE).also { file ->
+                writeDepthSurfels(file, surfels)
+            }
+        }
+        checkNotCancelled(cancelled)
         val background = File(directory, BACKGROUND_FILE)
         FileOutputStream(background).use { output ->
             check(
@@ -491,6 +550,9 @@ class SpatialDerivativeStore(
             backgroundDepth = sha256(backgroundDepth),
             connectivity = sha256(connectivity),
             motionBasis = motionBasis?.let(::sha256),
+            backgroundMotionBasis = backgroundMotionBasis?.let(::sha256),
+            surfaceChartLabels = surfaceChartLabels?.let(::sha256),
+            depthSurfels = depthSurfels?.let(::sha256),
             background = sha256(background)
         )
     }
@@ -502,6 +564,9 @@ class SpatialDerivativeStore(
         val backgroundDepthFile = File(directory, BACKGROUND_DEPTH_FILE)
         val connectivityFile = File(directory, CONNECTIVITY_FILE)
         val motionBasisFile = File(directory, MOTION_BASIS_FILE)
+        val backgroundMotionBasisFile = File(directory, BACKGROUND_MOTION_BASIS_FILE)
+        val surfaceChartLabelsFile = File(directory, SURFACE_CHART_LABELS_FILE)
+        val depthSurfelsFile = File(directory, DEPTH_SURFELS_FILE)
         val backgroundFile = File(directory, BACKGROUND_FILE)
         check(sha256(meshDepthFile).equals(manifest.meshDepthSha256, ignoreCase = true))
         check(
@@ -518,6 +583,42 @@ class SpatialDerivativeStore(
                 "屏幕空间位移基校验失败"
             }
             readMotionBasis(motionBasisFile, width, height)
+        }
+        val persistedBackgroundMotionBasis = manifest.backgroundMotionBasisSha256?.let {
+            expected ->
+            check(sha256(backgroundMotionBasisFile).equals(expected, ignoreCase = true)) {
+                "隐藏底板屏幕空间位移基校验失败"
+            }
+            readMotionBasis(backgroundMotionBasisFile, width, height)
+        }
+        val surfaceCharts = manifest.surfaceChartLabelsSha256?.let { expected ->
+            check(sha256(surfaceChartLabelsFile).equals(expected, ignoreCase = true)) {
+                "全表面 chart 标签校验失败"
+            }
+            readSurfaceCharts(
+                file = surfaceChartLabelsFile,
+                expectedWidth = width,
+                expectedHeight = height,
+                expectedChartCount = checkNotNull(manifest.surfaceChartCount),
+                expectedGuardFraction = checkNotNull(manifest.surfaceChartGuardFraction)
+            )
+        }
+        val depthSurfels = manifest.depthSurfelSha256?.let { expected ->
+            check(sha256(depthSurfelsFile).equals(expected, ignoreCase = true)) {
+                "连续深度微表面校验失败"
+            }
+            readDepthSurfels(
+                file = depthSurfelsFile,
+                expectedWidth = width,
+                expectedHeight = height,
+                expectedGuardFraction = checkNotNull(manifest.depthSurfelGuardFraction),
+                expectedBackgroundScalar = checkNotNull(
+                    manifest.depthSurfelBackgroundScalar
+                ),
+                expectedRequestedMaximumParallax = checkNotNull(
+                    manifest.depthSurfelRequestedMaximumParallax
+                )
+            )
         }
 
         val surfaceDepth = readDepth(meshDepthFile, width, height)
@@ -580,7 +681,11 @@ class SpatialDerivativeStore(
             SpatialLdiRenderer.SURFACE_DEPTH_VNEXT8_GLOBAL_CONTINUOUS_28PX,
             SpatialLdiRenderer.SURFACE_DEPTH_VNEXT9_MULTISCALE_INVERSE_28PX,
             SpatialLdiRenderer.SURFACE_DEPTH_VNEXT10_VISIBILITY_36PX,
-            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX -> checkNotNull(
+            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX,
+            SpatialLdiRenderer.SURFACE_CHARTS_VNEXT12_ALL_SURFACE_NORMALIZED_36PX,
+            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT13_ADAPTIVE_SURFELS_36PX,
+            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT14_TRUE_PERSPECTIVE,
+            SpatialLdiRenderer.SURFACE_DEPTH_VNEXT15_TRUE_PERSPECTIVE_MESH -> checkNotNull(
                 SpatialViewEnvelope.fromPersisted(
                     manifest.viewEnvelopeAmplitudes,
                     manifest.maximumLocalStrain
@@ -590,7 +695,7 @@ class SpatialDerivativeStore(
         // vNext10 的隐藏背景运动基可以由持久化的表面运动、cut 与方向包络确定性重建。
         // 不再让补图层回退为另一套原始深度 warp，否则正确补全的纹理也会因前后层运动
         // 不同步而产生拖影。标签只在生成期决定哪些内部 cut 被删除，重建无需再次推理。
-        val backgroundMotionBasis = if (
+        val backgroundMotionBasis = persistedBackgroundMotionBasis ?: if (
             renderer in setOf(
                 SpatialLdiRenderer.SURFACE_DEPTH_VNEXT10_VISIBILITY_36PX,
                 SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX
@@ -626,6 +731,9 @@ class SpatialDerivativeStore(
             inpaintingModelVersion = checkNotNull(manifest.inpaintingModelVersion),
             renderer = renderer,
             viewEnvelope = viewEnvelope,
+            surfaceCharts = surfaceCharts,
+            depthSurfels = depthSurfels,
+            coverMarginFraction = manifest.coverMarginFraction,
             inpaintingQualityId = manifest.inpaintingQualityId,
             displayAlpha = displayAlpha,
             ownershipAlpha = ownershipAlpha,
@@ -656,6 +764,125 @@ class SpatialDerivativeStore(
                 val data = input.readBytes()
                 check(data.size == expectedSize) { "显示 alpha 平面尺寸不符" }
                 return data
+            }
+        }
+    }
+
+    private fun writeSurfaceCharts(file: File, charts: SpatialSurfaceChartData) {
+        FileOutputStream(file).use { fileOutput ->
+            val compressed = DeflaterOutputStream(fileOutput)
+            val output = DataOutputStream(compressed)
+            output.writeLong(SURFACE_CHART_MAGIC)
+            output.writeInt(charts.width)
+            output.writeInt(charts.height)
+            output.writeInt(charts.chartCount)
+            output.writeFloat(charts.guardFraction)
+            charts.labels.forEach(output::writeInt)
+            output.flush()
+            compressed.finish()
+            compressed.flush()
+            fileOutput.fd.sync()
+        }
+    }
+
+    private fun readSurfaceCharts(
+        file: File,
+        expectedWidth: Int,
+        expectedHeight: Int,
+        expectedChartCount: Int,
+        expectedGuardFraction: Float
+    ): SpatialSurfaceChartData {
+        FileInputStream(file).use { fileInput ->
+            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+                check(input.readLong() == SURFACE_CHART_MAGIC) {
+                    "未知全表面 chart 文件格式"
+                }
+                val width = input.readInt()
+                val height = input.readInt()
+                val chartCount = input.readInt()
+                val guardFraction = input.readFloat()
+                check(width == expectedWidth && height == expectedHeight) {
+                    "全表面 chart 尺寸不符"
+                }
+                check(chartCount == expectedChartCount) { "全表面 chart 数量不符" }
+                check(kotlin.math.abs(guardFraction - expectedGuardFraction) <= 1e-6f) {
+                    "全表面 chart 取景边距不符"
+                }
+                val labels = IntArray(width * height) { input.readInt() }
+                check(input.read() == -1) { "全表面 chart 文件包含尾随数据" }
+                return SpatialSurfaceChartData(
+                    width = width,
+                    height = height,
+                    labels = labels,
+                    chartCount = chartCount,
+                    guardFraction = guardFraction
+                )
+            }
+        }
+    }
+
+    private fun writeDepthSurfels(file: File, surfels: SpatialDepthSurfelData) {
+        FileOutputStream(file).use { fileOutput ->
+            val compressed = DeflaterOutputStream(fileOutput)
+            val output = DataOutputStream(compressed)
+            output.writeLong(DEPTH_SURFELS_MAGIC)
+            output.writeInt(surfels.width)
+            output.writeInt(surfels.height)
+            output.writeFloat(surfels.guardFraction)
+            output.writeFloat(surfels.backgroundScalar)
+            output.writeFloat(surfels.requestedMaximumParallax)
+            surfels.motionScalars.forEach(output::writeFloat)
+            output.flush()
+            compressed.finish()
+            compressed.flush()
+            fileOutput.fd.sync()
+        }
+    }
+
+    private fun readDepthSurfels(
+        file: File,
+        expectedWidth: Int,
+        expectedHeight: Int,
+        expectedGuardFraction: Float,
+        expectedBackgroundScalar: Float,
+        expectedRequestedMaximumParallax: Float
+    ): SpatialDepthSurfelData {
+        FileInputStream(file).use { fileInput ->
+            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+                check(input.readLong() == DEPTH_SURFELS_MAGIC) {
+                    "未知连续深度微表面文件格式"
+                }
+                val width = input.readInt()
+                val height = input.readInt()
+                val guardFraction = input.readFloat()
+                val backgroundScalar = input.readFloat()
+                val requestedMaximumParallax = input.readFloat()
+                check(width == expectedWidth && height == expectedHeight) {
+                    "连续深度微表面尺寸不符"
+                }
+                check(kotlin.math.abs(guardFraction - expectedGuardFraction) <= 1e-6f) {
+                    "连续深度微表面取景保护比例不符"
+                }
+                check(kotlin.math.abs(backgroundScalar - expectedBackgroundScalar) <= 1e-5f) {
+                    "连续深度微表面底板位移不符"
+                }
+                check(
+                    kotlin.math.abs(
+                        requestedMaximumParallax - expectedRequestedMaximumParallax
+                    ) <= 1e-6f
+                ) {
+                    "连续深度微表面视点幅度不符"
+                }
+                val scalars = FloatArray(width * height) { input.readFloat() }
+                check(input.read() == -1) { "连续深度微表面文件包含尾随数据" }
+                return SpatialDepthSurfelData(
+                    width = width,
+                    height = height,
+                    motionScalars = scalars,
+                    guardFraction = guardFraction,
+                    backgroundScalar = backgroundScalar,
+                    requestedMaximumParallax = requestedMaximumParallax
+                )
             }
         }
     }
@@ -824,17 +1051,24 @@ class SpatialDerivativeStore(
         ldiLite: SpatialLdiLiteData?
     ) {
         val uncompressedDepthBytes = depth.values.size.toLong() * 2L
-        val ldiBytes = ldiLite?.let {
-            it.geometry.surfaceDepth.size.toLong() * 4L +
-                (it.geometry.motionBasis?.let { basis ->
+        val ldiBytes = ldiLite?.let { data ->
+            data.geometry.surfaceDepth.size.toLong() * 4L +
+                (data.geometry.motionBasis?.let { basis ->
                     basis.width.toLong() * basis.height * 4L * Float.SIZE_BYTES
                 } ?: 0L) +
-                it.geometry.cutRight.size / 8L +
-                it.geometry.cutDown.size / 8L +
-                (it.subjectMask?.size?.toLong() ?: 0L) +
-                (it.ownershipLabels?.size?.toLong() ?: 0L) +
-                (it.ownershipAlpha?.size?.toLong() ?: 0L) +
-                it.backgroundBitmap.byteCount.toLong() * 2L
+                (data.geometry.backgroundMotionBasis?.takeIf {
+                    data.renderer.usesNormalizedSurfaceCharts || data.renderer.usesDepthSurfels
+                }?.let { basis ->
+                    basis.width.toLong() * basis.height * 4L * Float.SIZE_BYTES
+                } ?: 0L) +
+                (data.surfaceCharts?.labels?.size?.toLong() ?: 0L) * Int.SIZE_BYTES +
+                (data.depthSurfels?.motionScalars?.size?.toLong() ?: 0L) * Float.SIZE_BYTES +
+                data.geometry.cutRight.size / 8L +
+                data.geometry.cutDown.size / 8L +
+                (data.subjectMask?.size?.toLong() ?: 0L) +
+                (data.ownershipLabels?.size?.toLong() ?: 0L) +
+                (data.ownershipAlpha?.size?.toLong() ?: 0L) +
+                data.backgroundBitmap.byteCount.toLong() * 2L
         } ?: 0L
         val required = uncompressedDepthBytes + ldiBytes + MIN_FREE_MARGIN_BYTES
         check(StatFs(directory.absolutePath).availableBytes >= required) {
@@ -864,6 +1098,25 @@ class SpatialDerivativeStore(
             manifest.connectivitySha256?.matches(SHA256_REGEX) == true &&
             (manifest.motionBasisSha256 == null ||
                 manifest.motionBasisSha256.matches(SHA256_REGEX)) &&
+            (manifest.backgroundMotionBasisSha256 == null ||
+                manifest.backgroundMotionBasisSha256.matches(SHA256_REGEX)) &&
+            (manifest.surfaceChartLabelsSha256 == null ||
+                manifest.surfaceChartLabelsSha256.matches(SHA256_REGEX)) &&
+            (manifest.surfaceChartCount == null ||
+                manifest.surfaceChartCount in 2..MAX_SURFACE_CHART_COUNT) &&
+            (manifest.surfaceChartGuardFraction == null ||
+                manifest.surfaceChartGuardFraction.isFinite() &&
+                manifest.surfaceChartGuardFraction in 0f..0.20f) &&
+            (manifest.depthSurfelSha256 == null ||
+                manifest.depthSurfelSha256.matches(SHA256_REGEX)) &&
+            (manifest.depthSurfelGuardFraction == null ||
+                manifest.depthSurfelGuardFraction.isFinite() &&
+                manifest.depthSurfelGuardFraction in 0f..0.20f) &&
+            (manifest.depthSurfelBackgroundScalar == null ||
+                manifest.depthSurfelBackgroundScalar.isFinite()) &&
+            (manifest.depthSurfelRequestedMaximumParallax == null ||
+                manifest.depthSurfelRequestedMaximumParallax.isFinite() &&
+                manifest.depthSurfelRequestedMaximumParallax in 0.01f..0.20f) &&
             manifest.backgroundSha256?.matches(SHA256_REGEX) == true &&
             (manifest.displayAlphaSha256 == null ||
                 manifest.displayAlphaSha256.matches(SHA256_REGEX)) &&
@@ -995,6 +1248,75 @@ class SpatialDerivativeStore(
                     manifest.viewEnvelopeAmplitudes,
                     manifest.maximumLocalStrain
                 ) != null
+        VNEXT12_SCHEMA_VERSION ->
+            manifest.renderer ==
+                SpatialLdiRenderer.SURFACE_CHARTS_VNEXT12_ALL_SURFACE_NORMALIZED_36PX.stableId &&
+                manifest.motionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.backgroundMotionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.surfaceChartLabelsSha256?.matches(SHA256_REGEX) == true &&
+                manifest.surfaceChartCount in 2..MAX_SURFACE_CHART_COUNT &&
+                manifest.surfaceChartGuardFraction?.isFinite() == true &&
+                manifest.surfaceChartGuardFraction in 0f..0.20f &&
+                SpatialViewEnvelope.fromPersisted(
+                    manifest.viewEnvelopeAmplitudes,
+                    manifest.maximumLocalStrain
+                ) != null
+        VNEXT13_SCHEMA_VERSION ->
+            manifest.renderer ==
+                SpatialLdiRenderer.SURFACE_DEPTH_VNEXT13_ADAPTIVE_SURFELS_36PX.stableId &&
+                manifest.motionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.backgroundMotionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.surfaceChartLabelsSha256 == null &&
+                manifest.surfaceChartCount == null &&
+                manifest.surfaceChartGuardFraction == null &&
+                manifest.depthSurfelSha256?.matches(SHA256_REGEX) == true &&
+                manifest.depthSurfelGuardFraction?.isFinite() == true &&
+                manifest.depthSurfelGuardFraction in 0f..0.20f &&
+                manifest.depthSurfelBackgroundScalar?.isFinite() == true &&
+                manifest.depthSurfelRequestedMaximumParallax?.isFinite() == true &&
+                manifest.depthSurfelRequestedMaximumParallax in 0.01f..0.20f &&
+                SpatialViewEnvelope.fromPersisted(
+                    manifest.viewEnvelopeAmplitudes,
+                    manifest.maximumLocalStrain
+                ) != null
+        // v16 与 v15 的落盘结构相同，只有 renderer 与运动基的来源不同：这一档的基是
+        // 由米制深度+内参直算的真透视视差，幅度单位是**米**（物理基线），
+        // 因此不再校验 depthSurfelRequestedMaximumParallax 那个归一化量的取值范围。
+        VNEXT14_SCHEMA_VERSION ->
+            manifest.renderer ==
+                SpatialLdiRenderer.SURFACE_DEPTH_VNEXT14_TRUE_PERSPECTIVE.stableId &&
+                manifest.motionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.backgroundMotionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.surfaceChartLabelsSha256 == null &&
+                manifest.surfaceChartCount == null &&
+                manifest.surfaceChartGuardFraction == null &&
+                manifest.depthSurfelSha256?.matches(SHA256_REGEX) == true &&
+                manifest.depthSurfelGuardFraction?.isFinite() == true &&
+                manifest.depthSurfelGuardFraction in 0f..0.20f &&
+                manifest.depthSurfelBackgroundScalar?.isFinite() == true &&
+                SpatialViewEnvelope.fromPersisted(
+                    manifest.viewEnvelopeAmplitudes,
+                    manifest.maximumLocalStrain
+                ) != null
+        // v17 与 v16 的区别是**表示**：断边三角网格取代点元 splat，所以不再有任何
+        // depthSurfel* 字段，取而代之的是生成期算好的取景内缩。
+        VNEXT15_SCHEMA_VERSION ->
+            manifest.renderer ==
+                SpatialLdiRenderer.SURFACE_DEPTH_VNEXT15_TRUE_PERSPECTIVE_MESH.stableId &&
+                manifest.motionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.backgroundMotionBasisSha256?.matches(SHA256_REGEX) == true &&
+                manifest.surfaceChartLabelsSha256 == null &&
+                manifest.surfaceChartCount == null &&
+                manifest.surfaceChartGuardFraction == null &&
+                manifest.depthSurfelSha256 == null &&
+                manifest.depthSurfelGuardFraction == null &&
+                manifest.depthSurfelBackgroundScalar == null &&
+                manifest.coverMarginFraction?.isFinite() == true &&
+                manifest.coverMarginFraction in 0.001f..0.20f &&
+                SpatialViewEnvelope.fromPersisted(
+                    manifest.viewEnvelopeAmplitudes,
+                    manifest.maximumLocalStrain
+                ) != null
         else -> false
     }
 
@@ -1018,6 +1340,12 @@ class SpatialDerivativeStore(
         private const val VNEXT9_SCHEMA_VERSION = 11
         private const val VNEXT10_SCHEMA_VERSION = 12
         private const val VNEXT11_SCHEMA_VERSION = 13
+        private const val VNEXT12_SCHEMA_VERSION = 14
+        private const val VNEXT13_SCHEMA_VERSION = 15
+        /** 真透视视差（运动基由米制深度+内参直算，非拟合）。落盘结构与 v15 相同，
+         *  但 renderer 不同：换代际必须换 schema，避免复用语义不一致的缓存。 */
+        private const val VNEXT14_SCHEMA_VERSION = 16
+        private const val VNEXT15_SCHEMA_VERSION = 17
         private val SUPPORTED_SCHEMA_VERSIONS =
             setOf(
                 LEGACY_SCHEMA_VERSION,
@@ -1032,7 +1360,11 @@ class SpatialDerivativeStore(
                 VNEXT8_SCHEMA_VERSION,
                 VNEXT9_SCHEMA_VERSION,
                 VNEXT10_SCHEMA_VERSION,
-                VNEXT11_SCHEMA_VERSION
+                VNEXT11_SCHEMA_VERSION,
+                VNEXT12_SCHEMA_VERSION,
+                VNEXT13_SCHEMA_VERSION,
+                VNEXT14_SCHEMA_VERSION,
+                VNEXT15_SCHEMA_VERSION
             )
 
         private fun isLdiSchema(schemaVersion: Int): Boolean =
@@ -1047,7 +1379,11 @@ class SpatialDerivativeStore(
                 schemaVersion == VNEXT8_SCHEMA_VERSION ||
                 schemaVersion == VNEXT9_SCHEMA_VERSION ||
                 schemaVersion == VNEXT10_SCHEMA_VERSION ||
-                schemaVersion == VNEXT11_SCHEMA_VERSION
+                schemaVersion == VNEXT11_SCHEMA_VERSION ||
+                schemaVersion == VNEXT12_SCHEMA_VERSION ||
+                schemaVersion == VNEXT13_SCHEMA_VERSION ||
+                schemaVersion == VNEXT14_SCHEMA_VERSION ||
+                schemaVersion == VNEXT15_SCHEMA_VERSION
         private const val MANIFEST_FILE = "manifest.json"
         private const val DEPTH_FILE = "depth.u16z"
         private const val MESH_DEPTH_FILE = "mesh-depth.u16z"
@@ -1058,6 +1394,9 @@ class SpatialDerivativeStore(
         private const val OWNERSHIP_LABELS_FILE = "ownership-labels.u8z"
         private const val CONNECTIVITY_FILE = "connectivity.bits.z"
         private const val MOTION_BASIS_FILE = "motion-basis.f32z"
+        private const val BACKGROUND_MOTION_BASIS_FILE = "background-motion-basis.f32z"
+        private const val SURFACE_CHART_LABELS_FILE = "surface-chart-labels.i32z"
+        private const val DEPTH_SURFELS_FILE = "depth-surfels.f32z"
         private const val BACKGROUND_FILE = "background.png"
         private val LDI_REQUIRED_FILES = listOf(
             MESH_DEPTH_FILE,
@@ -1068,11 +1407,14 @@ class SpatialDerivativeStore(
         private const val DEPTH_MAGIC = 0x5350444550544831L // SPDEPTH1
         private const val CONNECTIVITY_MAGIC = 0x53504D4553483031L // SPMESH01
         private const val MOTION_BASIS_MAGIC = 0x5350424153495331L // SPBASIS1
+        private const val SURFACE_CHART_MAGIC = 0x5350434841525431L // SPCHART1
+        private const val DEPTH_SURFELS_MAGIC = 0x5350535552463031L // SPSURF01
         private const val MIN_FREE_MARGIN_BYTES = 1024L * 1024L
         private const val MAX_DEPTH_DIMENSION = 1024
         private const val MAX_DEPTH_PIXELS = 1024L * 1024L
         private const val MAX_MESH_DIMENSION = 1024
         private const val MAX_MESH_PIXELS = 1024L * 1024L
+        private const val MAX_SURFACE_CHART_COUNT = 4096
         private const val MAX_BACKGROUND_DIMENSION = 2048
         private const val MAX_BACKGROUND_PIXELS = 2048L * 2048L
         private val SHA256_REGEX = Regex("[0-9a-fA-F]{64}")
@@ -1085,6 +1427,9 @@ class SpatialDerivativeStore(
         val backgroundDepth: String,
         val connectivity: String,
         val motionBasis: String?,
+        val backgroundMotionBasis: String?,
+        val surfaceChartLabels: String?,
+        val depthSurfels: String?,
         val background: String
     )
 }

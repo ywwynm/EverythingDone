@@ -172,7 +172,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         // 可点击整行统一为渐变矩形 ripple。
         listOf(
             R.id.runtime_component, R.id.model_zipdepth, R.id.model_dav2, R.id.model_da3,
-            R.id.model_migan, R.id.model_aotgan, R.id.model_modnet,
+            R.id.model_moge2,
+            R.id.model_migan, R.id.model_aotgan, R.id.model_big_lama, R.id.model_modnet,
             R.id.model_rfdetr_seg, R.id.model_edgetam_refinement,
             R.id.rl_spatial_tilt_as_bt, R.id.row_inpainting_quality
         ).forEach { id ->
@@ -1502,6 +1503,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialDepthModel.ZIPDEPTH -> R.id.model_zipdepth
             SpatialDepthModel.DEPTH_ANYTHING_V2_SMALL -> R.id.model_dav2
             SpatialDepthModel.DEPTH_ANYTHING_3_SMALL -> R.id.model_da3
+            SpatialDepthModel.MOGE_2_VITS_NORMAL -> R.id.model_moge2
         }
     )
 
@@ -1510,6 +1512,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialDepthModel.ZIPDEPTH -> R.id.rb_zipdepth
             SpatialDepthModel.DEPTH_ANYTHING_V2_SMALL -> R.id.rb_dav2
             SpatialDepthModel.DEPTH_ANYTHING_3_SMALL -> R.id.rb_da3
+            SpatialDepthModel.MOGE_2_VITS_NORMAL -> R.id.rb_moge2
         }
     )
 
@@ -1518,6 +1521,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialDepthModel.ZIPDEPTH -> R.id.tv_zipdepth_status
             SpatialDepthModel.DEPTH_ANYTHING_V2_SMALL -> R.id.tv_dav2_status
             SpatialDepthModel.DEPTH_ANYTHING_3_SMALL -> R.id.tv_da3_status
+            SpatialDepthModel.MOGE_2_VITS_NORMAL -> R.id.tv_moge2_status
         }
     )
 
@@ -1526,6 +1530,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialDepthModel.ZIPDEPTH -> R.id.btn_zipdepth
             SpatialDepthModel.DEPTH_ANYTHING_V2_SMALL -> R.id.btn_dav2
             SpatialDepthModel.DEPTH_ANYTHING_3_SMALL -> R.id.btn_da3
+            SpatialDepthModel.MOGE_2_VITS_NORMAL -> R.id.btn_moge2
         }
     )
 
@@ -1534,46 +1539,49 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialDepthModel.ZIPDEPTH -> R.id.iv_zipdepth_delete
             SpatialDepthModel.DEPTH_ANYTHING_V2_SMALL -> R.id.iv_dav2_delete
             SpatialDepthModel.DEPTH_ANYTHING_3_SMALL -> R.id.iv_da3_delete
+            SpatialDepthModel.MOGE_2_VITS_NORMAL -> R.id.iv_moge2_delete
         }
     )
 
+    // 三个补全模型各占一行；这里必须用穷举 when，加第四个模型时编译器会直接报错，
+    // 而原来的两路 if/else 会把新模型静默映射到 AOT-GAN 那一行。
     private fun inpaintingDeleteIcon(model: SpatialInpaintingModel): View = findViewById(
-        if (model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE) {
-            R.id.iv_migan_delete
-        } else {
-            R.id.iv_aotgan_delete
+        when (model) {
+            SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE -> R.id.iv_migan_delete
+            SpatialInpaintingModel.AOTGAN_PLACES2_512 -> R.id.iv_aotgan_delete
+            SpatialInpaintingModel.BIG_LAMA_PLACES2_512 -> R.id.iv_big_lama_delete
         }
     )
 
     private fun inpaintingRow(model: SpatialInpaintingModel): View = findViewById(
-        if (model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE) {
-            R.id.model_migan
-        } else {
-            R.id.model_aotgan
+        when (model) {
+            SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE -> R.id.model_migan
+            SpatialInpaintingModel.AOTGAN_PLACES2_512 -> R.id.model_aotgan
+            SpatialInpaintingModel.BIG_LAMA_PLACES2_512 -> R.id.model_big_lama
         }
     )
 
     private fun inpaintingRadio(model: SpatialInpaintingModel): RadioButton = findViewById(
-        if (model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE) {
-            R.id.rb_migan
-        } else {
-            R.id.rb_aotgan
+        when (model) {
+            SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE -> R.id.rb_migan
+            SpatialInpaintingModel.AOTGAN_PLACES2_512 -> R.id.rb_aotgan
+            SpatialInpaintingModel.BIG_LAMA_PLACES2_512 -> R.id.rb_big_lama
         }
     )
 
     private fun inpaintingStatus(model: SpatialInpaintingModel): TextView = findViewById(
-        if (model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE) {
-            R.id.tv_migan_status
-        } else {
-            R.id.tv_aotgan_status
+        when (model) {
+            SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE -> R.id.tv_migan_status
+            SpatialInpaintingModel.AOTGAN_PLACES2_512 -> R.id.tv_aotgan_status
+            SpatialInpaintingModel.BIG_LAMA_PLACES2_512 -> R.id.tv_big_lama_status
         }
     )
 
     private fun inpaintingButton(model: SpatialInpaintingModel): Button = findViewById(
-        if (model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE) {
-            R.id.btn_migan
-        } else {
-            R.id.btn_aotgan
+        when (model) {
+            SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE -> R.id.btn_migan
+            SpatialInpaintingModel.AOTGAN_PLACES2_512 -> R.id.btn_aotgan
+            SpatialInpaintingModel.BIG_LAMA_PLACES2_512 -> R.id.btn_big_lama
         }
     )
 

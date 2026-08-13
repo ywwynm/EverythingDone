@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "spatial-viewer",
+      "runtimeExecutable": "C:\\Users\\ywwynm\\miniconda3\\envs\\everythingdone\\python.exe",
+      "runtimeArgs": [
+        "E:\\projects\\EverythingDone\\tmp\\spatial-desktop-tuning\\serve_threaded.py",
+        "8642",
+        "E:\\projects\\EverythingDone\\tmp\\spatial-desktop-tuning"
+      ],
+      "port": 8642
+    }
+  ]
+}

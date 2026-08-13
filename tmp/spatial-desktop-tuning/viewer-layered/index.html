@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>空间照片 D133 双层查看器</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0e0e12; color: #ddd; font: 13px/1.6 system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+  canvas { max-width: 100%; max-height: 100%; touch-action: none; cursor: crosshair; }
+  #panel { width: 272px; padding: 14px; background: #17171c; overflow-y: auto; border-left: 1px solid #26262c; }
+  #panel h1 { font-size: 14px; margin: 0 0 12px; color: #fff; }
+  .row { margin-bottom: 12px; }
+  .row label { display: block; margin-bottom: 4px; color: #9a9aa5; }
+  select, input[type=range] { width: 100%; }
+  .val { color: #7fd0ff; font-variant-numeric: tabular-nums; }
+  #diag { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.6); padding: 8px 11px; border-radius: 6px; font: 12px/1.6 ui-monospace, monospace; pointer-events: none; white-space: pre; }
+  .toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .toggle input { width: auto; }
+  #err { color: #ff7a7a; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="gl"></canvas><div id="diag"></div></div>
+<div id="panel">
+  <h1>D133 双层 · 保序主体深度</h1>
+  <div class="row"><label>场景</label><select id="scene"></select></div>
+  <div class="row"><label>强度 <span class="val" id="strengthVal">1.00</span></label>
+    <input id="strength" type="range" min="0" max="1.5" step="0.01" value="1"></div>
+  <div class="row"><label>层内形变 <span class="val" id="rubberVal">1.00</span>　<span style="color:#6a6a75">0=纯仿射刚性层 1=当前</span></label>
+    <input id="rubber" type="range" min="0" max="1" step="0.02" value="1"></div>
+  <div class="row"><label>调试视图</label>
+    <select id="debugView">
+      <option value="0">最终画面</option>
+      <option value="1">前景 α</option>
+      <option value="2">流场幅度</option>
+      <option value="3">仅背景层</option>
+    </select></div>
+  <div class="row"><label>条带候选（消融）</label>
+    <select id="ablate">
+      <option value="0">0 正常</option>
+      <option value="20">20 显露带涂品红 ← 先看这个</option>
+      <option value="3">3 关 z 测试</option>
+      <option value="11">11 整条带改用 OVIE</option>
+      <option value="12">12 整条带改用 plate</option>
+      <option value="1">1 仅前景层</option>
+      <option value="2">2 仅背景层</option>
+      <option value="4">4 前景场置零</option>
+      <option value="5">5 背景场置零</option>
+      <option value="10">10 来源标记 R=SDXL B=OVIE</option>
+      <option value="19">19 显露带掩膜 R=原剪影 G=α B=deepB</option>
+    </select></div>
+  <div class="toggle"><input id="reveal" type="checkbox" checked><label for="reveal">深显露用 OVIE 内容</label></div>
+  <div class="toggle"><input id="safeScale" type="checkbox" checked><label for="safeScale">逐方向 safeScale</label></div>
+  <div class="toggle"><input id="autoOrbit" type="checkbox"><label for="autoOrbit">自动圆周</label></div>
+  <div class="row"><button id="recenter">视点回中</button></div>
+  <div id="err"></div>
+</div>
+<script>
+"use strict";
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: false, preserveDrawingBuffer: true });
+if (!gl) document.getElementById("err").textContent = "需要 WebGL2";
+
+const VS = `#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main() {
+  vUv = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+const FS = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 outColor;
+uniform sampler2D uCenter, uZero, uKeys;
+uniform sampler2D uCoeffA, uCoeffB;   // 前景层 [C0.xy,C1c.xy] / [C1s.xy,0,0]
+uniform sampler2D uCoeffC, uCoeffD;   // 背景层
+uniform sampler2D uMatte, uPlate, uFg, uDispF, uDispB;
+uniform sampler2D uLayerMask, uKeyMattes;
+uniform bool uLayered, uReveal;
+uniform float uKeyCount, uInsetScale;
+uniform vec2 uGuideSize, uView, uOutSize;
+uniform vec3 uHiddenBias;   // OVIE 色阶锚定偏置（诊断用，0..1 空间）
+uniform vec3 uAffX[3], uAffY[3];   // 前景场的整体仿射拟合（逐傅里叶系数，guide 像素）
+uniform float uRubber;             // 层内残差缩放：0 纯仿射 / 1 当前成品
+uniform int uDebug;
+// 0 正常 1 仅前景层 2 仅背景层 3 关 z 测试 4 前景场置零 5 背景场置零
+// 6 来源标记图（R=OVIE隐藏 G=前景 B=底板）7 隐藏内容染品红
+// 8 底板生成域染青 9 keyview 自身主体残留染红
+uniform int uAblate;
+
+vec2 combine(vec4 a, vec4 b, float t) {
+  return a.xy + a.zw * cos(t) + b.xy * sin(t);
+}
+// 主体运动 = 整体仿射（视角变化，不改形状）+ 层内残差（起伏，同时也是形变的唯一来源）。
+// uRubber 只缩放残差项：0 = 纯仿射刚性层，1 = 当前成品。用来标定用户实际能接受的形变量。
+vec2 flowAffine(vec2 uv, float t) {
+  vec3 p = vec3(uv.x * uGuideSize.x, uv.y * uGuideSize.y, 1.0);
+  return vec2(
+    dot(uAffX[0], p) + dot(uAffX[1], p) * cos(t) + dot(uAffX[2], p) * sin(t),
+    dot(uAffY[0], p) + dot(uAffY[1], p) * cos(t) + dot(uAffY[2], p) * sin(t));
+}
+vec2 flowFront(vec2 uv, float t) {
+  vec2 raw = combine(texture(uCoeffA, uv), texture(uCoeffB, uv), t);
+  if (uRubber >= 0.999) return raw;
+  vec2 aff = flowAffine(uv, t);
+  return aff + (raw - aff) * uRubber;
+}
+vec2 flowBack(vec2 uv, float t)  { return combine(texture(uCoeffC, uv), texture(uCoeffD, uv), t); }
+
+void main() {
+  vec2 uv = 0.5 + (vUv - 0.5) * uInsetScale;
+  float theta = uView.x, f = uView.y;
+  if (f < 1e-4 && uDebug == 0) { outColor = vec4(texture(uCenter, uv).rgb, 1.0); return; }
+
+  // OVIE 隐藏内容（仅深显露区使用）
+  float pos = fract(theta / 6.28318530718) * uKeyCount;
+  float k0 = floor(pos), t = pos - k0, k1 = mod(k0 + 1.0, uKeyCount);
+  vec3 keyBlend = mix(
+    texture(uKeys, vec2(uv.x, (uv.y + k0) / uKeyCount)).rgb,
+    texture(uKeys, vec2(uv.x, (uv.y + k1) / uKeyCount)).rgb, t);
+  vec3 hidden = mix(texture(uZero, uv).rgb, keyBlend, f);
+  // keyview 自身还含不含主体（生成视图里的第二个人）——查看器此前从不读取 key_mattes.png
+  float keySubj = mix(
+    texture(uKeyMattes, vec2(uv.x, (uv.y + k0) / uKeyCount)).r,
+    texture(uKeyMattes, vec2(uv.x, (uv.y + k1) / uKeyCount)).r, t);
+  if (uAblate == 7) hidden = vec3(1.0, 0.0, 1.0);
+  if (uAblate == 9) hidden = mix(hidden, vec3(1.0, 0.0, 0.0), keySubj);
+
+  vec3 color; float alpha; vec2 flowPx;
+  if (uLayered) {
+    // 前景层：2×2 超采样，预乘 α 采样去污前景板
+    float fFront = (uAblate == 4) ? 0.0 : f;
+    float fBack  = (uAblate == 5) ? 0.0 : f;
+    vec3 front = vec3(0.0); float alphaF = 0.0;
+    for (int sy = 0; sy < 2; sy++) for (int sx = 0; sx < 2; sx++) {
+      vec2 duv = (vec2(float(sx), float(sy)) - 0.25) * 0.5 / uOutSize;
+      vec2 uvS = uv + duv;
+      vec2 srcS = clamp(uvS + flowFront(uvS, theta) * fFront / uGuideSize, vec2(0.0), vec2(1.0));
+      float m = texture(uMatte, srcS).r;
+      front += texture(uFg, srcS).rgb * m;
+      alphaF += m;
+    }
+    front /= max(alphaF, 1e-3); alphaF *= 0.25;
+    flowPx = flowFront(uv, theta) * fFront;
+    vec2 srcF = clamp(uv + flowPx / uGuideSize, vec2(0.0), vec2(1.0));
+    vec2 srcB = clamp(uv + flowBack(uv, theta) * fBack / uGuideSize, vec2(0.0), vec2(1.0));
+    // z 排序：背景侧明显更近时背景层赢（桌沿挡躯干）。
+    // 2026-08-10 D134：过去写作 smoothstep(0.03, 0.10, zb-zf)，即在**深度值空间**
+    // 做软阈值。两张外推深度图在剪影附近缓慢交叉，于是这条 0.07 宽的判定带在屏幕
+    // 上摊成几十像素——主体 14.4% 的面积被乘成半透明，正是"玻璃条带"的成因
+    // （实测 α 中间值带 p90 32px、最宽 148px，而 matte 本身只有 1-3px）。
+    // 遮挡是二值几何判定，唯一该有的软度是抗锯齿。用屏幕空间导数把过渡固定为
+    // 约 1 像素，与两场交叉的快慢无关。
+    float zf = texture(uDispF, srcF).r * 1.4;
+    float zb = texture(uDispB, srcB).r * 1.4;
+    float zGap = zb - zf;
+    float aa = max(fwidth(zGap), 1e-4);
+    float occluded = clamp((zGap - 0.06) / aa * 0.5 + 0.5, 0.0, 1.0);
+    // 2026-08-10 D136（消融矩阵定案）：z 测试只在背景采样点确实落在真实背景上时
+    // 才有意义。disp_back 在主体内部是 masked_extend 从背景外推的值，没有物理含义；
+    // 拿它判遮挡会在主体内部把 α 打成 0，而透出来的 back 在深显露门控下正是 OVIE
+    // keyview——里面有完整的第二个人，于是手被复制、轮廓出现条带。
+    // 消融证据：仅前景层可见主体内部被打出大片空洞；关闭 z 测试后复制与撕裂消失。
+    occluded *= 1.0 - smoothstep(0.50, 0.90, texture(uMatte, srcB).r);
+    if (uAblate == 3) occluded = 0.0;
+    alphaF *= 1.0 - occluded;
+    if (uAblate == 2) alphaF = 0.0;
+    vec3 back = texture(uPlate, srcB).rgb;
+    float support = texture(uLayerMask, srcB).r;   // plate 的生成替换域（域外逐像素等于原图）
+    if (uAblate == 8) back = mix(back, vec3(0.0, 1.0, 1.0), support);
+    float deepB = smoothstep(0.80, 0.97, texture(uMatte, srcB).r);
+    // 11：整条"非真实内容带"改由 OVIE 承接（检验用户假设：真实新视角天然接得上结构）
+    // 15：同 11，外加 uHiddenBias 把 OVIE 的整体色阶锚回相邻真实背景
+    if (uAblate == 11 || uAblate == 15) deepB = max(deepB, support);
+    if (uAblate == 15) hidden = clamp(hidden + uHiddenBias, 0.0, 1.0);
+    // 19：真实显露带 = 原位是主体（matte(uv)）但现在不是（alphaF 低）。
+    // 此前所有取证都用"srcB 落在哪"分类，从没量过这条带本身有多宽、被谁填。
+    if (uAblate == 19) {
+      outColor = vec4(texture(uMatte, uv).r, alphaF, deepB, 1.0);
+      return;
+    }
+    // 20：把真实显露带直接涂成品红，叠在成品上。用户一眼就能判定"条带"是不是它。
+    if (uAblate == 20) {
+      float revealed = texture(uMatte, uv).r * (1.0 - alphaF);
+      vec3 shown = mix(texture(uPlate, srcB).rgb, hidden, uReveal ? deepB : 0.0);
+      shown = front * alphaF + shown * (1.0 - alphaF);
+      outColor = vec4(mix(shown, vec3(1.0, 0.0, 0.9), step(0.5, revealed)), 1.0);
+      return;
+    }
+    if (uAblate == 13) {   // R=keyview 自身主体 G=前景 B=生成域
+      outColor = vec4(keySubj * (1.0 - alphaF), alphaF, support * (1.0 - alphaF), 1.0);
+      return;
+    }
+    // 12：整条带全用 SDXL plate（deepB 归零）作对照
+    if (uAblate == 12) deepB = 0.0;
+    if (uAblate == 10) {
+      // 非真实内容带的构成：R=SDXL 生成 B=OVIE G=前景
+      outColor = vec4((1.0 - alphaF) * support * (1.0 - deepB), alphaF,
+                      (1.0 - alphaF) * deepB, 1.0);
+      return;
+    }
+    // 16/17/18：把混合前的两路原料与门控本身单独取出，定位暗槽究竟来自哪一路
+    if (uAblate == 16) { outColor = vec4(texture(uPlate, srcB).rgb, 1.0); return; }
+    if (uAblate == 17) { outColor = vec4(hidden, 1.0); return; }
+    if (uAblate == 18) { outColor = vec4(deepB, texture(uMatte, srcB).r, support, 1.0); return; }
+    back = mix(back, hidden, uReveal ? deepB : 0.0);
+    if (uAblate == 6) {
+      // 来源标记：R=OVIE 隐藏内容 G=前景层 B=底板（plate）
+      float wHidden = (1.0 - alphaF) * (uReveal ? deepB : 0.0);
+      outColor = vec4(wHidden, alphaF, (1.0 - alphaF) * (1.0 - (uReveal ? deepB : 0.0)), 1.0);
+      return;
+    }
+    if (uDebug == 3) { outColor = vec4(back, 1.0); return; }
+    if (uAblate == 1) back = vec3(0.10, 0.10, 0.12);
+    color = front * alphaF + back * (1.0 - alphaF);
+    alpha = alphaF;
+  } else {
+    flowPx = flowFront(uv, theta) * f;
+    vec3 warped = vec3(0.0);
+    for (int sy = 0; sy < 2; sy++) for (int sx = 0; sx < 2; sx++) {
+      vec2 duv = (vec2(float(sx), float(sy)) - 0.25) * 0.5 / uOutSize;
+      vec2 uvS = uv + duv;
+      warped += texture(uCenter, clamp(uvS + flowFront(uvS, theta) * f / uGuideSize, vec2(0.0), vec2(1.0))).rgb;
+    }
+    color = warped * 0.25; alpha = 1.0;
+  }
+  if (uDebug == 1) { outColor = vec4(vec3(alpha), 1.0); return; }
+  if (uDebug == 2) { outColor = vec4(vec3(length(flowPx) / 24.0), 1.0); return; }
+  outColor = vec4(color, 1.0);
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) document.getElementById("err").textContent = gl.getProgramInfoLog(prog);
+gl.useProgram(prog);
+const quad = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(prog, n);
+
+function makeTex(unit, filter = gl.LINEAR) {
+  const tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return tex;
+}
+
+const state = { meta: null, view: { x: 0, y: 0 }, scene: null };
+
+function solve3(m, rhs) {
+  const a = [[...m[0], rhs[0]], [...m[1], rhs[1]], [...m[2], rhs[2]]];
+  for (let i = 0; i < 3; i++) {
+    let p = i;
+    for (let r = i + 1; r < 3; r++) if (Math.abs(a[r][i]) > Math.abs(a[p][i])) p = r;
+    [a[i], a[p]] = [a[p], a[i]];
+    if (Math.abs(a[i][i]) < 1e-12) return [0, 0, 0];
+    for (let r = 0; r < 3; r++) {
+      if (r === i) continue;
+      const f = a[r][i] / a[i][i];
+      for (let c = i; c < 4; c++) a[r][c] -= f * a[i][c];
+    }
+  }
+  return [a[0][3] / a[0][0], a[1][3] / a[1][1], a[2][3] / a[2][2]];
+}
+
+// 对 C0 / C1c / C1s 三张系数图分别做 f = a·x + b·y + c 的最小二乘拟合。
+// 返回 x/y 两个通道各 3 组 [a,b,c]，展平成 9 个 float 供 uniform3fv 一次上传。
+function affineFitFourier(buf, gw, gh, cc) {
+  const n = gw * gh;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    sx += x; sy += y; sxx += x * x; sxy += x * y; syy += y * y;
+  }
+  const m = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]];
+  const out = { x: new Float32Array(9), y: new Float32Array(9) };
+  for (let k = 0; k < 3; k++) for (const ch of [0, 1]) {
+    let bx = 0, by = 0, bc = 0;
+    if (k < cc) {
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+        const v = buf[((k * gh + y) * gw + x) * 2 + ch];
+        bx += v * x; by += v * y; bc += v;
+      }
+    }
+    const sol = solve3(m, [bx, by, bc]);
+    (ch === 0 ? out.x : out.y).set(sol, k * 3);
+  }
+  return out;
+}
+
+async function loadImage(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return await createImageBitmap(await res.blob());
+}
+
+async function loadScene(name) {
+  const bust = `?v=${Date.now()}`;
+  const base = `../assets/${name}`;
+  const meta = await (await fetch(`${base}/meta.json${bust}`, { cache: "no-store" })).json();
+  const pick = async (names) => {
+    for (const n of names) { try { return await loadImage(`${base}/${n}${bust}`); } catch (e) {} }
+    return null;
+  };
+  const center = await pick(["center.jpg", "center.png"]);
+  const zero = await pick(["zero.jpg", "zero.png"]);
+  const keys = await pick(["keys.jpg", "keys.png"]);
+  const matte = await pick(["matte.png"]);
+  const plate = await pick(["plate.png", "plate.jpg"]);
+  const fgImg = await pick(["fg.png", "fg.jpg"]);
+  const dispF = await pick(["disp_front.png"]);
+  const dispB = await pick(["disp_back.png"]);
+  const layerMask = await pick(["layer_masks.png"]);
+  const keyMattes = await pick(["key_mattes.png"]);
+  const buf = async n => new Float32Array(await (await fetch(`${base}/${n}${bust}`, { cache: "no-store" })).arrayBuffer());
+  const cFront = await buf("flow_coeffs_front.bin");
+  const cBack = await buf("flow_coeffs_back.bin");
+
+  const gw = meta.guideWidth, gh = meta.guideHeight, cc = meta.coeffCount;
+  const upload = (unit, img) => { makeTex(unit); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img); };
+  upload(0, center); upload(1, zero || center); upload(2, keys || center);
+  const packSet = (b, baseUnit) => {
+    const t0 = new Float32Array(gw*gh*4), t1 = new Float32Array(gw*gh*4);
+    const at = (k,y,x,ch) => b[((k*gh + y)*gw + x)*2 + ch];
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+      const o = (y*gw + x)*4;
+      t0[o] = at(0,y,x,0); t0[o+1] = at(0,y,x,1);
+      if (cc > 1) { t0[o+2] = at(1,y,x,0); t0[o+3] = at(1,y,x,1); }
+      if (cc > 2) { t1[o] = at(2,y,x,0); t1[o+1] = at(2,y,x,1); }
+    }
+    [t0, t1].forEach((d, i) => { makeTex(baseUnit + i); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, gw, gh, 0, gl.RGBA, gl.FLOAT, d); });
+  };
+  packSet(cFront, 3); packSet(cBack, 5);
+  // 前景场的整体仿射拟合，逐傅里叶系数各解一次（拟合是线性的，分开解再合成等价于
+  // 对合成场拟合）。得到的仿射项代表"一致的视角变化"，残差项才是层内起伏＝形变来源。
+  const aff = affineFitFourier(cFront, gw, gh, cc);
+  gl.uniform3fv(U("uAffX"), aff.x);
+  gl.uniform3fv(U("uAffY"), aff.y);
+  const gray = (unit, img, fb) => {
+    makeTex(unit);
+    if (img) gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, img);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([fb]));
+  };
+  gray(7, matte, 0);
+  upload(8, plate || center);
+  upload(9, fgImg || center);
+  gray(10, dispF, 255);
+  gray(11, dispB, 0);
+  upload(12, layerMask || center);
+  gray(13, keyMattes, 0);
+
+  const names = ["uCenter","uZero","uKeys","uCoeffA","uCoeffB","uCoeffC","uCoeffD","uMatte","uPlate","uFg","uDispF","uDispB","uLayerMask","uKeyMattes"];
+  names.forEach((n, i) => gl.uniform1i(U(n), i));
+  gl.uniform1i(U("uLayered"), meta.layered ? 1 : 0);
+  gl.uniform1f(U("uKeyCount"), meta.keyCount);
+  gl.uniform2f(U("uGuideSize"), gw, gh);
+  gl.uniform1f(U("uInsetScale"), 1 - 2 * (meta.borderInset || 0));
+  state.meta = meta; state.scene = name; state.view = { x: 0, y: 0 };
+  resize();
+}
+
+function resize() {
+  if (!state.meta) return;
+  const stage = document.getElementById("stage");
+  const dpr = window.devicePixelRatio || 1;
+  const iw = state.meta.centerWidth, ih = state.meta.centerHeight;
+  const scale = Math.min((stage.clientWidth || iw) / iw, (stage.clientHeight || ih) / ih);
+  canvas.style.width = `${iw*scale}px`; canvas.style.height = `${ih*scale}px`;
+  canvas.width = Math.max(1, Math.round(iw*scale*dpr)); canvas.height = Math.max(1, Math.round(ih*scale*dpr));
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U("uOutSize"), canvas.width, canvas.height);
+}
+window.addEventListener("resize", resize);
+
+function softClamp(v) {
+  const len = Math.hypot(v.x, v.y);
+  if (len < 1e-6) return { x: 0, y: 0 };
+  const c = Math.min(Math.tanh(len*1.2)/Math.tanh(1.2), 1);
+  return { x: v.x/len*c, y: v.y/len*c };
+}
+canvas.addEventListener("pointermove", e => {
+  const r = canvas.getBoundingClientRect();
+  state.view = softClamp({ x: ((e.clientX-r.left)/r.width-0.5)*2, y: ((e.clientY-r.top)/r.height-0.5)*2 });
+});
+document.getElementById("recenter").onclick = () => { state.view = { x: 0, y: 0 }; };
+document.getElementById("ablate").onchange = e => { window.__ablate = Number(e.target.value); };
+document.getElementById("rubber").oninput = e => {
+  window.__rubber = Number(e.target.value);
+  document.getElementById("rubberVal").textContent = window.__rubber.toFixed(2);
+};
+const strengthEl = document.getElementById("strength");
+strengthEl.oninput = () => document.getElementById("strengthVal").textContent = Number(strengthEl.value).toFixed(2);
+
+function envAt(deg, key) {
+  const env = state.meta?.envelope;
+  if (!env?.length) return key === "safeScale" ? 1 : 0;
+  const step = 360/env.length;
+  const i = ((Math.round(deg/step) % env.length) + env.length) % env.length;
+  return env[i][key] ?? (key === "safeScale" ? 1 : 0);
+}
+
+function renderView() {
+  if (!state.meta) return;
+  const strength = Number(strengthEl.value);
+  const vx = state.view.x, vy = state.view.y;
+  const theta = Math.atan2(vy, vx);
+  const deg = (theta*180/Math.PI + 360) % 360;
+  const scale = document.getElementById("safeScale").checked ? envAt(deg, "safeScale") : 1;
+  const f = Math.hypot(vx, vy) * strength * scale;
+  gl.uniform2f(U("uView"), theta, f);
+  gl.uniform1i(U("uDebug"), Number(document.getElementById("debugView").value));
+  gl.uniform1i(U("uReveal"), document.getElementById("reveal").checked ? 1 : 0);
+  // 面板下拉与 window.__ablate 同源：脚本捕获时直接写 window.__ablate 即可覆盖
+  const ablateEl = document.getElementById("ablate");
+  if (window.__ablate === undefined) window.__ablate = Number(ablateEl.value);
+  gl.uniform1i(U("uAblate"), window.__ablate | 0);
+  const bias = window.__hiddenBias || [0, 0, 0];
+  gl.uniform3f(U("uHiddenBias"), bias[0], bias[1], bias[2]);
+  const rubberEl = document.getElementById("rubber");
+  const rubber = window.__rubber !== undefined ? window.__rubber : Number(rubberEl.value);
+  gl.uniform1f(U("uRubber"), rubber);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  document.getElementById("diag").textContent =
+    `θ ${deg.toFixed(0).padStart(3)}°  f ${f.toFixed(2)}  safe ${scale.toFixed(2)}\n` +
+    `方向包络 ${envAt(deg,"spanPx720").toFixed(1)} px@720\n` +
+    `当前视差 ≈ ${(envAt(deg,"spanPx720")*Math.hypot(vx,vy)*strength).toFixed(1)} px@720\n` +
+    `分层 ${state.meta.layered} · 补全 ${state.meta.inpaintBackend}\n` +
+    `资产代号 ${state.meta.generatedAt}`;
+}
+
+function frame(tms) {
+  if (state.meta) {
+    if (document.getElementById("autoOrbit").checked) {
+      const w = 0.9, t = tms/1000;
+      state.view = { x: Math.cos(t*w), y: Math.sin(t*w) };
+    }
+    renderView();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// 圆周巡检捕获（强制协议）：同步渲染，不依赖 RAF（面板隐藏时 RAF 全停）
+window.__cap = async function (sceneName, longEdge = 720) {
+  await loadScene(sceneName);
+  document.getElementById("scene").value = sceneName;
+  document.getElementById("autoOrbit").checked = false;
+  const iw = state.meta.centerWidth, ih = state.meta.centerHeight;
+  const cs = longEdge / Math.max(iw, ih);
+  canvas.width = Math.round(iw*cs); canvas.height = Math.round(ih*cs);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U("uOutSize"), canvas.width, canvas.height);
+  for (const { tag, r } of [{tag:"100",r:1.0},{tag:"66",r:0.66},{tag:"33",r:0.33}]) {
+    for (let k = 0; k < 48; k++) {
+      const a = 2*Math.PI*k/48;
+      state.view = { x: r*Math.cos(a), y: r*Math.sin(a) };
+      renderView();
+      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+      if (!blob) throw new Error("toBlob null");
+      const name = `${sceneName}/r${tag}-f${String(k).padStart(3,"0")}.png`;
+      let ok = false;
+      for (let i = 0; i < 4 && !ok; i++) {
+        try { ok = (await fetch(`http://localhost:8643/save?name=${encodeURIComponent(name)}`, {method:"POST", body: blob})).ok; } catch (e) {}
+        if (!ok) await new Promise(res => setTimeout(res, 400*(i+1)));
+      }
+      if (!ok) throw new Error("save failed " + name);
+    }
+  }
+  return "done " + sceneName;
+};
+window.__shot = async function (sceneName, deg, radius = 1, name = "shot.png", longEdge = 1080) {
+  if (sceneName && sceneName !== state.scene) await loadScene(sceneName);
+  const iw = state.meta.centerWidth, ih = state.meta.centerHeight;
+  const cs = longEdge / Math.max(iw, ih);
+  canvas.width = Math.round(iw*cs); canvas.height = Math.round(ih*cs);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U("uOutSize"), canvas.width, canvas.height);
+  const a = deg*Math.PI/180;
+  state.view = { x: radius*Math.cos(a), y: radius*Math.sin(a) };
+  renderView();
+  const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+  const ok = (await fetch(`http://localhost:8643/save?name=${encodeURIComponent("diag/"+name)}`, {method:"POST", body: blob})).ok;
+  return `${name} ${canvas.width}x${canvas.height} ok=${ok} gen=${state.meta.generatedAt}`;
+};
+
+(async () => {
+  try {
+    const index = await (await fetch("../assets/index.json")).json();
+    const sel = document.getElementById("scene");
+    for (const n of index.scenes) { const o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); }
+    sel.onchange = () => loadScene(sel.value).catch(e => document.getElementById("err").textContent = String(e));
+    const params = new URLSearchParams(location.search);
+    const want = params.get("scene");
+    await loadScene(want && index.scenes.includes(want) ? want : index.scenes[0]);
+    if (want) sel.value = want;
+  } catch (e) {
+    document.getElementById("err").textContent = "加载失败：" + e;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>vNext11 基线查看器（HEAD 提交版）</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0e0e12; color: #ddd; font: 13px/1.6 system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+  canvas { max-width: 100%; max-height: 100%; touch-action: none; cursor: crosshair; }
+  #panel { width: 272px; padding: 14px; background: #17171c; overflow-y: auto; border-left: 1px solid #26262c; }
+  #panel h1 { font-size: 14px; margin: 0 0 4px; color: #fff; }
+  #panel .sub { color: #6a6a75; margin-bottom: 12px; }
+  .row { margin-bottom: 12px; }
+  .row label { display: block; margin-bottom: 4px; color: #9a9aa5; }
+  select, input[type=range] { width: 100%; }
+  .val { color: #7fd0ff; font-variant-numeric: tabular-nums; }
+  .toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .toggle input { width: auto; }
+  #diag { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.6); padding: 8px 11px; border-radius: 6px; font: 12px/1.6 ui-monospace, monospace; pointer-events: none; white-space: pre; }
+  #err { color: #ff7a7a; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="gl"></canvas><div id="diag"></div></div>
+<div id="panel">
+  <h1>vNext11 基线</h1>
+  <div class="sub">HEAD 020af382 · 前向网格 + 深度缓冲</div>
+  <div class="row"><label>场景</label><select id="scene"></select></div>
+  <div class="row"><label>强度 <span class="val" id="strengthVal">1.00</span></label>
+    <input id="strength" type="range" min="0.15" max="1" step="0.01" value="1"></div>
+  <div class="toggle"><input id="relief" type="checkbox" checked><label for="relief">浮雕明暗</label></div>
+  <div class="toggle"><input id="alpha" type="checkbox" checked><label for="alpha">显示 alpha 去污</label></div>
+  <div class="toggle"><input id="bgLayer" type="checkbox" checked><label for="bgLayer">隐藏背景层</label></div>
+  <div class="toggle"><input id="autoOrbit" type="checkbox"><label for="autoOrbit">自动圆周</label></div>
+  <div class="row"><button id="recenter">视点回中</button></div>
+  <div id="err"></div>
+</div>
+<script>
+"use strict";
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: true, preserveDrawingBuffer: true, depth: true });
+if (!gl) document.getElementById("err").textContent = "需要 WebGL2";
+
+// 与 HEAD 的 SpatialPhotoRenderer.LDI_VERTEX_SHADER 等价。GLES2 属性语义原样保留：
+// 每个顶点自带深度与两条屏幕空间运动基，位移在顶点阶段完成，遮挡交给深度缓冲。
+const VS = `#version 300 es
+uniform vec2 uScale, uViewpoint, uParallaxMotion, uCoverMargin;
+uniform float uRigidPan;
+layout(location=0) in vec2 aTexCoord;
+layout(location=1) in float aDepth;
+layout(location=2) in vec2 aMotionBasisX;
+layout(location=3) in vec2 aMotionBasisY;
+out vec2 vTexCoord;
+void main() {
+  vec2 targetUv = aTexCoord
+    - uParallaxMotion.x * aMotionBasisX
+    - uParallaxMotion.y * aMotionBasisY
+    - uViewpoint * uRigidPan;
+  vec2 canvasUv = (targetUv - uCoverMargin) / (vec2(1.0) - 2.0 * uCoverMargin);
+  vec2 position = vec2(canvasUv.x * 2.0 - 1.0, 1.0 - canvasUv.y * 2.0);
+  gl_Position = vec4(position * uScale, 1.0 - 2.0 * aDepth, 1.0);
+  vTexCoord = aTexCoord;
+}`;
+
+// 与 HEAD 的 LDI_FRAGMENT_SHADER 等价：有界浮雕明暗 + 4 点旋转采样重建 alpha 覆盖率
+// + 用**原图外侧色**做 F/B 去污（注释明确禁止拿生成背景反解，会放大成发丝白边）。
+const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uColor, uDepth, uSurfaceAlpha;
+uniform vec2 uViewpoint, uDepthTexel, uAlphaTexel;
+uniform float uStrength, uReliefGain, uMaxRelief, uUseRelief, uUseSurfaceAlpha;
+in vec2 vTexCoord;
+out vec4 outColor;
+void main() {
+  vec4 color = texture(uColor, vTexCoord);
+  float originalDepth = texture(uDepth, vTexCoord).r;
+  float depthRight = texture(uDepth, clamp(vTexCoord + vec2(uDepthTexel.x, 0.0), vec2(0.001), vec2(0.999))).r;
+  float depthDown  = texture(uDepth, clamp(vTexCoord + vec2(0.0, uDepthTexel.y), vec2(0.001), vec2(0.999))).r;
+  float relief = clamp(dot(vec2(depthRight - originalDepth, depthDown - originalDepth), uViewpoint)
+                       * uReliefGain * uStrength, -uMaxRelief, uMaxRelief);
+  color.rgb *= 1.0 + relief * uUseRelief;
+
+  vec2 o = uAlphaTexel * 0.4;
+  float aTL = texture(uSurfaceAlpha, clamp(vTexCoord - o, vec2(0.001), vec2(0.999))).r;
+  float aTR = texture(uSurfaceAlpha, clamp(vTexCoord + vec2(o.x, -o.y), vec2(0.001), vec2(0.999))).r;
+  float aBL = texture(uSurfaceAlpha, clamp(vTexCoord + vec2(-o.x, o.y), vec2(0.001), vec2(0.999))).r;
+  float aBR = texture(uSurfaceAlpha, clamp(vTexCoord + o, vec2(0.001), vec2(0.999))).r;
+  float sampled = 0.25 * (aTL + aTR + aBL + aBR);
+  float surfaceAlpha = mix(1.0, sampled, uUseSurfaceAlpha);
+  vec2 grad = vec2(0.5 * (aTR + aBR - aTL - aBL), 0.5 * (aBL + aBR - aTL - aTR));
+  float gradLen = length(grad);
+  vec2 inward = grad / max(gradLen, 0.0001);
+  vec3 inwardColor  = texture(uColor, clamp(vTexCoord + inward * uAlphaTexel * 1.5, vec2(0.001), vec2(0.999))).rgb;
+  vec3 exteriorColor = texture(uColor, clamp(vTexCoord - inward * uAlphaTexel * 3.0, vec2(0.001), vec2(0.999))).rgb;
+  vec3 decontaminated = clamp((color.rgb - (1.0 - surfaceAlpha) * exteriorColor) / max(surfaceAlpha, 0.08), 0.0, 1.0);
+  float inwardFallback = (1.0 - smoothstep(0.12, 0.72, surfaceAlpha)) * smoothstep(0.002, 0.08, gradLen);
+  vec3 foreground = mix(decontaminated, inwardColor, inwardFallback);
+  vec4 matted = vec4(foreground * surfaceAlpha, surfaceAlpha);
+  outColor = mix(color, matted, uUseSurfaceAlpha);
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) document.getElementById("err").textContent = gl.getProgramInfoLog(prog);
+gl.useProgram(prog);
+const U = n => gl.getUniformLocation(prog, n);
+
+const MINIMUM_AMPLITUDE = 0.012, MIN_STRENGTH = 0.15, MAX_STRENGTH = 1.0;
+const state = { view: { x: 0, y: 0 }, scene: null, data: null };
+
+// 与 SpatialViewEnvelope 完全同式：方向上做环形线性插值，再按强度在最小幅度与
+// 该方向最大幅度之间插值。两端公式必须一致，否则基线对照就失去意义。
+function amplitudeForDirection(amps, x, y) {
+  let angle = Math.atan2(y, x);
+  if (angle < 0) angle += Math.PI * 2;
+  const pos = angle / (Math.PI * 2) * amps.length;
+  const first = Math.floor(pos) % amps.length;
+  const second = (first + 1) % amps.length;
+  return amps[first] + (amps[second] - amps[first]) * (pos - Math.floor(pos));
+}
+function amplitudeAtStrength(maximum, strength) {
+  const minimum = Math.min(MINIMUM_AMPLITUDE, maximum);
+  return minimum + (maximum - minimum) * Math.min(Math.max(strength, MIN_STRENGTH), MAX_STRENGTH);
+}
+
+function parseGeometry(buffer) {
+  const view = new DataView(buffer);
+  let p = 0;
+  const magicHi = view.getUint32(p); p += 4;
+  const magicLo = view.getUint32(p); p += 4;
+  if (magicHi !== 0x564E5831 || magicLo !== 0x3147454F) throw new Error("导出文件魔数不匹配");
+  const version = view.getInt32(p); p += 4;
+  if (version !== 1) throw new Error("导出版本 " + version + " 不受支持");
+  const w = view.getInt32(p); p += 4;
+  const h = view.getInt32(p); p += 4;
+  const n = w * h;
+  const f32 = k => { const a = new Float32Array(k); for (let i = 0; i < k; i++) { a[i] = view.getFloat32(p); p += 4; } return a; };
+  const u8 = k => { const a = new Uint8Array(k); for (let i = 0; i < k; i++) a[i] = view.getUint8(p++); return a; };
+  const surfaceDepth = f32(n), backgroundDepth = f32(n);
+  const cutRight = u8(h * (w - 1)), cutDown = u8((h - 1) * w);
+  const hidden = u8(n);
+  const basis = { hx: f32(n), hy: f32(n), vx: f32(n), vy: f32(n) };
+  const hasBg = view.getUint8(p++) === 1;
+  const bgBasis = hasBg ? { hx: f32(n), hy: f32(n), vx: f32(n), vy: f32(n) } : basis;
+  return { w, h, surfaceDepth, backgroundDepth, cutRight, cutDown, hidden, basis, bgBasis };
+}
+
+// 顶点属性布局 (u, v, depth, bxX, bxY, byX, byY)，与 GLES2 侧一一对应。
+function buildVertices(g, depth, basis) {
+  const { w, h } = g;
+  const out = new Float32Array(w * h * 7);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, t = i * 7;
+    out[t] = x / (w - 1); out[t + 1] = y / (h - 1); out[t + 2] = depth[i];
+    out[t + 3] = basis.hx[i]; out[t + 4] = basis.hy[i];
+    out[t + 5] = basis.vx[i]; out[t + 6] = basis.vy[i];
+  }
+  return out;
+}
+
+// 三角形发射规则照抄 SpatialHybridMeshBuilder：跨 cutRight/cutDown 的三角形不生成。
+// 深度断崖因此在网格里真的断开，而不是被拉成一片——这正是 backward warp 做不到的事。
+function buildIndices(g, respectCuts) {
+  const { w, h, cutRight, cutDown } = g;
+  const idx = [];
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) {
+    const tl = y * w + x, tr = tl + 1, bl = tl + w, br = bl + 1;
+    const topConnected = !respectCuts || !cutRight[y * (w - 1) + x];
+    const rightConnected = !respectCuts || !cutDown[y * w + x + 1];
+    if (topConnected && rightConnected) idx.push(tl, tr, br);
+    const leftConnected = !respectCuts || !cutDown[y * w + x];
+    const bottomConnected = !respectCuts || !cutRight[(y + 1) * (w - 1) + x];
+    if (leftConnected && bottomConnected) idx.push(tl, br, bl);
+  }
+  return new Uint32Array(idx);
+}
+
+// 第三遍：断边两侧的独立 splat。连通网格跨断边不生成三角形，断边相邻样本因此没有覆盖，
+// 缝里会漏出背景（点状暗边）。HEAD 用每个断边样本一个四边形补上，四角共用该样本的深度与
+// 运动基，所以补片是刚性的、不会把断边重新拉成连续面。
+// 与 SpatialSplatMeshBuilder 同式：格子半间距为基准，同深度侧按深度差外扩重叠，
+// 断边侧只有**更近**的一边外扩 nearCutPaddingSamples（0.5 采样间距），远侧交给背景板。
+const MAX_PARALLAX_AMPLITUDE = 0.12, NEAR_CUT_PADDING_SAMPLES = 0.5;
+
+function collectBoundarySamples(g) {
+  const { w, h, cutRight, cutDown } = g;
+  const sel = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w - 1; x++) {
+    if (!cutRight[y * (w - 1) + x]) continue;
+    sel[y * w + x] = 1; sel[y * w + x + 1] = 1;
+  }
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
+    if (!cutDown[y * w + x]) continue;
+    sel[y * w + x] = 1; sel[(y + 1) * w + x] = 1;
+  }
+  return sel;
+}
+
+function buildSplats(g, padding) {
+  const { w, h, surfaceDepth: d, cutRight, cutDown, basis } = g;
+  const included = collectBoundarySamples(g);
+  const lower = (p, size) => (size === 1 || p === 0) ? 0 : (p - 0.5) / (size - 1);
+  const upper = (p, size) => (size === 1 || p === size - 1) ? 1 : (p + 0.5) / (size - 1);
+  const hOverlap = (y, cx, lx, rx) => {
+    if (lx < 0 || rx >= w) return 0;
+    if (cutRight[y * (w - 1) + lx]) {
+      const nx = cx === lx ? rx : lx;
+      return d[y * w + cx] > d[y * w + nx] ? padding / (w - 1) : 0;
+    }
+    return Math.abs(d[y * w + lx] - d[y * w + rx]) * MAX_PARALLAX_AMPLITUDE * 0.5;
+  };
+  const vOverlap = (x, cy, ty, by) => {
+    if (ty < 0 || by >= h) return 0;
+    if (cutDown[ty * w + x]) {
+      const ny = cy === ty ? by : ty;
+      return d[cy * w + x] > d[ny * w + x] ? padding / (h - 1) : 0;
+    }
+    return Math.abs(d[ty * w + x] - d[by * w + x]) * MAX_PARALLAX_AMPLITUDE * 0.5;
+  };
+  let count = 0;
+  for (let i = 0; i < included.length; i++) if (included[i]) count++;
+  const verts = new Float32Array(count * 4 * 7);
+  const idx = new Uint32Array(count * 6);
+  let vo = 0, io = 0, base = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!included[i]) continue;
+    const depth = d[i];
+    const u0 = Math.max(0, lower(x, w) - hOverlap(y, x, x - 1, x));
+    const u1 = Math.min(1, upper(x, w) + hOverlap(y, x, x, x + 1));
+    const v0 = Math.max(0, lower(y, h) - vOverlap(x, y, y - 1, y));
+    const v1 = Math.min(1, upper(y, h) + vOverlap(x, y, y, y + 1));
+    const bhx = basis.hx[i], bhy = basis.hy[i], bvx = basis.vx[i], bvy = basis.vy[i];
+    for (const [u, v] of [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]) {
+      verts[vo] = u; verts[vo + 1] = v; verts[vo + 2] = depth;
+      verts[vo + 3] = bhx; verts[vo + 4] = bhy; verts[vo + 5] = bvx; verts[vo + 6] = bvy;
+      vo += 7;
+    }
+    idx[io++] = base; idx[io++] = base + 1; idx[io++] = base + 2;
+    idx[io++] = base; idx[io++] = base + 2; idx[io++] = base + 3;
+    base += 4;
+  }
+  return { verts, idx, count };
+}
+
+function makeMesh(vertices, indices) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const vb = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+  const stride = 7 * 4;
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, stride, 8);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 12);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 2, gl.FLOAT, false, stride, 20);
+  const ib = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, count: indices.length };
+}
+
+function makeTex(unit, img) {
+  const tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  return tex;
+}
+function makeDepthTex(unit, values, w, h) {
+  const bytes = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) bytes[i] = Math.max(0, Math.min(255, Math.round(values[i] * 255)));
+  const tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, w, h, 0, gl.RED, gl.UNSIGNED_BYTE, bytes);
+  return tex;
+}
+
+async function loadImage(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return await createImageBitmap(await res.blob());
+}
+
+async function loadScene(name) {
+  const bust = `?v=${Date.now()}`;
+  const exportBase = `../qa/vnext11-export/${name}`;
+  const assetBase = `../assets/${name}`;
+  const runtime = await (await fetch(`${exportBase}/vnext11-runtime.json${bust}`, { cache: "no-store" })).json();
+  const geom = parseGeometry(await (await fetch(`${exportBase}/vnext11-geometry.bin${bust}`, { cache: "no-store" })).arrayBuffer());
+  const pick = async names => { for (const n of names) { try { return await loadImage(`${assetBase}/${n}${bust}`); } catch (e) {} } return null; };
+  const color = await pick(["center.jpg", "center.png"]);
+  // 隐藏背景暂用桌面链路已有的 plate.png 代替端侧 inpainting 输出：几何完全一致，
+  // 只有补全内容来源不同；对照的是渲染表示，不是补图模型。
+  const background = await pick(["plate.png", "plate.jpg"]) || color;
+  const surfaceAlpha = await pick(["matte.png"]);
+
+  const surface = makeMesh(buildVertices(geom, geom.surfaceDepth, geom.basis), buildIndices(geom, true));
+  const backdrop = makeMesh(buildVertices(geom, geom.backgroundDepth, geom.bgBasis), buildIndices(geom, false));
+  // matting 能给出连续覆盖率时才放宽几何硬边半个采样间距（HEAD 同条件）。
+  const splatData = buildSplats(geom, surfaceAlpha ? NEAR_CUT_PADDING_SAMPLES : 0);
+  const splats = makeMesh(splatData.verts, splatData.idx);
+  splats.splatCount = splatData.count;
+
+  const tex = {
+    color: makeTex(0, color),
+    background: makeTex(3, background),
+    depth: makeDepthTex(1, geom.surfaceDepth, geom.w, geom.h),
+    alpha: surfaceAlpha ? makeTex(2, surfaceAlpha) : null
+  };
+  gl.uniform1i(U("uColor"), 0);
+  gl.uniform1i(U("uDepth"), 1);
+  gl.uniform1i(U("uSurfaceAlpha"), 2);
+  gl.uniform2f(U("uDepthTexel"), 1 / geom.w, 1 / geom.h);
+  gl.uniform2f(U("uAlphaTexel"), 1 / (surfaceAlpha ? surfaceAlpha.width : geom.w),
+                                 1 / (surfaceAlpha ? surfaceAlpha.height : geom.h));
+  gl.uniform1f(U("uReliefGain"), runtime.reliefGain);
+  gl.uniform1f(U("uMaxRelief"), runtime.maxRelief);
+  gl.uniform1f(U("uRigidPan"), runtime.rigidPan);
+
+  state.data = { geom, runtime, surface, backdrop, splats, tex, imageW: color.width, imageH: color.height };
+  state.scene = name; state.view = { x: 0, y: 0 };
+  resize();
+}
+
+function resize() {
+  if (!state.data) return;
+  const stage = document.getElementById("stage");
+  const dpr = window.devicePixelRatio || 1;
+  const { imageW: iw, imageH: ih } = state.data;
+  const scale = Math.min((stage.clientWidth || iw) / iw, (stage.clientHeight || ih) / ih);
+  canvas.style.width = `${iw * scale}px`; canvas.style.height = `${ih * scale}px`;
+  canvas.width = Math.max(1, Math.round(iw * scale * dpr));
+  canvas.height = Math.max(1, Math.round(ih * scale * dpr));
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener("resize", resize);
+
+function softClamp(v) {
+  const len = Math.hypot(v.x, v.y);
+  if (len < 1e-6) return { x: 0, y: 0 };
+  const c = Math.min(Math.tanh(len * 1.2) / Math.tanh(1.2), 1);
+  return { x: v.x / len * c, y: v.y / len * c };
+}
+canvas.addEventListener("pointermove", e => {
+  const r = canvas.getBoundingClientRect();
+  state.view = softClamp({ x: ((e.clientX - r.left) / r.width - 0.5) * 2, y: ((e.clientY - r.top) / r.height - 0.5) * 2 });
+});
+document.getElementById("recenter").onclick = () => { state.view = { x: 0, y: 0 }; };
+const strengthEl = document.getElementById("strength");
+strengthEl.oninput = () => document.getElementById("strengthVal").textContent = Number(strengthEl.value).toFixed(2);
+
+function renderView() {
+  const d = state.data;
+  if (!d) return;
+  const strength = Number(strengthEl.value);
+  const vx = state.view.x, vy = state.view.y;
+  const amps = d.runtime.envelopeAmplitudes;
+  const radius = Math.min(Math.hypot(vx, vy), 1);
+  const amplitude = radius <= 1e-6 ? 0 : amplitudeAtStrength(amplitudeForDirection(amps, vx, vy), strength);
+  const maxAmplitude = amplitudeAtStrength(Math.max(...amps), strength);
+  // 取景边距按"当前强度下任意方向的最大幅度"一次算定，不随视点方向/半径变化，
+  // 避免沿圆周倾斜时出现缩放呼吸（HEAD 注释原文）。
+  const row = d.runtime.strengthTable.reduce((a, b) =>
+    Math.abs(b.strength - strength) < Math.abs(a.strength - strength) ? b : a);
+
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.uniform2f(U("uScale"), 1, 1);
+  gl.uniform2f(U("uCoverMargin"), row.coverMarginX, row.coverMarginY);
+  gl.uniform2f(U("uViewpoint"), vx, vy);
+  gl.uniform2f(U("uParallaxMotion"), vx * amplitude, vy * amplitude);
+  gl.uniform1f(U("uStrength"), strength);
+  gl.enable(gl.BLEND);
+  gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  // 三遍绘制与 SpatialLdiRenderPassPolicy 一一对应：
+  //   HIDDEN_BACKGROUND 深度测试关、深度写关（背景板永远垫在最底，不参与竞争）
+  //   CONNECTED_SURFACE 测试开、写开、LEQUAL
+  //   BOUNDARY_SPLAT    测试开、写开、LESS —— 连通面已覆盖的同深度像素不重复累积
+  //                     半透明 alpha，补片只填严格更近或尚未覆盖的 cut 缺口
+  const pass = (test, write, func) => {
+    if (test) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(write);
+    gl.depthFunc(func);
+  };
+  const useAlpha = (d.tex.alpha && document.getElementById("alpha").checked) ? 1 : 0;
+  const useRelief = document.getElementById("relief").checked ? 1 : 0;
+
+  if (document.getElementById("bgLayer").checked) {
+    pass(false, false, gl.LEQUAL);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, d.tex.background);
+    gl.uniform1f(U("uUseRelief"), 0);
+    gl.uniform1f(U("uUseSurfaceAlpha"), 0);
+    gl.bindVertexArray(d.backdrop.vao);
+    gl.drawElements(gl.TRIANGLES, d.backdrop.count, gl.UNSIGNED_INT, 0);
+  }
+
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, d.tex.color);
+  gl.uniform1f(U("uUseRelief"), useRelief);
+  gl.uniform1f(U("uUseSurfaceAlpha"), useAlpha);
+  pass(true, true, gl.LEQUAL);
+  gl.bindVertexArray(d.surface.vao);
+  gl.drawElements(gl.TRIANGLES, d.surface.count, gl.UNSIGNED_INT, 0);
+
+  pass(true, true, gl.LESS);
+  gl.bindVertexArray(d.splats.vao);
+  gl.drawElements(gl.TRIANGLES, d.splats.count, gl.UNSIGNED_INT, 0);
+
+  gl.depthMask(true);
+  gl.disable(gl.DEPTH_TEST);
+  gl.disable(gl.BLEND);
+  gl.bindVertexArray(null);
+
+  document.getElementById("diag").textContent =
+    `θ ${((Math.atan2(vy, vx) * 180 / Math.PI + 360) % 360).toFixed(0).padStart(3)}°  r ${radius.toFixed(2)}  强度 ${strength.toFixed(2)}\n` +
+    `幅度 ${amplitude.toFixed(4)} / 方向最大 ${maxAmplitude.toFixed(4)}\n` +
+    `取景边距 ${row.coverMarginX.toFixed(4)}\n` +
+    `网格 ${d.geom.w}×${d.geom.h} · 表面三角 ${d.surface.count / 3} · 边界 splat ${d.splats.splatCount}\n` +
+    `运动候选 ${d.runtime.motionCandidateId}\n` +
+    `renderer ${d.runtime.renderer}`;
+}
+
+function frame(tms) {
+  if (state.data) {
+    if (document.getElementById("autoOrbit").checked) {
+      const t = tms / 1000, w = 0.9;
+      state.view = { x: Math.cos(t * w), y: Math.sin(t * w) };
+    }
+    renderView();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+window.__shot = async function (sceneName, deg, radius = 1, name = "shot.png", longEdge = 1080) {
+  if (sceneName && sceneName !== state.scene) await loadScene(sceneName);
+  const d = state.data;
+  const cs = longEdge / Math.max(d.imageW, d.imageH);
+  canvas.width = Math.round(d.imageW * cs); canvas.height = Math.round(d.imageH * cs);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  const a = deg * Math.PI / 180;
+  state.view = { x: radius * Math.cos(a), y: radius * Math.sin(a) };
+  renderView();
+  const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+  const ok = (await fetch(`http://localhost:8643/save?name=${encodeURIComponent("diag/" + name)}`, { method: "POST", body: blob })).ok;
+  return `${name} ${canvas.width}x${canvas.height} ok=${ok}`;
+};
+
+(async () => {
+  try {
+    const index = await (await fetch("../assets/index.json")).json();
+    const available = [];
+    for (const n of index.scenes) {
+      const res = await fetch(`../qa/vnext11-export/${n}/vnext11-runtime.json`, { method: "HEAD" });
+      if (res.ok) available.push(n);
+    }
+    const sel = document.getElementById("scene");
+    for (const n of available) { const o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); }
+    sel.onchange = () => loadScene(sel.value).catch(e => document.getElementById("err").textContent = String(e));
+    const want = new URLSearchParams(location.search).get("scene");
+    const initial = want && available.includes(want) ? want : available[0];
+    await loadScene(initial);
+    sel.value = initial;
+  } catch (e) {
+    document.getElementById("err").textContent = "加载失败：" + e;
+  }
+})();
+</script>
+</body>
+</html>

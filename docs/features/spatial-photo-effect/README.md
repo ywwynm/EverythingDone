@@ -103,6 +103,10 @@
 
 ## 文档
 
+- [窄带补全：正确用法与端侧小模型调研（2026-08-12）](research-2026-08-12-narrow-band-inpainting.md)
+- [自训单图→分层 3DGS 可行性调研与判断（2026-08-12）](research-2026-08-12-self-trained-3dgs.md)
+- [view synthesis 全景调研与管线优化路线（2026-08-11）](research-2026-08-11-view-synthesis-landscape.md)
+- [对标 Apple 的零训练优化调研（2026-08-07）](research-2026-08-07-apple-parity-zero-training.md)
 - [截至 2026-08-01 的 AI 模型栈重新审计](research-2026-08-01-model-stack-refresh.md)
 - [对象中心分层与视差渲染调研](research-2026-08-01-object-centric-layering.md)
 - [视觉质量根因与 source-locked layered splat 路线](root-quality-diagnosis-2026-08-01.md)

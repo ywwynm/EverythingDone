@@ -1,5 +1,631 @@
 # Current Debug Update Notes
 
+## 2026-08-13 - 空间照片渲染改用断边三角网格 + 超采样与窄缝闭合
+
+发布号 `202608130227`（用户要求重推一次；`202608130225` 是同一份源码的首发，两次之间
+无任何改动），APK SHA-256 `4174cf6435ae957433e24a89124cfaeec221c8fa22354355d4e8084b223ec8a0`，
+23.13 MB。日志文件：`docs/features/spatial-photo-effect/debug-updates/update-20260813114500.md`。
+
+用户反馈"手机上又有那个轮廓周围的透明条带"。根因是点元 splat 的覆盖率：点大小按未形变的
+网格间距算（00 场景 5 px），真透视把视差放大到物理量级后断崖处相邻点元被拉开远超点大小，
+合成遍只补一像素裂缝，底板从主体身上透出来（D211）。
+
+改动：**渲染换成断边三角网格（vNext15 / schema 17）**，附带拿回逐轴独立的运动系数与前景
+软 α；**加超采样与窄缝闭合**（闭缝判据是"两侧都被覆盖"，单侧有覆盖是真边界，否则会糊出
+假边）；**分辨率统一到深度网格**，深度输入长边 518→720，并修掉 patch-14 对齐的各向异性。
+
+720 是量出来的：MoGe 的几何细节由 num_tokens 决定，输入长边 518→1440 时有效带宽
+0.00238/0.00229/0.00237/0.00229 完全持平，而 1800 tokens 内在分辨率约 588×602。
+
+实测：剪影粗糙度 105.7→53.0（−50%），点状能量 0.460→0.372，左右对开竖直串扰 0.0 px，
+恢复焦距与桌面端同分辨率差 1.4%→**0.04%**。生成耗时 55→79 秒。
+
+仍未解决：剪影上一条柔和暗边——是第二层在主体区域保留的暗像素被显露，超采样只能摊柔和
+（D212/D213 待办，与 D174 同族）。
+
+## 2026-08-13 - 空间照片渲染核心改为真透视视差
+
+发布号 `202608130054`，APK SHA-256 `b541793022e6b9da2acbc26b03356ed335724b4b029f75f0d9e52da3451f5573`，
+24.25 MB。日志文件：`docs/features/spatial-photo-effect/debug-updates/update-20260813062400.md`。
+
+新增两个端侧模型（按需下载，未打进 APK）：**MoGe-2 ViT-S** 深度（134 MB，输出 point map，
+能给出米制深度与相机内参——真透视重投影的前提）与 **Big-LaMa** 补全（198 MB，512 分块，
+新增 `maximum_1024` 质量档）。运行组件包升级到 `1.28.0-r7`（补齐 MoGe 的算子三元组并编入
+XNNPACK）。
+
+运动构造从局部刚性拟合改为按 `Δu = fx·tx·(1/Z₀ − 1/Z)` 直算，与网页端逐字相同；幅度单位
+变成米（物理基线 4.5cm），支点取主体深度中位数。**关键在于它必须接进 surfel 的每点标量**
+——那才是实际出像素的一份，只换四分量运动基的话真透视只存在于磁盘上（详见 D210）。
+
+真机（SM-S9180）九场景八方向验收：交叉跨度全线塌向 0，"像 warp"的症状消失；00 场景左右
+对开视差实测 152.6 px 对闭式预测 154 px；与桌面端 4.5cm 物理预测的秩相关 +0.800 → +0.900。
+`:app:testDebugUnitTest` 816 项、0 失败。
+
+已知问题：大偏移下沿人物剪影有棋盘状细缺口（00 场景 0.765%，D211）；连续生成多张后立刻
+打开查看器可能 ANR。两者都已立条目。
+
+## 2026-08-07 - 空间照片 vNext9 回归全局连续多视角，移除纸片主体路线
+
+用户在多轮真机复核后指出，以分割、matting、ownership 或刚性主体 chart 直接驱动
+空间运动，会使人物上身、脸部乃至整块前景退化为纸片平移，并在主体交界产生明显断裂；
+继续压低主体内部视差又会让空间感消失。按用户最终确认的方向，本轮不再以语义分割结果
+作为主要运动依据，回归从单目深度生成全局连续、范围有限但清晰可感的多视角效果。
+
+主要实现：新增 `SpatialContinuousMotion`，用 `sigma=40` 全局低频深度结构叠加按几何风险
+自适应的 `sigma=16` 中频残差（0–20%）；视差 envelope 通过降低中频残差控制形变，不剪掉
+全局深度范围。renderer 改为 motion-basis texture + fixed-point inverse warp，减少大视角
+forward splat 的裂缝、白边、三角破口和局部拉伸；派生升级至 schema v11 / renderer
+`surface-depth-vnext9-multiscale-inverse-28px`，旧 vNext8 派生自动重建并保留强度。模型仍为
+运行时按需下载，未打进 APK。
+
+完整 `:app:testDebugUnitTest :app:assembleDebug` 已通过。指定真机、记事“测试空间效果”两张
+附件分别达到约 28 px、27.38–27.65 px 极限视差；办公室、道路和高难度插画额外样本默认
+约 20.7–21.4 px、极限约 27.3–28 px，中频权重会从 0.20 自适应降到 0.025。真机 GPU
+圆周视点录屏未再观察到旧路线的纸片主体、交界断裂、黑洞、白缝或三角破口。真实陀螺仪
+手感由用户安装本次发布后终验。详细发布说明：
+`docs/features/spatial-photo-effect/debug-updates/update-20260807074056.md`。
+
+已发布阿里云 debug 更新 `202608062343`。公网与本地 `latest.json` 均为 6,326 字节，
+SHA-256 同为 `deefcc9964be27f4d2c985115e0fca781b021cd649a684146c8cdc721343e2b2`；
+公网与本地版本化 APK 均为 24,244,757 字节，SHA-256 同为
+`6f3770960c16cf3e2439b5092fc4467111ec8d044ecb150be5b0826bf0885086`，并与元数据
+声明一致。首次发布 `202608062342` 的说明因标题层级被截短，已由最终版本覆盖。
+
+## 2026-08-04 - D76 实例内残差软限幅（物体形变修复），双指标验证后发布
+
+发布号 `202608040626`（UTC 码），APK SHA-256
+`c08e905e14bfac11100f3dbb69e7570206dde2986408e15c279af19befc5379f`（实读回填）；
+远端 latest.json 逐字节一致。内容：实例组内残差软限幅（膝点 0.09、斜率 0.24，
+满幅伸长回 ~4.5%），场景组不限（保扫掠）。首版连通分量粒度被真机证伪（臂-桌
+连通吸均值，跨度 126→56px），实例粒度后跨度保留 126px、人物/手持杯两端点形状
+一致。测试教训：窄坡撞 D47 吸附、均匀色引导滤波退化箱糊。需重新生成生效。
+待用户倾斜终验 D75+D76 的"范围大 + 形状稳"组合。
+
+## 2026-08-04 - 视角范围扩展包 + 胶囊按钮对齐（D75），网格量测 ×1.75 后发布
+
+发布号 `202608040510`（UTC 码），APK SHA-256
+`277bdbf507c2c42d0b8410bb6585a5ec5aaa292e102871cdc99cc8d266f713fe`（实读回填）；
+远端 latest.json 逐字节一致。内容：D55 退役（DA3 contrast 1.0，动因已被 P2/P3
+结构性解决）+ 幅度 0.09→0.12 + RIGID_PAN 撤销（边距代价对冲，静止取景持平）+
+MAX_RENDER_SLOPE 8 + 预算 0.36；胶囊 paddingEnd 8dp + 按钮 includeFontPadding
+关闭（bounds 复核同心）。真机网格块匹配全场视差跨度 72→126px（×1.75），预算
+日志满幅不钳（2.94→上限 0.122），颈/手/杯/发缘无回潮。待用户倾斜终验。
+遗留：预算 debug 日志 "p1=splat-footprint" 标签过时（纯文案）；D55 字段保留。
+
+## 2026-08-04 - P4 旧机件退役 + 显露带基准修正（D74），回归确认后发布
+
+发布号 `202608040220`（UTC 码），APK SHA-256
+`b7563fccfc8dac4e7eb08945ae6f29358f2dab4df8b79a51e12e643b7d7e83fd`；远端
+latest.json 逐字节一致（SHA 为发布后实读回填）。内容：stabilizeForSplat /
+SubjectLayer.protect+ProtectedGeometry / OWNERSHIP_OBJECT 通道 / ownershipLabel
+字段全删（含配套测试）；显露带代表深度改用未压缩 surfaceDepth（修正带宽低估）。
+真机 att1 回归 P3/P4 均值差 1.19（噪声级）。至此 design-2026-08-03 P1–P4 全部
+完成。挂起：D55 降档评估（待用户长期观感）、显露带补图画质软斑（followups）、
+night/land QA 与 viewer 检测回归（旧欠账）。
+
+## 2026-08-03 - P3 组引导深度修正（D73），发缘 A/B 验证后发布
+
+发布号 `202608031520`（UTC 码），APK SHA-256
+`b8388372ee3b6787d166eabea7442d21708721478be23944b5b99fb852d5ef6e`；远端
+latest.json 逐字节一致。内容：断边判定前按实例归属修正深度——边界带（半径 2
+格）同组 5×5 中位数迭代 2 次拉回 halo 格，实例内部同组 3×3 中位抑噪；双深度场
+同步修正。真机 att1 发缘 A/B：晕带收窄、贴合更净、面部无损。需重新生成。D55
+降档暂缓（正交语义，待用户反馈）；显露带补图软斑留 followups。P4（旧机件退役
+清理）待做。
+
+## 2026-08-03 - 立体视差塌缩修复（D72 补遗），量测反超稳定 4 倍后发布
+
+发布号 `202608031511`（UTC 码），APK SHA-256
+`e6a8692fa8101efff69c46714637be7a8c2cbb9cdf890a6624436e1607623fb3`；远端
+latest.json 逐字节一致。根因：P2 后网格深度仍用 v18 残差压缩器
+stabilizeForSplat（分量均值压缩），层间行程载体已除而压缩器仍在。修复：网格
+改用全程 surfaceDepth + 预算 limitMotion（p1 梯度 2.94 → 上限 0.109，满幅
+不钳）。真机模板匹配：立体主体-背景 77px / 近远跨度 138px vs 稳定 19px/22px。
+纯渲染修复，派生免重建。教训：契约测试勿搜未限定名（又被注释判死）、跨层
+测量窗口混层会抵消（用小模板匹配）。
+
+## 2026-08-03 - P2 主体立体感回归（D72：连续网格 + 分割先验），真机验收后发布
+
+发布号 `202608031034`（UTC 码），APK SHA-256
+`522c6eab297c62af523433e5c087f0a2d72813ed1329140e4626e188785da524`；远端
+latest.json 逐字节一致，releaseNotes 单节完整。内容：渲染回归单一连续网格
+（刚性对象平面/base 排除/标签纹理全移除，浮雕与预算全帧生效），断边双门控
+（同实例/装配组禁断 + 深度比），ownership alpha 降级为断边带羽化，renderer
+v19（旧派生自动重建）。首装 GLSL 悬空引用崩溃已修（Kotlin 编译不覆盖着色器
+字符串的教训入 D72）。真机（OPPO 3B1629006YC00000）三窗口验收通过：手/杯/袖
+连贯、双人像贴合零亮缝、脸部浮雕回归。倾斜手感由用户终验；P3（边界带深度
+重指派 + 实例内净化）待启动。
+
+## 2026-08-03 - P1 交互层三修（D71：恒定取景/传感器软饱和/视点圆形域），真机核验后发布
+
+发布号 `202608031003`（UTC 码），APK SHA-256
+`b8f3076035f40f3687e4868cdc9639ed93778c238e2e03d864b449f62dabb44a`；远端
+latest.json 逐字节一致，releaseNotes 单节完整。内容：恒定取景边距（废除动态边距
+与回中直通，零呼吸，静止 ~1.13× 恒定收紧）、传感器 0.16→0.5 rad + tanh 软饱和、
+视点单位圆钳制；预算钳制核实本已旋转不变。真机四帧画框漂移 0px。传感器手感由
+用户真实陀螺仪终验。design-2026-08-03 P2（断边双门控 + 实例内禁断 + 渲染回归
+连续网格）待启动。
+
+## 2026-08-03 - 修复环形倾斜时的整帧缩放呼吸
+
+用户在真实陀螺仪下连续倾斜手机画小圆时，观察到画面周期性放大、缩小。纯数学复现确认根因
+不是某张图片、分割、深度或补图模型，而是 `SpatialSourceLock.coverMargin` 以
+`max(abs(x), abs(y))` 计算安全取景边距：同一圆周的轴向与对角方向得到不同缩放，单圈发生
+四次整帧呼吸。当前改为按视点向量和视差向量的欧氏长度计算旋转不变边距，保留 source lock、
+等比缩放、黑边安全余量和最大边距上限；稳定、立体、MPI 均立即生效，已有派生无需重建。
+
+新增 3 档半径、每档 72 个方向的圆周不变性回归；目标测试、完整 JVM 测试和 debug 构建通过。
+本轮未使用 ADB，真实小圆轨迹仍由用户在发布版上终验。详细日志：
+`docs/features/spatial-photo-effect/debug-updates/update-20260803102617.md`。已发布阿里云 debug
+更新 `202608030227`；经 `127.0.0.1:7890` 公网回读，本地与远端 `latest.json` 均为
+1,106 字节，SHA-256 同为
+`4de3902636a797056b8b5107e63ffe162c62cd37b142428693878623b1614df8`；版本化 APK 均为
+24,124,089 字节，SHA-256 同为
+`db793b20c1bf3758284d460008bb466917f33221e346004e3282588859e261fb`。
+
+## 2026-08-02 - 空间照片 v18 真机画质根因回归
+
+用户要求连接 OnePlus `3B1629006YC00000`，在内容为“测试空间效果”的记事中逐张检查
+两张附件，并覆盖不同倾斜方向和空间效果强度。ADB 不能注入真实陀螺仪，因此本轮用与
+倾斜共用 renderer 的拖动视点检查静态端点，不把它当作传感器滤波测试。每张图在强度
+`1.0` 和约 `0.65` 下保存参考位、左右端点及两个对角端点，共 20 张设备截图。
+
+诊断发现 v17 扩大的补图上下文会要求 MI-GAN/AOT-GAN 重建大面积人物内部，生成背景出现
+近黑人形环和结构幻觉，但实际最大端点没有获得对应收益；v18 撤回该扩张，只保留按真实
+ownership 最大相对位移计算的窄显露带和可信背景隔离。`SpatialPhotoRenderer` 取消
+ownership alpha 的二次硬边锐化，仅在 coverage 上做一个 texel 的九点重建，不模糊颜色
+纹理或不透明主体；`SpatialImageViewport` 以固定 scissor 保持图片画框稳定。renderer
+版本更新为 `ldi-lite-v18-conservative-reveal`，旧派生会自动重建。
+
+两张附件、两档强度、五个视点下，脸、五官、手、酒杯与固定画框均保持稳定，没有再次
+出现局部人脸网格形变、宽暗影或大块前景残像。残余肩线、发缘和衣物开口阶梯已在落盘的
+`ownership-alpha.a8z` 中直接复现；扩大 shader 平滑会损失发丝、扩大孔洞并污染相邻人物，
+因此没有保留该风险方案。`:app:testDebugUnitTest --rerun-tasks`、`:app:assembleDebug` 通过，
+设备日志无 `FATAL EXCEPTION`、`SIGSEGV` 或 `OutOfMemoryError`。已恢复倾斜控制开启、两张
+派生强度 `1.0`、P1 和默认 MI-GAN。详细日志：
+`docs/features/spatial-photo-effect/debug-updates/update-20260802083623.md`。
+阿里云 debug 更新号为 `202608020038`；公网 `latest.json` 与本地逐字节一致。版本化 APK
+本地与公网回读均为 24,124,089 字节，SHA-256 为
+`a81ea0d924f53426966a50307e54f8b93f2076ed4ea43c5197306aa6eb965425`。
+
+## 2026-08-02 - 关系约束 ownership、EdgeTAM 可选细化与 r6 按需运行时
+
+修正 RF-DETR 类别 ABI：slot 0 为保留位、1..90 全部有效；新增 attachment graph，以类别、
+接触、相对面积、深度与布局共同决定穿戴/手持/骑乘对象是否并入人物，人与人始终分层。
+EdgeTAM 以 RF box 为唯一 prompt，只在 RF 轮廓窄带内提出边界调整；低质量候选、内部孔洞、
+扩张岛和实例重叠都有确定性拒绝或修复，失败时精确保留 RF 结果。设置新增 EdgeTAM 独立按需
+下载、开关与删除；最低 8 GiB 总内存、2 GiB 可用内存，默认不下载、不启用。
+
+33,502,118 字节 EdgeTAM bundle 与四 ABI `1.28.0-r6` 裁剪 Runtime 已发布阿里云，签名
+stable catalog 为 `20260801183734`；公网 catalog 逐字节一致，模型与 arm64 runtime 的
+Range 续传返回 206。12 张、71 实例桌面 PoC 中 59 个边界对齐改善；完整 JVM 测试和 debug
+构建通过。APK 24,124,077 字节，拆包无 ONNX、模型 bundle 或 ORT 原生库。本轮未使用 ADB，
+Android PSS/时延/温升与真实倾斜观感仍待用户终验。详细日志：
+`docs/features/spatial-photo-effect/debug-updates/update-20260802023836.md`。阿里云 debug 更新号
+`202608011841`；发布 APK 24,124,089 字节，SHA-256
+`c72cf372b6a8720c2eb53a249f5c83a53e86bcd1558f6576ca9f30df93e5f528`。公网元数据逐字节
+一致，版本化 APK 回读校验通过。
+
+## 2026-08-02 - RF-DETR 可选实例分层与 r5 按需运行时
+
+用户认为显式人物层仍不自然，希望继续增加职责明确的新模型。根因回归证明旧 union
+ownership 会让不同距离的人物/物体共用一个位移，并叠加固定前移偏置；本次升级为互斥
+多实例图，每个实例按自身深度中位数刚性运动，实例内部不逐像素拉伸。接入 RF-DETR Seg
+Nano 作为可选的端侧实例身份模型，MODNet 只细化人物发丝边缘；未识别区域、大型支撑面
+和超大普通区域安全回退连续深度表面。模型约 117.14 MiB，可在空间照片设置中主动下载、
+关闭、重新启用或删除；推理失败不阻断既有链路。派生数据新增 `ownership-labels.u8z`，
+设置存储统计同步包含深度、matting 和分层模型。
+
+ORT Runtime 升级为 `1.28.0-r5`，按七个实际 ONNX 图的优化算子并集裁剪，四 ABI 继续按需
+下载；stable 模型 catalog `20260801165501` 已发布阿里云，公网 catalog 逐字节回读一致，
+RF-DETR URL 的 Content-Length 与 Range 续传验证通过。12 张跨场景桌面 ORT 复跑、完整
+`:app:testDebugUnitTest :app:assembleDebug` 和七模型算子覆盖验证通过。阿里云 debug 更新号
+`202608011704`；最终 APK 24,122,777 字节，只比上一版增加 3,556 字节，SHA-256 为
+`15c77bb61c89fa3dd209b511e020acb98da64b4319dff9843fa4a557409f2969`。公网元数据逐字节一致，
+版本化 APK 回读后的长度与 SHA-256 均一致，拆包没有模型或 ORT 原生库。本轮未使用 ADB。
+详细日志：`docs/features/spatial-photo-effect/debug-updates/update-20260802010133.md`。
+
+## 2026-08-01 - 2026 模型栈纠错与显式 ownership 对象层
+
+用户指出既有深度、分割、matting 与补图建议使用了过时模型/设备基准，并要求按截至
+2026-08-01 的状态全部重查；此前还反馈高强度画面像连续曲面并扭曲人物。官方资料审计后
+确认：DA3-Small 是当前代相对 depth，不是 metric；ZipDepth 为 2026-07 的轻量默认候选；
+MODNet、MI-GAN、AOT-GAN 只能保留为兼容路径；EdgeTAM 是当前首个可做 Android PoC 的
+通用分割候选，MobileSAM2 等待正式 release。代码删除 `applySoftRenderLayer` 宽深度羽化，
+新增 provider-neutral `SpatialOwnershipLayer`、`ownership-alpha.a8z`、base ownership 排除、
+独立代表深度对象平面和完整对象足迹背景补全；renderer 升为
+`ldi-lite-v5-object-layer`，DA3 ABI 改为 `outputIsDepth` / `providesMetricScale=false` /
+`rawInverseDepth`。完整 JVM 测试和 `:app:assembleDebug` 通过，未使用 ADB。发布日志：
+`docs/features/spatial-photo-effect/debug-updates/update-20260801231755.md`。阿里云 debug 更新号
+`202608011518`，versionCode 43；远端 `latest.json` 逐字节一致，APK 24,119,221 字节，
+SHA-256 `089c224c29e4c3ccbdef711ff4fc9daa6875c7a905aeefd17aede405e9e851f9`，回读校验通过。
+
+## 2026-08-01 - source-locked 混合拓扑、人物刚性与发缘连续覆盖率
+
+发布号 `202608011349`（UTC 码），versionCode 43，APK SHA-256
+`3501a2f312cb036a0022f8a1931ac1cfaa8ae074fc263d38dac455f63642064f`；远端
+`latest.json` 逐字节一致，版本化 APK 回读后与本地发布产物 SHA-256 一致。用户连续
+审图指出满强度下人物脸型变化，以及黑发亮背景处偶发白色碎屑和锯齿。
+根因修复包括：参考视点原图直通；动态 cover margin 改为各向同性；连续表面共享顶点网格、
+仅遮挡 cut 使用边界 splat；撤销会切开脸部的硬 matting cut；旧 display alpha 的活性门控
+硬跳改为连续覆盖率；连续面与补片分批深度解析；低 alpha 向主体内部取色；透明边缘四点
+亚像素采样。OnePlus `3B1629006YC00000` 两张附件左右端点放大复核通过，完整
+`:app:testDebugUnitTest :app:assembleDebug` 通过。发布日志：
+`docs/features/spatial-photo-effect/debug-updates/update-20260801214758.md`。
+
+## 2026-08-01 - D56 公制遮挡判据（头身分离根因修复），交叉验证后发布
+
+发布号 `202608010911`（UTC 码），APK SHA-256
+`74a2d40f9b179b32eb8c2b6cc47a50b3133807602038f43afac3751b01eb9aac`；远端
+latest.json 逐字节一致，releaseNotes 单节完整。内容：撤销单图阈值补丁路线
+（用户批评过拟合成立），遮挡判定改为公制深度比（远/近 ≥ 1.2，尺度不变），
+metricInverseDepth 全链 + 闭运算拓扑同步；五张测试图交叉分类验证 + 真机
+att1/att2 持续偏移复验（手袖分离清零、人-人亮缝消失、剪影保留）。方法论
+入全局记忆：root-cause-not-per-image-patches、tilt-testing-not-drag。
+
+## 2026-08-01 - 发丝边缘细化（MODNet）+ Runtime r4，全链真机验证后发布
+
+发布号 `202608010846`（UTC 码），APK SHA-256
+`f89a5a64635a13c826685ee4947f0592fad41865022a7da9d468d33340938c99`；远端
+latest.json 逐字节一致，releaseNotes 单节完整。内容：设置新增「发丝边缘细化」
+卡片（MODNet 25.9 MB 可选下载）；D54 融合渲染（断边近侧带 alpha 纹理接管，
+活性门控防暗衣蚀边）；Runtime r4（六模型算子并集，r4 catalog 20260801083719
+先行发布）。真机全链验证：r4 产品路径升级（r3 清理）→ MODNet 下载 + 自检
+（修复：引擎按文件而非 ready 标记校验，自检发生在标记写入前）→ DA3+matting
+生成（manifest 双字段 + display-alpha.a8z 落盘）→ 发缘羽化目检 + 持续偏移
+四点驻留取证。日志明确注明：倾斜下的头身分离/几何伪影属深度层问题，单独排查中
+（用户 tilt 反馈教训已入全局记忆 tilt-testing-not-drag）。
+
+## 2026-08-01 - DA3 视差对比度修复（D55），用户回归反馈闭环后发布
+
+发布号 `202608010823`（UTC 码），versionCode 43，APK SHA-256
+`18a1cb42c60b10f9df87ba6aeb69a1b5878080b75ac5f3fcb88efa9eee7f35b8`；远端
+latest.json 与本地逐字节一致，releaseNotes 单节完整。内容：DA3 视差对比度整形
+（`disparityContrast=0.72`，绕 0.5 线性压缩）——修复用户目检发现的主体位移过大、
+近物拉伸、耳坠被吞、边界块状撕裂；双人像发际撕裂同步痊愈。真机脸部/躯干/双人像
+多窗口 A/B 复验后发布。附带：matting 垂直代码随包但完全惰性（无设置入口、无
+catalog 条目、REQUIRED 保持 r3）；r4 提升延后到 matting 发布提交。
+
+## 2026-08-01 - DA3 第三深度模型 + Runtime r3 + D53 锐边适配，真机验收后发布
+
+发布号 `202608010539`（UTC 码），versionCode 43，APK SHA-256
+`266f60a7ed2b4f72b6e972b0ddbe0bf0287ee63673eaacd4f088a8bb82cd983b`；远端
+latest.json 与本地逐字节一致，releaseNotes 单节完整。内容：Depth Anything 3
+Small 第三深度模型（100 MB，Apache-2.0，设置中下载选用，内存门槛 6 GB/1.5 GB）；
+D53 锐边渲染适配（闭运算半径 3 + 旁路引导滤波，立体/稳定满强度真机复验无碎屑）；
+Runtime r3（五模型算子并集，4.15 MB，旧组件自动清理）与引擎 EXTENDED 恢复
+（DAV2 全链生成约 5 秒）。r3 四包 + DA3 对象 + 签名 catalog（20260801044403）
+已先行发布并真机走通下载/自检/生成正式路径。
+
+## 2026-08-01 - 大强度拖影/鬼影治理（D51），矩阵复核后发布
+
+发布号 `202608010249`（UTC 码），APK 21,023,445 字节，远端 latest.json 一致。立体
+带端 6 格深度渐坡（拖影减弱）；MPI 静止原图底图 + 严格归一向后合成（位移鬼影与
+提亮薄膜消除）。发丝彩色碎屑经放大取证归因为深度指派误差（渲染不可修），日志如实
+标注；下一轮深度模型 PoC 优先、matting 次之。验收流程教训（放大 + 方向矩阵）已入
+全局记忆。
+
+## 2026-08-01 - MPI 黑缝清零 + 设置终稿（D50），真机验证后发布
+
+发布号 `202607312337`（UTC 码），APK 21,023,445 字节，SHA-256
+`545799e517e01aa0795d20858fabfa4ead0d15347d70b42e343d1e986b6907ea`；远端 latest.json
+与本地逐字节一致。MPI 以不透明背景板打底，黑色层界条纹机制性消除（真机确认）；
+删除图标改 `vec_ic_delete`（借自 Everything-Android 的直立垃圾桶）；AOT-GAN 分辨率
+值右置同行。深度/matting PoC 批准待执行（下一会话首项）。
+
+## 2026-08-01 - MPI 调优 + 4x MSAA + 设置打磨（D49），真机验证后发布
+
+发布号 `202607312147`（UTC 码），APK 21,022,761 字节，SHA-256
+`475b3e05d92d885b972905d0c7407234d4b9a4c8af0d9157e031fc07243cd977`；远端 latest.json
+与本地逐字节一致。MPI 边缘感知羽化 + 窄带深度羽化 + 960 长边（清晰度大幅回升、重影
+消除，CPU 提交 ~0.17ms/帧，残余深色平缓区层界条纹）；空间视图 4x MSAA（2/0 回退）；
+设置：垃圾桶图标、整行渐变 ripple、AOT-GAN 分辨率选择对话框、清除行对齐。技术栈
+调研：DA3-SMALL（Apache）/MoGe-2（MIT）为深度升级候选，MODNet/BiRefNet 为 matting
+候选，单图 3DGS 维持不启动。
+
+## 2026-08-01 - 黑色碎块修复 + rim 剥离 + MPI PoC（D48），真机验证后发布
+
+发布号 `202607311836`（UTC 码），APK 21,022,925 字节，SHA-256
+`d883af328ce43ccc1f00ffb8f6f6d9efcf96113b335f43a5688ea9a7af333520`；远端 latest.json
+与本地逐字节一致。黑块根因是背景层网格在隐藏带外缘的结构性空洞（改为永远全连通，
+渲染时生效）；发虚色边由生成端 rim 剥离治理（重新生成生效）；MPI 实验模式仅 debug
+可见（稳定→立体→MPI 循环），首轮点亮、头发无锯齿、清晰度待调优。用户「测试空间
+效果」记事已重新生成并恢复「立体」模式。
+
+## 2026-07-31 - 生成端碎屑治理（D47），真机验证后发布
+
+发布号 `202607311503`，APK 21,022,925 字节，SHA-256
+`36b854984c7af29094147cac910492a9908e36abac95cea5b70210d92f2e46a9`；远端 latest.json
+与本地逐字节一致。深度边缘吸附（snapDepthEdges，断边判定前）+ 补图掩码膨胀 1→2；
+OnePlus 满强度极限视点对比：轮廓显露带碎屑散点基本消失，头发锯齿留作软边界课题。
+重新生成后生效。
+
+## 2026-07-31 - 「立体」高强度扭曲修复（D46），真机验证后发布
+
+发布号 `202607311447`，APK 21,022,925 字节，SHA-256
+`5cb95f45c28d6ace5e8006d766efd3d9b58e05600a3505b3826d46d902b70908`；远端 latest.json
+与本地逐字节一致。陡而未断的连通边渲染时升格为断边（阈值 0.32/0.09≈3.56 归一化
+斜率），连通面深度不再磨平；OnePlus 满强度 + 极限视点验证：人物与直线结构无橡皮
+拉伸，预算日志与 D45 轮一致（立体满幅 9%），轮廓碎屑边为既有软边界课题。测试
+派生与测试图已清理。
+
+## 2026-07-31 - 视差幅度提升（D45），真机验证后发布
+
+发布号 `202607311418`，APK 21,022,925 字节，SHA-256
+`4207fb3a5b2e4de96acfcbfd9d7e8423d329186273dace3556267da4fcb09155`；远端 latest.json
+与本地逐字节一致。OnePlus PLZ110 实测（同一张真实照片）：预算日志
+`p99.5 gradient p0=12.78 p1=2.94, motion cap p0=0.0250 p1=0.1087, request max=0.090`——
+「立体」可用视差达满幅 9%（改前被钳到低于「稳定」），「稳定」2.5%（旧口径约 2.0%）；
+双模式极限视点截图无折返、无撕裂，logcat 无 GL/ORT 错误；边缘深色碎屑为既有 LDI
+软边界问题（中期项）。测试派生与测试图已清理。
+
+## 2026-07-31 - 空间 UI 强调色统一与设置文案梳理
+
+发布号 `202607311357`，APK 21,022,925 字节，SHA-256
+`03665991b0a972695fc0a5de7295ddb0450b430228c6c201746d8bd494695958`；远端 latest.json
+与本地逐字节一致。内容：查看器激活图标/强度条/进度圈/按钮 ripple 全部跟随记事强调色
+渐变，附件角标改偏白；P0/P1 按钮文案改「稳定/立体」（13 语言）；三键对话框选项 ripple
+改整行矩形；设置入口去图标、删除改圆形 ripple 小图标、下载/清除胶囊渐变 ripple、文案
+改「推理运行环境/深度估计模型/背景补全模型」并精简模型条目、AOT-GAN 分辨率块条件
+显示。本轮未连接设备（用户直接要求发布）。
+
+## 2026-07-31 - 修复 AOT-GAN 真机自检失败与生成死锁，空间 UI 统一为应用风格
+
+发布号 `202607311215`，APK 21,007,489 字节，SHA-256
+`ed7525edb9c246cfed186e03146b7d94c0e3b0544b615e3437d4f151d2dee759`；远端 latest.json
+含完整 releaseNotes，sha256/sizeBytes 与本地产物一致。
+
+- 根因：裁剪 Runtime r2 只含四模型静态图算子，而引擎会话用 ALL_OPT，ORT 图优化器在会话
+  初始化时新造 `com.microsoft.FusedConv` 等 kernel → AOT-GAN 自检 kernel-not-found。桌面
+  优化转储证实四个模型在 EXTENDED 级全部受影响，DAV2 在 BASIC 级还会新造 r2 未编译的
+  `Gemm`，因此两个引擎与 debug 基准统一降为 NO_OPT（D43）；r3 重建材料已就绪。
+- 补图模型不可用时不再封死生成：三键对话框提供「仅生成单层」P0 回退（D44）；自检失败与
+  下载失败文案分离；全部空间对话框迁移 AlertDialogFragment 体系，设置页重做为 CardView
+  分组风格。
+- OnePlus PLZ110（3B1629006YC00000）真机全链路验证通过：r2 Runtime 下载安装（旧 full-r1
+  被清理）、P0-only 回退生成（ZipDepth）、MI-GAN 与 AOT-GAN 下载 + NO_OPT 自检、AOT-GAN
+  768 完整双层生成、DAV2+MI-GAN 重新生成替换、移除效果 ×2，全程 logcat 无 ORT 错误；
+  测试派生与测试图已清理，偏好恢复 zipdepth。发现该设备此前 runtime 标记为
+  `1.28.0-full-r1`（完整版），解释了「深度模型曾在 ALL_OPT 通过自检」的悬案。
+
+## 2026-07-31 - 空间照片 P0/P1 对照与 MI-GAN/AOT-GAN 可选补图
+
+用户反馈 P1 LDI-lite 双层在部分内容上反而比 P0 单层更扭曲，并认为 MI-GAN 对大视差背景显露的
+补全有限，希望详细评估 diffusion、Flow Matching 和其它模型；随后确认按当前最稳妥方案直接实现，
+允许较新手机、平板使用更高质量、更高资源占用的可选档位，所有图片计算仍必须在设备端完成。
+
+- 每张 schema v2 派生图可在 P0 单层低扭曲与 P1 LDI-lite 双层之间即时切换并记住选择；切换复用
+  同一派生数据和当前视点，不重新推理。P1 的形变预算只约束仍连接的连续表面，不让显式遮挡断边
+  压低整图视差。
+- 补图模型改为 MI-GAN 与 AOT-GAN 两种独立按需下载、删除和选择。AOT-GAN 使用官方 Places2
+  checkpoint 导出的 60,989,366 字节动态 ONNX，提供 512/768/1024 三档工作分辨率；生成前同时
+  检查总内存与当前可用内存，不静默降档。
+- AOT-GAN 只处理完整相机轨迹会显露的背景区域，mask 缩放采用保守覆盖，最终严格保持 mask 外
+  原图像素不变；派生 manifest 记录补图模型、版本、工作分辨率与 P0/P1。
+- 桌面对照显示 MI-GAN、AOT-GAN 与 Big-LaMa 没有稳定的全场景单一胜者；约 208 MB 的
+  Big-LaMa 没有稳定收益，未进入 stable catalog。Flow Matching 是训练/采样范式，不是可直接
+  下载的补图权重；当前没有同时满足通用遮罩、合法再分发、Android 端侧资源和合理体积的
+  diffusion/Flow Matching 候选。
+- 额外复核 Apple SHARP 与 2026 年 7 月 MetaView。SHARP 权重约 2.81 GB，模型许可明确排除
+  product development；MetaView 依赖 20B Qwen-Image-Edit 和非商业许可的 1.15B
+  Depth Anything 3 GIANT。两者只作为未来任务专用 student 的架构/teacher 参考。
+- 自定义 ONNX Runtime 升级为 `1.28.0-r2`，Runtime API 保持 1；算子集覆盖 ZipDepth、
+  Depth Anything V2 Small、MI-GAN 与 AOT-GAN，并继续按设备 ABI 从 Ed25519 签名阿里云
+  catalog 下载，不进入 APK。AOT-GAN 使用旧客户端可安全忽略的扩展字段发布。
+- 全量重跑 91 个 Debug JVM 测试套件、623 例，0 失败、0 错误、1 项既有跳过；
+  `:app:assembleDebug` 通过。干净 APK 为 20,995,393 字节，拆包确认不含深度模型、补图模型或
+  ONNX Runtime 原生库。本轮按用户安排未连接物理设备。
+- 独立功能发布说明：
+  `docs/features/spatial-photo-effect/debug-updates/update-20260731152705.md`。
+- stable catalog `20260731103557` 已发布并从公网完成逐字节回读、Ed25519 验签；AOT-GAN 与
+  Runtime r2 四 ABI 包的公网实际字节数、SHA-256 全部匹配。
+- 已使用干净构建发布阿里云 Debug 更新 `202607311044`：
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607311044.apk`。远端
+  `latest.json` 与本地逐字节一致；公网 APK 与本地版本化副本均为 20,995,401 字节，SHA-256
+  均为 `eb79991da1daa518ba346b9929620ee84f35163ec8b34823a38d24542fe1fb96`。APK v2 签名有效，
+  且不含空间模型或 ONNX Runtime 原生库。
+
+## 2026-07-31 - LDI-lite 双层空间照片与按需 MI-GAN
+
+空间照片从单纹理连续变形升级为保存显式遮挡关系的 LDI-lite 双层表示，以增强视差并减少人物、
+文字和直线的局部拉伸。
+
+- 新生成的 schema v2 derivative 原子保存 RGB 引导断边、表面/背景深度、隐藏区域和补全背景；
+  GLES2 交互阶段以前向网格先绘制背景层，再绘制表面层并做深度测试。
+- P1 使用完整请求视差；既有 schema v1 仍走低扭曲 P0，必须主动“重新生成空间效果”才升级。
+- 正式链路使用 MI-GAN 一次性补全隐藏背景窄带，不在交互时逐帧运行。设置页可独立下载、删除和
+  重下该组件；缺失或失败不会覆盖已有结果。
+- MI-GAN 模型为 28,079,181 字节，已作为不可变对象加入 Ed25519 签名 stable catalog，公网
+  回下载的大小和 SHA-256 均验证一致；模型、深度模型和 ONNX Runtime 都不进入 APK。
+- 完整 Debug JVM 测试为 89 个套件、613 例，0 失败、0 错误、1 项既有跳过；
+  `:app:assembleDebug` 通过。APK 为 27,712,553 字节，拆包确认没有上述按需组件。
+- 独立发布日志：
+  `docs/features/spatial-photo-effect/debug-updates/update-20260731133424.md`。
+- 已发布阿里云 Debug 更新 `202607310536`：
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607310536.apk`。远端
+  `latest.json` 与本地逐字节一致；公网回下载 APK 与本地发布副本均为 27,712,565 字节，
+  SHA-256 均为 `5c75480984a5b7f365e615d4de557ce5f716de4d9d1483dca0acfb24a09f1363`，
+  且 APK 中仍没有空间模型或 ONNX Runtime 原生库。
+- 本次未连接物理设备；MI-GAN Android 内存/耗时及双层网格在不同 GLES 驱动上的视觉和帧时间
+  留给安装后的真机验证。
+
+## 2026-07-31 - 修复附件重排时重复启动运行中 GIF 的闪退
+
+用户在上一版继续测试移动图片附件、且混有逐一播放 GIF 时提供了新的
+`crash_20260731122203.log`。本次堆栈与先前“已释放 decoder 被生命周期重启”不同：
+`ImageAttachmentAdapter.refreshAttachedPlayback()` 复用当前已就绪资源时，对仍在运行的同一个
+`GifDrawable` 再次调用了 `startFromFirstFrame()`；Glide 4.16.0 明确禁止这一状态并抛出
+`IllegalArgumentException`。
+
+- `ImageAttachmentAdapter.applyGifPlaybackState()` 仍会更新循环次数和当前位置对应的完成回调；
+  仅当 `!gif.isRunning` 时才从首帧启动。运行中的 GIF 保留当前进度，使播放状态重复应用幂等。
+- 新增“运行中的 GIF 不得再次从首帧启动”失败回归。旧实现定向测试 5 项中 1 项失败，修复后
+  5/5 通过。
+- 完整 `:app:testDebugUnitTest` 为 87 个套件、607 项测试，0 failure、0 error、1 项既有 skip。
+- 本轮按用户要求不连接物理设备；拖拽混排和 Activity stop/start 验收由用户自行执行。
+- 独立发布日志：
+  `docs/features/detail-animated-playback/debug-updates/update-20260731123120.md`。
+- 已发布阿里云 Debug 更新 `202607310433`：
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607310433.apk`。远端
+  `latest.json` 与本地逐字节一致；公网回下载 APK 与本地发布副本均为 27,708,089 字节，
+  SHA-256 均为 `d19e58ad1d1368bc7b1c2e1bd34a6ac27bdc7dceccbf31b013a6e12756902b57`，
+  且 APK 中仍为 0 个 ONNX Runtime 原生库。
+
+## 2026-07-31 - GIF 生命周期闪退修复与空间画面低扭曲优化
+
+用户提供两份详情页闪退日志：均发生在移动图片附件、逐一播放且包含 GIF 的场景附近；同时反馈增强
+空间效果仍会拉扯画面内容。诊断确认闪退与空间照片无关：`KeepCurrentImageTarget` 吞掉
+`onLoadCleared`，使 Glide 在 Activity 恢复时重新启动已经释放 decoder 的旧 `GifDrawable`。
+空间画面则是单纹理连续逆向重投影在深度坡面上的局部拉伸，而不是新的 UV 折返。
+
+- 删除 `KeepCurrentImageTarget`，恢复 `.into(imageView)` 的标准 Glide 生命周期；holder 回收时
+  调用 `Glide.clear`。同一附件静态/动态切换使用独立 Bitmap 快照作 placeholder，不引用可能被
+  BitmapPool 回收的旧资源。
+- 加载中请求与已就绪资源使用不同 key；失败清除请求 key 以允许重试，播放状态重复刷新不再取消并
+  重启相同在途请求。
+- `DetailActivity.moveAttachment` 对图片改用 `notifyItemMoved`；播放控制器只刷新 attached
+  holder，避免拖拽时整张网格全量回收和重绑。
+- 新增 `SpatialWarpBudget`：按 GPU 实际上传的 8-bit 深度纹理计算梯度，将
+  `motion ⊗ depthGradient` 的上界限制为 0.22。平坦/平缓图片保留完整视差，高风险图片只在危险
+  视点同比例限幅且方向不变。
+- `SpatialPhotoRenderer` 把运动拆为受限相对视差与 0.012 刚性取景移动，后者增强交互但不改变
+  局部形状；颜色与深度统一使用刚性移动后的 `cameraUv`，避免二者错位。明暗 relief 由增益
+  0.35、最大 ±4% 收敛为增益 0.18、最大 ±1.8%。
+- 真实 OnePlus 人物素材离线回归中，左右极端视点继续保持 0 个折返点，局部采样步长从约
+  0.586～1.414 收进 0.8245～1.1755。
+- 完整 Debug JVM 测试为 87 个套件、606 例，0 失败、0 错误、1 项既有跳过；
+  `:app:assembleDebug` 通过。APK 为 27,708,077 字节，拆包仍为 0 个 ORT `.so`。
+- 独立发布日志：
+  `docs/features/spatial-photo-effect/debug-updates/update-20260731120818.md`。首个发布
+  `202607310409` 在静态复核修正 `cameraUv` 后由阿里云 Debug 更新 `202607310414` 覆盖；远端
+  `latest.json` 与本地逐字节一致，公网回下载 APK 和本地发布副本均为
+  27,708,089 字节，SHA-256 均为
+  `39c8a83c208757ca0708fb471445c6ff09a9bda0e16cde303572d54b3a7af507`，拆包仍为 0 个
+  ORT `.so`。发布后在 OnePlus PLZ110 完成保留数据的覆盖安装与启动冒烟检查，未执行拖拽或空间
+  模式定向操作；用户随后接手真机测试，另一台设备已断开。
+
+## 2026-07-31 - 空间照片 Runtime 按需下载与效果增强
+
+用户在完成双模型空间照片纵向链路后指出两个问题：通用 APK 因完整四 ABI ONNX Runtime 从约
+22 MiB 膨胀到 139.1 MiB；当前交互空间效果仍偏弱。用户确认 Runtime 可以和模型一样按需下载，
+并要求继续从现有阿里云更新服务器分发，同时提高层次感但不要引入明显伪影。
+
+- `app/build.gradle` 排除 `libonnxruntime.so` 与 `libonnxruntime4j_jni.so`，并改用
+  `app/libs/onnxruntime-java-1.28.0-everythingdone.jar` 提供 Java API。发布前 APK 为
+  27,707,941 字节（26.42 MiB），0 个 ORT `.so`，相对上一版减少约 81%。
+- 新增 `SpatialRuntimeStore`、`SpatialRuntimeDownloadWorker` 与设置页 Runtime 管理。当前设备
+  ABI 的组件只在新生成、自检或用户主动下载时取得；已有 derivative 可在 Runtime 缺失时直接
+  查看。删除 Runtime 保留两个模型和所有已生成效果。
+- `SpatialModelCatalog` 的 schema 1 向后兼容扩展 `runtimes`，继续由 stable/staging Ed25519
+  信任根验签。Runtime zip 限定恰好两个库，校验压缩包及解包后大小/SHA-256、ABI、版本和可用
+  空间，原子安装到私有 no-backup 目录并设为只读。
+- `tools/spatial-models/prepare-spatial-runtime.ps1` 生成确定性四 ABI 包；
+  `publish-spatial-models.ps1` 发布不可变 Runtime、许可和带 Runtime 条目的签名 catalog。
+  stable arm64 包为 10,605,072 字节；四个公网对象经 `127.0.0.1:7890` 代理回下载后均与
+  catalog 完全一致。
+- 真机首次生成发现 ORT 1.28.0 Android Java loader 强制 `System.loadLibrary`，且 Android
+  明确拒绝修改 `java.vendor`。已删除该尝试，新增
+  `PatchOnnxRuntimeLoader.java` 与 `prepare-onnxruntime-java-loader.ps1`：固定官方 AAR 和
+  `classes.jar` 哈希，ASM 只给 `OnnxRuntime.load(String)` 增加一个受结构校验的
+  `onnxruntime.native.path` 分支；输出 jar 不含 native library，连续两次生成哈希一致。
+- `SpatialPhotoRenderer` 保持单值连续逆向 UV 映射并提高视差与过扫描；
+  `SpatialPhotoView` 提高触摸/倾斜响应，`SpatialDepthNormalizer` 提高新图默认强度。离散多层方案
+  因真机出现重复条带已撤回。
+- 首次发布候选回装后，一张多人近景在极限视点暴露出深度断层导致的 UV 折返。新增
+  `SpatialRenderDepthStabilizer`，用上下 Lipschitz 包络中点把渲染深度相邻变化限制为 0.02；
+  原始深度只保留给最多 4% 的有界明暗塑形。真实素材左右折返点由 20,075/13,973 个降为 0，
+  OnePlus 多人近景和 Samsung 人物剪影的双向极限真机回归均不再出现重复切片或条带。
+- OnePlus PLZ110 与 Samsung SM-F9360 分别从真实 stable catalog 下载 arm64 Runtime；冷启动
+  日志确认两个私有 `.so` 的 absolute-path load 都为 `ok`。OnePlus 用 ZipDepth、Samsung 用
+  DAV2 Small 对新测试图生成成功并进入空间模式，最终 GLES 着色器无错误。
+- OnePlus 额外验证从设置删除 Runtime 后双模型 4 个文件、derivative 6 个文件不变；重新下载、
+  强制结束 App、冷启动后再次加载和生成成功。Samsung 左右极限视点没有重复条带或露边。
+- `:app:testDebugUnitTest :app:assembleDebug` 通过：84 个测试套件、593 例，0 失败、0 错误、
+  1 项既有跳过。独立发布日志为
+  `docs/features/spatial-photo-effect/debug-updates/update-20260731092529.md`。
+- 已发布阿里云 Debug 更新 `202607310217`：
+  `http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202607310217.apk`。
+  公网回下载 APK 与本地发布副本均为 27,707,953 字节，SHA-256 均为
+  `bc7e72db1a8cd1db1e7ce99b8646c72a3a345e4919d50ecb85c9363409d1391d`，远端
+  `latest.json` 也与本地逐字节一致。
+- 将公网回下载 APK 覆盖安装到两台授权设备后，两机均保留 Runtime 28.75 MB、ZipDepth
+  24.59 MB 和 DAV2 Small 98.94 MB；两张真实已有派生图的左右极限视点均无重复切片、条带、
+  露边、GL 或着色器错误。退出后活动空间传感器连接为 0，并已停止两机 App 进程。
+
+定制 reduced-operator Runtime 首轮构建分别遇到 armv7 上游测试告警及上游 AAR Gradle 打包的
+Google Maven TLS 中断，尚未达到四 ABI 发布门槛；本次使用已完成双模型真机回归的官方单 ABI
+Runtime，后续再通过新 catalog 版本升级，不把未经验证的小包推给用户。
+
+## 2026-07-31 - 本机双模型空间照片效果
+
+用户要求为图片附件加入应用内可交互的空间照片视觉效果：不导出 Apple Spatial Photo，不上传
+附件图片，深度估计和渲染全部在手机完成；后续动态内容的空间视频效果另立功能推进。
+
+- 全屏图片查看器新增图形化空间效果入口。普通静态图可在本机生成相对深度，随后通过触摸拖动或
+  设备倾斜改变视点；效果强度按图片保存，系统返回先退出空间模式，再次返回才离开查看器。
+- 支持 ZipDepth 与 Depth Anything V2 Small 两个 ONNX 模型。两者都可独立下载、共存、删除和
+  选择；首次无模型默认推荐 ZipDepth，但不会静默下载。设置页显示实际体积、许可、双机推理范围、
+  倾斜控制开关以及模型与派生数据占用。
+- 两个模型已放到 EverythingDone 的阿里云模型目录。App 使用构建内置的 stable Ed25519 公钥验证
+  签名 catalog，再按不可变 URL、精确字节数与 SHA-256 下载模型；WorkManager 支持前台进度、
+  `.part` 续传、计费网络确认、取消、空间检查、完整 ONNX 自检和原子就绪标记。
+- 生成结果只保存 App 私有 no-backup 目录中的 uint16 压缩深度与 manifest，不改变原始附件。
+  manifest 绑定源图片身份、模型版本、深度哈希和强度；生成、重新生成与取消使用临时目录，
+  成功后才原子发布。可按图片重新生成或移除，也可在设置中清除全部。
+- OpenGL ES 2.0 使用有界单层逆向 UV 位移与 4.5% 过扫描；静止时不自动移动。详情附件网格新增
+  纯图形空间效果徽标。HDR 图片可生成，但空间模式使用 SDR 基础画面，退出后恢复原 HDR 行为；
+  Animated Image 与 Motion Photo 暂不进入静态 v1。
+- 已补齐现有全部应用语言、TalkBack 描述、折叠屏任务栏和手势导航底部 inset；生成遮罩覆盖
+  Toolbar，避免推理期间并发删除附件。模型自检阶段取消也会清除候选模型和临时文件。
+- OnePlus PLZ110 与 Samsung SM-F9360 均通过真实签名目录下载双模型、完整自检、真实图片生成、
+  缓存重开、触摸/倾斜、返回、强度持久化、取消、重新生成保旧、移除和 APK 重装保留测试。
+  Samsung 在 DAV2 自检出现后 53 ms 取消，8 秒后模型与 `.part` 均不存在；随后重新下载恢复成功。
+- 发布前 `:app:testDebugUnitTest :app:assembleDebug` 通过：82 个测试套件、586 例，0 失败、
+  0 错误、1 项既有跳过。本次通用 debug APK 因包含完整四 ABI ONNX Runtime，约 139.1 MiB；
+  正式版发布前仍需构建 reduced-operator runtime 并扩大低内存、旧 API 与非 arm64 设备矩阵。
+- 已发布阿里云 debug 更新 `202607301939`。远端 `latest.json`、本地发布元数据与完整回下载 APK
+  一致：145,939,475 字节，SHA-256
+  `b76fec52cab3621708f97dbf8880a5cb429880c49af9ebb026068e31ba6d9efa`。回下载产物已安装到
+  两台授权设备，双模型与既有派生结果均保留，可直接进入空间模式；停止 App 后无空间传感器连接。
+
+## 2026-07-30 - HDR Vivid 设置入口、地区名称与 OPPO 真机验收
+
+- HDR Vivid 移到色彩模式总体末位；大陆显示“国产标准HDR Vivid”，香港／台湾使用对应
+  繁体，其它 10 套 locale 显示本地化后的“中国标准 HDR Vivid”含义。
+- HDR Vivid 选中时显示参考显示峰值、快捷参考值和高光起点，并更新 13 套完整曲线说明。
+- 全量 581 项 JVM 测试通过，0 失败、0 错误、1 项既有跳过；Debug APK 构建通过。
+- 用户授权的 OPPO PLZ110 真机导出成功。853／853 帧均含 HDR Vivid Base Parameters 与
+  两段 3Spline；目标峰值约 399.72 nit，31 份唯一载荷实证 2 个稳定段和 29 帧时域平滑；
+  `cuvv`、PTS 及音视频完整解码均通过。
+- 独立发布日志：
+  `docs/features/fablesol-hdr-vivid-export/debug-updates/update-20260730215228.md`。
+- 已发布阿里云 Debug 更新 `202607301353`。远端 `latest.json`、远端 APK 与本地发布副本
+  已核对一致：大小均为 22,169,088 字节，SHA-256 均为
+  `15389addefa164cb102b754fce8f5697fe270750487b7e2f993b51a03727f402`；远端发布说明
+  与 feature 日志首个 `##` 节的 817 个字符逐字一致。
+
+## 2026-07-30 - HDR Vivid 完整曲线、逐场景统计与时域平滑
+
+用户已确认首个 HDR Vivid 样本的 HDR10 基础层回退正常；当前没有 HDR Vivid 设备，因此本轮
+先完成编码侧动态 Tone Mapping 能力。实现复用 HDR10+ 的最终线性 BT.2020 GPU 统计、完整
+场景判定、直方图与内容感知目标曲线，HDR Vivid 侧独立生成量化后经过单调性和参考显示端点
+门禁的 Base Parameters，以及按 T/UWA 005.1 附录 A.3 推荐流程生成的两段 3Spline。
+
+- 新增逐场景时间线：硬边界清空平滑历史，软边界在短窗口内平滑动态元数据。
+- 视频编码按输出样本 PTS 查找载荷，兼容 B 帧重排，不再依赖编码器回调顺序。
+- 修正 `variance_maxrgb_pq`：在线性域计算 P90−P10 后再整体转换到 PQ。
+- 保留 HEVC Main10、HDR10 静态基础层、逐样本 HDR Vivid SEI 与 MP4 `cuvv`。
+- 新增完整载荷、曲线动态范围、场景边界、平滑与乱序 PTS 回归；全量 577 项 Debug JVM
+  测试通过，0 失败、0 错误、1 项既有跳过，`:app:assembleDebug` 通过。
+- 独立发布日志：
+  `docs/features/fablesol-hdr-vivid-export/debug-updates/update-20260730210434.md`。
+- `:app:publishDebugUpdate` 已通过，阿里云 Debug 更新代码为 `202607301305`。远端
+  `latest.json`、远端 APK 与本地发布副本已独立回读核对：大小均为 22,167,364 字节，
+  SHA-256 均为
+  `c5a01cb5b715cde4f59f4daeb77f888cc5071bd748ad68c7ee732894e6b88214`；远端发布说明与
+  本次 feature 日志发布时的 932 个字符逐字一致。
+- 本轮未使用 ADB；仍需导出新样本，用 FFmpeg 全帧核对曲线和逐场景变化。
+
 ## 2026-07-30 - D187 评审修正两项（D189）
 
 发布号 202607301023；APK SHA-256

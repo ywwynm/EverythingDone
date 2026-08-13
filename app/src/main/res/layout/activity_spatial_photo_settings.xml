@@ -361,6 +361,71 @@
 
                     </LinearLayout>
 
+                    <LinearLayout
+                        android:id="@+id/model_moge2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_moge2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_moge2"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_moge2_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_moge2_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_moge2"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_moge2_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>
@@ -516,6 +581,71 @@
 
                         <ImageView
                             android:id="@+id/iv_aotgan_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_big_lama"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_big_lama"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_big_lama"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_big_lama_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_big_lama_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btn_big_lama"
+                            style="@style/Widget.AppCompat.Button.Borderless"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:minWidth="76dp"
+                            android:textAllCaps="false"/>
+
+                        <ImageView
+                            android:id="@+id/iv_big_lama_delete"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:layout_marginStart="8dp"

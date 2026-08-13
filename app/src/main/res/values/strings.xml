@@ -1777,6 +1777,9 @@
     <string name="spatial_migan_description">Smaller and faster. Usually steadier on narrow bands around people, but limited when generating large background structures.</string>
     <string name="spatial_aotgan_title" translatable="false">AOT-GAN</string>
     <string name="spatial_aotgan_description">Adjustable work resolution for trying wider revealed regions and regular scenes. It is not always better than MI-GAN and uses more time and memory.</string>
+    <string name="spatial_select_big_lama">Use Big-LaMa</string>
+    <string name="spatial_big_lama_title" translatable="false">Big-LaMa</string>
+    <string name="spatial_big_lama_description">Runs at native resolution in 512 tiles, so it keeps the thin revealed band around a subject. Best structure continuation of the three, at 198 MB and the highest memory use.</string>
     <string name="spatial_inpainting_resolution">AOT-GAN work resolution</string>
     <string name="spatial_inpainting_resolution_512" translatable="false">512</string>
     <string name="spatial_inpainting_resolution_768" translatable="false">768</string>
@@ -1794,6 +1797,9 @@
     <string name="spatial_select_zipdepth">Use ZipDepth</string>
     <string name="spatial_select_dav2">Use Depth Anything V2 Small</string>
     <string name="spatial_da3_title">Depth Anything 3 Small</string>
+    <string name="spatial_select_moge2">Use MoGe-2 Small</string>
+    <string name="spatial_moge2_title" translatable="false">MoGe-2 Small</string>
+    <string name="spatial_moge2_description">The only model here that recovers metric depth and camera intrinsics, so the view shift is a real perspective reprojection rather than a screen-space warp.</string>
     <string name="spatial_select_da3">Use Depth Anything 3 Small</string>
     <string name="spatial_matting_group">Hair edge refinement</string>
     <string name="spatial_modnet_title">MODNet</string>

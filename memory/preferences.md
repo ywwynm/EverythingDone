@@ -51,6 +51,15 @@ When grilling a design, avoid low-value scope-confirmation questions when the
 scope is already obvious from the user's request. Focus on decisions that can
 change the main implementation shape or user-visible behaviour.
 
+当主要分支已经收敛时，用户希望 grilling 明确告知剩余问题数量，并加快节奏，只继续询问会改变实现
+形态、发布边界或用户可见行为的关键问题；其余细节交给代码核对和 PoC。
+
+### 快速演进 AI 模型的调研与选型（2026-08-01）
+
+- 调研深度估计、分割、matting、生成式补全等快速演进的 AI 能力时，必须先核验截至调研日的最新上游版本、发布日期、权重、许可与维护状态，再进行工程选型。
+- 旧模型或旧设备基准不能被包装成当前最佳方案；若因体积、许可或端侧兼容性保留，只能明确列为兼容/低配档，并同时说明它与当前质量前沿的差距。
+- 论文的新旧、模型质量和产品可落地性必须分开判断；最终候选还需经过目标 Android 设备上的内存、时延、功耗和输出质量验证。
+
 ## Android dialogs
 
 Prefer custom `DialogFragment` implementations under `app/src/main/java/.../fragments/`,

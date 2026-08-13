@@ -1630,4 +1630,9 @@
     <string name="spatial_delete_inpainting_message">已產生的空間效果仍可檢視；新建或重新產生增強效果需要此模型。</string>
     <string name="spatial_generation_geometry">正在建立深度分層…</string>
     <string name="spatial_generation_inpainting">正在補全隱藏背景…</string>
+    <!-- 以下条目在 2026-08-13 的一次误操作中丢失，从构建产物 packaged_res 恢复；
+         内容与截断前一致，仅排版与注释无法还原。 -->
+    <string name="spatial_big_lama_description">按原生解析度切 512 分塊推理，因此能保住主體周圍那條很窄的顯露帶；三者中結構續接最好，代價是 198 MB 體積與最高的記憶體佔用。</string>
+    <string name="spatial_big_lama_title" translatable="false">Big-LaMa</string>
+    <string name="spatial_select_big_lama">使用 Big-LaMa</string>
 </resources>

@@ -25,3 +25,10 @@ Global startup follow-up index only. Feature-specific follow-ups live in `docs/f
 ## Update rule
 
 Add a deferred item to this file only when it is cross-feature or does not have a clear feature home. Otherwise write it to the feature directory and keep this file as an index.
+
+## 未归属功能的待办
+
+- 2026-08-05：从系统 DocumentsUI 选择 Downloads 下 `raw:/storage/...` 文档时，
+  `UriPathConverter.getPathName` 会把非数字 document ID 传给 `Long.valueOf`，触发
+  `NumberFormatException`。本轮空间照片真机测试用 Pictures 原始文件绕过；后续应先补
+  `raw:` 与非数字 Downloads ID 回归，再修复通用附件 URI 解析。

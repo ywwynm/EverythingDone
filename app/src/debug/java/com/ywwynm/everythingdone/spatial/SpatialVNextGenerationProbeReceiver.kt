@@ -17,6 +17,14 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread({
             val appContext = context.applicationContext
+            // 这台设备的 logcat 每秒数千行系统日志，5 MiB 上限装不下一次生成的时长；
+            // 结论一律以落盘那份为准（追加，多张图共用一份）。
+            val probeLog = File(appContext.getExternalFilesDir(null), "probe.log")
+            fun report(line: String) {
+                Log.i(TAG, line)
+                runCatching { probeLog.appendText(line + "\n") }
+            }
+            val startedAt = System.nanoTime()
             var ldi: SpatialLdiLiteData? = null
             var bitmap: Bitmap? = null
             try {
@@ -101,8 +109,20 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                     ldiLite = ldi
                 )
                 val geometry = checkNotNull(ldi).geometry
+                // `load` 把一切包在 runCatching{}.getOrNull() 里，manifest 判死与后续异常
+                // 会塌成同一个 null。分两步报，才知道该看哪一侧。
+                val reloadedManifest = store.loadManifest(sourcePath)
+                report(
+                    "reload manifest=${reloadedManifest != null} " +
+                        "schema=${reloadedManifest?.schemaVersion} " +
+                        "renderer=${reloadedManifest?.renderer}"
+                )
                 val reloaded = checkNotNull(store.load(sourcePath)) {
-                    "无法回读刚保存的空间派生"
+                    if (reloadedManifest == null) {
+                        "manifest 未通过校验（schema/renderer/摘要不一致）"
+                    } else {
+                        "manifest 通过但派生回读失败（文件读取或一致性检查抛异常）"
+                    }
                 }
                 try {
                     checkNotNull(reloaded.ldiLite?.geometry?.backgroundMotionBasis) {
@@ -119,6 +139,17 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                 } finally {
                     reloaded.ldiLite?.backgroundBitmap?.recycle()
                 }
+                report(
+                    "done path=${File(sourcePath).name} " +
+                        "renderer=${derivative.manifest.renderer} " +
+                        "schema=${derivative.manifest.schemaVersion} " +
+                        "depthModel=${depthModel.stableId} " +
+                        "inpaint=${SpatialPreferences.selectedInpaintingModel(appContext).stableId} " +
+                        "metric=${depth.metricDepth != null} " +
+                        "fx=${depth.intrinsics?.fx?.let { String.format(java.util.Locale.US, "%.1f", it) }} " +
+                        "matte=${matte != null} seg=${segmentation?.first?.stableId} " +
+                        "ms=${(System.nanoTime() - startedAt) / 1_000_000}"
+                )
                 Log.i(
                     TAG,
                     "done path=$sourcePath renderer=${derivative.manifest.renderer} " +
@@ -131,6 +162,12 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                 )
             } catch (error: Throwable) {
                 Log.e(TAG, "failed path=$sourcePath", error)
+                runCatching {
+                    probeLog.appendText(
+                        "failed path=${File(sourcePath).name} " +
+                            "${error.javaClass.simpleName}: ${error.message}\n"
+                    )
+                }
             } finally {
                 ldi?.backgroundBitmap?.recycle()
                 bitmap?.recycle()

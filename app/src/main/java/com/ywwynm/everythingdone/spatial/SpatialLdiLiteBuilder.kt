@@ -11,6 +11,14 @@ data class SpatialLdiLiteData(
     val inpaintingModelVersion: String,
     val renderer: SpatialLdiRenderer = SpatialLdiRenderer.LEGACY_V19,
     val viewEnvelope: SpatialViewEnvelope? = null,
+    val surfaceCharts: SpatialSurfaceChartData? = null,
+    val depthSurfels: SpatialDepthSurfelData? = null,
+    /**
+     * 取景内缩比例，由生成期按**真实位移场**算出（见
+     * [SpatialTrueParallaxMotion.coverMarginFraction]）。仅真透视档提供；其余档运行时
+     * 仍按幅度现推，因为那些档的幅度确实是归一化位移。
+     */
+    val coverMarginFraction: Float? = null,
     val inpaintingQualityId: String? = null,
     /**
      * 表面层显示 alpha 平面（8-bit，行主序，背景板分辨率；见 [SpatialAlphaFusion]）。
@@ -37,6 +45,22 @@ data class SpatialLdiLiteData(
         require(
             !renderer.isVNext || viewEnvelope != null
         ) { "vNext 空间场景缺少安全视点包络" }
+        require(
+            renderer.usesNormalizedSurfaceCharts == (surfaceCharts != null)
+        ) { "归一化全表面 chart renderer 与 chart 数据不匹配" }
+        require(
+            renderer.usesDepthSurfels == (depthSurfels != null)
+        ) { "连续深度微表面 renderer 与点元数据不匹配" }
+        surfaceCharts?.let {
+            require(it.width == geometry.width && it.height == geometry.height) {
+                "全表面 chart 尺寸与几何不匹配"
+            }
+        }
+        depthSurfels?.let {
+            require(it.width == geometry.width && it.height == geometry.height) {
+                "连续深度微表面尺寸与几何不匹配"
+            }
+        }
     }
 }
 

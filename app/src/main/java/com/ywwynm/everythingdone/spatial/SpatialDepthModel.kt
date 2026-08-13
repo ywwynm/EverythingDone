@@ -6,6 +6,15 @@ package com.ywwynm.everythingdone.spatial
  * 模型文件由签名 catalog 分发，但输入、输出和预处理属于 App 与模型之间的固定 ABI，不能由远端
  * catalog 任意改写。新 ABI 必须随 App 版本发布。
  */
+/**
+ * 深度模型的输出契约。`SINGLE_MAP` 是原有三个模型的口径：一个输入、一个方形深度/逆深度图。
+ * `MOGE_POINT_MAP` 是 MoGe-2 的：两个输入、四个输出、非方形，且需要从 point map 反解内参。
+ */
+enum class SpatialDepthOutputContract(val catalogPrecision: String) {
+    SINGLE_MAP("fp32"),
+    MOGE_POINT_MAP("fp32-moge-pointmap")
+}
+
 enum class SpatialDepthModel(
     val stableId: String,
     val displayName: String,
@@ -33,6 +42,8 @@ enum class SpatialDepthModel(
      * 保持单调且梯度均匀衰减，无分位数重映射的值域病理。
      */
     val disparityContrast: Float = 1f,
+    /** 输入/输出 ABI。新增契约必须随 App 版本发布，不能由远端 catalog 改写。 */
+    val outputContract: SpatialDepthOutputContract = SpatialDepthOutputContract.SINGLE_MAP,
     val minimumTotalRamMb: Int,
     val minimumAvailableRamMb: Int
 ) {
@@ -84,6 +95,38 @@ enum class SpatialDepthModel(
         // 应变上界与预算钳制约束）、内部撕裂（P2 归组禁断）、边界 halo（P3 组引导
         // 修正）——均已结构性解决，还原模型完整层次。字段保留供后续模型使用。
         disparityContrast = 1f,
+        minimumTotalRamMb = 6_144,
+        minimumAvailableRamMb = 1_536
+    ),
+
+    /**
+     * MoGe-2 ViT-S（微软，35M）。**唯一给米制深度与相机内参的一档**——其余三个只给相对
+     * 深度，几何因此只能退化成屏幕空间位移场，这正是用户 2026-08-12 说"不像空间照片、
+     * 像直接对图片做 warp"的根因（D204）。
+     *
+     * 输出契约与其余三个完全不同：两个输入（`image` + `num_tokens`）、四个输出
+     * （`points/normal/mask/scale`），且 **`image` 按源图长宽比给、不是方形**。
+     * 内参不在图里，由 [SpatialMogeGeometry] 从 point map 解出（D205，桌面对拍
+     * fx 误差 0.127%、逐像素 Z 中位 0.232%）。
+     */
+    MOGE_2_VITS_NORMAL(
+        stableId = "moge_2_vits_normal",
+        displayName = "MoGe-2 Small",
+        version = "1.0.0",
+        fileName = "moge-2-vits-normal.onnx",
+        sizeBytes = 140_852_051L,
+        sha256 = "24eacb5dc7a2c54c7bc98f7de085ffbed79ad006ea5b664c2c2cdc02ff3a52f0",
+        // point map 路径按 num_tokens 决定内部分辨率，inputSize 只作长边上限使用。
+        // 1800 tokens 在 patch-14 下约合 588×602 px 的内在分辨率，518 是**欠采样**；
+        // 实测把输入长边从 518 抬到 1440，深度场的有效带宽完全持平
+        // （0.00238 / 0.00229 / 0.00237 / 0.00229），所以 720 是刚好匹配、再高纯浪费。
+        inputSize = 720,
+        imageNetNormalization = false,
+        outputHasChannelDimension = false,
+        outputIsDepth = true,
+        providesMetricScale = true,
+        sharpDepthEdges = true,
+        outputContract = SpatialDepthOutputContract.MOGE_POINT_MAP,
         minimumTotalRamMb = 6_144,
         minimumAvailableRamMb = 1_536
     );

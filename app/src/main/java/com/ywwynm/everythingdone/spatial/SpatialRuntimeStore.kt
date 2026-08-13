@@ -27,9 +27,12 @@ object SpatialRuntimeStore {
      * 当前版再用精确 packageVersion 强制把缺少 AOT-GAN 算子的 r1 升级掉。
      */
     const val RUNTIME_API_VERSION = 1
-    // r6 = 七个既有模型 + EdgeTAM 三图算子并集；新增 opset-17 轮廓 decoder 内核。
-    // 提升必须与 r6 catalog 同步，否则下载链路会被 catalog 校验阻断。
-    const val REQUIRED_PACKAGE_VERSION = "1.28.0-r6"
+    // r7 = 十二个模型的算子并集（r6 的十个 + Big-LaMa + MoGe-2），**并编入 XNNPACK EP**。
+    // MoGe-2 是 opset 14，r6 缺 (Pow, 14) 这类三元组——注意缺的不是算子名，Pow 早就在
+    // opset 17/18 两节里了（D206）。XNNPACK 是给 Big-LaMa 的卷积用的，占其内核时间
+    // 58.6%（D203）；EP 按会话选用，不改变既有模型的行为。
+    // 提升必须与 r7 catalog 同步，否则下载链路会被 catalog 校验阻断。
+    const val REQUIRED_PACKAGE_VERSION = "1.28.0-r7"
     const val CORE_LIBRARY = "libonnxruntime.so"
     const val JNI_LIBRARY = "libonnxruntime4j_jni.so"
     val SUPPORTED_ABIS = setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")

@@ -21,6 +21,11 @@
             android:name="com.ywwynm.everythingdone.spatial.SpatialDepthBenchmarkReceiver"
             android:exported="true" />
 
+        <!-- Debug 专用补全模型探针：模型尚未上架 catalog 时验证算子覆盖、耗时与峰值内存。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.spatial.SpatialInpaintingBenchmarkReceiver"
+            android:exported="true" />
+
         <!-- Debug 专用产品纵向链路入口：打开模型设置或指定外部测试图，不读写用户记事。 -->
         <receiver
             android:name="com.ywwynm.everythingdone.spatial.SpatialPhotoDebugLauncherReceiver"

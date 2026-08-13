@@ -104,10 +104,15 @@ class SpatialDepthBenchmarkReceiver : BroadcastReceiver() {
 
             environment.createSession(modelFile.absolutePath, options).use { session ->
                 val sessionMs = elapsedMs(sessionStart)
-                val inputName = session.inputNames.single()
                 val inputBuffer = createInput(spec)
                 OnnxTensor.createTensor(environment, inputBuffer, spec.inputShape).use { input ->
-                    val inputs = mapOf(inputName to input)
+                    val camInput = createCamInput(spec, environment)
+                    try {
+                    val inputs = if (camInput != null) {
+                        mapOf("image" to input, "cam" to camInput)
+                    } else {
+                        mapOf(session.inputNames.single() to input)
+                    }
                     // 首次执行会包含内核初始化与内存规划，不混入稳态统计。
                     session.run(inputs).use { result ->
                         validateOutput(result[0] as OnnxTensor, spec)
@@ -157,9 +162,24 @@ class SpatialDepthBenchmarkReceiver : BroadcastReceiver() {
                         "无法创建日志目录：${logDir.absolutePath}"
                     }
                     File(logDir, LOG_FILE).appendText(report + "\n")
+                    } finally {
+                        camInput?.close()
+                    }
                 }
             }
         }
+    }
+
+    /** OVIE 类双输入模型的第二输入：零平移 + 单位四元数（xyzw，w 在末位）。 */
+    private fun createCamInput(spec: ModelSpec, environment: ai.onnxruntime.OrtEnvironment): OnnxTensor? {
+        if (spec.camParams <= 0) return null
+        val buffer = ByteBuffer.allocateDirect(spec.camParams * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+        repeat(spec.camParams - 1) { buffer.put(0f) }
+        buffer.put(1f)
+        buffer.rewind()
+        return OnnxTensor.createTensor(environment, buffer, longArrayOf(1, spec.camParams.toLong()))
     }
 
     /**
@@ -266,13 +286,15 @@ class SpatialDepthBenchmarkReceiver : BroadcastReceiver() {
         val width: Int,
         val height: Int,
         val normalizeImageNet: Boolean,
-        val outputChannels: Boolean
+        val outputChannels: Boolean,
+        val camParams: Int = 0,
+        val rgbOutput: Boolean = false
     ) {
         val inputShape = longArrayOf(1, 3, height.toLong(), width.toLong())
-        val outputShape = if (outputChannels) {
-            longArrayOf(1, 1, height.toLong(), width.toLong())
-        } else {
-            longArrayOf(1, height.toLong(), width.toLong())
+        val outputShape = when {
+            rgbOutput -> longArrayOf(1, 3, height.toLong(), width.toLong())
+            outputChannels -> longArrayOf(1, 1, height.toLong(), width.toLong())
+            else -> longArrayOf(1, height.toLong(), width.toLong())
         }
 
         companion object {
@@ -301,6 +323,16 @@ class SpatialDepthBenchmarkReceiver : BroadcastReceiver() {
                     normalizeImageNet = true,
                     outputChannels = false
                 )
+                MODEL_OVIE -> ModelSpec(
+                    id = MODEL_OVIE,
+                    fileName = "ovie_v1_256_fp32.onnx",
+                    width = 256,
+                    height = 256,
+                    normalizeImageNet = false,
+                    outputChannels = false,
+                    camParams = 7,
+                    rgbOutput = true
+                )
                 else -> error("未知模型：$id")
             }
         }
@@ -322,6 +354,7 @@ class SpatialDepthBenchmarkReceiver : BroadcastReceiver() {
         private const val MODEL_ZIPDEPTH = "zipdepth"
         private const val MODEL_DEPTH_ANYTHING_V2_SMALL = "depth_anything_v2_small"
         private const val MODEL_DA3_SMALL = "da3small"
+        private const val MODEL_OVIE = "ovie"
         private const val PROVIDER_CPU = "cpu"
         private const val PROVIDER_XNNPACK = "xnnpack"
         private const val OPT_NO_OPT = "no_opt"

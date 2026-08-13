@@ -224,3 +224,80 @@ PS 5.1 按 ANSI 解析无 BOM 的 `.ps1`，脚本里的 `'导出完成'` 会变�
 而症状是"导出没完成"，很容易误判成应用的问题（2026-07-29 实际发生过）。定位一律按
 `resource-id`，终态判定用 `Movies/EverythingDone` 这类 ASCII 片段。中文只出现在**读回来
 打印**的那一步，不出现在脚本源码里。
+
+## 探针广播：必须 `-n` 指定组件，结果必须落盘
+
+两条今晚（2026-08-13）各浪费了好几轮的坑。
+
+**其一：`-a <action>` 发不到清单声明的接收器。** Android 8 起隐式广播不再投递给
+manifest receiver，`am broadcast -a com.ywwynm.everythingdone.SPATIAL_INPAINT_BENCH`
+会返回 `Broadcast completed: result=0` —— 看起来成功，实际没有任何接收器跑。必须显式
+指定组件：
+
+```powershell
+& $adb -s <serial> shell am broadcast `
+    -n com.ywwynm.everythingdone/.spatial.SpatialInpaintingBenchmarkReceiver `
+    --es action depthtest --es model moge_2_vits_normal
+```
+
+**其二：这台三星（R5CW20BLNKL）的 logcat 读不到探针输出。** 系统日志（`shsusrd` 逐
+线程打 `/proc/*/stat`、`io_stats`、`sensors-hal`）每秒数千行，而 `logcat -G` 的上限是
+**5 MiB**——一次 50 秒的推理期间缓冲区已经整轮冲掉，`logcat -d -s TAG` 什么也捞不到。
+`Start-Process ... -RedirectStandardOutput` 也救不了（那是另一回事：块缓冲）。
+
+正确做法是让探针**同时写文件**，读结果一律以文件为准：
+
+```kotlin
+val probeLog = File(context.getExternalFilesDir(null), "probe.log")
+fun report(line: String) {
+    Log.i(TAG, line)
+    runCatching { probeLog.appendText(line + "\n") }
+}
+```
+
+驱动侧 `rm -f` 该文件 → 广播 → 轮询 `adb pull` 到本地判非空。
+
+## 从 app 私有目录取文件：`run-as` + 外部目录 + `chmod 644`
+
+`run-as` 的 shell 写不了 `/sdcard` 根（`Permission denied`），但写得了应用自己的
+`/sdcard/Android/data/<pkg>/files/`。且 `cp` 出来的文件是 **600 且属 app uid**，
+adb shell 用户读不到，`adb pull` 报 `remote open failed: Permission denied`。三步齐全：
+
+```powershell
+$ext = "/sdcard/Android/data/com.ywwynm.everythingdone/files/pull"
+& $adb -s $s shell "run-as com.ywwynm.everythingdone sh -c 'mkdir -p $ext && cp <私有文件> $ext/'"
+& $adb -s $s shell "run-as com.ywwynm.everythingdone chmod 644 $ext/<文件名>"
+& $adb -s $s pull "$ext/" <本地目录>
+```
+
+## 冷启动进程发不出 Activity
+
+`am force-stop` 之后直接广播让应用起 Activity 会**静默失败**：Android 10+ 的后台启动
+限制不允许后台进程启动 Activity，广播照常"投递成功"，但什么也不会发生。顺序必须是
+
+```powershell
+& $adb -s $s shell am force-stop com.ywwynm.everythingdone
+Start-Sleep -Milliseconds 1200
+& $adb -s $s shell monkey -p com.ywwynm.everythingdone -c android.intent.category.LAUNCHER 1
+Start-Sleep -Seconds 4
+& $adb -s $s shell am broadcast -n <组件> ...
+```
+
+## `adb pull` 不可信，截图必须按**内容哈希**校验
+
+实测这条链路（R5CW20BLNKL，2026-08-13）三种坏法都出现过：128 KiB 的残桩、中段损坏、
+以及**首 4 字节是正确的 `89-50-4E-47`、尾 8 字节是正确的 IEND、中间却是垃圾**——一批
+约 50 张里坏 13 张。只校验文件头发现不了，连尾部 IEND 一起校验**同样发现不了**。
+
+唯一可靠的做法是比对设备端与本地的 md5，不一致就重传：
+
+```powershell
+& $adb -s $s shell screencap -p /sdcard/cap.png
+$remote = (& $adb -s $s shell md5sum /sdcard/cap.png | Out-String).Trim()
+if ($remote -match '^([0-9a-f]{32})') { $remoteHash = $matches[1] }
+& $adb -s $s pull /sdcard/cap.png $dest
+$localHash = (Get-FileHash -Path $dest -Algorithm MD5).Hash.ToLower()
+if ($localHash -ne $remoteHash) { <重传> }
+```
+
+同理适用于任何 `adb pull` 下来的二进制产物（模型、派生、视频）。

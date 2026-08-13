@@ -2,7 +2,7 @@
     [ValidateSet('stable', 'staging')]
     [string]$Channel = 'stable',
     [string]$CatalogVersion = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss'),
-    [string]$RuntimePackageVersion = '1.28.0-r6'
+    [string]$RuntimePackageVersion = '1.28.0-r7'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -114,6 +114,20 @@ $models = @(
         license = 'Apache-2.0'
         licensePath = (Join-Path $repoRoot 'build\spatial-depth-poc\Depth-Anything-3\LICENSE')
         minDeviceRamMb = 6144
+    },
+    [ordered]@{
+        # MoGe-2 ViT-S（微软，MIT）。**唯一给米制深度与相机内参的一档**，是端上做
+        # 真透视重投影的前提（D204/D205）。输出契约与其余三个不同，precision 必须显式给。
+        id = 'moge_2_vits_normal'
+        version = '1.0.0'
+        localPath = (Join-Path $repoRoot 'tmp\MoGe-research\moge-2-vits-normal.onnx')
+        fileName = 'moge-2-vits-normal.onnx'
+        expectedSize = [Int64]140852051
+        expectedSha256 = '24eacb5dc7a2c54c7bc98f7de085ffbed79ad006ea5b664c2c2cdc02ff3a52f0'
+        precision = 'fp32-moge-pointmap'
+        license = 'MIT'
+        licensePath = (Join-Path $repoRoot 'tmp\MoGe-research\LICENSE')
+        minDeviceRamMb = 6144
     }
 )
 
@@ -141,6 +155,22 @@ $inpaintingModels = @(
         license = 'Apache-2.0'
         licensePath = (Join-Path $sourceRoot 'AOT-GAN-for-Inpainting\LICENSE')
         minDeviceRamMb = 6144
+    },
+    [ordered]@{
+        # Big-LaMa（LaMa，WACV 2022，Apache-2.0）。用户 2026-08-12 逐档目检后裁定它主观
+        # 优于 MI-GAN，遂移植上端。空间维在导出时写死 512，端上按 512 原生分块推理
+        # （SpatialInpaintingTiling），与桌面 inpaint_onnx_tiled 同规格。
+        # 198 MiB 是三者中最大的，因此 minDeviceRamMb 抬到 8192。
+        id = 'big_lama_places2_512'
+        version = '1.0.0'
+        localPath = (Join-Path $artifactRoot 'big_lama_places2_512_fp32.onnx')
+        fileName = 'big_lama_places2_512_fp32.onnx'
+        expectedSize = [Int64]208044816
+        expectedSha256 = '1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6'
+        precision = 'float32-lama-rgb-mask-512'
+        license = 'Apache-2.0'
+        licensePath = (Join-Path $sourceRoot 'carve-lama\LICENSE')
+        minDeviceRamMb = 8192
     }
 )
 
@@ -368,7 +398,9 @@ foreach ($model in $models) {
         sizeBytes = $model.expectedSize
         sha256 = $model.expectedSha256
         format = 'onnx'
-        precision = 'fp32'
+        # ABI 标识：单图模型是 fp32，MoGe-2 是 point map 契约（App 侧按
+        # SpatialDepthOutputContract.catalogPrecision 校验，写死 fp32 会被拒）
+        precision = $(if ($model.Contains('precision')) { $model.precision } else { 'fp32' })
         license = $model.license
         minDeviceRamMb = $model.minDeviceRamMb
         enabled = $true

@@ -1615,6 +1615,9 @@
     <string name="spatial_migan_title">MI-GAN</string>
     <string name="spatial_migan_description">體積較小且速度較快。人物周圍的窄顯露帶通常較穩定，但產生大範圍背景結構的能力有限。</string>
     <string name="spatial_aotgan_description">可調整工作解析度，適合嘗試較寬的顯露區域與規則場景；不一定比 MI-GAN 更好，且需要更多時間與記憶體。</string>
+    <string name="spatial_select_big_lama">使用 Big-LaMa</string>
+    <string name="spatial_big_lama_title" translatable="false">Big-LaMa</string>
+    <string name="spatial_big_lama_description">按原生解析度切 512 分塊推理，因此能保住主體周圍那條很窄的顯露帶；三者中結構續接最好，代價是 198 MB 體積與最高的記憶體佔用。</string>
     <string name="spatial_inpainting_resolution">AOT-GAN 工作解析度</string>
     <string name="spatial_inpainting_resolution_description">512 最快，768 為預設，1024 使用最多輸入細節，但不保證每張圖片的產生內容都更好。App 不會靜默降級；記憶體不足時請關閉其他大型 App。</string>
     <string name="spatial_inpainting_not_ready">請先下載隱藏背景模型，再產生增強空間效果。</string>

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MoGe-2 度量几何 · 真实重投影</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0e0e12; color: #ddd; font: 13px/1.6 system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+  canvas { max-width: 100%; max-height: 100%; touch-action: none; cursor: crosshair; }
+  #panel { width: 292px; padding: 14px; background: #17171c; overflow-y: auto; border-left: 1px solid #26262c; }
+  #panel h1 { font-size: 14px; margin: 0 0 4px; color: #fff; }
+  #panel .sub { color: #6a6a75; margin-bottom: 12px; }
+  .row { margin-bottom: 12px; }
+  .row label { display: block; margin-bottom: 4px; color: #9a9aa5; }
+  select, input[type=range] { width: 100%; }
+  .val { color: #7fd0ff; font-variant-numeric: tabular-nums; }
+  .hint { color: #6a6a75; }
+  .toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .toggle input { width: auto; }
+  #diag { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.6); padding: 8px 11px; border-radius: 6px; font: 12px/1.6 ui-monospace, monospace; pointer-events: none; white-space: pre; }
+  #err { color: #ff7a7a; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="gl"></canvas><div id="diag"></div></div>
+<div id="panel">
+  <h1>MoGe-2 度量几何</h1>
+  <div class="sub">真实相机横移 · z-buffer 前向投影</div>
+  <div class="row"><label>场景</label><select id="scene"></select></div>
+  <div class="row"><label>目标视差 <span class="val" id="spanVal">64</span> px@720
+      <span class="hint" id="spanEff"></span></label>
+    <input id="span" type="range" min="0" max="64" step="1" value="64"></div>
+  <div class="toggle"><input id="capBaseline" type="checkbox" checked><label for="capBaseline">按物理基线设上限
+    <span class="hint">（同样 48px，人像场景只对应 5cm，而 06_statue 对应 51cm——半米的相机位移，
+    单图撑不起来。像素视差是错的控制量，米才是。）</span></label></div>
+  <div class="row"><label>基线上限 <span class="val" id="capVal">4.5</span> cm
+      <span class="hint">（实测 iOS 空间照片是 3.97cm；人眼瞳距 6.3cm；
+      StereoGenBench 的人眼族是 4.5–8.5cm。当前资产按 4.5cm 烘焙）</span></label>
+    <input id="cap" type="range" min="1" max="30" step="0.5" value="4.5"></div>
+  <div class="toggle"><input id="autoMargin" type="checkbox" checked><label for="autoMargin">取景内缩自动</label></div>
+  <div class="row"><label>内缩 <span class="val" id="marginVal">—</span> <span class="hint">（自动时按最大基线算）</span></label>
+    <input id="margin" type="range" min="0" max="0.15" step="0.005" value="0.05"></div>
+  <div class="row"><label>超采样 <span class="hint">（抗锯齿；代价是 N² 倍像素）</span></label>
+    <select id="ss"><option value="1">1x 关</option><option value="2" selected>2x</option><option value="3">3x</option><option value="4">4x</option></select></div>
+  <div class="row"><label>图元</label>
+    <select id="primitive">
+      <option value="mesh">断边三角网格</option>
+      <option value="points">点云（对照）</option>
+    </select></div>
+  <div class="row"><label>点元大小 <span class="val" id="psVal">1.6</span> <span class="hint">（仅点云模式）</span></label>
+    <input id="ps" type="range" min="1" max="4" step="0.1" value="1.6"></div>
+  <div class="row"><label>窄缝闭合半径 <span class="val" id="fillVal">8</span> px
+      <span class="hint">（单位是**超采样后**的像素，SS=2 时 8 只等于 4 个输出像素。
+      实测 3 会漏：断边处两个三角形都被丢弃留下的 1px 细缝填不上，输出成黑线段；
+      8 能封到 0.000%，且不必重开有副作用的边界 splat 遍）</span></label>
+    <input id="fill" type="range" min="0" max="256" step="1" value="8"></div>
+  <div class="toggle"><input id="hidden" type="checkbox" checked><label for="hidden">隐藏第二层（补全颜色+深度）
+    <span class="hint">（<b>取消勾选 = 完全不用补全模型</b>，只剩深度图前向投影。此时空洞占画面
+    6.1–6.4%＠4.5cm，要把「窄缝闭合半径」拉到 200 以上才填得满——填充只做背景侧续接，
+    不发明结构，看到的就是"不补全能到什么程度"）</span></label></div>
+  <div class="row"><label>补全后端 <span class="hint">（同一套几何、同一批掩膜，单变量 A/B）</span></label>
+    <select id="hiddenVariant">
+      <optgroup label="① 基线与带宽预算（D198）　※ _base 的带按 60px@720 建，实际只用 4.5cm">
+        <option value="_base" selected>_base　D194 基线：带按 60 px@720，超配 1.4–15×【九场景】</option>
+        <option value="_b45">_b45　带宽预算=4.5cm 实需（4–43 px@720）【九场景】02/05 大赢、03/04/08 退</option>
+        <option value="_b45j">_b45j　同上 + 前景排除判据与带宽解耦【九场景】</option>
+        <option value="_b45r24">_b45r24　同上 + 排除半径 24px（带变细后 12px 不够）【九场景】</option>
+        <option value="_d45">_d45　_b45 + 两遍补全逐段挑（补 D194 的漏测）【九场景】</option>
+        <option value="_dm45">_dm45　**同 _d45，只把 Big-LaMa 换成 MI-GAN**【九场景】← Android 上线的模型</option>
+        <option value="_bm45">_bm45　同 _b45，只把 Big-LaMa 换成 MI-GAN（单遍）【九场景】</option>
+        <option value="_b64">_b64　带宽预算=6.4cm 实需（6–61 px@720）【九场景】※看它要把下面的基线滑块拉到 6.4</option>
+        <option value="_d64">_d64　_b64 + 两遍补全逐段挑【九场景】※同样要把基线滑块拉到 6.4</option>
+      </optgroup>
+      <optgroup label="⑦ 多视角顺序补全在 _base 上重估（D201，16 角 · Big-LaMa）　※ 实测退步">
+        <option value="_mvb2">_mvb2　多视角叠在 _base 上【仅 00/05】缝 6.3→9.0</option>
+        <option value="_mv452">_mv452　多视角叠在 _b45 上【仅 00/05】缝 6.7→7.9</option>
+        <option value="_mvb16">_mvb16　同 _mvb2 但 l1 帧带 FXAA【作废，第二层有品红污染】</option>
+        <option value="_mv4516">_mv4516　同 _mv452 但 l1 帧带 FXAA【作废，同上】</option>
+        <option value="_mv45g">_mv45g　_mv452 + 退避门槛降到 1/4（覆盖 4.4%→8.3%）【仅 05】</option>
+      </optgroup>
+      <optgroup label="② crop-zoom 四档对照（D196）　※ 同一裁窗、同一 zoom、同一贴回">
+        <option value="_czl">_czl　　档2 裁窗+放大 · Big-LaMa　【九场景】←本轮保真最好</option>
+        <option value="_ctl">_ctl　　档1 裁窗不放大 · Big-LaMa【九场景】（分离"裁"与"放大"）</option>
+        <option value="_tll">_tll　　档0b 1:1 分块 · Big-LaMa【九场景】（≈_base，用于校准）</option>
+        <option value="_czm">_czm　　档2 裁窗+放大 · Moebius【仅 00/05】</option>
+        <option value="_tlm">_tlm　　档0b 1:1 分块 · Moebius【仅 00/05】（D160 的实际口径）</option>
+        <option value="_czls">_czls　档2 + 窗内前景屏蔽 · Big-LaMa【仅 00/05】（消融）</option>
+        <option value="_czms">_czms　档2 + 窗内前景屏蔽 · Moebius【仅 00/05】（消融）</option>
+      </optgroup>
+      <optgroup label="③ 分割模型消融（D197）　※ 看 05 蛋糕右缘 / 00 酒杯口的轮廓副本">
+        <option value="_nomt">_nomt　去掉分割，只留深度判据排前景【仅 00/05】</option>
+        <option value="_nofg">_nofg　完全不排前景（≈最初没有分割模型的版本）【00/03/05/08】</option>
+        <option value="_cznm">_cznm　crop-zoom + 只留深度判据【仅 00/05】</option>
+        <option value="_cznf">_cznf　crop-zoom + 完全不排前景【仅 00/05】←抄袭度最差</option>
+      </optgroup>
+      <optgroup label="④ 诊断档（不是候选，用来看模型到底吐了什么）">
+        <option value="_raw">_raw　　带内=模型原始输出，摘掉全部合成</option>
+        <option value="_full">_full　第二层整幅=激进档背景板，不裁成一条</option>
+      </optgroup>
+      <optgroup label="⑤ 8/11 下午那条线（D194 已回退，仅供对照）">
+        <option value="_dz">_dz　　_tex + 带深度接回背景（D192，九场景）</option>
+        <option value="_tex">_tex　　_seam + 纹理镜像搬运（D191）</option>
+        <option value="_seam">_seam　_str + 跨剪影缝匹配（D190）</option>
+        <option value="_str">_str　　_mix + 结构延续搬运（D189）</option>
+        <option value="_mix">_mix　　背景板 + 两遍合成（D182，这条线的基底）</option>
+        <option value="_lvl">_lvl　　_mix + 局部对比度匹配（D186 已否决）</option>
+        <option value="_mv">_mv　　多视角顺序补全（D193）【00–04】</option>
+        <option value="_mvm">_mvm　多视角 · Moebius（实测更差）【仅 00】</option>
+      </optgroup>
+      <optgroup label="⑥ 更早的 A/B（多数仅 00/05，换场景会退化）">
+        <option value="_basemb">_basemb　窄掩膜 + Moebius</option>
+        <option value="_basembs">_basembs 窄掩膜 + Moebius + 梯度域合成</option>
+        <option value="_lama">_lama　Big-LaMa 分块【仅 00】</option>
+        <option value="_moebius">_moebius Moebius 0.2B【仅 00】</option>
+        <option value="_dual">_dual　两遍补全 · 逐条带挑</option>
+        <option value="_mtON">_mtON　use-matte 开</option>
+        <option value="_mtOFF">_mtOFF use-matte 关</option>
+        <option value="_mtONnm">_mtONnm　use-matte 开 · 不校色</option>
+        <option value="_mtOFFnm">_mtOFFnm use-matte 关 · 不校色</option>
+        <option value="_nearnm">_nearnm 最近带外推 · 不校色（已否决）</option>
+        <option value="">（无后缀）产品档，更老</option>
+      </optgroup>
+    </select>
+    <div class="hint"><b>只有 ① 是九场景都建过的</b>，②③ 只建了 00/05，④⑤⑥ 换场景可能退化
+      成单层或缺档。三组要看的东西不一样：<br>
+      <b>② crop-zoom</b>：档 0b→1→2 是「不裁不放大 → 只裁 → 裁+放大」，窗内容在档 1 与档 2
+      之间逐像素相同，只有重采样不同。看带里的结构接得上没有。<br>
+      <b>③ 分割消融</b>：看 <b>05 蛋糕右缘</b>与 <b>00 酒杯口</b>——`_nofg` 会出现焦糖色条纹
+      和贯穿的杯口弧线，那就是「物体轮廓复制了一份」。注意<b>缝落差判据在这一组上会反着奖</b>
+      （前景颜色渗进带里反而让跨缝色阶更连续，D197）。<br>
+      <b>⑥ 带 nm 的档</b>都不做色阶校正——这个开关会间接翻转校色守卫，不摘掉它两版之间
+      永远夹着约 10 级全局色偏（D176）。</div></div>
+  <div class="row"><label>剪影去污 <span class="val" id="deconVal">2</span> px
+      <span class="hint">（断边近侧的前景×背景混合像素，逐层向内取色；k=2 是实测拐点，
+      台阶能量 1.685→1.598，再往内剥反而回升）</span></label>
+    <input id="decon" type="range" min="0" max="4" step="1" value="2"></div>
+  <div class="toggle"><input id="alphaEdge" type="checkbox" checked><label for="alphaEdge">层间 alpha 混合
+    <span class="hint">（按剪影亚像素覆盖率把第一层混到第二层上；需要"剪影去污">0 才有 F）</span></label></div>
+  <div class="toggle"><input id="softAlpha" type="checkbox" checked><label for="softAlpha">软 α 边界（matte_soft）
+    <span class="hint">（带内覆盖率改用抠图模型的连续 α；反解式要 |F−B|>17 才可解，只覆盖 0.99%）</span></label></div>
+  <div class="row"><label>软 α 带半宽 <span class="val" id="softKVal">6</span> px
+    <span class="hint">（α 只允许在断边内侧 k px 内偏离 1，偏离量随距离线性收敛。k 要盖住深度断崖与 α=0.5 等值线的错配，实测中位 1.4–2.7px）</span></label>
+    <input id="softK" type="range" min="1" max="16" step="1" value="6"></div>
+  <div class="toggle"><input id="bgUnmix" type="checkbox" checked><label for="bgUnmix">背景侧解混
+    <span class="hint">（断边远侧那排也是 αF+(1−α)B；不解出纯 B，前景色就留在不随前景移动的背景层上）</span></label></div>
+  <div class="row"><label>诊断视图 <span class="hint">（直接看送进管线的中间量，不经 3D 渲染）</span></label>
+    <select id="inspect">
+      <option value="none">无（正常渲染）</option>
+      <option value="depth">深度估计（逆深度伪彩）</option>
+      <option value="band">遮挡带掩膜</option>
+      <option value="paint">补全区域（送进模型的掩膜）</option>
+      <option value="input">补全模型的输入 · 激进档（洞已置零）</option>
+      <option value="inputCons">补全模型的输入 · 保守档（洞已置零）</option>
+      <option value="occl">遮挡物分割（SAM3 ∪ matte）</option>
+      <option value="matteSoft">软 α · 未硬化（matte_soft.png）</option>
+      <option value="matteHard">硬 matte 对照（matte.png，进遮挡物身份的那张）</option>
+      <option value="selfocc">自遮挡决策（绿=同物体·保守 / 红=不同·激进 / 蓝=无实例）</option>
+      <option value="structConf">结构相干度（决定结构档接管多少；仅 _str）</option>
+      <option value="bandSrc">可取块来源（逐段深度窗口 + 前景排除后；仅 _str）</option>
+      <option value="hcolor">第二层补全颜色（只有带内，带外＝原图）</option>
+      <option value="rawAggr">补全原始输出 · 激进档（未钳回原图）</option>
+      <option value="rawCons">补全原始输出 · 保守档（未钳回原图）</option>
+      <option value="hdepth">第二层深度</option>
+    </select></div>
+  <div class="row"><label>诊断叠加强度 <span class="val" id="inspectMixVal">0.75</span></label>
+    <input id="inspectMix" type="range" min="0" max="1" step="0.05" value="0.75"></div>
+  <div class="row"><label>染色诊断 <span class="hint">（把某一遍单独看出来）</span></label>
+    <select id="tint">
+      <option value="none">无</option>
+      <option value="hidden">第二层染品红</option>
+      <option value="splat">边界 splat 染品红</option>
+    </select></div>
+  <div class="toggle"><input id="fxaa" type="checkbox" checked><label for="fxaa">形态学抗锯齿 FXAA</label></div>
+  <div class="toggle"><input id="splatPass" type="checkbox"><label for="splatPass">边界 splat 遍 <span class="hint">（默认关：它的点落在刚显露的平滑区里最显眼）</span></label></div>
+  <div class="toggle"><input id="holes" type="checkbox"><label for="holes">遮挡空洞染品红</label></div>
+  <div class="toggle"><input id="autoOrbit" type="checkbox"><label for="autoOrbit">自动圆周</label></div>
+  <div class="row"><button id="recenter">视点回中</button></div>
+  <div id="err"></div>
+</div>
+<script>
+"use strict";
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: false, preserveDrawingBuffer: true });
+if (!gl) document.getElementById("err").textContent = "需要 WebGL2";
+if (gl && !gl.getExtension("EXT_color_buffer_float"))
+  document.getElementById("err").textContent = "需要 EXT_color_buffer_float";
+
+// —— 第一遍：点云前向投影 ——
+// 逐像素一个点，用 gl_VertexID 推像素坐标，Z 从 R32F 纹理 texelFetch 精确取。
+// 与 D146 验证过的 Python 前向投影公式逐字一致：
+//   X = (u−cx)·Z/fx, Y = (v−cy)·Z/fy;  P' = P − t
+//   u' = fx·P'.x/P'.z + cx + fx·tx/Z0   （末项＝绕支点转，等价于减 1/Z0）
+// 输出 RGBA16F：RGB 是颜色，A 存"归一化逆深度 + 0.02"作覆盖标记——
+// A=0 表示该像素没有任何点落上，即真实遮挡空洞；A 越小表示越远。
+const SPLAT_VS = `#version 300 es
+precision highp float;
+precision highp sampler2D;
+uniform sampler2D uDepth, uMask, uBoundary;
+uniform vec2 uSize, uPrincipal, uFocal, uTranslate;
+uniform float uPivotZ, uMargin, uPointSize, uInvMin, uInvMax, uUseMask, uNoStretch;
+out vec2 vTex;
+out float vNd;
+void main() {
+  int w = int(uSize.x);
+  int px = gl_VertexID % w, py = gl_VertexID / w;
+  // uUseMask：0 全部 / 1 只画遮挡带（第二层点云模式）/ 2 只画断边相邻样本（第三遍 splat）
+  float keep = uUseMask < 0.5 ? 1.0
+             : (uUseMask < 1.5 ? texelFetch(uMask, ivec2(px, py), 0).r
+                               : texelFetch(uBoundary, ivec2(px, py), 0).r);
+  if (keep < 0.5) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0;
+    vTex = vec2(0.0); vNd = 0.0; return;
+  }
+  float z = texelFetch(uDepth, ivec2(px, py), 0).r;
+  vec2 pix = vec2(float(px) + 0.5, float(py) + 0.5);
+  vec2 xy = (pix - uPrincipal) * z / uFocal;
+  vec3 moved = vec3(xy, z) - vec3(uTranslate, 0.0);
+  vec2 proj = uFocal * moved.xy / max(moved.z, 1e-6) + uPrincipal
+            + uFocal * uTranslate / uPivotZ;
+  vec2 canvasUv = (proj / uSize - uMargin) / (1.0 - 2.0 * uMargin);
+  float nd = clamp((1.0 / max(z, 1e-6) - uInvMin) / max(uInvMax - uInvMin, 1e-9), 0.0, 1.0);
+  gl_Position = vec4(canvasUv.x * 2.0 - 1.0, 1.0 - canvasUv.y * 2.0, 1.0 - 2.0 * nd, 1.0);
+  // 点足迹随局部拉伸自适应。相邻像素在目标视角的间距 = 1 + fx·|t|·|∇(1/Z)|：
+  // 深度平坦处仍是 1 个像素（不糊），深度断崖附近点被拉开多少就放大多少，
+  // 正好补上散点漏缝。固定点大小要么在平坦处发糊、要么在断崖处漏洞，二者不可兼得。
+  float invZ = 1.0 / max(z, 1e-6);
+  float invR = 1.0 / max(texelFetch(uDepth, ivec2(min(px + 1, w - 1), py), 0).r, 1e-6);
+  float invD = 1.0 / max(texelFetch(uDepth, ivec2(px, min(py + 1, int(uSize.y) - 1)), 0).r, 1e-6);
+  // 取两方向的**最小**梯度：断崖通常只跨一个方向，最小值给出的是**面内**的采样稀疏度。
+  // 用最大值会在断崖处把点撑成大方块——那里表面是真的结束了，本就不该拉伸（实测过）。
+  float gradInv = min(abs(invR - invZ), abs(invD - invZ));
+  float stretch = clamp(1.0 + length(uTranslate) * max(uFocal.x, uFocal.y) * gradInv, 1.0, 3.0);
+  // 边界 splat 那一遍不做自适应放大：它只负责补断边两侧各缺的那一排（1–2px），
+  // 放大到 3 倍会让断边处处铺满方块——实测覆盖到画面的 9.65%，正是"小正方形"的来源。
+  gl_PointSize = uPointSize * mix(stretch, 1.0, uNoStretch);
+  vTex = pix / uSize;
+  vNd = nd;
+}`;
+
+const SPLAT_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uColor;
+uniform float uTint;      // 1=染品红（用于把某一遍的覆盖范围单独看出来）
+uniform float uAlphaEdge; // 1=层间 alpha 混合；0=旧的硬边路径（缓冲里必须写满 alpha）
+in vec2 vTex;
+in float vNd;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outNd;
+void main() {
+  // alpha 通道从"归一化深度"改为**剪影覆盖率**（D164）。原先它是给填充遍挑最远邻居用的，
+  // 但空洞率实测处处为 0.000%（第二层覆盖完整），那个排序已不再承重；而三个被点名的
+  // 缺陷（锯齿、马赛克、暗色轮廓条带）实测是同一件事——层界没有混合。
+  // 覆盖率由 CPU 侧按 α = (C−B)·(F−B)/|F−B|² 估出，写在第一层颜色纹理的 alpha 里。
+  vec4 t = texture(uColor, vTex);
+  vec3 c = uTint > 0.5 ? vec3(1.0, 0.0, 0.9) : t.rgb;
+  float a = (uAlphaEdge > 0.5 && uTint < 0.5) ? t.a : 1.0;
+  outColor = vec4(c, a);
+  // 深度挪到第二个颜色附件（2026-08-11）：关掉第二层看"纯几何变换"时，屏幕空间填充
+  // 必须能挑**最远**的邻居，否则会把前景色拖进刚显露的洞里。WebGL2 的混合函数对所有
+  // draw buffer 一视同仁，所以这里同样写成预乘形式（nd·α），解析时除以 outColor.a。
+  outNd = vec4(vNd, 0.0, 0.0, a);
+}`;
+
+// —— 第二遍：背景优先的屏幕空间空洞填充 ——
+// 遮挡显露出来的必然是**更远**的表面，所以空洞只能从邻域里**最远**的已写像素取色，
+// 不能取平均——取平均会把前景色拖进洞里，在剪影外侧形成一圈亮边（D137 膜校正
+// 参照环踩过同一类坑：参照取到了被测对象自己）。
+// 这一步不发明结构，只做几何正确的背景续接；真正的内容补全是后续独立课题。
+const FILL_VS = `#version 300 es
+const vec2 P[3] = vec2[3](vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
+out vec2 vUv;
+void main() { vec2 p = P[gl_VertexID]; vUv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`;
+
+const FILL_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uSplat, uNd;
+uniform vec2 uTexel;
+uniform float uRadius, uMarkHoles, uSS;
+in vec2 vUv;
+out vec4 outColor;
+// 2×2 超采样降采样：离屏以 SS 倍渲染，这里盒式平均回画布分辨率。
+// 断边是按 guide 格子逐边切的，边界天然量化到 540×720；渲染到 810×1080 就是
+// 1.5 倍的像素台阶。管线此前没有任何抗锯齿，用户看到的锯齿就是它。
+// 离屏缓冲现在存的是**预乘 alpha**（混合函数 SRC_ALPHA/ONE_MINUS_SRC_ALPHA +
+// 独立的 alpha 通道 ONE/ONE_MINUS_SRC_ALPHA），因此降采样要按 Σrgb / Σa 反预乘，
+// 不能按"已写样本数"平均——否则半覆盖的边缘像素会被当成全覆盖，重新变回硬边。
+vec4 fetchSS(vec2 uv) {
+  int n = int(uSS);
+  vec3 rgb = vec3(0.0); float asum = 0.0, cnt = 0.0;
+  for (int j = 0; j < 4; j++) { if (j >= n) break;
+    for (int i = 0; i < 4; i++) { if (i >= n) break;
+      vec2 off = (vec2(float(i), float(j)) - 0.5 * (uSS - 1.0)) * uTexel;
+      vec4 s = texture(uSplat, uv + off);
+      rgb += s.rgb; asum += s.a; cnt += 1.0;
+    }
+  }
+  if (asum < 0.004) return vec4(0.0);
+  return vec4(rgb / asum, asum / max(cnt, 1.0));
+}
+void main() {
+  vec4 c = fetchSS(vUv);
+  if (c.a > 0.0) { outColor = vec4(c.rgb, 1.0); return; }
+  if (uMarkHoles > 0.5) { outColor = vec4(1.0, 0.0, 0.9, 1.0); return; }
+  if (uRadius < 0.5) { outColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  // 环形由内向外扫，**在最近一圈已写像素里挑最远的那个**（2026-08-11 恢复）。
+  // 显露出来的必然是更远的表面，取平均会把前景色拖进洞里，在剪影外侧形成一圈亮边。
+  // 深度从第二个颜色附件取（见 SPLAT_FS），预乘形式，除以 alpha 还原。
+  //
+  // 半径按"8px 之内逐格、之外每格 8px"走：关掉第二层时洞最宽到 130 源像素
+  // （超采样后 260），逐格扫要 260 圈；粗细两段能用 40 圈盖住同样的距离。
+  // 第二层在场时洞只有 1–2px 的栅格缝，头 8 圈就返回，这段粗扫根本不会执行。
+  vec3 bestC = vec3(0.0); float bestNd = 1e9; bool found = false;
+  for (int r = 1; r <= 40; r++) {
+    float rad = r <= 8 ? float(r) : 8.0 + float(r - 8) * 8.0;
+    if (rad > uRadius) break;
+    for (int k = 0; k < 16; k++) {
+      float a = 6.2831853 * float(k) / 16.0;
+      vec2 off = vec2(cos(a), sin(a)) * rad * uTexel;
+      vec4 s = texture(uSplat, vUv + off);
+      if (s.a > 0.004) {
+        float nd = texture(uNd, vUv + off).r / max(s.a, 1e-4);   // 大=近，小=远
+        if (nd < bestNd) { bestNd = nd; bestC = s.rgb / s.a; found = true; }
+      }
+    }
+    if (found) break;   // 就近取到即停，避免从很远处拖色
+  }
+  // 填不上时输出 alpha=0，**不要**输出 vec4(黑,1)。后者会让洞伪装成"黑色的内容"，
+  // 而空洞指标查的正是 alpha——2026-08-11 发现：此前所有"空洞 0.000%"的结论都因此失效，
+  // 实际 05 场景在预算内仍有 1.18% 的孤立黑点。指标必须能看见它要量的东西。
+  outColor = vec4(found ? bestC : vec3(0.0), found ? 1.0 : 0.0);
+}`;
+
+
+// —— 诊断视图：把送进管线的中间量直接铺满画布 ——
+// 深度、遮挡带、补全区域、遮挡物分割这些都是**资产生成期**的量，光看 3D 渲染结果
+// 反推不出来。2026-08-11 就吃过亏：SAM 的种子框在 06 只有 1 个、在 00 有 21 个，
+// 不把这些铺出来看，只能靠数字猜。
+const BLIT_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+in vec2 vUv;
+out vec4 outColor;
+// v 轴要翻转：CPU 上传的像素是图像行序（第 0 行在上），而 GL 的 v=0 在下
+void main() { outColor = vec4(texture(uTex, vec2(vUv.x, 1.0 - vUv.y)).rgb, 1.0); }`;
+
+// —— 第三遍：形态学抗锯齿（FXAA 简化版）——
+// 超采样在 2× 之后就饱和了（强边二阶差分 16.8→14.4→14.8），因为残留的不是亚像素混叠，
+// 而是**锯齿形状**：断边按 540×720 逐边切，轮廓量化到源像素格（实测台阶周期 1.3 源像素）。
+// 形态学抗锯齿从台阶图样反推亚像素边位置，正是为这种硬边光栅化设计的。
+const FXAA_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uImage;
+uniform vec2 uTexel;
+uniform float uEnable;
+in vec2 vUv;
+out vec4 outColor;
+float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+void main() {
+  // alpha 透传：填充遍用 alpha=0 标记"没填上的洞"，抗锯齿这一遍不能把它抹成不透明，
+  // 否则空洞指标又会失明（见 FILL_FS 的注释）。
+  float aM = texture(uImage, vUv).a;
+  vec3 rgbM = texture(uImage, vUv).rgb;
+  if (uEnable < 0.5) { outColor = vec4(rgbM, aM); return; }
+  vec3 rgbNW = texture(uImage, vUv + vec2(-1.0, -1.0) * uTexel).rgb;
+  vec3 rgbNE = texture(uImage, vUv + vec2( 1.0, -1.0) * uTexel).rgb;
+  vec3 rgbSW = texture(uImage, vUv + vec2(-1.0,  1.0) * uTexel).rgb;
+  vec3 rgbSE = texture(uImage, vUv + vec2( 1.0,  1.0) * uTexel).rgb;
+  float lNW = luma(rgbNW), lNE = luma(rgbNE), lSW = luma(rgbSW), lSE = luma(rgbSE), lM = luma(rgbM);
+  float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE)));
+  float lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+  if (lMax - lMin < max(0.03, lMax * 0.10)) { outColor = vec4(rgbM, aM); return; }
+  vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), ((lNW + lSW) - (lNE + lSE)));
+  float reduce = max((lNW + lNE + lSW + lSE) * 0.03125, 0.0078125);
+  float rcp = 1.0 / (min(abs(dir.x), abs(dir.y)) + reduce);
+  dir = clamp(dir * rcp, vec2(-8.0), vec2(8.0)) * uTexel;
+  vec3 a = 0.5 * (texture(uImage, vUv + dir * (1.0 / 3.0 - 0.5)).rgb
+                + texture(uImage, vUv + dir * (2.0 / 3.0 - 0.5)).rgb);
+  vec3 b = a * 0.5 + 0.25 * (texture(uImage, vUv - dir * 0.5).rgb
+                           + texture(uImage, vUv + dir * 0.5).rgb);
+  float lB = luma(b);
+  outColor = vec4((lB < lMin || lB > lMax) ? a : b, aM);
+}`;
+
+function makeProgram(vsSrc, fsSrc) {
+  const compile = (type, src) => {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  };
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vsSrc));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsSrc));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+let splatProg, fillProg, fxaaProg, blitProg;
+try {
+  splatProg = makeProgram(SPLAT_VS, SPLAT_FS);
+  fillProg = makeProgram(FILL_VS, FILL_FS);
+  fxaaProg = makeProgram(FILL_VS, FXAA_FS);
+  blitProg = makeProgram(FILL_VS, BLIT_FS);
+} catch (e) { document.getElementById("err").textContent = String(e); }
+const emptyVao = gl.createVertexArray();
+const U = (p, n) => gl.getUniformLocation(p, n);
+
+const fbo = { handle: gl.createFramebuffer(), tex: null, depth: null, w: 0, h: 0 };
+const post = { handle: gl.createFramebuffer(), tex: null, w: 0, h: 0 };
+function ensurePost(w, h) {
+  if (post.w === w && post.h === h) return;
+  if (post.tex) gl.deleteTexture(post.tex);
+  post.tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE7);
+  gl.bindTexture(gl.TEXTURE_2D, post.tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, post.handle);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, post.tex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  post.w = w; post.h = h;
+}
+function ensureTarget(w, h) {
+  if (fbo.w === w && fbo.h === h) return;
+  if (fbo.tex) gl.deleteTexture(fbo.tex);
+  if (fbo.ndTex) gl.deleteTexture(fbo.ndTex);
+  if (fbo.depth) gl.deleteRenderbuffer(fbo.depth);
+  const mkAttach = (unit) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    return t;
+  };
+  fbo.tex = mkAttach(2);
+  fbo.ndTex = mkAttach(8);       // 第二个颜色附件：归一化逆深度（预乘）
+  fbo.depth = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, fbo.depth);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo.handle);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbo.tex, 0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, fbo.ndTex, 0);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, fbo.depth);
+  const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  if (status !== gl.FRAMEBUFFER_COMPLETE) document.getElementById("err").textContent = "FBO 不完整 " + status;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  fbo.w = w; fbo.h = h;
+}
+
+const state = { view: { x: 0, y: 0 }, scene: null, data: null, hiddenVariant: "", decon: 2 };
+
+// 断边判据用**物理量**：只有在最大基线下两侧会错开超过 sepPx 像素，才算真遮挡边界。
+// 相对逆深度阈值（试过 5%）在真实场景里到处触发，网格被切碎，黑洞反升到 6–8%。
+// 判据固定在**最大**基线，因此与当前强度无关，改滑杆不必重建网格。
+function computeCuts(z, w, h, fx, maxBaseline, sepPx) {
+  const jump = sepPx / Math.max(fx * maxBaseline, 1e-9);   // 允许的逆深度跳变上限
+  const cutRight = new Uint8Array(h * (w - 1));
+  const cutDown = new Uint8Array((h - 1) * w);
+  const inv = i => 1 / Math.max(z[i], 1e-6);
+  let cuts = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w - 1; x++) {
+    const c = Math.abs(inv(y * w + x) - inv(y * w + x + 1)) > jump ? 1 : 0;
+    cutRight[y * (w - 1) + x] = c; cuts += c;
+  }
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
+    const c = Math.abs(inv(y * w + x) - inv((y + 1) * w + x)) > jump ? 1 : 0;
+    cutDown[y * w + x] = c; cuts += c;
+  }
+  return { cutRight, cutDown, cuts };
+}
+
+// 三角形发射规则与 HEAD 的 SpatialHybridMeshBuilder 逐字一致：跨断边的三角形不生成。
+// 面内因此连续插值（没有点元的方块感），断崖处则是真正的断开，由第二层承接。
+// 索引即 gl_VertexID，所以顶点属性仍然由顶点着色器从纹理里取，不需要顶点缓冲。
+function buildIndices(cuts, w, h, mask) {
+  const { cutRight, cutDown } = cuts;
+  const idx = [];
+  const ok = i => !mask || mask[i] > 127;
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) {
+    const tl = y * w + x, tr = tl + 1, bl = tl + w, br = bl + 1;
+    if (!cutRight[y * (w - 1) + x] && !cutDown[y * w + x + 1] && ok(tl) && ok(tr) && ok(br)) {
+      idx.push(tl, tr, br);
+    }
+    if (!cutDown[y * w + x] && !cutRight[(y + 1) * (w - 1) + x] && ok(tl) && ok(br) && ok(bl)) {
+      idx.push(tl, br, bl);
+    }
+  }
+  return new Uint32Array(idx);
+}
+
+// 剪影去污：断边**近侧**那一排像素，在原照片里本就是"前景×背景"的混合值（相机与 JPEG
+// 的抗锯齿产物）。它们被判给了前景深度，于是随前景一起位移，在刚显露的背景上拖出一条
+// 暗边——这正是"暗色轮廓条带"。vNext11 有 F/B 去污，本查看器此前没有。
+// 做法：把近侧那一排标为污染，逐层从"同一面上、未污染"的邻居向内取色。判定同一面用
+// 与断边同一个逆深度阈值，因此绝不会跨断崖取到背景色（D137 参照环踩过的坑）。
+function decontaminate(rgba, z, cuts, w, h, layers, jump, bg) {
+  if (layers <= 0 && !bg) return rgba;
+  const { cutRight, cutDown } = cuts;
+  const inv = i => 1 / Math.max(z[i], 1e-6);
+  const bad = new Uint8Array(w * h);
+  // 断边两侧成对记下来：近侧要去污 + 拿软 α，远侧要解混（它同样是混合像素，
+  // 但它跟着背景走，前景色留在上面就是"轮廓复制了一份"）。
+  const pairNear = [], pairFar = [];
+  const addPair = (i, j) => {
+    const n = z[i] < z[j] ? i : j, f = n === i ? j : i;
+    bad[n] = 1; pairNear.push(n); pairFar.push(f);   // Z 小 = 更近 = 剪影的近侧
+  };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w - 1; x++) {
+    if (cutRight[y * (w - 1) + x]) addPair(y * w + x, y * w + x + 1);
+  }
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
+    if (cutDown[y * w + x]) addPair(y * w + x, (y + 1) * w + x);
+  }
+  const nearSeed = new Uint8Array(bad);   // 生长前的那一排，软 α 带以它为种子
+  const out = new Uint8ClampedArray(rgba);
+  for (let pass = 0; pass < layers; pass++) {
+    if (pass > 0) {                                  // 再向内剥一层
+      const grow = new Uint8Array(bad);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (bad[i]) continue;
+        const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1,
+                    y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+        for (const j of nb) {
+          if (j >= 0 && bad[j] && Math.abs(inv(i) - inv(j)) <= jump) { grow[i] = 1; break; }
+        }
+      }
+      bad.set(grow);
+    }
+    const src = new Uint8ClampedArray(out);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!bad[i]) continue;
+      let r = 0, g = 0, b = 0, n = 0;
+      const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1,
+                  y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+      for (const j of nb) {
+        // 只取同一面（无断崖相隔）且自身未被判为污染的邻居
+        if (j < 0 || bad[j] || Math.abs(inv(i) - inv(j)) > jump) continue;
+        r += src[j * 4]; g += src[j * 4 + 1]; b += src[j * 4 + 2]; n++;
+      }
+      if (n) { out[i * 4] = r / n; out[i * 4 + 1] = g / n; out[i * 4 + 2] = b / n; }
+    }
+  }
+
+  // 剪影覆盖率（D164）。断边近侧那一排像素在原照片里是 C = α·F + (1−α)·B 的混合值：
+  // F 是纯前景色（就是上面逐层向内取到的去污结果），B 是它背后的背景——而背后的背景
+  // 正好就是第二层在同一位置的颜色。于是 α 可以直接反解：
+  //     α = clamp( (C−B)·(F−B) / |F−B|² , 0, 1 )
+  // 这一式同时给出去污后的 F 与真实亚像素覆盖，与 vNext11 的 F/B 去污 + alpha AA 同源。
+  // F 与 B 太接近时（|F−B| 小）α 无从判定，此时取 1，宁可保留硬边也不乱混。
+  // —— 过渡带（工单步骤 2）——
+  // 从断边近侧那一排向**同一面内侧**逐层生长 k 层，记下层号 d。生长必须带同面判据
+  // （|Δ逆深度| ≤ jump），否则会翻过断崖跑到背景上去（D137 参照环同一类坑）。
+  // 返回值：带内 d∈[0,k]，带外 255。
+  const bandDist = (k) => {
+    const d = new Uint8Array(w * h).fill(255);
+    let cur = [];
+    for (let i = 0; i < w * h; i++) if (nearSeed[i]) { d[i] = 0; cur.push(i); }
+    for (let step = 1; step <= k; step++) {
+      const next = [];
+      for (const i of cur) {
+        const x = i % w, y = (i / w) | 0;
+        const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1,
+                    y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+        for (const j of nb) {
+          if (j < 0 || d[j] !== 255 || Math.abs(inv(i) - inv(j)) > jump) continue;
+          d[j] = step; next.push(j);
+        }
+      }
+      if (!(cur = next).length) break;
+    }
+    return d;
+  };
+  // matte 认领域：离 α>0.5 的核心不超过 k px。深度断崖与剪影无关时（06 雕像的断边
+  // 离等值线中位 31px）不得套用软 α——那会把纯前景擦成半透明。纯形态学膨胀，不看深度。
+  const claimMask = (S, k) => {
+    const c = new Uint8Array(w * h);
+    let cur = [];
+    for (let i = 0; i < w * h; i++) if (S[i] > 127) { c[i] = 1; cur.push(i); }
+    for (let step = 0; step < k; step++) {
+      const next = [];
+      for (const i of cur) {
+        const x = i % w, y = (i / w) | 0;
+        const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1,
+                    y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+        for (const j of nb) if (j >= 0 && !c[j]) { c[j] = 1; next.push(j); }
+      }
+      if (!(cur = next).length) break;
+    }
+    return c;
+  };
+
+  if (bg) {
+    const { colorPixels: C, hiddenRgba: B, hiddenMask: M,
+            matteSoft: S, selfocc: SO, softK: K, softOn, unmixOn } = bg;
+    const useSoft = !!(softOn && S);
+    const dist = useSoft ? bandDist(K) : null;
+    const claim = useSoft ? claimMask(S, K) : null;
+    // edgeTotal/edgeSoft 回答工单的验收问题本身："**剪影上**有多少比例拿到了非 1 的
+    // 覆盖率"。全图占比回答不了它——分母里全是与剪影无关的平坦区。
+    let fromMatte = 0, fromSolve = 0, unmixed = 0, blocked = 0, edgeTotal = 0, edgeSoft = 0;
+
+    // ① 远侧解混（工单步骤 3 的"背景侧"那一半）。断边远侧那排像素同样是
+    // C = αF + (1−α)B，但它属于背景层、不随前景移动，前景色留在上面就成了一条
+    // 钉死在背景上的轮廓。近侧已经去污过，那就是纯 F，于是 B = (C − αF)/(1−α)。
+    // 只在 0.05 < α < 0.6 时解：α 再大分母就不稳，而且那多半本来就是前景。
+    if (useSoft && unmixOn) {
+      const src = new Uint8ClampedArray(out);
+      for (let p = 0; p < pairFar.length; p++) {
+        const j = pairFar[p], i = pairNear[p];
+        if (!claim[j] || S[j] < 13 || S[j] > 153) continue;
+        const a = S[j] / 255;
+        for (let c = 0; c < 3; c++) {
+          out[j * 4 + c] = Math.max(0, Math.min(255,
+            (src[j * 4 + c] - a * src[i * 4 + c]) / (1 - a)));
+        }
+        unmixed++;
+      }
+    }
+
+    // ② 覆盖率（工单步骤 3 的"前景侧"那一半）
+    for (let i = 0; i < w * h; i++) {
+      let a = 255;
+      if (M[i] > 127) {
+        // 自遮挡带（码值 85 = 遮挡物与它让出的背景是同一个物体）不走软 α：
+        // D176 定点目检已证明两类带的正确处理方向相反，这里沿用保守档的反解。
+        const selfSame = SO ? (SO[i] >= 43 && SO[i] < 128) : false;
+        // `S[i] < 250` 这一条让改动**严格只增不减**：matte 说"这里全是前景"时不接管，
+        // 让反解式照旧跑。否则 matte 的等值线比深度断崖胖 1–2px 时，本来解得出覆盖率
+        // 的剪影像素会被强行改回不透明——总量涨了、局部反而退化，是最难发现的那种回归。
+        if (useSoft && dist[i] <= K && claim[i] && !selfSame && S[i] < 250) {
+          // 离断边越远越必须不透明：地板 = 255·d/K，带外 α 恒为 1。这条约束是
+          // 过渡带的定义本身，也顺带挡住"模型在主体内部的不确定块"（05 两只兔耳
+          // 之间就有一片宽的 α∈(0.5,0.95)，那是不确定不是半透明，D183 已记）。
+          a = Math.max(S[i], Math.round(255 * dist[i] / Math.max(K, 1)));
+          if (a < 250) fromMatte++;
+        } else if (bad[i]) {
+          if (useSoft && dist[i] <= K && !selfSame && !claim[i]) blocked++;
+          let num = 0, den = 0;
+          for (let c = 0; c < 3; c++) {
+            const F = out[i * 4 + c], Bv = B[i * 4 + c], Cv = C[i * 4 + c];
+            num += (Cv - Bv) * (F - Bv);
+            den += (F - Bv) * (F - Bv);
+          }
+          if (den > 300) {
+            a = Math.max(0, Math.min(255, Math.round(255 * num / den)));
+            if (a < 250) fromSolve++;
+          }
+        }
+      }
+      if (nearSeed[i] && M[i] > 127) { edgeTotal++; if (a < 250) edgeSoft++; }
+      out[i * 4 + 3] = a;
+    }
+    bg.source = { fromMatte, fromSolve, unmixed, blocked, edgeTotal, edgeSoft };
+  }
+  return out;
+}
+
+// 断边相邻样本。连通网格跨断边不发射三角形，断崖两侧因此各缺一排覆盖；vNext11 为此
+// 专门有第三遍 boundary splat（D144 移植时踩过）。这里复用点元路径，只画这些样本。
+function boundarySamples(cuts, z, w, h) {
+  const { cutRight, cutDown } = cuts;
+  const sel = new Uint8Array(w * h);
+  // **只补远侧**。近侧是真实剪影，本来就该在那里干净结束；给近侧也画 splat，
+  // 那些点会跟着前景走、落进刚显露出来的背景里，变成孤立的前景色点
+  // （实测孤立错色点 0.65–0.78%，正是用户看到的"小像素点"）。
+  const farther = (i, j) => (z[i] >= z[j] ? i : j);   // Z 大 = 更远
+  for (let y = 0; y < h; y++) for (let x = 0; x < w - 1; x++) {
+    if (cutRight[y * (w - 1) + x]) sel[farther(y * w + x, y * w + x + 1)] = 255;
+  }
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
+    if (cutDown[y * w + x]) sel[farther(y * w + x, (y + 1) * w + x)] = 255;
+  }
+  return sel;
+}
+
+function makeIndexBuffer(indices) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, count: indices.length };
+}
+
+async function loadScene(name, variant) {
+  const bust = `?v=${Date.now()}`;
+  const geoBase = `../qa/moge-geometry/${name}`;
+  // 隐藏层变体后缀：与 build_hidden_layer.py 的 --tag 一致，用于并列对比补全后端
+  const vt = variant !== undefined ? variant : state.hiddenVariant;
+  state.hiddenVariant = vt;
+  const meta = await (await fetch(`${geoBase}/moge-meta.json${bust}`, { cache: "no-store" })).json();
+  const z = new Float32Array(await (await fetch(`${geoBase}/depth_z.f32${bust}`, { cache: "no-store" })).arrayBuffer());
+  // 目录名可能带变体后缀（@vits 等），彩色图仍取原场景资产
+  const img = await createImageBitmap(
+    await (await fetch(`../assets/${meta.scene}/center.jpg${bust}`, { cache: "no-store" })).blob());
+
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  const mkTex = (unit, filter) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  };
+  const depthTex = mkTex(1, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, meta.width, meta.height, 0, gl.RED, gl.FLOAT, z);
+  const colorTex = mkTex(0, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  // 原图像素也要留在 CPU 侧：剪影去污要按断边逐层向内取色后重传纹理
+  {
+    const oc = new OffscreenCanvas(meta.width, meta.height);
+    const cx2 = oc.getContext("2d");
+    cx2.drawImage(img, 0, 0);
+    state.colorPixels = new Uint8ClampedArray(
+      cx2.getImageData(0, 0, meta.width, meta.height).data);
+  }
+
+  // 隐藏第二层（遮挡带的补全颜色 + 背景深度）。缺文件时静默降级为单层。
+  let hidden = null;
+  try {
+    const hz = new Float32Array(await (await fetch(`${geoBase}/hidden_z${vt}.f32${bust}`, { cache: "no-store" })).arrayBuffer());
+    const hc = await createImageBitmap(await (await fetch(`${geoBase}/hidden_color${vt}.png${bust}`, { cache: "no-store" })).blob());
+    const hm = await createImageBitmap(await (await fetch(`${geoBase}/hidden_mask${vt}.png${bust}`, { cache: "no-store" })).blob());
+    if (hz.length !== meta.width * meta.height) throw new Error("hidden_z 尺寸不符");
+    const hDepth = mkTex(4, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, meta.width, meta.height, 0, gl.RED, gl.FLOAT, hz);
+    const hColor = mkTex(3, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, hc);
+    const hMask = mkTex(5, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, hm);
+    // 掩膜的像素值 CPU 侧也要用（决定第二层网格发射哪些三角形）
+    const off = new OffscreenCanvas(meta.width, meta.height);
+    const ctx = off.getContext("2d");
+    ctx.drawImage(hm, 0, 0);
+    const rgba = ctx.getImageData(0, 0, meta.width, meta.height).data;
+    // 第二层颜色也读回 CPU：估剪影覆盖率时它就是那个"背后的背景" B（D164）
+    ctx.clearRect(0, 0, meta.width, meta.height);
+    ctx.drawImage(hc, 0, 0);
+    state.hiddenRgba = new Uint8ClampedArray(
+      ctx.getImageData(0, 0, meta.width, meta.height).data);
+    const maskData = new Uint8Array(meta.width * meta.height);
+    for (let i = 0; i < maskData.length; i++) maskData[i] = rgba[i * 4];
+    hidden = { hDepth, hColor, hMask, z: hz, maskData };
+  } catch (e) { hidden = null; }
+
+  // 逆深度范围 + 相对支点的稳健最大偏离。后者决定取景内缩：
+  // 内缩量 = 最大位移 / 画幅，而最大位移 = fx·基线·max|1/Z − 1/Z0|。
+  // 用 p99.8 而不是最大值，否则几个近处离群像素就把内缩顶到极限。
+  const inv = new Float32Array(z.length);
+  for (let i = 0; i < z.length; i++) inv[i] = 1 / Math.max(z[i], 1e-6);
+  const sorted = Float32Array.from(inv).sort();
+  const q = f => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(f * (sorted.length - 1))))];
+  const invMin = sorted[0], invMax = sorted[sorted.length - 1];
+  const pivotInv = 1 / meta.pivotZ;
+  const dev = Float32Array.from(inv, v => Math.abs(v - pivotInv)).sort();
+  const maxDev = dev[Math.round(0.998 * (dev.length - 1))];
+  const spanInv = q(0.95) - q(0.05);
+
+  gl.useProgram(splatProg);
+  gl.uniform1i(U(splatProg, "uColor"), 0);
+  gl.uniform1i(U(splatProg, "uDepth"), 1);
+  gl.uniform2f(U(splatProg, "uSize"), meta.width, meta.height);
+  gl.uniform2f(U(splatProg, "uPrincipal"), meta.cx, meta.cy);
+  gl.uniform2f(U(splatProg, "uFocal"), meta.fx, meta.fy);
+  gl.uniform1f(U(splatProg, "uPivotZ"), meta.pivotZ);
+  gl.uniform1f(U(splatProg, "uInvMin"), invMin);
+  gl.uniform1f(U(splatProg, "uInvMax"), invMax);
+
+  gl.uniform1i(U(splatProg, "uMask"), 5);
+
+  // 网格：第一层按 MoGe 深度的断边切；第二层只在遮挡带掩膜内、按其自身（背景续接）
+  // 深度切——第二层是连续背景，断边极少，正好把第一层断开处补上。
+  // 最大基线 = 滑杆上限 60 px@720 对应的物理基线，与遮挡带的建带口径一致
+  const maxBaseline = 60 * Math.max(meta.width, meta.height) / 720 * meta.baselinePerPixel;
+  const sepPx = 1.5;
+  const cuts1 = computeCuts(z, meta.width, meta.height, meta.fx, maxBaseline, sepPx);
+  const mesh = makeIndexBuffer(buildIndices(cuts1, meta.width, meta.height, null));
+  let hiddenMesh = null;
+  if (hidden) {
+    // 第二层**不切断边**：它是最小值传播出来的背景续接，本身连续，没有真遮挡边界。
+    // 之前按它自己的深度切过一次，被断边和掩膜边界各啃掉一圈，覆盖率反降。
+    // 掩膜外扩 2px，让三角形够得到带的边缘（三顶点全在掩膜内才发射）。
+    const noCuts = {
+      cutRight: new Uint8Array(meta.height * (meta.width - 1)),
+      cutDown: new Uint8Array((meta.height - 1) * meta.width),
+    };
+    const grown = new Uint8Array(hidden.maskData);
+    for (let pass = 0; pass < 2; pass++) {
+      const src = new Uint8Array(grown);
+      for (let y = 0; y < meta.height; y++) for (let x = 0; x < meta.width; x++) {
+        if (src[y * meta.width + x] > 127) continue;
+        const near = (x > 0 && src[y * meta.width + x - 1] > 127) ||
+                     (x < meta.width - 1 && src[y * meta.width + x + 1] > 127) ||
+                     (y > 0 && src[(y - 1) * meta.width + x] > 127) ||
+                     (y < meta.height - 1 && src[(y + 1) * meta.width + x] > 127);
+        if (near) grown[y * meta.width + x] = 255;
+      }
+    }
+    hiddenMesh = makeIndexBuffer(buildIndices(noCuts, meta.width, meta.height, grown));
+  }
+  // 软 α 与自遮挡判定要在**第一次去污之前**就位（覆盖率是去污同一遍算出来的），
+  // 所以这里单独取一次，不能等到下面 `state.inspect` 那一批。缺文件就退回反解式，
+  // 但要在界面上说清楚是哪一档在起作用，不能静默降级。
+  const grabGray = async (url, smooth = true) => {
+    try {
+      const r = await fetch(url + bust, { cache: "no-store" });
+      if (!r.ok) return null;
+      const bm = await createImageBitmap(await r.blob());
+      const oc = new OffscreenCanvas(meta.width, meta.height);
+      const cx3 = oc.getContext("2d");
+      cx3.imageSmoothingEnabled = smooth;
+      cx3.drawImage(bm, 0, 0, meta.width, meta.height);
+      const rgba = cx3.getImageData(0, 0, meta.width, meta.height).data;
+      const g = new Uint8Array(meta.width * meta.height);
+      for (let i = 0; i < g.length; i++) g[i] = rgba[i * 4];
+      return g;
+    } catch (e) { return null; }
+  };
+  const matteSoftPx = await grabGray(`../assets/${meta.scene}/matte_soft.png`);
+  // 码值图必须最近邻：85/170/255 之间插值出来的中间码会被读成别的判定
+  const selfoccPx = await grabGray(`${geoBase}/selfocc_code${vt}.png`, false)
+                 || await grabGray(`${geoBase}/selfocc_code.png`, false);
+
+  // 剪影去污按当前档位重传第一层颜色纹理。切换档位时只走这一步，不重建网格。
+  state.applyDecon = (layers) => {
+    const bg = (hidden && document.getElementById("alphaEdge").checked)
+      ? { colorPixels: state.colorPixels, hiddenRgba: state.hiddenRgba,
+          hiddenMask: hidden.maskData,
+          matteSoft: matteSoftPx, selfocc: selfoccPx,
+          softOn: document.getElementById("softAlpha").checked,
+          unmixOn: document.getElementById("bgUnmix").checked,
+          softK: Number(document.getElementById("softK").value) }
+      : null;
+    const px = decontaminate(state.colorPixels, z, cuts1, meta.width, meta.height,
+                             layers, sepPx / Math.max(meta.fx * maxBaseline, 1e-9), bg);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, colorTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, meta.width, meta.height, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(px.buffer));
+    let part = 0, zero = 0, sum = 0;
+    for (let i = 3; i < px.length; i += 4) {
+      if (px[i] < 250) { part++; sum += px[i]; }
+      if (px[i] < 8) zero++;
+    }
+    state.alphaStats = { partial: part, zero, meanPartial: part ? sum / part / 255 : 1,
+                         ratio: part / (meta.width * meta.height),
+                         // 覆盖率是**哪来的**必须能读出来，否则"软 α 开了"和"软 α 生效了"
+                         // 分不开——缺 matte_soft.png 时前者为真、后者为假。
+                         src: bg ? bg.source : null,
+                         hasMatte: !!matteSoftPx, hasSelfocc: !!selfoccPx };
+  };
+  state.applyDecon(state.decon);   // 无条件跑一次：覆盖率也写在这张纹理的 alpha 里
+
+  const boundary = boundarySamples(cuts1, z, meta.width, meta.height);
+  const boundaryTex = mkTex(6, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, meta.width, meta.height, 0, gl.RED, gl.UNSIGNED_BYTE, boundary);
+  gl.uniform1i(U(splatProg, "uBoundary"), 6);
+  console.log(`断边 ${cuts1.cuts} 条 (${(100 * cuts1.cuts / (2 * meta.width * meta.height)).toFixed(2)}%)，` +
+              `三角 ${(mesh.count / 3000).toFixed(0)}k，边界样本 ${boundary.reduce((a, b) => a + (b > 0), 0)}`);
+
+  state.data = { meta, count: meta.width * meta.height, maxDev, spanInv, hidden, colorTex, depthTex,
+                 mesh, hiddenMesh, z };
+
+  // 诊断视图的数据源。补全区域（送进模型的掩膜）与最终合成用的带**不是一回事**，
+  // 必须单独取，否则看不出"排除前景"到底排到了哪；遮挡物分割则来自 SAM3∪matte。
+  state.inspect = { band: null, paint: null, occl: null, hcolor: state.hiddenRgba || null };
+  const grab = async (url, smooth = true) => {
+    try {
+      const r = await fetch(url + bust, { cache: "no-store" });
+      if (!r.ok) return null;
+      const bm = await createImageBitmap(await r.blob());
+      const oc = new OffscreenCanvas(meta.width, meta.height);
+      const cx = oc.getContext("2d");
+      // 尺寸不一致时 drawImage 默认双线性，会在硬边两侧造出本不存在的中间值。
+      // 量"这张图有多软"的档位必须关掉它，否则测的是缩放器不是模型。
+      cx.imageSmoothingEnabled = smooth;
+      cx.drawImage(bm, 0, 0, meta.width, meta.height);
+      const rgba = cx.getImageData(0, 0, meta.width, meta.height).data;
+      const g = new Uint8Array(meta.width * meta.height);
+      for (let i = 0; i < g.length; i++) g[i] = rgba[i * 4];
+      return g;
+    } catch (e) { return null; }
+  };
+  state.inspect.band = await grab(`${geoBase}/hidden_mask${vt}.png`);
+  state.inspect.paint = await grab(`${geoBase}/hidden_paint${vt}.png`);
+  state.inspect.occl = await grab(`../assets/${meta.scene}/occluders.png`);
+  // 软 α（`build_soft_matte.py`）：BiRefNet_lite 未经硬化的原生覆盖率，成品分辨率。
+  // 与它并列取一份 `matte.png`，两档用同一套配色，切换即可看出被硬化丢掉了多少。
+  // `matte.png` 在 8 个场景上还是 long-edge 512 时代的旧尺寸，`grab` 会拉到几何分辨率。
+  state.inspect.matteSoft = await grab(`../assets/${meta.scene}/matte_soft.png`);
+  state.inspect.matteHard = await grab(`../assets/${meta.scene}/matte.png`, false);
+  // 结构档（D189）的两个新中间量。只有 _str 变体有，别的档缺文件 → 画斜纹。
+  state.inspect.structConf = await grab(`${geoBase}/struct_conf${vt}.png`);
+  state.inspect.bandSrc = await grab(`${geoBase}/band_src${vt}.png`, false);
+  // 自遮挡决策图：码值 0=非带 / 85=同一物体（保守）/ 170=不同物体（激进）/ 255=遮挡侧无实例。
+  // 两遍补全的变体各带一份**这次构建实际用的**判定，优先取它，免得看到的是别的参数下的图。
+  state.inspect.selfocc = await grab(`${geoBase}/selfocc_code${vt}.png`)
+                       || await grab(`${geoBase}/selfocc_code.png`);
+  // 补全模型的**原始输出**（洞内全保留，没被钳回原图）。看不到它就永远只能猜
+  // "模型到底补出了什么"——`hidden_color` 带外逐像素等于原图，诊断视图里全是原图。
+  const grabRGBA = async (url) => {
+    try {
+      const r = await fetch(url + bust, { cache: "no-store" });
+      if (!r.ok) return null;
+      const bm = await createImageBitmap(await r.blob());
+      const oc = new OffscreenCanvas(meta.width, meta.height);
+      const cx = oc.getContext("2d");
+      cx.drawImage(bm, 0, 0, meta.width, meta.height);
+      return new Uint8ClampedArray(cx.getImageData(0, 0, meta.width, meta.height).data);
+    } catch (e) { return null; }
+  };
+  state.inspect.rawAggr = await grabRGBA(`${geoBase}/hidden_raw_aggr${vt}.png`)
+                       || await grabRGBA(`${geoBase}/hidden_raw${vt}.png`);
+  state.inspect.rawCons = await grabRGBA(`${geoBase}/hidden_raw_cons${vt}.png`);
+  // 模型的**实际输入**：Big-LaMa 的 ONNX 图内部做 img*(1−mask)，把洞内像素换成随机
+  // 噪声后输出逐位不变（实测 max diff 0.000000），所以它看到的就是"洞被置零的图"。
+  // 这两档由掩膜与原图在客户端合成，保证与实际送进模型的那一张一致。
+  state.inspect.paintAggr = await grab(`${geoBase}/hidden_paint_aggr${vt}.png`)
+                         || await grab(`${geoBase}/hidden_paint${vt}.png`);
+  state.inspect.paintCons = await grab(`${geoBase}/hidden_paint_cons${vt}.png`);
+  state.inspectKey = null;
+
+  state.scene = name; state.view = { x: 0, y: 0 };
+  resize();
+}
+
+function resize() {
+  if (!state.data) return;
+  const stage = document.getElementById("stage");
+  const dpr = window.devicePixelRatio || 1;
+  const { width: iw, height: ih } = state.data.meta;
+  const scale = Math.min((stage.clientWidth || iw) / iw, (stage.clientHeight || ih) / ih);
+  canvas.style.width = `${iw * scale}px`; canvas.style.height = `${ih * scale}px`;
+  canvas.width = Math.max(1, Math.round(iw * scale * dpr));
+  canvas.height = Math.max(1, Math.round(ih * scale * dpr));
+}
+window.addEventListener("resize", resize);
+
+function softClamp(v) {
+  const len = Math.hypot(v.x, v.y);
+  if (len < 1e-6) return { x: 0, y: 0 };
+  const c = Math.min(Math.tanh(len * 1.2) / Math.tanh(1.2), 1);
+  return { x: v.x / len * c, y: v.y / len * c };
+}
+canvas.addEventListener("pointermove", e => {
+  const r = canvas.getBoundingClientRect();
+  state.view = softClamp({ x: ((e.clientX - r.left) / r.width - 0.5) * 2, y: ((e.clientY - r.top) / r.height - 0.5) * 2 });
+});
+document.getElementById("recenter").onclick = () => { state.view = { x: 0, y: 0 }; };
+document.getElementById("span").oninput = e => document.getElementById("spanVal").textContent = e.target.value;
+document.getElementById("cap").oninput = e =>
+  document.getElementById("capVal").textContent = Number(e.target.value).toFixed(1);
+document.getElementById("inspectMix").oninput = e =>
+  document.getElementById("inspectMixVal").textContent = Number(e.target.value).toFixed(2);
+document.getElementById("ps").oninput = e => document.getElementById("psVal").textContent = Number(e.target.value).toFixed(1);
+document.getElementById("fill").oninput = e => document.getElementById("fillVal").textContent = e.target.value;
+document.getElementById("decon").oninput = e => {
+  state.decon = Number(e.target.value);
+  document.getElementById("deconVal").textContent = e.target.value;
+  // 去污是对第一层颜色纹理的重写，必须从原始像素重算，不能在上一档结果上叠加
+  if (state.applyDecon) state.applyDecon(state.decon);
+};
+// 覆盖率写在同一张纹理的 alpha 里，开关切换后必须重算重传
+for (const id of ["alphaEdge", "softAlpha", "bgUnmix"]) {
+  document.getElementById(id).onchange = () => {
+    if (state.applyDecon) state.applyDecon(state.decon);
+  };
+}
+document.getElementById("softK").oninput = e => {
+  document.getElementById("softKVal").textContent = e.target.value;
+  if (state.applyDecon) state.applyDecon(state.decon);
+};
+
+// **缺数据时必须显式报错，绝不静默回退成原图。**
+// 2026-08-11 连着栽了两次：`hidden_color` 被钳回原图 → 诊断视图里全是原图；
+// 修好之后，选「产品（无后缀）」时 `hidden_raw_*.png` 不存在 → 又退回原图，
+// 界面上没有任何提示，看起来就像"补全把前景原样补了出来"。
+// 判据：诊断视图的职责是**显示中间量**，显示不出来就该说显示不出来。
+function inspectMissingHint(kind) {
+  return kind === "input" ? "hidden_paint_aggr<后缀>.png / hidden_paint<后缀>.png"
+       : kind === "inputCons" ? "hidden_paint_cons<后缀>.png（只有 --dual-pass 的变体才有）"
+       : kind === "rawAggr" ? "hidden_raw_aggr<后缀>.png / hidden_raw<后缀>.png"
+       : kind === "rawCons" ? "hidden_raw_cons<后缀>.png（只有 --dual-pass 的变体才有）"
+       : kind === "selfocc" ? "selfocc_code<后缀>.png"
+       : kind === "paint" ? "hidden_paint<后缀>.png"
+       : kind === "occl" ? "assets/<场景>/occluders.png"
+       : kind === "matteSoft" ? "assets/<场景>/matte_soft.png（跑 build_soft_matte.py 生成）"
+       : kind === "matteHard" ? "assets/<场景>/matte.png"
+       : kind === "structConf" ? "struct_conf<后缀>.png（只有 _str 档有）"
+       : kind === "bandSrc" ? "band_src<后缀>.png（只有 _str 档有）"
+       : kind === "band" ? "hidden_mask<后缀>.png"
+       : "该变体的中间量";
+}
+
+// 诊断视图：把中间量在源分辨率上合成成一张 RGBA，直接铺满画布。
+// 用 CPU 合成而不是写一堆着色器——这些量的可视化规则各不相同（伪彩、叠色、掩膜描边），
+// 用 JS 表达最直接，且只在切换档位时算一次。
+function buildInspect(kind, mix) {
+  const d = state.data, m = d.meta, w = m.width, h = m.height;
+  const base = state.colorPixels;
+  const out = new Uint8ClampedArray(w * h * 4);
+  state.inspectNote = null;   // 只有个别档位有附注，切档时必须清掉，不能留上一档的数
+  const put = (i, r, g, b) => { out[i*4]=r; out[i*4+1]=g; out[i*4+2]=b; out[i*4+3]=255; };
+  const overlay = (bits, col) => {
+    for (let i = 0; i < w * h; i++) {
+      const on = bits && bits[i] > 127;
+      for (let c = 0; c < 3; c++)
+        out[i*4+c] = on ? base[i*4+c] * (1-mix) + col[c] * mix : base[i*4+c] * 0.55;
+      out[i*4+3] = 255;
+    }
+  };
+  if (kind === "depth" || kind === "hdepth") {
+    const z = kind === "depth" ? d.z : (d.hidden ? d.hidden.z : d.z);
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < w*h; i++) { const v = 1/Math.max(z[i],1e-6); if (v<lo) lo=v; if (v>hi) hi=v; }
+    for (let i = 0; i < w*h; i++) {
+      const t = Math.min(1, Math.max(0, (1/Math.max(z[i],1e-6) - lo) / Math.max(hi-lo,1e-9)));
+      // turbo 风格的简化伪彩：近=暖，远=冷
+      put(i, 255*Math.min(1,Math.max(0,1.6*t-0.3)),
+             255*Math.min(1,Math.max(0,1.5*Math.sin(Math.PI*t))),
+             255*Math.min(1,Math.max(0,1.3-1.8*t)));
+    }
+  } else if (kind === "hcolor" || kind === "rawAggr" || kind === "rawCons") {
+    const px = kind === "hcolor" ? state.inspect.hcolor : state.inspect[kind];
+    if (!px) return null;          // 缺数据一律不画，绝不退回原图（见 buildInspect 上方注释）
+    for (let i = 0; i < w*h; i++) put(i, px[i*4], px[i*4+1], px[i*4+2]);
+  } else if (kind === "input" || kind === "inputCons") {
+    const pm = kind === "input" ? state.inspect.paintAggr : state.inspect.paintCons;
+    if (!pm) return null;
+    for (let i = 0; i < w*h; i++) {
+      const hole = pm[i] > 127;
+      put(i, hole ? 0 : base[i*4], hole ? 0 : base[i*4+1], hole ? 0 : base[i*4+2]);
+    }
+  } else if (kind === "matteSoft" || kind === "matteHard") {
+    // 覆盖率专用配色：两个极端压成暗底（前景加一点蓝，好认里外），**只有中间值上彩**
+    // ——青→黄→红。这一档回答的就是"软过渡有多宽、在哪儿"，纯 0/1 的地方不该抢眼。
+    const px = kind === "matteSoft" ? state.inspect.matteSoft : state.inspect.matteHard;
+    if (!px) return null;
+    let mid = 0;
+    for (let i = 0; i < w * h; i++) {
+      const a = px[i] / 255;
+      if (a <= 0.05) { put(i, base[i*4]*0.28, base[i*4+1]*0.28, base[i*4+2]*0.28); }
+      else if (a >= 0.95) { put(i, base[i*4]*0.28, base[i*4+1]*0.28, base[i*4+2]*0.28 + 60); }
+      else {
+        mid++;
+        const t = (a - 0.05) / 0.90;
+        if (t < 0.5) { const u = t * 2; put(i, 255*u, 220 + 10*u, 255*(1-u)); }
+        else { const u = (t - 0.5) * 2; put(i, 255, 230*(1-u) + 40*u, 40*u); }
+      }
+    }
+    state.inspectNote = `中间值 α（0.05–0.95）${(100*mid/(w*h)).toFixed(2)}% 全图，${mid} px`;
+  } else if (kind === "structConf") {
+    // 相干度：0=平坦（保持 _mix）→ 1=强结构（结构档接管）。0.25/0.55 是接管的软阈值，
+    // 用两条等值色标出来，好判断"这一处到底有没有被结构档动过"。
+    const px = state.inspect.structConf;
+    if (!px) return null;
+    let hi = 0;
+    for (let i = 0; i < w * h; i++) {
+      const c = px[i] / 255;
+      if (c < 0.25) { put(i, base[i*4]*0.3, base[i*4+1]*0.3, base[i*4+2]*0.3); }
+      else if (c < 0.55) { const u = (c - 0.25) / 0.30; put(i, 40, 120 + 135*u, 255 - 155*u); }
+      else { hi++; put(i, 255, 230 - 190*Math.min(1,(c-0.55)/0.45), 40); }
+    }
+    state.inspectNote = `相干度 >0.55（结构档完全接管）${(100*hi/(w*h)).toFixed(2)}% 全图`;
+  } else if (kind === "bandSrc") {
+    const px = state.inspect.bandSrc;
+    if (!px) return null;
+    for (let i = 0; i < w * h; i++) {
+      if (px[i] > 127) put(i, base[i*4], base[i*4+1], base[i*4+2]);          // 允许当来源
+      else put(i, base[i*4]*0.25, base[i*4+1]*0.25, base[i*4+2]*0.25);       // 已排除
+    }
+  } else if (kind === "selfocc") {
+    // 三态码值各上一色。带很窄（十几像素），所以不做半透明混合，直接盖实色——
+    // 这一档看的是"判定"而不是"画面"，盖住底下的内容是有意的。
+    const px = state.inspect.selfocc;
+    if (!px) return null;
+    for (let i = 0; i < w * h; i++) {
+      const c = px[i];
+      if (c === 0) { for (let k = 0; k < 3; k++) out[i*4+k] = base[i*4+k] * 0.45; out[i*4+3] = 255; }
+      else if (c < 128) put(i, 80, 255, 80);        // 85  同一物体 -> 保守
+      else if (c < 220) put(i, 255, 60, 60);        // 170 不同物体 -> 激进
+      else put(i, 80, 190, 255);                    // 255 遮挡侧无实例，规则无意见
+    }
+  } else {
+    const src = kind === "band" ? state.inspect.band
+              : kind === "paint" ? state.inspect.paint
+              : state.inspect.occl;
+    if (!src) return null;         // 同上：掩膜缺失时不画"整幅压暗的原图"冒充结果
+    overlay(src, kind === "band" ? [255,0,255] : kind === "paint" ? [255,190,0] : [0,255,180]);
+  }
+  return out;
+}
+
+// 覆盖率的**出处**要一直挂在屏幕上。此前 `alphaStats` 算了却从不显示，
+// 于是"软边界到底覆盖了多少剪影"这个核心问题只能靠离线脚本回答（D164 的
+// 0.99% 就是这么错过去的）。缺 matte_soft.png 时这里必须写出来，不能只是少两个数。
+function alphaLine() {
+  const s = state.alphaStats;
+  if (!s) return "";
+  const src = s.src;
+  if (!src) return `覆盖率 关（层间 alpha 混合未开）\n`;
+  const pct = v => (100 * v / Math.max(s.partial, 1)).toFixed(0);
+  return `剪影覆盖 ${src.edgeSoft}/${src.edgeTotal}`
+       + `（${(100 * src.edgeSoft / Math.max(src.edgeTotal, 1)).toFixed(1)}%）`
+       + `　全图 ${s.partial} px（${(100 * s.ratio).toFixed(2)}%）均值 ${s.meanPartial.toFixed(2)}`
+       + `　软α ${src.fromMatte}（${pct(src.fromMatte)}%）/ 反解 ${src.fromSolve}（${pct(src.fromSolve)}%）\n`
+       + `解混 ${src.unmixed} px　带内被 matte 否决 ${src.blocked} px`
+       + (s.hasMatte ? "" : "　⚠ 缺 matte_soft.png，软 α 未生效")
+       + (s.hasSelfocc ? "" : "　⚠ 缺 selfocc_code.png，自遮挡带未豁免") + `\n`;
+}
+
+function renderView() {
+  const d = state.data;
+  if (!d) return;
+  const m = d.meta;
+  const inspectKind = document.getElementById("inspect").value;
+  if (inspectKind !== "none") {
+    const mix = Number(document.getElementById("inspectMix").value);
+    const key = inspectKind + "|" + mix + "|" + state.scene + "|" + state.hiddenVariant;
+    if (state.inspectKey !== key) {
+      state.inspectKey = key;
+      if (!state.inspectTex) state.inspectTex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE7);
+      gl.bindTexture(gl.TEXTURE_2D, state.inspectTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const px = buildInspect(inspectKind, mix);
+      if (!px) {
+        // 缺数据：画成品红/黑斜纹，任何情况下都不可能被误认成画面内容
+        const warn = new Uint8ClampedArray(m.width * m.height * 4);
+        for (let y = 0; y < m.height; y++)
+          for (let x = 0; x < m.width; x++) {
+            const i = (y * m.width + x) * 4, on = ((x + y) >> 3) & 1;
+            warn[i] = on ? 220 : 20; warn[i+1] = on ? 0 : 0;
+            warn[i+2] = on ? 190 : 30; warn[i+3] = 255;
+          }
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, m.width, m.height, 0,
+                      gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(warn.buffer));
+        state.inspectMissing = inspectMissingHint(inspectKind);
+      } else {
+        state.inspectMissing = null;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, m.width, m.height, 0,
+                      gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(px.buffer));
+      }
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+    gl.useProgram(blitProg);
+    gl.activeTexture(gl.TEXTURE7);
+    gl.bindTexture(gl.TEXTURE_2D, state.inspectTex);
+    gl.uniform1i(U(blitProg, "uTex"), 7);
+    gl.bindVertexArray(emptyVao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    document.getElementById("diag").textContent =
+      `诊断视图：${document.getElementById("inspect").selectedOptions[0].textContent}\n` +
+      `${m.width}×${m.height}　场景 ${state.scene}${state.hiddenVariant || "（产品）"}` +
+      (state.inspectNote ? `\n${state.inspectNote}` : "") +
+      (state.inspectMissing ? `\n⚠ 这一档没有数据：缺 ${state.inspectMissing}\n`
+                            + `　斜纹＝没有可显示的中间量，不是画面内容` : "");
+    document.getElementById("err").textContent = state.inspectMissing
+      ? `诊断视图「${document.getElementById("inspect").selectedOptions[0].textContent}」`
+        + `在变体「${state.hiddenVariant || "产品（无后缀）"}」下没有数据：缺 ${state.inspectMissing}`
+      : "";
+    return;
+  }
+  // 物理基线上限：同一个像素视差在不同场景对应的真实相机位移相差一个数量级
+  // （48px 在人像场景是 5cm，在 06_statue 是 51cm）。单图几何撑不起半米的位移，
+  // 04_traffic / 06_statue 的拉扯就是这么来的。因此以**米**设上限，
+  // 像素视差随场景自动变化——人像因此反而能跑到 60–77px，比原来的固定上限更大。
+  const bpp720 = m.baselinePerPixel * Math.max(m.width, m.height) / 720;
+  let spanPx720 = Number(document.getElementById("span").value);
+  const capOn = document.getElementById("capBaseline").checked;
+  const capM = Number(document.getElementById("cap").value) / 100;
+  const capPx = capM / Math.max(bpp720, 1e-12);
+  if (capOn) spanPx720 = Math.min(spanPx720, capPx);
+  // **硬钳到资产自己的带宽预算**。第二层是按某个最大视差烘出来的，渲染超过这个值时
+  // 遮挡带根本没建那么宽，直接露出黑洞和拉丝——2026-08-11 实际发生过：资产按 4.5cm
+  // 重建（05 只有 13px 预算），查看器默认却还停在 16cm/45px，看到的全是超预算的伪影。
+  // 预算写在 meta.hiddenLayer.maxSpanPx720 里，没有理由靠人记。
+  const budget = d.hidden && m.hiddenLayer ? Number(m.hiddenLayer.maxSpanPx720) : Infinity;
+  const overBudget = spanPx720 > budget + 0.5;
+  if (overBudget) spanPx720 = budget;
+  const pointScale = Number(document.getElementById("ps").value);
+  const targetNative = spanPx720 * Math.max(m.width, m.height) / 720;
+  const baseline = targetNative * m.baselinePerPixel;
+  document.getElementById("spanEff").textContent =
+    `→ 实际 ${spanPx720.toFixed(0)}px / ${(100 * baseline).toFixed(1)}cm` +
+    (Number.isFinite(budget) ? `　资产预算 ${budget.toFixed(0)}px` : "") +
+    (overBudget ? "　【已钳到资产预算】"
+      : (capOn && capPx < Number(document.getElementById("span").value)
+          ? `（受基线上限压制，本场景上限 ${capPx.toFixed(0)}px）` : ""));
+
+  // 取景内缩：按**最大基线**（半径 1、最坏方向）一次算定，与视点方向和半径无关，
+  // 因此沿圆周倾斜时不会出现缩放呼吸（HEAD 的 SpatialSourceLock 同语义）。
+  const autoMargin = document.getElementById("autoMargin").checked;
+  const shiftX = m.fx * baseline * d.maxDev / m.width;
+  const shiftY = m.fy * baseline * d.maxDev / m.height;
+  const computed = Math.min(0.15, Math.max(shiftX, shiftY) + 0.004);  // 等比 + 采样保护
+  const marginEl = document.getElementById("margin");
+  if (autoMargin) marginEl.value = String(computed.toFixed(3));
+  const margin = autoMargin ? computed : Number(marginEl.value);
+  document.getElementById("marginVal").textContent = margin.toFixed(3) + (autoMargin ? " 自动" : "");
+
+  const tx = state.view.x * baseline, ty = state.view.y * baseline;
+  const W = canvas.width, H = canvas.height;
+  const SS = Number(document.getElementById('ss').value);   // 超采样倍数
+  ensureTarget(W * SS, H * SS);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo.handle);
+  gl.viewport(0, 0, W * SS, H * SS);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
+  // 层间 alpha 混合（D164）。第二层先画（覆盖率恒为 1），第一层后画、按剪影覆盖率
+  // 混合上去，于是层界从硬台阶变成 1px 的过渡。RGB 走标准 over，alpha 用 ONE 累加，
+  // 这样缓冲里是**预乘 alpha**，降采样与解析时按 Σrgb/Σa 反预乘即可（见 FILL_FS）。
+  const blend = document.getElementById("alphaEdge").checked;
+  if (blend) {
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  } else {
+    gl.disable(gl.BLEND);
+  }
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(splatProg);
+  gl.uniform1f(U(splatProg, "uAlphaEdge"), blend ? 1 : 0);
+  gl.uniform2f(U(splatProg, "uTranslate"), tx, ty);
+  gl.uniform1f(U(splatProg, "uMargin"), margin);
+  gl.uniform1f(U(splatProg, "uPointSize"), pointScale * W * SS / m.width / (1 - 2 * margin));
+
+  const useMesh = document.getElementById("primitive").value === "mesh";
+  // 网格模式下顶点着色器不需要掩膜剔除：第二层的三角形在建索引时就只发射掩膜内的。
+  const useHidden = d.hidden && document.getElementById("hidden").checked;
+  const drawLayer = (meshBuf, maskFlag) => {
+    if (useMesh) {
+      gl.uniform1f(U(splatProg, "uUseMask"), 0);
+      gl.bindVertexArray(meshBuf.vao);
+      gl.drawElements(gl.TRIANGLES, meshBuf.count, gl.UNSIGNED_INT, 0);
+    } else {
+      gl.uniform1f(U(splatProg, "uUseMask"), maskFlag);
+      gl.bindVertexArray(emptyVao);
+      gl.drawArrays(gl.POINTS, 0, d.count);
+    }
+  };
+
+  // 第二层（隐藏背景）先画：它整体在第一层之后，深度缓冲保证只在第一层让开时才可见。
+  // 与 D149 屏幕空间填充的本质区别——它在 3D 里，任何视角一致，不随视差拉伸，不逐帧重算。
+  const tint = document.getElementById("tint").value;
+  if (useHidden) {
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, d.hidden.hColor);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, d.hidden.hDepth);
+    gl.uniform1f(U(splatProg, "uTint"), tint === "hidden" ? 1 : 0);
+    drawLayer(d.hiddenMesh, 1);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, d.colorTex);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, d.depthTex);
+  }
+  gl.uniform1f(U(splatProg, "uTint"), 0);
+  drawLayer(d.mesh, 0);
+
+  // 第三遍：断边相邻样本的 splat。连通网格跨断边不发射三角形，两侧各缺一排覆盖；
+  // 这一遍只补那一排，不参与其它区域（与 vNext11 的 BOUNDARY_SPLAT 同职责）。
+  if (useMesh && document.getElementById("splatPass").checked) {
+    gl.uniform1f(U(splatProg, "uUseMask"), 2);
+    gl.uniform1f(U(splatProg, "uTint"), tint === "splat" ? 1 : 0);
+    gl.uniform1f(U(splatProg, "uNoStretch"), 1);
+    gl.uniform1f(U(splatProg, "uPointSize"), 1.2 * W * SS / m.width / (1 - 2 * margin));
+    gl.bindVertexArray(emptyVao);
+    gl.drawArrays(gl.POINTS, 0, d.count);
+    gl.uniform1f(U(splatProg, "uTint"), 0);
+    gl.uniform1f(U(splatProg, "uNoStretch"), 0);
+  }
+
+  // 后处理两遍是全屏三角形，必须关掉混合，否则会把上一遍的结果再叠一次
+  gl.disable(gl.BLEND);
+  ensurePost(W, H);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, post.handle);
+  gl.viewport(0, 0, W, H);
+  gl.disable(gl.DEPTH_TEST);
+  gl.useProgram(fillProg);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, fbo.tex);
+  gl.uniform1i(U(fillProg, "uSplat"), 2);
+  gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, fbo.ndTex);
+  gl.uniform1i(U(fillProg, "uNd"), 8);
+  gl.uniform2f(U(fillProg, "uTexel"), 1 / (W * SS), 1 / (H * SS));
+  gl.uniform1f(U(fillProg, "uSS"), SS);
+  gl.uniform1f(U(fillProg, "uRadius"), Number(document.getElementById("fill").value));
+  gl.uniform1f(U(fillProg, "uMarkHoles"), document.getElementById("holes").checked ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(fxaaProg);
+  gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, post.tex);
+  gl.uniform1i(U(fxaaProg, "uImage"), 7);
+  gl.uniform2f(U(fxaaProg, "uTexel"), 1 / W, 1 / H);
+  gl.uniform1f(U(fxaaProg, "uEnable"), document.getElementById("fxaa").checked ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindVertexArray(null);
+
+  const deg = (Math.atan2(state.view.y, state.view.x) * 180 / Math.PI + 360) % 360;
+  document.getElementById("diag").textContent =
+    `θ ${deg.toFixed(0).padStart(3)}°  r ${Math.hypot(state.view.x, state.view.y).toFixed(2)}\n` +
+    `基线 ${(baseline * 100).toFixed(2)} cm  (目标 ${spanPx720} px@720)\n` +
+    `内缩 ${margin.toFixed(3)}${autoMargin ? " 自动" : " 手动"}  填充 ${document.getElementById("fill").value}px\n` +
+    `fx ${m.fx.toFixed(1)} px  支点 Z ${m.pivotZ.toFixed(3)} m\n` +
+    `${m.width}×${m.height} · ${useMesh ? (d.mesh.count / 3000).toFixed(0) + "k 三角" : (d.count / 1000).toFixed(0) + "k 点"} · 第二层 ` +
+      `${d.hidden ? (useHidden ? "开 " + (m.hiddenLayer ? (m.hiddenLayer.maskRatio * 100).toFixed(1) + "%" : "") : "关") : "无"}\n` +
+    alphaLine() + `${m.model}`;
+}
+
+function frame(tms) {
+  if (state.data) {
+    if (document.getElementById("autoOrbit").checked) {
+      const t = tms / 1000, w = 0.9;
+      state.view = { x: Math.cos(t * w), y: Math.sin(t * w) };
+    }
+    renderView();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+window.__shot = async function (sceneName, deg, radius = 1, name = "shot.png", longEdge = 1080, variant) {
+  const wantVt = variant !== undefined ? variant : state.hiddenVariant;
+  if ((sceneName && sceneName !== state.scene) || wantVt !== state.hiddenVariant) {
+    await loadScene(sceneName || state.scene, wantVt);
+  }
+  const m = state.data.meta;
+  const cs = longEdge / Math.max(m.width, m.height);
+  canvas.width = Math.round(m.width * cs); canvas.height = Math.round(m.height * cs);
+  const a = deg * Math.PI / 180;
+  state.view = { x: radius * Math.cos(a), y: radius * Math.sin(a) };
+  renderView();
+  const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+  const ok = (await fetch(`http://localhost:8643/save?name=${encodeURIComponent("diag/" + name)}`, { method: "POST", body: blob })).ok;
+  return `${name} ${canvas.width}x${canvas.height} ok=${ok}`;
+};
+
+(async () => {
+  try {
+    const index = await (await fetch("../qa/moge-geometry/index.json")).json();
+    const sel = document.getElementById("scene");
+    for (const n of index.scenes) { const o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); }
+    sel.onchange = () => loadScene(sel.value).catch(e => document.getElementById("err").textContent = String(e));
+    const vsel = document.getElementById("hiddenVariant");
+    vsel.onchange = () => loadScene(state.scene, vsel.value)
+      .catch(e => document.getElementById("err").textContent = String(e));
+    const qs = new URLSearchParams(location.search);
+    const want = qs.get("scene");
+    const initial = want && index.scenes.includes(want) ? want : index.scenes[0];
+    // 不带 ?variant= 时用下拉框里标了 selected 的那一档（当前是 _str），
+    // 而不是硬编码空串——否则改了推荐档，直接打开页面看到的还是老的
+    const wantVt = qs.get("variant") ?? vsel.value;
+    vsel.value = wantVt;
+    await loadScene(initial, wantVt);
+    sel.value = initial;
+  } catch (e) {
+    document.getElementById("err").textContent = "加载失败：" + e;
+  }
+})();
+</script>
+</body>
+</html>

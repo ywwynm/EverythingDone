@@ -33,6 +33,10 @@ class SpatialDepthEngine(
         }
         SpatialRuntimeStore.ensureLoaded(context)
 
+        if (model.outputContract == SpatialDepthOutputContract.MOGE_POINT_MAP) {
+            return generateMoge(bitmap, model, cancelled, onStage)
+        }
+
         onStage(Stage.PREPARING)
         val prepared = prepareInput(bitmap, model, cancelled)
         check(!cancelled.get()) { "任务已取消" }
@@ -68,6 +72,14 @@ class SpatialDepthEngine(
         bitmap.setPixels(pixels, 0, 64, 0, 0, 64, 48)
         return try {
             val cancelled = AtomicBoolean(false)
+            if (model.outputContract == SpatialDepthOutputContract.MOGE_POINT_MAP) {
+                // MoGe 走的是两输入四输出的 point map 路径，prepareInput/runModel 的方形
+                // 契约对它不成立；自检必须走同一条真实路径，否则等于没测。
+                val moge = generateMoge(bitmap, model, cancelled) {}
+                return moge.values.all { it.isFinite() } &&
+                    moge.intrinsics != null && moge.intrinsics.fx > 1f &&
+                    moge.metricDepth?.any { it.isFinite() && it > 0f } == true
+            }
             val prepared = prepareInput(bitmap, model, cancelled)
             val raw = runModel(model, prepared.input, cancelled)
             val result = SpatialDepthNormalizer.normalizeAndCrop(
@@ -84,6 +96,128 @@ class SpatialDepthEngine(
             result.values.all { it.isFinite() } && result.values.any { it > 0.05f }
         } finally {
             bitmap.recycle()
+        }
+    }
+
+    /**
+     * MoGe-2 的 point map 路径。与其余三个模型完全不同：
+     *
+     * - **两个输入**：`image [1,3,H,W]`（RGB 0..1、**按源图长宽比给，不做方形填充**）
+     *   与 `num_tokens` int64 标量；
+     * - **四个输出**：`points [1,H,W,3]` / `normal` / `mask` / `scale`；
+     * - 内参不在图里，由 [SpatialMogeGeometry] 从 point map 反解（D205）。
+     *
+     * 模型内部按 `num_tokens` 决定推理分辨率再上采样回输入尺寸，因此这里直接按渲染网格
+     * 尺度喂图即可，不必自己缩放到某个方形。
+     */
+    private fun generateMoge(
+        bitmap: Bitmap,
+        model: SpatialDepthModel,
+        cancelled: AtomicBoolean,
+        onStage: (Stage) -> Unit
+    ): SpatialDepthData {
+        onStage(Stage.PREPARING)
+        // 长边不超过 inputSize，两边对齐到 ViT patch（14）的倍数，且**保持长宽比**
+        val (width, height) = SpatialMogeGeometry.alignToPatchPreservingAspect(
+            bitmap.width, bitmap.height, model.inputSize
+        )
+        val scaled = if (width == bitmap.width && height == bitmap.height) {
+            bitmap
+        } else {
+            Bitmap.createScaledBitmap(bitmap, width, height, true)
+        }
+        val pixelCount = width * height
+        val pixels = IntArray(pixelCount)
+        scaled.getPixels(pixels, 0, width, 0, 0, width, height)
+        if (scaled !== bitmap) scaled.recycle()
+        val imageBuffer = ByteBuffer.allocateDirect(pixelCount * 3 * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        for (channel in 0..2) {
+            val shift = 16 - channel * 8
+            for (index in 0 until pixelCount) {
+                imageBuffer.put((((pixels[index] ushr shift) and 0xff) / 255f))
+            }
+        }
+        imageBuffer.rewind()
+        check(!cancelled.get()) { "任务已取消" }
+
+        onStage(Stage.INFERENCE)
+        val environment = SpatialOrtRuntime.environment(context)
+        val recovered = createSession(model).use { session ->
+            OnnxTensor.createTensor(
+                environment, imageBuffer,
+                longArrayOf(1, 3, height.toLong(), width.toLong())
+            ).use { image ->
+                OnnxTensor.createTensor(environment, java.lang.Long.valueOf(MOGE_NUM_TOKENS))
+                    .use { tokens ->
+                    session.run(
+                        mapOf(MOGE_IMAGE_INPUT to image, MOGE_TOKENS_INPUT to tokens)
+                    ).use { output ->
+                        check(!cancelled.get()) { "任务已取消" }
+                        val named = session.outputNames.toList()
+                        fun tensor(name: String): OnnxTensor {
+                            val at = named.indexOf(name)
+                            check(at >= 0) { "MoGe 输出缺少 $name" }
+                            return output[at] as OnnxTensor
+                        }
+                        val points = FloatArray(pixelCount * 3)
+                        tensor(MOGE_POINTS_OUTPUT).floatBuffer.get(points)
+                        val maskRaw = FloatArray(pixelCount)
+                        tensor(MOGE_MASK_OUTPUT).floatBuffer.get(maskRaw)
+                        val scaleValue = tensor(MOGE_SCALE_OUTPUT).floatBuffer.get(0)
+                        SpatialMogeGeometry.recover(
+                            points = points,
+                            mask = BooleanArray(pixelCount) { maskRaw[it] > 0.5f },
+                            scale = scaleValue,
+                            width = width,
+                            height = height
+                        )
+                    }
+                }
+            }
+        }
+        check(!cancelled.get()) { "任务已取消" }
+        check(recovered.sampleCount >= 16 && recovered.fx > 1f) {
+            "MoGe 未能反解出可用内参（有效点 ${recovered.sampleCount}、fx ${recovered.fx}）"
+        }
+
+        onStage(Stage.POST_PROCESSING)
+        // 归一化通路与其余模型一致：逆深度 → 远 0 近 1；米制量另行随行，不参与归一化。
+        val inverse = FloatArray(pixelCount) { index ->
+            val z = recovered.depth[index]
+            if (z.isFinite() && z > 1e-4f) 1f / z else 0f
+        }
+        return SpatialDepthNormalizer.normalizeFromInverseDepth(
+            inverseDepth = inverse,
+            width = width,
+            height = height,
+            closeRadius = closeRadius(model),
+            disparityContrast = model.disparityContrast,
+            metricDepth = recovered.depth,
+            intrinsics = SpatialDepthData.Intrinsics(
+                fx = recovered.fx, fy = recovered.fy,
+                cx = recovered.cx, cy = recovered.cy
+            )
+        )
+    }
+
+    /** ViT patch 是 14；两边对齐到它的倍数，避免模型内部再做一次非整数缩放。 */
+    private fun alignToPatch(value: Int): Int =
+        (value / MOGE_PATCH).coerceAtLeast(2) * MOGE_PATCH
+
+
+    /** 与 [runModel] 里同一套 session 参数；MoGe 路径是两输入四输出，不能复用 runModel。 */
+    private fun createSession(model: SpatialDepthModel): OrtSession {
+        SpatialRuntimeStore.ensureLoaded(context)
+        val environment = SpatialOrtRuntime.environment(context)
+        return OrtSession.SessionOptions().use { options ->
+            options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+            options.setInterOpNumThreads(1)
+            options.setIntraOpNumThreads(INFERENCE_THREADS)
+            environment.createSession(
+                SpatialModelStore.modelFile(context, model).absolutePath,
+                options
+            )
         }
     }
 
@@ -202,6 +336,16 @@ class SpatialDepthEngine(
         private const val SHARP_EDGE_CLOSE_RADIUS = 3
         private val IMAGENET_MEAN = floatArrayOf(0.485f, 0.456f, 0.406f)
         private val IMAGENET_STD = floatArrayOf(0.229f, 0.224f, 0.225f)
+
+        // MoGe-2 的输入输出名与 ViT patch。num_tokens 取官方建议区间(1200~2500)的中值：
+        // 它决定模型内部的推理分辨率，越大越细也越慢，端上先取中档。
+        private const val MOGE_IMAGE_INPUT = "image"
+        private const val MOGE_TOKENS_INPUT = "num_tokens"
+        private const val MOGE_POINTS_OUTPUT = "points"
+        private const val MOGE_MASK_OUTPUT = "mask"
+        private const val MOGE_SCALE_OUTPUT = "scale"
+        private const val MOGE_PATCH = 14
+        private const val MOGE_NUM_TOKENS = 1800L
 
         private fun closeRadius(model: SpatialDepthModel): Int =
             if (model.sharpDepthEdges) SHARP_EDGE_CLOSE_RADIUS else 0

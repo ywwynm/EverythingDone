@@ -72,7 +72,10 @@ data class SpatialModelCatalogEntry(
                 sha256.equals(it.sha256, ignoreCase = true) &&
                 minDeviceRamMb == it.minimumTotalRamMb &&
                 format == "onnx" &&
-                precision == "fp32"
+                // precision 是 catalog 与 App 之间的 ABI 标识，不能写死 "fp32"：
+                // MoGe-2 是两输入四输出的 point map 契约，与其余三个单图模型不兼容，
+                // 混用会让权重按错误的输入契约推理且不报错（D205）。
+                precision == it.outputContract.catalogPrecision
         }
     }
 }

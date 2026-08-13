@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>空间效果连续运动检查</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #090a0c; }
+    body { font: 14px/1.4 system-ui, sans-serif; color: #eee; }
+    #source { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    #stage { display: grid; grid-template-columns: 42% 58%; width: 100vw; height: calc(100vh - 36px); }
+    .panel { min-width: 0; min-height: 0; border-right: 1px solid #333; border-bottom: 1px solid #333; }
+    .right { display: grid; grid-template-rows: 45% 55%; min-width: 0; min-height: 0; }
+    canvas { display: block; width: 100%; height: 100%; background: #111; }
+    #status { height: 36px; padding: 8px 12px; color: #c8cdd4; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <video id="source" muted loop autoplay playsinline preload="auto"></video>
+  <main id="stage">
+    <section class="panel"><canvas id="full"></canvas></section>
+    <section class="right">
+      <div class="panel"><canvas id="face"></canvas></div>
+      <div class="panel"><canvas id="body"></canvas></div>
+    </section>
+  </main>
+  <footer id="status">加载中……</footer>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const video = document.querySelector('#source');
+    video.src = params.get('src') || '../qa/depth-chart-all-reframe-a1100-o5-z8-r100-48/00_original_single/orbit.mp4';
+    const status = document.querySelector('#status');
+    const strengthLabel = params.get('strength') || '最大强度 100%';
+    const angleLabel = params.get('angles') || '48 角度';
+    function parseCrop(name, fallback) {
+      const value = params.get(name);
+      if (!value) return fallback;
+      const numbers = value.split(',').map(Number);
+      return numbers.length === 4 && numbers.every(Number.isFinite) ? numbers : fallback;
+    }
+    const views = [
+      { canvas: document.querySelector('#full'), crop: null, label: params.get('label0') || '全图' },
+      { canvas: document.querySelector('#face'), crop: parseCrop('crop1', [135, 115, 300, 255]), label: params.get('label1') || '危险区域 1' },
+      { canvas: document.querySelector('#body'), crop: parseCrop('crop2', [70, 135, 430, 455]), label: params.get('label2') || '危险区域 2' },
+    ];
+
+    function fitCanvas(view) {
+      const rect = view.canvas.getBoundingClientRect();
+      const scale = Math.max(1, window.devicePixelRatio || 1);
+      view.canvas.width = Math.round(rect.width * scale);
+      view.canvas.height = Math.round(rect.height * scale);
+    }
+
+    function drawView(view) {
+      const ctx = view.canvas.getContext('2d');
+      const [sx, sy, sw, sh] = view.crop || [0, 0, video.videoWidth, video.videoHeight];
+      const cw = view.canvas.width;
+      const ch = view.canvas.height;
+      const scale = Math.min(cw / sw, ch / sh);
+      const dw = sw * scale;
+      const dh = sh * scale;
+      const dx = (cw - dw) / 2;
+      const dy = (ch - dh) / 2;
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
+      ctx.fillStyle = 'rgba(0,0,0,.72)';
+      ctx.fillRect(8, 8, Math.max(96, view.label.length * 19), 28);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px system-ui, sans-serif';
+      ctx.fillText(view.label, 16, 28);
+    }
+
+    function draw() {
+      if (video.readyState >= 2) {
+        views.forEach(drawView);
+        status.textContent = `${strengthLabel} ｜ ${angleLabel} ｜ ${video.currentTime.toFixed(3)} / ${video.duration.toFixed(3)} 秒 ｜ ${video.paused ? '已暂停' : '循环播放中'}`;
+      }
+      requestAnimationFrame(draw);
+    }
+
+    function resize() { views.forEach(fitCanvas); }
+    window.addEventListener('resize', resize);
+    video.addEventListener('loadedmetadata', async () => {
+      video.currentTime = 0;
+      try { await video.play(); } catch (_) { status.textContent = '点击页面开始播放'; }
+    });
+    document.addEventListener('click', () => video.play());
+    resize();
+    draw();
+  </script>
+</body>
+</html>

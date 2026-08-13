@@ -23,12 +23,27 @@ data class SpatialDepthData(
      * depth 型模型的未归一化逆深度裁剪副本（0 = 无穷远）。它保留模型输出的比例结构，
      * 但不代表米制尺度；几何构建只把尺度不变的比值作为遮挡证据。仅生成期使用，不落盘。
      */
-    val rawInverseDepth: FloatArray? = null
+    val rawInverseDepth: FloatArray? = null,
+    /**
+     * **米制**深度 Z（米），仅 [SpatialDepthOutputContract.MOGE_POINT_MAP] 一档提供。
+     * 有它才能做真透视重投影；其余模型只给相对深度，几何只能退化成屏幕空间位移场
+     * （D204）。与 [intrinsics] 同时为 null 或同时非 null。
+     */
+    val metricDepth: FloatArray? = null,
+    /** 像素单位相机内参，来源同上。 */
+    val intrinsics: Intrinsics? = null
 ) {
+    /** fx/fy/cx/cy 均以 [width]×[height] 这个分辨率下的像素为单位。 */
+    data class Intrinsics(val fx: Float, val fy: Float, val cx: Float, val cy: Float)
+
     init {
         require(width > 0 && height > 0)
         require(values.size == width * height)
         require(rawInverseDepth == null || rawInverseDepth.size == values.size)
+        require(metricDepth == null || metricDepth.size == values.size)
+        require((metricDepth == null) == (intrinsics == null)) {
+            "米制深度与内参必须同时存在——只有其一时下游无法做透视重投影"
+        }
     }
 }
 
@@ -112,6 +127,71 @@ object SpatialDepthNormalizer {
             defaultStrength = defaultStrength,
             sharpEdges = closeRadius > 0,
             rawInverseDepth = rawInverseDepth
+        )
+    }
+
+    /**
+     * MoGe-2 路径的归一化：输入已经是**内容分辨率**上的逆深度，不需要方形填充与裁剪。
+     * 归一化口径（p2/p98 稳健区间、闭运算、强边比、默认强度）与 [normalizeAndCrop]
+     * 完全一致，两条路产出的 `values` 因此可比。
+     *
+     * 米制深度与内参**不参与归一化**，原样随行——归一化会丢掉尺度，而那正是这一档
+     * 存在的理由（D204）。
+     */
+    fun normalizeFromInverseDepth(
+        inverseDepth: FloatArray,
+        width: Int,
+        height: Int,
+        closeRadius: Int = 0,
+        disparityContrast: Float = 1f,
+        metricDepth: FloatArray,
+        intrinsics: SpatialDepthData.Intrinsics
+    ): SpatialDepthData {
+        require(inverseDepth.size == width * height)
+        require(metricDepth.size == inverseDepth.size)
+
+        val values = inverseDepth.copyOf()
+        for (v in values) check(v.isFinite()) { "深度输出包含 NaN 或 Infinity" }
+        val rawInverseDepth = values.copyOf().also {
+            if (closeRadius > 0) grayscaleClose(it, width, height, closeRadius)
+        }
+
+        val sorted = values.copyOf()
+        sorted.sort()
+        val low = percentile(sorted, 0.02f)
+        val high = percentile(sorted, 0.98f)
+        val range = high - low
+        check(range.isFinite() && range > MIN_ROBUST_RANGE) {
+            "深度输出没有可用动态范围：$range"
+        }
+        for (index in values.indices) {
+            values[index] = ((values[index] - low) / range).coerceIn(0f, 1f)
+        }
+        if (closeRadius > 0) grayscaleClose(values, width, height, closeRadius)
+        if (disparityContrast < 1f) {
+            for (index in values.indices) {
+                values[index] =
+                    (0.5f + (values[index] - 0.5f) * disparityContrast).coerceIn(0f, 1f)
+            }
+        }
+
+        val edgeRatio = strongEdgeRatio(values, width, height)
+        val defaultStrength = when {
+            edgeRatio >= 0.16f -> 0.48f
+            edgeRatio >= 0.09f -> 0.60f
+            else -> 0.72f
+        }
+        return SpatialDepthData(
+            width = width,
+            height = height,
+            values = values,
+            robustRange = range,
+            strongEdgeRatio = edgeRatio,
+            defaultStrength = defaultStrength,
+            sharpEdges = closeRadius > 0,
+            rawInverseDepth = rawInverseDepth,
+            metricDepth = metricDepth,
+            intrinsics = intrinsics
         )
     }
 

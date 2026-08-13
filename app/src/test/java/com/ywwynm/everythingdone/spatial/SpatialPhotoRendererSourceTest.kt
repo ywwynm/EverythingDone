@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.spatial
 
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -184,7 +185,7 @@ class SpatialPhotoRendererSourceTest {
     }
 
     @Test
-    fun `旧v19与十代vNext必须使用独立schema和renderer标识`() {
+    fun `旧v19与各代vNext必须使用独立schema和renderer标识`() {
         assertTrue(derivativeStoreSource.contains("VNEXT1_SCHEMA_VERSION = 3"))
         assertTrue(derivativeStoreSource.contains("VNEXT2_SCHEMA_VERSION = 4"))
         assertTrue(derivativeStoreSource.contains("VNEXT3_SCHEMA_VERSION = 5"))
@@ -196,6 +197,8 @@ class SpatialPhotoRendererSourceTest {
         assertTrue(derivativeStoreSource.contains("VNEXT9_SCHEMA_VERSION = 11"))
         assertTrue(derivativeStoreSource.contains("VNEXT10_SCHEMA_VERSION = 12"))
         assertTrue(derivativeStoreSource.contains("VNEXT11_SCHEMA_VERSION = 13"))
+        assertTrue(derivativeStoreSource.contains("VNEXT12_SCHEMA_VERSION = 14"))
+        assertTrue(derivativeStoreSource.contains("VNEXT13_SCHEMA_VERSION = 15"))
         assertTrue(derivativeStoreSource.contains("SpatialLdiRenderer.LEGACY_V19"))
         assertTrue(
             derivativeStoreSource.contains("SpatialLdiRenderer.SURFACE_CHARTS_VNEXT1")
@@ -242,12 +245,94 @@ class SpatialPhotoRendererSourceTest {
         )
         assertTrue(
             vNextBuilderSource.contains(
-                "SpatialLdiRenderer.SURFACE_DEPTH_VNEXT11_ADAPTIVE_VISIBILITY_48PX"
+                "SpatialLdiRenderer.SURFACE_CHARTS_VNEXT12_ALL_SURFACE_NORMALIZED_36PX"
             )
         )
         assertTrue(imageViewerSource.contains("mSpatialStore.isCurrentGeneration(existing)"))
+        // `isCurrentGeneration` 指向**哪一代**是随版本走的世界状态，写死代号会在每次
+        // 迭代时假失败（2026-08-13 换到 VNEXT14 时就是这样）。这里只断言不变量：它必须
+        // 恰好点名一个 renderer；"是不是最新那一个"由
+        // SpatialDerivativeSchemaRegistrationTest 负责。
+        val currentGeneration = derivativeStoreSource
+            .substringAfter("fun isCurrentGeneration(manifest: Manifest)")
+            .substringBefore("fun retainedStrength(")
+        val named = Regex("""SpatialLdiRenderer\.(\w+)\.stableId""")
+            .findAll(currentGeneration).map { it.groupValues[1] }.toList()
+        assertEquals("isCurrentGeneration 必须恰好点名一个 renderer", 1, named.size)
+        assertTrue(
+            "isCurrentGeneration 点名了不存在的 renderer：${named.first()}",
+            SpatialLdiRenderer.entries.any { it.name == named.first() }
+        )
         assertTrue(derivativeStoreSource.contains("motionBasisSha256"))
         assertTrue(derivativeStoreSource.contains("viewEnvelopeAmplitudes"))
+        assertTrue(derivativeStoreSource.contains("surfaceChartLabelsSha256"))
+        assertTrue(derivativeStoreSource.contains("backgroundMotionBasisSha256"))
+        assertTrue(derivativeStoreSource.contains("depthSurfelSha256"))
+        assertTrue(derivativeStoreSource.contains("depth-surfels.f32z"))
+    }
+
+    @Test
+    fun `连续深度微表面必须逐像素目标空间遮挡且禁止整图warp降级`() {
+        val surfelPath = source.substringAfter("private fun drawDepthSurfels()")
+            .substringBefore("private fun drawChartAccumulationPass(")
+        assertTrue(surfelPath.contains("GLES20.glDrawArrays(GLES20.GL_POINTS"))
+        assertTrue(surfelPath.contains("GLES20.glEnable(GLES20.GL_DEPTH_TEST)"))
+        assertTrue(surfelPath.contains("GLES20.glDepthFunc(GLES20.GL_LEQUAL)"))
+        assertTrue(surfelPath.contains("targets.framebuffer"))
+        assertTrue(surfelPath.contains("targets.colorTexture"))
+        assertTrue(surfelPath.contains("drawStaticSourceFallback()") ||
+            source.contains("if (!drawDepthSurfels()) drawStaticSourceFallback()"))
+        assertFalse(surfelPath.contains("inverseMotionWarp("))
+        assertFalse(surfelPath.contains("drawSingleLayer("))
+        assertFalse(surfelPath.contains("drawVisibleSurface("))
+        assertTrue(source.contains("attribute float aMotionScalar;"))
+        assertTrue(source.contains("attribute float aSurfaceDepth;"))
+        assertTrue(source.contains("1.0 - 2.0 * aSurfaceDepth"))
+        assertTrue(source.contains("gl_FragCoord.x / uTargetSize.x"))
+        assertTrue(source.contains("occupied(left) * occupied(right)"))
+    }
+
+    @Test
+    fun `十三代人物运动只能来自连续深度而不是语义刚性层`() {
+        val candidatePath = vNextBuilderSource
+            .substringAfter("private fun buildInternal(")
+            .substringBefore("private fun scaledLongEdge(")
+        val defaultPath = vNextBuilderSource
+            .substringAfter("fun build(")
+            .substringBefore("internal fun buildRejectedSurfaceChartReference(")
+        assertTrue(defaultPath.contains("representation = SurfaceRepresentation.DEPTH_SURFELS_V13"))
+        assertTrue(candidatePath.contains("SpatialDepthSurfelBuilder.build("))
+        assertTrue(candidatePath.contains("sourceDepth = depth"))
+        assertTrue(candidatePath.contains("motionBasis = motionBasis"))
+        // 落盘的 surfel 只能来自 SpatialDepthSurfelBuilder 那一支，不得另起语义刚性层。
+        // vNext15 起真透视档改走断边三角网格，这一档不再产出 surfel（点元的缝隙正是
+        // "透明条带"的来源，D211），所以 surfels 可以为 null。
+        assertTrue(
+            "落盘 surfel 的来源不是 SpatialDepthSurfelBuilder",
+            candidatePath.contains("depthSurfels = surfels,") &&
+                candidatePath.contains("val surfels = surfelResult?.surfels")
+        )
+        assertTrue(
+            "真透视档必须走网格而不是点元",
+            candidatePath.contains("truePerspective == null") &&
+                candidatePath.contains("SURFACE_DEPTH_VNEXT15_TRUE_PERSPECTIVE_MESH")
+        )
+        assertFalse(candidatePath.contains("ownershipGroups"))
+        assertFalse(candidatePath.contains("rigidSubject"))
+        assertFalse(candidatePath.contains("personPlane"))
+    }
+
+    @Test
+    fun `全表面chart必须使用目标位置浮点归一化且禁止普通alpha降级`() {
+        assertTrue(source.contains("drawNormalizedSurfaceCharts()"))
+        assertTrue(source.contains("targets.accumulationFramebuffer"))
+        assertTrue(source.contains("targets.coverageFramebuffer"))
+        assertTrue(source.contains("GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE)"))
+        assertTrue(source.contains("accumulation.rgb / max(accumulation.a"))
+        assertTrue(source.contains("smoothstep(uCoverageLow, uCoverageHigh, coverage)"))
+        assertTrue(source.contains("drawStaticSourceFallback()"))
+        assertTrue(source.contains("禁止降级为普通 alpha"))
+        assertFalse(source.contains("drawSurfaceChartsAlphaOver"))
     }
 
     @Test
