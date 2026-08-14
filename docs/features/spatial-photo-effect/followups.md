@@ -1030,9 +1030,16 @@ Reangle-A-Video / PAInpainter / IMFine / DiGA3D）是为**生成式模型 + 大�
       误标）；分割 = Mask2Former swin-tiny（MIT，约 190MB，一次前向实例栈）主 +
       SAM3 tracker q4f16（301MB）精修 + MobileSAM/SAM2.1 AMG 兜底；细带 = LaMa 高分辨率；
       大洞 = Moebius int8 约 390MB 贴边——若出货基线定 4.5cm 先复核该档是否必要。
-- [ ] **NPU 暂不投入**：QNN EP 实证封装损耗 1.3–5.7×、无动态形状、context binary 绑
+- [x] ~~**NPU 暂不投入**：QNN EP 实证封装损耗 1.3–5.7×、无动态形状、context binary 绑
       SoC、量化未必更快（w8a16 141.77 vs float 51.94ms）；翻案条件 = 能让 350M 级 ViT
-      从跑不动变能跑、或生成预算压到 20s 内；LiteRT（高通加速器已 GA）2027 复评。
+      从跑不动变能跑、或生成预算压到 20s 内；LiteRT（高通加速器已 GA）2027 复评。~~
+      **2026-08-13 翻案**，依据见
+      [高通 NPU 加速方案](research-2026-08-13-qualcomm-npu.md)：封装损耗那条撤销
+      （issue #24417 已关闭，且是 LLM 场景；AI Hub 上 ONNX 与 QNN_DLC 两列在 DAV2／LaMa
+      上几乎重合）；"须 x86_64 离线生成 context binary"撤销（`ep.context_enable` 端上可生成）；
+      无动态形状与 dsp_arch 绑定两条成立，是主要工程量；量化未必更快在 DAV2 上复现，
+      故走 `enable_htp_fp16_precision` 的 fp16 路径而非量化。翻案条件"生成预算压到 20s 内"
+      有数据支撑：8 Gen 2 上 DAV2@518² float NPU 47.2ms、LaMa 512² float 78.0ms。
 - [ ] **H2 自训 soft-α 双层 student 立项裁定**（建议在 H0-3 验证软 α 结构收益后再定）：
       LGTM 训练代码底座（Apple Software License，权重 NC 不可用，backbone 须换）+
       SHARP 两深度通道/BCE alpha/视差梯度正则 + Infinigen 多层深度合成（2503.11633，
@@ -1269,6 +1276,139 @@ Reangle-A-Video / PAInpainter / IMFine / DiGA3D）是为**生成式模型 + 大�
 - [ ] **`SpatialTrueParallaxMotion.surfelScalars` / `pixelsPerScalar` 已成死代码**：
       vNext15 起真透视不再走点元。暂留（连同 3 项单测）以备回退，确认网格路线站住后删除。
 
-- [ ] **num_tokens 是 MoGe 唯一的细节旋钮，尚未上端评估**：1800→3600 有效带宽 +17%、
-      →7200 +29%，桌面 GPU 上 23→75→154 ms。端上代价未测；若可接受，这是提升几何
-      细节的唯一有效手段（提输入分辨率无效，实测四档带宽持平）。
+- [x] ~~num_tokens 尚未上端评估~~ **2026-08-13 已测（D232）**：ViT-B / 8 Gen 2 上
+      1200/1800/2700/3600 = 5.2 / 8.6 / 14.4 / 25.4 s，**超线性**（tokens 翻倍、耗时近
+      三倍），而质量只 +17%，故 3600 不做档位。已落地 `SpatialDepthDetail` 三档。
+- [ ] **补 `fast_1200` 与 `fine_2700` 的有效带宽**：既有桌面台只测过 1800/3600/7200，
+      这两档的画质影响未量化。**接入设置页 UI 之前必须补**——否则无法向用户说明
+      "精细档细在哪、快速档降了什么"。用 `tmp/spatial-desktop-tuning/moge_resolution_probe.py`
+      的同一套判据即可。
+- [ ] **MoGe-2 ViT-B 上架 catalog**：模型已验证（419,411,850 字节、
+      sha256 `bbf14e07…`），代码已接入，但 catalog 需要服务器凭据，属外部动作。
+- [ ] **num_tokens 档位的设置页 UI**：`SpatialDepthDetail` 与偏好读写已就位，
+      UI 还没做（参照补全质量档 `SpatialInpaintingQuality` 那一节）。
+
+## 2026-08-13 高通 NPU 路线（Phase 1 起）
+
+依据 [高通 NPU 加速方案](research-2026-08-13-qualcomm-npu.md) 与 D214–D219。
+
+### 阻塞收益的两件大事（按收益排序）
+
+- [ ] **Big-LaMa 的无 FFC 同源候选画质 A/B（收益上限约 20.7 s）**：停止在手机上硬编译
+      当前 17,480 节点、216 个 `Einsum` 的 FFT 展开图。
+      **~~先下载 Qualcomm LaMa-Dilated 通用资产~~ 已作废（D227）**：那份资产是
+      CelebA-HQ 权重 + 空洞卷积架构（图里 0 个 Einsum/MatMul/Cos/Sin，仅 276 节点），
+      既不能用权重，也借不到导出方式——我们的权重含 FFC 层，两者结构不通用。
+      **正确候选是官方 `big-lama-regular`**（Places2 + 空洞卷积，与在用的 `big-lama`
+      同数据集同规模，只差 FFC 一个变量），A/B 应在这两者之间做。
+      **当前阻塞**：官方 Yandex 链接已失效，Google Drive
+      （`1B2x7eQDgecTL0oh3LSIBDGj0fTxs6Ips` 里的 `LaMa_models.zip`）触发限流
+      "Too many users have viewed or downloaded this file recently"，
+      gdown 取不到；HF 上暂无 regular 变体镜像。需换时间重试或由用户在浏览器登录后下载。
+- [ ] **MoGe-2 按官方脚本静态导出（收益上限约 5.1 s）**：先保留现有 ViT-S，按
+      MoGe 官方 `docs/onnx.md` 的子类写法固定输入、把 `num_tokens` 固定为模型
+      常量并设置 `dynamic_axes=None`，从源头去掉当前动态轴与 `If`，而不是事后只改 shape。
+      完成桌面逐输出对拍后，再测现有 ORT+QNN 的端上 JIT/cache；失败才测 GPU。
+      **输入尺寸不要照抄官方示例的 518²**：既有实测（D 系列 7090–7101）显示
+      1800 tokens 在 patch-14 下约合 588×602 px 内在分辨率，**518 是欠采样**、
+      720 长边刚好匹配、更高纯浪费（518/720/1024/1440 四档有效带宽持平在 0.0023）。
+      固定成 518² 会顺手把几何细节降一档。**`num_tokens` 维持 1800**；
+      3600（带宽 +17%）是唯一有效的提质旋钮，但桌面 GPU 上就要 3.3× 耗时，
+      端上代价从未测过，应放到 NPU 收益落袋之后再评估。
+
+### 工程链路（地基，已开工）
+
+- [x] `SpatialQnnSupport` / `SpatialQnnContextStore` / `SpatialQnnSessionFactory`
+      与 `<uses-native-library libcdsprpc.so>`；RF-DETR 已接入产品路径。
+- [ ] **catalog 接上 `qnnDeviceProfiles`**：`SpatialQnnSupport.resolveDspArch()` 目前只用
+      内置表，catalog 覆盖参数还没有调用方传入。新 SoC 上市不该逼用户升级 App。
+- [ ] **QNN 运行组件的正式分发**：`SpatialRuntimeStore` 需要支持"变体"
+      （cpu 裁剪版 / qnn 版）与按 dsp_arch 的多文件清单；catalog 加 `qnnRuntimes`。
+      目前只有 debug 覆盖目录这条旁路。**需要服务器凭据，属外部动作。**
+- [ ] **`SM8845`（8 Gen 5）的 dsp_arch 待定**：OPPO Pad Mini 副测机就是这颗，
+      内置表故意留空（fail-closed）。用真机跑一次 QNN 探针即可确认。
+- [ ] **EdgeTAM image encoder 接入**（已验证 18.7×，形状固定 1024²，零改造）。
+- [ ] **设置页"计算加速"开关**与 NPU 状态显示（自动 / 强制 CPU），用于用户侧排障；
+      另需"清除 NPU 编译缓存"入口（`SpatialQnnContextStore.deleteAll`）。
+- [ ] **把首次图编译挂进模型下载后的 `selfTest`**：实测 20–51 秒，放在用户本来就在等
+      下载的阶段，而不是第一次生成空间照片时。
+- [ ] **通用模型 + 本机 JIT/cache 的产品化（D226）**：不创建 per-SoC AI Hub 编译矩阵，
+      分发 SoC 无关模型。把一次性编译放进模型下载后的可见 `selfTest`/前台 Service，缓存键
+      绑定模型 hash、runtime、编译选项、SoC/HTP 与 Android build fingerprint；显示进度、
+      允许取消，失败自动回落。`SpatialQnnContextStore` 只保存本机生成的 context。
+- [ ] **单模型 GPU 通用回退 PoC（D226）**：Big-LaMa 候选或 MoGe-2 静态版先选一个，
+      优先试 LiteRT GPU，记录模型转换覆盖、首载、稳态、峰值内存，并至少覆盖一台 Adreno
+      与一台 Mali；若算子/转换不成立，再比较 ncnn Vulkan 与 MNN OpenCL/Vulkan。PoC
+      通过前不迁移整条推理栈。
+- [ ] **QAIRT 2.49+ 图切分验证（D226，等待运行时发布）**：项目当前 qnn-runtime 2.48
+      尚无 `enable_htp_graph_splitting`。先测
+      `htp_graph_finalization_optimization_mode=1`；可用的 2.49+ Android runtime 发布后，
+      再验证大图分子图准备是否降低首次 JIT 的时间与峰值内存。
+
+### 已了结
+
+- [x] **XNNPACK 对 Big-LaMa 实测**：**负收益，慢 25%**（CPU 5016 ms vs XNNPACK 6292 ms，
+      D225）。这条同时确定了官方 QNN AAR 可作统一运行组件，不必维护两份 `.so`。
+
+### 已撤销
+
+- [x] ~~官方 AAR 的 CPU 路径比项目裁剪构建慢 6.7×，需按设备下发两份 `.so`~~
+      **2026-08-13 撤销（D220）**：那个 6.7× 是拿开了 `enableProfiling` 的探针数去比
+      不开 profiling 的产品数量出来的。同一次全链路里官方 AAR 的 CPU 四项
+      （depth/inpaint/matting/boundary）与裁剪版基线几乎一致。QNN 版可作统一运行组件。
+
+- **`00_original_single/matte.png` 与 `interior.png` 尺寸不一致**（540×720 vs 其它场景
+  的对齐关系），且该场景没有 `debug/alpha_matte.png`。不影响当前工作，但若要对它做
+  D240 式的重建，得先弄清它是哪一版管线的产物。
+
+- **现存语料的 `matte.png` 是 D135 之前的产物**（guide 档 512 长边），而今天跑
+  `generate_assets.py` 产出的是 720 全分辨率（2026-08-13 用 `zz_uitest` 实测）。
+  八个场景的 matte 与它们各自的 `interior.png`／`layer_masks` 同代、内部自洽，所以
+  当前不影响任何对比。但只要有一个场景被单独重跑，它的 matte 就会与其余八个错开一代。
+  要么整套语料一起重生成，要么在重跑单场景时留意这一点。
+
+- **QNN 运行时没有发布通路，这次发出去的 APK 在设备上拿不到 QNN 库**，NPU 路径会静默
+  回落 CPU。`build/spatial-runtime-publish/` 的 r1–r7 全部来自官方
+  `onnxruntime-android-1.28.0.aar`（CPU 版，`libonnxruntime.so` 12.6 MB，编译时就没有
+  QNN EP），QNN 版是 21.6 MB。且 QAIRT 那套按 dsp_arch 分档，单 arch 128 MB
+  （其中 `libQnnHtpPrepare.so` 83.7 MB 只在端上编译 context binary 时需要，
+  编完就缓存，可以考虑单独下发或编完即删）。现有 `runtime-packages.json` 是
+  「一个 packageVersion × 四个 ABI」的扁平结构，装不下按 dsp_arch 分片——
+  要先定包的切分方式，再改 publish 脚本与 catalog schema。
+- `SpatialDepthDetail` 的三档没有单元测试，档位常量与 `numTokens` 的对应关系目前只靠
+  设置页 UI 与人工核对。
+
+- **工作台需要补的配置面**（D246）：`--plate` / `--plate-backend`（D179/D181 的整幅
+  背景板档）、缺的 5 个补全后端（`sdxl`/`moebius`/`moebius_square`/`lama`/`telea`）、
+  `--matte-mode`、以及 `_dual`（`_base` + `--dual-pass`）这一档。
+- **`build_soft_matte.py` 没有工作台入口**（D247），桌面的软 α 通路目前只能手工跑。
+- **`tmp/spatial-desktop-tuning/` 的产物不受版本控制**，脚本改动会静默让历史变体不可
+  复现。至少应在每次产出关键变体时把当时的脚本快照连同产物一起留档。
+
+- **软两层过渡区重构**（2026-08-13，D251 定案方向）：把发丝级软过渡（matte_soft
+  α∈0.05–0.95 的足迹）做成前景半透明层 + 背后完整第二层的重叠结构——带定义扩为
+  `disocclusion ∪ 过渡区`、hidden_z 与补全同步覆盖、viewer 取消过渡区 α 地板、
+  decon/解混深度按过渡区宽。治大角度下第一层发丝混合带拖出的毛玻璃条带
+  （软 α 现机制实测到不了它），顺带锚定 D250 遗留的断崖偏外。
+
+- **Big-LaMa 的 QNN context binary 已编出四份**（v73/v75/v79/v81），下一步是下发通路：
+  catalog 的 `runtimes` 目前是「一个 packageVersion × 四个 ABI」的扁平结构，装不下按
+  dsp_arch 分片；且这四份要与 QNN 版 ORT（21.6 MB，非官方 CPU AAR）+ QAIRT 库配套。
+- **optimization level 1 相对 level 3 的推理性能差距未测**，需先打通下发再上真机基准。
+
+- **QNN 运行组件行的体积显示不准**：开了 NPU 之后「推理运行环境」那一行未下载时仍显示
+  CPU 包的 4.47 MB，实际会下 45.6 MB。装完显示的 128 MB 是对的。
+- **Big-LaMa 的四份 context binary 还没接进下发**（D250 已编出）。接进来之后补全就能上
+  NPU，届时逐模型开关要挂到补全模型那一行。
+- **v69（8 Gen 1 / 8+ Gen 1）没有 QNN 包**：本次只编了 v73/v75/v79/v81。v69 还不支持
+  权重共享，要单独评估。
+
+- **Android 端视差幅度未按目标视差归一**（2026-08-14 发现）：`SpatialVNextBuilder` 写死
+  `TRUE_PERSPECTIVE_BASELINE_METERS=0.045f`，而按目标视差归一的
+  `SpatialTrueParallaxMotion.baselineForTargetDisparity`（注释明言"幅度必须按目标视差
+  归一，不能写死物理基线，D148 三档米制尺度差 43%"）定义后从未被调用。后果：深度模型
+  把场景估远/跨度估小的图在固定 4.5cm 下视差小、效果浅且逐图不稳——用户实际观察到。
+  修法：接上该函数或引入 web 端"目标视差+物理 cap"双控。
+- **GRT 部署时统一 Android 洞生成为纯深度函数**（2026-08-14，D254 口径）：当前
+  `SpatialVNextBuilder` 的补全洞含分割（`SpatialInpaintingMask.withOccluder`），与训练
+  mask 分布分叉。部署微调模型时切到与训练同一个纯深度 mask 函数，分割从此只影响渲染期。

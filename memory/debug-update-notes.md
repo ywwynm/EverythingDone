@@ -1,5 +1,307 @@
 # Current Debug Update Notes
 
+## 2026-08-14 - Big-LaMa（NPU 版）下载进度显示修复（D263）
+
+发布号 `202608141408`，APK SHA-256 `92991d032bde0def…`，23.20 MB。catalog 未动。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814220817.md`。
+
+用户报告：下载时只显示「下载中」，没有百分比，与其它模型行不一致。查证属实——
+`tv_big_lama_npu_status` 直接用了静态的 `spatial_npu_downloading`，而 worker 一直在
+`setProgressAsync` 里发 `KEY_DOWNLOADED` / `KEY_TOTAL`，**只是这一行没人读**。
+新增 `precompiledWorkStatus()`，与其余行同一套写法。
+
+同批两处：worker 把 VERIFYING/INSTALLING 也报成 `STATE_DOWNLOADING`（104 MB 的 sha256
+和解包期间界面停在"下载中 100%"），改为如实上报；`ctxInstalled` 排在 `ctxDownloading`
+之前——其余行这样写没问题（装上就不会再下），但预编译产物**会原地升级**（D262），
+升级时旧的还在，会一路显示"已安装"。这一行改为下载中优先。
+
+全部复用已有字符串，未新增文案，12 个语言不用跟。**界面未经我目检**——用
+uiautomator 逐帧抓那一行试过，每次 dump+pull 要 2.3 秒，20 秒的下载只能采到 5 个点，
+方法不成立，已放弃并交由用户目检。
+
+## 2026-08-14 - Big-LaMa 傅里叶分支改写成 GEMM，NPU 补全快一倍（D261/D262）
+
+发布号 `202608141323`，APK SHA-256 `fa101d61aad3d2da…`，23.20 MB。
+catalog `20260814131229`（`qnnPrecompiledModels` 四条全部换成 `-gemm` 产物）。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814212000.md`。
+
+真机 R5CW20BLNKL（SM8550/v73）：端到端 1080×1440 十二块 **26318 → 12582 ms**，
+单块 512² **2083 → 1110 ms**，session 载入 **4478 → 761 ms**，
+context binary **318 → 132 MB**，对 CPU 从 2.13× 提到 4.47×。
+
+根因见 D261：`…/ffc/convg2g/fu/rttn/MatMul_*` 是 `[64,64] × [1,192,33,64,1]` 的
+批量 GEMV，尾维为 1 导致 HMX 接不下，退到 HVX 后 1.22 MAC/cycle；占 2.3% 算力吃掉
+70% 周期。修法见 D262：不重导出（权重从来不在本地），直接在 ONNX 上常量折叠 +
+把那段改写成在倒数第二维收缩的批量 GEMM，权重逐位不动，新旧模型同输入最大差 0.0005/255。
+
+**升级路径踩到第四次同类错**：改了 `ensurePrecompiled` 却没看它的调用方，
+`SpatialQnnPrecompiledDownloadWorker` 自己先 `isInstalled` 早退，真机实测卡住 5 分钟
+没换。修法是把"是否已最新"的判断收到拿得到 catalog 的那一层，并新增
+`matchesCatalog` / `purgeIfStale`。升级路径已真机验过：旧 318 MB 被清掉、新 132 MB
+自动下载安装，15 秒完成。
+
+## 2026-08-14 - 生成阶段标注 NPU + 文案去估计值 + 国际化补齐（D260）
+
+发布号 `202608140856`，APK SHA-256 `d6d2e36894711c27…`，23.20 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814165432.md`。
+catalog 未动。
+
+`SpatialQnnSessionFactory` 加 `sessionListener`，六条返回路径统一经 `report()` 上报
+是否真的建成了 QNN session；`ImageViewerActivity` 据此渲染成「正在进行深度估计
+（NPU 加速中）」。标注来自建 session 那一刻，不是读偏好——回落 CPU 时不会有后缀。
+
+设置页删掉「约 45MB」「约 20-50 秒」「九场景实测」「直接影响」。深度细节说明改为按
+推理分辨率与几何细节上限描述。
+
+国际化补齐 12 个语言：zh-rHK / zh-rTW 各 110 条经 OpenCC（`s2hk` / `s2twp`）从 zh-rCN
+转写（分开走词库：台湾出「執行元件／快取／解析度」，香港保留「運行組件／緩存／分辨率」），
+de/es/fr/hi/it/ja/ko/pt/ru 各 63 条逐条翻译，型号名一律不译。校验脚本比对 XML 良构、
+撇号转义、占位符序列，12 个语言全过，`spatial_*` 覆盖率 100%。
+
+仍未真机目检。
+
+## 2026-08-14 - 图标 ripple 改遍历视图树（D259）
+
+发布号 `202608140811`，APK SHA-256 `479eabcfb59293b7…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814161038.md`。
+catalog 未动。仍只改设置界面。
+
+图标着色与 ripple 改为遍历视图树按命名约定套用（`iv_*_delete` / `btn_*` / `model_*` /
+`row_*`）——手写平行列表漏项的第五次。取消下载后同步取消勾选；CPU 行删除误走下载分支
+（`isInstalled` 读的是当前变体，开着 NPU 时问错了那一份，改为 `isVariantInstalled(qnn = false)`）；
+NPU 下载补上计费网络确认。
+
+## 2026-08-14 - NPU 下载管线独立（D258）
+
+发布号 `202608140746`，APK SHA-256 `b314228e5055b565…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814154555.md`。
+catalog 未动。仍只改设置界面。
+
+D257 拆了存储没拆管线：勾选 NPU 入队的仍是 `"spatial-runtime-download"` 这个唯一任务名，
+而 **WorkManager 的进度挂在任务名上，一个任务名只有一份 WorkInfo**，那份只被
+`refreshRuntime()` 写进 `tv_runtime_status`——所以进度必然出现在 CPU 那一行。
+用户连续两次指出同一现象。
+
+现新建 `SpatialQnnRuntimeDownloadCoordinator` / `Worker`（任务名
+`"spatial-qnn-runtime-download"`），`SpatialRuntimeInstaller` 拆成
+`ensureInstalled` / `ensureQnnInstalled` / `ensureSelectedInstalled` 三个明确入口。
+
+反向追查另抓到三处：CPU 行体积用 `totalBytes`（拆分后是两份之和）、NPU 行装好后显示
+压缩包大小而非实际占用、NPU 按钮缺"进行中点击=取消"。
+
+**方法上的教训**：改完要从 UI 元素倒推回数据源逐段核对，不能推定。同类错误第三次
+（D254 接通路没接引擎、D256 改模型没验呈现、D258 拆存储没拆管线）。
+
+## 2026-08-14 - 运行组件拆成两份共存 + 状态措辞统一
+
+发布号 `202608140732`，APK SHA-256 `38ca5ac84bb54113…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814153240.md`。
+catalog 未动。仍只改设置界面。
+
+**核心是 D257**：我把"QNN 与 CPU 运行库不能同时**加载**"错误地推成了"不能同时**存在**"，
+于是共用一个槽位、切换即删。用户撞到的三个后果：NPU 的下载进度显示在 CPU 那一行、
+来回切要反复重下 130 MB、CPU 行永远显示 4.47 MB 而实际下 47.5 MB。
+现改为两份标记共存（`current.json` / `current-qnn.json`），NPU 成为完整可下载项
+（自己的下载/删除/体积/进度），勾选框只决定加载哪一份。
+
+同批还修了 D256 的三条：RF-DETR NPU 行嵌套错位、下载按钮被隐藏且无进度、
+CPU/NPU 版同时选中、状态文案混档。
+
+**注意 `202608140731` 是误发**（用了旧的日志文件），内容与 `202608140732` 相同但说明不全。
+
+## 2026-08-14 - 修设置页三个问题（NPU 行错位、按钮点不动、状态文案混档）
+
+发布号 `202608140717`，APK SHA-256 `7d3fb2b1cfd56996…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814151643.md`。
+catalog 未动。仍**只改设置界面**。
+
+修的是 `202608140642` 的三个问题（D256），全部由用户实测发现——我上一版没有目检就发布：
+
+1. **`model_rfdetr_npu` 被插进了 `model_edgetam_refinement` 内部**（XML 树实测：深度 6，
+   其余行是 5），导致那一行有两个 RadioButton、高度占满屏。Python 找闭合标签时数错层级，
+   已用标签配平重新定位。Big-LaMa NPU 行也从 `ll_inpainting_quality` 之后移到 `model_big_lama` 之后。
+2. **下载按钮条件不满足时被 `visibility = GONE`**，用户看到的是"没有按钮"而非"点不动"；
+   且完全没接 WorkManager 进度观测，点了也无反馈。改为始终可见 + 按条件置灰 + 接进度。
+3. **CPU 版与 NPU 版同时选中**：分处不同父容器，系统不会自动互斥，需显式处理。
+4. **状态文案把"开关没开"与"开关开了但组件没装好"写成同一句**，而切换开关会删组件，
+   所以重新打开后一直显示"请先启用"。拆成四档。
+
+### 教训
+
+结构性 UI 错误（嵌套层级、控件互斥）**截一张图就一眼看穿**，隔着代码推演不可靠。
+设备锁屏时不该把目检责任推给用户——要么等，要么在发布日志里写明"未目检"并主动请他截图。
+
+## 2026-08-14 - 设置页整理：下载按钮改图标、NPU 版模型独立成选项
+
+发布号 `202608140642`，APK SHA-256 `db122fa93fd68599…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814144204.md`。
+catalog 未动（仍是 `20260814033542`）。**只改设置界面，生成链路与模型未变。**
+
+用户提的五条全部实现（D255）：
+
+1. 12 个「下载」文字按钮 → 40dp 图标按钮，与删除图标同规格（同着色、同圆形 ripple、
+   同暗色模式）；下载中显示取消图标。新增 `vec_ic_download` / `vec_ic_download_cancel`。
+2. NPU 加速行：勾选框移到左侧、勾选即自动下载组件、装好后右侧出现删除图标、
+   删除后自动取消勾选、关掉时下方 NPU 选项置灰并回落 CPU、下方加提示。
+3. Big-LaMa NPU 版独立成行（自己下载/选择/删除，新增
+   `SpatialQnnPrecompiledDownloadWorker`）；开总开关不自动下它。
+4. MODNet 勾选框与文字间距对齐 RadioButton 行（12dp）；删除后自动取消勾选。
+5. RF-DETR NPU 版独立成行；它不需要额外下载（端上编译约 14 秒）。
+
+### 手写平行列表的第三、四次翻车
+
+`iv_big_lama_delete` 不在删除图标的着色列表里 → Big-LaMa 装完看不到删除图标（用户报的
+就是这个）；ripple 列表也漏了 `btn_big_lama` / `btn_moge2` / `btn_moge2b`。
+**两处都改成从枚举推导**（`deleteIconId` / `buttonId` / `inpaintingDeleteIconId` /
+`inpaintingButtonId` 都是穷举 when，加模型时编译器先报错）。
+同一个错误此前已在 MoGe-2 删除图标（D245）上犯过一次。
+
+### 未验证
+
+**界面未经真机目检**（设备锁屏、用户不在旁边），而这一版几乎全是布局改动。
+需要核对的：图标按钮与删除图标的视觉重量是否协调、NPU 行勾选框左移后的对齐、
+两个新增 NPU 行的插入位置、置灰用的 alpha 0.4 是否合适。
+
+## 2026-08-14 - 更正：补全其实没接 NPU，现已接上（整步 1.63×）
+
+发布号 `202608140352`，APK SHA-256 `7e12cc3d64eed337…`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814115239.md`。
+
+**`202608140339` 那一版的说明是错的**：预编译产物的下发做完了，但
+`SpatialInpaintingEngine` 从没调用过 `SpatialQnnSessionFactory`，产物下下来没人用。
+本版接上并实测（同图同带四块，只改 `qnn_enabled`）：**26137 ms → 16002 ms，1.63×**。
+
+现在真正走 NPU 的：**RF-DETR**（人物连续性）、**Big-LaMa**（背景补全，需预编译产物）。
+MoGe-2 深度刻意不上（要固定分辨率，会作废 num_tokens 档位）；MODNet、MI-GAN、
+AOT-GAN 仍是 CPU。
+
+## 2026-08-14 - Big-LaMa 上 NPU（2.70×）+ 运行组件升到 QAIRT 2.48 + 阶段文案修正
+
+发布号 `202608140339`，APK SHA-256
+`4bf940ba6812bafbb8e3b44e2c75d0e8efb58c3db8fc8a85bc61ca7c4961f036`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814113830.md`。
+
+**同批 catalog `20260814033542`**：`qnnRuntimes` 升到 `1.28.0-qnn-r2`（QAIRT 2.48，
+四架构各约 47.5 MB），新增 `qnnPrecompiledModels` 四条（Big-LaMa 的 AI Hub 预编译
+context，v73/v75/v79/v81，151–167 MB）。`runtimes`（CPU r7）仍未动。
+
+实测（R5CW20BLNKL / v73，探针）：单块 512² 补全 **5642 ms → 2091 ms（2.70×）**，
+session 创建 6.25 s，**不需要端上编译**。
+
+### 本次两个必须记住的坑
+
+1. **context binary 与 QAIRT 版本强绑定。** 2.45 的产物配 2.42 的运行时 →
+   `LoadCachedQnnContextFromBuffer … Error code: 5000`。AI Hub 已不提供 2.42
+   （只有 2.45/2.47/2.48），所以端上升到 2.48。升级前先单独验过
+   ORT 1.28 + QAIRT 2.48 可用（RF-DETR 47–50 ms）。
+2. **发布脚本的版本默认值与 App 常量是手工同步的，我漏改过一次**——App 升到 r2 而脚本
+   默认还是 r1，发出去的 catalog 里运行组件是 2.42、预编译是 2.48，装上必然 error 5000。
+   已发现并重发修正（`20260814033123` → `20260814033542`）。现在脚本会**从
+   `SpatialRuntimeStore.kt` 读常量比对**，不一致直接抛错，实测能拦住。
+
+### 未验证
+
+预编译产物的「下载 → 安装 → 生成」完整链路**没有在真机上端到端跑过**（设备锁屏、
+用户不在旁边）。推理速度是用探针直接加载产物测的。两条新阶段文案
+（「正在为 NPU 编译模型…」「正在分析主体与遮挡…」）也未经界面确认。
+所有失败路径都回落 CPU，不会比关掉 NPU 更差。
+
+## 2026-08-14 - 骁龙 NPU 加速下发通路打通 + 深度细节档位 + 设置页三处修复
+
+发布号 `202608131759`，APK SHA-256
+`699bcb70442e4274d4f7bde2e108223f2489f00537d73488b92f7bc27736422d`，23.14 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814015837.md`。
+
+**同批发布 stable catalog `20260813174103`**，新增 `qnnRuntimes` 四条
+（v73/v75/v79/v81，各约 45.6 MB / 解压 121.8 MB，license `Qualcomm-AI-Engine-Direct`）。
+`runtimes`（CPU 版 1.28.0-r7）**未改动**——QNN 条目走独立字段，旧版 App 忽略。
+
+真机 R5CW20BLNKL 走**真实下载链路**端到端验过：设置页开关 → 下载 45.6 MB →
+安装 128 MB（7 个库落在 `objects/1.28.0-qnn-r1/arm64-v8a/v73/`）→ 状态「已启用 ·
+运行组件已安装」→ 生成空间照片 → context binary 落盘
+`rf_detr_seg_nano-1.0.0-312x312-v73-1.28.0qnnr1-…`（版本号是正式包，不是 debug 旁路）
+→ 生成完成。
+
+发布前 `:app:testDebugUnitTest` 844 例，0 失败 0 错误 1 跳过。
+
+### 本次踩到并修掉的坑
+
+1. **QNN 条目绝不能并进 `runtimes`**：`SpatialModelCatalog.validate()` 对该组每条都跑
+   `isCompatible()`，里面硬校验 `packageVersion == REQUIRED_PACKAGE_VERSION`。混进去会让
+   **所有已安装的旧版 App 直接拒绝整个 catalog**。走新字段是本项目既有做法。
+2. **`pruneObsoletePackages` 假设目录是两层**（`<版本>/<abi>`），而 QNN 包多一层 dspArch。
+   它按绝对路径精确相等判断"是否当前包"，于是 QNN 装完把刚落盘的 `<abi>` 整个递归删掉，
+   症状是"NPU 运行组件安装后校验失败"。改成按「是不是当前目录的祖先或本身」判。
+3. QAIRT **不是 MIT**，且包体超过原有 64 MB 上限——QNN 那组的许可与体积判据必须独立。
+
+### 目前真正走 NPU 的只有 RF-DETR
+
+深度（MoGe-2）在 NPU 上要求固定输入分辨率，会作废本次新加的 num_tokens 档位；
+Big-LaMa 的 context binary 已在 AI Hub 编出四份（D250），但还没接进模型下发。
+
+## 2026-08-13 - 重发：修 ViT-B 真机自检 + 更正 NPU 措辞
+
+发布号 `202608131034`，APK SHA-256
+`ed048e39ab70ff72c823a2af71f02cadd93d65f917b7d75b909ca591999a2999`，23.13 MB
+（versionCode 43 / versionName 2.0.0）。日志文件：
+`docs/features/spatial-photo-effect/debug-updates/update-20260813183322.md`。
+
+模型 catalog 未动，仍是 `20260813100435`（ViT-B 那一条本身没问题）。
+
+相对 `202608131007` 的两处：
+
+1. **修 ViT-B 真机自检失败**（D244）。MoGe-2 两份官方 ONNX 的米制尺度输出名不同——
+   ViT-S 是 `scale`，ViT-B 是 `metric_scale`，其余输入输出逐项相同。代码写死了前者，
+   自检（走完整 `generateMoge`）必然报「MoGe 输出缺少 scale」。改为候选名列表。
+2. **更正发布日志里的 NPU 措辞**。上一版写成加速已生效，实际上运行时包仍是官方 CPU 版
+   AAR，设备上拿不到 QNN 库、会静默回落 CPU。改为「底子已铺好、本版尚未生效」。
+
+真机验证（R5CW20BLNKL）：装上**实际发布的那个二进制**（`adb install` 后设备端 base.apk
+的哈希与源 APK 不同，属正常——APK 打包不是逐位可复现，所以要装发布产物本身而不是
+发布前那次构建），在设置页删除 ViT-B 再重新下载 419 MB，状态回到 `已安装 · 419 MB`，
+自检通过。
+
+发布前 `:app:testDebugUnitTest` 844 例、135 类，0 失败 0 错误 1 跳过。
+
+## 2026-08-13 - 空间照片新增 MoGe-2 Base 深度档、深度细节三档、骁龙 NPU 加速
+
+> **已被 `202608131034` 取代。** 这一版有两个问题：ViT-B 下载完真机自检
+> 必失败（D244），以及发布日志把 NPU 加速写成了已生效（实际拿不到 QNN 库、静默回落 CPU）。
+
+发布号 `202608131007`，APK SHA-256
+`581ff7b15fc88122ff8abbc13aec1043aaa9db239b750299b268d22a39114431`，23.13 MB
+（versionCode 43 / versionName 2.0.0）。日志文件：
+`docs/features/spatial-photo-effect/debug-updates/update-20260813180500.md`。
+
+**同批发布了 stable 模型 catalog `20260813100435`**，新增 `moge_2_vitb_normal`
+（400.0 MB、`minDeviceRamMb` 8192、sha256 `bbf14e07…f35a21`、MIT）。APK 与 catalog
+必须成对发——只发 APK 的话设置页会多出 ViT-B 这一档而下载必然失败。
+
+改动三块：
+
+1. **MoGe-2 ViT-B 深度档**。与 ViT-S 同一套官方导出、同一输出契约，只换权重。走 CPU
+   （D216 裁定：NPU 要求固定输入分辨率，会作废刚加的 num_tokens 档位；ViT-B 在 CPU 上
+   只比 ViT-S 慢 1.54×，在预算内）。
+2. **深度细节三档**（`SpatialDepthDetail`，1200/1800/2700 tokens）。九场景实测：
+   2700 相对 1800 断崖锐度 +18.4%、有效带宽 +10.5%；1200 则是 −14.1% / −7.0%。
+   中位耗时 691 / 1136 / 1849 ms。默认仍是 1800。
+3. **骁龙 NPU（QNN HTP）**：遮挡物检测 10×、边界细化 18×（产品路径实测）。首次编译
+   计算图 20–50 秒，context binary 缓存后复用 404 ms。深度与补全仍走 CPU。
+
+另有一项与 NPU 无关但收益最大的修复：**派生数据保存 32.95 秒 → 2.06 秒**。
+`SpatialDerivativeStore` 的 `DataOutputStream` 直接套在 `DeflaterOutputStream` 上，
+`writeFloat`/`writeShort` 是逐字节 `write(int)`，每个字节都走一次 JNI 往返。
+中间补一层 `BufferedOutputStream` 即可。整条生成链路 77.9 秒 → 41.3 秒。
+
+**QNN 运行时目前没有发布通路**：`build/spatial-runtime-publish/` 的 r1–r7 全部来自官方
+`onnxruntime-android-1.28.0.aar`（CPU 版，`libonnxruntime.so` 12.6 MB，编译时就没有
+QNN EP）；QNN 版是 21.6 MB，且 QAIRT 那套（`libQnnHtp.so` / `libQnnSystem.so` /
+`libQnnHtpV<arch>Skel.so` / Stub / `libQnnHtpPrepare.so` 83.7 MB）按 dsp_arch 分档，
+单 arch 就 128 MB。现有 `runtime-packages.json` 是「一个 packageVersion × 四个 ABI」的
+扁平结构，装不下按 dsp_arch 分片。要先定包的切分方式，再改 publish 脚本与 catalog
+schema。**因此这次发布的 APK 在设备上拿不到 QNN 库，NPU 路径会静默回落 CPU**——
+上面那两个加速倍数是探针在手工推库的设备上测的。
+
 ## 2026-08-13 - 空间照片渲染改用断边三角网格 + 超采样与窄缝闭合
 
 发布号 `202608130227`（用户要求重推一次；`202608130225` 是同一份源码的首发，两次之间

@@ -8,6 +8,7 @@ import android.util.AtomicFile
 import androidx.annotation.Keep
 import com.google.gson.Gson
 import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -465,9 +466,14 @@ class SpatialDerivativeStore(
         values: FloatArray
     ) {
         check(values.size == width * height)
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_DEPTH_VALUES) {
         FileOutputStream(file).use { fileOutput ->
             val compressed = DeflaterOutputStream(fileOutput)
-            val output = DataOutputStream(compressed)
+            // BufferedOutputStream 不可省：DataOutputStream 的 writeFloat/writeShort 是
+            // 逐字节 write(int)，直接落在 DeflaterOutputStream 上会让每个字节都走一次
+            // setInput + deflate 的 JNI 往返。2026-08-13 实测 motionBasis 单份 6 MB 要
+            // 10.8 秒、depth 780 KB 要 1.3 秒，单位成本同为约 1.7 µs/字节。
+            val output = DataOutputStream(BufferedOutputStream(compressed, WRITE_BUFFER_BYTES))
             output.writeLong(DEPTH_MAGIC)
             output.writeInt(width)
             output.writeInt(height)
@@ -478,6 +484,7 @@ class SpatialDerivativeStore(
             compressed.finish()
             compressed.flush()
             fileOutput.fd.sync()
+        }
         }
     }
 
@@ -538,11 +545,13 @@ class SpatialDerivativeStore(
         }
         checkNotCancelled(cancelled)
         val background = File(directory, BACKGROUND_FILE)
-        FileOutputStream(background).use { output ->
-            check(
-                data.backgroundBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
-            ) { "无法编码隐藏背景图" }
-            output.fd.sync()
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_BACKGROUND_PNG) {
+            FileOutputStream(background).use { output ->
+                check(
+                    data.backgroundBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                ) { "无法编码隐藏背景图" }
+                output.fd.sync()
+            }
         }
         checkNotCancelled(cancelled)
         return LdiHashes(
@@ -749,12 +758,14 @@ class SpatialDerivativeStore(
     }
 
     private fun writeCompressedBytes(file: File, data: ByteArray) {
-        FileOutputStream(file).use { fileOutput ->
-            val compressed = DeflaterOutputStream(fileOutput)
-            compressed.write(data)
-            compressed.finish()
-            compressed.flush()
-            fileOutput.fd.sync()
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_COMPRESSED_BYTES) {
+            FileOutputStream(file).use { fileOutput ->
+                val compressed = DeflaterOutputStream(fileOutput)
+                compressed.write(data)
+                compressed.finish()
+                compressed.flush()
+                fileOutput.fd.sync()
+            }
         }
     }
 
@@ -769,9 +780,14 @@ class SpatialDerivativeStore(
     }
 
     private fun writeSurfaceCharts(file: File, charts: SpatialSurfaceChartData) {
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_SURFACE_CHARTS) {
         FileOutputStream(file).use { fileOutput ->
             val compressed = DeflaterOutputStream(fileOutput)
-            val output = DataOutputStream(compressed)
+            // BufferedOutputStream 不可省：DataOutputStream 的 writeFloat/writeShort 是
+            // 逐字节 write(int)，直接落在 DeflaterOutputStream 上会让每个字节都走一次
+            // setInput + deflate 的 JNI 往返。2026-08-13 实测 motionBasis 单份 6 MB 要
+            // 10.8 秒、depth 780 KB 要 1.3 秒，单位成本同为约 1.7 µs/字节。
+            val output = DataOutputStream(BufferedOutputStream(compressed, WRITE_BUFFER_BYTES))
             output.writeLong(SURFACE_CHART_MAGIC)
             output.writeInt(charts.width)
             output.writeInt(charts.height)
@@ -783,6 +799,7 @@ class SpatialDerivativeStore(
             compressed.flush()
             fileOutput.fd.sync()
         }
+        }
     }
 
     private fun readSurfaceCharts(
@@ -793,7 +810,14 @@ class SpatialDerivativeStore(
         expectedGuardFraction: Float
     ): SpatialSurfaceChartData {
         FileInputStream(file).use { fileInput ->
-            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+            DataInputStream(
+                // 内层那个 BufferedInputStream 只缓冲文件 IO；DataInputStream 的
+                // readFloat 仍是逐字节，必须在 Inflater 外侧再聚合一次。
+                BufferedInputStream(
+                    InflaterInputStream(BufferedInputStream(fileInput)),
+                    READ_BUFFER_BYTES
+                )
+            ).use { input ->
                 check(input.readLong() == SURFACE_CHART_MAGIC) {
                     "未知全表面 chart 文件格式"
                 }
@@ -822,9 +846,14 @@ class SpatialDerivativeStore(
     }
 
     private fun writeDepthSurfels(file: File, surfels: SpatialDepthSurfelData) {
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_DEPTH_SURFELS) {
         FileOutputStream(file).use { fileOutput ->
             val compressed = DeflaterOutputStream(fileOutput)
-            val output = DataOutputStream(compressed)
+            // BufferedOutputStream 不可省：DataOutputStream 的 writeFloat/writeShort 是
+            // 逐字节 write(int)，直接落在 DeflaterOutputStream 上会让每个字节都走一次
+            // setInput + deflate 的 JNI 往返。2026-08-13 实测 motionBasis 单份 6 MB 要
+            // 10.8 秒、depth 780 KB 要 1.3 秒，单位成本同为约 1.7 µs/字节。
+            val output = DataOutputStream(BufferedOutputStream(compressed, WRITE_BUFFER_BYTES))
             output.writeLong(DEPTH_SURFELS_MAGIC)
             output.writeInt(surfels.width)
             output.writeInt(surfels.height)
@@ -837,6 +866,7 @@ class SpatialDerivativeStore(
             compressed.flush()
             fileOutput.fd.sync()
         }
+        }
     }
 
     private fun readDepthSurfels(
@@ -848,7 +878,14 @@ class SpatialDerivativeStore(
         expectedRequestedMaximumParallax: Float
     ): SpatialDepthSurfelData {
         FileInputStream(file).use { fileInput ->
-            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+            DataInputStream(
+                // 内层那个 BufferedInputStream 只缓冲文件 IO；DataInputStream 的
+                // readFloat 仍是逐字节，必须在 Inflater 外侧再聚合一次。
+                BufferedInputStream(
+                    InflaterInputStream(BufferedInputStream(fileInput)),
+                    READ_BUFFER_BYTES
+                )
+            ).use { input ->
                 check(input.readLong() == DEPTH_SURFELS_MAGIC) {
                     "未知连续深度微表面文件格式"
                 }
@@ -891,9 +928,14 @@ class SpatialDerivativeStore(
         file: File,
         basis: SpatialScreenSpaceMotionBasis
     ) {
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_MOTION_BASIS) {
         FileOutputStream(file).use { fileOutput ->
             val compressed = DeflaterOutputStream(fileOutput)
-            val output = DataOutputStream(compressed)
+            // BufferedOutputStream 不可省：DataOutputStream 的 writeFloat/writeShort 是
+            // 逐字节 write(int)，直接落在 DeflaterOutputStream 上会让每个字节都走一次
+            // setInput + deflate 的 JNI 往返。2026-08-13 实测 motionBasis 单份 6 MB 要
+            // 10.8 秒、depth 780 KB 要 1.3 秒，单位成本同为约 1.7 µs/字节。
+            val output = DataOutputStream(BufferedOutputStream(compressed, WRITE_BUFFER_BYTES))
             output.writeLong(MOTION_BASIS_MAGIC)
             output.writeInt(basis.width)
             output.writeInt(basis.height)
@@ -908,6 +950,7 @@ class SpatialDerivativeStore(
             compressed.flush()
             fileOutput.fd.sync()
         }
+        }
     }
 
     private fun readMotionBasis(
@@ -916,7 +959,14 @@ class SpatialDerivativeStore(
         expectedHeight: Int
     ): SpatialScreenSpaceMotionBasis {
         FileInputStream(file).use { fileInput ->
-            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+            DataInputStream(
+                // 内层那个 BufferedInputStream 只缓冲文件 IO；DataInputStream 的
+                // readFloat 仍是逐字节，必须在 Inflater 外侧再聚合一次。
+                BufferedInputStream(
+                    InflaterInputStream(BufferedInputStream(fileInput)),
+                    READ_BUFFER_BYTES
+                )
+            ).use { input ->
                 check(input.readLong() == MOTION_BASIS_MAGIC) {
                     "未知屏幕空间位移基格式"
                 }
@@ -949,9 +999,14 @@ class SpatialDerivativeStore(
     }
 
     private fun writeConnectivity(file: File, geometry: SpatialLdiLiteGeometry) {
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_CONNECTIVITY) {
         FileOutputStream(file).use { fileOutput ->
             val compressed = DeflaterOutputStream(fileOutput)
-            val output = DataOutputStream(compressed)
+            // BufferedOutputStream 不可省：DataOutputStream 的 writeFloat/writeShort 是
+            // 逐字节 write(int)，直接落在 DeflaterOutputStream 上会让每个字节都走一次
+            // setInput + deflate 的 JNI 往返。2026-08-13 实测 motionBasis 单份 6 MB 要
+            // 10.8 秒、depth 780 KB 要 1.3 秒，单位成本同为约 1.7 µs/字节。
+            val output = DataOutputStream(BufferedOutputStream(compressed, WRITE_BUFFER_BYTES))
             output.writeLong(CONNECTIVITY_MAGIC)
             output.writeInt(geometry.width)
             output.writeInt(geometry.height)
@@ -963,6 +1018,7 @@ class SpatialDerivativeStore(
             compressed.flush()
             fileOutput.fd.sync()
         }
+        }
     }
 
     private fun readConnectivity(
@@ -971,7 +1027,14 @@ class SpatialDerivativeStore(
         expectedHeight: Int
     ): Triple<BooleanArray, BooleanArray, BooleanArray> {
         FileInputStream(file).use { fileInput ->
-            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+            DataInputStream(
+                // 内层那个 BufferedInputStream 只缓冲文件 IO；DataInputStream 的
+                // readFloat 仍是逐字节，必须在 Inflater 外侧再聚合一次。
+                BufferedInputStream(
+                    InflaterInputStream(BufferedInputStream(fileInput)),
+                    READ_BUFFER_BYTES
+                )
+            ).use { input ->
                 check(input.readLong() == CONNECTIVITY_MAGIC) {
                     "未知连接图文件格式"
                 }
@@ -1017,7 +1080,14 @@ class SpatialDerivativeStore(
 
     private fun readDepth(file: File, expectedWidth: Int, expectedHeight: Int): FloatArray {
         FileInputStream(file).use { fileInput ->
-            DataInputStream(InflaterInputStream(BufferedInputStream(fileInput))).use { input ->
+            DataInputStream(
+                // 内层那个 BufferedInputStream 只缓冲文件 IO；DataInputStream 的
+                // readFloat 仍是逐字节，必须在 Inflater 外侧再聚合一次。
+                BufferedInputStream(
+                    InflaterInputStream(BufferedInputStream(fileInput)),
+                    READ_BUFFER_BYTES
+                )
+            ).use { input ->
                 check(input.readLong() == DEPTH_MAGIC) { "未知深度文件格式" }
                 val width = input.readInt()
                 val height = input.readInt()
@@ -1037,7 +1107,10 @@ class SpatialDerivativeStore(
             .digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 
-    private fun sha256(file: File): String = SpatialModelStore.sha256(file)
+    private fun sha256(file: File): String =
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.SAVE_SHA256) {
+            SpatialModelStore.sha256(file)
+        }
 
     private fun directoryBytes(file: File): Long {
         if (!file.exists()) return 0L
@@ -1409,6 +1482,12 @@ class SpatialDerivativeStore(
         private const val MOTION_BASIS_MAGIC = 0x5350424153495331L // SPBASIS1
         private const val SURFACE_CHART_MAGIC = 0x5350434841525431L // SPCHART1
         private const val DEPTH_SURFELS_MAGIC = 0x5350535552463031L // SPSURF01
+        /**
+         * 逐 float/short 的读写必须先聚合成块。DataOutputStream/DataInputStream 按字节
+         * 调用底层流，直接压在 Deflater/Inflater 上就是每字节一次 JNI 往返。
+         */
+        private const val WRITE_BUFFER_BYTES = 64 * 1024
+        private const val READ_BUFFER_BYTES = 64 * 1024
         private const val MIN_FREE_MARGIN_BYTES = 1024L * 1024L
         private const val MAX_DEPTH_DIMENSION = 1024
         private const val MAX_DEPTH_PIXELS = 1024L * 1024L

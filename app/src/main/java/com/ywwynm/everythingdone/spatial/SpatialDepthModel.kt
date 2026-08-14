@@ -129,6 +129,35 @@ enum class SpatialDepthModel(
         outputContract = SpatialDepthOutputContract.MOGE_POINT_MAP,
         minimumTotalRamMb = 6_144,
         minimumAvailableRamMb = 1_536
+    ),
+
+    /**
+     * MoGe-2 ViT-B（D216 裁定的质量档）。与 [MOGE_2_VITS_NORMAL] **同一套官方导出脚本**，
+     * 输入输出契约完全一致（两输入四输出、opset 14、单文件），因此引擎侧无需任何改动。
+     *
+     * 参数约 110M、体积 419 MB，但端上耗时只有 ViT-S 的 **1.54 倍**
+     * （8 Gen 2 实测 8.6 s vs 5.4 s @ tokens 1800）——因为计算量被 `num_tokens` 钉住，
+     * backbone 变宽对 ARM CPU 的影响远小于参数比（D231）。
+     *
+     * 内存门槛按体积等比抬高；ViT-S 是 6144/1536，这里没有实测峰值，取保守值，
+     * 待真机峰值 RSS 出来后按实测收紧。
+     */
+    MOGE_2_VITB_NORMAL(
+        stableId = "moge_2_vitb_normal",
+        displayName = "MoGe-2 Base",
+        version = "1.0.0",
+        fileName = "moge-2-vitb-normal.onnx",
+        sizeBytes = 419_411_850L,
+        sha256 = "bbf14e07a30f11e69d36ab861590123f5598ababcbc8946a063eb4a966f35a21",
+        inputSize = 720,
+        imageNetNormalization = false,
+        outputHasChannelDimension = false,
+        outputIsDepth = true,
+        providesMetricScale = true,
+        sharpDepthEdges = true,
+        outputContract = SpatialDepthOutputContract.MOGE_POINT_MAP,
+        minimumTotalRamMb = 8_192,
+        minimumAvailableRamMb = 2_560
     );
 
     val inputShape: LongArray

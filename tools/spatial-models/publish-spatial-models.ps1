@@ -3,6 +3,8 @@
     [string]$Channel = 'stable',
     [string]$CatalogVersion = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss'),
     [string]$RuntimePackageVersion = '1.28.0-r7'
+    ,
+    [string]$QnnRuntimePackageVersion = '1.28.0-qnn-r2'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +17,29 @@ $sourceRoot = Join-Path $repoRoot 'build\spatial-model-poc'
 $outputRoot = Join-Path $repoRoot "build\spatial-model-publish\$Channel"
 $runtimeRoot = Join-Path $repoRoot "build\spatial-runtime-publish\$RuntimePackageVersion"
 $runtimeMetadataPath = Join-Path $runtimeRoot 'runtime-packages.json'
+$qnnRuntimeRoot = Join-Path $repoRoot "build\spatial-qnn-runtime-publish\$QnnRuntimePackageVersion"
+$qnnRuntimeMetadataPath = Join-Path $qnnRuntimeRoot 'qnn-runtime-packages.json'
+$qnnPrecompiledRoot = Join-Path $repoRoot 'build\spatial-qnn-precompiled-publish'
+# 版本必须与 App 里的常量一致，否则设备侧会静默判不兼容：
+#   qnnRuntimes 的 packageVersion  ←→ SpatialRuntimeStore.QNN_PACKAGE_VERSION
+#   预编译产物的 qairtVersion       ←→ SpatialRuntimeStore.QNN_QAIRT_VERSION
+# 这两处此前是手工同步的，2026-08-14 实际漏改过一次：App 升到 r2 而脚本默认还是 r1，
+# 发出去的 catalog 里运行组件是 2.42、预编译产物是 2.48，装上就是 error 5000。
+$storePath = Join-Path $repoRoot 'app\src\main\java\com\ywwynm\everythingdone\spatial\SpatialRuntimeStore.kt'
+$storeText = [IO.File]::ReadAllText($storePath)
+if ($storeText -match 'QNN_PACKAGE_VERSION\s*=\s*"([^"]+)"') {
+    $appQnnPackage = $matches[1]
+    if ($appQnnPackage -ne $QnnRuntimePackageVersion) {
+        throw "QNN 运行组件版本不一致：App 要求 $appQnnPackage，本次发布的是 $QnnRuntimePackageVersion"
+    }
+} else {
+    throw '无法从 SpatialRuntimeStore.kt 读出 QNN_PACKAGE_VERSION'
+}
+if ($storeText -match 'QNN_QAIRT_VERSION\s*=\s*"([^"]+)"') {
+    $appQairt = $matches[1]
+} else {
+    throw '无法从 SpatialRuntimeStore.kt 读出 QNN_QAIRT_VERSION'
+}
 $keyRoot = 'C:\Users\ywwynm\.everythingdone\spatial-model-signing'
 
 function Read-LocalProperties([string]$Path) {
@@ -128,6 +153,22 @@ $models = @(
         license = 'MIT'
         licensePath = (Join-Path $repoRoot 'tmp\MoGe-research\LICENSE')
         minDeviceRamMb = 6144
+    },
+    [ordered]@{
+        # MoGe-2 ViT-B（微软，MIT）。与 ViT-S **同一套官方导出脚本、同一套输出契约**，
+        # 只是换权重，所以 precision 与 license 都跟 ViT-S 一致（D216 裁定的质量档）。
+        # 门槛 8192 必须与 SpatialDepthModel.MOGE_2_VITB_NORMAL 的 minimumTotalRamMb
+        # 保持一致——两处是手工同步的，改一处忘另一处会让设备侧与目录侧判断打架。
+        id = 'moge_2_vitb_normal'
+        version = '1.0.0'
+        localPath = (Join-Path $repoRoot 'tmp\MoGe-research\moge-2-vitb-normal.onnx')
+        fileName = 'moge-2-vitb-normal.onnx'
+        expectedSize = [Int64]419411850
+        expectedSha256 = 'bbf14e07a30f11e69d36ab861590123f5598ababcbc8946a063eb4a966f35a21'
+        precision = 'fp32-moge-pointmap'
+        license = 'MIT'
+        licensePath = (Join-Path $repoRoot 'tmp\MoGe-research\LICENSE')
+        minDeviceRamMb = 8192
     }
 )
 
@@ -372,6 +413,141 @@ Publish-ImmutableObject `
     -ExpectedSize $runtimeLicenseSize `
     -ExpectedSha256 $runtimeLicenseHash
 
+# ---------------------------------------------------------------- QNN 运行组件
+# **不能并进 $catalogRuntimes**：那一组每条都要过 SpatialRuntimeCatalogEntry.isCompatible，
+# 里面硬校验 packageVersion == REQUIRED_PACKAGE_VERSION，混入 QNN 条目会让所有已安装的
+# 旧版 App 直接拒绝整个 catalog。所以走独立的 qnnRuntimes 字段，旧版忽略。
+$catalogQnnRuntimes = @()
+if (Test-Path -LiteralPath $qnnRuntimeMetadataPath) {
+    $qnnMetadata = Get-Content -LiteralPath $qnnRuntimeMetadataPath -Raw -Encoding UTF8 |
+        ConvertFrom-Json
+    if ($qnnMetadata.packageVersion -ne $QnnRuntimePackageVersion) {
+        throw 'QNN 运行组件元数据版本不符'
+    }
+    $qnnLicense = Join-Path $qnnRuntimeRoot 'LICENSE.txt'
+    if (-not (Test-Path -LiteralPath $qnnLicense)) {
+        throw '缺少 QAIRT 许可文件（QNN 库不是 MIT，必须随包下发）'
+    }
+    $qnnAbi = $qnnMetadata.abi
+    foreach ($pkg in @($qnnMetadata.packages)) {
+        $localPath = Join-Path $qnnRuntimeRoot $pkg.fileName
+        $file = Get-Item -LiteralPath $localPath
+        if ($file.Length -ne [Int64]$pkg.sizeBytes -or (Sha256 $file.FullName) -ne $pkg.sha256) {
+            throw "$($pkg.dspArch) QNN 运行组件包校验失败"
+        }
+        $extraSum = [Int64]0
+        foreach ($extra in @($pkg.extraFiles)) { $extraSum += [Int64]$extra.sizeBytes }
+        $declared = [Int64]$pkg.coreSizeBytes + [Int64]$pkg.jniSizeBytes + $extraSum
+        if ([Int64]$pkg.unpackedSizeBytes -ne $declared) {
+            throw "$($pkg.dspArch) QNN 运行组件解包字节数不一致"
+        }
+
+        $relativeDirectory =
+            "models/spatial-depth/qnn-runtime/onnxruntime/$QnnRuntimePackageVersion/$qnnAbi/$($pkg.dspArch)"
+        Publish-ImmutableObject `
+            -LocalPath $file.FullName `
+            -RemotePath "$remoteRoot/$relativeDirectory/$($pkg.fileName)" `
+            -ExpectedSize $file.Length `
+            -ExpectedSha256 $pkg.sha256
+
+        $extraEntries = @()
+        foreach ($extra in @($pkg.extraFiles)) {
+            $extraEntries += [ordered]@{
+                name = $extra.name
+                sizeBytes = [Int64]$extra.sizeBytes
+                sha256 = $extra.sha256
+            }
+        }
+        $catalogQnnRuntimes += [ordered]@{
+            id = 'onnxruntime'
+            packageVersion = $QnnRuntimePackageVersion
+            ortVersion = '1.28.0'
+            runtimeApiVersion = 1
+            abi = $qnnAbi
+            dspArch = $pkg.dspArch
+            url = "$baseUrl/$relativeDirectory/$($pkg.fileName)"
+            sizeBytes = [Int64]$pkg.sizeBytes
+            sha256 = $pkg.sha256
+            unpackedSizeBytes = [Int64]$pkg.unpackedSizeBytes
+            coreSizeBytes = [Int64]$pkg.coreSizeBytes
+            coreSha256 = $pkg.coreSha256
+            jniSizeBytes = [Int64]$pkg.jniSizeBytes
+            jniSha256 = $pkg.jniSha256
+            extraFiles = $extraEntries
+            license = 'Qualcomm-AI-Engine-Direct'
+            enabled = $true
+            disabledReason = $null
+        }
+    }
+    Publish-ImmutableObject `
+        -LocalPath $qnnLicense `
+        -RemotePath "$remoteRoot/models/spatial-depth/qnn-runtime/onnxruntime/$QnnRuntimePackageVersion/LICENSE.txt" `
+        -ExpectedSize (Get-Item -LiteralPath $qnnLicense).Length `
+        -ExpectedSha256 (Sha256 $qnnLicense)
+    Write-Output ("已准备 " + $catalogQnnRuntimes.Count + " 个 QNN 运行组件条目")
+} else {
+    Write-Output 'QNN 运行组件元数据不存在，跳过（catalog 不含 qnnRuntimes）'
+}
+
+# ------------------------------------------------------- NPU 预编译 context 产物
+# 又一个独立字段（理由同 qnnRuntimes）：模型自己那几组的 isCompatible() 各有硬校验，
+# 混入会让旧版 App 拒绝整个 catalog。
+# qairtVersion 必须与 qnnRuntimes 打包的 QAIRT 一致，否则设备侧建 session 会报
+# error 5000（D252）；App 端由 SpatialRuntimeStore.QNN_QAIRT_VERSION 兜底判定。
+$catalogQnnPrecompiled = @()
+if (Test-Path -LiteralPath $qnnPrecompiledRoot) {
+    foreach ($modelDir in Get-ChildItem -LiteralPath $qnnPrecompiledRoot -Directory) {
+        $metaPath = Join-Path $modelDir.FullName 'qnn-precompiled-packages.json'
+        if (-not (Test-Path -LiteralPath $metaPath)) { continue }
+        $meta = Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($pkg in @($meta.packages)) {
+            $localPath = Join-Path $modelDir.FullName $pkg.fileName
+            $file = Get-Item -LiteralPath $localPath
+            if ($file.Length -ne [Int64]$pkg.sizeBytes -or (Sha256 $file.FullName) -ne $pkg.sha256) {
+                throw "$($meta.modelId)/$($pkg.dspArch) 预编译包校验失败"
+            }
+            $declared = [Int64]$pkg.contextModelSizeBytes + [Int64]$pkg.contextBinarySizeBytes
+            if ([Int64]$pkg.unpackedSizeBytes -ne $declared) {
+                throw "$($meta.modelId)/$($pkg.dspArch) 预编译包解包字节数不一致"
+            }
+
+            $relativeDirectory =
+                "models/spatial-depth/qnn-precompiled/$($meta.modelId)/$($meta.modelVersion)/$($pkg.dspArch)"
+            Publish-ImmutableObject `
+                -LocalPath $file.FullName `
+                -RemotePath "$remoteRoot/$relativeDirectory/$($pkg.fileName)" `
+                -ExpectedSize $file.Length `
+                -ExpectedSha256 $pkg.sha256
+
+            if ($meta.qairtVersion -ne $appQairt) {
+                throw "预编译产物 QAIRT 版本不一致：App 要求 $appQairt，产物是 $($meta.qairtVersion)"
+            }
+            $catalogQnnPrecompiled += [ordered]@{
+                modelId = $meta.modelId
+                modelVersion = $meta.modelVersion
+                dspArch = $pkg.dspArch
+                qairtVersion = $meta.qairtVersion
+                url = "$baseUrl/$relativeDirectory/$($pkg.fileName)"
+                sizeBytes = [Int64]$pkg.sizeBytes
+                sha256 = $pkg.sha256
+                unpackedSizeBytes = [Int64]$pkg.unpackedSizeBytes
+                contextModelName = $pkg.contextModelName
+                contextModelSizeBytes = [Int64]$pkg.contextModelSizeBytes
+                contextModelSha256 = $pkg.contextModelSha256
+                contextBinaryName = $pkg.contextBinaryName
+                contextBinarySizeBytes = [Int64]$pkg.contextBinarySizeBytes
+                contextBinarySha256 = $pkg.contextBinarySha256
+                license = $meta.license
+                enabled = $true
+                disabledReason = $null
+            }
+        }
+    }
+    Write-Output ("已准备 " + $catalogQnnPrecompiled.Count + " 个 NPU 预编译条目")
+} else {
+    Write-Output 'NPU 预编译目录不存在，跳过'
+}
+
 $catalogModels = @()
 foreach ($model in $models) {
     $relativeDirectory = "models/spatial-depth/objects/$($model.id)/$($model.version)"
@@ -556,6 +732,8 @@ $payload = [ordered]@{
             Where-Object { $_.id -ne 'migan_places2_512_pipeline' }
     )
     runtimes = $catalogRuntimes
+    qnnRuntimes = $catalogQnnRuntimes
+    qnnPrecompiledModels = $catalogQnnPrecompiled
 }
 $payloadPath = Join-Path $outputRoot 'catalog-payload.json'
 $payloadJson = $payload | ConvertTo-Json -Depth 8

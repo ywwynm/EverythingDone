@@ -84,7 +84,7 @@ class SpatialMattingDownloadWorker(
             setForegroundAsync(foregroundInfo(model, 0L, model.sizeBytes)).get()
             val catalog = SpatialCatalogClient(applicationContext).fetchOrCached().catalog
             if (!SpatialRuntimeStore.isInstalled(applicationContext)) {
-                SpatialRuntimeInstaller.ensureInstalled(
+                SpatialRuntimeInstaller.ensureSelectedInstalled(
                     context = applicationContext,
                     catalog = catalog,
                     shouldStop = { isStopped },

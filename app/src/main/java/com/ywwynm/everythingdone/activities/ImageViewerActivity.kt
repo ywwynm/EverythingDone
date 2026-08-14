@@ -1073,7 +1073,9 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         com.ywwynm.everythingdone.spatial.SpatialAlphaData
         >? {
         val model = com.ywwynm.everythingdone.spatial.SpatialMattingModel.MODNET_PHOTOGRAPHIC
-        if (!com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+        if (!com.ywwynm.everythingdone.spatial.SpatialPreferences
+                .mattingEnabled(applicationContext) ||
+            !com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
                 .isInstalled(applicationContext, model) ||
             !com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
                 .hasSufficientAvailableMemory(applicationContext, model)
@@ -1115,7 +1117,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         return try {
             val data = com.ywwynm.everythingdone.spatial
                 .SpatialSegmentationEngine(applicationContext)
-                .generate(bitmap, model, cancelled)
+                .generate(bitmap, model, cancelled) {
+                    runOnUiThread {
+                        if (mSpatialGenerationCancelled === cancelled && !cancelled.get()) {
+                            showSpatialGenerationStage(R.string.spatial_generation_qnn_compiling)
+                        }
+                    }
+                }
             model to data
         } catch (error: Throwable) {
             if (cancelled.get()) throw error
@@ -1168,6 +1176,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     ) {
         val cancelled = AtomicBoolean(false)
         mSpatialGenerationCancelled = cancelled
+        installSpatialNpuStageReporter()
         showSpatialGenerationStage(R.string.spatial_generation_preparing)
         mSpatialExecutor.execute {
             var pendingLdi: com.ywwynm.everythingdone.spatial.SpatialLdiLiteData? = null
@@ -1196,6 +1205,13 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 if (includeLdi) {
                     // 位移始终只消费连续单目深度。可选模型在生成期分别承担实例内部
                     // 连续性、补景条件与边缘覆盖，不会创建语义运动层。
+                    // 这三步（抠像、分割、边界细化）此前一条阶段文案都没有，界面会一直停在
+                    // 「正在处理深度…」——而深度早就算完了，文案与实际工作对不上。
+                    runOnUiThread {
+                        if (mSpatialGenerationCancelled === cancelled && !cancelled.get()) {
+                            showSpatialGenerationStage(R.string.spatial_generation_analyzing)
+                        }
+                    }
                     val subjectMatte = generateOptionalSpatialMatte(bitmap, cancelled)
                     check(!cancelled.get()) { "任务已取消" }
                     var segmentation = generateOptionalSpatialSegmentation(bitmap, cancelled)
@@ -1606,8 +1622,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
+    /** 当前阶段的文案资源，供 NPU 标注在同一阶段内就地追加。 */
+    private var mSpatialStageTextRes: Int = 0
+    private var mSpatialStageUsedNpu = false
+
     private fun showSpatialGenerationStage(text: Int) {
-        mSpatialGenerationStage?.setText(text)
+        // 换阶段就清掉上一段的 NPU 标注——标注只对**当前这一步**成立。
+        if (text != mSpatialStageTextRes) mSpatialStageUsedNpu = false
+        mSpatialStageTextRes = text
+        renderSpatialGenerationStage()
         mSpatialGenerationOverlay?.apply {
             visibility = View.VISIBLE
             // 生成期间必须覆盖 Toolbar 与顶部徽标，阻止删除附件等并发操作。
@@ -1616,7 +1639,44 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mVpImage?.isEnabled = false
     }
 
+    private fun renderSpatialGenerationStage() {
+        if (mSpatialStageTextRes == 0) return
+        val base = getString(mSpatialStageTextRes)
+        mSpatialGenerationStage?.text = if (mSpatialStageUsedNpu) {
+            getString(R.string.spatial_generation_npu_suffix, base)
+        } else {
+            base
+        }
+    }
+
+    /**
+     * 让界面在**实际**用上 NPU 的那一步标注出来。挂的是
+     * [com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener]，
+     * 回报的是真实建成的 session 走了哪条路——条件不满足或建 session 失败都会静默回落，
+     * 所以不能靠"应该会用"推断（2026-08-14 用户要求）。
+     */
+    private fun installSpatialNpuStageReporter() {
+        com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener =
+            { _, usedQnn ->
+                if (usedQnn) {
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            mSpatialStageUsedNpu = true
+                            renderSpatialGenerationStage()
+                        }
+                    }
+                }
+            }
+    }
+
+    private fun clearSpatialNpuStageReporter() {
+        com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener = null
+        mSpatialStageUsedNpu = false
+        mSpatialStageTextRes = 0
+    }
+
     private fun hideSpatialGeneration() {
+        clearSpatialNpuStageReporter()
         mSpatialGenerationOverlay?.visibility = View.GONE
         if (!mSpatialMode) mVpImage?.isEnabled = true
     }

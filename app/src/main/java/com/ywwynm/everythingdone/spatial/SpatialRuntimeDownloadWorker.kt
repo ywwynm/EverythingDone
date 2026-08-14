@@ -81,6 +81,28 @@ object SpatialRuntimeInstaller {
         val total: Long
     )
 
+    /**
+     * 装**当前选中变体**的运行组件。给模型下载这类"顺带确保运行组件在位"的调用方用。
+     *
+     * NPU 那一份有自己的入口（[ensureQnnInstalled]）与自己的 Worker——**不能共用**，
+     * 否则两者的进度会挤在同一个 WorkInfo 上，UI 只能显示在其中一行里
+     * （2026-08-14 用户连续两次指出：勾选 NPU 的下载进度出现在"推理运行环境"那一行）。
+     */
+    @Synchronized
+    fun ensureSelectedInstalled(
+        context: Context,
+        catalog: SpatialModelCatalog,
+        shouldStop: () -> Boolean,
+        onProgress: (Progress) -> Unit
+    ) {
+        if (SpatialPreferences.qnnEnabled(context)) {
+            ensureQnnInstalled(context, catalog, shouldStop, onProgress)
+        } else {
+            ensureInstalled(context, catalog, shouldStop, onProgress)
+        }
+    }
+
+    /** 只装 CPU 版。 */
     @Synchronized
     fun ensureInstalled(
         context: Context,
@@ -91,7 +113,7 @@ object SpatialRuntimeInstaller {
         val entry = catalog.runtimeForCurrentDevice()
             ?: error("可信目录中没有适用于本机 ABI 的空间计算组件")
         check(entry.enabled) { entry.disabledReason ?: "空间计算组件已被目录禁用" }
-        if (SpatialRuntimeStore.isInstalled(context)) return entry
+        if (SpatialRuntimeStore.isVariantInstalled(context, qnn = false)) return entry
         check(!shouldStop()) { "下载已停止" }
 
         val partial = SpatialRuntimeStore.partialFile(context, entry)
@@ -99,8 +121,8 @@ object SpatialRuntimeInstaller {
         if (partial.length() > entry.sizeBytes) check(partial.delete()) {
             "无法重建运行组件临时文件"
         }
-        ensureFreeSpace(partial.parentFile!!, entry, partial.length())
-        downloadResumable(entry, partial, shouldStop, onProgress)
+        ensureFreeSpace(partial.parentFile!!, entry.sizeBytes, entry.unpackedSizeBytes, partial.length())
+        downloadResumable(entry.url, entry.sizeBytes, partial, shouldStop, onProgress)
         check(!shouldStop()) { "下载已停止" }
 
         onProgress(Progress(Stage.VERIFYING, entry.sizeBytes, entry.sizeBytes))
@@ -111,29 +133,122 @@ object SpatialRuntimeInstaller {
 
         onProgress(Progress(Stage.INSTALLING, entry.sizeBytes, entry.sizeBytes))
         SpatialRuntimeStore.installVerified(context, entry, partial)
-        check(SpatialRuntimeStore.isInstalled(context)) { "空间计算组件安装后校验失败" }
+        check(SpatialRuntimeStore.isVariantInstalled(context, qnn = false)) {
+            "空间计算组件安装后校验失败"
+        }
         partial.delete()
         return entry
+    }
+
+    /** 只装 NPU 版。与 CPU 版在磁盘上共存，互不删除。 */
+    @Synchronized
+    fun ensureQnnInstalled(
+        context: Context,
+        catalog: SpatialModelCatalog,
+        shouldStop: () -> Boolean,
+        onProgress: (Progress) -> Unit
+    ) {
+        val dspArch = SpatialQnnSupport.resolveDspArch()
+            ?: error("本机不是受支持的骁龙 NPU 机型")
+        val entry = catalog.qnnRuntimeForCurrentDevice(dspArch)
+            ?: error("可信目录中没有适用于本机（$dspArch）的 NPU 运行组件")
+        check(entry.enabled) { entry.disabledReason ?: "NPU 运行组件已被目录禁用" }
+        if (SpatialRuntimeStore.isVariantInstalled(context, qnn = true)) return
+        check(!shouldStop()) { "下载已停止" }
+
+        val partial = SpatialRuntimeStore.partialFileQnn(context, entry)
+        check(partial.parentFile?.exists() == true || partial.parentFile?.mkdirs() == true)
+        if (partial.length() > entry.sizeBytes) check(partial.delete()) {
+            "无法重建 NPU 运行组件临时文件"
+        }
+        ensureFreeSpace(partial.parentFile!!, entry.sizeBytes, entry.unpackedSizeBytes, partial.length())
+        downloadResumable(entry.url, entry.sizeBytes, partial, shouldStop, onProgress)
+        check(!shouldStop()) { "下载已停止" }
+
+        onProgress(Progress(Stage.VERIFYING, entry.sizeBytes, entry.sizeBytes))
+        check(SpatialModelStore.sha256(partial).equals(entry.sha256, ignoreCase = true)) {
+            "NPU 运行组件 SHA-256 不符"
+        }
+        check(!shouldStop()) { "下载已停止" }
+
+        onProgress(Progress(Stage.INSTALLING, entry.sizeBytes, entry.sizeBytes))
+        SpatialRuntimeStore.installVerifiedQnn(context, entry, partial)
+        check(SpatialRuntimeStore.isVariantInstalled(context, qnn = true)) {
+            "NPU 运行组件安装后校验失败"
+        }
+        partial.delete()
+    }
+
+    /**
+     * 下发的 NPU 预编译 context。装在运行组件之后——它对 QAIRT 版本有硬依赖，
+     * 运行组件没就位时下下来也用不了。
+     *
+     * 失败不致命：拿不到就让 [SpatialQnnSessionFactory] 走端上现编或 CPU。
+     */
+    @Synchronized
+    fun ensurePrecompiled(
+        context: Context,
+        catalog: SpatialModelCatalog,
+        modelId: String,
+        modelVersion: String,
+        shouldStop: () -> Boolean,
+        onProgress: (Progress) -> Unit
+    ): Boolean {
+        if (!SpatialPreferences.qnnEnabled(context)) return false
+        if (!SpatialPreferences.qnnEnabledFor(context, modelId)) return false
+        val dspArch = SpatialQnnSupport.resolveDspArch() ?: return false
+        val entry = catalog.qnnPrecompiledFor(modelId, modelVersion, dspArch) ?: return false
+        if (!entry.enabled) return false
+        // **先比 catalog 再决定要不要下**：键里没有产物内容的信息，同一个键下的 context
+        // binary 是会被换掉的（D262 重编后模型没升版）。只问"装过了吗"会让老用户永远
+        // 停在旧产物上。装着旧的就先删掉再重下。
+        SpatialQnnPrecompiledStore.purgeIfStale(context, entry)
+        if (SpatialQnnPrecompiledStore.matchesCatalog(context, entry)) return true
+        check(!shouldStop()) { "下载已停止" }
+
+        val partial = SpatialQnnPrecompiledStore.partialFile(context, entry)
+        check(partial.parentFile?.exists() == true || partial.parentFile?.mkdirs() == true)
+        if (partial.length() > entry.sizeBytes) check(partial.delete()) {
+            "无法重建 NPU 预编译临时文件"
+        }
+        ensureFreeSpace(partial.parentFile!!, entry.sizeBytes, entry.unpackedSizeBytes, partial.length())
+        downloadResumable(entry.url, entry.sizeBytes, partial, shouldStop, onProgress)
+        check(!shouldStop()) { "下载已停止" }
+
+        onProgress(Progress(Stage.VERIFYING, entry.sizeBytes, entry.sizeBytes))
+        check(SpatialModelStore.sha256(partial).equals(entry.sha256, ignoreCase = true)) {
+            "NPU 预编译产物 SHA-256 不符"
+        }
+        onProgress(Progress(Stage.INSTALLING, entry.sizeBytes, entry.sizeBytes))
+        SpatialQnnPrecompiledStore.installVerified(context, entry, partial)
+        partial.delete()
+        // 装完确认的是"装上的就是 catalog 那一份"，不只是"目录里有东西"
+        return SpatialQnnPrecompiledStore.matchesCatalog(context, entry)
     }
 
     fun deletePartials(context: Context) {
         val directory = File(context.noBackupFilesDir, "spatial-photo/downloads")
         directory.listFiles()
-            ?.filter { it.name.startsWith("runtime-") && it.name.endsWith(".zip.part") }
+            ?.filter {
+                (it.name.startsWith("runtime-") || it.name.startsWith("qnn-runtime-") ||
+                    it.name.startsWith("qnn-precompiled-")) &&
+                    it.name.endsWith(".zip.part")
+            }
             ?.forEach { it.delete() }
     }
 
     private fun downloadResumable(
-        entry: SpatialRuntimeCatalogEntry,
+        url: String,
+        sizeBytes: Long,
         partial: File,
         shouldStop: () -> Boolean,
         onProgress: (Progress) -> Unit
     ) {
         var offset = partial.length()
-        onProgress(Progress(Stage.DOWNLOADING, offset, entry.sizeBytes))
-        if (offset == entry.sizeBytes) return
+        onProgress(Progress(Stage.DOWNLOADING, offset, sizeBytes))
+        if (offset == sizeBytes) return
 
-        val connection = URL(entry.url).openConnection() as HttpURLConnection
+        val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = CONNECT_TIMEOUT_MS
         connection.readTimeout = READ_TIMEOUT_MS
         connection.instanceFollowRedirects = false
@@ -172,20 +287,20 @@ object SpatialRuntimeInstaller {
                         val read = input.read(buffer)
                         if (read < 0) break
                         downloaded += read
-                        check(downloaded <= entry.sizeBytes) {
+                        check(downloaded <= sizeBytes) {
                             "运行组件响应超过签名字节数"
                         }
                         output.write(buffer, 0, read)
                         if (downloaded - lastPublished >= PROGRESS_STEP_BYTES) {
                             lastPublished = downloaded
-                            onProgress(Progress(Stage.DOWNLOADING, downloaded, entry.sizeBytes))
+                            onProgress(Progress(Stage.DOWNLOADING, downloaded, sizeBytes))
                         }
                     }
                     output.fd.sync()
                 }
             }
-            check(partial.length() == entry.sizeBytes) {
-                "运行组件下载不完整：${partial.length()} / ${entry.sizeBytes}"
+            check(partial.length() == sizeBytes) {
+                "运行组件下载不完整：${partial.length()} / ${sizeBytes}"
             }
         } finally {
             connection.disconnect()
@@ -194,11 +309,12 @@ object SpatialRuntimeInstaller {
 
     private fun ensureFreeSpace(
         directory: File,
-        entry: SpatialRuntimeCatalogEntry,
+        sizeBytes: Long,
+        unpackedSizeBytes: Long,
         existingBytes: Long
     ) {
-        val required = (entry.sizeBytes - existingBytes).coerceAtLeast(0L) +
-            entry.unpackedSizeBytes +
+        val required = (sizeBytes - existingBytes).coerceAtLeast(0L) +
+            unpackedSizeBytes +
             MIN_FREE_MARGIN_BYTES
         check(StatFs(directory.absolutePath).availableBytes >= required) {
             "存储空间不足"

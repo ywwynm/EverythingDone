@@ -69,6 +69,19 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true">
 
+        <!--
+            空间照片的高通 NPU 路径需要它：QNN 的 libQnnHtpV<arch>Stub.so 在 DT_NEEDED 里
+            依赖 vendor 的 FastRPC 客户端库 libcdsprpc.so，而它不在 app linker namespace
+            的默认白名单内。不声明的话 dlopen 报
+            `library "libcdsprpc.so" not found ... in namespace clns-9`，QNN 随后
+            `Failed to create transport for device, error: 4000`，整图**静默**退回 CPU
+            （2026-08-13 真机实测，见 D217）。
+            required="false" 保证非高通设备照常安装。
+        -->
+        <uses-native-library
+            android:name="libcdsprpc.so"
+            android:required="false" />
+
         <activity
             android:name=".activities.ThingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"

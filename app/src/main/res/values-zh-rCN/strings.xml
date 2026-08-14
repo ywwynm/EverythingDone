@@ -1747,6 +1747,9 @@
     <string name="spatial_generation_preparing">正在准备图片…</string>
     <string name="spatial_generation_inference">正在本机估计深度…</string>
     <string name="spatial_generation_processing">正在处理深度…</string>
+    <string name="spatial_generation_npu_suffix">%1$s（NPU 加速中）</string>
+    <string name="spatial_generation_analyzing">正在分析主体与遮挡…</string>
+    <string name="spatial_generation_qnn_compiling">正在为 NPU 编译模型（仅首次）…</string>
     <string name="spatial_generation_saving">正在保存空间效果…</string>
     <string name="spatial_generation_failed">无法生成空间效果：%1$s</string>
     <string name="spatial_generation_cancelled">已取消生成空间效果</string>
@@ -1773,6 +1776,37 @@
     <string name="spatial_select_big_lama">使用 Big-LaMa</string>
     <string name="spatial_big_lama_title" translatable="false">Big-LaMa</string>
     <string name="spatial_big_lama_description">按原生分辨率切 512 分块推理，因此能保住主体周围那条很窄的显露带；三者中结构续接最好，代价是 198 MB 体积与最高的内存占用。</string>
+    <string name="spatial_enable_modnet">启用发丝边缘细化</string>
+    <string name="spatial_matting_enabled">已启用 · %1$s</string>
+    <string name="spatial_matting_disabled">已下载，未启用 · %1$s</string>
+    <string name="spatial_qnn_restart_required">运行组件已切换，生成前请重启应用。</string>
+    <string name="spatial_qnn_model_hint">部分模型的 NPU 版本需要单独下载和选择。</string>
+    <string name="spatial_qnn_downloading">已启用 · 正在下载运行组件…</string>
+    <string name="spatial_model_ready">可用</string>
+    <string name="spatial_model_not_downloaded_short">未下载</string>
+    <string name="spatial_big_lama_npu_title">Big-LaMa（NPU 版）</string>
+    <string name="spatial_select_big_lama_npu">使用 Big-LaMa 的 NPU 版本</string>
+    <string name="spatial_rfdetr_npu_title">RF-DETR Seg Nano（NPU 版）</string>
+    <string name="spatial_select_rfdetr_npu">使用 RF-DETR 的 NPU 版本</string>
+    <string name="spatial_npu_runtime_pending">等待 NPU 运行组件就绪…</string>
+    <string name="spatial_npu_downloading">正在下载…</string>
+    <string name="spatial_npu_needs_base_model">需先安装 CPU 版</string>
+    <string name="spatial_npu_no_extra_download">无需额外下载，首次使用时在本机编译</string>
+    <string name="spatial_npu_needs_runtime">请先启用骁龙 NPU 加速</string>
+    <string name="spatial_qnn_installed_enabled">已安装 · %1$s · 使用中</string>
+    <string name="spatial_qnn_installed_disabled">已安装 · %1$s · 未使用</string>
+    <string name="spatial_qnn_title">骁龙 NPU 加速</string>
+    <string name="spatial_qnn_description">让支持的模型在骁龙 NPU 上推理。需要单独的运行组件；每个模型首次使用时在本机编译计算图，编译结果会缓存复用。</string>
+    <string name="spatial_qnn_per_model">NPU</string>
+    <string name="spatial_qnn_unsupported">本机没有受支持的骁龙 NPU</string>
+    <string name="spatial_qnn_ready">已启用 · 运行组件已安装</string>
+    <string name="spatial_qnn_needs_runtime">已启用 · 下次生成时下载运行组件</string>
+    <string name="spatial_qnn_off">已关闭 · 模型跑在 CPU 上</string>
+    <string name="spatial_depth_detail">深度细节</string>
+    <string name="spatial_depth_detail_fast">快速（1200）</string>
+    <string name="spatial_depth_detail_standard">标准（1800）</string>
+    <string name="spatial_depth_detail_fine">精细（2700）</string>
+    <string name="spatial_depth_detail_description" formatted="false">设定 MoGe-2 的内部推理分辨率，决定深度不连续处的边界锐度与可分辨的几何细节上限。档位越高，推理耗时随之上升。</string>
     <string name="spatial_inpainting_resolution">AOT-GAN 工作分辨率</string>
     <string name="spatial_inpainting_resolution_description">512 最快，768 为默认，1024 使用最多输入细节，但不保证每张图的生成内容都更好。App 不会静默降档；内存不足时请关闭其他大型应用。</string>
     <string name="spatial_inpainting_not_ready">请先下载隐藏背景模型，再生成增强空间效果。</string>
@@ -1781,14 +1815,16 @@
     <string name="spatial_generation_geometry">正在建立深度分层…</string>
     <string name="spatial_generation_inpainting">正在补全隐藏背景…</string>
     <string name="spatial_zipdepth_title">ZipDepth</string>
-    <string name="spatial_zipdepth_description">MIT。双机实测单张推理约 0.04–0.33 秒；体积更小，适合作为默认模型。</string>
+    <string name="spatial_zipdepth_description">MIT。体积更小，适合作为默认模型。</string>
     <string name="spatial_dav2_title">Depth Anything V2 Small</string>
-    <string name="spatial_dav2_description">Apache-2.0。双机实测单张推理约 0.69–5.54 秒；占用明显更多内存。</string>
+    <string name="spatial_dav2_description">Apache-2.0。推理更慢，内存占用明显更高。</string>
     <string name="spatial_select_zipdepth">使用 ZipDepth</string>
     <string name="spatial_select_dav2">使用 Depth Anything V2 Small</string>
     <string name="spatial_da3_title">Depth Anything 3 Small</string>
     <string name="spatial_select_moge2">使用 MoGe-2 Small</string>
+    <string name="spatial_select_moge2b">使用 MoGe-2 Base</string>
     <string name="spatial_moge2_title" translatable="false">MoGe-2 Small</string>
+    <string name="spatial_moge2b_title" translatable="false">MoGe-2 Base</string>
     <string name="spatial_moge2_description">四个模型里唯一能恢复米制深度与相机内参的一档，因此视角移动是真正的透视重投影，而不是屏幕空间的整体形变。</string>
     <string name="spatial_select_da3">使用 Depth Anything 3 Small</string>
     <string name="spatial_matting_group">发丝边缘细化</string>

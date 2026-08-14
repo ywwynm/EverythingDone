@@ -7186,3 +7186,2619 @@ dx 变小的主因是分辨率变了之后 MoGe 报的归一化焦距本身下�
 "很暗像素"占比三档几乎不动（0.336 / 0.316 / 0.321）。那是底板里主体自身的暗像素在剪影
 处露出来，超采样只能把它摊柔和，摊不掉。要真正消掉得回到**第二层内容**这一层（D212 的
 待办），与 D174 同族。
+
+## D214：全链路第一个热点不是模型，是派生落盘的逐字节 deflate（2026-08-13）
+
+用户提出「47–76 秒一张太慢，想用 NPU 加速」。动手接 NPU 之前先补了分段计时
+（`SpatialInferenceTrace` + 探针的阶段墙钟表），第一次跑就把优先级判断推翻了。
+
+### 首测（R5CW20BLNKL / 8 Gen 2，00 场景，MoGe-2 + Big-LaMa maximum_1024 + MODNet
+### + RF-DETR + EdgeTAM）
+
+```
+total=77886ms  decode=4  depth=5958  matte=660  segmentation=1048  boundary=1144
+               build=29391  save=32954
+```
+
+**`save` 32.95 秒，比整个补全阶段还多**，而它是纯 CPU/IO，NPU 一点都改善不了。
+拆到写入函数一级：
+
+| 段 | 次数 | 总耗时 | 单次 |
+|---|---|---|---|
+| `save.motion_basis` | 2 | 21.64 s | 10.82 s |
+| `save.depth_values` | 3 | 3.97 s | 1.32 s |
+| `save.connectivity` | 1 | 0.30 s | — |
+| `save.background_png` | 1 | 0.16 s | — |
+| `save.sha256` | 23 | 0.02 s | 1.0 ms |
+
+### 根因
+
+`SpatialDerivativeStore` 的五个写入函数都是
+
+```kotlin
+val compressed = DeflaterOutputStream(fileOutput)
+val output = DataOutputStream(compressed)     // ← 中间没有 BufferedOutputStream
+```
+
+`DataOutputStream.writeFloat` 是 4 次单字节 `write(int)`，`DeflaterOutputStream.write(int)`
+每次都走一遍 `setInput` + `deflate` 的 JNI 往返。motionBasis 单份约 6 MB、depth 约
+780 KB，两者单位成本同为 **约 1.7 µs/字节**——这个一致的单位成本就是根因的指纹，
+不是某个文件特别大。
+
+读取侧是同一个根因的另一面：`DataInputStream(InflaterInputStream(BufferedInputStream(f)))`
+里那层 buffer 在 Inflater **内侧**，只缓冲了文件 IO，`readFloat` 仍是每字节一次 inflate。
+
+### 修复与实测
+
+写入侧 `DataOutputStream(BufferedOutputStream(compressed, 64 KiB))`，读取侧在 Inflater
+**外侧**再加一层 `BufferedInputStream(…, 64 KiB)`。压缩字节流会变（分块边界不同），
+但解压内容逐位相同，且 manifest 里的 SHA-256 是保存时算、读取时校验，同次保存内自洽。
+
+| | 修复前 | 修复后 | 倍数 |
+|---|---|---|---|
+| total | 77.9 s | **41.3 s** | 1.89× |
+| save | 32.95 s | **2.06 s** | 16× |
+| `save.motion_basis` 单次 | 10.82 s | 0.43 s | 25× |
+| `save.depth_values` 单次 | 1.32 s | 0.074 s | 18× |
+
+`reload manifest=true` 与 `store.load` 回读校验照常通过；`:app:testDebugUnitTest`
+`--rerun --no-build-cache` 133 类 822 项 0 失败。
+
+### 对 NPU 方案的影响
+
+修复后 41.3 秒的构成：`inpaint.run` 20.7 s（50%）、`depth.run` 5.1 s（12%）、
+`inpaint.session` 3.7 s（9%）、几何构建约 4.9 s、其余推理约 2.0 s、save 2.1 s。
+**推理侧约 31.5 s，占 76%**——NPU 的目标空间是清楚的，按 AI Hub 的 8 Gen 2 数据
+推理侧有望压到 2–3 秒，全链路约 12 秒。
+
+**方法教训**：`research-2026-08-13-qualcomm-npu.md` 把「先补逐阶段计时」写成 Phase 0
+第一件事是对的。若直接接 NPU，会得到「加速了推理但整链只快了不到一半」的结论，
+并且很可能把这 33 秒记到 NPU 头上。
+
+## D215：QNN 随包体积与商用再分发条款核实通过（2026-08-13）
+
+`research-2026-08-13-qualcomm-npu.md` 列的 Phase 0 三个止损点，许可与体积这两个已经有实证。
+
+### 体积：`com.qualcomm.qti:qnn-runtime:2.48.0`（Maven Central，2026-07-02）
+
+AAR 压缩后 65.2 MiB、解压 197 MiB，`jni/arm64-v8a` 关键项：
+
+| 库 | 体积 | 何时需要 |
+|---|---|---|
+| `libQnnHtpPrepare.so` | **87.9 MB** | **仅端上编译图时** |
+| `libQnnHtpV81Skel.so` | 18.6 MB | dsp_arch = v81 |
+| `libQnnHtpV75Skel.so` | 17.7 MB | v75（8 Gen 3） |
+| `libQnnHtpV73Skel.so` | 17.7 MB | v73（8 Gen 2，主测机） |
+| `libQnnHtpV79Skel.so` | 17.5 MB | v79（8 Elite） |
+| `libQnnHtpV69Skel.so` | 11.7 MB | v69（8 Gen 1） |
+| `libQnnHtpV68Skel.so` | 10.3 MB | v68 |
+| `libQnnGpu.so` | 8.3 MB | 仅 GPU 后端 |
+| `libQnnSystem.so` | 4.1 MB | always |
+| `libQnnHtp.so` | 3.8 MB | always |
+| `libQnnHtpV*Stub.so` | 各约 0.75 MB | 对应 dsp_arch |
+
+**按设备 dsp_arch 只下发一份**是必须的，且带不带 `libQnnHtpPrepare.so` 差一个数量级：
+
+- 离线预编译 context binary：`Htp + System + V73Stub + V73Skel` = **26.4 MB**（压缩约 9 MB）
+- 端上编译：再加 Prepare = **114.3 MB**（压缩约 39 MB）
+
+对照现役运行组件：`libonnxruntime.so` 12.6 MB + JNI 0.11 MB（裁剪构建，设备实测）。
+即离线路线让运行组件涨到约 3 倍，端上编译路线涨到约 10 倍。
+
+**这推翻了 `research-2026-08-13` 里「建议先端上编译，实测慢到不可接受再转离线」的取向。**
+端上编译的成本不只是首次编译时长，还有每台设备恒定多下的 87.9 MB。新的取向是：
+**catalog 里有本机 dsp_arch 的预编译产物就直接用（26.4 MB 路径）；没有才回落端上编译
+并追加下载 Prepare 库。** 覆盖 v69/v73/v75/v79/v81 五档即可覆盖 8 Gen 1 及以后的骁龙。
+
+### 许可：AI Stack License（AAR 内 LICENSE.pdf，POM 标为 Qualcomm AI Hub Model License）
+
+第 1 条明确授予 "(iv) distribute and sublicense the Software solely in object code format
+and **as incorporated in Your software application**"，免费（royalty-and-fee-free）、
+非独占、不可转让、**可撤销**。同条最后一句明确排除："nothing herein grants You a license
+to distribute or sublicense the Software **on a standalone basis**"。
+
+- 第 2.d 禁用场景（预测性警务、社会评分、职场／教育情绪识别、公共空间实时远程生物识别等）
+  与空间照片无关；第 2.e 高风险场景同样不涉及。
+- 第 2.a 禁止逆向；第 10.f 出口管制条款要求非"military end-user"认证。
+- 第 8 条：QTI 可无理由随时终止；终止后必须删除所有副本。**这是长期风险**——
+  CPU/XNNPACK 路径必须始终保留为可用回退，不能让功能只能在 NPU 上跑。
+
+**唯一需要用户自行拍板的法务点**：本项目的 `.so` 是从阿里云按需下载到 App 私有目录、
+只由本 App 加载，不打进 APK。这在实质上属于 "incorporated in Your software application"
+（用户无法单独获取、库只服务本 App），但字面上它确实经历了一次独立于 APK 的传输。
+更保险的做法是把 26.4 MB 那套打进 APK 的 `jniLibs`——代价是与"ONNX Runtime 不进基础
+APK"的既定边界冲突。**建议：沿用按需下载，但把这条记为已知法务判断，不作技术阻塞。**
+
+### D214 补充：九场景实测（R5CW20BLNKL，修复后连跑）
+
+| 场景 | total | depth | matte | seg | boundary | build | save |
+|------|-------|-------|-------|-----|----------|-------|------|
+| 00_original_single | 44.5 s | 6.39 | 0.71 | 1.12 | 1.24 | 32.58 | 1.84 |
+| 01_original_double | 46.3 s | 7.13 | 0.83 | 1.16 | 1.36 | 33.21 | 1.96 |
+| 02_indoor | 33.9 s | 7.11 | 0.78 | 1.08 | 1.35 | 21.22 | 1.75 |
+| 03_office | 32.5 s | 7.16 | 0.74 | 0.98 | 0.00 | 21.21 | 1.81 |
+| 04_traffic | 33.9 s | 7.17 | 0.78 | 1.16 | 1.35 | 21.08 | 1.76 |
+| 05_near_object | 33.9 s | 7.03 | 0.78 | 1.06 | 1.33 | 21.25 | 1.84 |
+| 06_statue | 47.2 s | 7.02 | 0.84 | 1.06 | 1.08 | 34.28 | 2.23 |
+| 07_food | 36.4 s | 7.69 | 0.84 | 1.09 | 0.00 | 24.29 | 1.89 |
+| 08_person_pet | 52.7 s | 7.63 | 1.16 | 1.07 | 1.14 | 37.82 | 2.93 |
+
+**全链路 47–76 s → 32.5–52.7 s，一致地降约 31%。** `save` 九场景全部落在 1.75–2.93 s。
+
+两点观察：
+
+- **连跑比单跑慢。** 单独跑 00 时 `depth` 是 5.96 s，九场景连跑里九张全在 7.0–7.7 s，
+  升了约 18%。这是热降频，不是回归。**后续 NPU 前后对比必须用同一种跑法**，
+  拿单跑数去比连跑数会得出错误的加速比。
+- **03_office 与 07_food 的 `boundary` 是 0 ms**：分割没给出实例，
+  `SpatialBoundaryRefinementEngine.refine` 在 `instances.isEmpty()` 处直接返回。
+  属既有设计，不是本轮改动引入的。
+
+`build` 仍是最大项（21.1–37.8 s），其中绝大部分是 `inpaint.run`——这正是 NPU 的首要目标。
+
+## D216：NPU 路线三条裁定（2026-08-13）
+
+用户在 D214/D215 的实测数据之后裁定：
+
+1. **开始构建带 QNN EP 的 ORT**，进入 Phase 0 的最后一项——最小样例跑通、
+   量首次图编译耗时与稳态推理耗时。
+2. **深度模型升级选 MoGe-2 ViT-B**（419 MB，MIT，与在用 ViT-S 输入输出契约完全相同）。
+   ViT-L（1.32 GB）不在本轮范围。
+3. **QNN 的 `.so` 沿用现有"从阿里云按需下载到私有目录"的分发方式**，
+   不打进基础 APK。D215 提出的法务判断点由用户裁定为符合许可要求
+   （object code 形式、作为本 App 的组成部分、不对外单独提供）。
+   "ONNX Runtime 不进基础 APK"这条既定边界因此保持不变。
+
+## D217：QNN HTP 在 S23 Ultra 上跑通，推理快 39×；两处坑都在加载链上（2026-08-13）
+
+D216 裁定后进入 Phase 0 最后一项。**结论：路走通了**，RF-DETR Seg Nano 312² 在
+R5CW20BLNKL（SM8550 / 8 Gen 2 / v73）上稳态推理从 3252 ms 降到 **83 ms**。
+
+### 不需要自建 ORT
+
+`com.microsoft.onnxruntime:onnxruntime-android-qnn` 有 **1.28.0**，与项目在用的 ORT 版本
+一致；且它的 `classes.jar` 与 `onnxruntime-android:1.28.0` 的 **SHA-256 完全相同**
+（`e671acbf…`），所以 `app/libs/onnxruntime-java-1.28.0-everythingdone.jar` 那份补丁 jar
+原封不动可用，**Java 层零改动**。原计划的 `--use_qnn` docker 自建构建（需要 Qualcomm
+账号下载 QAIRT SDK）因此不必做。
+
+该 AAR 只有 `arm64-v8a`，`libonnxruntime.so` 21.6 MB（现役裁剪版是 12.6 MB），
+**不含任何 QNN 库**——QNN 库仍从 `com.qualcomm.qti:qnn-runtime` 单独取，正合 D215 的
+按 dsp_arch 分发设计。字符串核对确认 EP 与全部关键 provider option 都在，XNNPACK 仍在。
+
+### 坑一：不要自己设 `ADSP_LIBRARY_PATH`
+
+ORT 的 QNN EP 会按 `backend_path` 自行设定（日志里是
+`Setting ADSP_LIBRARY_PATH = "/data/data/<pkg>/.../lib/"`）。手动设会被它检测到并跳过
+自己的设定：`Using existing ADSP_LIBRARY_PATH setting of …, which may cause the HTP
+backend to fail`。Edge Impulse 教程里的 `System.setProperty("ADSP_LIBRARY_PATH", …)`
+在这条路上是**有害的**（何况 `System.setProperty` 本来也进不了 native `getenv`）。
+
+### 坑二（真根因）：`libcdsprpc.so` 不在 app 的 linker namespace 里
+
+去掉手动 ADSP 设置后错误不变，仍是
+`QNN SetupBackend failed Failed to create device. Error: QNN_DEVICE_ERROR_INVALID_CONFIG`。
+**这个错误码具有误导性**——打开 ORT VERBOSE（QNN EP 会把级别透传给 QNN 库的 QnnLog）
+才看到真正的那一行：
+
+```
+Failed in loading stub: dlopen failed: library "libcdsprpc.so" not found:
+    needed by …/libQnnHtpV73Stub.so in namespace clns-9
+Failed to create transport for device, error: 4000 → Failed to load skel, error: 4000
+→ exits device initialization with 14001
+```
+
+`libQnnHtpV<arch>Stub.so` 的 `DT_NEEDED` 里有 vendor 的 FastRPC 客户端库
+`libcdsprpc.so`，它不在 app linker namespace 的默认白名单里。修复是 Android 12+ 的官方
+机制，在 manifest 的 `<application>` 内声明：
+
+```xml
+<uses-native-library android:name="libcdsprpc.so" android:required="false" />
+```
+
+`required="false"` 保证非高通设备照常安装。这一条也解释了 ORT issue #21214 里那个
+未解决的 `Error: 14001`。
+
+**在此之前，四条"证据"全是绿的**：`providers=[CPU, QNN]`、backend 加载成功、
+`Detected Snapdragon SOC SM8550`、`HTP: initialization completed successfully`——
+但 profiling JSON 显示 4540 个节点**无一**落到 QNN，整图静默退回 CPU。
+与 D210 同款：**判定接没接通只能看 profiling 里每节点的 provider，不能看耗时或日志里的
+"success"。**
+
+### 实测（RF-DETR Seg Nano 312²，`enable_htp_fp16_precision=1`，burst）
+
+| | session 创建 | 稳态推理（中位） |
+|---|---|---|
+| CPU（官方 AAR，4 线程） | 1369 ms | 3252 ms |
+| QNN HTP，首次 | **50706 ms**（图编译） | 83 ms |
+| QNN HTP，复用 context binary | **404 ms** | 82 ms |
+
+- **推理 39×**（3252 → 83 ms）。对照产品现役裁剪版 ORT 的 `segmentation.run` 483 ms，
+  仍有 **5.8×**。
+- **context binary 把 50.7 秒的图编译降到 0.4 秒（125×），推理性能不变。**
+  产物是 `<name>_ctx.onnx`（5.7 KB 壳）+ `<name>_ctx_qnn.bin`（69.2 MB，含 fp16 权重，
+  比原模型 122.8 MB 还小）。复用时**直接把 `_ctx.onnx` 当模型加载，且不能再设
+  `ep.context_enable`**。
+- 节点划分：QNN 承担 15 个融合子图（149.3 ms/5 次），CPU 还剩 25 个节点
+  （272.9 ms/5 次）——DETR 的后处理算子 QNN 不支持，占了剩余时间的大头。
+  即 83 ms 里约 55 ms 还在 CPU 上，主干本身只要约 30 ms。
+
+### 待查
+
+**官方 AAR 的 CPU 路径比项目裁剪构建慢 6.7×**（3252 ms vs 产品 483 ms，同模型同分辨率
+同线程数）。若最终换用官方 AAR，非高通设备会明显退化。需要查明是构建选项差异
+（现役构建带 `--enable_lto`）还是别的原因；必要时保留两份 `.so`：高通设备下发 QNN 版，
+其余下发现役裁剪版。
+
+## D218：Big-LaMa 当前导出不能上 NPU，重导出是硬前置（2026-08-13）
+
+D217 跑通 QNN 之后，按方案的第一优先级测 Big-LaMa（占全链路耗时一半），结论是**否**。
+
+### 静态分析（桌面读 ONNX 图）
+
+```
+input  image  ['batch', 3, 512, 512]      ← batch 维动态
+input  mask   ['batch', 1, 512, 512]
+output output ['batch', 3, 'Clipoutput_dim_2', 'Clipoutput_dim_3']   ← 输出空间维也动态
+总节点 17480
+Constant 7054 / Concat 1360 / Reshape 1348 / Slice 1322 / Shape 1188 / Cast 782 /
+Transpose 638 / Unsqueeze 504 / Div 432 / Gather 396 / … / Conv 222 / MatMul 216 / Einsum 216
+```
+
+**形状类算子（Shape/Slice/Concat/Reshape/Gather）合计 5614 个**，而真正干活的
+Conv 只有 222 个。这就是 D203 说的"把 Fourier Unit 展成 DFT 稠密矩阵乘"的全貌——
+它不只多了 216 个 Einsum，还把整个 FFC 分支变成了一大片动态形状计算。
+
+### 端上实测
+
+| | session 创建 | 推理 |
+|---|---|---|
+| CPU（官方 AAR） | 21.7 s | 进程被 LMK 杀，未取到 |
+| QNN HTP | 36.4 s（编译过了） | **`QNN graph execute error. Error code: 1003`** |
+
+QNN 能把图编译完，但执行即失败。**固定 batch 维救不了**：输出空间维同样是动态的，
+且 216 个 Einsum 无对应 HTP 算子。
+
+### 裁定
+
+**Big-LaMa 的重导出从"最高性价比的下一步"（D203）升级为 NPU 路线的硬前置。**
+顺序是：先按 opset 17 的原生 DFT（或把 FFC 改写成 QNN 友好的等价形式）重导出、
+把 17480 个节点压回合理量级并钉死全部形状，再谈上 NPU。这件事在 CPU 路径上本来
+就有收益，不是为 NPU 付的税。
+
+因此 `research-2026-08-13-qualcomm-npu.md` 里"改造顺序按零改造 + 高收益排、
+Big-LaMa 第一"这条**要改**：Big-LaMa 形状虽固定但图本身不可用，它排在重导出之后。
+真正零改造可先上的是 **RF-DETR（已验证 39×）** 与 **EdgeTAM image encoder**（1024² 固定）。
+
+### 探针的两条操作教训
+
+- **profiling 对大模型是不能默认开的**：Big-LaMa 开着 profiling 跑到一半被 LMK 杀掉
+  （RSS 已到 842 MB）。探针改为 `--es profile 0` 默认关，只在要看 EP 划分时开。
+- **判定接没接通只能看 profiling 里每节点的 provider**。D217 里 4540 个节点全在 CPU
+  时，`providers=[CPU, QNN]`、backend 版本、SOC 探测、`initialization completed
+  successfully` 四条都是绿的。
+
+## D219：Phase 0 汇总——路通了，但零改造只能省 0.9 秒（2026-08-13）
+
+R5CW20BLNKL（SM8550 / 8 Gen 2 / v73），`enable_htp_fp16_precision=1`、burst、
+context binary 复用。「产品现役」列取自 D214 的九场景分段表（裁剪版 ORT）。
+
+| 模型 | 产品现役 CPU | 探针内 CPU | QNN HTP | vs 产品 | 首次编译 | 复用后 session |
+|------|--------------|-----------|---------|---------|----------|----------------|
+| RF-DETR Seg Nano 312² | 483 ms | 3252 ms | **83 ms** | **5.8×** | 50.7 s | 404 ms |
+| EdgeTAM image encoder 1024² | 504 ms | 3326 ms | **27 ms** | **18.7×** | 19.8 s | 254 ms |
+| Big-LaMa 512² | 5185 ms/块 | 被 LMK 杀 | **执行失败 1003** | — | 36.4 s | — |
+
+单模型加速极可观（探针同口径 39×／123×），**但这两个零改造的模型在全链路里只占
+0.99 秒**。全链路 41.3 秒的大头是 Big-LaMa 20.7 s（4 块）与 MoGe-2 5.1 s，
+两者都需要先改模型：
+
+- **Big-LaMa**：重导出（D218），硬前置。
+- **MoGe-2**：动态形状（按源图长宽比对齐 14），需钉档。
+
+**所以 Phase 1 的正确排序不是"先接零改造的"，而是：**
+
+1. **Big-LaMa 重导出**——收益 20.7 s，且不做就无法上 NPU；CPU 路径也直接受益。
+2. **MoGe-2 钉形状 + 换 ViT-B（D216）**——收益 5.1 s，且是质量升级的载体。
+3. RF-DETR 与 EdgeTAM 接 QNN——收益 0.99 s，但零风险零改造，可作为把
+   QNN 分发／编译缓存链路打通的**第一个落地样板**。
+
+第 3 项虽然收益最小，但它是唯一能在不动模型的前提下把
+「QNN 库分发 → dsp_arch 选择 → context binary 生成与校验 → 失败回落 CPU」
+整条工程链路跑通并验收的路径，应当先做，作为 1 与 2 的地基。
+
+### 工程结论（已验证，可直接写进实现）
+
+- Java 层零改动：官方 `onnxruntime-android-qnn:1.28.0` 与 `onnxruntime-android:1.28.0`
+  的 `classes.jar` SHA-256 相同。
+- manifest 必须声明 `<uses-native-library android:name="libcdsprpc.so"
+  android:required="false" />`，否则 HTP 静默不接管（D217）。
+- 不要自己设 `ADSP_LIBRARY_PATH`。
+- context binary 必须用：编译 20–51 s → 复用后 0.25–0.4 s。产物是
+  `<name>_ctx.onnx`（约 1–6 KB 壳）+ `<name>_ctx_qnn.bin`（RF-DETR 为 69.2 MB）。
+  复用时直接加载 `_ctx.onnx` 且**不能再设** `ep.context_enable`。
+- 编译可挂进模型下载后的 `selfTest`；产物需与
+  (模型 SHA-256, 形状档, dsp_arch, QNN 版本, ORT 版本) 绑定校验。
+
+### 待查（不阻塞，但影响非高通设备）
+
+官方 AAR 的 CPU 路径比项目裁剪构建慢 6.7×（RF-DETR 3252 vs 483 ms、
+EdgeTAM 3326 vs 504 ms，两处比值一致）。若统一换官方 AAR，非高通设备会明显退化。
+倾向的做法是**按设备下发两份 `.so`**：高通下发 QNN 版，其余保留现役裁剪版。
+
+## D220：QNN 接进产品路径；并撤销 D219 的"官方 AAR CPU 慢 6.7×"（2026-08-13）
+
+按 D219 的排序先做工程地基。新增四件东西，RF-DETR 已在产品路径上跑通：
+
+- `SpatialQnnSupport`：SoC → dsp_arch 判定。**fail-closed**——查不到的型号一律不启用，
+  不猜最接近的（猜错会下一份根本加载不了的 Skel）。dsp_arch 会拼进库文件名，
+  因此按 `v6[89]|v7x|v8x` 白名单校验后才允许进路径。内置表可被 catalog 覆盖。
+- `SpatialQnnContextStore`：编译产物按
+  (modelId, modelVersion, modelSha256, shapeTag, dspArch, runtimePackageVersion)
+  六维绑定，任一维变化即换目录重编。
+- `SpatialQnnSessionFactory`：判定、复用、编译、回落的唯一入口。**任何一步失败返回 null**
+  而不是抛异常——NPU 是加速手段不是功能前提，它坏掉时用户只该慢一点。
+- `<uses-native-library libcdsprpc.so required="false">` 进 **main** manifest。
+
+`SpatialRuntimeStore` 加了一条 **debug 覆盖目录**（`BuildConfig.DEBUG` 守卫）：
+QNN 版 `libonnxruntime.so` 与现役裁剪版是两份库、同进程只能加载一份，在 catalog 尚未
+上架 QNN 运行组件之前，只能靠它让**产品路径**跑在 QNN 版上。旁路的只是"必须先上架
+catalog"这一步。
+
+### 产品路径实测（00 场景，R5CW20BLNKL）
+
+| | 基线（D214） | 首次（编译） | 复用 context |
+|---|---|---|---|
+| `segmentation` 阶段 | 1115 ms | 8906 ms | **730 ms** |
+| `segmentation.run` | 483 ms | 48.3 ms | **47.3 ms** |
+| `qnn.session.*` | — | compile 8445 ms | cached **263 ms** |
+| 全链路 total | 44466 ms | 49010 ms | 45250 ms |
+
+`segmentation.run` **483 → 47.3 ms（10.2×）**；`reload manifest=true`、
+`seg=rf_detr_seg_nano`、派生回读校验照常通过。全链路只省 0.4 秒——**与 D219 的判断一致**，
+真正的收益仍卡在 Big-LaMa 与 MoGe-2。
+
+**端上图编译只要 8.4 秒，不是探针里的 50.7 秒。** 差别是 profiling：探针开着
+`enableProfiling`，而产品路径不开。8.4 秒完全可以挂进模型下载后的 `selfTest`。
+
+### 撤销 D219 的待查项
+
+D219 记的"官方 AAR 的 CPU 路径比裁剪构建慢 6.7×"**是错的**，起因是拿开了 profiling 的
+探针数去比不开 profiling 的产品数。同一次全链路里，跑在官方 AAR CPU 上的四项与裁剪版
+基线几乎完全一致：
+
+| | 裁剪版（D214） | 官方 AAR |
+|---|---|---|
+| `depth.run` | 5116 ms | 4985 ms |
+| `inpaint.run` | 5185 ms/次 | 5156 ms/次 |
+| `matting.run` | 512 ms | 485 ms |
+| `boundary.run.encoder` | 504 ms | 475 ms |
+
+**因此不需要按设备下发两份 `.so`**，QNN 版可以作为统一的运行组件（代价只是
+21.6 MB vs 12.6 MB）。这条撤销同时消掉了 followups 里那项"必须先查清"。
+
+**方法教训**：`enableProfiling` 本身是重开销，4540 个节点的模型上它就是主要成本。
+**任何 A/B 都必须在 profiling 的同一状态下做**，否则量到的是 profiling 而不是被测对象。
+
+## D218 更正：重导出的理由不是"CPU 上有收益"，是 QNN 兼容（2026-08-13）
+
+D218 里我写「Big-LaMa 重导出……这件事在 CPU 路径上本来就有收益（D203），不是为 NPU
+付的税」。**这句引的是 D203 原文，而 D203 当天就已经被自己的更正推翻了**，我没读到那条。
+
+D203 更正的桌面 profiling：Conv 37.6% + Transpose 17.2% + FusedConv 14.1% +
+ConvTranspose 6.9% = **卷积三项 58.6%**；**Einsum + MatMul 只有 8.6%**。
+重导出对 CPU 的收益上限是 15–20%，不是一个量级。
+
+所以正确的表述是：
+
+- **对 CPU**：重导出收益 15–20%（20.7 s → 约 17 s），不是硬前置。
+- **对 QNN**：当前导出无法执行（`error 1003`），这一条 D218 的实测结论不变。
+
+### 由此得到一个更省事的方向
+
+既然卷积占 58.6% 而 FFC 只占 8.6%，**根本不需要重写 FFC**——只要 QNN 能正确划分子图，
+把卷积主干搬上 HTP、把 Einsum 那一支留给 CPU，理论上限就已经接近全量上 NPU。
+那么真正要先排除的就只有**动态形状**这一个变量。
+
+`onnxruntime.tools.make_dynamic_shape_fixed --dim_param batch --dim_value 1` 处理后：
+`image [1,3,512,512]`、`mask [1,1,512,512]`，**输出也从
+`[batch,3,Clipoutput_dim_2,Clipoutput_dim_3]` 被 shape inference 解成 `[1,3,512,512]`**，
+节点数不变（17480）。下一步就是拿这份固定形状的模型直接测 QNN——
+如果能执行，重导出这件事的优先级会大幅下降。
+
+**教训（第二次犯同一类错）**：D203 的教训是"先 profiling 再归因"；这次是
+**引用一条旧结论之前，先确认它有没有被后续更正**。同一份 decisions.md 里，
+`D203` 和 `D203 更正` 相隔 100 行。
+
+## D221：Big-LaMa 固定形状后仍然端上编译不了——被内存与后台 ANR 双杀（2026-08-13）
+
+按 D218 更正给出的方向，先只排除"动态形状"这一个变量。
+
+### 固定形状本身是干净的
+
+`onnxruntime.tools.make_dynamic_shape_fixed --dim_param batch --dim_value 1` 之后：
+`image [1,3,512,512]`、`mask [1,1,512,512]`，输出也由 shape inference 从
+`[batch,3,Clipoutput_dim_2,Clipoutput_dim_3]` 解成 `[1,3,512,512]`；节点数不变（17480）。
+桌面 ORT CPU 对拍原始与固定版：**逐位相同**（`max abs diff = 0`，`array_equal = True`）。
+所以这一步零数值风险，随时可以并入分发。
+
+### 但端上编译过不去
+
+两次尝试都在 HTP 图编译阶段被杀，logcat 给出两个并发的死因：
+
+```
+lowmemorykiller: Process 26654 was reaped in 16ms
+lmkd: Reclaim 'org.telegram.messenger' … reason: low watermark is breached
+ActivityManager: Killing …everythingdone (adj 850): bg anr
+```
+
+采样到的 RSS 峰值 **2.5 GiB**（12 GB 内存的 S23 Ultra 上已触发全局回收，连别的 app 都被
+连带杀掉）；同时编译时长超出后台广播的 ANR 限制。对照：RF-DETR 编译 8.4 秒、
+EdgeTAM 19.8 秒都没事，Big-LaMa 的 17480 个节点是另一个量级。
+
+这正是 ORT issue #18353 描述的现象（Galaxy S23 上 FinalizeGraphs 数分钟、>4 GB）。
+
+### 裁定
+
+**Big-LaMa 走 NPU 必须离线预编译 context binary，端上编译这条路对它关闭。**
+这同时把 D215／`research-2026-08-13-qualcomm-npu.md` 里"端上生成为主、离线作兜底"
+的取向彻底反过来：**按模型规模分流**——
+
+| 模型 | 编译方式 | 依据 |
+|---|---|---|
+| RF-DETR 312² | 端上（8.4 s） | 已在产品路径验证 |
+| EdgeTAM encoder 1024² | 端上（19.8 s） | 已验证 |
+| Big-LaMa 512² | **只能离线** | 本条 |
+| MoGe-2（钉档后） | 待测 | 35M 参数，介于两者之间 |
+
+离线编译需要 Qualcomm AI Hub（免费，云端，支持 ONNX → QNN context binary，
+且 >2 GB 的模型都支持，208 MB 远在限内）或本地 QAIRT SDK。**两者都需要 Qualcomm 账号，
+属于必须由用户本人完成的外部动作。**
+
+### 顺带的工程约束
+
+编译不能放在 BroadcastReceiver 或任何后台组件里——`bg anr` 会杀进程。真要在端上编译
+（RF-DETR/EdgeTAM 这一档），必须放在**前台 Service 或用户可见的界面**中，
+这与"挂进模型下载后的 selfTest"是一致的（下载本来就有前台通知）。
+
+## D222：EdgeTAM image encoder 接入产品路径（2026-08-13）
+
+`SpatialBoundaryRefinementEngine` 的三个 session 里**只有 image encoder 走 QNN**：
+它固定 1024²、实测 475 ms，而 prompt encoder 1.6 ms、decoder 45–56 ms——后两个上 NPU
+只会多两次图编译与两份 context binary，不值得。
+
+产品路径实测（00 场景）：
+
+| | 基线（D214） | 接入后 |
+|---|---|---|
+| `boundary.run.encoder` | 504 ms | **27.9 ms（18×）** |
+| `boundary.session` | n=3 | n=2（encoder 走 QNN，另两个仍 CPU） |
+| `qnn.session.compile`（EdgeTAM 首次） | — | 3707 ms |
+
+**端上编译只要 3.7 秒**，比探针里的 19.8 秒快得多——同 D220，差别是 profiling。
+
+至此两个零改造模型都已接入，产品路径实测：
+`segmentation.run` 483 → 47.9 ms、`boundary.run.encoder` 504 → 27.9 ms，
+合计省约 0.91 秒。全链路仍是 43.4 秒，因为 `inpaint.run` 20.4 秒与 `depth.run` 4.9 秒没动。
+
+## D223：官方 QNN AAR 不含 XNNPACK，D220 的"统一运行组件"要加前提（2026-08-13）
+
+D203 更正指出 Big-LaMa 的瓶颈是卷积（58.6%），XNNPACK 是最对症的一档；当时 r6 没编入
+所以测不了，r7 编入之后**一直没有回头测**。本轮想补上这一测，结果先撞到另一件事：
+
+```
+ai.onnxruntime.OrtException: ORT_INVALID_ARGUMENT
+message: XNNPACK execution provider is not supported in this build.
+```
+
+**`com.microsoft.onnxruntime:onnxruntime-android-qnn:1.28.0` 没有编入 XNNPACK。**
+
+D217 里我写"字符串核对确认 EP 与全部关键 provider option 都在，XNNPACK 仍在"——
+那是在 `libonnxruntime.so` 里搜到了 `XnnpackExecutionProvider` 这个字符串就下的结论。
+**那只是错误消息里的字面量。** 与 D217 的"四条证据全绿仍没接通"同类：
+**符号/字符串存在 ≠ 功能可用，只有真跑一次才算数。**
+
+### 对 D220 的修正
+
+D220 说"不需要按设备下发两份 `.so`，QNN 版可作统一运行组件"。这条要加前提：
+**统一用官方 QNN AAR 的代价是失去 XNNPACK。** 是否可以接受，取决于一件还没做的事——
+**XNNPACK 对 Big-LaMa 到底有没有收益**（`sessions.md` 早期记录过它会显著拖慢
+DAV2 Small，但 Big-LaMa 的卷积占比完全不同，不能外推）。
+
+三种可能的落点：
+
+| 若 XNNPACK 对 Big-LaMa | 结论 |
+|---|---|
+| 有明显收益 | 高通设备下 QNN 版、其余下 r7 裁剪版，**两份并存** |
+| 无收益或负收益 | 官方 QNN AAR 统一下发（D220 原结论成立） |
+| 收益小于 QNN | 仍统一，但要在 followups 里记明放弃了多少 |
+
+**要测它必须用 r7 裁剪版**（有 XNNPACK 无 QNN），不能用探针当前加载的官方 AAR。
+
+### 顺带确认的两条
+
+- **固定形状让 CPU 侧也受益**：Big-LaMa `session created` 从 21.7 s（动态形状）降到
+  **1.07 s**（固定形状 + 前台进程）。推理 `run` 中位 5130 ms，与产品路径的
+  5110 ms/块一致——固定形状对 CPU 推理本身无影响，逐位相同（D221）。
+- **探针必须在前台跑**：Big-LaMa 的 CPU 轮此前三次都被 LMK 杀掉，是因为
+  `am broadcast` 拉起的进程 adj 850。先 `monkey` 起 Activity 再广播就正常了。
+  这条同样解释了 D218 里"CPU 被 LMK 杀，未取到"那一格。
+
+## D224：离线 QNN context binary 按 SoC 分发，不是只按 HTP 架构分发（2026-08-13）
+
+用户在提交 Big-LaMa 到 Qualcomm AI Hub 前指出还有多台采用不同高通 SoC 的测试机，要求
+确认离线编译产物的兼容粒度。暂停提交后核对 Qualcomm AI Hub 官方 FAQ、编译文档与当前
+`qai-hub` 0.54.0 的模型元数据定义，结论如下：
+
+- QNN context binary 是 **SoC-specific**。同一 SoC 的不同手机型号可以复用，例如同为
+  `SM8550` 的 S23 系列不需要按 S23／S23+／S23 Ultra 分别编译；不同 SoC 原则上分别编译。
+- context binary 与操作系统无关，因此同一 SoC 的 Android 版本差异不要求重编。
+- HTP 架构（`v73`／`v75`／`v79` 等）只足以选择 `libQnnHtpV*Skel.so` 与 Stub；它不是
+  离线模型产物的完整兼容键。官方产物元数据同时记录 Hexagon 版本与 `soc_model`。
+- 较老 SoC 的 context binary 有时可以在较新芯片上运行，但 Qualcomm 明确不作兼容保证，
+  且性能可能下降；正式 catalog 必须 fail-closed，不跨 SoC 猜测复用。
+- QNN DLC 与原始 ONNX 更接近 SoC-agnostic，但需要在目标设备加载时完成图构建／优化。
+  Big-LaMa 已由 D221 实证无法承受端上编译，因此 DLC 不能消除它的逐 SoC 离线产物矩阵。
+
+这修正了 D215/D219 中“按 dsp_arch 分发 context binary”的过度简化。后续需要把
+`SpatialQnnContextStore.Key` 从六维扩为含 `socModel` 的七维；正式 catalog 的运行库条目仍按
+`dspArch`，离线 context 条目则按 `(model, shapeTag, socModel, runtimeVersion)` 索引。
+
+参考：
+
+- <https://workbench.aihub.qualcomm.com/docs/hub/faq.html>
+- <https://workbench.aihub.qualcomm.com/docs/hub/compile_examples.html>
+- <https://workbench.aihub.qualcomm.com/docs/hub/api.html>
+
+## D224：context binary 的绑定粒度核实——是芯片不是机型，且可按 chipset 编译（2026-08-13）
+
+用户提出关键疑问："AI Hub 编译是针对特定机型的，每个机型都编一遍不现实。"
+本轮把 AI Hub 与 QAIRT 的官方措辞逐条核实，结论如下。
+
+### 一、绑定的是 SoC/HTP，不是手机型号
+
+AI Hub FAQ 原文："Context binaries are an **OS-agnostic, HTP-specific** representation…
+since the Hexagon compiler makes assumptions about the HTP in use, context binaries only
+achieve the best possible performance when a specific HTP is targeted."
+
+所以同一颗芯片的所有手机共用一份产物：一份 8 Gen 2 的产物覆盖 S23 全系、小米 13、
+一加 11、iQOO 11……**机型数不进矩阵，芯片数才进。**
+
+### 二、AI Hub 可以直接按 chipset 提交，不必点名手机
+
+FAQ 原文："`device = hub.Device(attributes="qualcomm-snapdragon-845")` will run it on
+**any device with an 845 chip**, whereas `device=hub.Device("QCS6490 (Proxy)")` will
+specifically run it on the 6490 proxy device."
+
+### 三、向后可用，向前不行
+
+FAQ 原文："it is often possible to use **binaries built for older devices on newer chips**,
+but performance may suffer."
+
+这条给了收敛矩阵的办法：**按 HTP 架构挑该架构里最保守的一颗芯片编译**，
+用它覆盖同架构的其余芯片，并向上兼容更新的架构（代价是性能打折，幅度未实测）。
+
+### 四、修正我此前的表述
+
+`research-2026-08-13-qualcomm-npu.md` 与 D215 里我写"绑定粒度是 dsp_arch 而非每颗 SoC"。
+**这是把硬约束当成了全部**：dsp_arch 不匹配一定不能用（v73 产物在 v75 上加载失败），
+但同 arch 内不同 SoC 的 VTCM 大小、HVX/HMX 线程数并不相同，官方明确要求
+"be sure to specify the correct `soc_model`" 才有最佳性能。
+
+准确表述是：**arch 是硬约束，soc_model 是性能约束。**
+分发矩阵有两种取法，取哪种要靠实测决定：
+
+| 取法 | 份数 | 代价 |
+|---|---|---|
+| 每个 HTP 架构一份（v69/v73/v75/v79/v81） | **5** | 同架构非目标芯片上性能打折，幅度待测 |
+| 每颗主流芯片一份 | 约 10–15 | 无打折，但 catalog 与构建负担翻倍 |
+
+### 五、验证办法（不需要买手机）
+
+AI Hub 的 inference/profile job 可以在**云端真机农场**上按 chipset 跑。因此
+"一份 v73 产物在 8 Gen 2 之外的同架构芯片上能不能跑、慢多少"是可以实测出来的，
+不必靠推断。这应当作为决定上表取哪一行的前置实验。
+
+### 六、DLC 不是本场景的替代
+
+QNN DLC 是硬件无关格式，但它需要在设备上做 graph prepare——而 D221 已经证明
+Big-LaMa 端上编译会被 LMK 与 bg ANR 双杀。**DLC 解决的是分发矩阵，代价正是我们扛不住的
+那一项。** 对 RF-DETR/EdgeTAM 这种端上编译只要 3.7–8.4 秒的模型，DLC 反而是可选项。
+
+## D225：XNNPACK 对 Big-LaMa 是负收益，D223 的悬念就此了结（2026-08-13）
+
+D203 更正查到 Big-LaMa 的瓶颈是卷积（58.6%），并判断"XNNPACK 本该是最对症的那一档"；
+当时 r6 没编入所以测不了，r7 编入后一直没回头测。本轮补上。
+
+用**产品现役的 r7 裁剪版**（`providers=[CPU, XNNPACK]`，确认无 QNN）测固定形状的
+Big-LaMa 512²，前台进程，3 次取中位：
+
+| | session 创建 | 推理中位 |
+|---|---|---|
+| CPU（4 线程） | 849 ms | **5016 ms** |
+| XNNPACK（4 线程） | 1238 ms | **6292 ms** |
+
+**XNNPACK 慢 25%。** 与 `sessions.md` 早期"XNNPACK 会显著拖慢 DAV2 Small"的记录同向——
+在这个项目用到的模型上，XNNPACK 至今没有一例正收益。
+
+### 两个后果
+
+1. **D203 更正里"最对症的一档"这个期待落空。** 卷积占比高不等于 XNNPACK 就能赢；
+   ORT 自带的 MLAS 在 arm64 上对这些卷积形状已经足够好。**再一次：占比能指出方向，
+   不能替代实测。**
+2. **D223 的三种落点确定为第二种**：XNNPACK 无收益 → 失去它没有代价 →
+   **官方 QNN AAR 可以作为统一运行组件下发**，D220 的原结论成立，不需要按设备
+   维护两份 `.so`。
+
+### 顺带
+
+r7 裁剪版上 Big-LaMa 的 `session created` 只要 849 ms（QNN 版官方 AAR 是 1073 ms，
+动态形状时是 21.7 s）——**固定形状对 session 创建的改善是跨运行组件成立的**。
+推理 5016 ms 与产品路径的 5110 ms/块一致，口径可比。
+
+## D226：拒绝 per-SoC 离线模型矩阵，采用通用模型 + 端上 JIT/cache + GPU/CPU 回退（2026-08-13）
+
+用户明确否决“用户手机 SoC 众多，因此逐颗芯片离线编译并分发 context binary”的产品
+架构。D224 对 context binary 兼容粒度的核实仍然成立，但它只说明**离线 AOT 产物的技术
+事实**，不再作为正式分发方案。
+
+正式路线改为三级：
+
+1. 分发 SoC 无关的 ONNX、QNN DLC 或 TFLite；支持的高通设备在模型下载后的 `selfTest`
+   阶段做一次端上 JIT，并缓存本机 context；
+2. NPU 编译、加载或执行失败时自动回落 Vulkan/OpenCL GPU；
+3. GPU 不可用时回落 CPU 或轻量模型。
+
+这样开发侧不维护 SoC 模型矩阵，用户也不参与编译。首次安装、模型更新、NPU runtime
+更新或系统 fingerprint 变化后仍可能重新 JIT；因此编译必须运行在可见界面或前台 Service，
+显示进度、允许取消，并以失败回落为正常状态。
+
+模型级裁定：
+
+- **Big-LaMa**：停止在手机上硬编译当前 17,480 节点、FFT 被展开为 216 个 `Einsum` 的
+  ONNX。先对 Qualcomm 发布的移动友好 LaMa-Dilated 通用资产做项目场景画质 A/B；其默认
+  `CelebAHQ` 权重不过线时，转向通用场景 regular/dilated LaMa 权重或其他移动 inpainting
+  架构，不再围绕异常图堆编译参数。
+- **MoGe-2**：不先换模型。按官方 ONNX 文档把固定输入、固定 `num_tokens` 写进模型，去掉
+  动态轴与控制流后再走现有 ORT+QNN JIT/cache；失败才转 GPU。
+
+LiteRT NPU 具备 Qualcomm/MediaTek JIT 与缓存，适合作为后续单模型 PoC，但当前高通覆盖
+集中在较新的旗舰 SoC，而且大模型首次编译仍可能消耗数秒和数百 MB 至 1.5 GB 内存，暂不
+替换已跑通的 ORT+QNN 链路。ExecuTorch Qualcomm 导出仍要求 `soc_model`，NNAPI 已在
+Android 15 废弃，二者都不作为替代方案。
+
+完整资料与来源见
+[移动端通用加速路线调研](research-2026-08-13-portable-mobile-acceleration.md)。
+
+## D227：Qualcomm 的 LaMa-Dilated 不是我们模型的移动友好版，是另一个架构（2026-08-13）
+
+D226 裁定"先对 Qualcomm 发布的移动友好 LaMa-Dilated 通用资产做项目场景画质 A/B"。
+用户质疑"为啥要 LaMa-Dilated？我们用的不是这个版本"——**质疑成立，且比表面更彻底。**
+
+### 图结构对比（两份 ONNX 都在本地读出）
+
+| | LaMa-Dilated（Qualcomm 通用资产） | Big-LaMa Places2（我们的） |
+|---|---|---|
+| 节点数 | **276** | 17480（63×） |
+| 算子种类 | 11 | 29 |
+| shape 类算子 | **1** | 6468 |
+| Einsum / MatMul | **0 / 0** | 216 / 216 |
+| Cos / Sin | **0 / 0** | 144 / 144 |
+| Conv / ConvTranspose | 77 / 3 | 222 / 6 |
+| opset | 21 | 17 |
+
+它的算子只有 `Conv 77 / Pad 74 / Add 64 / Split 18 / BatchNormalization 18 / Relu 16 /
+Mul 3 / ConvTranspose 3 / Sub / Concat / Sigmoid`——**FFC 与 FFT 的痕迹一个都没有**。
+
+**结论：Dilated 不是"同一个模型导出得更好"，而是 LaMa 论文里用空洞卷积替代 FFC 的另一支。**
+因此两条都不成立：
+
+1. **权重不能用**：它是 CelebA-HQ（人脸）训练的，我们的场景是室内/办公/交通/雕像/食物/宠物。
+2. **导出方式也借不了**：我们的权重含 FFC 层，dilated 架构没有对应结构，权重不通用。
+
+D226 那一条的前提（"移动友好版的同一个模型"）不成立，应当作废。
+
+### 真正的候选：官方的 `big-lama-regular`
+
+`advimman/lama` 的 `configs/training/` 命名规律给出了答案：
+
+```
+big-lama.yaml           big-lama-celeba.yaml
+big-lama-regular.yaml   big-lama-regular-celeba.yaml
+lama-fourier.yaml       lama-fourier-celeba.yaml
+lama-regular.yaml       lama-regular-celeba.yaml
+```
+
+**带 `-celeba` 后缀的是 CelebA-HQ 版，不带的就是 Places2 版。** 所以
+`big-lama-regular` = **Places2 + regular（空洞卷积，无 FFC）**，与我们在用的
+`big-lama`（Places2 + Fourier）**同数据集、同规模，只差 FFC 这一个变量**。
+Qualcomm 的 LaMa-Dilated 对应的是 `*-regular-celeba` 那一支。
+
+正确的 A/B 因此是 **big-lama vs big-lama-regular**，而不是拿人脸权重去比。
+论文的消融只说 FFC 对高分辨率、大掩膜的 FID 有帮助；而本项目的补全掩膜是沿剪影的
+窄带（D160/D188 的 4–17 px 显露带），不是大洞——**regular 很可能够用，但必须实测**。
+
+权重下载：官方 Yandex 链接已失效，现在在
+`https://drive.google.com/drive/folders/1B2x7eQDgecTL0oh3LSIBDGj0fTxs6Ips`
+（README 原文："All models (Places & CelebA-HQ)"）。
+
+### 许可
+
+`advimman/lama` 的 LICENSE 是 **Apache-2.0**，正文无针对权重的额外限制；
+Qualcomm 的 HF 仓库 LICENSE 文件也只是指回这一条。项目现有 Big-LaMa 已按
+Apache-2.0 登记，`big-lama-regular` 同源同许可。**但 CelebA-HQ 版另说**——
+CelebA 数据集本身限非商业研究，所以 Qualcomm 那份资产即便画质过线也不宜商用，
+这是放弃它的第二个理由。
+
+## D228：MoGe-2 静态导出成功，`If` 与动态轴从源头消失（2026-08-13）
+
+按 MoGe 官方 `docs/onnx.md` 的 "Static Shape & Fixed Number of Tokens" 写法导出
+ViT-S，**但不用官方示例的 518²**：既有实测（decisions 7090–7101）显示 1800 tokens
+在 patch-14 下约合 588×602 内在分辨率，518 是欠采样，固定成 518² 会把几何细节降一档。
+取项目实际在用的 720 长边档 `532×714`（`alignToPatchPreservingAspect(540,720,720)` 的输出）。
+
+### 图的变化
+
+| | 动态版（在用） | 静态版 |
+|---|---|---|
+| 输入 | `image [batch,3,height,width]` + `num_tokens` 标量 | `image [1,3,714,532]` |
+| 输出 | 四个全动态维 | `[1,714,532,3]` / `[1,714,532,3]` / `[1,714,532]` / `[1]` |
+| 节点 | 2709 | **693（−74%）** |
+| shape 类算子 | 672 | **161** |
+| `If` | **1**（QNN 不支持控制流） | **0** |
+| 动态轴 | 有 | **none** |
+
+**`If` 是从源头消掉的**，不是事后改 shape 能去掉的——这就是按官方脚本重导出而不是用
+`make_dynamic_shape_fixed` 的价值。
+
+### 数值对拍（桌面 ORT CPU，同一随机输入）
+
+| 输出 | 最大绝对差 | 平均 |
+|---|---|---|
+| points | 7.15e-07 | 2.05e-07 |
+| normal | 8.57e-07 | 1.03e-07 |
+| mask | 2.21e-06 | 1.26e-06 |
+| scale | 相对差 1.19e-06 | — |
+
+**1e-6 量级是 fp32 图优化重排的噪声，不是逻辑差异**（Big-LaMa 固定形状那次是逐位相同，
+因为那只改了 shape 声明；这次是重新走了一遍导出器）。
+
+### 四处契约变化，接产品路径前必须处理
+
+1. **输入去掉 `num_tokens`**：`SpatialDepthEngine.generateMoge` 现在传两个输入，要改成一个。
+2. **输出名 `scale` → `metric_scale`**：`MOGE_SCALE_OUTPUT = "scale"` 不改会直接报
+   "MoGe 输出缺少 scale"。
+3. **opset 14 → 18**：torch 2.11 的导出器转不回 14（`No Adapter To Version 17 for Resize`）。
+   项目运行组件 r7 的算子清单是按既有模型的并集裁的，**必须重新核对 opset 18 的算子三元组
+   是否覆盖**，否则会重演 D206 那种"缺的不是算子名而是 (算子, opset) 三元组"的问题。
+4. **产物是两个文件**：`.onnx`（1.49 MB）+ `.onnx.data`（135.19 MB 外部权重）。
+   项目 `SpatialModelStore` 按单文件分发校验，需要改成 bundle（可参照
+   `SpatialBoundaryRefinementModel` 的 zip 多组件做法），或导出时合并成单文件。
+
+### 形状分档仍待定
+
+本轮只导了 `532×714`（3:4 竖屏）一档验证链路。每档一份 ONNX ≈ 137 MB，
+档位数与 catalog 体积的取舍未定，要等 NPU 端上编译实测（节点 693，预计远好于
+Big-LaMa 的 17480）之后再决定。
+
+### 顺带：SoC → dsp_arch 表升级为 AI Hub 权威数据
+
+`hub.get_devices()` 的属性里直接带 `chipset:` 与 `hexagon:`，据此校对了
+`SpatialQnnSupport` 的内置表：原有五条（SM8450/8550/8650/8750/8850 → v69/v73/v75/v79/v81）
+**全部正确**，并补入 SM7325/SM8350 → v68、SM7750 → v73。不登记 v65/v66 档
+（sdm845/sm8150/sm7250 等）——QNN runtime 只提供 V68 及以上的 Skel。
+`SM8845`（8 Gen 5，OPPO Pad Mini）在 AI Hub 也没有条目，继续留空 fail-closed。
+
+## D229：MoGe-2 静态版在 NPU 上跑通，6.1×；但编译 127 秒（2026-08-13）
+
+D228 导出的静态版（`532×714`、`num_tokens=1800` 固化）直接用探针在
+R5CW20BLNKL 上实测，**不改产品代码**（探针支持 `--es path` 指定模型）。
+
+| | session 创建 | 推理中位 |
+|---|---|---|
+| CPU（4 线程） | 268 ms | **5426 ms** |
+| QNN HTP，首次 | **126904 ms**（图编译） | **874 ms** |
+| QNN HTP，复用 context | **1223 ms** | **910 ms** |
+
+- **推理 5426 → ~890 ms，6.1×**。对照产品路径的 `depth.run` 4.9–5.4 s，
+  接上之后单这一项省约 **4.2 秒**——是 RF-DETR（0.44 s）与 EdgeTAM（0.48 s）之和的 4.5 倍。
+- **编译 127 秒是新的量级**：RF-DETR 8.4 s、EdgeTAM 3.7 s，MoGe-2 是它们的 15–34 倍。
+  693 个节点不多，但都是 ViT 的大矩阵乘。编译期间 `lowmemorykiller` 连着回收了四个
+  其它进程——我们的进程活下来了（前台），但系统内存压力明显。
+- **context 复用把 127 秒压到 1.22 秒（104×）**，产物 `_ctx_qnn.bin` **192.7 MB**。
+
+### 新指标：用 context 产物的体积比判断"QNN 接管了多少"
+
+`ep.context_embed_mode=0` 下会产出两个文件：`_ctx.onnx` 装**留给 CPU 的那部分图**，
+`_ctx_qnn.bin` 装**QNN 接管的部分**。两者的体积比是一个不需要 profiling 就能读出的
+划分指标：
+
+| 模型 | `_ctx.onnx`（CPU 侧） | `_ctx_qnn.bin`（QNN 侧） | 判读 |
+|---|---|---|---|
+| RF-DETR 312² | 5.7 KB | 69 MB | 几乎全部下沉 |
+| EdgeTAM encoder | 924 B | 12 MB | 几乎全部下沉 |
+| MoGe-2 静态 | 8.5 KB | 192.7 MB | 几乎全部下沉 |
+| **Big-LaMa 512²** | **206 MB** | **14.8 MB** | **几乎全留在 CPU** |
+
+Big-LaMa 那一行**反过来了**，这解释了 D218 的 `error 1003` 与"编译过了却没有收益"：
+QNN 只吃下了极小一部分图。这个指标以后可以作为接入任何新模型前的快速判据。
+
+### 尚未做
+
+**产品路径还没接** MoGe-2 静态版，卡在 D228 那四处契约变化（输入去掉 `num_tokens`、
+输出名 `scale` → `metric_scale`、opset 14→18 需重核 r7 算子清单、双文件分发）。
+另外 127 秒的编译必须放在前台并显示进度（D221 已证明后台组件会被 `bg anr` 杀掉），
+以及 192.7 MB 的 context 产物要计入存储预算。
+
+## D230：MoGe-2 的固定形状策略——单档覆盖全比例不成立，正解是 weight sharing（2026-08-13）
+
+用户在接入前叫停："NPU 版本固定了输入分辨率？不支持动态分辨率？"——问到了点子上。
+QNN EP 不支持动态形状是硬约束，而 MoGe-2 现在每张图的输入尺寸都不同
+（`alignToPatchPreservingAspect` 按源图比例算）。
+
+### 先量化"单档覆盖全部比例"是否可行
+
+用**动态版**模型在九场景语料（比例跨度 0.68–1.51）上模拟两种单档做法，
+与现状 native 做法对拍。深度按各自有效区中位数归一化后再比（消掉 affine 尺度）：
+
+| 方案 | 深度中位误差 | 焦距误差 | 相关性 | 最差场景 |
+|---|---|---|---|---|
+| letterbox（保比例填充到 714²） | 2.61% | 8.6% | 0.9850 | **00：dz 49.7%、corr 0.8405** |
+| stretch（非等比拉伸到 714²） | 2.75% | **19.0%** | 0.9926 | corr 0.9681 |
+
+（`08_person_pet` 源图本就是 714×714，两法都是 0%，验证了实验本身。）
+
+**两条都不能用**：
+
+- `stretch` 的**焦距中位误差 19%**。fx 直接决定真透视视差幅度（D208 的
+  `u' = u + fx·tx·(1/Z0 − 1/Z)`），错 19% 就是视差幅度错 19%，且各场景不一致
+  （11%–29%），无法用一个常数补偿。
+- `letterbox` 中位只有 2.61%，但 **00 场景直接崩**（dz 49.7%、corr 0.84）。
+  填充区通过 ViT 的 attention 影响了有效区的深度估计，且这种崩塌不可预测——
+  横图（填上下）普遍只有 1.5–5%，而 00 这张竖图人像填左右就崩了。
+  **中位数好看掩盖不了单场景崩塌**，与 D157/D160 同款教训。
+
+### 正解：ORT QNN EP 的 weight sharing
+
+多个输入形状不同、权重相同的模型可以编译进**同一个 context binary**：
+`ep.context_enable=1` + `share_ep_contexts=1`，最后一个 session 加
+`ep.stop_share_ep_contexts=1`；生成的多个 `*_ctx.onnx` 都指向同一份 `.bin`。
+ORT 还提供 `ep_weight_sharing_ctx_gen` 工具自动化。AI Hub 的设备属性里
+`htp-supports-weight-sharing:true` 也确认了硬件侧支持。
+
+**这把"N 档形状 = N × 193 MB"变成"N 档 ≈ 1 份权重 + N 个几 KB 的壳"。**
+
+### 尚待决策（不由我定）
+
+weight sharing 要求这 N 档**在同一轮编译里连续做完**。端上编译单档已经要 127 秒
+（D229），N 档就是 N × 127 秒。因此有两条路，取舍取决于产品能接受什么：
+
+| 路线 | 首次成本 | 设备存储 | 与 D226 的关系 |
+|---|---|---|---|
+| 端上一次编完 N 档（weight sharing） | 一次 N×127 s（3 档约 6.5 分钟） | 约 193 MB | 符合 D226 的端上 JIT |
+| 端上按需编译，每档独立 context | 每档首次 127 s | N × 193 MB（3 档约 580 MB） | 符合 D226，但存储涨 |
+| 离线编译后随 catalog 分发 | 0 | 约 193 MB | **与 D226 的通用分发裁定冲突** |
+
+档位数本身也要定：`3:4 / 4:3 / 1:1` 三档能覆盖多数手机照片，
+`16:9 / 9:16` 归入最近档的比例误差达 19–32%，只能另设档或回落 CPU。
+
+## D231：ViT-B 的 CPU 代价只有 ViT-S 的 1.54 倍，不是 3 倍（2026-08-13）
+
+用户在 D230 的取舍面前给了一条新约束："编译一次都太慢了……5 秒以内的 CPU 推理其实也能
+接受。"这把 MoGe-2 上 NPU 的价值判断整个翻过来了，因为**当前在用的正是最小的 ViT-S**
+（35M / 141 MB），CPU 5.4 s 已经在可接受边缘。
+
+于是先回答真正该问的问题：D216 裁定要升的 **ViT-B 在 CPU 上到底多慢**。
+按 D228 同样的静态导出（`532×714`、tokens 1800）导出 ViT-B 并在 R5CW20BLNKL 实测：
+
+| 变体 | 参数 | ONNX 体积 | 节点 | CPU 推理中位 |
+|---|---|---|---|---|
+| ViT-S（在用） | 35M | 137 MB | 693 | 5426 ms |
+| **ViT-B** | 约 110M | **422 MB** | **693** | **8344 ms** |
+
+**只慢 1.54×，不是参数比暗示的 3 倍。** 原因是 MoGe 的计算量被 `num_tokens=1800` 钉住
+（内在分辨率约 588×602 固定），backbone 变宽对 ARM CPU 的影响远小于线性。
+两者导出后的**节点数完全相同（693）**，也印证了只是宽度不同、结构一致。
+
+### 对决策的影响
+
+| 组合 | 深度耗时 | 需要 NPU？ |
+|---|---|---|
+| ViT-S + CPU（现状） | 5.4 s | 否 |
+| **ViT-B + CPU** | **8.3 s** | 否 |
+| ViT-S + NPU | 0.89 s | 是（编译 127 s） |
+| ViT-B + NPU | 待测 | 是 |
+
+**ViT-B 走 CPU 只比现状多 2.9 秒**，就能拿到更大 backbone 的质量。这条路完全绕开了
+D230 的全部复杂度（形状分档、weight sharing、127 秒编译、193 MB context）。
+代价只是模型体积 141 → 422 MB。
+
+## D232：走 CPU 就不需要静态导出；num_tokens 的端上代价实测（2026-08-13）
+
+用户裁定 **ViT-B + CPU**，并追问："这种情况下是不是可以动态调整 num_tokens 了？
+可以让用户在设置里选几个档吧。"——**问到了要害**。
+
+### 静态导出只是 QNN 的税
+
+D228 那四处契约变化（输入去掉 `num_tokens`、输出名 `scale` → `metric_scale`、
+opset 14→18、双文件分发）**全部是静态导出带来的**，而静态导出唯一的目的是满足
+QNN EP 不支持动态形状。走 CPU 就应当直接用官方发布的动态版
+`Ruicheng/moge-2-vitb-normal-onnx`：
+
+- 单文件 `model.onnx`，**419,411,850 字节**（符合现有单文件分发）
+- 契约与在用的 ViT-S 动态版**完全一致**（同一套官方导出脚本）：
+  两输入 `image` + `num_tokens`、四输出 `points/normal/mask/scale`、opset 14
+- **`SpatialDepthEngine.generateMoge` 一行都不用改**，只需加模型枚举与 catalog 条目
+- `num_tokens` 保持运行时输入 ⇒ 可以做成用户可选档位
+
+**教训**：D228 记的四处"契约变化"其实是「为 NPU 付的税」，一旦不上 NPU 就应当全部退回。
+把手段带来的约束误当成目标本身的约束，是这一轮第二次出现（第一次是把 LaMa-Dilated
+当成"我们模型的移动友好版"，D227）。
+
+### num_tokens 的端上代价（ViT-B，CPU 4 线程，532×714，R5CW20BLNKL）
+
+| num_tokens | CPU 推理中位 | 相对 1800 | 有效带宽（既有桌面实测） |
+|---|---|---|---|
+| 1200 | 5208 ms | 0.61× | 未测（内在分辨率约 480²，低于 720 长边，欠采样） |
+| **1800** | **8553 ms** | **1.00×** | 0.00229（内在约 588×602，与 720 长边匹配） |
+| 2700 | 14375 ms | 1.68× | **未测** |
+| 3600 | 25448 ms | **2.97×** | 0.00269（+17%） |
+
+**耗时随 tokens 超线性增长**：3600 是 1800 的 2 倍 tokens，耗时却是 2.97 倍——
+attention 的 O(n²) 在端上被放大得比桌面 GPU（3.3×）还接近。
+而质量只 +17%（0.00229 → 0.00269）。**1800 → 3600 是拿 3 倍时间换 17% 带宽，性价比很差。**
+
+### 档位建议
+
+| 档位 | num_tokens | ViT-B CPU | 说明 |
+|---|---|---|---|
+| 快速 | 1200 | 5.2 s | 内在分辨率低于 720 长边，**欠采样**，质量代价未测 |
+| **标准（默认）** | **1800** | **8.6 s** | 与 720 长边网格精确匹配，现状档 |
+| 精细 | 2700 | 14.4 s | 质量增益**未测**，介于 +0% 与 +17% 之间 |
+| ~~极致~~ | ~~3600~~ | ~~25.4 s~~ | 3 倍耗时换 17%，不建议作为档位 |
+
+**接档位之前必须补两个数**：1200 与 2700 的有效带宽（既有桌面台只测过
+1800/3600/7200）。没有这两个数就无法向用户说明"精细档到底细在哪"，
+也无法判断"快速档降了多少"。
+
+## D233：num_tokens 三档的画质量化——2700 是甜点，3600 反而把断崖抹平（2026-08-13）
+
+D232 定了 `fast_1200 / standard_1800 / fine_2700` 三档，但两个新档的画质是空白。
+用 `moge_detail_vs_resolution.py` 的**同一套判据**（断崖锐度 = 深度梯度 p99.9；
+有效带宽 = 降采样到 256 长边再升回的相对差）在 **ViT-B + 九场景**上补齐。
+逆深度按有效区中位数归一化后再比，消掉 affine 尺度。
+
+| tokens | 中位锐度 | vs 1800 | 中位带宽 | vs 1800 | 端上 CPU（8 Gen 2） |
+|---|---|---|---|---|---|
+| 1200 | 0.2383 | **−14.1%** | 0.00234 | −7.0% | 5.2 s |
+| **1800** | 0.2774 | — | 0.00251 | — | 8.6 s |
+| **2700** | **0.3284** | **+18.4%** | 0.00278 | +10.5% | 14.4 s |
+| 3600 | 0.2978 | +7.4% | 0.00281 | +11.9% | 25.4 s |
+
+### 两个非线性
+
+1. **锐度在 2700 见顶后回落**（+18.4% → +7.4%），而带宽仍在缓慢上升
+   （+10.5% → +11.9%）。九场景里 6 个场景的锐度都是 2700 高于 3600，不是单场景噪声。
+   解释（未验证）：3600 tokens 的内在分辨率已超过 720 长边输出，
+   上采样回来时把强边抹平了；带宽衡量的是"有没有 256 以上的真实内容"，
+   对这种过采样后的平滑不敏感。
+2. **耗时是超线性的**（5.2 / 8.6 / 14.4 / 25.4 s），而质量增益在 2700 之后基本停滞。
+
+### 对档位的结论
+
+**三档都站得住，3600 砍得对**——它花 2.97× 的时间，锐度反而比 2700 低 9 个百分点。
+
+| 档 | 代价 | 收益 |
+|---|---|---|
+| `fast_1200` | 锐度 −14.1%、带宽 −7.0% | 时间 0.61× |
+| `standard_1800` | — | 默认，既有全部画质结论的基准 |
+| `fine_2700` | 时间 1.68× | **锐度 +18.4%、带宽 +10.5%** |
+
+**未做**：这两个量是几何量，不是主观画质。`fine_2700` 是否在真实观感上值那 5.8 秒，
+仍需九场景目检（项目多次证明指标好不等于观感好，D186/D197）。
+
+## D234：两端差异的真正来源是 MoGe-2 的规模档，不是模型种类（2026-08-13）
+
+用户指出"桌面端效果更好，但 MoGe-2 深度估计应该更好才对，是不是搞错了"——**搞错的是我**。
+
+我此前读的是 `generate_assets.py` 的 **default 参数**（`da3_small_mono_518.onnx` +
+`birefnet-lite`），据此断言"桌面用 DA3 + BiRefNet"。但**深度几何根本不走那个脚本**：
+web viewer（`viewer-moge/index.html`）加载的是 `qa/moge-geometry/`，而它由
+`export_moge_geometry.py` 产出，那个脚本的默认模型是
+
+```python
+ap.add_argument("--model", default="Ruicheng/moge-2-vitl-normal")
+```
+
+### 准确的现状
+
+| | 桌面（web viewer） | Android |
+|---|---|---|
+| 深度几何 | **MoGe-2 ViT-L**（1.32 GB） | **MoGe-2 ViT-S**（141 MB） |
+| 对照变体 | `@vitb` / `@vits`（`--suffix` 生成，已并列在同一查看器里） | — |
+
+**两端用的是同一个模型家族的不同规模档**，不是不同模型。这解释了"桌面效果更好"，
+也说明 D216 裁定的 ViT-B 升级方向是对的——只是还没到桌面那一档。
+
+`_base` / `_dual` / `_b45` / `_d45` / `_b64` / `_d64` 是**补全掩膜与视角/基线策略**的
+变体标签（`_base` = 窄掩膜 lama_tiled + exclude-fg + matte 并集，D194；
+45/64 对应 4.5cm / 6.4cm 相机基线），与深度模型档位正交。
+
+### 教训
+
+**读 argparse 的 default 不等于读到了实际配置。** 同一个功能在桌面侧由多个脚本分工
+（几何一个、资产一个），只看其中一个的默认值就下结论，是这一轮第三次同类错误
+（前两次：LaMa-Dilated 当成同模型的移动版 D227、静态导出的约束当成模型本身的约束 D232）。
+核对配置必须找到**实际产出被消费的那条链路**——这里是
+`viewer-moge/index.html` → `qa/moge-geometry/` → `export_moge_geometry.py`。
+
+## D235：三档 MoGe-2 的端上代价定量——ViT-L 在 CPU 上不现实（2026-08-13）
+
+D234 查明两端差异就是 MoGe-2 的规模档（桌面 ViT-L / Android ViT-S）之后，
+补齐第三档的端上数据。全部 `num_tokens=1800`、532×714、CPU 4 线程、R5CW20BLNKL：
+
+| 变体 | ONNX 体积 | CPU 推理中位 | 相对 ViT-S |
+|---|---|---|---|
+| ViT-S（Android 现状） | 141 MB | 5426 ms | 1.00× |
+| ViT-B（本轮接入） | 419 MB | 8553 ms | 1.58× |
+| **ViT-L（桌面在用）** | **1324 MB** | **18518 ms** | **3.41×** |
+
+耗时的增长远小于参数比（ViT-L 参数约 ViT-S 的 9 倍，耗时只 3.4 倍）——
+计算量被 `num_tokens` 钉住这条规律在三档上都成立。
+
+### 结论
+
+**ViT-L 走 CPU 不现实**：18.5 s，即便配 `fast_1200` 档（0.61×）也要约 11.3 s，
+远超用户给的"5 秒以内可接受"。因此「两端都用 ViT-L」这条最彻底的一致化路线，
+在 CPU 上不成立。可选的收敛方式只有三条：
+
+| 方案 | 深度耗时 | 代价 |
+|---|---|---|
+| Android 用 ViT-B，桌面降到 ViT-B | 8.6 s | 桌面画质降一档 |
+| Android 用 ViT-B，桌面保持 ViT-L | 8.6 s | **两端仍不一致**，但差距从 S↔L 缩到 B↔L |
+| Android 用 ViT-L + NPU | 估约 3 s | 编译时间（ViT-S 已要 127 s，ViT-L 预计数倍）+ context 体积（ViT-S 已 193 MB） |
+
+**第三条把 NPU 的价值重新立了起来**：NPU 的意义不在把 5.4 s 压到 0.9 s（那不值
+127 秒编译），而在**让 ViT-L 这一档从不可用变成可用**——这正是
+`research-2026-08-11-view-synthesis-landscape.md` 当初写的翻案条件之一
+（"NPU 使 350M 级 ViT 从跑不动变能跑"）。
+
+### 顺带记一条操作教训
+
+测 ViT-L 时我直接下载了官方 ONNX（1.32 GB），但**本地 HF 缓存里早有
+`models--Ruicheng--moge-2-vitl-normal/…/model.pt`（1262.5 MB）**——桌面
+`export_moge_geometry.py` 用的就是它。桌面跑 PyTorch 不需要 ONNX，所以"桌面跑过"
+不等于"有 ONNX"；但既然已经有本轮写好的导出脚本，**应当从本地 `.pt` 导出而不是重下**。
+用户当场指出了这一点。
+
+## D236：桌面工作台统一；查出两端差异的第二个来源是 num_tokens（2026-08-13）
+
+用户要求：桌面加与 Android 对齐的模型配置、加载新图、生成按钮，并把多个 viewer 与
+服务端口统一。**桌面默认不改**，只是让配置可选。
+
+### 两端差异的完整清单（到此查清）
+
+| | 桌面 | Android |
+|---|---|---|
+| 深度模型 | MoGe-2 **ViT-L** | MoGe-2 **ViT-S** |
+| `num_tokens` | **3600** | **1800** |
+
+第二项此前完全没人注意到：`export_moge_geometry.py` 调 `model.infer(tensor)` 时**不传
+`num_tokens`**，而 MoGe 的默认逻辑是
+
+```python
+if num_tokens is None:
+    min_tokens, max_tokens = self.num_tokens_range   # [1200, 3600]
+    num_tokens = int(min_tokens + (resolution_level / 9) * (max_tokens - min_tokens))
+```
+
+`resolution_level` 默认 9 ⇒ **num_tokens 取上限 3600**。所以两端差的是
+**ViT-L@3600 vs ViT-S@1800**——模型规模与内在分辨率两个维度同时拉开。
+
+讽刺的是 D233 刚在 ViT-B 上测出 3600 的断崖锐度**反低于** 2700。ViT-L 容量更大，
+3600 在它上面是否仍然掉锐度**未测**，不能把 ViT-B 的结论外推。
+
+### 服务统一
+
+新增 `spatial_studio.py`（端口 **8642**），合并原先两个服务并扩展：
+
+| 端点 | 用途 |
+|---|---|
+| 静态文件 | 取代 `serve_threaded.py`（**保留多线程**，单线程会让 loadScene 卡死） |
+| `POST /save` | 取代 `save_server.py` (8643)，语义与路径规则完全不变 |
+| `GET /api/config` | 模型档位清单 + 默认值 + 场景列表，与 Android 枚举一一对应 |
+| `POST /api/upload` | 上传新图，自动建成 `assets/<scene>/center.jpg` |
+| `POST /api/generate` | 按配置异步生成，返回 jobId |
+| `GET /api/jobs/<id>` | 轮询状态与日志 |
+
+生成必须异步：深度在桌面 GPU 上是秒级，但整条链路是几十秒量级，同步会撞浏览器超时。
+
+`export_moge_geometry.py` 增加 `--num-tokens`（默认仍为 None，即保持桌面历史行为），
+子进程需显式给 `PYTHONPATH=tmp/MoGe-research`——`moge` 包不在环境里，
+桌面此前是靠工作目录才跑通的。
+
+端到端验证：`POST /api/generate {scene:07_food, moge2-vits, standard_1800}` → done，
+产出 `07_food@moge2-vits-1800`（fx 493.0、Z 中位 0.618、有效 100%）。
+
+### viewer 现状与收敛意见
+
+| viewer | 用途 | 处置 |
+|---|---|---|
+| `viewer-moge/` (1380 行) | MoGe-2 度量几何 · 真实重投影 | **主力，新 UI 加在这里** |
+| `viewer/` (934 行) | vNext13 失败复现（标题已注明"已否决"） | 保留供回溯，不再维护 |
+| `viewer-vnext11/` (491 行) | vNext11 基线（HEAD 提交版） | 保留作基线对照 |
+| `viewer-layered/` (518 行) | D133 双层查看器 | 保留供回溯 |
+
+**不删历史 viewer**：它们是失败复现与基线对照的现场，删了就无法回溯。
+但四个都硬编码了 8643，需要统一改到 8642。
+
+## D237：桌面工作台接入补全链路，配置面板覆盖四个维度（2026-08-13）
+
+用户反馈"点生成后各种空洞，应该是没有补全"——正确。D236 的 `/api/generate` 只跑了
+`export_moge_geometry.py`，新场景目录里只有 `depth_z.f32`，而 viewer 的显露区靠
+`hidden_*` 那一层填，缺了就是空洞。
+
+### 变体参数的确切来源（查文档而非猜）
+
+| 变体 | 参数 | 依据 |
+|---|---|---|
+| `_base` | `--max-span-px720 60` | D194 定的基线，**D198 查出它超配 1.4–15×** |
+| **`_b45`** | `--max-span-cm 4.5` | D198：05 场景缝 23.5 → **15.3（−35%）**，且没换任何模型 |
+| `_d45` | `_b45` + `--dual-pass` | D198：00 上 6.7 → 6.0，与 `_b45` 其余场景几乎相同 |
+| `_b64` / `_d64` | 同上，基线换 6.4cm | — |
+
+**默认给 `b45` 而不是 `base`**：D198 的教训是"资产按 X 建、渲染按 Y 用"的参数错配
+不会报错、只会安静地变差，既然已经查明就不该把超配档当默认。
+
+### 配置面板现在覆盖四个维度
+
+| 维度 | 选项 | 与 Android 的对应 |
+|---|---|---|
+| 深度模型 | ViT-S / ViT-B / ViT-L | 前两个标「端上可用」 |
+| 细节档 | 1200 / 1800 / 2700 / 历史 3600 | 前三个 = `SpatialDepthDetail` |
+| 补全后端 | Big-LaMa 分块 / MI-GAN / AOT-GAN | = `SpatialInpaintingModel` |
+| 带宽预算 | b45 / d45 / b64 / d64 / base | 桌面特有（端上按逐边运动包络算，D203） |
+
+生成完成后 viewer **自动把 `hiddenVariant` 切到对应 tag**——不切的话它仍按旧 tag 找
+`hidden_*`，显露区依然是空洞，这个坑很隐蔽。
+
+### 端到端验证
+
+`05_near_object` + ViT-S + 标准1800 + Big-LaMa + b45：
+
+```
+深度几何    fx 1023.2  有效 100.0%
+补全第二层  带宽预算 26 px@720 / 最大基线 4.50 cm
+            遮挡带 16.80% → 排除前景（半径 12px）后 26.09%
+            分块补全 2 块（512px，重叠 128）
+            色阶校正：跳过（会把跨缝落差从 -8.3 推到 -11.7）← 守卫生效
+```
+
+产物齐全：`hidden_z_b45.f32`（1416960 B，与 `depth_z.f32` 同尺寸）、
+`hidden_color_b45.png`、`hidden_mask_b45.png`、`hidden_paint_b45.png`，浏览器里全部 200。
+
+### 仍未接：matte 与 occluders
+
+`build_hidden_layer.py` 从 `assets/<原始场景>/` 读 `matte.png` / `occluders.png`
+（靠 `meta["scene"]` 取原始名，所以带 `@` 后缀的变体能正确找到）。
+**但新上传的图没有这两样**，补全会降级或失败。上传路径要真正可用，还需把
+matte 与遮挡物分割也接进链路——那对应 Android 的 MODNet 与 RF-DETR/EdgeTAM。
+
+## D238：桌面工作台接入抠像与遮挡物分割；matte 覆盖是个待解的副作用（2026-08-13）
+
+### 两端差异清单（至此完整）
+
+| 环节 | 桌面 | Android | 可对齐 |
+|---|---|---|---|
+| 深度模型 | MoGe-2 **ViT-L** | MoGe-2 **ViT-S** | 是（面板可选） |
+| `num_tokens` | **3600**（resolution_level 默认） | **1800** | 是 |
+| 抠像 | **BiRefNet lite** | **MODNet** | 是 |
+| 遮挡物 | **SAM3**（权重 3.4 GB） | **RF-DETR + EdgeTAM** | **否——完全不同的路子** |
+| 补全 | Big-LaMa | Big-LaMa | 是（同款） |
+| 带宽预算 | `_b45` 等显式档 | 逐边按运动包络（D203） | 否——机制不同 |
+
+抠像两档的差距实测很大（`05_near_object` 主体占比 MODNet **17.5%** vs
+BiRefNet **30.0%**，1.7 倍），与 `generate_assets.py` 里那句
+"2026-08-08 换型：MODNet 在 00 吞手臂酒杯、08 整体失效" 吻合。
+**Android 至今仍是 MODNet**，这是端上画质落后的又一个来源，且与 NPU 无关。
+
+### 新增 `build_matte.py`
+
+`build_full_resolution_mattes.py` 只支持 BiRefNet（预处理写死），
+`generate_assets.py` 支持两档但会连带生成一大堆资产。因此把那两段预处理**照抄**
+成独立脚本（口径必须逐字一致，否则与既有产物、与 Android 的对比都失去意义）：
+
+- birefnet：方形 1024²、ImageNet 归一化、多输出取**最后一路** logits 过 sigmoid
+- modnet：等比长边 512、双边对齐 32、`(x-0.5)/0.5`
+
+### 遮挡物分割默认跳过
+
+`segment_occluders.py` 走 SAM3（权重 3.4 GB），与 Android 的 RF-DETR + EdgeTAM
+没有可对齐项，且很重。因此默认 `skip`：已有 `occluders.png` 就复用，
+没有就让补全按纯深度带走。分割失败**不致命**，只记一行日志继续。
+
+### 待解：matte 会覆盖既有资产
+
+`build_matte.py` 落盘到 `assets/<scene>/matte.png`，而 `build_hidden_layer.py`
+读的正是这个固定名——**于是换一次抠像后端就把该场景的原有 matte 覆盖掉了**。
+本轮实测时 `07_food` 的 matte 已被 MODNet 版覆盖（原为 BiRefNet 版）。
+
+这会污染既有九场景资产的一致性。两个可选修法：
+
+1. matte 按后端加后缀（`matte_birefnet.png` / `matte_modnet.png`），
+   并给 `build_hidden_layer.py` 加 `--matte-name` 参数——干净，但要改既有脚本；
+2. 工作台在覆盖前先备份原文件。
+
+**倾向第 1 种**，与 `--occluders-suffix` 的既有做法一致。在此之前，
+用工作台跑非默认抠像后端会改动源场景资产，需要知情。
+
+## D239：我用原始 alpha 覆盖了 `matte.png`，语义错位——已加硬防护（2026-08-13）
+
+D238 把抠像接进工作台时，`build_matte.py` 直接写了 `assets/<scene>/matte.png`。
+**这是错的**，`generate_assets.py` 的注释早已写明：
+
+> 这张图是**二值区域标签**，不是覆盖率：上面两次硬化（smoothstep 收窄、0.95/0.05
+> 硬切）是 D129 为"遮挡物身份"定的，别以为它是 bug 就去掉——`segment_occluders.py`
+> 靠它与 SAM 3 取并集。软边界要的连续 α 是**另一张图** `matte_soft.png`。
+
+完整口径是
+
+```python
+native_hard   = smoothstep(clip((native_hr - 0.35) / 0.30, 0, 1))     # D129 硬收窄
+alpha_matte_hr = where(decision_hr >= 0.95, 1.0,
+                 where(decision_hr <= 0.05, 0.0, native_hard))        # 再按决策图硬切
+```
+
+`decision_hr` 依赖 `generate_assets.py` 里的 disparity / guide 尺度上下文，
+**独立脚本复刻不了**。
+
+### 症状与代价
+
+文件大小就是指纹：九场景的 `matte.png` 都是 1.8–4.5 KB（二值图 PNG 压缩率极高），
+而我写进去的连续 alpha 是 **22.4 KB**。`07_food/matte.png` 已被覆盖
+（原件 2026-08-09 生成，`tmp/spatial-desktop-tuning/*` 在 .gitignore 里，**无法从 git 恢复**）。
+
+更糟的是**"恢复"时我又跑了同一个错误脚本一遍**——只看文件名对不对、没看语义，
+等于把同一个错误犯了两次。
+
+### 已做的修复
+
+1. `build_matte.py` 加**硬防护**：`--out-name` 落到 `matte.png` / `matte_soft.png`
+   直接 `SystemExit`；默认输出改为 `matte_alpha_<backend>.png`。
+2. 文件头顶注明它产出的是原始连续 alpha、**不是** `matte.png`，重建后者必须走
+   `generate_assets.py --matting-backend`。
+3. 工作台的抠像步骤重新定义为**只产对比用 alpha，不进补全链路**；
+   `build_hidden_layer.py` 仍读默认的 `matte.png`。
+   （D238 加的 `--matte-name` 参数保留——并列多档 A/B 时仍然用得上。）
+
+### 教训
+
+**同名文件不等于同语义。** 接管一条既有资产链路时，只对上文件名是不够的，
+必须先弄清那个文件是谁生成的、经过哪些处理、被谁消费。这条链路里
+`matte.png`（二值标签）/ `matte_soft.png`（连续 α）/ `matte_full.png`（全分辨率）
+/ `matte_refined.png` / `matte_ownership*.png` 是五种不同语义的东西，
+名字却只差一个后缀。
+
+### 后续（见 D240）
+
+`07_food/matte.png` 已在 2026-08-13 用盘上残留的中间量精确重建，未重跑整条
+`generate_assets.py`。
+
+## D240（2026-08-13）用盘上残留的中间量精确重建 matte.png，而不是重跑整条管线
+
+D239 里被覆盖的 `07_food/matte.png`，此前的结论是"只能 `generate_assets.py` 整套重建"。
+实际不必——那次覆盖**只动了这一个文件**，D129 硬切所依赖的两个输入都还在盘上：
+
+    decision_hr    = resize(alpha_matte, center_hr 尺寸)
+    native_hr      = run_matting_alpha(源图, center_hr 尺寸)
+    native_hard    = smoothstep(clip((native_hr − 0.35) / 0.30))
+    alpha_matte_hr = where(decision_hr ≥ 0.95, 1, where(decision_hr ≤ 0.05, 0, native_hard))
+
+`alpha_matte` 就是 `assets/<scene>/debug/alpha_matte.png`（`generate_assets.py` 第 988 行
+落盘，到第 1377 行只被读、未被改写）；`native_hr` 由 BiRefNet 在源图上重跑，是确定性的。
+
+**关于 `center_hr` 的尺寸，要分清版本。** 现存语料的八个场景，`matte.png` 与
+`debug/alpha_matte.png` **同尺寸**（guide 档，512 长边），那次 resize 是恒等；而今天跑
+一遍 `generate_assets.py`（用 `zz_uitest` 实测）产出的是 **720 全分辨率**。也就是说
+**现存语料的 matte 是 D135「全分辨率剪影」之前的产物，此后一直没重新生成过**。
+重建 07_food 的目标是**回到与其余八个场景同代**——那个场景的其它资产（`interior.png`、
+`layer_masks` 等）全都是同一版旧构建的产物，单独把 matte 换成新版反而会造成新的错位。
+七场景 99.77–100% 的一致率也正是这一推断的证据：公式没变，变的只是 `center_hr` 的取值。
+
+### 先在健康场景上自证，再动损坏的那个
+
+七个健康场景重建后与盘上原件逐像素比对：
+
+| 场景 | 尺寸 | 逐像素相同 | 最大差 | 平均差 |
+|---|---|---|---|---|
+| 04_traffic | 512×342 | **100.000%** | 0 | 0.00000 |
+| 03_office | 512×340 | 99.976% | 221 | 0.02069 |
+| 05_near_object | 350×512 | 99.987% | 185 | 0.00705 |
+| 08_person_pet | 512×512 | 99.987% | 231 | 0.00896 |
+| 02_indoor | 512×342 | 99.906% | 243 | 0.10961 |
+| 06_statue | 512×386 | 99.859% | 241 | 0.09430 |
+| 01_original_double | 386×512 | 99.772% | 242 | 0.12536 |
+
+残差的来源是确定的、也是**不可再降的**：`save_gray` 存 uint8 时做的是截断
+（`(data*255).astype(uint8)`），字节值恰为 **242**（对应 float ∈ [0.94902, 0.95294)）
+和 **12**（[0.04706, 0.05098)）的像素跨在 0.95 / 0.05 两个阈值上，无法从盘上判定它
+原本落在哪一侧。其余字节值全部可判。所以差异只集中在边界带上极少数像素——个别像素
+差值可达 240（0↔1 翻转），但总体占比 0.01–0.23%。
+
+### 重建结果
+
+`07_food/matte.png`：**720×480 → 512×342**（尺寸此前也是错的，对齐 `interior.png`），
+22406 → 2858 字节（同类场景 1882–3783），过渡带占比 0.01%（同类 0.00–0.17%），
+二值区域标签的语义恢复。
+
+### 为什么不选整套重建
+
+`generate_assets.py --scenes 07_food` 会重写该场景全部默认名资产（`plate`、`hidden_*`、
+`disp_*`、`layer_masks`、`flow_coeffs_*` 等），而其中只有 `matte.png` 是坏的。且默认
+补全后端是 SDXL（D132），采样不保证逐位可复现——为修一个文件去扰动一整套本来正确的
+产物，是把损失放大。
+
+### 教训
+
+**先查还剩什么，再决定重建的粒度。** 「产物坏了 → 重跑生成它的脚本」是最省事的反应，
+但当管线把中间量落了盘（这里是 `debug/` 目录），坏掉的那一段往往可以单独重放。判断
+标准不是"能不能重跑"，而是"重跑会不会连带改掉本来正确的东西"。
+
+## D241（2026-08-13）工作台补上「基础资产」步骤，上传落 corpus 而不是 assets
+
+D238 的上传把图写到 `assets/<scene>/center.jpg`——**方向反了**：`center.jpg` 是
+`generate_assets.py` 的产物之一，而它的输入是 `corpus/<scene>.png`。写反的后果是新图
+永远走不完整条链路（没有 `matte.png`、没有遮挡物，补全那步拿不到掩膜）。
+
+两处一并修：
+
+1. `/api/upload` 落到 `corpus/<scene>.png`（经 PIL 解码后按 PNG 重存，顺带挡掉坏文件），
+   返回 `requiresRebuild: true`。
+2. 生成链路最前面加一档**基础资产**（`skip` / `rebuild`）。上传新图时前端自动切到
+   `rebuild` 并在日志里写明——新图没有任何既有资产，跳过必然缺料。
+
+`rebuild` 档**不传 `--inpaint-backend`**，用既定默认 SDXL（D132），新场景的底板才与既有
+九场景同口径；改成 `lama` 会让这一个场景的 `plate`/`hidden` 与其余不可比。
+
+场景下拉的来源也补上了 `corpus`——只有 `corpus/<scene>.png` 还没有 `assets` 目录的新图，
+此前在下拉里根本看不到。
+
+## D242（2026-08-13）`--matting-backend` 与 `--matting-model` 必须成对，且在建 session 后立刻核对
+
+工作台里把抠像后端选成 MODNet、走「重建基础资产」，`generate_assets.py` 在第一次抠像
+推理时炸掉：
+
+    INVALID_ARGUMENT: Got invalid dimensions for input: input_image
+      index: 2 Got: 512  Expected: 1024
+      index: 3 Got: 384  Expected: 1024
+
+根因不在预处理，而在参数默认值：`--matting-model` 的默认值**写死是 BiRefNet 权重**，
+与 `--matting-backend` 无关。选 modnet 时 `run_matting_alpha` 走的是长边 512、双边 32
+对齐的分支（512×384），喂进去的却仍是要求固定 1024² 的 BiRefNet 权重。
+
+两个后端的输入契约实测：
+
+| 后端 | 输入名 | shape |
+|---|---|---|
+| birefnet | `input_image` | `[1, 3, 1024, 1024]` |
+| modnet | `input` | `['batch_size', 3, 'height', 'width']` |
+
+### 修法
+
+1. `--matting-model` 默认改为 `None`，按 `--matting-backend` 从 `MATTING_DEFAULT_MODELS`
+   取（与 `build_matte.py` 的既有做法对齐）。显式传入时仍然生效，不做后端推断。
+2. 建完 session **立刻**核对输入契约（`check_matting_contract`），错配直接 `SystemExit`。
+3. 打印一行 `抠像后端 X  权重 Y`，让日志里能一眼看出这两者是不是一对。
+
+### 为什么要加第 2 步
+
+只做第 1 步就能修掉这次的故障，但下一次有人显式传 `--matting-model` 仍会踩同一个坑，
+而报错依旧是「Got: 512 Expected: 1024」——那条信息指向张量维度，不指向"后端与权重不是
+一对"这个真正的原因。守卫把错误提前到建 session 那一刻，并直接说出病因。
+
+两个方向都实测触发过（modnet 后端 + birefnet 权重、birefnet 后端 + modnet 权重），
+退出码 1，工作台的 `_run_step` 能正确判失败。
+
+## D243（2026-08-13）分割与补全的依赖环：基线要显式传，不能靠"先跑一遍补全"
+
+D242 修完抠像权重错配后，工作台仍在最后一步失败。挖下去是两个独立的坑叠在一起。
+
+### 坑一：需要分割时不跑分割
+
+`build_hidden_layer.py` 的实例归属分支（`--dual-pass` 等）要读
+`assets/<scene>/occluder_instances.npz`，读不到直接 `SystemExit`。而工作台的遮挡物档
+默认是 `skip`，于是"默认档 + 需要实例的补全变体"是一个**稳定失败**的组合，而且失败在
+最后一步——前面几分钟全白跑。
+
+九个场景里只有 `00_original_single` 缺这个 npz，所以此前一直没暴露。
+
+改法：分割在两种情况下**必跑**，与用户选的档无关——
+
+1. 刚重建过基础资产（npz 是从 `matte.png` 派生的，matte 换了它就过期）；
+2. 该场景根本没有这个文件。
+
+分割失败时的处理也分开：已有旧 npz 就沿用（退化但能继续），没有就**立刻**判失败，
+不要再跑几分钟去拿一条指向别处的报错。
+
+### 坑二：分割与补全互相等对方
+
+补上必跑之后，`segment_occluders.py` 自己炸了：
+
+    KeyError: 'hiddenLayer'   （segment_occluders.py:113）
+
+它读 `moge-meta.json` 的 `hiddenLayer.maxBaseline`，而那一段是
+**`build_hidden_layer.py` 写的**（第 899 行）。于是：补全要 npz，分割要补全写的 meta。
+既有九场景没暴露，是因为它们的 npz 是在更早的管线版本下、几何变体已经跑过补全之后生成的。
+
+改法不是调顺序（跑两遍补全），而是**把参数当参数传**：`maxBaseline` 就是补全的最大基线，
+工作台自己就知道（变体的 `spanCm ÷ 100`）。给 `segment_occluders.py` 加
+`--max-baseline`，显式传入时不再读 meta；不传且 meta 里也没有时给出明确报错，
+而不是 `KeyError`。
+
+### 教训
+
+**一个值同时是"上游的输出"和"下游的输入"时，先问它是不是本来就只是个参数。**
+`maxBaseline` 被当成"补全产出的元数据"存进 meta，于是任何想在补全之前用到它的步骤都
+被迫排到补全之后——而补全又要那一步的结果。它其实只是命令行上的 `--max-span-cm`，
+调用方从头到尾都知道。
+
+### 附带修掉：`build_matte.py` 静默回落 CPU
+
+日志里有一条 `Error loading onnxruntime_providers_cuda.dll ... cudnn64_9.dll is missing`，
+然后 `EP=CPUExecutionProvider`。这正是 `.claude/rules/toolchain.md` 记的坑：
+`onnxruntime-gpu` 不带 CUDA 运行时，本机的 CUDA 12.8 + cuDNN 9 是 torch 随包带的，
+导入 onnxruntime **之前**必须 `os.add_dll_directory(torch/lib)`。回落是静默的，
+只看跑通与否发现不了；而跨 EP 的输出不是逐位相同的，同一组 A/B 混着两个 EP 就没有可比性。
+修完实测 `EP=CUDAExecutionProvider`。
+
+（`generate_assets.py` 仍显式钉 `CPUExecutionProvider`，那是刻意的，不动。）
+
+### 验证
+
+`00_original_single`（modnet + d45，与用户失败时同一组配置）整条跑完，`state: done`：
+
+    深度几何 → 抠像 alpha（MODNet，EP=CUDA）→ 遮挡物分割（SAM3，自动补跑）→ 补全第二层（d45）
+
+分割：种子框 10 → 采纳实例 37，SAM 44.09% ∪ matte 21.76% = 45.03%，实例栈 38 个，
+`occluder_instances.npz` 31173 字节。补全：遮挡带 9.26%，逐条带判定保守 10.4% /
+激进 89.6%，产出 `hidden_color_d45.png` / `hidden_z_d45.f32` / `hidden_mask_d45.png`。
+
+## D244（2026-08-13）MoGe-2 两份官方 ONNX 的第四路输出名不同：`scale` vs `metric_scale`
+
+真机下载完 MoGe-2 ViT-B 后自检失败：**「MoGe 输出缺少 scale」**。
+
+不是模型坏了，是**两份官方 HF 导出在这一项上不一致**（实测）：
+
+| | ViT-S | ViT-B |
+|---|---|---|
+| 输入 | `image` `[batch,3,h,w]` + `num_tokens` `[]` | 同 |
+| 输出 1–3 | `points` / `normal` / `mask` | 同 |
+| **第四路** | **`scale`** | **`metric_scale`** |
+
+其余逐项相同。`SpatialDepthEngine` 里 `MOGE_SCALE_OUTPUT = "scale"` 是写死的，
+`tensor()` 找不到就 `check` 失败，而自检恰好走的就是 `generateMoge`。
+
+D216 把 ViT-B 描述成「与 ViT-S 同一套官方导出脚本、同一套输出契约」——**前半句对，
+后半句没核对就写了**。同一套脚本不等于同样的输出名。
+
+### 修法
+
+`MOGE_SCALE_OUTPUT` 改成候选名列表 `listOf("scale", "metric_scale")`，取第一个命中的。
+报错信息同时带上找过哪些名字与模型实际的输出名——只说"缺少 scale"时，无法区分是模型
+损坏还是导出换了名字。
+
+### 验证
+
+桌面上对两份 ONNX 同时跑（720 长边、num_tokens 1800）：
+
+| | 命中输出名 | 尺度值 | Z 中位 | 有效率 |
+|---|---|---|---|---|
+| ViT-S | `scale` | 2.763765 | 1.425 m | 100.0% |
+| ViT-B | `metric_scale` | 1.893430 | 1.945 m | 100.0% |
+
+真机（R5CW20BLNKL）装上修复版后从设置页重新下载 ViT-B，状态依次为
+`未下载 · 419 MB` → `正在本机执行模型自检…` → **`已安装 · 419 MB`**，自检通过。
+（自检走的就是完整的 `generateMoge`，所以它通过即等于该路径在 ViT-B 上跑通。）
+
+### 教训
+
+**"同一套导出脚本"是关于生产方式的说法，不是关于产物契约的保证。** 接一个新权重进
+既有推理路径时，输入输出名必须逐个核对——这次只差一个名字，代价是一次带模型的发布
+作废重来。核对成本是一条 `sess.get_outputs()`。
+
+## D245（2026-08-13）设置页三处遗漏：档位无入口、删除图标无 drawable、可选组件无法停用
+
+用户反馈的三条，根因各不相同。
+
+### 一、`num_tokens` 档位有枚举有偏好，就是没有 UI
+
+`SpatialDepthDetail`（1200/1800/2700）与 `SpatialPreferences.depthDetail` 早已就位，
+`SpatialDepthEngine` 也在读它，但设置页从没加过入口——只能用默认档。照 AOT-GAN 工作
+分辨率的既有做法补了一块：`ll_depth_detail` + `ChooserDialogFragment`，仅在选中的深度
+模型是 `MOGE_POINT_MAP` 契约且已安装时显示（另外三个深度模型输入尺寸固定，没有这个旋钮）。
+
+### 二、MoGe-2 两行的删除图标看不见
+
+`iv_moge2_delete` / `iv_moge2b_delete` **不在着色那个手写 id 列表里**，于是没有
+drawable——视图在、可点、uiautomator 也能定位（我此前就是靠它删掉 ViT-B 的），但完全
+看不见，用户只能盲点。radio 的着色列表同样漏了这两行。
+
+两处都改成**从 `SpatialDepthModel.entries` 推**（`deleteIconId` / `radioId` 是穷举
+`when`，加模型时编译器会先报错）。手写平行列表是这一类遗漏的固定来源——枚举里加了一项，
+三处平行列表只改了两处，编译器一声不吭。
+
+### 三、可选组件装了就停不掉
+
+- **MODNet（发丝边缘细化）**：完全没有启用偏好，`ImageViewerActivity` 只看"装没装"。
+  加了 `SpatialPreferences.mattingEnabled`（默认 true）+ 行内 `cb_modnet` 复选框，
+  消费侧同步加闸门。
+- **RF-DETR（人物连续性）**：偏好本就可空（null = 停用），但 RadioButton 选中后再点
+  是空操作。改成**可取消选中**：已选中时再点写 null。
+- **EdgeTAM**：查证后无需改动——它已经是永久禁用的遗留组件（`isEnabled = false`，
+  点击只弹"vNext 不使用"）。
+
+真机 R5CW20BLNKL 实测：深度细节选「精细」后 `depth_detail=fine_2700` 落盘（验完已调回
+标准）；MODNet 与 RF-DETR 的状态都能在「已启用」↔「已下载，未启用」之间来回切换；
+MoGe-2 两行的删除图标可见。
+
+## D246（2026-08-13）桌面 `_base`/`_d45` 复现不出来：旧脚本版本不存在，且工作台配置面过窄
+
+用户报「重新生成复现不了 `_base` 和 `_dual` 的质量」。逐项废止：
+
+| 假设 | 实测 | 结论 |
+|---|---|---|
+| 深度模型/档位不同 | `num_tokens=None` == `3600` == 旧记录 `depth_z.f32` **逐位相同** | 排除 |
+| 遮挡带变了 | `hidden_mask` **IoU 1.0000** | 排除 |
+| 基础资产变了 | `center.jpg`/`matte.png`/`conf.png`/`layer_masks.png`/`interior.png` **逐位相同**；只有 `plate.png` 变了（SDXL 产物），而它只在 `--plate` 时才进补全 | 排除 |
+| `occluders.png` 抢了 `matte.png` | 移走它重跑，输出**逐位相同**（`--matte-mode` 默认 intersect，D175 已证是空操作） | 排除 |
+| 管线不确定 | 两次独立运行**逐位相同** | 排除 |
+
+剩下的只有脚本本身。而 `build_hidden_layer.py` 是在 **08-13 10:56** 那次提交里首次纳入
+版本控制的（908 行全部计为新增），`_base`（08-12 11:20）与 `_d45`（08-12 17:45）产出时
+的脚本版本**在任何地方都不存在**——gitignore 覆盖了整个 `tmp/spatial-desktop-tuning/*`，
+只有 `.py` 后来被单独加进来。**那两个产物不可复现。**
+
+差异的性质也量过：带外（未补全区）100% 相同；带内 `_base` 平均差 12.75 级、
+`_d45` 7.89 级，去掉常数偏置后仍有 12.70 级残差——是补全**内容**不同，不是色阶偏置。
+
+### 另一个独立问题：工作台能表达的配置远窄于脚本
+
+`00_original_single` 的历史目录里有 **78 个标签**（`dual`/`plate`/`platemb`/`platepo`/
+`sdxl`/`moebius`/`mb12d*`/`mv*` …），而工作台只有 5 变体 × 3 后端 = 15 种组合。
+`build_hidden_layer.py` 支持 8 个后端（缺 `sdxl`/`moebius`/`moebius_square`/`lama`/
+`telea`），且 **`--plate` 与 `--plate-backend` 完全没暴露**——那是 D179/D181 的
+「整幅背景板 + 生成式后端 + 梯度域合成」，注释明确写着洞占一半时回归模型"只会吐条件
+均值（那根冷灰柱）"。用户说的 `_dual` 也不是 `_d45`，是另一个标签。
+
+### 教训
+
+**正在调参的脚本必须先进版本控制。** 这批脚本产出的每一个变体都是后续判断的依据，
+而脚本本身不受管控——任何一次修改都会静默地让此前所有产物不可复现，且没有任何提示。
+gitignore 写成 `/tmp/spatial-desktop-tuning/*` 再逐个加回 `.py`，等于默认排除。
+
+## D247（2026-08-13）两端在发丝细化与人物连续性上并未对齐
+
+| | Android | 桌面 |
+|---|---|---|
+| 发丝边缘细化 | **MODNet**，作为深度几何之上的**可选 α 细化**（`generateOptionalSpatialMatte`） | MODNet 只是 `--matting-backend` 的一个**候选主体抠像模型**，与 BiRefNet 二选一；软边界走的是 `build_soft_matte.py` → `matte_soft.png`，用的是 **BiRefNet_lite 未硬化 α**（D183） |
+| 人物连续性 | **RF-DETR Seg Nano**，在生成链路里 | 生成链路用 **SAM3**；RF-DETR 只出现在 `build_ownership_mattes.py` 这个**诊断脚本**里（产出 `diagnostic-visibility/rfdetr-ownership.png`），不进产物 |
+
+也就是说：**同名模型不等于同一个角色。** MODNet 在两端都存在，但插入点完全不同；
+RF-DETR 在桌面只是诊断工具。工作台目前也没有跑 `build_soft_matte.py` 的入口。
+
+## D248（2026-08-13）D246 的补充：差异的机制是**涂抹区缩小**，不是补全模型本身
+
+D246 只说清了"不可复现"，没说清"差在哪"。补上机制。
+
+`hidden_mask`（遮挡带）与 `hidden_paint`（真正送进补全模型的区域）**不是一回事**：
+paint 在 band 基础上按"源区排除前景"扩张。band 两版逐位相同，paint 不同：
+
+| | 旧涂抹区 | 今天 | 今天多涂 | 今天少涂 |
+|---|---|---|---|---|
+| `_base` | 38.37% | 29.65% | **0.00%** | **8.72%** |
+| `_b45` | 33.06% | 23.04% | **0.00%** | **10.02%** |
+
+今天的涂抹区是旧的**严格子集**——多涂那一列是 0.00%。也就是说，08-12 到 08-13 之间
+脚本把前景排除改保守了，补全面积小了约 9–10 个百分点，更多真实像素被保留下来。
+
+目检（差异最大的三块，3 倍放大）与这一点吻合：旧图在多涂的那一圈里留下**硬边的暗色
+多边形**（袖口、椅腿、桌布上各一处），那是 Big-LaMa 在更大的洞上吐出来的失败填充；
+今天这一版没有这些硬边，背景是连续的。
+
+**判定哪一版更好是用户的事**——涂得多意味着显露区全是合成内容，涂得少意味着可能残留
+主体碎片。这里只给机制与量：band 相同、paint 是子集、差异集中在那 9–10 个百分点上。
+
+### `_base` 与 `_b45` 的区别（这是另一回事）
+
+同一版脚本下，两者只差**带宽预算的给法**：
+
+| | 预算 | 折算基线 | 遮挡带 |
+|---|---|---|---|
+| `_base` | 固定 60 px@720 | 6.26 cm | 22.16% |
+| `_b45` | 4.5 cm 物理基线 | → 43 px@720 | 16.02% |
+
+带 IoU 0.7230。D198 已判定 `_base` 超配，`_b45` 是推荐档。
+
+## D249（2026-08-13）带宽 × 前景排除尺度的 A/B：抄袭度归前景尺度管，覆盖不是问题
+
+用户提出「补全面积太小 → 大视角下拖条带、背景脏」。跑 2×2×3 场景验证。
+
+### 先更正一条我自己的错误说法
+
+上一轮我说 `_b45`（4.5cm）对渲染端的 4.5cm 是「零裕度」。**不对。**
+`disocclusion_mask` 是**多半径各向同性形态学**（对 r=1..radius 逐档做椭圆腐蚀取并集），
+本身就带余量，不是按单一视差算一条等宽带。实测**真空率恒为 0.00%**——渲染端满倾斜
+需要显露的每一个像素，背后都有合成内容，四个档位、三个场景全部如此。
+
+（我第一版度量脚本按语义自己重写了 `disocclusion_mask`，写成了左右邻差，导致覆盖率
+只有 83–88%，看着像"覆盖不足"。改成从 `build_hidden_layer.py` **导入同一个函数**后归零。
+**口径必须导入，不能复刻**——这是本轮第二次栽在这上面，前一次是 D242 的抠像预处理。）
+
+### 结果（3 场景，lama_tiled，ViT-L 几何）
+
+抄袭度（补全与原图在带内的梯度相关，越低越好；`ghost_metric.py` 同口径）：
+
+| 场景 | 45f0（现状） | 45f60 | 64f0 | 64f60 |
+|---|---|---|---|---|
+| 00_original_single | 0.386 | 0.370 | 0.352 | 0.353 |
+| 05_near_object | 0.412 | **0.281** | 0.334 | **0.255** |
+| 08_person_pet | 0.283 | **0.181** | 0.280 | **0.190** |
+| **中位** | **0.386** | **0.281** | 0.334 | **0.255** |
+
+| 档 | 涂抹区中位 | 抄袭度中位 | 续接度中位 | 真空% | 裕度中位 px@720 |
+|---|---|---|---|---|---|
+| 45f0（现状） | 23.23% | 0.386 | 0.840 | 0.00 | 3.6 |
+| 45f60 | 25.66% | **0.281**（−27%） | 0.857 | 0.00 | 4.4 |
+| 64f0 | 30.10% | 0.334（−13%） | 0.836 | 0.00 | 4.4 |
+| **64f60** | 30.74% | **0.255**（−34%） | 0.841 | 0.00 | **5.0** |
+
+### 结论
+
+1. **抄袭度主要由 `--fg-span-px720` 决定，不是带宽。** 固定 60px 让中位抄袭度降 27%，
+   05 降 32%、08 降 36%；而只把带宽从 4.5 加到 6.4cm 只降 13%。00 只降 4%——它的带宽
+   本来就是 43px，离 60 很近，jump 尺度差别小。
+2. **覆盖不是问题**，真空率恒为 0。用户观察到的条带**不是**"补全区域没盖住"，
+   要另找原因（候选：剪影处深度误差超过那 3.6px 中位裕度、软 α 边界、网格断边插值）。
+3. **续接度代价很小**：fg60 在 05 上 0.935→0.892、08 上 0.792→0.753，00 上反升。
+   抄袭度大降而续接度只微降，说明确实换了内容来源，不是把带抹平。
+4. 裕度中位从 3.6 提到 5.0 px@720（+39%），但 **p5 恒为 1.0**——最薄的那 5% 不因这两个
+   旋钮改善，受限于别的东西。
+
+**建议默认改成 `b45 + fg60`**（抄袭度 −27%，带宽不变、补全难度不涨），
+要更多余量再上 `b64 + fg60`。
+
+工作台已加「前景排除尺度」档（`auto` / `px60` / `px90`），产出目录带该档后缀以便并列。
+
+## D250：大角度"黏连条带"的几何根因——hidden_z 平滑把第二层拉向前景；层级保持平滑修复（2026-08-13）
+
+用户报告 6.4cm 大角度倾斜下的条带，并给了两点自查：①补全掩膜边缘没贴紧主体轮廓
+（往外扩）；②补全像素与前景像素"像强行黏连、被拉伸"。两点都对，且指向两个**不同**的
+几何缺陷。本条记②的定案与修复；①见文末遗留。
+
+### 机制：24 次无掩膜 GaussianBlur 把第二层深度拉离背景层级
+
+`propagate_background_depth` 的洪水填充本身**几乎完美**（真断崖带段 t 中位 −0.002，
+t = 第二层逆深度在 [背景层级=0, 前景层级=1] 里的归一化位置）。污染 100% 来自其后的
+平滑：`GaussianBlur` 不带掩膜，带外前景与**带内浅断崖段**（前景背景本就接近的带段，
+占带 41–52%，洪水值≈前景层级）的近层级被 24 次迭代横向搅进真断崖段。落盘的
+hidden_z 在真断崖段 t 中位 0.20–0.35、p90 0.44–0.49——**第二层深度介于前后景之间**，
+满偏移下补全内容跟着主体跑 20–50%（中位 +4px、p90 +7~10px 的黏连位移），大角度时
+显露区内容被非均匀拉伸——正是用户描述的"背景像素跟前景像素连在一起被拉伸"。
+
+排除的候选（都做了废止实验）：
+- **viewer 第二层膨胀圈**（dilate 2px 用 z*1.001）：grown 网格域内拉伸边(>3px)仅
+  0.04–0.11%，其中落在膨胀圈上仅 2%——不是来源；
+- **洪水先到先得**：真断崖段内"洪水值=前景层级"仅 0.7–1.6%（先到先得的坑在来源
+  origin，D177 已记；对值本身影响极小）；
+- **带外前景侧参照**：平滑时排除它们后结果逐位不变——污染主体是**带内**浅断崖段。
+
+### 修复：层级保持平滑（联合双边，参考钉在洪水结果上）
+
+平滑换成 8 次 3×3 联合双边，值域权重按**洪水结果**的层级差算（σv = 1.5px 错开量对应
+的逆深度，与断边判据 sepPx=1.5 同源），迭代中参考不变：同层级内的 Voronoi 传播小台阶
+被抹平，跨层级永不渗透。两个背景面相遇处的大台阶**保留**——那是背景真实的面转折。
+`build_hidden_layer.py` 的 `propagate_background_depth` 加 `level_sigma` 参数，主链路
+传入；`selfocc_stat.py` / `segment_occluders.py` 只用层级当判据，不传（不平滑）。
+
+### 验证（九场景 `_b64f`，颜色/掩膜复用 `_b64`，单变量=hidden_z）
+
+| 场景 | 旧 t 中位/p90 | 新 t 中位/p90 | 旧偏移px 中位/p90 | 新偏移px |
+|---|---|---|---|---|
+| 00（vitl-3600 与历史目录同值） | 0.201/0.441 | −0.003/0.005 | +4.0/+10.3 | ≈0 |
+| 01 | 0.130/0.411 | −0.001/0.008 | +2.8/+9.1 | ≈0 |
+| 05 | 0.315/0.490 | −0.002/0.002 | +4.4/+7.1 | ≈0 |
+| 07 | 0.350/0.466 | −0.001/0.001 | +3.6/+5.0 | ≈0 |
+| 08 | 0.053/0.386 | −0.004/0.008 | +1.1/+7.7 | ≈0 |
+
+02/03/04/06 无真断崖带段（6.4cm 实需仅 4–10px@720），不受此缺陷影响。渲染 A/B
+（00/05 × 8 角 × 满偏移，按差异图选区放大目检）：改动集中在沿剪影的显露带
+（|Δ|>8 占 0.3–1.3%），旧版"跟着主体拖走的涂抹"变成钉在背景上的稳定结构
+（00 建筑栏杆线、发缘处最明显）。viewer 下拉已加 `_b64f`。
+
+### 遗留（对应用户自查①，未修）
+
+- **深度断崖比图像轮廓系统性偏外**：ViT-L@3600 断崖−α0.5 等值线偏移中位 +1.25px
+  （00）/+0.25px（05），p90 +3.75px，加 1.5–2px 断崖斜坡与带 dilate(3×3)。后果一是
+  掩膜/带不贴主体轮廓（用户看到的①），二是第一层剪影近侧 1–4px 的**背景色像素被判给
+  前景深度**、随主体运动，decon k=2 只够中位不够 p90。方向：matte 引导把断崖两侧深度
+  重钉到 α=0.5 等值线（00 目前缺 `matte_soft.png`，软 α 反解也一直未生效，要一并补）。
+- 带内保留的结构性大台阶（p99 15–19px）在第二层 noCuts 网格里仍是斜坡膜；目检未见
+  可感知伪影，先不加机制。
+
+## D251：用户框出的大角度条带归因——第一层发丝混合带，软 α 现机制到不了它（2026-08-13）
+
+用户在 `_b64f`（4.5cm、θ310°/217°）框出两处条带。逐层归因（第二层染品红 / 关第二层 /
+`_b64` vs `_b64f` 三组对照，00 场景）：
+
+1. **两处条带都不来自第二层**。θ310° 左发缘是**遮挡侧**（视点右上，前景向左下移动、
+   盖住背景的方向），第二层在该处只有贴着发缘的一条细缝；**关掉第二层条带原样存在**；
+   `_b64`/`_b64f` 在该处无差别（D250 修的是显露区内容被拖弯，是另一条通道，
+   在 217° 品红区内两版差异可见且 `_b64f` 更稳）。
+2. **条带 = 第一层的发丝混合带**。00 发缘在原图里有 10–25px 宽的发丝×背景软过渡，
+   深度二值分层把整条带判给前景，随主体平移 40+px：带上印着的旧背景结构（窗棂、
+   椅背）跟着走、与不动的真实背景错开，成毛玻璃质感的条带/重影——
+   pipeline-2026-08-11 末尾"硬二值层界在软边界处的必然产物"的实例。
+
+### 软 α 的现机制对它无效（实测）
+
+给 00 补上一直缺失的 `matte_soft.png`（`build_soft_matte.py`，环内软 12.05% vs 硬
+matte 1.24%）后软 α 生效（剪影覆盖 0→41.6%，解混 1261px）——条带只柔化了 1–2px
+边缘；softK=16 + decon=4 推到滑杆上限也一样。原因是结构性的：软 α 只重写**覆盖率**
+（alpha 通道），这些像素的**深度**仍整体属于前景；且 α 地板 = 255·d/K 在 softK 外
+强制回到不透明，而混合带宽 ≫ K。地板存在的原因又是：带从深度断崖起算，过渡区
+背景侧一半背后**没有第二层内容**，α 放开就会透出空洞。
+
+### 定案的修复方向（软两层过渡区，待用户裁定后动工）
+
+过渡区需要两层**重叠**（SLIDE / 3D Moments 的 soft two-layer 语义）：
+- 前景层：α∈(0.05,0.95) 过渡区整个足迹判给前景层，深度=前景侧延拓，颜色=解混出的
+  纯 F，α=matte_soft——半透明地跟主体动；
+- 背景层：遮挡带定义扩为 `disocclusion ∪ matte_soft 过渡区足迹`，hidden_z 传播与
+  补全同步覆盖——发丝背后有完整背景，透出的内容不动；
+- viewer：过渡区 α 地板取消（带内有真实第二层内容兜底）、decon/解混深度按过渡区宽走。
+改动集中在 `build_hidden_layer.py`（带定义）与 viewer 的去污/α 通路；顺带把 D250
+遗留的"断崖偏外 1–4px"一并锚定到 matte 等值线。
+
+### D251 补充：联网调研印证方向，并增补两条（2026-08-13）
+
+调研报告存档为 `research-2026-08-13-boundary-artifacts.md`。要点：
+
+1. **方向印证**：D251 的"软两层过渡区"与文献配方逐条对应——过渡区判给前景层且深度取
+   前景侧延拓 = Twin Surface Extrapolation / αDepth 的**双侧外插**（"边界像素只有一个
+   深度"这个假设本身是缺陷源）；带扩到过渡区足迹背后 = Kopf 2020 的 LDI 迭代扩张
+   （背景层与前景刻意**重叠**）；α 随颜色一起投影 = αDepth 的联合投影论证（不联合投影
+   = 轮廓复制/背景渗色）。我们的 viewer 把 α 写进第一层纹理随顶点投影，天然满足。
+2. **增补一（进方案）**：前景网格的**边界判据**从"深度差"改为"α>α_hi"（matte 是边界
+   权威，深度不是）——Adobe MaskDepth（代码开源，可参考）与 Google Cinematic Photos
+   同一路径。这条同时消灭"胖一圈"（断崖偏外 1–4px 不再决定任何边界）。
+3. **增补二（零成本兜底，可独立先做）**：渲染端对残余跨断崖三角形按**拉伸量做 α 衰减**
+   而非硬丢弃（SLIDE：拉伸三角形变透明即可"看穿"到第二层；硬丢弃留白边）。拉伸比可用
+   dFdx/相邻顶点免费算。它治的是 D250 遗留的带内结构性大台阶斜坡膜与 D199 透明物撕裂
+   这类残余，不是发丝混合带的主修复。
+4. **验收增补**：按 Depth Pro 的 boundary F1/recall 口径、拿 BiRefNet matte 当 GT 量化
+   深度边偏移——把"胖一圈"变成有据可依的膨胀半径。
+
+## D250（2026-08-13）Big-LaMa 的 QNN context binary 四架构编译全部成功
+
+`jpeyq9275` 失败的原因查明是**编译阶段超时**，不是算子不兼容：
+
+> Time limit exceeded in compilation step. The optimization level is 3 (highest is 3).
+> Lowering it with `--qnn_context_binary_optimization_level 1` can significantly reduce
+> compile time at the cost of less optimal inference performance.
+
+加上 `--qnn_context_binary_optimization_level 1` 后，一次铺开四个架构**全部成功**
+（复用已在 Hub 上的 `mnl75673m` / `big_lama_512_fixed.onnx`，未重传）：
+
+| 架构 | Job | 目标设备 | 产物 model | 体积 |
+|---|---|---|---|---|
+| v73 | `jp16rwqn5` | Galaxy S23 Ultra | `mnj03dwkq` | 306.3 MB |
+| v75 | `jgd2jq765` | Galaxy S24 | `mqeg6r94m` | 306.3 MB |
+| v79 | `j579qlvng` | Galaxy S25 | `mnz6z5w6m` | 299.0 MB |
+| v81 | `jp43zdj25` | Galaxy S26 | `mm5ro19kq` | 340.9 MB |
+
+**体积已裁定可接受**（2026-08-13 用户）：单机只取自己 dsp_arch 那一份，299–341 MB，
+与既有模型同量级（MoGe-2 ViT-B 419 MB）。服务端四份合计约 1.25 GB。
+
+### 记录两条编译期的事实
+
+- **精度在编译期烘定。** `enable_htp_fp16_precision` 是 ORT 建 session 时的选项，
+  对预编译的 context binary 不起作用。本次没给精度选项，产物是默认精度
+  （context binary 306 MB vs 源 ONNX 208 MB）。若将来要压体积，得在提交编译时给。
+- **optimization level 1 是必须的**，level 3 会超时。代价是推理性能不是最优，
+  具体差多少还没测——要测得先把下发通路打通、在真机上跑基准。
+
+### 架构覆盖
+
+AI Hub 一共暴露 8 个 hexagon 架构（v65/66/68/69/73/75/79/81）。本次覆盖最新四个，
+对应 10 款芯片：
+
+| 架构 | 芯片 |
+|---|---|
+| v73 | 8 Gen 2、7 Gen 4、X Elite、X Plus 8-core |
+| v75 | 8 Gen 3 |
+| v79 | 8 Elite、8 Elite for Galaxy |
+| v81 | 8 Elite Gen 5、8 Elite Gen 5 for Galaxy、X2 Elite |
+
+**8+ Gen 1 在 AI Hub 上没有单独条目**——它与 8 Gen 1 同为 v69，本次未覆盖。
+另注意 **v69 不支持权重共享**（设备属性 `htp-supports-weight-sharing:false`），
+v73 及以上都支持；将来若要多模型共用 context，v69 要单独处理。
+
+## D252：条带最终对齐=显露带补全内容；"假头发"根因与中性化上下文实验（2026-08-14）
+
+### 与用户逐图对齐后的定案
+
+用户所说的大角度条带 = **第二层补全实际可见区**（渲染真值染色确认，宽 18–40px、随方向
+换边）。此前 D251 归因的发丝混合带、以及新发现的第一层未切缓坡（每步<1.08px、累计
+3–20px 的"合法 rubber-sheet"，全图 10.3%）都真实存在，但**不是用户主诉**——归因重心
+据此修正。渲染条带的像素与资产 `hidden_color` 带内内容逐块对照相同：条带=带内补全内容
+显形。用户观感拆解：A 糊为主 + B 前景渗色局部，核心是"黏连拉伸感"。
+
+### "假头发"的根因：洞的拓扑 + 模型视野，不是排除不干净
+
+00 发缘量化：发缘环像素 MoGe 深度 t 中位 0.95（不塌向背景）、100% 已被补全掩膜挖掉
+——**排除没有漏**。但 Big-LaMa 512 分块窗口里主体头发大面积可见（洞外该在的地方），
+回归模型顺着窗口内可见的头发把它加宽一圈续进带里。前景排除是法向挖洞，抄袭来自窗口
+内的切向视野，挖再宽也切不断；挖到整体（plate）又回到 D179 的条件均值灰柱。czls
+（前景变洞）败因即此：洞变大失约束。
+
+### 中性化上下文（--neutral-context）实验：治了抄袭，暴露结构缺失
+
+新机制：送模型的输入里把主体（matte_soft>0.05 膨胀 ∪ occluders）替换成伪背景，
+**洞不变大**。两版取色：
+- v1 最小逆深度洪水取色（propagate_background_color）：假头发消失，但伪背景色温错
+  （取到远处冷色），带内成灰绿雾带，比假头发更显眼——**否决**；
+- v2 就近取色（距离变换最近背景像素 + σ5 模糊）+ Moebius 生成式 + 梯度域（`_b64g`）：
+  假头发消失、色调正确，**但带内仍无结构**（窗棂/椅背线条不延续）。
+
+用户裁定的验收标准：**带内必须补出结构连续的背景内容**，柔和渐变不合格。
+
+### 结构缺失的机制判断与下一步
+
+512 窗口里：带 30% + 中性化区 54% → 真实内容只占约 15%，生成模型条件太弱，
+无从延续结构。下一步按序：
+1. **crop-zoom + 中性化**：窗口贴带裁+放大（D196 的 _czl 基础设施），窗口内真实背景
+   占比与带的表观尺寸同时拉满——结构续接条件最好的组合，未试；
+2. 端上可部署的新一代补全/disocclusion 模型（后台调研中，用户约束：新且质量硬、
+   手机可部署）；
+3. 多视角顺序补全在中性化基底上重估（D193 曾有结构，D201 败因或与抄袭基底相关）。
+
+## D253：带内结构续接的配方定案——中性化 + crop-zoom + 窗内屏蔽 + Moebius（2026-08-14）
+
+用户裁定目标：大视角下补全内容必须是**真实画面内容的自然扩展**，不许模糊平滑或黏连条带。
+凌晨自主实验链（00 场景，逐步单变量）：
+
+| 档 | 配方 | 带内结果 |
+|---|---|---|
+| `_b64f` | 原 Big-LaMa tiled | 假头发（抄窗口内可见主体） |
+| `_b64n` v1 | 中性化(洪水取色) + LaMa tiled | 灰绿雾带（伪背景色温错），否决 |
+| `_b64g` | 中性化(就近取色) + Moebius 整图分块 + 梯度域 | 无假发、色调对，但无结构 |
+| `_b64czm` / `_b64czl2` | + crop-zoom（带 2.93 latent px，31 窗） | 仍无结构——窗内伪背景占近半，两个不同模型输出同样的渐变 ⇒ **输入形态主导，非模型能力** |
+| **`_b64czs`** | **+ 窗内屏蔽（伪背景并进洞，模型只见真背景+洞）· Moebius cfg2** | **窗棂/门框/椅背结构延续，渲染大角度条带基本消失** |
+| `_b64czs4` | 同上 cfg4 | 结构更锐、发明感略强 |
+| `_b64czsl` | 同屏蔽 · Big-LaMa | 灰涂抹——**生成式模型是必要条件**的对照证据 |
+
+### 机制总结（三个组件缺一不可，各治一个死穴）
+
+1. **中性化**（--neutral-context，就近取色 + σ5 模糊）切断"窗口内可见主体被抄"（czls 当年
+   败因之一）；2. **crop-zoom** 把带放大到 2.93 latent px 且窗内真实背景占比拉高（D196 的
+   杠杆）；3. **窗内屏蔽** 把残余伪背景从模型条件里拿掉——伪背景不只切断抄袭，还会污染
+   生成（czm/czl2 的"两模型同渐变"证明）。屏蔽后洞在模型尺度 18.6 latent px，回归模型
+   （LaMa）吐条件均值，生成式（Moebius）延续结构——**shield 有效的前提是生成式后端**。
+   当年 _czls "治了污染但被洞变大抵消"（D196 补充二）的真正缺环即是这两条。
+
+### 渲染验收（00，0/90/180/270 × r=1 × 4.5cm）
+
+0°/180° 与 `_b64f` 并排：假头发拖尾消失，发缘干净，显露区是有结构的背景延续，
+黏连拉伸感消失。残留：发丝边缘 1–3px 碎屑（第一层近侧混合像素，D250 遗留项①，
+另一条线）；czs cfg2 与 cfg4 渲染差异小，cfg2 发明感更低，铺开用 cfg2。
+
+### 状态
+
+- 已铺 00；01/05/07/08 铺开中（浅景深场景 02/03/04/06 带极窄不需要）。
+- viewer ⑧ 组已加全部档位。深度统一复用 `_b64f`（D250 层级保持平滑）。
+- **产线化待做**：把 cz+shield 路径并进 build_hidden_layer.py / 工作台（当前在
+  scratchpad 包装脚本里）；Moebius 端上部署性是后续问题（换模型调研进行中，作为
+  Moebius 的替补或蒸馏目标）。
+
+### D253 补充：混合后端定案——逐窗按背景结构能量选 Moebius/LaMa（2026-08-14）
+
+铺开后 07_food 暴露纯生成式的对偶缺陷：桌沿阴影这类**平淡背景**的带里，Moebius 发明出
+杂乱大理石碎纹（渲染 90°/270° 可见）——生成式在"该平则平"处是负收益，恰是 LaMa 的主场。
+定案配方改为**逐窗混合**：窗 patch 真实背景区（非洞）灰度 Sobel 幅值 p75 ≥14 → Moebius
+（结构延续），<14 → Big-LaMa（平滑延续）。五场景分配：00 15/31 窗用生成式、01 7/23、
+05 4/53、07 5/53、08 13/95。抽查：07 碎纹消失、05 平坦墙依旧干净、00 窗棂结构保留。
+最终 before/after（00，0°/180° 满偏移）：假发拖尾→背景自然显露。TH=14 未扫描，
+是首个可用值；后续可按 D196 的评测台校准。实现于会话 scratchpad `run_czs_mixed.py`，
+**产线化（并入 build_hidden_layer.py/工作台）待用户裁定后做**。
+
+## D251（2026-08-14）QNN 运行组件的下发：独立 catalog 字段 + 按 dsp_arch 分片
+
+用户要求「设置里单独加个 QNN 开关，开启后再下载相关环境、用 QNN 加速；模型选择处也加
+QNN 版本的启用选项」。
+
+### 结构：换整包，不是补库
+
+QNN EP 是**编译进 `libonnxruntime.so`** 的，一个进程只能加载一份。所以开 QNN 等于把
+运行组件整包换掉（QNN 版 ORT 21.6 MB + QAIRT 五个库），不是在既有包旁边补几个 `.so`。
+`SpatialRuntimeStore.requiredPackageVersion(context)` 按总开关返回 `1.28.0-r7` 或
+`1.28.0-qnn-r1`，`isCompatibleMarker` 随之判定"装的那个还算不算数"，其余安装/校验/
+裁剪逻辑两条路共用。
+
+包按 HTP 架构分片（`libQnnHtpV<arch>Skel.so` 每档 9–17 MB），实测每份压缩后约 45.6 MB、
+解压 121.8 MB。`libQnnHtpPrepare.so`（83.7 MB）必须带——只有 Big-LaMa 有 AI Hub 预编译的
+context binary，其余模型仍靠端上编译。
+
+### 两个会炸的坑
+
+**其一：QNN 条目绝不能并进 `runtimes`。** `SpatialModelCatalog.validate()` 对那一组
+**每一条**都跑 `isCompatible()`，里面硬校验 `packageVersion == REQUIRED_PACKAGE_VERSION`。
+混进一条 QNN 条目，**所有已安装的旧版 App 会直接拒绝整个 catalog**——连模型都下不了。
+改走独立的 `qnnRuntimes` 字段（旧版忽略未知字段），这是本项目既有做法
+（`segmentationModels` / `boundaryRefinementModels` 都这么加的）。
+
+**其二：`pruneObsoletePackages` 假设目录是两层。** 它按绝对路径**精确相等**判断"这是不是
+当前包目录"，而 CPU 包是 `<版本>/<abi>`、QNN 包多一层 `<dspArch>`。于是 QNN 装完之后，
+`<abi>` 目录因为不等于 `<abi>/<arch>` 被判为过期、整个递归删掉，刚落盘的包当场消失，
+症状是"NPU 运行组件安装后校验失败"。改成按「是不是当前目录的祖先或本身」判定。
+
+另：QAIRT **不是 MIT**，包体也超过原有 64 MB 上限，所以 QNN 那组的许可与体积判据必须
+与 CPU 组分开写，不能复用。
+
+### 真机端到端（R5CW20BLNKL / SM8550 / v73）
+
+走**真实下载链路**，不是 debug 旁路：
+
+    设置页开关 → 下载 45.6 MB → 安装 128 MB（7 个库落在
+    objects/1.28.0-qnn-r1/arm64-v8a/v73/）→ 状态「已启用 · 运行组件已安装」
+    → 生成空间照片 → context binary 落盘
+      rf_detr_seg_nano-1.0.0-312x312-v73-1.28.0qnnr1-e126db3d03364dda
+    → 生成完成
+
+键里的 `1.28.0qnnr1` 是**正式包版本**（debug 旁路会是 `debugoverrideruntimeoverride`），
+这一点是"产品路径确实用了目录下发的 QNN 运行组件"的直接证据。
+
+### 目前只有 RF-DETR 真正走 NPU
+
+深度（MoGe-2）上 NPU 要求固定输入分辨率，会作废 D245 刚加的 num_tokens 档位；
+Big-LaMa 的四份 context binary 已编出（D250）但还没接进模型下发。所以逐模型那个开关
+目前只挂在 RF-DETR 一行上——结构已经就位，加模型时照挂即可。
+
+## D254：调研定向——GRT 式自监督微调是产线正解，czs 配方是已验证的过渡方案（2026-08-14）
+
+换模型调研归来（`research-2026-08-14-inpainting-models.md`）。核心发现改变格局：
+
+1. **两种失败模式在文献里有定名与定论**：假头发=前景渗漏（SpatialMe 原文病症）；
+   中性化后柔和渐变=训练/推理 mask 分布不一致（GRT Appendix A7）。**原因在数据侧不在
+   架构侧**——GRT Table 4：LaMa+遮挡 mask 微调 +3.77dB，十亿级扩散加同一套数据只
+   +1.9dB。换任何"更强的通用模型"都会重现同样失败。
+2. **GRT（ICML 2026）配方**：遮挡 mask 可从单图深度解析算出（几何互易），原图即真值，
+   自监督微调 LaMa 后 DAVIS-GRT 35.52 PSNR / 0.05s，超过 StereoCrafter。我们的条件比
+   论文好（MoGe-2 米制深度+真实渲染 warp，能做严格 train-test mask 一致）。5090 上
+   快速验证数小时、主训练约 1 天。
+3. **端上容量瓶颈解除**：高通 AI Hub 实测 LaMa 45.6M 在 8 Gen 1/3 = 137/55ms@512²
+   （8 Gen 2 推断 70–100ms）——"必须 5.95M"不成立，微调后的 LaMa 可直接上端。
+4. **两条零训练前处理可叠加**：视差扩张（SpatialMe DE）、双投影遮挡判定（DreamStereo）。
+5. **评测警告**（PROVE）：全参考指标奖励复制粘贴、无参考偏好模糊——与 D202 缝判据
+   失明同构。验收改用：结构接续误差（带两侧直线在带内的延长偏离）+ 前景渗漏率门禁。
+6. 许可：商用发布时训练数据与起点权重都要商用干净来源（Places2 非商用是阻断点；
+   Open Images/Unsplash Lite/自采可用）。ProPainter 禁商用，排除。
+
+### 路线关系定案（待用户裁定）
+
+- **短线（已完成）**：`_b64czs`（D253 混合配方）——桌面即时可用，五场景验证通过；
+  但依赖 Moebius（端上难）+三层输入工程。
+- **主线（建议启动）**：GRT 式自监督微调 LaMa（或 MI-GAN 对照）——训练分布对了，
+  模型自然只从背景续接，**推理时不再需要中性化/裁窗/屏蔽的全套工程**，且端上路径
+  全通。czs 线的中性化基础设施转为"生成训练对照/评测台"继续发挥作用。
+
+## D252（2026-08-14）预编译 context binary 与 QAIRT 版本强绑定，端上被迫从 2.42 升到 2.48
+
+要把 D250 编出来的 Big-LaMa context binary 接进下发，先撞了两堵墙。
+
+### 一、裸 `.bin` ORT 吃不了，要 EPContext 壳
+
+D250 那四份 `.bin` 是 **QAIRT 原生序列化格式**（头 4 字节 `00 00 00 02`，全文无 `EPContext`
+字样）。ORT 只认「带 `EPContext` 节点的 ONNX」。从设备上取 ORT 自己编的产物做参照：
+
+    node EPContext  domain=com.microsoft
+        ep_cache_context = rf_detr_seg_nano_ctx_qnn.bin
+        embed_mode       = 0
+        ep_sdk_version   = v2.42.0.251225135753_193295
+        main_context     = 1
+        partition_name   = QNNExecutionProvider_QNN_...
+
+手搓这个壳要猜 `ep_sdk_version` 与 `partition_name`，风险大。改用 AI Hub 的
+**`--target_runtime precompiled_qnn_onnx`**，它直接产出 `model.onnx`（423 字节的壳）
++ `model.bin`，由 Qualcomm 自己的工具保证内部一致。壳比 ORT 的更简：无 `ep_sdk_version`、
+无 `partition_name`、`source=QNN`（ORT 写的是 `QNNExecutionProvider`）。
+
+顺带核对了 I/O：输入名 `image`/`mask` 与线上模型一致；输出名 `output_0` 与线上的 `output`
+不同，但引擎按 `output[0]` 索引取，无影响。
+
+### 二、版本必须严格对上，而 2.42 已经下架
+
+推到真机加载，报：
+
+    ORT_INVALID_GRAPH … LoadCachedQnnContextFromBuffer Failed to create context
+    from binary. Error code: 5000
+
+不是猜——产物元数据直接写着 `QAIRT_SDK_VERSION: 2.45.0.260326154327`，而我们打包并已
+端到端验证的是 **2.42.0.251225135753**。**context binary 与 QAIRT 版本强绑定。**
+
+想把 AI Hub 钉到 2.42 —— 不行，`--qairt_version 2.42` 被拒；`get_frameworks()` 显示
+AI Hub 现在只提供 **2.45 / 2.47 / 2.48**。所以只能反过来把端上升级。
+
+### 关键前置：ORT 1.28 配 QAIRT 2.48 实测可用
+
+升级前先验这一条（不然就是拿已验证可用的 2.42 去赌）。把 2.48 的七个库推到设备另一个
+目录，用探针跑 RF-DETR：
+
+    session created in 13784ms
+    runs_ms=49,47,50   first=49ms median=49ms
+
+与 2.42 同一量级，没有任何加载或执行错误。**因此把运行组件升到 2.48。**
+
+D215 当初调研的本来就是 2.48；2.42 是后来换的，没有留下换的理由，文档里也查不到。
+
+### 体积变化
+
+2.48 的库比 2.42 略大（`libQnnHtpPrepare.so` 87.9 vs 83.7 MB、`Skel` 17.7 vs 16.3 MB）：
+
+| 包 | 压缩后 | 解压后 |
+|---|---|---|
+| `1.28.0-qnn-r1`（2.42） | 45.6 MB | 121.8 MB |
+| **`1.28.0-qnn-r2`（2.48）** | **47.5 MB** | **129.6 MB** |
+
+### 教训
+
+**跨工具链的二进制产物，先对版本再谈接入。** 这次的顺序本来应该是「查 AI Hub 用哪个
+QAIRT → 确认端上能不能用那个版本 → 再编译」，实际却是先编了四份、推到设备才发现版本
+对不上。产物元数据里 `QAIRT_SDK_VERSION` 一直都在，查一次的成本是零。
+
+### D254 补充：训练 mask 的深度模型选择——混合档位，ViT-B 为主（2026-08-14）
+
+用户问训练 mask 用什么深度模型生成（端上最好是 ViT-B，ViT-S 未定，num_tokens 未定）。
+00 场景五档现成几何 + 产线 disocclusion_mask（6.4cm 同参）量化：
+
+| 档 | 带占比 | 连通块 | 带宽中位 |
+|---|---|---|---|
+| vitl-3600 | 22.60% | 65 | 8.4px |
+| vitb-3600 / 1800 | 18.06% / 18.54% | 58 / 36 | 8.4 / 10.0px |
+| vits-3600 / 1800 | 13.66% / 13.49% | 51 / 27 | 8.4 / 10.0px |
+
+**模型规模是主导变量**（跨规模 IoU 仅 0.48–0.66，ViT-S 的带比 ViT-L 少 40%——连"哪里
+算遮挡带"都不同）；**num_tokens 是次级变量**（同模型内 IoU 0.81–0.83）。
+
+定案：训练 mask 按端上档位**混合采样**（ViT-B 主力约 60% + ViT-S 约 25% + ViT-L 约 15%，
+num_tokens 同模型内随机），每图只跑一次抽中的组合、成本与单档相同。把"端上最终选哪档"
+从训练决定解耦。mask 算法直接用产线 `disocclusion_mask`（∪深度判据排除），训练与推理
+同函数，一致性构造成立（强于 GRT 论文的 warp 对齐）。另核实：用户记的 big-lama "208M"
+是 ONNX 文件体积（实测 208,044,816 字节），参数量为 51M（×fp32 4 字节 ≈204MB）。
+
+## D253（2026-08-14）Big-LaMa 上 NPU 实测 2.70×，且不需要端上编译
+
+D252 把 QAIRT 对齐到 2.48 之后，v73/v75 的 `precompiled_qnn_onnx` 编译成功
+（产物元数据 `QAIRT_SDK_VERSION = 2.48.0.260626120635`，与打包的运行组件逐位一致）。
+推到 R5CW20BLNKL（SM8550 / v73）用探针实测：
+
+| | session 创建 | 单块 512² 推理（中位，3 次） |
+|---|---|---|
+| CPU（`big_lama_places2_512_fp32.onnx`，208 MB） | 5443 ms | **5642 ms** |
+| NPU（AI Hub 预编译 context，334 MB） | 6254 ms | **2091 ms** |
+
+**2.70×**。更关键的是 session 创建只要 6.25 秒、与 CPU 同量级——**完全不需要端上编译**。
+Big-LaMa 的图在设备上编译此前一直不可行（被 LMK 杀），AI Hub 上即使降到 optimization
+level 1 也要一小时以上；预编译把这一段彻底移走了。
+
+输入输出与线上模型一致：`image [1,3,512,512]` / `mask [1,1,512,512]` → `output_0`
+（线上叫 `output`，但引擎按 `output[0]` 索引取，无影响）。
+
+### 端上的接法
+
+- 新增 `SpatialQnnPrecompiledStore`：按 `(modelId, modelVersion, dspArch)` 落盘，
+  zip 里只允许 catalog 描述的那两个入口，逐个校验 size+sha256。
+  **`model.onnx` 与 `model.bin` 必须留在同一目录**——壳里的 `ep_cache_context`
+  是相对路径 `./model.bin`。
+- catalog 新增 `qnnPrecompiledModels` 组（**又一个新字段**，理由同 D251）。
+  条目带 `qairtVersion`，与 `SpatialRuntimeStore.QNN_QAIRT_VERSION` 不一致即判不兼容——
+  这条是 D252 那个 error 5000 的护栏。
+- `SpatialQnnSessionFactory` 的取用顺序改为：**下发的预编译 → 端上已编缓存 → 现编 → CPU**。
+  预编译产物建 session 失败时只记日志并继续往下走，不让它变成硬失败。
+
+### 运行组件同步升到 `1.28.0-qnn-r2`
+
+QAIRT 2.42 → 2.48。包体从 45.6 MB / 121.8 MB 涨到 47.5 MB / 129.6 MB。
+升级后旧的端上编译缓存会因 `runtimePackageVersion` 变化自动失效重编，属设计内行为。
+
+## D254（2026-08-14）下发通路做完了却没接引擎——补全其实一直在跑 CPU
+
+用户问「现在最新 APK 是不是能用 QNN 的都用了、包括哪些模型」，一查发现
+**`SpatialInpaintingEngine` 从来没有调用过 `SpatialQnnSessionFactory`**。
+
+D253 把预编译产物的整条下发链路做完了（打包、catalog 分组、下载、校验、落盘、
+工厂优先取用），唯独漏掉最后一步：让补全引擎去调那个工厂。它的 `createSession`
+一直是直接 `environment.createSession(modelFile, options)`。**产物下下来躺在设备上，
+没有任何代码去读。** `202608140339` 那一版的发布说明写着"背景补全现在也能跑在 NPU 上"，
+是错的。
+
+### 修复与实测
+
+`SpatialInpaintingEngine.createSession` 改为先试工厂、拿不到再走原来的 CPU/XNNPACK。
+真机 A/B（R5CW20BLNKL，同一张图 540×720、band 24、四个 512 分块，只改 `qnn_enabled`）：
+
+| NPU 开关 | 整个补全步骤 |
+|---|---|
+| 开 | **16002 ms** |
+| 关 | **26137 ms** |
+
+**1.63×**。比 D253 探针测的单块 2.70× 小，因为整步还包含准备、分块与合成——那些不受
+影响。两个数不矛盾，量的是不同的东西。
+
+### 顺带补的护栏：大图模型不许端上编译
+
+接上工厂之后出现一个新风险：没有下发预编译产物时，工厂会去**尝试在设备上编译**
+Big-LaMa——而那正是已知会被 LMK 杀掉的路径。给 `createSession` 加了
+`allowOnDeviceCompile`，补全传 `false`：没有预编译产物就老实走 CPU，不白等几十秒再被杀。
+
+### 教训
+
+**"下发通路做完"不等于"功能可用"。** 这一轮我把打包、catalog、下载、校验、落盘、
+工厂逻辑全做了，每一步都验了，唯独没验"端到端跑一次补全会不会更快"——而那才是功能
+本身。验收要落在**用户能观察到的那个量**上，不是落在链路的每一环。
+
+发现方式也值得记：是用户问「包括哪些模型」时，我去 grep
+`SpatialQnnSessionFactory.createSession` 的调用点才看出来的。**列出调用点**这个动作，
+在声称"某条路径已接入"之前就该做一次。
+
+## D255（2026-08-14）设置页整理：NPU 版模型从"行内复选框"改为独立选项
+
+用户提了五条，核心是**把 NPU 版模型提升为独立选项**，而不是挂在主行上的一个小勾选框。
+
+### 为什么这个结构更对
+
+行内复选框有三个问题：不好发现（用户看不到"还有 NPU 版这回事"）、不好管理（没法单独
+下载或删除）、语义混乱（勾上它到底是"下载了"还是"启用了"）。改成独立行之后，
+NPU 版与 CPU 版在同一个 RadioGroup 里并列，下载/选择/删除各自独立，与其它模型一致。
+
+两行的实质差别值得记住：
+
+| | 额外下载 | 原因 |
+|---|---|---|
+| Big-LaMa（NPU 版） | **需要**，约 155 MB | 图在端上编不出来，必须下发预编译 context（D250/D253） |
+| RF-DETR（NPU 版） | **不需要** | 端上编译约 14 秒即可，之后缓存复用 |
+
+因此 Big-LaMa NPU 行有下载/删除按钮，RF-DETR NPU 行没有——它只是一个选择。
+
+### 总开关关闭时置灰而非隐藏
+
+用户明确要求置灰。理由成立：隐藏会让用户不知道"还有 NPU 版这个东西"，也就不知道该去
+上面把开关打开。置灰保留了可发现性，同时用 `isEnabled=false` + `alpha=0.4` 表明当前不可选。
+选中态会自然回落到 CPU 行——NPU 行的 `isChecked` 里带了 `runtimeReady` 条件。
+
+### 手写平行列表：第三、四次翻车
+
+用户报「Big-LaMa 安装完后右侧没有删除图标」。根因与 D245 的 MoGe-2 完全一样：
+`iv_big_lama_delete` **不在着色那个手写列表里**，控件在、点得到、但没有 drawable。
+同一次检查还发现 ripple 列表漏了 `btn_big_lama` / `btn_moge2` / `btn_moge2b`。
+
+**这是同一个错误的第三次和第四次。** 已把删除图标与下载图标的 id 全部改成
+从枚举推导（`SpatialDepthModel.entries.map { deleteIconId(it) }` 之类），配套的
+`deleteIconId` / `buttonId` / `inpaintingDeleteIconId` / `inpaintingButtonId` 都是穷举
+`when`——加模型时编译器会先在这些函数上报错，不会再静默漏项。
+
+### 下载按钮改图标
+
+12 个「下载」文字按钮换成 40dp ImageView，复用删除图标那一套：`opaqueTintDrawable`
+着色 + `GradientRippleDrawable(shapeOval = true)`。下载进行中换成取消图标。
+新增 `vec_ic_download.xml` / `vec_ic_download_cancel.xml`。
+
+## D256（2026-08-14）三个 UI 缺陷的根因，都属于"截图能一眼看穿、推演看不出来"
+
+`202608140642` 发布后用户实测报了三条，逐一定位：
+
+### 一、`model_rfdetr_npu` 嵌套错位
+
+用 XML 树核对发现它在**深度 6**，而其余模型行都在深度 5。父节点是
+`model_edgetam_refinement`——整行被插进了 EdgeTAM 那一行的内部，夹在文本容器与按钮之间。
+症状：那一行出现两个 RadioButton（`rb_edgetam_refinement` + `rb_rfdetr_npu`）、
+高度占满整屏。
+
+原因是我用 Python 插入时按"第 N 个 `</LinearLayout>`"定位，数错了层级。已改为**标签配平**
+定位。同一问题也让 Big-LaMa NPU 行排到了 `ll_inpainting_quality` 之后，一并移正。
+
+**教训：往嵌套 XML 里插节点，不能按闭合标签计数，要么配平、要么用 XML 解析器。**
+
+### 二、下载按钮"点不动"
+
+实为 `visibility = GONE`：条件里有 `runtimeReady`，而用户设备上的运行组件还是 r1
+（App 要求 r2），恒为 false，按钮根本没显示。而且**完全没接 WorkManager 进度观测**，
+即便点到也不会有任何反馈——其它模型行都有进度文本，唯独这两行没有。
+
+改为：**始终可见、按条件置灰**（能不能点由 `isEnabled` 表达，为什么不能点由状态文案说），
+并补上 `SpatialQnnPrecompiledDownloadCoordinator` 的 LiveData 观测。
+
+### 三、CPU 版与 NPU 版同时选中
+
+两者语义上属同一 RadioGroup，但**分处不同父容器**，Android 不会自动互斥。
+必须在刷新时显式处理：NPU 版被选中且真正可用时，CPU 版的 `isChecked` 强制为 false。
+
+### 四、状态文案混档
+
+`!runtimeReady -> "请先启用骁龙 NPU 加速"` 同时覆盖了"开关没开"与"开关开了但组件还没
+装好"两种状态。而 `applyQnnEnabled` 每次切换都会删掉运行组件，于是关掉再打开后一直显示
+"请先启用"——文案指向的操作用户明明已经做了。拆成四档：未启用 / 等待组件 / 缺 CPU 版 /
+正在下载。
+
+**状态文案的档位数必须等于状态机的状态数。** 少一档就会出现"提示我做我已经做过的事"。
+
+## D257（2026-08-14）"不能同时使用"被我推成了"不能同时存在"——运行组件拆成两份共存
+
+用户问："上面那个是原本的推理运行环境，跟骁龙的分开啊，你为什么要合并到一起呢？
+有其中一个就不允许另一个存在了？"
+
+### 我推错了一步
+
+技术约束是真的：QNN EP 编译在 `libonnxruntime.so` 里，**一个进程只能加载一份**。
+但我从这里直接推到了"磁盘上也只能有一份"，于是设计成"一个槽位 + 变体标记"，
+`applyQnnEnabled` 每次切换都 `SpatialRuntimeStore.delete`。
+
+后果全是用户实际撞上的：
+
+1. 勾选「骁龙 NPU 加速」，下载进度出现在**上面那一行**（推理运行环境）——因为它们共用
+   同一个槽位、同一个 worker、同一个 LiveData。用户完全无法理解发生了什么。
+2. 来回切换开关要**反复重下一百多 MB**。
+3. 「推理运行环境」那一行永远显示 CPU 包的体积（`runtimeForCurrentDevice()` 只返回 CPU 条目），
+   开着 NPU 时显示 4.47 MB，而实际会下 47.5 MB。
+
+**磁盘共存没有任何障碍**，约束只在加载那一层。代价是多占 CPU 版那约 13 MB——
+按 D-resource 的既有判断，这个量级不是约束。
+
+### 改法
+
+`SpatialRuntimeStore` 从"一个 `current.json` + 变体标记"改为**两份标记共存**
+（`current.json` / `current-qnn.json`），新增 `isVariantInstalled` / `variantTotalBytes` /
+`deleteVariant`。`pruneObsoletePackages` 按变体隔离——此前不分变体地清，装 QNN 会顺手
+删掉 CPU 版。
+
+UI 上「骁龙 NPU 加速」成为一个**完整的可下载项**：自己的下载按钮、删除按钮、体积、进度。
+勾选框只决定生成时加载哪一份。
+
+### 顺带：状态措辞全部统一
+
+用户："也没像别的模型一样提示'已安装 - XXX MB'啊？你到底在搞什么啊，能不能都统一一下啊？"
+
+属实。NPU 相关的几行当初各写各的（"可用" / "已启用 · 运行组件已安装"），与其余模型行的
+「未下载 · XXX MB」「已安装 · XXX MB」对不上。现已统一，NPU 运行环境额外标注
+"使用中 / 未使用"（它是唯一一个"装了但可能不用"的项）。
+
+### 教训
+
+**从一条约束往外推时，要检查每一步是不是真的必然。** "不能同时加载"到"不能同时安装"
+之间没有必然性，我却当成了同一件事，并据此做了会反复浪费用户流量的设计。
+用户的质疑（"有其中一个就不允许另一个存在了？"）一句话就点破了这个跳跃。
+
+## D258（2026-08-14）拆了存储没拆管线——WorkManager 的进度挂在唯一任务名上
+
+D257 把运行组件的**存储**拆成两份共存后，用户再次报告：勾选「骁龙 NPU 加速」的下载进度
+**仍然**显示在「推理运行环境」那一行。
+
+### 原因
+
+`SpatialRuntimeDownloadCoordinator` 的唯一任务名是 `"spatial-runtime-download"`。
+勾选 NPU 时入队的是它，worker 内部再 `if (SpatialPreferences.qnnEnabled(context))`
+决定装哪一份。
+
+**WorkManager 的进度挂在唯一任务名上——一个任务名只有一份 WorkInfo。** 而那份 WorkInfo
+只被 `refreshRuntime()` 读取并写进 `tv_runtime_status`。所以无论从哪一行触发，
+进度必然出现在 CPU 那一行。
+
+D257 我拆的是存储（`current.json` / `current-qnn.json`），管线一个字没动；UI 上加了
+`btn_qnn` / `iv_qnn_delete` 看着像独立项，按下去还是走共用管线。
+
+### 改法
+
+新建 `SpatialQnnRuntimeDownloadCoordinator`（任务名 `"spatial-qnn-runtime-download"`）
+与 `SpatialQnnRuntimeDownloadWorker`（只装 NPU 版）。
+`SpatialRuntimeInstaller` 里的 `if (qnnEnabled)` 分支拿掉，拆成三个明确入口：
+
+| 入口 | 装什么 | 谁在用 |
+|---|---|---|
+| `ensureInstalled` | 只装 CPU 版 | CPU 行的 worker |
+| `ensureQnnInstalled` | 只装 NPU 版 | NPU 行的 worker |
+| `ensureSelectedInstalled` | 当前选中的那一份 | 六个模型下载 worker（顺带确保运行组件在位） |
+
+### 反向追查抓到的三处残留
+
+这次改完**倒着追了一遍"数据从哪个变量流到哪个 TextView"**，抓到三处本来会漏的：
+
+1. CPU 行的体积用 `SpatialRuntimeStore.totalBytes` ——拆分后那是两份之和，两个都装会
+   显示 130 MB。改为 `variantTotalBytes(qnn = false)`。
+2. NPU 行装好后显示的是 catalog 里的压缩包大小（47.5 MB），不是实际占用（130 MB）。
+3. NPU 行的按钮没有取消语义，下载中再点会重复入队，与其它行不一致。
+
+### 教训
+
+**"改了哪一层"和"用户看到什么"之间要显式追一遍，不能推定。** 这已经是同类错误的第三次：
+接了下发通路没接引擎（D254）、拆了存储没拆管线（本条）、改了数据模型没验呈现路径（D256）。
+可复用的做法就是这次用的：改完之后**从 UI 元素倒推回数据源**，把"谁写这个 TextView、
+它读哪个变量、那个变量由谁赋值、赋值来自哪个任务"逐段列出来核对。
+
+## D259（2026-08-14）手写 id 列表漏项的第五次——改为遍历视图树按命名套用
+
+用户报「骁龙 NPU 加速右边的下载/取消图标没有 touch ripple」。查出 `btn_qnn`、
+`btn_big_lama_npu`、`btn_rfdetr_npu`、`iv_big_lama_npu_delete`、`iv_rfdetr_npu_delete`
+都不在着色/ripple 的列表里。
+
+### 这是同一个错误的第五次
+
+| 次 | 漏了什么 | 症状 |
+|---|---|---|
+| 1（D245） | `iv_moge2_delete` / `iv_moge2b_delete` | 删除图标看不见 |
+| 2（D255） | `iv_big_lama_delete` | 同上 |
+| 3（D255） | `btn_big_lama` / `btn_moge2` / `btn_moge2b` | 下载按钮没有 ripple |
+| 4、5（本条） | 新增 NPU 三行的 btn 与两个 delete | 同上 |
+
+前四次我的修法都是"把列表改成从枚举推导"，但**枚举只覆盖得了模型那几组**，
+运行组件、抠像、分割、NPU 行这些不属于任何模型枚举的控件仍然靠手写尾巴——
+于是每加一行就再漏一次。
+
+### 这次改成结构上不可能漏的做法
+
+遍历 `sv_spatial_settings` 整棵视图树，按 **id 命名**套用：
+
+- `iv_*_delete` → 删除图标 drawable + 圆形 ripple
+- `btn_*`（ImageView）→ 圆形 ripple
+- `model_*` / `row_*` / `runtime_component` → 整行矩形 ripple
+
+新增控件只要沿用同样命名就自动生效。核对：布局里 16 个 `btn_*`（其中
+`btn_clear_spatial_derivatives` 是 TextView，单独处理）与 15 个 `iv_*_delete`，
+全部落在遍历范围内。
+
+### 同批的另外三个
+
+1. **点取消后勾选框还勾着**——取消下载 = 组件没装上，勾选必须跟着掉。
+2. **点「推理运行环境」的删除图标弹出流量下载框**：`onRuntimeAction` 里用
+   `SpatialRuntimeStore.isInstalled(this)`（当前变体）判断装没装，开着 NPU 时它问的是
+   QNN 那一份，于是这一行明明装着 CPU 版却走进下载分支。改为 `isVariantInstalled(qnn = false)`，
+   删除也只删自己那一份。
+3. **NPU 组件下载不问流量**：其它下载项在计费网络下都先 `showAppAlert` 确认，
+   只有这一条直接 `allowMetered = true`。已统一。
+
+### 教训
+
+**"改成枚举驱动"只解决了枚举覆盖得到的那部分。** 判断一个修法是否根治，要看它对
+**未来新增的、不属于既有枚举的**元素是否也成立。这次的遍历+命名约定才满足这一条。
+
+## D260（2026-08-14）NPU 是否真的生效由会话工厂上报，不由文案承诺
+
+用户的原话是"这样我才知道真的是在用NPU加速"——他要的不是一句"已启用 NPU"的静态提示，
+而是**这一次推理到底走没走 NPU**。这两者在实现上完全不同：前者读偏好，后者必须来自
+建 session 的那一刻。
+
+`SpatialQnnSessionFactory` 有六条返回路径（已下载的预编译产物、缓存的 context、端上
+编译、以及三条回落 CPU 的分支）。任何一条漏掉上报，UI 就会在"没走 NPU 时说走了"和
+"走了却不说"之间出错，而这正是用户最不能接受的一种错——它会让后续所有关于 NPU 的
+判断失去依据。因此加的是**出口处的单点上报**：
+
+```kotlin
+private fun report(modelId: String, outcome: Outcome?): Outcome? {
+    runCatching { sessionListener?.invoke(modelId, outcome?.usedQnn == true) }
+    return outcome
+}
+```
+
+六条路径全部 `return report(...)`，不存在"忘了在新分支加一行"的可能——新分支若不经
+`report` 就没有返回值。这与 D259 是同一条原则：让正确性由结构保证，而不是由记性保证。
+
+`ImageViewerActivity` 侧记住 `mSpatialStageTextRes` 与 `mSpatialStageUsedNpu` 两个状态，
+渲染时才拼成「深度估计中（NPU 加速中）」。分开存是因为阶段文案与 NPU 状态各自会变，
+拼好的字符串没法再改其中一半。
+
+### 顺带：估计值一律删除
+
+设置页里的「约 45MB」「约 20-50 秒」「九场景实测」都被删掉。用户的判词是"跟真实情况
+都不符合，别在那瞎估计"。这类数字的问题不在于不准，而在于**它们是在特定机器、特定
+图片上测出来的，却被写成了普适描述**；用户换台机器一对不上，整段说明的可信度就没了。
+留下的是与设备无关的定性表述（"体积更小"、"推理更慢，内存占用明显更高"）。
+
+### 顺带：国际化欠账补齐
+
+`spatial_*` 共 149 条（7 条 `translatable="false"`）。此前只有 zh-rCN 是全的，
+zh-rHK / zh-rTW 各缺 108 条，de/es/fr/hi/it/ja/ko/pt/ru 各缺 63 条。
+
+繁体两地用 OpenCC 从 zh-rCN 转写而不是照抄简体字形：`s2twp` 走台湾惯用词
+（執行元件／快取／解析度），`s2hk` 保留港式（運行組件／緩存／分辨率）。**只补缺失的
+键**，已有的人工译文一律不覆盖。占位符 `%1$s` 与 `\n` 在转换前挖出、转换后放回，
+否则会被词库误改。
+
+其余九种语言逐条翻译，型号与技术标识（MoGe-2 / Big-LaMa / RF-DETR / MODNet / AOT-GAN /
+MI-GAN / EdgeTAM / NPU / vNext）保持原文——它们是产品名，译了反而对不上设置项与文档。
+
+校验脚本逐语言比对三项：XML 良构、撇号是否转义（AAPT2 会因此报错）、占位符序列与英文
+原文逐个一致。12 个语言全部通过。
+
+## D261（2026-08-14）Big-LaMa 的 NPU 收益卡在 FFT 分支的 GEMV 形状上，不是硬件上限
+
+用户问"为什么只快了这么点，我以为能到一秒以内"。查下来结论很确定：**卷积那部分已经
+跑满了矩阵引擎，慢的是傅里叶分支，而它慢是因为被导出成了矩阵引擎吃不下的形状。**
+
+### 实测（R5CW20BLNKL / SM-S9180，SM8550 骁龙 8 Gen 2，HTP v73）
+
+| | CPU | QNN | 倍数 |
+|---|---|---|---|
+| 单块 512²（5 次中位） | 4905 ms | 2083 ms | 2.35× |
+| 端到端 1080×1440，12 块 | 56138 ms | 26318 ms | 2.13× |
+
+QNN 侧五次跑下来 2078–2124 ms，波动 ±1%。
+
+### 先排除的两件事
+
+**其一，不是分区问题。** AI Hub 下发的 `model.onnx` 只有 423 字节、1 个 EPContext 节点、
+0 个 CPU 节点，`model.bin` 318 MB——整张图在 NPU 上。
+
+对照组值得记下来：端上现编出来的那份（`qnn-poc/ctx`，QAIRT 2.42）完全是另一回事——
+`_ctx.onnx` 有 **196 MB**，360 个 EPContext 节点、5184 个节点留在 CPU、图内还压着
+194.5 MB fp32 权重（222 个 Conv 全在 CPU）。**判断 QNN 有没有真的接管，看 `_ctx.onnx`
+的体积最快**：薄壳几 KB 是对的，几百 MB 说明绝大部分被拒收了。
+
+**其二，不是"没喂饱"。** `Accelerator (execute) time` = 2118 ms，
+`excluding wait` = 2118 ms——DSP 全程在算，没有等 RPC、没有等内存。
+
+### 逐算子：4.872 G cycles 花在哪
+
+| 算子 | 节点数 | G cycles | 占比 | MAC/cycle |
+|---|---|---|---|---|
+| `Conv` | 222 | 0.057 | **1.2%** | **约 3600** |
+| `MatMul_2` / `_3` | 36+36 | 1.495 | 30.7% | 约 1.2 |
+| `MatMul_4` / `_5` | 36+36 | 0.616 | 12.6% | |
+| `Sub` / `Sub_1` | 73+36 | 0.997 | 20.5% | |
+| `Gather_5` / `_6` | 72+72 | 0.320 | 6.6% | |
+
+整图 240 GMAC，其中 Conv 205 GMAC（85.6%）、ConvTranspose 29 GMAC、傅里叶相关的
+MatMul 只有 5.6 GMAC（2.3%）。**占 85.6% 算力的卷积吃 1.2% 的周期，占 2.3% 算力的
+傅里叶分支吃 70% 的周期**——两者的效率差约 2200 倍。
+
+### 根因：尾维为 1 的批量 GEMV
+
+最贵的节点是 `…/ffc/convg2g/fu/rttn/MatMul_2`，形状：
+
+```
+[64, 64] × [1, 192, 33, 64, 1] -> [1, 192, 33, 64, 1]
+```
+
+64×64 的 DFT 矩阵乘一个**尾维是 1** 的张量，等于 192×33 = 6336 次独立的
+64×64 @ 64×1 **矩阵-向量**乘。HMX 要两侧都是有复用的矩阵块才吃得下；GEMV 没有复用，
+只能退到 HVX 向量单元，实测 1.22 MAC/cycle。`Sub`（复数乘的实部 ac−bd）单节点
+11.05 M cycles 也是同一个原因：在尾维为 1 的布局上做逐元素运算，向量化等于没有。
+
+同样的收缩如果写成 `[64,64] @ [64, 192×33]` 的真 GEMM，**算术完全相同**，但 DFT 矩阵
+可以整块复用，HMX 就能接。这是导出形态的问题，不是算法的问题。
+
+旋转因子倒是已经被常量折叠了（QNN 图里 `Cos`/`Sin`/`Range` 一个不剩），这条不用管。
+
+### 因此不要做的三件事
+
+1. **int8 量化没有意义。** 卷积只占 1.2%，量化压缩的正是已经免费的那部分。
+2. **调 `htp_graph_finalization_optimization_mode` / AI Hub 的 optimization level 没用。**
+   它们不改变算子到硬件单元的映射。
+3. **加线程没用**，HVX 已经是 4 线程。
+
+### 天花板
+
+即使傅里叶分支彻底修好，单块也还剩约 1.44 G cycles ≈ 620 ms，12 块约 7.4 秒，
+再加约 4.5 秒的 session 载入（318 MB context binary，每次生成都要付）。
+**"整步进一秒"用 Big-LaMa + 512 分块达不到**，要么换更小的模型，要么减少分块数。
+
+### 顺带：端上现编对纯卷积模型是负收益
+
+AOT-GAN 让 QNN EP 现编：CPU 4957 ms → QNN 9849 ms，**慢一倍**。profiling 显示 QNN 只
+切走 16 个碎片，加速器累计只忙了约 1.5 ms，其余全在 CPU，而分区打断了 ORT 原本的 CPU
+融合。补全引擎里那个一刀切的 `allowOnDeviceCompile = false` 是对的；要给别的模型开
+现编之前，必须先按这个方法量一遍，别默认"能编出来就是赚"。
+
+## D262（2026-08-14）不必重导出：在 ONNX 上把 GEMV 改写成 GEMM，端到端 2.13× → 4.47×
+
+D261 定位到根因后，第一反应是回去改 `carve-lama` 的 `ffc.py` 重导出。查下来发现**权重
+从来没在本地过**——AI Hub 编译吃的是 ONNX，那份 208 MB 的 `big_lama_places2_512_fp32.onnx`
+是当年在 Colab 上导出后拿回来的。于是改走图改写：权重逐位不动，正确性用"新旧 ONNX
+同输入对比"直接验，比重导出可控。
+
+### 两步
+
+**其一，固定 batch=1 后常量折叠。** 导出时开了 `dynamic_axes`，旋转因子是运行时用
+`Shape→Gather→Range→Cos/Sin` 现算的，Reshape 的目标形状也靠 `Slice/Concat` 现拼。
+端上永远是 batch=1、512²，这些全是常量。折完 **17480 → 3020 个节点**。
+
+**其二，把 rttn 的批量 GEMV 改写成批量 GEMM。** 36 段，每段：
+
+```
+旧: Div_2[1,192,64,33] -Transpose(0,1,3,2)-> [1,192,33,64] -Unsqueeze-> [1,192,33,64,1]
+    MatMul(C[64,64], ·) x4 -> Sub/Add -> Squeeze -> Div -> Transpose(0,1,3,2)
+新: MatMul(C[64,64], Div_2[1,192,64,33]) x4 -> Sub/Add -> Div
+```
+
+直接在倒数第二维上收缩。依据是 `C[i][j] = cos(-2πij/N)` 关于两个下标对称，
+右乘等于左乘，中间那四步转置/升维/降维互相抵消。16 节点变 8 节点，2732 个节点收尾。
+
+**按名字定位、按结构断言**：名字是同一段代码生成的所以规律可靠，但哪个常量配哪路数据、
+每个中间产物有没有被组外引用，全部断言；对不上直接抛，绝不静默改出语义不同的图。
+
+### 验收
+
+| 对比 | 最大差（满量程 255） | >1 色阶的像素 |
+|---|---|---|
+| 改写 vs 原始（真实照片） | 0.0005 | 0 |
+| 改写 vs 原始（随机张量） | 0.0002 | 0 |
+
+先在 float64 下单独证过 `fft()` 与 `ifft1d()` 的改写是代数恒等（差 1e-13～1e-15），
+再动图。真机 `changedPx=82437`，与改写前逐像素一致。
+
+### 真机结果（R5CW20BLNKL）
+
+| | CPU | 旧 NPU | 新 NPU |
+|---|---|---|---|
+| 单块 512² | 4863 ms | 2083 ms | **1110 ms** |
+| session 载入 | 3393 ms | 4478 ms | **761 ms** |
+| 端到端 1080×1440，12 块 | 56138 ms | 26318 ms | **12557 ms** |
+| context binary | — | 318 MB | **132 MB** |
+| 单次周期 | — | 4.872 G | **2.281 G** |
+
+AI Hub 编译时间也从"很久"降到 5 分钟。那四个 MatMul 从 43.3% 降到约 12%，
+**同样的乘加快了 7.8 倍**；`Sub` 从 11.05 M cycles/节点降到 2.90。
+
+### 还剩什么
+
+分布变平了，没有单一大头：`Sub`/`Sub_1` 17.6%、`Gather_5/6` 14.1%、`Transpose` 8.4%、
+`Pad` 5.1%、`Conv` 2.5%。这些集中在 **ifft 那一侧**——它仍是 `tensordot` 形态
+（`Transpose(perm=[2,0,1,3]) → Reshape[64,N] → Einsum → Reshape → Transpose`），
+把张量留在 `[64,1,192,W]` 布局里，逐元素算子因此仍然低效。同样的 matmul 改写用到那边
+可以再去掉一批 Transpose，估计还有两三成，但不再是数量级的事。
+
+### 升级路径：同类错误的第四次
+
+产物换了但**模型没升版**，而 `SpatialQnnPrecompiledStore` 的键只有
+(modelId, modelVersion, dspArch)——装着旧产物的设备判不出该换。改 `ensurePrecompiled`
+加了 catalog 比对之后真机一测：**五分钟纹丝不动**。原因是
+`SpatialQnnPrecompiledDownloadWorker` 在调 `ensurePrecompiled` **之前**自己先
+`isInstalled` 早退了。
+
+这是同一类错误的第四次（D254 接通路没接引擎、D256 改模型没验呈现、D258 拆存储没拆管线）。
+这次的教训比前三次更具体：**改完一个判定，要把所有做同一判定的地方一次找全**，
+而不是只改自己正在看的那一处。`grep` 一次 `SpatialQnnPrecompiledStore.(isInstalled|
+contextModel|matchesCatalog|purgeIfStale)` 就能看到全部四处，各自该用哪个语义：
+
+| 位置 | 该用什么 | 为什么 |
+|---|---|---|
+| 下载 worker | 不判，交给下一层 | 这一层拿不到 catalog |
+| `ensurePrecompiled` | `purgeIfStale` + `matchesCatalog` | 拿得到 catalog，能比 sha256 |
+| 装完确认 | `matchesCatalog` | 确认"装上的是那一份"，不是"目录里有东西" |
+| 设置页行状态 | `isInstalled` | catalog 到手时已经 purge 过，此时本地状态就是真话 |
+| 建 session | `contextModel` | 用手上有的那份，不该在这里发起网络判断 |
+
+真机验过：旧 318 MB 被清掉、新 132 MB 自动下载安装，15 秒完成，重测 12582 ms。
+
+## D263（2026-08-14）"原地升级"这件事，把三处按"装上就不会再下"写的逻辑都变成了错的
+
+用户报告 Big-LaMa（NPU 版）下载时只显示「下载中」没有百分比。查下来是
+`tv_big_lama_npu_status` 用了静态的 `spatial_npu_downloading`，而 worker 一直在
+`setProgressAsync` 里发字节数——**发了没人读**。
+
+真正值得记的是另外两处：它们本身没错，是 D262 引入"原地升级"之后才变成错的。
+
+| 处 | 原写法 | 为什么曾经对 | 为什么现在错 |
+|---|---|---|---|
+| 状态文案 | 静态"下载中…" | 这一行是最后加的，照着"能用就行"写 | 与其余行不一致，用户一眼看得出来 |
+| worker 阶段 | 一律报 `STATE_DOWNLOADING` | 产物小的时候校验+解包很快，看不出来 | 104 MB 的 sha256 加解包要五六秒，界面停在"下载中 100%" |
+| `when` 顺序 | `ctxInstalled` 在 `ctxDownloading` 前 | 其余模型行都这么写，装上了就不会再下，两条互斥 | 预编译产物会在模型不升版的情况下被换掉，升级时旧的还在，整个下载显示"已安装" |
+
+**教训**：引入一种新的生命周期（原地升级）时，要把所有假定"旧生命周期"的判断找出来复核。
+D262 我只想到了"要让它重新下载"，没想到"重新下载"这四个字会让三处显示逻辑同时失真。
+这与 [[check-all-sites-of-a-predicate]] 是同一件事的另一面：那条讲改判定要找全调用点，
+这条讲**加状态要找全依赖旧状态集的地方**。
+
+### 顺带：uiautomator 不适合抓快速变化的文本
+
+想逐帧抓那一行的文字来验证，每次 `uiautomator dump` + `adb pull` 要 2.3 秒，
+20 秒的下载只采到 5 个点，百分比一个没抓到，还反复重启 app 把用户惹烦了。
+**变化快于采样周期的 UI，不要用 dump 去验**——要么加长过程（限速/换大产物），
+要么就承认验不了、交给目检。

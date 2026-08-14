@@ -160,7 +160,10 @@ class SpatialInpaintingEngine(
         val inside = BooleanArray(tilePixels)
         var executed = 0
 
-        createSession(model).use { session ->
+        val created = SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_SESSION) {
+            createSession(model)
+        }
+        created.use { session ->
             check(session.inputNames.contains(IMAGE_INPUT)) { "Big-LaMa 缺少 image 输入" }
             check(session.inputNames.contains(MASK_INPUT)) { "Big-LaMa 缺少 mask 输入" }
             for (originY in plan.originsY) {
@@ -170,19 +173,21 @@ class SpatialInpaintingEngine(
                         continue
                     }
                     executed++
-                    fillTileBuffers(
-                        pixels = pixels,
-                        conditioningMask = conditioningMask,
-                        width = width,
-                        height = height,
-                        originX = originX,
-                        originY = originY,
-                        tile = tile,
-                        imageBuffer = imageBuffer,
-                        maskBuffer = maskBuffer,
-                        sourceIndex = sourceIndex,
-                        inside = inside
-                    )
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_PREPARE) {
+                        fillTileBuffers(
+                            pixels = pixels,
+                            conditioningMask = conditioningMask,
+                            width = width,
+                            height = height,
+                            originX = originX,
+                            originY = originY,
+                            tile = tile,
+                            imageBuffer = imageBuffer,
+                            maskBuffer = maskBuffer,
+                            sourceIndex = sourceIndex,
+                            inside = inside
+                        )
+                    }
                     OnnxTensor.createTensor(
                         environment,
                         imageBuffer,
@@ -193,9 +198,13 @@ class SpatialInpaintingEngine(
                             maskBuffer,
                             longArrayOf(1, 1, tile.toLong(), tile.toLong())
                         ).use { maskTensor ->
-                            session.run(
-                                mapOf(IMAGE_INPUT to imageTensor, MASK_INPUT to maskTensor)
-                            ).use { output ->
+                            SpatialInferenceTrace.measure(
+                                SpatialInferenceTrace.INPAINT_RUN
+                            ) {
+                                session.run(
+                                    mapOf(IMAGE_INPUT to imageTensor, MASK_INPUT to maskTensor)
+                                )
+                            }.use { output ->
                                 check(!cancelled.get()) { "任务已取消" }
                                 val tensor = output[0] as OnnxTensor
                                 check(
@@ -203,17 +212,21 @@ class SpatialInpaintingEngine(
                                         longArrayOf(1, 3, tile.toLong(), tile.toLong())
                                     )
                                 ) { "Big-LaMa 输出形状不符：${tensor.info.shape.contentToString()}" }
-                                accumulateTile(
-                                    values = tensor.floatBuffer,
-                                    window = window,
-                                    width = width,
-                                    height = height,
-                                    originX = originX,
-                                    originY = originY,
-                                    tile = tile,
-                                    accumulated = accumulated,
-                                    weights = weights
-                                )
+                                SpatialInferenceTrace.measure(
+                                    SpatialInferenceTrace.INPAINT_POST
+                                ) {
+                                    accumulateTile(
+                                        values = tensor.floatBuffer,
+                                        window = window,
+                                        width = width,
+                                        height = height,
+                                        originX = originX,
+                                        originY = originY,
+                                        tile = tile,
+                                        accumulated = accumulated,
+                                        weights = weights
+                                    )
+                                }
                             }
                         }
                     }
@@ -376,7 +389,9 @@ class SpatialInpaintingEngine(
         maskBuffer.rewind()
 
         val environment = SpatialOrtRuntime.environment(context)
-        createSession(model).use { session ->
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_SESSION) {
+            createSession(model)
+        }.use { session ->
             check(session.inputNames.contains(IMAGE_INPUT)) {
                 "补全模型缺少 image 输入"
             }
@@ -396,12 +411,14 @@ class SpatialInpaintingEngine(
                     OnnxJavaType.UINT8
                 ).use { maskTensor ->
                     check(!cancelled.get()) { "任务已取消" }
-                    session.run(
-                        mapOf(
-                            IMAGE_INPUT to imageTensor,
-                            MASK_INPUT to maskTensor
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_RUN) {
+                        session.run(
+                            mapOf(
+                                IMAGE_INPUT to imageTensor,
+                                MASK_INPUT to maskTensor
+                            )
                         )
-                    ).use { output ->
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         val tensor = output[0] as OnnxTensor
                         val shape = tensor.info.shape
@@ -547,7 +564,9 @@ class SpatialInpaintingEngine(
         maskBuffer.rewind()
 
         val environment = SpatialOrtRuntime.environment(context)
-        createSession(model).use { session ->
+        SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_SESSION) {
+            createSession(model)
+        }.use { session ->
             check(session.inputNames.contains(IMAGE_INPUT)) {
                 "AOT-GAN 缺少 image 输入"
             }
@@ -565,12 +584,14 @@ class SpatialInpaintingEngine(
                     longArrayOf(1, 1, height.toLong(), width.toLong())
                 ).use { maskTensor ->
                     check(!cancelled.get()) { "任务已取消" }
-                    session.run(
-                        mapOf(
-                            IMAGE_INPUT to imageTensor,
-                            MASK_INPUT to maskTensor
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.INPAINT_RUN) {
+                        session.run(
+                            mapOf(
+                                IMAGE_INPUT to imageTensor,
+                                MASK_INPUT to maskTensor
+                            )
                         )
-                    ).use { output ->
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         val tensor = output[0] as OnnxTensor
                         check(
@@ -600,6 +621,29 @@ class SpatialInpaintingEngine(
 
     private fun createSession(model: SpatialInpaintingModel): OrtSession {
         val environment = SpatialOrtRuntime.environment(context)
+        // 先试 NPU。Big-LaMa 的图在端上编译不出来（会被 LMK 杀），所以这条路只有在
+        // catalog 下发了本机 dsp_arch 的预编译 context 时才成立；拿不到就照旧走 CPU。
+        // 实测 512² 单块 5642 ms → 2091 ms（D253）。
+        SpatialQnnSessionFactory.createSession(
+            context = context,
+            environment = environment,
+            request = SpatialQnnSessionFactory.Request(
+                modelFile = SpatialInpaintingModelStore.modelFile(context, model),
+                modelId = model.stableId,
+                modelVersion = model.version,
+                modelSha256 = model.sha256,
+                // 导出时空间维就写死 512，端上按 512 原生分块推理
+                shapeTag = "512x512"
+            ),
+            // **不允许端上编译**：Big-LaMa 的图在设备上编不出来，硬试只会白等几十秒
+            // 再被系统杀掉。没有预编译产物就老老实实走 CPU。
+            allowOnDeviceCompile = false
+        ) { options ->
+            options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+            options.setInterOpNumThreads(1)
+            options.setIntraOpNumThreads(INFERENCE_THREADS)
+        }?.let { return it.session }
+
         return OrtSession.SessionOptions().use { options ->
             // 同 SpatialDepthEngine：Runtime r3 起编入了图优化器新造算子的 kernel
             // （含 AOT-GAN/MI-GAN 在 EXTENDED 级融合出的 com.microsoft.FusedConv），

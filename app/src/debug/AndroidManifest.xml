@@ -36,6 +36,11 @@
             android:name="com.ywwynm.everythingdone.spatial.SpatialVNextGenerationProbeReceiver"
             android:exported="true" />
 
+        <!-- Debug 专用 QNN EP 探针：自带 QNN 版 ORT，必须在干净进程里跑（先 force-stop）。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.spatial.SpatialQnnProbeReceiver"
+            android:exported="true" />
+
         <activity
             android:name="com.ywwynm.everythingdone.spatial.SpatialPhotoDebugLauncherActivity"
             android:exported="true"

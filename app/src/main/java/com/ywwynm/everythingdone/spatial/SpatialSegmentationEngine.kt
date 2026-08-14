@@ -14,7 +14,8 @@ class SpatialSegmentationEngine(
     fun generate(
         bitmap: Bitmap,
         model: SpatialSegmentationModel,
-        cancelled: AtomicBoolean
+        cancelled: AtomicBoolean,
+        onQnnCompile: () -> Unit = {}
     ): SpatialSegmentationData {
         check(!cancelled.get()) { "任务已取消" }
         check(SpatialSegmentationModelStore.modelFile(context, model).isFile) {
@@ -28,15 +29,21 @@ class SpatialSegmentationEngine(
             "当前可用内存不足，请关闭其它大型应用后重试"
         }
         SpatialRuntimeStore.ensureLoaded(context)
-        val input = prepareInput(bitmap, model, cancelled)
-        val raw = runModel(input, model, cancelled)
+        val input = SpatialInferenceTrace.measure(
+            SpatialInferenceTrace.SEGMENTATION_PREPARE
+        ) {
+            prepareInput(bitmap, model, cancelled)
+        }
+        val raw = runModel(input, model, cancelled, onQnnCompile)
         check(!cancelled.get()) { "任务已取消" }
-        return SpatialSegmentationPostprocessor.process(
-            logits = raw.logits,
-            masks = raw.masks,
-            model = model,
-            boxes = raw.boxes
-        )
+        return SpatialInferenceTrace.measure(SpatialInferenceTrace.SEGMENTATION_POST) {
+            SpatialSegmentationPostprocessor.process(
+                logits = raw.logits,
+                masks = raw.masks,
+                model = model,
+                boxes = raw.boxes
+            )
+        }
     }
 
     fun selfTest(model: SpatialSegmentationModel): Boolean {
@@ -95,15 +102,39 @@ class SpatialSegmentationEngine(
     private fun runModel(
         input: java.nio.FloatBuffer,
         model: SpatialSegmentationModel,
-        cancelled: AtomicBoolean
+        cancelled: AtomicBoolean,
+        onQnnCompile: () -> Unit = {}
     ): RawOutput {
         val environment = SpatialOrtRuntime.environment(context)
-        OrtSession.SessionOptions().use { options ->
+        val modelFile = SpatialSegmentationModelStore.modelFile(context, model)
+        // RF-DETR 的输入是固定 312²，无需钉形状即可上 QNN；拿不到就静默回落 CPU。
+        val qnn = SpatialQnnSessionFactory.createSession(
+            context = context,
+            environment = environment,
+            request = SpatialQnnSessionFactory.Request(
+                modelFile = modelFile,
+                modelId = model.stableId,
+                modelVersion = model.version,
+                modelSha256 = model.sha256,
+                shapeTag = "${model.inputSize}x${model.inputSize}"
+            ),
+            onCompileStart = onQnnCompile
+        ) { options ->
+            options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+            options.setInterOpNumThreads(1)
+            // QNN 承担主干后 CPU 侧只剩零星节点，再开多线程只会争用。
+            options.setIntraOpNumThreads(1)
+        }
+        val session = qnn?.session ?: OrtSession.SessionOptions().use { options ->
             options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
             options.setInterOpNumThreads(1)
             options.setIntraOpNumThreads(INFERENCE_THREADS)
-            val modelFile = SpatialSegmentationModelStore.modelFile(context, model)
-            environment.createSession(modelFile.absolutePath, options).use { session ->
+            SpatialInferenceTrace.measure(SpatialInferenceTrace.SEGMENTATION_SESSION) {
+                environment.createSession(modelFile.absolutePath, options)
+            }
+        }
+        run {
+            session.use { session ->
                 check(!cancelled.get()) { "任务已取消" }
                 val inputName = session.inputNames.single()
                 val shape = longArrayOf(
@@ -113,7 +144,9 @@ class SpatialSegmentationEngine(
                     model.inputSize.toLong()
                 )
                 OnnxTensor.createTensor(environment, input, shape).use { tensor ->
-                    session.run(mapOf(inputName to tensor)).use { output ->
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.SEGMENTATION_RUN) {
+                        session.run(mapOf(inputName to tensor))
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         check(output.size() == 3) { "实例分割输出数量不符" }
                         val boxesTensor = output[0] as OnnxTensor

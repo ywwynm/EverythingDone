@@ -39,11 +39,42 @@ data class SpatialModelCatalog(
     /** 可选实例分割 ownership provider；旧 App 忽略本字段。 */
     val segmentationModels: List<SpatialSegmentationCatalogEntry>? = null,
     /** 只细化既有实例轮廓的 promptable 模型包；旧 App 忽略本字段。 */
-    val boundaryRefinementModels: List<SpatialBoundaryRefinementCatalogEntry>? = null
+    val boundaryRefinementModels: List<SpatialBoundaryRefinementCatalogEntry>? = null,
+    /**
+     * 骁龙 NPU 运行组件（QNN 版 onnxruntime + QAIRT 库）；旧 App 忽略本字段。
+     *
+     * **不能并进 [runtimes]**：那一组每条都要过 [SpatialRuntimeCatalogEntry.isCompatible]，
+     * 里面硬校验 `packageVersion == REQUIRED_PACKAGE_VERSION`，混入 QNN 条目会让所有
+     * 已安装的旧版 App 直接拒绝整个 catalog。
+     */
+    val qnnRuntimes: List<SpatialQnnRuntimeCatalogEntry>? = null,
+    /**
+     * 模型的 NPU 预编译产物（AI Hub `precompiled_qnn_onnx`）；旧 App 忽略本字段。
+     *
+     * 与 [qnnRuntimes] 同理，**不能并进模型自己那几组**——那些组的 `isCompatible()`
+     * 各有硬校验，混入会让旧版 App 拒绝整个 catalog。
+     */
+    val qnnPrecompiledModels: List<SpatialQnnPrecompiledCatalogEntry>? = null
 ) {
     fun runtimeForCurrentDevice(): SpatialRuntimeCatalogEntry? {
         val abi = SpatialRuntimeStore.currentAbi() ?: return null
         return runtimes?.singleOrNull { it.abi == abi && it.isCompatible() }
+    }
+
+    fun qnnRuntimeForCurrentDevice(dspArch: String): SpatialQnnRuntimeCatalogEntry? {
+        val abi = SpatialRuntimeStore.currentAbi() ?: return null
+        return qnnRuntimes?.singleOrNull {
+            it.abi == abi && it.dspArch == dspArch && it.isCompatible()
+        }
+    }
+
+    fun qnnPrecompiledFor(
+        modelId: String,
+        modelVersion: String,
+        dspArch: String
+    ): SpatialQnnPrecompiledCatalogEntry? = qnnPrecompiledModels?.singleOrNull {
+        it.modelId == modelId && it.modelVersion == modelVersion &&
+            it.dspArch == dspArch && it.isCompatible()
     }
 
     fun allInpaintingModels(): List<SpatialInpaintingCatalogEntry> =
@@ -189,6 +220,134 @@ data class SpatialBoundaryRefinementCatalogEntry(
                 precision == "fp32" &&
                 license == it.licenseId
         }
+    }
+}
+
+/**
+ * 模型的 NPU 预编译产物：AI Hub `--target_runtime precompiled_qnn_onnx` 的输出，
+ * 一个 zip 里是 `model.onnx`（几百字节的 EPContext 壳）+ `model.bin`（真正的 context）。
+ *
+ * **`qairtVersion` 必须与运行组件里的 QAIRT 严格一致。** context binary 与 QAIRT 版本
+ * 强绑定，错版会在建 session 时报 `LoadCachedQnnContextFromBuffer … Error code: 5000`
+ * （2026-08-14 实际发生：2.45 的产物配 2.42 的运行时）。
+ */
+@Keep
+data class SpatialQnnPrecompiledCatalogEntry(
+    val modelId: String,
+    val modelVersion: String,
+    val dspArch: String,
+    val qairtVersion: String,
+    val url: String,
+    val sizeBytes: Long,
+    val sha256: String,
+    val unpackedSizeBytes: Long,
+    val contextModelName: String,
+    val contextModelSizeBytes: Long,
+    val contextModelSha256: String,
+    val contextBinaryName: String,
+    val contextBinarySizeBytes: Long,
+    val contextBinarySha256: String,
+    val license: String,
+    val enabled: Boolean,
+    val disabledReason: String?
+) {
+    fun isCompatible(): Boolean =
+        SpatialQnnSupport.isValidDspArch(dspArch) &&
+            qairtVersion == SpatialRuntimeStore.QNN_QAIRT_VERSION &&
+            // 两个文件名都会进路径，必须白名单化
+            contextModelName.matches(CONTEXT_MODEL_NAME_REGEX) &&
+            contextBinaryName.matches(CONTEXT_BINARY_NAME_REGEX) &&
+            sizeBytes in 1..MAX_PRECOMPILED_ARCHIVE_BYTES &&
+            contextModelSizeBytes in 1..MAX_CONTEXT_MODEL_BYTES &&
+            contextBinarySizeBytes in 1..MAX_CONTEXT_BINARY_BYTES &&
+            unpackedSizeBytes == contextModelSizeBytes + contextBinarySizeBytes &&
+            sha256.matches(PRECOMPILED_SHA256_REGEX) &&
+            contextModelSha256.matches(PRECOMPILED_SHA256_REGEX) &&
+            contextBinarySha256.matches(PRECOMPILED_SHA256_REGEX)
+
+    companion object {
+        private val PRECOMPILED_SHA256_REGEX = Regex("[0-9a-fA-F]{64}")
+        private val CONTEXT_MODEL_NAME_REGEX = Regex("""[A-Za-z0-9._-]{1,64}\.onnx""")
+        private val CONTEXT_BINARY_NAME_REGEX = Regex("""[A-Za-z0-9._-]{1,64}\.bin""")
+        private const val MAX_PRECOMPILED_ARCHIVE_BYTES = 512L * 1024L * 1024L
+        private const val MAX_CONTEXT_MODEL_BYTES = 4L * 1024L * 1024L
+        private const val MAX_CONTEXT_BINARY_BYTES = 512L * 1024L * 1024L
+    }
+}
+
+/** QNN 包里除 onnxruntime 两个库之外的文件（QAIRT 那几个），逐个校验。 */
+@Keep
+data class SpatialRuntimeExtraFile(
+    val name: String,
+    val sizeBytes: Long,
+    val sha256: String
+)
+
+/**
+ * 骁龙 NPU 运行组件。与 CPU 版**互斥**——QNN EP 是编译进 `libonnxruntime.so` 的，
+ * 一个进程里不可能同时加载两份，所以启用 QNN 等于换一整个运行组件包，
+ * 而不是在既有包旁边补几个库。
+ *
+ * `dspArch` 让包按 HTP 架构分片：`libQnnHtpV<arch>Skel.so` 每档一个，全打进去
+ * 会让包大出五倍，而设备只用得上自己那一份。
+ */
+@Keep
+data class SpatialQnnRuntimeCatalogEntry(
+    val id: String,
+    val packageVersion: String,
+    val ortVersion: String,
+    val runtimeApiVersion: Int,
+    val abi: String,
+    val dspArch: String,
+    val url: String,
+    val sizeBytes: Long,
+    val sha256: String,
+    val unpackedSizeBytes: Long,
+    val coreSizeBytes: Long,
+    val coreSha256: String,
+    val jniSizeBytes: Long,
+    val jniSha256: String,
+    val extraFiles: List<SpatialRuntimeExtraFile>,
+    val license: String,
+    val enabled: Boolean,
+    val disabledReason: String?
+) {
+    fun isCompatible(): Boolean =
+        id == SpatialRuntimeStore.RUNTIME_ID &&
+            ortVersion == SpatialRuntimeStore.ORT_VERSION &&
+            runtimeApiVersion == SpatialRuntimeStore.RUNTIME_API_VERSION &&
+            abi == SpatialQnnSupport.REQUIRED_ABI &&
+            SpatialQnnSupport.isValidDspArch(dspArch) &&
+            packageVersion == SpatialRuntimeStore.QNN_PACKAGE_VERSION &&
+            sizeBytes in 1..MAX_QNN_ARCHIVE_BYTES &&
+            coreSizeBytes in 1..MAX_QNN_CORE_BYTES &&
+            jniSizeBytes in 1..MAX_QNN_JNI_BYTES &&
+            extraFiles.isNotEmpty() &&
+            extraFiles.size <= MAX_QNN_EXTRA_FILES &&
+            extraFiles.all {
+                // 文件名进路径，必须白名单化——`..` 或分隔符会写出目录之外
+                it.name.matches(QNN_LIBRARY_NAME_REGEX) &&
+                    it.sizeBytes in 1..MAX_QNN_EXTRA_BYTES &&
+                    it.sha256.matches(QNN_SHA256_REGEX)
+            } &&
+            extraFiles.map { it.name }.toSet().size == extraFiles.size &&
+            unpackedSizeBytes ==
+                coreSizeBytes + jniSizeBytes + extraFiles.sumOf { it.sizeBytes } &&
+            sha256.matches(QNN_SHA256_REGEX) &&
+            coreSha256.matches(QNN_SHA256_REGEX) &&
+            jniSha256.matches(QNN_SHA256_REGEX) &&
+            // QAIRT 不是 MIT，与 CPU 版那一组的许可判据不同
+            license == QNN_LICENSE_ID
+
+    companion object {
+        const val QNN_LICENSE_ID = "Qualcomm-AI-Engine-Direct"
+        private val QNN_SHA256_REGEX = Regex("[0-9a-fA-F]{64}")
+        private val QNN_LIBRARY_NAME_REGEX = Regex("""lib[A-Za-z0-9]{1,40}\.so""")
+        private const val MAX_QNN_ARCHIVE_BYTES = 320L * 1024L * 1024L
+        private const val MAX_QNN_CORE_BYTES = 64L * 1024L * 1024L
+        private const val MAX_QNN_JNI_BYTES = 2L * 1024L * 1024L
+        private const val MAX_QNN_EXTRA_BYTES = 192L * 1024L * 1024L
+        private const val MAX_QNN_EXTRA_FILES = 16
     }
 }
 
@@ -340,6 +499,24 @@ object SpatialCatalogVerifier {
             validateImmutableObjectUrl(entry.url, catalogHost, "运行组件")
             check(entry.disabledReason == null || !entry.enabled) {
                 "可用运行组件不能带禁用原因"
+            }
+        }
+        for (entry in catalog.qnnPrecompiledModels.orEmpty()) {
+            check(entry.isCompatible()) {
+                "catalog NPU 预编译产物不受支持：${entry.modelId}/${entry.dspArch}"
+            }
+            validateImmutableObjectUrl(entry.url, catalogHost, "NPU 预编译产物")
+            check(entry.disabledReason == null || !entry.enabled) {
+                "可用 NPU 预编译产物不能带禁用原因"
+            }
+        }
+        for (entry in catalog.qnnRuntimes.orEmpty()) {
+            check(entry.isCompatible()) {
+                "catalog QNN 运行组件不受支持：${entry.abi}/${entry.dspArch}"
+            }
+            validateImmutableObjectUrl(entry.url, catalogHost, "QNN 运行组件")
+            check(entry.disabledReason == null || !entry.enabled) {
+                "可用 QNN 运行组件不能带禁用原因"
             }
         }
         val mattingModels = catalog.mattingModels.orEmpty()

@@ -1753,6 +1753,9 @@
     <string name="spatial_generation_preparing">Preparing image…</string>
     <string name="spatial_generation_inference">Estimating depth on this device…</string>
     <string name="spatial_generation_processing">Processing depth…</string>
+    <string name="spatial_generation_npu_suffix">%1$s (NPU)</string>
+    <string name="spatial_generation_analyzing">Analysing subject and occluders…</string>
+    <string name="spatial_generation_qnn_compiling">Compiling the model for the NPU (first run only)…</string>
     <string name="spatial_generation_saving">Saving spatial effect…</string>
     <string name="spatial_generation_failed">Could not create the spatial effect: %1$s</string>
     <string name="spatial_generation_cancelled">Spatial effect creation cancelled</string>
@@ -1780,6 +1783,37 @@
     <string name="spatial_select_big_lama">Use Big-LaMa</string>
     <string name="spatial_big_lama_title" translatable="false">Big-LaMa</string>
     <string name="spatial_big_lama_description">Runs at native resolution in 512 tiles, so it keeps the thin revealed band around a subject. Best structure continuation of the three, at 198 MB and the highest memory use.</string>
+    <string name="spatial_enable_modnet">Enable hair-edge refinement</string>
+    <string name="spatial_matting_enabled">Enabled · %1$s</string>
+    <string name="spatial_matting_disabled">Downloaded, not enabled · %1$s</string>
+    <string name="spatial_qnn_restart_required">Runtime switched. Restart the app before generating.</string>
+    <string name="spatial_qnn_model_hint">NPU versions of some models must be downloaded and selected separately.</string>
+    <string name="spatial_qnn_downloading">Enabled · downloading runtime…</string>
+    <string name="spatial_model_ready">Ready</string>
+    <string name="spatial_model_not_downloaded_short">Not downloaded</string>
+    <string name="spatial_big_lama_npu_title">Big-LaMa (NPU)</string>
+    <string name="spatial_select_big_lama_npu">Use the NPU version of Big-LaMa</string>
+    <string name="spatial_rfdetr_npu_title">RF-DETR Seg Nano (NPU)</string>
+    <string name="spatial_select_rfdetr_npu">Use the NPU version of RF-DETR</string>
+    <string name="spatial_npu_runtime_pending">Waiting for the NPU runtime…</string>
+    <string name="spatial_npu_downloading">Downloading…</string>
+    <string name="spatial_npu_needs_base_model">Needs the CPU version installed first</string>
+    <string name="spatial_npu_no_extra_download">No extra download; compiled on device on first use</string>
+    <string name="spatial_npu_needs_runtime">Turn on Snapdragon NPU acceleration first</string>
+    <string name="spatial_qnn_installed_enabled">Installed · %1$s · in use</string>
+    <string name="spatial_qnn_installed_disabled">Installed · %1$s · not in use</string>
+    <string name="spatial_qnn_title">Snapdragon NPU acceleration</string>
+    <string name="spatial_qnn_description">Runs supported models on the Snapdragon NPU. Requires a separate runtime; each model compiles its graph on device the first time it is used, and the result is cached.</string>
+    <string name="spatial_qnn_per_model">NPU</string>
+    <string name="spatial_qnn_unsupported">This device has no supported Snapdragon NPU</string>
+    <string name="spatial_qnn_ready">Enabled · runtime installed</string>
+    <string name="spatial_qnn_needs_runtime">Enabled · runtime will download on next generation</string>
+    <string name="spatial_qnn_off">Off · models run on CPU</string>
+    <string name="spatial_depth_detail">Depth detail</string>
+    <string name="spatial_depth_detail_fast">Fast (1200)</string>
+    <string name="spatial_depth_detail_standard">Standard (1800)</string>
+    <string name="spatial_depth_detail_fine">Fine (2700)</string>
+    <string name="spatial_depth_detail_description" formatted="false">Sets the internal inference resolution of MoGe-2, which determines edge sharpness at depth discontinuities and the upper bound of resolvable geometric detail. Higher levels increase inference time.</string>
     <string name="spatial_inpainting_resolution">AOT-GAN work resolution</string>
     <string name="spatial_inpainting_resolution_512" translatable="false">512</string>
     <string name="spatial_inpainting_resolution_768" translatable="false">768</string>
@@ -1791,14 +1825,16 @@
     <string name="spatial_generation_geometry">Building depth layers…</string>
     <string name="spatial_generation_inpainting">Filling hidden background…</string>
     <string name="spatial_zipdepth_title">ZipDepth</string>
-    <string name="spatial_zipdepth_description">MIT. Measured inference: about 0.04–0.33 s per image on two test devices. Smaller and recommended by default.</string>
+    <string name="spatial_zipdepth_description">MIT. Smaller footprint; suitable as the default model.</string>
     <string name="spatial_dav2_title">Depth Anything V2 Small</string>
-    <string name="spatial_dav2_description">Apache-2.0. Measured inference: about 0.69–5.54 s per image on two test devices. Uses substantially more memory.</string>
+    <string name="spatial_dav2_description">Apache-2.0. Slower inference and noticeably higher memory use.</string>
     <string name="spatial_select_zipdepth">Use ZipDepth</string>
     <string name="spatial_select_dav2">Use Depth Anything V2 Small</string>
     <string name="spatial_da3_title">Depth Anything 3 Small</string>
     <string name="spatial_select_moge2">Use MoGe-2 Small</string>
+    <string name="spatial_select_moge2b">Use MoGe-2 Base</string>
     <string name="spatial_moge2_title" translatable="false">MoGe-2 Small</string>
+    <string name="spatial_moge2b_title" translatable="false">MoGe-2 Base</string>
     <string name="spatial_moge2_description">The only model here that recovers metric depth and camera intrinsics, so the view shift is a real perspective reprojection rather than a screen-space warp.</string>
     <string name="spatial_select_da3">Use Depth Anything 3 Small</string>
     <string name="spatial_matting_group">Hair edge refinement</string>

@@ -38,7 +38,9 @@ class SpatialDepthEngine(
         }
 
         onStage(Stage.PREPARING)
-        val prepared = prepareInput(bitmap, model, cancelled)
+        val prepared = SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_PREPARE) {
+            prepareInput(bitmap, model, cancelled)
+        }
         check(!cancelled.get()) { "任务已取消" }
 
         onStage(Stage.INFERENCE)
@@ -46,17 +48,19 @@ class SpatialDepthEngine(
         check(!cancelled.get()) { "任务已取消" }
 
         onStage(Stage.POST_PROCESSING)
-        return SpatialDepthNormalizer.normalizeAndCrop(
-            raw = rawDepth,
-            inputSize = model.inputSize,
-            contentLeft = prepared.contentLeft,
-            contentTop = prepared.contentTop,
-            contentWidth = prepared.contentWidth,
-            contentHeight = prepared.contentHeight,
-            closeRadius = closeRadius(model),
-            disparityContrast = model.disparityContrast,
-            keepRawInverseDepth = model.outputIsDepth
-        )
+        return SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_POST) {
+            SpatialDepthNormalizer.normalizeAndCrop(
+                raw = rawDepth,
+                inputSize = model.inputSize,
+                contentLeft = prepared.contentLeft,
+                contentTop = prepared.contentTop,
+                contentWidth = prepared.contentWidth,
+                contentHeight = prepared.contentHeight,
+                closeRadius = closeRadius(model),
+                disparityContrast = model.disparityContrast,
+                keepRawInverseDepth = model.outputIsDepth
+            )
+        }
     }
 
     /**
@@ -104,7 +108,9 @@ class SpatialDepthEngine(
      *
      * - **两个输入**：`image [1,3,H,W]`（RGB 0..1、**按源图长宽比给，不做方形填充**）
      *   与 `num_tokens` int64 标量；
-     * - **四个输出**：`points [1,H,W,3]` / `normal` / `mask` / `scale`；
+     * - **四个输出**：`points [1,H,W,3]` / `normal` / `mask` / 米制尺度。最后一路的
+     *   名字**两份官方导出不一致**（ViT-S 是 `scale`，ViT-B 是 `metric_scale`），
+     *   见 [MOGE_SCALE_OUTPUT_NAMES]；
      * - 内参不在图里，由 [SpatialMogeGeometry] 从 point map 反解（D205）。
      *
      * 模型内部按 `num_tokens` 决定推理分辨率再上采样回输入尺寸，因此这里直接按渲染网格
@@ -116,7 +122,11 @@ class SpatialDepthEngine(
         cancelled: AtomicBoolean,
         onStage: (Stage) -> Unit
     ): SpatialDepthData {
+        // `num_tokens` 决定模型内部的推理分辨率，是 MoGe 唯一有效的细节旋钮
+        // （提输入分辨率无效，四档有效带宽持平）。耗时随它超线性增长，见 [SpatialDepthDetail]。
+        val numTokens = SpatialPreferences.depthDetail(context).numTokens.toLong()
         onStage(Stage.PREPARING)
+        val prepareStartedAt = System.nanoTime()
         // 长边不超过 inputSize，两边对齐到 ViT patch（14）的倍数，且**保持长宽比**
         val (width, height) = SpatialMogeGeometry.alignToPatchPreservingAspect(
             bitmap.width, bitmap.height, model.inputSize
@@ -139,20 +149,30 @@ class SpatialDepthEngine(
             }
         }
         imageBuffer.rewind()
+        SpatialInferenceTrace.record(
+            SpatialInferenceTrace.DEPTH_PREPARE,
+            System.nanoTime() - prepareStartedAt,
+            failed = false
+        )
         check(!cancelled.get()) { "任务已取消" }
 
         onStage(Stage.INFERENCE)
         val environment = SpatialOrtRuntime.environment(context)
-        val recovered = createSession(model).use { session ->
+        val created = SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_SESSION) {
+            createSession(model)
+        }
+        val recovered = created.use { session ->
             OnnxTensor.createTensor(
                 environment, imageBuffer,
                 longArrayOf(1, 3, height.toLong(), width.toLong())
             ).use { image ->
-                OnnxTensor.createTensor(environment, java.lang.Long.valueOf(MOGE_NUM_TOKENS))
+                OnnxTensor.createTensor(environment, java.lang.Long.valueOf(numTokens))
                     .use { tokens ->
-                    session.run(
-                        mapOf(MOGE_IMAGE_INPUT to image, MOGE_TOKENS_INPUT to tokens)
-                    ).use { output ->
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_RUN) {
+                        session.run(
+                            mapOf(MOGE_IMAGE_INPUT to image, MOGE_TOKENS_INPUT to tokens)
+                        )
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         val named = session.outputNames.toList()
                         fun tensor(name: String): OnnxTensor {
@@ -164,14 +184,24 @@ class SpatialDepthEngine(
                         tensor(MOGE_POINTS_OUTPUT).floatBuffer.get(points)
                         val maskRaw = FloatArray(pixelCount)
                         tensor(MOGE_MASK_OUTPUT).floatBuffer.get(maskRaw)
-                        val scaleValue = tensor(MOGE_SCALE_OUTPUT).floatBuffer.get(0)
-                        SpatialMogeGeometry.recover(
-                            points = points,
-                            mask = BooleanArray(pixelCount) { maskRaw[it] > 0.5f },
-                            scale = scaleValue,
-                            width = width,
-                            height = height
-                        )
+                        val scaleName = MOGE_SCALE_OUTPUT_NAMES.firstOrNull { named.contains(it) }
+                        check(scaleName != null) {
+                            // 把实际输出名一并带出来——只说"缺少 scale"时，无法判断是模型
+                            // 坏了还是导出换了名字（2026-08-13 ViT-B 上就是后者）。
+                            "MoGe 输出缺少米制尺度（找过 " +
+                                MOGE_SCALE_OUTPUT_NAMES.joinToString("/") +
+                                "），实际输出为 " + named.joinToString("/")
+                        }
+                        val scaleValue = tensor(scaleName).floatBuffer.get(0)
+                        SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_POST) {
+                            SpatialMogeGeometry.recover(
+                                points = points,
+                                mask = BooleanArray(pixelCount) { maskRaw[it] > 0.5f },
+                                scale = scaleValue,
+                                width = width,
+                                height = height
+                            )
+                        }
                     }
                 }
             }
@@ -182,23 +212,25 @@ class SpatialDepthEngine(
         }
 
         onStage(Stage.POST_PROCESSING)
-        // 归一化通路与其余模型一致：逆深度 → 远 0 近 1；米制量另行随行，不参与归一化。
-        val inverse = FloatArray(pixelCount) { index ->
-            val z = recovered.depth[index]
-            if (z.isFinite() && z > 1e-4f) 1f / z else 0f
-        }
-        return SpatialDepthNormalizer.normalizeFromInverseDepth(
-            inverseDepth = inverse,
-            width = width,
-            height = height,
-            closeRadius = closeRadius(model),
-            disparityContrast = model.disparityContrast,
-            metricDepth = recovered.depth,
-            intrinsics = SpatialDepthData.Intrinsics(
-                fx = recovered.fx, fy = recovered.fy,
-                cx = recovered.cx, cy = recovered.cy
+        return SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_POST) {
+            // 归一化通路与其余模型一致：逆深度 → 远 0 近 1；米制量另行随行，不参与归一化。
+            val inverse = FloatArray(pixelCount) { index ->
+                val z = recovered.depth[index]
+                if (z.isFinite() && z > 1e-4f) 1f / z else 0f
+            }
+            SpatialDepthNormalizer.normalizeFromInverseDepth(
+                inverseDepth = inverse,
+                width = width,
+                height = height,
+                closeRadius = closeRadius(model),
+                disparityContrast = model.disparityContrast,
+                metricDepth = recovered.depth,
+                intrinsics = SpatialDepthData.Intrinsics(
+                    fx = recovered.fx, fy = recovered.fy,
+                    cx = recovered.cx, cy = recovered.cy
+                )
             )
-        )
+        }
     }
 
     /** ViT patch 是 14；两边对齐到它的倍数，避免模型内部再做一次非整数缩放。 */
@@ -237,11 +269,16 @@ class SpatialDepthEngine(
             options.setInterOpNumThreads(1)
             options.setIntraOpNumThreads(INFERENCE_THREADS)
             val modelFile = SpatialModelStore.modelFile(context, model)
-            environment.createSession(modelFile.absolutePath, options).use { session ->
+            val created = SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_SESSION) {
+                environment.createSession(modelFile.absolutePath, options)
+            }
+            created.use { session ->
                 check(!cancelled.get()) { "任务已取消" }
                 val inputName = session.inputNames.single()
                 OnnxTensor.createTensor(environment, inputBuffer, model.inputShape).use { input ->
-                    session.run(mapOf(inputName to input)).use { output ->
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.DEPTH_RUN) {
+                        session.run(mapOf(inputName to input))
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         val tensor = output[0] as OnnxTensor
                         check(tensor.info.shape.contentEquals(model.outputShape)) {
@@ -337,15 +374,21 @@ class SpatialDepthEngine(
         private val IMAGENET_MEAN = floatArrayOf(0.485f, 0.456f, 0.406f)
         private val IMAGENET_STD = floatArrayOf(0.229f, 0.224f, 0.225f)
 
-        // MoGe-2 的输入输出名与 ViT patch。num_tokens 取官方建议区间(1200~2500)的中值：
-        // 它决定模型内部的推理分辨率，越大越细也越慢，端上先取中档。
+        // MoGe-2 的输入输出名与 ViT patch。num_tokens 现由 [SpatialDepthDetail] 提供，
+        // 用户可在设置里选档；默认 1800 对应约 588×602 内在分辨率，与 720 长边网格匹配。
         private const val MOGE_IMAGE_INPUT = "image"
         private const val MOGE_TOKENS_INPUT = "num_tokens"
         private const val MOGE_POINTS_OUTPUT = "points"
         private const val MOGE_MASK_OUTPUT = "mask"
-        private const val MOGE_SCALE_OUTPUT = "scale"
+
+        /**
+         * 米制尺度那一路输出的**候选名**。官方两份 ONNX 导出在这一项上不一致：
+         * ViT-S 叫 `scale`，ViT-B 叫 `metric_scale`（2026-08-13 实测，其余输入输出
+         * 逐项相同）。写死任一个都会让另一档在真机自检时报"MoGe 输出缺少 …"。
+         * 顺序即优先级，只取第一个命中的。
+         */
+        private val MOGE_SCALE_OUTPUT_NAMES = listOf("scale", "metric_scale")
         private const val MOGE_PATCH = 14
-        private const val MOGE_NUM_TOKENS = 1800L
 
         private fun closeRadius(model: SpatialDepthModel): Int =
             if (model.sharpDepthEdges) SHARP_EDGE_CLOSE_RADIUS else 0

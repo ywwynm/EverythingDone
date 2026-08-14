@@ -109,15 +109,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_runtime"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_runtime_delete"
@@ -130,6 +129,95 @@
                             android:visibility="gone"/>
 
                     </LinearLayout>
+
+                    <!-- 骁龙 NPU 总开关。打开等于换一整套运行组件（QNN 版 onnxruntime +
+                         QAIRT 库），所以放在运行环境这一组，而不是模型那边。 -->
+                    <LinearLayout
+                        android:id="@+id/row_qnn"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <!-- 勾选框在**左侧**，与下方模型行的 RadioButton 对齐；
+                             右侧留给删除图标。首次勾选自动下载组件，删完自动取消勾选。 -->
+                        <CheckBox
+                            android:id="@+id/cb_qnn"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_qnn_title"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_qnn_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/spatial_qnn_description"
+                                android:textColor="@color/app_chrome_on_surface_hint"
+                                android:textSize="13sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_qnn_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/btn_qnn"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
+
+                        <ImageView
+                            android:id="@+id/iv_qnn_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_qnn_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/spatial_qnn_model_hint"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"
+                        android:visibility="gone"/>
 
                 </LinearLayout>
 
@@ -209,15 +297,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_zipdepth"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_zipdepth_delete"
@@ -274,15 +361,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_dav2"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_dav2_delete"
@@ -339,15 +425,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_da3"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_da3_delete"
@@ -404,15 +489,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_moge2"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_moge2_delete"
@@ -423,6 +507,119 @@
                             android:scaleType="center"
                             android:contentDescription="@string/act_delete"
                             android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/model_moge2b"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_moge2b"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_moge2b"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_moge2b_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_moge2b_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/btn_moge2b"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
+
+                        <ImageView
+                            android:id="@+id/iv_moge2b_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
+                    <!-- 深度细节（num_tokens）。只对 MoGe 系有意义，选中别的模型时整块隐藏，
+                         与 AOT-GAN 工作分辨率那一块同一套做法。 -->
+                    <LinearLayout
+                        android:id="@+id/ll_depth_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <RelativeLayout
+                            android:id="@+id/row_depth_detail"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentLeft="true"
+                                android:layout_centerVertical="true"
+                                android:text="@string/spatial_depth_detail"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_depth_detail_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_centerVertical="true"
+                                android:textColor="@color/app_chrome_on_surface_hint"
+                                android:textSize="14sp"/>
+
+                        </RelativeLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:paddingBottom="10dp"
+                            android:text="@string/spatial_depth_detail_description"
+                            android:textColor="@color/app_chrome_on_surface_hint"
+                            android:textSize="12sp"/>
 
                     </LinearLayout>
 
@@ -504,15 +701,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_migan"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_migan_delete"
@@ -569,15 +765,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_aotgan"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_aotgan_delete"
@@ -634,15 +829,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_big_lama"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_big_lama_delete"
@@ -655,6 +849,71 @@
                             android:visibility="gone"/>
 
                     </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/model_big_lama_npu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <RadioButton
+                            android:id="@+id/rb_big_lama_npu"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_big_lama_npu"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_big_lama_npu_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_big_lama_npu_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/btn_big_lama_npu"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
+
+                        <ImageView
+                            android:id="@+id/iv_big_lama_npu_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
 
                     <LinearLayout
                         android:id="@+id/ll_inpainting_quality"
@@ -702,6 +961,9 @@
                             android:textSize="12sp"/>
 
                     </LinearLayout>
+
+
+
 
                 </LinearLayout>
 
@@ -751,10 +1013,22 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
+                        <!-- 启用开关。与 RF-DETR / EdgeTAM 那两行取齐：装了不等于要用，
+                             不想用时应当能关掉，而不是只能删模型（2026-08-13 反馈）。 -->
+                        <CheckBox
+                            android:id="@+id/cb_modnet"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_enable_modnet"/>
+
+                        <!-- 45dp 与上方 RadioButton 行的文本左缘对齐；此前没有这段边距，
+                             勾选框与文字挤在一起（2026-08-14 反馈）。 -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -773,15 +1047,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_modnet"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_modnet_delete"
@@ -883,15 +1156,14 @@
 
                         </LinearLayout>
 
-                        <Button
+                        <ImageView
                             android:id="@+id/btn_rfdetr_seg"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_rfdetr_seg_delete"
@@ -904,6 +1176,71 @@
                         android:visibility="gone"/>
 
                     </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/model_rfdetr_npu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <RadioButton
+                            android:id="@+id/rb_rfdetr_npu"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/spatial_select_rfdetr_npu"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginLeft="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/spatial_rfdetr_npu_title"
+                                android:textSize="16sp"/>
+
+                            <TextView
+                                android:id="@+id/tv_rfdetr_npu_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/app_chrome_on_surface_secondary"
+                                android:textSize="12sp"/>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/btn_rfdetr_npu"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
+
+                        <ImageView
+                            android:id="@+id/iv_rfdetr_npu_delete"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginLeft="8dp"
+                            android:scaleType="center"
+                            android:contentDescription="@string/act_delete"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+
 
                     <LinearLayout
                         android:id="@+id/model_edgetam_refinement"
@@ -948,15 +1285,17 @@
 
                         </LinearLayout>
 
-                        <Button
+
+
+
+                        <ImageView
                             android:id="@+id/btn_edgetam_refinement"
-                            style="@style/Widget.AppCompat.Button.Borderless"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
                             android:layout_marginStart="8dp"
                             android:layout_marginLeft="8dp"
-                            android:minWidth="76dp"
-                            android:textAllCaps="false"/>
+                            android:scaleType="center"
+                            android:contentDescription="@string/spatial_download"/>
 
                         <ImageView
                             android:id="@+id/iv_edgetam_refinement_delete"

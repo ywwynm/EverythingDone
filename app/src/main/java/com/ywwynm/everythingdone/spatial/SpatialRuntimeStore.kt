@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.Keep
 import com.google.gson.Gson
+import com.ywwynm.everythingdone.BuildConfig
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -33,6 +34,51 @@ object SpatialRuntimeStore {
     // 58.6%（D203）；EP 按会话选用，不改变既有模型的行为。
     // 提升必须与 r7 catalog 同步，否则下载链路会被 catalog 校验阻断。
     const val REQUIRED_PACKAGE_VERSION = "1.28.0-r7"
+    /**
+     * 骁龙 NPU 版运行组件。**与 CPU 版互斥**：QNN EP 编译在 `libonnxruntime.so` 里，
+     * 一个进程只能加载一份，所以开 QNN 是换整包，不是往既有包里补库。
+     */
+    const val QNN_PACKAGE_VERSION = "1.28.0-qnn-r2"
+
+    /**
+     * [QNN_PACKAGE_VERSION] 里打包的 QAIRT 版本。**预编译 context binary 与它强绑定**：
+     * 版本不一致时 ORT 会在建 session 时报
+     * `LoadCachedQnnContextFromBuffer … Error code: 5000`（D252）。
+     * 换运行组件包必须同步改这里，否则 catalog 里的预编译产物会被静默判为不兼容。
+     */
+    const val QNN_QAIRT_VERSION = "2.48"
+
+    /** 当前该装哪一个包。总开关决定，装反了 [isCompatibleMarker] 会判不兼容并要求重下。 */
+    fun requiredPackageVersion(context: Context): String =
+        if (SpatialPreferences.qnnEnabled(context)) QNN_PACKAGE_VERSION
+        else REQUIRED_PACKAGE_VERSION
+
+    /** 某个变体是否已装好。UI 要同时显示两行，所以不能只问"当前变体"。 */
+    fun isVariantInstalled(context: Context, qnn: Boolean): Boolean {
+        if (qnn && SpatialQnnSupport.resolveDspArch() == null) return false
+        val marker = readMarker(context, qnn) ?: return false
+        return installedFiles(context, marker)?.let { (core, jni) ->
+            core.length() == marker.coreSizeBytes && jni.length() == marker.jniSizeBytes
+        } == true
+    }
+
+    fun variantTotalBytes(context: Context, qnn: Boolean): Long {
+        val marker = readMarker(context, qnn) ?: return 0L
+        return directoryBytes(runtimeDirectory(context, marker))
+    }
+
+    /** 只删某一个变体，另一个不动。 */
+    @Synchronized
+    fun deleteVariant(context: Context, qnn: Boolean): Boolean {
+        val marker = readMarker(context, qnn) ?: return true
+        val dir = runtimeDirectory(context, marker)
+        val ok = !dir.exists() || dir.deleteRecursively()
+        File(rootDirectory(context), markerName(qnn)).delete()
+        return ok
+    }
+
+    private fun markerName(qnn: Boolean): String =
+        if (qnn) CURRENT_MARKER_QNN else CURRENT_MARKER
     const val CORE_LIBRARY = "libonnxruntime.so"
     const val JNI_LIBRARY = "libonnxruntime4j_jni.so"
     val SUPPORTED_ABIS = setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
@@ -45,6 +91,10 @@ object SpatialRuntimeStore {
     @Volatile
     private var loadedMarker: ReadyMarker? = null
 
+    /** 走 debug 覆盖目录加载时记下它，用来挡住"同进程换库"。 */
+    @Volatile
+    private var loadedOverride: String? = null
+
     @Keep
     data class ReadyMarker(
         val schemaVersion: Int = MARKER_SCHEMA_VERSION,
@@ -56,13 +106,18 @@ object SpatialRuntimeStore {
         val coreSizeBytes: Long,
         val coreSha256: String,
         val jniSizeBytes: Long,
-        val jniSha256: String
+        val jniSha256: String,
+        /** QNN 包才有：本包对应的 HTP 架构。CPU 包为 null。 */
+        val dspArch: String? = null,
+        /** QNN 包才有：QAIRT 那几个库。CPU 包为 null。 */
+        val extraFiles: List<SpatialRuntimeExtraFile>? = null
     )
 
     fun currentAbi(): String? =
         Build.SUPPORTED_ABIS.firstOrNull { it in SUPPORTED_ABIS }
 
     fun isInstalled(context: Context): Boolean {
+        if (debugOverrideDirectory(context) != null) return true
         val marker = readCurrentMarker(context) ?: return false
         return installedFiles(context, marker)?.let { (core, jni) ->
             core.length() == marker.coreSizeBytes &&
@@ -72,7 +127,17 @@ object SpatialRuntimeStore {
 
     fun isLoaded(): Boolean = loaded
 
+    /**
+     * 已安装运行组件的包版本。QNN 的编译产物要与它绑定——ORT 或 QNN 库一变，
+     * 之前编出来的 context binary 就不能再用（见 [SpatialQnnContextStore.Key]）。
+     */
+    fun installedPackageVersion(context: Context): String? {
+        debugOverrideDirectory(context)?.let { return "$OVERRIDE_PACKAGE_PREFIX${it.name}" }
+        return readCurrentMarker(context)?.packageVersion
+    }
+
     fun nativeLibraryDirectory(context: Context): File {
+        debugOverrideDirectory(context)?.let { return it }
         val marker = readCurrentMarker(context)
             ?: error("空间计算组件尚未安装")
         val (core, _) = installedFiles(context, marker)
@@ -80,9 +145,43 @@ object SpatialRuntimeStore {
         return checkNotNull(core.parentFile)
     }
 
+    /**
+     * Debug 专用运行组件覆盖目录。
+     *
+     * QNN 版 `libonnxruntime.so` 与现役裁剪版是两份不同的库，而同一进程只能加载一份；
+     * 在 catalog 尚未上架 QNN 运行组件之前，真机验证只能靠这条旁路：由 debug 探针把
+     * adb push 上来的库复制进这个目录，产品路径检测到就改用它。
+     *
+     * 旁路的只是"必须先上架 catalog"这一步——目录里必须两个核心库齐全才认，
+     * 且 release 构建下这个方法恒为 null。
+     */
+    private fun debugOverrideDirectory(context: Context): File? {
+        if (!BuildConfig.DEBUG) return null
+        val directory = File(context.noBackupFilesDir, OVERRIDE_DIRECTORY)
+        if (!directory.isDirectory) return null
+        if (!File(directory, CORE_LIBRARY).isFile) return null
+        if (!File(directory, JNI_LIBRARY).isFile) return null
+        return directory
+    }
+
     @SuppressLint("UnsafeDynamicallyLoadedCode")
     @Synchronized
     fun ensureLoaded(context: Context) {
+        debugOverrideDirectory(context)?.let { directory ->
+            if (loaded) {
+                check(loadedOverride == directory.absolutePath) {
+                    "空间计算组件已在当前进程中更新，请重新启动 App"
+                }
+                return
+            }
+            // 覆盖包由 adb 放入，不经 catalog，因此没有可比对的签名摘要；
+            // 这条路只在 debug 构建存在。
+            System.load(File(directory, CORE_LIBRARY).absolutePath)
+            System.load(File(directory, JNI_LIBRARY).absolutePath)
+            loadedOverride = directory.absolutePath
+            loaded = true
+            return
+        }
         val marker = readCurrentMarker(context)
             ?: error("空间计算组件尚未安装")
         val (core, jni) = installedFiles(context, marker)
@@ -156,12 +255,128 @@ object SpatialRuntimeStore {
             val currentPending = File(root, "$CURRENT_MARKER.pending")
             writeMarker(currentPending, marker)
             moveAtomically(currentPending, File(root, CURRENT_MARKER))
-            pruneObsoletePackages(root, target)
+            pruneObsoletePackages(root, target, qnnVariant = false)
             return marker
         } catch (error: Throwable) {
             pending.deleteRecursively()
             throw error
         }
+    }
+
+    /**
+     * QNN 版运行组件的安装。与 CPU 版走同一套落盘、标记与裁剪逻辑，唯一的差别是
+     * zip 里除两个 onnxruntime 库外还有 QAIRT 的几个 `.so`，逐个按签名 catalog 校验。
+     */
+    @Synchronized
+    fun installVerifiedQnn(
+        context: Context,
+        entry: SpatialQnnRuntimeCatalogEntry,
+        archive: File
+    ): ReadyMarker {
+        check(entry.isCompatible()) { "QNN 运行组件与当前 App 不兼容" }
+        check(entry.abi == currentAbi()) { "QNN 运行组件 ABI 与设备不匹配" }
+        check(entry.dspArch == SpatialQnnSupport.resolveDspArch()) {
+            "QNN 运行组件的 HTP 架构与设备不匹配"
+        }
+        check(archive.isFile && archive.length() == entry.sizeBytes) {
+            "QNN 运行组件下载字节数不符"
+        }
+        check(SpatialModelStore.sha256(archive).equals(entry.sha256, ignoreCase = true)) {
+            "QNN 运行组件 SHA-256 不符"
+        }
+
+        val root = rootDirectory(context)
+        check(root.exists() || root.mkdirs()) { "无法创建运行组件目录" }
+        val pending = File(
+            root,
+            ".pending-${entry.packageVersion}-${entry.abi}-${entry.dspArch}-${System.nanoTime()}"
+        )
+        check(pending.mkdirs()) { "无法创建运行组件临时目录" }
+        try {
+            extractQnnLibraries(archive, pending, entry)
+            val marker = ReadyMarker(
+                id = entry.id,
+                packageVersion = entry.packageVersion,
+                ortVersion = entry.ortVersion,
+                runtimeApiVersion = entry.runtimeApiVersion,
+                abi = entry.abi,
+                coreSizeBytes = entry.coreSizeBytes,
+                coreSha256 = entry.coreSha256.lowercase(),
+                jniSizeBytes = entry.jniSizeBytes,
+                jniSha256 = entry.jniSha256.lowercase(),
+                dspArch = entry.dspArch,
+                extraFiles = entry.extraFiles.map {
+                    it.copy(sha256 = it.sha256.lowercase())
+                }
+            )
+            writeMarker(File(pending, READY_MARKER), marker)
+
+            val target = runtimeDirectory(context, marker)
+            check(target.parentFile?.exists() == true || target.parentFile?.mkdirs() == true)
+            if (target.exists()) check(target.deleteRecursively()) {
+                "无法替换旧运行组件目录"
+            }
+            moveAtomically(pending, target)
+
+            val currentPending = File(root, "$CURRENT_MARKER_QNN.pending")
+            writeMarker(currentPending, marker)
+            moveAtomically(currentPending, File(root, CURRENT_MARKER_QNN))
+            pruneObsoletePackages(root, target, qnnVariant = true)
+            return marker
+        } catch (error: Throwable) {
+            pending.deleteRecursively()
+            throw error
+        }
+    }
+
+    fun partialFileQnn(context: Context, entry: SpatialQnnRuntimeCatalogEntry): File =
+        File(
+            context.noBackupFilesDir,
+            "spatial-photo/downloads/qnn-runtime-${entry.packageVersion}-" +
+                "${entry.abi}-${entry.dspArch}.zip.part"
+        )
+
+    private fun extractQnnLibraries(
+        archive: File,
+        pending: File,
+        entry: SpatialQnnRuntimeCatalogEntry
+    ) {
+        val expected = buildMap {
+            put(CORE_LIBRARY, entry.coreSizeBytes to entry.coreSha256)
+            put(JNI_LIBRARY, entry.jniSizeBytes to entry.jniSha256)
+            entry.extraFiles.forEach { put(it.name, it.sizeBytes to it.sha256) }
+        }
+        val extracted = mutableSetOf<String>()
+        ZipInputStream(BufferedInputStream(FileInputStream(archive))).use { input ->
+            while (true) {
+                val zipEntry = input.nextEntry ?: break
+                check(!zipEntry.isDirectory && zipEntry.name in expected) {
+                    "QNN 运行组件压缩包包含未知入口：${zipEntry.name}"
+                }
+                check(extracted.add(zipEntry.name)) { "QNN 运行组件压缩包包含重复入口" }
+                val (expectedSize, expectedHash) = expected.getValue(zipEntry.name)
+                val target = File(pending, zipEntry.name)
+                FileOutputStream(target).use { output ->
+                    val buffer = ByteArray(1024 * 1024)
+                    var written = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        written += read
+                        check(written <= expectedSize) { "QNN 运行组件解压体积超过签名值" }
+                        output.write(buffer, 0, read)
+                    }
+                    output.fd.sync()
+                }
+                check(target.length() == expectedSize) { "QNN 运行组件解压字节数不符" }
+                check(SpatialModelStore.sha256(target).equals(expectedHash, ignoreCase = true)) {
+                    "QNN 运行组件解压哈希不符：${zipEntry.name}"
+                }
+                makeReadOnly(target)
+                input.closeEntry()
+            }
+        }
+        check(extracted == expected.keys) { "QNN 运行组件压缩包缺少必要文件" }
     }
 
     @Synchronized
@@ -178,12 +393,24 @@ object SpatialRuntimeStore {
             "spatial-photo/downloads/runtime-${entry.packageVersion}-${entry.abi}.zip.part"
         )
 
-    private fun readCurrentMarker(context: Context): ReadyMarker? {
-        val file = File(rootDirectory(context), CURRENT_MARKER)
+    private fun readCurrentMarker(context: Context): ReadyMarker? =
+        readMarker(context, SpatialPreferences.qnnEnabled(context))
+
+    private fun readMarker0(root: File, name: String): ReadyMarker? {
+        val file = File(root, name)
         if (!file.isFile || file.length() !in 1..MAX_MARKER_BYTES) return null
         return runCatching {
+            gson.fromJson(file.readText(Charsets.UTF_8), ReadyMarker::class.java)
+        }.getOrNull()
+    }
+
+    private fun readMarker(context: Context, qnn: Boolean): ReadyMarker? {
+        val file = File(rootDirectory(context), markerName(qnn))
+        if (!file.isFile || file.length() !in 1..MAX_MARKER_BYTES) return null
+        val required = if (qnn) QNN_PACKAGE_VERSION else REQUIRED_PACKAGE_VERSION
+        return runCatching {
             val marker = gson.fromJson(file.readText(Charsets.UTF_8), ReadyMarker::class.java)
-            marker.takeIf(::isCompatibleMarker)
+            marker.takeIf { isCompatibleMarker(it, required) }
         }.getOrNull()
     }
 
@@ -200,12 +427,16 @@ object SpatialRuntimeStore {
         return core to jni
     }
 
-    private fun isCompatibleMarker(marker: ReadyMarker): Boolean =
+    private fun isCompatibleMarker(marker: ReadyMarker, required: String): Boolean =
         marker.schemaVersion == MARKER_SCHEMA_VERSION &&
             marker.id == RUNTIME_ID &&
             marker.ortVersion == ORT_VERSION &&
             marker.runtimeApiVersion == RUNTIME_API_VERSION &&
-            marker.packageVersion == REQUIRED_PACKAGE_VERSION &&
+            marker.packageVersion == required &&
+            // QNN 包必须是本机架构的那一份：Skel/Stub 按架构分，装错了 QNN 会在
+            // device 创建阶段失败，并留下一堆指向别处的日志（D219）。
+            (marker.packageVersion != QNN_PACKAGE_VERSION ||
+                (marker.dspArch != null && marker.dspArch == SpatialQnnSupport.resolveDspArch())) &&
             marker.abi == currentAbi() &&
             marker.coreSizeBytes in 1..MAX_CORE_BYTES &&
             marker.jniSizeBytes in 1..MAX_JNI_BYTES &&
@@ -215,15 +446,42 @@ object SpatialRuntimeStore {
     private fun runtimeDirectory(context: Context, marker: ReadyMarker): File =
         File(
             rootDirectory(context),
-            "objects/${marker.packageVersion}/${marker.abi}"
+            "objects/${marker.packageVersion}/${marker.abi}" +
+                (marker.dspArch?.let { "/$it" } ?: "")
         )
 
-    private fun pruneObsoletePackages(root: File, current: File) {
+    /**
+     * 只清理**同一变体**里的过期包。此前不分变体地清，导致装 QNN 版会顺手删掉 CPU 版，
+     * 开关一来回切就要重下（2026-08-14 反馈）。
+     */
+    private fun pruneObsoletePackages(root: File, current: File, qnnVariant: Boolean) {
+        val keepOther = readMarker0(root, if (qnnVariant) CURRENT_MARKER else CURRENT_MARKER_QNN)
+            ?.let { "objects/${it.packageVersion}" }
         val objects = File(root, "objects")
+        // **不能按绝对路径精确相等判断**：CPU 包是 `<版本>/<abi>` 两层，QNN 包多一层
+        // dspArch（`<版本>/<abi>/<arch>`）。用相等判断时，QNN 装完这里会认为
+        // `<abi>` 不是当前目录而把它整个递归删掉，刚装好的包当场消失，症状是
+        // "安装后校验失败"（2026-08-13 实际发生）。改成按"是不是当前目录的祖先或本身"判。
+        val currentPath = current.absolutePath
+        fun keeps(candidate: File): Boolean {
+            val path = candidate.absolutePath
+            return currentPath == path || currentPath.startsWith(path + File.separator)
+        }
         objects.listFiles()?.forEach { packageDirectory ->
+            // 另一个变体的包整包跳过，不属于本次裁剪的范围
+            if (keepOther != null && packageDirectory.name == keepOther.substringAfterLast('/')) {
+                return@forEach
+            }
             packageDirectory.listFiles()?.forEach { abiDirectory ->
-                if (abiDirectory.absolutePath != current.absolutePath) {
+                if (!keeps(abiDirectory)) {
                     abiDirectory.deleteRecursively()
+                } else {
+                    // 同一 ABI 下的其它架构目录（换机或换包时留下的）照样要清
+                    abiDirectory.listFiles()?.forEach { archDirectory ->
+                        if (archDirectory.isDirectory && !keeps(archDirectory)) {
+                            archDirectory.deleteRecursively()
+                        }
+                    }
                 }
             }
             if (packageDirectory.listFiles().isNullOrEmpty()) {
@@ -307,8 +565,19 @@ object SpatialRuntimeStore {
     }
 
     private val SHA256_REGEX = Regex("[0-9a-fA-F]{64}")
+    private const val OVERRIDE_DIRECTORY = "spatial-photo/runtime-override"
+    private const val OVERRIDE_PACKAGE_PREFIX = "debug-override-"
     private const val MARKER_SCHEMA_VERSION = 1
+    /**
+     * CPU 版与 NPU 版**各自一份**当前标记，磁盘上共存。
+     *
+     * 约束只在"加载"这一层：QNN EP 编译在 `libonnxruntime.so` 里，一个进程只能加载一份。
+     * 但没有任何理由不让两份同时**存在**——此前从"不能同时用"推到"不能同时存"，
+     * 结果是开关一切换就得重下一百多 MB，而且下载进度显示在另一行上，
+     * 用户完全看不懂发生了什么（2026-08-14 反馈）。多占的只是 CPU 版那 13 MB。
+     */
     private const val CURRENT_MARKER = "current.json"
+    private const val CURRENT_MARKER_QNN = "current-qnn.json"
     private const val READY_MARKER = "ready.json"
     private const val MAX_MARKER_BYTES = 16L * 1024L
     private const val MAX_CORE_BYTES = 64L * 1024L * 1024L

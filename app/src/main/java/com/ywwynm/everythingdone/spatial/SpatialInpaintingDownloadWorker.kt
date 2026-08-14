@@ -78,13 +78,17 @@ class SpatialInpaintingDownloadWorker(
             return failure("设备内存等级不足")
         }
         if (wasInstalled && SpatialRuntimeStore.isInstalled(applicationContext)) {
+            // 模型与运行组件都在，但 NPU 预编译产物可能还没取——用户完全可能是先装模型、
+            // 后开 NPU 开关。这一步失败不致命，拿不到就走端上现编或 CPU。
+            runCatching { fetchPrecompiledIfNeeded(model) }
+                .onFailure { android.util.Log.w("SpatialInpaintDL", "NPU 预编译产物获取失败", it) }
             return Result.success()
         }
         return try {
             setForegroundAsync(foregroundInfo(model, 0L, model.sizeBytes)).get()
             val catalog = SpatialCatalogClient(applicationContext).fetchOrCached().catalog
             if (!SpatialRuntimeStore.isInstalled(applicationContext)) {
-                SpatialRuntimeInstaller.ensureInstalled(
+                SpatialRuntimeInstaller.ensureSelectedInstalled(
                     context = applicationContext,
                     catalog = catalog,
                     shouldStop = { isStopped },
@@ -140,6 +144,8 @@ class SpatialInpaintingDownloadWorker(
             }
             SpatialInpaintingModelStore.writeReadyMarker(applicationContext, model)
             partial.delete()
+            runCatching { fetchPrecompiledIfNeeded(model) }
+                .onFailure { android.util.Log.w("SpatialInpaintDL", "NPU 预编译产物获取失败", it) }
             Result.success()
         } catch (error: SelfTestException) {
             if (!wasInstalled) {
@@ -312,6 +318,27 @@ class SpatialInpaintingDownloadWorker(
         check(StatFs(directory.absolutePath).availableBytes >= required) {
             "存储空间不足"
         }
+    }
+
+    /** 取本机 dsp_arch 的预编译 context；条件不满足时静默跳过。 */
+    private fun fetchPrecompiledIfNeeded(model: SpatialInpaintingModel) {
+        if (!SpatialPreferences.qnnEnabled(applicationContext)) return
+        val catalog = SpatialCatalogClient(applicationContext).fetchOrCached().catalog
+        SpatialRuntimeInstaller.ensurePrecompiled(
+            context = applicationContext,
+            catalog = catalog,
+            modelId = model.stableId,
+            modelVersion = model.version,
+            shouldStop = { isStopped },
+            onProgress = { progress ->
+                publishProgress(
+                    model,
+                    progress.downloaded,
+                    progress.total,
+                    STATE_RUNTIME_DOWNLOADING
+                )
+            }
+        )
     }
 
     private fun failure(message: String, stage: String? = null): Result = Result.failure(

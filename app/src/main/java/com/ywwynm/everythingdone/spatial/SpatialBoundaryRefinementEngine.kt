@@ -34,7 +34,9 @@ class SpatialBoundaryRefinementEngine(
         SpatialRuntimeStore.ensureLoaded(context)
         val candidates = runModel(bitmap, segmentation, model, cancelled)
         check(!cancelled.get()) { "任务已取消" }
-        return SpatialBoundaryRefinementPostprocessor.refine(segmentation, candidates)
+        return SpatialInferenceTrace.measure(SpatialInferenceTrace.BOUNDARY_POST) {
+            SpatialBoundaryRefinementPostprocessor.refine(segmentation, candidates)
+        }
     }
 
     fun selfTest(model: SpatialBoundaryRefinementModel): Boolean {
@@ -104,12 +106,45 @@ class SpatialBoundaryRefinementEngine(
             model,
             components.getValue(DECODER_FILE)
         )
+        fun openSession(path: String, options: OrtSession.SessionOptions): OrtSession =
+            SpatialInferenceTrace.measure(SpatialInferenceTrace.BOUNDARY_SESSION) {
+                environment.createSession(path, options)
+            }
+
+        /**
+         * 只有 image encoder 值得上 QNN：它固定 1024²、实测占 boundary 阶段的绝大部分
+         * （475 ms，而 prompt encoder 1.6 ms、decoder 56 ms）。后两者交给 CPU，
+         * 省下两次图编译与两份 context binary。
+         */
+        fun openEncoder(options: OrtSession.SessionOptions): OrtSession {
+            val component = components.getValue(ENCODER_FILE)
+            val qnn = SpatialQnnSessionFactory.createSession(
+                context = context,
+                environment = environment,
+                request = SpatialQnnSessionFactory.Request(
+                    modelFile = encoderFile,
+                    modelId = "${model.stableId}_encoder",
+                    modelVersion = model.version,
+                    modelSha256 = component.sha256,
+                    shapeTag = "${model.inputSize}x${model.inputSize}"
+                )
+            ) { qnnOptions ->
+                qnnOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                qnnOptions.setInterOpNumThreads(1)
+                qnnOptions.setIntraOpNumThreads(1)
+            }
+            return qnn?.session ?: openSession(encoderFile.absolutePath, options)
+        }
         sessionOptions().use { options ->
-            environment.createSession(encoderFile.absolutePath, options).use { encoder ->
-                environment.createSession(promptFile.absolutePath, options).use { promptEncoder ->
-                    environment.createSession(decoderFile.absolutePath, options).use { decoder ->
+            openEncoder(options).use { encoder ->
+                openSession(promptFile.absolutePath, options).use { promptEncoder ->
+                    openSession(decoderFile.absolutePath, options).use { decoder ->
                         validateSessionContracts(encoder, promptEncoder, decoder)
-                        val input = prepareInput(bitmap, model, cancelled)
+                        val input = SpatialInferenceTrace.measure(
+                            SpatialInferenceTrace.BOUNDARY_PREPARE
+                        ) {
+                            prepareInput(bitmap, model, cancelled)
+                        }
                         val inputShape = longArrayOf(
                             1,
                             3,
@@ -117,7 +152,11 @@ class SpatialBoundaryRefinementEngine(
                             model.inputSize.toLong()
                         )
                         OnnxTensor.createTensor(environment, input, inputShape).use { tensor ->
-                            encoder.run(mapOf(ENCODER_INPUT to tensor)).use { encoderOutput ->
+                            SpatialInferenceTrace.measure(
+                                SpatialInferenceTrace.BOUNDARY_RUN_ENCODER
+                            ) {
+                                encoder.run(mapOf(ENCODER_INPUT to tensor))
+                            }.use { encoderOutput ->
                                 check(!cancelled.get()) { "任务已取消" }
                                 val imageEmbeddings = encoderOutput[0] as OnnxTensor
                                 val highResolution0 = encoderOutput[1] as OnnxTensor
@@ -130,20 +169,28 @@ class SpatialBoundaryRefinementEngine(
                                         floatBuffer(promptBox),
                                         longArrayOf(1, 4)
                                     ).use { boxTensor ->
-                                        promptEncoder.run(
-                                            mapOf(PROMPT_ENCODER_INPUT to boxTensor)
-                                        ).use { promptOutput ->
+                                        SpatialInferenceTrace.measure(
+                                            SpatialInferenceTrace.BOUNDARY_RUN_PROMPT
+                                        ) {
+                                            promptEncoder.run(
+                                                mapOf(PROMPT_ENCODER_INPUT to boxTensor)
+                                            )
+                                        }.use { promptOutput ->
                                             val sparse = promptOutput[0] as OnnxTensor
                                             val dense = promptOutput[1] as OnnxTensor
-                                            decoder.run(
-                                                mapOf(
-                                                    DECODER_IMAGE_EMBEDDINGS to imageEmbeddings,
-                                                    DECODER_SPARSE_EMBEDDINGS to sparse,
-                                                    DECODER_DENSE_EMBEDDINGS to dense,
-                                                    DECODER_HIGH_RESOLUTION_0 to highResolution0,
-                                                    DECODER_HIGH_RESOLUTION_1 to highResolution1
+                                            SpatialInferenceTrace.measure(
+                                                SpatialInferenceTrace.BOUNDARY_RUN_DECODER
+                                            ) {
+                                                decoder.run(
+                                                    mapOf(
+                                                        DECODER_IMAGE_EMBEDDINGS to imageEmbeddings,
+                                                        DECODER_SPARSE_EMBEDDINGS to sparse,
+                                                        DECODER_DENSE_EMBEDDINGS to dense,
+                                                        DECODER_HIGH_RESOLUTION_0 to highResolution0,
+                                                        DECODER_HIGH_RESOLUTION_1 to highResolution1
+                                                    )
                                                 )
-                                            ).use { decoded ->
+                                            }.use { decoded ->
                                                 check(!cancelled.get()) { "任务已取消" }
                                                 val masks = decoded[0] as OnnxTensor
                                                 val iou = decoded[1] as OnnxTensor

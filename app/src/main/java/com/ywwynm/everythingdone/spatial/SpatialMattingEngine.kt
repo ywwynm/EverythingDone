@@ -43,6 +43,7 @@ class SpatialMattingEngine(
         check(SpatialRuntimeStore.isInstalled(context)) { "空间计算组件尚未安装" }
         SpatialRuntimeStore.ensureLoaded(context)
 
+        val prepareStartedAt = System.nanoTime()
         // 官方协议：双边等比缩放到长边 referenceSize、各自对齐 32，不补边。
         val sourceLongEdge = max(bitmap.width, bitmap.height)
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE)
@@ -80,6 +81,11 @@ class SpatialMattingEngine(
             }
         }
         input.rewind()
+        SpatialInferenceTrace.record(
+            SpatialInferenceTrace.MATTING_PREPARE,
+            System.nanoTime() - prepareStartedAt,
+            failed = false
+        )
 
         val environment = SpatialOrtRuntime.environment(context)
         OrtSession.SessionOptions().use { options ->
@@ -88,12 +94,17 @@ class SpatialMattingEngine(
             options.setInterOpNumThreads(1)
             options.setIntraOpNumThreads(INFERENCE_THREADS)
             val modelFile = SpatialMattingModelStore.modelFile(context, model)
-            environment.createSession(modelFile.absolutePath, options).use { session ->
+            val created = SpatialInferenceTrace.measure(SpatialInferenceTrace.MATTING_SESSION) {
+                environment.createSession(modelFile.absolutePath, options)
+            }
+            created.use { session ->
                 check(!cancelled.get()) { "任务已取消" }
                 val inputName = session.inputNames.single()
                 val shape = longArrayOf(1, 3, targetHeight.toLong(), targetWidth.toLong())
                 OnnxTensor.createTensor(environment, input, shape).use { tensor ->
-                    session.run(mapOf(inputName to tensor)).use { output ->
+                    SpatialInferenceTrace.measure(SpatialInferenceTrace.MATTING_RUN) {
+                        session.run(mapOf(inputName to tensor))
+                    }.use { output ->
                         check(!cancelled.get()) { "任务已取消" }
                         val alphaTensor = output[0] as OnnxTensor
                         val outputShape = alphaTensor.info.shape
@@ -102,14 +113,18 @@ class SpatialMattingEngine(
                                 longArrayOf(1, 1, targetHeight.toLong(), targetWidth.toLong())
                             )
                         ) { "matting 输出形状不符：${outputShape.contentToString()}" }
-                        val values = FloatArray(planeSize)
-                        alphaTensor.floatBuffer.get(values)
-                        for (index in values.indices) {
-                            val value = values[index]
-                            check(value.isFinite()) { "matting 输出包含 NaN/Infinity" }
-                            values[index] = value.coerceIn(0f, 1f)
+                        return SpatialInferenceTrace.measure(
+                            SpatialInferenceTrace.MATTING_POST
+                        ) {
+                            val values = FloatArray(planeSize)
+                            alphaTensor.floatBuffer.get(values)
+                            for (index in values.indices) {
+                                val value = values[index]
+                                check(value.isFinite()) { "matting 输出包含 NaN/Infinity" }
+                                values[index] = value.coerceIn(0f, 1f)
+                            }
+                            SpatialAlphaData(targetWidth, targetHeight, values)
                         }
-                        return SpatialAlphaData(targetWidth, targetHeight, values)
                     }
                 }
             }

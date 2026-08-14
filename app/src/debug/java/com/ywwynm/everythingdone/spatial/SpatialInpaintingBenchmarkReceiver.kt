@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.spatial
 
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtSession
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -8,6 +10,8 @@ import android.graphics.Color
 import android.os.Debug
 import android.util.Log
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -79,6 +83,26 @@ class SpatialInpaintingBenchmarkReceiver : BroadcastReceiver() {
                     "install" -> install(appContext, model)
                     "selftest" -> selfTest(appContext, model)
                     "bench" -> bench(appContext, model, width, height, band, provider)
+                    // NPU 三件套的下发入口。设置页点一下也能做到，但那条路要驱动 UI，
+                    // 而这里要反复重装重测，走协调器更稳。校验一律照旧。
+                    "qnnruntime" -> {
+                        SpatialQnnRuntimeDownloadCoordinator.enqueue(appContext, allowMetered = true)
+                        logi("spatial-qnn-runtime-enqueue 已入队；目标 " +
+                            SpatialRuntimeStore.QNN_PACKAGE_VERSION)
+                    }
+                    "qnnprecompiled" -> {
+                        SpatialQnnPrecompiledDownloadCoordinator.enqueue(
+                            appContext, model.stableId, model.version, allowMetered = true
+                        )
+                        logi("spatial-qnn-precompiled-enqueue model=${model.stableId} 已入队")
+                    }
+                    "qnnstate" -> qnnState(appContext, model)
+                    "qnnprofile" -> qnnProfile(
+                        appContext,
+                        model,
+                        intent.getIntExtra("iterations", 3).coerceIn(1, 50),
+                        intent.getStringExtra("level") ?: "detailed"
+                    )
                     else -> error("未知 action：$action")
                 }
             } catch (error: Throwable) {
@@ -252,6 +276,137 @@ class SpatialInpaintingBenchmarkReceiver : BroadcastReceiver() {
             )
         )
         bitmap.recycle()
+    }
+
+    /** 报告 NPU 三件套（运行组件、预编译产物、逐模型开关）各自装没装。 */
+    private fun qnnState(context: Context, model: SpatialInpaintingModel) {
+        val arch = SpatialQnnSupport.resolveDspArch()
+        val ctx = arch?.let {
+            runCatching {
+                SpatialQnnPrecompiledStore.contextModel(context, model.stableId, model.version, it)
+            }.getOrNull()
+        }
+        logi(
+            "spatial-qnn-state dspArch=${arch ?: "不支持"} " +
+                "cpuRuntime=${SpatialRuntimeStore.isVariantInstalled(context, qnn = false)} " +
+                "qnnRuntime=${SpatialRuntimeStore.isVariantInstalled(context, qnn = true)} " +
+                "pkgVersion=${SpatialRuntimeStore.installedPackageVersion(context) ?: "无"} " +
+                "qnnEnabled=${SpatialPreferences.qnnEnabled(context)} " +
+                "qnnEnabledFor=${SpatialPreferences.qnnEnabledFor(context, model.stableId)} " +
+                "precompiled=${ctx?.absolutePath ?: "无"} " +
+                "precompiledBytes=${ctx?.length() ?: 0}"
+        )
+    }
+
+    /**
+     * 逐算子 profiling 的 A/B：同一块 512² 输入，先 CPU 后 QNN，各跑 [iterations] 次。
+     *
+     * **必须落 CSV**：单看总耗时只知道"慢"，知道不了慢在哪一类算子上。QNN EP 的
+     * `profiling_level=detailed` 会把每个算子在 HTP 上的耗时写进 CSV，这是判断
+     * "算力打不满"还是"被 Reshape/Concat 之类的搬运拖死"的唯一依据。
+     */
+    private fun qnnProfile(
+        context: Context,
+        model: SpatialInpaintingModel,
+        iterations: Int,
+        profilingLevel: String
+    ) {
+        val environment = SpatialOrtRuntime.environment(context)
+        val tile = 512
+        val tilePixels = tile * tile
+        val image = ByteBuffer.allocateDirect(tilePixels * 3 * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        val mask = ByteBuffer.allocateDirect(tilePixels * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+        for (i in 0 until tilePixels * 3) image.put(i, ((i % 255) / 255f))
+        // 中心一块方形空洞，与真实显露带同量级
+        for (y in 0 until tile) {
+            for (x in 0 until tile) {
+                val hole = x in 200..312 && y in 200..312
+                mask.put(y * tile + x, if (hole) 1f else 0f)
+            }
+        }
+
+        fun runOne(label: String, modelPath: String, configure: (OrtSession.SessionOptions) -> Unit) {
+            val sessionStart = System.nanoTime()
+            OrtSession.SessionOptions().use { options ->
+                options.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                options.setInterOpNumThreads(1)
+                configure(options)
+                environment.createSession(modelPath, options).use { session ->
+                    val sessionMs = (System.nanoTime() - sessionStart) / 1e6
+                    val imageName = session.inputNames.first { it.contains("image") }
+                    val maskName = session.inputNames.first { it.contains("mask") }
+                    val times = DoubleArray(iterations)
+                    for (i in 0 until iterations) {
+                        image.rewind()
+                        mask.rewind()
+                        val imageTensor = OnnxTensor.createTensor(
+                            environment, image, longArrayOf(1, 3, tile.toLong(), tile.toLong())
+                        )
+                        val maskTensor = OnnxTensor.createTensor(
+                            environment, mask, longArrayOf(1, 1, tile.toLong(), tile.toLong())
+                        )
+                        val t0 = System.nanoTime()
+                        imageTensor.use { im ->
+                            maskTensor.use { mk ->
+                                session.run(mapOf(imageName to im, maskName to mk)).use { }
+                            }
+                        }
+                        times[i] = (System.nanoTime() - t0) / 1e6
+                    }
+                    val sorted = times.sorted()
+                    logi(
+                        String.format(
+                            Locale.US,
+                            "spatial-qnn-profile label=%s sessionMs=%.0f n=%d " +
+                                "first=%.0f min=%.0f 中位=%.0f max=%.0f",
+                            label, sessionMs, iterations,
+                            times.first(), sorted.first(), sorted[sorted.size / 2], sorted.last()
+                        )
+                    )
+                }
+            }
+        }
+
+        val cpuModel = SpatialInpaintingModelStore.modelFile(context, model)
+        runOne("cpu", cpuModel.absolutePath) { options ->
+            options.setIntraOpNumThreads(4)
+        }
+
+        val arch = SpatialQnnSupport.resolveDspArch()
+        if (arch == null) {
+            logi("spatial-qnn-profile label=qnn 跳过：本机不是受支持的骁龙 NPU")
+            return
+        }
+        // 没有预编译产物就直接拿原图让 QNN EP 现编——MI-GAN/AOT-GAN 这种纯卷积小图
+        // 端上编得动，正好用来回答"这颗 HTP 本身行不行"。
+        val precompiled = runCatching {
+            SpatialQnnPrecompiledStore.contextModel(context, model.stableId, model.version, arch)
+        }.getOrNull()
+        val ctxModel = precompiled ?: cpuModel
+        logi("spatial-qnn-profile 源=${if (precompiled != null) "预编译" else "端上现编"}")
+        val directory = SpatialRuntimeStore.nativeLibraryDirectory(context)
+        val backend = File(directory, "libQnnHtp.so")
+        if (!backend.isFile) {
+            logi("spatial-qnn-profile label=qnn 跳过：NPU 运行组件未安装")
+            return
+        }
+        val csv = File(context.getExternalFilesDir(null), "qnn-profile-${model.stableId}.csv")
+        runCatching { csv.delete() }
+        runOne("qnn", ctxModel.absolutePath) { options ->
+            options.setIntraOpNumThreads(1)
+            options.addQnn(
+                mapOf(
+                    "backend_path" to backend.absolutePath,
+                    "enable_htp_fp16_precision" to "1",
+                    "htp_performance_mode" to "burst",
+                    "profiling_level" to profilingLevel,
+                    "profiling_file_path" to csv.absolutePath
+                )
+            )
+        }
+        logi("spatial-qnn-profile csv=${csv.absolutePath} bytes=${csv.length()}")
     }
 
     private companion object {

@@ -25,21 +25,39 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                 runCatching { probeLog.appendText(line + "\n") }
             }
             val startedAt = System.nanoTime()
+            // 两张表并列，各自自洽，不互相嵌套计数：
+            // stageMillis 是阶段墙钟（build 含补全），其和约等于 total；
+            // SpatialInferenceTrace 是引擎内部的 session/run/prepare/post 细分。
+            val stageMillis = LinkedHashMap<String, Long>()
+            fun <T> step(name: String, block: () -> T): T {
+                val at = System.nanoTime()
+                try {
+                    return block()
+                } finally {
+                    stageMillis[name] =
+                        (stageMillis[name] ?: 0L) + (System.nanoTime() - at) / 1_000_000
+                }
+            }
+            SpatialInferenceTrace.start()
             var ldi: SpatialLdiLiteData? = null
             var bitmap: Bitmap? = null
             try {
-                bitmap = checkNotNull(BitmapFactory.decodeFile(sourcePath)) {
-                    "无法解码探针图片"
+                bitmap = step("decode") {
+                    checkNotNull(BitmapFactory.decodeFile(sourcePath)) {
+                        "无法解码探针图片"
+                    }
                 }
                 val source = checkNotNull(bitmap)
                 val cancelled = AtomicBoolean(false)
                 val depthModel = SpatialPreferences.selectedModel(appContext)
                 val store = SpatialDerivativeStore(appContext)
-                val generatedDepth = SpatialDepthEngine(appContext).generate(
-                    source,
-                    depthModel,
-                    cancelled
-                )
+                val generatedDepth = step("depth") {
+                    SpatialDepthEngine(appContext).generate(
+                        source,
+                        depthModel,
+                        cancelled
+                    )
+                }
                 val depth = store.retainedStrength(sourcePath)?.let {
                     generatedDepth.copy(defaultStrength = it)
                 } ?: generatedDepth
@@ -49,11 +67,13 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                     SpatialMattingModelStore.isInstalled(appContext, matteModel) &&
                     SpatialMattingModelStore.hasSufficientAvailableMemory(appContext, matteModel)
                 ) {
-                    matteModel to SpatialMattingEngine(appContext).generate(
-                        source,
-                        matteModel,
-                        cancelled
-                    )
+                    matteModel to step("matte") {
+                        SpatialMattingEngine(appContext).generate(
+                            source,
+                            matteModel,
+                            cancelled
+                        )
+                    }
                 } else {
                     null
                 }
@@ -63,7 +83,9 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                         SpatialSegmentationModelStore.isDeviceEligible(appContext, it) &&
                         SpatialSegmentationModelStore.hasSufficientAvailableMemory(appContext, it)
                 }?.let {
-                    it to SpatialSegmentationEngine(appContext).generate(source, it, cancelled)
+                    it to step("segmentation") {
+                        SpatialSegmentationEngine(appContext).generate(source, it, cancelled)
+                    }
                 }
                 val boundaryRefinementModel = try {
                     segmentation?.let { (_, data) ->
@@ -75,12 +97,14 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                                     it
                                 )
                         }?.let { model ->
-                            model to SpatialBoundaryRefinementEngine(appContext).refine(
-                                source,
-                                data,
-                                model,
-                                cancelled
-                            )
+                            model to step("boundary") {
+                                SpatialBoundaryRefinementEngine(appContext).refine(
+                                    source,
+                                    data,
+                                    model,
+                                    cancelled
+                                )
+                            }
                         }
                     }
                 } catch (error: Throwable) {
@@ -91,23 +115,27 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                 if (segmentation != null && boundaryRefinementModel != null) {
                     segmentation = segmentation.first to boundaryRefinementModel.second
                 }
-                ldi = SpatialVNextBuilder(SpatialInpaintingEngine(appContext)).build(
-                    bitmap = source,
-                    depth = depth,
-                    inpaintingModel = SpatialPreferences.selectedInpaintingModel(appContext),
-                    inpaintingQuality = SpatialPreferences.inpaintingQuality(appContext),
-                    cancelled = cancelled,
-                    subjectMatte = matte,
-                    segmentation = segmentation,
-                    boundaryRefinementModel = boundaryRefinementModel?.first
-                )
-                val derivative = store.save(
-                    sourcePath = sourcePath,
-                    model = depthModel,
-                    depth = depth,
-                    cancelled = cancelled,
-                    ldiLite = ldi
-                )
+                ldi = step("build") {
+                    SpatialVNextBuilder(SpatialInpaintingEngine(appContext)).build(
+                        bitmap = source,
+                        depth = depth,
+                        inpaintingModel = SpatialPreferences.selectedInpaintingModel(appContext),
+                        inpaintingQuality = SpatialPreferences.inpaintingQuality(appContext),
+                        cancelled = cancelled,
+                        subjectMatte = matte,
+                        segmentation = segmentation,
+                        boundaryRefinementModel = boundaryRefinementModel?.first
+                    )
+                }
+                val derivative = step("save") {
+                    store.save(
+                        sourcePath = sourcePath,
+                        model = depthModel,
+                        depth = depth,
+                        cancelled = cancelled,
+                        ldiLite = ldi
+                    )
+                }
                 val geometry = checkNotNull(ldi).geometry
                 // `load` 把一切包在 runCatching{}.getOrNull() 里，manifest 判死与后续异常
                 // 会塌成同一个 null。分两步报，才知道该看哪一侧。
@@ -169,6 +197,17 @@ class SpatialVNextGenerationProbeReceiver : BroadcastReceiver() {
                     )
                 }
             } finally {
+                // 失败也要出表：已跑完的阶段同样是数据。
+                val samples = SpatialInferenceTrace.stop()
+                report(
+                    "stages path=${File(sourcePath).name} " +
+                        "total=${(System.nanoTime() - startedAt) / 1_000_000}ms " +
+                        stageMillis.entries.joinToString(" ") { "${it.key}=${it.value}ms" }
+                )
+                report(
+                    "trace path=${File(sourcePath).name}\n" +
+                        SpatialInferenceTrace.format(samples)
+                )
                 ldi?.backgroundBitmap?.recycle()
                 bitmap?.recycle()
                 pending.finish()
