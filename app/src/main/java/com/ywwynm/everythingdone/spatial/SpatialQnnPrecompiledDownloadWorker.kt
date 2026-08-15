@@ -104,7 +104,18 @@ class SpatialQnnPrecompiledDownloadWorker(
                     )
                 }
             )
-            if (ok) Result.success() else failure("可信目录中没有适用于本机的 NPU 版本")
+            if (ok) {
+                // 产物装好即选中 NPU 版：预编译产物只有设置页「Big-LaMa（NPU）」行的
+                // 下载按钮会触发（D268），装完自动切到 NPU 版，与其它模型行的
+                // 下载行为一致（2026-08-15 用户要求）。
+                SpatialInpaintingModel.fromStableId(modelId)?.let { model ->
+                    SpatialPreferences.setSelectedInpaintingModel(applicationContext, model)
+                    SpatialPreferences.setQnnEnabledFor(applicationContext, modelId, true)
+                }
+                Result.success()
+            } else {
+                failure("可信目录中没有适用于本机的 NPU 版本")
+            }
         } catch (error: IOException) {
             if (isStopped) Result.retry() else Result.retry()
         } catch (error: Throwable) {

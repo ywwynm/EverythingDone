@@ -1221,7 +1221,15 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_runtime_verifying">Vérification du composant de calcul…</string>
     <string name="spatial_runtime_installing">Installation du composant de calcul…</string>
     <string name="spatial_delete_runtime_title">Supprimer le composant de calcul spatial ?</string>
-    <string name="spatial_delete_runtime_message">Les modèles et les effets générés sont conservés. Le composant sera retéléchargé avant toute nouvelle génération de profondeur ou de vidéo spatiale.</string>
+    <string name="spatial_delete_runtime_message">L\'environnement d\'inférence est la base sur laquelle tournent tous les modèles spatiaux. Après sa suppression, aucun modèle ne peut s\'exécuter ni aucun nouvel effet spatial être généré tant qu\'il n\'est pas retéléchargé. Les modèles installés et les effets générés sont conservés.</string>
+    <string name="spatial_delete_depth_message">Les modèles de profondeur estiment la géométrie 3D d\'une photo ; l\'un d\'eux est requis pour générer des effets spatiaux. Sans autre modèle de profondeur installé, aucun nouvel effet spatial ne peut être généré. Les effets générés restent consultables.</string>
+    <string name="spatial_delete_matting_message">Le modèle d\'affinage des cheveux raffine les contours fins comme les cheveux des portraits. Il est facultatif : après sa suppression, les nouvelles générations omettent simplement cet affinage. Les effets générés restent consultables.</string>
+    <string name="spatial_delete_segmentation_message">Le modèle de continuité des personnes garde chaque personne entière et continue lors du déplacement du point de vue. Il est facultatif : après sa suppression, les nouvelles générations reviennent au découpage par profondeur pure. Les effets générés restent consultables.</string>
+    <string name="spatial_delete_qnn_runtime_message">Le composant NPU Snapdragon exécute les modèles compatibles sur la NPU de cet appareil. Après sa suppression, l\'accélération NPU est indisponible et ces modèles s\'exécutent sur le CPU. Il peut être retéléchargé à tout moment.</string>
+    <string name="spatial_delete_qnn_precompiled_message">Ce fichier est l\'artefact précompilé dont Big-LaMa a besoin pour s\'exécuter sur la NPU Snapdragon. Après sa suppression, Big-LaMa (NPU) est indisponible et la complétion d\'arrière-plan revient à la version CPU. Il peut être retéléchargé à tout moment.</string>
+    <string name="spatial_delete_legacy_message">Ce composant n\'est plus utilisé par le rendu spatial. Sa suppression libère de l\'espace et n\'affecte aucune fonctionnalité.</string>
+    <string name="spatial_missing_components_title">Télécharger les composants requis</string>
+    <string name="spatial_missing_components_message">La génération de photos spatiales nécessite ces composants :\n\n%1$s\n\nTéléchargez-les et installez-les tous en une fois dans les réglages.</string>
     <string name="spatial_storage_summary">Composant de calcul : %1$s\nPaquets de modèles : %2$s\nEffets générés : %3$s</string>
     <string name="spatial_clear_derivatives">Effacer tous les effets spatiaux générés</string>
     <string name="spatial_clear_derivatives_confirm">Cette action supprime toutes les données de profondeur générées localement. Les pièces jointes d’origine et les modèles téléchargés ne sont pas modifiés.</string>
@@ -1275,7 +1283,7 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_inpainting_resolution_description">512 est la plus rapide, 768 est la valeur par défaut et 1024 exploite le plus de détails d\'entrée, sans toujours produire un meilleur résultat. L\'application ne réduit jamais votre choix en silence ; en cas de mémoire insuffisante, fermez d\'autres applications volumineuses.</string>
     <string name="spatial_inpainting_not_ready">Téléchargez le modèle d\'arrière-plan masqué avant de générer l\'effet spatial avancé.</string>
     <string name="spatial_inpainting_available_memory_required">La mémoire disponible est insuffisante pour la qualité d\'arrière-plan masqué sélectionnée. Fermez d\'autres applications volumineuses ou choisissez une résolution AOT-GAN inférieure.</string>
-    <string name="spatial_delete_inpainting_message">Les effets spatiaux déjà générés restent disponibles. Créer ou régénérer l\'effet avancé nécessite ce modèle.</string>
+    <string name="spatial_delete_inpainting_message">Les modèles de complétion d\'arrière-plan remplissent les zones révélées par le déplacement du point de vue ; l\'un d\'eux est requis pour l\'effet spatial complet. Sans autre modèle de complétion installé, les nouvelles générations reviennent à l\'effet monocouche. Les effets spatiaux générés restent consultables.</string>
     <string name="spatial_generation_geometry">Construction des couches de profondeur…</string>
     <string name="spatial_generation_inpainting">Remplissage de l\'arrière-plan masqué…</string>
     <string name="spatial_select_moge2">Utiliser MoGe-2 Small</string>

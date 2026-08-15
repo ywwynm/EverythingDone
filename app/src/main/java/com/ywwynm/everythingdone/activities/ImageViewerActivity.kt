@@ -1002,24 +1002,15 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         }
 
         val model = SpatialPreferences.selectedModel(this)
-        if (!SpatialModelStore.isInstalled(this, model)) {
-            mPendingSpatialGenerationSourcePath = sourcePath
-            mPendingSpatialRegeneration = false
-            ensureSpatialModelObservers()
-            Toast.makeText(this, R.string.spatial_model_not_ready, Toast.LENGTH_LONG).show()
-            openSpatialSettings()
+        // 必需组件（运行环境、深度、补全）缺谁就一次列全，不再一项一项弹 Toast——
+        // 让用户去设置页一趟把该下的全下完（2026-08-15 用户要求）。
+        val missing = missingRequiredComponents()
+        if (missing.isNotEmpty()) {
+            showMissingComponentsDialog(missing, sourcePath, regenerate = false)
             return
         }
         if (!SpatialModelStore.isDeviceEligible(this, model)) {
             Toast.makeText(this, R.string.spatial_model_device_ineligible, Toast.LENGTH_LONG).show()
-            return
-        }
-        if (!SpatialRuntimeStore.isInstalled(this)) {
-            mPendingSpatialGenerationSourcePath = sourcePath
-            mPendingSpatialRegeneration = false
-            ensureSpatialModelObservers()
-            Toast.makeText(this, R.string.spatial_runtime_not_ready, Toast.LENGTH_LONG).show()
-            openSpatialSettings()
             return
         }
         val inpaintingIssue = currentInpaintingIssue()
@@ -1034,6 +1025,59 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             return
         }
         generateSpatialDerivative(sourcePath, bitmap, model)
+    }
+
+    /**
+     * 生成空间照片缺了哪些必需组件（CPU 版推理运行环境、深度模型、背景补全模型），
+     * 返回可读名称列表。**CPU 版运行环境是硬前提**：它是全部模型推理的基础，不论
+     * NPU 组件、模型选中状态如何，没装就判整个功能不可用（2026-08-15 用户裁定）。
+     * 补全模型装了但设备内存等条件不满足的情形不算"缺失"，由单层回退分支处理。
+     */
+    private fun missingRequiredComponents(): List<String> {
+        val missing = mutableListOf<String>()
+        if (!SpatialRuntimeStore.isVariantInstalled(this, qnn = false)) {
+            missing.add(getString(R.string.spatial_runtime_title))
+        }
+        if (!SpatialModelStore.isInstalled(this, SpatialPreferences.selectedModel(this))) {
+            missing.add(getString(R.string.spatial_settings_models))
+        }
+        if (!SpatialInpaintingModelStore.isInstalled(
+                this,
+                SpatialPreferences.selectedInpaintingModel(this)
+            )
+        ) {
+            missing.add(getString(R.string.spatial_settings_inpainting))
+        }
+        return missing
+    }
+
+    /** 缺失的必需组件一次列全，确认后去设置页一次下载完。 */
+    private fun showMissingComponentsDialog(
+        missing: List<String>,
+        sourcePath: String,
+        regenerate: Boolean
+    ) {
+        val adf = AlertDialogFragment()
+        adf.setTitleBackground(mAccentBackground)
+        adf.setConfirmBackground(mAccentBackground)
+        adf.setContentColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_medium))
+        adf.setTitle(getString(R.string.spatial_missing_components_title))
+        adf.setContent(
+            getString(
+                R.string.spatial_missing_components_message,
+                missing.joinToString("\n") { "• $it" }
+            )
+        )
+        adf.setConfirmText(getString(R.string.spatial_open_settings))
+        adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
+            override fun onConfirm() {
+                mPendingSpatialGenerationSourcePath = sourcePath
+                mPendingSpatialRegeneration = regenerate
+                ensureSpatialModelObservers()
+                openSpatialSettings()
+            }
+        })
+        adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
     private fun loadSpatialDerivative(sourcePath: String, bitmap: Bitmap) {
@@ -1463,24 +1507,14 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             return
         }
         val model = SpatialPreferences.selectedModel(this)
-        if (!SpatialModelStore.isInstalled(this, model)) {
-            mPendingSpatialGenerationSourcePath = sourcePath
-            mPendingSpatialRegeneration = true
-            ensureSpatialModelObservers()
-            Toast.makeText(this, R.string.spatial_model_not_ready, Toast.LENGTH_LONG).show()
-            openSpatialSettings()
+        // 同 startSpatialGeneration：缺失的必需组件一次列全（2026-08-15 用户要求）
+        val missing = missingRequiredComponents()
+        if (missing.isNotEmpty()) {
+            showMissingComponentsDialog(missing, sourcePath, regenerate = true)
             return
         }
         if (!SpatialModelStore.isDeviceEligible(this, model)) {
             Toast.makeText(this, R.string.spatial_model_device_ineligible, Toast.LENGTH_LONG).show()
-            return
-        }
-        if (!SpatialRuntimeStore.isInstalled(this)) {
-            mPendingSpatialGenerationSourcePath = sourcePath
-            mPendingSpatialRegeneration = true
-            ensureSpatialModelObservers()
-            Toast.makeText(this, R.string.spatial_runtime_not_ready, Toast.LENGTH_LONG).show()
-            openSpatialSettings()
             return
         }
         val inpaintingIssue = currentInpaintingIssue()
@@ -1818,7 +1852,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
                 inpaintingModel,
                 inpaintingQuality
             ) ||
-            !SpatialRuntimeStore.isInstalled(this)
+            // CPU 版运行环境是硬前提，不跟随 NPU 开关问"当前变体"
+            !SpatialRuntimeStore.isVariantInstalled(this, qnn = false)
         ) {
             return
         }

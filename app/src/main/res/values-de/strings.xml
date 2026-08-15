@@ -1221,7 +1221,15 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_runtime_verifying">Rechenkomponente wird überprüft…</string>
     <string name="spatial_runtime_installing">Rechenkomponente wird installiert…</string>
     <string name="spatial_delete_runtime_title">Räumliche Rechenkomponente löschen?</string>
-    <string name="spatial_delete_runtime_message">Modelle und erzeugte Effekte bleiben erhalten. Vor der nächsten Tiefenerzeugung oder dem nächsten räumlichen Video wird die Komponente erneut heruntergeladen.</string>
+    <string name="spatial_delete_runtime_message">Die Inferenz-Laufzeitumgebung ist die Grundlage, auf der alle räumlichen Modelle laufen. Nach dem Löschen kann kein Modell mehr ausgeführt und kein neuer Raumeffekt erzeugt werden, bis sie erneut heruntergeladen wird. Installierte Modelle und erzeugte Effekte bleiben erhalten.</string>
+    <string name="spatial_delete_depth_message">Tiefenmodelle schätzen die 3D-Geometrie eines Fotos; eines ist für das Erzeugen von Raumeffekten erforderlich. Ist kein anderes Tiefenmodell installiert, können keine neuen Raumeffekte erzeugt werden. Erzeugte Effekte bleiben verfügbar.</string>
+    <string name="spatial_delete_matting_message">Das Haarkanten-Matting-Modell verfeinert feine Kanten wie Haare in Porträts. Es ist optional: Nach dem Löschen entfällt diese Verfeinerung bei neuen Erzeugungen einfach. Erzeugte Effekte bleiben verfügbar.</string>
+    <string name="spatial_delete_segmentation_message">Das Personen-Kontinuitätsmodell hält eine Person beim Bewegen des Blickwinkels zusammenhängend. Es ist optional: Nach dem Löschen fallen neue Erzeugungen auf reine Tiefenschichtung zurück. Erzeugte Effekte bleiben verfügbar.</string>
+    <string name="spatial_delete_qnn_runtime_message">Die Snapdragon-NPU-Komponente führt unterstützte Modelle auf der NPU dieses Geräts aus. Nach dem Löschen ist die NPU-Beschleunigung nicht verfügbar und diese Modelle laufen stattdessen auf der CPU. Sie kann jederzeit erneut heruntergeladen werden.</string>
+    <string name="spatial_delete_qnn_precompiled_message">Diese Datei ist das vorkompilierte Artefakt, das Big-LaMa für die Snapdragon-NPU benötigt. Nach dem Löschen ist Big-LaMa (NPU) nicht verfügbar und das Hintergrund-Inpainting fällt auf die CPU-Version zurück. Sie kann jederzeit erneut heruntergeladen werden.</string>
+    <string name="spatial_delete_legacy_message">Diese Komponente wird vom räumlichen Rendering nicht mehr verwendet. Das Löschen gibt Speicherplatz frei und beeinträchtigt keine Funktion.</string>
+    <string name="spatial_missing_components_title">Erforderliche Komponenten herunterladen</string>
+    <string name="spatial_missing_components_message">Zum Erzeugen räumlicher Fotos werden diese Komponenten benötigt:\n\n%1$s\n\nLaden Sie sie alle auf einmal in den Einstellungen herunter.</string>
     <string name="spatial_storage_summary">Rechenkomponente: %1$s\nModellpakete: %2$s\nErzeugte Effekte: %3$s</string>
     <string name="spatial_clear_derivatives">Alle erzeugten räumlichen Effekte löschen</string>
     <string name="spatial_clear_derivatives_confirm">Dadurch werden alle lokal erzeugten Tiefendaten entfernt. Originalanhänge und heruntergeladene Modelle bleiben unverändert.</string>
@@ -1275,7 +1283,7 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_inpainting_resolution_description">512 ist am schnellsten, 768 ist die Vorgabe, 1024 nutzt die meisten Eingabedetails, erzeugt aber nicht immer besseren Inhalt. Die App senkt deine Wahl nie stillschweigend; schließe bei zu wenig Speicher andere große Apps.</string>
     <string name="spatial_inpainting_not_ready">Lade das Modell für den verdeckten Hintergrund herunter, bevor du den erweiterten Raumeffekt erzeugst.</string>
     <string name="spatial_inpainting_available_memory_required">Derzeit ist zu wenig Speicher für die gewählte Qualität des verdeckten Hintergrunds verfügbar. Schließe andere große Apps oder wähle eine niedrigere AOT-GAN-Auflösung.</string>
-    <string name="spatial_delete_inpainting_message">Bereits erzeugte Raumeffekte bleiben verfügbar. Für das Erstellen oder Neuerzeugen des erweiterten Effekts wird dieses Modell benötigt.</string>
+    <string name="spatial_delete_inpainting_message">Hintergrund-Inpainting-Modelle füllen die Bereiche, die beim Bewegen des Blickwinkels sichtbar werden; eines ist für den vollständigen Raumeffekt erforderlich. Ist kein anderes Inpainting-Modell installiert, fallen neue Erzeugungen auf den einschichtigen Effekt zurück. Erzeugte Raumeffekte bleiben verfügbar.</string>
     <string name="spatial_generation_geometry">Tiefenebenen werden aufgebaut …</string>
     <string name="spatial_generation_inpainting">Verdeckter Hintergrund wird ergänzt …</string>
     <string name="spatial_select_moge2">MoGe-2 Small verwenden</string>

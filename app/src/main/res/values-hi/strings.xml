@@ -1221,7 +1221,15 @@
     <string name="spatial_runtime_verifying">कंप्यूटिंग घटक की जाँच हो रही है…</string>
     <string name="spatial_runtime_installing">कंप्यूटिंग घटक इंस्टॉल हो रहा है…</string>
     <string name="spatial_delete_runtime_title">स्पेशल कंप्यूटिंग घटक हटाएँ?</string>
-    <string name="spatial_delete_runtime_message">मॉडल और बनाए गए प्रभाव बने रहेंगे। नई गहराई या स्पेशल वीडियो बनाने से पहले घटक फिर डाउनलोड होगा।</string>
+    <string name="spatial_delete_runtime_message">इन्फ़रेंस रनटाइम वह आधार है जिस पर सभी स्थानिक मॉडल चलते हैं। हटाने के बाद, दोबारा डाउनलोड होने तक कोई मॉडल नहीं चल सकेगा और नए स्थानिक प्रभाव नहीं बन सकेंगे। इंस्टॉल किए गए मॉडल और बनाए गए प्रभाव बने रहेंगे।</string>
+    <string name="spatial_delete_depth_message">गहराई मॉडल फ़ोटो से 3D ज्यामिति का अनुमान लगाते हैं; स्थानिक प्रभाव बनाने के लिए एक आवश्यक है। यदि कोई दूसरा गहराई मॉडल इंस्टॉल नहीं है, तो नए स्थानिक प्रभाव नहीं बन सकेंगे। बनाए गए प्रभाव देखे जा सकेंगे।</string>
+    <string name="spatial_delete_matting_message">हेयर-एज मैटिंग मॉडल पोर्ट्रेट में बालों जैसे महीन किनारों को निखारता है। यह वैकल्पिक है: हटाने के बाद नए प्रभाव बस इस निखार के बिना बनेंगे। बनाए गए प्रभाव देखे जा सकेंगे।</string>
+    <string name="spatial_delete_segmentation_message">व्यक्ति-निरंतरता मॉडल दृष्टिकोण बदलते समय व्यक्ति को अखंड और निरंतर रखता है। यह वैकल्पिक है: हटाने के बाद नए प्रभाव केवल गहराई-आधारित परतों पर लौट आएँगे। बनाए गए प्रभाव देखे जा सकेंगे।</string>
+    <string name="spatial_delete_qnn_runtime_message">Snapdragon NPU घटक समर्थित मॉडलों को इस डिवाइस के NPU पर चलाता है। हटाने के बाद NPU त्वरण उपलब्ध नहीं रहेगा और वे मॉडल CPU पर चलेंगे। इसे कभी भी फिर डाउनलोड किया जा सकता है।</string>
+    <string name="spatial_delete_qnn_precompiled_message">यह फ़ाइल वह प्री-कंपाइल्ड आर्टिफ़ैक्ट है जो Big-LaMa को Snapdragon NPU पर चलाने के लिए चाहिए। हटाने के बाद Big-LaMa (NPU) उपलब्ध नहीं रहेगा और बैकग्राउंड इनपेंटिंग CPU संस्करण पर लौट आएगी। इसे कभी भी फिर डाउनलोड किया जा सकता है।</string>
+    <string name="spatial_delete_legacy_message">यह घटक अब स्थानिक रेंडरिंग में उपयोग नहीं होता। हटाने से स्टोरेज खाली होगा और किसी सुविधा पर असर नहीं पड़ेगा।</string>
+    <string name="spatial_missing_components_title">आवश्यक घटक डाउनलोड करें</string>
+    <string name="spatial_missing_components_message">स्थानिक फ़ोटो बनाने के लिए ये घटक आवश्यक हैं:\n\n%1$s\n\nसेटिंग्स में इन्हें एक साथ डाउनलोड और इंस्टॉल करें।</string>
     <string name="spatial_storage_summary">कंप्यूटिंग घटक: %1$s\nमॉडल पैकेज: %2$s\nबनाए गए प्रभाव: %3$s</string>
     <string name="spatial_clear_derivatives">बनाए गए सभी स्थानिक प्रभाव साफ़ करें</string>
     <string name="spatial_clear_derivatives_confirm">यह इस डिवाइस पर बनाया गया सारा गहराई डेटा हटाता है। मूल अटैचमेंट और डाउनलोड किए गए मॉडल नहीं बदलते।</string>
@@ -1275,7 +1283,7 @@
     <string name="spatial_inpainting_resolution_description">512 सबसे तेज़ है, 768 डिफ़ॉल्ट है, और 1024 इनपुट विवरण का सबसे अधिक उपयोग करता है, पर हमेशा बेहतर परिणाम नहीं देता। ऐप आपकी पसंद चुपचाप कम नहीं करता; मेमोरी कम हो तो अन्य बड़े ऐप बंद करें।</string>
     <string name="spatial_inpainting_not_ready">उन्नत स्थानिक प्रभाव बनाने से पहले छिपी पृष्ठभूमि का मॉडल डाउनलोड करें।</string>
     <string name="spatial_inpainting_available_memory_required">चयनित छिपी-पृष्ठभूमि गुणवत्ता के लिए अभी पर्याप्त मेमोरी नहीं है। अन्य बड़े ऐप बंद करें या कम AOT-GAN रिज़ॉल्यूशन चुनें।</string>
-    <string name="spatial_delete_inpainting_message">पहले से बने स्थानिक प्रभाव उपलब्ध रहेंगे। उन्नत प्रभाव बनाने या दोबारा बनाने के लिए यह मॉडल आवश्यक है।</string>
+    <string name="spatial_delete_inpainting_message">बैकग्राउंड इनपेंटिंग मॉडल दृष्टिकोण बदलने पर दिखने वाले क्षेत्रों को भरते हैं; पूर्ण स्थानिक प्रभाव के लिए एक आवश्यक है। यदि कोई दूसरा इनपेंटिंग मॉडल इंस्टॉल नहीं है, तो नए प्रभाव केवल एकल-परत रूप में बनेंगे। बनाए गए स्थानिक प्रभाव देखे जा सकेंगे।</string>
     <string name="spatial_generation_geometry">गहराई की परतें बनाई जा रही हैं…</string>
     <string name="spatial_generation_inpainting">छिपी पृष्ठभूमि भरी जा रही है…</string>
     <string name="spatial_select_moge2">MoGe-2 Small उपयोग करें</string>

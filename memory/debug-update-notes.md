@@ -1,5 +1,32 @@
 # Current Debug Update Notes
 
+## 2026-08-15 - 模型下载完成自动选中
+
+发布号 `202608151103`，APK SHA-256
+`97106424c2235fe6b1c6050ba4d77dd927d941538821a2e66e68334e35467584`。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815190310.md`。
+
+在同日 `202608151042` 基础上新增：四个下载 Worker
+（深度、补全、发丝细化、Big-LaMa NPU 预编译产物）在装好那一刻写入选中/启用偏好，
+与实例分割 Worker 的既有行为统一；设置页三处入队预选删除。对应提交 `b154e5e4`
+（上一版的 `513d310b` 已被 soft reset 并入该提交）。
+
+## 2026-08-15 - 设置页状态机全面重整与生成入口一次性缺失提示
+
+发布号 `202608151042`，APK SHA-256
+`7d946f135a0e791562fb72f821667cd8b9fde95d62c03fe196f29fe212268ac6`。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815184143.md`。
+
+覆盖用户一次性报出的八类问题与三条裁定（详见
+`docs/features/spatial-photo-effect/sessions.md` 2026-08-15 续四）：人物连续性改
+CheckBox 并修 NPU↔CPU 互斥 bug；CPU 版运行环境为硬前提（未装整页置灰、下载恒可点、
+`SpatialRuntimeDownloadWorker` 改点名 CPU 变体修"下载无反应"）；文案统一
+「已启用/已下载安装」；未下载不显示勾选控件（GONE，文字与组标题图标左缘对齐）；
+未选中轮廓走强调渐变（新增 `applyRadioAccent`）；删除确认全覆盖并逐类说明作用
+（13 语言新文案）；生成入口一次列全缺失必需组件；另修透明加速位误清、matting
+删除时序、计费确认缺失、删除残留空目录、着色列表第六次漏项。
+在 9018f404（OPD2515）真机验证一轮通过。
+
 ## 2026-08-15 - NPU 两行的显示层欠账一次清掉（D269）
 
 发布号 `202608150854`，APK SHA-256 `34614d9c7e3da008…`，24.35 MB。catalog 未动

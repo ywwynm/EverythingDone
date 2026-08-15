@@ -1817,17 +1817,53 @@ object BackgroundUtil {
         return GradientRadioDrawable(context, bg, uncheckedColor, checked, animate)
     }
 
+    /**
+     * RadioButton 版的 [applyCheckboxAccent]：圆环 + 选中内点走同一套强调渐变、
+     * 状态驱动与 footprint 规则，让单选钮行与勾选框行在两种状态下观感一致。
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun applyRadioAccent(
+        button: android.widget.CompoundButton,
+        bg: ThingBackground,
+        uncheckedColor: Int = ContextCompat.getColor(
+            button.context, R.color.app_chrome_control_unchecked
+        ),
+        footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP,
+        uncheckedGradient: Boolean = false
+    ) {
+        androidx.core.widget.CompoundButtonCompat.setButtonTintList(button, null)
+        button.buttonDrawable = GradientRadioDrawable(
+            button.context,
+            bg,
+            uncheckedColor,
+            initialChecked = button.isChecked,
+            animate = false,
+            stateDriven = true,
+            footprintDp = footprintDp,
+            uncheckedGradient = uncheckedGradient
+        )
+        button.refreshDrawableState()
+    }
+
     private class GradientRadioDrawable(
         context: Context,
         private val background: ThingBackground,
         private val uncheckedColor: Int,
-        private val checked: Boolean,
-        animate: Boolean
+        initialChecked: Boolean,
+        animate: Boolean,
+        private val stateDriven: Boolean = false,
+        footprintDp: Float = 24f,
+        private val uncheckedGradient: Boolean = false
     ) : Drawable(), PreTintedGradientDrawable {
 
         private val density = context.resources.displayMetrics.density
         private val sizePx = (24f * density).toInt().coerceAtLeast(1)
+        // 同 GradientCheckboxDrawable：更大的 footprint 只在圆周围加透明边距，
+        // 圆本身固定 sizePx 视觉尺寸。
+        private val footprintPx = (footprintDp * density).toInt().coerceAtLeast(sizePx)
         private val strokePx = 2f * density
+        private val gradientMatrix = Matrix()
         private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = strokePx
@@ -1835,21 +1871,24 @@ object BackgroundUtil {
         private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
         }
+        private var checked = initialChecked
+        private var enabled = true
         private var externalAlpha = 255
+        private var resolvedState = !stateDriven
         private var checkedProgress = if (checked) 1f else 0f
         private var animator: ValueAnimator? = null
-        private val targetProgress = if (checked) 1f else 0f
 
         init {
             if (animate) {
                 checkedProgress = if (checked) 0f else 1f
-                animateCheckedProgress(targetProgress)
+                animateCheckedProgress(if (checked) 1f else 0f)
             }
         }
 
         override fun draw(canvas: Canvas) {
-            val side = minOf(bounds.width(), bounds.height()).toFloat()
-            if (side <= 0f) return
+            val boundsSide = minOf(bounds.width(), bounds.height()).toFloat()
+            if (boundsSide <= 0f) return
+            val side = minOf(boundsSide, sizePx.toFloat())
             val left = bounds.left + (bounds.width() - side) / 2f
             val top = bounds.top + (bounds.height() - side) / 2f
             val scale = side / sizePx.toFloat()
@@ -1857,43 +1896,79 @@ object BackgroundUtil {
             val centerX = left + side / 2f
             val centerY = top + side / 2f
             val radius = side * 0.34f
+            val stateAlpha = if (enabled) externalAlpha else (externalAlpha * 0.38f).toInt()
             val progress = checkedProgress.coerceIn(0f, 1f)
+
+            // 渐变建在圆的局部坐标系里，平移到实际位置——footprint 大于圆时圆不在
+            // bounds 原点（同 GradientCheckboxDrawable 的处理）。
+            fun bindAccent(paint: Paint) {
+                if (background.mode === ThingBackground.Mode.GRADIENT) {
+                    val shader = linearGradientFor(background, side, side)
+                    gradientMatrix.setTranslate(left, top)
+                    shader.setLocalMatrix(gradientMatrix)
+                    paint.shader = shader
+                } else {
+                    paint.shader = null
+                    paint.color = background.color
+                }
+            }
 
             strokePaint.strokeWidth = stroke
             if (progress < 1f) {
-                strokePaint.shader = null
-                strokePaint.color = uncheckedColor
-                strokePaint.alpha = (
-                    externalAlpha * Color.alpha(uncheckedColor) / 255f * (1f - progress)
-                ).toInt()
+                val fade = stateAlpha * (1f - progress)
+                if (uncheckedGradient) {
+                    // 同 GradientCheckboxDrawable：未选中保留完整渐变，不压单色、不降 alpha
+                    bindAccent(strokePaint)
+                    strokePaint.alpha = fade.toInt()
+                } else {
+                    strokePaint.shader = null
+                    strokePaint.color = uncheckedColor
+                    strokePaint.alpha = (
+                        fade * Color.alpha(uncheckedColor) / 255f
+                    ).toInt()
+                }
                 canvas.drawCircle(centerX, centerY, radius, strokePaint)
+                strokePaint.shader = null
             }
 
             if (progress > 0f) {
-                strokePaint.alpha = (externalAlpha * progress).toInt()
-                strokePaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
-                    linearGradientFor(background, side, side)
-                } else {
-                    null
-                }
-                if (background.mode === ThingBackground.Mode.PURE) {
-                    strokePaint.color = background.color
-                }
+                bindAccent(strokePaint)
+                strokePaint.alpha = (stateAlpha * progress).toInt()
                 canvas.drawCircle(centerX, centerY, radius, strokePaint)
                 strokePaint.shader = null
 
-                fillPaint.alpha = (externalAlpha * progress).toInt()
-                fillPaint.shader = if (background.mode === ThingBackground.Mode.GRADIENT) {
-                    linearGradientFor(background, side, side)
-                } else {
-                    null
-                }
-                if (background.mode === ThingBackground.Mode.PURE) {
-                    fillPaint.color = background.color
-                }
+                bindAccent(fillPaint)
+                fillPaint.alpha = (stateAlpha * progress).toInt()
                 canvas.drawCircle(centerX, centerY, radius * 0.58f * progress, fillPaint)
                 fillPaint.shader = null
             }
+        }
+
+        override fun isStateful(): Boolean = true
+
+        override fun onStateChange(state: IntArray): Boolean {
+            val newChecked = if (stateDriven) {
+                state.contains(android.R.attr.state_checked)
+            } else {
+                checked
+            }
+            val newEnabled = state.contains(android.R.attr.state_enabled)
+            if (newChecked == checked && newEnabled == enabled && resolvedState) return false
+            val checkedChanged = newChecked != checked
+            checked = newChecked
+            enabled = newEnabled
+            if (!resolvedState) {
+                checkedProgress = if (checked) 1f else 0f
+                resolvedState = true
+                invalidateSelf()
+                return true
+            }
+            if (checkedChanged) {
+                animateCheckedProgress(if (checked) 1f else 0f)
+                return true
+            }
+            invalidateSelf()
+            return true
         }
 
         private fun animateCheckedProgress(target: Float) {
@@ -1920,13 +1995,13 @@ object BackgroundUtil {
         }
 
         override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-        override fun getIntrinsicWidth(): Int = sizePx
-        override fun getIntrinsicHeight(): Int = sizePx
+        override fun getIntrinsicWidth(): Int = footprintPx
+        override fun getIntrinsicHeight(): Int = footprintPx
 
         override fun jumpToCurrentState() {
             animator?.cancel()
             animator = null
-            checkedProgress = targetProgress
+            checkedProgress = if (checked) 1f else 0f
             invalidateSelf()
         }
     }

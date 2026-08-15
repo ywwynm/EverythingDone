@@ -1630,7 +1630,7 @@
     <string name="spatial_settings_interaction">互動</string>
     <string name="spatial_settings_storage">儲存空間</string>
     <string name="spatial_inpainting_available_memory_required">目前可用記憶體不足以執行所選隱藏背景品質。請關閉其他大型 App，或降低 AOT-GAN 工作解析度。</string>
-    <string name="spatial_delete_inpainting_message">已產生的空間效果仍可檢視；新建或重新產生增強效果需要此模型。</string>
+    <string name="spatial_delete_inpainting_message">背景補全模型用於補全視角移動時露出的被遮擋區域，是生成完整空間效果的必需元件。刪除後如無其它已安裝的補全模型，新的生成只能使用單層效果；已生成的空間效果仍可檢視。</string>
     <string name="spatial_generation_geometry">正在建立深度分層…</string>
     <string name="spatial_generation_inpainting">正在補全隱藏背景…</string>
 
@@ -1731,7 +1731,15 @@
     <string name="spatial_delete_model_title">刪除 %1$s？</string>
     <string name="spatial_delete_model_message">已生成的空間效果仍可檢視；生成新效果需要另一個已安裝模型。</string>
     <string name="spatial_delete_runtime_title">刪除空間計算元件？</string>
-    <string name="spatial_delete_runtime_message">模型和已生成效果會保留；下次生成深度或空間影片前需要重新下載該元件。</string>
+    <string name="spatial_delete_runtime_message">推理運行環境是所有空間模型運行的基礎。刪除後任何模型都無法運行，需重新下載才能生成新的空間效果；已安裝的模型與已生成的效果會保留。</string>
+    <string name="spatial_delete_depth_message">深度模型用於從照片推算三維幾何，是生成空間效果的必需元件。刪除後如無其它已安裝的深度模型，將無法生成新的空間效果；已生成的效果仍可檢視。</string>
+    <string name="spatial_delete_matting_message">髮絲邊緣細化模型用於細化人像髮絲等精細邊緣，屬於可選元件。刪除後新生成的效果不再套用此細化；已生成的效果仍可檢視。</string>
+    <string name="spatial_delete_segmentation_message">人物連續性模型用於在視角變化中保持人物完整連續，屬於可選元件。刪除後新生成的效果退回純深度分層；已生成的效果仍可檢視。</string>
+    <string name="spatial_delete_qnn_runtime_message">驍龍 NPU 運行元件用於讓支援的模型在本機 NPU 上推理。刪除後 NPU 加速不可用，相關模型改在 CPU 上運行；可隨時重新下載。</string>
+    <string name="spatial_delete_qnn_precompiled_message">該檔案是 Big-LaMa 在驍龍 NPU 上運行所需的預編譯產物。刪除後 Big-LaMa（NPU 版）不可用，背景補全退回 CPU 版；可隨時重新下載。</string>
+    <string name="spatial_delete_legacy_message">該元件已不再被空間渲染使用，刪除可釋放儲存空間，不影響任何功能。</string>
+    <string name="spatial_missing_components_title">下載所需元件</string>
+    <string name="spatial_missing_components_message">生成空間照片需要以下元件：\n\n%1$s\n\n可在設定頁一次性下載安裝。</string>
     <string name="spatial_metered_title">使用行動網路或受限流量？</string>
     <string name="spatial_metered_message">%1$s 需要下載 %2$s；中斷後可以續傳。</string>
     <string name="spatial_notification_denied">通知許可權已關閉。下載仍會繼續，但離開設定後可能無法看到進度。</string>

@@ -1221,7 +1221,15 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="spatial_runtime_verifying">Verifica del componente di calcolo…</string>
     <string name="spatial_runtime_installing">Installazione del componente di calcolo…</string>
     <string name="spatial_delete_runtime_title">Eliminare il componente di calcolo spaziale?</string>
-    <string name="spatial_delete_runtime_message">I modelli e gli effetti generati vengono conservati. Il componente sarà scaricato di nuovo prima di generare nuova profondità o video spaziali.</string>
+    <string name="spatial_delete_runtime_message">L\'ambiente di inferenza è la base su cui girano tutti i modelli spaziali. Dopo l\'eliminazione nessun modello può essere eseguito né si possono generare nuovi effetti spaziali finché non viene scaricato di nuovo. I modelli installati e gli effetti generati vengono conservati.</string>
+    <string name="spatial_delete_depth_message">I modelli di profondità stimano la geometria 3D di una foto; uno è necessario per generare effetti spaziali. Senza un altro modello di profondità installato, non si possono generare nuovi effetti spaziali. Gli effetti generati restano visibili.</string>
+    <string name="spatial_delete_matting_message">Il modello di rifinitura dei capelli affina i bordi sottili come i capelli nei ritratti. È facoltativo: dopo l\'eliminazione le nuove generazioni omettono semplicemente questa rifinitura. Gli effetti generati restano visibili.</string>
+    <string name="spatial_delete_segmentation_message">Il modello di continuità delle persone mantiene la persona integra e continua durante lo spostamento del punto di vista. È facoltativo: dopo l\'eliminazione le nuove generazioni ripiegano sulla stratificazione per sola profondità. Gli effetti generati restano visibili.</string>
+    <string name="spatial_delete_qnn_runtime_message">Il componente NPU Snapdragon esegue i modelli supportati sulla NPU di questo dispositivo. Dopo l\'eliminazione l\'accelerazione NPU non è disponibile e quei modelli girano sulla CPU. Può essere scaricato di nuovo in qualsiasi momento.</string>
+    <string name="spatial_delete_qnn_precompiled_message">Questo file è l\'artefatto precompilato di cui Big-LaMa ha bisogno per girare sulla NPU Snapdragon. Dopo l\'eliminazione Big-LaMa (NPU) non è disponibile e il completamento dello sfondo ripiega sulla versione CPU. Può essere scaricato di nuovo in qualsiasi momento.</string>
+    <string name="spatial_delete_legacy_message">Questo componente non è più usato dal rendering spaziale. Eliminarlo libera spazio e non influisce su alcuna funzione.</string>
+    <string name="spatial_missing_components_title">Scaricare i componenti necessari</string>
+    <string name="spatial_missing_components_message">La generazione di foto spaziali richiede questi componenti:\n\n%1$s\n\nScaricali e installali tutti in una volta nelle impostazioni.</string>
     <string name="spatial_storage_summary">Componente di calcolo: %1$s\nPacchetti modello: %2$s\nEffetti generati: %3$s</string>
     <string name="spatial_clear_derivatives">Cancella tutti gli effetti spaziali generati</string>
     <string name="spatial_clear_derivatives_confirm">Questa operazione rimuove tutti i dati di profondità generati localmente. Gli allegati originali e i modelli scaricati non vengono modificati.</string>
@@ -1275,7 +1283,7 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="spatial_inpainting_resolution_description">512 è la più veloce, 768 è quella predefinita e 1024 sfrutta più dettagli in ingresso, senza però generare sempre un contenuto migliore. L\'app non riduce mai la tua scelta in silenzio; se la memoria non basta, chiudi altre app di grandi dimensioni.</string>
     <string name="spatial_inpainting_not_ready">Scarica il modello dello sfondo nascosto prima di generare l\'effetto spaziale avanzato.</string>
     <string name="spatial_inpainting_available_memory_required">Memoria disponibile insufficiente per la qualità dello sfondo nascosto selezionata. Chiudi altre app di grandi dimensioni o scegli una risoluzione AOT-GAN inferiore.</string>
-    <string name="spatial_delete_inpainting_message">Gli effetti spaziali già generati restano disponibili. La creazione o rigenerazione dell\'effetto avanzato richiede questo modello.</string>
+    <string name="spatial_delete_inpainting_message">I modelli di completamento dello sfondo riempiono le zone rivelate dallo spostamento del punto di vista; uno è necessario per l\'effetto spaziale completo. Senza un altro modello di completamento installato, le nuove generazioni ripiegano sull\'effetto a livello singolo. Gli effetti spaziali generati restano visibili.</string>
     <string name="spatial_generation_geometry">Costruzione dei livelli di profondità…</string>
     <string name="spatial_generation_inpainting">Riempimento dello sfondo nascosto…</string>
     <string name="spatial_select_moge2">Usa MoGe-2 Small</string>

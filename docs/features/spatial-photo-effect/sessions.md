@@ -3332,3 +3332,84 @@ D266 之后用户指出未见过的 SoC 仍然默认不显示 NPU 行、无从�
 显示层规矩时漏改 NPU 两行留下的欠账（D269）。本轮改为**全量核对**：列出本页所有
 `applyActionIcon` 调用与所有操作按钮的点击分支逐个比对，NPU 那一行在四项上都是唯一
 例外。已全部对齐并在真机验证（含取消分支的功能验证）。
+
+## 2026-08-15（续四）：设置页状态机全面重整
+
+用户一次性报出八类问题（互斥选择 bug、文案不统一、未装模型仍显示勾选控件、基础
+组件可被架空、删除不确认等），并补充三条裁定：**CPU 版推理运行环境是整个功能的
+硬前提**（没装则功能判不可用、本页其余选项全部置灰、其下载按钮任何情况可点）；
+**模型类型必须性以生成管线为准**（人物连续性在管线中可安全缺省 → 改 CheckBox）；
+生成入口要**一次列全缺失的必需组件**。
+
+根因与修复（全部在 9018f404 / OPD2515 真机验证一轮通过）：
+
+- **NPU↔CPU 互斥 bug**：人物连续性 CPU 行的取消判断只看
+  `selectedSegmentationModel == model`，而 NPU 版选中时该偏好同样等于本模型，点
+  CPU 行被误判为"再点自己"而清空选择。修为取消判断排除 NPU 位；且该组件改
+  CheckBox 后允许全不选，必选类型（深度、补全）则不允许取消已选中项。
+- **"删除后点下载没反应"**：`SpatialRuntimeDownloadWorker` 开头查
+  `isInstalled()`（跟随 NPU 总开关指向"当前变体"），NPU 开着时查的是 QNN 份——
+  QNN 装着就秒退成功，CPU 份根本不下。修为点名 `isVariantInstalled(qnn = false)`。
+  设置页与 ImageViewer 里同语义的 8 处 `isInstalled` 一并点名 CPU 变体。
+- **必选类型 invariant**：`reconcileSelections()` 在每轮刷新前修正偏好——深度/补全
+  有已装模型时偏好必须指向其中之一；人物连续性指向未装模型的残留选择清空
+  （下载中豁免，保住入队时写下的预选）。
+- **未装不显示勾选控件**：全部模型行的 RadioButton/CheckBox 未装时 INVISIBLE
+  占位（保持文字对齐）。NPU 两行的"安装物"分别为预编译产物（Big-LaMa）与基础
+  模型（RF-DETR）。EdgeTAM 旧组件未装时整行 GONE，勾选控件恒不显示。
+- **基础组件 gate**：`baseRuntimeReady()` 为假时除 runtime 行、交互与储存组外全部
+  行 disabled + alpha 0.4；删除图标与取消按钮不受 gate（清盘不需要推理环境）。
+  runtime 的 WorkManager 观察者从 `refreshRuntime()` 改为 `refreshAll()`——真机
+  验证时发现下载完成后只有 runtime 行恢复、其余行还灰着。
+- **文案统一**：发丝细化/人物连续性/NPU 组件三处独有句式（"已下载，未启用"
+  "已安装 · 使用中"）全部收敛到 `spatial_model_enabled` / `spatial_model_installed`。
+- **删除确认全覆盖**：NPU 运行组件与 Big-LaMa 预编译产物此前不确认直接删，补上
+  确认框；八类删除各配说明作用与后果的专属文案（13 语言）。发丝细化删除的
+  `setMattingEnabled(false)` 从弹框前移入确认回调（取消对话框不再误关启用位）。
+- **按钮可点性统一**：补全行去掉多余的 `entry?.enabled` 门（目录加载中三行全淡而
+  深度五行可点）；btn_qnn 目录未就绪时可点、点了说明原因并重试；Big-LaMa NPU 预编译
+  下载补上计费网络确认（此前唯一不问就用流量的入口）；发丝细化下载同样补上计费
+  确认与通知权限请求。
+- **着色列表补漏**：`rb_big_lama` / `rb_big_lama_npu` / RF-DETR NPU 行三个控件不在
+  `applyControlAccents` 的手写列表里（第六次漏项）。
+- **隐藏 bug**：补全 CPU 行选中时清的是 `model.stableId` 自己的 QNN 位——对
+  MI-GAN/AOT-GAN 这是"透明加速"位（默认开），清掉等于静默关闭它们的 NPU 加速；
+  修为只清 Big-LaMa 的位。删除分割/补全基础模型时一并清对应 NPU 选中位。
+  `npuVariantUsable` 补查基础模型在位。
+- **生成入口**：缺 runtime/深度/补全时弹一个对话框列全缺失项（bullet 列表），确认
+  跳设置页；只缺补全且其余就绪仍走单层回退分支。`spatial_missing_components_*`
+  新增 13 语言。
+- **整行点击统一**：已装 → 选择/切换；未装且未下载 → 发起下载；下载中 → 不响应
+  （取消只能点明确的取消按钮）；runtime 行已装时整行不再转发删除。
+
+真机验证要点：RF-DETR 状态"Downloaded and installed · 123 MB"；NPU 组件
+"Enabled · 137 MB"；未装五行无勾选控件；NPU→CPU→取消三步切换正确；两个新确认框
+文案完整、取消路径无副作用；删 runtime 后整页置灰（QNN 行 enabled=false）、生成
+入口弹"• On-device inference runtime"单项清单并跳设置、点下载真实下载 12.74 MB
+装回、整页恢复。270 个 spatial 单测（含 17 个源码契约断言）两轮全过。
+
+### 同日追加（续四补充）
+
+- **未下载的勾选控件改 GONE**（此前用 INVISIBLE 占位）：未下载行文字顶到行首，
+  与"已下载"行形成明确的视觉区分。
+- **两种状态都走强调渐变**：新增 `BackgroundUtil.applyRadioAccent`——把既有的
+  `GradientRadioDrawable` 升级为状态驱动（footprint、enabled 38% 淡化、
+  uncheckedGradient 与勾选框版同构），本页所有 RadioButton/CheckBox 均以
+  `uncheckedGradient = true` 套用，未选中轮廓不再是中性灰，与设置首页一致。
+  `createGradientRadioDrawable`（ChooserDialog 单选列表）路径保持兼容。
+- **"明明下载过却显示未下载"排查结论**：不是显示 bug——OPD2515 上 MI-GAN 与
+  MODNet 的模型文件确实已被删除，剩下的是 `<stableId>` 层空目录（delete 只删
+  `<version>` 层留下的壳）。五个 ModelStore 的 delete 已统一补上"父目录空则一并
+  删"，设备上的两个历史空壳已手工清掉。
+- 真机复验：未下载行无控件、Big-LaMa（NPU）未选中为渐变描边圆环、人物连续性两行
+  为渐变描边方框勾选框。270 个 spatial 单测再次全过。
+- **GONE 后的文字对齐**（同日再补）：控件隐藏后文字容器的 12dp 缩进会让文字吊在
+  28dp 半空。新增 `applyControlVisibility`：控件在时缩进 12dp，控件没了缩进改 2dp，
+  文字左缘落在 18dp——与组标题图标左缘同一条线（OPD2515 dump 实测两者同为 47px）。
+  八处勾选控件的可见性切换全部走它；文字容器无 id，按"控件的下一个兄弟"取。
+- **下载完成即自动选中**（同日再补，提交前用户追加要求）：四个下载 Worker
+  （深度、补全、发丝细化、Big-LaMa NPU 预编译产物）在装好那一刻写入选中/启用
+  偏好——实例分割 Worker 本来就这么做，推广成全家统一行为。发丝细化写
+  `mattingEnabled=true`；预编译产物装好自动切到 NPU 版。设置页三处"入队时预选"
+  一并删除（页面关着也生效，且不再与 reconcileSelections 打架）。OPD2515 实测：
+  下载 ZipDepth 装完自动选中、DA3 退为已安装；删除后回落 DA3，无空目录残留。

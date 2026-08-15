@@ -1126,8 +1126,10 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <RadioButton
-                            android:id="@+id/rb_rfdetr_seg"
+                        <!-- 人物连续性在生成管线中是可选组件（未选择时安全退回纯深度分层），
+                             所以是 CheckBox 而不是 RadioButton：允许一个都不勾。 -->
+                        <CheckBox
+                            android:id="@+id/cb_rfdetr_seg"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:contentDescription="@string/spatial_select_rfdetr_seg"/>
@@ -1190,8 +1192,8 @@
                         android:orientation="horizontal"
                         android:visibility="gone">
 
-                        <RadioButton
-                            android:id="@+id/rb_rfdetr_npu"
+                        <CheckBox
+                            android:id="@+id/cb_rfdetr_npu"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:contentDescription="@string/spatial_select_rfdetr_npu"/>

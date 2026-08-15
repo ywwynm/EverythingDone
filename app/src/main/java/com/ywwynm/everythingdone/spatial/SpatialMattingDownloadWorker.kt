@@ -106,7 +106,11 @@ class SpatialMattingDownloadWorker(
                     }
                 )
             }
-            if (wasInstalled) return Result.success()
+            if (wasInstalled) {
+                // 本次任务补装了运行组件，模型本体已在：用户的下载意图已完成，启用它
+                SpatialPreferences.setMattingEnabled(applicationContext, true)
+                return Result.success()
+            }
 
             val entry = catalog.mattingModels.orEmpty()
                 .firstOrNull { it.id == model.stableId }
@@ -139,6 +143,8 @@ class SpatialMattingDownloadWorker(
                 return Result.retry()
             }
             SpatialMattingModelStore.writeReadyMarker(applicationContext, model)
+            // 下载装好即启用：点下载本身就是"要用它"的表达（2026-08-15 用户要求）
+            SpatialPreferences.setMattingEnabled(applicationContext, true)
             partial.delete()
             Result.success()
         } catch (error: SelfTestException) {

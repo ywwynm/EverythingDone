@@ -106,7 +106,11 @@ class SpatialInpaintingDownloadWorker(
                     }
                 )
             }
-            if (wasInstalled) return Result.success()
+            if (wasInstalled) {
+                // 本次任务补装了运行组件，模型本体已在：用户的下载意图已完成，选中它
+                SpatialPreferences.setSelectedInpaintingModel(applicationContext, model)
+                return Result.success()
+            }
 
             val entry = catalog.allInpaintingModels()
                 .firstOrNull { it.id == model.stableId }
@@ -139,6 +143,8 @@ class SpatialInpaintingDownloadWorker(
                 return Result.retry()
             }
             SpatialInpaintingModelStore.writeReadyMarker(applicationContext, model)
+            // 下载装好即选中，与实例分割 Worker 的既有行为一致（2026-08-15 用户要求）
+            SpatialPreferences.setSelectedInpaintingModel(applicationContext, model)
             partial.delete()
             Result.success()
         } catch (error: SelfTestException) {

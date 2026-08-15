@@ -1811,7 +1811,7 @@
     <string name="spatial_inpainting_resolution_description">512 最快，768 为默认，1024 使用最多输入细节，但不保证每张图的生成内容都更好。App 不会静默降档；内存不足时请关闭其他大型应用。</string>
     <string name="spatial_inpainting_not_ready">请先下载隐藏背景模型，再生成增强空间效果。</string>
     <string name="spatial_inpainting_available_memory_required">当前可用内存不足以运行所选隐藏背景质量。请关闭其他大型应用，或降低 AOT-GAN 工作分辨率。</string>
-    <string name="spatial_delete_inpainting_message">已生成的空间效果仍可查看；新建或重新生成增强效果需要此模型。</string>
+    <string name="spatial_delete_inpainting_message">背景补全模型用于补全视角移动时露出的被遮挡区域，是生成完整空间效果的必需组件。删除后如无其它已安装的补全模型，新的生成只能使用单层效果；已生成的空间效果仍可查看。</string>
     <string name="spatial_generation_geometry">正在建立深度分层…</string>
     <string name="spatial_generation_inpainting">正在补全隐藏背景…</string>
     <string name="spatial_zipdepth_title">ZipDepth</string>
@@ -1865,7 +1865,15 @@
     <string name="spatial_delete_model_title">删除 %1$s？</string>
     <string name="spatial_delete_model_message">已生成的空间效果仍可查看；生成新效果需要另一个已安装模型。</string>
     <string name="spatial_delete_runtime_title">删除空间计算组件？</string>
-    <string name="spatial_delete_runtime_message">模型和已生成效果会保留；下次生成深度或空间视频前需要重新下载该组件。</string>
+    <string name="spatial_delete_runtime_message">推理运行环境是所有空间模型运行的基础。删除后任何模型都无法运行，需重新下载才能生成新的空间效果；已安装的模型与已生成的效果会保留。</string>
+    <string name="spatial_delete_depth_message">深度模型用于从照片推算三维几何，是生成空间效果的必需组件。删除后如无其它已安装的深度模型，将无法生成新的空间效果；已生成的效果仍可查看。</string>
+    <string name="spatial_delete_matting_message">发丝边缘细化模型用于细化人像发丝等精细边缘，属于可选组件。删除后新生成的效果不再应用此细化；已生成的效果仍可查看。</string>
+    <string name="spatial_delete_segmentation_message">人物连续性模型用于在视角变化中保持人物完整连续，属于可选组件。删除后新生成的效果退回纯深度分层；已生成的效果仍可查看。</string>
+    <string name="spatial_delete_qnn_runtime_message">骁龙 NPU 运行组件用于让支持的模型在本机 NPU 上推理。删除后 NPU 加速不可用，相关模型改在 CPU 上运行；可随时重新下载。</string>
+    <string name="spatial_delete_qnn_precompiled_message">该文件是 Big-LaMa 在骁龙 NPU 上运行所需的预编译产物。删除后 Big-LaMa（NPU 版）不可用，背景补全退回 CPU 版；可随时重新下载。</string>
+    <string name="spatial_delete_legacy_message">该组件已不再被空间渲染使用，删除可释放存储空间，不影响任何功能。</string>
+    <string name="spatial_missing_components_title">下载所需组件</string>
+    <string name="spatial_missing_components_message">生成空间照片需要以下组件：\n\n%1$s\n\n可在设置页一次性下载安装。</string>
     <string name="spatial_metered_title">使用移动网络或受限流量？</string>
     <string name="spatial_metered_message">%1$s 需要下载 %2$s；中断后可以续传。</string>
     <string name="spatial_notification_denied">通知权限已关闭。下载仍会继续，但离开设置后可能无法看到进度。</string>

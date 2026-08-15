@@ -340,7 +340,11 @@ class SpatialRuntimeDownloadWorker(
 ) : Worker(appContext, parameters) {
 
     override fun doWork(): Result {
-        if (SpatialRuntimeStore.isInstalled(applicationContext)) {
+        // 这个 Worker 只负责 CPU 版（NPU 版有自己的 Worker），已装判定必须点名
+        // CPU 变体。此前问的是 isInstalled()——它跟随 NPU 总开关指向"当前变体"，
+        // 开着 NPU 时问的是 QNN 那份：QNN 装着就立刻返回成功，CPU 版根本没下，
+        // 界面毫无动静，表现为"删除后点下载没反应"（2026-08-15 用户实测）。
+        if (SpatialRuntimeStore.isVariantInstalled(applicationContext, qnn = false)) {
             return Result.success(readyData())
         }
         return try {

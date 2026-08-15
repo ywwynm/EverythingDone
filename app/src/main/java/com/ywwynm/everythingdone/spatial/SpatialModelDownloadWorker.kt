@@ -121,7 +121,11 @@ class SpatialModelDownloadWorker(
                     }
                 )
             }
-            if (modelWasInstalled) return Result.success(successData(model))
+            if (modelWasInstalled) {
+                // 本次任务补装了运行组件，模型本体已在：用户的下载意图已完成，选中它
+                SpatialPreferences.setSelectedModel(applicationContext, model)
+                return Result.success(successData(model))
+            }
 
             val entry = catalog.models.firstOrNull { it.id == model.stableId }
                 ?: return failure("可信目录中没有该模型")
@@ -164,6 +168,9 @@ class SpatialModelDownloadWorker(
                 SpatialModelStore.delete(applicationContext, model)
                 return Result.retry()
             }
+            // 下载装好即选中：点下载按钮本身就是"要用它"的表达，与实例分割
+            // Worker 的既有行为一致（2026-08-15 用户要求推广到全部模型）。
+            SpatialPreferences.setSelectedModel(applicationContext, model)
             partial.delete()
             Result.success(successData(model))
         } catch (error: SelfTestException) {

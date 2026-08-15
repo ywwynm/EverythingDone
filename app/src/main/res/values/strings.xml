@@ -1821,7 +1821,7 @@
     <string name="spatial_inpainting_resolution_description">512 is fastest, 768 is the default, and 1024 uses the most input detail but does not always generate better content. The app never silently lowers your choice; close other large apps if memory is insufficient.</string>
     <string name="spatial_inpainting_not_ready">Download the hidden-background model before generating the enhanced spatial effect.</string>
     <string name="spatial_inpainting_available_memory_required">Not enough memory is currently available for the selected hidden-background quality. Close other large apps or choose a lower AOT-GAN resolution.</string>
-    <string name="spatial_delete_inpainting_message">Generated spatial effects remain available. Creating or regenerating the enhanced effect requires this model.</string>
+    <string name="spatial_delete_inpainting_message">Background inpainting models fill in the areas revealed when the viewpoint moves; one is required for the full spatial effect. If no other inpainting model is installed, new generations fall back to the single-layer effect. Generated spatial effects remain viewable.</string>
     <string name="spatial_generation_geometry">Building depth layers…</string>
     <string name="spatial_generation_inpainting">Filling hidden background…</string>
     <string name="spatial_zipdepth_title">ZipDepth</string>
@@ -1875,7 +1875,15 @@
     <string name="spatial_delete_model_title">Delete %1$s?</string>
     <string name="spatial_delete_model_message">Generated spatial effects remain available. New effects need another installed model.</string>
     <string name="spatial_delete_runtime_title">Delete the spatial computing component?</string>
-    <string name="spatial_delete_runtime_message">Models and generated effects are kept. The component will be downloaded again before new depth or spatial video is generated.</string>
+    <string name="spatial_delete_runtime_message">The inference runtime is the foundation every spatial model runs on. After deleting it, no model can run and no new spatial effects can be generated until it is downloaded again. Installed models and generated effects are kept.</string>
+    <string name="spatial_delete_depth_message">Depth models estimate 3D geometry from a photo; one is required for generating spatial effects. If no other depth model is installed, new spatial effects cannot be generated. Generated effects remain viewable.</string>
+    <string name="spatial_delete_matting_message">The hair-edge matting model refines fine edges such as hair in portraits. It is optional: after deleting it, new generations simply skip this refinement. Generated effects remain viewable.</string>
+    <string name="spatial_delete_segmentation_message">The person-continuity model keeps a person intact and continuous while the viewpoint moves. It is optional: after deleting it, new generations fall back to pure depth layering. Generated effects remain viewable.</string>
+    <string name="spatial_delete_qnn_runtime_message">The Snapdragon NPU component runs supported models on this device\'s NPU. After deleting it, NPU acceleration is unavailable and those models run on the CPU instead. It can be downloaded again at any time.</string>
+    <string name="spatial_delete_qnn_precompiled_message">This file is the precompiled artifact Big-LaMa needs to run on the Snapdragon NPU. After deleting it, Big-LaMa (NPU) is unavailable and background inpainting falls back to the CPU version. It can be downloaded again at any time.</string>
+    <string name="spatial_delete_legacy_message">This component is no longer used by spatial rendering. Deleting it frees storage and does not affect any feature.</string>
+    <string name="spatial_missing_components_title">Download required components</string>
+    <string name="spatial_missing_components_message">Generating spatial photos requires these components:\n\n%1$s\n\nDownload and install them all at once in settings.</string>
     <string name="spatial_metered_title">Use mobile or restricted data?</string>
     <string name="spatial_metered_message">%1$s will download %2$s. The download can resume after interruptions.</string>
     <string name="spatial_notification_denied">Notifications are disabled. The download will continue, but progress may not be visible outside Settings.</string>

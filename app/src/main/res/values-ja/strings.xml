@@ -1275,7 +1275,15 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="spatial_runtime_verifying">演算コンポーネントを検証しています…</string>
     <string name="spatial_runtime_installing">演算コンポーネントをインストールしています…</string>
     <string name="spatial_delete_runtime_title">空間演算コンポーネントを削除しますか？</string>
-    <string name="spatial_delete_runtime_message">モデルと生成済みエフェクトは保持されます。新しい深度または空間ビデオを生成する前に、コンポーネントを再ダウンロードします。</string>
+    <string name="spatial_delete_runtime_message">推論ランタイムはすべての空間モデルが動作する基盤です。削除すると、再ダウンロードするまでどのモデルも実行できず、新しい空間効果を生成できません。インストール済みモデルと生成済み効果は保持されます。</string>
+    <string name="spatial_delete_depth_message">深度モデルは写真から 3D 形状を推定するもので、空間効果の生成に 1 つ必要です。他の深度モデルがインストールされていない場合、新しい空間効果を生成できなくなります。生成済みの効果は引き続き閲覧できます。</string>
+    <string name="spatial_delete_matting_message">髪の毛エッジ細分化モデルは、ポートレートの髪など細かな輪郭を精細化します。任意のコンポーネントです。削除すると新規生成でこの精細化が省かれるだけです。生成済みの効果は引き続き閲覧できます。</string>
+    <string name="spatial_delete_segmentation_message">人物連続性モデルは、視点の移動中も人物を一体のまま保ちます。任意のコンポーネントです。削除すると新規生成は純粋な深度分層に戻ります。生成済みの効果は引き続き閲覧できます。</string>
+    <string name="spatial_delete_qnn_runtime_message">Snapdragon NPU コンポーネントは、対応モデルをこの端末の NPU で実行します。削除すると NPU アクセラレーションが利用できなくなり、対象モデルは CPU で実行されます。いつでも再ダウンロードできます。</string>
+    <string name="spatial_delete_qnn_precompiled_message">このファイルは Big-LaMa を Snapdragon NPU で実行するために必要なプリコンパイル済み成果物です。削除すると Big-LaMa（NPU 版）が利用できなくなり、背景補完は CPU 版に戻ります。いつでも再ダウンロードできます。</string>
+    <string name="spatial_delete_legacy_message">このコンポーネントは空間レンダリングでは使用されなくなりました。削除するとストレージが解放され、機能への影響はありません。</string>
+    <string name="spatial_missing_components_title">必要なコンポーネントのダウンロード</string>
+    <string name="spatial_missing_components_message">空間写真の生成には次のコンポーネントが必要です：\n\n%1$s\n\n設定でまとめてダウンロード・インストールできます。</string>
     <string name="spatial_storage_summary">計算コンポーネント：%1$s\nモデルパッケージ：%2$s\n生成済みエフェクト：%3$s</string>
     <string name="spatial_clear_derivatives">生成済みの空間エフェクトをすべて消去</string>
     <string name="spatial_clear_derivatives_confirm">端末内で生成された深度データをすべて削除します。元の添付ファイルとダウンロード済みモデルは変更されません。</string>
@@ -1329,7 +1337,7 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="spatial_inpainting_resolution_description">512 が最速、768 が既定、1024 は入力ディテールを最も活かしますが、常により良い結果になるとは限りません。アプリが選択を黙って下げることはありません。メモリが足りない場合は他の大きなアプリを終了してください。</string>
     <string name="spatial_inpainting_not_ready">拡張空間効果を生成する前に、隠れ背景モデルをダウンロードしてください。</string>
     <string name="spatial_inpainting_available_memory_required">選択した隠れ背景の品質に対して、現在の空きメモリが不足しています。他の大きなアプリを終了するか、AOT-GAN の解像度を下げてください。</string>
-    <string name="spatial_delete_inpainting_message">生成済みの空間効果は引き続き利用できます。拡張効果の作成や再生成にはこのモデルが必要です。</string>
+    <string name="spatial_delete_inpainting_message">背景補完モデルは視点の移動で現れる領域を埋めるもので、完全な空間効果の生成に 1 つ必要です。他の補完モデルがインストールされていない場合、新規生成は単層効果のみになります。生成済みの空間効果は引き続き閲覧できます。</string>
     <string name="spatial_generation_geometry">深度レイヤーを構築しています…</string>
     <string name="spatial_generation_inpainting">隠れ背景を補完しています…</string>
     <string name="spatial_select_moge2">MoGe-2 Small を使用</string>

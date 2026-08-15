@@ -117,7 +117,11 @@ object SpatialMattingModelStore {
 
     fun delete(context: Context, model: SpatialMattingModel): Boolean {
         val directory = modelDirectory(context, model)
-        return !directory.exists() || directory.deleteRecursively()
+        val ok = !directory.exists() || directory.deleteRecursively()
+        // modelDirectory 是 <stableId>/<version> 两层，只删 version 层会把空的
+        // stableId 目录留成壳（2026-08-15 在 OPD2515 上实测残留），一并清掉。
+        directory.parentFile?.takeIf { it.list()?.isEmpty() == true }?.delete()
+        return ok
     }
 
     fun totalBytes(context: Context): Long = directoryBytes(rootDirectory(context))

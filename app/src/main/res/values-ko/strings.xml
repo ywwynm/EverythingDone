@@ -1275,7 +1275,15 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="spatial_runtime_verifying">연산 구성 요소 확인 중…</string>
     <string name="spatial_runtime_installing">연산 구성 요소 설치 중…</string>
     <string name="spatial_delete_runtime_title">공간 연산 구성 요소를 삭제할까요?</string>
-    <string name="spatial_delete_runtime_message">모델과 생성한 효과는 유지됩니다. 새 깊이나 공간 비디오를 생성하기 전에 구성 요소를 다시 다운로드합니다.</string>
+    <string name="spatial_delete_runtime_message">추론 런타임은 모든 공간 모델이 동작하는 기반입니다. 삭제하면 다시 다운로드할 때까지 어떤 모델도 실행할 수 없고 새 공간 효과를 생성할 수 없습니다. 설치된 모델과 생성한 효과는 유지됩니다.</string>
+    <string name="spatial_delete_depth_message">깊이 모델은 사진에서 3D 형상을 추정하며, 공간 효과 생성에 하나가 필요합니다. 설치된 다른 깊이 모델이 없으면 새 공간 효과를 생성할 수 없습니다. 생성한 효과는 계속 볼 수 있습니다.</string>
+    <string name="spatial_delete_matting_message">머리카락 경계 세분화 모델은 인물 사진의 머리카락 같은 미세한 경계를 다듬습니다. 선택 구성 요소로, 삭제하면 새 생성에서 이 다듬기만 생략됩니다. 생성한 효과는 계속 볼 수 있습니다.</string>
+    <string name="spatial_delete_segmentation_message">인물 연속성 모델은 시점이 움직여도 인물을 온전하고 연속되게 유지합니다. 선택 구성 요소로, 삭제하면 새 생성은 순수 깊이 분리로 돌아갑니다. 생성한 효과는 계속 볼 수 있습니다.</string>
+    <string name="spatial_delete_qnn_runtime_message">Snapdragon NPU 구성 요소는 지원 모델을 이 기기의 NPU에서 실행합니다. 삭제하면 NPU 가속을 사용할 수 없고 해당 모델은 CPU에서 실행됩니다. 언제든지 다시 다운로드할 수 있습니다.</string>
+    <string name="spatial_delete_qnn_precompiled_message">이 파일은 Big-LaMa가 Snapdragon NPU에서 실행되는 데 필요한 사전 컴파일 산출물입니다. 삭제하면 Big-LaMa(NPU)를 사용할 수 없고 배경 보완은 CPU 버전으로 돌아갑니다. 언제든지 다시 다운로드할 수 있습니다.</string>
+    <string name="spatial_delete_legacy_message">이 구성 요소는 더 이상 공간 렌더링에 사용되지 않습니다. 삭제하면 저장 공간이 확보되며 어떤 기능에도 영향이 없습니다.</string>
+    <string name="spatial_missing_components_title">필요한 구성 요소 다운로드</string>
+    <string name="spatial_missing_components_message">공간 사진을 생성하려면 다음 구성 요소가 필요합니다:\n\n%1$s\n\n설정에서 한 번에 다운로드하여 설치할 수 있습니다.</string>
     <string name="spatial_storage_summary">연산 구성 요소: %1$s\n모델 패키지: %2$s\n생성한 효과: %3$s</string>
     <string name="spatial_clear_derivatives">생성한 모든 공간 효과 지우기</string>
     <string name="spatial_clear_derivatives_confirm">기기에서 생성한 모든 깊이 데이터를 제거합니다. 원본 첨부 파일과 다운로드한 모델은 변경되지 않습니다.</string>
@@ -1329,7 +1337,7 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="spatial_inpainting_resolution_description">512가 가장 빠르고 768이 기본값이며 1024는 입력 디테일을 가장 많이 활용하지만 항상 더 나은 결과를 만들지는 않습니다. 앱이 선택을 조용히 낮추는 일은 없습니다. 메모리가 부족하면 다른 큰 앱을 종료하세요.</string>
     <string name="spatial_inpainting_not_ready">확장 공간 효과를 생성하기 전에 가려진 배경 모델을 다운로드하세요.</string>
     <string name="spatial_inpainting_available_memory_required">선택한 가려진 배경 품질에 필요한 메모리가 부족합니다. 다른 큰 앱을 종료하거나 AOT-GAN 해상도를 낮추세요.</string>
-    <string name="spatial_delete_inpainting_message">이미 생성된 공간 효과는 계속 사용할 수 있습니다. 확장 효과를 만들거나 다시 생성하려면 이 모델이 필요합니다.</string>
+    <string name="spatial_delete_inpainting_message">배경 보완 모델은 시점 이동으로 드러나는 영역을 채우며, 완전한 공간 효과 생성에 하나가 필요합니다. 설치된 다른 보완 모델이 없으면 새 생성은 단일 레이어 효과로 대체됩니다. 생성한 공간 효과는 계속 볼 수 있습니다.</string>
     <string name="spatial_generation_geometry">깊이 레이어를 구성하는 중…</string>
     <string name="spatial_generation_inpainting">가려진 배경을 채우는 중…</string>
     <string name="spatial_select_moge2">MoGe-2 Small 사용</string>

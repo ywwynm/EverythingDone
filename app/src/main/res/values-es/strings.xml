@@ -1221,7 +1221,15 @@ Bueno, nunca los encontrarás todos. Jajajajaja.</item>
     <string name="spatial_runtime_verifying">Verificando el componente de cálculo…</string>
     <string name="spatial_runtime_installing">Instalando el componente de cálculo…</string>
     <string name="spatial_delete_runtime_title">¿Eliminar el componente de cálculo espacial?</string>
-    <string name="spatial_delete_runtime_message">Se conservarán los modelos y los efectos generados. El componente se descargará de nuevo antes de generar profundidad o vídeo espacial.</string>
+    <string name="spatial_delete_runtime_message">El entorno de inferencia es la base sobre la que funcionan todos los modelos espaciales. Tras eliminarlo, ningún modelo podrá ejecutarse ni se podrán generar nuevos efectos espaciales hasta descargarlo de nuevo. Los modelos instalados y los efectos generados se conservan.</string>
+    <string name="spatial_delete_depth_message">Los modelos de profundidad estiman la geometría 3D de una foto; se necesita uno para generar efectos espaciales. Si no hay otro modelo de profundidad instalado, no se podrán generar nuevos efectos espaciales. Los efectos generados siguen disponibles.</string>
+    <string name="spatial_delete_matting_message">El modelo de refinado de bordes de cabello afina los bordes finos, como el pelo en los retratos. Es opcional: tras eliminarlo, las nuevas generaciones simplemente omiten este refinado. Los efectos generados siguen disponibles.</string>
+    <string name="spatial_delete_segmentation_message">El modelo de continuidad de personas mantiene a la persona íntegra y continua al mover el punto de vista. Es opcional: tras eliminarlo, las nuevas generaciones recurren a la separación por profundidad pura. Los efectos generados siguen disponibles.</string>
+    <string name="spatial_delete_qnn_runtime_message">El componente NPU de Snapdragon ejecuta los modelos compatibles en la NPU de este dispositivo. Tras eliminarlo, la aceleración por NPU no estará disponible y esos modelos se ejecutarán en la CPU. Puede descargarse de nuevo en cualquier momento.</string>
+    <string name="spatial_delete_qnn_precompiled_message">Este archivo es el artefacto precompilado que Big-LaMa necesita para ejecutarse en la NPU de Snapdragon. Tras eliminarlo, Big-LaMa (NPU) no estará disponible y el relleno de fondo recurrirá a la versión de CPU. Puede descargarse de nuevo en cualquier momento.</string>
+    <string name="spatial_delete_legacy_message">Este componente ya no lo usa el renderizado espacial. Eliminarlo libera almacenamiento y no afecta a ninguna función.</string>
+    <string name="spatial_missing_components_title">Descargar componentes necesarios</string>
+    <string name="spatial_missing_components_message">Generar fotos espaciales requiere estos componentes:\n\n%1$s\n\nDescárguelos e instálelos todos de una vez en los ajustes.</string>
     <string name="spatial_storage_summary">Componente de cálculo: %1$s\nPaquetes de modelos: %2$s\nEfectos generados: %3$s</string>
     <string name="spatial_clear_derivatives">Borrar todos los efectos espaciales generados</string>
     <string name="spatial_clear_derivatives_confirm">Esto elimina todos los datos de profundidad generados localmente. Los adjuntos originales y los modelos descargados no se modifican.</string>
@@ -1275,7 +1283,7 @@ Bueno, nunca los encontrarás todos. Jajajajaja.</item>
     <string name="spatial_inpainting_resolution_description">512 es la más rápida, 768 es la predeterminada y 1024 aprovecha más detalle de entrada, aunque no siempre genera mejor contenido. La app nunca reduce tu elección en silencio; si falta memoria, cierra otras apps grandes.</string>
     <string name="spatial_inpainting_not_ready">Descarga el modelo de fondo oculto antes de generar el efecto espacial mejorado.</string>
     <string name="spatial_inpainting_available_memory_required">No hay memoria suficiente para la calidad de fondo oculto seleccionada. Cierra otras apps grandes o elige una resolución AOT-GAN menor.</string>
-    <string name="spatial_delete_inpainting_message">Los efectos espaciales ya generados siguen disponibles. Crear o regenerar el efecto mejorado requiere este modelo.</string>
+    <string name="spatial_delete_inpainting_message">Los modelos de relleno de fondo completan las zonas que se revelan al mover el punto de vista; se necesita uno para el efecto espacial completo. Si no hay otro modelo de relleno instalado, las nuevas generaciones recurrirán al efecto de una sola capa. Los efectos espaciales generados siguen disponibles.</string>
     <string name="spatial_generation_geometry">Construyendo capas de profundidad…</string>
     <string name="spatial_generation_inpainting">Rellenando el fondo oculto…</string>
     <string name="spatial_select_moge2">Usar MoGe-2 Small</string>
