@@ -1186,7 +1186,8 @@
     <string name="spatial_device_tilt">डिवाइस झुकाकर दृष्टिकोण नियंत्रित करें</string>
     <string name="spatial_device_tilt_description">डिफ़ॉल्ट रूप से चालू। इसे बंद करने पर खींचकर नियंत्रण उपलब्ध रहता है और मोशन सेंसर का पंजीकरण बंद हो जाता है।</string>
     <string name="spatial_download">डाउनलोड करें</string>
-    <string name="spatial_model_installed">इंस्टॉल किया गया · %1$s</string>
+    <string name="spatial_model_installed">डाउनलोड और इंस्टॉल · %1$s</string>
+    <string name="spatial_model_enabled">चालू · %1$s</string>
     <string name="spatial_model_not_downloaded">डाउनलोड नहीं किया गया · %1$s</string>
     <string name="spatial_model_memory_required">इस मॉडल को कम से कम %1$d GB डिवाइस मेमोरी चाहिए</string>
     <string name="spatial_model_failed">डाउनलोड विफल: %1$s</string>

@@ -1186,7 +1186,8 @@ Bueno, nunca los encontrarás todos. Jajajajaja.</item>
     <string name="spatial_device_tilt">Controlar el punto de vista inclinando el dispositivo</string>
     <string name="spatial_device_tilt_description">Activado de forma predeterminada. Al desactivarlo, se mantiene el control mediante arrastre y deja de registrarse el sensor de movimiento.</string>
     <string name="spatial_download">Descargar</string>
-    <string name="spatial_model_installed">Instalado · %1$s</string>
+    <string name="spatial_model_installed">Descargado e instalado · %1$s</string>
+    <string name="spatial_model_enabled">Activado · %1$s</string>
     <string name="spatial_model_not_downloaded">No descargado · %1$s</string>
     <string name="spatial_model_memory_required">Este modelo necesita al menos %1$d GB de memoria del dispositivo</string>
     <string name="spatial_model_failed">Error de descarga: %1$s</string>

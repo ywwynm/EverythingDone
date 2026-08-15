@@ -1186,7 +1186,8 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_device_tilt">Contrôler le point de vue en inclinant l’appareil</string>
     <string name="spatial_device_tilt_description">Activé par défaut. La désactivation conserve le contrôle par glissement et arrête l’enregistrement du capteur de mouvement.</string>
     <string name="spatial_download">Télécharger</string>
-    <string name="spatial_model_installed">Installé · %1$s</string>
+    <string name="spatial_model_installed">Téléchargé et installé · %1$s</string>
+    <string name="spatial_model_enabled">Activé · %1$s</string>
     <string name="spatial_model_not_downloaded">Non téléchargé · %1$s</string>
     <string name="spatial_model_memory_required">Ce modèle nécessite au moins %1$d Go de mémoire sur l’appareil</string>
     <string name="spatial_model_failed">Échec du téléchargement : %1$s</string>

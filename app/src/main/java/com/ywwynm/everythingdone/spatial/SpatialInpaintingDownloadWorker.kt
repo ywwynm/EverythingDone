@@ -78,10 +78,6 @@ class SpatialInpaintingDownloadWorker(
             return failure("设备内存等级不足")
         }
         if (wasInstalled && SpatialRuntimeStore.isInstalled(applicationContext)) {
-            // 模型与运行组件都在，但 NPU 预编译产物可能还没取——用户完全可能是先装模型、
-            // 后开 NPU 开关。这一步失败不致命，拿不到就走端上现编或 CPU。
-            runCatching { fetchPrecompiledIfNeeded(model) }
-                .onFailure { android.util.Log.w("SpatialInpaintDL", "NPU 预编译产物获取失败", it) }
             return Result.success()
         }
         return try {
@@ -144,8 +140,6 @@ class SpatialInpaintingDownloadWorker(
             }
             SpatialInpaintingModelStore.writeReadyMarker(applicationContext, model)
             partial.delete()
-            runCatching { fetchPrecompiledIfNeeded(model) }
-                .onFailure { android.util.Log.w("SpatialInpaintDL", "NPU 预编译产物获取失败", it) }
             Result.success()
         } catch (error: SelfTestException) {
             if (!wasInstalled) {
@@ -320,26 +314,11 @@ class SpatialInpaintingDownloadWorker(
         }
     }
 
-    /** 取本机 dsp_arch 的预编译 context；条件不满足时静默跳过。 */
-    private fun fetchPrecompiledIfNeeded(model: SpatialInpaintingModel) {
-        if (!SpatialPreferences.qnnEnabled(applicationContext)) return
-        val catalog = SpatialCatalogClient(applicationContext).fetchOrCached().catalog
-        SpatialRuntimeInstaller.ensurePrecompiled(
-            context = applicationContext,
-            catalog = catalog,
-            modelId = model.stableId,
-            modelVersion = model.version,
-            shouldStop = { isStopped },
-            onProgress = { progress ->
-                publishProgress(
-                    model,
-                    progress.downloaded,
-                    progress.total,
-                    STATE_RUNTIME_DOWNLOADING
-                )
-            }
-        )
-    }
+    // 这里曾经跟着下 NPU 预编译产物（fetchPrecompiledIfNeeded），已删除。
+    // 「（NPU 版）」在设置页是**独立选项、独立下载按钮**，跟着 CPU 版一起下会让用户在
+    // 没点过任何东西的情况下多出一百多 MB，而且那一行会直接显示"已下载"——2026-08-14
+    // 用户实测后指出"我根本就没有下载"。要装 NPU 版只走
+    // SpatialQnnPrecompiledDownloadCoordinator 这一条路。
 
     private fun failure(message: String, stage: String? = null): Result = Result.failure(
         Data.Builder()

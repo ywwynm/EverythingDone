@@ -1240,7 +1240,8 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="spatial_device_tilt">端末の傾きで視点を操作</string>
     <string name="spatial_device_tilt_description">既定で有効です。無効にしてもドラッグ操作は使用でき、モーションセンサーの登録は停止します。</string>
     <string name="spatial_download">ダウンロード</string>
-    <string name="spatial_model_installed">インストール済み · %1$s</string>
+    <string name="spatial_model_installed">ダウンロード・インストール済み · %1$s</string>
+    <string name="spatial_model_enabled">有効 · %1$s</string>
     <string name="spatial_model_not_downloaded">未ダウンロード · %1$s</string>
     <string name="spatial_model_memory_required">このモデルには端末メモリが %1$d GB 以上必要です</string>
     <string name="spatial_model_failed">ダウンロードに失敗しました：%1$s</string>

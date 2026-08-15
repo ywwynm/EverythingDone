@@ -1843,7 +1843,8 @@
     <string name="spatial_device_tilt">通过倾斜设备控制视点</string>
     <string name="spatial_device_tilt_description">默认开启。关闭后不会注册姿态传感器，仍可拖动图片控制视点。</string>
     <string name="spatial_download">下载</string>
-    <string name="spatial_model_installed">已安装 · %1$s</string>
+    <string name="spatial_model_installed">已下载安装 · %1$s</string>
+    <string name="spatial_model_enabled">已启用 · %1$s</string>
     <string name="spatial_model_not_downloaded">未下载 · %1$s</string>
     <string name="spatial_runtime_installed">已为本机安装 · %1$s</string>
     <string name="spatial_runtime_not_downloaded">本机尚未下载 · %1$s</string>

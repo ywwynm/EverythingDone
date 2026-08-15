@@ -1853,7 +1853,8 @@
     <string name="spatial_device_tilt">Control viewpoint by tilting the device</string>
     <string name="spatial_device_tilt_description">Enabled by default. Turning this off keeps drag control available and stops registering the motion sensor.</string>
     <string name="spatial_download">Download</string>
-    <string name="spatial_model_installed">Installed · %1$s</string>
+    <string name="spatial_model_installed">Downloaded and installed · %1$s</string>
+    <string name="spatial_model_enabled">Enabled · %1$s</string>
     <string name="spatial_model_not_downloaded">Not downloaded · %1$s</string>
     <string name="spatial_runtime_installed">Installed for this device · %1$s</string>
     <string name="spatial_runtime_not_downloaded">Not downloaded for this device · %1$s</string>

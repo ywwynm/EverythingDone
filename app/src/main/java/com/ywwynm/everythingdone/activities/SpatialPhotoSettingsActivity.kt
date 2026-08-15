@@ -362,13 +362,25 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun bindModel(model: SpatialDepthModel) {
-        radio(model).setOnClickListener {
-            if (SpatialModelStore.isInstalled(this, model)) {
+        // 行与 RadioButton 共用同一个监听器，**不要用 `row -> radio.performClick()`**：
+        // RadioButton 是 CompoundButton，performClick() 会先 toggle 再回调，而且它
+        // **不检查 isEnabled**——于是给 RadioButton 设的 `isEnabled = installed` 被整个
+        // 绕过，点未安装的模型照样会勾上（2026-08-14 用户实测 MoGe-2 Base）。
+        val select = View.OnClickListener {
+            if (SpatialModelStore.isInstalled(this, model) &&
+                SpatialModelStore.isDeviceEligible(this, model)
+            ) {
                 SpatialPreferences.setSelectedModel(this, model)
-                refreshAll()
             }
+            // 拒绝的分支也必须刷新：直接点 RadioButton 时它已经自己 toggle 过了，
+            // 不重绘的话那个勾就留在界面上。
+            refreshAll()
         }
-        row(model).setOnClickListener { radio(model).performClick() }
+        // RadioButton 只作显示：不给它挂监听器，并关掉 clickable，让点击穿透到整行。
+        // 否则直接点它时 CompoundButton 会先 toggle 自己，再被 refreshAll() 刷回去，
+        // 出现一帧闪烁——而且 setOnClickListener 本身就会把 clickable 设回 true。
+        radio(model).isClickable = false
+        row(model).setOnClickListener(select)
         button(model).setOnClickListener { onModelAction(model) }
         deleteIcon(model).setOnClickListener { onModelAction(model) }
         WorkManager.getInstance(applicationContext)
@@ -379,23 +391,28 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 // 历史失败任务可能拥有更大的重试次数；当前活动任务必须优先，否则 UI 会错误显示
                 // “下载”而不是“取消”。
                 workInfo[model] = currentWorkInfo(infos)
-                refreshModel(model)
-                refreshRuntime()
+                // **整页刷新，不要只刷这一行**：行与行之间是有依赖的（NPU 版那一行的
+                // 状态取决于 CPU 版装没装），窄刷新的结果是 CPU 版下完了、NPU 版那行
+                // 还写着"需要先安装 CPU 版"，而且两行同时显示未选中
+                // （2026-08-14 用户实测）。整页刷新只是几十次 findViewById。
+                refreshAll()
             }
     }
 
     private fun bindInpaintingModel(model: SpatialInpaintingModel) {
-        inpaintingRadio(model).setOnClickListener {
+        // 同 bindModel：共用监听器而不是 performClick()，且拒绝时也要刷新
+        val select = View.OnClickListener {
             if (SpatialInpaintingModelStore.isInstalled(this, model) &&
                 SpatialInpaintingModelStore.isDeviceEligible(this, model)
             ) {
                 SpatialPreferences.setSelectedInpaintingModel(this, model)
-                refreshAll()
+                // 选了 CPU 版就要把该模型的 NPU 版取消，否则两个都亮着
+                SpatialPreferences.setQnnEnabledFor(this, model.stableId, false)
             }
+            refreshAll()
         }
-        inpaintingRow(model).setOnClickListener {
-            inpaintingRadio(model).performClick()
-        }
+        inpaintingRadio(model).isClickable = false  // 同 bindModel：点击交给整行
+        inpaintingRow(model).setOnClickListener(select)
         inpaintingButton(model).setOnClickListener {
             onInpaintingAction(model)
         }
@@ -408,8 +425,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             )
             .observe(this) { infos ->
                 inpaintingWorkInfo[model] = currentWorkInfo(infos)
-                refreshInpainting(model)
-                refreshRuntime()
+                refreshAll()  // 同上：NPU 版那一行依赖 CPU 版的安装状态
             }
     }
 
@@ -431,6 +447,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 )
                 refreshAll()
             } else {
+                // CheckBox 已经自己 toggle 过了，先重绘回未勾选再去发起下载
+                refreshAll()
                 onMattingAction(model)
             }
         }
@@ -498,7 +516,9 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val mattingOn = SpatialPreferences.mattingEnabled(this)
         findViewById<android.widget.CheckBox>(R.id.cb_modnet).apply {
             isChecked = installed && mattingOn
-            isEnabled = installed
+            // 与各模型行的 RadioButton 统一：未下载不置灰。这个勾选框的语义是"启用"
+            // 而不是"选择"，所以仍然可点——点了就发起下载，与整行一致。
+            isEnabled = true
             visibility = if (active) View.GONE else View.VISIBLE
         }
         findViewById<TextView>(R.id.tv_modnet_status).text = when {
@@ -564,7 +584,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
 
     private fun bindSegmentationModel() {
         val model = SpatialSegmentationModel.RF_DETR_SEG_NANO
-        findViewById<RadioButton>(R.id.rb_rfdetr_seg).setOnClickListener {
+        // 同 bindModel：共用监听器而不是 performClick()
+        val select = View.OnClickListener {
             if (SpatialSegmentationModelStore.isInstalled(this, model) &&
                 SpatialSegmentationModelStore.isDeviceEligible(this, model)
             ) {
@@ -574,14 +595,18 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 SpatialPreferences.setSelectedSegmentationModel(
                     this, if (enabled) null else model
                 )
+                // 选 CPU 版就要把该模型的 NPU 版取消，否则两行同时亮着
+                SpatialPreferences.setQnnEnabledFor(this, model.stableId, false)
                 refreshAll()
             } else {
+                // 未安装时点击 = 发起下载；这条分支里 onSegmentationAction 自己会刷新，
+                // 但 RadioButton 可能已经 toggle 过了，先重绘回去再说
+                refreshAll()
                 onSegmentationAction(model)
             }
         }
-        findViewById<View>(R.id.model_rfdetr_seg).setOnClickListener {
-            findViewById<RadioButton>(R.id.rb_rfdetr_seg).performClick()
-        }
+        findViewById<RadioButton>(R.id.rb_rfdetr_seg).isClickable = false
+        findViewById<View>(R.id.model_rfdetr_seg).setOnClickListener(select)
         findViewById<View>(R.id.btn_rfdetr_seg).setOnClickListener {
             onSegmentationAction(model)
         }
@@ -594,8 +619,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             )
             .observe(this) { infos ->
                 segmentationWorkInfo = currentWorkInfo(infos)
-                refreshSegmentation()
-                refreshRuntime()
+                refreshAll()  // 同上：RF-DETR（NPU 版）那一行依赖基础模型的安装状态
             }
     }
 
@@ -691,7 +715,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             isChecked = installed && !rfNpuChosen &&
                 SpatialPreferences.selectedSegmentationModel(this@SpatialPhotoSettingsActivity) ==
                 model
-            isEnabled = installed && SpatialSegmentationModelStore.isDeviceEligible(
+            // 同 refreshModel：未下载不置灰，只有设备不达标才置灰
+            isEnabled = SpatialSegmentationModelStore.isDeviceEligible(
                 this@SpatialPhotoSettingsActivity,
                 model
             )
@@ -777,8 +802,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             )
             .observe(this) { infos ->
                 boundaryRefinementWorkInfo = currentWorkInfo(infos)
-                refreshBoundaryRefinement()
-                refreshRuntime()
+                refreshAll()
             }
     }
 
@@ -1404,19 +1428,21 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val eligible = SpatialModelStore.isDeviceEligible(this, model)
         val info = workInfo[model]
         val active = info?.let(::isActive) == true
-        val anyInstalled = SpatialDepthModel.entries.any {
-            SpatialModelStore.isInstalled(this, it)
-        }
-        val selected = if (anyInstalled) {
-            installed && SpatialPreferences.selectedModel(this) == model
-        } else {
-            model == SpatialDepthModel.ZIPDEPTH
-        }
+        // **没装就不许显示选中**。此前一个都没装时会把默认模型（ZipDepth）勾上，
+        // 让人以为它已经可用；实际生成时才会撞上"模型未安装"。偏好里存的只是"用户挑了
+        // 哪个"，装没装是另一回事，勾选状态必须同时满足两者（2026-08-14 用户要求）。
+        val selected = installed && SpatialPreferences.selectedModel(this) == model
         radio(model).isChecked = selected
-        radio(model).isEnabled = installed && eligible
+        // **只在设备不达标时才置灰**。未下载不置灰——用户明确要求，且"淡"在这里表达不了
+        // 有用的信息：没下载这件事，右边的状态文字和下载按钮已经说清楚了，再把左边的
+        // 圈也调淡只是让同一件事说三遍，还与 MI-GAN 这类默认已装的行看起来不一致
+        // （2026-08-14 用户指出）。能不能选由整行的受控监听器决定，不靠 isEnabled。
+        radio(model).isEnabled = eligible
 
         val size = Formatter.formatFileSize(this, model.sizeBytes)
         status(model).text = when {
+            // 装了但没在用，与正在用的，要分开说：与发丝细化、人物连续性两组一致
+            selected -> getString(R.string.spatial_model_enabled, size)
             installed -> getString(R.string.spatial_model_installed, size)
             !eligible -> getString(
                 R.string.spatial_model_memory_required,
@@ -1442,22 +1468,18 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val info = inpaintingWorkInfo[model]
         val active = info?.let(::isActive) == true
         val entry = inpaintingEntries[model]
-        val anyInstalled = SpatialInpaintingModel.entries.any {
-            SpatialInpaintingModelStore.isInstalled(this, it)
-        }
         // 选中 NPU 版时 CPU 版必须取消：两者是同一个 RadioGroup 语义上的两个选项，
         // 但分处不同父容器，系统不会自动互斥（2026-08-14 实测两个同时选中）。
         val npuChosen = SpatialPreferences.qnnEnabledFor(this, model.stableId) &&
             npuVariantUsable(model)
-        inpaintingRadio(model).isChecked = if (anyInstalled) {
-            installed && !npuChosen &&
-                SpatialPreferences.selectedInpaintingModel(this) == model
-        } else {
-            model == SpatialInpaintingModel.MIGAN_PLACES2_512_PIPELINE
-        }
-        inpaintingRadio(model).isEnabled = installed && eligible
+        // 同 refreshModel：没装就不许显示选中，此前一个都没装时会把 MI-GAN 勾上。
+        val selected = installed && !npuChosen &&
+            SpatialPreferences.selectedInpaintingModel(this) == model
+        inpaintingRadio(model).isChecked = selected
+        inpaintingRadio(model).isEnabled = eligible  // 同 refreshModel：未下载不置灰
         val size = Formatter.formatFileSize(this, model.sizeBytes)
         inpaintingStatus(model).text = when {
+            selected -> getString(R.string.spatial_model_enabled, size)
             installed -> getString(R.string.spatial_model_installed, size)
             !eligible -> getString(
                 R.string.spatial_model_memory_required,
@@ -1503,9 +1525,11 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     private fun bindNpuVariantRows() {
         val bigLama = SpatialInpaintingModel.BIG_LAMA_PLACES2_512
         val selectBigLamaNpu = View.OnClickListener {
-            if (!npuVariantSelectable(bigLama.stableId)) return@OnClickListener
-            SpatialPreferences.setSelectedInpaintingModel(this, bigLama)
-            SpatialPreferences.setQnnEnabledFor(this, bigLama.stableId, true)
+            // 不可选时也要刷新：直接点 RadioButton 的话它已经自己 toggle 过了
+            if (npuVariantSelectable(bigLama.stableId) && npuVariantUsable(bigLama)) {
+                SpatialPreferences.setSelectedInpaintingModel(this, bigLama)
+                SpatialPreferences.setQnnEnabledFor(this, bigLama.stableId, true)
+            }
             refreshAll()
         }
         findViewById<View>(R.id.rb_big_lama_npu).setOnClickListener(selectBigLamaNpu)
@@ -1525,9 +1549,13 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
 
         val rfdetr = SpatialSegmentationModel.RF_DETR_SEG_NANO
         val selectRfdetrNpu = View.OnClickListener {
-            if (!npuVariantSelectable(rfdetr.stableId)) return@OnClickListener
-            SpatialPreferences.setSelectedSegmentationModel(this, rfdetr)
-            SpatialPreferences.setQnnEnabledFor(this, rfdetr.stableId, true)
+            // 同上。RF-DETR 的 NPU 版不需要额外产物，可选的前提只有运行组件与基础模型
+            if (npuVariantSelectable(rfdetr.stableId) &&
+                SpatialSegmentationModelStore.isInstalled(this, rfdetr)
+            ) {
+                SpatialPreferences.setSelectedSegmentationModel(this, rfdetr)
+                SpatialPreferences.setQnnEnabledFor(this, rfdetr.stableId, true)
+            }
             refreshAll()
         }
         findViewById<View>(R.id.rb_rfdetr_npu).setOnClickListener(selectRfdetrNpu)
@@ -1572,13 +1600,11 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             isEnabled = eligible
             alpha = if (eligible) 1f else 0.4f
         }
+        val npuSelected = runtimeReady && ctxInstalled &&
+            SpatialPreferences.selectedInpaintingModel(this) == bigLama &&
+            SpatialPreferences.qnnEnabledFor(this, bigLama.stableId)
         findViewById<RadioButton>(R.id.rb_big_lama_npu).apply {
-            isChecked = runtimeReady && ctxInstalled &&
-                SpatialPreferences.selectedInpaintingModel(this@SpatialPhotoSettingsActivity) ==
-                bigLama &&
-                SpatialPreferences.qnnEnabledFor(
-                    this@SpatialPhotoSettingsActivity, bigLama.stableId
-                )
+            isChecked = npuSelected
             isEnabled = runtimeReady && ctxInstalled
         }
         val ctxDownloading = precompiledWorkInfo?.let(::isActive) == true
@@ -1594,6 +1620,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             // 升级过程中旧的还在，`ctxInstalled` 仍为真——按其余行的顺序写，整个下载过程
             // 都会显示"已安装 155 MB"，用户看不到任何进展。
             ctxDownloading -> precompiledWorkStatus(precompiledWorkInfo, ctxSize)
+            npuSelected -> getString(R.string.spatial_model_enabled, ctxSize)
             ctxInstalled -> getString(R.string.spatial_model_installed, ctxSize)
             else -> getString(R.string.spatial_model_not_downloaded, ctxSize)
         }
@@ -1617,24 +1644,25 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             isEnabled = eligible
             alpha = if (eligible) 1f else 0.4f
         }
+        val rfNpuSelected = runtimeReady && rfBaseInstalled &&
+            SpatialPreferences.selectedSegmentationModel(this) == rfdetr &&
+            SpatialPreferences.qnnEnabledFor(this, rfdetr.stableId)
         findViewById<RadioButton>(R.id.rb_rfdetr_npu).apply {
-            isChecked = runtimeReady && rfBaseInstalled &&
-                SpatialPreferences.selectedSegmentationModel(
-                    this@SpatialPhotoSettingsActivity
-                ) == rfdetr &&
-                SpatialPreferences.qnnEnabledFor(
-                    this@SpatialPhotoSettingsActivity, rfdetr.stableId
-                )
+            isChecked = rfNpuSelected
             isEnabled = runtimeReady && rfBaseInstalled
         }
-        findViewById<TextView>(R.id.tv_rfdetr_npu_status).setText(
-            when {
-                !eligible -> R.string.spatial_npu_needs_runtime
-                !npuRuntimeReady -> R.string.spatial_npu_runtime_pending
-                !rfBaseInstalled -> R.string.spatial_npu_needs_base_model
-                else -> R.string.spatial_npu_no_extra_download
-            }
-        )
+        findViewById<TextView>(R.id.tv_rfdetr_npu_status).text = when {
+            !eligible -> getString(R.string.spatial_npu_needs_runtime)
+            !npuRuntimeReady -> getString(R.string.spatial_npu_runtime_pending)
+            !rfBaseInstalled -> getString(R.string.spatial_npu_needs_base_model)
+            // 这一行没有"已下载"这种状态（它不需要额外产物），选中时把"已启用"和
+            // 那句说明拼起来，不为此单开一条要翻 12 个语言的文案
+            rfNpuSelected -> getString(
+                R.string.spatial_model_enabled,
+                getString(R.string.spatial_npu_no_extra_download)
+            )
+            else -> getString(R.string.spatial_npu_no_extra_download)
+        }
         findViewById<View>(R.id.btn_rfdetr_npu).visibility = View.GONE
         findViewById<View>(R.id.iv_rfdetr_npu_delete).visibility = View.GONE
     }

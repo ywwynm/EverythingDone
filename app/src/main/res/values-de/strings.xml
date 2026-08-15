@@ -1186,7 +1186,8 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_device_tilt">Blickpunkt durch Neigen des Geräts steuern</string>
     <string name="spatial_device_tilt_description">Standardmäßig aktiviert. Nach dem Ausschalten bleibt die Steuerung durch Ziehen verfügbar und der Bewegungssensor wird nicht mehr registriert.</string>
     <string name="spatial_download">Herunterladen</string>
-    <string name="spatial_model_installed">Installiert · %1$s</string>
+    <string name="spatial_model_installed">Heruntergeladen und installiert · %1$s</string>
+    <string name="spatial_model_enabled">Aktiviert · %1$s</string>
     <string name="spatial_model_not_downloaded">Nicht heruntergeladen · %1$s</string>
     <string name="spatial_model_memory_required">Dieses Modell benötigt mindestens %1$d GB Gerätespeicher</string>
     <string name="spatial_model_failed">Download fehlgeschlagen: %1$s</string>

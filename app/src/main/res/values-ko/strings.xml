@@ -1240,7 +1240,8 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="spatial_device_tilt">기기를 기울여 시점 조절</string>
     <string name="spatial_device_tilt_description">기본적으로 켜져 있습니다. 끄더라도 드래그 조작은 사용할 수 있고 모션 센서 등록은 중지됩니다.</string>
     <string name="spatial_download">다운로드</string>
-    <string name="spatial_model_installed">설치됨 · %1$s</string>
+    <string name="spatial_model_installed">다운로드 및 설치됨 · %1$s</string>
+    <string name="spatial_model_enabled">사용 중 · %1$s</string>
     <string name="spatial_model_not_downloaded">다운로드하지 않음 · %1$s</string>
     <string name="spatial_model_memory_required">이 모델은 기기 메모리가 %1$dGB 이상 필요합니다</string>
     <string name="spatial_model_failed">다운로드 실패: %1$s</string>

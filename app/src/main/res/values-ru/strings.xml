@@ -1186,7 +1186,8 @@
     <string name="spatial_device_tilt">Управлять точкой обзора наклоном устройства</string>
     <string name="spatial_device_tilt_description">Включено по умолчанию. После отключения управление перетаскиванием остаётся доступным, а датчик движения больше не регистрируется.</string>
     <string name="spatial_download">Скачать</string>
-    <string name="spatial_model_installed">Установлено · %1$s</string>
+    <string name="spatial_model_installed">Загружено и установлено · %1$s</string>
+    <string name="spatial_model_enabled">Включено · %1$s</string>
     <string name="spatial_model_not_downloaded">Не скачано · %1$s</string>
     <string name="spatial_model_memory_required">Этой модели требуется не менее %1$d ГБ памяти устройства</string>
     <string name="spatial_model_failed">Ошибка скачивания: %1$s</string>

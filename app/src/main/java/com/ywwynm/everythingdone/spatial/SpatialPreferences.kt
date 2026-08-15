@@ -112,10 +112,29 @@ object SpatialPreferences {
     /**
      * 逐模型的 QNN 开关。总开关之下再分模型——不同模型上 NPU 的收益差别很大，
      * 而且首次要在设备上编译计算图（20–50 秒），用户应当能只给值得的那些开。
-     * 默认全开：总开关关着时这一层不起作用。
+     *
+     * **默认值分两种，见 [qnnDefaultFor]。**
      */
     fun qnnEnabledFor(context: Context, modelStableId: String): Boolean =
-        preferences(context).getBoolean(KEY_QNN_MODEL_PREFIX + modelStableId, true)
+        preferences(context).getBoolean(
+            KEY_QNN_MODEL_PREFIX + modelStableId,
+            qnnDefaultFor(modelStableId)
+        )
+
+    /**
+     * 这个开关承载了两种含义，默认值必须跟着分开：
+     *
+     * - **设置页里有独立"（NPU 版）"选项的模型**（Big-LaMa、RF-DETR）：开关 = "用户选了
+     *   NPU 版"。必须默认关，否则打开总开关的一瞬间这些模型就被判成选了 NPU 版，CPU 版
+     *   永远勾不上，用户被强制用 NPU 版（2026-08-14 用户实测指出）。
+     * - **其余模型**（MoGe-2、MODNet、EdgeTAM 等）：QNN 是透明加速，没有单独选项，
+     *   开关 = "允许这个模型用 NPU"。默认开，否则打开总开关后什么都不会加速。
+     */
+    private fun qnnDefaultFor(modelStableId: String): Boolean = when (modelStableId) {
+        SpatialInpaintingModel.BIG_LAMA_PLACES2_512.stableId,
+        SpatialSegmentationModel.RF_DETR_SEG_NANO.stableId -> false
+        else -> true
+    }
 
     fun setQnnEnabledFor(context: Context, modelStableId: String, enabled: Boolean) {
         preferences(context).edit()

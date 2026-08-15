@@ -1,5 +1,45 @@
 # Current Debug Update Notes
 
+## 2026-08-15 - 设置页状态文案分三档 + 未下载不置灰 + 取消图标加粗（D265）
+
+发布号 `202608150400`，APK SHA-256 `205592ea9fb90b82…`，23.20 MB。catalog 未动。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815115929.md`。
+
+- **状态文案分三档**：已启用 / 已下载安装 / 未下载。此前"装了没在用"与"正在用"都写
+  「已安装」。新增 `spatial_model_enabled`，译文直接抄各语言已有的
+  `spatial_matting_enabled`（文本本就相同且审过），`spatial_model_installed` 改为
+  「已下载安装」语义，13 个 values 目录全改。覆盖率校验 12 语言缺项为 0。
+- **未下载不再置灰**：`isEnabled = installed && eligible` → `= eligible`。同时把
+  RadioButton 改成纯显示（`isClickable = false`，不挂监听器），点击一律穿透到整行的
+  受控监听器——否则未禁用的 RadioButton 被直接点到会先自己 toggle 再被刷回去。
+  MODNet 的 CheckBox 同样处理。NPU 两行的整行置灰保持不变（用户认可）。
+- **取消图标加粗**：着色代码与下载图标完全相同，差的是墨量——填充面积
+  113 vs 75 单位²（24² viewport），2 单位笔宽的叉太轻。加粗到 3 单位，面积约 110。
+
+## 2026-08-14 - NPU 版不再强制启用、不再跟随自动下载（D264）
+
+发布号 `202608141556`，APK SHA-256 `b015295630cfc960…`，23.20 MB。catalog 未动。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260814235626.md`。
+
+用户一次报了四个现象，根因两个：
+
+**其一，`qnnEnabledFor` 默认 `true`。** 这个开关承载两种含义：有独立「（NPU 版）」选项的
+模型（Big-LaMa、RF-DETR）它表示"用户选了 NPU 版"，其余模型（MoGe-2/MODNet/EdgeTAM）
+它表示"允许透明加速"。给了同一个默认值，于是打开总开关的一瞬间前者就被判成选了 NPU 版，
+CPU 版永远勾不上。改为 `qnnDefaultFor()` 按模型分别取默认。
+
+**其二，observer 只刷新自己那一行。** NPU 版那一行的状态依赖 CPU 版装没装。CPU 版下完后
+`refreshNpuVariantRows()` 没被调，那行仍写"需要先安装 CPU 版"，同时 CPU 行因 `npuChosen`
+变真而取消勾选——两行都不亮，看起来"一个模型都没选中"；退出再进才正常。四个 observer
+全部改成 `refreshAll()`。
+
+另外删掉了 `SpatialInpaintingDownloadWorker.fetchPrecompiledIfNeeded()`：总开关开着时
+下完 CPU 版会顺手拉一百多 MB 的 NPU 产物，那行随即显示"已下载"，与用户当初"独立选项、
+不自动下载"的要求相反。并补上"选 CPU 版时取消同模型 NPU 版"（此前只有反方向）。
+
+**已知遗留**：默认值改了但旧偏好还在，装过上一版的设备仍会显示选中 NPU 版，点一下 CPU
+那一行即可切回。已在发布日志里写明；未加一次性迁移（用户未要求）。
+
 ## 2026-08-14 - Big-LaMa（NPU 版）下载进度显示修复（D263）
 
 发布号 `202608141408`，APK SHA-256 `92991d032bde0def…`，23.20 MB。catalog 未动。

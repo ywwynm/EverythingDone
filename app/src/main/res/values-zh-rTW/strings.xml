@@ -1722,7 +1722,8 @@
     <string name="spatial_device_tilt">透過傾斜裝置控制視點</string>
     <string name="spatial_device_tilt_description">預設開啟。關閉後不會註冊姿態感測器，仍可拖動圖片控制視點。</string>
     <string name="spatial_download">下載</string>
-    <string name="spatial_model_installed">已安裝 · %1$s</string>
+    <string name="spatial_model_installed">已下載安裝 · %1$s</string>
+    <string name="spatial_model_enabled">已啟用 · %1$s</string>
     <string name="spatial_model_not_downloaded">未下載 · %1$s</string>
     <string name="spatial_catalog_loading">正在讀取可信下載目錄…</string>
     <string name="spatial_model_memory_required">該模型要求裝置總記憶體至少為 %1$d GB</string>
