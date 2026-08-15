@@ -63,7 +63,7 @@ class SpatialQnnPrecompiledDownloadWorker(
     override fun doWork(): Result {
         val modelId = inputData.getString(KEY_MODEL_ID) ?: return failure("缺少模型标识")
         val modelVersion = inputData.getString(KEY_MODEL_VERSION) ?: return failure("缺少模型版本")
-        val dspArch = SpatialQnnSupport.resolveDspArch()
+        val dspArch = SpatialQnnSupport.resolveDspArch(applicationContext)
             ?: return failure("本机不是受支持的骁龙 NPU 机型")
         // **这里不能用 isInstalled 早退**：那只问"这个键下有没有东西"，问不出装的是不是
         // catalog 现在下发的那一份。D262 重编 context binary 后模型没升版、键完全一样，

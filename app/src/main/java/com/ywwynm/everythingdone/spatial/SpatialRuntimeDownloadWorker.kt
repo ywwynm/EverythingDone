@@ -148,7 +148,7 @@ object SpatialRuntimeInstaller {
         shouldStop: () -> Boolean,
         onProgress: (Progress) -> Unit
     ) {
-        val dspArch = SpatialQnnSupport.resolveDspArch()
+        val dspArch = SpatialQnnSupport.resolveDspArch(context)
             ?: error("本机不是受支持的骁龙 NPU 机型")
         val entry = catalog.qnnRuntimeForCurrentDevice(dspArch)
             ?: error("可信目录中没有适用于本机（$dspArch）的 NPU 运行组件")
@@ -195,8 +195,15 @@ object SpatialRuntimeInstaller {
         onProgress: (Progress) -> Unit
     ): Boolean {
         if (!SpatialPreferences.qnnEnabled(context)) return false
-        if (!SpatialPreferences.qnnEnabledFor(context, modelId)) return false
-        val dspArch = SpatialQnnSupport.resolveDspArch() ?: return false
+        // **不能再问 qnnEnabledFor**（D268）。那个开关的含义是"用户选了 NPU 版"，
+        // 而 Big-LaMa／RF-DETR 的默认值是 false（免得一开总开关就被迫用 NPU 版）。
+        // 本函数的唯一调用方是用户点下载按钮触发的 worker——**按下按钮本身就是授权**，
+        // 在这里再问一遍"选了吗"会形成死锁：
+        //   下载要求 qnnEnabledFor=true → 只有选中 NPU 版才会置 true
+        //   → 选中要求 npuVariantUsable() → 要求预编译产物已安装 → 要求下载成功
+        // 结果是 Big-LaMa（NPU 版）在任何设备上都下不下来，按钮点了没反应，
+        // 单选钮永远置灰（2026-08-15 用户在两台真机上复现）。
+        val dspArch = SpatialQnnSupport.resolveDspArch(context) ?: return false
         val entry = catalog.qnnPrecompiledFor(modelId, modelVersion, dspArch) ?: return false
         if (!entry.enabled) return false
         // **先比 catalog 再决定要不要下**：键里没有产物内容的信息，同一个键下的 context

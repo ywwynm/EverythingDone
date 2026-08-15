@@ -86,7 +86,7 @@ object SpatialQnnPrecompiledStore {
         archive: File
     ) {
         check(entry.isCompatible()) { "NPU 预编译产物与当前 App 不兼容" }
-        check(entry.dspArch == SpatialQnnSupport.resolveDspArch()) {
+        check(entry.dspArch == SpatialQnnSupport.resolveDspArch(context)) {
             "NPU 预编译产物的 HTP 架构与设备不匹配"
         }
         check(archive.isFile && archive.length() == entry.sizeBytes) {

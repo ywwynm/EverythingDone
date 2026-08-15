@@ -89,7 +89,7 @@
 | 设备 | SoC | dsp_arch |
 |------|-----|----------|
 | 三星 SM-S9180（S23 Ultra，主测机） | SM8550 / 8 Gen 2 | **v73** |
-| OPPO Pad Mini OPD2515（副测机） | SM8845 / 8 Gen 5 | **待确认**（8 Elite Gen 5 SM8850 为 v81，8 Gen 5 需实机 `Build.SOC_MODEL` + QNN 探针确认） |
+| OPPO Pad Mini OPD2515（副测机） | **SM8845P** / 8 Gen 5 | **v81**（2026-08-15 实机确认，见 D266。注意型号串带 P 后缀；证据是该机 `/odm` 下 OPPO 自己的 AI 框架装的就是 `libQnnHtpV81Skel.so`） |
 
 两台都是骁龙，验证条件完备。已知的公开映射：8 Gen 2 → v73、8 Gen 3 → v75、
 8 Elite → v79、X Elite/X Plus → v73。
@@ -276,7 +276,7 @@ MoGe-2 与 MODNet 钉档。这一步会改画质（长宽比归档带来的缩�
 
 - QNN arm64 各 `.so` 的实际体积（尤其 Skel）——需下载 SDK 实测。
 - QAIRT／qnn-runtime 的商用再分发条款原文。
-- 8 Gen 5（SM8845）对应的 dsp_arch。
+- ~~8 Gen 5（SM8845）对应的 dsp_arch。~~ 2026-08-15 已确认：型号串为 `SM8845P`，dsp_arch = v81（D266）。
 - QNN 是否支持 opset 17 的原生 DFT 算子。
 - fp16 路径在 Android 上的 `FinalizeGraphs` 实际耗时（已知数据均来自量化模型）。
 - ORT 1.28.0 自定义 AAR 构建加 `--use_qnn` 后的算子裁剪清单是否需要调整。

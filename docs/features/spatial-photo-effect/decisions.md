@@ -9878,3 +9878,243 @@ CPU 版一起拉一百多 MB 的 NPU 产物。用户当初要求 NPU 版是"独�
 
 **方法**：报"颜色不对"时先算两个图形的填充面积，再去看着色代码。视觉重量是面积×色深，
 只比其中一项会得出"代码没问题啊"的错误结论。同 [[visual-qa-needs-numbers]]。
+
+## D266（2026-08-15）8 Gen 5 登记为 v81，判定表改由 catalog 可覆盖
+
+用户报 OPPO Pad Mini（OPD2515 / 9018f404）设置页看不到任何骁龙 NPU 选项。
+
+### 根因：型号不在表里，且整块隐藏而不是置灰
+
+`qnnDeviceEligible()` = `currentAbiSupported() && resolveDspArch() != null`。前三关
+（API ≥ 31、`arm64-v8a`、`SOC_MANUFACTURER == QTI`）这台机器全过，卡在第四关的
+SoC 白名单：`SpatialQnnSupport.BUILT_IN_PROFILES` 里没有它。D264 校对内置表时查过
+AI Hub 没有 8 Gen 5 条目，按 fail-closed 留空——**留空的后果没被追到 UI**：设备不达标
+时 `row_qnn` 与两行 NPU 版模型全都 `GONE`，`spatial_qnn_unsupported` 那条文案挂在已经
+隐藏的行上，永远显示不出来。用户侧的现象因此是"什么都没有"，而不是"这里不支持"。
+
+### dsp_arch = v81，证据来自设备自己的 ODM 分区
+
+AI Hub 至今没有 8 Gen 5，公开资料无一致口径。改为向设备取证：
+
+```
+/odm/lib64/aiframe/libQnnHtpV81Stub.so
+/odm/lib/rfsa/adsp/libQnnHtpV81Skel.so
+/odm/lib64/aiframe/cdsp/signed/libQnnHtpV81Skel.so
+```
+
+OPPO 自己的 AI 框架装的就是 V81，且 `find /vendor /system /system_ext /odm -iname '*QnnHtp*'`
+全盘只有 V81 一个版本。**这是设备自带的 QNN 库，比任何二手资料都硬。**
+一般化：判定表缺条目时，先查 `/vendor` `/odm` 里厂商自己装了哪一版，不要按代际外推。
+
+### 型号串是 `SM8845P` 不是 `SM8845`
+
+`getprop ro.soc.model` 实测 **`SM8845P`**（`ro.board.platform` = `canoe`）。查表是全等匹配，
+按资料里的 `SM8845` 登记**匹配不上**——研究文档与既有单测里写的都是不带后缀的那个串。
+只登记实证过的 `SM8845P`；裸 `SM8845` 手上没有这样上报的设备，继续 fail-closed。
+
+### catalog 覆盖表从"注释里写着"变成真的接上了
+
+`SpatialQnnSupport` 的类注释一直写着"catalog 里的 `qnnDeviceProfiles` 优先"，但
+`SpatialModelCatalog` **根本没有这个字段**，9 个产品调用点全是无参 `resolveDspArch()`，
+`catalogProfiles` 恒为 null。本轮补齐：
+
+- catalog 新增 `qnnDeviceProfiles`，`SpatialCatalogVerifier` 按与端侧同一套白名单校验
+  （dsp_arch 拼进库文件名，SoC 型号进快照分隔串，两个都要挡），坏条目**拒整份 catalog**
+  而不是静默跳过——静默跳过会让"发了却不生效"变成没有症状的故障；
+- `SpatialCatalogClient.fetchOrCached()` 在验签通过后把表快照进 SharedPreferences，
+  `resolveDspArch(context)` 同步读快照。不直接读 catalog 文件：判定在设置页每次刷新
+  都要跑，扛不住磁盘 I/O 加验签；
+- **删掉无参重载，设备态判定只留带 Context 这一个形式。** dsp_arch 决定下载哪份 Skel、
+  取哪份 context binary，也是 `SpatialRuntimeStore` 判断已装组件是否过期的依据；
+  有的调用点带表、有的不带，同一台设备会得出两个答案，表现为"装好了却判定没装"。
+  改成必填参数之后编译器会把每个漏掉的点标出来；
+- 发布侧 `tools/spatial-models/qnn-device-profiles.json` + `publish-spatial-models.ps1`，
+  发布期按同一套规则先挡一遍，并校验覆盖表指向的 arch 有对应的 `qnnRuntimes` 条目，
+  否则会出现"看得见、下不动"的入口。
+
+### 验证
+
+真机 9018f404 装 debug 版进设置页：「Snapdragon NPU acceleration」行出现，状态
+`Not downloaded · 50.25 MB`。该数字**恰是发布侧 v81 那一份**（50,249,910 字节；
+v73/v75/v79 分别是 49.84/49.86/49.88 MB），说明架构判定确实落到 v81 而非邻档。
+单测 847 项全绿。
+
+context binary 跨 SoC 的问题按 D264 的结论处理：**arch 是硬约束，soc_model 是性能约束**。
+v81 的预编译产物是按 SM8850 编的，在 SM8845P 上应当能加载但可能有性能折扣，
+幅度未测——`followups.md` 已挂。
+
+## D267（2026-08-15）判定表不再作为准入依据：门控换黑名单 + 全 arch 包
+
+D266 修好了 OPD2515，但用户当场指出了没被修掉的那一半：**未见过的 SoC 默认不显示
+NPU 那一行，也就无从下载**。补表只是把"下一颗新芯片"往后推一次。
+
+### 先确认没有可用的官方全表
+
+- **Qualcomm AI Hub**（`hub.get_devices()`）：官方、机读、57 颗芯片带 `hexagon:` 属性，
+  但它是**设备农场清单**，至今没有 SM8845。
+- **QAIRT SDK 文档**有 Supported Snapdragon devices 一节带 Hexagon 架构列，但页面是
+  JS 渲染，WebFetch 与浏览器都取不到正文。且它列的是 SDK 支持的设备，不是全部骁龙。
+- **高通公开规格页**根本不写 Hexagon 版本号。
+- 旁证：pytorch/executorch#17081、mybigday/llama.rn#288 都在问"8 Gen 5 支持吗"，
+  提问者只能写 "I believe it has a Hexagon v81 NPU"。**别人也没有权威表可引。**
+
+结论：任何"把表补全"的路线都是死路，它永远滞后于新芯片。
+
+### 关键度量：这张表只决定 4.85 MB
+
+把 v81 包逐条拆开量压缩后字节：**50.25 MB 里 45.40 MB 是四个 arch 包里 sha256 完全
+相同的字节**（libonnxruntime / libQnnHtp / libQnnSystem / libQnnHtpPrepare），
+arch 专属只有 Skel 4.56 MB + Stub 0.28 MB。
+
+### 承重假设已实测：QNN 自己会挑，而且向后兼容
+
+把四档 Skel+Stub 与共享库一起推到 OPD2515，用探针跑 RF-DETR：
+
+```
+avc: granted { execute } for path=".../libQnnHtpV81Stub.so"    ← 只 dlopen 了这一个
+QnnDsp <V> SoC model name is SM8845
+QnnDsp <V> Prepare: Graph ... init graph option: min_arch = 81, soc_type = SM8845
+os_linux.cc:55: Setting libnative architecture to v85 (requested arch is v81)
+```
+
+建 session 15.98 s，推理中位 **27 ms**。两个额外发现：
+
+1. **这颗芯片的硅是 v85**，QNN 取的是"不超过硬件档的最高可用 Skel"。也就是说
+   **比我们打包的任何一档更新的芯片也能工作**——这正是判定表可以退居可选优化的依据。
+2. **QNN 内部认出的型号串是 `SM8845`（不带 P）**，与 `Build.SOC_MODEL` 的 `SM8845P`
+   不一致。高通自己的两个来源就对不上，再次说明按型号串全等匹配是错的地基。
+
+### 三处改动
+
+1. **门控换极性**：`SpatialQnnSupport.isNpuPossible()` = 是 arm64 高通设备（API ≥ 31）
+   且不在 `KNOWN_TOO_OLD_SOC_MODELS`（v65/v66 那 6 个前缀，AI Hub 给的封闭集合，
+   高通不会再出新的）。**未知 SoC 一律放行。** 白名单漏判 = 功能永远不可见；
+   黑名单漏判 = 白下一次组件后回落 CPU。极性反过来，"不认识"的默认从禁止变成放行。
+2. **全 arch 包**：`dspArch = "all"` 的包带每一档 Skel+Stub。
+   `qnnRuntimeForCurrentDevice(dspArch: String?)` 查得到架构时优先取单份包（省 13 MB），
+   查不到就退回全 arch 包。`tools/spatial-models/build-qnn-all-arch-package.ps1`
+   从既有单 arch 包合成，共享文件跨包比对 sha256 不一致就报错。
+3. **判定表降级**：内置表与 catalog 覆盖表都保留，只用来省那 13 MB，查不到不再有后果。
+   `qnnDeviceEligible()` = `isNpuPossible() && (查得到架构 || catalog 有全 arch 包)`。
+   **后半句不能省**：没有全 arch 包却放行未知机型，会变成"看得见、下不动"。
+
+### 代价（实测，不是估算）
+
+| | 单 arch（认识的芯片） | 全 arch（未登记的芯片） |
+|---|---|---|
+| 下载 | 50.25 MB | **63.62 MB**（+13.37） |
+| 解包后磁盘 | 136.81 MB | **191.87 MB**（+55.06） |
+
+**磁盘那一栏此前对用户说成了 +0，是错的**：只有在判定表查得到、走单份包时才是 +0。
+未登记的芯片要解出四份 Skel，+55.06 MB。不做"只解一份"的裁剪——选哪一份是 QNN
+在加载时决定的，安装期并不知道，硬裁会让 marker 与磁盘不一致。
+
+### 未完成
+
+catalog 未发布（需服务器凭据，属外部动作）。**在发布之前，未登记 SoC 这条路是死的**
+——`qnnDeviceEligible()` 的后半句要求 catalog 里真有全 arch 包。已登记的芯片
+（含 OPD2515）不受影响，行为与 D266 一致。
+
+### D267 追记：发布前发现的兼容性缺陷（同日）
+
+准备发布时发现**照原方案发布会打挂线上所有旧版本**：`validateCatalog` 对 `qnnRuntimes`
+每一条是硬 `check(entry.isCompatible())`，而旧版 App 的 `isCompatible()` 要求
+`isValidDspArch(dspArch)`——`"all"` 过不了，旧 App 会**整份拒绝 catalog**，
+连普通模型下载一起停摆。与当初 `qnnRuntimes` 必须从 `runtimes` 里独立出来是同一个坑。
+
+修法沿用仓库既有做法：全 arch 条目走**独立字段** `qnnAllArchRuntimes`，旧版 Gson
+直接忽略。两侧各加一道拦截——`validateCatalog` 拒绝 `qnnRuntimes` 里出现 `"all"`，
+发布脚本按 `dspArch` 分流到两个字段。
+
+### 发布记录（2026-08-15）
+
+先发 staging 验证分流，再发 stable。`catalogVersion = 20260815082206`。回读线上确认：
+
+- `qnnRuntimes` = `[v73, v75, v79, v81]`，**不含 `all`**（旧 App 看到的形状与发布前一致）
+- `qnnAllArchRuntimes` = `[all]`，全 arch 包 HTTP 200 / 63,615,375 字节
+- `qnnDeviceProfiles` = `[{SM8845P, v81}]`
+
+真机 OPD2515 拉取后 `shared_prefs/spatial_qnn_profiles.xml` 落盘
+`catalog_profiles = SM8845P=v81`——**catalog 覆盖表这条链路首次端到端跑通**。
+NPU 行可见且可用。
+
+## D268（2026-08-15）Big-LaMa（NPU 版）的下载死锁：下载不等于选中
+
+用户在两台真机上报同一现象：Big-LaMa（NPU 版）左侧单选钮明显更淡，点右侧下载按钮
+没反应。两者是同一个根因。
+
+### 环路
+
+```
+点下载 → SpatialQnnPrecompiledDownloadWorker
+       → ensurePrecompiled(): if (!qnnEnabledFor(modelId)) return false
+       ↑                                   ↓ 默认 false
+       └── 置 true 的唯一入口是选中 NPU 版单选钮
+           → selectBigLamaNpu 守卫 npuVariantUsable()
+           → 要求 SpatialQnnPrecompiledStore.isInstalled()
+           → 要求这次下载成功 ──┘
+```
+
+`qnnDefaultFor(BIG_LAMA / RF_DETR)` 返回 false 是 5769402a 刻意改的（否则一开总开关
+就被判成选了 NPU 版，CPU 版永远勾不上）。但 `ensurePrecompiled` 也拿同一个开关当
+下载前置条件，于是 **Big-LaMa 的 NPU 版在任何设备上都从来没能下载成功过**。
+单选钮变淡是同一根因的另一半：`isEnabled = runtimeReady && ctxInstalled`，
+`ctxInstalled` 永远为假。
+
+失败还是静默的：`ok=false` → `failure("可信目录中没有适用于本机的 NPU 版本")`，
+但那条文案既不准确（catalog 没问题）也不显示——`refreshNpuVariantRows` 只在
+`isActive` 时显示 work 状态，失败态落回"未下载"。用户看到的就是"点了没反应"。
+
+### 修法
+
+`ensurePrecompiled` 不再问 `qnnEnabledFor`。**那个开关的含义是"用户选了 NPU 版"，
+而用户按下下载按钮本身就是授权**——本函数的唯一调用方就是这个显式下载 worker，
+在这里再问一遍"选了吗"是把"获取"和"选用"混为一谈。总开关 `qnnEnabled` 的判断保留。
+
+### 一般化
+
+**"获取"与"选用"是两件事，不要共用一个开关。** 一旦共用，就会出现"要用才能下、
+要下完才能用"这类自锁。判断该放在哪一层，看这个动作的授权来自谁：下载的授权来自
+用户按下按钮，选用的授权来自用户点单选钮。
+
+### 验证（OPD2515，2026-08-15）
+
+修前：点下载按钮无任何反应。修后：点击 → "Installing the computing component…"
+→ 5 秒内 "Downloaded and installed · 105 MB"，`iv_big_lama_npu_delete` 出现；
+`rb_big_lama_npu` 由 `enabled=false` 变 `enabled=true`（不再淡），点选后
+`checked=true`，Big-LaMa（CPU）退回"Downloaded and installed · 208 MB"，
+NPU 版显示"Enabled · 105 MB"，互斥正确。
+
+## D269（2026-08-15）NPU 两行漏改了三处本页早已统一的规矩
+
+用户连续报了三个小缺陷，全部是「这一行没跟上本页其余行的既有约定」，不是新设计问题。
+**根因是同一个：D265 统一显示层规矩时只改了 CPU 那几组，NPU 两行漏了；
+后续每次都只按报上来的那一个点修，没有做同类控件的全量核对。**
+
+本轮把本页**全部** `applyActionIcon` 调用点与全部操作按钮的点击分支列出来逐个比对，
+NPU 那一行在三项上都是全屏唯一的例外：
+
+| 项 | 其余每一行 | Big-LaMa（NPU 版） |
+|---|---|---|
+| 未下载时的单选钮 | `isEnabled = eligible`，未下载不置灰（D265） | `= runtimeReady && ctxInstalled`，未下载即置灰 |
+| 单选钮点击 | `isClickable = false`，不挂监听器，点击穿透整行 | 直接挂监听器，自己先 toggle 再被刷回 |
+| 下载中的图标着色 | `active \|\| 可用性` | `… && !ctxDownloading`，**下载中反被判成不可用而着淡色** |
+| 按钮点击分支 | `onXxxAction()` 内含取消，或显式 if/else | 只有 enqueue，**没有取消分支** |
+
+最后一项最实：图标已经切成取消叉，按下去却是对同一个唯一任务名再 `enqueue`
+（`ExistingWorkPolicy.KEEP`），等于什么都没发生，用户看到的是「取消按不了」。
+`SpatialQnnPrecompiledDownloadCoordinator.cancel()` 早就写好，全项目从未被调用。
+
+### 教训
+
+**统一某条显示层规矩时，必须把该规矩涉及的控件全部列出来逐个改，而不是改"我正在看的
+那几个"。** 同理，收到某一行的 UI 反馈时，先把同类控件的对应属性全列出来比一遍——
+这几个缺陷本可以在 D265 那一轮一次性清掉，实际拖成了四轮往返。
+见 [[check-all-sites-of-a-predicate]]。
+
+### 验证（OPD2515）
+
+- 未下载态：`rb_big_lama_npu` `enabled=true`，与 MI-GAN／AOT-GAN／MoGe-2 等未下载项同色；
+- 下载中：截图确认取消叉为正常着色（此前淡灰）；
+- 取消：点下载后立刻再点，状态回到 `Not downloaded · 105 MB`，删除图标未出现、
+  下载按钮复原——确认走的是 cancel 分支而不是重复入队。

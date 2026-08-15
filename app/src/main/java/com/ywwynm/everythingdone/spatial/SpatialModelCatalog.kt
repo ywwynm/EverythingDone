@@ -54,17 +54,45 @@ data class SpatialModelCatalog(
      * 与 [qnnRuntimes] 同理，**不能并进模型自己那几组**——那些组的 `isCompatible()`
      * 各有硬校验，混入会让旧版 App 拒绝整个 catalog。
      */
-    val qnnPrecompiledModels: List<SpatialQnnPrecompiledCatalogEntry>? = null
+    val qnnPrecompiledModels: List<SpatialQnnPrecompiledCatalogEntry>? = null,
+    /**
+     * SoC 型号 → HTP 架构的覆盖表；旧 App 忽略本字段。
+     *
+     * 存在的理由只有一个：**新骁龙上市不该逼用户升级 App**。内置表见
+     * [SpatialQnnSupport.builtInProfiles]，本字段优先。两边都查不到就不启用 NPU。
+     */
+    val qnnDeviceProfiles: List<SpatialQnnSupport.DeviceProfile>? = null,
+    /**
+     * 带全部 arch 的 QNN 运行组件（`dspArch = "all"`）；旧 App 忽略本字段。
+     *
+     * **绝不能并进 [qnnRuntimes]**：[SpatialCatalogVerifier.validateCatalog] 对那一组
+     * 是硬 `check(isCompatible())`，而**旧版 App 的** `isCompatible()` 要求
+     * `isValidDspArch(dspArch)`，`"all"` 过不了 —— 混进去会让所有已安装的旧版 App
+     * **整份拒绝 catalog**，连普通模型下载一起停摆。与 [qnnRuntimes] 当初必须从
+     * [runtimes] 里独立出来是同一个理由，只是低了一层（D267）。
+     */
+    val qnnAllArchRuntimes: List<SpatialQnnRuntimeCatalogEntry>? = null
 ) {
     fun runtimeForCurrentDevice(): SpatialRuntimeCatalogEntry? {
         val abi = SpatialRuntimeStore.currentAbi() ?: return null
         return runtimes?.singleOrNull { it.abi == abi && it.isCompatible() }
     }
 
-    fun qnnRuntimeForCurrentDevice(dspArch: String): SpatialQnnRuntimeCatalogEntry? {
+    /**
+     * 取本机该下的 QNN 运行组件。
+     *
+     * `dspArch` 为 null 表示**本机架构未知**（新芯片不在判定表里）——此时只有全 arch 包
+     * 能用。查得到架构时优先取对应的单份包（省 14.55 MB），没有再退回全 arch 包。
+     */
+    fun qnnRuntimeForCurrentDevice(dspArch: String?): SpatialQnnRuntimeCatalogEntry? {
         val abi = SpatialRuntimeStore.currentAbi() ?: return null
-        return qnnRuntimes?.singleOrNull {
-            it.abi == abi && it.dspArch == dspArch && it.isCompatible()
+        if (dspArch != null) {
+            qnnRuntimes
+                ?.singleOrNull { it.abi == abi && it.dspArch == dspArch && it.isCompatible() }
+                ?.let { return it }
+        }
+        return qnnAllArchRuntimes?.singleOrNull {
+            it.abi == abi && it.dspArch == SpatialQnnSupport.ALL_ARCH && it.isCompatible()
         }
     }
 
@@ -317,7 +345,10 @@ data class SpatialQnnRuntimeCatalogEntry(
             ortVersion == SpatialRuntimeStore.ORT_VERSION &&
             runtimeApiVersion == SpatialRuntimeStore.RUNTIME_API_VERSION &&
             abi == SpatialQnnSupport.REQUIRED_ABI &&
-            SpatialQnnSupport.isValidDspArch(dspArch) &&
+            // 全 arch 包（dspArch = "all"）里带每一档的 Skel+Stub，由 QNN 自己挑，
+            // 本机 arch 查不出来时靠它兜底。
+            (SpatialQnnSupport.isValidDspArch(dspArch) ||
+                dspArch == SpatialQnnSupport.ALL_ARCH) &&
             packageVersion == SpatialRuntimeStore.QNN_PACKAGE_VERSION &&
             sizeBytes in 1..MAX_QNN_ARCHIVE_BYTES &&
             coreSizeBytes in 1..MAX_QNN_CORE_BYTES &&
@@ -511,6 +542,11 @@ object SpatialCatalogVerifier {
             }
         }
         for (entry in catalog.qnnRuntimes.orEmpty()) {
+            // 全 arch 条目混进这一组，会让**旧版 App**（它的 isCompatible 要求
+            // isValidDspArch）整份拒绝 catalog。本地也拦一道，别等发出去才发现。
+            check(entry.dspArch != SpatialQnnSupport.ALL_ARCH) {
+                "全 arch 运行组件必须放在 qnnAllArchRuntimes，混入 qnnRuntimes 会让旧版 App 拒绝整份 catalog"
+            }
             check(entry.isCompatible()) {
                 "catalog QNN 运行组件不受支持：${entry.abi}/${entry.dspArch}"
             }
@@ -518,6 +554,41 @@ object SpatialCatalogVerifier {
             check(entry.disabledReason == null || !entry.enabled) {
                 "可用 QNN 运行组件不能带禁用原因"
             }
+        }
+        val allArchRuntimes = catalog.qnnAllArchRuntimes.orEmpty()
+        check(allArchRuntimes.size <= SpatialRuntimeStore.SUPPORTED_ABIS.size) {
+            "catalog 全 arch 运行组件数量异常"
+        }
+        for (entry in allArchRuntimes) {
+            check(entry.dspArch == SpatialQnnSupport.ALL_ARCH) {
+                "qnnAllArchRuntimes 只接受 dspArch = all：${entry.dspArch}"
+            }
+            check(entry.isCompatible()) {
+                "catalog 全 arch 运行组件不受支持：${entry.abi}"
+            }
+            validateImmutableObjectUrl(entry.url, catalogHost, "全 arch 运行组件")
+            check(entry.disabledReason == null || !entry.enabled) {
+                "可用全 arch 运行组件不能带禁用原因"
+            }
+        }
+        val qnnDeviceProfiles = catalog.qnnDeviceProfiles.orEmpty()
+        check(qnnDeviceProfiles.size <= MAX_QNN_DEVICE_PROFILES) {
+            "catalog SoC 覆盖表条目过多"
+        }
+        // dsp_arch 拼进 `libQnnHtpV<arch>Skel.so`，SoC 型号进快照的分隔串——两个都要挡。
+        // 整份 catalog 直接拒掉而不是跳过坏条目：坏条目意味着发布侧出了问题，
+        // 静默丢弃会让"发了却不生效"变成没有症状的故障。
+        for (entry in qnnDeviceProfiles) {
+            check(SpatialQnnSupport.isValidSocModel(entry.socModel)) {
+                "catalog SoC 型号非法：${entry.socModel}"
+            }
+            check(SpatialQnnSupport.isValidProfileArch(entry.dspArch)) {
+                "catalog dsp_arch 非法：${entry.socModel}/${entry.dspArch}"
+            }
+        }
+        val profileSocModels = qnnDeviceProfiles.map { it.socModel.uppercase() }
+        check(profileSocModels.distinct().size == profileSocModels.size) {
+            "catalog SoC 覆盖表存在重复型号"
         }
         val mattingModels = catalog.mattingModels.orEmpty()
         check(mattingModels.size <= MAX_MATTING_MODELS) { "catalog matting 模型数量异常" }
@@ -590,6 +661,8 @@ object SpatialCatalogVerifier {
     private const val MAX_MATTING_MODELS = 8
     private const val MAX_SEGMENTATION_MODELS = 8
     private const val MAX_BOUNDARY_REFINEMENT_MODELS = 8
+    /** 骁龙在产型号是几十颗的量级，64 足够覆盖且挡得住把 catalog 撑爆的条目。 */
+    private const val MAX_QNN_DEVICE_PROFILES = 64
     private const val MAX_ENVELOPE_BYTES = 256 * 1024
     private const val MAX_PAYLOAD_BYTES = 192 * 1024
 }
@@ -608,16 +681,29 @@ class SpatialCatalogClient(
             val catalog = SpatialCatalogVerifier.verify(bytes)
             rejectRollback(catalog)
             saveCache(bytes, catalog.catalogVersion)
-            return Result(catalog, fromCache = false)
+            return Result(adopt(catalog), fromCache = false)
         }.exceptionOrNull()
 
         val cache = cacheFile()
         if (cache.isFile) {
             val bytes = cache.readBytes()
             val catalog = SpatialCatalogVerifier.verify(bytes)
-            return Result(catalog, fromCache = true)
+            return Result(adopt(catalog), fromCache = true)
         }
         throw IllegalStateException("无法取得可信模型目录", networkError)
+    }
+
+    /**
+     * catalog 通过验签之后要落到进程外的**唯一**一处副作用：把 SoC → dsp_arch 覆盖表
+     * 快照下来。[SpatialQnnSupport.resolveDspArch] 在设置页每次刷新都要跑，读不了
+     * catalog 文件（要磁盘 I/O 加验签），只能读这份快照。
+     *
+     * 走缓存那条路也要快照：清过数据、或上一版 App 还没有这个字段时，快照可能是空的，
+     * 而此刻手里正好有一份验过签的 catalog。
+     */
+    private fun adopt(catalog: SpatialModelCatalog): SpatialModelCatalog {
+        SpatialQnnSupport.saveCatalogProfiles(context, catalog.qnnDeviceProfiles)
+        return catalog
     }
 
     private fun rejectRollback(catalog: SpatialModelCatalog) {

@@ -418,6 +418,7 @@ Publish-ImmutableObject `
 # 里面硬校验 packageVersion == REQUIRED_PACKAGE_VERSION，混入 QNN 条目会让所有已安装的
 # 旧版 App 直接拒绝整个 catalog。所以走独立的 qnnRuntimes 字段，旧版忽略。
 $catalogQnnRuntimes = @()
+$catalogQnnAllArchRuntimes = @()
 if (Test-Path -LiteralPath $qnnRuntimeMetadataPath) {
     $qnnMetadata = Get-Content -LiteralPath $qnnRuntimeMetadataPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
@@ -458,7 +459,7 @@ if (Test-Path -LiteralPath $qnnRuntimeMetadataPath) {
                 sha256 = $extra.sha256
             }
         }
-        $catalogQnnRuntimes += [ordered]@{
+        $qnnEntry = [ordered]@{
             id = 'onnxruntime'
             packageVersion = $QnnRuntimePackageVersion
             ortVersion = '1.28.0'
@@ -478,13 +479,27 @@ if (Test-Path -LiteralPath $qnnRuntimeMetadataPath) {
             enabled = $true
             disabledReason = $null
         }
+        # 全 arch 条目必须走独立字段：旧版 App 的 isCompatible() 要求 dspArch 是真实
+        # 架构，"all" 过不了，而 validateCatalog 对 qnnRuntimes 是硬 check——混进去
+        # 会让**所有已安装的旧版 App 整份拒绝 catalog**，连普通模型下载一起停摆（D267）。
+        if ($pkg.dspArch -eq 'all') {
+            $catalogQnnAllArchRuntimes += $qnnEntry
+        } else {
+            $catalogQnnRuntimes += $qnnEntry
+        }
     }
     Publish-ImmutableObject `
         -LocalPath $qnnLicense `
         -RemotePath "$remoteRoot/models/spatial-depth/qnn-runtime/onnxruntime/$QnnRuntimePackageVersion/LICENSE.txt" `
         -ExpectedSize (Get-Item -LiteralPath $qnnLicense).Length `
         -ExpectedSha256 (Sha256 $qnnLicense)
-    Write-Output ("已准备 " + $catalogQnnRuntimes.Count + " 个 QNN 运行组件条目")
+    Write-Output ("已准备 " + $catalogQnnRuntimes.Count + " 个单 arch QNN 运行组件条目、" +
+        $catalogQnnAllArchRuntimes.Count + " 个全 arch 条目")
+    # 全 arch 包是未登记 SoC 的唯一出路（D267）：没有它，新骁龙在设置页依然不可用。
+    if ($catalogQnnAllArchRuntimes.Count -eq 0) {
+        Write-Warning ('本次没有全 arch 包（dspArch = all）。判定表查不到的新骁龙将无法启用 ' +
+            'NPU。先跑 build-qnn-all-arch-package.ps1 再发布。')
+    }
 } else {
     Write-Output 'QNN 运行组件元数据不存在，跳过（catalog 不含 qnnRuntimes）'
 }
@@ -710,6 +725,46 @@ foreach ($model in $boundaryRefinementModels) {
     }
 }
 
+# ------------------------------------------------------- SoC → HTP 架构覆盖表
+# App 对整份 catalog 做强校验：**一条坏条目会让所有客户端拒绝整个 catalog**，
+# 连模型下载一起停摆。所以这里按与 SpatialQnnSupport / SpatialCatalogVerifier
+# 完全相同的规则先挡一遍，发布期失败远好过全量客户端失效。
+$catalogQnnDeviceProfiles = @()
+$qnnProfilesPath = Join-Path $PSScriptRoot 'qnn-device-profiles.json'
+if (Test-Path -LiteralPath $qnnProfilesPath) {
+    $profileDoc = Get-Content -LiteralPath $qnnProfilesPath -Raw -Encoding UTF8 |
+        ConvertFrom-Json
+    foreach ($entry in @($profileDoc.profiles)) {
+        # 锚定：PS 的 -match 是子串匹配，App 侧 Regex.matches 是全串匹配。
+        if ($entry.socModel -notmatch '^[A-Za-z0-9_-]{1,32}$') {
+            throw "SoC 覆盖表型号非法：$($entry.socModel)"
+        }
+        if ($entry.dspArch -notmatch '^v(6[89]|7[0-9]|8[0-9])$') {
+            throw "SoC 覆盖表 dsp_arch 非法：$($entry.socModel)/$($entry.dspArch)"
+        }
+        # _note 只留在仓库里，不进 catalog：payload 有 192 KB 上限。
+        $catalogQnnDeviceProfiles += [ordered]@{
+            socModel = $entry.socModel
+            dspArch = $entry.dspArch
+        }
+    }
+    if ($catalogQnnDeviceProfiles.Count -gt 64) { throw 'SoC 覆盖表条目过多' }
+    $duplicateSoc = $catalogQnnDeviceProfiles |
+        Group-Object { $_.socModel.ToUpperInvariant() } |
+        Where-Object { $_.Count -gt 1 }
+    if ($duplicateSoc) { throw "SoC 覆盖表存在重复型号：$($duplicateSoc[0].Name)" }
+    # 覆盖表指向的 arch 没有对应运行组件时，设置页会出现"看得见、下不动"的入口。
+    foreach ($entry in $catalogQnnDeviceProfiles) {
+        if ($catalogQnnRuntimes.Count -gt 0 -and
+            -not ($catalogQnnRuntimes | Where-Object { $_.dspArch -eq $entry.dspArch })) {
+            throw "$($entry.socModel) 指向 $($entry.dspArch)，但本次没有该架构的运行组件"
+        }
+    }
+    Write-Output ("已准备 " + $catalogQnnDeviceProfiles.Count + " 条 SoC 覆盖表条目")
+} else {
+    Write-Output 'SoC 覆盖表文件不存在，跳过（catalog 不含 qnnDeviceProfiles）'
+}
+
 $payload = [ordered]@{
     schemaVersion = 1
     channel = $Channel
@@ -734,6 +789,8 @@ $payload = [ordered]@{
     runtimes = $catalogRuntimes
     qnnRuntimes = $catalogQnnRuntimes
     qnnPrecompiledModels = $catalogQnnPrecompiled
+    qnnDeviceProfiles = $catalogQnnDeviceProfiles
+    qnnAllArchRuntimes = $catalogQnnAllArchRuntimes
 }
 $payloadPath = Join-Path $outputRoot 'catalog-payload.json'
 $payloadJson = $payload | ConvertTo-Json -Depth 8

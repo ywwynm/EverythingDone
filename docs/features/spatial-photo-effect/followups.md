@@ -1320,13 +1320,28 @@ Reangle-A-Video / PAInpainter / IMFine / DiGA3D）是为**生成式模型 + 大�
 
 - [x] `SpatialQnnSupport` / `SpatialQnnContextStore` / `SpatialQnnSessionFactory`
       与 `<uses-native-library libcdsprpc.so>`；RF-DETR 已接入产品路径。
-- [ ] **catalog 接上 `qnnDeviceProfiles`**：`SpatialQnnSupport.resolveDspArch()` 目前只用
-      内置表，catalog 覆盖参数还没有调用方传入。新 SoC 上市不该逼用户升级 App。
+- [x] **catalog 接上 `qnnDeviceProfiles`**（D266，2026-08-15）：catalog 新增该字段并在
+      验签后快照进 SharedPreferences；`resolveDspArch(context)` 读快照，无参重载已删除。
+      发布侧见 `tools/spatial-models/qnn-device-profiles.json`。
 - [ ] **QNN 运行组件的正式分发**：`SpatialRuntimeStore` 需要支持"变体"
       （cpu 裁剪版 / qnn 版）与按 dsp_arch 的多文件清单；catalog 加 `qnnRuntimes`。
       目前只有 debug 覆盖目录这条旁路。**需要服务器凭据，属外部动作。**
-- [ ] **`SM8845`（8 Gen 5）的 dsp_arch 待定**：OPPO Pad Mini 副测机就是这颗，
-      内置表故意留空（fail-closed）。用真机跑一次 QNN 探针即可确认。
+- [x] **`SM8845P`（8 Gen 5）的 dsp_arch 已确认为 v81**（D266，2026-08-15）：证据是
+      OPD2515 的 `/odm` 下 OPPO 自己的 AI 框架装的就是 `libQnnHtpV81Skel.so`，全盘只有
+      V81。注意实测上报串带 P 后缀，不是资料里的 `SM8845`。
+- [x] **发布带全 arch 包的 catalog**（D267，2026-08-15）：staging 与 stable 均已发布，
+      `catalogVersion = 20260815082206`。发布前修掉了「全 arch 条目会让旧版 App 整份
+      拒绝 catalog」的缺陷，改走独立字段 `qnnAllArchRuntimes`。
+- [ ] **同类控件一致性缺少自动检查**（D269）：本页 NPU 两行连续四轮才与其余行对齐。
+      可考虑用一个单测把「所有 applyActionIcon 的 enabled 参数都含 active 项」这类
+      约定钉住，或至少在 review 清单里列明。
+- [ ] **NPU 预编译下载失败是静默的**（D268 顺带发现）：`ensurePrecompiled` 返回 false
+      时 worker 报 failure，但 `refreshNpuVariantRows` 只在 `isActive` 时显示 work 状态，
+      失败态落回"未下载"，用户看到的是"点了没反应"。要显示失败原因需新增文案并翻 12 个语言。
+- [ ] **补跑全量单测**（2026-08-15 被另一会话的 `Pcm16AudioMixerTest.kt` 编译错误挡住）。
+- [ ] **v81 预编译产物在 SM8845P 上的性能折扣未测**：Big-LaMa 的 context binary 是按
+      SM8850 编的。按 D264，arch 是硬约束、soc_model 是性能约束，跨 SoC 应能加载但可能
+      变慢。装上 NPU 版跑一次 Big-LaMa 与 R5CW20BLNKL 的 v73 数对一下即可。
 - [ ] **EdgeTAM image encoder 接入**（已验证 18.7×，形状固定 1024²，零改造）。
 - [ ] **设置页"计算加速"开关**与 NPU 状态显示（自动 / 强制 CPU），用于用户侧排障；
       另需"清除 NPU 编译缓存"入口（`SpatialQnnContextStore.deleteAll`）。

@@ -1,5 +1,54 @@
 # Current Debug Update Notes
 
+## 2026-08-15 - NPU 两行的显示层欠账一次清掉（D269）
+
+发布号 `202608150854`，APK SHA-256 `34614d9c7e3da008…`，24.35 MB。catalog 未动
+（仍是同日的 `20260815082206`）。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815165331.md`。
+
+三处全是 D265 统一显示层规矩时漏改 NPU 两行留下的欠账，不是新缺陷：
+
+- **未下载时单选钮偏淡**：`rb_big_lama_npu.isEnabled` 由 `runtimeReady && ctxInstalled`
+  改为 `eligible`，与 CPU 各行一致（未下载不置灰，只有真的用不了才置灰）。
+  `rb_rfdetr_npu` 同改。
+- **单选钮改纯显示**：两个 NPU 单选钮补上 `isClickable = false` 并移除其上的监听器，
+  点击穿透到整行——挂监听器会把 clickable 设回 true，直接点会先自 toggle 再被刷回。
+- **下载中取消图标偏淡 + 取消按不了**：`applyActionIcon` 的 enabled 由
+  `... && !ctxDownloading` 改为 `ctxDownloading || (...)`（全页唯一带 `!active` 的一处）；
+  按钮点击补上取消分支——此前只有 `enqueue`，对同一唯一任务名重复入队且策略为 KEEP，
+  等于无操作，`SpatialQnnPrecompiledDownloadCoordinator.cancel()` 全项目从未被调用。
+
+**方法上的教训**：统一某条显示层规矩时要把涉及的控件全部列出来逐个改；收到单点 UI
+反馈时先横向比对同类控件。这四轮往返本可在 D265 一次清掉。已在 followups 挂了
+"用单测钉住这类约定"的条目。
+
+## 2026-08-15 - 骁龙 NPU 判定表退居可选优化 + Big-LaMa NPU 版下载死锁（D266/D267/D268）
+
+发布号 `202608150837`，APK SHA-256 `b97f773048bb7cc7…`，24.35 MB。
+**catalog 同日已发布**（`catalogVersion = 20260815082206`，含 `qnnAllArchRuntimes`
+与 `qnnDeviceProfiles`）。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815163656.md`。
+
+- **OPD2515 看不到 NPU 选项（D266）**：`Build.SOC_MODEL` 实测为 `SM8845P`（带 P 后缀，
+  资料写的都是 `SM8845`，全等匹配下对不上）。架构由设备取证确定：该机 `/odm` 下
+  OPPO 自己的 AI 框架装的是 `libQnnHtpV81Skel.so`，全盘只有 V81。同时接通了
+  catalog 覆盖表——此前 `qnnDeviceProfiles` 只存在于注释里，字段根本不存在。
+- **判定表不再作为准入依据（D267）**：门控由白名单换成 v65/v66 黑名单（封闭集合，
+  未知一律放行）；运行组件新增 `dspArch = "all"` 的全 arch 包，由 QNN 自己挑 Skel。
+  实测该机硅为 v85，QNN 取"不超过硬件档的最高可用 Skel"，故比打包档更新的芯片也能用。
+  代价：下载 50.25 → 63.62 MB、磁盘 136.81 → 191.87 MB，**仅未登记芯片承担**。
+  发布前修掉一个会打挂线上的缺陷：全 arch 条目若并进 `qnnRuntimes`，旧版 App 的
+  `isCompatible()` 过不了而 `validateCatalog` 是硬 check，会**整份拒绝 catalog**，
+  连普通模型下载一起停摆；改走独立字段 `qnnAllArchRuntimes`。
+- **Big-LaMa（NPU 版）从来没能下载成功过（D268）**：`ensurePrecompiled` 拿"用户选了
+  NPU 版"当下载前置条件，而该开关默认 false、只能靠选中 NPU 版置真，选中又要求产物
+  已装——自锁。单选钮偏淡是同一根因的另一半。修法是分开「获取」与「选用」：按下载
+  按钮本身即授权。真机验证 5 秒装好 105 MB，单选钮恢复可选，互斥正确。
+- **不支持时显示而不是隐藏**：非高通仍整块隐藏；高通但未登记则显示并置灰，
+  `spatial_qnn_unsupported` 这条此前永远渲染不出来的文案终于可见。
+
+未跑全量单测：另一会话新增的 `Pcm16AudioMixerTest.kt` 有编译错误，测试源集整体编译不过。
+
 ## 2026-08-15 - 设置页状态文案分三档 + 未下载不置灰 + 取消图标加粗（D265）
 
 发布号 `202608150400`，APK SHA-256 `205592ea9fb90b82…`，23.20 MB。catalog 未动。

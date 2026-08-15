@@ -55,7 +55,7 @@ object SpatialRuntimeStore {
 
     /** 某个变体是否已装好。UI 要同时显示两行，所以不能只问"当前变体"。 */
     fun isVariantInstalled(context: Context, qnn: Boolean): Boolean {
-        if (qnn && SpatialQnnSupport.resolveDspArch() == null) return false
+        if (qnn && SpatialQnnSupport.resolveDspArch(context) == null) return false
         val marker = readMarker(context, qnn) ?: return false
         return installedFiles(context, marker)?.let { (core, jni) ->
             core.length() == marker.coreSizeBytes && jni.length() == marker.jniSizeBytes
@@ -275,7 +275,11 @@ object SpatialRuntimeStore {
     ): ReadyMarker {
         check(entry.isCompatible()) { "QNN 运行组件与当前 App 不兼容" }
         check(entry.abi == currentAbi()) { "QNN 运行组件 ABI 与设备不匹配" }
-        check(entry.dspArch == SpatialQnnSupport.resolveDspArch()) {
+        // 全 arch 包对任何机器都成立（由 QNN 自己挑 Skel）；单 arch 包必须与本机判定一致。
+        check(
+            entry.dspArch == SpatialQnnSupport.ALL_ARCH ||
+                entry.dspArch == SpatialQnnSupport.resolveDspArch(context)
+        ) {
             "QNN 运行组件的 HTP 架构与设备不匹配"
         }
         check(archive.isFile && archive.length() == entry.sizeBytes) {
@@ -410,7 +414,7 @@ object SpatialRuntimeStore {
         val required = if (qnn) QNN_PACKAGE_VERSION else REQUIRED_PACKAGE_VERSION
         return runCatching {
             val marker = gson.fromJson(file.readText(Charsets.UTF_8), ReadyMarker::class.java)
-            marker.takeIf { isCompatibleMarker(it, required) }
+            marker.takeIf { isCompatibleMarker(context, it, required) }
         }.getOrNull()
     }
 
@@ -427,7 +431,11 @@ object SpatialRuntimeStore {
         return core to jni
     }
 
-    private fun isCompatibleMarker(marker: ReadyMarker, required: String): Boolean =
+    private fun isCompatibleMarker(
+        context: Context,
+        marker: ReadyMarker,
+        required: String
+    ): Boolean =
         marker.schemaVersion == MARKER_SCHEMA_VERSION &&
             marker.id == RUNTIME_ID &&
             marker.ortVersion == ORT_VERSION &&
@@ -436,7 +444,9 @@ object SpatialRuntimeStore {
             // QNN 包必须是本机架构的那一份：Skel/Stub 按架构分，装错了 QNN 会在
             // device 创建阶段失败，并留下一堆指向别处的日志（D219）。
             (marker.packageVersion != QNN_PACKAGE_VERSION ||
-                (marker.dspArch != null && marker.dspArch == SpatialQnnSupport.resolveDspArch())) &&
+                (marker.dspArch != null &&
+                    (marker.dspArch == SpatialQnnSupport.ALL_ARCH ||
+                        marker.dspArch == SpatialQnnSupport.resolveDspArch(context)))) &&
             marker.abi == currentAbi() &&
             marker.coreSizeBytes in 1..MAX_CORE_BYTES &&
             marker.jniSizeBytes in 1..MAX_JNI_BYTES &&

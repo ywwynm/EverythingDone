@@ -57,7 +57,7 @@ class SpatialQnnRuntimeDownloadWorker(
 ) : Worker(context, params) {
 
     override fun doWork(): Result {
-        if (SpatialQnnSupport.resolveDspArch() == null) {
+        if (SpatialQnnSupport.resolveDspArch(applicationContext) == null) {
             return failure("本机不是受支持的骁龙 NPU 机型")
         }
         if (SpatialRuntimeStore.isVariantInstalled(applicationContext, qnn = true)) {

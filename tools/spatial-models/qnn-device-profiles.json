@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "SoC 型号 → HTP 架构（dsp_arch）的 catalog 覆盖表，发布进 catalog 的 qnnDeviceProfiles 字段。",
+    "存在的理由：新骁龙上市不该逼用户升级 App。App 内置表见 SpatialQnnSupport.BUILT_IN_PROFILES，",
+    "本表优先，两边都查不到就不启用 NPU（fail-closed）。",
+    "",
+    "socModel 必须是设备上 Build.SOC_MODEL 的**原样**取值（adb shell getprop ro.soc.model），",
+    "查表是全等匹配。注意后缀：OPD2515 上报的是 SM8845P 而不是资料里写的 SM8845。",
+    "",
+    "dspArch 取值要有硬证据，不许按代际外推。两个可信来源：",
+    "  1. Qualcomm AI Hub 设备属性里的 hexagon: 字段；",
+    "  2. 设备自带的 QNN 库文件名，如 /odm/lib64/libQnnHtpV81Stub.so。",
+    "填错的后果是下发一份根本加载不了的 Skel，比不启用更糟。",
+    "",
+    "登记新条目之前先确认 catalog 里有对应 dspArch 的 qnnRuntimes 条目，否则设置页出得来、",
+    "点下载会失败。当前已发布的运行组件覆盖 v73/v75/v79/v81。"
+  ],
+  "profiles": [
+    {
+      "socModel": "SM8845P",
+      "dspArch": "v81",
+      "_note": "骁龙 8 Gen 5，OPPO Pad Mini（OPD2515）。证据：该机 /odm 下 OPPO 自己的 AI 框架装的是 libQnnHtpV81Skel.so，全盘只有 V81 一个版本。与内置表重复是**故意的**——内置表只对装了新版 App 的用户生效，本表让还没升级的用户也能拿到。"
+    }
+  ]
+}

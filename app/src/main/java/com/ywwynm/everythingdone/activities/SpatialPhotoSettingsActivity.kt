@@ -904,6 +904,9 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         findViewById<View>(R.id.cb_qnn).setOnClickListener(qnnToggle)
         findViewById<View>(R.id.row_qnn).setOnClickListener(qnnToggle)
         findViewById<View>(R.id.btn_qnn).setOnClickListener {
+            // 设备不达标时按钮已隐藏，这里再挡一次：下载任务本身也会以
+            // "本机不是受支持的骁龙 NPU 机型"失败，不该让它入队闪一下进度。
+            if (!qnnDeviceEligible()) return@setOnClickListener
             if (qnnRuntimeWorkInfo?.let(::isActive) == true) {
                 cancelQnnRuntimeDownload()
             } else {
@@ -1327,8 +1330,11 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                     .firstOrNull {
                         it.builtInModel() == SpatialBoundaryRefinementModel.EDGETAM
                     }
-                val dspArch = SpatialQnnSupport.resolveDspArch()
-                val qnnRuntime = dspArch?.let { catalog.qnnRuntimeForCurrentDevice(it) }
+                // 必须在 fetchOrCached 之后取：那一步才会把 catalog 的 SoC 覆盖表快照下来，
+                // 放在前面会用上一轮的旧表，新机型第一次进设置页仍然判不出 dsp_arch。
+                val dspArch = SpatialQnnSupport.resolveDspArch(applicationContext)
+                // 传 null 也有意义：查不出架构时会退回全 arch 包，正是新芯片的兜底。
+                val qnnRuntime = catalog.qnnRuntimeForCurrentDevice(dspArch)
                 val qnnPrecompiled = dspArch?.let {
                     catalog.qnnPrecompiledFor(
                         SpatialInpaintingModel.BIG_LAMA_PLACES2_512.stableId,
@@ -1525,19 +1531,28 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     private fun bindNpuVariantRows() {
         val bigLama = SpatialInpaintingModel.BIG_LAMA_PLACES2_512
         val selectBigLamaNpu = View.OnClickListener {
-            // 不可选时也要刷新：直接点 RadioButton 的话它已经自己 toggle 过了
             if (npuVariantSelectable(bigLama.stableId) && npuVariantUsable(bigLama)) {
                 SpatialPreferences.setSelectedInpaintingModel(this, bigLama)
                 SpatialPreferences.setQnnEnabledFor(this, bigLama.stableId, true)
             }
             refreshAll()
         }
-        findViewById<View>(R.id.rb_big_lama_npu).setOnClickListener(selectBigLamaNpu)
+        // 同 bindModel／bindInpainting：RadioButton 只作显示，不挂监听器（挂了会把
+        // clickable 设回 true），点击穿透到整行。此前这两行漏改了（D265 只改了 CPU 那几组）。
+        findViewById<RadioButton>(R.id.rb_big_lama_npu).isClickable = false
         findViewById<View>(R.id.model_big_lama_npu).setOnClickListener(selectBigLamaNpu)
         findViewById<View>(R.id.btn_big_lama_npu).setOnClickListener {
-            SpatialQnnPrecompiledDownloadCoordinator.enqueue(
-                this, bigLama.stableId, bigLama.version, allowMetered = true
-            )
+            // 这个按钮有两态（下载 / 取消），此前只写了下载那一支——图标已经切成取消叉，
+            // 按下去却是再入队一次（唯一任务名 + KEEP，等于什么都没发生），
+            // 表现为「取消按不了」。Coordinator 的 cancel 早就写好了，只是没人调
+            //（2026-08-15 用户指出）。
+            if (precompiledWorkInfo?.let(::isActive) == true) {
+                SpatialQnnPrecompiledDownloadCoordinator.cancel(this, bigLama.stableId)
+            } else {
+                SpatialQnnPrecompiledDownloadCoordinator.enqueue(
+                    this, bigLama.stableId, bigLama.version, allowMetered = true
+                )
+            }
             refreshAll()
         }
         findViewById<View>(R.id.iv_big_lama_npu_delete).setOnClickListener {
@@ -1558,7 +1573,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             }
             refreshAll()
         }
-        findViewById<View>(R.id.rb_rfdetr_npu).setOnClickListener(selectRfdetrNpu)
+        findViewById<RadioButton>(R.id.rb_rfdetr_npu).isClickable = false
         findViewById<View>(R.id.model_rfdetr_npu).setOnClickListener(selectRfdetrNpu)
     }
 
@@ -1568,7 +1583,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      */
     private fun npuVariantUsable(model: SpatialInpaintingModel): Boolean {
         if (model != SpatialInpaintingModel.BIG_LAMA_PLACES2_512) return false
-        val dspArch = SpatialQnnSupport.resolveDspArch() ?: return false
+        val dspArch = SpatialQnnSupport.resolveDspArch(this) ?: return false
         return qnnDeviceEligible() && SpatialPreferences.qnnEnabled(this) &&
             SpatialRuntimeStore.isVariantInstalled(this, qnn = true) &&
             SpatialQnnPrecompiledStore.isInstalled(
@@ -1587,7 +1602,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val deviceOk = qnnDeviceEligible()
         val eligible = deviceOk && SpatialPreferences.qnnEnabled(this)
         val runtimeReady = eligible && SpatialRuntimeStore.isVariantInstalled(this, qnn = true)
-        val dspArch = SpatialQnnSupport.resolveDspArch()
+        val dspArch = SpatialQnnSupport.resolveDspArch(this)
 
         // --- Big-LaMa NPU ---
         val bigLama = SpatialInpaintingModel.BIG_LAMA_PLACES2_512
@@ -1605,7 +1620,12 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialPreferences.qnnEnabledFor(this, bigLama.stableId)
         findViewById<RadioButton>(R.id.rb_big_lama_npu).apply {
             isChecked = npuSelected
-            isEnabled = runtimeReady && ctxInstalled
+            // **未下载不置灰**（D265 的规矩，当时只改了 CPU 那几组，这两行漏了）：
+            // "还没下载"由右侧状态文案和下载按钮表达，圈再淡一次是同一件事说三遍，
+            // 而且与旁边同样未下载的 MI-GAN、AOT-GAN 摆在一起明显不一致
+            // （2026-08-15 用户在手机上指出）。整行的 alpha 已经表达"总开关没开"，
+            // 这里只表达"这台设备真的用不了"。
+            isEnabled = eligible
         }
         val ctxDownloading = precompiledWorkInfo?.let(::isActive) == true
         val ctxSize = Formatter.formatFileSize(this, qnnPrecompiledEntry?.sizeBytes ?: 0L)
@@ -1631,7 +1651,11 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         applyActionIcon(
             findViewById(R.id.btn_big_lama_npu),
             active = ctxDownloading,
-            enabled = runtimeReady && baseInstalled && !ctxDownloading
+            // **下载中必须算「可用」**，与本页其余每一行一致（`eligible || active`）。
+            // 写成 `&& !ctxDownloading` 的后果是：一开始下载，图标切成取消叉的同时被
+            // 判成不可用而着淡色——正在进行的操作反而看着像禁用的
+            //（2026-08-15 用户指出）。
+            enabled = ctxDownloading || (runtimeReady && baseInstalled)
         )
         findViewById<View>(R.id.iv_big_lama_npu_delete).visibility =
             if (ctxInstalled) View.VISIBLE else View.GONE
@@ -1649,7 +1673,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             SpatialPreferences.qnnEnabledFor(this, rfdetr.stableId)
         findViewById<RadioButton>(R.id.rb_rfdetr_npu).apply {
             isChecked = rfNpuSelected
-            isEnabled = runtimeReady && rfBaseInstalled
+            isEnabled = eligible  // 同 rb_big_lama_npu：未就绪不置灰，状态文案已经说了
         }
         findViewById<TextView>(R.id.tv_rfdetr_npu_status).text = when {
             !eligible -> getString(R.string.spatial_npu_needs_runtime)
@@ -1667,8 +1691,20 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         findViewById<View>(R.id.iv_rfdetr_npu_delete).visibility = View.GONE
     }
 
-    private fun qnnDeviceEligible(): Boolean =
-        SpatialQnnSupport.currentAbiSupported() && SpatialQnnSupport.resolveDspArch() != null
+    /**
+     * 本机能不能用 NPU。**判定表不再是准入依据**（D267）：
+     *
+     * - 查得到 dsp_arch → 照旧可用，下载对应的单份包；
+     * - 查不到 → 只要 catalog 里有全 arch 包就照样可用，由 QNN 自己挑 Skel。
+     *
+     * 后一条是关键：新骁龙出厂第一天就能用，不必等我们把型号登记进表。反过来，
+     * 没有全 arch 包时**不能**放行未知机型——那会变成"看得见、下不动"。
+     */
+    private fun qnnDeviceEligible(): Boolean {
+        if (!SpatialQnnSupport.isNpuPossible(this)) return false
+        if (SpatialQnnSupport.resolveDspArch(this) != null) return true
+        return qnnRuntimeEntry?.dspArch == SpatialQnnSupport.ALL_ARCH
+    }
 
     /**
      * 切换 NPU 总开关。**换开关等于换整包运行组件**：QNN EP 编译在 libonnxruntime.so 里，
@@ -1762,11 +1798,22 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             qnnRuntimeEntry?.sizeBytes ?: 0L
         }
         val sizeText = Formatter.formatFileSize(this, size)
-        findViewById<View>(R.id.row_qnn).visibility =
-            if (eligible) View.VISIBLE else View.GONE
+        // **只有确定不可能支持的机器才隐藏**（非高通、非 arm64、API < 31）——那类设备上
+        // 这一行不是一个有意义的概念。是高通但没登记 dsp_arch 时要显示并置灰，否则
+        // spatial_qnn_unsupported 永远渲染不出来，未登记的新骁龙在界面上与"不支持"
+        // 无从区分（2026-08-15 用户指出）。
+        val candidate = SpatialQnnSupport.isSnapdragonNpuCandidate()
+        findViewById<View>(R.id.row_qnn).apply {
+            visibility = if (candidate) View.VISIBLE else View.GONE
+            isEnabled = eligible
+            alpha = if (eligible) 1f else 0.4f
+        }
         findViewById<View>(R.id.tv_qnn_hint).visibility =
             if (eligible && enabled) View.VISIBLE else View.GONE
-        findViewById<android.widget.CheckBox>(R.id.cb_qnn).isChecked = eligible && enabled
+        findViewById<android.widget.CheckBox>(R.id.cb_qnn).apply {
+            isChecked = eligible && enabled
+            isEnabled = eligible
+        }
         findViewById<TextView>(R.id.tv_qnn_status).text = when {
             !eligible -> getString(R.string.spatial_qnn_unsupported)
             active -> qnnRuntimeWorkStatus(qnnRuntimeWorkInfo, sizeText)
@@ -1778,8 +1825,10 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val showDelete = installed && !active
         findViewById<View>(R.id.iv_qnn_delete).visibility =
             if (showDelete) View.VISIBLE else View.GONE
+        // 设备不达标时连下载图标一起收起来：这一行此时只负责说明原因，不该留一个
+        // 按下去什么也不会发生的入口（组件本来就没有这台机器能用的那一份）。
         findViewById<View>(R.id.btn_qnn).visibility =
-            if (showDelete) View.GONE else View.VISIBLE
+            if (showDelete || !eligible) View.GONE else View.VISIBLE
         applyActionIcon(
             findViewById(R.id.btn_qnn), active, qnnRuntimeEntry != null && !installed
         )

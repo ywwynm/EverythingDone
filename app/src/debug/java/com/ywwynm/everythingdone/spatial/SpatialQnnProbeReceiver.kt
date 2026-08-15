@@ -117,7 +117,7 @@ class SpatialQnnProbeReceiver : BroadcastReceiver() {
         report("override installed files=$count dir=${target.absolutePath}")
         report("runtime packageVersion=${SpatialRuntimeStore.installedPackageVersion(context)}")
         report("qnn available=${SpatialQnnSessionFactory.isAvailable(context)}")
-        report("dspArch=${SpatialQnnSupport.resolveDspArch()} soc=${socModel()}")
+        report("dspArch=${SpatialQnnSupport.resolveDspArch(context)} soc=${socModel()}")
     }
 
     private fun probe(

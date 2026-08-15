@@ -280,7 +280,7 @@ class SpatialInpaintingBenchmarkReceiver : BroadcastReceiver() {
 
     /** 报告 NPU 三件套（运行组件、预编译产物、逐模型开关）各自装没装。 */
     private fun qnnState(context: Context, model: SpatialInpaintingModel) {
-        val arch = SpatialQnnSupport.resolveDspArch()
+        val arch = SpatialQnnSupport.resolveDspArch(context)
         val ctx = arch?.let {
             runCatching {
                 SpatialQnnPrecompiledStore.contextModel(context, model.stableId, model.version, it)
@@ -374,7 +374,7 @@ class SpatialInpaintingBenchmarkReceiver : BroadcastReceiver() {
             options.setIntraOpNumThreads(4)
         }
 
-        val arch = SpatialQnnSupport.resolveDspArch()
+        val arch = SpatialQnnSupport.resolveDspArch(context)
         if (arch == null) {
             logi("spatial-qnn-profile label=qnn 跳过：本机不是受支持的骁龙 NPU")
             return

@@ -67,7 +67,7 @@ object SpatialQnnSessionFactory {
     private fun resolveEnvironment(context: Context): QnnEnvironment? {
         // 总开关关着就当没有 QNN——各引擎照常走 CPU，与开关引入前完全一致。
         if (!SpatialPreferences.qnnEnabled(context)) return null
-        val dspArch = SpatialQnnSupport.resolveDspArch() ?: return null
+        val dspArch = SpatialQnnSupport.resolveDspArch(context) ?: return null
         if (!SpatialRuntimeStore.isVariantInstalled(context, qnn = true)) return null
         val directory = runCatching {
             SpatialRuntimeStore.nativeLibraryDirectory(context)
