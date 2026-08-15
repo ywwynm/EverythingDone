@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.spatial.SpatialModelDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialModelDownloadWorker
 import com.ywwynm.everythingdone.spatial.SpatialModelStore
 import com.ywwynm.everythingdone.spatial.SpatialPreferences
+import com.ywwynm.everythingdone.spatial.SpatialQnnExecutionBlocklist
 import com.ywwynm.everythingdone.spatial.SpatialQnnArchProbe
 import com.ywwynm.everythingdone.spatial.SpatialQnnPrecompiledDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialQnnPrecompiledDownloadWorker
@@ -1847,6 +1848,14 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val rowUsable = gate && eligible
         val runtimeReady = eligible && SpatialRuntimeStore.isVariantInstalled(this, qnn = true)
         val dspArch = SpatialQnnSupport.resolveDspArch(this)
+        // 执行期判定不可用的模型要如实说出来（D276）。**架构未知时取 ALL_ARCH**，与
+        // `SpatialQnnSessionFactory.resolveEnvironment` 落结论时用的那一维保持同一口径；
+        // 直接传 null 会让全 arch 包那批设备永远匹配不上、行照旧显示"已启用"。
+        val executionArch = dspArch ?: SpatialQnnSupport.ALL_ARCH
+        val installedRuntimeVersion = SpatialRuntimeStore.installedPackageVersion(this)
+        fun npuUnusable(modelId: String) = SpatialQnnExecutionBlocklist.isUnusable(
+            this, modelId, executionArch, installedRuntimeVersion
+        )
 
         // --- Big-LaMa NPU ---
         val bigLama = SpatialInpaintingModel.BIG_LAMA_PLACES2_512
@@ -1861,17 +1870,23 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         // 实测，我们只编了 v73/v75/v79/v81）。
         // **已装的仍然显示**：否则换过 catalog 之后用户没有入口删掉本地那一份。
         val ctxUnavailable = qnnPrecompiledResolved && qnnPrecompiledEntry == null && !ctxInstalled
+        // 产物还在磁盘上就**不能隐藏**：那 105 MB 用户得有地方删（D274 的分档）。
+        val ctxExecuteFailed = npuUnusable(bigLama.stableId)
+        val bigLamaRowUsable = rowUsable && !ctxExecuteFailed
         findViewById<View>(R.id.model_big_lama_npu).apply {
             visibility = if (deviceOk && !ctxUnavailable) View.VISIBLE else View.GONE
-            isEnabled = rowUsable
-            alpha = if (rowUsable) 1f else DISABLED_ROW_ALPHA
+            isEnabled = bigLamaRowUsable
+            alpha = if (bigLamaRowUsable) 1f else DISABLED_ROW_ALPHA
         }
         val npuSelected = runtimeReady && ctxInstalled && baseInstalled &&
             SpatialPreferences.selectedInpaintingModel(this) == bigLama &&
             SpatialPreferences.qnnEnabledFor(this, bigLama.stableId)
         findViewById<RadioButton>(R.id.rb_big_lama_npu).apply {
+            // **仍然显示为选中**：用户确实选了它，生成时也确实先按它去试。不擅自改用户的
+            // 选择（2026-08-15 用户在"自动切回 CPU 版"与"置灰 + 说明"之间选了后者），
+            // 由状态文案说清楚实际跑在 CPU 上。
             isChecked = npuSelected
-            isEnabled = rowUsable
+            isEnabled = bigLamaRowUsable
         }
         // 本行的"模型文件"是预编译产物：没下载就不显示单选钮，
         // 与其余模型行的规则统一（2026-08-15 用户要求）。
@@ -1889,14 +1904,17 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             // 升级过程中旧的还在，`ctxInstalled` 仍为真——按其余行的顺序写，整个下载过程
             // 都会显示"已安装 155 MB"，用户看不到任何进展。
             ctxDownloading -> precompiledWorkStatus(precompiledWorkInfo, ctxSize)
+            // 排在"已启用/已安装"之前：装着而跑不动时，"已启用 105 MB"是句假话。
+            ctxExecuteFailed -> getString(R.string.spatial_npu_execute_failed_size, ctxSize)
             npuSelected -> getString(R.string.spatial_model_enabled, ctxSize)
             ctxInstalled -> getString(R.string.spatial_model_installed, ctxSize)
             else -> getString(R.string.spatial_model_not_downloaded, ctxSize)
         }
         // **不满足条件时置灰而不是隐藏**：隐藏了用户只会看到"根本没有下载按钮"
         // （2026-08-14 实测反馈）。能不能点由 enabled 表达，为什么不能点由状态文案说。
+        // 判定不可用时下载按钮一并收起（D274）：让用户再下一次没有意义。
         findViewById<View>(R.id.btn_big_lama_npu).visibility =
-            if (ctxInstalled) View.GONE else View.VISIBLE
+            if (ctxInstalled || ctxExecuteFailed) View.GONE else View.VISIBLE
         applyActionIcon(
             findViewById(R.id.btn_big_lama_npu),
             active = ctxDownloading,
@@ -1906,21 +1924,27 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             //（2026-08-15 用户指出）。
             enabled = ctxDownloading || (gate && runtimeReady && baseInstalled)
         )
+        // 注：整行 alpha 会连着把删除图标一起淡掉（父 View 的 alpha 是合成时施加的，
+        // 子 View 自己设 1f 盖不住）。这与 D274 已发的 `row_qnn` 不可用态是同一副样子，
+        // 保持一致；图标本身仍可点。要做成"整行灰、删除键实色"得改成逐个子控件置灰，
+        // 属于两处一起动的事，没有单独在这里分叉。
         findViewById<View>(R.id.iv_big_lama_npu_delete).visibility =
             if (ctxInstalled) View.VISIBLE else View.GONE
 
         // --- RF-DETR NPU：不需要额外下载，首次使用时端上编译 ---
         val rfdetr = SpatialSegmentationModel.RF_DETR_SEG_NANO
         val rfBaseInstalled = SpatialSegmentationModelStore.isInstalled(this, rfdetr)
+        val rfExecuteFailed = npuUnusable(rfdetr.stableId)
+        val rfRowUsable = rowUsable && !rfExecuteFailed
         findViewById<View>(R.id.model_rfdetr_npu).apply {
             visibility = if (deviceOk) View.VISIBLE else View.GONE
-            isEnabled = rowUsable
-            alpha = if (rowUsable) 1f else DISABLED_ROW_ALPHA
+            isEnabled = rfRowUsable
+            alpha = if (rfRowUsable) 1f else DISABLED_ROW_ALPHA
         }
         val rfNpuSelected = rfdetrNpuChosen()
         findViewById<android.widget.CheckBox>(R.id.cb_rfdetr_npu).apply {
             isChecked = rfNpuSelected
-            isEnabled = rowUsable
+            isEnabled = rfRowUsable
         }
         // 本行复用基础模型的文件：基础模型没下载就不显示勾选框
         applyControlVisibility(findViewById(R.id.cb_rfdetr_npu), rfBaseInstalled)
@@ -1928,6 +1952,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             !eligible -> getString(R.string.spatial_npu_needs_runtime)
             !npuRuntimeReady -> getString(R.string.spatial_npu_runtime_pending)
             !rfBaseInstalled -> getString(R.string.spatial_npu_needs_base_model)
+            // 同 Big-LaMa 那一行：排在"已启用"之前。这一行没有独立产物，用不带体积的那条。
+            rfExecuteFailed -> getString(R.string.spatial_npu_execute_failed)
             // 这一行没有"已下载"这种状态（它不需要额外产物），选中时把"已启用"和
             // 那句说明拼起来，不为此单开一条要翻 12 个语言的文案
             rfNpuSelected -> getString(

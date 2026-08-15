@@ -1272,6 +1272,8 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">Questo dispositivo non ha una NPU Snapdragon supportata</string>
     <string name="spatial_qnn_probe_failed">Impossibile avviare la NPU su questo dispositivo · %1$s eliminabili</string>
+    <string name="spatial_npu_execute_failed">La NPU non è riuscita a eseguire questo modello · si usa la CPU</string>
+    <string name="spatial_npu_execute_failed_size">La NPU non è riuscita a eseguire questo modello, si usa la CPU · %1$s eliminabili</string>
     <string name="spatial_restart_title">Riavvia per completare il passaggio</string>
     <string name="spatial_restart_message">La variante dell\'ambiente di inferenza è cambiata e avrà effetto dopo un riavvio. L\'app tornerà automaticamente alle impostazioni delle foto spaziali.</string>
     <string name="spatial_restart_now">Riavvia ora</string>

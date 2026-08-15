@@ -587,6 +587,28 @@
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">請輸入檔案名</string>
+    <string name="audio_input_label">音訊輸入</string>
+    <string name="audio_input_microphone">麥克風</string>
+    <string name="audio_input_system">系統</string>
+    <string name="audio_input_system_and_microphone">麥克風+系統</string>
+    <string name="audio_input_microphone_summary">錄製裝置麥克風。正式錄音在切換到其他 App 後仍會繼續，可從通知停止並保留。</string>
+    <string name="audio_input_system_summary">錄製其他 App 允許擷取的播放音訊。需要 Android 10+ 和整個螢幕範圍的系統授權，但本 App 不會讀取或儲存畫面；部分 App 可能禁止擷取。正式錄音在切換 App 後仍會繼續。停止錄音會結束授權；也可從系統的螢幕分享狀態入口撤銷，撤銷後將停止並保留目前錄音。</string>
+    <string name="audio_input_system_and_microphone_summary">同時錄製系統播放音訊和裝置麥克風。需要 Android 10+、麥克風權限和整個螢幕範圍的系統授權，但本 App 不會讀取或儲存畫面。建議使用耳機減少回音。正式錄音在切換 App 後仍會繼續。停止錄音會結束授權；也可從系統的螢幕分享狀態入口撤銷，撤銷後將停止並保留目前錄音。</string>
+    <string name="cd_choose_audio_input">選擇音訊輸入</string>
+    <string name="audio_input_projection_denied">已取消系統授權，音訊輸入已恢復為「麥克風」</string>
+    <string name="audio_input_system_initialization_failed">無法啟動系統音訊，音訊輸入已恢復為「麥克風」</string>
+    <string name="audio_input_projection_revoked">系統音訊授權已結束，已保留先前錄音</string>
+    <string name="audio_input_capture_failed">必要的音訊輸入已停止，已保留先前錄音</string>
+    <string name="audio_input_microphone_unavailable">無法啟動麥克風</string>
+    <string name="audio_input_system_silent">未偵測到可擷取的系統音訊，部分 App 可能禁止擷取</string>
+    <string name="audio_input_aec_unavailable">此裝置無法啟用回音消除，建議使用耳機減少回音</string>
+    <string name="audio_recording_notification_channel">音訊錄製</string>
+    <string name="audio_input_preview_notification_title">正在預覽系統音訊</string>
+    <string name="audio_input_authorization_notification_title">系統音訊授權已啟用</string>
+    <string name="audio_recording_notification_title">正在錄音</string>
+    <string name="audio_recording_notification_stop_keep">停止並保留</string>
+    <string name="audio_recording_notification_permission_missing">通知權限未開啟。錄音仍可進行，但 Android 13+ 只會在系統「使用中的應用程式」入口顯示前景服務狀態；通知欄不會顯示來源和「停止並保留」操作。</string>
+    <string name="audio_recording_stopped_notification_title">錄音已停止並保留</string>
 
     <!--DateTimeDialogFragment-->
     <string name="quick_remind_title_after">一段時間之後</string>
@@ -1686,6 +1708,8 @@
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">本機沒有受支援的驍龍 NPU</string>
     <string name="spatial_qnn_probe_failed">本機 NPU 無法啟動，已改用 CPU · %1$s 可刪除</string>
+    <string name="spatial_npu_execute_failed">本機 NPU 跑不了這個模型，已改用 CPU</string>
+    <string name="spatial_npu_execute_failed_size">本機 NPU 跑不了這個模型，已改用 CPU · %1$s 可刪除</string>
     <string name="spatial_restart_title">重新啟動應用程式以完成切換</string>
     <string name="spatial_restart_message">推理運行環境的變體已切換，重新啟動應用程式後生效。重啟後將自動回到空間照片效果設定頁。</string>
     <string name="spatial_restart_now">立即重啟</string>

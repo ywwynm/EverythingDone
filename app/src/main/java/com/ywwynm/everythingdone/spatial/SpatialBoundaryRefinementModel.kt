@@ -55,6 +55,14 @@ enum class SpatialBoundaryRefinementModel(
     val unpackedSizeBytes: Long
         get() = components.sumOf(SpatialBoundaryRefinementComponent::sizeBytes)
 
+    /**
+     * QNN 执行期结论（建 session 与拉黑）用的 id。只有 image encoder 上 QNN，为与整模型
+     * 的 [stableId] 区分，统一加 `_encoder` 后缀。引擎与模型仓库都必须用这一个属性，
+     * 各写一份字面量必然漂移。
+     */
+    val qnnEncoderModelId: String
+        get() = "${stableId}_encoder"
+
     companion object {
         fun fromStableId(id: String?): SpatialBoundaryRefinementModel? =
             entries.firstOrNull { it.stableId == id }

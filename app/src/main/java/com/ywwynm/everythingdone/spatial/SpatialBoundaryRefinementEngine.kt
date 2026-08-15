@@ -83,7 +83,22 @@ class SpatialBoundaryRefinementEngine(
         }
     }
 
+    /**
+     * QNN 执行期失败时整段用 CPU 重跑，见 [SpatialQnnSessionFactory.withExecuteFallback]。
+     * 上 QNN 的只有 image encoder，拉黑与 [openEncoder] 建 session 统一用
+     * [SpatialBoundaryRefinementModel.qnnEncoderModelId]。
+     */
     private fun runModel(
+        bitmap: Bitmap,
+        segmentation: SpatialSegmentationData,
+        model: SpatialBoundaryRefinementModel,
+        cancelled: AtomicBoolean
+    ): List<SpatialBoundaryRefinementPostprocessor.Candidate> =
+        SpatialQnnSessionFactory.withExecuteFallback(context, model.qnnEncoderModelId) {
+            runModelOnce(bitmap, segmentation, model, cancelled)
+        }
+
+    private fun runModelOnce(
         bitmap: Bitmap,
         segmentation: SpatialSegmentationData,
         model: SpatialBoundaryRefinementModel,
@@ -123,7 +138,7 @@ class SpatialBoundaryRefinementEngine(
                 environment = environment,
                 request = SpatialQnnSessionFactory.Request(
                     modelFile = encoderFile,
-                    modelId = "${model.stableId}_encoder",
+                    modelId = model.qnnEncoderModelId,
                     modelVersion = model.version,
                     modelSha256 = component.sha256,
                     shapeTag = "${model.inputSize}x${model.inputSize}"

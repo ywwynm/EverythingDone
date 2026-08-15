@@ -779,6 +779,28 @@
 
     <!--AudioRecordDialogFragment-->
     <string name="input_file_name">Please enter file name</string>
+    <string name="audio_input_label">Audio input</string>
+    <string name="audio_input_microphone">Microphone</string>
+    <string name="audio_input_system">System</string>
+    <string name="audio_input_system_and_microphone">Microphone + system</string>
+    <string name="audio_input_microphone_summary">Records this device’s microphone. Formal recording continues after you switch apps; use the notification to stop and keep it.</string>
+    <string name="audio_input_system_summary">Records capturable audio played by other apps. Requires Android 10+ and whole-screen system authorization, but this app never reads or saves the screen; some apps may block audio capture. Formal recording continues after you switch apps. Stopping ends the authorization; you can also revoke it from the system screen-sharing status, which stops and keeps the current recording.</string>
+    <string name="audio_input_system_and_microphone_summary">Records system playback and this device’s microphone together. Requires Android 10+, microphone permission, and whole-screen system authorization, but this app never reads or saves the screen. Headphones are recommended to reduce echo. Formal recording continues after you switch apps. Stopping ends the authorization; you can also revoke it from the system screen-sharing status, which stops and keeps the current recording.</string>
+    <string name="cd_choose_audio_input">Choose audio input</string>
+    <string name="audio_input_projection_denied">System authorization was cancelled. Audio input has returned to Microphone.</string>
+    <string name="audio_input_system_initialization_failed">System audio could not be started. Audio input has returned to Microphone.</string>
+    <string name="audio_input_projection_revoked">System audio authorization ended. The partial recording was kept.</string>
+    <string name="audio_input_capture_failed">A required audio input stopped. The partial recording was kept.</string>
+    <string name="audio_input_microphone_unavailable">The microphone could not be started.</string>
+    <string name="audio_input_system_silent">No capturable system audio detected. Some apps may block capture.</string>
+    <string name="audio_input_aec_unavailable">Echo cancellation is unavailable on this device. Use headphones to reduce echo.</string>
+    <string name="audio_recording_notification_channel">Audio recording</string>
+    <string name="audio_input_preview_notification_title">Previewing system audio</string>
+    <string name="audio_input_authorization_notification_title">System audio authorization active</string>
+    <string name="audio_recording_notification_title">Recording audio</string>
+    <string name="audio_recording_notification_stop_keep">Stop and keep</string>
+    <string name="audio_recording_notification_permission_missing">Notifications are disabled. Recording still works, but Android 13+ only shows its foreground-service status under Active apps; the source and Stop and keep action will not appear in the notification drawer.</string>
+    <string name="audio_recording_stopped_notification_title">Recording stopped and kept</string>
 
     <!--DateTimeDialogFragment-->
     <string name="quick_remind_title_after">AFTER</string>
@@ -1807,6 +1829,8 @@
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">This device has no supported Snapdragon NPU</string>
     <string name="spatial_qnn_probe_failed">NPU could not start on this device · %1$s can be deleted</string>
+    <string name="spatial_npu_execute_failed">NPU could not run this model · using CPU</string>
+    <string name="spatial_npu_execute_failed_size">NPU could not run this model, using CPU · %1$s can be deleted</string>
     <string name="spatial_restart_title">Restart to finish switching</string>
     <string name="spatial_restart_message">The inference runtime variant has changed and takes effect after a restart. The app will reopen on the spatial photo settings automatically.</string>
     <string name="spatial_restart_now">Restart now</string>

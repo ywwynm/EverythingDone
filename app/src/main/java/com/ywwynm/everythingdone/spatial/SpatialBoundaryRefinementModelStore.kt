@@ -106,6 +106,9 @@ object SpatialBoundaryRefinementModelStore {
                 if (backup.exists()) moveAtomically(backup, target)
                 throw error
             }
+            // 字节已换成这一份，旧的执行期失败结论作废；设置页读取侧兜不住模型维
+            //（见 [SpatialQnnExecutionBlocklist]）。上 QNN 的只有 encoder，清它那一个 id。
+            SpatialQnnExecutionBlocklist.clear(context, model.qnnEncoderModelId)
         } catch (error: Throwable) {
             pending.deleteRecursively()
             throw error
@@ -131,6 +134,8 @@ object SpatialBoundaryRefinementModelStore {
         // modelDirectory 是 <stableId>/<version> 两层，只删 version 层会把空的
         // stableId 目录留成壳（2026-08-15 在 OPD2515 上实测残留），一并清掉。
         directory.parentFile?.takeIf { it.list()?.isEmpty() == true }?.delete()
+        // 产物没了，执行期结论也不该留着（见 [SpatialQnnExecutionBlocklist] 的作废条件）。
+        SpatialQnnExecutionBlocklist.clear(context, model.qnnEncoderModelId)
         return ok
     }
 

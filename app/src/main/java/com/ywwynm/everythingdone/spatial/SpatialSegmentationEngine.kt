@@ -99,11 +99,24 @@ class SpatialSegmentationEngine(
         return buffer
     }
 
+    /** QNN 执行期失败时整段用 CPU 重跑，见 [SpatialQnnSessionFactory.withExecuteFallback]。 */
     private fun runModel(
         input: java.nio.FloatBuffer,
         model: SpatialSegmentationModel,
         cancelled: AtomicBoolean,
         onQnnCompile: () -> Unit = {}
+    ): RawOutput = SpatialQnnSessionFactory.withExecuteFallback(context, model.stableId) {
+        // 输入缓冲区是调用方备好的，`createTensor` 会把 position 推到末尾——重跑前必须倒回，
+        // 否则第二遍读到的是空的。
+        input.rewind()
+        runModelOnce(input, model, cancelled, onQnnCompile)
+    }
+
+    private fun runModelOnce(
+        input: java.nio.FloatBuffer,
+        model: SpatialSegmentationModel,
+        cancelled: AtomicBoolean,
+        onQnnCompile: () -> Unit
     ): RawOutput {
         val environment = SpatialOrtRuntime.environment(context)
         val modelFile = SpatialSegmentationModelStore.modelFile(context, model)

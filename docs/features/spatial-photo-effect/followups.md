@@ -1472,3 +1472,42 @@ Reangle-A-Video / PAInpainter / IMFine / DiGA3D）是为**生成式模型 + 大�
      **验证设备是 OPD2515**：它的硅是 v85、全 arch 包里最高 V81，QNN 实测会挑 V81。
      加一个 debug 旁路强制 `resolveDspArch` 返回 null 让它走未知路径，即可端到端验证
      下载→安装→建 session→真的用上 NPU。需要连设备，未授权前不动运行时行为。
+
+     > 2026-08-15 更正（D276）：「它的硅是 v85」这句要收回。设备全盘只有 V81 的库，
+     > QNN 也确实按 V81 在跑且工作正常，v85 那句出自 prepare 库的一行日志，是过度解读。
+
+## ~~2026-08-15：QNN 执行期失败必须回落 CPU（D276）~~ —— 已完成（同日，见 D276 补）
+
+## 2026-08-15：Big-LaMa 预编译产物要按实机 SoC 重编一份（D276）
+
+v81 那份是按 Galaxy S26（SM8850）编的，OPD2515 上报 `SM8845P`、QNN 内部认作
+`SM8845`，单块 512² 从 R5CW20BLNKL 上的 2091 ms 恶化到 >10 秒被 CDSP 看门狗打死。
+AI Hub 目前没有 8 Gen 5 的设备条目，等有了按 SM8845 重编一份对拍，才能坐实"异型
+SoC 导致落进慢路"这个解释（崩溃现场的 `hvx 0, hmx 0` 只是旁证，不足以定论）。
+
+## 2026-08-16：执行期回落（D276 补）复审后的三条小项
+
+复审通过（spatial 单测本次强制重跑 293 全过）。三条均不阻塞：
+
+- [ ] **边界细化引擎的误伤面**：`withExecuteFallback` 块内有 QNN encoder 与 CPU
+  decoder 两个 session；CPU 侧 decoder 抛 `OrtException` 时会连带把 encoder 的 QNN
+  拉黑。后果仅是该机 encoder 此后走 CPU（性能损失），且该场景下这一步本来就失败；
+  `OrtException` 不携带 session 身份，精确区分成本高，先记录不修。
+  > 2026-08-16 复审补注：连续 2 次阈值 + 跑通清零已显著缓解——须连续两代都在同段
+  > 撞上 CPU 侧 `OrtException` 才会误判死，且 encoder 之后任一次 QNN 跑通即自愈。
+- [x] **守门测试的清单是闭合的** —— 已改（2026-08-16）：调用者名单不再点名，改为扫描
+  `app/src/main/java` 下全部 `.kt` 主源文件（剥注释后）找 `createSession(` 调用者，
+  逐个要求 `withExecuteFallback(`；另以「已知三个引擎必须在调用者名单里」防扫描路径
+  或判据失效。293 个 spatial 单测重跑全过。
+- [~] **两个未接线的 API** —— 大半已解（2026-08-16）：`hasRecord` 已废弃，改由
+  `isUnusable`（读取侧自带 arch+组件版本新鲜度校验）接到设置页 Big-LaMa NPU 与
+  RF-DETR 两行（置灰 + 「本机 NPU 跑不了这个模型，已改用 CPU」× 13 语言）。
+  `clearAll` 仍无调用方：接到某个「重置 NPU 判定」入口或删除，二选一。
+- [x] **无独立产物模型升版后设置页置灰不立即解除** —— 已修（2026-08-16）：分割/边界/
+  补全三个模型仓库与预编译产物仓库的 `installVerified` 和 `delete` 全部显式调用
+  `SpatialQnnExecutionBlocklist.clear`；边界的 `_encoder` 后缀 id 上收为
+  `SpatialBoundaryRefinementModel.qnnEncoderModelId` 单一来源（引擎与仓库共用，直接清
+  `stableId` 会清错键）。顺带修掉删除预编译产物后的死角：行不再因旧结论保持置灰、
+  下载键不再被收起、状态不再谎称「可删除」。代价说明：同版本删除后重装也会清结论
+  （重试两轮约 22 秒），与类文档「产物没了结论也不该留着」的既定语义一致。
+  新增守门测试（四仓库各至少两处 `clear(`），299 个 spatial 单测全过。

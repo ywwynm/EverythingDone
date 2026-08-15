@@ -104,6 +104,11 @@ class SpatialInpaintingEngine(
         }
     }
 
+    /**
+     * QNN 执行期失败时整段用 CPU 重跑（D276）。包在这一层而不是包住单次 `session.run()`：
+     * Big-LaMa 是分块循环，第 N 块失败时 session 已经废了，只能连 session 一起重建；
+     * 下面三条路都从 `bitmap` 重新取像素、重新建缓冲区，可重入。
+     */
     private fun runModel(
         bitmap: Bitmap,
         hiddenMask: BooleanArray,
@@ -111,13 +116,15 @@ class SpatialInpaintingEngine(
         model: SpatialInpaintingModel,
         cancelled: AtomicBoolean,
         quality: SpatialInpaintingQuality
-    ): Bitmap = when (model.inputContract) {
-        SpatialInpaintingInputContract.UINT8_PIPELINE ->
-            runUint8Pipeline(bitmap, hiddenMask, conditioningMask, model, cancelled)
-        SpatialInpaintingInputContract.FLOAT32_AOTGAN_RGB_MASK ->
-            runAotGan(bitmap, hiddenMask, conditioningMask, model, quality, cancelled)
-        SpatialInpaintingInputContract.FLOAT32_LAMA_RGB_MASK_512 ->
-            runLamaTiled(bitmap, hiddenMask, conditioningMask, model, cancelled)
+    ): Bitmap = SpatialQnnSessionFactory.withExecuteFallback(context, model.stableId) {
+        when (model.inputContract) {
+            SpatialInpaintingInputContract.UINT8_PIPELINE ->
+                runUint8Pipeline(bitmap, hiddenMask, conditioningMask, model, cancelled)
+            SpatialInpaintingInputContract.FLOAT32_AOTGAN_RGB_MASK ->
+                runAotGan(bitmap, hiddenMask, conditioningMask, model, quality, cancelled)
+            SpatialInpaintingInputContract.FLOAT32_LAMA_RGB_MASK_512 ->
+                runLamaTiled(bitmap, hiddenMask, conditioningMask, model, cancelled)
+        }
     }
 
     /**

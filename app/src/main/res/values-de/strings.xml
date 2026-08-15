@@ -1272,6 +1272,8 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">Dieses Gerät hat keine unterstützte Snapdragon-NPU</string>
     <string name="spatial_qnn_probe_failed">NPU konnte auf diesem Gerät nicht starten · %1$s löschbar</string>
+    <string name="spatial_npu_execute_failed">NPU konnte dieses Modell nicht ausführen · CPU wird verwendet</string>
+    <string name="spatial_npu_execute_failed_size">NPU konnte dieses Modell nicht ausführen, CPU wird verwendet · %1$s löschbar</string>
     <string name="spatial_restart_title">Neustart zum Abschluss des Wechsels</string>
     <string name="spatial_restart_message">Die Variante der Inferenz-Laufzeitumgebung wurde gewechselt und wird nach einem Neustart wirksam. Die App kehrt danach automatisch zu den Einstellungen für räumliche Fotos zurück.</string>
     <string name="spatial_restart_now">Jetzt neu starten</string>

@@ -10514,3 +10514,197 @@ catalog 事后拉黑某型号而用户不进设置页时，`qnnEnabled` 一直�
    当前要求的组件版本，不等即视为无结论；真实档位是硬件事实，不受此限。
    真机验证：伪造"旧版本组件得出的 probe-failed"，行恢复「Enabled · 192 MB」正常
    显示、开关不被收口（对照版本匹配时的置灰 + 收口）。
+
+## D276（2026-08-15）OPD2515 上 `error 1003` 的根因是 CDSP 10 秒看门狗，与架构无关
+
+用户报平板生成空间照片弹 `QNN graph execute error. Error code: 1003`，并追问「这台机
+说是 v85，实际应该还是 v81 吧？就算是 v85，按高通的说法也该能跑 v81 的模型」。
+连机复现两轮，**用户两问都成立**，D267 那句"这颗芯片的硅是 v85"要收回。
+
+### 一、这台机就是按 v81 在跑，且 v81 工作正常
+
+设备取证（`find /vendor /odm /system /system_ext /apex -iname '*QnnHtpV*'`）：全盘
+**九个文件全是 V81**，`/odm/lib/rfsa/adsp/libQnnHtpV81Skel.so`、
+`/odm/lib64/aiframe/cdsp/signed/`、OPPO 相机的 livephoto 增强器各一份，**没有任何
+V85 的东西**。
+
+更硬的一条是同一次生成里的对照：**RF-DETR 走 NPU 跑通了**——
+`libQnnHtpV81Skel.so?qnn_2_48_0` 打开句柄 22:23:28.9、执行、22:23:29.265 关闭，
+全程约 280 ms。**v81 的 skel 在这台机上执行图没有任何问题。**
+
+D267 那句"硅是 v85"唯一的依据是 `os_linux.cc:55: Setting libnative architecture to
+v85 (requested arch is v81)`——那是**主机侧 prepare 库**（libQnnHtpPrepare.so）编译期
+的一行话，不是这颗硅可用档位的声明。**当时把它读成了硬件事实，是过度解读。**
+
+### 二、真正的死法：CDSP 用户 PD 被 10 秒看门狗打死
+
+失败的是**补全**这一步（`SpatialVNextBuilder: inpaintingWritePixels=...` 紧接着就建
+session），即 **Big-LaMa 的预编译 context**。adsprpc 守护进程的崩溃报告：
+
+```
+CDSP0:[R]: Process "/frpc/f0571400 SpatialPhoto" crashed in thread "fr/23248/9591/0"
+           libQnnHtpV81Skel.so timeout: 10000 domain: 3 ... because Application called qurt_exit()
+CDSP0:[R]: Crashed Shared Object "fastrpc_shell_unsigned_3" load address : 0x00100000
+CDSP0:[R]: Fault PC : 0x1298A8   Bad VA : 0x0   Error code : 0x8
+CDSP0:[R]: total threads: 25, total mappings: 101, attrs: 0x8
+CDSP0:[R]: requests: power 1, hvx 0, hmx 0, streamer 0, vapss 0, line-lock 0
+→ Error 0x8000040d: remote_handle64_invoke failed ... libQnnHtpV81Skel.so method 7
+→ [E:onnxruntime:sequential_executor.cc:671] QNN graph execute error. Error code: 1003
+```
+
+**`error 1003` 是残骸，不是病因。** 病因是 DSP 侧那次 invoke 超过 10 秒、用户 PD
+（`fastrpc_shell_unsigned_3`，`pd type: 4`）被打死，句柄失效之后 ORT 才报出这一行。
+
+两轮实测的存活时长：**10.641 s** 与 **10.617 s**（skel 句柄打开 → 崩溃）。两次相差
+24 ms，且 `total mappings: 101` 逐字相同——**这是定值看门狗，不是偶发的慢或断言**。
+
+### 三、排除项
+
+| 假设 | 实验 | 结果 |
+|---|---|---|
+| v81/v85 架构不兼容 | 同一次生成里 RF-DETR 走 v81 skel | **跑通**，280 ms，证伪 |
+| RF-DETR 会话泄漏映射拖垮 Big-LaMa | 改 `qnn_model_rf_detr_seg_nano=false` 让分割回 CPU 后重跑 | **同样 1003**，证伪 |
+| QNN 只吃下一小部分图（D229 的老问题） | 查端上产物 | `model.onnx` **423 B** + `model.bin` **127.7 MB**，**整图都在 NPU**，证伪 |
+
+（顺带记一条现象，与本次失败无关但值得留意：RF-DETR 会话拆除时有三次
+`fastrpc_invoke_fd_mmap_destroy: unable to unmap addr ...` 失败，共约 68 MB。）
+
+### 四、剩下的唯一结构性差异：产物按另一颗 SoC 编的
+
+同一套代码在 R5CW20BLNKL 上单块 512² 是 **2091 ms**（D253），这里超过 10 秒。两者
+唯一的结构差别是**预编译产物的目标机与实机是否同型**：
+
+| 设备 | 上报型号 | 产物编译目标（D250） | 结果 |
+|---|---|---|---|
+| R5CW20BLNKL | SM8550 | v73 / Galaxy S23 Ultra（SM8550） | **同型**，2091 ms |
+| OPD2515 | SM8845P（QNN 内部认作 `SM8845`） | v81 / Galaxy S26（SM8850） | **异型**，>10 s 被打死 |
+
+崩溃现场 `hvx 0, hmx 0` 也指向同一个方向（可能落进了没有 HMX 的慢路），但那是事后
+快照，**不足以定论**。要坐实还需要按 SM8845 这一档重编一份产物对拍——AI Hub 目前
+没有 8 Gen 5 的设备条目，这条留 followups。
+
+**能确定的是**：这台机上 Big-LaMa 的 NPU 版**当前不可用**，且原因不在架构判定，
+D266–D275 那一整套判定没有错。
+
+### 五、暴露出的代码缺陷：执行期失败没有回落
+
+[SpatialQnnSessionFactory] 的类注释写着「任何一步失败都返回 null 而不是抛异常——
+NPU 是加速手段，不是功能前提」，但那条契约**只覆盖建 session**。`session.run()` 抛出的
+异常一路穿到 `ImageViewerActivity` 变成 `spatial_generation_failed` 对话框，
+结果是这台平板**一张空间照片都生成不出来**，而不是"慢一点"。
+
+## D276 补（同日）：执行期回落 CPU 已落地
+
+用户裁定「这种情况下就切换到 CPU」。
+
+### 回落的粒度是整段，不是单次 run
+
+新增 `SpatialQnnSessionFactory.withExecuteFallback(context, modelId) { … }`，把
+**建 session + 跑**整段包进去；这一段里真的用上了 QNN、且抛出的是 [OrtException] 时，
+记下结论并**整段用 CPU 重跑**。
+
+**不能只重跑失败的那一次 `run()`**：Big-LaMa 是分块循环，失败可能发生在第三块上，
+而那时 CDSP 的用户 PD 已经被打死、句柄全部失效，session 本身也废了。因此三个引擎的
+`runModel` 都改成可重入（读输入、建缓冲区、建 session 全在 block 里）；分割那条路的
+输入缓冲区是调用方备好的，`createTensor` 会把 position 推到末尾，重跑前要 `rewind()`。
+
+**只对 [OrtException] 重试**（`shouldFallBackToCpu`，顺 cause 链找）。取消与各处契约
+校验都是 IllegalStateException，重跑一遍结果一样，只会让用户白等一倍；更糟的是会把
+一次正常取消误记成"这台机 NPU 不能用"。
+
+### 结论落盘：[SpatialQnnExecutionBlocklist]
+
+不记的话每次生成都要重新白等一次 session 创建加十秒看门狗。指纹直接复用
+`SpatialQnnContextStore.directoryName(key)`——它本来就是"特定模型字节 + 特定 HTP 架构 +
+特定运行组件"这层含义的既有编码，两处各写一份必然漂移。任何一维变了即当没有结论。
+
+指纹覆盖不到的只有"同一个 `(modelId, modelVersion, dspArch)` 下换了一份新产物"，因此
+`SpatialQnnPrecompiledStore.install` 落盘成功后显式 `clear`。
+
+### 连续 2 次才下结论（用户裁定，与 D273 对齐）
+
+初版是**一次失败即永久判决**，用户问"这个机制会影响到哪些机器"时核出这条与 D273
+不一致：那边给自探定的规矩是「连续 2 次失败才下结论——偶发的内存不足、驱动异常不该
+变成永久判决」。CDSP 是全机共享的（OPD2515 上 OPPO 自己的 AI 框架就在用），别的进程
+占着资源导致的一次失败，不足以证明这台机跑不了这个模型。裁定改成连续 2 次，代价是这
+类机器要白等两轮才收敛。
+
+两处配套：
+
+- **跑通一次就清零**（`recordSuccess`）。不清零的话两次相隔很远的偶发失败会累加成永久
+  判决，"连续"名存实亡。
+- **阈值没到时，回落这一遍必须显式钉在 CPU 上**（`Attempt.forceCpu`）。第一次失败时
+  黑名单还没生效，照着原样重跑会再走一次 QNN、再失败一次——用户白等两轮还是拿不到
+  结果。有源码契约测试钉住 `withExecuteFallback` 置位、`createSession` 读位两头。
+
+### 设置页：装着而跑不动的那一行要如实说
+
+`hasRecord` 初版写了"供界面用"却**根本没接到界面上**，设置页仍显示「Big-LaMa（NPU 版）·
+已启用 105 MB」，而实际每次都在跑 CPU——与 2026-08-14「要如实标注」是同一件事。
+
+按 D274 已定的 `UNUSABLE_INSTALLED` 档位处置：**行可见、置灰、文案说明原因、删除入口
+保留、下载按钮收起**。单选钮**仍显示为选中**——用户确实选了它，生成时也确实先按它去
+试；不擅自改用户的选择（用户在"自动切回 CPU 版"与"置灰 + 说明"之间选了后者）。
+新增两条文案 × 13 语言：带体积的给 Big-LaMa（有独立产物可删），不带体积的给 RF-DETR。
+
+**读取侧自己校验新鲜度**：设置页拿不到 `shapeTag`（那是引擎内部的事），因此单独存一份
+`(dspArch, 运行组件版本)` 供界面比对——D275 补在探测那边踩过一模一样的坑，写入侧的作废
+条件够不着已经收口的那条路，旧结论会永远清不掉、行永远置灰。
+
+一处已知的不精确：整行 alpha 会连着把删除图标一起淡掉（父 View 的 alpha 是合成时施加
+的，子 View 自己设 1f 盖不住）。图标仍可点（dump 里 `enabled/clickable` 均为 true），
+且与 D274 已发的 `row_qnn` 不可用态是同一副样子，故保持一致；要做成"整行灰、删除键
+实色"得改成逐个子控件置灰，两处一起动。
+
+### 界面：NPU 标注要**撤得回来**（用户当场指出）
+
+`installSpatialNpuStageReporter` 此前只在 `usedQnn` 为真时置位、从不撤回。回落之后这一步
+实际已经在 CPU 上，文案却还挂着 `(NPU)`。改成两个方向都跟、以最后一次回报为准。
+
+一处已知的不精确：`spatial_generation_analyzing` 一条文案盖了抠像 / 分割 / 边界细化三步，
+其中后两步都会回报。取"最后一次"等于"此刻这一步"，比旧的"沾过就一直挂着"更接近真相，
+但这条文案本身粒度不够细，将来拆成三段才能彻底准确。
+
+### 真机验证（OPD2515，2026-08-15）
+
+清空记录从零复现，连跑三次，逐秒跟踪进度文案：
+
+| | 补全阶段的文案 | 总耗时 | `execute_failures` | 设置页那一行 |
+|---|---|---|---|---|
+| 第 1 次 | 14s **(NPU)** → 25s **撤回**，改走 CPU | 68 s | **1** | 正常：`enabled=true`、「Enabled · 105 MB」、单选钮可点 |
+| 第 2 次 | 同上 | 68 s | **2** | **置灰**：`enabled=false`、「NPU could not run this model, using CPU · 105 MB can be deleted」、下载键收起、删除图标在 |
+| 第 3 次 | 全程**无 (NPU)** | **57 s** | 2（不再累加） | 同上 |
+
+三次都**没有错误对话框**。前两次比第三次多的约 11 秒正是那次白试 NPU 加十秒看门狗；
+结论落定后不再白等。日志上第 1、2 次各出现一次
+`W SpatialQnn: QNN 执行失败，本次改走 CPU；再失败一次才下结论` / `…本机此后改走 CPU`，
+第 3 次没有第二次 skel 打开、没有 CDSP 崩溃、没有 ORT 报错。
+
+同一次生成里**RF-DETR 仍然走 NPU**（`libQnnHtpV81Skel.so` 照常打开一次），回落是逐模型
+的，没有波及其它模型。
+
+（此前记的 99 s / 102 s 两次是连续重推理时测的，本轮同一台机同一张图稳定在 57–68 s；
+那两个数不再作为口径，成因仍未定位。）
+
+298 个 spatial 单测全过（回落契约那一类 12 条：失败判据 4、指纹作废 2、阈值与连续计数 3、
+界面新鲜度 1、`forceCpu` 源码契约 1、三引擎接入扫描 1）。
+
+### 六（同日晚补充）：看门狗归属与可配置性查证
+
+用户问「10 秒是哪里的限制、能不能改」。查证结论：
+
+- **归属**：CDSP 侧 FastRPC/QuRT 框架对用户保护域（`fastrpc_shell_unsigned_3`）单次
+  远程调用的定值看门狗，随厂商固件（`/vendor`、`/odm` 的 DSP 侧组件）出厂。超时由
+  DSP 侧框架自行 `qurt_exit()` 结束整个 PD——崩溃行「because Application called
+  qurt_exit()」与「timeout: 10000」都是 DSP 侧打出的；Android 侧（ORT/QNN 主机库）
+  只是事后拿到失效句柄，报出 1003。
+- **应用层无开关**：ORT QNN EP provider options 全集里没有执行期超时/看门狗项
+  （`rpc_control_latency` 是 QoS 轮询延迟，与此无关）；QNN 公开配置
+  （QnnHtpDevice/Graph/Context 自定义项）中同样未找到。后者记为「未找到公开项」而非
+  「确证不存在」：QNN SDK 头文件不在本地（Docker 镜像内），官方文档站抓取未完成。
+- **权限层面**：第三方应用在 CDSP 上只能用 unsigned PD；改看门狗需要动厂商固件或
+  root，不能作为产品依赖。signed PD 需高通/厂商签名授权，同样不是可用路径。
+- **推论**：10 s 按硬约束对待，应对不是抬阈值而是缩短单次调用：执行期回落 CPU
+  （followups 已列）；按实机 SoC 重编产物把单块拉回 2 s 量级（三星同型机
+  2.09 s/块，裕量约 5 倍）。缩小 Big-LaMa 分块（512²→256²）虽也能压时长，但要重
+  导出/重编/重验画质，性价比低于前两条，不排队。

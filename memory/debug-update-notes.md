@@ -1,5 +1,34 @@
 # Current Debug Update Notes
 
+## 2026-08-16 - 空间照片 NPU 执行期回落 CPU（D276 补）
+
+发布号 `202608151633`（任务按 UTC 命名），APK SHA-256
+`80c44b69a3dd5b7b11c71067412c97613a567624bc99b16be6af9c273c2af796`，23.26 MB。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260816003257.md`。
+远端 latest.json 的 releaseNotes、apkUrl 与本地/远端 SHA-256 已核对一致。
+
+QNN 执行期失败整段回落 CPU 并按「模型/架构/组件版本」指纹落盘拉黑（Opus 实现并
+真机验证）；(NPU) 进度标注两向跟随实际路径；守门单测按用户指示改为扫描式。
+293 个 spatial 单测本次真实重跑全过。工作区未提交（与 D270–D276 改动一起待提交）。
+
+## 2026-08-15 - 录音停止态隐藏音频输入行并收回空白
+
+发布号 `202608151505`，APK SHA-256 `03206641dd27d855ce1649f26ccd515f2f43e57fec3a55cb6c499e3dddc37524`。远端 `latest.json`、更新说明和本地/远端哈希均已核对。
+
+用户要求录音结束后不再显示“音频输入”行，也不能留下该行占用的空间；只有重新录音回到准备态后才显示。已删除停止态来源展示路径，统一用 `AudioInputRowPresentationPolicy` 规定只在录音前状态显示，并把停止态时钟目标顶部从为来源行下移后的 `132dp` 恢复为原布局的 `80dp`。新增五阶段展示策略回归测试，全量 Debug JVM 单测通过，未使用 ADB。
+
+完整日志：`docs/features/system-audio-recording/debug-updates/update-20260815230455.md`。
+
+## 2026-08-15 - 录音 Dialog 系统音频输入与授权恢复
+
+发布号 `202608151432`，APK SHA-256 `dad8d2541db63f07f2500ebad24be0da4d6518737a48fe243dc09d5f6ffaf114`。远端 `latest.json`、完整更新说明和本地/远端哈希均已核对。
+
+为录音 Dialog 加入“麦克风”“系统”“麦克风+系统”三种来源、自定义双行说明 Popup、按 `TimelyClockView` 实际着墨边界对齐的来源胶囊，以及录音/停止/重录三态显示规则。`AudioRecordingService` 和 `AudioCaptureEngine` 负责前台服务后台录音、MediaProjection、通知、PCM 混音、FableSol 最终总线分析与可变声道 WAV 保存。
+
+测试设备发现旧实现可能在授权成功前错误记忆“系统”，且授权返回后会同时禁用开始按钮和来源胶囊。现已把系统类偏好提交延后到完整配置成功，增加确认标记迁移旧歧义值，拆分两个控件的可用条件，并补齐异常与 8 秒超时收尾。全量 Debug JVM 单测和 Debug 构建通过，未使用 ADB。
+
+完整日志：`docs/features/system-audio-recording/debug-updates/update-20260815223105.md`。
+
 ## 2026-08-15 - NPU 可用性判定重整（D270–D275）与重启闭环
 
 发布号 `202608151357`，APK SHA-256

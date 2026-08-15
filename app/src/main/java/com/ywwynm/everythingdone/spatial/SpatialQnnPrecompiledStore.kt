@@ -120,6 +120,9 @@ object SpatialQnnPrecompiledStore {
             )
             if (target.exists()) check(target.deleteRecursively()) { "无法替换旧的 NPU 预编译目录" }
             check(pending.renameTo(target)) { "无法提交 NPU 预编译目录" }
+            // 同一个 (modelId, modelVersion, dspArch) 下的产物是会被换掉的，而执行期失败的
+            // 指纹里没有产物这一维——换了新产物就得让它重新有机会（D276）。
+            SpatialQnnExecutionBlocklist.clear(context, entry.modelId)
         } catch (error: Throwable) {
             pending.deleteRecursively()
             throw error
@@ -135,7 +138,11 @@ object SpatialQnnPrecompiledStore {
 
     fun delete(context: Context, modelId: String): Boolean {
         val root = File(rootDirectory(context), sanitize(modelId))
-        return !root.exists() || root.deleteRecursively()
+        val ok = !root.exists() || root.deleteRecursively()
+        // 产物没了，执行期结论也不该留着。不清的话该行保持置灰、下载键收起（D274 分档），
+        // 状态却仍写着「可删除」——用户删完既下不回来、也删无可删。
+        SpatialQnnExecutionBlocklist.clear(context, modelId)
+        return ok
     }
 
     fun totalBytes(context: Context): Long = directoryBytes(rootDirectory(context))

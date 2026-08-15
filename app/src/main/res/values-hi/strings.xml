@@ -1272,6 +1272,8 @@
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">इस डिवाइस में समर्थित Snapdragon NPU नहीं है</string>
     <string name="spatial_qnn_probe_failed">इस डिवाइस पर NPU शुरू नहीं हो सका · %1$s हटाया जा सकता है</string>
+    <string name="spatial_npu_execute_failed">NPU इस मॉडल को नहीं चला सका · CPU का उपयोग हो रहा है</string>
+    <string name="spatial_npu_execute_failed_size">NPU इस मॉडल को नहीं चला सका, CPU का उपयोग हो रहा है · %1$s हटाया जा सकता है</string>
     <string name="spatial_restart_title">स्विच पूरा करने के लिए पुनः प्रारंभ करें</string>
     <string name="spatial_restart_message">इन्फ़रेंस रनटाइम का वैरिएंट बदल गया है और पुनः प्रारंभ के बाद प्रभावी होगा। ऐप अपने आप स्थानिक फ़ोटो सेटिंग्स पर वापस आ जाएगा।</string>
     <string name="spatial_restart_now">अभी पुनः प्रारंभ करें</string>

@@ -1326,6 +1326,8 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">この端末には対応する Snapdragon NPU がありません</string>
     <string name="spatial_qnn_probe_failed">この端末では NPU を起動できませんでした · %1$s を削除できます</string>
+    <string name="spatial_npu_execute_failed">この端末の NPU ではこのモデルを実行できません · CPU を使用中</string>
+    <string name="spatial_npu_execute_failed_size">この端末の NPU ではこのモデルを実行できません。CPU を使用中 · %1$s を削除できます</string>
     <string name="spatial_restart_title">切り替えを完了するには再起動してください</string>
     <string name="spatial_restart_message">推論ランタイムのバリアントが切り替わりました。再起動後に有効になります。再起動後は自動的に空間写真の設定に戻ります。</string>
     <string name="spatial_restart_now">今すぐ再起動</string>

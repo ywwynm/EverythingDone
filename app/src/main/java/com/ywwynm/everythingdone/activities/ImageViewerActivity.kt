@@ -1688,16 +1688,18 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      * [com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener]，
      * 回报的是真实建成的 session 走了哪条路——条件不满足或建 session 失败都会静默回落，
      * 所以不能靠"应该会用"推断（2026-08-14 用户要求）。
+     *
+     * **两个方向都要跟。** 此前只在 `usedQnn` 为真时置位、从不撤回：QNN 执行期失败改用
+     * CPU 重跑时（D276），这一步实际已经在 CPU 上了，标注却还挂着 (NPU)——同一个阶段内
+     * 后一次回报才是这一步最终的真相，一律以最后一次为准。
      */
     private fun installSpatialNpuStageReporter() {
         com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener =
             { _, usedQnn ->
-                if (usedQnn) {
-                    runOnUiThread {
-                        if (!isFinishing && !isDestroyed) {
-                            mSpatialStageUsedNpu = true
-                            renderSpatialGenerationStage()
-                        }
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        mSpatialStageUsedNpu = usedQnn
+                        renderSpatialGenerationStage()
                     }
                 }
             }

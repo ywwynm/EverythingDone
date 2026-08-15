@@ -92,6 +92,10 @@ object SpatialSegmentationModelStore {
         if (target.exists()) check(target.delete()) { "无法替换实例分割模型" }
         check(pending.renameTo(target)) { "无法原子安装实例分割模型" }
         if (markReady) writeReadyMarker(context, model)
+        // 字节已换成这一份，旧的执行期失败结论是对旧字节的判断。运行层的六维指纹会自动
+        // 作废它；这里同步清掉是给设置页的：读取侧只有（架构，组件版本）两维，不清的话
+        // 该行会保持置灰直到下一次生成在 QNN 上跑通（D276 补）。
+        SpatialQnnExecutionBlocklist.clear(context, model.stableId)
         return target
     }
 
@@ -121,6 +125,8 @@ object SpatialSegmentationModelStore {
         // modelDirectory 是 <stableId>/<version> 两层，只删 version 层会把空的
         // stableId 目录留成壳（2026-08-15 在 OPD2515 上实测残留），一并清掉。
         directory.parentFile?.takeIf { it.list()?.isEmpty() == true }?.delete()
+        // 产物没了，执行期结论也不该留着（见 [SpatialQnnExecutionBlocklist] 的作废条件）。
+        SpatialQnnExecutionBlocklist.clear(context, model.stableId)
         return ok
     }
 

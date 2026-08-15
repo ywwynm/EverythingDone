@@ -1272,6 +1272,8 @@
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">На этом устройстве нет поддерживаемого Snapdragon NPU</string>
     <string name="spatial_qnn_probe_failed">NPU не запустился на этом устройстве · %1$s можно удалить</string>
+    <string name="spatial_npu_execute_failed">NPU не смог выполнить эту модель · используется CPU</string>
+    <string name="spatial_npu_execute_failed_size">NPU не смог выполнить эту модель, используется CPU · %1$s можно удалить</string>
     <string name="spatial_restart_title">Перезапуск для завершения переключения</string>
     <string name="spatial_restart_message">Вариант среды вывода изменён и вступит в силу после перезапуска. Приложение автоматически вернётся к настройкам пространственных фото.</string>
     <string name="spatial_restart_now">Перезапустить сейчас</string>

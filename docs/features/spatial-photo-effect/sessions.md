@@ -3534,3 +3534,70 @@ Toast 升级为 App 风格对话框 + 一键重启：TaskStackBuilder 重建三�
 照片设置页，重启后由既有 catalog 触发点完成探测。OPD2515 真机全链路验证（脏进程
 防御、精确弹框、重启落点与返回栈、探测 v81 与 vendor 交叉校验、UNUSABLE_INSTALLED
 两方向），286 个 spatial 单测全过。详见 D275。
+
+## 2026-08-15：OPD2515 生成失败 `error 1003` 的连机定位
+
+用户报平板生成空间照片弹 QNN 报错，并质疑"这台机说是 v85，实际应该还是 v81；就算是
+v85 也该能跑 v81 的模型"。经授权连 `9018f404` 复现两轮，**用户两问都成立**。
+
+- **失败的是补全这一步**（Big-LaMa 预编译 context），不是分割；同一次生成里 RF-DETR
+  走 v81 skel 跑通（280 ms），**架构兼容性被现场证伪**。
+- **`error 1003` 是残骸**：真正的死法是 CDSP 用户 PD（`fastrpc_shell_unsigned_3`）
+  被 **10 秒看门狗**打死（两轮 10.641 s / 10.617 s，定值），ORT 拿到失效句柄才报这一行。
+- **排除了两个假设**：RF-DETR 会话拖累（关掉它单跑 Big-LaMa，同样失败）、QNN 只吃下
+  一小部分图（端上产物 `model.onnx` 423 B + `model.bin` 127.7 MB，整图在 NPU）。
+- **收回 D267 的一句记录**：设备全盘只有 V81 的库，"硅是 v85"出自 prepare 库的一行
+  日志，属过度解读。
+- 顺带暴露一个真缺陷：QNN **执行期**失败没有回落 CPU，把整条生成链路打死。
+
+详见 D276。
+
+同轮按用户裁定落地执行期回落：`withExecuteFallback` 把"建 session + 跑"整段包起来，
+QNN 上抛 `OrtException` 就记结论、整段用 CPU 重跑（分块循环的失败点在中途，session 已废，
+只能连 session 一起重建）；结论按 `SpatialQnnContextStore` 的目录名指纹落盘，换组件 /
+换产物即作废。用户当场指出「切到 CPU 了进度文案还挂着 NPU」——`sessionListener` 此前只
+置位不撤回，改成以最后一次回报为准。
+
+用户随后问「这个机制会影响到哪些机器」，核出两处：**拉黑一次即永久判决**（与 D273
+「连续 2 次」不一致，CDSP 共享导致的偶发失败会误判），以及 **`hasRecord` 写了"供界面用"
+却没接到界面上**（设置页仍显示「已启用 105 MB」而实际跑 CPU）。按用户裁定分别改成连续
+2 次（配 `recordSuccess` 清零、`Attempt.forceCpu` 保证阈值未到时那一遍真走 CPU）与
+D274 的 `UNUSABLE_INSTALLED` 档位（置灰 + 说明 + 保留删除入口，不擅自改用户的选择），
+新增两条文案 × 13 语言。
+
+真机连跑三次验证：第 1 次 (NPU) 出现后撤回、`failures=1`、设置页正常；第 2 次
+`failures=2`、设置页置灰并显示「NPU could not run this model, using CPU · 105 MB can be
+deleted」；第 3 次全程无 (NPU)、57 s（前两次 68 s，差的就是白试 NPU 那十来秒）。三次都
+无错误对话框，RF-DETR 始终走 NPU。298 个 spatial 单测全过。余下一条待办（按实机 SoC
+重编 Big-LaMa 产物）见 followups。
+
+## 2026-08-16：执行期回落改动复审
+
+对上条改动做独立复审，结论为通过：回落粒度与包裹位置正确（三条补全路径重跑时输入
+干净，分割引擎重跑前 `input.rewind()` 的细节无误）；拉黑判据只认 `OrtException` 且顺
+cause 链、取消与契约校验不误伤；指纹复用 context 目录名六维全覆盖，install 后 `clear`
+补上指纹外的换产物一维；全库调 `createSession` 的仅三个引擎，拉黑 id 与建 session id
+逐一一致；界面标注两个方向都跟。spatial 单测以 `--rerun --no-build-cache` 强制真实
+执行，293 全过（首两次调用为 UP-TO-DATE/构建缓存命中，不作数）。三条不阻塞小项
+（边界引擎 CPU decoder 失败连带拉黑 QNN encoder 的误伤面、守门测试清单闭合、
+`hasRecord`/`clearAll` 未接线）记入 followups。守门测试一条随后按用户指示当场改为
+扫描式：调用者名单从主源码全部 Kotlin 文件推导，附已知三引擎的扫描有效性断言；
+重跑 293 全过。
+
+同日续：对第二轮改动（连续 2 次阈值、`recordSuccess` 清零、`Attempt.forceCpu`、设置页
+`isUnusable` 接线 × 13 语言）再次复审，通过：`recordSuccess` 只在成功路径调用（CPU 重试
+成功不会误清连续计数）；`forceCpu` 置位/读位两头齐全、读位在 `createSession` 首行并经
+`report()` 撤回标注；计数与指纹同写同验（不会拿旧指纹的计数配新指纹）；设置页
+`executionArch` 取 `dspArch ?: ALL_ARCH` 与运行层落结论口径一致。按用户指示未重跑
+测试（Opus 已跑 298 全过 + OPD2515 三连跑）。followups 更新三处：误伤面补「阈值已
+缓解」注、hasRecord 条改为大半已解（余 `clearAll` 孤儿）、新增「模型升版后置灰不立即
+解除（自愈型）」。
+
+再续（升版置灰窗口修复，按用户指示当场改）：四个仓库（分割/边界/补全模型与预编译
+产物）的 `installVerified` 与 `delete` 均显式调用 `SpatialQnnExecutionBlocklist.clear`
+——运行层六维指纹本会自动作废旧结论，清除是给只有（架构，组件版本）两维的设置页
+读取侧的。边界的 `_encoder` id 上收为 `SpatialBoundaryRefinementModel.qnnEncoderModelId`
+单一来源，引擎与仓库共用（直接清 `stableId` 会清错键）。顺带修掉删除预编译产物后的
+死角：旧结论残留会让该行保持置灰、下载键收起、状态却写「可删除」。新增守门测试点名
+四仓库各至少两处 `clear(`。验证无需发布新模型版本：清除是纯本地状态转移，由 299 个
+spatial 单测（本次真实执行，0 失败）与 `:app:assembleDebug` 覆盖。
