@@ -1427,3 +1427,48 @@ Reangle-A-Video / PAInpainter / IMFine / DiGA3D）是为**生成式模型 + 大�
 - **GRT 部署时统一 Android 洞生成为纯深度函数**（2026-08-14，D254 口径）：当前
   `SpatialVNextBuilder` 的补全洞含分割（`SpatialInpaintingMask.withOccluder`），与训练
   mask 分布分叉。部署微调模型时切到与训练同一个纯深度 mask 函数，分割从此只影响渲染期。
+
+- **v68/v69 机型落进「界面可见、实际无货」的空隙**（2026-08-15，Z Fold4 `RFCT90LSFGT`
+  实测暴露）：D267 把 SoC 白名单换成黑名单后，8+ Gen 1（`SM8475` → v69）这类机器
+  `isNpuPossible` 放行、NPU 开关可开、运行组件走全 arch 包也能装上；但全 arch 包是由
+  v73/v75/v79/v81 四份合成的，里面没有 `libQnnHtpV69Skel.so`，Big-LaMa 的预编译产物
+  同样没有 v69 一档。后果分两层：
+  1. ~~**显示缺陷**：界面显示「未下载 · 0 B」~~ —— **已修（2026-08-15）**：本机架构
+     没有可用产物时整行隐藏（`qnnPrecompiledResolved` + `qnnPrecompiledEntry == null`
+     + 未装）。
+  2. ~~**判定层缺口**：v69 上 NPU 对所有模型都不起作用~~ —— **已修（2026-08-15，D270）**：
+     判定补上「本机该用的那一档我们真的出过货吗」，判据是逐档的集合成员而非区间，
+     集合从 catalog 的 `qnnRuntimes` 现推并快照。同时在 `reconcileSelections()` 收口
+     那个关不掉的总开关。
+  3. **供给缺口（未修）**：要真支持这批机器，需补 v69（顺带 v68）的 QNN 运行组件
+     （单 arch 约 50 MB）与 Big-LaMa 预编译产物（约 104 MB），并重新合成全 arch 包。
+     注意 v69 `htp-supports-weight-sharing:false`，AI Hub 无 8+ Gen 1 条目，用 8 Gen 1
+     设备编。补完之后 `BUILT_IN_SERVED_ARCHS` 要一起改（有守门单测提醒）。
+  4. ~~**全 arch 兜底整条路是断的**~~ —— **已修（2026-08-15，D271）**，两台真机验证通过。
+     原记录保留于下，另加一条更重要的教训：**当时把"架构查不到"直接等同于"没有可用
+     产物"，导致删表后的 OPD2515 失去了本来能用的 Big-LaMa NPU**。判定必须分两层——
+     硅是哪一档（表 / 设备自证）、该用我们的哪一份（不超过硅档的最高已发布档）。
+     D267 只改了 UI 判定（`qnnDeviceEligible`）与安装校验（`installVerifiedQnn` 里
+     「全 arch 包对任何机器都成立」那一条），另外**四处**仍硬性要求
+     `resolveDspArch(context) != null`：
+
+     | 位置 | 后果 |
+     |---|---|
+     | `SpatialQnnRuntimeDownloadWorker.doWork:60` | **下载任务第一行 failure，一个字节都不下** |
+     | `SpatialRuntimeInstaller.ensureQnnInstalled:151` | 同上，第二道 |
+     | `SpatialRuntimeStore.isVariantInstalled:58` | 就算装上了也恒判「没装」 |
+     | `SpatialQnnSessionFactory.resolveEnvironment:70` | 运行层拿不到 QNN |
+
+     所以未登记架构的设备（无论新芯片还是老芯片）**行可见可点，点开关却什么都不
+     发生**，没有任何错误提示——不是「下完发现不支持」，是根本下不下来。D267 想让
+     新骁龙开箱即用的那条路，实际在第二步就断了。OPD2515 之所以能用，是因为
+     `SM8845P` 登记在表里，并非走了兜底。
+
+     修法：前三处把判据换成「`catalog.qnnRuntimeForCurrentDevice(dspArch)` 取不到才
+     失败」（该函数本来就接受 null 并退回全 arch 包），`isVariantInstalled` 改看
+     marker 里记的 `dspArch == ALL_ARCH`；第四处未知 arch 时改判「库目录里有任意一对
+     Skel/Stub 即放行」，交给 QNN 自己按探测到的 SoC 挑（与 D267 记的实测行为一致）。
+
+     **验证设备是 OPD2515**：它的硅是 v85、全 arch 包里最高 V81，QNN 实测会挑 V81。
+     加一个 debug 旁路强制 `resolveDspArch` 返回 null 让它走未知路径，即可端到端验证
+     下载→安装→建 session→真的用上 NPU。需要连设备，未授权前不动运行时行为。

@@ -48,14 +48,30 @@ object SpatialRuntimeStore {
      */
     const val QNN_QAIRT_VERSION = "2.48"
 
-    /** 当前该装哪一个包。总开关决定，装反了 [isCompatibleMarker] 会判不兼容并要求重下。 */
+    /**
+     * 当前该装哪一个包。总开关决定，装反了 [isCompatibleMarker] 会判不兼容并要求重下。
+     *
+     * **开关开着但判定确定不可用时回落 CPU 版**（2026-08-15 审查补）：收口开关的动作
+     * 只在设置页的 reconcile 里发生，catalog 事后把某型号判成不可用而用户一直不进设置页
+     * 的话，`qnnEnabled` 会一直是 true——若这里只看开关，加载与顺带安装都会继续按 QNN 版
+     * 走，给一台确定跑不了的机器下 63 MB 组件、或在推理时要求一份不该要求的库。
+     */
     fun requiredPackageVersion(context: Context): String =
-        if (SpatialPreferences.qnnEnabled(context)) QNN_PACKAGE_VERSION
-        else REQUIRED_PACKAGE_VERSION
+        if (SpatialPreferences.qnnEnabled(context) && SpatialQnnSupport.isNpuPossible(context)) {
+            QNN_PACKAGE_VERSION
+        } else {
+            REQUIRED_PACKAGE_VERSION
+        }
 
-    /** 某个变体是否已装好。UI 要同时显示两行，所以不能只问"当前变体"。 */
+    /**
+     * 某个变体是否已装好。UI 要同时显示两行，所以不能只问"当前变体"。
+     *
+     * **不再要求查得到 dsp_arch**（D271）：装的若是全 arch 包，本机架构未知恰恰是它存在的
+     * 理由。此前那道前置让未登记架构的设备即使装上了也恒判"没装"，界面永远显示未下载。
+     * 装的是不是本机能用的那一份，由 [isCompatibleMarker] 判——它对 marker 里记的
+     * `dspArch` 已经分了全 arch 与单 arch 两种情形。
+     */
     fun isVariantInstalled(context: Context, qnn: Boolean): Boolean {
-        if (qnn && SpatialQnnSupport.resolveDspArch(context) == null) return false
         val marker = readMarker(context, qnn) ?: return false
         return installedFiles(context, marker)?.let { (core, jni) ->
             core.length() == marker.coreSizeBytes && jni.length() == marker.jniSizeBytes
@@ -207,6 +223,18 @@ object SpatialRuntimeStore {
         loadedMarker = marker
         loaded = true
     }
+
+    /**
+     * 本进程**实际加载**的运行组件版本；还没加载过任何一份时返回 null。
+     *
+     * 与 [installedPackageVersion]（磁盘上"当前变体"装的是哪份）是两个问题：切过开关
+     * 但没重启时两者会不一致，而同一进程只能加载一份 `libonnxruntime.so`——
+     * [SpatialQnnArchProbe] 靠这个区分"硬件的回答"与"进程状态的回答"，
+     * 设置页靠它决定要不要提示重启。
+     */
+    fun loadedPackageVersion(): String? =
+        loadedMarker?.packageVersion
+            ?: loadedOverride?.let { "$OVERRIDE_PACKAGE_PREFIX${File(it).name}" }
 
     /**
      * zip 只允许包含两个签名 catalog 明确描述的库，拒绝额外入口、路径穿越和解压膨胀。

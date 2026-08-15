@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.spatial.SpatialModelDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialModelDownloadWorker
 import com.ywwynm.everythingdone.spatial.SpatialModelStore
 import com.ywwynm.everythingdone.spatial.SpatialPreferences
+import com.ywwynm.everythingdone.spatial.SpatialQnnArchProbe
 import com.ywwynm.everythingdone.spatial.SpatialQnnPrecompiledDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialQnnPrecompiledDownloadWorker
 import com.ywwynm.everythingdone.spatial.SpatialQnnPrecompiledStore
@@ -88,6 +89,15 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     private var runtimeEntry: SpatialRuntimeCatalogEntry? = null
     private var qnnRuntimeEntry: SpatialQnnRuntimeCatalogEntry? = null
     private var qnnPrecompiledEntry: SpatialQnnPrecompiledCatalogEntry? = null
+
+    /**
+     * catalog 是否**成功**回答过「本机架构有没有 Big-LaMa 的 NPU 预编译产物」。
+     *
+     * 必须与 [qnnPrecompiledEntry] 分开记：那个字段为 null 有三种成因——还没查、查失败、
+     * 查到了但本机这一档没有货，**只有第三种**才该把整行藏掉。混作一谈的话，进页面的
+     * 头一瞬间和离线时行都会消失一下。
+     */
+    private var qnnPrecompiledResolved = false
     private val inpaintingEntries =
         mutableMapOf<SpatialInpaintingModel, SpatialInpaintingCatalogEntry>()
     private var segmentationEntry: SpatialSegmentationCatalogEntry? = null
@@ -975,7 +985,13 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 SpatialQnnRuntimeDownloadCoordinator.UNIQUE_WORK_NAME
             )
             .observe(this) { infos ->
+                // 组件装好的那一刻若进程里已加载着 CPU 版，提示重启——装好才是变体
+                // 真正可用的时刻，早弹（点开关时）用户还没等到下载完成，晚了没人提醒。
+                val wasActive = qnnRuntimeWorkInfo?.let(::isActive) == true
                 qnnRuntimeWorkInfo = currentWorkInfo(infos)
+                if (wasActive && qnnRuntimeWorkInfo?.state == WorkInfo.State.SUCCEEDED) {
+                    maybeOfferRestart()
+                }
                 refreshAll()
             }
         findViewById<View>(R.id.iv_qnn_delete).setOnClickListener {
@@ -1399,8 +1415,12 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                     .firstOrNull {
                         it.builtInModel() == SpatialBoundaryRefinementModel.EDGETAM
                     }
-                // 必须在 fetchOrCached 之后取：那一步才会把 catalog 的 SoC 覆盖表快照下来，
-                // 放在前面会用上一轮的旧表，新机型第一次进设置页仍然判不出 dsp_arch。
+                // 组件已装但架构还未知时补探一次（[SpatialQnnArchProbe]）。装组件那一刻
+                // 已经探过一次，这里管的是另外两种时序：升级到带探测逻辑的版本之前就装好了
+                // 组件、以及那次探测恰好失败。在这个后台线程里做，不能上 UI 线程。
+                runCatching { SpatialQnnArchProbe.probeIfNeeded(applicationContext) }
+                // 必须在 fetchOrCached 与补探之后取：前者才会把 catalog 的 SoC 覆盖表快照
+                // 下来，放在前面会用上一轮的旧表，新机型第一次进设置页仍然判不出 dsp_arch。
                 val dspArch = SpatialQnnSupport.resolveDspArch(applicationContext)
                 // 传 null 也有意义：查不出架构时会退回全 arch 包，正是新芯片的兜底。
                 val qnnRuntime = catalog.qnnRuntimeForCurrentDevice(dspArch)
@@ -1428,6 +1448,9 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 runtimeEntry = result.getOrNull()?.runtime
                 qnnRuntimeEntry = result.getOrNull()?.qnnRuntime
                 qnnPrecompiledEntry = result.getOrNull()?.qnnPrecompiled
+                // 拉取失败时置回 false：此时 entry 同样是 null，但那是「没问到」而不是
+                // 「没有货」，不该按后者把整行藏掉。
+                qnnPrecompiledResolved = result.isSuccess
                 inpaintingEntries.clear()
                 result.getOrNull()?.inpainting?.let(inpaintingEntries::putAll)
                 segmentationEntry = result.getOrNull()?.segmentation
@@ -1493,6 +1516,16 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      * 下载中不清，入队时写下的预选要留到装完生效。
      */
     private fun reconcileSelections() {
+        // 判定收紧之后（v69 这类"判定表认得出、我们却没出过货"的机器）总开关可能还留在
+        // 打开状态。此时行是置灰的、点不动，用户没有任何途径把它关回去，而
+        // [SpatialRuntimeStore.requiredPackageVersion] 会一直要求 QNN 版运行组件——
+        // 于是停在一个"NPU 用不上、却按 NPU 版加载"的状态。在这里一次性收口。
+        // 用 isNpuPossible 而不是 qnnDeviceEligible()：后者依赖异步拉来的 catalog 条目，
+        // 目录还没到时会把未知架构的设备误判成不可用，进而误关用户的开关。
+        // 已装的那一份组件不动——删除入口照常在，清理磁盘是用户自己的事。
+        if (SpatialPreferences.qnnEnabled(this) && !SpatialQnnSupport.isNpuPossible(this)) {
+            SpatialPreferences.setQnnEnabled(this, false)
+        }
         val depthInstalled = SpatialDepthModel.entries.filter {
             SpatialModelStore.isInstalled(this, it)
         }
@@ -1821,8 +1854,15 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val ctxInstalled = dspArch != null && SpatialQnnPrecompiledStore.isInstalled(
             this, bigLama.stableId, bigLama.version, dspArch
         )
+        // 本机架构在 catalog 里没有预编译产物时整行隐藏（2026-08-15 用户裁定）。
+        // 这一行与其余模型行不同：它的「模型文件」只能下发、不能端上编译，本机这一档
+        // 没出过货就等于永远装不上，留着只会显示「未下载 · 0 B」——体积取自 catalog 条目，
+        // 条目为 null 时兜底成 0，把「没有货」说成了「还没下」（Z Fold4 `SM8475` → v69
+        // 实测，我们只编了 v73/v75/v79/v81）。
+        // **已装的仍然显示**：否则换过 catalog 之后用户没有入口删掉本地那一份。
+        val ctxUnavailable = qnnPrecompiledResolved && qnnPrecompiledEntry == null && !ctxInstalled
         findViewById<View>(R.id.model_big_lama_npu).apply {
-            visibility = if (deviceOk) View.VISIBLE else View.GONE
+            visibility = if (deviceOk && !ctxUnavailable) View.VISIBLE else View.GONE
             isEnabled = rowUsable
             alpha = if (rowUsable) 1f else DISABLED_ROW_ALPHA
         }
@@ -1928,10 +1968,43 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         SpatialPreferences.setQnnEnabled(this, enabled)
         refreshAll()
         if (enabled && !SpatialRuntimeStore.isVariantInstalled(this, qnn = true)) {
+            // 组件还没装，重启提示等下载完成的那一刻再弹（观察者里的边沿检测）
             startQnnRuntimeDownload()
         } else {
-            Toast.makeText(this, R.string.spatial_qnn_restart_required, Toast.LENGTH_LONG).show()
+            maybeOfferRestart()
         }
+    }
+
+    /**
+     * 变体切换后按需提示重启。**只在进程里确实加载着另一份时才弹**：进程还没加载过
+     * 任何一份（没做过推理）时，下一次推理自然会加载正确的变体，弹框只是打扰。
+     * 此前这里是一条 Toast，说了"需要重启"却不帮用户重启（2026-08-15 用户裁定改对话框）。
+     */
+    private fun maybeOfferRestart() {
+        val loaded = SpatialRuntimeStore.loadedPackageVersion() ?: return
+        if (loaded == SpatialRuntimeStore.requiredPackageVersion(this)) return
+        showAppAlert(
+            title = getString(R.string.spatial_restart_title),
+            content = getString(R.string.spatial_restart_message),
+            confirmText = getString(R.string.spatial_restart_now)
+        ) {
+            restartIntoSpatialSettings()
+        }
+    }
+
+    /**
+     * 重启 App 并按正常层级重建返回栈：主列表 → 设置 → 空间照片设置。AMS 在
+     * `startActivities` 的同步调用返回时已持有整栈记录，进程退出后由它重新拉起顶部
+     * 页面。重启后进程干净，首次推理（或设置页的架构探测）会加载切换后的变体——
+     * 之前的操作若是下载/启用 NPU，进入本页的 catalog 刷新线程正好完成探测。
+     */
+    private fun restartIntoSpatialSettings() {
+        androidx.core.app.TaskStackBuilder.create(this)
+            .addNextIntent(android.content.Intent(this, ThingsActivity::class.java))
+            .addNextIntent(android.content.Intent(this, SettingsActivity::class.java))
+            .addNextIntent(android.content.Intent(this, SpatialPhotoSettingsActivity::class.java))
+            .startActivities()
+        Runtime.getRuntime().exit(0)
     }
 
     private fun isMeteredNetwork(): Boolean =
@@ -2008,14 +2081,18 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             qnnRuntimeEntry?.sizeBytes ?: 0L
         }
         val sizeText = Formatter.formatFileSize(this, size)
-        // **只有确定不可能支持的机器才隐藏**（非高通、非 arm64、API < 31）——那类设备上
-        // 这一行不是一个有意义的概念。是高通但没登记 dsp_arch 时要显示并置灰，否则
-        // spatial_qnn_unsupported 永远渲染不出来，未登记的新骁龙在界面上与"不支持"
-        // 无从区分（2026-08-15 用户指出）。
-        val candidate = SpatialQnnSupport.isSnapdragonNpuCandidate()
+        // 三档显示（D274 用户裁定 + 同日审查改为按组件在位分档）：
+        // - HIDDEN：非骁龙，或确定不可用且磁盘上没有 QNN 组件——用户永远用不上、
+        //   也没东西可清理，不该看见，更不该有机会白下 63 MB；
+        // - UNUSABLE_INSTALLED：确定不可用但组件还装着（不论结论来自表、厂商库还是
+        //   自探）——**必须显示**，否则那 192 MB 没有删除入口；置灰并单独说明原因；
+        // - USABLE：正常显示（未登记的新骁龙也在此列，由全 arch 包兜底）。
+        val verdict = SpatialQnnSupport.npuVerdict(this)
+        val probeFailed = verdict == SpatialQnnSupport.NpuVerdict.UNUSABLE_INSTALLED
         val rowUsable = gate && eligible
         findViewById<View>(R.id.row_qnn).apply {
-            visibility = if (candidate) View.VISIBLE else View.GONE
+            visibility =
+                if (verdict == SpatialQnnSupport.NpuVerdict.HIDDEN) View.GONE else View.VISIBLE
             isEnabled = rowUsable
             alpha = if (rowUsable) 1f else DISABLED_ROW_ALPHA
         }
@@ -2028,6 +2105,9 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         // 组件未下载时不显示勾选框：整行点击即开启并自动下载
         applyControlVisibility(findViewById(R.id.cb_qnn), installed)
         findViewById<TextView>(R.id.tv_qnn_status).text = when {
+            // 实测起不来要与"本机没有受支持的骁龙 NPU"分开说：组件是用户自己下的，
+            // 得让他知道那份东西还占着磁盘、可以删。
+            probeFailed -> getString(R.string.spatial_qnn_probe_failed, sizeText)
             !eligible -> getString(R.string.spatial_qnn_unsupported)
             active -> qnnRuntimeWorkStatus(qnnRuntimeWorkInfo, sizeText)
             // 与其它模型行**同一套措辞**："已启用 · 大小"／"已下载安装 · 大小"，

@@ -67,23 +67,45 @@ object SpatialQnnSessionFactory {
     private fun resolveEnvironment(context: Context): QnnEnvironment? {
         // 总开关关着就当没有 QNN——各引擎照常走 CPU，与开关引入前完全一致。
         if (!SpatialPreferences.qnnEnabled(context)) return null
-        val dspArch = SpatialQnnSupport.resolveDspArch(context) ?: return null
+        // 与设置页同一道判定：本机该用的那一档我们出过货吗（D270）。
+        if (!SpatialQnnSupport.isNpuPossible(context)) return null
         if (!SpatialRuntimeStore.isVariantInstalled(context, qnn = true)) return null
         val directory = runCatching {
             SpatialRuntimeStore.nativeLibraryDirectory(context)
         }.getOrNull() ?: return null
         val backend = File(directory, QNN_HTP_BACKEND)
         if (!backend.isFile) return null
-        // Skel 与 Stub 必须是本机 dsp_arch 的那一份；缺了就说明下发的包与设备不匹配，
-        // 此时**不能**让 QNN 去试——它会在 device 创建阶段失败并留下一堆误导性日志。
-        if (!File(directory, SpatialQnnSupport.skelLibraryName(dspArch)).isFile) return null
-        if (!File(directory, SpatialQnnSupport.stubLibraryName(dspArch)).isFile) return null
+        val dspArch = SpatialQnnSupport.resolveDspArch(context)
+        if (dspArch != null) {
+            // 查得到架构：Skel 与 Stub 必须是本机那一份。缺了说明下发的包与设备不匹配，
+            // 此时**不能**让 QNN 去试——它会在 device 创建阶段失败并留下一堆误导性日志。
+            if (!File(directory, SpatialQnnSupport.skelLibraryName(dspArch)).isFile) return null
+            if (!File(directory, SpatialQnnSupport.stubLibraryName(dspArch)).isFile) return null
+        } else if (!hasAnySkelStubPair(directory)) {
+            // 查不到架构：装的是全 arch 包，**由 QNN 自己按探测到的 SoC 挑**
+            //（D267 实测：四份 Skel/Stub 同在时它只 dlopen 了 libQnnHtpV81Stub.so，
+            // 且硅是 v85 —— 取的是"不超过硬件档的最高可用 Skel"）。我们只确认至少凑得出
+            // 一对，挑哪一档不该由我们猜。此前这里硬性要求查得到架构，等于把全 arch 包
+            // 这条路在运行层堵死（D271）。
+            return null
+        }
         return QnnEnvironment(
             backendPath = backend,
-            dspArch = dspArch,
+            // 架构未知时用 ALL_ARCH 作 context 缓存键的一部分：真正用了哪一档由 QNN 决定，
+            // 我们事先不知道。缓存是本机本地的，同一台设备上这个取值不会变；将来登记了它
+            // 的架构，键会从 "all" 变成 "v<N>"，缓存作废重编一次而已。
+            dspArch = dspArch ?: SpatialQnnSupport.ALL_ARCH,
             runtimePackageVersion = SpatialRuntimeStore.installedPackageVersion(context)
                 ?: return null
         )
+    }
+
+    /** 全 arch 包里带哪几档由 catalog 决定，这里只确认目录里至少凑得出一对 Skel+Stub。 */
+    private fun hasAnySkelStubPair(directory: File): Boolean {
+        val names = directory.list()?.toSet() ?: return false
+        return names.any {
+            SKEL_LIBRARY_REGEX.matches(it) && it.replace("Skel.so", "Stub.so") in names
+        }
     }
 
     /**
@@ -113,9 +135,9 @@ object SpatialQnnSessionFactory {
     ): Outcome? {
         // 逐模型开关：总开关之上再筛一层，用户可以只给收益大的模型开。
         if (!SpatialPreferences.qnnEnabledFor(context, request.modelId)) {
-            return report(request.modelId, null)
+            return report(context, request.modelId, null)
         }
-        val qnn = resolveEnvironment(context) ?: return report(request.modelId, null)
+        val qnn = resolveEnvironment(context) ?: return report(context, request.modelId, null)
         val key = SpatialQnnContextStore.Key(
             modelId = request.modelId,
             modelVersion = request.modelVersion,
@@ -145,7 +167,7 @@ object SpatialQnnSessionFactory {
             }
             if (session != null) {
                 return report(
-                    request.modelId,
+                    context, request.modelId,
                     Outcome(session = session, usedQnn = true, compiled = false)
                 )
             }
@@ -162,15 +184,15 @@ object SpatialQnnSessionFactory {
                 // 产物坏了（换了系统、库被清理）就丢掉重编，不要每次都在这里失败。
                 Log.w(TAG, "QNN context 复用失败，作废后回落：${request.modelId}", error)
                 runCatching { SpatialQnnContextStore.invalidate(context, request.modelId) }
-                return report(request.modelId, null)
+                return report(context, request.modelId, null)
             }
             return report(
-                request.modelId,
+                context, request.modelId,
                 Outcome(session = session, usedQnn = true, compiled = false)
             )
         }
 
-        if (!allowOnDeviceCompile) return report(request.modelId, null)
+        if (!allowOnDeviceCompile) return report(context, request.modelId, null)
         return runCatching {
             onCompileStart()
             val target = SpatialQnnContextStore.prepareForCompile(context, key)
@@ -182,17 +204,22 @@ object SpatialQnnSessionFactory {
             // commit 失败（没产出 .bin）不影响这次推理，只是下次还要再编译一遍。
             runCatching { SpatialQnnContextStore.commit(context, key) }
                 .onFailure { Log.w(TAG, "QNN context 未能登记：${request.modelId}", it) }
-            report(request.modelId, Outcome(session = session, usedQnn = true, compiled = true))
+            report(context, request.modelId,Outcome(session = session, usedQnn = true, compiled = true))
         }.getOrElse { error ->
             Log.w(TAG, "QNN session 创建失败，回落 CPU：${request.modelId}", error)
             runCatching { SpatialQnnContextStore.invalidate(context, request.modelId) }
-            report(request.modelId, null)
+            report(context, request.modelId, null)
         }
     }
 
     /** 统一的回报点：所有 return 路径都经过这里，漏一条就会让界面标注失真。 */
-    private fun report(modelId: String, outcome: Outcome?): Outcome? {
+    private fun report(context: Context, modelId: String, outcome: Outcome?): Outcome? {
         runCatching { sessionListener?.invoke(modelId, outcome?.usedQnn == true) }
+        // 真的用上 QNN 了，说明它已经 dlopen 了自己挑中的那份 Stub——顺手读一下
+        // /proc/self/maps 就知道本机是哪一档，比专门建一次探测 session 更省。
+        if (outcome?.usedQnn == true) {
+            runCatching { SpatialQnnArchProbe.recordFromLoadedLibraries(context) }
+        }
         return outcome
     }
 
@@ -226,4 +253,5 @@ object SpatialQnnSessionFactory {
 
     private const val TAG = "SpatialQnn"
     private const val QNN_HTP_BACKEND = "libQnnHtp.so"
+    private val SKEL_LIBRARY_REGEX = Regex("""libQnnHtpV\d+Skel\.so""")
 }

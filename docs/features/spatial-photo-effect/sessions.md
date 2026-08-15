@@ -3413,3 +3413,124 @@ D266 之后用户指出未见过的 SoC 仍然默认不显示 NPU 行、无从�
   `mattingEnabled=true`；预编译产物装好自动切到 NPU 版。设置页三处"入队时预选"
   一并删除（页面关着也生效，且不再与 reconcileSelections 打架）。OPD2515 实测：
   下载 ZipDepth 装完自动选中、DA3 退为已安装；删除后回落 DA3，无空目录残留。
+
+### 2026-08-15 · v69 机型的 NPU 行显示「未下载 · 0 B」
+
+用户在三星 Z Fold4（`RFCT90LSFGT` / `SM-F9360`）上启用骁龙 NPU 加速后，Big-LaMa（NPU 版）
+显示「未下载 · 0 B」，问是不是我们编的产物不支持它的架构。
+
+**结论：不是不兼容，是这一档从来没出过货。** 该机为骁龙 8+ Gen 1（`SM8475`）→ v69，
+而已发布的 Big-LaMa 预编译产物与 QNN 运行组件都只有 v73/v75/v79/v81 四档，全 arch 包
+也是由这四份合成的。`catalog.qnnPrecompiledFor(..., "v69")` 返回 null，
+`SpatialPhotoSettingsActivity` 的 `ctxSize` 写作 `qnnPrecompiledEntry?.sizeBytes ?: 0L`，
+兜底成 0 后落到 `spatial_model_not_downloaded`，于是显示「未下载 · 0 B」。
+
+**本轮改动**：本机架构没有可用产物时整行隐藏（用户裁定）。新增 `qnnPrecompiledResolved`
+字段与 `qnnPrecompiledEntry` 分记——后者为 null 有「还没查／查失败／没有货」三种成因，
+只有第三种该隐藏，混作一谈会让行在进页面瞬间和离线时闪一下。已装产物的设备不隐藏，
+否则换过 catalog 之后没有入口删掉本地那一份。
+
+**同时确认的更大问题**：v69 上 NPU **对所有模型都不起作用**，不只是 Big-LaMa。
+`SpatialQnnSessionFactory.resolveEnvironment` 硬性要求本机 dsp_arch 的 Skel/Stub 在位
+（缺了不能让 QNN 去试，它会在 device 创建阶段失败），全 arch 包里没有
+`libQnnHtpV69Skel.so`，这道门在 `createSession` 的最前面，RF-DETR／EdgeTAM／Big-LaMa
+三个调用点一律回落 CPU。D267 放行的理由「比硬件更新的芯片也能工作」只对**高于**已发布
+最高档的芯片成立，对**低于最低档**的不成立——判定层的缺口见 followups。
+
+### 同日追加 · 判定层收紧（D270）
+
+用户裁定一并修掉判定层缺口。四处改动：
+
+1. `SpatialQnnSupport` 新增 `isArchUnserved` / `servedArchs` / `saveServedArchs` 与内置
+   兜底集合 `{v73,v75,v79,v81}`，`isNpuPossible` 加上这条判据。判据是**逐档的集合成员**
+   而不是「≥ 最低档」——按区间放行会把「登记了 v77 但只发过 v75」这类缝隙重新放进来。
+2. `SpatialCatalogClient.adopt` 在验签后把 `qnnRuntimes` 里过得了 `isCompatible()` 的
+   dspArch 一并快照。不新开 catalog 字段：补发一档包判定自动跟上，少一处会忘记同步的
+   地方。
+3. `reconcileSelections()` 收口那个「判定收紧后关不掉的总开关」，用 `isNpuPossible`
+   而不是 `qnnDeviceEligible()`（后者依赖异步 catalog，会误关未知架构设备的开关）。
+4. Big-LaMa（NPU 版）行在本机无可用产物时整行隐藏（前一节）。
+
+Z Fold4 上的效果：NPU 行仍可见但置灰，文案为「本机没有受支持的骁龙 NPU」，已装的
+63 MB 组件仍可删；两个 NPU 模型行隐藏；推理照常走 CPU（本来就是）。
+
+278 个 spatial 单测全过（新增 8 条）。`:app:assembleDebug` 通过。
+
+### 同日追加 · 架构判定分两层 + 两台真机验证（D271）
+
+用户裁定把 SM8845P 从表里删掉当活体检验。删表后立刻暴露的不是兜底缺陷，而是**我实现里
+的功能倒退**：OPD2515 硅 v85、`/odm` 下装着 V81 Skel、我们也编了 v81 产物，本来能用，
+却因为 `resolveDspArch` 返回 null 而让 Big-LaMa（NPU 版）整行消失。用户直接指出了这点。
+
+病根是一个函数被当成两件事用。改成两层：`hardwareArch`（硅是哪一档，新增**设备自证**
+作为第三个来源）与 `resolveDspArch`（该用我们的哪一份 = 不超过硅档的最高已发布档，
+正是 QNN 自己的选法）。D270 那条"逐档集合成员"的判据被推翻，已在 decisions.md 里标注。
+顺带打通 D267 遗留的四道硬门。
+
+catalog 已发版（20260815115813，`qnnDeviceProfiles` 为空）。两台真机验证：
+OPD2515 靠设备自证得到 v81，NPU 组件「Enabled · 192 MB」、Big-LaMa NPU 行
+「Downloaded and installed · 105 MB」、RF-DETR NPU「Enabled」；Z Fold4（v69）
+`qnn_enabled` 自动收口为 false、整行置灰、文案「本机没有受支持的骁龙 NPU」、两个 NPU
+模型行隐藏。283 个 spatial 单测全过。
+
+**待裁定**：SM8845P 要不要加回表里。功能上不需要了（设备自证给同一答案），代价是运行
+组件走全 arch 包（63.62 MB）而非单份包（约 50 MB）。
+
+### 同日追加 · QNN 自探架构（D272）
+
+用户追问 D271 设备自证的失效路径（表里没有 + 厂商没装 QNN 库），确认那时 Big-LaMa
+（NPU 版）仍会消失。补第三条来源：建一次 138 字节的微型 QNN session，从
+`/proc/self/maps` 读出 QNN 自己 dlopen 的 `libQnnHtpV<N>Stub.so`。
+
+触发点两个主动（组件装好那一刻、设置页后台刷新）+ 一个零成本兜底（任何一次成功建起
+QNN session 之后顺手读 maps）。第一版设想的"等用户自己生成一张照片"被用户否掉——那是
+一段要用户离开设置页、做一次生成、再回来的迂回，中间没有任何提示。
+
+OPD2515 验证：debug 标记文件强制只走自探，得 `probed_arch=v81`，与 vendor 库独立给出的
+答案一致；Big-LaMa NPU 行「Downloaded and installed · 105 MB」。验证后标记已删除。
+283 个 spatial 单测全过。
+
+新增文件：`SpatialQnnArchProbe.kt`、`assets/spatial/qnn_arch_probe.onnx`（138 B，
+生成脚本见 D272）。
+
+### 同日追加 · 探测失败也是结论（D273）
+
+用户追问泛化性：实际 v66、表里没有、厂商也没内置 so 的设备怎么办。答案是此前会白下
+63 MB 并显示「已启用」而实际全 CPU。补上判据：**组件齐全却建不起 QNN session = 确定落在
+最低已发布档之下**，不依赖任何表。探测结果三态化，连续 2 次失败才下结论，结论与运行组件
+版本绑定。
+
+实测踩到一个物理限制：`qnnEnabled` 关着时进程加载的是 CPU 版 ORT，没有 QNN EP，探测静默
+失效——`probeIfNeeded` 第一行补上了开关检查。
+
+Z Fold4 作等价验证（v69 同样低于 v73）：debug 标记绕过表与 vendor 自证后，两次失败 →
+`probed_arch=unsupported` → `qnn_enabled` 自动收口 → 界面「本机没有受支持的骁龙 NPU」、
+两个 NPU 模型行隐藏、删除按钮保留。验证后标记已删。283 个 spatial 单测全过。
+
+**待裁定**（用户问题 2）：要不要让"确定不支持"的骁龙像非骁龙那样整行隐藏。三条来源的
+证据强度不同（自探=实测、vendor 库=硬、表=视条目而定），可以统一隐藏，也可以只对硬来源
+隐藏、表判定的仍置灰。
+
+### 同日追加 · 不可用的两种处置（D274）
+
+用户裁定：表/厂商库判出的低档隐藏，QNN 自探判出的置灰并给提示。分界线是结论在下载**之前**
+还是**之后**得出——前者用户永远用不上，后者那 192 MB 已经在磁盘上，隐藏了就找不到删除入口。
+
+实现上把自探失败从 `TOO_OLD_ARCH_MARK` 拆出来成 `PROBE_FAILED_MARK`，加三档
+`NpuVerdict`（USABLE / HIDDEN / PROBE_FAILED）供 UI 直接用。新标记不允许下发进 catalog
+覆盖表（有单测钉住）。新增文案 `spatial_qnn_probe_failed`，13 个语言。
+
+Z Fold4 同机验两条路：产品路径下整行隐藏；debug 标记走自探后置灰 +
+「本机 NPU 无法启动，已改用 CPU · 192 MB 可删除」+ 删除按钮保留 + 下载按钮收起。
+285 个 spatial 单测全过。设备已恢复产品路径。
+
+## 2026-08-15（续五）：NPU 判定审查——脏进程探测死锁与重启闭环（D275）
+
+对 Opus 会话的 D270–D274 判定体系做独立审查并修复三处：高危（自探不查进程态，
+先跑过 CPU 推理再开 NPU 的常规顺序会把健康的新骁龙永久误判成 PROBE_FAILED 且无法
+自愈）、中危（不可用显示档按结论来源而非组件在位分，两个方向都错位）、轻危（收口
+只在设置页发生，拉黑设备仍会被顺带安装塞 63 MB）。同轮按用户裁定把"需要重启"的
+Toast 升级为 App 风格对话框 + 一键重启：TaskStackBuilder 重建三层返回栈落在空间
+照片设置页，重启后由既有 catalog 触发点完成探测。OPD2515 真机全链路验证（脏进程
+防御、精确弹框、重启落点与返回栈、探测 v81 与 vendor 交叉校验、UNUSABLE_INSTALLED
+两方向），286 个 spatial 单测全过。详见 D275。

@@ -95,7 +95,10 @@ object SpatialRuntimeInstaller {
         shouldStop: () -> Boolean,
         onProgress: (Progress) -> Unit
     ) {
-        if (SpatialPreferences.qnnEnabled(context)) {
+        // 与 [SpatialRuntimeStore.requiredPackageVersion] 同一道回落：开关开着但判定
+        // 确定不可用（catalog 事后拉黑、自探失败）时装 CPU 版——收口只在设置页发生，
+        // 不进设置页的用户下载模型时不该被顺带塞一份确定用不了的 QNN 组件。
+        if (SpatialPreferences.qnnEnabled(context) && SpatialQnnSupport.isNpuPossible(context)) {
             ensureQnnInstalled(context, catalog, shouldStop, onProgress)
         } else {
             ensureInstalled(context, catalog, shouldStop, onProgress)
@@ -148,10 +151,11 @@ object SpatialRuntimeInstaller {
         shouldStop: () -> Boolean,
         onProgress: (Progress) -> Unit
     ) {
+        // dsp_arch 允许为 null——[qnnRuntimeForCurrentDevice] 收到 null 会退回全 arch 包，
+        // 这正是没登记的新骁龙那条路（D271）。取不到条目才是真的下不了。
         val dspArch = SpatialQnnSupport.resolveDspArch(context)
-            ?: error("本机不是受支持的骁龙 NPU 机型")
         val entry = catalog.qnnRuntimeForCurrentDevice(dspArch)
-            ?: error("可信目录中没有适用于本机（$dspArch）的 NPU 运行组件")
+            ?: error("可信目录中没有适用于本机（${dspArch ?: "架构未知"}）的 NPU 运行组件")
         check(entry.enabled) { entry.disabledReason ?: "NPU 运行组件已被目录禁用" }
         if (SpatialRuntimeStore.isVariantInstalled(context, qnn = true)) return
         check(!shouldStop()) { "下载已停止" }

@@ -10118,3 +10118,399 @@ NPU 那一行在三项上都是全屏唯一的例外：
 - 下载中：截图确认取消叉为正常着色（此前淡灰）；
 - 取消：点下载后立刻再点，状态回到 `Not downloaded · 105 MB`，删除图标未出现、
   下载按钮复原——确认走的是 cancel 分支而不是重复入队。
+
+## D270（2026-08-15）放行的极性只对新芯片成立：判定要问"这一档我们真的出过货吗"
+
+D267 把 SoC 白名单换成黑名单，理由是实测事实——**QNN 取的是"不超过硬件档的最高可用
+Skel"**（OPD2515 上 v85 的硅加载 V81 Skel）。所以"不认识的芯片默认放行"是对的：新骁龙
+出厂第一天就该能用，全 arch 包接得住。
+
+用户在三星 Z Fold4（`RFCT90LSFGT` / `SM-F9360`）上发现了这句话的另一半不成立。
+
+### 现象
+
+启用骁龙 NPU 加速后，Big-LaMa（NPU 版）显示「**未下载 · 0 B**」。
+
+### 根因分三层
+
+**第一层，供给**：Z Fold4 是骁龙 8+ Gen 1（`SM8475`）→ v69。我们编过的 Big-LaMa 预编译
+产物与 QNN 运行组件都只有 **v73/v75/v79/v81**，全 arch 包也是由这四份合成的。判定表里
+`SM8475 → v69` 这条**是对的**（硅确实是 v69），但那一档我们从来没出过货。
+
+**第二层，0 B 从哪来**：`ctxSize` 写作 `qnnPrecompiledEntry?.sizeBytes ?: 0L`，catalog 查不到
+条目时体积兜底成 0，状态落到 `spatial_model_not_downloaded`。**兜底值把"没有货"说成了
+"还没下"**——这是本页第三次出现同一类缺陷（前两次见 D265），凡是"取不到就填个默认值"
+的写法，都会把一种状态伪装成另一种。
+
+**第三层，也是真正要紧的**：v69 上 NPU **对所有模型都不起作用**，不只是 Big-LaMa。
+`SpatialQnnSessionFactory.resolveEnvironment` 在建 session 前硬性要求本机 dsp_arch 的
+`libQnnHtpV<ARCH>Skel.so` / `Stub.so` 精确在位（缺了不能让 QNN 去试，它会在 device 创建
+阶段失败并留下一堆误导性日志），全 arch 包里没有 V69 那一份，这道门在 `createSession`
+最前面，RF-DETR／EdgeTAM／Big-LaMa 三个调用点一律静默回落 CPU。而界面上：总开关能打开、
+63 MB 的全 arch 运行组件能装完、RF-DETR NPU 行显示可勾选。**判定说可用，运行时什么都没
+发生**——用户问"启用 NPU 对本机编译的模型总还是有用的吧"，答案是没有。
+
+### 判据：逐档的集合成员，不是"≥ 最低档"
+
+放行的不对称之所以成立，是因为 QNN 向下兼容：硅比 Skel 新可以，比 Skel 旧不行。所以
+
+| 本机 dsp_arch | 判定 |
+|---|---|
+| 查不到（新芯片） | **放行**——全 arch 包兜底，D267 的本意 |
+| 查得到且在已发布集合里 | 放行 |
+| 查得到但不在已发布集合里 | **不可用**，走 `spatial_qnn_unsupported` |
+
+> **本节的判据在当晚被 D271 推翻并改正。** 这里最初写的是"逐档的集合成员"——理由是
+> `resolveEnvironment` 找精确文件名，按区间放行会把"登记了 v77 但只发过 v75"的缝隙放
+> 进来。那个理由站不住：正确的解法不是把判定收紧到集合成员，而是**让判定输出的就是
+> 我们发布过的那一档**（`resolveDspArch` 返回不超过硅档的最高已发布档），精确文件名
+> 自然永远对得上。按集合成员判会误伤两类设备——比我们最高档还新的硅（本该落到最高档）、
+> 以及靠设备自证拿到硅档的机器。详见 D271。
+
+### 已发布集合从 catalog 现推，不新开字段
+
+`servedArchs` = catalog 的 `qnnRuntimes` 里过得了 `isCompatible()` 的那些 `dspArch`，
+在验签后与 SoC 覆盖表一起快照进 SharedPreferences（判定在设置页每次刷新都要跑，扛不住
+磁盘 I/O 与验签）。**不新开一个"最低档"字段**：多一个字段就多一处会忘记同步的地方，
+而补发了包却没改那个字段，正是这条判据要防的故障。补 v69 的包 = 判定自动跟上，不必发版。
+
+内置兜底 `BUILT_IN_SERVED_ARCHS = {v73, v75, v79, v81}`，快照为空时用它——空集合的含义是
+"无从判断"，一次拉取失败绝不能把所有设备的 NPU 判成不可用。
+
+### 收口：判定收紧会留下一个关不掉的开关
+
+判定改严之后，这类机器上 `qnnEnabled` 仍是 true，而行已经置灰、点不动，用户**没有任何
+途径把它关回去**，`SpatialRuntimeStore.requiredPackageVersion` 会一直要求 QNN 版运行组件
+——停在"NPU 用不上、却按 NPU 版加载"的状态。`reconcileSelections()` 里一次性收口：判定
+不可用就等于没开。用 `isNpuPossible` 而不是 `qnnDeviceEligible()`——后者依赖异步拉来的
+catalog 条目，目录还没到时会把未知架构的设备误判成不可用，进而误关用户的开关。
+已装的组件不动，删除入口照常在（`iv_qnn_delete` 的可见性本来就只看 installed）。
+
+### 本轮范围之外
+
+Big-LaMa（NPU 版）那一行改为**整行隐藏**（用户裁定）：它的"模型文件"只能下发、不能端上
+编译，本机这一档没出过货就等于永远装不上。隐藏条件是 `qnnPrecompiledResolved &&
+entry == null && !ctxInstalled`——新增 `qnnPrecompiledResolved` 与 entry 分记，因为 entry
+为 null 有"还没查／查失败／没有货"三种成因，只有第三种该隐藏；已装的仍显示，否则换过
+catalog 之后没有入口删掉本地那一份。
+
+**未修（见 followups 第 4 条）**：当晚用户追问「未登记架构的机器是不是先下载、下完才发现
+不支持」，据此逐行核了一遍，结论比本条原先记的更糟——**全 arch 兜底整条路是断的**。
+D267 只改了 UI 判定与 `installVerifiedQnn` 的安装校验，而
+`SpatialQnnRuntimeDownloadWorker.doWork:60`、`SpatialRuntimeInstaller.ensureQnnInstalled:151`、
+`SpatialRuntimeStore.isVariantInstalled:58`、`SpatialQnnSessionFactory.resolveEnvironment:70`
+四处仍硬性要求 `resolveDspArch != null`。**下载 worker 的第一行就 failure**，所以未登记
+架构的设备是「行可点、点了什么都不发生、没有任何提示」，而不是「下完发现不支持」。
+后果对两类设备都成立：老芯片（该挡的没挡出个说法）和**新骁龙（本该开箱即用）**。
+验证设备是 OPD2515（硅 v85、全 arch 包最高 V81，QNN 实测挑 V81），加 debug 旁路强制
+`resolveDspArch` 返回 null 即可端到端验证；需要连设备，未授权前不动运行时行为。
+
+### 验证
+
+278 个 spatial 单测全过（新增 8 条，含一条守门断言：内置表里目前判为"没有货"的型号固定
+为 SM7325／SM8350／SM8450／SM8475，补发 v68/v69 的包时它会红，提醒把内置集合一起改）。
+
+## D271（2026-08-15）架构判定分两层：硅是哪一档，与该给它用我们的哪一份
+
+D270 落地后用户裁定"把 SM8845P 从表里删掉，我倒要看看你能不能改对"，用 OPD2515 当活体
+检验全 arch 兜底。删表后立刻现形的不是兜底，而是**一个功能倒退**：
+
+> OPPO 平板能用 v81 编译的 Big-LaMa NPU 模型啊，你为什么要隐藏它呢？
+
+用户是对的。那台机硅是 v85、`/odm` 下装着 V81 Skel、我们也编了 v81 的产物，本来跑得好
+好的；删表之后 `resolveDspArch` 返回 null，`qnnPrecompiledFor` 取不到条目，Big-LaMa
+（NPU 版）整行消失。
+
+### 病根：一个函数被当成两件事用
+
+`resolveDspArch` 从头到尾都在混用两种语义：
+
+| 问题 | 谁该回答 | 查不到时该怎么办 |
+|---|---|---|
+| 这颗硅是哪一档？ | 判定表 / **设备自证** | 未知——可能是新芯片 |
+| 该给它用我们发布的哪一份？ | 已发布档位集合 | 没有合适的——不可用 |
+
+混作一件事，"查表没查到"就等价于"没有可用产物"，于是一台完全能用的设备被判成不可用。
+D270 那条"逐档的集合成员"判据也是这个混淆的产物——它逼着判定表去登记"我们发布过的
+档"而不是硅的真实档，等于把语义混乱写进了契约。
+
+### 改法
+
+```
+hardwareArch(context)   // 硅是哪一档：catalog 表 → 内置表 → 设备自证
+resolveDspArch(context) // 该用哪一份：已发布档里不超过硅档的最高一档
+isArchUnserved(context) // 硅档已知，且没有一档落得到它上面
+```
+
+`resolveDspArch` 现在是 `servedArchs.filter { it <= hardwareArch }.max()`——**这正是 QNN
+自己的选法**（D267 实测：硅 v85、四份 Skel 同在，它挑 V81）。判定跟着它走，拼出来的
+`libQnnHtpV<arch>Skel.so` 一定在包里，按这一档取的预编译产物也一定加载得了。三类设备
+各归其位：
+
+| 设备 | 硅档 | resolveDspArch | 结果 |
+|---|---|---|---|
+| OPD2515（8 Gen 5） | v85（自证） | **v81** | 单份包 + v81 预编译产物，全部可用 |
+| Z Fold4（8+ Gen 1） | v69（内置表） | null | 判不可用，置灰 |
+| 未登记的新骁龙 | 未知 | null | 全 arch 包兜底，无预编译产物 |
+
+### 设备自证：判定表的第三个来源，也是最硬的一个
+
+厂商在 `/vendor` `/odm` 下装的 `libQnnHtpV<N>Skel.so` 就是这颗硅能跑的档，比任何表都准，
+而且新芯片出厂当天就有——当初给 SM8845P 定档用的正是这个证据，只是那时靠人工去看。
+现在扫六个已知目录取最高档，进程内缓存（硬件不会变）。列目录不受 linker namespace 限制
+（那管 dlopen），只受文件权限，`/vendor` `/odm` 的库目录对普通应用可读，OPD2515 上实测
+读得到。扫到的最高档低于 v68 折成 `TOO_OLD_ARCH_MARK`——当作没探到会退回全 arch 包，
+让 v65/v66 的老机白下 63 MB。
+
+只认 `libQnnHtpV<NN>Skel.so` / `Stub.so` 两种文件名：同目录下还有 `libQnnHtpV81.so`、
+`libQnnHtpV81CalculatorStub.so`，它们不是架构标识。
+
+### 顺带打通的四道硬门（followups 第 4 条）
+
+D267 只改了 UI 判定与 `installVerifiedQnn`，另有四处仍硬性要求 `resolveDspArch != null`：
+下载 worker 第一行、`ensureQnnInstalled`、`isVariantInstalled`、`resolveEnvironment`。
+后果是未登记架构的设备"行可点、点了什么都不发生、没有任何提示"。前三处判据换成
+"catalog 取不到本机可用条目才失败"，第四处未知架构时改判"库目录里有任意一对 Skel/Stub
+即放行"，交给 QNN 自己挑。
+
+### 真机验证（两台，2026-08-15）
+
+catalog 已发版（20260815115813，`qnnDeviceProfiles` 为空），内置表也删了 SM8845P。
+
+**OPD2515 / 9018f404**（SM8845P，硅 v85）：快照 `catalog_profiles` 空、
+`catalog_served_archs=v73;v75;v79;v81`；NPU 组件由全 arch 包装成「Enabled · 192 MB」
+（改动前这一步是 worker 第一行 failure，一个字节都不下）；**Big-LaMa（NPU 版）行可见、
+状态「Downloaded and installed · 105 MB」**——靠设备自证认回了本地那份 v81 产物；
+RF-DETR NPU「Enabled」。
+
+**Z Fold4 / RFCT90LSFGT**（SM8475 → v69，无 vendor QNN 库）：`qnn_enabled` 由 true
+**自动收口为 false**，`row_qnn` enabled=false 置灰，文案「本机没有受支持的骁龙 NPU」，
+两个 NPU 模型行均隐藏。
+
+283 个 spatial 单测全过。
+
+### SM8845P 要不要加回表里
+
+功能上已经不需要——设备自证给的是同一个答案。留着不登记还省一次发版。唯一的代价是
+运行组件走全 arch 包（63.62 MB）而不是单份包（约 50 MB），差 14 MB 左右。**待用户裁定。**
+
+## D272（2026-08-15）第三条来源：让 QNN 自己说出本机是哪一档
+
+D271 给架构判定加了设备自证，用户随即追问了它的失效路径：**「表里没有、六个目录也扫不到
+libQnnHtpV<NN>Skel.so，会发生什么？」** 沿代码走一遍，答案是 Big-LaMa（NPU 版）那一行
+仍然会消失——运行组件有全 arch 包兜底、端上编译的模型照常跑，唯独**按架构分片下发的
+预编译产物取不到**。这不是假想：Z Fold4 六个目录一个 QNN 库都没有。
+
+### 原理
+
+QNN 建 session 时会按它自己探测到的 SoC `dlopen` 对应的 `libQnnHtpV<N>Stub.so`。
+四份 Stub 都在磁盘上，**只有被 dlopen 的那份会出现在 `/proc/self/maps` 里**。所以跑一次
+QNN 就能问出答案，而且这是 QNN 亲自做的选择，比判定表和代际推断都准。Skel 跑在 DSP 上，
+不会映射进本进程，只找 Stub。
+
+探测图是 assets 里 138 字节的一个 Add。**不在乎有没有节点真的落到 NPU 上**——要的只是
+backend 初始化 + device 创建那一步，那一步就已经 dlopen 了 Stub（D217 记过"四条证据全绿
+也可能一个节点都没落到 QNN"，正说明这是两件事）。
+
+### 触发时机：不能让用户自己撞出来
+
+第一版设想是"等第一次 NPU 推理之后自然就知道了"。用户直接指出这句话没有实质内容——
+那要用户**装完组件 → 离开设置页 → 去生成一张空间照片 → 再回设置页**，才会发现多了一行，
+中间没有任何东西提示他为什么要这么做。改成两个主动触发点：
+
+1. **QNN 运行组件安装成功的那一刻**（`SpatialQnnRuntimeDownloadWorker`）；
+2. **设置页拉 catalog 的后台线程里**，管两种时序——升级到带探测的版本之前就装好了组件、
+   以及那次探测恰好失败。
+
+外加一个零成本的兜底：任何一次成功建起 QNN session 之后顺手读一下 maps
+（`recordFromLoadedLibraries`），此刻 Stub 一定已经在里面了。
+
+三条来源的排序是 catalog 表 → 内置表 → 厂商库 → QNN 自探。自探排最后不是因为最不准，
+恰恰相反，而是因为它最贵：要先装好组件、还要建一次 session。
+
+### 真机验证（OPD2515，2026-08-15）
+
+那台机有 vendor 库，产品路径永远走不到自探。加了 debug 标记文件
+`no_backup/spatial-photo/.debug-force-probe`（release 恒不生效）强制前两条来源失效，
+只留自探这一路——**而那台机的正确答案由 vendor 库独立给出（v81），正好当交叉校验基准**。
+
+结果：`probed_arch = v81`，与 vendor 库一致；Big-LaMa（NPU 版）行可见、状态
+「Downloaded and installed · 105 MB」。验证完毕后标记文件已删除，设备回到产品路径。
+
+用标记文件而不是 SharedPreferences 键：开关只需 `run-as <pkg> touch <path>`，
+不必跟 PowerShell 里 sed 改 XML 的多层引号较劲（实际卡过一次）。
+
+## D273（2026-08-15）探测失败也是结论：不依赖任何表判定"确定不支持"
+
+用户对 D272 追问泛化性：**「一台实际 v66 的设备，表里没有它，厂商也没内置 QNN 的 so，
+怎么办？」** 沿代码走：三条来源全空 → 放行 → 用户下 63 MB 全 arch 包 → 装完探测 →
+包里最低是 V73，v66 的硅一份都挑不到 → QNN device 创建失败 → 探测返回 null → 界面显示
+「已启用 · 192 MB」而实际全程 CPU。白下一次流量，还看不出来。
+
+### 判据
+
+**组件齐全、QNN 却起不来，这台机就确定落在我们出过的最低档以下。** 硅只要不低于最低档，
+QNN 必定挑得到一份 Skel（D267 实测的选法："不超过硬件档的最高可用"）。这条不依赖任何
+判定表，也不依赖厂商装没装库——它是**实测**，是三条来源里最硬的一条。
+
+于是探测结果三态化：某一档 / [SpatialQnnSupport.TOO_OLD_ARCH_MARK]（确定用不了）/
+null（还没结论）。
+
+两道防误判：
+
+- **连续 2 次失败才下结论**。偶发的内存不足、驱动异常不该变成永久判决。
+- **结论与运行组件版本绑定**（`probe_runtime_version`）。换一份组件就重探——结论本来
+  就是跟着那一份组件得出的。
+
+### 一个物理限制：总开关必须是开的
+
+实测时踩到：探测静默地什么也没做。原因是 **QNN 版与 CPU 版的 `libonnxruntime.so` 是两份
+不同的库，同一进程只能加载一份**，而 `qnnEnabled` 决定加载哪一份
+（`SpatialRuntimeStore.requiredPackageVersion`）。开关关着时进程里的 ORT 没有 QNN EP，
+`addQnn` 直接抛异常；`nativeLibraryDirectory` 拿到的还是 CPU 版目录，里面一个 Skel 都没有。
+所以 `probeIfNeeded` 第一行就是 `if (!qnnEnabled) return null`。
+
+这也决定了这类设备的真实时序：**用户开开关 → 下载组件 → 重启 App（换变体本来就要重启）
+→ 进设置页探测**。下载前无从判断，因为那时三条来源全空——没有任何信息源，这是物理事实
+而不是实现缺陷。
+
+### 真机验证（Z Fold4，2026-08-15）
+
+用户举的 v66 设备手上没有，但 **Z Fold4 是等价场景**：它的 v69 同样低于我们最低的 v73，
+QNN 同样一份 Skel 都挑不到。用 debug 标记文件绕过判定表与 vendor 自证，让它只走探测：
+
+| 步骤 | 结果 |
+|---|---|
+| 开总开关、重启 | `probe_runtime_version=1.28.0-qnn-r2`（确认进程加载的是 QNN 版） |
+| 第 1 次进设置页 | `probe_failures=1` |
+| 第 2 次进设置页 | `probe_failures=2`、**`probed_arch=unsupported`** |
+| 判定生效 | `qnn_enabled` 由 true **自动收口回 false**（D270 的收口） |
+| 界面 | `row_qnn` enabled=false、文案「本机没有受支持的骁龙 NPU」、两个 NPU 模型行隐藏、**删除按钮仍在**（那 192 MB 用户得能删） |
+
+全程不依赖任何判定表。验证后标记文件已删除，设备回到产品路径。283 个 spatial 单测全过。
+
+### 三条来源的证据强度
+
+| 来源 | 强度 | 说明 |
+|---|---|---|
+| QNN 自探（成功或连续失败） | **实测** | QNN 亲自做的选择/亲自失败 |
+| 厂商 `/vendor` `/odm` 的 Skel/Stub | **硬** | 设备自带的库 |
+| catalog 表 / 内置表 | 视条目而定 | 标 `AI Hub` 的是官方机读数据；`SM8475 → v69` 是按代际推断 |
+
+这张表是"要不要隐藏不支持的机型"那个决定的依据——见 followups。
+
+## D274（2026-08-15）不可用有两种，界面处置也要分两种
+
+用户裁定「哪些机器该隐藏骁龙 NPU 那一行」：
+
+> catalog 表 / 内置表里能匹配到的、小于我们支持的最低架构，隐藏。厂商如果内置了
+> Skel/Stub，并且小于我们支持的最低架构，隐藏。QNN 自探的，置灰并且给出提示。
+
+分界线是**这个结论是在下载之前还是之后得出的**：
+
+| 来源 | 何时可知 | 处置 |
+|---|---|---|
+| 非骁龙 / 非 arm64 / API < 31 | 装 App 时 | 隐藏 |
+| catalog 表 / 内置表判出的低档 | 拉到 catalog 时 | 隐藏 |
+| 厂商 `/vendor` `/odm` 里的 Skel/Stub 低于最低档 | 首次判定时 | 隐藏 |
+| **QNN 自探连续失败**（D273） | **装完 63 MB 组件之后** | **置灰 + 说明** |
+
+前三种用户永远用不上，看见了也只是困惑，还可能白下一次组件；最后一种**必须显示**——
+那 192 MB 已经在磁盘上了，隐藏等于让用户既不知道发生了什么、也找不到删除入口。
+
+### 实现：两个标记，不是一个
+
+自探失败此前复用了 [SpatialQnnSupport.TOO_OLD_ARCH_MARK]，合并之后界面无从区分。拆成
+`PROBE_FAILED_MARK = "probe-failed"`，并加一个三档的 [SpatialQnnSupport.NpuVerdict]
+（`USABLE` / `HIDDEN` / `PROBE_FAILED`）供 UI 直接用。两个标记在 `isArchUnserved` 上
+仍是同一个答案——**能不能用是一回事，怎么显示是另一回事**。
+
+`PROBE_FAILED_MARK` **不允许出现在 catalog 覆盖表里**（`isValidProfileArch` 不收）：
+它是设备本地的实测结论，不是可以下发的知识。有单测钉住。
+
+新增文案 `spatial_qnn_probe_failed`（13 个语言），带体积占位符：
+「本机 NPU 无法启动，已改用 CPU · 192 MB 可删除」。删除按钮照常显示，下载按钮收起。
+
+### 真机验证（Z Fold4，2026-08-15）
+
+同一台机验两条路：
+
+- **产品路径**（内置表 SM8475 → v69）：`row_qnn` 整行不在 dump 里 —— **已隐藏**。
+- **debug 标记绕过表与 vendor 自证**，只走自探：`probed_arch=probe-failed`，
+  `row_qnn` 可见但 `enabled=false`，文案「本机 NPU 无法启动，已改用 CPU · 192 MB 可删除」，
+  `iv_qnn_delete` 可见可用，`btn_qnn` 已收起。
+
+285 个 spatial 单测全过。验证后标记文件已删、开关已收口回 false，设备回到产品路径。
+
+## D275（2026-08-15）自探必须先问进程，再问硬件；重启从提示变成动作
+
+用户要求对 D270–D274 的整套判定做独立审查：「目前的处理逻辑是否能够适用于所有的设备，
+包括表里未知的设备」。设备矩阵逐项核对后，分层设计成立，但揪出一个高危缺陷与两处错位。
+
+### 高危：脏进程会把健康设备永久误判成 PROBE_FAILED
+
+`probeIfNeeded` 检查了开关、组件、Skel/Stub 成对，唯独没确认**本进程加载的 ORT 是不是
+QNN 变体**。`SpatialOrtRuntime.environment` 是进程级一次性初始化——用户在开 NPU 之前
+只要跑过一次 CPU 推理（下载模型的自测就会），进程里就是 CPU 版 `libonnxruntime.so`，
+此后 `ensureLoaded` 因 marker 不一致直接抛"请重新启动 App"。链路：装完组件触发探测
+（失败 1）→ 进一次设置页（失败 2）→ `PROBE_FAILED_MARK` 永久写入 → 收口关开关 →
+重开开关重启后 `cachedArch` 命中缓存**不再重探**（作废条件只有组件升版）。死锁。
+受害者恰是"表外 + 无 vendor 库"这批自探要服务的设备；Z Fold4 验证没暴露它，
+只因验证流程先重启、进程是干净的。
+
+**修**：[SpatialRuntimeStore.loadedPackageVersion]（从既有 `loadedMarker` 暴露）+
+`probeIfNeeded` 里 `loaded != null && loaded != runtimeVersion → return null`，
+**不计失败**——进程状态的回答不是硬件的回答。
+
+### 重启从 Toast 变成对话框 + 自动重启（用户裁定）
+
+变体切换（开关翻转、QNN 组件装好、删除组件）且**进程里确实加载着另一份**时，弹
+App 风格的 AlertDialogFragment（不用系统对话框）；确认后 `TaskStackBuilder` 重建
+主列表 → 设置 → 空间照片设置的返回栈并 `exit(0)`，AMS 按栈记录拉起。重启后进程干净，
+进设置页的 catalog 线程正好完成探测——"下载/启用 NPU 之后的探测"由既有触发点天然
+承接，无需新代码。判据用 `loadedPackageVersion == requiredPackageVersion` 决定弹不弹：
+没加载过不弹（下次推理自然加载对的），关开关回到已加载变体也不弹。三个新文案
+（`spatial_restart_*`）翻满 13 语言。
+
+### 中危：不可用的显示档按"组件在不在磁盘"分，不按结论来源分
+
+D274 按来源分档在两个方向都错位：表判 HIDDEN 但组件已装（Z Fold4 验证后的真实状态）
+→ 192 MB 没有删除入口；自探 PROBE_FAILED 但组件已删 → 文案还写着"可删除"。
+`NpuVerdict.PROBE_FAILED` 改名 `UNUSABLE_INSTALLED`，判定纯函数化：确定不可用时，
+装着 → 置灰 + 可删；没装 → 隐藏。对任何来源的结论都成立。
+
+### 轻危：收口不能只指望设置页
+
+catalog 事后拉黑某型号而用户不进设置页时，`qnnEnabled` 一直为 true，顺带安装会给
+确定不支持的机器下 63 MB。`requiredPackageVersion` 与 `ensureSelectedInstalled` 补上
+`isNpuPossible` 回落——判定不可用的设备整体回到 CPU 变体（加载、安装一致），
+不依赖用户进设置页。
+
+### 真机验证（OPD2515，2026-08-15，debug-force-probe 旁路只留自探一路）
+
+1. CPU 生成一张空间照片弄脏进程 → 开 NPU 开关：重启对话框弹出（App 风格）；取消后
+   两轮重进设置页触发探测点，`probe_failures` 始终为零（修前此处已是永久判决）。
+2. 关开关：**不弹**（required 回到 loaded 那份）。再开 → 点「立即重启」：进程重启后
+   直接落在空间照片设置页，back 栈 Settings → Things 完整；catalog 线程探测成功
+   `probed_arch = v81`，与 vendor 库独立给出的答案交叉一致，`probe_failures = 0`。
+3. 伪造 `probe-failed` + 组件在位：行可见、置灰、文案「NPU could not start …
+   192 MB can be deleted」、删除图标在、下载按钮收起、`qnn_enabled` 自动收口；
+   藏起 marker（组件不在位）：整行隐藏。两个方向各归其位。
+
+286 个 spatial 单测全过（新增 npuVerdict 分档一条）。验证后设备已恢复产品路径
+（标记删除、探测快照清空、`qnn_enabled` 复原，最终确认「Enabled · 192 MB」正常显示）。
+
+### D275 补（同日）：结论只探一次，与重启解耦；失败结论的读取侧新鲜度
+
+用户两问核对出两处收尾：
+
+1. **探测只做一次、重启与探测是两回事**。`probeIfNeeded` 有确定结论就直接返回（持久化，
+   作废条件只有换组件版本）；重启是变体切换生效的物理要求，与探测无关。顺手把进程态
+   防御从缓存查询**之前**挪到**之后**——已有结论的返回不该被进程态挡住。
+2. **失败结论的作废不能只靠写入侧**。写入侧的版本作废在 `probeIfNeeded` 里，而
+   PROBE_FAILED 设备的开关已被收口，那条路第一行就返回——App 升级换了
+   `QNN_PACKAGE_VERSION` 后旧失败结论永远清不掉，行保持隐藏、无从重试。读取侧
+   （[SpatialQnnSupport.probedArch]）对失败标记校验 `probe_runtime_version` 是否等于
+   当前要求的组件版本，不等即视为无结论；真实档位是硬件事实，不受此限。
+   真机验证：伪造"旧版本组件得出的 probe-failed"，行恢复「Enabled · 192 MB」正常
+   显示、开关不被收口（对照版本匹配时的置灰 + 收口）。

@@ -1325,6 +1325,10 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="spatial_qnn_description">지원되는 모델을 Snapdragon NPU에서 추론합니다. 별도의 실행 구성 요소가 필요하며, 각 모델은 처음 사용할 때 기기에서 계산 그래프를 컴파일하고 그 결과를 캐시합니다.</string>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">이 기기에는 지원되는 Snapdragon NPU가 없습니다</string>
+    <string name="spatial_qnn_probe_failed">이 기기에서 NPU를 시작할 수 없습니다 · %1$s 삭제 가능</string>
+    <string name="spatial_restart_title">전환을 완료하려면 다시 시작</string>
+    <string name="spatial_restart_message">추론 런타임 변형이 전환되었으며 다시 시작한 후 적용됩니다. 다시 시작하면 자동으로 공간 사진 설정으로 돌아갑니다.</string>
+    <string name="spatial_restart_now">지금 다시 시작</string>
     <string name="spatial_qnn_ready">사용 중 · 실행 구성 요소 설치됨</string>
     <string name="spatial_qnn_needs_runtime">사용 중 · 다음 생성 시 실행 구성 요소를 내려받습니다</string>
     <string name="spatial_qnn_off">꺼짐 · 모델이 CPU에서 실행됩니다</string>

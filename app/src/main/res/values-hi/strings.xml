@@ -1271,6 +1271,10 @@
     <string name="spatial_qnn_description">समर्थित मॉडलों को Snapdragon NPU पर चलाता है। इसके लिए अलग रनटाइम घटक चाहिए; हर मॉडल पहली बार उपयोग पर डिवाइस पर अपना ग्राफ़ कंपाइल करता है और परिणाम कैश हो जाता है।</string>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">इस डिवाइस में समर्थित Snapdragon NPU नहीं है</string>
+    <string name="spatial_qnn_probe_failed">इस डिवाइस पर NPU शुरू नहीं हो सका · %1$s हटाया जा सकता है</string>
+    <string name="spatial_restart_title">स्विच पूरा करने के लिए पुनः प्रारंभ करें</string>
+    <string name="spatial_restart_message">इन्फ़रेंस रनटाइम का वैरिएंट बदल गया है और पुनः प्रारंभ के बाद प्रभावी होगा। ऐप अपने आप स्थानिक फ़ोटो सेटिंग्स पर वापस आ जाएगा।</string>
+    <string name="spatial_restart_now">अभी पुनः प्रारंभ करें</string>
     <string name="spatial_qnn_ready">चालू · रनटाइम घटक स्थापित</string>
     <string name="spatial_qnn_needs_runtime">चालू · अगली बार बनाते समय रनटाइम घटक डाउनलोड होगा</string>
     <string name="spatial_qnn_off">बंद · मॉडल CPU पर चलते हैं</string>

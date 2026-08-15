@@ -1,5 +1,16 @@
 # Current Debug Update Notes
 
+## 2026-08-15 - NPU 可用性判定重整（D270–D275）与重启闭环
+
+发布号 `202608151357`，APK SHA-256
+`0c17b08798a3a06c2ad08d7aff8aa43a79e45d34cc8ed2acc8ddf0afba2db9f8`。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260815215712.md`。
+
+含 Opus 会话的 D270–D274（架构判定分层、三条来源含 QNN 自探、三档显示、收口）与
+本会话的 D275（脏进程探测防御、重启对话框一键闭环、UNUSABLE_INSTALLED 按组件在位
+分档、requiredPackageVersion 运行时回落、失败结论读取侧新鲜度）。OPD2515 全链路
+真机验证；286 个 spatial 单测全过。工作区尚未提交（与 Opus 改动一起待提交）。
+
 ## 2026-08-15 - 模型下载完成自动选中
 
 发布号 `202608151103`，APK SHA-256

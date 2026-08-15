@@ -694,15 +694,23 @@ class SpatialCatalogClient(
     }
 
     /**
-     * catalog 通过验签之后要落到进程外的**唯一**一处副作用：把 SoC → dsp_arch 覆盖表
-     * 快照下来。[SpatialQnnSupport.resolveDspArch] 在设置页每次刷新都要跑，读不了
-     * catalog 文件（要磁盘 I/O 加验签），只能读这份快照。
+     * catalog 通过验签之后落到进程外的副作用，全在这里：把 SoC → dsp_arch 覆盖表、
+     * 以及**真的发布过运行组件的那些档**快照下来。这两项判定在设置页每次刷新都要跑，
+     * 读不了 catalog 文件（要磁盘 I/O 加验签），只能读快照。
      *
      * 走缓存那条路也要快照：清过数据、或上一版 App 还没有这个字段时，快照可能是空的，
      * 而此刻手里正好有一份验过签的 catalog。
      */
     private fun adopt(catalog: SpatialModelCatalog): SpatialModelCatalog {
         SpatialQnnSupport.saveCatalogProfiles(context, catalog.qnnDeviceProfiles)
+        // 只认过得了 isCompatible() 的条目：不兼容的包下不下来，等于那一档没出过货。
+        // 全 arch 包不算——它接的是"查不出 dsp_arch"那条路，不代表某一档真的编过。
+        SpatialQnnSupport.saveServedArchs(
+            context,
+            catalog.qnnRuntimes.orEmpty()
+                .filter { it.isCompatible() && SpatialQnnSupport.isValidDspArch(it.dspArch) }
+                .map { it.dspArch }
+        )
         return catalog
     }
 

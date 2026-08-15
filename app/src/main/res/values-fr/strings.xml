@@ -1271,6 +1271,10 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_qnn_description">Exécute les modèles pris en charge sur le NPU Snapdragon. Nécessite un composant d\'exécution distinct ; chaque modèle compile son graphe sur l\'appareil à la première utilisation, et le résultat est mis en cache.</string>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">Cet appareil ne dispose pas d\'un NPU Snapdragon pris en charge</string>
+    <string name="spatial_qnn_probe_failed">Le NPU n\'a pas pu démarrer sur cet appareil · %1$s supprimables</string>
+    <string name="spatial_restart_title">Redémarrer pour terminer le changement</string>
+    <string name="spatial_restart_message">La variante de l\'environnement d\'inférence a changé et prendra effet après un redémarrage. L\'application reviendra automatiquement aux réglages de photo spatiale.</string>
+    <string name="spatial_restart_now">Redémarrer maintenant</string>
     <string name="spatial_qnn_ready">Activé · composant installé</string>
     <string name="spatial_qnn_needs_runtime">Activé · le composant sera téléchargé à la prochaine génération</string>
     <string name="spatial_qnn_off">Désactivé · les modèles s\'exécutent sur le CPU</string>

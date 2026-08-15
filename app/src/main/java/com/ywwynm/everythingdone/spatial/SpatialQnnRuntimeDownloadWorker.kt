@@ -57,7 +57,11 @@ class SpatialQnnRuntimeDownloadWorker(
 ) : Worker(context, params) {
 
     override fun doWork(): Result {
-        if (SpatialQnnSupport.resolveDspArch(applicationContext) == null) {
+        // **不能在这里要求查得到 dsp_arch**（D271）：查不到正是全 arch 包要接的那条路，
+        // 而设置页早已按"有全 arch 包就可用"放行。两边不一致的后果是用户点了开关、
+        // 任务瞬间 failure、界面回到"未下载"且没有任何提示——点了什么都不发生。
+        // 能不能下由 catalog 有没有本机可用的条目决定，那个判断在 ensureQnnInstalled 里。
+        if (!SpatialQnnSupport.isNpuPossible(applicationContext)) {
             return failure("本机不是受支持的骁龙 NPU 机型")
         }
         if (SpatialRuntimeStore.isVariantInstalled(applicationContext, qnn = true)) {
@@ -86,6 +90,10 @@ class SpatialQnnRuntimeDownloadWorker(
                     )
                 }
             )
+            // 组件装好的这一刻探一次架构：本机架构还是未知的话，Big-LaMa（NPU 版）取不到
+            // 预编译产物、整行不可见。放在这里而不是等用户去生成一张空间照片——那要用户
+            // 离开设置页、做一次生成、再回来，中间没有任何东西提示他为什么要这么做。
+            SpatialQnnArchProbe.probeIfNeeded(applicationContext)
             Result.success()
         } catch (error: IOException) {
             Result.retry()

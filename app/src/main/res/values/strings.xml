@@ -1806,6 +1806,10 @@
     <string name="spatial_qnn_description">Runs supported models on the Snapdragon NPU. Requires a separate runtime; each model compiles its graph on device the first time it is used, and the result is cached.</string>
     <string name="spatial_qnn_per_model">NPU</string>
     <string name="spatial_qnn_unsupported">This device has no supported Snapdragon NPU</string>
+    <string name="spatial_qnn_probe_failed">NPU could not start on this device · %1$s can be deleted</string>
+    <string name="spatial_restart_title">Restart to finish switching</string>
+    <string name="spatial_restart_message">The inference runtime variant has changed and takes effect after a restart. The app will reopen on the spatial photo settings automatically.</string>
+    <string name="spatial_restart_now">Restart now</string>
     <string name="spatial_qnn_ready">Enabled · runtime installed</string>
     <string name="spatial_qnn_needs_runtime">Enabled · runtime will download on next generation</string>
     <string name="spatial_qnn_off">Off · models run on CPU</string>
