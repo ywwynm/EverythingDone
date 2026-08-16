@@ -2975,7 +2975,9 @@ internal class SpatialPhotoRenderer : GLSurfaceView.Renderer {
             uniform sampler2D uColor;
             uniform sampler2D uDepth;
             uniform sampler2D uSurfaceAlpha;
-            uniform vec2 uViewpoint;
+            // 顶点着色器默认 highp，同名 uniform 跨阶段精度必须一致，否则
+            // Maleoon/Mali 系驱动按规范拒绝链接（L0001）。
+            uniform highp vec2 uViewpoint;
             uniform vec2 uDepthTexel;
             uniform vec2 uAlphaTexel;
             uniform float uStrength;

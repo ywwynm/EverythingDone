@@ -3601,3 +3601,25 @@ cause 链、取消与契约校验不误伤；指纹复用 context 目录名六�
 死角：旧结论残留会让该行保持置灰、下载键收起、状态却写「可删除」。新增守门测试点名
 四仓库各至少两处 `clear(`。验证无需发布新模型版本：清除是纯本地状态转移，由 299 个
 spatial 单测（本次真实执行，0 失败）与 `:app:assembleDebug` 覆盖。
+
+## 2026-08-16：修复华为设备着色器链接崩溃（uViewpoint 精度不匹配）
+
+- 用户报告华为平板（PCE-W30，即 MatePad Pro 13.2，Maleoon GPU）生成空间照片完成后闪退，
+  再次查看必现；crash 日志为 `SpatialPhotoRenderer.createProgram` 链接失败，
+  `L0001 uViewpoint 顶点/片元精度不匹配`。
+- 根因：`LDI_FRAGMENT_SHADER` 声明 `precision mediump float;` 使 `uViewpoint` 为 mediump，
+  而 `LDI_VERTEX_SHADER` 无 precision 声明、同名 uniform 按顶点默认取 highp。GLSL ES 1.00
+  规定跨阶段同名 uniform 类型与精度必须一致；Maleoon/Mali 系驱动严格执行并拒绝链接，
+  Adreno 宽容，故三星/OPPO 真机与模拟器从未暴露。
+- `onSurfaceCreated` 无条件创建全部 program，与场景实际渲染模式无关，因此该设备上查看任意
+  空间照片都会在 GLThread 抛 `IllegalStateException` 崩溃；已保存的派生数据本身完好。
+- 修复：片元侧显式声明 `uniform highp vec2 uViewpoint;` 与顶点侧对齐。选 highp 而非两侧
+  mediump：chart 系片元着色器早已在必创建路径强制 `precision highp float;`，事实上项目已
+  要求片元 highp，此改法不新增设备要求；反向把顶点端刚性平移降为 FP16 存在量化台阶风险。
+- 全项目同类缺陷排查：SpatialPhotoRenderer 8 对着色器中仅此一处跨阶段共享 uniform 精度
+  不匹配（SURFEL 对共享 `uScale`/`uCoverMargin` 但两侧均 highp）；FableSol GL 资产
+  （`shared/fablesol/glsl/`，`#version 300 es`）逐对核对无不匹配，`water` 对的
+  `uStartLayer` 两侧已显式 `highp int`；AGSL（`FableSolAgsl.kt`）为单阶段语言不适用。
+- 发布 `202608160136` 至阿里云；远端 latest.json 与远端 APK 哈希实际下载核对一致，并解包
+  dex 证实修改字符串在包内（与上一发布字节数相同属压缩巧合，已排除误发旧包）。待用户在
+  华为平板回归验证。工作区未提交。
