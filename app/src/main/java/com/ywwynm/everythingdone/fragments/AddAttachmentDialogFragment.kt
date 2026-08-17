@@ -5,7 +5,9 @@ package com.ywwynm.everythingdone.fragments
 import android.Manifest
 import android.content.ContentValues
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
@@ -24,6 +26,7 @@ import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
 
 import java.io.File
 
@@ -130,10 +133,28 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         }
 
         mTvRecordAudioAsBt!!.setOnClickListener {
-            mActivity!!.doWithPermissionChecked(
-                object : SimplePermissionCallback(mActivity) {
+            // 已有属于另一条记事的录音会话时拦截：第二个录音 Dialog 会接管会话（改写归属
+            // 记事与返回入口），录音随后会保存到错误的记事。会话的存在性必须同时看进程内
+            // 状态与持久化记录——进程被回收后 activeSession 为 false，但停止态 WAV 仍在
+            // 偏好里等待恢复，只查内存会放行并让恢复的录音被错误认领。
+            val host = mActivity!!
+            val sessionThingId = com.ywwynm.everythingdone.services.AudioRecordingService
+                .activeSessionThingId
+                .takeIf {
+                    com.ywwynm.everythingdone.services.AudioRecordingService.activeSession &&
+                        it != -1L
+                }
+                ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                    .stoppedSessionThingId(host)
+            if (sessionThingId != -1L && sessionThingId != host.currentThingId()) {
+                host.showRecordingBusySnackbar()
+                dismiss()
+                return@setOnClickListener
+            }
+            host.doWithPermissionChecked(
+                object : SimplePermissionCallback(host) {
                     override fun onGranted() {
-                        showRecordAudioDialog()
+                        requestRecordingNotificationPermissionThenOpen()
                     }
                 },
                 Def.Communication.REQUEST_PERMISSION_RECORD_AUDIO,
@@ -194,6 +215,40 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
             mActivity!!.supportFragmentManager, AudioRecordDialogFragment.TAG
         )
         dismiss()
+    }
+
+    private fun requestRecordingNotificationPermissionThenOpen() {
+        val host = mActivity ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(host, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            showRecordAudioDialog()
+            return
+        }
+        if (AudioInputPreferences.hasRequestedNotificationPermission(host)) {
+            host.showNormalSnackbar(R.string.audio_recording_notification_permission_missing)
+            showRecordAudioDialog()
+            return
+        }
+
+        AudioInputPreferences.markNotificationPermissionRequested(host)
+        host.doWithPermissionChecked(
+            object : SimplePermissionCallback(host) {
+                override fun onGranted() {
+                    showRecordAudioDialog()
+                }
+
+                override fun onDenied() {
+                    host.showNormalSnackbar(
+                        R.string.audio_recording_notification_permission_missing
+                    )
+                    showRecordAudioDialog()
+                }
+            },
+            Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
+            Manifest.permission.POST_NOTIFICATIONS
+        )
     }
 
     open fun startChooseMediaFile() {

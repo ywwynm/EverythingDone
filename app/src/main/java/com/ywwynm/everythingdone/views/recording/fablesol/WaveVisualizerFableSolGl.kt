@@ -185,7 +185,14 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         renderThread.onAudioFrames(frames, events)
     }
 
+    internal fun clearPendingAudio() {
+        renderThread.clearPendingAudio()
+    }
+
     override fun surfaceCreated(holder: SurfaceHolder) {
+        if (BuildConfig.DEBUG) {
+            android.util.Log.i(SURF_PROBE, "surfaceCreated valid=${holder.surface.isValid}")
+        }
         if (!holder.surface.isValid) return
         surfaceReady = true
         votedFrameRate = 0f   // Surface 已换新，旧票不再有效
@@ -205,6 +212,12 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (BuildConfig.DEBUG) {
+            android.util.Log.i(
+                SURF_PROBE,
+                "surfaceChanged fmt=$format ${width}x$height ready=$surfaceReady valid=${holder.surface.isValid}"
+            )
+        }
         if (!surfaceReady && holder.surface.isValid) {
             surfaceReady = true
             votedFrameRate = 0f   // Surface 已换新，旧票不再有效
@@ -224,6 +237,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "surfaceDestroyed ready=$surfaceReady")
         stopFrameLoop()
         clearSurfaceFrameRate()
         resetHdrSurfaceState()
@@ -250,11 +264,13 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "windowVisibility=$visibility")
         if (visibility == View.VISIBLE) ensureAnimating() else stopFrameLoop()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
+        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "visibilityAggregated=$isVisible")
         if (isVisible) ensureAnimating() else stopFrameLoop()
     }
 
@@ -510,6 +526,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     companion object {
+        private const val SURF_PROBE = "FableSolSurfProbe"
         // 显示模式未知时的保底节奏；实际目标随显示刷新率在 [60, 120] 内跟随。
         const val TARGET_FPS = 60.0
         const val MAX_RENDER_FPS = 120.0

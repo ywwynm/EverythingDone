@@ -494,6 +494,10 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         audioInbox.offer(frames, events)
     }
 
+    fun clearPendingAudio() {
+        audioInbox.clear()
+    }
+
     /** 运行时调参（UI 线程调用）：入待应用表，渲染帧起始在 GL 线程统一写入 params。 */
     fun setTuningValue(key: String, value: Double) {
         synchronized(inputLock) { pendingTuning[key] = value }

@@ -28,6 +28,11 @@ internal class FableSolAnalysisBatchInbox {
     fun drain(): ArrayList<FableSolAnalysisBatch> = synchronized(lock) {
         pending.also { pending = ArrayList() }
     }
+
+    /** View 不可见时丢弃尚未消费的批次，返回前台后只响应新的实时声音。 */
+    fun clear() {
+        synchronized(lock) { pending = ArrayList() }
+    }
 }
 
 internal class FableSolAnalysisBatchCounts(

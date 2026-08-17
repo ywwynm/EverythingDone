@@ -54,8 +54,9 @@ object FileUtil {
     }
 
     @JvmStatic
-    fun createTempAudioFile(postfix: String?): File? {
-        val dir = File(Def.getAppFileDir(App.getApp()) + "/temp/audio_raw")
+    @JvmOverloads
+    fun createTempAudioFile(postfix: String?, subDir: String = "audio_raw"): File? {
+        val dir = File(Def.getAppFileDir(App.getApp()) + "/temp/" + subDir)
         if (!dir.exists()) {
             val parentCreated: Boolean = dir.mkdirs()
             if (!parentCreated) {

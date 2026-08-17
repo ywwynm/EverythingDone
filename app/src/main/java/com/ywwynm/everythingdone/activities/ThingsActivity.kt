@@ -472,6 +472,33 @@ class ThingsActivity :
             this, mUpdateUiReceiver, filter,
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+
+        resumeActiveRecordingFromLauncher(intent)
+    }
+
+    /**
+     * 录音会话进行中从桌面图标回到应用时接力回录音 Dialog。本 Activity 是 singleTask，
+     * launcher intent 命中时系统已把栈上的 DetailActivity（连同录音 Dialog）清掉，落在
+     * 列表页；录音仍由前台服务持有。这里用服务保存的返回入口把用户直接送回去，想到
+     * 列表按一次返回即可。仅处理真正的桌面启动（MAIN + LAUNCHER），不劫持部件、通知
+     * 等其他入口。
+     */
+    private fun resumeActiveRecordingFromLauncher(sourceIntent: Intent?): Boolean {
+        if (sourceIntent?.action != Intent.ACTION_MAIN ||
+            !sourceIntent.hasCategory(Intent.CATEGORY_LAUNCHER)
+        ) {
+            return false
+        }
+        if (!com.ywwynm.everythingdone.services.AudioRecordingService.activeSession) return false
+        val target = com.ywwynm.everythingdone.services.AudioRecordingService
+            .activeReturnIntent?.let(::Intent) ?: return false
+        target.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        target.putExtra(
+            com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+            true
+        )
+        startActivity(target)
+        return true
     }
 
     override fun getLayoutResource(): Int = R.layout.activity_things
@@ -719,6 +746,7 @@ class ThingsActivity :
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (resumeActiveRecordingFromLauncher(intent)) return
         // launched from things list widget
         val newStatus = intent.getIntExtra(Def.Communication.KEY_STATUS, -1)
         val folderId = intent.getLongExtra(Def.Communication.KEY_FOLDER_ID, Long.MIN_VALUE)
@@ -1367,6 +1395,9 @@ class ThingsActivity :
     private var lastClickBack: Long = -1
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        // super 链是 androidx ActivityResult API 的分发入口；registry 的 requestCode 从
+        // 0x10000 起，与旧式常量不冲突（DetailActivity 曾因缺 super 丢过 MediaProjection 结果）。
+        super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == Def.Communication.REQUEST_ACTIVITY_DETAIL) {
             if (data != null) updateMainUi(data, resultCode)
         } else if (requestCode == Def.Communication.REQUEST_ACTIVITY_SETTINGS) {

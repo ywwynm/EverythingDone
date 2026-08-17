@@ -301,3 +301,20 @@ if ($localHash -ne $remoteHash) { <重传> }
 ```
 
 同理适用于任何 `adb pull` 下来的二进制产物（模型、派生、视频）。
+
+## 通知栏自动化：手势展开 + 截图定位（2026-08-16，OPD2515）
+
+两条实测教训：
+
+1. **`cmd statusbar expand-notifications` 有确定性副作用**：在 OPD2515（Android 16）
+   上用它展开通知栏并点击通知启动 Activity 后，约 8 秒系统会自动回桌面约 3 秒再把
+   应用带回前台（`wm_resume_activity Launcher` → 3s → resume 回 app）。真实下拉手势
+   完全没有此现象。凡验证"通知点击后的应用行为"，必须用手势展开：
+   ```powershell
+   & $adb -s <serial> shell input swipe 500 5 500 900 300    # 左半屏下拉=通知列表
+   # 右半屏下拉是控制中心，不是通知列表
+   ```
+2. **带秒表的通知（setUsesChronometer）让 uiautomator 永远等不到 idle**：每秒刷新使
+   `uiautomator dump` 报 "could not get idle state" 并输出**陈旧缓存树**（内容是上一次
+   成功的 dump，极易误判画面状态）。通知栏上的定位一律改用截图（on-device screencap +
+   pull + md5 校验）目视读坐标，不要依赖 dump。

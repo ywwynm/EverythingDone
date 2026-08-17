@@ -370,6 +370,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     val type: Int get() = mType
 
+    /** 当前记事 id；录音服务用它绑定会话与通知落点校验。 */
+    fun currentThingId(): Long = mThing?.id ?: -1L
+
     override fun getLayoutResource(): Int = R.layout.activity_detail
 
     override fun init() {
@@ -2177,12 +2180,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun dismissDetailDialogFragmentsForAppearance() {
+        // 录音 Dialog 不参与通用 dismiss：它背后的会话可能正在录音，dismiss 会当作用户
+        // 取消而丢弃录音（系统定时深浅色切换时静默发生）。它对深浅色的适配走原地换肤。
+        (supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG)
+            as? AudioRecordDialogFragment)?.onHostAppearanceChanged()
         val tags = arrayOf(
             AddAttachmentDialogFragment.TAG,
             AlertDialogFragment.TAG,
             AttachmentInfoDialogFragment.TAG,
             AudioPlayDialogFragment.TAG,
-            AudioRecordDialogFragment.TAG,
             CameraColorSamplingDialogFragment.TAG,
             ChooserDialogFragment.TAG,
             ColorInfoDialogFragment.TAG,
@@ -2216,6 +2222,88 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         refreshFromExternalUpdateIfNeeded()
         // 用户可能刚从设置页改了 Detail Autoplay 档位。
         mAttachmentPlaybackController?.onResume()
+        openAudioRecordingDialogFromNotification(intent)
+        maybeRestoreStoppedRecordingSession()
+    }
+
+    /**
+     * 打开的记事有待处理的停止态录音（含进程被回收后的持久化记录）时自动恢复停止态
+     * Dialog——用户划掉"已停止"通知后，这是找回录音的兜底入口。录音进行中不在此列
+     * （通知与图标接力已覆盖，编辑记事不应被打断）。
+     */
+    private fun maybeRestoreStoppedRecordingSession() {
+        val thingId = currentThingId()
+        if (thingId == -1L) return
+        if (com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                .stoppedSessionThingId(this) != thingId
+        ) {
+            return
+        }
+        if (supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG) != null) return
+        mFlRoot?.post {
+            if (!isFinishing &&
+                supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG) == null
+            ) {
+                AudioRecordDialogFragment().show(
+                    supportFragmentManager,
+                    AudioRecordDialogFragment.TAG
+                )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openAudioRecordingDialogFromNotification(intent)
+    }
+
+    private fun openAudioRecordingDialogFromNotification(sourceIntent: Intent?) {
+        if (sourceIntent?.getBooleanExtra(
+                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                false
+            ) != true
+        ) return
+        sourceIntent.removeExtra(
+            com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG
+        )
+        // 会话存在性同时看进程内状态与持久化停止态：进程被回收后 activeSession 为
+        // false，但待处理录音仍在偏好里，绑定服务即可恢复。
+        val active = com.ywwynm.everythingdone.services.AudioRecordingService.activeSession
+        val sessionThingId = com.ywwynm.everythingdone.services.AudioRecordingService
+            .activeSessionThingId
+            .takeIf { active && it != -1L }
+            ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                .stoppedSessionThingId(this)
+        if (!active && sessionThingId == -1L) return
+        // CLEAR_TOP|SINGLE_TOP 可能复用一个正展示其他记事的实例（用户此间打开过别的记事），
+        // 直接在它上面挂录音 Dialog 会把录音附件保存到错误的记事。此时按会话的返回入口
+        // 重启自身；会话属于新建记事（id 记为 -1）时不校验，避免新建 id 每次再生成导致
+        // 重启循环。
+        if (sessionThingId != -1L && mThing != null && mThing!!.id != sessionThingId) {
+            val restart = com.ywwynm.everythingdone.services.AudioRecordingService
+                .activeReturnIntent?.let(::Intent)
+                ?: getOpenIntentForUpdate(this, null, sessionThingId, -1)
+            restart.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            restart.putExtra(
+                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                true
+            )
+            finish()
+            startActivity(restart)
+            return
+        }
+        if (supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG) != null) return
+        mFlRoot?.post {
+            if (!isFinishing &&
+                supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG) == null
+            ) {
+                AudioRecordDialogFragment().show(
+                    supportFragmentManager,
+                    AudioRecordDialogFragment.TAG
+                )
+            }
+        }
     }
 
     override fun onPause() {
@@ -2226,6 +2314,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val b = saveAfterOnPause()
             if (!savedAfterOnPause) {
                 savedAfterOnPause = b
+            }
+            if (b) {
+                // 新建记事首次入库后，进行中的录音会话把归属从 -1 升级为正式 id；
+                // onPause 恰好先于一切后台化动作，升级窗口覆盖录音后台化之前。
+                (supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG)
+                    as? AudioRecordDialogFragment)?.onHostThingSaved()
             }
         }
     }
@@ -2340,7 +2434,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (resultCode == RESULT_OK) {
+        // androidx 的 ActivityResult API（录音 Dialog 的 MediaProjection 授权走的就是它）依赖
+        // 这条 super 链把结果分发给 registerForActivityResult 的回调；不调 super 时回调永远
+        // 不执行，授权结果被静默丢弃。registry 的 requestCode 从 0x10000 起，与下面的旧式
+        // 常量不冲突。
+        super.onActivityResult(requestCode, resultCode, data)
+        val legacyAttachmentRequest = requestCode == Def.Communication.REQUEST_TAKE_PHOTO
+                || requestCode == Def.Communication.REQUEST_CAPTURE_VIDEO
+                || requestCode == Def.Communication.REQUEST_CHOOSE_MEDIA_FILE
+        if (resultCode == RESULT_OK && legacyAttachmentRequest) {
             if (requestCode == Def.Communication.REQUEST_CHOOSE_MEDIA_FILE) {
                 val uri: Uri? = data!!.data
                 Log.d(TAG, "chooseMediaFile uri=$uri scheme=" + (if (uri != null) uri.scheme else "null"))
@@ -2384,7 +2486,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 cameraOutputUri = null
             }
             addAttachment(0)
-        } else if (resultCode == Def.Communication.RESULT_UPDATE_IMAGE_DONE) {
+        } else if (requestCode == Def.Communication.REQUEST_ACTIVITY_IMAGE_VIEWER
+                && resultCode == Def.Communication.RESULT_UPDATE_IMAGE_DONE) {
             val items: List<String?> = data!!.getStringArrayListExtra(
                 Def.Communication.KEY_TYPE_PATH_NAME
             )!! as List<String?>
@@ -2402,6 +2505,36 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     fun showNormalSnackbar(stringRes: Int) {
         mNormalSnackbar!!.setMessage(stringRes)
         mNormalSnackbar!!.show()
+    }
+
+    /**
+     * 录音会话属于另一条记事时的入口拦截提示："前往"跳回该会话的详情页并恢复录音
+     * Dialog。不拦截的话，第二个录音 Dialog 会接管会话并把录音保存到错误的记事。
+     */
+    fun showRecordingBusySnackbar() {
+        val snackbar = com.ywwynm.everythingdone.views.Snackbar(
+            mApp!!, com.ywwynm.everythingdone.views.Snackbar.UNDO, mFlRoot!!, null
+        )
+        snackbar.setMessage(R.string.audio_recording_busy_other_thing)
+        snackbar.setUndoText(R.string.audio_recording_go_to)
+        snackbar.setUndoListener {
+            // 进程被回收后服务的返回入口为空，按持久化停止态的记事 id 构造标准打开 intent。
+            val target = com.ywwynm.everythingdone.services.AudioRecordingService
+                .activeReturnIntent?.let(::Intent)
+                ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                    .stoppedSessionThingId(this)
+                    .takeIf { it != -1L }
+                    ?.let { getOpenIntentForUpdate(this, null, it, -1) }
+                ?: return@setUndoListener
+            target.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            target.putExtra(
+                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                true
+            )
+            snackbar.dismiss()
+            startActivity(target)
+        }
+        snackbar.show()
     }
 
     private fun getTypePathName(

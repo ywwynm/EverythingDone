@@ -243,6 +243,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        // super 链是 androidx ActivityResult API 的分发入口；registry 的 requestCode 从
+        // 0x10000 起，与旧式常量不冲突（DetailActivity 曾因缺 super 丢过 MediaProjection 结果）。
+        super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK) {
             val uri: Uri = data?.data ?: return
 

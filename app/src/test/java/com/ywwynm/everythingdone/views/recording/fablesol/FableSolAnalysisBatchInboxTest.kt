@@ -6,6 +6,16 @@ import org.junit.Test
 class FableSolAnalysisBatchInboxTest {
 
     @Test
+    fun clearDropsBatchesQueuedBeforeViewBecomesVisibleAgain() {
+        val inbox = FableSolAnalysisBatchInbox()
+        inbox.offer(listOf(frame(1.0)), emptyList())
+
+        inbox.clear()
+
+        assertEquals(0, inbox.drain().size)
+    }
+
+    @Test
     fun delayedEventCannotBeInsertedIntoAnEarlierObservedBatch() {
         val batches = listOf(
             FableSolAnalysisBatch(listOf(frame(1.0), frame(2.0)), emptyList()),

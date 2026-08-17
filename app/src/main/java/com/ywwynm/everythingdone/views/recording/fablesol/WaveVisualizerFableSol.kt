@@ -310,6 +310,10 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         audioInbox.offer(frames, events)
     }
 
+    internal fun clearPendingAudio() {
+        audioInbox.clear()
+    }
+
     // ------------------------------------------------------------------ 帧循环
     override fun onDraw(canvas: Canvas) {
         val frameTimeNanos = if (mPendingFrameTimeNanos != 0L) {

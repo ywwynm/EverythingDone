@@ -24,6 +24,8 @@ internal class FableSolGlRenderThread(
     private val renderer = FableSolGlRenderer(context, density)
     @Volatile private var acceptingFrames = false
     @Volatile private var animating = false
+    // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
+    private var transientSwapFailures = 0
     // 帧节拍由 GL 线程自己的 Choreographer 驱动。原先在 UI 线程收 vsync、再
     // `handler.post` 到 GL 线程，每帧要多付一次跨线程唤醒与调度延迟；真机实测
     // 分段合计只有 6.4ms、120Hz 预算 8.33ms 仍系统性稳定在两个 vsync，
@@ -161,8 +163,15 @@ internal class FableSolGlRenderThread(
             val session = egl
             if (acceptingFrames && frameTimeNanos != 0L && session != null) {
                 val timing = renderer.render(frameTimeNanos)
+                // 主线程的 surfaceDestroyed→detachBlocking 与本帧并发时，render 期间
+                // acceptingFrames 已被清掉，surface 随时失效——放弃 swap，等 detach 消息收尾。
+                if (!acceptingFrames) return
                 val swapStart = System.nanoTime()
-                check(session.swapBuffers(frameTimeNanos)) { "eglSwapBuffers failed" }
+                if (!session.swapBuffers(frameTimeNanos)) {
+                    handleSwapFailure()
+                    return
+                }
+                transientSwapFailures = 0
                 val swapNs = System.nanoTime() - swapStart
                 monitor?.recordGlStages(
                         timing.drainNs,
@@ -199,6 +208,39 @@ internal class FableSolGlRenderThread(
         }
     }
 
+    /**
+     * swap 失败按 EGL 错误分级。EGL_BAD_SURFACE / EGL_BAD_NATIVE_WINDOW 是 surface 瞬态
+     * 失效（宿主 stop、切桌面、窗口重建都会销毁 surface，在途帧的 swap 恰好撞上）——
+     * 停下帧循环等下一次 attach 即可，surfaceCreated 会带新 surface 回来。此前一次
+     * BAD_SURFACE 就永久降级 Canvas 软件渲染：主线程被水面模拟+绘制打满（OPD2515 实测
+     * 帧时间 150-200ms、100% janky），而且回退状态随复用的 Dialog 一直存在。只有
+     * 非 surface 类错误或短窗口内反复失败才按真实 GL 故障回退。
+     */
+    private fun handleSwapFailure() {
+        val eglError = android.opengl.EGL14.eglGetError()
+        val surfaceTransient = eglError == android.opengl.EGL14.EGL_BAD_SURFACE ||
+            eglError == android.opengl.EGL14.EGL_BAD_NATIVE_WINDOW
+        transientSwapFailures++
+        if (surfaceTransient && transientSwapFailures <= MAX_TRANSIENT_SWAP_FAILURES) {
+            if (BuildConfig.DEBUG) {
+                android.util.Log.w(
+                    "FableSolSurfProbe",
+                    "transient swap failure eglError=0x${Integer.toHexString(eglError)} " +
+                        "streak=$transientSwapFailures; waiting for next surface"
+                )
+            }
+            acceptingFrames = false
+            removeFrameCallback()
+        } else {
+            fail(
+                IllegalStateException(
+                    "eglSwapBuffers failed (eglError=0x${Integer.toHexString(eglError)}, " +
+                        "streak=$transientSwapFailures)"
+                )
+            )
+        }
+    }
+
     fun attach(
         surface: Surface,
         width: Int,
@@ -206,6 +248,12 @@ internal class FableSolGlRenderThread(
         preferHdr: Boolean,
         initialHdrSdrRatio: Float
     ) {
+        if (BuildConfig.DEBUG) {
+            android.util.Log.i(
+                "FableSolSurfProbe",
+                "attach ${width}x$height preferHdr=$preferHdr surfaceValid=${surface.isValid}"
+            )
+        }
         detachBlocking()
         // DISPLAY 优先级（与系统 RenderThread 同档）：默认优先级的连续渲染线程
         // 在大小核调度下会被放到慢核（2026-07-17 OPD2515 实测 build 18ms、~30fps，
@@ -217,6 +265,7 @@ internal class FableSolGlRenderThread(
         val handler = Handler(thread.looper)
         this.thread = thread
         this.handler = handler
+        transientSwapFailures = 0
         acceptingFrames = true
         handler.post {
             try {
@@ -310,6 +359,10 @@ internal class FableSolGlRenderThread(
         renderer.onAudioFrames(frames, events)
     }
 
+    fun clearPendingAudio() {
+        renderer.clearPendingAudio()
+    }
+
     fun setTuningValue(key: String, value: Double) {
         renderer.setTuningValue(key, value)
     }
@@ -387,6 +440,7 @@ internal class FableSolGlRenderThread(
 
     fun detachBlocking() {
         val currentHandler = handler ?: return
+        if (BuildConfig.DEBUG) android.util.Log.i("FableSolSurfProbe", "detachBlocking")
         acceptingFrames = false
         animating = false
         val latch = CountDownLatch(1)
@@ -405,11 +459,17 @@ internal class FableSolGlRenderThread(
 
     private fun fail(error: Throwable) {
         acceptingFrames = false
+        val eglError = android.opengl.EGL14.eglGetError()
         val message = error.message ?: error.javaClass.simpleName
         if (BuildConfig.DEBUG) {
+            android.util.Log.e(
+                "FableSolSurfProbe",
+                "fatal $message eglError=0x${Integer.toHexString(eglError)}",
+                error
+            )
             DebugFileLogger.log(
                 PERF_LOG_FILE,
-                "fatal $message",
+                "fatal $message eglError=0x${Integer.toHexString(eglError)}",
                 DEBUG_PREFIX,
                 startSession = true
             )
@@ -434,6 +494,8 @@ internal class FableSolGlRenderThread(
     private companion object {
         const val RELEASE_TIMEOUT_MS = 750L
         const val MAX_TARGET_FPS = 120.0
+        // 同一 surface 周期内允许的瞬态 swap 失败上限；正常的销毁竞争一个周期只会出现一次。
+        const val MAX_TRANSIENT_SWAP_FAILURES = 6
         const val PERF_LOG_FILE = "fablesol_frame_perf.log"
         const val DEBUG_PREFIX = "[DEBUG-FABLESOL-GL]"
         const val HDR_LOG_FILE = "fablesol_hdr.log"

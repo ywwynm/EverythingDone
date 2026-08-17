@@ -1,5 +1,220 @@
 # Current Debug Update Notes
 
+## 2026-08-17 - 偏好确认收口与错误分类补全（外部审查第九轮）
+
+发布号 `202608170239`（任务按 UTC 命名），APK SHA-256
+`c8c1e814c58c0c1063469f2f2dec816c3c59beaf25ad48b63ba422d253a30236`，24,395,788 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260817105000.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第九轮 1 P2 + 2 P3 全实全修：系统偏好确认条件收窄为 previewRequested（配置期转后台
+不确认，startPreview 成功回调补记，幂等）；fallback 完成分支补 lastStartFailedOnOutput
+分流（带 previewRequested 前置防 startListening 未调用时的标志残值；第七轮三处消费点
+核对均天然满足）；startPreview 入口快照即清 systemSilent（恢复预览启动窗口不闪假
+警告）。真机回归全过、偏好无误写，911 例单测过。系统类转后台场景需授权弹窗无法
+自动化，代码审查保证。工作区未提交。
+
+## 2026-08-17 - 收尾防抢占与偏好持久化时序（外部审查第八轮）
+
+发布号 `202608170211`（任务按 UTC 命名），APK SHA-256
+`856af5758a928da134eb093e9b190d056850c5d0c01d7719fc17011809f6f4bc`，24,395,788 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260817102500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第八轮 2 P2 + 1 P3，按用户要求逐项评估实机可发生性后全修：Service 级 sessionClosing
+闸（finishSessionInternal 置位、完成回调先清除再查代次；onCaptureFailure /
+handleProjectionStopped / onSystemSilenceChanged 收尾期早退，投影引用置空保留）；
+raw FileOutputStream 同步进 startListening（返回 true 即全链就绪，失败置
+lastStartFailedOnOutput+清半成品；线程收流不收文件，线程内 open 删除）——修掉
+"系统偏好在文件打开前被确认"对既有'全就绪才提交'原则的违反；startPreview 与
+prepareConfiguredMode 成功沿兜底清零 systemSilent（迟到事件必然先于新启动操作执行）。
+真机回归三场景全过，911 例单测过。工作区未提交。
+
+## 2026-08-17 - 异步时序与资源收尾清扫（外部审查第七轮）
+
+发布号 `202608170102`（任务按 UTC 命名），APK SHA-256
+`a93ed205ba5d18f35b188363edf400265ac9e1e4a3c9aaa17699de0d10a09e31`，24,395,788 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260817092000.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第七轮 4 P2 + 3 P3 全实全修：dismiss 抢占收尾（onStop 按 mSessionClosing 跳过同步 +
+stopPreview 判 busy，真机实证预览态关闭后服务死透零残留）；超时迟到任务的麦克风占用
+（麦克风分支追加串行 stopListening 清理，系统分支 fallback 的 configure 自带清理）；
+stopPreview 消费 lastInputFaulted + 纯麦克风回 Dialog 自动重建（系统类需重新授权，
+已知边界：由用户从选择器发起）；raw 目录创建失败分流 FILE_OUTPUT_FAILED（引擎标志
+lastStartFailedOnOutput，三处消费点）；引擎实时回调 captureThread 身份闸；纯系统
+summary 补麦克风权限（四语言）；notice liveRegion=polite。911 例单测过。工作区未提交。
+
+## 2026-08-16 - 停止与输入死亡并发竞态修复（外部审查第六轮）
+
+发布号 `202608161507`（任务按 UTC 命名），APK SHA-256
+`99886c4943277877cc5503f7b7bb9adae64d4947b8674ac0d7ccd0244d98c762`，24,395,728 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816231500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第六轮 1 项窄竞态全实全修：手动/容量停止与 read 死亡并发时故障回调被 shouldRun 抑制
+或被 STOPPED 态忽略，第五轮按 stopNotice 的判定失效。改为真相记录在源头：引擎
+@Volatile lastInputFaulted 在三个 read<0 分支即刻置位（OUTPUT 不置、configure 复位），
+stoppedSessionRemainsConfigured 加第三参数，两路信号任一命中即重建。可见性由
+stopListening join 保证。竞态单测 +1（911 例全过），真机冒烟复用路径无损。竞态本身
+无法注入。工作区未提交。
+
+## 2026-08-16 - 麦克风硬故障后重录修复（外部审查第五轮）
+
+发布号 `202608161449`（任务按 UTC 命名），APK SHA-256
+`e9be330e67cc265e5a62b06cacb128a1c958856e4f234664f82f68e6c84d37f6`，24,395,728 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816225500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第五轮 1 项 P2 全实全修：输入流死亡（ERROR_DEAD_OBJECT）自动停止后完成快照误标纯
+麦克风为已配置，重录复用失效 AudioRecord（state 仍 INITIALIZED，recordsReady 拦不住）
+再次失败。抽纯函数 stoppedSessionRemainsConfigured：CAPTURE_FAILED 停止判未配置走
+完整重建（configure 进门 releaseAudioRecords）；FILE_WRITE_INTERRUPTED 与正常停止保持
+快速复用。新增 StoppedSessionConfigurationTest 3 例，910 例全过。真机回归复用路径
+无损（重录瞬回准备态）。ERROR_DEAD_OBJECT 无法 adb 注入，失效路径单测+审查保证。
+工作区未提交。
+
+## 2026-08-16 - 录音收尾诚实化与错误分类重构（外部审查第四轮）
+
+发布号 `202608161431`（任务按 UTC 命名），APK SHA-256
+`1ad2b42216210623455366ee9287d8b51b85e31b841655f415461e1234de4e8b`，24,395,728 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816224500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第四轮 4 项全实全修：停止中间快照改 FINALIZING（"正在保存录音…"+通知同步+保存/重录
+淡化+取消常可用 cancelEnabled）、停止原因只在封装成功后发布；完成通知改完成时按
+dialogVisible 判定（删 fromNotification），自动停止原因带进通知正文；CaptureSource
+三分类（OUTPUT=文件故障不回落，修正上批错上加错；新枚举 FILE_OUTPUT_FAILED /
+FILE_WRITE_INTERRUPTED；混合模式麦克风死不再回落麦克风）；三按钮 isEnabled 同步 +
+失败态保存 cd（TalkBack 宣告已停用）。另：提示文本块居中行 start 对齐（用户要求）。
+真机 dump 逐项核对 enabled/cd、后台停止通知链、成功回归全过，907 例单测过。
+工作区未提交。
+
+## 2026-08-16 - 录音失败提示文案纠偏与窗口宽度恒定
+
+发布号 `202608161353`（任务按 UTC 命名），APK SHA-256
+`b47ebe464272c8620d88b0c3e344812cd2e0a76660aeaca6e9d6d23a0d2380c2`，24,392,876 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816215800.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+用户核对失败信息清单发现三处"已保留此前录音"出现在从未录音的场景，全修：准备态投影
+撤销换新枚举 SYSTEM_CAPTURE_ENDED（"授权已结束，已恢复为麦克风"）、准备态流死统一
+回落麦克风（SYSTEM_INITIALIZATION_FAILED）、起录失败换 RECORDING_START_FAILED
+（"无法开始录音"），四语言。另修失败提示撑宽 Dialog：宽度由时钟测量宽决定（OPD2515
+实测 771px），提示 maxWidth 钳制到定型宽内换行显示、首帧未布局时延一帧。真机注入
+（audios 目录占位）验证宽度恒定与成功路径回归，906 例单测过。工作区未提交。
+
+## 2026-08-16 - 录音封装失败路径诚实化与失败态紧凑布局（外部审查第三轮）
+
+发布号 `202608161322`（任务按 UTC 命名），APK SHA-256
+`af117190432372fdb3be768d085d4ac7bf3e2410c2f48116dd8695877c1c8edb`，24,391,644 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816212500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+（同日稍早的 `202608161310` 为第三轮四项修复的首发，随即被本版顶替——用户验收失败态
+截图后指出布局留白问题，本版在其基础上追加失败态紧凑布局修复。）
+
+第三轮外部审查 4 项全实全修，集中在封装失败路径诚实性：失败通知不再宣称"已保留"、
+失败停止态无文件名/导出且主按钮禁用淡化（水平触发 applyStoppedFileUi，修掉中间快照
+时序缺陷）、saveToWaveFile 捕获扩到 Exception（任何失败删半成品+正常回报）、
+FINALIZE_FAILED 专属文案。追加失败态紧凑布局：时钟收回原位、notice 对齐录音态 88dp，
+成功态零变化。四语言 27 键审计齐备。OPD2515 注入验证双向通过，906 例单测过。
+工作区未提交。
+
+## 2026-08-16 - 录音会话归属加固（外部审查第二轮）
+
+发布号 `202608161217`（任务按 UTC 命名），APK SHA-256
+`4c0bf8ebe680fa1b6b270c538d21e0abd2796d546dc8fc8aeb1a34141f230d12`，24,390,460 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816202000.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+第二轮外部审查 6 项全实全修：会话存在性"活跃或持久化"双查询（修掉上批引入的
+跨进程认领缺陷+返回入口重启兜底）、新建记事归属首存后升级（真机验证接力直达已保存
+记事；AUTO_SAVE_EDITS 关闭时保持 -1 与已认可豁口一致）、恢复后重录完整重配、
+封装失败删数据+ENOSPC 专属提示（用户裁定）、mBindRequested 绑定竞态、notice 持久化。
+OPD2515 全链回归（测试记事已删、auto_save_edits 已还原 false），905 例单测过。
+工作区未提交。
+
+## 2026-08-16 - 录音外部审查修复批（深浅色不丢录音、跨记事拦截、停止态跨进程恢复）
+
+发布号 `202608161052`（任务按 UTC 命名），APK SHA-256
+`56a0a495dcd3502603097536177b8c61d2351b568748156037868263a7ed7d91`，24,389,840 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816190000.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+外部静态审查 10 项逐条核实全部属实，grill-me 裁定后修 8 项：深浅色原地换肤（录音
+跨切换不断）、跨记事录音入口拦截（UNDO Snackbar+前往）、停止态持久化与跨进程恢复
+（force-stop 最恶劣场景验证）、授权状态 saved state、4GiB 上限自动停止（仅单测）、
+封装即删 raw、Popup 选中项无障碍（delegate 不碰 ripple）、temp 目录隔离、文档修正。
+不修：引擎真卡死自恢复、Popup 首项可见性、48dp 触摸目标（用户裁定）。
+905 例单测全过。工作区未提交。
+
+## 2026-08-16 - 通知停止后的返回路径验收与停止态时长修复
+
+发布号 `202608160347`（任务按 UTC 命名），APK SHA-256
+`6361a3262d5debc8fcfb22c2d750d4cdc12b328c7070ec556bca482a25911e34`，25,181,248 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816115000.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+真机验收"停止并保留"后三条返回路径（已停止通知点击 triggerClick=true、图标接力、
+最近任务切回）均正确恢复停止态；修复通知路径停止后重建 Dialog 时钟不显示实际时长
+（快照新增 recordedDurationMillis）。901 例单测通过。工作区未提交。
+
+## 2026-08-16 - 录音通知记事色、通知返回卡顿根修与倾斜空窗
+
+发布号 `202608160330`（任务按 UTC 命名），APK SHA-256
+`ffde34674296b0339ea860b76cab252183bed51d103a6db7b3f73c9888371131`，28,386,652 字节
+（比上一包大 4MB：共享工作区含并行会话的空间照片改动，照例为超集）。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816113500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+卡顿根因：`eglSwapBuffers` 瞬态失败（surface 销毁与 GL 在途帧竞争，EGL_BAD_SURFACE）
+被当致命错误永久降级 Canvas 主线程软件渲染（实测 100% janky、中位 150ms）；修为按
+EGL 错误码分级+swap 前二次检查，瞬态改等新 surface。通知底色取记事代表色、渐变记事
+加 largeIcon 渐变徽章；倾斜空窗用会话最后重力样本 seed。OPD2515 全链路回归
+（0% janky、P50=5ms），901 例单测通过。工作区未提交。
+
+## 2026-08-16 - 录音后台化后可从桌面图标与通知返回录音窗口
+
+发布号 `202608160242`（任务按 UTC 命名），APK SHA-256
+`04740473ff474147fd85a76d80a7a60fb2291660703e75a2af9fe8082a3b4446`，24,388,052 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816104500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。发布晚于同日的 `202608160136`
+（华为着色器修复，已提交 89fafc33），本包从同一工作区构建、内容为其超集。
+
+3a 图标接力（singleTask 清栈后由列表页按会话返回入口直达录音 Dialog）+ colorized
+进行中通知（"升重要度+显式分组"被 Android 16 强制聚合覆盖，实测无效；colorized 满足
+promotable 条件后独立成卡、点击真正触发 contentIntent）。落点按记事 id 校验、onDismiss
+与宿主清栈解耦。OPD2515 两条路径端到端真机验收，全量单测 901 例通过。工作区未提交。
+
+## 2026-08-16 - 修复华为设备空间照片着色器链接崩溃
+
+发布号 `202608160136`（任务按 UTC 命名），APK SHA-256
+`3c9c1ee434a309e246275dcb356145210805523582bf62d6c895225926e5fb68`，24,388,052 字节。
+日志：`docs/features/spatial-photo-effect/debug-updates/update-20260816093606.md`。
+远端 latest.json 的 releaseNotes、apkUrl 与本地/远端 APK SHA-256 已核对一致（远端 APK 实际下载比对）。
+
+根因：LDI_FRAGMENT_SHADER 声明 `precision mediump float;` 后 `uViewpoint` 为 mediump，
+而 LDI_VERTEX_SHADER 无 precision 声明、同名 uniform 默认 highp；GLSL ES 规定跨阶段
+同名 uniform 精度必须一致，华为 Maleoon/Mali 系驱动严格执行（L0001 链接错误），Adreno
+宽容故此前未暴露。onSurfaceCreated 无条件创建全部 program，故该设备上生成完成后的预览
+与再次查看均必现崩溃（PCE-W30 = MatePad Pro 13.2）。修复为片元侧显式 `uniform highp
+vec2 uViewpoint;`。已排查全部 8 对着色器，跨阶段共享 uniform 仅此一处不匹配。
+华为平板已回归验证通过；代码与文档已提交 `89fafc33`（仅含本修复的 4 个文件，
+本文件因混有录音功能未提交条目而留在工作区）。
+
+## 2026-08-16 - 修复录音来源系统授权后锁死、采不到系统声音与不记忆
+
+发布号 `202608160113`（任务按 UTC 命名），APK SHA-256
+`8673b4088235aa9de7e36a9b69b4e7e70b12abfc518ea088220215604a4efbac`，24,388,052 字节。
+日志：`docs/features/system-audio-recording/debug-updates/update-20260816022000.md`。
+远端 latest.json 的 releaseNotes、apkUrl 与本地/远端 APK SHA-256 已核对一致。
+
+根因是 `DetailActivity.onActivityResult` 未调 `super`，androidx ActivityResult 分发链断裂，
+授权结果被静默丢弃（锁死/无系统声音/不记忆同出此源）。补 super 并限定旧式附件请求码，
+Things/Settings 同类覆写一并修正；消除采集线程收尾 600ms 空等。OPD2515（Android 16）
+真机回归全过（含真实系统声音采集 -17.8dB 对照静默 -91dB），全量单测 901 例通过。
+工作区未提交（与 system-audio-recording 全部改动一起待提交）。
+
 ## 2026-08-16 - 空间照片 NPU 执行期回落 CPU（D276 补）
 
 发布号 `202608151633`（任务按 UTC 命名），APK SHA-256

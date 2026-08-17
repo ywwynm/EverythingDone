@@ -2,8 +2,12 @@
 
 package com.ywwynm.everythingdone.fragments
 
+import android.app.Activity
+import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -15,13 +19,19 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.media.projection.MediaProjectionConfig
+import android.media.projection.MediaProjectionManager
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
@@ -32,14 +42,24 @@ import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
-import com.ywwynm.everythingdone.utils.FileUtil
-import com.ywwynm.everythingdone.views.recording.AudioRecorder
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import com.ywwynm.everythingdone.views.pickers.AudioInputPicker
+import com.ywwynm.everythingdone.views.recording.AudioInputMode
+import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+import com.ywwynm.everythingdone.views.recording.AudioInputRowPresentation
+import com.ywwynm.everythingdone.views.recording.AudioInputRowPresentationPolicy
+import com.ywwynm.everythingdone.views.recording.AudioRecordingControlPolicy
+import com.ywwynm.everythingdone.views.recording.AudioRecordingNotice
+import com.ywwynm.everythingdone.views.recording.AudioRecordingPhase
+import com.ywwynm.everythingdone.views.recording.AudioRecordingSnapshot
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
@@ -47,8 +67,7 @@ import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSol
 import com.ywwynm.everythingdone.views.recording.fablesol.WaveVisualizerFableSolHost
 
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -60,14 +79,23 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mActivity: DetailActivity? = null
 
     private var mState: Int = PREPARED
+    private var mRenderedPhase: AudioRecordingPhase? = null
 
-    private var mRecorder: AudioRecorder? = null
     private var mFileToSave: File? = null
 
     private var mLlFileName: LinearLayout? = null
     private var mEtFileName: EditText? = null
     private var mClockView: TimelyClockView? = null
     private var mVisualizer: WaveVisualizerFableSolHost? = null
+    private var mLlAudioInput: LinearLayout? = null
+    private var mLlAudioInputCapsule: LinearLayout? = null
+    private var mTvAudioInputLabel: TextView? = null
+    private var mTvAudioInputValue: TextView? = null
+    private var mIvAudioInputTriangle: ImageView? = null
+    private var mTvAudioInputNotice: TextView? = null
+    private var mTvFilePostfix: TextView? = null
+    private var mAudioInputPicker: AudioInputPicker? = null
+    private var mSelectedInputMode: AudioInputMode = AudioInputMode.MICROPHONE
 
     private var mIvMainAction: ImageView? = null
     private var mIvExportVideo: ImageView? = null
@@ -80,17 +108,16 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private var mConfirmClicked: Boolean = false
     private var mRecorderTransitionInProgress: Boolean = false
-    /** 排队中或正在跑的录音器操作数；>0 时主按钮不可点。 */
-    private var mPendingRecorderTasks: Int = 0
-    /** 对话框已关闭；队列上还没跑的录音器操作据此跳过重新开麦。 */
-    @Volatile private var mDismissed: Boolean = false
-    /**
-     * 录音器的收尾、重启、释放全部走这一条单线程队列。它们改的是同一个 AudioRecord 与
-     * 同一份文件，各起一条线程会真的并发——例如取消时的 `release()` 撞上收尾里的
-     * `startListening()`，就是在已释放的 AudioRecord 上调用。
-     */
-    private val mRecorderTasks: ExecutorService =
-        Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "AudioRecordWork") }
+    private var mRecordingBinder: AudioRecordingService.LocalBinder? = null
+    // 与 mRecordingBinder 分开记录：bindService 一经调用成功就必须配对 unbind，
+    // 否则"回调到达前关闭 Dialog"会泄漏 ServiceConnection，迟到的回调还能改写会话。
+    private var mBindRequested = false
+    private var mDialogVisible = false
+    private var mSessionClosing = false
+    private var mSessionInitializationRequested = false
+    private var mProjectionRequestInFlight = false
+    private var mPendingProjectionMode: AudioInputMode? = null
+    private var mPendingProjectionResult: ActivityResult? = null
     private var mClockBreathing: Boolean = false
     private var mSensorManager: SensorManager? = null
     private var mGravitySensor: Sensor? = null
@@ -117,74 +144,135 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             mClockHandler.postDelayed(this, delay)
         }
     }
+    private val mAudioInputAlignListener = ViewTreeObserver.OnGlobalLayoutListener {
+        alignAudioInputToClockContent()
+    }
+
+    private val mRecordingObserver = AudioRecordingService.Observer { state ->
+        mContentView?.post {
+            if (isAdded) renderRecordingSnapshot(state)
+        }
+    }
+
+    private val mRecordingServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            // 迟到回调防御：视图已销毁的 Fragment 不得注册观察者或改写会话归属。
+            if (!isAdded) return
+            val recordingBinder = service as? AudioRecordingService.LocalBinder ?: return
+            mRecordingBinder = recordingBinder
+            // 新建记事的 id 每次进入都会重新生成，记为 -1 跳过通知落点的记事校验，
+            // 否则「校验失败 → 按 returnIntent 重启 → 又生成新 id」会循环重启。
+            val sessionThingId = mActivity
+                ?.takeIf { it.type != DetailActivity.CREATE }
+                ?.currentThingId() ?: -1L
+            recordingBinder.setSessionSource(
+                mActivity?.intent,
+                sessionThingId,
+                mAccentBackground ?: currentAccentBackground()
+            )
+            recordingBinder.setGravityTrackEnabled(mLiveTiltEnabled)
+            recordingBinder.addObserver(mRecordingObserver)
+            // 传感器首个样本到达前先用会话内最后姿态摆正水面，消除重建 Dialog 的倾斜空窗。
+            recordingBinder.lastGravitySample()?.let { sample ->
+                if (sample.size >= 3) {
+                    mVisualizer?.setContainerGravity(sample[0], sample[1], sample[2])
+                }
+            }
+            if (mDialogVisible) {
+                mVisualizer?.let(recordingBinder::linkFableSol)
+                recordingBinder.setDialogVisible(true)
+            }
+            consumePendingProjectionResult()
+            initializeVisibleSession(recordingBinder)
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            mRecordingBinder = null
+            updateControlsEnabled()
+        }
+    }
+
+    private val mProjectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (BuildConfig.DEBUG) {
+            android.util.Log.i(PROBE_TAG, "projection result=${result.resultCode} binder=${mRecordingBinder != null}")
+        }
+        mProjectionRequestInFlight = false
+        updateControlsEnabled()
+        if (mRecordingBinder == null) {
+            mPendingProjectionResult = result
+        } else {
+            handleProjectionResult(result)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
+        // 系统授权页开着时进程可能被低内存回收；授权结果由 ActivityResult registry 跨
+        // 重建送达，但待授权的来源模式必须自己带回来，否则成功授权会被按默认"麦克风"
+        // 处理成一次初始化失败。
+        savedInstanceState?.let { saved ->
+            mProjectionRequestInFlight = saved.getBoolean(STATE_PROJECTION_IN_FLIGHT, false)
+            mPendingProjectionMode = saved.getString(STATE_PENDING_PROJECTION_MODE)
+                ?.let { value -> AudioInputMode.entries.firstOrNull { it.preferenceValue == value } }
+        }
+
         mActivity = activity as DetailActivity
         mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(mActivity!!)
         lockHostOrientation()
         prepareTiltSensor()
-        mRecorder = AudioRecorder(mActivity)
-        mRecorder!!.setGravityTrackEnabled(mLiveTiltEnabled)
 
         mLlFileName  = f(R.id.ll_audio_file_name)
         mEtFileName  = f(R.id.et_audio_file_name)
         mClockView   = f(R.id.clock_record_audio)
         mVisualizer  = f(R.id.voice_visualizer)
+        mLlAudioInput = f(R.id.ll_audio_input)
+        mLlAudioInputCapsule = f(R.id.ll_audio_input_capsule)
+        mTvAudioInputLabel = f(R.id.tv_audio_input_label)
+        mTvAudioInputValue = f(R.id.tv_audio_input_value)
+        mIvAudioInputTriangle = f(R.id.iv_audio_input_triangle)
+        mTvAudioInputNotice = f(R.id.tv_audio_input_notice)
+        mTvFilePostfix = f(R.id.tv_audio_file_postfix)
 
         mIvMainAction      = f(R.id.iv_record_main_action)
         mIvReRecording     = f(R.id.iv_re_recording_audio)
         mIvCancelRecording = f(R.id.iv_cancel_recording_audio)
         mIvExportVideo     = f(R.id.iv_export_fablesol_video)
-        BackgroundUtil.installAppChromeCircleRipple(mIvMainAction, mActivity!!)
-        BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, mActivity!!)
-        BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, mActivity!!)
-        applyMainButtonNormalStyle()
-
-        if (AppearanceUtil.isDarkMode(mActivity!!)) {
-            mIvReRecording!!.setImageDrawable(
-                DisplayUtil.opaqueTintDrawable(
-                    mActivity!!,
-                    ContextCompat.getDrawable(mActivity!!, R.drawable.act_re_recording_audio),
-                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
-                )
-            )
-            mIvCancelRecording!!.setImageDrawable(
-                DisplayUtil.opaqueTintDrawable(
-                    mActivity!!,
-                    ContextCompat.getDrawable(mActivity!!, R.drawable.act_cancel_recording_audio),
-                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_control_unchecked)
-                )
-            )
-            setMainButtonIcon(R.drawable.act_start_recording_audio)
-        }
 
         mAccentBackground = mActivity!!.getAccentBackground()
             ?: ThingBackground.pure(mActivity!!.getAccentColor())
         val accentBg: ThingBackground = mAccentBackground!!
         val accentColor: Int = accentBg.color
         configureClockView(accentBg)
+        installAudioInputClockContentAlignment()
         mVisualizer!!.setThingBackground(accentBg)
-        installSideControlScrim(mIvReRecording)
-        installSideControlScrim(mIvCancelRecording)
+        createAudioInputPicker(accentBg)
+        mSelectedInputMode = AudioInputPreferences.load(requireContext())
+        mAudioInputPicker?.pickMode(mSelectedInputMode)
+        updateAudioInputValue(mSelectedInputMode)
+        showAudioInputForPrepared()
 
+        // 记事色部分（不随深浅色变化）只设一次。
         mEtFileName!!.highlightColor = DisplayUtil.getLightColor(accentColor, mActivity)
         DisplayUtil.setSelectionHandlersColor(mEtFileName, accentColor)
-        DisplayUtil.tintView(
-            mEtFileName,
-            ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
-        )
 
-        mRecorder!!.linkFableSol(mVisualizer!!)
-        mRecorder!!.startListening()
+        applyChromeAppearance()
 
         setEvents()
         // setOnClickListener 会把两个侧边键置为 clickable，但它们此刻 alpha=0：
         // 不在这里按状态收一次，准备态下点到取消键的位置就会把对话框关掉。
         updateControlsEnabled()
+
+        val serviceIntent = Intent(mActivity, AudioRecordingService::class.java)
+        mBindRequested = mActivity!!.bindService(
+            serviceIntent,
+            mRecordingServiceConnection,
+            Context.BIND_AUTO_CREATE
+        )
 
         return mContentView
     }
@@ -193,6 +281,20 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     override fun onStart() {
         super.onStart()
+        mDialogVisible = true
+        if (mState == RECORDING && mRecordingBaseElapsed > 0L) {
+            mClockView?.setTimeMillis(
+                (SystemClock.elapsedRealtime() - mRecordingBaseElapsed).coerceAtLeast(0L),
+                false
+            )
+            startClockTicker()
+        }
+        mRecordingBinder?.let { binder ->
+            mVisualizer?.clearPendingAudio()
+            mVisualizer?.let(binder::linkFableSol)
+            binder.setDialogVisible(true)
+            initializeVisibleSession(binder)
+        }
         val window = dialog?.window ?: return
         val attributes = window.attributes
         attributes.preferredRefreshRate = TARGET_REFRESH_RATE
@@ -225,7 +327,46 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         super.onPause()
     }
 
+    override fun onStop() {
+        mDialogVisible = false
+        stopClockTicker()
+        mAudioInputPicker?.dismiss()
+        mRecordingBinder?.let { binder ->
+            mVisualizer?.let(binder::unlinkFableSol)
+            mVisualizer?.clearPendingAudio()
+            // dismiss 流程里 onDismiss 已先调 finishSession（收尾任务在途），此时再同步
+            // 可见性会触发服务的 stopPreview 抢占 operationGeneration，作废收尾的完成
+            // 回调（留下假 PREPARED 快照、投影与前台通知泄漏）。会话在关就不再同步。
+            if (!mSessionClosing) binder.setDialogVisible(false)
+        }
+        super.onStop()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_PROJECTION_IN_FLIGHT, mProjectionRequestInFlight)
+        outState.putString(
+            STATE_PENDING_PROJECTION_MODE,
+            mPendingProjectionMode?.preferenceValue
+        )
+    }
+
     override fun onDestroyView() {
+        removeAudioInputClockContentAlignment()
+        mRecordingBinder?.let { binder ->
+            binder.removeObserver(mRecordingObserver)
+            mVisualizer?.let(binder::unlinkFableSol)
+        }
+        if (mBindRequested) {
+            try {
+                mActivity?.unbindService(mRecordingServiceConnection)
+            } catch (_: IllegalArgumentException) {
+            }
+        }
+        mRecordingBinder = null
+        mBindRequested = false
+        mAudioInputPicker?.dismiss()
+        mAudioInputPicker = null
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
@@ -234,17 +375,16 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     override fun onDismiss(dialog: DialogInterface) {
-        mDismissed = true
-        val recorder: AudioRecorder? = mRecorder
-        mRecorder = null
-        var fileToDiscard: File? = null
-        if (mConfirmClicked) {
-            val parent: File = mFileToSave!!.parentFile!!
+        mSessionClosing = true
+        val recordedFile = mFileToSave
+        val keepFile = mConfirmClicked && recordedFile != null
+        if (keepFile) {
+            val parent: File = recordedFile!!.parentFile!!
 
             val name: String = mEtFileName!!.text.toString()
             val fileToSave = File(parent, "$name.wav")
-            var pathName: String = mFileToSave!!.absolutePath
-            val renamed: Boolean = mFileToSave!!.renameTo(fileToSave)
+            var pathName: String = recordedFile.absolutePath
+            val renamed: Boolean = recordedFile.renameTo(fileToSave)
             if (renamed) {
                 pathName = fileToSave.absolutePath
             }
@@ -260,8 +400,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                     mVisualizer
                 )
             }
-        } else {
-            fileToDiscard = mFileToSave
+        }
+        // 宿主被系统清栈（singleTask 回首页等）时不结束会话：录音要作为前台服务继续，
+        // 用户可从通知或桌面图标接力回来。只有存活宿主上的主动关闭才收尾。
+        if (mActivity?.isFinishing != true) {
+            mRecordingBinder?.finishSession(keepFile)
         }
         stopClockTicker()
         stopClockBreathing()
@@ -269,7 +412,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
-        releaseRecorderInBackground(recorder, fileToDiscard)
 
         super.onDismiss(dialog)
     }
@@ -356,13 +498,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mVisualizer?.setContainerGravity(-screenX, screenY, gz)
         // 记进重力轨迹的是**送给可视化的那三个分量**，不是原始传感器读数：屏幕旋转补偿
         // 已经在上面做完，离线重新渲染时直接回放即可，无需再关心当时锁的是哪个方向。
-        mRecorder?.offerGravitySample(-screenX, screenY, gz)
+        mRecordingBinder?.offerGravitySample(-screenX, screenY, gz)
     }
 
     private fun setEvents() {
-        val normalColor = ContextCompat.getColor(
-            mActivity!!, R.color.app_chrome_on_surface_hint
-        )
         val accentBg: ThingBackground? = mAccentBackground
         val accentColor: Int = accentBg?.color ?: mActivity!!.getAccentColor()
         mEtFileName!!.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
@@ -379,7 +518,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                     DisplayUtil.tintView(mEtFileName, accentColor)
                 }
             } else {
-                DisplayUtil.tintView(mEtFileName, normalColor)
+                // 实时取色：深浅色原地切换后，失焦恢复的下划线要用当前配置的 chrome 色。
+                DisplayUtil.tintView(
+                    mEtFileName,
+                    ContextCompat.getColor(mActivity!!, R.color.app_chrome_on_surface_hint)
+                )
                 BackgroundUtil.clearEditTextUnderline(mEtFileName)
             }
         }
@@ -397,25 +540,26 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 return@setOnClickListener
             }
             when (mState) {
-                PREPARED -> {
-                    mRecorder!!.startRecording()
-                    preparedToRecording()
-                    mState = RECORDING
-                }
-                RECORDING -> {
-                    stopRecordingWithoutBlocking()
-                }
+                PREPARED -> mRecordingBinder?.startRecording()
+                RECORDING -> mRecordingBinder?.stopRecording()
                 else -> saveFileAndLeave()
             }
         }
 
-        // 重录与取消不看 mRecorderTransitionInProgress：收尾/重启/释放都排在同一条单线程
-        // 队列上，后到的操作只会排队，不会与在跑的那次并发。
         mIvReRecording!!.setOnClickListener {
-            restartRecordingWithoutBlocking()
+            val binder = mRecordingBinder ?: return@setOnClickListener
+            if (!binder.restartRecording()) {
+                requestMediaProjection(mSelectedInputMode)
+            }
         }
 
         mIvCancelRecording!!.setOnClickListener { dismiss() }
+
+        mLlAudioInputCapsule!!.setOnClickListener {
+            if (mLlAudioInputCapsule?.isClickable == true) {
+                mAudioInputPicker?.show()
+            }
+        }
 
         mIvExportVideo!!.setOnClickListener {
             if (mRecorderTransitionInProgress) return@setOnClickListener
@@ -455,10 +599,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         button.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
     }
 
-    private fun preparedToRecording() {
+    private fun preparedToRecording(baseElapsed: Long) {
         mClockHandler.removeCallbacks(mClockIntro)
-        mRecordingBaseElapsed = SystemClock.elapsedRealtime()
-        mClockView!!.setTimeMillis(0L, false)
+        mRecordingBaseElapsed = baseElapsed
+        val elapsed = (SystemClock.elapsedRealtime() - baseElapsed).coerceAtLeast(0L)
+        mClockView!!.setTimeMillis(elapsed, false)
         startClockTicker()
         mClockView!!.animate()
             .alpha(CLOCK_RECORDING_ALPHA_HIGH)
@@ -475,42 +620,49 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     private fun recordingToStopped() {
-        mLlFileName!!.animate()
-            .translationY(mActivity!!.screenDensity * FILE_NAME_STOPPED_TRANSLATION_Y_DP)
-            .setDuration(ANIM_DURATION.toLong())
-
-        val name: String = mFileToSave!!.name
-        mEtFileName!!.setText(name.substring(0, name.length - 4))
-
+        // 文件相关 UI（文件名行、导出入口、保存可用性视觉）不在这里处理：停止的中间
+        // 快照（busy=true）里 savedFile 还是录音期的旧值，封装结果要等完成快照，而
+        // phase 不再变化——由 applyStoppedFileUi 按完成快照水平触发。
+        mStoppedFileUiKept = null
         stopClockTicker()
         stopClockBreathing()
+        // 从通知停止后重建的 Dialog 没经历过录音计时，时钟要用服务记下的最终时长；
+        // Dialog 内正常停止时 ticker 已停在同一值，重设无副作用。
+        if (mLastSnapshot.recordedDurationMillis > 0L) {
+            mClockView!!.setTimeMillis(mLastSnapshot.recordedDurationMillis, false)
+        }
         mClockView!!.animate()
             .alpha(CLOCK_RECORDING_ALPHA_HIGH)
             .translationY(clockStoppedTranslationY())
             .setDuration(ANIM_DURATION.toLong())
 
         mVisualizer!!.setRecordingHdrActive(false)
-        mVisualizer!!.animatePresentationAlpha(0.16f, ANIM_DURATION.toLong())
+        mVisualizer!!.animatePresentationAlpha(
+            FABLESOL_IDLE_PRESENTATION_ALPHA,
+            ANIM_DURATION.toLong()
+        )
 
         val confirmBg: ThingBackground = currentAccentBackground()
         applyMainButtonConfirmStyle(confirmBg)
         setMainButtonIcon(R.drawable.act_save_audio, BackgroundUtil.onColor(confirmBg, MAIN_BUTTON_CONFIRM_ICON_ALPHA))
+        // 收尾（封装）还没出结果，保存与重录先以淡化呈现；完成快照按结果恢复。
+        // 取消不淡化——收尾期间允许直接放弃，不必等封装完成。
+        mIvMainAction!!.alpha = MAIN_BUTTON_DISABLED_ALPHA
 
         // 三个副按钮此前只改 alpha、始终占位，主按钮因此在准备/录音态被挤得偏心。
         // 改为 visibility 驱动：准备与录音态整行只有主按钮，它严格居中。
-        mIvReRecording!!.isClickable = true
-        mIvCancelRecording!!.isClickable = true
         mIvReRecording!!.visibility = View.VISIBLE
         mIvCancelRecording!!.visibility = View.VISIBLE
-        mIvReRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
+        mIvReRecording!!.animate().alpha(MAIN_BUTTON_DISABLED_ALPHA).setDuration(ANIM_DURATION.toLong())
         mIvCancelRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
-        showExportVideoAction(confirmBg)
 
         mIvMainAction!!.contentDescription = getString(R.string.cd_save_recorded_audio_file)
     }
 
     private fun stoppedToPrepared() {
         mVisualizer!!.setRecordingHdrActive(false)
+        mStoppedFileUiKept = null
+        mIvMainAction!!.alpha = 1f
         mLlFileName!!.animate().translationY(-mActivity!!.screenDensity * 72).setDuration(ANIM_DURATION.toLong())
         stopClockTicker()
         stopClockBreathing()
@@ -533,88 +685,438 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mIvMainAction!!.contentDescription = getString(R.string.cd_start_record_audio)
     }
 
-    private fun stopRecordingWithoutBlocking() {
-        val recorder = mRecorder ?: return
-        val fileToSave: File = recorder.getSavedFile() ?: return
-        mFileToSave = fileToSave
-        recordingToStopped()
-        mState = STOPPED
-        beginRecorderTask()
+    private var mLastSnapshot = AudioRecordingSnapshot()
 
-        mRecorderTasks.execute {
-            recorder.stopListening(true)
-            // 对话框已经关掉就不必再开一次麦克风，队列后面紧跟着的就是 release()。
-            if (!mDismissed) recorder.startListening()
-            postRecorderTransitionResult(recorder) { endRecorderTask() }
-        }
-    }
+    /** 停止完成态的文件 UI 当前形态；null 表示尚未按完成快照应用。 */
+    private var mStoppedFileUiKept: Boolean? = null
 
-    private fun restartRecordingWithoutBlocking() {
-        val recorder = mRecorder ?: return
-        val fileToDelete: File? = mFileToSave
-        mFileToSave = null
-        stoppedToPrepared()
-        mState = PREPARED
-        beginRecorderTask()
-
-        mRecorderTasks.execute {
-            // 删除排在收尾任务之后：收尾正在把 raw 抄成 wav，先删会被它重新建出来，
-            // 留下一个没人认领的音频文件。
-            if (fileToDelete != null) {
-                FileUtil.deleteFile(fileToDelete.absolutePath)
+    /**
+     * 停止完成（busy=false）后按封装结果应用文件相关 UI。成功：文件名行下移显示、
+     * 导出入口出现、保存与重录恢复满色；失败：文件 UI 不出现、保存保持淡化（点击
+     * 已由策略禁用）、无障碍描述换成"未能保留"，且把 recordingToStopped 为文件名行
+     * 让位而下移的时钟收回原位——否则失败态顶部会留出 80dp 的空白。幂等，同一形态
+     * 只应用一次。
+     */
+    private fun applyStoppedFileUi(kept: Boolean) {
+        if (mStoppedFileUiKept == kept) return
+        mStoppedFileUiKept = kept
+        // 收尾结束，重录恢复可用（收尾期间它与保存一起淡化）。
+        mIvReRecording!!.animate().alpha(1.0f).setDuration(ANIM_DURATION.toLong())
+        if (kept) {
+            mLlFileName!!.animate()
+                .translationY(mActivity!!.screenDensity * FILE_NAME_STOPPED_TRANSLATION_Y_DP)
+                .setDuration(ANIM_DURATION.toLong())
+            mFileToSave?.name?.let { name ->
+                mEtFileName!!.setText(if (name.endsWith(".wav")) name.dropLast(4) else name)
             }
-            if (!mDismissed) recorder.restartListening()
-            postRecorderTransitionResult(recorder) { endRecorderTask() }
+            mIvMainAction!!.alpha = 1f
+            mIvMainAction!!.contentDescription = getString(R.string.cd_save_recorded_audio_file)
+            showExportVideoAction(currentAccentBackground())
+        } else {
+            mEtFileName!!.setText("")
+            mIvMainAction!!.alpha = MAIN_BUTTON_DISABLED_ALPHA
+            mIvMainAction!!.contentDescription =
+                getString(R.string.cd_save_unavailable_not_kept)
+            mClockView!!.animate().translationY(0f).setDuration(ANIM_DURATION.toLong())
         }
     }
 
-    private fun postRecorderTransitionResult(recorder: AudioRecorder, action: () -> Unit) {
+    private fun renderRecordingSnapshot(state: AudioRecordingSnapshot) {
+        mLastSnapshot = state
+        mSelectedInputMode = state.inputMode
+        mFileToSave = state.savedFile
+        updateAudioInputValue(state.inputMode)
+        mAudioInputPicker?.pickMode(state.inputMode)
+
+        if (mRenderedPhase != state.phase) {
+            mRenderedPhase = state.phase
+            when (state.phase) {
+                AudioRecordingPhase.RECORDING -> {
+                    mState = RECORDING
+                    preparedToRecording(state.recordingBaseElapsed)
+                }
+                AudioRecordingPhase.STOPPED -> {
+                    mState = STOPPED
+                    recordingToStopped()
+                }
+                AudioRecordingPhase.PREPARED -> {
+                    mState = PREPARED
+                    stoppedToPrepared()
+                }
+                AudioRecordingPhase.IDLE,
+                AudioRecordingPhase.ERROR -> {
+                    mState = PREPARED
+                }
+            }
+        }
+        updateAudioInputPresentation(state.phase)
+        updateAudioInputNotice(state)
+        updateControlsEnabled()
+        if (state.phase == AudioRecordingPhase.STOPPED && !state.busy) {
+            applyStoppedFileUi(state.savedFile != null)
+        }
+        if (state.phase == AudioRecordingPhase.IDLE && !mSessionClosing) {
+            mSessionInitializationRequested = false
+            mRecordingBinder?.let(::initializeVisibleSession)
+        }
+    }
+
+    private fun initializeSessionIfNeeded(state: AudioRecordingSnapshot) {
+        if (state.phase != AudioRecordingPhase.IDLE) {
+            mSessionInitializationRequested = true
+            return
+        }
+        if (mSessionInitializationRequested || mProjectionRequestInFlight) return
+        mSessionInitializationRequested = true
+        val mode = AudioInputPreferences.load(requireContext())
+        mSelectedInputMode = mode
+        updateAudioInputValue(mode)
+        mAudioInputPicker?.pickMode(mode)
+        if (mode.requiresSystemAudio) {
+            requestMediaProjection(mode)
+        } else {
+            mRecordingBinder?.prepareMode(mode)
+        }
+    }
+
+    private fun initializeVisibleSession(binder: AudioRecordingService.LocalBinder) {
         mContentView?.post {
-            if (!isAdded || mRecorder !== recorder) {
+            if (!isAdded || !mDialogVisible || mSessionClosing || mRecordingBinder !== binder) {
                 return@post
             }
-            action()
+            initializeSessionIfNeeded(binder.snapshot())
         }
     }
 
-    private fun beginRecorderTask() {
-        mPendingRecorderTasks++
+    private fun requestMediaProjection(mode: AudioInputMode) {
+        if (!mode.requiresSystemAudio || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        if (mProjectionRequestInFlight) return
+        mPendingProjectionMode = mode
+        mProjectionRequestInFlight = true
         updateControlsEnabled()
+        val manager = requireContext().getSystemService(
+            Context.MEDIA_PROJECTION_SERVICE
+        ) as MediaProjectionManager
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+        } else {
+            manager.createScreenCaptureIntent()
+        }
+        App.suppressPrivacyAuthClearForActivityResult()
+        mProjectionLauncher.launch(intent)
     }
 
-    private fun endRecorderTask() {
-        mPendingRecorderTasks = maxOf(mPendingRecorderTasks - 1, 0)
-        updateControlsEnabled()
-    }
-
-    /**
-     * 主按钮在收尾任务跑完前不可点：保存要把 [mFileToSave] 改名，而那份 wav 可能还在写。
-     * 侧边两键只看状态——停止后它们随淡入一起可点。此前它们也跟着收尾任务禁用，于是
-     * 「点停止、立刻点叉号」在整个收尾窗口（线程 join 上限 600ms + raw→wav 全量抄写）
-     * 里都点不动，而按钮偏偏正在淡入、看起来完全可用。
-     */
-    private fun updateControlsEnabled() {
-        mRecorderTransitionInProgress = mPendingRecorderTasks > 0
-        mIvMainAction!!.isClickable = !mRecorderTransitionInProgress
-        val sideEnabled = mState == STOPPED
-        mIvReRecording!!.isClickable = sideEnabled
-        mIvCancelRecording!!.isClickable = sideEnabled
-    }
-
-    /**
-     * 释放排在同一条队列的末尾，因此一定晚于在跑的收尾/重启；[fileToDiscard]（取消录音时
-     * 那份 wav）也在这里删，同样是为了不与正在写它的收尾任务撞车。
-     */
-    private fun releaseRecorderInBackground(recorder: AudioRecorder?, fileToDiscard: File?) {
-        val rawPath = FileUtil.getTempPath(mActivity) + "/audio_raw"
-        mRecorderTasks.execute {
-            recorder?.release()
-            if (fileToDiscard != null) {
-                FileUtil.deleteFile(fileToDiscard.absolutePath)
+    private fun handleProjectionResult(result: ActivityResult) {
+        val binder = mRecordingBinder ?: run {
+            mPendingProjectionResult = result
+            return
+        }
+        val mode = mPendingProjectionMode ?: mSelectedInputMode
+        mPendingProjectionMode = null
+        val data = result.data
+        try {
+            if (result.resultCode == Activity.RESULT_OK && data != null) {
+                binder.prepareSystemMode(mode, result.resultCode, data)
+            } else {
+                binder.fallbackToMicrophone(AudioRecordingNotice.PROJECTION_DENIED)
             }
-            FileUtil.deleteDirectory(rawPath)
+        } catch (error: Throwable) {
+            android.util.Log.e(PROBE_TAG, "handleResult failed", error)
+            binder.fallbackToMicrophone(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
         }
-        mRecorderTasks.shutdown()
+        updateControlsEnabled()
+    }
+
+    private fun consumePendingProjectionResult() {
+        val result = mPendingProjectionResult ?: return
+        mPendingProjectionResult = null
+        handleProjectionResult(result)
+    }
+
+    private fun selectAudioInput(mode: AudioInputMode) {
+        if (!isAdded || mState != PREPARED || mLlAudioInputCapsule?.isClickable != true) return
+        if (mode == mSelectedInputMode && mLastSnapshot.configured) return
+        mSelectedInputMode = mode
+        updateAudioInputValue(mode)
+        val binder = mRecordingBinder ?: return
+        if (!binder.prepareMode(mode)) requestMediaProjection(mode)
+    }
+
+    /** 只构建 Popup 与胶囊样式；当前选择的加载与来源行可见性由调用方按场景处理。 */
+    private fun createAudioInputPicker(accentBackground: ThingBackground) {
+        val systemEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val items = listOf(
+            AudioInputPicker.Item(
+                AudioInputMode.MICROPHONE,
+                getString(R.string.audio_input_microphone),
+                getString(R.string.audio_input_microphone_summary)
+            ),
+            AudioInputPicker.Item(
+                AudioInputMode.SYSTEM,
+                getString(R.string.audio_input_system),
+                getString(R.string.audio_input_system_summary),
+                systemEnabled
+            ),
+            AudioInputPicker.Item(
+                AudioInputMode.SYSTEM_AND_MICROPHONE,
+                getString(R.string.audio_input_system_and_microphone),
+                getString(R.string.audio_input_system_and_microphone_summary),
+                systemEnabled
+            )
+        )
+        mAudioInputPicker = AudioInputPicker(
+            mActivity!!,
+            mContentView!!,
+            items,
+            mSelectedInputMode,
+            accentBackground
+        ) { item -> selectAudioInput(item.mode) }.also { picker ->
+            picker.setAnchor(mLlAudioInputCapsule!!)
+        }
+        applyAudioInputCapsuleStyle(accentBackground)
+    }
+
+    /**
+     * Chrome 层（随深浅色变化的表面、图标、文字色）的全部取色集中于此；onCreateView 与
+     * 宿主深浅色原地切换各调一次。记事色部分（水面、时钟墨色、来源胶囊、停止态主按钮）
+     * 不随深浅色变化，不在此列。
+     */
+    private fun applyChromeAppearance() {
+        val host = mActivity ?: return
+        dialog?.window?.setBackgroundDrawable(
+            ContextCompat.getDrawable(host, R.drawable.bg_app_chrome_surface_elevated_rounded)
+        )
+        BackgroundUtil.installAppChromeCircleRipple(mIvMainAction, host)
+        BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, host)
+        BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, host)
+        installSideControlScrim(mIvReRecording)
+        installSideControlScrim(mIvCancelRecording)
+        applySecondaryIcon(mIvReRecording, R.drawable.act_re_recording_audio)
+        applySecondaryIcon(mIvCancelRecording, R.drawable.act_cancel_recording_audio)
+        when (mState) {
+            PREPARED -> {
+                applyMainButtonNormalStyle()
+                setMainButtonIcon(R.drawable.act_start_recording_audio)
+            }
+            RECORDING -> {
+                applyMainButtonNormalStyle()
+                setMainButtonIcon(R.drawable.act_stop_recording_audio)
+            }
+            else -> Unit
+        }
+
+        val hint = ContextCompat.getColor(host, R.color.app_chrome_on_surface_hint)
+        val secondary = ContextCompat.getColor(host, R.color.app_chrome_on_surface_secondary)
+        mEtFileName?.let { editText ->
+            editText.setTextColor(secondary)
+            editText.setHintTextColor(hint)
+            if (!editText.hasFocus()) DisplayUtil.tintView(editText, hint)
+        }
+        mTvFilePostfix?.setTextColor(secondary)
+        mTvAudioInputLabel?.setTextColor(hint)
+        mTvAudioInputNotice?.setTextColor(secondary)
+        mClockView?.setHostDark(AppearanceUtil.isDarkMode(host))
+    }
+
+    private fun applySecondaryIcon(view: ImageView?, iconRes: Int) {
+        val host = mActivity ?: return
+        val target = view ?: return
+        if (AppearanceUtil.isDarkMode(host)) {
+            target.imageTintList = null
+            target.setImageDrawable(
+                DisplayUtil.opaqueTintDrawable(
+                    host,
+                    ContextCompat.getDrawable(host, iconRes),
+                    ContextCompat.getColor(host, R.color.app_chrome_control_unchecked)
+                )
+            )
+        } else {
+            target.setImageDrawable(ContextCompat.getDrawable(host, iconRes))
+            target.imageTintList = android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(host, R.color.app_chrome_control_unchecked)
+            )
+        }
+    }
+
+    /**
+     * 宿主记事入库（新建首存）后升级录音会话归属为正式 id；已有正式归属时服务侧幂等
+     * 跳过。此后跨记事拦截、停止态跨进程恢复与图标接力对本会话全部生效。
+     */
+    fun onHostThingSaved() {
+        val host = mActivity ?: return
+        val thingId = host.currentThingId()
+        if (thingId == -1L) return
+        mRecordingBinder?.upgradeSessionThing(
+            thingId,
+            DetailActivity.getOpenIntentForUpdate(host, null, thingId, -1)
+        )
+    }
+
+    /**
+     * 宿主处理深浅色变化（DetailActivity 声明了 uiMode configChanges）时原地换肤：录音
+     * 会话与水面动画全程不断——dismiss 重开会把进行中的录音当作用户取消而丢弃。水面与
+     * 记事色元素不依赖深浅色，无需处理；Popup 的表面与文字用 chrome 色，重建一个。
+     */
+    fun onHostAppearanceChanged() {
+        if (!isAdded || mActivity == null) return
+        applyChromeAppearance()
+        mAudioInputPicker?.dismiss()
+        createAudioInputPicker(currentAccentBackground())
+        mAudioInputPicker?.pickMode(mSelectedInputMode)
+        updateAudioInputValue(mSelectedInputMode)
+        updateAudioInputPresentation(mLastSnapshot.phase)
+        updateControlsEnabled()
+    }
+
+    private fun applyAudioInputCapsuleStyle(accentBackground: ThingBackground) {
+        val capsule = mLlAudioInputCapsule ?: return
+        val fill = BackgroundUtil.fillDrawable(accentBackground)
+        if (fill is GradientDrawable) {
+            fill.cornerRadius = mActivity!!.screenDensity * AUDIO_INPUT_CAPSULE_RADIUS_DP
+        }
+        fill.alpha = (255f * FABLESOL_IDLE_PRESENTATION_ALPHA + 0.5f).toInt()
+        capsule.background = fill
+        capsule.foreground = GradientRippleDrawable(
+            accentBackground,
+            shapeOval = false,
+            cornerRadiusPx = -1f
+        )
+        capsule.clipToOutline = true
+
+        mIvAudioInputTriangle?.setImageDrawable(
+            DisplayUtil.opaqueTintDrawable(
+                mActivity!!,
+                ContextCompat.getDrawable(mActivity!!, R.drawable.ic_dropdown),
+                accentBackground.representativeColor()
+            )
+        )
+    }
+
+    private fun updateAudioInputValue(mode: AudioInputMode) {
+        val value = mTvAudioInputValue ?: return
+        value.text = getString(
+            when (mode) {
+                AudioInputMode.MICROPHONE -> R.string.audio_input_microphone
+                AudioInputMode.SYSTEM -> R.string.audio_input_system
+                AudioInputMode.SYSTEM_AND_MICROPHONE -> R.string.audio_input_system_and_microphone
+            }
+        )
+        val background = mAccentBackground
+        if (background != null) {
+            BackgroundUtil.applyTextBackground(value, background)
+        }
+    }
+
+    private fun showAudioInputForPrepared() {
+        positionAudioInput(AUDIO_INPUT_PREPARED_TOP_DP)
+        mLlAudioInput?.visibility = View.VISIBLE
+        mIvAudioInputTriangle?.visibility = View.VISIBLE
+    }
+
+    private fun hideAudioInput() {
+        mAudioInputPicker?.dismiss()
+        mLlAudioInput?.visibility = View.GONE
+    }
+
+    private fun updateAudioInputPresentation(phase: AudioRecordingPhase) {
+        when (AudioInputRowPresentationPolicy.forPhase(phase)) {
+            AudioInputRowPresentation.EDITABLE -> showAudioInputForPrepared()
+            AudioInputRowPresentation.HIDDEN -> hideAudioInput()
+        }
+    }
+
+    private fun positionAudioInput(topDp: Float) {
+        val view = mLlAudioInput ?: return
+        val params = view.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        params.topMargin = (mActivity!!.screenDensity * topDp).toInt()
+        view.layoutParams = params
+    }
+
+    private fun updateAudioInputNotice(state: AudioRecordingSnapshot) {
+        val notice = mTvAudioInputNotice ?: return
+        val message = when {
+            state.notice == AudioRecordingNotice.FINALIZING ->
+                R.string.audio_recording_finalizing
+            state.notice == AudioRecordingNotice.PROJECTION_DENIED ->
+                R.string.audio_input_projection_denied
+            state.notice == AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED ->
+                R.string.audio_input_system_initialization_failed
+            state.notice == AudioRecordingNotice.SYSTEM_CAPTURE_REVOKED ->
+                R.string.audio_input_projection_revoked
+            state.notice == AudioRecordingNotice.SYSTEM_CAPTURE_ENDED ->
+                R.string.audio_input_system_capture_ended
+            state.notice == AudioRecordingNotice.CAPTURE_FAILED ->
+                R.string.audio_input_capture_failed
+            state.notice == AudioRecordingNotice.MICROPHONE_UNAVAILABLE ->
+                R.string.audio_input_microphone_unavailable
+            state.notice == AudioRecordingNotice.RECORDING_START_FAILED ->
+                R.string.audio_input_recording_start_failed
+            state.notice == AudioRecordingNotice.FILE_OUTPUT_FAILED ->
+                R.string.audio_recording_file_output_failed
+            state.notice == AudioRecordingNotice.FILE_WRITE_INTERRUPTED ->
+                R.string.audio_recording_file_write_interrupted
+            state.notice == AudioRecordingNotice.SIZE_LIMIT_REACHED ->
+                R.string.audio_recording_size_limit_reached
+            state.notice == AudioRecordingNotice.STORAGE_FULL ->
+                R.string.audio_recording_storage_full
+            state.notice == AudioRecordingNotice.FINALIZE_FAILED ->
+                R.string.audio_recording_finalize_failed
+            state.systemSilent -> R.string.audio_input_system_silent
+            state.configured && state.inputMode == AudioInputMode.SYSTEM_AND_MICROPHONE &&
+                !state.aecEnabled -> R.string.audio_input_aec_unavailable
+            else -> 0
+        }
+        if (message == 0) {
+            notice.visibility = View.GONE
+        } else {
+            // Dialog 窗口是 WRAP_CONTENT，宽度由 TimelyClockView 的测量宽决定；长提示
+            // 文本若参与首轮测量会把 dialog 撑宽。提示必须用定型后的宽度换行显示：
+            // 首次布局尚未完成时（跨进程恢复首帧就带提示的场景）延后一帧再显示。
+            val host = mContentView
+            if (host == null || host.width == 0) {
+                host?.post { if (isAdded) updateAudioInputNotice(mLastSnapshot) }
+                return
+            }
+            notice.maxWidth =
+                host.width - (mActivity!!.screenDensity * 2 * AUDIO_NOTICE_SIDE_MARGIN_DP).toInt()
+            val params = notice.layoutParams as? android.widget.FrameLayout.LayoutParams
+            if (params != null) {
+                params.topMargin = (mActivity!!.screenDensity * when (mState) {
+                    RECORDING -> AUDIO_NOTICE_RECORDING_TOP_DP
+                    // 180dp 是给成功停止态"文件名行 + 下移时钟"占满上方后预留的；
+                    // 封装失败时两者都不出现、时钟收回原位，提示对齐录音态位置。
+                    STOPPED -> if (!state.busy && state.savedFile == null) {
+                        AUDIO_NOTICE_RECORDING_TOP_DP
+                    } else {
+                        AUDIO_NOTICE_STOPPED_TOP_DP
+                    }
+                    else -> AUDIO_NOTICE_PREPARED_TOP_DP
+                }).toInt()
+                notice.layoutParams = params
+            }
+            notice.setText(message)
+            notice.visibility = View.VISIBLE
+        }
+    }
+
+    private fun updateControlsEnabled() {
+        val state = mLastSnapshot
+        val controls = AudioRecordingControlPolicy.resolve(
+            snapshot = state,
+            binderConnected = mRecordingBinder != null,
+            projectionRequestInFlight = mProjectionRequestInFlight
+        )
+        mRecorderTransitionInProgress = !controls.mainActionEnabled
+        // isEnabled 与 isClickable 同步：无障碍服务（TalkBack）与键盘焦点按 enabled
+        // 判定控件可用性，只挡 isClickable 会让不可操作的按钮仍被宣告成可用操作。
+        mIvMainAction?.isClickable = controls.mainActionEnabled
+        mIvMainAction?.isEnabled = controls.mainActionEnabled
+        mIvReRecording?.isClickable = controls.stoppedActionsEnabled
+        mIvReRecording?.isEnabled = controls.stoppedActionsEnabled
+        mIvCancelRecording?.isClickable = controls.cancelEnabled
+        mIvCancelRecording?.isEnabled = controls.cancelEnabled
+        mLlAudioInputCapsule?.isClickable = controls.sourceSelectorEnabled
+        mLlAudioInputCapsule?.isEnabled = mLlAudioInputCapsule?.isClickable == true
     }
 
     private fun saveFileAndLeave() {
@@ -680,6 +1182,53 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private fun currentAccentBackground(): ThingBackground {
         return mAccentBackground ?: ThingBackground.pure(mActivity!!.getAccentColor())
+    }
+
+    /**
+     * 来源行对齐的是当前数字字体真正绘制出的稳定着墨边界，而不是时钟 View 的外框。
+     * Dialog 窗口为 wrap_content，测量会经历多轮，因此沿用播放 Dialog 的全局布局监听；
+     * 内部按边距判等，尺寸稳定后不会继续触发布局。
+     */
+    private fun installAudioInputClockContentAlignment() {
+        mContentView?.viewTreeObserver?.addOnGlobalLayoutListener(mAudioInputAlignListener)
+    }
+
+    private fun removeAudioInputClockContentAlignment() {
+        val observer = mContentView?.viewTreeObserver ?: return
+        if (observer.isAlive) {
+            observer.removeOnGlobalLayoutListener(mAudioInputAlignListener)
+        }
+    }
+
+    private fun alignAudioInputToClockContent() {
+        val clock = mClockView ?: return
+        val row = mLlAudioInput ?: return
+        if (clock.width <= 0 || clock.height <= 0) return
+        val parentWidth = (clock.parent as? View)?.width ?: return
+        if (parentWidth <= 0) return
+
+        val contentLeft = (clock.left + clock.contentLeftPx())
+            .roundToInt()
+            .coerceIn(0, parentWidth)
+        val contentRight = (clock.left + clock.contentRightPx())
+            .roundToInt()
+            .coerceIn(contentLeft, parentWidth)
+        if (contentRight <= contentLeft) return
+
+        val endMargin = parentWidth - contentRight
+        val params = row.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        if (params.marginStart == contentLeft &&
+            params.leftMargin == contentLeft &&
+            params.marginEnd == endMargin &&
+            params.rightMargin == endMargin
+        ) {
+            return
+        }
+        params.marginStart = contentLeft
+        params.leftMargin = contentLeft
+        params.marginEnd = endMargin
+        params.rightMargin = endMargin
+        row.layoutParams = params
     }
 
     private fun configureClockView(accentBg: ThingBackground) {
@@ -791,6 +1340,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         private const val TARGET_REFRESH_RATE =
             WaveVisualizerFableSolGl.MAX_RENDER_FPS.toFloat()
         const val TAG: String = "AudioRecordDialogFragment"
+        private const val PROBE_TAG: String = "AudioRecProbe"
+        private const val STATE_PROJECTION_IN_FLIGHT = "state_projection_in_flight"
+        private const val STATE_PENDING_PROJECTION_MODE = "state_pending_projection_mode"
 
         const val PREPARED: Int  = 0
         const val RECORDING: Int = 1
@@ -804,9 +1356,19 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         private const val CLOCK_INTRO_DELAY_MS = 160L
         private const val CLOCK_STOPPED_TOP_FROM_PARENT_DP = 80f
         private const val FILE_NAME_STOPPED_TRANSLATION_Y_DP = 24f
+        private const val AUDIO_INPUT_PREPARED_TOP_DP = 84f
+        private const val AUDIO_NOTICE_PREPARED_TOP_DP = 136f
+        private const val AUDIO_NOTICE_RECORDING_TOP_DP = 88f
+        private const val AUDIO_NOTICE_STOPPED_TOP_DP = 180f
+        /** 与布局里 tv_audio_input_notice 的 marginStart/End 保持一致。 */
+        private const val AUDIO_NOTICE_SIDE_MARGIN_DP = 36f
+        private const val AUDIO_INPUT_CAPSULE_RADIUS_DP = 18f
+        private const val FABLESOL_IDLE_PRESENTATION_ALPHA = 0.16f
 
         // 侧边控件柔和衬底的透明度。
         private const val SIDE_CONTROL_SCRIM_ALPHA = 128
         private const val MAIN_BUTTON_CONFIRM_ICON_ALPHA = 0.96f
+        // 封装失败的停止态：保存主按钮点击已被策略禁用，淡化到该值传达不可用。
+        private const val MAIN_BUTTON_DISABLED_ALPHA = 0.4f
     }
 }

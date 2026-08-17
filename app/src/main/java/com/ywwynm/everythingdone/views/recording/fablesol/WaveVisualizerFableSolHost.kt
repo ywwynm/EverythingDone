@@ -188,6 +188,12 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         else glView.onAudioFrames(frames, events)
     }
 
+    /** 离开/返回录音 Dialog 时清掉边界处未消费批次，避免快速回放后台历史。 */
+    fun clearPendingAudio() {
+        glView.clearPendingAudio()
+        canvasFallback.clearPendingAudio()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(resolveIntrinsic(widthMeasureSpec, INTRINSIC_W_DP), MeasureSpec.EXACTLY),
