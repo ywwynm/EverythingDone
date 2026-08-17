@@ -788,6 +788,7 @@
     <string name="audio_input_system_and_microphone_summary">Records system playback and this device’s microphone together. Requires Android 10+, microphone permission, and whole-screen system authorization, but this app never reads or saves the screen. Headphones are recommended to reduce echo. Formal recording continues after you switch apps. Stopping ends the authorization; you can also revoke it from the system screen-sharing status, which stops and keeps the current recording.</string>
     <string name="cd_choose_audio_input">Choose audio input</string>
     <string name="audio_input_projection_denied">System authorization was cancelled. Audio input has returned to Microphone.</string>
+    <string name="audio_input_direction_samples_delayed">Due to the current permission settings, device orientation is temporarily unavailable, so the ocean wave animation cannot respond when you tilt your device. Please open system settings and allow this app to access device motion and orientation.</string>
     <string name="audio_recording_size_limit_reached">Recording reached the single-file limit and has been stopped and kept.</string>
     <string name="audio_recording_storage_full">Not enough storage to finalize the recording. It could not be kept.</string>
     <string name="audio_recording_finalize_failed">Failed to finalize the recording. It could not be kept.</string>

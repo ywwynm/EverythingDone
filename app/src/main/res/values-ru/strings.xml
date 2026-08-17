@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
     <string name="settings_doing_digit_style">Стиль цифр таймера</string>
     <string name="settings_fablesol_tuning">Настройки анимации волн</string>
+    <string name="audio_input_direction_samples_delayed">Из-за настроек разрешений временно не удается определить ориентацию устройства, поэтому анимация волн не реагирует на наклон. Откройте системные настройки и разрешите приложению доступ к движению и ориентации устройства.</string>
     <string name="fablesol_tuning_hdr">Блики HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(не поддерживается на этом устройстве)</string>
     <string name="fablesol_tuning_hdr_off">выкл.</string>

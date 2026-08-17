@@ -775,6 +775,7 @@
     <string name="audio_input_system_and_microphone_summary">同时录制系统播放音频和设备麦克风。需要 Android 10+、麦克风权限和整个屏幕范围的系统授权，但本应用不会读取或保存画面。建议使用耳机减少回声。正式录音在切换 App 后仍会继续。停止录音会结束授权；也可从系统的屏幕共享状态入口撤销，撤销后将停止并保留当前录音。</string>
     <string name="cd_choose_audio_input">选择音频输入</string>
     <string name="audio_input_projection_denied">已取消系统授权，音频输入已恢复为“麦克风”</string>
+    <string name="audio_input_direction_samples_delayed">因权限设置原因，暂时无法获取设备方向信息，音频海浪动画无法随设备倾斜变化。请前往系统设置，将本应用的“设备动作与方向”权限设为“允许”。</string>
     <string name="audio_recording_size_limit_reached">录音已达单文件上限，已自动停止并保留</string>
     <string name="audio_recording_storage_full">存储空间不足，录音未能保存</string>
     <string name="audio_recording_finalize_failed">录音封装失败，未能保存</string>

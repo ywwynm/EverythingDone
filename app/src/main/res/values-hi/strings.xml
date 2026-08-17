@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
     <string name="settings_doing_digit_style">टाइमर अंक शैली</string>
     <string name="settings_fablesol_tuning">समुद्री लहर एनीमेशन सेटिंग्स</string>
+    <string name="audio_input_direction_samples_delayed">अनुमति सेटिंग के कारण डिवाइस की दिशा की जानकारी अस्थायी रूप से उपलब्ध नहीं है, इसलिए समुद्री लहर एनीमेशन डिवाइस झुकाने पर प्रतिक्रिया नहीं दे सकता। कृपया सिस्टम सेटिंग में जाकर इस ऐप को डिवाइस की गति और दिशा की अनुमति दें।</string>
     <string name="fablesol_tuning_hdr">HDR हाइलाइट्स</string>
     <string name="fablesol_tuning_hdr_unsupported">(इस डिवाइस पर समर्थित नहीं)</string>
     <string name="fablesol_tuning_hdr_off">बंद</string>

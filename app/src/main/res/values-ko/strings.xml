@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">새로운 것을 만들 때 테두리 조명 애니메이션</string>
     <string name="settings_doing_digit_style">타이머 숫자 스타일</string>
     <string name="settings_fablesol_tuning">오디오 파도 애니메이션 설정</string>
+    <string name="audio_input_direction_samples_delayed">권한 설정으로 인해 기기 방향 정보를 일시적으로 가져올 수 없어 오디오 파도 애니메이션이 기울임에 반응할 수 없습니다. 시스템 설정으로 이동하여 이 앱의 기기 동작 및 방향 접근을 허용해 주세요.</string>
     <string name="fablesol_tuning_hdr">HDR 하이라이트</string>
     <string name="fablesol_tuning_hdr_unsupported">(기기에서 지원되지 않음)</string>
     <string name="fablesol_tuning_hdr_off">꺼짐</string>

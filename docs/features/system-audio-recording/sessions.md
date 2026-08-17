@@ -1,5 +1,27 @@
 # 会话记录
 
+## 2026-08-17 - 强化方向权限 Toast 的确定性表达
+
+按用户指定将简体中文 Toast 改为：“因权限设置原因，暂时无法获取设备方向信息，音频海浪动画无法随设备倾斜变化。请前往系统设置，将本应用的‘设备动作与方向’权限设为‘允许’。”同步修改语言选择器覆盖的全部 13 个 locale：各语言均明确权限设置是原因、动画当前无法响应倾斜，并直接请用户前往系统设置，不再使用“可能”“建议”等弱化表达。正式动画名称继续与各语言设置页保持一致。13 份资源完整性检查和 `:app:assembleDebug` 均通过。随后按用户要求发布阿里云 Debug 更新 `202608170958`；远端元数据与本地一致，APK 大小 `24400140` 字节，SHA-256 为 `edcf7b9b14fab83006ff6b7f73e165263af906626cbbb847a9b77b41fe83e903`，远端发布说明已确认包含最终简体中文正文。发布日志归档于 `debug-updates/update-20260817175744.md`。
+
+## 2026-08-17 - 确认关闭画面倾斜时不显示方向提示
+
+按用户提醒复核一次性 Toast 与设置页“画面响应设备倾斜”的调用链。录音 Dialog 创建时通过 `FableSolTuning.liveTiltEnabled()` 读取该设置并在本次 Dialog 生命周期内固定；设置为否时 `prepareTiltSensor()` 不准备方向传感器，系统授权返回后传给 `DirectionSampleDelayHintGate.onProjectionResult()` 的 `monitoringEnabled` 也必为 false，因此不会启动 1.5 秒计时，更不会显示 Toast。现有“监测关闭不提示”门控回归用例通过，无需修改产品代码；仅将该产品规则补入 `preferences.md`。该行为已包含在阿里云更新码 `202608170939` 中。
+
+## 2026-08-17 - 修正方向信息提示名称并补齐全部语言
+
+按用户反馈修正一次性 Toast：简体中文改用设置页正式名称“音频海浪动画”，并以“设备方向信息”替代用户可见的“样本”表述；其他语言沿用各自设置页现有的正式动画名称，不再显示内部名称。核对语言选择器后确认 App 提供 13 个 locale 选项（11 种语言，其中中文包含 3 个地区版本），本提示已由原先 4 份资源补齐为全部 13 份本地化文案。`assembleDebug` 资源编译与构建通过。
+
+按用户要求通过 `:app:publishDebugUpdate` 发布到阿里云 Debug 渠道，更新码为 `202608170939`。远端 `latest.json` 回读 HTTP 200；版本化 APK 大小为 `24399692` 字节，SHA-256 为 `79185eb0ef937e51afa4e54ae948d826323af6472d554680d9d56324a91f8e0e`，均与本地构建和元数据一致。发布日志归档于 `debug-updates/update-20260817173857.md`。
+
+## 2026-08-17 - 增加方向样本延迟的一次性通用 Toast
+
+按用户决定，仅处理提示而不尝试绕过系统传感器策略：MediaProjection 授权成功返回后，以离开应用前的样本序号为基线；若返回后 1.5 秒仍没有新方向样本，则显示长 Toast，正文说明 FableSol 可能暂时无法响应倾斜，并建议在系统设置中把“设备动作与方向”权限设为“允许”。文案不包含 ColorOS 或其他品牌。任一样本到达即取消；取消授权、关闭实时倾斜、普通 Activity 往返和正常快速恢复不触发。展示状态写入 `EverythingDone_preferences`，安装期间最多一次。新增线程安全的 `DirectionSampleDelayHintGate` 及 6 例回归测试，全量 Debug 单测与构建通过。9018f404 实机在系统实际拦截下验证：首次授权返回约 1.50 秒出现 Toast；第二次同样拦截但无 Toast。测试前后偏好文件 SHA-256 均为 `b6fc7d87aa6597720a895825235a003e8bd6e42074d7fafc3c383dcc4fc3f2c8`，一次性标志与临时备份均未残留，设备仍保留首次真实提示机会。
+
+## 2026-08-17 - 诊断来源切换后 FableSol 倾斜暂时失效
+
+按用户授权在 OPD2515 / Android 16 / ColorOS `OPD2515_16.0.9.401(CN01)` 实机完成受控诊断，只分析、未改产品逻辑。GL 帧和 swap 全程连续，排除提示布局、Surface、FableSol 渲染及音频重配。MediaProjection 返回后 gravity listener 注册成功但首个事件精确延迟约 6 秒；仅往返 Android 设置也能复现。ColorOS 同期记录 `SensorInterceptByDirectionOp ... stage=2`，应用的 `DIRECTION_SENSORS` AppOp 为 `default`，系统界面对应“设备动作与方向 → 仅开屏时不允许”，并明确说明应用启动后 6 秒内阻止摇一摇。强制 accelerometer、跨 `onPause()` 保留 listener 均不能绕过。临时改为“允许”后，同样 stage 2 返回约 41 ms 即继续消费倾斜样本且无拦截日志；随后已恢复原权限。结论：系统在事件进入应用前过滤方向传感器，系统类来源切回麦克风只是继承前一次授权返回的门禁，重新录音则可能因重新授权再次触发。临时探针和生命周期实验均已撤销。完整证据与方案见 `analysis-2026-08-17-fablesol-tilt-after-source-switch.md`。
+
 ## 2026-08-17 - 外部审查第九轮修复批（偏好确认收口）
 
 第九轮 1 P2 + 2 P3 全实全修：系统偏好确认条件收窄为"预览真验证过"（配置期转后台不再确认，`startPreview` 成功后补记，幂等）；回落分支补 `lastStartFailedOnOutput` 分流（带 `previewRequested` 前置防标志残值）；`startPreview` 入口即清 `systemSilent`（恢复预览启动窗口不再闪现假静音警告）。真机回归全过、偏好无误写，911 例单测过。

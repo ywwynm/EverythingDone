@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">Animação de luz de borda ao criar algo novo</string>
     <string name="settings_doing_digit_style">Estilo dos dígitos do temporizador</string>
     <string name="settings_fablesol_tuning">Configurações da animação das ondas</string>
+    <string name="audio_input_direction_samples_delayed">Devido às configurações de permissão, não é possível detectar a orientação do dispositivo no momento, por isso a animação das ondas não responde à inclinação. Acesse as configurações do sistema e permita que este aplicativo acesse o movimento e a orientação do dispositivo.</string>
     <string name="fablesol_tuning_hdr">Realces HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(sem suporte neste aparelho)</string>
     <string name="fablesol_tuning_hdr_off">desligado</string>

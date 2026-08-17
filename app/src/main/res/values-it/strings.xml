@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
     <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
     <string name="settings_fablesol_tuning">Impostazioni dell\'animazione delle onde</string>
+    <string name="audio_input_direction_samples_delayed">A causa delle impostazioni delle autorizzazioni, al momento non è possibile rilevare l\'orientamento del dispositivo e l\'animazione delle onde non può reagire all\'inclinazione. Apri le impostazioni di sistema e consenti a questa app di accedere al movimento e all\'orientamento del dispositivo.</string>
     <string name="fablesol_tuning_hdr">Luci HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non supportato su questo dispositivo)</string>
     <string name="fablesol_tuning_hdr_off">spento</string>

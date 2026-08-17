@@ -37,6 +37,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 
 import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.BuildConfig
@@ -60,6 +61,7 @@ import com.ywwynm.everythingdone.views.recording.AudioRecordingControlPolicy
 import com.ywwynm.everythingdone.views.recording.AudioRecordingNotice
 import com.ywwynm.everythingdone.views.recording.AudioRecordingPhase
 import com.ywwynm.everythingdone.views.recording.AudioRecordingSnapshot
+import com.ywwynm.everythingdone.views.recording.DirectionSampleDelayHintGate
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
@@ -123,6 +125,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mGravitySensor: Sensor? = null
     private var mSensorThread: HandlerThread? = null
     private var mTiltSensorRegistered: Boolean = false
+    @Volatile private var mTiltSampleSequence: Long = 0L
+    private var mDirectionSampleDelayHintGate: DirectionSampleDelayHintGate? = null
     /**
      * 画面是否跟随设备姿态（[FableSolTuning.liveTiltEnabled]）。对话框打开时读一次并固定：
      * 它同时决定要不要锁方向、要不要注册传感器、录音要不要记重力轨迹，中途换值会让这三件
@@ -134,6 +138,22 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mOrientationLocked: Boolean = false
     private var mLockedRotation: Int = Surface.ROTATION_0
     private val mClockHandler: Handler = Handler(Looper.getMainLooper())
+    private val mDirectionSampleDelayHint: Runnable = Runnable {
+        val host = mActivity ?: return@Runnable
+        val gate = mDirectionSampleDelayHintGate ?: return@Runnable
+        if (!isAdded || !isResumed || !mDialogVisible || mSessionClosing) {
+            gate.cancel()
+            return@Runnable
+        }
+        if (!gate.onWaitExpired()) return@Runnable
+        if (AudioInputPreferences.hasShownDirectionSampleDelayHint(host)) return@Runnable
+        AudioInputPreferences.markDirectionSampleDelayHintShown(host)
+        Toast.makeText(
+            host,
+            R.string.audio_input_direction_samples_delayed,
+            Toast.LENGTH_LONG
+        ).show()
+    }
     private var mRecordingBaseElapsed: Long = 0L
     private val mClockTick: Runnable = object : Runnable {
         override fun run() {
@@ -200,6 +220,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         mProjectionRequestInFlight = false
         updateControlsEnabled()
+        updateDirectionSampleDelayHintAfterProjection(
+            result.resultCode == Activity.RESULT_OK && result.data != null
+        )
         if (mRecordingBinder == null) {
             mPendingProjectionResult = result
         } else {
@@ -223,6 +246,13 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mActivity = activity as DetailActivity
         mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(mActivity!!)
+        mDirectionSampleDelayHintGate = DirectionSampleDelayHintGate(
+            alreadyShown = AudioInputPreferences.hasShownDirectionSampleDelayHint(mActivity!!)
+        ).also { gate ->
+            if (mProjectionRequestInFlight) {
+                gate.onProjectionRequestStarted(mTiltSampleSequence)
+            }
+        }
         lockHostOrientation()
         prepareTiltSensor()
 
@@ -323,6 +353,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     override fun onPause() {
+        if (mProjectionRequestInFlight) {
+            mDirectionSampleDelayHintGate?.onHostPausedForProjection(mTiltSampleSequence)
+        }
         stopTiltSensor()
         super.onPause()
     }
@@ -367,6 +400,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mBindRequested = false
         mAudioInputPicker?.dismiss()
         mAudioInputPicker = null
+        cancelDirectionSampleDelayHint()
+        mDirectionSampleDelayHintGate = null
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
@@ -419,6 +454,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private val mTiltListener: SensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             if (event.values.size < 3) return
+            mTiltSampleSequence += 1L
+            if (mDirectionSampleDelayHintGate?.onDirectionSample() == true) {
+                mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
+            }
             dispatchGravityToVisualizer(event.values[0], event.values[1], event.values[2])
         }
 
@@ -791,6 +830,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private fun requestMediaProjection(mode: AudioInputMode) {
         if (!mode.requiresSystemAudio || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         if (mProjectionRequestInFlight) return
+        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
+        mDirectionSampleDelayHintGate?.onProjectionRequestStarted(mTiltSampleSequence)
         mPendingProjectionMode = mode
         mProjectionRequestInFlight = true
         updateControlsEnabled()
@@ -814,8 +855,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         val mode = mPendingProjectionMode ?: mSelectedInputMode
         mPendingProjectionMode = null
         val data = result.data
+        val projectionGranted = result.resultCode == Activity.RESULT_OK && data != null
         try {
-            if (result.resultCode == Activity.RESULT_OK && data != null) {
+            if (projectionGranted) {
                 binder.prepareSystemMode(mode, result.resultCode, data)
             } else {
                 binder.fallbackToMicrophone(AudioRecordingNotice.PROJECTION_DENIED)
@@ -825,6 +867,26 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             binder.fallbackToMicrophone(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
         }
         updateControlsEnabled()
+    }
+
+    private fun updateDirectionSampleDelayHintAfterProjection(projectionGranted: Boolean) {
+        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
+        val shouldWait = mDirectionSampleDelayHintGate?.onProjectionResult(
+            granted = projectionGranted,
+            monitoringEnabled = mLiveTiltEnabled && mGravitySensor != null,
+            currentSampleSequence = mTiltSampleSequence
+        ) == true
+        if (shouldWait) {
+            mClockHandler.postDelayed(
+                mDirectionSampleDelayHint,
+                DIRECTION_SAMPLE_DELAY_HINT_WAIT_MS
+            )
+        }
+    }
+
+    private fun cancelDirectionSampleDelayHint() {
+        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
+        mDirectionSampleDelayHintGate?.cancel()
     }
 
     private fun consumePendingProjectionResult() {
@@ -1343,6 +1405,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         private const val PROBE_TAG: String = "AudioRecProbe"
         private const val STATE_PROJECTION_IN_FLIGHT = "state_projection_in_flight"
         private const val STATE_PENDING_PROJECTION_MODE = "state_pending_projection_mode"
+        private const val DIRECTION_SAMPLE_DELAY_HINT_WAIT_MS = 1_500L
 
         const val PREPARED: Int  = 0
         const val RECORDING: Int = 1

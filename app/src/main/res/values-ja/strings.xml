@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
     <string name="settings_doing_digit_style">タイマーの数字スタイル</string>
     <string name="settings_fablesol_tuning">海の波アニメーションの設定</string>
+    <string name="audio_input_direction_samples_delayed">権限設定により、端末の向き情報を一時的に取得できず、海の波アニメーションは端末の傾きに反応できません。システム設定を開き、このアプリの「端末の動きと向き」へのアクセスを許可してください。</string>
     <string name="fablesol_tuning_hdr">HDR ハイライト</string>
     <string name="fablesol_tuning_hdr_unsupported">（この端末では未対応）</string>
     <string name="fablesol_tuning_hdr_off">オフ</string>

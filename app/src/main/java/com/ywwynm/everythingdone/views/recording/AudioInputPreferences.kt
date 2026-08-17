@@ -20,6 +20,8 @@ object AudioInputPreferences {
     private const val KEY_AUDIO_INPUT_MODE_CONFIRMED = "audio_recording_input_mode_confirmed"
     private const val KEY_NOTIFICATION_PERMISSION_REQUESTED =
         "audio_recording_notification_permission_requested"
+    private const val KEY_DIRECTION_SAMPLE_DELAY_HINT_SHOWN =
+        "audio_recording_direction_sample_delay_hint_shown"
     private const val KEY_STOPPED_FILE = "audio_recording_stopped_file"
     private const val KEY_STOPPED_THING_ID = "audio_recording_stopped_thing_id"
     private const val KEY_STOPPED_DURATION = "audio_recording_stopped_duration"
@@ -104,6 +106,15 @@ object AudioInputPreferences {
 
     fun markNotificationPermissionRequested(context: Context) {
         preferences(context).edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()
+    }
+
+    fun hasShownDirectionSampleDelayHint(context: Context): Boolean =
+        preferences(context).getBoolean(KEY_DIRECTION_SAMPLE_DELAY_HINT_SHOWN, false)
+
+    fun markDirectionSampleDelayHintShown(context: Context) {
+        preferences(context).edit()
+            .putBoolean(KEY_DIRECTION_SAMPLE_DELAY_HINT_SHOWN, true)
+            .apply()
     }
 
     private fun preferences(context: Context) = context.applicationContext.getSharedPreferences(

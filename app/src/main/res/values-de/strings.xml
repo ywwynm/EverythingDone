@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
     <string name="settings_doing_digit_style">Timer-Ziffernstil</string>
     <string name="settings_fablesol_tuning">Ozeanwellen-Animation</string>
+    <string name="audio_input_direction_samples_delayed">Aufgrund der aktuellen Berechtigungseinstellungen kann die Geräteausrichtung vorübergehend nicht erfasst werden. Die Ozeanwellen-Animation reagiert daher nicht auf das Neigen des Geräts. Öffnen Sie die Systemeinstellungen und erlauben Sie dieser App den Zugriff auf Bewegung und Ausrichtung des Geräts.</string>
     <string name="fablesol_tuning_hdr">HDR-Glanzlichter</string>
     <string name="fablesol_tuning_hdr_unsupported">(auf diesem Gerät nicht unterstützt)</string>
     <string name="fablesol_tuning_hdr_off">aus</string>

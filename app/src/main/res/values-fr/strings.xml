@@ -505,6 +505,7 @@
     <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
     <string name="settings_doing_digit_style">Style des chiffres du minuteur</string>
     <string name="settings_fablesol_tuning">Réglages de l\'animation des vagues</string>
+    <string name="audio_input_direction_samples_delayed">En raison des réglages d\'autorisation actuels, l\'orientation de l\'appareil est temporairement indisponible et l\'animation des vagues ne peut pas réagir à l\'inclinaison. Ouvrez les réglages système et autorisez cette application à accéder aux mouvements et à l\'orientation de l\'appareil.</string>
     <string name="fablesol_tuning_hdr">Hautes lumières HDR</string>
     <string name="fablesol_tuning_hdr_unsupported">(non pris en charge sur cet appareil)</string>
     <string name="fablesol_tuning_hdr_off">désactivé</string>
