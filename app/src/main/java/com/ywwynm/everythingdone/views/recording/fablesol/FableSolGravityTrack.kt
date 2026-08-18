@@ -184,12 +184,20 @@ internal class FableSolGravityTrack private constructor(
                 count = 0
                 baseElapsedMs = SystemClock.elapsedRealtime()
                 collecting = true
-                // 先把"此刻的姿态"落成 t=0 的种子。
-                timestamps[0] = 0L
-                values[0] = lastX
-                values[1] = lastY
-                values[2] = lastZ
-                count = 1
+                // 先把"此刻的姿态"落成 t=0 的种子——但只在真的有过读数时。
+                //
+                // 系统可能在应用回到前台后的数秒内过滤方向事件（见
+                // `docs/features/direction-sensor-permission/`），那时 `hasLast` 为 false，
+                // `lastX/Y/Z` 还是初始的竖直值。种下去等于把"没有数据"伪造成"数据是竖直"，
+                // 并永久写进 WAV，事后授权也救不回来。不种时零阶保持会把开头回填为第一个
+                // **真实**姿态——同样是推断，但比任意的竖直更接近当时的实际情况。
+                if (hasLast) {
+                    timestamps[0] = 0L
+                    values[0] = lastX
+                    values[1] = lastY
+                    values[2] = lastZ
+                    count = 1
+                }
             }
         }
 

@@ -36,6 +36,8 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.permission.DirectionSensorHint
+import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -68,6 +70,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     private var mPlayer: FableSolAudioFilePlayer? = null
 
     private var mTvFileName: TextView? = null
+    private var mTvDirectionNotice: TextView? = null
     private var mClockView: TimelyClockView? = null
     private var mSeekBar: SeekBar? = null
     private var mVisualizer: WaveVisualizerFableSolHost? = null
@@ -103,6 +106,14 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     private var mOrientationLocked: Boolean = false
     private var mLockedRotation: Int = Surface.ROTATION_0
     private val mClockHandler: Handler = Handler(Looper.getMainLooper())
+    /**
+     * 方向数据是否真的在流动。只由"注册成功之后有没有拿到第一个样本"决定，与用什么动作回到
+     * 前台无关。
+     */
+    private val mDirectionWatchdog = DirectionSensorWatchdog()
+    private val mDirectionStallCheck: Runnable = Runnable {
+        if (mDirectionWatchdog.onWaitExpired()) updateDirectionNotice()
+    }
 
     override fun getLayoutResource(): Int = R.layout.fragment_play_audio
 
@@ -126,6 +137,10 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         mFreezeGate.setTiltAvailable(mLiveTiltEnabled && mGravitySensor != null)
 
         mTvFileName = f(R.id.tv_playing_audio_file_name)
+        // 提示区不可点，文案里的「系统设置」不做跳转，只取纯文本。
+        mTvDirectionNotice = f<TextView>(R.id.tv_play_direction_notice)?.also {
+            it.text = DirectionSensorHint.plain(it)
+        }
         mClockView  = f(R.id.clock_play_audio)
         mSeekBar    = f(R.id.sb_audio_progress)
         mVisualizer = f(R.id.voice_visualizer)
@@ -541,10 +556,24 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
     private val mTiltListener: SensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             if (event.values.size < 3) return
+            // 这里是传感器线程。看门狗自带锁，但提示只能在主线程改。
+            if (mDirectionWatchdog.onSample()) {
+                mClockHandler.removeCallbacks(mDirectionStallCheck)
+                mClockHandler.post { updateDirectionNotice() }
+            }
             dispatchGravityToVisualizer(event.values[0], event.values[1], event.values[2])
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    /**
+     * 方向传感器受限提示：条件驱动，注册后 [DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS]
+     * 内没有任何样本才出现，受限窗口结束后的第一个样本即隐藏。
+     */
+    private fun updateDirectionNotice() {
+        val notice = mTvDirectionNotice ?: return
+        notice.visibility = if (mDirectionWatchdog.isStalled()) View.VISIBLE else View.GONE
     }
 
     /**
@@ -737,7 +766,15 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         if (!mTiltSensorRegistered) {
             thread.quitSafely()
             mSensorThread = null
+            return
         }
+        // 注册成功才开始等首样本；导出冻结期本就不注册，也就不会误报。
+        mDirectionWatchdog.onRegistered()
+        mClockHandler.removeCallbacks(mDirectionStallCheck)
+        mClockHandler.postDelayed(
+            mDirectionStallCheck,
+            DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS
+        )
     }
 
     private fun stopTiltSensor() {
@@ -747,6 +784,9 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         }
         mSensorThread?.quitSafely()
         mSensorThread = null
+        mClockHandler.removeCallbacks(mDirectionStallCheck)
+        mDirectionWatchdog.onUnregistered()
+        updateDirectionNotice()
     }
 
     private fun stopPerformanceMonitor() {

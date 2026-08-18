@@ -155,6 +155,19 @@ object SpatialPreferences {
         preferences(context).edit().putBoolean(KEY_INTERACTION_HINT_SHOWN, true).apply()
     }
 
+    /**
+     * 方向传感器受限提示是否还没展示过。空间照片这一处用的是 Toast——它撤不回来，因此整次
+     * 安装最多展示一次。该键**只属于空间照片**：音频那三处走界内提示区、条件驱动，不需要
+     * 任何持久化状态，两边不得共用一个键，否则一处看过之后另一处永远得不到解释。
+     */
+    fun shouldShowDirectionRestrictedHint(context: Context): Boolean =
+        !preferences(context).getBoolean(KEY_DIRECTION_RESTRICTED_HINT_SHOWN, false)
+
+    fun markDirectionRestrictedHintShown(context: Context) {
+        preferences(context).edit()
+            .putBoolean(KEY_DIRECTION_RESTRICTED_HINT_SHOWN, true).apply()
+    }
+
     private fun preferences(context: Context) =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
@@ -171,4 +184,5 @@ object SpatialPreferences {
         "selected_boundary_refinement_model"
     private const val KEY_DEVICE_TILT = "device_tilt"
     private const val KEY_INTERACTION_HINT_SHOWN = "interaction_hint_shown"
+    private const val KEY_DIRECTION_RESTRICTED_HINT_SHOWN = "direction_restricted_hint_shown"
 }

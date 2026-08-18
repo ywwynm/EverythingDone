@@ -1,5 +1,18 @@
 # Current Debug Update Notes
 
+## 2026-08-18 - 方向权限受限的检测与提示，四处消费者全覆盖
+
+发布号 `202608171723`（任务按 UTC 命名），APK SHA-256
+`0dfae9b91cc0790aa7c81dbdf3ca526ec0ead8a346be1526d2aeaf40d49e686d`，24,399,544 字节。
+日志：`docs/features/direction-sensor-permission/debug-updates/update-20260818012500.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 759 字（单节，三部分齐全）。
+
+新增与触发路径无关的首样本看门狗（`permission/DirectionSensorWatchdog`，T1 = 1.5 秒），
+替换 f25e079e 里绑 MediaProjection 的旧状态机。四处消费者全部接入：录音与音频附件走界内
+提示区、海浪动画设置与空间照片设置走开关下方的条件说明行（「系统设置」为可点片段，按强调色
+渐变着色）、空间照片走一次性 Toast（键与音频侧分开）。另修正重力轨迹在无真实样本时种下伪造
+竖直 t=0 的缺陷。OPD2515 上三档权限逐一验证（含零误报负对照），921 项单测过。工作区未提交。
+
 ## 2026-08-17 - 偏好确认收口与错误分类补全（外部审查第九轮）
 
 发布号 `202608170239`（任务按 UTC 命名），APK SHA-256

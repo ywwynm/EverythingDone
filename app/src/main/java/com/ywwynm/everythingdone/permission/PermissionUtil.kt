@@ -1,9 +1,13 @@
 package com.ywwynm.everythingdone.permission
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.Thing
@@ -147,6 +151,28 @@ object PermissionUtil {
             }
         }
         return false
+    }
+
+    /**
+     * 跳到本应用的系统权限页面。厂商各自的具体权限页 action 是私有的、换 ROM 即失效，
+     * 因此只跳标准的应用详情页；连它都起不来时退回系统设置根页面。
+     */
+    @JvmStatic
+    fun openApplicationDetails(context: Context) {
+        val details = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null)
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(details)
+        } catch (_: ActivityNotFoundException) {
+            try {
+                context.startActivity(
+                    Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (_: ActivityNotFoundException) {
+            }
+        }
     }
 
     @JvmStatic

@@ -37,7 +37,6 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 
 import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.BuildConfig
@@ -47,6 +46,8 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.permission.DirectionSensorHint
+import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
 import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -61,7 +62,6 @@ import com.ywwynm.everythingdone.views.recording.AudioRecordingControlPolicy
 import com.ywwynm.everythingdone.views.recording.AudioRecordingNotice
 import com.ywwynm.everythingdone.views.recording.AudioRecordingPhase
 import com.ywwynm.everythingdone.views.recording.AudioRecordingSnapshot
-import com.ywwynm.everythingdone.views.recording.DirectionSampleDelayHintGate
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolPerformanceMonitor
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolTuning
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolVideoExportLauncher
@@ -125,8 +125,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mGravitySensor: Sensor? = null
     private var mSensorThread: HandlerThread? = null
     private var mTiltSensorRegistered: Boolean = false
-    @Volatile private var mTiltSampleSequence: Long = 0L
-    private var mDirectionSampleDelayHintGate: DirectionSampleDelayHintGate? = null
+    /**
+     * 方向数据是否真的在流动。它只由"注册成功之后有没有拿到第一个样本"决定，与用什么动作
+     * 回到前台无关；判定结果直接进提示区的优先级链，样本一到就撤掉。
+     */
+    private val mDirectionWatchdog = DirectionSensorWatchdog()
     /**
      * 画面是否跟随设备姿态（[FableSolTuning.liveTiltEnabled]）。对话框打开时读一次并固定：
      * 它同时决定要不要锁方向、要不要注册传感器、录音要不要记重力轨迹，中途换值会让这三件
@@ -138,21 +141,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private var mOrientationLocked: Boolean = false
     private var mLockedRotation: Int = Surface.ROTATION_0
     private val mClockHandler: Handler = Handler(Looper.getMainLooper())
-    private val mDirectionSampleDelayHint: Runnable = Runnable {
-        val host = mActivity ?: return@Runnable
-        val gate = mDirectionSampleDelayHintGate ?: return@Runnable
-        if (!isAdded || !isResumed || !mDialogVisible || mSessionClosing) {
-            gate.cancel()
-            return@Runnable
-        }
-        if (!gate.onWaitExpired()) return@Runnable
-        if (AudioInputPreferences.hasShownDirectionSampleDelayHint(host)) return@Runnable
-        AudioInputPreferences.markDirectionSampleDelayHintShown(host)
-        Toast.makeText(
-            host,
-            R.string.audio_input_direction_samples_delayed,
-            Toast.LENGTH_LONG
-        ).show()
+    private val mDirectionStallCheck: Runnable = Runnable {
+        if (mDirectionWatchdog.onWaitExpired()) refreshDirectionNotice()
     }
     private var mRecordingBaseElapsed: Long = 0L
     private val mClockTick: Runnable = object : Runnable {
@@ -220,9 +210,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         mProjectionRequestInFlight = false
         updateControlsEnabled()
-        updateDirectionSampleDelayHintAfterProjection(
-            result.resultCode == Activity.RESULT_OK && result.data != null
-        )
         if (mRecordingBinder == null) {
             mPendingProjectionResult = result
         } else {
@@ -246,13 +233,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
         mActivity = activity as DetailActivity
         mLiveTiltEnabled = FableSolTuning.liveTiltEnabled(mActivity!!)
-        mDirectionSampleDelayHintGate = DirectionSampleDelayHintGate(
-            alreadyShown = AudioInputPreferences.hasShownDirectionSampleDelayHint(mActivity!!)
-        ).also { gate ->
-            if (mProjectionRequestInFlight) {
-                gate.onProjectionRequestStarted(mTiltSampleSequence)
-            }
-        }
         lockHostOrientation()
         prepareTiltSensor()
 
@@ -353,9 +333,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     }
 
     override fun onPause() {
-        if (mProjectionRequestInFlight) {
-            mDirectionSampleDelayHintGate?.onHostPausedForProjection(mTiltSampleSequence)
-        }
         stopTiltSensor()
         super.onPause()
     }
@@ -400,8 +377,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mBindRequested = false
         mAudioInputPicker?.dismiss()
         mAudioInputPicker = null
-        cancelDirectionSampleDelayHint()
-        mDirectionSampleDelayHintGate = null
         stopTiltSensor()
         stopPerformanceMonitor()
         restoreHostOrientation()
@@ -454,9 +429,10 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private val mTiltListener: SensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             if (event.values.size < 3) return
-            mTiltSampleSequence += 1L
-            if (mDirectionSampleDelayHintGate?.onDirectionSample() == true) {
-                mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
+            // 这里是传感器线程。看门狗自带锁，但提示区只能在主线程改。
+            if (mDirectionWatchdog.onSample()) {
+                mClockHandler.removeCallbacks(mDirectionStallCheck)
+                mClockHandler.post { refreshDirectionNotice() }
             }
             dispatchGravityToVisualizer(event.values[0], event.values[1], event.values[2])
         }
@@ -509,7 +485,15 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         if (!mTiltSensorRegistered) {
             thread.quitSafely()
             mSensorThread = null
+            return
         }
+        // 注册成功才开始等首样本；注册失败根本没有等待对象，提示也无从谈起。
+        mDirectionWatchdog.onRegistered()
+        mClockHandler.removeCallbacks(mDirectionStallCheck)
+        mClockHandler.postDelayed(
+            mDirectionStallCheck,
+            DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS
+        )
     }
 
     private fun stopTiltSensor() {
@@ -519,6 +503,18 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         }
         mSensorThread?.quitSafely()
         mSensorThread = null
+        mClockHandler.removeCallbacks(mDirectionStallCheck)
+        mDirectionWatchdog.onUnregistered()
+        refreshDirectionNotice()
+    }
+
+    /**
+     * 看门狗改变结论后刷新提示区。停止传感器的时机包含 `onDestroyView` 与 `onDismiss`，
+     * 那时视图可能已经没了，所以刷新前必须确认还挂着。
+     */
+    private fun refreshDirectionNotice() {
+        if (!isAdded || mTvAudioInputNotice == null || mActivity == null) return
+        updateAudioInputNotice(mLastSnapshot)
     }
 
     private fun stopPerformanceMonitor() {
@@ -830,8 +826,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
     private fun requestMediaProjection(mode: AudioInputMode) {
         if (!mode.requiresSystemAudio || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         if (mProjectionRequestInFlight) return
-        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
-        mDirectionSampleDelayHintGate?.onProjectionRequestStarted(mTiltSampleSequence)
         mPendingProjectionMode = mode
         mProjectionRequestInFlight = true
         updateControlsEnabled()
@@ -867,26 +861,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             binder.fallbackToMicrophone(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
         }
         updateControlsEnabled()
-    }
-
-    private fun updateDirectionSampleDelayHintAfterProjection(projectionGranted: Boolean) {
-        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
-        val shouldWait = mDirectionSampleDelayHintGate?.onProjectionResult(
-            granted = projectionGranted,
-            monitoringEnabled = mLiveTiltEnabled && mGravitySensor != null,
-            currentSampleSequence = mTiltSampleSequence
-        ) == true
-        if (shouldWait) {
-            mClockHandler.postDelayed(
-                mDirectionSampleDelayHint,
-                DIRECTION_SAMPLE_DELAY_HINT_WAIT_MS
-            )
-        }
-    }
-
-    private fun cancelDirectionSampleDelayHint() {
-        mClockHandler.removeCallbacks(mDirectionSampleDelayHint)
-        mDirectionSampleDelayHintGate?.cancel()
     }
 
     private fun consumePendingProjectionResult() {
@@ -1126,6 +1100,8 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             state.systemSilent -> R.string.audio_input_system_silent
             state.configured && state.inputMode == AudioInputMode.SYSTEM_AND_MICROPHONE &&
                 !state.aecEnabled -> R.string.audio_input_aec_unavailable
+            // 排在最底：录音本身的故障与音质问题都比视觉效果重要，任何一条都压过它。
+            mDirectionWatchdog.isStalled() -> R.string.direction_sensor_restricted
             else -> 0
         }
         if (message == 0) {
@@ -1156,7 +1132,13 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 }).toInt()
                 notice.layoutParams = params
             }
-            notice.setText(message)
+            // 方向受限那一条带 `%1$s` 占位符（可点片段的锚点），不能按资源 id 直接 setText，
+            // 否则屏幕上会出现字面的 %1$s。这里的提示区不可点，取纯文本即可。
+            if (message == R.string.direction_sensor_restricted) {
+                notice.text = DirectionSensorHint.plain(notice)
+            } else {
+                notice.setText(message)
+            }
             notice.visibility = View.VISIBLE
         }
     }
@@ -1405,7 +1387,6 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         private const val PROBE_TAG: String = "AudioRecProbe"
         private const val STATE_PROJECTION_IN_FLIGHT = "state_projection_in_flight"
         private const val STATE_PENDING_PROJECTION_MODE = "state_pending_projection_mode"
-        private const val DIRECTION_SAMPLE_DELAY_HINT_WAIT_MS = 1_500L
 
         const val PREPARED: Int  = 0
         const val RECORDING: Int = 1

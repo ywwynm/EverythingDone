@@ -64,6 +64,7 @@ import com.ywwynm.everythingdone.fragments.ThreeActionsAlertDialogFragment
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.permission.DirectionSensorHint
 import com.ywwynm.everythingdone.spatial.SpatialDepthEngine
 import com.ywwynm.everythingdone.spatial.SpatialDepthModel
 import com.ywwynm.everythingdone.spatial.SpatialDerivativeStore
@@ -171,6 +172,8 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     // —— 空间照片效果 ——
 
     private var mSpatialPhotoView: SpatialPhotoView? = null
+    /** 本轮进入空间照片时刚弹过首次使用提示；见 [onSpatialDirectionStalled]。 */
+    private var mSpatialInteractionHintJustShown: Boolean = false
     private var mSpatialStrengthPanel: View? = null
     private var mSpatialStrength: SeekBar? = null
     private var mSpatialRenderModeButton: TextView? = null
@@ -232,6 +235,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         mTvHdrBadge = f(R.id.tv_hdr_badge)
         mLiveBadge = f(R.id.ll_live_badge)
         mSpatialPhotoView = f(R.id.spatial_photo_view)
+        mSpatialPhotoView?.onDirectionStalled = { onSpatialDirectionStalled() }
         mSpatialStrengthPanel = f(R.id.ll_spatial_strength)
         mSpatialStrength = f(R.id.sb_spatial_strength)
         mSpatialRenderModeButton = f(R.id.btn_spatial_render_mode)
@@ -1395,14 +1399,34 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         updateSpatialChromeVisibility()
         updateSpatialActionState()
 
+        mSpatialInteractionHintJustShown = false
         if (SpatialPreferences.shouldShowInteractionHint(this)) {
             Toast.makeText(this, R.string.spatial_first_use_hint, Toast.LENGTH_LONG).show()
             SpatialPreferences.markInteractionHintShown(this)
+            mSpatialInteractionHintJustShown = true
         } else if (SpatialPreferences.deviceTiltEnabled(this) &&
             mSpatialPhotoView?.hasTiltSensor() == false
         ) {
             Toast.makeText(this, R.string.spatial_tilt_unavailable, Toast.LENGTH_LONG).show()
         }
+    }
+
+    /**
+     * 方向传感器受限（见 `docs/features/direction-sensor-permission/`）：有传感器、倾斜也
+     * 开着，但注册之后一直收不到样本。整次安装只提示一次——Toast 撤不回来，反复弹比不弹更糟。
+     *
+     * 首次使用提示刚弹过时本轮不弹：两条 LENGTH_LONG 排队要七秒，用户只会记住后一条。此时
+     * **不消耗**那一次机会，下次进入空间照片仍可提示。
+     */
+    private fun onSpatialDirectionStalled() {
+        if (mSpatialInteractionHintJustShown) return
+        if (!SpatialPreferences.shouldShowDirectionRestrictedHint(this)) return
+        SpatialPreferences.markDirectionRestrictedHintShown(this)
+        Toast.makeText(
+            this,
+            DirectionSensorHint.plain(resources),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun exitSpatialMode() {

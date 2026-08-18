@@ -5,6 +5,7 @@
      渲染，由 AudioPlayDialogFragment 的取景平移把水线按回与录音对话框相同的贴底位置。 -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
     android:layout_height="450dp"
     android:minWidth="280dp"
@@ -81,6 +82,34 @@
         android:contentDescription="@string/cd_export_fablesol_video"
         android:clickable="true"
         android:focusable="true"/>
+
+    <!-- 方向传感器受限提示（direction-sensor-permission）。与录音对话框的
+         tv_audio_input_notice 同一套字号、颜色与边距。
+         宽度必须是**定值 208dp**（280 − 36 − 36），不能用 wrap_content 也不能用
+         match_parent：根 FrameLayout 的 layout_width 会被 BaseDialogFragment 的 null-parent
+         充气丢掉（见文件头注释），实测宽度由固有尺寸决定，因此这两种写法都不构成宽度约束，
+         提示一显示就把整个对话框顶宽了（2026-08-18 实机对比截图确认）。
+         纵向落在进度滑杆（110dp）之下、走带按钮行（底部 96dp）之上。
+         liveRegion=polite：受限窗口结束后提示自行消失，TalkBack 不需要重新导航。 -->
+    <TextView
+        android:id="@+id/tv_play_direction_notice"
+        android:layout_width="208dp"
+        android:layout_height="wrap_content"
+        android:accessibilityLiveRegion="polite"
+        android:layout_gravity="top"
+        android:layout_marginStart="36dp"
+        android:layout_marginLeft="36dp"
+        android:layout_marginTop="152dp"
+        android:layout_marginEnd="36dp"
+        android:layout_marginRight="36dp"
+        android:gravity="start"
+        android:includeFontPadding="false"
+        android:lineSpacingExtra="1dp"
+        android:maxLines="5"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="The image cannot respond to device orientation right now."/>
 
     <!-- 三个走带控件都是裸 icon 按钮（无 FAB 悬浮面、无 elevation）：圆形涟漪与图标
          颜色由 AudioPlayDialogFragment 按记事颜色装配。 -->

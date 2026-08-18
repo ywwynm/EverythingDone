@@ -108,7 +108,7 @@
         android:gravity="start"
         android:includeFontPadding="false"
         android:lineSpacingExtra="1dp"
-        android:maxLines="3"
+        android:maxLines="5"
         android:textColor="@color/app_chrome_on_surface_secondary"
         android:textSize="11sp"
         android:visibility="gone"

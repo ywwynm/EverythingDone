@@ -1405,6 +1405,26 @@
 
                     </RelativeLayout>
 
+                    <!-- 方向传感器受限说明（direction-sensor-permission）：仅当倾斜已开启、
+                         设备有传感器、而本页的探测注册在 1.5 秒内一个样本也没收到时出现，
+                         点击跳系统设置。**不置灰上面那个开关**——「仅开屏时不允许」这一档里
+                         功能大部分时间是可用的。 -->
+                    <TextView
+                        android:id="@+id/tv_spatial_direction_restricted"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:accessibilityLiveRegion="polite"
+                        android:minHeight="56dp"
+                        android:gravity="center_vertical"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="12dp"
+                        android:background="@drawable/selectable_item_background"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"
+                        android:visibility="gone"/>
+
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>

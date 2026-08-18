@@ -3,8 +3,14 @@ package com.ywwynm.everythingdone.activities
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.net.ConnectivityManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.text.format.Formatter
 import android.view.View
 import android.widget.Button
@@ -21,6 +27,9 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
+import com.ywwynm.everythingdone.permission.DirectionSensorHint
+import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
+import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.spatial.SpatialCatalogClient
 import com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementCatalogEntry
@@ -71,6 +80,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
 
     private var toolbar: Toolbar? = null
     private var tiltSwitch: CompoundButton? = null
+    private var directionRestrictedRow: TextView? = null
     private var storageText: TextView? = null
     private val background = Executors.newFixedThreadPool(2)
     private val workInfo = mutableMapOf<SpatialDepthModel, WorkInfo?>()
@@ -122,6 +132,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     override fun findViews() {
         toolbar = f(R.id.actionbar)
         tiltSwitch = f(R.id.sw_spatial_tilt)
+        directionRestrictedRow = f(R.id.tv_spatial_direction_restricted)
         storageText = f(R.id.tv_spatial_storage)
     }
 
@@ -311,6 +322,17 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     override fun setEvents() {
         tiltSwitch?.setOnCheckedChangeListener { _, checked ->
             SpatialPreferences.setDeviceTiltEnabled(this, checked)
+            // 刚勾上就重新探测：关掉时不该留着一条针对已关闭功能的警告。
+            if (checked) startDirectionProbe() else stopDirectionProbe()
+        }
+        directionRestrictedRow?.let { row ->
+            // 「系统设置」按本页固定的 accent + accent2 渐变着色并可点；点在片段之外也跳转。
+            DirectionSensorHint.bind(
+                textView = row,
+                accent = { App.defaultAccentBackground },
+                onSettingsClick = { PermissionUtil.openApplicationDetails(this) }
+            )
+            row.setOnClickListener { PermissionUtil.openApplicationDetails(this) }
         }
         findViewById<View>(R.id.rl_spatial_tilt_as_bt).setOnClickListener {
             tiltSwitch?.toggle()
@@ -365,6 +387,8 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     override fun onResume() {
         super.onResume()
         refreshAll()
+        // 每次回到本页都重新探测：用户去系统设置改完权限回来，说明行要能自己消失。
+        startDirectionProbe()
         if ((runtimeEntry == null || inpaintingEntries.isEmpty()) &&
             !runtimeCatalogLoading
         ) {
@@ -372,9 +396,84 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    override fun onPause() {
+        stopDirectionProbe()
+        super.onPause()
+    }
+
     override fun onDestroy() {
         background.shutdownNow()
         super.onDestroy()
+    }
+
+    // —— 方向传感器受限探测（direction-sensor-permission）——
+    //
+    // 本页自己不显示空间照片，因此没有常驻的传感器连接可供判断。它短暂注册一次同一个
+    // 传感器：拿到首样本就立刻注销并隐藏说明行，1.5 秒内一个样本也没有则显示说明行并注销
+    // ——结论一旦做出，本次停留期间不再改动（否则会在受限窗口结束的瞬间闪一下）。
+
+    private val directionWatchdog = DirectionSensorWatchdog()
+    private val directionHandler = Handler(Looper.getMainLooper())
+    private var directionProbeRegistered = false
+
+    private val directionProbeListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (directionWatchdog.onSample()) {
+                directionHandler.removeCallbacks(directionProbeTimeout)
+                stopDirectionProbe()
+                updateDirectionRestrictedRow()
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    private val directionProbeTimeout = Runnable {
+        if (directionWatchdog.onWaitExpired()) {
+            val stalled = directionWatchdog.isStalled()
+            unregisterDirectionProbe()
+            // 结论要留在屏幕上，所以只注销传感器、不清看门狗状态。
+            directionRestrictedRow?.visibility = if (stalled) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun startDirectionProbe() {
+        if (!SpatialPreferences.deviceTiltEnabled(this)) {
+            stopDirectionProbe()
+            return
+        }
+        if (directionProbeRegistered) return
+        val manager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
+        // 必须与 SpatialPhotoView 用同一个传感器，否则探到的不是同一件事。
+        val sensor = manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) ?: return
+        directionProbeRegistered = manager.registerListener(
+            directionProbeListener, sensor, SensorManager.SENSOR_DELAY_NORMAL
+        )
+        if (!directionProbeRegistered) return
+        directionWatchdog.onRegistered()
+        directionHandler.removeCallbacks(directionProbeTimeout)
+        directionHandler.postDelayed(
+            directionProbeTimeout, DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS
+        )
+    }
+
+    private fun stopDirectionProbe() {
+        directionHandler.removeCallbacks(directionProbeTimeout)
+        unregisterDirectionProbe()
+        directionWatchdog.onUnregistered()
+        updateDirectionRestrictedRow()
+    }
+
+    private fun unregisterDirectionProbe() {
+        if (!directionProbeRegistered) return
+        (getSystemService(Context.SENSOR_SERVICE) as? SensorManager)
+            ?.unregisterListener(directionProbeListener)
+        directionProbeRegistered = false
+    }
+
+    private fun updateDirectionRestrictedRow() {
+        directionRestrictedRow?.visibility =
+            if (directionWatchdog.isStalled()) View.VISIBLE else View.GONE
     }
 
     private fun bindModel(model: SpatialDepthModel) {

@@ -20,6 +20,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.Process
 import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
 import android.text.SpannableStringBuilder
@@ -47,6 +48,9 @@ import com.ywwynm.everythingdone.activities.EverythingDoneBaseActivity
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.permission.DirectionSensorHint
+import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
+import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.FileUtil
@@ -146,6 +150,16 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private var mGravitySensor: Sensor? = null
     private var mSensorThread: HandlerThread? = null
     private var mTiltSensorRegistered = false
+    /**
+     * 方向数据是否真的在流动。这一处的价值最高：用户刚勾上「画面响应设备倾斜」，上方预览却
+     * 不动，最容易被判成这个开关坏了。
+     */
+    private val mDirectionWatchdog = DirectionSensorWatchdog()
+    private val mDirectionHandler: Handler = Handler(Looper.getMainLooper())
+    private val mDirectionStallCheck: Runnable = Runnable {
+        if (mDirectionWatchdog.onWaitExpired()) updateDirectionHintRow()
+    }
+    private var mDirectionHintRow: View? = null
     private var mOriginalRequestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private var mOrientationLocked = false
     private var mLockedRotation = Surface.ROTATION_0
@@ -596,6 +610,9 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         // 紧跟 HDR 强度行：两者都是"这块画面怎么呈现"的偏好，不属于任何一个波浪参数组，
         // 因此排在第一个组标题之前。
         container.addView(makeLiveTiltRow(ctx))
+        // 受限说明行紧跟开关：用户在这一行上下建立因果，不必去别处找解释。
+        container.addView(makeDirectionHintRow(ctx).also { mDirectionHintRow = it })
+        updateDirectionHintRow()
         for (group in FableSolTuning.GROUPS) {
             container.addView(makeGroupHeader(ctx, getString(group.titleRes)))
             for (spec in group.specs) {
@@ -2790,6 +2807,11 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 Surface.ROTATION_270 -> gy to -gx
                 else -> gx to gy
             }
+            // 这里是传感器线程。看门狗自带锁，但提示行只能在主线程改。
+            if (mDirectionWatchdog.onSample()) {
+                mDirectionHandler.removeCallbacks(mDirectionStallCheck)
+                mDirectionHandler.post { updateDirectionHintRow() }
+            }
             mVisualizer?.setContainerGravity(-screenX, screenY, gz)
         }
 
@@ -2848,7 +2870,15 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         if (!mTiltSensorRegistered) {
             thread.quitSafely()
             mSensorThread = null
+            return
         }
+        mDirectionWatchdog.onRegistered()
+        mDirectionHandler.removeCallbacks(mDirectionStallCheck)
+        mDirectionHandler.postDelayed(
+            mDirectionStallCheck,
+            DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS
+        )
+        updateDirectionHintRow()
     }
 
     private fun stopTiltSensor() {
@@ -2858,6 +2888,47 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         }
         mSensorThread?.quitSafely()
         mSensorThread = null
+        mDirectionHandler.removeCallbacks(mDirectionStallCheck)
+        mDirectionWatchdog.onUnregistered()
+        updateDirectionHintRow()
+    }
+
+    /**
+     * 「画面响应设备倾斜」下方的受限说明行：条件驱动，不做持久化，也**不置灰上面那个开关**
+     * ——「仅开屏时不允许」这一档里功能大部分时间是可用的，置灰会把可用功能报成不可用。
+     */
+    private fun updateDirectionHintRow() {
+        val row = mDirectionHintRow ?: return
+        row.visibility = if (mDirectionWatchdog.isStalled()) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * 点击跳系统设置。厂商的权限页 action 是私有的、换 ROM 即失效，因此只跳应用详情页；
+     * 连它都起不来时退回系统设置根页面。
+     */
+    private fun makeDirectionHintRow(ctx: Context): View {
+        val tv = TextView(ctx)
+        tv.textSize = 12f
+        tv.setTextColor(
+            ContextCompat.getColor(ctx, R.color.app_chrome_on_surface_hint)
+        )
+        tv.setPadding(dp(20f), dp(4f), dp(20f), dp(8f))
+        tv.visibility = View.GONE
+        tv.background = GradientRippleDrawable(
+            mAppliedBackground, shapeOval = false, cornerRadiusPx = 0f
+        )
+        mAccentRippleRows.add(tv)
+        // 「系统设置」按当前强调色着色并可点。这个 Dialog 的强调色会随记事颜色改变，因此把
+        // 重新着色挂进 applyUiAccent 统一走的那一组回调里。
+        val recolor = DirectionSensorHint.bind(
+            textView = tv,
+            accent = { mAppliedBackground },
+            onSettingsClick = { PermissionUtil.openApplicationDetails(ctx) }
+        )
+        mAccentChipPainters.add(recolor)
+        // 点在片段之外也跳转，免得用户对着说明行点半天没反应。
+        tv.setOnClickListener { PermissionUtil.openApplicationDetails(ctx) }
+        return tv
     }
 
     private fun dp(value: Float): Int =

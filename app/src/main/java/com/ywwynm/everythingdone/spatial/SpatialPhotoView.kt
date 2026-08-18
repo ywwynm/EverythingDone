@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.ViewConfiguration
@@ -124,6 +125,7 @@ class SpatialPhotoView @JvmOverloads constructor(
                 rotationSensor,
                 SensorManager.SENSOR_DELAY_GAME
             )
+            if (sensorRegistered) startDirectionWatchdog()
         }
         onResume()
         requestRender()
@@ -133,6 +135,7 @@ class SpatialPhotoView @JvmOverloads constructor(
         if (sensorRegistered) {
             sensorManager.unregisterListener(this)
             sensorRegistered = false
+            stopDirectionWatchdog()
         }
         onPause()
     }
@@ -141,8 +144,33 @@ class SpatialPhotoView @JvmOverloads constructor(
         if (sensorRegistered) {
             sensorManager.unregisterListener(this)
             sensorRegistered = false
+            stopDirectionWatchdog()
         }
         queueEvent { spatialRenderer.release() }
+    }
+
+    /**
+     * 部分系统在应用回到前台后的数秒内于系统服务侧过滤方向传感器事件（见
+     * `docs/features/direction-sensor-permission/`）。注册成功却一直没有首样本时回调一次，
+     * 由宿主决定怎么告知用户。监听器注册在主线程 looper 上，因此这里全在主线程。
+     */
+    var onDirectionStalled: (() -> Unit)? = null
+
+    private val directionWatchdog = DirectionSensorWatchdog()
+
+    private val directionStallCheck = Runnable {
+        if (directionWatchdog.onWaitExpired()) onDirectionStalled?.invoke()
+    }
+
+    private fun startDirectionWatchdog() {
+        directionWatchdog.onRegistered()
+        removeCallbacks(directionStallCheck)
+        postDelayed(directionStallCheck, DirectionSensorWatchdog.FIRST_SAMPLE_TIMEOUT_MS)
+    }
+
+    private fun stopDirectionWatchdog() {
+        removeCallbacks(directionStallCheck)
+        directionWatchdog.onUnregistered()
     }
 
     fun hasTiltSensor(): Boolean = rotationSensor != null
@@ -194,6 +222,13 @@ class SpatialPhotoView @JvmOverloads constructor(
     }
 
     override fun onSensorChanged(event: SensorEvent) {
+        // 记账必须在下面那些提前 return 之前：样本确实到了，只是拖拽期间不拿它算视点。
+        // 若放到后面，用户一直按着屏幕就会被误判成"方向数据不可用"。
+        if (event.sensor.type == Sensor.TYPE_GAME_ROTATION_VECTOR &&
+            directionWatchdog.onSample()
+        ) {
+            removeCallbacks(directionStallCheck)
+        }
         if (!tiltEnabled || touching || event.sensor.type != Sensor.TYPE_GAME_ROTATION_VECTOR) return
         val rotationMatrix = FloatArray(9)
         SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)

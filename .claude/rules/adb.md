@@ -225,6 +225,37 @@ PS 5.1 按 ANSI 解析无 BOM 的 `.ps1`，脚本里的 `'导出完成'` 会变�
 `resource-id`，终态判定用 `Movies/EverythingDone` 这类 ASCII 片段。中文只出现在**读回来
 打印**的那一步，不出现在脚本源码里。
 
+必须用码位拼中文时（例如按厂商设置页的本地化文案定位），**一定要 `-join`**：PowerShell 的
+`[char] + [char]` 是**字符码相加**，不是字符串拼接，拼出来是个数字，匹配永远失败。
+
+```powershell
+function CjkText([int[]]$codes) { return (-join ($codes | ForEach-Object { [char]$_ })) }
+```
+
+## 驱动厂商设置页：每一步都要重新 dump，不许沿用坐标
+
+2026-08-18 在 OPD2515 上改「设备动作与方向」权限时实测的三条，代价是误设了一次档位、
+还点出了一次「强行停止」确认框：
+
+1. **`am start -a android.settings.APPLICATION_DETAILS_SETTINGS` 会恢复已存在的
+   securitypermission 任务**，可能直接落在上次停留的**档位选择页**而不是应用详情页。同一串
+   坐标在两个页面上含义完全不同——上一轮记下的 y 值这一轮可能正好压在别的档位上。
+2. **在应用详情页盲滚/盲点极其危险**：「强行停止」「卸载」就在页面顶部一行。任何一步都必须
+   dump → 按**文案精确匹配**取 bounds → 再点，并在点完之后再 dump 确认落到了预期页面。
+3. **权限被设为「不允许」后，该行会移出「允许」分组**，落到页面下方的禁止分组里，需要滚动
+   才可见。`uiautomator dump` 只输出可见节点，按文案找不到不等于它不存在。
+
+档位写入后一律用 `appops get <pkg> <OP_NAME>` 读回核对（`allow` / `default` / `ignore`），
+**验证结束把用户原来的档位改回去**。`appops set` 写不了厂商私有 op —— ColorOS 连 shell
+（uid 2000）都不给 `MANAGE_APP_OPS_MODES`，只能读。
+
+## 带动画的 Dialog：`uiautomator dump` 返回陈旧缓存树
+
+已知会中招的：录音 Dialog、音频附件播放 Dialog、音频海浪动画调参 Dialog——都有走秒时钟或
+连续 GL 动画，等不到 idle。2026-08-18 实测：dump 判定"提示没出现"，而同一时刻的截图里提示
+就在屏幕上，白查了一轮应用逻辑。**这三处的验收一律用截图**（on-device screencap + pull +
+md5 校验），dump 只用于取静态页面的 bounds。
+
 ## 探针广播：必须 `-n` 指定组件，结果必须落盘
 
 两条今晚（2026-08-13）各浪费了好几轮的坑。
