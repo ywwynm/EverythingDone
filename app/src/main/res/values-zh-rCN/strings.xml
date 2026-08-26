@@ -986,6 +986,11 @@
     <string name="settings_twice_back">按两次返回键退出应用</string>
     <string name="settings_create_animation_style">新建事项时使用屏幕边框光效动画</string>
     <string name="settings_doing_digit_style">计时数字风格</string>
+    <string name="settings_dialog_particle_animation">对话框粒子动画效果</string>
+    <string name="dialog_particle_animation_none">无</string>
+    <string name="dialog_particle_animation_show_only">仅出现时</string>
+    <string name="dialog_particle_animation_dismiss_only">仅消失时</string>
+    <string name="dialog_particle_animation_both">出现与消失时</string>
     <string name="settings_fablesol_tuning">音频海浪动画设置</string>
     <string name="fablesol_tuning_hdr">HDR 高光增强</string>
     <string name="fablesol_tuning_hdr_unsupported">（设备不支持）</string>

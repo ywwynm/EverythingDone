@@ -1002,6 +1002,11 @@
     <string name="settings_twice_back">Press Back twice to exit</string>
     <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
     <string name="settings_doing_digit_style">Timer digit style</string>
+    <string name="settings_dialog_particle_animation">Dialog particle animation</string>
+    <string name="dialog_particle_animation_none">None</string>
+    <string name="dialog_particle_animation_show_only">On appear only</string>
+    <string name="dialog_particle_animation_dismiss_only">On dismiss only</string>
+    <string name="dialog_particle_animation_both">On appear and dismiss</string>
     <string name="settings_fablesol_tuning">Ocean wave animation settings</string>
     <string name="fablesol_tuning_hdr">HDR highlights</string>
     <string name="fablesol_tuning_hdr_unsupported">(not supported on this device)</string>

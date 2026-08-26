@@ -47,6 +47,7 @@ import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
+import com.ywwynm.everythingdone.fragments.BaseDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
@@ -1052,6 +1053,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             df.setOnChosen { updateDoingDigitStyleValue() }
             df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
         }
+        f<View>(R.id.rl_dialog_particle_animation_as_bt).setOnClickListener {
+            showDialogParticleAnimationChooser()
+        }
         f<View>(R.id.rl_spatial_photo_settings_as_bt).setOnClickListener {
             startActivity(Intent(this, SpatialPhotoSettingsActivity::class.java))
         }
@@ -1059,7 +1063,47 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             showFableSolTuningDialog(scrollToExport = false)
         }
         updateDoingDigitStyleValue()
+        updateDialogParticleAnimationValue()
         updateAutoplayDetailDynamicValue()
+    }
+
+    private fun dialogParticleAnimationItems(): MutableList<String?> = mutableListOf(
+        getString(R.string.dialog_particle_animation_none),
+        getString(R.string.dialog_particle_animation_show_only),
+        getString(R.string.dialog_particle_animation_dismiss_only),
+        getString(R.string.dialog_particle_animation_both)
+    )
+
+    private fun showDialogParticleAnimationChooser() {
+        val cdf = ChooserDialogFragment()
+        cdf.setAccentBackground(App.defaultAccentBackground)
+        cdf.setShouldShowMore(false)
+        cdf.setTitle(getString(R.string.settings_dialog_particle_animation))
+        cdf.setItems(dialogParticleAnimationItems())
+        cdf.setInitialIndex(
+            mPreferences!!.getInt(
+                Def.Meta.KEY_DIALOG_PARTICLE_ANIMATION,
+                BaseDialogFragment.PARTICLE_ANIMATION_DEFAULT
+            )
+        )
+        cdf.setConfirmListener {
+            // 立即写入：BaseDialogFragment 在 show/dismiss 时实时读取该档位，
+            // 不能等设置页退出时的统一 storeConfiguration
+            mPreferences!!.edit()
+                .putInt(Def.Meta.KEY_DIALOG_PARTICLE_ANIMATION, cdf.getPickedIndex())
+                .apply()
+            updateDialogParticleAnimationValue()
+        }
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
+    }
+
+    private fun updateDialogParticleAnimationValue() {
+        val picked = mPreferences!!.getInt(
+            Def.Meta.KEY_DIALOG_PARTICLE_ANIMATION,
+            BaseDialogFragment.PARTICLE_ANIMATION_DEFAULT
+        )
+        f<TextView>(R.id.tv_dialog_particle_animation_value).text =
+            dialogParticleAnimationItems()[picked.coerceIn(0, 3)]
     }
 
     /**

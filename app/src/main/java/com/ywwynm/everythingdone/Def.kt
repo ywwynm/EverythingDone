@@ -97,6 +97,9 @@ object Def {
         const val KEY_ONGOING_LOCKSCREEN: String       = "ongoing_lockscreen"
         const val KEY_DAILY_TODO: String               = "daily_todo" // 2017/5/9
         const val KEY_AUTO_NOTIFY: String              = "auto_notify"
+        // 对话框粒子动画档位：0 无 / 1 仅出现 / 2 仅消失 / 3 出现与消失（位含义：
+        // bit0 = 出现，bit1 = 消失），默认 3。2026/8/26
+        const val KEY_DIALOG_PARTICLE_ANIMATION: String = "dialog_particle_animation"
 
         const val KEY_ONGOING_THING_ID: String         = "ongoing_thing_id"
 

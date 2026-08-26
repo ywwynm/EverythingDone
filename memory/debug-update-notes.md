@@ -1,5 +1,418 @@
 # Current Debug Update Notes
 
+## 2026-08-26 - 凝聚收尾闪烁修复：alpha 隐藏替代 window INVISIBLE
+
+发布号 `202608261312`（任务按 UTC 命名），APK SHA-256
+`2c5fc3c14e1fc811a3ac8ad806765ea3d96129db2d48a7b827f98c60f8a8c006`。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826211144.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+用户报改记事颜色 bottomSheet 上凝聚结束后面板消失一瞬再出现。根因：
+凝聚用 decor INVISIBLE 隐藏首帧 → 窗口从未显示过 → WMS 把 enter 动画
+（bottom_panel_slide_in，190ms fromYDelta=100%p）挂起到恢复 VISIBLE 的
+瞬间才播；Base 侧 setWindowAnimations(0) 防不住——子类 onStart 在
+super 之后重设即覆盖（ThingBackgroundEditorBottomSheet:117）。修复：
+隐藏改 decor.alpha=0（窗口全程正常显示，enter 在透明期播完，恢复只是
+一帧属性重绘；快照不受影响——View.draw 渲染内容，自身 alpha 由父级
+合成才应用），Base 的置零删除（顺带修复档位"仅出现时"的窗口退出动画
+被吃掉）。三星验证：bottomSheet 凝聚两轮面板区 MAD 曲线单调收敛无
+回升尖峰 + 收尾四连帧面板全程在位；bottomSheet 消散与 chooser 凝聚
+回归零突跳且动画中间帧确认在播。OPPO：凝聚中段粒子可见（快照不透明）
++ 终态完整。工作区未提交。
+
+## 2026-08-26 - 粒子动画每次图案随机化（噪声域 + 哈希双种子）
+
+发布号 `202608261240`（任务按 UTC 命名），APK SHA-256
+`212dcd83b03b2253bb8d569acc7886339bea35746884539c2b39be786cb39524`。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826203947.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 单节。
+
+用户要求"出现时的粒子动画不要每次都一样"。原随机性全部来自确定性来源
+（gl_VertexID 的 PCG hash + 以 basePx 为输入的噪声场），同一弹窗位置尺寸
+下图案完全复现。方案：每场动画生成 uNoiseSeed（vec2，vnoise 内部平移噪声
+域）+ uHashSeed（uint，异或进 PCG 输入），静止层与粒子层共用同一种子保证
+擦除对齐；出现与消失两处 spec 组装均生成。三星验证：消散两轮中间帧图案
+明显不同；录屏逐帧提取凝聚两轮，同进度帧（f034/f042 对）凝实顺序与斑块
+分布完全不同、擦除衔接无错位。OPPO 冒烟：Adreno 上新 uniform 编译正常、
+消散照常播放。工作区未提交。
+
+## 2026-08-26 - 回归修复：不可变位图 + dismiss 重入 + PixelCopy 超时兜底
+
+发布号 `202608261221`（任务按 UTC 命名），APK SHA-256
+`01d2c5c786ea92f56f5dfff4779d4916a295a1dc4beb0805f367037e9ec56b5e`，24,405,332 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826202026.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 338 字（单节）。
+
+用户报两回归（凝聚不播 + 按钮 dismiss 无消散/三星卡死）。探针（Log +
+外部文件双通道）一轮定位：(1) 硬件快照 copy(ARGB_8888, **false**) 产出
+不可变位图 → 圆角遮罩 Canvas 构造抛 Immutable → 快照 null → 凝聚兜底
+跳过；改 true。(2) fragment 关闭链两次调 Dialog.dismiss()（dismissInternal
++ onDestroyView），PixelCopy 异步化后第一次拦截 return、第二次走"已尝试"
+分支立即 super.dismiss() 移除 window → 回调时 decorAttached=false 弃动画；
+加 particleFlowPending 重入保护。(3) 三星卡死 = 回调不来无兜底；加
+PIXEL_COPY_TIMEOUT_MS 500ms 幂等兜底。双真机复核：OPD2515 探针全绿
+（hardware snapshot ok / PixelCopy SUCCESS + decorAttached=true）、三星
+CONFIRM 起碎的消散恢复 + 2.5s 后弹窗确认关闭。探针已移除。工作区未提交。
+
+## 2026-08-26 - 凝聚快照升级加固版 HardwareRenderer（调研落地）
+
+发布号 `202608261146`（任务按 UTC 命名），APK SHA-256
+`f175c22edc669022e3f4d9eb52883f416fff036884cddb915f62c7cb482a9990`，24,404,820 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826194554.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 281 字（单节）。
+
+调研代理结论落地：凝聚快照 captureViaHardwareRenderer 加固版（syncAndDraw
+返回码校验 / acquireNextImage / API33+ fence.await / setOpaque(false) / 光源 /
+官方释放顺序，失败回退软件 draw）；PixelCopy 补 srcRect。三星复核 257 帧
+零跳变。快照方案知识沉淀 memory（android-view-snapshot-fidelity）。
+工作区未提交。
+
+## 2026-08-26 - 粒子动画四项修复（凝聚重做/闪烁/凝固/保真）
+
+发布号 `202608261131`（任务按 UTC 命名），APK SHA-256
+`f241130b681af81011a6e0ec19e2436755189ff06f53fe0e478642864b51d4bd`，24,404,820 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826193024.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 523 字（单节）。
+
+四项：(1) 凝聚重做——Spec 参数化 spread/jitter/warp，凝聚专用
+0.06/0.20/0.30 + drift×0.55 + fromT 0.55（噪声主导凝实顺序，无中心空洞），
+蓝本 grid_condense 验证；(2) show 后闪烁 = window enter 动画挂起到首次显示、
+凝聚收尾才播——startCondense 成功即 setWindowAnimations(0)；(3) 凝固 =
+凝聚未收尾即 dismiss 时 runAfterShown 的 preDraw 与 view 级兜底随 window
+移除双失效（View.postDelayed 对 detached view 进 RunQueue 永不执行）——
+兜底改挂 Controller.mainHandler + dismiss 拦截先 release condenseOverlay；
+(4) 消散快照改 PixelCopy.request(window)（异步回调后建 overlay，复用延迟
+链）——HardwareRenderer 离屏在三星实测返回**空图**（消散全程不可见、
+dY≈31 空窗跳变三连，f440 帧实锤），已弃用并派 opus 调研根因；凝聚暂软件
+draw（瑕疵窗口 <100ms）。三星复测 688 帧零跳变、消散粒子恢复（g475 帧）。
+工作区未提交。
+
+## 2026-08-26 - "对话框粒子动画效果"设置项（四档，13 语言，双真机验证）
+
+发布号 `202608261050`（任务按 UTC 命名），APK SHA-256
+`1eadfff262d8bde7b08ac45c8aed8233ffb09954a7d7d3ebbca3d38b36cb6157`，24,403,796 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826184957.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 365 字（单节）。
+
+设置 → UI 组新增四档选择（无/仅出现/仅消失/两者，默认 3），
+KEY_DIALOG_PARTICLE_ANIMATION 位编码（bit0 出现 bit1 消失），confirm 即时
+putInt；BaseDialogFragment.particleAnimationMode() 实时读取门控 show/dismiss。
+13 语言翻译（it/fr 撇号需 \' 转义，AAPT 报"Invalid unicode escape"即此）。
+ChooserDialogFragment.setItems 要 MutableList<String?>。用户授权 adb：
+OPD2515（横屏 2520×1680！坐标先查向）四档矩阵逐档截图验证 + run-as 核对
+持久化；R5CW20BLNKL screenrecord 两轮开关 486 帧 signalstats 零突变
+（max dY 8.3），黑屏客观排除。OPD2515 的 screenrecord 被 ROM 禁用（所有
+路径 Permission denied），录屏验收只能用三星。工作区未提交。
+
+## 2026-08-26 - 粒子消散第二十二版：凝聚收尾先显后撤
+
+发布号 `202608261014`（任务按 UTC 命名），APK SHA-256
+`12ed5fb67ccd3df9bdd2360a3ba8a3e5991fe4e2741ec00e663a59b11bfe5336`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826181340.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 229 字（单节）。
+
+凝聚结束闪烁：decor VISIBLE（dialog window）与 removeView(overlay)
+（activity window）跨窗口不同步——overlay 先消失而面板未画出的一帧空白。
+修复"先显后撤"：凝聚模式 onGlFinished 只 fireDone 不自移除（末帧与面板逐
+像素同、保持显示），Controller 的 onDone：decor VISIBLE → runAfterShown
+(decor) → overlay.release()。runAfterShown（preDraw+Choreographer+兜底）
+抽为公共函数，dismiss 端复用。跨窗口衔接三处（dismiss 揭开/dim/凝聚收尾）
+现全部遵循"先就位后切换"不变式。工作区未提交。
+
+## 2026-08-26 - 粒子消散第二十一版：凝聚出现动画 + dim 双保险
+
+发布号 `202608261005`（任务按 UTC 命名），APK SHA-256
+`ad82253a8fb6d1e21ce6cf4c02b4f09ea636c82f382594513193f880f7eddbfc`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826180431.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 283 字（单节）。
+
+用户选定 B 方案（快速凝聚出现）并报 show 期 dim 比 dismiss 起点更黑（系统
+dim 疑未被主题禁净、与接管层叠加）。凝聚实现：Spec 加 condenseFromT
+（0.42×TOTAL）/condenseDurationS（0.32s），Renderer 时钟倒放分支（末帧 t=0
+= 静止层全图），Overlay 加 onDone 回调（fireDone 幂等覆盖全部退出路径）、
+凝聚模式无快照遮蔽层；Controller.startCondense：decor INVISIBLE → preDraw
+后抓图起播 → onDone 恢复 VISIBLE（150ms 兜底）；BaseDialogFragment.onStart
+触发（重建恢复不重播，condenseAttempted 每 dialog 一次）。dim 修复：onStart
+运行时 clearFlags(FLAG_DIM_BEHIND) 双保险。工作区未提交。
+
+## 2026-08-26 - 粒子消散第二十版：dim 全程接管（用户提议定案）
+
+发布号 `202608260955`（任务按 UTC 命名），APK SHA-256
+`6cca5591adcf380367d1a19a1f456c42a2bb0df557c67d34920a51b44e27829b`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826175502.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 275 字（单节）。
+
+第十九版仍闪——部分 ROM 的 WMS 对 dim 值变化本身有不受控过渡，"系统 dim 与
+应用暗层并存/交接"结构必然有闪烁路径。用户提议全程接管，定案：主题
+EverythingDoneTheme.Dialog 加 backgroundDimEnabled=false 源头禁用；新增
+DialogDimLayer（挂 activity DecorView、Dialog window 之下）：show 淡入 220ms
+（DIM_AMOUNT 0.6 常量），dismiss 粒子路径 fadeOut = 动画等长 ×
+Accelerate(1.3)，普通路径 220ms。Overlay 的 dim 层删除（回到快照+TextureView
+两层），Controller 删 dim 参数、加 dismissAnimationDurationMs()。"先就位后
+揭开"回调保留（内容层无缝仍需要）。副产物：出现时 dim 平滑淡入。工作区未
+提交。
+
+## 2026-08-26 - 粒子消散第十九版：先就位后揭开修 dim 闪烁
+
+发布号 `202608260946`（任务按 UTC 命名），APK SHA-256
+`642090eac836abd2afbcaf4139cc739bf32fec8e5ef3046c8a6b8d352f1c0fbe`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826174530.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 340 字（单节）。
+
+第十八版仍闪：接力 dim 在 activity window（下一帧才上屏）与 clearFlags/
+removeView（同步 IPC、可早一帧生效）跨窗口不同步 → 一帧亮空窗。修复：
+Controller.start 加 onOverlayShown 回调（首个 preDraw + Choreographer 下帧
+确认上屏，100ms 兜底幂等），GestureAnchoredDialog 把 clearFlags + super.
+dismiss() 推迟到回调（延迟 1–2 帧无感）。新时序每一刻恰有一层等浓度 dim：
+就位（被挡）→ 清 flag（底层顶上）→ 移除（无 dim 可淡出），任何跨帧切分
+均亮度连续。延迟期间 dialog window 原样显示充当遮蔽。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十八版：dim 与粒子同步恢复
+
+发布号 `202608260939`（任务按 UTC 命名），APK SHA-256
+`61aa4d0efa51a40bebf77d3f0a8208893fc89e8b62ac8a54a5d3db64a39b4f78`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826173834.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 260 字（单节）。
+
+用户需求：dim 恢复用与粒子等长的动画，解决白 Dialog 融入白背景时粒子不
+明显。实现：Controller 在 overlay addView 后 clearFlags(FLAG_DIM_BEHIND)
+（活 window 属性修改即时生效、无 WMS 过渡，规避第三版"window 移除路径 dim
+淡出叠乘"的闪黑），overlay 重新引入 dim 接力层同帧同浓度接管，onGlFirstFrame
+起以 TOTAL_DURATION×scale 时长 AccelerateInterpolator(1.3) 淡出——前中段
+保暗衬托亮色粒子。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十七版：粒子缩小约 17%
+
+发布号 `202608260929`（任务按 UTC 命名），APK SHA-256
+`6806f94563b8c54f7004f1cae085bf5c3a6a211022c3f9dd8098abcc2ed2a5d5`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826172841.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 93 字（单节）。
+
+用户反馈"粒子稍微大了点"：尺寸曲线 mix(cell×1.2, cell×0.4) →
+mix(cell×1.0, cell×0.34)，sizeMod 分布不动。蓝本确认细腻无过稀。
+工作区未提交。
+
+## 2026-08-26 - 粒子消散第十六版：方向渐变替换爆散段
+
+发布号 `202608260924`（任务按 UTC 命名），APK SHA-256
+`2a0ab0a43407486ea479dcd2cf3bd8837b02923d22e9e8b5fa7d1fc880ae621f`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826172337.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 315 字（单节）。
+
+用户否定第十五版 burst：太散、中部空洞（lateralDir 集体撤离中轴）、两段式
+显急；且约束不得加时长。改为方向插值：moveDir = normalize(mix(earlyDir,
+dirBent, smoothstep(0, 0.55, tl)))，earlyDir = 归一(lateralDir×(0.4+0.5h4)
++ randDir×0.8)，两处零向量保护。位移曲线不变（不急不加时），早期散开随
+ease 自然温和，中部粒子随机方向不塌空。burst 位移段及 BURST_DP/burstPx
+全删；PINCH_MAX 封顶保留。蓝本确认云身密实无空洞。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十五版：burst 先散后聚 + 收拢封顶
+
+发布号 `202608260912`（任务按 UTC 命名），APK SHA-256
+`9b7d69ee9bb9fe604d74e777b868f0d7ed00e4abf2b304e1b6b535af6c3e3bfd`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826171203.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 339 字（单节）。
+
+用户第十四轮（铺开后）："宽 Dialog 上宽度受限更明显；应有一些粒子先往两侧
+跑一跑再走最终方向"。两因两修：(1) pinch 按比例收缩，宽面板边缘绝对收拢量
+线性放大 → pinchVec 模长封顶 PINCH_MAX_DP 240；(2) 新增两段式 burst——
+burstDir = lateralDir + 0.35 随机向量，幅度 (0.25+1.1h4)×(0.6+0.8vnoise)
+× BURST_DP 55 × smoothstep(0,0.30,tl)，散开偏移不被 pinch 回收（pinch 基于
+初始 lateral 计算）。蓝本新增 560dp 宽面板场景（视口加宽到 1960），确认
+宽面板云超出轮廓蓬松下沉、标准卡片无过散。工作区未提交。
+
+## 2026-08-26 - 粒子消散铺开全部 28 个 Dialog
+
+发布号 `202608260857`（任务按 UTC 命名），APK SHA-256
+`7499485499f2e7230278256247311705c76c187223e32cb7ee3d86f43c979035`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826165649.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 260 字（单节）。
+
+用户认可第十三版观感（整数 hash 后真机首次完整呈现噪声），要求扩展到颜色
+更丰富的其他 Dialog。BaseDialogFragment.useParticleDismiss() 默认 false→true，
+AlertDialogFragment 的样板 override 删除。已核实全部 28 个子类无 onCreateDialog
+override（均走 GestureAnchoredDialog 拦截点）。含 SurfaceView 的 Dialog 由
+Controller 运行时检测自动降级（PixelCopy 路径仍为待办）。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十三版：整数 hash 修真机噪声退化 + 外扩羽流
+
+发布号 `202608260845`（任务按 UTC 命名），APK SHA-256
+`1b3205b448362e52bf92f6b98dbfbf4fe149619bffc5ed5d100f3de426bf8e49`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826164458.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 374 字（单节）。
+
+**关键发现（用户指出蓝本与真机不一致后定位）**：hash21 的 sin-hash 在移动
+GPU 上大参数（dot ≈ 1e3 rad）失真——桌面 sin 精确参数缩减、移动为多项式
+近似，vnoise 及其所有下游调制（锋线扭曲/pinch 调制/尺寸/寿命/浓淡/riseMod/
+bend）在真机退化 → 蓝本多轮"验证通过"的噪声效果真机大打折扣。修复：hash21
+换整数 hash（uvec 乘异或），粒子层与静止层同步替换，跨平台逐位一致。
+另按用户要求放开云宽：flare 外扩羽流（vnoise 门控约 45% 区段，边缘粒子
+外推 90dp × flowEase，外扩区 pinch × (1-0.7·flare)）。蓝本 touch_below 确认
+云宽超出卡片、流苏逸散、中部收束保留。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十二版：大小/寿命/疏密不均 + 全面加噪
+
+发布号 `202608260833`（任务按 UTC 命名），APK SHA-256
+`0978b822b88a080e22c18f55dd65120a132e63bd51691b6f2b23f89dfede2ba4`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826163318.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 340 字（单节）。
+
+用户第十一轮："还是太规整，加大噪声和随机；粒子大小/密集程度也应不均"。
+新增 h4/h5（黄金比组合随机数）；sizeMod = 低频区域差 × (0.55+0.95h4²) 平方
+偏斜；lifeMod 0.55–1.25（区域+逐粒子，TOTAL 按 ×1.25 计）；density 0.4–1.0；
+TURBULENCE 0.8→1.4 cell 且幅度 ×(0.5+h4)；SWIRL 0.6→0.75；WAVE_WARP
+0.14→0.18；DELAY_JITTER 0.10→0.12；bend 1.4→1.6/0.3；riseMod 0.45+1.2；
+speedJitter 0.6+0.9。蓝本确认颗粒混杂、浓淡斑驳、边缘破碎。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十一版：pinch 双层调制消除刀切直边
+
+发布号 `202608260809`（任务按 UTC 命名），APK SHA-256
+`638163f346c717f0991a209d0227dc49083201f85f2b94ff6ea5e6f2073a8f22`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826160929.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 279 字（单节）。
+
+用户第十轮反馈：点下方 dismiss 时粒子群两侧边缘"像一把刀切下去"。根因：
+pinch 是均匀线性横向缩放（系数只依赖 tl），快照左右边缘粒子收缩后仍共线，
+PINCH 0.96 放大到主导。修复：pinchMod = (0.55+0.9·vnoise(basePx/84dp)) ×
+(0.75+0.5·h3)，均值 1 保持漏斗力度；pinchAmount = min(uPinch·ease·pinchMod,
+0.98) 封顶防穿轴。蓝本确认侧边波浪起伏 + 羽化、收束尾保留。工作区未提交。
+
+## 2026-08-26 - 粒子消散第十版：不规则锋线 + 即刻起沙 + PINCH 0.96
+
+发布号 `202608260756`（任务按 UTC 命名），APK SHA-256
+`2ad47dbaabef9409b711cb9e6335e03a176b8b9461f5862ae5661f7cf2123483`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826155611.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 312 字（单节）。
+
+用户第九轮反馈"未移动粒子组成的 dialog 太规整"。对照华为帧 2 细节定位两因：
+锋线是光滑圆弧（几何感）+ 粒子激活后有"点阵化但原地滞留"带（ease 慢启动 ×
+fade 前段满值 × 方点拼图）。修复：delay 加低频锋线扭曲 WAVE_WARP 0.14s
+（vnoise(basePx/72dp)，静止层同款保持擦除对齐，TOTAL_DURATION 补 +WARP/2）；
+ease 加 KICK 0.02 × smoothstep(0,0.06,tl) 即刻离位；fade 起点 0.15→0.02；
+方点转圆 0.12→0.05。PINCH 0.96（用户指定）。蓝本第十轮确认残体轮廓咬缺状、
+碎化区直接散沙。蓝本旧模型 A/B 已删（锋线扭曲依赖 vnoise 不再兼容共享块）。
+工作区未提交。
+
+## 2026-08-26 - 粒子消散第九版：PINCH 调至 0.91
+
+发布号 `202608260738`（任务按 UTC 命名），APK SHA-256
+`b3387fb02c9f40ea1a8188b76760275a99dd3a850e833f20b55d7a12a2d74d0f`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826153824.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 163 字（单节）。
+
+用户指定 PINCH 0.55 → 0.91。蓝本确认：漏斗嘴更细尖、收束接近 macOS Genie
+入 Dock 幅度，气流摆动保住"流"感无挤线退化。工作区未提交。
+
+## 2026-08-26 - 粒子消散第八版：Genie 漏斗收拢
+
+发布号 `202608260731`（任务按 UTC 命名），APK SHA-256
+`d1d20610b65bea16cc60de4d00cc4e32f5014f6ffc79f7b21aa73b457dc56af2`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826153105.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 295 字（单节）。
+
+用户点名 macOS 窗口入 Dock 的 Genie 效果（动画中上下宽度明显不一致）。实现：
+pinch = -(粒子相对"过触点沿 dir 方向轴线"的横向偏移) × PINCH(0.55) × ease，
+加进 drift。配合波前时序自然成漏斗：近触点侧先飞收得多、远侧仍全宽。蓝本
+第八轮验证 touch_below（上宽下窄 + 中央收束尾）与 touch_upper_left（斜向
+锥形）。PINCH 是收拢强度旋钮。工作区未提交。
+
+## 2026-08-26 - 粒子消散第七版：静止层原图 + 低频弯曲场
+
+发布号 `202608260722`（任务按 UTC 命名），APK SHA-256
+`5f664572df5ada2d1d039379018174ce743fbef9db1f4959a3b845d854a84182`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826152222.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 376 字（单节）。
+
+用户第六轮反馈两项：(1) 动画瞬间内容变糊——粒子拼图本质是 cellPx 网格重采样，
+原理性缺陷；新增静止层 pass（快照矩形 quad，与粒子同款 cell/hash/波前公式逐格
+discard），未激活区域逐像素原图，粒子 vertex 对未激活粒子早退移出裁剪。
+(2) 太规整像线性 warp——虚拟远触点方向场是线性收敛场；新增低频弯曲场
+bend = (vnoise(base/216dp)-0.5)×1.4 + 逐粒子 ±0.075，× smoothstep(tl)，主方向
+旋转 bend（轨迹成螺线弧），流场整形参照 dirBent。蓝本第七轮两场景验证：文字
+清晰保持、两侧斜边不再平行、弯曲空间连贯不混沌。工作区未提交。
+
+## 2026-08-26 - 粒子消散第六版：方向整形去混沌
+
+发布号 `202608260655`（任务按 UTC 命名），APK SHA-256
+`b9ca6d32d62b5723c8779ef6667ed89167178356ea4c13d4d7dba532334ee085`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826145534.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 296 字（单节）。
+
+用户第五轮反馈"四面八方、太混沌"——第三轮为消宽度截断感把 SWIRL 提到 1.0 +
+flowEase pow0.8 抢跑属矫枉过正。修正：SWIRL 1.0→0.6、flowEase pow0.8→1.15
+（早期以主方向为主），并对流场做方向整形——flowShaped = 横摆分量全保留 +
+顺向分量×0.4、逆主方向分量剔除（无粒子回流）。蓝本验证按钮与左上两场景：
+整团流向一致、羽化与浓淡保留、方向渐变特性不受影响。工作区未提交。
+
+## 2026-08-26 - 粒子消散第五版：逐粒子指向虚拟远触点
+
+发布号 `202608260646`（任务按 UTC 命名），APK SHA-256
+`1a9317c255921610596d2944203ccf11d259459385247a2bb90c389c7611570a`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826144632.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 245 字（单节）。
+
+用户第四轮反馈：全局统一方向下，远离触点侧的粒子朝向不够（点左上时右侧粒子
+"没有那么左上"）。改为逐粒子主方向 = normalize(虚拟远触点 - 粒子位置)，虚拟
+远触点 = 快照中心 + (含随机倾角的触点方向) × 1.1 × 快照对角线——方向随位置
+平滑渐变且触点贴近快照（点按钮）时不对冲；radial 汇聚项并入删除。Spec 的
+driftDir/radialPush 换成 virtualTouchX/YPx。蓝本验证 touch_upper_left（右下角
+粒子沿更偏水平路径汇入左上主流）与按钮场景。工作区未提交。
+
+## 2026-08-26 - 粒子消散第四版：粒子朝按下的方向飞
+
+发布号 `202608260637`（任务按 UTC 命名），APK SHA-256
+`8a1265978b8ff049395ddb0c240457c177171652671862a68779dd03238449fc`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826143725.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 228 字（单节）。
+
+用户裁定方向语义：第三版"被触点推开"反了，改为**朝触点方向飞**
+（driftDir = touch - center）；radial 同步反转为向触点汇聚（wavePx - basePx）。
+规则统一：点按钮时粒子朝按钮方向（向下）飘。蓝本验证按钮点击（向下偏 12°）与
+touch_below 场景，向下翻卷形态被流场带走、不显坠重。工作区未提交。
+
+## 2026-08-26 - 粒子消散第三版：闪黑修复 + 触点方向 + 宽度截断感
+
+发布号 `202608260505`（任务按 UTC 命名），APK SHA-256
+`a521efdc1d46798434030892511d01d90ec21484e0dafbcc1c1571d97204fb33`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826130526.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 371 字（单节）。
+
+用户第二轮真机反馈三项全修：闪黑 = WMS 对被移除 window 的 dim 自带淡出 ×
+我们的补偿 dim 叠乘 → 删除补偿层（Overlay 回到两层结构）；触点方向 =
+driftDir 改为触点指向快照中心（点下向上飞/点上向下飞，距中心 <40dp 或无触点
+退回向上），waveOriginUv 允许出快照（clamp ±0.5）；宽度截断感 = 观感问题非
+渲染裁剪（蓝本无窗口边界也复现），气流项独立 flowEase=pow(tl,0.8) 提前起效 +
+SWIRL 0.75→1.0 + DELAY_JITTER 0.06→0.10 + RADIAL 36→44dp。蓝本第三轮含
+touch_below/touch_above 两个触点场景验证。工作区未提交。
+
+## 2026-08-26 - 粒子消散第二版：curl 流场烟云化运动模型
+
+发布号 `202608260337`（任务按 UTC 命名），APK SHA-256
+`41ed206355c97d16d0ab4a6af437aafc61bca3f3fe32917fdb305e5a8e59c6b8`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826113638.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 329 字（单节）。
+
+响应用户反馈"方向太固定、要遁入烟云的轻盈感"：运动模型从逐粒子白噪声方向改为
+空间连贯 curl 流场（成团成缕）+ 前慢后快 ease（运动中消失）+ 浓淡 alpha 调制 +
+主方向每次随机 ±18° + 触点径向吹散推力。参数经 tmp/particle-dismiss-tuning/
+桌面 moderngl 序列帧蓝本两轮验证后移植（第二轮：DRIFT 210dp / NOISE_SCALE
+120dp / SWIRL 0.75 / SPREAD 0.40s / LIFETIME 0.58s）。Browser pane 截图路不可用
+（pane 不显示不合成帧），蓝本渲染是本会话的观感验证通道。工作区未提交。
+
+## 2026-08-26 - 弹窗粒子消散动画试点（AlertDialogFragment）
+
+发布号 `202608260205`（任务按 UTC 命名），APK SHA-256
+`af491a127b4a4bac678fc881e24cf0f9a1ea35bec38a6f92971fe07220c84c11`，24,399,544 字节。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826100459.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致，releaseNotes 278 字（单节）。
+
+鸿蒙 OS7 风格的粒子消散动画首版：dismiss 瞬间抓 DecorView 快照，GL_POINTS 无状态
+粒子（属性全由 gl_VertexID 派生）在挂于 Activity DecorView 的透明 TextureView 上
+从触点波前式溶解飘散，真实 dismiss 不延迟。接入点集中在 BaseDialogFragment /
+GestureAnchoredDialog 两处，试点仅 AlertDialogFragment（默认开关 false）。含
+SurfaceView 的弹窗自动跳过（待 PixelCopy）。编译过，真机观感未验，等待用户目验
+后调参。工作区未提交。
+
 ## 2026-08-18 - 方向权限受限的检测与提示，四处消费者全覆盖
 
 发布号 `202608171723`（任务按 UTC 命名），APK SHA-256

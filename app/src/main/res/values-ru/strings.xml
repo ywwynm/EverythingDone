@@ -504,6 +504,11 @@
     <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
     <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
     <string name="settings_doing_digit_style">Стиль цифр таймера</string>
+    <string name="settings_dialog_particle_animation">Анимация частиц диалогов</string>
+    <string name="dialog_particle_animation_none">Нет</string>
+    <string name="dialog_particle_animation_show_only">Только при появлении</string>
+    <string name="dialog_particle_animation_dismiss_only">Только при закрытии</string>
+    <string name="dialog_particle_animation_both">При появлении и закрытии</string>
     <string name="settings_fablesol_tuning">Настройки анимации волн</string>
     <string name="direction_sensor_restricted">Сейчас изображение не может реагировать на ориентацию устройства. Разрешите приложению доступ к движению и ориентации устройства в %1$s.</string>
     <string name="direction_sensor_restricted_settings">системных настройках</string>

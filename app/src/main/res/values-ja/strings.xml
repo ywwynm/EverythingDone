@@ -504,6 +504,11 @@
     <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
     <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
     <string name="settings_doing_digit_style">タイマーの数字スタイル</string>
+    <string name="settings_dialog_particle_animation">ダイアログのパーティクルアニメーション</string>
+    <string name="dialog_particle_animation_none">なし</string>
+    <string name="dialog_particle_animation_show_only">表示時のみ</string>
+    <string name="dialog_particle_animation_dismiss_only">閉じる時のみ</string>
+    <string name="dialog_particle_animation_both">表示時と閉じる時</string>
     <string name="settings_fablesol_tuning">海の波アニメーションの設定</string>
     <string name="direction_sensor_restricted">現在、画面は端末の向きに反応できません。%1$sでこのアプリの「端末の動きと向き」へのアクセスを許可してください。</string>
     <string name="direction_sensor_restricted_settings">システム設定</string>

@@ -504,6 +504,11 @@
     <string name="settings_twice_back">Drücken Sie zweimal Zurück, um den Vorgang zu beenden</string>
     <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
     <string name="settings_doing_digit_style">Timer-Ziffernstil</string>
+    <string name="settings_dialog_particle_animation">Dialog-Partikelanimation</string>
+    <string name="dialog_particle_animation_none">Keine</string>
+    <string name="dialog_particle_animation_show_only">Nur beim Erscheinen</string>
+    <string name="dialog_particle_animation_dismiss_only">Nur beim Schließen</string>
+    <string name="dialog_particle_animation_both">Beim Erscheinen und Schließen</string>
     <string name="settings_fablesol_tuning">Ozeanwellen-Animation</string>
     <string name="direction_sensor_restricted">Das Bild kann derzeit nicht auf die Geräteausrichtung reagieren. Erlauben Sie dieser App in den %1$s den Zugriff auf Bewegung und Ausrichtung des Geräts.</string>
     <string name="direction_sensor_restricted_settings">Systemeinstellungen</string>

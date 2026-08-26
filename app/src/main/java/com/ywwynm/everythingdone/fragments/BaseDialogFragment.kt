@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.fragments
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Outline
+import android.graphics.PointF
 import android.os.Bundle
 import android.view.ContextThemeWrapper
 import androidx.activity.ComponentDialog
@@ -18,10 +19,15 @@ import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.Window
+import android.view.WindowManager
+import android.view.animation.AccelerateInterpolator
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -30,11 +36,31 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
  */
 abstract class BaseDialogFragment : DialogFragment() {
 
+    companion object {
+        /** 档位 bit0：出现（凝聚）动画。 */
+        const val PARTICLE_ANIMATION_SHOW_BIT = 1
+
+        /** 档位 bit1：消失（消散）动画。 */
+        const val PARTICLE_ANIMATION_DISMISS_BIT = 2
+
+        /** 默认档位：出现与消失都启用。 */
+        const val PARTICLE_ANIMATION_DEFAULT = 3
+
+        /** 读用户设置的粒子动画档位（设置页实时写入，此处实时读取）。 */
+        fun particleAnimationMode(context: Context): Int =
+            context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+                .getInt(Def.Meta.KEY_DIALOG_PARTICLE_ANIMATION, PARTICLE_ANIMATION_DEFAULT)
+    }
+
     @JvmField
     protected var mContentView: View? = null
 
+    /** 进程/配置重建恢复的实例不重播凝聚出现动画。 */
+    private var recreatedFromSavedState = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        recreatedFromSavedState = savedInstanceState != null
         setStyle(STYLE_NO_TITLE, R.style.EverythingDoneTheme_Dialog)
     }
 
@@ -67,10 +93,19 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // 与 super.onCreateDialog 唯一的差别是 dialog 实现类，主题、样式仍由 setStyle 决定
-        val dialog = GestureAnchoredDialog(requireContext(), theme)
+        val dialog = GestureAnchoredDialog(requireContext(), theme, useParticleDismiss())
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         return dialog
     }
+
+    /**
+     * 是否在 dismiss 时播放粒子消散动画（见 docs/features/dialog-particle-dismiss/）。
+     * AlertDialogFragment 样板验收后于 2026-08-26 铺开为默认开启；个别 Dialog 需
+     * 关闭时 override 返回 false。含 SurfaceView/TextureView 的 Dialog（音频播放/
+     * 录制等）由 ParticleDismissController 在运行时检测并自动降级为普通退出，
+     * 无需在此关闭。
+     */
+    protected open fun useParticleDismiss(): Boolean = true
 
     override fun onStart() {
         super.onStart()
@@ -83,6 +118,33 @@ abstract class BaseDialogFragment : DialogFragment() {
             getDialogWindowWidthPx(),
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+        // 双保险：主题已声明禁用系统 dim，个别机型/解析路径若仍带上
+        // FLAG_DIM_BEHIND，会与接管暗层叠加导致 show 期偏黑（dismiss 拦截后
+        // 系统 dim 随 window 消失、亮度跳变）。主题生效时本调用是 no-op。
+        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+
+        // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
+        // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
+        val gestureDialog = dialog as? GestureAnchoredDialog ?: return
+        if (gestureDialog.dimLayer == null) {
+            activity?.let { gestureDialog.dimLayer = DialogDimLayer.attach(it) }
+        }
+
+        // 凝聚出现动画（约 320ms）：受子类开关与用户设置档位（bit0 = 出现）
+        // 双重控制；重建恢复的实例不重播。窗口动画不置零：凝聚以 alpha=0
+        // 隐藏面板、窗口全程正常显示，enter 动画（主题淡入或子类的底部滑入）
+        // 在透明期内照常播完，不会挂起到凝聚结束才播（置零的旧方案会被子类
+        // onStart 在 super 之后 setWindowAnimations 覆盖——底部面板闪烁的
+        // 2026-08-26 根因；且会连带吃掉"仅出现时"档位下的窗口退出动画）
+        if (useParticleDismiss() && !recreatedFromSavedState &&
+            !gestureDialog.condenseAttempted &&
+            particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
+        ) {
+            gestureDialog.condenseAttempted = true
+            ParticleDismissController.startCondense(gestureDialog) { overlay ->
+                gestureDialog.condenseOverlay = overlay
+            }
+        }
     }
 
     private fun installRoundedOutline(view: View?) {
@@ -153,11 +215,80 @@ abstract class BaseDialogFragment : DialogFragment() {
  * 前者，它带的 `OnBackPressedDispatcher` 是返回键与 predictive back 的落点，不能退化掉。
  */
 private class GestureAnchoredDialog(
-    context: Context, themeResId: Int
+    context: Context, themeResId: Int,
+    private val particleDismissEnabled: Boolean
 ) : ComponentDialog(context, themeResId) {
 
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
     private var downOutside = true
+
+    /** 最近一次触摸在 window 内的坐标，作为粒子波前起点；back 键路径无触点 */
+    private var lastTouch: PointF? = null
+
+    /** 应用接管的背景暗层，show 时由 fragment 注入；随 dismiss 路径淡出 */
+    var dimLayer: DialogDimLayer? = null
+
+    /** 凝聚出现动画只播一次（onStart 可能因可见性变化多次回调） */
+    var condenseAttempted = false
+
+    /** 进行中的凝聚动画层：dismiss 拦截时必须先释放，防止其残留凝固在屏上 */
+    var condenseOverlay: com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay? = null
+
+    /**
+     * 所有消失路径的汇聚点：代码 dismiss（fragment 的 dismissInternal /
+     * onDestroyView 都会调到 Dialog.dismiss）、back 键与点击外部（cancel 内部
+     * 也调 dismiss）。粒子动画接管成功后把窗口退出动画置空、暗层按动画等长
+     * 淡出（前慢后快，粒子浓密期背景保持暗），并把真实 dismiss 推迟到动画层
+     * 实际上屏后（约 1–2 帧、含 100ms 兜底）——先就位、后揭开，内容层才无缝。
+     * 普通路径暗层短淡出。window 自身无系统 dim（主题已禁用），移除时无可
+     * 过渡之物。
+     */
+    /** 粒子流程已接管、真实 dismiss 等待异步回调统一执行 */
+    private var particleFlowPending = false
+
+    override fun dismiss() {
+        // 凝聚尚未收尾就 dismiss（如检查更新的 loading 快速完成）：先释放凝聚
+        // 动画层，否则它的末帧会残留在界面上（"Dialog 凝固"）
+        condenseOverlay?.release()
+        condenseOverlay = null
+
+        // fragment 的关闭链会两次调到 Dialog.dismiss()（dismissInternal 与
+        // onDestroyView 各一次）：粒子流程接管期间的重入必须忽略，否则重入的
+        // 这次立即移除 window，异步抓图回调时 decor 已 detach、动画被放弃
+        // （2026-08-26 探针定位）
+        if (particleFlowPending) return
+
+        val modeAllows = BaseDialogFragment.particleAnimationMode(context) and
+            BaseDialogFragment.PARTICLE_ANIMATION_DISMISS_BIT != 0
+        if (particleDismissEnabled && modeAllows && !particleDismissAttempted) {
+            particleDismissAttempted = true
+            val started = ParticleDismissController.start(this, lastTouch) {
+                particleFlowPending = false
+                super.dismiss()
+            }
+            if (started) {
+                particleFlowPending = true
+                window?.setWindowAnimations(0)
+                dimLayer?.fadeOutAndDetach(
+                    ParticleDismissController.dismissAnimationDurationMs(context),
+                    AccelerateInterpolator(1.3f)
+                )
+                return
+            }
+        }
+        dimLayer?.fadeOutAndDetach(DialogDimLayer.FADE_OUT_MS)
+        super.dismiss()
+    }
+
+    private var particleDismissAttempted = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP ->
+                lastTouch = PointF(ev.x, ev.y)
+        }
+        return super.dispatchTouchEvent(ev)
+    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {

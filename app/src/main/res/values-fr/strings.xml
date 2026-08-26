@@ -504,6 +504,11 @@
     <string name="settings_twice_back">Appuyez deux fois sur Retour pour quitter</string>
     <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
     <string name="settings_doing_digit_style">Style des chiffres du minuteur</string>
+    <string name="settings_dialog_particle_animation">Animation de particules des boîtes de dialogue</string>
+    <string name="dialog_particle_animation_none">Aucune</string>
+    <string name="dialog_particle_animation_show_only">À l\'apparition uniquement</string>
+    <string name="dialog_particle_animation_dismiss_only">À la fermeture uniquement</string>
+    <string name="dialog_particle_animation_both">À l\'apparition et à la fermeture</string>
     <string name="settings_fablesol_tuning">Réglages de l\'animation des vagues</string>
     <string name="direction_sensor_restricted">L\'image ne peut pas réagir à l\'orientation de l\'appareil pour le moment. Autorisez cette application à accéder aux mouvements et à l\'orientation de l\'appareil dans les %1$s.</string>
     <string name="direction_sensor_restricted_settings">réglages système</string>

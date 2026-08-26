@@ -504,6 +504,11 @@
     <string name="settings_twice_back">बाहर निकलने के लिए वापस दो बार दबाएँ</string>
     <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
     <string name="settings_doing_digit_style">टाइमर अंक शैली</string>
+    <string name="settings_dialog_particle_animation">डायलॉग कण एनिमेशन</string>
+    <string name="dialog_particle_animation_none">कोई नहीं</string>
+    <string name="dialog_particle_animation_show_only">केवल दिखाई देने पर</string>
+    <string name="dialog_particle_animation_dismiss_only">केवल बंद होने पर</string>
+    <string name="dialog_particle_animation_both">दिखाई देने और बंद होने पर</string>
     <string name="settings_fablesol_tuning">समुद्री लहर एनीमेशन सेटिंग्स</string>
     <string name="direction_sensor_restricted">फ़िलहाल चित्र डिवाइस की दिशा पर प्रतिक्रिया नहीं दे सकता। %1$s में इस ऐप को डिवाइस की गति और दिशा की अनुमति दें।</string>
     <string name="direction_sensor_restricted_settings">सिस्टम सेटिंग</string>

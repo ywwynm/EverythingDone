@@ -504,6 +504,11 @@
     <string name="settings_twice_back">Presione Atrás dos veces para salir</string>
     <string name="settings_create_animation_style">Animación de luz de borde al crear algo nuevo.</string>
     <string name="settings_doing_digit_style">Estilo de dígitos del temporizador</string>
+    <string name="settings_dialog_particle_animation">Animación de partículas del diálogo</string>
+    <string name="dialog_particle_animation_none">Ninguna</string>
+    <string name="dialog_particle_animation_show_only">Solo al aparecer</string>
+    <string name="dialog_particle_animation_dismiss_only">Solo al cerrar</string>
+    <string name="dialog_particle_animation_both">Al aparecer y cerrar</string>
     <string name="settings_fablesol_tuning">Ajustes de la animación de olas</string>
     <string name="direction_sensor_restricted">La imagen no puede responder a la orientación del dispositivo por ahora. Permite que esta aplicación acceda al movimiento y a la orientación del dispositivo en los %1$s.</string>
     <string name="direction_sensor_restricted_settings">ajustes del sistema</string>

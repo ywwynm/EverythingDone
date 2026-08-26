@@ -504,6 +504,11 @@
     <string name="settings_twice_back">Premere Indietro due volte per uscire</string>
     <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
     <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
+    <string name="settings_dialog_particle_animation">Animazione particellare dei dialoghi</string>
+    <string name="dialog_particle_animation_none">Nessuna</string>
+    <string name="dialog_particle_animation_show_only">Solo all\'apertura</string>
+    <string name="dialog_particle_animation_dismiss_only">Solo alla chiusura</string>
+    <string name="dialog_particle_animation_both">All\'apertura e alla chiusura</string>
     <string name="settings_fablesol_tuning">Impostazioni dell\'animazione delle onde</string>
     <string name="direction_sensor_restricted">L\'immagine non può reagire all\'orientamento del dispositivo in questo momento. Consenti a questa app di accedere al movimento e all\'orientamento del dispositivo nelle %1$s.</string>
     <string name="direction_sensor_restricted_settings">impostazioni di sistema</string>

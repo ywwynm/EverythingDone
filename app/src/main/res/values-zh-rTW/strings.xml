@@ -807,6 +807,11 @@
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
     <string name="settings_create_animation_style">新建事項時使用螢幕邊框光效動畫</string>
     <string name="settings_doing_digit_style">計時數字風格</string>
+    <string name="settings_dialog_particle_animation">對話框粒子動畫效果</string>
+    <string name="dialog_particle_animation_none">無</string>
+    <string name="dialog_particle_animation_show_only">僅出現時</string>
+    <string name="dialog_particle_animation_dismiss_only">僅消失時</string>
+    <string name="dialog_particle_animation_both">出現與消失時</string>
     <string name="settings_fablesol_tuning">音訊海浪動畫設定</string>
     <string name="fablesol_tuning_hdr">HDR 高光增強</string>
     <string name="fablesol_tuning_hdr_unsupported">（裝置不支援）</string>

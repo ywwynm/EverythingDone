@@ -166,6 +166,10 @@
     <style name="EverythingDoneTheme.Dialog" parent="Theme.AppCompat.DayNight.Dialog">
         <item name="windowNoTitle">true</item>
         <item name="android:windowNoTitle">true</item>
+        <!-- 背景暗层全程由应用接管（DialogDimLayer）：系统 dim 的值变化与
+             window 移除在部分系统上带不受控的过渡动画，与粒子消散动画的暗层
+             跨窗口交接必然存在闪烁窗口，从源头禁用（2026-08-26 定案） -->
+        <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowMinWidthMajor">0dp</item>
         <item name="android:windowMinWidthMinor">0dp</item>
         <item name="windowMinWidthMajor">0dp</item>
