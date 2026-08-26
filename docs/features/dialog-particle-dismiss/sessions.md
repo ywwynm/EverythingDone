@@ -561,3 +561,68 @@ gl_VertexID、噪声场的输入是 basePx，同一弹窗在相同位置尺寸�
   且动画中间帧确认在播（消散粒子云含色相条颜色、凝聚曲线峰值后收敛）。
   OPPO：0.25s 撞中凝聚中段（色钮半凝实、快照不透明），终态完整。
 - 发布 `202608261312`。
+
+## 2026-08-26 内容色粒子增强（用户需求，grill-me 定案后实施）
+
+用户："非 dialog 颜色的粒子显得更多一些"——白底（暗色为灰黑）面积
+占绝对多数，动画里几乎全是本体色粒子，单调无趣。grill-me 逐项定案：
+颜色逐位不变只重加权 / 权重 = 色距为主（黑字中档）+ 饱和度加成
+（彩色最高）/ 四手段全开 / 副本仅发彩色 / 基调鲜明型。
+
+- **权重**：`w = min(wDist·0.62 + wSat·0.6, 1)`，wDist =
+  smoothstep(0.08, 0.42, 色距/√3)、wSat = smoothstep(0.18, 0.42, 饱和度)。
+  参照色 uPanelColor = 快照 32×32 每通道 16 级量化直方图众数
+  （Controller.dominantColor，普适自定义背景与暗色模式）。
+- **尺寸**：sizeMod ×(1 + 0.7w)，副本再 ×0.8 保持主次。
+- **寿命重分配**（总时长不变——用户旧裁定不得加大时长）：基础范围
+  0.55–1.25 改 0.42–0.95，高权重 ×(1+0.32w) 乘回上限 1.25——白底
+  先散尽、内容色成余缕，TOTAL_DURATION 分毫未动。
+- **背景减密**：density ×(1 − 0.28(1−w))，白底 ×0.72 轻度。
+- **副本扩倍**：REPLICAS=3（1 主 + 2 副本），draw 顶点 = cell×3
+  （上限 45 万）。id 映射 `replica = id % 3, cellId = id / 3`；**主粒子
+  hash 输入 = cellId 与静止层逐位一致**（擦除对齐与既有图案完全不变），
+  副本 hash 输入偏移 cellId + replica×gridN（轨迹独立）；副本 delay =
+  主 delay + 正偏移（绝不早于格子擦除，"凭空多一颗"不存在；凝聚倒放
+  下副本先落格）。门控 wSat<0.5 的副本 vertex 阶段 degenerate（黑字
+  不增量——用户裁定，彩色才是稀缺资源）。
+- GLSL 蓝本与 Android 逐行同步，uContentBoost uniform 蓝本出 A/B
+  （应用端恒 1）；新增 make_colorful_snapshot（色钮网格+色相条）主
+  验证场景。蓝本 A/B：plain 在 t≥0.5 全白灰，boost 后彩色成簇、
+  彩虹带、收尾彩色主角，t=0.9 两者同步结束。
+- 真机：三星录屏逐帧——消散早段色钮碎成饱满彩色团、中段色相条化作
+  彩虹粒子带、后段白烟散尽彩色余缕为主角；凝聚中段彩色烟缕先声。
+  擦除对齐正常、黑字骨架不过量、无掉帧迹象。OPPO 撞帧：彩虹带与
+  色钮团清晰，Adreno 正常。
+- 发布 `202608261403`。
+
+## 2026-08-26 按钮关闭闪烁：dismiss 拦截上移到 fragment 层（用户报障）
+
+用户报消散端也闪："粒子动画触发前 dialog 已直接消失、动画又让它出现"，
+且**按钮关闭 100% 复现、点外部无此问题**——路径二分直接锁定根因：
+
+- 按钮路径：`fragment.dismiss()` → dismissInternal **先**调
+  Dialog.dismiss()（被 GestureAnchoredDialog 拦截、发起 PixelCopy、
+  真实 dismiss 推迟），但**接着**提交的 remove 事务只隔一条主线程
+  消息就执行 onDestroyView，把内容 view 从仍在屏的窗口里摘空——
+  PixelCopy 要 1–2 帧后才回调上屏，中间露出被摘空的窗口，快照随后
+  "重现"。1221 版的 particleFlowPending 只拦 Dialog.dismiss() 的重入，
+  **拦不住 fragment 事务摘 view**。
+- 点外部路径：cancel → Dialog.dismiss（拦截）→ 真实 dismiss →
+  onDismiss 回调 → dismissInternal——fragment 移除在窗口移除之后，
+  无空窗。**此前 adb 验证的消散全部用点外部关闭，按钮路径漏网**
+  （验证矩阵盲区，记入教训）。
+- 修复：BaseDialogFragment 的 `dismiss()` 与 `dismissAllowingStateLoss()`
+  统一改走 `dismissViaDialog()`——只调 Dialog.dismiss()（粒子拦截点），
+  fragment 的移除由真实 dismiss 的 onDismiss 回调走 dismissInternal
+  自动补全，与点外部完全同链（该链已被历轮验证）。onDestroyView 对
+  Dialog.dismiss 的重入由 particleFlowPending 与 Dialog 幂等吸收；
+  dialog 为 null / 未显示时退回 super.dismissAllowingStateLoss()（保持
+  不抛 IllegalStateException 的既有语义，覆盖 FableSol 导出进度框等
+  直接调 dismissAllowingStateLoss 的调用点）。
+- 三星验证：确定 / 取消 / 点外部三条路径录屏，dialog 区域帧间 MAD
+  全程 ≤22（纯动画量级）、零突跳；确定按钮消散完整在播（从按钮
+  位置起碎、chooser 橙色标题碎成橙色粒子团）。OPPO 取消按钮：消散
+  完整、色相条彩虹粒子清晰。
+- 发布 `202608261421`。
+- 全部成果（5 个新组件、设置项与 13 语言、styles/Def/Base 改动、功能
+  文档）以 `93d9948d` 提交（用户指示，spatial 相关工作区改动未纳入）。

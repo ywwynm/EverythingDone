@@ -196,7 +196,36 @@ abstract class BaseDialogFragment : DialogFragment() {
     }
 
     override fun dismiss() {
-        super.dismissAllowingStateLoss()
+        dismissViaDialog()
+    }
+
+    override fun dismissAllowingStateLoss() {
+        dismissViaDialog()
+    }
+
+    /**
+     * 按钮路径闪烁根因（2026-08-26，用户按钮关闭 100% 复现）：fragment 的
+     * dismissInternal 先调 Dialog.dismiss()（被粒子流程拦截、真实 dismiss
+     * 推迟到快照层上屏后），但它**接着**提交的 remove 事务只隔一条主线程
+     * 消息就执行 onDestroyView、把内容 view 从仍在屏的窗口里摘空——而
+     * PixelCopy 要 1–2 帧后才回调：画面上 dialog 先被摘空一瞬、快照层再
+     * "重现"。点外部关闭无此问题：cancel → Dialog.dismiss 链里 fragment
+     * 的移除发生在真实 dismiss 之后。
+     *
+     * 修复：dismiss 一律只走 Dialog.dismiss()（粒子拦截点），fragment 的
+     * 移除由真实 dismiss 的 onDismiss 回调走 dismissInternal 自动补全——
+     * 与点外部关闭完全同链。onDestroyView 对 Dialog.dismiss 的重入由
+     * particleFlowPending 与 Dialog 自身的幂等吸收。dialog 不在时退回
+     * 原始 dismissAllowingStateLoss（保持不抛 IllegalStateException 的
+     * 既有语义）。
+     */
+    private fun dismissViaDialog() {
+        val d = dialog
+        if (d != null && d.isShowing) {
+            d.dismiss()
+        } else {
+            super.dismissAllowingStateLoss()
+        }
     }
 }
 

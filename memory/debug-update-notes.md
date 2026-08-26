@@ -1,5 +1,46 @@
 # Current Debug Update Notes
 
+## 2026-08-26 - 按钮关闭闪烁修复：dismiss 拦截上移到 fragment 层
+
+发布号 `202608261421`（任务按 UTC 命名），APK SHA-256
+`139e579d7b094b24f095de9ef60225000592810b8357569b00b4401d86ac2cb2`。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826222053.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+用户报按钮关闭 100% 复现"dialog 先消失一瞬、粒子快照又让它出现"。
+根因：按钮路径 fragment.dismiss() → dismissInternal 先调 Dialog.dismiss()
+（被拦截、真实 dismiss 推迟），但**接着提交的 remove 事务只隔一条主
+线程消息**就执行 onDestroyView、把内容 view 从仍在屏的窗口里摘空——
+PixelCopy 要 1–2 帧后才回调，空窗必现。点外部（cancel 链）的 fragment
+移除在真实 dismiss 之后，无此问题——此前 adb 验证一直点外部，全绿
+漏网。修复：BaseDialogFragment 的 dismiss()/dismissAllowingStateLoss()
+统一改走 dismissViaDialog()——只调 Dialog.dismiss()（拦截点），
+fragment 移除由真实 dismiss 的 onDismiss 回调自动补全（与点外部完全
+同链）；dialog 不在时退回 super.dismissAllowingStateLoss()。三星验证：
+确定/取消/外部三条路径 dialog 区帧间 MAD 零突跳（≤22，纯动画量级），
+确定按钮消散完整在播（从按钮起碎、橙色标题碎成橙色粒子团）。OPPO
+取消按钮：消散完整、彩虹粒子清晰。工作区未提交。
+
+## 2026-08-26 - 内容色粒子增强（色距+饱和度权重、副本扩倍）
+
+发布号 `202608261403`（任务按 UTC 命名），APK SHA-256
+`1d98feb60c7896e3436c357fde237f02e534becf7bcb224d45801d34b853a6ed`。
+日志：`docs/features/dialog-particle-dismiss/debug-updates/update-20260826220314.md`。
+远端 latest.json 与本地 APK SHA-256 已核对一致。
+
+用户需求"非 dialog 颜色的粒子显得更多"（白底占比过大、动画单调）。
+grill-me 定案：颜色逐位不变只重加权；权重 = 与本体色色距为主（黑字
+中档）+ 饱和度加成（彩色最高）；四手段全开（尺寸 +70%、寿命重分配
+——白底基础范围下压、内容色乘回原上限、总时长不变；背景减密 ×0.72
+轻度；副本扩倍 REPLICAS=3 仅彩色饱和度门控）；基调鲜明型。本体色 =
+快照 32×32 众数统计（dominantColor，适配自定义背景与暗色）。副本
+id 映射：主粒子 hash 输入 = cellId 与静止层逐位一致（擦除对齐与既有
+图案完全不变），副本 hash 偏移出主空间、delay 在主粒子之后正偏移
+（绝不早于格子擦除，凝聚倒放副本先落）。蓝本 colorful A/B 确认；
+三星真机：消散彩虹粒子带/彩色团/彩色余缕 + 凝聚彩色先声，擦除对齐
+正常；OPPO：Adreno 全部正常。顶点 15万→45万（低饱和副本 vertex
+阶段 degenerate 零片元），双机无掉帧迹象。工作区未提交。
+
 ## 2026-08-26 - 凝聚收尾闪烁修复：alpha 隐藏替代 window INVISIBLE
 
 发布号 `202608261312`（任务按 UTC 命名），APK SHA-256

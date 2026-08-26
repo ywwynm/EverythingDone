@@ -179,6 +179,15 @@ internal class ParticleDismissRenderer(
             spec.noiseSeedX, spec.noiseSeedY
         )
         GLES30.glUniform1ui(GLES30.glGetUniformLocation(program, "uHashSeed"), spec.hashSeed)
+        GLES30.glUniform3f(
+            GLES30.glGetUniformLocation(program, "uPanelColor"),
+            ((spec.panelColor shr 16) and 0xFF) / 255f,
+            ((spec.panelColor shr 8) and 0xFF) / 255f,
+            (spec.panelColor and 0xFF) / 255f
+        )
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "uReplicas"), REPLICAS)
+        // 蓝本用它出 A/B 对比；应用端恒为 1（不设档位，与蓝本 GLSL 保持一致）
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uContentBoost"), 1f)
         val timeLocation = GLES30.glGetUniformLocation(program, "uTime")
 
         // 静止层：波前未扫到的区域以逐像素原图绘制，与粒子层共用波前公式
@@ -242,7 +251,9 @@ internal class ParticleDismissRenderer(
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
             GLES30.glUseProgram(program)
             GLES30.glUniform1f(timeLocation, clampedT)
-            GLES30.glDrawArrays(GLES30.GL_POINTS, 0, particleCount)
+            // 顶点数 = cell 数 × 副本数：低饱和副本在 vertex 阶段即移出裁剪，
+            // 片元开销为零
+            GLES30.glDrawArrays(GLES30.GL_POINTS, 0, particleCount * REPLICAS)
             // swap 由 TextureView 消费端按显示帧率背压节流，无需额外 pacing
             if (!EGL14.eglSwapBuffers(EGL14.eglGetCurrentDisplay(), EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW))) {
                 return false
@@ -312,8 +323,15 @@ internal class ParticleDismissRenderer(
         "$operation failed: EGL 0x${Integer.toHexString(EGL14.eglGetError())}"
 
     companion object {
-        /** 粒子总数上限；超出时由 controller 放大网格步长自适应。 */
+        /** cell 总数上限；超出时由 controller 放大网格步长自适应。 */
         const val MAX_PARTICLES = 150_000
+
+        /**
+         * 每 cell 顶点数：1 主粒子 + 2 彩色副本。副本真实增加彩色粒子数量
+         * （内容色增强）；低饱和格的副本在 vertex 阶段移出裁剪，片元开销
+         * 为零。顶点上限 = MAX_PARTICLES × REPLICAS = 45 万。
+         */
+        const val REPLICAS = 3
 
         /**
          * 消散的波前扫过时长（逻辑秒）。取值偏长："半卡半云"的过渡期是观感
@@ -388,6 +406,9 @@ internal class ParticleDismissRenderer(
             uniform float uMaxPointPx;
             uniform vec2 uNoiseSeed;
             uniform uint uHashSeed;
+            uniform vec3 uPanelColor;
+            uniform int uReplicas;
+            uniform float uContentBoost;
 
             out highp vec4 vColor;
             out highp float vActivation;
@@ -428,14 +449,31 @@ internal class ParticleDismissRenderer(
             }
 
             void main() {
-                int ix = gl_VertexID % uGrid.x;
-                int iy = gl_VertexID / uGrid.x;
+                // 副本扩倍：每 cell 发 uReplicas 个顶点。replica 0 = 主粒子
+                // （hash 输入与静止层完全一致，行为与无副本时逐位相同）；
+                // replica > 0 = 彩色格的增量副本（起飞时与主粒子重叠在同一格、
+                // 随轨迹随机分开），真实增加彩色粒子数量
+                int replica = gl_VertexID % uReplicas;
+                int cellId = gl_VertexID / uReplicas;
+                int ix = cellId % uGrid.x;
+                int iy = cellId / uGrid.x;
                 vec2 cell = vec2(float(ix), float(iy));
                 vec2 uv = (cell + 0.5) / vec2(uGrid);
+                // vertex 阶段无自动 LOD，显式取 0 级；权重与副本门控需要颜色，
+                // 采样上移到激活检查之前
+                vec4 color = textureLod(uSnapshot, uv, 0.0);
 
-                // PCG 整数 hash：gl_VertexID 到 15 万量级时浮点 sin-hash 的有效
-                // 随机位不足，会出现可见条带；uHashSeed 让逐粒子行为每次不同
-                uint h = uint(gl_VertexID) ^ uHashSeed;
+                // 主 hash：输入 = cellId，与静止层逐位一致——delay 由它派生，
+                // 主粒子起飞与静止层擦除严格对齐（PCG：cellId 到 15 万量级时
+                // 浮点 sin-hash 的有效随机位不足，会出现可见条带）
+                uint hm = uint(cellId) ^ uHashSeed;
+                hm = hm * 747796405u + 2891336453u;
+                hm = ((hm >> ((hm >> 28u) + 4u)) ^ hm) * 277803737u;
+                hm = (hm >> 22u) ^ hm;
+                float h1m = float(hm & 1023u) * 0.0009775171;
+                // 自身 hash：副本的输入偏移出主空间（轨迹独立）；replica 0 时
+                // 与主 hash 相同，主粒子的全部随机行为不变
+                uint h = (uint(cellId) + uint(replica) * uint(uGrid.x * uGrid.y)) ^ uHashSeed;
                 h = h * 747796405u + 2891336453u;
                 h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
                 h = (h >> 22u) ^ h;
@@ -444,6 +482,16 @@ internal class ParticleDismissRenderer(
                 float h3 = float((h >> 20u) & 1023u) * 0.0009775171;
                 float h4 = fract(h1 + h2 * 0.618034);
                 float h5 = fract(h2 + h3 * 0.618034);
+
+                // 内容色权重：与面板本体色的色距为主（黑/灰字中档）、饱和度
+                // 加成（彩色最高档）。颜色本身逐位不变，只做重加权——白底粒子
+                // 是烟云质感载体，内容色粒子更大、更持久、真实更多
+                float colorDist = length(color.rgb - uPanelColor) * 0.5774;
+                float sat = max(color.r, max(color.g, color.b))
+                        - min(color.r, min(color.g, color.b));
+                float wDist = smoothstep(0.08, 0.42, colorDist);
+                float wSat = smoothstep(0.18, 0.42, sat);
+                float w = min(wDist * 0.62 + wSat * 0.6, 1.0) * uContentBoost;
 
                 // 波前：起点到本粒子的像素距离按快照对角线归一化
                 vec2 snapshotPx = vec2(uGrid) * uCellPx;
@@ -454,26 +502,31 @@ internal class ParticleDismissRenderer(
                 // 参差的不规则线（华为效果的锋线形态）。静止层用完全同款公式
                 float waveWarp = (vnoise(basePx / (uNoiseScalePx * 0.6) + 7.7) - 0.5)
                         * uWaveWarp;
-                float delay = waveDist * uSpreadTime + waveWarp + h1 * uDelayJitter;
+                // delay 用主 h1（静止层对齐）；副本在主粒子之后小的正偏移
+                // 起飞——绝不早于格子擦除，"凭空多一颗"不会发生（凝聚倒放
+                // 同理：副本先落）
+                float delay = waveDist * uSpreadTime + waveWarp + h1m * uDelayJitter
+                        + float(replica) * (0.3 + 0.7 * h2) * 0.5 * uDelayJitter;
 
-                // 未激活的粒子由静止层以逐像素原图呈现（粒子拼图是网格重采样，
-                // 文字会糊），这里直接移出裁剪范围
-                if (uTime - delay <= 0.0) {
+                // 副本只发给彩色（饱和度门控，用户裁定）：黑字面积不小，增量
+                // 会喧宾夺主；彩色才是稀缺资源。低饱和副本与未激活粒子（由
+                // 静止层以逐像素原图呈现）一并移出裁剪范围
+                bool replicaDead = replica != 0 && (wSat < 0.5 || uContentBoost < 0.5);
+                if (replicaDead || uTime - delay <= 0.0) {
                     vColor = vec4(0.0);
                     vActivation = 0.0;
                     gl_PointSize = 1.0;
                     gl_Position = vec4(2.0, 2.0, 0.0, 1.0);
                     return;
                 }
-                // 寿命不均：区域 + 逐粒子双层，有的区域早早消散变稀、有的坚持
-                // 到最后成余缕——密度分布随时间演化不均，更灵动
-                float lifeMod = 0.55 + 0.7 * (
-                    0.5 * vnoise(basePx / (uNoiseScalePx * 0.9) + 67.9) + 0.5 * h5
-                );
+                // 寿命重分配（总时长不变）：白底基础范围下压（先散尽）、内容色
+                // 乘回原上限（坚持到最后成彩色余缕）——最长寿命仍 1.25，
+                // TOTAL_DURATION 不变（用户裁定不得加大动画时长）
+                float lifeMix = 0.5 * vnoise(basePx / (uNoiseScalePx * 0.9) + 67.9)
+                        + 0.5 * h5;
+                float lifeMod = (mix(0.55, 0.42, uContentBoost)
+                        + mix(0.70, 0.53, uContentBoost) * lifeMix) * (1.0 + 0.32 * w);
                 float tl = clamp((uTime - delay) / (uLifetime * lifeMod), 0.0, 1.0);
-
-                // vertex 阶段无自动 LOD，显式取 0 级；只有激活粒子才需要颜色
-                vec4 color = textureLod(uSnapshot, uv, 0.0);
 
                 // 前慢后快 + 激活即刻的小冲量：几帧内滑出约 4dp，消除"点阵化但
                 // 原地不动"的假 dialog 带（锋线后的粒子立即离位、边缘起沙散开）
@@ -570,10 +623,11 @@ internal class ParticleDismissRenderer(
 
                 vec2 posPx = basePx + drift + jitter;
 
-                // 烟缕浓淡：低频噪声调制透明度（0.4~1.0），激活后才参与
+                // 烟缕浓淡：低频噪声调制透明度（0.4~1.0）；背景减密（轻度）：
+                // 低权重（白底）粒子在飞散途中更早变稀薄，内容色不减
                 float density = min(
                     0.4 + 0.75 * vnoise(basePx / uNoiseScalePx * 0.8 + 17.3), 1.0
-                );
+                ) * (1.0 - 0.28 * (1.0 - w) * uContentBoost);
                 // 激活即开始衰减（0.15 起步时锋线后有一条满 alpha 的实心粒子带）
                 float fade = pow(1.0 - smoothstep(0.02, 0.92, tl), 1.7);
                 float alphaMul = mix(1.0, density, smoothstep(0.05, 0.35, tl));
@@ -581,9 +635,11 @@ internal class ParticleDismissRenderer(
                 vActivation = smoothstep(0.0, 0.05, tl);
 
                 // 粒子大小不均：低频区域差 × 逐粒子随机（平方偏斜：多数小、
-                // 偶有大颗粒），静止拼图由静止层负责后尺寸已无约束
+                // 偶有大颗粒），静止拼图由静止层负责后尺寸已无约束。内容色
+                // 放大：高权重粒子最大 +70%；副本略缩一档保持主次层次
                 float sizeMod = (0.7 + 0.6 * vnoise(basePx / (uNoiseScalePx * 0.5) + 53.1))
-                        * (0.55 + 0.95 * h4 * h4);
+                        * (0.55 + 0.95 * h4 * h4)
+                        * (1.0 + 0.7 * w) * (replica != 0 ? 0.8 : 1.0);
                 // 尺寸曲线 1.2/0.4 -> 1.0/0.34（约 -17%）：用户反馈稍大
                 gl_PointSize = clamp(
                     mix(uCellPx * 1.0, uCellPx * 0.34, tl) * sizeMod, 1.0, uMaxPointPx

@@ -201,7 +201,8 @@ internal object ParticleDismissController {
             durationScale = animatorDurationScale(dialog.context),
             noiseSeedX = (Math.random() * 1024.0).toFloat(),
             noiseSeedY = (Math.random() * 1024.0).toFloat(),
-            hashSeed = (Math.random() * Int.MAX_VALUE).toInt()
+            hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
+            panelColor = dominantColor(snapshot)
         )
         val overlay = ParticleDismissOverlay(activity = activity, spec = spec)
         hostDecor.addView(
@@ -347,6 +348,7 @@ internal object ParticleDismissController {
                         noiseSeedX = (Math.random() * 1024.0).toFloat(),
                         noiseSeedY = (Math.random() * 1024.0).toFloat(),
                         hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
+                        panelColor = dominantColor(snapshot),
                         condenseFromT = CONDENSE_FROM_T,
                         condenseDurationS = CONDENSE_DURATION_S
                     )
@@ -391,6 +393,32 @@ internal object ParticleDismissController {
             )
         }
         return cellPx
+    }
+
+    /**
+     * 面板本体色 = 快照缩略图的众数色（每通道 16 级量化直方图峰值桶的平均），
+     * 作为内容色权重的参照。不依赖主题假设：自定义背景与暗色模式自动适配，
+     * 32×32 缩略统计为微秒级。
+     */
+    private fun dominantColor(snapshot: Bitmap): Int {
+        val scaled = Bitmap.createScaledBitmap(snapshot, 32, 32, false)
+        val pixels = IntArray(32 * 32)
+        scaled.getPixels(pixels, 0, 32, 0, 0, 32, 32)
+        if (scaled !== snapshot) scaled.recycle()
+        val counts = HashMap<Int, IntArray>()
+        for (pixel in pixels) {
+            if (pixel ushr 24 < 0x80) continue
+            val bucket = ((pixel shr 20) and 0xF00) or
+                ((pixel shr 12) and 0xF0) or ((pixel shr 4) and 0xF)
+            val entry = counts.getOrPut(bucket) { IntArray(4) }
+            entry[0]++
+            entry[1] += (pixel shr 16) and 0xFF
+            entry[2] += (pixel shr 8) and 0xFF
+            entry[3] += pixel and 0xFF
+        }
+        val best = counts.values.maxByOrNull { it[0] } ?: return 0xFFFFFFFF.toInt()
+        return (0xFF shl 24) or ((best[1] / best[0]) shl 16) or
+            ((best[2] / best[0]) shl 8) or (best[3] / best[0])
     }
 
     /**
