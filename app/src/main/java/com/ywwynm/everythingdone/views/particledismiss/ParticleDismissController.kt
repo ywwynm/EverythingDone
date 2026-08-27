@@ -161,11 +161,10 @@ internal object ParticleDismissController {
             PointF(0.5f, 0.78f)
         }
 
-        // 飘散朝向 = 触点方向（2026-08-26 用户裁定：朝按下的位置飞）。粒子的
-        // 主方向逐粒子指向"虚拟远触点"——触点沿其方向推远到约 1.1 倍快照对角
-        // 线：方向随粒子位置平滑渐变（触点在左上时右侧粒子更偏左），远点保证
-        // 触点贴近快照（点按钮）时两侧粒子不对冲。触点贴近中心或无触点
-        // （back 键）时退回向上；再叠随机轻微倾斜，每次消散都不完全一样。
+        // 消散主方向严格朝触点；触点贴近中心或无触点（返回键/代码关闭）
+        // 时默认向上。受控随机由 Renderer 内的起点位置、帷幔弧度和横摆
+        // 承担，不再随机旋转主方向，否则“点下方就向下、点左侧就向左”的
+        // 因果关系会被稀释。
         val baseAngle = if (touchInWindow != null) {
             val dx = touchInWindow.x - decor.width / 2f
             val dy = touchInWindow.y - decor.height / 2f
@@ -177,8 +176,7 @@ internal object ParticleDismissController {
         } else {
             (-Math.PI / 2).toFloat()
         }
-        val tiltRadians = baseAngle +
-            Math.toRadians((Math.random() * 2.0 - 1.0) * DRIFT_TILT_DEG).toFloat()
+        val tiltRadians = baseAngle
         val reach = VIRTUAL_TOUCH_FACTOR *
             hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
         val centerX = originX + snapshot.width / 2f
@@ -559,8 +557,9 @@ internal object ParticleDismissController {
         return null
     }
 
-    /** 粒子网格步长；粒子总数超上限时自适应放大。 */
-    private const val CELL_DP = 1.5f
+    /** 粒子网格步长；粒子总数超上限时自适应放大。第二十五轮细密化
+     * （1.5 -> 1.1，配合尺寸曲线收缩共约 -34%）：薄纱而非沙粒。 */
+    private const val CELL_DP = 1.1f
 
     /** 粒子漂移总距离的基准（逐粒子再乘随机系数与流场调制）。 */
     private const val DRIFT_DP = 210f
