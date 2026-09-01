@@ -24,6 +24,7 @@ import android.widget.ImageView
 internal class ParticleDismissOverlay(
     activity: Activity,
     private val spec: ParticleDismissSpec,
+    private val onAnimationStarted: Runnable? = null,
     private val onDone: Runnable? = null
 ) : FrameLayout(activity), TextureView.SurfaceTextureListener {
 
@@ -33,6 +34,7 @@ internal class ParticleDismissOverlay(
     private var renderer: ParticleDismissRenderer? = null
     private var finished = false
     private var doneFired = false
+    private var animationStartedFired = false
 
     private val isCondense get() = spec.condenseFromT != null
 
@@ -86,6 +88,13 @@ internal class ParticleDismissOverlay(
         onDone?.run()
     }
 
+    /** dim 与粒子必须从同一个已经交换到屏幕的 GL 首帧开始。 */
+    private fun fireAnimationStarted() {
+        if (animationStartedFired) return
+        animationStartedFired = true
+        onAnimationStarted?.run()
+    }
+
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         if (renderer != null || finished) return
         renderer = ParticleDismissRenderer(
@@ -110,6 +119,7 @@ internal class ParticleDismissOverlay(
     private fun onGlFirstFrame() {
         if (finished) return
         snapshotView?.visibility = GONE
+        fireAnimationStarted()
     }
 
     private fun onGlFinished(completed: Boolean) {
@@ -122,6 +132,8 @@ internal class ParticleDismissOverlay(
         } else if (completed) {
             removeSelf()
         } else {
+            // GL 首帧前失败时也必须释放 dim，并与降级淡出同时开始。
+            fireAnimationStarted()
             fallbackFadeOut()
         }
     }
@@ -146,6 +158,7 @@ internal class ParticleDismissOverlay(
     private fun removeSelf() {
         if (finished) return
         finished = true
+        fireAnimationStarted()
         mainHandler.removeCallbacksAndMessages(null)
         renderer?.cancel()
         fireDone()

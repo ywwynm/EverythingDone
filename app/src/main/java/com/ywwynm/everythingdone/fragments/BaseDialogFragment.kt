@@ -28,6 +28,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissStartGate
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -251,8 +252,11 @@ private class GestureAnchoredDialog(
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
     private var downOutside = true
 
-    /** 最近一次触摸在 window 内的坐标，作为粒子波前起点；back 键路径无触点 */
-    private var lastTouch: PointF? = null
+    /**
+     * 当前正在分发、且可能直接触发 dismiss 的触点。仅在 dispatchTouchEvent
+     * 调用栈内有效；返回、异步完成和代码关闭不会误用更早的历史触点。
+     */
+    private var dismissTouchInDispatch: PointF? = null
 
     /** 应用接管的背景暗层，show 时由 fragment 注入；随 dismiss 路径淡出 */
     var dimLayer: DialogDimLayer? = null
@@ -291,17 +295,27 @@ private class GestureAnchoredDialog(
             BaseDialogFragment.PARTICLE_ANIMATION_DISMISS_BIT != 0
         if (particleDismissEnabled && modeAllows && !particleDismissAttempted) {
             particleDismissAttempted = true
-            val started = ParticleDismissController.start(this, lastTouch) {
+            val startGate = ParticleDismissStartGate {
                 particleFlowPending = false
-                super.dismiss()
+                completeParticleDismiss()
             }
+            val started = ParticleDismissController.start(
+                dialog = this,
+                touchInWindow = dismissTouchInDispatch,
+                onAnimationStarted = Runnable {
+                    dimLayer?.fadeOutAndDetach(
+                        ParticleDismissController.dismissAnimationDurationMs(context),
+                        AccelerateInterpolator(1.3f)
+                    )
+                    startGate.markAnimationStarted()
+                },
+                onOverlayShown = Runnable {
+                    startGate.markOverlayShown()
+                }
+            )
             if (started) {
                 particleFlowPending = true
                 window?.setWindowAnimations(0)
-                dimLayer?.fadeOutAndDetach(
-                    ParticleDismissController.dismissAnimationDurationMs(context),
-                    AccelerateInterpolator(1.3f)
-                )
                 return
             }
         }
@@ -309,14 +323,27 @@ private class GestureAnchoredDialog(
         super.dismiss()
     }
 
+    private fun completeParticleDismiss() {
+        super.dismiss()
+    }
+
     private var particleDismissAttempted = false
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        when (ev.actionMasked) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP ->
-                lastTouch = PointF(ev.x, ev.y)
+        // View.OnClickListener、点外 cancel 等关闭行为会在 super 的事件分发
+        // 调用栈内同步发生；只在这段调用栈暴露触点，天然排除返回键和稍后的
+        // 自动 dismiss。保存/恢复旧值使极少见的嵌套分发仍保持正确。
+        val previousTouch = dismissTouchInDispatch
+        dismissTouchInDispatch = if (ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            null
+        } else {
+            PointF(ev.x, ev.y)
         }
-        return super.dispatchTouchEvent(ev)
+        return try {
+            super.dispatchTouchEvent(ev)
+        } finally {
+            dismissTouchInDispatch = previousTouch
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

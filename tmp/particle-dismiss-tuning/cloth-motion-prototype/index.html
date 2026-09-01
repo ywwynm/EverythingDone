@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>连续布面运动原型</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0d0f14; color: #e8ebf2; overflow: hidden; }
+    main { height: 100%; display: grid; grid-template-rows: 48px 1fr 82px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: #141720; border-bottom: 1px solid #262a35; }
+    header strong { font-size: 14px; }
+    header span { color: #9299aa; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+    .panes { min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #262a35; }
+    .pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #08090c; }
+    .pane-label { position: absolute; z-index: 3; top: 10px; left: 12px; padding: 6px 9px; border-radius: 7px; background: rgba(10, 12, 17, .78); color: #d7dbe5; font-size: 12px; pointer-events: none; }
+    video, canvas { width: 100%; height: 100%; display: block; object-fit: contain; }
+    footer { display: grid; grid-template-columns: 88px minmax(220px,1fr) 84px 224px; align-items: center; gap: 14px; padding: 0 18px 8px; background: #141720; border-top: 1px solid #262a35; }
+    button { border: 0; border-radius: 8px; padding: 9px 12px; color: #f4f6fb; background: #2d6cdf; cursor: pointer; }
+    input[type=range] { width: 100%; accent-color: #61a0ff; }
+    #time { color: #aeb5c4; font: 12px ui-monospace, Consolas, monospace; text-align: right; }
+    #switcher { position: fixed; z-index: 10; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 7px 9px; border: 1px solid #444b5c; border-radius: 999px; background: rgba(18, 21, 29, .96); box-shadow: 0 8px 30px rgba(0,0,0,.42); }
+    #switcher button { width: 34px; height: 30px; padding: 0; background: #303646; }
+    #variantLabel { min-width: 290px; text-align: center; font-size: 12px; }
+    #effectControls { width: 224px; padding: 7px 9px; border: 1px solid rgba(115,129,157,.35); border-radius: 9px; background: rgba(13,16,23,.72); }
+    #effectControls label { display: grid; grid-template-columns: 72px 1fr 34px; align-items: center; gap: 7px; color: #cbd1dc; font-size: 11px; }
+    #effectControls label + label { margin-top: 7px; }
+    #effectControls output { color: #8fbaff; text-align: right; font: 10px ui-monospace, Consolas, monospace; }
+    #effectControls .check { grid-template-columns: 18px 1fr; }
+    #effectControls input[type=checkbox] { margin: 0; accent-color: #61a0ff; }
+    @media (max-width: 900px) { .panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } #variantLabel { min-width: 220px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <strong id="pageTitle">临时原型：连续薄面与粒子化使用同一套运动</strong>
+    <span id="state"></span>
+  </header>
+  <section class="panes">
+    <div class="pane">
+      <div class="pane-label" id="referenceLabel">参考视频｜3.35–8.05s 映射到归一化 0–1</div>
+      <video id="reference" src="/reference.mp4" muted playsinline preload="auto"></video>
+    </div>
+    <div class="pane">
+      <div class="pane-label" id="modelLabel">完整层 + 同曲面粒子层｜密度来自折叠投影压缩</div>
+      <canvas id="model"></canvas>
+    </div>
+  </section>
+  <footer>
+    <button id="play">播放</button>
+    <input id="scrub" type="range" min="0" max="1000" value="470">
+    <div id="time">t=0.470</div>
+    <div id="effectControls">
+      <label><span>粒子数量</span><input id="density" type="range" min="65" max="150" value="100"><output id="densityValue">1.00×</output></label>
+      <label><span>帷幔增强</span><input id="curtain" type="range" min="60" max="170" value="105"><output id="curtainValue">1.05×</output></label>
+      <label class="check"><input id="grid" type="checkbox"><span>显示拓扑网格与原平面</span></label>
+    </div>
+  </footer>
+</main>
+<div id="switcher" aria-label="原型变体切换">
+  <button id="previous" title="上一个变体（←）">←</button>
+  <div id="variantLabel"></div>
+  <button id="next" title="下一个变体（→）">→</button>
+</div>
+<script>
+(() => {
+  'use strict';
+  const params = new URLSearchParams(location.search);
+  const deviceFixture = params.get('fixture') === 'device';
+  const ONSET = deviceFixture ? 0 : 3.35;
+  const FINISH = deviceFixture ? 1 : 8.05;
+  const DURATION = FINISH - ONSET;
+  const DEVICE = {
+    sourceWidth: 1440, sourceHeight: 3168,
+    dialogX: 160, dialogY: 1082, dialogWidth: 1120, dialogHeight: 1099,
+    density: 4.0, androidCellPx: 1120 / 144, androidReplicas: 3
+  };
+  const VARIANTS = {
+    A: 'A — 定向牵伸：局部折叠后整面随风离场',
+    B: 'B — 单一卷边：连续前沿主导整体翻卷'
+  };
+  let variant = VARIANTS[params.get('variant')] ? params.get('variant') : 'A';
+  let progress = Math.min(1, Math.max(0, Number(params.get('t') ?? 0.47)));
+  let particleDensity = clamp(Number(params.get('density') ?? 1), .65, 1.5);
+  let curtainStrength = clamp(Number(params.get('curtain') ?? 1.05), .6, 1.7);
+  let showGrid = params.get('grid') === '1';
+  let playing = false;
+
+  const video = document.getElementById('reference');
+  const canvas = document.getElementById('model');
+  const ctx = canvas.getContext('2d');
+  const scrub = document.getElementById('scrub');
+  const play = document.getElementById('play');
+  const time = document.getElementById('time');
+  const state = document.getElementById('state');
+  const variantLabel = document.getElementById('variantLabel');
+  const density = document.getElementById('density');
+  const curtain = document.getElementById('curtain');
+  const grid = document.getElementById('grid');
+  const densityValue = document.getElementById('densityValue');
+  const curtainValue = document.getElementById('curtainValue');
+  const referenceLabel = document.getElementById('referenceLabel');
+  const modelLabel = document.getElementById('modelLabel');
+  const pageTitle = document.getElementById('pageTitle');
+  let texture = makeDialogTexture();
+  const deviceBackground = new Image();
+  const COLS = 24, ROWS = 15, SURFACE_COLS = 48, SURFACE_ROWS = 30;
+  const CARD_W = 1.48;
+  const CARD_H = deviceFixture ? CARD_W * DEVICE.dialogHeight / DEVICE.dialogWidth : .88;
+  const HALF_CARD_W = CARD_W * .5, HALF_CARD_H = CARD_H * .5;
+  const PARTICLE_COLS = 144;
+  const PARTICLE_ROWS = deviceFixture
+    ? Math.round(PARTICLE_COLS * DEVICE.dialogHeight / DEVICE.dialogWidth)
+    : 86;
+  let particleGroups = makeParticleGroups(texture);
+  const SURFACE_MASK_W=360;
+  const SURFACE_MASK_H=deviceFixture
+    ?Math.round(SURFACE_MASK_W*DEVICE.dialogHeight/DEVICE.dialogWidth)
+    :214;
+  const surfaceLayer=document.createElement('canvas'),surfaceMask=document.createElement('canvas');
+  surfaceLayer.width=surfaceMask.width=SURFACE_MASK_W;surfaceLayer.height=surfaceMask.height=SURFACE_MASK_H;
+  const surfaceLayerCtx=surfaceLayer.getContext('2d'),surfaceMaskCtx=surfaceMask.getContext('2d');
+  const surfaceMaskImage=surfaceMaskCtx.createImageData(SURFACE_MASK_W,SURFACE_MASK_H);
+  const surfaceDelayMaps={};
+
+  function clamp(v, lo = 0, hi = 1) { return Math.min(hi, Math.max(lo, v)); }
+  function smoothstep(a, b, v) { const x = clamp((v - a) / Math.max(b - a, 1e-6)); return x * x * (3 - 2 * x); }
+  function normalize(x, y) { const l = Math.hypot(x, y) || 1; return [x / l, y / l]; }
+  const WIND = normalize(-0.6157, -0.7880);
+  const SIDE = [-WIND[1], WIND[0]];
+
+  function makeDialogTexture() {
+    const c = document.createElement('canvas'); c.width = 960; c.height = 570;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, c.width, c.height);
+    g.beginPath(); g.roundRect(3, 3, 954, 564, 48); g.fillStyle = '#f5f6f8'; g.fill();
+    g.fillStyle = '#20242b'; g.font = '700 50px "Microsoft YaHei", sans-serif'; g.fillText('删除这条记事？', 72, 112);
+    g.fillStyle = '#707783'; g.font = '31px "Microsoft YaHei", sans-serif'; g.fillText('删除后会进入回收站，可在 30 天内恢复。', 72, 178);
+    g.fillText('帷幔应从多个局部边缘近同时掀起', 72, 228);
+    const cards = [['方向跟随触点','#398bd9'], ['未触及区域完整','#26b68c'], ['邻域先相干','#ed7544'], ['后段再松散','#8061ba']];
+    cards.forEach(([label, color], i) => {
+      const x = 72 + (i % 2) * 420, y = 286 + Math.floor(i / 2) * 102;
+      g.fillStyle = color; g.beginPath(); g.roundRect(x, y, 360, 70, 25); g.fill();
+      g.fillStyle = '#fff'; g.font = '700 28px "Microsoft YaHei", sans-serif'; g.fillText(label, x + 24, y + 45);
+    });
+    g.fillStyle = '#969da8'; g.font = '26px "Microsoft YaHei", sans-serif'; g.fillText('取消', 716, 516);
+    g.fillStyle = '#df5b52'; g.font = '700 26px "Microsoft YaHei", sans-serif'; g.fillText('删除', 824, 516);
+    return c;
+  }
+
+  function deviceLayout(width, height) {
+    const scale = Math.min(width / DEVICE.sourceWidth, height / DEVICE.sourceHeight);
+    const phoneWidth = DEVICE.sourceWidth * scale;
+    const phoneHeight = DEVICE.sourceHeight * scale;
+    const phoneX = (width - phoneWidth) * .5;
+    const phoneY = (height - phoneHeight) * .5;
+    return {
+      scale, phoneX, phoneY, phoneWidth, phoneHeight,
+      dialogX: phoneX + DEVICE.dialogX * scale,
+      dialogY: phoneY + DEVICE.dialogY * scale,
+      dialogWidth: DEVICE.dialogWidth * scale,
+      dialogHeight: DEVICE.dialogHeight * scale,
+      dialogCenterX: phoneX + (DEVICE.dialogX + DEVICE.dialogWidth * .5) * scale,
+      dialogCenterY: phoneY + (DEVICE.dialogY + DEVICE.dialogHeight * .5) * scale
+    };
+  }
+
+  function loadDeviceFixture() {
+    if (!deviceFixture) return;
+    document.title = '真机夹具：Android 与桌面运动对照';
+    pageTitle.textContent = '真机夹具：Android canonical 与桌面连续布面对照';
+    referenceLabel.textContent = 'Android 同源 GLSL｜同素材、同尺度、左上触点方向 −128°';
+    modelLabel.textContent = '桌面 A JS/PBD 参考｜同素材、同背景、左上方向 −128°';
+    video.src = '/assets/android-canonical-left-up.mp4';
+    deviceBackground.src = '/assets/device-background.jpg';
+    const foreground = new Image();
+    foreground.onload = () => {
+      const next = document.createElement('canvas');
+      next.width = foreground.naturalWidth;
+      next.height = foreground.naturalHeight;
+      next.getContext('2d').drawImage(foreground, 0, 0);
+      texture = next;
+      particleGroups = makeParticleGroups(texture);
+      surfaceDelayMaps.A = null;
+      surfaceDelayMaps.B = null;
+      simulatedClothA = null;
+      particleTrajectoriesAReady = false;
+      render(progress);
+    };
+    foreground.src = '/assets/device-dialog.png';
+    deviceBackground.onload = () => render(progress);
+  }
+
+  function hash01(value) {
+    const n = Math.sin(value * 12.9898 + 78.233) * 43758.5453123;
+    return n - Math.floor(n);
+  }
+
+  function makeParticleGroups(image) {
+    const pixels = image.getContext('2d').getImageData(0, 0, image.width, image.height).data;
+    const groups = new Map();
+    for (let j = 0; j < PARTICLE_ROWS; j++) for (let i = 0; i < PARTICLE_COLS; i++) {
+      const id = j * PARTICLE_COLS + i + 1;
+      const u = clamp((i + 0.18 + hash01(id * 1.17) * 0.64) / PARTICLE_COLS);
+      const v = clamp((j + 0.18 + hash01(id * 2.31) * 0.64) / PARTICLE_ROWS);
+      const px = Math.min(image.width - 1, Math.floor(u * image.width));
+      const py = Math.min(image.height - 1, Math.floor(v * image.height));
+      const offset = (py * image.width + px) * 4;
+      const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2];
+      const hi = Math.max(r,g,b), lo = Math.min(r,g,b), saturation = hi ? (hi-lo)/hi : 0;
+      // 中性色只量化亮度，彩色内容保持色相；同色分桶可避免每颗粒子切换画笔。
+      let qr, qg, qb;
+      if (saturation < .12) {
+        const luminance = Math.round((r*.2126 + g*.7152 + b*.0722) / 20) * 20;
+        qr=qg=qb=clamp(luminance,0,255);
+      } else {
+        qr=Math.round(r/28)*28; qg=Math.round(g/28)*28; qb=Math.round(b/28)*28;
+      }
+      const key = `${qr},${qg},${qb}`;
+      if (!groups.has(key)) groups.set(key, {color:`rgb(${qr},${qg},${qb})`, samples:[]});
+      groups.get(key).samples.push({
+        id,u,v,saturation,cell:Math.min(ROWS-1,Math.floor(v*ROWS))*COLS+Math.min(COLS-1,Math.floor(u*COLS)),
+        h0:hash01(id*3.73), h1:hash01(id*5.19), h2:hash01(id*7.91), h3:hash01(id*11.27),
+        side:hash01(id*13.43)*2-1, lift:hash01(id*17.03)*2-1
+      });
+    }
+    return [...groups.values()];
+  }
+
+  function getSurfaceDelayMap(which){
+    if(surfaceDelayMaps[which]) return surfaceDelayMaps[which];
+    const values=new Float32Array(SURFACE_MASK_W*SURFACE_MASK_H);
+    for(let y=0;y<SURFACE_MASK_H;y++) for(let x=0;x<SURFACE_MASK_W;x++){
+      const u=(x+.5)/SURFACE_MASK_W,v=(y+.5)/SURFACE_MASK_H;
+      const base=which==='A'?releaseDelayA(u,v):releaseDelayB(u,v);
+      values[y*SURFACE_MASK_W+x]=base+(materialNoise(u,v)-.5)*.034;
+    }
+    surfaceDelayMaps[which]=values;return values;
+  }
+
+  function basePoseA(u,v,t){
+    const x=(u-.5)*CARD_W,y=(v-.5)*CARD_H;
+    // 未脱附的材料仍贴在原平面，不能为了锁住质心而让背风端反向移动。
+    // 开场拉伸由下方 PBD 薄面中已经脱附的顶点和仍贴附的邻点之间的张力自然产生；
+    // 真正的整体离场位移只由 presentationPoint 的后续 bulk 风场承担。
+    return {x,y,z:0};
+  }
+
+  function renderIntactSurface(t,w,h){
+    const delays=getSurfaceDelayMap(variant),blend=variant==='A'?.115:.090,data=surfaceMaskImage.data;
+    for(let i=0;i<delays.length;i++){
+      const q=clamp((t-delays[i])/blend),released=q*q*(3-2*q),offset=i*4;
+      const intact=1-smoothstep(.14,.68,released);
+      data[offset]=data[offset+1]=data[offset+2]=255;data[offset+3]=Math.round(255*intact);
+    }
+    surfaceMaskCtx.putImageData(surfaceMaskImage,0,0);
+    surfaceLayerCtx.globalCompositeOperation='source-over';surfaceLayerCtx.clearRect(0,0,SURFACE_MASK_W,SURFACE_MASK_H);
+    surfaceLayerCtx.drawImage(texture,0,0,SURFACE_MASK_W,SURFACE_MASK_H);
+    surfaceLayerCtx.globalCompositeOperation='destination-in';surfaceLayerCtx.drawImage(surfaceMask,0,0);
+    surfaceLayerCtx.globalCompositeOperation='source-over';
+    if(variant==='A'){
+      // 尚未粒子化的完整像素仍贴附在原平面；开场只让已离面的连续材料区域受风拉伸。
+      const p00=project(basePoseA(0,0,t),w,h),p10=project(basePoseA(1,0,t),w,h),p01=project(basePoseA(0,1,t),w,h);
+      ctx.save();
+      ctx.transform(
+        (p10.x-p00.x)/SURFACE_MASK_W,(p10.y-p00.y)/SURFACE_MASK_W,
+        (p01.x-p00.x)/SURFACE_MASK_H,(p01.y-p00.y)/SURFACE_MASK_H,
+        p00.x,p00.y
+      );
+      ctx.drawImage(surfaceLayer,0,0);
+      ctx.restore();
+    }else{
+      const topLeft=project({x:-HALF_CARD_W,y:-HALF_CARD_H,z:0},w,h),bottomRight=project({x:HALF_CARD_W,y:HALF_CARD_H,z:0},w,h);
+      ctx.drawImage(surfaceLayer,topLeft.x,topLeft.y,bottomRight.x-topLeft.x,bottomRight.y-topLeft.y);
+    }
+  }
+
+  function releaseDelay(u, v) {
+    const px = u - 0.5, py = v - 0.5;
+    const travel = clamp((px * WIND[0] + py * WIND[1] + 0.70185) / 1.4037);
+    const edge = clamp(Math.min(u, 1 - u, v, 1 - v) * 2);
+    // 释放时间以参考逐帧的完整表面占比拟合：t=.47 约四成离面，
+    // t=.70 约九成离面。几个边缘出口只提前邻域，不能让它们的影响在
+    // .30 前覆盖整张布；之前距离系数过小，导致 .40 时所有顶点都已释放。
+    const base = 0.095 + 0.732 * travel + 0.531 * Math.pow(edge, 1.63);
+    // 左上顺风侧必须与整面开始牵伸处于同一时间窗。旧值让这里约到 t=.13 才启动，
+    // 而下边缘已在 t≈0 释放，造成开场方向与参考相反。
+    const topLeftDistance=Math.hypot(u*.78,v*1.02);
+    const topLeftOutlet=0.035+4.000*Math.pow(topLeftDistance,1.80);
+    const sideOutlet = 0.099 + 1.120 * Math.hypot((u - 0.97) * 0.72, v - 0.58);
+    const bottomOutlet = 0.021 + 1.000 * Math.hypot((u - 0.58) * 0.82, v - 1.02);
+    const broadNoise = Math.sin(u * 7.1 + v * 3.7) * 0.013 + Math.sin(u * 2.9 - v * 6.3) * 0.009;
+    return Math.max(0.008, Math.min(base, topLeftOutlet, sideOutlet, bottomOutlet) + broadNoise);
+  }
+
+  function releaseDelayA(u, v) {
+    return Math.max(0.008, releaseDelay(u, v) * 0.88 - 0.055);
+  }
+
+  function releaseDelayB(u, v) {
+    const travel = clamp(((u - 0.5) * WIND[0] + (v - 0.5) * WIND[1] + 0.70185) / 1.4037);
+    const cross = (u - 0.5) * SIDE[0] + (v - 0.5) * SIDE[1];
+    const raw = 0.035 + travel * 0.48 + cross * cross * 0.12;
+    return Math.max(0.008, raw * 1.47 - 0.086);
+  }
+
+  function materialNoise(u, v) {
+    // 连续带限噪声：孔洞边缘可以弯曲，但相邻三角形不能像棋盘格一样独立跳变。
+    const n=.50
+      +Math.sin(u*13.2+v*7.1)*.19
+      +Math.sin(u*6.4-v*16.7+1.3)*.14
+      +Math.sin(u*25.1+v*21.3+.7)*.08;
+    return clamp(n);
+  }
+
+  function materialState(u, v, t, which = variant) {
+    const blend = which === 'A' ? 0.115 : 0.090;
+    const baseDelay = which === 'A' ? releaseDelayA(u, v) : releaseDelayB(u, v);
+    // 细噪声只软化材质交接，不改变连续曲面的宏观受力与方向。
+    const delay = baseDelay + (materialNoise(u, v) - 0.5) * 0.034;
+    const released = smoothstep(delay, delay + blend, t);
+    return {delay, released, age: t - delay, blend};
+  }
+
+  function deformA(u, v, t) {
+    const x = (u - 0.5) * CARD_W, y = (v - 0.5) * CARD_H;
+    const delay = releaseDelay(u, v), age = Math.max(0, t - delay);
+    const released = smoothstep(0, 0.121, age);
+    const accel = age * age * (0.72 + 0.92 * smoothstep(0.30, 0.92, t));
+    const along = (u - 0.5) * SIDE[0] + (v - 0.5) * SIDE[1];
+    const front = Math.exp(-Math.pow((age - 0.105) / 0.105, 2));
+    const foldGain = released * smoothstep(0.20, 0.66, t);
+    const fold = Math.sin(along * 9.2 - t * 2.0 + 0.35 * Math.sin((u + v) * 5.0))
+      + 0.38 * Math.sin(along * 17.0 + (u - v) * 2.4 - t * 1.3);
+    let z = released * (0.075 + 0.23 * smoothstep(0.05, 0.48, age));
+    z += front * (0.16 + 0.06 * Math.cos(along * 6.2));
+    z += foldGain * fold * (0.058 + 0.075 * smoothstep(0.42, 0.86, t));
+    const curl = front * (0.07 + 0.05 * Math.cos(along * 4.5));
+    return {
+      x: x + WIND[0] * (0.05 * released + 1.18 * accel) + SIDE[0] * curl,
+      y: y + WIND[1] * (0.05 * released + 1.18 * accel) + SIDE[1] * curl,
+      z, released, delay
+    };
+  }
+
+  function deformB(u, v, t) {
+    const x = (u - 0.5) * CARD_W, y = (v - 0.5) * CARD_H;
+    const cross = (u - 0.5) * SIDE[0] + (v - 0.5) * SIDE[1];
+    const delay = releaseDelayB(u, v);
+    const age = Math.max(0, t - delay), released = smoothstep(0, 0.090, age);
+    const roll = Math.exp(-Math.pow((t - delay - 0.075) / 0.095, 2));
+    const accel = age * age * (1.0 + 3.1 * smoothstep(0.44, 0.90, t));
+    const bow = 0.08 * (1 - Math.pow(clamp(Math.abs(cross) / 0.68), 2));
+    return {
+      x: x + WIND[0] * (0.045 * released + 1.28 * accel) + SIDE[0] * roll * cross * 0.12,
+      y: y + WIND[1] * (0.045 * released + 1.28 * accel) + SIDE[1] * roll * cross * 0.12,
+      z: released * 0.12 + roll * (0.25 + bow), released, delay
+    };
+  }
+
+  function deformC(u, v, t) {
+    const x = (u - 0.5) * CARD_W, y = (v - 0.5) * CARD_H;
+    const edge = clamp(Math.min(u, 1 - u, v, 1 - v) * 2);
+    const delay = 0.035 + edge * 0.31 + 0.09 * clamp(u * 0.45 + v * 0.55);
+    const age = Math.max(0, t - delay), released = smoothstep(0, 0.17, age);
+    const pressure = released * smoothstep(0.05, 0.50, age);
+    const wave = Math.sin(u * 8.0 - v * 3.0 - t * 2.2) + 0.55 * Math.sin(v * 10.0 + u * 2.0 - t * 1.3);
+    const accel = age * age * (0.58 + smoothstep(0.32, 0.92, t));
+    const cornerRoll = Math.exp(-9 * Math.min(Math.hypot(u, v), Math.hypot(1 - u, v), Math.hypot(u, 1 - v), Math.hypot(1 - u, 1 - v)));
+    return {
+      x: x + WIND[0] * (0.035 * released + 0.98 * accel) + SIDE[0] * wave * pressure * 0.035,
+      y: y + WIND[1] * (0.035 * released + 0.98 * accel) + SIDE[1] * wave * pressure * 0.035,
+      z: pressure * (0.18 + wave * 0.075) + cornerRoll * released * 0.11, released, delay
+    };
+  }
+
+  function deformation(u, v, t) { return variant === 'A' ? deformA(u, v, t) : deformB(u, v, t); }
+
+  function project(p, width, height) {
+    const layout = deviceFixture ? deviceLayout(width, height) : null;
+    const cardScale = layout ? layout.dialogWidth / CARD_W : Math.min(width / 2.30, height / 1.52);
+    const perspective = 1 + p.z * 0.09;
+    return {
+      x: (layout?.dialogCenterX ?? width * 0.56) + (p.x * perspective - p.z * 0.17) * cardScale,
+      y: (layout?.dialogCenterY ?? height * 0.58) + (p.y * perspective - p.z * 0.24) * cardScale,
+      z: p.z, wx: p.x, wy: p.y, released: p.released, delay: p.delay
+    };
+  }
+
+  function solveDistance(points, first, second, restLength, stiffness, compressionStiffness = stiffness) {
+    const a = points[first], b = points[second];
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    const length = Math.hypot(dx, dy, dz);
+    const weight = a.invMass + b.invMass;
+    if (length < 1e-6 || weight < 1e-6) return;
+    const effectiveStiffness = length < restLength ? compressionStiffness : stiffness;
+    const scale = ((length - restLength) / length) * effectiveStiffness;
+    const cx = dx * scale, cy = dy * scale, cz = dz * scale;
+    a.x += cx * a.invMass / weight; a.y += cy * a.invMass / weight; a.z += cz * a.invMass / weight;
+    b.x -= cx * b.invMass / weight; b.y -= cy * b.invMass / weight; b.z -= cz * b.invMass / weight;
+  }
+
+  function relaxCloth(points) {
+    const rx = CARD_W / COLS, ry = CARD_H / ROWS, diagonal = Math.hypot(rx, ry);
+    const index = (i, j) => j * (COLS + 1) + i;
+    // 低分辨率 PBD 式投影只用于验证整体运动。结构边和对角边限制拉伸/剪切，
+    // 两格距离的弱约束抑制尖锐折断；未释放点保持在原平面。没有任何断边。
+    for (let iteration = 0; iteration < 10; iteration++) {
+      for (const point of points) {
+        const targetPull = 0.055 * point.invMass;
+        point.x += (point.targetX - point.x) * targetPull;
+        point.y += (point.targetY - point.y) * targetPull;
+        point.z += (point.targetZ - point.z) * targetPull;
+      }
+      for (let j = 0; j <= ROWS; j++) for (let i = 0; i < COLS; i++)
+        solveDistance(points, index(i,j), index(i+1,j), rx, 0.82);
+      for (let i = 0; i <= COLS; i++) for (let j = 0; j < ROWS; j++)
+        solveDistance(points, index(i,j), index(i,j+1), ry, 0.82);
+      for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+        solveDistance(points, index(i,j), index(i+1,j+1), diagonal, 0.52);
+        solveDistance(points, index(i+1,j), index(i,j+1), diagonal, 0.52);
+      }
+      for (let j = 0; j <= ROWS; j++) for (let i = 0; i < COLS - 1; i++)
+        solveDistance(points, index(i,j), index(i+2,j), rx * 2, 0.08);
+      for (let i = 0; i <= COLS; i++) for (let j = 0; j < ROWS - 1; j++)
+        solveDistance(points, index(i,j), index(i,j+2), ry * 2, 0.08);
+      for (const point of points) {
+        if (point.invMass < 1e-4) {
+          point.x = point.baseX; point.y = point.baseY; point.z = 0;
+        } else {
+          const adhesion = (1 - point.invMass) * 0.22;
+          point.x += (point.baseX - point.x) * adhesion;
+          point.y += (point.baseY - point.y) * adhesion;
+          point.z *= 1 - adhesion;
+        }
+      }
+    }
+  }
+
+  let simulatedClothA = null;
+
+  function buildClothSimulationA() {
+    const steps = 240, dt = 1 / steps, releaseBlend = 0.115;
+    const rx = CARD_W / COLS, ry = CARD_H / ROWS;
+    const diagonal = Math.hypot(rx, ry), index = (i, j) => j * (COLS + 1) + i;
+    const points = [];
+    const constraints = [];
+    for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) {
+      const u = i / COLS, v = j / ROWS;
+      const x = (u - 0.5) * CARD_W, y = (v - 0.5) * CARD_H;
+      // 释放分布按参考完整表面面积的时间序列拟合，而不是按单张截图手调：
+      // t=.32/.47/.55/.62 约解除 36%/67%/86%/98%。
+      const delay = releaseDelayA(u, v);
+      points.push({u, v, x, y, z: 0, oldX: x, oldY: y, oldZ: 0, baseX: x, baseY: y, delay, invMass: 0});
+    }
+    const add = (a, b, rest, stiffness, compression) => constraints.push({a, b, rest, stiffness, compression});
+    for (let j = 0; j <= ROWS; j++) for (let i = 0; i < COLS; i++) add(index(i,j), index(i+1,j), rx, 0.94, 0.28);
+    for (let i = 0; i <= COLS; i++) for (let j = 0; j < ROWS; j++) add(index(i,j), index(i,j+1), ry, 0.94, 0.28);
+    for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+      add(index(i,j), index(i+1,j+1), diagonal, 0.67, 0.12);
+      add(index(i+1,j), index(i,j+1), diagonal, 0.67, 0.12);
+    }
+    // 两格距离只提供很弱的抗折阻尼。这里不允许断边，因此材料始终是一整张薄面。
+    for (let j = 0; j <= ROWS; j++) for (let i = 0; i < COLS - 1; i++) add(index(i,j), index(i+2,j), rx * 2, 0.085, 0.025);
+    for (let i = 0; i <= COLS; i++) for (let j = 0; j < ROWS - 1; j++) add(index(i,j), index(i,j+2), ry * 2, 0.085, 0.025);
+
+    const frames = [];
+    const presentationPoint=(p,t)=>{
+      const released=smoothstep(p.delay,p.delay+releaseBlend,t);
+      const alongRest=clamp((p.baseX*WIND[0]+p.baseY*WIND[1]+.82)/1.64);
+      const posed=basePoseA(p.u,p.v,t);
+      const rawX=p.x+(posed.x-p.baseX),rawY=p.y+(posed.y-p.baseY),rawZ=p.z;
+      // 后段只校正整张薄面的朝向，不把它压成平板：保留一个低频弯曲和一个局部褶皱，
+      // 同时把顺风侧拉得稍远。这样右下不会卷过左上完成整面翻转。
+      const bulk=.105*smoothstep(.22,.56,t)+.635*smoothstep(.50,.84,t);
+      const shapeMatch=.94*smoothstep(.36,.77,t)*smoothstep(.12,.96,released);
+      const broad=Math.sin((p.u*.82+p.v*.46)*Math.PI*1.18-t*.58+.30);
+      const localRegion=Math.exp(-Math.pow((p.u-.72)/.28,2)-Math.pow((p.v-.66)/.25,2));
+      const localFold=Math.sin((p.u*.86-p.v*.50)*Math.PI*2.15-t*1.05+.45)*localRegion;
+      const lateStretch=.078*alongRest*smoothstep(.42,.82,t);
+      const targetX=posed.x+WIND[0]*(bulk+lateStretch+broad*.020)+SIDE[0]*localFold*.030;
+      const targetY=posed.y+WIND[1]*(bulk+lateStretch+broad*.020)+SIDE[1]*localFold*.030;
+      const targetZ=released*(.105+broad*.070+localFold*.048)*(1-.10*smoothstep(.76,.96,t));
+      return {
+        x:rawX+(targetX-rawX)*shapeMatch,
+        y:rawY+(targetY-rawY)*shapeMatch,
+        z:rawZ+(targetZ-rawZ)*shapeMatch,
+        released,delay:p.delay
+      };
+    };
+    const storeFrame = t => frames.push(points.map(p => presentationPoint(p,t)));
+    storeFrame(0);
+    for (let step = 1; step <= steps; step++) {
+      const t = step / steps;
+      // 归一化时间不是物理秒；若直接把常规重力数量级代入 1/240 步长，
+      // 位移会小到不可见。这里保留先慢后快的曲线，但把它换算到“每个动画周期”的尺度。
+      const windRamp = 4.8 + 155.0 * Math.pow(smoothstep(0.14, 1.0, t), 2.35);
+      // 法向阻力远大于切向阻力：薄面先被风抬起，转向后才被主风带走。
+      // 这比直接给所有顶点同一个二维速度更接近布料的受风方式。
+      for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) {
+        const p = points[index(i,j)];
+        const left=points[index(Math.max(0,i-1),j)], right=points[index(Math.min(COLS,i+1),j)];
+        const up=points[index(i,Math.max(0,j-1))], down=points[index(i,Math.min(ROWS,j+1))];
+        const ax=right.x-left.x, ay=right.y-left.y, az=right.z-left.z;
+        const bx=down.x-up.x, by=down.y-up.y, bz=down.z-up.z;
+        let nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx, length=Math.hypot(nx,ny,nz)||1;
+        p.nx=nx/length; p.ny=ny/length; p.nz=nz/length;
+      }
+      for (const p of points) {
+        const released = smoothstep(p.delay, p.delay + releaseBlend, t);
+        p.invMass = smoothstep(0.04, 0.96, released);
+        if (p.invMass < 1e-5) {
+          p.x = p.oldX = p.baseX; p.y = p.oldY = p.baseY; p.z = p.oldZ = 0;
+          continue;
+        }
+        const vx = (p.x - p.oldX) * 0.986, vy = (p.y - p.oldY) * 0.986, vz = (p.z - p.oldZ) * 0.978;
+        p.oldX = p.x; p.oldY = p.y; p.oldZ = p.z;
+        const wrinkle = Math.sin(p.u * 8.2 - p.v * 5.1 + t * 1.7) + 0.45 * Math.sin(p.u * 3.4 + p.v * 9.3 - t * 2.2);
+        const lowerSideFlow = smoothstep(0.63, 0.94, p.v) * (1 - smoothstep(0.55, 0.74, t));
+        const flowX=WIND[0]*windRamp, flowY=WIND[1]*windRamp, flowZ=(11.0+windRamp*.38)*(0.86+wrinkle*.12);
+        const normalFlow=flowX*p.nx+flowY*p.ny+flowZ*p.nz;
+        const frontAge=t-p.delay, foldFront=Math.exp(-Math.pow((frontAge-.065)/.060,2));
+        const ax = p.nx*normalFlow*.88 + (flowX-p.nx*normalFlow)*.18 - lowerSideFlow*24.0;
+        const ay = p.ny*normalFlow*.88 + (flowY-p.ny*normalFlow)*.18 + lowerSideFlow*5.0;
+        const az = p.nz*normalFlow*.88 + (flowZ-p.nz*normalFlow)*.18 + foldFront*(34.0+Math.max(0,wrinkle)*9.0);
+        p.x += vx + ax * dt * dt * p.invMass;
+        p.y += vy + ay * dt * dt * p.invMass;
+        p.z += vz + az * dt * dt * p.invMass;
+      }
+      for (let iteration = 0; iteration < 9; iteration++) {
+        for (const edge of constraints) solveDistance(points, edge.a, edge.b, edge.rest, edge.stiffness, edge.compression);
+        for (const p of points) {
+          const released = smoothstep(p.delay, p.delay + releaseBlend, t);
+          if (released < 0.015) {
+            p.x = p.baseX; p.y = p.baseY; p.z = 0;
+          } else if (released < 1) {
+            // 贴附不是二值开关：过渡区仍被原平面牵引，形成连续的剥离曲线。
+            const adhesion = Math.pow(1 - released, 2.2) * 0.34;
+            p.x += (p.baseX - p.x) * adhesion;
+            p.y += (p.baseY - p.y) * adhesion;
+            p.z *= 1 - adhesion;
+          }
+        }
+      }
+      storeFrame(t);
+    }
+    return {steps, frames};
+  }
+
+  function sampleClothSimulationA(t) {
+    simulatedClothA ??= buildClothSimulationA();
+    const position = clamp(t) * simulatedClothA.steps;
+    const lo = Math.floor(position), hi = Math.min(simulatedClothA.steps, lo + 1), mix = position - lo;
+    return simulatedClothA.frames[lo].map((a, i) => {
+      const b = simulatedClothA.frames[hi][i];
+      return {
+        x: a.x + (b.x - a.x) * mix, y: a.y + (b.y - a.y) * mix, z: a.z + (b.z - a.z) * mix,
+        released: a.released + (b.released - a.released) * mix, delay: a.delay
+      };
+    });
+  }
+
+  function sampleWorld(world, u, v) {
+    const gx = clamp(u) * COLS, gy = clamp(v) * ROWS;
+    const i = Math.min(COLS - 1, Math.floor(gx)), j = Math.min(ROWS - 1, Math.floor(gy));
+    const fx = gx - i, fy = gy - j, index = (x,y) => y * (COLS + 1) + x;
+    const p00=world[index(i,j)], p10=world[index(i+1,j)], p01=world[index(i,j+1)], p11=world[index(i+1,j+1)];
+    const mix = key => {
+      const a=p00[key]+(p10[key]-p00[key])*fx, b=p01[key]+(p11[key]-p01[key])*fx;
+      return a+(b-a)*fy;
+    };
+    const tux=(p10.x-p00.x)*(1-fy)+(p11.x-p01.x)*fy;
+    const tuy=(p10.y-p00.y)*(1-fy)+(p11.y-p01.y)*fy;
+    const tuz=(p10.z-p00.z)*(1-fy)+(p11.z-p01.z)*fy;
+    const tvx=(p01.x-p00.x)*(1-fx)+(p11.x-p10.x)*fx;
+    const tvy=(p01.y-p00.y)*(1-fx)+(p11.y-p10.y)*fx;
+    const tvz=(p01.z-p00.z)*(1-fx)+(p11.z-p10.z)*fx;
+    let nx=tuy*tvz-tuz*tvy, ny=tuz*tvx-tux*tvz, nz=tux*tvy-tuy*tvx, length=Math.hypot(nx,ny,nz)||1;
+    return {x:mix('x'),y:mix('y'),z:mix('z'),nx:nx/length,ny:ny/length,nz:nz/length,i,j};
+  }
+
+  function sampleSimulationFrameA(u,v,frameIndex){
+    simulatedClothA ??= buildClothSimulationA();
+    const frame=simulatedClothA.frames[clamp(Math.round(frameIndex),0,simulatedClothA.steps)];
+    const gx=clamp(u)*COLS,gy=clamp(v)*ROWS;
+    const i=Math.min(COLS-1,Math.floor(gx)),j=Math.min(ROWS-1,Math.floor(gy));
+    const fx=gx-i,fy=gy-j,index=(x,y)=>y*(COLS+1)+x;
+    const p00=frame[index(i,j)],p10=frame[index(i+1,j)],p01=frame[index(i,j+1)],p11=frame[index(i+1,j+1)];
+    const mix=key=>{
+      const a=p00[key]+(p10[key]-p00[key])*fx,b=p01[key]+(p11[key]-p01[key])*fx;
+      return a+(b-a)*fy;
+    };
+    const tux=(p10.x-p00.x)*(1-fy)+(p11.x-p01.x)*fy;
+    const tuy=(p10.y-p00.y)*(1-fy)+(p11.y-p01.y)*fy;
+    const tuz=(p10.z-p00.z)*(1-fy)+(p11.z-p01.z)*fy;
+    const tvx=(p01.x-p00.x)*(1-fx)+(p11.x-p10.x)*fx;
+    const tvy=(p01.y-p00.y)*(1-fx)+(p11.y-p10.y)*fx;
+    const tvz=(p01.z-p00.z)*(1-fx)+(p11.z-p10.z)*fx;
+    let nx=tuy*tvz-tuz*tvy,ny=tuz*tvx-tux*tvz,nz=tux*tvy-tuy*tvx,length=Math.hypot(nx,ny,nz)||1;
+    return {x:mix('x'),y:mix('y'),z:mix('z'),nx:nx/length,ny:ny/length,nz:nz/length};
+  }
+
+  let particleTrajectoriesAReady=false;
+  function ensureParticleTrajectoriesA(){
+    if(particleTrajectoriesAReady)return;
+    simulatedClothA ??= buildClothSimulationA();
+    for(const group of particleGroups)for(const sample of group.samples){
+      const state=materialState(sample.u,sample.v,0,'A');
+      // 粒子化后仍短暂贴随薄面，形成连续帷幔；随后才真正脱离。
+      // 后释放区域已经处在完整风场中，贴随时间应更短；否则 t≈.7 时最新粒子仍会
+      // 平铺在目标薄面上，重新描出 Dialog 外轮廓。
+      const lateRelease=smoothstep(.22,.58,state.delay);
+      const detachT=clamp(state.delay+.095+.105*sample.h3-.075*lateRelease,.025,.86);
+      const frame=Math.round(detachT*simulatedClothA.steps);
+      const beforeFrame=Math.max(0,frame-2),afterFrame=Math.min(simulatedClothA.steps,frame+2);
+      const source=sampleSimulationFrameA(sample.u,sample.v,frame);
+      const before=sampleSimulationFrameA(sample.u,sample.v,beforeFrame);
+      const after=sampleSimulationFrameA(sample.u,sample.v,afterFrame);
+      const du=1/COLS,dv=1/ROWS;
+      const neighbors=[
+        sampleSimulationFrameA(Math.max(0,sample.u-du),sample.v,frame),
+        sampleSimulationFrameA(Math.min(1,sample.u+du),sample.v,frame),
+        sampleSimulationFrameA(sample.u,Math.max(0,sample.v-dv),frame),
+        sampleSimulationFrameA(sample.u,Math.min(1,sample.v+dv),frame)
+      ];
+      const curvature=neighbors.reduce((maximum,neighbor)=>{
+        const dot=clamp(source.nx*neighbor.nx+source.ny*neighbor.ny+source.nz*neighbor.nz,-1,1);
+        return Math.max(maximum,1-dot);
+      },0);
+      const viewCompression=clamp(1/Math.max(.18,Math.abs(source.nz)),1,4);
+      // 帷幔身份来自粒子脱离瞬间的真实折曲与投影压缩；随后身份保留，但不使用独立轨迹。
+      const curtainWeight=smoothstep(.008,.16,curvature)*smoothstep(1.08,2.80,viewCompression);
+      const span=Math.max(1e-4,(afterFrame-beforeFrame)/simulatedClothA.steps);
+      sample.flight={
+        detachT:frame/simulatedClothA.steps,
+        x:source.x,y:source.y,z:source.z,nx:source.nx,ny:source.ny,nz:source.nz,
+        vx:(after.x-before.x)/span,vy:(after.y-before.y)/span,vz:(after.z-before.z)/span,
+        curtainWeight,curvature,viewCompression
+      };
+    }
+    particleTrajectoriesAReady=true;
+  }
+
+  function detachedParticlePointA(sample,surfacePoint,t){
+    const source=sample.flight;
+    if(!source||t<=source.detachT)return surfacePoint;
+    const age=t-source.detachT,free=smoothstep(0,.105,age);
+    // 脱离后仍保留沿主风的速度差，但横向和法向运动必须是有界、低频且材料邻域相干的。
+    // 旧公式让随机横移随 age 和 breakup 持续放大，末段因此形成各向扩散的粒子云。
+    const memory=.10+.08*sample.h2;
+    const lateWind=1+.32*smoothstep(.52,.82,t);
+    const coherent=Math.sin((sample.u*3.7+sample.v*2.9)*Math.PI+.35);
+    const curl=Math.sin((sample.u*2.8+sample.v*2.2)*Math.PI*2-age*4.6+.55);
+    const randomGust=(.22+1.55*sample.h1)*age+(.72+1.75*sample.h2)*lateWind*age*age;
+    const foldedGust=(.66+.18*coherent)*age+(1.08+.16*curl)*lateWind*age*age;
+    // 同一折叠脊上的材料点保留相干速度，普通粒子仍靠顺风速度差解除 Dialog 轮廓。
+    const curtainCoherence=(source.curtainWeight??0)*.78;
+    const gust=randomGust+(foldedGust-randomGust)*curtainCoherence;
+    const transverse=smoothstep(0,.16,age)*(1-.35*smoothstep(.72,.97,t));
+    const cross=(coherent*.082+curl*.044+sample.side*.014)*transverse;
+    const normal=(coherent*.052+Math.sin((sample.u*1.9-sample.v*2.6)*Math.PI*2+age*3.1)*.026
+      +sample.lift*.012)*transverse;
+    const sourceAlong=clamp(source.vx*WIND[0]+source.vy*WIND[1],0,2.8);
+    const sourceSide=clamp(source.vx*SIDE[0]+source.vy*SIDE[1],-.65,.65);
+    const inheritedAlong=sourceAlong*age*memory;
+    const inheritedSide=sourceSide*age*.055;
+    const flight={
+      x:source.x+WIND[0]*(inheritedAlong+gust)+SIDE[0]*(inheritedSide+cross)+source.nx*normal,
+      y:source.y+WIND[1]*(inheritedAlong+gust)+SIDE[1]*(inheritedSide+cross)+source.ny*normal,
+      z:source.z+clamp(source.vz,-1.4,2.4)*age*memory*.58+(.20+.24*sample.h1)*age
+        +source.nz*normal-.10*age*age,
+      nx:source.nx,ny:source.ny,nz:source.nz
+    };
+    return {
+      x:surfacePoint.x+(flight.x-surfacePoint.x)*free,
+      y:surfacePoint.y+(flight.y-surfacePoint.y)*free,
+      z:surfacePoint.z+(flight.z-surfacePoint.z)*free,
+      nx:surfacePoint.nx+(flight.nx-surfacePoint.nx)*free,
+      ny:surfacePoint.ny+(flight.ny-surfacePoint.ny)*free,
+      nz:surfacePoint.nz+(flight.nz-surfacePoint.nz)*free
+    };
+  }
+
+  function buildCellCompression(vertices, w, h) {
+    const layout=deviceFixture?deviceLayout(w,h):null;
+    const at=(i,j)=>vertices[j*(COLS+1)+i], cardScale=layout?layout.dialogWidth/CARD_W:Math.min(w/2.30,h/1.52);
+    const restArea=(CARD_W*cardScale/COLS)*(CARD_H*cardScale/ROWS), values=[];
+    const area=(a,b,c)=>Math.abs((b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x))*.5;
+    for(let j=0;j<ROWS;j++) for(let i=0;i<COLS;i++){
+      const p00=at(i,j),p10=at(i+1,j),p01=at(i,j+1),p11=at(i+1,j+1);
+      values.push(clamp(restArea/Math.max(1,area(p00,p10,p11)+area(p00,p11,p01)),.55,4.0));
+    }
+    return values;
+  }
+
+  function clothMetrics(world){
+    let dx=0,dy=0,meanZ=0,flipped=0,total=0;
+    const at=(i,j)=>world[j*(COLS+1)+i];
+    for(const p of world){dx+=p.x-p.baseX;dy+=p.y-p.baseY;meanZ+=p.z;}
+    for(let j=0;j<ROWS;j++) for(let i=0;i<COLS;i++){
+      const a=at(i,j),b=at(i+1,j),c=at(i,j+1);
+      const nx=(b.y-a.y)*(c.z-a.z)-(b.z-a.z)*(c.y-a.y);
+      const ny=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z);
+      const nz=(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+      if(nz<0)flipped++;total++;
+    }
+    const count=world.length;
+    return {along:(dx*WIND[0]+dy*WIND[1])/count,meanZ:meanZ/count,flipped:flipped/total};
+  }
+
+  function renderParticles(world, vertices, t, w, h, dpr) {
+    if(variant==='A')ensureParticleTrajectoriesA();
+    const compression=buildCellCompression(vertices,w,h), glows=[];
+    const sortedCompression=[...compression].sort((a,b)=>a-b);
+    const compressionQuantile=q=>sortedCompression[Math.min(sortedCompression.length-1,Math.floor(q*(sortedCompression.length-1)))];
+    let visible=0,baseVisible=0,topLeftVisible=0;
+    let sumU=0,sumV=0,sumX=0,sumY=0,sumUU=0,sumVV=0,sumXX=0,sumYY=0,sumUX=0,sumVY=0;
+    let detachedVisible=0,flightAlong=0,flightSide=0,flightNormal=0,backwardFlight=0;
+    let foldCandidates=0,plainCandidates=0,foldDensityMass=0,plainDensityMass=0;
+    let curtainWeightSamples=0,curtainWeightSum=0,strongCurtainSamples=0;
+    let identityCurtainCandidates=0,identityPlainCandidates=0,identityCurtainMass=0,identityPlainMass=0;
+    ctx.save(); ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=.70;
+    for(const group of particleGroups){
+      ctx.fillStyle=group.color;
+      for(const sample of group.samples){
+        const state=materialState(sample.u,sample.v,t);
+        if(state.released<.015) continue;
+        const life=variant==='A'
+          ?1-smoothstep(.72+sample.h3*.045,.970+sample.h1*.025,t)
+          :1-smoothstep(.84+sample.h3*.045,1.015,t);
+        const comp=compression[sample.cell];
+        if(variant==='A'&&sample.flight){
+          curtainWeightSamples++;curtainWeightSum+=sample.flight.curtainWeight;
+          if(sample.flight.curtainWeight>=.55)strongCurtainSamples++;
+        }
+        const persistentCurtain=variant==='A'&&sample.flight
+          ?sample.flight.curtainWeight*state.released*life
+          :0;
+        if(variant==='A'){
+          if(sample.flight?.curtainWeight>=.55)identityCurtainCandidates++;
+          else if((sample.flight?.curtainWeight??0)<=.08)identityPlainCandidates++;
+        }
+        const front=Math.exp(-Math.pow((state.age-.070)/.073,2))*state.released;
+        const foldGain=clamp((comp-1)*.34,0,1.05);
+        const foldCell=comp>=1.55,plainCell=comp<=1.18;
+        if(foldCell)foldCandidates++;else if(plainCell)plainCandidates++;
+        const earlyTopLeft=variant==='A'
+          ?Math.exp(-Math.pow(sample.u/.15,2)-Math.pow(sample.v/.14,2))
+            *smoothstep(.015,.055,t)*(1-smoothstep(.14,.25,t))
+          :0;
+        const probability=clamp(state.released*life*(.46*particleDensity+front*.24*curtainStrength+foldGain*.05)
+          +earlyTopLeft*.58*particleDensity,0,1);
+        if(sample.h0>probability) continue;
+        const surfacePoint=sampleWorld(world,sample.u,sample.v);
+        const point=variant==='A'?detachedParticlePointA(sample,surfacePoint,t):surfacePoint;
+        const free=smoothstep(.16,.52,state.age)*smoothstep(.48,.94,t);
+        const travel=free*free*(.035+.035*sample.h1);
+        const spread=free*(variant==='A'?.012:.040)*sample.side;
+        const normal=free*(variant==='A'?.016:.050)*sample.lift;
+        const projected=project({
+          x:point.x+WIND[0]*travel+SIDE[0]*spread+point.nx*normal,
+          y:point.y+WIND[1]*travel+SIDE[1]*spread+point.ny*normal,
+          z:point.z+point.nz*normal
+        },w,h);
+        if(projected.x<0||projected.x>w||projected.y<0||projected.y>h) continue;
+        if(variant==='A'&&sample.flight&&t>sample.flight.detachT){
+          const dx=point.x-sample.flight.x,dy=point.y-sample.flight.y,dz=point.z-sample.flight.z;
+          const along=dx*WIND[0]+dy*WIND[1],side=dx*SIDE[0]+dy*SIDE[1];
+          flightAlong+=Math.abs(along);flightSide+=Math.abs(side);flightNormal+=Math.abs(dz);
+          if(along<0)backwardFlight++;
+          detachedVisible++;
+        }
+        const size=clamp((.92+projected.z*.58+foldGain*.16+front*.24+persistentCurtain*.20)*dpr,.85*dpr,2.45*dpr);
+        ctx.fillRect(projected.x-size*.5,projected.y-size*.5,size,size);
+        let drawCount=1;
+        visible++;baseVisible++;
+        if(sample.u<.28&&sample.v<.28)topLeftVisible++;
+        sumU+=sample.u;sumV+=sample.v;sumX+=projected.x;sumY+=projected.y;
+        sumUU+=sample.u*sample.u;sumVV+=sample.v*sample.v;sumXX+=projected.x*projected.x;sumYY+=projected.y*projected.y;
+        sumUX+=sample.u*projected.x;sumVY+=sample.v*projected.y;
+        // 彩色内容只增加同一材料点的数量表示；位置仍由同一曲面与同一微扩散公式产生。
+        const colorExtra=sample.saturation*.90*particleDensity;
+        if(sample.h2<colorExtra){
+          const offset=(.65+sample.h1*.9)*dpr;
+          ctx.fillRect(projected.x-size*.45+sample.side*offset,projected.y-size*.45+sample.lift*offset,size*.9,size*.9);
+          visible++;
+          drawCount++;
+        }
+        const broadExtra=clamp(front*.52*curtainStrength+foldGain*.16*curtainStrength,0,.92);
+        const identityExtra=clamp(persistentCurtain*3.20*curtainStrength,0,3.85);
+        let curtainCopies=(sample.h1<broadExtra?1:0)+Math.floor(identityExtra);
+        if(hash01(sample.id*19.31)<identityExtra-Math.floor(identityExtra))curtainCopies++;
+        for(let copy=0;copy<curtainCopies;copy++){
+          const angle=sample.h1*Math.PI*2+copy*2.399;
+          const offset=(.42+sample.h3*.62+copy*.16)*dpr;
+          ctx.fillRect(
+            projected.x-size*.45+Math.cos(angle)*offset,
+            projected.y-size*.45+Math.sin(angle)*offset,
+            size*.92,size*.92
+          );
+          visible++;drawCount++;
+        }
+        if(curtainCopies>0&&glows.length<5000)glows.push({x:projected.x,y:projected.y,size:size+1.15*dpr});
+        if(foldCell)foldDensityMass+=drawCount*comp;
+        else if(plainCell)plainDensityMass+=drawCount*comp;
+        if(variant==='A'){
+          if(sample.flight?.curtainWeight>=.55)identityCurtainMass+=drawCount*comp;
+          else if((sample.flight?.curtainWeight??0)<=.08)identityPlainMass+=drawCount*comp;
+        }
+      }
+    }
+    ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.16*curtainStrength; ctx.fillStyle='rgb(218,235,255)';
+    for(const glow of glows) ctx.fillRect(glow.x-glow.size*.5,glow.y-glow.size*.5,glow.size,glow.size);
+    ctx.restore();
+    const correlation=(sumAB,sumA,sumB,sumAA,sumBB)=>{
+      const numerator=baseVisible*sumAB-sumA*sumB;
+      const denominator=Math.sqrt(Math.max(1e-9,(baseVisible*sumAA-sumA*sumA)*(baseVisible*sumBB-sumB*sumB)));
+      return numerator/denominator;
+    };
+    const materialLock=baseVisible>3
+      ?(Math.abs(correlation(sumUX,sumU,sumX,sumUU,sumXX))+Math.abs(correlation(sumVY,sumV,sumY,sumVV,sumYY)))*.5
+      :0;
+    const foldDensity=foldDensityMass/Math.max(1,foldCandidates);
+    const plainDensity=plainDensityMass/Math.max(1,plainCandidates);
+    return {
+      visible,baseVisible,topLeftVisible,topLeftShare:topLeftVisible/Math.max(1,baseVisible),materialLock,
+      compressionP50:compressionQuantile(.50),compressionP90:compressionQuantile(.90),compressionP98:compressionQuantile(.98),
+      compressedCellShare:compression.filter(value=>value>=1.55).length/compression.length,
+      curtainDensityContrast:foldDensity/Math.max(.001,plainDensity),
+      persistentCurtainContrast:
+        (identityCurtainMass/Math.max(1,identityCurtainCandidates))
+        /Math.max(.001,identityPlainMass/Math.max(1,identityPlainCandidates)),
+      flightSideRatio:flightSide/Math.max(.001,flightAlong),
+      flightNormalRatio:flightNormal/Math.max(.001,flightAlong),
+      backwardFlightShare:backwardFlight/Math.max(1,detachedVisible),
+      meanCurtainWeight:curtainWeightSum/Math.max(1,curtainWeightSamples),
+      strongCurtainShare:strongCurtainSamples/Math.max(1,curtainWeightSamples)
+    };
+  }
+
+  function affineTriangle(image, src, dst, alpha) {
+    const [s0, s1, s2] = src, [d0, d1, d2] = dst;
+    const det = s0.x * (s1.y - s2.y) + s1.x * (s2.y - s0.y) + s2.x * (s0.y - s1.y);
+    if (Math.abs(det) < 1e-5) return;
+    const a = (d0.x * (s1.y - s2.y) + d1.x * (s2.y - s0.y) + d2.x * (s0.y - s1.y)) / det;
+    const c = (d0.x * (s2.x - s1.x) + d1.x * (s0.x - s2.x) + d2.x * (s1.x - s0.x)) / det;
+    const e = (d0.x * (s1.x * s2.y - s2.x * s1.y) + d1.x * (s2.x * s0.y - s0.x * s2.y) + d2.x * (s0.x * s1.y - s1.x * s0.y)) / det;
+    const b = (d0.y * (s1.y - s2.y) + d1.y * (s2.y - s0.y) + d2.y * (s0.y - s1.y)) / det;
+    const d = (d0.y * (s2.x - s1.x) + d1.y * (s0.x - s2.x) + d2.y * (s1.x - s0.x)) / det;
+    const f = (d0.y * (s1.x * s2.y - s2.x * s1.y) + d1.y * (s2.x * s0.y - s0.x * s2.y) + d2.y * (s0.x * s1.y - s1.x * s0.y)) / det;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(d0.x, d0.y); ctx.lineTo(d1.x, d1.y); ctx.lineTo(d2.x, d2.y); ctx.closePath(); ctx.clip();
+    ctx.globalAlpha = alpha; ctx.transform(a, b, c, d, e, f); ctx.drawImage(image, 0, 0); ctx.restore();
+  }
+
+  function render(t) {
+    const renderStarted=performance.now();
+    const rect = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(rect.width * dpr)), h = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h);
+    if(deviceFixture){
+      ctx.fillStyle='#08090c';ctx.fillRect(0,0,w,h);
+      const layout=deviceLayout(w,h);
+      if(deviceBackground.complete&&deviceBackground.naturalWidth){
+        ctx.drawImage(deviceBackground,layout.phoneX,layout.phoneY,layout.phoneWidth,layout.phoneHeight);
+      }
+      const dimAlpha=.6*(1-Math.pow(clamp(t),2.6));
+      ctx.fillStyle=`rgba(0,0,0,${dimAlpha})`;
+      ctx.fillRect(layout.phoneX,layout.phoneY,layout.phoneWidth,layout.phoneHeight);
+    }else{
+      const bg = ctx.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#252a33'); bg.addColorStop(1, '#151820'); ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(130,145,171,.18)'; ctx.lineWidth = 1 * dpr;
+      for (let i = 0; i < 8; i++) { const y = h * (0.15 + i * 0.095); ctx.beginPath(); ctx.roundRect(w * 0.07, y, w * 0.86, h * 0.056, 14 * dpr); ctx.stroke(); }
+    }
+
+    const simulated = variant === 'A' ? sampleClothSimulationA(t) : null;
+    const world = [];
+    for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) {
+      const u = i / COLS, v = j / ROWS, simulatedPoint = simulated?.[j * (COLS + 1) + i];
+      const predicted = simulatedPoint ?? deformation(u, v, t);
+      const baseX = (u - 0.5) * CARD_W, baseY = (v - 0.5) * CARD_H;
+      world.push({
+        u, v, x: predicted.x, y: predicted.y, z: predicted.z,
+        targetX: predicted.x, targetY: predicted.y, targetZ: predicted.z,
+        baseX, baseY, invMass: smoothstep(0.04, 0.82, predicted.released),
+        released: predicted.released, delay: predicted.delay
+      });
+    }
+    if (variant !== 'A') relaxCloth(world);
+    const vertices = world.map(point => ({ u: point.u, v: point.v, ...project(point, w, h) }));
+    const at = (i, j) => vertices[j * (COLS + 1) + i];
+    const baseCorners = [
+      project({x:-HALF_CARD_W,y:-HALF_CARD_H,z:0},w,h), project({x:HALF_CARD_W,y:-HALF_CARD_H,z:0},w,h),
+      project({x:HALF_CARD_W,y:HALF_CARD_H,z:0},w,h), project({x:-HALF_CARD_W,y:HALF_CARD_H,z:0},w,h)
+    ];
+    if(showGrid){
+      ctx.save(); ctx.setLineDash([7*dpr, 6*dpr]); ctx.strokeStyle='rgba(126,151,194,.34)'; ctx.lineWidth=1*dpr;
+      ctx.beginPath(); baseCorners.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+    renderIntactSurface(t,w,h);
+    const particleDiagnostics=renderParticles(world,vertices,t,w,h,dpr);
+    if(showGrid){
+      ctx.strokeStyle = 'rgba(105,179,255,.25)'; ctx.lineWidth = .65*dpr;
+      for (let j=0;j<=ROWS;j++) { ctx.beginPath(); for(let i=0;i<=COLS;i++){const p=at(i,j); i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);} ctx.stroke(); }
+      for (let i=0;i<=COLS;i++) { ctx.beginPath(); for(let j=0;j<=ROWS;j++){const p=at(i,j); j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);} ctx.stroke(); }
+      for (let j=0;j<=ROWS;j+=2) for(let i=0;i<=COLS;i+=2){ const p=at(i,j); const r=(1.25+p.z*2.6)*dpr; ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=p.released>.25?'rgba(225,239,255,.72)':'rgba(103,147,204,.30)';ctx.fill(); }
+    }
+    const lifted = vertices.reduce((sum, point) => sum + point.released, 0) / vertices.length;
+    const metrics=clothMetrics(world);
+    const renderMs=performance.now()-renderStarted;
+    window.__prototypeDiagnostics={fixture:deviceFixture?'device':'synthetic',variant,t,lifted,...metrics,...particleDiagnostics,renderMs};
+    state.dataset.diagnostics=JSON.stringify(window.__prototypeDiagnostics);
+    const fixtureState=deviceFixture
+      ?`真机 1440×3168 / Dialog 1120×1099 ｜ JS ${PARTICLE_COLS}×${PARTICLE_ROWS}，Android 144×142×${DEVICE.androidReplicas}`
+      :'合成素材';
+    state.textContent = `${fixtureState} ｜ ${VARIANTS[variant]} ｜ t=${t.toFixed(3)} ｜ 粒子化=${(lifted*100).toFixed(1)}% ｜ 锁形=${particleDiagnostics.materialLock.toFixed(2)} ｜ ${renderMs.toFixed(1)}ms`;
+  }
+
+  function setProgress(value, syncVideo = true) {
+    progress = clamp(value); scrub.value = String(Math.round(progress * 1000)); time.textContent = `t=${progress.toFixed(3)}`;
+    if (syncVideo && Number.isFinite(video.duration)) video.currentTime = ONSET + progress * DURATION;
+    render(progress);
+  }
+  function setVariant(next) {
+    variant = next; params.set('variant', variant); params.set('t', progress.toFixed(3)); history.replaceState(null, '', `${location.pathname}?${params}`);
+    variantLabel.textContent = VARIANTS[variant]; render(progress);
+  }
+  function updateEffectControls() {
+    density.value=String(Math.round(particleDensity*100)); curtain.value=String(Math.round(curtainStrength*100)); grid.checked=showGrid;
+    densityValue.value=`${particleDensity.toFixed(2)}×`; curtainValue.value=`${curtainStrength.toFixed(2)}×`;
+  }
+  function persistEffectControls() {
+    params.set('density',particleDensity.toFixed(2)); params.set('curtain',curtainStrength.toFixed(2));
+    showGrid ? params.set('grid','1') : params.delete('grid');
+    params.set('variant',variant); params.set('t',progress.toFixed(3));
+    history.replaceState(null,'',`${location.pathname}?${params}`);
+  }
+  function stopPlayback() { playing=false; video.pause(); play.textContent='播放'; }
+  function playbackFrame() {
+    if(!playing) return;
+    const p=(video.currentTime-ONSET)/DURATION;
+    if(p>=1||video.ended){ stopPlayback(); setProgress(1,false); return; }
+    setProgress(p,false); requestAnimationFrame(playbackFrame);
+  }
+  function cycle(delta) { const keys=Object.keys(VARIANTS), index=keys.indexOf(variant); setVariant(keys[(index+delta+keys.length)%keys.length]); }
+  document.getElementById('previous').onclick=()=>cycle(-1); document.getElementById('next').onclick=()=>cycle(1);
+  window.addEventListener('keydown', e => { if(['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable)return; if(e.key==='ArrowLeft'){e.preventDefault();cycle(-1);} if(e.key==='ArrowRight'){e.preventDefault();cycle(1);} });
+  density.addEventListener('input',()=>{particleDensity=Number(density.value)/100;updateEffectControls();persistEffectControls();render(progress);});
+  curtain.addEventListener('input',()=>{curtainStrength=Number(curtain.value)/100;updateEffectControls();persistEffectControls();render(progress);});
+  grid.addEventListener('change',()=>{showGrid=grid.checked;persistEffectControls();render(progress);});
+  scrub.addEventListener('input', () => { stopPlayback(); setProgress(Number(scrub.value)/1000); params.set('t',progress.toFixed(3)); history.replaceState(null,'',`${location.pathname}?${params}`); });
+  play.onclick = async () => {
+    if(playing){stopPlayback();return;}
+    if(progress>=.995)setProgress(0);
+    playing=true;play.textContent='暂停';video.currentTime=ONSET+progress*DURATION;
+    try{await video.play();requestAnimationFrame(playbackFrame);}catch{stopPlayback();}
+  };
+  video.addEventListener('loadedmetadata', () => setProgress(progress));
+  video.addEventListener('seeked', () => render(progress));
+  window.addEventListener('resize', () => render(progress));
+  variantLabel.textContent=VARIANTS[variant];
+  updateEffectControls();
+  getSurfaceDelayMap('A');getSurfaceDelayMap('B');
+  loadDeviceFixture();
+  // 本地视频很小，metadata 可能在监听器注册前已经完成；此时也要立刻
+  // 对齐参考时间，不能让滑杆显示 t=0.47 而视频仍停在第 0 秒。
+  setProgress(progress, video.readyState >= 1);
+})();
+</script>
+</body>
+</html>

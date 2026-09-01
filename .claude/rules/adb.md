@@ -349,3 +349,22 @@ if ($localHash -ne $remoteHash) { <重传> }
    `uiautomator dump` 报 "could not get idle state" 并输出**陈旧缓存树**（内容是上一次
    成功的 dump，极易误判画面状态）。通知栏上的定位一律改用截图（on-device screencap +
    pull + md5 校验）目视读坐标，不要依赖 dump。
+
+## screenrecord 是变帧率：帧号换算成秒必须逐帧读时间戳
+
+`adb shell screenrecord` **只在画面变化时出帧**。R5CW20BLNKL（SM-S9180）实测：
+129 帧里 99 帧集中在动画的 0.84 秒内（约 117fps），其余 30 帧铺在 4.8 秒的静止期
+上，容器给出的 `avg_frame_rate` 因此只有 22.7。
+
+用任何单一帧率（无论是假设的 60，还是探测到的平均值）把帧号换算成秒都会错。
+2026-08-31 两次实际发生：先按 60 算把 1.15 秒的窗口算成 0.35 秒，改用平均帧率后
+又把 7.2 秒的录像算成 17-24 秒的窗口。
+
+正确做法是逐帧读时间戳，并让解码保持原始帧序（`-vsync 0`）：
+
+```powershell
+& ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 <file>
+```
+
+解码出的帧数必须与时间戳数一致，不一致就说明 `-vsync` 没生效或滤镜改了帧率。
+`tmp/particle-dismiss-tuning/detect_device_window.py` 已按此实现。

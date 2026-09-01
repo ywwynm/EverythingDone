@@ -27,6 +27,18 @@ memory/screenshots/
 # 采取「先全排除、再按文件放行」，避免每来一个新目录就漏一条。
 /tmp/*
 
+# Dialog 粒子消散 canonical 桌面回归代码；视频、逐帧图片和分析 JSON 继续忽略。
+!/tmp/particle-dismiss-tuning/
+/tmp/particle-dismiss-tuning/*
+!/tmp/particle-dismiss-tuning/*.py
+!/tmp/particle-dismiss-tuning/*.html
+!/tmp/particle-dismiss-tuning/README.md
+!/tmp/particle-dismiss-tuning/cloth-motion-prototype/
+/tmp/particle-dismiss-tuning/cloth-motion-prototype/*
+!/tmp/particle-dismiss-tuning/cloth-motion-prototype/index.html
+!/tmp/particle-dismiss-tuning/cloth-motion-prototype/serve.py
+!/tmp/particle-dismiss-tuning/cloth-motion-prototype/NOTES.md
+
 # 唯一放行的是空间照片的桌面/网页端**代码**：查看器，以及被 docs/ 或 .claude/rules/
 # 引用过的脚本及其导入闭包。未被任何文档引用的一次性探针不放行。
 !/tmp/spatial-desktop-tuning/

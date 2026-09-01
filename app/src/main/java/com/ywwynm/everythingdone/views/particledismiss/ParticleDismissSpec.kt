@@ -23,11 +23,18 @@ internal class ParticleDismissSpec(
     /** 收拢位移的绝对上限（物理像素）：宽 Dialog 边缘不被一口气拉向中轴。 */
     val pinchMaxPx: Float,
     /**
-     * 虚拟远触点（动画层坐标）：触点沿"中心→触点"方向推远到约 1.1 倍快照
-     * 对角线处。逐粒子主方向 = 指向此点，方向随粒子位置平滑渐变。
+     * 虚拟运动目标（动画层坐标）：沿"中心→触点"方向推远到约 1.1 倍快照
+     * 对角线处。Renderer 由中心到该点得到本次消散主方向；凝聚路径继续
+     * 使用它生成既有方向场。
      */
     val virtualTouchXPx: Float,
     val virtualTouchYPx: Float,
+    /**
+     * 虚拟柔光源在动画层中的平面坐标。真实触摸关闭使用触点；无触点关闭
+     * 使用右上虚拟触点。光源的伪深度高度由 Shader 固定定义。
+     */
+    val lightXPx: Float,
+    val lightYPx: Float,
     /** 波前扩散起点（快照 UV 坐标）。 */
     val waveOriginUv: PointF,
     /** 波前从起点扫到最远角的时长（逻辑秒）：凝聚模式用极小值弱化中心性。 */
@@ -47,8 +54,8 @@ internal class ParticleDismissSpec(
     /** 每次动画随机的逐粒子哈希种子（异或进 PCG 输入）。 */
     val hashSeed: Int,
     /**
-     * 面板本体色（快照缩略众数，ARGB）：内容色权重的参照——与它色距大的
-     * 粒子（文字、彩色控件）更大、更持久、真实更多，颜色本身不变。
+     * 面板本体色（快照缩略众数，ARGB）。凝聚路径仍用它计算既有内容权重；
+     * 消失路径只按像素自身饱和度增加同一布面轨迹上的采样数，颜色本身不变。
      */
     val panelColor: Int,
     /**

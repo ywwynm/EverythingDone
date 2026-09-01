@@ -61,10 +61,15 @@ internal object ParticleDismissController {
      *
      * 返回 false 表示环境不满足，调用方保持系统默认退出行为（不会回调）。
      *
-     * [touchInWindow] 是最近一次触摸在 Dialog window 内的坐标，作为波前扩散起点；
-     * back 键等无触点路径传 null，起点取面板中下部（按钮所在区域）。
+     * [touchInWindow] 只表示直接触发本次关闭、且当前仍在分发的触点；返回、
+     * 异步完成和代码关闭传 null，统一使用右上虚拟触点。
      */
-    fun start(dialog: Dialog, touchInWindow: PointF?, onOverlayShown: Runnable): Boolean {
+    fun start(
+        dialog: Dialog,
+        touchInWindow: PointF?,
+        onAnimationStarted: Runnable,
+        onOverlayShown: Runnable
+    ): Boolean {
         if (Looper.myLooper() != Looper.getMainLooper()) return false
         if (!ValueAnimator.areAnimatorsEnabled()) return false
 
@@ -112,10 +117,11 @@ internal object ParticleDismissController {
                     applyRoundedCornerMask(snapshot, dialog.context)
                     attachDismissOverlay(
                         dialog, activity, hostDecor, decor, snapshot,
-                        touchInWindow, onOverlayShown
+                        touchInWindow, onAnimationStarted, onOverlayShown
                     )
                 } else {
                     // 抓图失败：放行真实 dismiss（本次无粒子动画）
+                    onAnimationStarted.run()
                     onOverlayShown.run()
                 }
             }, mainHandler)
@@ -125,6 +131,7 @@ internal object ParticleDismissController {
         mainHandler.postDelayed({
             if (!copyHandled) {
                 copyHandled = true
+                onAnimationStarted.run()
                 onOverlayShown.run()
             }
         }, PIXEL_COPY_TIMEOUT_MS)
@@ -138,6 +145,7 @@ internal object ParticleDismissController {
         decor: View,
         snapshot: Bitmap,
         touchInWindow: PointF?,
+        onAnimationStarted: Runnable,
         onOverlayShown: Runnable
     ) {
         val dialogLocation = IntArray(2)
@@ -161,26 +169,31 @@ internal object ParticleDismissController {
             PointF(0.5f, 0.78f)
         }
 
-        // 消散主方向严格朝触点；触点贴近中心或无触点（返回键/代码关闭）
-        // 时默认向上。受控随机由 Renderer 内的起点位置、帷幔弧度和横摆
-        // 承担，不再随机旋转主方向，否则“点下方就向下、点左侧就向左”的
-        // 因果关系会被稀释。
+        // 消散主方向严格朝直接因果触点。真实方向不设置宽阈值：只在向量
+        // 数值上无法归一化时回退。所有无触点关闭统一从正上向右偏 30°，
+        // 即右上但仍以上行为主。
         val baseAngle = if (touchInWindow != null) {
             val dx = touchInWindow.x - decor.width / 2f
             val dy = touchInWindow.y - decor.height / 2f
-            if (hypot(dx, dy) >= MIN_TOUCH_CENTER_DISTANCE_DP * density) {
+            if (hypot(dx, dy) > DIRECTION_EPSILON_PX) {
                 atan2(dy, dx)
             } else {
-                (-Math.PI / 2).toFloat()
+                DEFAULT_DISMISS_ANGLE_RAD
             }
         } else {
-            (-Math.PI / 2).toFloat()
+            DEFAULT_DISMISS_ANGLE_RAD
         }
         val tiltRadians = baseAngle
         val reach = VIRTUAL_TOUCH_FACTOR *
             hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
         val centerX = originX + snapshot.width / 2f
         val centerY = originY + snapshot.height / 2f
+        val virtualTouchX = centerX + cos(tiltRadians) * reach
+        val virtualTouchY = centerY + sin(tiltRadians) * reach
+        // 光源平面位置严格使用真实触点；无触点时才与右上虚拟运动目标重合。
+        // 触点恰在中心时运动方向回退右上，但光源仍留在该真实触点。
+        val lightX = touchInWindow?.let { originX + it.x } ?: virtualTouchX
+        val lightY = touchInWindow?.let { originY + it.y } ?: virtualTouchY
         val spec = ParticleDismissSpec(
             snapshot = snapshot,
             originXPx = originX.toFloat(),
@@ -190,8 +203,10 @@ internal object ParticleDismissController {
             noiseScalePx = NOISE_SCALE_DP * density,
             flarePx = FLARE_DP * density,
             pinchMaxPx = PINCH_MAX_DP * density,
-            virtualTouchXPx = centerX + cos(tiltRadians) * reach,
-            virtualTouchYPx = centerY + sin(tiltRadians) * reach,
+            virtualTouchXPx = virtualTouchX,
+            virtualTouchYPx = virtualTouchY,
+            lightXPx = lightX,
+            lightYPx = lightY,
             waveOriginUv = waveOriginUv,
             spreadTime = ParticleDismissRenderer.SPREAD_TIME,
             delayJitter = ParticleDismissRenderer.DELAY_JITTER,
@@ -202,7 +217,11 @@ internal object ParticleDismissController {
             hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
             panelColor = dominantColor(snapshot)
         )
-        val overlay = ParticleDismissOverlay(activity = activity, spec = spec)
+        val overlay = ParticleDismissOverlay(
+            activity = activity,
+            spec = spec,
+            onAnimationStarted = onAnimationStarted
+        )
         hostDecor.addView(
             overlay,
             ViewGroup.LayoutParams(
@@ -337,6 +356,10 @@ internal object ParticleDismissController {
                         virtualTouchXPx = originX + snapshot.width / 2f +
                             cos(tiltRadians) * reach,
                         virtualTouchYPx = originY + snapshot.height / 2f +
+                            sin(tiltRadians) * reach,
+                        lightXPx = originX + snapshot.width / 2f +
+                            cos(tiltRadians) * reach,
+                        lightYPx = originY + snapshot.height / 2f +
                             sin(tiltRadians) * reach,
                         waveOriginUv = PointF(0.5f, 0.5f),
                         spreadTime = CONDENSE_SPREAD_TIME,
@@ -606,6 +629,9 @@ internal object ParticleDismissController {
     /** 主飘散方向的随机倾斜幅度（度）。 */
     private const val DRIFT_TILT_DEG = 18.0
 
-    /** 触点距快照中心近于此值时方向不稳定，退回默认向上。 */
-    private const val MIN_TOUCH_CENTER_DISTANCE_DP = 40f
+    /** 无触点或真实触点恰在中心时：从正上向右偏 30°。 */
+    private val DEFAULT_DISMISS_ANGLE_RAD = Math.toRadians(-60.0).toFloat()
+
+    /** 只防止零向量归一化，不形成用户可感知的中心回退区域。 */
+    private const val DIRECTION_EPSILON_PX = 0.001f
 }
