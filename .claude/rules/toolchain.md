@@ -82,3 +82,19 @@ WSL」的记录是激活了错误环境导致的误判，已作废。仅 gsplat 
 
 **跨 EP 的输出不是逐位相同**（Big-LaMa 实测 CPU vs CUDA 平均 0.036 级、最大 6.9 级）。
 同一组 A/B 里的所有条目必须跑在**同一个 EP** 上，换了 EP 要整组重跑。
+## 桌面渲染必须确认帧文件真的重画了
+
+`render_curtain_model.py` 系列在 GLSL 链接失败时**只把错误打在 stdout**，`frames-*/`
+下的旧帧原样留着。如果只看脚本最后一行（往往是空行）或直接去读图，会拿着一批没重画
+的帧判断「改动生效了」——2026-09-02 连续两轮如此，实际是新变量 `facing` 与风压那段的
+同名变量冲突，着色器一次都没编译过。
+
+改完 shader 之后：
+
+```bash
+ls -la --time-style=+%H:%M:%S frames-refcontent/frame-020.png   # 先记下
+<python> render_reference_content_scene.py 2>&1 | tail -3       # 完整看输出
+ls -la --time-style=+%H:%M:%S frames-refcontent/frame-020.png   # 时间必须变了
+```
+
+输出里出现 `vertex_shader` / `error C` 字样即为链接失败，此时任何图都不可用。

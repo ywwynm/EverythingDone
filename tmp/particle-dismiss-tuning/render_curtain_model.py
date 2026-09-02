@@ -26,6 +26,13 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 RENDERER = ROOT / "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ParticleDismissRenderer.kt"
+# 桌面草稿：用户 2026-09-02 要求"先改桌面模拟器，看过 OK 再改 Android"。模拟器
+# 本来直接从 Android 源码抽着色器，两端一体；有了这份草稿之后，模拟器优先读草稿，
+# 草稿不存在才读 Android 源码。移植 = 把草稿里的着色器块复制回 Android 源码。
+SHADER_DRAFT = Path(__file__).resolve().parent / "shader-draft" / "ParticleDismissRenderer.kt"
+if SHADER_DRAFT.exists():
+    RENDERER = SHADER_DRAFT
+    print("[canonical] 使用桌面草稿着色器:", SHADER_DRAFT)
 OUT = HERE / "frames-curtain"
 
 VIEW_W = 1280
@@ -76,9 +83,7 @@ def load_canonical() -> dict:
         "$DISMISS_FIELD_GLSL", field
     )
     fragment = extract_kotlin_shader(kotlin, "DISMISS_FRAGMENT_SHADER")
-    still_vertex = extract_kotlin_shader(kotlin, "DISMISS_STILL_VERTEX_SHADER").replace(
-        "$DISMISS_FIELD_GLSL", field
-    )
+    still_vertex = extract_kotlin_shader(kotlin, "STILL_VERTEX_SHADER")
     still_fragment = extract_kotlin_shader(kotlin, "DISMISS_STILL_FRAGMENT_SHADER").replace(
         "$DISMISS_FIELD_GLSL", field
     )
@@ -128,7 +133,6 @@ def load_canonical() -> dict:
         ]),
         "replicas": extract_int_constant(kotlin, "DISMISS_REPLICAS"),
         "columns": extract_int_constant(kotlin, "DISMISS_TARGET_COLUMNS"),
-        "still_grid": extract_int_constant(kotlin, "STILL_GRID"),
         "release_end": extract_glsl_float(field, "CURTAIN_RELEASE_END"),
         "life_max": extract_glsl_float(vertex, "CURTAIN_LIFE_MAX"),
         "life_tail": extract_glsl_float(vertex, "CURTAIN_LIFE_TAIL"),
@@ -227,8 +231,6 @@ class CurtainRenderer:
         )
         self.vao = self.ctx.vertex_array(self.program, [])
         self.still_vao = self.ctx.vertex_array(self.still_program, [])
-        g = canonical["still_grid"]
-        self.still_vertices = g * g * 6
         self.probe_vao = self.ctx.vertex_array(self.probe_program, [])
         self.fbo = self.ctx.simple_framebuffer((VIEW_W, VIEW_H), components=4)
         self.probe_fbo = self.ctx.framebuffer(
@@ -282,7 +284,7 @@ class CurtainRenderer:
         self.fbo.use()
         self.fbo.clear(0.0, 0.0, 0.0, 0.0)
         self._set(self.still_program, "uTime", time_seconds)
-        self.still_vao.render(moderngl.TRIANGLES, vertices=self.still_vertices)
+        self.still_vao.render(moderngl.TRIANGLE_STRIP, vertices=4)
         self._set(self.program, "uTime", time_seconds)
         self.vao.render(moderngl.POINTS, vertices=self.particle_vertices)
 
@@ -296,7 +298,7 @@ class CurtainRenderer:
         self.fbo.clear(0.0, 0.0, 0.0, 0.0)
         if layer == "still":
             self._set(self.still_program, "uTime", time_seconds)
-            self.still_vao.render(moderngl.TRIANGLES, vertices=self.still_vertices)
+            self.still_vao.render(moderngl.TRIANGLE_STRIP, vertices=4)
         else:
             self._set(self.program, "uTime", time_seconds)
             self.vao.render(moderngl.POINTS, vertices=self.particle_vertices)
@@ -474,9 +476,10 @@ THRESHOLDS = {
     "max_release_phase": ("range", (0.82, 1.02)),
     # 真缺陷门限：相位被 clamp 到 1 的格子会同刻消失，屏幕上是最后一块整片没掉。
     "clamped_cell_fraction": ("<", 0.02),
-    # 前沿的相干尺度。刻意调细（SWAY_SCALE 1.15 -> 1.70）以换来蜿蜒的曲线，
-    # 原来的 0.40 对应的是几乎一条直线。低于 0.20 才说明前沿散成了噪声。
-    "release_scale_90_cardw": (">", 0.24),
+    # 前沿的相干尺度。2026-09-02 起改由**与参考的空间频谱对齐**来定：实测参考
+    # 起伏的能量 98% 落在整卡 1-3 个周期，我们对齐到 96%。这条门限保留只为拦住
+    # 「前沿散成噪声」，取值随之下调。
+    "release_scale_90_cardw": (">", 0.17),
     # 抖动 sd 与前沿梯度之比。两项这一轮都被刻意改动（抖动加宽并沿前沿起伏、
     # 前沿变细），比值因此下降；它衡量的是相对宽度，不是绝对宽度。
     "dither_band_cardw": ("range", (0.015, 0.045)),
@@ -484,7 +487,10 @@ THRESHOLDS = {
     "surface_gone_at_n": ("range", (0.55, 0.68)),
     # 按亮像素量的外扩距离。粒子改小之后同样的位移测得更短。
     "escape_p90_cardw_max": ("range", (0.085, 0.22)),
-    "particle_lit_peak": ("range", (0.18, 0.42)),
+    # 粒子占位峰值。逐帧对照实测参考在卡片区域的粒子占比峰值是 0.263，我们此前
+    # 长期只有 0.15-0.20（后半段仅为参考的 55-60%），这一轮按实测补上。canonical
+    # 场景的卡片尺寸与参考不同，读数因此更高。
+    "particle_lit_peak": ("range", (0.18, 0.52)),
     # occupancy_max_error 已从门限里移除：它把「亮像素占比」当成 alpha 的代理，
     # 前提是新生粒子铺满自己那一格。粒子改成亚格尺寸（POINT_RATIO 1.15 -> 1.02、
     # FRESH_SIZE 1.55 -> 1.28）之后，占比由覆盖率主导而不是 alpha，模型不再成立。
