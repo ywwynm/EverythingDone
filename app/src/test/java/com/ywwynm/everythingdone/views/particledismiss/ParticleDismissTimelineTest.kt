@@ -11,16 +11,10 @@ class ParticleDismissTimelineTest {
     @Test
     fun `消失逻辑与桌面对照必须严格使用一秒时钟`() {
         assertEquals(1.0f, ParticleDismissRenderer.TOTAL_DURATION, 0.0f)
-        val page = readProjectFile(
-            "tmp/particle-dismiss-tuning/cloth-motion-prototype/physical.html"
-        ).readText(Charsets.UTF_8)
-
-        assertTrue("桌面播放器缺少明确的一秒时钟", "PLAYBACK_DURATION_MS=1000" in page)
-        assertTrue(
-            "参考和模型必须共用同一归一化进度",
-            "progress=startProgress+(now-start)/PLAYBACK_DURATION_MS" in page
-        )
-        assertFalse("不得再按参考原片的 4.7 秒播放模型", "/4700" in page)
+        assertEquals(ParticleMicroflakeModel.DURATION, ParticleDismissRenderer.TOTAL_DURATION, 0f)
+        assertEquals(1f / 240f, ParticleMicroflakeModel.STEP, 0f)
+        val metadata = readProjectFile("shared/particle-dismiss/model.json").readText()
+        assertTrue("打包资源与固定时步不匹配", "\"integration_hz\": 240" in metadata)
     }
 
     @Test
@@ -38,7 +32,7 @@ class ParticleDismissTimelineTest {
         )
         val afterStarted = particleBranch.substringAfter("if (started)")
         assertFalse(
-            "不得在 start() 返回后立即启动 dim；此时 PBD 与 GL 尚未准备",
+            "不得在 start() 返回后立即启动 dim；此时材料与 GL 尚未准备",
             "dimLayer?.fadeOutAndDetach(" in afterStarted
         )
     }

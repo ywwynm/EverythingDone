@@ -40,14 +40,25 @@ import kotlin.math.sqrt
 /**
  * Dialog 粒子消散动画的入口与编排。
  *
- * 设计（见 docs/features/dialog-particle-dismiss/）：不延迟真实 dismiss——在
- * dismiss 发起的瞬间同步抓取 Dialog DecorView 快照，把动画层挂到宿主 Activity 的
- * DecorView 上（粒子要飘出 Dialog window 边界，不能放在 Dialog 自己的 window 里），
- * 随后真实 dismiss 照常执行。动画是纯装饰层，不参与任何生命周期。
+ * 使用 PixelCopy 异步取得 Dialog 快照，等待 Activity 上的动画层与首帧均就绪
+ * 后释放真实窗口。粒子可越过原窗口边界，背景暗层沿同一逻辑时钟淡出。
  */
 internal object ParticleDismissController {
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
+
+    /** 首个弹窗展示期间预热纯数值代码，避免把调试运行时的首次 JIT 成本留到关闭。 */
+    fun warmDismissModel() {
+        if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
+        Thread({
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            runCatching {
+                val pixels = IntArray(256 * 256) { -1 }
+                repeat(2) { ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, it.toLong()) }
+            }.onFailure { android.util.Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
+        }, "ParticleModelWarmup").start()
+    }
 
     /**
      * 尝试为 [dialog] 启动粒子消散动画。
@@ -262,9 +273,9 @@ internal object ParticleDismissController {
         mainHandler.postDelayed(fire, timeoutMs)
     }
 
-    /** 粒子消散动画（以及等长的 dim 淡出）的实际时长。 */
-    fun dismissAnimationDurationMs(context: Context): Long =
-        (ParticleDismissRenderer.TOTAL_DURATION * animatorDurationScale(context) * 1000).toLong()
+    /** ViewPropertyAnimator 会自行乘系统缩放；这里只提供逻辑时长，避免重复缩放。 */
+    fun dismissAnimatorDurationMs(): Long =
+        (ParticleDismissRenderer.TOTAL_DURATION * 1000).toLong()
 
     /**
      * 为 [dialog] 播放凝聚出现动画（约 320ms）：面板布局完成但首帧显示前抓

@@ -64,13 +64,22 @@ internal class ParticleDismissOverlay(
         }
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻
+    /** 兜底移除自己的那个任务，首帧到达后要换成新的一份，所以留着引用。 */
+    private val watchdog = Runnable { removeSelf() }
+
+    private fun logicalDurationMs(): Long {
         val logicalDuration =
             if (isCondense) spec.condenseDurationS else ParticleDismissRenderer.TOTAL_DURATION
-        val timeoutMs = (logicalDuration * spec.durationScale * 1000).toLong() + 1000L
-        mainHandler.postDelayed({ removeSelf() }, timeoutMs)
+        return (logicalDuration * spec.durationScale * 1000).toLong()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
+        // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
+        // OPD2515 触点到首帧 1.64 s）。此前从请求时刻起算 1 s 余量，动画被截成 0.36 s
+        // 就整块消失。真正的时长看门狗在首帧到达时才开始走（见 fireAnimationStarted）。
+        mainHandler.postDelayed(watchdog, logicalDurationMs() + STARTUP_SLACK_MS)
     }
 
     override fun onDetachedFromWindow() {
@@ -92,12 +101,18 @@ internal class ParticleDismissOverlay(
     private fun fireAnimationStarted() {
         if (animationStartedFired) return
         animationStartedFired = true
+        // 首帧到了：把看门狗改成「从现在起一个动画时长 + 少量余量」
+        mainHandler.removeCallbacks(watchdog)
+        mainHandler.postDelayed(watchdog, logicalDurationMs() + RUNNING_SLACK_MS)
         onAnimationStarted?.run()
     }
 
     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         if (renderer != null || finished) return
         renderer = ParticleDismissRenderer(
+            assets = context.assets,
+            refreshRate = display?.refreshRate ?: 60f,
+            density = resources.displayMetrics.density,
             surfaceTexture = surface,
             viewportWidth = width,
             viewportHeight = height,
@@ -150,7 +165,7 @@ internal class ParticleDismissOverlay(
     private fun fallbackFadeOut() {
         animate()
             .alpha(0f)
-            .setDuration((FALLBACK_FADE_MS * spec.durationScale).toLong())
+            .setDuration(FALLBACK_FADE_MS.toLong())
             .withEndAction { removeSelf() }
             .start()
     }
@@ -171,6 +186,12 @@ internal class ParticleDismissOverlay(
     }
 
     private companion object {
+        /** 首帧之前允许的额外等待：着色器首次编译在慢机上可能占掉一秒以上。 */
+        const val STARTUP_SLACK_MS = 4000L
+
+        /** 首帧之后允许的额外等待。 */
+        const val RUNNING_SLACK_MS = 700L
+
         const val FALLBACK_FADE_MS = 240f
     }
 }

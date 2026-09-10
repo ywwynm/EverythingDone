@@ -1,0 +1,83 @@
+#version 310 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+precision highp sampler3D;
+layout(local_size_x=256) in;
+struct Material {vec4 src; vec4 physical; vec4 random;};
+struct State {vec4 pos;vec4 vel;};
+layout(std430,binding=0) readonly buffer A {Material particles[];};
+layout(std430,binding=1) buffer B {State state[];};
+uniform int count;
+uniform float time,dt,span,wind_gain,curl_gain,roll_gain;
+uniform vec2 wind;
+uniform sampler3D guide_field;
+uniform vec2 card,guide_rotation;
+uniform float guide_gain;
+
+vec2 curl(vec2 p,float t) {
+    vec2 v=vec2(0);
+    for(int k=0;k<3;k++) {
+        float scale=span*(k==0?.36:k==1?.15:.064);
+        float angle=.61+float(k)*1.71;
+        vec2 u=vec2(cos(angle),sin(angle)),z=vec2(-u.y,u.x);
+        float a=dot(p,u)/scale*6.283+t*(1.2+float(k)*.5)+2.5;
+        float b=dot(p,z)/scale*6.283-t*(.8+float(k)*.43)+.2;
+        // 同一个连续势场的二维旋度；各频段幅值递减。
+        vec2 grad=(cos(a)*cos(b)*u-sin(a)*sin(b)*z);
+        v+=vec2(grad.y,-grad.x)*(k==0?1.:k==1?.34:.10);
+    }
+    return v;
+}
+void main(){
+    uint i=gl_GlobalInvocationID.x;if(i>=uint(count))return;
+    Material m=particles[i];
+    float age=time-m.src.z;
+    if(age<=0.){state[i].pos=vec4(m.src.xy,0,0);state[i].vel=vec4(0);return;}
+    float h=min(dt,age);
+    float u=min(span,520.)*(.24+.49*smoothstep(.06,.42,time))*wind_gain;
+    vec2 p=state[i].pos.xy;
+    vec2 q=p-wind*(span*(.12*time+.19*time*time));
+    vec2 flow=curl(q,time)*span*.125*curl_gain;
+    float loose=smoothstep(.02,.16,age);
+    vec2 target=wind*u*(.75+.50*m.random.x)+flow*(.35+.65*loose);
+    vec2 cq=p/card-vec2(.5);
+    float ca=guide_rotation.x,sa=guide_rotation.y;
+    vec2 lookup=vec2(ca*cq.x-sa*cq.y,sa*cq.x+ca*cq.y)+vec2(.5);
+    vec2 guide=texture(guide_field,vec3((lookup+vec2(.45))/1.9,clamp(time,0.,1.))).xy;
+    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*span;
+    float entrained=1.+.24*smoothstep(.01,.15,age);
+    target=mix(target,guide*(.9+.2*m.random.x)*entrained+flow*.85,guide_gain);
+    // 源位置决定同一局部团簇的轻微差异；颜色不参与动力学。
+    float phase=dot(m.src.xy,vec2(.0117,.0091))+time*3.1;
+    target+=vec2(-wind.y,wind.x)*sin(phase)*span*.045*loose;
+    float azimuth=m.random.w*6.28318;
+    float radius=sqrt(-2.*log(max(m.random.z,.015)));
+    vec2 individual=vec2(cos(azimuth),sin(azimuth))*radius;
+    // 短时微片分离破坏原纹理的整片关联；离散速度随阻力减弱，位置不回收。
+    float dispersion=(.44*exp(-age/.11)+.085*smoothstep(.03,.16,age))*smoothstep(.001,.020,age);
+    target+=individual*span*dispersion;
+    // 分离速度只在释放后短时存在，并由阻力衔接主输运。
+    // 它被积分到状态，不能像衰减位置偏移一样在后半段把材料拉回。
+    float peel=span*1.65*exp(-age/.105)*smoothstep(.003,.025,age)*roll_gain;
+    vec2 separation=-m.physical.xy*peel*(.55+.75*m.random.w);
+    separation-=wind*min(dot(separation,wind),0.);
+    // 顺风分离与主输运叠加会使迎风端以外的角部过早扩张。
+    // 只削弱高度同向的冲量，横向展开仍由分界线法线决定。
+    float normal_alignment=dot(-m.physical.xy,wind)/max(length(m.physical.xy),.01);
+    separation-=wind*max(dot(separation,wind),0.)*.75*smoothstep(.70,.98,normal_alignment);
+    target+=separation;
+    // 分界线邻近材料共享转向相位，形成侧向卷束；转向只改变速度。
+    float turn_phase=atan(m.physical.y,m.physical.x)+age*9.;
+    float turn=span*.32*sin(turn_phase)*exp(-age/.20)*smoothstep(.003,.025,age);
+    target+=vec2(-wind.y,wind.x)*turn;
+    // 主方向持续前进；旋度仍可形成侧向弯曲，不能推动整群逆向回程。
+    target+=wind*max(u*.20-dot(target,wind),0.);
+    float response=1.-exp(-h/m.physical.w);
+    vec2 old_v=state[i].vel.xy;
+    if(age<=dt)old_v=target*.85;
+    vec2 v=mix(old_v,target,response);
+    state[i].pos.xy+=v*h;
+    state[i].vel.xy=v;
+    state[i].pos.z=span*.035*sin(phase+age*7.)*smoothstep(.008,.10,age)*exp(-max(age-.21,0.)*4.0);
+}

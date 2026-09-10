@@ -1,0 +1,24 @@
+{
+  "version": "r33",
+  "desktop_hash": "b52110f3260b59fbb8e1ae4026d1b87bc19772436bd36e79bd865e7483029819",
+  "integration_hz": 240,
+  "flow_shape": [
+    32,
+    36,
+    36,
+    2
+  ],
+  "flow_dtype": "little-endian float16",
+  "files": {
+    "common-flow.f16": "6d148e50668fcb5f5b4e54797df0422517836c2c18c69ace6a3d7177295919da",
+    "material.frag": "fb67630501c3b8951399053919baf212bf2fea9e0ddb957645c11aa3b70ba31c",
+    "material.vert": "3271f18b0c9022479b3caf6781d02b84b2a7f39daff18f0da0a321a5660c7d9a",
+    "resolve.frag": "1f3b20329ebf5a9c0e5e25967b702a218d7efa06728fc096ad303f8ea3c751c8",
+    "resolve.vert": "eb2e22bddf5b8b061b98a4e223950b2aac60e37fc3ef2e7bf658ba02b0be0d0a",
+    "step.comp": "393f91bcd286b800f1215298b461e3d3fe92c53a3440c02b416694faa0fe33ac"
+  },
+  "android_optimizations": [
+    "静止材料直接覆盖源像素",
+    "非当前绘制层与完全透明材料提前裁剪"
+  ]
+}

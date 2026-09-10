@@ -11,6 +11,11 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <!-- 调试包专用：同一生产渲染器的固定输入、像素与 GPU 状态验证。 -->
+        <receiver
+            android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleMicroflakeProbeReceiver"
+            android:exported="true" />
+
         <!-- Debug 专用离屏基准入口：adb am broadcast 触发，锁屏可用。 -->
         <receiver
             android:name="com.ywwynm.everythingdone.views.recording.fablesol.FableSolBenchmarkReceiver"

@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Outline
 import android.graphics.PointF
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.ContextThemeWrapper
 import androidx.activity.ComponentDialog
 import androidx.annotation.IdRes
@@ -20,7 +21,6 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.Window
 import android.view.WindowManager
-import android.view.animation.AccelerateInterpolator
 import android.widget.TextView
 
 import com.ywwynm.everythingdone.Def
@@ -127,6 +127,9 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
+        if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_DISMISS_BIT != 0) {
+            ParticleDismissController.warmDismissModel()
+        }
         if (gestureDialog.dimLayer == null) {
             activity?.let { gestureDialog.dimLayer = DialogDimLayer.attach(it) }
         }
@@ -244,6 +247,9 @@ abstract class BaseDialogFragment : DialogFragment() {
  * 继承 [ComponentDialog] 而不是 [Dialog]：androidx 的 [DialogFragment.onCreateDialog] 默认返回
  * 前者，它带的 `OnBackPressedDispatcher` 是返回键与 predictive back 的落点，不能退化掉。
  */
+/** 抬手之后多久之内的触点仍算作「这一次关闭的触点」。一次 post 的点击远小于这个值。 */
+private const val RECENT_TOUCH_MS = 300L
+
 private class GestureAnchoredDialog(
     context: Context, themeResId: Int,
     private val particleDismissEnabled: Boolean
@@ -257,6 +263,21 @@ private class GestureAnchoredDialog(
      * 调用栈内有效；返回、异步完成和代码关闭不会误用更早的历史触点。
      */
     private var dismissTouchInDispatch: PointF? = null
+
+    /**
+     * 最近一次抬手的位置与时刻。
+     *
+     * 点「取消」这类按钮关闭时，[dismissTouchInDispatch] 是空的：`View.onTouchEvent` 对
+     * ACTION_UP 走的是 `post(mPerformClick)`，`OnClickListener` 落在**后一条消息**里，那时
+     * dispatchTouchEvent 的 finally 早已把它清掉。2026-09-03 真机实测：点按钮关闭与按返回键
+     * 关闭的画面完全同型、最早释放质心只差 12 px（面板 1200×587），也就是说方向退回了默认值，
+     * 而这正是应用里最常见的关闭路径。
+     *
+     * 抬手之后的一小段时间里保留这个点，超过 [RECENT_TOUCH_MS] 就当作与本次关闭无关
+     * （返回键、异步完成、代码关闭因此仍然拿不到历史触点）。
+     */
+    private var lastUpTouch: PointF? = null
+    private var lastUpTouchUptimeMs = 0L
 
     /** 应用接管的背景暗层，show 时由 fragment 注入；随 dismiss 路径淡出 */
     var dimLayer: DialogDimLayer? = null
@@ -301,11 +322,14 @@ private class GestureAnchoredDialog(
             }
             val started = ParticleDismissController.start(
                 dialog = this,
-                touchInWindow = dismissTouchInDispatch,
+                touchInWindow = dismissTouchAnchor(),
                 onAnimationStarted = Runnable {
                     dimLayer?.fadeOutAndDetach(
-                        ParticleDismissController.dismissAnimationDurationMs(context),
-                        AccelerateInterpolator(1.3f)
+                        ParticleDismissController.dismissAnimatorDurationMs(),
+                        android.animation.TimeInterpolator { progress ->
+                            val p = ((progress - .18f) / .55f).coerceIn(0f, 1f)
+                            p * p
+                        }
                     )
                     startGate.markAnimationStarted()
                 },
@@ -339,11 +363,26 @@ private class GestureAnchoredDialog(
         } else {
             PointF(ev.x, ev.y)
         }
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_UP -> {
+                lastUpTouch = PointF(ev.x, ev.y)
+                lastUpTouchUptimeMs = SystemClock.uptimeMillis()
+            }
+            MotionEvent.ACTION_CANCEL -> lastUpTouch = null
+        }
         return try {
             super.dispatchTouchEvent(ev)
         } finally {
             dismissTouchInDispatch = previousTouch
         }
+    }
+
+    /** 分发中的触点优先；否则用刚抬手不久的那个点。 */
+    private fun dismissTouchAnchor(): PointF? {
+        dismissTouchInDispatch?.let { return it }
+        val up = lastUpTouch ?: return null
+        val elapsed = SystemClock.uptimeMillis() - lastUpTouchUptimeMs
+        return if (elapsed in 0..RECENT_TOUCH_MS) up else null
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
