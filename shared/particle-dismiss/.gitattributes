@@ -1,3 +1,4 @@
 # model.json 记录原始资源字节散列，禁止换行转换。
 * -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 *.f16 binary
+*.f32 binary

@@ -13,7 +13,7 @@ import java.nio.ByteOrder
 import kotlin.math.*
 
 /**
- * 桌面 r33 的固定步长 GPU 微片消散。每帧只推进到当前时刻，不在启动时预解算整段。
+ * 与桌面共享规则的固定步长 GPU 微片消散。每帧只推进到当前时刻，不在启动时预解算整段。
  * 本类只在调用线程已经绑定的 EGL 上下文中工作，不拥有 Activity 或 EGLDisplay。
  */
 internal class ParticleMicroflakeRenderer(
@@ -30,10 +30,10 @@ internal class ParticleMicroflakeRenderer(
         val originX: Float,
         val originY: Float,
         val direction: Float,
-        val guideDirection: Float,
         val foreground: Bitmap,
         val materials: ParticleMicroflakeModel.Materials,
         val guide: ByteArray,
+        val rules: ParticleMicroflakeRules,
         val sourcePixels: IntArray? = null
     )
 
@@ -85,7 +85,7 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, bitmap.width, bitmap.height,
             0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba)
         guideTexture = newTexture(GLES30.GL_TEXTURE_3D)
-        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RG16F, 36, 36, 32, 0,
+        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RG16F, input.rules.number("flow_width").toInt(), input.rules.number("flow_height").toInt(), input.rules.number("flow_time").toInt(), 0,
             GLES30.GL_RG, GLES30.GL_HALF_FLOAT, direct(input.guide))
         accumulationTexture = newTexture(GLES30.GL_TEXTURE_2D)
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
@@ -99,15 +99,15 @@ internal class ParticleMicroflakeRenderer(
         }
         val angle = Math.toRadians(input.direction.toDouble())
         val windX = cos(angle).toFloat(); val windY = -sin(angle).toFloat()
-        val rotation = Math.toRadians((input.direction - input.guideDirection).toDouble())
+        val rotation = ParticleMicroflakeModel.fieldRotation(input.direction, input.cardWidth, input.cardHeight)
         val span = min(input.cardWidth, input.cardHeight)
         GLES30.glUseProgram(compute)
         oneI(compute, "count", input.materials.count)
         oneI(compute, "guide_field", 3)
         one(compute, "dt", ParticleMicroflakeModel.STEP)
         one(compute, "span", span)
-        one(compute, "wind_gain", 1.05f); one(compute, "curl_gain", 1f)
-        one(compute, "roll_gain", .85f); one(compute, "guide_gain", .90f)
+        one(compute, "wind_gain", input.rules.number("wind_gain")); one(compute, "curl_gain", input.rules.number("curl_gain"))
+        one(compute, "roll_gain", input.rules.number("roll_gain")); one(compute, "guide_gain", input.rules.number("guide_gain"))
         two(compute, "wind", windX, windY)
         two(compute, "card", input.cardWidth, input.cardHeight)
         two(compute, "guide_rotation", cos(rotation).toFloat(), sin(rotation).toFloat())
@@ -117,9 +117,11 @@ internal class ParticleMicroflakeRenderer(
         two(material, "offset", input.originX, input.originY)
         two(material, "cell", input.materials.cellX, input.materials.cellY)
         two(material, "wind", windX, windY)
-        one(material, "span", span); one(material, "roll_gain", .85f)
-        one(material, "light_gain", .85f); one(material, "body_weight", input.materials.bodyWeight)
+        one(material, "span", span); one(material, "roll_gain", input.rules.number("roll_gain"))
+        one(material, "light_gain", input.rules.number("light_gain")); one(material, "body_weight", input.materials.bodyWeight)
+        one(material, "panel_weight", input.materials.statistics.getValue("panelWeight").toFloat())
         oneI(material, "nx", input.materials.columns); oneI(material, "foreground", 0)
+        oneI(material, "grid_count", input.materials.columns * input.materials.rows)
         oneI(material, "diagnostic", 0)
         GLES30.glUseProgram(resolve)
         oneI(resolve, "screen", 2)
@@ -298,11 +300,12 @@ internal class ParticleMicroflakeRenderer(
             val dx = spec.virtualTouchXPx - spec.originXPx - bitmap.width / 2f
             val dy = spec.virtualTouchYPx - spec.originYPx - bitmap.height / 2f
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()
+            val rules = ParticleMicroflakeRules.read(assets.open("particle-dismiss/rules.properties"), assets.open("particle-dismiss/common-release.f32"))
             val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, bitmap.width,
-                bitmap.height, direction, spec.hashSeed.toLong())
+                bitmap.height, direction, spec.hashSeed.toLong(), rules)
             return Input(width / scale, height / scale, cardWidth, cardHeight, spec.originXPx / scale,
-                spec.originYPx / scale, direction, 90f, bitmap, materials,
-                assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, pixels)
+                spec.originYPx / scale, direction, bitmap, materials,
+                assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, rules, pixels)
         }
     }
 }

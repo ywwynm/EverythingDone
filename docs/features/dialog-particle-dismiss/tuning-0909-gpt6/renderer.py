@@ -5,7 +5,7 @@ import numpy as np
 import moderngl
 from PIL import Image
 from scipy.ndimage import gaussian_filter
-from fields import field_grid,rotate_uv
+from unified_model import RULES, materials, guidance, field_rotation
 
 HERE=Path(__file__).resolve().parent
 STEP=1/240
@@ -53,41 +53,27 @@ void main(){
     float ca=guide_rotation.x,sa=guide_rotation.y;
     vec2 lookup=vec2(ca*cq.x-sa*cq.y,sa*cq.x+ca*cq.y)+vec2(.5);
     vec2 guide=texture(guide_field,vec3((lookup+vec2(.45))/1.9,clamp(time,0.,1.))).xy;
-    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*span;
+    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*card;
     float entrained=1.+.24*smoothstep(.01,.15,age);
     target=mix(target,guide*(.9+.2*m.random.x)*entrained+flow*.85,guide_gain);
-    // 源位置决定同一局部团簇的轻微差异；颜色不参与动力学。
-    float phase=dot(m.src.xy,vec2(.0117,.0091))+time*3.1;
-    target+=vec2(-wind.y,wind.x)*sin(phase)*span*.045*loose;
-    float azimuth=m.random.w*6.28318;
+    // 共同速度表示与释放在同一坐标系中演化；不额外把整片推出或吸向周期线。
+    target=guide*(guide_gain/.9)+flow*.02+wind*u*.00001;
+    float random_angle=m.random.w*6.28318;
     float radius=sqrt(-2.*log(max(m.random.z,.015)));
-    vec2 individual=vec2(cos(azimuth),sin(azimuth))*radius;
-    // 短时微片分离破坏原纹理的整片关联；离散速度随阻力减弱，位置不回收。
-    float dispersion=(.44*exp(-age/.11)+.085*smoothstep(.03,.16,age))*smoothstep(.001,.020,age);
-    target+=individual*span*dispersion;
-    // 分离速度只在释放后短时存在，并由阻力衔接主输运。
-    // 它被积分到状态，不能像衰减位置偏移一样在后半段把材料拉回。
-    float peel=span*1.65*exp(-age/.105)*smoothstep(.003,.025,age)*roll_gain;
-    vec2 separation=-m.physical.xy*peel*(.55+.75*m.random.w);
-    separation-=wind*min(dot(separation,wind),0.);
-    // 顺风分离与主输运叠加会使迎风端以外的角部过早扩张。
-    // 只削弱高度同向的冲量，横向展开仍由分界线法线决定。
-    float normal_alignment=dot(-m.physical.xy,wind)/max(length(m.physical.xy),.01);
-    separation-=wind*max(dot(separation,wind),0.)*.75*smoothstep(.70,.98,normal_alignment);
-    target+=separation;
-    // 分界线邻近材料共享转向相位，形成侧向卷束；转向只改变速度。
-    float turn_phase=atan(m.physical.y,m.physical.x)+age*9.;
-    float turn=span*.32*sin(turn_phase)*exp(-age/.20)*smoothstep(.003,.025,age);
-    target+=vec2(-wind.y,wind.x)*turn;
-    // 主方向持续前进；旋度仍可形成侧向弯曲，不能推动整群逆向回程。
-    target+=wind*max(u*.20-dot(target,wind),0.);
+    float separate=smoothstep(.008,.045,age)*(1.-smoothstep(.16,.32,age));
+    target+=vec2(cos(random_angle),sin(random_angle))*radius*span*.045*separate;
+    float depth_target=-state[i].pos.z*3.*roll_gain;
+    // 允许侧向卷动；同一颗粒不沿消逝主方向反弹。
+    target+=wind*max(0.-dot(target,wind),0.);
     float response=1.-exp(-h/m.physical.w);
     vec2 old_v=state[i].vel.xy;
     if(age<=dt)old_v=target*.85;
     vec2 v=mix(old_v,target,response);
     state[i].pos.xy+=v*h;
     state[i].vel.xy=v;
-    state[i].pos.z=span*.035*sin(phase+age*7.)*smoothstep(.008,.10,age)*exp(-max(age-.21,0.)*4.0);
+    float vz=mix(state[i].vel.z,depth_target,response);
+    state[i].pos.z+=vz*h;
+    state[i].vel.z=vz;
 }
 '''
 
@@ -99,16 +85,21 @@ layout(std430,binding=1) readonly buffer B {State state[];};
 layout(std430,binding=2) readonly buffer C {float pigmentation[];};
 uniform vec2 frame,card,offset,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
-uniform int nx;
+uniform int nx,grid_count;
+uniform float panel_weight;
 out vec2 uv,local_uv;
 out float age_out,life_out,light_out,shape_out;
 flat out vec4 random_out;
+flat out float replica_out;
 const vec2 corners[6]=vec2[6](vec2(0,0),vec2(1,0),vec2(0,1),vec2(0,1),vec2(1,0),vec2(1,1));
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 vec2 jitter(vec2 g){return (vec2(hash(g),hash(g+vec2(17.1,5.9)))-.5)*.60;}
 void main(){
     Material m=particles[gl_InstanceID];State s=state[gl_InstanceID];
     int id=int(m.src.w+.1);
+    int replica=id/grid_count;
+    id=id%grid_count;
+    replica_out=float(replica);
     vec2 grid=vec2(id%nx,id/nx);
     vec2 c=corners[gl_VertexID];
     vec2 vertex_grid=grid+c;
@@ -117,6 +108,7 @@ void main(){
     if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
     vec2 source=(vertex_grid+j)*cell;
     uv=source/card;
+    if(replica>0)uv=mix(source,m.src.xy,.80)/card;
     local_uv=c;
     float age=max(0.,time-m.src.z);
     age_out=age;life_out=m.physical.z;random_out=m.random;
@@ -125,12 +117,15 @@ void main(){
     vec2 move=s.pos.xy+s.vel.xy*extrapolate;
     float z=s.pos.z+span*.035*(1.-cos(roll_phase))*exp(-age/.30)*roll_gain;
     float scale=mix(1.,.62+.72*m.random.y,loosen);
+    if(replica>0)scale*=.72;
     // 较老的微片继续细化，密集区与末端颗粒具有不同的尺度。
     scale*=1.-.36*smoothstep(.12,.36,age);
     // 初段保留微片的实际覆盖，随后细化；白底减少增量，避免形成厚亮边。
     scale*=1.+(.08-.05*body_weight)*smoothstep(.015,.075,age)*(1.-smoothstep(.22,.48,age));
     // 原色明显的微片在解体初段保留少量面积，再与周围材料一起细化。
     float content=pigmentation[gl_InstanceID];
+    // 面板色微片更细，实际内容仍保留份额，静态纹理覆盖不变。
+    scale*=1.-.26*panel_weight*(1.-content)*smoothstep(.006,.040,age);
     scale*=1.+content*.20*smoothstep(.025,.07,age)*(1.-smoothstep(.22,.48,age));
     // 解体只在释放之后发生，且从原始密铺几何连续变化。
     float facing_angle=atan(m.physical.y,m.physical.x);
@@ -157,11 +152,13 @@ uniform int material_pass;
 in vec2 uv,local_uv;
 in float age_out,life_out,light_out,shape_out;
 flat in vec4 random_out;
+flat in float replica_out;
 out vec4 frag;
 vec3 linear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
 void main(){
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
+    if(replica_out>.5 && (material_pass==0 || age_out<=.001))discard;
     float age=age_out;
     if(material_pass==0 && age>0.)discard;
     if(material_pass==1 && age<=0.)discard;
@@ -172,6 +169,7 @@ void main(){
     float cut=1.-smoothstep(.35,.58,radial);
     float shape=mix(1.,cut,shape_out*.92);
     float alpha=src.a*fade*shape;
+    if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
     if(alpha<.001)discard;
     vec3 color=linear(src.rgb);
     // 微片转动后采用较柔和的材质明暗响应，保留源色，减轻暗部黑点聚集。
@@ -214,55 +212,21 @@ void main(){frag=vec4(srgb(texture(screen,vec2(uv.x,1.-uv.y)).rgb),1);}
 '''
 
 class Renderer:
-    def __init__(self,name='ironman',direction=None,cell_px=2.35,quality=2,settings=None,ctx=None):
+    def __init__(self,name='ironman',direction=None,cell_px=None,quality=2,settings=None,ctx=None,seed=None):
         self.ctx=ctx or moderngl.create_standalone_context(require=430)
         self.directory=HERE/'assets'/name
         self.meta=json.loads((self.directory/'scene.json').read_text(encoding='utf-8'))
         self.direction=direction if direction is not None else self.meta['direction']
-        self.settings=dict(wind_gain=1.05,curl_gain=1.0,roll_gain=.85,light_gain=.85,guide_gain=.90,life_gain=.70)
-        if settings:self.settings.update(settings)
+        self.settings={key:RULES[key] for key in ['wind_gain','curl_gain','roll_gain','light_gain','guide_gain','life_gain']}
+        if settings:raise ValueError('正式模型不接受场景参数覆盖；修改共享规则后对全部场景重新验收。')
         self.w,self.h=self.meta['frame'];x,y,x1,y1=self.meta['rect'];self.cw=x1-x;self.ch=y1-y
-        self.span=min(self.cw,self.ch);self.nx=math.ceil(self.cw/cell_px);self.ny=math.ceil(self.ch/cell_px)
-        self.cell=(self.cw/self.nx,self.ch/self.ny);self.n=self.nx*self.ny
+        self.span=min(self.cw,self.ch)
         fg=np.array(Image.open(self.directory/'foreground.png').convert('RGBA'));bg=np.array(Image.open(self.directory/'background.png').convert('RGB'))
-        opaque=fg[:,:,3]>.95*255
-        self.white_fraction=float(np.mean((fg[:,:,:3].min(axis=2)>.90*255)[opaque])) if np.any(opaque) else 0.
-        body_weight=float(np.clip((self.white_fraction-.30)/.35,0,1));body_weight=body_weight*body_weight*(3-2*body_weight)
-        # 白色占比较高的整个控件使用更宽的局部交接区；文字和底色同时释放。
-        # 不是逐像素按颜色分开计时，避免残留文字独自悬浮。
-        self.release_spread=.060+.080*body_weight
-        self.body_weight=body_weight
-        profile=json.loads((self.directory/'profile.json').read_text(encoding='utf-8')) if (self.directory/'profile.json').exists() else None
-        T=field_grid(self.meta,self.nx,self.ny,self.direction,profile)
-        gy,gx=np.gradient(gaussian_filter(T,3),self.cell[1],self.cell[0]);l=np.maximum(np.hypot(gx,gy),1e-6)
-        rng=np.random.default_rng(self.meta['seed'])
-        rand=rng.random((self.n,4)).astype('float32')
-        # 稳定的材料身份决定有限释放错时，静止与运动两层共用这个出生时刻。
-        T=np.maximum(T.ravel()+self.release_spread*(rand[:,3]-.5),.001)
-        base=np.zeros((self.n,12),dtype='float32')
-        iy,ix=np.mgrid[:self.ny,:self.nx];base[:,0]=(ix.ravel()+.5)*self.cell[0];base[:,1]=(iy.ravel()+.5)*self.cell[1]
-        base[:,2]=T;base[:,3]=np.arange(self.n)
-        base[:,4]=gaussian_filter(gx/l,7).ravel();base[:,5]=gaussian_filter(gy/l,7).ravel()
-        life=(.10+.22*(-np.log(np.maximum(rand[:,0],.004)))**.85+.20*T)*self.settings['life_gain']
-        life=np.minimum(life,.865+.115*rand[:,2]-T)
-        base[:,6]=np.maximum(life,.11);base[:,7]=.018+.036*rand[:,2]
-        base[:,8:12]=rand
-        # 稳定的远近层排序。有限动态深度只是投影提示，不冒充精确逐帧透明排序。
-        depth=np.sin(base[:,0]*.014+base[:,1]*.021)*.6+(rand[:,1]-.5)*.15
-        base=base[np.argsort(depth,kind='stable')]
-        pigment=fg[np.clip(base[:,1].astype(int),0,self.ch-1),np.clip(base[:,0].astype(int),0,self.cw-1),:3].astype('float32')/255
-        chroma=pigment.max(axis=1)-pigment.min(axis=1)
-        content=np.clip((chroma-.30)/.42,0,1);content=content*content*(3-2*content)
-        # 颜色只决定材质保留，不改变释放时间、初速、阻力或随机运动。
-        base[:,6]=np.maximum(np.minimum(base[:,6]*(1.+.30*content),.865+.115*base[:,10]-base[:,2]),.11)
-        # 照片参考中少量连续源区域的保留校准，随消逝方向一起转动。
-        # 通用弹窗继续使用共同寿命模型，避免照搬照片特定部位的停留时间。
-        if profile and profile.get('retention_regions'):
-            rx,ry=rotate_uv(base[:,0]/self.cw,base[:,1]/self.ch,self.direction-self.meta['direction'])
-            retention=np.ones(self.n,dtype='float32')
-            for ox,oy,sx,sy,weight in profile['retention_regions']:
-                retention+=weight*np.exp(-((rx-ox)/sx)**2-((ry-oy)/sy)**2)
-            base[:,6]=np.maximum(np.minimum(base[:,6]*np.clip(retention,.65,1.75),.865+.115*base[:,10]-base[:,2]),.11)
+        built=materials(self.cw,self.ch,fg,self.direction,self.meta['seed'] if seed is None else seed,cell_px)
+        self.nx,self.ny=built['nx'],built['ny'];self.cell=built['cell'];self.n=len(built['base'])
+        self.material_info={k:built[k] for k in ['panel_color','panel_weight','replica_count']}
+        self.white_fraction=built['white_fraction'];self.body_weight=built['body_weight'];self.release_spread=built['release_spread']
+        base=built['base'];content=built['pigment']
         self.base=base
         self.material=self.ctx.buffer(base.tobytes());self.state=self.ctx.buffer(reserve=self.n*8*4)
         self.pigment=self.ctx.buffer(content.astype('float32').tobytes())
@@ -280,21 +244,19 @@ class Renderer:
         self.tex.filter=(moderngl.LINEAR,moderngl.LINEAR);self.fbo=self.ctx.framebuffer([self.tex])
         self.out_tex=self.ctx.texture((self.w,self.h),4);self.out_fbo=self.ctx.framebuffer([self.out_tex])
         self.wind=(math.cos(math.radians(self.direction)),-math.sin(math.radians(self.direction)))
-        from fit_flow import texture,common_texture
-        if (self.directory/'flow-profile.json').exists():
-            fp=json.loads((self.directory/'flow-profile.json').read_text(encoding='utf-8'));flow_data=texture(fp);guide_direction=fp['direction']
-        else:
-            common=HERE/'assets/common-flow.npy';flow_data=np.load(common) if common.exists() else common_texture();guide_direction=90
-        self.flow_tex=self.ctx.texture3d((36,36,32),2,flow_data.tobytes(),dtype='f4')
+        flow_data=guidance();guide_direction=RULES['guide_direction']
+        self.flow_tex=self.ctx.texture3d(tuple(flow_data.shape[2::-1]),2,flow_data.tobytes(),dtype='f4')
         self.flow_tex.filter=(moderngl.LINEAR,moderngl.LINEAR);self.flow_tex.repeat_x=False;self.flow_tex.repeat_y=False;self.flow_tex.repeat_z=False
-        delta=math.radians(self.direction-guide_direction)
+        delta=field_rotation(self.direction,self.cw,self.ch)
         self.compute['guide_rotation']=(math.cos(delta),math.sin(delta));self.compute['card']=(self.cw,self.ch)
         self.compute['guide_gain']=self.settings['guide_gain'];self.compute['guide_field']=3
         self.compute['count']=self.n;self.compute['dt']=STEP;self.compute['span']=self.span;self.compute['wind']=self.wind
         for key in ['wind_gain','curl_gain','roll_gain']:self.compute[key]=self.settings[key]
         self.program['frame']=(self.w,self.h);self.program['card']=(self.cw,self.ch);self.program['offset']=(x,y)
         self.program['cell']=self.cell;self.program['span']=self.span;self.program['nx']=self.nx
+        self.program['grid_count']=self.nx*self.ny
         self.program['body_weight']=self.body_weight
+        self.program['panel_weight']=self.material_info['panel_weight']
         # 未使用的 shader uniform 会被编译器优化掉。
         if 'wind' in self.program:self.program['wind']=self.wind
         self.program['roll_gain']=self.settings['roll_gain'];self.program['light_gain']=self.settings['light_gain']

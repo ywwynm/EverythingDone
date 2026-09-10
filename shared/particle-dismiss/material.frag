@@ -10,11 +10,13 @@ uniform int material_pass;
 in vec2 uv,local_uv;
 in float age_out,life_out,light_out,shape_out;
 flat in vec4 random_out;
+flat in float replica_out;
 out vec4 frag;
 vec3 linear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
 void main(){
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
+    if(replica_out>.5 && (material_pass==0 || age_out<=.001))discard;
     float age=age_out;
     if(material_pass==0){frag=vec4(linear(src.rgb)*src.a,src.a);return;}
     if(material_pass==0 && age>0.)discard;
@@ -26,6 +28,7 @@ void main(){
     float cut=1.-smoothstep(.35,.58,radial);
     float shape=mix(1.,cut,shape_out*.92);
     float alpha=src.a*fade*shape;
+    if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
     if(alpha<.001)discard;
     vec3 color=linear(src.rgb);
     // 微片转动后采用较柔和的材质明暗响应，保留源色，减轻暗部黑点聚集。

@@ -1,0 +1,26 @@
+{
+  "name": "holdout-coffee",
+  "title": "本轮留出 · 咖啡照片",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    60,
+    280,
+    660,
+    680
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 9201654,
+  "direction": 157,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "scikit-image 本地 coffee 照片，本轮冻结后首次用于模型；背景为构造渐变。",
+  "provenance": "scikit-image 本地 coffee 照片，本轮冻结后首次用于模型；背景为构造渐变。",
+  "holdout": true,
+  "validation_round": "卷曲与内容色",
+  "frozen_model_hash": "e705fd8de6e2f5557b9fb38f65b192443e9e423f1e3386e78e05d6ab1027aea7"
+}

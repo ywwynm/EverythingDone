@@ -1,0 +1,25 @@
+{
+  "name": "holdout-notification",
+  "title": "留出验证 · 真实长通知",
+  "frame": [
+    720,
+    1280
+  ],
+  "rect": [
+    84,
+    358,
+    582,
+    888
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 78192745,
+  "direction": 145,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "第三段参考 4.00 秒通知快照；未用于本轮调参。遮挡背景由 5.55 秒无通知帧估计仿射配准并模糊重建，不代表真实隐藏内容；左栏为实际源帧。",
+  "holdout": true,
+  "provenance": "第三段参考 4.00 秒通知快照；未用于本轮调参。遮挡背景由 5.55 秒无通知帧估计仿射配准并模糊重建，不代表真实隐藏内容；左栏为实际源帧。",
+  "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+}

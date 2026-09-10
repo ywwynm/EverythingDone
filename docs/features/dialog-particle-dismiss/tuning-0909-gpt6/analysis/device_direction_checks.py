@@ -1,7 +1,7 @@
 import argparse,subprocess,xml.etree.ElementTree as ET,json,re,time,math
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);a=p.parse_args()
-root=Path(__file__).resolve().parents[1]/'device-r33'/a.serial;base=['E:/AndroidSDK/platform-tools/adb.exe','-s',a.serial]
+p=argparse.ArgumentParser();p.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);p.add_argument('--output',default='device-unified');a=p.parse_args()
+root=Path(__file__).resolve().parents[1]/a.output/a.serial;root.mkdir(parents=True,exist_ok=True);base=['E:/AndroidSDK/platform-tools/adb.exe','-s',a.serial]
 def adb(*args):return subprocess.run(base+list(args),capture_output=True,check=True).stdout
 def dump():
     adb('shell','uiautomator','dump','/sdcard/particle-ui.xml');return ET.fromstring(adb('shell','cat','/sdcard/particle-ui.xml'))
@@ -32,7 +32,7 @@ for direction in [0,45,90,135,180,225,270,315]:
     last=[]
     for _ in range(35):
         last=completed()
-        if len(last)>len(old):break
+        if last and last[-1] not in old:break
         time.sleep(.1)
     else:raise RuntimeError(f'{direction} 关闭未完成')
     row={'requested':direction,'touch':[x,y],'dialog':dialog,'elapsedMs':(time.perf_counter()-start)*1000,'render':last[-1]}

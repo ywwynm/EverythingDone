@@ -229,5 +229,257 @@
     "background_truth": false,
     "dim_alpha": 0.0,
     "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\latest-dialog-before.png"
+  },
+  {
+    "name": "holdout-photo",
+    "title": "留出验证 · 独立照片",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      100,
+      200,
+      620,
+      750
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 32,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "scikit-image 本地 astronaut 照片；冻结后首次用于该模型，背景为构造渐变。",
+    "holdout": true,
+    "provenance": "scikit-image 本地 astronaut 照片；冻结后首次用于该模型，背景为构造渐变。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-dark",
+    "title": "留出验证 · 深色密集文字",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      112,
+      170,
+      608,
+      770
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 205,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的深色文字与彩色图标面板。",
+    "holdout": true,
+    "provenance": "冻结后新构造的深色文字与彩色图标面板。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-wide",
+    "title": "留出验证 · 宽面板",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      40,
+      390,
+      680,
+      566
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 0,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的宽高比 3.64 面板。",
+    "holdout": true,
+    "provenance": "冻结后新构造的宽高比 3.64 面板。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-tall",
+    "title": "留出验证 · 窄长列表",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      245,
+      108,
+      475,
+      892
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 90,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的窄长面板。",
+    "holdout": true,
+    "provenance": "冻结后新构造的窄长面板。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-alpha",
+    "title": "留出验证 · 透明渐变与镂空",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      80,
+      265,
+      640,
+      705
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 315,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的透明度梯度和圆形镂空，不使用纯白矩形假设。",
+    "holdout": true,
+    "provenance": "冻结后新构造的透明度梯度和圆形镂空，不使用纯白矩形假设。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-notification",
+    "title": "留出验证 · 真实长通知",
+    "frame": [
+      720,
+      1280
+    ],
+    "rect": [
+      84,
+      358,
+      582,
+      888
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 78192745,
+    "direction": 145,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "第三段参考 4.00 秒通知快照；未用于本轮调参。遮挡背景由 5.55 秒无通知帧估计仿射配准并模糊重建，不代表真实隐藏内容；左栏为实际源帧。",
+    "holdout": true,
+    "provenance": "第三段参考 4.00 秒通知快照；未用于本轮调参。遮挡背景由 5.55 秒无通知帧估计仿射配准并模糊重建，不代表真实隐藏内容；左栏为实际源帧。",
+    "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+  },
+  {
+    "name": "holdout-coffee",
+    "title": "本轮留出 · 咖啡照片",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      60,
+      280,
+      660,
+      680
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 9201654,
+    "direction": 157,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "scikit-image 本地 coffee 照片，本轮冻结后首次用于模型；背景为构造渐变。",
+    "provenance": "scikit-image 本地 coffee 照片，本轮冻结后首次用于模型；背景为构造渐变。",
+    "holdout": true,
+    "validation_round": "卷曲与内容色",
+    "frozen_model_hash": "e705fd8de6e2f5557b9fb38f65b192443e9e423f1e3386e78e05d6ab1027aea7"
+  },
+  {
+    "name": "holdout-colored-panel",
+    "title": "本轮留出 · 有色面板",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      72,
+      330,
+      648,
+      676
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 9201654,
+    "direction": 286,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的饱和紫色面板、灰白文字与青色图标，检验面板识别不依赖白色。",
+    "provenance": "冻结后新构造的饱和紫色面板、灰白文字与青色图标，检验面板识别不依赖白色。",
+    "holdout": true,
+    "validation_round": "卷曲与内容色",
+    "frozen_model_hash": "e705fd8de6e2f5557b9fb38f65b192443e9e423f1e3386e78e05d6ab1027aea7"
+  },
+  {
+    "name": "holdout-monochrome",
+    "title": "本轮留出 · 灰度照片",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      120,
+      250,
+      600,
+      730
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 9600910,
+    "direction": 203,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "scikit-image 本地 camera 灰度图；本轮冻结后首次验证。背景为构造渐变。",
+    "holdout": true,
+    "validation_round": "共同释放与输运",
+    "frozen_model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab"
+  },
+  {
+    "name": "holdout-compact-dialog",
+    "title": "本轮留出 · 横向弹窗",
+    "frame": [
+      720,
+      1000
+    ],
+    "rect": [
+      40,
+      355,
+      680,
+      655
+    ],
+    "radius": 0,
+    "duration": 1.0,
+    "seed": 9600910,
+    "direction": 334,
+    "dim_alpha": 0.0,
+    "reference": null,
+    "background_truth": false,
+    "background_note": "冻结后新构造的浅暖面板、灰字与三色图标；未参与本轮调参。",
+    "holdout": true,
+    "validation_round": "共同释放与输运",
+    "frozen_model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab"
   }
 ]

@@ -19,18 +19,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** 只读 adb 预先放入专用目录的测试素材，不访问记事或应用设置。 */
 class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val scenes = listOf("ironman", "thanos", "kobe", "language", "color", "attachment", "attachment-image")
+        val scenes = listOf("ironman", "thanos", "kobe", "language", "color", "attachment", "attachment-image",
+            "holdout-notification", "holdout-photo", "holdout-dark", "holdout-wide", "holdout-tall", "holdout-alpha",
+            "holdout-coffee", "holdout-colored-panel", "holdout-monochrome", "holdout-compact-dialog")
         val requested = intent.getStringExtra("scene")
         val selected = if (requested == null) scenes else listOf(requested).filter { it in scenes }
         if (selected.isEmpty() || !running.compareAndSet(false, true)) return
-        val generated = intent.getBooleanExtra("generated", false)
         val scale = intent.getFloatExtra("scale", 1f).coerceIn(.5f, 2.5f)
         val app = context.applicationContext
         Thread({
-            val root = File(app.getExternalFilesDir(null), "particle-r33")
-            val out = File(root, if (generated) "generated" else "fixed").apply { mkdirs() }
+            val root = File(app.getExternalFilesDir(null), "particle-unified")
+            val out = File(root, "generated").apply { mkdirs() }
             try {
-                for (scene in selected) run(app, root, out, scene, generated, scale)
+                for (scene in selected) run(app, root, out, scene, scale)
                 File(out, "done.json").writeText(JSONObject().put("scenes", JSONArray(selected)).put("ok", true).toString())
             } catch (error: Throwable) {
                 File(out, "error.txt").writeText(error.stackTraceToString())
@@ -39,7 +40,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         }, "ParticleProbe").start()
     }
 
-    private fun run(context: Context, root: File, out: File, scene: String, generated: Boolean, scale: Float) {
+    private fun run(context: Context, root: File, out: File, scene: String, scale: Float) {
         val meta = JSONObject(File(root, "$scene.json").readText())
         val frame = meta.getJSONArray("frame"); val rect = meta.getJSONArray("rect")
         val fw = frame.getInt(0); val fh = frame.getInt(1)
@@ -47,23 +48,23 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         val bitmap = BitmapFactory.decodeFile(File(root, "$scene.png").path) ?: error("缺少前景 $scene")
         val cardWidth = rect.getInt(2) - rect.getInt(0); val cardHeight = rect.getInt(3) - rect.getInt(1)
         val before = System.nanoTime()
-        val materials = if (generated) {
+        val rules = ParticleMicroflakeRules.read(context.assets.open("particle-dismiss/rules.properties"), context.assets.open("particle-dismiss/common-release.f32"))
+        val materials = run {
             val pixels = IntArray(bitmap.width * bitmap.height)
             bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             ParticleMicroflakeModel.build(cardWidth.toFloat(), cardHeight.toFloat(), pixels, bitmap.width,
-                bitmap.height, meta.getDouble("direction").toFloat(), 909602L)
-        } else {
-            val cell = meta.getJSONArray("cell")
-            ParticleMicroflakeModel.Materials(meta.getInt("nx"), meta.getInt("ny"),
-                cell.getDouble(0).toFloat(), cell.getDouble(1).toFloat(), meta.getDouble("body_weight").toFloat(),
-                floats(File(root, "$scene.materials.f32")), floats(File(root, "$scene.pigment.f32")))
+                bitmap.height, meta.getDouble("direction").toFloat(), meta.getLong("seed"), rules)
         }
-        val report = JSONObject().put("scene", scene).put("generated", generated).put("width", width).put("height", height)
+        val report = JSONObject().put("scene", scene).put("generated", true).put("width", width).put("height", height)
             .put("count", materials.count).put("modelMs", (System.nanoTime() - before) / 1e6).put("modelStages", JSONObject(materials.statistics))
         val input = ParticleMicroflakeRenderer.Input(fw.toFloat(), fh.toFloat(), cardWidth.toFloat(), cardHeight.toFloat(),
             rect.getDouble(0).toFloat(), rect.getDouble(1).toFloat(), meta.getDouble("direction").toFloat(),
-            if (generated) 90f else meta.getDouble("guide_direction").toFloat(), bitmap, materials,
-            if (generated) context.assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() } else File(root, "$scene.flow.f16").readBytes())
+            bitmap, materials, context.assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, rules)
+        fun saveValues(name: String, values: FloatArray) {
+            val bytes = ByteBuffer.allocate(values.size * 4).order(ByteOrder.LITTLE_ENDIAN)
+            bytes.asFloatBuffer().put(values); File(out, "$scene-$name.f32").writeBytes(bytes.array())
+        }
+        saveValues("materials", materials.values); saveValues("pigment", materials.pigment)
         withEgl(width, height) {
             report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER)).put("version", GLES30.glGetString(GLES30.GL_VERSION))
             ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
@@ -88,7 +89,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         }
         bitmap.recycle()
         File(out, "$scene.json").writeText(report.toString(2))
-        Log.i("ParticleProbe", "完成 $scene generated=$generated count=${materials.count}")
+        Log.i("ParticleProbe", "完成 $scene 独立建材 count=${materials.count}")
     }
 
     private fun saveFrame(file: File, width: Int, height: Int) {

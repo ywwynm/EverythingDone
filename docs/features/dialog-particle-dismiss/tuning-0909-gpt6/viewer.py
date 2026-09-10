@@ -26,13 +26,13 @@ class Canvas(QLabel):
 
 class Viewer(QWidget):
     def __init__(self):
-        super().__init__();self.setWindowTitle('完事儿 · 粒子消散桌面调优 0909');self.resize(1280,1060)
+        super().__init__();self.setWindowTitle('完事儿 · 粒子消散统一规则');self.resize(1280,1060)
         self.setStyleSheet('QWidget{background:#131a24;color:#e7edf5;font-family:Microsoft YaHei;font-size:14px;} QPushButton,QComboBox,QDoubleSpinBox{padding:7px 13px;background:#243349;border:1px solid #3c516d;border-radius:6px;} QPushButton:hover{background:#304c69;} QSlider{min-height:25px;}')
         self.metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'));self.renderer=None;self.playing=False;self.progress=0.;self.last=time.perf_counter();self.elapsed=0.;self.speed=1.
         layout=QVBoxLayout(self);head=QHBoxLayout();layout.addLayout(head)
-        title=QLabel('粒子消散 · 桌面候选');title.setStyleSheet('font-size:22px;font-weight:600;');head.addWidget(title);head.addStretch()
+        title=QLabel('粒子消散 · 统一参数验证');title.setStyleSheet('font-size:22px;font-weight:600;');head.addWidget(title);head.addStretch()
         self.scenes=QComboBox();self.scenes.addItems([m['title'] for m in self.metas]);head.addWidget(self.scenes)
-        labels=QHBoxLayout();labels.addWidget(QLabel('华为参考 / 原始截图'));labels.addWidget(QLabel('本轮模型 · 点击画面设置触点方向'));layout.addLayout(labels)
+        labels=QHBoxLayout();labels.addWidget(QLabel('华为参考 / 静态源素材'));labels.addWidget(QLabel('统一规则 · 点击画面设置触点方向'));layout.addLayout(labels)
         views=QHBoxLayout();self.left=Canvas();self.right=Canvas(self.touch);views.addWidget(self.left);views.addWidget(self.right);layout.addLayout(views,1)
         self.note=QLabel();self.note.setWordWrap(True);self.note.setStyleSheet('color:#aab8ca;font-size:12px;');layout.addWidget(self.note)
         self.position=QSlider(Qt.Horizontal);self.position.setRange(0,1000);layout.addWidget(self.position)
@@ -57,7 +57,7 @@ class Viewer(QWidget):
         self.original=np.array(Image.open(p/'source.png').convert('RGB'))
         self.ref=np.load(p/'reference.npy',mmap_mode='r') if self.meta['reference'] else None
         self.ref_times=np.load(p/'reference-times.npy') if self.ref is not None else None
-        self.note.setText(('参考按进度对齐；不代表录屏文件原速。' if self.ref is not None else '左侧为静态截图；没有同内容华为原片。')+'  '+self.meta['background_note'])
+        self.note.setText(('参考按进度对齐；不代表录屏文件原速。' if self.ref is not None else '左侧为静态源素材；没有同内容华为运动参考。')+'  '+self.meta['background_note'])
         self.rebuild();self.progress=0.;self.elapsed=.32;self.draw()
     def rebuild(self):
         if self.renderer:self.renderer.close()

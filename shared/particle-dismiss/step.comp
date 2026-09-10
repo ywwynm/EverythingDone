@@ -45,39 +45,25 @@ void main(){
     float ca=guide_rotation.x,sa=guide_rotation.y;
     vec2 lookup=vec2(ca*cq.x-sa*cq.y,sa*cq.x+ca*cq.y)+vec2(.5);
     vec2 guide=texture(guide_field,vec3((lookup+vec2(.45))/1.9,clamp(time,0.,1.))).xy;
-    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*span;
+    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*card;
     float entrained=1.+.24*smoothstep(.01,.15,age);
     target=mix(target,guide*(.9+.2*m.random.x)*entrained+flow*.85,guide_gain);
-    // 源位置决定同一局部团簇的轻微差异；颜色不参与动力学。
-    float phase=dot(m.src.xy,vec2(.0117,.0091))+time*3.1;
-    target+=vec2(-wind.y,wind.x)*sin(phase)*span*.045*loose;
-    float azimuth=m.random.w*6.28318;
+    // 共同速度表示与释放在同一坐标系中演化；不额外把整片推出或吸向周期线。
+    target=guide*(guide_gain/.9)+flow*.02+wind*u*.00001;
+    float random_angle=m.random.w*6.28318;
     float radius=sqrt(-2.*log(max(m.random.z,.015)));
-    vec2 individual=vec2(cos(azimuth),sin(azimuth))*radius;
-    // 短时微片分离破坏原纹理的整片关联；离散速度随阻力减弱，位置不回收。
-    float dispersion=(.44*exp(-age/.11)+.085*smoothstep(.03,.16,age))*smoothstep(.001,.020,age);
-    target+=individual*span*dispersion;
-    // 分离速度只在释放后短时存在，并由阻力衔接主输运。
-    // 它被积分到状态，不能像衰减位置偏移一样在后半段把材料拉回。
-    float peel=span*1.65*exp(-age/.105)*smoothstep(.003,.025,age)*roll_gain;
-    vec2 separation=-m.physical.xy*peel*(.55+.75*m.random.w);
-    separation-=wind*min(dot(separation,wind),0.);
-    // 顺风分离与主输运叠加会使迎风端以外的角部过早扩张。
-    // 只削弱高度同向的冲量，横向展开仍由分界线法线决定。
-    float normal_alignment=dot(-m.physical.xy,wind)/max(length(m.physical.xy),.01);
-    separation-=wind*max(dot(separation,wind),0.)*.75*smoothstep(.70,.98,normal_alignment);
-    target+=separation;
-    // 分界线邻近材料共享转向相位，形成侧向卷束；转向只改变速度。
-    float turn_phase=atan(m.physical.y,m.physical.x)+age*9.;
-    float turn=span*.32*sin(turn_phase)*exp(-age/.20)*smoothstep(.003,.025,age);
-    target+=vec2(-wind.y,wind.x)*turn;
-    // 主方向持续前进；旋度仍可形成侧向弯曲，不能推动整群逆向回程。
-    target+=wind*max(u*.20-dot(target,wind),0.);
+    float separate=smoothstep(.008,.045,age)*(1.-smoothstep(.16,.32,age));
+    target+=vec2(cos(random_angle),sin(random_angle))*radius*span*.045*separate;
+    float depth_target=-state[i].pos.z*3.*roll_gain;
+    // 允许侧向卷动；同一颗粒不沿消逝主方向反弹。
+    target+=wind*max(0.-dot(target,wind),0.);
     float response=1.-exp(-h/m.physical.w);
     vec2 old_v=state[i].vel.xy;
     if(age<=dt)old_v=target*.85;
     vec2 v=mix(old_v,target,response);
     state[i].pos.xy+=v*h;
     state[i].vel.xy=v;
-    state[i].pos.z=span*.035*sin(phase+age*7.)*smoothstep(.008,.10,age)*exp(-max(age-.21,0.)*4.0);
+    float vz=mix(state[i].vel.z,depth_target,response);
+    state[i].pos.z+=vz*h;
+    state[i].vel.z=vz;
 }

@@ -1,0 +1,25 @@
+{
+  "name": "holdout-alpha",
+  "title": "留出验证 · 透明渐变与镂空",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    80,
+    265,
+    640,
+    705
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 78192745,
+  "direction": 315,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "冻结后新构造的透明度梯度和圆形镂空，不使用纯白矩形假设。",
+  "holdout": true,
+  "provenance": "冻结后新构造的透明度梯度和圆形镂空，不使用纯白矩形假设。",
+  "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+}

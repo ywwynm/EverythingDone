@@ -10,11 +10,13 @@ layout(std430,binding=1) readonly buffer B {State state[];};
 layout(std430,binding=2) readonly buffer C {float pigmentation[];};
 uniform vec2 frame,card,offset,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
-uniform int nx;
+uniform int nx,grid_count;
 uniform int material_pass;
+uniform float panel_weight;
 out vec2 uv,local_uv;
 out float age_out,life_out,light_out,shape_out;
 flat out vec4 random_out;
+flat out float replica_out;
 const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 vec2 jitter(vec2 g){return (vec2(hash(g),hash(g+vec2(17.1,5.9)))-.5)*.60;}
@@ -26,6 +28,9 @@ void main(){
     }
     State s=state[gl_InstanceID];
     int id=int(m.src.w+.1);
+    int replica=id/grid_count;
+    id=id%grid_count;
+    replica_out=float(replica);
     vec2 grid=vec2(id%nx,id/nx);
     vec2 c=corners[gl_VertexID];
     vec2 vertex_grid=grid+c;
@@ -34,6 +39,7 @@ void main(){
     if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
     vec2 source=(vertex_grid+j)*cell;
     uv=source/card;
+    if(replica>0)uv=mix(source,m.src.xy,.80)/card;
     local_uv=c;
     float age=max(0.,time-m.src.z);
     age_out=age;life_out=m.physical.z;random_out=m.random;
@@ -47,12 +53,15 @@ void main(){
     vec2 move=s.pos.xy+s.vel.xy*extrapolate;
     float z=s.pos.z+span*.035*(1.-cos(roll_phase))*exp(-age/.30)*roll_gain;
     float scale=mix(1.,.62+.72*m.random.y,loosen);
+    if(replica>0)scale*=.72;
     // 较老的微片继续细化，密集区与末端颗粒具有不同的尺度。
     scale*=1.-.36*smoothstep(.12,.36,age);
     // 初段保留微片的实际覆盖，随后细化；白底减少增量，避免形成厚亮边。
     scale*=1.+(.08-.05*body_weight)*smoothstep(.015,.075,age)*(1.-smoothstep(.22,.48,age));
     // 原色明显的微片在解体初段保留少量面积，再与周围材料一起细化。
     float content=pigmentation[gl_InstanceID];
+    // 面板色微片更细，实际内容仍保留份额，静态纹理覆盖不变。
+    scale*=1.-.26*panel_weight*(1.-content)*smoothstep(.006,.040,age);
     scale*=1.+content*.20*smoothstep(.025,.07,age)*(1.-smoothstep(.22,.48,age));
     // 解体只在释放之后发生，且从原始密铺几何连续变化。
     float facing_angle=atan(m.physical.y,m.physical.x);

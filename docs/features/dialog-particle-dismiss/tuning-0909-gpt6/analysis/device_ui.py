@@ -1,7 +1,7 @@
 import argparse,subprocess,xml.etree.ElementTree as ET,json,re,time
 from pathlib import Path
-P=argparse.ArgumentParser();P.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);P.add_argument('action',choices=['dump','tap','back','capture']);P.add_argument('--text');P.add_argument('--desc');P.add_argument('--id');P.add_argument('--expect');P.add_argument('--name',default='current');A=P.parse_args()
-ROOT=Path(__file__).resolve().parents[1]/'device-r33'/A.serial;ROOT.mkdir(exist_ok=True,parents=True)
+P=argparse.ArgumentParser();P.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);P.add_argument('action',choices=['dump','tap','back','capture']);P.add_argument('--text');P.add_argument('--desc');P.add_argument('--id');P.add_argument('--expect');P.add_argument('--name',default='current');P.add_argument('--output',default='device-unified');A=P.parse_args()
+ROOT=Path(__file__).resolve().parents[1]/A.output/A.serial;ROOT.mkdir(exist_ok=True,parents=True)
 def adb(*args):return subprocess.run(['E:/AndroidSDK/platform-tools/adb.exe','-s',A.serial,*args],capture_output=True,check=True).stdout
 def dump():
     adb('shell','uiautomator','dump','/sdcard/particle-ui.xml')

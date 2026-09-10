@@ -1,0 +1,26 @@
+{
+  "name": "holdout-colored-panel",
+  "title": "本轮留出 · 有色面板",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    72,
+    330,
+    648,
+    676
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 9201654,
+  "direction": 286,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "冻结后新构造的饱和紫色面板、灰白文字与青色图标，检验面板识别不依赖白色。",
+  "provenance": "冻结后新构造的饱和紫色面板、灰白文字与青色图标，检验面板识别不依赖白色。",
+  "holdout": true,
+  "validation_round": "卷曲与内容色",
+  "frozen_model_hash": "e705fd8de6e2f5557b9fb38f65b192443e9e423f1e3386e78e05d6ab1027aea7"
+}

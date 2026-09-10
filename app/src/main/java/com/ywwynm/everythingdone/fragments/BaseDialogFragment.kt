@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.view.ContextThemeWrapper
 import androidx.activity.ComponentDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.content.ContextCompat
@@ -128,7 +129,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
         if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_DISMISS_BIT != 0) {
-            ParticleDismissController.warmDismissModel()
+            ParticleDismissController.warmDismissModel(gestureDialog.context)
         }
         if (gestureDialog.dimLayer == null) {
             activity?.let { gestureDialog.dimLayer = DialogDimLayer.attach(it) }
@@ -279,6 +280,27 @@ private class GestureAnchoredDialog(
     private var lastUpTouch: PointF? = null
     private var lastUpTouchUptimeMs = 0L
 
+    /** 返回键与完成的返回手势不能沿用刚才滑动或点击的历史触点。 */
+    private var dismissFromBack = false
+
+    init {
+        onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                dismissFromBack = true
+                lastUpTouch = null
+                isEnabled = false
+                try {
+                    // 继续交给 ComponentDialog 的 fallback，保留 setCancelable(false)
+                    // 与 cancel 回调；子内容后来注册的返回回调仍有更高优先级。
+                    onBackPressedDispatcher.onBackPressed()
+                } finally {
+                    isEnabled = true
+                    dismissFromBack = false
+                }
+            }
+        })
+    }
+
     /** 应用接管的背景暗层，show 时由 fragment 注入；随 dismiss 路径淡出 */
     var dimLayer: DialogDimLayer? = null
 
@@ -377,8 +399,13 @@ private class GestureAnchoredDialog(
         }
     }
 
-    /** 分发中的触点优先；否则用刚抬手不久的那个点。 */
+    /** 返回使用左上虚拟触点；其他关闭先取分发中或刚抬手的真实触点。 */
     private fun dismissTouchAnchor(): PointF? {
+        if (dismissFromBack) {
+            val decor = window?.decorView ?: return null
+            val reach = maxOf(decor.width, decor.height).toFloat()
+            return PointF(decor.width / 2f - reach, decor.height / 2f - reach)
+        }
         dismissTouchInDispatch?.let { return it }
         val up = lastUpTouch ?: return null
         val elapsed = SystemClock.uptimeMillis() - lastUpTouchUptimeMs

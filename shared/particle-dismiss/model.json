@@ -1,24 +1,28 @@
 {
-  "version": "r33",
-  "desktop_hash": "b52110f3260b59fbb8e1ae4026d1b87bc19772436bd36e79bd865e7483029819",
+  "model": "共同释放与输运的微片消散",
+  "model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab",
   "integration_hz": 240,
   "flow_shape": [
-    32,
-    36,
-    36,
+    48,
+    64,
+    64,
     2
   ],
+  "release_shape": [
+    96,
+    96
+  ],
   "flow_dtype": "little-endian float16",
+  "release_dtype": "little-endian float32",
   "files": {
-    "common-flow.f16": "6d148e50668fcb5f5b4e54797df0422517836c2c18c69ace6a3d7177295919da",
-    "material.frag": "fb67630501c3b8951399053919baf212bf2fea9e0ddb957645c11aa3b70ba31c",
-    "material.vert": "3271f18b0c9022479b3caf6781d02b84b2a7f39daff18f0da0a321a5660c7d9a",
-    "resolve.frag": "1f3b20329ebf5a9c0e5e25967b702a218d7efa06728fc096ad303f8ea3c751c8",
-    "resolve.vert": "eb2e22bddf5b8b061b98a4e223950b2aac60e37fc3ef2e7bf658ba02b0be0d0a",
-    "step.comp": "393f91bcd286b800f1215298b461e3d3fe92c53a3440c02b416694faa0fe33ac"
+    "common-flow.f16": "361be90b8cfe7fa64e6bc59ecd96159211bdae6b51a99c0296114adeed4499d2",
+    "common-release.f32": "69a6aad7d99a52bb414cb216cf071e3119be6256269b620e1814e62e94c04c3c",
+    "material.frag": "053b4577fcae41a13e78d69f79512b056033c58908a9ddb40b63824fa21b463a",
+    "material.vert": "48796617a0f802c0284557c0c4cee9a4c3909dd1fcd824cb0d090cb374b9175f",
+    "resolve.frag": "07e590bf8309e3758fac6287efdbcce3944d37c9c2d68deb5360808e0ef13da1",
+    "resolve.vert": "94c23d9d8be7fcbe066169a474665741dd7328d6971499e26e44f40242cf9699",
+    "rules.properties": "7dcd675f4d8b0f07c12cdb8eca4b4166ec6a20511fc1137aaaff88ddec40aeb4",
+    "step.comp": "3762dd887929b48dad56ba46d372f75e215ad5d741c7655413124fba0de34efd"
   },
-  "android_optimizations": [
-    "静止材料直接覆盖源像素",
-    "非当前绘制层与完全透明材料提前裁剪"
-  ]
+  "scope": "共同表示从认可的观测结果提炼；所有素材共用，运行时不读取照片配置、参考视频或原始光流。"
 }

@@ -1,0 +1,25 @@
+{
+  "name": "holdout-tall",
+  "title": "留出验证 · 窄长列表",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    245,
+    108,
+    475,
+    892
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 78192745,
+  "direction": 90,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "冻结后新构造的窄长面板。",
+  "holdout": true,
+  "provenance": "冻结后新构造的窄长面板。",
+  "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+}

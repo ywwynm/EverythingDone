@@ -49,13 +49,14 @@ internal object ParticleDismissController {
     private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
 
     /** 首个弹窗展示期间预热纯数值代码，避免把调试运行时的首次 JIT 成本留到关闭。 */
-    fun warmDismissModel() {
+    fun warmDismissModel(context: Context) {
         if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
         Thread({
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
             runCatching {
+                val rules = ParticleMicroflakeRules.read(context.applicationContext.assets.open("particle-dismiss/rules.properties"), context.applicationContext.assets.open("particle-dismiss/common-release.f32"))
                 val pixels = IntArray(256 * 256) { -1 }
-                repeat(2) { ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, it.toLong()) }
+                repeat(2) { ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, it.toLong(), rules) }
             }.onFailure { android.util.Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
         }, "ParticleModelWarmup").start()
     }
@@ -72,7 +73,7 @@ internal object ParticleDismissController {
      *
      * 返回 false 表示环境不满足，调用方保持系统默认退出行为（不会回调）。
      *
-     * [touchInWindow] 只表示直接触发本次关闭、且当前仍在分发的触点；返回、
+     * [touchInWindow] 表示直接触发本次关闭的触点，返回分发可传入左上虚拟触点；其他
      * 异步完成和代码关闭传 null，统一使用右上虚拟触点。
      */
     fun start(

@@ -1,0 +1,25 @@
+{
+  "name": "holdout-compact-dialog",
+  "title": "本轮留出 · 横向弹窗",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    40,
+    355,
+    680,
+    655
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 9600910,
+  "direction": 334,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "冻结后新构造的浅暖面板、灰字与三色图标；未参与本轮调参。",
+  "holdout": true,
+  "validation_round": "共同释放与输运",
+  "frozen_model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab"
+}

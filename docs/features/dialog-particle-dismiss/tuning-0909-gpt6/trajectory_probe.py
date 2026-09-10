@@ -4,6 +4,7 @@ import numpy as np,moderngl
 from PIL import Image,ImageDraw,ImageFont
 from renderer import Renderer,VERTEX,HERE
 from export_videos import VERSION,code_hash
+from unified_model import model_fingerprint
 
 def trace(r,times):
     shader=VERTEX.replace('out vec2 uv,local_uv;','out vec2 uv,local_uv;\nout vec2 trace_center;')
@@ -69,7 +70,7 @@ def run(tag,settings=None,assert_no_bounce=False):
 
 def all_visible_checks():
     """实际顶点中心逐帧检查：仅比较两帧都处于可见生命期的同一材料。"""
-    names=['ironman','thanos','kobe','language','color','attachment','attachment-image']
+    names=[m['name'] for m in json.loads((HERE/'assets/scenes.json').read_text('utf-8'))]
     angles=[0,17,45,90,135,180,225,270,315,359]
     ctx=moderngl.create_standalone_context(require=430);results=[]
     for name in names:
@@ -96,6 +97,7 @@ def all_visible_checks():
         print('实际渲染轨迹检查通过',name,len(angles),'个方向',flush=True)
     ctx.release()
     data={'version':VERSION,'code_hash':code_hash(),'sample_fps':120,'cases':results,'total_visible_pairs':sum(r['visible_material_frame_pairs'] for r in results),'scope':'实际顶点输出的材料中心；同一材料在相邻可见生命期帧的位移沿指定方向投影。侧向弯曲仍然允许。'}
+    data['model_hash']=model_fingerprint()
     (HERE/'analysis/trajectory-qa.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
     return data
 

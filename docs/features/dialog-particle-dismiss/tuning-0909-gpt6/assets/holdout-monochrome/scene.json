@@ -1,0 +1,25 @@
+{
+  "name": "holdout-monochrome",
+  "title": "本轮留出 · 灰度照片",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    120,
+    250,
+    600,
+    730
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 9600910,
+  "direction": 203,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "scikit-image 本地 camera 灰度图；本轮冻结后首次验证。背景为构造渐变。",
+  "holdout": true,
+  "validation_round": "共同释放与输运",
+  "frozen_model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab"
+}

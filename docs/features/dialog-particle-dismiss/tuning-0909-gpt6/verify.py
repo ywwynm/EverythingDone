@@ -10,7 +10,7 @@ FONT=ImageFont.truetype('C:/Windows/Fonts/msyh.ttc',22)
 def model_checks():
     metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'))
     ctx=moderngl.create_standalone_context(require=430);result=[]
-    contact=Image.new('RGB',(7*280,4*360),(14,20,30));draw=ImageDraw.Draw(contact)
+    contact=Image.new('RGB',(len(metas)*280,4*360),(14,20,30));draw=ImageDraw.Draw(contact)
     for j,m in enumerate(metas):
         r=Renderer(m['name'],ctx=ctx);a=r.render(0);src=np.array(Image.open(r.directory/'source.png').convert('RGB'))
         fg=np.array(Image.open(r.directory/'foreground.png').convert('RGBA'));x,y,x1,y1=m['rect']
@@ -58,6 +58,18 @@ def video_checks():
     path=HERE/'videos/manifest.json';manifest=json.loads(path.read_text(encoding='utf-8'));items=manifest['videos'];results=[]
     assert manifest['version']==VERSION and manifest['code_hash']==code_hash()
     assert {p.name for p in path.parent.glob('*.mp4')}=={v['file'] for v in items},'磁盘视频与清单不一致'
+    metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'))
+    expected=set()
+    for meta in metas:
+        kinds=['animation']
+        kinds+=['compare-phase','compare-file'] if meta.get('reference') else ['compare-source']
+        if not meta.get('holdout'):kinds.append('compare-versions')
+        if meta['name']=='ironman':kinds.append('compare-control')
+        if meta['name'] in ['ironman','attachment','attachment-image']:kinds.append('eight-directions')
+        expected.update((meta['name'],kind,rate) for kind in kinds for rate in [1.,.5])
+    actual={(v['scene'],v['kind'],v['rate']) for v in items}
+    assert len(items)==len(actual),'视频清单含重复的场景／类型／速度组合'
+    assert actual==expected,{'missing':sorted(expected-actual),'unexpected':sorted(actual-expected)}
     for item in items:
         assert item['version']==VERSION and item['code_hash']==code_hash(),item['file']
         p=path.parent/item['file']
@@ -78,19 +90,7 @@ def video_checks():
             assert half['frames']==2*item['frames'],(item,half)
         results.append({'file':item['file'],'probe':data,'decoded_samples':decoded})
         print('视频检查通过',item['file'],flush=True)
-    expected=54
-    assert len(items)==expected,(len(items),expected)
-    if len(items)==expected:
-        for name in ['ironman','thanos','kobe','language','color','attachment','attachment-image']:
-            for rate in [1.,.5]:
-                assert any(v['scene']==name and v['kind']=='animation' and v['rate']==rate for v in items)
-                kind='compare-phase' if name in ['ironman','thanos','kobe'] else 'compare-source'
-                assert any(v['scene']==name and v['kind']==kind and v['rate']==rate for v in items)
-        for name in ['ironman','attachment','attachment-image']:
-            assert sum(v['scene']==name and v['kind']=='eight-directions' for v in items)==2
-        for name in ['ironman','thanos','kobe','language','color','attachment','attachment-image']:
-            assert sum(v['scene']==name and v['kind']=='compare-versions' for v in items)==2
-    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'expected_final':expected,'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
+    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'expected_final':len(expected),'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
     print(len(items),'个视频检查通过',flush=True)
 
 if __name__=='__main__':

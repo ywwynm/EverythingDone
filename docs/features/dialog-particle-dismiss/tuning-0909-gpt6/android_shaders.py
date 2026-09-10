@@ -5,7 +5,7 @@ def convert(name, source):
     if name=='material.vert':
         source=source.replace('const vec2 corners[6]=vec2[6](vec2(0,0),vec2(1,0),vec2(0,1),vec2(0,1),vec2(1,0),vec2(1,1));',
             'const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));')
-        source=source.replace('uniform int nx;', 'uniform int nx;\nuniform int material_pass;')
+        source=source.replace('uniform int nx,grid_count;', 'uniform int nx,grid_count;\nuniform int material_pass;')
         source=source.replace('Material m=particles[gl_InstanceID];State s=state[gl_InstanceID];', '''Material m=particles[gl_InstanceID];
     float particle_age=max(0.,time-m.src.z);
     if((material_pass==0 && particle_age>0.) || (material_pass==1 && particle_age<=0.) || particle_age>=m.physical.z){

@@ -1,0 +1,25 @@
+{
+  "name": "holdout-photo",
+  "title": "留出验证 · 独立照片",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    100,
+    200,
+    620,
+    750
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 78192745,
+  "direction": 32,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "scikit-image 本地 astronaut 照片；冻结后首次用于该模型，背景为构造渐变。",
+  "holdout": true,
+  "provenance": "scikit-image 本地 astronaut 照片；冻结后首次用于该模型，背景为构造渐变。",
+  "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+}

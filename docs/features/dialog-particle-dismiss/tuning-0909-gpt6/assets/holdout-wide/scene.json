@@ -1,0 +1,25 @@
+{
+  "name": "holdout-wide",
+  "title": "留出验证 · 宽面板",
+  "frame": [
+    720,
+    1000
+  ],
+  "rect": [
+    40,
+    390,
+    680,
+    566
+  ],
+  "radius": 0,
+  "duration": 1.0,
+  "seed": 78192745,
+  "direction": 0,
+  "dim_alpha": 0.0,
+  "reference": null,
+  "background_truth": false,
+  "background_note": "冻结后新构造的宽高比 3.64 面板。",
+  "holdout": true,
+  "provenance": "冻结后新构造的宽高比 3.64 面板。",
+  "frozen_model_hash": "891996b6beb8592cbbb336519a8c4fbcc9b7fbe908301b3eb75354a1db88cdc6"
+}
