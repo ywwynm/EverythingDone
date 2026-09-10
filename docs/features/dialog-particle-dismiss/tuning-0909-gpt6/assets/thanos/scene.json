@@ -1,0 +1,45 @@
+{
+  "name": "thanos",
+  "frame": [
+    720,
+    1594
+  ],
+  "rect": [
+    40,
+    154,
+    680,
+    828
+  ],
+  "radius": 39,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "灭霸",
+  "direction": 130,
+  "origins": [
+    [
+      1.0,
+      0.25,
+      0
+    ],
+    [
+      0,
+      0,
+      0.12
+    ],
+    [
+      1.0,
+      0.95,
+      0.24
+    ]
+  ],
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\7-第六秒开始.mp4",
+    "start": 5.4,
+    "end": 7.95,
+    "slow_estimate": 2.0,
+    "sha256": "157418538b881a216338764fd52f88f62fb46f686bb8def6494a294067e23973"
+  },
+  "background_note": "原片背景；左侧与顶部少量残留粒子已局部插值清理",
+  "dim_alpha": 0.0,
+  "background_truth": true
+}

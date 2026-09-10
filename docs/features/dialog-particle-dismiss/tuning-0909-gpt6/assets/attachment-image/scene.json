@@ -1,0 +1,24 @@
+{
+  "name": "attachment-image",
+  "frame": [
+    720,
+    1544
+  ],
+  "rect": [
+    98,
+    528,
+    622,
+    1051
+  ],
+  "radius": 30,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "添加附件 · 图片背景",
+  "direction": 65,
+  "origins": null,
+  "reference": null,
+  "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+  "background_truth": false,
+  "dim_alpha": 0.0,
+  "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\latest-dialog-before.png"
+}

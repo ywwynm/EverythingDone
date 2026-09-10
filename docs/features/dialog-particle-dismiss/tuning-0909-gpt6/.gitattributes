@@ -1,0 +1,4 @@
+# 保持模拟器指纹使用的源码、参数在 Windows 检出后字节稳定。
+*.py text eol=lf
+# 参数参与原始字节散列，保留现有 CRLF/LF。
+*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

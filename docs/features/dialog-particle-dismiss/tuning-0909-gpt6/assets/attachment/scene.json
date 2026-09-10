@@ -1,0 +1,24 @@
+{
+  "name": "attachment",
+  "frame": [
+    720,
+    1544
+  ],
+  "rect": [
+    98,
+    528,
+    622,
+    1051
+  ],
+  "radius": 30,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "添加附件 · 纯色背景",
+  "direction": 65,
+  "origins": null,
+  "reference": null,
+  "background_note": "同页无弹窗真机截图",
+  "background_truth": true,
+  "dim_alpha": 0.596,
+  "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png"
+}

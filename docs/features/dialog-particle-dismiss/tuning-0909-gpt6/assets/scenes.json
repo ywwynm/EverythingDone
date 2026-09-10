@@ -1,0 +1,233 @@
+[
+  {
+    "name": "ironman",
+    "frame": [
+      720,
+      1280
+    ],
+    "rect": [
+      126,
+      261,
+      594,
+      735
+    ],
+    "radius": 29,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "钢铁侠",
+    "direction": 122,
+    "origins": [
+      [
+        0.61,
+        1.02,
+        0
+      ],
+      [
+        0,
+        0,
+        0.2
+      ],
+      [
+        1,
+        0.75,
+        0.45
+      ]
+    ],
+    "reference": {
+      "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\1-第三秒开始.mp4",
+      "start": 3.25,
+      "end": 8.45,
+      "slow_estimate": 3.42,
+      "sha256": "e625e98d9af34a21926c995bba46c76177b9ce3bbe8ce160582af5f8463b5913"
+    },
+    "background_note": "原片背景",
+    "dim_alpha": 0.0,
+    "background_truth": true
+  },
+  {
+    "name": "thanos",
+    "frame": [
+      720,
+      1594
+    ],
+    "rect": [
+      40,
+      154,
+      680,
+      828
+    ],
+    "radius": 39,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "灭霸",
+    "direction": 130,
+    "origins": [
+      [
+        1.0,
+        0.25,
+        0
+      ],
+      [
+        0,
+        0,
+        0.12
+      ],
+      [
+        1.0,
+        0.95,
+        0.24
+      ]
+    ],
+    "reference": {
+      "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\7-第六秒开始.mp4",
+      "start": 5.4,
+      "end": 7.95,
+      "slow_estimate": 2.0,
+      "sha256": "157418538b881a216338764fd52f88f62fb46f686bb8def6494a294067e23973"
+    },
+    "background_note": "原片背景；左侧与顶部少量残留粒子已局部插值清理",
+    "dim_alpha": 0.0,
+    "background_truth": true
+  },
+  {
+    "name": "kobe",
+    "frame": [
+      720,
+      1280
+    ],
+    "rect": [
+      195,
+      199,
+      648,
+      656
+    ],
+    "radius": 27,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "科比",
+    "direction": 128,
+    "origins": [
+      [
+        0,
+        0.43,
+        0
+      ],
+      [
+        0.82,
+        0,
+        0.36
+      ],
+      [
+        1,
+        1,
+        0.66
+      ]
+    ],
+    "reference": {
+      "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\5-第五秒开始.mp4",
+      "start": 5.2,
+      "end": 6.25,
+      "slow_estimate": 1.0,
+      "sha256": "e4565ac3406d9f140c39e26d370b41fdfe6f2a85b7b63c0f5d2ede6c8c0a5f68"
+    },
+    "background_note": "原片背景",
+    "dim_alpha": 0.0,
+    "background_truth": true
+  },
+  {
+    "name": "language",
+    "frame": [
+      720,
+      1584
+    ],
+    "rect": [
+      80,
+      363,
+      640,
+      1268
+    ],
+    "radius": 34,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "更改应用语言",
+    "direction": 65,
+    "origins": null,
+    "reference": null,
+    "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+    "background_truth": false,
+    "dim_alpha": 0.0,
+    "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-ef1f03a4-988c-4393-9259-b70fbb5e685d.jpg"
+  },
+  {
+    "name": "color",
+    "frame": [
+      720,
+      1584
+    ],
+    "rect": [
+      16,
+      344,
+      704,
+      1536
+    ],
+    "radius": 32,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "调整颜色",
+    "direction": 65,
+    "origins": null,
+    "reference": null,
+    "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+    "background_truth": false,
+    "dim_alpha": 0.0,
+    "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg"
+  },
+  {
+    "name": "attachment",
+    "frame": [
+      720,
+      1544
+    ],
+    "rect": [
+      98,
+      528,
+      622,
+      1051
+    ],
+    "radius": 30,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "添加附件 · 纯色背景",
+    "direction": 65,
+    "origins": null,
+    "reference": null,
+    "background_note": "同页无弹窗真机截图",
+    "background_truth": true,
+    "dim_alpha": 0.596,
+    "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png"
+  },
+  {
+    "name": "attachment-image",
+    "frame": [
+      720,
+      1544
+    ],
+    "rect": [
+      98,
+      528,
+      622,
+      1051
+    ],
+    "radius": 30,
+    "duration": 1.0,
+    "seed": 909602,
+    "title": "添加附件 · 图片背景",
+    "direction": 65,
+    "origins": null,
+    "reference": null,
+    "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+    "background_truth": false,
+    "dim_alpha": 0.0,
+    "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\latest-dialog-before.png"
+  }
+]

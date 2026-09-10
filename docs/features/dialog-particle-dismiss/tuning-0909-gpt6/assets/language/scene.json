@@ -1,0 +1,24 @@
+{
+  "name": "language",
+  "frame": [
+    720,
+    1584
+  ],
+  "rect": [
+    80,
+    363,
+    640,
+    1268
+  ],
+  "radius": 34,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "更改应用语言",
+  "direction": 65,
+  "origins": null,
+  "reference": null,
+  "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+  "background_truth": false,
+  "dim_alpha": 0.0,
+  "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-ef1f03a4-988c-4393-9259-b70fbb5e685d.jpg"
+}

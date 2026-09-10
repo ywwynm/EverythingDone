@@ -1,0 +1,24 @@
+{
+  "name": "color",
+  "frame": [
+    720,
+    1584
+  ],
+  "rect": [
+    16,
+    344,
+    704,
+    1536
+  ],
+  "radius": 32,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "调整颜色",
+  "direction": 65,
+  "origins": null,
+  "reference": null,
+  "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
+  "background_truth": false,
+  "dim_alpha": 0.0,
+  "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg"
+}

@@ -1,0 +1,21 @@
+# 源码和必要参数入库，其余素材、输出及历史版本保留本地。
+/*
+!/.gitignore
+!/.gitattributes
+!/*.py
+!/*.ps1
+!/README.md
+!/analysis/
+/analysis/*
+!/analysis/*.py
+!/research/
+/research/*
+!/research/*.py
+!/assets/
+/assets/*
+!/assets/scenes.json
+!/assets/*/
+/assets/*/*
+!/assets/*/scene.json
+!/assets/*/profile.json
+!/assets/*/flow-profile.json

@@ -1,0 +1,45 @@
+{
+  "name": "ironman",
+  "frame": [
+    720,
+    1280
+  ],
+  "rect": [
+    126,
+    261,
+    594,
+    735
+  ],
+  "radius": 29,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "钢铁侠",
+  "direction": 122,
+  "origins": [
+    [
+      0.61,
+      1.02,
+      0
+    ],
+    [
+      0,
+      0,
+      0.2
+    ],
+    [
+      1,
+      0.75,
+      0.45
+    ]
+  ],
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\1-第三秒开始.mp4",
+    "start": 3.25,
+    "end": 8.45,
+    "slow_estimate": 3.42,
+    "sha256": "e625e98d9af34a21926c995bba46c76177b9ce3bbe8ce160582af5f8463b5913"
+  },
+  "background_note": "原片背景",
+  "dim_alpha": 0.0,
+  "background_truth": true
+}

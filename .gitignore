@@ -27,25 +27,6 @@ memory/screenshots/
 # 采取「先全排除、再按文件放行」，避免每来一个新目录就漏一条。
 /tmp/*
 
-# Dialog 粒子消散 canonical 桌面回归代码；视频、逐帧图片和分析 JSON 继续忽略。
-!/tmp/particle-dismiss-tuning/
-/tmp/particle-dismiss-tuning/*
-!/tmp/particle-dismiss-tuning/*.py
-!/tmp/particle-dismiss-tuning/*.html
-!/tmp/particle-dismiss-tuning/README.md
-!/tmp/particle-dismiss-tuning/cloth-motion-prototype/
-/tmp/particle-dismiss-tuning/cloth-motion-prototype/*
-!/tmp/particle-dismiss-tuning/cloth-motion-prototype/index.html
-!/tmp/particle-dismiss-tuning/cloth-motion-prototype/serve.py
-!/tmp/particle-dismiss-tuning/cloth-motion-prototype/NOTES.md
-# 2026-09-02 起的"连续薄片"原型与桌面草稿着色器（代码放行，渲染产物继续忽略）。
-!/tmp/particle-dismiss-tuning/sheet/
-/tmp/particle-dismiss-tuning/sheet/*
-!/tmp/particle-dismiss-tuning/sheet/*.py
-!/tmp/particle-dismiss-tuning/shader-draft/
-/tmp/particle-dismiss-tuning/shader-draft/*
-!/tmp/particle-dismiss-tuning/shader-draft/*.kt
-
 # 唯一放行的是空间照片的桌面/网页端**代码**：查看器，以及被 docs/ 或 .claude/rules/
 # 引用过的脚本及其导入闭包。未被任何文档引用的一次性探针不放行。
 !/tmp/spatial-desktop-tuning/
@@ -130,3 +111,37 @@ memory/screenshots/
 /memory/spatial-*.txt
 /memory/publish-spatial.txt
 /memory/compile.txt
+
+# 旧粒子动画重建会话保留本地
+/docs/features/huawei-particle-dismiss-rebuild/
+
+# 旧粒子实验的本地诊断产物
+/memory/activation-latest.txt
+/memory/cohesion-latest.txt
+/memory/color-latest.txt
+/memory/early-edge-latest.txt
+/memory/edge-latest.txt
+/memory/morphology-candidate13.txt
+/memory/morphology-candidate14.txt
+/memory/morphology-candidate6.txt
+/memory/morphology-latest.txt
+/memory/motion-latest.txt
+/memory/particle-dismiss-test.txt
+/memory/particleization-resistance-probe.txt
+/memory/particleization-topology-before.txt
+/memory/particleization-topology-candidate1.txt
+/memory/particleization-topology-candidate10.txt
+/memory/particleization-topology-candidate11.txt
+/memory/particleization-topology-candidate12.txt
+/memory/particleization-topology-candidate13.txt
+/memory/particleization-topology-candidate14.txt
+/memory/particleization-topology-candidate2.txt
+/memory/particleization-topology-candidate3.txt
+/memory/particleization-topology-candidate4.txt
+/memory/particleization-topology-candidate5.txt
+/memory/particleization-topology-candidate6.txt
+/memory/particleization-topology-candidate7.txt
+/memory/particleization-topology-candidate8.txt
+/memory/particleization-topology-candidate9.txt
+/memory/render-candidate13.txt
+/memory/topology-current.txt

@@ -1,0 +1,45 @@
+{
+  "name": "kobe",
+  "frame": [
+    720,
+    1280
+  ],
+  "rect": [
+    195,
+    199,
+    648,
+    656
+  ],
+  "radius": 27,
+  "duration": 1.0,
+  "seed": 909602,
+  "title": "科比",
+  "direction": 128,
+  "origins": [
+    [
+      0,
+      0.43,
+      0
+    ],
+    [
+      0.82,
+      0,
+      0.36
+    ],
+    [
+      1,
+      1,
+      0.66
+    ]
+  ],
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\5-第五秒开始.mp4",
+    "start": 5.2,
+    "end": 6.25,
+    "slow_estimate": 1.0,
+    "sha256": "e4565ac3406d9f140c39e26d370b41fdfe6f2a85b7b63c0f5d2ede6c8c0a5f68"
+  },
+  "background_note": "原片背景",
+  "dim_alpha": 0.0,
+  "background_truth": true
+}
