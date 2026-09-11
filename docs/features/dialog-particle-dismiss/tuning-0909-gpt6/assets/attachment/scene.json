@@ -20,5 +20,12 @@
   "background_note": "同页无弹窗真机截图",
   "background_truth": true,
   "dim_alpha": 0.596,
-  "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png"
+  "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png",
+  "touch_rect": [
+    16,
+    78,
+    704,
+    1490
+  ],
+  "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
 }

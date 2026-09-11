@@ -1,6 +1,6 @@
 {
   "model": "共同释放与输运的微片消散",
-  "model_hash": "b48509b452ea07ff0cfd6e7d5935b80e6d66ac9f4e959408fa6c53194d4377ab",
+  "model_hash": "44209ed629b9404b1663e7b70c0aeb2f25200b19f06cf419d1b7c1052ac6eb6f",
   "integration_hz": 240,
   "flow_shape": [
     48,
@@ -15,14 +15,15 @@
   "flow_dtype": "little-endian float16",
   "release_dtype": "little-endian float32",
   "files": {
-    "common-flow.f16": "361be90b8cfe7fa64e6bc59ecd96159211bdae6b51a99c0296114adeed4499d2",
+    "common-flow.f16": "825def02b220cd5d9d0979caa817364520d6654c71366475146442c9c462a34f",
     "common-release.f32": "69a6aad7d99a52bb414cb216cf071e3119be6256269b620e1814e62e94c04c3c",
+    "flow-confidence.u8": "330081aab7dfbe93b279df8521cfff029ee326f971d589bd74210efd61257e89",
     "material.frag": "053b4577fcae41a13e78d69f79512b056033c58908a9ddb40b63824fa21b463a",
     "material.vert": "48796617a0f802c0284557c0c4cee9a4c3909dd1fcd824cb0d090cb374b9175f",
     "resolve.frag": "07e590bf8309e3758fac6287efdbcce3944d37c9c2d68deb5360808e0ef13da1",
     "resolve.vert": "94c23d9d8be7fcbe066169a474665741dd7328d6971499e26e44f40242cf9699",
-    "rules.properties": "7dcd675f4d8b0f07c12cdb8eca4b4166ec6a20511fc1137aaaff88ddec40aeb4",
-    "step.comp": "3762dd887929b48dad56ba46d372f75e215ad5d741c7655413124fba0de34efd"
+    "rules.properties": "a154d7dd56be9d5b23db0d4893996b786c6c9387dcff03e34b24423609d62ee5",
+    "step.comp": "d53c712a244bacad8af632fe2b884a22149e20538f650fafbbd5c3624cae5e0f"
   },
   "scope": "共同表示从认可的观测结果提炼；所有素材共用，运行时不读取照片配置、参考视频或原始光流。"
 }

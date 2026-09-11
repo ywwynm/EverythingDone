@@ -6,6 +6,7 @@ import kotlin.math.*
 internal object ParticleMicroflakeModel {
     const val STEP = 1f / 240f
     const val DURATION = 1f
+    private data class Normals(val x: FloatArray, val y: FloatArray, val milliseconds: Double)
 
     data class Materials(
         val columns: Int,
@@ -15,6 +16,7 @@ internal object ParticleMicroflakeModel {
         val bodyWeight: Float,
         val values: FloatArray,
         val pigment: FloatArray,
+        val variation: ParticleMicroflakeVariation,
         val statistics: Map<String, Double> = emptyMap()
     ) {
         val count get() = pigment.size
@@ -54,24 +56,13 @@ internal object ParticleMicroflakeModel {
         val body = smooth(((if (opaque == 0) 0f else white.toFloat() / opaque) - .30f) / .35f)
         val classified = System.nanoTime()
         val metrics = linkedMapOf("classificationMs" to (classified-started)/1e6)
-        val release = releaseField(nx, ny, directionDegrees, rules, width, height) { name, value -> metrics[name] = value }
+        val variation = ParticleMicroflakeVariation.fromSeed(seed, rules)
+        val offsetTimes = FloatArray(count)
+        val release = releaseField(nx, ny, directionDegrees, rules, width, height, variation, offsetTimes) { name, value -> metrics[name] = value }
         val released = System.nanoTime()
-        val blurred = gaussian(release, nx, ny, 3)
-        val gx = FloatArray(count)
-        val gy = FloatArray(count)
-        for (y in 0 until ny) for (x in 0 until nx) {
-            val i = y * nx + x
-            val dx = (blurred[y * nx + min(x + 1, nx - 1)] - blurred[y * nx + max(x - 1, 0)]) /
-                (cellX * if (x == 0 || x == nx - 1) 1 else 2)
-            val dy = (blurred[min(y + 1, ny - 1) * nx + x] - blurred[max(y - 1, 0) * nx + x]) /
-                (cellY * if (y == 0 || y == ny - 1) 1 else 2)
-            val length = max(hypot(dx, dy), 1e-6f)
-            gx[i] = dx / length
-            gy[i] = dy / length
-        }
-        val normalsX = gaussian(gx, nx, ny, 7)
-        val normalsY = gaussian(gy, nx, ny, 7)
-        val normalised = System.nanoTime()
+        // 整次建材已在后台与 EGL 初始化重叠；避免再分线程争用移动 CPU。
+        val normals = buildNormals(release, nx, ny, cellX, cellY)
+        val normalsReady = System.nanoTime()
         val values = FloatArray(count * 12)
         val pigment = FloatArray(count)
         val colors = IntArray(count)
@@ -99,8 +90,7 @@ internal object ParticleMicroflakeModel {
             life = max(min(life * (1f + .30f * content), cap), .11f)
             val p = i * 12
             values[p] = x; values[p + 1] = y; values[p + 2] = born; values[p + 3] = i.toFloat()
-            values[p + 4] = normalsX[i]; values[p + 5] = normalsY[i]
-            values[p + 6] = life; values[p + 7] = .018f + .036f * rz
+            values[p + 6] = life; values[p + 7] = offsetTimes[i]
             values[p + 8] = rx; values[p + 9] = ry; values[p + 10] = rz; values[p + 11] = rw
             pigment[i] = content
         }
@@ -131,7 +121,6 @@ internal object ParticleMicroflakeModel {
             var life = (.10f + .22f * (-ln(max(rx, .004f))).pow(.85f) + .20f * born) * lifeGain
             life = max(min(life, cap), .11f)
             allValues[p + 6] = max(min(life * (1f + .30f * pigment[source]), cap), .11f)
-            allValues[p + 7] = .018f + .036f * rz
             allPigment[count + index] = pigment[source]
         }
         val order = LongArray(total)
@@ -148,12 +137,34 @@ internal object ParticleMicroflakeModel {
         for (i in order.indices) {
             val original = order[i].toInt()
             allValues.copyInto(sorted, i * 12, original * 12, original * 12 + 12)
+            val source = allValues[original * 12 + 3].toInt() % count
+            sorted[i * 12 + 4] = normals.x[source]
+            sorted[i * 12 + 5] = normals.y[source]
             sortedPigment[i] = allPigment[original]
         }
-        return Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, metrics + mapOf(
-            "releaseMs" to (released-started)/1e6, "normalsMs" to (normalised-released)/1e6,
-            "populationMs" to (populated-normalised)/1e6, "sortMs" to (System.nanoTime()-populated)/1e6,
+        return Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, variation, metrics + mapOf(
+            "releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
+            "populationMs" to (populated-normalsReady)/1e6, "sortMs" to (System.nanoTime()-populated)/1e6,
             "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble()))
+    }
+
+    private fun buildNormals(release: FloatArray, nx: Int, ny: Int, cellX: Float, cellY: Float): Normals {
+        val started = System.nanoTime()
+        val blurred = gaussian(release, nx, ny, 3)
+        val gx = FloatArray(release.size)
+        val gy = FloatArray(release.size)
+        for (y in 0 until ny) for (x in 0 until nx) {
+            val i = y * nx + x
+            val dx = (blurred[y * nx + min(x + 1, nx - 1)] - blurred[y * nx + max(x - 1, 0)]) /
+                (cellX * if (x == 0 || x == nx - 1) 1 else 2)
+            val dy = (blurred[min(y + 1, ny - 1) * nx + x] - blurred[max(y - 1, 0) * nx + x]) /
+                (cellY * if (y == 0 || y == ny - 1) 1 else 2)
+            val length = max(hypot(dx, dy), 1e-6f)
+            gx[i] = dx / length; gy[i] = dy / length
+        }
+        val normalsX = gaussian(gx, nx, ny, 7)
+        val normalsY = gaussian(gy, nx, ny, 7)
+        return Normals(normalsX, normalsY, (System.nanoTime() - started) / 1e6)
     }
 
     /** 两个场共用矩形归一化方向，避免长弹窗的速度与释放范围错位。 */
@@ -165,32 +176,61 @@ internal object ParticleMicroflakeModel {
     fun releaseField(
         nx: Int, ny: Int, directionDegrees: Float, rules: ParticleMicroflakeRules,
         width: Float = nx.toFloat(), height: Float = ny.toFloat(),
+        variation: ParticleMicroflakeVariation = ParticleMicroflakeVariation.fromSeed(0L, rules),
+        offsetTimes: FloatArray? = null,
         stage: ((String, Double) -> Unit)? = null
     ): FloatArray {
         val started = System.nanoTime()
-        val angle = fieldRotation(directionDegrees, width, height)
+        val geometry = ParticleFlowGeometry.from(width, height)
+        val angle = geometry.rotation(directionDegrees)
         val c = cos(angle); val s = sin(angle)
         val gridWidth = rules.number("release_width").toInt()
         val gridHeight = rules.number("release_height").toInt()
         val low = rules.decimal("field_min"); val size = rules.decimal("field_size")
         val result = FloatArray(nx * ny)
-        for (y in 0 until ny) for (x in 0 until nx) {
-            val qx = (x + .5) / nx - .5; val qy = (y + .5) / ny - .5
-            val u = ((.5 + c * qx - s * qy - low) / size * gridWidth - .5).coerceIn(0.0, (gridWidth - 1).toDouble())
-            val v = ((.5 + s * qx + c * qy - low) / size * gridHeight - .5).coerceIn(0.0, (gridHeight - 1).toDouble())
+        val originalTimes = DoubleArray(nx * ny)
+        val detailTimes = DoubleArray(nx * ny)
+        val anchors = geometry.anchors(if (geometry.vertical) ny else nx, width, height, directionDegrees, variation.values[10])
+        fun sample(rx: Double, ry: Double): Double {
+            val u = ((variation.sampleX(rx, ry) - low) / size * gridWidth - .5).coerceIn(0.0, (gridWidth - 1).toDouble())
+            val v = ((variation.sampleY(rx, ry) - low) / size * gridHeight - .5).coerceIn(0.0, (gridHeight - 1).toDouble())
             val ix = u.toInt(); val iy = v.toInt()
             val ax = u - ix; val ay = v - iy
             val nextX = min(ix + 1, gridWidth - 1); val nextY = min(iy + 1, gridHeight - 1)
             val a = rules.release[iy * gridWidth + ix].toDouble() * (1 - ax) + rules.release[iy * gridWidth + nextX] * ax
             val b = rules.release[nextY * gridWidth + ix].toDouble() * (1 - ax) + rules.release[nextY * gridWidth + nextX] * ax
-            result[y * nx + x] = (a * (1 - ay) + b * ay).toFloat()
+            return a * (1 - ay) + b * ay
+        }
+        for (y in 0 until ny) for (x in 0 until nx) {
+            val ax = if (geometry.vertical) y * 5 else x * 5
+            val qx = ((x + .5) / nx - .5) * width
+            val qy = ((y + .5) / ny - .5) * height
+            val xx = (qx - anchors[ax]) / geometry.width; val yy = (qy - anchors[ax + 1]) / geometry.height
+            val rx = c * xx - s * yy; val ry = s * xx + c * yy
+            var field = sample(rx, ry)
+            var delay = variation.localDelay(rx + .5, ry + .5)
+            if (geometry.blend > 0) {
+                val xx1 = (qx - anchors[ax + 2]) / geometry.width; val yy1 = (qy - anchors[ax + 3]) / geometry.height
+                val rx1 = c * xx1 - s * yy1; val ry1 = s * xx1 + c * yy1
+                val weight = anchors[ax + 4]
+                field = field * (1 - weight) + sample(rx1, ry1) * weight
+                delay = delay * (1 - weight) + variation.localDelay(rx1 + .5, ry1 + .5) * weight
+            }
+            val original = variation.inverseTime(field)
+            originalTimes[y * nx + x] = original
+            detailTimes[y * nx + x] = original + delay
+        }
+        val released = ParticleReleaseTopology.release(nx, ny, width, height, directionDegrees, variation.seed, detailTimes)
+        for (i in result.indices) {
+            result[i] = released[i].toFloat()
+            offsetTimes?.set(i, (released[i] - originalTimes[i]).toFloat())
         }
         stage?.invoke("fieldMs", (System.nanoTime() - started) / 1e6)
         return result
     }
 
     /** 与桌面逐位一致的整数随机函数；不使用场景名或图片散列作种子。 */
-    private fun randomValue(index: Int, seed: Int): Float {
+    internal fun randomValue(index: Int, seed: Int): Float {
         var value = index + seed
         value = (value xor (value ushr 16)) * 0x7feb352d
         value = (value xor (value ushr 15)) * 0x846ca68b.toInt()

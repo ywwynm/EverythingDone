@@ -20,5 +20,12 @@
   "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
   "background_truth": false,
   "dim_alpha": 0.0,
-  "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg"
+  "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg",
+  "touch_rect": [
+    16,
+    80,
+    704,
+    1535
+  ],
+  "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
 }

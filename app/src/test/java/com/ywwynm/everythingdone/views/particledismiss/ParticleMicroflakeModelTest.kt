@@ -11,6 +11,96 @@ class ParticleMicroflakeModelTest {
         .first { File(it, "shared/particle-dismiss/rules.properties").isFile }
     private val rules get() = ParticleMicroflakeRules.read(File(root, "shared/particle-dismiss/rules.properties").inputStream(), File(root, "shared/particle-dismiss/common-release.f32").inputStream())
 
+    @Test fun `触点距离从边缘起算并且不受整体像素缩放影响`() {
+        for ((width, height) in listOf(480f to 480f, 300f to 900f, 960f to 240f)) {
+            for (degrees in listOf(0.0, 45.0, 90.0, 135.0, 247.0)) {
+                val angle = Math.toRadians(degrees)
+                val ux = kotlin.math.cos(angle); val uy = -kotlin.math.sin(angle)
+                val edge = minOf(width / (2 * maxOf(kotlin.math.abs(ux), 1e-9)), height / (2 * maxOf(kotlin.math.abs(uy), 1e-9)))
+                for (gap in listOf(0f, .15f, .65f, 1.5f)) {
+                    val reach = edge + gap * minOf(width, height)
+                    val x = (width * .5 + ux * reach).toFloat(); val y = (height * .5 + uy * reach).toFloat()
+                    assertEquals(gap, ParticleFlowGeometry.touchGap(x, y, width, height), 1e-6f)
+                    assertEquals(gap, ParticleFlowGeometry.touchGap(x * 2, y * 2, width * 2, height * 2), 1e-6f)
+                }
+            }
+            assertEquals(0f, ParticleFlowGeometry.touchGap(width / 2, height / 2, width, height), 0f)
+        }
+    }
+
+    @Test fun `长轴增长不会无限拉长局部涡旋且横竖交换对称`() {
+        for (length in listOf(120f, 144f, 240f, 480f, 1200f)) {
+            val tall = ParticleFlowGeometry.from(120f, length)
+            val wide = ParticleFlowGeometry.from(length, 120f)
+            assertTrue(tall.height <= 162.00001)
+            assertEquals(tall.width, wide.height, 1e-9)
+            assertEquals(tall.height, wide.width, 1e-9)
+            assertEquals(tall.blend, wide.blend, 0.0)
+        }
+    }
+
+    @Test fun `并发准备不同关闭实例不会混入彼此的材料`() {
+        val currentRules = rules
+        val pixels = intArrayOf(-1, 0xff00ddaa.toInt(), 0xffe86520.toInt(), 0x00ffffff)
+        fun build(seed: Long) = ParticleMicroflakeModel.build(120f, 170f, pixels, 2, 2,
+            (seed * 37 % 360).toFloat(), seed, currentRules)
+        val seeds = listOf(9L, 17L, 38L)
+        val expected = seeds.map(::build)
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(3)
+        try {
+            val results = seeds.map { seed -> executor.submit<ParticleMicroflakeModel.Materials> { build(seed) } }
+            for (i in results.indices) {
+                val actual = results[i].get(5, java.util.concurrent.TimeUnit.SECONDS)
+                assertArrayEquals(expected[i].values, actual.values, 0f)
+                assertArrayEquals(expected[i].pigment, actual.pigment, 0f)
+            }
+        } finally { executor.shutdownNow() }
+    }
+
+    @Test fun `屏幕背景窄和宽时近中远均可区分且缩放不改变输入`() {
+        for (space in listOf(36f, 360f)) for (scale in listOf(.5f, 1f, 2f)) {
+            val values = listOf(.12f, .52f, .94f).map { fraction ->
+                ParticleFlowGeometry.touchStrength(100f * scale, -space * fraction * scale,
+                    200f * scale, 300f * scale, -space * scale, -space * scale,
+                    (200f + space) * scale, (300f + space) * scale)
+            }
+            assertArrayEquals(floatArrayOf(.12f, .52f, .94f), values.toFloatArray(), 2e-6f)
+            assertTrue(values[0] < values[1] && values[1] < values[2])
+        }
+        // 左上射线穿过控件角落，两轴须取同一个实际可触摸范围。
+        assertEquals(.5f, ParticleFlowGeometry.touchStrength(-50f, -50f, 200f, 200f,
+            -100f, -100f, 500f, 600f), 1e-6f)
+    }
+
+    @Test fun `不同种子改变起始区域同种子仍可复现`() {
+        val currentRules = rules
+        val centers = (0L until 32L).map { seed ->
+            val variation = ParticleMicroflakeVariation.fromSeed(seed, currentRules)
+            val field = ParticleMicroflakeModel.releaseField(64, 64, 135f, currentRules, variation = variation)
+            assertArrayEquals(field, ParticleMicroflakeModel.releaseField(64, 64, 135f, currentRules, variation = variation), 0f)
+            val first = field.indices.sortedBy { field[it] }.take(field.size / 20)
+            assertTrue(field.all { it >= .008f && it <= .78f })
+            first.map { (it % 64 + .5) / 64 }.average() to first.map { (it / 64 + .5) / 64 }.average()
+        }
+        assertTrue(centers.maxOf { it.first } - centers.minOf { it.first } > .25)
+        assertTrue(centers.maxOf { it.second } - centers.minOf { it.second } > .25)
+    }
+
+    @Test fun `随机时钟单调且释放时间可逆`() {
+        val currentRules = rules
+        for (seed in 0L until 64L) {
+            val variation = ParticleMicroflakeVariation.fromSeed(seed, currentRules)
+            assertEquals(0.0, variation.time(0.0), 0.0)
+            assertEquals(1.0, variation.time(1.0), 0.0)
+            // 包含表格采样点之间的位置，验证快速求逆仍满足原时序精度。
+            for (step in 0..4097) {
+                val t = step / 4097.0
+                assertTrue(variation.rate(t) > .6)
+                assertEquals(t, variation.time(variation.inverseTime(t)), 1e-8)
+            }
+        }
+    }
+
     @Test fun `两端从同一原图独立建材的随机值时序和法线一致`() {
         val pixels = intArrayOf(-1, 0xffe83030.toInt(), 0x00ffffff, 0xff2c387e.toInt(), 0xff00dedd.toInt(), 0xffd8d8d8.toInt())
         val cases = listOf(doubleArrayOf(120.0,160.0,137.0,909602.0), doubleArrayOf(47.0,211.0,0.0,99.0), doubleArrayOf(231.0,39.0,315.0,4294967305.0))
@@ -87,6 +177,7 @@ class ParticleMicroflakeModelTest {
             val parent = primaries.getValue(result.values[index*12+3].toInt() % gridCount)
             assertEquals(1f, result.pigment[parent], 0f)
             assertEquals(result.values[parent*12+2], result.values[index*12+2], 0f)
+            assertEquals(result.values[parent*12+7], result.values[index*12+7], 0f)
         }
         assertEquals(primaries.values.count { result.pigment[it] == 1f } * 2, replicas.size)
     }

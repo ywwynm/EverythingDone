@@ -68,14 +68,17 @@ def run(tag,settings=None,assert_no_bounce=False):
     if assert_no_bounce:assert data['max_cohort_backtrack_px']<1.0 and data['fraction_individual_backtrack_over_4px']<.02,{k:v for k,v in data.items() if k not in ['times','rendered_projection','simulation_projection']}
     return data
 
-def all_visible_checks():
+def all_visible_checks(seed_values=None):
     """实际顶点中心逐帧检查：仅比较两帧都处于可见生命期的同一材料。"""
     names=[m['name'] for m in json.loads((HERE/'assets/scenes.json').read_text('utf-8'))]
+    if seed_values is not None:names=['ironman','thanos','color','attachment']
     angles=[0,17,45,90,135,180,225,270,315,359]
     ctx=moderngl.create_standalone_context(require=430);results=[]
     for name in names:
-        for angle in angles:
-            r=Renderer(name,direction=angle,ctx=ctx)
+        direction=json.loads((HERE/'assets'/name/'scene.json').read_text('utf-8'))['direction']
+        cases=[(a,None) for a in angles] if seed_values is None else [(direction,seed) for seed in seed_values]
+        for angle,seed in cases:
+            r=Renderer(name,direction=angle,seed=seed,ctx=ctx)
             shader=VERTEX.replace('out vec2 uv,local_uv;','out vec2 uv,local_uv;\nout vec2 trace_center;')
             shader=shader.replace('vec2 world=offset+vertex;','vec2 world=offset+vertex;\ntrace_center=offset+move;')
             prog=ctx.program(vertex_shader=shader,varyings=['trace_center']);vao=ctx.vertex_array(prog,[])
@@ -91,17 +94,20 @@ def all_visible_checks():
                     step=(pos[visible]-previous[visible])@np.array(r.wind)
                     min_step=min(min_step,float(step.min()));violations+=int((step<-.002).sum());checks+=int(visible.sum())
                 previous=pos
-            item={'scene':name,'angle':angle,'visible_material_frame_pairs':checks,'min_projected_step_px':min_step,'reverse_steps_over_002px':violations}
+            item={'scene':name,'angle':angle,'seed':seed,'visible_material_frame_pairs':checks,'min_projected_step_px':min_step,'reverse_steps_over_002px':violations}
             results.append(item);vao.release();prog.release();buf.release();r.close()
             assert violations==0,item
-        print('实际渲染轨迹检查通过',name,len(angles),'个方向',flush=True)
+        print('实际渲染轨迹检查通过',name,len(cases),'组方向或种子',flush=True)
     ctx.release()
     data={'version':VERSION,'code_hash':code_hash(),'sample_fps':120,'cases':results,'total_visible_pairs':sum(r['visible_material_frame_pairs'] for r in results),'scope':'实际顶点输出的材料中心；同一材料在相邻可见生命期帧的位移沿指定方向投影。侧向弯曲仍然允许。'}
     data['model_hash']=model_fingerprint()
-    (HERE/'analysis/trajectory-qa.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
+    path=HERE/('analysis/trajectory-qa.json' if seed_values is None else 'analysis/random-variation/seed-trajectory-qa.json')
+    path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
     return data
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--tag',default=VERSION);p.add_argument('--roll',type=float);p.add_argument('--guide',type=float);p.add_argument('--curl',type=float);p.add_argument('--assert-no-bounce',action='store_true');p.add_argument('--all-visible',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--tag',default=VERSION);p.add_argument('--roll',type=float);p.add_argument('--guide',type=float);p.add_argument('--curl',type=float);p.add_argument('--assert-no-bounce',action='store_true');p.add_argument('--all-visible',action='store_true');p.add_argument('--seed-variants',action='store_true');a=p.parse_args()
     settings={k:v for k,v in [('roll_gain',a.roll),('guide_gain',a.guide),('curl_gain',a.curl)] if v is not None}
-    all_visible_checks() if a.all_visible else run(a.tag,settings,a.assert_no_bounce)
+    if a.seed_variants:all_visible_checks(range(16,32))
+    elif a.all_visible:all_visible_checks()
+    else:run(a.tag,settings,a.assert_no_bounce)

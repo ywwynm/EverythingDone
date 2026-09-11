@@ -34,7 +34,10 @@ internal class ParticleMicroflakeRenderer(
         val materials: ParticleMicroflakeModel.Materials,
         val guide: ByteArray,
         val rules: ParticleMicroflakeRules,
-        val sourcePixels: IntArray? = null
+        val sourcePixels: IntArray? = null,
+        val touchGap: Float = rules.number("touch_gap_default"),
+        val confidence: ByteArray? = null,
+        val touchStrength: Float = .5f
     )
 
     private val programs = ArrayList<Int>()
@@ -47,6 +50,7 @@ internal class ParticleMicroflakeRenderer(
     private var resolve = 0
     private var foregroundTexture = 0
     private var guideTexture = 0
+    private var confidenceTexture = 0
     private var accumulationTexture = 0
     private var step = 0
     private val uniforms = HashMap<String, Int>()
@@ -87,6 +91,9 @@ internal class ParticleMicroflakeRenderer(
         guideTexture = newTexture(GLES30.GL_TEXTURE_3D)
         GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RG16F, input.rules.number("flow_width").toInt(), input.rules.number("flow_height").toInt(), input.rules.number("flow_time").toInt(), 0,
             GLES30.GL_RG, GLES30.GL_HALF_FLOAT, direct(input.guide))
+        confidenceTexture = newTexture(GLES30.GL_TEXTURE_3D)
+        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_R8, input.rules.number("flow_width").toInt(), input.rules.number("flow_height").toInt(), input.rules.number("flow_time").toInt(), 0,
+            GLES30.GL_RED, GLES30.GL_UNSIGNED_BYTE, direct(input.confidence ?: sharedResources(assets).confidence))
         accumulationTexture = newTexture(GLES30.GL_TEXTURE_2D)
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
             GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, null)
@@ -99,11 +106,16 @@ internal class ParticleMicroflakeRenderer(
         }
         val angle = Math.toRadians(input.direction.toDouble())
         val windX = cos(angle).toFloat(); val windY = -sin(angle).toFloat()
-        val rotation = ParticleMicroflakeModel.fieldRotation(input.direction, input.cardWidth, input.cardHeight)
+        val geometry = ParticleFlowGeometry.from(input.cardWidth, input.cardHeight)
+        val rotation = geometry.rotation(input.direction)
         val span = min(input.cardWidth, input.cardHeight)
         GLES30.glUseProgram(compute)
         oneI(compute, "count", input.materials.count)
         oneI(compute, "guide_field", 3)
+        oneI(compute, "confidence_field", 4)
+        one(compute, "touch_gap", input.touchGap)
+        one(compute, "touch_strength", input.touchStrength)
+        GLES30.glUniform4f(GLES30.glGetUniformLocation(compute, "field_geometry"), geometry.width.toFloat(), geometry.height.toFloat(), geometry.blend.toFloat(), if (geometry.vertical) 1f else 0f)
         one(compute, "dt", ParticleMicroflakeModel.STEP)
         one(compute, "span", span)
         one(compute, "wind_gain", input.rules.number("wind_gain")); one(compute, "curl_gain", input.rules.number("curl_gain"))
@@ -111,6 +123,11 @@ internal class ParticleMicroflakeRenderer(
         two(compute, "wind", windX, windY)
         two(compute, "card", input.cardWidth, input.cardHeight)
         two(compute, "guide_rotation", cos(rotation).toFloat(), sin(rotation).toFloat())
+        val variation = input.materials.variation.values
+        for ((name, offset) in listOf("variation_affine" to 0, "variation_bend" to 4, "variation_wave" to 8)) {
+            GLES30.glUniform4f(GLES30.glGetUniformLocation(compute, name), variation[offset], variation[offset + 1], variation[offset + 2], variation[offset + 3])
+        }
+        two(compute, "variation_clock", variation[12], variation[13])
         GLES30.glUseProgram(material)
         two(material, "frame", input.frameWidth, input.frameHeight)
         two(material, "card", input.cardWidth, input.cardHeight)
@@ -136,6 +153,8 @@ internal class ParticleMicroflakeRenderer(
         for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
         GLES30.glActiveTexture(GLES30.GL_TEXTURE3)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, guideTexture)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE4)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, confidenceTexture)
         GLES30.glUseProgram(compute)
         while (step < target) {
             step++
@@ -200,7 +219,7 @@ internal class ParticleMicroflakeRenderer(
                     intervals.sort()
                     Log.i(TAG, "完成 count=${input.materials.count} frames=$frames elapsedMs=${(now-start)/1e6} " +
                         "p90Ms=${intervals[(intervals.size*.9).toInt().coerceAtMost(intervals.lastIndex)]} " +
-                        "maxMs=${intervals.last()} direction=${input.direction}")
+                        "maxMs=${intervals.last()} direction=${input.direction} gap=${input.touchGap} strength=${input.touchStrength} seed=${input.materials.variation.seed}")
                 }
                 checkGl("结束")
                 return true
@@ -287,6 +306,17 @@ internal class ParticleMicroflakeRenderer(
 
     companion object {
         const val TAG = "ParticleMicroflake"
+        data class SharedResources(val rules: ParticleMicroflakeRules, val guide: ByteArray, val confidence: ByteArray)
+        @Volatile private var shared: SharedResources? = null
+
+        /** 进程内打包资源不变，首次弹窗预热和每次关闭共用，不缓存任何快照。 */
+        fun sharedResources(assets: AssetManager): SharedResources = shared ?: synchronized(this) {
+            shared ?: SharedResources(
+                ParticleMicroflakeRules.read(assets.open("particle-dismiss/rules.properties"), assets.open("particle-dismiss/common-release.f32")),
+                assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() },
+                assets.open("particle-dismiss/flow-confidence.u8").use { it.readBytes() }
+            ).also { shared = it }
+        }
         private fun direct(bytes: ByteArray): ByteBuffer = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).apply { put(bytes); flip() }
         private fun checkGl(stage: String) { check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "微片 $stage GL 错误" } }
 
@@ -300,12 +330,13 @@ internal class ParticleMicroflakeRenderer(
             val dx = spec.virtualTouchXPx - spec.originXPx - bitmap.width / 2f
             val dy = spec.virtualTouchYPx - spec.originYPx - bitmap.height / 2f
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()
-            val rules = ParticleMicroflakeRules.read(assets.open("particle-dismiss/rules.properties"), assets.open("particle-dismiss/common-release.f32"))
+            val resources = sharedResources(assets)
+            val rules = resources.rules
             val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, bitmap.width,
                 bitmap.height, direction, spec.hashSeed.toLong(), rules)
             return Input(width / scale, height / scale, cardWidth, cardHeight, spec.originXPx / scale,
                 spec.originYPx / scale, direction, bitmap, materials,
-                assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, rules, pixels)
+                resources.guide, rules, pixels, spec.touchGap ?: rules.number("touch_gap_default"), resources.confidence, spec.touchStrength ?: .5f)
         }
     }
 }

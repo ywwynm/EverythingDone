@@ -42,7 +42,49 @@
     },
     "background_note": "原片背景",
     "dim_alpha": 0.0,
-    "background_truth": true
+    "background_truth": true,
+    "touch_rect": [
+      80,
+      224,
+      639,
+      1075
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
+  },
+  {
+    "name": "ironman-up-reference",
+    "frame": [
+      720,
+      1280
+    ],
+    "rect": [
+      126,
+      261,
+      594,
+      735
+    ],
+    "radius": 21,
+    "duration": 1.0,
+    "seed": 2,
+    "title": "钢铁侠 · 新增向上参考",
+    "direction": 90,
+    "reference": {
+      "path": "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\analysis\\targeted-release\\huawei-ironman-up.mp4",
+      "start": 4.133333333333334,
+      "end": 6.466666667,
+      "sha256": "71e336a2b19eb16228948da039d671c46b629ccfae2783df7c9fea00b98966d7"
+    },
+    "background_note": "手持参考已透视对齐；源控件由前后两帧合成，背景取动画结束帧",
+    "background_truth": true,
+    "dim_alpha": 0.0,
+    "research_input": true,
+    "touch_rect": [
+      96,
+      224,
+      630,
+      1072
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
   },
   {
     "name": "thanos",
@@ -87,7 +129,14 @@
     },
     "background_note": "原片背景；左侧与顶部少量残留粒子已局部插值清理",
     "dim_alpha": 0.0,
-    "background_truth": true
+    "background_truth": true,
+    "touch_rect": [
+      16,
+      100,
+      704,
+      1520
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
   },
   {
     "name": "kobe",
@@ -132,7 +181,14 @@
     },
     "background_note": "原片背景",
     "dim_alpha": 0.0,
-    "background_truth": true
+    "background_truth": true,
+    "touch_rect": [
+      16,
+      172,
+      704,
+      1140
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
   },
   {
     "name": "language",
@@ -180,7 +236,14 @@
     "background_note": "保留可见背景；弹窗遮挡区域为插值重建",
     "background_truth": false,
     "dim_alpha": 0.0,
-    "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg"
+    "source_path": "C:\\Users\\ywwynm\\AppData\\Local\\Temp\\codex-clipboard-4241c6f8-4684-4780-9721-4ff9f22b0e21.jpg",
+    "touch_rect": [
+      16,
+      80,
+      704,
+      1535
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
   },
   {
     "name": "attachment",
@@ -204,7 +267,14 @@
     "background_note": "同页无弹窗真机截图",
     "background_truth": true,
     "dim_alpha": 0.596,
-    "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png"
+    "source_path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\device-validation\\dialog.png",
+    "touch_rect": [
+      16,
+      78,
+      704,
+      1490
+    ],
+    "touch_rect_note": "仅用于演示触点有效性：按源图可见手机屏幕内区域标定，并避开系统栏；不参与运动模型拟合。"
   },
   {
     "name": "attachment-image",

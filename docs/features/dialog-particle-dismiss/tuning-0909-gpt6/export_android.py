@@ -25,7 +25,7 @@ void main(){
 def export_resources():
     for name,source in [('step.comp',COMPUTE),('material.vert',VERTEX),('material.frag',FRAGMENT),('resolve.vert',FULLVERT),('resolve.frag',resolve)]:
         (DEST/name).write_text(convert(name,source),encoding='utf-8',newline='\n')
-    metadata={'model':'共同释放与输运的微片消散','model_hash':model_fingerprint(),'integration_hz':240,'flow_shape':[int(RULES['flow_time']),int(RULES['flow_height']),int(RULES['flow_width']),2],'release_shape':[int(RULES['release_height']),int(RULES['release_width'])],'flow_dtype':'little-endian float16','release_dtype':'little-endian float32','files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in DEST.iterdir() if p.suffix in ['.comp','.vert','.frag','.f16','.f32','.properties']},'scope':'共同表示从认可的观测结果提炼；所有素材共用，运行时不读取照片配置、参考视频或原始光流。'}
+    metadata={'model':'共同释放与输运的微片消散','model_hash':model_fingerprint(),'integration_hz':240,'flow_shape':[int(RULES['flow_time']),int(RULES['flow_height']),int(RULES['flow_width']),2],'release_shape':[int(RULES['release_height']),int(RULES['release_width'])],'flow_dtype':'little-endian float16','release_dtype':'little-endian float32','files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in DEST.iterdir() if p.suffix in ['.comp','.vert','.frag','.f16','.f32','.u8','.properties']},'scope':'共同表示从认可的观测结果提炼；所有素材共用，运行时不读取照片配置、参考视频或原始光流。'}
     (DEST/'model.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8',newline='\n')
 
 
@@ -36,6 +36,7 @@ def export_fixtures():
         shutil.copyfile(path.parent/'foreground.png',fixtures/f'{name}.png')
         # 只交给设备快照及实际输入，材料数组由设备独立建立。
         data={key:m[key] for key in ['name','frame','rect','direction','seed']}
+        data['touch_rect']=m.get('touch_rect',[0,0,*m['frame']])
         (fixtures/f'{name}.json').write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
         print('Android 独立建材输入',name,flush=True)
 

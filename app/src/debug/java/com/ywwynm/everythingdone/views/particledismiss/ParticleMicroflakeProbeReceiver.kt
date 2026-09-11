@@ -15,11 +15,12 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.*
 
 /** 只读 adb 预先放入专用目录的测试素材，不访问记事或应用设置。 */
 class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val scenes = listOf("ironman", "thanos", "kobe", "language", "color", "attachment", "attachment-image",
+        val scenes = listOf("ironman", "ironman-up-reference", "thanos", "kobe", "language", "color", "attachment", "attachment-image",
             "holdout-notification", "holdout-photo", "holdout-dark", "holdout-wide", "holdout-tall", "holdout-alpha",
             "holdout-coffee", "holdout-colored-panel", "holdout-monochrome", "holdout-compact-dialog")
         val requested = intent.getStringExtra("scene")
@@ -57,9 +58,23 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         }
         val report = JSONObject().put("scene", scene).put("generated", true).put("width", width).put("height", height)
             .put("count", materials.count).put("modelMs", (System.nanoTime() - before) / 1e6).put("modelStages", JSONObject(materials.statistics))
+        val touchGap = meta.optDouble("touch_gap", rules.number("touch_gap_default").toDouble()).toFloat()
+        val touchStrength = if (meta.has("touch_gap")) {
+            val angle = Math.toRadians(meta.getDouble("direction"))
+            val ux = cos(angle); val uy = -sin(angle)
+            val edge = min(cardWidth / (2 * max(abs(ux), 1e-9)), cardHeight / (2 * max(abs(uy), 1e-9)))
+            val length = edge + min(cardWidth, cardHeight) * touchGap
+            val bounds = meta.optJSONArray("touch_rect") ?: JSONArray(listOf(0, 0, fw, fh))
+            ParticleFlowGeometry.touchStrength((cardWidth * .5 + ux * length).toFloat(),
+                (cardHeight * .5 + uy * length).toFloat(), cardWidth.toFloat(), cardHeight.toFloat(),
+                (bounds.getDouble(0) - rect.getDouble(0)).toFloat(), (bounds.getDouble(1) - rect.getDouble(1)).toFloat(),
+                (bounds.getDouble(2) - rect.getDouble(0)).toFloat(), (bounds.getDouble(3) - rect.getDouble(1)).toFloat())
+        } else .5f
         val input = ParticleMicroflakeRenderer.Input(fw.toFloat(), fh.toFloat(), cardWidth.toFloat(), cardHeight.toFloat(),
             rect.getDouble(0).toFloat(), rect.getDouble(1).toFloat(), meta.getDouble("direction").toFloat(),
-            bitmap, materials, context.assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, rules)
+            bitmap, materials, context.assets.open("particle-dismiss/common-flow.f16").use { it.readBytes() }, rules,
+            touchGap = touchGap, touchStrength = touchStrength)
+        report.put("direction", input.direction).put("touchGap", input.touchGap).put("touchStrength", input.touchStrength)
         fun saveValues(name: String, values: FloatArray) {
             val bytes = ByteBuffer.allocate(values.size * 4).order(ByteOrder.LITTLE_ENDIAN)
             bytes.asFloatBuffer().put(values); File(out, "$scene-$name.f32").writeBytes(bytes.array())

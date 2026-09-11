@@ -6,7 +6,7 @@ from PIL import Image,ImageDraw
 HERE=Path(__file__).resolve().parents[1];sys.path.insert(0,str(HERE))
 from renderer import Renderer,FULLVERT
 from unified_model import SHARED,model_fingerprint
-p=argparse.ArgumentParser();p.add_argument('--device-dir',default='device-unified');p.add_argument('--report-dir',default='analysis/unified-validation');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--device-dir',default='device-unified');p.add_argument('--report-dir',default='analysis/unified-validation');p.add_argument('--scenes',nargs='+');p.add_argument('--direction',type=float);p.add_argument('--touch-gap',type=float);p.add_argument('--seed',type=int);p.add_argument('--serials',nargs='+',choices=['9018f404','R5CW20BLNKL'],default=['9018f404','R5CW20BLNKL']);args=p.parse_args()
 
 ctx=moderngl.create_standalone_context(require=430)
 resolve=(SHARED/'resolve.frag').read_text('utf-8').replace('#version 310 es','#version 430')
@@ -14,7 +14,8 @@ program=ctx.program(vertex_shader=FULLVERT,fragment_shader=resolve)
 vao=ctx.vertex_array(program,[]);program['screen']=2
 out=HERE/args.report_dir;out.mkdir(exist_ok=True,parents=True);rows=[]
 for meta in json.loads((HERE/'assets/scenes.json').read_text('utf-8')):
-    name=meta['name'];r=Renderer(name,quality=1,ctx=ctx)
+    if args.scenes and meta['name'] not in args.scenes:continue
+    name=meta['name'];r=Renderer(name,quality=1,ctx=ctx,direction=args.direction,touch_gap=args.touch_gap,seed=args.seed)
     order=np.argsort(r.base[:,3]);expected=r.base[order]
     expected_pigment=np.frombuffer(r.pigment.read(),dtype='<f4')[order]
     source=np.array(Image.open(HERE/'assets'/name/'foreground.png').convert('RGBA'))
@@ -22,7 +23,7 @@ for meta in json.loads((HERE/'assets/scenes.json').read_text('utf-8')):
     py=np.clip((expected[:,1]/r.ch*source.shape[0]).astype(int),0,source.shape[0]-1)
     alpha=source[py,px,3];opaque=alpha==255;covered=alpha>0
     devices={}
-    for serial in ['9018f404','R5CW20BLNKL']:
+    for serial in args.serials:
         folder=HERE/args.device_dir/serial/'generated'
         got=np.fromfile(folder/f'{name}-materials.f32',dtype='<f4').reshape(-1,12)
         assert got.shape==r.base.shape and np.isfinite(got).all(),(serial,name)
@@ -31,8 +32,9 @@ for meta in json.loads((HERE/'assets/scenes.json').read_text('utf-8')):
         error=np.abs(got-expected)
         assert np.array_equal(got[:,3],expected[:,3]) and np.array_equal(got[:,8:],expected[:,8:]),(serial,name,'身份或随机数')
         info=json.loads((folder/f'{name}.json').read_text('utf-8'))
+        assert abs(info['touchStrength']-r.touch_strength)<2e-6,(name,'触点远近计算不一致',info['touchStrength'],r.touch_strength)
         row={'scene':name,'device':serial,'count':r.n,'material_max_by_field':error.max(axis=0).tolist(),
-             'pigment_max':float(np.max(np.abs(pigment-expected_pigment))),
+             'pigment_max':float(np.max(np.abs(pigment-expected_pigment))), 'touch_strength':r.touch_strength,
              'model_ms':info['modelMs'],'prepare_ms':info['prepareMs'],
              'offscreen_frame_p90_ms':float(np.quantile(info['frameMs'],.9)),'frames':[]}
         # 纹理解码中的预乘往返会影响半透明像素；几何、释放和随机值单独核对。
@@ -75,12 +77,12 @@ for meta in json.loads((HERE/'assets/scenes.json').read_text('utf-8')):
                 assert frame['position_p99_px']<.25 and frame['position_max_px']<1.,(serial,name,frame)
             row['frames'].append(frame);imgs.append(Image.fromarray(actual))
         if i in [20,34]:
-            im=Image.new('RGB',(990,round(r.h/r.w*330)+28),'#18212a');draw=ImageDraw.Draw(im)
+            im=Image.new('RGB',(330*len(imgs),round(r.h/r.w*330)+28),'#18212a');draw=ImageDraw.Draw(im)
             for col,img in enumerate(imgs):
-                im.paste(img.resize((330,im.height-28)),(col*330,28));draw.text((col*330+6,6),['Desktop','OPD2515','SM-S9180'][col],fill='white')
+                im.paste(img.resize((330,im.height-28)),(col*330,28));draw.text((col*330+6,6),(['Desktop']+args.serials)[col],fill='white')
             im.save(out/f'device-{name}-{i}.jpg',quality=95)
     print(name,'独立材料与 GPU 对照通过',flush=True);r.close()
 vao.release();program.release();ctx.release()
 (out/'device-comparison.json').write_text(json.dumps({'model_hash':model_fingerprint(),'cases':rows,
  'scope':'每端独立读取 PNG、尺寸、方向和种子构建材料；几何和随机值单独校验。离屏 draw+finish 计时不能代表系统 UI 帧率。'},ensure_ascii=False,indent=2),encoding='utf-8')
-print('双设备',len(rows),'组独立链路通过')
+print(len(args.serials),'台设备',len(rows),'组独立链路通过')

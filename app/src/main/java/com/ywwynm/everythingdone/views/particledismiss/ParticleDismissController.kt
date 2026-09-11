@@ -54,7 +54,7 @@ internal object ParticleDismissController {
         Thread({
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
             runCatching {
-                val rules = ParticleMicroflakeRules.read(context.applicationContext.assets.open("particle-dismiss/rules.properties"), context.applicationContext.assets.open("particle-dismiss/common-release.f32"))
+                val rules = ParticleMicroflakeRenderer.sharedResources(context.applicationContext.assets).rules
                 val pixels = IntArray(256 * 256) { -1 }
                 repeat(2) { ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, it.toLong(), rules) }
             }.onFailure { android.util.Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
@@ -80,8 +80,10 @@ internal object ParticleDismissController {
         dialog: Dialog,
         touchInWindow: PointF?,
         onAnimationStarted: Runnable,
-        onOverlayShown: Runnable
+        onOverlayShown: Runnable,
+        useDefaultTouchDistance: Boolean = false
     ): Boolean {
+        val requestedAtNanos = System.nanoTime()
         if (Looper.myLooper() != Looper.getMainLooper()) return false
         if (!ValueAnimator.areAnimatorsEnabled()) return false
 
@@ -129,7 +131,7 @@ internal object ParticleDismissController {
                     applyRoundedCornerMask(snapshot, dialog.context)
                     attachDismissOverlay(
                         dialog, activity, hostDecor, decor, snapshot,
-                        touchInWindow, onAnimationStarted, onOverlayShown
+                        touchInWindow, onAnimationStarted, onOverlayShown, requestedAtNanos, useDefaultTouchDistance
                     )
                 } else {
                     // 抓图失败：放行真实 dismiss（本次无粒子动画）
@@ -158,7 +160,9 @@ internal object ParticleDismissController {
         snapshot: Bitmap,
         touchInWindow: PointF?,
         onAnimationStarted: Runnable,
-        onOverlayShown: Runnable
+        onOverlayShown: Runnable,
+        requestedAtNanos: Long,
+        useDefaultTouchDistance: Boolean
     ) {
         val dialogLocation = IntArray(2)
         val hostLocation = IntArray(2)
@@ -166,6 +170,8 @@ internal object ParticleDismissController {
         hostDecor.getLocationOnScreen(hostLocation)
         val originX = dialogLocation[0] - hostLocation[0]
         val originY = dialogLocation[1] - hostLocation[1]
+        val visibleScreen = android.graphics.Rect()
+        hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
 
         val density = decor.resources.displayMetrics.density
         val cellPx = adaptiveCellPx(snapshot, density)
@@ -227,7 +233,14 @@ internal object ParticleDismissController {
             noiseSeedX = (Math.random() * 1024.0).toFloat(),
             noiseSeedY = (Math.random() * 1024.0).toFloat(),
             hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
-            panelColor = dominantColor(snapshot)
+            panelColor = dominantColor(snapshot),
+            requestedAtNanos = requestedAtNanos,
+            touchGap = if (useDefaultTouchDistance || touchInWindow == null) null else
+                ParticleFlowGeometry.touchGap(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat()),
+            touchStrength = if (useDefaultTouchDistance || touchInWindow == null) null else
+                ParticleFlowGeometry.touchStrength(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat(),
+                    (visibleScreen.left-dialogLocation[0]).toFloat(), (visibleScreen.top-dialogLocation[1]).toFloat(),
+                    (visibleScreen.right-dialogLocation[0]).toFloat(), (visibleScreen.bottom-dialogLocation[1]).toFloat())
         )
         val overlay = ParticleDismissOverlay(
             activity = activity,

@@ -5,10 +5,12 @@ import numpy as np
 import moderngl
 from PIL import Image, ImageDraw, ImageFont
 from renderer import Renderer, HERE
+from touch_geometry import distance_cases,distance_view_bounds
 
 FPS=60
-VERSION='共同释放与输运'
-BASELINE_VERSION='streams-before-edge-roll'
+VERSION='弧边展开与触点远近'
+BASELINE_VERSION='before-rim-flow'
+VARIATION_SEEDS=list(range(6))
 SAMPLE_FPS=120
 PRE=.35
 POST=.50
@@ -22,13 +24,14 @@ MUTED=(167,184,206)
 BG=(14,20,30)
 ACCENT=(99,215,207)
 DIRECTIONS=[(0,'右'),(45,'右上'),(90,'上'),(135,'左上'),(180,'左'),(225,'左下'),(270,'下'),(315,'右下')]
+DISTANCE_DIRECTIONS=[(135,'左上'),(90,'上')]
 
 def code_hash():
     from unified_model import SHARED
-    paths=[HERE/n for n in ['renderer.py','fields.py','unified_model.py','export_videos.py']]
+    paths=[HERE/n for n in ['renderer.py','fields.py','unified_model.py','export_videos.py','touch_geometry.py']]
     paths+=sorted((HERE/'assets').glob('*/scene.json'))
     paths+=sorted((HERE/'assets').glob('*/*.png'))
-    paths += [SHARED/'rules.properties',SHARED/'common-release.f32',SHARED/'common-flow.f16']
+    paths += [SHARED/'rules.properties',SHARED/'common-release.f32',SHARED/'common-flow.f16',SHARED/'flow-confidence.u8']
     h=hashlib.sha256()
     for p in paths:h.update(p.name.encode());h.update(p.read_bytes())
     return h.hexdigest()
@@ -36,17 +39,27 @@ def code_hash():
 def load_meta(name):
     return json.loads((HERE/'assets'/name/'scene.json').read_text(encoding='utf-8'))
 
-def make_cache(ctx,name,angle=None):
-    key=name if angle is None else f'{name}-direction-{angle:03d}'
+def touch_point(m,angle,distance):
+    x,y,x1,y1=m['rect'];w=x1-x;h=y1-y;span=min(w,h)
+    wind=np.array([math.cos(math.radians(angle)),-math.sin(math.radians(angle))])
+    edge=min(w/(2*max(abs(wind[0]),1e-6)),h/(2*max(abs(wind[1]),1e-6)))
+    return np.array([(x+x1)/2,(y+y1)/2])+wind*(edge+span*distance)
+
+def make_cache(ctx,name,angle=None,seed=None,touch_gap=None,view_bounds=None):
+    key=name if angle is None else f'{name}-direction-{angle:g}'
+    if seed is not None:key+=f'-seed-{seed}'
+    if touch_gap is not None:key+=f'-gap-{touch_gap:g}'
+    if view_bounds is not None:key+='-view-'+hashlib.sha256(str(view_bounds).encode()).hexdigest()[:8]
     path=CACHE/f'{key}.npy';stamp=path.with_suffix('.json')
     fingerprint=code_hash()
     if path.exists() and stamp.exists() and json.loads(stamp.read_text())['hash']==fingerprint:
         return np.load(path,mmap_mode='r')
-    r=Renderer(name,direction=angle,ctx=ctx)
+    view=view_bounds
+    r=Renderer(name,direction=angle,seed=seed,ctx=ctx,touch_gap=touch_gap,view_bounds=view)
     a=np.lib.format.open_memmap(path,mode='w+',dtype='uint8',shape=(SAMPLE_FPS+1,r.h,r.w,3))
     for i in range(SAMPLE_FPS+1):a[i]=r.render(i/SAMPLE_FPS)
     a.flush();r.close()
-    stamp.write_text(json.dumps({'hash':fingerprint,'sample_fps':SAMPLE_FPS,'scene':name,'angle':angle,'shape':list(a.shape)}),encoding='utf-8')
+    stamp.write_text(json.dumps({'hash':fingerprint,'sample_fps':SAMPLE_FPS,'scene':name,'angle':angle,'seed':seed,'touch_gap':r.touch_gap,'view_bounds':view,'shape':list(a.shape)}),encoding='utf-8')
     print('缓存完成',key,flush=True)
     return a
 
@@ -107,9 +120,9 @@ def compare_frame(m,a,ref,p,rp,rate,mode):
     footer(im,note,p)
     return np.asarray(im)
 
-def versions_frame(m,a,old,ref,p,rate,old_title='此前发布版'):
+def versions_frame(m,a,old,ref,p,rate,old_title='本轮调整前'):
     lo,hi=focus_bounds(m);w=600 if m['reference'] else 720;gap=16;h=round((hi-lo)*w/m['frame'][0]);h+=h%2
-    panels=[(sampled(old,p),old_title),(sampled(a,p),'共同释放与输运')]
+    panels=[(sampled(old,p),old_title),(sampled(a,p),VERSION)]
     if m['reference']:panels.insert(0,(ref.at(p),'华为参考 · 进度对齐'))
     im=Image.new('RGB',(w*len(panels)+gap*(len(panels)-1),h+154),BG);d=ImageDraw.Draw(im)
     for i,(arr,title) in enumerate(panels):
@@ -132,6 +145,38 @@ def matrix_frame(m,arrays,p,rate):
         frame=Image.fromarray(sampled(arrays[i],p)[lo:hi]);frame.thumbnail((cw,ch),Image.Resampling.LANCZOS)
         im.paste(frame,(x+(cw-frame.width)//2,y+42+(ch-frame.height)//2))
     footer(im,f'进度 {p:.2f} · 0° 向右，90° 向上 · 模型支持连续任意角度',p)
+    return np.asarray(im)
+
+def variations_frame(m,arrays,p,rate):
+    cw=440;ch=560;gap=12;top=96;bottom=54;cell_h=ch+42
+    im=Image.new('RGB',(cw*3+gap*2,top+cell_h*2+gap+bottom),BG);d=ImageDraw.Draw(im)
+    label(d,(18,13),f'{m["title"]} · 同一方向的六次消散',34)
+    label(d,(18,59),f'{m["direction"]}° · {rate:g} 倍速 · 起始位置、范围和顺序随每次关闭变化',22,MUTED)
+    lo,hi=focus_bounds(m,matrix=True)
+    for i,seed in enumerate(VARIATION_SEEDS):
+        x=(i%3)*(cw+gap);y=top+(i//3)*(cell_h+gap)
+        label(d,(x+13,y+5),f'第 {i+1} 次 · 种子 {seed}',25)
+        frame=Image.fromarray(sampled(arrays[i],p)[lo:hi]);frame.thumbnail((cw,ch),Image.Resampling.LANCZOS)
+        im.paste(frame,(x+(cw-frame.width)//2,y+42+(ch-frame.height)//2))
+    footer(im,f'进度 {p:.2f} · 同一运动与粒子规则 · 每次动画内保持连续，不逐帧重随机',p)
+    return np.asarray(im)
+
+def distances_frame(m,arrays,p,rate):
+    cw=440;ch=600;gap=12;top=100;cell_h=ch+48
+    im=Image.new('RGB',(cw*3+gap*2,top+cell_h*2+gap+54),BG);d=ImageDraw.Draw(im)
+    label(d,(18,12),f'{m["title"]} · 双方向、三距离',34)
+    label(d,(18,60),f'{rate:g} 倍速 · 每排同一比例与种子 · 圆圈标记目标触点',22,MUTED)
+    for row,(angle,title) in enumerate(DISTANCE_DIRECTIONS):
+        bounds=distance_view_bounds(m,angle)
+        for col,case in enumerate(distance_cases(m,angle)):
+            x=col*(cw+gap);y=top+row*(cell_h+gap)
+            label(d,(x+12,y+6),f'{title} · {case["label"]} · {case["angle"]:.1f}° · {case["distance_px"]:.0f} px',22)
+            frame=Image.fromarray(sampled(arrays[row*3+col],p));frame.thumbnail((cw,ch),Image.Resampling.LANCZOS)
+            fx=x+(cw-frame.width)//2;fy=y+48+(ch-frame.height)//2;im.paste(frame,(fx,fy))
+            point=case['point'];px=fx+(point[0]-bounds[0])*frame.width/(bounds[2]-bounds[0]);py=fy+(point[1]-bounds[1])*frame.height/(bounds[3]-bounds[1])
+            d.ellipse((px-6,py-6,px+6,py+6),outline=(255,203,112),width=2)
+            d.line((px-10,py,px+10,py),fill=(255,203,112),width=1);d.line((px,py-10,px,py+10),fill=(255,203,112),width=1)
+    footer(im,f'进度 {p:.2f} · 触点均在屏幕内、弹窗外 · 距离温和影响速度与偏向，保留卷动',p)
     return np.asarray(im)
 
 def encode(path,seconds,rate,make_frame):
@@ -161,7 +206,7 @@ def save_manifest(items):
     path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--scenes',nargs='+');p.add_argument('--kinds',nargs='+',default=['animation','comparison','directions','versions','control']);p.add_argument('--rates',nargs='+',type=float,default=[1.,.5]);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--scenes',nargs='+');p.add_argument('--kinds',nargs='+',default=['animation','comparison','directions','distances','versions','control','variations']);p.add_argument('--rates',nargs='+',type=float,default=[1.,.5]);a=p.parse_args()
     OUT.mkdir(exist_ok=True);CACHE.mkdir(exist_ok=True)
     metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'))
     ctx=moderngl.create_standalone_context(require=430)
@@ -169,6 +214,12 @@ def main():
         name=m['name']
         if a.scenes and name not in a.scenes:continue
         arr=make_cache(ctx,name);ref=Reference(m)
+        if 'variations' in a.kinds and not m.get('holdout'):
+            arrays=[make_cache(ctx,name,seed=seed) for seed in VARIATION_SEEDS]
+            for rate in a.rates:
+                def variation_frame(t,rate=rate):return variations_frame(m,arrays,float(np.clip(t-PRE,0,1)),rate)
+                item=encode(OUT/f'{name}-seed-variants-{rate:g}x.mp4',PRE+1+POST,rate,variation_frame)
+                item.update(scene=name,title=m['title'],kind='seed-variants',model_direction=m['direction'],seeds=VARIATION_SEEDS);save_manifest([item])
         if 'control' in a.kinds and name=='ironman':
             control=np.load(HERE/'archive/observed-approved/ironman.npy',mmap_mode='r')
             for rate in a.rates:
@@ -192,12 +243,19 @@ def main():
                     return single_frame(m,arr,p,rate) if kind=='animation' else compare_frame(m,arr,ref,p,rp,rate,kind)
                 item=encode(OUT/f'{name}-{kind}-{rate:g}x.mp4',PRE+max(1,length)+POST,rate,frame)
                 item.update(scene=name,title=m['title'],kind=kind,model_direction=m['direction']);save_manifest([item])
-        if 'directions' in a.kinds and name in ['ironman','attachment','attachment-image']:
+        if 'directions' in a.kinds and name in ['ironman','attachment','attachment-image','color']:
             arrays=[make_cache(ctx,name,angle) for angle,_ in DIRECTIONS]
             for rate in a.rates:
                 def frame(t,rate=rate):return matrix_frame(m,arrays,float(np.clip(t-PRE,0,1)),rate)
                 item=encode(OUT/f'{name}-eight-directions-{rate:g}x.mp4',PRE+1+POST,rate,frame)
                 item.update(scene=name,title=m['title'],kind='eight-directions',directions=[a for a,_ in DIRECTIONS]);save_manifest([item])
+        if 'distances' in a.kinds and name in ['ironman','attachment','color']:
+            cases=[case for angle,_ in DISTANCE_DIRECTIONS for case in distance_cases(m,angle)]
+            arrays=[make_cache(ctx,name,case['angle'],touch_gap=case['gap'],view_bounds=distance_view_bounds(m,angle)) for angle,_ in DISTANCE_DIRECTIONS for case in distance_cases(m,angle)]
+            for rate in a.rates:
+                def frame(t,rate=rate):return distances_frame(m,arrays,float(np.clip(t-PRE,0,1)),rate)
+                item=encode(OUT/f'{name}-touch-distances-{rate:g}x.mp4',PRE+1+POST,rate,frame)
+                item.update(scene=name,title=m['title'],kind='touch-distances',requested_directions=[a for a,_ in DISTANCE_DIRECTIONS],touch_cases=cases);save_manifest([item])
     ctx.release()
     print('导出完成。全部视频位于同一个 videos 目录。',flush=True)
 

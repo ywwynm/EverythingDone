@@ -16,7 +16,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Dialog 粒子动画的 EGL 线程。消失使用 r33 的 GLES 3.1 固定步长微片模型，
+ * Dialog 粒子动画的 EGL 线程。消失使用共享的 GLES 3.1 固定步长微片模型，
  * 出现保留既有 GLES 3.0 凝聚模型；两条路径只共用窗口和生命周期管理。
  *
  * 回调在渲染线程调用，调用方负责切主线程。
@@ -29,6 +29,7 @@ internal class ParticleDismissRenderer(
     private val viewportWidth: Int,
     private val viewportHeight: Int,
     private val spec: ParticleDismissSpec,
+    private val preparation: ParticleMicroflakePreparation? = null,
     private val onFirstFrame: () -> Unit,
     private val onFinished: (completed: Boolean) -> Unit
 ) : Thread("ParticleDismissGl") {
@@ -97,14 +98,25 @@ internal class ParticleDismissRenderer(
     private fun renderAnimation(): Boolean {
         if (spec.condenseFromT == null) {
             val prepareStart = System.nanoTime()
-            val input = ParticleMicroflakeRenderer.fromSpec(assets, viewportWidth, viewportHeight, density, spec)
+            val input = preparation?.await(viewportWidth, viewportHeight)
+                ?: ParticleMicroflakeRenderer.fromSpec(assets, viewportWidth, viewportHeight, density, spec)
+            val inputReady = System.nanoTime()
             return ParticleMicroflakeRenderer(assets, viewportWidth, viewportHeight, input).use { renderer ->
                 renderer.prepare()
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                     android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                         "准备耗时 ${(System.nanoTime() - prepareStart) / 1e6} ms，GLES ${GLES30.glGetString(GLES30.GL_VERSION)}")
                 }
-                renderer.play(spec.durationScale, refreshRate, { cancelled }, onFirstFrame)
+                renderer.play(spec.durationScale, refreshRate, { cancelled }) {
+                    if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                        android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+                            "启动阶段 buildMs=${preparation?.buildMs ?: (inputReady-prepareStart)/1e6} " +
+                            "waitMs=${(inputReady-prepareStart)/1e6} " +
+                            "gpuFirstMs=${(System.nanoTime()-inputReady)/1e6} " +
+                            "requestToFirstMs=${(System.nanoTime()-spec.requestedAtNanos)/1e6}")
+                    }
+                    onFirstFrame()
+                }
             }
         }
         val snapshot = spec.snapshot

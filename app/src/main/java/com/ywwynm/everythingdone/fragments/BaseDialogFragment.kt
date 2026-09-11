@@ -345,6 +345,7 @@ private class GestureAnchoredDialog(
             val started = ParticleDismissController.start(
                 dialog = this,
                 touchInWindow = dismissTouchAnchor(),
+                useDefaultTouchDistance = dismissFromBack,
                 onAnimationStarted = Runnable {
                     dimLayer?.fadeOutAndDetach(
                         ParticleDismissController.dismissAnimatorDurationMs(),

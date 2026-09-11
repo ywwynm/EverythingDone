@@ -65,5 +65,11 @@ internal class ParticleDismissSpec(
      */
     val condenseFromT: Float? = null,
     /** 凝聚动画的实际播放时长（逻辑秒，未含 durationScale）。 */
-    val condenseDurationS: Float = 0f
+    val condenseDurationS: Float = 0f,
+    /** 关闭请求时刻，供调试版测量抓图、准备与首帧的完整等待。 */
+    val requestedAtNanos: Long = System.nanoTime(),
+    /** 真实触点在控件边缘外的距离，以短边为单位；返回键和无触点关闭使用共享默认值。 */
+    val touchGap: Float? = null,
+    /** 真实触点在可触摸背景中的相对远近；无触点关闭使用中等强度。 */
+    val touchStrength: Float? = null
 )

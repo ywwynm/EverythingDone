@@ -12,22 +12,66 @@ uniform int count;
 uniform float time,dt,span,wind_gain,curl_gain,roll_gain;
 uniform vec2 wind;
 uniform sampler3D guide_field;
+uniform sampler3D confidence_field;
 uniform vec2 card,guide_rotation;
-uniform float guide_gain;
+uniform float guide_gain,touch_gap,touch_strength;
+uniform vec4 field_geometry;
+uniform vec4 variation_affine,variation_bend,variation_wave;
+uniform vec2 variation_clock;
 
 vec2 curl(vec2 p,float t) {
     vec2 v=vec2(0);
     for(int k=0;k<3;k++) {
-        float scale=span*(k==0?.36:k==1?.15:.064);
-        float angle=.61+float(k)*1.71;
+        float scale=span*(k==0?1.12:k==1?.51:.23);
+        float angle=atan(wind.y,wind.x)+.61+float(k)*1.71;
         vec2 u=vec2(cos(angle),sin(angle)),z=vec2(-u.y,u.x);
-        float a=dot(p,u)/scale*6.283+t*(1.2+float(k)*.5)+2.5;
-        float b=dot(p,z)/scale*6.283-t*(.8+float(k)*.43)+.2;
+        float a=dot(p,u)/scale*6.283+t*(1.2+float(k)*.5)+variation_wave.z;
+        float b=dot(p,z)/scale*6.283-t*(.8+float(k)*.43)+variation_wave.w;
         // 同一个连续势场的二维旋度；各频段幅值递减。
         vec2 grad=(cos(a)*cos(b)*u-sin(a)*sin(b)*z);
-        v+=vec2(grad.y,-grad.x)*(k==0?1.:k==1?.34:.10);
+        v+=vec2(grad.y,-grad.x)*(k==0?1.:k==1?.38:.12);
     }
     return v;
+}
+vec2 local_anchor(float index){
+    float along=index*span*.96*field_geometry.z;
+    float across=span*.16*field_geometry.z*sin(index*2.4+variation_wave.z);
+    vec2 axis=mix(vec2(1,0),vec2(0,1),field_geometry.w);
+    return axis*along+vec2(-wind.y,wind.x)*across;
+}
+vec3 field_cell(ivec3 cell){
+    return vec3(texelFetch(guide_field,cell,0).xy,texelFetch(confidence_field,cell,0).r);
+}
+vec3 sample_field(vec3 uvw){
+    ivec3 size=textureSize(guide_field,0);
+    vec3 q=clamp(uvw*vec3(size)-.5,vec3(0),vec3(size-1));
+    ivec3 a=ivec3(floor(q)),b=min(a+1,size-1);
+    vec3 f=fract(q);
+    // 显式三线性插值，使桌面和移动 GPU 使用同一浮点权重。
+    vec3 z0=mix(mix(field_cell(a),field_cell(ivec3(b.x,a.y,a.z)),f.x),
+                mix(field_cell(ivec3(a.x,b.y,a.z)),field_cell(ivec3(b.x,b.y,a.z)),f.x),f.y);
+    vec3 z1=mix(mix(field_cell(ivec3(a.x,a.y,b.z)),field_cell(ivec3(b.x,a.y,b.z)),f.x),
+                mix(field_cell(ivec3(a.x,b.y,b.z)),field_cell(b),f.x),f.y);
+    return mix(z0,z1,f.z);
+}
+vec3 guided_flow(vec2 p,vec2 anchor,float t){
+    vec2 cq=(p-card*.5-anchor)/field_geometry.xy;
+    float ca=guide_rotation.x,sa=guide_rotation.y;
+    vec2 local=vec2(ca*cq.x-sa*cq.y,sa*cq.x+ca*cq.y);
+    vec2 wave=vec2(variation_wave.y*local.y+variation_wave.z,variation_wave.x*local.x+variation_wave.w);
+    vec2 lookup=vec2(.5)+variation_affine.xy*local+variation_affine.zw*local.yx+variation_bend.xy+variation_bend.zw*sin(wave);
+    float field_time=t+t*(1.-t)*(variation_clock.x+variation_clock.y*(2.*t-1.));
+    float clock_rate=1.+variation_clock.x*(1.-2.*t)+variation_clock.y*(-6.*t*t+6.*t-1.);
+    vec3 uvw=vec3((lookup+vec2(.45))/1.9,field_time);
+    vec3 sampled=sample_field(uvw);
+    vec2 guide=sampled.xy;
+    float confidence=sampled.z;
+    // 速度也通过同一空间变换的逆导数换回，保留释放与卷动之间的关系。
+    vec2 cross_terms=variation_affine.zw+variation_bend.zw*variation_wave.yx*cos(wave);
+    float determinant=variation_affine.x*variation_affine.y-cross_terms.x*cross_terms.y;
+    guide=vec2(variation_affine.y*guide.x-cross_terms.x*guide.y,-cross_terms.y*guide.x+variation_affine.x*guide.y)/determinant*clock_rate;
+    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*field_geometry.xy;
+    return vec3(guide,confidence);
 }
 void main(){
     uint i=gl_GlobalInvocationID.x;if(i>=uint(count))return;
@@ -35,34 +79,57 @@ void main(){
     float age=time-m.src.z;
     if(age<=0.){state[i].pos=vec4(m.src.xy,0,0);state[i].vel=vec4(0);return;}
     float h=min(dt,age);
-    float u=min(span,520.)*(.24+.49*smoothstep(.06,.42,time))*wind_gain;
-    vec2 p=state[i].pos.xy;
-    vec2 q=p-wind*(span*(.12*time+.19*time*time));
-    vec2 flow=curl(q,time)*span*.125*curl_gain;
-    float loose=smoothstep(.02,.16,age);
-    vec2 target=wind*u*(.75+.50*m.random.x)+flow*(.35+.65*loose);
-    vec2 cq=p/card-vec2(.5);
-    float ca=guide_rotation.x,sa=guide_rotation.y;
-    vec2 lookup=vec2(ca*cq.x-sa*cq.y,sa*cq.x+ca*cq.y)+vec2(.5);
-    vec2 guide=texture(guide_field,vec3((lookup+vec2(.45))/1.9,clamp(time,0.,1.))).xy;
-    guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*card;
-    float entrained=1.+.24*smoothstep(.01,.15,age);
-    target=mix(target,guide*(.9+.2*m.random.x)*entrained+flow*.85,guide_gain);
-    // 共同速度表示与释放在同一坐标系中演化；不额外把整片推出或吸向周期线。
-    target=guide*(guide_gain/.9)+flow*.02+wind*u*.00001;
+    // 距离改变各自出生位置之外的运动幅度；共同流动在材料坐标中连续积分。
+    // 先还原坐标再取流场，避免不同速度又把密集边缘压回相似位置。
+    float distance_gain=.55+.90*touch_strength;
+    vec2 p=m.src.xy+(state[i].pos.xy-m.src.xy)/distance_gain;
+    float t=clamp(time-m.physical.w,0.,1.);
+    vec2 source=m.src.xy-card*.5;
+    float coordinate=mix(source.x,source.y,field_geometry.w)/(span*.96);
+    float index=floor(coordinate);
+    float weight=smoothstep(0.,1.,coordinate-index);
+    vec3 sample0=guided_flow(p,local_anchor(index),t);
+    if(field_geometry.z>.00001)sample0=mix(sample0,guided_flow(p,local_anchor(index+1.),t),weight);
+    // 背景触点由真实方向及边缘外距离还原，直接参与每片的速度计算。
+    float reach=1.-exp(-.65/.85);
+    float carried=smoothstep(.012,.16,age);
+    vec2 q=p-card*.5-wind*span*(.43*time+.16*time*time);
+    vec2 flow=curl(q,time)*span*curl_gain;
+    float missing=1.-smoothstep(.12,.85,sample0.z);
+    vec2 target=sample0.xy*(guide_gain/.9)*(1.08+.12*reach);
+    target+=flow*mix(.018,.44+.06*reach,missing)*smoothstep(.01,.09,age);
+    // 每片继续采样随流迁移的空间场；顺风剪切与卷动共同改变轮廓。
+    target+=wind*span*(.12+.50*reach)*carried*wind_gain;
+    // 出生位置到触点只决定温和偏转，不随当前位置收敛到目标点。
+    float edge=min(card.x/(2.*max(abs(wind.x),.000001)),card.y/(2.*max(abs(wind.y),.000001)));
+    vec2 destination=card*.5+wind*(edge+span*touch_gap);
+    vec2 bearing=normalize(destination-m.src.xy);
+    float turn=.13*atan(dot(bearing,vec2(-wind.y,wind.x)),dot(bearing,wind));
+    target=mat2(cos(turn),sin(turn),-sin(turn),cos(turn))*target;
     float random_angle=m.random.w*6.28318;
     float radius=sqrt(-2.*log(max(m.random.z,.015)));
     float separate=smoothstep(.008,.045,age)*(1.-smoothstep(.16,.32,age));
     target+=vec2(cos(random_angle),sin(random_angle))*radius*span*.045*separate;
+    // 刚解除的材料沿局部边界向外展开，随后逐渐跟随共同流动。
+    // 法向及释放时间来自同一规则；小幅独立差异使弧边具有厚度。
+    vec2 peel=-m.physical.xy;
+    peel-=wind*min(dot(peel,wind),0.);
+    target+=peel*span*1.5*(.88+.24*m.random.w)*exp(-age/.16)*smoothstep(.003,.028,age);
     float depth_target=-state[i].pos.z*3.*roll_gain;
     // 允许侧向卷动；同一颗粒不沿消逝主方向反弹。
-    target+=wind*max(0.-dot(target,wind),0.);
-    float response=1.-exp(-h/m.physical.w);
-    vec2 old_v=state[i].vel.xy;
+    float axial=dot(target,wind)/span;
+    // 平滑下限不产生折线拐点，也不把粒子位置截到任何边界。
+    float deficit=.16-axial;
+    target+=wind*span*.5*(deficit+sqrt(deficit*deficit+.0064));
+    // 共享速度场已向无有效观测的空间延拓。位置继续积分，
+    // 控件轮廓、观测范围和屏幕边缘都不构成碰撞或速度归零条件。
+    float response=1.-exp(-h/(.018+.036*m.random.z));
+    vec2 old_v=state[i].vel.xy/distance_gain;
     if(age<=dt)old_v=target*.85;
     vec2 v=mix(old_v,target,response);
-    state[i].pos.xy+=v*h;
-    state[i].vel.xy=v;
+    // 保存真实屏幕运动，渲染外推、Android 及状态验收均使用同一位移与速度。
+    state[i].pos.xy=m.src.xy+(p+v*h-m.src.xy)*distance_gain;
+    state[i].vel.xy=v*distance_gain;
     float vz=mix(state[i].vel.z,depth_target,response);
     state[i].pos.z+=vz*h;
     state[i].vel.z=vz;

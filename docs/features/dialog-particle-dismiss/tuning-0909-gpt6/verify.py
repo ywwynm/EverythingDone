@@ -1,5 +1,6 @@
 """验证确定性、材料交接、任意方向与视频容器，不把数值检查当视觉验收。"""
 import argparse,json,subprocess,hashlib,math
+from pathlib import Path
 import numpy as np,cv2,moderngl
 from PIL import Image,ImageDraw,ImageFont
 from renderer import Renderer,HERE
@@ -57,20 +58,32 @@ def model_checks():
 def video_checks():
     path=HERE/'videos/manifest.json';manifest=json.loads(path.read_text(encoding='utf-8'));items=manifest['videos'];results=[]
     assert manifest['version']==VERSION and manifest['code_hash']==code_hash()
-    assert {p.name for p in path.parent.glob('*.mp4')}=={v['file'] for v in items},'磁盘视频与清单不一致'
+    diagnostic_path=path.parent/'diagnostics.json'
+    diagnostics=json.loads(diagnostic_path.read_text('utf-8'))['videos'] if diagnostic_path.exists() else []
+    family_path=path.parent/'family-videos.json'
+    family=json.loads(family_path.read_text('utf-8'))['videos'] if family_path.exists() else []
+    assert len(family)==30
+    for item in family:
+        assert item['code_hash']==code_hash()
+        assert hashlib.sha256((path.parent/item['file']).read_bytes()).hexdigest()==item['sha256']
+    for item in diagnostics:
+        assert item['file']==Path(item['file']).name
+        assert hashlib.sha256((path.parent/item['file']).read_bytes()).hexdigest()==item['sha256']
+    assert {p.name for p in path.parent.glob('*.mp4')}=={v['file'] for v in items+diagnostics+family},'磁盘视频与清单不一致'
     metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'))
     expected=set()
     for meta in metas:
         kinds=['animation']
         kinds+=['compare-phase','compare-file'] if meta.get('reference') else ['compare-source']
-        if not meta.get('holdout'):kinds.append('compare-versions')
+        if not meta.get('holdout'):kinds+=['compare-versions','seed-variants']
         if meta['name']=='ironman':kinds.append('compare-control')
-        if meta['name'] in ['ironman','attachment','attachment-image']:kinds.append('eight-directions')
+        if meta['name'] in ['ironman','attachment','attachment-image','color']:kinds.append('eight-directions')
+        if meta['name'] in ['ironman','attachment','color']:kinds.append('touch-distances')
         expected.update((meta['name'],kind,rate) for kind in kinds for rate in [1.,.5])
     actual={(v['scene'],v['kind'],v['rate']) for v in items}
     assert len(items)==len(actual),'视频清单含重复的场景／类型／速度组合'
     assert actual==expected,{'missing':sorted(expected-actual),'unexpected':sorted(actual-expected)}
-    for item in items:
+    for item in items+family:
         assert item['version']==VERSION and item['code_hash']==code_hash(),item['file']
         p=path.parent/item['file']
         data=json.loads(subprocess.check_output(['C:/ffmpeg/bin/ffprobe.exe','-v','error','-select_streams','v:0','-count_frames','-show_entries','stream=width,height,r_frame_rate,avg_frame_rate,nb_read_frames,duration,codec_name,pix_fmt,color_space','-of','json',str(p)],text=True))['streams'][0]
@@ -90,8 +103,8 @@ def video_checks():
             assert half['frames']==2*item['frames'],(item,half)
         results.append({'file':item['file'],'probe':data,'decoded_samples':decoded})
         print('视频检查通过',item['file'],flush=True)
-    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'expected_final':len(expected),'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
-    print(len(items),'个视频检查通过',flush=True)
+    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'family_count':len(family),'expected_final':len(expected),'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
+    print(len(items)+len(family),'个本轮视频检查通过',flush=True)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--videos',action='store_true');a=p.parse_args()

@@ -35,6 +35,9 @@ internal class ParticleDismissOverlay(
     private var finished = false
     private var doneFired = false
     private var animationStartedFired = false
+    private val preparation = if (spec.condenseFromT == null) {
+        ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
+    } else null
 
     private val isCondense get() = spec.condenseFromT != null
 
@@ -117,6 +120,7 @@ internal class ParticleDismissOverlay(
             viewportWidth = width,
             viewportHeight = height,
             spec = spec,
+            preparation = preparation,
             onFirstFrame = { mainHandler.post { onGlFirstFrame() } },
             onFinished = { completed -> mainHandler.post { onGlFinished(completed) } }
         ).also { it.start() }
@@ -180,7 +184,7 @@ internal class ParticleDismissOverlay(
         (parent as? ViewGroup)?.removeView(this)
         snapshotView?.setImageDrawable(null)
         // 渲染线程可能仍持有 bitmap（纹理上传中途取消），活着时交给 GC 回收
-        if (renderer?.isAlive != true) {
+        if (renderer?.isAlive != true && preparation?.isFinished != false) {
             spec.snapshot.recycle()
         }
     }
