@@ -60,17 +60,20 @@ internal object ParticleMicroflakeModel {
         val variation = ParticleMicroflakeVariation.fromSeed(seed, rules)
         val offsetTimes = FloatArray(count)
         val initialRelease = releaseField(nx, ny, directionDegrees, rules, width, height, variation, offsetTimes) { name, value -> metrics[name] = value }
-        val release = refineRelease(initialRelease, nx, ny, width, height, directionDegrees, panel.weight)
+        val finishedField = if (ParticleMaterialNative.enabled) {
+            val angle = Math.toRadians(directionDegrees.toDouble())
+            ParticleMaterialNative.finishField(initialRelease, nx, ny, width, height, cos(angle), -sin(angle),
+                panel.weight, gaussianWeights(1), gaussianWeights(3), gaussianWeights(7))
+        } else null
+        val release = finishedField?.get(0) ?: refineRelease(initialRelease, nx, ny, width, height, directionDegrees, panel.weight)
         val released = System.nanoTime()
-        // 整次建材已在后台与 EGL 初始化重叠；避免再分线程争用移动 CPU。
-        val normals = buildNormals(release, nx, ny, cellX, cellY)
+        // 本地批次同时返回梯度结果；原 Kotlin 顺序计算保留为独立参考与加载失败回退。
+        val normals = if (finishedField == null) buildNormals(release, nx, ny, cellX, cellY)
+            else Normals(finishedField[1], finishedField[2], 0.0)
         val compressionStarted = System.nanoTime()
-        val compression = buildPeelCompression(normals, nx, ny, cellX, cellY, min(width, height), directionDegrees)
+        val compression = finishedField?.get(3) ?: buildPeelCompression(normals, nx, ny, cellX, cellY, min(width, height), directionDegrees)
         metrics["compressionMs"] = (System.nanoTime() - compressionStarted) / 1e6
         val normalsReady = System.nanoTime()
-        val values = FloatArray(count * 12)
-        val pigment = FloatArray(count)
-        val colors = IntArray(count)
         val releaseSpread = rules.number("release_spread") + rules.number("white_spread") * body
         val lifeGain = rules.number("life_gain")
         val earlyLifeGain = rules.number("life_early_gain")
@@ -79,6 +82,20 @@ internal object ParticleMicroflakeModel {
         val distanceStart = rules.number("content_distance_start")
         val distanceSpan = rules.number("content_distance_span")
         val randomSeed = (seed xor (seed ushr 32)).toInt()
+        if (ParticleMaterialNative.enabled) {
+            val result = ParticleMaterialNative.populate(nx, ny, width, height, pixels, pixelWidth,
+                pixelHeight, randomSeed, release, offsetTimes, normals.x, normals.y, compression,
+                floatArrayOf(panel.color[0], panel.color[1], panel.color[2], panel.weight),
+                floatArrayOf(releaseSpread, lifeGain, earlyLifeGain, lifeBirthStart, lifeBirthSpan,
+                    distanceStart, distanceSpan), copyLimit, rules.number("max_cells").toInt())
+            return Materials(nx, ny, cellX, cellY, body, result[0], result[1], result[2], variation,
+                metrics + mapOf("releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
+                    "populationMs" to (System.nanoTime()-normalsReady)/1e6, "sortMs" to 0.0,
+                    "panelWeight" to panel.weight.toDouble(), "replicaCount" to (result[1].size-count).toDouble()))
+        }
+        val values = FloatArray(count * 12)
+        val pigment = FloatArray(count)
+        val colors = IntArray(count)
         for (i in 0 until count) {
             val x = (i % nx + .5f) * cellX
             val y = (i / nx + .5f) * cellY
@@ -261,10 +278,20 @@ internal object ParticleMicroflakeModel {
         val gridWidth = rules.number("release_width").toInt()
         val gridHeight = rules.number("release_height").toInt()
         val low = rules.decimal("field_min"); val size = rules.decimal("field_size")
+        val anchors = geometry.anchors(if (geometry.vertical) ny else nx, width, height, directionDegrees, variation.values[10])
+        if (ParticleMaterialNative.enabled) {
+            val wind = Math.toRadians(directionDegrees.toDouble())
+            return ParticleMaterialNative.release(nx, ny, width, height, gridWidth, gridHeight,
+                rules.release, low, size,
+                doubleArrayOf(geometry.width, geometry.height, geometry.blend, if (geometry.vertical) 1.0 else 0.0, c, s),
+                anchors, variation.values, variation.inverseSamples,
+                ParticleReleaseTopology.nativePatches(width, height, variation.seed), cos(wind), -sin(wind),
+                ParticleReleaseTopology.locality(width, height, directionDegrees, variation.seed), offsetTimes
+            ).also { stage?.invoke("fieldMs", (System.nanoTime()-started)/1e6) }
+        }
         val result = FloatArray(nx * ny)
         val originalTimes = DoubleArray(nx * ny)
         val detailTimes = DoubleArray(nx * ny)
-        val anchors = geometry.anchors(if (geometry.vertical) ny else nx, width, height, directionDegrees, variation.values[10])
         fun sample(rx: Double, ry: Double): Double {
             val u = ((variation.sampleX(rx, ry) - low) / size * gridWidth - .5).coerceIn(0.0, (gridWidth - 1).toDouble())
             val v = ((variation.sampleY(rx, ry) - low) / size * gridHeight - .5).coerceIn(0.0, (gridHeight - 1).toDouble())
@@ -319,12 +346,19 @@ internal object ParticleMicroflakeModel {
         return t * t * (3f - 2f * t)
     }
 
-    /** scipy.ndimage 的 reflect 边界和截断半径，两个方向分开卷积。 */
-    private fun gaussian(input: FloatArray, width: Int, height: Int, sigma: Int): FloatArray {
+    private fun gaussianWeights(sigma: Int): DoubleArray {
         val radius = sigma * 4
         val weights = DoubleArray(radius * 2 + 1) { exp(-.5 * ((it - radius).toDouble() / sigma).pow(2)) }
         val sum = weights.sum()
         for (i in weights.indices) weights[i] /= sum
+        return weights
+    }
+
+    /** scipy.ndimage 的 reflect 边界和截断半径，两个方向分开卷积。 */
+    private fun gaussian(input: FloatArray, width: Int, height: Int, sigma: Int): FloatArray {
+        val radius = sigma * 4
+        val weights = gaussianWeights(sigma)
+        if (ParticleMaterialNative.enabled) return ParticleMaterialNative.gaussian(input, width, height, weights)
         fun reflect(index: Int, size: Int): Int {
             var i = index
             while (i < 0 || i >= size) i = if (i < 0) -i - 1 else 2 * size - i - 1

@@ -1,7 +1,7 @@
 """在指定设备独立建材并渲染；只写本功能的专用验证目录。"""
 from pathlib import Path
 import argparse,subprocess,time,json
-p=argparse.ArgumentParser();p.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);p.add_argument('--output',default='device-unified');p.add_argument('--scenes',nargs='+');p.add_argument('--direction',type=float);p.add_argument('--touch-gap',type=float);p.add_argument('--seed',type=int);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('serial',choices=['9018f404','R5CW20BLNKL']);p.add_argument('--output',default='device-unified');p.add_argument('--scenes',nargs='+');p.add_argument('--direction',type=float);p.add_argument('--touch-gap',type=float);p.add_argument('--seed',type=int);p.add_argument('--reference-material',action='store_true');a=p.parse_args()
 base=Path(__file__).resolve().parents[1];repo=next(x for x in base.parents if (x/'gradlew.bat').is_file())
 out=base/a.output/a.serial;out.mkdir(parents=True,exist_ok=True)
 adb=['E:/AndroidSDK/platform-tools/adb.exe','-s',a.serial]
@@ -32,6 +32,7 @@ started=time.monotonic();replies=[]
 for scene in a.scenes or [None]:
     run('shell','rm','-f',remote+'/generated/done.json',remote+'/generated/error.txt')
     extra=['--es','scene',scene] if scene else []
+    if a.reference_material:extra+=['--ez','referenceMaterial','true']
     replies.append(run('shell','am','broadcast','--include-stopped-packages','-n','com.ywwynm.everythingdone/.views.particledismiss.ParticleMicroflakeProbeReceiver',*extra))
     print(a.serial,'已开始独立建材',scene or '全部',flush=True)
     stage=time.monotonic()

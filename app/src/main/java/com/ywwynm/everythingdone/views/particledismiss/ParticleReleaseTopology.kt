@@ -7,15 +7,14 @@ internal object ParticleReleaseTopology {
     private data class Patch(val x: Double, val y: Double, val delay: Double,
         val c: Double, val s: Double, val scale: Double)
 
-    fun release(nx: Int, ny: Int, width: Float, height: Float, direction: Float,
-        seed: Long, detail: DoubleArray): DoubleArray {
+    private fun patches(width: Float, height: Float, seed: Long): Array<Patch> {
         val span = min(width, height).toDouble()
         val salt = (seed xor (seed ushr 32)).toInt() xor 0x243f6a88
         val count = max(2, ceil(max(width, height) / span * 1.4).toInt()) +
             if (ParticleMicroflakeModel.randomValue(0, salt) > .70) 1 else 0
         val random = DoubleArray((count + 1) * 4) { ParticleMicroflakeModel.randomValue(it, salt).toDouble() }
         val perimeter = 2.0 * (width + height)
-        val patches = Array(count) { i ->
+        return Array(count) { i ->
             val j = 4 + i * 4
             val fraction = random[0] + (i + .85 * (random[j] - .5)) / count
             val position = (fraction - floor(fraction)) * perimeter
@@ -31,6 +30,15 @@ internal object ParticleReleaseTopology {
                 .02 + .25 * random[j + 2] + .06 * i,
                 cos(angle), sin(angle), .65 + .50 * random[j])
         }
+    }
+
+    internal fun nativePatches(width: Float, height: Float, seed: Long): DoubleArray =
+        patches(width, height, seed).flatMap { listOf(it.x, it.y, it.delay, it.c, it.s, it.scale) }.toDoubleArray()
+
+    fun release(nx: Int, ny: Int, width: Float, height: Float, direction: Float,
+        seed: Long, detail: DoubleArray): DoubleArray {
+        val span = min(width, height).toDouble()
+        val patches = patches(width, height, seed)
         val angle = Math.toRadians(direction.toDouble()); val wx = cos(angle); val wy = -sin(angle)
         var low = Double.POSITIVE_INFINITY; var high = Double.NEGATIVE_INFINITY
         val result = DoubleArray(nx * ny)

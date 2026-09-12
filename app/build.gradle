@@ -61,6 +61,13 @@ def isPublishDebugUpdateRequested = gradle.startParameter.taskNames.any {
 android {
     namespace 'com.ywwynm.everythingdone'
     compileSdk 36
+    ndkVersion '21.0.6113669'
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.10.2'
+        }
+    }
 
     defaultConfig {
         applicationId "com.ywwynm.everythingdone"
@@ -68,6 +75,9 @@ android {
         targetSdk 36
         versionCode 43
         versionName "2.0.0"
+        externalNativeBuild {
+            cmake { arguments '-DANDROID_STL=c++_static' }
+        }
     }
 
     buildTypes {

@@ -20,8 +20,10 @@ internal class ParticleMicroflakeRenderer(
     private val assets: AssetManager,
     private val width: Int,
     private val height: Int,
-    private val input: Input
+    initialInput: Input? = null
 ) : Closeable {
+    private lateinit var input: Input
+    init { if (initialInput != null) input = initialInput }
     data class Input(
         val frameWidth: Float,
         val frameHeight: Float,
@@ -55,8 +57,12 @@ internal class ParticleMicroflakeRenderer(
     private var step = 0
     private lateinit var peelPressure: PeelPressure
     private val uniforms = HashMap<String, Int>()
+    private val compiledPrograms = HashMap<String, Int>()
+    private var pipelinePrepared = false
 
-    fun prepare() {
+    /** 与后台建材重叠：着色器和屏幕缓冲不依赖本次触点或粒子材料。 */
+    fun preparePipeline(sharedFields: SharedResources? = null) {
+        if (pipelinePrepared) return
         val version = IntArray(2)
         GLES30.glGetIntegerv(GLES30.GL_MAJOR_VERSION, version, 0)
         GLES30.glGetIntegerv(GLES30.GL_MINOR_VERSION, version, 1)
@@ -64,38 +70,10 @@ internal class ParticleMicroflakeRenderer(
         compute = program("step.comp")
         material = program("material.vert", "material.frag")
         resolve = program("resolve.vert", "resolve.frag")
+        program("peel-splat.comp"); program("peel-blur.comp"); program("peel-project.comp")
         GLES30.glGenVertexArrays(1, vao, 0)
         GLES30.glBindVertexArray(vao[0])
         GLES30.glGenBuffers(buffers.size, buffers, 0)
-        uploadBuffer(0, input.materials.values)
-        val initial = FloatArray(input.materials.count * 8)
-        for (i in 0 until input.materials.count) {
-            initial[i * 8] = input.materials.values[i * 12]
-            initial[i * 8 + 1] = input.materials.values[i * 12 + 1]
-        }
-        uploadBuffer(1, initial)
-        uploadBuffer(2, input.materials.pigment)
-        uploadBuffer(3, input.materials.peelCompression)
-        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
-        val bitmap = input.foreground
-        val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
-            bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        }
-        // getPixels 返回非预乘颜色；不用 GLUtils 上传 Bitmap 的预乘底层存储。
-        val rgba = ByteBuffer.allocateDirect(pixels.size * 4).order(ByteOrder.LITTLE_ENDIAN)
-        for (i in pixels.indices) {
-            val c = pixels[i]
-            pixels[i] = (c and 0xff00ff00.toInt()) or ((c ushr 16) and 255) or ((c and 255) shl 16)
-        }
-        rgba.asIntBuffer().put(pixels)
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, bitmap.width, bitmap.height,
-            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba)
-        guideTexture = newTexture(GLES30.GL_TEXTURE_3D)
-        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RG16F, input.rules.number("flow_width").toInt(), input.rules.number("flow_height").toInt(), input.rules.number("flow_time").toInt(), 0,
-            GLES30.GL_RG, GLES30.GL_HALF_FLOAT, direct(input.guide))
-        confidenceTexture = newTexture(GLES30.GL_TEXTURE_3D)
-        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_R8, input.rules.number("flow_width").toInt(), input.rules.number("flow_height").toInt(), input.rules.number("flow_time").toInt(), 0,
-            GLES30.GL_RED, GLES30.GL_UNSIGNED_BYTE, direct(input.confidence ?: sharedResources(assets).confidence))
         accumulationTexture = newTexture(GLES30.GL_TEXTURE_2D)
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
             GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, null)
@@ -106,6 +84,38 @@ internal class ParticleMicroflakeRenderer(
         check(GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) == GLES30.GL_FRAMEBUFFER_COMPLETE) {
             "设备不支持微片线性颜色缓冲"
         }
+        if (sharedFields != null) uploadFields(sharedFields.guide, sharedFields.rules, sharedFields.confidence)
+        pipelinePrepared = true
+    }
+
+    fun prepare(materialInput: Input? = null) {
+        if (materialInput != null) input = materialInput
+        preparePipeline()
+        val bitmap = input.foreground
+        val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
+            bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        }
+        val initial = ByteBuffer.allocateDirect(input.materials.count * 8 * 4).order(ByteOrder.nativeOrder())
+        val rgba = ByteBuffer.allocateDirect(pixels.size * 4).order(ByteOrder.LITTLE_ENDIAN)
+        if (ParticleMaterialNative.enabled) {
+            ParticleMaterialNative.packUploads(pixels, input.materials.values, input.materials.count, rgba, initial)
+        } else {
+            val state=initial.asFloatBuffer()
+            for(i in 0 until input.materials.count) {
+                state.put(i*8,input.materials.values[i*12]);state.put(i*8+1,input.materials.values[i*12+1])
+            }
+            val colors=rgba.asIntBuffer()
+            for(c in pixels) colors.put((c and 0xff00ff00.toInt()) or ((c ushr 16) and 255) or ((c and 255) shl 16))
+        }
+        uploadBuffer(0, input.materials.values)
+        uploadBytes(1,initial)
+        uploadBuffer(2, input.materials.pigment)
+        uploadBuffer(3, input.materials.peelCompression)
+        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
+        // getPixels 返回非预乘颜色；不用 GLUtils 上传 Bitmap 的预乘底层存储。
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, bitmap.width, bitmap.height,
+            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba)
+        if (guideTexture == 0) uploadFields(input.guide, input.rules, input.confidence ?: sharedResources(assets).confidence)
         val angle = Math.toRadians(input.direction.toDouble())
         val windX = cos(angle).toFloat(); val windY = -sin(angle).toFloat()
         val geometry = ParticleFlowGeometry.from(input.cardWidth, input.cardHeight)
@@ -354,6 +364,8 @@ internal class ParticleMicroflakeRenderer(
     private fun swap() = EGL14.eglSwapBuffers(EGL14.eglGetCurrentDisplay(), EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW))
 
     private fun program(vararg paths: String): Int {
+        val key = paths.joinToString(";")
+        compiledPrograms[key]?.let { return it }
         val p = GLES30.glCreateProgram()
         programs.add(p)
         val shaders = ArrayList<Int>()
@@ -377,6 +389,7 @@ internal class ParticleMicroflakeRenderer(
             val status = IntArray(1)
             GLES30.glGetProgramiv(p, GLES30.GL_LINK_STATUS, status, 0)
             check(status[0] != 0) { "${paths.joinToString()}: ${GLES30.glGetProgramInfoLog(p)}" }
+            compiledPrograms[key] = p
             return p
         } finally {
             for (shader in shaders) GLES30.glDeleteShader(shader)
@@ -395,11 +408,24 @@ internal class ParticleMicroflakeRenderer(
         return id[0]
     }
 
+    private fun uploadFields(guide: ByteArray, rules: ParticleMicroflakeRules, confidence: ByteArray) {
+        val w=rules.number("flow_width").toInt(); val h=rules.number("flow_height").toInt()
+        val time=rules.number("flow_time").toInt()
+        guideTexture = newTexture(GLES30.GL_TEXTURE_3D)
+        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D,0,GLES30.GL_RG16F,w,h,time,0,GLES30.GL_RG,GLES30.GL_HALF_FLOAT,direct(guide))
+        confidenceTexture = newTexture(GLES30.GL_TEXTURE_3D)
+        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D,0,GLES30.GL_R8,w,h,time,0,GLES30.GL_RED,GLES30.GL_UNSIGNED_BYTE,direct(confidence))
+    }
+
     private fun uploadBuffer(index: Int, floats: FloatArray) {
         val bytes = ByteBuffer.allocateDirect(floats.size * 4).order(ByteOrder.nativeOrder())
         bytes.asFloatBuffer().put(floats)
+        uploadBytes(index,bytes)
+    }
+
+    private fun uploadBytes(index: Int, bytes: ByteBuffer) {
         GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, buffers[index])
-        GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, floats.size * 4, bytes, GLES30.GL_DYNAMIC_DRAW)
+        GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER,bytes.remaining(),bytes,GLES30.GL_DYNAMIC_DRAW)
     }
 
     private fun location(program: Int, name: String) = uniforms.getOrPut("$program:$name") { GLES30.glGetUniformLocation(program, name) }

@@ -48,6 +48,7 @@ internal class ParticleDismissRenderer(
         var windowSurface: Surface? = null
         var completed = false
         try {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
             windowSurface = Surface(surfaceTexture)
 
             display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -98,11 +99,13 @@ internal class ParticleDismissRenderer(
     private fun renderAnimation(): Boolean {
         if (spec.condenseFromT == null) {
             val prepareStart = System.nanoTime()
-            val input = preparation?.await(viewportWidth, viewportHeight)
-                ?: ParticleMicroflakeRenderer.fromSpec(assets, viewportWidth, viewportHeight, density, spec)
-            val inputReady = System.nanoTime()
-            return ParticleMicroflakeRenderer(assets, viewportWidth, viewportHeight, input).use { renderer ->
-                renderer.prepare()
+            return ParticleMicroflakeRenderer(assets, viewportWidth, viewportHeight).use { renderer ->
+                renderer.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
+                val pipelineReady = System.nanoTime()
+                val input = preparation?.await(viewportWidth, viewportHeight)
+                    ?: ParticleMicroflakeRenderer.fromSpec(assets, viewportWidth, viewportHeight, density, spec)
+                val inputReady = System.nanoTime()
+                renderer.prepare(input)
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                     android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                         "准备耗时 ${(System.nanoTime() - prepareStart) / 1e6} ms，GLES ${GLES30.glGetString(GLES30.GL_VERSION)}")
@@ -111,7 +114,7 @@ internal class ParticleDismissRenderer(
                     if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                         android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                             "启动阶段 buildMs=${preparation?.buildMs ?: (inputReady-prepareStart)/1e6} " +
-                            "waitMs=${(inputReady-prepareStart)/1e6} " +
+                            "pipelineMs=${(pipelineReady-prepareStart)/1e6} waitMs=${(inputReady-pipelineReady)/1e6} " +
                             "gpuFirstMs=${(System.nanoTime()-inputReady)/1e6} " +
                             "requestToFirstMs=${(System.nanoTime()-spec.requestedAtNanos)/1e6}")
                     }

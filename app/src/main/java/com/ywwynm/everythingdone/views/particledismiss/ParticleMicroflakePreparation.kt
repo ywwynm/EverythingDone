@@ -14,6 +14,8 @@ internal class ParticleMicroflakePreparation(
     @Volatile var buildMs = 0.0
         private set
     private val task = FutureTask {
+        // 这段计算直接阻塞用户可见首帧，使用显示任务优先级，而非普通后台任务。
+        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
         ParticleMicroflakeRenderer.fromSpec(assets, 0, 0, density, spec).also {
             buildMs = (System.nanoTime() - started) / 1e6
         }

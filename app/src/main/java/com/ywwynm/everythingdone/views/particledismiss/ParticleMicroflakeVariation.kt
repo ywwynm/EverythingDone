@@ -7,7 +7,7 @@ import kotlin.math.sin
 internal class ParticleMicroflakeVariation private constructor(val seed: Long, val values: FloatArray) {
     private val v = DoubleArray(values.size) { values[it].toDouble() }
     // 同一次关闭的时钟固定。小表提供初值，再作一次牛顿迭代，避免每片重复四次求逆。
-    private val inverseSamples = DoubleArray(1025) { solveInverseTime(it / 1024.0) }
+    internal val inverseSamples = DoubleArray(1025) { solveInverseTime(it / 1024.0) }
 
     fun sampleX(x: Double, y: Double): Double = .5 + v[0] * x + v[2] * y + v[4] + v[6] * sin(v[9] * y + v[10])
     fun sampleY(x: Double, y: Double): Double = .5 + v[1] * y + v[3] * x + v[5] + v[7] * sin(v[8] * x + v[11])

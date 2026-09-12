@@ -48,7 +48,7 @@ internal object ParticleDismissController {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
 
-    /** 首个弹窗展示期间预热纯数值代码，避免把调试运行时的首次 JIT 成本留到关闭。 */
+    /** 首个弹窗展示期间预热数值代码与驱动首用编译，不保存用户快照。 */
     fun warmDismissModel(context: Context) {
         if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
         Thread({
@@ -56,7 +56,9 @@ internal object ParticleDismissController {
             runCatching {
                 val rules = ParticleMicroflakeRenderer.sharedResources(context.applicationContext.assets).rules
                 val pixels = IntArray(256 * 256) { -1 }
-                repeat(2) { ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, it.toLong(), rules) }
+                ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 0L, rules)
+                val material = ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 1L, rules)
+                ParticleMicroflakeGpuWarmup.run(context.applicationContext.assets, material)
             }.onFailure { android.util.Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
         }, "ParticleModelWarmup").start()
     }

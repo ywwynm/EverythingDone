@@ -21,6 +21,72 @@ import kotlin.math.*
 /** 只读 adb 预先放入专用目录的测试素材，不访问记事或应用设置。 */
 class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.getBooleanExtra("nativeCheck", false)) {
+            if (!running.compareAndSet(false, true)) return
+            val app = context.applicationContext
+            val checkId = intent.getStringExtra("checkId") ?: "manual"
+            Thread({
+                val out = File(app.getExternalFilesDir(null), "particle-unified/generated").apply { mkdirs() }
+                try {
+                    check(ParticleMaterialNative.available) { "本地材料库未加载，不能用回退路径通过验证" }
+                    val rules = ParticleMicroflakeRenderer.sharedResources(app.assets).rules
+                    val cases = JSONArray()
+                    val pixels = IntArray(256) { i -> when {
+                        i % 11 == 0 -> 0x00ffffff
+                        i % 7 == 0 -> 0xffe86520.toInt()
+                        i % 5 == 0 -> 0xff1268bb.toInt()
+                        else -> -1
+                    } }
+                    for ((w,h) in listOf(120f to 160f, 47f to 211f, 231f to 39f, 630f to 1074f)) {
+                        for (angle in listOf(0f, 90f, 122f, 135f, 270f)) for (seed in listOf(909602L, 4294967305L)) {
+                            val source = if (seed == 909602L) pixels else IntArray(256) { i ->
+                                val rgb=(ParticleMicroflakeModel.randomValue(i,37)*16777216).toInt()
+                                ((if(i%13==0) 64 else 255) shl 24) or rgb
+                            }
+                            fun build() = ParticleMicroflakeModel.build(w,h,source,16,16,angle,seed,rules)
+                            val start = System.nanoTime()
+                            val expected = ParticleMaterialNative.reference { build() }
+                            val middle = System.nanoTime()
+                            val actual = build()
+                            val end = System.nanoTime()
+                            check(expected.count == actual.count)
+                            val originalPixels=source.copyOf()
+                            val rgba=ByteBuffer.allocateDirect(source.size*4).order(ByteOrder.LITTLE_ENDIAN)
+                            val state=ByteBuffer.allocateDirect(actual.count*8*4).order(ByteOrder.nativeOrder())
+                            ParticleMaterialNative.packUploads(source,actual.values,actual.count,rgba,state)
+                            check(source.contentEquals(originalPixels)) { "上传准备修改了原像素" }
+                            val colors=rgba.asIntBuffer()
+                            for(i in source.indices) {
+                                val c=source[i]
+                                check(colors.get(i)==((c and 0xff00ff00.toInt()) or ((c ushr 16) and 255) or ((c and 255) shl 16)))
+                            }
+                            val packed=FloatArray(actual.count*8);state.asFloatBuffer().get(packed)
+                            for(i in 0 until actual.count) for(k in 0..7) {
+                                check(packed[i*8+k]==if(k<2)actual.values[i*12+k] else 0f) { "首帧状态缓冲不一致" }
+                            }
+                            val errors = JSONArray()
+                            for ((a,b) in listOf(expected.values to actual.values, expected.pigment to actual.pigment,
+                                expected.peelCompression to actual.peelCompression)) {
+                                var maxError=0f
+                                for (i in a.indices) {
+                                    val delta=abs(a[i]-b[i]); maxError=max(maxError,delta)
+                                    check(b[i].isFinite() && delta <= 3e-5f) { "材料差异 w=$w h=$h angle=$angle seed=$seed index=$i expected=${a[i]} actual=${b[i]}" }
+                                }
+                                errors.put(maxError)
+                            }
+                            cases.put(JSONObject().put("width",w).put("height",h).put("angle",angle).put("seed",seed)
+                                .put("count",actual.count).put("referenceMs",(middle-start)/1e6).put("nativeMs",(end-middle)/1e6)
+                                .put("maxErrors",errors).put("stages",JSONObject(actual.statistics)))
+                        }
+                    }
+                    File(out,"native-material-parity.json").writeText(JSONObject().put("ok",true).put("checkId",checkId)
+                        .put("uploadBuffersVerified",true).put("cases",cases).toString(2))
+                } catch (error: Throwable) {
+                    File(out,"native-material-parity.json").writeText(JSONObject().put("ok",false).put("checkId",checkId).put("error",error.stackTraceToString()).toString(2))
+                } finally { running.set(false) }
+            }, "ParticleNativeCheck").start()
+            return
+        }
         val scenes = listOf("ironman", "ironman-up-reference", "thanos", "kobe", "language", "color", "attachment", "attachment-image",
             "holdout-notification", "holdout-photo", "holdout-dark", "holdout-wide", "holdout-tall", "holdout-alpha",
             "holdout-coffee", "holdout-colored-panel", "holdout-monochrome", "holdout-compact-dialog")
@@ -29,12 +95,14 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         val selected = if (requested == null) scenes else listOf(requested).filter { it in scenes || it in recordingScenes }
         if (selected.isEmpty() || !running.compareAndSet(false, true)) return
         val scale = intent.getFloatExtra("scale", 1f).coerceIn(.5f, 2.5f)
+        val referenceMaterial = intent.getBooleanExtra("referenceMaterial", false)
         val app = context.applicationContext
         Thread({
             val root = File(app.getExternalFilesDir(null), "particle-unified")
             val out = File(root, "generated").apply { mkdirs() }
             try {
-                for (scene in selected) run(app, root, out, scene, scale)
+                fun renderSelected() { for (scene in selected) run(app, root, out, scene, scale) }
+                if (referenceMaterial) ParticleMaterialNative.reference { renderSelected() } else renderSelected()
                 File(out, "done.json").writeText(JSONObject().put("scenes", JSONArray(selected)).put("ok", true).toString())
             } catch (error: Throwable) {
                 File(out, "error.txt").writeText(error.stackTraceToString())
@@ -59,6 +127,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 bitmap.height, meta.getDouble("direction").toFloat(), meta.getLong("seed"), rules)
         }
         val report = JSONObject().put("scene", scene).put("generated", true).put("width", width).put("height", height)
+            .put("nativeMaterial", ParticleMaterialNative.enabled)
             .put("modelHash", JSONObject(context.assets.open("particle-dismiss/model.json").bufferedReader().use { it.readText() }).getString("model_hash"))
             .put("count", materials.count).put("modelMs", (System.nanoTime() - before) / 1e6).put("modelStages", JSONObject(materials.statistics))
         val touchGap = meta.optDouble("touch_gap", rules.number("touch_gap_default").toDouble()).toFloat()
@@ -88,7 +157,9 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER)).put("version", GLES30.glGetString(GLES30.GL_VERSION))
             saveValues("grid-jitter", readGridJitter(context, materials.columns + 1, materials.rows + 1))
             ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
-                val prepare = System.nanoTime(); renderer.prepare(); GLES30.glFinish()
+                val prepare = System.nanoTime()
+                renderer.preparePipeline(ParticleMicroflakeRenderer.sharedResources(context.assets))
+                renderer.prepare(); GLES30.glFinish()
                 report.put("prepareMs", (System.nanoTime() - prepare) / 1e6)
                 val samples = JSONArray()
                 for (i in 0..60) {

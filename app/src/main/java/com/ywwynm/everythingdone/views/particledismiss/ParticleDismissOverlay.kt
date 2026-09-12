@@ -35,6 +35,7 @@ internal class ParticleDismissOverlay(
     private var finished = false
     private var doneFired = false
     private var animationStartedFired = false
+    private var firstTexturePresented = false
     private val preparation = if (spec.condenseFromT == null) {
         ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
     } else null
@@ -133,7 +134,15 @@ internal class ParticleDismissOverlay(
         return true
     }
 
-    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
+    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+        if (!firstTexturePresented && !isCondense) {
+            firstTexturePresented = true
+            if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+                    "首帧合成 requestToVisibleMs=${(System.nanoTime()-spec.requestedAtNanos)/1e6}")
+            }
+        }
+    }
 
     private fun onGlFirstFrame() {
         if (finished) return
