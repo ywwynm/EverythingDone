@@ -227,6 +227,38 @@ def content_weights(rgb,panel,confidence):
     return (chroma+(contrast-chroma)*np.float32(confidence)).astype('float32')
 
 
+def refine_release(field,width,height,direction,panel_weight):
+    """前沿接到背向自由边界；晚释放的内部原表面保留连贯交接。"""
+    ny,nx=field.shape
+    yy,xx=np.mgrid[:ny,:nx]
+    x=(xx+.5)/nx*width;y=(yy+.5)/ny*height
+    span=min(width,height);ex=np.minimum(x,width-x);ey=np.minimum(y,height-y)
+    gy,gx=np.gradient(gaussian_filter(field,3),height/ny,width/nx)
+    norm=np.maximum(np.hypot(gx,gy),1e-8)
+    wind=np.array([np.cos(np.deg2rad(direction)),-np.sin(np.deg2rad(direction))])
+    against=np.maximum(
+        smooth(-np.where(x<width*.5,-1,1)*wind[0]/.65)*np.exp(-ex/(span*.14)),
+        smooth(-np.where(y<height*.5,-1,1)*wind[1]/.65)*np.exp(-ey/(span*.14)))
+    against*=smooth(((gx*wind[0]+gy*wind[1])/norm-.40)/.50)
+    interior=1-np.exp(-np.minimum(ex,ey)/(span*.10))
+    delta=.025*(1.-.65*panel_weight)*interior*smooth((field-.40)/.17)-.065*against*smooth((field-.23)/.25)
+    # 只修正材料进入流动的时刻，原随机流场时钟保持不变。
+    return (field+delta).astype('float32')
+
+
+def peel_compression(normalx,normaly,cellx,celly,span,direction):
+    """估计剥离场的局部压缩，平移、转动及展开不产生额外收减。"""
+    wind=np.array([math.cos(math.radians(direction)),-math.sin(math.radians(direction))])
+    peel=-np.stack([normalx,normaly],axis=-1)
+    axial=peel@wind
+    peel-=np.minimum(axial,0)[...,None]*wind
+    peel-=np.maximum(axial,0)[...,None]*wind*.82
+    dx=np.gradient(peel,cellx,axis=1);dy=np.gradient(peel,celly,axis=0)
+    a=dx[:,:,0];b=(dx[:,:,1]+dy[:,:,0])*.5;d=dy[:,:,1]
+    lowest=(a+d)*.5-np.sqrt(((a-d)*.5)**2+b*b)
+    return (gaussian_filter(np.maximum(-lowest,0),1)*span).astype('float32')
+
+
 def materials(width,height,foreground,direction,seed,cell_px=None):
     panel,confidence,panel_fraction=panel_material(foreground)
     copy_limit=int(RULES['content_copies'])
@@ -240,9 +272,11 @@ def materials(width,height,foreground,direction,seed,cell_px=None):
     fraction=float(np.mean(sampled[:,:,:3].min(axis=2)[opaque]>229)) if opaque.any() else 0.
     body=float(smooth(np.float32((fraction-.30)/.35)))
     field,offset_times=release_components(nx,ny,direction,width,height,seed)
+    field=refine_release(field,width,height,direction,confidence)
     gy,gx=np.gradient(gaussian_filter(field,3),celly,cellx)
     length=np.maximum(np.hypot(gx,gy),1e-6)
     normalx=gaussian_filter(gx/length,7);normaly=gaussian_filter(gy/length,7)
+    compression=peel_compression(normalx,normaly,cellx,celly,min(width,height),direction)
     rand=random_values(n,seed)
     born=np.maximum(field.ravel()+np.float32(RULES['release_spread']+RULES['white_spread']*body)*(rand[:,3]-.5),.001)
     values=np.zeros((n,12),dtype='float32')
@@ -272,12 +306,17 @@ def materials(width,height,foreground,direction,seed,cell_px=None):
         values=np.concatenate([values,replicas]);content=np.concatenate([content,content[source]])
         rand=values[:,8:];born=values[:,2]
     cap=.865+.115*rand[:,2]-born
-    life=(.10+.22*(-np.log(np.maximum(rand[:,0],.004)))**.85+.20*born)*RULES['life_gain']
+    # 早释放片不长时间滞留；后续材料仍有足够寿命维持卷边，过渡不依赖素材区域。
+    early=RULES['life_early_gain']
+    life_gain=early+(RULES['life_gain']-early)*smooth((born-RULES['life_birth_start'])/RULES['life_birth_span'])
+    life=(.10+.22*(-np.log(np.maximum(rand[:,0],.004)))**.85+.20*born)*life_gain
     life=np.maximum(np.minimum(life,cap),.11)
     values[:,6]=np.maximum(np.minimum(life*(1+.30*content),cap),.11)
     depth=np.sin(values[:,0]*.014+values[:,1]*.021)*.6+(rand[:,1]-.5)*.15
     order=np.argsort(((depth+1)*1_000_000).astype('int64'),kind='stable')
-    return dict(base=values[order],pigment=content[order],nx=nx,ny=ny,cell=(float(cellx),float(celly)),
+    return dict(base=values[order],pigment=content[order],
+                peel_compression=compression.ravel()[values[order,3].astype('int64')%n],
+                nx=nx,ny=ny,cell=(float(cellx),float(celly)),
                 body_weight=body,white_fraction=fraction,panel_color=panel.tolist(),panel_weight=confidence,
                 replica_count=len(values)-n,release_spread=RULES['release_spread']+RULES['white_spread']*body,
                 variation=variation(seed))
@@ -292,6 +331,6 @@ def flow_confidence():
 def model_fingerprint():
     import hashlib
     h=hashlib.sha256();here=Path(__file__).resolve().parent
-    for p in [here/'renderer.py',here/'unified_model.py',SHARED/'rules.properties',SHARED/'common-release.f32',SHARED/'common-flow.f16',SHARED/'flow-confidence.u8']:
+    for p in [here/'renderer.py',here/'pressure_grid.py',here/'unified_model.py',SHARED/'rules.properties',SHARED/'common-release.f32',SHARED/'common-flow.f16',SHARED/'flow-confidence.u8']:
         h.update(p.name.encode());h.update(p.read_bytes())
     return h.hexdigest()

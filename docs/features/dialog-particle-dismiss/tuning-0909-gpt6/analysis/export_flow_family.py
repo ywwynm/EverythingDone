@@ -1,6 +1,6 @@
 """补充四参考形态与相同输入跨素材的演示；全部视频平铺到已有目录。"""
 from pathlib import Path
-import hashlib,json,sys
+import argparse,hashlib,json,sys
 import numpy as np
 import moderngl
 from PIL import Image,ImageDraw
@@ -8,6 +8,7 @@ from PIL import Image,ImageDraw
 HERE=Path(__file__).resolve().parents[1];sys.path.insert(0,str(HERE))
 from export_videos import OUT,PRE,POST,BG,MUTED,Reference,load_meta,make_cache,sampled,encode,label,footer,focus_bounds,code_hash,BASELINE_VERSION
 from rim_review_media import export_focus
+from export_pixel_difference import export_pixel_difference
 
 EXAMPLES=[
     dict(label='连贯卷边',scene='ironman',direction=122,seed=909602),
@@ -45,6 +46,18 @@ def family_frame(meta,arrays,p,rate):
 
 
 def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--pixel-only',action='store_true');args=parser.parse_args()
+    if args.pixel_only:
+        data=json.loads((OUT/'family-videos.json').read_text('utf-8'))
+        assert data['code_hash']==code_hash(),'模型已改变，必须重新导出完整视频'
+        ctx=moderngl.create_standalone_context(require=430)
+        replacements=export_pixel_difference(ctx);ctx.release()
+        for item in replacements:item['sha256']=hashlib.sha256((OUT/item['file']).read_bytes()).hexdigest()
+        data['videos']=[item for item in data['videos'] if item['kind']!='pixel-difference']+replacements
+        data['exporter_hash']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        data['pixel_exporter_hash']=hashlib.sha256((HERE/'analysis/export_pixel_difference.py').read_bytes()).hexdigest()
+        (OUT/'family-videos.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),'utf-8')
+        print('像素差异视频完成',len(replacements),flush=True);return
     ctx=moderngl.create_standalone_context(require=430);items=[]
     meta=load_meta('ironman');ref=Reference(meta);arr=make_cache(ctx,'ironman')
     old=np.load(HERE/'archive'/BASELINE_VERSION/'ironman.npy',mmap_mode='r')
@@ -77,10 +90,11 @@ def main():
             item=encode(OUT/f'{name}-flow-family-{rate:g}x.mp4',PRE+1+POST,rate,frame)
             item.update(scene=name,title=meta['title'],kind='flow-family',examples=EXAMPLES)
             items.append(item)
-    items.extend(export_focus(ctx));ctx.release()
+    items.extend(export_focus(ctx));items.extend(export_pixel_difference(ctx));ctx.release()
     for item in items:item['sha256']=hashlib.sha256((OUT/item['file']).read_bytes()).hexdigest()
     data=dict(code_hash=code_hash(),exporter_hash=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         focus_exporter_hash=hashlib.sha256((HERE/'analysis/rim_review_media.py').read_bytes()).hexdigest(),videos=items,
+        pixel_exporter_hash=hashlib.sha256((HERE/'analysis/export_pixel_difference.py').read_bytes()).hexdigest(),
         scope='示例种子经过粗粒度释放位置观察筛选，用于呈现形态可能性，不是独立留出验证；原参考触点无法确认。')
     (OUT/'family-videos.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),'utf-8')
     print('共同输入与四参考补充视频完成',len(items),flush=True)

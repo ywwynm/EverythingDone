@@ -1,0 +1,52 @@
+#version 310 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+precision highp sampler3D;
+layout(local_size_x=256) in;
+struct Material{vec4 src;vec4 physical;vec4 random;};
+struct State{vec4 pos;vec4 vel;};
+layout(std430,binding=0) readonly buffer A{Material particles[];};
+layout(std430,binding=1) readonly buffer B{State states[];};
+layout(std430,binding=3) readonly buffer C{float compression[];};
+layout(std430,binding=4) buffer D{ivec4 accumulation[];};
+uniform int pass,count,grid_count;
+uniform ivec2 grid_shape;
+uniform vec2 card,wind;
+uniform vec4 grid_bounds;
+uniform float span,time,touch_strength;
+uniform sampler2D foreground;
+uint hash32(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
+float unit32(uint x){return float(hash32(x)>>8u)*(1./16777216.);}
+void main(){
+ uint i=gl_GlobalInvocationID.x;
+ if(pass==0){if(i<uint(grid_shape.x*grid_shape.y))accumulation[i]=ivec4(0);return;}
+ if(i>=uint(count))return;Material m=particles[i];float age=time-m.src.z;
+ if(m.src.w>=float(grid_count)||age<=0.||age>=m.physical.z)return;
+ ivec2 source=clamp(ivec2(m.src.xy/card*vec2(textureSize(foreground,0))),ivec2(0),textureSize(foreground,0)-1);
+ float opacity=texelFetch(foreground,source,0).a;
+ if(opacity<=0.)return;
+ vec2 p=m.src.xy+(states[i].pos.xy-m.src.xy)/(.55+.90*touch_strength);
+ vec2 peel=-m.physical.xy;
+ peel-=wind*min(dot(peel,wind),0.);peel-=wind*max(dot(peel,wind),0.)*.82;
+ vec2 edge=min(m.src.xy,card-m.src.xy);
+ vec2 outside=vec2(m.src.x<card.x*.5?-1.:1.,m.src.y<card.y*.5?-1.:1.)*exp(-edge/(span*.13));
+ float eject=max(dot(normalize(outside+vec2(.000001)),normalize(peel+vec2(.000001))),0.);
+ peel*=1.-.95*eject*exp(-min(edge.x,edge.y)/(span*.18));
+ float response=unit32(floatBitsToUint(m.random.x)^floatBitsToUint(m.random.y)^0xa54ff53au);
+ float strength=1.2141309*(.10+1.80*response);
+ float pressure=2.*compression[i]*.16*strength;
+ peel*=strength/(1.+pressure*pressure/(1.+pressure));
+ peel*=exp(-age/.16)*smoothstep(.003,.028,age);
+ float mass=opacity*(1.-smoothstep(m.physical.z-.075,m.physical.z,age));
+ vec2 q=(p-grid_bounds.xy)/grid_bounds.zw*vec2(grid_shape)-.5;
+ ivec2 lo=ivec2(floor(q));vec2 f=fract(q);
+ for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++){
+  ivec2 cell=lo+ivec2(dx,dy);if(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,grid_shape)))continue;
+  float w=mass*(dx==0?1.-f.x:f.x)*(dy==0?1.-f.y:f.y);
+  int k=cell.y*grid_shape.x+cell.x;
+  atomicAdd(accumulation[k].x,int(round(peel.x*w*4096.)));
+  atomicAdd(accumulation[k].y,int(round(peel.y*w*4096.)));
+  atomicAdd(accumulation[k].z,int(round(w*4096.)));
+ }
+}

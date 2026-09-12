@@ -5,6 +5,7 @@ import numpy as np
 import moderngl
 from PIL import Image
 from scipy.ndimage import gaussian_filter
+from pressure_grid import PressureGrid
 from unified_model import RULES, materials, guidance, field_rotation, field_geometry, flow_confidence, touch_strength_from_point
 
 HERE=Path(__file__).resolve().parent
@@ -16,10 +17,20 @@ struct Material {vec4 src; vec4 physical; vec4 random;};
 struct State {vec4 pos;vec4 vel;};
 layout(std430,binding=0) readonly buffer A {Material particles[];};
 layout(std430,binding=1) buffer B {State state[];};
+layout(std430,binding=3) readonly buffer PeelCompression {float peel_compression[];};
 uniform int count;
 uniform float time,dt,span,wind_gain,curl_gain,roll_gain;
 uniform vec2 wind;
 uniform sampler3D guide_field;
+uniform sampler2D peel_field;
+uniform vec4 peel_bounds;
+vec2 sample_peel(vec2 p){
+    ivec2 size=textureSize(peel_field,0);
+    vec2 q=clamp((p-peel_bounds.xy)/peel_bounds.zw*vec2(size)-.5,vec2(0),vec2(size-1));
+    ivec2 a=ivec2(floor(q)),b=min(a+1,size-1);vec2 f=fract(q);
+    return mix(mix(texelFetch(peel_field,a,0).xy,texelFetch(peel_field,ivec2(b.x,a.y),0).xy,f.x),
+               mix(texelFetch(peel_field,ivec2(a.x,b.y),0).xy,texelFetch(peel_field,b,0).xy,f.x),f.y);
+}
 uniform sampler3D confidence_field;
 uniform vec2 card,guide_rotation;
 uniform float guide_gain,touch_gap,touch_strength;
@@ -81,6 +92,11 @@ vec3 guided_flow(vec2 p,vec2 anchor,float t){
     guide=vec2(ca*guide.x+sa*guide.y,-sa*guide.x+ca*guide.y)*field_geometry.xy;
     return vec3(guide,confidence);
 }
+
+// 输运随机量与寿命随机量分离，避免长寿命片集中在较慢的一条轨迹上。
+uint transport_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
+float transport_unit(uint x){return float(transport_hash(x)>>8u)*(1./16777216.);}
+
 void main(){
     uint i=gl_GlobalInvocationID.x;if(i>=count)return;
     Material m=particles[i];
@@ -120,9 +136,41 @@ void main(){
     target+=vec2(cos(random_angle),sin(random_angle))*radius*span*.045*separate;
     // 刚解除的材料沿局部边界向外展开，随后逐渐跟随共同流动。
     // 法向及释放时间来自同一规则；小幅独立差异使弧边具有厚度。
+    // 剥离响应与出生时间独立；保持平均强度，避免同步材料形成窄密度峰。
+    uint peel_seed=floatBitsToUint(m.random.x)^floatBitsToUint(m.random.y)^0xa54ff53au;
+    float peel_response=transport_unit(peel_seed);
     vec2 peel=-m.physical.xy;
     peel-=wind*min(dot(peel,wind),0.);
-    target+=peel*span*1.5*(.88+.24*m.random.w)*exp(-age/.16)*smoothstep(.003,.028,age);
+    peel-=wind*max(dot(peel,wind),0.)*.82;
+    // 自由边界不承受额外朝外的强剥离力；流场和惯性仍可带粒子越过边界。
+    vec2 free_edge=min(m.src.xy,card-m.src.xy);
+    vec2 free_out=vec2(m.src.x<card.x*.5?-1.:1.,m.src.y<card.y*.5?-1.:1.)*exp(-free_edge/(span*.13));
+    float eject=max(dot(normalize(free_out+vec2(.000001)),normalize(peel+vec2(.000001))),0.);
+    peel*=1.-.95*eject*exp(-min(free_edge.x,free_edge.y)/(span*.18));
+    // 按预计累积压缩柔和减轻局部剥离，防止宽材料区域被压到同一条细线。
+    // 原法向、寿命与主流场不变；随机响应越强，越需要避免过度汇聚。
+    float peel_pressure=2.*peel_compression[i]*.16*1.2141309*(.10+1.80*peel_response);
+    // 弱压缩区域的一阶响应保持原样，强压缩逐渐介入，不产生阈值边界。
+    peel/=1.+peel_pressure*peel_pressure/(1.+peel_pressure);
+    // 根据当前分布抵消剥离造成的空间汇聚；保留每片原有卷动和相对速度。
+    target+=(peel*1.2141309*(.10+1.80*peel_response)*exp(-age/.16)*smoothstep(.003,.028,age)+sample_peel(p))*span;
+    // 原表面边缘解除后向开放侧分散，不保留有限支撑的锐利外轮廓。
+    vec2 edge_dist=min(m.src.xy,card-m.src.xy);
+    vec2 outward=vec2(m.src.x<card.x*.5?-1.:1.,m.src.y<card.y*.5?-1.:1.);
+    vec2 edge_weight=exp(-edge_dist/(span*.075));
+    vec2 outward_spread=outward*edge_weight;
+    float trailing_edge=smoothstep(0.,.6,dot(normalize(outward_spread+vec2(.000001)),m.physical.xy));
+    float spread_age=smoothstep(.002,.014,age)*exp(-age/.080)*mix(.12,1.,trailing_edge);
+    target+=outward_spread*span*.4*(.05+2.4*m.random.z*m.random.z)*spread_age;
+    target+=vec2(-wind.y,wind.x)*span*.12*(m.random.w-.5)*length(edge_weight)*spread_age;
+    float forward_front=smoothstep(.20,.85,dot(-m.physical.xy,wind));
+    target*=1.-.45*forward_front*(1.-smoothstep(.10,.25,age));
+    // 只收减自由边界朝外剥离阶段的独立展开，内部已认可的卷动保持原节奏。
+    float independent=1.-.65*eject*exp(-min(free_edge.x,free_edge.y)/(span*.18))*(1.-smoothstep(.10,.25,age));
+    uint transport_seed=floatBitsToUint(m.random.y)^floatBitsToUint(m.random.w);
+    vec2 transport_random=vec2(transport_unit(transport_seed),transport_unit(transport_seed^0x9e3779b9u));
+    target*=1.+0.6496880*(transport_random.x-.5)*smoothstep(.025,.14,age)*independent;
+    target+=curl(p+transport_random*span*.4,time)*span*.075*smoothstep(.04,.16,age)*independent;
     float depth_target=-state[i].pos.z*3.*roll_gain;
     // 允许侧向卷动；同一颗粒不沿消逝主方向反弹。
     float axial=dot(target,wind)/span;
@@ -153,14 +201,20 @@ layout(std430,binding=2) readonly buffer C {float pigmentation[];};
 uniform vec2 frame,card,offset,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform int nx,grid_count;
-uniform float panel_weight;
+uniform int material_pass;
+uniform float panel_weight,release_spread;
 out vec2 uv,local_uv;
 out float age_out,life_out,light_out,shape_out;
+flat out float surface_out;
+flat out float trailing_out;
 flat out vec4 random_out;
 flat out float replica_out;
 const vec2 corners[6]=vec2[6](vec2(0,0),vec2(1,0),vec2(0,1),vec2(0,1),vec2(1,0),vec2(1,1));
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-vec2 jitter(vec2 g){return (vec2(hash(g),hash(g+vec2(17.1,5.9)))-.5)*.60;}
+// 相邻微片共用顶点偏移；整数散列避免 GPU 三角函数近似改变颗粒覆盖。
+uint grid_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
+float grid_unit(uint x){return float(grid_hash(x)>>8u)*(1./16777216.);}
+vec2 jitter(vec2 g){uint s=uint(g.x)*0x9e3779b9u^uint(g.y)*0x85ebca6bu;
+    return (vec2(grid_unit(s),grid_unit(s^0x68bc21ebu))-.5)*.60;}
 void main(){
     Material m=particles[gl_InstanceID];State s=state[gl_InstanceID];
     int id=int(m.src.w+.1);
@@ -178,15 +232,26 @@ void main(){
     if(replica>0)uv=mix(source,m.src.xy,.80)/card;
     local_uv=c;
     float age=max(0.,time-m.src.z);
-    age_out=age;life_out=m.physical.z;random_out=m.random;
+    age_out=time-m.src.z;
+    // 同一释放规则的平均时序用于表面交接；运动仍按每片实际出生时间开始。
+    float source_clock=m.src.z-release_spread*(m.random.w-.5);
+    vec2 edge_d=min(m.src.xy,card-m.src.xy);
+    vec2 edge_n=vec2(m.src.x<card.x*.5?-1.:1.,m.src.y<card.y*.5?-1.:1.)*exp(-edge_d/(span*.15));
+    float trailing=smoothstep(0.,.6,dot(normalize(edge_n+vec2(.000001)),m.physical.xy))*max(exp(-edge_d.x/(span*.15)),exp(-edge_d.y/(span*.15)));
+    trailing_out=trailing;source_clock-=.065*trailing;
+    surface_out=1.-smoothstep(max(.001,source_clock-.025),max(.018,source_clock+.060),time);
+    life_out=m.physical.z;random_out=m.random;
+    // 原边缘最后释放的一侧更多采用渐隐，面板内部保留颗粒层次。
+    surface_out=mix(time<=m.src.z?1.:0.,surface_out,.85*(1.-.60*panel_weight));
     float loosen=smoothstep(.018,.18,age);
     float roll_phase=age*(11.5+1.7*sin(dot(m.src.xy,vec2(.009,.015))))*(.70+.60*m.random.z);
     vec2 move=s.pos.xy+s.vel.xy*extrapolate;
     float z=s.pos.z+span*.035*(1.-cos(roll_phase))*exp(-age/.30)*roll_gain;
-    float scale=mix(1.,.62+.72*m.random.y,loosen);
+    // 平均平方尺度接近 1；细粒与少量较大片共存，保留颗粒层次而不追加亮带。
+    float scale=mix(1.,exp(0.4000000*sqrt(-2.*log(max(m.random.y,.004)))*cos(m.random.z*6.28318)-0.1600000),loosen);
     if(replica>0)scale*=.72;
     // 较老的微片继续细化，密集区与末端颗粒具有不同的尺度。
-    scale*=1.-.36*smoothstep(.12,.36,age);
+    scale*=1.-0.3900000*smoothstep(.12,.36,age);
     // 初段保留微片的实际覆盖，随后细化；白底减少增量，避免形成厚亮边。
     scale*=1.+(.08-.05*body_weight)*smoothstep(.015,.075,age)*(1.-smoothstep(.22,.48,age));
     // 原色明显的微片在解体初段保留少量面积，再与周围材料一起细化。
@@ -202,12 +267,21 @@ void main(){
     float tilt=(.5+.5*sin(roll_phase+dot(m.src.xy,vec2(.009,.014))+m.random.w*1.2));
     d.x*=mix(1.,.50+.50*tilt,loosen);
     mat2 rot=mat2(cos(angle),sin(angle),-sin(angle),cos(angle));
+    scale*=mix(1.,mix(.84,.98,panel_weight),smoothstep(.0,.018,age));
+    // 少量、宽时间范围的覆盖变化；亮度来自源色和运动颗粒，不添加轮廓线。
+    scale*=1.+.20*(1.-panel_weight)*smoothstep(.010,.050,age)*(1.-smoothstep(.10,.24,age));
+    // 迎风区域新生片覆盖稍小，避免角部过密；随后平滑并入既有细化过程。
+    float forward_front=smoothstep(.20,.85,dot(-m.physical.xy,wind));
+    scale*=1.-.18*forward_front*smoothstep(.002,.022,age)*(1.-smoothstep(.10,.24,age));
+    scale*=1.+(0.9700000-1.)*smoothstep(.002,.025,age)*(1.-smoothstep(.10,.25,age));
+    scale*=mix(1.,1.0012984,smoothstep(.0,.06,age));
     vec2 vertex=move+(rot*d)*scale*(1.+z/1000.);
+    if(material_pass==0)vertex=source;
     vec2 world=offset+vertex;
     gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
     float face=sin(dot(m.src.xy,vec2(.014,.021))+age*11.);
     light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
-    shape_out=loosen;
+    shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);
 }
 '''
 
@@ -218,6 +292,8 @@ uniform int diagnostic;
 uniform int material_pass;
 in vec2 uv,local_uv;
 in float age_out,life_out,light_out,shape_out;
+flat in float surface_out;
+flat in float trailing_out;
 flat in vec4 random_out;
 flat in float replica_out;
 out vec4 frag;
@@ -226,35 +302,46 @@ void main(){
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
     if(replica_out>.5 && (material_pass==0 || age_out<=.001))discard;
+    if(material_pass==0){
+        float a=src.a*surface_out;
+        if(a<.001 || diagnostic==2)discard;
+        vec3 surface_color=diagnostic==1?vec3(.05,.45,.95):linear(src.rgb);
+        frag=vec4(surface_color*a,a);return;
+    }
     float age=age_out;
-    if(material_pass==0 && age>0.)discard;
-    if(material_pass==1 && age<=0.)discard;
+    if(age<=0. || diagnostic==3)discard;
     float life=life_out;
     float fade=1.-smoothstep(max(life-.075,life*.55),life,age);
     vec2 q=local_uv-.5;
     float radial=length(q*vec2(.85+random_out.z*.35,.87+random_out.w*.34));
     float cut=1.-smoothstep(.35,.58,radial);
     float shape=mix(1.,cut,shape_out*.92);
-    float alpha=src.a*fade*shape;
+    // 原表面尚在淡出时，运动片按对应材料已经交出的覆盖量显现。
+    float alpha=src.a*fade*shape*(1.-surface_out)*smoothstep(.001,.022,age);
     if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
+    alpha*=mix(1.,.92,smoothstep(.018,.12,age));
+    // 开放侧减少实际颗粒份额；避免保留大量半透明灰片勾出原轮廓。
+    if(fract(random_out.y*13.731+random_out.z*17.371)<.64*trailing_out)discard;
     if(alpha<.001)discard;
+    // 几何变细与光照变化分开，避免刚出现的颗粒同时发白。
+    float optical_loosen=smoothstep(.005,.095,age);
     vec3 color=linear(src.rgb);
     // 微片转动后采用较柔和的材质明暗响应，保留源色，减轻暗部黑点聚集。
-    color=mix(color,pow(color,vec3(.70)),shape_out*.85);
+    color=mix(color,pow(color,vec3(.86)),optical_loosen*.85);
     float lighting=mix(1.,light_out,light_gain);
+    lighting*=1.+.32*light_gain*smoothstep(.006,.045,age)*(1.-smoothstep(.11,.28,age));
     float facing=.5+.5*sin(age*16.+random_out.z*6.28318);
-    float glint=.22*pow(facing,12.);
-    color=color*lighting*(1.+.70*shape_out*light_gain)+vec3(.026+glint)*shape_out*light_gain;
+    float glint=0.1800000*pow(facing,12.);
+    color=color*lighting*(1.+0.2493839*optical_loosen*light_gain)+vec3(0.0120000+glint)*optical_loosen*light_gain;
     // 彩色材料避免被漫反射中的白色项冲淡；灰白本体和未释放纹理不变。
     float low=min(min(color.r,color.g),color.b);
     float high=max(max(color.r,color.g),color.b);
-    color=max(vec3(0),color-vec3(low)*.44*smoothstep(.15,.65,high-low)*shape_out);
+    color=max(vec3(0),color-vec3(low)*.44*smoothstep(.15,.65,high-low)*optical_loosen);
     // 白底微片保留覆盖率差异，避免过曝把密集颗粒连成平坦亮边。
     float body=smoothstep(.80,.98,min(src.r,min(src.g,src.b)));
     float facet=.80+.20*(.5+.5*sin(age*11.+dot(uv,vec2(7.,11.))));
-    color=mix(color,min(color,vec3(mix(1.,facet,shape_out))),body);
-    if(diagnostic==1)color=age<=0.?vec3(.05,.45,.95):vec3(1.,.20,.07);
-    if(diagnostic==2 && age<=0.)discard;
+    color=mix(color,min(color,vec3(mix(1.,facet,optical_loosen))),body);
+    if(diagnostic==1)color=vec3(1.,.20,.07);
     frag=vec4(color*alpha,alpha);
 }
 '''
@@ -315,6 +402,7 @@ class Renderer:
         self.base=base
         self.material=self.ctx.buffer(base.tobytes());self.state=self.ctx.buffer(reserve=self.n*8*4)
         self.pigment=self.ctx.buffer(content.astype('float32').tobytes())
+        self.peel_compression=self.ctx.buffer(built['peel_compression'].tobytes())
         self.compute=self.ctx.compute_shader(COMPUTE)
         self.program=self.ctx.program(vertex_shader=VERTEX,fragment_shader=FRAGMENT)
         self.vao=self.ctx.vertex_array(self.program,[])
@@ -350,28 +438,38 @@ class Renderer:
         self.program['cell']=self.cell;self.program['span']=self.span;self.program['nx']=self.nx
         self.program['grid_count']=self.nx*self.ny
         self.program['body_weight']=self.body_weight
+        if 'release_spread' in self.program:self.program['release_spread']=self.release_spread
         self.program['panel_weight']=self.material_info['panel_weight']
         # 未使用的 shader uniform 会被编译器优化掉。
         if 'wind' in self.program:self.program['wind']=self.wind
         self.program['roll_gain']=self.settings['roll_gain'];self.program['light_gain']=self.settings['light_gain']
         self.program['foreground']=0;self.bg_program['bg']=1;self.out_program['screen']=2
         self.reset()
+        self.pressure_grid=PressureGrid(self)
 
     def reset(self):
         a=np.zeros((self.n,8),dtype='float32');a[:,:2]=self.base[:,:2]
         self.state.write(a.tobytes());self.step=0
+        if hasattr(self,'pressure_grid'):self.pressure_grid.reset()
 
     def seek(self,time):
         target=int(max(time,0)/STEP+1e-6)
-        if target<self.step:self.reset()
+        if target<self.step:
+            self.reset()
+        self.pressure_grid.texture.use(5)
         self.material.bind_to_storage_buffer(0);self.state.bind_to_storage_buffer(1)
         self.pigment.bind_to_storage_buffer(2)
+        self.peel_compression.bind_to_storage_buffer(3)
         self.flow_tex.use(3)
         self.confidence_tex.use(4)
         while self.step<target:
             self.step+=1;self.compute['time']=self.step*STEP
             self.compute.run(group_x=(self.n+255)//256)
             self.ctx.memory_barrier()
+            if self.step%4==0:
+                self.pressure_grid.update(self.step*STEP)
+                self.material.bind_to_storage_buffer(0);self.state.bind_to_storage_buffer(1)
+                self.pigment.bind_to_storage_buffer(2);self.peel_compression.bind_to_storage_buffer(3)
 
     def render(self,time,diagnostic=0):
         time=float(np.clip(time,0,1.05));self.seek(time)
@@ -390,7 +488,8 @@ class Renderer:
         return np.frombuffer(self.out_fbo.read(components=3,alignment=1),dtype='uint8').reshape(self.h,self.w,3)[::-1].copy()
 
     def close(self):
-        for key in ['material','pigment','state','compute','program','vao','bg_program','bg_vao','out_program','out_vao','fg_tex','bg_tex','fbo','tex','out_fbo','out_tex','flow_tex','confidence_tex']:
+        self.pressure_grid.close()
+        for key in ['material','pigment','peel_compression','state','compute','program','vao','bg_program','bg_vao','out_program','out_vao','fg_tex','bg_tex','fbo','tex','out_fbo','out_tex','flow_tex','confidence_tex']:
             getattr(self,key).release()
 
 if __name__=='__main__':

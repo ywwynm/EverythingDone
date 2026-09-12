@@ -42,7 +42,7 @@ internal class ParticleMicroflakeRenderer(
 
     private val programs = ArrayList<Int>()
     private val textures = ArrayList<Int>()
-    private val buffers = IntArray(3)
+    private val buffers = IntArray(4)
     private val framebuffer = IntArray(1)
     private val vao = IntArray(1)
     private var compute = 0
@@ -53,6 +53,7 @@ internal class ParticleMicroflakeRenderer(
     private var confidenceTexture = 0
     private var accumulationTexture = 0
     private var step = 0
+    private lateinit var peelPressure: PeelPressure
     private val uniforms = HashMap<String, Int>()
 
     fun prepare() {
@@ -65,7 +66,7 @@ internal class ParticleMicroflakeRenderer(
         resolve = program("resolve.vert", "resolve.frag")
         GLES30.glGenVertexArrays(1, vao, 0)
         GLES30.glBindVertexArray(vao[0])
-        GLES30.glGenBuffers(3, buffers, 0)
+        GLES30.glGenBuffers(buffers.size, buffers, 0)
         uploadBuffer(0, input.materials.values)
         val initial = FloatArray(input.materials.count * 8)
         for (i in 0 until input.materials.count) {
@@ -74,6 +75,7 @@ internal class ParticleMicroflakeRenderer(
         }
         uploadBuffer(1, initial)
         uploadBuffer(2, input.materials.pigment)
+        uploadBuffer(3, input.materials.peelCompression)
         foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
         val bitmap = input.foreground
         val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
@@ -136,12 +138,15 @@ internal class ParticleMicroflakeRenderer(
         two(material, "wind", windX, windY)
         one(material, "span", span); one(material, "roll_gain", input.rules.number("roll_gain"))
         one(material, "light_gain", input.rules.number("light_gain")); one(material, "body_weight", input.materials.bodyWeight)
+        one(material, "release_spread", input.rules.number("release_spread") +
+            input.rules.number("white_spread") * input.materials.bodyWeight)
         one(material, "panel_weight", input.materials.statistics.getValue("panelWeight").toFloat())
         oneI(material, "nx", input.materials.columns); oneI(material, "foreground", 0)
         oneI(material, "grid_count", input.materials.columns * input.materials.rows)
         oneI(material, "diagnostic", 0)
         GLES30.glUseProgram(resolve)
         oneI(resolve, "screen", 2)
+        peelPressure = PeelPressure(span, windX, windY)
         checkGl("准备")
     }
 
@@ -155,12 +160,19 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, guideTexture)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE4)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, confidenceTexture)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE5)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, peelPressure.texture)
         GLES30.glUseProgram(compute)
         while (step < target) {
             step++
             one(compute, "time", step / 240f)
             GLES31.glDispatchCompute((input.materials.count + 255) / 256, 1, 1)
             GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
+            if (step % 4 == 0) {
+                peelPressure.update(step / 240f)
+                for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+                GLES30.glUseProgram(compute)
+            }
         }
         GLES30.glBindVertexArray(vao[0])
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
@@ -239,6 +251,106 @@ internal class ParticleMicroflakeRenderer(
         return result
     }
 
+    /** 从当前分布抵消剥离汇聚；不删除材料，也不替换每片已有的流动速度。 */
+    private inner class PeelPressure(span: Float, windX: Float, windY: Float) : Closeable {
+        private val gridCell = span.toDouble() / 96.0
+        private val columns = ceil(input.cardWidth / gridCell).toInt() + 192
+        private val rows = ceil(input.cardHeight / gridCell).toInt() + 192
+        private val cells = columns * rows
+        private val groupsX = (columns + 15) / 16
+        private val groupsY = (rows + 15) / 16
+        private val pressureBuffers = IntArray(5)
+        private val splat = program("peel-splat.comp")
+        private val blur = program("peel-blur.comp")
+        private val project = program("peel-project.comp")
+        private var current = 0
+        val texture = newTexture(GLES30.GL_TEXTURE_2D)
+
+        init {
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+            GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_RGBA32F, columns, rows)
+            GLES30.glGenBuffers(pressureBuffers.size, pressureBuffers, 0)
+            for (i in pressureBuffers.indices) {
+                val size = cells * if (i < 3) 16 else 4
+                GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, pressureBuffers[i])
+                // 压力从零开始；其余网格在使用前由计算着色器全部写入。
+                GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, size,
+                    if (i >= 3) ByteBuffer.allocateDirect(size) else null, GLES30.GL_DYNAMIC_DRAW)
+            }
+            for (p in intArrayOf(splat, blur, project)) {
+                GLES30.glUseProgram(p)
+                GLES30.glUniform2i(location(p, "grid_shape"), columns, rows)
+            }
+            GLES30.glUseProgram(splat)
+            oneI(splat, "count", input.materials.count)
+            oneI(splat, "grid_count", input.materials.columns * input.materials.rows)
+            oneI(splat, "foreground", 0)
+            two(splat, "card", input.cardWidth, input.cardHeight)
+            two(splat, "wind", windX, windY)
+            one(splat, "span", span)
+            one(splat, "touch_strength", input.touchStrength)
+            GLES30.glUniform4f(location(splat, "grid_bounds"), -span, -span,
+                (columns * gridCell).toFloat(), (rows * gridCell).toFloat())
+            GLES30.glUseProgram(blur)
+            one(blur, "occupancy_scale", (input.materials.cellX * input.materials.cellY / (gridCell * gridCell)).toFloat())
+            GLES30.glUseProgram(compute)
+            oneI(compute, "peel_field", 5)
+            GLES30.glUniform4f(location(compute, "peel_bounds"), -span, -span,
+                (columns * gridCell).toFloat(), (rows * gridCell).toFloat())
+            // 首帧只清空修正场；不提前计算整段动画或执行空压力迭代。
+            resolveField()
+        }
+
+        private fun bind(index: Int, binding: Int) =
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, binding, pressureBuffers[index])
+
+        private fun barrier() = GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT or
+            GLES31.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT or GLES31.GL_TEXTURE_FETCH_BARRIER_BIT)
+
+        fun update(time: Float) {
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, buffers[0])
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, buffers[1])
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 3, buffers[3])
+            bind(0, 4)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
+            GLES30.glUseProgram(splat)
+            one(splat, "time", time)
+            oneI(splat, "pass", 0)
+            GLES31.glDispatchCompute((cells + 255) / 256, 1, 1); barrier()
+            oneI(splat, "pass", 1)
+            GLES31.glDispatchCompute((input.materials.count + 255) / 256, 1, 1); barrier()
+            bind(1, 5); bind(2, 6)
+            GLES30.glUseProgram(blur)
+            for (pass in 0..1) {
+                oneI(blur, "pass", pass)
+                GLES31.glDispatchCompute(groupsX, groupsY, 1); barrier()
+            }
+            bind(2, 0)
+            GLES30.glUseProgram(project)
+            for (iteration in 0 until 100) {
+                bind(3 + current, 1); bind(4 - current, 2)
+                oneI(project, "iteration", iteration)
+                GLES31.glDispatchCompute(groupsX, groupsY, 1); barrier()
+                current = 1 - current
+            }
+            resolveField()
+        }
+
+        private fun resolveField() {
+            bind(2, 0); bind(3 + current, 1); bind(4 - current, 2)
+            GLES31.glBindImageTexture(0, texture, 0, false, 0, GLES31.GL_WRITE_ONLY, GLES30.GL_RGBA32F)
+            GLES30.glUseProgram(project)
+            oneI(project, "iteration", 100)
+            GLES31.glDispatchCompute(groupsX, groupsY, 1); barrier()
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE5)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture)
+        }
+
+        override fun close() = GLES30.glDeleteBuffers(pressureBuffers.size, pressureBuffers, 0)
+    }
+
     private fun swap() = EGL14.eglSwapBuffers(EGL14.eglGetCurrentDisplay(), EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW))
 
     private fun program(vararg paths: String): Int {
@@ -296,6 +408,7 @@ internal class ParticleMicroflakeRenderer(
     private fun two(program: Int, name: String, x: Float, y: Float) = GLES30.glUniform2f(location(program, name), x, y)
 
     override fun close() {
+        if (::peelPressure.isInitialized) peelPressure.close()
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glDeleteFramebuffers(1, framebuffer, 0)
         GLES30.glDeleteVertexArrays(1, vao, 0)

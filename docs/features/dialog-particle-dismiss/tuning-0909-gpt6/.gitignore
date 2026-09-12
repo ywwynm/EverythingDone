@@ -8,6 +8,8 @@
 !/analysis/
 /analysis/*
 !/analysis/*.py
+!/analysis/common-shape-calibration.json
+!/analysis/filament-cohort.json
 !/research/
 /research/*
 !/research/*.py

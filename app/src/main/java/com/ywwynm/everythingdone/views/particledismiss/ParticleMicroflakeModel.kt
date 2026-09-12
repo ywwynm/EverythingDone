@@ -16,6 +16,7 @@ internal object ParticleMicroflakeModel {
         val bodyWeight: Float,
         val values: FloatArray,
         val pigment: FloatArray,
+        val peelCompression: FloatArray,
         val variation: ParticleMicroflakeVariation,
         val statistics: Map<String, Double> = emptyMap()
     ) {
@@ -58,16 +59,23 @@ internal object ParticleMicroflakeModel {
         val metrics = linkedMapOf("classificationMs" to (classified-started)/1e6)
         val variation = ParticleMicroflakeVariation.fromSeed(seed, rules)
         val offsetTimes = FloatArray(count)
-        val release = releaseField(nx, ny, directionDegrees, rules, width, height, variation, offsetTimes) { name, value -> metrics[name] = value }
+        val initialRelease = releaseField(nx, ny, directionDegrees, rules, width, height, variation, offsetTimes) { name, value -> metrics[name] = value }
+        val release = refineRelease(initialRelease, nx, ny, width, height, directionDegrees, panel.weight)
         val released = System.nanoTime()
         // 整次建材已在后台与 EGL 初始化重叠；避免再分线程争用移动 CPU。
         val normals = buildNormals(release, nx, ny, cellX, cellY)
+        val compressionStarted = System.nanoTime()
+        val compression = buildPeelCompression(normals, nx, ny, cellX, cellY, min(width, height), directionDegrees)
+        metrics["compressionMs"] = (System.nanoTime() - compressionStarted) / 1e6
         val normalsReady = System.nanoTime()
         val values = FloatArray(count * 12)
         val pigment = FloatArray(count)
         val colors = IntArray(count)
         val releaseSpread = rules.number("release_spread") + rules.number("white_spread") * body
         val lifeGain = rules.number("life_gain")
+        val earlyLifeGain = rules.number("life_early_gain")
+        val lifeBirthStart = rules.number("life_birth_start")
+        val lifeBirthSpan = rules.number("life_birth_span")
         val distanceStart = rules.number("content_distance_start")
         val distanceSpan = rules.number("content_distance_span")
         val randomSeed = (seed xor (seed ushr 32)).toInt()
@@ -85,7 +93,9 @@ internal object ParticleMicroflakeModel {
             colors[i] = c
             val content = ParticleMicroflakeContent.weight(c, panel, distanceStart, distanceSpan)
             val cap = .865f + .115f * rz - born
-            var life = (.10f + .22f * (-ln(max(rx, .004f))).pow(.85f) + .20f * born) * lifeGain
+            // 与桌面使用同一连续寿命分布，避免早释放的慢速片长时间留下孤立尘缕。
+            val gain = earlyLifeGain + (lifeGain - earlyLifeGain) * smooth((born - lifeBirthStart) / lifeBirthSpan)
+            var life = (.10f + .22f * (-ln(max(rx, .004f))).pow(.85f) + .20f * born) * gain
             life = max(min(life, cap), .11f)
             life = max(min(life * (1f + .30f * content), cap), .11f)
             val p = i * 12
@@ -118,7 +128,8 @@ internal object ParticleMicroflakeModel {
             for (k in 0..3) allValues[p + 8 + k] = randomValue(id * 4 + k, randomSeed)
             val rx = allValues[p + 8]; val rz = allValues[p + 10]; val born = allValues[p + 2]
             val cap = .865f + .115f * rz - born
-            var life = (.10f + .22f * (-ln(max(rx, .004f))).pow(.85f) + .20f * born) * lifeGain
+            val gain = earlyLifeGain + (lifeGain - earlyLifeGain) * smooth((born - lifeBirthStart) / lifeBirthSpan)
+            var life = (.10f + .22f * (-ln(max(rx, .004f))).pow(.85f) + .20f * born) * gain
             life = max(min(life, cap), .11f)
             allValues[p + 6] = max(min(life * (1f + .30f * pigment[source]), cap), .11f)
             allPigment[count + index] = pigment[source]
@@ -134,6 +145,7 @@ internal object ParticleMicroflakeModel {
         order.sort()
         val sorted = FloatArray(allValues.size)
         val sortedPigment = FloatArray(total)
+        val sortedCompression = FloatArray(total)
         for (i in order.indices) {
             val original = order[i].toInt()
             allValues.copyInto(sorted, i * 12, original * 12, original * 12 + 12)
@@ -141,11 +153,40 @@ internal object ParticleMicroflakeModel {
             sorted[i * 12 + 4] = normals.x[source]
             sorted[i * 12 + 5] = normals.y[source]
             sortedPigment[i] = allPigment[original]
+            sortedCompression[i] = compression[source]
         }
-        return Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, variation, metrics + mapOf(
+        return Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, sortedCompression, variation, metrics + mapOf(
             "releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
             "populationMs" to (populated-normalsReady)/1e6, "sortMs" to (System.nanoTime()-populated)/1e6,
             "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble()))
+    }
+
+    /** 只修正进入流动的时刻；原随机流场时钟不变，不识别素材或内容位置。 */
+    internal fun refineRelease(field: FloatArray, nx: Int, ny: Int, width: Float, height: Float,
+        directionDegrees: Float, panelWeight: Float): FloatArray {
+        val blurred = gaussian(field, nx, ny, 3)
+        val span = min(width, height).toDouble()
+        val cellX = width / nx; val cellY = height / ny
+        val angle = Math.toRadians(directionDegrees.toDouble())
+        val windX = cos(angle); val windY = -sin(angle)
+        val edgeX = DoubleArray(nx) { x -> min((x + .5) / nx * width, width - (x + .5) / nx * width) }
+        val edgeY = DoubleArray(ny) { y -> min((y + .5) / ny * height, height - (y + .5) / ny * height) }
+        fun sm(value: Double): Double { val t = value.coerceIn(0.0, 1.0); return t*t*(3-2*t) }
+        val againstX = DoubleArray(nx) { x -> sm((if (x + .5 < nx * .5) windX else -windX) / .65) * exp(-edgeX[x] / (span * .14)) }
+        val againstY = DoubleArray(ny) { y -> sm((if (y + .5 < ny * .5) windY else -windY) / .65) * exp(-edgeY[y] / (span * .14)) }
+        val coreGain = .025 * (1.0 - .65 * panelWeight)
+        return FloatArray(field.size) { i ->
+            val x = i % nx; val y = i / nx
+            val dx = (blurred[y*nx+min(x+1,nx-1)]-blurred[y*nx+max(x-1,0)]) / (cellX * if (x == 0 || x == nx-1) 1 else 2)
+            val dy = (blurred[min(y+1,ny-1)*nx+x]-blurred[max(y-1,0)*nx+x]) / (cellY * if (y == 0 || y == ny-1) 1 else 2)
+            val norm = max(hypot(dx, dy), 1e-8f)
+            val against = max(againstX[x], againstY[y]) * sm(((dx*windX+dy*windY)/norm-.40)/.50)
+            val interior = 1-exp(-min(edgeX[x],edgeY[y])/(span*.10))
+            // 与桌面 float32 前沿插值一致，余下几何运算使用双精度。
+            val late = smooth((field[i]-.40f)/.17f)
+            val ready = smooth((field[i]-.23f)/.25f)
+            (field[i]+coreGain*interior*late-.065*against*ready).toFloat()
+        }
     }
 
     private fun buildNormals(release: FloatArray, nx: Int, ny: Int, cellX: Float, cellY: Float): Normals {
@@ -165,6 +206,39 @@ internal object ParticleMicroflakeModel {
         val normalsX = gaussian(gx, nx, ny, 7)
         val normalsY = gaussian(gy, nx, ny, 7)
         return Normals(normalsX, normalsY, (System.nanoTime() - started) / 1e6)
+    }
+
+    /** 对称速度导数的压缩部分。只减轻过度汇聚，不修改供表面与旋转使用的原法向。 */
+    private fun buildPeelCompression(normals: Normals, nx: Int, ny: Int, cellX: Float,
+        cellY: Float, span: Float, directionDegrees: Float): FloatArray {
+        val angle = Math.toRadians(directionDegrees.toDouble())
+        val wx = cos(angle); val wy = -sin(angle)
+        val px = FloatArray(nx * ny); val py = FloatArray(nx * ny)
+        for (i in px.indices) {
+            var x = -normals.x[i]; var y = -normals.y[i]
+            val along = x * wx + y * wy
+            x = (x - min(along, 0.0) * wx).toFloat()
+            y = (y - min(along, 0.0) * wy).toFloat()
+            px[i] = (x - max(along, 0.0) * wx * .82).toFloat()
+            py[i] = (y - max(along, 0.0) * wy * .82).toFloat()
+        }
+        val compression = FloatArray(nx * ny)
+        for (y in 0 until ny) for (x in 0 until nx) {
+            val i = y * nx + x
+            val left = y * nx + max(x - 1, 0); val right = y * nx + min(x + 1, nx - 1)
+            val top = max(y - 1, 0) * nx + x; val bottom = min(y + 1, ny - 1) * nx + x
+            val sx = cellX * if (x == 0 || x == nx - 1) 1 else 2
+            val sy = cellY * if (y == 0 || y == ny - 1) 1 else 2
+            val a = (px[right] - px[left]) / sx
+            val b = ((py[right] - py[left]) / sx + (px[bottom] - px[top]) / sy) * .5f
+            val d = (py[bottom] - py[top]) / sy
+            val halfDifference = (a - d) * .5f
+            val lowest = (a + d) * .5f - sqrt(halfDifference * halfDifference + b * b)
+            compression[i] = max(-lowest, 0f)
+        }
+        return gaussian(compression, nx, ny, 1).also { values ->
+            for (i in values.indices) values[i] *= span
+        }
     }
 
     /** 两个场共用矩形归一化方向，避免长弹窗的速度与释放范围错位。 */
@@ -199,7 +273,9 @@ internal object ParticleMicroflakeModel {
             val nextX = min(ix + 1, gridWidth - 1); val nextY = min(iy + 1, gridHeight - 1)
             val a = rules.release[iy * gridWidth + ix].toDouble() * (1 - ax) + rules.release[iy * gridWidth + nextX] * ax
             val b = rules.release[nextY * gridWidth + ix].toDouble() * (1 - ax) + rules.release[nextY * gridWidth + nextX] * ax
-            return a * (1 - ay) + b * ay
+            // 桌面 map_coordinates 对 float32 资源先产生 float32 插值结果。
+            // 在随机时钟反解之前对齐精度，避免微小差异被后续释放梯度放大。
+            return (a * (1 - ay) + b * ay).toFloat().toDouble()
         }
         for (y in 0 until ny) for (x in 0 until nx) {
             val ax = if (geometry.vertical) y * 5 else x * 5
@@ -254,7 +330,7 @@ internal object ParticleMicroflakeModel {
             while (i < 0 || i >= size) i = if (i < 0) -i - 1 else 2 * size - i - 1
             return i
         }
-        // 把 reflect 的边界处理移出最内层，并利用高斯核的对称性减半乘法。
+        // 将 reflect 移出内层；按 SciPy 相同的远到近次序累加对称权重。
         val xIndex = Array(width) { x -> IntArray(radius * 2 + 1) { reflect(x + it - radius, width) } }
         val yIndex = Array(height) { y -> IntArray(radius * 2 + 1) { reflect(y + it - radius, height) * width } }
         val vertical = FloatArray(input.size)
@@ -262,14 +338,14 @@ internal object ParticleMicroflakeModel {
         for (y in 0 until height) for (x in 0 until width) {
             val indices = yIndex[y]
             var value = input[y * width + x] * weights[radius]
-            for (k in 1..radius) value += (input[indices[radius - k] + x].toDouble() + input[indices[radius + k] + x]) * weights[radius + k]
+            for (k in radius downTo 1) value += (input[indices[radius - k] + x].toDouble() + input[indices[radius + k] + x]) * weights[radius + k]
             vertical[y * width + x] = value.toFloat()
         }
         for (y in 0 until height) for (x in 0 until width) {
             val indices = xIndex[x]
             val row = y * width
             var value = vertical[row + x] * weights[radius]
-            for (k in 1..radius) value += (vertical[row + indices[radius - k]].toDouble() + vertical[row + indices[radius + k]]) * weights[radius + k]
+            for (k in radius downTo 1) value += (vertical[row + indices[radius - k]].toDouble() + vertical[row + indices[radius + k]]) * weights[radius + k]
             output[y * width + x] = value.toFloat()
         }
         return output

@@ -110,6 +110,7 @@ class ParticleMicroflakeModelTest {
                 return FloatArray(bytes.size/4).also { ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(it) }
             }
             val expected = floats("materials"); val pigment = floats("pigment")
+            val compression = floats("peel-compression")
             val actual = ParticleMicroflakeModel.build(input[0].toFloat(), input[1].toFloat(), pixels, 3, 2, input[2].toFloat(), input[3].toLong(), rules)
             assertEquals(expected.size, actual.values.size)
             val offsets = (expected.indices step 12).associateBy { expected[it + 3].toInt() }
@@ -121,6 +122,7 @@ class ParticleMicroflakeModelTest {
                     assertEquals("case=$case id=$original field=$k",expected[expectedOffset+k],actual.values[offset+k],tolerance)
                 }
                 assertEquals(pigment[expectedOffset/12], actual.pigment[i], 1e-6f)
+                assertEquals("压缩输入 case=$case id=$original", compression[expectedOffset/12], actual.peelCompression[i], 3e-5f)
             }
         }
     }
@@ -130,6 +132,21 @@ class ParticleMicroflakeModelTest {
             val expected = FloatArray(bytes.size / 4)
             ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(expected)
             assertArrayEquals("方向 $direction", expected, ParticleMicroflakeModel.releaseField(37, 29, direction.toFloat(), rules), 2e-6f)
+        }
+    }
+
+    @Test fun `新增释放梯度不会放大插值精度的跨端差异`() {
+        val bytes = javaClass.getResourceAsStream("/particle-dismiss/refined-edge-cases.f32")!!.readBytes()
+        val expected = FloatArray(bytes.size / 4)
+        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(expected)
+        val currentRules = rules
+        val field = ParticleMicroflakeModel.releaseField(253,257,122f,currentRules,468f,474f,
+            ParticleMicroflakeVariation.fromSeed(909602L,currentRules))
+        val refined = ParticleMicroflakeModel.refineRelease(field,253,257,468f,474f,122f,0f)
+        for (i in expected.indices step 3) {
+            val index = expected[i].toInt()
+            assertEquals("原始释放 $index",expected[i+1],field[index],1e-7f)
+            assertEquals("梯度修正 $index",expected[i+2],refined[index],1e-7f)
         }
     }
 

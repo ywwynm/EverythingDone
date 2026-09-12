@@ -6,7 +6,7 @@ base=Path(__file__).resolve().parents[1];repo=next(x for x in base.parents if (x
 out=base/a.output/a.serial;out.mkdir(parents=True,exist_ok=True)
 adb=['E:/AndroidSDK/platform-tools/adb.exe','-s',a.serial]
 def run(*args,check=True):
-    r=subprocess.run(adb+list(args),capture_output=True,check=check)
+    r=subprocess.run(adb+list(args),capture_output=True,check=check,timeout=60)
     return r.stdout.decode('utf-8','replace').strip()
 
 apk=repo/'app/build/outputs/apk/debug/app-debug.apk'

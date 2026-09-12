@@ -4,8 +4,28 @@ from PIL import Image,ImageDraw
 from export_videos import HERE,OUT,PRE,POST,BG,MUTED,Reference,load_meta,make_cache,sampled,encode,label,footer,BASELINE_VERSION
 from touch_geometry import distance_cases,distance_view_bounds
 
+def export_surface_overview(ctx):
+    """完整设备画面优先；局部只用于确认外缘和微片交接。"""
+    m=load_meta('ironman');ref=Reference(m);now=make_cache(ctx,'ironman')
+    before=np.load(HERE/'archive'/BASELINE_VERSION/'ironman.npy',mmap_mode='r');items=[]
+    for key,title,crop,w in [('surface-whole','完整画面',(0,0,*m['frame']),480),
+                             ('upper-corner','左上角',(45,135,355,465),560)]:
+        h=round((crop[3]-crop[1])*w/(crop[2]-crop[0]));h+=h%2
+        for rate in [1.,.5]:
+            def frame(t,rate=rate):
+                p=float(np.clip(t-PRE,0,1));im=Image.new('RGB',(w*3,h+128),BG);d=ImageDraw.Draw(im)
+                for col,(name,pixels) in enumerate([('华为参考',ref.at(p)),('本轮调整前',sampled(before,p)),('本轮共同模型',sampled(now,p))]):
+                    label(d,(col*w+12,8),name,25)
+                    label(d,(col*w+12,45),f'{title} · 进度 {p:.2f} · {rate:g} 倍速',20,MUTED)
+                    im.paste(Image.fromarray(pixels).crop(crop).resize((w,h),Image.Resampling.LANCZOS),(col*w,78))
+                footer(im,'观察前沿衔接、角部收束、原表面交接和拖尾宽度',p)
+                return np.asarray(im)
+            item=encode(OUT/f'ironman-{key}-{rate:g}x.mp4',PRE+1+POST,rate,frame)
+            item.update(scene='ironman',title='钢铁侠',kind=key);items.append(item)
+    return items
+
 def export_focus(ctx):
-    items=[];m=load_meta('ironman');ref=Reference(m);now=make_cache(ctx,'ironman')
+    items=export_surface_overview(ctx);m=load_meta('ironman');ref=Reference(m);now=make_cache(ctx,'ironman')
     before=np.load(HERE/'archive'/BASELINE_VERSION/'ironman.npy',mmap_mode='r')
     for rate in [1.,.5]:
         def frame(t,rate=rate):
@@ -14,7 +34,7 @@ def export_focus(ctx):
             for col,(name,pixels) in enumerate([('华为参考',ref.at(p)),('本轮调整前',sampled(before,p)),('本轮共同模型',sampled(now,p))]):
                 label(d,(col*w+14,9),name,29);label(d,(col*w+14,49),f'同一位置放大 · 进度 {p:.2f} · {rate:g} 倍速',20,MUTED)
                 im.paste(Image.fromarray(pixels).crop(crop).resize((w,h),Image.Resampling.LANCZOS),(col*w,82))
-            footer(im,'横向弧边的弯曲、向外展开与下方拖尾 · 没有额外绘制亮边或改变局部时间',p)
+            footer(im,'横向弧边的弯曲、向外展开与下方拖尾 · 没有额外绘制亮边；按相同动画进度比较',p)
             return np.asarray(im)
         item=encode(OUT/f'ironman-rim-detail-{rate:g}x.mp4',PRE+1+POST,rate,frame)
         item.update(scene='ironman',title='钢铁侠',kind='rim-detail');items.append(item)

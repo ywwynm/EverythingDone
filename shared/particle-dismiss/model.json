@@ -1,6 +1,6 @@
 {
   "model": "共同释放与输运的微片消散",
-  "model_hash": "44209ed629b9404b1663e7b70c0aeb2f25200b19f06cf419d1b7c1052ac6eb6f",
+  "model_hash": "ac6848525e01ea0ebd1bdfbeac9ebde9bbadde3ff002d0aae84f8d51d8ff76bc",
   "integration_hz": 240,
   "flow_shape": [
     48,
@@ -15,15 +15,18 @@
   "flow_dtype": "little-endian float16",
   "release_dtype": "little-endian float32",
   "files": {
-    "common-flow.f16": "825def02b220cd5d9d0979caa817364520d6654c71366475146442c9c462a34f",
-    "common-release.f32": "69a6aad7d99a52bb414cb216cf071e3119be6256269b620e1814e62e94c04c3c",
+    "common-flow.f16": "beb2e023bf07cbab66587859682834883cfd82c33d668dd9d84e63e4e9c5e551",
+    "common-release.f32": "06cea2c51759652cbd48d2470843ed7347c25e0d01a165d64a7c57bcf00a38d1",
     "flow-confidence.u8": "330081aab7dfbe93b279df8521cfff029ee326f971d589bd74210efd61257e89",
-    "material.frag": "053b4577fcae41a13e78d69f79512b056033c58908a9ddb40b63824fa21b463a",
-    "material.vert": "48796617a0f802c0284557c0c4cee9a4c3909dd1fcd824cb0d090cb374b9175f",
+    "material.frag": "b0aad36ec7648e9ada8486054ba946ee039ae24b180be26fa49d431c206aa66e",
+    "material.vert": "29783a9d416e4585111087a526a101551a874c4f49065e47134c8dbe181e1c48",
+    "peel-blur.comp": "699512c80f33d9541693e7fccb33873c8c7ee2b84360334d3105a8718ddf0831",
+    "peel-project.comp": "c1d96aca12e56bee8ab58d867ad1f980aa134f8e646c668e3752d555502dbaaa",
+    "peel-splat.comp": "db476548415da787a845dbbacd7dfd2962941caeba25734417d47db8e8f493f6",
     "resolve.frag": "07e590bf8309e3758fac6287efdbcce3944d37c9c2d68deb5360808e0ef13da1",
     "resolve.vert": "94c23d9d8be7fcbe066169a474665741dd7328d6971499e26e44f40242cf9699",
-    "rules.properties": "a154d7dd56be9d5b23db0d4893996b786c6c9387dcff03e34b24423609d62ee5",
-    "step.comp": "d53c712a244bacad8af632fe2b884a22149e20538f650fafbbd5c3624cae5e0f"
+    "rules.properties": "e44ca747808579465775b04ec4f26a2f12b05f2cc862b3380f169e5484438b34",
+    "step.comp": "d869aad4669731a84c3ea673b59a86826c904bda809d07311edb360e191e8106"
   },
   "scope": "共同表示从认可的观测结果提炼；所有素材共用，运行时不读取照片配置、参考视频或原始光流。"
 }

@@ -8,8 +8,8 @@ from renderer import Renderer, HERE
 from touch_geometry import distance_cases,distance_view_bounds
 
 FPS=60
-VERSION='弧边展开与触点远近'
-BASELINE_VERSION='before-rim-flow'
+VERSION='按当前粒子分布约束剥离汇聚'
+BASELINE_VERSION='before-filament-layer-diagnosis'
 VARIATION_SEEDS=list(range(6))
 SAMPLE_FPS=120
 PRE=.35
@@ -28,7 +28,7 @@ DISTANCE_DIRECTIONS=[(135,'左上'),(90,'上')]
 
 def code_hash():
     from unified_model import SHARED
-    paths=[HERE/n for n in ['renderer.py','fields.py','unified_model.py','export_videos.py','touch_geometry.py']]
+    paths=[HERE/n for n in ['renderer.py','pressure_grid.py','fields.py','unified_model.py','export_videos.py','touch_geometry.py']]
     paths+=sorted((HERE/'assets').glob('*/scene.json'))
     paths+=sorted((HERE/'assets').glob('*/*.png'))
     paths += [SHARED/'rules.properties',SHARED/'common-release.f32',SHARED/'common-flow.f16',SHARED/'flow-confidence.u8']

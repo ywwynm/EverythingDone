@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.GLES30
+import android.opengl.GLES31
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,7 +25,8 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             "holdout-notification", "holdout-photo", "holdout-dark", "holdout-wide", "holdout-tall", "holdout-alpha",
             "holdout-coffee", "holdout-colored-panel", "holdout-monochrome", "holdout-compact-dialog")
         val requested = intent.getStringExtra("scene")
-        val selected = if (requested == null) scenes else listOf(requested).filter { it in scenes }
+        val recordingScenes = listOf("user-device-1", "user-device-2", "user-device-3")
+        val selected = if (requested == null) scenes else listOf(requested).filter { it in scenes || it in recordingScenes }
         if (selected.isEmpty() || !running.compareAndSet(false, true)) return
         val scale = intent.getFloatExtra("scale", 1f).coerceIn(.5f, 2.5f)
         val app = context.applicationContext
@@ -57,6 +59,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 bitmap.height, meta.getDouble("direction").toFloat(), meta.getLong("seed"), rules)
         }
         val report = JSONObject().put("scene", scene).put("generated", true).put("width", width).put("height", height)
+            .put("modelHash", JSONObject(context.assets.open("particle-dismiss/model.json").bufferedReader().use { it.readText() }).getString("model_hash"))
             .put("count", materials.count).put("modelMs", (System.nanoTime() - before) / 1e6).put("modelStages", JSONObject(materials.statistics))
         val touchGap = meta.optDouble("touch_gap", rules.number("touch_gap_default").toDouble()).toFloat()
         val touchStrength = if (meta.has("touch_gap")) {
@@ -80,8 +83,10 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             bytes.asFloatBuffer().put(values); File(out, "$scene-$name.f32").writeBytes(bytes.array())
         }
         saveValues("materials", materials.values); saveValues("pigment", materials.pigment)
+        saveValues("peel-compression", materials.peelCompression)
         withEgl(width, height) {
             report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER)).put("version", GLES30.glGetString(GLES30.GL_VERSION))
+            saveValues("grid-jitter", readGridJitter(context, materials.columns + 1, materials.rows + 1))
             ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
                 val prepare = System.nanoTime(); renderer.prepare(); GLES30.glFinish()
                 report.put("prepareMs", (System.nanoTime() - prepare) / 1e6)
@@ -90,12 +95,12 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                     val t = i / 60f
                     val start = System.nanoTime(); renderer.draw(t); GLES30.glFinish()
                     samples.put((System.nanoTime() - start) / 1e6)
-                    if (i in listOf(0, 10, 20, 34, 48, 60)) {
+                    if (i in listOf(0, 10, 15, 18, 20, 34, 40, 48, 60)) {
                         saveFrame(File(out, "$scene-$i.png"), width, height)
                     }
-                    if (i == 34) {
+                    if (i == 18 || i == 34 || i == 40) {
                         val state = renderer.readState(); val bytes = ByteArray(state.remaining()); state.get(bytes)
-                        File(out, "$scene-state034.f32").writeBytes(bytes)
+                        File(out, "$scene-state${i.toString().padStart(3, '0')}.f32").writeBytes(bytes)
                     }
                 }
                 check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "渲染产生 GL 错误" }
@@ -126,6 +131,50 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     private fun floats(file: File): FloatArray {
         val bytes = file.readBytes()
         return FloatArray(bytes.size / 4).also { ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(it) }
+    }
+
+    /** 直接复用实际材质中的函数，区分输运差异和 GPU 三角函数造成的几何抖动差异。 */
+    private fun readGridJitter(context: Context, columns: Int, rows: Int): FloatArray {
+        val material = context.assets.open("particle-dismiss/material.vert").bufferedReader().use { it.readText() }
+        val start = material.indexOf("uint grid_hash").takeIf { it >= 0 } ?: material.indexOf("float hash(vec2")
+        check(start >= 0) { "材质中缺少网格随机函数" }
+        val functions = material.substring(start, material.indexOf("void main()"))
+        val count = columns * rows
+        val source = """#version 310 es
+            precision highp float;
+            precision highp int;
+            layout(local_size_x=64) in;
+            layout(std430,binding=0) buffer Output { vec2 offsets[]; };
+            $functions
+            void main(){uint i=gl_GlobalInvocationID.x;if(i>=${count}u)return;
+                offsets[i]=jitter(vec2(i%${columns}u,i/${columns}u));}
+        """.trimIndent()
+        val shader = GLES31.glCreateShader(GLES31.GL_COMPUTE_SHADER)
+        val program = GLES30.glCreateProgram()
+        val buffer = IntArray(1)
+        try {
+            GLES30.glShaderSource(shader, source); GLES30.glCompileShader(shader)
+            val status = IntArray(1)
+            GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, status, 0)
+            check(status[0] != 0) { GLES30.glGetShaderInfoLog(shader) }
+            GLES30.glAttachShader(program, shader); GLES30.glLinkProgram(program)
+            GLES30.glGetProgramiv(program, GLES30.GL_LINK_STATUS, status, 0)
+            check(status[0] != 0) { GLES30.glGetProgramInfoLog(program) }
+            GLES30.glGenBuffers(1, buffer, 0)
+            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, buffer[0])
+            GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, count * 8, null, GLES30.GL_DYNAMIC_READ)
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, buffer[0])
+            GLES30.glUseProgram(program); GLES31.glDispatchCompute((count + 63) / 64, 1, 1)
+            GLES31.glMemoryBarrier(GLES31.GL_BUFFER_UPDATE_BARRIER_BIT); GLES30.glFinish()
+            val mapped = GLES30.glMapBufferRange(GLES31.GL_SHADER_STORAGE_BUFFER, 0, count * 8,
+                GLES30.GL_MAP_READ_BIT) as ByteBuffer
+            val result = FloatArray(count * 2)
+            mapped.order(ByteOrder.nativeOrder()).asFloatBuffer().get(result)
+            GLES30.glUnmapBuffer(GLES31.GL_SHADER_STORAGE_BUFFER)
+            return result
+        } finally {
+            GLES30.glDeleteBuffers(1, buffer, 0); GLES30.glDeleteProgram(program); GLES30.glDeleteShader(shader)
+        }
     }
 
     private fun withEgl(width: Int, height: Int, action: () -> Unit) {

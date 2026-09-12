@@ -1,0 +1,25 @@
+#version 310 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+precision highp sampler3D;
+layout(local_size_x=16,local_size_y=16) in;
+layout(std430,binding=0) readonly buffer A{vec4 velocity[];};
+layout(std430,binding=1) readonly buffer B{float old_pressure[];};
+layout(std430,binding=2) writeonly buffer C{float new_pressure[];};
+layout(rgba32f,binding=0) uniform writeonly highp image2D pressure_field;
+uniform ivec2 grid_shape;uniform int iteration;
+int at(ivec2 q){q=clamp(q,ivec2(0),grid_shape-1);return q.y*grid_shape.x+q.x;}
+float pressure(ivec2 q){return old_pressure[at(q)];}
+void main(){
+ ivec2 q=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(q,grid_shape)))return;
+ int i=at(q);ivec2 X=ivec2(1,0),Y=ivec2(0,1);
+ if(iteration==100){
+  vec2 correction=vec2(pressure(q+X)-pressure(q-X),pressure(q+Y)-pressure(q-Y))*.5;
+  imageStore(pressure_field,q,vec4(-correction,0.,0.));return;
+ }
+ float div=(velocity[at(q+X)].x-velocity[at(q-X)].x+velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
+ float neighbours=pressure(q+X)+pressure(q-X)+pressure(q+Y)+pressure(q-Y);
+ if(iteration==0)neighbours*=.9;
+ new_pressure[i]=velocity[i].z>.025?max((neighbours-div)*.25,0.):0.;
+}

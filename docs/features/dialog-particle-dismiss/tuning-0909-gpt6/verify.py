@@ -62,14 +62,19 @@ def video_checks():
     diagnostics=json.loads(diagnostic_path.read_text('utf-8'))['videos'] if diagnostic_path.exists() else []
     family_path=path.parent/'family-videos.json'
     family=json.loads(family_path.read_text('utf-8'))['videos'] if family_path.exists() else []
-    assert len(family)==30
-    for item in family:
+    reproduction_path=path.parent/'release-filament-videos.json'
+    reproductions=json.loads(reproduction_path.read_text('utf-8'))['videos'] if reproduction_path.exists() else []
+    peel_path=path.parent/'peel-compression-videos.json'
+    peel=json.loads(peel_path.read_text('utf-8'))['videos'] if peel_path.exists() else []
+    assert len(peel)==24
+    assert len(family)==36
+    for item in family+reproductions+peel:
         assert item['code_hash']==code_hash()
         assert hashlib.sha256((path.parent/item['file']).read_bytes()).hexdigest()==item['sha256']
     for item in diagnostics:
         assert item['file']==Path(item['file']).name
         assert hashlib.sha256((path.parent/item['file']).read_bytes()).hexdigest()==item['sha256']
-    assert {p.name for p in path.parent.glob('*.mp4')}=={v['file'] for v in items+diagnostics+family},'磁盘视频与清单不一致'
+    assert {p.name for p in path.parent.glob('*.mp4')}=={v['file'] for v in items+diagnostics+family+reproductions+peel},'磁盘视频与清单不一致'
     metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'))
     expected=set()
     for meta in metas:
@@ -83,7 +88,7 @@ def video_checks():
     actual={(v['scene'],v['kind'],v['rate']) for v in items}
     assert len(items)==len(actual),'视频清单含重复的场景／类型／速度组合'
     assert actual==expected,{'missing':sorted(expected-actual),'unexpected':sorted(actual-expected)}
-    for item in items+family:
+    for item in items+family+reproductions+peel:
         assert item['version']==VERSION and item['code_hash']==code_hash(),item['file']
         p=path.parent/item['file']
         data=json.loads(subprocess.check_output(['C:/ffmpeg/bin/ffprobe.exe','-v','error','-select_streams','v:0','-count_frames','-show_entries','stream=width,height,r_frame_rate,avg_frame_rate,nb_read_frames,duration,codec_name,pix_fmt,color_space','-of','json',str(p)],text=True))['streams'][0]
@@ -98,13 +103,13 @@ def video_checks():
         cap.release()
         assert decoded[0]['sha256']!=decoded[1]['sha256'],p
         assert all(f['mean']>4 for f in decoded),p
-        half=next((v for v in items if v['scene']==item['scene'] and v['kind']==item['kind'] and v['rate']==.5),None)
+        half=next((v for v in items+family+reproductions+peel if v['file']==item['file'].replace('-1x.mp4','-0.5x.mp4')),None)
         if item['rate']==1 and half:
             assert half['frames']==2*item['frames'],(item,half)
         results.append({'file':item['file'],'probe':data,'decoded_samples':decoded})
         print('视频检查通过',item['file'],flush=True)
-    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'family_count':len(family),'expected_final':len(expected),'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
-    print(len(items)+len(family),'个本轮视频检查通过',flush=True)
+    (HERE/'analysis/video-qa.json').write_text(json.dumps({'version':VERSION,'code_hash':code_hash(),'count':len(items),'family_count':len(family),'reproduction_count':len(reproductions),'peel_count':len(peel),'expected_final':len(expected),'videos':results},ensure_ascii=False,indent=2),encoding='utf-8')
+    print(len(items)+len(family)+len(reproductions)+len(peel),'个本轮视频检查通过',flush=True)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--videos',action='store_true');a=p.parse_args()

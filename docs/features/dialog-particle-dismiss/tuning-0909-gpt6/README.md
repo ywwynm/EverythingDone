@@ -1,21 +1,27 @@
-# 粒子消散：弧边展开与触点远近
+# 粒子消散：修正共同剥离场的内部孤立细缕
+
+最新诊断和实现见[内部细缕定位记录](../filament-localization-2026-09-12.md)。上次扩大随机响应没有消除宽材料带被压成窄线的共同机制，本轮加入连续的局部压缩反馈；`videos/peel-compression.html` 包含原录像准确定位图及 12 组完整画面修复对照。固定材料来源回归脚本为 `analysis/verify_peel_compression.py`，实际双设备检查入口为 `analysis/run_peel_device_checks.py`。
 
 当前桌面预览、导出与 Android 弹窗消失使用同一套材料生成规则、确定性随机算法、综合引导场和微片着色器。正式路径不读取人物专用的 `profile.json`、`flow-profile.json`，不会根据场景名称选择释放或寿命参数。
 
 已提交基线从用户认可的观测运动控制组提炼出共同释放场和速度场。后续停滞修复处理把静态背景和无观测区当成零速度的问题，延续相邻流动并平滑接缝。所有输入共用这些资源，尺寸、触点位置、源图材质和随机种子决定差异。该模型学习了参考的形态，不等于华为内部物理实现或逐帧复刻。
 
-本轮加入局部解除边界的短时法向展开，使横向弧边逐渐弯出，并保留下方拖尾；该速度随颗粒年龄衰减，随后继续共同流动。真实触点按该方向可用的屏幕背景范围归一化，在 0.55～1.45 内同时改变相对出生位置的实际位移和实际速度，默认系数为 1。共同运动在材料坐标中积分，再换算为真实状态，避免只改场速度却仍产生相近的密集轮廓。共同速度场、释放基底、随机布局和寿命未更换。共同场与可信度仍为 996 KiB，两端显式插值。详见[本轮诊断与验证](../rim-flow-2026-09-11.md)。[此前弧边分离](../curve-split-2026-09-11.md)、[共同形态](../flow-family-2026-09-11.md)和[被否决的强汇聚候选](../targeted-release-2026-09-11.md)保留历史结果。
+当前版本处理用户三段真机录像中的早期斜线、弯月细缕及后段聚集：剥离响应采用独立随机量，平均力度不变；同时用整数散列统一桌面和 Android 的颗粒网格，消除 GPU 三角函数近似造成的覆盖差异。完整动画留出帧结构误差下降约 1.91%，原始 RGB 误差上升约 0.25%，尚未达到对华为近像素一致。运行端没有人物专用遮罩、诊断像素框或逐帧轮廓。详见[本轮诊断与验证](../device-filament-origins-2026-09-12.md)。
+
+阿里云更新 `202609120532` 已发布，两台指定设备已安装发布包并复测。170 视频、18 组设备素材对照、真实关闭及远端 APK 身份由 `analysis/device-filament-origins/acceptance.json` 记录。
+
+此前的弧边展开、随机起始区域、自由边界连续流动和触点远近响应继续保留。真实触点按该方向可用屏幕背景归一化，在 0.55～1.45 内同时改变相对出生位置的位移和速度，默认系数为 1，不形成目标吸收点。共同场与可信度仍为 996 KiB，两端显式插值。[此前弧边分离](../curve-split-2026-09-11.md)、[共同形态](../flow-family-2026-09-11.md)和[被否决的强汇聚候选](../targeted-release-2026-09-11.md)保留历史结果。
 
 ## 审阅结果
 
 - `videos/index.html`：本机审阅页，按场景、类型和速度筛选，支持逐帧与循环。
-- `videos/`：158 个本轮 H.264 视频，全部平铺；原有 128 个视频、16 个共同形态及整体局部对照、新增 2 个弧边放大和 12 个单方向近远视频。18 场景双速度动画／对照，钢铁侠、两种附件背景和颜色弹窗八方向同屏。
-- `videos/rim-flow.html`：本轮重点入口。弧边放大三栏，以及钢铁侠、附件、颜色的左上／向上近中远对照；近远可以保持进度与显示位置即时切换。
+- `videos/`：170 个本轮 H.264 视频，全部平铺；128 个主要视频、36 个补充视频、6 个真实弹窗素材的修复前后视频。保留 18 场景双速度动画／对照，以及钢铁侠、两种附件背景和颜色弹窗八方向同屏。
+- `videos/rim-flow.html`：本轮重点入口。先看三组真实弹窗素材的修复前后，再看钢铁侠完整画面、原始像素与结构差、局部弧边和近中远对照。原录像种子未知，前三组使用相同素材复现相近释放布局，不声称逐粒子重放。
 - `videos/flow-family.html`：四参考、三素材共同输入、双方向三距离、八方向和此前模型对照，均已更新为本轮模型。
 - `viewer.py`：18 场景实时预览，点击画面改变触点方向和距离，也可独立调节边缘外距离；默认每轮变化，可固定种子。
 - `videos/flow-continuation.html`：九个重点输入的前后慢放，包含画廊实际种子、用户补充位置及上下左右代表方向。
 - `analysis/motion-field-extension/`：全部 226 组标注和 7 个画廊输入的状态对照、853 条长标线及四个额外输入的回归记录。没有重渲染全部标注视频。
-- `device-rim-flow*/`：本轮 13 组独立建材与 GPU 对照，含常规、三组形态输入及近远距离；真实弹窗近远、返回和层清理也单独验证。9018f404 可用，R5CW20BLNKL 因 USB 调试未授权待补；离屏 GPU 图像与实际屏幕显示不能互相替代。`device-curve-split*/` 为上一轮结果。
+- `device-release-distribution/`：两台指定设备各九组输入的独立建材与 GPU 对照，包含三份用户录像素材、早期 0.25 和后段 0.667 进度、实际网格随机值，以及真实弹窗近远、返回和层清理。旧设备目录属于历史结果，离屏 GPU 图像与实际屏幕显示不能互相替代。
 - `analysis/model-qa.json`、`video-qa.json`：本轮起止帧、方向与视频容器检查。旧 `trajectory-qa.json`、`analysis/random-variation/` 与 `device-variation/` 属于此前验证。
 
 本轮优先看钢铁侠 0.43～0.65 的横向弧边与下方拖尾，再联合检查四参考及三素材四组形态。示例种子经观测筛选，用于展示可能性，不计作留出；运行时按共同随机规则生成。距离触点全部在素材所示手机屏幕内、控件外；高弹窗的实际斜向角度由坐标反推。钢铁侠两方向近／中／远的中位实际位移约为短边 0.14／0.20／0.27；这些数字只作回归记录，验收页提供同尺度播放与同位置切换。返回键仍使用左上与默认强度。固定视频重播保持同一组种子，桌面预览与 Android 每次关闭生成新实例。
@@ -26,7 +32,7 @@
 
 此前八个输入（独立自然照片、深色文字面板、宽白面板、窄长列表、透明渐变镂空、真实长通知、咖啡照片和有色面板）转为回归集，不重复计作全新素材。
 
-此前冻结后加入的灰度照片和横向浅暖弹窗，与其余八个留出素材作为十个回归输入，不再次计为全新素材。当前模型指纹为 `44209ed629b9404b1663e7b70c0aeb2f25200b19f06cf419d1b7c1052ac6eb6f`。本轮 234 组状态、18 个屏幕内距离输入、13 个跨语言单测和 13 组设备对照位于 `analysis/rim-flow/`；没有重新渲染 226 组历史标注视频。
+此前冻结后加入的灰度照片和横向浅暖弹窗，与其余八个留出素材作为十个回归输入，不再次计为全新素材。当前模型指纹为 `fb6958ec803fce91e52368e0e08b90df9d5093ac0bc667832cc9d2344fbbc314`。本轮 234 组状态、18 个屏幕内距离输入、14 个跨语言单测、12 组标准设备对照和 6 组录像素材设备对照位于 `analysis/device-filament-origins/`；没有重新渲染 226 组历史标注视频。发布包身份与复测结果由该目录的 `acceptance.json` 绑定。
 
 通知背景来自后续无通知帧的仿射配准与模糊估计，亮度、透视和边缘仍有重建误差。它验证前景材质适用性，不作为真实隐藏背景或华为运动一致性的证据。其余构造背景也有明确标记。
 
@@ -48,6 +54,10 @@
 | `curve-split` | 钢铁侠整体与局部放大，参考／调整前／当前三栏 | 2 |
 | `rim-detail` | 钢铁侠横向弧边固定区域放大，参考／调整前／当前三栏 | 2 |
 | `distance-focus` | 三素材、左上和向上各近中远单行对照，两个速度 | 12 |
+| `surface-whole` | 钢铁侠完整画面，参考／调整前／当前三栏 | 2 |
+| `upper-corner` | 钢铁侠左上角的同位置对照 | 2 |
+| `pixel-difference` | 钢铁侠参考、共同模型、原始 RGB 差与结构差 | 2 |
+| `dialog-release-filament` | 三份用户真机素材的修复前后，两个速度 | 6 |
 
 模型基准为 1 秒，开头停留 0.35 秒、结尾 0.50 秒。普通视频分别长 1.85 秒、3.70 秒。模型以 120 Hz 保存时刻，0.5 倍视频使用中间时刻；全部视频以 60 帧/秒编码。参考侧只使用原片已有帧。
 
@@ -67,13 +77,15 @@ analysis/build_flow_family_review.py
 analysis/build_rim_review.py
 verify.py
 verify.py --videos
-analysis/evaluate_rim_flow.py
-analysis/evaluate_rim_flow.py --all-cases
-analysis/review_flow_family.py --output analysis/rim-flow
-analysis/final_rim_flow.py
+analysis/export_release_filament_review.py
+analysis/verify_release_distribution.py
+analysis/final_frame_calibration.py --analysis-dir device-filament-origins --device-dir device-release-distribution
+analysis/final_frame_calibration.py --analysis-dir device-filament-origins --device-dir device-release-distribution --published
 ```
 
 可用 `export_videos.py --scenes kobe --kinds comparison --rates 1 .5` 单独导出一组。导出清单记录完整素材与代码散列；更改素材后须重新生成对应验收清单，不能只改标记。
+
+`analysis/common-shape-calibration.json` 保存本轮有限尺度校准系数及资源身份；该轻量参数记录入库，原始参考、搜索记录、差异图、视频和设备大产物继续忽略。只调整差异视频说明或统计区域时，可用 `analysis/export_flow_family.py --pixel-only` 重导两个文件；模型改变后必须完整重导。
 
 `export_android.py` 从当前桌面着色器导出 GLES 资源，并生成仅包含 PNG、尺寸、方向和种子的设备输入。`analysis/generate_unified_fixtures.py` 生成 JVM 跨语言回归材料。Android 读取仓库 `shared/particle-dismiss/` 下的规则和资源，不依赖桌面素材。
 
