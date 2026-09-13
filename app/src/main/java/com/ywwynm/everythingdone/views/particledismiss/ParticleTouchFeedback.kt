@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import java.util.concurrent.locks.LockSupport
 
-/** 真实反馈结束之前只准备粒子，不把尚在扩散的波纹冻结进快照。 */
+/** 保留源控件的真实反馈并捕获干净快照；源窗口消散等待反馈，独立出现可并行播放。 */
 internal class ParticleTouchFeedback private constructor(
     private val activity: Activity,
     private val root: View,

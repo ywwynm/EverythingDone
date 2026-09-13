@@ -42,6 +42,7 @@ internal class ParticleDismissOverlay(
     private var presentedProgress = 0f
     private val releaseListeners = mutableListOf<Runnable>()
     private var releaseFrameRate: (() -> Unit)? = null
+    internal val textureTimings = java.util.Collections.synchronizedList(mutableListOf<LongArray>())
     internal val isDisappearance get() = !spec.reverse
 
     internal fun afterRelease(action: Runnable) {
@@ -56,6 +57,22 @@ internal class ParticleDismissOverlay(
     private val preparation = ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
 
     private val isCondense get() = spec.reverse
+
+    // ViewRootImpl 在开始 draw 之前收集提交回调；TextureView 的 updated 通知
+    // 在 draw 内才发出，此时登记会落到下一帧。预绘制登记才能交接当前消费的缓冲。
+    private val frameObserver = android.view.ViewTreeObserver.OnPreDrawListener {
+        val surface = textureView.surfaceTexture
+        if (!finished && surface != null && android.os.Build.VERSION.SDK_INT >= 29 && isHardwareAccelerated) {
+            viewTreeObserver.registerFrameCommitCallback {
+                val timestamp = runCatching { surface.timestamp }.getOrDefault(0L)
+                val committedAt = System.nanoTime()
+                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) textureTimings += longArrayOf(1, committedAt, timestamp)
+                if (Looper.myLooper() == Looper.getMainLooper()) onTextureFrameCommitted(timestamp, committedAt)
+                else mainHandler.post { onTextureFrameCommitted(timestamp, committedAt) }
+            }
+        }
+        true
+    }
 
     init {
         isClickable = false
@@ -96,6 +113,7 @@ internal class ParticleDismissOverlay(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        viewTreeObserver.addOnPreDrawListener(frameObserver)
         releaseFrameRate = ParticleWindowFrameRate.hold((context as Activity).window)
         // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
         // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
@@ -106,6 +124,7 @@ internal class ParticleDismissOverlay(
 
     override fun onDetachedFromWindow() {
         finished = true
+        if (viewTreeObserver.isAlive) viewTreeObserver.removeOnPreDrawListener(frameObserver)
         releaseFrameRate?.invoke(); releaseFrameRate = null
         renderer?.cancel()
         mainHandler.removeCallbacksAndMessages(null)
@@ -157,15 +176,10 @@ internal class ParticleDismissOverlay(
 
     override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
         if (finished) return
-        // 此通知发生在 UI 更新 TextureLayer 时，RenderThread 可能尚未取走新缓冲。
-        // 等承载窗口本帧提交后再读取时间戳，不能把上一帧误当成这次更新。
-        if (android.os.Build.VERSION.SDK_INT >= 29 && isHardwareAccelerated) {
-            viewTreeObserver.registerFrameCommitCallback {
-                val timestamp = runCatching { surface.timestamp }.getOrDefault(0L)
-                val committedAt = System.nanoTime()
-                mainHandler.post { onTextureFrameCommitted(timestamp, committedAt) }
-            }
-        } else postOnAnimation { onTextureFrameCommitted(runCatching { surface.timestamp }.getOrDefault(0L), System.nanoTime()) }
+        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) textureTimings += longArrayOf(0, System.nanoTime(), surface.timestamp)
+        if (android.os.Build.VERSION.SDK_INT < 29 || !isHardwareAccelerated) {
+            postOnAnimation { onTextureFrameCommitted(runCatching { surface.timestamp }.getOrDefault(0L), System.nanoTime()) }
+        }
         textureView.postInvalidateOnAnimation()
     }
 

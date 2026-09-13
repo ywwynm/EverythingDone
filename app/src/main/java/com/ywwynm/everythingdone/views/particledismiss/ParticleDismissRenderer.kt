@@ -50,7 +50,7 @@ internal class ParticleDismissRenderer(
     internal fun framePresented(timestamp: Long, committedAt: Long) {
         synchronized(presentationSignal) {
             if (com.ywwynm.everythingdone.BuildConfig.DEBUG && timestamp > presentedFrameNanos) {
-                // 记录窗口提交的时间及主线程接收时间，不能把消息排队算成屏幕丢帧。
+                // 记录提交回调到达及交接处理时刻；显示间隔还需结合系统跟踪核对。
                 presentedTimings += longArrayOf(timestamp, committedAt, System.nanoTime())
             }
             presentedFrameNanos = maxOf(presentedFrameNanos, timestamp)
@@ -137,12 +137,10 @@ internal class ParticleDismissRenderer(
     }
 
     private fun renderAnimation(): Boolean {
-        // 源窗口从反馈结束到首帧呈现之间仍需优先完成交接。若等首帧才登记，
-        // ripple 释放优先级的空档会让下一窗口把剩余逆算一次排入 GPU，拖住 HWUI。
-        if (!spec.reverse) {
-            ParticleGpuWork.beginPlayback()
-            playbackActive = true
-        }
+        // 准备阶段宿主也在绘制、切换窗口。没有 ripple 的出现同样要限制在途
+        // 逆算批次，不能等粒子首帧才登记、让整段计算先占满 GPU 队列。
+        ParticleGpuWork.beginPlayback()
+        playbackActive = true
         val prepareStart = System.nanoTime()
         return ParticleMicroflakeRenderer(assets, viewportWidth, viewportHeight).use { renderer ->
             renderer.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
@@ -160,10 +158,6 @@ internal class ParticleDismissRenderer(
                     "准备耗时 ${(System.nanoTime() - prepareStart) / 1e6} ms，GLES ${GLES30.glGetString(GLES30.GL_VERSION)}")
             }
             val first = {
-                if (!playbackActive) {
-                    ParticleGpuWork.beginPlayback()
-                    playbackActive = true
-                }
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                     val stage = if (spec.reverse) "出现启动" else "启动阶段"
                     android.util.Log.i(ParticleMicroflakeRenderer.TAG,
@@ -179,8 +173,10 @@ internal class ParticleDismissRenderer(
                 lastFrameNanos = timestamp
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) submittedTimings += longArrayOf(timestamp, System.nanoTime())
             }
+            // 出现窗口与触摸所在窗口各自呈现；准备完成即可播放，反馈仍保留 GPU 优先级。
+            // 等反馈结束只适用于要移除反馈本体的消散，不能串行化工具栏反馈与新窗口出现。
             val completed = if (spec.reverse) renderer.playReverse(spec.playbackDurationS, spec.durationScale, refreshRate,
-                { cancelled }, first, { touchFeedback?.awaitPlayback { cancelled } != false }, submitted)
+                { cancelled }, first, onSubmitted = submitted)
             else renderer.play(spec.durationScale, refreshRate, { cancelled }, first, submitted)
             drawTimings = renderer.drawTimings.toList()
             completed

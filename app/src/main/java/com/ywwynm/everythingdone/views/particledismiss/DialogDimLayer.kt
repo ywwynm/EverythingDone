@@ -71,7 +71,10 @@ internal class DialogDimLayer private constructor(private val view: View) {
             if (activity.isFinishing || activity.isDestroyed) return null
             val decor = activity.window?.decorView as? ViewGroup ?: return null
             if (!decor.isAttachedToWindow) return null
-            val view = View(activity).apply {
+            // 唯一内容是纯黑背景，alpha 可直接作用于颜色；没有需要先合成的重叠子内容。
+            val view = object : View(activity) {
+                override fun hasOverlappingRendering() = false
+            }.apply {
                 setBackgroundColor(Color.BLACK)
                 alpha = 0f
                 isClickable = false

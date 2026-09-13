@@ -18,6 +18,8 @@ import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.AddAttachmentDialogFragment
 import com.ywwynm.everythingdone.fragments.BaseDialogFragment
+import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolGlRenderer
@@ -42,7 +44,8 @@ class ParticleRepeatProbeActivity : Activity() {
         }
         application.registerActivityLifecycleCallbacks(RepeatProbe(application, output,
             intent.getStringExtra("kind") ?: "attachment", intent.getIntExtra("repeat", 8).coerceIn(1, 30),
-            intent.getBooleanExtra("capture", false), intent.getBooleanExtra("menu", true)))
+            intent.getBooleanExtra("capture", false), intent.getBooleanExtra("menu", true),
+            intent.getBooleanExtra("system_input", false), intent.getStringExtra("close") ?: "back"))
         startActivity(DetailActivity.getOpenIntentForUpdate(this, "ParticleRepeatProbe", thing.id, -1))
         finish()
     }
@@ -55,11 +58,14 @@ private fun field(owner: Any, name: String): Any? = try {
 }
 
 private class RepeatProbe(val app: Application, val output: File, val kind: String, val rounds: Int,
-                          val capture: Boolean, val menu: Boolean) : Application.ActivityLifecycleCallbacks {
+                          val capture: Boolean, val menu: Boolean, val systemInput: Boolean,
+                          val closeMode: String) : Application.ActivityLifecycleCallbacks {
     private val handler = Handler(Looper.getMainLooper())
     private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var host: DetailActivity? = null
-    private var source: AddAttachmentDialogFragment? = null
+    private var source: BaseDialogFragment? = null
+    private var commandSequence = 0
+    private val rippleFrames = JSONArray()
     private var cycle = 0
     private var stage = 0
     private var stageAt = 0L
@@ -85,7 +91,9 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
     private fun event(name: String) { events.put(JSONObject().put("cycle", cycle).put("event", name).put("ms", time())) }
     private val fragments = object : FragmentManager.FragmentLifecycleCallbacks() {
         override fun onFragmentViewCreated(fm: FragmentManager, f: Fragment, v: View, state: Bundle?) {
-            if (f is AddAttachmentDialogFragment) source = f
+            if (f is AddAttachmentDialogFragment || f is ChooserDialogFragment) source = f as BaseDialogFragment
+            if (systemInput && f is BaseDialogFragment) f.dialog?.window?.let { observeInput(it) }
+            if (systemInput && f is BaseDialogFragment) f.dialog?.window?.decorView?.let { observeRipple(it, "dialog") }
             if (capture) visit(v) { if (it is WaveVisualizerFableSolGl) watchWave(it, cycle) }
         }
     }
@@ -95,6 +103,8 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
         host = a
         a.window.decorView.post {
             started = SystemClock.uptimeMillis()
+            if (systemInput) observeInput(a.window)
+            if (systemInput) observeRipple(a.window.decorView, "host")
             a.window.addOnFrameMetricsAvailableListener(windowListener, handler)
             a.supportFragmentManager.registerFragmentLifecycleCallbacks(fragments, false)
             open()
@@ -110,8 +120,16 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
         }
         stage = 0; stageAt = time(); event("open")
         source = null
-        if (menu) {
+        if (kind == "chooser") {
+            source = ChooserDialogFragment().apply {
+                setTitle("弹窗交接测试")
+                setItems(mutableListOf("第一项", "第二项", "第三项"))
+                setAccentBackground(a.getAccentBackground())
+                show(a.supportFragmentManager, "interaction-chooser")
+            }
+        } else if (menu) {
             val item = checkNotNull(a.findViewById<View>(R.id.act_add_attachment))
+            if (systemInput) { requestInput(item); return }
             val where = IntArray(2); item.getLocationInWindow(where)
             val x = where[0] + item.width / 2f; val y = where[1] + item.height / 2f
             val down = SystemClock.uptimeMillis()
@@ -129,6 +147,70 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
         action(v)
         if (v is ViewGroup) for (i in 0 until v.childCount) visit(v.getChildAt(i), action)
     }
+    private fun observeInput(window: android.view.Window) {
+        val original = window.callback
+        window.callback = object : android.view.Window.Callback by original {
+            override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+                if (event.actionMasked == MotionEvent.ACTION_UP) event("input-up")
+                return original.dispatchTouchEvent(event)
+            }
+            override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+                if (event.action == android.view.KeyEvent.ACTION_UP) event("key-up-${event.keyCode}")
+                return original.dispatchKeyEvent(event)
+            }
+        }
+    }
+    private fun requestInput(view: View? = null, action: String = "tap", point: Pair<Int, Int>? = null) {
+        val command = JSONObject().put("sequence", ++commandSequence).put("action", action)
+        if (view != null) command.put("resourceId", view.resources.getResourceName(view.id))
+        if (point != null) command.put("x", point.first).put("y", point.second)
+        writer.execute { File(output, "command.json").writeText(command.toString()) }
+    }
+    private fun closeDialog(dialog: android.app.Dialog) {
+        if (!systemInput) { (dialog as androidx.activity.ComponentDialog).onBackPressedDispatcher.onBackPressed(); return }
+        when (closeMode) {
+            "cancel", "confirm" -> requestInput(dialog.findViewById(if (closeMode == "cancel")
+                R.id.tv_cancel_as_bt_fragment_chooser else R.id.tv_confirm_as_bt_fragment_chooser))
+            "outside" -> {
+                val location = IntArray(2); dialog.window!!.decorView.getLocationOnScreen(location)
+                val visible = android.graphics.Rect(); host!!.window.decorView.getWindowVisibleDisplayFrame(visible)
+                check(location[1] > visible.top + 24) { "没有可点击的窗口外区域" }
+                requestInput(action = "tap", point = Pair(visible.centerX(), (visible.top + location[1]) / 2))
+            }
+            else -> requestInput(action = "back")
+        }
+    }
+    private fun rippleAlpha(root: View): Float {
+        var alpha = 0f
+        visit(root) { view ->
+            for (drawable in listOf(view.background, view.foreground)) {
+                if (drawable is GradientRippleDrawable) alpha = maxOf(alpha, field(drawable, "alphaFraction") as Float)
+            }
+        }
+        return alpha
+    }
+    private fun observeRipple(root: View, label: String) {
+        val observer = android.view.ViewTreeObserver.OnPreDrawListener {
+            val alpha = rippleAlpha(root)
+            val round = cycle
+            if (!done && alpha > 0f && root.isHardwareAccelerated) {
+                root.viewTreeObserver.registerFrameCommitCallback {
+                    val at = System.nanoTime()
+                    val record = Runnable { if (!done) rippleFrames.put(JSONArray(listOf(round, at, alpha, label))) }
+                    if (Looper.myLooper() == Looper.getMainLooper()) record.run() else handler.post(record)
+                }
+            }
+            true
+        }
+        root.viewTreeObserver.addOnPreDrawListener(observer)
+        root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+            override fun onViewDetachedFromWindow(v: View) {
+                if (v.viewTreeObserver.isAlive) v.viewTreeObserver.removeOnPreDrawListener(observer)
+                v.removeOnAttachStateChangeListener(this)
+            }
+        })
+    }
     private fun tick() {
         if (done) return
         try {
@@ -143,6 +225,7 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
                 rows += row
                 overlay.afterRelease {
                     row.put("removedMs", time())
+                    row.put("texture", synchronized(overlay.textureTimings) { JSONArray(overlay.textureTimings.map { JSONArray(it.toList()) }) })
                     val renderer = field(overlay, "renderer") as? ParticleDismissRenderer
                     renderer?.let { r ->
                         row.put("submitted", synchronized(r.submittedTimings) { JSONArray(r.submittedTimings.map { JSONArray(it.toList()) }) })
@@ -152,14 +235,19 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
                 }
             }
             samples.put(JSONObject().put("ms", time()).put("ns", System.nanoTime()).put("cycle", cycle).put("stage", stage)
+                .put("rippleAlpha", rippleAlpha(root))
                 .put("heap", Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
                 .put("nativeHeap", android.os.Debug.getNativeHeapAllocatedSize()))
             val elapsed = time() - stageAt
-            if (stage == 0 && elapsed > 1300 && active.isEmpty() && source?.dialog?.window?.attributes?.alpha == 1f) {
+            if (stage == 0 && elapsed > 1300 && active.isEmpty() && source?.dialog?.window?.attributes?.alpha == 1f
+                && source?.dialog?.window?.decorView?.hasWindowFocus() == true
+                && rows.lastOrNull()?.optLong("removedMs", 0L)?.let { it > 0L && time() - it > 120L } == true) {
                 event("close-or-record")
                 if (kind == "record") {
                     val dialog = source!!.dialog!!
                     val button = dialog.findViewById<View>(R.id.tv_record_audio_as_bt)
+                    if (systemInput) requestInput(button)
+                    else {
                     val where = IntArray(2); button.getLocationInWindow(where)
                     val x = where[0] + button.width / 2f; val y = where[1] + button.height / 2f
                     val down = SystemClock.uptimeMillis()
@@ -168,15 +256,20 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
                         MotionEvent.obtain(down, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y, 0)
                             .also { dialog.dispatchTouchEvent(it); it.recycle() }
                     }, 80)
-                } else (source!!.dialog as androidx.activity.ComponentDialog).onBackPressedDispatcher.onBackPressed()
+                    }
+                } else closeDialog(source!!.dialog!!)
                 stage = 1; stageAt = time()
-            } else if (stage == 1 && elapsed > (if (kind == "record") 2600 else 1300) && active.isEmpty()) {
+            } else if (stage == 1 && elapsed > (if (kind == "record") 2600 else 1300) && active.isEmpty()
+                && source?.dialog?.isShowing != true) {
                 if (kind == "record") {
                     event("close-record")
-                    a.supportFragmentManager.fragments.filterIsInstance<BaseDialogFragment>().forEach { it.dismiss() }
+                    val record = a.supportFragmentManager.fragments.filterIsInstance<BaseDialogFragment>()
+                        .first { it.dialog?.isShowing == true }
+                    if (systemInput) closeDialog(record.dialog!!) else record.dismiss()
                 }
                 stage = 2; stageAt = time()
-            } else if (stage == 2 && elapsed > (if (kind == "record") 1200 else 200) && active.isEmpty()) {
+            } else if (stage == 2 && elapsed > (if (kind == "record") 1200 else 200) && active.isEmpty()
+                && a.supportFragmentManager.fragments.filterIsInstance<BaseDialogFragment>().none { it.dialog?.isShowing == true }) {
                 event("cycle-done")
                 cycle++
                 if (cycle >= rounds) { finish(null); return }
@@ -184,7 +277,7 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
                 seen.clear()
                 open()
             }
-            check(elapsed < 12000) { "窗口未完成：cycle=$cycle stage=$stage" }
+            check(elapsed < 20000) { "窗口未完成：cycle=$cycle stage=$stage" }
             Choreographer.getInstance().postFrameCallback { tick() }
         } catch (e: Throwable) { finish(e.stackTraceToString()) }
     }
@@ -243,6 +336,8 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
         val result = JSONObject().put("kind", kind).put("menu", menu).put("rounds", rounds).put("events", events)
             .put("samples", samples).put("overlays", JSONArray(rows))
             .put("windowFrames", windowRows)
+            .put("rippleFrames", rippleFrames).put("systemInput", systemInput).put("close", closeMode)
+            .put("remainingFrameRateVotes", (field(ParticleWindowFrameRate, "votes") as Map<*, *>).size)
             .put("waves", synchronized(waveRows) { JSONArray(waveRows) })
         if (error != null) result.put("error", error)
         writer.execute { File(output, "result.json").writeText(result.toString(2)) }

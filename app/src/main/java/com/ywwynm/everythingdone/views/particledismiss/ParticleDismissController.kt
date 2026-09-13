@@ -132,6 +132,7 @@ internal object ParticleDismissController {
         if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
         val hostDecor = activity.window.decorView as? ViewGroup ?: return false
         if (!hostDecor.isAttachedToWindow) return false
+        val releaseFrameRate = ParticleWindowFrameRate.holdTransition(activity.window, window)
         val feedback = ParticleTouchFeedback.begin(activity, decor)
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
@@ -150,9 +151,10 @@ internal object ParticleDismissController {
                         attachDismissOverlay(activity, hostDecor, decor, snapshot, touchInWindow,
                             onAnimationStarted, onOverlayShown,
                             requestedAtNanos, useDefaultTouchDistance,
-                            Runnable { releaseContent(); onDone?.run() }, feedback)
+                            Runnable { releaseContent(); releaseFrameRate(); onDone?.run() }, feedback)
                     } else {
                         releaseContent()
+                        releaseFrameRate()
                         snapshot?.recycle()
                         onAnimationStarted.run()
                         onOverlayShown.run()
@@ -320,6 +322,7 @@ internal object ParticleDismissController {
         if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
         val hostDecor = activity.window.decorView as? ViewGroup ?: return false
         appearancePreparations.remove(decor)?.run()
+        val releaseFrameRate = ParticleWindowFrameRate.holdTransition(activity.window, window)
         val appearanceFeedback = ParticleTouchFeedback.current(activity)
             ?: ParticleTouchFeedback.begin(activity, hostDecor)
         val prevAlpha = if (hideWindow) window.attributes.alpha else decor.alpha
@@ -341,7 +344,7 @@ internal object ParticleDismissController {
         val restore = Runnable {
             if (!handled) {
                 handled = true; removeListener(); appearancePreparations.remove(decor)
-                setAlpha(prevAlpha); releaseContent()
+                setAlpha(prevAlpha); releaseContent(); releaseFrameRate()
                 onAppearanceProgress?.invoke(1f)
             }
         }
@@ -388,6 +391,7 @@ internal object ParticleDismissController {
                             virtualTouchXPx = x + snapshot.width/2f + cos(angle)*reach,
                             virtualTouchYPx = y + snapshot.height/2f + sin(angle)*reach,
                             durationScale = animatorDurationScale(activity), hashSeed = (Math.random()*Int.MAX_VALUE).toInt(),
+                            requestedAtNanos = requestedAtNanos,
                             reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS)
                         var overlayRef: ParticleDismissOverlay? = null
                         val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
@@ -399,6 +403,7 @@ internal object ParticleDismissController {
                         }, touchFeedback = appearanceFeedback,
                             onPresentedProgress = onAppearanceProgress)
                         overlayRef = overlay
+                        overlay.afterRelease(Runnable { releaseFrameRate() })
                         onOverlayCreated(overlay)
                         hostDecor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
                     }
