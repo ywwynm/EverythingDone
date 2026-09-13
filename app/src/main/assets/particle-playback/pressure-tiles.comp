@@ -1,0 +1,26 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=16,local_size_y=16) in;
+layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
+layout(std430,binding=2) writeonly buffer B { float next_pressure[]; };
+layout(std430,binding=7) buffer Work { uvec4 workgroups; ivec2 tiles[]; };
+uniform ivec2 grid_shape;
+uniform int pass;
+shared uint occupied_tile;
+void main() {
+    uint lane=gl_LocalInvocationIndex;
+    if(pass==0) { if(lane==0u)workgroups=uvec4(0,1,1,0); return; }
+    ivec2 q=ivec2(gl_GlobalInvocationID.xy);
+    bool valid=all(lessThan(q,grid_shape));
+    if(valid)next_pressure[q.y*grid_shape.x+q.x]=0.;
+    if(pass==2)return;
+    if(lane==0u)occupied_tile=0u;
+    barrier();
+    if(valid && velocity[q.y*grid_shape.x+q.x].z>.025)atomicOr(occupied_tile,1u);
+    barrier();
+    if(lane==0u && occupied_tile!=0u) {
+        uint slot=atomicAdd(workgroups.x,1u);
+        tiles[slot]=ivec2(gl_WorkGroupID.xy);
+    }
+}

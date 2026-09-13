@@ -1,0 +1,57 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=16, local_size_y=16) in;
+layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
+layout(std430,binding=1) readonly buffer B { float old_pressure[]; };
+layout(std430,binding=2) writeonly buffer C { float new_pressure[]; };
+layout(std430,binding=7) readonly buffer Work { uvec4 workgroups; ivec2 tiles[]; };
+uniform ivec2 grid_shape;
+uniform int first_iteration;
+uniform int iterations;
+
+// 16×16 输出加八格边带，一次 dispatch 完成八次原始 Jacobi 迭代。
+// 边带逐次缩小；每个输出依赖的全部邻格均包含在当前工作组内。
+shared float p0[1024];
+shared float p1[1024];
+shared float divergence[1024];
+shared float occupied[1024];
+int at(ivec2 q) { q=clamp(q,ivec2(0),grid_shape-1); return q.y*grid_shape.x+q.x; }
+int local_at(ivec2 q, ivec2 origin) {
+    ivec2 l=clamp(q,ivec2(0),grid_shape-1)-origin;
+    return l.y*32+l.x;
+}
+void main() {
+    ivec2 origin=tiles[gl_WorkGroupID.x]*16-8;
+    int lane=int(gl_LocalInvocationIndex);
+    ivec2 X=ivec2(1,0), Y=ivec2(0,1);
+    for(int k=lane;k<1024;k+=256) {
+        ivec2 q=clamp(origin+ivec2(k%32,k/32),ivec2(0),grid_shape-1);
+        p0[k]=old_pressure[at(q)];
+        divergence[k]=(velocity[at(q+X)].x-velocity[at(q-X)].x+
+                       velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
+        occupied[k]=velocity[at(q)].z;
+    }
+    barrier();
+    for(int j=0;j<iterations;j++) {
+        for(int k=lane;k<1024;k+=256) {
+            ivec2 l=ivec2(k%32,k/32);
+            if(all(greaterThan(l,ivec2(j))) && all(lessThan(l,ivec2(31-j)))) {
+                ivec2 q=clamp(origin+l,ivec2(0),grid_shape-1);
+                int a=local_at(q+X,origin), b=local_at(q-X,origin);
+                int c=local_at(q+Y,origin), d=local_at(q-Y,origin);
+                float neighbours=(j%2==0)?p0[a]+p0[b]+p0[c]+p0[d]:p1[a]+p1[b]+p1[c]+p1[d];
+                if(first_iteration+j==0) neighbours*=.9;
+                float value=occupied[k]>.025?max((neighbours-divergence[k])*.25,0.):0.;
+                if(j%2==0) p1[k]=value; else p0[k]=value;
+            }
+        }
+        barrier();
+    }
+    ivec2 q=origin+8+ivec2(gl_LocalInvocationID.xy);
+    if(all(lessThan(q,grid_shape))) {
+        ivec2 l=ivec2(gl_LocalInvocationID.xy)+8;
+        int k=l.y*32+l.x;
+        new_pressure[at(q)]=(iterations%2==0)?p0[k]:p1[k];
+    }
+}

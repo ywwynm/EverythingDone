@@ -128,14 +128,14 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
-        if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_DISMISS_BIT != 0) {
+        if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and (PARTICLE_ANIMATION_SHOW_BIT or PARTICLE_ANIMATION_DISMISS_BIT) != 0) {
             ParticleDismissController.warmDismissModel(gestureDialog.context)
         }
         if (gestureDialog.dimLayer == null) {
             activity?.let { gestureDialog.dimLayer = DialogDimLayer.attach(it) }
         }
 
-        // 凝聚出现动画（约 320ms）：受子类开关与用户设置档位（bit0 = 出现）
+        // 出现动画以 0.6 秒倒放当前共同消散模型的完整轨迹：受子类开关与用户设置档位（bit0 = 出现）
         // 双重控制；重建恢复的实例不重播。窗口动画不置零：凝聚以 alpha=0
         // 隐藏面板、窗口全程正常显示，enter 动画（主题淡入或子类的底部滑入）
         // 在透明期内照常播完，不会挂起到凝聚结束才播（置零的旧方案会被子类

@@ -36,11 +36,9 @@ internal class ParticleDismissOverlay(
     private var doneFired = false
     private var animationStartedFired = false
     private var firstTexturePresented = false
-    private val preparation = if (spec.condenseFromT == null) {
-        ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
-    } else null
+    private val preparation = ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
 
-    private val isCondense get() = spec.condenseFromT != null
+    private val isCondense get() = spec.reverse
 
     init {
         isClickable = false
@@ -73,7 +71,7 @@ internal class ParticleDismissOverlay(
 
     private fun logicalDurationMs(): Long {
         val logicalDuration =
-            if (isCondense) spec.condenseDurationS else ParticleDismissRenderer.TOTAL_DURATION
+            if (isCondense) spec.playbackDurationS else ParticleDismissRenderer.TOTAL_DURATION
         return (logicalDuration * spec.durationScale * 1000).toLong()
     }
 
@@ -193,7 +191,7 @@ internal class ParticleDismissOverlay(
         (parent as? ViewGroup)?.removeView(this)
         snapshotView?.setImageDrawable(null)
         // 渲染线程可能仍持有 bitmap（纹理上传中途取消），活着时交给 GC 回收
-        if (renderer?.isAlive != true && preparation?.isFinished != false) {
+        if (renderer?.isAlive != true && preparation.isFinished) {
             spec.snapshot.recycle()
         }
     }

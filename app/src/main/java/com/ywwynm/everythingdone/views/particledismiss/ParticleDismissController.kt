@@ -33,9 +33,7 @@ import com.ywwynm.everythingdone.R
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.max
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
  * Dialog 粒子消散动画的入口与编排。
@@ -48,7 +46,7 @@ internal object ParticleDismissController {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
 
-    /** 首个弹窗展示期间预热数值代码与驱动首用编译，不保存用户快照。 */
+    /** 首个可见界面或弹窗展示后异步预热数值代码与驱动首用编译，不保存用户快照。 */
     fun warmDismissModel(context: Context) {
         if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
         Thread({
@@ -175,20 +173,6 @@ internal object ParticleDismissController {
         val visibleScreen = android.graphics.Rect()
         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
 
-        val density = decor.resources.displayMetrics.density
-        val cellPx = adaptiveCellPx(snapshot, density)
-
-        // 波前起点允许落在快照之外：点击 Dialog 外部时，波前从真实触点方向的
-        // 边缘先咬入（限幅只防极端值）
-        val waveOriginUv = if (touchInWindow != null) {
-            PointF(
-                (touchInWindow.x / decor.width).coerceIn(-0.5f, 1.5f),
-                (touchInWindow.y / decor.height).coerceIn(-0.5f, 1.5f)
-            )
-        } else {
-            PointF(0.5f, 0.78f)
-        }
-
         // 消散主方向严格朝直接因果触点。真实方向不设置宽阈值：只在向量
         // 数值上无法归一化时回退。所有无触点关闭统一从正上向右偏 30°，
         // 即右上但仍以上行为主。
@@ -210,32 +194,14 @@ internal object ParticleDismissController {
         val centerY = originY + snapshot.height / 2f
         val virtualTouchX = centerX + cos(tiltRadians) * reach
         val virtualTouchY = centerY + sin(tiltRadians) * reach
-        // 光源平面位置严格使用真实触点；无触点时才与右上虚拟运动目标重合。
-        // 触点恰在中心时运动方向回退右上，但光源仍留在该真实触点。
-        val lightX = touchInWindow?.let { originX + it.x } ?: virtualTouchX
-        val lightY = touchInWindow?.let { originY + it.y } ?: virtualTouchY
         val spec = ParticleDismissSpec(
             snapshot = snapshot,
             originXPx = originX.toFloat(),
             originYPx = originY.toFloat(),
-            cellPx = cellPx,
-            driftPx = DRIFT_DP * density,
-            noiseScalePx = NOISE_SCALE_DP * density,
-            flarePx = FLARE_DP * density,
-            pinchMaxPx = PINCH_MAX_DP * density,
             virtualTouchXPx = virtualTouchX,
             virtualTouchYPx = virtualTouchY,
-            lightXPx = lightX,
-            lightYPx = lightY,
-            waveOriginUv = waveOriginUv,
-            spreadTime = ParticleDismissRenderer.SPREAD_TIME,
-            delayJitter = ParticleDismissRenderer.DELAY_JITTER,
-            waveWarp = ParticleDismissRenderer.WAVE_WARP,
             durationScale = animatorDurationScale(dialog.context),
-            noiseSeedX = (Math.random() * 1024.0).toFloat(),
-            noiseSeedY = (Math.random() * 1024.0).toFloat(),
             hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
-            panelColor = dominantColor(snapshot),
             requestedAtNanos = requestedAtNanos,
             touchGap = if (useDefaultTouchDistance || touchInWindow == null) null else
                 ParticleFlowGeometry.touchGap(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat()),
@@ -294,10 +260,8 @@ internal object ParticleDismissController {
         (ParticleDismissRenderer.TOTAL_DURATION * 1000).toLong()
 
     /**
-     * 为 [dialog] 播放凝聚出现动画（约 320ms）：面板布局完成但首帧显示前抓
-     * 快照并隐藏面板，粒子以"缕缕烟云"随机顺序凝实（波前权重极低、区域噪声
-     * 与逐粒子抖动主导——不从四周向中心收拢、无中心空洞）、静止层逐格显现，
-     * 末帧为完整原图后恢复真实面板显示——切换无缝。
+     * 为 [dialog] 倒序播放当前共同消散模型：保持完整一秒轨迹、每次随机材料。
+     * 先完成首次绘制准备再抓取最终配色，末帧恢复完整原图和真实面板。
      *
      * 返回 true 表示已接管（面板已置透明，动画结束或任何失败路径都会恢复，
      * 附兜底）。[onOverlayCreated] 在动画层创建时回调，调用方应持有引用并在
@@ -309,6 +273,7 @@ internal object ParticleDismissController {
         dialog: Dialog,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
+        val requestedAtNanos = System.nanoTime()
         if (Looper.myLooper() != Looper.getMainLooper()) return false
         if (!ValueAnimator.areAnimatorsEnabled()) return false
         val window = dialog.window ?: return false
@@ -332,29 +297,59 @@ internal object ParticleDismissController {
         val prevAlpha = decor.alpha
         decor.alpha = 0f
         var handled = false
+        var captureQueued = false
+        var layoutRetries = 0
+        var preparationListener: ViewTreeObserver.OnPreDrawListener? = null
+        fun removePreparationListener() {
+            preparationListener?.let { listener ->
+                if (decor.viewTreeObserver.isAlive) decor.viewTreeObserver.removeOnPreDrawListener(listener)
+            }
+            preparationListener = null
+        }
         val restore = Runnable {
             if (!handled) {
                 handled = true
+                removePreparationListener()
                 decor.alpha = prevAlpha
             }
         }
-        decor.viewTreeObserver.addOnPreDrawListener(
-            object : ViewTreeObserver.OnPreDrawListener {
-                override fun onPreDraw(): Boolean {
-                    decor.viewTreeObserver.removeOnPreDrawListener(this)
-                    if (handled) return true
-                    if (decor.width <= 0 || decor.height <= 0 ||
+        preparationListener = object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (handled || captureQueued) return true
+                captureQueued = true
+                // 子 TextView 的渐变也在 pre-draw 中按最终文字布局初始化。
+                // 当前监听器可能先于子树合并进来的监听器执行；此时同步抓图
+                // 会把临时纯色固化到整个出现动画。排到本次遍历结束后，先让
+                // 全部配色与布局准备回调完成，不添加固定毫秒等待。
+                decor.post capture@{
+                    captureQueued = false
+                    if (handled) return@capture
+                    if (!dialog.isShowing || !decor.isAttachedToWindow ||
+                        decor.width <= 0 || decor.height <= 0 ||
                         containsLiveSurface(decor) || !hostDecor.isAttachedToWindow
                     ) {
                         restore.run()
-                        return true
+                        return@capture
                     }
+                    // 限高、分隔线和间距可能在 post 中继续请求布局。此时尺寸和
+                    // 窗口居中位置仍是中间结果；只对这类弹窗等待下一次真正布局。
+                    if (hasPendingLayout(decor) || decor.parent?.isLayoutRequested == true) {
+                        layoutRetries++
+                        return@capture
+                    }
+                    removePreparationListener()
+                    val captureAtNanos = System.nanoTime()
                     val snapshot = captureSnapshot(decor, dialog.context)
+                    if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                        android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+                            "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
+                    }
                     if (snapshot == null) {
                         restore.run()
-                        return true
+                        return@capture
                     }
                     handled = true
+                    decor.removeCallbacks(restore)
 
                     val dialogLocation = IntArray(2)
                     val hostLocation = IntArray(2)
@@ -363,42 +358,21 @@ internal object ParticleDismissController {
                     val originX = dialogLocation[0] - hostLocation[0]
                     val originY = dialogLocation[1] - hostLocation[1]
 
-                    val density = decor.resources.displayMetrics.density
-                    // 凝聚无触点：波前起点取面板中心（权重已极低）、主方向向上
-                    // 带随机倾斜、位移减半（就近轻盈飘入）
-                    val tiltRadians = Math.toRadians(
-                        -90.0 + (Math.random() * 2.0 - 1.0) * DRIFT_TILT_DEG
-                    ).toFloat()
+                    // 出现没有关闭触点：倒放下方扇区内的共同消散轨迹。
+                    // 每次使用新种子，其余尺寸、材质、距离规则与消散一致。
+                    val angle = Math.toRadians(-ParticleAppearanceDirection.degrees(Math.random()).toDouble()).toFloat()
                     val reach = VIRTUAL_TOUCH_FACTOR *
                         hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
                     val spec = ParticleDismissSpec(
                         snapshot = snapshot,
                         originXPx = originX.toFloat(),
                         originYPx = originY.toFloat(),
-                        cellPx = adaptiveCellPx(snapshot, density),
-                        driftPx = DRIFT_DP * density * CONDENSE_DRIFT_FACTOR,
-                        noiseScalePx = NOISE_SCALE_DP * density,
-                        flarePx = FLARE_DP * density,
-                        pinchMaxPx = PINCH_MAX_DP * density,
-                        virtualTouchXPx = originX + snapshot.width / 2f +
-                            cos(tiltRadians) * reach,
-                        virtualTouchYPx = originY + snapshot.height / 2f +
-                            sin(tiltRadians) * reach,
-                        lightXPx = originX + snapshot.width / 2f +
-                            cos(tiltRadians) * reach,
-                        lightYPx = originY + snapshot.height / 2f +
-                            sin(tiltRadians) * reach,
-                        waveOriginUv = PointF(0.5f, 0.5f),
-                        spreadTime = CONDENSE_SPREAD_TIME,
-                        delayJitter = CONDENSE_DELAY_JITTER,
-                        waveWarp = CONDENSE_WAVE_WARP,
+                        virtualTouchXPx = originX + snapshot.width / 2f + cos(angle) * reach,
+                        virtualTouchYPx = originY + snapshot.height / 2f + sin(angle) * reach,
                         durationScale = animatorDurationScale(dialog.context),
-                        noiseSeedX = (Math.random() * 1024.0).toFloat(),
-                        noiseSeedY = (Math.random() * 1024.0).toFloat(),
                         hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
-                        panelColor = dominantColor(snapshot),
-                        condenseFromT = CONDENSE_FROM_T,
-                        condenseDurationS = CONDENSE_DURATION_S
+                        reverse = true,
+                        playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS
                     )
                     // 先显后撤：凝聚末帧与真实面板逐像素相同，恢复面板可见后
                     // 等它确实上屏才移除动画层——跨窗口切换的任何一帧都无缝
@@ -422,59 +396,31 @@ internal object ParticleDismissController {
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
                     )
-                    return true
                 }
+                return true
             }
-        )
+        }
+        decor.viewTreeObserver.addOnPreDrawListener(preparationListener)
         // 兜底：preDraw 异常缺席时恢复显示，Dialog 不能一直不可见
         decor.postDelayed(restore, CONDENSE_RESTORE_TIMEOUT_MS)
         return true
     }
 
-    private fun adaptiveCellPx(snapshot: Bitmap, density: Float): Float {
-        var cellPx = max(2f, CELL_DP * density)
-        val estimated = (snapshot.width / cellPx) * (snapshot.height / cellPx)
-        if (estimated > ParticleDismissRenderer.MAX_PARTICLES) {
-            cellPx = sqrt(
-                snapshot.width.toFloat() * snapshot.height /
-                    ParticleDismissRenderer.MAX_PARTICLES
-            )
+    private fun hasPendingLayout(view: View): Boolean {
+        // GONE 子树可能保留 requestLayout 标记，却不参加本轮布局。
+        if (view.visibility == View.GONE) return false
+        if (view.isLayoutRequested) return true
+        if (view is ViewGroup) for (i in 0 until view.childCount) {
+            if (hasPendingLayout(view.getChildAt(i))) return true
         }
-        return cellPx
+        return false
     }
 
     /**
-     * 面板本体色 = 快照缩略图的众数色（每通道 16 级量化直方图峰值桶的平均），
-     * 作为内容色权重的参照。不依赖主题假设：自定义背景与暗色模式自动适配，
-     * 32×32 缩略统计为微秒级。
-     */
-    private fun dominantColor(snapshot: Bitmap): Int {
-        val scaled = Bitmap.createScaledBitmap(snapshot, 32, 32, false)
-        val pixels = IntArray(32 * 32)
-        scaled.getPixels(pixels, 0, 32, 0, 0, 32, 32)
-        if (scaled !== snapshot) scaled.recycle()
-        val counts = HashMap<Int, IntArray>()
-        for (pixel in pixels) {
-            if (pixel ushr 24 < 0x80) continue
-            val bucket = ((pixel shr 20) and 0xF00) or
-                ((pixel shr 12) and 0xF0) or ((pixel shr 4) and 0xF)
-            val entry = counts.getOrPut(bucket) { IntArray(4) }
-            entry[0]++
-            entry[1] += (pixel shr 16) and 0xFF
-            entry[2] += (pixel shr 8) and 0xFF
-            entry[3] += pixel and 0xFF
-        }
-        val best = counts.values.maxByOrNull { it[0] } ?: return 0xFFFFFFFF.toInt()
-        return (0xFF shl 24) or ((best[1] / best[0]) shl 16) or
-            ((best[2] / best[0]) shl 8) or (best[3] / best[0])
-    }
-
-    /**
-     * 凝聚场景的快照：面板首帧前 window surface 尚无内容，PixelCopy 返回
-     * ERROR_SOURCE_NO_DATA，离屏硬件渲染是唯一保真路径（clipToOutline 等由
-     * HWUI 应用；且首帧前的 View 走"全新录制"路径，不存在可见窗口场景下
-     * "引用既有 displayList"的陈旧问题——2026-08-26 调研结论）。失败回退
-     * 软件 draw（仅丢子 View 的 outline 裁剪，凝实末帧短暂可见）。
+     * 凝聚场景的快照：面板在准备阶段 alpha=0，不能从 window surface 复制
+     * 可见内容。首次绘制准备完成后通过离屏硬件绘制获取最终配色及裁剪；
+     * View.draw 不合成根 View 自身的 alpha，子节点按当前失效状态重新录制。
+     * 失败回退软件 draw（子 View 的 outline 裁剪不保留）。
      */
     private fun captureSnapshot(decor: View, context: Context): Bitmap? {
         return try {
@@ -607,54 +553,17 @@ internal object ParticleDismissController {
         return null
     }
 
-    /** 粒子网格步长；粒子总数超上限时自适应放大。第二十五轮细密化
-     * （1.5 -> 1.1，配合尺寸曲线收缩共约 -34%）：薄纱而非沙粒。 */
-    private const val CELL_DP = 1.1f
-
-    /** 粒子漂移总距离的基准（逐粒子再乘随机系数与流场调制）。 */
-    private const val DRIFT_DP = 210f
-
-    /** 烟缕流场的空间尺度：约为中等 Dialog 宽度的 1/3，缕成团不碎。 */
-    private const val NOISE_SCALE_DP = 120f
-
-    /** 外扩羽流幅度：部分区段的边缘粒子向外推出的距离。 */
-    private const val FLARE_DP = 90f
-
-    /** 收拢位移绝对上限：宽 Dialog 边缘不被一口气拉向中轴。 */
-    private const val PINCH_MAX_DP = 240f
-
     /** overlay 上屏探测的兜底时限：超时也放行真实 dismiss，Dialog 不能关不掉。 */
     private const val OVERLAY_SHOWN_TIMEOUT_MS = 100L
 
     /** PixelCopy 回调的兜底时限：部分设备回调可能不来，超时放行真实 dismiss。 */
     private const val PIXEL_COPY_TIMEOUT_MS = 500L
 
-    /** 凝聚起点（逻辑秒）：起点为稀薄散云，凝实从"近乎无"开始浮现。 */
-    private const val CONDENSE_FROM_T = 0.55f
-
-    /** 凝聚动画时长（逻辑秒）：与普通入场动画量级相当，不拖交互节奏。 */
-    private const val CONDENSE_DURATION_S = 0.32f
-
-    /** 凝聚的波前扫过时长：极小值 = 弱化中心性，无"从四周收向中心"的空洞。 */
-    private const val CONDENSE_SPREAD_TIME = 0.06f
-
-    /** 凝聚的逐粒子激活抖动：加大 = 凝实顺序随机化。 */
-    private const val CONDENSE_DELAY_JITTER = 0.20f
-
-    /** 凝聚的区域噪声扭曲：加大 = 斑块状"缕缕"凝实。 */
-    private const val CONDENSE_WAVE_WARP = 0.30f
-
-    /** 凝聚的位移缩放：减半 = 粒子就近轻盈飘入。 */
-    private const val CONDENSE_DRIFT_FACTOR = 0.55f
-
     /** 凝聚流程的兜底时限：preDraw 缺席也要恢复面板显示。 */
     private const val CONDENSE_RESTORE_TIMEOUT_MS = 150L
 
     /** 虚拟远触点距离 = 因子 × 快照对角线：越小方向汇聚感越强。 */
     private const val VIRTUAL_TOUCH_FACTOR = 1.1f
-
-    /** 主飘散方向的随机倾斜幅度（度）。 */
-    private const val DRIFT_TILT_DEG = 18.0
 
     /** 无触点或真实触点恰在中心时：从正上向右偏 30°。 */
     private val DEFAULT_DISMISS_ANGLE_RAD = Math.toRadians(-60.0).toFloat()

@@ -11,6 +11,13 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <!-- Debug 专用：比较真实弹窗的动画输入与显示完成后的配色。 -->
+        <activity
+            android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleAppearanceProbeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
+
         <!-- 调试包专用：同一生产渲染器的固定输入、像素与 GPU 状态验证。 -->
         <receiver
             android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleMicroflakeProbeReceiver"

@@ -58,7 +58,14 @@ with log_path.open('wb') as log:
         for round_number in range(a.repeat):
             for kind in ['outside', 'back', 'cancel', 'confirm']:
                 tap(by_id(dump('settings'), PREFIX + 'll_app_language_as_bt'))
-                tree = dump(f'{round_number}-{kind}-open')
+                # 长出现动画期间真实面板 alpha=0，UI dump 可能只含透明窗口根节点。
+                # 等真实内容可见再测常规关闭，快速返回另有不等待动画的独立用例。
+                visible_deadline = time.monotonic() + 8
+                while True:
+                    tree = dump(f'{round_number}-{kind}-open')
+                    if any(n.get('resource-id') == 'android:id/content' for n in tree.iter('node')):
+                        break
+                    assert time.monotonic() < visible_deadline, '出现结束后真实弹窗仍不可见'
                 content = by_id(tree, 'android:id/content')
                 previous = log_path.stat().st_size
                 if kind == 'back':

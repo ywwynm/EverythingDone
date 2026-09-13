@@ -96,23 +96,33 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         if (selected.isEmpty() || !running.compareAndSet(false, true)) return
         val scale = intent.getFloatExtra("scale", 1f).coerceIn(.5f, 2.5f)
         val referenceMaterial = intent.getBooleanExtra("referenceMaterial", false)
+        val reverseCheck = intent.getBooleanExtra("reverseCheck", false)
+        val reverseIntervals = intent.getIntExtra("reverseSamples", ParticleReversePlan.samplesFor(ParticleReversePlan.APPEARANCE_SECONDS, 60f)).coerceIn(1, 60)
+        val saveReverseFrames = intent.getBooleanExtra("saveReverseFrames", false)
+        val checkId = intent.getStringExtra("checkId") ?: "manual"
+        val direction = if (intent.hasExtra("direction")) intent.getFloatExtra("direction", 270f) else null
+        val seed = if (intent.hasExtra("seed")) intent.getLongExtra("seed", 909602L) else null
         val app = context.applicationContext
         Thread({
             val root = File(app.getExternalFilesDir(null), "particle-unified")
             val out = File(root, "generated").apply { mkdirs() }
             try {
-                fun renderSelected() { for (scene in selected) run(app, root, out, scene, scale) }
+                fun renderSelected() { for (scene in selected) run(app, root, out, scene, scale, reverseCheck, saveReverseFrames, checkId, direction, seed, reverseIntervals) }
                 if (referenceMaterial) ParticleMaterialNative.reference { renderSelected() } else renderSelected()
                 File(out, "done.json").writeText(JSONObject().put("scenes", JSONArray(selected)).put("ok", true).toString())
             } catch (error: Throwable) {
                 File(out, "error.txt").writeText(error.stackTraceToString())
+                File(out, "failed-check.json").writeText(JSONObject().put("checkId", checkId)
+                    .put("error", error.stackTraceToString()).toString())
                 Log.e("ParticleProbe", "验证失败", error)
             } finally { running.set(false) }
         }, "ParticleProbe").start()
     }
 
-    private fun run(context: Context, root: File, out: File, scene: String, scale: Float) {
+    private fun run(context: Context, root: File, out: File, scene: String, scale: Float, reverseCheck: Boolean, saveReverseFrames: Boolean, checkId: String, direction: Float?, seed: Long?, reverseIntervals: Int) {
         val meta = JSONObject(File(root, "$scene.json").readText())
+        if (direction != null) meta.put("direction", direction.toDouble())
+        if (seed != null) meta.put("seed", seed)
         val frame = meta.getJSONArray("frame"); val rect = meta.getJSONArray("rect")
         val fw = frame.getInt(0); val fh = frame.getInt(1)
         val width = (fw * scale).toInt(); val height = (fh * scale).toInt()
@@ -126,7 +136,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             ParticleMicroflakeModel.build(cardWidth.toFloat(), cardHeight.toFloat(), pixels, bitmap.width,
                 bitmap.height, meta.getDouble("direction").toFloat(), meta.getLong("seed"), rules)
         }
-        val report = JSONObject().put("scene", scene).put("generated", true).put("width", width).put("height", height)
+        val report = JSONObject().put("scene", scene).put("checkId", checkId).put("generated", true).put("width", width).put("height", height)
             .put("nativeMaterial", ParticleMaterialNative.enabled)
             .put("modelHash", JSONObject(context.assets.open("particle-dismiss/model.json").bufferedReader().use { it.readText() }).getString("model_hash"))
             .put("count", materials.count).put("modelMs", (System.nanoTime() - before) / 1e6).put("modelStages", JSONObject(materials.statistics))
@@ -154,6 +164,14 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         saveValues("materials", materials.values); saveValues("pigment", materials.pigment)
         saveValues("peel-compression", materials.peelCompression)
         withEgl(width, height) {
+            val forwardHashes = ArrayList<String>()
+            val reversePlan = ParticleReversePlan(materials.values, reverseIntervals)
+            fun frameHash(): String {
+                val buffer = ByteBuffer.allocateDirect(width * height * 4)
+                GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer)
+                return java.security.MessageDigest.getInstance("SHA-256").apply { update(buffer) }
+                    .digest().joinToString("") { "%02x".format(it) }
+            }
             report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER)).put("version", GLES30.glGetString(GLES30.GL_VERSION))
             saveValues("grid-jitter", readGridJitter(context, materials.columns + 1, materials.rows + 1))
             ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
@@ -162,10 +180,13 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 renderer.prepare(); GLES30.glFinish()
                 report.put("prepareMs", (System.nanoTime() - prepare) / 1e6)
                 val samples = JSONArray()
-                for (i in 0..60) {
-                    val t = i / 60f
+                val normalTimes = (0..60).associateBy { it / 60f }
+                val reverseTimes = if (reverseCheck) (0..reversePlan.samples).map { reversePlan.time(it) } else emptyList()
+                for (t in (normalTimes.keys + reverseTimes).sorted()) {
+                    val i = normalTimes[t]
                     val start = System.nanoTime(); renderer.draw(t); GLES30.glFinish()
-                    samples.put((System.nanoTime() - start) / 1e6)
+                    if (t in reverseTimes) forwardHashes.add(frameHash())
+                    if (i != null) samples.put((System.nanoTime() - start) / 1e6)
                     if (i in listOf(0, 10, 15, 18, 20, 34, 40, 48, 60)) {
                         saveFrame(File(out, "$scene-$i.png"), width, height)
                     }
@@ -176,6 +197,26 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 }
                 check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "渲染产生 GL 错误" }
                 report.put("frameMs", samples)
+            }
+            if (reverseCheck) {
+                val reverseSamples = JSONArray()
+                ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
+                    renderer.prepare()
+                    val prepare = System.nanoTime()
+                    check(renderer.prepareReverse(reversePlan.samples))
+                    report.put("reversePrepareMs", (System.nanoTime() - prepare) / 1e6)
+                    for (i in reversePlan.samples downTo 0) {
+                        renderer.drawReverseFrame(i)
+                        val actual = frameHash()
+                        check(actual == forwardHashes[i]) { "逆向帧与同一模型正向帧不一致：$scene $i" }
+                        reverseSamples.put(JSONObject().put("frame", i).put("sha256", actual))
+                        if (saveReverseFrames) saveFrame(File(out, "$scene-reverse-$i.png"), width, height)
+                    }
+                    check(GLES30.glGetError() == GLES30.GL_NO_ERROR)
+                }
+                report.put("reverseFrameParity", reverseSamples).put("reverseVerified", true)
+                    .put("reverseFramesSaved", saveReverseFrames)
+                    .put("reverseSamples", reversePlan.samples).put("appearanceSeconds", ParticleReversePlan.APPEARANCE_SECONDS)
             }
         }
         bitmap.recycle()

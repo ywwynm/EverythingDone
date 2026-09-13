@@ -21,6 +21,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import androidx.core.util.Pair
+import androidx.core.view.doOnPreDraw
 import android.util.Log
 
 
@@ -41,6 +42,8 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.fragments.BaseDialogFragment
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 
 import java.io.File
 import java.util.ArrayList
@@ -123,6 +126,15 @@ open class App : Application() {
             override fun onActivityResumed(activity: Activity) {
                 // 回到前台（含从外部选图/拍照/查看器返回）：解除抑制，之后真正切后台照常清空认证。
                 sSuppressAuthClearOnBackground = false
+                // 首个可见界面绘制后异步预热，不等到用户打开首个弹窗才加载共同资源。
+                // 控制器在进程内只执行一次，不缓存用户快照或整段动画。
+                activity.window.decorView.doOnPreDraw { decor ->
+                    decor.post {
+                        if (BaseDialogFragment.particleAnimationMode(this@App) != 0) {
+                            ParticleDismissController.warmDismissModel(this@App)
+                        }
+                    }
+                }
             }
             override fun onActivityPaused(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}

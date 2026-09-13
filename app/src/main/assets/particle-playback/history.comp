@@ -1,0 +1,37 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=256) in;
+struct Material {vec4 src; vec4 physical; vec4 random;};
+struct State {vec4 pos; vec4 vel;};
+layout(std430,binding=0) readonly buffer Materials {Material particles[];};
+layout(std430,binding=1) buffer Current {State state[];};
+layout(std430,binding=4) readonly buffer Ranges {ivec4 ranges[];};
+// 出现仅重放画面：顶点着色器使用位置 xyz 和速度 xy，其余三个状态分量
+// 只用于正向积分。历史使用五个完整 float，原始积分缓冲仍保留八个分量。
+layout(std430,binding=5) buffer History {float history[];};
+uniform int count,frame,restore;
+void main(){
+    uint i=gl_GlobalInvocationID.x;
+    if(i>=uint(count))return;
+    ivec4 r=ranges[i];
+    bool stored=frame>=r.x && frame<=r.y;
+    int h=(r.z+frame-r.x)*5;
+    if(restore==0){
+        if(stored){
+            State s=state[i];
+            history[h]=s.pos.x;history[h+1]=s.pos.y;history[h+2]=s.pos.z;
+            history[h+3]=s.vel.x;history[h+4]=s.vel.y;
+        }
+    }else{
+        if(stored){
+            state[i].pos=vec4(history[h],history[h+1],history[h+2],0.);
+            state[i].vel=vec4(history[h+3],history[h+4],0.,0.);
+        }
+        else{
+            // 非可见寿命中的粒子不参与颗粒绘制；原面板仍使用其源坐标。
+            state[i].pos=vec4(particles[i].src.xy,0.,0.);
+            state[i].vel=vec4(0.);
+        }
+    }
+}

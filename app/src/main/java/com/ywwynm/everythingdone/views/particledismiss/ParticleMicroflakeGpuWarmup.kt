@@ -32,7 +32,7 @@ internal object ParticleMicroflakeGpuWarmup {
             val input = ParticleMicroflakeRenderer.Input(240f,320f,240f,320f,0f,0f,65f,bitmap,
                 materials,resources.guide,resources.rules,confidence=resources.confidence)
             ParticleMicroflakeRenderer(assets,64,64,input).use { renderer ->
-                renderer.prepare(); renderer.draw(0f); GLES30.glFinish()
+                renderer.prepare(); renderer.prepareReversePipeline(); renderer.draw(0f); GLES30.glFinish()
             }
         } finally {
             bitmap?.recycle()

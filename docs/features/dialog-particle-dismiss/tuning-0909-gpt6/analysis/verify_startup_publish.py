@@ -13,11 +13,13 @@ import zipfile
 
 p = argparse.ArgumentParser()
 p.add_argument('serial', choices=['9018f404', 'R5CW20BLNKL'])
+p.add_argument('--output', default='analysis/startup-latency/published', help='本轮验证产物目录，避免覆盖以前的发布证据')
+p.add_argument("--quick-back", type=int, default=0)
 a = p.parse_args()
 here = Path(__file__).resolve().parent
 base = here.parent
 repo = next(p for p in base.parents if (p / 'gradlew.bat').is_file())
-output = 'analysis/startup-latency/published'
+output = a.output
 out = base / output / a.serial
 out.mkdir(parents=True, exist_ok=True)
 meta = json.loads((repo / 'app/build/outputs/update-debug-apk/latest.json').read_text('utf-8'))
@@ -35,6 +37,9 @@ with zipfile.ZipFile(apk) as archive:
     for resource in (repo / 'shared/particle-dismiss').iterdir():
         if resource.is_file() and not resource.name.startswith('.'):
             assert archive.read('assets/particle-dismiss/' + resource.name) == resource.read_bytes(), resource.name
+    for resource in (repo / 'app/src/main/assets/particle-playback').iterdir():
+        if resource.is_file():
+            assert archive.read('assets/particle-playback/' + resource.name) == resource.read_bytes(), resource.name
     for abi in ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64']:
         assert len(archive.read(f'lib/{abi}/libparticle_material.so')) > 0
 
@@ -49,12 +54,15 @@ path = adb('shell', 'pm', 'path', 'com.ywwynm.everythingdone').splitlines()[0].r
 assert re.fullmatch(r'/data/app/[A-Za-z0-9_\-/+=.~]+', path)
 assert adb('shell', 'sha256sum', path).split()[0] == meta['sha256']
 subprocess.run([sys.executable, '-X', 'utf8', str(here / 'measure_dismiss_startup.py'),
-                a.serial, '--output', output, '--repeat', '1'], check=True)
+                a.serial, '--output', output, '--repeat', '1', '--quick-back', str(a.quick_back)], check=True)
 rows = json.loads((out / 'startup.json').read_text('utf-8'))
+quick = [r for r in rows if r['trigger'] == 'quick-back']
+assert len(quick) == a.quick_back
+rows = [r for r in rows if r['trigger'] != 'quick-back']
 assert {r['trigger'] for r in rows} == {'outside', 'back', 'cancel', 'confirm'}
 report = dict(device=a.serial, debugUpdateCode=meta['debugUpdateCode'], apkUrl=meta['apkUrl'],
               sha256=meta['sha256'], sizeBytes=meta['sizeBytes'], remoteApkVerified=True,
-              installedApkVerified=True, sharedResourcesVerified=True,
+              installedApkVerified=True, sharedResourcesVerified=True, quickBackVerified=len(quick),
               requestToFirstMeanMs=statistics.mean(r['requestToFirstMs'] for r in rows),
               requestToVisibleMeanMs=statistics.mean(r['requestToVisibleMs'] for r in rows))
 (out / 'published-checks.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), 'utf-8')
