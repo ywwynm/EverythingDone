@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.core.util.Pair
-import androidx.appcompat.app.AppCompatActivity
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -26,7 +25,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * An Activity used when user operated a private thing.
  */
-open class AuthenticationActivity : AppCompatActivity() {
+open class AuthenticationActivity : ParticleDialogHostActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))

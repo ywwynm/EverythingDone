@@ -36,6 +36,9 @@ internal interface ScenePresenter {
 /** Stage 1 连续水面 GLES 渲染器。Simulation、采样与 GL 调用都只在独立 GL 线程执行。 */
 internal class FableSolGlRenderer(context: Context, private val density: Double) {
 
+    /** 调试回归按需读取当前已绘制帧；正常运行不安装观察器。 */
+    @Volatile internal var presentationObserver: ((FableSolGlRenderer) -> Unit)? = null
+
     data class Timing(
         val drainNs: Long,
         val physicsNs: Long,
@@ -84,12 +87,13 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val assets = context.assets
     // 持久化调参覆盖必须在 sim/mapper 构造前套用，二者与渲染共享同一 params 实例。
     private val params = FableSolParams().also { FableSolTuning.applyStored(context, it) }
-    private val sim = FableSolSimulation(params)
-    private val mapper = FableSolFeatureMapper(params)
+    private val sim by lazy(LazyThreadSafetyMode.NONE) { FableSolSimulation(params) }
+    private val mapper by lazy(LazyThreadSafetyMode.NONE) { FableSolFeatureMapper(params) }
     private val inputLock = Any()
     private val audioInbox = FableSolAnalysisBatchInbox()
     private val pendingTuning = HashMap<String, Double>()
 
+    // 重型模拟、星光和网格只在首次 GL 使用时初始化，不挤占弹窗构造与触摸反馈。
     // build 段的分解计时与本帧消费的音频 hop 数（2026-07-21 帧率排查仪表）。
     private var perfSampleNs = 0L
     private var perfVertexNs = 0L
@@ -117,6 +121,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     // 照跑——冻结画面上调参、换色、HDR 切换仍逐帧实时生效。
     @Volatile private var simulationPaused = false
     @Volatile private var frozen = false
+    private var surfaceComposed = false
     /** 调参冻结与完全冻结在"运动是否推进"上同义；两者任一成立即停。 */
     private val motionPaused: Boolean get() = simulationPaused || frozen
     private val gravityInbox = FableSolGravityInbox()
@@ -189,45 +194,55 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private val sourceIndex = IntArray(FableSolSpec.N_POINTS)
     private val sourceFraction = DoubleArray(FableSolSpec.N_POINTS)
     private val sourceUDp = DoubleArray(FableSolSpec.N_POINTS)
-    private val hermiteWeights = FableSolHermiteWeightTable(FableSolSpec.N_POINTS)
+    private val hermiteWeights by lazy(LazyThreadSafetyMode.NONE) { FableSolHermiteWeightTable(FableSolSpec.N_POINTS) }
     private val layerMeans = DoubleArray(FableSolSpec.N_LAYERS)
     private val layerMeanTangents = DoubleArray(FableSolSpec.N_LAYERS)
-    private val sheenSlopeX = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
-    private val sheenSlopeZ = FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    private val sheenSlopeX by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    }
+    private val sheenSlopeZ by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    }
     // 投影 X 先保留 Double 精度，逐行求唯一收回比例后再写入 Float 顶点；
     // 数组按最大列数预分配，稳态零分配。
-    private val projectedX = DoubleArray(
-        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
-    )
+    private val projectedX by lazy(LazyThreadSafetyMode.NONE) {
+        DoubleArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    }
     // D151 厚度透光：逐锚层轮廓均值 y（物理 px，未旋转），供 uLayerMeanYPx。
     private val layerMeanYPx = FloatArray(FableSolSpec.N_LAYERS)
     // D156 v17 银丝太阳柱：row 0 可见跨度（本地 px），供 shader 换算 x01。
     private var crestRimX0Px = 0f
     private var crestRimSpanPx = 1f
     // 两路 sheen 共派发（C6）后必须各持一份 scratch，否则行体内两路会互相踩踏。
-    private val sheenSlopeScratchX = FloatArray(
-        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
-    )
-    private val sheenSlopeScratchZ = FloatArray(
-        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS
-    )
-    private val vertexData = FloatArray(
-        FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS *
-            FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
-    )
-    private val frontData = FloatArray(
-        FableSolSpec.N_POINTS * 2 * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX
-    )
-    private val vertexUpload: FloatBuffer = ByteBuffer.allocateDirect(vertexData.size * 4)
-        .order(ByteOrder.nativeOrder()).asFloatBuffer()
-    private val frontUpload: FloatBuffer = ByteBuffer.allocateDirect(frontData.size * 4)
-        .order(ByteOrder.nativeOrder()).asFloatBuffer()
-    private val optics = FableSolGlOptics(density)
-    private val opticalUpload: FloatBuffer = ByteBuffer.allocateDirect(optics.vertices.size * 4)
-        .order(ByteOrder.nativeOrder()).asFloatBuffer()
+    private val sheenSlopeScratchX by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    }
+    private val sheenSlopeScratchZ by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+    }
+    private val vertexData by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS *
+            FableSolGlMeshLayout.COMPONENTS_PER_VERTEX)
+    }
+    private val frontData by lazy(LazyThreadSafetyMode.NONE) {
+        FloatArray(FableSolSpec.N_POINTS * 2 * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX)
+    }
+    private val vertexUpload by lazy(LazyThreadSafetyMode.NONE) {
+        ByteBuffer.allocateDirect(vertexData.size * 4)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+    }
+    private val frontUpload by lazy(LazyThreadSafetyMode.NONE) {
+        ByteBuffer.allocateDirect(frontData.size * 4)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+    }
+    private val optics by lazy(LazyThreadSafetyMode.NONE) { FableSolGlOptics(density) }
+    private val opticalUpload by lazy(LazyThreadSafetyMode.NONE) {
+        ByteBuffer.allocateDirect(optics.vertices.size * 4)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
+    }
     // 人眼眩光（D206~D209）：CPU 星光轨迹 + present 前 PSF pass。
-    private val starField = FableSolStarField(density)
-    private val glarePass = FableSolGlarePass(context.assets)
+    private val starField by lazy(LazyThreadSafetyMode.NONE) { FableSolStarField(density) }
+    private val glarePass by lazy(LazyThreadSafetyMode.NONE) { FableSolGlarePass(context.assets) }
     private val layerStart = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStop1 = FloatArray(FableSolSpec.N_LAYERS * 3)
     private val layerStop2 = FloatArray(FableSolSpec.N_LAYERS * 3)
@@ -511,7 +526,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             SystemClock.elapsedRealtime()
         }
         drainAndApply(now)
-        if (!motionPaused) applyLatestGravity()
+        if (!motionPaused || !surfaceComposed) applyLatestGravity()
         advanceColorTransition(now)
         val physicsStart = SystemClock.elapsedRealtimeNanos()
         var dt = when {
@@ -539,12 +554,21 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             hdrContentEnabled && hdrRecordingRequested && hdrHeadroom > 1f,
             boundedDt.toFloat()
         )
-        if (!motionPaused) sim.update(boundedDt)
+        if (!motionPaused) {
+            sim.update(boundedDt)
+            surfaceComposed = true
+        } else if (!surfaceComposed) {
+            // 初次显示可能已经被粒子交接冻结。仍需合成零时刻水面，不能把尚未
+            // 填入基准水位的 heights 当作首帧；零步长不推进物理或音频时间。
+            sim.update(0.0)
+            surfaceComposed = true
+        }
         val buildStart = SystemClock.elapsedRealtimeNanos()
         buildFrame()
         val drawStart = SystemClock.elapsedRealtimeNanos()
         drawFrame()
         val drawEnd = SystemClock.elapsedRealtimeNanos()
+        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) presentationObserver?.invoke(this)
         return Timing(
             physicsStart - drainStart,
             buildStart - physicsStart,
@@ -776,6 +800,12 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val halfHeightG = info.hG / 2.0
         // 契约校验提到顶点循环外一次；数组是渲染器常驻字段，循环期间形状不变。
         FableSolDepthBaseline.requireValid(layerMeans, layerMeanTangents)
+        // 首帧只能由 GL 所有者初始化这四个延迟数组，再把同一实例发布给行任务。
+        // 在各 worker 内首次读 lazy(NONE) 会分配不同数组，丢失部分行并画出巨大三角形。
+        val vertices = vertexData
+        val projected = projectedX
+        val sheenX = sheenSlopeX
+        val sheenZ = sheenSlopeZ
         FableSolRowParallel.run(FableSolContinuousSurface.Z_ROWS) { startRow, endRow ->
             // 下面这批 local 只是把字段/表数组的装载从「每顶点一次」降为「每块一次」，
             // 表达式与访问的元素完全不变（debuggable ART 不做 LICM，这些 getfield
@@ -794,10 +824,6 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
             val anchors = layerMeans
             val anchorTangents = layerMeanTangents
             val anchor0 = layerMeans[0]
-            val vertices = vertexData
-            val projected = projectedX
-            val sheenX = sheenSlopeX
-            val sheenZ = sheenSlopeZ
             val sampleZ01 = sample.z01
             val sampleZDp = sample.zDp
             var cursor = startRow * fillColumns * FableSolGlMeshLayout.COMPONENTS_PER_VERTEX

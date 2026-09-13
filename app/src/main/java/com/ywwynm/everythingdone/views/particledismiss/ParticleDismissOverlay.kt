@@ -25,7 +25,9 @@ internal class ParticleDismissOverlay(
     activity: Activity,
     private val spec: ParticleDismissSpec,
     private val onAnimationStarted: Runnable? = null,
-    private val onDone: Runnable? = null
+    private val onDone: Runnable? = null,
+    private val touchFeedback: ParticleTouchFeedback? = null,
+    private val onPresentedProgress: ((Float) -> Unit)? = null
 ) : FrameLayout(activity), TextureView.SurfaceTextureListener {
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -36,6 +38,21 @@ internal class ParticleDismissOverlay(
     private var doneFired = false
     private var animationStartedFired = false
     private var firstTexturePresented = false
+    private var glCompleted = false
+    private var presentedProgress = 0f
+    private val releaseListeners = mutableListOf<Runnable>()
+    private var releaseFrameRate: (() -> Unit)? = null
+    internal val isDisappearance get() = !spec.reverse
+
+    internal fun afterRelease(action: Runnable) {
+        if (finished && parent == null) action.run() else releaseListeners += action
+    }
+
+    private fun notifyReleased() {
+        val callbacks = releaseListeners.toList()
+        releaseListeners.clear()
+        callbacks.forEach { it.run() }
+    }
     private val preparation = ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
 
     private val isCondense get() = spec.reverse
@@ -47,6 +64,8 @@ internal class ParticleDismissOverlay(
 
         textureView = TextureView(activity).apply {
             isOpaque = false
+            // GL 线程更新的纹理也需显式表达帧率，避免自适应刷新率把它当静态内容降档。
+            if (android.os.Build.VERSION.SDK_INT >= 35) requestedFrameRate = 60f
             surfaceTextureListener = this@ParticleDismissOverlay
         }
         addView(textureView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -77,6 +96,7 @@ internal class ParticleDismissOverlay(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        releaseFrameRate = ParticleWindowFrameRate.hold((context as Activity).window)
         // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
         // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
         // OPD2515 触点到首帧 1.64 s）。此前从请求时刻起算 1 s 余量，动画被截成 0.36 s
@@ -86,10 +106,12 @@ internal class ParticleDismissOverlay(
 
     override fun onDetachedFromWindow() {
         finished = true
+        releaseFrameRate?.invoke(); releaseFrameRate = null
         renderer?.cancel()
         mainHandler.removeCallbacksAndMessages(null)
         fireDone()
         super.onDetachedFromWindow()
+        notifyReleased()
     }
 
     /** 完成通知恰好一次：所有退出路径（正常/降级/超时/detach）都会到达。 */
@@ -120,6 +142,7 @@ internal class ParticleDismissOverlay(
             viewportHeight = height,
             spec = spec,
             preparation = preparation,
+            touchFeedback = touchFeedback,
             onFirstFrame = { mainHandler.post { onGlFirstFrame() } },
             onFinished = { completed -> mainHandler.post { onGlFinished(completed) } }
         ).also { it.start() }
@@ -133,35 +156,68 @@ internal class ParticleDismissOverlay(
     }
 
     override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-        if (!firstTexturePresented && !isCondense) {
+        if (finished) return
+        // 此通知发生在 UI 更新 TextureLayer 时，RenderThread 可能尚未取走新缓冲。
+        // 等承载窗口本帧提交后再读取时间戳，不能把上一帧误当成这次更新。
+        if (android.os.Build.VERSION.SDK_INT >= 29 && isHardwareAccelerated) {
+            viewTreeObserver.registerFrameCommitCallback {
+                val timestamp = runCatching { surface.timestamp }.getOrDefault(0L)
+                val committedAt = System.nanoTime()
+                mainHandler.post { onTextureFrameCommitted(timestamp, committedAt) }
+            }
+        } else postOnAnimation { onTextureFrameCommitted(runCatching { surface.timestamp }.getOrDefault(0L), System.nanoTime()) }
+        textureView.postInvalidateOnAnimation()
+    }
+
+    private fun onTextureFrameCommitted(timestamp: Long, committedAt: Long) {
+        if (finished) return
+        val active = renderer ?: return
+        // TextureView 建链时会先送 timestamp=0 的空缓冲；这不是粒子首帧。
+        // 误认它会提前撤下快照、提前启动暗层，并在准备期间暴露一帧空白。
+        if (!active.isAnimationFrame(timestamp)) return
+        active.framePresented(timestamp, committedAt)
+        presentedProgress = active.progressForPresentation(timestamp)
+        if (!firstTexturePresented) {
             firstTexturePresented = true
+            // swap 完成不等于 Texture 已进入本窗口；保持快照直到纹理实际更新。
+            snapshotView?.visibility = GONE
+            fireAnimationStarted()
             if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                 android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                     "首帧合成 requestToVisibleMs=${(System.nanoTime()-spec.requestedAtNanos)/1e6}")
             }
         }
+        onPresentedProgress?.invoke(presentedProgress)
+        // 独立 GL 缓冲可能在本轮 HWUI 取帧之后才入队，持续请求下一次取帧，
+        // 避免等待 frameAvailable 的跨线程失效通知而漏掉一个显示节拍。
+        if (glCompleted && presentedProgress >= 1f) completePresentedAnimation()
     }
 
     private fun onGlFirstFrame() {
-        if (finished) return
-        snapshotView?.visibility = GONE
-        fireAnimationStarted()
+        // 第一个缓冲仅已入队，实际交接在 onSurfaceTextureUpdated。
     }
 
     private fun onGlFinished(completed: Boolean) {
         if (finished) return
+        if (completed) {
+            glCompleted = true
+            if (presentedProgress >= 1f) completePresentedAnimation()
+            return
+        }
         if (isCondense) {
             // 凝聚完成（或失败）：只通知宿主恢复真实面板，本层保持显示末帧
             // （与面板逐像素相同）——宿主确认面板上屏后才调用 release() 移除，
             // 重叠期内容一致，跨窗口切换的任何一帧都无缝（先显后撤）
             fireDone()
-        } else if (completed) {
-            removeSelf()
         } else {
             // GL 首帧前失败时也必须释放 dim，并与降级淡出同时开始。
             fireAnimationStarted()
             fallbackFadeOut()
         }
+    }
+
+    private fun completePresentedAnimation() {
+        if (isCondense) fireDone() else removeSelf()
     }
 
     /** 宿主在真实面板确认上屏后调用，移除本层。 */

@@ -11,6 +11,33 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <activity android:name=".views.particledismiss.ParticlePanelReuseProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
+
+        <activity
+            android:name=".views.particledismiss.ParticleRepeatProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
+        <activity
+            android:name=".views.particledismiss.ParticleTransitionProbeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
+        <activity
+            android:name=".views.particledismiss.ParticleDialogRouteProbeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
+        <activity
+            android:name=".views.particledismiss.ParticleCoverageProbeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
         <!-- Debug 专用：比较真实弹窗的动画输入与显示完成后的配色。 -->
         <activity
             android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleAppearanceProbeActivity"

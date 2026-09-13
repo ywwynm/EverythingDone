@@ -19,11 +19,11 @@ import kotlin.math.min
 class WaveVisualizerFableSolHost @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : FrameLayout(context, attrs), FableSolFrameReceiver {
+) : FrameLayout(context, attrs), FableSolFrameReceiver,
+    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
 
-    private val canvasFallback = WaveVisualizerFableSol(context).apply {
-        visibility = View.GONE
-    }
+    // 正常 GLES 路径不创建第二份模拟、网格和采样数组；失败时再补齐回退实例与当前状态。
+    private var canvasFallback: WaveVisualizerFableSol? = null
     private val glView = WaveVisualizerFableSolGl(context).apply {
         onGlFailure = { activateCanvasFallback() }
     }
@@ -36,10 +36,13 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     private var perfHud: TextView? = null
     private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
     private var presentationAnimator: ValueAnimator? = null
+    private var particleHolds = 0
+    private var simulationPaused = false
+    private var hostFrozen = false
+    private val tuningOverrides = mutableMapOf<String, Double>()
 
     init {
         val match = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        addView(canvasFallback, match)
         addView(glView, match)
         setPresentationAlpha(PREPARED_PRESENTATION_ALPHA)
     }
@@ -47,14 +50,14 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     fun setThingBackground(background: ThingBackground) {
         currentBackground = background
         glView.setThingBackground(background)
-        if (fallbackActive) canvasFallback.setThingBackground(background)
+        canvasFallback?.setThingBackground(background)
     }
 
     fun setContainerGravity(x: Float, y: Float, z: Float) {
         gravityX = x
         gravityY = y
         gravityZ = z
-        if (fallbackActive) canvasFallback.setContainerGravity(x, y, z)
+        if (fallbackActive) canvasFallback?.setContainerGravity(x, y, z)
         else glView.setContainerGravity(x, y, z)
     }
 
@@ -62,7 +65,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         performanceMonitor?.onHudUpdate = null
         performanceMonitor = monitor
         glView.setPerformanceMonitor(if (fallbackActive) null else monitor)
-        canvasFallback.setPerformanceMonitor(if (fallbackActive) monitor else null)
+        canvasFallback?.setPerformanceMonitor(if (fallbackActive) monitor else null)
         attachPerfHud(monitor)
     }
 
@@ -105,7 +108,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         val value = alpha.coerceIn(0f, 1f)
         presentationAlpha = value
         glView.setPresentationAlpha(value)
-        canvasFallback.alpha = value
+        canvasFallback?.alpha = value
     }
 
     fun animatePresentationAlpha(targetAlpha: Float, durationMs: Long) {
@@ -119,6 +122,23 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
             duration = durationMs
             addUpdateListener { setPresentationAlpha(it.animatedValue as Float) }
             start()
+            if (particleHolds > 0) pause()
+        }
+    }
+
+    /** 海浪模拟由子视图冻结；宿主的呈现透明度也必须在同一帧交接后继续。 */
+    override fun holdParticleSnapshot(): () -> Unit {
+        particleHolds++
+        canvasFallback?.setFrozen(true)
+        presentationAnimator?.pause()
+        var released = false
+        return {
+            if (!released) {
+                released = true
+                particleHolds--
+                canvasFallback?.setFrozen(hostFrozen || particleHolds > 0)
+                if (particleHolds == 0) presentationAnimator?.resume()
+            }
         }
     }
 
@@ -142,14 +162,16 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
 
     /** 运行时调参（调参 Dialog 实时预览）：直达当前活动的渲染后端。 */
     fun setTuningValue(key: String, value: Double) {
+        tuningOverrides[key] = value
         glView.setTuningValue(key, value)
-        if (fallbackActive) canvasFallback.setTuningValue(key, value)
+        canvasFallback?.setTuningValue(key, value)
     }
 
     /** 暂停冻结（调参 Dialog）：画面静止但渲染照跑，调参实时可见。 */
     fun setSimulationPaused(paused: Boolean) {
+        simulationPaused = paused
         glView.setSimulationPaused(paused)
-        canvasFallback.setSimulationPaused(paused)
+        canvasFallback?.setSimulationPaused(paused)
     }
 
     /**
@@ -159,8 +181,9 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
      * 谁来调它由调用方的生命周期决定，见 [FableSolExportFreezeGate]。
      */
     fun setFrozen(frozen: Boolean) {
+        hostFrozen = frozen
         glView.setFrozen(frozen)
-        canvasFallback.setFrozen(frozen)
+        canvasFallback?.setFrozen(frozen || particleHolds > 0)
     }
 
     /**
@@ -170,7 +193,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     fun animateThingBackground(background: ThingBackground) {
         currentBackground = background
         glView.beginBackgroundTransition(background)
-        if (fallbackActive) canvasFallback.setThingBackground(background)
+        canvasFallback?.setThingBackground(background)
     }
 
     /** 预览取景：内容整体沿屏幕 y 平移（dp，负 = 上移）；仅 GL 路径。 */
@@ -184,14 +207,14 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     }
 
     override fun onAudioFrames(frames: List<FableSolFeatureFrame>, events: List<FableSolEvent>) {
-        if (fallbackActive) canvasFallback.onAudioFrames(frames, events)
+        if (fallbackActive) canvasFallback?.onAudioFrames(frames, events)
         else glView.onAudioFrames(frames, events)
     }
 
     /** 离开/返回录音 Dialog 时清掉边界处未消费批次，避免快速回放后台历史。 */
     fun clearPendingAudio() {
         glView.clearPendingAudio()
-        canvasFallback.clearPendingAudio()
+        canvasFallback?.clearPendingAudio()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -213,11 +236,16 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         glView.setPerformanceMonitor(null)
         glView.setRecordingHdrActive(false)
         glView.visibility = View.GONE
-        canvasFallback.setGlFallbackDiagnostic(true)
-        currentBackground?.let(canvasFallback::setThingBackground)
-        canvasFallback.setContainerGravity(gravityX, gravityY, gravityZ)
-        canvasFallback.setPerformanceMonitor(performanceMonitor)
-        canvasFallback.visibility = View.VISIBLE
+        val fallback = WaveVisualizerFableSol(context).also { canvasFallback = it }
+        fallback.setGlFallbackDiagnostic(true)
+        currentBackground?.let(fallback::setThingBackground)
+        fallback.setContainerGravity(gravityX, gravityY, gravityZ)
+        fallback.setPerformanceMonitor(performanceMonitor)
+        fallback.setSimulationPaused(simulationPaused)
+        fallback.setFrozen(hostFrozen || particleHolds > 0)
+        tuningOverrides.forEach { (key, value) -> fallback.setTuningValue(key, value) }
+        fallback.alpha = presentationAlpha
+        addView(fallback, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         onGlFallback?.invoke()
     }
 

@@ -61,6 +61,7 @@ internal class ParticleMicroflakeRenderer(
     private val compiledPrograms = HashMap<String, Int>()
     private var pipelinePrepared = false
     private var reverseHistory: ParticleReverseHistory? = null
+    private var optimizedIntegrationPrepared = false
     /** 与后台建材重叠：着色器和屏幕缓冲不依赖本次触点或粒子材料。 */
     fun preparePipeline(sharedFields: SharedResources? = null) {
         if (pipelinePrepared) return
@@ -177,10 +178,19 @@ internal class ParticleMicroflakeRenderer(
     }
 
     /** 调试验证也调用同一函数；时间按 240 Hz 累积，刷新率只决定展示采样。 */
-    fun draw(time: Float) {
+    fun draw(time: Float, batchPressure: Boolean = false) {
         val t = time.coerceIn(0f, 1f)
-        advance(t)
+        if (batchPressure) prepareOptimizedIntegration()
+        advance(t, batchPressure)
         render(t)
+    }
+
+    private fun prepareOptimizedIntegration() {
+        if (optimizedIntegrationPrepared) return
+        prepareReversePipeline()
+        configureIntegration(reverseCompute)
+        peelPressure.configureIntegration(reverseCompute)
+        optimizedIntegrationPrepared = true
     }
 
     private fun advance(t: Float, batchPressure: Boolean = false) {
@@ -243,15 +253,16 @@ internal class ParticleMicroflakeRenderer(
                        cancelled: () -> Boolean = { false }): Boolean {
         check(step == 0 && reverseHistory == null)
         val started = System.nanoTime()
-        prepareReversePipeline()
-        configureIntegration(reverseCompute)
-        peelPressure.configureIntegration(reverseCompute)
+        prepareOptimizedIntegration()
         val history = ParticleReverseHistory(program("particle-playback/history.comp"), ParticleReversePlan(input.materials.values, samples))
         reverseHistory = history
-        for (frame in 0..history.plan.samples) {
-            if (cancelled()) return false
-            advance(history.plan.time(frame), batchPressure = true)
-            history.transfer(frame, restore = false)
+        ParticleGpuWork.PreparationQueue().use { queue ->
+            for (frame in 0..history.plan.samples) {
+                if (cancelled()) return false
+                advance(history.plan.time(frame), batchPressure = true)
+                history.transfer(frame, restore = false)
+                if (!queue.finishBatch(cancelled)) return false
+            }
         }
         GLES30.glFinish()
         checkGl("逆向准备")
@@ -272,72 +283,64 @@ internal class ParticleMicroflakeRenderer(
     }
 
     fun playReverse(durationSeconds: Float, durationScale: Float, refreshRate: Float,
-                    cancelled: () -> Boolean, onFirstFrame: () -> Unit): Boolean {
+                    cancelled: () -> Boolean, onFirstFrame: () -> Unit,
+                    beforePlayback: () -> Boolean = { true },
+                    onSubmitted: (Long, Float) -> Unit = { _, _ -> }): Boolean {
         val duration = durationSeconds * durationScale.coerceAtLeast(.1f)
         if (!prepareReverse(ParticleReversePlan.samplesFor(duration, refreshRate), cancelled)) return false
+        if (!beforePlayback()) return false
         val plan = checkNotNull(reverseHistory).plan
-        drawReverseFrame(plan.samples)
-        if (!swap()) return false
-        onFirstFrame()
-        val started = System.nanoTime()
-        val frameNanos = (1e9 / refreshRate.coerceIn(30f, 60f)).toLong()
-        var nextFrame = started + frameNanos
-        var frames = 1
-        while (!cancelled()) {
-            val wait = nextFrame - System.nanoTime()
-            if (wait > 0) java.util.concurrent.locks.LockSupport.parkNanos(wait)
-            if (cancelled()) return false
-            val progress = ((System.nanoTime() - started) / 1e9 / duration).toFloat().coerceAtMost(1f)
+        return playFrames(duration, cancelled, onFirstFrame, onSubmitted, true) { progress ->
             drawReverseFrame(plan.frame(progress))
-            if (!swap()) return false
-            val now = System.nanoTime()
-            nextFrame = started + ((now - started) / frameNanos + 1) * frameNanos
-            frames++
-            if (progress >= 1f) {
-                if (BuildConfig.DEBUG) Log.i(TAG,
-                    "出现完成 particles=${input.materials.count} frames=$frames elapsedMs=${(now-started)/1e6} direction=${input.direction} seed=${input.materials.variation.seed}")
-                checkGl("逆向结束")
-                return true
-            }
         }
-        return false
     }
 
-    fun play(durationScale: Float, refreshRate: Float, cancelled: () -> Boolean, onFirstFrame: () -> Unit): Boolean {
-        if (cancelled()) return false
-        draw(0f)
-        if (!swap()) return false
-        onFirstFrame()
-        val start = System.nanoTime()
+    fun play(durationScale: Float, refreshRate: Float, cancelled: () -> Boolean,
+             onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit = { _, _ -> }): Boolean =
+        playFrames(durationScale.coerceAtLeast(.1f), cancelled, onFirstFrame, onSubmitted, false) {
+            draw(it, batchPressure = true)
+        }
+
+    internal val drawTimings = ArrayList<LongArray>()
+
+    private fun playFrames(duration: Float, cancelled: () -> Boolean,
+                           onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit,
+                           reverse: Boolean, drawFrame: (Float) -> Unit): Boolean {
+        var frames = 0
+        var started = 0L
+        var previous = 0L
         val intervals = ArrayList<Double>()
-        var previous = start
-        var frames = 1
-        // 与桌面导出的 60 Hz 展示采样一致，240 Hz 物理仍照常推进。
-        val frameNanos = (1e9 / refreshRate.coerceIn(30f, 60f)).toLong()
-        var nextFrame = start + frameNanos
-        while (!cancelled()) {
-            // TextureView 的 eglSwapBuffers 未必受垂直同步限流，不能无限重复绘制同一时刻。
-            val wait = nextFrame - System.nanoTime()
-            if (wait > 0) java.util.concurrent.locks.LockSupport.parkNanos(wait)
-            if (cancelled()) return false
-            val t = ((System.nanoTime() - start) / 1e9 / durationScale.coerceAtLeast(.1f)).toFloat().coerceAtMost(1f)
-            draw(t)
-            if (!swap()) return false
-            val now = System.nanoTime()
-            nextFrame = start + ((now - start) / frameNanos + 1) * frameNanos
-            intervals.add((now - previous) / 1e6); previous = now; frames++
-            if (t >= 1f) {
-                if (BuildConfig.DEBUG) {
-                    intervals.sort()
-                    Log.i(TAG, "完成 count=${input.materials.count} frames=$frames elapsedMs=${(now-start)/1e6} " +
-                        "p90Ms=${intervals[(intervals.size*.9).toInt().coerceAtMost(intervals.lastIndex)]} " +
-                        "maxMs=${intervals.last()} direction=${input.direction} gap=${input.touchGap} strength=${input.touchStrength} seed=${input.materials.variation.seed}")
-                }
-                checkGl("结束")
-                return true
+        val completed = ParticlePlaybackClock.play(duration, cancelled) { progress, timestamp ->
+            val drawStart = System.nanoTime()
+            drawFrame(progress)
+            val drawEnd = System.nanoTime()
+            // CPU 提交可能快于 GPU 完成，尤其是逆向缓存与双弹窗重叠时。
+            // 在专用 GL 线程等本帧就绪再交给 HWUI，减少缓冲排队后被替代的跳帧。
+            GLES30.glFinish()
+            val ready = System.nanoTime()
+            android.opengl.EGLExt.eglPresentationTimeANDROID(EGL14.eglGetCurrentDisplay(),
+                EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW), timestamp)
+            if (!swap()) false else {
+                if (BuildConfig.DEBUG) drawTimings += longArrayOf(timestamp, drawStart, drawEnd, ready, System.nanoTime())
+                onSubmitted(timestamp, progress)
+                if (frames == 0) { started = timestamp; onFirstFrame() }
+                else intervals += (timestamp - previous) / 1e6
+                previous = timestamp
+                frames++
+                true
             }
         }
-        return false
+        if (completed) {
+            if (BuildConfig.DEBUG) {
+                intervals.sort()
+                val label = if (reverse) "出现完成 particles=" else "完成 count="
+                Log.i(TAG, "$label${input.materials.count} frames=$frames elapsedMs=${(previous-started)/1e6} " +
+                    "p90Ms=${intervals[(intervals.size*.9).toInt().coerceAtMost(intervals.lastIndex)]} " +
+                    "maxMs=${intervals.last()} direction=${input.direction} seed=${input.materials.variation.seed}")
+            }
+            checkGl("结束")
+        }
+        return completed
     }
 
     fun readState(): ByteBuffer {

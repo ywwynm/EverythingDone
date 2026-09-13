@@ -41,7 +41,8 @@ import kotlin.math.tan
  */
 class WaveVisualizerFableSol @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
-) : View(context, attrs), FableSolFrameReceiver {
+) : View(context, attrs), FableSolFrameReceiver,
+    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
 
     private val density = resources.displayMetrics.density.toDouble()
 
@@ -82,6 +83,8 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private var glFallbackDiagnostic = false
     private var simulationPaused = false
     private var frozen = false
+    private var hostFrozen = false
+    private var particleHolds = 0
     /** 调参冻结与完全冻结在"运动是否推进"上同义；两者任一成立即停。 */
     private val motionPaused: Boolean get() = simulationPaused || frozen
     private val frameCallback = Choreographer.FrameCallback { frameTimeNanos ->
@@ -275,9 +278,28 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
      * 按需单帧。
      */
     internal fun setFrozen(value: Boolean) {
-        if (frozen == value) return
-        frozen = value
-        if (value) stopFrameLoop() else ensureAnimating()
+        hostFrozen = value
+        applyFrozenState()
+    }
+
+    override fun holdParticleSnapshot(): () -> Unit {
+        particleHolds++
+        applyFrozenState()
+        var released = false
+        return {
+            if (!released) {
+                released = true
+                particleHolds--
+                applyFrozenState()
+            }
+        }
+    }
+
+    private fun applyFrozenState() {
+        val target = hostFrozen || particleHolds > 0
+        if (frozen == target) return
+        frozen = target
+        if (target) stopFrameLoop() else ensureAnimating()
     }
 
     /** 完整三维重力方向 → 左右滚转 + 连续水面的前后俯仰。 */

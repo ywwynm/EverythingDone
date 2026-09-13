@@ -14,7 +14,6 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.HardwareRenderer
 import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.graphics.RenderNode
 import android.hardware.HardwareBuffer
 import android.media.ImageReader
@@ -22,11 +21,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.view.PixelCopy
 import android.view.Choreographer
 import android.view.ViewTreeObserver
-import android.view.SurfaceView
-import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import com.ywwynm.everythingdone.R
@@ -45,6 +41,43 @@ internal object ParticleDismissController {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
+    private val finishingHosts = java.util.WeakHashMap<Activity, Boolean>()
+    private val pendingDismissCaptures = java.util.WeakHashMap<Activity, Int>()
+
+    /** 透明 Activity 不能在 Dialog.onDismiss 时销毁仍在播放消散的宿主窗口。 */
+    fun finishAfterAnimations(activity: Activity, finish: Runnable): Boolean {
+        if (finishingHosts.containsKey(activity)) return true
+        val root = activity.window.decorView as? ViewGroup ?: return false
+        fun activeOverlays() = (0 until root.childCount)
+            .mapNotNull { root.getChildAt(it) as? ParticleDismissOverlay }
+            .filter { it.isDisappearance && it.isAttachedToWindow }
+        if ((pendingDismissCaptures[activity] ?: 0) == 0 && activeOverlays().isEmpty()) return false
+        finishingHosts[activity] = true
+        fun waitUntilReleased() {
+            if (activity.isDestroyed) {
+                finishingHosts.remove(activity)
+                return
+            }
+            // 认证等回调会在 dismiss() 后同步 finish，此时 PixelCopy 尚未创建动画层。
+            if ((pendingDismissCaptures[activity] ?: 0) > 0) {
+                mainHandler.postDelayed({ waitUntilReleased() }, 16)
+                return
+            }
+            val overlays = activeOverlays()
+            if (overlays.isEmpty()) {
+                finishingHosts.remove(activity)
+                finish.run()
+                return
+            }
+            var remaining = overlays.size
+            overlays.forEach { it.afterRelease {
+                remaining--
+                if (remaining == 0) mainHandler.post { waitUntilReleased() }
+            } }
+        }
+        waitUntilReleased()
+        return true
+    }
 
     /** 首个可见界面或弹窗展示后异步预热数值代码与驱动首用编译，不保存用户快照。 */
     fun warmDismissModel(context: Context) {
@@ -77,83 +110,68 @@ internal object ParticleDismissController {
      * 异步完成和代码关闭传 null，统一使用右上虚拟触点。
      */
     fun start(
-        dialog: Dialog,
-        touchInWindow: PointF?,
-        onAnimationStarted: Runnable,
-        onOverlayShown: Runnable,
-        useDefaultTouchDistance: Boolean = false
+        dialog: Dialog, touchInWindow: PointF?, onAnimationStarted: Runnable,
+        onOverlayShown: Runnable, useDefaultTouchDistance: Boolean = false
     ): Boolean {
-        val requestedAtNanos = System.nanoTime()
-        if (Looper.myLooper() != Looper.getMainLooper()) return false
-        if (!ValueAnimator.areAnimatorsEnabled()) return false
-
         val window = dialog.window ?: return false
-        val decor = window.decorView
-        if (!decor.isAttachedToWindow || decor.width <= 0 || decor.height <= 0) return false
-
         val activity = activityFrom(dialog.context) ?: return false
-        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) {
-            return false
-        }
-        val hostDecor = activity.window?.decorView as? ViewGroup ?: return false
+        return startContent(activity, window, window.decorView, touchInWindow,
+            onAnimationStarted, onOverlayShown, useDefaultTouchDistance)
+    }
+
+    fun startContent(
+        activity: Activity, window: android.view.Window, decor: View, touchInWindow: PointF?,
+        onAnimationStarted: Runnable, onOverlayShown: Runnable,
+        useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
+        captureOffscreen: Boolean = false
+    ): Boolean {
+        cancelAppearance(decor)
+        val requestedAtNanos = System.nanoTime()
+        if (Looper.myLooper() != Looper.getMainLooper() || !ValueAnimator.areAnimatorsEnabled()) return false
+        if (!decor.isAttachedToWindow || decor.width <= 0 || decor.height <= 0) return false
+        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
+        val hostDecor = activity.window.decorView as? ViewGroup ?: return false
         if (!hostDecor.isAttachedToWindow) return false
-
-        // PixelCopy 抓的是 window surface 的合成结果，SurfaceView 有独立
-        // surface 不在其中（快照上是空洞），此类 Dialog（音频播放/录制等）
-        // 仍跳过。
-        if (containsLiveSurface(decor)) return false
-
-        // 消散快照走 PixelCopy：窗口合成结果逐像素拷贝，clipToOutline / 阴影
-        // 等硬件特性完全保真。（软件 draw 不执行子 View 的 outline 裁剪，圆形
-        // 按钮变方形；HardwareRenderer 离屏重渲染在三星实测返回空图。）
-        // PixelCopy 异步（约 1–2 帧回调），真实 dismiss 本就延迟到 overlay
-        // 上屏，这里只是同一条延迟链上多等一步。
-        val snapshot = Bitmap.createBitmap(
-            decor.width, decor.height, Bitmap.Config.ARGB_8888
-        )
-        val locationInWindow = IntArray(2)
-        decor.getLocationInWindow(locationInWindow)
-        val sourceRect = Rect(
-            locationInWindow[0], locationInWindow[1],
-            locationInWindow[0] + decor.width, locationInWindow[1] + decor.height
-        )
-        // PixelCopy 回调必须有超时兜底：部分设备上回调可能不来（三星实测），
-        // 没有兜底 Dialog 会永远关不掉
-        var copyHandled = false
-        try {
-            PixelCopy.request(window, sourceRect, snapshot, { result ->
-                if (copyHandled) return@request
-                copyHandled = true
-                if (result == PixelCopy.SUCCESS &&
-                    !activity.isFinishing && !activity.isDestroyed &&
-                    hostDecor.isAttachedToWindow && decor.isAttachedToWindow
-                ) {
-                    applyRoundedCornerMask(snapshot, dialog.context)
-                    attachDismissOverlay(
-                        dialog, activity, hostDecor, decor, snapshot,
-                        touchInWindow, onAnimationStarted, onOverlayShown, requestedAtNanos, useDefaultTouchDistance
-                    )
-                } else {
-                    // 抓图失败：放行真实 dismiss（本次无粒子动画）
-                    onAnimationStarted.run()
-                    onOverlayShown.run()
+        val feedback = ParticleTouchFeedback.begin(activity, decor)
+        val releaseContent = ParticleSnapshot.hold(decor)
+        pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
+        val capture = {
+            val offscreen: (((Bitmap?) -> Unit) -> Unit)? = if (feedback != null || captureOffscreen) {
+                { done ->
+                    if (feedback != null) feedback.withoutRipple { captureSnapshotAsync(decor, activity, done) }
+                    else captureSnapshotAsync(decor, activity, done)
                 }
-            }, mainHandler)
-        } catch (_: Throwable) {
-            return false
-        }
-        mainHandler.postDelayed({
-            if (!copyHandled) {
-                copyHandled = true
-                onAnimationStarted.run()
-                onOverlayShown.run()
+            } else null
+            ParticleSnapshot.capture(window, decor, asyncOffscreen = offscreen) { snapshot ->
+                try {
+                    if (snapshot != null && !activity.isFinishing && !activity.isDestroyed &&
+                        hostDecor.isAttachedToWindow && decor.isAttachedToWindow) {
+                        applyRoundedCornerMask(snapshot, activity)
+                        attachDismissOverlay(activity, hostDecor, decor, snapshot, touchInWindow,
+                            onAnimationStarted, onOverlayShown,
+                            requestedAtNanos, useDefaultTouchDistance,
+                            Runnable { releaseContent(); onDone?.run() }, feedback)
+                    } else {
+                        releaseContent()
+                        snapshot?.recycle()
+                        onAnimationStarted.run()
+                        onOverlayShown.run()
+                        onDone?.run()
+                    }
+                } finally {
+                    val pending = (pendingDismissCaptures[activity] ?: 1) - 1
+                    if (pending == 0) pendingDismissCaptures.remove(activity)
+                    else pendingDismissCaptures[activity] = pending
+                }
             }
-        }, PIXEL_COPY_TIMEOUT_MS)
+        }
+        // Surface 的窗口洞必须从真实窗口捕获，等反馈自然结束再复制；普通控件可立即准备干净快照。
+        if (feedback != null && ParticleSnapshot.hasVisibleSurface(decor)) feedback.afterSettled { capture() }
+        else mainHandler.post { capture() }
         return true
     }
 
     private fun attachDismissOverlay(
-        dialog: Dialog,
         activity: Activity,
         hostDecor: ViewGroup,
         decor: View,
@@ -162,8 +180,11 @@ internal object ParticleDismissController {
         onAnimationStarted: Runnable,
         onOverlayShown: Runnable,
         requestedAtNanos: Long,
-        useDefaultTouchDistance: Boolean
+        useDefaultTouchDistance: Boolean,
+        onDone: Runnable?,
+        feedback: ParticleTouchFeedback?
     ) {
+        val releaseSurfaceCover = ParticleSnapshot.coverSurfaces(decor, snapshot)
         val dialogLocation = IntArray(2)
         val hostLocation = IntArray(2)
         decor.getLocationOnScreen(dialogLocation)
@@ -200,7 +221,7 @@ internal object ParticleDismissController {
             originYPx = originY.toFloat(),
             virtualTouchXPx = virtualTouchX,
             virtualTouchYPx = virtualTouchY,
-            durationScale = animatorDurationScale(dialog.context),
+            durationScale = animatorDurationScale(activity),
             hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
             requestedAtNanos = requestedAtNanos,
             touchGap = if (useDefaultTouchDistance || touchInWindow == null) null else
@@ -213,7 +234,9 @@ internal object ParticleDismissController {
         val overlay = ParticleDismissOverlay(
             activity = activity,
             spec = spec,
-            onAnimationStarted = onAnimationStarted
+            onAnimationStarted = onAnimationStarted,
+            onDone = Runnable { releaseSurfaceCover?.invoke(); onDone?.run() },
+            touchFeedback = feedback
         )
         hostDecor.addView(
             overlay,
@@ -224,12 +247,15 @@ internal object ParticleDismissController {
         // 等 overlay（含快照）实际上屏后再通知调用方执行真实 dismiss：overlay
         // 与 Dialog 分属两个 window、渲染管线不同步，同帧提交也可能错开一帧
         // 生效——先就位、后揭开才能保证画面连续。
-        runAfterShown(overlay, OVERLAY_SHOWN_TIMEOUT_MS, onOverlayShown)
+        var waiting = if (releaseSurfaceCover == null) 1 else 2
+        val shown = Runnable { if (--waiting == 0) onOverlayShown.run() }
+        runAfterShown(overlay, OVERLAY_SHOWN_TIMEOUT_MS, shown)
+        if (releaseSurfaceCover != null) runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS, shown)
     }
 
     /**
-     * 在 [view] 所在 window 的下一帧实际提交合成后运行 [action]（恰好一次）：
-     * 首个 preDraw 表示本帧将绘制，Choreographer 的下一个回调时该帧已提交。
+     * 在 [view] 所在 window 的下一帧实际提交后运行 [action]（恰好一次）。
+     * preDraw 或下一次 UI vsync 都不能证明 RenderThread 已提交，海浪窗口交接必须等提交回调。
      * [timeoutMs] 兜底保证 action 必然执行（跨窗口衔接不能卡死流程）。
      */
     private fun runAfterShown(view: View, timeoutMs: Long, action: Runnable) {
@@ -244,7 +270,9 @@ internal object ParticleDismissController {
             object : ViewTreeObserver.OnPreDrawListener {
                 override fun onPreDraw(): Boolean {
                     view.viewTreeObserver.removeOnPreDrawListener(this)
-                    Choreographer.getInstance().postFrameCallback { fire.run() }
+                    if (Build.VERSION.SDK_INT >= 29 && view.isHardwareAccelerated) {
+                        view.viewTreeObserver.registerFrameCommitCallback { mainHandler.post(fire) }
+                    } else Choreographer.getInstance().postFrameCallback { fire.run() }
                     return true
                 }
             }
@@ -269,140 +297,118 @@ internal object ParticleDismissController {
      * 动画层会以末帧形态永久盖在界面上（"Dialog 凝固"，2026-08-26 检查更新
      * 场景定位）。
      */
-    fun startCondense(
-        dialog: Dialog,
+    fun startCondense(dialog: Dialog, onAppearanceProgress: ((Float) -> Unit)? = null,
+                      onOverlayCreated: (ParticleDismissOverlay) -> Unit): Boolean {
+        val window = dialog.window ?: return false
+        val activity = activityFrom(dialog.context) ?: return false
+        return appearContent(activity, window, window.decorView, true, { dialog.isShowing },
+            onAppearanceProgress, onOverlayCreated)
+    }
+
+    private val appearancePreparations = java.util.WeakHashMap<View, Runnable>()
+
+    fun cancelAppearance(decor: View) { appearancePreparations.remove(decor)?.run() }
+
+    fun appearContent(
+        activity: Activity, window: android.view.Window, decor: View,
+        hideWindow: Boolean = false, isShowing: () -> Boolean = { decor.isShown },
+        onAppearanceProgress: ((Float) -> Unit)? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
-        if (Looper.myLooper() != Looper.getMainLooper()) return false
-        if (!ValueAnimator.areAnimatorsEnabled()) return false
-        val window = dialog.window ?: return false
-        val decor = window.decorView
-        val activity = activityFrom(dialog.context) ?: return false
-        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) {
-            return false
+        if (Looper.myLooper() != Looper.getMainLooper() || !ValueAnimator.areAnimatorsEnabled()) return false
+        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
+        val hostDecor = activity.window.decorView as? ViewGroup ?: return false
+        appearancePreparations.remove(decor)?.run()
+        val appearanceFeedback = ParticleTouchFeedback.current(activity)
+            ?: ParticleTouchFeedback.begin(activity, hostDecor)
+        val prevAlpha = if (hideWindow) window.attributes.alpha else decor.alpha
+        fun setAlpha(alpha: Float) {
+            if (hideWindow) window.attributes = window.attributes.apply { this.alpha = alpha }
+            else decor.alpha = alpha
         }
-        val hostDecor = activity.window?.decorView as? ViewGroup ?: return false
-        if (!hostDecor.isAttachedToWindow) return false
-
-        // 隐藏首帧用 alpha 而不是 INVISIBLE：window 级可见性切换意味着窗口
-        // 从未显示过，WMS 把窗口 enter 动画（如底部面板 190ms 的 100%p 滑入）
-        // 挂起到凝聚结束恢复可见的瞬间才播——app 侧的 preDraw/Choreographer
-        // 只能确认帧提交、感知不到 WMS 侧的窗口动画，动画层撤走时面板可能
-        // 仍在屏外，表现为"凝聚结束闪一下"（2026-08-26 改记事颜色底部面板
-        // 定位；置零窗口动画防不住——子类 onStart 在 super 之后重设即覆盖）。
-        // alpha=0 下窗口全程正常显示：enter 动画在透明期内照常播完，恢复
-        // 只是一帧普通属性重绘，上屏确认因此可靠。快照不受影响：View.draw
-        // 渲染的是内容，自身 alpha 由父级/RenderNode 合成时才应用。
-        val prevAlpha = decor.alpha
-        decor.alpha = 0f
+        // Window alpha 隐藏整个合成树，独立 Surface 不会先于面板露出；缓冲本身仍可 PixelCopy。
+        setAlpha(0f)
+        val releaseContent = ParticleSnapshot.hold(decor)
         var handled = false
         var captureQueued = false
         var layoutRetries = 0
-        var preparationListener: ViewTreeObserver.OnPreDrawListener? = null
-        fun removePreparationListener() {
-            preparationListener?.let { listener ->
-                if (decor.viewTreeObserver.isAlive) decor.viewTreeObserver.removeOnPreDrawListener(listener)
-            }
-            preparationListener = null
+        var listener: ViewTreeObserver.OnPreDrawListener? = null
+        fun removeListener() {
+            listener?.let { if (decor.viewTreeObserver.isAlive) decor.viewTreeObserver.removeOnPreDrawListener(it) }
+            listener = null
         }
         val restore = Runnable {
             if (!handled) {
-                handled = true
-                removePreparationListener()
-                decor.alpha = prevAlpha
+                handled = true; removeListener(); appearancePreparations.remove(decor)
+                setAlpha(prevAlpha); releaseContent()
+                onAppearanceProgress?.invoke(1f)
             }
         }
-        preparationListener = object : ViewTreeObserver.OnPreDrawListener {
+        appearancePreparations[decor] = restore
+        listener = object : ViewTreeObserver.OnPreDrawListener {
             override fun onPreDraw(): Boolean {
                 if (handled || captureQueued) return true
                 captureQueued = true
-                // 子 TextView 的渐变也在 pre-draw 中按最终文字布局初始化。
-                // 当前监听器可能先于子树合并进来的监听器执行；此时同步抓图
-                // 会把临时纯色固化到整个出现动画。排到本次遍历结束后，先让
-                // 全部配色与布局准备回调完成，不添加固定毫秒等待。
                 decor.post capture@{
                     captureQueued = false
                     if (handled) return@capture
-                    if (!dialog.isShowing || !decor.isAttachedToWindow ||
-                        decor.width <= 0 || decor.height <= 0 ||
-                        containsLiveSurface(decor) || !hostDecor.isAttachedToWindow
-                    ) {
-                        restore.run()
-                        return@capture
+                    if (!isShowing() || !decor.isAttachedToWindow || activity.isFinishing || activity.isDestroyed) {
+                        restore.run(); return@capture
                     }
-                    // 限高、分隔线和间距可能在 post 中继续请求布局。此时尺寸和
-                    // 窗口居中位置仍是中间结果；只对这类弹窗等待下一次真正布局。
-                    if (hasPendingLayout(decor) || decor.parent?.isLayoutRequested == true) {
-                        layoutRetries++
-                        return@capture
+                    // 透明宿主与 Dialog 的 onStart 可以先于宿主附着；等待真正布局，不直接跳过。
+                    if (!releaseContent.settleLayout() || !hostDecor.isAttachedToWindow || decor.width <= 0 || decor.height <= 0 ||
+                        hasPendingLayout(decor) || decor.parent?.isLayoutRequested == true) {
+                        layoutRetries++; return@capture
                     }
-                    removePreparationListener()
+                    removeListener()
+                    captureQueued = true
                     val captureAtNanos = System.nanoTime()
-                    val snapshot = captureSnapshot(decor, dialog.context)
-                    if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
-                        android.util.Log.i(ParticleMicroflakeRenderer.TAG,
-                            "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
-                    }
-                    if (snapshot == null) {
-                        restore.run()
-                        return@capture
-                    }
-                    handled = true
-                    decor.removeCallbacks(restore)
-
-                    val dialogLocation = IntArray(2)
-                    val hostLocation = IntArray(2)
-                    decor.getLocationOnScreen(dialogLocation)
-                    hostDecor.getLocationOnScreen(hostLocation)
-                    val originX = dialogLocation[0] - hostLocation[0]
-                    val originY = dialogLocation[1] - hostLocation[1]
-
-                    // 出现没有关闭触点：倒放下方扇区内的共同消散轨迹。
-                    // 每次使用新种子，其余尺寸、材质、距离规则与消散一致。
-                    val angle = Math.toRadians(-ParticleAppearanceDirection.degrees(Math.random()).toDouble()).toFloat()
-                    val reach = VIRTUAL_TOUCH_FACTOR *
-                        hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
-                    val spec = ParticleDismissSpec(
-                        snapshot = snapshot,
-                        originXPx = originX.toFloat(),
-                        originYPx = originY.toFloat(),
-                        virtualTouchXPx = originX + snapshot.width / 2f + cos(angle) * reach,
-                        virtualTouchYPx = originY + snapshot.height / 2f + sin(angle) * reach,
-                        durationScale = animatorDurationScale(dialog.context),
-                        hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
-                        reverse = true,
-                        playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS
-                    )
-                    // 先显后撤：凝聚末帧与真实面板逐像素相同，恢复面板可见后
-                    // 等它确实上屏才移除动画层——跨窗口切换的任何一帧都无缝
-                    var overlayRef: ParticleDismissOverlay? = null
-                    val overlay = ParticleDismissOverlay(
-                        activity = activity,
-                        spec = spec,
-                        onDone = Runnable {
-                            decor.alpha = prevAlpha
-                            runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
-                                overlayRef?.release()
-                            }
+                    ParticleSnapshot.capture(window, decor,
+                        asyncOffscreen = { done -> captureSnapshotAsync(decor, activity, done) }) copy@{ snapshot ->
+                        if (handled) { snapshot?.recycle(); return@copy }
+                        if (snapshot == null || !isShowing() || !decor.isAttachedToWindow ||
+                            !hostDecor.isAttachedToWindow || activity.isFinishing || activity.isDestroyed) {
+                            snapshot?.recycle(); restore.run(); return@copy
                         }
-                    )
-                    overlayRef = overlay
-                    onOverlayCreated(overlay)
-                    hostDecor.addView(
-                        overlay,
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    )
+                        handled = true
+                        mainHandler.removeCallbacks(restore)
+                        appearancePreparations.remove(decor)
+                        applyRoundedCornerMask(snapshot, activity)
+                        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                            android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+                                "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
+                        }
+                        val at = IntArray(2); decor.getLocationOnScreen(at)
+                        val hostAt = IntArray(2); hostDecor.getLocationOnScreen(hostAt)
+                        val x = (at[0]-hostAt[0]).toFloat(); val y = (at[1]-hostAt[1]).toFloat()
+                        val angle = Math.toRadians(-ParticleAppearanceDirection.degrees(Math.random()).toDouble()).toFloat()
+                        val reach = VIRTUAL_TOUCH_FACTOR * hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
+                        val spec = ParticleDismissSpec(snapshot = snapshot, originXPx = x, originYPx = y,
+                            virtualTouchXPx = x + snapshot.width/2f + cos(angle)*reach,
+                            virtualTouchYPx = y + snapshot.height/2f + sin(angle)*reach,
+                            durationScale = animatorDurationScale(activity), hashSeed = (Math.random()*Int.MAX_VALUE).toInt(),
+                            reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS)
+                        var overlayRef: ParticleDismissOverlay? = null
+                        val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
+                            onAppearanceProgress?.invoke(1f)
+                            setAlpha(prevAlpha)
+                            runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
+                                releaseContent(); overlayRef?.release()
+                            }
+                        }, touchFeedback = appearanceFeedback,
+                            onPresentedProgress = onAppearanceProgress)
+                        overlayRef = overlay
+                        onOverlayCreated(overlay)
+                        hostDecor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
+                    }
                 }
                 return true
             }
         }
-        decor.viewTreeObserver.addOnPreDrawListener(preparationListener)
-        // 兜底：preDraw 异常缺席时恢复显示，Dialog 不能一直不可见
-        decor.postDelayed(restore, CONDENSE_RESTORE_TIMEOUT_MS)
+        decor.viewTreeObserver.addOnPreDrawListener(listener)
+        // 首次 Surface 尚未提交时允许等待其首帧；成功就立刻开播，不增加固定延迟。
+        mainHandler.postDelayed(restore, 1100L)
         return true
     }
 
@@ -422,6 +428,11 @@ internal object ParticleDismissController {
      * View.draw 不合成根 View 自身的 alpha，子节点按当前失效状态重新录制。
      * 失败回退软件 draw（子 View 的 outline 裁剪不保留）。
      */
+    private fun captureSnapshotAsync(decor: View, context: Context, done: (Bitmap?) -> Unit) {
+        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(decor, done)
+        else done(captureSnapshot(decor, context))
+    }
+
     private fun captureSnapshot(decor: View, context: Context): Bitmap? {
         return try {
             val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -529,16 +540,6 @@ internal object ParticleDismissController {
         )
     }
 
-    private fun containsLiveSurface(view: View): Boolean {
-        if (view is SurfaceView || view is TextureView) return true
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                if (containsLiveSurface(view.getChildAt(i))) return true
-            }
-        }
-        return false
-    }
-
     private fun animatorDurationScale(context: Context): Float =
         Settings.Global.getFloat(
             context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f
@@ -555,12 +556,6 @@ internal object ParticleDismissController {
 
     /** overlay 上屏探测的兜底时限：超时也放行真实 dismiss，Dialog 不能关不掉。 */
     private const val OVERLAY_SHOWN_TIMEOUT_MS = 100L
-
-    /** PixelCopy 回调的兜底时限：部分设备回调可能不来，超时放行真实 dismiss。 */
-    private const val PIXEL_COPY_TIMEOUT_MS = 500L
-
-    /** 凝聚流程的兜底时限：preDraw 缺席也要恢复面板显示。 */
-    private const val CONDENSE_RESTORE_TIMEOUT_MS = 150L
 
     /** 虚拟远触点距离 = 因子 × 快照对角线：越小方向汇聚感越强。 */
     private const val VIRTUAL_TOUCH_FACTOR = 1.1f

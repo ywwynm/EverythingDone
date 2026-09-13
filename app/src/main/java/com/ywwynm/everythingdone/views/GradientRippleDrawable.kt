@@ -94,6 +94,13 @@ class GradientRippleDrawable(
     private var pressed = false
     private var drawableAlpha = 255
 
+    /** 交接快照不包含瞬态反馈；真实控件仍按原来的节奏完成扩散与淡出。 */
+    internal var omitFromSnapshot = false
+        set(value) { field = value; invalidateSelf() }
+
+    internal val hasVisibleFeedback: Boolean
+        get() = alphaFraction > 0f || alphaInAnimator?.isRunning == true
+
     /** 复用同一实例、仅切换颜色（scope / 记事色变化时）。 */
     fun updateBackground(bg: ThingBackground) {
         background = bg
@@ -273,7 +280,7 @@ class GradientRippleDrawable(
     }
 
     override fun draw(canvas: Canvas) {
-        if (alphaFraction <= 0f) return
+        if (omitFromSnapshot || alphaFraction <= 0f) return
         val b = bounds
         if (b.isEmpty) return
         val startX = if (originX.isNaN()) b.exactCenterX() else originX
@@ -413,6 +420,10 @@ class GradientRippleDrawable(
         private fun applyAccentRippleShaped(
             view: View, bg: ThingBackground?, fallbackColor: Int, cornerRadiusPx: Float
         ) {
+            // 基类安装的中性前景反馈不能与强调色背景反馈叠加，否则还会把另一层波纹留在快照里。
+            if (view.foreground is GradientRippleDrawable || view.foreground is android.graphics.drawable.RippleDrawable) {
+                view.foreground = null
+            }
             val b = bg ?: ThingBackground.pure(fallbackColor)
             // 复用已有同款实例，仅换色：列表重绑（notifyDataSetChanged）时不丢正在播放的波纹动画。
             val existing = view.background as? GradientRippleDrawable

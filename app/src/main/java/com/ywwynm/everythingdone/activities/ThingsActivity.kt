@@ -244,11 +244,15 @@ class ThingsActivity :
     private var mOverlayDragActive: Boolean = false
     private var mPendingOverlayDragModeExitRebindReason: String? = null
     private var mThingCardAppearancePanel: View? = null
+    private val mAppearancePanelAnimator by lazy {
+        com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator(this)
+    }
     private var mTvThingCardAppearanceTitle: TextView? = null
     private var mEtFolderCardAppearanceName: EditText? = null
     private var mBtThingCardAppearanceChangeColor: ImageView? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        mAppearancePanelAnimator.recordTouch(ev)
         updateThingListPointerState(ev, "activity")
         if (mOverlayDragController?.handleTouchEvent(ev) == true) {
             return true
@@ -2725,6 +2729,7 @@ class ThingsActivity :
                     mDrawerLayout!!.closeDrawer(GravityCompat.START)
                 } else {
                     if (isThingCardAppearancePanelShowing()) {
+                        mAppearancePanelAnimator.dismissFromBack()
                         cancelThingCardAppearancePanel(false)
                         return
                     }
@@ -5746,6 +5751,10 @@ class ThingsActivity :
         updateThingCardAppearancePanelWidth()
         updateThingCardAppearancePanelMaxHeight()
         if (!wasVisible) {
+            panel.visibility = View.VISIBLE
+            if (mAppearancePanelAnimator.appear(panel)) return
+        }
+        if (!wasVisible) {
             panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
             panel.visibility = View.VISIBLE
         }
@@ -5812,6 +5821,9 @@ class ThingsActivity :
         onHidden: () -> Unit
     ) {
         if (token != mThingCardAppearancePanelVisibilityToken) return
+        if (mAppearancePanelAnimator.dismiss(panel) {
+                completeThingCardAppearancePanelHidden(panel, token, onHidden)
+            }) return
         val hiddenTranslationY = getThingCardAppearancePanelHiddenTranslationY(panel)
         if (hiddenTranslationY <= 0f) {
             completeThingCardAppearancePanelHidden(panel, token, onHidden)

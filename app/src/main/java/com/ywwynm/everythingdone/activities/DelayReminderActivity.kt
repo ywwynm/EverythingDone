@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.core.util.Pair
-import androidx.appcompat.app.AppCompatActivity
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
@@ -28,7 +27,7 @@ import java.util.Calendar
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * An Activity used to select time to delay an alarm for Reminder
  */
-open class DelayReminderActivity : AppCompatActivity() {
+open class DelayReminderActivity : ParticleDialogHostActivity() {
 
     private val mTypes: IntArray = intArrayOf(
         Calendar.MINUTE,

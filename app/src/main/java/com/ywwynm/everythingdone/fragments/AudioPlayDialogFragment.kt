@@ -406,7 +406,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
      */
     private fun installTransportRipple(view: ImageView?, accentBg: ThingBackground) {
         view ?: return
-        BackgroundUtil.installCircleRipple(view, BackgroundUtil.adaptiveRippleColor(accentBg))
+        BackgroundUtil.installDialogCircleRipple(view, BackgroundUtil.adaptiveRippleColor(accentBg))
     }
 
     /**
@@ -682,7 +682,7 @@ class AudioPlayDialogFragment : BaseDialogFragment() {
         // representativeColor。触摸范围仍属于 App Chrome，保留其中性的圆形 ripple。
         // GLES 是异步失败的：回退发生时立刻隐藏，不用等到用户点一下才发现。
         mVisualizer?.onGlFallback = { button.post { button.visibility = View.GONE } }
-        BackgroundUtil.installAppChromeCircleRipple(button, mActivity!!)
+        BackgroundUtil.installAppChromeDialogCircleRipple(button, mActivity!!)
         button.imageTintList = null
         button.setImageDrawable(
             BackgroundUtil.tintDrawable(

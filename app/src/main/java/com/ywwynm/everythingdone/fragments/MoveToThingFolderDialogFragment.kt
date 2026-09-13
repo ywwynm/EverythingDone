@@ -2,13 +2,11 @@
 
 package com.ywwynm.everythingdone.fragments
 
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.os.Bundle
@@ -338,14 +336,10 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = radius
             }
-            val mask = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = radius
-                setColor(Color.WHITE)
-            }
-            return RippleDrawable(
-                ColorStateList.valueOf(ColorConstants.FolderList.selectedRipple(bg)), fill, mask
-            )
+            val color = ColorConstants.FolderList.selectedRipple(bg)
+            return android.graphics.drawable.LayerDrawable(arrayOf(fill,
+                GradientRippleDrawable(ThingBackground.pure(color), shapeOval = false,
+                    cornerRadiusPx = radius, peakAlphaOverride = Color.alpha(color) / 255f)))
         }
         return GradientRippleDrawable(bg, shapeOval = false, cornerRadiusPx = radius)
     }
@@ -556,7 +550,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
             }
             // 未选中：展开/收缩按钮 ripple 用目标文件夹色；选中行已铺其色，改按明暗自适应。
             expand.background = if (selected) {
-                BackgroundUtil.circularRipple(ColorConstants.FolderList.selectedRipple(rowBg))
+                BackgroundUtil.dialogCircularRipple(ColorConstants.FolderList.selectedRipple(rowBg))
             } else {
                 GradientRippleDrawable(rowBg, shapeOval = true)
             }

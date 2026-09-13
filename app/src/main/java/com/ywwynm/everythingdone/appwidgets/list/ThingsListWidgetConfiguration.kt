@@ -19,7 +19,6 @@ import android.widget.LinearLayout
 import android.widget.RemoteViews
 import android.widget.SeekBar
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
@@ -51,7 +50,8 @@ import kotlin.math.abs
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Configuration Activity for things list widget
  */
-open class ThingsListWidgetConfiguration : AppCompatActivity() {
+open class ThingsListWidgetConfiguration : com.ywwynm.everythingdone.activities.ParticleDialogContentActivity() {
+    override val useParticleContentDialog = true
 
     private var mScopeAdapter: ScopeAdapter? = null
 

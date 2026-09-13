@@ -133,6 +133,9 @@ open class App : Application() {
                         if (BaseDialogFragment.particleAnimationMode(this@App) != 0) {
                             ParticleDismissController.warmDismissModel(this@App)
                         }
+                        com.github.adnansm.timelytextview.TimelyClockView.prewarmStyle(this@App,
+                            getSharedPreferences(Def.Meta.PREFERENCES_NAME, 0)
+                                .getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins"))
                     }
                 }
             }

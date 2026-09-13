@@ -2,10 +2,7 @@
 
 package com.ywwynm.everythingdone.fragments
 
-import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.cardview.widget.CardView
@@ -116,14 +113,11 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
             BackgroundUtil.onColor(thingColor, BackgroundUtil.ON_ALPHA_PRIMARY)
         )
 
-        val mask = GradientDrawable()
-        mask.shape = GradientDrawable.RECTANGLE
-        mask.cornerRadius = mCvStartAsBt!!.radius
-        mask.setColor(Color.WHITE)
-        mCvStartAsBt!!.foreground = RippleDrawable(
-            ColorStateList.valueOf(BackgroundUtil.thingRippleColor(thingColor)),
-            null,
-            mask
+        val rippleColor = BackgroundUtil.thingRippleColor(thingColor)
+        mCvStartAsBt!!.foreground = com.ywwynm.everythingdone.views.GradientRippleDrawable(
+            ThingBackground.pure(rippleColor), shapeOval = false,
+            cornerRadiusPx = mCvStartAsBt!!.radius,
+            peakAlphaOverride = Color.alpha(rippleColor) / 255f
         )
     }
 

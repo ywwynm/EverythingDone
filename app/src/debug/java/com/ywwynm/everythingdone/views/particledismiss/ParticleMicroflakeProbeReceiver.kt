@@ -199,11 +199,24 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 report.put("frameMs", samples)
             }
             if (reverseCheck) {
+                // 优化的正向压力批次也与独立旧解算逐帧比较，不能拿自身充当基准。
+                ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
+                    renderer.prepare()
+                    for (i in 0..reversePlan.samples) {
+                        renderer.draw(reversePlan.time(i), batchPressure = true)
+                        check(frameHash() == forwardHashes[i]) { "正向压力批次改变画面：$scene $i" }
+                    }
+                }
+                report.put("forwardBatchVerified", true)
                 val reverseSamples = JSONArray()
                 ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
                     renderer.prepare()
                     val prepare = System.nanoTime()
-                    check(renderer.prepareReverse(reversePlan.samples))
+                    // 同时覆盖前台有动画时的小批次调度分支，逐帧像素仍必须与原正向模型相等。
+                    ParticleGpuWork.beginPlayback()
+                    try { check(renderer.prepareReverse(reversePlan.samples)) }
+                    finally { ParticleGpuWork.endPlayback() }
+                    report.put("reverseYieldVerified", true)
                     report.put("reversePrepareMs", (System.nanoTime() - prepare) / 1e6)
                     for (i in reversePlan.samples downTo 0) {
                         renderer.drawReverseFrame(i)

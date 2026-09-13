@@ -1167,6 +1167,25 @@ object BackgroundUtil {
                 mask)
     }
 
+    /** 应用弹窗的圆形反馈可观测结束状态，便于交接到粒子动画。 */
+    @JvmStatic
+    fun dialogCircularRipple(rippleColor: Int = RIPPLE_LIGHT): com.ywwynm.everythingdone.views.GradientRippleDrawable =
+        com.ywwynm.everythingdone.views.GradientRippleDrawable(
+            ThingBackground.pure(rippleColor), shapeOval = true,
+            peakAlphaOverride = Color.alpha(rippleColor) / 255f
+        )
+
+    @JvmStatic
+    fun installDialogCircleRipple(view: View?, rippleColor: Int) {
+        installCircleRipple(view, rippleColor)
+        view?.foreground = dialogCircularRipple(rippleColor)
+    }
+
+    @JvmStatic
+    fun installAppChromeDialogCircleRipple(view: View?, context: Context) {
+        installDialogCircleRipple(view, appChromeRippleColor(context))
+    }
+
     @JvmStatic
     fun appChromeRippleColor(context: Context): Int {
         return ContextCompat.getColor(context, R.color.app_chrome_ripple)
@@ -1265,6 +1284,13 @@ object BackgroundUtil {
             paddingVertical
         )
         installAppChromePillRipple(view, context)
+        // 对话框灰色按钮与强调色按钮使用同一反馈生命周期，粒子交接可等待真实结束。
+        // 保留胶囊裁剪、颜色和透明度；不依赖框架 RippleDrawable 不公开的结束状态。
+        val rippleColor = appChromeRippleColor(context)
+        view.foreground = com.ywwynm.everythingdone.views.GradientRippleDrawable(
+            ThingBackground.pure(rippleColor), shapeOval = false, cornerRadiusPx = -1f,
+            peakAlphaOverride = Color.alpha(rippleColor) / 255f
+        )
     }
 
     @JvmStatic

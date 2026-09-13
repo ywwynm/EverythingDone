@@ -845,7 +845,7 @@
             android:exported="true"
             android:taskAffinity="com.ywwynm.everythingdone.task.thing_list_widget_config"
             android:excludeFromRecents="true"
-            android:theme="@style/EverythingDoneTheme.Dialog">
+            android:theme="@style/EverythingDoneTheme.ParticleDialogHost">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>

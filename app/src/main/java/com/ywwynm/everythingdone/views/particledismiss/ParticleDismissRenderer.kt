@@ -24,15 +24,44 @@ internal class ParticleDismissRenderer(
     private val viewportHeight: Int,
     private val spec: ParticleDismissSpec,
     private val preparation: ParticleMicroflakePreparation? = null,
+    private val touchFeedback: ParticleTouchFeedback? = null,
     private val onFirstFrame: () -> Unit,
     private val onFinished: (completed: Boolean) -> Unit
 ) : Thread("ParticleDismissGl") {
 
     @Volatile
     private var cancelled = false
+    private var playbackActive = false
+    @Volatile private var playbackLooper: android.os.Looper? = null
+    @Volatile private var firstFrameNanos = 0L
+    @Volatile private var presentedFrameNanos = 0L
+    private val presentationSignal = Object()
+    @Volatile internal var lastFrameNanos = 0L
+        private set
+
+    internal fun progressForPresentation(timestamp: Long): Float {
+        if (firstFrameNanos == 0L) return 0f
+        val duration = (if (spec.reverse) spec.playbackDurationS else 1f) * spec.durationScale.coerceAtLeast(.1f)
+        return ((timestamp - firstFrameNanos) / 1e9 / duration).toFloat().coerceIn(0f, 1f)
+    }
+
+    internal fun isAnimationFrame(timestamp: Long): Boolean = firstFrameNanos > 0L && timestamp >= firstFrameNanos
+
+    internal fun framePresented(timestamp: Long, committedAt: Long) {
+        synchronized(presentationSignal) {
+            if (com.ywwynm.everythingdone.BuildConfig.DEBUG && timestamp > presentedFrameNanos) {
+                // 记录窗口提交的时间及主线程接收时间，不能把消息排队算成屏幕丢帧。
+                presentedTimings += longArrayOf(timestamp, committedAt, System.nanoTime())
+            }
+            presentedFrameNanos = maxOf(presentedFrameNanos, timestamp)
+            presentationSignal.notifyAll()
+        }
+    }
 
     fun cancel() {
         cancelled = true
+        playbackLooper?.quit()
+        synchronized(presentationSignal) { presentationSignal.notifyAll() }
     }
 
     override fun run() {
@@ -41,8 +70,11 @@ internal class ParticleDismissRenderer(
         var eglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
         var windowSurface: Surface? = null
         var completed = false
+        var completionSent = false
         try {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+            android.os.Looper.prepare()
+            playbackLooper = android.os.Looper.myLooper()
             windowSurface = Surface(surfaceTexture)
 
             display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -66,10 +98,24 @@ internal class ParticleDismissRenderer(
             }
 
             completed = renderAnimation()
+            if (completed) {
+                completionSent = true
+                onFinished(true)
+                // disconnect 会丢弃尚未被 TextureView 取走的末帧；保持连接直到实际呈现。
+                val deadline = android.os.SystemClock.uptimeMillis() + 700
+                synchronized(presentationSignal) {
+                    while (!cancelled && presentedFrameNanos < lastFrameNanos) {
+                        val remaining = deadline - android.os.SystemClock.uptimeMillis()
+                        if (remaining <= 0) break
+                        presentationSignal.wait(remaining)
+                    }
+                }
+            }
         } catch (error: Throwable) {
             android.util.Log.e("ParticleMicroflake", "粒子动画回退", error)
             completed = false
         } finally {
+            if (playbackActive) ParticleGpuWork.endPlayback()
             if (display != EGL14.EGL_NO_DISPLAY) {
                 EGL14.eglMakeCurrent(
                     display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT
@@ -86,15 +132,21 @@ internal class ParticleDismissRenderer(
                 // initialized 与 HWUI 的常驻行为一致，无资源泄漏。
             }
             windowSurface?.release()
-            onFinished(completed)
+            if (!completionSent) onFinished(completed)
         }
     }
 
     private fun renderAnimation(): Boolean {
+        // 源窗口从反馈结束到首帧呈现之间仍需优先完成交接。若等首帧才登记，
+        // ripple 释放优先级的空档会让下一窗口把剩余逆算一次排入 GPU，拖住 HWUI。
+        if (!spec.reverse) {
+            ParticleGpuWork.beginPlayback()
+            playbackActive = true
+        }
         val prepareStart = System.nanoTime()
         return ParticleMicroflakeRenderer(assets, viewportWidth, viewportHeight).use { renderer ->
             renderer.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
-            if (spec.reverse) renderer.prepareReversePipeline()
+            renderer.prepareReversePipeline()
             val pipelineReady = System.nanoTime()
             if (cancelled) return@use false
             val input = preparation?.await(viewportWidth, viewportHeight)
@@ -102,11 +154,16 @@ internal class ParticleDismissRenderer(
             val inputReady = System.nanoTime()
             if (cancelled) return@use false
             renderer.prepare(input)
+            if (!spec.reverse && touchFeedback?.awaitPlayback { cancelled } == false) return@use false
             if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                 android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                     "准备耗时 ${(System.nanoTime() - prepareStart) / 1e6} ms，GLES ${GLES30.glGetString(GLES30.GL_VERSION)}")
             }
             val first = {
+                if (!playbackActive) {
+                    ParticleGpuWork.beginPlayback()
+                    playbackActive = true
+                }
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                     val stage = if (spec.reverse) "出现启动" else "启动阶段"
                     android.util.Log.i(ParticleMicroflakeRenderer.TAG,
@@ -117,10 +174,23 @@ internal class ParticleDismissRenderer(
                 }
                 onFirstFrame()
             }
-            if (spec.reverse) renderer.playReverse(spec.playbackDurationS, spec.durationScale, refreshRate, { cancelled }, first)
-            else renderer.play(spec.durationScale, refreshRate, { cancelled }, first)
+            val submitted: (Long, Float) -> Unit = { timestamp, _ ->
+                if (firstFrameNanos == 0L) firstFrameNanos = timestamp
+                lastFrameNanos = timestamp
+                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) submittedTimings += longArrayOf(timestamp, System.nanoTime())
+            }
+            val completed = if (spec.reverse) renderer.playReverse(spec.playbackDurationS, spec.durationScale, refreshRate,
+                { cancelled }, first, { touchFeedback?.awaitPlayback { cancelled } != false }, submitted)
+            else renderer.play(spec.durationScale, refreshRate, { cancelled }, first, submitted)
+            drawTimings = renderer.drawTimings.toList()
+            completed
         }
     }
+
+    internal val submittedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
+    internal val presentedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
+    @Volatile internal var drawTimings: List<LongArray> = emptyList()
+        private set
 
     private fun chooseConfig(display: EGLDisplay): EGLConfig {
         val attributes = intArrayOf(

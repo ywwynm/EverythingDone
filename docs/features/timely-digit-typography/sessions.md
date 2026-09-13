@@ -121,3 +121,7 @@ with a Poppins tracer bullet. No app code changed yet.
 - 已先接入当前管线可直接支持的 9 个字体：Space Grotesk、Limelight、Righteous、Poiret One、Major Mono Display、Genos、Italiana、Nixie One、Outfit。新增 9 个 `app/src/main/assets/timely/*.json`，扩展 `generate_glyph_data.py` 支持指定 style 子集生成，并更新 `DoingDigitStyleDialogFragment.STYLES`。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705141512.md` 并发布阿里云 debug update `202607050615`。未使用 adb，未提交 git。
 - 按用户要求提交上一轮改动：commit `7c983258 Add direct Timely digit font styles / 添加可直接接入的 Timely 数字字体`。
 - 继续扩展多外轮廓 / 多填充分片管线：`generate_glyph_data.py` 中历史 `holes` 字段不再截断为 2 个，改为保存所有次级轮廓，运行时沿用 `EVEN_ODD` 与动态次级轮廓数组。新增 Big Shoulders Stencil、Sirin Stencil、Allerta Stencil、Saira Stencil、Stardos Stencil、Monoton 的 timely JSON，并注册到设置选择器。`:app:assembleDebug` 编译通过；已生成 `docs/features/timely-digit-typography/debug-updates/update-20260705142400.md` 并发布阿里云 debug update `202607050624`。未使用 adb，未提交第二轮改动。
+
+## 2026-09-13 - 减少录音弹窗构造与布局的时钟开销
+
+主线程采样定位到首次字体 JSON 读取、布局阶段反复遍历轮廓求边界、静态零读数仍执行二次复杂度匹配。当前字体改为首屏后后台预读，使用并发缓存安全发布不可变字体数据；字形边界在解析时计算一次，相同数字直接共享原轮廓。数字字形、布局规则与形变模型保持相同，随弹窗连续性回归检查。

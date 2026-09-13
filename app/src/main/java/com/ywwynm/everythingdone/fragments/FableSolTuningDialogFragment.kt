@@ -338,7 +338,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     private fun installPreviewButtonChrome(iv: ImageView) {
         iv.background = null
         iv.imageAlpha = PREVIEW_BUTTON_ICON_ALPHA
-        iv.foreground = BackgroundUtil.circularRipple(
+        iv.foreground = BackgroundUtil.dialogCircularRipple(
             BackgroundUtil.appChromeRippleColor(mActivity!!)
         )
     }

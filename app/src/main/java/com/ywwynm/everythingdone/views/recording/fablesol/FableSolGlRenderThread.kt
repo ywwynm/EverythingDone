@@ -24,6 +24,9 @@ internal class FableSolGlRenderThread(
     private val renderer = FableSolGlRenderer(context, density)
     @Volatile private var acceptingFrames = false
     @Volatile private var animating = false
+    private val singleFramePending = java.util.concurrent.atomic.AtomicBoolean()
+    private var renderWidth = 0
+    private var renderHeight = 0
     // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
     private var transientSwapFailures = 0
     // 帧节拍由 GL 线程自己的 Choreographer 驱动。原先在 UI 线程收 vsync、再
@@ -275,6 +278,7 @@ internal class FableSolGlRenderThread(
                 renderer.initialize(session.isHdrOutput)
                 rendererInitialized = true
                 renderer.resize(width, height)
+                renderWidth = width; renderHeight = height
                 val hdrContent = session.isHdrOutput && renderer.isHdrContentEnabled()
                 val diagnostic = if (session.isHdrOutput && !hdrContent) {
                     "${session.diagnostic}; rgba16f-scene-fallback"
@@ -298,7 +302,10 @@ internal class FableSolGlRenderThread(
 
     fun resize(width: Int, height: Int) {
         handler?.post {
-            if (egl != null) renderer.resize(width, height)
+            if (egl != null && (width != renderWidth || height != renderHeight)) {
+                renderer.resize(width, height)
+                renderWidth = width; renderHeight = height
+            }
         }
     }
 
@@ -341,10 +348,14 @@ internal class FableSolGlRenderThread(
      * 只在帧循环确实停着时才画：循环在跑时下一拍自然会覆盖，重复渲染只是白付一帧。
      */
     fun renderSingleFrame() {
-        handler?.post {
+        val current = handler ?: return
+        // 首次 attach/resize/可见性会连续请求同一冻结画面，只保留一次待执行绘制。
+        if (!singleFramePending.compareAndSet(false, true)) return
+        if (!current.post {
+            singleFramePending.set(false)
             if (animating || !acceptingFrames) return@post
             renderFrame(System.nanoTime())
-        }
+        }) singleFramePending.set(false)
     }
 
     fun setThingBackground(background: ThingBackground) {
@@ -443,6 +454,7 @@ internal class FableSolGlRenderThread(
         if (BuildConfig.DEBUG) android.util.Log.i("FableSolSurfProbe", "detachBlocking")
         acceptingFrames = false
         animating = false
+        singleFramePending.set(false)
         val latch = CountDownLatch(1)
         currentHandler.post {
             removeFrameCallback()

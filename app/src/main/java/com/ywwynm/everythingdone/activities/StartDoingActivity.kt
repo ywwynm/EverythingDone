@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.core.util.Pair
-import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
 
 import com.ywwynm.everythingdone.App
@@ -33,7 +32,7 @@ import java.util.GregorianCalendar
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * An Activity mainly used to select time will be spent to do something
  */
-open class StartDoingActivity : AppCompatActivity() {
+open class StartDoingActivity : ParticleDialogHostActivity() {
 
     private var mThing: Thing? = null
     @DoingService.StartType

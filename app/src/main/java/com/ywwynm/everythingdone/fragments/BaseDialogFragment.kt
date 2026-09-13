@@ -12,6 +12,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnAttach
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 import android.view.LayoutInflater
@@ -73,7 +74,7 @@ abstract class BaseDialogFragment : DialogFragment() {
             dialog?.context
                 ?: ContextThemeWrapper(requireContext(), R.style.EverythingDoneTheme_Dialog)
         )
-        mContentView = themedInflater.inflate(getLayoutResource(), container, false)
+        mContentView = createDialogContent(themedInflater, container)
         installRoundedOutline(mContentView)
         installCompactDialogButtonRipples(mContentView)
         return mContentView
@@ -81,6 +82,9 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     @LayoutRes
     protected abstract fun getLayoutResource(): Int
+
+    protected open fun createDialogContent(inflater: LayoutInflater, container: ViewGroup?): View =
+        inflater.inflate(getLayoutResource(), container, false)
 
     protected open fun getDialogWindowWidthPx(): Int = ViewGroup.LayoutParams.WRAP_CONTENT
 
@@ -103,9 +107,8 @@ abstract class BaseDialogFragment : DialogFragment() {
     /**
      * 是否在 dismiss 时播放粒子消散动画（见 docs/features/dialog-particle-dismiss/）。
      * AlertDialogFragment 样板验收后于 2026-08-26 铺开为默认开启；个别 Dialog 需
-     * 关闭时 override 返回 false。含 SurfaceView/TextureView 的 Dialog（音频播放/
-     * 录制等）由 ParticleDismissController 在运行时检测并自动降级为普通退出，
-     * 无需在此关闭。
+     * 关闭时 override 返回 false。普通窗口与独立 Surface 使用共同快照入口，
+     * 录音、播放等实时内容在交接期间临时冻结。
      */
     protected open fun useParticleDismiss(): Boolean = true
 
@@ -128,11 +131,18 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
+        val animateAppearance = useParticleDismiss() && !recreatedFromSavedState &&
+            !gestureDialog.condenseAttempted && android.animation.ValueAnimator.areAnimatorsEnabled() &&
+            particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
         if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and (PARTICLE_ANIMATION_SHOW_BIT or PARTICLE_ANIMATION_DISMISS_BIT) != 0) {
             ParticleDismissController.warmDismissModel(gestureDialog.context)
         }
         if (gestureDialog.dimLayer == null) {
-            activity?.let { gestureDialog.dimLayer = DialogDimLayer.attach(it) }
+            activity?.let { host -> host.window.decorView.doOnAttach {
+                if (dialog.isShowing && gestureDialog.dimLayer == null) {
+                    gestureDialog.dimLayer = DialogDimLayer.attach(host, animateIn = !animateAppearance)
+                }
+            } }
         }
 
         // 出现动画以 0.6 秒倒放当前共同消散模型的完整轨迹：受子类开关与用户设置档位（bit0 = 出现）
@@ -141,14 +151,13 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 在透明期内照常播完，不会挂起到凝聚结束才播（置零的旧方案会被子类
         // onStart 在 super 之后 setWindowAnimations 覆盖——底部面板闪烁的
         // 2026-08-26 根因；且会连带吃掉"仅出现时"档位下的窗口退出动画）
-        if (useParticleDismiss() && !recreatedFromSavedState &&
-            !gestureDialog.condenseAttempted &&
-            particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
-        ) {
+        if (animateAppearance) {
             gestureDialog.condenseAttempted = true
-            ParticleDismissController.startCondense(gestureDialog) { overlay ->
+            val started = ParticleDismissController.startCondense(gestureDialog,
+                onAppearanceProgress = { gestureDialog.dimLayer?.setAppearanceProgress(it) }) { overlay ->
                 gestureDialog.condenseOverlay = overlay
             }
+            if (!started) gestureDialog.dimLayer?.setAppearanceProgress(1f)
         }
     }
 
@@ -327,6 +336,7 @@ private class GestureAnchoredDialog(
         // 动画层，否则它的末帧会残留在界面上（"Dialog 凝固"）
         condenseOverlay?.release()
         condenseOverlay = null
+        window?.decorView?.let(ParticleDismissController::cancelAppearance)
 
         // fragment 的关闭链会两次调到 Dialog.dismiss()（dismissInternal 与
         // onDestroyView 各一次）：粒子流程接管期间的重入必须忽略，否则重入的

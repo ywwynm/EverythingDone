@@ -65,7 +65,19 @@ public class TimelyClockView extends View {
 
     private static final long ANIM_DURATION_MS = 300L;
 
-    private static final Map<String, StyleData> CACHE = new HashMap<String, StyleData>();
+    private static final Map<String, StyleData> CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<String> PREPARING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** 首屏后预读当前字体；不创建 View，避免首次打开录音窗口时同步解析整个 JSON。 */
+    public static void prewarmStyle(Context context, String style) {
+        final String name = style == null || style.isEmpty() ? DEFAULT_STYLE : style;
+        if (CACHE.containsKey(name) || !PREPARING.add(name)) return;
+        final Context app = context.getApplicationContext();
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try { load(app, name); } finally { PREPARING.remove(name); }
+        }, "TimelyGlyphPrepare").start();
+    }
 
     static final class Shape {
         float[][] outer;
@@ -75,6 +87,7 @@ public class TimelyClockView extends View {
     static final class RawGlyph {
         float[][] outer;
         float[][][] holes;
+        float minX, maxX;
     }
 
     static final class StyleData {
@@ -579,11 +592,11 @@ public class TimelyClockView extends View {
     }
 
     private static float glyphMinX(RawGlyph glyph) {
-        return glyphBoundX(glyph, true);
+        return glyph == null ? 0f : glyph.minX;
     }
 
     private static float glyphMaxX(RawGlyph glyph) {
-        return glyphBoundX(glyph, false);
+        return glyph == null ? 0f : glyph.maxX;
     }
 
     private static float glyphBoundX(RawGlyph glyph, boolean min) {
@@ -764,6 +777,13 @@ public class TimelyClockView extends View {
     private Shape[] buildPair(int slotIndex, int from, int to) {
         RawGlyph a = getRaw(slotIndex, from);
         RawGlyph b = getRaw(slotIndex, to);
+        // 静态数字不需要 O(N²) 的轮廓匹配；直接沿用相同的不可变字形。
+        if (from == to) {
+            Shape shape = new Shape();
+            shape.outer = b.outer;
+            shape.holes = b.holes;
+            return new Shape[] {shape, shape};
+        }
         Shape sa = new Shape();
         Shape sb = new Shape();
         sa.outer = a.outer;
@@ -916,6 +936,8 @@ public class TimelyClockView extends View {
                     for (int h = 0; h < holes.length(); h++) {
                         glyph.holes[h] = parseFlat(holes.getJSONArray(h));
                     }
+                    glyph.minX = glyphBoundX(glyph, true);
+                    glyph.maxX = glyphBoundX(glyph, false);
                     data.glyphs[level][digit] = glyph;
                 }
             }

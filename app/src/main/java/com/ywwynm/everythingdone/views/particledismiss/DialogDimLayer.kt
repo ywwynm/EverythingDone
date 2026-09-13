@@ -20,6 +20,29 @@ import android.view.ViewGroup
 internal class DialogDimLayer private constructor(private val view: View) {
 
     private var detachStarted = false
+    private var appearanceStarted = false
+
+    /** 使用实际已合成的粒子进度；准备阶段保持透明，末帧到达目标浓度。 */
+    fun setAppearanceProgress(progress: Float) {
+        if (detachStarted) return
+        val p = progress.coerceIn(0f, 1f)
+        if (p >= 1f) {
+            view.animate().cancel()
+            view.alpha = DIM_AMOUNT
+        } else if (!appearanceStarted) {
+            appearanceStarted = true
+            val from = p * p * (3f - 2f * p)
+            view.alpha = DIM_AMOUNT * from
+            // 首个实际纹理帧才启动，使用同一逻辑时长；交接末帧再精确收尾。
+            // 让 HWUI 持续驱动暗层，避免焦点在透明 Dialog 时下方窗口被当成静止内容。
+            view.animate().alpha(DIM_AMOUNT)
+                .setDuration(((1f-p) * ParticleReversePlan.APPEARANCE_SECONDS * 1000).toLong())
+                .setInterpolator { fraction ->
+                    val t = p + (1f-p) * fraction
+                    (t*t*(3f-2f*t) - from) / (1f-from).coerceAtLeast(.000001f)
+                }.start()
+        }
+    }
 
     /** 幂等：重复调用（各 dismiss 路径的兜底）只有第一次生效。 */
     fun fadeOutAndDetach(durationMs: Long, interpolator: TimeInterpolator? = null) {
@@ -44,7 +67,7 @@ internal class DialogDimLayer private constructor(private val view: View) {
         /** 主题禁用系统 dim 后由这里统一给值（平台默认浓度）。 */
         const val DIM_AMOUNT = 0.6f
 
-        fun attach(activity: Activity): DialogDimLayer? {
+        fun attach(activity: Activity, animateIn: Boolean = true): DialogDimLayer? {
             if (activity.isFinishing || activity.isDestroyed) return null
             val decor = activity.window?.decorView as? ViewGroup ?: return null
             if (!decor.isAttachedToWindow) return null
@@ -61,7 +84,7 @@ internal class DialogDimLayer private constructor(private val view: View) {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
                 )
             )
-            view.animate().alpha(DIM_AMOUNT).setDuration(FADE_IN_MS).start()
+            if (animateIn) view.animate().alpha(DIM_AMOUNT).setDuration(FADE_IN_MS).start()
             return DialogDimLayer(view)
         }
     }

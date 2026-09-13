@@ -7,7 +7,6 @@ import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.appcompat.app.AppCompatActivity
 import android.util.SparseArray
 import android.view.View
 
@@ -19,7 +18,7 @@ import com.ywwynm.everythingdone.utils.LocaleUtil
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * A base Activity class to reduce same codes in different subclasses.
  */
-abstract class EverythingDoneBaseActivity : AppCompatActivity() {
+abstract class EverythingDoneBaseActivity : ParticleDialogContentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))

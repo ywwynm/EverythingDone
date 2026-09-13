@@ -65,6 +65,8 @@ import kotlin.math.min
  * An Activity to provide more noticeable notification for Reminders/Habits
  */
 open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
+    override val useParticleContentDialog = true
+    internal override val particleDialogCanceledOnTouchOutside = false
 
     private var mDialogWidth: Int = 0
 
@@ -128,7 +130,7 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
         if (mIsHabit) {
             nmc.cancel(mHrId.toInt())
         } else {
-            nmc.cancel(mThing!!.id.toInt())
+            mThing?.let { nmc.cancel(it.id.toInt()) }
         }
     }
 

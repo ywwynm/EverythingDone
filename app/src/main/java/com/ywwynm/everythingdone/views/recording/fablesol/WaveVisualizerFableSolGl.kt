@@ -20,7 +20,8 @@ import kotlin.math.min
 class WaveVisualizerFableSolGl @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver {
+) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver,
+    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
 
     private val density = resources.displayMetrics.density.toDouble()
     private val renderThread = FableSolGlRenderThread(
@@ -48,6 +49,8 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      * [shouldAnimate]。
      */
     private var frozen = false
+    private var hostFrozen = false
+    private var particleHolds = 0
     private var surfaceReady = false
     private var votedFrameRate = 0f
     private var demotedPollStreak = 0
@@ -158,10 +161,29 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
      * 静止画面继续被顶在 120Hz。
      */
     internal fun setFrozen(value: Boolean) {
-        if (frozen == value) return
-        frozen = value
-        renderThread.setFrozen(value)
-        if (value) {
+        hostFrozen = value
+        applyFrozenState()
+    }
+
+    override fun holdParticleSnapshot(): () -> Unit {
+        particleHolds++
+        applyFrozenState()
+        var released = false
+        return {
+            if (!released) {
+                released = true
+                particleHolds--
+                applyFrozenState()
+            }
+        }
+    }
+
+    private fun applyFrozenState() {
+        val target = hostFrozen || particleHolds > 0
+        if (frozen == target) return
+        frozen = target
+        renderThread.setFrozen(target)
+        if (target) {
             stopFrameLoop()
             clearSurfaceFrameRate()
         } else {

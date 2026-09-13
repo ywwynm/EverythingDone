@@ -190,7 +190,14 @@
         <item name="android:windowExitAnimation">@anim/bottom_panel_slide_out</item>
     </style>
 
-    <style name="EverythingDoneTheme.NoticeableNotification" parent="EverythingDoneTheme.Dialog">
+    <style name="EverythingDoneTheme.ParticleDialogHost" parent="EverythingDoneTheme.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+    </style>
+
+    <style name="EverythingDoneTheme.NoticeableNotification" parent="EverythingDoneTheme.ParticleDialogHost">
         <item name="android:windowCloseOnTouchOutside">false</item>
     </style>
 

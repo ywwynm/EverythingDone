@@ -620,7 +620,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         mVisualizer?.onGlFallback = { button.post { button.visibility = View.GONE } }
         button.visibility = View.VISIBLE
         BackgroundUtil.applyOvalBackground(button, confirmBg)
-        button.foreground = BackgroundUtil.circularRipple(
+        button.foreground = BackgroundUtil.dialogCircularRipple(
             BackgroundUtil.adaptiveRippleColor(confirmBg)
         )
         button.setImageDrawable(
@@ -922,9 +922,9 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         dialog?.window?.setBackgroundDrawable(
             ContextCompat.getDrawable(host, R.drawable.bg_app_chrome_surface_elevated_rounded)
         )
-        BackgroundUtil.installAppChromeCircleRipple(mIvMainAction, host)
-        BackgroundUtil.installAppChromeCircleRipple(mIvReRecording, host)
-        BackgroundUtil.installAppChromeCircleRipple(mIvCancelRecording, host)
+        BackgroundUtil.installAppChromeDialogCircleRipple(mIvMainAction, host)
+        BackgroundUtil.installAppChromeDialogCircleRipple(mIvReRecording, host)
+        BackgroundUtil.installAppChromeDialogCircleRipple(mIvCancelRecording, host)
         installSideControlScrim(mIvReRecording)
         installSideControlScrim(mIvCancelRecording)
         applySecondaryIcon(mIvReRecording, R.drawable.act_re_recording_audio)
@@ -1212,14 +1212,14 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
             )
         )
-        mIvMainAction!!.foreground = BackgroundUtil.circularRipple(
+        mIvMainAction!!.foreground = BackgroundUtil.dialogCircularRipple(
             BackgroundUtil.appChromeRippleColor(mActivity!!)
         )
     }
 
     private fun applyMainButtonConfirmStyle(background: ThingBackground) {
         BackgroundUtil.applyOvalBackground(mIvMainAction, background)
-        mIvMainAction!!.foreground = BackgroundUtil.circularRipple(
+        mIvMainAction!!.foreground = BackgroundUtil.dialogCircularRipple(
             BackgroundUtil.adaptiveRippleColor(background)
         )
     }
