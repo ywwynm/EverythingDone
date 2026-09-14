@@ -9,8 +9,10 @@ def tap(attr,value,expect=None):
     tree=ui.dump();ui.adb('shell','input','tap',*ui.center(ui.find(tree,attr,value)))
     return ui.wait_for(expect) if expect else None
 
+TEST_TITLE=r'(?:CodexAnimation|ClaudeBorderTest)[a-zA-Z0-9_-]+'
+
 def trash(titles):
-    assert titles and len(titles)==len(set(titles)) and all(re.fullmatch(r'CodexAnimation[a-zA-Z0-9_-]+',t) for t in titles)
+    assert titles and len(titles)==len(set(titles)) and all(re.fullmatch(TEST_TITLE,t) for t in titles)
     tree=ui.dump();x,y=ui.center(ui.find(tree,'text',titles[0]))
     ui.adb('shell','input','swipe',x,y,x,y,700)
     for index,title in enumerate(titles):

@@ -300,11 +300,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder: BaseThingViewHolder,
         listPosition: Int
     ) {
-        if (!isArmedFor(listPosition)) return
+        if (!isArmedFor(listPosition)) {
+            if (com.ywwynm.everythingdone.BuildConfig.DEBUG && listPosition == mDebugLastArmedPosition) {
+                android.util.Log.i("NewItemReveal", "bind pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} NOT armed (already consumed) -> VISIBLE by bind")
+            }
+            return
+        }
 
         val listener = mArmedNewItemListener
         val firedListPosition = listPosition
         clearArmedNewItemAnimation()
+        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+            mDebugLastArmedPosition = listPosition
+            android.util.Log.i("NewItemReveal", "arm fired pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} size=${holder.cv?.width}x${holder.cv?.height}")
+        }
 
         holder.cv!!.visibility = View.INVISIBLE
         holder.llContent!!.alpha = 1f
@@ -316,10 +325,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     holder.cv.post(this)
                     return
                 }
+                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                    android.util.Log.i("NewItemReveal", "arm callback pos=$firedListPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv.isAttachedToWindow} size=${holder.cv.width}x${holder.cv.height} adapterPos=${holder.bindingAdapterPosition}")
+                }
                 listener!!.onNewItemBound(firedListPosition, holder)
             }
         })
     }
+
+    private var mDebugLastArmedPosition: Int = -1
 
     override fun isFullSpanThingCard(thing: Thing): Boolean {
         return thing.type != Thing.HEADER

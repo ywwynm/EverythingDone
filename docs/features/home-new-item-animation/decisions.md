@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-09-14 - 卡片级揭示在长距离滚动后失效的修复
+
+现象：涟漪档保存记事返回首页后，若置顶块很高、新卡片需要长距离平滑滚动才进入视口，卡片会直接整张出现，没有揭示动画。用户在自己的手机上稳定复现；R5CW20BLNKL 上把置顶块加高到约 4.5 屏（20 张高卡片）后同样复现，约 3.6 屏时仍正常。
+
+根因（真机日志确认）：`createCircularReveal` 确实启动了，但 11 ms 后就结束（应为 540 ms）。此时这张卡片的 View 是 RecyclerView 在脱离窗口时绑定的复用 holder（日志 `arm fired attached=false size=630x970`），绑定时被置为 INVISIBLE，重新挂到窗口后从未参与过绘制；在这样的 RenderNode 上启动的 RenderThread 动画立即完成。同一场景把等待期改为 alpha 0 的 VISIBLE 后，揭示动画恢复为 551 ms。
+
+决策：
+- 涟漪档在 180 ms 等待期内让卡片以 alpha 0 保持 VISIBLE，先进入绘制树再启动揭示；启动前先 `itemAnimator.endAnimation(holder)` 并取消 `animate()`，避免插入淡入把 alpha 抢回 1。卡片级边框光效末尾的 220 ms 淡入同样走 RenderThread，光带期间改用同样的 alpha 0 VISIBLE。粒子档不经 RenderThread 动画作用于卡片，不改。
+- 平滑滚动的兜底不再是固定 1200 ms 后放弃：列表仍在滚动就每 200 ms 轮询继续等待（硬上限 9 s），滚动停止后再给 1200 ms 让卡片绑定，仍无卡片才放弃并直接显示。三星实测约 4.5 屏的滚动已接近 1 s，更高的置顶块会撞上旧超时。
+- 列表任意一次停止滚动（IDLE）只要仍在门控中就重试揭示，覆盖原地揭示时列表恰好还在惯性滚动的情况。
+- debug 包保留 `NewItemReveal` 标签的时序日志（绑定、回调、揭示起止、看门狗），不带堆栈，便于以后按日志核对。
+
 ## 2026-06-23 - 创建返回后先把新记事平滑滚到完整可见再播放入场动画
 
 问题：创建新记事返回列表后，新记事插在置顶区（sticky 文件夹/记事）之后。正常插入路径（`ThingsActivity.updateMainUiForCreateDone`）只做了 `armNewItemAnimation` + `notifyItemInserted(newListPosition)`，**没有滚动到新位置**；而入场动画是在该 ViewHolder 被绑定且完成布局后才触发（`ThingsAdapter.maybeTriggerArmedNewItemAnimation`）。新记事若落在屏幕外就一直不被绑定，动画挂起，要用户手动下滑才触发；shining 风格触发时还会 `stopScroll()` 并由触摸监听（`setRecyclerViewEvents`）拦截滑动，于是“滑到大概能看到就被掐断、看不全”。

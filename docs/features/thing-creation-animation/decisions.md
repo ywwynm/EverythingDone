@@ -1,5 +1,16 @@
 # 实现决策
 
+## 2026-09-14 光带起点角、内容放大承接与涟漪圆心
+
+- **起点角而非翻转。** `ShiningBorder` 新增 `setStartCorner`，`START_BOTTOM_LEFT` 为默认值（历史行为），`START_BOTTOM_RIGHT` 走新写的 `addRoundRectCWFromBottomRight`：底边向左 → 左边向上 → 顶边向右 → 右边向下，回到右下角。旋转方向与 `addRoundRectCW` 相同，只换起点，不再使用 `scaleX = -1`。新函数按绝对坐标写，段长直接给出（不沿用 `-rh + r` 那种靠 `arcTo` 隐式补线凑出来的写法），r = 0 与 r > 0 都正确。
+- **翻转为什么不该用。** 水平镜像会把顺时针变成逆时针：镜像后的走向是「右下起步 → 右边向上 → 顶边向左 → 左边向下」，与目标相反。也就是说即使翻转生效也不是要的效果。翻转在真机上为何完全看不出效果未查明，见 sessions.md。
+- **路径接收端抽象。** 三条边角构造改为写入 `ShiningBorder.BorderPathSink`，Android 侧用 `Path` 适配，JVM 测试用折线采样器。几何只有一处实现，测试不重写一遍；否则 `Path`／`PathMeasure` 是框架实现，单测里根本建不出来。
+- **内容承接是纯放大，不是淡入。** 光带 `onAnimationEnd`（此时暗段余光已退完）后，内容以右下角为轴（pivot = content 宽高）从 0.84 放大到 1，216 ms，`DecelerateInterpolator`。内容从第一帧起 alpha 就是 1，没有透明度变化——用户第二次裁定明确去掉了淡入。放大结束的回调里才 `finish(true)`，此前首页快照一直在底层。
+- **中断必须复位。** `finish()` 统一 `animate().cancel()` 并把 scaleX／scaleY／alpha 复位为 1，覆盖 onPause、onConfigurationChanged、content 尺寸变化与 attach 失败四条路径，不允许留下缩小或半透明的页面。
+- **卡片级光带同样右下起步。** `findViews()` 里对 `mShiningBorder` 设一次 `START_BOTTOM_RIGHT`，卡片级覆写与 `restoreShiningBorderDefaults()` 都不再碰起点角，避免一次右下一次左下。1600 ms、末尾 220 ms 淡入、几何保护与中断逻辑不变。
+- **显式矩形不能被 View 边界覆盖（既有缺陷）。** `assignPathAndFrame(l, t, r, b)` 现在同时置 `mPathAssigned = true`、清 `mReassignBeforePlay`。此前 `onDraw`（View 之前是 INVISIBLE、从未绘制）与 `startAnimation`（布局后尺寸变过）都会用 View 自身边界重算，把卡片矩形覆盖成整屏，表现为进程内第一次保存播的是整屏光带、第二次起才正常。两台设备均已复现并在修复后验证。
+- **涟漪圆心取 FAB 中心。** `ThingsActivity` 用 `mFab.getLocationInWindow` 加宽高一半算出窗口坐标传给 `launch()`，`startRipple()` 换算为 content 局部坐标并钳制到 [0, w]×[0, h]，终止半径取 `hypot(max(cx, w-cx), max(cy, h-cy))`。没有来源坐标（NaN）时退回内容右下角。600 ms 不变。粒子档未改。
+
 ## 2026-09-14 设置标题
 
 - 标题改为“新建记事动画风格”，同步 13 套语言资源，选项值及旧设置迁移规则不变。

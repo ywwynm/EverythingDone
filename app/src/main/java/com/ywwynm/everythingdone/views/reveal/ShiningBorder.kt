@@ -50,6 +50,7 @@ open class ShiningBorder : View {
     private var mAnimationDuration: Long = 1200
     private var mRepeatAnimation: Boolean = false
     private var mAnimationDirection: Int = DIRECTION_CW
+    private var mStartCorner: Int = START_BOTTOM_LEFT
 
     private var mShiningColor: Int = 0
     private var mOrdinaryColor: Int = 0
@@ -122,6 +123,7 @@ open class ShiningBorder : View {
     fun getAnimationDuration(): Long = mAnimationDuration
     fun getRemainOrdinaryPath(): Boolean = mRemainOrdinaryPath
     fun getAnimationDirection(): Int = mAnimationDirection
+    fun getStartCorner(): Int = mStartCorner
 
     // --- setters ---
 
@@ -150,6 +152,18 @@ open class ShiningBorder : View {
 
     fun setAnimationDirection(direction: Int) {
         mAnimationDirection = direction
+        if (mPathAssigned) {
+            assignPathAndFrame(left, top, right, bottom)
+        }
+    }
+
+    /**
+     * 选择顺时针路径的起点角：[START_BOTTOM_LEFT]（默认，沿左边向上起步）或
+     * [START_BOTTOM_RIGHT]（沿底边向左起步）。旋转方向不变，只换起点；
+     * 该设置对 [DIRECTION_CCW] 无效。
+     */
+    fun setStartCorner(corner: Int) {
+        mStartCorner = corner
         if (mPathAssigned) {
             assignPathAndFrame(left, top, right, bottom)
         }
@@ -197,12 +211,23 @@ open class ShiningBorder : View {
         val r: Float = pathRight - halfStroke
         val b: Float = pathBottom - halfStroke
 
+        val sink: BorderPathSink = PathBorderSink(mPath)
         if (mAnimationDirection == DIRECTION_CW) {
-            addRoundRectCW(mPath, l, t, r, b, mCornerRadius)
+            if (mStartCorner == START_BOTTOM_RIGHT) {
+                addRoundRectCWFromBottomRight(sink, l, t, r, b, mCornerRadius)
+            } else {
+                addRoundRectCW(sink, l, t, r, b, mCornerRadius)
+            }
         } else {
-            addRoundRectCCW(mPath, l, t, r, b, mCornerRadius)
+            addRoundRectCCW(sink, l, t, r, b, mCornerRadius)
         }
         mPathFrame = PathFrame(mPath)
+        // 调用方显式给了矩形，这条路径就比"尚未建过路径"和"尺寸变过、播放前要重算"都新。
+        // 两个标记都要清掉，否则卡片级边框的矩形会被 View 自身的边界覆盖成整屏：
+        // onDraw 在 mPathAssigned 为 false 时会重算一次（View 之前是 INVISIBLE、从未绘制，
+        // 本次布局后的第一次播放必现），startAnimation 在 mReassignBeforePlay 为 true 时也会。
+        mPathAssigned = true
+        mReassignBeforePlay = false
     }
 
     fun assignPathAndFrame() {
@@ -474,6 +499,32 @@ open class ShiningBorder : View {
         var isFocus: Boolean = false
     }
 
+    /**
+     * 边框路径的接收端。Android 的 [Path] 和 JVM 测试里的采样器共用同一份边角计算，
+     * 几何逻辑只有一处实现，测试不需要再写一遍。
+     */
+    internal interface BorderPathSink {
+        fun moveTo(x: Float, y: Float)
+        fun lineTo(x: Float, y: Float)
+        /** 语义与 [Path.arcTo] 的 `forceMoveTo = false` 相同：oval 为角的外接方框，顺时针为正角度。 */
+        fun arcTo(left: Float, top: Float, right: Float, bottom: Float, startAngle: Float, sweepAngle: Float)
+    }
+
+    private class PathBorderSink(private val path: Path) : BorderPathSink {
+        override fun moveTo(x: Float, y: Float) {
+            path.moveTo(x, y)
+        }
+
+        override fun lineTo(x: Float, y: Float) {
+            path.lineTo(x, y)
+        }
+
+        override fun arcTo(left: Float, top: Float, right: Float, bottom: Float,
+                           startAngle: Float, sweepAngle: Float) {
+            path.arcTo(left, top, right, bottom, startAngle, sweepAngle, false)
+        }
+    }
+
     // --- PathFrame: discretizes a Path into an array of points ---
 
     private class PathFrame(path: Path) {
@@ -524,40 +575,61 @@ open class ShiningBorder : View {
         const val DIRECTION_CW: Int = 0
         const val DIRECTION_CCW: Int = 1
 
-        internal fun addRoundRectCCW(path: Path, left: Float, top: Float, right: Float, bottom: Float, radius: Float) {
-            val r: Float = max(radius, 0f)
-            val w: Float = right - left
-            val h: Float = bottom - top
-            val rw: Float = w - 2f * r
-            val rh: Float = h - 2f * r
+        /** 顺时针路径从左下角起步：沿左边向上。历史默认值，卡片级边框用它。 */
+        const val START_BOTTOM_LEFT: Int = 0
 
-            path.moveTo(right - r, top)
-            path.rLineTo(-rw, 0f)
-            path.arcTo(left, top, left + 2f * r, top + 2f * r, 270f, -90f, false)
-            path.rLineTo(0f, rh)
-            path.arcTo(left, bottom - 2f * r, left + 2f * r, bottom, 180f, -90f, false)
-            path.rLineTo(rw, 0f)
-            path.arcTo(right - 2f * r, bottom - 2f * r, right, bottom, 90f, -90f, false)
-            path.rLineTo(0f, -rh + r)
-            path.arcTo(right - 2f * r, top, right, top + 2f * r, 0f, -90f, false)
+        /** 顺时针路径从右下角起步：沿底边向左。全屏新建入口用它。 */
+        const val START_BOTTOM_RIGHT: Int = 1
+
+        /** 逆时针：左上起步 → 左边向下 → 底边向右 → 右边向上 → 顶边向左。 */
+        internal fun addRoundRectCCW(sink: BorderPathSink, left: Float, top: Float,
+                                     right: Float, bottom: Float, radius: Float) {
+            val r: Float = max(radius, 0f)
+
+            sink.moveTo(right - r, top)
+            sink.lineTo(left + r, top)
+            sink.arcTo(left, top, left + 2f * r, top + 2f * r, 270f, -90f)
+            sink.lineTo(left, bottom - r)
+            sink.arcTo(left, bottom - 2f * r, left + 2f * r, bottom, 180f, -90f)
+            sink.lineTo(right - r, bottom)
+            sink.arcTo(right - 2f * r, bottom - 2f * r, right, bottom, 90f, -90f)
+            sink.lineTo(right, top + r)
+            sink.arcTo(right - 2f * r, top, right, top + 2f * r, 0f, -90f)
         }
 
-        internal fun addRoundRectCW(path: Path, left: Float, top: Float, right: Float, bottom: Float, radius: Float) {
+        /** 顺时针、左下起步：左边向上 → 顶边向右 → 右边向下 → 底边向左，回到左下角。 */
+        internal fun addRoundRectCW(sink: BorderPathSink, left: Float, top: Float,
+                                    right: Float, bottom: Float, radius: Float) {
             val r: Float = max(radius, 0f)
-            val w: Float = right - left
-            val h: Float = bottom - top
-            val rw: Float = w - 2f * r
-            val rh: Float = h - 2f * r
 
-            path.moveTo(left, bottom - r)
-            path.rLineTo(0f, -rh + r)
-            path.arcTo(left, top, left + 2f * r, top + 2f * r, 180f, 90f, false)
-            path.rLineTo(rw, 0f)
-            path.arcTo(right - 2f * r, top, right, top + 2f * r, 270f, 90f, false)
-            path.rLineTo(0f, rh)
-            path.arcTo(right - 2f * r, bottom - 2f * r, right, bottom, 0f, 90f, false)
-            path.rLineTo(-rw + r, 0f)
-            path.arcTo(left, bottom - 2f * r, left + 2f * r, bottom, 90f, 90f, false)
+            sink.moveTo(left, bottom - r)
+            sink.lineTo(left, top + r)
+            sink.arcTo(left, top, left + 2f * r, top + 2f * r, 180f, 90f)
+            sink.lineTo(right - r, top)
+            sink.arcTo(right - 2f * r, top, right, top + 2f * r, 270f, 90f)
+            sink.lineTo(right, bottom - r)
+            sink.arcTo(right - 2f * r, bottom - 2f * r, right, bottom, 0f, 90f)
+            sink.lineTo(left + r, bottom)
+            sink.arcTo(left, bottom - 2f * r, left + 2f * r, bottom, 90f, 90f)
+        }
+
+        /**
+         * 顺时针、右下起步：底边向左 → 左边向上 → 顶边向右 → 右边向下，回到右下角。
+         * 旋转方向与 [addRoundRectCW] 相同，只是起点换到右下角，不靠水平翻转实现。
+         */
+        internal fun addRoundRectCWFromBottomRight(sink: BorderPathSink, left: Float, top: Float,
+                                                   right: Float, bottom: Float, radius: Float) {
+            val r: Float = max(radius, 0f)
+
+            sink.moveTo(right - r, bottom)
+            sink.lineTo(left + r, bottom)
+            sink.arcTo(left, bottom - 2f * r, left + 2f * r, bottom, 90f, 90f)
+            sink.lineTo(left, top + r)
+            sink.arcTo(left, top, left + 2f * r, top + 2f * r, 180f, 90f)
+            sink.lineTo(right - r, top)
+            sink.arcTo(right - 2f * r, top, right, top + 2f * r, 270f, 90f)
+            sink.lineTo(right, bottom - r)
+            sink.arcTo(right - 2f * r, bottom - 2f * r, right, bottom, 0f, 90f)
         }
 
         private fun dpToPx(dp: Float): Float {

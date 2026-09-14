@@ -378,6 +378,7 @@ class ThingsActivity :
     private var mNewItemRevealPosition: Int = -1
     private var mNewItemRevealBg: ThingBackground? = null
     private var mNewItemRevealHolder: BaseThingsAdapter.BaseThingViewHolder? = null
+    private var mNewItemRevealWatchdogGeneration: Int = 0
 
     private var mCanSeeUi: Boolean = false
     private var mUpdateMainUiInOnResume: Boolean = true
@@ -1945,6 +1946,10 @@ class ThingsActivity :
     override fun findViews() {
         mRevealLayout = f(R.id.reveal_layout)
         mShiningBorder = f(R.id.shining_border)
+        // 全屏与卡片级光带统一从右下角起步：底边向左 → 左边向上 → 顶边向右 → 右边向下。
+        // 只在这里设置一次，之后的卡片级覆写与 restoreShiningBorderDefaults 都不改起点角，
+        // 避免出现一次右下、一次左下。
+        mShiningBorder!!.setStartCorner(ShiningBorder.START_BOTTOM_RIGHT)
         mShiningBorder!!.setStrokeWidth(8 * resources.displayMetrics.density)
         mShiningBorder!!.setAnimationDuration(1290)
         mShiningBorderDefaultStroke          = mShiningBorder!!.getStrokeWidth()
@@ -6218,7 +6223,11 @@ class ThingsActivity :
                 this, TAG, App.newThingBackground ?: ThingBackground.pure(App.newThingColor),
                 mThingManager!!.getProjection().currentFolderId
             )
-            com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.launch(this, intent) { launched ->
+            // 涟漪档以新建按钮中心为揭示圆心，因此把按钮的窗口坐标一并交给转场。
+            val fabLocation = IntArray(2)
+            mFab!!.getLocationInWindow(fabLocation)
+            com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.launch(this, intent,
+                fabLocation[0] + mFab!!.width / 2f, fabLocation[1] + mFab!!.height / 2f) { launched ->
                 if (!launched) {
                     mCreationLaunchPending = false
                     mIsRevealAnimPlaying = false
@@ -6239,6 +6248,7 @@ class ThingsActivity :
     }
 
     private fun clearGatedNewItemReveal() {
+        mNewItemRevealWatchdogGeneration++
         mNewItemRevealGating = false
         mNewItemRevealScrolling = false
         mNewItemRevealPosition = -1
@@ -6253,6 +6263,7 @@ class ThingsActivity :
      */
     private fun abortGatedNewItemRevealIfNeeded() {
         if (!mNewItemRevealGating) return
+        revealLog("abortGatedNewItemReveal holder=${mNewItemRevealHolder?.let { System.identityHashCode(it) }} rvState=${mRecyclerView?.scrollState}")
         mNewItemRevealHolder?.cv?.let { card ->
             card.animate()?.cancel()
             card.alpha = 1f
@@ -6271,6 +6282,7 @@ class ThingsActivity :
         holder: BaseThingsAdapter.BaseThingViewHolder?,
         bg: ThingBackground?
     ) {
+        revealLog("onNewItemHolderBound gating=$mNewItemRevealGating scrolling=$mNewItemRevealScrolling rvState=${mRecyclerView?.scrollState} holder=${holder?.let { System.identityHashCode(it) }} cv=${holder?.cv?.let { System.identityHashCode(it) }} attached=${holder?.cv?.isAttachedToWindow}")
         if (mNewItemRevealGating) {
             mNewItemRevealHolder = holder
             maybeRevealGatedNewItem()
@@ -6308,20 +6320,49 @@ class ThingsActivity :
                 }
                 scroller.targetPosition = position
                 lm.startSmoothScroll(scroller)
-                // Safety net: if the scroll never reports an idle transition (e.g.
-                // nothing actually scrolled), unblock and reveal; if the card never
-                // bound at all, give up gracefully so nothing stays hidden.
-                rv.postDelayed({
-                    if (!mNewItemRevealGating) return@postDelayed
-                    mNewItemRevealScrolling = false
-                    maybeRevealGatedNewItem()
-                    if (mNewItemRevealGating) {
-                        abortGatedNewItemRevealIfNeeded()
-                    }
-                }, NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS)
+                watchGatedNewItemRevealScroll(position, ++mNewItemRevealWatchdogGeneration,
+                    SystemClock.uptimeMillis(), 0)
                 return true
             }
         })
+    }
+
+    /**
+     * 平滑滚动结束后的兜底。此前是固定 1200 ms 后直接放弃：置顶块高于约四屏时滚动本身
+     * 就超过这个时长，卡片在滚动尚未停止时被直接置为可见，入场动画整个丢失（2026-09-14
+     * 在 R5CW20BLNKL 上以 4.5 屏置顶块复现）。现在只要列表仍在滚动就继续等待，滚动停止
+     * 后再给一小段时间让卡片绑定；只有超过硬上限或停止后仍无卡片时才放弃，保证卡片不会
+     * 一直隐藏。正常情况下 onScrollStateChanged 的 IDLE 已经触发揭示，这里只是兜底。
+     */
+    private fun watchGatedNewItemRevealScroll(
+        position: Int, generation: Int, startedAt: Long, idlePolls: Int
+    ) {
+        val rv = mRecyclerView ?: return
+        rv.postDelayed({
+            if (!mNewItemRevealGating || mNewItemRevealPosition != position ||
+                generation != mNewItemRevealWatchdogGeneration
+            ) {
+                return@postDelayed
+            }
+            val elapsed = SystemClock.uptimeMillis() - startedAt
+            val idle = rv.scrollState == RecyclerView.SCROLL_STATE_IDLE
+            revealLog("watchdog elapsed=$elapsed idle=$idle idlePolls=$idlePolls holder=${mNewItemRevealHolder?.let { System.identityHashCode(it) }}")
+            if (!idle && elapsed < NEW_ITEM_REVEAL_SCROLL_HARD_LIMIT_MS) {
+                watchGatedNewItemRevealScroll(position, generation, startedAt, 0)
+                return@postDelayed
+            }
+            mNewItemRevealScrolling = false
+            maybeRevealGatedNewItem()
+            if (!mNewItemRevealGating) return@postDelayed
+            val nextIdlePolls = idlePolls + 1
+            if (idle && elapsed < NEW_ITEM_REVEAL_SCROLL_HARD_LIMIT_MS &&
+                nextIdlePolls * NEW_ITEM_REVEAL_SCROLL_POLL_MS < NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS
+            ) {
+                watchGatedNewItemRevealScroll(position, generation, startedAt, nextIdlePolls)
+                return@postDelayed
+            }
+            abortGatedNewItemRevealIfNeeded()
+        }, NEW_ITEM_REVEAL_SCROLL_POLL_MS)
     }
 
     private fun revealGatedNewItemInPlace() {
@@ -6332,10 +6373,20 @@ class ThingsActivity :
     }
 
     private fun maybeRevealGatedNewItem() {
-        if (!mNewItemRevealGating || mNewItemRevealScrolling) return
+        if (!mNewItemRevealGating || mNewItemRevealScrolling) {
+            revealLog("maybeReveal skip gating=$mNewItemRevealGating scrolling=$mNewItemRevealScrolling")
+            return
+        }
         val rv = mRecyclerView ?: return
-        if (rv.scrollState != RecyclerView.SCROLL_STATE_IDLE) return
-        val holder = mNewItemRevealHolder ?: return
+        if (rv.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+            revealLog("maybeReveal skip rvState=${rv.scrollState}")
+            return
+        }
+        val holder = mNewItemRevealHolder
+        if (holder == null) {
+            revealLog("maybeReveal skip holder null")
+            return
+        }
         val bg = mNewItemRevealBg
         clearGatedNewItemReveal()
         playNewItemAnimation(
@@ -6419,25 +6470,42 @@ class ThingsActivity :
         card.clearAnimation()
         card.visibility = View.INVISIBLE
         mIsRevealAnimPlaying = true
+        revealLog("playNewItemAnimation style=$style holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(card)} attached=${card.isAttachedToWindow} adapterPos=${holder.bindingAdapterPosition} rvState=${mRecyclerView?.scrollState}")
+        if (!useShining) {
+            // 揭示动画跑在 RenderThread 上。若卡片 View 是在脱离窗口时被绑定（RecyclerView
+            // 预取或复用），之后一直 INVISIBLE、重新挂到窗口后从未参与绘制，那么 RenderNode
+            // 上启动的 createCircularReveal 会在十几毫秒内直接结束，卡片整张弹出
+            // （2026-09-14 在 R5CW20BLNKL 上以约 4.5 屏置顶块、长距离滚动复现）。
+            // 等待期间改为 alpha 0 的 VISIBLE，让它先进入绘制树，再启动揭示。先结束
+            // ItemAnimator 对它的插入淡入，避免那段动画把 alpha 抢回 1。
+            mRecyclerView?.itemAnimator?.endAnimation(holder)
+            card.animate().cancel()
+            card.alpha = 0f
+            card.visibility = View.VISIBLE
+        }
         card.postDelayed({
             if (useShining && (
                     !mIsNewItemShiningBorderActive
                         || shiningBorderToken != mNewItemShiningBorderToken
                 )
             ) {
+                revealLog("delayed runnable: shining token stale, abort")
                 return@postDelayed
             }
             if (card.windowToken == null) {
+                revealLog("delayed runnable: card detached (windowToken null), no animation")
                 if (useShining) {
                     finishNewItemShiningBorderAnimationIfNeeded()
                 } else {
+                    card.alpha = 1f
+                    card.visibility = View.VISIBLE
                     mIsRevealAnimPlaying = false
                 }
                 return@postDelayed
             }
             card.clearAnimation()
-            card.visibility = View.INVISIBLE
             if (useShining) {
+                card.visibility = View.INVISIBLE
                 playNewItemShiningBorder(holder, bg)
             } else {
                 playNewItemReveal(holder)
@@ -6485,7 +6553,13 @@ class ThingsActivity :
         mShiningBorder!!.assignPathAndFrame(left, top, right, bottom)
         mIsNewItemShiningBorderAnimating = true
 
-        // Card stays INVISIBLE for the whole trace; only at the end do we reveal it.
+        // 光带期间卡片不可见，但用 alpha 0 的 VISIBLE 而不是 INVISIBLE：末尾的 220 ms 淡入
+        // 走 RenderThread，卡片若是在脱离窗口时绑定、重新挂上后从未绘制过，那段动画会立即结束
+        // 而整张弹出，与涟漪档 createCircularReveal 的失效机制相同（见 playNewItemAnimation）。
+        mRecyclerView?.itemAnimator?.endAnimation(holder)
+        card.animate().cancel()
+        card.alpha = 0f
+        card.visibility = View.VISIBLE
         mShiningBorder!!.setOnProgressUpdateListener(null)
         mShiningBorder!!.setOnAnimationEndListener(null)
         val endListener = object : ShiningBorder.OnAnimationEndListener {
@@ -6553,8 +6627,11 @@ class ThingsActivity :
         val card: View = holder.cv!!
         val w = card.width
         val h = card.height
+        revealLog("playNewItemReveal holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(card)} size=${w}x$h attached=${card.isAttachedToWindow} hw=${card.isHardwareAccelerated} layer=${card.layerType} vis=${card.visibility} alpha=${card.alpha} adapterPos=${holder.bindingAdapterPosition} rvState=${mRecyclerView?.scrollState}")
         if (w == 0 || h == 0) {
+            card.alpha = 1f
             card.visibility = View.VISIBLE
+            mIsRevealAnimPlaying = false
             return
         }
         val cx = w
@@ -6565,19 +6642,29 @@ class ThingsActivity :
         reveal.interpolator = AccelerateDecelerateInterpolator()
         reveal.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationStart(a: Animator) {
+                revealLog("reveal start")
                 card.alpha = 1f
                 card.visibility = View.VISIBLE
             }
             override fun onAnimationCancel(a: Animator) {
+                revealLog("reveal cancel")
                 card.alpha = 1f
                 card.visibility = View.VISIBLE
                 mIsRevealAnimPlaying = false
             }
             override fun onAnimationEnd(a: Animator) {
+                revealLog("reveal end")
                 mIsRevealAnimPlaying = false
             }
         })
         reveal.start()
+    }
+
+    /** 仅 debug：卡片入场揭示链路的时序日志，用于真机排查。 */
+    private fun revealLog(message: String, error: Throwable? = null) {
+        if (!com.ywwynm.everythingdone.BuildConfig.DEBUG) return
+        if (error != null) Log.i("NewItemReveal", "${SystemClock.uptimeMillis()} $message", error)
+        else Log.i("NewItemReveal", "${SystemClock.uptimeMillis()} $message")
     }
 
     private fun setRecyclerViewEvents() {
@@ -6637,11 +6724,14 @@ class ThingsActivity :
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 EdgeEffectUtil.forRecyclerView(recyclerView, edgeColor)
+                if (mNewItemRevealGating || mIsRevealAnimPlaying) revealLog("scrollState=$newState gating=$mNewItemRevealGating scrolling=$mNewItemRevealScrolling")
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     Glide.with(mApp!!).resumeRequests()
                     // Home Chrome Retraction: snap to fully shown / fully hidden on release.
                     snapHomeChromeRetraction()
-                    if (mNewItemRevealScrolling) {
+                    // 原地揭示时若列表恰好还在惯性滚动，maybeReveal 会因非 IDLE 跳过；
+                    // 因此只要仍在门控中，任何一次停止滚动都要重试，不只限于本轮平滑滚动。
+                    if (mNewItemRevealGating) {
                         mNewItemRevealScrolling = false
                         maybeRevealGatedNewItem()
                     }
@@ -12329,7 +12419,12 @@ class ThingsActivity :
         private const val TOOLBAR_ICON_RIPPLE_RADIUS_DP = 21f
         // Fallback delay for revealing a freshly created Thing if the
         // scroll-into-view never reports an idle state (e.g. nothing to scroll).
+        /** 滚动已停止后等待卡片绑定的宽限；超过即放弃揭示、直接显示卡片。 */
         private const val NEW_ITEM_REVEAL_SCROLL_TIMEOUT_MS: Long = 1200L
+        /** 平滑滚动仍在进行时的轮询间隔。 */
+        private const val NEW_ITEM_REVEAL_SCROLL_POLL_MS: Long = 200L
+        /** 无论滚动状态如何都不再等待的硬上限，保证卡片不会一直隐藏。 */
+        private const val NEW_ITEM_REVEAL_SCROLL_HARD_LIMIT_MS: Long = 9000L
         private const val THING_CARD_SIDE_PANEL_PROJECTION_MAX_ITERATIONS = 6
         private const val THING_CARD_SIDE_PANEL_PROJECTION_TOLERANCE_PX = 1
         private const val THING_CARD_VIDEO_END_FRAME_GUARD_MS = 50
