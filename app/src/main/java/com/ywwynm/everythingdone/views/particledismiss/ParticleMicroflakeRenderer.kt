@@ -102,29 +102,25 @@ internal class ParticleMicroflakeRenderer(
         if (materialInput != null) input = materialInput
         preparePipeline()
         val bitmap = input.foreground
-        val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
-            bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        }
         val initial = ByteBuffer.allocateDirect(input.materials.count * 8 * 4).order(ByteOrder.nativeOrder())
-        val rgba = ByteBuffer.allocateDirect(pixels.size * 4).order(ByteOrder.LITTLE_ENDIAN)
         if (ParticleMaterialNative.enabled) {
-            ParticleMaterialNative.packUploads(pixels, input.materials.values, input.materials.count, rgba, initial)
+            ParticleMaterialNative.packState(input.materials.values, input.materials.count, initial)
         } else {
             val state=initial.asFloatBuffer()
             for(i in 0 until input.materials.count) {
                 state.put(i*8,input.materials.values[i*12]);state.put(i*8+1,input.materials.values[i*12+1])
             }
-            val colors=rgba.asIntBuffer()
-            for(c in pixels) colors.put((c and 0xff00ff00.toInt()) or ((c ushr 16) and 255) or ((c and 255) shl 16))
         }
         uploadBuffer(0, input.materials.values)
         uploadBytes(1,initial)
         uploadBuffer(2, input.materials.pigment)
         uploadBuffer(3, input.materials.peelCompression)
-        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
-        // getPixels 返回非预乘颜色；不用 GLUtils 上传 Bitmap 的预乘底层存储。
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, bitmap.width, bitmap.height,
-            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba)
+        if (foregroundTexture == 0) {
+            val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
+                bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            }
+            prepareForeground(ParticleMicroflakePreparation.Pixels(bitmap, pixels))
+        }
         if (guideTexture == 0) uploadFields(input.guide, input.rules, input.confidence ?: sharedResources(assets).confidence)
         val angle = Math.toRadians(input.direction.toDouble())
         val windX = cos(angle).toFloat(); val windY = -sin(angle).toFloat()
@@ -148,6 +144,14 @@ internal class ParticleMicroflakeRenderer(
         oneI(resolve, "screen", 2)
         peelPressure = PeelPressure(span, windX, windY)
         checkGl("准备")
+    }
+
+    /** 前景颜色不依赖材料模型；GPU 上传可与后台建材同时进行。 */
+    fun prepareForeground(pixels: ParticleMicroflakePreparation.Pixels) {
+        check(foregroundTexture == 0)
+        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.bitmap.width, pixels.bitmap.height,
+            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, ParticleMicroflakePreparation.packColors(pixels.argb))
     }
 
     private fun configureIntegration(compute: Int) {
@@ -218,7 +222,7 @@ internal class ParticleMicroflakeRenderer(
         }
     }
 
-    private fun render(t: Float) {
+    private fun render(t: Float, extrapolation: Float = max(0f, t - step / 240f)) {
         GLES30.glBindVertexArray(vao[0])
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
         GLES30.glViewport(0, 0, width, height)
@@ -229,7 +233,7 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
         GLES30.glUseProgram(material)
         one(material, "time", t)
-        one(material, "extrapolate", max(0f, t - step / 240f))
+        one(material, "extrapolate", extrapolation)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
         for (pass in 0..1) {
@@ -251,11 +255,8 @@ internal class ParticleMicroflakeRenderer(
     /** 一次正向解算，只保存颗粒可见寿命附近的状态，GL 线程可随时取消。 */
     fun prepareReverse(samples: Int = ParticleReversePlan.samplesFor(ParticleReversePlan.APPEARANCE_SECONDS, 60f),
                        cancelled: () -> Boolean = { false }): Boolean {
-        check(step == 0 && reverseHistory == null)
         val started = System.nanoTime()
-        prepareOptimizedIntegration()
-        val history = ParticleReverseHistory(program("particle-playback/history.comp"), ParticleReversePlan(input.materials.values, samples))
-        reverseHistory = history
+        val history = createHistory(samples)
         ParticleGpuWork.PreparationQueue().use { queue ->
             for (frame in 0..history.plan.samples) {
                 if (cancelled()) return false
@@ -271,15 +272,39 @@ internal class ParticleMicroflakeRenderer(
         return !cancelled()
     }
 
+    private fun createHistory(samples: Int): ParticleReverseHistory {
+        check(step == 0 && reverseHistory == null)
+        prepareOptimizedIntegration()
+        return ParticleReverseHistory(program("particle-playback/history.comp"),
+            ParticleReversePlan(input.materials.values, samples)).also { reverseHistory = it }
+    }
+
     /** 使用正向播放相同时间值、相同状态和相同材质，避免对阻尼／压力求逆引入新轨迹。 */
-    fun drawReverseFrame(frame: Int) {
+    fun drawReverseFrame(frame: Int, stateBuffer: Int = buffers[1]) {
         val history = checkNotNull(reverseHistory)
         require(frame in 0..history.plan.samples)
         for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
         history.transfer(frame, restore = true)
         val t = history.plan.time(frame)
-        step = floor(t.toDouble() * 240 + 1e-6).toInt()
-        render(t)
+        val frameStep = floor(t.toDouble() * 240 + 1e-6).toInt()
+        if (stateBuffer == buffers[1]) step = frameStep
+        render(t, max(0f, t - frameStep / 240f))
+    }
+
+    private fun drawGestureFrame(position: Float, stateBuffer: Int) {
+        val frame = position.toInt()
+        val fraction = position - frame
+        if (fraction == 0f) {
+            drawReverseFrame(frame, stateBuffer)
+            return
+        }
+        val history = checkNotNull(reverseHistory)
+        for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
+        history.transfer(frame, restore = true, fraction = fraction)
+        // 相邻缓存已经插值得到此时刻的位置，不能再叠加积分步长的速度外推。
+        render(position / history.plan.samples, extrapolation = 0f)
     }
 
     fun playReverse(durationSeconds: Float, durationScale: Float, refreshRate: Float,
@@ -292,6 +317,58 @@ internal class ParticleMicroflakeRenderer(
         val plan = checkNotNull(reverseHistory).plan
         return playFrames(duration, cancelled, onFirstFrame, onSubmitted, true) { progress ->
             drawReverseFrame(plan.frame(progress))
+        }
+    }
+
+    fun playGesture(gesture: ParticleGestureProgress, cancelled: () -> Boolean,
+                    onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit): Boolean {
+        val samples = ParticleReversePlan.MAX_SAMPLES
+        val history = createHistory(samples)
+        // 手势从零开始，只先保存起点；不等待与当前手指无关的完整一秒轨迹。
+        advance(0f, batchPressure = true)
+        history.transfer(0, restore = false)
+        val playbackState = IntArray(1)
+        try {
+            GLES30.glGenBuffers(1, playbackState, 0)
+            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, playbackState[0])
+            GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, input.materials.count * 32,
+                null, GLES30.GL_DYNAMIC_DRAW)
+            var prepared = 0
+            var previousPosition = Float.NaN
+            ParticleGpuWork.PreparationQueue().use { queue ->
+                return ParticlePlaybackClock.seek(cancelled) { timestamp ->
+                    val position = gesture.framePosition(samples)
+                    val drawStart = System.nanoTime()
+                    // 当前画面只等待其必需的邻帧。手指停住、无需重绘时再提前两档，
+                    // 不把尚未请求的轨迹运算放在可见帧前面。
+                    val target = if (gesture.active)
+                        max(ceil(position).toInt(), if (position == previousPosition)
+                            (prepared + 2).coerceAtMost(samples) else prepared) else 0
+                    while (prepared < target) {
+                        prepared++
+                        advance(history.plan.time(prepared), batchPressure = true)
+                        history.transfer(prepared, restore = false)
+                        if (!queue.finishBatch(cancelled)) return@seek false
+                    }
+                    if (position == previousPosition) return@seek true
+                    // 回放状态必须独立：五分量历史不能覆盖继续正向积分所需的八分量状态。
+                    drawGestureFrame(position, playbackState[0])
+                    val drawEnd = System.nanoTime()
+                    GLES30.glFinish()
+                    val ready = System.nanoTime()
+                    android.opengl.EGLExt.eglPresentationTimeANDROID(EGL14.eglGetCurrentDisplay(),
+                        EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW), timestamp)
+                    if (!swap()) false else {
+                        if (BuildConfig.DEBUG) drawTimings += longArrayOf(timestamp, drawStart, drawEnd, ready, System.nanoTime())
+                        onSubmitted(timestamp, position / samples)
+                        if (previousPosition.isNaN()) onFirstFrame()
+                        previousPosition = position
+                        true
+                    }
+                }
+            }
+        } finally {
+            GLES30.glDeleteBuffers(1, playbackState, 0)
         }
     }
 
@@ -604,13 +681,15 @@ internal class ParticleMicroflakeRenderer(
         private fun direct(bytes: ByteArray): ByteBuffer = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).apply { put(bytes); flip() }
         private fun checkGl(stage: String) { check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "微片 $stage GL 错误" } }
 
-        fun fromSpec(assets: AssetManager, width: Int, height: Int, density: Float, spec: ParticleDismissSpec): Input {
+        fun fromSpec(assets: AssetManager, width: Int, height: Int, density: Float, spec: ParticleDismissSpec,
+                     sourcePixels: IntArray? = null): Input {
             // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
             val scale = (density / 1.875f).coerceAtLeast(.5f)
             val bitmap = spec.snapshot
             val cardWidth = bitmap.width / scale; val cardHeight = bitmap.height / scale
-            val pixels = IntArray(bitmap.width * bitmap.height)
-            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            val pixels = sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
+                bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            }
             val dx = spec.virtualTouchXPx - spec.originXPx - bitmap.width / 2f
             val dy = spec.virtualTouchYPx - spec.originYPx - bitmap.height / 2f
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()

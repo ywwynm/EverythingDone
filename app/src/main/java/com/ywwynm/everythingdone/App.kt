@@ -130,7 +130,11 @@ open class App : Application() {
                 // 控制器在进程内只执行一次，不缓存用户快照或整段动画。
                 activity.window.decorView.doOnPreDraw { decor ->
                     decor.post {
-                        if (BaseDialogFragment.particleAnimationMode(this@App) != 0) {
+                        if (BaseDialogFragment.particleAnimationMode(this@App) != 0 ||
+                            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.creation(this@App) ==
+                                com.ywwynm.everythingdone.utils.ThingAnimationPreferences.PARTICLE ||
+                            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@App) ==
+                                com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE) {
                             ParticleDismissController.warmDismissModel(this@App)
                         }
                         com.github.adnansm.timelytextview.TimelyClockView.prewarmStyle(this@App,

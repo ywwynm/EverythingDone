@@ -304,7 +304,7 @@ internal object ParticleDismissController {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
         return appearContent(activity, window, window.decorView, true, { dialog.isShowing },
-            onAppearanceProgress, onOverlayCreated)
+            onAppearanceProgress, onOverlayCreated = onOverlayCreated)
     }
 
     private val appearancePreparations = java.util.WeakHashMap<View, Runnable>()
@@ -315,6 +315,9 @@ internal object ParticleDismissController {
         activity: Activity, window: android.view.Window, decor: View,
         hideWindow: Boolean = false, isShowing: () -> Boolean = { decor.isShown },
         onAppearanceProgress: ((Float) -> Unit)? = null,
+        appearanceDirection: Float? = null,
+        roundSnapshot: Boolean = true,
+        onAppearanceFinished: (() -> Unit)? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
@@ -346,6 +349,7 @@ internal object ParticleDismissController {
                 handled = true; removeListener(); appearancePreparations.remove(decor)
                 setAlpha(prevAlpha); releaseContent(); releaseFrameRate()
                 onAppearanceProgress?.invoke(1f)
+                onAppearanceFinished?.invoke()
             }
         }
         appearancePreparations[decor] = restore
@@ -368,7 +372,10 @@ internal object ParticleDismissController {
                     captureQueued = true
                     val captureAtNanos = System.nanoTime()
                     ParticleSnapshot.capture(window, decor,
-                        asyncOffscreen = { done -> captureSnapshotAsync(decor, activity, done) }) copy@{ snapshot ->
+                        asyncOffscreen = { done ->
+                            if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
+                            else captureContent(decor, done)
+                        }) copy@{ snapshot ->
                         if (handled) { snapshot?.recycle(); return@copy }
                         if (snapshot == null || !isShowing() || !decor.isAttachedToWindow ||
                             !hostDecor.isAttachedToWindow || activity.isFinishing || activity.isDestroyed) {
@@ -377,7 +384,7 @@ internal object ParticleDismissController {
                         handled = true
                         mainHandler.removeCallbacks(restore)
                         appearancePreparations.remove(decor)
-                        applyRoundedCornerMask(snapshot, activity)
+                        if (roundSnapshot) applyRoundedCornerMask(snapshot, activity)
                         if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                             android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                                 "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
@@ -385,7 +392,8 @@ internal object ParticleDismissController {
                         val at = IntArray(2); decor.getLocationOnScreen(at)
                         val hostAt = IntArray(2); hostDecor.getLocationOnScreen(hostAt)
                         val x = (at[0]-hostAt[0]).toFloat(); val y = (at[1]-hostAt[1]).toFloat()
-                        val angle = Math.toRadians(-ParticleAppearanceDirection.degrees(Math.random()).toDouble()).toFloat()
+                        val angle = Math.toRadians(-(appearanceDirection
+                            ?: ParticleAppearanceDirection.degrees(Math.random())).toDouble()).toFloat()
                         val reach = VIRTUAL_TOUCH_FACTOR * hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
                         val spec = ParticleDismissSpec(snapshot = snapshot, originXPx = x, originYPx = y,
                             virtualTouchXPx = x + snapshot.width/2f + cos(angle)*reach,
@@ -403,7 +411,7 @@ internal object ParticleDismissController {
                         }, touchFeedback = appearanceFeedback,
                             onPresentedProgress = onAppearanceProgress)
                         overlayRef = overlay
-                        overlay.afterRelease(Runnable { releaseFrameRate() })
+                        overlay.afterRelease(Runnable { releaseFrameRate(); onAppearanceFinished?.invoke() })
                         onOverlayCreated(overlay)
                         hostDecor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
                     }
@@ -436,6 +444,20 @@ internal object ParticleDismissController {
     private fun captureSnapshotAsync(decor: View, context: Context, done: (Bitmap?) -> Unit) {
         if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(decor, done)
         else done(captureSnapshot(decor, context))
+    }
+
+    /** 通用内容保留自身轮廓；不能套用 Dialog 的圆角遮罩。 */
+    fun captureContent(view: View, done: (Bitmap?) -> Unit) {
+        if (view.width <= 0 || view.height <= 0) { done(null); return }
+        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(view, done)
+        else {
+            val bitmap = try { captureViaSoftwareDraw(view) }
+            catch (error: RuntimeException) {
+                android.util.Log.w(ParticleMicroflakeRenderer.TAG, "内容快照失败", error)
+                null
+            }
+            done(bitmap)
+        }
     }
 
     private fun captureSnapshot(decor: View, context: Context): Bitmap? {

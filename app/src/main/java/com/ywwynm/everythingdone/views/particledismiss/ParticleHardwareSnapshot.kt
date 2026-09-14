@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.graphics.Bitmap
 import android.graphics.HardwareRenderer
+import android.graphics.Outline
 import android.graphics.PixelFormat
 import android.graphics.RenderNode
 import android.hardware.HardwareBuffer
@@ -65,6 +66,14 @@ internal object ParticleHardwareSnapshot {
             hardware.isOpaque = false
             hardware.setSurface(target.surface)
             node.setPosition(0, 0, view.width, view.height)
+            // View.draw 会记录子树，但不会把根 View 自身 RenderNode 的裁剪属性带进来。
+            // 媒体卡片使用自定义 Outline，不能从 CardView.radius 或背景形状推断它。
+            if (view.clipToOutline) {
+                val outline = Outline()
+                view.outlineProvider?.getOutline(view, outline)
+                node.setOutline(outline)
+                node.setClipToOutline(true)
+            }
             val canvas = node.beginRecording(view.width, view.height)
             view.draw(canvas)
             node.endRecording()

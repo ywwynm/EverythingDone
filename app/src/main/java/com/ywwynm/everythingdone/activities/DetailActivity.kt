@@ -375,6 +375,14 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     override fun getLayoutResource(): Int = R.layout.activity_detail
 
+    private var creationTransition: com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition? = null
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        val key = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.EXTRA_TOKEN
+        if (savedInstanceState != null) intent.removeExtra(key)
+        super.onCreate(savedInstanceState)
+    }
+
     override fun init() {
         initMembers() // if we found thing is null, just finish this Activity
         if (mThing != null) {
@@ -383,6 +391,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             recordRenderedThingSnapshot()
             setActionbar()
             setEvents()
+
+            creationTransition = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
+                .attach(this, mFlRoot!!, mThing!!.getBackground() ?: ThingBackground.pure(mThing!!.getColor()))
 
             var intentFilter = IntentFilter(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
             ContextCompat.registerReceiver(this, mReceiver, intentFilter,
@@ -2096,6 +2107,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        creationTransition?.finish()
+        creationTransition = null
         super.onConfigurationChanged(newConfig)
 
         val newNightModeMask = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -2307,6 +2320,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onPause() {
+        creationTransition?.finish()
+        creationTransition = null
         super.onPause()
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
             && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)

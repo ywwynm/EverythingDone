@@ -1000,7 +1000,7 @@
     <string name="detail_autoplay_all_once">All at once, play once</string>
     <string name="detail_autoplay_all_loop">All at once, loop</string>
     <string name="settings_twice_back">Press Back twice to exit</string>
-    <string name="settings_create_animation_style">Border light animation when creating a new thing</string>
+    <string name="settings_create_animation_style">New thing animation style</string>
     <string name="settings_doing_digit_style">Timer digit style</string>
     <string name="settings_dialog_particle_animation">Dialog particle animation</string>
     <string name="dialog_particle_animation_none">None</string>
@@ -1947,4 +1947,9 @@
     <string name="spatial_clear_derivatives_confirm">This removes all locally generated depth data. Original attachments and downloaded models are not changed.</string>
     <string name="spatial_privacy_note">Image decoding, depth estimation, and interactive rendering all happen on this device. Attachment images are never uploaded.</string>
     <string name="cd_spatial_effect_ready">Spatial photo effect generated</string>
+    <string name="settings_swipe_complete_animation">Swipe-to-complete animation style</string>
+    <string name="thing_animation_ripple">Ripple</string>
+    <string name="thing_animation_border">Border light</string>
+    <string name="thing_animation_particle">Particles</string>
+    <string name="thing_animation_slide">Slide and fade</string>
 </resources>

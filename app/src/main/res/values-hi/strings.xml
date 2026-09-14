@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">सभी एक साथ, एक बार</string>
     <string name="detail_autoplay_all_loop">सभी एक साथ, लूप में</string>
     <string name="settings_twice_back">बाहर निकलने के लिए वापस दो बार दबाएँ</string>
-    <string name="settings_create_animation_style">कोई नई चीज़ बनाते समय बॉर्डर लाइट एनीमेशन</string>
+    <string name="settings_create_animation_style">नई चीज़ बनाने के एनीमेशन की शैली</string>
     <string name="settings_doing_digit_style">टाइमर अंक शैली</string>
     <string name="settings_dialog_particle_animation">डायलॉग कण एनिमेशन</string>
     <string name="dialog_particle_animation_none">कोई नहीं</string>
@@ -1313,4 +1313,9 @@
     <string name="spatial_segmentation_enabled">चालू · %1$s</string>
     <string name="spatial_segmentation_disabled">डाउनलोड किया गया, बंद · %1$s</string>
     <string name="spatial_storage_summary_v2">गणना घटक: %1$s\nगहराई व परत मॉडल: %2$s\nछिपी पृष्ठभूमि मॉडल: %3$s\nबनाए गए प्रभाव: %4$s</string>
+    <string name="settings_swipe_complete_animation">स्वाइप करके पूरा करने के एनीमेशन की शैली</string>
+    <string name="thing_animation_ripple">लहरें</string>
+    <string name="thing_animation_border">किनारे की रोशनी</string>
+    <string name="thing_animation_particle">कण</string>
+    <string name="thing_animation_slide">खिसकाकर धीरे-धीरे गायब होना</string>
 </resources>

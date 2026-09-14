@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">Todos ao mesmo tempo, uma vez</string>
     <string name="detail_autoplay_all_loop">Todos ao mesmo tempo, em ciclo</string>
     <string name="settings_twice_back">Pressione Voltar duas vezes para sair</string>
-    <string name="settings_create_animation_style">Animação de luz de borda ao criar algo novo</string>
+    <string name="settings_create_animation_style">Estilo de animação ao criar</string>
     <string name="settings_doing_digit_style">Estilo dos dígitos do temporizador</string>
     <string name="settings_dialog_particle_animation">Animação de partículas dos diálogos</string>
     <string name="dialog_particle_animation_none">Nenhuma</string>
@@ -1313,4 +1313,9 @@ Bem, você nunca vai encontrar todos. Hahahahaha.</item>
     <string name="spatial_segmentation_enabled">Ativado · %1$s</string>
     <string name="spatial_segmentation_disabled">Baixado, desativado · %1$s</string>
     <string name="spatial_storage_summary_v2">Componente de cálculo: %1$s\nModelos de profundidade e camadas: %2$s\nModelo de fundo oculto: %3$s\nEfeitos gerados: %4$s</string>
+    <string name="settings_swipe_complete_animation">Estilo de animação ao deslizar para concluir</string>
+    <string name="thing_animation_ripple">Ondulação</string>
+    <string name="thing_animation_border">Luz de borda</string>
+    <string name="thing_animation_particle">Partículas</string>
+    <string name="thing_animation_slide">Deslizar e desvanecer</string>
 </resources>

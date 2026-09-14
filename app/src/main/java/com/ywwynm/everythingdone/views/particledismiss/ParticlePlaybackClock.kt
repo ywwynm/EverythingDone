@@ -6,7 +6,14 @@ import android.view.Choreographer
 /** 共用 UI 显示节拍；专用 GL 线程绘制，并只保留一个最新的待绘制节拍。 */
 internal object ParticlePlaybackClock {
     fun play(duration: Float, cancelled: () -> Boolean,
-             draw: (Float, Long) -> Boolean): Boolean {
+             draw: (Float, Long) -> Boolean): Boolean = run(duration, cancelled, true, draw)
+
+    /** 手势可以无限期停住或倒退，不能按时长或到达末帧自动退出。 */
+    fun seek(cancelled: () -> Boolean, draw: (Long) -> Boolean): Boolean =
+        run(1f, cancelled, false) { _, timestamp -> draw(timestamp) }
+
+    private fun run(duration: Float, cancelled: () -> Boolean, finishAtEnd: Boolean,
+                    draw: (Float, Long) -> Boolean): Boolean {
         val looper = checkNotNull(Looper.myLooper())
         val gl = android.os.Handler(looper)
         val main = android.os.Handler(Looper.getMainLooper())
@@ -26,7 +33,7 @@ internal object ParticlePlaybackClock {
                 val progress = ((timestamp - started) / 1e9 / duration).toFloat().coerceIn(0f, 1f)
                 try {
                     if (!draw(progress, timestamp)) { stopped.set(true); looper.quit() }
-                    else if (progress >= 1f) { complete = true; stopped.set(true); looper.quit() }
+                    else if (finishAtEnd && progress >= 1f) { complete = true; stopped.set(true); looper.quit() }
                 } catch (e: Throwable) { error = e; stopped.set(true); looper.quit() }
                 finally { inFlight.set(false) }
                 // GPU 稍慢于 16.7 ms 时，之前丢掉在途期间的通知后又等下一拍，

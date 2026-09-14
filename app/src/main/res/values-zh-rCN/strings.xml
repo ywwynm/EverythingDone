@@ -984,7 +984,7 @@
     <string name="detail_autoplay_all_once">同时播放一次</string>
     <string name="detail_autoplay_all_loop">同时循环播放</string>
     <string name="settings_twice_back">按两次返回键退出应用</string>
-    <string name="settings_create_animation_style">新建事项时使用屏幕边框光效动画</string>
+    <string name="settings_create_animation_style">新建记事动画风格</string>
     <string name="settings_doing_digit_style">计时数字风格</string>
     <string name="settings_dialog_particle_animation">对话框粒子动画效果</string>
     <string name="dialog_particle_animation_none">无</string>
@@ -1937,4 +1937,9 @@
     <string name="spatial_clear_derivatives_confirm">这会移除本机生成的全部深度数据，不改变原始附件和已下载模型。</string>
     <string name="spatial_privacy_note">图片解码、深度估计和交互渲染全部在本机完成；附件图片不会上传。</string>
     <string name="cd_spatial_effect_ready">已生成空间照片效果</string>
+    <string name="settings_swipe_complete_animation">左滑完成记事动画风格</string>
+    <string name="thing_animation_ripple">涟漪</string>
+    <string name="thing_animation_border">边框光效</string>
+    <string name="thing_animation_particle">粒子</string>
+    <string name="thing_animation_slide">滑动渐隐</string>
 </resources>

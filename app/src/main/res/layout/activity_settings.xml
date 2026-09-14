@@ -424,34 +424,62 @@
                     <RelativeLayout
                         android:id="@+id/rl_create_animation_style_as_bt"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:padding="16dp"
                         android:background="@drawable/selectable_item_background">
 
-                        <CheckBox
-                            android:id="@+id/cb_create_animation_style"
+                        <TextView
+                            android:id="@+id/tv_create_animation_value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:layout_alignParentRight="true"
                             android:layout_centerVertical="true"
-                            android:clickable="false"
-                            android:focusable="false"
-                            android:focusableInTouchMode="false"/>
+                            android:alpha="0.6"
+                            android:textSize="14sp"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentStart="true"
                             android:layout_alignParentLeft="true"
-                            android:layout_toStartOf="@id/cb_create_animation_style"
-                            android:layout_toLeftOf="@id/cb_create_animation_style"
+                            android:layout_toStartOf="@id/tv_create_animation_value"
+                            android:layout_toLeftOf="@id/tv_create_animation_value"
+                            android:layout_marginEnd="16dp"
                             android:text="@string/settings_create_animation_style"
                             android:textSize="16sp"
                             tools:ignore="RelativeOverlap"
                             android:layout_centerVertical="true"/>
 
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_swipe_complete_animation_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:padding="16dp"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:id="@+id/tv_swipe_complete_animation_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:alpha="0.6"
+                            android:textSize="14sp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_toStartOf="@id/tv_swipe_complete_animation_value"
+                            android:layout_marginEnd="16dp"
+                            android:layout_centerVertical="true"
+                            android:text="@string/settings_swipe_complete_animation"
+                            android:textSize="16sp"/>
                     </RelativeLayout>
 
                     <RelativeLayout

@@ -11,6 +11,7 @@ internal class ParticleReverseHistory(private val program: Int, val plan: Partic
     private val buffers = IntArray(2)
     private var frameLocation = 0
     private var restoreLocation = 0
+    private var fractionLocation = 0
 
     init {
         try {
@@ -28,6 +29,7 @@ internal class ParticleReverseHistory(private val program: Int, val plan: Partic
             GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "count"), plan.count)
             frameLocation = GLES30.glGetUniformLocation(program, "frame")
             restoreLocation = GLES30.glGetUniformLocation(program, "restore")
+            fractionLocation = GLES30.glGetUniformLocation(program, "fraction")
             check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "无法分配逆向轨迹缓存" }
         } catch (error: Throwable) {
             close()
@@ -36,12 +38,13 @@ internal class ParticleReverseHistory(private val program: Int, val plan: Partic
     }
 
     /** 调用方先绑定原材料和当前状态，缓存操作只改变绑定 4、5。 */
-    fun transfer(frame: Int, restore: Boolean) {
+    fun transfer(frame: Int, restore: Boolean, fraction: Float = 0f) {
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 4, buffers[0])
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 5, buffers[1])
         GLES30.glUseProgram(program)
         GLES30.glUniform1i(frameLocation, frame)
         GLES30.glUniform1i(restoreLocation, if (restore) 1 else 0)
+        GLES30.glUniform1f(fractionLocation, fraction)
         GLES31.glDispatchCompute((plan.count + 255) / 256, 1, 1)
         GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
     }

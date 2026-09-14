@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">同時に1回再生</string>
     <string name="detail_autoplay_all_loop">同時にループ再生</string>
     <string name="settings_twice_back">「戻る」を 2 回押して終了します</string>
-    <string name="settings_create_animation_style">新しいものを作成するときのボーダーライトアニメーション</string>
+    <string name="settings_create_animation_style">新規作成時のアニメーションスタイル</string>
     <string name="settings_doing_digit_style">タイマーの数字スタイル</string>
     <string name="settings_dialog_particle_animation">ダイアログのパーティクルアニメーション</string>
     <string name="dialog_particle_animation_none">なし</string>
@@ -1367,4 +1367,9 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="spatial_segmentation_enabled">有効 · %1$s</string>
     <string name="spatial_segmentation_disabled">ダウンロード済み・無効 · %1$s</string>
     <string name="spatial_storage_summary_v2">計算コンポーネント: %1$s\n深度・レイヤーモデル: %2$s\n隠れ背景モデル: %3$s\n生成済み効果: %4$s</string>
+    <string name="settings_swipe_complete_animation">左スワイプで完了する際のアニメーションスタイル</string>
+    <string name="thing_animation_ripple">波紋</string>
+    <string name="thing_animation_border">エッジライト</string>
+    <string name="thing_animation_particle">パーティクル</string>
+    <string name="thing_animation_slide">スライドしてフェードアウト</string>
 </resources>

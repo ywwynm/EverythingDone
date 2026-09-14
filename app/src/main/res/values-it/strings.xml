@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">Tutti insieme, una volta</string>
     <string name="detail_autoplay_all_loop">Tutti insieme, in loop</string>
     <string name="settings_twice_back">Premere Indietro due volte per uscire</string>
-    <string name="settings_create_animation_style">Animazione della luce del bordo durante la creazione di una nuova cosa</string>
+    <string name="settings_create_animation_style">Stile di animazione alla creazione</string>
     <string name="settings_doing_digit_style">Stile delle cifre del timer</string>
     <string name="settings_dialog_particle_animation">Animazione particellare dei dialoghi</string>
     <string name="dialog_particle_animation_none">Nessuna</string>
@@ -1313,4 +1313,9 @@ Beh, non li troverai mai tutti. Ahahahahah.</item>
     <string name="spatial_segmentation_enabled">Attivo · %1$s</string>
     <string name="spatial_segmentation_disabled">Scaricato, disattivato · %1$s</string>
     <string name="spatial_storage_summary_v2">Componente di calcolo: %1$s\nModelli di profondità e livelli: %2$s\nModello dello sfondo nascosto: %3$s\nEffetti generati: %4$s</string>
+    <string name="settings_swipe_complete_animation">Stile di animazione dello scorrimento per completare</string>
+    <string name="thing_animation_ripple">Increspatura</string>
+    <string name="thing_animation_border">Bordo luminoso</string>
+    <string name="thing_animation_particle">Particelle</string>
+    <string name="thing_animation_slide">Scorrimento e dissolvenza</string>
 </resources>

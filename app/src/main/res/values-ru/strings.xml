@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">Все сразу, один раз</string>
     <string name="detail_autoplay_all_loop">Все сразу, по кругу</string>
     <string name="settings_twice_back">Нажмите «Назад» дважды, чтобы выйти.</string>
-    <string name="settings_create_animation_style">Анимация граничного света при создании новой вещи</string>
+    <string name="settings_create_animation_style">Стиль анимации создания</string>
     <string name="settings_doing_digit_style">Стиль цифр таймера</string>
     <string name="settings_dialog_particle_animation">Анимация частиц диалогов</string>
     <string name="dialog_particle_animation_none">Нет</string>
@@ -1313,4 +1313,9 @@
     <string name="spatial_segmentation_enabled">Включено · %1$s</string>
     <string name="spatial_segmentation_disabled">Загружено, отключено · %1$s</string>
     <string name="spatial_storage_summary_v2">Вычислительный компонент: %1$s\nМодели глубины и слоёв: %2$s\nМодель скрытого фона: %3$s\nСозданные эффекты: %4$s</string>
+    <string name="settings_swipe_complete_animation">Стиль анимации завершения смахиванием</string>
+    <string name="thing_animation_ripple">Рябь</string>
+    <string name="thing_animation_border">Подсветка краёв</string>
+    <string name="thing_animation_particle">Частицы</string>
+    <string name="thing_animation_slide">Сдвиг с затуханием</string>
 </resources>

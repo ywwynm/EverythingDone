@@ -102,6 +102,22 @@ extern "C" JNIEXPORT void JNICALL JNI_NAME(packUploads)(JNIEnv* e,jobject,jintAr
     for(int i=0;i<count;++i){state[i*8]=material.p[i*12];state[i*8+1]=material.p[i*12+1];}
 }
 
+extern "C" JNIEXPORT void JNICALL JNI_NAME(packColors)(JNIEnv* e,jobject,jintArray pixelsArray,jobject rgbaBuffer){
+    Ints pixels(e,pixelsArray);
+    auto rgba=static_cast<uint32_t*>(e->GetDirectBufferAddress(rgbaBuffer));
+    if(!pixels.p||!rgba)return;
+    const int count=e->GetArrayLength(pixelsArray);
+    for(int i=0;i<count;++i){uint32_t c=pixels.p[i];rgba[i]=(c&0xff00ff00)|((c>>16)&255)|((c&255)<<16);}
+}
+
+extern "C" JNIEXPORT void JNICALL JNI_NAME(packState)(JNIEnv* e,jobject,jfloatArray materialArray,jint count,jobject stateBuffer){
+    Floats material(e,materialArray);
+    auto state=static_cast<float*>(e->GetDirectBufferAddress(stateBuffer));
+    if(!material.p||!state)return;
+    std::fill_n(state,count*8,0.f);
+    for(int i=0;i<count;++i){state[i*8]=material.p[i*12];state[i*8+1]=material.p[i*12+1];}
+}
+
 extern "C" JNIEXPORT jfloatArray JNICALL JNI_NAME(release)(JNIEnv* e,jobject,
     jint nx,jint ny,jfloat width,jfloat height,jint gw,jint gh,jfloatArray gridArray,
     jdouble low,jdouble size,jdoubleArray geometryArray,jdoubleArray anchorArray,

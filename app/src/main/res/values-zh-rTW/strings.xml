@@ -805,7 +805,7 @@
     <string name="detail_autoplay_all_once">同時播放一次</string>
     <string name="detail_autoplay_all_loop">同時循環播放</string>
     <string name="settings_twice_back">按兩次返回鍵退出程式</string>
-    <string name="settings_create_animation_style">新建事項時使用螢幕邊框光效動畫</string>
+    <string name="settings_create_animation_style">新增記事動畫風格</string>
     <string name="settings_doing_digit_style">計時數字風格</string>
     <string name="settings_dialog_particle_animation">對話框粒子動畫效果</string>
     <string name="dialog_particle_animation_none">無</string>
@@ -1802,4 +1802,9 @@
     <string name="spatial_clear_derivatives">清除全部已生成空間效果</string>
     <string name="spatial_clear_derivatives_confirm">這會移除本機生成的全部深度資料，不改變原始附件和已下載模型。</string>
     <string name="spatial_privacy_note">圖片解碼、深度估計和互動渲染全部在本機完成；附件圖片不會上傳。</string>
+    <string name="settings_swipe_complete_animation">左滑完成記事動畫風格</string>
+    <string name="thing_animation_ripple">漣漪</string>
+    <string name="thing_animation_border">邊框光效</string>
+    <string name="thing_animation_particle">粒子</string>
+    <string name="thing_animation_slide">滑動淡出</string>
 </resources>

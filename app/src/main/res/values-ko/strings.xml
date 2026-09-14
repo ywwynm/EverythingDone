@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">동시에 한 번 재생</string>
     <string name="detail_autoplay_all_loop">동시에 반복 재생</string>
     <string name="settings_twice_back">종료하려면 뒤로를 두 번 누르세요.</string>
-    <string name="settings_create_animation_style">새로운 것을 만들 때 테두리 조명 애니메이션</string>
+    <string name="settings_create_animation_style">새 항목 생성 애니메이션 스타일</string>
     <string name="settings_doing_digit_style">타이머 숫자 스타일</string>
     <string name="settings_dialog_particle_animation">대화상자 파티클 애니메이션</string>
     <string name="dialog_particle_animation_none">없음</string>
@@ -1367,4 +1367,9 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="spatial_segmentation_enabled">사용 중 · %1$s</string>
     <string name="spatial_segmentation_disabled">다운로드됨, 사용 안 함 · %1$s</string>
     <string name="spatial_storage_summary_v2">연산 구성 요소: %1$s\n깊이 및 레이어 모델: %2$s\n가려진 배경 모델: %3$s\n생성된 효과: %4$s</string>
+    <string name="settings_swipe_complete_animation">왼쪽 스와이프 완료 애니메이션 스타일</string>
+    <string name="thing_animation_ripple">물결</string>
+    <string name="thing_animation_border">테두리 조명</string>
+    <string name="thing_animation_particle">입자</string>
+    <string name="thing_animation_slide">슬라이드하며 사라짐</string>
 </resources>

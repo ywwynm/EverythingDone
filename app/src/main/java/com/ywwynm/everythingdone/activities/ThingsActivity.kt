@@ -187,6 +187,11 @@ class ThingsActivity :
 
     private var mRevealLayout: RevealLayout? = null
     private var mShiningBorder: ShiningBorder? = null
+    private val mSwipeParticleAnimator by lazy {
+        com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator(this)
+    }
+    private var mNewItemParticleOverlay: com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay? = null
+    private var mCreationLaunchPending = false
     // Cached "full-screen" defaults set in findViews() — used to restore mShiningBorder
     // after a card-scoped animation overrode them.
     private var mShiningBorderDefaultStroke: Float = 0f
@@ -252,6 +257,7 @@ class ThingsActivity :
     private var mBtThingCardAppearanceChangeColor: ImageView? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        mSwipeParticleAnimator.recordTouch(ev)
         mAppearancePanelAnimator.recordTouch(ev)
         updateThingListPointerState(ev, "activity")
         if (mOverlayDragController?.handleTouchEvent(ev) == true) {
@@ -671,6 +677,12 @@ class ThingsActivity :
 
     override fun onResume() {
         super.onResume()
+        if (mCreationLaunchPending) {
+            mCreationLaunchPending = false
+            mIsRevealAnimPlaying = false
+            mFab?.isClickable = true
+            mFab?.showFromBottom()
+        }
         updateTaskDescription()
 
         var mRemoteIntentInfo = "mRemoteIntent[null]"
@@ -721,6 +733,7 @@ class ThingsActivity :
     }
 
     override fun onPause() {
+        mSwipeParticleAnimator.reset()
         super.onPause()
         mOverlayDragController?.cancel("activity-pause")
         finishNewItemShiningBorderAnimationIfNeeded()
@@ -2663,6 +2676,7 @@ class ThingsActivity :
      * Focus on change of screen orientation.
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
+        mSwipeParticleAnimator.reset()
         super.onConfigurationChanged(newConfig)
         finishNewItemShiningBorderAnimationIfNeeded()
         val thingCardAppearancePanelShowing = isThingCardAppearancePanelShowing()
@@ -6195,98 +6209,21 @@ class ThingsActivity :
         mFab!!.attachToRecyclerView(mRecyclerView!!)
         mFab!!.bindSnackbars(mNormalSnackbar)
         mFab!!.setOnClickListener {
-            if (mIsRevealAnimPlaying) {
-                return@setOnClickListener
-            }
+            if (mIsRevealAnimPlaying) return@setOnClickListener
             mIsRevealAnimPlaying = true
-
+            mCreationLaunchPending = true
             dismissSnackbars()
             mFab!!.isClickable = false
-
-            val intent: Intent = DetailActivity.getOpenIntentForCreate(
-                this@ThingsActivity, TAG,
-                if (App.newThingBackground != null)
-                    App.newThingBackground
-                else ThingBackground.pure(App.newThingColor),
+            val intent = DetailActivity.getOpenIntentForCreate(
+                this, TAG, App.newThingBackground ?: ThingBackground.pure(App.newThingColor),
                 mThingManager!!.getProjection().currentFolderId
             )
-
-            val useShiningBorder = getSharedPreferences(
-                Def.Meta.PREFERENCES_NAME, MODE_PRIVATE
-            ).getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false)
-
-            if (useShiningBorder) {
-                var bg: ThingBackground? = App.newThingBackground
-                if (bg == null) bg = ThingBackground.pure(App.newThingColor)
-                val shiningCol: Int
-                val ordinaryCol: Int
-                if (bg.mode === ThingBackground.Mode.PURE) {
-                    shiningCol  = bg.color
-                    ordinaryCol = DisplayUtil.getLightColor(bg.color, this@ThingsActivity)
-                } else {
-                    shiningCol  = bg.endColor
-                    ordinaryCol = bg.color
+            com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.launch(this, intent) { launched ->
+                if (!launched) {
+                    mCreationLaunchPending = false
+                    mIsRevealAnimPlaying = false
+                    mFab!!.isClickable = true
                 }
-                mShiningBorder!!.setShiningColor(shiningCol)
-                mShiningBorder!!.setOrdinaryColor(ordinaryCol)
-                mShiningBorder!!.visibility = View.VISIBLE
-                mShiningBorder!!.startAnimation()
-
-                mShiningBorder!!.setOnAnimationEndListener(object : ShiningBorder.OnAnimationEndListener {
-                    override fun onAnimationEnd(border: ShiningBorder) {
-                        startActivityForResult(
-                            intent, Def.Communication.REQUEST_ACTIVITY_DETAIL
-                        )
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
-                        } else {
-                            overridePendingTransition(0, 0)
-                        }
-                    }
-                })
-
-                val delay = 1200 + (if (mApp!!.hasDetailActivityRun()) 360 else 1000)
-                mRevealLayout!!.postDelayed({
-                    mRecyclerView!!.scrollToPosition(0)
-                    mActivityHeader!!.reset(false)
-                    mIsRevealAnimPlaying = false
-                    mFab!!.showFromBottom()
-                    mFab!!.isClickable = true
-                    mShiningBorder!!.visibility = View.INVISIBLE
-                    mShiningBorder!!.resetTrace()
-                }, delay.toLong())
-            } else {
-                val location = IntArray(2)
-                mFab!!.getLocationInWindow(location)
-                location[0] += mFab!!.width / 2
-                location[1] += mFab!!.height / 2
-                BackgroundUtil.applyBackground(mViewToReveal, App.newThingBackground)
-                mViewToReveal!!.visibility = View.VISIBLE
-                mRevealLayout!!.visibility = View.VISIBLE
-
-                mRevealLayout!!.show(location[0], location[1])
-
-                mRevealLayout!!.postDelayed({
-                    startActivityForResult(
-                        intent, Def.Communication.REQUEST_ACTIVITY_DETAIL
-                    )
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
-                    } else {
-                        overridePendingTransition(0, 0)
-                    }
-                }, 600)
-
-                val delay = if (mApp!!.hasDetailActivityRun()) 960 else 1600
-                mRevealLayout!!.postDelayed({
-                    mRecyclerView!!.scrollToPosition(0)
-                    mActivityHeader!!.reset(false)
-                    mIsRevealAnimPlaying = false
-                    mFab!!.showFromBottom()
-                    mFab!!.isClickable = true
-                    mRevealLayout!!.visibility = View.INVISIBLE
-                    mViewToReveal!!.visibility = View.INVISIBLE
-                }, delay.toLong())
             }
         }
     }
@@ -6421,9 +6358,55 @@ class ThingsActivity :
         holder: BaseThingsAdapter.BaseThingViewHolder, bg: ThingBackground
     ) {
         finishNewItemShiningBorderAnimationIfNeeded()
-        val useShining = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-            .getBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, false)
+        val style = com.ywwynm.everythingdone.utils.ThingAnimationPreferences.creation(this)
+        val useShining = style == com.ywwynm.everythingdone.utils.ThingAnimationPreferences.BORDER
         val card = holder.cv!!
+        if (style == com.ywwynm.everythingdone.utils.ThingAnimationPreferences.PARTICLE) {
+            val token = ++mNewItemShiningBorderToken
+            mIsNewItemShiningBorderActive = true
+            mIsNewItemShiningBorderAnimating = false
+            mNewItemShiningBorderCard = card
+            mIsRevealAnimPlaying = true
+            mRecyclerView?.stopScroll()
+            mRecyclerView?.requestDisallowInterceptTouchEvent(true)
+            card.clearAnimation()
+            // ItemAnimator 先移动旧卡片，再对新卡片执行 alpha 0→1。此时不能
+            // 把 alpha 交给粒子管线，否则插入动画会在粒子尚未完成时露出整张卡。
+            // INVISIBLE 保留布局位置，等腾位和插入动画全部结束再捕获、凝聚。
+            card.visibility = View.INVISIBLE
+            val rv = mRecyclerView!!
+            val startParticles = Runnable {
+                if (token != mNewItemShiningBorderToken || !mIsNewItemShiningBorderActive) {
+                    return@Runnable
+                }
+                if (!card.isAttachedToWindow || holder.bindingAdapterPosition == RecyclerView.NO_POSITION) {
+                    finishNewItemShiningBorderAnimationIfNeeded()
+                    return@Runnable
+                }
+                card.animate().cancel()
+                card.alpha = 1f
+                card.visibility = View.VISIBLE
+                val started = com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+                    .appearContent(this, window, card, appearanceDirection = 315f, roundSnapshot = false,
+                        onAppearanceFinished = {
+                            if (token == mNewItemShiningBorderToken) {
+                                mNewItemParticleOverlay = null
+                                clearNewItemShiningBorderAnimationState()
+                            }
+                        }) { mNewItemParticleOverlay = it }
+                if (!started) clearNewItemShiningBorderAnimationState()
+            }
+            val itemAnimator = rv.itemAnimator
+            if (itemAnimator == null) {
+                rv.post(startParticles)
+            } else {
+                // 回调也可能同步触发；投递到下一次消息，避开 ItemAnimator 的收尾栈。
+                itemAnimator.isRunning(RecyclerView.ItemAnimator.ItemAnimatorFinishedListener {
+                    rv.post(startParticles)
+                })
+            }
+            return
+        }
         var shiningBorderToken = 0
         if (useShining) {
             shiningBorderToken = ++mNewItemShiningBorderToken
@@ -6541,6 +6524,9 @@ class ThingsActivity :
 
         mNewItemShiningBorderToken++
         val card = mNewItemShiningBorderCard
+        card?.let { com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController.cancelAppearance(it) }
+        mNewItemParticleOverlay?.release()
+        mNewItemParticleOverlay = null
         if (mIsNewItemShiningBorderAnimating) {
             mShiningBorder!!.setOnAnimationEndListener(null)
             mShiningBorder!!.setOnProgressUpdateListener(null)
@@ -6595,6 +6581,19 @@ class ThingsActivity :
     }
 
     private fun setRecyclerViewEvents() {
+        mRecyclerView!!.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
+                if (event.actionMasked == MotionEvent.ACTION_DOWN && !mOverlayDragActive && !mIsNewItemShiningBorderActive &&
+                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@ThingsActivity) ==
+                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE) {
+                    val child = rv.findChildViewUnder(event.x, event.y)
+                    if (child != null && mThingManager?.getThingListEntry(rv.getChildAdapterPosition(child)) is ThingListEntry.ThingEntry) {
+                        mSwipeParticleAnimator.warm(child, event)
+                    }
+                }
+                return false
+            }
+        })
         mRecyclerView!!.setOnTouchListener { _, event ->
             val action = event.action
             if (mIsNewItemShiningBorderActive) {
@@ -11132,6 +11131,13 @@ class ThingsActivity :
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            if (mSwipeParticleAnimator.finishSwipe(viewHolder.itemView, mRecyclerView!!.width) {
+                    completeThingSwipe(viewHolder, direction)
+                }) return
+            completeThingSwipe(viewHolder, direction)
+        }
+
+        private fun completeThingSwipe(viewHolder: RecyclerView.ViewHolder, direction: Int) {
             val listPosition = viewHolder.adapterPosition
             if (listPosition <= 0) {
                 return
@@ -11335,6 +11341,7 @@ class ThingsActivity :
         }
 
         override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            mSwipeParticleAnimator.reset(viewHolder.itemView)
             super.clearView(recyclerView, viewHolder)
             viewHolder.itemView.setTag(R.id.tag_thing_card_finger_down, false)
             viewHolder.itemView.setTag(R.id.tag_thing_card_drag_active, false)
@@ -11361,6 +11368,19 @@ class ThingsActivity :
             viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float,
             actionState: Int, isCurrentlyActive: Boolean
         ) {
+            var particleSwipe = false
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                if (dX > 0f) mSwipeParticleAnimator.reset(viewHolder.itemView)
+                else if (com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@ThingsActivity) ==
+                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE &&
+                    mThingManager!!.getThingListEntry(viewHolder.adapterPosition) is ThingListEntry.ThingEntry) {
+                    val holder = viewHolder as BaseThingsAdapter.BaseThingViewHolder
+                    val thing = mThingManager!!.getThingAtListPosition(viewHolder.adapterPosition)
+                    holder.flDoing!!.alpha = 1f
+                    if (thing?.id != App.getDoingThingId()) holder.flDoing.visibility = View.GONE
+                    particleSwipe = mSwipeParticleAnimator.draw(c, viewHolder.itemView, dX)
+                }
+            }
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                 keepActiveTouchItemAboveSiblings(recyclerView, viewHolder.itemView)
@@ -11376,7 +11396,7 @@ class ThingsActivity :
                     if (App.getDoingThingId() != thing.id) {
                         holder.flDoing.visibility = View.GONE
                     }
-                    v.alpha = 1.0f + dX / v.right
+                    if (!particleSwipe) v.alpha = (1.0f + dX / v.right).coerceIn(0f, 1f)
                 } else if (dX > 0) {
                     if (App.getDoingThingId() == thing.id) {
                         swiped = true
@@ -11396,7 +11416,7 @@ class ThingsActivity :
                     if (alpha > 1.0f) alpha = 1.0f
                     holder.flDoing.alpha = alpha
                 } else {
-                    v.alpha = 1.0f
+                    if (!particleSwipe) v.alpha = 1.0f
                     holder.flDoing!!.alpha = 1.0f
                     if (App.getDoingThingId() != thing.id) {
                         holder.flDoing.visibility = View.GONE

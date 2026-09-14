@@ -27,7 +27,8 @@ internal class ParticleDismissOverlay(
     private val onAnimationStarted: Runnable? = null,
     private val onDone: Runnable? = null,
     private val touchFeedback: ParticleTouchFeedback? = null,
-    private val onPresentedProgress: ((Float) -> Unit)? = null
+    private val onPresentedProgress: ((Float) -> Unit)? = null,
+    private val gesture: ParticleGestureProgress? = null
 ) : FrameLayout(activity), TextureView.SurfaceTextureListener {
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -40,16 +41,19 @@ internal class ParticleDismissOverlay(
     private var firstTexturePresented = false
     private var glCompleted = false
     private var presentedProgress = 0f
+    private var releaseNotified = false
     private val releaseListeners = mutableListOf<Runnable>()
     private var releaseFrameRate: (() -> Unit)? = null
     internal val textureTimings = java.util.Collections.synchronizedList(mutableListOf<LongArray>())
     internal val isDisappearance get() = !spec.reverse
 
     internal fun afterRelease(action: Runnable) {
-        if (finished && parent == null) action.run() else releaseListeners += action
+        if (releaseNotified) action.run() else releaseListeners += action
     }
 
     private fun notifyReleased() {
+        if (releaseNotified) return
+        releaseNotified = true
         val callbacks = releaseListeners.toList()
         releaseListeners.clear()
         callbacks.forEach { it.run() }
@@ -88,7 +92,7 @@ internal class ParticleDismissOverlay(
         addView(textureView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
         // 凝聚（出现动画）模式无需快照遮蔽层：动画从散开态开始、面板从无到有
-        snapshotView = if (isCondense) null else ImageView(activity).apply {
+        snapshotView = if (isCondense || gesture != null) null else ImageView(activity).apply {
             setImageBitmap(spec.snapshot)
             scaleType = ImageView.ScaleType.FIT_XY
         }
@@ -128,9 +132,10 @@ internal class ParticleDismissOverlay(
         releaseFrameRate?.invoke(); releaseFrameRate = null
         renderer?.cancel()
         mainHandler.removeCallbacksAndMessages(null)
-        fireDone()
         super.onDetachedFromWindow()
-        notifyReleased()
+        // detach 发生在 ViewGroup.removeView 尚未更新子节点数组时。外部回调
+        // 可能移除同一 DecorView 中的承接快照／触摸层，必须等本次移除返回。
+        mainHandler.post { fireDone(); notifyReleased() }
     }
 
     /** 完成通知恰好一次：所有退出路径（正常/降级/超时/detach）都会到达。 */
@@ -146,7 +151,7 @@ internal class ParticleDismissOverlay(
         animationStartedFired = true
         // 首帧到了：把看门狗改成「从现在起一个动画时长 + 少量余量」
         mainHandler.removeCallbacks(watchdog)
-        mainHandler.postDelayed(watchdog, logicalDurationMs() + RUNNING_SLACK_MS)
+        if (gesture == null) mainHandler.postDelayed(watchdog, logicalDurationMs() + RUNNING_SLACK_MS)
         onAnimationStarted?.run()
     }
 
@@ -162,6 +167,7 @@ internal class ParticleDismissOverlay(
             spec = spec,
             preparation = preparation,
             touchFeedback = touchFeedback,
+            gesture = gesture,
             onFirstFrame = { mainHandler.post { onGlFirstFrame() } },
             onFinished = { completed -> mainHandler.post { onGlFinished(completed) } }
         ).also { it.start() }
@@ -196,6 +202,7 @@ internal class ParticleDismissOverlay(
             // swap 完成不等于 Texture 已进入本窗口；保持快照直到纹理实际更新。
             snapshotView?.visibility = GONE
             fireAnimationStarted()
+            gesture?.presented = true
             if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                 android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                     "首帧合成 requestToVisibleMs=${(System.nanoTime()-spec.requestedAtNanos)/1e6}")
@@ -213,6 +220,7 @@ internal class ParticleDismissOverlay(
 
     private fun onGlFinished(completed: Boolean) {
         if (finished) return
+        if (gesture != null) { removeSelf(); return }
         if (completed) {
             glCompleted = true
             if (presentedProgress >= 1f) completePresentedAnimation()
@@ -264,6 +272,7 @@ internal class ParticleDismissOverlay(
         if (renderer?.isAlive != true && preparation.isFinished) {
             spec.snapshot.recycle()
         }
+        notifyReleased()
     }
 
     private companion object {

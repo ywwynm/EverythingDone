@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">Alle gleichzeitig, einmal</string>
     <string name="detail_autoplay_all_loop">Alle gleichzeitig, in Schleife</string>
     <string name="settings_twice_back">Drücken Sie zweimal Zurück, um den Vorgang zu beenden</string>
-    <string name="settings_create_animation_style">Randlichtanimation beim Erstellen einer neuen Sache</string>
+    <string name="settings_create_animation_style">Animationsstil beim Erstellen</string>
     <string name="settings_doing_digit_style">Timer-Ziffernstil</string>
     <string name="settings_dialog_particle_animation">Dialog-Partikelanimation</string>
     <string name="dialog_particle_animation_none">Keine</string>
@@ -1313,4 +1313,9 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_segmentation_enabled">Aktiviert · %1$s</string>
     <string name="spatial_segmentation_disabled">Heruntergeladen, deaktiviert · %1$s</string>
     <string name="spatial_storage_summary_v2">Rechenkomponente: %1$s\nTiefen- und Ebenenmodelle: %2$s\nModell für verdeckten Hintergrund: %3$s\nErzeugte Effekte: %4$s</string>
+    <string name="settings_swipe_complete_animation">Animationsstil beim Wischen zum Abschließen</string>
+    <string name="thing_animation_ripple">Wellen</string>
+    <string name="thing_animation_border">Randlicht</string>
+    <string name="thing_animation_particle">Partikel</string>
+    <string name="thing_animation_slide">Verschieben und Ausblenden</string>
 </resources>

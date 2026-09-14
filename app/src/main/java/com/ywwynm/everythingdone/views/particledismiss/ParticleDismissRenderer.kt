@@ -25,6 +25,7 @@ internal class ParticleDismissRenderer(
     private val spec: ParticleDismissSpec,
     private val preparation: ParticleMicroflakePreparation? = null,
     private val touchFeedback: ParticleTouchFeedback? = null,
+    private val gesture: ParticleGestureProgress? = null,
     private val onFirstFrame: () -> Unit,
     private val onFinished: (completed: Boolean) -> Unit
 ) : Thread("ParticleDismissGl") {
@@ -40,6 +41,7 @@ internal class ParticleDismissRenderer(
         private set
 
     internal fun progressForPresentation(timestamp: Long): Float {
+        if (gesture != null) return gesture.progressAt(timestamp)
         if (firstFrameNanos == 0L) return 0f
         val duration = (if (spec.reverse) spec.playbackDurationS else 1f) * spec.durationScale.coerceAtLeast(.1f)
         return ((timestamp - firstFrameNanos) / 1e9 / duration).toFloat().coerceIn(0f, 1f)
@@ -136,6 +138,8 @@ internal class ParticleDismissRenderer(
         }
     }
 
+    internal val gestureActivatedAtNanos get() = gesture?.activatedAtNanos ?: 0L
+
     private fun renderAnimation(): Boolean {
         // 准备阶段宿主也在绘制、切换窗口。没有 ripple 的出现同样要限制在途
         // 逆算批次，不能等粒子首帧才登记、让整段计算先占满 GPU 队列。
@@ -147,17 +151,26 @@ internal class ParticleDismissRenderer(
             renderer.prepareReversePipeline()
             val pipelineReady = System.nanoTime()
             if (cancelled) return@use false
+            if (preparation != null) {
+                val pixels = preparation.awaitPixels()
+                if (cancelled) return@use false
+                renderer.prepareForeground(pixels)
+            }
             val input = preparation?.await(viewportWidth, viewportHeight)
                 ?: ParticleMicroflakeRenderer.fromSpec(assets, viewportWidth, viewportHeight, density, spec)
             val inputReady = System.nanoTime()
             if (cancelled) return@use false
             renderer.prepare(input)
+            val uploadsReady = System.nanoTime()
             if (!spec.reverse && touchFeedback?.awaitPlayback { cancelled } == false) return@use false
             if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                 android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                     "准备耗时 ${(System.nanoTime() - prepareStart) / 1e6} ms，GLES ${GLES30.glGetString(GLES30.GL_VERSION)}")
             }
             val first = {
+                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+                    startupTimings = longArrayOf(prepareStart, pipelineReady, inputReady, uploadsReady, System.nanoTime())
+                }
                 if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                     val stage = if (spec.reverse) "出现启动" else "启动阶段"
                     android.util.Log.i(ParticleMicroflakeRenderer.TAG,
@@ -168,14 +181,16 @@ internal class ParticleDismissRenderer(
                 }
                 onFirstFrame()
             }
-            val submitted: (Long, Float) -> Unit = { timestamp, _ ->
+            val submitted: (Long, Float) -> Unit = { timestamp, progress ->
+                gesture?.submitted(timestamp, progress)
                 if (firstFrameNanos == 0L) firstFrameNanos = timestamp
                 lastFrameNanos = timestamp
-                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) submittedTimings += longArrayOf(timestamp, System.nanoTime())
+                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) submittedTimings += longArrayOf(timestamp, System.nanoTime(), progress.toRawBits().toLong())
             }
             // 出现窗口与触摸所在窗口各自呈现；准备完成即可播放，反馈仍保留 GPU 优先级。
             // 等反馈结束只适用于要移除反馈本体的消散，不能串行化工具栏反馈与新窗口出现。
-            val completed = if (spec.reverse) renderer.playReverse(spec.playbackDurationS, spec.durationScale, refreshRate,
+            val completed = if (gesture != null) renderer.playGesture(gesture, { cancelled }, first, submitted)
+            else if (spec.reverse) renderer.playReverse(spec.playbackDurationS, spec.durationScale, refreshRate,
                 { cancelled }, first, onSubmitted = submitted)
             else renderer.play(spec.durationScale, refreshRate, { cancelled }, first, submitted)
             drawTimings = renderer.drawTimings.toList()
@@ -186,6 +201,8 @@ internal class ParticleDismissRenderer(
     internal val submittedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
     internal val presentedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
     @Volatile internal var drawTimings: List<LongArray> = emptyList()
+        private set
+    @Volatile internal var startupTimings = longArrayOf()
         private set
 
     private fun chooseConfig(display: EGLDisplay): EGLConfig {

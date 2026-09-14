@@ -502,7 +502,7 @@
     <string name="detail_autoplay_all_once">Tous en même temps, une fois</string>
     <string name="detail_autoplay_all_loop">Tous en même temps, en boucle</string>
     <string name="settings_twice_back">Appuyez deux fois sur Retour pour quitter</string>
-    <string name="settings_create_animation_style">Animation de lumière de bordure lors de la création d\'une nouvelle chose</string>
+    <string name="settings_create_animation_style">Style d’animation de création</string>
     <string name="settings_doing_digit_style">Style des chiffres du minuteur</string>
     <string name="settings_dialog_particle_animation">Animation de particules des boîtes de dialogue</string>
     <string name="dialog_particle_animation_none">Aucune</string>
@@ -1313,4 +1313,9 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_segmentation_enabled">Activé · %1$s</string>
     <string name="spatial_segmentation_disabled">Téléchargé, désactivé · %1$s</string>
     <string name="spatial_storage_summary_v2">Composant de calcul : %1$s\nModèles de profondeur et de couches : %2$s\nModèle d\'arrière-plan masqué : %3$s\nEffets générés : %4$s</string>
+    <string name="settings_swipe_complete_animation">Style d’animation du glissement pour terminer</string>
+    <string name="thing_animation_ripple">Ondulation</string>
+    <string name="thing_animation_border">Bordure lumineuse</string>
+    <string name="thing_animation_particle">Particules</string>
+    <string name="thing_animation_slide">Glissement et fondu</string>
 </resources>

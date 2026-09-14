@@ -134,7 +134,6 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     private var mCbAutoplayCoverDynamic: CheckBox? = null
     private var mAutoplayCoverDynamic: Boolean = false
     private var mCbTwiceBack: CheckBox? = null
-    private var mCbCreateAnimationStyle: CheckBox? = null
 
     private var mRingtoneManager: RingtoneManager? = null
     private var mChosenRingtoneUris: Array<Uri?>? = null
@@ -481,7 +480,6 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         mCbAutoLink   = f(R.id.cb_auto_link)
         mCbAutoplayCoverDynamic = f(R.id.cb_autoplay_cover_dynamic)
         mCbTwiceBack  = f(R.id.cb_twice_back)
-        mCbCreateAnimationStyle = f(R.id.cb_create_animation_style)
 
         mLlsRingtone    = arrayOfNulls(4)
         mLlsRingtone!![0] = f(R.id.ll_ringtone_reminder_as_bt)
@@ -689,7 +687,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         listOf(
             mCbFollowSystemDarkMode, mCbForceDarkMode, mCbNn,
             mCbToggleCli, mCbSimpleFCli, mCbAutoLink, mCbAutoplayCoverDynamic, mCbTwiceBack,
-            mCbCreateAnimationStyle, mCbFgprt, mCbQuickCreate,
+            mCbFgprt, mCbQuickCreate,
             mCbCloseNotificationLater, mCbOngoingLockscreen
         ).forEach {
             if (it != null) {
@@ -752,10 +750,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         val twiceBack: Boolean = mPreferences!!.getBoolean(Def.Meta.KEY_TWICE_BACK, false)
         mCbTwiceBack!!.isChecked = twiceBack
 
-        val createAnimationStyle: Boolean = mPreferences!!.getBoolean(
-            Def.Meta.KEY_CREATE_ANIMATION_STYLE, false
-        )
-        mCbCreateAnimationStyle!!.isChecked = createAnimationStyle
+        updateThingAnimationValues()
     }
 
     private fun initUiRingtone() {
@@ -1046,7 +1041,10 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             mCbTwiceBack!!.isChecked = !mCbTwiceBack!!.isChecked
         }
         f<View>(R.id.rl_create_animation_style_as_bt).setOnClickListener {
-            mCbCreateAnimationStyle!!.isChecked = !mCbCreateAnimationStyle!!.isChecked
+            showThingAnimationChooser(true)
+        }
+        f<View>(R.id.rl_swipe_complete_animation_as_bt).setOnClickListener {
+            showThingAnimationChooser(false)
         }
         f<View>(R.id.rl_doing_digit_style_as_bt).setOnClickListener {
             val df = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment()
@@ -1065,6 +1063,35 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         updateDoingDigitStyleValue()
         updateDialogParticleAnimationValue()
         updateAutoplayDetailDynamicValue()
+    }
+
+    private fun thingAnimationItems(creation: Boolean): MutableList<String?> =
+        (if (creation) listOf(R.string.thing_animation_ripple, R.string.thing_animation_border,
+            R.string.thing_animation_particle)
+        else listOf(R.string.thing_animation_slide, R.string.thing_animation_particle))
+            .map { getString(it) as String? }.toMutableList()
+
+    private fun showThingAnimationChooser(creation: Boolean) {
+        val preferences = com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+        val cdf = ChooserDialogFragment()
+        cdf.setAccentBackground(App.defaultAccentBackground)
+        cdf.setShouldShowMore(false)
+        cdf.setTitle(getString(if (creation) R.string.settings_create_animation_style
+            else R.string.settings_swipe_complete_animation))
+        cdf.setItems(thingAnimationItems(creation))
+        cdf.setInitialIndex(if (creation) preferences.creation(this) else preferences.swipe(this))
+        cdf.setConfirmListener {
+            mPreferences!!.edit().putInt(if (creation) preferences.CREATE_KEY else preferences.SWIPE_KEY,
+                cdf.getPickedIndex()).apply()
+            updateThingAnimationValues()
+        }
+        cdf.show(supportFragmentManager, ChooserDialogFragment.TAG)
+    }
+
+    private fun updateThingAnimationValues() {
+        val preferences = com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+        f<TextView>(R.id.tv_create_animation_value).text = thingAnimationItems(true)[preferences.creation(this)]
+        f<TextView>(R.id.tv_swipe_complete_animation_value).text = thingAnimationItems(false)[preferences.swipe(this)]
     }
 
     private fun dialogParticleAnimationItems(): MutableList<String?> = mutableListOf(
@@ -1990,7 +2017,6 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         FrequentSettings.put(Def.Meta.KEY_FORCE_DARK_MODE, forceDarkMode)
         editor.putBoolean(Def.Meta.KEY_FORCE_DARK_MODE, forceDarkMode)
 
-        editor.putBoolean(Def.Meta.KEY_CREATE_ANIMATION_STYLE, mCbCreateAnimationStyle!!.isChecked)
 
         for (i in mChosenRingtoneUris!!.indices) {
             editor.putString(sKeysRingtone[i], mChosenRingtoneUris!![i]!!.toString())

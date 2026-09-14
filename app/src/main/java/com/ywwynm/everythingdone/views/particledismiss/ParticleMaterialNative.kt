@@ -26,6 +26,9 @@ internal object ParticleMaterialNative {
     external fun packUploads(pixels: IntArray, material: FloatArray, count: Int,
         rgba: java.nio.ByteBuffer, state: java.nio.ByteBuffer)
 
+    external fun packColors(pixels: IntArray, rgba: java.nio.ByteBuffer)
+    external fun packState(material: FloatArray, count: Int, state: java.nio.ByteBuffer)
+
     external fun populate(nx: Int, ny: Int, width: Float, height: Float, pixels: IntArray,
         pixelWidth: Int, pixelHeight: Int, seed: Int, release: FloatArray, offsets: FloatArray,
         normalX: FloatArray, normalY: FloatArray, compression: FloatArray,

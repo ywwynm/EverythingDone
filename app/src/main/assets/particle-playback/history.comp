@@ -11,6 +11,7 @@ layout(std430,binding=4) readonly buffer Ranges {ivec4 ranges[];};
 // 只用于正向积分。历史使用五个完整 float，原始积分缓冲仍保留八个分量。
 layout(std430,binding=5) buffer History {float history[];};
 uniform int count,frame,restore;
+uniform float fraction;
 void main(){
     uint i=gl_GlobalInvocationID.x;
     if(i>=uint(count))return;
@@ -27,6 +28,14 @@ void main(){
         if(stored){
             state[i].pos=vec4(history[h],history[h+1],history[h+2],0.);
             state[i].vel=vec4(history[h+3],history[h+4],0.,0.);
+            // 手势使用连续进度。寿命范围前后已多缓存一帧，覆盖可见区间的邻帧。
+            // 整数帧不参与插值，保持普通出现动画原有的状态恢复结果。
+            if(fraction>0. && frame<r.y){
+                state[i].pos.xyz=mix(state[i].pos.xyz,
+                    vec3(history[h+5],history[h+6],history[h+7]),fraction);
+                state[i].vel.xy=mix(state[i].vel.xy,
+                    vec2(history[h+8],history[h+9]),fraction);
+            }
         }
         else{
             // 非可见寿命中的粒子不参与颗粒绘制；原面板仍使用其源坐标。
