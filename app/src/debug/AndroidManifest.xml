@@ -11,6 +11,16 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <!-- 显式诊断文件开启后仅旁观窗口与输入；不启动 Activity、不派发业务事件。 -->
+        <provider android:name=".views.particledismiss.ThingAnimationPerformanceObserver"
+            android:authorities="${applicationId}.animation-performance-observer"
+            android:exported="false" />
+
+        <!-- 调试专用：旁观真实保存返回，检查列表腾位、粒子和卡片显示的顺序。 -->
+        <activity android:name=".views.particledismiss.NewItemAppearanceProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
         <activity android:name=".views.particledismiss.ParticlePanelReuseProbeActivity"
             android:exported="true" android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Things" />
