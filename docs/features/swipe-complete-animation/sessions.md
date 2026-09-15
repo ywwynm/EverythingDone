@@ -56,3 +56,17 @@
 - 设置项文案改为「滑动完成记事动画风格」，英文 complete → finish（项目里完成记事一律用
   finish），中文简繁、日、韩去掉方向限定。
 - 详见 [doing-page-2026-09-15.md](doing-page-2026-09-15.md)。未上真机，未提交 Git。
+
+## 2026-09-15 首页右滑不再平移卡片
+
+- 首页右滑「开始做事」原本既平移卡片又淡入 `flDoing` 蒙层，按用户要求去掉平移，只留蒙层的
+  出现与透明度变化。改动在 `ThingsActivity` 的 `ThingsTouchCallback.onChildDraw`，共一处：
+  滑动且 dX > 0 时给 `super.onChildDraw` 传 0。
+- 先反编译 `androidx.recyclerview:recyclerview:1.4.0` 的 `ItemTouchHelper`，确认横向滑动的
+  回弹／完成动画起点取自 `mSelectedStartX + mDx - itemView.left` 而不是 `itemView` 的
+  `translationX`，因此蒙层在松手后仍能按真实手指位移淡出或补满，不会从零跳变。
+- 左滑完成（含粒子档）、长按拖拽建夹、正在做事界面均未改动。`:app:assembleDebug` 通过。
+  未上真机，未提交 Git。
+- 已发布阿里云 debug 更新 `202609150834`：本地发布产物、远端完整 APK 与远端 latest.json 声明的
+  SHA-256 三方一致（`cc888a46…85ec`，26,283,056 字节），releaseNotes 738 字完整。日志见
+  [debug-updates/update-20260915163413.md](debug-updates/update-20260915163413.md)。

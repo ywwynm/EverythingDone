@@ -1,3 +1,26 @@
+## 首页右滑开始做事不再带着卡片右移（20260915163413）
+
+发布后核验：debug 更新 `202609150834`，本地发布产物、远端完整 APK 与远端 latest.json 声明的
+SHA-256 均为 `cc888a46e38cb30622327ac0db57f45cd6739c9df13a618c413470a93c1685ec`，
+26,283,056 字节，含完整 releaseNotes（738 字）。未创建 Git 提交，未连接任何真机。
+
+首页记事列表右滑「开始做事」原本同时做两件事：卡片跟手右移，`flDoing` 蒙层按滑动距离淡入。
+用户裁定平移是多余的反馈，本版去掉位移只留蒙层。改动一处：`ThingsActivity.ThingsTouchCallback`
+的 `onChildDraw` 里，滑动状态且 dX > 0 时给 `super.onChildDraw` 传 0，框架自己的 dX 不动。
+
+动手前反编译 `androidx.recyclerview:recyclerview:1.4.0` 的 `ItemTouchHelper` 核实：横向滑动
+标志下 `getSelectedDxDy` 取 `mSelectedStartX + mDx - itemView.left`，与 `translationX` 无关
+（只有没有横向滑动标志时才读 `getTranslationX`），所以松手后的回弹／完成动画仍从真实手指位移
+开始，蒙层照旧平滑淡出或补满。本功能 2026-09-13 那条「不能把传给框架的 dX 改为零」约束的是
+粒子那一侧——粒子完成要靠框架把真实卡片停到屏外（`parkTranslationX`），两者不冲突。
+
+未改动：左滑完成（滑动与粒子两档）、长按拖拽重排与拖入文件夹、选择模式、正在做事界面
+（另一套回调与另一个 `ParticleSwipeAnimator`，`allowRightSwipe = true`，位移保留）。
+
+**未上真机，五项待确认**：慢速右滑时蒙层浓度是否跟手、卡片是否真的不动；滑到一半松手蒙层
+是否平滑淡出；过阈值松手是否正常进入开始做事、中途蒙层有无闪跳；对当前正在做的那条记事右滑
+是否仍只给提示；左滑完成两档与长按拖拽建夹是否不受影响，含平板多列布局。
+
 ## 滑动完成记事：正在做事界面接入，粒子不再固定向左（20260915161010）
 
 发布后核验：debug 更新 `202609150810`，本地发布产物、远端完整 APK 与远端 latest.json 声明的

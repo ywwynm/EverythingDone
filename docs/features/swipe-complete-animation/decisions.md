@@ -66,3 +66,13 @@
   透明度，两边只能这样对齐；单独做任何一侧都会在交接处留下亮度跳变。
 - 设置项文案用「滑动」而非「左滑」，英文用 finish 而非 complete（与项目里完成记事的统一用词
   一致）。资源名与 SharedPreferences 键不动——键一改就会把所有人已选的档位重置。
+- 首页右滑「开始做事」时卡片不再跟手平移，只保留 `flDoing` 蒙层按滑动距离淡入淡出。平移是
+  多余的反馈，蒙层的出现与透明度变化已经足够表达手势进度。
+- 实现只把传给 `super.onChildDraw` 的 dX 在「滑动且 dX > 0」时改成 0，框架自己的 dX 一个字
+  不动。上面 2026-09-13「不能把传给框架的 dX 改为零」那条约束的是粒子那一侧：粒子完成时要
+  靠框架把真实卡片停在屏外（`parkTranslationX`）。回弹与完成动画的起点不受影响——
+  `ItemTouchHelper` 1.4.0 的 `getSelectedDxDy` 在横向滑动标志下取
+  `mSelectedStartX + mDx - itemView.left`，与 `translationX` 无关（已反编译 1.4.0 字节码核
+  实），所以松手后蒙层仍从真实手指位移开始淡出／补满。
+- 只改首页（`ThingsActivity`）。正在做事界面是另一套回调与另一个 `ParticleSwipeAnimator`
+  （`allowRightSwipe = true`），左右滑都是完成记事，跟手位移保留。
