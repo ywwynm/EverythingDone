@@ -70,3 +70,4 @@ memory files.
 - `thing-card-image-placement/`
 - `thing-card-media-target-geometry/`
 - `animated-video-cover/`
+- `particle-animation-performance/`

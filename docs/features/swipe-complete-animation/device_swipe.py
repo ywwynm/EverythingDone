@@ -15,7 +15,7 @@ p.add_argument('kind', choices=['cancel', 'complete', 'reverse', 'slow-complete'
 p.add_argument('--title', default='CodexAnimation0913')
 p.add_argument('--name', default='swipe')
 a = p.parse_args()
-assert a.title.startswith('CodexAnimation'), 'Only dedicated test things may be changed'
+assert a.title.startswith('CodexAnimation') or a.title.startswith('PerfB2-') or a.title.startswith('PerfB3-'), 'Only dedicated test things may be changed'
 tree = ui.dump()
 before_count = ui.find(tree, 'resource-id', 'tv_header_subtitle').get('text')
 node = ui.find(tree, 'text', a.title)

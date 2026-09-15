@@ -2,6 +2,12 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-09-14 - 粒子动画性能专项立项（跨三功能）
+
+- 弹窗粒子出现/消失、新建记事入场、左滑完成共用一套粒子管线，用户反馈的涟漪争抢、
+  起步延迟、不跟手、帧率不稳属于同一组结构性原因，新建 `docs/features/particle-animation-performance/`
+  统一处理；分析、方案（含待裁定 D1–D6）与平台调研都在该目录。本轮未改代码、未连接设备。
+
 ## 2026-07-26 - DialogFragment 全量迁到 AndroidX
 
 - `BaseDialogFragment` 由 `android.app.DialogFragment`（API 28 起弃用）迁到
@@ -92,6 +98,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `home-new-item-animation`: `docs/features/home-new-item-animation/sessions.md`
 - `kotlin-migration`: `docs/features/kotlin-migration/sessions.md`
 - `localization`: `docs/features/localization/sessions.md`
+- `particle-animation-performance`: `docs/features/particle-animation-performance/sessions.md`
 - `popup-picker-insets`: `docs/features/popup-picker-insets/sessions.md`
 - `ratio-slider`: `docs/features/ratio-slider/sessions.md`
 - `remote-thing-card-appearance`: `docs/features/remote-thing-card-appearance/sessions.md`

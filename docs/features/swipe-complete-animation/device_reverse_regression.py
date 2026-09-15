@@ -16,7 +16,7 @@ p.add_argument('--run', required=True)
 p.add_argument('--rounds', type=int, default=3)
 p.add_argument('--overshoot', type=int, default=24)
 a=p.parse_args()
-assert re.fullmatch(r'CodexAnimation[a-zA-Z0-9_-]+',a.title)
+assert re.fullmatch(r'(?:CodexAnimation|Perf(?:P0|B1|B2|B3)-)[a-zA-Z0-9_-]+',a.title)
 assert re.fullmatch(r'[a-zA-Z0-9_-]+',a.run)
 results=[]
 for i in range(a.rounds):

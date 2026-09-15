@@ -14,7 +14,7 @@ p.add_argument('--run',required=True)
 p.add_argument('--rounds',type=int,default=3)
 p.add_argument('--continuous',action='store_true')
 a=p.parse_args()
-assert re.fullmatch(r'CodexAnimation[a-zA-Z0-9_-]+',a.title)
+assert re.fullmatch(r'(?:CodexAnimation|Perf(?:P0|B1|B2|B3)-)[a-zA-Z0-9_-]+',a.title)
 if a.continuous:
     driver=Path(__file__).resolve().parents[3]/'tmp/thing-animation-device/input-driver/input.jar'
     ui.adb('push',driver,'/data/local/tmp/thing-animation-input.jar')

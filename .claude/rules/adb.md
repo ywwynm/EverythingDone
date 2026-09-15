@@ -350,6 +350,34 @@ if ($localHash -ne $remoteHash) { <重传> }
    成功的 dump，极易误判画面状态）。通知栏上的定位一律改用截图（on-device screencap +
    pull + md5 校验）目视读坐标，不要依赖 dump。
 
+## 真机驱动脚本：PowerShell 下必须 `PYTHONUTF8=1`，run id 必须每次换新
+
+2026-09-15 在跑粒子动画的验收脚本时各踩一次：
+
+1. **`verify_*.py` 这类读设备端 JSON 的脚本，在 PowerShell 里直接跑会报
+   `UnicodeDecodeError: 'gbk' codec can't decode byte 0x80`**——它们用默认编码读文件，而
+   PowerShell 下 Python 的 locale 编码是 GBK。跑之前设 `$env:PYTHONUTF8 = "1"`。
+   Bash 工具里没有这个问题。
+2. **`verify_dialog_coverage.py` / `verify_repeated_appearance.py` 开头就断言设备上还没有
+   同名 run 的 `result.json`**。失败重跑一定要换一个新的 `--run` / `--prefix`，否则报的是
+   一个看不出原因的 `AssertionError`（空消息）。
+3. **`verify_repeated_appearance.py` 的 `--close cancel|confirm` 必须配 `--kind chooser`**：
+   探针找的是 `tv_cancel_as_bt_fragment_chooser` / `tv_confirm_as_bt_fragment_chooser`，
+   附件弹窗里没有这两个控件，症状是驱动侧 `KeyError: 'x'`。
+4. 这两个脚本都要求**应用里已经打开一条普通记事**（探针以当前详情页为宿主），否则
+   `result.json` 里是 `error: 先打开一条普通记事`。
+
+## 观察器写 JSON 不能出现 NaN：`toString()` 返回 null，Kotlin 侧直接把应用打崩
+
+2026-09-15 实际发生：debug 观察器把 `Float.NaN` 放进 `JSONArray`，Android 的
+`JSONObject.toString()` 捕获 `JSONException` 之后**返回 null**，Kotlin 的平台类型检查在
+`writeText(result.toString())` 处抛 `NullPointerException: toString(...) must not be null`，
+应用主线程崩溃。而驱动脚本看到的症状只是「观察器没有收尾」，下一轮还会被崩溃提示弹窗挡住
+（OPPO 的 `CRASH DETECTED` 对话框），一连几个场景全部失败。
+
+两条防线：缺值一律写 `JSONObject.NULL`；写盘那一步包 `runCatching`，失败时落一份
+`result-error.txt`，别让序列化失败伪装成「没跑完」。
+
 ## screenrecord 是变帧率：帧号换算成秒必须逐帧读时间戳
 
 `adb shell screenrecord` **只在画面变化时出帧**。R5CW20BLNKL（SM-S9180）实测：
@@ -368,3 +396,84 @@ if ($localHash -ne $remoteHash) { <重传> }
 
 解码出的帧数必须与时间戳数一致，不一致就说明 `-vsync` 没生效或滤镜改了帧率。
 `tmp/particle-dismiss-tuning/detect_device_window.py` 已按此实现。
+
+## Adreno 的 `EXT_disjoint_timer_query` 不计 compute dispatch
+
+2026-09-14 在 OPD2515（Adreno 829）与 SM-S9180（Adreno 740）上实测。两台的扩展串里都有
+`GL_EXT_disjoint_timer_query`，`glBeginQuery(GL_TIME_ELAPSED_EXT /* 0x88BF */, id)` 不报错、
+`GL_GPU_DISJOINT_EXT` 全程为 0，但**结果只对渲染通道有效**：包住一次出现预计算（约 1550 次 compute
+dispatch）的一对查询只报 0.3–0.6 ms，同一机制下包住每帧两遍实例化绘制 + resolve 却给出合理的
+1.7–3.4 ms。算 compute 的 GPU 时间要换口径。
+
+Android 的 `android.opengl.*` 绑定里没有 `glQueryCounterEXT` / `glGetQueryObjectui64vEXT`，
+`GL_TIMESTAMP` 这条路在 Java 侧走不通。可用的替代：
+
+1. **整段墙钟**，最可靠，也是最终的判据。
+2. **按段 `glFinish` + `System.nanoTime()`**：会串行化流水线（实测整段涨到 3 倍以上），绝对值不可
+   信，只能比较三段之间的量级。
+3. **消融实验**：把要归因的那一段临时去掉再测墙钟。这是唯一能给出份额的方法。
+4. `/sys/class/kgsl/kgsl-3d0/gpubusy` 对**应用 uid 可读**（`run-as` 能 cat），但它**不是「自上次
+   读取以来」的累计值**：由 devfreq 调速器约每秒更新一次，两次快速读取之间返回 `0 0`。无法对齐到
+   几百毫秒的窗口，只能当粗略的 1 秒忙闲比看。
+
+## 设备的动画时长缩放不能只看 `settings get global`
+
+2026-09-14 在 OPD2515（ColorOS，Android 16）实测：`settings list global` 里**根本没有**
+`animator_duration_scale` 这一行（`Settings.Global.getFloat(..., 1f)` 读到默认 1.0），
+而框架给进程内 `ValueAnimator` 实际施加的是 **5.0**。`window_animation_scale` 与
+`transition_animation_scale` 都是 1.0，`dumpsys window` 里也查不到这个值。
+
+后果：凡是「应用自己算时长」与「交给 ValueAnimator / ViewPropertyAnimator」混用的地方，
+在这台设备上会差 5 倍。诊断时不要相信 adb 读到的设置值，**要在应用里实测**：
+
+```kotlin
+// 隐藏 API 先读一次（Android 16 上仍可反射到），再用一个短动画实测校准
+val reflected = runCatching {
+    ValueAnimator::class.java.getDeclaredMethod("getDurationScale")
+        .apply { isAccessible = true }.invoke(null) as Float
+}.getOrElse { -1f }
+// 120 ms 的动画，onAnimationStart 到 onAnimationEnd 的墙钟 / 120 即为真实缩放
+```
+
+OPD2515 得到 `settings=-1(缺失) reflected=5.0 measured=5.017`，SM-S9180 得到 `1.0 / 1.0 / 1.008`。
+
+## uiautomator 的陈旧树还有「缺半棵」这一种
+
+adb.md 上面已经写了「带动画的 Dialog 会返回陈旧缓存树」。补充一种更隐蔽的：首页在启动动画期间
+dump 出来的树**结构完整、能正常解析，但缺了 actionbar 与 FAB 那一支**，看上去就像「按钮不存在」。
+同一时刻截图里按钮就在屏幕上。判据仍是「dump 只反映它能拿到的那一刻」，处理方式是
+**每次 dump 前先 `rm -f` 目标文件**，并对关键控件轮询到出现为止（不要拿第一次 dump 的结果下结论）。
+
+## Python 驱动脚本：`xml.etree` 的 Element 是「无子节点即为假」
+
+`if find_node(tree, ...)` 这种写法在 ElementTree 上是陷阱：**没有子元素的 Element 布尔值为 False**，
+于是「找到了叶子控件」被判成「没找到」。2026-09-14 为此白跑了四轮「UI never showed fab_create」。
+一律写成 `is not None`：
+
+```python
+if require is None or self.find(tree, rid=require, quiet=True) is not None:
+```
+
+## 轮询设备上的产物文件：先删旧的，否则读回上一轮
+
+2026-09-15 实际发生，整批场景的数据全是空的却毫无报错。应用侧的观察器是「收尾 + 300 ms 才写
+result.json」，而驱动脚本收尾后立刻开始轮询同一个路径。**同名 run 重跑时上一轮的文件还在**，
+第一次轮询就命中它，脚本一路当成本轮结果，差异只有内容对不上——很容易误判成应用没记录。
+
+规则：每次 begin 之前 `adb shell rm -rf <设备上的本轮输出目录>`，不要只建本地目录。
+同理适用于任何「写文件 + 轮询读取」的探针链路。
+
+## `ps -T` 里的线程名不等于「我们创建的线程」
+
+Adreno 驱动首次在某条线程上建 EGL 上下文时会派生若干工作线程，**这些线程继承父线程名**。
+EverythingDone 的常驻 GL 线程叫 `ParticleGl`，实测 OPPO 上 `ps` 里能看到 1–3 条、
+三星上 1–6 条同名线程，数量稳定、不随动画次数增长。
+
+判断「有没有残留线程」不能只数名字出现几次，要看它**是否随动作次数增长**；
+真正属于我们的线程数应当由代码结构保证（`object` + `by lazy` 只可能有一条）。
+
+## Windows 上读设备拉回来的 JSON 必须显式 UTF-8
+
+`pathlib.Path.read_text()` 与 `open()` 在本机默认 GBK。设备写的 JSON 只要带中文
+（例如探针的错误消息）就会抛 `UnicodeDecodeError`，而报错位置在读文件那一行，看起来像文件损坏。
+一律写成 `read_text(encoding='utf-8')` / `open(..., encoding='utf-8')`。
