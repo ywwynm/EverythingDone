@@ -122,12 +122,28 @@ def launch():
 
 GPU_CHECK = False
 APPEARANCE_FRAMES = False
+# 第五批：G0 对照的定性轮。固定种子让「与种子有关」与「与并发有关」分得开；
+# GPU_LOAD 在另一个 EGL 上下文里制造与提前预算同形态的并发负载。
+GPU_SEED = None
+GPU_DIAGNOSTICS = False
+GPU_LOAD = False
+GPU_REPEATS = 3
+GPU_PIN_FRAME = -1
 
 
 def begin(run, kind, extra=None):
     settings = {'run_id': run, 'kind': kind, 'title': '', 'mode': 3, 'driver': 'system-input',
-                'memoryOnly': False, 'gpuCheck': GPU_CHECK, 'diagnosticOnly': False,
+                'memoryOnly': False, 'gpuCheck': GPU_CHECK,
+                'diagnosticOnly': GPU_CHECK and GPU_SEED is not None,
                 'stallSampling': True, 'appearanceFrames': APPEARANCE_FRAMES}
+    if GPU_CHECK and GPU_SEED is not None:
+        settings['gpuCheckSeed'] = GPU_SEED
+    if GPU_CHECK and GPU_DIAGNOSTICS:
+        settings['gpuCheckDiagnostics'] = True
+        settings['gpuCheckLoad'] = GPU_LOAD
+        settings['gpuCheckRepeats'] = GPU_REPEATS
+        if GPU_PIN_FRAME >= 0:
+            settings['gpuCheckPinFrame'] = GPU_PIN_FRAME
     settings.update(extra or {})
     (perf.ROOT / run).mkdir(parents=True, exist_ok=True)
     # 同名 run 重跑时，设备上还留着上一轮的 result.json；end() 的轮询会在观察器写出
@@ -145,7 +161,30 @@ def begin(run, kind, extra=None):
 def end(run):
     data = perf.end(run)
     pull_probe(run)
+    pull_parity(run, max(1, len(data.get('overlays') or [])))
     return data
+
+
+def pull_parity(run, expected=1, seconds=2400):
+    """G0 对照在动画层释放之后另起线程跑，写完才有 gpu-parity-*.json；必须轮询等它。"""
+    if not GPU_CHECK:
+        return 0
+    remote = perf.BASE + run + '/'
+    target = perf.ROOT / run
+    until = time.time() + seconds
+    while time.time() < until:
+        listing = subprocess.run([ui.ADB, '-s', ui.SERIAL, 'shell', 'ls', remote],
+                                 capture_output=True)
+        names = [n.strip() for n in listing.stdout.decode(errors='replace').split()
+                 if n.strip().startswith('gpu-parity-')]
+        if len(names) >= expected:
+            target.mkdir(parents=True, exist_ok=True)
+            for name in names:
+                adb('pull', remote + name, target / name)
+            return len(names)
+        time.sleep(2)
+    print('WARN: gpu-parity 没等到', run, flush=True)
+    return 0
 
 
 def pull_probe(_label=None):
@@ -231,9 +270,32 @@ def pull_appearance(run):
     return 0
 
 
+TRIM_BETWEEN = False
+
+
+def background_and_return():
+    """第五批追加项：退后台 + 内存告警放掉内存态预测素材，回到前台后磁盘缓存应当仍然可用。
+
+    **不 force-stop**：进程还是同一个，验证的是「内存态被清掉之后还能不能从盘上读回来」。
+    `trimMemory()` 把待办的预算调度也撤了，靠回到前台时 `onHomeVisible` 重新排上。
+    """
+    pid = adb('shell', 'pidof', ui.PACKAGE).decode(errors='replace').split()
+    assert pid, '应用不在运行'
+    adb('shell', 'input', 'keyevent', '3')
+    time.sleep(1.2)
+    adb('shell', 'am', 'send-trim-memory', pid[0], 'RUNNING_CRITICAL')
+    time.sleep(0.8)
+    adb('shell', 'monkey', '-p', ui.PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1')
+    time.sleep(4)
+    after = adb('shell', 'pidof', ui.PACKAGE).decode(errors='replace').split()
+    assert after == pid, '进程被杀了，这一轮不是「内存态清掉后从盘上读回来」'
+
+
 def scenario_create_page(run, rounds):
     """首页新建按钮 → 创建页（新建档位为粒子）。"""
     for i in range(rounds):
+        if TRIM_BETWEEN and i:
+            background_and_return()
         tree = dump('fab_create')
         label = '%s-%d' % (run, i)
         begin(label, 'create-page')
@@ -312,10 +374,28 @@ if __name__ == '__main__':
     p.add_argument('--title', default='')
     p.add_argument('--probe', default='')
     p.add_argument('--gpu-check', action='store_true')
+    p.add_argument('--gpu-seed', type=int, default=None,
+                   help='固定 G0 对照的随机种子（同时打开 diagnosticOnly）')
+    p.add_argument('--gpu-diagnostics', action='store_true',
+                   help='第五批定性轮：每条路径自跑多遍、定位差异像素、比对状态缓冲')
+    p.add_argument('--gpu-load', action='store_true',
+                   help='定性轮里在另一个 EGL 上下文制造与提前预算同形态的并发 GPU 负载')
+    p.add_argument('--gpu-repeats', type=int, default=3)
+    p.add_argument('--trim-between', action='store_true',
+                   help='创建页每一轮之前先退后台 + 发一次 RUNNING_CRITICAL 再回来，'
+                        '验证内存态清掉之后磁盘缓存仍然可用')
+    p.add_argument('--gpu-pin-frame', type=int, default=-1,
+                   help='已知的临界帧：对着它反复跑出现路径，直到复现自分歧')
     p.add_argument('--appearance-frames', action='store_true',
                    help='创建页出现：离屏导出现状 / 只开 2b / 2b+2c 三组对比帧')
     a = p.parse_args()
     GPU_CHECK = a.gpu_check
+    GPU_SEED = a.gpu_seed
+    GPU_DIAGNOSTICS = a.gpu_diagnostics
+    GPU_LOAD = a.gpu_load
+    GPU_REPEATS = a.gpu_repeats
+    GPU_PIN_FRAME = a.gpu_pin_frame
+    TRIM_BETWEEN = a.trim_between
     APPEARANCE_FRAMES = a.appearance_frames
     assert re.fullmatch(r'[a-zA-Z0-9_-]{1,80}', a.run)
     PROBE_RUN = a.run

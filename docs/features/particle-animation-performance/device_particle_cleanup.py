@@ -12,7 +12,7 @@ import device_particle_perf as d
 import device_ui as ui
 import device_performance as perf
 
-TEST_TITLE = r'(?:Perf(?:P0|B1|B2|B3)-[0-9]{8}-[0-9]+|CodexAnimation[A-Za-z0-9_-]+)'
+TEST_TITLE = r'(?:Perf(?:P0|B[0-9])-[0-9]{8}-[0-9]+|CodexAnimation[A-Za-z0-9_-]+)'
 
 
 def trash(titles):

@@ -1,8 +1,10 @@
-"""第三批：准备与还原。只经真实系统输入建专用测试记事、切动画档位，不发业务 Intent。
+"""第三批起共用的准备与还原：只经真实系统输入建专用测试记事、切动画档位，不发业务 Intent。
 
 用法（两台各一次）：
-    setup   建 PerfB3-<日期>-1（纯文字）与 -2（可选加图），并把新建/左滑档位切到粒子
+    setup   建 PerfB<批次>-<日期>-1（纯文字）与 -2（可选加图），并把新建/左滑档位切到粒子
     restore 把档位改回用户原来的值（记事的清理交给 device_particle_cleanup.py）
+
+第四批起标题前缀放宽到 `PerfB<数字>-`，同一份脚本可以给后续批次继续用。
 """
 import argparse
 import json
@@ -16,7 +18,7 @@ import device_particle_perf as d  # noqa: E402
 import device_ui as ui  # noqa: E402
 import device_performance as perf  # noqa: E402
 
-TEST_TITLE = re.compile(r'PerfB3-[0-9]{8}-[0-9]')
+TEST_TITLE = re.compile(r'PerfB[0-9]-[0-9]{8}-[0-9]')
 
 
 def create_note(title):

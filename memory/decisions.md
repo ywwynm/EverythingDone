@@ -2,6 +2,18 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-09-15 - 逐位对照在报告差异之前必须先做自比较
+
+GPU 侧的「逐位相同」验收有设备本底噪声：OPD2515（Adreno 829）上同一条命令流重复跑，约
+0.5–0.9% 的运行会有一帧不一样（整帧个位数像素）。因此**孤立单帧、个位数像素的差异不得直接
+判成回归**，判据分两步：先让同一条路径自己跑多遍，自比较也出分歧就是本底噪声，自比较干净而
+A/B 有差异才是真回归。两条常见误判要一并排除：逐帧 `glReadPixels` 连读两次排除回读不稳；
+把并发负载做成可独立开关的自变量、各跑几百次试次再比事件率（两三次运行的「关掉就清零」在
+1% 量级的事件率下毫无信息量）。完整证据见
+`docs/features/particle-animation-performance/batch5-results-2026-09-15.md`。
+
+同一轮审查得到的另一条通则：**诊断工具不得改生产路径会读的进程级状态**，要改就改成线程局部的。
+
 ## 2026-07-27 - 勾选框两种状态都跟随强调背景，对号颜色自适应
 
 `BackgroundUtil.applyCheckboxAccent` 新增 `uncheckedGradient`：打开后**未选中**的方框描边也用完整 `ThingBackground`（渐变保留起止色与方向，**不降 alpha**——描边只有 2dp 宽，淡一点就发虚），而不是中性的 `app_chrome_control_unchecked`。已在 FableSol 调参 Dialog 的全部勾选行与 `SettingsActivity` 的 13 个勾选框打开；该参数默认 false，其余调用点（Detail、Widget 配置、`DisplayUtil.setCheckBoxColor`）外观不变。
