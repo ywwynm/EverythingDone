@@ -23,6 +23,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorFilter
+import android.graphics.PointF
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PixelFormat
@@ -775,15 +776,26 @@ class ThingsActivity :
     /** 「如果现在点新建按钮，创建页首帧会长什么样」的指纹；点击那一刻与空闲预算共用同一份。 */
     private fun currentCreationPrewarmKey():
         ParticleCreationKey? {
-        val fab = mFab ?: return null
         val manager = mThingManager ?: return null
-        val location = IntArray(2)
-        fab.getLocationInWindow(location)
         val projection = manager.getProjection()
         val folderKey = projection.key() + ":" + manager.isCurrentFolderPrivacyAuthenticated()
         return ParticleCreationPrewarm.fingerprint(
-            this, location[0] + fab.width / 2f, location[1] + fab.height / 2f, folderKey,
+            this, folderKey,
             App.newThingBackground ?: ThingBackground.pure(App.newThingColor))
+    }
+
+    /**
+     * 新建按钮的标称中心（窗口坐标），即不含 `translationY` 的布局位置。
+     *
+     * 只作为转场的来源坐标（涟漪档的揭示圆心、粒子的出发方向），**不进预算指纹**。
+     * 不取 `getLocationInWindow` 的原值：按钮会随 Snackbar 临时上移、随列表滚动收起，
+     * 而点击处理的第一步就是 `dismissSnackbars()`，瞬时值在点击前后并不稳定。
+     */
+    private fun fabNominalCenter(fab: FloatingActionButton): PointF {
+        val location = IntArray(2)
+        fab.getLocationInWindow(location)
+        return PointF(location[0] - fab.translationX + fab.width / 2f,
+            location[1] - fab.translationY + fab.height / 2f)
     }
 
     override fun onPause() {
@@ -6282,12 +6294,13 @@ class ThingsActivity :
                 mThingManager!!.getProjection().currentFolderId
             )
             // 涟漪档以新建按钮中心为揭示圆心，因此把按钮的窗口坐标一并交给转场。
-            val fabLocation = IntArray(2)
-            mFab!!.getLocationInWindow(fabLocation)
+            // 用标称中心：上面刚 dismissSnackbars()，此刻的 translationY 正在回落，
+            // 取瞬时值会让来源坐标随 Snackbar 有无而抖（见 fabNominalCenter）。
+            val fabCenter = fabNominalCenter(mFab!!)
             // 第四批 ②：指纹必须在**点击这一刻**算——创建页起来之后再算就分不清是不是同一份环境。
             val prewarmKey = currentCreationPrewarmKey()
             ThingCreationTransition.launch(this, intent,
-                fabLocation[0] + mFab!!.width / 2f, fabLocation[1] + mFab!!.height / 2f,
+                fabCenter.x, fabCenter.y,
                 prewarmKey) { launched ->
                 if (!launched) {
                     mCreationLaunchPending = false

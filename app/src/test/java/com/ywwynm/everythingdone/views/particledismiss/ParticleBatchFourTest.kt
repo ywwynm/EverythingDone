@@ -108,7 +108,7 @@ class ParticleBatchFourTest {
         val prewarm = main("ParticleCreationPrewarm.kt")
         val fingerprint = prewarm.substringAfter("fun fingerprint(").substringBefore("private fun refreshRate")
         for (item in listOf("bg=", "folder=", "night=", "loc=", "font=", "dpi=", "win=", "ori=",
-            "multi=", "bars=", "ime=", "mode=", "scale=", "hz=", "fab=", "recipe=")) {
+            "multi=", "bars=", "ime=", "mode=", "scale=", "hz=", "recipe=")) {
             assertTrue("缓存键缺少 $item", item in fingerprint)
         }
         val recipe = prewarm.substringAfter("private fun recipe()").substringBefore("// ---- 诊断")

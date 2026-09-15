@@ -345,9 +345,16 @@ internal object ParticleDismissController {
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
         traceLabel?.let { ParticleLaunchTrace.mark("$it-request") }
-        if (Looper.myLooper() != Looper.getMainLooper() || !ValueAnimator.areAnimatorsEnabled()) return false
-        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
-        val hostDecor = activity.window.decorView as? ViewGroup ?: return false
+        fun reject(reason: String): Boolean {
+            if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG, "出现未受理：$reason")
+            return false
+        }
+        if (Looper.myLooper() != Looper.getMainLooper()) return reject("不在主线程")
+        if (!ValueAnimator.areAnimatorsEnabled()) return reject("系统动画已关闭")
+        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) {
+            return reject("宿主正在结束或重建")
+        }
+        val hostDecor = activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor")
         appearancePreparations.remove(decor)?.run()
         ParticleWindowSurface.of(activity)
         val appearanceFeedback = ParticleTouchFeedback.current(activity)
@@ -370,6 +377,13 @@ internal object ParticleDismissController {
         }
         val restore = Runnable {
             if (!handled) {
+                // 走到这里就是没能开播：内容直接露出，观感是「卡一下然后直接显示」。
+                // 这一条要能分清是等不到稳定布局（retries 在涨）还是压根没收到 preDraw。
+                if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
+                    "出现未能开播 elapsedMs=${(System.nanoTime() - requestedAtNanos) / 1e6} " +
+                        "retries=$layoutRetries captureQueued=$captureQueued " +
+                        "attached=${decor.isAttachedToWindow} size=${decor.width}x${decor.height} " +
+                        "showing=${runCatching { isShowing() }.getOrDefault(false)}")
                 handled = true; removeListener(); appearancePreparations.remove(decor)
                 setAlpha(prevAlpha); releaseContent()
                 onAppearanceProgress?.invoke(1f)

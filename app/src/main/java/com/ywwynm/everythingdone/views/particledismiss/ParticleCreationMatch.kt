@@ -28,11 +28,17 @@ internal object ParticleCreationMatch {
         else -> null
     }
 
-    /** 指纹是 `名=值|名=值` 的串；给观察器一句人话：到底是哪几项变了。 */
+    /**
+     * 指纹是 `名=值|名=值` 的串；给观察器一句人话：到底是哪几项变了。
+     *
+     * 连值一起给出——只报项名的话，像 `fab` 这种「差几个像素」和「换了个位置」在日志里
+     * 长得一模一样，定位不了（2026-09-15 查华为上命中率为什么塌掉时就卡在这里）。
+     */
     fun difference(expected: ParticleCreationKey, actual: ParticleCreationKey): String {
         val before = expected.environment.split('|').associate { it.substringBefore('=') to it }
         val after = actual.environment.split('|').associate { it.substringBefore('=') to it }
         val changed = (before.keys + after.keys).filter { before[it] != after[it] }
-        return if (changed.isEmpty()) "未知" else changed.joinToString(",")
+        return if (changed.isEmpty()) "未知"
+        else changed.joinToString("，") { "${before[it] ?: "$it=缺"} → ${after[it] ?: "$it=缺"}" }
     }
 }

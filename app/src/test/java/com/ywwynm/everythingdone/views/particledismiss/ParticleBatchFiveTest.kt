@@ -110,7 +110,7 @@ class ParticleBatchFiveTest {
         assertEquals(listOf("A", "B"), kept.map { it.key })
     }
 
-    @Test fun `磁盘上的键不含新记事背景色，其余十五项一项不少`() {
+    @Test fun `磁盘上的键不含新记事背景色与按钮坐标，其余十四项一项不少`() {
         val key = ParticleCreationKey("bg=%23ff0000|folder=root|night=32", "folder=root|night=32")
         assertFalse("磁盘键里不得出现背景色", "bg=" in key.persistent)
         val prewarm = main("ParticleCreationPrewarm.kt")
@@ -118,7 +118,7 @@ class ParticleBatchFiveTest {
         assertTrue("背景色必须单独拼在完整键上",
             """ParticleCreationKey("bg=${'$'}colour|${'$'}rest", rest)""" in fingerprint)
         for (item in listOf("folder=", "night=", "loc=", "font=", "dpi=", "win=", "ori=",
-            "multi=", "bars=", "ime=", "mode=", "scale=", "hz=", "fab=", "recipe=")) {
+            "multi=", "bars=", "ime=", "mode=", "scale=", "hz=", "recipe=")) {
             assertTrue("磁盘键缺少 $item", item in fingerprint.substringAfter("val rest = buildString"))
         }
     }

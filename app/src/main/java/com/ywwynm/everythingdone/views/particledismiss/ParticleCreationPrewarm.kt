@@ -469,8 +469,13 @@ internal object ParticleCreationPrewarm {
      * [folderKey]（列表投影自己的键，含整条祖先 id 链 + 私密鉴权态，全在内存里）——**文件夹
      * 的名字与配色不进键**：那要逐级查数据库，不能压在点击那一刻的主线程上。改名/改色只让
      * 预测素材稍微过时（影响途中每一片的权重），末帧仍由真实贴图拼回，下一次真实新建自动纠正。
+     *
+     * **新建按钮的坐标同样不进键**（2026-09-15 用户裁定）：出现动画一律从右下角来，按钮位置
+     * 只微调粒子的出发方向。而它随底部提示条上移、随列表滚动收起、点击时又先关掉提示条，
+     * 读到的值在预算与点击两刻之间来回变，等于让预算频繁作废；实测那点位移对应的方向差不到
+     * 4°，肉眼分辨不出，不值得为它重算一次 600 ms 的轨迹。
      */
-    fun fingerprint(activity: Activity, touchX: Float, touchY: Float,
+    fun fingerprint(activity: Activity,
                     folderKey: String, background: ThingBackground?): ParticleCreationKey? {
         val decor = activity.window?.decorView ?: return null
         if (decor.width <= 0 || decor.height <= 0) return null
@@ -479,7 +484,7 @@ internal object ParticleCreationPrewarm {
         val bars = insets?.getInsets(
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
         val ime = insets?.getInsets(WindowInsetsCompat.Type.ime())
-        // 第五批：新记事背景色单独拎出来。磁盘上的预测素材按**其余 15 项**匹配——
+        // 第五批：新记事背景色单独拎出来。磁盘上的预测素材按**其余 14 项**匹配——
         // 背景色每次新建都重掷，拿它去要求相等等于永远不命中，而它只影响途中权重。
         val rest = buildString {
             append("folder=").append(folderKey)
@@ -495,7 +500,6 @@ internal object ParticleCreationPrewarm {
             append("|mode=").append(ThingAnimationPreferences.creation(activity))
             append("|scale=").append((AnimatorDurationScale.scale(activity) * 100).roundToInt())
             append("|hz=").append(refreshRate(decor).roundToInt())
-            append("|fab=").append(touchX.roundToInt()).append(',').append(touchY.roundToInt())
             append("|recipe=").append(recipe())
         }
         val colour = background?.toJson() ?: "null"
