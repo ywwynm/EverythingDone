@@ -2,6 +2,22 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-09-15 - 修复全新安装启动即闪退（things 表列序 insert）
+
+- 现象：魅族 20 Infinity（392QBFED2226B，Flyme，Android 16）装上 debug 包后每次启动都闪退。
+  `logcat -b crash` 给出 `SQLiteException: table things has 18 columns but 17 values were
+  supplied`，抛在 `App.onCreate` → `AppUpdateHelper.updateFrom1_0_3To1_0_4` → `ThingDAO.init`
+  → `DBHelper.onCreate:36`，属 Application 创建失败，且 `onCreate` 的事务回滚导致 user_version
+  始终为 0，每次启动都重走同一条路，无法自愈。
+- 根因：`DBHelper.SQL_INSERT_HEADER` 用的是位置形式 `insert into things values(...)`，
+  2026-06-23 的 9dcb5146e 给表加第 18 列 `state_before_delete` 时没同步值列表。**只影响全新安装**
+  （已装设备走 `onUpgrade` 的 `alter table add column`），所以在两台常用真机上近三个月没暴露。
+- 修复：改为显式列名，只写 header 行需要的 15 列，`background`/`folder_id`/`state_before_delete`
+  交给表默认值。详见 `memory/decisions.md` 同日条目。
+- 验证：该机 `pm clear` 成首次安装态后启动，`ThingsActivity` 正常在前台、crash 缓冲区无记录、
+  进程日志只剩两条系统噪音；拉回数据库（md5 校验一致）核对 `things` 18 列、`user_version=21`、
+  header 行三个 NULL 列正确。
+
 ## 2026-09-14 - 粒子动画性能专项立项（跨三功能）
 
 - 弹窗粒子出现/消失、新建记事入场、左滑完成共用一套粒子管线，用户反馈的涟漪争抢、

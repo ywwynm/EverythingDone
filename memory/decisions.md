@@ -2,6 +2,28 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-09-15 - 建库时的初始数据 insert 一律显式列名，不得依赖列序
+
+`DBHelper.SQL_INSERT_HEADER`（建库时插入 id=0 的 header 行）原先写成
+`insert into things values(...)` 的位置形式。2026-06-23 的提交 9dcb5146e 给 `things` 表加了
+第 18 列 `state_before_delete`，值列表没同步，于是**此后所有全新安装在启动时崩溃**
+（`SQLiteException: table things has 18 columns but 17 values were supplied`，抛在
+`App.onCreate` → `AppUpdateHelper` → `ThingDAO` → `DBHelper.onCreate`，属于 Application
+创建失败，应用每次启动都闪退且无法恢复）。已存在的安装走 `onUpgrade` 的
+`alter table add column`，完全不受影响——这就是它在两台常用真机上近三个月没暴露的原因。
+
+因此：**`onCreate` 里的初始数据 insert 必须显式列出列名**，只写该行真正需要的列，其余交给
+表定义的默认值。加列时便不再需要同步修改 insert。`things` 表目前只有这一处初始数据 insert。
+
+这条 insert 写入的行会被 `ThingDAO.init` 的 `recreateHeader()` 立刻删掉重建（id 取
+`max(maxId, maxLocation) + 1`，所以全新安装后 header 行的 id 是 1 而非 insert 写的 0），
+但**它不能因此被删掉**：`recreateHeader()` 在 `moveToFirst()` 之后直接 `getLong(0)`，空表会抛
+`CursorIndexOutOfBoundsException`。它的作用就是保证 `things` 表非空。`createHeader()` 本身用
+`ContentValues`，天然不受加列影响——具名才是这个项目里的常态，`DBHelper` 那条手写 SQL 是历史遗留。
+
+对应的验证纪律：**schema 变更的验收必须包含一次全新安装**（卸载后装，或换一台没装过的设备），
+仅做覆盖安装验证的是 `onUpgrade` 这一条路径。
+
 ## 2026-09-15 - 逐位对照在报告差异之前必须先做自比较
 
 GPU 侧的「逐位相同」验收有设备本底噪声：OPD2515（Adreno 829）上同一条命令流重复跑，约

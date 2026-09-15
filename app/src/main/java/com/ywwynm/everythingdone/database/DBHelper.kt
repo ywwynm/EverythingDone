@@ -580,26 +580,44 @@ open class DBHelper(context: Context?) : SQLiteOpenHelper(context, Def.Meta.DATA
                     Def.Database.COLUMN_SHOULD_ASM_DOING         + " integer not null default 0" +
                 ")"
 
-        // Phase 3+: the things table grew extra trailing columns after the
-        // original schema. Fresh installs run onCreate() with the latest schema,
-        // so this INSERT must provide values for all columns. The NULL background
-        // means Thing(Cursor)
-        // falls back to ThingBackground.pure(color) for this header row, which
-        // matches plan §4.1.8 ("header row's color = -14784871 is a valid PURE
-        // colour, background field NULL is fine").
+        // The things table keeps growing trailing columns, and fresh installs run
+        // onCreate() with the latest schema. Every column is named explicitly so
+        // that adding another one later cannot break this statement: the previous
+        // positional "values(...)" form crashed every fresh install once version
+        // 18 added state_before_delete without updating the value list.
+        // Columns left out here fall back to their schema defaults. background
+        // stays NULL, so Thing(Cursor) uses ThingBackground.pure(color) for this
+        // header row (color = -14784871 is a valid PURE colour); folder_id and
+        // state_before_delete default to NULL as well.
         private val SQL_INSERT_HEADER: String = "insert into " +
-                Def.Database.TABLE_THINGS + " values(" +
+                Def.Database.TABLE_THINGS + " (" +
+                    Def.Database.COLUMN_ID_THINGS          + ", " +
+                    Def.Database.COLUMN_TYPE_THINGS        + ", " +
+                    Def.Database.COLUMN_STATE_THINGS       + ", " +
+                    Def.Database.COLUMN_COLOR_THINGS       + ", " +
+                    Def.Database.COLUMN_TITLE_THINGS       + ", " +
+                    Def.Database.COLUMN_CONTENT_THINGS     + ", " +
+                    Def.Database.COLUMN_ATTACHMENT_THINGS  + ", " +
+                    Def.Database.COLUMN_LOCATION_THINGS    + ", " +
+                    Def.Database.COLUMN_CREATE_TIME_THINGS + ", " +
+                    Def.Database.COLUMN_UPDATE_TIME_THINGS + ", " +
+                    Def.Database.COLUMN_FINISH_TIME_THINGS + ", " +
+                    Def.Database.COLUMN_THING_CARD_SPAN_MODE_THINGS + ", " +
+                    Def.Database.COLUMN_THING_CARD_IMAGE_PLACEMENT_THINGS + ", " +
+                    Def.Database.COLUMN_THING_CARD_APPEARANCE_THINGS + ", " +
+                    Def.Database.COLUMN_DETAIL_ATTACHMENT_MEDIA_APPEARANCE_THINGS +
+                ") values(" +
                 "'0', '" +
                 Thing.HEADER +
                 "', '" +
                 Thing.UNDERWAY +
                 "', '-14784871', 'Let this be my last words', 'I trust thy love', 'to QQ', '0', '" +
                 System.currentTimeMillis() + "', '" +
-                System.currentTimeMillis() + "', '0', NULL, '" +
+                System.currentTimeMillis() + "', '0', '" +
                 Thing.THING_CARD_SPAN_NORMAL + "', '" +
                 Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT + "', '" +
                 ThingCardAppearance.default().toJson() + "', '" +
-                DetailAttachmentMediaAppearance.default().toJson() + "', NULL)"
+                DetailAttachmentMediaAppearance.default().toJson() + "')"
 
         private const val SQL_ADD_COLUMN_ALPHA_APP_WIDGET: String = "alter table " +
                 Def.Database.TABLE_APP_WIDGET +
