@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
@@ -96,6 +97,14 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private var mRecyclerView: RecyclerView? = null
     private var mTvSwipeToFinish: TextView? = null
+
+    /**
+     * 滑动完成记事的粒子动画，与首页记事列表共用设置里的同一个档位。这里左右滑都是完成
+     * 记事，因此允许右滑；首页右滑是「开始做事」，那边保持只认左滑。
+     */
+    private val mSwipeParticleAnimator by lazy {
+        com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator(this, allowRightSwipe = true)
+    }
 
     private var mLlBottom: LinearLayout? = null
     private var mFlAdd5Min: FrameLayout? = null
@@ -264,6 +273,24 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         }
         val helper = ItemTouchHelper(CardTouchCallback())
         helper.attachToRecyclerView(mRecyclerView)
+        mRecyclerView!!.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
+                // 按下这一刻就抓好快照：识别滑动之后再抓来不及（与首页同一条路）。
+                if (event.actionMasked == MotionEvent.ACTION_DOWN && useSwipeParticle()) {
+                    rv.findChildViewUnder(event.x, event.y)?.let { mSwipeParticleAnimator.warm(it, event) }
+                }
+                return false
+            }
+        })
+    }
+
+    private fun useSwipeParticle(): Boolean =
+        com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this) ==
+            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        mSwipeParticleAnimator.recordTouch(ev)
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun getThingCardRegionMaxHeight(): Int {
@@ -558,7 +585,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                 mClockView!!.alpha = 0f
             }
             f<View>(R.id.tv_swipe_to_finish_doing).animate().setDuration(1600).alpha(1f)
-            mRecyclerView!!.animate().setDuration(1600).alpha(0.84f)
+            mRecyclerView!!.animate().setDuration(1600).alpha(THING_CARD_CONTAINER_ALPHA)
             mRecyclerView!!.scrollBy(0, Int.MAX_VALUE)
         }, 160) // executed after 1160ms, animation ends at 2760ms
         mRecyclerView!!.postDelayed({
@@ -678,18 +705,11 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         ): Boolean = false
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, mThing!!.id, -1)
-            DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
-            if (mThing!!.type == Thing.HABIT) {
-                if (!RemoteActionHelper.finishHabitOnce(
-                        mApp, mThing, pair.second ?: -1, DoingService.sHrTime
-                    )) {
-                    DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER
-                }
-            } else {
-                RemoteActionHelper.finishReminder(mApp, mThing, pair.second ?: -1)
-            }
-            finishWithStoppingService()
+            // 粒子接管时把完成动作推迟到消散播完，与首页记事列表同一条路。
+            if (mSwipeParticleAnimator.finishSwipe(viewHolder.itemView, mRecyclerView!!.width) {
+                    finishThingBySwipe()
+                }) return
+            finishThingBySwipe()
         }
 
         override fun onChildDraw(
@@ -697,17 +717,50 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float,
             actionState: Int, isCurrentlyActive: Boolean
         ) {
+            var particleSwipe = false
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && useSwipeParticle()) {
+                // 必须在 super 之前：准备期在卡片原位补画的内容用的是尚未平移的画布。
+                particleSwipe = mSwipeParticleAnimator.draw(c, viewHolder.itemView, dX)
+            }
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
-            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                val displayWidth = DisplayUtil.getDisplaySize(mApp).x
-                val v: View = mRecyclerView!!
-                if (dX < 0) {
-                    v.alpha = 1.0f + dX / v.right
-                } else {
-                    v.alpha = 1.0f - dX / (displayWidth - v.left)
-                }
+            if (actionState != ItemTouchHelper.ACTION_STATE_SWIPE) return
+            val v: View = mRecyclerView!!
+            if (particleSwipe) {
+                // 列表的常驻浓度已经烤进快照，这一层还原成不透明；否则准备期补画的那一两帧
+                // 会被乘两次，粒子层又完全乘不到。
+                v.alpha = 1f
+                return
+            }
+            val displayWidth = DisplayUtil.getDisplaySize(mApp).x
+            if (dX < 0) {
+                v.alpha = 1.0f + dX / v.right
+            } else {
+                v.alpha = 1.0f - dX / (displayWidth - v.left)
             }
         }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            mSwipeParticleAnimator.reset(viewHolder.itemView)
+            // 手势结束恢复做事期间的常驻浓度：滑到一半松手回弹时 dX 归零，
+            // 原来的算式给出完全不透明，列表会一直停在比进入时更亮的浓度上。
+            mRecyclerView?.alpha = THING_CARD_CONTAINER_ALPHA
+        }
+    }
+
+    private fun finishThingBySwipe() {
+        val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, mThing!!.id, -1)
+        DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
+        if (mThing!!.type == Thing.HABIT) {
+            if (!RemoteActionHelper.finishHabitOnce(
+                    mApp, mThing, pair.second ?: -1, DoingService.sHrTime
+                )) {
+                DoingService.sStopReason = DoingRecord.STOP_REASON_CANCEL_USER
+            }
+        } else {
+            RemoteActionHelper.finishReminder(mApp, mThing, pair.second ?: -1)
+        }
+        finishWithStoppingService()
     }
 
     companion object {
@@ -722,6 +775,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         private const val INFINITE_CLOCK_ALPHA_HIGH: Float = 1.0f
         private const val INFINITE_CLOCK_ALPHA_LOW: Float = 0.75f
         private const val INFINITE_CLOCK_ALPHA_MID: Float = 0.875f
+
+        /** 做事期间记事卡片所在列表的常驻浓度。 */
+        private const val THING_CARD_CONTAINER_ALPHA: Float = 0.84f
 
         @JvmStatic
         fun getOpenIntent(context: Context?, resume: Boolean): Intent {
