@@ -1,5 +1,67 @@
 # 实现决策
 
+## 2026-09-16 有可见 Surface 的弹窗，离屏那一步必须用软件绘制
+
+「窗口 PixelCopy 失败就退到离屏重录 + 逐个 Surface 合成」修好了「不播」，却带出一个两帧的
+闪烁：关闭录音弹窗时，海浪那一层被裁成 974×1357（弹窗本身 1086×1470），内容位置一个像素
+没动、只是可见区域被裁小，四角因此是直的，整屏亮度掉约 10 个灰阶。
+
+**根因是用第二个 `HardwareRenderer` 去画活着的视图树。** Android 15 起 `SurfaceView` 的
+位置与 crop 由 RenderThread 驱动（`Flags.clipSurfaceviews`，`replacePositionUpdateListener`
+逐帧上报「这一帧把它的 RenderNode 画到了哪里」）。离屏渲染器把同一个 RenderNode 再画一遍，
+上报的就是离屏那一帧的边界，被应用到**真实的** SurfaceControl 上；真实窗口下一帧上报正确
+边界后又自己恢复，所以只闪两帧。
+
+排除过程写在这里，因为每一步都花了一轮真机：
+
+1. 差异严格落在弹窗的 bounding box 内、窗外页面逐像素相同 ⇒ **不是暗层交接乱序**；
+   录音按钮（画在窗口缓冲里）仍在原位 ⇒ **被裁的只有 Surface 那一层**。
+2. 把窗口 `PixelCopy` 的重试预算从 700 ms 收到 48 ms，闪烁照旧 ⇒ **不是重试次数**。
+3. 改成两条路都先走离屏之后，**返回键那一格也开始闪** ⇒ 触发者是离屏抓图本身，
+   不是失败的窗口捕获。
+4. 落盘的合成图四角 alpha 为 0（圆角完好）⇒ **不是合成图本身是直角的**。
+
+**修法**：`captureSnapshotAsync` 在「弹窗里有可见 `SurfaceView`」时改走 `captureViaSoftwareDraw`。
+软件 `Canvas` 不经过 RenderNode，也就没有那条上报。代价是子 View 的 `clipToOutline` 不生效、
+绘制在主线程同步完成；走这条路的只有录音与音频附件播放两个弹窗，它们的圆角来自窗口背景。
+`SurfaceView` 的透明洞由框架的 `punchHole` 记下，`BaseCanvas` 有原生实现，软件画布同样可用——
+实测合成图与同一时刻的系统截屏逐通道绝对差均值 0.17（魅族）/ 0.28（OPPO），四角透明，
+且相隔几十秒的两张合成图上部控件区完全相同而水体区有变化。
+
+同时定下的两条：
+
+- **消散一律先离屏，窗口 `PixelCopy` 只作回退**（`ParticleCaptureRoute.preferOffscreen` 的
+  `dismissal` 参数）。窗口那条在这台设备上对这两类弹窗本来就取不到数据，先试它只是白等
+  ——抓图耗时因此从 1.07 s 降到 59 ms。**出现动画不跟着改**：它的末帧要与随后揭开的真实
+  弹窗逐像素相同，窗口缓冲是那条契约最直接的来源，且两台设备上一直好用。
+- **盖在真实弹窗上的交接图按弹窗圆角裁一刀**（`ParticleSnapshot.coverSurfaces` 的
+  `cornerRadiusPx`）。`maskOnMaterialThread` 为真时圆角遮罩在材料线程上、对着粒子那一份做，
+  盖回真实弹窗的这一份是没裁角的；此前只是恰好四角透明才没出事。
+
+## 2026-09-15 窗口 PixelCopy 失败时改走「离屏重录 + 逐个 Surface 合成」
+
+阶段 A 把「没有可见独立 Surface 就走离屏硬件抓图」这一半修好了，但**有**可见 Surface 的
+弹窗仍然只有窗口 `PixelCopy` 一条路。魅族 20 Infinity 上录音弹窗（准备态、点外部关闭）正是
+卡在这里：窗口 `PixelCopy` 整个 700 ms 重试窗口都返回 `ERROR_SOURCE_NO_DATA`，**修前 2/2
+不播**；同一弹窗用返回键关闭走同一条路却正常。现在补上另一半回退。
+
+- **两条回退互斥，各自只发生一次。** 没有可见 Surface：首选离屏、退窗口 `PixelCopy`；
+  有可见 Surface：首选窗口 `PixelCopy`、退「离屏重录 + 逐个 Surface `PixelCopy` 再合成」。
+  规则全在 `ParticleCaptureRoute`，单测从 6 项扩到 11 项（含「两条回退互斥」这一格）。
+- **窗口缓冲仍是首选，不调换顺序。** 它是最直接的来源，且华为上 16/16 一直好用；
+  离屏那条只在它失败之后才走。
+- **撤销阶段 A 的一条判断：「离屏重录画不出 SurfaceView 的真实透明洞」只对软件 `Canvas`
+  成立。** `ParticleHardwareSnapshot` 用的是 `RenderNode.beginRecording()` 给出的
+  `RecordingCanvas`，`SurfaceView.draw` 在它上面照常记下 `punchHole`（`BaseRecordingCanvas`
+  有原生实现），而离屏渲染器 `isOpaque=false`，洞是真的。实测旁证：回退合成出来的快照与
+  同一时刻的系统截屏，不透明区逐通道绝对差均值 0.07、p99 = 2、98.3% 的像素差 ≤ 2；
+  相隔 33 秒的两张合成快照，上部控件区完全相同而水体区 10% 的像素有变化——水体确实是
+  Surface 的真实像素合成回来的。
+- **`ParticleCaptureDump` 只在这条回退真的触发时落盘**（仅 debug）。正常路径一次也不写，
+  因此不设开关文件；它是上面那条旁证的来源，也是以后再遇到同类问题的现成证据。
+
+## 2026-09-15 弱设备阶段 A 实施决策
+
 ## 2026-09-15 弱设备阶段 A 实施决策
 
 数据与完整论证见 [weak-devices-phaseA-2026-09-15.md](weak-devices-phaseA-2026-09-15.md)。

@@ -610,3 +610,74 @@ adb.md 上面已经写了「每次 dump 前先 `rm -f` 目标文件」。配套�
 ```
 
 查不到就把那一格跳过并在报告里写明。
+
+## 「截图对、屏幕不对」：唯一的口径是 `dumpsys SurfaceFlinger` 的 dataspace
+
+2026-09-15 定位魅族 20 Infinity 上 FableSol 海浪颜色异常时用到。用户能给的证据只有
+「屏幕看着不对，系统截屏拍下来是对的」——截屏走的是色彩管理正确的那条通路，所以这句话
+本身就说明**缓冲内容是对的，显示通路对缓冲的解释不对**。应用这边读不回屏幕上的结果，
+能查的只有那一层在合成器里长什么样：
+
+```powershell
+& $adb -s <serial> shell dumpsys SurfaceFlinger > <设备上的文件>   # 别用 PowerShell 的 > 直接落盘
+```
+
+要找的是 `layer: <n> name: ... composition: Device/Device alpha: 255 format: ... dataspace:0x...`
+这一行（在 `dumpsys` 的**图层表**里，不是上面那棵树）。三项各自的含义：
+
+- **format**：`RGBA16161616F_UBWC` = FP16，`RGBA_8888_UBWC` = 普通 8 位。
+  另一处 `req fmt:` 是应用请求的值（22 = `RGBA_F16`，1 = `RGBA_8888`）。
+- **dataspace**：按位拆，`(v>>27)&7` 是 range、`(v>>22)&0x1F` 是 transfer、`(v>>16)&0x3F`
+  是 standard。两个常见值：`0x18410000` = EXTENDED | LINEAR | BT709 = **scRGB linear**；
+  `0x08810000` = FULL | SRGB | BT709 = 普通 sRGB。
+- **composition**：`Device` 是硬件合成器直出，`Client` 是 GPU 合成。扩展线性的浮点层被
+  `Device` 直出而颜色不对，就是硬件合成器不按这个口径显示它——应用侧无从检测，只能提供
+  一个手动退回 SDR 的开关。
+
+修前修后各取一次，这是除截图之外**唯一**能证明显示通路的证据。层名里带包名与 Activity 名，
+`grep` 包名即可；输出很长，整份落盘再解析，不要只 grep 一行。
+
+## 验证「离屏抓图 + 逐个 Surface 合成」是否真的合上了
+
+判据不能只看动画有没有播——底下那层背景和真实的 Surface 像素都能让画面「看起来有东西」。
+两条量化判据（2026-09-15 实测，魅族 20 Infinity）：
+
+1. **与同一时刻的系统截屏逐像素比**：按弹窗窗口的 bounds 裁剪截屏，与落盘的合成快照比。
+   合上了就是不透明区逐通道绝对差均值 0.07、p99 = 2；没合上会在 Surface 那一块整片偏掉。
+2. **两张相隔几十秒的合成快照互相比**：静态控件区必须逐像素相同，而 Surface 那一块必须
+   有变化（实测水体区 10% 的像素差 > 2）。**没变化就说明拿到的是底下的背景，不是 Surface**。
+
+## 别用第二个 `HardwareRenderer` 去画活着的、含 `SurfaceView` 的视图树
+
+2026-09-16 在魅族 20 Infinity（Android 15）上实测。Android 15 起 `SurfaceView` 的位置与 crop
+由 RenderThread 驱动（`Flags.clipSurfaceviews`，`replacePositionUpdateListener` 逐帧上报
+「这一帧把它的 RenderNode 画到了哪里」）。离屏渲染器（`HardwareRenderer` + `RenderNode` +
+`view.draw(recordingCanvas)`）把同一个 RenderNode 再画一遍，上报的是**离屏那一帧**的边界，
+而它会被应用到**真实的** SurfaceControl 上：屏幕上那一层被裁成别的尺寸，真实窗口下一帧
+上报正确边界后又自己恢复，**只闪一两帧**，很容易被当成偶发。
+
+需要离屏抓一棵含 `SurfaceView` 的树时改用软件 `Canvas`（`view.draw(Canvas(bitmap))`）：
+它不经过 RenderNode。`SurfaceView` 的透明洞照样有——`clearSurfaceViewPort` 调的
+`Canvas.punchHole` 在 `BaseCanvas` 与 `BaseRecordingCanvas` 都有原生实现。
+
+## 单帧级视觉缺陷：录屏 + 逐帧差分，别靠肉眼回放
+
+上面那一条只闪两帧，回放根本抓不住。可复用的判据（脚本在
+`docs/features/audio-visualization-fable-sol/device_recording_dialog.py`）：
+
+1. `adb shell screenrecord --time-limit N`，**在触发动作之前**开起来；变帧率，逐帧读
+   `best_effort_timestamp_time`，解码加 `-vsync 0`，断言帧数与时间戳数一致。
+2. 每帧算**整屏亮度**与**目标区域的小块均值**，再做一阶差分，按差分排序看最大的十帧。
+   一次 ±9.5 灰阶的单帧跳变在肉眼回放里看不出来，在差分里一眼就是最大的那两行。
+3. 找到可疑帧之后，与**相邻帧**做空间差分并取 bounding box：差异落在哪个控件的范围内，
+   直接决定是哪一层出的问题（本次「严格落在弹窗包围盒内、窗外页面逐像素相同」一条就
+   排除了暗层交接乱序）。
+4. 逐行扫描可见边界（`|像素 − 背景色| > 阈值` 的首尾 x），能分辨「被裁」与「被缩放」：
+   裁剪时内容位置一个像素不动，缩放时特征点会一起移动。
+
+## ColorOS 不让 shell 用 `screenrecord`
+
+OPPO OPD2515 上 `/sdcard`、`/sdcard/Movies`、`/sdcard/Download`、`/data/local/tmp`、
+应用外部私有目录全部 `Unable to open ...: Permission denied`，`--output-format=h264 -`
+的管道也只出 0 字节。那台设备上的逐帧验收做不了，只能改用应用自己的日志判据
+（例如本次「遮盖已上 / 撤下 停留=…ms」两行），并在另一台能录屏的设备上补画面证据。

@@ -132,7 +132,15 @@ fragment 的 `dismissInternal` 与 `onDestroyView` 还会各调一次 `Dialog.di
   的真实透明洞，各 Surface 的像素就合成不回去。
 
 外加一次**单向兜底**：离屏没拿到图、且弹窗与宿主这一刻还在，就用窗口 `PixelCopy` 再试一次。
-反方向不做——有 Surface 时用离屏图回退会在画面上留一块空洞，比退回系统默认退出更糟。
+~~反方向不做——有 Surface 时用离屏图回退会在画面上留一块空洞，比退回系统默认退出更糟。~~
+
+> **2026-09-15 当晚推翻这一段。** 「离屏重录画不出 SurfaceView 的真实透明洞」只对软件
+> `Canvas` 成立：[ParticleHardwareSnapshot] 用的是 `RenderNode.beginRecording()` 给出的
+> `RecordingCanvas`，`SurfaceView.draw` 在它上面照常记下 `punchHole`，离屏渲染器也已经
+> `isOpaque=false`。于是反方向的回退是安全的，并且是必须的——录音弹窗（有可见 Surface）
+> 在这台设备上点外部关闭同样卡在窗口 `PixelCopy` 的 `ERROR_SOURCE_NO_DATA`，本文的修法
+> 覆盖不到它。反方向回退已于 `202609151529` 补上，见 decisions 与 sessions 里 2026-09-15
+> 的「窗口 PixelCopy 失败时改走离屏重录 + 逐个 Surface 合成」。
 
 两条规则抽成纯逻辑 `ParticleCaptureRoute`，`ParticleCaptureRouteTest` 6 项钉住（含
 「有 Surface 时不往反方向回退」这一格）。顺带删掉已经没有意义的 `captureOffscreen` 参数

@@ -2,6 +2,19 @@
 
 Global startup decision index only. Feature-specific decisions live in `docs/features/<kebab-case-feature-slug>/decisions.md`.
 
+## 2026-09-15 - 「这条路走不通」的理由要标明在哪条实现上成立
+
+粒子消散的抓图长期排除「离屏重录 + 逐个 Surface 合成」这条路，理由写在注释里：
+「离屏重录画不出 `SurfaceView` 的真实透明洞」。这句话对**软件 `Canvas`** 成立，
+对实际在用的 `RenderNode.beginRecording()` / `RecordingCanvas` 不成立——`SurfaceView.draw`
+在后者上照常记下 `punchHole`（`BaseRecordingCanvas` 有原生实现）。这条被误推广的限制
+让「有可见 Surface 的弹窗」整整多卡了一轮：它们只剩窗口 `PixelCopy` 一条路，而那条路在
+某些设备上不可靠，结果就是消散整场不播。
+
+规则：**写下「不能用 X，因为 Y」时，要指明 Y 是在哪条具体实现（哪个类、哪种 Canvas、
+哪个 API 版本）上观察到的**；后来的人才有可能发现前提已经不适用。复核这类结论时，优先
+找能直接证伪的实测，而不是重读同一段注释——本次只花了一轮真机就把它推翻了。
+
 ## 2026-09-15 - 建库时的初始数据 insert 一律显式列名，不得依赖列序
 
 `DBHelper.SQL_INSERT_HEADER`（建库时插入 id=0 的 header 行）原先写成

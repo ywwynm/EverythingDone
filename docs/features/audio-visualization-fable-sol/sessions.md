@@ -1,5 +1,25 @@
 # 会话记录 · audio-visualization-fable-sol
 
+## 2026-09-16 HDR 强度换格式时的预览闪烁
+
+D220 的换格式带出一两帧空白（OPPO OPD2515 上用户可见）。改成先显后撤（D221），并把
+`FableSolGlRenderThread` 补了一个一次性的「下一帧已上屏」回调。驱动脚本
+`device_hdr_slider.py`（本目录）走抽屉 → 设置 → 调参 Dialog，把滑杆来回拖三下覆盖两个方向。
+**ColorOS 不允许 shell 用 `screenrecord` 写文件**（`/sdcard`、`/data/local/tmp`、应用外部
+目录、管道全部 Permission denied），OPPO 只能按日志判据验收；逐帧录屏在魅族上补。
+发布 `202609151640`。
+
+
+## 2026-09-15 魅族上录音弹窗的海浪颜色异常：HDR 关掉后表面没退回 SDR
+
+用户报告录音弹窗里的海浪颜色很奇怪，把 HDR 强度调到关闭仍旧奇怪，而系统截屏拍下来是对的。
+定位到 `WaveVisualizerFableSolGl.canBuildHdrSurface()` 与 `holder.setFormat` 都不看用户强度，
+`hdr_strength=1.0` 时表面仍是 FP16 linear scRGB。魅族 20 Infinity 上
+`dumpsys SurfaceFlinger` 实测 `RGBA16161616F_UBWC` / `dataspace 0x18410000` /
+`composition Device/Device`，修后 `RGBA_8888_UBWC` / `0x08810000`。决策见 D220，
+驱动脚本 `device_recording_dialog.py`（本目录），发布 `202609151529`。
+「颜色对不对」在设备上只能证到色彩空间这一层，最终由用户目测。
+
 ## 2026-09-13 修复粒子交接首帧的海浪网格缺行
 
 真实附件→录音捕获到首次冻结帧有 4,704 个零位置顶点，下一活动帧即恢复，场景 framebuffer 中复现巨大三角形。上一轮将数组延迟初始化后，四个 `lazy(NONE)` 数组恰好在并行行任务中首次读取，各工作线程分配不同数组、丢失部分行。现在由 GL 所属线程先取齐顶点、投影和斜率数组，再并行写入。初次就被冻结时，以零步长合成基准水面并接收初始重力，不推进物理时间。六次首次网格与 36 张冻结／恢复帧未再出现零顶点，基准水位连续。消失时的 Surface 保护在共同粒子入口处理；详见[复现和验证](../dialog-particle-dismiss/repeated-appearance-and-wave-handoff-2026-09-13.md)。

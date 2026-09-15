@@ -1,5 +1,48 @@
 # 决策记录 · audio-visualization-fable-sol
 
+## D221 换缓冲格式时先显后撤，预览不得出现空帧（2026-09-16）
+
+D220 让 HDR 强度跨过「关闭」那一档时当场换缓冲格式、整条重建 EGL 会话。**换格式的那一刻
+旧缓冲就作废了**，新会话交出第一帧之前合成器手上没有内容，于是有一两帧空白——OPPO OPD2515
+上用户看到的就是「把 HDR 强度改到 0，预览瞬间闪一下」。
+
+做法是先显后撤：换格式之前先 `PixelCopy` 拿下当前这一帧，盖在预览上（`WaveVisualizerFableSolHost`
+里的一层 `ImageView`），换完等新会话**在这条 Surface 上**真正交出第一帧才撤掉。判据必须是
+GL 侧 `eglSwapBuffers` 成功之后的回调（`FableSolGlRenderThread.notifyOnNextPresented`），
+**不能用 `View.registerFrameCommitCallback`**——那证明的是宿主窗口画了一帧，不是这条 Surface
+上有了内容。附 900 ms 兜底，抓图万一失败也照常改设置，只是那一次没有遮盖：绝不因为遮盖
+失败就不改用户的设置。
+
+实测：OPPO 三次来回切换，遮盖停留 46.4 / 35.9 / 37.2 ms，全部由「新会话首帧」撤下，一次都
+没走到兜底；魅族三次 72.2 / 60.3 ms，逐帧录屏 796 帧无一帧空白（预览区亮度 159.5–163.3、
+标准差 89.2–90.5 全程平稳）。录音弹窗是新建的 Surface，不经过这条路，没有改动。
+
+
+## D220 HDR 强度关掉时，屏上表面整个退回 sRGB 8 位（2026-09-15）
+
+D80 定的判据是「API 34+ 且显示器报告 HDR、实时 `hdrSdrRatio` 可用」就建 FP16 linear scRGB
+窗口表面；D204 之后的用户强度只经 `FableSolHdrPolicy.excessScale` 缩放着色器输出的超白增量，
+**管不到表面本身的像素格式与色彩空间**。于是把强度调到关闭（1.0）之后，这一层在合成器里
+仍然是浮点的扩展线性层。魅族 20 Infinity（Flyme / Android 15 / Adreno 740）实测：
+`hdr_strength=1.0` 时 `dumpsys SurfaceFlinger` 报
+`format RGBA16161616F_UBWC`、`dataspace 0x18410000`（RANGE_EXTENDED | TRANSFER_LINEAR |
+STANDARD_BT709，即 scRGB linear）、`composition Device/Device`；屏幕上颜色明显不对，
+而系统截屏（走另一条色彩管理正确的通路）是对的。
+
+现在 `canBuildHdrSurface()` 与 `holder.setFormat` 共用同一个判据，第三个条件是**用户强度
+高于关闭档**。强度为关时内容本就等价 SDR（excess 为 0、`usableHeadroom` 恒为 1.0），
+因此退回 sRGB 8 位不改变任何应当看到的像素，只是不再让合成器按扩展线性去解释这块缓冲。
+在调参对话框里拖动滑杆跨过「关闭」那一档时当场换格式并重建 EGL 会话（`surfaceChanged`
+按 `attachedFormat` 判出格式变了），不必关掉对话框再打开。修后同一台设备变成
+`RGBA_8888_UBWC` / `0x08810000`。
+
+两条边界：`FableSolTuningDialogFragment.isHdrDisplaySupported()` **不跟着加这个条件**——
+它决定滑杆是否可用，跟着加就会「滑到关闭之后滑杆自己变灰、再也拖不回来」；离线视频导出
+有自己的色彩模式与 HDR 元数据（fablesol-video-export D5），完全不经过这条判据。
+
+**这台设备把扩展线性的浮点层显示成什么样属于系统合成侧的行为，应用这边读不回来、也无从
+检测**，因此不做任何自动降级：把 HDR 强度调到关闭就是这台设备上的开关，它现在真的有效。
+
 ## D150 用保持形状的 C1 深度插值消除纵向轨道造成的小尖峰（2026-07-16）
 
 指定音乐的 14.0 秒 `L6/L3` 与 112.0 秒 `L7` 三个用户确认区段证明，真实缺陷不是音频高频、
