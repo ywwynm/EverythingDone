@@ -517,6 +517,36 @@ internal class ParticleMicroflakeRenderer(
      * resolve 输出的是预乘 alpha，叠画用 `ONE, ONE_MINUS_SRC_ALPHA`——目标清成全零时
      * `src + 0×(1-a) == src`，与改动前「不开混合直接覆写」逐位相同。
      */
+    /**
+     * 把材料、状态与色素绑成 `divisor=1` 的实例化顶点属性。
+     *
+     * 位置与 std430 的 stride 一一对应：材料每实例三个 vec4（48 字节）、状态每实例两个
+     * vec4（32 字节，后四个分量只在正向积分里用）、色素每实例一个 float。绑的就是
+     * compute 写的那几个缓冲对象，同一块显存换一种读法，没有任何数据拷贝。
+     */
+    private fun bindInstanceAttributes(stateBuffer: Int) {
+        fun attribute(location: Int, size: Int, buffer: Int, stride: Int, offset: Int) {
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffer)
+            GLES30.glVertexAttribPointer(location, size, GLES30.GL_FLOAT, false, stride, offset)
+            GLES30.glVertexAttribDivisor(location, 1)
+            GLES30.glEnableVertexAttribArray(location)
+        }
+        for (i in 0..2) attribute(i, 4, buffers[0], MATERIAL_STRIDE, i * 16)
+        attribute(3, 4, stateBuffer, STATE_STRIDE, 0)
+        attribute(4, 4, stateBuffer, STATE_STRIDE, 16)
+        attribute(5, 1, buffers[2], 4, 0)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
+    }
+
+    /**
+     * 本次绘制用完就关掉。VAO 属于 [Shared]，resolve 与别的会话都用它，而
+     * `resolve.vert` 只靠 `gl_VertexID` 取顶点、一个属性也不声明——用完不关，
+     * VAO 的属性状态就会带着上一个会话的缓冲留给下一个用它的人。
+     */
+    private fun disableInstanceAttributes() {
+        for (location in 0..5) GLES30.glDisableVertexAttribArray(location)
+    }
+
     private fun render(t: Float, extrapolation: Float = max(0f, t - step / 240f),
                        stateBuffer: Int = buffers[1], clearTarget: Boolean = true) {
         activate()
@@ -529,10 +559,10 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
-        // material.vert 读绑定 0/1/2；共享上下文里上一个会话可能把它们换成了自己的缓冲。
-        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, buffers[0])
-        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
-        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, buffers[2])
+        // material.vert 按实例读材料/状态/色素；顶点阶段不能用 SSBO（见着色器内注释），
+        // 同一批缓冲对象在这里绑成实例化顶点属性。共享上下文里上一个会话可能换过它们，
+        // 而 stateBuffer 本身也逐路径不同，所以每次绘制都要重设。
+        bindInstanceAttributes(stateBuffer)
         GLES30.glUseProgram(material)
         one(material, "time", t)
         one(material, "extrapolate", extrapolation)
@@ -545,6 +575,7 @@ internal class ParticleMicroflakeRenderer(
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, filter)
             GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
         }
+        disableInstanceAttributes()
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glViewport(0, 0, width, height)
         if (clearTarget) {
@@ -1033,6 +1064,49 @@ internal class ParticleMicroflakeRenderer(
         }
 
         private const val GL_MAX_COMPUTE_SHARED_MEMORY_SIZE = 0x8262
+
+        /** `Material`：三个 vec4。与 [ParticleMicroflakeModel.Materials.values] 的每实例 12 float 对应。 */
+        private const val MATERIAL_STRIDE = 12 * 4
+
+        /** `State`：位置与速度各一个 vec4；积分缓冲每实例就是 8 float。 */
+        private const val STATE_STRIDE = 8 * 4
+
+        /** GLES 3.2 核心；3.1 上由 `EXT_texture_buffer` 提供，驱动不认时会置错误位。 */
+        private const val GL_MAX_TEXTURE_BUFFER_SIZE = 0x8C2B
+
+        @Volatile private var capabilitiesLogged = false
+
+        /**
+         * 进程内打一次驱动身份与本管线依赖的上限（必须在已绑定上下文时调用）。
+         *
+         * 这些量在 GLES 3.1/3.2 规范里的最小值低到足以让整条管线不成立：顶点着色器的
+         * SSBO 数最小值就是 0，Mali 系一直报 0。2026-09-15 华为 Maleoon 910 上
+         * `material.vert` 因此链接失败、每次动画都回退，而开发用的两台都是 Adreno
+         * （报 24），缺陷只能在真机日志里认出来。
+         */
+        fun logCapabilities() {
+            if (!BuildConfig.DEBUG || capabilitiesLogged) return
+            capabilitiesLogged = true
+            fun limit(name: Int): Int {
+                val value = IntArray(1)
+                GLES30.glGetIntegerv(name, value, 0)
+                while (GLES30.glGetError() != GLES30.GL_NO_ERROR) { /* 不认这一项时清掉错误 */ }
+                return value[0]
+            }
+            Log.i(TAG, "粒子 GL 驱动 ${GLES30.glGetString(GLES30.GL_VENDOR)} / " +
+                "${GLES30.glGetString(GLES30.GL_RENDERER)} / ${GLES30.glGetString(GLES30.GL_VERSION)}")
+            Log.i(TAG, "粒子 GL 上限 " +
+                "ssbo顶点=${limit(GLES31.GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS)} " +
+                "ssbo片元=${limit(GLES31.GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS)} " +
+                "ssbo计算=${limit(GLES31.GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS)} " +
+                "ssbo绑定点=${limit(GLES31.GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS)} " +
+                "输出资源=${limit(GLES31.GL_MAX_COMBINED_SHADER_OUTPUT_RESOURCES)} " +
+                "shared=${limit(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE)} " +
+                "工作组线程=${limit(GLES31.GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)} " +
+                "顶点属性=${limit(GLES30.GL_MAX_VERTEX_ATTRIBS)} " +
+                "顶点纹理=${limit(GLES30.GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS)} " +
+                "纹理缓冲=${limit(GL_MAX_TEXTURE_BUFFER_SIZE)}")
+        }
 
         /** 让路等待的上限；等不到也要往下走，预计算不能卡死。 */
         private const val YIELD_TIMEOUT_NANOS = 50_000_000L

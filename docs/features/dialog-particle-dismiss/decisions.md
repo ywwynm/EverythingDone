@@ -1,5 +1,22 @@
 # dialog-particle-dismiss 决策记录
 
+## 2026-09-15 顶点阶段不再使用 SSBO，改为实例化顶点属性
+
+根因与实测数据见 [Mali 顶点 SSBO](mali-vertex-ssbo-2026-09-15.md)。
+
+- **`material.vert` 的三个 SSBO 改为 `divisor=1` 的实例化顶点属性**。顶点着色器里不得再出现
+  `layout(std430) buffer`：`GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS` 的规范最小值是 0，Mali 系
+  （含华为 Maleoon 910）就报 0，SSBO 版本在这些设备上链接不过，三个入口的粒子动画全部退化成
+  降级淡出。SSBO 只保留在 compute 与片元阶段。
+- **绑的是同一批缓冲对象**，compute 一侧不动，std430 的 stride 与属性布局一一对应
+  （材料 48 字节、状态 32 字节、色素 4 字节），没有数据拷贝，也没有新的扩展依赖——
+  实例化顶点属性是 GLES 3.0 核心功能。
+- **用完即关**：VAO 属于 `Shared`，`resolve.vert` 一个属性也不声明，绘制后调
+  `disableInstanceAttributes()`，VAO 的属性状态不带给下一个用它的会话。
+- **新增 `ParticleMicroflakeRenderer.logCapabilities()`**（debug-only，进程内打一次）：
+  上下文建立与 GPU 预热各调一次，打驱动身份与本管线依赖的全部上限。开发机全是 Adreno，
+  这类"规范允许但实现给 0"的差异只能靠真机日志认出来。
+
 ## 2026-09-15（第四批）弹窗出现也跳过尾段空白；涟漪的卡顿是刷新率被压
 
 数据见 [粒子动画性能专项第四批结果](../particle-animation-performance/batch4-results-2026-09-15.md)。

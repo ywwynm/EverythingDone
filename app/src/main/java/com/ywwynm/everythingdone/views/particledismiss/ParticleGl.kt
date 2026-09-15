@@ -196,6 +196,7 @@ internal object ParticleGl {
                 eglFailure("eglMakeCurrent")
             }
             bound = idleSurface
+            ParticleMicroflakeRenderer.logCapabilities()
             true
         } catch (error: Throwable) {
             Log.e(ParticleMicroflakeRenderer.TAG, "粒子 EGL 上下文建立失败", error)

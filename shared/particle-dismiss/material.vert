@@ -5,9 +5,17 @@ precision highp sampler2D;
 precision highp sampler3D;
 struct Material {vec4 src;vec4 physical;vec4 random;};
 struct State {vec4 pos;vec4 vel;};
-layout(std430,binding=0) readonly buffer A {Material particles[];};
-layout(std430,binding=1) readonly buffer B {State state[];};
-layout(std430,binding=2) readonly buffer C {float pigmentation[];};
+// 材料、状态与色素按实例读入。**顶点阶段不能用 SSBO**：Mali 系（含华为 Maleoon 910）
+// 的 GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS 是 0——这是规范允许的最小值，不是驱动缺陷，
+// 在那些设备上 SSBO 版本链接不过、整个动画每次都回退（2026-09-15）。
+// 读的仍是 compute 写的同几个缓冲对象本身，只是换成 divisor=1 的实例化顶点属性，
+// 布局与 std430 的 stride 一一对应，没有任何数据拷贝。
+layout(location=0) in vec4 material_src;
+layout(location=1) in vec4 material_physical;
+layout(location=2) in vec4 material_random;
+layout(location=3) in vec4 state_pos;
+layout(location=4) in vec4 state_vel;
+layout(location=5) in float pigment;
 uniform vec2 frame,card,offset,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform int nx,grid_count;
@@ -26,13 +34,13 @@ float grid_unit(uint x){return float(grid_hash(x)>>8u)*(1./16777216.);}
 vec2 jitter(vec2 g){uint s=uint(g.x)*0x9e3779b9u^uint(g.y)*0x85ebca6bu;
     return (vec2(grid_unit(s),grid_unit(s^0x68bc21ebu))-.5)*.60;}
 void main(){
-    Material m=particles[gl_InstanceID];
+    Material m=Material(material_src,material_physical,material_random);
     float particle_age=max(0.,time-m.src.z);
     // 表面与颗粒在交接时可以同时存在；不能按出生时刻提前裁掉表面。
     if(material_pass==1 && (particle_age<=0. || particle_age>=m.physical.z)){
         gl_Position=vec4(2.,2.,2.,1.);return;
     }
-    State s=state[gl_InstanceID];
+    State s=State(state_pos,state_vel);
     int id=int(m.src.w+.1);
     int replica=id/grid_count;
     id=id%grid_count;
@@ -77,7 +85,7 @@ void main(){
     // 初段保留微片的实际覆盖，随后细化；白底减少增量，避免形成厚亮边。
     scale*=1.+(.08-.05*body_weight)*smoothstep(.015,.075,age)*(1.-smoothstep(.22,.48,age));
     // 原色明显的微片在解体初段保留少量面积，再与周围材料一起细化。
-    float content=pigmentation[gl_InstanceID];
+    float content=pigment;
     // 面板色微片更细，实际内容仍保留份额，静态纹理覆盖不变。
     scale*=1.-.26*panel_weight*(1.-content)*smoothstep(.006,.040,age);
     scale*=1.+content*.20*smoothstep(.025,.07,age)*(1.-smoothstep(.22,.48,age));

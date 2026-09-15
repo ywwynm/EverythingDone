@@ -1,5 +1,23 @@
 # dialog-particle-dismiss 会话记录
 
+## 2026-09-15 华为平板上粒子动画全部失效：顶点 SSBO
+
+- 用户报告华为平板（PCE-W30，麒麟 9000s / Maleoon 910，Android 12）上弹窗出现与消散的粒子
+  动画完全不播，退化成最简单的动画。logcat 给出驱动原文：`material.vert, material.frag:
+  The number of vertex shader storage blocks (3) is greater than the maximum number
+  allowed (0)`。链接失败 → `ParticleSession.fail()` → `fallbackFadeOut()` 整层淡出，
+  三个入口共用同一渲染器所以一起失效。
+- 该设备完整能力：`ssbo顶点=0 ssbo片元=8 ssbo计算=8 ssbo绑定点=32 输出资源=20
+  shared=32768 工作组线程=1024 顶点属性=16 顶点纹理=16 纹理缓冲=268435456`。
+  除顶点 SSBO 外无一项吃紧，`binding=7`、32 KB shared、RGBA16F 渲染目标、GLES 3.2
+  上下文全部通过，修复只需动顶点这一处。
+- 顶点阶段改用实例化顶点属性后在该机实测：出现 `particles=159238 frames=33 elapsedMs=550
+  p90Ms=16.67`、消散 `count=106461 frames=30 elapsedMs=1016.7 p90Ms=50.0`、左滑手势
+  `首帧上屏 requestToVisibleMs=160.3`，三条路径均完整播放，启动预热不再抛异常。
+- **消散在这台设备上约 30 fps（p90 提交间隔 50 ms），出现稳定 60 fps**；消散要实时积分加
+  压力求解，比回放历史的出现重得多。尚无 Adreno 同口径对照，是否需要按 Mali 调档待定。
+- Adreno 回归（SM-S9180 / OPD2515）由用户自行安排，本轮未跑。
+
 ## 2026-09-14 共用准备与根轮廓
 
 - 前景转换／上传与后台建材重叠，共用材质及运动公式保持原样。设备上分段上传字节与原接口一致，61 帧散列与原正向模型相同。

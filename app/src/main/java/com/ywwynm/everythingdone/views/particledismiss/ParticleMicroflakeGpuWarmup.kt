@@ -27,6 +27,8 @@ internal object ParticleMicroflakeGpuWarmup {
             surface = EGL14.eglCreatePbufferSurface(display,configs[0],
                 intArrayOf(EGL14.EGL_WIDTH,64,EGL14.EGL_HEIGHT,64,EGL14.EGL_NONE),0)
             check(surface != EGL14.EGL_NO_SURFACE && EGL14.eglMakeCurrent(display,surface,surface,context))
+            // 预热先于任何可见动画，驱动上限在这里就能记进日志。
+            ParticleMicroflakeRenderer.logCapabilities()
             val resources = ParticleMicroflakeRenderer.sharedResources(assets)
             bitmap = Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888).apply { eraseColor(-1) }
             val input = ParticleMicroflakeRenderer.Input(240f,320f,240f,320f,0f,0f,65f,bitmap,
