@@ -563,3 +563,50 @@ EverythingDone 的常驻 GL 线程叫 `ParticleGl`，实测 OPPO 上 `ps` 里能
 线程上的提前预算每次推进都在读同一批开关、还把它们写进缓存键。改成**线程局部**的标记
 （`ThreadLocal` + 「基线标记 && 设置值」两层，读点一个字不用动）之后才真正隔离。
 凡是「临时改一个全局值再恢复」的诊断手法，先问一句：**这一刻还有别的线程在读它吗**。
+
+## 用 `log -t` 往 logcat 打标记切段；标记必须纯 ASCII
+
+判定「某个动作之后应用做了什么」最省事的做法是在驱动脚本里每一步前后打一条标记，
+事后按标记把日志切成段：
+
+```powershell
+& $adb -s <serial> shell log -p i -t PhaseAMark "attach-back.0.close"
+```
+
+三条实测（2026-09-15，魅族 + 华为）：
+
+1. **标记文本必须是纯 ASCII，且不含 shell 元字符。** `adb shell` 把参数交给 `sh`，
+   文本里的 `|` 会被当成管道；中文虽然能过去，但按 tag 过滤时容易与终端编码纠缠。
+   一律用 `[A-Za-z0-9_.=-]`，中文只出现在打印出来给人看的那一步。
+2. **打完之后别用 `logcat -d -t 40` 去找它。** 华为这台主缓冲 16 MiB 里已被系统日志占了
+   13 MiB，400 ms 内就能刷掉几十行，`-t 40` 根本够不着。要么 `-s <TAG>` 过滤，
+   要么（推荐）全量流到文件再离线 grep。
+3. **设备的 logcat 缓冲可能小得离谱**：魅族 20 Infinity 的 `main` 只有 **256 KiB**
+   （`adb logcat -g` 可查），一轮测试跑完早就整轮冲掉。**凡是靠日志判定的验收，
+   都必须在跑之前就开一条 `adb -s <serial> logcat -v time > 本地文件`**
+   （Bash 工具重定向；PowerShell 的 `>` 会转成 UTF-16），不能事后 `logcat -d`。
+
+## `uiautomator dump` 失败时 `cat` 会报错，驱动脚本不能 `check=True`
+
+adb.md 上面已经写了「每次 dump 前先 `rm -f` 目标文件」。配套的一条：**dump 拿不到 idle 时
+可能什么都不写**，此时 `cat` 返回非零，Python 里 `subprocess.run(..., check=True)` 直接抛
+`CalledProcessError`，整条驱动脚本崩在半路。`rm -f` + `uiautomator dump` + `cat` 这三步都要
+允许失败并重试，只对「解析成功且目标出现」才返回。
+
+## `wm size` 有 Override size 时，输入坐标落在 override 的坐标系里
+
+华为 MatePad Pro 13.2 报的是 `Physical size: 2880x1920` + `Override size: 1920x2880`。
+`input tap` 与 `uiautomator dump` 的 bounds 都用 **override** 那一组。脚本里取 `wm size`
+输出的**最后**一个 `<数字>x<数字>` 即可。
+
+## 不要代为授予运行时权限
+
+设备上没授予的权限（例如 `RECORD_AUDIO`）会让相应入口弹出系统授权框，把驱动脚本卡住。
+**授权属于设备设置，不得用 `pm grant` 代为改动**，也不要按返回键去「消掉」授权框
+（Android 11+ 两次拒绝等于永久拒绝，那是在改用户的设置）。正确做法是开跑前只读查询：
+
+```powershell
+& $adb -s <serial> shell dumpsys package <包名> | Select-String "android.permission.RECORD_AUDIO: granted=true"
+```
+
+查不到就把那一格跳过并在报告里写明。

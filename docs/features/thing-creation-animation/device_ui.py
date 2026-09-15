@@ -11,7 +11,11 @@ from pathlib import Path
 
 ADB = 'E:/AndroidSDK/platform-tools/adb.exe'
 SERIAL = os.environ.get('THING_ANIMATION_SERIAL', '9018f404')
-if SERIAL not in ('9018f404', 'R5CW20BLNKL'):
+# 9018f404 = OPPO OPD2515，R5CW20BLNKL = 三星 SM-S9180；
+# 5JB0224328002836 = 华为 MatePad Pro 13.2（Maleoon 910，API 31），
+# 392QBFED2226B = 魅族 20 Infinity（Adreno 740，API 35，动画缩放实测 1.0）。
+# 后两台由用户在 2026-09-15 为粒子动画性能专项显式授权。
+if SERIAL not in ('9018f404', 'R5CW20BLNKL', '5JB0224328002836', '392QBFED2226B'):
     raise ValueError('Device is outside the explicitly authorized test scope')
 PACKAGE = 'com.ywwynm.everythingdone'
 ROOT = Path(__file__).resolve().parents[3] / 'tmp/thing-animation-device'
