@@ -55,6 +55,7 @@ internal class ParticleTouchFeedback private constructor(
         settled = true
         ParticleGpuWork.endPlayback()
         pending.remove(this)
+        feedbackActive = pending.isNotEmpty()
         callbacks.toList().forEach { it() }
         callbacks.clear()
     }
@@ -81,6 +82,15 @@ internal class ParticleTouchFeedback private constructor(
         private val handler: Handler by lazy { Handler(Looper.getMainLooper()) }
         private val pending = mutableSetOf<ParticleTouchFeedback>()
 
+        /**
+         * 当前有没有自绘涟漪在播（第四批 ③）。
+         *
+         * [pending] 只在主线程增删，这里额外维护一个 `@Volatile` 布尔给 GL 线程读：预计算据此
+         * 决定要不要把驱动队列压短，给窗口让路。
+         */
+        @Volatile var feedbackActive = false
+            private set
+
         fun current(activity: Activity): ParticleTouchFeedback? = pending.lastOrNull { it.activity === activity }
 
         fun begin(activity: Activity, root: View): ParticleTouchFeedback? {
@@ -101,6 +111,7 @@ internal class ParticleTouchFeedback private constructor(
             if (found.isEmpty()) return null
             return ParticleTouchFeedback(activity, root, found.toList()).also {
                 pending += it
+                feedbackActive = true
                 ParticleGpuWork.beginPlayback()
                 handler.post { it.watch() }
                 // root.postOnAnimation 在 root detach 之后落进 RunQueue、永不执行：

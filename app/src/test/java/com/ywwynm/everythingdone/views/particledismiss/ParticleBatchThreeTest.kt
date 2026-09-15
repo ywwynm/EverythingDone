@@ -167,20 +167,20 @@ class ParticleBatchThreeTest {
         assertEquals(36, plan.frame(0f))
     }
 
-    @Test fun `跳过尾段的开关只作用于创建页`() {
+    @Test fun `跳过尾段的开关按路径分档`() {
+        // 第三批只有创建页启用；第四批起弹窗、页内面板与新卡片也启用，但各走各的开关，
+        // 好单独回退某一条路径。逐项断言见 ParticleBatchFourTest。
         val controller = File(root,
             "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ParticleDismissController.kt").readText()
-        assertTrue("弹窗凝聚不得传 skipEmptyTail",
-            controller.substringAfter("fun startCondense").substringBefore("}").let {
-                "skipEmptyTail" !in it
-            })
+        assertTrue("弹窗那一档默认值必须是 dialogAppearanceSkipEmptyTail",
+            "skipEmptyTail: Boolean = ParticlePerfTuning.dialogAppearanceSkipEmptyTail" in controller)
         val transition = File(root,
             "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ThingCreationTransition.kt").readText()
-        assertTrue("创建页必须传 skipEmptyTail", "skipEmptyTail = true" in transition)
+        assertTrue("创建页必须显式用 creationAppearanceSkipEmptyTail",
+            "skipEmptyTail = ParticlePerfTuning.creationAppearanceSkipEmptyTail" in transition)
         val session = File(root,
             "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ParticleSession.kt").readText()
-        assertTrue("会话必须同时看 spec 与全局开关",
-            "spec.skipEmptyTail && ParticlePerfTuning.creationAppearanceSkipEmptyTail" in session)
+        assertTrue("会话只看 spec 的结论", "val skip = spec.skipEmptyTail" in session)
     }
 
     // ---- 2b：真实触点 ----

@@ -57,7 +57,9 @@ internal object ParticlePerfTuning {
      * 每工作组 26–32 KB 的 shared 把占用率压到极低，省下的 dispatch 次数换不回来。
      * 这也与阶段 0「dispatch 次数不是瓶颈」的结论一致。开关留着便于复现与后续复测。
      */
-    @Volatile var jacobiLargeTile = false
+    val jacobiLargeTile: Boolean get() = !baselineGpu && jacobiLargeTileSetting
+
+    @Volatile private var jacobiLargeTileSetting = false
 
     /** 2.2：大 tile 每批迭代数（8 / 12 / 16）；小 tile 路径固定 8。 */
     @Volatile var jacobiLargeBatch = 12
@@ -73,10 +75,14 @@ internal object ParticlePerfTuning {
      * 但 GLSL ES 不带 `precise`，驱动可以自由重排与融合，逐位相同无法保证。
      * 开关留着只为复现这条结论。
      */
-    @Volatile var historyInIntegration = false
+    val historyInIntegration: Boolean get() = !baselineGpu && historyInIntegrationSetting
+
+    @Volatile private var historyInIntegrationSetting = false
 
     /** 2.4：最早出生时间之前跳过积分与压力更新。 */
-    @Volatile var skipBeforeFirstBirth = true
+    val skipBeforeFirstBirth: Boolean get() = !baselineGpu && skipBeforeFirstBirthSetting
+
+    @Volatile private var skipBeforeFirstBirthSetting = true
 
     /**
      * 3.1（第三批）：识别左滑时历史不足就先画**已经备好的最高一档**，随后每拍按手指速度追上，
@@ -114,15 +120,35 @@ internal object ParticlePerfTuning {
      * 2c（第三批，外观）：创建页的出现动画跳过倒放尾段几乎无粒子的部分——按材料的出生与寿命
      * 在 CPU 上算每个采样的存活片数，取「存活比例仍 ≥ [ParticleReversePlan.APPEARANCE_ALIVE_RATIO]」
      * 的最晚采样作为起点；播放时长按保留比例缩短（每帧速度不变），预计算也只算到那一个采样。
-     * 保留段内的每一帧与不跳过时逐位相同。只作用于创建页，弹窗出现暂不启用。
+     * 保留段内的每一帧与不跳过时逐位相同。
      */
     @Volatile var creationAppearanceSkipEmptyTail = true
 
     /**
+     * 第四批 ①：弹窗、页内面板与新卡片的出现也启用同一套「跳过尾段空白」。
+     *
+     * 机制、门槛（[appearanceAliveRatio]）与逐位一致性保证与创建页完全相同；分成两个开关
+     * 只是为了能单独回退某一条路径。默认开。
+     */
+    @Volatile var dialogAppearanceSkipEmptyTail = true
+
+    /**
      * 2c 的门槛：存活片占比低于它的采样算「几乎是空画面」，从倒放里去掉。
      * 提高它会跳掉更多帧——既让起始段更明显，也按比例省下预计算。
+     * 第四批起创建页与弹窗共用这一个门槛（10%）。
      */
-    @Volatile var creationAppearanceAliveRatio = ParticleReversePlan.APPEARANCE_ALIVE_RATIO
+    @Volatile var appearanceAliveRatio = ParticleReversePlan.APPEARANCE_ALIVE_RATIO
+
+    /**
+     * 第四批 ②：首页空闲时为下一次新建预先建材并预算轨迹，点新建按钮后只上传真实贴图即开播。
+     * 关掉它等于回到第三批的行为（每次新建都完整走建材 + 预计算）。
+     */
+    @Volatile var creationPrewarm = true
+
+    /**
+     * 第四批 ②：首页进入空闲多久之后开始预算（毫秒）。太短会与列表滚动惯性争 GPU。
+     */
+    @Volatile var creationPrewarmIdleMs = 500L
 
     /**
      * 3b：粒子 Surface 一就绪就先交换一张全透明帧。
@@ -145,6 +171,31 @@ internal object ParticlePerfTuning {
     /** 3b：本地材料库的并行道数上限（1 表示完全串行，只用于逐位对照）。 */
     @Volatile var materialLanes = 0
 
+    /**
+     * 第四批 ③：往 atrace / Perfetto 里打自定义分段（见 [ParticleTrace]）。**默认关闭**，
+     * 只在带采集的那一轮打开——`Trace.beginSection` 本身有几微秒的开销，不该留在常态里。
+     */
+    @Volatile var atrace = false
+
+    /**
+     * 第四批 ③：触摸反馈（自绘涟漪）可见期间，预计算每 4 个积分步就冲一次并等上一批算完，
+     * 把驱动队列里排着的 GPU 工作压到一个压力批次以内。
+     *
+     * 三星弹窗窗口涟漪期长帧的分段形态是「`DRAW` 0.2–0.4 ms，而 `COMMAND_ISSUE` p90 11.9 ms
+     * + `GPU` p90 15.9 ms」——自己画得很快，却要排在别人后面。默认**关闭**：它必然让出现动画
+     * 的首帧更晚，开不开由第四批那一轮采集的结果决定。
+     */
+    @Volatile var yieldPrecomputeDuringFeedback = false
+
+    /**
+     * 第四批 ③ 的正式修正：自绘涟漪期间给宿主 View 投 `REQUEST_FRAME_RATE_CATEGORY_HIGH`。
+     *
+     * 采集给出的根因是「脏区太小 → 可变刷新率把整窗压到 20–30 Hz」，不是任何一段画得慢
+     * （见 [com.ywwynm.everythingdone.views.GradientRippleDrawable.voteFrameRate] 的注释与
+     * batch4-results 第 4 节）。外观不变，只是同一段动画多出几倍的帧。API 35 以下无此机制。
+     */
+    @Volatile var rippleHighFrameRate = true
+
     // 2.5（四步积分合并进一次 dispatch）只做了一次性诊断变体，测完已删除：
     // 61 帧散列在两台设备上都不一致（消散从第 6–7 帧起、出现从第 4–5 帧起），
     // 预计算收益只有 OPD2515 约 5–7 ms、SM-S9180 约 8 ms，两条门槛都不满足。
@@ -162,36 +213,54 @@ internal object ParticlePerfTuning {
         overlayInDecorOverlay = config.optBoolean("overlayInDecorOverlay", overlayInDecorOverlay)
         deferRecordDialogInit = config.optBoolean("deferRecordDialogInit", deferRecordDialogInit)
         defaultPriorityPreparation = config.optBoolean("defaultPriorityPreparation", defaultPriorityPreparation)
-        jacobiLargeTile = config.optBoolean("jacobiLargeTile", jacobiLargeTile)
+        jacobiLargeTileSetting = config.optBoolean("jacobiLargeTile", jacobiLargeTileSetting)
         jacobiLargeBatch = config.optInt("jacobiLargeBatch", jacobiLargeBatch).coerceIn(1, 16)
-        historyInIntegration = config.optBoolean("historyInIntegration", historyInIntegration)
-        skipBeforeFirstBirth = config.optBoolean("skipBeforeFirstBirth", skipBeforeFirstBirth)
+        historyInIntegrationSetting = config.optBoolean("historyInIntegration", historyInIntegrationSetting)
+        skipBeforeFirstBirthSetting = config.optBoolean("skipBeforeFirstBirth", skipBeforeFirstBirthSetting)
         gestureCreepToFinger = config.optBoolean("gestureCreepToFinger", gestureCreepToFinger)
         creationAppearanceTouch =
             config.optInt("creationAppearanceTouch", creationAppearanceTouch).coerceIn(TOUCH_OFF, TOUCH_FULL)
         creationAppearanceSkipEmptyTail =
             config.optBoolean("creationAppearanceSkipEmptyTail", creationAppearanceSkipEmptyTail)
-        creationAppearanceAliveRatio =
-            config.optDouble("creationAppearanceAliveRatio", creationAppearanceAliveRatio.toDouble())
+        dialogAppearanceSkipEmptyTail =
+            config.optBoolean("dialogAppearanceSkipEmptyTail", dialogAppearanceSkipEmptyTail)
+        // 旧键保留：第三批的 A/B 配置文件里写的是 creationAppearanceAliveRatio。
+        appearanceAliveRatio =
+            config.optDouble("appearanceAliveRatio",
+                config.optDouble("creationAppearanceAliveRatio", appearanceAliveRatio.toDouble()))
                 .toFloat().coerceIn(0f, .9f)
+        creationPrewarm = config.optBoolean("creationPrewarm", creationPrewarm)
+        creationPrewarmIdleMs =
+            config.optLong("creationPrewarmIdleMs", creationPrewarmIdleMs).coerceIn(0L, 10_000L)
         primeParticleSurface = config.optBoolean("primeParticleSurface", primeParticleSurface)
         beatDuringPreparation = config.optBoolean("beatDuringPreparation", beatDuringPreparation)
         materialLanes = config.optInt("materialLanes", materialLanes).coerceIn(0, 16)
+        atrace = config.optBoolean("atrace", atrace)
+        yieldPrecomputeDuringFeedback =
+            config.optBoolean("yieldPrecomputeDuringFeedback", yieldPrecomputeDuringFeedback)
+        rippleHighFrameRate = config.optBoolean("rippleHighFrameRate", rippleHighFrameRate)
         if (materialLanes > 0) ParticleMaterialNative.setLanes(materialLanes)
     }
 
-    /** 离屏对照用：临时把 GPU 侧各项恢复成改动前的行为。 */
+    /**
+     * 离屏对照用：临时把 GPU 侧各项恢复成改动前的行为。
+     *
+     * **只作用于调用它的那条线程。** 第五批之前它改的是进程级开关，而 G0 对照跑在自己的
+     * 线程上、与常驻 GL 线程上的**提前预算**同时进行：预算那一侧每次 `advance()` 都读
+     * [skipBeforeFirstBirth]、`prepareReversePipeline()` 读 [historyInIntegration] 与
+     * [jacobiLargeTile]、`ParticleCreationPrewarm.recipe()` 把这三项写进缓存键——对照一进入
+     * 基线段，生产路径读到的就是另一套配方。默认配置下三项的基线值与生产值只有
+     * [skipBeforeFirstBirth] 不同（而 2.4 本身是逐位恒等式），所以没有画面后果；但缓存键会
+     * 因此对不上而白白未命中，A/B 配置下预算还可能编译成基线变体。改成线程局部之后，
+     * 对照怎么切都碰不到别的线程。
+     */
     fun <T> withBaselineGpu(action: () -> T): T {
-        val tile = jacobiLargeTile
-        val history = historyInIntegration
-        val skip = skipBeforeFirstBirth
-        jacobiLargeTile = false
-        historyInIntegration = false
-        skipBeforeFirstBirth = false
-        return try { action() } finally {
-            jacobiLargeTile = tile
-            historyInIntegration = history
-            skipBeforeFirstBirth = skip
-        }
+        val previous = baseline.get()
+        baseline.set(true)
+        return try { action() } finally { baseline.set(previous) }
     }
+
+    private val baseline = ThreadLocal<Boolean>()
+
+    private val baselineGpu get() = baseline.get() == true
 }

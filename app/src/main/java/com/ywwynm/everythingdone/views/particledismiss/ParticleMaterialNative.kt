@@ -21,7 +21,11 @@ internal object ParticleMaterialNative {
      */
     fun setLanes(lanes: Int) {
         if (!available) return
-        runCatching { nativeSetLanes(lanes.coerceIn(1, 16)) }
+        // **0 表示"恢复按核数自动决定"**，不能被 coerceIn 夹成 1。
+        // 3b 的写法是 `coerceIn(1, 16)`，于是 `setLanes(0)` 实际把道数钉死在 1：设备端的
+        // 「1 道 vs 默认道数」对照因此比的是两次串行运行（恒等式），而且整个进程此后一直串行。
+        // 2026-09-15 第四批新增的优先级读回对照把它暴露出来（工作线程一道都没派发）。
+        runCatching { nativeSetLanes(if (lanes <= 0) 0 else lanes.coerceIn(1, 16)) }
     }
 
     private external fun nativeSetLanes(lanes: Int)
@@ -30,6 +34,34 @@ internal object ParticleMaterialNative {
     fun lanes(): Int = if (!available) 0 else runCatching { nativeLanes() }.getOrDefault(0)
 
     private external fun nativeLanes(): Int
+
+    /**
+     * 第四批 ④：工作线程最近一次派发时采用的 nice。
+     *
+     * 本地库的按行并行改成「工作线程跟随调用线程的优先级」——1.7 的「有反馈或播放时让出」
+     * 由调用线程自己决定（[ParticlePerfTuning.defaultPriorityPreparation]），工作线程照抄，
+     * 所以那条语义不需要在本地库里再判一次。优先级不改变任何数值，逐位对照证明不了它生效，
+     * 只能把两个 nice 读回来比。
+     */
+    fun lanePriority(): Int = if (!available) 0 else runCatching { nativeLanePriority() }.getOrDefault(0)
+
+    /** 当前线程自己的 nice（Linux 上 `PRIO_PROCESS` 作用于 tid，与 `Process.getThreadPriority` 同义）。 */
+    fun threadPriority(): Int = if (!available) 0 else runCatching { nativeThreadPriority() }.getOrDefault(0)
+
+    /**
+     * 设备端对照专用：真跑一次并行段再读回工作线程采用的 nice。
+     *
+     * 不能靠一次真实建材来触发——小尺寸下 `parallel` 走串行分支，一道也不派发，
+     * 读回来的永远是初值（2026-09-15 第一次跑对照时就是这样失败的）。
+     */
+    fun probeLanePriority(): Int =
+        if (!available) 0 else runCatching { nativeProbeLanePriority() }.getOrDefault(0)
+
+    private external fun nativeLanePriority(): Int
+
+    private external fun nativeThreadPriority(): Int
+
+    private external fun nativeProbeLanePriority(): Int
 
     external fun release(nx: Int, ny: Int, width: Float, height: Float,
         gridWidth: Int, gridHeight: Int, grid: FloatArray, fieldMin: Double, fieldSize: Double,

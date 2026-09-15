@@ -24,7 +24,12 @@ internal class ParticleSession(
     private val touchFeedback: ParticleTouchFeedback?,
     val gesture: ParticleGestureProgress?,
     private val refreshRate: Float,
-    private val listener: Listener
+    private val listener: Listener,
+    /**
+     * 第四批 ②：首页空闲时提前算好的轨迹。非空时本会话不建材、不预计算，只把**真实快照**
+     * 换成前景贴图就开播；GL 线程上再核对一次共享资源与快照尺寸，对不上就丢掉它走原路径。
+     */
+    private val prepared: ParticlePreparedAppearance? = null
 ) {
 
     /** 回调都在 GL 线程触发，实现方自己切主线程。 */
@@ -86,6 +91,10 @@ internal class ParticleSession(
 
     /** 倒放起点采样；-1 表示还没决定（准备阶段），出帧时一定已经赋值。 */
     private var appearanceStart = -1
+
+    /** 本次是不是用上了提前算好的轨迹。 */
+    @Volatile internal var prewarmAdopted = false
+        private set
 
     fun setVisible(value: Boolean) {
         if (visible == value) return
@@ -172,10 +181,12 @@ internal class ParticleSession(
                 Stage.PIPELINE -> {
                     ParticleGpuWork.beginPlayback(); playbackRegistered = true
                     prepareStartedAt = System.nanoTime()
-                    val created = ParticleMicroflakeRenderer(assets, shared)
-                    renderer = created
-                    created.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
-                    created.prepareReversePipeline()
+                    if (prepared == null || !adopt(prepared, shared)) {
+                        val created = ParticleMicroflakeRenderer(assets, shared)
+                        renderer = created
+                        created.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
+                        created.prepareReversePipeline()
+                    }
                     pipelineReadyAt = System.nanoTime()
                     stage = Stage.FOREGROUND
                     true
@@ -183,8 +194,20 @@ internal class ParticleSession(
                 Stage.FOREGROUND -> {
                     if (preparation == null) { stage = Stage.MATERIAL; return true }
                     val pixels = preparation.pollPixels() ?: return false
-                    checkNotNull(renderer).prepareForeground(pixels)
-                    stage = Stage.MATERIAL
+                    val active = checkNotNull(renderer)
+                    if (prewarmAdopted) {
+                        // 轨迹是用预测快照算的，贴图换成真实快照：末帧仍是真实页面的逐像素拷贝
+                        // （`material.vert` 第 0 遍的采样位置与屏幕位置是同一个恒等映射）。
+                        active.replaceForeground(pixels)
+                        inputReadyAt = System.nanoTime()
+                        uploadsReadyAt = inputReadyAt
+                        precomputeDoneAt = inputReadyAt
+                        snapshotConsumed = true
+                        stage = Stage.PLAY
+                    } else {
+                        active.prepareForeground(pixels)
+                        stage = Stage.MATERIAL
+                    }
                     true
                 }
                 Stage.MATERIAL -> {
@@ -216,6 +239,33 @@ internal class ParticleSession(
         }
     }
 
+    /**
+     * 收养提前算好的轨迹（GL 线程）。任何一项对不上就原样退回：丢掉那份预算、让后台补建材，
+     * 本次照常走完整路径——绝不因为「预算不可用」而让动画失败。
+     */
+    private fun adopt(ready: ParticlePreparedAppearance, shared: ParticleMicroflakeRenderer.Shared): Boolean {
+        val reason = when {
+            shared.width != ready.sharedWidth || shared.height != ready.sharedHeight ->
+                "共享资源 ${shared.width}×${shared.height} ≠ 预算时 ${ready.sharedWidth}×${ready.sharedHeight}"
+            spec.snapshot.width != ready.snapshotWidth || spec.snapshot.height != ready.snapshotHeight ->
+                "快照 ${spec.snapshot.width}×${spec.snapshot.height} ≠ 预算时 ${ready.snapshotWidth}×${ready.snapshotHeight}"
+            else -> null
+        }
+        if (reason != null) {
+            ParticleCreationPrewarm.rejected(ready, reason)
+            preparation?.requireModel()
+            return false
+        }
+        renderer = ready.renderer
+        appearanceSamples = ready.samples
+        appearanceStart = ready.startFrame
+        playbackSeconds = ready.playbackSeconds
+        aliveCounts = ready.aliveCounts
+        particleCount = ready.particleCount
+        prewarmAdopted = true
+        return true
+    }
+
     private fun beginPrecompute() {
         val active = checkNotNull(renderer)
         if (isGesture) {
@@ -228,13 +278,16 @@ internal class ParticleSession(
         // 2c：倒放的最初几帧几乎没有粒子（末段绝大多数片已经死亡）。按材料的出生与寿命
         // 在 CPU 上算出每个采样的存活片数，从「仍有 5% 在出现」的最晚采样开始播；
         // 保留段内每一帧的时间值仍按 samples 归一，因此与不跳过时逐位相同。
-        val skip = spec.skipEmptyTail && ParticlePerfTuning.creationAppearanceSkipEmptyTail
+        // 第四批：开关已在 appearContent 那一层解析完（创建页读
+        // creationAppearanceSkipEmptyTail，弹窗/面板/新卡片读 dialogAppearanceSkipEmptyTail），
+        // 这里只看本次 spec 的结论。
+        val skip = spec.skipEmptyTail
         val counts = if (skip || BuildConfig.DEBUG)
             ParticleReversePlan.aliveCounts(active.materialValues, samples) else null
         if (BuildConfig.DEBUG) aliveCounts = counts
         appearanceStart = if (skip && counts != null)
             ParticleReversePlan.startFrameOf(counts, active.materialValues.size / 12,
-                ParticlePerfTuning.creationAppearanceAliveRatio) else samples
+                ParticlePerfTuning.appearanceAliveRatio) else samples
         // 每帧速度不变，只少播（也少算）尾段那几帧。
         playbackSeconds = durationSeconds.toDouble() * appearanceStart / samples
         active.beginReverse(samples, appearanceStart, precomputeProbe = true)

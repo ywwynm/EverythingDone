@@ -87,12 +87,16 @@ open class App : Application() {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
             com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
+            // 退后台（界面不可见）与任何内存告警都放掉提前算好的创建页轨迹与预测素材：
+            // 它占着一块历史缓冲、一张全屏前景纹理与一份 ARGB 像素（第四批 ②）。
+            com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.trimMemory()
         }
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
         com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.trimMemory()
     }
 
     override fun onCreate() {
@@ -419,6 +423,31 @@ open class App : Application() {
         var newThingColor: Int = 0
 
         /**
+         * 预掷值是否已经被某一次创建消费掉。
+         *
+         * 粒子动画专项第四批 ②：随机掷点从「创建页 `initMembers` 里」提前到「首页可见 /
+         * 创建页关闭之后」，好让首页在空闲时就知道下一条记事长什么样、据此提前预算出现轨迹。
+         * 创建页只标记消费，不当场重掷；重掷由 [ensureNewThingBackground] 负责——任何要读
+         * 预掷值的地方先调它，已消费而还没重掷时立刻补一次，**两条记事绝不会同色**。
+         */
+        @Volatile
+        @JvmStatic
+        var newThingBackgroundConsumed = false
+            private set
+
+        /** 创建页消费预掷值：只标记，不重掷。 */
+        @JvmStatic
+        fun consumeNewThingBackground() {
+            newThingBackgroundConsumed = true
+        }
+
+        /** 读预掷值之前调一次：已被消费而尚未重掷时立刻补掷。 */
+        @JvmStatic
+        fun ensureNewThingBackground() {
+            if (newThingBackgroundConsumed || newThingBackground == null) updateNewThingColor()
+        }
+
+        /**
          * The default accent background for the app — a two-colour linear gradient
          * from [R.color.app_accent] (bottom-left) to [R.color.app_accent2] (top-right).
          * Used as a fallback wherever a Thing/ThingFolder does not supply its own
@@ -663,6 +692,7 @@ open class App : Application() {
 
             newThingBackground = bg
             newThingColor      = representative
+            newThingBackgroundConsumed = false
         }
 
         /**

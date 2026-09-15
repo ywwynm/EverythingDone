@@ -28,7 +28,9 @@ internal class ParticleDismissOverlay(
     private val onDone: Runnable? = null,
     private val touchFeedback: ParticleTouchFeedback? = null,
     private val onPresentedProgress: ((Float) -> Unit)? = null,
-    private val gesture: ParticleGestureProgress? = null
+    private val gesture: ParticleGestureProgress? = null,
+    /** 第四批 ②：命中提前算好的轨迹时由 [ParticleDismissController] 传进来。 */
+    private val prepared: ParticlePreparedAppearance? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -59,7 +61,9 @@ internal class ParticleDismissOverlay(
         callbacks.forEach { it.run() }
     }
 
-    private val preparation = ParticleMicroflakePreparation(context.assets, resources.displayMetrics.density, spec)
+    // 命中预算时只解像素、不建材：材料与轨迹都是现成的，那 40–70 ms 直接省掉。
+    private val preparation = ParticleMicroflakePreparation(
+        context.assets, resources.displayMetrics.density, spec, deferred = prepared != null)
 
     private val isCondense get() = spec.reverse
 
@@ -130,6 +134,9 @@ internal class ParticleDismissOverlay(
         synchronized(active) { active += this }
         val window = ParticleWindowSurface.of(host)
         if (window == null) {
+            // 会话建不起来，提前算好的轨迹也就没人接手了——必须当场还回去，否则那份
+            // GPU 资源（历史缓冲 + 前景纹理）会一直挂着。
+            prepared?.let { ParticleCreationPrewarm.rejected(it, "宿主窗口没有粒子 Surface") }
             mainHandler.post { onSessionFinished(false) }
             return
         }
@@ -141,7 +148,8 @@ internal class ParticleDismissOverlay(
             touchFeedback = touchFeedback,
             gesture = gesture,
             refreshRate = display?.refreshRate ?: 60f,
-            listener = listener
+            listener = listener,
+            prepared = prepared
         )
         session = created
         created.setVisible(particleVisible)

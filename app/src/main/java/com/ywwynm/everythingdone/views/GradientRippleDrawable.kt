@@ -236,7 +236,32 @@ class GradientRippleDrawable(
         }
     }
 
+    /**
+     * 第四批 ③：自绘涟漪期间给宿主 View 投一张「高帧率」票。
+     *
+     * 2026-09-15 在 SM-S9180（Android 16）上采集的 atrace + FrameMetrics 给出的形态是：
+     * 长帧里 `DRAW` 只有 0.24–0.47 ms，绝大部分时间花在 RenderThread 的 **`dequeueBuffer`
+     * 11–20 ms**，而同一批帧的 `DEADLINE` 从 16.7 ms 一路涨到 **50.0 ms**——也就是说这些帧
+     * **并没有超时**，是窗口的刷新率被系统降下去了。原因是 Android 15 起的可变刷新率按
+     * 「脏区面积」投票：涟漪的脏区实测只有 180×180 px（顶栏图标那一块），占 1440×3088 窗口的
+     * 0.7%，被判成「小面积更新」，于是整窗被压到 20–30 Hz，涟漪自然看上去掉帧。
+     *
+     * 公开 API `View.setRequestedFrameRate` 就是为这种「应用自己画的动画」准备的，投
+     * `REQUEST_FRAME_RATE_CATEGORY_HIGH`，动画结束再撤回。**外观一个像素不变**，只是同一段
+     * 动画多出几倍的帧。API 35 以下没有这套机制，也就不存在这个问题。
+     */
+    private fun voteFrameRate(animating: Boolean) {
+        if (android.os.Build.VERSION.SDK_INT < 35) return
+        if (!com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.rippleHighFrameRate) return
+        val host = callback as? View ?: return
+        runCatching {
+            host.requestedFrameRate = if (animating) View.REQUESTED_FRAME_RATE_CATEGORY_HIGH
+                else View.REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
+        }
+    }
+
     private fun enter() {
+        voteFrameRate(true)
         // 先结束可能在跑的淡出（其 onEnd 会复位半径/圆心），再设置本次按下的起点。
         alphaOutAnimator?.cancel(); alphaOutAnimator = null
         // 按下瞬间尽量锁定为本次新触摸点；不同 background / foreground 路径里 hotspot 与
@@ -315,6 +340,7 @@ class GradientRippleDrawable(
                     hotspotY = Float.NaN
                     hotspotFresh = false
                     hotspotUptimeMs = 0L
+                    voteFrameRate(false)
                 }
             })
             start()
@@ -323,6 +349,13 @@ class GradientRippleDrawable(
 
     override fun draw(canvas: Canvas) {
         if (omitFromSnapshot || alphaFraction <= 0f) return
+        com.ywwynm.everythingdone.views.particledismiss.ParticleTrace.begin("ripple-draw")
+        try { drawRipple(canvas) } finally {
+            com.ywwynm.everythingdone.views.particledismiss.ParticleTrace.end()
+        }
+    }
+
+    private fun drawRipple(canvas: Canvas) {
         val b = bounds
         if (b.isEmpty) return
         val startX = if (originX.isNaN()) b.exactCenterX() else originX
@@ -351,10 +384,14 @@ class GradientRippleDrawable(
         return hypot(dx, dy)
     }
 
+    /**
+     * 每帧都 `paint.shader = …` / `paint.color = …` 会改 native paint 的 genID、打断 Skia 的批处理，
+     * 而扩散期间这两项一帧也不变。改成「已经是这个值就不再写」（第四批 ③，外观不变）。
+     */
     private fun ensureShaderAndPaint() {
         if (background.mode == ThingBackground.Mode.PURE) {
-            paint.shader = null
-            paint.color = background.color
+            if (paint.shader != null) paint.shader = null
+            if (paint.color != background.color) paint.color = background.color
             return
         }
         val w = bounds.width()
@@ -363,8 +400,8 @@ class GradientRippleDrawable(
             shaderW = w
             shaderH = h
             cachedShader = BackgroundUtil.createLinearGradient(background, w.toFloat(), h.toFloat())
-        }
-        paint.shader = cachedShader
+            paint.shader = cachedShader
+        } else if (paint.shader !== cachedShader) paint.shader = cachedShader
     }
 
     override fun jumpToCurrentState() {
@@ -392,6 +429,7 @@ class GradientRippleDrawable(
         hotspotY = Float.NaN
         hotspotFresh = false
         hotspotUptimeMs = 0L
+        voteFrameRate(false)
         invalidateSelf()
     }
 

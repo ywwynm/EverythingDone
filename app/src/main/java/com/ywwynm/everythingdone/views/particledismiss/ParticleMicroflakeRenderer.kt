@@ -39,7 +39,11 @@ internal class ParticleMicroflakeRenderer(
         val originX: Float,
         val originY: Float,
         val direction: Float,
-        val foreground: Bitmap,
+        /**
+         * 前景位图；只在还没有前景纹理时用来取像素。提前预算的路径（[ParticleCreationPrewarm]）
+         * 先 [prepareForeground] 再 [prepare]，手上只有像素数组、没有 Bitmap，所以可以为空。
+         */
+        val foreground: Bitmap?,
         val materials: ParticleMicroflakeModel.Materials,
         val guide: ByteArray,
         val rules: ParticleMicroflakeRules,
@@ -265,7 +269,6 @@ internal class ParticleMicroflakeRenderer(
     fun prepare(materialInput: Input? = null) {
         if (materialInput != null) input = materialInput
         preparePipeline()
-        val bitmap = input.foreground
         val initial = ByteBuffer.allocateDirect(input.materials.count * 8 * 4).order(ByteOrder.nativeOrder())
         if (ParticleMaterialNative.enabled) {
             ParticleMaterialNative.packState(input.materials.values, input.materials.count, initial)
@@ -280,6 +283,7 @@ internal class ParticleMicroflakeRenderer(
         uploadBuffer(2, input.materials.pigment)
         uploadBuffer(3, input.materials.peelCompression)
         if (foregroundTexture == 0) {
+            val bitmap = checkNotNull(input.foreground) { "没有前景位图时必须先 prepareForeground" }
             val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
                 bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             }
@@ -300,6 +304,30 @@ internal class ParticleMicroflakeRenderer(
         check(foregroundTexture == 0)
         preparePipeline()
         foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D, textures)
+        uploadForeground(pixels)
+    }
+
+    /**
+     * 第四批 ②：把前景贴图换成另一张同尺寸的图，材料与轨迹一个字节不动。
+     *
+     * `material.vert` 的第 0 遍按 `uv = source / card` 采样、画在 `world = offset + source`——
+     * 采样位置与屏幕位置是同一个恒等仿射映射，所以末帧（t = 0，全部格子 surface = 1）就是
+     * 这张贴图的一次逐像素拷贝，**与格子分辨率无关**。提前预算用的是预测快照，真正开播前
+     * 换成真实快照，末帧仍与真实页面逐像素相同。
+     *
+     * 尺寸必须一致：格子是按 `card`（快照尺寸）切的，换一张不同尺寸的图会让采样错位。
+     */
+    fun replaceForeground(pixels: ParticleMicroflakePreparation.Pixels) {
+        check(foregroundTexture != 0) { "还没有前景纹理" }
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
+        uploadForeground(pixels)
+    }
+
+    /** 本次动画的快照尺寸（逻辑像素），用于核对换贴图时尺寸是否一致。 */
+    val cardSize: Pair<Float, Float> get() = input.cardWidth to input.cardHeight
+
+    private fun uploadForeground(pixels: ParticleMicroflakePreparation.Pixels) {
         val rgba = pixels.rgba
         rgba.rewind()
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.width, pixels.height,
@@ -422,6 +450,9 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glUseProgram(compute)
         if (reverseHasHistory && batchPressure) oneI(compute, "history_frame", -1)
         val probe = probe()
+        // 第四批 ③：涟漪在播时把驱动队列压短，让窗口的那一帧不必排在整段 compute 后面。
+        val yielding = batchPressure && ParticlePerfTuning.yieldPrecomputeDuringFeedback &&
+            ParticleTouchFeedback.feedbackActive
         probe?.mark("integrate", ParticlePerfProbe.LEVEL_SEGMENT)
         while (step < target) {
             step++
@@ -442,10 +473,22 @@ internal class ParticleMicroflakeRenderer(
                 }
                 for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
                 GLES30.glUseProgram(compute)
+                if (yielding) yieldToWindow()
             }
         }
         probe?.stop(ParticlePerfProbe.LEVEL_SEGMENT)
         return merge
+    }
+
+    /**
+     * 冲一次并等它算完：驱动队列里最多只剩一个压力批次的工作，窗口那一帧不必排在后面。
+     * 代价是失去 CPU 提交与 GPU 运算的重叠，预计算整体会变慢——所以只在涟漪可见时做。
+     */
+    private fun yieldToWindow() {
+        val fence = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+        if (fence == 0L) return
+        GLES30.glClientWaitSync(fence, GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, YIELD_TIMEOUT_NANOS)
+        GLES30.glDeleteSync(fence)
     }
 
     private var firstBirthStepCache = -1
@@ -538,7 +581,8 @@ internal class ParticleMicroflakeRenderer(
      * [target] 是真正要算到的采样（默认全算）：倒放起点更早时，比它更晚的采样既不播也不用算。
      * [precomputeProbe] 为 false 时不记「预计算」这一段（手势是按需补档，没有完整预计算）。
      */
-    fun beginReverse(samples: Int, target: Int = samples, precomputeProbe: Boolean = true) {
+    fun beginReverse(samples: Int, target: Int = samples, precomputeProbe: Boolean = true,
+                     throttled: Boolean = false) {
         val history = createHistory(samples)
         reverseTarget = target.coerceIn(0, samples)
         reverseStartedAt = System.nanoTime()
@@ -548,7 +592,7 @@ internal class ParticleMicroflakeRenderer(
             probe()?.mark("precompute", ParticlePerfProbe.LEVEL_TOTAL)
             reverseProbe = true
         }
-        reverseQueue = ParticleGpuWork.PreparationQueue()
+        reverseQueue = ParticleGpuWork.PreparationQueue(throttled)
         reverseFrame = 0
         check(history.plan.samples >= 0)
     }
@@ -570,7 +614,11 @@ internal class ParticleMicroflakeRenderer(
     val reverseIncomplete get() = reverseQueue != null && reverseFrame <= reverseTarget
 
     /** 推进一个采样；返回 false 表示被取消。 */
-    fun stepReverse(cancelled: () -> Boolean): Boolean {
+    fun stepReverse(cancelled: () -> Boolean): Boolean = ParticleTrace.section("particle-precompute") {
+        stepReverseOnce(cancelled)
+    }
+
+    private fun stepReverseOnce(cancelled: () -> Boolean): Boolean {
         val history = checkNotNull(reverseHistory)
         val queue = checkNotNull(reverseQueue)
         if (cancelled()) return false
@@ -985,27 +1033,47 @@ internal class ParticleMicroflakeRenderer(
         }
 
         private const val GL_MAX_COMPUTE_SHARED_MEMORY_SIZE = 0x8262
+
+        /** 让路等待的上限；等不到也要往下走，预计算不能卡死。 */
+        private const val YIELD_TIMEOUT_NANOS = 50_000_000L
         private fun checkGl(stage: String) { check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "微片 $stage GL 错误" } }
 
         fun fromSpec(assets: AssetManager, width: Int, height: Int, density: Float, spec: ParticleDismissSpec,
                      sourcePixels: IntArray? = null): Input {
-            // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
-            val scale = (density / 1.875f).coerceAtLeast(.5f)
             val bitmap = spec.snapshot
-            val cardWidth = bitmap.width / scale; val cardHeight = bitmap.height / scale
             val pixels = sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
                 bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             }
-            val dx = spec.virtualTouchXPx - spec.originXPx - bitmap.width / 2f
-            val dy = spec.virtualTouchYPx - spec.originYPx - bitmap.height / 2f
+            return fromPixels(assets, width, height, density, pixels, bitmap.width, bitmap.height,
+                spec.originXPx, spec.originYPx, spec.virtualTouchXPx, spec.virtualTouchYPx,
+                spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap)
+        }
+
+        /**
+         * 只按像素建材，不需要 Bitmap。
+         *
+         * 提前预算（[ParticleCreationPrewarm]）手上只有上一次真实创建页的像素数组；[fromSpec]
+         * 现在就是它的一层包装，两条路径的几何、方向与随机完全同一套代码。
+         */
+        fun fromPixels(assets: AssetManager, width: Int, height: Int, density: Float,
+                       pixels: IntArray, pixelWidth: Int, pixelHeight: Int,
+                       originXPx: Float, originYPx: Float,
+                       virtualTouchXPx: Float, virtualTouchYPx: Float, hashSeed: Int,
+                       touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null): Input {
+            // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
+            val scale = (density / 1.875f).coerceAtLeast(.5f)
+            val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
+            val dx = virtualTouchXPx - originXPx - pixelWidth / 2f
+            val dy = virtualTouchYPx - originYPx - pixelHeight / 2f
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()
             val resources = sharedResources(assets)
             val rules = resources.rules
-            val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, bitmap.width,
-                bitmap.height, direction, spec.hashSeed.toLong(), rules)
-            return Input(width / scale, height / scale, cardWidth, cardHeight, spec.originXPx / scale,
-                spec.originYPx / scale, direction, bitmap, materials,
-                resources.guide, rules, pixels, spec.touchGap ?: rules.number("touch_gap_default"), resources.confidence, spec.touchStrength ?: .5f)
+            val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, pixelWidth,
+                pixelHeight, direction, hashSeed.toLong(), rules)
+            return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,
+                originYPx / scale, direction, bitmap, materials,
+                resources.guide, rules, pixels, touchGap ?: rules.number("touch_gap_default"),
+                resources.confidence, touchStrength ?: .5f)
         }
     }
 }

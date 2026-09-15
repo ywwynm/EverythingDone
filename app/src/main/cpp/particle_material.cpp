@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <cerrno>
 #include <sys/resource.h>
 
 namespace {
@@ -24,6 +25,22 @@ int desiredLanes(){
     return int(std::min<unsigned>(std::max<unsigned>(cores,3u),kMaxLanes));
 }
 std::atomic<int> laneLimit{0};
+// 第四批 ④：工作线程跟随**调用线程**的优先级。
+//
+// 3b 把道数从 3 提到 6，OPPO 建材 58 → 36–43 ms，三星 63–72 ms 纹丝不动——工作线程是默认
+// 优先级（nice 0），而材料线程本身跑在 THREAD_PRIORITY_DISPLAY（nice −4），疑似被调度到小核。
+// 这里改成每段工作开始前把自己的 nice 设成派发这段工作的线程的 nice：
+//   - 材料线程在 DISPLAY 时，工作线程也是 DISPLAY，六道一起吃大核；
+//   - 1.7 的「已经有触摸反馈或别的层在播时让出到 DEFAULT」照样成立——那时调用线程是 nice 0，
+//     工作线程读到的就是 0，语义一个字没变，不需要在本地库里再判一次。
+// `setpriority(PRIO_PROCESS,0,·)` 在 Linux 上作用于**当前线程**（tid），与
+// `android.os.Process.setThreadPriority` 同义。
+std::atomic<int> lanePriority{0};
+int currentPriority(){
+    errno=0;                       // nice 合法值含 −1，必须靠 errno 区分失败
+    int value=getpriority(PRIO_PROCESS,0);
+    return errno==0?value:0;
+}
 class MaterialWorkers {
     std::mutex mutex;
     std::condition_variable ready;
@@ -55,10 +72,16 @@ template<class F> void parallel(int count,F function){
     // 最后一段留给调用线程；每段的下标区间固定，与道数无关地覆盖同一批元素。
     std::array<std::future<void>,kMaxLanes-1> pending;
     int dispatched=0;
+    const int priority=currentPriority();
+    lanePriority.store(priority,std::memory_order_relaxed);
     try {
         for(int lane=0;lane<n-1;++lane){
             int from=int(int64_t(count)*lane/n),to=int(int64_t(count)*(lane+1)/n);
-            pending[lane]=workers().submit([&,from,to]{for(int i=from;i<to;++i)function(i);});
+            pending[lane]=workers().submit([&,from,to,priority]{
+                // 跟随调用线程；失败（受 RLIMIT_NICE 限制）时照常算，只是慢一点。
+                setpriority(PRIO_PROCESS,0,priority);
+                for(int i=from;i<to;++i)function(i);
+            });
             ++dispatched;
         }
         for(int i=int(int64_t(count)*(n-1)/n);i<count;++i)function(i);
@@ -114,6 +137,27 @@ extern "C" JNIEXPORT void JNICALL JNI_NAME(nativeSetLanes)(JNIEnv*,jobject,jint 
 }
 
 extern "C" JNIEXPORT jint JNICALL JNI_NAME(nativeLanes)(JNIEnv*,jobject){ return lanes(); }
+
+// 第四批 ④：工作线程最近一次采用的 nice，以及调用线程自己的 nice。
+// 设备端 nativeCheck 在材料线程上跑一次并断言两者相等——「工作线程跟随调用线程」这条
+// 没法靠输出逐位对照证明（优先级不改变任何数值），只能直接读回来。
+extern "C" JNIEXPORT jint JNICALL JNI_NAME(nativeLanePriority)(JNIEnv*,jobject){
+    return lanePriority.load(std::memory_order_relaxed);
+}
+
+extern "C" JNIEXPORT jint JNICALL JNI_NAME(nativeThreadPriority)(JNIEnv*,jobject){
+    return currentPriority();
+}
+
+// 只给设备端对照用：真跑一次并行段（元素数必须超过 parallel 的串行阈值），再把工作线程
+// 这一轮采用的 nice 读回来。用真实建材来触发不可靠——小尺寸下 parallel 走串行分支，
+// 一道也不派发，读回来的永远是初值。
+extern "C" JNIEXPORT jint JNICALL JNI_NAME(nativeProbeLanePriority)(JNIEnv*,jobject){
+    lanePriority.store(-1000,std::memory_order_relaxed);
+    std::vector<int> sink(4096,0);
+    parallel(int(sink.size()),[&](int i){sink[i]=i;});
+    return lanePriority.load(std::memory_order_relaxed);
+}
 
 extern "C" JNIEXPORT void JNICALL JNI_NAME(packUploads)(JNIEnv* e,jobject,jintArray pixelsArray,
     jfloatArray materialArray,jint count,jobject rgbaBuffer,jobject stateBuffer){

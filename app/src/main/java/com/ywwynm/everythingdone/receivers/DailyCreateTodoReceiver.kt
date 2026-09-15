@@ -18,6 +18,8 @@ open class DailyCreateTodoReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         // Phase 7: prefer ThingBackground for GRADIENT support.
+        // 预掷值已被上一次创建消费时立刻补掷（粒子第四批 ②把掷点提前到了首页）。
+        App.ensureNewThingBackground()
         val openIntent: Intent = DetailActivity.getOpenIntentForCreate(context, TAG,
                 if (App.newThingBackground != null)
                         App.newThingBackground

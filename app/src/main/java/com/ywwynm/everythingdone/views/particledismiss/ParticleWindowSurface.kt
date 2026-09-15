@@ -208,7 +208,9 @@ internal class ParticleWindowSurface private constructor(
 
     val awaitingPresentation get() = pending.isNotEmpty()
 
-    fun composite(target: Long) {
+    fun composite(target: Long) = ParticleTrace.section("particle-composite") { compositeOnce(target) }
+
+    private fun compositeOnce(target: Long) {
         intake()
         purge()
         if (!needsFrame()) return

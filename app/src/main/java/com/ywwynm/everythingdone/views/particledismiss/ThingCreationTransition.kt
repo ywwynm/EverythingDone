@@ -36,6 +36,7 @@ internal class ThingCreationTransition private constructor(
     private val mode = pending.mode
     private val sourceX = pending.sourceX
     private val sourceY = pending.sourceY
+    private val prewarmKey = pending.prewarmKey
     private val host = activity.window.decorView as ViewGroup
     private val input = activity.currentFocus?.takeIf { it.onCheckIsTextEditor() }
     private val originalSoftInputMode = activity.window.attributes.softInputMode
@@ -76,7 +77,9 @@ internal class ThingCreationTransition private constructor(
                 // 窗口坐标一致，换算到内容坐标由 appearContent 在捕获那一刻完成。
                 appearanceTouchInWindow = if (sourceX.isFinite() && sourceY.isFinite())
                     android.graphics.PointF(sourceX, sourceY) else null,
-                skipEmptyTail = true, traceLabel = "appear") { particle = it }
+                skipEmptyTail = ParticlePerfTuning.creationAppearanceSkipEmptyTail,
+                creationPage = true, prewarmKey = prewarmKey,
+                traceLabel = "appear") { particle = it }
             if (!started) finish(true)
         } else content.doOnPreDraw {
             if (closed) return@doOnPreDraw
@@ -186,7 +189,8 @@ internal class ThingCreationTransition private constructor(
         }
     }
 
-    private data class Pending(val bitmap: Bitmap, val mode: Int, val sourceX: Float, val sourceY: Float)
+    private data class Pending(val bitmap: Bitmap, val mode: Int, val sourceX: Float, val sourceY: Float,
+                               val prewarmKey: ParticleCreationKey?)
 
     companion object {
         const val EXTRA_TOKEN = "thing_creation_transition_token"
@@ -202,8 +206,12 @@ internal class ThingCreationTransition private constructor(
         /**
          * [sourceX]/[sourceY] 为触发控件中心的窗口坐标，涟漪档用它作为揭示圆心；
          * 传 [Float.NaN] 表示没有来源坐标。
+         *
+         * [prewarmKey] 是「如果现在点新建，创建页首帧会长什么样」的指纹（第四批 ②），由首页
+         * 在点击那一刻算出——必须在**点击时**算，创建页起来之后再算就分不清是不是同一份环境了。
          */
         fun launch(activity: Activity, intent: Intent, sourceX: Float, sourceY: Float,
+                   prewarmKey: ParticleCreationKey? = null,
                    onLaunched: (Boolean) -> Unit) {
             fun open(bitmap: Bitmap?) {
                 ParticleLaunchTrace.mark("home-capture")
@@ -213,7 +221,8 @@ internal class ThingCreationTransition private constructor(
                 if (bitmap != null) {
                     val token = SystemClock.elapsedRealtimeNanos()
                     pendingTransitions[token] =
-                        Pending(bitmap, ThingAnimationPreferences.creation(activity), sourceX, sourceY)
+                        Pending(bitmap, ThingAnimationPreferences.creation(activity), sourceX, sourceY,
+                            prewarmKey)
                     intent.putExtra(EXTRA_TOKEN, token)
                     // 启动失败、进程重建等情况不能永久持有首页画面。
                     main.postDelayed({ pendingTransitions.remove(token)?.bitmap?.recycle() }, 10_000)

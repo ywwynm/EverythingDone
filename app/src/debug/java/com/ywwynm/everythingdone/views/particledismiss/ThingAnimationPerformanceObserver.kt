@@ -282,7 +282,16 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             val context = overlay.context.applicationContext
             val frames = config.optJSONArray("gpuCheckFrames")
             val inspect = (0 until minOf(frames?.length() ?: 0, 2)).map { frames!!.getInt(it) }.toSet()
-            overlay.afterRelease { ParticleTrajectoryCheck.run(context, copied, overlay.width, overlay.height, output, inspect) }
+            // 第五批：单像素差异的定性轮。每条路径自己跑多遍，并可选地在另一个上下文里制造
+            // 与提前预算同形态的并发 GPU 负载——「并发」这一项因此成了可独立开关的自变量。
+            val diagnostics = config.optBoolean("gpuCheckDiagnostics")
+            val load = config.optBoolean("gpuCheckLoad")
+            val repeats = config.optInt("gpuCheckRepeats", 3)
+            val pinFrame = config.optInt("gpuCheckPinFrame", -1)
+            overlay.afterRelease {
+                ParticleTrajectoryCheck.run(context, copied, overlay.width, overlay.height, output,
+                    inspect, diagnostics, load, repeats, pinFrame)
+            }
         }
         val row = JSONObject().put("stage", label).put("requestAt", spec.requestedAtNanos)
             .put("createdAt", System.nanoTime()).put("reverse", spec.reverse)
@@ -296,12 +305,17 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             .put("touchGap", json(spec.touchGap))
             .put("touchStrength", json(spec.touchStrength))
             .put("skipEmptyTail", spec.skipEmptyTail)
+            .put("creationPage", spec.creationPage)
             .put("touchMode", ParticlePerfTuning.creationAppearanceTouch)
             .put("skipTailEnabled", ParticlePerfTuning.creationAppearanceSkipEmptyTail)
-            .put("aliveRatio", ParticlePerfTuning.creationAppearanceAliveRatio)
+            .put("dialogSkipTailEnabled", ParticlePerfTuning.dialogAppearanceSkipEmptyTail)
+            .put("aliveRatio", ParticlePerfTuning.appearanceAliveRatio)
             .put("materialLanes", ParticleMaterialNative.lanes())
+        // 第四批 ②：命中与否只对创建页有意义——诊断是进程级的一份，挂到弹窗行上会被误读成
+        // 「这个弹窗也命中了」。
+        if (spec.creationPage) row.put("prewarm", ParticleCreationPrewarm.diagnostics())
         overlayRows.put(row)
-        if (spec.reverse && spec.skipEmptyTail && config.optBoolean("appearanceFrames")) {
+        if (spec.reverse && spec.creationPage && config.optBoolean("appearanceFrames")) {
             val bitmap = spec.snapshot.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
             val context = overlay.context.applicationContext
             overlay.afterRelease {

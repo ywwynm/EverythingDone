@@ -314,7 +314,10 @@ internal object ParticleDismissController {
      * [appearanceTouchInWindow] 是本次出现的真实触点（[decor] 所在 window 的坐标），
      * 创建页传首页新建按钮的中心。开着 2b 时它决定方向、触点距离与强度；关掉时只记录在
      * spec 里供对比工具使用，方向仍走 [appearanceDirection]。
-     * [skipEmptyTail] 允许跳过倒放尾段几乎无粒子的部分（2c，当前只有创建页传 true）。
+     * [skipEmptyTail] 允许跳过倒放尾段几乎无粒子的部分（2c）。第四批起弹窗、页内面板与
+     * 新卡片默认也启用（[ParticlePerfTuning.dialogAppearanceSkipEmptyTail]），创建页由
+     * [ThingCreationTransition] 传 [ParticlePerfTuning.creationAppearanceSkipEmptyTail]。
+     * [creationPage] 标出「这是新建记事的入场」，决定要不要用/写提前算好的轨迹。
      */
     fun appearContent(
         activity: Activity, window: android.view.Window, decor: View,
@@ -324,7 +327,9 @@ internal object ParticleDismissController {
         roundSnapshot: Boolean = true,
         onAppearanceFinished: (() -> Unit)? = null,
         appearanceTouchInWindow: PointF? = null,
-        skipEmptyTail: Boolean = false,
+        skipEmptyTail: Boolean = ParticlePerfTuning.dialogAppearanceSkipEmptyTail,
+        creationPage: Boolean = false,
+        prewarmKey: ParticleCreationKey? = null,
         traceLabel: String? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
@@ -418,6 +423,11 @@ internal object ParticleDismissController {
                         val realTouch = local?.takeIf { mode >= ParticlePerfTuning.TOUCH_DIRECTION }
                         val visibleScreen = android.graphics.Rect()
                         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
+                        // 第四批 ②：先看能不能用上首页空闲时提前算好的轨迹。命中时种子必须沿用
+                        // 那一次预算的，否则观察器与对比工具会把两条路径当成同一个随机。
+                        val prepared = if (creationPage)
+                            ParticleCreationPrewarm.take(prewarmKey, snapshot.width, snapshot.height, x, y)
+                            else null
                         val spec = ParticleDismissSpec(snapshot = snapshot, originXPx = x, originYPx = y,
                             // 有真实触点就直接用它：fromSpec 只从「中心 → 触点」这条射线取方向，
                             // 射线上取哪一点都一样，用真实点最直白。
@@ -425,7 +435,8 @@ internal object ParticleDismissController {
                                 else x + snapshot.width/2f + cos(angle)*reach,
                             virtualTouchYPx = if (realTouch != null) y + realTouch.y
                                 else y + snapshot.height/2f + sin(angle)*reach,
-                            durationScale = animatorDurationScale(activity), hashSeed = (Math.random()*Int.MAX_VALUE).toInt(),
+                            durationScale = animatorDurationScale(activity),
+                            hashSeed = prepared?.seed ?: (Math.random()*Int.MAX_VALUE).toInt(),
                             requestedAtNanos = requestedAtNanos,
                             reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS,
                             // 方向、触点距离、触点强度是三个可以分开采用的输入：3b 的归因轮证明
@@ -441,7 +452,10 @@ internal object ParticleDismissController {
                             roundedCornerRadiusPx = if (ParticlePerfTuning.maskOnMaterialThread) radius else 0f,
                             appearanceTouchXPx = local?.let { x + it.x },
                             appearanceTouchYPx = local?.let { y + it.y },
-                            skipEmptyTail = skipEmptyTail)
+                            skipEmptyTail = skipEmptyTail,
+                            creationPage = creationPage,
+                            // 第五批：这一屏就是这个键对应的创建页首屏，落盘后冷启动可以直接用。
+                            prewarmKey = if (creationPage) prewarmKey else null)
                         var overlayRef: ParticleDismissOverlay? = null
                         val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
                             onAppearanceProgress?.invoke(1f)
@@ -450,7 +464,7 @@ internal object ParticleDismissController {
                                 releaseContent(); overlayRef?.release()
                             }
                         }, touchFeedback = appearanceFeedback,
-                            onPresentedProgress = onAppearanceProgress)
+                            onPresentedProgress = onAppearanceProgress, prepared = prepared)
                         overlayRef = overlay
                         overlay.afterRelease(Runnable { onAppearanceFinished?.invoke() })
                         onOverlayCreated(overlay)

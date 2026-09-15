@@ -343,6 +343,8 @@ object SystemNotificationUtil {
         val nmc: NotificationManagerCompat = NotificationManagerCompat.from(context!!)
         nmc.cancel(Def.Meta.ONGOING_NOTIFICATION_ID)
 
+        // 预掷值已被上一次创建消费时立刻补掷（粒子第四批 ②把掷点提前到了首页）。
+        App.ensureNewThingBackground()
         val contentIntent: Intent = DetailActivity.getOpenIntentForCreate(
                 context, App::class.java.getName(),
                 if (App.newThingBackground != null)

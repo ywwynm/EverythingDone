@@ -38,6 +38,8 @@ open class ShortcutActivity : AppCompatActivity() {
         val action: String? = intent.action
         var openIntent: Intent? = null
         if (Def.Communication.SHORTCUT_ACTION_CREATE == action) {
+            // 预掷值已被上一次创建消费时立刻补掷（粒子第四批 ②把掷点提前到了首页）。
+            App.ensureNewThingBackground()
             openIntent = DetailActivity.getOpenIntentForCreate(
                 this, TAG,
                 if (App.newThingBackground != null)

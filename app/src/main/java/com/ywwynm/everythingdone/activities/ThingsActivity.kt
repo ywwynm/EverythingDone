@@ -731,10 +731,48 @@ class ThingsActivity :
         }
 
         KeyboardUtil.hideKeyboard(currentFocus)
+
+        // 第四批 ②：首页可见之后，先把下一条记事的随机背景掷出来（原来掷在创建页的
+        // initMembers 里），再让粒子管线在空闲时为下一次新建预先建材、预算轨迹。
+        App.ensureNewThingBackground()
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm
+            .onHomeVisible(this) { idleCreationPrewarmKey() }
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        // 预算只在真正空闲时跑；任何触摸/按键都把它推后，已经开工的会停在当前采样上等着续算。
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.touched()
+    }
+
+    /**
+     * 空闲时用的键：为 null 同时也是「现在别预算」的信号——列表还在滚（惯性期
+     * `onUserInteraction` 不再派发，静置计时会误判成空闲）、揭示动画在播、或者正要打开创建页。
+     */
+    private fun idleCreationPrewarmKey():
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationKey? {
+        if (mIsRevealAnimPlaying || mCreationLaunchPending) return null
+        if (mRecyclerView?.scrollState != RecyclerView.SCROLL_STATE_IDLE) return null
+        return currentCreationPrewarmKey()
+    }
+
+    /** 「如果现在点新建按钮，创建页首帧会长什么样」的指纹；点击那一刻与空闲预算共用同一份。 */
+    private fun currentCreationPrewarmKey():
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationKey? {
+        val fab = mFab ?: return null
+        val manager = mThingManager ?: return null
+        val location = IntArray(2)
+        fab.getLocationInWindow(location)
+        val projection = manager.getProjection()
+        val folderKey = projection.key() + ":" + manager.isCurrentFolderPrivacyAuthenticated()
+        return com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.fingerprint(
+            this, location[0] + fab.width / 2f, location[1] + fab.height / 2f, folderKey,
+            App.newThingBackground ?: ThingBackground.pure(App.newThingColor))
     }
 
     override fun onPause() {
         mSwipeParticleAnimator.reset()
+        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.onHomeHidden()
         super.onPause()
         mOverlayDragController?.cancel("activity-pause")
         finishNewItemShiningBorderAnimationIfNeeded()
@@ -6222,6 +6260,7 @@ class ThingsActivity :
             mCreationLaunchPending = true
             dismissSnackbars()
             mFab!!.isClickable = false
+            App.ensureNewThingBackground()
             val intent = DetailActivity.getOpenIntentForCreate(
                 this, TAG, App.newThingBackground ?: ThingBackground.pure(App.newThingColor),
                 mThingManager!!.getProjection().currentFolderId
@@ -6229,8 +6268,11 @@ class ThingsActivity :
             // 涟漪档以新建按钮中心为揭示圆心，因此把按钮的窗口坐标一并交给转场。
             val fabLocation = IntArray(2)
             mFab!!.getLocationInWindow(fabLocation)
+            // 第四批 ②：指纹必须在**点击这一刻**算——创建页起来之后再算就分不清是不是同一份环境。
+            val prewarmKey = currentCreationPrewarmKey()
             com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.launch(this, intent,
-                fabLocation[0] + mFab!!.width / 2f, fabLocation[1] + mFab!!.height / 2f) { launched ->
+                fabLocation[0] + mFab!!.width / 2f, fabLocation[1] + mFab!!.height / 2f,
+                prewarmKey) { launched ->
                 if (!launched) {
                     mCreationLaunchPending = false
                     mIsRevealAnimPlaying = false

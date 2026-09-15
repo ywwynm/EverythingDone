@@ -34,6 +34,27 @@ internal class ParticleDismissSpec(
      */
     val appearanceTouchXPx: Float? = null,
     val appearanceTouchYPx: Float? = null,
-    /** 2c：本次出现允许跳过倒放尾段几乎无粒子的部分（当前只有创建页传 true）。 */
-    val skipEmptyTail: Boolean = false
+    /**
+     * 2c：本次出现跳过倒放尾段几乎无粒子的部分。
+     *
+     * 第四批起弹窗、页内面板与新卡片的出现也走这条路，取值在 `appearContent` 那一层就按
+     * [ParticlePerfTuning.creationAppearanceSkipEmptyTail] / [ParticlePerfTuning.dialogAppearanceSkipEmptyTail]
+     * 解析完，会话只看这里的结论。
+     */
+    val skipEmptyTail: Boolean = false,
+    /**
+     * 本次出现是不是创建页（新建记事入场）。
+     *
+     * 创建页是唯一一条「快照可以提前预测、轨迹可以提前算」的路径（第四批 ②），也是
+     * 2b 真实触点与对比帧工具的唯一作用对象；观察器与 `ParticleAppearanceFrames` 按它区分，
+     * 不再靠 [skipEmptyTail] 反推（那一项现在弹窗也为 true）。
+     */
+    val creationPage: Boolean = false,
+    /**
+     * 第五批：这一屏对应的缓存键（只有创建页、且经 `ThingCreationTransition.launch` 进来时非空）。
+     *
+     * 它就是「点新建按钮那一刻的环境指纹」，也正是这一屏被拍下来时的环境。
+     * [ParticleCreationPrewarm.remember] 拿它把首屏落盘，冷启动之后按键读回来当预测素材。
+     */
+    val prewarmKey: ParticleCreationKey? = null
 )

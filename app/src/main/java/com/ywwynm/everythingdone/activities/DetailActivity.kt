@@ -456,6 +456,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val newId = thingManager.getHeaderId()
             App.getRunningDetailActivities().add(newId)
 
+            App.ensureNewThingBackground()
             var color = intent.getIntExtra(Def.Communication.KEY_COLOR, App.newThingColor)
             if (color == 0) color = DisplayUtil.getRandomColor(mApp)
 
@@ -471,7 +472,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 if (bg != null) mThing!!.setBackground(bg)
             }
 
-            App.updateNewThingColor()
+            // 粒子第四批 ②：随机掷点提前到首页（可见时 / 创建页关闭后）做，这里只标记「用掉了」。
+            // 首页据此在空闲时预先建材并预算出现轨迹；任何读预掷值的地方都先 ensure 一次，
+            // 已消费而还没重掷时立刻补掷，两条记事绝不会同色。
+            App.consumeNewThingBackground()
             // 常驻「快速新建」通知与创建页的首帧没有关系（读偏好 + 建 PendingIntent + 两次
             // NotificationManager binder），却整块压在 onCreate 的主线程上。挪到首帧之后，
             // 行为不变——它依赖的 App.newThingColor 上一行已经定好了。

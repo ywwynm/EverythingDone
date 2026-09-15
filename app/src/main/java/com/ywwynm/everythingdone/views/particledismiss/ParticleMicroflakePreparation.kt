@@ -8,11 +8,18 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import android.graphics.Bitmap
 
-/** 快照就绪后立即建材，与叠加层布局和 EGL 建链重叠；不在主线程等待。 */
+/**
+ * 快照就绪后立即建材，与叠加层布局和 EGL 建链重叠；不在主线程等待。
+ *
+ * [deferred] 为 true 时**只解像素、不建材**：本次新建命中了提前算好的轨迹（第四批 ②），
+ * 材料与轨迹都现成，建材那 40–70 ms 完全可以省掉。GL 线程若在收养那一刻发现预算不可用
+ * （共享资源尺寸变了之类），调 [requireModel] 补一次即可，仍然走原路径，只是晚了一点。
+ */
 internal class ParticleMicroflakePreparation(
-    assets: AssetManager,
+    private val assets: AssetManager,
     private val density: Float,
-    spec: ParticleDismissSpec
+    private val spec: ParticleDismissSpec,
+    private val deferred: Boolean = false
 ) {
     private val started = System.nanoTime()
 
@@ -28,6 +35,10 @@ internal class ParticleMicroflakePreparation(
         private set
     // 构造发生在主线程、动画层创建的那一刻：此时读到的「已经有反馈或播放在跑」才是本次的真实处境。
     private val contended = ParticlePerfTuning.defaultPriorityPreparation && ParticleGpuWork.busy
+
+    /** 只解像素、不建材那一档留下的 ARGB；[requireModel] 补建材时直接用它。 */
+    @Volatile private var sourcePixels: IntArray? = null
+
     private val task = FutureTask {
         // 这段计算直接阻塞用户可见首帧，所以默认仍用显示优先级。
         // 但涟漪或上一层粒子正在播时，它与主线程、RenderThread 抢同一批大核——
@@ -57,16 +68,46 @@ internal class ParticleMicroflakePreparation(
                 packedPixels = Pixels(bitmap.width, bitmap.height, packColors(argb), argb)
                 pixelsReady.complete(Unit)
             }
-            ParticleMicroflakeRenderer.fromSpec(assets, 0, 0, density, spec, argb).also {
-                buildMs = (System.nanoTime() - started) / 1e6
-            }
+            sourcePixels = argb
+            // 第四批 ②：这一屏就是**下一次**新建的预测素材。这里只多留一个引用，不复制像素。
+            ParticleCreationPrewarm.remember(spec, argb)
+            if (deferred) null else buildModel(argb)
         } catch (error: Throwable) {
             pixelsReady.completeExceptionally(error)
             throw error
         }
     }.also { executor.execute(it) }
 
-    val isFinished get() = task.isDone
+    @Volatile private var modelTask: FutureTask<ParticleMicroflakeRenderer.Input>? = null
+
+    private fun buildModel(argb: IntArray): ParticleMicroflakeRenderer.Input =
+        ParticleTrace.section("particle-material") {
+            ParticleMicroflakeRenderer.fromSpec(assets, 0, 0, density, spec, argb).also {
+                buildMs = (System.nanoTime() - started) / 1e6
+            }
+        }
+
+    /**
+     * 收养提前算好的轨迹失败时补一次建材（GL 线程调用）。
+     *
+     * 像素那一步此时已经完成（收养发生在拿到像素之后），所以这个任务不会在只有两条线程的
+     * 池子里与自己的像素任务互等。
+     */
+    fun requireModel() {
+        if (!deferred) return
+        synchronized(this) {
+            if (modelTask != null) return
+            val pixels = sourcePixels ?: return
+            val created = FutureTask {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+                buildModel(pixels)
+            }
+            modelTask = created
+            executor.execute(created)
+        }
+    }
+
+    val isFinished get() = task.isDone && modelTask?.isDone != false
 
     /** 非阻塞：尚未就绪时返回 null。取走之后本对象不再持有那份字节。 */
     fun pollPixels(): Pixels? {
@@ -80,15 +121,24 @@ internal class ParticleMicroflakePreparation(
         return checkNotNull(packedPixels).also { packedPixels = null }
     }
 
-    /** 非阻塞：材料模型尚未算完时返回 null。 */
+    /** 非阻塞：材料模型尚未算完时返回 null（延后建材且还没调 [requireModel] 时恒为 null）。 */
     fun poll(width: Int, height: Int): ParticleMicroflakeRenderer.Input? {
+        val fallback = modelTask
+        if (fallback != null) return if (fallback.isDone) framed(fallback.get(), width, height) else null
         if (!task.isDone) return null
-        return await(width, height)
+        val built = task.get() ?: return null
+        return framed(built, width, height)
     }
 
     fun await(width: Int, height: Int): ParticleMicroflakeRenderer.Input {
+        modelTask?.let { return framed(it.get(), width, height) }
+        return framed(checkNotNull(task.get()) { "本次建材被延后，先调 requireModel" }, width, height)
+    }
+
+    private fun framed(input: ParticleMicroflakeRenderer.Input, width: Int, height: Int):
+        ParticleMicroflakeRenderer.Input {
         val scale = (density / 1.875f).coerceAtLeast(.5f)
-        return task.get().copy(frameWidth = width / scale, frameHeight = height / scale)
+        return input.copy(frameWidth = width / scale, frameHeight = height / scale)
     }
 
     companion object {

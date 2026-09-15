@@ -90,7 +90,10 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                         }
                         fun build() = ParticleMicroflakeModel.build(w,h,source,16,16,294f,20260915L,rules)
                         ParticleMaterialNative.setLanes(1)
+                        check(ParticleMaterialNative.lanes() == 1) { "没能切到串行" }
                         val serial = try { build() } finally { ParticleMaterialNative.setLanes(0) }
+                        // 恢复之后必须真的回到多道，否则这条对照比的是两次串行运行（恒等式）。
+                        check(ParticleMaterialNative.lanes() > 1) { "没能恢复并行道数" }
                         val parallel = build()
                         check(serial.values.contentEquals(parallel.values)) { "并行道数改变了材料值 w=$w h=$h" }
                         check(serial.pigment.contentEquals(parallel.pigment)) { "并行道数改变了色素 w=$w h=$h" }
@@ -99,6 +102,27 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                             .put("bitIdentical",true))
                     }
                     lanes.put("cases",laneCases)
+                    // 第四批 ④：工作线程跟随调用线程的优先级。优先级不改变任何数值，逐位
+                    // 对照看不见它，只能在两种调用线程优先级下各建一次材料、把两个 nice 读回来比。
+                    val priorities = JSONArray()
+                    for (wanted in listOf(android.os.Process.THREAD_PRIORITY_DISPLAY,
+                        android.os.Process.THREAD_PRIORITY_DEFAULT)) {
+                        val done = java.util.concurrent.CountDownLatch(1)
+                        var row: JSONObject? = null
+                        Thread({
+                            android.os.Process.setThreadPriority(wanted)
+                            row = JSONObject().put("wanted", wanted)
+                                .put("callerNice", ParticleMaterialNative.threadPriority())
+                                .put("laneNice", ParticleMaterialNative.probeLanePriority())
+                            done.countDown()
+                        }, "ParticleMaterialPriority").start()
+                        done.await()
+                        val entry = checkNotNull(row)
+                        check(entry.getInt("laneNice") == entry.getInt("callerNice")) {
+                            "工作线程没有跟随调用线程优先级 $entry" }
+                        priorities.put(entry)
+                    }
+                    lanes.put("priorities", priorities)
                     File(out,"native-material-parity.json").writeText(JSONObject().put("ok",true).put("checkId",checkId)
                         .put("uploadBuffersVerified",true).put("lanes",lanes).put("cases",cases).toString(2))
                 } catch (error: Throwable) {
