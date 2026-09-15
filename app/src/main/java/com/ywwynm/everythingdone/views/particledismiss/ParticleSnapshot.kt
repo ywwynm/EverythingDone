@@ -3,11 +3,16 @@ package com.ywwynm.everythingdone.views.particledismiss
 import android.animation.LayoutTransition
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorFilter
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -54,6 +59,35 @@ internal object ParticleCaptureDiagnostics {
     fun describe(): String = "路径=$route 原因=${failure ?: "未记录"}"
 }
 
+/**
+ * 按弹窗圆角裁过的快照遮盖层。用 `clipPath` 而不是往位图上画遮罩：那张位图同时给
+ * 粒子建材用，不能就地改；复制一份整屏 ARGB_8888 又是十几 MB。
+ */
+private class RoundedBitmapCover(
+    private val bitmap: Bitmap, private val radiusPx: Float
+) : Drawable() {
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val path = Path()
+    private val rect = RectF()
+
+    override fun draw(canvas: Canvas) {
+        if (bitmap.isRecycled) return
+        val b = bounds
+        rect.set(b)
+        path.reset()
+        path.addRoundRect(rect, radiusPx, radiusPx, Path.Direction.CW)
+        canvas.save()
+        canvas.clipPath(path)
+        canvas.drawBitmap(bitmap, null, b, paint)
+        canvas.restore()
+    }
+
+    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+    override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
+    @Deprecated("Drawable 抽象成员，按平台约定返回半透明。")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+}
+
 /** 窗口的普通控件与窗口下方的独立 Surface 分别捕获，再按原合成顺序拼合。 */
 internal object ParticleSnapshot {
     private val handler = Handler(Looper.getMainLooper())
@@ -68,12 +102,21 @@ internal object ParticleSnapshot {
      * Activity 的快照位于 Dialog 窗口下方，无法遮住该窗口移除 Surface 时留下的洞。
      * 在原窗口也保留同一张合成图，直到窗口退出；不能只等下方的粒子层上屏。
      * 使用 ViewOverlay，不参与测量，也不隐藏或重建仍在显示的 Surface。
+     *
+     * [cornerRadiusPx] 是弹窗的圆角半径，只有在圆角遮罩还没画进 [snapshot] 时才需要传
+     * （`ParticlePerfTuning.maskOnMaterialThread` 为真时就是这样：遮罩在材料线程上、
+     * 对着粒子那一份做，盖在真实弹窗上的这一份是没裁角的）。不裁的话，只要合成图四角
+     * 不是恰好透明，真实弹窗就会在交接期变成直角。
      */
-    fun coverSurfaces(root: View, snapshot: Bitmap): (() -> Unit)? {
+    fun coverSurfaces(root: View, snapshot: Bitmap, cornerRadiusPx: Float = 0f): (() -> Unit)? {
         if (!hasVisibleSurface(root)) return null
-        val cover = BitmapDrawable(root.resources, snapshot).apply {
-            setBounds(0, 0, root.width, root.height)
-            isFilterBitmap = false
+        val cover = if (cornerRadiusPx > 0f) {
+            RoundedBitmapCover(snapshot, cornerRadiusPx).apply { setBounds(0, 0, root.width, root.height) }
+        } else {
+            BitmapDrawable(root.resources, snapshot).apply {
+                setBounds(0, 0, root.width, root.height)
+                isFilterBitmap = false
+            }
         }
         root.overlay.add(cover)
         var released = false
@@ -134,8 +177,14 @@ internal object ParticleSnapshot {
         if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i), action)
     }
 
+    /**
+     * [dismissal] 表示这是消散：一律先离屏（见 [ParticleCaptureRoute.preferOffscreen]）。
+     * [forceOffscreen] 由「窗口 PixelCopy 已经失败过一次」的回退传 true。
+     */
     fun capture(window: Window, root: View, offscreen: (() -> Bitmap?)? = null,
-                asyncOffscreen: (((Bitmap?) -> Unit) -> Unit)? = null, done: (Bitmap?) -> Unit) {
+                asyncOffscreen: (((Bitmap?) -> Unit) -> Unit)? = null,
+                dismissal: Boolean = false, forceOffscreen: Boolean = false,
+                done: (Bitmap?) -> Unit) {
         val surfaces = mutableListOf<SurfaceView>()
         visit(root) { if (it is SurfaceView && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) surfaces += it }
         // 同属窗口下方的 Surface 按前到后合成，避免后画的底层盖住高层。
@@ -203,9 +252,11 @@ internal object ParticleSnapshot {
         }
         // 回调缺席也要恢复真实内容。正在写入的缓冲仅由迟到回调回收。
         handler.postDelayed(timeout, 900)
-        val preferOffscreen = ParticleCaptureRoute.preferOffscreen(surfaces.isNotEmpty())
+        val preferOffscreen = ParticleCaptureRoute.preferOffscreen(
+            surfaces.isNotEmpty(), dismissal = dismissal, forced = forceOffscreen)
         if (asyncOffscreen != null && preferOffscreen) {
-            ParticleCaptureDiagnostics.begin("离屏异步")
+            ParticleCaptureDiagnostics.begin(
+                if (surfaces.isEmpty()) "离屏异步" else "离屏异步+独立Surface×${surfaces.size}")
             asyncOffscreen { base ->
                 if (base == null) {
                     // 离屏那一层已经记下更精确的原因（syncAndDraw / fence / 超时），不要盖掉。
@@ -217,7 +268,8 @@ internal object ParticleSnapshot {
         }
         // 普通 View 保留原有离屏捕获；独立 Surface 需要窗口里的真实透明洞才能正确合成。
         if (offscreen != null && preferOffscreen) {
-            ParticleCaptureDiagnostics.begin("离屏同步")
+            ParticleCaptureDiagnostics.begin(
+                if (surfaces.isEmpty()) "离屏同步" else "离屏同步+独立Surface×${surfaces.size}")
             val base = offscreen()
             if (base == null) {
                 ParticleCaptureDiagnostics.noteIfAbsent("离屏同步返回空")
@@ -235,7 +287,7 @@ internal object ParticleSnapshot {
                     if (finished) base.recycle()
                     else if (status == PixelCopy.SUCCESS) copySurfaces(base, 0)
                     else if (status == PixelCopy.ERROR_SOURCE_NO_DATA && root.isAttachedToWindow &&
-                        SystemClock.uptimeMillis() - started < 700) handler.postDelayed({ requestWindow() }, 16)
+                        SystemClock.uptimeMillis() - started < WINDOW_RETRY_MS) handler.postDelayed({ requestWindow() }, 16)
                     else {
                         failed("窗口 PixelCopy 状态=$status 附着=${root.isAttachedToWindow} " +
                             "等待=${SystemClock.uptimeMillis() - started}ms")
@@ -249,4 +301,7 @@ internal object ParticleSnapshot {
         }
         requestWindow()
     }
+
+    /** 窗口 `PixelCopy` 收到 `ERROR_SOURCE_NO_DATA` 之后还肯重试多久。 */
+    private const val WINDOW_RETRY_MS = 700L
 }

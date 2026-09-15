@@ -159,13 +159,12 @@ internal object ParticleDismissController {
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
         val capture = {
-            // 弹窗里没有可见的独立 Surface 时一律走离屏硬件抓图——与点按钮（有涟漪）时同一条
-            // 路径。此前只有「有涟漪」才给这条路，返回键与点外部退回到对弹窗窗口做 PixelCopy，
-            // 而那一条在魅族 20 Infinity（Flyme / Android 15）上对「调整颜色」面板 2/2 整个
-            // 700 ms 重试窗口都返回 ERROR_SOURCE_NO_DATA（状态 3），快照为空、消散整场不播；
-            // 同一台设备同一个面板，点取消/确定走离屏抓图 11–53 ms 就拿到图。
-            // 有独立 Surface 时仍必须走窗口 PixelCopy：离屏重录画不出 SurfaceView 的真实透明洞，
-            // 各 Surface 的像素就合成不回去（见 ParticleSnapshot.capture 里的说明）。
+            // 消散一律先走离屏硬件抓图，有没有可见的独立 Surface 都一样（有的话再逐个
+            // PixelCopy 合成回去）。窗口 PixelCopy 只作回退。理由有两条，都来自魅族
+            // 20 Infinity（Flyme / Android 15）的实测：它对「调整颜色」面板与录音弹窗
+            // 用点外部关闭时整个重试窗口都返回 ERROR_SOURCE_NO_DATA、消散整场不播；
+            // 而且这一次失败的捕获会连带把弹窗自己闪一下（连续两帧被裁成直角的一块）。
+            // 详见 ParticleCaptureRoute.preferOffscreen。
             val offscreen: ((Bitmap?) -> Unit) -> Unit = { done ->
                 if (feedback != null) feedback.withoutRipple { captureSnapshotAsync(decor, activity, done) }
                 else captureSnapshotAsync(decor, activity, done)
@@ -207,16 +206,18 @@ internal object ParticleDismissController {
                     else pendingDismissCaptures[activity] = pending
                 }
             }
-            ParticleSnapshot.capture(window, decor, asyncOffscreen = offscreen) { snapshot ->
-                // 离屏这条路失败时再让窗口 PixelCopy 试一次，而不是直接放弃整场动画。
-                // 反过来不做：有 Surface 时只有窗口缓冲里才有真实透明洞，用离屏图回退会在
-                // 画面上留一块空洞，比退回系统默认退出更糟。
-                val retryable = ParticleCaptureRoute.shouldFallbackToWindowCopy(
-                    snapshotMissing = snapshot == null, hasVisibleSurface = hasSurface,
+            ParticleSnapshot.capture(window, decor, asyncOffscreen = offscreen,
+                dismissal = true) { snapshot ->
+                // 首选（消散一律是离屏）没拿到图时，用窗口 PixelCopy 再试一次，
+                // 而不是直接放弃整场动画。只试这一次。
+                val retryable = ParticleCaptureRoute.shouldRetryOtherRoute(
+                    snapshotMissing = snapshot == null,
                     contentUsable = decor.isAttachedToWindow &&
                         !activity.isFinishing && !activity.isDestroyed)
-                if (!retryable) deliver(snapshot, false)
-                else {
+                if (!retryable) {
+                    if (BuildConfig.DEBUG && hasSurface) ParticleCaptureDump.save(activity, snapshot)
+                    deliver(snapshot, false)
+                } else {
                     if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
                         "消散抓图回退：离屏失败，改用窗口 PixelCopy 再试一次 " +
                             ParticleCaptureDiagnostics.describe())
@@ -251,7 +252,10 @@ internal object ParticleDismissController {
         onDone: Runnable?,
         feedback: ParticleTouchFeedback?
     ) {
-        val releaseSurfaceCover = ParticleSnapshot.coverSurfaces(decor, snapshot)
+        // 圆角遮罩在材料线程上时，这张快照本身还是直角的——盖回真实弹窗必须自己裁角，
+        // 否则交接期弹窗会有一瞬间变成直角。
+        val releaseSurfaceCover = ParticleSnapshot.coverSurfaces(
+            decor, snapshot, if (ParticlePerfTuning.maskOnMaterialThread) cornerRadiusPx else 0f)
         val dialogLocation = IntArray(2)
         val hostLocation = IntArray(2)
         decor.getLocationOnScreen(dialogLocation)
@@ -573,8 +577,12 @@ internal object ParticleDismissController {
      * 失败回退软件 draw（子 View 的 outline 裁剪不保留）。
      */
     private fun captureSnapshotAsync(decor: View, context: Context, done: (Bitmap?) -> Unit) {
-        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(decor, done)
-        else done(captureSnapshot(decor, context))
+        if (Build.VERSION.SDK_INT >= 29 && !ParticleSnapshot.hasVisibleSurface(decor)) {
+            ParticleHardwareSnapshot.capture(decor, done)
+        } else {
+            ParticleCaptureDiagnostics.begin("离屏软件绘制")
+            done(captureSnapshot(decor, context, softwareOnly = true))
+        }
     }
 
     /** 通用内容保留自身轮廓；不能套用 Dialog 的圆角遮罩。 */
@@ -591,16 +599,35 @@ internal object ParticleDismissController {
         }
     }
 
-    private fun captureSnapshot(decor: View, context: Context): Bitmap? {
+    /**
+     * [softwareOnly] 用于「弹窗里有可见 `SurfaceView`」这一格：**绝不能用第二个
+     * `HardwareRenderer` 去画活着的视图树**。
+     *
+     * Android 15 起 `SurfaceView` 的裁剪由 RenderThread 驱动（`Flags.clipSurfaceviews`）：
+     * 它的 SurfaceControl 位置与 crop 来自「这一帧把它的 RenderNode 画到了哪里」，由
+     * `replacePositionUpdateListener` 上报。离屏渲染器一旦把同一个 RenderNode 再画一遍，
+     * 上报的就是离屏那一帧的边界，被应用到**真实的** SurfaceControl 上——魅族 20 Infinity
+     * 录屏逐帧实测：消散开始时有连续两帧，海浪那一层被裁成 974×1357（内容位置一个像素
+     * 没动，只是可见区域被裁小），观感是弹窗一瞬间变成直角、整屏亮度掉约 10 个灰阶，
+     * 随后真实窗口下一帧上报正确边界又自己恢复。
+     *
+     * 软件 `Canvas` 不走 RenderNode，因此不会触发这条上报。代价是子 View 的
+     * `clipToOutline` 不生效、绘制在主线程同步完成；只有这一小类弹窗（录音、音频附件
+     * 播放）走这条路，它们的圆角来自窗口背景而不是子 View 的 outline。
+     * `SurfaceView` 的透明洞由框架的 `punchHole` 记下，软件画布同样有原生实现。
+     */
+    private fun captureSnapshot(decor: View, context: Context,
+                                softwareOnly: Boolean = false): Bitmap? {
         return try {
-            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val bitmap = if (!softwareOnly && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 captureViaHardwareRenderer(decor) ?: captureViaSoftwareDraw(decor)
             } else {
                 captureViaSoftwareDraw(decor)
             }
             applyRoundedCornerMask(bitmap, context)
             bitmap
-        } catch (_: Throwable) {
+        } catch (error: Throwable) {
+            ParticleCaptureDiagnostics.note("离屏软件绘制异常=${error.javaClass.simpleName}")
             null
         }
     }

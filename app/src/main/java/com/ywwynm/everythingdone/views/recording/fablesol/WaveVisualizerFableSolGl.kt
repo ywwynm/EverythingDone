@@ -1,12 +1,14 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.util.Log
 import android.view.Display
+import android.view.PixelCopy
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -54,6 +56,8 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     private var hostFrozen = false
     private var particleHolds = 0
     private var surfaceReady = false
+    /** 当前 EGL 会话是按哪个缓冲格式建的；与 [desiredSurfaceFormat] 不一致就必须重建会话。 */
+    private var attachedFormat = PixelFormat.UNKNOWN
     private var votedFrameRate = 0f
     private var demotedPollStreak = 0
     private var lastRevoteUptimeMs = 0L
@@ -97,15 +101,23 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     init {
         setZOrderOnTop(false)
-        holder.setFormat(
-            if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr) {
-                PixelFormat.RGBA_F16
-            } else {
-                PixelFormat.RGBA_8888
-            }
-        )
+        holder.setFormat(desiredSurfaceFormat())
         holder.addCallback(this)
     }
+
+    /**
+     * 缓冲格式必须与 [canBuildHdrSurface] 同一个判据：HDR 关掉之后仍留 FP16，
+     * 这一层在合成器眼里依旧是个浮点层，用户看到的还是「颜色不对」。
+     */
+    private fun desiredSurfaceFormat(): Int =
+        if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr && hdrRequestedByUser()) {
+            PixelFormat.RGBA_F16
+        } else {
+            PixelFormat.RGBA_8888
+        }
+
+    /** 用户把强度滑到最低（1.0 = 关闭）就是明确要求不要 HDR，屏上这一层必须整个退回 SDR。 */
+    private fun hdrRequestedByUser(): Boolean = hdrStrength > FableSolHdrPolicy.STRENGTH_OFF
 
     fun setThingBackground(background: ThingBackground) {
         renderThread.setThingBackground(background)
@@ -130,7 +142,50 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         updateDesiredHdrHeadroom()
     }
 
-    /** 用户 HDR 强度（1.0=关，9.6 封顶）：立即生效，已抬升的期望 headroom 同步改请求值。 */
+    /**
+     * 这次强度变化会不会换缓冲格式。换格式意味着旧缓冲当场作废、新 EGL 会话交出第一帧
+     * 之前合成器手上没有内容——调用方（[WaveVisualizerFableSolHost]）要先盖一张静止图。
+     */
+    internal fun willChangeSurfaceFormat(strength: Float): Boolean {
+        if (!surfaceReady) return false
+        val value = strength.coerceIn(
+            FableSolHdrPolicy.STRENGTH_OFF, FableSolHdrPolicy.MAX_STRENGTH
+        )
+        if (value == hdrStrength) return false
+        val wanted = if (Build.VERSION.SDK_INT >= 34 && resources.configuration.isScreenHdr &&
+            value > FableSolHdrPolicy.STRENGTH_OFF) PixelFormat.RGBA_F16 else PixelFormat.RGBA_8888
+        return wanted != attachedFormat
+    }
+
+    /** 当前这一帧的静止拷贝，供换格式期间遮盖用；拿不到就回调 null（调用方照常切）。 */
+    internal fun copyCurrentFrame(done: (Bitmap?) -> Unit) {
+        if (!surfaceReady || !holder.surface.isValid || width <= 0 || height <= 0) {
+            done(null); return
+        }
+        val bitmap = runCatching {
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        }.getOrNull() ?: run { done(null); return }
+        runCatching {
+            PixelCopy.request(this, bitmap, { status ->
+                if (status == PixelCopy.SUCCESS) done(bitmap)
+                else { bitmap.recycle(); done(null) }
+            }, handler)
+        }.onFailure { bitmap.recycle(); done(null) }
+    }
+
+    /** 新会话在这条 Surface 上真正交出第一帧之后回调一次（主线程）。 */
+    internal fun onNextPresented(action: () -> Unit) {
+        renderThread.notifyOnNextPresented(action)
+    }
+
+    /**
+     * 用户 HDR 强度（1.0=关，9.6 封顶）：立即生效，已抬升的期望 headroom 同步改请求值。
+     *
+     * 跨过「关闭」那一档时还要换缓冲格式：开与关分别对应 FP16 linear scRGB 与 sRGB 8 位
+     * 两种表面，光改着色器输出换不掉合成器对这块缓冲的解释。换格式会触发 surfaceChanged，
+     * 那里按 [attachedFormat] 判出格式变了、整条重建 EGL 会话。**换格式会丢掉旧缓冲**，
+     * 所以这条路要由 [WaveVisualizerFableSolHost] 先盖一张静止图再调（[willChangeSurfaceFormat]）。
+     */
     internal fun setHdrStrength(strength: Float) {
         val value = strength.coerceIn(
             FableSolHdrPolicy.STRENGTH_OFF,
@@ -138,6 +193,8 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         )
         if (value == hdrStrength) return
         hdrStrength = value
+        val format = desiredSurfaceFormat()
+        if (format != attachedFormat) holder.setFormat(format)
         renderThread.setHdrStrength(value)
         updateDesiredHdrHeadroom()
     }
@@ -223,6 +280,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         val frame = holder.surfaceFrame
         val preferHdr = canBuildHdrSurface()
         val hdrSdrRatio = currentHdrSdrRatio()
+        attachedFormat = desiredSurfaceFormat()
         renderThread.attach(
             holder.surface,
             max(width, frame.width()).coerceAtLeast(1),
@@ -239,12 +297,18 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         if (BuildConfig.DEBUG) {
             Log.i(
                 SURF_PROBE,
-                "surfaceChanged fmt=$format ${width}x$height ready=$surfaceReady valid=${holder.surface.isValid}"
+                "surfaceChanged fmt=$format ${width}x$height ready=$surfaceReady " +
+                    "valid=${holder.surface.isValid} attachedFmt=$attachedFormat"
             )
         }
-        if (!surfaceReady && holder.surface.isValid) {
+        // 缓冲格式变了（用户在调参 Dialog 里把 HDR 强度拖过「关闭」那一档）只会走到
+        // surfaceChanged——SurfaceView 不会为此重建 Surface，于是 surfaceReady 仍为 true。
+        // EGL 会话是按旧格式与旧色彩空间建的，只 resize 换不掉它，必须整条重建。
+        val formatChanged = surfaceReady && format != attachedFormat && holder.surface.isValid
+        if ((!surfaceReady && holder.surface.isValid) || formatChanged) {
             surfaceReady = true
             votedFrameRate = 0f   // Surface 已换新，旧票不再有效
+            attachedFormat = format
             renderThread.attach(
                 holder.surface,
                 width.coerceAtLeast(1),
@@ -335,8 +399,22 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
         renderThread.setAnimating(false)
     }
 
+    /**
+     * 这一次要不要把窗口 Surface 建成 FP16 linear scRGB。
+     *
+     * 三个条件缺一不可：API 34+、显示器报告 HDR 且实时 `hdrSdrRatio` 可用（D80）、
+     * **用户没有把 HDR 强度关掉**。最后这一条是 2026-09-15 补上的：此前强度只缩放着色器
+     * 的超白增量（[FableSolHdrPolicy.excessScale]），表面的色彩空间与像素格式不跟着退回，
+     * 于是「HDR 强度=关闭」之后这一层在合成器里仍然是 scRGB linear 的 FP16 层。魅族 20
+     * Infinity（Flyme / Android 15）实测：`hdr_strength=1.0` 时 SurfaceFlinger 里仍是
+     * `format RGBA16161616F_UBWC dataspace 0x18410000 composition Device/Device`，屏幕上
+     * 颜色明显不对，而系统截屏（走 GPU 合成，色彩管理正确）是对的。强度为关时内容本就
+     * 等价 SDR，所以这一档退回 sRGB 8 位不改变任何应当看到的像素，只是不再让合成器按
+     * 扩展线性去解释这块缓冲。
+     */
     private fun canBuildHdrSurface(): Boolean {
         if (Build.VERSION.SDK_INT < 34) return false
+        if (!hdrRequestedByUser()) return false
         val currentDisplay = display ?: return false
         return currentDisplay.isHdr && currentDisplay.isHdrSdrRatioAvailable
     }

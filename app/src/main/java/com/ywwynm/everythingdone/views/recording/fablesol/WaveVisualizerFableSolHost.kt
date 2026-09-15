@@ -2,12 +2,16 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -35,6 +39,9 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     private var gravityZ = 0f
     private var performanceMonitor: FableSolPerformanceMonitor? = null
     private var perfHud: TextView? = null
+    /** 换缓冲格式期间的静止遮盖层；平时不创建，撤掉之后位图立即回收。 */
+    private var formatCover: ImageView? = null
+    private var coverShownAtNanos = 0L
     private var presentationAlpha = PREPARED_PRESENTATION_ALPHA
     private var presentationAnimator: ValueAnimator? = null
     private var particleHolds = 0
@@ -156,9 +163,65 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     /** GLES 异步失败、切到 Canvas 回退时回调一次；导出入口据此立刻隐藏，而不是等下次点击。 */
     var onGlFallback: (() -> Unit)? = null
 
-    /** 用户 HDR 强度（1.0=关，9.6 封顶）；仅 GL 路径，Canvas 回退无 HDR。 */
+    /**
+     * 用户 HDR 强度（1.0=关，9.6 封顶）；仅 GL 路径，Canvas 回退无 HDR。
+     *
+     * 跨过「关闭」那一档要换缓冲格式、整条重建 EGL 会话——**换格式的那一刻旧
+     * 缓冲就作废了**，新会话交出第一帧之前合成器手上没有内容，OPD2515 上看到的就是这一两帧
+     * 空白（表现为预览瞬间闪一下）。
+     *
+     * 做法是「先显后撤」：先把当前这一帧 `PixelCopy` 下来盖在预览上，再换格式；等新会话
+     * **在这条 Surface 上**真正交出第一帧（[WaveVisualizerFableSolGl.onNextPresented]，
+     * 不是宿主窗口画了一帧）才撤掉遮盖层。附 [COVER_TIMEOUT_MS] 兜底，抓图失败也照常切，
+     * 只是那一次没有遮盖——绝不因为遮盖失败就不改设置。
+     */
     fun setHdrStrength(strength: Float) {
-        glView.setHdrStrength(strength)
+        if (fallbackActive || !glView.willChangeSurfaceFormat(strength)) {
+            glView.setHdrStrength(strength)
+            return
+        }
+        glView.copyCurrentFrame { frame ->
+            showFormatCover(frame)
+            coverShownAtNanos = System.nanoTime()
+            if (BuildConfig.DEBUG) {
+                Log.i(COVER_TAG, "换格式遮盖：已上 抓图=${frame != null} 强度=$strength")
+            }
+            glView.setHdrStrength(strength)
+            glView.onNextPresented { hideFormatCover("新会话首帧") }
+            removeCallbacks(hideFormatCoverRunnable)
+            postDelayed(hideFormatCoverRunnable, COVER_TIMEOUT_MS)
+        }
+    }
+
+    private fun showFormatCover(frame: Bitmap?) {
+        if (frame == null) return
+        val view = formatCover ?: ImageView(context).also {
+            it.scaleType = ImageView.ScaleType.FIT_XY
+            formatCover = it
+            addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        }
+        // 遮盖层压在水面之上；HUD 随后再提到最前，保持它一直可见。
+        view.bringToFront()
+        perfHud?.bringToFront()
+        (view.drawable as? BitmapDrawable)?.bitmap?.takeIf { it !== frame }?.recycle()
+        view.setImageBitmap(frame)
+        view.visibility = VISIBLE
+    }
+
+    private val hideFormatCoverRunnable = Runnable { hideFormatCover("兜底超时") }
+
+    private fun hideFormatCover(reason: String = "收尾") {
+        removeCallbacks(hideFormatCoverRunnable)
+        val view = formatCover ?: return
+        if (view.visibility != VISIBLE) return
+        if (BuildConfig.DEBUG) {
+            Log.i(COVER_TAG, "换格式遮盖：撤下 原因=$reason 停留=%.1fms".format(
+                (System.nanoTime() - coverShownAtNanos) / 1e6))
+        }
+        view.visibility = GONE
+        val drawable = view.drawable as? BitmapDrawable
+        view.setImageDrawable(null)
+        drawable?.bitmap?.recycle()
     }
 
     /** 运行时调参（调参 Dialog 实时预览）：直达当前活动的渲染后端。 */
@@ -228,6 +291,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         presentationAnimator?.cancel()
         presentationAnimator = null
+        hideFormatCover()
         super.onDetachedFromWindow()
     }
 
@@ -266,6 +330,9 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
         const val INTRINSIC_H_DP = 420f
         const val PREPARED_PRESENTATION_ALPHA = 0.16f
         const val HUD_TEXT_SP = 8f
+        /** 遮盖层的兜底时限：新会话万一交不出帧，也绝不把静止图永久留在屏幕上。 */
+        const val COVER_TIMEOUT_MS = 900L
+        const val COVER_TAG = "FableSolSurfProbe"
         val HUD_BACKGROUND = Color.argb(150, 0, 0, 0)
         val HUD_FOREGROUND = Color.argb(255, 120, 255, 160)
     }

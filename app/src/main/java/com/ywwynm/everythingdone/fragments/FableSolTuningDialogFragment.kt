@@ -582,7 +582,12 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             String.format(Locale.US, "%.2f×", strength)
         }
 
-    /** 与 WaveVisualizerFableSolGl.canBuildHdrSurface 同判据（View 尚未 attach 时用 Activity 的 display）。 */
+    /**
+     * WaveVisualizerFableSolGl.canBuildHdrSurface 里**显示器那一半**的判据（View 尚未
+     * attach 时用 Activity 的 display）。它只回答「这块屏能不能报出实时 headroom」，
+     * 决定滑杆是否可用；那边还要求用户强度高于关闭档，这里**不能**跟着加——否则滑到
+     * 关闭之后滑杆自己变灰，就再也拖不回来了。
+     */
     private fun isHdrDisplaySupported(): Boolean {
         if (Build.VERSION.SDK_INT < 34) return false
         val display = mVisualizer?.display ?: mActivity?.display ?: return false

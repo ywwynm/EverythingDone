@@ -5,6 +5,7 @@ import android.opengl.EGL14
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.Process
 import android.util.Log
 import android.view.Choreographer
@@ -16,6 +17,7 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /** EGL 生命周期、帧合并和渲染器线程归属。 */
@@ -30,6 +32,9 @@ internal class FableSolGlRenderThread(
     @Volatile private var acceptingFrames = false
     @Volatile private var animating = false
     private val singleFramePending = AtomicBoolean()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    /** 一次性的「下一帧已上屏」回调：GL 线程置空取走，主线程执行。 */
+    private val onNextPresented = AtomicReference<(() -> Unit)?>(null)
     private var renderWidth = 0
     private var renderHeight = 0
     // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
@@ -166,6 +171,22 @@ internal class FableSolGlRenderThread(
     /** 供降档看门狗读取：观测 vsync 派发间隔（EMA，纳秒）；0 表示未知。 */
     fun observedVsyncIntervalNs(): Long = smoothedVsyncIntervalNs
 
+    /**
+     * 下一帧真正 `eglSwapBuffers` 成功之后，在主线程回调一次（只回调一次，随即清掉）。
+     *
+     * 换缓冲格式要整条重建 EGL 会话，旧缓冲在这一刻就没了；只有等新会话交出第一帧，
+     * 遮盖层才能撤。用 `View` 侧的 `registerFrameCommitCallback` 证明不了这件事——
+     * 那证明的是宿主窗口画了一帧，不是这条 Surface 上有了内容。
+     */
+    fun notifyOnNextPresented(action: () -> Unit) {
+        onNextPresented.set(action)
+    }
+
+    private fun presentedOnce() {
+        val action = onNextPresented.getAndSet(null) ?: return
+        mainHandler.post(action)
+    }
+
     private fun renderFrame(frameTimeNanos: Long) {
         try {
             val session = egl
@@ -180,6 +201,7 @@ internal class FableSolGlRenderThread(
                     return
                 }
                 transientSwapFailures = 0
+                presentedOnce()
                 val swapNs = System.nanoTime() - swapStart
                 monitor?.recordGlStages(
                         timing.drainNs,
