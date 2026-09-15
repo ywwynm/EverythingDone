@@ -130,16 +130,26 @@ internal object ParticleDismissController {
     fun startContent(
         activity: Activity, window: Window, decor: View, touchInWindow: PointF?,
         onAnimationStarted: Runnable, onOverlayShown: Runnable,
-        useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
-        captureOffscreen: Boolean = false
+        useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null
     ): Boolean {
         cancelAppearance(decor)
         val requestedAtNanos = System.nanoTime()
-        if (Looper.myLooper() != Looper.getMainLooper() || !ValueAnimator.areAnimatorsEnabled()) return false
-        if (!decor.isAttachedToWindow || decor.width <= 0 || decor.height <= 0) return false
-        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
-        val hostDecor = activity.window.decorView as? ViewGroup ?: return false
-        if (!hostDecor.isAttachedToWindow) return false
+        // 每个前置拒绝都要能在日志里分辨出来：这一串里任何一条命中，弹窗都会以系统默认
+        // 动画退出，观感就是「消散没播」，而此前一条日志都没有。
+        fun reject(reason: String): Boolean {
+            if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG, "消散未受理：$reason")
+            return false
+        }
+        if (Looper.myLooper() != Looper.getMainLooper()) return reject("不在主线程")
+        if (!ValueAnimator.areAnimatorsEnabled()) return reject("系统动画已关闭")
+        if (!decor.isAttachedToWindow) return reject("弹窗 decor 未附着")
+        if (decor.width <= 0 || decor.height <= 0) return reject("弹窗尺寸为 0（${decor.width}x${decor.height}）")
+        if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) {
+            return reject("宿主正在结束或重建 finishing=${activity.isFinishing} " +
+                "destroyed=${activity.isDestroyed} changingConfig=${activity.isChangingConfigurations}")
+        }
+        val hostDecor = activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor")
+        if (!hostDecor.isAttachedToWindow) return reject("宿主 decor 未附着")
         // 1.2：不再改任何窗口属性。刷新率改由粒子自己的 Surface 投一次无缝 60 Hz
         // （见 ParticleWindowSurface.applyFrameRate）。
         // 一窗一 Surface：在请求这一刻就把宿主窗口的粒子 SurfaceView 建起来，首次动画不必
@@ -149,13 +159,20 @@ internal object ParticleDismissController {
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
         val capture = {
-            val offscreen: (((Bitmap?) -> Unit) -> Unit)? = if (feedback != null || captureOffscreen) {
-                { done ->
-                    if (feedback != null) feedback.withoutRipple { captureSnapshotAsync(decor, activity, done) }
-                    else captureSnapshotAsync(decor, activity, done)
-                }
-            } else null
-            ParticleSnapshot.capture(window, decor, asyncOffscreen = offscreen) { snapshot ->
+            // 弹窗里没有可见的独立 Surface 时一律走离屏硬件抓图——与点按钮（有涟漪）时同一条
+            // 路径。此前只有「有涟漪」才给这条路，返回键与点外部退回到对弹窗窗口做 PixelCopy，
+            // 而那一条在魅族 20 Infinity（Flyme / Android 15）上对「调整颜色」面板 2/2 整个
+            // 700 ms 重试窗口都返回 ERROR_SOURCE_NO_DATA（状态 3），快照为空、消散整场不播；
+            // 同一台设备同一个面板，点取消/确定走离屏抓图 11–53 ms 就拿到图。
+            // 有独立 Surface 时仍必须走窗口 PixelCopy：离屏重录画不出 SurfaceView 的真实透明洞，
+            // 各 Surface 的像素就合成不回去（见 ParticleSnapshot.capture 里的说明）。
+            val offscreen: ((Bitmap?) -> Unit) -> Unit = { done ->
+                if (feedback != null) feedback.withoutRipple { captureSnapshotAsync(decor, activity, done) }
+                else captureSnapshotAsync(decor, activity, done)
+            }
+            val captureAtNanos = System.nanoTime()
+            val hasSurface = ParticleSnapshot.hasVisibleSurface(decor)
+            fun deliver(snapshot: Bitmap?, fallbackUsed: Boolean) {
                 try {
                     if (snapshot != null && !activity.isFinishing && !activity.isDestroyed &&
                         hostDecor.isAttachedToWindow && decor.isAttachedToWindow) {
@@ -166,6 +183,18 @@ internal object ParticleDismissController {
                             requestedAtNanos, useDefaultTouchDistance, radius,
                             Runnable { releaseContent(); onDone?.run() }, feedback)
                     } else {
+                        // 走到这里弹窗会以系统默认动画退出，画面上就是「没有粒子」。
+                        // 快照为空要能一眼看出走的是哪条抓图路径、卡在哪一步。
+                        if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
+                            if (snapshot == null)
+                                "消散未开播：快照为空 ${ParticleCaptureDiagnostics.describe()} " +
+                                    "耗时=${(System.nanoTime() - captureAtNanos) / 1e6} " +
+                                    "有涟漪=${feedback != null} 有Surface=$hasSurface " +
+                                    "已回退=$fallbackUsed 尺寸=${decor.width}x${decor.height}"
+                            else "消散未开播：交接期宿主或弹窗已不可用 finishing=${activity.isFinishing} " +
+                                "destroyed=${activity.isDestroyed} 宿主附着=${hostDecor.isAttachedToWindow} " +
+                                "弹窗附着=${decor.isAttachedToWindow} " +
+                                "耗时=${(System.nanoTime() - captureAtNanos) / 1e6}")
                         releaseContent()
                         snapshot?.recycle()
                         onAnimationStarted.run()
@@ -178,7 +207,30 @@ internal object ParticleDismissController {
                     else pendingDismissCaptures[activity] = pending
                 }
             }
+            ParticleSnapshot.capture(window, decor, asyncOffscreen = offscreen) { snapshot ->
+                // 离屏这条路失败时再让窗口 PixelCopy 试一次，而不是直接放弃整场动画。
+                // 反过来不做：有 Surface 时只有窗口缓冲里才有真实透明洞，用离屏图回退会在
+                // 画面上留一块空洞，比退回系统默认退出更糟。
+                val retryable = ParticleCaptureRoute.shouldFallbackToWindowCopy(
+                    snapshotMissing = snapshot == null, hasVisibleSurface = hasSurface,
+                    contentUsable = decor.isAttachedToWindow &&
+                        !activity.isFinishing && !activity.isDestroyed)
+                if (!retryable) deliver(snapshot, false)
+                else {
+                    if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
+                        "消散抓图回退：离屏失败，改用窗口 PixelCopy 再试一次 " +
+                            ParticleCaptureDiagnostics.describe())
+                    ParticleSnapshot.capture(window, decor) { retried -> deliver(retried, true) }
+                }
+            }
         }
+        // 受理这一行是每次消散的锚点：后面的「未开播 / 降级淡出 / 完成 count=」都归到它名下。
+        // 时长缩放必须从这里读回——`settings get global` 与框架真正施加的值可能不一致。
+        if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
+            "消散受理：尺寸=${decor.width}x${decor.height} 有触点=${touchInWindow != null} " +
+                "默认触点距离=$useDefaultTouchDistance 有涟漪=${feedback != null} " +
+                "有Surface=${ParticleSnapshot.hasVisibleSurface(decor)} " +
+                "时长缩放=${animatorDurationScale(activity)}")
         // Surface 的窗口洞必须从真实窗口捕获，等反馈自然结束再复制；普通控件可立即准备干净快照。
         if (feedback != null && ParticleSnapshot.hasVisibleSurface(decor)) feedback.afterSettled { capture() }
         else mainHandler.post { capture() }

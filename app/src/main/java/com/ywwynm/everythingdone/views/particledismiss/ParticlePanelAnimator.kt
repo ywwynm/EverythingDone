@@ -53,6 +53,6 @@ internal class ParticlePanelAnimator(private val activity: Activity) {
         return ParticleDismissController.startContent(activity, activity.window, panel, anchor,
             onAnimationStarted = Runnable { gate.markAnimationStarted() },
             onOverlayShown = Runnable { gate.markOverlayShown() },
-            useDefaultTouchDistance = back, captureOffscreen = true)
+            useDefaultTouchDistance = back)
     }
 }

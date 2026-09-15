@@ -8,6 +8,7 @@ import android.graphics.Outline
 import android.graphics.PointF
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.Log
 import android.view.ContextThemeWrapper
 import androidx.activity.ComponentDialog
 import androidx.activity.OnBackPressedCallback
@@ -27,6 +28,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -34,6 +36,7 @@ import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissStartGate
+import com.ywwynm.everythingdone.views.particledismiss.ParticleMicroflakeRenderer
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -102,7 +105,8 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // 与 super.onCreateDialog 唯一的差别是 dialog 实现类，主题、样式仍由 setStyle 决定
-        val dialog = GestureAnchoredDialog(requireContext(), theme, useParticleDismiss())
+        val dialog = GestureAnchoredDialog(requireContext(), theme, useParticleDismiss(),
+            javaClass.simpleName)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         return dialog
     }
@@ -299,7 +303,9 @@ private const val RECENT_TOUCH_MS = 300L
 
 private class GestureAnchoredDialog(
     context: Context, themeResId: Int,
-    private val particleDismissEnabled: Boolean
+    private val particleDismissEnabled: Boolean,
+    /** 仅用于 debug 日志：出问题时要能一眼看出是哪个弹窗。 */
+    private val ownerLabel: String
 ) : ComponentDialog(context, themeResId) {
 
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
@@ -409,9 +415,18 @@ private class GestureAnchoredDialog(
             )
             if (started) {
                 particleFlowPending = true
+                particleFlowTookOver = true
                 window?.setWindowAnimations(0)
                 return
             }
+            if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
+                "消散未接管：$ownerLabel 起播返回 false（具体原因见上一行「消散未受理」）")
+        } else if (BuildConfig.DEBUG && !particleFlowTookOver) {
+            // 接管成功之后 fragment 的 dismissInternal 与 onDestroyView 还会各调一次
+            // Dialog.dismiss()，那两次不是失败，不能记进来。
+            Log.w(ParticleMicroflakeRenderer.TAG,
+                "消散未接管：$ownerLabel 开关=$particleDismissEnabled 档位允许=$modeAllows " +
+                    "已尝试过=$particleDismissAttempted")
         }
         dimLayer?.fadeOutAndDetach(DialogDimLayer.FADE_OUT_MS)
         super.dismiss()
@@ -422,6 +437,9 @@ private class GestureAnchoredDialog(
     }
 
     private var particleDismissAttempted = false
+
+    /** 粒子流程是否真的接管过：接管之后的重入调用不是失败。 */
+    private var particleFlowTookOver = false
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         // View.OnClickListener、点外 cancel 等关闭行为会在 super 的事件分发

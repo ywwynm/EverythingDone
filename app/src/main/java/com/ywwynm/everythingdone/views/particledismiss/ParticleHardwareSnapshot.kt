@@ -26,6 +26,7 @@ internal object ParticleHardwareSnapshot {
     }
 
     fun capture(view: View, done: (Bitmap?) -> Unit) {
+        ParticleCaptureDiagnostics.begin("硬件离屏")
         val node = RenderNode("particleSnapshot")
         var reader: ImageReader? = null
         var renderer: HardwareRenderer? = null
@@ -44,22 +45,39 @@ internal object ParticleHardwareSnapshot {
             done(bitmap)
         }
         // 失败也恢复真实内容；未发生提交时不能永久持有硬件缓冲。
-        timeout = Runnable { complete(null) }
+        timeout = Runnable {
+            ParticleCaptureDiagnostics.note("硬件离屏超时 1200ms（未收到可用图像）")
+            complete(null)
+        }
         try {
             val target = ImageReader.newInstance(view.width, view.height, PixelFormat.RGBA_8888, 2,
                 HardwareBuffer.USAGE_GPU_COLOR_OUTPUT or HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
             reader = target
             target.setOnImageAvailableListener({ available ->
                 val bitmap = runCatching {
-                    val image = available.acquireNextImage() ?: return@runCatching null
+                    val image = available.acquireNextImage()
+                    if (image == null) {
+                        ParticleCaptureDiagnostics.note("硬件离屏 acquireNextImage 为空")
+                        return@runCatching null
+                    }
                     try {
                         if (Build.VERSION.SDK_INT >= 33 &&
-                            !image.fence.await(Duration.ofMillis(700))) return@runCatching null
-                        val buffer = image.hardwareBuffer ?: return@runCatching null
+                            !image.fence.await(Duration.ofMillis(700))) {
+                            ParticleCaptureDiagnostics.note("硬件离屏 fence 超时 700ms")
+                            return@runCatching null
+                        }
+                        val buffer = image.hardwareBuffer
+                        if (buffer == null) {
+                            ParticleCaptureDiagnostics.note("硬件离屏 hardwareBuffer 为空")
+                            return@runCatching null
+                        }
                         val hardware = Bitmap.wrapHardwareBuffer(buffer, null)
                         buffer.close()
+                        if (hardware == null) ParticleCaptureDiagnostics.note("硬件离屏 wrapHardwareBuffer 为空")
                         try { hardware?.copy(Bitmap.Config.ARGB_8888, true) } finally { hardware?.recycle() }
                     } finally { image.close() }
+                }.onFailure {
+                    ParticleCaptureDiagnostics.note("硬件离屏读回异常=${it.javaClass.simpleName}")
                 }.getOrNull()
                 main.post { complete(bitmap) }
             }, worker)
@@ -89,7 +107,13 @@ internal object ParticleHardwareSnapshot {
             main.postDelayed(timeout, 1200)
             // sync 完成后节点已交给 RenderThread，之后恢复真实 ripple 不会改变本次提交。
             val status = hardware.createRenderRequest().setWaitForPresent(false).syncAndDraw()
-            if (status != HardwareRenderer.SYNC_OK && status != HardwareRenderer.SYNC_REDRAW_REQUESTED) complete(null)
-        } catch (_: Throwable) { complete(null) }
+            if (status != HardwareRenderer.SYNC_OK && status != HardwareRenderer.SYNC_REDRAW_REQUESTED) {
+                ParticleCaptureDiagnostics.note("硬件离屏 syncAndDraw=$status")
+                complete(null)
+            }
+        } catch (error: Throwable) {
+            ParticleCaptureDiagnostics.note("硬件离屏异常=${error.javaClass.simpleName}")
+            complete(null)
+        }
     }
 }

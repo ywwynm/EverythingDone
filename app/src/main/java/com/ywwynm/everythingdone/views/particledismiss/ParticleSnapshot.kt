@@ -11,15 +11,47 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.view.PixelCopy
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import com.ywwynm.everythingdone.BuildConfig
 
 /** 独立渲染内容的临时冻结不覆盖录音、播放、导出各自的暂停状态。 */
 internal interface ParticleSnapshotParticipant {
     fun holdParticleSnapshot(): () -> Unit
+}
+
+/**
+ * 仅 debug：记下最近一次抓图走的是哪条路径、终止在哪一步，供「消散未开播：快照为空」
+ * 那一行日志取用。抓图一律由主线程发起、回调也回到主线程，同一时刻至多一次，所以
+ * 单份记录足够；release 包里既不写也不读，抓图本身的行为一个字节都不变。
+ */
+internal object ParticleCaptureDiagnostics {
+
+    @Volatile var route: String = "未开始"
+    @Volatile var failure: String? = null
+
+    /** 进入某条路径：记下路径并清掉上一次的失败原因。 */
+    fun begin(value: String) {
+        if (!BuildConfig.DEBUG) return
+        route = value
+        failure = null
+        Log.i(ParticleMicroflakeRenderer.TAG, "抓图路径：$value")
+    }
+
+    fun note(reason: String) {
+        if (BuildConfig.DEBUG) failure = reason
+    }
+
+    /** 外层只在内层没有记下更精确的原因时才补一条。 */
+    fun noteIfAbsent(reason: String) {
+        if (BuildConfig.DEBUG && failure == null) failure = reason
+    }
+
+    fun describe(): String = "路径=$route 原因=${failure ?: "未记录"}"
 }
 
 /** 窗口的普通控件与窗口下方的独立 Surface 分别捕获，再按原合成顺序拼合。 */
@@ -110,7 +142,13 @@ internal object ParticleSnapshot {
         surfaces.reverse()
         val started = SystemClock.uptimeMillis()
         var finished = false
-        val timeout = Runnable { if (!finished) { finished = true; done(null) } }
+        // 只记录终止分支，重试分支不记——否则最后留下的是「还能再试一次」的中间状态。
+        fun failed(reason: String) {
+            if (!finished) ParticleCaptureDiagnostics.note(reason)
+        }
+        val timeout = Runnable {
+            if (!finished) { failed("整体超时 900ms"); finished = true; done(null) }
+        }
         val complete: (Bitmap?) -> Unit = { bitmap ->
             if (finished) bitmap?.recycle() else {
                 finished = true; handler.removeCallbacks(timeout); done(bitmap)
@@ -124,6 +162,7 @@ internal object ParticleSnapshot {
             fun request() {
                 if (finished) { buffer.recycle(); base.recycle(); return }
                 if (!root.isAttachedToWindow || !surface.isAttachedToWindow) {
+                    failed("独立 Surface 抓取前已 detach")
                     buffer.recycle(); base.recycle(); complete(null); return
                 }
                 try {
@@ -147,27 +186,46 @@ internal object ParticleSnapshot {
                             buffer.recycle(); copySurfaces(base, index + 1)
                         } else if (status == PixelCopy.ERROR_SOURCE_NO_DATA && SystemClock.uptimeMillis() - started < 700) {
                             handler.postDelayed({ request() }, 16)
-                        } else { buffer.recycle(); base.recycle(); complete(null) }
+                        } else {
+                            failed("独立 Surface PixelCopy 状态=$status 等待=${SystemClock.uptimeMillis() - started}ms")
+                            buffer.recycle(); base.recycle(); complete(null)
+                        }
                     }, handler)
-                } catch (_: Exception) {
+                } catch (error: Exception) {
                     if (SystemClock.uptimeMillis() - started < 700 && root.isAttachedToWindow) handler.postDelayed({ request() }, 16)
-                    else { buffer.recycle(); base.recycle(); complete(null) }
+                    else {
+                        failed("独立 Surface PixelCopy 异常=${error.javaClass.simpleName}")
+                        buffer.recycle(); base.recycle(); complete(null)
+                    }
                 }
             }
             request()
         }
         // 回调缺席也要恢复真实内容。正在写入的缓冲仅由迟到回调回收。
         handler.postDelayed(timeout, 900)
-        if (asyncOffscreen != null && surfaces.isEmpty()) {
-            asyncOffscreen { base -> if (base == null) complete(null) else copySurfaces(base, 0) }
+        val preferOffscreen = ParticleCaptureRoute.preferOffscreen(surfaces.isNotEmpty())
+        if (asyncOffscreen != null && preferOffscreen) {
+            ParticleCaptureDiagnostics.begin("离屏异步")
+            asyncOffscreen { base ->
+                if (base == null) {
+                    // 离屏那一层已经记下更精确的原因（syncAndDraw / fence / 超时），不要盖掉。
+                    ParticleCaptureDiagnostics.noteIfAbsent("离屏异步返回空")
+                    complete(null)
+                } else copySurfaces(base, 0)
+            }
             return
         }
         // 普通 View 保留原有离屏捕获；独立 Surface 需要窗口里的真实透明洞才能正确合成。
-        if (offscreen != null && surfaces.isEmpty()) {
+        if (offscreen != null && preferOffscreen) {
+            ParticleCaptureDiagnostics.begin("离屏同步")
             val base = offscreen()
-            if (base == null) complete(null) else copySurfaces(base, 0)
+            if (base == null) {
+                ParticleCaptureDiagnostics.noteIfAbsent("离屏同步返回空")
+                complete(null)
+            } else copySurfaces(base, 0)
             return
         }
+        ParticleCaptureDiagnostics.begin("窗口PixelCopy" + if (surfaces.isEmpty()) "" else "+独立Surface×${surfaces.size}")
         val base = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         val at = IntArray(2); root.getLocationInWindow(at)
         fun requestWindow() {
@@ -178,9 +236,16 @@ internal object ParticleSnapshot {
                     else if (status == PixelCopy.SUCCESS) copySurfaces(base, 0)
                     else if (status == PixelCopy.ERROR_SOURCE_NO_DATA && root.isAttachedToWindow &&
                         SystemClock.uptimeMillis() - started < 700) handler.postDelayed({ requestWindow() }, 16)
-                    else { base.recycle(); complete(null) }
+                    else {
+                        failed("窗口 PixelCopy 状态=$status 附着=${root.isAttachedToWindow} " +
+                            "等待=${SystemClock.uptimeMillis() - started}ms")
+                        base.recycle(); complete(null)
+                    }
                 }, handler)
-            } catch (_: Exception) { base.recycle(); complete(null) }
+            } catch (error: Exception) {
+                failed("窗口 PixelCopy 异常=${error.javaClass.simpleName}")
+                base.recycle(); complete(null)
+            }
         }
         requestWindow()
     }

@@ -5,6 +5,7 @@ import android.graphics.Outline
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -49,6 +50,8 @@ internal class ParticleDismissOverlay(
     private var presentedProgress = 0f
     private var releaseNotified = false
     private var particleVisible = true
+    /** 会话根本没建起来（宿主窗口拿不到粒子 Surface），与「会话跑起来之后失败」要分开记。 */
+    private var noParticleSurface = false
     private val releaseListeners = mutableListOf<Runnable>()
     /** 观察器读的是「帧真正上屏」的时刻；沿用第一批的三元组形状。 */
     internal val textureTimings = Collections.synchronizedList(mutableListOf<LongArray>())
@@ -142,6 +145,7 @@ internal class ParticleDismissOverlay(
             // 会话建不起来，提前算好的轨迹也就没人接手了——必须当场还回去，否则那份
             // GPU 资源（历史缓冲 + 前景纹理）会一直挂着。
             prepared?.let { ParticleCreationPrewarm.rejected(it, "宿主窗口没有粒子 Surface") }
+            noParticleSurface = true
             mainHandler.post { onSessionFinished(false) }
             return
         }
@@ -226,7 +230,14 @@ internal class ParticleDismissOverlay(
         }
         // GL 首帧前失败时也必须释放 dim，并与降级淡出同时开始。
         if (isCondense) fireDone()
-        else { fireAnimationStarted(); fallbackFadeOut() }
+        else {
+            // 观感是「整块面板淡出」而不是粒子。两种来源要分得开：一种是窗口连
+            // 粒子 Surface 都没有（会话没建起来），一种是会话跑起来之后失败。
+            if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
+                "消散降级淡出：${if (noParticleSurface) "宿主窗口没有粒子 Surface" else "会话失败"} " +
+                    "首帧=${firstFramePresented} 进度=$presentedProgress")
+            fireAnimationStarted(); fallbackFadeOut()
+        }
     }
 
     /** 宿主在真实内容确认上屏后调用，移除本层。 */
