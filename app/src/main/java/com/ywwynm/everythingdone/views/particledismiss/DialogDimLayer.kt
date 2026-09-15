@@ -5,6 +5,7 @@ import android.app.Activity
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.doOnLayout
 
 /**
  * Dialog 的背景暗层，从出现到消失全程由应用接管（主题已禁用系统
@@ -24,6 +25,21 @@ internal class DialogDimLayer private constructor(
 
     private var detachStarted = false
     private var appearanceStarted = false
+
+    /**
+     * 淡入等暗层真的拿到尺寸再起步。
+     *
+     * 宿主首帧之前挂上来时（透明宿主在 onCreate / onPostCreate 里就提交弹窗）这一层
+     * 还是 0×0、也从未进入绘制树：此刻在 overlay 里启动的 RenderThread 动画会立刻
+     * 结束，而且 0×0 的层本来也画不出任何东西。宿主已经布局过时 doOnLayout 当场执行，
+     * 与改动前逐帧一致。
+     */
+    private fun fadeIn() {
+        view.doOnLayout {
+            if (detachStarted || appearanceStarted) return@doOnLayout
+            view.animate().alpha(DIM_AMOUNT).setDuration(scaled(FADE_IN_MS)).start()
+        }
+    }
 
     /** 使用实际已合成的粒子进度；准备阶段保持透明，末帧到达目标浓度。 */
     fun setAppearanceProgress(progress: Float) {
@@ -85,8 +101,7 @@ internal class DialogDimLayer private constructor(
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             ParticleOverlayHost.attach(decor, view)
-            if (animateIn) view.animate().alpha(DIM_AMOUNT).setDuration(scaled(FADE_IN_MS)).start()
-            return DialogDimLayer(view, decor)
+            return DialogDimLayer(view, decor).also { if (animateIn) it.fadeIn() }
         }
 
         /**

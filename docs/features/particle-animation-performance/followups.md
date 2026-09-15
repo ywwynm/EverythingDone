@@ -135,3 +135,11 @@
 - ~~**三星正向消散每帧 GL 提交 + `glFinish` 等待 P50 已达 14.3–15.0 ms**~~：第二批去掉每帧 `glFinish`、改栅栏之后，这一段只剩 CPU 提交（OPPO 中位 0.34–1.36 ms、最大 6.7 ms）。
 - **`GradientRippleDrawable` 在三星上的单帧成本偏高**：涟漪期弹窗帧耗时 P95 31.9–62.7 ms，换成系统 `RippleDrawable` 后 7.9–17.4 ms。若 1.1 的混合方案要做，先看 `draw` 本身（缓存 shader、缩小重绘区域）。
 - **放宽有界队列的栅栏同步没有收益**（阶段 0 第 2.2 节，37 轮同步降到 7 轮两台都无变化），这个方向不用再试。
+
+## 2026-09-15 overlay 挂载的尺寸契约
+
+第一批的 `overlayInDecorOverlay`（`6c583e34`）把动画层改挂 `ViewGroupOverlay`，`MATCH_PARENT`
+带来的「跟住宿主尺寸」随之消失，只在 attach 当场算了一次。透明 Activity 承载的弹窗（开始做事、
+更突出的通知等）因此整批丢掉背景暗层，已在 `dialog-particle-dismiss/activity-host-dim-2026-09-15.md`
+修正。**后续任何把层从 `addView` 改挂 overlay 的改动，都要一并确认这一层在宿主尺寸为 0 时
+与宿主尺寸变化时的行为**，不能只看已经在屏上的宿主。

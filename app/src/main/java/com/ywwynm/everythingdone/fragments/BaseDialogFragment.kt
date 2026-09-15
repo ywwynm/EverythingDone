@@ -140,7 +140,14 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (gestureDialog.dimLayer == null) {
             activity?.let { host -> host.window.decorView.doOnAttach {
                 if (dialog.isShowing && gestureDialog.dimLayer == null) {
-                    gestureDialog.dimLayer = DialogDimLayer.attach(host, animateIn = !animateAppearance)
+                    val layer = DialogDimLayer.attach(host, animateIn = !animateAppearance)
+                    gestureDialog.dimLayer = layer
+                    // 透明宿主（开始做事、更突出的通知等）在 onCreate 里就提交弹窗，
+                    // 暗层要等宿主 decor 附着才能挂；出现动画若在这之前就结束（宿主
+                    // 未附着时 startCondense 直接失败、或准备阶段被打断），进度回调
+                    // 全部落在 null 上，暗层会停在 alpha 0——整个 Dialog 期间背景都
+                    // 不变暗。这里按当前状态补到最终浓度。
+                    if (animateAppearance && appearanceSettled) layer?.setAppearanceProgress(1f)
                 }
             } }
         }

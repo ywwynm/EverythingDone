@@ -2546,3 +2546,13 @@ grill 定案后新写的原型：三角网格 + numpy 逐帧平流（风 + 两�
 → 弯到 46° 脱离、沿风向飞走并碎成尘（用户认可，"接近我想要的效果"）。期间去掉了受光提白、
 释放前变暗、粗斑块的洞；左上角从独立翻板改为柔和隆起 + 从角尖向内的粒子化。静止层改为同一张
 网格。所有决定见 decisions.md 当日各条。Android 仍未改。
+
+## 2026-09-15 由新 Activity 承载的弹窗背景不变暗
+
+开始做事、更突出的记事通知等五处入口的弹窗背景完全不变暗。根因是第一批性能改动把暗层从
+`decor.addView(MATCH_PARENT)` 改挂 `decor.overlay` 之后只在 attach 当场算了一次尺寸，而这
+几处宿主是透明 Activity、在首帧之前就提交弹窗，`doOnAttach` 落在第一次 `performLayout`
+之前，`decor.width` 仍是 0，暗层以 0×0 留在 overlay 里。修正见
+[activity-host-dim-2026-09-15.md](activity-host-dim-2026-09-15.md)：宿主布局监听补尺寸、
+淡入改挂 `doOnLayout`、延迟挂载后按当前状态补浓度。新增 `DialogDimCoverageTest` 三项，
+均确认在修正前的源码上失败。未上真机。
