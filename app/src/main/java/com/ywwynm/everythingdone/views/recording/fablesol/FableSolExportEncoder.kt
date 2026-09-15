@@ -8,6 +8,7 @@ import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.os.Build
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.Range
 import android.view.Surface
@@ -364,7 +365,7 @@ internal class FableSolExportEncoder(
             val bytes = ByteArray(info.remaining())
             info.duplicate().get(bytes)
             video.setParameters(
-                android.os.Bundle().apply {
+                Bundle().apply {
                     putByteArray(MediaCodec.PARAMETER_KEY_HDR10_PLUS_INFO, bytes)
                 }
             )

@@ -4,11 +4,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.Executors
 
 /**
  * 「创建页预测素材」的磁盘缓存（第五批追加项）。
@@ -52,7 +54,7 @@ internal object ParticlePrewarmStore {
     )
 
     private val writer by lazy {
-        java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, "ParticlePrewarmStore").apply { isDaemon = true }
         }
     }
@@ -131,7 +133,7 @@ internal object ParticlePrewarmStore {
                 metadata[name] = meta
                 persist(context, kept)
             }
-            if (BuildConfig.DEBUG) android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+            if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
                 "预测素材已落盘 ${target.length() / 1024} KB ${material.width}×${material.height}")
         }.onFailure { note("落盘失败：${it.javaClass.simpleName}: ${it.message}") }
     }
@@ -219,7 +221,7 @@ internal object ParticlePrewarmStore {
 
     private fun note(message: String) {
         lastError = message
-        android.util.Log.w(ParticleMicroflakeRenderer.TAG, "预测素材磁盘缓存：$message")
+        Log.w(ParticleMicroflakeRenderer.TAG, "预测素材磁盘缓存：$message")
     }
 
     /**

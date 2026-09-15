@@ -1,16 +1,21 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
+import android.opengl.EGL14
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Process
+import android.util.Log
 import android.view.Choreographer
 import android.view.Surface
+import androidx.annotation.RequiresApi
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.model.ThingBackground
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 
 /** EGL 生命周期、帧合并和渲染器线程归属。 */
@@ -24,7 +29,7 @@ internal class FableSolGlRenderThread(
     private val renderer = FableSolGlRenderer(context, density)
     @Volatile private var acceptingFrames = false
     @Volatile private var animating = false
-    private val singleFramePending = java.util.concurrent.atomic.AtomicBoolean()
+    private val singleFramePending = AtomicBoolean()
     private var renderWidth = 0
     private var renderHeight = 0
     // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
@@ -104,7 +109,7 @@ internal class FableSolGlRenderThread(
      * 必须是独立类、且只在版本判断内实例化：SAM/匿名类会在构造期解析
      * `Choreographer$VsyncCallback`，在 API 26–32 上一构造就 NoClassDefFoundError。
      */
-    @androidx.annotation.RequiresApi(33)
+    @RequiresApi(33)
     private class VsyncProbe(private val owner: FableSolGlRenderThread) :
         Choreographer.VsyncCallback {
         override fun onVsync(data: Choreographer.FrameData) {
@@ -220,13 +225,13 @@ internal class FableSolGlRenderThread(
      * 非 surface 类错误或短窗口内反复失败才按真实 GL 故障回退。
      */
     private fun handleSwapFailure() {
-        val eglError = android.opengl.EGL14.eglGetError()
-        val surfaceTransient = eglError == android.opengl.EGL14.EGL_BAD_SURFACE ||
-            eglError == android.opengl.EGL14.EGL_BAD_NATIVE_WINDOW
+        val eglError = EGL14.eglGetError()
+        val surfaceTransient = eglError == EGL14.EGL_BAD_SURFACE ||
+            eglError == EGL14.EGL_BAD_NATIVE_WINDOW
         transientSwapFailures++
         if (surfaceTransient && transientSwapFailures <= MAX_TRANSIENT_SWAP_FAILURES) {
             if (BuildConfig.DEBUG) {
-                android.util.Log.w(
+                Log.w(
                     "FableSolSurfProbe",
                     "transient swap failure eglError=0x${Integer.toHexString(eglError)} " +
                         "streak=$transientSwapFailures; waiting for next surface"
@@ -252,7 +257,7 @@ internal class FableSolGlRenderThread(
         initialHdrSdrRatio: Float
     ) {
         if (BuildConfig.DEBUG) {
-            android.util.Log.i(
+            Log.i(
                 "FableSolSurfProbe",
                 "attach ${width}x$height preferHdr=$preferHdr surfaceValid=${surface.isValid}"
             )
@@ -263,7 +268,7 @@ internal class FableSolGlRenderThread(
         // 手机上同代码 60fps），提档后调度器才把逐帧关键路径放上大核。
         val thread = HandlerThread(
             "FableSolGles",
-            android.os.Process.THREAD_PRIORITY_DISPLAY
+            Process.THREAD_PRIORITY_DISPLAY
         ).also { it.start() }
         val handler = Handler(thread.looper)
         this.thread = thread
@@ -451,7 +456,7 @@ internal class FableSolGlRenderThread(
 
     fun detachBlocking() {
         val currentHandler = handler ?: return
-        if (BuildConfig.DEBUG) android.util.Log.i("FableSolSurfProbe", "detachBlocking")
+        if (BuildConfig.DEBUG) Log.i("FableSolSurfProbe", "detachBlocking")
         acceptingFrames = false
         animating = false
         singleFramePending.set(false)
@@ -471,10 +476,10 @@ internal class FableSolGlRenderThread(
 
     private fun fail(error: Throwable) {
         acceptingFrames = false
-        val eglError = android.opengl.EGL14.eglGetError()
+        val eglError = EGL14.eglGetError()
         val message = error.message ?: error.javaClass.simpleName
         if (BuildConfig.DEBUG) {
-            android.util.Log.e(
+            Log.e(
                 "FableSolSurfProbe",
                 "fatal $message eglError=0x${Integer.toHexString(eglError)}",
                 error

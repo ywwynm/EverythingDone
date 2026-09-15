@@ -10,6 +10,7 @@ import androidx.core.util.Pair
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
@@ -78,7 +79,7 @@ open class AuthenticationActivity : ParticleDialogHostActivity() {
             AuthenticationHelper.authenticate(
                 this,
                 folder.getBackground() ?: ThingBackground.pure(folder.getColor()),
-                getString(com.ywwynm.everythingdone.R.string.open_private_thing_folder),
+                getString(R.string.open_private_thing_folder),
                 cp,
                 object : AuthenticationHelper.AuthenticationCallback {
                     override fun onAuthenticated() {

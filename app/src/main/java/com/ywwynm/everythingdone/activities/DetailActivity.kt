@@ -21,6 +21,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -33,16 +34,20 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import androidx.annotation.StringRes
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.util.Pair
+import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.NestedScrollView
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -57,6 +62,8 @@ import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -148,8 +155,12 @@ import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import com.ywwynm.everythingdone.views.RatioSlider
 import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
 import com.ywwynm.everythingdone.fragments.ThingBackgroundEditorBottomSheet
+import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.views.ThingBackgroundEditor
+import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
+import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
 import com.ywwynm.everythingdone.views.pickers.DateTimePicker
+import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -168,6 +179,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.content.edit
+import androidx.fragment.app.DialogFragment
 
 @SuppressLint("NewApi")
 class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFragment.Host {
@@ -375,13 +387,13 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     override fun getLayoutResource(): Int = R.layout.activity_detail
 
-    private var creationTransition: com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition? = null
+    private var creationTransition: ThingCreationTransition? = null
 
     /** 新建时可以等入场动画结束再做、与首帧无关的那点工作。 */
     private var deferredAfterEnter: Runnable? = null
 
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        val key = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.EXTRA_TOKEN
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val key = ThingCreationTransition.EXTRA_TOKEN
         if (savedInstanceState != null) intent.removeExtra(key)
         if (intent.hasExtra(key)) mark("detail-create")
         super.onCreate(savedInstanceState)
@@ -390,7 +402,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     /** 2a 的链路分段：只记新建这条路径；release 包里是空调用。 */
     private fun mark(label: String) {
         if (mType != CREATE) return
-        com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.mark(label)
+        ParticleLaunchTrace.mark(label)
     }
 
     override fun init() {
@@ -406,7 +418,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             setEvents()
             mark("detail-events")
 
-            creationTransition = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
+            creationTransition = ThingCreationTransition
                 .attach(this, mFlRoot!!, mThing!!.getBackground() ?: ThingBackground.pure(mThing!!.getColor()))
             // 入场动画期间主线程要留给首帧与粒子交接；没有入场动画时立即执行。
             deferredAfterEnter?.let { pending ->
@@ -2245,7 +2257,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         )
         for (tag in tags) {
             val fragment = supportFragmentManager.findFragmentByTag(tag)
-            if (fragment is androidx.fragment.app.DialogFragment) {
+            if (fragment is DialogFragment) {
                 fragment.dismissAllowingStateLoss()
             }
         }
@@ -2276,7 +2288,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun maybeRestoreStoppedRecordingSession() {
         val thingId = currentThingId()
         if (thingId == -1L) return
-        if (com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+        if (AudioInputPreferences
                 .stoppedSessionThingId(this) != thingId
         ) {
             return
@@ -2302,20 +2314,20 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun openAudioRecordingDialogFromNotification(sourceIntent: Intent?) {
         if (sourceIntent?.getBooleanExtra(
-                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
                 false
             ) != true
         ) return
         sourceIntent.removeExtra(
-            com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG
+            AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG
         )
         // 会话存在性同时看进程内状态与持久化停止态：进程被回收后 activeSession 为
         // false，但待处理录音仍在偏好里，绑定服务即可恢复。
-        val active = com.ywwynm.everythingdone.services.AudioRecordingService.activeSession
-        val sessionThingId = com.ywwynm.everythingdone.services.AudioRecordingService
+        val active = AudioRecordingService.activeSession
+        val sessionThingId = AudioRecordingService
             .activeSessionThingId
             .takeIf { active && it != -1L }
-            ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+            ?: AudioInputPreferences
                 .stoppedSessionThingId(this)
         if (!active && sessionThingId == -1L) return
         // CLEAR_TOP|SINGLE_TOP 可能复用一个正展示其他记事的实例（用户此间打开过别的记事），
@@ -2323,12 +2335,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         // 重启自身；会话属于新建记事（id 记为 -1）时不校验，避免新建 id 每次再生成导致
         // 重启循环。
         if (sessionThingId != -1L && mThing != null && mThing!!.id != sessionThingId) {
-            val restart = com.ywwynm.everythingdone.services.AudioRecordingService
+            val restart = AudioRecordingService
                 .activeReturnIntent?.let(::Intent)
                 ?: getOpenIntentForUpdate(this, null, sessionThingId, -1)
             restart.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             restart.putExtra(
-                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
                 true
             )
             finish()
@@ -2556,23 +2568,23 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      * Dialog。不拦截的话，第二个录音 Dialog 会接管会话并把录音保存到错误的记事。
      */
     fun showRecordingBusySnackbar() {
-        val snackbar = com.ywwynm.everythingdone.views.Snackbar(
-            mApp!!, com.ywwynm.everythingdone.views.Snackbar.UNDO, mFlRoot!!, null
+        val snackbar = Snackbar(
+            mApp!!, Snackbar.UNDO, mFlRoot!!, null
         )
         snackbar.setMessage(R.string.audio_recording_busy_other_thing)
         snackbar.setUndoText(R.string.audio_recording_go_to)
         snackbar.setUndoListener {
             // 进程被回收后服务的返回入口为空，按持久化停止态的记事 id 构造标准打开 intent。
-            val target = com.ywwynm.everythingdone.services.AudioRecordingService
+            val target = AudioRecordingService
                 .activeReturnIntent?.let(::Intent)
-                ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                ?: AudioInputPreferences
                     .stoppedSessionThingId(this)
                     .takeIf { it != -1L }
                     ?.let { getOpenIntentForUpdate(this, null, it, -1) }
                 ?: return@setUndoListener
             target.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             target.putExtra(
-                com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+                AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
                 true
             )
             snackbar.dismiss()
@@ -3193,8 +3205,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val menu: Menu = mActionbar!!.menu ?: return
-        val tint: android.content.res.ColorStateList? = if (lightAccent)
-            android.content.res.ColorStateList.valueOf(Color.BLACK)
+        val tint: ColorStateList? = if (lightAccent)
+            ColorStateList.valueOf(Color.BLACK)
         else null
         for (i in 0 until menu.size) {
             val item: MenuItem = menu[i]
@@ -3230,11 +3242,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mEtTitle!!.setTextColor(primary)
         mEtTitle!!.setHintTextColor(primary)
 
-        androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+        TextViewCompat.setCompoundDrawableTintList(
             mEtTitle!!,
             if (light)
-                android.content.res.ColorStateList.valueOf(Color.BLACK)
-            else android.content.res.ColorStateList.valueOf(Color.WHITE)
+                ColorStateList.valueOf(Color.BLACK)
+            else ColorStateList.valueOf(Color.WHITE)
         )
         mEtContent!!.setTextColor(secondary)
         mEtContent!!.setHintTextColor(secondary)
@@ -3247,10 +3259,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         tvTypeInfo?.setTextColor(tertiary)
         if (mTvMoveChecklistAsBt != null) {
             mTvMoveChecklistAsBt!!.setTextColor(tertiary)
-            androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(
+            TextViewCompat.setCompoundDrawableTintList(
                 mTvMoveChecklistAsBt!!,
                 if (light)
-                    android.content.res.ColorStateList.valueOf(Color.BLACK)
+                    ColorStateList.valueOf(Color.BLACK)
                 else null
             )
             BackgroundUtil.installThingPillRipple(mTvMoveChecklistAsBt, color)
@@ -3288,15 +3300,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val lightAccent = light
-        val iconTint: android.content.res.ColorStateList? = if (lightAccent)
-            android.content.res.ColorStateList.valueOf(Color.BLACK)
+        val iconTint: ColorStateList? = if (lightAccent)
+            ColorStateList.valueOf(Color.BLACK)
         else null
         if (mIbBack != null) {
-            androidx.core.widget.ImageViewCompat.setImageTintList(mIbBack!!, iconTint)
+            ImageViewCompat.setImageTintList(mIbBack!!, iconTint)
         }
         val ivIconTypeInfo: ImageView? = f(R.id.iv_icon_type_info)
         if (ivIconTypeInfo != null) {
-            androidx.core.widget.ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint)
+            ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint)
         }
         tintMenuIcons(lightAccent)
         applyDetailToolbarIconRipples()
@@ -3651,7 +3663,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val alarmBearing = type == Thing.REMINDER || type == Thing.HABIT || type == Thing.GOAL
         if (!alarmBearing) return
 
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             == PackageManager.PERMISSION_GRANTED
         ) return
 
@@ -3660,7 +3672,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 // No-op
             }
         }, Def.Communication.REQUEST_PERMISSION_NOTIFICATION,
-            android.Manifest.permission.POST_NOTIFICATIONS)
+            Manifest.permission.POST_NOTIFICATIONS)
     }
 
     private fun captureMainListPositionForResult() {
@@ -4209,7 +4221,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun showDetailAttachmentMediaAppearanceEditor(position: Int) {
         (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
+                as? DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
             MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT,
             position
@@ -4275,7 +4287,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         title.setText(getDetailAttachmentAppearanceTitleRes(source))
         applyDetailAttachmentAppearanceAccentText(title)
         title.setTextSize(
-            android.util.TypedValue.COMPLEX_UNIT_PX,
+            TypedValue.COMPLEX_UNIT_PX,
             resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
         )
         title.setTypeface(title.typeface, Typeface.BOLD)
@@ -4507,7 +4519,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val buttons = LinearLayout(this)
-        buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
+        buttons.gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.clipChildren = false
         buttons.clipToPadding = false
@@ -4642,7 +4654,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
-        container.gravity = android.view.Gravity.CENTER_VERTICAL
+        container.gravity = Gravity.CENTER_VERTICAL
 
         lateinit var playPauseButton: ImageView
         lateinit var seekBar: SeekBar
@@ -4774,13 +4786,13 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val density = resources.displayMetrics.density
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
-        container.gravity = android.view.Gravity.CENTER_VERTICAL
+        container.gravity = Gravity.CENTER_VERTICAL
 
         val label = TextView(this)
         label.setText(labelRes)
         label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
-        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        label.gravity = Gravity.CENTER_VERTICAL
         label.maxLines = 1
         label.includeFontPadding = false
         container.addView(
@@ -4841,7 +4853,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun createDetailAttachmentWidthChoice(@StringRes textRes: Int): TextView {
         val button = TextView(this)
         button.setText(textRes)
-        button.gravity = android.view.Gravity.CENTER
+        button.gravity = Gravity.CENTER
         button.includeFontPadding = false
         button.textSize = 14f
         button.isClickable = true
@@ -4887,8 +4899,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             cornerRadius = 1000f
             setColor(Color.WHITE)
         }
-        textView.background = android.graphics.drawable.RippleDrawable(
-            android.content.res.ColorStateList.valueOf(
+        textView.background = RippleDrawable(
+            ColorStateList.valueOf(
                 BackgroundUtil.adaptiveRippleColor(accentBackground)
             ),
             background,
@@ -4936,7 +4948,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         label.setText(labelRes)
         label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
-        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        label.gravity = Gravity.CENTER_VERTICAL
         container.addView(
             label,
             LinearLayout.LayoutParams(
@@ -4992,7 +5004,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else {
             button.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel))
         }
-        button.gravity = android.view.Gravity.CENTER
+        button.gravity = Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
         button.layoutParams = LinearLayout.LayoutParams(
@@ -5012,7 +5024,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             // 确定按钮触摸 ripple 也用记事颜色（纯色 / 渐变），胶囊形；内边距 / 字号与其它 dialog 的
             // 确定按钮对齐（取消按钮由 installAppChromeDialogActionButton 设置同样的值）。
             button.setTextSize(
-                android.util.TypedValue.COMPLEX_UNIT_PX,
+                TypedValue.COMPLEX_UNIT_PX,
                 resources.getDimension(R.dimen.app_chrome_dialog_action_text_size)
             )
             GradientRippleDrawable.applyAccentRipple(button, accentBg, getAccentColor())

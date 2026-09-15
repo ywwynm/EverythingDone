@@ -5,6 +5,7 @@ package com.ywwynm.everythingdone.helpers
 import androidx.fragment.app.FragmentActivity
 
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
+import com.ywwynm.everythingdone.model.ThingBackground
 
 /**
  * Created by ywwynm on 2016/6/21.
@@ -20,7 +21,7 @@ object AuthenticationHelper {
             activity: FragmentActivity?, accentColor: Int, title: String?, correctPassword: String?,
             callback: AuthenticationCallback?) {
         authenticate(activity,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor),
+                ThingBackground.pure(accentColor),
                 title, correctPassword, callback)
     }
 
@@ -32,7 +33,7 @@ object AuthenticationHelper {
      */
     @JvmStatic
     fun authenticate(
-            activity: FragmentActivity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
+            activity: FragmentActivity?, accent: ThingBackground?,
             title: String?, correctPassword: String?, callback: AuthenticationCallback?) {
         if (correctPassword == null) {
             callback!!.onAuthenticated()
@@ -49,7 +50,7 @@ object AuthenticationHelper {
             callback: AuthenticationCallback?) {
         val pldf = PatternLockDialogFragment()
         pldf.setAccentBackground(
-                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor))
+                ThingBackground.pure(accentColor))
         pldf.setType(PatternLockDialogFragment.TYPE_VALIDATE)
         pldf.setValidateTitle(title)
         pldf.setCorrectPassword(correctPassword)

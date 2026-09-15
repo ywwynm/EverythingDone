@@ -1,8 +1,11 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Test
 
 /**
@@ -21,7 +24,7 @@ class FableSolSimulationLayerParallelTest {
 
     @Test
     fun 并行层循环与串行逐位相同() {
-        org.junit.Assume.assumeTrue(FableSolRowParallel.parallelWorkerCountForTest > 0)
+        Assume.assumeTrue(FableSolRowParallel.parallelWorkerCountForTest > 0)
         val reference = runSimulation(parallel = false)
         repeat(6) { round ->
             val actual = runSimulation(parallel = true)
@@ -95,9 +98,9 @@ class FableSolSimulationLayerParallelTest {
     }
 
     private fun simulationSource(): String {
-        var directory = java.io.File(System.getProperty("user.dir") ?: ".").absoluteFile
+        var directory = File(System.getProperty("user.dir") ?: ".").absoluteFile
         repeat(8) {
-            val candidate = java.io.File(
+            val candidate = File(
                 directory,
                 "app/src/main/java/com/ywwynm/everythingdone/views/recording/fablesol/" +
                     "FableSolSimulation.kt"
@@ -111,7 +114,7 @@ class FableSolSimulationLayerParallelTest {
     /** 层任务里任何一次异常都必须传回调用线程，而不是被吞掉留下半更新的水面。 */
     @Test
     fun 层任务的异常不会被静默吞掉() {
-        val visits = java.util.concurrent.atomic.AtomicInteger()
+        val visits = AtomicInteger()
         var thrown: Throwable? = null
         try {
             FableSolRowParallel.runUnits(FableSolSpec.N_LAYERS) { start, end ->

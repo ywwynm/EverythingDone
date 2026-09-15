@@ -5,10 +5,12 @@ package com.ywwynm.everythingdone.adapters
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
 import android.graphics.Outline
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.text.TextUtils
+import android.util.Log
 import android.util.LruCache
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
@@ -27,6 +29,7 @@ import android.widget.TextView
 import kotlin.math.roundToInt
 
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
@@ -45,6 +48,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import java.util.Locale
@@ -301,8 +305,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         listPosition: Int
     ) {
         if (!isArmedFor(listPosition)) {
-            if (com.ywwynm.everythingdone.BuildConfig.DEBUG && listPosition == mDebugLastArmedPosition) {
-                android.util.Log.i("NewItemReveal", "bind pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} NOT armed (already consumed) -> VISIBLE by bind")
+            if (BuildConfig.DEBUG && listPosition == mDebugLastArmedPosition) {
+                Log.i("NewItemReveal", "bind pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} NOT armed (already consumed) -> VISIBLE by bind")
             }
             return
         }
@@ -310,9 +314,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val listener = mArmedNewItemListener
         val firedListPosition = listPosition
         clearArmedNewItemAnimation()
-        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG) {
             mDebugLastArmedPosition = listPosition
-            android.util.Log.i("NewItemReveal", "arm fired pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} size=${holder.cv?.width}x${holder.cv?.height}")
+            Log.i("NewItemReveal", "arm fired pos=$listPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv?.isAttachedToWindow} size=${holder.cv?.width}x${holder.cv?.height}")
         }
 
         holder.cv!!.visibility = View.INVISIBLE
@@ -325,8 +329,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                     holder.cv.post(this)
                     return
                 }
-                if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
-                    android.util.Log.i("NewItemReveal", "arm callback pos=$firedListPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv.isAttachedToWindow} size=${holder.cv.width}x${holder.cv.height} adapterPos=${holder.bindingAdapterPosition}")
+                if (BuildConfig.DEBUG) {
+                    Log.i("NewItemReveal", "arm callback pos=$firedListPosition holder=${System.identityHashCode(holder)} cv=${System.identityHashCode(holder.cv)} attached=${holder.cv.isAttachedToWindow} size=${holder.cv.width}x${holder.cv.height} adapterPos=${holder.bindingAdapterPosition}")
                 }
                 listener!!.onNewItemBound(firedListPosition, holder)
             }
@@ -422,7 +426,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         holder.tvTitle!!.visibility = View.GONE
         holder.ivPrivateThing!!.visibility = View.GONE
 
-        holder.llContent!!.orientation = android.widget.LinearLayout.VERTICAL
+        holder.llContent!!.orientation = LinearLayout.VERTICAL
         holder.llContent.alpha = 1.0f
         holder.llContent.minimumWidth = 0
         holder.llContent.minimumHeight = 0
@@ -433,7 +437,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         contentLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         holder.llContent.layoutParams = contentLp
 
-        val textLp = holder.llTextContent!!.layoutParams as android.widget.LinearLayout.LayoutParams
+        val textLp = holder.llTextContent!!.layoutParams as LinearLayout.LayoutParams
         textLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
         textLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         textLp.weight = 0f
@@ -733,7 +737,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             val iconBg = titleBackground ?: ThingBackground.pure(textColorPrimary(baseColor))
             ImageViewCompat.setImageTintList(icon, null)
             icon.setImageDrawable(
-                com.ywwynm.everythingdone.views.DrawerNavigationView.FolderIconDrawable(
+                DrawerNavigationView.FolderIconDrawable(
                     iconBg, privateFolder = true, authenticated = true
                 )
             )
@@ -759,7 +763,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         titleView.ellipsize = TextUtils.TruncateAt.END
         titleView.includeFontPadding = false
         titleView.textSize = 16f
-        titleView.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        titleView.typeface = Typeface.DEFAULT_BOLD
         if (titleBackground != null) {
             BackgroundUtil.applyTextBackground(titleView, titleBackground)
         } else {

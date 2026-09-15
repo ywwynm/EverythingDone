@@ -34,6 +34,7 @@ import android.widget.Toast
 
 import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
@@ -49,7 +50,9 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.DeviceUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.views.FloatingActionButton
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
 
 import java.util.Collections
 
@@ -103,7 +106,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
      * 记事，因此允许右滑；首页右滑是「开始做事」，那边保持只认左滑。
      */
     private val mSwipeParticleAnimator by lazy {
-        com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator(this, allowRightSwipe = true)
+        ParticleSwipeAnimator(this, allowRightSwipe = true)
     }
 
     private var mLlBottom: LinearLayout? = null
@@ -220,9 +223,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         mFabStrictMode = f(R.id.fab_strict_mode)
         mFlCancel      = f(R.id.fl_cancel_doing)
 
-        val sp = getSharedPreferences(com.ywwynm.everythingdone.Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
-        val digitStyle = sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins") ?: "poppins"
-        val digitFill = (sp.getString(com.ywwynm.everythingdone.Def.Meta.KEY_DOING_DIGIT_RENDER, "fill") ?: "fill") == "fill"
+        val sp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+        val digitStyle = sp.getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins") ?: "poppins"
+        val digitFill = (sp.getString(Def.Meta.KEY_DOING_DIGIT_RENDER, "fill") ?: "fill") == "fill"
         mClockView!!.setStyleName(digitStyle)
         mClockView!!.setRenderMode(digitFill)
         mClockView!!.setClockMode(TimelyClockView.MODE_AUTO_HIDE_HOUR)
@@ -285,8 +288,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     private fun useSwipeParticle(): Boolean =
-        com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this) ==
-            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE
+        ThingAnimationPreferences.swipe(this) ==
+            ThingAnimationPreferences.SWIPE_PARTICLE
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         mSwipeParticleAnimator.recordTouch(ev)

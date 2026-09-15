@@ -6,8 +6,10 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.media.ExifInterface
+import com.ywwynm.everythingdone.model.ThingBackground
 
 import java.io.File
 import java.io.FileOutputStream
@@ -38,7 +40,7 @@ object BitmapUtil {
     @JvmStatic
     fun createLayeredBitmap(d: Drawable?, color: Int): Bitmap {
         return createLayeredBitmap(d,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(color))
+                ThingBackground.pure(color))
     }
 
     /**
@@ -54,14 +56,14 @@ object BitmapUtil {
      */
     @JvmStatic
     fun createLayeredBitmap(
-            d: Drawable?, bg: com.ywwynm.everythingdone.model.ThingBackground?): Bitmap {
+            d: Drawable?, bg: ThingBackground?): Bitmap {
         val background: Drawable
-        if (bg == null || bg.mode === com.ywwynm.everythingdone.model.ThingBackground.Mode.PURE) {
+        if (bg == null || bg.mode === ThingBackground.Mode.PURE) {
             background = ColorDrawable(bg?.color ?: 0)
         } else {
-            val gd: android.graphics.drawable.GradientDrawable =
-                    android.graphics.drawable.GradientDrawable()
-            gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE)
+            val gd: GradientDrawable =
+                    GradientDrawable()
+            gd.setShape(GradientDrawable.RECTANGLE)
             gd.colors = intArrayOf(bg.color, bg.endColor)
             gd.setOrientation(toAndroidOrientation(bg.orientation))
             background = gd
@@ -79,19 +81,19 @@ object BitmapUtil {
     }
 
     private fun toAndroidOrientation(
-            o: com.ywwynm.everythingdone.model.ThingBackground.Orientation?): android.graphics.drawable.GradientDrawable.Orientation {
+            o: ThingBackground.Orientation?): GradientDrawable.Orientation {
         when (o) {
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.L_R   -> return android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.T_B   -> return android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.LT_RB -> return android.graphics.drawable.GradientDrawable.Orientation.TL_BR
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.RT_LB -> return android.graphics.drawable.GradientDrawable.Orientation.TR_BL
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.LB_RT -> return android.graphics.drawable.GradientDrawable.Orientation.BL_TR
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.RB_LT -> return android.graphics.drawable.GradientDrawable.Orientation.BR_TL
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.R_L   -> return android.graphics.drawable.GradientDrawable.Orientation.RIGHT_LEFT
-            com.ywwynm.everythingdone.model.ThingBackground.Orientation.B_T   -> return android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP
+            ThingBackground.Orientation.L_R   -> return GradientDrawable.Orientation.LEFT_RIGHT
+            ThingBackground.Orientation.T_B   -> return GradientDrawable.Orientation.TOP_BOTTOM
+            ThingBackground.Orientation.LT_RB -> return GradientDrawable.Orientation.TL_BR
+            ThingBackground.Orientation.RT_LB -> return GradientDrawable.Orientation.TR_BL
+            ThingBackground.Orientation.LB_RT -> return GradientDrawable.Orientation.BL_TR
+            ThingBackground.Orientation.RB_LT -> return GradientDrawable.Orientation.BR_TL
+            ThingBackground.Orientation.R_L   -> return GradientDrawable.Orientation.RIGHT_LEFT
+            ThingBackground.Orientation.B_T   -> return GradientDrawable.Orientation.BOTTOM_TOP
             else -> {}
         }
-        return android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
+        return GradientDrawable.Orientation.LEFT_RIGHT
     }
 
     @JvmStatic

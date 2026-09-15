@@ -3,11 +3,13 @@ package com.ywwynm.everythingdone.views.particledismiss
 import android.app.Activity
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
+import com.ywwynm.everythingdone.utils.AnimatorDurationScale
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import java.util.concurrent.locks.LockSupport
 
@@ -28,7 +30,7 @@ internal class ParticleTouchFeedback private constructor(
      * 旧口径在 OPD2515 上恰好比涟漪实际寿命短，于是每次都走满超时（2026-09-14 第一批 1.9）。
      */
     private val timeoutMs = settleTimeoutMs(
-        com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale(activity))
+        AnimatorDurationScale.scale(activity))
 
     private fun watch() {
         if (settled || waitingForFinalFrame) return
@@ -42,7 +44,7 @@ internal class ParticleTouchFeedback private constructor(
             waitingForFinalFrame = true
             // alpha 到零不代表这一帧已提交；Surface 窗口此时直接 PixelCopy 会抓到尾帧残影。
             val ready = Runnable { finish() }
-            if (android.os.Build.VERSION.SDK_INT >= 29 && root.isHardwareAccelerated) {
+            if (Build.VERSION.SDK_INT >= 29 && root.isHardwareAccelerated) {
                 root.viewTreeObserver.registerFrameCommitCallback { handler.post(ready) }
                 root.invalidate()
             } else root.postOnAnimation { handler.post(ready) }

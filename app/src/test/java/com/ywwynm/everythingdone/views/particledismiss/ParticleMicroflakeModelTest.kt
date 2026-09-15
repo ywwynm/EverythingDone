@@ -3,7 +3,10 @@ package com.ywwynm.everythingdone.views.particledismiss
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.*
+import org.junit.Assume
 import org.junit.Test
 
 class ParticleMicroflakeModelTest {
@@ -46,11 +49,11 @@ class ParticleMicroflakeModelTest {
             (seed * 37 % 360).toFloat(), seed, currentRules)
         val seeds = listOf(9L, 17L, 38L)
         val expected = seeds.map(::build)
-        val executor = java.util.concurrent.Executors.newFixedThreadPool(3)
+        val executor = Executors.newFixedThreadPool(3)
         try {
             val results = seeds.map { seed -> executor.submit<ParticleMicroflakeModel.Materials> { build(seed) } }
             for (i in results.indices) {
-                val actual = results[i].get(5, java.util.concurrent.TimeUnit.SECONDS)
+                val actual = results[i].get(5, TimeUnit.SECONDS)
                 assertArrayEquals(expected[i].values, actual.values, 0f)
                 assertArrayEquals(expected[i].pigment, actual.pigment, 0f)
             }
@@ -210,7 +213,7 @@ class ParticleMicroflakeModelTest {
         val root = generateSequence(File(System.getProperty("user.dir"))) { it.parentFile }
             .first { File(it, "shared/particle-dismiss").isDirectory }
         val validator = File("E:/AndroidSDK/emulator/lib64/vulkan/glslangValidator.exe")
-        org.junit.Assume.assumeTrue(validator.isFile)
+        Assume.assumeTrue(validator.isFile)
         for (name in listOf("step.comp", "material.vert", "material.frag", "resolve.vert", "resolve.frag")) {
             val process = ProcessBuilder(validator.path, File(root, "shared/particle-dismiss/$name").path).redirectErrorStream(true).start()
             val output = process.inputStream.bufferedReader().readText()

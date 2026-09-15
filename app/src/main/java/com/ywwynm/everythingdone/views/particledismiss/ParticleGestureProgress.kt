@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import java.util.TreeMap
+
 /** 手指与 ItemTouchHelper 的松手恢复动画共用绝对距离，不累加时间或位移。 */
 internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
     @Volatile var active = initiallyActive
@@ -16,7 +18,7 @@ internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
     @Volatile var presented = false
     @Volatile var presentedProgress = 0f
         private set
-    private val submissions = java.util.TreeMap<Long, Float>()
+    private val submissions = TreeMap<Long, Float>()
 
     fun update(displacement: Float, width: Int) {
         seek(if (width > 0 && displacement.isFinite()) -displacement / width else 0f)

@@ -21,6 +21,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Paint
@@ -44,6 +45,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.NestedScrollView
 import androidx.core.widget.TextViewCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.ActionBar
@@ -62,6 +64,8 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -89,6 +93,7 @@ import com.bumptech.glide.load.resource.bitmap.VideoDecoder
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
@@ -136,6 +141,7 @@ import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.model.ThingsCounts
 import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
+import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -146,6 +152,7 @@ import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.utils.ThingsSorter
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.DrawerHeader
@@ -158,6 +165,14 @@ import com.ywwynm.everythingdone.views.ThingCardCropEditorController
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import com.ywwynm.everythingdone.views.RatioSlider
 import com.ywwynm.everythingdone.views.ThingCardVideoCropEditorView
+import com.ywwynm.everythingdone.views.particledismiss.ParticleCreationKey
+import com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
+import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
 import com.ywwynm.everythingdone.views.pickers.ThingCardAppearanceSourcePicker
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.reveal.RevealLayout
@@ -175,6 +190,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import androidx.core.view.get
 import androidx.core.graphics.toColorInt
+import androidx.fragment.app.DialogFragment
 
 class ThingsActivity :
     EverythingDoneBaseActivity(),
@@ -188,9 +204,9 @@ class ThingsActivity :
     private var mRevealLayout: RevealLayout? = null
     private var mShiningBorder: ShiningBorder? = null
     private val mSwipeParticleAnimator by lazy {
-        com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator(this)
+        ParticleSwipeAnimator(this)
     }
-    private var mNewItemParticleOverlay: com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay? = null
+    private var mNewItemParticleOverlay: ParticleDismissOverlay? = null
     private var mCreationLaunchPending = false
     // Cached "full-screen" defaults set in findViews() — used to restore mShiningBorder
     // after a card-scoped animation overrode them.
@@ -250,7 +266,7 @@ class ThingsActivity :
     private var mPendingOverlayDragModeExitRebindReason: String? = null
     private var mThingCardAppearancePanel: View? = null
     private val mAppearancePanelAnimator by lazy {
-        com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator(this)
+        ParticlePanelAnimator(this)
     }
     private var mTvThingCardAppearanceTitle: TextView? = null
     private var mEtFolderCardAppearanceName: EditText? = null
@@ -316,7 +332,7 @@ class ThingsActivity :
             emptyList()
     private var mThingCardAppearanceSourcePicker: ThingCardAppearanceSourcePicker? = null
     private var mThingCardAppearanceEditor: ThingBackgroundEditor? = null
-    private var mScrollTcaColorPage: androidx.core.widget.NestedScrollView? = null
+    private var mScrollTcaColorPage: NestedScrollView? = null
     private var mSepTcaTop: View? = null
     private var mSepTcaBottom: View? = null
     private var mLlTcaAppearanceBody: View? = null
@@ -500,12 +516,12 @@ class ThingsActivity :
         ) {
             return false
         }
-        if (!com.ywwynm.everythingdone.services.AudioRecordingService.activeSession) return false
-        val target = com.ywwynm.everythingdone.services.AudioRecordingService
+        if (!AudioRecordingService.activeSession) return false
+        val target = AudioRecordingService
             .activeReturnIntent?.let(::Intent) ?: return false
         target.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         target.putExtra(
-            com.ywwynm.everythingdone.services.AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
+            AudioRecordingService.EXTRA_OPEN_RECORDING_DIALOG,
             true
         )
         startActivity(target)
@@ -735,14 +751,14 @@ class ThingsActivity :
         // 第四批 ②：首页可见之后，先把下一条记事的随机背景掷出来（原来掷在创建页的
         // initMembers 里），再让粒子管线在空闲时为下一次新建预先建材、预算轨迹。
         App.ensureNewThingBackground()
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm
+        ParticleCreationPrewarm
             .onHomeVisible(this) { idleCreationPrewarmKey() }
     }
 
     override fun onUserInteraction() {
         super.onUserInteraction()
         // 预算只在真正空闲时跑；任何触摸/按键都把它推后，已经开工的会停在当前采样上等着续算。
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.touched()
+        ParticleCreationPrewarm.touched()
     }
 
     /**
@@ -750,7 +766,7 @@ class ThingsActivity :
      * `onUserInteraction` 不再派发，静置计时会误判成空闲）、揭示动画在播、或者正要打开创建页。
      */
     private fun idleCreationPrewarmKey():
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationKey? {
+        ParticleCreationKey? {
         if (mIsRevealAnimPlaying || mCreationLaunchPending) return null
         if (mRecyclerView?.scrollState != RecyclerView.SCROLL_STATE_IDLE) return null
         return currentCreationPrewarmKey()
@@ -758,21 +774,21 @@ class ThingsActivity :
 
     /** 「如果现在点新建按钮，创建页首帧会长什么样」的指纹；点击那一刻与空闲预算共用同一份。 */
     private fun currentCreationPrewarmKey():
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationKey? {
+        ParticleCreationKey? {
         val fab = mFab ?: return null
         val manager = mThingManager ?: return null
         val location = IntArray(2)
         fab.getLocationInWindow(location)
         val projection = manager.getProjection()
         val folderKey = projection.key() + ":" + manager.isCurrentFolderPrivacyAuthenticated()
-        return com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.fingerprint(
+        return ParticleCreationPrewarm.fingerprint(
             this, location[0] + fab.width / 2f, location[1] + fab.height / 2f, folderKey,
             App.newThingBackground ?: ThingBackground.pure(App.newThingColor))
     }
 
     override fun onPause() {
         mSwipeParticleAnimator.reset()
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.onHomeHidden()
+        ParticleCreationPrewarm.onHomeHidden()
         super.onPause()
         mOverlayDragController?.cancel("activity-pause")
         finishNewItemShiningBorderAnimationIfNeeded()
@@ -2443,7 +2459,7 @@ class ThingsActivity :
         applyHomeChromeSurfaceBackground(mActionbar, root, background)
         applyHomeChromeSurfaceBackground(findViewById<View>(R.id.view_status_bar), root, background)
         applyImmersiveStatusBarScrim(f(R.id.view_status_bar_scrim)!!, background.representativeColor())
-        mRecyclerView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        mRecyclerView?.setBackgroundColor(Color.TRANSPARENT)
         return background
     }
 
@@ -2542,8 +2558,8 @@ class ThingsActivity :
         // keeping the shadow view below it free of the gradient bleed.
         val headerWrapper: View = f(R.id.ll_contextual_header)!!
         BackgroundUtil.applyBackground(headerWrapper, background)
-        statusBar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        toolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        statusBar.setBackgroundColor(Color.TRANSPARENT)
+        toolbar.setBackgroundColor(Color.TRANSPARENT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = background.representativeColor()
         }
@@ -2619,7 +2635,7 @@ class ThingsActivity :
      */
     private fun applyToolbarIconRipples(
         toolbar: Toolbar,
-        rippleFactory: (radiusPx: Float) -> android.graphics.drawable.Drawable
+        rippleFactory: (radiusPx: Float) -> Drawable
     ) {
         toolbar.post {
             // 固定半径：与系统原生图标 ripple 同尺寸，且不随导航按钮 / 菜单项各自控件大小而变化。
@@ -2865,7 +2881,7 @@ class ThingsActivity :
         }
         mScrollTcaColorPage?.let { sv ->
             sv.setOnScrollChangeListener(
-                androidx.core.widget.NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+                NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
                     updateTcaSeparators()
                 }
             )
@@ -3939,7 +3955,7 @@ class ThingsActivity :
             val mask = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 1000f
-                setColor(android.graphics.Color.WHITE)
+                setColor(Color.WHITE)
             }
             RippleDrawable(
                     ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(accentBackground)),
@@ -4458,7 +4474,7 @@ class ThingsActivity :
 
     private fun openThingCardCropEditor() {
         (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
+                as? DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
                 MediaCropAppearanceDialogFragment.REQUEST_THING_CARD_CROP
         ).show(
@@ -4513,11 +4529,11 @@ class ThingsActivity :
         title.setText(getThingCardAppearancePreciseCropTextRes(source))
         applyThingCardAppearanceAccentText(title)
         title.setTextSize(
-                android.util.TypedValue.COMPLEX_UNIT_PX,
+                TypedValue.COMPLEX_UNIT_PX,
                 resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
         )
         title.setTypeface(title.typeface, Typeface.BOLD)
-        title.gravity = android.view.Gravity.CENTER_VERTICAL
+        title.gravity = Gravity.CENTER_VERTICAL
         root.addView(
                 title,
                 LinearLayout.LayoutParams(
@@ -4644,7 +4660,7 @@ class ThingsActivity :
         )
 
         val buttons = LinearLayout(this)
-        buttons.gravity = android.view.Gravity.RIGHT or android.view.Gravity.CENTER_VERTICAL
+        buttons.gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.clipChildren = false
         buttons.clipToPadding = false
@@ -4709,8 +4725,8 @@ class ThingsActivity :
         }
         val availableWidth = containerWidth - lp.leftMargin - lp.rightMargin
         val targetWidth = getThingCardAppearanceConstrainedWidth(availableWidth)
-        val targetGravity = android.view.Gravity.BOTTOM or
-                android.view.Gravity.CENTER_HORIZONTAL
+        val targetGravity = Gravity.BOTTOM or
+                Gravity.CENTER_HORIZONTAL
         if (lp.width != targetWidth || lp.gravity != targetGravity) {
             lp.width = targetWidth
             lp.gravity = targetGravity
@@ -4785,7 +4801,7 @@ class ThingsActivity :
 
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
-        container.gravity = android.view.Gravity.CENTER_VERTICAL
+        container.gravity = Gravity.CENTER_VERTICAL
 
         lateinit var playPauseButton: ImageView
         lateinit var seekBar: SeekBar
@@ -4954,7 +4970,7 @@ class ThingsActivity :
         label.setText(labelRes)
         label.setTextColor(ContextCompat.getColor(this, R.color.app_chrome_on_surface_hint))
         label.textSize = 13f
-        label.gravity = android.view.Gravity.CENTER_VERTICAL
+        label.gravity = Gravity.CENTER_VERTICAL
         container.addView(
                 label,
                 LinearLayout.LayoutParams(
@@ -5007,7 +5023,7 @@ class ThingsActivity :
                     ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
             )
         }
-        button.gravity = android.view.Gravity.CENTER
+        button.gravity = Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
         button.layoutParams = LinearLayout.LayoutParams(
@@ -6254,8 +6270,8 @@ class ThingsActivity :
         mFab!!.setOnClickListener {
             if (mIsRevealAnimPlaying) return@setOnClickListener
             // 2a 的链路起点就是这一刻（点击在抬手时派发）；release 包里是空调用。
-            com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.clear()
-            com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.mark("fab-up")
+            ParticleLaunchTrace.clear()
+            ParticleLaunchTrace.mark("fab-up")
             mIsRevealAnimPlaying = true
             mCreationLaunchPending = true
             dismissSnackbars()
@@ -6270,7 +6286,7 @@ class ThingsActivity :
             mFab!!.getLocationInWindow(fabLocation)
             // 第四批 ②：指纹必须在**点击这一刻**算——创建页起来之后再算就分不清是不是同一份环境。
             val prewarmKey = currentCreationPrewarmKey()
-            com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.launch(this, intent,
+            ThingCreationTransition.launch(this, intent,
                 fabLocation[0] + mFab!!.width / 2f, fabLocation[1] + mFab!!.height / 2f,
                 prewarmKey) { launched ->
                 if (!launched) {
@@ -6454,10 +6470,10 @@ class ThingsActivity :
         holder: BaseThingsAdapter.BaseThingViewHolder, bg: ThingBackground
     ) {
         finishNewItemShiningBorderAnimationIfNeeded()
-        val style = com.ywwynm.everythingdone.utils.ThingAnimationPreferences.creation(this)
-        val useShining = style == com.ywwynm.everythingdone.utils.ThingAnimationPreferences.BORDER
+        val style = ThingAnimationPreferences.creation(this)
+        val useShining = style == ThingAnimationPreferences.BORDER
         val card = holder.cv!!
-        if (style == com.ywwynm.everythingdone.utils.ThingAnimationPreferences.PARTICLE) {
+        if (style == ThingAnimationPreferences.PARTICLE) {
             val token = ++mNewItemShiningBorderToken
             mIsNewItemShiningBorderActive = true
             mIsNewItemShiningBorderAnimating = false
@@ -6482,7 +6498,7 @@ class ThingsActivity :
                 card.animate().cancel()
                 card.alpha = 1f
                 card.visibility = View.VISIBLE
-                val started = com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+                val started = ParticleDismissController
                     .appearContent(this, window, card, appearanceDirection = 315f, roundSnapshot = false,
                         onAppearanceFinished = {
                             if (token == mNewItemShiningBorderToken) {
@@ -6643,7 +6659,7 @@ class ThingsActivity :
 
         mNewItemShiningBorderToken++
         val card = mNewItemShiningBorderCard
-        card?.let { com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController.cancelAppearance(it) }
+        card?.let { ParticleDismissController.cancelAppearance(it) }
         mNewItemParticleOverlay?.release()
         mNewItemParticleOverlay = null
         if (mIsNewItemShiningBorderAnimating) {
@@ -6707,7 +6723,7 @@ class ThingsActivity :
 
     /** 仅 debug：卡片入场揭示链路的时序日志，用于真机排查。 */
     private fun revealLog(message: String, error: Throwable? = null) {
-        if (!com.ywwynm.everythingdone.BuildConfig.DEBUG) return
+        if (!BuildConfig.DEBUG) return
         if (error != null) Log.i("NewItemReveal", "${SystemClock.uptimeMillis()} $message", error)
         else Log.i("NewItemReveal", "${SystemClock.uptimeMillis()} $message")
     }
@@ -6716,8 +6732,8 @@ class ThingsActivity :
         mRecyclerView!!.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
             override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
                 if (event.actionMasked == MotionEvent.ACTION_DOWN && !mOverlayDragActive && !mIsNewItemShiningBorderActive &&
-                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@ThingsActivity) ==
-                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE) {
+                    ThingAnimationPreferences.swipe(this@ThingsActivity) ==
+                    ThingAnimationPreferences.SWIPE_PARTICLE) {
                     val child = rv.findChildViewUnder(event.x, event.y)
                     if (child != null && mThingManager?.getThingListEntry(rv.getChildAdapterPosition(child)) is ThingListEntry.ThingEntry) {
                         mSwipeParticleAnimator.warm(child, event)
@@ -11506,8 +11522,8 @@ class ThingsActivity :
             var particleSwipe = false
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                 if (dX > 0f) mSwipeParticleAnimator.reset(viewHolder.itemView)
-                else if (com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@ThingsActivity) ==
-                    com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE &&
+                else if (ThingAnimationPreferences.swipe(this@ThingsActivity) ==
+                    ThingAnimationPreferences.SWIPE_PARTICLE &&
                     mThingManager!!.getThingListEntry(viewHolder.adapterPosition) is ThingListEntry.ThingEntry) {
                     val holder = viewHolder as BaseThingsAdapter.BaseThingViewHolder
                     val thing = mThingManager!!.getThingAtListPosition(viewHolder.adapterPosition)

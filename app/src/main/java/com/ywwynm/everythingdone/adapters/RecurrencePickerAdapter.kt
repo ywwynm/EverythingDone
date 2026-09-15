@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -153,7 +154,7 @@ open class RecurrencePickerAdapter(
                 val pickedMask = GradientDrawable()
                 pickedMask.shape = GradientDrawable.RECTANGLE
                 pickedMask.cornerRadius = holder.cv.radius
-                pickedMask.setColor(android.graphics.Color.WHITE)
+                pickedMask.setColor(Color.WHITE)
                 // 选中态药丸已铺记事色，触摸 ripple 按记事色明暗自适应。
                 holder.cv.foreground = RippleDrawable(
                     ColorStateList.valueOf(BackgroundUtil.adaptiveRippleColor(mAccentBackground)),

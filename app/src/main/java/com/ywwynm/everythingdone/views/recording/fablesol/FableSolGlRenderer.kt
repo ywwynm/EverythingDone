@@ -5,11 +5,13 @@ import android.graphics.Color
 import android.opengl.GLES30
 import android.os.SystemClock
 import android.util.TypedValue
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -105,7 +107,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
     private var perfAudioFrames = 0
     private var perfAudioEvents = 0
     /** 投影单调修复触发的行数；顶点填充在行并行区内，故用原子计数。 */
-    private val perfRepairRows = java.util.concurrent.atomic.AtomicInteger(0)
+    private val perfRepairRows = AtomicInteger(0)
     // 颜色过渡（调参 Dialog 换色）：UI 线程投递目标，GL 线程消费推进。
     @Volatile private var pendingTransitionTarget: BackgroundSnapshot? = null
     private var transitionFrom: BackgroundSnapshot? = null
@@ -568,7 +570,7 @@ internal class FableSolGlRenderer(context: Context, private val density: Double)
         val drawStart = SystemClock.elapsedRealtimeNanos()
         drawFrame()
         val drawEnd = SystemClock.elapsedRealtimeNanos()
-        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) presentationObserver?.invoke(this)
+        if (BuildConfig.DEBUG) presentationObserver?.invoke(this)
         return Timing(
             physicsStart - drainStart,
             buildStart - physicsStart,

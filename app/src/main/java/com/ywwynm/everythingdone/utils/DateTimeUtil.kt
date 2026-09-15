@@ -13,16 +13,20 @@ import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import java.time.temporal.TemporalField
 import java.time.temporal.WeekFields
 import java.util.Calendar
 import java.util.Date
 import java.util.GregorianCalendar
+import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -77,27 +81,27 @@ object DateTimeUtil {
             if (time > 1) {
                 typeStr += "s"
             }
-            return time.toString() + " " + typeStr.lowercase(java.util.Locale.getDefault())
+            return time.toString() + " " + typeStr.lowercase(Locale.getDefault())
         }
     }
 
     @JvmStatic
-    fun getTemporalFieldFor(type: Int): java.time.temporal.TemporalField? {
+    fun getTemporalFieldFor(type: Int): TemporalField? {
         when (type) {
             Calendar.MINUTE ->
-                return java.time.temporal.ChronoField.MINUTE_OF_HOUR
+                return ChronoField.MINUTE_OF_HOUR
             Calendar.HOUR_OF_DAY ->
-                return java.time.temporal.ChronoField.HOUR_OF_DAY
+                return ChronoField.HOUR_OF_DAY
             Calendar.DATE ->
-                return java.time.temporal.ChronoField.DAY_OF_MONTH
+                return ChronoField.DAY_OF_MONTH
             Calendar.WEEK_OF_YEAR ->
                 return WeekFields.ISO.weekOfWeekBasedYear()
             Calendar.MONTH ->
-                return java.time.temporal.ChronoField.MONTH_OF_YEAR
+                return ChronoField.MONTH_OF_YEAR
             Calendar.YEAR ->
-                return java.time.temporal.ChronoField.YEAR
+                return ChronoField.YEAR
             else ->
-                return java.time.temporal.ChronoField.ERA
+                return ChronoField.ERA
         }
     }
 
@@ -578,7 +582,7 @@ object DateTimeUtil {
         val day: String = dateTimes[1]
         val times: Array<String> = dateTimes[2].split(":".toRegex()).toTypedArray()
         val every: String = context!!.getString(R.string.every)
-        val yearStr: String = context.getString(R.string.year).lowercase(java.util.Locale.getDefault())
+        val yearStr: String = context.getString(R.string.year).lowercase(Locale.getDefault())
         val monthOfYear: Array<String?> = context.resources.getStringArray(R.array.month_of_year)
         val isChinese: Boolean = LocaleUtil.isChinese(context)
         if (isChinese) { // 每年六月,十二月月末傍晚18:00
@@ -641,10 +645,10 @@ object DateTimeUtil {
                     .append(res.getString(R.string.day))
         } else {
             sb.append("on ")
-            val sdf: java.text.SimpleDateFormat = if (year != curYear) {
-                java.text.SimpleDateFormat("MMM d, yyyy")
+            val sdf: SimpleDateFormat = if (year != curYear) {
+                SimpleDateFormat("MMM d, yyyy")
             } else {
-                java.text.SimpleDateFormat("MMM d")
+                SimpleDateFormat("MMM d")
             }
             sb.append(sdf.format(date))
         }
@@ -700,8 +704,8 @@ object DateTimeUtil {
         return if (second < 1) {
             "< 1s"
         } else if (second < 3600) {
-            java.text.SimpleDateFormat("mm:ss").format(Date(time))
-        } else java.text.SimpleDateFormat("HH:mm:ss").format(Date(time))
+            SimpleDateFormat("mm:ss").format(Date(time))
+        } else SimpleDateFormat("HH:mm:ss").format(Date(time))
     }
 
     @JvmStatic

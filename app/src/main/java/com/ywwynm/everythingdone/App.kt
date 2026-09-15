@@ -16,6 +16,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.database.Cursor
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -25,6 +26,7 @@ import androidx.core.view.doOnPreDraw
 import android.util.Log
 
 
+import com.github.adnansm.timelytextview.TimelyClockView
 import com.ywwynm.everythingdone.database.ReminderDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.helpers.AlarmHelper
@@ -38,15 +40,20 @@ import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingListProjection
 import com.ywwynm.everythingdone.services.AlarmHealthWorker
 import com.ywwynm.everythingdone.services.PullAliveJobService
+import com.ywwynm.everythingdone.utils.AnimatorDurationScale
 import com.ywwynm.everythingdone.utils.FileUtil
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
+import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.fragments.BaseDialogFragment
+import com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+import com.ywwynm.everythingdone.views.particledismiss.ParticleGl
 
 import java.io.File
 import java.util.ArrayList
+import java.util.Random
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
@@ -86,17 +93,17 @@ open class App : Application() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
-            com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
+            ParticleGl.trimMemory()
             // 退后台（界面不可见）与任何内存告警都放掉提前算好的创建页轨迹与预测素材：
             // 它占着一块历史缓冲、一张全屏前景纹理与一份 ARGB 像素（第四批 ②）。
-            com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.trimMemory()
+            ParticleCreationPrewarm.trimMemory()
         }
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
-        com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
-        com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm.trimMemory()
+        ParticleGl.trimMemory()
+        ParticleCreationPrewarm.trimMemory()
     }
 
     override fun onCreate() {
@@ -152,15 +159,15 @@ open class App : Application() {
                     decor.post {
                         // 全应用共用一条动画时间基准：API 33+ 读 ValueAnimator.getDurationScale()
                         // 并跟随其变化，以下回退 Settings.Global（见 AnimatorDurationScale）。
-                        com.ywwynm.everythingdone.utils.AnimatorDurationScale.attach(this@App)
+                        AnimatorDurationScale.attach(this@App)
                         if (BaseDialogFragment.particleAnimationMode(this@App) != 0 ||
-                            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.creation(this@App) ==
-                                com.ywwynm.everythingdone.utils.ThingAnimationPreferences.PARTICLE ||
-                            com.ywwynm.everythingdone.utils.ThingAnimationPreferences.swipe(this@App) ==
-                                com.ywwynm.everythingdone.utils.ThingAnimationPreferences.SWIPE_PARTICLE) {
+                            ThingAnimationPreferences.creation(this@App) ==
+                                ThingAnimationPreferences.PARTICLE ||
+                            ThingAnimationPreferences.swipe(this@App) ==
+                                ThingAnimationPreferences.SWIPE_PARTICLE) {
                             ParticleDismissController.warmDismissModel(this@App)
                         }
-                        com.github.adnansm.timelytextview.TimelyClockView.prewarmStyle(this@App,
+                        TimelyClockView.prewarmStyle(this@App,
                             getSharedPreferences(Def.Meta.PREFERENCES_NAME, 0)
                                 .getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins"))
                     }
@@ -721,7 +728,7 @@ open class App : Application() {
 
         /** Full-spectrum random RGB — matches Everything-Android's `newRandomColor()`. */
         private fun randomColor(): Int {
-            return android.graphics.Color.rgb(
+            return Color.rgb(
                     sRandom.nextInt(256), sRandom.nextInt(256), sRandom.nextInt(256))
         }
 
@@ -730,9 +737,9 @@ open class App : Application() {
 
         private fun tooClose(a: Int, b: Int): Boolean {
             if (a == 0 || b == 0) return false // 0 used as "unset" sentinel
-            val dr: Int = android.graphics.Color.red(a)   - android.graphics.Color.red(b)
-            val dg: Int = android.graphics.Color.green(a) - android.graphics.Color.green(b)
-            val db: Int = android.graphics.Color.blue(a)  - android.graphics.Color.blue(b)
+            val dr: Int = Color.red(a)   - Color.red(b)
+            val dg: Int = Color.green(a) - Color.green(b)
+            val db: Int = Color.blue(a)  - Color.blue(b)
             // Cheap approximation: sum of |Δ| rather than Euclidean — fine for "avoid duplicates".
             return abs(dr) + abs(dg) + abs(db) < NEAR_THRESHOLD
         }
@@ -744,7 +751,7 @@ open class App : Application() {
             return false
         }
 
-        private val sRandom: java.util.Random = java.util.Random()
+        private val sRandom: Random = Random()
 
         private fun isInside(arr: IntArray, value: Int): Boolean {
             for (elem in arr) {

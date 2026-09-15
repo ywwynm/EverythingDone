@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.adapters
 
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingFolder
 
 import java.util.ArrayList
 
@@ -53,7 +54,7 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     }
 
     open fun isFolderShownAsThumbnails(
-        folder: com.ywwynm.everythingdone.model.ThingFolder
+        folder: ThingFolder
     ): Boolean {
         return mAdapter!!.isFolderShownAsThumbnails(folder)
     }

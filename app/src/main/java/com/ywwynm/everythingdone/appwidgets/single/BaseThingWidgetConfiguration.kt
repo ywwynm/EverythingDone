@@ -42,6 +42,7 @@ import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -699,7 +700,7 @@ open class BaseThingWidgetConfiguration : EverythingDoneBaseActivity() {
 
         // 私密文件夹内的普通记事（自身无前缀）在桌面小部件上不应明文显示：先经有效私密解析遮蔽，
         // 与常规小部件刷新（BaseThingWidget）口径一致，避免刚创建的小部件明文泄露到下次刷新前。
-        val safeThing = com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
+        val safeThing = ThingPrivacyResolver
                 .resolveForPresentation(this, thing)
         val views: RemoteViews = AppWidgetHelper.createRemoteViewsForSingleThing(
                 this, safeThing, -1, mAppWidgetId, clazz)

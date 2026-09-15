@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaCodecList
 import android.media.MediaFormat
@@ -365,9 +366,9 @@ internal object FableSolHdrExportCapability {
         } catch (ignored: Throwable) {
             null
         } ?: return null
-        var codec: android.media.MediaCodec? = null
+        var codec: MediaCodec? = null
         return try {
-            codec = android.media.MediaCodec.createByCodecName(name)
+            codec = MediaCodec.createByCodecName(name)
             val interesting = codec.supportedVendorParameters.filter { parameter ->
                 VENDOR_PARAMETER_HINTS.any { parameter.contains(it, ignoreCase = true) }
             }
@@ -1076,7 +1077,7 @@ internal object FableSolHdrExportCapability {
                 )
             }
         }
-        if (error is android.media.MediaCodec.CodecException) {
+        if (error is MediaCodec.CodecException) {
             return FableSolExportFailure(
                 code = FableSolExportFailure.Code.ENCODER_ERROR,
                 detail = detail,
@@ -1110,7 +1111,7 @@ internal object FableSolHdrExportCapability {
      * 消息是另一套措辞，不会命中。
      */
     private fun isRetryableCodecError(error: Throwable): Boolean {
-        if (error is android.media.MediaCodec.CodecException) {
+        if (error is MediaCodec.CodecException) {
             return error.isTransient || error.isRecoverable
         }
         if (error !is IllegalStateException) return false

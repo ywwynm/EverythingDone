@@ -7,12 +7,16 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.opengl.GLSurfaceView
+import android.os.Build
 import android.util.AttributeSet
 import com.ywwynm.everythingdone.permission.DirectionSensorWatchdog
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import javax.microedition.khronos.egl.EGL10
+import javax.microedition.khronos.egl.EGLConfig
+import javax.microedition.khronos.egl.EGLDisplay
 import kotlin.math.abs
 import kotlin.math.PI
 
@@ -299,7 +303,7 @@ class SpatialPhotoView @JvmOverloads constructor(
 
     @Suppress("DEPRECATION")
     private fun remapForDisplay(input: FloatArray, output: FloatArray) {
-        val rotation = if (android.os.Build.VERSION.SDK_INT >= 30) {
+        val rotation = if (Build.VERSION.SDK_INT >= 30) {
             context.display?.rotation ?: Surface.ROTATION_0
         } else {
             (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
@@ -330,38 +334,38 @@ class SpatialPhotoView @JvmOverloads constructor(
     /** 4x MSAA 优先、逐级回退的 EGL 配置选择器。 */
     private class MsaaConfigChooser : EGLConfigChooser {
         override fun chooseConfig(
-            egl: javax.microedition.khronos.egl.EGL10,
-            display: javax.microedition.khronos.egl.EGLDisplay
-        ): javax.microedition.khronos.egl.EGLConfig {
+            egl: EGL10,
+            display: EGLDisplay
+        ): EGLConfig {
             val attempts = listOf(4, 2, 0)
             for (samples in attempts) {
                 val spec = buildList {
                     addAll(
                         listOf(
-                            javax.microedition.khronos.egl.EGL10.EGL_RED_SIZE, 8,
-                            javax.microedition.khronos.egl.EGL10.EGL_GREEN_SIZE, 8,
-                            javax.microedition.khronos.egl.EGL10.EGL_BLUE_SIZE, 8,
-                            javax.microedition.khronos.egl.EGL10.EGL_ALPHA_SIZE, 8,
-                            javax.microedition.khronos.egl.EGL10.EGL_DEPTH_SIZE, 16,
-                            javax.microedition.khronos.egl.EGL10.EGL_RENDERABLE_TYPE,
+                            EGL10.EGL_RED_SIZE, 8,
+                            EGL10.EGL_GREEN_SIZE, 8,
+                            EGL10.EGL_BLUE_SIZE, 8,
+                            EGL10.EGL_ALPHA_SIZE, 8,
+                            EGL10.EGL_DEPTH_SIZE, 16,
+                            EGL10.EGL_RENDERABLE_TYPE,
                             EGL_OPENGL_ES2_BIT
                         )
                     )
                     if (samples > 0) {
                         addAll(
                             listOf(
-                                javax.microedition.khronos.egl.EGL10.EGL_SAMPLE_BUFFERS, 1,
-                                javax.microedition.khronos.egl.EGL10.EGL_SAMPLES, samples
+                                EGL10.EGL_SAMPLE_BUFFERS, 1,
+                                EGL10.EGL_SAMPLES, samples
                             )
                         )
                     }
-                    add(javax.microedition.khronos.egl.EGL10.EGL_NONE)
+                    add(EGL10.EGL_NONE)
                 }.toIntArray()
                 val count = IntArray(1)
                 if (!egl.eglChooseConfig(display, spec, null, 0, count) || count[0] <= 0) {
                     continue
                 }
-                val configs = arrayOfNulls<javax.microedition.khronos.egl.EGLConfig>(count[0])
+                val configs = arrayOfNulls<EGLConfig>(count[0])
                 if (egl.eglChooseConfig(display, spec, configs, count[0], count)) {
                     configs[0]?.let { return it }
                 }

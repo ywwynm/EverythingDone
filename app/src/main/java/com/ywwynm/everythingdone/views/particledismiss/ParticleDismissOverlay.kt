@@ -1,13 +1,18 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.app.Activity
+import android.graphics.Outline
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageView
+import com.ywwynm.everythingdone.BuildConfig
+import java.util.Collections
 
 /**
  * 粒子动画的宿主层：挂在 Activity 的 DecorView 上，触摸完全穿透。
@@ -46,7 +51,7 @@ internal class ParticleDismissOverlay(
     private var particleVisible = true
     private val releaseListeners = mutableListOf<Runnable>()
     /** 观察器读的是「帧真正上屏」的时刻；沿用第一批的三元组形状。 */
-    internal val textureTimings = java.util.Collections.synchronizedList(mutableListOf<LongArray>())
+    internal val textureTimings = Collections.synchronizedList(mutableListOf<LongArray>())
     internal val isDisappearance get() = !spec.reverse
 
     internal fun afterRelease(action: Runnable) {
@@ -79,8 +84,8 @@ internal class ParticleDismissOverlay(
             // 圆角遮罩改在材料线程完成（1.6），本层可能早它一两帧上屏；按同一半径裁自己的轮廓，
             // 遮罩落到位之前也不会露出直角。遮罩到位后二者重合，是幂等的。
             if (spec.roundedCornerRadiusPx > 0f) {
-                outlineProvider = object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                outlineProvider = object : ViewOutlineProvider() {
+                    override fun getOutline(view: View, outline: Outline) {
                         outline.setRoundRect(0, 0, view.width, view.height, spec.roundedCornerRadiusPx)
                     }
                 }
@@ -199,7 +204,7 @@ internal class ParticleDismissOverlay(
     private fun onPresented(progress: Float, target: Long, atNanos: Long) {
         // 观察器按「标记位 0 + 墙钟 + 与提交对应的时间戳」解析，第一批是 TextureView 的
         // onSurfaceTextureUpdated，第二批换成「这一帧确认上屏」，形状保持一致。
-        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) textureTimings += longArrayOf(0, atNanos, target)
+        if (BuildConfig.DEBUG) textureTimings += longArrayOf(0, atNanos, target)
         if (finished) return
         presentedProgress = progress
         onPresentedProgress?.invoke(progress)

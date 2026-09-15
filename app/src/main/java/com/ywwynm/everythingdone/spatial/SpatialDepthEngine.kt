@@ -4,8 +4,10 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -71,7 +73,7 @@ class SpatialDepthEngine(
         val pixels = IntArray(64 * 48) { index ->
             val x = index % 64
             val y = index / 64
-            android.graphics.Color.rgb(x * 4, y * 5, (x * 3 + y * 7) and 0xff)
+            Color.rgb(x * 4, y * 5, (x * 3 + y * 7) and 0xff)
         }
         bitmap.setPixels(pixels, 0, 64, 0, 0, 64, 48)
         return try {
@@ -255,7 +257,7 @@ class SpatialDepthEngine(
 
     private fun runModel(
         model: SpatialDepthModel,
-        inputBuffer: java.nio.FloatBuffer,
+        inputBuffer: FloatBuffer,
         cancelled: AtomicBoolean
     ): FloatArray {
         SpatialRuntimeStore.ensureLoaded(context)
@@ -360,7 +362,7 @@ class SpatialDepthEngine(
     }
 
     private data class PreparedInput(
-        val input: java.nio.FloatBuffer,
+        val input: FloatBuffer,
         val contentLeft: Int,
         val contentTop: Int,
         val contentWidth: Int,

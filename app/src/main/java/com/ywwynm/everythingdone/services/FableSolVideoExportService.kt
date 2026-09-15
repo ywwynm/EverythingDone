@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -14,6 +15,7 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.Process
 import android.text.format.Formatter
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -188,7 +190,7 @@ class FableSolVideoExportService : Service() {
         if (workerThread != null) return
         val thread = HandlerThread(
             "FableSolVideoExport",
-            android.os.Process.THREAD_PRIORITY_DEFAULT
+            Process.THREAD_PRIORITY_DEFAULT
         )
         thread.start()
         workerThread = thread
@@ -965,7 +967,7 @@ class FableSolVideoExportService : Service() {
             startForeground(
                 PROGRESS_NOTIFICATION_ID,
                 notification,
-                android.content.pm.ServiceInfo
+                ServiceInfo
                     .FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING
             )
         } else {
@@ -1033,7 +1035,7 @@ class FableSolVideoExportService : Service() {
             startForeground(
                 PROGRESS_NOTIFICATION_ID,
                 notification,
-                android.content.pm.ServiceInfo
+                ServiceInfo
                     .FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING
             )
         } else {

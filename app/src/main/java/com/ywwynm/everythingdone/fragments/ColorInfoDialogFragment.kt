@@ -3,6 +3,7 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.graphics.Outline
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -236,7 +237,7 @@ open class ColorInfoDialogFragment : BaseDialogFragment() {
         val tv = TextView(activity)
         tv.text = text
         tv.textSize = 15f
-        tv.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        tv.typeface = Typeface.DEFAULT_BOLD
         tv.setTextColor(ContextCompat.getColor(activity!!, R.color.app_chrome_on_surface_primary))
         val lp = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,

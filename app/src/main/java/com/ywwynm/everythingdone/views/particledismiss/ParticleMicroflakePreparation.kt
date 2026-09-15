@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import android.graphics.Bitmap
+import android.os.Process
 
 /**
  * 快照就绪后立即建材，与叠加层布局和 EGL 建链重叠；不在主线程等待。
@@ -43,9 +44,9 @@ internal class ParticleMicroflakePreparation(
         // 这段计算直接阻塞用户可见首帧，所以默认仍用显示优先级。
         // 但涟漪或上一层粒子正在播时，它与主线程、RenderThread 抢同一批大核——
         // 那种处境下让出优先级，只让真正在出帧的线程留在 DISPLAY（见 1.7）。
-        android.os.Process.setThreadPriority(
-            if (contended) android.os.Process.THREAD_PRIORITY_DEFAULT
-            else android.os.Process.THREAD_PRIORITY_DISPLAY)
+        Process.setThreadPriority(
+            if (contended) Process.THREAD_PRIORITY_DEFAULT
+            else Process.THREAD_PRIORITY_DISPLAY)
         try {
             val bitmap = spec.snapshot
             // 圆角遮罩是一遍全图软件绘制（创建页是整屏 4 Mpx），放在材料线程里、取像素之前做：
@@ -99,7 +100,7 @@ internal class ParticleMicroflakePreparation(
             if (modelTask != null) return
             val pixels = sourcePixels ?: return
             val created = FutureTask {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+                Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY)
                 buildModel(pixels)
             }
             modelTask = created

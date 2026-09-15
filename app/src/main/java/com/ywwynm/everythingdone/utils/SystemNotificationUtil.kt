@@ -34,6 +34,7 @@ import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.HabitReminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.receivers.DoingNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.HabitNotificationActionReceiver
 import com.ywwynm.everythingdone.receivers.ReminderNotificationActionReceiver
@@ -174,7 +175,7 @@ object SystemNotificationUtil {
             builder: NotificationCompat.Builder?, context: Context?, id: Long, position: Int,
             @Thing.Type type: Int, isPrivate: Boolean, color: Int) {
         addActionsForReminderNotification(builder, context, id, position, type, isPrivate,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(color))
+                ThingBackground.pure(color))
     }
 
     /**
@@ -188,7 +189,7 @@ object SystemNotificationUtil {
     fun addActionsForReminderNotification(
             builder: NotificationCompat.Builder?, context: Context?, id: Long, position: Int,
             @Thing.Type type: Int, isPrivate: Boolean,
-            bg: com.ywwynm.everythingdone.model.ThingBackground?) {
+            bg: ThingBackground?) {
         if (isPrivate) {
             val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", id, position,
@@ -259,7 +260,7 @@ object SystemNotificationUtil {
             isPrivate: Boolean, thingId: Long, color: Int) {
         addActionsForHabitNotification(context, builder, hrId, position, hrTime,
                 isPrivate, thingId,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(color))
+                ThingBackground.pure(color))
     }
 
     /** Phase 8: ThingBackground-aware habit-notification action builder.
@@ -268,7 +269,7 @@ object SystemNotificationUtil {
     fun addActionsForHabitNotification(
             context: Context?, builder: NotificationCompat.Builder?, hrId: Long, position: Int, hrTime: Long,
             isPrivate: Boolean, thingId: Long,
-            bg: com.ywwynm.everythingdone.model.ThingBackground?) {
+            bg: ThingBackground?) {
         if (isPrivate) {
             val finishIntent: Intent = AuthenticationActivity.getOpenIntent(
                     context, "SystemNotificationUtil", thingId, position,
@@ -349,7 +350,7 @@ object SystemNotificationUtil {
                 context, App::class.java.getName(),
                 if (App.newThingBackground != null)
                         App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
+                else ThingBackground.pure(App.newThingColor))
         val contentPendingIntent: PendingIntent = PendingIntent.getActivity(context,
                 Def.Meta.ONGOING_NOTIFICATION_ID, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
@@ -610,7 +611,7 @@ object SystemNotificationUtil {
     }
 
     private fun extendWearable(builder: NotificationCompat.Builder?, type: Int,
-                               bg: com.ywwynm.everythingdone.model.ThingBackground?,
+                               bg: ThingBackground?,
                                autoNotify: Boolean, context: Context?) {
         var bmdRes: Int = R.drawable.wear_reminder
         if (autoNotify) {

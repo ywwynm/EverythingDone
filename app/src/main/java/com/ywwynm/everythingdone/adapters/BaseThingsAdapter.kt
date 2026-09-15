@@ -6,12 +6,14 @@ import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
+import android.text.TextPaint
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.collection.LongSparseArray
@@ -57,6 +59,7 @@ import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoCoverHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
+import com.ywwynm.everythingdone.helpers.ThingPrivacyResolver
 import com.ywwynm.everythingdone.helpers.VideoCoverPreviewManager
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Habit
@@ -71,6 +74,7 @@ import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.widget.ImageViewCompat
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.max
@@ -168,10 +172,10 @@ abstract class BaseThingsAdapter(context: Context?) :
     /** Phase 8+: tint a single-tone white card ImageView to black on light backgrounds. */
     protected open fun tintCardIcon(iv: ImageView?, thingColor: Int) {
         if (iv == null) return
-        androidx.core.widget.ImageViewCompat.setImageTintList(
+        ImageViewCompat.setImageTintList(
             iv,
             if (BackgroundUtil.isLight(thingColor))
-                android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                ColorStateList.valueOf(Color.BLACK)
             else null
         )
     }
@@ -635,7 +639,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         // 默认按"有效私密"判定（含处于私密文件夹内、自身无前缀的记事），避免新界面用基类时漏判。
         // 需要"当前文件夹已认证"豁免的列表界面在子类覆写（如 ThingsAdapter）。
         return mContext?.let {
-            com.ywwynm.everythingdone.helpers.ThingPrivacyResolver.isEffectivelyPrivate(it, thing)
+            ThingPrivacyResolver.isEffectivelyPrivate(it, thing)
         } ?: thing.isPrivate()
     }
 
@@ -698,10 +702,10 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (isThingEffectivelyPrivate(thing) && !mShouldShowPrivateContent) {
             holder.cv!!.setShouldInterceptTouchEvent(true)
             holder.ivPrivateThing!!.visibility = View.VISIBLE
-            androidx.core.widget.ImageViewCompat.setImageTintList(
+            ImageViewCompat.setImageTintList(
                 holder.ivPrivateThing,
                 if (BackgroundUtil.isLight(getThingCardForegroundBaseColor(thing)))
-                    android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+                    ColorStateList.valueOf(Color.BLACK)
                 else null
             )
             holder.flImageAttachment!!.visibility = View.GONE
@@ -777,7 +781,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (thing.location < 0) {
             val background = getStickyThingParentFolderBackground(thing)
             if (background != null) {
-                androidx.core.widget.ImageViewCompat.setImageTintList(icon, null)
+                ImageViewCompat.setImageTintList(icon, null)
                 icon.setImageDrawable(
                     BackgroundUtil.tintDrawable(mContext!!.resources, icon.drawable, background)
                 )
@@ -1881,7 +1885,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             ContextCompat.getColor(mContext!!, R.color.white_66p)
         )
         holder.ivMediaCount ?: return
-        androidx.core.widget.ImageViewCompat.setImageTintList(holder.ivMediaCount, null)
+        ImageViewCompat.setImageTintList(holder.ivMediaCount, null)
         holder.ivMediaCount.clearColorFilter()
         holder.ivMediaCount.setImageResource(R.drawable.card_image_attachment_count)
     }
@@ -1891,7 +1895,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         foregroundBaseColor: Int
     ) {
         icon ?: return
-        androidx.core.widget.ImageViewCompat.setImageTintList(icon, null)
+        ImageViewCompat.setImageTintList(icon, null)
         icon.clearColorFilter()
         icon.setImageResource(
             if (BackgroundUtil.isLight(foregroundBaseColor)) {
@@ -3620,7 +3624,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             // 使蒙层始终是正常列表样子的等比缩小版，而非按高度单独缩放的变形。
             val tvMarginStart =
                 (tv.layoutParams as? ViewGroup.MarginLayoutParams)?.marginStart?.toFloat() ?: 0f
-            val measurePaint = android.text.TextPaint(tv.paint)
+            val measurePaint = TextPaint(tv.paint)
             measurePaint.textSize = baseTextSizePx
             val textWidth = measurePaint.measureText(tv.text?.toString() ?: "")
             val intrinsicContentWidth = intrinsicIconW + baseDrawablePadding + textWidth

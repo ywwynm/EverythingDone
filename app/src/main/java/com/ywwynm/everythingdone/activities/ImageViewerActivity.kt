@@ -16,6 +16,7 @@ import androidx.viewpager.widget.ViewPager
 import androidx.work.WorkManager
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
+import androidx.fragment.app.DialogFragment
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -46,6 +47,7 @@ import android.view.TextureView
 
 import com.bumptech.glide.Glide
 import android.graphics.drawable.Drawable
+import android.util.Log
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
@@ -65,6 +67,9 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.MotionPhotoDetector
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.permission.DirectionSensorHint
+import com.ywwynm.everythingdone.spatial.SpatialAlphaData
+import com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModel
+import com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
 import com.ywwynm.everythingdone.spatial.SpatialDepthEngine
 import com.ywwynm.everythingdone.spatial.SpatialDepthModel
 import com.ywwynm.everythingdone.spatial.SpatialDerivativeStore
@@ -72,13 +77,21 @@ import com.ywwynm.everythingdone.spatial.SpatialInpaintingDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingEngine
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingModel
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingModelStore
+import com.ywwynm.everythingdone.spatial.SpatialLdiLiteData
+import com.ywwynm.everythingdone.spatial.SpatialMattingEngine
+import com.ywwynm.everythingdone.spatial.SpatialMattingModel
+import com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
 import com.ywwynm.everythingdone.spatial.SpatialModelDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialModelStore
 import com.ywwynm.everythingdone.spatial.SpatialPhotoView
 import com.ywwynm.everythingdone.spatial.SpatialPreferences
+import com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory
 import com.ywwynm.everythingdone.spatial.SpatialRenderMode
 import com.ywwynm.everythingdone.spatial.SpatialRuntimeDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialRuntimeStore
+import com.ywwynm.everythingdone.spatial.SpatialSegmentationData
+import com.ywwynm.everythingdone.spatial.SpatialSegmentationModel
+import com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
 import com.ywwynm.everythingdone.spatial.SpatialVNextBuilder
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
@@ -1115,28 +1128,28 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     /** matting 只推理一次，且仅细化深度几何已经确认的遮挡边缘 alpha。 */
     private fun generateOptionalSpatialMatte(
         bitmap: Bitmap,
-        cancelled: java.util.concurrent.atomic.AtomicBoolean
+        cancelled: AtomicBoolean
     ): Pair<
-        com.ywwynm.everythingdone.spatial.SpatialMattingModel,
-        com.ywwynm.everythingdone.spatial.SpatialAlphaData
+        SpatialMattingModel,
+        SpatialAlphaData
         >? {
-        val model = com.ywwynm.everythingdone.spatial.SpatialMattingModel.MODNET_PHOTOGRAPHIC
-        if (!com.ywwynm.everythingdone.spatial.SpatialPreferences
+        val model = SpatialMattingModel.MODNET_PHOTOGRAPHIC
+        if (!SpatialPreferences
                 .mattingEnabled(applicationContext) ||
-            !com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+            !SpatialMattingModelStore
                 .isInstalled(applicationContext, model) ||
-            !com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+            !SpatialMattingModelStore
                 .hasSufficientAvailableMemory(applicationContext, model)
         ) {
             return null
         }
         return try {
-            val matte = com.ywwynm.everythingdone.spatial.SpatialMattingEngine(applicationContext)
+            val matte = SpatialMattingEngine(applicationContext)
                 .generate(bitmap, model, cancelled)
             model to matte
         } catch (error: Throwable) {
             if (cancelled.get()) throw error
-            android.util.Log.w("ImageViewerActivity", "matting 生成失败，退回深度几何", error)
+            Log.w("ImageViewerActivity", "matting 生成失败，退回深度几何", error)
             null
         }
     }
@@ -1147,17 +1160,17 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      */
     private fun generateOptionalSpatialSegmentation(
         bitmap: Bitmap,
-        cancelled: java.util.concurrent.atomic.AtomicBoolean
+        cancelled: AtomicBoolean
     ): Pair<
-        com.ywwynm.everythingdone.spatial.SpatialSegmentationModel,
-        com.ywwynm.everythingdone.spatial.SpatialSegmentationData
+        SpatialSegmentationModel,
+        SpatialSegmentationData
         >? {
         val model = SpatialPreferences.selectedSegmentationModel(applicationContext) ?: return null
-        if (!com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+        if (!SpatialSegmentationModelStore
                 .isInstalled(applicationContext, model) ||
-            !com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+            !SpatialSegmentationModelStore
                 .isDeviceEligible(applicationContext, model) ||
-            !com.ywwynm.everythingdone.spatial.SpatialSegmentationModelStore
+            !SpatialSegmentationModelStore
                 .hasSufficientAvailableMemory(applicationContext, model)
         ) {
             return null
@@ -1175,7 +1188,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             model to data
         } catch (error: Throwable) {
             if (cancelled.get()) throw error
-            android.util.Log.w("ImageViewerActivity", "实例连续性提案生成失败，退回深度几何", error)
+            Log.w("ImageViewerActivity", "实例连续性提案生成失败，退回深度几何", error)
             null
         }
     }
@@ -1183,19 +1196,19 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     /** EdgeTAM 只在 RF-DETR 外轮廓窄带内修正实例边界，不改变深度或运动场。 */
     private fun generateOptionalSpatialBoundaryRefinement(
         bitmap: Bitmap,
-        segmentation: com.ywwynm.everythingdone.spatial.SpatialSegmentationData,
-        cancelled: java.util.concurrent.atomic.AtomicBoolean
+        segmentation: SpatialSegmentationData,
+        cancelled: AtomicBoolean
     ): Pair<
-        com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModel,
-        com.ywwynm.everythingdone.spatial.SpatialSegmentationData
+        SpatialBoundaryRefinementModel,
+        SpatialSegmentationData
         >? {
         val model = SpatialPreferences.selectedBoundaryRefinementModel(applicationContext)
             ?: return null
-        if (!com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+        if (!SpatialBoundaryRefinementModelStore
                 .isInstalled(applicationContext, model) ||
-            !com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+            !SpatialBoundaryRefinementModelStore
                 .isDeviceEligible(applicationContext, model) ||
-            !com.ywwynm.everythingdone.spatial.SpatialBoundaryRefinementModelStore
+            !SpatialBoundaryRefinementModelStore
                 .hasSufficientAvailableMemory(applicationContext, model)
         ) {
             return null
@@ -1207,7 +1220,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
             model to refined
         } catch (error: Throwable) {
             if (cancelled.get()) throw error
-            android.util.Log.w(
+            Log.w(
                 "ImageViewerActivity",
                 "实例边界细化失败，保留 RF-DETR 结果",
                 error
@@ -1227,7 +1240,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
         installSpatialNpuStageReporter()
         showSpatialGenerationStage(R.string.spatial_generation_preparing)
         mSpatialExecutor.execute {
-            var pendingLdi: com.ywwynm.everythingdone.spatial.SpatialLdiLiteData? = null
+            var pendingLdi: SpatialLdiLiteData? = null
             try {
                 val engine = SpatialDepthEngine(applicationContext)
                 val retainedStrength = mSpatialStore.retainedStrength(sourcePath)
@@ -1718,7 +1731,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
      * 后一次回报才是这一步最终的真相，一律以最后一次为准。
      */
     private fun installSpatialNpuStageReporter() {
-        com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener =
+        SpatialQnnSessionFactory.sessionListener =
             { _, usedQnn ->
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
@@ -1730,7 +1743,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
     }
 
     private fun clearSpatialNpuStageReporter() {
-        com.ywwynm.everythingdone.spatial.SpatialQnnSessionFactory.sessionListener = null
+        SpatialQnnSessionFactory.sessionListener = null
         mSpatialStageUsedNpu = false
         mSpatialStageTextRes = 0
     }
@@ -2049,7 +2062,7 @@ open class ImageViewerActivity : EverythingDoneBaseActivity() {
 
     private fun dismissDialogFragment(tag: String) {
         val fragment = supportFragmentManager.findFragmentByTag(tag)
-        if (fragment is androidx.fragment.app.DialogFragment) {
+        if (fragment is DialogFragment) {
             fragment.dismissAllowingStateLoss()
         }
     }

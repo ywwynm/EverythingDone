@@ -2,17 +2,25 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.AssetManager
 import android.graphics.PixelFormat
 import android.opengl.EGL14
 import android.opengl.EGLExt
 import android.opengl.EGLSurface
 import android.opengl.GLES30
 import android.os.Build
+import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
+import com.ywwynm.everythingdone.BuildConfig
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** 粒子叠加层专用的 SurfaceView；快照合成等遍历要能一眼把它认出来并跳过。 */
 internal class ParticleOverlaySurfaceView(context: Context) : SurfaceView(context)
@@ -50,7 +58,7 @@ internal class ParticleWindowSurface private constructor(
 
     // ---- 只在 GL 线程访问 ----
     private val sessions = ArrayList<ParticleSession>()
-    private val incoming = java.util.concurrent.ConcurrentLinkedQueue<ParticleSession>()
+    private val incoming = ConcurrentLinkedQueue<ParticleSession>()
     private var eglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
     private var boundSurface: Surface? = null
     private var timestamps = false
@@ -58,7 +66,7 @@ internal class ParticleWindowSurface private constructor(
     private var surfaceDirty = false
     private var recomposite = false
     private val pending = ArrayDeque<Frame>()
-    private val assets: android.content.res.AssetManager =
+    private val assets: AssetManager =
         activity.applicationContext.assets
 
     var lastEglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
@@ -108,13 +116,13 @@ internal class ParticleWindowSurface private constructor(
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         surface = null
         // 回调返回之后这个 Surface 就不再有效，必须先等 GL 线程放手。
-        val latch = java.util.concurrent.CountDownLatch(1)
+        val latch = CountDownLatch(1)
         ParticleGl.post {
             releaseEglSurface()
             latch.countDown()
         }
         ParticleGl.wake()
-        runCatching { latch.await(500, java.util.concurrent.TimeUnit.MILLISECONDS) }
+        runCatching { latch.await(500, TimeUnit.MILLISECONDS) }
     }
 
     /**
@@ -233,7 +241,7 @@ internal class ParticleWindowSurface private constructor(
         // 不再每帧 glFinish：放一个栅栏，下一拍开画前等它，最多一帧在途。
         fence = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
         if (!EGL14.eglSwapBuffers(ParticleGl.display, eglSurface)) {
-            android.util.Log.w(ParticleMicroflakeRenderer.TAG,
+            Log.w(ParticleMicroflakeRenderer.TAG,
                 "粒子交换失败 EGL 0x${Integer.toHexString(EGL14.eglGetError())}")
             failAll()
             return
@@ -293,7 +301,7 @@ internal class ParticleWindowSurface private constructor(
         val created = EGL14.eglCreateWindowSurface(ParticleGl.display, config, target,
             intArrayOf(EGL14.EGL_NONE), 0)
         if (created == EGL14.EGL_NO_SURFACE) {
-            android.util.Log.w(ParticleMicroflakeRenderer.TAG,
+            Log.w(ParticleMicroflakeRenderer.TAG,
                 "粒子窗口表面创建失败 EGL 0x${Integer.toHexString(EGL14.eglGetError())}")
             return false
         }
@@ -302,7 +310,7 @@ internal class ParticleWindowSurface private constructor(
         boundSurface = target
         surfaceDirty = false
         timestamps = ParticleFrameTimestamps.enable(ParticleGl.display, created)
-        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) android.util.Log.i(
+        if (BuildConfig.DEBUG) Log.i(
             ParticleMicroflakeRenderer.TAG, "粒子 Surface 就绪 帧时间戳=$timestamps")
         return true
     }
@@ -361,7 +369,7 @@ internal class ParticleWindowSurface private constructor(
          * 值必须是弱引用：本对象强引用 Activity，直接放进 WeakHashMap 会让「值经由静态根
          * 强引用键」，条目永远回收不掉，等于泄漏整个 Activity。
          */
-        private val hosts = java.util.WeakHashMap<Activity, java.lang.ref.WeakReference<ParticleWindowSurface>>()
+        private val hosts = WeakHashMap<Activity, WeakReference<ParticleWindowSurface>>()
 
         /** 每个宿主窗口一个；首次需要时创建。必须在主线程调用。 */
         fun of(activity: Activity): ParticleWindowSurface? {
@@ -371,7 +379,7 @@ internal class ParticleWindowSurface private constructor(
                 hosts[activity]?.get()?.let { if (!it.detached) return it }
                 hosts.remove(activity)
                 return runCatching { ParticleWindowSurface(activity, decor) }.getOrNull()
-                    ?.also { hosts[activity] = java.lang.ref.WeakReference(it) }
+                    ?.also { hosts[activity] = WeakReference(it) }
             }
         }
 

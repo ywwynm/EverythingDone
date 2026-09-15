@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.spatial
 
+import java.security.GeneralSecurityException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,7 +28,7 @@ class SpatialCatalogVerifierTest {
         assertTrue(catalog.runtimes.isNullOrEmpty())
     }
 
-    @Test(expected = java.security.GeneralSecurityException::class)
+    @Test(expected = GeneralSecurityException::class)
     fun tamperedPayload_isRejected() {
         val original = checkNotNull(
             javaClass.classLoader?.getResourceAsStream("spatial/stable-catalog.json")

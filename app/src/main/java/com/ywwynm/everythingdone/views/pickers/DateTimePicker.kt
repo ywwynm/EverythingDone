@@ -9,6 +9,8 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.view.Gravity
@@ -23,6 +25,8 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.EdgeEffectUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
@@ -44,7 +48,7 @@ open class DateTimePicker(
     private var mAccentColor: Int = accentColor
     /** Phase 8: full ThingBackground for gradient text on the picked-item row.
      *  When null, the adapter falls back to the legacy int [mAccentColor]. */
-    private var mAccentBackground: com.ywwynm.everythingdone.model.ThingBackground? = null
+    private var mAccentBackground: ThingBackground? = null
     private val mItems: Array<String>
     private var mOnClickListener: View.OnClickListener? = null
     private val mAdapter: DateTimePickerAdapter
@@ -110,7 +114,7 @@ open class DateTimePicker(
      * so the picked-item row can render a gradient. Keeps [mAccentColor] in
      * sync with the representative int for the EdgeEffect and other int-only paths.
      */
-    fun setAccentBackground(bg: com.ywwynm.everythingdone.model.ThingBackground?) {
+    fun setAccentBackground(bg: ThingBackground?) {
         mAccentBackground = bg
         if (bg != null) mAccentColor = bg.color
     }
@@ -219,13 +223,13 @@ open class DateTimePicker(
             // Legacy non-edge-to-edge windows had `mParent.getHeight() ==
             // display.height - navbar` already. Edge-to-edge makes the
             // compensation explicit before aligning the popup pivot.
-            val insets: androidx.core.view.WindowInsetsCompat? =
-                    androidx.core.view.ViewCompat.getRootWindowInsets(mParent)
+            val insets: WindowInsetsCompat? =
+                    ViewCompat.getRootWindowInsets(mParent)
             var navBottom = 0
             if (insets != null) {
                 navBottom = insets.getInsets(
-                        androidx.core.view.WindowInsetsCompat.Type.systemBars()
-                                or androidx.core.view.WindowInsetsCompat.Type
+                        WindowInsetsCompat.Type.systemBars()
+                                or WindowInsetsCompat.Type
                                         .displayCutout()).bottom
             }
             val bottomReference = (mParent.height - navBottom).coerceAtLeast(0)
@@ -312,7 +316,7 @@ open class DateTimePicker(
             holder.bt.text = mItems[position]
             // 弹出列表每项的触摸 ripple 用当前记事颜色。
             holder.bt.background = GradientRippleDrawable(
-                mAccentBackground ?: com.ywwynm.everythingdone.model.ThingBackground.pure(mAccentColor),
+                mAccentBackground ?: ThingBackground.pure(mAccentColor),
                 shapeOval = false, cornerRadiusPx = 0f
             )
             if (mPickedPosition == position) {
@@ -320,7 +324,7 @@ open class DateTimePicker(
                 // Phase 8: gradient text on the picked row when the accent is
                 // a GRADIENT background. Falls back to plain accent int.
                 if (mAccentBackground != null) {
-                    com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+                    BackgroundUtil.applyTextBackground(
                             holder.bt, mAccentBackground)
                 } else {
                     if (holder.bt.paint.shader != null) {

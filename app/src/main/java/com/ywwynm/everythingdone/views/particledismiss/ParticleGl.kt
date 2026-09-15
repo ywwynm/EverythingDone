@@ -9,6 +9,7 @@ import android.opengl.EGLSurface
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import android.util.Log
 
 /**
  * 进程内唯一的粒子渲染线程与 EGL 上下文（D4：全部常驻，不随动画释放）。
@@ -64,7 +65,7 @@ internal object ParticleGl {
     fun post(action: () -> Unit) {
         handler.post {
             runCatching { action() }.onFailure {
-                android.util.Log.e(ParticleMicroflakeRenderer.TAG, "粒子 GL 任务失败", it)
+                Log.e(ParticleMicroflakeRenderer.TAG, "粒子 GL 任务失败", it)
             }
         }
     }
@@ -188,7 +189,7 @@ internal object ParticleGl {
             idleSurface = EGL14.eglCreatePbufferSurface(display, chosen,
                 intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE), 0)
             if (idleSurface == EGL14.EGL_NO_SURFACE) {
-                android.util.Log.w(ParticleMicroflakeRenderer.TAG,
+                Log.w(ParticleMicroflakeRenderer.TAG,
                     "粒子 pbuffer 不可用，改用无表面绑定 EGL 0x${Integer.toHexString(EGL14.eglGetError())}")
             }
             check(EGL14.eglMakeCurrent(display, idleSurface, idleSurface, context)) {
@@ -197,7 +198,7 @@ internal object ParticleGl {
             bound = idleSurface
             true
         } catch (error: Throwable) {
-            android.util.Log.e(ParticleMicroflakeRenderer.TAG, "粒子 EGL 上下文建立失败", error)
+            Log.e(ParticleMicroflakeRenderer.TAG, "粒子 EGL 上下文建立失败", error)
             broken = true
             false
         }
@@ -213,7 +214,7 @@ internal object ParticleGl {
         val existing = shared ?: ParticleMicroflakeRenderer.Shared(assets).also { shared = it }
         if (existing.prepared && !allowResize) return existing
         return runCatching { existing.ensure(width, height); existing }.getOrElse {
-            android.util.Log.e(ParticleMicroflakeRenderer.TAG, "粒子共享资源建立失败", it)
+            Log.e(ParticleMicroflakeRenderer.TAG, "粒子共享资源建立失败", it)
             broken = true
             null
         }

@@ -4,6 +4,7 @@ import com.ywwynm.everythingdone.utils.AnimatorDurationScale
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Random
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -103,7 +104,7 @@ class ParticleBatchTwoTest {
     // ---- 3.2 快照单拷贝 ----
 
     @Test fun `copyPixelsToBuffer 的字节与 packColors 的结果逐字节相同`() {
-        val random = java.util.Random(9018)
+        val random = Random(9018)
         for (count in listOf(1, 7, 4096)) {
             val argb = IntArray(count) { random.nextInt() }
             // Bitmap.copyPixelsToBuffer 对 ARGB_8888 给出的内存字节就是 R,G,B,A。
@@ -123,7 +124,7 @@ class ParticleBatchTwoTest {
     }
 
     @Test fun `从上传字节反解出的 ARGB 与 getPixels 的结果一致`() {
-        val random = java.util.Random(4712)
+        val random = Random(4712)
         for (count in listOf(1, 7, 4096)) {
             val argb = IntArray(count) { random.nextInt() }
             val rgba = ByteBuffer.allocateDirect(count * 4).order(ByteOrder.LITTLE_ENDIAN)

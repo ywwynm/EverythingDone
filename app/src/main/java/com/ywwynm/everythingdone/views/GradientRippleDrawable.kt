@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views
 
+import android.R
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -12,13 +13,19 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.RippleDrawable
+import android.os.Build
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
+import android.widget.CompoundButton
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.utils.AnimatorDurationScale
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning
+import com.ywwynm.everythingdone.views.particledismiss.ParticleTrace
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -128,7 +135,7 @@ class GradientRippleDrawable(
             return (maxOf(spread, fade) * appScale()).toLong()
         }
 
-    private fun appScale(): Float = com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale()
+    private fun appScale(): Float = AnimatorDurationScale.scale()
 
     /**
      * 交给 [ValueAnimator] 的一律是**标称时长**：框架会自己乘那唯一一条时间基准
@@ -165,7 +172,7 @@ class GradientRippleDrawable(
     override fun isStateful(): Boolean = true
 
     override fun onStateChange(state: IntArray): Boolean {
-        val now = state.contains(android.R.attr.state_pressed)
+        val now = state.contains(R.attr.state_pressed)
         if (now == pressed) return false
         pressed = now
         if (now) enter() else exit()
@@ -251,8 +258,8 @@ class GradientRippleDrawable(
      * 动画多出几倍的帧。API 35 以下没有这套机制，也就不存在这个问题。
      */
     private fun voteFrameRate(animating: Boolean) {
-        if (android.os.Build.VERSION.SDK_INT < 35) return
-        if (!com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.rippleHighFrameRate) return
+        if (Build.VERSION.SDK_INT < 35) return
+        if (!ParticlePerfTuning.rippleHighFrameRate) return
         val host = callback as? View ?: return
         runCatching {
             host.requestedFrameRate = if (animating) View.REQUESTED_FRAME_RATE_CATEGORY_HIGH
@@ -349,9 +356,9 @@ class GradientRippleDrawable(
 
     override fun draw(canvas: Canvas) {
         if (omitFromSnapshot || alphaFraction <= 0f) return
-        com.ywwynm.everythingdone.views.particledismiss.ParticleTrace.begin("ripple-draw")
+        ParticleTrace.begin("ripple-draw")
         try { drawRipple(canvas) } finally {
-            com.ywwynm.everythingdone.views.particledismiss.ParticleTrace.end()
+            ParticleTrace.end()
         }
     }
 
@@ -484,7 +491,7 @@ class GradientRippleDrawable(
          * 向控件中心收敛，即便 checkbox 不可点、按下态由整行下发，也能完整铺满并居中。
          */
         @JvmStatic
-        fun applyCheckboxRipple(checkbox: android.widget.CompoundButton, bg: ThingBackground) {
+        fun applyCheckboxRipple(checkbox: CompoundButton, bg: ThingBackground) {
             val density = checkbox.resources.displayMetrics.density
             checkbox.background = GradientRippleDrawable(
                 bg,
@@ -502,7 +509,7 @@ class GradientRippleDrawable(
             view: View, bg: ThingBackground?, fallbackColor: Int, cornerRadiusPx: Float
         ) {
             // 基类安装的中性前景反馈不能与强调色背景反馈叠加，否则还会把另一层波纹留在快照里。
-            if (view.foreground is GradientRippleDrawable || view.foreground is android.graphics.drawable.RippleDrawable) {
+            if (view.foreground is GradientRippleDrawable || view.foreground is RippleDrawable) {
                 view.foreground = null
             }
             val b = bg ?: ThingBackground.pure(fallbackColor)

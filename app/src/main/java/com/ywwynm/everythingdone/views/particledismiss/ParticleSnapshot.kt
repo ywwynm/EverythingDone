@@ -1,11 +1,13 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import android.animation.LayoutTransition
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -37,7 +39,7 @@ internal object ParticleSnapshot {
      */
     fun coverSurfaces(root: View, snapshot: Bitmap): (() -> Unit)? {
         if (!hasVisibleSurface(root)) return null
-        val cover = android.graphics.drawable.BitmapDrawable(root.resources, snapshot).apply {
+        val cover = BitmapDrawable(root.resources, snapshot).apply {
             setBounds(0, 0, root.width, root.height)
             isFilterBitmap = false
         }
@@ -52,7 +54,7 @@ internal object ParticleSnapshot {
     }
 
     class Hold(private val releases: List<() -> Unit>,
-               private val transitions: List<Pair<ViewGroup, android.animation.LayoutTransition>>) : () -> Unit {
+               private val transitions: List<Pair<ViewGroup, LayoutTransition>>) : () -> Unit {
         private var released = false
         fun settleLayout(): Boolean {
             var changed = false
@@ -75,7 +77,7 @@ internal object ParticleSnapshot {
 
     fun hold(root: View): Hold {
         val releases = mutableListOf<() -> Unit>()
-        val transitions = mutableListOf<Pair<ViewGroup, android.animation.LayoutTransition>>()
+        val transitions = mutableListOf<Pair<ViewGroup, LayoutTransition>>()
         // LayoutTransition 会继续绘制已 GONE 的旧页，且给新页留下临时 alpha。
         // 先结束页内过渡再捕获最终内容；交接后恢复正常的页内布局动画。
         visit(root) { view ->

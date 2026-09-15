@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.text.Editable
@@ -209,7 +210,7 @@ open class TimeOfDayRecAdapter(
                     if (useGradientLine) {
                         BackgroundUtil.applyTextBackground(et, mAccentBackground)
                         BackgroundUtil.applyEditTextUnderline(et, mAccentBackground)
-                        DisplayUtil.tintView(v, android.graphics.Color.TRANSPARENT)
+                        DisplayUtil.tintView(v, Color.TRANSPARENT)
                     } else {
                         if (et.paint.shader != null) {
                             et.paint.setShader(null)

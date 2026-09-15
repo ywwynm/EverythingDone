@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Test
 import kotlin.math.sin
 
@@ -21,7 +22,7 @@ class FableSolGlOpticsParallelParityTest {
     fun 并行与串行的顶点缓冲逐元素相同且层元数据一致() {
         // 没有常驻 worker 时并行路径会退化成串行，这条对比就变成空转；
         // 与 FableSolRowParallelTest 一致地显式跳过，而不是假绿。
-        org.junit.Assume.assumeTrue(FableSolRowParallel.parallelWorkerCountForTest > 0)
+        Assume.assumeTrue(FableSolRowParallel.parallelWorkerCountForTest > 0)
         for (scenario in Scenario.values()) {
             val serial = runScenario(scenario, parallel = false)
             val parallel = runScenario(scenario, parallel = true)

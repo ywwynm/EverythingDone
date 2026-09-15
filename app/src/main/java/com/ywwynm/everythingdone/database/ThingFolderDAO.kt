@@ -11,6 +11,7 @@ import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.ThingsSorter
 
 open class ThingFolderDAO private constructor(context: Context?) {
@@ -1132,8 +1133,8 @@ open class ThingFolderDAO private constructor(context: Context?) {
 
     private fun matchesFolderColorFilter(folder: ThingFolder, color: Int): Boolean {
         if (!hasColorFilter(color)) return true
-        val bucket = com.ywwynm.everythingdone.utils.BackgroundUtil.hueBucket(color)
-        return com.ywwynm.everythingdone.utils.BackgroundUtil.matchesHueBucket(
+        val bucket = BackgroundUtil.hueBucket(color)
+        return BackgroundUtil.matchesHueBucket(
             folder.getBackground(),
             bucket
         )

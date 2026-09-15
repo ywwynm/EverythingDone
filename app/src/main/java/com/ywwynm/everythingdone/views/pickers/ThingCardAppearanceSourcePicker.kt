@@ -56,9 +56,9 @@ class ThingCardAppearanceSourcePicker(
         mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
         mRecyclerView.adapter = adapter
         adapter.pick(max(0, min(items.size - 1, pickedIndex)))
-        mRecyclerView.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+        mRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(
-                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    recyclerView: RecyclerView,
                     newState: Int
             ) {
                 super.onScrollStateChanged(recyclerView, newState)

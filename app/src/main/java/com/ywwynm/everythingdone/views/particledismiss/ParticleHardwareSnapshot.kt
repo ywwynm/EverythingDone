@@ -11,15 +11,17 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.Process
 import android.view.View
 import androidx.annotation.RequiresApi
+import java.time.Duration
 
 /** 主线程只提交显示树；等待 GPU 和读回像素在独立线程完成，避免挡住 ripple。 */
 @RequiresApi(29)
 internal object ParticleHardwareSnapshot {
     private val main = Handler(Looper.getMainLooper())
     private val worker by lazy {
-        Handler(HandlerThread("ParticleSnapshotCopy", android.os.Process.THREAD_PRIORITY_DISPLAY)
+        Handler(HandlerThread("ParticleSnapshotCopy", Process.THREAD_PRIORITY_DISPLAY)
             .apply { start() }.looper)
     }
 
@@ -52,7 +54,7 @@ internal object ParticleHardwareSnapshot {
                     val image = available.acquireNextImage() ?: return@runCatching null
                     try {
                         if (Build.VERSION.SDK_INT >= 33 &&
-                            !image.fence.await(java.time.Duration.ofMillis(700))) return@runCatching null
+                            !image.fence.await(Duration.ofMillis(700))) return@runCatching null
                         val buffer = image.hardwareBuffer ?: return@runCatching null
                         val hardware = Bitmap.wrapHardwareBuffer(buffer, null)
                         buffer.close()

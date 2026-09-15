@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.fragments
 
+import android.animation.TimeInterpolator
+import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Outline
@@ -30,6 +32,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissStartGate
 
 /**
@@ -132,7 +135,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
         val animateAppearance = useParticleDismiss() && !recreatedFromSavedState &&
-            !gestureDialog.condenseAttempted && android.animation.ValueAnimator.areAnimatorsEnabled() &&
+            !gestureDialog.condenseAttempted && ValueAnimator.areAnimatorsEnabled() &&
             particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
         if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and (PARTICLE_ANIMATION_SHOW_BIT or PARTICLE_ANIMATION_DISMISS_BIT) != 0) {
             ParticleDismissController.warmDismissModel(gestureDialog.context)
@@ -351,7 +354,7 @@ private class GestureAnchoredDialog(
     var condenseAttempted = false
 
     /** 进行中的凝聚动画层：dismiss 拦截时必须先释放，防止其残留凝固在屏上 */
-    var condenseOverlay: com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay? = null
+    var condenseOverlay: ParticleDismissOverlay? = null
 
     /**
      * 所有消失路径的汇聚点：代码 dismiss（fragment 的 dismissInternal /
@@ -393,7 +396,7 @@ private class GestureAnchoredDialog(
                 onAnimationStarted = Runnable {
                     dimLayer?.fadeOutAndDetach(
                         ParticleDismissController.dismissAnimatorDurationMs(),
-                        android.animation.TimeInterpolator { progress ->
+                        TimeInterpolator { progress ->
                             val p = ((progress - .18f) / .55f).coerceIn(0f, 1f)
                             p * p
                         }

@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
 import java.io.File
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -99,7 +100,7 @@ class FableSolRowParallelTest {
     fun 小任务入口把九个单元逐个成块且每个恰好执行一次() {
         val total = FableSolSpec.N_LAYERS
         val visits = AtomicIntegerArray(total)
-        val chunkSizes = java.util.Collections.synchronizedList(ArrayList<Int>())
+        val chunkSizes = Collections.synchronizedList(ArrayList<Int>())
         val body = FableSolRowBody { start, end ->
             chunkSizes.add(end - start)
             for (unit in start until end) visits.incrementAndGet(unit)
@@ -119,7 +120,7 @@ class FableSolRowParallelTest {
     /** 默认入口的语义不得被小任务重载改动：97 行仍是 8 行一块。 */
     @Test
     fun 默认入口仍按八行分块() {
-        val chunkStarts = java.util.Collections.synchronizedList(ArrayList<Int>())
+        val chunkStarts = Collections.synchronizedList(ArrayList<Int>())
         FableSolRowParallel.run(FableSolContinuousSurface.Z_ROWS) { start, end ->
             chunkStarts.add(start)
             assertTrue("start=$start end=$end", start % 8 == 0)

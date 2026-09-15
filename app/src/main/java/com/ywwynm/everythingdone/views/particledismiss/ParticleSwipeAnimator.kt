@@ -4,7 +4,14 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.app.Activity
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Outline
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.Rect
+import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -13,6 +20,8 @@ import android.view.ViewTreeObserver
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.view.animation.LinearInterpolator
+import java.util.IdentityHashMap
+import java.util.WeakHashMap
 import kotlin.math.hypot
 
 /**
@@ -25,8 +34,8 @@ internal class ParticleSwipeAnimator(
     private val activity: Activity,
     private val allowRightSwipe: Boolean = false
 ) {
-    private val sessions = java.util.IdentityHashMap<View, Session>()
-    private val unavailable = java.util.WeakHashMap<View, Boolean>()
+    private val sessions = IdentityHashMap<View, Session>()
+    private val unavailable = WeakHashMap<View, Boolean>()
     private val main = Handler(Looper.getMainLooper())
     private var warming: Session? = null
     private var touching: Session? = null
@@ -138,7 +147,7 @@ internal class ParticleSwipeAnimator(
         private var completionWidth = 0
         private var completionAnimator: ValueAnimator? = null
         private var overlay: ParticleDismissOverlay? = null
-        private var capturedBitmap: android.graphics.Bitmap? = null
+        private var capturedBitmap: Bitmap? = null
         private val originalAlpha = view.alpha
         private val origin = IntArray(2)
         private val current = IntArray(2)
@@ -183,7 +192,7 @@ internal class ParticleSwipeAnimator(
          * 因此宿主要在粒子接管期间把容器还原成不透明（见 DoingActivity.onChildDraw），
          * 两段画面才都恰好是原来的浓度。
          */
-        private fun bakeAncestorAlpha(snapshot: android.graphics.Bitmap, host: ViewGroup) {
+        private fun bakeAncestorAlpha(snapshot: Bitmap, host: ViewGroup) {
             var alpha = 1f
             var parent = view.parent
             while (parent is View && parent !== host) {
@@ -192,9 +201,9 @@ internal class ParticleSwipeAnimator(
             }
             if (alpha >= 1f || !snapshot.isMutable) return
             val opacity = (alpha.coerceIn(0f, 1f) * 255f).toInt()
-            android.graphics.Canvas(snapshot).drawColor(
-                android.graphics.Color.argb(opacity, 0, 0, 0),
-                android.graphics.PorterDuff.Mode.DST_IN)
+            Canvas(snapshot).drawColor(
+                Color.argb(opacity, 0, 0, 0),
+                PorterDuff.Mode.DST_IN)
         }
 
         /** 消散方向由 [direction] 决定，因此定向之前只留快照、不建动画层。 */
@@ -265,13 +274,13 @@ internal class ParticleSwipeAnimator(
             if (bitmap != null && !bitmap.isRecycled) canvas.drawBitmap(bitmap, 0f, 0f, null)
             else {
                 // 捕获尚未返回时同样保留根卡片的自定义圆角。
-                val outline = android.graphics.Outline()
-                val rect = android.graphics.Rect()
+                val outline = Outline()
+                val rect = Rect()
                 if (view.clipToOutline) {
                     view.outlineProvider?.getOutline(view, outline)
                     if (outline.getRect(rect)) {
-                        val path = android.graphics.Path().apply {
-                            addRoundRect(android.graphics.RectF(rect), outline.radius, outline.radius, android.graphics.Path.Direction.CW)
+                        val path = Path().apply {
+                            addRoundRect(RectF(rect), outline.radius, outline.radius, Path.Direction.CW)
                         }
                         canvas.clipPath(path)
                     }

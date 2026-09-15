@@ -3,8 +3,11 @@
 package com.ywwynm.everythingdone.views.pickers
 
 import android.app.Activity
+import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,7 +16,11 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.TextView
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
@@ -53,9 +60,9 @@ open class ColorPicker(
 
     /** Phase 8: bottom button to open the gradient-orientation dialog.
      *  Only visible in COLOR_EDIT mode when the current pick is a GRADIENT. */
-    private val mOrientationBt: android.widget.TextView?
+    private val mOrientationBt: TextView?
     private val mToolDivider: View?
-    private val mCameraBt: android.widget.TextView?
+    private val mCameraBt: TextView?
     private var mOnChangeOrientationListener: Runnable? = null
     private var mOnPickFromCameraListener: Runnable? = null
     private var mAnchorBottomRightPositioning: Boolean = false
@@ -218,7 +225,7 @@ open class ColorPicker(
             setToolDividerTopMargin(true)
             // Tint the button text to match the gradient (uses applyTextBackground
             // for a shader on the rendered glyphs).
-            com.ywwynm.everythingdone.utils.BackgroundUtil.applyTextBackground(
+            BackgroundUtil.applyTextBackground(
                     mOrientationBt, bg)
         } else {
             mOrientationBt.visibility = View.GONE
@@ -385,7 +392,7 @@ open class ColorPicker(
     }
 
     private fun randomColor(): Int {
-        return android.graphics.Color.rgb(
+        return Color.rgb(
                 mRandom.nextInt(256), mRandom.nextInt(256), mRandom.nextInt(256))
     }
 
@@ -573,9 +580,9 @@ open class ColorPicker(
             val raw: Drawable = ContextCompat.getDrawable(
                     mActivity, R.drawable.ic_color_picked) ?: return null
             val d: Drawable = raw.mutate()
-            val tint: Int = if (com.ywwynm.everythingdone.utils.BackgroundUtil.isLight(fabColor))
-                    android.graphics.Color.BLACK
-                    else android.graphics.Color.WHITE
+            val tint: Int = if (BackgroundUtil.isLight(fabColor))
+                    Color.BLACK
+                    else Color.WHITE
             d.setColorFilter(tint, PorterDuff.Mode.SRC_IN)
             return d
         }
@@ -596,11 +603,11 @@ open class ColorPicker(
                 // Gradient on the inner bg View. The cell's clipToOutline=oval
                 // crops it to a circle; cell's foreground RippleDrawable draws
                 // the press feedback on top.
-                val gd: android.graphics.drawable.GradientDrawable =
-                        android.graphics.drawable.GradientDrawable(
+                val gd: GradientDrawable =
+                        GradientDrawable(
                                 toGdOrientation(bg.orientation),
                                 intArrayOf(bg.color, bg.endColor))
-                gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE)
+                gd.setShape(GradientDrawable.RECTANGLE)
                 holder.bg.background = gd
             } else {
                 val representative: Int = bg?.representativeColor() ?: 0
@@ -734,12 +741,12 @@ open class ColorPicker(
         inner class FabViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
             /** Outer 40dp clipped-to-oval cell — owns the click + ripple. */
-            val cell: android.widget.FrameLayout = f(R.id.fl_color_cell)
+            val cell: FrameLayout = f(R.id.fl_color_cell)
 
             /** Inner View carrying the solid/gradient background. */
             val bg: View
             /** Inner ImageView for the picked checkmark; scaleType=center keeps 24dp intrinsic. */
-            val check: android.widget.ImageView
+            val check: ImageView
 
             init {
                 bg = f(R.id.v_color_cell_bg)
@@ -751,13 +758,13 @@ open class ColorPicker(
                 // returns a RippleDrawable with an OVAL mask — the cell's
                 // clipToOutline keeps everything bounded to the circle.
                 cell.setClipToOutline(true)
-                cell.outlineProvider = object : android.view.ViewOutlineProvider() {
-                    override fun getOutline(v: View, outline: android.graphics.Outline) {
+                cell.outlineProvider = object : ViewOutlineProvider() {
+                    override fun getOutline(v: View, outline: Outline) {
                         outline.setOval(0, 0, v.width, v.height)
                     }
                 }
                 cell.setForeground(
-                        com.ywwynm.everythingdone.utils.BackgroundUtil.circularRipple())
+                        BackgroundUtil.circularRipple())
 
                 cell.setOnClickListener {
                     val pos: Int = adapterPosition
@@ -794,16 +801,16 @@ open class ColorPicker(
         // Inlined copy of BackgroundUtil's enum mapping to avoid pulling
         // BackgroundUtil into this UI class. Identical mapping.
         private fun toGdOrientation(o: ThingBackground.Orientation):
-                android.graphics.drawable.GradientDrawable.Orientation {
+                GradientDrawable.Orientation {
             return when (o) {
-                ThingBackground.Orientation.L_R -> android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
-                ThingBackground.Orientation.T_B -> android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM
-                ThingBackground.Orientation.LT_RB -> android.graphics.drawable.GradientDrawable.Orientation.TL_BR
-                ThingBackground.Orientation.RT_LB -> android.graphics.drawable.GradientDrawable.Orientation.TR_BL
-                ThingBackground.Orientation.LB_RT -> android.graphics.drawable.GradientDrawable.Orientation.BL_TR
-                ThingBackground.Orientation.RB_LT -> android.graphics.drawable.GradientDrawable.Orientation.BR_TL
-                ThingBackground.Orientation.R_L -> android.graphics.drawable.GradientDrawable.Orientation.RIGHT_LEFT
-                ThingBackground.Orientation.B_T -> android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP
+                ThingBackground.Orientation.L_R -> GradientDrawable.Orientation.LEFT_RIGHT
+                ThingBackground.Orientation.T_B -> GradientDrawable.Orientation.TOP_BOTTOM
+                ThingBackground.Orientation.LT_RB -> GradientDrawable.Orientation.TL_BR
+                ThingBackground.Orientation.RT_LB -> GradientDrawable.Orientation.TR_BL
+                ThingBackground.Orientation.LB_RT -> GradientDrawable.Orientation.BL_TR
+                ThingBackground.Orientation.RB_LT -> GradientDrawable.Orientation.BR_TL
+                ThingBackground.Orientation.R_L -> GradientDrawable.Orientation.RIGHT_LEFT
+                ThingBackground.Orientation.B_T -> GradientDrawable.Orientation.BOTTOM_TOP
             }
         }
 

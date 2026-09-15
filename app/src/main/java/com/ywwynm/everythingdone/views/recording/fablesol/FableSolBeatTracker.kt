@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
@@ -32,7 +33,7 @@ class FableSolBeatTracker(private val frameRate: Double) {
     private val hist = ArrayDeque<Double>()
 
     fun reset() {
-        java.util.Arrays.fill(env, 0.0)
+        Arrays.fill(env, 0.0)
         n = 0; bpm = 0.0; conf = 0.0; tBeat = Double.NaN
         candBpm = 0.0; candCnt = 0; hist.clear()
     }

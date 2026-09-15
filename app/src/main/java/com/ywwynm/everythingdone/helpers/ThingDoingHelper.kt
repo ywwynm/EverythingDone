@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.model.DoingRecord
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.services.DoingService
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 
@@ -98,9 +99,9 @@ open class ThingDoingHelper(context: Context?, thing: Thing?) {
      * back to the saved `mThing.getBackground()`.
      */
     open fun tryToOpenStartDoingActivityUser(
-            accent: com.ywwynm.everythingdone.model.ThingBackground?) {
+            accent: ThingBackground?) {
         val hrTime: Long = calculateHrTimeForHabit()
-        val bg: com.ywwynm.everythingdone.model.ThingBackground? =
+        val bg: ThingBackground? =
             accent ?: mThing!!.getBackground()
         mContext!!.startActivity(StartDoingActivity.getOpenIntent(
                 mContext, mThing!!.id, -1, bg,

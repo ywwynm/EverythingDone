@@ -6,6 +6,7 @@ import android.media.MediaCodecInfo
 import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.os.Build
+import android.os.Bundle
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -146,7 +147,7 @@ internal object FableSolHdr10PlusProbe {
 
             metadata?.let {
                 codec.setParameters(
-                    android.os.Bundle().apply {
+                    Bundle().apply {
                         putByteArray(MediaCodec.PARAMETER_KEY_HDR10_PLUS_INFO, it.array())
                     }
                 )

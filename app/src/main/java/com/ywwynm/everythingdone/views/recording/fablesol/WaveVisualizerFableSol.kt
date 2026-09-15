@@ -1,6 +1,9 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import android.R
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ComposeShader
@@ -14,11 +17,15 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Half
 import android.util.TypedValue
 import android.view.Choreographer
 import android.view.View
 
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant
+import java.nio.ShortBuffer
+import java.util.Arrays
 
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -42,7 +49,7 @@ import kotlin.math.tan
 class WaveVisualizerFableSol @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs), FableSolFrameReceiver,
-    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
+    ParticleSnapshotParticipant {
 
     private val density = resources.displayMetrics.density.toDouble()
 
@@ -148,7 +155,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     // "昏暗天空突然翻白"。
     private val envBase: IntArray = run {
         val tv = TypedValue()
-        if (context.theme.resolveAttribute(android.R.attr.colorBackground, tv, true)
+        if (context.theme.resolveAttribute(R.attr.colorBackground, tv, true)
             && tv.type >= TypedValue.TYPE_FIRST_COLOR_INT && tv.type <= TypedValue.TYPE_LAST_COLOR_INT
         ) FableSolColor.fromColor(tv.data) else intArrayOf(255, 255, 255)
     }
@@ -197,37 +204,37 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     // 位图池按三帧轮换：UI 线程写第 N+1 帧数据时 RenderThread 可能仍在渲染
     // 引用同一位图的第 N 帧显示列表（位图内容不做快照），同池跨帧复用会
     // 偶发串帧闪烁（用户真机实测）。
-    private val dataBitmapPools = Array(3) { ArrayList<android.graphics.Bitmap>(40) }
+    private val dataBitmapPools = Array(3) { ArrayList<Bitmap>(40) }
     private var poolPhase = 0
     private var dataBitmapIdx = 0
-    private val halfBuf: java.nio.ShortBuffer =
-        java.nio.ShortBuffer.allocate(FableSolSpec.N_POINTS * 4)
+    private val halfBuf: ShortBuffer =
+        ShortBuffer.allocate(FableSolSpec.N_POINTS * 4)
 
     private fun contourData(top: DoubleArray, th: DoubleArray?, aux: DoubleArray?,
-                            cnt: Int, yMin: Double, yRange: Double): android.graphics.BitmapShader {
+                            cnt: Int, yMin: Double, yRange: Double): BitmapShader {
         val pool = dataBitmapPools[poolPhase]
         if (dataBitmapIdx >= pool.size) {
-            pool.add(android.graphics.Bitmap.createBitmap(
-                FableSolSpec.N_POINTS, 1, android.graphics.Bitmap.Config.RGBA_F16))
+            pool.add(Bitmap.createBitmap(
+                FableSolSpec.N_POINTS, 1, Bitmap.Config.RGBA_F16))
         }
         val bmp = pool[dataBitmapIdx++]
         val inv = 1.0 / yRange
-        val zero = android.util.Half.toHalf(0f)
-        val one = android.util.Half.toHalf(1f)
+        val zero = Half.toHalf(0f)
+        val one = Half.toHalf(1f)
         halfBuf.clear()
         for (j in 0 until FableSolSpec.N_POINTS) {
             if (j < cnt) {
-                halfBuf.put(android.util.Half.toHalf(((top[j] - yMin) * inv).toFloat()))
+                halfBuf.put(Half.toHalf(((top[j] - yMin) * inv).toFloat()))
                 halfBuf.put(if (th != null)
-                    android.util.Half.toHalf((th[j] * inv).toFloat()) else zero)
+                    Half.toHalf((th[j] * inv).toFloat()) else zero)
                 halfBuf.put(if (aux != null)
-                    android.util.Half.toHalf(aux[j].toFloat()) else zero)
+                    Half.toHalf(aux[j].toFloat()) else zero)
             } else { halfBuf.put(zero); halfBuf.put(zero); halfBuf.put(zero) }
             halfBuf.put(one)
         }
         halfBuf.rewind()
         bmp.copyPixelsFromBuffer(halfBuf)
-        return android.graphics.BitmapShader(bmp, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        return BitmapShader(bmp, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     }
     // 焦散已按用户裁决整体移除（2026-07-11，两轮修形后仍"不好看"——宁少勿烂）。
     private val anchorsScratch = ArrayList<DoubleArray>(6)
@@ -1394,7 +1401,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
         val kPos = 1.0 - exp(-dt / max(posTau, 1e-3))
         val kAtt = 1.0 - exp(-dt / max(attackS, 1e-3))
         val kRel = 1.0 - exp(-dt / max(releaseS, 1e-3))
-        java.util.Arrays.fill(glintAnchorUsed, false)
+        Arrays.fill(glintAnchorUsed, false)
         for (e in tracks) {
             var best = -1; var bestD = matchPx
             for (ai in anchors.indices) {
@@ -1524,7 +1531,7 @@ class WaveVisualizerFableSol @JvmOverloads constructor(
     private fun scheduleGlitterBirths(dt: Double) {
         if (eligibleGlintLayerCount <= 0 || glitterCandidateCount <= 0) return
 
-        java.util.Arrays.fill(glitterCandidateUsed, 0, glitterCandidateCount, false)
+        Arrays.fill(glitterCandidateUsed, 0, glitterCandidateCount, false)
         while (true) {
             var best = -1
             var bestScore = MIN_GLITTER_BIRTH_SCORE

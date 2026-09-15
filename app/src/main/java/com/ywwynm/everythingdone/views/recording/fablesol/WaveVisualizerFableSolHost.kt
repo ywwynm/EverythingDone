@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant
 import kotlin.math.min
 
 /**
@@ -20,7 +21,7 @@ class WaveVisualizerFableSolHost @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs), FableSolFrameReceiver,
-    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
+    ParticleSnapshotParticipant {
 
     // 正常 GLES 路径不创建第二份模拟、网格和采样数组；失败时再补齐回退实例与当前状态。
     private var canvasFallback: WaveVisualizerFableSol? = null

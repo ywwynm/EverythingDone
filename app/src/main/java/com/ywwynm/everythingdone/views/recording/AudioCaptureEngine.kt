@@ -15,6 +15,8 @@ import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
 import android.media.projection.MediaProjection
 import android.os.Build
+import android.system.ErrnoException
+import android.system.OsConstants
 import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
@@ -505,7 +507,7 @@ class AudioCaptureEngine(private val appContext: Context) {
             // 失败清理与完成回报都不执行，快照永远停在 STOPPED+busy。
             Log.e(TAG, "Unable to finalize WAV", error)
             lastFinalizeNoSpace = generateSequence(error as Throwable) { it.cause }
-                .any { it is android.system.ErrnoException && it.errno == android.system.OsConstants.ENOSPC }
+                .any { it is ErrnoException && it.errno == OsConstants.ENOSPC }
         } finally {
             FileUtil.closeStream(input)
             FileUtil.closeStream(output)

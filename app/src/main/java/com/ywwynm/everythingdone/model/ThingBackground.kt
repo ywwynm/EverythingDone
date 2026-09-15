@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.model
 
 import android.graphics.Color
+import java.util.Random
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -126,7 +127,7 @@ class ThingBackground private constructor(
          */
         @JvmStatic
         fun fromRandom(): ThingBackground {
-            val rng = java.util.Random()
+            val rng = Random()
             val s = Color.rgb(rng.nextInt(256), rng.nextInt(256), rng.nextInt(256))
             if (rng.nextBoolean()) {
                 return pure(s)

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views
 
+import android.R
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -40,7 +41,7 @@ class KnockoutTextBadge @JvmOverloads constructor(
             TypedValue.COMPLEX_UNIT_SP, 8f, resources.displayMetrics
         )
         if (attrs != null) {
-            val ta = context.obtainStyledAttributes(attrs, intArrayOf(android.R.attr.text))
+            val ta = context.obtainStyledAttributes(attrs, intArrayOf(R.attr.text))
             badgeText = ta.getString(0) ?: ""
             ta.recycle()
         }

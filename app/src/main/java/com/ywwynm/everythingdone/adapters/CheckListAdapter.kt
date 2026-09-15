@@ -3,9 +3,13 @@
 package com.ywwynm.everythingdone.adapters
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
@@ -199,11 +203,11 @@ open class CheckListAdapter(
     private fun tintRowIcon(iv: ImageView?) {
         if (iv == null) return
         if (dark()) {
-            androidx.core.widget.ImageViewCompat.setImageTintList(
-                iv, android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+            ImageViewCompat.setImageTintList(
+                iv, ColorStateList.valueOf(Color.BLACK)
             )
         } else {
-            androidx.core.widget.ImageViewCompat.setImageTintList(iv, null)
+            ImageViewCompat.setImageTintList(iv, null)
         }
     }
 
@@ -424,7 +428,7 @@ open class CheckListAdapter(
                     val d: Drawable? = sep.background
                     if (d != null) {
                         val color = if (dark()) 0x42000000 else 0x42FFFFFF
-                        d.mutate().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN)
+                        d.mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN)
                     }
                 }
             } else if (state == '4') {
@@ -688,16 +692,16 @@ open class CheckListAdapter(
             outLp.leftMargin = outMargin
             outLp.topMargin = (stateCenter - outH / 2).coerceAtLeast(0)
             ivOutdent.layoutParams = outLp
-            androidx.core.widget.ImageViewCompat.setImageTintList(
-                ivOutdent, android.content.res.ColorStateList.valueOf(arrowTint)
+            ImageViewCompat.setImageTintList(
+                ivOutdent, ColorStateList.valueOf(arrowTint)
             )
 
             val inLp = ivIndent!!.layoutParams as RelativeLayout.LayoutParams
             val inH = ivIndent.layoutParams.height.takeIf { it > 0 } ?: (28 * density).toInt()
             inLp.topMargin = (stateCenter - inH / 2).coerceAtLeast(0)
             ivIndent.layoutParams = inLp
-            androidx.core.widget.ImageViewCompat.setImageTintList(
-                ivIndent, android.content.res.ColorStateList.valueOf(arrowTint)
+            ImageViewCompat.setImageTintList(
+                ivIndent, ColorStateList.valueOf(arrowTint)
             )
 
             // 聚焦中的行（含缩进后保持焦点、或重新绑定时）刷新缩进/反缩进按钮的可见性。

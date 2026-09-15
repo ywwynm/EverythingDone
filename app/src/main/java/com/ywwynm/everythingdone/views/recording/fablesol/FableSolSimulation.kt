@@ -10,6 +10,7 @@ import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.N_POINTS
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.PHYSICS_DT
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.REFERENCE_WIDTH_DP
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.U_HALF_DP
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
@@ -738,7 +739,7 @@ class FableSolSimulation(private val p: FableSolParams) {
         val grandProfile = grandWave.sample(uGrid)
         if (grandProfile == null) {
             grandDcBiasDp = 0.0
-            java.util.Arrays.fill(grandKeep, 1.0)
+            Arrays.fill(grandKeep, 1.0)
         } else {
             for (n in 0 until N_POINTS) {
                 grandKeep[n] = grandWave.backgroundKeep(grandProfile[n])

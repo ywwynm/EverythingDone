@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.database.Cursor
+import android.os.Build
 import androidx.core.util.Pair
 import android.util.Log
 
@@ -243,8 +244,8 @@ object AlarmHelper {
     fun setExactAllowWhileIdleSafe(
             am: AlarmManager?, triggerAtMillis: Long, operation: PendingIntent?) {
         if (am == null || operation == null) return
-        val canExact: Boolean = android.os.Build.VERSION.SDK_INT <
-                android.os.Build.VERSION_CODES.S ||
+        val canExact: Boolean = Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.S ||
                 am.canScheduleExactAlarms()
         if (canExact) {
             try {

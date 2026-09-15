@@ -14,17 +14,27 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.HardwareRenderer
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.RenderNode
 import android.hardware.HardwareBuffer
 import android.media.ImageReader
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
+import android.util.Log
 import android.view.Choreographer
 import android.view.ViewTreeObserver
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import androidx.annotation.RequiresApi
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.AnimatorDurationScale
+import java.time.Duration
+import java.util.WeakHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -39,9 +49,9 @@ import kotlin.math.sin
 internal object ParticleDismissController {
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val warmupStarted = java.util.concurrent.atomic.AtomicBoolean()
-    private val finishingHosts = java.util.WeakHashMap<Activity, Boolean>()
-    private val pendingDismissCaptures = java.util.WeakHashMap<Activity, Int>()
+    private val warmupStarted = AtomicBoolean()
+    private val finishingHosts = WeakHashMap<Activity, Boolean>()
+    private val pendingDismissCaptures = WeakHashMap<Activity, Int>()
 
     /** 透明 Activity 不能在 Dialog.onDismiss 时销毁仍在播放消散的宿主窗口。 */
     fun finishAfterAnimations(activity: Activity, finish: Runnable): Boolean {
@@ -81,14 +91,14 @@ internal object ParticleDismissController {
     fun warmDismissModel(context: Context) {
         if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
         Thread({
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             runCatching {
                 val rules = ParticleMicroflakeRenderer.sharedResources(context.applicationContext.assets).rules
                 val pixels = IntArray(256 * 256) { -1 }
                 ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 0L, rules)
                 val material = ParticleMicroflakeModel.build(240f, 320f, pixels, 256, 256, 65f, 1L, rules)
                 ParticleMicroflakeGpuWarmup.run(context.applicationContext.assets, material)
-            }.onFailure { android.util.Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
+            }.onFailure { Log.w("ParticleMicroflake", "材料预热未完成，关闭时正常构建", it) }
         }, "ParticleModelWarmup").start()
     }
 
@@ -118,7 +128,7 @@ internal object ParticleDismissController {
     }
 
     fun startContent(
-        activity: Activity, window: android.view.Window, decor: View, touchInWindow: PointF?,
+        activity: Activity, window: Window, decor: View, touchInWindow: PointF?,
         onAnimationStarted: Runnable, onOverlayShown: Runnable,
         useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
         captureOffscreen: Boolean = false
@@ -196,7 +206,7 @@ internal object ParticleDismissController {
         hostDecor.getLocationOnScreen(hostLocation)
         val originX = dialogLocation[0] - hostLocation[0]
         val originY = dialogLocation[1] - hostLocation[1]
-        val visibleScreen = android.graphics.Rect()
+        val visibleScreen = Rect()
         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
 
         // 消散主方向严格朝直接因果触点。真实方向不设置宽阈值：只在向量
@@ -306,7 +316,7 @@ internal object ParticleDismissController {
             onAppearanceProgress, onOverlayCreated = onOverlayCreated)
     }
 
-    private val appearancePreparations = java.util.WeakHashMap<View, Runnable>()
+    private val appearancePreparations = WeakHashMap<View, Runnable>()
 
     fun cancelAppearance(decor: View) { appearancePreparations.remove(decor)?.run() }
 
@@ -320,7 +330,7 @@ internal object ParticleDismissController {
      * [creationPage] 标出「这是新建记事的入场」，决定要不要用/写提前算好的轨迹。
      */
     fun appearContent(
-        activity: Activity, window: android.view.Window, decor: View,
+        activity: Activity, window: Window, decor: View,
         hideWindow: Boolean = false, isShowing: () -> Boolean = { decor.isShown },
         onAppearanceProgress: ((Float) -> Unit)? = null,
         appearanceDirection: Float? = null,
@@ -401,8 +411,8 @@ internal object ParticleDismissController {
                         appearancePreparations.remove(decor)
                         val radius = if (roundSnapshot) dialogCornerRadius(activity) else 0f
                         if (roundSnapshot && !ParticlePerfTuning.maskOnMaterialThread) applyRoundedCornerMask(snapshot, radius)
-                        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
-                            android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+                        if (BuildConfig.DEBUG) {
+                            Log.i(ParticleMicroflakeRenderer.TAG,
                                 "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
                         }
                         traceLabel?.let { ParticleLaunchTrace.mark("$it-capture") }
@@ -421,7 +431,7 @@ internal object ParticleDismissController {
                             hypot(it.x - snapshot.width/2f, it.y - snapshot.height/2f) > DIRECTION_EPSILON_PX }
                         val mode = ParticlePerfTuning.creationAppearanceTouch
                         val realTouch = local?.takeIf { mode >= ParticlePerfTuning.TOUCH_DIRECTION }
-                        val visibleScreen = android.graphics.Rect()
+                        val visibleScreen = Rect()
                         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
                         // 第四批 ②：先看能不能用上首页空闲时提前算好的轨迹。命中时种子必须沿用
                         // 那一次预算的，否则观察器与对比工具会把两条路径当成同一个随机。
@@ -508,7 +518,7 @@ internal object ParticleDismissController {
         else {
             val bitmap = try { captureViaSoftwareDraw(view) }
             catch (error: RuntimeException) {
-                android.util.Log.w(ParticleMicroflakeRenderer.TAG, "内容快照失败", error)
+                Log.w(ParticleMicroflakeRenderer.TAG, "内容快照失败", error)
                 null
             }
             done(bitmap)
@@ -541,7 +551,7 @@ internal object ParticleDismissController {
      * 完成栅栏（不等则 GPU 繁忙时读到未写完的缓冲）、光源（不设则 elevation
      * 阴影不渲染）、setOpaque(false)、官方释放顺序。
      */
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun captureViaHardwareRenderer(decor: View): Bitmap? {
         val width = decor.width
         val height = decor.height
@@ -583,7 +593,7 @@ internal object ParticleDismissController {
             val image = imageReader.acquireNextImage() ?: return null
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    image.fence.await(java.time.Duration.ofMillis(3000))
+                    image.fence.await(Duration.ofMillis(3000))
                 }
                 val hardwareBuffer = image.hardwareBuffer ?: return null
                 val hardwareBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null)
@@ -630,7 +640,7 @@ internal object ParticleDismissController {
 
     /** 全应用唯一的时间基准；API 33+ 就是框架给 ValueAnimator 施加的那个值。 */
     private fun animatorDurationScale(context: Context): Float =
-        com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale(context)
+        AnimatorDurationScale.scale(context)
 
     private fun activityFrom(context: Context): Activity? {
         var current = context

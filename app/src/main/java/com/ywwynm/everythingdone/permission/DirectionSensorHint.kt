@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.permission
 
+import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Shader
@@ -32,7 +33,7 @@ object DirectionSensorHint {
     /** 不可点场合（录音/播放对话框的界内提示、空间照片的 Toast）用的纯文本。 */
     fun plain(textView: TextView): String = plain(textView.resources)
 
-    fun plain(resources: android.content.res.Resources): String {
+    fun plain(resources: Resources): String {
         val template = resources.getString(R.string.direction_sensor_restricted)
         val anchor = resources.getString(R.string.direction_sensor_restricted_settings)
         val at = template.indexOf(PLACEHOLDER)

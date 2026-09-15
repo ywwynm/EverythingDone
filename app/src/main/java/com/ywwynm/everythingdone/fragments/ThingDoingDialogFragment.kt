@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 
 import java.util.ArrayList
 
@@ -114,7 +115,7 @@ open class ThingDoingDialogFragment : BaseDialogFragment() {
         )
 
         val rippleColor = BackgroundUtil.thingRippleColor(thingColor)
-        mCvStartAsBt!!.foreground = com.ywwynm.everythingdone.views.GradientRippleDrawable(
+        mCvStartAsBt!!.foreground = GradientRippleDrawable(
             ThingBackground.pure(rippleColor), shapeOval = false,
             cornerRadiusPx = mCvStartAsBt!!.radius,
             peakAlphaOverride = Color.alpha(rippleColor) / 255f

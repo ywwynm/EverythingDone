@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
@@ -65,7 +66,7 @@ class FableSolNoveltyDetector(
     }
 
     fun reset(full: Boolean) {
-        java.util.Arrays.fill(acc, 0.0)
+        Arrays.fill(acc, 0.0)
         accFrames = 0; accVoiced = 0
         blocks.clear(); nov.clear()
         lastFire = -100.0
@@ -99,7 +100,7 @@ class FableSolNoveltyDetector(
         } else {
             blocks.addLast(BlockEntry(t - 0.25, null)); capBlocks()
         }
-        java.util.Arrays.fill(acc, 0.0); accFrames = 0; accVoiced = 0
+        Arrays.fill(acc, 0.0); accFrames = 0; accVoiced = 0
         return hit
     }
 

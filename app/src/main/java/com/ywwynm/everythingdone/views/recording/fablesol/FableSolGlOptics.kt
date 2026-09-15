@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.util.Arrays
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
@@ -145,19 +146,19 @@ internal class FableSolGlOptics(private val density: Double) {
         interfaceWeightEnd: FloatArray? = null
     ): Int {
         cursor = 0
-        java.util.Arrays.fill(layerVertexCount, 0)
-        java.util.Arrays.fill(glintVertexCountForTest, 0)
-        java.util.Arrays.fill(glintFresnelContributionMaxForTest, 0.0)
-        java.util.Arrays.fill(glintCandidateCountForTest, 0)
-        java.util.Arrays.fill(glitterBirthsByLayerForTest, 0)
-        java.util.Arrays.fill(glintPathCenter01ForTest, 0.0)
-        java.util.Arrays.fill(glintMaximumPathWeightForTest, 0.0)
-        java.util.Arrays.fill(analyticHaloVertexCountForTest, 0)
-        java.util.Arrays.fill(glintMinimumSegmentsForTest, Int.MAX_VALUE)
-        java.util.Arrays.fill(glintMaximumSegmentsForTest, 0)
-        java.util.Arrays.fill(glintPackedHaloModeMaxForTest, 0f)
-        java.util.Arrays.fill(interfaceShoulderVertexCountForTest, 0)
-        java.util.Arrays.fill(backShadeVertexCountForTest, 0)
+        Arrays.fill(layerVertexCount, 0)
+        Arrays.fill(glintVertexCountForTest, 0)
+        Arrays.fill(glintFresnelContributionMaxForTest, 0.0)
+        Arrays.fill(glintCandidateCountForTest, 0)
+        Arrays.fill(glitterBirthsByLayerForTest, 0)
+        Arrays.fill(glintPathCenter01ForTest, 0.0)
+        Arrays.fill(glintMaximumPathWeightForTest, 0.0)
+        Arrays.fill(analyticHaloVertexCountForTest, 0)
+        Arrays.fill(glintMinimumSegmentsForTest, Int.MAX_VALUE)
+        Arrays.fill(glintMaximumSegmentsForTest, 0)
+        Arrays.fill(glintPackedHaloModeMaxForTest, 0f)
+        Arrays.fill(interfaceShoulderVertexCountForTest, 0)
+        Arrays.fill(backShadeVertexCountForTest, 0)
         glitterCandidateCount = 0
         glitterBirthsForTest = 0
         if (columns < 3) return 0
@@ -177,7 +178,7 @@ internal class FableSolGlOptics(private val density: Double) {
         if (!glintsEnabled && glintsWereEnabled) {
             // 边沿触发：关闭瞬间清一次轨迹，避免下次开启时从冻结状态复现旧闪点。
             for (index in glints.indices) glints[index].clear()
-            java.util.Arrays.fill(effectiveGlintCapacity, 0)
+            Arrays.fill(effectiveGlintCapacity, 0)
         }
         glintsWereEnabled = glintsEnabled
 
@@ -267,7 +268,7 @@ internal class FableSolGlOptics(private val density: Double) {
     private fun scheduleGlitterBirths() {
         if (eligibleGlintLayerCount <= 0 || glitterCandidateCount <= 0) return
 
-        java.util.Arrays.fill(glitterCandidateUsed, 0, glitterCandidateCount, false)
+        Arrays.fill(glitterCandidateUsed, 0, glitterCandidateCount, false)
         var births = 0
         while (true) {
             var best = -1
@@ -571,8 +572,8 @@ internal class FableSolGlOptics(private val density: Double) {
             FableSolMath.gradientInto(gradient, columns, dx, gradient2)
             for (i in 0 until columns) curvatureRaw[i] = -gradient2[i] * density
             smoothThree(curvatureRaw, curvature, columns)
-            java.util.Arrays.fill(microSlope, 0, columns, 0.0)
-            java.util.Arrays.fill(microCurvature, 0, columns, 0.0)
+            Arrays.fill(microSlope, 0, columns, 0.0)
+            Arrays.fill(microCurvature, 0, columns, 0.0)
             // 微法线的消费者只剩 buildGlints（体光带随 D216 移除）；闪点关闭时
             // 这两个数组保持全零，与采样后再被门挡住的结果一致。
             if (microNeeded && FableSolMaterialPolicy.glintCapacity(layer) > 0) {
@@ -926,7 +927,7 @@ internal class FableSolGlOptics(private val density: Double) {
         private fun updateTracks(tracks: ArrayList<Track>, dt: Double, matchDistance: Double,
                                  attackSeconds: Double, releaseSeconds: Double,
                                  positionSeconds: Double, cap: Int) {
-            java.util.Arrays.fill(anchorUsed, false)
+            Arrays.fill(anchorUsed, false)
             val positionGain = 1.0 - exp(-dt / max(positionSeconds, 1e-3))
             val attackGain = 1.0 - exp(-dt / max(attackSeconds, 1e-3))
             val releaseGain = 1.0 - exp(-dt / max(releaseSeconds, 1e-3))

@@ -1,5 +1,7 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import java.nio.ByteBuffer
+
 /** 只加速材料准备；所有规则仍由共同模型传入。JVM 单测保留原实现作为独立基准。 */
 internal object ParticleMaterialNative {
     val available = runCatching { System.loadLibrary("particle_material") }.isSuccess
@@ -75,14 +77,14 @@ internal object ParticleMaterialNative {
         weights3: DoubleArray, weights7: DoubleArray): Array<FloatArray>
 
     external fun packUploads(pixels: IntArray, material: FloatArray, count: Int,
-        rgba: java.nio.ByteBuffer, state: java.nio.ByteBuffer)
+        rgba: ByteBuffer, state: ByteBuffer)
 
-    external fun packColors(pixels: IntArray, rgba: java.nio.ByteBuffer)
+    external fun packColors(pixels: IntArray, rgba: ByteBuffer)
 
     /** [packColors] 的逆（也是同一个 R↔B 对调）：直接从上传字节还原 Android ARGB。 */
-    external fun unpackColors(rgba: java.nio.ByteBuffer, pixels: IntArray)
+    external fun unpackColors(rgba: ByteBuffer, pixels: IntArray)
 
-    external fun packState(material: FloatArray, count: Int, state: java.nio.ByteBuffer)
+    external fun packState(material: FloatArray, count: Int, state: ByteBuffer)
 
     external fun populate(nx: Int, ny: Int, width: Float, height: Float, pixels: IntArray,
         pixelWidth: Int, pixelHeight: Int, seed: Int, release: FloatArray, offsets: FloatArray,

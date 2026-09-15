@@ -31,3 +31,13 @@ Detail returns should continue to use ordinary `notifyItemChanged(position)`;
 only the restored list's first-bind appearing animation is disabled. The
 payload/no-change-animation approach made the restored list jump into place
 without the expected item update affordance and was reverted.
+
+## 2026-09-15 完全限定名
+
+不在语句里写完全限定名，一律 import 之后用简单名。只有三种情况保留限定：与项目自己的 `R`
+撞名（`android.R`、`androidx.appcompat.R`）、与 Kotlin 默认导入同名（`java.lang.Double` /
+`Float` / `Long`）、同一文件里同一个简单名指向两个不同的类。
+
+`android.os.Process` 不属于上述任何一种：项目里已有多处「import 之后裸用」，且没有文件用到
+`java.lang.Process`，统一按 import 处理。`java.util.ArrayList`、`LinkedHashMap` 这类在 Kotlin
+里有同名 typealias，直接去前缀，不必补 import。

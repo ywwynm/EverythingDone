@@ -8,6 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Shader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Binder
@@ -16,6 +21,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.BuildConfig
@@ -23,6 +29,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.FileUtil
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning
 import com.ywwynm.everythingdone.views.recording.AudioCaptureEngine
 import com.ywwynm.everythingdone.views.recording.AudioInputMode
 import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
@@ -182,7 +189,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
         // 建通知渠道是一次跨进程调用，实测会在录音弹窗出现的关键路径上卡住主线程
         // （阶段 0 主线程停顿采样，三星 7 个样本）。挪到后台线程先建；真正要发通知时
         // notificationBuilder() 会再保证一次，渠道不可能缺席。
-        if (com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.deferRecordDialogInit) {
+        if (ParticlePerfTuning.deferRecordDialogInit) {
             Thread({ runCatching { ensureNotificationChannel() } }, "AudioNotificationChannel").start()
         } else ensureNotificationChannel()
         restoreStoppedSessionIfPersisted()
@@ -419,7 +426,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
     }
 
     private fun prepareSystemModeInternal(mode: AudioInputMode, resultCode: Int, data: Intent) {
-        if (BuildConfig.DEBUG) android.util.Log.i("AudioRecProbe", "svc prepareSystemMode mode=$mode")
+        if (BuildConfig.DEBUG) Log.i("AudioRecProbe", "svc prepareSystemMode mode=$mode")
         if (!mode.requiresSystemAudio || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             fallbackToMicrophoneInternal(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
             return
@@ -445,14 +452,14 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
             projection.registerCallback(callback, mainHandler)
             prepareConfiguredMode(mode)
         } catch (error: Throwable) {
-            android.util.Log.e("AudioRecProbe", "svc prepareSystemMode failed", error)
+            Log.e("AudioRecProbe", "svc prepareSystemMode failed", error)
             releaseProjection()
             fallbackToMicrophoneInternal(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
         }
     }
 
     private fun fallbackToMicrophoneInternal(notice: AudioRecordingNotice) {
-        if (BuildConfig.DEBUG) android.util.Log.i("AudioRecProbe", "svc fallbackToMicrophone notice=$notice")
+        if (BuildConfig.DEBUG) Log.i("AudioRecProbe", "svc fallbackToMicrophone notice=$notice")
         AudioInputPreferences.save(
             this,
             AudioInputSelectionPersistencePolicy.modeToCommitOnFallback()
@@ -1145,7 +1152,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
             ?: ContextCompat.getColor(this, R.color.app_accent)
 
     /** 渐变记事的圆形渐变徽章；纯色记事返回 null（底色已经是完整表达）。 */
-    private fun gradientBadge(): android.graphics.Bitmap? {
+    private fun gradientBadge(): Bitmap? {
         val background = sessionAccent ?: return null
         if (background.mode != ThingBackground.Mode.GRADIENT) return null
         val size = GRADIENT_BADGE_SIZE_PX
@@ -1160,15 +1167,15 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
             ThingBackground.Orientation.RT_LB -> floatArrayOf(edge, 0f) to floatArrayOf(0f, edge)
             ThingBackground.Orientation.LB_RT -> floatArrayOf(0f, edge) to floatArrayOf(edge, 0f)
         }
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            size, size, android.graphics.Bitmap.Config.ARGB_8888
+        val bitmap = Bitmap.createBitmap(
+            size, size, Bitmap.Config.ARGB_8888
         )
-        val canvas = android.graphics.Canvas(bitmap)
-        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        paint.shader = android.graphics.LinearGradient(
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.shader = LinearGradient(
             from[0], from[1], to[0], to[1],
             background.color, background.endColor,
-            android.graphics.Shader.TileMode.CLAMP
+            Shader.TileMode.CLAMP
         )
         canvas.drawCircle(edge / 2f, edge / 2f, edge / 2f, paint)
         return bitmap

@@ -1,7 +1,9 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.content.res.AssetManager
+import android.util.Log
 import com.ywwynm.everythingdone.BuildConfig
+import java.util.Collections
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -437,7 +439,7 @@ internal class ParticleSession(
             firstFrameReported = true
             gesture?.presented = true
             listener.onFirstFramePresented()
-            if (BuildConfig.DEBUG) android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+            if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
                 "首帧上屏 requestToVisibleMs=${(System.nanoTime() - spec.requestedAtNanos) / 1e6}")
         }
         listener.onPresented(target, progress)
@@ -460,7 +462,7 @@ internal class ParticleSession(
         if (stamps.size < 2) return
         val gaps = stamps.zipWithNext { a, b -> (b - a) / 1e6 }.sorted()
         val label = if (isReverse) "出现完成 particles=" else "完成 count="
-        android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+        Log.i(ParticleMicroflakeRenderer.TAG,
             "$label${active.particleCount} frames=${stamps.size} " +
                 "elapsedMs=${(stamps.last() - stamps.first()) / 1e6} " +
                 "p90Ms=${gaps[(gaps.size * .9).toInt().coerceAtMost(gaps.lastIndex)]} " +
@@ -477,7 +479,7 @@ internal class ParticleSession(
     }
 
     private fun fail(error: Throwable) {
-        android.util.Log.e(ParticleMicroflakeRenderer.TAG, "粒子动画回退", error)
+        Log.e(ParticleMicroflakeRenderer.TAG, "粒子动画回退", error)
         stage = Stage.DONE
         cancelled = true
         finish(false)
@@ -500,13 +502,13 @@ internal class ParticleSession(
     // ---- debug 观察器读取的时间线（release 包里恒为空） ----
 
     /** 每帧提交：目标呈现时刻、提交墙钟、进度位。 */
-    internal val submittedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
+    internal val submittedTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
 
     /** 每帧上屏：目标呈现时刻、确认墙钟、处理墙钟。 */
-    internal val presentedTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
+    internal val presentedTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
 
     /** 每帧绘制：目标呈现时刻、绘制起、绘制止。 */
-    internal val drawTimings: MutableList<LongArray> = java.util.Collections.synchronizedList(ArrayList())
+    internal val drawTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
 
     /** 启动分段：准备起、管线就绪、输入就绪、上传就绪、首帧提交。 */
     @Volatile internal var startupTimings = longArrayOf()

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import android.content.res.AssetManager
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLContext
@@ -296,7 +297,7 @@ internal class FableSolExportEgl(
          * `sdr_peak.frag` 归约、RGBA8 回读与 16 位解码后必须还原出同一个数。
          * 覆盖编译、FBO、绘制、回读、解码整条链；任何一步失败都按不可用处理。
          */
-        private fun probeDynamicStats(assets: android.content.res.AssetManager): Boolean =
+        private fun probeDynamicStats(assets: AssetManager): Boolean =
             try {
                 val target = FableSolExportPresentTarget.createHighPrecision(
                     DYNAMIC_PROBE_SIZE, DYNAMIC_PROBE_SIZE
@@ -347,7 +348,7 @@ internal class FableSolExportEgl(
          *   真实构造 [FableSolExportScenePeak] 并对已知超白值跑一次完整的绘制—回读—解码。
          *   FP16 场景可用只说明源画面存在，说明不了这条归约通路本身。
          */
-        fun probe(assets: android.content.res.AssetManager? = null): Capability {
+        fun probe(assets: AssetManager? = null): Capability {
             var display: EGLDisplay = EGL14.EGL_NO_DISPLAY
             var context: EGLContext = EGL14.EGL_NO_CONTEXT
             var surface: EGLSurface = EGL14.EGL_NO_SURFACE

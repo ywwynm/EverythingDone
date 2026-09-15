@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
@@ -210,12 +211,12 @@ class FableSolRealtimeAnalyzer(
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
-        java.util.Arrays.fill(modRing, 0.0)
+        Arrays.fill(modRing, 0.0)
         modFill = 0; modPos = 0; modUntil = 0
         modRateHz = 0.0; modStrength01 = 0.0
         rHarmonicMotion.reset(); rLowMotion.reset()
-        java.util.Arrays.fill(envHist, 0.0)
-        java.util.Arrays.fill(strHist, 0.0)
+        Arrays.fill(envHist, 0.0)
+        Arrays.fill(strHist, 0.0)
         percEnv = 0.0
         tempoSpeed01 = 0.5
         motionLogEma = null
@@ -259,12 +260,12 @@ class FableSolRealtimeAnalyzer(
         rMomentary.reset(); rShortTerm.reset()
         envBandPass.reset(); envHighPassX = 0.0; envHighPassY = 0.0
         rEnvAc.reset(); rEnvBand.reset(); rFluxCv.reset()
-        java.util.Arrays.fill(modRing, 0.0)
+        Arrays.fill(modRing, 0.0)
         modFill = 0; modPos = 0; modUntil = 0
         modRateHz = 0.0; modStrength01 = 0.0
         rHarmonicMotion.reset(); rLowMotion.reset()
-        java.util.Arrays.fill(envHist, 0.0)
-        java.util.Arrays.fill(strHist, 0.0)
+        Arrays.fill(envHist, 0.0)
+        Arrays.fill(strHist, 0.0)
         percEnv = 0.0
         tempoSpeed01 = 0.5
         motionLogEma = null

@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import android.os.Process
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -257,7 +258,7 @@ internal object FableSolRowParallel {
 
         private fun setDisplayPriorityIfAvailable() {
             try {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+                Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY)
             } catch (_: Throwable) {
                 // 非 Android 运行时（JVM 单测）没有该服务；保持默认优先级。
             }
@@ -265,7 +266,7 @@ internal object FableSolRowParallel {
 
         private fun recordWorkerTid() {
             try {
-                workerTids.add(android.os.Process.myTid())
+                workerTids.add(Process.myTid())
             } catch (_: Throwable) {
                 // 非 Android 运行时没有内核 tid；ADPF 绑定只在真机上有意义。
             }

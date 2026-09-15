@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,7 +47,7 @@ class ParticleBatchOneTest {
     }
 
     private val GradientRippleDrawableLifetime: Long
-        get() = com.ywwynm.everythingdone.views.GradientRippleDrawable.NOMINAL_FEEDBACK_LIFETIME_MS
+        get() = GradientRippleDrawable.NOMINAL_FEEDBACK_LIFETIME_MS
 
     @Test fun `历史合并变换保留原积分主体并补上五分量写入`() {
         val source = File(repoRoot(), "shared/particle-dismiss/step.comp").readText()

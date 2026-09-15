@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SpatialBoundaryRefinementEngine(
@@ -250,7 +251,7 @@ class SpatialBoundaryRefinementEngine(
         bitmap: Bitmap,
         model: SpatialBoundaryRefinementModel,
         cancelled: AtomicBoolean
-    ): java.nio.FloatBuffer {
+    ): FloatBuffer {
         val size = model.inputSize
         val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
         val pixels = IntArray(size * size)
@@ -342,7 +343,7 @@ class SpatialBoundaryRefinementEngine(
         ) { "EdgeTAM decoder 输入 ABI 不符" }
     }
 
-    private fun floatBuffer(values: FloatArray): java.nio.FloatBuffer =
+    private fun floatBuffer(values: FloatArray): FloatBuffer =
         ByteBuffer.allocateDirect(values.size * Float.SIZE_BYTES)
             .order(ByteOrder.nativeOrder())
             .asFloatBuffer()

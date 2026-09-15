@@ -4,6 +4,7 @@ package com.ywwynm.everythingdone.fragments
 
 import android.annotation.SuppressLint
 import android.content.DialogInterface
+import android.graphics.Color
 import android.os.Bundle
 import androidx.annotation.StringRes
 import com.google.android.material.tabs.TabLayout
@@ -866,7 +867,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
                     BackgroundUtil.applyTextBackground(et, mAccentBackground)
                     BackgroundUtil.applyEditTextUnderline(et, mAccentBackground)
                     // Hide native underline so only the gradient strip shows.
-                    DisplayUtil.tintView(v, android.graphics.Color.TRANSPARENT)
+                    DisplayUtil.tintView(v, Color.TRANSPARENT)
                 } else {
                     if (et.paint.shader != null) {
                         et.paint.setShader(null)

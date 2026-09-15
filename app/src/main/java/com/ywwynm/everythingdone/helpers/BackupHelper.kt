@@ -17,6 +17,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.ArrayList
@@ -129,7 +130,7 @@ object BackupHelper {
 
     @Throws(IOException::class)
     private fun copyFileToUri(context: Context?, src: File?, dstUri: Uri?) {
-        java.io.FileInputStream(src).use { `in` ->
+        FileInputStream(src).use { `in` ->
             (context!!.contentResolver.openOutputStream(dstUri!!)).use { out ->
                 if (out == null) throw IOException("Cannot open output stream for $dstUri")
                 val buf = ByteArray(8192)

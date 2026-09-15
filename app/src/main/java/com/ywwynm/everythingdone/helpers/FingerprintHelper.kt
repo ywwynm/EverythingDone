@@ -18,6 +18,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
+import com.ywwynm.everythingdone.model.ThingBackground
 
 import java.io.IOException
 import java.security.InvalidKeyException
@@ -131,13 +132,13 @@ open class FingerprintHelper private constructor(context: Context?) {
             activity: FragmentActivity?, accentColor: Int, title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         tryToAuthenticatingByFingerprint(activity,
-                com.ywwynm.everythingdone.model.ThingBackground.pure(accentColor),
+                ThingBackground.pure(accentColor),
                 title, correctPassword, callback)
     }
 
     /** Phase 8: ThingBackground-aware overload — gradient flows into the pattern-lock fallback. */
     open fun tryToAuthenticatingByFingerprint(
-            activity: FragmentActivity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
+            activity: FragmentActivity?, accent: ThingBackground?,
             title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         if (isFingerprintReady() && isFingerprintEnabledInEverythingDone() && initFingerprintCipher()) {
@@ -184,7 +185,7 @@ open class FingerprintHelper private constructor(context: Context?) {
     }
 
     private fun showPatternLock(
-            activity: FragmentActivity?, accent: com.ywwynm.everythingdone.model.ThingBackground?,
+            activity: FragmentActivity?, accent: ThingBackground?,
             title: String?, correctPassword: String?,
             callback: AuthenticationHelper.AuthenticationCallback?) {
         val pldf = PatternLockDialogFragment()

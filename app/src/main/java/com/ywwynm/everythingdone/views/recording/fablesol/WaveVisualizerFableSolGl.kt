@@ -5,6 +5,7 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Display
 import android.view.Surface
 import android.view.SurfaceHolder
@@ -13,6 +14,7 @@ import android.view.View
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant
 import kotlin.math.max
 import kotlin.math.min
 
@@ -21,7 +23,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver,
-    com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant {
+    ParticleSnapshotParticipant {
 
     private val density = resources.displayMetrics.density.toDouble()
     private val renderThread = FableSolGlRenderThread(
@@ -213,7 +215,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         if (BuildConfig.DEBUG) {
-            android.util.Log.i(SURF_PROBE, "surfaceCreated valid=${holder.surface.isValid}")
+            Log.i(SURF_PROBE, "surfaceCreated valid=${holder.surface.isValid}")
         }
         if (!holder.surface.isValid) return
         surfaceReady = true
@@ -235,7 +237,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         if (BuildConfig.DEBUG) {
-            android.util.Log.i(
+            Log.i(
                 SURF_PROBE,
                 "surfaceChanged fmt=$format ${width}x$height ready=$surfaceReady valid=${holder.surface.isValid}"
             )
@@ -259,7 +261,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "surfaceDestroyed ready=$surfaceReady")
+        if (BuildConfig.DEBUG) Log.i(SURF_PROBE, "surfaceDestroyed ready=$surfaceReady")
         stopFrameLoop()
         clearSurfaceFrameRate()
         resetHdrSurfaceState()
@@ -286,13 +288,13 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "windowVisibility=$visibility")
+        if (BuildConfig.DEBUG) Log.i(SURF_PROBE, "windowVisibility=$visibility")
         if (visibility == View.VISIBLE) ensureAnimating() else stopFrameLoop()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
-        if (BuildConfig.DEBUG) android.util.Log.i(SURF_PROBE, "visibilityAggregated=$isVisible")
+        if (BuildConfig.DEBUG) Log.i(SURF_PROBE, "visibilityAggregated=$isVisible")
         if (isVisible) ensureAnimating() else stopFrameLoop()
     }
 

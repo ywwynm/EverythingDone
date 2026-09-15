@@ -2,12 +2,18 @@
 
 package com.ywwynm.everythingdone.utils
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Outline
@@ -22,28 +28,40 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.os.SystemClock
 import android.view.ViewTreeObserver
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
+import android.text.Layout
+import android.text.TextPaint
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
+import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.ProgressBar
 import androidx.annotation.Keep
 import androidx.appcompat.widget.ActionMenuView
+import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.widget.CompoundButtonCompat
 
 import androidx.cardview.widget.CardView
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import kotlin.math.ceil
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 
 /**
@@ -103,7 +121,7 @@ object BackgroundUtil {
     @JvmStatic
     fun hueBucket(color: Int): Int {
         val hsl = FloatArray(3)
-        androidx.core.graphics.ColorUtils.colorToHSL(color, hsl)
+        ColorUtils.colorToHSL(color, hsl)
         val h: Float = hsl[0]
         val s: Float = hsl[1]
         if (s < 0.15f) return HUE_BUCKET_GREY
@@ -436,7 +454,7 @@ object BackgroundUtil {
 
         if (background.mode === ThingBackground.Mode.PURE) {
             invalidatePendingTextShader(textView)
-            val paint: android.text.TextPaint = textView.paint
+            val paint: TextPaint = textView.paint
             if (paint.shader != null) paint.setShader(null)
             textView.setTextColor(background.color)
             applyCompoundDrawableBackground(textView, background, compoundDrawableMode, null)
@@ -489,7 +507,7 @@ object BackgroundUtil {
 
         // TextView 绘制文字前已平移到 compoundPaddingLeft；
         // 这里必须使用 Layout 内部坐标，不能叠加外层 view padding。
-        val layout: android.text.Layout? = textView.layout
+        val layout: Layout? = textView.layout
         var textW: Float
         var textH: Float
         var textLeft: Float
@@ -643,7 +661,7 @@ object BackgroundUtil {
     }
 
     private fun tintDrawableInGradientSpan(
-        res: android.content.res.Resources?,
+        res: Resources?,
         source: Drawable,
         bg: ThingBackground,
         span: GradientSpan,
@@ -657,17 +675,17 @@ object BackgroundUtil {
 
         val w = slot.width.toInt().coerceAtLeast(1)
         val h = slot.height.toInt().coerceAtLeast(1)
-        val out = android.graphics.Bitmap.createBitmap(
-            w, h, android.graphics.Bitmap.Config.ARGB_8888
+        val out = Bitmap.createBitmap(
+            w, h, Bitmap.Config.ARGB_8888
         )
-        val c = android.graphics.Canvas(out)
+        val c = Canvas(out)
         val mask = source.mutate()
         mask.colorFilter = null
         mask.setBounds(0, 0, w, h)
         mask.draw(c)
         normalizeMaskAlpha(out)
 
-        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.shader = linearGradientFor(bg, span.width, span.height).also {
             val m = Matrix()
             m.setTranslate(-(slot.left - span.left), -(slot.top - span.top))
@@ -676,7 +694,7 @@ object BackgroundUtil {
         p.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
 
-        return android.graphics.drawable.BitmapDrawable(res, out)
+        return BitmapDrawable(res, out)
     }
 
     private fun drawableRenderWidth(drawable: Drawable): Int {
@@ -739,11 +757,11 @@ object BackgroundUtil {
      */
     @JvmStatic
     fun tintDrawable(
-            res: android.content.res.Resources?, source: Drawable?, bg: ThingBackground?): Drawable? {
+            res: Resources?, source: Drawable?, bg: ThingBackground?): Drawable? {
         if (source == null || bg == null) return source
         if (bg.mode === ThingBackground.Mode.PURE) {
             val d: Drawable = source.mutate()
-            d.setColorFilter(bg.color, android.graphics.PorterDuff.Mode.SRC_ATOP)
+            d.setColorFilter(bg.color, PorterDuff.Mode.SRC_ATOP)
             return d
         }
         var w: Int = source.intrinsicWidth
@@ -751,9 +769,9 @@ object BackgroundUtil {
         if (w <= 0) w = 48
         if (h <= 0) h = 48
 
-        val out: android.graphics.Bitmap = android.graphics.Bitmap.createBitmap(
-                w, h, android.graphics.Bitmap.Config.ARGB_8888)
-        val c: android.graphics.Canvas = android.graphics.Canvas(out)
+        val out: Bitmap = Bitmap.createBitmap(
+                w, h, Bitmap.Config.ARGB_8888)
+        val c: Canvas = Canvas(out)
 
         // 1. Draw the icon onto the bitmap with no tint so we get its alpha mask
         //    (drawable's own paint draws in its native colour — usually opaque
@@ -769,28 +787,28 @@ object BackgroundUtil {
         // 2. Overlay a rect filled with the gradient, masked by what's already
         //    there. SRC_IN keeps the destination's alpha (the icon shape) and
         //    replaces its colour with the source (the gradient).
-        val p: android.graphics.Paint = android.graphics.Paint(
-                android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val p: Paint = Paint(
+                Paint.ANTI_ALIAS_FLAG)
         p.setShader(linearGradientFor(bg, w.toFloat(), h.toFloat()))
-        p.xfermode = android.graphics.PorterDuffXfermode(
-            android.graphics.PorterDuff.Mode.SRC_IN)
+        p.xfermode = PorterDuffXfermode(
+            PorterDuff.Mode.SRC_IN)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
 
-        return android.graphics.drawable.BitmapDrawable(res, out)
+        return BitmapDrawable(res, out)
     }
 
     @JvmStatic
     fun tintDrawableOpaque(
-            res: android.content.res.Resources?, source: Drawable?, bg: ThingBackground?): Drawable? {
+            res: Resources?, source: Drawable?, bg: ThingBackground?): Drawable? {
         if (source == null || bg == null) return source
         var w: Int = source.intrinsicWidth
         var h: Int = source.intrinsicHeight
         if (w <= 0) w = 48
         if (h <= 0) h = 48
 
-        val out = android.graphics.Bitmap.createBitmap(
-                w, h, android.graphics.Bitmap.Config.ARGB_8888)
-        val c = android.graphics.Canvas(out)
+        val out = Bitmap.createBitmap(
+                w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
         val mask = source.mutate()
         mask.setBounds(0, 0, w, h)
         mask.colorFilter = null
@@ -798,22 +816,22 @@ object BackgroundUtil {
         mask.draw(c)
         forceOpaqueMaskAlpha(out)
 
-        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
         if (bg.mode === ThingBackground.Mode.GRADIENT) {
             p.shader = linearGradientFor(bg, w.toFloat(), h.toFloat())
         } else {
             p.color = bg.color or -0x1000000
         }
-        p.xfermode = android.graphics.PorterDuffXfermode(
-                android.graphics.PorterDuff.Mode.SRC_IN)
+        p.xfermode = PorterDuffXfermode(
+                PorterDuff.Mode.SRC_IN)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
 
-        return android.graphics.drawable.BitmapDrawable(res, out).also {
+        return BitmapDrawable(res, out).also {
             it.setBounds(0, 0, w, h)
         }
     }
 
-    private fun normalizeMaskAlpha(bitmap: android.graphics.Bitmap) {
+    private fun normalizeMaskAlpha(bitmap: Bitmap) {
         val width = bitmap.width
         val height = bitmap.height
         val pixels = IntArray(width * height)
@@ -837,7 +855,7 @@ object BackgroundUtil {
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
     }
 
-    private fun forceOpaqueMaskAlpha(bitmap: android.graphics.Bitmap) {
+    private fun forceOpaqueMaskAlpha(bitmap: Bitmap) {
         val width = bitmap.width
         val height = bitmap.height
         val pixels = IntArray(width * height)
@@ -912,7 +930,7 @@ object BackgroundUtil {
             invalidateSelf()
         }
 
-        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        override fun setColorFilter(colorFilter: ColorFilter?) {
             fillPaint.colorFilter = colorFilter
             strokePaint.colorFilter = colorFilter
             invalidateSelf()
@@ -946,7 +964,7 @@ object BackgroundUtil {
     private const val EDIT_TEXT_UNDERLINE_FADE_MS: Int = 150
 
     @JvmStatic
-    fun applyEditTextUnderline(editText: android.widget.EditText?, bg: ThingBackground?) {
+    fun applyEditTextUnderline(editText: EditText?, bg: ThingBackground?) {
         if (editText == null) return
         if (bg == null) {
             clearEditTextUnderline(editText)
@@ -973,7 +991,7 @@ object BackgroundUtil {
         d.setAlpha(0)
         editText.setForeground(d)
         // Fade in to match Material EditText's state-transition animation.
-        val anim: android.animation.ObjectAnimator = android.animation.ObjectAnimator.ofInt(
+        val anim: ObjectAnimator = ObjectAnimator.ofInt(
                 d, "alpha", 0, 255)
         anim.setDuration(EDIT_TEXT_UNDERLINE_FADE_MS.toLong())
         editText.setTag(R_ID_UNDERLINE_ANIM, anim)
@@ -983,7 +1001,7 @@ object BackgroundUtil {
     /** Counterpart to [applyEditTextUnderline] — fades the foreground
      *  strip out and clears it, matching native EditText's transition timing. */
     @JvmStatic
-    fun clearEditTextUnderline(editText: android.widget.EditText?) {
+    fun clearEditTextUnderline(editText: EditText?) {
         if (editText == null) return
         val fg: Drawable? = editText.foreground
         cancelUnderlineFade(editText)
@@ -992,11 +1010,11 @@ object BackgroundUtil {
             return
         }
         val existing: Drawable = fg
-        val anim: android.animation.ObjectAnimator = android.animation.ObjectAnimator.ofInt(
+        val anim: ObjectAnimator = ObjectAnimator.ofInt(
                 existing, "alpha", existing.alpha, 0)
         anim.setDuration(EDIT_TEXT_UNDERLINE_FADE_MS.toLong())
-        anim.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(a: android.animation.Animator) {
+        anim.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(a: Animator) {
                 // Only clear if the foreground is still our drawable — a
                 // newer applyEditTextUnderline() might have replaced it
                 // while this fade was running.
@@ -1016,9 +1034,9 @@ object BackgroundUtil {
     private val R_ID_UNDERLINE_ANIM: Int =
             "BackgroundUtil#underlineFadeAnim".hashCode()
 
-    private fun cancelUnderlineFade(editText: android.widget.EditText) {
+    private fun cancelUnderlineFade(editText: EditText) {
         val tag: Any? = editText.getTag(R_ID_UNDERLINE_ANIM)
-        if (tag is android.animation.ObjectAnimator) {
+        if (tag is ObjectAnimator) {
             tag.cancel()
         }
         editText.setTag(R_ID_UNDERLINE_ANIM, null)
@@ -1032,15 +1050,15 @@ object BackgroundUtil {
      *  + bottom edge match exactly. Falls back to the view bottom edge if
      *  the background isn't an InsetDrawable (themed / custom EditText). */
     private class BottomLineDrawable(
-            host: android.widget.EditText, private val inner: GradientDrawable, private val strokeHeightPx: Int) : Drawable() {
-        private val hostRef: java.lang.ref.WeakReference<android.widget.EditText> =
-                java.lang.ref.WeakReference<android.widget.EditText>(host)
+            host: EditText, private val inner: GradientDrawable, private val strokeHeightPx: Int) : Drawable() {
+        private val hostRef: WeakReference<EditText> =
+                WeakReference<EditText>(host)
 
-        override fun onBoundsChange(bounds: android.graphics.Rect) {
+        override fun onBoundsChange(bounds: Rect) {
             var lineLeft: Int   = bounds.left
             var lineRight: Int  = bounds.right
             var lineBottom: Int = bounds.bottom
-            val et: android.widget.EditText? = hostRef.get()
+            val et: EditText? = hostRef.get()
             if (et != null) {
                 var bg: Drawable? = et.background
                 // Unwrap DrawableCompat.wrap() so we can reach the
@@ -1048,11 +1066,11 @@ object BackgroundUtil {
                 // On API 23+ DrawableCompat.wrap returns the original
                 // drawable; on older platforms it returns an androidx
                 // WrappedDrawable that unwrap() handles transparently.
-                bg = androidx.core.graphics.drawable.DrawableCompat.unwrap(bg!!)
-                if (bg is android.graphics.drawable.InsetDrawable) {
+                bg = DrawableCompat.unwrap(bg!!)
+                if (bg is InsetDrawable) {
                     val child: Drawable? = bg.drawable
                     if (child != null) {
-                        val cb: android.graphics.Rect = child.getBounds()
+                        val cb: Rect = child.getBounds()
                         if (cb.width() > 0 && cb.height() > 0) {
                             // child bounds are in the same coordinate space
                             // as this drawable's bounds (InsetDrawable sets
@@ -1068,7 +1086,7 @@ object BackgroundUtil {
             inner.setBounds(lineLeft, lineTop, lineRight, lineBottom)
         }
 
-        override fun draw(canvas: android.graphics.Canvas) {
+        override fun draw(canvas: Canvas) {
             // The host View draws its foreground in the SCROLLED coordinate space —
             // unlike the background, onDrawForeground() does NOT undo the view's
             // scroll translation. A singleLine EditText scrolls its content
@@ -1076,7 +1094,7 @@ object BackgroundUtil {
             // field, which would otherwise drag this underline strip left along
             // with the text. Mirror View.drawBackground()'s scroll compensation so
             // the strip stays anchored to the field's visible edges.
-            val et: android.widget.EditText? = hostRef.get()
+            val et: EditText? = hostRef.get()
             val sx: Int = et?.scrollX ?: 0
             val sy: Int = et?.scrollY ?: 0
             if ((sx or sy) == 0) {
@@ -1095,11 +1113,11 @@ object BackgroundUtil {
         }
         override fun getAlpha(): Int { return inner.alpha
         }
-        override fun setColorFilter(cf: android.graphics.ColorFilter?) {
+        override fun setColorFilter(cf: ColorFilter?) {
             inner.colorFilter = cf
         }
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-        override fun getOpacity(): Int { return android.graphics.PixelFormat.TRANSLUCENT }
+        override fun getOpacity(): Int { return PixelFormat.TRANSLUCENT }
     }
 
     /**
@@ -1144,7 +1162,7 @@ object BackgroundUtil {
      * when the host background is light and a dark ripple is needed.
      */
     @JvmStatic
-    fun circularRipple(): android.graphics.drawable.RippleDrawable {
+    fun circularRipple(): RippleDrawable {
         return circularRipple(RIPPLE_LIGHT)
     }
 
@@ -1155,22 +1173,22 @@ object BackgroundUtil {
      * feedback stays circular regardless of view bounds.
      */
     @JvmStatic
-    fun circularRipple(rippleColor: Int): android.graphics.drawable.RippleDrawable {
+    fun circularRipple(rippleColor: Int): RippleDrawable {
         // Mask layer: a white OVAL — only the shape matters, RippleDrawable
         // uses it solely for clipping the ripple bounds.
         val mask = GradientDrawable()
         mask.setShape(GradientDrawable.OVAL)
         mask.setColor(0xFFFFFFFF.toInt())
-        return android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(rippleColor),
+        return RippleDrawable(
+                ColorStateList.valueOf(rippleColor),
                 null,
                 mask)
     }
 
     /** 应用弹窗的圆形反馈可观测结束状态，便于交接到粒子动画。 */
     @JvmStatic
-    fun dialogCircularRipple(rippleColor: Int = RIPPLE_LIGHT): com.ywwynm.everythingdone.views.GradientRippleDrawable =
-        com.ywwynm.everythingdone.views.GradientRippleDrawable(
+    fun dialogCircularRipple(rippleColor: Int = RIPPLE_LIGHT): GradientRippleDrawable =
+        GradientRippleDrawable(
             ThingBackground.pure(rippleColor), shapeOval = true,
             peakAlphaOverride = Color.alpha(rippleColor) / 255f
         )
@@ -1287,7 +1305,7 @@ object BackgroundUtil {
         // 对话框灰色按钮与强调色按钮使用同一反馈生命周期，粒子交接可等待真实结束。
         // 保留胶囊裁剪、颜色和透明度；不依赖框架 RippleDrawable 不公开的结束状态。
         val rippleColor = appChromeRippleColor(context)
-        view.foreground = com.ywwynm.everythingdone.views.GradientRippleDrawable(
+        view.foreground = GradientRippleDrawable(
             ThingBackground.pure(rippleColor), shapeOval = false, cornerRadiusPx = -1f,
             peakAlphaOverride = Color.alpha(rippleColor) / 255f
         )
@@ -1366,10 +1384,10 @@ object BackgroundUtil {
      */
     @JvmStatic
     fun renderBackgroundBitmap(
-            bg: ThingBackground?, width: Int, height: Int, alpha: Int): android.graphics.Bitmap? {
+            bg: ThingBackground?, width: Int, height: Int, alpha: Int): Bitmap? {
         if (width <= 0 || height <= 0) return null
-        val bm: android.graphics.Bitmap = android.graphics.Bitmap.createBitmap(
-                width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        val bm: Bitmap = Bitmap.createBitmap(
+                width, height, Bitmap.Config.ARGB_8888)
         if (bg == null) return bm
         if (bg.mode === ThingBackground.Mode.PURE) {
             val color: Int = (alpha shl 24) or (bg.color and 0x00FFFFFF)
@@ -1384,7 +1402,7 @@ object BackgroundUtil {
         gd.setOrientation(toGdOrientation(bg.orientation))
         gd.colors = intArrayOf(s, e)
         gd.setBounds(0, 0, width, height)
-        gd.draw(android.graphics.Canvas(bm))
+        gd.draw(Canvas(bm))
         return bm
     }
 
@@ -1481,7 +1499,7 @@ object BackgroundUtil {
             invalidateSelf()
         }
 
-        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        override fun setColorFilter(colorFilter: ColorFilter?) {
             paint.colorFilter = colorFilter
             invalidateSelf()
         }
@@ -1541,7 +1559,7 @@ object BackgroundUtil {
             invalidateSelf()
         }
 
-        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        override fun setColorFilter(colorFilter: ColorFilter?) {
             progressPaint.colorFilter = colorFilter
             trackPaint.colorFilter = colorFilter
             invalidateSelf()
@@ -1590,7 +1608,7 @@ object BackgroundUtil {
     @JvmStatic
     @JvmOverloads
     fun applyCheckboxAccent(
-        button: android.widget.CompoundButton,
+        button: CompoundButton,
         bg: ThingBackground,
         uncheckedColor: Int = ContextCompat.getColor(
             button.context, R.color.app_chrome_control_unchecked
@@ -1604,7 +1622,7 @@ object BackgroundUtil {
         uncheckedGradient: Boolean = false
     ) {
         button.buttonTintList = null
-        if (button is androidx.appcompat.widget.AppCompatCheckBox) {
+        if (button is AppCompatCheckBox) {
             button.supportButtonTintList = null
         }
         button.buttonDrawable = GradientCheckboxDrawable(
@@ -1815,7 +1833,7 @@ object BackgroundUtil {
             invalidateSelf()
         }
 
-        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        override fun setColorFilter(colorFilter: ColorFilter?) {
             fillPaint.colorFilter = colorFilter
             strokePaint.colorFilter = colorFilter
             checkPaint.colorFilter = colorFilter
@@ -1850,7 +1868,7 @@ object BackgroundUtil {
     @JvmStatic
     @JvmOverloads
     fun applyRadioAccent(
-        button: android.widget.CompoundButton,
+        button: CompoundButton,
         bg: ThingBackground,
         uncheckedColor: Int = ContextCompat.getColor(
             button.context, R.color.app_chrome_control_unchecked
@@ -1858,7 +1876,7 @@ object BackgroundUtil {
         footprintDp: Float = CHECKBOX_DEFAULT_FOOTPRINT_DP,
         uncheckedGradient: Boolean = false
     ) {
-        androidx.core.widget.CompoundButtonCompat.setButtonTintList(button, null)
+        CompoundButtonCompat.setButtonTintList(button, null)
         button.buttonDrawable = GradientRadioDrawable(
             button.context,
             bg,
@@ -2014,7 +2032,7 @@ object BackgroundUtil {
             invalidateSelf()
         }
 
-        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        override fun setColorFilter(colorFilter: ColorFilter?) {
             strokePaint.colorFilter = colorFilter
             fillPaint.colorFilter = colorFilter
             invalidateSelf()

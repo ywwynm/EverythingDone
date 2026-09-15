@@ -412,7 +412,7 @@ class FableSolExportProgressDialogFragment : BaseDialogFragment() {
 
         fun newInstance(jobId: Long): FableSolExportProgressDialogFragment =
             FableSolExportProgressDialogFragment().apply {
-                arguments = android.os.Bundle().apply { putLong(KEY_JOB_ID, jobId) }
+                arguments = Bundle().apply { putLong(KEY_JOB_ID, jobId) }
             }
     }
 }

@@ -1,14 +1,18 @@
 package com.ywwynm.everythingdone.views.reveal
 
+import android.animation.Animator
 import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.Resources
 import android.content.res.TypedArray
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
+import androidx.core.graphics.ColorUtils
 
 import com.ywwynm.everythingdone.R
 
@@ -349,11 +353,11 @@ open class ShiningBorder : View {
             invalidate()
         }
 
-        animator.addListener(object : android.animation.Animator.AnimatorListener {
-            override fun onAnimationStart(a: android.animation.Animator) {}
-            override fun onAnimationCancel(a: android.animation.Animator) {}
+        animator.addListener(object : Animator.AnimatorListener {
+            override fun onAnimationStart(a: Animator) {}
+            override fun onAnimationCancel(a: Animator) {}
 
-            override fun onAnimationEnd(a: android.animation.Animator) {
+            override fun onAnimationEnd(a: Animator) {
                 invalidate()
                 mOnEndListener?.onAnimationEnd(this@ShiningBorder)
                 if (mRepeatAnimation && !mForceStop) {
@@ -362,7 +366,7 @@ open class ShiningBorder : View {
                 }
             }
 
-            override fun onAnimationRepeat(a: android.animation.Animator) {}
+            override fun onAnimationRepeat(a: Animator) {}
         })
 
         animator.start()
@@ -481,9 +485,9 @@ open class ShiningBorder : View {
      */
     private fun varyColor(baseColor: Int, lightnessDelta: Float): Int {
         val hsl = FloatArray(3)
-        androidx.core.graphics.ColorUtils.colorToHSL(baseColor, hsl)
+        ColorUtils.colorToHSL(baseColor, hsl)
         hsl[2] = max(0f, min(1f, hsl[2] + lightnessDelta))
-        return androidx.core.graphics.ColorUtils.HSLToColor(hsl)
+        return ColorUtils.HSLToColor(hsl)
     }
 
     private class Particle {
@@ -633,9 +637,9 @@ open class ShiningBorder : View {
         }
 
         private fun dpToPx(dp: Float): Float {
-            return dp * android.util.TypedValue.applyDimension(
-                    android.util.TypedValue.COMPLEX_UNIT_DIP, 1f,
-                    android.content.res.Resources.getSystem()!!.displayMetrics
+            return dp * TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 1f,
+                    Resources.getSystem()!!.displayMetrics
             )
         }
     }

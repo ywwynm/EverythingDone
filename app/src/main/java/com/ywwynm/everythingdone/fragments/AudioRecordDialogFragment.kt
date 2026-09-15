@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.hardware.Sensor
@@ -24,6 +25,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
+import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -34,6 +36,7 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -53,6 +56,7 @@ import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning
 import com.ywwynm.everythingdone.views.pickers.AudioInputPicker
 import com.ywwynm.everythingdone.views.recording.AudioInputMode
 import com.ywwynm.everythingdone.views.recording.AudioInputPreferences
@@ -206,7 +210,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (BuildConfig.DEBUG) {
-            android.util.Log.i(PROBE_TAG, "projection result=${result.resultCode} binder=${mRecordingBinder != null}")
+            Log.i(PROBE_TAG, "projection result=${result.resultCode} binder=${mRecordingBinder != null}")
         }
         mProjectionRequestInFlight = false
         updateControlsEnabled()
@@ -331,7 +335,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         super.onResume()
         // 传感器注册（SystemSensorManager.nativeCreate + binder）实测会在凝聚期间卡住主线程，
         // 直接压掉粒子帧；推迟到出现动画结束之后再注册，倾斜行为本身不变。
-        if (com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.deferRecordDialogInit) {
+        if (ParticlePerfTuning.deferRecordDialogInit) {
             afterAppearance { if (isResumed) startTiltSensor() }
         } else startTiltSensor()
     }
@@ -861,7 +865,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
                 binder.fallbackToMicrophone(AudioRecordingNotice.PROJECTION_DENIED)
             }
         } catch (error: Throwable) {
-            android.util.Log.e(PROBE_TAG, "handleResult failed", error)
+            Log.e(PROBE_TAG, "handleResult failed", error)
             binder.fallbackToMicrophone(AudioRecordingNotice.SYSTEM_INITIALIZATION_FAILED)
         }
         updateControlsEnabled()
@@ -972,7 +976,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             )
         } else {
             target.setImageDrawable(ContextCompat.getDrawable(host, iconRes))
-            target.imageTintList = android.content.res.ColorStateList.valueOf(
+            target.imageTintList = ColorStateList.valueOf(
                 ContextCompat.getColor(host, R.color.app_chrome_control_unchecked)
             )
         }
@@ -1067,7 +1071,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     private fun positionAudioInput(topDp: Float) {
         val view = mLlAudioInput ?: return
-        val params = view.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        val params = view.layoutParams as? FrameLayout.LayoutParams ?: return
         params.topMargin = (mActivity!!.screenDensity * topDp).toInt()
         view.layoutParams = params
     }
@@ -1121,7 +1125,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
             }
             notice.maxWidth =
                 host.width - (mActivity!!.screenDensity * 2 * AUDIO_NOTICE_SIDE_MARGIN_DP).toInt()
-            val params = notice.layoutParams as? android.widget.FrameLayout.LayoutParams
+            val params = notice.layoutParams as? FrameLayout.LayoutParams
             if (params != null) {
                 params.topMargin = (mActivity!!.screenDensity * when (mState) {
                     RECORDING -> AUDIO_NOTICE_RECORDING_TOP_DP
@@ -1264,7 +1268,7 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
         if (contentRight <= contentLeft) return
 
         val endMargin = parentWidth - contentRight
-        val params = row.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        val params = row.layoutParams as? FrameLayout.LayoutParams ?: return
         if (params.marginStart == contentLeft &&
             params.leftMargin == contentLeft &&
             params.marginEnd == endMargin &&

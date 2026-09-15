@@ -10,7 +10,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.DialogInterface
+import android.graphics.Rect
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -26,6 +28,7 @@ import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
 import android.util.Range
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
@@ -489,7 +492,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         applyDoneButtonAccent(bg)
     }
 
-    private val mVisibilityScratch = android.graphics.Rect()
+    private val mVisibilityScratch = Rect()
 
     private fun isVisibleInScroll(view: View, scroll: ScrollView): Boolean {
         mVisibilityScratch.set(0, 0, view.width, view.height)
@@ -698,7 +701,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                     val megabytesPerMinute = mbps * 1_000_000.0 * 60.0 / 8.0 / 1_000_000.0
                     getString(
                         R.string.fablesol_export_estimate_bitrate,
-                        String.format(java.util.Locale.US, "%.0f", megabytesPerMinute),
+                        String.format(Locale.US, "%.0f", megabytesPerMinute),
                         frameRate.toString()
                     )
                 }
@@ -720,8 +723,8 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                     pieces.append(
                         getString(
                             R.string.fablesol_export_estimate_white,
-                            String.format(java.util.Locale.US, "%.0f", white),
-                            String.format(java.util.Locale.US, "%.0f", peak)
+                            String.format(Locale.US, "%.0f", white),
+                            String.format(Locale.US, "%.0f", peak)
                         )
                     )
                     if (pqFormat?.usesAuthoredToneMappingCurve == true) {
@@ -729,7 +732,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                         pieces.append(
                             getString(
                                 R.string.fablesol_export_estimate_reference_peak,
-                                String.format(java.util.Locale.US, "%.0f", referencePeak)
+                                String.format(Locale.US, "%.0f", referencePeak)
                             )
                         )
                         pieces.append(
@@ -798,7 +801,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                         .toFloat(),
                     { value ->
                         String.format(
-                            java.util.Locale.US,
+                            Locale.US,
                             "%.0f  (%d-%d)",
                             value,
                             lower,
@@ -824,7 +827,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 ?: mResolvedExportAutoBitrateMbps
                 ?: FableSolExportOptions.DEFAULT_BITRATE_MBPS,
             { value ->
-                val unit = String.format(java.util.Locale.US, "%.0f Mbps", value)
+                val unit = String.format(Locale.US, "%.0f Mbps", value)
                 if (FableSolTuning.exportBitrateMbps(ctx) == null) {
                     getString(R.string.fablesol_export_bitrate_auto, unit)
                 } else {
@@ -1127,7 +1130,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                 FableSolExportOptions.MAX_KEYFRAME_SECONDS,
                 19,
                 FableSolTuning.exportKeyframeSeconds(ctx),
-                { value -> String.format(java.util.Locale.US, "%.1f s", value) }
+                { value -> String.format(Locale.US, "%.1f s", value) }
             ) { value ->
                 FableSolTuning.setExportKeyframeSeconds(ctx, value)
             }
@@ -1146,7 +1149,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             // 固定的创作基准说成设备自适应结果会误导。判据是"用户动过没有"，不是当前数值——
             // 拖回 203 仍是一次明确的创作选择。
             { value ->
-                val nits = String.format(java.util.Locale.US, "%.0f", value)
+                val nits = String.format(Locale.US, "%.0f", value)
                 when (FableSolTuning.exportPqWhiteMode(ctx)) {
                     FableSolExportPqWhiteMode.STANDARD ->
                         getString(R.string.fablesol_export_pq_white_standard, nits)
@@ -1183,7 +1186,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             ).toFloat(),
             { step ->
                 val nits = FableSolExportReferencePeak.nitsAt(step.roundToInt())
-                val formatted = String.format(java.util.Locale.US, "%.0f", nits)
+                val formatted = String.format(Locale.US, "%.0f", nits)
                 if (kotlin.math.abs(nits - FableSolExportOptions.DEFAULT_REFERENCE_PEAK_NITS) < 0.5f) {
                     getString(R.string.fablesol_export_reference_peak_standard, formatted)
                 } else {
@@ -1245,7 +1248,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
             FableSolExportHdr10PlusCurve.MAX_HIGHLIGHT_START_PERCENT -
                 FableSolExportHdr10PlusCurve.MIN_HIGHLIGHT_START_PERCENT,
             FableSolTuning.exportHighlightStart(ctx).toFloat(),
-            { value -> String.format(java.util.Locale.US, "%.0f%%", value) }
+            { value -> String.format(Locale.US, "%.0f%%", value) }
         ) { value ->
             FableSolTuning.setExportHighlightStart(ctx, value.toInt())
             refreshEstimate()
@@ -2337,7 +2340,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     ): View {
         val row = LinearLayout(ctx)
         row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.gravity = Gravity.CENTER_VERTICAL
         row.setPadding(dp(20f), 0, dp(20f), 0)
         row.minimumHeight = dp(48f)
         row.background = GradientRippleDrawable(
@@ -2420,7 +2423,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
     ): View {
         val row = LinearLayout(ctx)
         row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = android.view.Gravity.CENTER_VERTICAL
+        row.gravity = Gravity.CENTER_VERTICAL
         row.setPadding(dp(20f), dp(6f), dp(20f), dp(6f))
         row.minimumHeight = dp(48f)
 
@@ -2489,7 +2492,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
                     // 胶囊填充必须保留 ThingBackground 的完整起止色与方向；只取 color
                     // 会在换色时把渐变压成起点单色。
                     val fill = BackgroundUtil.fillDrawable(mAppliedBackground)
-                    (fill as? android.graphics.drawable.GradientDrawable)?.cornerRadius =
+                    (fill as? GradientDrawable)?.cornerRadius =
                         cornerRadius
                     chip.background = fill
                     // 必须走 applyTextBackground 的纯色分支而不是 setTextColor：渐变强调色
@@ -2631,7 +2634,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         val tv = TextView(ctx)
         tv.text = title
         tv.textSize = 13f
-        tv.setTypeface(tv.typeface, android.graphics.Typeface.BOLD)
+        tv.setTypeface(tv.typeface, Typeface.BOLD)
         BackgroundUtil.applyTextBackground(tv, mAppliedBackground)
         val lp = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
@@ -2749,7 +2752,7 @@ class FableSolTuningDialogFragment : BaseDialogFragment() {
         val scroll = f<ScrollView>(R.id.sv_fablesol_tuning_params)
         scroll.post {
             val target = mExportGroupHeader ?: return@post
-            val rect = android.graphics.Rect(0, 0, target.width, target.height)
+            val rect = Rect(0, 0, target.width, target.height)
             scroll.offsetDescendantRectToMyCoords(target, rect)
             scroll.scrollTo(0, rect.top.coerceAtLeast(0))
         }

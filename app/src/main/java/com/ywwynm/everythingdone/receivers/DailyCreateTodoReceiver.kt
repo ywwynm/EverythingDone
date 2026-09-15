@@ -7,6 +7,7 @@ import android.content.Intent
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AlarmHelper
+import com.ywwynm.everythingdone.model.ThingBackground
 
 /**
  * Created by ywwynm on 2017/4/23.
@@ -23,7 +24,7 @@ open class DailyCreateTodoReceiver : BroadcastReceiver() {
         val openIntent: Intent = DetailActivity.getOpenIntentForCreate(context, TAG,
                 if (App.newThingBackground != null)
                         App.newThingBackground
-                else com.ywwynm.everythingdone.model.ThingBackground.pure(App.newThingColor))
+                else ThingBackground.pure(App.newThingColor))
         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         context.startActivity(openIntent)
         AlarmHelper.tryToCreateDailyTodoAlarm(context)

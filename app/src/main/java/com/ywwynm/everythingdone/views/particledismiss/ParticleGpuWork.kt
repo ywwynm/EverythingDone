@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.opengl.GLES30
+import java.io.Closeable
 import java.util.concurrent.atomic.AtomicInteger
 
 /** 触摸反馈、源窗口交接及播放优先；后台逆向准备不能一次排入完整一秒计算。 */
@@ -22,7 +23,7 @@ internal object ParticleGpuWork {
      * （第四批 ②）走这一档，否则整段几百毫秒的 compute 会一次性排进驱动队列，用户刚一触摸
      * 就得排在它后面。
      */
-    class PreparationQueue(private val alwaysThrottle: Boolean = false) : java.io.Closeable {
+    class PreparationQueue(private val alwaysThrottle: Boolean = false) : Closeable {
         private var pending = 0L
         fun finishBatch(cancelled: () -> Boolean): Boolean {
             if (playing.get() == 0 && !alwaysThrottle) { close(); return !cancelled() }

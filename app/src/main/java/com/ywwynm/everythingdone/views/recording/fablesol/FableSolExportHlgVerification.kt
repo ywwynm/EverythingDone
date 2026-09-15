@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.media.Image
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaCodecList
@@ -561,7 +562,7 @@ internal object FableSolExportHlgVerification {
      * 整块几十万个样本都读一遍。
      */
     private fun median(
-        plane: android.media.Image.Plane,
+        plane: Image.Plane,
         cropLeft: Int,
         cropTop: Int,
         interior: FableSolExportHlgLoopback.Rect,

@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.activities
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,13 +14,17 @@ import android.os.Handler
 import android.os.Looper
 import android.text.format.Formatter
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.CompoundButton
+import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
+import androidx.core.app.TaskStackBuilder
 import androidx.core.content.ContextCompat
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -47,6 +52,10 @@ import com.ywwynm.everythingdone.spatial.SpatialInpaintingDownloadWorker
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingModel
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingModelStore
 import com.ywwynm.everythingdone.spatial.SpatialInpaintingQuality
+import com.ywwynm.everythingdone.spatial.SpatialMattingDownloadCoordinator
+import com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker
+import com.ywwynm.everythingdone.spatial.SpatialMattingModel
+import com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
 import com.ywwynm.everythingdone.spatial.SpatialModelDownloadCoordinator
 import com.ywwynm.everythingdone.spatial.SpatialModelDownloadWorker
 import com.ywwynm.everythingdone.spatial.SpatialModelStore
@@ -197,13 +206,13 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      * 遍历整棵视图树，把 `btn_*`（下载/取消）与 `iv_*_delete`（删除）两类图标交给调用方。
      * 用命名而不是 id 列表，是因为手写列表在这个界面上已经漏过五次。
      */
-    private fun forEachIconView(action: (android.widget.ImageView, String) -> Unit) {
+    private fun forEachIconView(action: (ImageView, String) -> Unit) {
         fun walk(view: View) {
-            if (view is android.widget.ImageView && view.id != View.NO_ID) {
+            if (view is ImageView && view.id != View.NO_ID) {
                 val name = runCatching { resources.getResourceEntryName(view.id) }.getOrNull()
                 if (name != null) action(view, name)
             }
-            if (view is android.view.ViewGroup) {
+            if (view is ViewGroup) {
                 for (i in 0 until view.childCount) walk(view.getChildAt(i))
             }
         }
@@ -222,7 +231,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                     action(view)
                 }
             }
-            if (view is android.view.ViewGroup) {
+            if (view is ViewGroup) {
                 for (i in 0 until view.childCount) walk(view.getChildAt(i))
             }
         }
@@ -283,7 +292,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
         listOf(R.id.cb_rfdetr_seg, R.id.cb_rfdetr_npu, R.id.cb_modnet, R.id.cb_qnn)
             .forEach { id ->
-                val checkbox = findViewById<android.widget.CheckBox>(id)
+                val checkbox = findViewById<CheckBox>(id)
                 BackgroundUtil.applyCheckboxAccent(
                     checkbox, bg,
                     footprintDp = BackgroundUtil.CHECKBOX_LABEL_ROW_FOOTPRINT_DP,
@@ -562,12 +571,12 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun bindMattingModel() {
-        val model = com.ywwynm.everythingdone.spatial.SpatialMattingModel.MODNET_PHOTOGRAPHIC
+        val model = SpatialMattingModel.MODNET_PHOTOGRAPHIC
         // 整行是唯一的点击面：已安装时切换启用；未安装时发起下载；下载中不响应
         //（取消只能点右侧按钮）。此前整行点击直接进 onMattingAction，已安装时
         // 随手一点就弹删除确认（2026-08-15 统一交互）。
         val toggle = View.OnClickListener {
-            val installed = com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+            val installed = SpatialMattingModelStore
                 .isInstalled(this, model)
             val active = mattingWorkInfo?.let(::isActive) == true
             when {
@@ -583,12 +592,12 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
         findViewById<View>(R.id.model_modnet).setOnClickListener(toggle)
         // 同各模型行：勾选框只作显示，点击穿透到整行
-        findViewById<android.widget.CheckBox>(R.id.cb_modnet).isClickable = false
+        findViewById<CheckBox>(R.id.cb_modnet).isClickable = false
         findViewById<View>(R.id.btn_modnet).setOnClickListener { onMattingAction(model) }
         findViewById<View>(R.id.iv_modnet_delete).setOnClickListener { onMattingAction(model) }
         WorkManager.getInstance(applicationContext)
             .getWorkInfosForUniqueWorkLiveData(
-                com.ywwynm.everythingdone.spatial.SpatialMattingDownloadCoordinator
+                SpatialMattingDownloadCoordinator
                     .uniqueWorkName(model)
             )
             .observe(this) { infos ->
@@ -599,16 +608,16 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun onMattingAction(
-        model: com.ywwynm.everythingdone.spatial.SpatialMattingModel
+        model: SpatialMattingModel
     ) {
         val info = mattingWorkInfo
         if (info?.let(::isActive) == true) {
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadCoordinator
+            SpatialMattingDownloadCoordinator
                 .cancel(this, model)
             refreshMatting()
             return
         }
-        if (com.ywwynm.everythingdone.spatial.SpatialMattingModelStore.isInstalled(this, model)) {
+        if (SpatialMattingModelStore.isInstalled(this, model)) {
             showAppAlert(
                 title = getString(R.string.spatial_delete_model_title, model.displayName),
                 content = getString(R.string.spatial_delete_matting_message),
@@ -618,14 +627,14 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 // 取消对话框也会把勾误关掉。
                 SpatialPreferences.setMattingEnabled(this, false)
                 background.execute {
-                    com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+                    SpatialMattingModelStore
                         .delete(applicationContext, model)
                     runOnUiThread { refreshAll() }
                 }
             }
             return
         }
-        if (!com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+        if (!SpatialMattingModelStore
                 .isDeviceEligible(this, model)
         ) {
             Toast.makeText(this, R.string.spatial_model_device_ineligible, Toast.LENGTH_LONG)
@@ -639,7 +648,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
         val enqueueMatting = { allowMetered: Boolean ->
             requestNotificationThen {
-                com.ywwynm.everythingdone.spatial.SpatialMattingDownloadCoordinator.enqueue(
+                SpatialMattingDownloadCoordinator.enqueue(
                     this,
                     model,
                     allowMetered
@@ -665,18 +674,18 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
     }
 
     private fun refreshMatting() {
-        val model = com.ywwynm.everythingdone.spatial.SpatialMattingModel.MODNET_PHOTOGRAPHIC
+        val model = SpatialMattingModel.MODNET_PHOTOGRAPHIC
         val installed =
-            com.ywwynm.everythingdone.spatial.SpatialMattingModelStore.isInstalled(this, model)
+            SpatialMattingModelStore.isInstalled(this, model)
         val eligible =
-            com.ywwynm.everythingdone.spatial.SpatialMattingModelStore.isDeviceEligible(this, model)
+            SpatialMattingModelStore.isDeviceEligible(this, model)
         val info = mattingWorkInfo
         val active = info?.let(::isActive) == true
         val gate = baseRuntimeReady()
         val size = Formatter.formatFileSize(this, model.sizeBytes)
         val mattingOn = SpatialPreferences.mattingEnabled(this)
         applyRowGate(findViewById(R.id.model_modnet), gate)
-        findViewById<android.widget.CheckBox>(R.id.cb_modnet).apply {
+        findViewById<CheckBox>(R.id.cb_modnet).apply {
             isChecked = installed && mattingOn
             isEnabled = gate && eligible
         }
@@ -693,11 +702,11 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             active -> mattingWorkStatus(info, size)
             info?.state == WorkInfo.State.FAILED -> failedStatusText(
                 info.outputData.getString(
-                    com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.KEY_ERROR
+                    SpatialMattingDownloadWorker.KEY_ERROR
                 ),
                 info.outputData.getString(
-                    com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.KEY_ERROR_STAGE
-                ) == com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker
+                    SpatialMattingDownloadWorker.KEY_ERROR_STAGE
+                ) == SpatialMattingDownloadWorker
                     .ERROR_STAGE_SELF_TEST
             )
             else -> getString(R.string.spatial_model_not_downloaded, size)
@@ -705,7 +714,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val showDelete = installed && !active
         findViewById<View>(R.id.iv_modnet_delete).visibility =
             if (showDelete) View.VISIBLE else View.GONE
-        findViewById<android.widget.ImageView>(R.id.btn_modnet).apply {
+        findViewById<ImageView>(R.id.btn_modnet).apply {
             visibility = if (showDelete) View.GONE else View.VISIBLE
             applyActionIcon(this, active, active || (gate && eligible))
         }
@@ -713,24 +722,24 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
 
     private fun mattingWorkStatus(info: WorkInfo, size: String): String {
         val downloaded = info.progress.getLong(
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.KEY_DOWNLOADED, 0L
+            SpatialMattingDownloadWorker.KEY_DOWNLOADED, 0L
         )
         val total = info.progress.getLong(
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.KEY_TOTAL, 0L
+            SpatialMattingDownloadWorker.KEY_TOTAL, 0L
         )
         val state = info.progress.getString(
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.KEY_STATE
+            SpatialMattingDownloadWorker.KEY_STATE
         )
         return when (state) {
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.STATE_VERIFYING ->
+            SpatialMattingDownloadWorker.STATE_VERIFYING ->
                 getString(R.string.spatial_download_verifying)
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker.STATE_SELF_TEST ->
+            SpatialMattingDownloadWorker.STATE_SELF_TEST ->
                 getString(R.string.spatial_download_self_test)
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker
+            SpatialMattingDownloadWorker
                 .STATE_RUNTIME_DOWNLOADING,
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker
+            SpatialMattingDownloadWorker
                 .STATE_RUNTIME_VERIFYING,
-            com.ywwynm.everythingdone.spatial.SpatialMattingDownloadWorker
+            SpatialMattingDownloadWorker
                 .STATE_RUNTIME_INSTALLING ->
                 getString(R.string.spatial_runtime_installing)
             else -> {
@@ -768,7 +777,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
                 else -> refreshAll()
             }
         }
-        findViewById<android.widget.CheckBox>(R.id.cb_rfdetr_seg).isClickable = false
+        findViewById<CheckBox>(R.id.cb_rfdetr_seg).isClickable = false
         findViewById<View>(R.id.model_rfdetr_seg).setOnClickListener(select)
         findViewById<View>(R.id.btn_rfdetr_seg).setOnClickListener {
             onSegmentationAction(model)
@@ -882,7 +891,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val selected = installed && !rfdetrNpuChosen() &&
             SpatialPreferences.selectedSegmentationModel(this) == model
         applyRowGate(findViewById(R.id.model_rfdetr_seg), gate)
-        findViewById<android.widget.CheckBox>(R.id.cb_rfdetr_seg).apply {
+        findViewById<CheckBox>(R.id.cb_rfdetr_seg).apply {
             isChecked = selected
             isEnabled = gate && eligible
         }
@@ -907,7 +916,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val showDelete = installed && !active
         findViewById<View>(R.id.iv_rfdetr_seg_delete).visibility =
             if (showDelete) View.VISIBLE else View.GONE
-        findViewById<android.widget.ImageView>(R.id.btn_rfdetr_seg).apply {
+        findViewById<ImageView>(R.id.btn_rfdetr_seg).apply {
             visibility = if (showDelete) View.GONE else View.VISIBLE
             applyActionIcon(this, active, active || (gate && eligible))
         }
@@ -1013,7 +1022,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val showDelete = installed && !active
         findViewById<View>(R.id.iv_edgetam_refinement_delete).visibility =
             if (showDelete) View.VISIBLE else View.GONE
-        findViewById<android.widget.ImageView>(R.id.btn_edgetam_refinement).apply {
+        findViewById<ImageView>(R.id.btn_edgetam_refinement).apply {
             visibility = if (active) View.VISIBLE else View.GONE
             applyActionIcon(this, active = true, enabled = active)
         }
@@ -1056,7 +1065,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
         refreshDepthDetail()
         // 同各模型行：勾选框只作显示，点击穿透到整行
-        findViewById<android.widget.CheckBox>(R.id.cb_qnn).isClickable = false
+        findViewById<CheckBox>(R.id.cb_qnn).isClickable = false
         findViewById<View>(R.id.row_qnn).setOnClickListener {
             if (!qnnDeviceEligible()) return@setOnClickListener
             applyQnnEnabled(!SpatialPreferences.qnnEnabled(this))
@@ -1587,12 +1596,12 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      * 与组标题图标的左缘同一条线（2026-08-15 用户要求，不顶行首也不吊在 28dp 半空）。
      * 文字容器没有 id，但每行结构固定为「控件、文字、下载钮、删除钮」，按相邻关系取。
      */
-    private fun applyControlVisibility(control: android.widget.CompoundButton, visible: Boolean) {
+    private fun applyControlVisibility(control: CompoundButton, visible: Boolean) {
         control.visibility = if (visible) View.VISIBLE else View.GONE
-        val parent = control.parent as android.view.ViewGroup
+        val parent = control.parent as ViewGroup
         val texts = parent.getChildAt(parent.indexOfChild(control) + 1)
         val margin = ((if (visible) 12f else 2f) * resources.displayMetrics.density).toInt()
-        val lp = texts.layoutParams as android.view.ViewGroup.MarginLayoutParams
+        val lp = texts.layoutParams as ViewGroup.MarginLayoutParams
         if (lp.marginStart != margin) {
             lp.marginStart = margin
             texts.layoutParams = lp
@@ -1702,7 +1711,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         val showRuntimeDelete = installed && !active
         findViewById<View>(R.id.iv_runtime_delete).visibility =
             if (showRuntimeDelete) View.VISIBLE else View.GONE
-        findViewById<android.widget.ImageView>(R.id.btn_runtime).apply {
+        findViewById<ImageView>(R.id.btn_runtime).apply {
             visibility = if (showRuntimeDelete) View.GONE else View.VISIBLE
             // 基础组件的下载按钮在任何情况下都可点（2026-08-15 用户裁定）：目录没就绪、
             // 条目被禁用之类的原因由 onRuntimeAction 弹 Toast 说清，而不是把按钮变淡了事。
@@ -1886,7 +1895,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             }
             refreshAll()
         }
-        findViewById<android.widget.CheckBox>(R.id.cb_rfdetr_npu).isClickable = false
+        findViewById<CheckBox>(R.id.cb_rfdetr_npu).isClickable = false
         findViewById<View>(R.id.model_rfdetr_npu).setOnClickListener(selectRfdetrNpu)
     }
 
@@ -2041,7 +2050,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             alpha = if (rfRowUsable) 1f else DISABLED_ROW_ALPHA
         }
         val rfNpuSelected = rfdetrNpuChosen()
-        findViewById<android.widget.CheckBox>(R.id.cb_rfdetr_npu).apply {
+        findViewById<CheckBox>(R.id.cb_rfdetr_npu).apply {
             isChecked = rfNpuSelected
             isEnabled = rfRowUsable
         }
@@ -2124,10 +2133,10 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      * 之前的操作若是下载/启用 NPU，进入本页的 catalog 刷新线程正好完成探测。
      */
     private fun restartIntoSpatialSettings() {
-        androidx.core.app.TaskStackBuilder.create(this)
-            .addNextIntent(android.content.Intent(this, ThingsActivity::class.java))
-            .addNextIntent(android.content.Intent(this, SettingsActivity::class.java))
-            .addNextIntent(android.content.Intent(this, SpatialPhotoSettingsActivity::class.java))
+        TaskStackBuilder.create(this)
+            .addNextIntent(Intent(this, ThingsActivity::class.java))
+            .addNextIntent(Intent(this, SettingsActivity::class.java))
+            .addNextIntent(Intent(this, SpatialPhotoSettingsActivity::class.java))
             .startActivities()
         Runtime.getRuntime().exit(0)
     }
@@ -2223,7 +2232,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
         findViewById<View>(R.id.tv_qnn_hint).visibility =
             if (rowUsable && enabled) View.VISIBLE else View.GONE
-        findViewById<android.widget.CheckBox>(R.id.cb_qnn).apply {
+        findViewById<CheckBox>(R.id.cb_qnn).apply {
             isChecked = eligible && enabled
             isEnabled = rowUsable
         }
@@ -2472,7 +2481,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
             val runtimeBytes = SpatialRuntimeStore.totalBytes(applicationContext)
             val analysisModelBytes = SpatialDepthModel.entries.sumOf {
                 if (SpatialModelStore.isInstalled(applicationContext, it)) it.sizeBytes else 0L
-            } + com.ywwynm.everythingdone.spatial.SpatialMattingModelStore
+            } + SpatialMattingModelStore
                 .totalBytes(applicationContext) +
                 SpatialSegmentationModelStore.totalBytes(applicationContext) +
                 SpatialBoundaryRefinementModelStore.totalBytes(applicationContext)
@@ -2522,7 +2531,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
     )
 
-    private fun button(model: SpatialDepthModel): android.widget.ImageView =
+    private fun button(model: SpatialDepthModel): ImageView =
         findViewById(buttonId(model))
 
     private fun buttonId(model: SpatialDepthModel): Int = when (model) {
@@ -2579,7 +2588,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
         }
     )
 
-    private fun inpaintingButton(model: SpatialInpaintingModel): android.widget.ImageView =
+    private fun inpaintingButton(model: SpatialInpaintingModel): ImageView =
         findViewById(inpaintingButtonId(model))
 
     private fun inpaintingButtonId(model: SpatialInpaintingModel): Int = when (model) {
@@ -2592,7 +2601,7 @@ class SpatialPhotoSettingsActivity : EverythingDoneBaseActivity() {
      * 下载/取消这一对动作图标。与删除图标同规格（40dp、圆形 ripple、同一套着色），
      * 因此暗色模式与按压反馈自动一致——此前它是文字按钮，两者观感对不齐（2026-08-14 反馈）。
      */
-    private fun applyActionIcon(view: android.widget.ImageView, active: Boolean, enabled: Boolean) {
+    private fun applyActionIcon(view: ImageView, active: Boolean, enabled: Boolean) {
         view.setImageDrawable(
             DisplayUtil.opaqueTintDrawable(
                 this,

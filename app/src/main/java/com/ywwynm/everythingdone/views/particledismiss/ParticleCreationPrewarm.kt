@@ -1,17 +1,25 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import android.animation.ValueAnimator
 import android.app.Activity
+import android.content.Context
+import android.content.res.AssetManager
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.os.SystemClock
+import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.AnimatorDurationScale
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+import java.lang.ref.WeakReference
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
@@ -94,7 +102,7 @@ internal object ParticleCreationPrewarm {
     private val main = Handler(Looper.getMainLooper())
     private var lastInteractionAt = 0L
     private var scheduled = false
-    private var homeActivity: java.lang.ref.WeakReference<Activity>? = null
+    private var homeActivity: WeakReference<Activity>? = null
     private var pendingKey: ParticleCreationKey? = null
 
     /** 上一次真实创建页首屏（预测素材）。写在材料线程，读在材料线程/主线程。 */
@@ -111,7 +119,7 @@ internal object ParticleCreationPrewarm {
     @Volatile private var sourceKind = "none"
 
     /** 落盘与读回都需要一个 Context；应用级引用挂在静态对象上不构成泄漏。 */
-    @Volatile private var appContext: android.content.Context? = null
+    @Volatile private var appContext: Context? = null
 
     /** 从磁盘读回来的那一份，连同它的键——键一变就必须重新去盘上找，不能拿旧版式顶着用。 */
     private class Restored(val key: String, val material: Source)
@@ -122,7 +130,7 @@ internal object ParticleCreationPrewarm {
      * 按 [key]（去掉背景色的那一份）取磁盘缓存。命中过的留在内存里省掉重复解码；
      * 键不匹配就重新找一次，找不到返回 null——**绝不拿另一套版式的图当预测素材**。
      */
-    private fun restoredFor(context: android.content.Context, key: String): Source? {
+    private fun restoredFor(context: Context, key: String): Source? {
         restored?.let { if (it.key == key) return it.material }
         val stored = ParticlePrewarmStore.load(context, key) ?: run { restored = null; return null }
         val material = Source(stored.pixels, stored.width, stored.height,
@@ -149,7 +157,7 @@ internal object ParticleCreationPrewarm {
     /** 首页可见（`onResume`）。[keyProvider] 给出「如果现在点新建，键会是什么」。 */
     fun onHomeVisible(activity: Activity, keyProvider: () -> ParticleCreationKey?) {
         if (!ParticlePerfTuning.creationPrewarm) return
-        homeActivity = java.lang.ref.WeakReference(activity)
+        homeActivity = WeakReference(activity)
         appContext = activity.applicationContext
         this.keyProvider = keyProvider
         touched()
@@ -187,7 +195,7 @@ internal object ParticleCreationPrewarm {
         if (!ParticlePerfTuning.creationPrewarm) return
         val activity = homeActivity?.get() ?: return
         if (activity.isFinishing || activity.isDestroyed) return
-        val decor = activity.window?.decorView as? android.view.ViewGroup ?: return
+        val decor = activity.window?.decorView as? ViewGroup ?: return
         if (!decor.isAttachedToWindow || decor.width <= 0 || decor.height <= 0) return
         if (SystemClock.uptimeMillis() - lastInteractionAt < ParticlePerfTuning.creationPrewarmIdleMs) {
             touched(); return
@@ -196,7 +204,7 @@ internal object ParticleCreationPrewarm {
             touched(); return
         }
         if (ThingAnimationPreferences.creation(activity) != ThingAnimationPreferences.PARTICLE) return
-        if (!android.animation.ValueAnimator.areAnimatorsEnabled()) return
+        if (!ValueAnimator.areAnimatorsEnabled()) return
         val key = keyProvider?.invoke() ?: return
         synchronized(lock) {
             if (working) return
@@ -212,7 +220,7 @@ internal object ParticleCreationPrewarm {
         val height = decor.height
         val seed = (Math.random() * Int.MAX_VALUE).toInt()
         Thread({
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             // 第五批：内存里没有上一次真实创建页时，按键去磁盘缓存里找一张。解码放在这条
             // 后台线程上（首页静置 500 ms 之后才会走到这里），不挡首页首帧。
             var kind = "memory"
@@ -231,7 +239,7 @@ internal object ParticleCreationPrewarm {
                     material.virtualTouchX, material.virtualTouchY, seed,
                     material.touchGap, material.touchStrength)
             }.getOrElse {
-                android.util.Log.w(ParticleMicroflakeRenderer.TAG, "预测建材失败", it)
+                Log.w(ParticleMicroflakeRenderer.TAG, "预测建材失败", it)
                 synchronized(lock) { working = false }
                 record("error", "预测建材失败：${it.javaClass.simpleName}")
                 return@Thread
@@ -255,7 +263,7 @@ internal object ParticleCreationPrewarm {
 
     private var job: Job? = null
 
-    private fun precompute(assets: android.content.res.AssetManager, key: ParticleCreationKey, seed: Int,
+    private fun precompute(assets: AssetManager, key: ParticleCreationKey, seed: Int,
                            input: ParticleMicroflakeRenderer.Input,
                            pixels: ParticleMicroflakePreparation.Pixels,
                            width: Int, height: Int, density: Float) {
@@ -274,7 +282,7 @@ internal object ParticleCreationPrewarm {
                 it.prepare(framed)
             }
         }.getOrElse {
-            android.util.Log.w(ParticleMicroflakeRenderer.TAG, "预算管线建立失败", it)
+            Log.w(ParticleMicroflakeRenderer.TAG, "预算管线建立失败", it)
             abandon("预算管线建立失败：${it.javaClass.simpleName}")
             return
         }
@@ -312,7 +320,7 @@ internal object ParticleCreationPrewarm {
             }
             !current.renderer.reverseIncomplete
         }.getOrElse {
-            android.util.Log.w(ParticleMicroflakeRenderer.TAG, "预算失败", it)
+            Log.w(ParticleMicroflakeRenderer.TAG, "预算失败", it)
             cancelJob("预算失败：${it.javaClass.simpleName}")
             return
         }
@@ -332,7 +340,7 @@ internal object ParticleCreationPrewarm {
             ready = prepared
         }
         lastPrecomputeMs = elapsed
-        if (BuildConfig.DEBUG) android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+        if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
             "创建页轨迹已提前算好 elapsedMs=$elapsed samples=${current.samples} start=${current.start} " +
                 "count=${prepared.particleCount}")
     }
@@ -495,7 +503,7 @@ internal object ParticleCreationPrewarm {
     }
 
     private fun refreshRate(decor: View): Float =
-        (if (android.os.Build.VERSION.SDK_INT >= 30) decor.display?.refreshRate else null) ?: 60f
+        (if (Build.VERSION.SDK_INT >= 30) decor.display?.refreshRate else null) ?: 60f
 
     /** 影响轨迹的全部开关；任何一项被 A/B 改掉，预算好的轨迹就不能用了。 */
     private fun recipe(): String = buildString {
@@ -513,7 +521,7 @@ internal object ParticleCreationPrewarm {
     private fun record(outcome: String, detail: String) {
         lastOutcome = outcome
         lastDetail = detail
-        if (BuildConfig.DEBUG) android.util.Log.i(ParticleMicroflakeRenderer.TAG,
+        if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
             "创建页预算 $outcome：$detail")
     }
 

@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.os.Bundle
@@ -23,6 +24,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -130,7 +132,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         updateAccentChrome()
 
         mLastSeenAuthGeneration =
-            com.ywwynm.everythingdone.managers.ThingManager.getInstance(context)
+            ThingManager.getInstance(context)
                 ?.getPrivacyAuthGeneration() ?: 0
 
         return mContentView
@@ -140,7 +142,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
         super.onResume()
         // app 切后台会清空会话私密认证（ThingManager）。若清空发生在本对话框开着期间，回前台需收起
         // 未再认证的私密文件夹并重建，否则其图标仍停留在开锁、展开的私密子树仍可见（问题4 续）。
-        val manager = com.ywwynm.everythingdone.managers.ThingManager.getInstance(context) ?: return
+        val manager = ThingManager.getInstance(context) ?: return
         val gen = manager.getPrivacyAuthGeneration()
         if (gen == mLastSeenAuthGeneration) return
         mLastSeenAuthGeneration = gen
@@ -150,7 +152,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
 
     /** 把展开集中“现已未认证的私密文件夹”收起——切后台清认证后回前台调用。 */
     private fun collapseUnauthenticatedPrivateFolders(
-        manager: com.ywwynm.everythingdone.managers.ThingManager
+        manager: ThingManager
     ) {
         if (mExpandedFolderIds.isEmpty()) return
         val byId = mFolders.associateBy { it.id }
@@ -337,7 +339,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
                 cornerRadius = radius
             }
             val color = ColorConstants.FolderList.selectedRipple(bg)
-            return android.graphics.drawable.LayerDrawable(arrayOf(fill,
+            return LayerDrawable(arrayOf(fill,
                 GradientRippleDrawable(ThingBackground.pure(color), shapeOval = false,
                     cornerRadiusPx = radius, peakAlphaOverride = Color.alpha(color) / 255f)))
         }
@@ -500,7 +502,7 @@ open class MoveToThingFolderDialogFragment : BaseDialogFragment() {
                     iconBg,
                     folder.isPrivate,
                     // 本会话已鉴权的私密文件夹画开锁。读共享单例会话集（与认证判定同源）。
-                    com.ywwynm.everythingdone.managers.ThingManager
+                    ThingManager
                         .getInstance(itemView.context)?.isFolderPrivacyAuthenticated(folder.id) == true
                 )
             )

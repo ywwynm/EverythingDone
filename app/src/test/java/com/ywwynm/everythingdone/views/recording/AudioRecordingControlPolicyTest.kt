@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording
 
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,7 +75,7 @@ class AudioRecordingControlPolicyTest {
         val keptStop = AudioRecordingControlPolicy.resolve(
             snapshot = AudioRecordingSnapshot(
                 phase = AudioRecordingPhase.STOPPED,
-                savedFile = java.io.File("recorded.wav")
+                savedFile = File("recorded.wav")
             ),
             binderConnected = true,
             projectionRequestInFlight = false
@@ -94,7 +95,7 @@ class AudioRecordingControlPolicyTest {
             snapshot = AudioRecordingSnapshot(
                 phase = AudioRecordingPhase.STOPPED,
                 busy = true,
-                savedFile = java.io.File("recording-in-progress.wav")
+                savedFile = File("recording-in-progress.wav")
             ),
             binderConnected = true,
             projectionRequestInFlight = false

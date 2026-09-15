@@ -27,9 +27,12 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.fragment.app.DialogFragment
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
@@ -49,6 +52,8 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.BaseDialogFragment
 import com.ywwynm.everythingdone.fragments.ChooserDialogFragment
+import com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment
+import com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment
@@ -83,8 +88,10 @@ import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.ThreeOptionsDialogFragment
 import com.ywwynm.everythingdone.model.DrawerHeaderImageCrop
 import com.ywwynm.everythingdone.utils.BitmapUtil
+import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.views.ThingCardCropEditorView
 import android.graphics.Typeface
+import android.util.TypedValue
 import android.widget.SeekBar
 import android.widget.FrameLayout
 import com.ywwynm.everythingdone.views.RatioSlider
@@ -96,6 +103,8 @@ import kotlin.math.roundToInt
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.ArrayList
 
 @SuppressLint("CommitPrefEdits")
@@ -579,7 +588,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 applySettingsItemRipples(view.getChildAt(i))
             }
         }
-        if (view is android.widget.CompoundButton) {
+        if (view is CompoundButton) {
             // 右侧 checkbox 的圆形 ripple → accent+accent2 渐变；半径略大、贴近系统原生尺寸
             // （内部会关掉所在行的 clipChildren，让波纹能画到 checkbox bounds 之外）。
             GradientRippleDrawable.applyCheckboxRipple(view, App.defaultAccentBackground)
@@ -588,7 +597,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         if (view.id == View.NO_ID) return
         val name = try {
             resources.getResourceEntryName(view.id)
-        } catch (e: android.content.res.Resources.NotFoundException) {
+        } catch (e: Resources.NotFoundException) {
             return
         }
         if (!name.endsWith("_as_bt")) return
@@ -1047,9 +1056,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             showThingAnimationChooser(false)
         }
         f<View>(R.id.rl_doing_digit_style_as_bt).setOnClickListener {
-            val df = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment()
+            val df = DoingDigitStyleDialogFragment()
             df.setOnChosen { updateDoingDigitStyleValue() }
-            df.show(supportFragmentManager, com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.TAG)
+            df.show(supportFragmentManager, DoingDigitStyleDialogFragment.TAG)
         }
         f<View>(R.id.rl_dialog_particle_animation_as_bt).setOnClickListener {
             showDialogParticleAnimationChooser()
@@ -1072,7 +1081,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             .map { getString(it) as String? }.toMutableList()
 
     private fun showThingAnimationChooser(creation: Boolean) {
-        val preferences = com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+        val preferences = ThingAnimationPreferences
         val cdf = ChooserDialogFragment()
         cdf.setAccentBackground(App.defaultAccentBackground)
         cdf.setShouldShowMore(false)
@@ -1089,7 +1098,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     }
 
     private fun updateThingAnimationValues() {
-        val preferences = com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+        val preferences = ThingAnimationPreferences
         f<TextView>(R.id.tv_create_animation_value).text = thingAnimationItems(true)[preferences.creation(this)]
         f<TextView>(R.id.tv_swipe_complete_animation_value).text = thingAnimationItems(false)[preferences.swipe(this)]
     }
@@ -1144,14 +1153,14 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             object : SimplePermissionCallback(this@SettingsActivity) {
                 override fun onGranted() {
                     val df = if (scrollToExport) {
-                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment
+                        FableSolTuningDialogFragment
                             .newInstanceScrolledToExport()
                     } else {
-                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment()
+                        FableSolTuningDialogFragment()
                     }
                     df.show(
                         supportFragmentManager,
-                        com.ywwynm.everythingdone.fragments.FableSolTuningDialogFragment.TAG
+                        FableSolTuningDialogFragment.TAG
                     )
                 }
             },
@@ -1195,7 +1204,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
 
     private fun updateDoingDigitStyleValue() {
         val id = mPreferences!!.getString(Def.Meta.KEY_DOING_DIGIT_STYLE, "poppins")
-        val label = com.ywwynm.everythingdone.fragments.DoingDigitStyleDialogFragment.STYLES
+        val label = DoingDigitStyleDialogFragment.STYLES
             .firstOrNull { it.first == id }?.second ?: "Poppins"
         f<TextView>(R.id.tv_doing_digit_style_value).text = label
     }
@@ -1547,7 +1556,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     private fun showDrawerHeaderCropEditor() {
         if (currentDrawerHeaderPath() == null) return
         (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? androidx.fragment.app.DialogFragment)?.dismissAllowingStateLoss()
+                as? DialogFragment)?.dismissAllowingStateLoss()
         MediaCropAppearanceDialogFragment.newInstance(
             MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER
         ).show(supportFragmentManager, MediaCropAppearanceDialogFragment.TAG)
@@ -1599,7 +1608,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         title.setText(R.string.settings_change_drawer_header)
         BackgroundUtil.applyTextBackground(title, accent)
         title.setTextSize(
-            android.util.TypedValue.COMPLEX_UNIT_PX,
+            TypedValue.COMPLEX_UNIT_PX,
             resources.getDimension(R.dimen.app_chrome_dialog_title_text_size)
         )
         title.setTypeface(title.typeface, Typeface.BOLD)
@@ -1672,7 +1681,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         )
 
         val buttons = LinearLayout(this)
-        buttons.gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+        buttons.gravity = Gravity.END or Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.addView(createDrawerHeaderAppearanceButton(R.string.cancel, false) {
             fragment.dismiss()
@@ -1715,7 +1724,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             if (useAccent) App.defaultAccentBackground.color
             else ContextCompat.getColor(this, R.color.app_chrome_dialog_cancel)
         )
-        button.gravity = android.view.Gravity.CENTER
+        button.gravity = Gravity.CENTER
         button.includeFontPadding = false
         button.setAllCaps(true)
         button.setBackgroundResource(R.drawable.selectable_item_background)
@@ -1815,8 +1824,8 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
     private fun startCreateBackupFile() {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
         intent.setType("*/*")
-        val timeStr: String = java.time.ZonedDateTime.now().format(
-            java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+        val timeStr: String = ZonedDateTime.now().format(
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
         )
         intent.putExtra(Intent.EXTRA_TITLE, "ED_backup_$timeStr.bak")
         startActivityForResult(intent, Def.Communication.REQUEST_CREATE_BACKUP_FILE)

@@ -16,12 +16,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
+import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
+import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -138,13 +140,13 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
             // 状态与持久化记录——进程被回收后 activeSession 为 false，但停止态 WAV 仍在
             // 偏好里等待恢复，只查内存会放行并让恢复的录音被错误认领。
             val host = mActivity!!
-            val sessionThingId = com.ywwynm.everythingdone.services.AudioRecordingService
+            val sessionThingId = AudioRecordingService
                 .activeSessionThingId
                 .takeIf {
-                    com.ywwynm.everythingdone.services.AudioRecordingService.activeSession &&
+                    AudioRecordingService.activeSession &&
                         it != -1L
                 }
-                ?: com.ywwynm.everythingdone.views.recording.AudioInputPreferences
+                ?: AudioInputPreferences
                     .stoppedSessionThingId(host)
             if (sessionThingId != -1L && sessionThingId != host.currentThingId()) {
                 host.showRecordingBusySnackbar()
@@ -181,7 +183,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
             intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
             mActivity!!.cameraOutputUri = imageUri
             // 跳外部相机取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
-            com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
+            App.suppressPrivacyAuthClearForActivityResult()
             mActivity!!.startActivityForResult(intent,
                 Def.Communication.REQUEST_TAKE_PHOTO)
         }
@@ -202,7 +204,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
             intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
             mActivity!!.cameraOutputUri = videoUri
             // 跳外部相机取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
-            com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
+            App.suppressPrivacyAuthClearForActivityResult()
             mActivity!!.startActivityForResult(intent,
                 Def.Communication.REQUEST_CAPTURE_VIDEO)
         }
@@ -258,7 +260,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         intent.putExtra(Intent.EXTRA_MIME_TYPES,
             arrayOf("image/*", "video/*", "audio/*"))
         // 跳外部"选择媒体文件"取结果属"临时离开"，抑制会话私密认证的切后台清空（见 App）。
-        com.ywwynm.everythingdone.App.suppressPrivacyAuthClearForActivityResult()
+        App.suppressPrivacyAuthClearForActivityResult()
         mActivity!!.startActivityForResult(
             Intent.createChooser(intent,
                 mActivity!!.getString(R.string.act_choose_media_files)),

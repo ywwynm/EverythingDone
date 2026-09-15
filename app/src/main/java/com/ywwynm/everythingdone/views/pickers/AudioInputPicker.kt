@@ -10,7 +10,11 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
@@ -62,9 +66,9 @@ class AudioInputPicker(
         mRecyclerView.adapter = adapter
         adapter.pick(items.indexOfFirst { it.mode == pickedMode }.coerceAtLeast(0))
         mRecyclerView.addOnScrollListener(
-            object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(
-                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    recyclerView: RecyclerView,
                     newState: Int
                 ) {
                     EdgeEffectUtil.forRecyclerView(recyclerView, accentColor)
@@ -134,12 +138,12 @@ class AudioInputPicker(
             // 选中语义只注入无障碍节点（TalkBack 播报"已选择"），不调 View.setSelected——
             // 后者会改 drawableState，可能波及前景 GradientRippleDrawable 的状态表现。
             val pickedNow = mPickedPosition == position
-            androidx.core.view.ViewCompat.setAccessibilityDelegate(
+            ViewCompat.setAccessibilityDelegate(
                 holder.container,
-                object : androidx.core.view.AccessibilityDelegateCompat() {
+                object : AccessibilityDelegateCompat() {
                     override fun onInitializeAccessibilityNodeInfo(
                         host: View,
-                        info: androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+                        info: AccessibilityNodeInfoCompat
                     ) {
                         super.onInitializeAccessibilityNodeInfo(host, info)
                         info.isSelected = pickedNow
@@ -147,7 +151,7 @@ class AudioInputPicker(
                 }
             )
             val margin8 = (mScreenDensity * 8f).toInt()
-            val params = holder.container.layoutParams as androidx.recyclerview.widget.RecyclerView.LayoutParams
+            val params = holder.container.layoutParams as RecyclerView.LayoutParams
             params.setMargins(
                 0,
                 if (position == 0) margin8 else 0,

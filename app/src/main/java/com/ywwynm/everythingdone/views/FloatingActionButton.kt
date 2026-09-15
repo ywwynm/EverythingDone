@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import androidx.recyclerview.widget.RecyclerView
 import android.util.AttributeSet
+import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.OvershootInterpolator
@@ -118,8 +119,8 @@ open class FloatingActionButton : com.google.android.material.floatingactionbutt
         // 3-button nav bar the real margin is 16dp + insets.bottom. Using
         // the constant caused hideToBottom() to under-translate by the inset
         // height, leaving a sliver of FAB peeking above the nav bar.
-        val lp: android.view.ViewGroup.LayoutParams? = layoutParams
-        if (lp is android.view.ViewGroup.MarginLayoutParams) {
+        val lp: ViewGroup.LayoutParams? = layoutParams
+        if (lp is ViewGroup.MarginLayoutParams) {
             return lp.bottomMargin
         }
         return (16 * resources!!.displayMetrics!!.density).toInt()

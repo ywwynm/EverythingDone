@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtSession
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
@@ -137,7 +138,7 @@ class SpatialMattingEngine(
         val pixels = IntArray(96 * 64) { index ->
             val x = index % 96
             val y = index / 96
-            android.graphics.Color.rgb((x * 3) and 0xff, (y * 5) and 0xff, ((x + y) * 2) and 0xff)
+            Color.rgb((x * 3) and 0xff, (y * 5) and 0xff, ((x + y) * 2) and 0xff)
         }
         bitmap.setPixels(pixels, 0, 96, 0, 0, 96, 64)
         return try {

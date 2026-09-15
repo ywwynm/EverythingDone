@@ -7,6 +7,7 @@ import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -76,7 +77,7 @@ internal class ThingCreationTransition private constructor(
                 // 2b：新建按钮中心就是本次出现的真实触点。首页与创建页都是全屏窗口，
                 // 窗口坐标一致，换算到内容坐标由 appearContent 在捕获那一刻完成。
                 appearanceTouchInWindow = if (sourceX.isFinite() && sourceY.isFinite())
-                    android.graphics.PointF(sourceX, sourceY) else null,
+                    PointF(sourceX, sourceY) else null,
                 skipEmptyTail = ParticlePerfTuning.creationAppearanceSkipEmptyTail,
                 creationPage = true, prewarmKey = prewarmKey,
                 traceLabel = "appear") { particle = it }

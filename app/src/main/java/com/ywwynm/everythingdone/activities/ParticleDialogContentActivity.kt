@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.activities
 
+import android.R
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +18,7 @@ abstract class ParticleDialogContentActivity : AppCompatActivity() {
 
     internal fun obtainParticleDialogContent(): View {
         dialogContent?.let { return it }
-        val container = window.decorView.findViewById<ViewGroup>(android.R.id.content)
+        val container = window.decorView.findViewById<ViewGroup>(R.id.content)
         val content = checkNotNull(container.getChildAt(0))
         container.removeView(content)
         if (content.layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {

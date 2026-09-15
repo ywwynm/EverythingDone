@@ -3,6 +3,7 @@
 package com.ywwynm.everythingdone.views
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Typeface
 import androidx.core.content.ContextCompat
 import android.view.View
@@ -165,7 +166,7 @@ open class InputLayout(
         // Native underline tint: transparent when the foreground gradient strip
         // is taking over, otherwise show the native single-int underline (grey
         // when blurred, accent when focused + PURE).
-        DisplayUtil.tintView(mEditText, if (useGradientLine) android.graphics.Color.TRANSPARENT else colorTo)
+        DisplayUtil.tintView(mEditText, if (useGradientLine) Color.TRANSPARENT else colorTo)
     }
 
     companion object {

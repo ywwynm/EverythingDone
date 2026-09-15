@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.views.recording.fablesol
 
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
@@ -277,7 +278,7 @@ internal class FableSolStarField(private val density: Double) {
             }
             cHi = (lo + 2).coerceAtMost(columns)
         }
-        java.util.Arrays.fill(excess, 0, columns, 0.0)
+        Arrays.fill(excess, 0, columns, 0.0)
         for (column in cLo until cHi) {
             val offset = (base + column) * components
             val x = waterVertices[offset].toDouble()
@@ -385,7 +386,7 @@ internal class FableSolStarField(private val density: Double) {
         matchDistance: Double,
         timeScale: Double
     ) {
-        java.util.Arrays.fill(anchorUsed, 0, anchorCount, false)
+        Arrays.fill(anchorUsed, 0, anchorCount, false)
         val positionGain = 1.0 - exp(-dt / max(POSITION_SECONDS * timeScale, 1e-3))
         val attackGain = 1.0 - exp(-dt / max(ATTACK_SECONDS * timeScale, 1e-3))
         val settleGain = 1.0 - exp(-dt / max(SETTLE_SECONDS * timeScale, 1e-3))

@@ -4,8 +4,10 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SpatialSegmentationEngine(
@@ -51,7 +53,7 @@ class SpatialSegmentationEngine(
         val pixels = IntArray(96 * 64) { index ->
             val x = index % 96
             val y = index / 96
-            android.graphics.Color.rgb((x * 3) and 0xff, (y * 5) and 0xff, (x + y) and 0xff)
+            Color.rgb((x * 3) and 0xff, (y * 5) and 0xff, (x + y) and 0xff)
         }
         bitmap.setPixels(pixels, 0, 96, 0, 0, 96, 64)
         return try {
@@ -74,7 +76,7 @@ class SpatialSegmentationEngine(
         bitmap: Bitmap,
         model: SpatialSegmentationModel,
         cancelled: AtomicBoolean
-    ): java.nio.FloatBuffer {
+    ): FloatBuffer {
         val size = model.inputSize
         val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
         val pixels = IntArray(size * size)
@@ -101,7 +103,7 @@ class SpatialSegmentationEngine(
 
     /** QNN 执行期失败时整段用 CPU 重跑，见 [SpatialQnnSessionFactory.withExecuteFallback]。 */
     private fun runModel(
-        input: java.nio.FloatBuffer,
+        input: FloatBuffer,
         model: SpatialSegmentationModel,
         cancelled: AtomicBoolean,
         onQnnCompile: () -> Unit = {}
@@ -113,7 +115,7 @@ class SpatialSegmentationEngine(
     }
 
     private fun runModelOnce(
-        input: java.nio.FloatBuffer,
+        input: FloatBuffer,
         model: SpatialSegmentationModel,
         cancelled: AtomicBoolean,
         onQnnCompile: () -> Unit

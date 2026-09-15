@@ -2,6 +2,8 @@ package com.ywwynm.everythingdone.views.recording.fablesol
 
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.N_LAYERS
 import com.ywwynm.everythingdone.views.recording.fablesol.FableSolSpec.N_POINTS
+import java.util.Arrays
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -76,7 +78,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
     private val kz = DoubleArray(wavelength.size)
     private var nextPacketT = 0.0
     // 修复发生在行并行区内，故用原子计数。
-    private val worldRepairRows = java.util.concurrent.atomic.AtomicInteger(0)
+    private val worldRepairRows = AtomicInteger(0)
 
     // Step A：打光法线改从真渲染面 worldEta 求，跨层用 Catmull-Rom 平滑防止层锚点处的坡度
     // 跳变（横向接缝）。行间插值权重只依赖固定的 z01[r]，init 预计算一次，稳态零分配。
@@ -211,7 +213,7 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         // 换 cache line 并重做一次外层解引用。每列的加法到达顺序仍是 r=0→96，
         // 除法同样只在最后做一次，逐位一致。
         val means = depthMeanX
-        java.util.Arrays.fill(means, lo, hi + 1, 0.0)
+        Arrays.fill(means, lo, hi + 1, 0.0)
         for (r in 0 until Z_ROWS) {
             val row = directionalEta[r]
             for (x in lo..hi) means[x] += row[x]
@@ -326,9 +328,9 @@ class FableSolContinuousSurface(private val p: FableSolParams) {
         val etaRow = sample.eta[r]
         val orbitXRow = rawOrbitX[r]
         val orbitZRow = rawOrbitZ[r]
-        java.util.Arrays.fill(etaRow, rawLo, rawHi + 1, 0.0)
-        java.util.Arrays.fill(orbitXRow, rawLo, rawHi + 1, 0.0)
-        java.util.Arrays.fill(orbitZRow, rawLo, rawHi + 1, 0.0)
+        Arrays.fill(etaRow, rawLo, rawHi + 1, 0.0)
+        Arrays.fill(orbitXRow, rawLo, rawHi + 1, 0.0)
+        Arrays.fill(orbitZRow, rawLo, rawHi + 1, 0.0)
         val z = sample.zDp[r]
         for (j in 0 until modeCount) {
             val amp = modeAmp[j]

@@ -11,6 +11,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.activities.ParticleDialogContentActivity
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.AppWidgetDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
@@ -50,7 +52,7 @@ import kotlin.math.abs
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Configuration Activity for things list widget
  */
-open class ThingsListWidgetConfiguration : com.ywwynm.everythingdone.activities.ParticleDialogContentActivity() {
+open class ThingsListWidgetConfiguration : ParticleDialogContentActivity() {
     override val useParticleContentDialog = true
 
     private var mScopeAdapter: ScopeAdapter? = null
@@ -565,7 +567,7 @@ open class ThingsListWidgetConfiguration : com.ywwynm.everythingdone.activities.
             }
             title.gravity = Gravity.CENTER_VERTICAL
             title.setSingleLine(true)
-            title.ellipsize = android.text.TextUtils.TruncateAt.END
+            title.ellipsize = TextUtils.TruncateAt.END
             title.textSize = 14f
             row.addView(title)
 

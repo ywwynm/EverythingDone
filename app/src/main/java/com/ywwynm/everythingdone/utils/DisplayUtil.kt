@@ -8,6 +8,7 @@ import android.app.Activity
 import android.content.Context
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import android.content.res.ColorStateList
@@ -35,10 +36,12 @@ import android.graphics.drawable.StateListDrawable
 import androidx.core.content.ContextCompat
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.appcompat.widget.AppCompatCheckBox
+import androidx.core.graphics.Insets
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.cardview.widget.CardView
 import android.text.Layout
 import android.util.SparseArray
+import android.util.TypedValue
 import android.view.Display
 import android.view.Gravity
 import android.view.View
@@ -48,6 +51,7 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.SeekBar
 
 import com.ywwynm.everythingdone.App
@@ -55,6 +59,8 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 
 import java.util.Random
+import java.util.function.Consumer
+import java.util.function.IntConsumer
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -267,7 +273,7 @@ object DisplayUtil {
     @JvmStatic
     fun expandStatusBarViewAboveKitkat(
             statusBar: View?,
-            onTopInsetChanged: java.util.function.IntConsumer?) {
+            onTopInsetChanged: IntConsumer?) {
         val target = statusBar!!
         chainDecorInsetsCallback(target, callbackKey(target, TAG_TOP_INSET_HEIGHT_CALLBACK)) {
             insets ->
@@ -417,7 +423,7 @@ object DisplayUtil {
         }
         chainDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_SCROLL_PADDING_CALLBACK)) {
             insets ->
-            val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
+            val bars: Insets = computeBarsInset(insets)
             target.setPadding(original[0], original[1], original[2], original[3] + bars.bottom)
         }
     }
@@ -459,7 +465,7 @@ object DisplayUtil {
         }
         chainDecorInsetsCallback(target, callbackKey(target, TAG_IMMERSIVE_LIST_PADDING_CALLBACK)) {
             insets ->
-            val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
+            val bars: Insets = computeBarsInset(insets)
             target.setPadding(
                     original[0],
                     original[1] + bars.top + resolveActionBarSize(target.context),
@@ -477,9 +483,9 @@ object DisplayUtil {
      */
     @JvmStatic
     fun resolveActionBarSize(context: Context): Int {
-        val tv = android.util.TypedValue()
+        val tv = TypedValue()
         return if (context.theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
-            android.util.TypedValue.complexToDimensionPixelSize(
+            TypedValue.complexToDimensionPixelSize(
                     tv.data, context.resources.displayMetrics)
         } else {
             (56 * context.resources.displayMetrics.density).toInt()
@@ -543,16 +549,16 @@ object DisplayUtil {
     private fun chainDecorInsetsCallback(
             target: View,
             callbackKey: Int,
-            callback: java.util.function.Consumer<WindowInsetsCompat>) {
+            callback: Consumer<WindowInsetsCompat>) {
         val install: Runnable = object : Runnable {
             override fun run() {
                 val decor: View = target.getRootView()
-                var chain: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>? =
+                var chain: MutableMap<Int, Consumer<WindowInsetsCompat>>? =
                         decor.getTag(TAG_DECOR_INSETS_CHAIN)
-                                as MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>?
+                                as MutableMap<Int, Consumer<WindowInsetsCompat>>?
                 if (chain == null) {
-                    val map: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>> =
-                            java.util.LinkedHashMap<Int, java.util.function.Consumer<WindowInsetsCompat>>()
+                    val map: MutableMap<Int, Consumer<WindowInsetsCompat>> =
+                            LinkedHashMap<Int, Consumer<WindowInsetsCompat>>()
                     // Shared "an IME animation is in flight" flag. The platform
                     // dispatches the *target* insets to the apply listener
                     // BEFORE the animation starts to play (between onPrepare
@@ -575,7 +581,7 @@ object DisplayUtil {
                     // above.
                     ViewCompat.setOnApplyWindowInsetsListener(decor) { _, insets ->
                         if (!imeAnimating[0]) {
-                            for (c in java.util.ArrayList(map.values)) {
+                            for (c in ArrayList(map.values)) {
                                 c.accept(insets)
                             }
                         }
@@ -590,11 +596,11 @@ object DisplayUtil {
                     // child views with their own animation callbacks still
                     // receive frames.
                     ViewCompat.setWindowInsetsAnimationCallback(decor,
-                            object : androidx.core.view.WindowInsetsAnimationCompat.Callback(
+                            object : WindowInsetsAnimationCompat.Callback(
                                 DISPATCH_MODE_CONTINUE_ON_SUBTREE
                             ) {
                                 override fun onPrepare(
-                                        animation: androidx.core.view.WindowInsetsAnimationCompat) {
+                                        animation: WindowInsetsAnimationCompat) {
                                     if ((animation.typeMask
                                             and WindowInsetsCompat.Type.ime()) != 0) {
                                         imeAnimating[0] = true
@@ -603,15 +609,15 @@ object DisplayUtil {
 
                                 override fun onProgress(
                                         insets: WindowInsetsCompat,
-                                        running: MutableList<androidx.core.view.WindowInsetsAnimationCompat>): WindowInsetsCompat {
-                                    for (c in java.util.ArrayList(map.values)) {
+                                        running: MutableList<WindowInsetsAnimationCompat>): WindowInsetsCompat {
+                                    for (c in ArrayList(map.values)) {
                                         c.accept(insets)
                                     }
                                     return insets
                                 }
 
                                 override fun onEnd(
-                                        animation: androidx.core.view.WindowInsetsAnimationCompat) {
+                                        animation: WindowInsetsAnimationCompat) {
                                     if ((animation.typeMask
                                             and WindowInsetsCompat.Type.ime()) != 0) {
                                         imeAnimating[0] = false
@@ -647,7 +653,7 @@ object DisplayUtil {
                                         val current: WindowInsetsCompat? =
                                                 ViewCompat.getRootWindowInsets(decor)
                                         if (current != null) {
-                                            for (c in java.util.ArrayList(map.values)) {
+                                            for (c in ArrayList(map.values)) {
                                                 c.accept(current)
                                             }
                                         }
@@ -675,9 +681,9 @@ object DisplayUtil {
     @Suppress("UNCHECKED_CAST")
     private fun removeDecorInsetsCallback(target: View, callbackKey: Int) {
         val decor: View = target.rootView ?: return
-        val chain: MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>? =
+        val chain: MutableMap<Int, Consumer<WindowInsetsCompat>>? =
                 decor.getTag(TAG_DECOR_INSETS_CHAIN)
-                        as MutableMap<Int, java.util.function.Consumer<WindowInsetsCompat>>?
+                        as MutableMap<Int, Consumer<WindowInsetsCompat>>?
         chain?.remove(callbackKey)
     }
 
@@ -689,8 +695,8 @@ object DisplayUtil {
      *  picks the larger of "gesture / 3-button nav bar" or "soft-keyboard
      *  height" so a sticky bottom view sits above either system overlay. */
     private fun computeBottomInset(insets: WindowInsetsCompat): Int {
-        val bars: androidx.core.graphics.Insets = computeBarsInset(insets)
-        val ime: androidx.core.graphics.Insets = insets.getInsets(
+        val bars: Insets = computeBarsInset(insets)
+        val ime: Insets = insets.getInsets(
                 WindowInsetsCompat.Type.ime())
         return max(bars.bottom, ime.bottom)
     }
@@ -699,7 +705,7 @@ object DisplayUtil {
         return computeBarsInset(insets).top
     }
 
-    private fun computeBarsInset(insets: WindowInsetsCompat): androidx.core.graphics.Insets {
+    private fun computeBarsInset(insets: WindowInsetsCompat): Insets {
         return insets.getInsets(
                 WindowInsetsCompat.Type.systemBars()
                         or WindowInsetsCompat.Type.displayCutout())
@@ -823,7 +829,7 @@ object DisplayUtil {
     @JvmOverloads
     @JvmStatic
     fun setProgressBarBackground(
-            progressBar: android.widget.ProgressBar?,
+            progressBar: ProgressBar?,
             background: ThingBackground?,
             inactiveTrackColor: Int? = null
     ) {
