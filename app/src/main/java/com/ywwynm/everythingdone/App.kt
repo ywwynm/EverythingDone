@@ -79,6 +79,22 @@ open class App : Application() {
         super.attachBaseContext(LocaleUtil.getContextForLanguage(base))
     }
 
+    /**
+     * 粒子渲染按 D4 把上下文、程序、累积纹理、流场纹理与历史缓冲全部常驻；历史缓冲一次
+     * 可达数十 MB，所以约定「只在内存告警时释放」——这里就是那个口子。
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        com.ywwynm.everythingdone.views.particledismiss.ParticleGl.trimMemory()
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -130,6 +146,9 @@ open class App : Application() {
                 // 控制器在进程内只执行一次，不缓存用户快照或整段动画。
                 activity.window.decorView.doOnPreDraw { decor ->
                     decor.post {
+                        // 全应用共用一条动画时间基准：API 33+ 读 ValueAnimator.getDurationScale()
+                        // 并跟随其变化，以下回退 Settings.Global（见 AnimatorDurationScale）。
+                        com.ywwynm.everythingdone.utils.AnimatorDurationScale.attach(this@App)
                         if (BaseDialogFragment.particleAnimationMode(this@App) != 0 ||
                             com.ywwynm.everythingdone.utils.ThingAnimationPreferences.creation(this@App) ==
                                 com.ywwynm.everythingdone.utils.ThingAnimationPreferences.PARTICLE ||

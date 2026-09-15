@@ -377,23 +377,44 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private var creationTransition: com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition? = null
 
+    /** 新建时可以等入场动画结束再做、与首帧无关的那点工作。 */
+    private var deferredAfterEnter: Runnable? = null
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         val key = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition.EXTRA_TOKEN
         if (savedInstanceState != null) intent.removeExtra(key)
+        if (intent.hasExtra(key)) mark("detail-create")
         super.onCreate(savedInstanceState)
+    }
+
+    /** 2a 的链路分段：只记新建这条路径；release 包里是空调用。 */
+    private fun mark(label: String) {
+        if (mType != CREATE) return
+        com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.mark(label)
     }
 
     override fun init() {
         initMembers() // if we found thing is null, just finish this Activity
         if (mThing != null) {
+            mark("detail-members")
             findViews()
+            mark("detail-views")
             initUI()
+            mark("detail-ui")
             recordRenderedThingSnapshot()
             setActionbar()
             setEvents()
+            mark("detail-events")
 
             creationTransition = com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
                 .attach(this, mFlRoot!!, mThing!!.getBackground() ?: ThingBackground.pure(mThing!!.getColor()))
+            // 入场动画期间主线程要留给首帧与粒子交接；没有入场动画时立即执行。
+            deferredAfterEnter?.let { pending ->
+                deferredAfterEnter = null
+                val run = Runnable { if (!isFinishing && !isDestroyed) pending.run() }
+                val transition = creationTransition
+                if (transition == null) mFlRoot!!.post(run) else transition.afterFinish(run)
+            }
 
             var intentFilter = IntentFilter(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI)
             ContextCompat.registerReceiver(this, mReceiver, intentFilter,
@@ -451,7 +472,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
 
             App.updateNewThingColor()
-            SystemNotificationUtil.tryToCreateQuickCreateNotification(this)
+            // 常驻「快速新建」通知与创建页的首帧没有关系（读偏好 + 建 PendingIntent + 两次
+            // NotificationManager binder），却整块压在 onCreate 的主线程上。挪到首帧之后，
+            // 行为不变——它依赖的 App.newThingColor 上一行已经定好了。
+            deferredAfterEnter = Runnable { SystemNotificationUtil.tryToCreateQuickCreateNotification(this) }
 
             if ("intent" == mSenderName) {
                 setupThingFromIntent()
@@ -2232,6 +2256,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     override fun onResume() {
         super.onResume()
+        mark("detail-resume")
         refreshFromExternalUpdateIfNeeded()
         // 用户可能刚从设置页改了 Detail Autoplay 档位。
         mAttachmentPlaybackController?.onResume()

@@ -89,7 +89,8 @@ private class NewItemAppearanceProbe(
         val now = SystemClock.uptimeMillis()
         if (startAt == 0L) startAt = now
         val ms = now - startAt
-        val overlay = findOverlay(activity.window.decorView)
+        val overlay = ParticleDismissOverlay.activeIn(activity).firstOrNull { !it.isDisappearance }
+            ?: findOverlay(activity.window.decorView)
         val progress = overlay?.let { progressField.getFloat(it) }
         val running = rv.itemAnimator?.isRunning == true
         val visible = card.visibility == View.VISIBLE && card.alpha > .001f

@@ -125,39 +125,34 @@ private class TransitionProbe(
                 .mapNotNull { it.dialog?.window }).forEach { w ->
                 if (watchedWindows.add(w)) w.addOnFrameMetricsAvailableListener(frameListener, handler)
             }
-            for (i in 0 until root.childCount) {
-                val overlay = root.getChildAt(i) as? ParticleDismissOverlay ?: continue
+            for (overlay in ParticleDismissOverlay.activeIn(activity)) {
                 if (overlays.containsKey(overlay)) continue
                 val spec = ParticleDismissOverlay::class.java.getDeclaredField("spec").apply { isAccessible = true }
                     .get(overlay) as ParticleDismissSpec
                 val row = JSONObject().put("createdMs", time()).put("reverse", spec.reverse)
                     .put("width", spec.snapshot.width).put("height", spec.snapshot.height)
                 overlays[overlay] = row
+                // 第二批之后粒子画面在宿主窗口那一个共享 SurfaceView 上，动画层里不再有
+                // TextureView；呈现时刻改从会话与动画层自己记录的时间线读。
+                val frames = JSONArray(); row.put("presentedMs", frames)
+                val frameDetails = JSONArray(); row.put("presentationDetails", frameDetails)
                 overlay.afterRelease {
                     row.put("removedMs", time())
-                    val renderer = ParticleDismissOverlay::class.java.getDeclaredField("renderer").apply { isAccessible = true }
-                        .get(overlay) as? ParticleDismissRenderer
-                    renderer?.submittedTimings?.let { rows ->
+                    val session = ParticleDismissOverlay::class.java.getDeclaredField("session").apply { isAccessible = true }
+                        .get(overlay) as? ParticleSession
+                    session?.submittedTimings?.let { rows ->
                         row.put("submitted", synchronized(rows) { JSONArray(rows.map { JSONArray(it.toList()) }) })
                     }
-                    renderer?.presentedTimings?.let { rows ->
+                    session?.presentedTimings?.let { rows ->
                         row.put("committed", synchronized(rows) { JSONArray(rows.map { JSONArray(it.toList()) }) })
-                    }
-                }
-                val texture = (0 until overlay.childCount).mapNotNull { overlay.getChildAt(it) as? TextureView }.first()
-                val delegate = texture.surfaceTextureListener!!
-                val frames = JSONArray(); row.put("presentedMs", frames); textures[texture] = row
-                val frameDetails = JSONArray(); row.put("presentationDetails", frameDetails)
-                texture.surfaceTextureListener = object : TextureView.SurfaceTextureListener by delegate {
-                    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-                        delegate.onSurfaceTextureUpdated(surface)
-                        if (!spec.reverse && surface.timestamp == 0L) {
-                            row.put("blankBufferKeptSnapshot", (0 until overlay.childCount)
-                                .map { overlay.getChildAt(it) }.filterIsInstance<android.widget.ImageView>()
-                                .any { it.visibility == View.VISIBLE })
+                        val nowNanos = System.nanoTime()
+                        val nowMs = time()
+                        synchronized(rows) {
+                            rows.forEach {
+                                frames.put(nowMs - (nowNanos - it[1]) / 1_000_000L)
+                                frameDetails.put(JSONObject().put("at", it[1]).put("timestamp", it[0]))
+                            }
                         }
-                        frames.put(time())
-                        frameDetails.put(JSONObject().put("at", System.nanoTime()).put("timestamp", surface.timestamp))
                     }
                 }
             }

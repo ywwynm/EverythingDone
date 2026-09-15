@@ -329,7 +329,11 @@ open class AudioRecordDialogFragment : BaseDialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        startTiltSensor()
+        // 传感器注册（SystemSensorManager.nativeCreate + binder）实测会在凝聚期间卡住主线程，
+        // 直接压掉粒子帧；推迟到出现动画结束之后再注册，倾斜行为本身不变。
+        if (com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.deferRecordDialogInit) {
+            afterAppearance { if (isResumed) startTiltSensor() }
+        } else startTiltSensor()
     }
 
     override fun onPause() {

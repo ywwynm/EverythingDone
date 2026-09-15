@@ -58,7 +58,7 @@ class ParticlePanelReuseProbeActivity : AppCompatActivity() {
         try {
             val elapsed = SystemClock.uptimeMillis() - phaseAt
             val decor = window.decorView as ViewGroup
-            val overlays = (0 until decor.childCount).mapNotNull { decor.getChildAt(it) as? ParticleDismissOverlay }
+            val overlays = ParticleDismissOverlay.activeIn(this)
             when (phase) {
                 0 -> if (elapsed > 500) { page(true, "A 的颜色"); phase = 1; phaseAt = SystemClock.uptimeMillis() }
                 1 -> if (elapsed > 600) {

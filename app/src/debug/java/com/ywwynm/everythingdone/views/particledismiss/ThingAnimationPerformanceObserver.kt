@@ -37,6 +37,10 @@ import java.util.WeakHashMap
 class ThingAnimationPerformanceObserver : ContentProvider() {
     override fun onCreate(): Boolean {
         val app = context?.applicationContext as? Application ?: return false
+        // 粒子 GPU 计时钩子的目录；同样由独立诊断文件显式开启，缺文件即全程关闭。
+        ParticlePerfProbe.attach(app.filesDir, app.getExternalFilesDir(null))
+        // 第一批各项改动的逐项开关；缺文件时全部取默认（全开）。
+        ParticlePerfTuning.attach(app.filesDir)
         if (File(app.filesDir, "thing-animation-performance-enabled").exists()) ObserverManager(app).start()
         return true
     }
@@ -66,6 +70,8 @@ private class ObserverManager(val app: Application) : Application.ActivityLifecy
                     }
                 }
             }
+            // 每个轮询周期重新登记一次；漏掉宿主窗口会让整轮没有帧数据。
+            collector?.let { c -> activities.keys.toList().forEach { c.watch(it) } }
             if (enabled) handler.postDelayed(this, 250) else {
                 collector?.finish(); app.unregisterActivityLifecycleCallbacks(this@ObserverManager)
             }
@@ -86,9 +92,14 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     private val metricsThread = HandlerThread("ThingAnimationMetrics").apply { start() }
     private val metricsHandler = Handler(metricsThread.looper)
     private val frames = Collections.synchronizedList(mutableListOf<LongArray>())
-    private data class Watch(val activity: Activity, val original: Window.Callback,
+    private data class Watch(val activity: Activity?, val original: Window.Callback,
                              val wrapper: Window.Callback, val metrics: Window.OnFrameMetricsAvailableListener)
     private val windows = mutableMapOf<Window, Watch>()
+    private val windowLabels = JSONArray()
+    private var nextWindowType = 2L
+    private val stalls = JSONArray()
+    @Volatile private var lastMainFrameAt = System.nanoTime()
+    private var stallThread: Thread? = null
     private val seenOverlays = WeakHashMap<ParticleDismissOverlay, Boolean>()
     private val overlayRows = JSONArray()
     private val events = JSONArray()
@@ -105,7 +116,7 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     private val transitionField = DetailActivity::class.java.getDeclaredField("creationTransition").apply { isAccessible = true }
     private val closedField = ThingCreationTransition::class.java.getDeclaredField("closed").apply { isAccessible = true }
     private val specField = ParticleDismissOverlay::class.java.getDeclaredField("spec").apply { isAccessible = true }
-    private val rendererField = ParticleDismissOverlay::class.java.getDeclaredField("renderer").apply { isAccessible = true }
+    private val rendererField = ParticleDismissOverlay::class.java.getDeclaredField("session").apply { isAccessible = true }
     private var lastInputAt = 0L
     private var lastLifecycleAt = 0L
     private var lastAction = -1
@@ -114,7 +125,29 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     private var idleAt = 0L
     private var stopped = false
 
-    fun start() { progress(false, true); Choreographer.getInstance().postFrameCallback(this) }
+    fun start() {
+        progress(false, true); Choreographer.getInstance().postFrameCallback(this)
+        if (config.optBoolean("stallSampling")) startStallSampler()
+    }
+
+    /** 每 2 ms 检查主线程上一次帧回调距今是否超过一帧，超了就抓栈顶；只读取，不干预。 */
+    private fun startStallSampler() {
+        val main = Looper.getMainLooper().thread
+        stallThread = Thread({
+            var lastCapture = 0L
+            while (!stopped) {
+                val now = System.nanoTime()
+                val gap = now - lastMainFrameAt
+                if (gap > 16_000_000L && now - lastCapture > 8_000_000L && stalls.length() < 4000) {
+                    lastCapture = now
+                    val trace = runCatching { main.stackTrace }.getOrNull().orEmpty()
+                    stalls.put(JSONObject().put("at", now).put("gapMs", gap / 1e6)
+                        .put("stack", JSONArray(trace.take(8).map { it.toString() })))
+                }
+                try { Thread.sleep(2) } catch (e: InterruptedException) { return@Thread }
+            }
+        }, "ThingAnimationStalls").apply { isDaemon = true; start() }
+    }
     fun event(label: String) {
         if (label.endsWith("-resumed")) { lastLifecycleAt = System.nanoTime(); idleAt = 0 }
         events.put(JSONObject().put("event", label).put("at", System.nanoTime()).put("cpuMs", Process.getElapsedCpuTime()))
@@ -122,8 +155,21 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
 
     fun watch(a: Activity) {
         if (stopped || a !is ThingsActivity && a !is DetailActivity || windows.containsKey(a.window)) return
-        val w = a.window
-        val type = if (a is ThingsActivity) 0L else 1L
+        attach(a, a.window, if (a is ThingsActivity) 0L else 1L, a.javaClass.simpleName)
+    }
+
+    /** 弹窗各有独立 Window，涟漪与消散都发生在这些窗口上，必须单独取 FrameMetrics。 */
+    private fun watchDialogs(a: Activity) {
+        if (stopped || a !is androidx.fragment.app.FragmentActivity) return
+        for (f in a.supportFragmentManager.fragments) {
+            val w = (f as? androidx.fragment.app.DialogFragment)?.dialog?.window ?: continue
+            if (windows.containsKey(w)) continue
+            attach(null, w, nextWindowType++, f.javaClass.simpleName)
+        }
+    }
+
+    private fun attach(a: Activity?, w: Window, type: Long, label: String) {
+        windowLabels.put(JSONObject().put("type", type).put("label", label).put("at", System.nanoTime()))
         val original = w.callback
         val wrapper = object : Window.Callback by original {
             override fun dispatchTouchEvent(e: MotionEvent): Boolean {
@@ -162,14 +208,15 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     override fun doFrame(frameTimeNanos: Long) {
         if (stopped) return
         mainFrames += frameTimeNanos
+        lastMainFrameAt = System.nanoTime()
         var busy = false
         var overlays = 0
         try {
-            for ((w, watched) in windows) {
-                val a = watched.activity
-                val root = w.decorView as ViewGroup
-                for (i in 0 until root.childCount) {
-                    val overlay = root.getChildAt(i) as? ParticleDismissOverlay ?: continue
+            for ((w, watched) in windows.entries.toList()) {
+                val a = watched.activity ?: continue
+                watchDialogs(a)
+                // 动画层可能挂在 DecorView 的 ViewGroupOverlay 里（遍历子节点看不到），改查登记表。
+                for (overlay in ParticleDismissOverlay.activeIn(a)) {
                     overlays++
                     observe(overlay, if (a is ThingsActivity) "save-or-swipe" else "open")
                 }
@@ -219,6 +266,10 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             .put("editorReady", editorReady).put("inputCount", inputs.length()).put("at", System.nanoTime()).toString())
     }
 
+    /** 缺值或非有限值写成 JSON null：NaN 会让 result.json 整份写不出来。 */
+    private fun json(value: Float?): Any =
+        if (value != null && value.isFinite()) value else JSONObject.NULL
+
     private fun observe(overlay: ParticleDismissOverlay, label: String) {
         if (seenOverlays.put(overlay, true) != null) return
         val spec = specField.get(overlay) as ParticleDismissSpec
@@ -236,20 +287,51 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
         val row = JSONObject().put("stage", label).put("requestAt", spec.requestedAtNanos)
             .put("createdAt", System.nanoTime()).put("reverse", spec.reverse)
             .put("width", spec.snapshot.width).put("height", spec.snapshot.height)
+            // 2b：本次用的方向与触点输入；appearanceTouch 无论开关如何都有，便于事后对照。
+            // 注意：JSON 不接受 NaN，写进去会让整份 result.json 在 toString 时抛异常、一个字都留不下
+            // （2026-09-15 实际发生：左滑那一轮没有真实触点，整轮数据丢失）。缺值一律写 null。
+            .put("virtualTouch", JSONArray(listOf(json(spec.virtualTouchXPx), json(spec.virtualTouchYPx))))
+            .put("appearanceTouch", JSONArray(listOf(json(spec.appearanceTouchXPx), json(spec.appearanceTouchYPx))))
+            .put("origin", JSONArray(listOf(json(spec.originXPx), json(spec.originYPx))))
+            .put("touchGap", json(spec.touchGap))
+            .put("touchStrength", json(spec.touchStrength))
+            .put("skipEmptyTail", spec.skipEmptyTail)
+            .put("touchMode", ParticlePerfTuning.creationAppearanceTouch)
+            .put("skipTailEnabled", ParticlePerfTuning.creationAppearanceSkipEmptyTail)
+            .put("aliveRatio", ParticlePerfTuning.creationAppearanceAliveRatio)
+            .put("materialLanes", ParticleMaterialNative.lanes())
         overlayRows.put(row)
+        if (spec.reverse && spec.skipEmptyTail && config.optBoolean("appearanceFrames")) {
+            val bitmap = spec.snapshot.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+            val context = overlay.context.applicationContext
+            overlay.afterRelease {
+                ParticleAppearanceFrames.run(context, spec, bitmap, overlay.width, overlay.height, output)
+            }
+        }
         overlay.afterRelease {
             row.put("removedAt", System.nanoTime())
-            val renderer = rendererField.get(overlay) as? ParticleDismissRenderer
+            val renderer = rendererField.get(overlay) as? ParticleSession
+            row.put("sessionPresent", renderer != null)
             row.put("textures", synchronized(overlay.textureTimings) { JSONArray(overlay.textureTimings.map { JSONArray(it.toList()) }) })
-            handler.postDelayed({
-                renderer?.let { r ->
-                    row.put("submitted", synchronized(r.submittedTimings) { JSONArray(r.submittedTimings.map { JSONArray(it.toList()) }) })
-                    row.put("committed", synchronized(r.presentedTimings) { JSONArray(r.presentedTimings.map { JSONArray(it.toList()) }) })
-                    row.put("draw", JSONArray(r.drawTimings.map { JSONArray(it.toList()) }))
-                    row.put("startup", JSONArray(r.startupTimings.toList()))
-                    row.put("gestureActivatedAt", r.gestureActivatedAtNanos)
-                }
-            }, 180)
+            fun capture(r: ParticleSession) {
+                row.put("submitted", synchronized(r.submittedTimings) { JSONArray(r.submittedTimings.map { JSONArray(it.toList()) }) })
+                row.put("committed", synchronized(r.presentedTimings) { JSONArray(r.presentedTimings.map { JSONArray(it.toList()) }) })
+                row.put("draw", synchronized(r.drawTimings) { JSONArray(r.drawTimings.map { JSONArray(it.toList()) }) })
+                row.put("startup", JSONArray(r.startupTimings.toList()))
+                row.put("gestureActivatedAt", r.gestureActivatedAtNanos)
+                // 2a / 2c：预计算结束时刻、倒放起点与每个采样的存活片数——
+                // 「首个可见粒子帧」由分析脚本按这三项与逐帧进度算出来。
+                row.put("precomputeDoneAt", r.precomputeDoneAt)
+                row.put("appearanceStart", r.appearanceStartFrame)
+                row.put("appearanceSamples", r.appearanceSamples)
+                row.put("appearancePlaybackMs", r.appearancePlaybackMs)
+                row.put("particleCount", r.particleCount)
+                r.aliveCounts?.let { row.put("aliveCounts", JSONArray(it.toList())) }
+            }
+            // 先同步抓一份，再在 180 ms 后刷新（末尾几帧的呈现回调可能还在路上）；
+            // 只靠延迟那一次时，动画层释放得晚就会赶不上 result.json 的写出。
+            renderer?.let { capture(it) }
+            handler.postDelayed({ renderer?.let { capture(it) } }, 180)
         }
     }
 
@@ -257,7 +339,9 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
         val runtime = Runtime.getRuntime()
         return JSONObject().put("at", System.nanoTime()).put("javaBytes", runtime.totalMemory() - runtime.freeMemory())
             .put("nativeBytes", Debug.getNativeHeapAllocatedSize())
-            .put("particleThreads", Thread.getAllStackTraces().keys.count { it.name == "ParticleDismissGl" })
+            // 第二批起没有每次动画一条的 GL 线程；改记进程级常驻线程的条数（正常各 1）。
+            .put("particleThreads", Thread.getAllStackTraces().keys.count {
+                it.name == "ParticleDismissGl" || it.name == "ParticleGl" || it.name == "ParticleClock" })
     }
 
     fun finish() {
@@ -266,15 +350,30 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
         Choreographer.getInstance().removeFrameCallback(this)
         val cpuEnd = Process.getElapsedCpuTime()
         val memoryEnd = memory()
-        windows.values.map { it.activity }.toList().forEach { unwatch(it) }
+        stallThread?.interrupt()
+        windows.entries.toList().forEach { (w, watch) ->
+            windows.remove(w)
+            runCatching {
+                w.removeOnFrameMetricsAvailableListener(watch.metrics)
+                if (w.callback === watch.wrapper) w.callback = watch.original
+            }
+        }
         handler.postDelayed({
             val result = JSONObject().put("schema", 2).put("driver", "system-input-observed")
                 .put("config", config).put("startedAt", startedAt).put("cpuStartMs", cpuStart).put("cpuEndMs", cpuEnd)
                 .put("memoryStart", memoryStart).put("memoryEnd", memoryEnd).put("events", events)
                 .put("inputs", inputs).put("states", states).put("overlays", overlayRows)
                 .put("mainFrames", JSONArray(mainFrames))
+                .put("windowLabels", windowLabels).put("stalls", stalls)
+                // 2a：FAB 抬手 → 首页快照 → startActivity → onCreate → 布局 → 请求 → 捕获
+                .put("launchTrace", JSONArray(ParticleLaunchTrace.snapshot().map {
+                    JSONObject().put("label", it.label).put("at", it.at) }))
                 .put("windowFrames", synchronized(frames) { JSONArray(frames.map { JSONArray(it.toList()) }) })
-            File(output, "result.json").writeText(result.toString())
+            // 序列化失败（例如某处混进 NaN）不能静默：否则驱动脚本只会报「观察器没有收尾」，
+            // 查不到真正的原因。失败时留下一份带异常的最小文件。
+            runCatching { File(output, "result.json").writeText(result.toString()) }.onFailure {
+                File(output, "result-error.txt").writeText(it.stackTraceToString())
+            }
             metricsThread.quitSafely()
         }, 300)
     }

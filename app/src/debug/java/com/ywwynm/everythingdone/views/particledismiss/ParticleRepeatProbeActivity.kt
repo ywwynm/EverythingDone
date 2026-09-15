@@ -216,7 +216,7 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
         try {
             val a = checkNotNull(host)
             val root = a.window.decorView as ViewGroup
-            val active = (0 until root.childCount).mapNotNull { root.getChildAt(it) as? ParticleDismissOverlay }
+            val active = ParticleDismissOverlay.activeIn(a)
             for (overlay in active) {
                 if (!seen.add(overlay)) continue
                 val spec = field(overlay, "spec") as ParticleDismissSpec
@@ -226,11 +226,11 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
                 overlay.afterRelease {
                     row.put("removedMs", time())
                     row.put("texture", synchronized(overlay.textureTimings) { JSONArray(overlay.textureTimings.map { JSONArray(it.toList()) }) })
-                    val renderer = field(overlay, "renderer") as? ParticleDismissRenderer
+                    val renderer = field(overlay, "session") as? ParticleSession
                     renderer?.let { r ->
                         row.put("submitted", synchronized(r.submittedTimings) { JSONArray(r.submittedTimings.map { JSONArray(it.toList()) }) })
                         row.put("committed", synchronized(r.presentedTimings) { JSONArray(r.presentedTimings.map { JSONArray(it.toList()) }) })
-                        row.put("draws", JSONArray(r.drawTimings.map { JSONArray(it.toList()) }))
+                        row.put("draws", synchronized(r.drawTimings) { JSONArray(r.drawTimings.map { JSONArray(it.toList()) }) })
                     }
                 }
             }
@@ -337,7 +337,9 @@ private class RepeatProbe(val app: Application, val output: File, val kind: Stri
             .put("samples", samples).put("overlays", JSONArray(rows))
             .put("windowFrames", windowRows)
             .put("rippleFrames", rippleFrames).put("systemInput", systemInput).put("close", closeMode)
-            .put("remainingFrameRateVotes", (field(ParticleWindowFrameRate, "votes") as Map<*, *>).size)
+            // 第二批删掉了窗口刷新率投票（1.2），改为粒子 Surface 自己投一次无缝 60 Hz，
+            // 没有需要复位的窗口属性，这一项恒为 0。
+            .put("remainingFrameRateVotes", 0)
             .put("waves", synchronized(waveRows) { JSONArray(waveRows) })
         if (error != null) result.put("error", error)
         writer.execute { File(output, "result.json").writeText(result.toString(2)) }

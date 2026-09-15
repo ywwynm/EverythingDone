@@ -1,0 +1,71 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=16, local_size_y=16) in;
+layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
+layout(std430,binding=1) readonly buffer B { float old_pressure[]; };
+layout(std430,binding=2) writeonly buffer C { float new_pressure[]; };
+layout(std430,binding=7) readonly buffer Work { uvec4 workgroups; ivec2 tiles[]; };
+uniform ivec2 grid_shape;
+uniform int first_iteration;
+uniform int iterations;
+
+// 32×32 输出加 BAND 格边带，一次 dispatch 完成 BAND 次原始 Jacobi 迭代。
+// 与 pressure-batched.comp（16×16 输出 + 8 格边带）逐条运算完全相同，只是每个
+// 工作组覆盖四倍的输出面积、每批多做几次迭代，从而减少 dispatch 次数与 tile 重复读写。
+// 散度与占用不再进 shared，而是每线程固定处理 CELLS 个格、留在寄存器里，
+// 好把 shared 全部让给两份压力（BAND=12 约 26 KB，BAND=16 为 32 KB）。
+#define TILE (32 + 2 * BAND)
+#define CELLS ((TILE * TILE + 255) / 256)
+// 补齐到 256 的整数倍：循环次数是编译期常量、没有分支，寄存器数组才能真的留在寄存器里。
+// 多出来的槽位其局部坐标必然落在边带判定之外，永远不会被读回。
+#define SLOTS (CELLS * 256)
+shared float p0[SLOTS];
+shared float p1[SLOTS];
+int at(ivec2 q) { q=clamp(q,ivec2(0),grid_shape-1); return q.y*grid_shape.x+q.x; }
+int local_at(ivec2 q, ivec2 origin) {
+    ivec2 l=clamp(q,ivec2(0),grid_shape-1)-origin;
+    return l.y*TILE+l.x;
+}
+void main() {
+    ivec2 origin=tiles[gl_WorkGroupID.x]*32-BAND;
+    int lane=int(gl_LocalInvocationIndex);
+    ivec2 X=ivec2(1,0), Y=ivec2(0,1);
+    float divergence[CELLS];
+    float occupied[CELLS];
+    for(int c=0;c<CELLS;c++) {
+        int k=lane+c*256;
+        ivec2 q=clamp(origin+ivec2(k%TILE,k/TILE),ivec2(0),grid_shape-1);
+        p0[k]=old_pressure[at(q)];
+        divergence[c]=(velocity[at(q+X)].x-velocity[at(q-X)].x+
+                       velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
+        occupied[c]=velocity[at(q)].z;
+    }
+    barrier();
+    for(int j=0;j<iterations;j++) {
+        for(int c=0;c<CELLS;c++) {
+            int k=lane+c*256;
+            ivec2 l=ivec2(k%TILE,k/TILE);
+            if(all(greaterThan(l,ivec2(j))) && all(lessThan(l,ivec2(TILE-1-j)))) {
+                ivec2 q=clamp(origin+l,ivec2(0),grid_shape-1);
+                int a=local_at(q+X,origin), b=local_at(q-X,origin);
+                int e=local_at(q+Y,origin), d=local_at(q-Y,origin);
+                float neighbours=(j%2==0)?p0[a]+p0[b]+p0[e]+p0[d]:p1[a]+p1[b]+p1[e]+p1[d];
+                if(first_iteration+j==0) neighbours*=.9;
+                float value=occupied[c]>.025?max((neighbours-divergence[c])*.25,0.):0.;
+                if(j%2==0) p1[k]=value; else p0[k]=value;
+            }
+        }
+        barrier();
+    }
+    // 32×32 个输出格由 256 个线程各写四格。
+    for(int c=0;c<4;c++) {
+        int o=lane+c*256;
+        ivec2 lo=ivec2(o%32,o/32);
+        ivec2 q=origin+BAND+lo;
+        if(all(lessThan(q,grid_shape))) {
+            int k=(lo.y+BAND)*TILE+(lo.x+BAND);
+            new_pressure[at(q)]=(iterations%2==0)?p0[k]:p1[k];
+        }
+    }
+}

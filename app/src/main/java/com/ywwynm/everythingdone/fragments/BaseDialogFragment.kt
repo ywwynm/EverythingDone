@@ -154,11 +154,38 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (animateAppearance) {
             gestureDialog.condenseAttempted = true
             val started = ParticleDismissController.startCondense(gestureDialog,
-                onAppearanceProgress = { gestureDialog.dimLayer?.setAppearanceProgress(it) }) { overlay ->
+                onAppearanceProgress = {
+                    gestureDialog.dimLayer?.setAppearanceProgress(it)
+                    if (it >= 1f) settleAppearance()
+                }) { overlay ->
                 gestureDialog.condenseOverlay = overlay
             }
-            if (!started) gestureDialog.dimLayer?.setAppearanceProgress(1f)
-        }
+            if (!started) {
+                gestureDialog.dimLayer?.setAppearanceProgress(1f)
+                settleAppearance()
+            }
+        } else settleAppearance()
+    }
+
+    /** 出现动画是否已经结束（或本次根本没有出现动画）。 */
+    private var appearanceSettled = false
+    private val afterAppearanceActions = mutableListOf<() -> Unit>()
+
+    private fun settleAppearance() {
+        if (appearanceSettled) return
+        appearanceSettled = true
+        val actions = afterAppearanceActions.toList()
+        afterAppearanceActions.clear()
+        actions.forEach { it() }
+    }
+
+    /**
+     * 把会阻塞主线程的初始化推迟到出现动画结束之后再做：凝聚期间主线程每停一次，
+     * 粒子帧与暗层就跟着停一次（阶段 0 主线程停顿采样里录音弹窗的传感器注册最典型）。
+     * 出现动画已经结束时立即执行。
+     */
+    protected fun afterAppearance(action: () -> Unit) {
+        if (appearanceSettled) action() else afterAppearanceActions += action
     }
 
     private fun installRoundedOutline(view: View?) {

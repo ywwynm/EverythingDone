@@ -2,7 +2,6 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.content.res.AssetManager
 import android.graphics.Bitmap
-import android.opengl.EGL14
 import android.opengl.GLES30
 import android.opengl.GLES31
 import android.util.Log
@@ -15,15 +14,23 @@ import kotlin.math.*
 /**
  * 与桌面共享规则的固定步长 GPU 微片消散。消散按需推进；出现缓存同一积分结果后倒序播放。
  * 本类只在调用线程已经绑定的 EGL 上下文中工作，不拥有 Activity 或 EGLDisplay。
+ *
+ * 第二批（D4）把「一个上下文里所有会话都一样」的资源提到 [Shared]：着色器程序、累积纹理与
+ * 帧缓冲、全屏 VAO、两张三维流场纹理、历史缓冲池。每个会话只再建自己的材料/状态/色素/压缩
+ * SSBO、前景纹理与压力网格，结束只删这些。多个会话共用同一份程序对象，所以 uniform 也共用——
+ * 切换会话时必须整套重设一遍（[applyUniforms]），由 [activate] 按「上一个用它的是不是我」判定。
  */
 internal class ParticleMicroflakeRenderer(
     private val assets: AssetManager,
-    private val width: Int,
-    private val height: Int,
+    private val shared: Shared,
     initialInput: Input? = null
 ) : Closeable {
     private lateinit var input: Input
     init { if (initialInput != null) input = initialInput }
+
+    private val width get() = shared.width
+    private val height get() = shared.height
+
     data class Input(
         val frameWidth: Float,
         val frameHeight: Float,
@@ -42,61 +49,218 @@ internal class ParticleMicroflakeRenderer(
         val touchStrength: Float = .5f
     )
 
-    private val programs = ArrayList<Int>()
+    /**
+     * 一个 EGL 上下文内可以复用的全部资源。常驻上下文用一份进程级实例；离屏对照与预热
+     * 各自建临时实例（程序对象不跨上下文有效）。
+     */
+    internal class Shared(private val assets: AssetManager) : Closeable {
+        val programs = ArrayList<Int>()
+        val compiled = HashMap<String, Int>()
+        val uniforms = HashMap<String, Int>()
+        val textures = ArrayList<Int>()
+        val framebuffer = IntArray(1)
+        val vao = IntArray(1)
+        var accumulationTexture = 0
+            private set
+        var guideTexture = 0
+            private set
+        var confidenceTexture = 0
+            private set
+        var width = 0
+            private set
+        var height = 0
+            private set
+        var prepared = false
+            private set
+
+        /** 最近一次把自己的 uniform 写进共享程序的会话。 */
+        var owner: Any? = null
+
+        val history = HistoryPool()
+
+        /** 按当前显示尺寸建立累积纹理与帧缓冲；尺寸变化时重建，其余一次到位。 */
+        fun ensure(targetWidth: Int, targetHeight: Int) {
+            require(targetWidth > 0 && targetHeight > 0)
+            if (prepared && targetWidth == width && targetHeight == height) return
+            val version = IntArray(2)
+            GLES30.glGetIntegerv(GLES30.GL_MAJOR_VERSION, version, 0)
+            GLES30.glGetIntegerv(GLES30.GL_MINOR_VERSION, version, 1)
+            check(version[0] > 3 || version[0] == 3 && version[1] >= 1) { "微片消散需要 GLES 3.1" }
+            if (!prepared) {
+                GLES30.glGenVertexArrays(1, vao, 0)
+                GLES30.glGenFramebuffers(1, framebuffer, 0)
+            } else if (accumulationTexture != 0) {
+                GLES30.glDeleteTextures(1, intArrayOf(accumulationTexture), 0)
+                textures.remove(accumulationTexture)
+            }
+            width = targetWidth
+            height = targetHeight
+            GLES30.glBindVertexArray(vao[0])
+            accumulationTexture = newTexture(GLES30.GL_TEXTURE_2D, textures)
+            GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
+                GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, null)
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
+            GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0,
+                GLES30.GL_TEXTURE_2D, accumulationTexture, 0)
+            check(GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) == GLES30.GL_FRAMEBUFFER_COMPLETE) {
+                "设备不支持微片线性颜色缓冲"
+            }
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            prepared = true
+        }
+
+        /** 三维流场与置信度只与打包资源有关，进程内上传一次。 */
+        fun uploadFields(guide: ByteArray, rules: ParticleMicroflakeRules, confidence: ByteArray) {
+            if (guideTexture != 0) return
+            val w = rules.number("flow_width").toInt(); val h = rules.number("flow_height").toInt()
+            val time = rules.number("flow_time").toInt()
+            guideTexture = newTexture(GLES30.GL_TEXTURE_3D, textures)
+            GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RG16F, w, h, time, 0,
+                GLES30.GL_RG, GLES30.GL_HALF_FLOAT, direct(guide))
+            confidenceTexture = newTexture(GLES30.GL_TEXTURE_3D, textures)
+            GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D, 0, GLES30.GL_R8, w, h, time, 0,
+                GLES30.GL_RED, GLES30.GL_UNSIGNED_BYTE, direct(confidence))
+        }
+
+        fun assets(): AssetManager = assets
+
+        /** 内存告警时释放可再生的大块（历史缓冲）；上下文、程序与纹理仍常驻。 */
+        fun trim() = history.trim()
+
+        override fun close() {
+            history.close()
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            if (prepared) {
+                GLES30.glDeleteFramebuffers(1, framebuffer, 0)
+                GLES30.glDeleteVertexArrays(1, vao, 0)
+            }
+            if (textures.isNotEmpty()) GLES30.glDeleteTextures(textures.size, textures.toIntArray(), 0)
+            textures.clear()
+            for (p in programs) GLES30.glDeleteProgram(p)
+            programs.clear(); compiled.clear(); uniforms.clear()
+            prepared = false; accumulationTexture = 0; guideTexture = 0; confidenceTexture = 0
+        }
+    }
+
+    /**
+     * 历史缓冲池：按 D4「常驻、只增不减」。一次动画的历史可达数十 MB，重新分配实测只要
+     * 0.003–0.036 ms（第一批实测），所以池的意义主要是避免反复的大块分配抖动；
+     * 上限是「同时存活的会话数」，并在内存告警时整体释放。
+     */
+    internal class HistoryPool {
+        private class Entry(val buffer: Int, var capacity: Int, var busy: Boolean)
+        private val entries = ArrayList<Entry>()
+
+        /** 返回一个容量不小于 [bytes] 的缓冲；容量不足时就地扩容（只增不减）。 */
+        fun acquire(bytes: Int): Int {
+            val reusable = entries.firstOrNull { !it.busy && it.capacity >= bytes }
+            if (reusable != null) { reusable.busy = true; return reusable.buffer }
+            val grow = entries.firstOrNull { !it.busy }
+            if (grow != null) {
+                GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, grow.buffer)
+                GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, bytes, null, GLES30.GL_DYNAMIC_DRAW)
+                grow.capacity = bytes; grow.busy = true
+                return grow.buffer
+            }
+            val id = IntArray(1)
+            GLES30.glGenBuffers(1, id, 0)
+            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, id[0])
+            GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, bytes, null, GLES30.GL_DYNAMIC_DRAW)
+            entries += Entry(id[0], bytes, true)
+            return id[0]
+        }
+
+        fun release(buffer: Int) { entries.firstOrNull { it.buffer == buffer }?.busy = false }
+
+        fun trim() {
+            val idle = entries.filter { !it.busy }
+            if (idle.isEmpty()) return
+            GLES30.glDeleteBuffers(idle.size, idle.map { it.buffer }.toIntArray(), 0)
+            entries.removeAll(idle.toSet())
+        }
+
+        fun close() {
+            if (entries.isEmpty()) return
+            GLES30.glDeleteBuffers(entries.size, entries.map { it.buffer }.toIntArray(), 0)
+            entries.clear()
+        }
+    }
+
+    // ---- 会话私有的 GL 对象 ----
     private val textures = ArrayList<Int>()
     private val buffers = IntArray(4)
-    private val framebuffer = IntArray(1)
-    private val vao = IntArray(1)
     private var compute = 0
     private var reverseCompute = 0
     private var material = 0
     private var resolve = 0
     private var foregroundTexture = 0
-    private var guideTexture = 0
-    private var confidenceTexture = 0
-    private var accumulationTexture = 0
     private var step = 0
     private lateinit var peelPressure: PeelPressure
-    private val uniforms = HashMap<String, Int>()
-    private val compiledPrograms = HashMap<String, Int>()
     private var pipelinePrepared = false
     private var reverseHistory: ParticleReverseHistory? = null
     private var optimizedIntegrationPrepared = false
+    private var reverseHasHistory = false
+    private var reverseLargeTile = false
+    private var reverseJacobiBatch = 8
+    private var reversePipelinePrepared = false
+
+    /** 仅 debug 且显式开启诊断文件时非空；release 恒为 null。 */
+    private var probe: ParticlePerfProbe.Session? = null
+    private var probeStarted = false
+    private var probeStage = "play"
+    private fun probe(): ParticlePerfProbe.Session? {
+        if (!probeStarted) { probeStarted = true; probe = ParticlePerfProbe.begin() }
+        return probe
+    }
+
     /** 与后台建材重叠：着色器和屏幕缓冲不依赖本次触点或粒子材料。 */
     fun preparePipeline(sharedFields: SharedResources? = null) {
         if (pipelinePrepared) return
-        val version = IntArray(2)
-        GLES30.glGetIntegerv(GLES30.GL_MAJOR_VERSION, version, 0)
-        GLES30.glGetIntegerv(GLES30.GL_MINOR_VERSION, version, 1)
-        check(version[0] > 3 || version[0] == 3 && version[1] >= 1) { "微片消散需要 GLES 3.1" }
         compute = program("step.comp")
         material = program("material.vert", "material.frag")
         resolve = program("resolve.vert", "resolve.frag")
         program("peel-splat.comp"); program("peel-blur.comp"); program("peel-project.comp")
-        GLES30.glGenVertexArrays(1, vao, 0)
-        GLES30.glBindVertexArray(vao[0])
         GLES30.glGenBuffers(buffers.size, buffers, 0)
-        accumulationTexture = newTexture(GLES30.GL_TEXTURE_2D)
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
-            GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, null)
-        GLES30.glGenFramebuffers(1, framebuffer, 0)
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
-        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0,
-            GLES30.GL_TEXTURE_2D, accumulationTexture, 0)
-        check(GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER) == GLES30.GL_FRAMEBUFFER_COMPLETE) {
-            "设备不支持微片线性颜色缓冲"
-        }
-        if (sharedFields != null) uploadFields(sharedFields.guide, sharedFields.rules, sharedFields.confidence)
+        if (sharedFields != null) shared.uploadFields(sharedFields.guide, sharedFields.rules, sharedFields.confidence)
         pipelinePrepared = true
     }
 
     /** 只编译出现准备所需程序，不生成轨迹；可与后台建材重叠或在空闲时预热。 */
     fun prepareReversePipeline() {
-        reverseCompute = program("step.comp", reverseIntegration = true)
-        program("particle-playback/pressure-batched.comp")
-        program("particle-playback/pressure-tiles.comp")
+        if (reversePipelinePrepared) return
+        reversePipelinePrepared = true
+        // 取值只在编译这一次确定：之后一律按「这个程序里有没有历史写入」判断，
+        // 不再读开关。否则开关中途变化会让 history_frame 停在默认 0 上，
+        // 着色器就会把历史写进当时绑在 4/5 上的压力缓冲。
+        reverseHasHistory = ParticlePerfTuning.historyInIntegration
+        reverseLargeTile = largeTileJacobi()
+        reverseCompute = program("step.comp", reverseIntegration = true,
+            reverseHistory = reverseHasHistory)
+        if (reverseLargeTile) {
+            program("particle-playback/pressure-batched-large.comp", defines = jacobiDefines())
+            program("particle-playback/pressure-tiles-large.comp")
+        } else {
+            program("particle-playback/pressure-batched.comp")
+            program("particle-playback/pressure-tiles.comp")
+        }
         program("particle-playback/history.comp")
     }
+
+    /**
+     * 2.2 的大 tile 路径只在 Adreno 上启用：它把两份压力放进片上 shared memory，
+     * Mali / Xclipse 没有这块存储，前提不成立（见 followups）。同时要求 shared 装得下。
+     */
+    private fun largeTileJacobi(): Boolean {
+        if (!ParticlePerfTuning.jacobiLargeTile) return false
+        if (!adreno()) return false
+        reverseJacobiBatch = ParticlePerfTuning.jacobiLargeBatch
+        val band = reverseJacobiBatch
+        val tile = 32 + 2 * band
+        val slots = (tile * tile + 255) / 256 * 256
+        return slots * 2 * 4 <= maxSharedMemory()
+    }
+
+    private fun jacobiDefines() = "#define BAND $reverseJacobiBatch\n"
 
     fun prepare(materialInput: Input? = null) {
         if (materialInput != null) input = materialInput
@@ -119,21 +283,49 @@ internal class ParticleMicroflakeRenderer(
             val pixels = input.sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
                 bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             }
-            prepareForeground(ParticleMicroflakePreparation.Pixels(bitmap, pixels))
+            prepareForeground(ParticleMicroflakePreparation.Pixels(bitmap.width, bitmap.height,
+                ParticleMicroflakePreparation.packColors(pixels), pixels))
         }
-        if (guideTexture == 0) uploadFields(input.guide, input.rules, input.confidence ?: sharedResources(assets).confidence)
+        shared.uploadFields(input.guide, input.rules, input.confidence ?: sharedResources(assets).confidence)
         val angle = Math.toRadians(input.direction.toDouble())
         val windX = cos(angle).toFloat(); val windY = -sin(angle).toFloat()
         val span = min(input.cardWidth, input.cardHeight)
+        peelPressure = PeelPressure(span, windX, windY)
+        applyUniforms()
+        checkGl("准备")
+    }
+
+    /** 前景颜色不依赖材料模型；GPU 上传可与后台建材同时进行。 */
+    fun prepareForeground(pixels: ParticleMicroflakePreparation.Pixels) {
+        check(foregroundTexture == 0)
+        preparePipeline()
+        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D, textures)
+        val rgba = pixels.rgba
+        rgba.rewind()
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.width, pixels.height,
+            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba)
+    }
+
+    /**
+     * 把本会话的全部「构造期 uniform」重新写进共享程序。
+     *
+     * 程序对象在整个上下文里只有一份，uniform 也就只有一份：另一个会话画过之后，
+     * 这里的每一个值都可能被改掉。因此凡是只在 [prepare] / [PeelPressure] 构造时设过一次的
+     * uniform，都必须在本函数里原样重设（逐帧设置的 time / material_pass / pass 等不在此列）。
+     */
+    private fun applyUniforms() {
         configureIntegration(compute)
         GLES30.glUseProgram(material)
         two(material, "frame", input.frameWidth, input.frameHeight)
         two(material, "card", input.cardWidth, input.cardHeight)
         two(material, "offset", input.originX, input.originY)
         two(material, "cell", input.materials.cellX, input.materials.cellY)
-        two(material, "wind", windX, windY)
-        one(material, "span", span); one(material, "roll_gain", input.rules.number("roll_gain"))
-        one(material, "light_gain", input.rules.number("light_gain")); one(material, "body_weight", input.materials.bodyWeight)
+        val angle = Math.toRadians(input.direction.toDouble())
+        two(material, "wind", cos(angle).toFloat(), -sin(angle).toFloat())
+        one(material, "span", min(input.cardWidth, input.cardHeight))
+        one(material, "roll_gain", input.rules.number("roll_gain"))
+        one(material, "light_gain", input.rules.number("light_gain"))
+        one(material, "body_weight", input.materials.bodyWeight)
         one(material, "release_spread", input.rules.number("release_spread") +
             input.rules.number("white_spread") * input.materials.bodyWeight)
         one(material, "panel_weight", input.materials.statistics.getValue("panelWeight").toFloat())
@@ -142,16 +334,23 @@ internal class ParticleMicroflakeRenderer(
         oneI(material, "diagnostic", 0)
         GLES30.glUseProgram(resolve)
         oneI(resolve, "screen", 2)
-        peelPressure = PeelPressure(span, windX, windY)
-        checkGl("准备")
+        if (::peelPressure.isInitialized) {
+            peelPressure.applyUniforms()
+            peelPressure.configureIntegration(compute)
+            if (optimizedIntegrationPrepared) {
+                configureIntegration(reverseCompute)
+                peelPressure.configureIntegration(reverseCompute)
+            }
+        }
+        reverseHistory?.applyUniforms()
+        shared.owner = this
     }
 
-    /** 前景颜色不依赖材料模型；GPU 上传可与后台建材同时进行。 */
-    fun prepareForeground(pixels: ParticleMicroflakePreparation.Pixels) {
-        check(foregroundTexture == 0)
-        foregroundTexture = newTexture(GLES30.GL_TEXTURE_2D)
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.bitmap.width, pixels.bitmap.height,
-            0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, ParticleMicroflakePreparation.packColors(pixels.argb))
+    /** 共享上下文里换了会话就整套重设 uniform；同一个会话连续工作时是一次布尔比较。 */
+    private fun activate() {
+        if (shared.owner === this) return
+        if (!::peelPressure.isInitialized) { shared.owner = this; return }
+        applyUniforms()
     }
 
     private fun configureIntegration(compute: Int) {
@@ -182,11 +381,11 @@ internal class ParticleMicroflakeRenderer(
     }
 
     /** 调试验证也调用同一函数；时间按 240 Hz 累积，刷新率只决定展示采样。 */
-    fun draw(time: Float, batchPressure: Boolean = false) {
+    fun draw(time: Float, batchPressure: Boolean = false, clearTarget: Boolean = true) {
         val t = time.coerceIn(0f, 1f)
         if (batchPressure) prepareOptimizedIntegration()
         advance(t, batchPressure)
-        render(t)
+        render(t, clearTarget = clearTarget)
     }
 
     private fun prepareOptimizedIntegration() {
@@ -197,40 +396,100 @@ internal class ParticleMicroflakeRenderer(
         optimizedIntegrationPrepared = true
     }
 
-    private fun advance(t: Float, batchPressure: Boolean = false) {
+    /**
+     * @param historyFrame ≥0 且历史合并生效时，本次采样的最后一步积分顺带写五分量历史。
+     * @return 是否已经把 [historyFrame] 写进历史（为 false 时调用方仍需单独转存）。
+     */
+    private fun advance(t: Float, batchPressure: Boolean = false, historyFrame: Int = -1): Boolean {
+        activate()
         val compute = if (batchPressure) reverseCompute else this.compute
         val target = floor(t.toDouble() * 240 + 1e-6).toInt()
         check(target >= step) { "运行时不能倒放材料状态" }
+        // 2.4：最早出生时间之前没有任何一片进入运动——积分着色器对 age<=0 写回的就是初值，
+        // 压力侧 splat 同样整片跳过，压力场与修正场保持构造时的全零。这段直接跳过。
+        if (batchPressure && ParticlePerfTuning.skipBeforeFirstBirth && step == 0) {
+            val skip = min(target, firstBirthStep())
+            if (skip > 0) step = skip
+        }
+        val merge = historyFrame >= 0 && reverseHasHistory && batchPressure && step < target
         for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
         GLES30.glActiveTexture(GLES30.GL_TEXTURE3)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, guideTexture)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, shared.guideTexture)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE4)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, confidenceTexture)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, shared.confidenceTexture)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE5)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, peelPressure.texture)
         GLES30.glUseProgram(compute)
+        if (reverseHasHistory && batchPressure) oneI(compute, "history_frame", -1)
+        val probe = probe()
+        probe?.mark("integrate", ParticlePerfProbe.LEVEL_SEGMENT)
         while (step < target) {
             step++
             one(compute, "time", step / 240f)
+            if (merge && step == target) {
+                // 压力更新占用了绑定 4/5/6，最后一步写历史前必须重新绑定范围表与历史缓冲。
+                checkNotNull(reverseHistory).bindTargets()
+                oneI(compute, "history_frame", historyFrame)
+            }
             GLES31.glDispatchCompute((input.materials.count + 255) / 256, 1, 1)
             GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
             if (step % 4 == 0) {
+                probe?.mark("pressure", ParticlePerfProbe.LEVEL_SEGMENT)
                 peelPressure.update(step / 240f, batchPressure)
+                if (probe != null) {
+                    if (step < target) probe.mark("integrate", ParticlePerfProbe.LEVEL_SEGMENT)
+                    else probe.stop(ParticlePerfProbe.LEVEL_SEGMENT)
+                }
                 for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
                 GLES30.glUseProgram(compute)
             }
         }
+        probe?.stop(ParticlePerfProbe.LEVEL_SEGMENT)
+        return merge
     }
 
-    private fun render(t: Float, extrapolation: Float = max(0f, t - step / 240f)) {
-        GLES30.glBindVertexArray(vao[0])
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
+    private var firstBirthStepCache = -1
+
+    /** 最大的 S，使 S/240f 仍不晚于最早出生时间；着色器里 age=time-src.z<=0 与这一判据逐位等价。 */
+    private fun firstBirthStep(): Int {
+        if (firstBirthStepCache >= 0) return firstBirthStepCache
+        val values = input.materials.values
+        var minBirth = Float.MAX_VALUE
+        var i = 2
+        while (i < values.size) { if (values[i] < minBirth) minBirth = values[i]; i += 12 }
+        var s = floor(minBirth.toDouble() * 240).toInt().coerceIn(0, 240)
+        while (s < 240 && (s + 1) / 240f <= minBirth) s++
+        while (s > 0 && s / 240f > minBirth) s--
+        firstBirthStepCache = s
+        probe()?.note("firstBirth", minBirth.toDouble())
+        probe()?.note("firstBirthStep", s)
+        return s
+    }
+
+    /**
+     * 把当前状态解析到默认帧缓冲。
+     *
+     * [clearTarget] 为 true 时本函数自己清空目标（离屏对照、预热等单会话路径）；
+     * 一窗一 Surface 的合成路径由宿主每拍清一次，各会话依次叠画，所以传 false。
+     * resolve 输出的是预乘 alpha，叠画用 `ONE, ONE_MINUS_SRC_ALPHA`——目标清成全零时
+     * `src + 0×(1-a) == src`，与改动前「不开混合直接覆写」逐位相同。
+     */
+    private fun render(t: Float, extrapolation: Float = max(0f, t - step / 240f),
+                       stateBuffer: Int = buffers[1], clearTarget: Boolean = true) {
+        activate()
+        probe()?.mark("render", ParticlePerfProbe.LEVEL_SEGMENT)
+        GLES30.glBindVertexArray(shared.vao[0])
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, shared.framebuffer[0])
         GLES30.glViewport(0, 0, width, height)
         GLES30.glDisable(GLES30.GL_DEPTH_TEST)
         GLES30.glClearColor(0f, 0f, 0f, 0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+        // material.vert 读绑定 0/1/2；共享上下文里上一个会话可能把它们换成了自己的缓冲。
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, buffers[0])
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, buffers[2])
         GLES30.glUseProgram(material)
         one(material, "time", t)
         one(material, "extrapolate", extrapolation)
@@ -243,32 +502,126 @@ internal class ParticleMicroflakeRenderer(
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, filter)
             GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
         }
-        GLES30.glDisable(GLES30.GL_BLEND)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glViewport(0, 0, width, height)
+        if (clearTarget) {
+            GLES30.glClearColor(0f, 0f, 0f, 0f)
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        }
         GLES30.glUseProgram(resolve)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, accumulationTexture)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shared.accumulationTexture)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        GLES30.glDisable(GLES30.GL_BLEND)
+        probe?.stop(ParticlePerfProbe.LEVEL_SEGMENT)
     }
 
-    /** 一次正向解算，只保存颗粒可见寿命附近的状态，GL 线程可随时取消。 */
-    fun prepareReverse(samples: Int = ParticleReversePlan.samplesFor(ParticleReversePlan.APPEARANCE_SECONDS, 60f),
-                       cancelled: () -> Boolean = { false }): Boolean {
-        val started = System.nanoTime()
+    // ---- 逆向（出现 / 手势）准备：分步推进，可与别的会话交错 ----
+
+    private var reverseQueue: ParticleGpuWork.PreparationQueue? = null
+    private var reverseFrame = 0
+    private var reverseStartedAt = 0L
+
+    /** 已经准备到的最后一个采样下标（手势按需补档时用）。 */
+    val preparedSamples get() = reverseFrame - 1
+
+    val reverseSamples get() = reverseHistory?.plan?.samples ?: 0
+
+    /** 本次准备要算到的最后一个采样；跳过尾段空白时小于 `plan.samples`。 */
+    private var reverseTarget = 0
+
+    /** 材料的十二分量原始值；出生与寿命由它给出（只读，供起点帧判定使用）。 */
+    val materialValues: FloatArray get() = input.materials.values
+
+    /**
+     * 建立历史缓冲并进入分步准备；[samples] 与 [ParticleReversePlan] 一致。
+     * [target] 是真正要算到的采样（默认全算）：倒放起点更早时，比它更晚的采样既不播也不用算。
+     * [precomputeProbe] 为 false 时不记「预计算」这一段（手势是按需补档，没有完整预计算）。
+     */
+    fun beginReverse(samples: Int, target: Int = samples, precomputeProbe: Boolean = true) {
         val history = createHistory(samples)
-        ParticleGpuWork.PreparationQueue().use { queue ->
-            for (frame in 0..history.plan.samples) {
-                if (cancelled()) return false
-                advance(history.plan.time(frame), batchPressure = true)
-                history.transfer(frame, restore = false)
-                if (!queue.finishBatch(cancelled)) return false
-            }
+        reverseTarget = target.coerceIn(0, samples)
+        reverseStartedAt = System.nanoTime()
+        if (precomputeProbe) {
+            probeStage = "appear"
+            probe()?.beginBusy()
+            probe()?.mark("precompute", ParticlePerfProbe.LEVEL_TOTAL)
+            reverseProbe = true
         }
-        GLES30.glFinish()
+        reverseQueue = ParticleGpuWork.PreparationQueue()
+        reverseFrame = 0
+        check(history.plan.samples >= 0)
+    }
+
+    private var reverseProbe = false
+
+    /** 播放进度对应的历史采样下标；[start] 是倒放起点（默认完整倒放）。 */
+    fun reverseFrameFor(progress: Float, start: Int = -1): Int {
+        val plan = checkNotNull(reverseHistory).plan
+        return plan.frame(progress, if (start >= 0) start else plan.samples)
+    }
+
+    /** 本次动画的微片数量与方向、种子；只用于诊断日志。 */
+    val particleCount get() = input.materials.count
+    val direction get() = input.direction
+    val variationSeed get() = input.materials.variation.seed
+
+    /** 是否还有采样没算（只算到 [reverseTarget]）。 */
+    val reverseIncomplete get() = reverseQueue != null && reverseFrame <= reverseTarget
+
+    /** 推进一个采样；返回 false 表示被取消。 */
+    fun stepReverse(cancelled: () -> Boolean): Boolean {
+        val history = checkNotNull(reverseHistory)
+        val queue = checkNotNull(reverseQueue)
+        if (cancelled()) return false
+        val frame = reverseFrame
+        probe()?.frame(frame, "pre")
+        val merged = advance(history.plan.time(frame), batchPressure = true, historyFrame = frame)
+        if (!merged) {
+            probe()?.mark("history", ParticlePerfProbe.LEVEL_SEGMENT)
+            history.transfer(frame, restore = false)
+            probe()?.stop(ParticlePerfProbe.LEVEL_SEGMENT)
+        }
+        if (!queue.finishBatch(cancelled)) return false
+        reverseFrame = frame + 1
+        return true
+    }
+
+    /** 全部采样算完后调用一次：关闭在途队列并落下诊断记录。 */
+    fun endReverse() {
+        val queue = reverseQueue ?: return
+        reverseQueue = null
+        queue.close()
+        val history = checkNotNull(reverseHistory)
+        val probe = if (reverseProbe) probe() else null
+        probe?.stop(ParticlePerfProbe.LEVEL_TOTAL)
+        if (probe != null) {
+            // 只有开着诊断时才排空管线：墙钟口径要求 GPU 真的算完。
+            GLES30.glFinish()
+            probe.endBusy()
+            probe.note("precomputeWallMs", (System.nanoTime() - reverseStartedAt) / 1e6)
+            probe.note("samples", history.plan.samples)
+            probe.note("target", reverseTarget)
+            probe.note("count", input.materials.count)
+            probe.note("historyBytes", history.plan.bytes)
+            probe.note("historyAllocMs", history.allocMs)
+            probe.note("largeTile", reverseLargeTile)
+            probe.note("jacobiBatch", if (reverseLargeTile) reverseJacobiBatch else 8)
+            probe.note("historyMerged", reverseHasHistory)
+            probe.note("skipBirth", ParticlePerfTuning.skipBeforeFirstBirth)
+            probe.flush()
+        }
         checkGl("逆向准备")
         if (BuildConfig.DEBUG) Log.i(TAG,
-            "出现轨迹准备 elapsedMs=${(System.nanoTime()-started)/1e6} bytes=${history.plan.bytes} samples=${history.plan.samples} count=${input.materials.count}")
+            "出现轨迹准备 elapsedMs=${(System.nanoTime()-reverseStartedAt)/1e6} bytes=${history.plan.bytes} samples=${history.plan.samples} target=$reverseTarget count=${input.materials.count}")
+    }
+
+    /** 一次正向解算（离屏对照用的阻塞版本）；GL 线程可随时取消。 */
+    fun prepareReverse(samples: Int = ParticleReversePlan.samplesFor(ParticleReversePlan.APPEARANCE_SECONDS, 60f),
+                       cancelled: () -> Boolean = { false }): Boolean {
+        beginReverse(samples)
+        while (reverseIncomplete) if (!stepReverse(cancelled)) return false
+        endReverse()
         return !cancelled()
     }
 
@@ -276,11 +629,13 @@ internal class ParticleMicroflakeRenderer(
         check(step == 0 && reverseHistory == null)
         prepareOptimizedIntegration()
         return ParticleReverseHistory(program("particle-playback/history.comp"),
-            ParticleReversePlan(input.materials.values, samples)).also { reverseHistory = it }
+            ParticleReversePlan(input.materials.values, samples), shared.history,
+            shared.uniforms).also { reverseHistory = it }
     }
 
     /** 使用正向播放相同时间值、相同状态和相同材质，避免对阻尼／压力求逆引入新轨迹。 */
-    fun drawReverseFrame(frame: Int, stateBuffer: Int = buffers[1]) {
+    fun drawReverseFrame(frame: Int, stateBuffer: Int = buffers[1], clearTarget: Boolean = true) {
+        activate()
         val history = checkNotNull(reverseHistory)
         require(frame in 0..history.plan.samples)
         for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
@@ -289,14 +644,15 @@ internal class ParticleMicroflakeRenderer(
         val t = history.plan.time(frame)
         val frameStep = floor(t.toDouble() * 240 + 1e-6).toInt()
         if (stateBuffer == buffers[1]) step = frameStep
-        render(t, max(0f, t - frameStep / 240f))
+        render(t, max(0f, t - frameStep / 240f), stateBuffer, clearTarget)
     }
 
-    private fun drawGestureFrame(position: Float, stateBuffer: Int) {
+    fun drawGestureFrame(position: Float, stateBuffer: Int, clearTarget: Boolean = true) {
+        activate()
         val frame = position.toInt()
         val fraction = position - frame
         if (fraction == 0f) {
-            drawReverseFrame(frame, stateBuffer)
+            drawReverseFrame(frame, stateBuffer, clearTarget)
             return
         }
         val history = checkNotNull(reverseHistory)
@@ -304,121 +660,33 @@ internal class ParticleMicroflakeRenderer(
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
         history.transfer(frame, restore = true, fraction = fraction)
         // 相邻缓存已经插值得到此时刻的位置，不能再叠加积分步长的速度外推。
-        render(position / history.plan.samples, extrapolation = 0f)
+        render(position / history.plan.samples, extrapolation = 0f,
+            stateBuffer = stateBuffer, clearTarget = clearTarget)
     }
 
-    fun playReverse(durationSeconds: Float, durationScale: Float, refreshRate: Float,
-                    cancelled: () -> Boolean, onFirstFrame: () -> Unit,
-                    beforePlayback: () -> Boolean = { true },
-                    onSubmitted: (Long, Float) -> Unit = { _, _ -> }): Boolean {
-        val duration = durationSeconds * durationScale.coerceAtLeast(.1f)
-        if (!prepareReverse(ParticleReversePlan.samplesFor(duration, refreshRate), cancelled)) return false
-        if (!beforePlayback()) return false
-        val plan = checkNotNull(reverseHistory).plan
-        return playFrames(duration, cancelled, onFirstFrame, onSubmitted, true) { progress ->
-            drawReverseFrame(plan.frame(progress))
-        }
-    }
+    /** 手势回放用的独立状态缓冲：五分量历史不能覆盖继续正向积分所需的八分量状态。 */
+    private var gestureState = 0
 
-    fun playGesture(gesture: ParticleGestureProgress, cancelled: () -> Boolean,
-                    onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit): Boolean {
-        val samples = ParticleReversePlan.MAX_SAMPLES
-        val history = createHistory(samples)
-        // 手势从零开始，只先保存起点；不等待与当前手指无关的完整一秒轨迹。
-        advance(0f, batchPressure = true)
-        history.transfer(0, restore = false)
-        val playbackState = IntArray(1)
-        try {
-            GLES30.glGenBuffers(1, playbackState, 0)
-            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, playbackState[0])
+    fun gestureStateBuffer(): Int {
+        if (gestureState == 0) {
+            val id = IntArray(1)
+            GLES30.glGenBuffers(1, id, 0)
+            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, id[0])
             GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, input.materials.count * 32,
                 null, GLES30.GL_DYNAMIC_DRAW)
-            var prepared = 0
-            var previousPosition = Float.NaN
-            ParticleGpuWork.PreparationQueue().use { queue ->
-                return ParticlePlaybackClock.seek(cancelled) { timestamp ->
-                    val position = gesture.framePosition(samples)
-                    val drawStart = System.nanoTime()
-                    // 当前画面只等待其必需的邻帧。手指停住、无需重绘时再提前两档，
-                    // 不把尚未请求的轨迹运算放在可见帧前面。
-                    val target = if (gesture.active)
-                        max(ceil(position).toInt(), if (position == previousPosition)
-                            (prepared + 2).coerceAtMost(samples) else prepared) else 0
-                    while (prepared < target) {
-                        prepared++
-                        advance(history.plan.time(prepared), batchPressure = true)
-                        history.transfer(prepared, restore = false)
-                        if (!queue.finishBatch(cancelled)) return@seek false
-                    }
-                    if (position == previousPosition) return@seek true
-                    // 回放状态必须独立：五分量历史不能覆盖继续正向积分所需的八分量状态。
-                    drawGestureFrame(position, playbackState[0])
-                    val drawEnd = System.nanoTime()
-                    GLES30.glFinish()
-                    val ready = System.nanoTime()
-                    android.opengl.EGLExt.eglPresentationTimeANDROID(EGL14.eglGetCurrentDisplay(),
-                        EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW), timestamp)
-                    if (!swap()) false else {
-                        if (BuildConfig.DEBUG) drawTimings += longArrayOf(timestamp, drawStart, drawEnd, ready, System.nanoTime())
-                        onSubmitted(timestamp, position / samples)
-                        if (previousPosition.isNaN()) onFirstFrame()
-                        previousPosition = position
-                        true
-                    }
-                }
-            }
-        } finally {
-            GLES30.glDeleteBuffers(1, playbackState, 0)
+            gestureState = id[0]
         }
+        return gestureState
     }
 
-    fun play(durationScale: Float, refreshRate: Float, cancelled: () -> Boolean,
-             onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit = { _, _ -> }): Boolean =
-        playFrames(durationScale.coerceAtLeast(.1f), cancelled, onFirstFrame, onSubmitted, false) {
-            draw(it, batchPressure = true)
-        }
+    /** 手势的第 0 档：没有任何积分步可搭，历史单独转存一次。 */
+    fun seedGesture() {
+        advance(0f, batchPressure = true)
+        checkNotNull(reverseHistory).transfer(0, restore = false)
+        reverseFrame = 1
+    }
 
     internal val drawTimings = ArrayList<LongArray>()
-
-    private fun playFrames(duration: Float, cancelled: () -> Boolean,
-                           onFirstFrame: () -> Unit, onSubmitted: (Long, Float) -> Unit,
-                           reverse: Boolean, drawFrame: (Float) -> Unit): Boolean {
-        var frames = 0
-        var started = 0L
-        var previous = 0L
-        val intervals = ArrayList<Double>()
-        val completed = ParticlePlaybackClock.play(duration, cancelled) { progress, timestamp ->
-            val drawStart = System.nanoTime()
-            drawFrame(progress)
-            val drawEnd = System.nanoTime()
-            // CPU 提交可能快于 GPU 完成，尤其是逆向缓存与双弹窗重叠时。
-            // 在专用 GL 线程等本帧就绪再交给 HWUI，减少缓冲排队后被替代的跳帧。
-            GLES30.glFinish()
-            val ready = System.nanoTime()
-            android.opengl.EGLExt.eglPresentationTimeANDROID(EGL14.eglGetCurrentDisplay(),
-                EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW), timestamp)
-            if (!swap()) false else {
-                if (BuildConfig.DEBUG) drawTimings += longArrayOf(timestamp, drawStart, drawEnd, ready, System.nanoTime())
-                onSubmitted(timestamp, progress)
-                if (frames == 0) { started = timestamp; onFirstFrame() }
-                else intervals += (timestamp - previous) / 1e6
-                previous = timestamp
-                frames++
-                true
-            }
-        }
-        if (completed) {
-            if (BuildConfig.DEBUG) {
-                intervals.sort()
-                val label = if (reverse) "出现完成 particles=" else "完成 count="
-                Log.i(TAG, "$label${input.materials.count} frames=$frames elapsedMs=${(previous-started)/1e6} " +
-                    "p90Ms=${intervals[(intervals.size*.9).toInt().coerceAtMost(intervals.lastIndex)]} " +
-                    "maxMs=${intervals.last()} direction=${input.direction} seed=${input.materials.variation.seed}")
-            }
-            checkGl("结束")
-        }
-        return completed
-    }
 
     fun readState(): ByteBuffer {
         GLES30.glFinish()
@@ -432,7 +700,8 @@ internal class ParticleMicroflakeRenderer(
     }
 
     /** 从当前分布抵消剥离汇聚；不删除材料，也不替换每片已有的流动速度。 */
-    private inner class PeelPressure(private val span: Float, windX: Float, windY: Float) : Closeable {
+    private inner class PeelPressure(private val span: Float,
+                                     private val windX: Float, private val windY: Float) : Closeable {
         private val gridCell = span.toDouble() / 96.0
         private val columns = ceil(input.cardWidth / gridCell).toInt() + 192
         private val rows = ceil(input.cardHeight / gridCell).toInt() + 192
@@ -445,7 +714,7 @@ internal class ParticleMicroflakeRenderer(
         private val project = program("peel-project.comp")
         private var current = 0
         private val tileBuffer = IntArray(1)
-        val texture = newTexture(GLES30.GL_TEXTURE_2D)
+        val texture = newTexture(GLES30.GL_TEXTURE_2D, textures)
 
         init {
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
@@ -459,6 +728,14 @@ internal class ParticleMicroflakeRenderer(
                 GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, size,
                     if (i >= 3) ByteBuffer.allocateDirect(size) else null, GLES30.GL_DYNAMIC_DRAW)
             }
+            applyUniforms()
+            configureIntegration(compute)
+            // 首帧只清空修正场；不提前计算整段动画或执行空压力迭代。
+            resolveField()
+        }
+
+        /** 构造期设过一次的 uniform；共享程序被别的会话改过之后要原样重设。 */
+        fun applyUniforms() {
             for (p in intArrayOf(splat, blur, project)) {
                 GLES30.glUseProgram(p)
                 GLES30.glUniform2i(location(p, "grid_shape"), columns, rows)
@@ -475,9 +752,6 @@ internal class ParticleMicroflakeRenderer(
                 (columns * gridCell).toFloat(), (rows * gridCell).toFloat())
             GLES30.glUseProgram(blur)
             one(blur, "occupancy_scale", (input.materials.cellX * input.materials.cellY / (gridCell * gridCell)).toFloat())
-            configureIntegration(compute)
-            // 首帧只清空修正场；不提前计算整段动画或执行空压力迭代。
-            resolveField()
         }
 
         fun configureIntegration(compute: Int) {
@@ -513,11 +787,14 @@ internal class ParticleMicroflakeRenderer(
                 GLES31.glDispatchCompute(groupsX, groupsY, 1); barrier()
             }
             bind(2, 0)
-            val solver = if (batched) program("particle-playback/pressure-batched.comp") else project
-            if (batched) prepareTiles()
+            val large = batched && reverseLargeTile
+            val solver = if (!batched) project
+                else if (large) program("particle-playback/pressure-batched-large.comp", defines = jacobiDefines())
+                else program("particle-playback/pressure-batched.comp")
+            if (batched) prepareTiles(large)
             GLES30.glUseProgram(solver)
             GLES30.glUniform2i(location(solver, "grid_shape"), columns, rows)
-            val batch = if (batched) 8 else 1
+            val batch = if (!batched) 1 else if (large) reverseJacobiBatch else 8
             for (iteration in 0 until 100 step batch) {
                 bind(3 + current, 1); bind(4 - current, 2)
                 if (batched) {
@@ -530,39 +807,51 @@ internal class ParticleMicroflakeRenderer(
                 current = 1 - current
                 if (batched && iteration == 0) {
                     // 首批读取了上一时刻压力；之后才清除另一个缓冲，保留原首轮邻域贡献。
-                    clearTileDestination()
+                    clearTileDestination(large)
                     GLES30.glUseProgram(solver)
                 }
             }
             resolveField()
         }
 
-        private fun prepareTiles() {
+        /** 大 tile 路径的工作组覆盖 32×32 格，收集粒度必须与求解器的输出 tile 一致。 */
+        private val largeGroupsX = (columns + 31) / 32
+        private val largeGroupsY = (rows + 31) / 32
+
+        private fun tilesProgram(large: Boolean) =
+            if (large) program("particle-playback/pressure-tiles-large.comp")
+            else program("particle-playback/pressure-tiles.comp")
+
+        private fun prepareTiles(large: Boolean) {
             if (tileBuffer[0] == 0) {
                 GLES30.glGenBuffers(1, tileBuffer, 0)
                 GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, tileBuffer[0])
+                // 按 16 格粒度（tile 数更多的那一种）分配，两条路径共用同一个缓冲。
                 GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, 16 + groupsX * groupsY * 8, null, GLES30.GL_DYNAMIC_DRAW)
             }
             GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 7, tileBuffer[0])
             GLES30.glBindBuffer(GLES31.GL_DISPATCH_INDIRECT_BUFFER, tileBuffer[0])
-            val tiles = program("particle-playback/pressure-tiles.comp")
+            val tiles = tilesProgram(large)
             GLES30.glUseProgram(tiles)
             GLES30.glUniform2i(location(tiles, "grid_shape"), columns, rows)
             oneI(tiles, "pass", 0)
             GLES31.glDispatchCompute(1, 1, 1); barrier()
             bind(4 - current, 2)
             oneI(tiles, "pass", 1)
-            GLES31.glDispatchCompute(groupsX, groupsY, 1)
+            if (large) GLES31.glDispatchCompute(largeGroupsX, largeGroupsY, 1)
+            else GLES31.glDispatchCompute(groupsX, groupsY, 1)
             barrier()
             GLES31.glMemoryBarrier(GLES31.GL_COMMAND_BARRIER_BIT)
         }
 
-        private fun clearTileDestination() {
+        private fun clearTileDestination(large: Boolean) {
             bind(4 - current, 2)
-            val tiles = program("particle-playback/pressure-tiles.comp")
+            val tiles = tilesProgram(large)
             GLES30.glUseProgram(tiles)
             oneI(tiles, "pass", 2)
-            GLES31.glDispatchCompute(groupsX, groupsY, 1); barrier()
+            if (large) GLES31.glDispatchCompute(largeGroupsX, largeGroupsY, 1)
+            else GLES31.glDispatchCompute(groupsX, groupsY, 1)
+            barrier()
         }
 
         private fun resolveField() {
@@ -581,13 +870,13 @@ internal class ParticleMicroflakeRenderer(
         }
     }
 
-    private fun swap() = EGL14.eglSwapBuffers(EGL14.eglGetCurrentDisplay(), EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW))
-
-    private fun program(vararg paths: String, reverseIntegration: Boolean = false): Int {
-        val key = paths.joinToString(";") + if (reverseIntegration) ":reverse" else ""
-        compiledPrograms[key]?.let { return it }
+    private fun program(vararg paths: String, reverseIntegration: Boolean = false,
+                        reverseHistory: Boolean = false, defines: String = ""): Int {
+        val key = paths.joinToString(";") + (if (reverseIntegration) ":reverse" else "") +
+            (if (reverseHistory) ":history" else "") + defines
+        shared.compiled[key]?.let { return it }
         val p = GLES30.glCreateProgram()
-        programs.add(p)
+        shared.programs.add(p)
         val shaders = ArrayList<Int>()
         try {
             for (path in paths) {
@@ -598,8 +887,9 @@ internal class ParticleMicroflakeRenderer(
                 }
                 val shader = GLES30.glCreateShader(type)
                 shaders.add(shader)
-                val source = assets.open(if ('/' in path) path else "particle-dismiss/$path").bufferedReader().use { it.readText() }
-                GLES30.glShaderSource(shader, if (reverseIntegration) ParticleReverseShader.integration(source) else source)
+                val raw = assets.open(if ('/' in path) path else "particle-dismiss/$path").bufferedReader().use { it.readText() }
+                val transformed = if (reverseIntegration) ParticleReverseShader.integration(raw, reverseHistory) else raw
+                GLES30.glShaderSource(shader, ParticleReverseShader.withDefines(transformed, defines))
                 GLES30.glCompileShader(shader)
                 val status = IntArray(1)
                 GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, status, 0)
@@ -610,32 +900,11 @@ internal class ParticleMicroflakeRenderer(
             val status = IntArray(1)
             GLES30.glGetProgramiv(p, GLES30.GL_LINK_STATUS, status, 0)
             check(status[0] != 0) { "${paths.joinToString()}: ${GLES30.glGetProgramInfoLog(p)}" }
-            compiledPrograms[key] = p
+            shared.compiled[key] = p
             return p
         } finally {
             for (shader in shaders) GLES30.glDeleteShader(shader)
         }
-    }
-
-    private fun newTexture(target: Int): Int {
-        val id = IntArray(1)
-        GLES30.glGenTextures(1, id, 0); textures.add(id[0])
-        GLES30.glBindTexture(target, id[0])
-        GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
-        GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
-        GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
-        GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
-        if (target == GLES30.GL_TEXTURE_3D) GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_R, GLES30.GL_CLAMP_TO_EDGE)
-        return id[0]
-    }
-
-    private fun uploadFields(guide: ByteArray, rules: ParticleMicroflakeRules, confidence: ByteArray) {
-        val w=rules.number("flow_width").toInt(); val h=rules.number("flow_height").toInt()
-        val time=rules.number("flow_time").toInt()
-        guideTexture = newTexture(GLES30.GL_TEXTURE_3D)
-        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D,0,GLES30.GL_RG16F,w,h,time,0,GLES30.GL_RG,GLES30.GL_HALF_FLOAT,direct(guide))
-        confidenceTexture = newTexture(GLES30.GL_TEXTURE_3D)
-        GLES30.glTexImage3D(GLES30.GL_TEXTURE_3D,0,GLES30.GL_R8,w,h,time,0,GLES30.GL_RED,GLES30.GL_UNSIGNED_BYTE,direct(confidence))
     }
 
     private fun uploadBuffer(index: Int, floats: FloatArray) {
@@ -649,20 +918,24 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER,bytes.remaining(),bytes,GLES30.GL_DYNAMIC_DRAW)
     }
 
-    private fun location(program: Int, name: String) = uniforms.getOrPut("$program:$name") { GLES30.glGetUniformLocation(program, name) }
+    private fun location(program: Int, name: String) =
+        shared.uniforms.getOrPut("$program:$name") { GLES30.glGetUniformLocation(program, name) }
     private fun one(program: Int, name: String, value: Float) = GLES30.glUniform1f(location(program, name), value)
     private fun oneI(program: Int, name: String, value: Int) = GLES30.glUniform1i(location(program, name), value)
     private fun two(program: Int, name: String, x: Float, y: Float) = GLES30.glUniform2f(location(program, name), x, y)
 
     override fun close() {
-        reverseHistory?.close()
+        probe?.finish(probeStage)
+        probe = null
+        reverseQueue?.close(); reverseQueue = null
+        reverseHistory?.close(); reverseHistory = null
         if (::peelPressure.isInitialized) peelPressure.close()
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        GLES30.glDeleteFramebuffers(1, framebuffer, 0)
-        GLES30.glDeleteVertexArrays(1, vao, 0)
-        GLES30.glDeleteBuffers(buffers.size, buffers, 0)
+        if (gestureState != 0) { GLES30.glDeleteBuffers(1, intArrayOf(gestureState), 0); gestureState = 0 }
+        if (pipelinePrepared) GLES30.glDeleteBuffers(buffers.size, buffers, 0)
         if (textures.isNotEmpty()) GLES30.glDeleteTextures(textures.size, textures.toIntArray(), 0)
-        for (p in programs) GLES30.glDeleteProgram(p)
+        textures.clear()
+        // 程序、累积纹理、流场纹理属于 Shared，会话结束不删。
+        if (shared.owner === this) shared.owner = null
     }
 
     companion object {
@@ -679,6 +952,39 @@ internal class ParticleMicroflakeRenderer(
             ).also { shared = it }
         }
         private fun direct(bytes: ByteArray): ByteBuffer = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).apply { put(bytes); flip() }
+
+        private fun newTexture(target: Int, sink: MutableList<Int>): Int {
+            val id = IntArray(1)
+            GLES30.glGenTextures(1, id, 0); sink.add(id[0])
+            GLES30.glBindTexture(target, id[0])
+            GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
+            GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
+            GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
+            GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
+            if (target == GLES30.GL_TEXTURE_3D) GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_WRAP_R, GLES30.GL_CLAMP_TO_EDGE)
+            return id[0]
+        }
+
+        @Volatile private var adrenoRenderer: Boolean? = null
+        @Volatile private var sharedMemoryBytes = -1
+
+        /** GL_RENDERER 与 shared 上限是设备属性，进程内只查一次（必须在已绑定上下文时调用）。 */
+        fun adreno(): Boolean = adrenoRenderer ?: run {
+            val value = (GLES30.glGetString(GLES30.GL_RENDERER) ?: "").contains("Adreno", ignoreCase = true)
+            adrenoRenderer = value
+            value
+        }
+
+        fun maxSharedMemory(): Int {
+            if (sharedMemoryBytes >= 0) return sharedMemoryBytes
+            val value = IntArray(1)
+            GLES30.glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, value, 0)
+            while (GLES30.glGetError() != GLES30.GL_NO_ERROR) { /* 清掉查询失败的错误 */ }
+            sharedMemoryBytes = if (value[0] > 0) value[0] else 16384
+            return sharedMemoryBytes
+        }
+
+        private const val GL_MAX_COMPUTE_SHARED_MEMORY_SIZE = 0x8262
         private fun checkGl(stage: String) { check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "微片 $stage GL 错误" } }
 
         fun fromSpec(assets: AssetManager, width: Int, height: Int, density: Float, spec: ParticleDismissSpec,

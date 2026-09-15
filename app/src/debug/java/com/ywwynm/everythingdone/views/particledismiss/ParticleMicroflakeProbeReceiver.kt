@@ -79,8 +79,28 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                                 .put("maxErrors",errors).put("stages",JSONObject(actual.statistics)))
                         }
                     }
+                    // 3b：并行道数不得改变任何一个值。每一道只写自己那些下标、只读别的缓冲，
+                    // 所以「1 道」与「默认道数」的输出必须逐位相同（不是近似相同）。
+                    val lanes = JSONObject().put("defaultLanes", ParticleMaterialNative.lanes())
+                    val laneCases = JSONArray()
+                    for ((w,h) in listOf(320f to 480f, 630f to 1074f)) {
+                        val source = IntArray(256) { i ->
+                            val rgb=(ParticleMicroflakeModel.randomValue(i,53)*16777216).toInt()
+                            ((if(i%17==0) 96 else 255) shl 24) or rgb
+                        }
+                        fun build() = ParticleMicroflakeModel.build(w,h,source,16,16,294f,20260915L,rules)
+                        ParticleMaterialNative.setLanes(1)
+                        val serial = try { build() } finally { ParticleMaterialNative.setLanes(0) }
+                        val parallel = build()
+                        check(serial.values.contentEquals(parallel.values)) { "并行道数改变了材料值 w=$w h=$h" }
+                        check(serial.pigment.contentEquals(parallel.pigment)) { "并行道数改变了色素 w=$w h=$h" }
+                        check(serial.peelCompression.contentEquals(parallel.peelCompression)) { "并行道数改变了压缩 w=$w h=$h" }
+                        laneCases.put(JSONObject().put("width",w).put("height",h).put("count",parallel.count)
+                            .put("bitIdentical",true))
+                    }
+                    lanes.put("cases",laneCases)
                     File(out,"native-material-parity.json").writeText(JSONObject().put("ok",true).put("checkId",checkId)
-                        .put("uploadBuffersVerified",true).put("cases",cases).toString(2))
+                        .put("uploadBuffersVerified",true).put("lanes",lanes).put("cases",cases).toString(2))
                 } catch (error: Throwable) {
                     File(out,"native-material-parity.json").writeText(JSONObject().put("ok",false).put("checkId",checkId).put("error",error.stackTraceToString()).toString(2))
                 } finally { running.set(false) }
@@ -163,7 +183,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         }
         saveValues("materials", materials.values); saveValues("pigment", materials.pigment)
         saveValues("peel-compression", materials.peelCompression)
-        withEgl(width, height) {
+        withEgl(context.assets, width, height) { shared ->
             val forwardHashes = ArrayList<String>()
             val reversePlan = ParticleReversePlan(materials.values, reverseIntervals)
             fun frameHash(): String {
@@ -174,7 +194,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             }
             report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER)).put("version", GLES30.glGetString(GLES30.GL_VERSION))
             saveValues("grid-jitter", readGridJitter(context, materials.columns + 1, materials.rows + 1))
-            ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
+            ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
                 val prepare = System.nanoTime()
                 renderer.preparePipeline(ParticleMicroflakeRenderer.sharedResources(context.assets))
                 renderer.prepare(); GLES30.glFinish()
@@ -200,7 +220,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             }
             if (reverseCheck) {
                 // 优化的正向压力批次也与独立旧解算逐帧比较，不能拿自身充当基准。
-                ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
+                ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
                     renderer.prepare()
                     for (i in 0..reversePlan.samples) {
                         renderer.draw(reversePlan.time(i), batchPressure = true)
@@ -209,7 +229,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 }
                 report.put("forwardBatchVerified", true)
                 val reverseSamples = JSONArray()
-                ParticleMicroflakeRenderer(context.assets, width, height, input).use { renderer ->
+                ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
                     renderer.prepare()
                     val prepare = System.nanoTime()
                     // 同时覆盖前台有动画时的小批次调度分支，逐帧像素仍必须与原正向模型相等。
@@ -302,7 +322,8 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun withEgl(width: Int, height: Int, action: () -> Unit) {
+    private fun withEgl(assets: android.content.res.AssetManager, width: Int, height: Int,
+                        action: (ParticleMicroflakeRenderer.Shared) -> Unit) {
         val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         val version = IntArray(2)
         check(EGL14.eglInitialize(display, version, 0, version, 1))
@@ -316,7 +337,10 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         val surface = EGL14.eglCreatePbufferSurface(display, configs[0],
             intArrayOf(EGL14.EGL_WIDTH, width, EGL14.EGL_HEIGHT, height, EGL14.EGL_NONE), 0)
         check(EGL14.eglMakeCurrent(display, surface, surface, gl))
-        try { action() } finally {
+        // 探针自带上下文，共享资源也必须是这个上下文私有的一份（程序对象不跨上下文有效）。
+        val shared = ParticleMicroflakeRenderer.Shared(assets)
+        try { shared.ensure(width, height); action(shared) } finally {
+            runCatching { shared.close() }
             EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
             EGL14.eglDestroySurface(display, surface); EGL14.eglDestroyContext(display, gl); EGL14.eglReleaseThread()
             // display 与应用 HWUI 共用，不能终止其他活跃渲染器。

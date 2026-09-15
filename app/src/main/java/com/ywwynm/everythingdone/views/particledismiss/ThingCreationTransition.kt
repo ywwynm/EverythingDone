@@ -58,6 +58,7 @@ internal class ThingCreationTransition private constructor(
     }
 
     private fun start() {
+        ParticleLaunchTrace.mark("transition-start")
         // 创建页默认聚焦正文。首次窗口获得焦点时先保持键盘隐藏，避免首页
         // 承接快照尚在显示就弹出键盘，并在粒子捕获期间改变可用布局高度。
         activity.window.setSoftInputMode((originalSoftInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE.inv()) or
@@ -70,7 +71,12 @@ internal class ThingCreationTransition private constructor(
             content.alpha = 1f
             val started = ParticleDismissController.appearContent(activity, activity.window, content,
                 appearanceDirection = 315f, roundSnapshot = false,
-                onAppearanceFinished = { finish(true) }) { particle = it }
+                onAppearanceFinished = { finish(true) },
+                // 2b：新建按钮中心就是本次出现的真实触点。首页与创建页都是全屏窗口，
+                // 窗口坐标一致，换算到内容坐标由 appearContent 在捕获那一刻完成。
+                appearanceTouchInWindow = if (sourceX.isFinite() && sourceY.isFinite())
+                    android.graphics.PointF(sourceX, sourceY) else null,
+                skipEmptyTail = true, traceLabel = "appear") { particle = it }
             if (!started) finish(true)
         } else content.doOnPreDraw {
             if (closed) return@doOnPreDraw
@@ -146,9 +152,19 @@ internal class ThingCreationTransition private constructor(
         border = null
     }
 
+    /** 入场动画结束（含任何中止路径）之后执行；已经结束时立即执行。 */
+    fun afterFinish(action: Runnable) {
+        if (closed) action.run() else finishListeners += action
+    }
+
+    private val finishListeners = mutableListOf<Runnable>()
+
     fun finish(enterCompleted: Boolean = false) {
         if (closed) return
         closed = true
+        val listeners = finishListeners.toList()
+        finishListeners.clear()
+        listeners.forEach { it.run() }
         content.removeOnLayoutChangeListener(layoutObserver)
         ParticleDismissController.cancelAppearance(content)
         particle?.release(); particle = null
@@ -190,6 +206,7 @@ internal class ThingCreationTransition private constructor(
         fun launch(activity: Activity, intent: Intent, sourceX: Float, sourceY: Float,
                    onLaunched: (Boolean) -> Unit) {
             fun open(bitmap: Bitmap?) {
+                ParticleLaunchTrace.mark("home-capture")
                 if (activity.isFinishing || activity.isDestroyed || !activity.hasWindowFocus()) {
                     bitmap?.recycle(); onLaunched(false); return
                 }
@@ -201,10 +218,12 @@ internal class ThingCreationTransition private constructor(
                     // 启动失败、进程重建等情况不能永久持有首页画面。
                     main.postDelayed({ pendingTransitions.remove(token)?.bitmap?.recycle() }, 10_000)
                 }
+                ParticleLaunchTrace.mark("start-activity")
                 activity.startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_DETAIL,
                     ActivityOptions.makeCustomAnimation(activity, 0, 0).toBundle())
                 onLaunched(true)
             }
+            ParticleLaunchTrace.mark("home-capture-request")
             if (!ValueAnimator.areAnimatorsEnabled()) open(null)
             else ParticleDismissController.captureContent(activity.window.decorView, ::open)
         }

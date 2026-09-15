@@ -6215,6 +6215,9 @@ class ThingsActivity :
         mFab!!.bindSnackbars(mNormalSnackbar)
         mFab!!.setOnClickListener {
             if (mIsRevealAnimPlaying) return@setOnClickListener
+            // 2a 的链路起点就是这一刻（点击在抬手时派发）；release 包里是空调用。
+            com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.clear()
+            com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace.mark("fab-up")
             mIsRevealAnimPlaying = true
             mCreationLaunchPending = true
             dismissSnackbars()

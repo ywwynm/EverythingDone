@@ -31,6 +31,9 @@ internal class ParticleSwipeAnimator(private val activity: Activity) {
     fun warm(view: View, event: MotionEvent) {
         cancelPending()
         if (!ValueAnimator.areAnimatorsEnabled() || !view.isAttachedToWindow || sessions.containsKey(view)) return
+        // 按下这一刻就把宿主窗口的粒子 Surface 备好：识别左滑之后不能再等表面创建，
+        // 也不要在 RecyclerView 绘制过程里往 DecorView 加子 View。
+        ParticleWindowSurface.of(activity)
         unavailable.remove(view)
         downX = event.rawX; downY = event.rawY
         warming = Session(view, initiallyActive = false).also {
@@ -160,8 +163,10 @@ internal class ParticleSwipeAnimator(private val activity: Activity) {
                     onPresentedProgress = { progress ->
                         if (finishing && progress >= 1f) dispose()
                     }, gesture = gesture).also {
-                        it.alpha = if (gesture.active) 1f else 0f
-                        host.addView(it, ViewGroup.LayoutParams(-1, -1))
+                        // 粒子画面在宿主窗口那一个共享 Surface 上，本层只是生命周期锚点；
+                        // 「识别之前不显示」由会话的可见性开关控制，不再靠 View 的 alpha。
+                        it.setParticleVisible(gesture.active)
+                        ParticleOverlayHost.attach(host, it)
                     }
             }
             if (!closed && gesture.active) view.alpha = 0f
@@ -172,8 +177,10 @@ internal class ParticleSwipeAnimator(private val activity: Activity) {
             warming = null
             main.removeCallbacks(cancelWarmup)
             gesture.activate()
-            overlay?.alpha = 1f
+            overlay?.setParticleVisible(true)
             view.alpha = 0f
+            // 识别的那一刻就唤醒 GL 线程：首个非零画面要落在这一拍里（3.1）。
+            ParticleGl.wake()
         }
 
         fun moveFinger(displacement: Float) {
@@ -256,8 +263,9 @@ internal class ParticleSwipeAnimator(private val activity: Activity) {
             capturedBitmap = null
             // reset 也由 RecyclerView.onDraw 在回拖跨过原点时调用。此时 DecorView
             // 仍在遍历自己的子数组，不能同步 removeView 或回调业务改变层级。
-            // 先隐藏失效画面，等整个绘制调用栈返回后再释放；闭合状态已阻止重复执行。
-            old?.alpha = 0f
+            // 等整个绘制调用栈返回后再释放；闭合状态已阻止重复执行。
+            // 回拖取消时真实卡片刚刚恢复（view.alpha 已复位），粒子层必须等它上屏之后
+            // 才撤——release() 内部按「先显后撤」等宿主窗口的下一次提交。
             main.post {
                 old?.release()
                 done?.invoke()

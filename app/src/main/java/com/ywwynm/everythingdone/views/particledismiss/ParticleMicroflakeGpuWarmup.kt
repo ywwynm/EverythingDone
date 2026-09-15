@@ -31,8 +31,12 @@ internal object ParticleMicroflakeGpuWarmup {
             bitmap = Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888).apply { eraseColor(-1) }
             val input = ParticleMicroflakeRenderer.Input(240f,320f,240f,320f,0f,0f,65f,bitmap,
                 materials,resources.guide,resources.rules,confidence=resources.confidence)
-            ParticleMicroflakeRenderer(assets,64,64,input).use { renderer ->
-                renderer.prepare(); renderer.prepareReversePipeline(); renderer.draw(0f); GLES30.glFinish()
+            // 预热跑在自己的临时上下文里，共享资源也必须是临时的：程序对象不跨上下文有效。
+            ParticleMicroflakeRenderer.Shared(assets).use { shared ->
+                shared.ensure(64, 64)
+                ParticleMicroflakeRenderer(assets, shared, input).use { renderer ->
+                    renderer.prepare(); renderer.prepareReversePipeline(); renderer.draw(0f); GLES30.glFinish()
+                }
             }
         } finally {
             bitmap?.recycle()

@@ -9,6 +9,12 @@ internal object ParticleGpuWork {
     fun beginPlayback() { playing.incrementAndGet() }
     fun endPlayback() { playing.decrementAndGet() }
 
+    /** 是否已经有触摸反馈或粒子播放在进行；准备类线程据此决定要不要让出大核（见 1.7）。 */
+    val busy: Boolean get() = playing.get() > 0
+
+    /** 当前登记的反馈 + 会话数；会话判断「除了我还有别人在用 GPU 吗」。 */
+    val playbackCount: Int get() = playing.get()
+
     /** 每个 GL 上下文独享。最多两批在途，使 CPU 提交与上一批 GPU 运算重叠。 */
     class PreparationQueue : java.io.Closeable {
         private var pending = 0L

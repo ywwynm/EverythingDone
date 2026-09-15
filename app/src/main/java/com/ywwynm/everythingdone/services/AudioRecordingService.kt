@@ -179,7 +179,12 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
         super.onCreate()
         engine = AudioCaptureEngine(applicationContext)
         engine.listener = this
-        ensureNotificationChannel()
+        // 建通知渠道是一次跨进程调用，实测会在录音弹窗出现的关键路径上卡住主线程
+        // （阶段 0 主线程停顿采样，三星 7 个样本）。挪到后台线程先建；真正要发通知时
+        // notificationBuilder() 会再保证一次，渠道不可能缺席。
+        if (com.ywwynm.everythingdone.views.particledismiss.ParticlePerfTuning.deferRecordDialogInit) {
+            Thread({ runCatching { ensureNotificationChannel() } }, "AudioNotificationChannel").start()
+        } else ensureNotificationChannel()
         restoreStoppedSessionIfPersisted()
     }
 
@@ -853,7 +858,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
     /** 停止到收尾完成之间，把仍在走秒的录音通知换成"正在保存"，不再假装录音继续。 */
     private fun updateFinalizingNotification() {
         if (!foregroundActive) return
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = notificationBuilder()
             .setSmallIcon(R.drawable.act_stop_recording_audio)
             .setContentTitle(getString(R.string.audio_recording_finalizing_notification_title))
             .setContentText(inputModeLabel(snapshot.inputMode))
@@ -992,7 +997,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
     }
 
     private fun buildPreviewNotification(mode: AudioInputMode): Notification =
-        NotificationCompat.Builder(this, CHANNEL_ID)
+        notificationBuilder()
             .setSmallIcon(R.drawable.act_stop_recording_audio)
             .setContentTitle(getString(R.string.audio_input_preview_notification_title))
             .setContentText(inputModeLabel(mode))
@@ -1011,7 +1016,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
 
     private fun updatePreparedAuthorizationNotification(mode: AudioInputMode) {
         if (!foregroundActive || !mode.requiresSystemAudio) return
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = notificationBuilder()
             .setSmallIcon(R.drawable.act_stop_recording_audio)
             .setContentTitle(getString(R.string.audio_input_authorization_notification_title))
             .setContentText(inputModeLabel(mode))
@@ -1034,7 +1039,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
         }
         val wallClockBase = System.currentTimeMillis() -
             (SystemClock.elapsedRealtime() - baseElapsed).coerceAtLeast(0L)
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        return notificationBuilder()
             .setSmallIcon(R.drawable.act_stop_recording_audio)
             .setContentTitle(getString(R.string.audio_recording_notification_title))
             .setContentText(inputModeLabel(mode))
@@ -1095,7 +1100,7 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
                 }
             )
         }
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = notificationBuilder()
             .setSmallIcon(R.drawable.act_stop_recording_audio)
             .setContentTitle(title)
             .setContentText(text)
@@ -1199,7 +1204,26 @@ class AudioRecordingService : Service(), AudioCaptureEngine.Listener {
         stopSelf()
     }
 
+    /** 建通知之前一定先保证渠道存在；渠道已就绪时这条是一次布尔判断。 */
+    private fun notificationBuilder(): NotificationCompat.Builder {
+        ensureNotificationChannel()
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+    }
+
+    @Volatile private var notificationChannelReady = false
+    private val notificationChannelLock = Any()
+
+    @Suppress("ReturnCount")
     private fun ensureNotificationChannel() {
+        if (notificationChannelReady) return
+        synchronized(notificationChannelLock) {
+            if (notificationChannelReady) return
+            createNotificationChannelLocked()
+            notificationChannelReady = true
+        }
+    }
+
+    private fun createNotificationChannelLocked() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // IMPORTANCE_DEFAULT + 静音：Android 16 会把低重要度通知折进自动聚合节
         // （Aggregate_AlertingSection），聚合组行的点击只展开分组、不触发 contentIntent，

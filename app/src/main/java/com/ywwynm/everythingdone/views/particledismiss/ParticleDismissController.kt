@@ -20,7 +20,6 @@ import android.media.ImageReader
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.view.Choreographer
 import android.view.ViewTreeObserver
 import android.view.View
@@ -47,9 +46,8 @@ internal object ParticleDismissController {
     /** 透明 Activity 不能在 Dialog.onDismiss 时销毁仍在播放消散的宿主窗口。 */
     fun finishAfterAnimations(activity: Activity, finish: Runnable): Boolean {
         if (finishingHosts.containsKey(activity)) return true
-        val root = activity.window.decorView as? ViewGroup ?: return false
-        fun activeOverlays() = (0 until root.childCount)
-            .mapNotNull { root.getChildAt(it) as? ParticleDismissOverlay }
+        activity.window.decorView as? ViewGroup ?: return false
+        fun activeOverlays() = ParticleDismissOverlay.activeIn(activity)
             .filter { it.isDisappearance && it.isAttachedToWindow }
         if ((pendingDismissCaptures[activity] ?: 0) == 0 && activeOverlays().isEmpty()) return false
         finishingHosts[activity] = true
@@ -132,7 +130,11 @@ internal object ParticleDismissController {
         if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
         val hostDecor = activity.window.decorView as? ViewGroup ?: return false
         if (!hostDecor.isAttachedToWindow) return false
-        val releaseFrameRate = ParticleWindowFrameRate.holdTransition(activity.window, window)
+        // 1.2：不再改任何窗口属性。刷新率改由粒子自己的 Surface 投一次无缝 60 Hz
+        // （见 ParticleWindowSurface.applyFrameRate）。
+        // 一窗一 Surface：在请求这一刻就把宿主窗口的粒子 SurfaceView 建起来，首次动画不必
+        // 再等表面创建，也避免在别的遍历过程中往 DecorView 加子 View。
+        ParticleWindowSurface.of(activity)
         val feedback = ParticleTouchFeedback.begin(activity, decor)
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
@@ -147,14 +149,14 @@ internal object ParticleDismissController {
                 try {
                     if (snapshot != null && !activity.isFinishing && !activity.isDestroyed &&
                         hostDecor.isAttachedToWindow && decor.isAttachedToWindow) {
-                        applyRoundedCornerMask(snapshot, activity)
+                        val radius = dialogCornerRadius(activity)
+                        if (!ParticlePerfTuning.maskOnMaterialThread) applyRoundedCornerMask(snapshot, radius)
                         attachDismissOverlay(activity, hostDecor, decor, snapshot, touchInWindow,
                             onAnimationStarted, onOverlayShown,
-                            requestedAtNanos, useDefaultTouchDistance,
-                            Runnable { releaseContent(); releaseFrameRate(); onDone?.run() }, feedback)
+                            requestedAtNanos, useDefaultTouchDistance, radius,
+                            Runnable { releaseContent(); onDone?.run() }, feedback)
                     } else {
                         releaseContent()
-                        releaseFrameRate()
                         snapshot?.recycle()
                         onAnimationStarted.run()
                         onOverlayShown.run()
@@ -183,6 +185,7 @@ internal object ParticleDismissController {
         onOverlayShown: Runnable,
         requestedAtNanos: Long,
         useDefaultTouchDistance: Boolean,
+        cornerRadiusPx: Float,
         onDone: Runnable?,
         feedback: ParticleTouchFeedback?
     ) {
@@ -231,7 +234,8 @@ internal object ParticleDismissController {
             touchStrength = if (useDefaultTouchDistance || touchInWindow == null) null else
                 ParticleFlowGeometry.touchStrength(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat(),
                     (visibleScreen.left-dialogLocation[0]).toFloat(), (visibleScreen.top-dialogLocation[1]).toFloat(),
-                    (visibleScreen.right-dialogLocation[0]).toFloat(), (visibleScreen.bottom-dialogLocation[1]).toFloat())
+                    (visibleScreen.right-dialogLocation[0]).toFloat(), (visibleScreen.bottom-dialogLocation[1]).toFloat()),
+            roundedCornerRadiusPx = if (ParticlePerfTuning.maskOnMaterialThread) cornerRadiusPx else 0f
         )
         val overlay = ParticleDismissOverlay(
             activity = activity,
@@ -240,12 +244,7 @@ internal object ParticleDismissController {
             onDone = Runnable { releaseSurfaceCover?.invoke(); onDone?.run() },
             touchFeedback = feedback
         )
-        hostDecor.addView(
-            overlay,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
+        ParticleOverlayHost.attach(hostDecor, overlay)
         // 等 overlay（含快照）实际上屏后再通知调用方执行真实 dismiss：overlay
         // 与 Dialog 分属两个 window、渲染管线不同步，同帧提交也可能错开一帧
         // 生效——先就位、后揭开才能保证画面连续。
@@ -287,7 +286,7 @@ internal object ParticleDismissController {
 
     /** ViewPropertyAnimator 会自行乘系统缩放；这里只提供逻辑时长，避免重复缩放。 */
     fun dismissAnimatorDurationMs(): Long =
-        (ParticleDismissRenderer.TOTAL_DURATION * 1000).toLong()
+        (ParticleSession.TOTAL_DURATION * 1000).toLong()
 
     /**
      * 为 [dialog] 倒序播放当前共同消散模型：保持完整一秒轨迹、每次随机材料。
@@ -311,6 +310,12 @@ internal object ParticleDismissController {
 
     fun cancelAppearance(decor: View) { appearancePreparations.remove(decor)?.run() }
 
+    /**
+     * [appearanceTouchInWindow] 是本次出现的真实触点（[decor] 所在 window 的坐标），
+     * 创建页传首页新建按钮的中心。开着 2b 时它决定方向、触点距离与强度；关掉时只记录在
+     * spec 里供对比工具使用，方向仍走 [appearanceDirection]。
+     * [skipEmptyTail] 允许跳过倒放尾段几乎无粒子的部分（2c，当前只有创建页传 true）。
+     */
     fun appearContent(
         activity: Activity, window: android.view.Window, decor: View,
         hideWindow: Boolean = false, isShowing: () -> Boolean = { decor.isShown },
@@ -318,14 +323,18 @@ internal object ParticleDismissController {
         appearanceDirection: Float? = null,
         roundSnapshot: Boolean = true,
         onAppearanceFinished: (() -> Unit)? = null,
+        appearanceTouchInWindow: PointF? = null,
+        skipEmptyTail: Boolean = false,
+        traceLabel: String? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
+        traceLabel?.let { ParticleLaunchTrace.mark("$it-request") }
         if (Looper.myLooper() != Looper.getMainLooper() || !ValueAnimator.areAnimatorsEnabled()) return false
         if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) return false
         val hostDecor = activity.window.decorView as? ViewGroup ?: return false
         appearancePreparations.remove(decor)?.run()
-        val releaseFrameRate = ParticleWindowFrameRate.holdTransition(activity.window, window)
+        ParticleWindowSurface.of(activity)
         val appearanceFeedback = ParticleTouchFeedback.current(activity)
             ?: ParticleTouchFeedback.begin(activity, hostDecor)
         val prevAlpha = if (hideWindow) window.attributes.alpha else decor.alpha
@@ -347,7 +356,7 @@ internal object ParticleDismissController {
         val restore = Runnable {
             if (!handled) {
                 handled = true; removeListener(); appearancePreparations.remove(decor)
-                setAlpha(prevAlpha); releaseContent(); releaseFrameRate()
+                setAlpha(prevAlpha); releaseContent()
                 onAppearanceProgress?.invoke(1f)
                 onAppearanceFinished?.invoke()
             }
@@ -371,6 +380,7 @@ internal object ParticleDismissController {
                     removeListener()
                     captureQueued = true
                     val captureAtNanos = System.nanoTime()
+                    traceLabel?.let { ParticleLaunchTrace.mark("$it-layout") }
                     ParticleSnapshot.capture(window, decor,
                         asyncOffscreen = { done ->
                             if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
@@ -384,23 +394,54 @@ internal object ParticleDismissController {
                         handled = true
                         mainHandler.removeCallbacks(restore)
                         appearancePreparations.remove(decor)
-                        if (roundSnapshot) applyRoundedCornerMask(snapshot, activity)
+                        val radius = if (roundSnapshot) dialogCornerRadius(activity) else 0f
+                        if (roundSnapshot && !ParticlePerfTuning.maskOnMaterialThread) applyRoundedCornerMask(snapshot, radius)
                         if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
                             android.util.Log.i(ParticleMicroflakeRenderer.TAG,
                                 "出现捕获 layoutMs=${(captureAtNanos-requestedAtNanos)/1e6} captureMs=${(System.nanoTime()-captureAtNanos)/1e6} retries=$layoutRetries")
                         }
+                        traceLabel?.let { ParticleLaunchTrace.mark("$it-capture") }
                         val at = IntArray(2); decor.getLocationOnScreen(at)
                         val hostAt = IntArray(2); hostDecor.getLocationOnScreen(hostAt)
                         val x = (at[0]-hostAt[0]).toFloat(); val y = (at[1]-hostAt[1]).toFloat()
                         val angle = Math.toRadians(-(appearanceDirection
                             ?: ParticleAppearanceDirection.degrees(Math.random())).toDouble()).toFloat()
                         val reach = VIRTUAL_TOUCH_FACTOR * hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
+                        // 真实触点换算到快照局部坐标；decor 就是被拍下来的那棵树，所以
+                        // 减掉它自己在 window 里的位置即可。
+                        val local = appearanceTouchInWindow?.let {
+                            val inWindow = IntArray(2); decor.getLocationInWindow(inWindow)
+                            PointF(it.x - inWindow[0], it.y - inWindow[1])
+                        }?.takeIf { it.x.isFinite() && it.y.isFinite() &&
+                            hypot(it.x - snapshot.width/2f, it.y - snapshot.height/2f) > DIRECTION_EPSILON_PX }
+                        val mode = ParticlePerfTuning.creationAppearanceTouch
+                        val realTouch = local?.takeIf { mode >= ParticlePerfTuning.TOUCH_DIRECTION }
+                        val visibleScreen = android.graphics.Rect()
+                        hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
                         val spec = ParticleDismissSpec(snapshot = snapshot, originXPx = x, originYPx = y,
-                            virtualTouchXPx = x + snapshot.width/2f + cos(angle)*reach,
-                            virtualTouchYPx = y + snapshot.height/2f + sin(angle)*reach,
+                            // 有真实触点就直接用它：fromSpec 只从「中心 → 触点」这条射线取方向，
+                            // 射线上取哪一点都一样，用真实点最直白。
+                            virtualTouchXPx = if (realTouch != null) x + realTouch.x
+                                else x + snapshot.width/2f + cos(angle)*reach,
+                            virtualTouchYPx = if (realTouch != null) y + realTouch.y
+                                else y + snapshot.height/2f + sin(angle)*reach,
                             durationScale = animatorDurationScale(activity), hashSeed = (Math.random()*Int.MAX_VALUE).toInt(),
                             requestedAtNanos = requestedAtNanos,
-                            reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS)
+                            reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS,
+                            // 方向、触点距离、触点强度是三个可以分开采用的输入：3b 的归因轮证明
+                            // 「扇形汇入」的观感来自距离归零，而每采样预计算变贵来自强度归零。
+                            touchGap = realTouch?.takeIf { mode >= ParticlePerfTuning.TOUCH_DIRECTION_GAP }?.let {
+                                ParticleFlowGeometry.touchGap(it.x, it.y,
+                                    snapshot.width.toFloat(), snapshot.height.toFloat()) },
+                            touchStrength = realTouch?.takeIf { mode >= ParticlePerfTuning.TOUCH_FULL }?.let {
+                                ParticleFlowGeometry.touchStrength(it.x, it.y,
+                                    snapshot.width.toFloat(), snapshot.height.toFloat(),
+                                    (visibleScreen.left - at[0]).toFloat(), (visibleScreen.top - at[1]).toFloat(),
+                                    (visibleScreen.right - at[0]).toFloat(), (visibleScreen.bottom - at[1]).toFloat()) },
+                            roundedCornerRadiusPx = if (ParticlePerfTuning.maskOnMaterialThread) radius else 0f,
+                            appearanceTouchXPx = local?.let { x + it.x },
+                            appearanceTouchYPx = local?.let { y + it.y },
+                            skipEmptyTail = skipEmptyTail)
                         var overlayRef: ParticleDismissOverlay? = null
                         val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
                             onAppearanceProgress?.invoke(1f)
@@ -411,9 +452,9 @@ internal object ParticleDismissController {
                         }, touchFeedback = appearanceFeedback,
                             onPresentedProgress = onAppearanceProgress)
                         overlayRef = overlay
-                        overlay.afterRelease(Runnable { releaseFrameRate(); onAppearanceFinished?.invoke() })
+                        overlay.afterRelease(Runnable { onAppearanceFinished?.invoke() })
                         onOverlayCreated(overlay)
-                        hostDecor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
+                        ParticleOverlayHost.attach(hostDecor, overlay)
                     }
                 }
                 return true
@@ -554,8 +595,14 @@ internal object ParticleDismissController {
      * 软件 draw 不应用 clipToOutline，内容若溢出面板圆角会在快照四角露出直角，
      * 在 CPU 侧按面板同款圆角半径裁掉。
      */
-    private fun applyRoundedCornerMask(bitmap: Bitmap, context: Context) {
-        val radius = context.resources.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+    private fun applyRoundedCornerMask(bitmap: Bitmap, context: Context) =
+        applyRoundedCornerMask(bitmap, dialogCornerRadius(context))
+
+    /** 面板圆角半径；0 表示不需要裁角。 */
+    internal fun dialogCornerRadius(context: Context): Float =
+        context.resources.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius).coerceAtLeast(0f)
+
+    internal fun applyRoundedCornerMask(bitmap: Bitmap, radius: Float) {
         if (radius <= 0f) return
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -567,10 +614,9 @@ internal object ParticleDismissController {
         )
     }
 
+    /** 全应用唯一的时间基准；API 33+ 就是框架给 ValueAnimator 施加的那个值。 */
     private fun animatorDurationScale(context: Context): Float =
-        Settings.Global.getFloat(
-            context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f
-        ).coerceAtLeast(0.1f)
+        com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale(context)
 
     private fun activityFrom(context: Context): Activity? {
         var current = context

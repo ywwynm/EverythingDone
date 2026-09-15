@@ -77,7 +77,8 @@ class ParticleCoverageProbeActivity : ParticleDialogContentActivity() {
         try {
             val root = window.decorView as ViewGroup
             if (fragment == null) fragment = supportFragmentManager.fragments.filterIsInstance<BaseDialogFragment>().firstOrNull()
-            val overlays = (0 until root.childCount).mapNotNull { root.getChildAt(it) as? ParticleDismissOverlay }
+            // 动画层可能挂在 DecorView 的 ViewGroupOverlay 里，遍历子节点看不到。
+            val overlays = ParticleDismissOverlay.activeIn(this)
             overlays.forEach { overlay ->
                 val field = ParticleDismissOverlay::class.java.getDeclaredField("spec").apply { isAccessible = true }
                 val spec = field.get(overlay) as ParticleDismissSpec

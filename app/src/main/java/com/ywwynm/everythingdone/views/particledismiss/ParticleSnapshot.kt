@@ -92,6 +92,10 @@ internal object ParticleSnapshot {
 
     private fun visit(view: View, action: (View) -> Unit) {
         if (view.visibility != View.VISIBLE) return
+        // 粒子自己那一层 SurfaceView 常驻在宿主 DecorView 上（一窗一 Surface）。它既不参与
+        // 快照内容，也不能被当成「窗口下方的独立 Surface」去 PixelCopy——那会在它还没提交
+        // 过缓冲时反复 ERROR_SOURCE_NO_DATA，把整次捕获拖到超时。
+        if (view is ParticleOverlaySurfaceView) return
         action(view)
         if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i), action)
     }

@@ -17,7 +17,10 @@ import android.view.ViewGroup
  * 路径选择淡出时长——粒子消散路径与动画等长（前慢后快，粒子浓密期背景保持
  * 暗），普通路径短淡出。单一图层、单一 window、无交接，无闪烁窗口。
  */
-internal class DialogDimLayer private constructor(private val view: View) {
+internal class DialogDimLayer private constructor(
+    private val view: View,
+    private val decor: ViewGroup?
+) {
 
     private var detachStarted = false
     private var appearanceStarted = false
@@ -36,7 +39,7 @@ internal class DialogDimLayer private constructor(private val view: View) {
             // 首个实际纹理帧才启动，使用同一逻辑时长；交接末帧再精确收尾。
             // 让 HWUI 持续驱动暗层，避免焦点在透明 Dialog 时下方窗口被当成静止内容。
             view.animate().alpha(DIM_AMOUNT)
-                .setDuration(((1f-p) * ParticleReversePlan.APPEARANCE_SECONDS * 1000).toLong())
+                .setDuration(scaled(((1f-p) * ParticleReversePlan.APPEARANCE_SECONDS * 1000).toLong()))
                 .setInterpolator { fraction ->
                     val t = p + (1f-p) * fraction
                     (t*t*(3f-2f*t) - from) / (1f-from).coerceAtLeast(.000001f)
@@ -49,11 +52,11 @@ internal class DialogDimLayer private constructor(private val view: View) {
         if (detachStarted) return
         detachStarted = true
         view.animate().cancel()
-        val animator = view.animate().alpha(0f).setDuration(durationMs)
+        val animator = view.animate().alpha(0f).setDuration(scaled(durationMs))
         if (interpolator != null) {
             animator.interpolator = interpolator
         }
-        animator.withEndAction { (view.parent as? ViewGroup)?.removeView(view) }
+        animator.withEndAction { ParticleOverlayHost.detach(decor, view) }
         animator.start()
     }
 
@@ -81,14 +84,16 @@ internal class DialogDimLayer private constructor(private val view: View) {
                 isFocusable = false
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
-            decor.addView(
-                view,
-                ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            )
-            if (animateIn) view.animate().alpha(DIM_AMOUNT).setDuration(FADE_IN_MS).start()
-            return DialogDimLayer(view)
+            ParticleOverlayHost.attach(decor, view)
+            if (animateIn) view.animate().alpha(DIM_AMOUNT).setDuration(scaled(FADE_IN_MS)).start()
+            return DialogDimLayer(view, decor)
         }
+
+        /**
+         * 暗层与粒子跑在同一条时间基准上：ViewPropertyAnimator 自己会乘
+         * [com.ywwynm.everythingdone.utils.AnimatorDurationScale] 那个值，而粒子时长也按同一个值算，
+         * 所以这里交标称时长即可（第二批统一时间基准后不再做反向换算）。
+         */
+        private fun scaled(nominalMs: Long): Long = nominalMs
     }
 }

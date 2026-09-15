@@ -82,6 +82,8 @@ class GradientRippleDrawable(
     private var cachedShader: Shader? = null
     private var shaderW = -1
     private var shaderH = -1
+    /** 轮廓是直角矩形：用 clipRect 代替 clipPath，结果相同但便宜得多。 */
+    private var rectClip = false
 
     // 半径一旦开始扩散就跑到满（松手不打断）。alpha 分淡入 / 淡出两段：松手时若淡入还没结束，
     // 先记 pendingExit，等淡入到满再淡出——保证「按一下也完整播放铺满 + 淡出」，不会一点就消失。
@@ -100,6 +102,40 @@ class GradientRippleDrawable(
 
     internal val hasVisibleFeedback: Boolean
         get() = alphaFraction > 0f || alphaInAnimator?.isRunning == true
+
+    /**
+     * 还有动画器在推进反馈。用于区分「正在播」与「卡在半途」：[hasVisibleFeedback] 为真而本项为假，
+     * 说明 alpha 停在非零值上且没有任何动画器会把它降下来，等待方应立即视为已结算。
+     */
+    internal val feedbackAnimating: Boolean
+        get() = pressed || pendingExit || alphaInAnimator?.isStarted == true ||
+            alphaOutAnimator?.isStarted == true || radiusAnimator?.isStarted == true
+
+    /** 承载反馈的控件是否还在窗口上；已 detach 的控件不会再有可见反馈。 */
+    internal val hostAttached: Boolean
+        get() = (callback as? View)?.isAttachedToWindow != false
+
+    /**
+     * 本次反馈按应用时间基准计还要播多久（毫秒）；已结算时为 0。
+     * 扩散与淡出可以重叠，取两者剩余的较大值。
+     */
+    internal val feedbackRemainingMs: Long
+        get() {
+            if (!hasVisibleFeedback) return 0L
+            val spread = ((1f - radiusFraction) * RADIUS_DURATION).toLong()
+            val fade = if (alphaOutAnimator?.isRunning == true) (alphaFraction * ALPHA_EXIT_DURATION).toLong()
+                else (if (pressed) 0L else ALPHA_ENTER_DURATION) + ALPHA_EXIT_DURATION
+            return (maxOf(spread, fade) * appScale()).toLong()
+        }
+
+    private fun appScale(): Float = com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale()
+
+    /**
+     * 交给 [ValueAnimator] 的一律是**标称时长**：框架会自己乘那唯一一条时间基准
+     * （见 [com.ywwynm.everythingdone.utils.AnimatorDurationScale]），这里再乘一次就重复了。
+     * 第一批的反向换算已随时间基准统一撤回。
+     */
+    private fun scaled(nominalMs: Long): Long = nominalMs
 
     /** 复用同一实例、仅切换颜色（scope / 记事色变化时）。 */
     fun updateBackground(bg: ThingBackground) {
@@ -172,6 +208,12 @@ class GradientRippleDrawable(
 
     private fun rebuildClip() {
         clipPath.reset()
+        // 直角矩形轮廓（列表行、整块 item）不需要 Path 裁剪：HWUI 对 clipRect 是一次标量裁剪，
+        // 对 clipPath 则要走遮罩/模板，长条行上每帧都付这笔 GPU 代价（阶段 1 的 1.10 分段：
+        // 三星涟漪期 COMMAND_ISSUE p90 11.9 ms、GPU p90 15.9 ms，而 DRAW 只有 0.4 ms）。
+        // 两者对同一个矩形的结果逐像素相同，外观不变。
+        rectClip = !shapeOval && cornerRadiusPx == 0f
+        if (rectClip) return
         if (boundsF.isEmpty) return
         if (shapeOval) {
             if (fixedRadiusPx > 0f) {
@@ -210,7 +252,7 @@ class GradientRippleDrawable(
         radiusAnimator?.cancel()
         radiusFraction = 0f
         radiusAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = RADIUS_DURATION
+            duration = scaled(RADIUS_DURATION)
             interpolator = RADIUS_INTERPOLATOR
             addUpdateListener {
                 radiusFraction = it.animatedValue as Float
@@ -222,7 +264,7 @@ class GradientRippleDrawable(
         // 淡入到满；若已在淡入则不打断。
         if (alphaInAnimator?.isRunning != true) {
             alphaInAnimator = ValueAnimator.ofFloat(alphaFraction, 1f).apply {
-                duration = ALPHA_ENTER_DURATION
+                duration = scaled(ALPHA_ENTER_DURATION)
                 interpolator = LINEAR
                 addUpdateListener {
                     alphaFraction = it.animatedValue as Float
@@ -254,7 +296,7 @@ class GradientRippleDrawable(
         pendingExit = false
         alphaOutAnimator?.cancel()
         alphaOutAnimator = ValueAnimator.ofFloat(alphaFraction, 0f).apply {
-            duration = ALPHA_EXIT_DURATION
+            duration = scaled(ALPHA_EXIT_DURATION)
             interpolator = LINEAR
             addUpdateListener {
                 alphaFraction = it.animatedValue as Float
@@ -292,7 +334,7 @@ class GradientRippleDrawable(
         if (r <= 0f) return
 
         val save = canvas.save()
-        canvas.clipPath(clipPath)
+        if (rectClip) canvas.clipRect(boundsF) else canvas.clipPath(clipPath)
         ensureShaderAndPaint()
         val peak = if (peakAlphaOverride >= 0f) peakAlphaOverride else PEAK_ALPHA
         val a = (peak * alphaFraction * (drawableAlpha / 255f) * 255f).roundToInt()
@@ -381,6 +423,7 @@ class GradientRippleDrawable(
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
     companion object {
+
         /**
          * 「确定 / 取消」类对话框按钮的触摸 ripple：胶囊形（与系统取消按钮的胶囊一致），颜色与按钮
          * 文本同源的强调 [ThingBackground]；[bg] 为 null 时退化为 [fallbackColor] 纯色。
@@ -446,6 +489,12 @@ class GradientRippleDrawable(
         private const val ALPHA_EXIT_DURATION = 300L
         /** 未按下状态下缓存的 hotspot 只在同一次触摸派发附近可信，避免把初始化时的 (0,0) 当触点。 */
         private const val HOTSPOT_FRESH_MS = 250L
+
+        /**
+         * 一次完整反馈的标称寿命（毫秒）：扩散铺满与淡出可以重叠，取较长的一条链
+         * （扩散 256 与「淡入 60 + 淡出 300」）。等待方按它乘应用时长缩放算兜底。
+         */
+        internal const val NOMINAL_FEEDBACK_LIFETIME_MS = ALPHA_ENTER_DURATION + ALPHA_EXIT_DURATION
         private val RADIUS_INTERPOLATOR = DecelerateInterpolator()
         private val LINEAR = LinearInterpolator()
     }

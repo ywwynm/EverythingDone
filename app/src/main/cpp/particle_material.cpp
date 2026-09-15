@@ -10,15 +10,25 @@
 #include <future>
 #include <mutex>
 #include <thread>
+#include <atomic>
 #include <sys/resource.h>
 
 namespace {
-// 两个常驻计算线程加调用线程；多弹窗共用队列，避免每轮卷积重新建线程。
+// 常驻计算线程加调用线程；多弹窗共用队列，避免每轮卷积重新建线程。
+// 3b：道数改为按核数决定（3–6 道）。每一道只写自己那些下标、只读别的缓冲，所以道数
+// 不改变任何元素的计算顺序，输出必然逐位相同（设备端 nativeCheck 用 1 道对照守住）。
+constexpr int kMaxLanes=6;
+int desiredLanes(){
+    unsigned cores=std::thread::hardware_concurrency();
+    if(cores==0)return 3;
+    return int(std::min<unsigned>(std::max<unsigned>(cores,3u),kMaxLanes));
+}
+std::atomic<int> laneLimit{0};
 class MaterialWorkers {
     std::mutex mutex;
     std::condition_variable ready;
     std::deque<std::packaged_task<void()>> tasks;
-    std::array<std::thread,2> workers;
+    std::array<std::thread,kMaxLanes-1> workers;
     bool stopping=false;
 public:
     MaterialWorkers(){try {for(auto& worker:workers)worker=std::thread([this]{
@@ -37,18 +47,26 @@ public:
         {std::lock_guard<std::mutex> lock(mutex);tasks.push_back(std::move(task));}ready.notify_one();return done;}
 };
 MaterialWorkers& workers(){static MaterialWorkers pool;return pool;}
+int lanes(){int forced=laneLimit.load(std::memory_order_relaxed);
+    return forced>0?std::min(forced,kMaxLanes):desiredLanes();}
 template<class F> void parallel(int count,F function){
-    if(count<60){for(int i=0;i<count;++i)function(i);return;}
-    int a=count/3,b=count*2/3;
-    std::future<void> first,second;
+    int n=lanes();
+    if(count<60||n<=1){for(int i=0;i<count;++i)function(i);return;}
+    // 最后一段留给调用线程；每段的下标区间固定，与道数无关地覆盖同一批元素。
+    std::array<std::future<void>,kMaxLanes-1> pending;
+    int dispatched=0;
     try {
-        first=workers().submit([&]{for(int i=0;i<a;++i)function(i);});
-        second=workers().submit([&]{for(int i=a;i<b;++i)function(i);});
-        for(int i=b;i<count;++i)function(i);
-        first.get();second.get();
+        for(int lane=0;lane<n-1;++lane){
+            int from=int(int64_t(count)*lane/n),to=int(int64_t(count)*(lane+1)/n);
+            pending[lane]=workers().submit([&,from,to]{for(int i=from;i<to;++i)function(i);});
+            ++dispatched;
+        }
+        for(int i=int(int64_t(count)*(n-1)/n);i<count;++i)function(i);
+        for(int lane=0;lane<dispatched;++lane)pending[lane].get();
     } catch (...) {
         // 即使分配任务失败，也先结束已派发工作，避免访问调用栈中已销毁的数组。
-        if(first.valid())first.wait();if(second.valid())second.wait();throw;
+        for(int lane=0;lane<dispatched;++lane)if(pending[lane].valid())pending[lane].wait();
+        throw;
     }
 }
 template<class T> T clamp(T value, T lo, T hi) { return std::max(lo, std::min(value, hi)); }
@@ -89,6 +107,14 @@ jfloatArray array(JNIEnv* e,const std::vector<float>& v) {
     catch(const std::bad_alloc&) { e->ThrowNew(e->FindClass("java/lang/OutOfMemoryError"),"Particle material allocation"); return nullptr; } \
     catch(const std::exception& error) { e->ThrowNew(e->FindClass("java/lang/IllegalStateException"),error.what()); return nullptr; }
 
+// 3b：只给 debug 的逐位对照用。道数不改变任何元素的计算顺序（每一道只写自己那些下标、
+// 只读别的缓冲），所以 1 道与默认道数的输出必须逐位相同。
+extern "C" JNIEXPORT void JNICALL JNI_NAME(nativeSetLanes)(JNIEnv*,jobject,jint lanes){
+    laneLimit.store(lanes<=0?0:lanes,std::memory_order_relaxed);
+}
+
+extern "C" JNIEXPORT jint JNICALL JNI_NAME(nativeLanes)(JNIEnv*,jobject){ return lanes(); }
+
 extern "C" JNIEXPORT void JNICALL JNI_NAME(packUploads)(JNIEnv* e,jobject,jintArray pixelsArray,
     jfloatArray materialArray,jint count,jobject rgbaBuffer,jobject stateBuffer){
     Ints pixels(e,pixelsArray);Floats material(e,materialArray);
@@ -108,6 +134,20 @@ extern "C" JNIEXPORT void JNICALL JNI_NAME(packColors)(JNIEnv* e,jobject,jintArr
     if(!pixels.p||!rgba)return;
     const int count=e->GetArrayLength(pixelsArray);
     for(int i=0;i<count;++i){uint32_t c=pixels.p[i];rgba[i]=(c&0xff00ff00)|((c>>16)&255)|((c&255)<<16);}
+}
+
+// 快照单拷贝（3.2）：Bitmap.copyPixelsToBuffer 得到的字节就是 R,G,B,A，可以直接上传纹理；
+// 材料模型仍要 Android 的 ARGB int，所以从同一份字节反解一次。R 与 B 对调是对合运算，
+// 与 packColors 是同一个变换，保证「上传的字节」与旧路径 packColors 的结果逐字节相同。
+extern "C" JNIEXPORT void JNICALL JNI_NAME(unpackColors)(JNIEnv* e,jobject,jobject rgbaBuffer,jintArray pixelsArray){
+    auto rgba=static_cast<const uint32_t*>(e->GetDirectBufferAddress(rgbaBuffer));
+    if(!rgba||!pixelsArray)return;
+    // Ints 那个 RAII 包装按 JNI_ABORT 释放（只读用途），写回必须自己提交。
+    jint* out=e->GetIntArrayElements(pixelsArray,nullptr);
+    if(!out)return;
+    const int count=e->GetArrayLength(pixelsArray);
+    for(int i=0;i<count;++i){uint32_t c=rgba[i];out[i]=(jint)((c&0xff00ff00)|((c>>16)&255)|((c&255)<<16));}
+    e->ReleaseIntArrayElements(pixelsArray,out,0);
 }
 
 extern "C" JNIEXPORT void JNICALL JNI_NAME(packState)(JNIEnv* e,jobject,jfloatArray materialArray,jint count,jobject stateBuffer){
@@ -259,10 +299,11 @@ extern "C" JNIEXPORT jobjectArray JNICALL JNI_NAME(finishField)(JNIEnv* e,jobjec
     }});
     auto normalX=gaussian(gx.data(),nx,ny,w7.p,e->GetArrayLength(w7Array));
     auto normalY=gaussian(gy.data(),nx,ny,w7.p,e->GetArrayLength(w7Array));
-    for(int i=0;i<n;++i){float x=-normalX[i],y=-normalY[i];double along=x*wx+y*wy;
+    // 逐元素、无邻域依赖，按行并行不改变任何一个值。
+    parallel(n,[&](int i){float x=-normalX[i],y=-normalY[i];double along=x*wx+y*wy;
         x=float(x-std::min(along,0.)*wx);y=float(y-std::min(along,0.)*wy);
         gx[i]=float(x-std::max(along,0.)*wx*.82);gy[i]=float(y-std::max(along,0.)*wy*.82);
-    }
+    });
     std::vector<float> compression(n);
     parallel(ny,[&](int y){for(int x=0;x<nx;++x){int i=y*nx+x;
         int l=y*nx+std::max(x-1,0),r=y*nx+std::min(x+1,nx-1),t=std::max(y-1,0)*nx+x,b=std::min(y+1,ny-1)*nx+x;
@@ -350,10 +391,11 @@ extern "C" JNIEXPORT jobjectArray JNICALL JNI_NAME(populate)(JNIEnv* e,jobject,
         order.swap(scratch);
     }
     std::vector<float> sorted(total*12),sp(total),sc(total);
-    for(int i=0;i<total;++i){int old=int(order[i]&0xffffffff);auto p=sorted.data()+i*12;
+    // 收束也是逐元素：第 i 条只写 sorted[i*12..]、sp[i]、sc[i]，读的是排序前的数组。
+    parallel(total,[&](int i){int old=int(order[i]&0xffffffff);auto p=sorted.data()+i*12;
         std::copy_n(values.data()+old*12,12,p);int source=int(p[3])%count;
         p[4]=normalX.p[source];p[5]=normalY.p[source];sp[i]=pigment[old];sc[i]=compression.p[source];
-    }
+    });
     auto type=e->FindClass("[F");auto result=e->NewObjectArray(3,type,nullptr);
     auto a=array(e,sorted),b=array(e,sp),c=array(e,sc);
     if(result&&a&&b&&c){e->SetObjectArrayElement(result,0,a);e->SetObjectArrayElement(result,1,b);e->SetObjectArrayElement(result,2,c);}

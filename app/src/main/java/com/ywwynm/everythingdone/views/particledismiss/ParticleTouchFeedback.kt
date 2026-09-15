@@ -21,12 +21,22 @@ internal class ParticleTouchFeedback private constructor(
     private var waitingForFinalFrame = false
     private val callbacks = mutableListOf<() -> Unit>()
     private val started = SystemClock.uptimeMillis()
-    private val timeoutMs = 500L + (1000L * android.provider.Settings.Global.getFloat(
-        activity.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)).toLong()
+
+    /**
+     * 兜底时限按涟漪的**真实寿命**算，不再用「500 + 1000 × 时长缩放」这种与涟漪无关的常数：
+     * 标称寿命（淡入 60 + 淡出 300）乘应用时长缩放，再留一点余量给首帧对齐与主线程抖动。
+     * 旧口径在 OPD2515 上恰好比涟漪实际寿命短，于是每次都走满超时（2026-09-14 第一批 1.9）。
+     */
+    private val timeoutMs = settleTimeoutMs(
+        com.ywwynm.everythingdone.utils.AnimatorDurationScale.scale(activity))
 
     private fun watch() {
         if (settled || waitingForFinalFrame) return
-        if (!root.isAttachedToWindow || activity.isDestroyed || SystemClock.uptimeMillis() - started > timeoutMs) {
+        // 三条「已经不可能再看到反馈」的判定：宿主没了、承载控件已 detach、
+        // alpha 停在非零值上却没有任何动画器会把它降下来。
+        val stalled = ripples.none { it.feedbackAnimating } || ripples.none { it.hostAttached }
+        if (!root.isAttachedToWindow || activity.isDestroyed ||
+            SystemClock.uptimeMillis() - started > timeoutMs || stalled) {
             finish()
         } else if (ripples.none { it.hasVisibleFeedback }) {
             waitingForFinalFrame = true
@@ -49,6 +59,9 @@ internal class ParticleTouchFeedback private constructor(
         callbacks.clear()
     }
 
+    /** 非阻塞查询：常驻 GL 线程的状态机按拍轮询，不再阻塞等待。 */
+    val isSettled: Boolean get() = settled
+
     fun afterSettled(action: () -> Unit) {
         if (settled) action() else callbacks += action
     }
@@ -64,7 +77,8 @@ internal class ParticleTouchFeedback private constructor(
     }
 
     companion object {
-        private val handler = Handler(Looper.getMainLooper())
+        // 懒初始化：settleTimeoutMs 是纯算术，JVM 单测会直接调它，不能在类初始化时碰主线程 Looper。
+        private val handler: Handler by lazy { Handler(Looper.getMainLooper()) }
         private val pending = mutableSetOf<ParticleTouchFeedback>()
 
         fun current(activity: Activity): ParticleTouchFeedback? = pending.lastOrNull { it.activity === activity }
@@ -89,8 +103,20 @@ internal class ParticleTouchFeedback private constructor(
                 pending += it
                 ParticleGpuWork.beginPlayback()
                 handler.post { it.watch() }
+                // root.postOnAnimation 在 root detach 之后落进 RunQueue、永不执行：
+                // 轮询链一断，超时判定也一起失效。硬兜底必须挂全局 Handler。
+                handler.postDelayed({ it.finish() }, it.timeoutMs + FALLBACK_SLACK_MS)
             }
         }
 
+        /** 兜底余量：首帧对齐、主线程抖动与最后一帧提交都在这段里。 */
+        internal const val FALLBACK_SLACK_MS = 240L
+
+        /**
+         * 结算超时按涟漪的**真实寿命**算：标称寿命（淡入 60 + 淡出 300）乘唯一的时间基准，
+         * 再留一点余量。第二批统一时间基准之后，这条与框架给 ValueAnimator 施加的缩放同源。
+         */
+        internal fun settleTimeoutMs(scale: Float): Long =
+            (GradientRippleDrawable.NOMINAL_FEEDBACK_LIFETIME_MS * scale).toLong() + FALLBACK_SLACK_MS
     }
 }
