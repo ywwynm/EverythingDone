@@ -174,6 +174,7 @@ import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
 import com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
 import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
+import com.ywwynm.everythingdone.views.particledismiss.ThingSwipeReturn
 import com.ywwynm.everythingdone.views.pickers.ThingCardAppearanceSourcePicker
 import com.ywwynm.everythingdone.views.pickers.ColorPicker
 import com.ywwynm.everythingdone.views.reveal.RevealLayout
@@ -207,6 +208,11 @@ class ThingsActivity :
     private val mSwipeParticleAnimator by lazy {
         ParticleSwipeAnimator(this)
     }
+    /** 滑走之后仍留在列表里的卡片（习惯、目标、需要认证的私密记事等）怎么回到原位。 */
+    private var mSwipeReturnOrNull: ThingSwipeReturn? = null
+    private val mSwipeReturn: ThingSwipeReturn
+        get() = mSwipeReturnOrNull
+            ?: ThingSwipeReturn(this, mRecyclerView!!).also { mSwipeReturnOrNull = it }
     private var mNewItemParticleOverlay: ParticleDismissOverlay? = null
     private var mCreationLaunchPending = false
     // Cached "full-screen" defaults set in findViews() — used to restore mShiningBorder
@@ -800,6 +806,7 @@ class ThingsActivity :
 
     override fun onPause() {
         mSwipeParticleAnimator.reset()
+        mSwipeReturnOrNull?.cancel()
         ParticleCreationPrewarm.onHomeHidden()
         super.onPause()
         mOverlayDragController?.cancel("activity-pause")
@@ -2748,6 +2755,7 @@ class ThingsActivity :
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
         mSwipeParticleAnimator.reset()
+        mSwipeReturnOrNull?.cancel()
         super.onConfigurationChanged(newConfig)
         finishNewItemShiningBorderAnimationIfNeeded()
         val thingCardAppearancePanelShowing = isThingCardAppearancePanelShowing()
@@ -11295,46 +11303,65 @@ class ThingsActivity :
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            if (mSwipeParticleAnimator.finishSwipe(viewHolder.itemView, mRecyclerView!!.width) {
-                    completeThingSwipe(viewHolder, direction)
+            val itemView = viewHolder.itemView
+            // 左滑（完成）才可能是粒子消散；右滑（开始做事）一直是滑动淡出，回位也只能滑回来。
+            val particles = direction == ItemTouchHelper.START
+            val stays = { pos: Int ->
+                // 卡片真的离开了屏幕才需要回位。右滑（开始做事）实测走到这一步时位移已经归零、
+                // 透明度也满了，再播一段滑入就是凭空多出来的动画。
+                val displaced = itemView.translationX != 0f || itemView.alpha < 0.99f
+                if (displaced) mSwipeReturn.start(pos, particles)
+            }
+            if (mSwipeParticleAnimator.finishSwipe(itemView, mRecyclerView!!.width) {
+                    completeThingSwipe(viewHolder, direction, stays)
                 }) return
-            completeThingSwipe(viewHolder, direction)
+            completeThingSwipe(viewHolder, direction, stays)
         }
 
-        private fun completeThingSwipe(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+        /** [stays] 由「这张卡片留在列表里」的每一条分支调用，用来播回位动画。 */
+        private fun completeThingSwipe(
+            viewHolder: RecyclerView.ViewHolder, direction: Int, stays: (Int) -> Unit
+        ) {
             val listPosition = viewHolder.adapterPosition
             if (listPosition <= 0) {
+                stays(listPosition)
                 return
             }
             if (mThingManager!!.getThingListEntry(listPosition) !is ThingListEntry.ThingEntry) {
                 mAdapter!!.notifyItemChanged(listPosition)
+                stays(listPosition)
                 return
             }
 
             val thingIndex = mThingManager!!.getThingIndexForListPosition(listPosition)
             if (thingIndex <= 0) {
+                stays(listPosition)
                 return
             }
 
-            val thingToSwipe: Thing = mThingManager!!.getThingAtListPosition(listPosition) ?: return
+            val thingToSwipe: Thing = mThingManager!!.getThingAtListPosition(listPosition)
+                ?: run { stays(listPosition); return }
             val id = thingToSwipe.id
             @Thing.Type val thingType = thingToSwipe.type
             if (thingType > Thing.NOTIFICATION_GOAL) {
                 // without this line, the item will disappear and leave a white space...
                 mAdapter!!.notifyItemChanged(listPosition)
+                stays(listPosition)
                 return
             }
 
             if (needsThingSwipePrivacyAuthentication(thingToSwipe)) {
                 mAdapter!!.notifyItemChanged(listPosition)
+                stays(listPosition)
                 authenticateThingSwipe(thingToSwipe, direction) {
-                    performThingSwipe(thingToSwipe, thingIndex, listPosition, direction)
+                    // 认证期间卡片已经回到原位，之后无论去留都不再需要接管。
+                    performThingSwipe(thingToSwipe, thingIndex, listPosition, direction) {}
                     swiped = true
                 }
                 return
             }
 
-            performThingSwipe(thingToSwipe, thingIndex, listPosition, direction)
+            performThingSwipe(thingToSwipe, thingIndex, listPosition, direction, stays)
             swiped = true
         }
 
@@ -11380,7 +11407,8 @@ class ThingsActivity :
             thingToSwipe: Thing,
             thingIndex: Int,
             listPosition: Int,
-            direction: Int
+            direction: Int,
+            stays: (Int) -> Unit
         ) {
             val id = thingToSwipe.id
             @Thing.Type val thingType = thingToSwipe.type
@@ -11391,9 +11419,9 @@ class ThingsActivity :
                     DoingService.sSendBroadcastToUpdateMainUi = false
                 }
                 if (thingType == Thing.HABIT) {
-                    tryToFinishHabitOnceBySwiping(thingToSwipe, thingIndex, listPosition)
+                    tryToFinishHabitOnceBySwiping(thingToSwipe, thingIndex, listPosition, stays)
                 } else {
-                    tryToFinishOtherBySwiping(thingToSwipe, thingIndex, listPosition)
+                    tryToFinishOtherBySwiping(thingToSwipe, thingIndex, listPosition, stays)
                 }
             } else {
                 if (thingType == Thing.HABIT) {
@@ -11401,10 +11429,12 @@ class ThingsActivity :
                     if (habit != null && habit.isPaused()) {
                         mNormalSnackbar!!.setMessage(R.string.alert_habit_paused)
                         mNormalSnackbar!!.show()
+                        stays(listPosition)
                         return
                     }
                 }
                 mAdapter!!.notifyItemChanged(listPosition)
+                stays(listPosition)
                 if (App.getDoingThingId() == thingToSwipe.id) {
                     Toast.makeText(
                         this@ThingsActivity, R.string.start_doing_doing_this_thing,
@@ -11736,7 +11766,8 @@ class ThingsActivity :
     private fun tryToFinishHabitOnceBySwiping(
         thingToSwipe: Thing,
         thingIndex: Int,
-        listPosition: Int
+        listPosition: Int,
+        stays: (Int) -> Unit
     ) {
         val id = thingToSwipe.id
         if (App.getDoingThingId() == id) {
@@ -11783,14 +11814,17 @@ class ThingsActivity :
             App.setDoingThingId(-1L)
         }
 
+        // 习惯左滑只是记一次打卡，卡片始终留在列表里。
         mAdapter!!.notifyItemChanged(listPosition)
+        stays(listPosition)
         mDrawerHeader!!.updateCompletionRate()
     }
 
     private fun tryToFinishOtherBySwiping(
         thingToSwipe: Thing,
         thingIndex: Int,
-        listPosition: Int
+        listPosition: Int,
+        stays: (Int) -> Unit
     ) {
         @Thing.State val state = thingToSwipe.state
         val location = thingToSwipe.location
@@ -11818,7 +11852,9 @@ class ThingsActivity :
 
         celebrateHabitGoalFinish(thingToSwipe, state, Thing.FINISHED)
         if (changed) {
+            // 记事仍留在当前列表（例如目标换了状态显示）。
             mAdapter!!.notifyItemChanged(listPosition)
+            stays(listPosition)
             updateUIAfterStateUpdated(
                 Thing.FINISHED,
                 mRecyclerView!!.itemAnimator!!.changeDuration, true

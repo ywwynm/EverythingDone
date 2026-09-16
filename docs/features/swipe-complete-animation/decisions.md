@@ -76,3 +76,18 @@
   实），所以松手后蒙层仍从真实手指位移开始淡出／补满。
 - 只改首页（`ThingsActivity`）。正在做事界面是另一套回调与另一个 `ParticleSwipeAnimator`
   （`allowRightSwipe = true`），左右滑都是完成记事，跟手位移保留。
+
+## 2026-09-16 回位动画（第三次）
+
+- **接管 `notifyItemChanged` 换上来的那张新 View，不要碰被滑走的旧 View**：旧 View 在
+  ItemTouchHelper 的待清理队列里，每帧都会被按回 `-RecyclerView.width`，`clearView` 到来才
+  松手（约 290 ms）。
+- **不给这几处的 `notifyItemChanged` 加 payload**。payload 让 holder 原地复用，代价是那张 View
+  永远不被摘下、`clearView` 永远不来、卡片停在屏外——实测 2.6 秒都不动。默认换位动画必须留着，
+  它同时是接管失败时的兜底。
+- **只在卡片真的离开过时才回位**（`translationX != 0 || alpha < 0.99`）。右滑（开始做事）走到
+  业务判定时卡片已经归位，再播就是凭空多出来的动画。
+- 滑动档从**卡片自己一个身位**外滑回，不是从 `-RecyclerView.width`：后者要走完 75% 才进屏，
+  正是原本「啪地弹回来」的成因。
+- 这一类时序问题一律先在真机上量 `onSwiped` / `clearView` / 业务判定的实际先后与卡片每一刻的
+  `translationX` / `alpha` / View 身份，再动手。前两版都是推断时序失败的。
