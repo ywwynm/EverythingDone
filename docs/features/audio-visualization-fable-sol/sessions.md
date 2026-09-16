@@ -3857,3 +3857,29 @@ A/B 渲染逐位一致，全量 363 条测试全绿。Android 移植与实机性
 
 `:app:assembleDebug` 通过。实机验证（关掉后详情页能自动旋转、录出的 WAV 无 `EDmo`）
 未做——本会话不连设备。
+
+## 2026-09-16 修掉 `FableSolCurveFairnessTest` 里恒假的源码契约断言
+
+`glVertexBuilderUsesTheSharedFairCurvesAndProjectedRowRepair` 长期失败，
+`:app:testDebugUnitTest` 整体挂掉，挡住其他功能的验收。
+
+根因不在渲染器。该用例断言
+`source.contains("private val projectedX = DoubleArray(")`，比的是字面初始化写法；
+而 fa41a6f3（2026-09-13，弹窗粒子那一批）为把首帧分配移出 UI 线程，把字段改成了
+
+```kotlin
+private val projectedX by lazy(LazyThreadSafetyMode.NONE) {
+    DoubleArray(FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS)
+}
+```
+
+容量、元素类型与消费处的数学一个字没动，`buildFrame` 里也已显式由 GL 所有者先取一次
+再发布给行任务（避免 worker 各自触发 lazy(NONE) 分配出不同数组）。改动本身没问题，
+是断言把「实现写法」当成了契约。
+
+改法：断言改为取出 `projectedX` 的声明体（截到下一个字段或下一段注释），只校验两件
+真正的契约——元素类型是 `DoubleArray`、容量是 `Z_ROWS * N_POINTS` 的一次性预分配，
+两种初始化写法都通过。
+
+验证：`:app:testDebugUnitTest` 全量一轮，162 个 suite / 1043 项，0 失败 0 错误
+（结果文件时间戳全为本轮）。

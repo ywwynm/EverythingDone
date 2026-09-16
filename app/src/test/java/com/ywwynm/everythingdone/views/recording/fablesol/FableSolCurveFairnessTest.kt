@@ -128,11 +128,30 @@ class FableSolCurveFairnessTest {
         assertTrue(source.contains("orbitZSlopeRow[index]"))
         assertTrue(source.contains("val layerPosition = z01 *"))
         assertTrue(source.contains("monotoneBlendBound("))
-        assertTrue(source.contains("private val projectedX = DoubleArray("))
+        // projectedX 的契约是「保留 Double 精度、按最大列数预分配」，初始化写法不在契约内：
+        // fa41a6f3 为把首帧分配移出 UI 线程，改成了 by lazy(NONE)，容量与数学一个字没动，
+        // 而原来按字面写法比对的断言从此恒假，整个类跟着挂掉。
+        assertProjectedXStaysAPreallocatedDoubleBuffer(source)
         assertFalse(source.contains("private val sourceBefore"))
         assertFalse(source.contains("private val sourceAfter"))
         assertFalse(source.contains(".coerceIn(-10.0, 10.0)"))
         assertFalse(source.contains("val layerPosition = z01.coerceIn"))
+    }
+
+    private fun assertProjectedXStaysAPreallocatedDoubleBuffer(source: String) {
+        val start = source.indexOf("private val projectedX")
+        assertTrue("找不到 projectedX 的字段声明", start >= 0)
+        // 声明体截到下一个字段或下一段注释为止，免得把相邻字段一起算进来。
+        val end = Regex("\\n    (?:private |internal |// )").find(source, start + 1)?.range?.first
+        val declaration = source.substring(start, end ?: source.length)
+        assertTrue(
+            "projectedX 必须是 DoubleArray（逐行求唯一收回比例要 Double 精度）：$declaration",
+            declaration.contains("DoubleArray(")
+        )
+        assertTrue(
+            "projectedX 必须按最大列数一次性预分配，稳态零分配：$declaration",
+            declaration.contains("FableSolContinuousSurface.Z_ROWS * FableSolSpec.N_POINTS")
+        )
     }
 
     private fun rendererSource(): String {
