@@ -2574,3 +2574,31 @@ grill 定案后新写的原型：三角网格 + numpy 逐帧平流（风 + 两�
 [activity-host-dim-2026-09-15.md](activity-host-dim-2026-09-15.md)：宿主布局监听补尺寸、
 淡入改挂 `doOnLayout`、延迟挂载后按当前状态补浓度。新增 `DialogDimCoverageTest` 三项，
 均确认在修正前的源码上失败。未上真机。
+
+## 2026-09-16 弹窗叠弹窗时粒子被下层弹窗盖住
+
+- 详情页「改变颜色」面板之上打开「从世界取色」，取色弹窗的粒子跑在面板下面。根因：粒子表面挂在
+  Activity DecorView 上（`setZOrderOnTop`），在 Activity 窗口之内最上、但在 Dialog 窗口之下；
+  详情页的颜色面板本身是 `BaseDialogFragment`，首页的是页内 View 面板，差别正在这里。
+- 弹窗窗口是 `windowIsFloating` 按内容尺寸的，把粒子挂进下层弹窗的窗口会被裁掉。因此新增
+  `ParticleElevatedHost`：一个按需显示的全屏透明承载窗口，`ParticleWindowSurface` 的索引
+  从「一个 Activity 一个」改成「一个承载 decor 一个」。
+- 闸门 `ParticleDialogStack` 只认「下面压着另一个会留下来的弹窗」，正在离场的不算——A 关闭紧接着
+  B 打开必须留在同一张表面上交接。
+- 真机逐场景确认：只有叠加那一种启用，单弹窗／A→B／FableSol 调参／新建入场／页内面板／左滑完成
+  一条都没进新代码。详见 [stacked-dialog-z-2026-09-16.md](stacked-dialog-z-2026-09-16.md)。
+
+## 2026-09-16 补测叠加弹窗抬升：两条 Start-Doing 路径
+
+- **提醒详情页 → 开始做事 → 选择做事时长**（全项目第二处弹窗叠弹窗）已在 OPD2515 上跑通：
+  `elevate=true stack=2`，出现/消散粒子均盖在开始做事弹窗之上，七帧整屏近黑 ≤0.3%，无黑屏。
+- **更突出的记事通知 → 开始做事** 只拿到日志与窗口结构（`elevate=no stack=1`、两个窗口分别是
+  Activity 自身的透明底窗与 672px 的内容弹窗，没有多出承载窗口），**画面未验**：驱动中途
+  平板锁回 PIN 锁屏，ColorOS 锁屏下 `screencap` 全黑，需用户解锁后补跑 `notice3.ps1`。
+- 为这条路扩展了调试包的 `ParticleDialogRouteProbeActivity`：`route=notice` 新增可选
+  `thingId` 外部参数（默认行为不变），因为真实闹钟拉不起全屏 Activity（`USE_FULL_SCREEN_INTENT`
+  在这台设备上是 `default`=拒绝），而 `run-as am start` 起不了非导出 Activity。
+- 由此得到四条操作规则，已写入 `.claude/rules/adb.md`：不许 `keyevent 26` 熄屏；
+  `USE_FULL_SCREEN_INTENT` 默认拒绝；`run-as am start` 的包名校验；
+  `dumpsys activity activities` 要按 `ResumedActivity` 过滤。
+- 设备上仍留着临时提醒 `PROBE-REMIND`（id 1046），解锁后连同本轮验证一起清理。

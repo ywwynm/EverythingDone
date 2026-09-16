@@ -4,6 +4,7 @@ import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
+import android.content.DialogInterface
 import android.graphics.Outline
 import android.graphics.PointF
 import android.os.Bundle
@@ -33,6 +34,7 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDialogStack
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissStartGate
@@ -138,6 +140,8 @@ abstract class BaseDialogFragment : DialogFragment() {
         // 背景暗层全程由应用接管（主题已禁用系统 dim）：show 时淡入，dismiss
         // 时按路径淡出——单一图层无跨窗口交接，关闭瞬间不会闪烁
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
+        // 登记到弹窗栈：决定「在别的弹窗之上打开的弹窗」要不要把粒子抬到独立窗口上。
+        activity?.let { ParticleDialogStack.onShown(gestureDialog, it) }
         val animateAppearance = useParticleDismiss() && !recreatedFromSavedState &&
             !gestureDialog.condenseAttempted && ValueAnimator.areAnimatorsEnabled() &&
             particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
@@ -248,6 +252,11 @@ abstract class BaseDialogFragment : DialogFragment() {
                 // ignore this
             }
         }
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        (dialog as? Dialog)?.let { ParticleDialogStack.onDismissed(it) }
     }
 
     override fun dismiss() {
@@ -416,6 +425,9 @@ private class GestureAnchoredDialog(
             if (started) {
                 particleFlowPending = true
                 particleFlowTookOver = true
+                // 已经在离场：别人不该再把自己抬到它之上（A 关闭紧接着 B 打开是最常见的
+                // 连续操作，两者必须留在同一张表面上交接）。
+                ParticleDialogStack.onLeaving(this)
                 window?.setWindowAnimations(0)
                 return
             }

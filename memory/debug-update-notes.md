@@ -1,3 +1,67 @@
+## 叠加弹窗抬升：补测两条开始做事路径（20260916141036）
+
+发布后核验：debug 更新 `202609160611`，本地发布产物、远端完整 APK 与远端 latest.json 声明的
+SHA-256 均为 `fcc3ec891b3ac20c316923f7f7e36e1b075872a46d767fd94d584ed18ce142f1`，
+26,285,004 字节，含完整 releaseNotes（1367 字，单个 `## ` 节，与源文件逐字一致）。未创建 Git 提交。
+
+**应用行为与 `202609160402` 完全一致**，`app/src/main` 一行没动；差异只在调试包：
+`ParticleDialogRouteProbeActivity` 的 `route=notice` 多认一个可选 `thingId` 参数（默认行为不变），
+用于从应用进程内拉起「更突出的记事通知」。
+
+补测一，提醒详情页 → 开始做事 → 选择做事时长（全项目第二处弹窗叠弹窗）在 OPD2515 上跑通：
+出现与消散均 `elevate=true stack=2`，七帧整屏近黑 ≤0.3%，粒子明确盖在开始做事弹窗的白卡之上。
+
+补测二，更突出的记事通知 → 开始做事：只拿到日志与窗口结构（`elevate=no stack=1`，两个窗口分别是
+Activity 自身的透明底窗与 672px 内容弹窗，无多余承载窗口），**画面未验**——驱动中途平板锁回
+6 位 PIN，ColorOS 锁屏下 `screencap` 全黑。
+
+由此得到四条设备侧规则，已写进 `.claude/rules/adb.md`：不许 `keyevent 26` 熄屏；
+`USE_FULL_SCREEN_INTENT` 默认拒绝（真实闹钟拉不起全屏 Activity）；`run-as am start` 的包名校验；
+`dumpsys activity activities` 要按 `ResumedActivity` 过滤。
+
+## 修正 202609160339 的黑屏（20260916120212）
+
+发布后核验：debug 更新 `202609160402`，本地发布产物、远端完整 APK 与远端 latest.json 声明的
+SHA-256 均为 `6b6971cbd7490109c81519f8e716c7fb8f1db9d9210331006b9d32fdd6d13949`，
+26,285,004 字节，含完整 releaseNotes（1087 字）。未创建 Git 提交。
+
+上一版详情页点「从世界取色」整屏黑屏（实测近黑 99.3%）。两个原因叠加，都是上一版引入的：
+承载窗口是 OPAQUE（主题的 `windowIsTranslucent` 不替 Dialog 设置窗口格式，必须显式
+`setFormat(TRANSLUCENT)`）；以及「承载 decor 未附着就回退」那道兜底把出现这条路整个抵消了
+——承载窗口刚 `show()` 时 decor 必然未附着，于是每次回退、抬升等于没做，而窗口已显示又被
+「叠加还在就不撤」保留着，成了一块没人用的不透明全屏画布。出现这条路是**异步**取宿主的，
+同步附着检查只属于消散。
+
+**这次为什么没测出来**：第一版截图整屏近黑 0–5%、画面是对的；但那之后我又改了代码（保留窗口、
+未附着回退、调试日志），后续只核对 `elevate=` 日志与帧数，**没有再看一次画面**。
+已记进 `docs/features/dialog-particle-dismiss/decisions.md`。
+
+修正后在**整屏**画面上重验：出现 +400ms/+800ms 近黑 0.0%，粒子明确盖在面板之上；消散
++300ms/+700ms 同样；单弹窗出现/消散、新建入场均正常。单测 1036 项，唯一失败是既有的
+`FableSolCurveFairnessTest`。
+
+## 弹窗叠弹窗的粒子层级（20260916113857）
+
+发布后核验：debug 更新 `202609160339`，本地发布产物、远端完整 APK 与远端 latest.json 声明的
+SHA-256 均为 `850d6bcbe90684c79c2ba49dbc8284b9fae141f58d41e1197a5da64c6f2d8536`，
+26,285,004 字节，含完整 releaseNotes（1501 字）。未创建 Git 提交。
+
+详情页「改变颜色」面板之上打开「从世界取色」，粒子跑在面板下面。根因：粒子表面挂在 Activity
+DecorView（`setZOrderOnTop`），在 Activity 窗口内最上但在 Dialog 窗口之下；详情页的颜色面板
+本身是 `BaseDialogFragment`，首页的是页内 View 面板。新增按需显示的全屏透明承载窗口
+`ParticleElevatedHost`，`ParticleWindowSurface` 改按承载 decor 建索引；闸门
+`ParticleDialogStack` 只认「下面压着会留下来的弹窗」，正在离场的不算（A→B 必须同表面交接）。
+
+真机逐场景用 `elevate=` 日志核对：只有叠加那一种启用（35/62 帧，粒子盖在面板上）；单弹窗、
+A→B、FableSol 调参、新建入场、页内面板、左滑完成全部维持原路径、帧数一致。单测 1036 项，
+唯一失败是既有的 `FableSolCurveFairnessTest`。做法与边界见
+`docs/features/dialog-particle-dismiss/stacked-dialog-z-2026-09-16.md`。
+
+**未验到**：`ThingDoingDialogFragment` → 选择做事时长（第二处叠加，同一入口同一闸门）；首页
+调整外观面板里的取色入口；三星那台未连接。承载窗口设成不可触摸，值得实际点几下确认没挡点击。
+
+设备已复原：测试记事入回收站，首页 2 文件夹 15 条，三项动画档位与开始时一致。
+
 ## header 记事与占位卡不再可滑（20260916100001）
 
 发布后核验：debug 更新 `202609160200`，本地发布产物、远端完整 APK 与远端 latest.json 声明的

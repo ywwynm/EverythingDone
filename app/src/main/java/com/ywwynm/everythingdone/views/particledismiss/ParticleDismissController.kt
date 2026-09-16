@@ -123,14 +123,42 @@ internal object ParticleDismissController {
     ): Boolean {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
-        return startContent(activity, window, window.decorView, touchInWindow,
-            onAnimationStarted, onOverlayShown, useDefaultTouchDistance)
+        // 下面还压着别的弹窗时，粒子必须抬到一个全屏承载窗口上，否则会被它盖住。
+        val elevated = acquireElevated(activity, dialog)
+        val started = startContent(activity, window, window.decorView, touchInWindow,
+            onAnimationStarted, onOverlayShown, useDefaultTouchDistance,
+            elevatedDecor = elevated)
+        if (!started && elevated != null) ParticleElevatedHost.release(activity)
+        return started
+    }
+
+    /**
+     * 需要抬升就取一块全屏画布，否则返回 null（走 Activity 那张常驻表面，与以前逐帧一致）。
+     * 取到的必须配一次 [ParticleElevatedHost.release]。
+     */
+    private fun acquireElevated(activity: Activity, dialog: Dialog?): ViewGroup? {
+        if (!ParticleDialogStack.needsElevation(activity, dialog)) {
+            if (BuildConfig.DEBUG) {
+                Log.i(ParticleMicroflakeRenderer.TAG,
+                    "elevate=no stack=${ParticleDialogStack.stackedCount(activity)} " +
+                        "dialog=${dialog?.javaClass?.simpleName}")
+            }
+            return null
+        }
+        val decor = ParticleElevatedHost.acquire(activity)
+        if (BuildConfig.DEBUG) {
+            Log.i(ParticleMicroflakeRenderer.TAG,
+                "elevate=${decor != null} stack=${ParticleDialogStack.stackedCount(activity)} " +
+                    "dialog=${dialog?.javaClass?.simpleName}")
+        }
+        return decor
     }
 
     fun startContent(
         activity: Activity, window: Window, decor: View, touchInWindow: PointF?,
         onAnimationStarted: Runnable, onOverlayShown: Runnable,
-        useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null
+        useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
+        elevatedDecor: ViewGroup? = null
     ): Boolean {
         cancelAppearance(decor)
         val requestedAtNanos = System.nanoTime()
@@ -148,13 +176,18 @@ internal object ParticleDismissController {
             return reject("宿主正在结束或重建 finishing=${activity.isFinishing} " +
                 "destroyed=${activity.isDestroyed} changingConfig=${activity.isChangingConfigurations}")
         }
-        val hostDecor = activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor")
+        // 承载窗口刚 show 出来时 decor 要等下一次遍历才附着；宁可退回 Activity 那张表面
+        // （层级仍是旧的），也不能因此整场不播。
+        val elevated = elevatedDecor?.takeIf { it.isAttachedToWindow }
+        if (elevatedDecor != null && elevated == null) ParticleElevatedHost.release(activity)
+        val hostDecor = elevated
+            ?: (activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor"))
         if (!hostDecor.isAttachedToWindow) return reject("宿主 decor 未附着")
         // 1.2：不再改任何窗口属性。刷新率改由粒子自己的 Surface 投一次无缝 60 Hz
         // （见 ParticleWindowSurface.applyFrameRate）。
         // 一窗一 Surface：在请求这一刻就把宿主窗口的粒子 SurfaceView 建起来，首次动画不必
         // 再等表面创建，也避免在别的遍历过程中往 DecorView 加子 View。
-        ParticleWindowSurface.of(activity)
+        ParticleWindowSurface.of(activity, hostDecor)
         val feedback = ParticleTouchFeedback.begin(activity, decor)
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
@@ -180,7 +213,7 @@ internal object ParticleDismissController {
                         attachDismissOverlay(activity, hostDecor, decor, snapshot, touchInWindow,
                             onAnimationStarted, onOverlayShown,
                             requestedAtNanos, useDefaultTouchDistance, radius,
-                            Runnable { releaseContent(); onDone?.run() }, feedback)
+                            Runnable { releaseContent(); onDone?.run() }, feedback, elevated)
                     } else {
                         // 走到这里弹窗会以系统默认动画退出，画面上就是「没有粒子」。
                         // 快照为空要能一眼看出走的是哪条抓图路径、卡在哪一步。
@@ -250,7 +283,9 @@ internal object ParticleDismissController {
         useDefaultTouchDistance: Boolean,
         cornerRadiusPx: Float,
         onDone: Runnable?,
-        feedback: ParticleTouchFeedback?
+        feedback: ParticleTouchFeedback?,
+        /** 非空表示这一次被抬到了 [ParticleElevatedHost] 的全屏窗口上，收尾时要归还。 */
+        elevatedDecor: ViewGroup?
     ) {
         // 圆角遮罩在材料线程上时，这张快照本身还是直角的——盖回真实弹窗必须自己裁角，
         // 否则交接期弹窗会有一瞬间变成直角。
@@ -307,8 +342,13 @@ internal object ParticleDismissController {
             activity = activity,
             spec = spec,
             onAnimationStarted = onAnimationStarted,
-            onDone = Runnable { releaseSurfaceCover?.invoke(); onDone?.run() },
-            touchFeedback = feedback
+            onDone = Runnable {
+                releaseSurfaceCover?.invoke()
+                if (elevatedDecor != null) ParticleElevatedHost.release(activity)
+                onDone?.run()
+            },
+            touchFeedback = feedback,
+            hostDecor = elevatedDecor
         )
         ParticleOverlayHost.attach(hostDecor, overlay)
         // 等 overlay（含快照）实际上屏后再通知调用方执行真实 dismiss：overlay
@@ -368,8 +408,14 @@ internal object ParticleDismissController {
                       onOverlayCreated: (ParticleDismissOverlay) -> Unit): Boolean {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
-        return appearContent(activity, window, window.decorView, true, { dialog.isShowing },
-            onAppearanceProgress, onOverlayCreated = onOverlayCreated)
+        val elevated = acquireElevated(activity, dialog)
+        val started = appearContent(activity, window, window.decorView, true, { dialog.isShowing },
+            onAppearanceProgress, onOverlayCreated = onOverlayCreated,
+            elevatedDecor = elevated,
+            onAppearanceFinished = if (elevated == null) null
+                else ({ ParticleElevatedHost.release(activity) }))
+        if (!started && elevated != null) ParticleElevatedHost.release(activity)
+        return started
     }
 
     private val appearancePreparations = WeakHashMap<View, Runnable>()
@@ -397,6 +443,7 @@ internal object ParticleDismissController {
         creationPage: Boolean = false,
         prewarmKey: ParticleCreationKey? = null,
         traceLabel: String? = null,
+        elevatedDecor: ViewGroup? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
@@ -410,9 +457,15 @@ internal object ParticleDismissController {
         if (activity.isFinishing || activity.isDestroyed || activity.isChangingConfigurations) {
             return reject("宿主正在结束或重建")
         }
-        val hostDecor = activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor")
+        // 出现这条路是异步取宿主的：真正用到 hostDecor 是在 preDraw 之后的捕获回调里，
+        // 那时承载窗口早已附着。这里**不能**照消散那样做同步的附着检查——承载窗口是刚
+        // show 出来的，decor 必然还没附着，一查就回退到 Activity 表面，抬升等于没做，
+        // 而窗口已经显示又被保留着，就成了一块没人用的全屏画布（2026-09-16 黑屏根因之一）。
+        val elevated = elevatedDecor
+        val hostDecor = elevated
+            ?: (activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor"))
         appearancePreparations.remove(decor)?.run()
-        ParticleWindowSurface.of(activity)
+        ParticleWindowSurface.of(activity, hostDecor)
         val appearanceFeedback = ParticleTouchFeedback.current(activity)
             ?: ParticleTouchFeedback.begin(activity, hostDecor)
         val prevAlpha = if (hideWindow) window.attributes.alpha else decor.alpha
@@ -544,7 +597,8 @@ internal object ParticleDismissController {
                                 releaseContent(); overlayRef?.release()
                             }
                         }, touchFeedback = appearanceFeedback,
-                            onPresentedProgress = onAppearanceProgress, prepared = prepared)
+                            onPresentedProgress = onAppearanceProgress, prepared = prepared,
+                            hostDecor = elevated)
                         overlayRef = overlay
                         overlay.afterRelease(Runnable { onAppearanceFinished?.invoke() })
                         onOverlayCreated(overlay)

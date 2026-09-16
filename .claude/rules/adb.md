@@ -681,3 +681,46 @@ OPPO OPD2515 上 `/sdcard`、`/sdcard/Movies`、`/sdcard/Download`、`/data/loca
 应用外部私有目录全部 `Unable to open ...: Permission denied`，`--output-format=h264 -`
 的管道也只出 0 字节。那台设备上的逐帧验收做不了，只能改用应用自己的日志判据
 （例如本次「遮盖已上 / 撤下 停留=…ms」两行），并在另一台能录屏的设备上补画面证据。
+
+## 绝对不要按电源键熄屏：设备会锁回 PIN，此后什么都做不了
+
+2026-09-16 在 OPD2515 上实际发生，整轮验证卡死。为了等一个 full-screen intent 发了
+`input keyevent 26`，屏幕熄灭即触发锁屏；ColorOS 的锁屏下：
+
+- `screencap` 一律返回**全黑**（不是失败，是黑图，只看返回码发现不了）；
+- `uiautomator dump` 出来的是 `com.android.systemui` 的树，应用的控件一个都找不到；
+- `input tap` 打到锁屏上，不会到应用。
+
+而这台配的是 6 位数字 PIN（`oplusos_kgd_security_pin_six_view`）+ 面部解锁，**密码属于用户，
+不得代输**，只能请用户解锁。`keyevent 224`（WAKEUP）只点亮屏幕，解不开锁。
+
+规则：**真机驱动脚本里不出现 `keyevent 26`**。需要判断是否被锁，在脚本开头 dump 一次，
+命中 `com.android.systemui` 就直接退出并提示解锁，别让后面的步骤拿着黑图往下跑。
+
+## `USE_FULL_SCREEN_INTENT` 默认是拒绝的，别指望真实闹钟拉起全屏 Activity
+
+Android 14 起这个权限只自动授予通话/闹钟类应用。OPD2515 上：
+
+```powershell
+& $adb -s <serial> shell appops get com.ywwynm.everythingdone USE_FULL_SCREEN_INTENT
+# USE_FULL_SCREEN_INTENT: default; rejectTime=+3m26s551ms ago
+```
+
+`rejectTime` 就是闹钟响的那一刻：通知正常发出（`dumpsys notification` 里能看到那条记录），
+但 `setFullScreenIntent` 被拒，Activity 不会起。**不代为 `appops set`**（授权属于设备设置），
+改用调试包里的入口 Activity 从应用进程内 `startActivity`。
+
+## `run-as ... am start` 起不了本应用的非导出 Activity
+
+`am` 把调用包写死为 `com.android.shell`，框架在
+`assertPackageMatchesCallingUid` 处直接抛
+`SecurityException: package=com.android.shell does not belong to uid=<app uid>`。
+`run-as` 只换了 uid，换不了 `am` 自报的包名。要从应用进程内起非导出 Activity，
+只能在 debug source set 里加一个 `exported="true"` 的中转 Activity。
+
+## `dumpsys activity activities` 里不一定有 `topResumedActivity=`
+
+活动落在另一个任务（本项目的 `NoticeableNotificationActivity` / `StartDoingActivity` 都有
+自己的 `taskAffinity`）时，输出里只有 `ResumedActivity:` / `mResumedActivity=` 这几行，
+按 `topResumedActivity` 过滤会一条都匹配不到，症状是「Activity 一直没起来」而实际上它就在前台。
+过滤词用 `ResumedActivity`（同时覆盖 `topResumedActivity=`）。

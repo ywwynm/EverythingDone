@@ -36,7 +36,13 @@ internal class ParticleDismissOverlay(
     private val onPresentedProgress: ((Float) -> Unit)? = null,
     private val gesture: ParticleGestureProgress? = null,
     /** 第四批 ②：命中提前算好的轨迹时由 [ParticleDismissController] 传进来。 */
-    private val prepared: ParticlePreparedAppearance? = null
+    private val prepared: ParticlePreparedAppearance? = null,
+    /**
+     * 这一层挂在哪个窗口的 decor 上。为空即 Activity 自己的 decor（绝大多数情况）；
+     * 弹窗叠弹窗时由 [ParticleDismissController] 传 [ParticleElevatedHost] 的全屏画布，
+     * 粒子才能盖住下面那个弹窗。
+     */
+    private val hostDecor: android.view.ViewGroup? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -140,7 +146,7 @@ internal class ParticleDismissOverlay(
         // 挂进 ViewGroupOverlay 之后不再是 DecorView 的子 View，遍历子节点找不到它；
         // 需要「当前有哪些动画层」的两处（透明宿主延迟 finish、debug 观察器）改查这份登记。
         synchronized(active) { active += this }
-        val window = ParticleWindowSurface.of(host)
+        val window = ParticleWindowSurface.of(host, hostDecor ?: (host.window?.decorView as? ViewGroup))
         if (window == null) {
             // 会话建不起来，提前算好的轨迹也就没人接手了——必须当场还回去，否则那份
             // GPU 资源（历史缓冲 + 前景纹理）会一直挂着。

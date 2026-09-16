@@ -359,27 +359,33 @@ internal class ParticleWindowSurface private constructor(
     private fun dispose() {
         if (detached) return
         detached = true
-        synchronized(hosts) { if (hosts[activity]?.get() === this) hosts.remove(activity) }
+        synchronized(hosts) { if (hosts[decor]?.get() === this) hosts.remove(decor) }
         view.removeOnAttachStateChangeListener(attachment)
         ParticleGl.unregister(this)
     }
 
     companion object {
         /**
-         * 值必须是弱引用：本对象强引用 Activity，直接放进 WeakHashMap 会让「值经由静态根
-         * 强引用键」，条目永远回收不掉，等于泄漏整个 Activity。
+         * 键是「承载这张表面的那个窗口的 decor」，不是 Activity：弹窗叠弹窗时粒子要改挂到
+         * [ParticleElevatedHost] 的全屏窗口上（见那里的说明），同一个 Activity 因此可能同时
+         * 有两张表面。
+         *
+         * 值必须是弱引用：本对象强引用 Activity 与 decor，直接放进 WeakHashMap 会让「值经由
+         * 静态根强引用键」，条目永远回收不掉，等于泄漏整个 Activity。
          */
-        private val hosts = WeakHashMap<Activity, WeakReference<ParticleWindowSurface>>()
+        private val hosts = WeakHashMap<ViewGroup, WeakReference<ParticleWindowSurface>>()
 
-        /** 每个宿主窗口一个；首次需要时创建。必须在主线程调用。 */
-        fun of(activity: Activity): ParticleWindowSurface? {
-            val decor = activity.window?.decorView as? ViewGroup ?: return null
-            if (!decor.isAttachedToWindow || activity.isDestroyed) return null
+        /** 每个承载窗口一个；首次需要时创建。必须在主线程调用。 */
+        fun of(activity: Activity): ParticleWindowSurface? =
+            of(activity, activity.window?.decorView as? ViewGroup)
+
+        fun of(activity: Activity, decor: ViewGroup?): ParticleWindowSurface? {
+            if (decor == null || !decor.isAttachedToWindow || activity.isDestroyed) return null
             synchronized(hosts) {
-                hosts[activity]?.get()?.let { if (!it.detached) return it }
-                hosts.remove(activity)
+                hosts[decor]?.get()?.let { if (!it.detached) return it }
+                hosts.remove(decor)
                 return runCatching { ParticleWindowSurface(activity, decor) }.getOrNull()
-                    ?.also { hosts[activity] = WeakReference(it) }
+                    ?.also { hosts[decor] = WeakReference(it) }
             }
         }
 

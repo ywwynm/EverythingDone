@@ -15,9 +15,12 @@ class ParticleDialogRouteProbeActivity : Activity() {
         super.onCreate(savedInstanceState)
         when (intent.getStringExtra("route")) {
             "notice" -> {
-                val id = App.getRunningDetailActivities().lastOrNull()
+                // 默认沿用「已打开的普通记事」这条安全路径；显式传 thingId 时按该记事打开，
+                // 用于验证提醒记事上的动作按钮（开始做事等）所引出的弹窗。
+                val explicitId = intent.getLongExtra("thingId", -1L)
+                val id = if (explicitId > 0) explicitId else App.getRunningDetailActivities().lastOrNull()
                 val thing = id?.let { ThingDAO.getInstance(this)?.getThingById(it) }
-                if (thing != null && thing.type == Thing.NOTE) {
+                if (thing != null && (explicitId > 0 || thing.type == Thing.NOTE)) {
                     startActivity(NoticeableNotificationActivity.getOpenIntentForReminder(this, thing.id, -1))
                 }
             }
