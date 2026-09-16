@@ -91,3 +91,22 @@
   正是原本「啪地弹回来」的成因。
 - 这一类时序问题一律先在真机上量 `onSwiped` / `clearView` / 业务判定的实际先后与卡片每一刻的
   `translationX` / `alpha` / View 身份，再动手。前两版都是推断时序失败的。
+
+## 2026-09-16 header 记事不再可滑
+
+- header 记事、文件夹条目与 `NOTIFY_EMPTY_*` 占位卡不再拿得到滑动标志。`getMovementFlags`
+  此前只判 `is ThingListEntry.ThingEntry`，而 header 正是一个 `type = Thing.HEADER` 的
+  `ThingEntry`（`ThingManager` 把它放在列表位置 0），于是 header 一直可以被左右滑：跟手平移、
+  右滑还淡入「开始做事」蒙层、左滑在粒子档还会播粒子，松手才被 `completeThingSwipe` 的
+  `listPosition <= 0` 原样退回。新增 `canSwipeListEntry`，口径与 `completeThingSwipe` 的几处
+  早退对齐（位置 0、非 `ThingEntry`、`type > Thing.NOTIFICATION_GOAL`），不放行则手势自始至终
+  不成立。
+- 判定放在 `getMovementFlags` 而不是在 `onChildDraw` 里把蒙层藏掉：后者只遮住右滑这一半，
+  左滑的平移与粒子仍然会播，且"滑得动但什么都不会发生"本身就是错的。
+- `canSwipeListEntry` 不调用 `getThingIndexForListPosition`。它对 `mThings` 做线性查找，而
+  `getMovementFlags` 每次按下都会走；header 已由 `type` 判掉，不必再付这个代价。
+- `WELCOME_*`（4–8）仍可滑动，那几张欢迎卡本来就能滑动完成。
+- 与同日的回位动画（`52d9b0a1`）的关系：`completeThingSwipe` 里 `listPosition <= 0`、
+  `!is ThingEntry`、`thingType > NOTIFICATION_GOAL` 这三条早退分支上的 `stays(...)` 从此不再
+  可达（手势根本不成立）。留着当防御，不删。真正会用到回位动画的仍是隐私认证被取消、习惯已
+  暂停、右滑开始做事这几条「卡片留在列表里」的路径。

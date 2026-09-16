@@ -84,3 +84,21 @@
 - 120 ms 时刻对比：修改前 `tx=-1767`（屏上 0 px），修改后 `tx=-214`（屏上 405/577 px）。
   两档各 3 轮、移除／右滑／半途松手各一轮全部通过。
 - 详见 [return-2026-09-16.md](return-2026-09-16.md)。测试记事已入回收站，档位与设备已复原。
+
+## 2026-09-16 header 记事不再可滑
+
+- 用户报告 header 记事「现在也能右滑」。查证后确认可滑动是既有行为、不是上一次改动引入的：
+  `getMovementFlags` 只判 `is ThingEntry`，而 header 是 `type = Thing.HEADER` 的 `ThingEntry`，
+  且每一项都 inflate 同一个 `card_thing`，`flDoing` 蒙层在 header 上同样存在。
+- 但它确实是被上一次改动顶到台前的：以前主视觉是卡片跟手平移，蒙层混在其中不显眼；去掉平移
+  之后「开始做事」的图标与文字成了 header 上唯一的反馈，看起来就像 header 支持开始做事。
+- 修法是新增 `canSwipeListEntry` 并接到 `getMovementFlags`，把 header、文件夹条目与
+  `NOTIFY_EMPTY_*` 占位卡一并挡在手势之外，口径与 `completeThingSwipe` 的早退对齐。顺带修掉
+  粒子档下左滑 header 会播一遍粒子再复位的既有问题。
+- `:app:assembleDebug` 通过。未上真机。
+- 本次改动落在 `52d9b0a1`（回位动画第三次）之上。`completeThingSwipe` 三条早退分支上的
+  `stays(...)` 因此不再可达，留作防御；回位动画真正服务的仍是隐私认证取消、习惯暂停、右滑
+  开始做事这几条路径。
+- 已发布阿里云 debug 更新 `202609160200`：本地发布产物、远端完整 APK 与远端 latest.json 声明的
+  SHA-256 三方一致（`a5de5d88…3f81`，26,760,552 字节），releaseNotes 812 字完整。日志见
+  [debug-updates/update-20260916100001.md](debug-updates/update-20260916100001.md)。

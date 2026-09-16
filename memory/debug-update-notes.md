@@ -1,3 +1,26 @@
+## header 记事与占位卡不再可滑（20260916100001）
+
+发布后核验：debug 更新 `202609160200`，本地发布产物、远端完整 APK 与远端 latest.json 声明的
+SHA-256 均为 `a5de5d889a3edb19adde8286402d18615dd4495da3ee5eafdc97394bdabf3f81`，
+26,760,552 字节，含完整 releaseNotes（812 字）。未创建 Git 提交，未连接任何真机。
+
+用户报告 header 记事「现在也能右滑」。查证后确认能滑是既有行为，不是上一版（`df8ffd67`
+去掉右滑平移）引入的：`getMovementFlags` 只判 `is ThingListEntry.ThingEntry`，而 header 正是
+一个 `type = Thing.HEADER` 的 `ThingEntry`（在列表位置 0），且每一项都 inflate 同一个
+`card_thing`，`flDoing` 蒙层在 header 上同样存在。但它确实是被上一版顶到台前的：以前主视觉是
+卡片跟手平移，蒙层混在其中；平移去掉后「开始做事」成了 header 上唯一的反馈。
+
+修法是新增 `canSwipeListEntry` 并接到 `getMovementFlags`，让手势自始至终不成立，而不是只把
+蒙层藏掉（后者只管右滑一半，左滑的平移与粒子仍会播）。口径与 `completeThingSwipe` 的早退
+对齐：位置 0、非 `ThingEntry`、`type > Thing.NOTIFICATION_GOAL`（`NOTIFY_EMPTY_*` 占位卡）。
+顺带修掉粒子档下左滑 header 会播一遍粒子再复位的既有问题。`WELCOME_*` 仍可滑动完成。
+
+落在 `52d9b0a1`（回位动画第三次）之上：`completeThingSwipe` 三条早退分支上的 `stays(...)`
+从此不再可达，留作防御不删。
+
+**未上真机，四项待确认**：header 左滑右滑都应毫无反应（不动、无蒙层、粒子档也不播）；普通
+记事左滑完成与右滑开始做事与上一版一致；各类空列表占位卡滑动无反应；欢迎卡仍能左滑完成。
+
 ## 滑走后回位动画（第三次，真机量出来的）（20260916091851）
 
 发布后核验：debug 更新 `202609160119`，本地发布产物、远端完整 APK 与远端 latest.json 声明的

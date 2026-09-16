@@ -10435,14 +10435,27 @@ class ThingsActivity :
             val dragFlags = 0
             val listPosition = viewHolder.adapterPosition
             val swipeFlags =
-                if (!mOverlayDragActive &&
-                    mThingManager!!.getThingListEntry(listPosition) is ThingListEntry.ThingEntry
-                ) {
+                if (!mOverlayDragActive && canSwipeListEntry(listPosition)) {
                     ItemTouchHelper.START or ItemTouchHelper.END
                 } else {
                     0
             }
             return makeMovementFlags(dragFlags, swipeFlags)
+        }
+
+        /**
+         * 这一项滑动之后真的会有事情发生吗。口径必须与 [completeThingSwipe] 的几处早退一致：
+         * 位置 0 的 header 记事、非记事条目（文件夹）、以及 NOTIFY_EMPTY_* 这一档占位卡都会被
+         * 它原样退回。此前这些条目照样拿得到滑动标志，滑起来跟手平移、右滑还会淡入「开始做事」
+         * 蒙层，松手才发现什么都没发生——header 上尤其明显。不放行，手势自始至终不成立。
+         */
+        private fun canSwipeListEntry(listPosition: Int): Boolean {
+            if (listPosition <= 0) return false
+            if (mThingManager!!.getThingListEntry(listPosition) !is ThingListEntry.ThingEntry) {
+                return false
+            }
+            val thing = mThingManager!!.getThingAtListPosition(listPosition) ?: return false
+            return thing.type != Thing.HEADER && thing.type <= Thing.NOTIFICATION_GOAL
         }
 
         override fun onMove(
