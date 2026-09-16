@@ -148,6 +148,12 @@ internal class ParticleSwipeAnimator(
         private var completionAnimator: ValueAnimator? = null
         private var overlay: ParticleDismissOverlay? = null
         private var capturedBitmap: Bitmap? = null
+        /**
+         * 卡片被容器截断时，快照只抓露出来的那一块，这里是它相对卡片左上角的偏移。
+         * 正在做事界面的列表比卡片矮，截断线以下的内容不在屏幕上（见 [ParticleCardClip]）。
+         */
+        private var clipOffsetX = 0
+        private var clipOffsetY = 0
         private val originalAlpha = view.alpha
         private val origin = IntArray(2)
         private val current = IntArray(2)
@@ -170,7 +176,11 @@ internal class ParticleSwipeAnimator(
             originalPosition(origin)
             view.addOnAttachStateChangeListener(attachmentObserver)
             view.viewTreeObserver.addOnPreDrawListener(geometryObserver)
-            ParticleDismissController.captureContent(view) captured@{ snapshot ->
+            val clip = ParticleCardClip.visibleRect(view)
+            if (clip != null && clip.isEmpty) { dispose(); return }
+            clipOffsetX = clip?.left ?: 0
+            clipOffsetY = clip?.top ?: 0
+            ParticleDismissController.captureContent(view, clip) captured@{ snapshot ->
                 if (closed) { snapshot?.recycle(); return@captured }
                 val host = activity.window.decorView as? ViewGroup
                 if (snapshot == null || host == null || !view.isAttachedToWindow || activity.isFinishing) {
@@ -211,8 +221,8 @@ internal class ParticleSwipeAnimator(
             if (closed || overlay != null || direction == ParticleSwipeDirection.UNKNOWN) return
             val snapshot = capturedBitmap ?: return
             val at = IntArray(2); host.getLocationOnScreen(at)
-            val x = (origin[0] - at[0]).toFloat()
-            val y = (origin[1] - at[1]).toFloat()
+            val x = (origin[0] - at[0] + clipOffsetX).toFloat()
+            val y = (origin[1] - at[1] + clipOffsetY).toFloat()
             val reach = hypot(snapshot.width.toFloat(), snapshot.height.toFloat()) * 1.2f
             val spec = ParticleDismissSpec(snapshot, x, y,
                 ParticleSwipeDirection.virtualTouchX(direction, x, snapshot.width, reach),
@@ -271,7 +281,9 @@ internal class ParticleSwipeAnimator(
 
         fun drawOriginal(canvas: Canvas) {
             val bitmap = capturedBitmap
-            if (bitmap != null && !bitmap.isRecycled) canvas.drawBitmap(bitmap, 0f, 0f, null)
+            if (bitmap != null && !bitmap.isRecycled) {
+                canvas.drawBitmap(bitmap, clipOffsetX.toFloat(), clipOffsetY.toFloat(), null)
+            }
             else {
                 // 捕获尚未返回时同样保留根卡片的自定义圆角。
                 val outline = Outline()

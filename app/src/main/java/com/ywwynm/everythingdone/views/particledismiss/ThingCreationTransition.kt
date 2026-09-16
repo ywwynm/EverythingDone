@@ -235,7 +235,7 @@ internal class ThingCreationTransition private constructor(
             }
             ParticleLaunchTrace.mark("home-capture-request")
             if (!ValueAnimator.areAnimatorsEnabled()) open(null)
-            else ParticleDismissController.captureContent(activity.window.decorView, ::open)
+            else ParticleDismissController.captureContent(activity.window.decorView, done = ::open)
         }
 
         fun attach(activity: Activity, content: View, background: ThingBackground): ThingCreationTransition? {

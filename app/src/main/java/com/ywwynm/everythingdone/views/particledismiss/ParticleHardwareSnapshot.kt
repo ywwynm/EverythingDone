@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.graphics.Bitmap
 import android.graphics.HardwareRenderer
+import android.graphics.Rect
 import android.graphics.Outline
 import android.graphics.PixelFormat
 import android.graphics.RenderNode
@@ -25,8 +26,16 @@ internal object ParticleHardwareSnapshot {
             .apply { start() }.looper)
     }
 
-    fun capture(view: View, done: (Bitmap?) -> Unit) {
+    /**
+     * [clip] 非空时只画卡片露出来的那一块（坐标以卡片左上角为原点）。离屏节点连同
+     * outline、阴影光源一起按它平移，得到的就是屏幕上那一块的像素，不必抓完再拷一次。
+     */
+    fun capture(view: View, clip: Rect? = null, done: (Bitmap?) -> Unit) {
         ParticleCaptureDiagnostics.begin("硬件离屏")
+        val clipLeft = clip?.left ?: 0
+        val clipTop = clip?.top ?: 0
+        val width = clip?.width() ?: view.width
+        val height = clip?.height() ?: view.height
         val node = RenderNode("particleSnapshot")
         var reader: ImageReader? = null
         var renderer: HardwareRenderer? = null
@@ -50,7 +59,7 @@ internal object ParticleHardwareSnapshot {
             complete(null)
         }
         try {
-            val target = ImageReader.newInstance(view.width, view.height, PixelFormat.RGBA_8888, 2,
+            val target = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2,
                 HardwareBuffer.USAGE_GPU_COLOR_OUTPUT or HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
             reader = target
             target.setOnImageAvailableListener({ available ->
@@ -85,23 +94,28 @@ internal object ParticleHardwareSnapshot {
             hardware.setName("particleSnapshot")
             hardware.isOpaque = false
             hardware.setSurface(target.surface)
-            node.setPosition(0, 0, view.width, view.height)
+            node.setPosition(0, 0, width, height)
             // View.draw 会记录子树，但不会把根 View 自身 RenderNode 的裁剪属性带进来。
             // 媒体卡片使用自定义 Outline，不能从 CardView.radius 或背景形状推断它。
             if (view.clipToOutline) {
                 val outline = Outline()
                 view.outlineProvider?.getOutline(view, outline)
+                // outline 是卡片坐标系里的，节点原点已经挪到可见区左上角，跟着平移。
+                if (clipLeft != 0 || clipTop != 0) outline.offset(-clipLeft, -clipTop)
                 node.setOutline(outline)
                 node.setClipToOutline(true)
             }
-            val canvas = node.beginRecording(view.width, view.height)
+            val canvas = node.beginRecording(width, height)
+            if (clipLeft != 0 || clipTop != 0) canvas.translate(-clipLeft.toFloat(), -clipTop.toFloat())
             view.draw(canvas)
             node.endRecording()
             hardware.setContentRoot(node)
             val location = IntArray(2); view.getLocationOnScreen(location)
             val metrics = view.resources.displayMetrics
-            hardware.setLightSourceGeometry(metrics.widthPixels / 2f - location[0],
-                -location[1].toFloat(), 600f * metrics.density, 800f * metrics.density)
+            // 光源位置相对节点原点，而节点原点在屏幕上的位置是卡片左上角加上可见区偏移。
+            hardware.setLightSourceGeometry(
+                metrics.widthPixels / 2f - (location[0] + clipLeft),
+                -(location[1] + clipTop).toFloat(), 600f * metrics.density, 800f * metrics.density)
             hardware.setLightSourceAlpha(.039f, .19f)
             hardware.start()
             main.postDelayed(timeout, 1200)

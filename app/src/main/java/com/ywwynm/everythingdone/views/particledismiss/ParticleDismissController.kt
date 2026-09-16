@@ -522,7 +522,7 @@ internal object ParticleDismissController {
                     ParticleSnapshot.capture(window, decor,
                         asyncOffscreen = { done ->
                             if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
-                            else captureContent(decor, done)
+                            else captureContent(decor, done = done)
                         }) copy@{ snapshot ->
                         if (handled) { snapshot?.recycle(); return@copy }
                         if (snapshot == null || !isShowing() || !decor.isAttachedToWindow ||
@@ -632,7 +632,7 @@ internal object ParticleDismissController {
      */
     private fun captureSnapshotAsync(decor: View, context: Context, done: (Bitmap?) -> Unit) {
         if (Build.VERSION.SDK_INT >= 29 && !ParticleSnapshot.hasVisibleSurface(decor)) {
-            ParticleHardwareSnapshot.capture(decor, done)
+            ParticleHardwareSnapshot.capture(decor, done = done)
         } else {
             ParticleCaptureDiagnostics.begin("离屏软件绘制")
             done(captureSnapshot(decor, context, softwareOnly = true))
@@ -640,11 +640,17 @@ internal object ParticleDismissController {
     }
 
     /** 通用内容保留自身轮廓；不能套用 Dialog 的圆角遮罩。 */
-    fun captureContent(view: View, done: (Bitmap?) -> Unit) {
+    /**
+     * [clip] 非空时只抓卡片露出来的那一块（坐标以卡片左上角为原点，见 [ParticleCardClip]）。
+     * 列表把卡片按直线截断时，抓整张会在粒子接管的那一帧把截掉的部分一起显示出来。
+     * 在这里裁而不是抓完再裁，省掉一次整张卡片大小的位图拷贝。
+     */
+    fun captureContent(view: View, clip: Rect? = null, done: (Bitmap?) -> Unit) {
         if (view.width <= 0 || view.height <= 0) { done(null); return }
-        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(view, done)
+        if (clip != null && clip.isEmpty) { done(null); return }
+        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(view, clip, done)
         else {
-            val bitmap = try { captureViaSoftwareDraw(view) }
+            val bitmap = try { captureViaSoftwareDraw(view, clip) }
             catch (error: RuntimeException) {
                 Log.w(ParticleMicroflakeRenderer.TAG, "内容快照失败", error)
                 null
@@ -686,9 +692,13 @@ internal object ParticleDismissController {
         }
     }
 
-    private fun captureViaSoftwareDraw(decor: View): Bitmap {
-        val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
-        decor.draw(Canvas(bitmap))
+    private fun captureViaSoftwareDraw(decor: View, clip: Rect? = null): Bitmap {
+        val width = clip?.width() ?: decor.width
+        val height = clip?.height() ?: decor.height
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        if (clip != null) canvas.translate(-clip.left.toFloat(), -clip.top.toFloat())
+        decor.draw(canvas)
         return bitmap
     }
 

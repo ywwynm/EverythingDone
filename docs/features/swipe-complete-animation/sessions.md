@@ -102,3 +102,12 @@
 - 已发布阿里云 debug 更新 `202609160200`：本地发布产物、远端完整 APK 与远端 latest.json 声明的
   SHA-256 三方一致（`a5de5d88…3f81`，26,760,552 字节），releaseNotes 812 字完整。日志见
   [debug-updates/update-20260916100001.md](debug-updates/update-20260916100001.md)。
+
+## 2026-09-16 被截断的卡片：粒子不再把它补全
+
+正在做事界面的卡片比列表高时会被按一条直线截断，滑动完成的粒子动画却在接管的那一帧把整张
+卡片显示出来。根因是截断由列表做（`DoingActivity` 把列表高度压到时钟与按钮之间，超出部分由
+`clipChildren` 裁掉），而快照按 `view.width × view.height` 离屏渲染整张卡片，离屏渲染器不经过
+列表那一层。改为只抓卡片露出来的那一块：新增 `ParticleVisibleBounds`（纯几何 + 7 项单测）与
+`ParticleCardClip`（沿父链读裁剪），捕获侧增加可选 `clip`。详见
+[truncated-card-2026-09-16.md](truncated-card-2026-09-16.md)。debug 更新 `202609160726`，用户实测确认。
