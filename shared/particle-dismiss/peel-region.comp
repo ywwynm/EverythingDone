@@ -1,0 +1,48 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=1) in;
+// C10（逐帧成本专项第一批）：把 splat 记下的原子包围盒换算成下一步几遍的活动区域。
+//
+// 不变式：**区域之外，中间量、速度、两份压力与修正场恒为零。** 区域取「上一帧包围盒 ∪
+// 本帧包围盒」再外扩一个 tile（11 抽头模糊的半径是 5 格，不到一个 tile）——前者保证上一轮
+// 写过的非零值被重新写成零，后者保证本帧所有可能非零的格子都算到。
+// 累积缓冲不在此列：它每帧整网格清零。
+//
+// 包围盒记的是 **16 格 tile 的坐标**：既压住 splat 那边的原子竞争，也让区域天然对齐到
+// 工作组——`pressure-tiles.comp` 的组内有 `barrier()`，早退判定必须在组内一致。
+layout(std430,binding=7) buffer Work {
+    uvec4 workgroups;
+    ivec4 region;
+    ivec4 previous;
+    int box_x0,box_y0,box_x1,box_y1;
+    ivec2 tiles[];
+};
+uniform ivec2 grid_shape;
+// 1 = 恢复成「整网格」：构造时、以及任何一次不走活动区域的更新之后都要来一次。
+uniform int reset;
+const int EMPTY_LO = 1073741823;
+const int EMPTY_HI = -1073741823;
+void main(){
+    ivec2 tiles_shape=(grid_shape+15)/16;
+    if(reset==1){
+        previous=ivec4(0,0,tiles_shape.x-1,tiles_shape.y-1);
+        region=ivec4(0,0,grid_shape-1);
+        box_x0=EMPTY_LO;box_y0=EMPTY_LO;box_x1=EMPTY_HI;box_y1=EMPTY_HI;
+        return;
+    }
+    ivec4 box=ivec4(box_x0,box_y0,box_x1,box_y1);
+    bool has_box=box.x<=box.z;
+    bool has_previous=previous.x<=previous.z;
+    if(!has_box&&!has_previous){
+        region=ivec4(0,0,-1,-1);
+    } else {
+        ivec2 lo=has_box?(has_previous?min(box.xy,previous.xy):box.xy):previous.xy;
+        ivec2 hi=has_box?(has_previous?max(box.zw,previous.zw):box.zw):previous.zw;
+        lo=max(lo-1,ivec2(0));
+        hi=min(hi+1,tiles_shape-1);
+        region=ivec4(lo*16,min(hi*16+15,grid_shape-1));
+    }
+    previous=box;
+    box_x0=EMPTY_LO;box_y0=EMPTY_LO;box_x1=EMPTY_HI;box_y1=EMPTY_HI;
+}

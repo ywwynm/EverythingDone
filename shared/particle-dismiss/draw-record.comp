@@ -1,0 +1,107 @@
+#version 310 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+precision highp sampler3D;
+layout(local_size_x=256) in;
+// A1（逐帧成本专项第一批）：把 `material.vert` 里只依赖片与时间的量搬到这里，每片每帧算一次。
+//
+// 为什么值得搬：Adreno 把每个顶点着色器编成 bin-pass（只算位置）与 render-pass 两份，而
+// `gl_Position` 的依赖链几乎吃掉了原顶点着色器的全部昂贵数学（roll_phase → scale 的七个
+// 连乘项 → angle → tilt → rot → z），bin-pass 一个也删不掉。现状是每片每帧
+// 4 顶点 × 2 遍绘制 × 2 段 = 16 次完整求值；搬过来之后是 1 次。
+//
+// 写出来的「绘制记录」分两段：位置流（xform + place，32 字节）与外观流（shade + mask）。
+// 顶点着色器只读位置流就能算出 `gl_Position`，正好是 Adreno 的分箱遍与 Mali 的 IDVS
+// 都要求的形态（位置属性与非位置属性分开、紧凑）。
+struct Material {vec4 src;vec4 physical;vec4 random;};
+struct State {vec4 pos;vec4 vel;};
+layout(std430,binding=0) readonly buffer A {Material particles[];};
+layout(std430,binding=1) readonly buffer B {State states[];};
+layout(std430,binding=2) readonly buffer C {float pigments[];};
+layout(std430,binding=6) writeonly buffer D {vec4 records[];};
+uniform vec2 card,cell,wind;
+uniform float time,extrapolate,span,roll_gain,body_weight;
+uniform float panel_weight,release_spread;
+uniform int nx,grid_count,count;
+void main(){
+    uint i=gl_GlobalInvocationID.x;if(i>=uint(count))return;
+    Material m=particles[i];
+    int id=int(m.src.w+.1);
+    int replica=id/grid_count;
+    id=id%grid_count;
+    vec2 grid=vec2(id%nx,id/nx);
+    float age_out=time-m.src.z;
+    float life=m.physical.z;
+    // ---- 第 0 遍（原表面）需要的量 ----
+    // 同一释放规则的平均时序用于表面交接；运动仍按每片实际出生时间开始。
+    float source_clock=m.src.z-release_spread*(m.random.w-.5);
+    vec2 edge_d=min(m.src.xy,card-m.src.xy);
+    vec2 edge_n=vec2(m.src.x<card.x*.5?-1.:1.,m.src.y<card.y*.5?-1.:1.)*exp(-edge_d/(span*.15));
+    float trailing=smoothstep(0.,.6,dot(normalize(edge_n+vec2(.000001)),m.physical.xy))*max(exp(-edge_d.x/(span*.15)),exp(-edge_d.y/(span*.15)));
+    source_clock-=.065*trailing;
+    float surface=1.-smoothstep(max(.001,source_clock-.025),max(.018,source_clock+.060),time);
+    // 原边缘最后释放的一侧更多采用渐隐，面板内部保留颗粒层次。
+    surface=mix(time<=m.src.z?1.:0.,surface,.85*(1.-.60*panel_weight));
+    // 原片段着色器里那条按 trailing 丢片的判据，两个操作数**都是逐片量**，对一片的所有
+    // 像素给出同一个答案——等价于整片不画，所以并进这里的可见判定，顺带省掉每像素一次 fract。
+    bool alive=age_out>0.&&age_out<life&&
+        fract(m.random.y*13.731+m.random.z*17.371)>=.64*trailing;
+    vec4 xform=vec4(0.);
+    vec2 origin=vec2(0.);
+    float light_out=1.,shape_out=0.;
+    if(alive){
+        State s=states[i];
+        float age=age_out;
+        float loosen=smoothstep(.018,.18,age);
+        float roll_phase=age*(11.5+1.7*sin(dot(m.src.xy,vec2(.009,.015))))*(.70+.60*m.random.z);
+        vec2 move=s.pos.xy+s.vel.xy*extrapolate;
+        float z=s.pos.z+span*.035*(1.-cos(roll_phase))*exp(-age/.30)*roll_gain;
+        // 平均平方尺度接近 1；细粒与少量较大片共存，保留颗粒层次而不追加亮带。
+        float scale=mix(1.,exp(0.4000000*sqrt(-2.*log(max(m.random.y,.004)))*cos(m.random.z*6.28318)-0.1600000),loosen);
+        if(replica>0)scale*=.72;
+        // 较老的微片继续细化，密集区与末端颗粒具有不同的尺度。
+        scale*=1.-0.3900000*smoothstep(.12,.36,age);
+        // 初段保留微片的实际覆盖，随后细化；白底减少增量，避免形成厚亮边。
+        scale*=1.+(.08-.05*body_weight)*smoothstep(.015,.075,age)*(1.-smoothstep(.22,.48,age));
+        // 原色明显的微片在解体初段保留少量面积，再与周围材料一起细化。
+        float content=pigments[i];
+        // 面板色微片更细，实际内容仍保留份额，静态纹理覆盖不变。
+        scale*=1.-.26*panel_weight*(1.-content)*smoothstep(.006,.040,age);
+        scale*=1.+content*.20*smoothstep(.025,.07,age)*(1.-smoothstep(.22,.48,age));
+        // 解体只在释放之后发生，且从原始密铺几何连续变化。
+        float facing_angle=atan(m.physical.y,m.physical.x);
+        float angle=facing_angle*.35*smoothstep(.02,.08,age)+(m.random.z-.5)*6.28*smoothstep(.08,.28,age)+sin(age*12.+m.random.w*6.28)*.28*loosen;
+        // 释放初段保留局部姿态关联，随后转为独立的细粒转动。
+        float tilt=(.5+.5*sin(roll_phase+dot(m.src.xy,vec2(.009,.014))+m.random.w*1.2));
+        float squash=mix(1.,.50+.50*tilt,loosen);
+        scale*=mix(1.,mix(.84,.98,panel_weight),smoothstep(.0,.018,age));
+        // 少量、宽时间范围的覆盖变化；亮度来自源色和运动颗粒，不添加轮廓线。
+        scale*=1.+.20*(1.-panel_weight)*smoothstep(.010,.050,age)*(1.-smoothstep(.10,.24,age));
+        // 迎风区域新生片覆盖稍小，避免角部过密；随后平滑并入既有细化过程。
+        float forward_front=smoothstep(.20,.85,dot(-m.physical.xy,wind));
+        scale*=1.-.18*forward_front*smoothstep(.002,.022,age)*(1.-smoothstep(.10,.24,age));
+        scale*=1.+(0.9700000-1.)*smoothstep(.002,.025,age)*(1.-smoothstep(.10,.25,age));
+        scale*=mix(1.,1.0012984,smoothstep(.0,.06,age));
+        // 原式是 vertex = move + (rot * vec2(d.x*squash, d.y)) * scale * (1+z/1000)，
+        // 其中 d = source - src.xy 是**逐顶点**的。把 rot·squash·scale·(1+z/1000) 预乘成
+        // 一个 2×2 矩阵，再把格子边长 cell 一并折进去，顶点侧就只剩
+        // vertex = origin + B * (角点 + 抖动)。乘法结合律变了，结果是浮点噪声级（G1）。
+        float ca=cos(angle),sa=sin(angle);
+        float total=scale*(1.+z/1000.);
+        vec2 column0=vec2(total*ca*squash,total*sa*squash);
+        vec2 column1=vec2(-total*sa,total*ca);
+        // d0 = grid*cell - src.xy，量级只有半个格子，不存在大数相减。
+        vec2 d0=grid*cell-m.src.xy;
+        origin=move+column0*d0.x+column1*d0.y;
+        xform=vec4(column0*cell.x,column1*cell.y);
+        float face=sin(dot(m.src.xy,vec2(.014,.021))+age*11.);
+        light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
+        shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);
+    }
+    uint o=i*4u;
+    records[o]=xform;
+    records[o+1u]=vec4(origin,grid);
+    records[o+2u]=vec4(age_out,life,light_out,shape_out);
+    records[o+3u]=vec4(surface,float(replica),alive?1.:0.,0.);
+}

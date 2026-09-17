@@ -190,7 +190,9 @@ internal class ParticleDismissOverlay(
             preparation = preparation,
             touchFeedback = touchFeedback,
             gesture = gesture,
-            refreshRate = display?.refreshRate ?: 60f,
+            // 采样数按**粒子层自己投的**帧率算，不读面板此刻的瞬时值：两者在同一次动画里
+            // 就会不一致（魅族上预算时 120、点下去时 60），而粒子层始终按投票的节拍出帧。
+            refreshRate = ParticleWindowSurface.VOTED_FRAME_RATE,
             listener = listener,
             prepared = prepared
         )

@@ -205,10 +205,10 @@ internal class ParticleWindowSurface private constructor(
     private fun applyFrameRate(target: Surface) {
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                target.setFrameRate(60f, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
+                target.setFrameRate(VOTED_FRAME_RATE, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
                     Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                target.setFrameRate(60f, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                target.setFrameRate(VOTED_FRAME_RATE, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
             }
         }
     }
@@ -287,6 +287,15 @@ internal class ParticleWindowSurface private constructor(
 
     fun needsWork(): Boolean = incoming.isNotEmpty() || sessions.any { it.needsWork() }
 
+    /** 有会话的首帧已经备好、还没提交过：这一帧不必等下一次节拍。 */
+    fun needsFirstFrame(): Boolean {
+        if (surface == null) return false
+        return sessions.any { it.wantsFirstFrame() }
+    }
+
+    /** 本窗口已经有会话在逐帧出画；预算与预读要给它让出每一拍（见 ParticleGl.workDeadline）。 */
+    val presenting get() = surface != null && sessions.any { it.presenting }
+
     val awaitingPresentation get() = pending.isNotEmpty()
 
     fun composite(target: Long) = ParticleTrace.section("particle-composite") { compositeOnce(target) }
@@ -294,10 +303,15 @@ internal class ParticleWindowSurface private constructor(
     private fun compositeOnce(target: Long) {
         intake()
         purge()
-        if (!needsFrame()) return
+        if (!needsFrame()) {
+            if (ParticleBeatTrace.enabled) sessions.forEach { it.traceSkip(target) }
+            return
+        }
         if (!ensureEglSurface()) return
         if (!ParticleGl.bind(eglSurface)) { failAll(); return }
+        val enteredAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         awaitFence()
+        val fenceDoneAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         val width = targetWidth()
         val height = targetHeight()
         GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
@@ -325,6 +339,7 @@ internal class ParticleWindowSurface private constructor(
                 transaction.apply(); transaction.close()
             }
         }
+        val drawnAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         EGLExt.eglPresentationTimeANDROID(ParticleGl.display, eglSurface, target)
         val frameId = if (timestamps) ParticleFrameTimestamps.nextFrameId(ParticleGl.display, eglSurface) else -1L
         // 不再每帧 glFinish：放一个栅栏，下一拍开画前等它，最多一帧在途。
@@ -335,6 +350,9 @@ internal class ParticleWindowSurface private constructor(
             failAll()
             return
         }
+        if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.COMPOSITE,
+            target, enteredAt, fenceDoneAt - enteredAt, drawnAt, System.nanoTime(),
+            frameId, drawn.size.toLong())
         surfaceDirty = drawn.isNotEmpty()
         if (inWindow && drawn.isNotEmpty()) textureSubmitted = true
         recomposite = false
@@ -357,6 +375,8 @@ internal class ParticleWindowSurface private constructor(
             val presentTime = if (head.frameId >= 0 && now - head.submittedAt <= PRESENT_TIMEOUT_NANOS)
                 ParticleFrameTimestamps.presentTime(ParticleGl.display, eglSurface, head.frameId) else null
             if (!shouldRelease(now - head.submittedAt, presentTime)) return
+            if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PRESENT,
+                head.target, head.frameId, presentTime ?: 0L, now, now - head.submittedAt)
             releaseFrame(pending.removeFirst(), presentTime)
         }
     }
@@ -420,6 +440,13 @@ internal class ParticleWindowSurface private constructor(
         fence = 0L
     }
 
+    // 同批试过「把呈现时刻写成本拍 vsync + 一个输出周期减余量」，想用它挡住「早到一个显示
+    // 周期」的那一档，让呈现间隔齐整。**魅族 20 Infinity 上这个下限根本不生效**：下限写在
+    // vsync + 12.6 ms，实测仍有 28/69 帧在 vsync + 8.3 ms 就上屏了（一个显示周期）。也就是说
+    // 这台的 SurfaceFlinger 不按 `desiredPresentTime` 推迟我们的缓冲。既然量不出效果、又可能
+    // 在别的机型上白白多等一个周期，整段撤掉，`eglPresentationTimeANDROID` 仍写本拍目标
+    // （= 尽快呈现）。结论写进 per-frame-batch3 第 3 节。
+
     private fun releaseEglSurface() {
         // 表面没了就问不出呈现时刻了。把在途帧按「已上屏」放行，否则等着它的会话会一直
         // 停在末帧、只能靠看门狗收尾。
@@ -468,6 +495,16 @@ internal class ParticleWindowSurface private constructor(
     }
 
     companion object {
+        /**
+         * 粒子层投给 SurfaceFlinger 的帧率，也是**采样计划唯一该用的那个值**。
+         *
+         * 粒子层自己按这个节拍出帧（[applyFrameRate]），与面板此刻在跑 60 还是 120 Hz 无关：
+         * 120 Hz 面板上 SurfaceFlinger 留在 120，我们每隔一拍提交一次。用面板的瞬时刷新率去
+         * 算采样数，只会让「预算时」与「播放时」读到两个值——阶段 0' 实测的创建页预算必然
+         * 未命中就是这么来的（缓存键里放了瞬时读数）。
+         */
+        const val VOTED_FRAME_RATE = 60f
+
         /** 卡片专用，生命周期跟随动画层；每张卡片可以独立与原 View 同帧交接。 */
         fun inWindow(activity: Activity, parent: ViewGroup, onReady: () -> Unit): ParticleWindowSurface =
             ParticleWindowSurface(activity, parent, onReady)
@@ -503,6 +540,7 @@ internal class ParticleWindowSurface private constructor(
         internal const val PRESENT_TIMEOUT_NANOS = 250_000_000L
 
         private const val FENCE_TIMEOUT_NANOS = 200_000_000L
+
 
         /**
          * 这一帧能不能按「已上屏」处理。

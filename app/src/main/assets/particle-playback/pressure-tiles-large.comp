@@ -4,7 +4,13 @@ precision highp int;
 layout(local_size_x=16,local_size_y=16) in;
 layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
 layout(std430,binding=2) writeonly buffer B { float next_pressure[]; };
-layout(std430,binding=7) buffer Work { uvec4 workgroups; ivec2 tiles[]; };
+layout(std430,binding=7) buffer Work {
+    uvec4 workgroups;
+    ivec4 region;
+    ivec4 previous;
+    int box_x0,box_y0,box_x1,box_y1;
+    ivec2 tiles[];
+};
 uniform ivec2 grid_shape;
 uniform int pass;
 // 与 pressure-tiles.comp 相同，只是一个工作组覆盖 32×32 格（每线程四格），

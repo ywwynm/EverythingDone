@@ -196,6 +196,175 @@ internal object ParticlePerfTuning {
      */
     @Volatile var rippleHighFrameRate = true
 
+    // ---- 逐帧成本专项 第一批（2026-09-17）----
+    //
+    // 两项都只改「同一件事在哪一级算」，不改模型、不改参数。A1 属 G1（浮点结合律变了），
+    // C10 属 G0（写的格子少了，值一个比特不动）。每一项都可以单独关掉回到改动前的路径，
+    // 离屏 A/B（[ParticleSegmentBench.runPerFrame]）就是靠 [withPerFrame] 逐位切换。
+    //
+    // 同批评估过、**因为魅族上量不出收益而没有落地**的两项（数字见
+    // `docs/features/particle-animation-performance/per-frame-batch1-2026-09-17.md`）：
+    // A2「把只依赖方向的量提成 uniform」与 A3「流场与置信度并成一张 RGBA16F 纹理」，
+    // 三条路径上都落在 ±2% 的本底噪声里，按本专项的纪律整段删掉，不留「理论上更快」的代码。
+
+    /**
+     * A1：`material.vert` 里只依赖片与时间的量改由 compute 每片每帧算一次，写进紧凑的
+     * 「绘制记录」缓冲（位置流 + 外观流各一段），顶点着色器只做二维仿射展开。
+     *
+     * Adreno 把每个顶点着色器编成 bin-pass 与 render-pass 两份，而 `gl_Position` 的依赖链
+     * 几乎吃掉全部昂贵数学——现状是每片每帧 4 顶点 × 2 遍 × 2 段 = **16 次**完整求值。
+     */
+    val drawRecords: Boolean get() = perFrameOn(PER_FRAME_DRAW_RECORDS) && drawRecordsSetting
+
+    @Volatile private var drawRecordsSetting = true
+
+    /**
+     * C10：压力更新的清零、两遍模糊、tile 收集与投影都只跑**本帧粒子包围盒外扩一圈**那片
+     * 区域，不再整网格 dispatch。包围盒由 splat 的原子 min/max 给出，区域取「上一轮处理过的
+     * 区域 ∪ 本帧包围盒 + 5 格」，因此区域外的三个缓冲恒为零——**卡片内外都逐位相同**。
+     */
+    val pressureActiveRegion: Boolean get() =
+        perFrameOn(PER_FRAME_ACTIVE_REGION) && pressureActiveRegionSetting
+
+    @Volatile private var pressureActiveRegionSetting = true
+
+    const val PER_FRAME_DRAW_RECORDS = 1
+    const val PER_FRAME_ACTIVE_REGION = 8
+    const val PER_FRAME_ALL = PER_FRAME_DRAW_RECORDS or PER_FRAME_ACTIVE_REGION
+
+    // ---- 逐帧成本专项 第二批（2026-09-17）：全部是 G0，只改调度与时序 ----
+    //
+    // 四项各自可以单独关掉回到第一批的行为，真机的「修前」那一轮就是把它们一起关掉。
+    // 没有任何一项碰着色器、模型、参数或采样内容。
+
+    /**
+     * F14：常驻 GL 线程上再开一个**同 share group、低优先级**的上下文，出现预计算、左滑预读
+     * 与创建页预算都跑在它上面，出帧那一条命令流因此不再排在几十次 compute 之后。
+     *
+     * 优先级用 `EGL_IMG_context_priority`，**实际档位必须 `eglQueryContext` 读回**
+     * （规范原文说请求值只是 hint）；读不到、驱动没这个扩展、或者两档没有分开，就退回单
+     * 上下文，行为与第一批完全一致。结论写在 [ParticleGl.contextNote] 里。
+     */
+    @Volatile var backgroundContext = true
+
+    /**
+     * F15：预计算与预读改成「提交一个采样就放栅栏、不等」，由栅栏轮询把采样转成「可以画」。
+     *
+     * 第一批之前每个采样都要 `glClientWaitSync` 等上一批算完（左滑 4 ms、弹窗 6–7 ms），
+     * 一次 pump 的 8 ms 预算里只塞得下两个采样，而这段阻塞正好压在节拍上——阶段 0' 量到的
+     * 「左滑每两个 vsync 才出一帧」就是这么来的。关掉它回到阻塞口径。
+     */
+    @Volatile var asyncPrecompute = true
+
+    /** 在途采样数上限；0 = 取默认的两批在途（与第一批的 `PreparationQueue` 同深度）。 */
+    @Volatile var reverseInFlight = 0
+
+    /**
+     * F15：已经有会话在出帧时，一次 pump 里的预算与预读不许跨过下一拍。
+     * 关掉它回到「固定 8 ms 预算」。
+     */
+    @Volatile var yieldWorkBeforeBeat = true
+
+    /**
+     * 研究第 10 节：首帧不等节拍。粒子层是独立 SurfaceView，首帧一备好就直接合成并交换，
+     * 呈现时刻写「尽快」；它要替掉的那一拍随后被吃掉，等价于把一拍提前而不是多出一帧。
+     *
+     * **默认关闭：第二批量不出收益，按本专项的纪律不留「理论上更快」的改动。** 它的上限
+     * 本来就只有一拍（16.7 ms），而第三批的 [beatDuringPreparation] 已经让节拍在准备期间
+     * 就跑着，实际能省的更少；魅族三个左滑场景 + 两个弹窗场景的「请求 → 首帧呈现」在开与
+     * 关之间全落在单轮噪声里（±20–40 ms）。实现与那条「被替掉的一拍必须真的吃掉」的教训
+     * 留在代码里（见 `ParticleGl.presentFirstFrames`），换设备或换路径时可以直接开起来复测。
+     */
+    @Volatile var immediateFirstFrame = false
+
+    /**
+     * 第三批：节拍按 **vsync 计数**出拍，目标呈现时刻直接取系统给的预期呈现时刻。
+     *
+     * 此前是「起点 + k × 16 666 666 ns」的自由计时。魅族 20 Infinity 触摸期面板跑 120.8 Hz、
+     * 一个 vsync 只有 **8.28 ms**，两个是 16.56 ms，而我们每拍加 16.67 ms——每拍多 0.107 ms，
+     * 目标相对真实 vsync 持续漂移；再加上目标写的是**过去**的时刻（= 尽快呈现），
+     * 一帧早到就挤到上一帧后面 8.28 ms 处，晚到就退一个 vsync。第二批实测魅族左滑的呈现间隔
+     * 里有 15% 是 8.28 ms、11% 是 33 ms，均值看着还行、看起来却一直在抖。
+     *
+     * 关掉它回到自由计时（本批矩阵的「修前」列）。
+     */
+    @Volatile var beatPhaseLock = true
+
+    /**
+     * E12 的调参口（**V 级，默认 0 = 现状**）：把微片尺寸按 dp 定死，而不是按像素分格、
+     * 顶到 `max_cells` 为止。
+     *
+     * 现状是 `cell = max(rules.cell, sqrt(面积 × budget / max_cells))`——高 dpi 手机上微片的
+     * 物理尺寸比平板小、数量顶到上限。这里给出「不小于 [microflakeCellDp] 个 dp」这一条下限，
+     * `max_cells` 那条上限仍然生效。只供第三批的受控对照用；改它会改画面，必须用户看图定夺。
+     */
+    @Volatile var microflakeCellDp = 0f
+
+    /**
+     * C7 的调参口（**V 级，默认 100 = 现状**）：压力投影的 Jacobi 迭代数。
+     * 同样只供受控对照，改它会改画面。
+     */
+    @Volatile var jacobiIterations = 100
+
+    /**
+     * 受控对照临时切这两个值时用；**只作用于调用它的那条线程**。
+     *
+     * 不能改进程级的那两个字段：同一时刻常驻 GL 线程上的创建页提前预算也在建材、也在跑压力
+     * 更新，还会把配方写进缓存键——第五批的 `withBaselineGpu` 正是栽在这一条上。读点因此一律
+     * 走 [microflakeCellDpNow] / [jacobiIterationsNow]：先看本线程有没有标记，没有才取设置值。
+     */
+    fun <T> withOptions(cellDp: Float, iterations: Int, action: () -> T): T {
+        val previousCell = cellOverride.get()
+        val previousIterations = iterationsOverride.get()
+        cellOverride.set(cellDp)
+        iterationsOverride.set(iterations)
+        check(microflakeCellDpNow == cellDp && jacobiIterationsNow == iterations) { "调参口没切过去" }
+        return try {
+            action()
+        } finally {
+            cellOverride.set(previousCell)
+            iterationsOverride.set(previousIterations)
+            check(microflakeCellDpNow == (previousCell ?: microflakeCellDp) &&
+                jacobiIterationsNow == (previousIterations ?: jacobiIterations)) { "调参口没恢复" }
+        }
+    }
+
+    private val cellOverride = ThreadLocal<Float>()
+    private val iterationsOverride = ThreadLocal<Int>()
+
+    /** 建材那一侧的读点。 */
+    val microflakeCellDpNow: Float get() = cellOverride.get() ?: microflakeCellDp
+
+    /** 压力投影那一侧的读点。 */
+    val jacobiIterationsNow: Int get() = iterationsOverride.get() ?: jacobiIterations
+
+    // 同批评估过的「把上一帧的 GPU 栅栏挪到两拍之间轮询」已删除：节拍级取证里
+    // `awaitFence` 的实测等待是 **0.02 ms**（魅族三个左滑场景的 p50/p90/max 全在 0.07 以内），
+    // 「在途只留一帧把提交串成一条链」这条假设不成立，改了也没有可测收益。
+
+    /**
+     * 离屏 A/B 与 G0/G1 对照用：在**当前线程**上只让 [enabled] 里的那几项生效，其余按回
+     * 改动前的路径。与 [withBaselineGpu] 分开是因为后者会连第一、二批那几项一起关掉
+     * （比如 2.4 的首生前跳过），量出来的差值就不是本批的了。
+     *
+     * 传 0 即整批关闭，传 [PER_FRAME_ALL] 即整批打开（也是默认行为）。
+     */
+    fun <T> withPerFrame(enabled: Int, action: () -> T): T {
+        val previous = perFrame.get()
+        perFrame.set(PER_FRAME_ALL and enabled.inv())
+        return try { action() } finally { perFrame.set(previous) }
+    }
+
+    /** 整批关闭。 */
+    fun <T> withPerFrameBaseline(action: () -> T): T = withPerFrame(0, action)
+
+    private val perFrame = ThreadLocal<Int>()
+
+    private fun perFrameOn(item: Int): Boolean {
+        if (baselineGpu) return false
+        return (perFrame.get() ?: 0) and item == 0
+    }
+
     // 2.5（四步积分合并进一次 dispatch）只做了一次性诊断变体，测完已删除：
     // 61 帧散列在两台设备上都不一致（消散从第 6–7 帧起、出现从第 4–5 帧起），
     // 预计算收益只有 OPD2515 约 5–7 ms、SM-S9180 约 8 ms，两条门槛都不满足。
@@ -239,6 +408,18 @@ internal object ParticlePerfTuning {
         yieldPrecomputeDuringFeedback =
             config.optBoolean("yieldPrecomputeDuringFeedback", yieldPrecomputeDuringFeedback)
         rippleHighFrameRate = config.optBoolean("rippleHighFrameRate", rippleHighFrameRate)
+        drawRecordsSetting = config.optBoolean("drawRecords", drawRecordsSetting)
+        pressureActiveRegionSetting =
+            config.optBoolean("pressureActiveRegion", pressureActiveRegionSetting)
+        backgroundContext = config.optBoolean("backgroundContext", backgroundContext)
+        asyncPrecompute = config.optBoolean("asyncPrecompute", asyncPrecompute)
+        reverseInFlight = config.optInt("reverseInFlight", reverseInFlight).coerceIn(0, 16)
+        yieldWorkBeforeBeat = config.optBoolean("yieldWorkBeforeBeat", yieldWorkBeforeBeat)
+        immediateFirstFrame = config.optBoolean("immediateFirstFrame", immediateFirstFrame)
+        beatPhaseLock = config.optBoolean("beatPhaseLock", beatPhaseLock)
+        microflakeCellDp = config.optDouble("microflakeCellDp", microflakeCellDp.toDouble())
+            .toFloat().coerceIn(0f, 12f)
+        jacobiIterations = config.optInt("jacobiIterations", jacobiIterations).coerceIn(1, 200)
         if (materialLanes > 0) ParticleMaterialNative.setLanes(materialLanes)
     }
 

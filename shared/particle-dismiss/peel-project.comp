@@ -8,11 +8,18 @@ layout(std430,binding=0) readonly buffer A{vec4 velocity[];};
 layout(std430,binding=1) readonly buffer B{float old_pressure[];};
 layout(std430,binding=2) writeonly buffer C{float new_pressure[];};
 layout(rgba32f,binding=0) uniform writeonly highp image2D pressure_field;
+#ifdef ACTIVE_REGION
+layout(std430,binding=7) readonly buffer W{uvec4 workgroups;ivec4 region,previous;
+ int box_x0,box_y0,box_x1,box_y1;ivec2 tiles[];};
+#endif
 uniform ivec2 grid_shape;uniform int iteration;
 int at(ivec2 q){q=clamp(q,ivec2(0),grid_shape-1);return q.y*grid_shape.x+q.x;}
 float pressure(ivec2 q){return old_pressure[at(q)];}
 void main(){
  ivec2 q=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(q,grid_shape)))return;
+#ifdef ACTIVE_REGION
+ if(any(lessThan(q,region.xy))||any(greaterThan(q,region.zw)))return;
+#endif
  int i=at(q);ivec2 X=ivec2(1,0),Y=ivec2(0,1);
  if(iteration==100){
   vec2 correction=vec2(pressure(q+X)-pressure(q-X),pressure(q+Y)-pressure(q-Y))*.5;

@@ -101,6 +101,10 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     @Volatile private var lastMainFrameAt = System.nanoTime()
     private var stallThread: Thread? = null
     private val seenOverlays = WeakHashMap<ParticleDismissOverlay, Boolean>()
+
+    /** 一轮里只跑一次离屏分段基准：它要独占 GPU 二十几秒，两个动画层各跑一次没有意义。 */
+    private var seenBench = false
+    private var seenOptions = false
     private val overlayRows = JSONArray()
     private val events = JSONArray()
     private val inputs = JSONArray()
@@ -128,6 +132,8 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
     fun start() {
         progress(false, true); Choreographer.getInstance().postFrameCallback(this)
         if (config.optBoolean("stallSampling")) startStallSampler()
+        // 第三批的节拍级取证：默认开着，一轮约 1500 行，收尾时整份落进 result.json。
+        if (config.optBoolean("beatTrace", true)) ParticleBeatTrace.start()
     }
 
     /** 每 2 ms 检查主线程上一次帧回调距今是否超过一帧，超了就抓栈顶；只读取，不干预。 */
@@ -293,6 +299,24 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
                     inspect, diagnostics, load, repeats, pinFrame)
             }
         }
+        // 逐帧成本专项：拿这一次动画真实的材料，在离屏上下文里做消融归因。与 gpuCheck 互斥使用，
+        // 免得两条离屏路径抢同一块 GPU。
+        if (config.optBoolean("segmentBench") && !seenBench) {
+            seenBench = true
+            val bitmap = spec.snapshot.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+            val copied = ParticleDismissSpec(bitmap, spec.originXPx, spec.originYPx,
+                spec.virtualTouchXPx, spec.virtualTouchYPx, spec.durationScale, spec.hashSeed,
+                touchGap = spec.touchGap, touchStrength = spec.touchStrength)
+            val context = overlay.context.applicationContext
+            val repeats = config.optInt("segmentBenchRepeats", 2)
+            val width = overlay.width
+            val height = overlay.height
+            val perFrame = config.optBoolean("perFrameBench")
+            overlay.afterRelease {
+                if (perFrame) ParticleSegmentBench.runPerFrame(context, copied, width, height, output, repeats)
+                else ParticleSegmentBench.run(context, copied, width, height, output, repeats)
+            }
+        }
         val row = JSONObject().put("stage", label).put("requestAt", spec.requestedAtNanos)
             .put("createdAt", System.nanoTime()).put("reverse", spec.reverse)
             .put("width", spec.snapshot.width).put("height", spec.snapshot.height)
@@ -315,6 +339,16 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
         // 「这个弹窗也命中了」。
         if (spec.creationPage) row.put("prewarm", ParticleCreationPrewarm.diagnostics())
         overlayRows.put(row)
+        // 第三批任务二：E12 / C7 的受控对照。挂在**消散**那一侧（正向路径同时有现场积分
+        // 与压力更新，两个选项的代价都体现得出来），一轮只做一次。
+        if (!spec.reverse && config.optBoolean("optionFrames") && !seenOptions) {
+            seenOptions = true
+            val bitmap = spec.snapshot.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+            val context = overlay.context.applicationContext
+            overlay.afterRelease {
+                ParticleOptionFrames.run(context, spec, bitmap, overlay.width, overlay.height, output)
+            }
+        }
         if (spec.reverse && spec.creationPage && config.optBoolean("appearanceFrames")) {
             val bitmap = spec.snapshot.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
             val context = overlay.context.applicationContext
@@ -331,6 +365,10 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
                 row.put("submitted", synchronized(r.submittedTimings) { JSONArray(r.submittedTimings.map { JSONArray(it.toList()) }) })
                 row.put("committed", synchronized(r.presentedTimings) { JSONArray(r.presentedTimings.map { JSONArray(it.toList()) }) })
                 row.put("draw", synchronized(r.drawTimings) { JSONArray(r.drawTimings.map { JSONArray(it.toList()) }) })
+                // 第二批 F15：手势的滞后曲线（手指要的相位、实际画出的相位、可画/已提交/目标档位）。
+                row.put("gesture", synchronized(r.gestureTimings) {
+                    JSONArray(r.gestureTimings.map { JSONArray(it.toList()) })
+                })
                 row.put("startup", JSONArray(r.startupTimings.toList()))
                 row.put("gestureActivatedAt", r.gestureActivatedAtNanos)
                 // 2a / 2c：预计算结束时刻、倒放起点与每个采样的存活片数——
@@ -362,6 +400,7 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
         if (stopped) return
         stopped = true
         Choreographer.getInstance().removeFrameCallback(this)
+        ParticleBeatTrace.stop()
         val cpuEnd = Process.getElapsedCpuTime()
         val memoryEnd = memory()
         stallThread?.interrupt()
@@ -383,6 +422,20 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
                 .put("launchTrace", JSONArray(ParticleLaunchTrace.snapshot().map {
                     JSONObject().put("label", it.label).put("at", it.at) }))
                 .put("windowFrames", synchronized(frames) { JSONArray(frames.map { JSONArray(it.toList()) }) })
+                // F14：两个上下文**实际读回**的优先级档位与同线程切换的累计开销。
+                // 规范说请求值只是 hint，拿不到 HIGH 时这一整项的结论不成立，必须逐轮记下来。
+                .put("glContext", JSONObject().put("note", ParticleGl.contextNote)
+                    .put("background", ParticleGl.hasBackgroundContext)
+                    .put("priorities", ParticleGl.contextPriorities?.let { JSONArray(it.toList()) }
+                        ?: JSONObject.NULL)
+                    .put("switchCount", ParticleGl.switchCount)
+                    .put("switchMs", ParticleGl.switchNanos / 1e6))
+                // 第三批：节拍级取证（类别码见 ParticleBeatTrace），外加本轮量到的 vsync 周期。
+                .put("beats", JSONArray(ParticleBeatTrace.snapshot().map { JSONArray(it.toList()) }))
+                .put("clock", JSONObject()
+                    .put("vsyncNanos", ParticleClock.measuredVsyncNanos)
+                    .put("beatNanos", ParticleClock.outputPeriodNanos)
+                    .put("phaseLock", ParticlePerfTuning.beatPhaseLock))
             // 序列化失败（例如某处混进 NaN）不能静默：否则驱动脚本只会报「观察器没有收尾」，
             // 查不到真正的原因。失败时留下一份带异常的最小文件。
             runCatching { File(output, "result.json").writeText(result.toString()) }.onFailure {

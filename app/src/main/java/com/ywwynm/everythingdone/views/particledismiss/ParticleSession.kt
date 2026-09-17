@@ -83,6 +83,9 @@ internal class ParticleSession(
     /** 已经开始占用 GPU 资源；共享资源尺寸只在没有会话开工时才允许变。 */
     val started get() = stage != Stage.PIPELINE
 
+    /** 正在逐帧出画（含末帧驻留）：这一条决定预算要不要给出帧让路。 */
+    val presenting get() = !cancelled && visible && (stage == Stage.PLAY || stage == Stage.HOLD)
+
     /** 逻辑时长（秒），已含系统时长缩放。 */
     private val durationSeconds =
         (if (spec.reverse) spec.playbackDurationS else ParticleMicroflakeModel.DURATION) *
@@ -137,6 +140,30 @@ internal class ParticleSession(
     }
 
     /**
+     * 取证：出拍了而这一层没画，记下卡在哪一条判定上。
+     *
+     * 「左滑只有 38 fps」有两种完全不同的成因——**我们没提交**与**提交了没上屏**，
+     * 既有产物里只有提交成功的那些帧，分不开。这一条补上「没提交的那些拍」。
+     */
+    fun traceSkip(target: Long) {
+        val reason = when {
+            cancelled -> ParticleBeatTrace.SKIP_CANCELLED
+            !visible -> ParticleBeatTrace.SKIP_INVISIBLE
+            stage != Stage.PLAY -> ParticleBeatTrace.SKIP_STAGE
+            !isGesture -> ParticleBeatTrace.SKIP_STAGE
+            renderer == null -> ParticleBeatTrace.SKIP_NO_RENDERER
+            else -> ParticleBeatTrace.SKIP_SAME_POSITION
+        }
+        val active = renderer
+        val wanted = if (active != null && isGesture)
+            checkNotNull(gesture).framePosition(active.reverseSamples) else Float.NaN
+        val position = if (active != null && isGesture) presentablePosition(active) else Float.NaN
+        ParticleBeatTrace.record(ParticleBeatTrace.SKIP, target, stage.ordinal.toLong(), reason,
+            wanted.toRawBits().toLong(), position.toRawBits().toLong(),
+            previousPosition.toRawBits().toLong(), (active?.preparedSamples ?: -1).toLong())
+    }
+
+    /**
      * 这一拍真正能画的手势相位。
      *
      * 3.1：手指要的相位可能还没备好档。**绝不在这里阻塞补档**——退而画已经备好的最高一档，
@@ -155,12 +182,21 @@ internal class ParticleSession(
             // 手势在播的时候要按需补档；按下阶段预备够了又还没识别左滑时不必空转 pump。
             Stage.PLAY -> {
                 val active = renderer
-                isGesture && active != null && (active.preparedSamples < gestureGoal ||
-                    (gesture?.active == true && active.preparedSamples < active.reverseSamples))
+                isGesture && active != null && (active.submittedSamples < gestureGoal ||
+                    !active.reverseSettled ||
+                    (gesture?.active == true && active.submittedSamples < active.reverseSamples))
             }
             else -> true
         }
     }
+
+    /**
+     * 首帧可以不等下一次节拍：本会话刚进入出帧态、一帧都还没提交过。
+     * 粒子层是独立 SurfaceView，它的提交不经过宿主窗口的 traversal，最多省一整拍（研究第 10 节）。
+     */
+    fun wantsFirstFrame(): Boolean = !firstFrameSubmitted && wantsFrame()
+
+    private var firstFrameSubmitted = false
 
     /** 已提交但还没确认上屏的帧数。 */
     val awaitingPresentation get() = pendingFrames > 0
@@ -270,8 +306,11 @@ internal class ParticleSession(
 
     private fun beginPrecompute() {
         val active = checkNotNull(renderer)
+        val async = ParticlePerfTuning.asyncPrecompute
+        // 历史缓冲的建立与手势第 0 档都留在出帧上下文里：第 0 档与首帧绘制同流，次序由 GL 保证。
+        ParticleGl.useForeground()
         if (isGesture) {
-            active.beginReverse(ParticleReversePlan.MAX_SAMPLES, precomputeProbe = false)
+            active.beginReverse(ParticleReversePlan.MAX_SAMPLES, precomputeProbe = false, async = async)
             active.seedGesture()
             return
         }
@@ -292,7 +331,16 @@ internal class ParticleSession(
                 ParticlePerfTuning.appearanceAliveRatio) else samples
         // 每帧速度不变，只少播（也少算）尾段那几帧。
         playbackSeconds = durationSeconds.toDouble() * appearanceStart / samples
-        active.beginReverse(samples, appearanceStart, precomputeProbe = true)
+        active.beginReverse(samples, appearanceStart, precomputeProbe = true, async = async)
+    }
+
+    /**
+     * 预计算 / 预读一步。**整段都跑在后台（低优先级）上下文上**：出帧那一条命令流因此
+     * 不再排在几十次 compute 之后（F14）。后台不可用时原样留在出帧上下文里，行为与改动前一致。
+     */
+    private fun stepBackground(active: ParticleMicroflakeRenderer): Int {
+        ParticleGl.useBackground()
+        return active.advanceReverse(::cancelled)
     }
 
     private fun precomputeStep(): Boolean {
@@ -301,17 +349,23 @@ internal class ParticleSession(
             // 3.1：按下准备完成、GPU 空闲时先备前几档，识别左滑之后的首个非零画面才可能
             // 落在一个节拍里。手指已经在拖、或者别的动画正在播时不抢它的 GPU。
             if (gesture?.active == true || ParticleGpuWork.playbackCount > 1 ||
-                active.preparedSamples >= GESTURE_PREROLL) {
-                gestureGoal = active.preparedSamples
+                active.submittedSamples >= GESTURE_PREROLL) {
+                gestureGoal = max(active.submittedSamples, 0)
                 stage = Stage.PLAY
                 return true
             }
-            if (!active.stepReverse(::cancelled)) { cancel(); return false }
-            return true
+            return when (stepBackground(active)) {
+                -1 -> { cancel(); false }
+                0 -> false
+                else -> true
+            }
         }
-        if (active.reverseIncomplete) {
-            if (!active.stepReverse(::cancelled)) { cancel(); return false }
-            return true
+        if (active.reverseIncomplete || !active.reverseSettled) {
+            return when (stepBackground(active)) {
+                -1 -> { cancel(); false }
+                0 -> false
+                else -> true
+            }
         }
         active.endReverse()
         precomputeDoneAt = System.nanoTime()
@@ -328,16 +382,23 @@ internal class ParticleSession(
             if (now - lastCreepAt >= ParticleClock.INTERVAL_NANOS) {
                 lastCreepAt = now
                 val position = gesture.framePosition(samples)
-                // 手指停住：沿用第一批口径，每拍多备两档。判据必须看**手指**，
-                // 追赶期内画面还在动，但手指可能早就停了。
+                // 手指停住：用这段空闲往前多备几档。判据必须看**手指**，追赶期内画面还在动，
+                // 但手指可能早就停了。第二批把它从「每拍 +2」提到 [GESTURE_IDLE_LOOKAHEAD]：
+                // 预读已经不阻塞 CPU、又跑在低优先级上下文里，这段空闲是真的空闲。
                 if (position == previousWanted) {
-                    gestureGoal = min(active.preparedSamples + GESTURE_IDLE_LOOKAHEAD, samples)
+                    gestureGoal = min(active.submittedSamples + GESTURE_IDLE_LOOKAHEAD, samples)
                 }
             }
         }
-        if (active.preparedSamples >= gestureGoal) return false
-        if (!active.stepReverse(::cancelled)) { cancel(); return false }
-        return true
+        if (active.submittedSamples >= gestureGoal) {
+            // 目标已经备到，但在途的那几档还要靠轮询转成「可以画」，不能就此停手。
+            return if (active.reverseSettled) false else active.pollReverse()
+        }
+        return when (stepBackground(active)) {
+            -1 -> { cancel(); false }
+            0 -> false
+            else -> true
+        }
     }
 
     // ---- 出帧 ----
@@ -379,12 +440,27 @@ internal class ParticleSession(
                     if (!active.stepReverse(::cancelled)) { cancel(); return }
                 }
             }
+            // 目标档位按**手指**要的相位算，追赶才有方向；反向拖回来时也不回退（历史只增不减，
+            // 多备只影响什么时候算，不影响画出来的任何一帧）。
             if (gesture.active) {
                 val speed = if (previousWanted.isNaN()) 0f else abs(wanted - previousWanted)
                 gestureGoal = gestureGoal(gestureGoal, need, gestureLookahead(speed), samples)
             }
             previousWanted = wanted
             val drawn = if (ParticlePerfTuning.gestureCreepToFinger) position else wanted
+            if (BuildConfig.DEBUG) {
+                gestureTimings += longArrayOf(target,
+                    wanted.toRawBits().toLong(), drawn.toRawBits().toLong(),
+                    active.preparedSamples.toLong(), active.submittedSamples.toLong(),
+                    gestureGoal.toLong())
+                // 不变式：出帧侧只许画到已经确认写完的档位。异步预读一旦破坏它，画面上是
+                // 一帧噪声而不是崩溃，很难在录屏里认出来，所以这里显式盯着。
+                if (ParticlePerfTuning.gestureCreepToFinger &&
+                    ceil(drawn).toInt() > max(active.preparedSamples, 0)) {
+                    Log.w(ParticleMicroflakeRenderer.TAG,
+                        "手势画到了还没备好的档位 drawn=$drawn prepared=${active.preparedSamples}")
+                }
+            }
             active.drawGestureFrame(drawn, active.gestureStateBuffer(), clearTarget = false)
             // 提交的进度必须是**实际呈现的相位**：ItemTouchHelper 的松手恢复与快速完成都从
             // presentedProgress 接着走，记成手指位置会让画面跳一下。
@@ -417,6 +493,7 @@ internal class ParticleSession(
     /** 窗口 `eglSwapBuffers` 返回之后调用；口径与第一批的「请求→首个粒子提交」一致。 */
     fun frameSubmitted(target: Long) {
         pendingFrames++
+        firstFrameSubmitted = true
         if (!BuildConfig.DEBUG) return
         val now = System.nanoTime()
         submittedTimings += longArrayOf(target, now, lastProgress.toRawBits().toLong())
@@ -510,6 +587,12 @@ internal class ParticleSession(
     /** 每帧绘制：目标呈现时刻、绘制起、绘制止。 */
     internal val drawTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
 
+    /**
+     * 手势每帧的滞后：目标呈现时刻、手指要的相位、实际画出的相位、可画档位、已提交档位、目标档位。
+     * 「不跟手」在这份表里就是 `wanted − drawn`：反向瞬间的峰值与恢复用了几拍全在这里。
+     */
+    internal val gestureTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
+
     /** 启动分段：准备起、管线就绪、输入就绪、上传就绪、首帧提交。 */
     @Volatile internal var startupTimings = longArrayOf()
         private set
@@ -546,17 +629,35 @@ internal class ParticleSession(
         /** 正向消散的逻辑时长（秒），系统时长缩放另算。 */
         const val TOTAL_DURATION = ParticleMicroflakeModel.DURATION
 
-        /** 按下阶段先备的档数：触发左滑识别时的位移通常落在这个范围内。 */
-        const val GESTURE_PREROLL = 6
-
-        /** 手指停住时每拍多备的档数（沿用第一批口径）。 */
-        const val GESTURE_IDLE_LOOKAHEAD = 2
+        /**
+         * 按下阶段先备的档数。
+         *
+         * 第二批 6 → 12：识别左滑那一刻的位移只有一个 touch slop（约 0.6 档），真正吃紧的是
+         * **甩动**——材料建好时手指常常已经拖过 20%（36 档里的 7 档）。按下到识别至少有
+         * 一百多毫秒，这段时间屏幕上什么都不用画，多备 12 档是纯赚；而且预读已经不阻塞 CPU。
+         */
+        const val GESTURE_PREROLL = 12
 
         /**
-         * 3.1：按当前速度（档/拍）决定在动时预读几档。慢拖 1 档够用；快拖一拍跨过一档以上，
-         * 多备一档才能让下一拍的画面也已经在手上。
+         * 手指停住时每拍多备的档数。
+         *
+         * 第二批 2 → 6：第一批的「每拍 +2」是为了配合**阻塞式**补档（一档就要 4–7 ms，
+         * 备多了会把节拍挤掉）。改成异步提交 + 栅栏轮询、并跑在低优先级上下文之后，
+         * 手指停住的那段时间是真的空闲，多备几档不会挤到出帧。
          */
-        internal fun gestureLookahead(samplesPerBeat: Float): Int = if (samplesPerBeat > 1f) 2 else 1
+        const val GESTURE_IDLE_LOOKAHEAD = 6
+
+        /**
+         * 按当前速度（档/拍）决定在动时预读几档。
+         *
+         * 第二批改成按速度成比例：慢拖仍是 1–2 档，快拖一拍跨三四档时就要备到那么多，
+         * 否则下一拍的画面永远还没算出来——阶段 0' 的快拖只出 9 个不同画面就是这么来的。
+         * 上限 [GESTURE_MAX_LOOKAHEAD]：再多也超出一拍能算完的量，只会白占 GPU。
+         */
+        internal fun gestureLookahead(samplesPerBeat: Float): Int =
+            (ceil(samplesPerBeat).toInt() + 1).coerceIn(1, GESTURE_MAX_LOOKAHEAD)
+
+        const val GESTURE_MAX_LOOKAHEAD = 6
 
         /**
          * 这一拍真正能画的相位：手指要 [wanted]，手上只备到第 [prepared] 档。

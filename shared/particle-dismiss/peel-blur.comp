@@ -7,11 +7,21 @@ layout(local_size_x=16,local_size_y=16) in;
 layout(std430,binding=4) readonly buffer A{ivec4 accumulation[];};
 layout(std430,binding=5) buffer B{vec4 intermediate[];};
 layout(std430,binding=6) buffer C{vec4 velocity[];};
+#ifdef ACTIVE_REGION
+layout(std430,binding=7) readonly buffer W{uvec4 workgroups;ivec4 region,previous;
+ int box_x0,box_y0,box_x1,box_y1;ivec2 tiles[];};
+#endif
 uniform ivec2 grid_shape;uniform int pass;uniform float occupancy_scale;
 const float weights[11]=float[11](0.0001882504,0.0026986173,0.0214075879,0.0939756190,0.2282883085,0.3068832338,0.2282883085,0.0939756190,0.0214075879,0.0026986173,0.0001882504);
 int at(ivec2 q){q=clamp(q,ivec2(0),grid_shape-1);return q.y*grid_shape.x+q.x;}
 void main(){
  ivec2 q=ivec2(gl_GlobalInvocationID.xy);if(any(greaterThanEqual(q,grid_shape)))return;
+#ifdef ACTIVE_REGION
+ // C10：区域外的累积恒为零、模糊结果也恒为零，而它们上一轮已经被写成零，不必再算。
+ // 直接早退、不改 dispatch 形状：间接分发要配 GL_COMMAND_BARRIER_BIT，Adreno 上那道
+ // 屏障比省下的 11 抽头还贵（2026-09-17 实测整段反而慢 4%–13%）。
+ if(any(lessThan(q,region.xy))||any(greaterThan(q,region.zw)))return;
+#endif
  vec4 sum=vec4(0);
  for(int k=-5;k<=5;k++)sum+=(pass==0?vec4(accumulation[at(q+ivec2(k,0))])/4096.:intermediate[at(q+ivec2(0,k))])*weights[k+5];
  int i=at(q);

@@ -10,7 +10,9 @@ uniform int material_pass;
 in vec2 uv,local_uv;
 in float age_out,life_out,light_out,shape_out;
 flat in float surface_out;
+#ifndef DRAW_RECORDS
 flat in float trailing_out;
+#endif
 flat in vec4 random_out;
 flat in float replica_out;
 out vec4 frag;
@@ -38,7 +40,11 @@ void main(){
     if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
     alpha*=mix(1.,.92,smoothstep(.018,.12,age));
     // 开放侧减少实际颗粒份额；避免保留大量半透明灰片勾出原轮廓。
+#ifndef DRAW_RECORDS
+    // A1 之后这条判据在 `draw-record.comp` 里逐片算一次：两个操作数都是逐片量，
+    // 对一片的所有像素给出同一个答案，等价于整片不进光栅化。
     if(fract(random_out.y*13.731+random_out.z*17.371)<.64*trailing_out)discard;
+#endif
     if(alpha<.001)discard;
     // 几何变细与光照变化分开，避免刚出现的颗粒同时发白。
     float optical_loosen=smoothstep(.005,.095,age);

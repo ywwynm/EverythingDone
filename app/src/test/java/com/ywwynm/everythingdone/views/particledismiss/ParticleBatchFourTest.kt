@@ -106,9 +106,9 @@ class ParticleBatchFourTest {
 
     @Test fun `缓存键覆盖调研列出的全部首帧输入`() {
         val prewarm = main("ParticleCreationPrewarm.kt")
-        val fingerprint = prewarm.substringAfter("fun fingerprint(").substringBefore("private fun refreshRate")
+        val fingerprint = prewarm.substringAfter("fun fingerprint(").substringBefore("private fun recipe()")
         for (item in listOf("bg=", "folder=", "night=", "loc=", "font=", "dpi=", "win=", "ori=",
-            "multi=", "bars=", "ime=", "mode=", "scale=", "hz=", "recipe=")) {
+            "multi=", "bars=", "ime=", "mode=", "scale=", "recipe=")) {
             assertTrue("缓存键缺少 $item", item in fingerprint)
         }
         val recipe = prewarm.substringAfter("private fun recipe()").substringBefore("// ---- 诊断")

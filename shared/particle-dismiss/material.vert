@@ -10,12 +10,23 @@ struct State {vec4 pos;vec4 vel;};
 // 在那些设备上 SSBO 版本链接不过、整个动画每次都回退（2026-09-15）。
 // 读的仍是 compute 写的同几个缓冲对象本身，只是换成 divisor=1 的实例化顶点属性，
 // 布局与 std430 的 stride 一一对应，没有任何数据拷贝。
+#ifdef DRAW_RECORDS
+// A1：位置只依赖前两个属性（32 字节），外观在后面——正是 Adreno 分箱遍与 Mali IDVS
+// 要求的「位置流与非位置流分开」。全部由 `draw-record.comp` 每片每帧写一次。
+layout(location=0) in vec4 record_xform;
+layout(location=1) in vec4 record_place;
+layout(location=2) in vec4 record_shade;
+layout(location=3) in vec4 record_mask;
+layout(location=4) in vec4 material_src;
+layout(location=5) in vec4 material_random;
+#else
 layout(location=0) in vec4 material_src;
 layout(location=1) in vec4 material_physical;
 layout(location=2) in vec4 material_random;
 layout(location=3) in vec4 state_pos;
 layout(location=4) in vec4 state_vel;
 layout(location=5) in float pigment;
+#endif
 uniform vec2 frame,card,offset,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform int nx,grid_count;
@@ -24,7 +35,9 @@ uniform float panel_weight,release_spread;
 out vec2 uv,local_uv;
 out float age_out,life_out,light_out,shape_out;
 flat out float surface_out;
+#ifndef DRAW_RECORDS
 flat out float trailing_out;
+#endif
 flat out vec4 random_out;
 flat out float replica_out;
 const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));
@@ -33,6 +46,41 @@ uint grid_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return 
 float grid_unit(uint x){return float(grid_hash(x)>>8u)*(1./16777216.);}
 vec2 jitter(vec2 g){uint s=uint(g.x)*0x9e3779b9u^uint(g.y)*0x85ebca6bu;
     return (vec2(grid_unit(s),grid_unit(s^0x68bc21ebu))-.5)*.60;}
+#ifdef DRAW_RECORDS
+void main(){
+    float surface=record_mask.x;
+    float replica=record_mask.y;
+    // 表面与颗粒在交接时可以同时存在；不能按出生时刻提前裁掉表面。
+    if(material_pass==0){
+        if(surface<.001||replica>.5){gl_Position=vec4(2.,2.,2.,1.);return;}
+    } else if(record_mask.z<.5){
+        gl_Position=vec4(2.,2.,2.,1.);return;
+    }
+    vec2 grid=record_place.zw;
+    vec2 c=corners[gl_VertexID];
+    vec2 vertex_grid=grid+c;
+    vec2 j=jitter(vertex_grid);
+    if(vertex_grid.x==0. || vertex_grid.x*cell.x>=card.x-.01)j.x=0.;
+    if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
+    vec2 source=(vertex_grid+j)*cell;
+    uv=source/card;
+    if(replica>.5)uv=mix(source,material_src.xy,.80)/card;
+    local_uv=c;
+    age_out=record_shade.x;life_out=record_shade.y;
+    surface_out=surface;random_out=material_random;replica_out=replica;
+    if(material_pass==0){
+        vec2 world=offset+source;
+        gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
+        light_out=1.;shape_out=0.;return;
+    }
+    // 记录里存的是预乘好的 2×2 矩阵（已折进格子边长）与它作用在 d0 上之后的原点。
+    mat2 expand=mat2(record_xform.x,record_xform.y,record_xform.z,record_xform.w);
+    vec2 vertex=record_place.xy+expand*(c+j);
+    vec2 world=offset+vertex;
+    gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
+    light_out=record_shade.z;shape_out=record_shade.w;
+}
+#else
 void main(){
     Material m=Material(material_src,material_physical,material_random);
     float particle_age=max(0.,time-m.src.z);
@@ -113,3 +161,4 @@ void main(){
     light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
     shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);
 }
+#endif

@@ -10,6 +10,10 @@ layout(std430,binding=0) readonly buffer A{Material particles[];};
 layout(std430,binding=1) readonly buffer B{State states[];};
 layout(std430,binding=3) readonly buffer C{float compression[];};
 layout(std430,binding=4) buffer D{ivec4 accumulation[];};
+#ifdef ACTIVE_REGION
+layout(std430,binding=7) buffer W{uvec4 workgroups;ivec4 region,previous;
+ int box_x0,box_y0,box_x1,box_y1;ivec2 tiles[];};
+#endif
 uniform int pass,count,grid_count;
 uniform ivec2 grid_shape;
 uniform vec2 card,wind;
@@ -20,6 +24,7 @@ uint hash32(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(
 float unit32(uint x){return float(hash32(x)>>8u)*(1./16777216.);}
 void main(){
  uint i=gl_GlobalInvocationID.x;
+ // 清零保持整网格：它只是每格写 16 字节，实测落在噪声里，不值得为它再加一次间接分发。
  if(pass==0){if(i<uint(grid_shape.x*grid_shape.y))accumulation[i]=ivec4(0);return;}
  if(i>=uint(count))return;Material m=particles[i];float age=time-m.src.z;
  if(m.src.w>=float(grid_count)||age<=0.||age>=m.physical.z)return;
@@ -41,6 +46,23 @@ void main(){
  float mass=opacity*(1.-smoothstep(m.physical.z-.075,m.physical.z,age));
  vec2 q=(p-grid_bounds.xy)/grid_bounds.zw*vec2(grid_shape)-.5;
  ivec2 lo=ivec2(floor(q));vec2 f=fract(q);
+#ifdef ACTIVE_REGION
+ // 本帧真正写到的格子（双线性的 2×2 与网格的交集）记进包围盒；整块都在网格外就不记，
+ // 否则一片飞得很远的粒子会把区域无谓地撑大。
+ //
+ // 两条讲究，都是为了**别把十万个线程压到同四个地址上**（2026-09-17 实测：无条件原子让
+ // 整段压力更新贵 4%–12%，比省下来的还多）：
+ // ① 记的是 **16 格 tile 的坐标**，不是格坐标——同一个 tile 里的所有片给出同一个值；
+ // ② 先用**普通读**看一眼当前包围盒，已经覆盖就完全不发原子。包围盒只会单调外扩，
+ //    读到的哪怕是旧值也只会让判定偏保守（多发一次原子），永远不会漏掉该记的格。
+ if(lo.x+1>=0&&lo.y+1>=0&&lo.x<grid_shape.x&&lo.y<grid_shape.y){
+  ivec2 clo=clamp(lo,ivec2(0),grid_shape-1)/16,chi=clamp(lo+1,ivec2(0),grid_shape-1)/16;
+  if(clo.x<box_x0)atomicMin(box_x0,clo.x);
+  if(clo.y<box_y0)atomicMin(box_y0,clo.y);
+  if(chi.x>box_x1)atomicMax(box_x1,chi.x);
+  if(chi.y>box_y1)atomicMax(box_y1,chi.y);
+ }
+#endif
  for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++){
   ivec2 cell=lo+ivec2(dx,dy);if(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,grid_shape)))continue;
   float w=mass*(dx==0?1.-f.x:f.x)*(dy==0?1.-f.y:f.y);

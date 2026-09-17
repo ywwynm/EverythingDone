@@ -5,13 +5,11 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.AssetManager
 import android.content.res.Configuration
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
 import android.util.Log
-import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -288,12 +286,13 @@ internal object ParticleCreationPrewarm {
         }
         val durationScale = AnimatorDurationScale.scale().coerceAtLeast(.1f)
         val duration = ParticleReversePlan.APPEARANCE_SECONDS * durationScale
-        val samples = ParticleReversePlan.samplesFor(duration, 60f)
+        val samples = ParticleReversePlan.samplesFor(duration, ParticleWindowSurface.VOTED_FRAME_RATE)
         val counts = ParticleReversePlan.aliveCounts(created.materialValues, samples)
         val start = if (ParticlePerfTuning.creationAppearanceSkipEmptyTail)
             ParticleReversePlan.startFrameOf(counts, created.materialValues.size / 12,
                 ParticlePerfTuning.appearanceAliveRatio) else samples
-        runCatching { created.beginReverse(samples, start, precomputeProbe = false, throttled = true) }
+        runCatching { created.beginReverse(samples, start, precomputeProbe = false, throttled = true,
+            async = ParticlePerfTuning.asyncPrecompute) }
             .getOrElse {
                 runCatching { created.close() }
                 abandon("预算起步失败：${it.javaClass.simpleName}")
@@ -313,18 +312,27 @@ internal object ParticleCreationPrewarm {
             main.post { retryLater() }
             return
         }
+        var waiting = false
         val done = runCatching {
+            // F14：整段预算跑在后台（低优先级）上下文里，用户一触摸就不必排在它后面。
+            ParticleGl.useBackground()
             val deadline = System.nanoTime() + BUDGET_NANOS
-            while (current.renderer.reverseIncomplete && System.nanoTime() < deadline) {
-                if (!current.renderer.stepReverse { false }) return@runCatching true
+            while (!current.renderer.reverseSettled && System.nanoTime() < deadline) {
+                val step = current.renderer.advanceReverse { false }
+                if (step < 0) return@runCatching true
+                // 在途已满、栅栏还没发信号：让出这一轮，别在 GL 线程上空转轮询。
+                if (step == 0) { waiting = true; break }
             }
-            !current.renderer.reverseIncomplete
+            current.renderer.reverseSettled
         }.getOrElse {
             Log.w(ParticleMicroflakeRenderer.TAG, "预算失败", it)
             cancelJob("预算失败：${it.javaClass.simpleName}")
             return
         }
-        if (!done) { ParticleGl.post { step() }; return }
+        if (!done) {
+            if (waiting) ParticleGl.postDelayed(POLL_DELAY_MS) { step() } else ParticleGl.post { step() }
+            return
+        }
         runCatching { current.renderer.endReverse() }
         val elapsed = (System.nanoTime() - current.startedAt) / 1e6
         job = null
@@ -499,15 +507,15 @@ internal object ParticleCreationPrewarm {
             append("|ime=").append(ime?.bottom ?: -1)
             append("|mode=").append(ThingAnimationPreferences.creation(activity))
             append("|scale=").append((AnimatorDurationScale.scale(activity) * 100).roundToInt())
-            append("|hz=").append(refreshRate(decor).roundToInt())
+            // 刷新率**不进键**（2026-09-17）：采样数由 [ParticleWindowSurface.VOTED_FRAME_RATE]
+            // 这个常量决定，与面板此刻跑多少赫兹无关。此前这里取 `decor.display.refreshRate`
+            // 的瞬时值——首页刚触摸过是 120、点新建时已回落 60，键必然对不上，魅族上三次
+            // 新建全部「环境变了」，每次白算 307–367 ms 的轨迹（阶段 0' 第 6 节）。
             append("|recipe=").append(recipe())
         }
         val colour = background?.toJson() ?: "null"
         return ParticleCreationKey("bg=$colour|$rest", rest)
     }
-
-    private fun refreshRate(decor: View): Float =
-        (if (Build.VERSION.SDK_INT >= 30) decor.display?.refreshRate else null) ?: 60f
 
     /** 影响轨迹的全部开关；任何一项被 A/B 改掉，预算好的轨迹就不能用了。 */
     private fun recipe(): String = buildString {
@@ -518,6 +526,10 @@ internal object ParticleCreationPrewarm {
         append(',').append(ParticlePerfTuning.jacobiLargeTile)
         append(',').append(ParticlePerfTuning.jacobiLargeBatch)
         append(',').append(ParticlePerfTuning.historyInIntegration)
+        // 逐帧成本专项第一批：两项都不改轨迹，但一并进配方，A/B 时不会拿着另一套配方的
+        // 预算去命中（A1 改的是绘制，C10 是 G0）。
+        append(',').append(ParticlePerfTuning.drawRecords)
+        append(',').append(ParticlePerfTuning.pressureActiveRegion)
     }
 
     // ---- 诊断 ----
@@ -542,4 +554,7 @@ internal object ParticleCreationPrewarm {
 
     /** 一次 pump 里连续预算的墙钟预算；与 [ParticleGl] 的准备预算同量级。 */
     private const val BUDGET_NANOS = 8_000_000L
+
+    /** 在途采样都还没算完时的重排间隔；与 pump 的轮询同一量级。 */
+    private const val POLL_DELAY_MS = 3L
 }

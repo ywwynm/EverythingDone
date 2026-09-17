@@ -39,6 +39,11 @@ internal object ParticleTrajectoryCheck {
                     context.resources.displayMetrics.density, spec)
                 if (concurrentLoad) load = ConcurrentLoad(context.assets, input).also { it.start() }
                 result.put("diagnosticMode", diagnostics).put("concurrentLoad", concurrentLoad)
+                // 本文件里既有的几条 G0 不变式（批处理 Jacobi、2c 截断、两个会话交错、收养）
+                // 管的都是第一、二、三、四批那几项，参照系必须是**同一套逐帧配方**。
+                // 逐帧成本专项第一批的 A1 属 G1，放在下面 perFrameBatchOne 那一节单独量幅度；
+                // 不在这里整体按下去的话，上面每一条都会被 G1 级的差异判成失败。
+                ParticlePerfTuning.withPerFrame(0) {
                 withEgl(context.assets, width, height) { shared ->
                     val hashes = ArrayList<String>()
                     val referencePixels = mutableMapOf<Int, ByteArray>()
@@ -268,6 +273,141 @@ internal object ParticleTrajectoryCheck {
                         }
                     }
                     result.put("pixelDifferences", differences)
+                    // ---- 逐帧成本专项第一批：C10 要 G0，A1/A2/A3 只要 G1 ----
+                    //
+                    // 参照系是「本批整体关掉、第一二批照常」，量出来的差异只属于本批。
+                    // **两个渲染器同时活在同一个共享上下文里，逐帧交替画、逐帧比**：整帧
+                    // RGBA8 在这块屏上是 17.5 MB，留 61 帧必然 OOM（离屏对照的旧教训）。
+                    // 每格记「有差异的帧数 / 有差异像素占比的最大值 / 逐通道最大差 / 平均差」。
+                    // 判据两步走：先看自比较（同一条路径跑两遍）是不是干净，再看 A/B。
+                    fun renderer(enabled: Int, forward: Boolean): ParticleMicroflakeRenderer =
+                        ParticlePerfTuning.withPerFrame(enabled) {
+                            ParticleMicroflakeRenderer(context.assets, shared, input).also {
+                                it.prepare()
+                                if (!forward) check(it.prepareReverse(samples)) { "逆向准备被取消" }
+                            }
+                        }
+                    val other = ByteBuffer.allocateDirect(width * height * 4)
+                    fun readInto(target: ByteBuffer) {
+                        target.clear()
+                        GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA,
+                            GLES30.GL_UNSIGNED_BYTE, target)
+                    }
+                    // 落盘的 crop：**中心取本帧差异最大的那个像素**，也就是最坏处，
+                    // 不是随手挑一块（`claimed-effects-need-marked-evidence` / `zoom-before-claiming-fixed`）。
+                    fun writeFrame(target: File, source: ByteBuffer, box: IntArray?) {
+                        source.rewind()
+                        val bitmap = if (box == null)
+                            android.graphics.Bitmap.createBitmap(width, height,
+                                android.graphics.Bitmap.Config.ARGB_8888)
+                        else android.graphics.Bitmap.createBitmap(box[2], box[2],
+                            android.graphics.Bitmap.Config.ARGB_8888)
+                        try {
+                            if (box == null) {
+                                bitmap.copyPixelsFromBuffer(source)
+                            } else {
+                                val row = IntArray(box[2])
+                                for (y in 0 until box[2]) {
+                                    for (x in 0 until box[2]) {
+                                        val at = (((height - 1 - (box[1] + y)) * width) + box[0] + x) * 4
+                                        val r = source.get(at).toInt() and 255
+                                        val g = source.get(at + 1).toInt() and 255
+                                        val b = source.get(at + 2).toInt() and 255
+                                        val a = source.get(at + 3).toInt() and 255
+                                        row[x] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                                    }
+                                    bitmap.setPixels(row, 0, box[2], 0, y, box[2], 1)
+                                }
+                            }
+                            target.outputStream().use {
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+                            }
+                        } finally { bitmap.recycle() }
+                    }
+                    fun compare(label: String, enabled: Int, forward: Boolean,
+                                dump: Set<Int> = emptySet()): JSONObject {
+                        val frames = if (forward) 60 else samples
+                        val detail = JSONArray()
+                        val dumps = JSONArray()
+                        var worstMax = 0
+                        var worstRatio = 0.0
+                        var sum = 0L
+                        var bytes = 0L
+                        renderer(0, forward).use { a ->
+                            renderer(enabled, forward).use { b ->
+                                for (index in 0..frames) {
+                                    if (forward) a.draw(index / 60f, batchPressure = true)
+                                    else a.drawReverseFrame(frames - index)
+                                    readInto(pixels)
+                                    if (forward) b.draw(index / 60f, batchPressure = true)
+                                    else b.drawReverseFrame(frames - index)
+                                    readInto(other)
+                                    pixels.rewind(); other.rewind()
+                                    var changed = 0; var maximum = 0; var total = 0L
+                                    var worstAt = -1
+                                    val size = width * height * 4
+                                    var i = 0
+                                    while (i < size) {
+                                        var pixelChanged = false
+                                        repeat(4) {
+                                            val delta = kotlin.math.abs((pixels.get().toInt() and 255) -
+                                                (other.get().toInt() and 255))
+                                            if (delta > 0) pixelChanged = true
+                                            if (delta > maximum) { maximum = delta; worstAt = i }
+                                            total += delta
+                                        }
+                                        if (pixelChanged) changed++
+                                        i += 4
+                                    }
+                                    sum += total; bytes += size
+                                    if (changed > 0) {
+                                        val ratio = changed.toDouble() * 4 / size
+                                        worstMax = maxOf(worstMax, maximum)
+                                        worstRatio = maxOf(worstRatio, ratio)
+                                        detail.put(JSONObject().put("frame", index)
+                                            .put("changedPixelRatio", ratio)
+                                            .put("maxChannelDifference", maximum))
+                                    }
+                                    if (index in dump) {
+                                        // glReadPixels 是自下而上的，落盘时按同一口径还原。
+                                        val crop = 160
+                                        val px = if (worstAt >= 0) (worstAt / 4) % width else width / 2
+                                        val py = if (worstAt >= 0) height - 1 - (worstAt / 4) / width else height / 2
+                                        val box = intArrayOf(
+                                            (px - crop / 2).coerceIn(0, width - crop),
+                                            (py - crop / 2).coerceIn(0, height - crop), crop)
+                                        val stem = "%s-%02d".format(label, index)
+                                        writeFrame(File(output, stem + "-before-full.png"), pixels, null)
+                                        writeFrame(File(output, stem + "-after-full.png"), other, null)
+                                        writeFrame(File(output, stem + "-before-crop.png"), pixels, box)
+                                        writeFrame(File(output, stem + "-after-crop.png"), other, box)
+                                        dumps.put(JSONObject().put("frame", index).put("stem", stem)
+                                            .put("crop", JSONArray(listOf(box[0], box[1], crop)))
+                                            .put("maxChannelDifference", maximum)
+                                            .put("changedPixelRatio", changed.toDouble() * 4 / size))
+                                    }
+                                }
+                            }
+                        }
+                        return JSONObject().put("label", label).put("frames", frames + 1)
+                            .put("differingFrames", detail.length())
+                            .put("worstChangedPixelRatio", worstRatio)
+                            .put("worstMaxChannelDifference", worstMax)
+                            .put("meanChannelDifference", if (bytes == 0L) 0.0 else sum.toDouble() / bytes)
+                            .put("dumps", dumps).put("detail", detail)
+                    }
+                    val perFrame = JSONObject()
+                    for (forward in listOf(true, false)) {
+                        val prefix = if (forward) "forward" else "reverse"
+                        perFrame.put(prefix + "Self", compare("$prefix-self", 0, forward))
+                        perFrame.put(prefix + "Region", compare("$prefix-c10",
+                            ParticlePerfTuning.PER_FRAME_ACTIVE_REGION, forward))
+                        val total = if (forward) 60 else samples
+                        perFrame.put(prefix + "All", compare("$prefix-all",
+                            ParticlePerfTuning.PER_FRAME_ALL, forward,
+                            setOf((total * .1).toInt(), (total * .5).toInt(), (total * .9).toInt())))
+                    }
+                    result.put("perFrameBatchOne", perFrame)
                     // 第五批：单像素差异的定性。见 batch5-results 第 3 节。
                     if (diagnostics) {
                         // 报告对象先挂上去：定位阶段抛异常（例如整帧像素撑爆堆）时，
@@ -279,6 +419,7 @@ internal object ParticleTrajectoryCheck {
                                 samples, start, repeats, pinFrame, report)
                         }.onFailure { report.put("error", it.stackTraceToString()) }
                     }
+                }
                 }
             } catch (error: Throwable) { result.put("passed", false).put("error", error.stackTraceToString()) }
             finally {

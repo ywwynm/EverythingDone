@@ -76,11 +76,17 @@ class ParticleBatchTwoTest {
 
     // ---- 3.1 左滑预读 ----
 
+    /**
+     * 具体档数由逐帧成本专项第二批按实测成本重定（见 `ParticlePerFrameBatchTwoTest`），
+     * 这里只守住不随批次变的那两条：至少备一档、越快备得越多。
+     */
     @Test fun `按速度决定预读档数`() {
         assertEquals(1, ParticleSession.gestureLookahead(0f))
-        assertEquals(1, ParticleSession.gestureLookahead(1f))
-        assertEquals(2, ParticleSession.gestureLookahead(1.01f))
-        assertEquals(2, ParticleSession.gestureLookahead(9f))
+        val speeds = listOf(0f, .5f, 1f, 1.01f, 2f, 4f, 9f)
+        for ((slow, fast) in speeds.zipWithNext()) {
+            assertTrue("$fast 档/拍不该比 $slow 备得少",
+                ParticleSession.gestureLookahead(fast) >= ParticleSession.gestureLookahead(slow))
+        }
     }
 
     @Test fun `预读目标只增不减且不超过总档数`() {
@@ -98,7 +104,8 @@ class ParticleBatchTwoTest {
         val position = (24f / 360f) * samples
         assertTrue("预备 ${ParticleSession.GESTURE_PREROLL} 档要能覆盖 $position",
             kotlin.math.ceil(position).toInt() <= ParticleSession.GESTURE_PREROLL)
-        assertEquals(2, ParticleSession.GESTURE_IDLE_LOOKAHEAD)
+        // 停住时每拍多备的档数由逐帧成本专项第二批提到 6（预读不再阻塞 CPU），下限留在这里。
+        assertTrue(ParticleSession.GESTURE_IDLE_LOOKAHEAD >= 2)
     }
 
     // ---- 3.2 快照单拷贝 ----

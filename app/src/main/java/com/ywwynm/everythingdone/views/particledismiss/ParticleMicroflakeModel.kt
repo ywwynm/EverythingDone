@@ -6,6 +6,14 @@ import kotlin.math.*
 internal object ParticleMicroflakeModel {
     const val STEP = 1f / 240f
     const val DURATION = 1f
+
+    /**
+     * 归一空间里一个 dp 占几个单位。
+     *
+     * 材料一律在「720 逻辑像素对应 384 dp 手机宽度」的空间里建（`fromSpec` 把像素尺寸
+     * 除以 `density / 1.875`），横屏与平板因此保持同样的界面粒径。720/384 = 1.875。
+     */
+    const val DP_UNITS = 1.875
     private data class Normals(val x: FloatArray, val y: FloatArray, val milliseconds: Double)
 
     data class Materials(
@@ -38,7 +46,12 @@ internal object ParticleMicroflakeModel {
         val panel = ParticleMicroflakeContent.panel(pixels, pixelWidth, pixelHeight, rules)
         val copyLimit = rules.number("content_copies").toInt()
         val budget = 1.0 + copyLimit * panel.weight.toDouble() * (1.0 - panel.fraction)
-        val cell = max(rules.decimal("cell"), sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
+        // 本函数在「720 逻辑像素 = 384 dp」的归一空间里工作（见 `fromSpec` 的 scale），
+        // 所以一个 dp 是 [DP_UNITS] 个单位。E12 的下限与 `max_cells` 那条上限取较大者：
+        // 既不小于指定的物理尺寸，也不会把片数顶过上限。
+        val requested = ParticlePerfTuning.microflakeCellDpNow
+        val cell = max(max(rules.decimal("cell"), requested.toDouble() * DP_UNITS),
+            sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
         val nx = ceil(width / cell).toInt().coerceAtLeast(2)
         val ny = ceil(height / cell).toInt().coerceAtLeast(2)
         val count = nx * ny
