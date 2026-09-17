@@ -10,9 +10,19 @@ public final class ParticleGestureInput {
         if (args.length < 6 || (args.length - 3) % 3 != 0) {
             throw new IllegalArgumentException("startX startY UP|CANCEL (endX endY durationMs)+");
         }
-        Class<?> type = Class.forName("android.hardware.input.InputManagerGlobal");
-        Object manager = type.getMethod("getInstance").invoke(null);
-        Method inject = type.getMethod("injectInputEvent", InputEvent.class, int.class);
+        // Android 14 起注入入口搬到了 InputManagerGlobal；12/13 上只有 InputManager.getInstance()。
+        // 华为 MatePad Pro 13.2（Android 12）上找不到前者，整条驱动会以 137 收场。
+        Object manager;
+        Method inject;
+        try {
+            Class<?> type = Class.forName("android.hardware.input.InputManagerGlobal");
+            manager = type.getMethod("getInstance").invoke(null);
+            inject = type.getMethod("injectInputEvent", InputEvent.class, int.class);
+        } catch (ClassNotFoundException absent) {
+            Class<?> type = Class.forName("android.hardware.input.InputManager");
+            manager = type.getMethod("getInstance").invoke(null);
+            inject = type.getMethod("injectInputEvent", InputEvent.class, int.class);
+        }
         float x = Float.parseFloat(args[0]), y = Float.parseFloat(args[1]);
         long down = SystemClock.uptimeMillis();
         send(manager, inject, down, MotionEvent.ACTION_DOWN, x, y);

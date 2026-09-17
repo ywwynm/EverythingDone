@@ -4,6 +4,54 @@
 
 ## 状态
 
+- 2026-09-17：**逐帧成本专项第三批完成并发布 `202609171237`**，见
+  [per-frame-batch3-2026-09-17.md](per-frame-batch3-2026-09-17.md)。任务一全 **G0**，
+  只改「这一拍的目标时刻怎么算」。**先取证再改**：新增节拍级取证（`ParticleBeatTrace`）
+  一轮否掉四条假设，只剩「节拍与面板相位不对」——此前的节拍是「起点 + k × 16.667 ms」的
+  自由计时，而魅族两个 vsync 实测 **16.55 ms**，每拍多 0.117 ms，几十拍后目标滑过一个 vsync，
+  同一批帧的呈现时刻散在 **9.4 / 17.7 / 26.0 / 32.3 ms** 四档上（三星面板周期恰好接近 16.667，
+  于是几乎不漂，是这条根因最好的旁证）。落地**节拍相位锁定**：魅族提交延迟 p90
+  **11.61 → 5.65 ms**、本拍→上屏 p90 **41.63 → 33.96 ms**；华为一轮左滑合成次数
+  **478 → 582**、移动期不同画面 11 格里 8 格上升。同批**删掉两项**：「栅栏挪到两拍之间轮询」
+  （等待实测 0.02 ms）与「呈现时刻下限」（魅族的 SurfaceFlinger 不按 `desiredPresentTime`
+  推迟缓冲，28/69 帧照样早一个周期上屏）。顺带**修正了「左滑远低于 60 fps」这个前提**：
+  三格的分母含手指停住的那一段，且出拍没画的 **100% 是「相位没变」**。左滑从本批起在
+  **四种复杂度的卡**上各跑一遍（矮卡与清单卡片数差 6.8 倍）。**任务二**给 E12（微片 dp）与
+  C7（Jacobi 迭代数）各出一组受控对照图与数字交用户定夺，**默认值一个没改**。
+  另补齐前两批欠华为 Maleoon 910 的架构侧回归（着色器零链接失败、`ssbo顶点=0`、
+  双上下文读回 HIGH / LOW）。
+- 2026-09-17：**逐帧成本专项第二批完成并发布 `202609171032`**，见
+  [per-frame-batch2-2026-09-17.md](per-frame-batch2-2026-09-17.md)。全批 **G0**，只改调度与时序。
+  落地三项：**F14** 出帧与后台分成两个同 share group 的 EGL 上下文按优先级分档
+  （两台真机都真的读回 **HIGH / LOW**，同线程切换只要 10–17 µs）；**F15** 预读改成
+  「提交即返回 + 栅栏轮询确认」，CPU 不再每个采样阻塞 4–7 ms，并按实测重定了三个预读档数；
+  **预算不许跨过下一拍**。收益最实的是**左滑快拖**：移动期不同画面 7 → 9（魅族）/ 7 → 12（三星），
+  魅族滞后 p90 16.2 → 10.3 档；弹窗侧最长呈现间隔与 p90 多格缩短（`attach-back` 消散
+  max 228.8 → 87.8 ms、`color-confirm` 出现 p90 96.6 → 24.8 ms），片数最多的
+  `color-confirm` 消散 0.725 → 0.842。**「首帧绕开节拍」两台都量不出收益，默认关闭**，
+  但它踩出的时序教训写进了 decisions（提前出的一帧必须把要替掉的那一拍真的吃掉，
+  否则被 SurfaceFlinger 丢掉的那一帧会卡住整个待确认队列）。新增场景 `swipe-wiggle`
+  （按住不放来回拖）与滞后曲线，**查清「来回拖不跟手」不在预读这条链路上**
+  （滞后 p90 恒为 0.00 档），剩下的是帧率问题，已记 followups。
+- 2026-09-17：**逐帧成本专项第一批完成并发布 `202609170852`**，见
+  [per-frame-batch1-2026-09-17.md](per-frame-batch1-2026-09-17.md)。落地两项：**A1** 把
+  `material.vert` 的逐顶点数学下沉成 compute 每片每帧一次（弹窗现场消散每帧 −21.4% /
+  三星 −19.7%、回放出现 −28.8% / −25.5%，左滑卡片 −11.3% / −10.3% 与 −19.8% / −20.8%，属 G1）；
+  **C10** 让压力更新只跑活动区域（左滑卡片现场 −3.7% / −3.9%、预读每采样 −6.4% / −6.2%，
+  弹窗侧中性，**两台逐位相同**）。C10 返工两次才转正：慢的不是间接分发，是十万个线程
+  对同四个地址做原子操作。同批的 **A2 / A3 因两台都量不出收益整段删除**，
+  **B7 因第 0 遍的四边形带抖动、等价性不成立未做**。顺带修掉创建页提前预算「必然未命中」
+  （缓存键里的瞬时刷新率）。两台各一轮修前 + 一轮修后的九场景矩阵：最长呈现间隔整体缩短、
+  消散层呈现比例普遍上去，唯一没变好的是左滑慢拖的帧数（已记 followups）。
+  Adreno 829 与 Maleoon 的回归仍欠着（两台都不在线）。
+- 2026-09-17：**逐帧成本专项的基线与分段归因完成（阶段 0'）**，见
+  [per-frame-baseline-2026-09-17.md](per-frame-baseline-2026-09-17.md)。魅族 20 Infinity 一台。
+  每帧成本的大头随场景换人：**弹窗（10.7 万片）被两遍实例化绘制主导**（现场消散 56.3%、
+  回放出现 87.1%），**左滑卡片（2.4 万片）被压力主导**（现场 46.4%、预读 86.9%），而它的
+  压力网格（120,096 格）比整屏弹窗（83,520 格）还大 44%。全屏清空在 Adreno 740 上不要钱、
+  resolve 只值 0.24–0.33 ms，B6 因此降级；呈现链全部 Device 合成、60 Hz 投票生效，F16 不做。
+  最差的一格是「弹窗 A 消散接 B 出现」（间隔最大 227.8 ms，同时 B 在跑 907 ms 预计算）。
+  顺带查出创建页的提前预算在这台设备上**必然未命中**（缓存键里放了瞬时刷新率）。
 - 2026-09-16：**修掉上一版带出来的两帧闪烁并发布 `202609151640`**。关闭录音弹窗时弹窗一瞬
   变直角、整屏亮度掉一下，根因是「用第二个 `HardwareRenderer` 画活着的视图树」会改掉真实
   `SurfaceView` 的裁剪（Android 15 起由 RenderThread 驱动）。修法：有可见 Surface 的弹窗，
@@ -66,6 +114,19 @@
 
 ## 文档
 
+- [per-frame-plan-2026-09-17.md](per-frame-plan-2026-09-17.md)：逐帧成本专项（模拟、计算、绘制、呈现）的口径、现状、十个优化方向与阶段划分。
+- [research-2026-09-17-per-frame.md](research-2026-09-17-per-frame.md)：上一条方案第 3 节的外部资料调研，十个主题各附来源与「建议 / 收益 / 风险 / 验证」，文末给按预期收益排序的总表与对方案的逐条裁定（B4、PCG、framebuffer fetch 合一、粒子排序四项被否定；B6 与 F14 需修正；A1、A3 的收益被低估）。
+- [per-frame-batch3-2026-09-17.md](per-frame-batch3-2026-09-17.md)：第三批的节拍级取证与逐条
+  假设裁定、相位锁定的做法与两台数字、两个被证伪并删除的项、四种复杂度测试卡的建法与片数、
+  「左滑远低于 60 fps」这个前提的修正、E12 / C7 两组受控对照的图与数字，以及前两批欠华为
+  Maleoon 910 的架构侧回归。
+- [per-frame-batch2-2026-09-17.md](per-frame-batch2-2026-09-17.md)：第二批（F14 双上下文、F15 异步预读、
+  预算让拍）的做法、两台读回的优先级档位与切换开销、预读档数的重定依据、「首帧绕开节拍」的
+  缺陷根因与不落地依据、两台各一张矩阵修前修后表，以及左滑三格（慢拖 / 快拖 / 来回拖）的滞后曲线。
+- [per-frame-batch1-2026-09-17.md](per-frame-batch1-2026-09-17.md)：第一批逐项的做法、两台设备的
+  离屏 A/B 数字、C10 两次返工的归因、A2/A3 的删除依据与 B7 的等价性分析、G0/G1 对照与受控
+  并排放大图、两台各一张真机矩阵修前修后表、`hz` 键缺陷的核实与修法。
+- [per-frame-baseline-2026-09-17.md](per-frame-baseline-2026-09-17.md)：阶段 0'，魅族 20 Infinity 上的基线矩阵、每帧分段归因（消融 + 分段 `glFinish`，含两条方法边界）、呈现链结论、修前录屏与对照帧路径，以及按实测份额给出的实施批次排序。
 - [analysis-2026-09-14.md](analysis-2026-09-14.md)：四条用户反馈的逐条诊断、现有管线的时序链与每帧 GPU 工作量。
 - [plan.md](plan.md)：分阶段方案、视觉保证级别（G0 / G1）、验收口径、风险与需要用户裁定的问题。
 - [research-2026-09-14-platform.md](research-2026-09-14-platform.md)：两项平台调研的摘要与对方案的影响；完整报告见 [research-2026-09-14-platform-full.md](research-2026-09-14-platform-full.md)（上下文优先级、SurfaceView、刷新率、RenderThread 动画、Choreographer）与 [research-2026-09-14-gles-full.md](research-2026-09-14-gles-full.md)（dispatch/屏障开销、数值确定性、零拷贝纹理、多上下文同步、Jacobi 分块）。
@@ -87,12 +148,43 @@
   `adb -s <序列号> logcat -v time > 文件`**（魅族主缓冲只有 256 KiB，事后 `-d` 捞不回来）。
   开跑前只读查询 `RECORD_AUDIO`，缺权限就跳过「点录音行」那一格——授权属于设备设置，
   测试不得代为改动。
+- `device_per_frame.py` / `analyze_per_frame.py`：阶段 0'（逐帧成本专项）的基线矩阵驱动与汇总。
+  第一批新增 `--per-frame-bench`（逐项 A/B，产出 `per-frame-bench.json`）与 `--tuning`
+  （整轮的开关覆盖，收尾自动恢复；`create-miss` 那一格会把它并进去而不是擦掉）。
+- `analyze_per_frame_ab.py`：逐项 A/B 的汇总（按**配对**取比值，不跨条件比绝对值）。
+- `compare_matrix.py`：两轮矩阵（修前 / 修后）的同名场景对照表。
+- `compose_before_after.py`：并排图。`--pairs` 是受控 A/B 那一种（同材料同种子只切开关，
+  4 倍最近邻放大，裁剪中心是本帧差异最大的像素）；`--before/--after` 是两轮录屏那一种，
+  配合 `extract_baseline_frames.py --crops` 沿用修前的裁剪框。
+  场景键 `swipe-slow` / `swipe-fast` / **`swipe-wiggle`**（第二批新增：按住不放来回拖，
+  剖面在脚本的 `WIGGLE` 常量里，注释写明了三条硬约束）/ `attach-back` / `attach-outside` /
+  `color-confirm` / `attach-audio` / `audio-close` / `create-hit` / `create-miss`；`--record` 只录屏不采样、
+  `--probe` 开分段 `glFinish`、`--segment-bench` 开离屏消融。同样**必须**先另起一条 logcat 流。
+- `analyze_beats.py`：第三批的节拍级取证汇总（`result.json` 里的 `beats` 与 `clock`）。
+  回答四个分支：节拍跳没跳、出拍了却没画（原因分布）、画了但提交晚了、提交了却没按目标上屏。
+  用法 `python analyze_beats.py <序列号> <run 前缀> [场景键…]`。
+- `device_batch3_setup.py` 的 `cards` / `make-list`：建一组不同复杂度的测试卡
+  （高文本卡、清单卡、带图卡）。**华为上 `input text` 的拉丁字母会被中文输入法改写**，
+  那台一律用纯数字标题；清单要「先写好行再点启用清单」，勾选框是 `iv_check_list_state`。
+- `device_per_frame.py --swipe-titles 类型=标题,…`：左滑三格在每张卡上各跑一遍；
+  `--option-frames`：第三批任务二的 E12 / C7 受控对照（离屏，只出图与数字）。
+- `device_composition.py`：`dumpsys SurfaceFlinger` 采集（`--mode swipe|dialog`），核对粒子层的
+  合成方式、像素格式与刷新率投票。输出很长，整份落到设备上再 `adb pull`。
+- `extract_baseline_frames.py`：从录屏里按「相邻帧差分」定位动画窗口，取 10% / 50% / 90% 三个
+  进度点的整帧与 4 倍放大裁剪，作为修前修后并排对照的基线。
 - `device_particle_perf.py`：阶段 0 的真实系统输入驱动（场景、观察器控制、GPU 探针开关、产物拉取）。
 - `analyze_particle_perf.py`：把观察器与探针产物汇总成 `tmp/particle-perf/phase0/summary.json`。
 - `device_particle_cleanup.py`：收尾（专用记事移入回收站、档位恢复、删除诊断开关、核对无残留线程）。
-- debug 专用计时钩子：`app/src/main/.../ParticlePerfProbe.kt`，默认关闭，由 `files/particle-perf-probe.json` 显式开启；`gpuTiming` 取 `a`（整段）/ `b`（分段计时查询）/ `c`（按段 `glFinish`）。
+- debug 专用计时钩子：`app/src/main/.../ParticlePerfProbe.kt`，默认关闭，由 `files/particle-perf-probe.json` 显式开启；`gpuTiming` 取 `a`（整段）/ `b`（分段计时查询）/ `c`（按段 `glFinish`）。阶段 0' 起分段细到 integrate / splat / blur / tiles / jacobi / project / history / restore / clear / pass0 / pass1 / resolve，并附每帧的 dispatch 计数（记录里的 `count:<段名>` 行，计时关掉也有）。
+- 阶段 0' 的消融与离屏基准：`app/src/main/.../ParticleAblation.kt`（**线程局部**的跳段掩码，release 恒为 0）与 `app/src/debug/.../ParticleSegmentBench.kt`（成对 A/B、先热身、整段末尾只 `glFinish` 一次），由观察器配置 `segmentBench` 触发（`device_per_frame.py --segment-bench`）。**消融只对不回灌模拟的段成立**——跳掉压力里的任何一级都会改变活动 tile 列表，详见 per-frame-baseline 第 3.1 节。
 - 第二批的结构性改动没有留开关（一窗一 Surface、常驻上下文、分步状态机、栅栏节流互为前提）。
 - 第一批的逐项开关：`app/src/main/.../ParticlePerfTuning.kt`，debug 包由 `files/particle-perf-tuning.json` 覆盖，缺文件时取默认（= 发布配置）。用来做同一台设备上的 A/B 复测。
+- 第二批的逐项开关（同一个文件）：`backgroundContext`（双上下文，默认开）、`asyncPrecompute`
+  （预读提交即返回，默认开）、`reverseInFlight`（在途采样上限，0 = 两批）、`yieldWorkBeforeBeat`
+  （预算不跨过下一拍，默认开）、`immediateFirstFrame`（首帧绕开节拍，**默认关**，两台都量不出收益）。
+  观察器产物新增 `glContext`（两个上下文实际读回的优先级档位、切换次数与累计墙钟）与每个手势层的
+  `gesture` 滞后曲线；`analyze_per_frame.py` 把后者汇总成 `gestureLag`（p50/p90/max、被卡住的帧
+  占比、每次反向的峰值与恢复帧数），`compare_matrix.py` 为左滑场景单出一张表。
 - 第五批的 G0 定性模式（同在 `ParticleTrajectoryCheck.kt`）：`device_particle_perf.py` 的
   `--gpu-seed`（固定种子，同时打开 `diagnosticOnly`）、`--gpu-diagnostics`（每条路径自跑多遍、
   逐帧连读两次、定点复现并定位差异像素）、`--gpu-load`（另起一个 EGL 上下文制造与提前预算

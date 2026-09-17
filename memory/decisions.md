@@ -37,6 +37,30 @@ Global startup decision index only. Feature-specific decisions live in `docs/fea
 对应的验证纪律：**schema 变更的验收必须包含一次全新安装**（卸载后装，或换一台没装过的设备），
 仅做覆盖安装验证的是 `onUpgrade` 这一条路径。
 
+## 2026-09-17 - 自定义动画节拍必须锚在真实 vsync 上，不能按固定间隔累加
+
+「起点 + k × 16 666 666 ns」这种自由计时会相对面板持续漂移：魅族 20 Infinity 触摸期两个
+vsync 实测 **16.55 ms**（面板 120.8 Hz），每拍多 **0.117 ms**，几十拍后目标就滑过一个 vsync，
+同一批帧的上屏时刻散在四个档位上，间隔在 8.3 / 16.6 / 24.8 / 33.1 ms 之间跳——均值看着达标、
+看起来一直在抖。正确做法：**目标直接取本次 vsync 的时刻**，出不出这一拍按「距上一拍够不够久」
+判（门限 `目标间隔 − 半个 vsync − 余量`），「一拍多长」用量出来的节拍间隔而不是写死的常量。
+**不要按 vsync 计数分频**：非 UI 线程上的 Choreographer 投递本身就不规律（同一次手势里 8.28
+与 16.55 交替），按计数分频会跟着乱。
+
+两条配套的平台事实：① `Choreographer.FrameData` 给的「预期呈现时刻」在魅族上是
+**vsync + 26.0 ms**，而实际达到的是 vsync + 17.7 ms，把它当目标等于主动多等一个显示周期；
+② `eglPresentationTimeANDROID` 在那台上**不能用来推迟自己的帧**（下限写在 vsync + 12.6 ms，
+仍有 28/69 帧在 vsync + 8.3 ms 就上屏）。出处见
+`docs/features/particle-animation-performance/per-frame-batch3-2026-09-17.md`。
+
+## 2026-09-17 - 同一层两张缓冲落进同一个刷新周期，先提交的那张会被丢掉且永远等不到呈现时刻
+
+任何「不按节拍、临时多提交一帧」的做法，都必须把它要替掉的那一拍真的跳过。
+SurfaceFlinger 每层每个 vsync 只 latch 一张缓冲，先提交的直接丢弃，而被丢弃的那一张
+**永远等不到 `EGL_DISPLAY_PRESENT_TIME`**——凡是按呈现时刻保序放行的待确认队列都会被它卡住，
+症状看起来只是「首帧上屏晚了几十毫秒」，真正的指纹是**一批确认时刻挤在一两毫秒之内**。
+出处与完整数据见 `docs/features/particle-animation-performance/per-frame-batch2-2026-09-17.md` 第 4 节。
+
 ## 2026-09-15 - 逐位对照在报告差异之前必须先做自比较
 
 GPU 侧的「逐位相同」验收有设备本底噪声：OPD2515（Adreno 829）上同一条命令流重复跑，约

@@ -12,7 +12,10 @@ import device_particle_perf as d
 import device_ui as ui
 import device_performance as perf
 
-TEST_TITLE = r'(?:Perf(?:P0|B[0-9])-[0-9]{8}-[0-9]+|CodexAnimation[A-Za-z0-9_-]+)'
+# 909170xx 是华为那台的专用标题：它的 `input text` 把拉丁字母交给中文输入法改写，
+# 而输入法属于设备设置、不得代为切换，所以那台只用数字。
+TEST_TITLE = (r'(?:Perf(?:P0|B[0-9])-[0-9]{8}-[0-9]+|PROBE-[A-Z]+-[0-9]{8}|909170[0-9]{2}'
+              r'|P儿0260917－1|CodexAnimation[A-Za-z0-9_-]+)')
 
 
 def trash(titles):

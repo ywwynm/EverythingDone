@@ -151,6 +151,12 @@ def begin(run, kind, extra=None):
     # 数字却毫无察觉（2026-09-15 实际发生：整批场景的粒子时间线全是空的）。先删干净。
     subprocess.run([ui.ADB, '-s', ui.SERIAL, 'shell', 'rm', '-rf', perf.BASE + run],
                    capture_output=True)
+    # 观察器按 `run_id` 变没变来换采集器（`ObserverManager.poll` 里的 `next != run`）。
+    # 上一轮如果中途出错、没走到 `end()`，进程里还记着同一个 id，**再写同一个 id 什么也不会
+    # 发生**，症状是 `ready did not become true`，而且重跑多少次都一样（2026-09-17 在华为上
+    # 卡了两轮）。先写一份空配置把它清掉，等过一个轮询周期再写本轮的。
+    perf.control({})
+    time.sleep(.35)
     perf.control(settings)
     perf.wait_progress(run, 'ready')
     # 观察器每 250 ms 重新登记一次宿主窗口；等过一个周期再注入输入。
