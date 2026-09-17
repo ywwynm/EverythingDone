@@ -14,6 +14,22 @@ class ParticleMicroflakeModelTest {
         .first { File(it, "shared/particle-dismiss/rules.properties").isFile }
     private val rules get() = ParticleMicroflakeRules.read(File(root, "shared/particle-dismiss/rules.properties").inputStream(), File(root, "shared/particle-dismiss/common-release.f32").inputStream())
 
+    @Test fun `加入阴影外圈后保持卡片本体粒径且不改变其它会话预算`() {
+        val originalRules = rules
+        val color = 0xffedaa60.toInt()
+        val body = ParticleMicroflakeModel.build(2000f, 800f, IntArray(20 * 8) { color },
+            20, 8, 180f, 7L, originalRules)
+        val pixels = IntArray(22 * 10) { index ->
+            if (index % 22 in 1..20 && index / 22 in 1..8) color else 0x14000000
+        }
+        val expanded = ParticleMicroflakeModel.build(2200f, 1000f, pixels,
+            22, 10, 180f, 7L, originalRules.withMaterialArea(2200f * 1000f / (2000f * 800f)))
+        assertEquals(body.cellX, expanded.cellX, body.cellX * .01f)
+        assertEquals(body.cellY, expanded.cellY, body.cellY * .01f)
+        assertTrue(expanded.columns * expanded.rows > body.columns * body.rows)
+        assertEquals(160000f, originalRules.number("max_cells"), 0f)
+    }
+
     @Test fun `触点距离从边缘起算并且不受整体像素缩放影响`() {
         for ((width, height) in listOf(480f to 480f, 300f to 900f, 960f to 240f)) {
             for (degrees in listOf(0.0, 45.0, 90.0, 135.0, 247.0)) {

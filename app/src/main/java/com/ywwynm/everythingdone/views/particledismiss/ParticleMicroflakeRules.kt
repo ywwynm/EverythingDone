@@ -7,6 +7,16 @@ import java.util.Properties
 
 /** 素材无关的规则；生产渲染与调试建材都从同一打包资源读取。 */
 internal class ParticleMicroflakeRules private constructor(private val values: Properties, val release: FloatArray) {
+    /** 阴影扩大取景面积时只增加格子预算，粒径与其它场参数保持原值。 */
+    fun withMaterialArea(scale: Float): ParticleMicroflakeRules {
+        if (!scale.isFinite() || scale <= 1f) return this
+        val adjusted = Properties().apply {
+            putAll(this@ParticleMicroflakeRules.values)
+            setProperty("max_cells", (1000 + (number("max_cells") - 1000) * scale).toInt().toString())
+        }
+        return ParticleMicroflakeRules(adjusted, release)
+    }
+
     fun decimal(key: String): Double = values.getProperty(key)?.toDouble()
         ?.also { require(it.isFinite()) { "非有限粒子参数：$key" } }
         ?: error("缺少粒子参数：$key")

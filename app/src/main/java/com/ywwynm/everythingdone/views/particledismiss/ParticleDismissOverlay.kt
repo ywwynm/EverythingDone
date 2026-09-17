@@ -19,7 +19,8 @@ import java.util.Collections
  * 粒子动画的宿主层：挂在 Activity 的 DecorView 上，触摸完全穿透。
  *
  * 第二批之前这一层自带一个 TextureView 与一条 GL 线程。现在粒子画面统一由宿主窗口那一个
- * [ParticleWindowSurface]（`setZOrderOnTop` 的 SurfaceView）呈现，本层只剩两件事：
+ * [ParticleWindowSurface]（`setZOrderOnTop` 的 SurfaceView）呈现。卡片手势及回位则使用本层内的
+ * TextureView，与原卡片在一次窗口提交中切换半透明阴影。其余职责：
  *
  * 1. 承接快照的 ImageView——精确摆在原 Dialog 位置，遮蔽 EGL 建链与预计算的首帧延迟，
  *    也是 GL 失败时的降级淡出载体；粒子首帧确认上屏后隐藏；
@@ -146,7 +147,9 @@ internal class ParticleDismissOverlay(
         // 挂进 ViewGroupOverlay 之后不再是 DecorView 的子 View，遍历子节点找不到它；
         // 需要「当前有哪些动画层」的两处（透明宿主延迟 finish、debug 观察器）改查这份登记。
         synchronized(active) { active += this }
-        val window = ParticleWindowSurface.of(host, hostDecor ?: (host.window?.decorView as? ViewGroup))
+        val window = if (spec.inWindow) ParticleWindowSurface.inWindow(host, this) {
+            if (!finished) fireAnimationStarted()
+        } else ParticleWindowSurface.of(host, hostDecor ?: (host.window?.decorView as? ViewGroup))
         if (window == null) {
             // 会话建不起来，提前算好的轨迹也就没人接手了——必须当场还回去，否则那份
             // GPU 资源（历史缓冲 + 前景纹理）会一直挂着。
@@ -208,7 +211,7 @@ internal class ParticleDismissOverlay(
         firstFramePresented = true
         // 粒子已经在 Surface 上了，这时才撤快照——先显后撤，中间没有空白帧。
         snapshotView?.visibility = GONE
-        fireAnimationStarted()
+        if (!spec.inWindow) fireAnimationStarted()
     }
 
     private fun onPresented(progress: Float, target: Long, atNanos: Long) {
@@ -249,6 +252,12 @@ internal class ParticleDismissOverlay(
     /** 宿主在真实内容确认上屏后调用，移除本层。 */
     fun release() {
         if (finished) return
+        if (spec.inWindow) {
+            // 原 View 恢复与本层隐藏都属于同一窗口；不能再先显后撤半透明阴影。
+            alpha = 0f
+            mainHandler.post { removeSelf() }
+            return
+        }
         if (gesture != null && session?.cancelled == false) {
             // 左滑取消：真实卡片刚被恢复，必须等它上屏之后再撤粒子（先显后撤）。
             afterHostFrame { removeSelf() }

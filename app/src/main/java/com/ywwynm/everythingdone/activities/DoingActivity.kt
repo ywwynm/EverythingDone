@@ -722,10 +722,11 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         ) {
             var particleSwipe = false
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && useSwipeParticle()) {
-                // 必须在 super 之前：准备期在卡片原位补画的内容用的是尚未平移的画布。
-                particleSwipe = mSwipeParticleAnimator.draw(c, viewHolder.itemView, dX)
+                // 先接管卡片姿态，准备期间保留原位真实卡片，首个粒子帧与它同帧切换。
+                particleSwipe = mSwipeParticleAnimator.draw(viewHolder.itemView, dX)
             }
-            super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            super.onChildDraw(c, recyclerView, viewHolder, if (particleSwipe) 0f else dX,
+                dY, actionState, isCurrentlyActive)
             if (actionState != ItemTouchHelper.ACTION_STATE_SWIPE) return
             val v: View = mRecyclerView!!
             if (particleSwipe) {

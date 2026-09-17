@@ -19,6 +19,15 @@ internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
     @Volatile var presentedProgress = 0f
         private set
     private val submissions = TreeMap<Long, Float>()
+    @Volatile private var completing = false
+    @Volatile private var completionFloor = 0f
+    private var lastSubmittedProgress = 0f
+
+    /** 完成动作只能继续消散；已提交的帧可能早于呈现通知出现在窗口中。 */
+    @Synchronized fun beginCompletion() {
+        completionFloor = lastSubmittedProgress
+        completing = true
+    }
 
     fun update(displacement: Float, width: Int) {
         seek(if (width > 0 && displacement.isFinite()) -displacement / width else 0f)
@@ -27,6 +36,8 @@ internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
     fun seek(value: Float) { progress = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f }
 
     @Synchronized fun submitted(timestamp: Long, value: Float) {
+        lastSubmittedProgress = value
+        if (completing) completionFloor = maxOf(completionFloor, value)
         submissions[timestamp] = value
         while (submissions.size > 120) submissions.pollFirstEntry()
     }
@@ -39,5 +50,6 @@ internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
     }
 
     /** 识别左滑后首帧直接使用当前距离，不再等待一个已经过时的零进度帧上屏。 */
-    fun framePosition(samples: Int): Float = (if (active) progress else 0f) * samples
+    fun framePosition(samples: Int): Float =
+        (if (!active) 0f else if (completing) maxOf(progress, completionFloor) else progress) * samples
 }

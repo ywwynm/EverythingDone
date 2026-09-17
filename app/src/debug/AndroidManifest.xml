@@ -49,6 +49,10 @@
             android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
 
         <!-- Debug 专用：比较真实弹窗的动画输入与显示完成后的配色。 -->
+        <activity android:name=".views.particledismiss.ParticleSwipeShadowProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
+
         <activity
             android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleAppearanceProbeActivity"
             android:exported="true"

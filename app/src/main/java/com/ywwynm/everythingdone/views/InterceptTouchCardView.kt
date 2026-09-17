@@ -31,6 +31,25 @@ open class InterceptTouchCardView : CardView {
 
     private var mShouldInterceptTouchEvent: Boolean = true
 
+    internal var particleAnimationRunning = false
+    // 快照按静止姿态捕获；交接前后不能被按压反馈或 ItemTouchHelper 改写高度与缩放。
+    override fun setElevation(elevation: Float) {
+        super.setElevation(if (particleAnimationRunning)
+            resources.getDimension(R.dimen.thing_card_normal_elevation) else elevation)
+    }
+
+    override fun setTranslationZ(translationZ: Float) {
+        super.setTranslationZ(if (particleAnimationRunning) 0f else translationZ)
+    }
+
+    override fun setScaleX(scaleX: Float) { super.setScaleX(if (particleAnimationRunning) 1f else scaleX) }
+    override fun setScaleY(scaleY: Float) { super.setScaleY(if (particleAnimationRunning) 1f else scaleY) }
+
+    override fun onDetachedFromWindow() {
+        particleAnimationRunning = false
+        super.onDetachedFromWindow()
+    }
+
     // 缓存"正在做"蒙层引用，避免每次测量都遍历子节点（滚动时测量频繁）。
     private var mDoingCover: View? = null
     private var mDoingCoverResolved: Boolean = false

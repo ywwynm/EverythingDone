@@ -109,6 +109,7 @@ internal class ThingSwipeReturn(
         session.rescue?.let { main.removeCallbacks(it) }
         session.overlay?.release()
         ParticleDismissController.cancelAppearance(itemView)
+        ParticleCardPose.release(itemView)
     }
 
     /** 卡片应有的静止状态。 */
@@ -124,16 +125,20 @@ internal class ThingSwipeReturn(
         itemView.translationX = 0f
         itemView.alpha = 1f
         itemView.visibility = View.VISIBLE
-        return ParticleDismissController.appearContent(
+        ParticleCardPose.hold(itemView)
+        val started = ParticleDismissController.appearContent(
             activity, activity.window, itemView,
             appearanceDirection = APPEAR_FROM_LEFT_DEGREES,
             roundSnapshot = false,
+            cardShadow = true,
             onAppearanceFinished = {
                 if (running[itemView] === session) {
                     stop(itemView)
                     settle(itemView)
                 }
             }) { session.overlay = it }
+        if (!started) ParticleCardPose.release(itemView)
+        return started
     }
 
     private fun slideBack(itemView: View, session: Session) {

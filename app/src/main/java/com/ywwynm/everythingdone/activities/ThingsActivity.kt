@@ -11585,17 +11585,17 @@ class ThingsActivity :
                     val thing = mThingManager!!.getThingAtListPosition(viewHolder.adapterPosition)
                     holder.flDoing!!.alpha = 1f
                     if (thing?.id != App.getDoingThingId()) holder.flDoing.visibility = View.GONE
-                    particleSwipe = mSwipeParticleAnimator.draw(c, viewHolder.itemView, dX)
+                    particleSwipe = mSwipeParticleAnimator.draw(viewHolder.itemView, dX)
                 }
             }
             // 右滑触发"开始做事"时卡片不跟手平移，只保留 flDoing 蒙层的出现与透明度变化。
-            // 左滑完成与拖拽仍按原样跟手。
+            // 粒子在卡片原位消散；准备期间保留真实卡片，逻辑位移仍由 ItemTouchHelper 的 dX 跟踪。
             val translationDX =
-                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX > 0f) 0f else dX
+                if (particleSwipe || (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX > 0f)) 0f else dX
             super.onChildDraw(
                 c, recyclerView, viewHolder, translationDX, dY, actionState, isCurrentlyActive
             )
-            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && isCurrentlyActive && !particleSwipe) {
                 keepActiveTouchItemAboveSiblings(recyclerView, viewHolder.itemView)
             }
             if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.PixelFormat
+import android.graphics.SurfaceTexture
 import android.opengl.EGL14
 import android.opengl.EGLExt
 import android.opengl.EGLSurface
@@ -13,6 +14,7 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import com.ywwynm.everythingdone.BuildConfig
@@ -26,25 +28,35 @@ import java.util.concurrent.TimeUnit
 internal class ParticleOverlaySurfaceView(context: Context) : SurfaceView(context)
 
 /**
- * 一个宿主窗口只有一个粒子 Surface（1.4）。
+ * 普通粒子会话共享宿主窗口的一个 Surface；卡片通过 [inWindow] 使用各自的 TextureView。
  *
  * `setZOrderOnTop(true)` 下 SurfaceView 不打洞（`isAboveParent()` 恒真），表面被 parent 在
  * Activity 窗口的 layer 内、仍在 Dialog 等独立窗口之下——这正是现有「先就位、后揭开」顺序
  * 需要的。同窗口内两个都 on-top 的 SurfaceView 相对顺序未定义，所以**只能有一个**：窗口内
- * 所有并发会话（上一个弹窗消散 + 下一个弹窗出现 + 左滑卡片）按创建顺序叠画进同一个 Surface，
- * 一拍一次交换。
+ * 普通并发会话（上一个弹窗消散、下一个弹窗出现）按创建顺序叠画进同一个 Surface，
+ * 一拍一次交换。卡片的 TextureView 属于 Activity 窗口内容，不受这项顺序限制。
  *
- * 表面首次需要时创建并留在窗口上，直到 Activity 销毁或配置变化——每次动画重建表面要等
- * 首帧，那正是要省掉的开销。没有会话时不提交新帧，最后一帧保持全透明。
+ * 共享 Surface 首次需要时创建并留在窗口上，直到 Activity 销毁或配置变化，以复用首次合成。
+ * 没有会话时不提交新帧，最后一帧保持全透明；卡片的 TextureView 随各自动画层释放。
  */
 internal class ParticleWindowSurface private constructor(
     private val activity: Activity,
-    private val decor: ViewGroup
+    private val decor: ViewGroup,
+    private val onTextureReady: (() -> Unit)? = null
 ) : SurfaceHolder.Callback {
 
-    val view = ParticleOverlaySurfaceView(activity).apply {
+    private val inWindow get() = onTextureReady != null
+    @Volatile private var textureSubmitted = false
+    @Volatile private var texturePresentedAt = 0L
+    private var textureRevealed = false
+    val view: View = (if (onTextureReady != null) TextureView(activity).apply {
+        isOpaque = false
+        // 保持参与绘制，收到首个粒子缓冲后与真实卡片在同一窗口帧中交接。
+        alpha = 1f / 65536f
+    } else ParticleOverlaySurfaceView(activity).apply {
         setZOrderOnTop(true)
         holder.setFormat(PixelFormat.TRANSLUCENT)
+    }).apply {
         isClickable = false
         isFocusable = false
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
@@ -81,7 +93,43 @@ internal class ParticleWindowSurface private constructor(
     }
 
     init {
-        view.holder.addCallback(this)
+        if (view is SurfaceView) view.holder.addCallback(this)
+        else (view as TextureView).surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
+                surface = Surface(texture)
+                surfaceWidth = width
+                surfaceHeight = height
+                ParticleGl.wake()
+            }
+            override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
+                surfaceWidth = width
+                surfaceHeight = height
+                ParticleGl.wake()
+            }
+            override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+                if (textureSubmitted && !textureRevealed) {
+                    textureRevealed = true
+                    view.alpha = 1f
+                    onTextureReady?.invoke()
+                }
+                if (Build.VERSION.SDK_INT >= 29 && view.viewTreeObserver.isAlive) {
+                    view.viewTreeObserver.registerFrameCommitCallback {
+                        texturePresentedAt = runCatching { texture.timestamp }.getOrDefault(texturePresentedAt)
+                        ParticleGl.wake()
+                    }
+                }
+            }
+            override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
+                val previous = surface
+                surface = null
+                // 框架立即释放消费者以唤醒可能等缓冲的 eglSwapBuffers；GL 随后释放生产端。
+                ParticleGl.post {
+                    releaseEglSurface()
+                    previous?.release()
+                }
+                return true
+            }
+        }
         view.addOnAttachStateChangeListener(attachment)
         decor.addView(view, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -161,7 +209,7 @@ internal class ParticleWindowSurface private constructor(
      * 空帧不含任何内容，屏幕上看不出来，只是让这一次等待发生在真正需要出画之前。
      */
     fun prime() {
-        if (primed || !ParticlePerfTuning.primeParticleSurface) return
+        if (inWindow || primed || !ParticlePerfTuning.primeParticleSurface) return
         if (surface == null || !ensureEglSurface()) return
         if (!ParticleGl.bind(eglSurface)) return
         GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
@@ -247,6 +295,7 @@ internal class ParticleWindowSurface private constructor(
             return
         }
         surfaceDirty = drawn.isNotEmpty()
+        if (inWindow && drawn.isNotEmpty()) textureSubmitted = true
         recomposite = false
         drawn.forEach { it.frameSubmitted(target) }
         pending += Frame(frameId, target, System.nanoTime(), drawn)
@@ -259,6 +308,11 @@ internal class ParticleWindowSurface private constructor(
         val now = System.nanoTime()
         while (pending.isNotEmpty()) {
             val head = pending.first()
+            if (inWindow) {
+                if (head.target > texturePresentedAt && now - head.submittedAt <= PRESENT_TIMEOUT_NANOS) return
+                releaseFrame(pending.removeFirst())
+                continue
+            }
             val presentTime = if (head.frameId >= 0 && now - head.submittedAt <= PRESENT_TIMEOUT_NANOS)
                 ParticleFrameTimestamps.presentTime(ParticleGl.display, eglSurface, head.frameId) else null
             if (!shouldRelease(now - head.submittedAt, presentTime)) return
@@ -309,7 +363,7 @@ internal class ParticleWindowSurface private constructor(
         lastEglSurface = created
         boundSurface = target
         surfaceDirty = false
-        timestamps = ParticleFrameTimestamps.enable(ParticleGl.display, created)
+        timestamps = !inWindow && ParticleFrameTimestamps.enable(ParticleGl.display, created)
         if (BuildConfig.DEBUG) Log.i(
             ParticleMicroflakeRenderer.TAG, "粒子 Surface 就绪 帧时间戳=$timestamps")
         return true
@@ -365,6 +419,10 @@ internal class ParticleWindowSurface private constructor(
     }
 
     companion object {
+        /** 卡片专用，生命周期跟随动画层；每张卡片可以独立与原 View 同帧交接。 */
+        fun inWindow(activity: Activity, parent: ViewGroup, onReady: () -> Unit): ParticleWindowSurface =
+            ParticleWindowSurface(activity, parent, onReady)
+
         /**
          * 键是「承载这张表面的那个窗口的 decor」，不是 Activity：弹窗叠弹窗时粒子要改挂到
          * [ParticleElevatedHost] 的全屏窗口上（见那里的说明），同一个 Activity 因此可能同时

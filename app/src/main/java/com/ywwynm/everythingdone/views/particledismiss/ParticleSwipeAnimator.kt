@@ -7,11 +7,8 @@ import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Outline
-import android.graphics.Path
 import android.graphics.PorterDuff
-import android.graphics.Rect
-import android.graphics.RectF
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -48,9 +45,6 @@ internal class ParticleSwipeAnimator(
     fun warm(view: View, event: MotionEvent) {
         cancelPending()
         if (!ValueAnimator.areAnimatorsEnabled() || !view.isAttachedToWindow || sessions.containsKey(view)) return
-        // 按下这一刻就把宿主窗口的粒子 Surface 备好：识别滑动之后不能再等表面创建，
-        // 也不要在 RecyclerView 绘制过程里往 DecorView 加子 View。
-        ParticleWindowSurface.of(activity)
         unavailable.remove(view)
         downX = event.rawX; downY = event.rawY
         warming = Session(view, initiallyActive = false).also {
@@ -91,7 +85,7 @@ internal class ParticleSwipeAnimator(
         if (previous != null && !previous.gesture.active) previous.dispose(markUnavailable = false)
     }
 
-    fun draw(canvas: Canvas, view: View, displacement: Float): Boolean {
+    fun draw(view: View, displacement: Float): Boolean {
         if (!ValueAnimator.areAnimatorsEnabled()) { reset(view); return false }
         if (unavailable.containsKey(view) || !view.isAttachedToWindow) return false
         val session = sessions[view] ?: run {
@@ -105,14 +99,6 @@ internal class ParticleSwipeAnimator(
         // 活跃触摸在输入阶段已经更新，GL 的动画回调早于 RecyclerView.onDraw。
         // 不能在绘制阶段才读取位移，否则落后一拍；松手后仍跟随 ItemTouchHelper 回弹。
         if (!session.finishing && touching !== session) session.track(displacement)
-        if (!session.gesture.presented) {
-            // 准备期间在卡片原位绘制真实内容。实际 View 仍按 dX 移动但透明，
-            // ItemTouchHelper 松手时才能从正确位移开始恢复，避免进度突然归零。
-            val checkpoint = canvas.save()
-            canvas.translate(view.left.toFloat(), view.top.toFloat())
-            session.drawOriginal(canvas)
-            canvas.restoreToCount(checkpoint)
-        }
         return true
     }
 
@@ -148,6 +134,8 @@ internal class ParticleSwipeAnimator(
         private var completionAnimator: ValueAnimator? = null
         private var overlay: ParticleDismissOverlay? = null
         private var capturedBitmap: Bitmap? = null
+        private var cardSnapshot: ParticleCardSnapshot? = null
+        private var pixelsVisible = false
         /**
          * 卡片被容器截断时，快照只抓露出来的那一块，这里是它相对卡片左上角的偏移。
          * 正在做事界面的列表比卡片矮，截断线以下的内容不在屏幕上（见 [ParticleCardClip]）。
@@ -155,6 +143,15 @@ internal class ParticleSwipeAnimator(
         private var clipOffsetX = 0
         private var clipOffsetY = 0
         private val originalAlpha = view.alpha
+        private val originalAncestorAlpha = run {
+            var alpha = 1f
+            var parent = view.parent
+            while (parent is View && parent !== activity.window.decorView) {
+                alpha *= parent.alpha
+                parent = parent.parent
+            }
+            alpha
+        }
         private val origin = IntArray(2)
         private val current = IntArray(2)
         private val originalWidth = view.width
@@ -173,42 +170,46 @@ internal class ParticleSwipeAnimator(
         }
 
         fun prepare() {
+            if (gesture.active) holdCard()
             originalPosition(origin)
             view.addOnAttachStateChangeListener(attachmentObserver)
             view.viewTreeObserver.addOnPreDrawListener(geometryObserver)
-            val clip = ParticleCardClip.visibleRect(view)
+            cardSnapshot = ParticleCardSnapshot.of(view)
+            val clip = cardSnapshot?.bounds ?: ParticleCardClip.visibleRect(view)
             if (clip != null && clip.isEmpty) { dispose(); return }
             clipOffsetX = clip?.left ?: 0
             clipOffsetY = clip?.top ?: 0
-            ParticleDismissController.captureContent(view, clip) captured@{ snapshot ->
+            val captured: (Bitmap?) -> Unit = captured@{ snapshot ->
                 if (closed) { snapshot?.recycle(); return@captured }
                 val host = activity.window.decorView as? ViewGroup
                 if (snapshot == null || host == null || !view.isAttachedToWindow || activity.isFinishing) {
                     snapshot?.recycle(); dispose(); return@captured
                 }
-                bakeAncestorAlpha(snapshot, host)
+                bakeAncestorAlpha(snapshot)
                 capturedBitmap = snapshot
                 buildOverlay(host)
             }
-            if (!closed && gesture.active) view.alpha = 0f
+            val shadow = cardSnapshot
+            if (shadow != null && Build.VERSION.SDK_INT >= 29)
+                ParticleHardwareSnapshot.capture(view, clip, shadow, done = captured)
+            else ParticleDismissController.captureContent(view, clip, captured)
+        }
+
+        private fun holdCard() {
+            ParticleCardPose.hold(view)
+            view.translationX = 0f
+            view.alpha = if (pixelsVisible) 0f else originalAlpha * originalAncestorAlpha
         }
 
         /**
-         * 粒子画在宿主窗口那一个共享 Surface 上，拿不到卡片各级容器的透明度——正在做事
+         * 粒子画在窗口的叠加层内，拿不到卡片各级容器的透明度——正在做事
          * 界面的列表常驻 0.84，快照却是满浓度的，直接播会在接管的那一帧整体提亮。把容器
          * 的透明度之积烤进快照即可；首页各级容器都是不透明的，这里是空操作。
          *
-         * 准备期在卡片原位补画的 [drawOriginal] 用的是同一张图、又落在容器自己的画布上，
-         * 因此宿主要在粒子接管期间把容器还原成不透明（见 DoingActivity.onChildDraw），
-         * 两段画面才都恰好是原来的浓度。
+         * 准备期保留真实卡片并乘同一透明度；宿主在接管期间把容器还原成不透明。
          */
-        private fun bakeAncestorAlpha(snapshot: Bitmap, host: ViewGroup) {
-            var alpha = 1f
-            var parent = view.parent
-            while (parent is View && parent !== host) {
-                alpha *= parent.alpha
-                parent = parent.parent
-            }
+        private fun bakeAncestorAlpha(snapshot: Bitmap) {
+            val alpha = originalAncestorAlpha
             if (alpha >= 1f || !snapshot.isMutable) return
             val opacity = (alpha.coerceIn(0f, 1f) * 255f).toInt()
             Canvas(snapshot).drawColor(
@@ -226,17 +227,21 @@ internal class ParticleSwipeAnimator(
             val reach = hypot(snapshot.width.toFloat(), snapshot.height.toFloat()) * 1.2f
             val spec = ParticleDismissSpec(snapshot, x, y,
                 ParticleSwipeDirection.virtualTouchX(direction, x, snapshot.width, reach),
-                y + snapshot.height / 2f, 1f, (Math.random() * Int.MAX_VALUE).toInt())
+                y + snapshot.height / 2f, 1f, (Math.random() * Int.MAX_VALUE).toInt(),
+                inWindow = true, materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f)
             overlay = ParticleDismissOverlay(activity, spec,
                 onAnimationStarted = Runnable {
-                    if (!closed && gesture.active) { view.alpha = 0f; if (finishing) animateCompletion() }
+                    if (!closed && gesture.active) {
+                        pixelsVisible = true
+                        view.alpha = 0f
+                        if (finishing) animateCompletion()
+                    }
                 },
                 onDone = Runnable { if (!closed) dispose() },
                 onPresentedProgress = { progress ->
                     if (finishing && progress >= 1f) dispose()
                 }, gesture = gesture).also {
-                    // 粒子画面在宿主窗口那一个共享 Surface 上，本层只是生命周期锚点；
-                    // 「识别之前不显示」由会话的可见性开关控制，不再靠 View 的 alpha。
+                    // 识别之前只准备材料和 TextureView，不显示粒子。
                     it.setParticleVisible(gesture.active)
                     ParticleOverlayHost.attach(host, it)
                 }
@@ -270,35 +275,13 @@ internal class ParticleSwipeAnimator(
             main.removeCallbacks(cancelWarmup)
             gesture.activate()
             overlay?.setParticleVisible(true)
-            view.alpha = 0f
+            holdCard()
             // 识别的那一刻就唤醒 GL 线程：首个非零画面要落在这一拍里（3.1）。
             ParticleGl.wake()
         }
 
         fun moveFinger(displacement: Float) {
             if (!closed && !finishing) track(displacement)
-        }
-
-        fun drawOriginal(canvas: Canvas) {
-            val bitmap = capturedBitmap
-            if (bitmap != null && !bitmap.isRecycled) {
-                canvas.drawBitmap(bitmap, clipOffsetX.toFloat(), clipOffsetY.toFloat(), null)
-            }
-            else {
-                // 捕获尚未返回时同样保留根卡片的自定义圆角。
-                val outline = Outline()
-                val rect = Rect()
-                if (view.clipToOutline) {
-                    view.outlineProvider?.getOutline(view, outline)
-                    if (outline.getRect(rect)) {
-                        val path = Path().apply {
-                            addRoundRect(RectF(rect), outline.radius, outline.radius, Path.Direction.CW)
-                        }
-                        canvas.clipPath(path)
-                    }
-                }
-                view.draw(canvas)
-            }
         }
 
         private fun originalPosition(out: IntArray) {
@@ -313,6 +296,7 @@ internal class ParticleSwipeAnimator(
         fun finish(width: Int, onComplete: () -> Unit) {
             completionWidth = width
             completion = onComplete
+            gesture.beginCompletion()
             gesture.seek(gesture.presentedProgress)
             if (gesture.presentedProgress >= 1f) dispose()
             else if (gesture.presented) animateCompletion()
@@ -352,6 +336,7 @@ internal class ParticleSwipeAnimator(
             // 恢复 ItemTouchHelper 正常完成后的屏外位置，避免删除动画重新露出卡片。
             if (done != null) view.translationX =
                 ParticleSwipeDirection.parkTranslationX(direction, completionWidth)
+            ParticleCardPose.release(view)
             view.alpha = originalAlpha
             val old = overlay
             overlay = null
@@ -359,12 +344,9 @@ internal class ParticleSwipeAnimator(
             // reset 也由 RecyclerView.onDraw 在回拖跨过原点时调用。此时 DecorView
             // 仍在遍历自己的子数组，不能同步 removeView 或回调业务改变层级。
             // 等整个绘制调用栈返回后再释放；闭合状态已阻止重复执行。
-            // 回拖取消时真实卡片刚刚恢复（view.alpha 已复位），粒子层必须等它上屏之后
-            // 才撤——release() 内部按「先显后撤」等宿主窗口的下一次提交。
-            main.post {
-                old?.release()
-                done?.invoke()
-            }
+            // TextureView 的隐藏与原卡片恢复属于同一次窗口提交，层级移除仍异步执行。
+            old?.release()
+            main.post { done?.invoke() }
         }
     }
 }

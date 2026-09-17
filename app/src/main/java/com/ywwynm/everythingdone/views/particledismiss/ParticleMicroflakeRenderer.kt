@@ -1120,7 +1120,7 @@ internal class ParticleMicroflakeRenderer(
             }
             return fromPixels(assets, width, height, density, pixels, bitmap.width, bitmap.height,
                 spec.originXPx, spec.originYPx, spec.virtualTouchXPx, spec.virtualTouchYPx,
-                spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap)
+                spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap, spec.materialAreaScale)
         }
 
         /**
@@ -1133,7 +1133,8 @@ internal class ParticleMicroflakeRenderer(
                        pixels: IntArray, pixelWidth: Int, pixelHeight: Int,
                        originXPx: Float, originYPx: Float,
                        virtualTouchXPx: Float, virtualTouchYPx: Float, hashSeed: Int,
-                       touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null): Input {
+                       touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null,
+                       materialAreaScale: Float = 1f): Input {
             // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
             val scale = (density / 1.875f).coerceAtLeast(.5f)
             val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
@@ -1141,7 +1142,7 @@ internal class ParticleMicroflakeRenderer(
             val dy = virtualTouchYPx - originYPx - pixelHeight / 2f
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()
             val resources = sharedResources(assets)
-            val rules = resources.rules
+            val rules = resources.rules.withMaterialArea(materialAreaScale)
             val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, pixelWidth,
                 pixelHeight, direction, hashSeed.toLong(), rules)
             return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,

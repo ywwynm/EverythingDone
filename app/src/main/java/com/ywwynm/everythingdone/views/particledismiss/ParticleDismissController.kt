@@ -444,6 +444,7 @@ internal object ParticleDismissController {
         prewarmKey: ParticleCreationKey? = null,
         traceLabel: String? = null,
         elevatedDecor: ViewGroup? = null,
+        cardShadow: Boolean = false,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
@@ -465,7 +466,7 @@ internal object ParticleDismissController {
         val hostDecor = elevated
             ?: (activity.window.decorView as? ViewGroup ?: return reject("宿主没有 decor"))
         appearancePreparations.remove(decor)?.run()
-        ParticleWindowSurface.of(activity, hostDecor)
+        if (!cardShadow) ParticleWindowSurface.of(activity, hostDecor)
         val appearanceFeedback = ParticleTouchFeedback.current(activity)
             ?: ParticleTouchFeedback.begin(activity, hostDecor)
         val prevAlpha = if (hideWindow) window.attributes.alpha else decor.alpha
@@ -519,9 +520,12 @@ internal object ParticleDismissController {
                     captureQueued = true
                     val captureAtNanos = System.nanoTime()
                     traceLabel?.let { ParticleLaunchTrace.mark("$it-layout") }
+                    val cardSnapshot = if (cardShadow) ParticleCardSnapshot.of(decor) else null
                     ParticleSnapshot.capture(window, decor,
                         asyncOffscreen = { done ->
-                            if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
+                            if (cardSnapshot != null && Build.VERSION.SDK_INT >= 29)
+                                ParticleHardwareSnapshot.capture(decor, cardSnapshot.bounds, cardSnapshot, done = done)
+                            else if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
                             else captureContent(decor, done = done)
                         }) copy@{ snapshot ->
                         if (handled) { snapshot?.recycle(); return@copy }
@@ -541,7 +545,8 @@ internal object ParticleDismissController {
                         traceLabel?.let { ParticleLaunchTrace.mark("$it-capture") }
                         val at = IntArray(2); decor.getLocationOnScreen(at)
                         val hostAt = IntArray(2); hostDecor.getLocationOnScreen(hostAt)
-                        val x = (at[0]-hostAt[0]).toFloat(); val y = (at[1]-hostAt[1]).toFloat()
+                        val x = (at[0]-hostAt[0] + (cardSnapshot?.bounds?.left ?: 0)).toFloat()
+                        val y = (at[1]-hostAt[1] + (cardSnapshot?.bounds?.top ?: 0)).toFloat()
                         val angle = Math.toRadians(-(appearanceDirection
                             ?: ParticleAppearanceDirection.degrees(Math.random())).toDouble()).toFloat()
                         val reach = VIRTUAL_TOUCH_FACTOR * hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
@@ -588,12 +593,16 @@ internal object ParticleDismissController {
                             skipEmptyTail = skipEmptyTail,
                             creationPage = creationPage,
                             // 第五批：这一屏就是这个键对应的创建页首屏，落盘后冷启动可以直接用。
-                            prewarmKey = if (creationPage) prewarmKey else null)
+                            prewarmKey = if (creationPage) prewarmKey else null,
+                            inWindow = cardShadow,
+                            materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f)
                         var overlayRef: ParticleDismissOverlay? = null
                         val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
                             onAppearanceProgress?.invoke(1f)
                             setAlpha(prevAlpha)
-                            runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
+                            if (cardShadow) {
+                                releaseContent(); overlayRef?.release()
+                            } else runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
                                 releaseContent(); overlayRef?.release()
                             }
                         }, touchFeedback = appearanceFeedback,
@@ -648,7 +657,7 @@ internal object ParticleDismissController {
     fun captureContent(view: View, clip: Rect? = null, done: (Bitmap?) -> Unit) {
         if (view.width <= 0 || view.height <= 0) { done(null); return }
         if (clip != null && clip.isEmpty) { done(null); return }
-        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(view, clip, done)
+        if (Build.VERSION.SDK_INT >= 29) ParticleHardwareSnapshot.capture(view, clip, done = done)
         else {
             val bitmap = try { captureViaSoftwareDraw(view, clip) }
             catch (error: RuntimeException) {

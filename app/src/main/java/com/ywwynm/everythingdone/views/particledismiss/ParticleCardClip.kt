@@ -16,12 +16,13 @@ internal object ParticleCardClip {
      * 整张卡片都露着时返回 null，调用方据此走原来那条不裁的路，不增加任何开销；
      * 返回的矩形有可能是空的（[Rect.isEmpty]），意思是一点都没露出来。
      */
-    fun visibleRect(view: View): Rect? {
+    fun visibleRect(view: View, source: Rect? = null): Rect? {
         val width = view.width
         val height = view.height
         if (width <= 0 || height <= 0) return null
 
-        var bounds = ParticleVisibleBounds.whole(width, height)
+        var bounds = source?.let { ParticleVisibleBounds.Bounds(it.left, it.top, it.right, it.bottom) }
+            ?: ParticleVisibleBounds.whole(width, height)
         // 卡片左上角在当前这一层容器坐标系里的位置。用 left/top 而不是 getLocationOnScreen：
         // 滑动中的 translationX 与按压反馈的缩放都不算进来（见 ParticleVisibleBounds 的说明）。
         var offsetX = 0
@@ -43,7 +44,7 @@ internal object ParticleCardClip {
             child = parent
             parent = child.parent
         }
-        if (bounds.covers(width, height)) return null
+        if (source == null && bounds.covers(width, height)) return null
         return Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
     }
 }

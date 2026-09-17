@@ -56,5 +56,9 @@ internal class ParticleDismissSpec(
      * 它就是「点新建按钮那一刻的环境指纹」，也正是这一屏被拍下来时的环境。
      * [ParticleCreationPrewarm.remember] 拿它把首屏落盘，冷启动之后按键读回来当预测素材。
      */
-    val prewarmKey: ParticleCreationKey? = null
+    val prewarmKey: ParticleCreationKey? = null,
+    /** 卡片连同半透明阴影在宿主窗口内合成，确保可见性交接属于同一次窗口提交。 */
+    val inWindow: Boolean = false,
+    /** 扩展阴影边界后的面积比例，用于保持卡片本体的粒子密度。 */
+    val materialAreaScale: Float = 1f
 )

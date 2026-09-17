@@ -4,6 +4,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ParticleGestureProgressTest {
+    @Test fun `完成通知晚于已提交帧时不能倒退消散画面`() {
+        val gesture = ParticleGestureProgress()
+        gesture.submitted(10L, .3f)
+        gesture.progressAt(10L)
+        gesture.submitted(20L, .75f)
+        gesture.beginCompletion()
+        gesture.seek(gesture.presentedProgress)
+        assertEquals(.75f, gesture.framePosition(60) / 60, .00001f)
+        // GL 正在提交的下一帧也必须成为下限，不能被较早启动的补全动画覆盖。
+        gesture.submitted(30L, .9f)
+        gesture.seek(.8f)
+        assertEquals(.9f, gesture.framePosition(60) / 60, .00001f)
+        gesture.seek(1f)
+        assertEquals(1f, gesture.framePosition(60) / 60, 0f)
+    }
     @Test fun `按下预备不推进材料只有识别左滑后才接管进度`() {
         val gesture = ParticleGestureProgress(initiallyActive = false)
         gesture.presented = true
