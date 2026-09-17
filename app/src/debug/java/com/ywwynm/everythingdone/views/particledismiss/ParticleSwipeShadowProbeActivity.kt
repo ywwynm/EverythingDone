@@ -13,7 +13,12 @@ import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.View
 import android.view.ViewGroup
+import android.view.FrameMetrics
+import android.view.Window
 import android.widget.TextView
+import android.widget.FrameLayout
+import android.content.res.ColorStateList
+import com.ywwynm.everythingdone.views.FloatingActionButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,6 +32,9 @@ import java.io.File
 
 /** 虚构列表复用生产手势和回位管线；不访问记事 DAO、不修改任何偏好。 */
 class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
+    private companion object {
+        var probeOwner: ParticleSwipeShadowProbeActivity? = null
+    }
     private lateinit var list: RecyclerView
     private lateinit var swipe: ParticleSwipeAnimator
     private lateinit var returning: ThingSwipeReturn
@@ -40,6 +48,21 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
     private var copying = false
     private var stopped = false
     private var completions = 0
+    private val windowFrames = JSONArray()
+    private val particleFrames = JSONArray()
+    private val observed = mutableSetOf<ParticleDismissOverlay>()
+    private var pixelSampling = true
+    private var fab: FloatingActionButton? = null
+    private val fabFrames = JSONArray()
+    private var fabMotionStarted = false
+    private var fabClicks = 0
+    private var delegatedFabClicks = 0
+    private var gestureEnded = false
+    private val metricsListener = Window.OnFrameMetricsAvailableListener { _, frame, dropped ->
+        windowFrames.put(JSONArray(listOf(frame.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP),
+            frame.getMetric(FrameMetrics.TOTAL_DURATION), frame.getMetric(FrameMetrics.GPU_DURATION),
+            frame.getMetric(FrameMetrics.DEADLINE), dropped.toLong())))
+    }
     private fun dp(value: Int) = (resources.displayMetrics.density * value).toInt()
 
     override fun onNewIntent(intent: Intent) {
@@ -50,6 +73,12 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        probeOwner = this
+        ParticleCardSurfaceHandoff.forceTextureForTests = intent.getBooleanExtra("force_texture", false)
+        ParticleCardSurfaceHandoff.seedForTests = 42017
+        ParticleFabSurface.renderedFramesForTests = 0
+        pixelSampling = !intent.getBooleanExtra("performance_only", false)
+        window.addOnFrameMetricsAvailableListener(metricsListener, main)
         val run = intent.getStringExtra("run_id") ?: "latest"
         require(run.matches(Regex("[a-zA-Z0-9_-]{1,80}")))
         output = File(getExternalFilesDir(null), "swipe-shadow-probe/$run").apply { mkdirs() }
@@ -107,11 +136,31 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
                 holder.itemView.alpha = 1f
             }
         }).attachToRecyclerView(list)
-        setContentView(list)
+        val root = FrameLayout(this)
+        root.addView(list, FrameLayout.LayoutParams(-1, -1))
+        if (intent.getBooleanExtra("with_fab", false)) {
+            fab = FloatingActionButton(this).apply {
+                id = R.id.fab_create
+                backgroundTintList = ColorStateList.valueOf(Color.rgb(34, 102, 204))
+                imageTintList = ColorStateList.valueOf(Color.WHITE)
+                setImageResource(R.drawable.vec_ic_create_thing)
+                compatElevation = dp(6).toFloat()
+                contentDescription = "虚构 FAB，不创建记事"
+                setOnClickListener {
+                    fabClicks++
+                    if (transitionAlpha == 0f) delegatedFabClicks++
+                }
+            }.also { root.addView(it, FrameLayout.LayoutParams(dp(56), dp(56))) }
+        }
+        setContentView(root)
         list.post {
             startedAt = SystemClock.uptimeMillis()
             val card = list.findViewHolderForAdapterPosition(0)!!.itemView
             val at = IntArray(2).also { card.getLocationOnScreen(it) }
+            fab?.let {
+                it.x = (at[0] + card.width - dp(40)).toFloat()
+                it.y = (at[1] + card.height - dp(40)).toFloat()
+            }
             val parents = JSONArray()
             var ancestor: View? = card
             while (ancestor != null) {
@@ -121,6 +170,10 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             }
             File(output, "ready.json").writeText(JSONObject().put("x", at[0]).put("y", at[1])
                 .put("width", card.width).put("height", card.height).put("parents", parents)
+                .put("density", resources.displayMetrics.density)
+                .put("backend", if (ParticleCardSurfaceHandoff.supported()) "surface" else "texture")
+                .put("fab", fab?.let { JSONObject().put("x", it.x).put("y", it.y)
+                    .put("width", dp(56)).put("height", dp(56)) })
                 .put("rotation", ParticleWindowLighting.rotation(card)).toString())
             val shadow = ParticleCardSnapshot.of(card)
             if (shadow != null) ParticleHardwareSnapshot.capture(card, shadow.bounds, shadow) { bitmap ->
@@ -142,11 +195,27 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             inputs.put(JSONArray(listOf(SystemClock.uptimeMillis() - startedAt,
                 event.actionMasked, event.rawX, event.rawY)))
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                gestureEnded = false
                 val card = list.findViewHolderForAdapterPosition(0)?.itemView
-                if (card != null) swipe.warm(card, event)
+                val overFab = fab?.let {
+                    val bounds = Rect()
+                    it.getGlobalVisibleRect(bounds) && bounds.contains(event.rawX.toInt(), event.rawY.toInt())
+                } ?: false
+                if (card != null && !overFab) swipe.warm(card, event)
                 finishAt = Long.MAX_VALUE
+                if (fab != null && !fabMotionStarted && intent.getBooleanExtra("fab_motion", false)) {
+                    fabMotionStarted = true
+                    main.postDelayed({
+                        fab?.animate()?.translationYBy(-dp(64).toFloat())?.scaleX(.7f)?.scaleY(.7f)?.alpha(.65f)
+                            ?.setDuration(450)?.withEndAction {
+                                fab?.animate()?.translationYBy(dp(64).toFloat())?.scaleX(1f)?.scaleY(1f)?.alpha(1f)
+                                    ?.setDuration(450)?.start()
+                            }?.start()
+                    }, 650)
+                }
             } else swipe.recordTouch(event)
             if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                gestureEnded = true
                 finishAt = SystemClock.uptimeMillis() + 3000L
             }
         }
@@ -155,9 +224,36 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
 
     private fun sample() {
         if (stopped || isDestroyed) return
+        if (gestureEnded && fab?.transitionAlpha == 0f && intent.getBooleanExtra("exit_after_up", false)) {
+            File(output, "exit.json").writeText(JSONObject().put("fabDelegated", true)
+                .put("activeOverlays", ParticleDismissOverlay.activeIn(this).size).toString())
+            stopped = true
+            finish()
+            return
+        }
+        fab?.let {
+            fabFrames.put(JSONArray(listOf(SystemClock.uptimeMillis() - startedAt, it.x.toDouble(),
+                it.y.toDouble(), it.scaleX.toDouble(), it.alpha.toDouble(), it.transitionAlpha.toDouble())))
+        }
+        ParticleDismissOverlay.activeIn(this).forEach { overlay ->
+            if (observed.add(overlay)) overlay.afterRelease(Runnable {
+                val field = ParticleDismissOverlay::class.java.getDeclaredField("session").apply { isAccessible = true }
+                val session = field.get(overlay) as? ParticleSession
+                if (session != null) {
+                    fun rows(list: MutableList<LongArray>) = synchronized(list) { JSONArray(list.map { JSONArray(it.toList()) }) }
+                    particleFrames.put(JSONObject().put("submitted", rows(session.submittedTimings))
+                        .put("presented", rows(session.presentedTimings)).put("draws", rows(session.drawTimings))
+                        .put("startup", JSONArray(session.startupTimings.toList())))
+                }
+            })
+        }
         if (SystemClock.uptimeMillis() >= finishAt) {
             stopped = true
             File(output, "result.json").writeText(JSONObject().put("frames", frames).put("inputs", inputs)
+                .put("windowFrames", windowFrames).put("particleFrames", particleFrames)
+                .put("fabFrames", fabFrames).put("fabRenderFrames", ParticleFabSurface.renderedFramesForTests)
+                .put("fabClicks", fabClicks).put("delegatedFabClicks", delegatedFabClicks)
+                .put("startedAtNanos", startedAt * 1000000L)
                 .put("completions", completions).toString())
             val samples = capturedFrames.toList()
             capturedFrames.clear()
@@ -171,11 +267,16 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             return
         }
         val card = list.findViewHolderForAdapterPosition(0)?.itemView
-        if (!copying && card != null && card.width > dp(160)) {
+        if (card != null && !pixelSampling) {
+            frames.put(JSONObject().put("at", SystemClock.uptimeMillis() - startedAt)
+                .put("alpha", card.alpha).put("tx", card.translationX).put("z", card.z)
+                .put("contentHidden", card.alpha == 0f))
+        }
+        if (pixelSampling && !copying && card != null && card.width > dp(160)) {
             val at = IntArray(2).also { list.getLocationInWindow(it) }
             val x = at[0] + card.left + card.width / 2
             val y = at[1] + card.top
-            // 卡片粒子使用 TextureView，Window PixelCopy 同时包含它与真实卡片，检查合成后的阴影。
+            // Window PixelCopy 不包含独立 SurfaceView。Surface 路径的最终合成验证使用系统录屏。
             val rect = Rect(x - dp(72), y - dp(6), x + dp(72), y + dp(18))
             val image = Bitmap.createBitmap(rect.width(), rect.height(), Bitmap.Config.ARGB_8888)
             val frame = JSONObject().put("at", SystemClock.uptimeMillis() - startedAt)
@@ -205,6 +306,12 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         stopped = true
+        window.removeOnFrameMetricsAvailableListener(metricsListener)
+        if (probeOwner === this) {
+            probeOwner = null
+            ParticleCardSurfaceHandoff.forceTextureForTests = false
+            ParticleCardSurfaceHandoff.seedForTests = null
+        }
         capturedFrames.forEach { it.second.recycle() }
         capturedFrames.clear()
         if (::swipe.isInitialized) swipe.reset()

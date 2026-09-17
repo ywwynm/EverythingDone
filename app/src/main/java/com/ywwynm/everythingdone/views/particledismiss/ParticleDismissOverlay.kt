@@ -19,8 +19,8 @@ import java.util.Collections
  * 粒子动画的宿主层：挂在 Activity 的 DecorView 上，触摸完全穿透。
  *
  * 第二批之前这一层自带一个 TextureView 与一条 GL 线程。现在粒子画面统一由宿主窗口那一个
- * [ParticleWindowSurface]（`setZOrderOnTop` 的 SurfaceView）呈现。卡片手势及回位则使用本层内的
- * TextureView，与原卡片在一次窗口提交中切换半透明阴影。其余职责：
+ * [ParticleWindowSurface]（`setZOrderOnTop` 的 SurfaceView）呈现。Android 14 起卡片也复用
+ * 此 Surface，只在交接时同步显示含阴影的快照；旧系统的卡片沿用 TextureView。其余职责：
  *
  * 1. 承接快照的 ImageView——精确摆在原 Dialog 位置，遮蔽 EGL 建链与预计算的首帧延迟，
  *    也是 GL 失败时的降级淡出载体；粒子首帧确认上屏后隐藏；
@@ -43,13 +43,21 @@ internal class ParticleDismissOverlay(
      * 弹窗叠弹窗时由 [ParticleDismissController] 传 [ParticleElevatedHost] 的全屏画布，
      * 粒子才能盖住下面那个弹窗。
      */
-    private val hostDecor: android.view.ViewGroup? = null
+    private val hostDecor: android.view.ViewGroup? = null,
+    private val cardSource: View? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
     private val mainHandler = Handler(Looper.getMainLooper())
     private val snapshotView: ImageView?
     private var session: ParticleSession? = null
+    private val synchronizedCard = spec.inWindow && cardSource != null && ParticleCardSurfaceHandoff.supported()
+    private var windowSurface: ParticleWindowSurface? = null
+    private var cardHandoff: ParticleCardSurfaceHandoff? = null
+    private var handoffPreparing = false
+    private var returningToSource = false
+    private var sourceRestored = false
+    private val sourceRestorations = mutableListOf<() -> Unit>()
     private var finished = false
     private var doneFired = false
     private var animationStartedFired = false
@@ -63,6 +71,7 @@ internal class ParticleDismissOverlay(
     /** 观察器读的是「帧真正上屏」的时刻；沿用第一批的三元组形状。 */
     internal val textureTimings = Collections.synchronizedList(mutableListOf<LongArray>())
     internal val isDisappearance get() = !spec.reverse
+    internal val belowNativeFab get() = spec.inWindow && !synchronizedCard
 
     internal fun afterRelease(action: Runnable) {
         if (releaseNotified) action.run() else releaseListeners += action
@@ -124,7 +133,23 @@ internal class ParticleDismissOverlay(
     /** 左滑在识别之前不显示粒子。会话尚未建立时先记住，建立时一起应用。 */
     fun setParticleVisible(value: Boolean) {
         particleVisible = value
-        session?.setVisible(value)
+        if (synchronizedCard && value) startCardWhenReady()
+        else session?.setVisible(value)
+    }
+
+    private fun startCardWhenReady() {
+        val handoff = cardHandoff ?: return
+        val current = session ?: return
+        val window = windowSurface ?: return
+        if (finished || returningToSource || !particleVisible) return
+        if (isCondense) {
+            handoff.keepSourceHidden {
+                if (!finished && !returningToSource) current.setVisible(true)
+            }
+        } else handoff.enter { transaction ->
+            if (finished || returningToSource) transaction.close()
+            else window.startCardFrame(current, transaction)
+        }
     }
 
     private val listener = object : ParticleSession.Listener {
@@ -147,7 +172,7 @@ internal class ParticleDismissOverlay(
         // 挂进 ViewGroupOverlay 之后不再是 DecorView 的子 View，遍历子节点找不到它；
         // 需要「当前有哪些动画层」的两处（透明宿主延迟 finish、debug 观察器）改查这份登记。
         synchronized(active) { active += this }
-        val window = if (spec.inWindow) ParticleWindowSurface.inWindow(host, this) {
+        val window = if (spec.inWindow && !synchronizedCard) ParticleWindowSurface.inWindow(host, this) {
             if (!finished) fireAnimationStarted()
         } else ParticleWindowSurface.of(host, hostDecor ?: (host.window?.decorView as? ViewGroup))
         if (window == null) {
@@ -170,8 +195,22 @@ internal class ParticleDismissOverlay(
             prepared = prepared
         )
         session = created
-        created.setVisible(particleVisible)
+        windowSurface = window
+        created.setVisible(particleVisible && !synchronizedCard)
         window.add(created)
+        if (synchronizedCard) {
+            handoffPreparing = true
+            ParticleCardSurfaceHandoff.prepare(checkNotNull(cardSource), spec,
+                window.view as android.view.SurfaceView,
+                onForegroundFailure = { if (!finished) onSessionFinished(false) }) { handoff ->
+                handoffPreparing = false
+                if (finished) {
+                    handoff?.dispose()
+                    if (created.snapshotConsumed && preparation.isFinished) spec.snapshot.recycle()
+                } else if (handoff == null) onSessionFinished(false)
+                else { cardHandoff = handoff; startCardWhenReady() }
+            }
+        }
         // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
         // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
         // OPD2515 触点到首帧 1.64 s）。真正的时长看门狗在首帧到达时才开始走。
@@ -180,6 +219,11 @@ internal class ParticleDismissOverlay(
 
     override fun onDetachedFromWindow() {
         finished = true
+        cardHandoff?.dispose()
+        if (synchronizedCard && cardSource != null && !returningToSource) {
+            ParticleCardPose.release(cardSource)
+            cardSource.alpha = 1f
+        }
         synchronized(active) { active -= this }
         session?.cancel()
         mainHandler.removeCallbacksAndMessages(null)
@@ -211,7 +255,7 @@ internal class ParticleDismissOverlay(
         firstFramePresented = true
         // 粒子已经在 Surface 上了，这时才撤快照——先显后撤，中间没有空白帧。
         snapshotView?.visibility = GONE
-        if (!spec.inWindow) fireAnimationStarted()
+        if (!spec.inWindow || synchronizedCard) fireAnimationStarted()
     }
 
     private fun onPresented(progress: Float, target: Long, atNanos: Long) {
@@ -224,7 +268,7 @@ internal class ParticleDismissOverlay(
     }
 
     private fun onSessionFinished(completed: Boolean) {
-        if (finished) return
+        if (finished || returningToSource) return
         if (gesture != null) { removeSelf(); return }
         if (completed) {
             if (isCondense) {
@@ -252,6 +296,11 @@ internal class ParticleDismissOverlay(
     /** 宿主在真实内容确认上屏后调用，移除本层。 */
     fun release() {
         if (finished) return
+        if (returningToSource) return
+        if (synchronizedCard && cardHandoff != null) {
+            releaseToSource { cardSource?.alpha = 1f }
+            return
+        }
         if (spec.inWindow) {
             // 原 View 恢复与本层隐藏都属于同一窗口；不能再先显后撤半透明阴影。
             alpha = 0f
@@ -264,6 +313,32 @@ internal class ParticleDismissOverlay(
             return
         }
         removeSelf()
+    }
+
+    /** 卡片恢复属性与交接快照的撤下绑定到同一窗口帧。 */
+    fun releaseToSource(showCard: Boolean = true, restore: () -> Unit) {
+        if (returningToSource) {
+            if (sourceRestored) restore() else sourceRestorations += restore
+            return
+        }
+        val handoff = cardHandoff
+        val window = windowSurface
+        val current = session
+        val restoreSource = {
+            cardSource?.let { ParticleCardPose.release(it) }
+            sourceRestored = true
+            restore()
+            val additional = sourceRestorations.toList()
+            sourceRestorations.clear()
+            additional.forEach { it() }
+        }
+        if (!finished && handoff != null && window != null && current != null) {
+            returningToSource = true
+            handoff.leave(window, current, showCard, restoreSource) { removeSelf() }
+        } else {
+            restoreSource()
+            release()
+        }
     }
 
     /** 在宿主窗口的下一帧实际提交之后执行（附兜底，绝不卡住流程）。 */
@@ -291,6 +366,10 @@ internal class ParticleDismissOverlay(
 
     private fun removeSelf() {
         if (finished) return
+        if (synchronizedCard && cardHandoff != null && !returningToSource) {
+            releaseToSource { cardSource?.alpha = 1f }
+            return
+        }
         finished = true
         fireAnimationStarted()
         mainHandler.removeCallbacksAndMessages(null)
@@ -301,7 +380,7 @@ internal class ParticleDismissOverlay(
         ParticleOverlayHost.detach(host.window?.decorView as? ViewGroup, this)
         snapshotView?.setImageDrawable(null)
         // 材料线程或 GPU 上传可能仍在读这张位图；两边都取走之后才回收
-        if (current?.snapshotConsumed == true && preparation.isFinished) {
+        if (!handoffPreparing && current?.snapshotConsumed == true && preparation.isFinished) {
             runCatching { spec.snapshot.recycle() }
         }
         notifyReleased()

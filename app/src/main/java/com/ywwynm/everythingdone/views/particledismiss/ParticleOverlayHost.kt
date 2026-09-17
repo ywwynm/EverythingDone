@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.views.particledismiss
 import android.view.View
 import android.view.ViewGroup
 import java.lang.ref.WeakReference
+import com.ywwynm.everythingdone.R
+import java.util.WeakHashMap
 
 /**
  * 动画层（粒子叠加层、暗层）挂到宿主 DecorView 的方式。
@@ -16,8 +18,33 @@ import java.lang.ref.WeakReference
  * 关掉 [ParticlePerfTuning.overlayInDecorOverlay] 时退回普通 `addView`，行为与改动前相同。
  */
 internal object ParticleOverlayHost {
+    private data class BelowFab(val parent: ViewGroup, val sync: View.OnLayoutChangeListener)
+    private val belowFabParents = WeakHashMap<View, BelowFab>()
 
     fun attach(decor: ViewGroup, view: View) {
+        if (view is ParticleDismissOverlay && view.belowNativeFab) {
+            val fab = decor.findViewById<View>(R.id.fab_create)
+            val parent = fab?.parent as? ViewGroup
+            if (parent != null) {
+                // TextureView 是窗口内容，直接插在 FAB 之前；仍使用 DecorView 坐标绘制卡片。
+                parent.addView(view, parent.indexOfChild(fab), ViewGroup.LayoutParams(decor.width, decor.height))
+                val sync = object : View.OnLayoutChangeListener {
+                    override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int,
+                                                oldL: Int, oldT: Int, oldR: Int, oldB: Int) {
+                        if (view.parent !== parent) { parent.removeOnLayoutChangeListener(this); return }
+                        val origin = IntArray(2).also { decor.getLocationInWindow(it) }
+                        val at = IntArray(2).also { parent.getLocationInWindow(it) }
+                        view.translationX = (origin[0] - at[0]).toFloat()
+                        view.translationY = (origin[1] - at[1]).toFloat()
+                        layoutFullScreen(decor, view)
+                    }
+                }
+                belowFabParents[view] = BelowFab(parent, sync)
+                parent.addOnLayoutChangeListener(sync)
+                sync.onLayoutChange(parent, 0, 0, 0, 0, 0, 0, 0, 0)
+                return
+            }
+        }
         if (!ParticlePerfTuning.overlayInDecorOverlay) {
             decor.addView(view, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -29,6 +56,11 @@ internal object ParticleOverlayHost {
     }
 
     fun detach(decor: ViewGroup?, view: View) {
+        belowFabParents.remove(view)?.let {
+            it.parent.removeOnLayoutChangeListener(it.sync)
+            it.parent.removeView(view)
+            return
+        }
         val parent = view.parent as? ViewGroup ?: return
         // 普通 addView 路径：parent 就是 decor 本身；overlay 路径：parent 是 OverlayViewGroup。
         if (parent === decor) decor.removeView(view)

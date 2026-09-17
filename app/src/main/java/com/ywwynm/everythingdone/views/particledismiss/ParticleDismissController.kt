@@ -574,7 +574,8 @@ internal object ParticleDismissController {
                             virtualTouchYPx = if (realTouch != null) y + realTouch.y
                                 else y + snapshot.height/2f + sin(angle)*reach,
                             durationScale = animatorDurationScale(activity),
-                            hashSeed = prepared?.seed ?: (Math.random()*Int.MAX_VALUE).toInt(),
+                            hashSeed = prepared?.seed ?: if (cardShadow) ParticleCardSurfaceHandoff.seed()
+                                else (Math.random()*Int.MAX_VALUE).toInt(),
                             requestedAtNanos = requestedAtNanos,
                             reverse = true, playbackDurationS = ParticleReversePlan.APPEARANCE_SECONDS,
                             // 方向、触点距离、触点强度是三个可以分开采用的输入：3b 的归因轮证明
@@ -599,15 +600,18 @@ internal object ParticleDismissController {
                         var overlayRef: ParticleDismissOverlay? = null
                         val overlay = ParticleDismissOverlay(activity, spec, onDone = Runnable {
                             onAppearanceProgress?.invoke(1f)
-                            setAlpha(prevAlpha)
                             if (cardShadow) {
-                                releaseContent(); overlayRef?.release()
-                            } else runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
-                                releaseContent(); overlayRef?.release()
+                                overlayRef?.releaseToSource { setAlpha(prevAlpha); releaseContent() }
+                                    ?: run { setAlpha(prevAlpha); releaseContent() }
+                            } else {
+                                setAlpha(prevAlpha)
+                                runAfterShown(decor, OVERLAY_SHOWN_TIMEOUT_MS) {
+                                    releaseContent(); overlayRef?.release()
+                                }
                             }
                         }, touchFeedback = appearanceFeedback,
                             onPresentedProgress = onAppearanceProgress, prepared = prepared,
-                            hostDecor = elevated)
+                            hostDecor = elevated, cardSource = if (cardShadow) decor else null)
                         overlayRef = overlay
                         overlay.afterRelease(Runnable { onAppearanceFinished?.invoke() })
                         onOverlayCreated(overlay)

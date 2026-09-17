@@ -227,7 +227,7 @@ internal class ParticleSwipeAnimator(
             val reach = hypot(snapshot.width.toFloat(), snapshot.height.toFloat()) * 1.2f
             val spec = ParticleDismissSpec(snapshot, x, y,
                 ParticleSwipeDirection.virtualTouchX(direction, x, snapshot.width, reach),
-                y + snapshot.height / 2f, 1f, (Math.random() * Int.MAX_VALUE).toInt(),
+                y + snapshot.height / 2f, 1f, ParticleCardSurfaceHandoff.seed(),
                 inWindow = true, materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f)
             overlay = ParticleDismissOverlay(activity, spec,
                 onAnimationStarted = Runnable {
@@ -240,8 +240,8 @@ internal class ParticleSwipeAnimator(
                 onDone = Runnable { if (!closed) dispose() },
                 onPresentedProgress = { progress ->
                     if (finishing && progress >= 1f) dispose()
-                }, gesture = gesture).also {
-                    // 识别之前只准备材料和 TextureView，不显示粒子。
+                }, gesture = gesture, cardSource = view).also {
+                    // 识别之前只准备材料与播放表面，不显示粒子。
                     it.setParticleVisible(gesture.active)
                     ParticleOverlayHost.attach(host, it)
                 }
@@ -323,7 +323,6 @@ internal class ParticleSwipeAnimator(
             if (closed) return
             closed = true
             if (touching === this) touching = null
-            sessions.remove(view)
             // 已完成的 holder 在 ItemTouchHelper 清理前仍可能被绘制，不能再次创建粒子。
             if (markUnavailable) unavailable[view] = true
             view.removeOnAttachStateChangeListener(attachmentObserver)
@@ -334,19 +333,23 @@ internal class ParticleSwipeAnimator(
             val done = completion
             completion = null
             // 恢复 ItemTouchHelper 正常完成后的屏外位置，避免删除动画重新露出卡片。
-            if (done != null) view.translationX =
-                ParticleSwipeDirection.parkTranslationX(direction, completionWidth)
-            ParticleCardPose.release(view)
-            view.alpha = originalAlpha
             val old = overlay
             overlay = null
             capturedBitmap = null
             // reset 也由 RecyclerView.onDraw 在回拖跨过原点时调用。此时 DecorView
             // 仍在遍历自己的子数组，不能同步 removeView 或回调业务改变层级。
             // 等整个绘制调用栈返回后再释放；闭合状态已阻止重复执行。
-            // TextureView 的隐藏与原卡片恢复属于同一次窗口提交，层级移除仍异步执行。
-            old?.release()
-            main.post { done?.invoke() }
+            val restore = {
+                if (done != null) view.translationX =
+                    ParticleSwipeDirection.parkTranslationX(direction, completionWidth)
+                ParticleCardPose.release(view)
+                view.alpha = originalAlpha
+                if (sessions[view] === this) sessions.remove(view)
+                main.post { done?.invoke() }
+                Unit
+            }
+            if (old != null) old.releaseToSource(showCard = done == null, restore = restore)
+            else restore()
         }
     }
 }

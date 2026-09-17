@@ -131,7 +131,7 @@ class ParticleBatchFourTest {
     @Test fun `命中时种子沿用预算那一次，否则对照工具分不清两条路径`() {
         val controller = main("ParticleDismissController.kt")
         assertTrue("hashSeed 必须优先取预算的种子",
-            "hashSeed = prepared?.seed ?: (Math.random()*Int.MAX_VALUE).toInt()" in controller)
+            "hashSeed = prepared?.seed ?:" in controller)
     }
 
     @Test fun `预掷的背景消费后必然重掷，两条记事绝不会同色`() {

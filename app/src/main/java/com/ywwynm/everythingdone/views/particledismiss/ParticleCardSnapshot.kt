@@ -24,7 +24,7 @@ internal data class ParticleCardSnapshot private constructor(
 ) {
     companion object {
         @Suppress("DEPRECATION")
-        fun of(view: View): ParticleCardSnapshot? {
+        fun of(view: View, elevation: Float = view.resources.getDimension(R.dimen.thing_card_normal_elevation)): ParticleCardSnapshot? {
             if (Build.VERSION.SDK_INT < 29 || view.width <= 0 || view.height <= 0) return null
             val metrics = DisplayMetrics().also { view.display?.getRealMetrics(it) }
             if (metrics.density <= 0f) metrics.setTo(view.resources.displayMetrics)
@@ -65,7 +65,7 @@ internal data class ParticleCardSnapshot private constructor(
             } else view.getLocationOnScreen(at)
             val x = metrics.widthPixels / 2f - at[0]
             val y = lightY - at[1]
-            val z = view.resources.getDimension(R.dimen.thing_card_normal_elevation)
+            val z = elevation.coerceAtLeast(0f)
             val ratio = z / max(lightZ - z, z)
             val rotation = ParticleWindowLighting.rotation(view)
             // 点光源投影的偏移加软边半径；环境光的模糊余量也必须保留。

@@ -57,7 +57,7 @@ internal class ParticleDismissSpec(
      * [ParticleCreationPrewarm.remember] 拿它把首屏落盘，冷启动之后按键读回来当预测素材。
      */
     val prewarmKey: ParticleCreationKey? = null,
-    /** 卡片连同半透明阴影在宿主窗口内合成，确保可见性交接属于同一次窗口提交。 */
+    /** 卡片及半透明阴影需同步交接；Android 14 起走 Surface 事务，旧系统在窗口内合成。 */
     val inWindow: Boolean = false,
     /** 扩展阴影边界后的面积比例，用于保持卡片本体的粒子密度。 */
     val materialAreaScale: Float = 1f

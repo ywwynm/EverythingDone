@@ -107,9 +107,13 @@ internal class ThingSwipeReturn(
     private fun stop(itemView: View) {
         val session = running.remove(itemView) ?: return
         session.rescue?.let { main.removeCallbacks(it) }
-        session.overlay?.release()
-        ParticleDismissController.cancelAppearance(itemView)
-        ParticleCardPose.release(itemView)
+        val restore = {
+            ParticleDismissController.cancelAppearance(itemView)
+            ParticleCardPose.release(itemView)
+            itemView.alpha = 1f
+        }
+        val overlay = session.overlay
+        if (overlay != null) overlay.releaseToSource(restore = restore) else restore()
     }
 
     /** 卡片应有的静止状态。 */

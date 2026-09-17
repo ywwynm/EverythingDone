@@ -15,6 +15,9 @@ internal object ParticleCardPose {
     }
 
     fun release(view: View) {
-        (view as? InterceptTouchCardView)?.particleAnimationRunning = false
+        (view as? InterceptTouchCardView)?.let {
+            it.particleAnimationRunning = false
+            it.setParticleAlphaLock(null)
+        }
     }
 }

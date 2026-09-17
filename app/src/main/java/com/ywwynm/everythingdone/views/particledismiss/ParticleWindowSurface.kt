@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.SurfaceControl
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
@@ -78,6 +79,8 @@ internal class ParticleWindowSurface private constructor(
     private var surfaceDirty = false
     private var recomposite = false
     private val pending = ArrayDeque<Frame>()
+    private val firstCardFrames = java.util.IdentityHashMap<ParticleSession, SurfaceControl.Transaction>()
+    private val frameTransactions = ArrayDeque<SurfaceControl.Transaction>()
     private val assets: AssetManager =
         activity.applicationContext.assets
 
@@ -141,6 +144,27 @@ internal class ParticleWindowSurface private constructor(
     fun add(session: ParticleSession) {
         incoming += session
         ParticleGl.wake()
+    }
+
+    /** 与该会话第一次实际画入共享 Surface 的缓冲一起撤下交接快照。 */
+    fun startCardFrame(session: ParticleSession, transaction: SurfaceControl.Transaction) {
+        ParticleGl.post {
+            if (session.cancelled || detached) { transaction.close(); return@post }
+            firstCardFrames.put(session, transaction)?.close()
+            session.setVisible(true)
+        }
+    }
+
+    /** 下一张缓冲不再包含该卡片，同时将自有快照图层显示出来。 */
+    fun endCardFrame(session: ParticleSession, transaction: SurfaceControl.Transaction) {
+        ParticleGl.post {
+            firstCardFrames.remove(session)?.close()
+            session.setVisible(false)
+            if (surface == null || detached) {
+                transaction.apply(); transaction.close()
+            } else frameTransactions.addLast(transaction)
+            ParticleGl.wake()
+        }
     }
 
     // ---- SurfaceHolder 回调（主线程） ----
@@ -254,6 +278,7 @@ internal class ParticleWindowSurface private constructor(
 
     fun needsFrame(): Boolean {
         if (surface == null) return false
+        if (frameTransactions.isNotEmpty()) return true
         if (sessions.any { it.wantsFrame() }) return true
         // 有会话退出或改变了可见性时要再交换一次，否则它的最后一帧会留在 Surface 上；
         // 全部退完之后那一次把 Surface 抹成全透明。
@@ -284,6 +309,22 @@ internal class ParticleWindowSurface private constructor(
         val drawn = ArrayList<ParticleSession>(sessions.size)
         // 创建顺序即叠放顺序：先创建的在下。
         for (session in sessions.toList()) if (session.drawInto(target)) drawn += session
+        if (Build.VERSION.SDK_INT >= 34 && view is SurfaceView &&
+            (frameTransactions.isNotEmpty() || drawn.any { firstCardFrames.containsKey(it) })) {
+            val transaction = SurfaceControl.Transaction()
+            for (session in drawn) firstCardFrames.remove(session)?.let {
+                transaction.merge(it); it.close()
+            }
+            while (frameTransactions.isNotEmpty()) {
+                val next = frameTransactions.removeFirst()
+                transaction.merge(next); next.close()
+            }
+            try { view.applyTransactionToFrame(transaction) }
+            catch (_: IllegalStateException) {
+                // 主线程刚销毁了表面，此时已经没有可同步显示的粒子帧。
+                transaction.apply(); transaction.close()
+            }
+        }
         EGLExt.eglPresentationTimeANDROID(ParticleGl.display, eglSurface, target)
         val frameId = if (timestamps) ParticleFrameTimestamps.nextFrameId(ParticleGl.display, eglSurface) else -1L
         // 不再每帧 glFinish：放一个栅栏，下一拍开画前等它，最多一帧在途。
@@ -333,7 +374,10 @@ internal class ParticleWindowSurface private constructor(
         val finished = sessions.filter { it.cancelled }
         if (finished.isEmpty()) return
         sessions.removeAll(finished.toSet())
-        finished.forEach { session -> runCatching { session.dispose() } }
+        finished.forEach { session ->
+            firstCardFrames.remove(session)?.close()
+            runCatching { session.dispose() }
+        }
         // 退出的会话画在 Surface 上的最后一帧必须被下一次合成抹掉。
         recomposite = true
         // 已经退出的会话不再接收呈现回调。
@@ -396,6 +440,11 @@ internal class ParticleWindowSurface private constructor(
 
     /** GL 线程：窗口整体退出。 */
     fun releaseGl() {
+        firstCardFrames.values.forEach { it.close() }
+        firstCardFrames.clear()
+        while (frameTransactions.isNotEmpty()) frameTransactions.removeFirst().let {
+            it.apply(); it.close()
+        }
         sessions.toList().forEach { runCatching { it.dispose() } }
         sessions.clear()
         incoming.clear()

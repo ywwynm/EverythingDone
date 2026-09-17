@@ -32,6 +32,14 @@ open class InterceptTouchCardView : CardView {
     private var mShouldInterceptTouchEvent: Boolean = true
 
     internal var particleAnimationRunning = false
+    private var particleAlphaLock: Float? = null
+
+    internal fun setParticleAlphaLock(value: Float?) {
+        particleAlphaLock = value
+        if (value != null) super.setAlpha(value)
+    }
+
+    override fun setAlpha(alpha: Float) { super.setAlpha(particleAlphaLock ?: alpha) }
     // 快照按静止姿态捕获；交接前后不能被按压反馈或 ItemTouchHelper 改写高度与缩放。
     override fun setElevation(elevation: Float) {
         super.setElevation(if (particleAnimationRunning)
@@ -47,6 +55,7 @@ open class InterceptTouchCardView : CardView {
 
     override fun onDetachedFromWindow() {
         particleAnimationRunning = false
+        particleAlphaLock = null
         super.onDetachedFromWindow()
     }
 
