@@ -47,6 +47,9 @@ internal class ParticleMicroflakePreparation(
         Process.setThreadPriority(
             if (contended) Process.THREAD_PRIORITY_DEFAULT
             else Process.THREAD_PRIORITY_DISPLAY)
+        // L3：建材是突发负载，发生在左滑识别**之前**。优先级只改 nice 值，改不了核心放置
+        // 与频率；这里立刻给调速器报一个明显大于一拍的工作量，让它在识别发生前就升上去。
+        ParticlePerformanceHint.burst()
         try {
             val bitmap = spec.snapshot
             // 圆角遮罩是一遍全图软件绘制（创建页是整屏 4 Mpx），放在材料线程里、取像素之前做：

@@ -7,6 +7,7 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
+import kotlin.math.cos
 
 /**
  * 滑动之后仍然留在列表里的卡片，怎么回到原位。
@@ -39,7 +40,15 @@ import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
  */
 internal class ThingSwipeReturn(
     private val activity: Activity,
-    private val recyclerView: RecyclerView
+    private val recyclerView: RecyclerView,
+    /**
+     * 不看「滑动完成记事动画风格」那一项设置，一律用粒子倒放。
+     *
+     * 粒子动画设置页的示例卡片走这一档：那一页的左滑本来就绕开了档位设置、永远用粒子
+     * （见 `ParticleTuningActivity`），回位当然也不能因为用户把首页的风格设成「滑动」
+     * 就变成滑回来。
+     */
+    private val alwaysParticles: Boolean = false
 ) {
 
     private val main = Handler(Looper.getMainLooper())
@@ -48,6 +57,8 @@ internal class ThingSwipeReturn(
     private class Session {
         var overlay: ParticleDismissOverlay? = null
         var rescue: Runnable? = null
+        /** 本次回位结束（无论正常收尾、被兜底救回还是被后来的一次接管取代）时回调一次。 */
+        var onSettled: (() -> Unit)? = null
     }
 
     /**
@@ -55,30 +66,38 @@ internal class ThingSwipeReturn(
      *
      * [particles] 表示这次滑走本身可能是粒子消散：回位要与刚飞出去的那一段同一种语言，首页
      * 右滑（开始做事）一直只是滑动淡出，那就只能滑回来，不能凭设置档位倒放出一段粒子。
+     * [onSettled] 用于调用方在回位真的结束之后再解锁自己的状态（设置页的预览要靠它恢复滑动）。
+     * [fromRight] 表示卡片是向**右**滑走的，回位要从右侧聚回来（设置页的示例卡两个方向都能滑）。
      */
-    fun start(listPosition: Int, particles: Boolean) {
+    fun start(listPosition: Int, particles: Boolean, onSettled: (() -> Unit)? = null,
+              fromRight: Boolean = false) {
         // 这一刻位置上还是被滑走的旧 View；换位动画要到下一次布局才把新 View 放上去。
-        takeOver(listPosition, particles, RESOLVE_RETRIES)
+        val appearFrom = if (fromRight) APPEAR_FROM_RIGHT_DEGREES else APPEAR_FROM_LEFT_DEGREES
+        takeOver(listPosition, particles, onSettled, appearFrom, RESOLVE_RETRIES)
     }
 
-    private fun takeOver(listPosition: Int, particles: Boolean, retries: Int) {
+    private fun takeOver(listPosition: Int, particles: Boolean,
+                         onSettled: (() -> Unit)?, appearFrom: Float, retries: Int) {
         recyclerView.post {
-            if (activity.isFinishing || activity.isDestroyed) return@post
+            if (activity.isFinishing || activity.isDestroyed) { onSettled?.invoke(); return@post }
             val holder = recyclerView.findViewHolderForAdapterPosition(listPosition)
             val itemView = holder?.itemView
             if (itemView == null || itemView.width <= 0) {
-                if (retries > 0) takeOver(listPosition, particles, retries - 1)
+                if (retries > 0) takeOver(listPosition, particles, onSettled, appearFrom, retries - 1)
+                else onSettled?.invoke()
                 return@post
             }
             // 结束默认的换位动画，免得它继续写 translationX / alpha。
             recyclerView.itemAnimator?.endAnimation(holder)
-            play(itemView, particles)
+            play(itemView, particles, onSettled, appearFrom)
         }
     }
 
-    private fun play(itemView: View, particles: Boolean) {
+    private fun play(itemView: View, particles: Boolean, onSettled: (() -> Unit)?,
+                     appearFrom: Float) {
         stop(itemView)
         val session = Session()
+        session.onSettled = onSettled
         running[itemView] = session
         // 兜底：无论哪一步出意外，卡片都不能留在屏外或透明。
         val rescue = Runnable {
@@ -87,10 +106,10 @@ internal class ThingSwipeReturn(
         session.rescue = rescue
         main.postDelayed(rescue, RESCUE_MS)
 
-        val useParticles = particles && ThingAnimationPreferences.swipe(activity) ==
-            ThingAnimationPreferences.SWIPE_PARTICLE
-        if (useParticles && condense(itemView, session)) return
-        slideBack(itemView, session)
+        val useParticles = particles && (alwaysParticles ||
+            ThingAnimationPreferences.swipe(activity) == ThingAnimationPreferences.SWIPE_PARTICLE)
+        if (useParticles && condense(itemView, session, appearFrom)) return
+        slideBack(itemView, session, appearFrom)
     }
 
     /** 这张卡片的回位动画是不是正在播。 */
@@ -107,10 +126,14 @@ internal class ThingSwipeReturn(
     private fun stop(itemView: View) {
         val session = running.remove(itemView) ?: return
         session.rescue?.let { main.removeCallbacks(it) }
+        val settled = session.onSettled
+        session.onSettled = null
         val restore = {
             ParticleDismissController.cancelAppearance(itemView)
             ParticleCardPose.release(itemView)
             itemView.alpha = 1f
+            settled?.invoke()
+            Unit
         }
         val overlay = session.overlay
         if (overlay != null) overlay.releaseToSource(restore = restore) else restore()
@@ -125,14 +148,14 @@ internal class ThingSwipeReturn(
     }
 
     /** 倒放消散：粒子重新聚成卡片。起不来就返回 false，退回滑动回位。 */
-    private fun condense(itemView: View, session: Session): Boolean {
+    private fun condense(itemView: View, session: Session, appearFrom: Float): Boolean {
         itemView.translationX = 0f
         itemView.alpha = 1f
         itemView.visibility = View.VISIBLE
         ParticleCardPose.hold(itemView)
         val started = ParticleDismissController.appearContent(
             activity, activity.window, itemView,
-            appearanceDirection = APPEAR_FROM_LEFT_DEGREES,
+            appearanceDirection = appearFrom,
             roundSnapshot = false,
             cardShadow = true,
             onAppearanceFinished = {
@@ -145,9 +168,10 @@ internal class ThingSwipeReturn(
         return started
     }
 
-    private fun slideBack(itemView: View, session: Session) {
+    private fun slideBack(itemView: View, session: Session, appearFrom: Float) {
         val distance = (if (itemView.width > 0) itemView.width else recyclerView.width).toFloat()
-        itemView.translationX = -distance
+        // 从卡片飞出去的那一侧滑回来：180° 在左（cos = −1），0° 在右（cos = +1）。
+        itemView.translationX = cos(Math.toRadians(-appearFrom.toDouble())).toFloat() * distance
         itemView.alpha = 0f
         itemView.visibility = View.VISIBLE
         // 先以透明度 0 可见地画过一帧再起步：挂在 RenderNode 上的动画在「从未参与绘制」的
@@ -178,6 +202,9 @@ internal class ThingSwipeReturn(
 
         /** 180° 让虚拟触点落在卡片正左方，正好是左滑消散的镜像，粒子从同一侧聚回来。 */
         const val APPEAR_FROM_LEFT_DEGREES = 180f
+
+        /** 右滑的镜像：0° 把虚拟触点放在卡片正右方，粒子从右侧聚回来。 */
+        const val APPEAR_FROM_RIGHT_DEGREES = 0f
 
         /** 换位动画要到下一次布局才把新 View 放上去；多给几帧，找不到就放弃接管。 */
         const val RESOLVE_RETRIES = 4

@@ -44,7 +44,14 @@ internal class ParticleDismissOverlay(
      * 粒子才能盖住下面那个弹窗。
      */
     private val hostDecor: android.view.ViewGroup? = null,
-    private val cardSource: View? = null
+    private val cardSource: View? = null,
+    /**
+     * 收尾时要不要把交接快照重新显示出来、让 [cardSource] 回到可见。
+     *
+     * 卡片那条默认为真（滑动取消要把卡片放回去）。**消散**那条必须传 false：
+     * 内容已经散掉了，末尾再显示一次静态快照等于整块闪回一下。
+     */
+    private val restoreSourceOnRelease: Boolean = true
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -80,6 +87,8 @@ internal class ParticleDismissOverlay(
     private fun notifyReleased() {
         if (releaseNotified) return
         releaseNotified = true
+        // U9：一轮动画收尾时把这一轮的呈现比例交给自动调档的规则（默认关闭）。
+        runCatching { ParticleFrameStats.roundFinished(context) }
         val callbacks = releaseListeners.toList()
         releaseListeners.clear()
         callbacks.forEach { it.run() }
@@ -96,8 +105,11 @@ internal class ParticleDismissOverlay(
         isFocusable = false
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
 
-        // 凝聚（出现动画）模式无需快照遮蔽层：动画从散开态开始、面板从无到有
-        snapshotView = if (isCondense || gesture != null) null else ImageView(activity).apply {
+        // 凝聚（出现动画）模式无需快照遮蔽层：动画从散开态开始、面板从无到有。
+        // 走窗口内原子交接时也不要它：那条路的遮蔽由 [ParticleCardSurfaceHandoff] 自有的
+        // SurfaceControl 承担，两份一起画会让**半透明的投影**叠成两层，交接那一两帧明显变深。
+        snapshotView = if (isCondense || gesture != null || synchronizedCard) null
+            else ImageView(activity).apply {
             setImageBitmap(spec.snapshot)
             scaleType = ImageView.ScaleType.FIT_XY
             // 圆角遮罩改在材料线程完成（1.6），本层可能早它一两帧上屏；按同一半径裁自己的轮廓，
@@ -300,7 +312,7 @@ internal class ParticleDismissOverlay(
         if (finished) return
         if (returningToSource) return
         if (synchronizedCard && cardHandoff != null) {
-            releaseToSource { cardSource?.alpha = 1f }
+            releaseToSource(showCard = restoreSourceOnRelease) { cardSource?.alpha = 1f }
             return
         }
         if (spec.inWindow) {
@@ -369,7 +381,7 @@ internal class ParticleDismissOverlay(
     private fun removeSelf() {
         if (finished) return
         if (synchronizedCard && cardHandoff != null && !returningToSource) {
-            releaseToSource { cardSource?.alpha = 1f }
+            releaseToSource(showCard = restoreSourceOnRelease) { cardSource?.alpha = 1f }
             return
         }
         finished = true

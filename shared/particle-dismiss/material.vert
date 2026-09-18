@@ -17,8 +17,18 @@ layout(location=0) in vec4 record_xform;
 layout(location=1) in vec4 record_place;
 layout(location=2) in vec4 record_shade;
 layout(location=3) in vec4 record_mask;
+#ifdef FLAKE_CONSTANTS
+// U4 之后片元一个 random 分量都不用了，位置 5 因此空出来；记录本身仍是四段。
+// U10a 打开时复制片的采样中心也并进记录（第五段），一次绘制只剩一个实例化缓冲。
+#ifdef SINGLE_INSTANCE
+layout(location=4) in vec4 record_extra;
+#else
+layout(location=4) in vec4 material_src;
+#endif
+#else
 layout(location=4) in vec4 material_src;
 layout(location=5) in vec4 material_random;
+#endif
 #else
 layout(location=0) in vec4 material_src;
 layout(location=1) in vec4 material_physical;
@@ -32,14 +42,29 @@ uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform int nx,grid_count;
 uniform int material_pass;
 uniform float panel_weight,release_spread;
-out vec2 uv,local_uv;
-out float age_out,life_out,light_out,shape_out;
-flat out float surface_out;
-#ifndef DRAW_RECORDS
-flat out float trailing_out;
+// U5：varying 精度。`uv` 必须留 highp——前景纹理最大到卡片像素尺寸（全屏 3192 px），
+// fp16 在 [0,1] 上的间隔乘回去是 1.6 px，直接可见。其余分量值域都很小。
+// **两侧必须同时改**：Maleoon 910 对跨阶段精度不一致直接拒绝链接。
+#ifdef MEDIUMP_VARYING
+#define VOUT mediump
+#else
+#define VOUT
 #endif
-flat out vec4 random_out;
-flat out float replica_out;
+out highp vec2 uv;
+out VOUT vec2 local_uv;
+#ifdef FLAKE_CONSTANTS
+flat out VOUT float shape_out,surface_out;
+flat out VOUT float alpha_scale,loosen_out,light_scale,add_term,age_beat;
+flat out VOUT vec2 radial_scale;
+#else
+out VOUT float age_out,life_out,light_out,shape_out;
+flat out VOUT float surface_out;
+#ifndef DRAW_RECORDS
+flat out VOUT float trailing_out;
+#endif
+flat out VOUT vec4 random_out;
+flat out VOUT float replica_out;
+#endif
 const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));
 // 相邻微片共用顶点偏移；整数散列避免 GPU 三角函数近似改变颗粒覆盖。
 uint grid_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
@@ -49,11 +74,20 @@ vec2 jitter(vec2 g){uint s=uint(g.x)*0x9e3779b9u^uint(g.y)*0x85ebca6bu;
 #ifdef DRAW_RECORDS
 void main(){
     float surface=record_mask.x;
+#ifdef FLAKE_CONSTANTS
+    // U4 把「是不是复制片」与「这一帧活不活着」合成一个标志位（取值 0/1/2/3，浮点精确），
+    // 空出来的两个槽给打包好的 radial / loosen / age_beat。
+    float flags=record_mask.y;
+    float replica=flags>=1.5?1.:0.;
+    bool flake_alive=fract(flags*.5)>.25;
+#else
     float replica=record_mask.y;
+    bool flake_alive=record_mask.z>=.5;
+#endif
     // 表面与颗粒在交接时可以同时存在；不能按出生时刻提前裁掉表面。
     if(material_pass==0){
         if(surface<.001||replica>.5){gl_Position=vec4(2.,2.,2.,1.);return;}
-    } else if(record_mask.z<.5){
+    } else if(!flake_alive){
         gl_Position=vec4(2.,2.,2.,1.);return;
     }
     vec2 grid=record_place.zw;
@@ -64,21 +98,41 @@ void main(){
     if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
     vec2 source=(vertex_grid+j)*cell;
     uv=source/card;
+#ifdef SINGLE_INSTANCE
+    // U10a：复制片的采样中心来自绘制记录，不再需要第二个实例化缓冲。
+    if(replica>.5)uv=mix(source,record_extra.xy,.80)/card;
+#else
     if(replica>.5)uv=mix(source,material_src.xy,.80)/card;
+#endif
+
     local_uv=c;
+    surface_out=surface;
+#ifdef FLAKE_CONSTANTS
+    alpha_scale=record_shade.x;shape_out=record_shade.y;
+    light_scale=record_shade.z;add_term=record_shade.w;
+    radial_scale=unpackHalf2x16(floatBitsToUint(record_mask.z));
+    vec2 packed_pair=unpackHalf2x16(floatBitsToUint(record_mask.w));
+    loosen_out=packed_pair.x;age_beat=packed_pair.y;
+#else
     age_out=record_shade.x;life_out=record_shade.y;
-    surface_out=surface;random_out=material_random;replica_out=replica;
+    random_out=material_random;replica_out=replica;
+#endif
     if(material_pass==0){
         vec2 world=offset+source;
         gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
-        light_out=1.;shape_out=0.;return;
+#ifndef FLAKE_CONSTANTS
+        light_out=1.;shape_out=0.;
+#endif
+        return;
     }
     // 记录里存的是预乘好的 2×2 矩阵（已折进格子边长）与它作用在 d0 上之后的原点。
     mat2 expand=mat2(record_xform.x,record_xform.y,record_xform.z,record_xform.w);
     vec2 vertex=record_place.xy+expand*(c+j);
     vec2 world=offset+vertex;
     gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
+#ifndef FLAKE_CONSTANTS
     light_out=record_shade.z;shape_out=record_shade.w;
+#endif
 }
 #else
 void main(){

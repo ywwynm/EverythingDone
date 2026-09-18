@@ -243,7 +243,11 @@ internal class ParticleSession(
                         snapshotConsumed = true
                         stage = Stage.PLAY
                     } else {
+                        val uploadStarted = System.nanoTime()
                         active.prepareForeground(pixels)
+                        // L5：前景贴图这一次同步上传的墙钟。创建页是整屏 RGBA8，
+                        // 平板上一张 2880×1920 就是 22 MB，值不值得换 PBO 由这个数决定。
+                        foregroundUploadNanos = System.nanoTime() - uploadStarted
                         stage = Stage.MATERIAL
                     }
                     true
@@ -499,8 +503,10 @@ internal class ParticleSession(
         submittedTimings += longArrayOf(target, now, lastProgress.toRawBits().toLong())
         pendingDraw?.let { drawTimings += longArrayOf(it[0], it[1], it[2], it[2], now) }
         pendingDraw = null
+        // 前五位沿用既有形状（既有脚本按下标 0..4 读）；L5 在**末尾追加**前景上传的墙钟。
         if (startupTimings.isEmpty()) startupTimings = longArrayOf(
-            prepareStartedAt, pipelineReadyAt, inputReadyAt, uploadsReadyAt, now)
+            prepareStartedAt, pipelineReadyAt, inputReadyAt, uploadsReadyAt, now,
+            foregroundUploadNanos)
     }
 
     /** 该帧确认上屏；[displayedAt] 是驱动报的真实呈现时刻，拿不到时为 null。 */
@@ -593,7 +599,10 @@ internal class ParticleSession(
      */
     internal val gestureTimings: MutableList<LongArray> = Collections.synchronizedList(ArrayList())
 
-    /** 启动分段：准备起、管线就绪、输入就绪、上传就绪、首帧提交。 */
+    /** L5：前景贴图那一次 `glTexImage2D` 的墙钟（纳秒）。 */
+    @Volatile private var foregroundUploadNanos = 0L
+
+    /** 启动分段：准备起、管线就绪、输入就绪、上传就绪、首帧提交、前景上传耗时。 */
     @Volatile internal var startupTimings = longArrayOf()
         private set
 

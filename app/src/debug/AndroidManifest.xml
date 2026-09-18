@@ -64,6 +64,13 @@
             android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleMicroflakeProbeReceiver"
             android:exported="true" />
 
+        <!-- Debug 专用着色器变体编译矩阵入口。EMUI 拦截发给清单接收器的广播，Activity 不受限。 -->
+        <activity
+            android:name="com.ywwynm.everythingdone.views.particledismiss.ParticleShaderMatrixActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+
         <!-- Debug 专用离屏基准入口：adb am broadcast 触发，锁屏可用。 -->
         <receiver
             android:name="com.ywwynm.everythingdone.views.recording.fablesol.FableSolBenchmarkReceiver"

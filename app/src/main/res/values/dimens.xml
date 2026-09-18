@@ -1,5 +1,13 @@
 <resources>
 
+    <!-- 粒子动画设置页的预览区高度与示例卡上方的留白；横屏窄得多，见 values-land。 -->
+    <dimen name="particle_tuning_preview_height">248dp</dimen>
+    <dimen name="particle_tuning_card_top_padding">24dp</dimen>
+    <!-- 示例对话框的投影高度：这一版要把它拍进粒子快照里，代码与布局必须取同一个值。 -->
+    <dimen name="particle_tuning_dialog_elevation">6dp</dimen>
+    <!-- 预览下方那一排图标按钮的边长；方向按钮切换选项卡时在 0 与它之间做动画。 -->
+    <dimen name="particle_tuning_icon_button_size">40dp</dimen>
+
     <dimen name="rv_things_padding">4dp</dimen>
     <dimen name="thing_card_outer_spacing">8dp</dimen>
     <dimen name="thing_card_corner_radius">10dp</dimen>

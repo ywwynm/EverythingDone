@@ -7,26 +7,70 @@ uniform sampler2D foreground;
 uniform float light_gain;
 uniform int diagnostic;
 uniform int material_pass;
-in vec2 uv,local_uv;
-in float age_out,life_out,light_out,shape_out;
-flat in float surface_out;
-#ifndef DRAW_RECORDS
-flat in float trailing_out;
+// U5：与 `material.vert` 逐字对应的精度声明。Maleoon 910 对跨阶段精度不一致直接拒绝链接。
+#ifdef MEDIUMP_VARYING
+#define VOUT mediump
+#else
+#define VOUT
 #endif
-flat in vec4 random_out;
-flat in float replica_out;
+in highp vec2 uv;
+in VOUT vec2 local_uv;
+#ifdef FLAKE_CONSTANTS
+flat in VOUT float shape_out,surface_out;
+flat in VOUT float alpha_scale,loosen_out,light_scale,add_term,age_beat;
+flat in VOUT vec2 radial_scale;
+#else
+in VOUT float age_out,life_out,light_out,shape_out;
+flat in VOUT float surface_out;
+#ifndef DRAW_RECORDS
+flat in VOUT float trailing_out;
+#endif
+flat in VOUT vec4 random_out;
+flat in VOUT float replica_out;
+#endif
 out vec4 frag;
+// U7：累积目标换成 SRGB8_ALPHA8 时前景纹理也是 sRGB 格式，采样器已经给出线性值，
+// 这一段整段省掉（每片元一次 pow(vec3,2.4)）。
+#ifdef SRGB_TARGET
+#define linear(c) (c)
+#else
 vec3 linear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
+#endif
+// 「白底微片」那条判据原来比的是 sRGB 分量；线性前景下阈值按 sRGB→线性换算。
+#ifdef SRGB_TARGET
+#define BODY_LO 0.6038
+#define BODY_HI 0.9559
+#else
+#define BODY_LO 0.80
+#define BODY_HI 0.98
+#endif
 void main(){
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
+#ifndef FLAKE_CONSTANTS
     if(replica_out>.5 && (material_pass==0 || age_out<=.001))discard;
+#endif
     if(material_pass==0){
         float a=src.a*surface_out;
         if(a<.001 || diagnostic==2)discard;
         vec3 surface_color=diagnostic==1?vec3(.05,.45,.95):linear(src.rgb);
         frag=vec4(surface_color*a,a);return;
     }
+#ifdef FLAKE_CONSTANTS
+    // U4：下面用到的逐片量全部由 `draw-record.comp` 每片每帧算一次。
+    // 「复制片在极早期整片丢弃」与「age<=0」两条判据都已折进 alpha_scale / alive。
+    if(diagnostic==3)discard;
+    vec2 q=local_uv-.5;
+    float radial=length(q*radial_scale);
+    float cut=1.-smoothstep(.35,.58,radial);
+    float shape=mix(1.,cut,shape_out*.92);
+    float alpha=src.a*shape*alpha_scale;
+    if(alpha<.001)discard;
+    float optical_loosen=loosen_out;
+    vec3 color=linear(src.rgb);
+    color=mix(color,pow(color,vec3(.86)),optical_loosen*.85);
+    color=color*light_scale+vec3(add_term);
+#else
     float age=age_out;
     if(age<=0. || diagnostic==3)discard;
     float life=life_out;
@@ -56,13 +100,18 @@ void main(){
     float facing=.5+.5*sin(age*16.+random_out.z*6.28318);
     float glint=0.1800000*pow(facing,12.);
     color=color*lighting*(1.+0.2493839*optical_loosen*light_gain)+vec3(0.0120000+glint)*optical_loosen*light_gain;
+#endif
     // 彩色材料避免被漫反射中的白色项冲淡；灰白本体和未释放纹理不变。
     float low=min(min(color.r,color.g),color.b);
     float high=max(max(color.r,color.g),color.b);
     color=max(vec3(0),color-vec3(low)*.44*smoothstep(.15,.65,high-low)*optical_loosen);
     // 白底微片保留覆盖率差异，避免过曝把密集颗粒连成平坦亮边。
-    float body=smoothstep(.80,.98,min(src.r,min(src.g,src.b)));
+    float body=smoothstep(BODY_LO,BODY_HI,min(src.r,min(src.g,src.b)));
+#ifdef FLAKE_CONSTANTS
+    float facet=.80+.20*(.5+.5*sin(age_beat+dot(uv,vec2(7.,11.))));
+#else
     float facet=.80+.20*(.5+.5*sin(age*11.+dot(uv,vec2(7.,11.))));
+#endif
     color=mix(color,min(color,vec3(mix(1.,facet,optical_loosen))),body);
     if(diagnostic==1)color=vec3(1.,.20,.07);
     frag=vec4(color*alpha,alpha);

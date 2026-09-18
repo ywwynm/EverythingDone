@@ -6,7 +6,9 @@ layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
 layout(std430,binding=1) readonly buffer B { float old_pressure[]; };
 layout(std430,binding=2) writeonly buffer C { float new_pressure[]; };
 layout(std430,binding=7) readonly buffer Work {
-    uvec4 workgroups;
+    // 间接分发参数；必须是**标量**成员：Maleoon 910 上对向量分量做原子操作
+    // 不按下标寻址（见 peel-splat.comp 的同一条）。
+    uint group_count,group_y,group_z,group_pad;
     ivec4 region;
     ivec4 previous;
     int box_x0,box_y0,box_x1,box_y1;

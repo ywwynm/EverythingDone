@@ -1069,6 +1069,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.rl_fablesol_tuning_as_bt).setOnClickListener {
             showFableSolTuningDialog(scrollToExport = false)
         }
+        f<View>(R.id.rl_particle_tuning_as_bt).setOnClickListener {
+            startActivity(Intent(this, ParticleTuningActivity::class.java))
+        }
         updateDoingDigitStyleValue()
         updateDialogParticleAnimationValue()
         updateAutoplayDetailDynamicValue()

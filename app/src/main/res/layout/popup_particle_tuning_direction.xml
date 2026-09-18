@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  粒子方向选择弹层：3 × 3 的九宫格，中心留空，其余八格各一个小箭头。
+  箭头资源只有一个（指向正上方），方向由 ParticleTuningActivity 按角度旋转。
+  底色、圆角与投影照页面里的示例对话框取值，只作用于预览，不进用户设置。
+-->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cv_particle_tuning_direction_popup"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/app_chrome_surface_elevated"
+    app:cardCornerRadius="@dimen/app_chrome_dialog_popup_corner_radius"
+    app:cardElevation="8dp"
+    app:cardPreventCornerOverlap="false"
+    app:cardUseCompatPadding="true">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_lt"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_lt"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_t"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_t"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_rt"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_rt"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_l"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_l"/>
+
+            <View
+                android:layout_width="44dp"
+                android:layout_height="44dp"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_r"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_r"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_lb"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_lb"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_b"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_b"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_direction_rb"
+                style="@style/ParticleDirectionCell"
+                android:contentDescription="@string/particle_tuning_direction_rb"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

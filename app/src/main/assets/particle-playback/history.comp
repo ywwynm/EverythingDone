@@ -1,7 +1,10 @@
 #version 310 es
 precision highp float;
 precision highp int;
-layout(local_size_x=256) in;
+#ifndef LINEAR_GROUP
+#define LINEAR_GROUP 256
+#endif
+layout(local_size_x=LINEAR_GROUP) in;
 struct Material {vec4 src; vec4 physical; vec4 random;};
 struct State {vec4 pos; vec4 vel;};
 layout(std430,binding=0) readonly buffer Materials {Material particles[];};

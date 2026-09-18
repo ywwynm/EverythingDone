@@ -44,7 +44,10 @@ internal object ParticleOptionFrames {
     private val lock = Any()
 
     private class Option(val group: String, val name: String,
-                         val cellDp: Float, val iterations: Int)
+                         val cellDp: Float, val iterations: Int,
+                         val phase2On: Int = 0, val phase2Off: Int = 0,
+                         /** U7 判据：另出一份累积纹理里 alpha 的直方图。 */
+                         val alphaHistogram: Boolean = false)
 
     private val OPTIONS = listOf(
         Option("E12", "current", 0f, 100),
@@ -52,7 +55,18 @@ internal object ParticleOptionFrames {
         Option("E12", "dp3.0", 3.0f, 100),
         Option("C7", "jacobi100", 0f, 100),
         Option("C7", "jacobi60", 0f, 60),
-        Option("C7", "jacobi40", 0f, 40))
+        Option("C7", "jacobi40", 0f, 40),
+        // 第二阶段的三项 V 级：本轮只出图与数字，默认值一个不改。
+        Option("U7", "rgba16f", 0f, 100, 0, ParticlePerfTuning.P2_SRGB8_ACCUMULATION,
+            alphaHistogram = true),
+        Option("U7", "srgb8", 0f, 100, ParticlePerfTuning.P2_SRGB8_ACCUMULATION, 0,
+            alphaHistogram = true),
+        Option("U8", "bilinear", 0f, 100, 0, ParticlePerfTuning.P2_NEAREST_SPLAT),
+        Option("U8", "nearest", 0f, 100, ParticlePerfTuning.P2_NEAREST_SPLAT, 0),
+        Option("U10", "explicit", 0f, 100, 0,
+            ParticlePerfTuning.P2_HARDWARE_TRILINEAR or ParticlePerfTuning.P2_MERGED_FIELD),
+        Option("U10", "hardware", 0f, 100,
+            ParticlePerfTuning.P2_HARDWARE_TRILINEAR or ParticlePerfTuning.P2_MERGED_FIELD, 0))
 
     fun run(context: Context, spec: ParticleDismissSpec, snapshot: Bitmap,
             width: Int, height: Int, output: File) {
@@ -67,7 +81,7 @@ internal object ParticleOptionFrames {
                 val options = JSONArray()
                 report.put("options", options)
                 try {
-                    export(context, spec, snapshot, width, height, folder, options)
+                    export(context, spec, snapshot, width, height, folder, options, report)
                 } catch (error: Throwable) {
                     report.put("error", error.stackTraceToString())
                 } finally {
@@ -79,7 +93,8 @@ internal object ParticleOptionFrames {
     }
 
     private fun export(context: Context, spec: ParticleDismissSpec, snapshot: Bitmap,
-                       width: Int, height: Int, folder: File, options: JSONArray) {
+                       width: Int, height: Int, folder: File, options: JSONArray,
+                       report: JSONObject) {
         val density = context.resources.displayMetrics.density
         val readback = ByteBuffer.allocateDirect(width * height * 4)
         val scratch = IntArray(width * height)
@@ -94,6 +109,13 @@ internal object ParticleOptionFrames {
             touchGap = spec.touchGap, touchStrength = spec.touchStrength,
             materialAreaScale = spec.materialAreaScale)
         withEgl(context.assets, width, height) { shared ->
+            // C7 排查要用的几条硬上限：批处理求解器一个工作组要 256 个调用与 16 KiB 共享内存，
+            // 正好卡在 GLES 3.1 的下限上；Maleoon 上是否真的给足，只有读回来才知道。
+            report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER))
+                .put("glVersion", GLES30.glGetString(GLES30.GL_VERSION))
+                .put("maxComputeSharedMemory", limit(0x8262))
+                .put("maxComputeWorkGroupInvocations", limit(0x90EB))
+                .put("maxComputeSsbo", limit(0x90DB))
             for (option in OPTIONS) {
                 if (option.group != referenceGroup) { reference = null; referenceGroup = option.group }
                 val row = JSONObject().put("group", option.group).put("name", option.name)
@@ -122,8 +144,32 @@ internal object ParticleOptionFrames {
                             val patch = crop(pixels, width, height)
                             captured += patch
                             val base = reference?.getOrNull(index)
-                            frames.put((if (base != null) compare(base, patch) else JSONObject())
-                                .put("progress", progress))
+                            val frame = (if (base != null) compare(base, patch) else JSONObject())
+                                .put("progress", progress)
+                            // C7 排查：画面之外再记压力求解那一步的中间状态与积分结果的散列。
+                            // 「迭代数换了画面却逐位不变」有三种可能，这两项正好把它们分开：
+                            // 活动 tile 数为 0 ⇒ 间接分发根本没跑；压力场的和随迭代数变而
+                            // 状态散列不变 ⇒ 压力没进积分；两者都不变 ⇒ 真的收敛了。
+                            runCatching {
+                                val d = renderer.pressureDiagnostics()
+                                frame.put("grid", JSONArray(listOf(d[0].toInt(), d[1].toInt())))
+                                    .put("activeTiles", d[2].toInt())
+                                    .put("occupiedCells", d[3].toInt())
+                                    .put("nonZeroPressure", d[4].toInt())
+                                    .put("pressureSum", d[5])
+                                    .put("pressurePeak", d[6])
+                                    .put("region", JSONArray((7..10).map { d[it].toInt() }))
+                                    .put("splatBox", JSONArray((11..14).map { d[it].toInt() }))
+                                    .put("splattedCells", d[15].toInt())
+                                    .put("splattedIndex", d[16].toInt())
+                                    .put("stateHash", hash(renderer.readState()))
+                            }.onFailure { frame.put("diagnosticsError", it.toString()) }
+                            // U7：8 位量化够不够用，要看累积纹理里 alpha 真正落在哪些档上。
+                            if (option.alphaHistogram) runCatching {
+                                frame.put("alphaHistogram", JSONArray(
+                                    renderer.accumulationAlphaHistogram().toList()))
+                            }.onFailure { frame.put("alphaHistogramError", it.toString()) }
+                            frames.put(frame)
                         }
                         if (reference == null) reference = captured.toTypedArray()
                     }
@@ -170,7 +216,22 @@ internal object ParticleOptionFrames {
      * 创建页提前预算也在建材、也在跑压力更新，改进程级的值会把它的配方一起改掉。
      */
     private fun withOption(option: Option, action: () -> Unit) =
-        ParticlePerfTuning.withOptions(option.cellDp, option.iterations, action)
+        ParticlePerfTuning.withOptions(option.cellDp, option.iterations) {
+            ParticlePerfTuning.withPhase2(option.phase2On, option.phase2Off, action)
+        }
+
+    private fun limit(name: Int): Int {
+        val value = IntArray(1)
+        GLES30.glGetIntegerv(name, value, 0)
+        return value[0]
+    }
+
+    /** 积分结果的 64 位散列；只用来判「两档的粒子状态是不是逐位相同」。 */
+    private fun hash(state: ByteBuffer): String {
+        var value = -0x340d631b7bdddcdbL
+        while (state.remaining() >= 4) value = (value xor state.int.toLong()) * 0x100000001b3L
+        return java.lang.Long.toHexString(value)
+    }
 
     /** 中心 [ZOOM_SIDE] 见方的裁剪区；逐像素对照只在这一块上做，与放大图同一区域。 */
     private fun crop(pixels: IntArray, width: Int, height: Int): IntArray {

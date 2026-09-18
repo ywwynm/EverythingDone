@@ -7,12 +7,16 @@ layout(local_size_x=1) in;
 // 不变式：**区域之外，中间量、速度、两份压力与修正场恒为零。** 区域取「上一帧包围盒 ∪
 // 本帧包围盒」再外扩一个 tile（11 抽头模糊的半径是 5 格，不到一个 tile）——前者保证上一轮
 // 写过的非零值被重新写成零，后者保证本帧所有可能非零的格子都算到。
-// 累积缓冲不在此列：它每帧整网格清零。
+// 累积缓冲默认不在此列：它每帧整网格清零。M4（第二阶段）打开 `CLEAR_ACTIVE_REGION`
+// 之后它也按本区域清——同一条不变式就够用：本帧写到的格子都在本帧包围盒内，而下一帧清的
+// 区域含上一帧的包围盒，所以写过的格子必然被清；区域外的格子从初始化起就没人写过。
 //
 // 包围盒记的是 **16 格 tile 的坐标**：既压住 splat 那边的原子竞争，也让区域天然对齐到
 // 工作组——`pressure-tiles.comp` 的组内有 `barrier()`，早退判定必须在组内一致。
 layout(std430,binding=7) buffer Work {
-    uvec4 workgroups;
+    // 间接分发参数；必须是**标量**成员：Maleoon 910 上对向量分量做原子操作
+    // 不按下标寻址（见 peel-splat.comp 的同一条）。
+    uint group_count,group_y,group_z,group_pad;
     ivec4 region;
     ivec4 previous;
     int box_x0,box_y0,box_x1,box_y1;

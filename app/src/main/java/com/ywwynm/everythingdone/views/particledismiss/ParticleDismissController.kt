@@ -154,11 +154,25 @@ internal object ParticleDismissController {
         return decor
     }
 
+    /**
+     * [shadowElevationPx] 非空表示这一次要把 [decor] 的 elevation 投影**一起拍进快照**，
+     * 于是阴影跟着粒子散开，而不是在交接那一刻凭空消失。取值就是该 View 的 `z`。
+     * 含阴影的快照必须**不做圆角遮罩**——遮罩是对整张位图做的，会把外扩出来的四角阴影削掉；
+     * 本体圆角由硬件抓图里的 `setClipToOutline` 给出。
+     *
+     * 系统支持时（API 34+）这一路同时打开**窗口内原子交接**（[ParticleCardSurfaceHandoff]，
+     * 与 2ff2430b 给卡片做的是同一条）：含阴影的快照进一条自有 SurfaceControl，
+     * 「快照显示 ↔ 真实内容置零透明度」绑在同一次窗口绘制上，「快照撤下 ↔ 粒子首帧」绑在同一次
+     * Surface 提交上。**「先显后撤」对不透明内容成立、对半透明的投影不成立**：两层阴影叠加的
+     * 那一两帧会明显变深，正是用户看到的「粒子开始时闪一下」（第 9 批第 2 条）。
+     * 低于 API 34 时退回第 8 批那条：快照里带阴影，挂上叠加层的同一次遍历把真实 `elevation`
+     * 置 0，收尾再还回去。
+     */
     fun startContent(
         activity: Activity, window: Window, decor: View, touchInWindow: PointF?,
         onAnimationStarted: Runnable, onOverlayShown: Runnable,
         useDefaultTouchDistance: Boolean = false, onDone: Runnable? = null,
-        elevatedDecor: ViewGroup? = null
+        elevatedDecor: ViewGroup? = null, shadowElevationPx: Float? = null
     ): Boolean {
         cancelAppearance(decor)
         val requestedAtNanos = System.nanoTime()
@@ -191,6 +205,11 @@ internal object ParticleDismissController {
         val feedback = ParticleTouchFeedback.begin(activity, decor)
         val releaseContent = ParticleSnapshot.hold(decor)
         pendingDismissCaptures[activity] = (pendingDismissCaptures[activity] ?: 0) + 1
+        // 取景范围要在面板还是静止姿态时算出来；`of` 自己会按可见区域再裁一刀。
+        val cardSnapshot = if (shadowElevationPx != null && Build.VERSION.SDK_INT >= 29)
+            ParticleCardSnapshot.of(decor, shadowElevationPx) else null
+        val atomicHandoff = cardSnapshot != null && ParticlePerfTuning.panelShadowAtomicHandoff &&
+            ParticleCardSurfaceHandoff.supported()
         val capture = {
             // 消散一律先走离屏硬件抓图，有没有可见的独立 Surface 都一样（有的话再逐个
             // PixelCopy 合成回去）。窗口 PixelCopy 只作回退。理由有两条，都来自魅族
@@ -198,9 +217,14 @@ internal object ParticleDismissController {
             // 用点外部关闭时整个重试窗口都返回 ERROR_SOURCE_NO_DATA、消散整场不播；
             // 而且这一次失败的捕获会连带把弹窗自己闪一下（连续两帧被裁成直角的一块）。
             // 详见 ParticleCaptureRoute.preferOffscreen。
-            val offscreen: ((Bitmap?) -> Unit) -> Unit = { done ->
-                if (feedback != null) feedback.withoutRipple { captureSnapshotAsync(decor, activity, done) }
+            val shoot: ((Bitmap?) -> Unit) -> Unit = { done ->
+                if (cardSnapshot != null)
+                    ParticleHardwareSnapshot.capture(decor, cardSnapshot.bounds, cardSnapshot, done)
                 else captureSnapshotAsync(decor, activity, done)
+            }
+            val offscreen: ((Bitmap?) -> Unit) -> Unit = { done ->
+                if (feedback != null) feedback.withoutRipple { shoot(done) }
+                else shoot(done)
             }
             val captureAtNanos = System.nanoTime()
             val hasSurface = ParticleSnapshot.hasVisibleSurface(decor)
@@ -208,12 +232,15 @@ internal object ParticleDismissController {
                 try {
                     if (snapshot != null && !activity.isFinishing && !activity.isDestroyed &&
                         hostDecor.isAttachedToWindow && decor.isAttachedToWindow) {
-                        val radius = dialogCornerRadius(activity)
-                        if (!ParticlePerfTuning.maskOnMaterialThread) applyRoundedCornerMask(snapshot, radius)
+                        // 含阴影的快照不做圆角遮罩，理由见 [startContent] 的 KDoc。
+                        val radius = if (cardSnapshot != null) 0f else dialogCornerRadius(activity)
+                        if (radius > 0f && !ParticlePerfTuning.maskOnMaterialThread)
+                            applyRoundedCornerMask(snapshot, radius)
                         attachDismissOverlay(activity, hostDecor, decor, snapshot, touchInWindow,
                             onAnimationStarted, onOverlayShown,
                             requestedAtNanos, useDefaultTouchDistance, radius,
-                            Runnable { releaseContent(); onDone?.run() }, feedback, elevated)
+                            Runnable { releaseContent(); onDone?.run() }, feedback, elevated,
+                            cardSnapshot, atomicHandoff)
                     } else {
                         // 走到这里弹窗会以系统默认动画退出，画面上就是「没有粒子」。
                         // 快照为空要能一眼看出走的是哪条抓图路径、卡在哪一步。
@@ -243,7 +270,9 @@ internal object ParticleDismissController {
                 dismissal = true) { snapshot ->
                 // 首选（消散一律是离屏）没拿到图时，用窗口 PixelCopy 再试一次，
                 // 而不是直接放弃整场动画。只试这一次。
-                val retryable = ParticleCaptureRoute.shouldRetryOtherRoute(
+                // 含阴影那一条不重试窗口 PixelCopy：它只拍得到 decor 自己那一块，
+                // 尺寸与已经按外扩算好的原点对不上，拍出来会整体错位。
+                val retryable = cardSnapshot == null && ParticleCaptureRoute.shouldRetryOtherRoute(
                     snapshotMissing = snapshot == null,
                     contentUsable = decor.isAttachedToWindow &&
                         !activity.isFinishing && !activity.isDestroyed)
@@ -285,7 +314,11 @@ internal object ParticleDismissController {
         onDone: Runnable?,
         feedback: ParticleTouchFeedback?,
         /** 非空表示这一次被抬到了 [ParticleElevatedHost] 的全屏窗口上，收尾时要归还。 */
-        elevatedDecor: ViewGroup?
+        elevatedDecor: ViewGroup?,
+        /** 非空表示快照按投影外扩过：原点要往左上挪，粒径要按面积比补回来。 */
+        cardSnapshot: ParticleCardSnapshot? = null,
+        /** 含投影的快照走窗口内原子交接（API 34+）：见 [startContent] 的 KDoc。 */
+        atomicHandoff: Boolean = false
     ) {
         // 圆角遮罩在材料线程上时，这张快照本身还是直角的——盖回真实弹窗必须自己裁角，
         // 否则交接期弹窗会有一瞬间变成直角。
@@ -295,8 +328,15 @@ internal object ParticleDismissController {
         val hostLocation = IntArray(2)
         decor.getLocationOnScreen(dialogLocation)
         hostDecor.getLocationOnScreen(hostLocation)
-        val originX = dialogLocation[0] - hostLocation[0]
-        val originY = dialogLocation[1] - hostLocation[1]
+        // 外扩过的快照，左上角在弹窗本体左上角的**外面**（bounds.left / top 为负）。
+        val inflateX = cardSnapshot?.bounds?.left ?: 0
+        val inflateY = cardSnapshot?.bounds?.top ?: 0
+        val originX = dialogLocation[0] - hostLocation[0] + inflateX
+        val originY = dialogLocation[1] - hostLocation[1] + inflateY
+        // 方向与触点几何一律按**本体**算，不受外扩影响。
+        val bodyCenterX = dialogLocation[0] - hostLocation[0] + decor.width / 2f
+        val bodyCenterY = dialogLocation[1] - hostLocation[1] + decor.height / 2f
+        val localTouch = touchInWindow?.let { PointF(it.x - inflateX, it.y - inflateY) }
         val visibleScreen = Rect()
         hostDecor.getWindowVisibleDisplayFrame(visibleScreen)
 
@@ -317,10 +357,8 @@ internal object ParticleDismissController {
         val tiltRadians = baseAngle
         val reach = VIRTUAL_TOUCH_FACTOR *
             hypot(snapshot.width.toFloat(), snapshot.height.toFloat())
-        val centerX = originX + snapshot.width / 2f
-        val centerY = originY + snapshot.height / 2f
-        val virtualTouchX = centerX + cos(tiltRadians) * reach
-        val virtualTouchY = centerY + sin(tiltRadians) * reach
+        val virtualTouchX = bodyCenterX + cos(tiltRadians) * reach
+        val virtualTouchY = bodyCenterY + sin(tiltRadians) * reach
         val spec = ParticleDismissSpec(
             snapshot = snapshot,
             originXPx = originX.toFloat(),
@@ -330,13 +368,15 @@ internal object ParticleDismissController {
             durationScale = animatorDurationScale(activity),
             hashSeed = (Math.random() * Int.MAX_VALUE).toInt(),
             requestedAtNanos = requestedAtNanos,
-            touchGap = if (useDefaultTouchDistance || touchInWindow == null) null else
-                ParticleFlowGeometry.touchGap(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat()),
-            touchStrength = if (useDefaultTouchDistance || touchInWindow == null) null else
-                ParticleFlowGeometry.touchStrength(touchInWindow.x, touchInWindow.y, snapshot.width.toFloat(), snapshot.height.toFloat(),
-                    (visibleScreen.left-dialogLocation[0]).toFloat(), (visibleScreen.top-dialogLocation[1]).toFloat(),
-                    (visibleScreen.right-dialogLocation[0]).toFloat(), (visibleScreen.bottom-dialogLocation[1]).toFloat()),
-            roundedCornerRadiusPx = if (ParticlePerfTuning.maskOnMaterialThread) cornerRadiusPx else 0f
+            touchGap = if (useDefaultTouchDistance || localTouch == null) null else
+                ParticleFlowGeometry.touchGap(localTouch.x, localTouch.y, snapshot.width.toFloat(), snapshot.height.toFloat()),
+            touchStrength = if (useDefaultTouchDistance || localTouch == null) null else
+                ParticleFlowGeometry.touchStrength(localTouch.x, localTouch.y, snapshot.width.toFloat(), snapshot.height.toFloat(),
+                    (visibleScreen.left-dialogLocation[0]-inflateX).toFloat(), (visibleScreen.top-dialogLocation[1]-inflateY).toFloat(),
+                    (visibleScreen.right-dialogLocation[0]-inflateX).toFloat(), (visibleScreen.bottom-dialogLocation[1]-inflateY).toFloat()),
+            roundedCornerRadiusPx = if (ParticlePerfTuning.maskOnMaterialThread) cornerRadiusPx else 0f,
+            materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f,
+            inWindow = atomicHandoff
         )
         val overlay = ParticleDismissOverlay(
             activity = activity,
@@ -348,9 +388,25 @@ internal object ParticleDismissController {
                 onDone?.run()
             },
             touchFeedback = feedback,
-            hostDecor = elevatedDecor
+            hostDecor = elevatedDecor,
+            cardSource = if (atomicHandoff) decor else null,
+            // 这是一次**消散**：收尾时不许把交接快照再显示出来，那等于让已经散掉的内容
+            // 整块闪回一下。真实内容的 alpha 仍会还原（调用方此时已经把它藏起来了）。
+            restoreSourceOnRelease = false
         )
         ParticleOverlayHost.attach(hostDecor, overlay)
+        // 阴影已经拍进快照里了：真实控件的 elevation 必须在**同一次遍历**里放掉，
+        // 否则交接期两层阴影叠在一起，那一圈会明显变深。本体还压在快照下面，
+        // 不会露出「没有阴影的卡片」。收尾时（`onDone`）原样还回去。
+        //
+        // 走原子交接那一条不需要这一步：[ParticleCardSurfaceHandoff.enter] 会把真实内容的
+        // alpha 与快照图层的显示绑在同一次窗口绘制上，alpha 为 0 的 View 本来就不投影
+        // （HWUI 的 `casterAlpha` 小于 0.001 时整段跳过），比改 elevation 更稳。
+        if (cardSnapshot != null && !atomicHandoff && decor.elevation > 0f) {
+            val kept = decor.elevation
+            decor.elevation = 0f
+            overlay.afterRelease(Runnable { decor.elevation = kept })
+        }
         // 等 overlay（含快照）实际上屏后再通知调用方执行真实 dismiss：overlay
         // 与 Dialog 分属两个 window、渲染管线不同步，同帧提交也可能错开一帧
         // 生效——先就位、后揭开才能保证画面连续。
@@ -364,8 +420,11 @@ internal object ParticleDismissController {
      * 在 [view] 所在 window 的下一帧实际提交后运行 [action]（恰好一次）。
      * preDraw 或下一次 UI vsync 都不能证明 RenderThread 已提交，海浪窗口交接必须等提交回调。
      * [timeoutMs] 兜底保证 action 必然执行（跨窗口衔接不能卡死流程）。
+     *
+     * 调用方还有一处：设置页把对话框从不可见换成静止可见之后，要等它**真的画出来**才开始
+     * 那一轮粒子——快照是在这棵树上抓的，没画过就抓不到。
      */
-    private fun runAfterShown(view: View, timeoutMs: Long, action: Runnable) {
+    fun runAfterShown(view: View, timeoutMs: Long, action: Runnable) {
         var fired = false
         val fire = Runnable {
             if (!fired) {
@@ -445,6 +504,11 @@ internal object ParticleDismissController {
         traceLabel: String? = null,
         elevatedDecor: ViewGroup? = null,
         cardShadow: Boolean = false,
+        /**
+         * 与 [startContent] 的同名参数一个意思：只把 elevation 投影拍进快照，
+         * 不打开 [cardShadow] 附带的窗口内原子交接。两者只应取其一。
+         */
+        shadowElevationPx: Float? = null,
         onOverlayCreated: (ParticleDismissOverlay) -> Unit
     ): Boolean {
         val requestedAtNanos = System.nanoTime()
@@ -520,7 +584,15 @@ internal object ParticleDismissController {
                     captureQueued = true
                     val captureAtNanos = System.nanoTime()
                     traceLabel?.let { ParticleLaunchTrace.mark("$it-layout") }
-                    val cardSnapshot = if (cardShadow) ParticleCardSnapshot.of(decor) else null
+                    val cardSnapshot = when {
+                        // 两个参数同时给出时（含投影的面板走原子交接那一条），取景仍按调用方
+                        // 给的投影高度算——面板的 6dp 与卡片那一档默认值不是一回事。
+                        cardShadow -> ParticleCardSnapshot.of(decor,
+                            shadowElevationPx ?: decor.resources.getDimension(
+                                R.dimen.thing_card_normal_elevation))
+                        shadowElevationPx != null -> ParticleCardSnapshot.of(decor, shadowElevationPx)
+                        else -> null
+                    }
                     ParticleSnapshot.capture(window, decor,
                         asyncOffscreen = { done ->
                             if (cardSnapshot != null && Build.VERSION.SDK_INT >= 29)

@@ -530,6 +530,11 @@ internal object ParticleCreationPrewarm {
         // 预算去命中（A1 改的是绘制，C10 是 G0）。
         append(',').append(ParticlePerfTuning.drawRecords)
         append(',').append(ParticlePerfTuning.pressureActiveRegion)
+        // 调参页的两项：微片尺寸直接决定片数与材料，迭代数决定压力场，两者都改轨迹。
+        // 取的是**设置值**而不是 `…Now`：那两个读点带线程局部覆盖，是离屏受控对照临时切的
+        // 瞬时状态，写进指纹会让预算必然判废（见 cache-keys-must-use-stable-values）。
+        append(',').append(ParticlePerfTuning.microflakeCellDp)
+        append(',').append(ParticlePerfTuning.jacobiIterations)
     }
 
     // ---- 诊断 ----

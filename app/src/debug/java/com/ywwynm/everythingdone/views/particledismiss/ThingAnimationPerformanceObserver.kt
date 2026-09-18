@@ -294,9 +294,14 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             val load = config.optBoolean("gpuCheckLoad")
             val repeats = config.optInt("gpuCheckRepeats", 3)
             val pinFrame = config.optInt("gpuCheckPinFrame", -1)
+            // 第二阶段：逐项的逐位 / 逐通道判据。`gpuCheckPhase2Only` 时不跑第一批那几格，
+            // 华为 2880×1920 上一格就是几十条 61 帧序列的逐像素比对（第四批 42 分钟没收尾）。
+            val names = config.optJSONArray("gpuCheckPhase2")
+            val phase2 = (0 until (names?.length() ?: 0)).map { names!!.getString(it) }
+            val phase2Only = config.optBoolean("gpuCheckPhase2Only")
             overlay.afterRelease {
                 ParticleTrajectoryCheck.run(context, copied, overlay.width, overlay.height, output,
-                    inspect, diagnostics, load, repeats, pinFrame)
+                    inspect, diagnostics, load, repeats, pinFrame, phase2, phase2Only)
             }
         }
         // 逐帧成本专项：拿这一次动画真实的材料，在离屏上下文里做消融归因。与 gpuCheck 互斥使用，
@@ -312,8 +317,14 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             val width = overlay.width
             val height = overlay.height
             val perFrame = config.optBoolean("perFrameBench")
+            // 第二阶段：逐项墙钟 A/B。条件可以只给一部分（`phase2Conditions`），真机要省着跑。
+            val phase2 = config.optBoolean("phase2Bench")
+            val names = config.optJSONArray("phase2Conditions")
+            val wanted = (0 until (names?.length() ?: 0)).map { names!!.getString(it) }
             overlay.afterRelease {
-                if (perFrame) ParticleSegmentBench.runPerFrame(context, copied, width, height, output, repeats)
+                if (phase2) ParticleSegmentBench.runPhase2(context, copied, width, height, output, repeats,
+                    names = wanted)
+                else if (perFrame) ParticleSegmentBench.runPerFrame(context, copied, width, height, output, repeats)
                 else ParticleSegmentBench.run(context, copied, width, height, output, repeats)
             }
         }
@@ -327,6 +338,9 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             .put("appearanceTouch", JSONArray(listOf(json(spec.appearanceTouchXPx), json(spec.appearanceTouchYPx))))
             .put("origin", JSONArray(listOf(json(spec.originXPx), json(spec.originYPx))))
             .put("touchGap", json(spec.touchGap))
+            // T3：框架给这次动画的时长缩放。不要相信 `settings get global`——OPD2515 上
+            // 那一项根本不存在，而框架实际施加的是 5.0（见 .claude/rules/adb.md）。
+            .put("durationScale", json(spec.durationScale))
             .put("touchStrength", json(spec.touchStrength))
             .put("skipEmptyTail", spec.skipEmptyTail)
             .put("creationPage", spec.creationPage)

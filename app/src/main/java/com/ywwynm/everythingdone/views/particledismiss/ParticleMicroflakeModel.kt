@@ -101,10 +101,10 @@ internal object ParticleMicroflakeModel {
                 floatArrayOf(panel.color[0], panel.color[1], panel.color[2], panel.weight),
                 floatArrayOf(releaseSpread, lifeGain, earlyLifeGain, lifeBirthStart, lifeBirthSpan,
                     distanceStart, distanceSpan), copyLimit, rules.number("max_cells").toInt())
-            return Materials(nx, ny, cellX, cellY, body, result[0], result[1], result[2], variation,
+            return report(Materials(nx, ny, cellX, cellY, body, result[0], result[1], result[2], variation,
                 metrics + mapOf("releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
                     "populationMs" to (System.nanoTime()-normalsReady)/1e6, "sortMs" to 0.0,
-                    "panelWeight" to panel.weight.toDouble(), "replicaCount" to (result[1].size-count).toDouble()))
+                    "panelWeight" to panel.weight.toDouble(), "replicaCount" to (result[1].size-count).toDouble())))
         }
         val values = FloatArray(count * 12)
         val pigment = FloatArray(count)
@@ -185,10 +185,16 @@ internal object ParticleMicroflakeModel {
             sortedPigment[i] = allPigment[original]
             sortedCompression[i] = compression[source]
         }
-        return Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, sortedCompression, variation, metrics + mapOf(
+        return report(Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, sortedCompression, variation, metrics + mapOf(
             "releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
             "populationMs" to (populated-normalsReady)/1e6, "sortMs" to (System.nanoTime()-populated)/1e6,
-            "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble()))
+            "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble())))
+    }
+
+    /** 调参页要显示「本机这一档建出来多少片」，建材的两条出口各报一次。 */
+    private fun report(materials: Materials): Materials {
+        ParticleFrameStats.reportFlakes(materials.count)
+        return materials
     }
 
     /** 只修正进入流动的时刻；原随机流场时钟不变，不识别素材或内容位置。 */

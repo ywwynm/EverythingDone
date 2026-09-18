@@ -21,6 +21,22 @@ import kotlin.math.*
 /** 只读 adb 预先放入专用目录的测试素材，不访问记事或应用设置。 */
 class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.getBooleanExtra("shaderMatrix", false)) {
+            // 逐帧成本专项第二阶段的纪律：**每一项都要先在华为上编译一次**
+            // （Maleoon 910 的链接检查最严，Adreno 的宽容会掩盖问题）。这里把条件表里
+            // 每个条件的两侧各编译一遍整套程序，只报链接结果，不跑任何动画。
+            if (!running.compareAndSet(false, true)) return
+            val app = context.applicationContext
+            Thread({
+                val out = File(app.getExternalFilesDir(null), "particle-unified/generated").apply { mkdirs() }
+                val report = JSONObject()
+                runCatching { shaderMatrix(app, report) }
+                    .onFailure { report.put("error", it.stackTraceToString()) }
+                runCatching { File(out, "shader-matrix.json").writeText(report.toString(2)) }
+                running.set(false)
+            }, "ParticleShaderMatrix").start()
+            return
+        }
         if (intent.getBooleanExtra("nativeCheck", false)) {
             if (!running.compareAndSet(false, true)) return
             val app = context.applicationContext
@@ -344,6 +360,43 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         } finally {
             GLES30.glDeleteBuffers(1, buffer, 0); GLES30.glDeleteProgram(program); GLES30.glDeleteShader(shader)
         }
+    }
+
+    /**
+     * 把第二阶段条件表里每个条件的**两侧**各编译一遍整套程序（正向 + 逆向管线），
+     * 只报链接结果与信息日志。一轮几秒，不跑任何动画、不碰记事。
+     */
+    private fun shaderMatrix(context: Context, report: JSONObject) {
+        val rows = JSONArray()
+        withEgl(context.assets, 256, 256) { shared ->
+            report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER) ?: "")
+                .put("adreno", ParticleMicroflakeRenderer.adreno())
+            fun one(name: String, on: Int, off: Int) {
+                val row = JSONObject().put("variant", name)
+                val error = runCatching {
+                    ParticlePerfTuning.withPhase2(on, off) {
+                        ParticleMicroflakeRenderer(context.assets, shared).use {
+                            it.preparePipeline()
+                            it.prepareReversePipeline()
+                        }
+                    }
+                }.exceptionOrNull()
+                row.put("linked", error == null)
+                if (error != null) row.put("log", error.message ?: error.toString())
+                rows.put(row)
+            }
+            for (condition in ParticlePhase2Conditions.ALL) {
+                one(condition.name + "@base", condition.baseOn, condition.baseOff)
+                one(condition.name, condition.testOn, condition.testOff)
+            }
+            // 全开一次：各项的宏之间可能互相冲突（例如 varying 两侧精度与逐片量下沉同时改）。
+            var all = 0
+            for ((_, bit) in ParticlePerfTuning.PHASE2_KEYS) all = all or bit
+            one("all-except-probe", all and ParticlePerfTuning.P2_PROBE_SINGLE_CELL.inv(), 0)
+        }
+        report.put("variants", rows)
+            .put("failed", JSONArray((0 until rows.length()).map { rows.getJSONObject(it) }
+                .filter { !it.getBoolean("linked") }.map { it.getString("variant") }))
     }
 
     private fun withEgl(assets: android.content.res.AssetManager, width: Int, height: Int,

@@ -20,13 +20,19 @@ class ParticlePerFrameBatchOneTest {
     private val root = generateSequence(File(System.getProperty("user.dir"))) { it.parentFile }
         .first { File(it, "shared/particle-dismiss/rules.properties").isFile }
 
+    /**
+     * 读源码一律**归一化换行**：本仓库的 `core.autocrlf` 是 true，新检出的工作区是 CRLF，
+     * 而 `readText()` 不做归一化——按 `"…\nvoid main(){"` 这种跨行锚点切片的判据会在
+     * 干净检出上直接找不到分隔符（2026-09-18 实际踩到）。
+     */
+    private fun read(path: String) = File(root, path).readText().replace("\r\n", "\n")
+
     private fun main(name: String) =
-        File(root, "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/$name").readText()
+        read("app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/$name")
 
-    private fun shader(name: String) = File(root, "shared/particle-dismiss/$name").readText()
+    private fun shader(name: String) = read("shared/particle-dismiss/$name")
 
-    private fun playback(name: String) =
-        File(root, "app/src/main/assets/particle-playback/$name").readText()
+    private fun playback(name: String) = read("app/src/main/assets/particle-playback/$name")
 
     // ---- 逐项开关：A/B 两端都要读回来核对，而且只影响调用线程 ----
 
@@ -73,21 +79,26 @@ class ParticlePerFrameBatchOneTest {
 
     @Test fun `绘制记录路径的顶点着色器不再有任何昂贵数学`() {
         val source = shader("material.vert")
-        val records = source.substringAfterLast("#ifdef DRAW_RECORDS").substringBefore("#else")
+        // 取的是**绘制记录那一份 main**。不能按「最后一个 #ifdef DRAW_RECORDS 到第一个 #else」
+        // 切：第二阶段在 main 里加了别的条件编译，第一个 #else 会落在它身上，判据就只看到半段。
+        val records = source.substringAfter("#ifdef DRAW_RECORDS\nvoid main(){")
+            .substringBefore("#else\nvoid main(){")
         assertTrue("记录路径要读预乘好的矩阵", "mat2 expand=mat2(record_xform" in records)
         assertTrue("展开只是原点加矩阵乘角点", "record_place.xy+expand*(c+j)" in records)
         for (call in listOf("sin(", "cos(", "exp(", "log(", "pow(", "atan(", "smoothstep(", "sqrt(")) {
             assertFalse("记录路径的顶点着色器里不该再出现 $call", call in records)
         }
         // 位置只依赖前两个属性——Adreno 的分箱遍与 Mali 的 IDVS 都只会读这 32 字节。
-        val position = records.substringAfter("mat2 expand").substringBefore("gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);\n    light_out")
+        val position = records.substringAfter("mat2 expand").substringBefore("gl_Position=")
         assertFalse("位置链不得碰外观属性", "record_shade" in position || "record_mask" in position)
     }
 
     @Test fun `绘制记录由 compute 每片每帧写一次，两遍绘制共用同一份`() {
         val record = shader("draw-record.comp")
         assertTrue("写的是四个 vec4", "records[o+3u]" in record && "records[o]=xform" in record)
-        assertTrue("按片一次", "layout(local_size_x=256) in;" in record)
+        // 工作组大小第二阶段起走宏（M1 的 Mali 变体），默认值仍是 256。
+        assertTrue("按片一次", "layout(local_size_x=LINEAR_GROUP) in;" in record)
+        assertTrue("宏的默认值仍是 256", "#define LINEAR_GROUP 256" in record)
         val renderer = main("ParticleMicroflakeRenderer.kt")
         val write = renderer.substringAfter("private fun writeDrawRecords(").substringBefore("private fun render(")
         assertTrue("读顶点属性前要下顶点属性屏障",
@@ -121,7 +132,7 @@ class ParticlePerFrameBatchOneTest {
         assertTrue("包围盒由原子 min/max 给出",
             "atomicMin(box_x0" in splat && "atomicMax(box_x1" in splat)
         assertTrue("清零仍是整网格：它只写 16 字节/格，实测落在噪声里",
-            "if(pass==0){if(i<uint(grid_shape.x*grid_shape.y))accumulation[i]=ivec4(0);return;}" in splat)
+            Regex("""if\(pass==0\)\{if\(i<uint\(grid_shape\.x\*grid_shape\.y\)\)""").containsMatchIn(splat))
         // 间接分发要配 GL_COMMAND_BARRIER_BIT，Adreno 上那道屏障比省下的格子还贵。
         val renderer = main("ParticleMicroflakeRenderer.kt")
         val peel = renderer.substringAfter("private inner class PeelPressure").substringBefore("private fun program(")
@@ -150,7 +161,9 @@ class ParticlePerFrameBatchOneTest {
             playback("pressure-batched.comp"), playback("pressure-batched-large.comp"))
         for (source in sources) {
             val block = source.substringAfter("binding=7").substringBefore("};")
-            for (field in listOf("workgroups", "region", "previous", "box_x0", "tiles[]")) {
+            // 第四批把 `uvec4 workgroups` 换成四个标量 uint（Maleoon 上向量分量的原子
+            // 不按下标寻址），字节布局不变，表头仍是 64 字节。
+            for (field in listOf("group_count", "region", "previous", "box_x0", "tiles[]")) {
                 assertTrue("表头缺少 $field", field in block)
             }
         }

@@ -5,7 +5,9 @@ layout(local_size_x=16,local_size_y=16) in;
 layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
 layout(std430,binding=2) writeonly buffer B { float next_pressure[]; };
 layout(std430,binding=7) buffer Work {
-    uvec4 workgroups;
+    // 间接分发参数；必须是**标量**成员：Maleoon 910 上对向量分量做原子操作
+    // 不按下标寻址（见 peel-splat.comp 的同一条）。
+    uint group_count,group_y,group_z,group_pad;
     ivec4 region;
     ivec4 previous;
     int box_x0,box_y0,box_x1,box_y1;
@@ -18,7 +20,7 @@ uniform int pass;
 shared uint occupied_tile;
 void main() {
     uint lane=gl_LocalInvocationIndex;
-    if(pass==0) { if(lane==0u)workgroups=uvec4(0,1,1,0); return; }
+    if(pass==0) { if(lane==0u){group_count=0u;group_y=1u;group_z=1u;group_pad=0u;} return; }
     if(lane==0u)occupied_tile=0u;
     barrier();
     bool mine=false;
@@ -32,7 +34,7 @@ void main() {
     if(mine)atomicOr(occupied_tile,1u);
     barrier();
     if(lane==0u && occupied_tile!=0u) {
-        uint slot=atomicAdd(workgroups.x,1u);
+        uint slot=atomicAdd(group_count,1u);
         tiles[slot]=ivec2(gl_WorkGroupID.xy);
     }
 }

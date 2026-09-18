@@ -202,6 +202,13 @@
             android:label="@string/spatial_settings_title"
             android:theme="@style/EverythingDoneTheme.Settings"/>
 
+        <activity
+            android:name=".activities.ParticleTuningActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
+            android:exported="false"
+            android:label="@string/settings_particle_tuning"
+            android:theme="@style/EverythingDoneTheme.Settings"/>
+
         <receiver
             android:name=".spatial.SpatialModelDownloadCancelReceiver"
             android:exported="false"/>

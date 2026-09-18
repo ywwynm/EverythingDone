@@ -65,6 +65,89 @@ internal object ParticleSegmentBench {
         }, "ParticlePerFrameBench").start()
     }
 
+    /**
+     * 第二阶段的**逐项墙钟 A/B**。条件表见 [ParticlePhase2Conditions]，两侧各自用
+     * [ParticlePerfTuning.withPhase2] 的线程局部掩码切换，纪律与 [runPerFrame] 相同：
+     * 先热身一遍丢掉、外层配对内层条件、整段只在末尾 `glFinish` 一次。
+     */
+    fun runPhase2(context: Context, spec: ParticleDismissSpec, width: Int, height: Int,
+                  output: File, repeats: Int = 2, forwardFrames: Int = 60,
+                  names: Collection<String> = emptyList()) {
+        Thread({
+            synchronized(lock) {
+                val report = JSONObject().put("width", width).put("height", height)
+                    .put("repeats", repeats).put("startedAt", System.nanoTime())
+                val file = File(output, "phase2-bench.json")
+                runCatching { phase2(context, spec, width, height, report, repeats, forwardFrames, names) }
+                    .onFailure { report.put("error", it.stackTraceToString()) }
+                runCatching { file.writeText(report.toString()) }
+                    .onFailure { File(output, "phase2-bench-error.txt").writeText(it.stackTraceToString()) }
+            }
+        }, "ParticlePhase2Bench").start()
+    }
+
+    private fun phase2(context: Context, spec: ParticleDismissSpec, width: Int, height: Int,
+                       report: JSONObject, repeats: Int, forwardFrames: Int,
+                       names: Collection<String>) {
+        val input = ParticleMicroflakeRenderer.fromSpec(context.assets, width, height,
+            context.resources.displayMetrics.density, spec)
+        val samples = ParticleReversePlan.samplesFor(ParticleReversePlan.APPEARANCE_SECONDS, 60f)
+        val conditions = ParticlePhase2Conditions.byName(names)
+        withEgl(context.assets, width, height) { shared ->
+            report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER) ?: "")
+                .put("count", input.materials.count)
+                .put("conditions", JSONArray(conditions.map { it.name }))
+            fun dismissRun(on: Int, off: Int): Double = ParticlePerfTuning.withPhase2(on, off) {
+                ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
+                    renderer.prepare()
+                    renderer.draw(0f, batchPressure = true)
+                    GLES30.glFinish()
+                    val start = System.nanoTime()
+                    for (frame in 1..forwardFrames) renderer.draw(frame / forwardFrames.toFloat(), batchPressure = true)
+                    GLES30.glFinish()
+                    (System.nanoTime() - start) / 1e6
+                }
+            }
+            fun appearRun(on: Int, off: Int): Double = ParticlePerfTuning.withPhase2(on, off) {
+                ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
+                    renderer.prepare()
+                    check(renderer.prepareReverse(samples)) { "逆向准备被取消" }
+                    GLES30.glFinish()
+                    val start = System.nanoTime()
+                    for (frame in samples downTo 0) renderer.drawReverseFrame(frame)
+                    GLES30.glFinish()
+                    (System.nanoTime() - start) / 1e6
+                }
+            }
+            fun prereadRun(on: Int, off: Int): Double = ParticlePerfTuning.withPhase2(on, off) {
+                ParticleMicroflakeRenderer(context.assets, shared, input).use { renderer ->
+                    renderer.prepare()
+                    renderer.beginReverse(samples, samples, precomputeProbe = false)
+                    val start = System.nanoTime()
+                    while (renderer.reverseIncomplete) check(renderer.stepReverse { false }) { "预读被取消" }
+                    GLES30.glFinish()
+                    val elapsed = (System.nanoTime() - start) / 1e6
+                    renderer.endReverse()
+                    elapsed
+                }
+            }
+            val paths = listOf<Triple<String, (Int, Int) -> Double, Int>>(
+                Triple("dismiss", ::dismissRun, forwardFrames),
+                Triple("appear", ::appearRun, samples),
+                Triple("preread", ::prereadRun, samples))
+            for ((name, run, units) in paths) {
+                val bucket = JSONObject().put("units", units)
+                run(0, 0)  // 热身，不计
+                for (pair in 0 until repeats) for (condition in conditions) {
+                    record(bucket, "base@" + condition.name, run(condition.baseOn, condition.baseOff))
+                    record(bucket, condition.name, run(condition.testOn, condition.testOff))
+                }
+                report.put(name, bucket)
+            }
+            check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "第二阶段 A/B 结束时有 GL 错误" }
+        }
+    }
+
     /** 条件表：整批，以及四项各自单开。名字直接进产物，分析脚本按它取数。 */
     private val PER_FRAME = listOf(
         "all" to ParticlePerfTuning.PER_FRAME_ALL,

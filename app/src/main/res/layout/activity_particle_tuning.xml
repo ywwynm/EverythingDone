@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_chrome_surface"
+    tools:context="com.ywwynm.everythingdone.activities.ParticleTuningActivity">
+
+    <!--
+      第 10 批第 1 条：状态栏占位与顶栏**合成一块**再上色。
+
+      此前两者各自 `BackgroundUtil.applyBackground` 一次，`GradientDrawable` 的渐变按
+      **各自的** bounds 铺开——主题色是渐变时，两块各跑一整条，交界处直接断开（魅族实测
+      一次换色跳了 152 个灰阶：状态栏下沿已经是渐变末端色，顶栏上沿又从起点色开始）。
+      套一层容器、只给容器上色之后，一条渐变横跨「状态栏 + 顶栏」整块，交界处不再有分界。
+    -->
+    <LinearLayout
+        android:id="@+id/ll_particle_tuning_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/view_status_bar"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"/>
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/actionbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/transparent"
+            android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
+            app:contentInsetStart="72dp"
+            app:titleTextColor="@color/black_54p"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/ll_particle_tuning_header"
+        android:orientation="vertical">
+
+        <!-- 预览内容的两种形态：记事卡片（可以真的用手指左滑）与对话框（点一下播一轮）。 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="12dp">
+
+            <TextView
+                android:id="@+id/tv_particle_tuning_mode_card"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:minWidth="112dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textSize="14sp"/>
+
+            <TextView
+                android:id="@+id/tv_particle_tuning_mode_dialog"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:gravity="center"
+                android:minWidth="112dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/fl_particle_tuning_preview"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/particle_tuning_preview_height">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_particle_tuning_card"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingTop="@dimen/particle_tuning_card_top_padding"/>
+
+            <FrameLayout
+                android:id="@+id/fl_particle_tuning_dialog"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <include layout="@layout/dialog_particle_tuning_preview"/>
+
+            </FrameLayout>
+
+        </FrameLayout>
+
+        <!-- 预览正下方居中的一排图标按钮：换色（两种预览都有）与粒子方向（只有对话框预览有）。
+             都不带底色，只有图标本身与一圈触摸涟漪（第 7 批第 2 条）。
+             图标色照「音频海浪动画设置」页的同类按钮取 on-surface 次级色 + 69% 不透明度，
+             亮色下是中灰而不是实黑（第 8 批第 1 条）。 -->
+        <LinearLayout
+            android:id="@+id/ll_particle_tuning_preview_buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_particle_tuning_palette"
+                android:layout_width="@dimen/particle_tuning_icon_button_size"
+                android:layout_height="@dimen/particle_tuning_icon_button_size"
+                android:clickable="true"
+                android:contentDescription="@string/cd_particle_tuning_switch_color"
+                android:focusable="true"
+                android:padding="9dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/act_fablesol_palette"
+                android:tint="@color/app_chrome_on_surface_secondary"/>
+
+            <ImageView
+                android:id="@+id/iv_particle_tuning_direction"
+                android:layout_width="@dimen/particle_tuning_icon_button_size"
+                android:layout_height="@dimen/particle_tuning_icon_button_size"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:contentDescription="@string/cd_particle_tuning_direction"
+                android:focusable="true"
+                android:padding="10dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_particle_direction_arrow"
+                android:tint="@color/app_chrome_on_surface_secondary"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_particle_tuning_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:textSize="12sp"/>
+
+        <TextView
+            android:id="@+id/tv_particle_tuning_stats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="10dp"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="12sp"/>
+
+        <View
+            android:id="@+id/view_particle_tuning_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/app_chrome_divider"/>
+
+        <!--
+          Android 12+ 的 over-scroll 拉伸是 RenderEffect，会明显拖慢上方正在播的粒子层；
+          与音频海浪动画的设置界面同一条纪律，这里也关掉。
+        -->
+        <ScrollView
+            android:id="@+id/sv_particle_tuning_params"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="24dp">
+
+                <!--
+                  第 9 批：整个参数区的字号、行高与间距改为与「空间照片效果」设置页
+                  （`activity_spatial_photo_settings.xml`）一致，逐项对照见
+                  `docs/features/particle-animation-performance/per-frame-batch9-ui-2026-09-18.md`：
+
+                  * 左右内边距 16dp（那一页所有行都是 16dp，本页此前是 20dp）；
+                  * 「标题 + 右侧读数」的行高 56dp（那一页的 `row_depth_detail`）；
+                  * 标题 16sp、用主题的 `textColorPrimary`；右侧读数 14sp；
+                  * 说明 12sp、`app_chrome_on_surface_hint`，紧跟上一个控件、自带 10dp 底部
+                    内边距（那一页每组收尾的说明就是 `padding(16, 0, 16, 10)`），
+                    组与组之间因此不再另加间距；
+                  * 滑动条用**全宽**：`Widget.Material.SeekBar` 自带左右 16dp 内边距，
+                    轨道正好与 16dp 的标题左缘对齐。
+                -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp">
+
+                    <RelativeLayout
+                        android:id="@+id/rl_particle_tuning_cell_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_cell_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_cell_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="14sp"/>
+
+                    </RelativeLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_particle_tuning_cell"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_cell_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <RelativeLayout
+                        android:id="@+id/rl_particle_tuning_flow_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_flow_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_flow_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="14sp"/>
+
+                    </RelativeLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_particle_tuning_flow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_flow_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <!-- 颜色精度：两档，默认高精度（与加入本设置之前逐位相同）。
+                     两个选项与标题同一行、靠右排布，样式与「音频海浪动画设置」页的
+                     「导出色彩设置」一致（第 7 批第 3 条）；行高与左右内边距按参照页取
+                     56dp / 16dp（第 9 批）。 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/ll_particle_tuning_color_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_color_label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_color_standard"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:gravity="center"
+                            android:minWidth="64dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:textSize="14sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_color_high"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginLeft="8dp"
+                            android:layout_marginStart="8dp"
+                            android:gravity="center"
+                            android:minWidth="64dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_color_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <!--
+                  性能自动调节：默认关。整行可点，**整体样式照「空间照片效果」设置页的
+                  「通过倾斜设备控制视点」那一行**（`rl_spatial_tilt_as_bt`）逐项取值：
+                  minHeight 72dp、左右 16dp、上下 10dp，勾选框贴右缘并垂直居中，
+                  文字块占满剩余宽度并与勾选框留 12dp，标题 16sp，说明在**行内**、
+                  上边距 2dp、12sp、hint 色。勾选框自己不可点，按下态与涟漪都由整行下发。
+                -->
+                <RelativeLayout
+                    android:id="@+id/rl_particle_tuning_auto_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:minHeight="72dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp">
+
+                    <!--
+                      负外边距 = 勾选框画出来的方框比它 24dp 的占位向内缩的那一段
+                      （`BackgroundUtil.CHECKBOX_VISUAL_INSET_DP`：3dp 内缩减去压在边线上的
+                      半条 2dp 描边）。不补这一段的话，**看得见的**方框右缘会比同一列的读数、
+                      胶囊再往里 2dp（魅族实测 18.0 dp 对 16.0 dp）。第 10 批第 3 条。
+                    -->
+                    <CheckBox
+                        android:id="@+id/cb_particle_tuning_auto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginEnd="-2dp"
+                        android:layout_marginRight="-2dp"
+                        android:clickable="false"
+                        android:focusable="false"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@id/cb_particle_tuning_auto"
+                        android:layout_toLeftOf="@id/cb_particle_tuning_auto"
+                        android:layout_marginEnd="12dp"
+                        android:layout_marginRight="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_auto_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_auto_detail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="@color/app_chrome_on_surface_hint"
+                            android:textSize="12sp"/>
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+                <!-- 文本右缘与上方各行（16dp 内边距）对齐：外边距 8dp + 内边距 8dp = 16dp；
+                     内边距只留 8dp，触摸涟漪比文本略宽一点即可。 -->
+                <TextView
+                    android:id="@+id/tv_particle_tuning_reset"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginRight="8dp"
+                    android:gravity="center"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:textSize="14sp"/>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+    <!-- 顶栏下方的投影，与设置页、帮助页等二级页面一致；放在最后才压得住内容。 -->
+    <View
+        android:id="@+id/actionbar_shadow"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_below="@id/ll_particle_tuning_header"
+        android:background="@drawable/actionbar_shadow"/>
+
+</RelativeLayout>

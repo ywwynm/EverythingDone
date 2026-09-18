@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  设置页预览用的示例记事卡：圆角、投影与文字排布都照真实卡片取值，高度按「标题 + 三行正文」，
+  与列表里最常见的一张卡接近。宽度与左右边距由 ParticleTuningActivity 写：最宽 640 dp 并居中，
+  平板横屏下不铺满整行。
+
+  标题与正文的颜色不写在这里：它随卡片底色的明暗自适应，由 ParticleTuningActivity 的
+  applyCardColor 按 BackgroundUtil.onColor 给出，与首页列表里的记事卡同一套档位。
+-->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cv_particle_tuning_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
+    android:clipToOutline="true"
+    app:cardCornerRadius="@dimen/thing_card_corner_radius"
+    app:cardElevation="@dimen/thing_card_normal_elevation"
+    app:cardMaxElevation="@dimen/thing_card_dragging_elevation"
+    app:cardPreventCornerOverlap="false">
+
+    <LinearLayout
+        android:id="@+id/ll_particle_tuning_card_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_particle_tuning_card_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tv_particle_tuning_card_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="6"
+            android:textSize="14sp"/>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

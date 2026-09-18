@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  粒子动画方向按钮与方向选择弹层共用的箭头：本身指向正上方，八个方向由使用处按
+  `rotation = 90 - 方向角` 旋转得到（方向角的约定见 ParticleTuningActivity 的 DIRECTIONS）。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,12l1.41,1.41L11,7.83V20h2V7.83l5.58,5.59L20,12l-8,-8 -8,8z"/>
+
+</vector>

@@ -133,6 +133,17 @@ internal object ParticlePerfTuning {
     @Volatile var dialogAppearanceSkipEmptyTail = true
 
     /**
+     * 第九批第 2 条：含投影的页内面板（目前只有粒子动画设置页的示例对话框）在粒子起止两端
+     * 走 [ParticleCardSurfaceHandoff] 的**窗口内原子交接**。
+     *
+     * 关掉它就退回第八批那条：含阴影的快照画在窗口内的叠加层上、交接那一次遍历里把真实
+     * `elevation` 置 0。两条路径的差别只在交接的那一两帧——**半透明的投影**在「先显后撤」
+     * 的重叠期会叠成两层，看上去就是起止各闪一下。留这个开关是为了能在**同一个包**上做
+     * 受控对照（同一台设备、同一条动作，只切这一项），不必为了取修前数据重建旧版本。
+     */
+    @Volatile var panelShadowAtomicHandoff = true
+
+    /**
      * 2c 的门槛：存活片占比低于它的采样算「几乎是空画面」，从倒放里去掉。
      * 提高它会跳掉更多帧——既让起始段更明显，也按比例省下预计算。
      * 第四批起创建页与弹窗共用这一个门槛（10%）。
@@ -301,10 +312,36 @@ internal object ParticlePerfTuning {
     @Volatile var microflakeCellDp = 0f
 
     /**
-     * C7 的调参口（**V 级，默认 100 = 现状**）：压力投影的 Jacobi 迭代数。
-     * 同样只供受控对照，改它会改画面。
+     * C7 的调参口（**V 级，默认 100 = 现状**）：压力投影的 Jacobi 迭代数，也就是设置页里的
+     * 「流动精细度」。**0 表示整段压力更新都不跑**（见 `ParticleMicroflakeRenderer` 的
+     * `skipPressure`），修正场保持构造时清空的零场。
      */
     @Volatile var jacobiIterations = 100
+
+    /**
+     * 把设置页里选的四项推进来。[ParticleTuning] 在进程启动与每次改动之后各调一次。
+     *
+     * debug 的 A/B 配置文件写过同名键时**以文件为准**：那个文件是用来在同一台设备上复测
+     * 某一档的，被用户设置盖掉就白跑了。[attach] 先于 `Application.onCreate` 执行
+     * （它由 debug 专用的 ContentProvider 调用），所以这里只需要看一眼标记。
+     */
+    fun applyUserTuning(cellDp: Float, iterations: Int, colorStandard: Boolean, autoTune: Boolean) {
+        if (!cellDpFromFile) microflakeCellDp = cellDp.coerceIn(0f, 12f)
+        if (!jacobiFromFile) jacobiIterations = iterations.coerceIn(0, 200)
+        if (!colorPrecisionFromFile) {
+            phase2Defaults = if (colorStandard) phase2Defaults or P2_SRGB8_ACCUMULATION
+                else phase2Defaults and P2_SRGB8_ACCUMULATION.inv()
+        }
+        if (!autoDowngradeFromFile) autoDowngrade = autoTune
+    }
+
+    @Volatile private var cellDpFromFile = false
+
+    @Volatile private var jacobiFromFile = false
+
+    @Volatile private var colorPrecisionFromFile = false
+
+    @Volatile private var autoDowngradeFromFile = false
 
     /**
      * 受控对照临时切这两个值时用；**只作用于调用它的那条线程**。
@@ -369,6 +406,174 @@ internal object ParticlePerfTuning {
     // 61 帧散列在两台设备上都不一致（消散从第 6–7 帧起、出现从第 4–5 帧起），
     // 预计算收益只有 OPD2515 约 5–7 ms、SM-S9180 约 8 ms，两条门槛都不满足。
 
+    // ---- 逐帧成本专项 第二阶段（2026-09-18）：三家 GPU 与交互延迟 ----
+    //
+    // 每一项都是一位，默认值在 [phase2Defaults] 里。与第一批那套 [withPerFrame] 的区别是
+    // 这里要能**两个方向**临时切换：批 D 的几项默认关，离屏对照要把它们临时打开；批 A 的
+    // 几项默认开，对照要把它们临时关掉。所以用「强制开」与「强制关」两张线程局部掩码。
+    //
+    // 着色器侧的项都通过 `program(defines=)` 走独立变体，两套变体在 `shared.compiled` 里共存。
+
+    /** U1：compute→compute 的屏障只发 `GL_SHADER_STORAGE_BARRIER_BIT`。 */
+    const val P2_NARROW_BARRIERS = 1 shl 0
+
+    /** U6：`pressure-batched.comp` 的散度与占据度移出 shared（16 → 8 KiB）。 */
+    const val P2_SHARED_HALF = 1 shl 1
+
+    /** M1：非 Adreno 上一维核用 64 线程、二维核用 8×8。 */
+    const val P2_MALI_LOCAL_SIZE = 1 shl 2
+
+    /** U2：流场与置信度合成一张 RGBA16F 三维纹理，`field_cell` 取样 2 → 1。 */
+    const val P2_MERGED_FIELD = 1 shl 3
+
+    /** U2b：三维采样器声明成 `mediump`。 */
+    const val P2_MEDIUMP_SAMPLER = 1 shl 4
+
+    /** U3：`peel_field` RGBA32F → RG16F，`sample_peel` 4 点 → 一次硬件双线性。 */
+    const val P2_PEEL_FIELD_HALF = 1 shl 5
+
+    /** U5：`material.vert` / `material.frag` 的 varying 除 `uv` 外改 `mediump`。 */
+    const val P2_MEDIUMP_VARYING = 1 shl 6
+
+    /** U4：片元里的逐片常量下沉到 `draw-record.comp`。 */
+    const val P2_FLAKE_CONSTANTS = 1 shl 7
+
+    /** U10a：绘制只用一个实例化顶点缓冲（取消 location 4/5 那一路）。 */
+    const val P2_SINGLE_INSTANCE_BUFFER = 1 shl 8
+
+    /** A1（本阶段编号）：`curl()` 与 `peel-blur` 的 `vec4` 改 `mediump`。 */
+    const val P2_MEDIUMP_ALU = 1 shl 9
+
+    /** M2：活动区域接到逐次 Jacobi 路径。 */
+    const val P2_REGION_PLAIN_JACOBI = 1 shl 10
+
+    /** M3：非 Adreno 上压力求解改用逐次 Jacobi（无 shared）。 */
+    const val P2_PLAIN_JACOBI_ON_MALI = 1 shl 11
+
+    /** M4：`peel-splat.comp` 的整网格清零改成只清活动区域。 */
+    const val P2_CLEAR_ACTIVE_REGION = 1 shl 12
+
+    /**
+     * U7 / 归因 B1：累积目标 RGBA16F → SRGB8_ALPHA8，也就是设置页里「颜色精度」的「标准」档。
+     * **默认关**（= 高精度的 16 位浮点，与加入本设置之前逐位相同）。
+     */
+    const val P2_SRGB8_ACCUMULATION = 1 shl 13
+
+    /** U8：splat 双线性 → 最近格。**V 级，默认关。** */
+    const val P2_NEAREST_SPLAT = 1 shl 14
+
+    /** U10：`sample_field` 改硬件三线性。**V 级，默认关。** */
+    const val P2_HARDWARE_TRILINEAR = 1 shl 15
+
+    /** 归因专用：`sample_field` 只取一个格子、不插值（画面必然错，只量墙钟）。 */
+    const val P2_PROBE_SINGLE_CELL = 1 shl 16
+
+    /**
+     * 本阶段的默认配置 = 发布配置。
+     *
+     * 采纳的五项都是两台真机各自跑过逐项 A/B、**两台都不劣化**才收的
+     * （数字见 `per-frame-huawei-attrib-2026-09-18.md` 第 5 节）：
+     *
+     * | 项 | 华为 Maleoon 910 | 魅族 Adreno 740 | G |
+     * | --- | --- | --- | --- |
+     * | [P2_NARROW_BARRIERS] 屏障位收窄 | 消散 0.901 | 消散 0.970 | G0（两台逐位相同） |
+     * | [P2_SHARED_HALF] shared 16 → 8 KiB | 0.994（中性） | 消散 0.865、预读 0.793 | G0 |
+     * | [P2_MALI_LOCAL_SIZE] 非 Adreno 的工作组变体 | 消散 0.885 | 不走这条变体 | G0 |
+     * | [P2_CLEAR_ACTIVE_REGION] 只清活动区域 | 消散 0.929 | 1.004（中性） | G0 |
+     * | [P2_FLAKE_CONSTANTS] 片元逐片量下沉 | 出现 0.814、消散 0.953 | 0.966 / 0.978 | G1（两台实测逐位相同） |
+     *
+     * 否决的：U2 / U2b / U3 / U10（单格取样探针证明三维取样不是瓶颈）、U5 与 U2b
+     * （驱动忽略 `mediump`，画面逐位相同）、A1（`mediump` 被接受但改画面、只省 2–3%）、
+     * U10a（第五段记录比省下的属性流更贵）、M2 / M3（逐次 Jacobi 在 Maleoon 上慢 3 倍）。
+     * V 级三项（U7 / U8 / U10）与归因探针默认关，等用户看图裁定。
+     */
+    @Volatile var phase2Defaults = P2_NARROW_BARRIERS or P2_SHARED_HALF or P2_MALI_LOCAL_SIZE or
+        P2_CLEAR_ACTIVE_REGION or P2_FLAKE_CONSTANTS
+
+    /** 每一位对应的 JSON 键名；[attach] 与调试脚本共用。 */
+    val PHASE2_KEYS: List<Pair<String, Int>> = listOf(
+        "narrowBarriers" to P2_NARROW_BARRIERS,
+        "sharedHalf" to P2_SHARED_HALF,
+        "maliLocalSize" to P2_MALI_LOCAL_SIZE,
+        "mergedField" to P2_MERGED_FIELD,
+        "mediumpSampler" to P2_MEDIUMP_SAMPLER,
+        "peelFieldHalf" to P2_PEEL_FIELD_HALF,
+        "mediumpVarying" to P2_MEDIUMP_VARYING,
+        "flakeConstants" to P2_FLAKE_CONSTANTS,
+        "singleInstanceBuffer" to P2_SINGLE_INSTANCE_BUFFER,
+        "mediumpAlu" to P2_MEDIUMP_ALU,
+        "regionPlainJacobi" to P2_REGION_PLAIN_JACOBI,
+        "plainJacobiOnMali" to P2_PLAIN_JACOBI_ON_MALI,
+        "clearActiveRegion" to P2_CLEAR_ACTIVE_REGION,
+        "srgb8Accumulation" to P2_SRGB8_ACCUMULATION,
+        "nearestSplat" to P2_NEAREST_SPLAT,
+        "hardwareTrilinear" to P2_HARDWARE_TRILINEAR,
+        "probeSingleCell" to P2_PROBE_SINGLE_CELL)
+
+    /** 取值点：先看本线程的强制开 / 强制关，都没有才取默认。 */
+    fun phase2(item: Int): Boolean {
+        if (baselineGpu) return false
+        if ((phase2Force.get() ?: 0) and item != 0) return true
+        if ((phase2Suppress.get() ?: 0) and item != 0) return false
+        return phase2Defaults and item != 0
+    }
+
+    /** 把当前线程看到的整张掩码取一份快照；渲染器在准备管线时读一次，之后不再变。 */
+    fun phase2Snapshot(): Int {
+        var mask = 0
+        for ((_, bit) in PHASE2_KEYS) if (phase2(bit)) mask = mask or bit
+        return mask
+    }
+
+    /**
+     * 离屏对照：**只作用于调用它的那条线程**（`dont-touch-process-wide-state`，
+     * 第五批 `withBaselineGpu` 的教训）。切过去与恢复都要读回来断言
+     * （`ab-restore-must-be-verified`，第四批 `setLanes(0)` 的教训）。
+     */
+    fun <T> withPhase2(on: Int = 0, off: Int = 0, action: () -> T): T {
+        val previousOn = phase2Force.get()
+        val previousOff = phase2Suppress.get()
+        phase2Force.set(on)
+        phase2Suppress.set(off)
+        for ((_, bit) in PHASE2_KEYS) {
+            if (on and bit != 0) check(phase2(bit)) { "第二阶段开关没切开：$bit" }
+            if (off and bit != 0) check(!phase2(bit)) { "第二阶段开关没切关：$bit" }
+        }
+        return try {
+            action()
+        } finally {
+            phase2Force.set(previousOn)
+            phase2Suppress.set(previousOff)
+            for ((_, bit) in PHASE2_KEYS) {
+                val expected = ((previousOn ?: 0) and bit != 0) ||
+                    ((previousOff ?: 0) and bit == 0 && phase2Defaults and bit != 0)
+                check(phase2(bit) == expected) { "第二阶段开关没恢复：$bit" }
+            }
+        }
+    }
+
+    private val phase2Force = ThreadLocal<Int>()
+    private val phase2Suppress = ThreadLocal<Int>()
+
+    /**
+     * L2：左滑的建材在 `ACTION_DOWN` 就派出去，不等 `ItemTouchHelper` 判出左滑。
+     * 判定没来就丢弃（代价是「按下但没左滑」时白建一次材料）。
+     */
+    @Volatile var swipeMaterialsOnDown = true
+
+    /** L3：常驻 GL 线程与材料工作线程放进一个 ADPF hint session。 */
+    @Volatile var performanceHint = true
+
+    /** L4：离屏抓图按内容包围盒而不是整窗口尺寸。 */
+    @Volatile var snapshotContentBounds = true
+
+    /**
+     * 按实测帧率自动降档（设置页里的「性能自动调节」）。**默认关**，由
+     * [ParticleTuning] 从设置里推进来。规则本身是纯逻辑，见 [ParticleAutoDowngrade]，
+     * JVM 单测覆盖。
+     */
+    @Volatile var autoDowngrade = false
+
     @Volatile private var loaded = false
 
     /** 由 debug 专用 ContentProvider 在进程启动时调用；release 包没有调用点。 */
@@ -393,6 +598,8 @@ internal object ParticlePerfTuning {
             config.optBoolean("creationAppearanceSkipEmptyTail", creationAppearanceSkipEmptyTail)
         dialogAppearanceSkipEmptyTail =
             config.optBoolean("dialogAppearanceSkipEmptyTail", dialogAppearanceSkipEmptyTail)
+        panelShadowAtomicHandoff =
+            config.optBoolean("panelShadowAtomicHandoff", panelShadowAtomicHandoff)
         // 旧键保留：第三批的 A/B 配置文件里写的是 creationAppearanceAliveRatio。
         appearanceAliveRatio =
             config.optDouble("appearanceAliveRatio",
@@ -417,9 +624,23 @@ internal object ParticlePerfTuning {
         yieldWorkBeforeBeat = config.optBoolean("yieldWorkBeforeBeat", yieldWorkBeforeBeat)
         immediateFirstFrame = config.optBoolean("immediateFirstFrame", immediateFirstFrame)
         beatPhaseLock = config.optBoolean("beatPhaseLock", beatPhaseLock)
+        cellDpFromFile = config.has("microflakeCellDp")
+        jacobiFromFile = config.has("jacobiIterations")
+        colorPrecisionFromFile = config.has("srgb8Accumulation")
+        autoDowngradeFromFile = config.has("autoDowngrade")
         microflakeCellDp = config.optDouble("microflakeCellDp", microflakeCellDp.toDouble())
             .toFloat().coerceIn(0f, 12f)
-        jacobiIterations = config.optInt("jacobiIterations", jacobiIterations).coerceIn(1, 200)
+        jacobiIterations = config.optInt("jacobiIterations", jacobiIterations).coerceIn(0, 200)
+        var mask = phase2Defaults
+        for ((key, bit) in PHASE2_KEYS) {
+            if (!config.has(key)) continue
+            mask = if (config.optBoolean(key)) mask or bit else mask and bit.inv()
+        }
+        phase2Defaults = mask
+        swipeMaterialsOnDown = config.optBoolean("swipeMaterialsOnDown", swipeMaterialsOnDown)
+        performanceHint = config.optBoolean("performanceHint", performanceHint)
+        snapshotContentBounds = config.optBoolean("snapshotContentBounds", snapshotContentBounds)
+        autoDowngrade = config.optBoolean("autoDowngrade", autoDowngrade)
         if (materialLanes > 0) ParticleMaterialNative.setLanes(materialLanes)
     }
 

@@ -16,7 +16,9 @@ internal class ParticleReverseHistory(
     private val program: Int,
     val plan: ParticleReversePlan,
     private val pool: ParticleMicroflakeRenderer.HistoryPool,
-    private val uniforms: MutableMap<String, Int>
+    private val uniforms: MutableMap<String, Int>,
+    /** M1：`history.comp` 的工作组大小；非 Adreno 变体是 64，dispatch 除数必须跟着走。 */
+    private val groupSize: Int = 256
 ) : Closeable {
     private var rangeBuffer = 0
     private var historyBuffer = 0
@@ -79,7 +81,7 @@ internal class ParticleReverseHistory(
         GLES30.glUniform1i(frameLocation, frame)
         GLES30.glUniform1i(restoreLocation, if (restore) 1 else 0)
         GLES30.glUniform1f(fractionLocation, fraction)
-        GLES31.glDispatchCompute((plan.count + 255) / 256, 1, 1)
+        GLES31.glDispatchCompute((plan.count + groupSize - 1) / groupSize, 1, 1)
         GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
     }
 

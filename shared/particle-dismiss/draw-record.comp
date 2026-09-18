@@ -3,7 +3,10 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 precision highp sampler3D;
-layout(local_size_x=256) in;
+#ifndef LINEAR_GROUP
+#define LINEAR_GROUP 256
+#endif
+layout(local_size_x=LINEAR_GROUP) in;
 // A1（逐帧成本专项第一批）：把 `material.vert` 里只依赖片与时间的量搬到这里，每片每帧算一次。
 //
 // 为什么值得搬：Adreno 把每个顶点着色器编成 bin-pass（只算位置）与 render-pass 两份，而
@@ -24,6 +27,12 @@ uniform vec2 card,cell,wind;
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform float panel_weight,release_spread;
 uniform int nx,grid_count,count;
+#ifdef FLAKE_CONSTANTS
+// U4：`material.frag` 里只依赖 age / life / random / surface 的量全是**逐片常量**，
+// 对一片的所有像素给出同一个答案。搬到这里每片每帧算一次，片元侧省掉四个 smoothstep、
+// 一个 sin 与一个 pow(x,12)，varying 也从 14 个分量降到 13 个且除 uv 外都能 mediump。
+uniform float light_gain;
+#endif
 void main(){
     uint i=gl_GlobalInvocationID.x;if(i>=uint(count))return;
     Material m=particles[i];
@@ -99,9 +108,55 @@ void main(){
         light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
         shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);
     }
+#ifdef FLAKE_CONSTANTS
+    // **记录仍是四段 64 字节**：逐片外观常量换掉了 age/life/light，多出来的 radial、loosen
+    // 与 age_beat 靠 `packHalf2x16` 挤进两个槽，`replica` 与 `alive` 合成一个标志位。
+    // 记录一旦变宽（80 字节），回放路径每帧要多写多读 25%，实测在华为上把出现动画拖慢
+    // 8%——省下的片元数学换不回来（2026-09-18 第一轮对照）。
+    float alpha_scale=0.,loosen_optical=0.,light_scale=0.,add_term=0.,age_beat=0.;
+    vec2 radial_scale=vec2(1.);
+    if(alive){
+        float age=age_out;
+        float fade=1.-smoothstep(max(life-.075,life*.55),life,age);
+        alpha_scale=fade*(1.-surface)*smoothstep(.001,.022,age)*mix(1.,.92,smoothstep(.018,.12,age));
+        if(replica>0)alpha_scale*=smoothstep(.008,.055,age);
+        // 原片元里那条「复制片在极早期整片丢弃」的判据同样是逐片量。
+        if(replica>0&&age<=.001)alpha_scale=0.;
+        loosen_optical=smoothstep(.005,.095,age);
+        float lighting=mix(1.,light_out,light_gain);
+        lighting*=1.+.32*light_gain*smoothstep(.006,.045,age)*(1.-smoothstep(.11,.28,age));
+        float facing=.5+.5*sin(age*16.+m.random.z*6.28318);
+        float glint=0.1800000*pow(facing,12.);
+        light_scale=lighting*(1.+0.2493839*loosen_optical*light_gain);
+        add_term=(0.0120000+glint)*loosen_optical*light_gain;
+        radial_scale=vec2(.85+m.random.z*.35,.87+m.random.w*.34);
+        // `facet` 里有 uv，是逐像素的；只有 `age*11.` 这个自变量能预先算好（值域 ≤ 3.3）。
+        age_beat=age*11.;
+    }
+    // 标志位：0/1/2/3 在浮点里是精确的，`fract(flags*.5)` 取奇偶、`>=1.5` 取复制片。
+    float flags=(alive?1.:0.)+(replica>0?2.:0.);
+#ifdef SINGLE_INSTANCE
+    uint stride=5u;
+#else
+    uint stride=4u;
+#endif
+    uint o=i*stride;
+    records[o]=xform;
+    records[o+1u]=vec4(origin,grid);
+    records[o+2u]=vec4(alpha_scale,shape_out,light_scale,add_term);
+    // radial 只用来缩放 [-.5,.5] 的角点坐标、loosen 与 age_beat 值域都 ≤ 3.3，fp16 够用。
+    records[o+3u]=vec4(surface,flags,
+        uintBitsToFloat(packHalf2x16(radial_scale)),
+        uintBitsToFloat(packHalf2x16(vec2(loosen_optical,age_beat))));
+#ifdef SINGLE_INSTANCE
+    // U10a：复制片的采样中心并进记录，一次绘制只剩一个实例化缓冲。
+    records[o+4u]=vec4(m.src.xy,0.,0.);
+#endif
+#else
     uint o=i*4u;
     records[o]=xform;
     records[o+1u]=vec4(origin,grid);
     records[o+2u]=vec4(age_out,life,light_out,shape_out);
     records[o+3u]=vec4(surface,float(replica),alive?1.:0.,0.);
+#endif
 }

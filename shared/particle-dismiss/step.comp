@@ -2,8 +2,18 @@
 precision highp float;
 precision highp int;
 precision highp sampler2D;
+// U2b：三维采样器的精度。`texelFetch` 用整数坐标，坐标精度与它无关；数据本身是
+// f16 与 u8，mediump 存得下。Arm 第 8.4 节：highp 采样器可能只有一半速度。
+#ifdef MEDIUMP_SAMPLER
+precision mediump sampler3D;
+#else
 precision highp sampler3D;
-layout(local_size_x=256) in;
+#endif
+// M1：Mali 族的一维工作组变体。dispatch 除数由 Kotlin 侧的 linearGroups() 跟着走。
+#ifndef LINEAR_GROUP
+#define LINEAR_GROUP 256
+#endif
+layout(local_size_x=LINEAR_GROUP) in;
 struct Material {vec4 src; vec4 physical; vec4 random;};
 struct State {vec4 pos;vec4 vel;};
 layout(std430,binding=0) readonly buffer A {Material particles[];};
@@ -15,6 +25,13 @@ uniform vec2 wind;
 uniform sampler3D guide_field;
 uniform sampler2D peel_field;
 uniform vec4 peel_bounds;
+#ifdef PEEL_FIELD_HALF
+// U3：修正场改 RGBA16F + 硬件双线性。显式 4 点的钳位区间恰好就是 CLAMP_TO_EDGE 的行为
+// （纹素中心 [0.5/size, 1-0.5/size]），所以直接按归一化坐标取一次即可，权重由硬件给。
+vec2 sample_peel(vec2 p){
+    return texture(peel_field,(p-peel_bounds.xy)/peel_bounds.zw).xy;
+}
+#else
 vec2 sample_peel(vec2 p){
     ivec2 size=textureSize(peel_field,0);
     vec2 q=clamp((p-peel_bounds.xy)/peel_bounds.zw*vec2(size)-.5,vec2(0),vec2(size-1));
@@ -22,23 +39,35 @@ vec2 sample_peel(vec2 p){
     return mix(mix(texelFetch(peel_field,a,0).xy,texelFetch(peel_field,ivec2(b.x,a.y),0).xy,f.x),
                mix(texelFetch(peel_field,ivec2(a.x,b.y),0).xy,texelFetch(peel_field,b,0).xy,f.x),f.y);
 }
+#endif
 uniform sampler3D confidence_field;
+#ifdef MERGED_FIELD
+// U2：流场（.xy）与置信度（.z）合成一张 RGBA16F，`field_cell` 的取样 2 → 1。
+uniform sampler3D merged_field;
+#endif
 uniform vec2 card,guide_rotation;
 uniform float guide_gain,touch_gap,touch_strength;
 uniform vec4 field_geometry;
 uniform vec4 variation_affine,variation_bend,variation_wave;
 uniform vec2 variation_clock;
 
+// A1（第二阶段）：`curl()` 的**方向向量**那几步改 mediump；相位（a/b）留 highp，
+// 因为 dot(p,u)/scale*6.283 的量级由卡片尺寸决定，fp16 会把 sin 的自变量打散。
+#ifdef MEDIUMP_ALU
+#define MP mediump
+#else
+#define MP
+#endif
 vec2 curl(vec2 p,float t) {
-    vec2 v=vec2(0);
+    MP vec2 v=vec2(0);
     for(int k=0;k<3;k++) {
         float scale=span*(k==0?1.12:k==1?.51:.23);
         float angle=atan(wind.y,wind.x)+.61+float(k)*1.71;
-        vec2 u=vec2(cos(angle),sin(angle)),z=vec2(-u.y,u.x);
+        MP vec2 u=vec2(cos(angle),sin(angle)),z=vec2(-u.y,u.x);
         float a=dot(p,u)/scale*6.283+t*(1.2+float(k)*.5)+variation_wave.z;
         float b=dot(p,z)/scale*6.283-t*(.8+float(k)*.43)+variation_wave.w;
         // 同一个连续势场的二维旋度；各频段幅值递减。
-        vec2 grad=(cos(a)*cos(b)*u-sin(a)*sin(b)*z);
+        MP vec2 grad=(cos(a)*cos(b)*u-sin(a)*sin(b)*z);
         v+=vec2(grad.y,-grad.x)*(k==0?1.:k==1?.38:.12);
     }
     return v;
@@ -49,11 +78,34 @@ vec2 local_anchor(float index){
     vec2 axis=mix(vec2(1,0),vec2(0,1),field_geometry.w);
     return axis*along+vec2(-wind.y,wind.x)*across;
 }
+#ifdef MERGED_FIELD
+vec3 field_cell(ivec3 cell){return texelFetch(merged_field,cell,0).xyz;}
+#define FIELD_SIZE textureSize(merged_field,0)
+#else
 vec3 field_cell(ivec3 cell){
     return vec3(texelFetch(guide_field,cell,0).xy,texelFetch(confidence_field,cell,0).r);
 }
+#define FIELD_SIZE textureSize(guide_field,0)
+#endif
+#if defined(PROBE_SINGLE_CELL)
+// 归因专用：只取一个格子、不做三线性。**画面必然错**，只用来量那 32 次取样的份额。
 vec3 sample_field(vec3 uvw){
-    ivec3 size=textureSize(guide_field,0);
+    ivec3 size=FIELD_SIZE;
+    return field_cell(ivec3(clamp(uvw*vec3(size)-.5,vec3(0),vec3(size-1))));
+}
+#elif defined(HARDWARE_TRILINEAR)
+// U10：交给硬件三线性，取样 16 → 1（合并流场时）。钳位区间与显式版本一致
+// （CLAMP_TO_EDGE），但**插值权重由各家硬件决定**，跨设备不再逐位可比。
+vec3 sample_field(vec3 uvw){
+#ifdef MERGED_FIELD
+    return texture(merged_field,uvw).xyz;
+#else
+    return vec3(texture(guide_field,uvw).xy,texture(confidence_field,uvw).r);
+#endif
+}
+#else
+vec3 sample_field(vec3 uvw){
+    ivec3 size=FIELD_SIZE;
     vec3 q=clamp(uvw*vec3(size)-.5,vec3(0),vec3(size-1));
     ivec3 a=ivec3(floor(q)),b=min(a+1,size-1);
     vec3 f=fract(q);
@@ -64,6 +116,7 @@ vec3 sample_field(vec3 uvw){
                 mix(field_cell(ivec3(a.x,b.y,b.z)),field_cell(b),f.x),f.y);
     return mix(z0,z1,f.z);
 }
+#endif
 vec3 guided_flow(vec2 p,vec2 anchor,float t){
     vec2 cq=(p-card*.5-anchor)/field_geometry.xy;
     float ca=guide_rotation.x,sa=guide_rotation.y;

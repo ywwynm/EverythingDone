@@ -309,7 +309,8 @@ internal class ParticleWindowSurface private constructor(
         }
         if (!ensureEglSurface()) return
         if (!ParticleGl.bind(eglSurface)) { failAll(); return }
-        val enteredAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
+        // L3：ADPF 要每拍报一次真实耗时，所以这个时刻在取证关掉时也要取。
+        val enteredAt = System.nanoTime()
         awaitFence()
         val fenceDoneAt = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
         val width = targetWidth()
@@ -353,6 +354,8 @@ internal class ParticleWindowSurface private constructor(
         if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.COMPOSITE,
             target, enteredAt, fenceDoneAt - enteredAt, drawnAt, System.nanoTime(),
             frameId, drawn.size.toLong())
+        // L3：本拍真正做了多少工作。目标是一拍；报得比目标大即为升频请求。
+        if (drawn.isNotEmpty()) ParticlePerformanceHint.frame(activity, System.nanoTime() - enteredAt)
         surfaceDirty = drawn.isNotEmpty()
         if (inWindow && drawn.isNotEmpty()) textureSubmitted = true
         recomposite = false
@@ -387,6 +390,9 @@ internal class ParticleWindowSurface private constructor(
      */
     private fun releaseFrame(frame: Frame, presentTime: Long? = null) {
         val displayed = presentTime?.takeIf { it > 0 && it != ParticleFrameTimestamps.PENDING }
+        // 调参页开着的时候才记；拿不到驱动的呈现时刻（TextureView 那条路）就退回本拍的
+        // 目标时刻，此时读数是「我们按节拍出了几帧」而不是「上屏了几帧」。
+        if (frame.drawn.isNotEmpty()) ParticleFrameStats.onPresented(displayed ?: frame.target)
         frame.drawn.forEach { runCatching { it.framePresented(frame.target, displayed) } }
     }
 

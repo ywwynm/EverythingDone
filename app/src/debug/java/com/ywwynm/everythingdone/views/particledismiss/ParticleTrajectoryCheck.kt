@@ -13,13 +13,14 @@ import java.nio.ByteBuffer
 internal object ParticleTrajectoryCheck {
     fun run(context: Context, spec: ParticleDismissSpec, width: Int, height: Int, output: File,
             inspectFrames: Set<Int> = emptySet(), diagnostics: Boolean = false,
-            concurrentLoad: Boolean = false, repeats: Int = 3, pinFrame: Int = -1) {
+            concurrentLoad: Boolean = false, repeats: Int = 3, pinFrame: Int = -1,
+            phase2: Collection<String> = emptyList(), phase2Only: Boolean = false) {
         Thread({
             // withBaselineGpu 改的是进程级开关：同一轮里出现与消散两个动画层几乎同时释放，
             // 两个检查并行跑会互相改掉对方的开关，得到假通过/假失败。必须串行。
             synchronized(lock) {
                 check(context, spec, width, height, output, inspectFrames, diagnostics,
-                    concurrentLoad, repeats, pinFrame)
+                    concurrentLoad, repeats, pinFrame, phase2, phase2Only)
             }
         }, "ParticleTrajectoryCheck").start()
     }
@@ -29,7 +30,8 @@ internal object ParticleTrajectoryCheck {
 
     private fun check(context: Context, spec: ParticleDismissSpec, width: Int, height: Int,
                       output: File, inspectFrames: Set<Int>, diagnostics: Boolean = false,
-                      concurrentLoad: Boolean = false, repeats: Int = 3, pinFrame: Int = -1) {
+                      concurrentLoad: Boolean = false, repeats: Int = 3, pinFrame: Int = -1,
+                      phase2Names: Collection<String> = emptyList(), phase2Only: Boolean = false) {
             val result = JSONObject().put("width", width).put("height", height).put("seed", spec.hashSeed)
             var load: ConcurrentLoad? = null
             try {
@@ -280,11 +282,14 @@ internal object ParticleTrajectoryCheck {
                     // RGBA8 在这块屏上是 17.5 MB，留 61 帧必然 OOM（离屏对照的旧教训）。
                     // 每格记「有差异的帧数 / 有差异像素占比的最大值 / 逐通道最大差 / 平均差」。
                     // 判据两步走：先看自比较（同一条路径跑两遍）是不是干净，再看 A/B。
-                    fun renderer(enabled: Int, forward: Boolean): ParticleMicroflakeRenderer =
+                    fun renderer(enabled: Int, forward: Boolean,
+                                 p2On: Int = 0, p2Off: Int = 0): ParticleMicroflakeRenderer =
                         ParticlePerfTuning.withPerFrame(enabled) {
-                            ParticleMicroflakeRenderer(context.assets, shared, input).also {
-                                it.prepare()
-                                if (!forward) check(it.prepareReverse(samples)) { "逆向准备被取消" }
+                            ParticlePerfTuning.withPhase2(p2On, p2Off) {
+                                ParticleMicroflakeRenderer(context.assets, shared, input).also {
+                                    it.prepare()
+                                    if (!forward) check(it.prepareReverse(samples)) { "逆向准备被取消" }
+                                }
                             }
                         }
                     val other = ByteBuffer.allocateDirect(width * height * 4)
@@ -325,7 +330,10 @@ internal object ParticleTrajectoryCheck {
                         } finally { bitmap.recycle() }
                     }
                     fun compare(label: String, enabled: Int, forward: Boolean,
-                                dump: Set<Int> = emptySet()): JSONObject {
+                                dump: Set<Int> = emptySet(),
+                                baseOn: Int = 0, baseOff: Int = 0,
+                                testOn: Int = 0, testOff: Int = 0,
+                                withState: Boolean = false): JSONObject {
                         val frames = if (forward) 60 else samples
                         val detail = JSONArray()
                         val dumps = JSONArray()
@@ -333,8 +341,11 @@ internal object ParticleTrajectoryCheck {
                         var worstRatio = 0.0
                         var sum = 0L
                         var bytes = 0L
-                        renderer(0, forward).use { a ->
-                            renderer(enabled, forward).use { b ->
+                        // 第二阶段：U2 / U2b / U3 这类「只改取样口径」的项，判据是**位置偏差**
+                        // （应当在 1e-3 px 量级），不是画面通道差——超出量级就是写错了。
+                        var worstPosition = 0.0
+                        renderer(0, forward, baseOn, baseOff).use { a ->
+                            renderer(enabled, forward, testOn, testOff).use { b ->
                                 for (index in 0..frames) {
                                     if (forward) a.draw(index / 60f, batchPressure = true)
                                     else a.drawReverseFrame(frames - index)
@@ -358,6 +369,19 @@ internal object ParticleTrajectoryCheck {
                                         }
                                         if (pixelChanged) changed++
                                         i += 4
+                                    }
+                                    if (withState && forward && index % 12 == 0) {
+                                        val sa = a.readState(); val sb = b.readState()
+                                        val fa = sa.asFloatBuffer(); val fb = sb.asFloatBuffer()
+                                        var k = 0
+                                        while (k + 1 < fa.limit()) {
+                                            // 每片八个分量，前两个是屏幕位置（像素）。
+                                            val dx = kotlin.math.abs(fa.get(k) - fb.get(k)).toDouble()
+                                            val dy = kotlin.math.abs(fa.get(k + 1) - fb.get(k + 1)).toDouble()
+                                            if (dx > worstPosition) worstPosition = dx
+                                            if (dy > worstPosition) worstPosition = dy
+                                            k += 8
+                                        }
                                     }
                                     sum += total; bytes += size
                                     if (changed > 0) {
@@ -394,10 +418,34 @@ internal object ParticleTrajectoryCheck {
                             .put("worstChangedPixelRatio", worstRatio)
                             .put("worstMaxChannelDifference", worstMax)
                             .put("meanChannelDifference", if (bytes == 0L) 0.0 else sum.toDouble() / bytes)
+                            .put("worstPositionDeviationPx", worstPosition)
                             .put("dumps", dumps).put("detail", detail)
                     }
+                    // ==== 第二阶段：逐项的逐位 / 逐通道判据 ====
+                    //
+                    // 纪律两条：① 先跑**同一条件的自比较**，自比较干净才把 A/B 的差异当回归
+                    // （本项目 GPU 输出有 0.5–0.9% 的单帧本底噪声）；② `mediump` 类改动如果画面
+                    // **逐位相同**，说明驱动把它当 highp 了，该项在这台设备上无效，要记进报告。
+                    if (phase2Names.isNotEmpty()) {
+                        val bucket = JSONObject()
+                        val conditions = ParticlePhase2Conditions.byName(phase2Names)
+                        bucket.put("self", compare("phase2-self", 0, true))
+                        for (condition in conditions) {
+                            // 会改 Shared 的格式（U7），不能与基线交错跑，交给 ParticleOptionFrames。
+                            if (condition.sharedState) continue
+                            val total = 60
+                            val row = compare("phase2-" + condition.name, 0, true,
+                                setOf((total * .1).toInt(), (total * .5).toInt(), (total * .9).toInt()),
+                                condition.baseOn, condition.baseOff, condition.testOn, condition.testOff,
+                                withState = true)
+                            row.put("expectIdentical", condition.expectIdentical)
+                            row.put("identical", row.getInt("differingFrames") == 0)
+                            bucket.put(condition.name, row)
+                        }
+                        result.put("phase2", bucket)
+                    }
                     val perFrame = JSONObject()
-                    for (forward in listOf(true, false)) {
+                    if (!phase2Only) for (forward in listOf(true, false)) {
                         val prefix = if (forward) "forward" else "reverse"
                         perFrame.put(prefix + "Self", compare("$prefix-self", 0, forward))
                         perFrame.put(prefix + "Region", compare("$prefix-c10",
@@ -407,7 +455,7 @@ internal object ParticleTrajectoryCheck {
                             ParticlePerfTuning.PER_FRAME_ALL, forward,
                             setOf((total * .1).toInt(), (total * .5).toInt(), (total * .9).toInt())))
                     }
-                    result.put("perFrameBatchOne", perFrame)
+                    if (!phase2Only) result.put("perFrameBatchOne", perFrame)
                     // 第五批：单像素差异的定性。见 batch5-results 第 3 节。
                     if (diagnostics) {
                         // 报告对象先挂上去：定位阶段抛异常（例如整帧像素撑爆堆）时，

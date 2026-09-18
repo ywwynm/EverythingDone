@@ -3,13 +3,22 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 precision highp sampler3D;
-layout(local_size_x=16,local_size_y=16) in;
+#ifndef PLANE_GROUP
+#define PLANE_GROUP 16
+#endif
+layout(local_size_x=PLANE_GROUP,local_size_y=PLANE_GROUP) in;
 layout(std430,binding=0) readonly buffer A{vec4 velocity[];};
 layout(std430,binding=1) readonly buffer B{float old_pressure[];};
 layout(std430,binding=2) writeonly buffer C{float new_pressure[];};
+// U3：修正场从 RGBA32F 换 RGBA16F，存储字节减半（存储图像不能用 AFBC，是实打实的字节）。
+// **不能用 RG16F**：GLES 3.1 的存储图像格式表里没有它，Adreno 740 直接拒绝编译（2026-09-18 实测）。
+#ifdef PEEL_FIELD_HALF
+layout(rgba16f,binding=0) uniform writeonly highp image2D pressure_field;
+#else
 layout(rgba32f,binding=0) uniform writeonly highp image2D pressure_field;
+#endif
 #ifdef ACTIVE_REGION
-layout(std430,binding=7) readonly buffer W{uvec4 workgroups;ivec4 region,previous;
+layout(std430,binding=7) readonly buffer W{uint group_count,group_y,group_z,group_pad;ivec4 region,previous;
  int box_x0,box_y0,box_x1,box_y1;ivec2 tiles[];};
 #endif
 uniform ivec2 grid_shape;uniform int iteration;

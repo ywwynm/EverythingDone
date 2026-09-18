@@ -48,6 +48,7 @@ import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.fragments.BaseDialogFragment
 import com.ywwynm.everythingdone.views.particledismiss.ParticleCreationPrewarm
+import com.ywwynm.everythingdone.views.particledismiss.ParticleTuning
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 import com.ywwynm.everythingdone.views.particledismiss.ParticleGl
 
@@ -111,6 +112,9 @@ open class App : Application() {
 
         app = this
         AppearanceUtil.applyDefaultNightMode()
+
+        // 粒子调参页的两项设置：进程里唯一的读点是 ParticlePerfTuning，这里推一次。
+        ParticleTuning.apply(this)
 
         createNotificationChannels()
 

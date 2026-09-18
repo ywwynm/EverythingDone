@@ -3,4 +3,12 @@
 
     <dimen name="contextual_toolbar_text_size">18sp</dimen>
 
+    <!--
+      横屏的可用高度只有竖屏的三分之一上下，预览区不收窄的话参数区会只剩一条缝。
+      第六批在预览下方加了换色按钮，卡片上方的留白因此收到 8dp；第七批的示例记事正文有四行，
+      按「标题 + 四行」把预览区再抬回 168dp，否则卡片底边会被预览区裁掉。
+    -->
+    <dimen name="particle_tuning_preview_height">168dp</dimen>
+    <dimen name="particle_tuning_card_top_padding">8dp</dimen>
+
 </resources>

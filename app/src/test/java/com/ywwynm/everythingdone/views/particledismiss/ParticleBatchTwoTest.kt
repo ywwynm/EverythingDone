@@ -187,8 +187,9 @@ class ParticleBatchTwoTest {
         assertTrue("下一拍开画前等上一帧的栅栏", "glClientWaitSync" in window)
         val renderer = readProjectFile(
             "app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ParticleMicroflakeRenderer.kt").readText()
-        // 渲染器里只剩两处 glFinish：读回状态（诊断）与开着探针时的预计算墙钟口径。
-        assertEquals(2, Regex("GLES30\\.glFinish\\(\\)").findAll(renderer).count())
+        // 渲染器里只剩三处 glFinish，全部是诊断路径：读回状态、开着探针时的预计算墙钟口径，
+        // 以及第四批查 C7 时加的压力中间状态读回（`pressureDiagnostics`）。
+        assertEquals(3, Regex("GLES30\\.glFinish\\(\\)").findAll(renderer).count())
     }
 
     @Test fun `共享上下文里换会话必须整套重设 uniform`() {

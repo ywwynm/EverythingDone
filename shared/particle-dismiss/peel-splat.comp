@@ -3,15 +3,22 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 precision highp sampler3D;
-layout(local_size_x=256) in;
+#ifndef LINEAR_GROUP
+#define LINEAR_GROUP 256
+#endif
+layout(local_size_x=LINEAR_GROUP) in;
 struct Material{vec4 src;vec4 physical;vec4 random;};
 struct State{vec4 pos;vec4 vel;};
 layout(std430,binding=0) readonly buffer A{Material particles[];};
 layout(std430,binding=1) readonly buffer B{State states[];};
 layout(std430,binding=3) readonly buffer C{float compression[];};
-layout(std430,binding=4) buffer D{ivec4 accumulation[];};
+// 累积缓冲在这里按**标量数组**声明，`k*4+c` 与 `ivec4 accumulation[k][c]` 是同一批字节
+// （std430 下 ivec4 的步长就是 16 字节），读它的 `peel-blur.comp` 仍按 ivec4 取。
+// 必须是标量：Maleoon 910 上对**向量分量**做 `atomicAdd` 不按数组下标寻址，十万片的贡献
+// 全部落进第 0 格——2026-09-17 实测那台上整条压力投影因此恒为空（见第四批文档）。
+layout(std430,binding=4) buffer D{int accumulation[];};
 #ifdef ACTIVE_REGION
-layout(std430,binding=7) buffer W{uvec4 workgroups;ivec4 region,previous;
+layout(std430,binding=7) buffer W{uint group_count,group_y,group_z,group_pad;ivec4 region,previous;
  int box_x0,box_y0,box_x1,box_y1;ivec2 tiles[];};
 #endif
 uniform int pass,count,grid_count;
@@ -24,8 +31,16 @@ uint hash32(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(
 float unit32(uint x){return float(hash32(x)>>8u)*(1./16777216.);}
 void main(){
  uint i=gl_GlobalInvocationID.x;
- // 清零保持整网格：它只是每格写 16 字节，实测落在噪声里，不值得为它再加一次间接分发。
- if(pass==0){if(i<uint(grid_shape.x*grid_shape.y))accumulation[i]=ivec4(0);return;}
+ // 清零默认保持整网格：它只是每格写 16 字节，Adreno 上实测落在噪声里。
+ // M4（第二阶段）：`CLEAR_ACTIVE_REGION` 让它只清活动区域。**不变式**：本帧写到的格子
+ // 都在本帧包围盒内，而下一帧清的是「上一帧包围盒 ∪ 本帧包围盒」外扩一个 tile 的区域，
+ // 必然覆盖它；区域外的格子从初始化起就没人写过。构造与切换形态时 region 是整网格。
+ if(pass==0){if(i<uint(grid_shape.x*grid_shape.y)){
+#if defined(ACTIVE_REGION) && defined(CLEAR_ACTIVE_REGION)
+  ivec2 c=ivec2(int(i)%grid_shape.x,int(i)/grid_shape.x);
+  if(any(lessThan(c,region.xy))||any(greaterThan(c,region.zw)))return;
+#endif
+  int b=int(i)*4;accumulation[b]=0;accumulation[b+1]=0;accumulation[b+2]=0;accumulation[b+3]=0;}return;}
  if(i>=uint(count))return;Material m=particles[i];float age=time-m.src.z;
  if(m.src.w>=float(grid_count)||age<=0.||age>=m.physical.z)return;
  ivec2 source=clamp(ivec2(m.src.xy/card*vec2(textureSize(foreground,0))),ivec2(0),textureSize(foreground,0)-1);
@@ -63,12 +78,24 @@ void main(){
   if(chi.y>box_y1)atomicMax(box_y1,chi.y);
  }
 #endif
+#ifdef NEAREST_SPLAT
+ // U8：最近格 splat，每片原子 12 → 3。splat 之后紧跟两遍 σ≈1.2 格的高斯，
+ // 双线性额外给的约 0.4 格平滑基本冗余（V 级，要看图定夺）。
+ ivec2 cell=ivec2(floor(q+.5));
+ if(!(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,grid_shape)))){
+  int k=(cell.y*grid_shape.x+cell.x)*4;
+  atomicAdd(accumulation[k],int(round(peel.x*mass*4096.)));
+  atomicAdd(accumulation[k+1],int(round(peel.y*mass*4096.)));
+  atomicAdd(accumulation[k+2],int(round(mass*4096.)));
+ }
+#else
  for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++){
   ivec2 cell=lo+ivec2(dx,dy);if(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,grid_shape)))continue;
   float w=mass*(dx==0?1.-f.x:f.x)*(dy==0?1.-f.y:f.y);
-  int k=cell.y*grid_shape.x+cell.x;
-  atomicAdd(accumulation[k].x,int(round(peel.x*w*4096.)));
-  atomicAdd(accumulation[k].y,int(round(peel.y*w*4096.)));
-  atomicAdd(accumulation[k].z,int(round(w*4096.)));
+  int k=(cell.y*grid_shape.x+cell.x)*4;
+  atomicAdd(accumulation[k],int(round(peel.x*w*4096.)));
+  atomicAdd(accumulation[k+1],int(round(peel.y*w*4096.)));
+  atomicAdd(accumulation[k+2],int(round(w*4096.)));
  }
+#endif
 }

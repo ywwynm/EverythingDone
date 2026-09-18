@@ -1441,6 +1441,16 @@ object BackgroundUtil {
     const val CHECKBOX_LABEL_ROW_FOOTPRINT_DP: Float = 32f
 
     /**
+     * 勾选框画出来的方框，其**可见**外缘比占位方块的边缘向内缩了多少 dp。
+     *
+     * `GradientCheckboxDrawable` 把方框在占位里内缩 3dp（`boxInsetPx`），而 2dp 的描边
+     * （`strokePx`）压在内缩矩形的边线上、内外各占一半，于是最外侧的墨迹落在
+     * `3 - 1 = 2dp` 处。要让方框的可见右缘与同一列的文本、胶囊严格对齐，就得用这一段
+     * 负外边距补回来（魅族实测：不补是 18.0 dp，补了是 16.0 dp，同列文本是 16.0–16.9 dp）。
+     */
+    const val CHECKBOX_VISUAL_INSET_DP: Float = 2f
+
+    /**
      * Indeterminate progress drawable following the visible implementation used
      * by the video crop editor: a self-drawn rotating arc with a SweepGradient.
      */
