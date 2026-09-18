@@ -173,6 +173,8 @@ import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleLaunchTrace
 import com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ThingListRemovalAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ThingListRemovalDiff
 import com.ywwynm.everythingdone.views.particledismiss.ThingCreationTransition
 import com.ywwynm.everythingdone.views.particledismiss.ThingSwipeReturn
 import com.ywwynm.everythingdone.views.pickers.ThingCardAppearanceSourcePicker
@@ -214,6 +216,7 @@ class ThingsActivity :
         get() = mSwipeReturnOrNull
             ?: ThingSwipeReturn(this, mRecyclerView!!).also { mSwipeReturnOrNull = it }
     private var mNewItemParticleOverlay: ParticleDismissOverlay? = null
+    private var mListRemovalAnimator: ThingListRemovalAnimator? = null
     private var mCreationLaunchPending = false
     // Cached "full-screen" defaults set in findViews() — used to restore mShiningBorder
     // after a card-scoped animation overrode them.
@@ -280,6 +283,7 @@ class ThingsActivity :
     private var mBtThingCardAppearanceChangeColor: ImageView? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (mListRemovalAnimator?.isRunning == true) return true
         mSwipeParticleAnimator.recordTouch(ev)
         mAppearancePanelAnimator.recordTouch(ev)
         updateThingListPointerState(ev, "activity")
@@ -370,7 +374,6 @@ class ThingsActivity :
     private var mUndoLocations: MutableList<Long>? = null
     private var mUndoHabitRecords: MutableList<HabitRecord>? = null
     private var mThingsIdsToUpdateWidget: HashSet<Long>? = null
-    private var mUndoAll: Boolean = false
     private var mStateToUndoFrom: Int = 0
 
     /**
@@ -805,6 +808,7 @@ class ThingsActivity :
     }
 
     override fun onPause() {
+        mListRemovalAnimator?.finish()
         mSwipeParticleAnimator.reset()
         mSwipeReturnOrNull?.cancel()
         ParticleCreationPrewarm.onHomeHidden()
@@ -2818,6 +2822,10 @@ class ThingsActivity :
     override fun setEvents() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (mListRemovalAnimator?.isRunning == true) {
+                    mListRemovalAnimator?.finish()
+                    return
+                }
                 if (mDrawerLayout!!.isDrawerOpen(GravityCompat.START)) {
                     mDrawerLayout!!.closeDrawer(GravityCompat.START)
                 } else {
@@ -7307,13 +7315,6 @@ class ThingsActivity :
     }
 
     /**
-     * Selecting-mode batch state change entry. Things-only selections keep the
-     * Part A path (handleUpdateStates, which also raises the habit/goal dialog).
-     * Folder-containing selections (multi-folder or mixed) run one aggregated
-     * confirmation over the union of selected Things plus each selected Folder's
-     * in-scope content, then execute via the folder content-op batch methods.
-     */
-    /**
      * 从一组"待完成 / 删除"的记事里剔除 Doing 记事（受保护，不被这两类动作作用）。
      * 返回（可操作集合, 原集合是否含 Doing）。Doing 记事天然处于正在进行，故只会在
      * 正在进行状态的完成 / 删除路径里出现。
@@ -7440,15 +7441,14 @@ class ThingsActivity :
             override fun onConfirm() {
                 // 确定后、执行前鉴权（问题8）：选中含未认证有效私密文件夹 / 记事才弹验证。
                 authenticateSelectedStateChangePrivacyIfNeeded(selectedThings, selectedFolders) {
-                    for (folder in selectedFolders) {
-                        mThingManager!!.deleteFolderForever(folder)
+                    animateHomeListRemoval {
+                        for (folder in selectedFolders) {
+                            mThingManager!!.deleteFolderForever(folder)
+                        }
+                        if (selectedThings.isNotEmpty()) {
+                            mThingManager!!.deleteThingsForever(selectedThings, reload = false)
+                        }
                     }
-                    if (selectedThings.isNotEmpty()) {
-                        mThingManager!!.deleteThingsForever(selectedThings, reload = false)
-                    }
-                    exitSelectingModeIfNeeded()
-                    refreshHomeAfterFolderUpdated()
-                    AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
                 }
             }
         })
@@ -7483,13 +7483,15 @@ class ThingsActivity :
             override fun onConfirm() {
                 // 确定后、执行前鉴权（问题8）：选中含未认证有效私密记事才弹验证。
                 authenticateSelectedStateChangePrivacyIfNeeded(selectedThings, emptyList()) {
-                    if (mApp!!.getStatus() == Def.ThingStatus.DELETED &&
-                        stateAfter == Thing.UNDERWAY
-                    ) {
-                        mThingManager!!.restoreTrashedThings(selectedThings, reload = false)
-                        refreshHomeAfterScopeStateChange()
+                    val status = mApp!!.getStatus()
+                    // 保留纯记事多选原有的习惯/目标确认；单选仍直接执行用户选定的状态动作。
+                    if (status == Def.ThingStatus.UNDERWAY && actionable.size > 1 &&
+                        actionable.any { Thing.isImportantType(it.type) }) {
+                        showFinishScopeHabitGoalDialog(actionable, background) {
+                            applyUnionStateChange(it, status, stateAfter)
+                        }
                     } else {
-                        handleUpdateStates(stateAfter)
+                        applyUnionStateChange(actionable, status, stateAfter)
                     }
                 }
             }
@@ -7586,172 +7588,64 @@ class ThingsActivity :
     }
 
     private fun applyUnionStateChange(union: List<Thing>, status: Int, stateAfter: Int) {
-        finishNewItemShiningBorderAnimationIfNeeded()
-        when {
-            stateAfter == Thing.FINISHED ->
-                mThingManager!!.finishThings(union, reload = false)
-            status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
-                mThingManager!!.trashThingsPreservingState(union, reload = false)
-            status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
-                mThingManager!!.trashThings(union, reload = false)
-            status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.unfinishThings(union, reload = false)
-            status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
-                mThingManager!!.restoreTrashedThings(union, reload = false)
-            stateAfter == Thing.DELETED_FOREVER ->
-                mThingManager!!.deleteThingsForever(union, reload = false)
-        }
-        refreshHomeAfterScopeStateChange()
-    }
-
-    private fun handleUpdateStates(stateAfter: Int) {
-        if (mThingManager!!.isThingsEmpty()) {
-            return
-        }
-        dismissSnackbars()
-
-        val things: MutableList<Thing?> = mThingManager!!.getThings()!!
-        var thingsToDeleteForever: MutableList<Thing?> = ArrayList<Thing?>()
-        if (stateAfter == Thing.DELETED_FOREVER) {
-            thingsToDeleteForever = mApp!!.getThingsToDeleteForever()!!
-        }
-        var containsHabitOrGoal = false
-        var thing: Thing
-        val size = things.size
-        if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
-            for (i in 1 until size) {
-                thing = things[i]!!
-                // Doing 记事受保护：选中也不被完成 / 删除，且不计入习惯 / 目标三选项判断。
-                if (thing.isSelected() && thing.id != App.getDoingThingId()) {
-                    val type = thing.type
-                    if (Thing.isImportantType(type)) {
-                        containsHabitOrGoal = true
-                    }
-                    SystemNotificationUtil.cancelNotification(thing.id, type, mApp)
-                    mUndoThings!!.add(thing)
-                    mThingsIdsToUpdateWidget!!.add(thing.id)
-                    mUndoLocations!!.add(thing.location)
-                    if (stateAfter == Thing.DELETED_FOREVER) {
-                        thingsToDeleteForever.add(Thing(thing))
-                    }
+        if (union.isEmpty()) return
+        animateHomeListRemoval {
+            when {
+                stateAfter == Thing.FINISHED ->
+                    mThingManager!!.finishThings(union, reload = false)
+                status == Def.ThingStatus.UNDERWAY && stateAfter == Thing.DELETED ->
+                    mThingManager!!.trashThingsPreservingState(union, reload = false)
+                status == Def.ThingStatus.FINISHED && stateAfter == Thing.DELETED ->
+                    mThingManager!!.trashThings(union, reload = false)
+                status == Def.ThingStatus.FINISHED && stateAfter == Thing.UNDERWAY ->
+                    mThingManager!!.unfinishThings(union, reload = false)
+                status == Def.ThingStatus.DELETED && stateAfter == Thing.UNDERWAY ->
+                    mThingManager!!.restoreTrashedThings(union, reload = false)
+                stateAfter == Thing.DELETED_FOREVER ->
+                    mThingManager!!.deleteThingsForever(union, reload = false)
+            }
+            for (thing in union) {
+                AppWidgetHelper.updateSingleThingAppWidgets(this, thing.id)
+                if (stateAfter == Thing.DELETED_FOREVER && mThingManager!!.getThingById(thing.id) == null) {
+                    mApp!!.getThingsToDeleteForever()!!.add(Thing(thing))
                 }
             }
-        } else {
-            for (i in 1 until size) {
-                thing = things[i]!!
-                val type = thing.type
-                if (Thing.isImportantType(type)) {
-                    containsHabitOrGoal = true
-                }
-                val thingId = thing.id
-                if (App.getDoingThingId() != thingId) {
-                    SystemNotificationUtil.cancelNotification(thingId, type, mApp)
-                    mUndoThings!!.add(thing)
-                    mThingsIdsToUpdateWidget!!.add(thing.id)
-                    mUndoLocations!!.add(thing.location)
-                    if (stateAfter == Thing.DELETED_FOREVER) {
-                        thingsToDeleteForever.add(Thing(thing))
-                    }
-                }
-            }
-        }
-
-        val stateBefore = things[1]!!.state
-        if (containsHabitOrGoal && stateBefore == Thing.UNDERWAY && mUndoThings!!.size > 1) {
-            // if mUntoThing.size == 1, it means that it is user's decision
-            alertForHabitGoal(stateBefore, stateAfter)
-        } else {
-            for (undoThing in mUndoThings!!) {
-                undoThing.selected = false
-            }
-            for (thingToDelete in thingsToDeleteForever) {
-                thingToDelete!!.selected = false
-            }
-            handleUpdateStates(stateBefore, stateAfter)
         }
     }
 
-    private fun alertForHabitGoal(stateBefore: Int, stateAfter: Int) {
-        val df = ThreeActionsAlertDialogFragment()
-        // Adapt to the current scope: the folder's pure colour / gradient inside a
-        // folder, or the accent gradient at root, instead of a random colour.
-        val background = mThingManager!!.getCurrentFolder()?.getBackground()
-            ?: App.defaultAccentBackground
-        df.setTitleBackground(background)
-        df.setContinueBackground(background)
-        df.setTitle(getString(R.string.alert_continue))
-        df.setContent(getString(R.string.alert_find_habit_goal))
-        df.setFirstAction(getString(R.string.continue_get_rid_of_habit_goal))
-        df.setSecondAction(getString(R.string.continue_for_alert))
-        df.setOnClickListener(object : ThreeActionsAlertDialogFragment.OnClickListener {
-            override fun onFirstClicked() {
-                val thingsToDelete: MutableList<Thing?> = mApp!!.getThingsToDeleteForever()!!
-                val iterator: MutableIterator<Thing> = mUndoThings!!.iterator()
-                while (iterator.hasNext()) {
-                    val t: Thing = iterator.next()
-                    t.selected = false
-                    if (Thing.isImportantType(t.type)) {
-                        iterator.remove()
-                        mThingsIdsToUpdateWidget!!.remove(t.id)
-                        mUndoLocations!!.remove(t.location)
-                        thingsToDelete.remove(t)
-                    }
-                }
-                handleUpdateStates(stateBefore, stateAfter)
+    /** 业务执行与最终投影比较共用入口；动画期间 adapter 保留旧数据，补位时一次派发差分。 */
+    private fun animateHomeListRemoval(change: () -> Unit) {
+        val recycler = mRecyclerView ?: return
+        val adapter = recycler.adapter as? ThingsAdapter ?: return
+        val animator = mListRemovalAnimator ?: ThingListRemovalAnimator(this, recycler).also {
+            mListRemovalAnimator = it
+        }
+        animator.start(before = {
+            finishNewItemShiningBorderAnimationIfNeeded()
+            dismissSnackbars()
+            mAdapter!!.setShouldThingsAnimWhenAppearing(false)
+            val entries = mThingManager!!.getThingListEntries().orEmpty().toList()
+            adapter.holdRemovalEntries(entries)
+            ThingListRemovalDiff.ids(entries)
+        }, change = {
+            change()
+            loadThingsForCurrentSearchState()
+            ThingListRemovalDiff.ids(mThingManager!!.getThingListEntries().orEmpty())
+        }, publish = { diff ->
+            if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+                mModeManager!!.finishCurrentModeWithoutListRefresh()
             }
-
-            override fun onSecondClicked() {
-                for (undoThing in mUndoThings!!) {
-                    undoThing.selected = false
-                }
-                handleUpdateStates(stateBefore, stateAfter)
-            }
-
-            override fun onThirdClicked() {
-                val thingsToDelete: MutableList<Thing?> = mApp!!.getThingsToDeleteForever()!!
-                for (undoThing in mUndoThings!!) {
-                    thingsToDelete.remove(undoThing)
-                }
-                mUndoThings!!.clear()
-                mThingsIdsToUpdateWidget!!.clear()
-                mUndoLocations!!.clear()
-            }
+            adapter.holdRemovalEntries(null)
+            diff.dispatchUpdatesTo(adapter)
+            if (App.isSearching) updateEmptyStateForCurrentSearchState()
+            else markOperationEmptyStateIfCurrentProjectionEmpty()
+            refreshActivitySurfaceAndHeader(resetRetraction = false)
+            mDrawerHeader!!.updateTexts()
+            updateDrawerFolderItems()
+            invalidateOptionsMenu()
+            AppWidgetHelper.updateAllThingsListAppWidgets(this)
+            mApp!!.releaseResourcesAfterDeleteForever()
         })
-        df.show(supportFragmentManager, ThreeActionsAlertDialogFragment.TAG)
-    }
-
-    private fun handleUpdateStates(stateBefore: Int, stateAfter: Int) {
-        if (mUndoThings!!.isEmpty()) {
-            return
-        }
-        finishNewItemShiningBorderAnimationIfNeeded()
-        // Restoring from 回收站 returns Things to their pre-trash state. When the
-        // whole restored selection shared the finished state, restore them to
-        // finished; otherwise restore to underway. A single-Thing restore is
-        // always uniform, so it lands in its exact pre-trash state.
-        var effectiveStateAfter = stateAfter
-        if (stateBefore == Thing.DELETED && stateAfter == Thing.UNDERWAY) {
-            val allFinished = mUndoThings!!.all {
-                it != null && mThingManager!!.getStateBeforeDelete(it.id) == Thing.FINISHED
-            }
-            if (allFinished) effectiveStateAfter = Thing.FINISHED
-        }
-        mStateToUndoFrom = effectiveStateAfter
-        @Suppress("UNCHECKED_CAST")
-        mUndoPositions = mThingManager!!.updateStates(
-            mUndoThings as List<Thing?>, stateBefore, effectiveStateAfter
-        )!! as MutableList<Int>
-        mAdapter!!.notifyDataSetChanged()
-        mUndoAll = true
-        if (!mUndoThings!!.isEmpty()) {
-            updateUIAfterStateUpdated(
-                effectiveStateAfter,
-                mRecyclerView!!.itemAnimator!!.removeDuration, true
-            )
-        }
-        if (App.isSearching) {
-            handleSearchResults()
-        }
     }
 
     private fun updateUIAfterStateUpdated(stateAfter: Int, timeDelay: Long, shouldForceBackNormalMode: Boolean) {
@@ -7806,7 +7700,6 @@ class ThingsActivity :
         mUndoPositions!!.clear()
         mUndoLocations!!.clear()
         mUndoHabitRecords!!.clear()
-        mUndoAll = false
         mThingManager!!.clearLists()
 
         mApp!!.releaseResourcesAfterDeleteForever()
@@ -8899,7 +8792,10 @@ class ThingsActivity :
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)
     }
 
-    private fun showFinishScopeHabitGoalDialog(things: List<Thing>, background: ThingBackground) {
+    private fun showFinishScopeHabitGoalDialog(
+        things: List<Thing>, background: ThingBackground,
+        apply: (List<Thing>) -> Unit = { applyFinishScope(it) }
+    ) {
         val df = ThreeActionsAlertDialogFragment()
         df.setTitleBackground(background)
         df.setContinueBackground(background)
@@ -8909,11 +8805,11 @@ class ThingsActivity :
         df.setSecondAction(getString(R.string.continue_for_alert))
         df.setOnClickListener(object : ThreeActionsAlertDialogFragment.OnClickListener {
             override fun onFirstClicked() {
-                applyFinishScope(things.filter { !Thing.isImportantType(it.type) })
+                apply(things.filter { !Thing.isImportantType(it.type) })
             }
 
             override fun onSecondClicked() {
-                applyFinishScope(things)
+                apply(things)
             }
 
             override fun onThirdClicked() {
@@ -8925,6 +8821,10 @@ class ThingsActivity :
 
     private fun applyFinishScope(things: List<Thing>) {
         if (things.isEmpty()) return
+        if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+            applyUnionStateChange(things, mApp!!.getStatus(), Thing.FINISHED)
+            return
+        }
         finishNewItemShiningBorderAnimationIfNeeded()
         mThingManager!!.finishThings(things, reload = false)
         refreshHomeAfterScopeStateChange()
@@ -9289,8 +9189,9 @@ class ThingsActivity :
             override fun onConfirm() {
                 // 确定后、执行前鉴权（问题8）：私密文件夹才弹验证（当前文件夹等已认证场景自动豁免）。
                 authenticateSelectedStateChangePrivacyIfNeeded(emptyList(), listOf(folder)) {
-                    if (mThingManager!!.deleteFolderForever(folder)) {
-                        exitSelectingModeIfNeeded()
+                    if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+                        animateHomeListRemoval { mThingManager!!.deleteFolderForever(folder) }
+                    } else if (mThingManager!!.deleteFolderForever(folder)) {
                         refreshHomeAfterFolderUpdated()
                         AppWidgetHelper.updateAllThingsListAppWidgets(this@ThingsActivity)
                     }

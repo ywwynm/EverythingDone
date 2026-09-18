@@ -65,6 +65,9 @@ internal class ParticleSession(
     private var playbackRegistered = false
     private var firstTarget = 0L
     private var lastProgress = 0f
+    private val submittedProgress = java.util.HashMap<Long, Float>()
+    @Volatile var bodyGoneProgress = 1f
+        private set
 
     /** 上一拍真正画出去的相位（追赶期内比手指落后）。 */
     private var previousPosition = Float.NaN
@@ -258,6 +261,9 @@ internal class ParticleSession(
                     else preparation.poll(shared.width, shared.height) ?: return false
                     inputReadyAt = System.nanoTime()
                     checkNotNull(renderer).prepare(input)
+                    bodyGoneProgress = ParticleBodyRelease.progress(input.materials.values,
+                        input.rules.number("release_spread") +
+                            input.rules.number("white_spread") * input.materials.bodyWeight)
                     particleCount = checkNotNull(renderer).particleCount
                     uploadsReadyAt = System.nanoTime()
                     snapshotConsumed = true
@@ -498,6 +504,7 @@ internal class ParticleSession(
     fun frameSubmitted(target: Long) {
         pendingFrames++
         firstFrameSubmitted = true
+        if (!isGesture) submittedProgress[target] = lastProgress
         if (!BuildConfig.DEBUG) return
         val now = System.nanoTime()
         submittedTimings += longArrayOf(target, now, lastProgress.toRawBits().toLong())
@@ -517,7 +524,8 @@ internal class ParticleSession(
         if (BuildConfig.DEBUG) presentedTimings += longArrayOf(
             target, System.nanoTime(), System.nanoTime(), displayedAt ?: 0L)
         if (cancelled) return
-        val progress = if (isGesture) checkNotNull(gesture).progressAt(target) else lastProgress
+        val progress = if (isGesture) checkNotNull(gesture).progressAt(target)
+            else submittedProgress.remove(target) ?: 0f
         if (!firstFrameReported) {
             firstFrameReported = true
             gesture?.presented = true

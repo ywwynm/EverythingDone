@@ -51,7 +51,9 @@ internal class ParticleDismissOverlay(
      * 卡片那条默认为真（滑动取消要把卡片放回去）。**消散**那条必须传 false：
      * 内容已经散掉了，末尾再显示一次静态快照等于整块闪回一下。
      */
-    private val restoreSourceOnRelease: Boolean = true
+    private val restoreSourceOnRelease: Boolean = true,
+    cardSources: List<View>? = null,
+    private val onBodyReleased: Runnable? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -59,6 +61,8 @@ internal class ParticleDismissOverlay(
     private val snapshotView: ImageView?
     private var session: ParticleSession? = null
     private val synchronizedCard = spec.inWindow && cardSource != null && ParticleCardSurfaceHandoff.supported()
+    private val sourceViews = (cardSources ?: listOfNotNull(cardSource)).toMutableList()
+    private var bodyReleased = false
     private var windowSurface: ParticleWindowSurface? = null
     private var cardHandoff: ParticleCardSurfaceHandoff? = null
     private var handoffPreparing = false
@@ -78,7 +82,10 @@ internal class ParticleDismissOverlay(
     /** 观察器读的是「帧真正上屏」的时刻；沿用第一批的三元组形状。 */
     internal val textureTimings = Collections.synchronizedList(mutableListOf<LongArray>())
     internal val isDisappearance get() = !spec.reverse
-    internal val belowNativeFab get() = spec.inWindow && !synchronizedCard
+    internal val hasVisibleBody get() = isDisappearance &&
+        !finished && presentedProgress < (session?.bodyGoneProgress ?: 1f)
+    internal val belowNativeForeground get() = spec.inWindow && !synchronizedCard
+    internal val nativeCardSource get() = cardSource
 
     internal fun afterRelease(action: Runnable) {
         if (releaseNotified) action.run() else releaseListeners += action
@@ -216,7 +223,8 @@ internal class ParticleDismissOverlay(
             handoffPreparing = true
             ParticleCardSurfaceHandoff.prepare(checkNotNull(cardSource), spec,
                 window.view as android.view.SurfaceView,
-                onForegroundFailure = { if (!finished) onSessionFinished(false) }) { handoff ->
+                onForegroundFailure = { if (!finished) onSessionFinished(false) },
+                sources = sourceViews) { handoff ->
                 handoffPreparing = false
                 if (finished) {
                     handoff?.dispose()
@@ -235,8 +243,7 @@ internal class ParticleDismissOverlay(
         finished = true
         cardHandoff?.dispose()
         if (synchronizedCard && cardSource != null && !returningToSource) {
-            ParticleCardPose.release(cardSource)
-            cardSource.alpha = 1f
+            restoreSources()
         }
         synchronized(active) { active -= this }
         session?.cancel()
@@ -279,6 +286,10 @@ internal class ParticleDismissOverlay(
         if (finished) return
         presentedProgress = progress
         onPresentedProgress?.invoke(progress)
+        if (!isCondense && !bodyReleased && progress >= (session?.bodyGoneProgress ?: 1f)) {
+            bodyReleased = true
+            onBodyReleased?.run()
+        }
     }
 
     private fun onSessionFinished(completed: Boolean) {
@@ -307,12 +318,22 @@ internal class ParticleDismissOverlay(
         }
     }
 
+    private fun restoreSources() {
+        sourceViews.forEach { ParticleCardPose.release(it); it.alpha = 1f }
+    }
+
+    /** 批量退场已开始补位，解除旧 holder 的所有权，避免收尾改到被复用的新卡片。 */
+    fun detachCardSources() {
+        restoreSources()
+        sourceViews.clear()
+    }
+
     /** 宿主在真实内容确认上屏后调用，移除本层。 */
     fun release() {
         if (finished) return
         if (returningToSource) return
         if (synchronizedCard && cardHandoff != null) {
-            releaseToSource(showCard = restoreSourceOnRelease) { cardSource?.alpha = 1f }
+            releaseToSource(showCard = restoreSourceOnRelease) { restoreSources() }
             return
         }
         if (spec.inWindow) {
@@ -339,7 +360,7 @@ internal class ParticleDismissOverlay(
         val window = windowSurface
         val current = session
         val restoreSource = {
-            cardSource?.let { ParticleCardPose.release(it) }
+            sourceViews.forEach { ParticleCardPose.release(it) }
             sourceRestored = true
             restore()
             val additional = sourceRestorations.toList()
@@ -381,7 +402,7 @@ internal class ParticleDismissOverlay(
     private fun removeSelf() {
         if (finished) return
         if (synchronizedCard && cardHandoff != null && !returningToSource) {
-            releaseToSource(showCard = restoreSourceOnRelease) { cardSource?.alpha = 1f }
+            releaseToSource(showCard = restoreSourceOnRelease) { restoreSources() }
             return
         }
         finished = true

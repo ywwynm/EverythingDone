@@ -1986,7 +1986,7 @@
     <string name="spatial_clear_derivatives_confirm">This removes all locally generated depth data. Original attachments and downloaded models are not changed.</string>
     <string name="spatial_privacy_note">Image decoding, depth estimation, and interactive rendering all happen on this device. Attachment images are never uploaded.</string>
     <string name="cd_spatial_effect_ready">Spatial photo effect generated</string>
-    <string name="settings_swipe_complete_animation">Swipe-to-finish animation style</string>
+    <string name="settings_swipe_complete_animation">Thing card swipe and removal animation style</string>
     <string name="thing_animation_ripple">Ripple</string>
     <string name="thing_animation_border">Border light</string>
     <string name="thing_animation_particle">Particles</string>

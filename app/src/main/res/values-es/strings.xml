@@ -1352,7 +1352,7 @@ Bueno, nunca los encontrarás todos. Jajajajaja.</item>
     <string name="spatial_segmentation_enabled">Activado · %1$s</string>
     <string name="spatial_segmentation_disabled">Descargado, desactivado · %1$s</string>
     <string name="spatial_storage_summary_v2">Componente de cálculo: %1$s\nModelos de profundidad y capas: %2$s\nModelo de fondo oculto: %3$s\nEfectos generados: %4$s</string>
-    <string name="settings_swipe_complete_animation">Estilo de animación al deslizar para completar</string>
+    <string name="settings_swipe_complete_animation">Estilo de animación al deslizar y retirar tarjetas</string>
     <string name="thing_animation_ripple">Ondas</string>
     <string name="thing_animation_border">Luz de borde</string>
     <string name="thing_animation_particle">Partículas</string>

@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 p = argparse.ArgumentParser()
-p.add_argument('--serial', choices=['9018f404', '392QBFED2226B'], required=True)
+p.add_argument('--serial', choices=['9018f404', '392QBFED2226B', 'R5CW20BLNKL'], required=True)
 p.add_argument('--run', required=True)
 p.add_argument('--mode', choices=['tap', 'short', 'cancel', 'reverse', 'fast', 'return', 'fling'], default='cancel')
 p.add_argument('--held', action='store_true')
@@ -18,6 +18,8 @@ p.add_argument('--performance-only', action='store_true')
 p.add_argument('--repeat', action='store_true', help='首段松手后立即再次滑动同一张虚构卡片')
 p.add_argument('--cancel-event', action='store_true', help='以系统 ACTION_CANCEL 结束手势')
 p.add_argument('--fab', action='store_true', help='在卡片上方放置真实 FAB 控件，不绑定业务动作')
+p.add_argument('--chrome', action='store_true', help='使用真实 contextual toolbar 布局及半透明阴影遮挡卡片')
+p.add_argument('--normal-chrome', action='store_true', help='改测正常首页顶栏')
 p.add_argument('--fab-motion', action='store_true', help='粒子期间移动、缩放、淡入淡出 FAB')
 p.add_argument('--fab-click', action='store_true', help='松手后点按虚构 FAB，验证绘制接管不影响输入')
 a = p.parse_args()
@@ -46,6 +48,8 @@ launch = ['shell', 'am', 'start', '-W', '-n', package + '/.views.particledismiss
           '--es', 'run_id', a.run, '--ei', 'card_width_dp', a.width_dp,
           '--ez', 'force_texture', str(a.backend == 'texture').lower(),
           '--ez', 'with_fab', str(a.fab).lower(),
+          '--ez', 'with_chrome', str(a.chrome or a.normal_chrome).lower(),
+          '--ez', 'normal_chrome', str(a.normal_chrome).lower(),
           '--ez', 'fab_motion', str(a.fab_motion).lower(),
           '--ez', 'performance_only', str(a.performance_only).lower()]
 status = adb(*launch)

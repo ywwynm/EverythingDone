@@ -1352,7 +1352,7 @@
     <string name="spatial_segmentation_enabled">Включено · %1$s</string>
     <string name="spatial_segmentation_disabled">Загружено, отключено · %1$s</string>
     <string name="spatial_storage_summary_v2">Вычислительный компонент: %1$s\nМодели глубины и слоёв: %2$s\nМодель скрытого фона: %3$s\nСозданные эффекты: %4$s</string>
-    <string name="settings_swipe_complete_animation">Стиль анимации завершения смахиванием</string>
+    <string name="settings_swipe_complete_animation">Стиль анимации смахивания и удаления карточек из списка</string>
     <string name="thing_animation_ripple">Рябь</string>
     <string name="thing_animation_border">Подсветка краёв</string>
     <string name="thing_animation_particle">Частицы</string>

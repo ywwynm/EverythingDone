@@ -1352,7 +1352,7 @@ Enfin, vous ne les trouverez jamais tous. Hahahahaha.</item>
     <string name="spatial_segmentation_enabled">Activé · %1$s</string>
     <string name="spatial_segmentation_disabled">Téléchargé, désactivé · %1$s</string>
     <string name="spatial_storage_summary_v2">Composant de calcul : %1$s\nModèles de profondeur et de couches : %2$s\nModèle d\'arrière-plan masqué : %3$s\nEffets générés : %4$s</string>
-    <string name="settings_swipe_complete_animation">Style d’animation du glissement pour terminer</string>
+    <string name="settings_swipe_complete_animation">Style d’animation du glissement et du retrait des cartes</string>
     <string name="thing_animation_ripple">Ondulation</string>
     <string name="thing_animation_border">Bordure lumineuse</string>
     <string name="thing_animation_particle">Particules</string>

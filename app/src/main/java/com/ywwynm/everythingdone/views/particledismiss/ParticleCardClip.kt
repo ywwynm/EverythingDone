@@ -44,6 +44,16 @@ internal object ParticleCardClip {
             child = parent
             parent = child.parent
         }
+        ParticleHomeForeground.opaqueBottom(view)?.let { bottom ->
+            val container = view.parent as? View
+            val at = IntArray(2)
+            if (container != null) {
+                container.getLocationOnScreen(at)
+                at[1] += view.top - container.scrollY
+            } else view.getLocationOnScreen(at)
+            bounds = ParticleVisibleBounds.clipBy(bounds, 0, 0,
+                bounds.left, maxOf(bounds.top, bottom - at[1]), bounds.right, bounds.bottom)
+        }
         if (source == null && bounds.covers(width, height)) return null
         return Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
     }

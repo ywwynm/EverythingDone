@@ -11,6 +11,10 @@
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
 
+        <activity android:name=".views.particledismiss.ThingListRemovalProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
+
         <!-- 显式诊断文件开启后仅旁观窗口与输入；不启动 Activity、不派发业务事件。 -->
         <provider android:name=".views.particledismiss.ThingAnimationPerformanceObserver"
             android:authorities="${applicationId}.animation-performance-observer"

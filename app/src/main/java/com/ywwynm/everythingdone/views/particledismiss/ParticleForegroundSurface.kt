@@ -19,9 +19,10 @@ import android.view.SurfaceControl
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.SurfaceView
+import android.view.animation.AnimationUtils
+import android.view.animation.Transformation
 import androidx.annotation.RequiresApi
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.BuildConfig
 import java.util.WeakHashMap
 import kotlin.math.abs
@@ -29,30 +30,34 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 /**
- * 卡片使用独立 Surface 时，临时将真实 FAB 的绘制放在其上方。
- * 按钮仍留在原 View 树处理输入、布局与动画；只转移绘制，不复制按钮或修改业务状态。
- * 按钮内容记录到可复用的小位图，阴影仍由 HWUI 绘制；静止复用同一帧，不读回 GPU 像素。
+ * 卡片使用独立 Surface 时，同步接管首页前景（顶栏、模拟阴影、标题及 FAB）的绘制。
+ * 原控件仍处理输入、布局与动画；保留半透明像素，静止复用缓冲，不读回 GPU 像素。
+ * 每个控件只分配自身范围；FAB 另留缩放和原生阴影所需的余量。
  */
 @RequiresApi(34)
-internal class ParticleFabSurface private constructor(private val source: FloatingActionButton,
-                                                     parentSurface: SurfaceControl) {
+internal class ParticleForegroundSurface private constructor(private val source: View,
+                                                             parentSurface: SurfaceControl,
+                                                             private val layerOrder: Int) {
     private val root = checkNotNull(source.rootSurfaceControl)
     private val originalTransitionAlpha = source.transitionAlpha
-    private val lighting = checkNotNull(ParticleCardSnapshot.of(source, source.z))
-    private val maxZ = max(source.z, source.compatElevation + source.compatPressedTranslationZ)
-    private val ratio = maxZ / max(lighting.lightZ - maxZ, maxZ.coerceAtLeast(1f))
-    private val lightDistance = max(max(abs(lighting.lightX), abs(lighting.lightY)),
-        max(abs(source.width - lighting.lightX), abs(source.height - lighting.lightY)))
-    private val padding = ceil(max(maxZ * 1.5f, (lightDistance + lighting.lightRadius) * ratio) + 2f).toInt()
-    private val width = source.width * 2 + padding * 2
-    private val height = source.height * 2 + padding * 2
-    private val rotation = lighting.rotation
+    private val fab = source as? FloatingActionButton
+    private val lighting = if (fab != null) checkNotNull(ParticleCardSnapshot.of(source, source.z)) else null
+    private val padding = if (fab != null && lighting != null) {
+        val maxZ = max(source.z, fab.compatElevation + fab.compatPressedTranslationZ)
+        val ratio = maxZ / max(lighting.lightZ - maxZ, maxZ.coerceAtLeast(1f))
+        val distance = max(max(abs(lighting.lightX), abs(lighting.lightY)),
+            max(abs(source.width - lighting.lightX), abs(source.height - lighting.lightY)))
+        ceil(max(maxZ * 1.5f, (distance + lighting.lightRadius) * ratio) + 2f).toInt()
+    } else 0
+    private val width = source.width * (if (fab != null) 2 else 1) + padding * 2
+    private val height = source.height * (if (fab != null) 2 else 1) + padding * 2
+    private val rotation = ParticleWindowLighting.rotation(source)
     private val renderWidth = if (rotation % 2 == 0) width else height
     private val renderHeight = if (rotation % 2 == 0) height else width
     private lateinit var reader: ImageReader
     private lateinit var renderer: HardwareRenderer
-    private val node = RenderNode("particleFabFrame")
-    private val button = RenderNode("particleFabView")
+    private val node = RenderNode("particleForegroundFrame")
+    private val button = RenderNode("particleForegroundView")
     private var content: Bitmap? = null
     private lateinit var layer: SurfaceControl
     private var leases = 0
@@ -65,7 +70,7 @@ internal class ParticleFabSurface private constructor(private val source: Floati
     private var previousPose: List<Float>? = null
     private var pendingFrame: Frame? = null
     private var firstFrame: Frame? = null
-    private val readyCallbacks = mutableListOf<(Result<ParticleFabSurface?>) -> Unit>()
+    private val readyCallbacks = mutableListOf<(Result<ParticleForegroundSurface>) -> Unit>()
     private val failureCallbacks = mutableListOf<() -> Unit>()
     private val preDraw = ViewTreeObserver.OnPreDrawListener { refreshSafely(); true }
     private val timeout = Runnable { closeNow(failed = true) }
@@ -91,12 +96,12 @@ internal class ParticleFabSurface private constructor(private val source: Floati
                 HardwareBuffer.USAGE_COMPOSER_OVERLAY)
         renderer = HardwareRenderer()
         // SurfaceView 公开允许挂接自有子层；不修改框架管理的 Surface 本身。
-        layer = SurfaceControl.Builder().setName("ParticleFabForeground").setParent(parentSurface)
+        layer = SurfaceControl.Builder().setName(if (fab != null) "ParticleFabForeground" else "ParticleHomeForeground-${source.id}").setParent(parentSurface)
             .setFormat(PixelFormat.RGBA_8888).setOpaque(false).setBufferSize(renderWidth, renderHeight).build()
         SurfaceControl.Transaction().use {
-            it.setLayer(layer, Int.MAX_VALUE).setVisibility(layer, false).apply()
+            it.setLayer(layer, layerOrder).setVisibility(layer, false).apply()
         }
-        renderer.setName("particleFab")
+        renderer.setName("particleForeground")
         renderer.isOpaque = false
         renderer.setSurface(reader.surface)
         renderer.setContentRoot(node)
@@ -119,7 +124,7 @@ internal class ParticleFabSurface private constructor(private val source: Floati
                 readyCallbacks.clear()
                 callbacks.forEach { it(Result.success(this)) }
             } else runCatching {
-                // 接管后只有该层在画 FAB；持续更新不依赖窗口再次提交可见内容。
+                // 接管后只有该层在画前景控件；持续更新不依赖窗口再次提交可见内容。
                 SurfaceControl.Transaction().use { putFrame(it, frame); it.apply() }
             }.onFailure { closeNow(failed = true) }
         }, main)
@@ -127,7 +132,7 @@ internal class ParticleFabSurface private constructor(private val source: Floati
         source.addOnAttachStateChangeListener(attachment)
     }
 
-    /** 与卡片的第一步窗口交接合并，不让 FAB 的半透明阴影出现两份。 */
+    /** 与卡片的第一步窗口交接合并，不让半透明前景阴影出现两份。 */
     fun enter(transaction: SurfaceControl.Transaction): Boolean {
         if (disposed || closing) return false
         if (active) return true
@@ -167,25 +172,38 @@ internal class ParticleFabSurface private constructor(private val source: Floati
         val decorAt = IntArray(2).also { source.rootView.getLocationOnScreen(it) }
         val layoutX = parentAt[0] + source.left - parent.scrollX
         val layoutY = parentAt[1] + source.top - parent.scrollY
-        var alpha = if (source.isShown) source.alpha * originalTransitionAlpha else 0f
+        val animation = source.animation?.takeUnless { it.hasEnded() }
+        val legacy = Transformation()
+        if (animation != null) {
+            if (!animation.isInitialized) animation.initialize(source.width, source.height, parent.width, parent.height)
+            animation.getTransformation(AnimationUtils.currentAnimationTimeMillis(), legacy)
+            source.postInvalidateOnAnimation()
+        }
+        // contextual toolbar 先设 INVISIBLE 再播旧式平移退场；绘制期仍须跟随该变换。
+        var alpha = if (source.isShown || (animation != null && parent.isShown))
+            source.alpha * originalTransitionAlpha * legacy.alpha else 0f
         var ancestor: View? = parent
         while (ancestor != null) { alpha *= ancestor.alpha; ancestor = ancestor.parent as? View }
+        val matrixValues = FloatArray(9).also { legacy.matrix.getValues(it) }
         val pose = listOf(layoutX.toFloat(), layoutY.toFloat(), source.translationX, source.translationY,
             source.scaleX, source.scaleY, source.rotation, source.pivotX, source.pivotY, source.z, alpha,
-            source.width.toFloat(), source.height.toFloat())
+            source.width.toFloat(), source.height.toFloat()) + matrixValues.toList()
         if (pose == previousPose && !source.isDirty) return
         previousPose = pose
         val centre = floatArrayOf(source.width / 2f, source.height / 2f)
         source.matrix.mapPoints(centre)
+        legacy.matrix.mapPoints(centre)
         val x = layoutX + centre[0] - width / 2f
         val y = layoutY + centre[1] - height / 2f
         pendingFrame = Frame(x - decorAt[0], y - decorAt[1], alpha)
         button.setPosition(0, 0, source.width, source.height)
-        button.translationX = layoutX - x + source.translationX
-        button.translationY = layoutY - y + source.translationY
-        button.pivotX = source.pivotX; button.pivotY = source.pivotY
-        button.scaleX = source.scaleX; button.scaleY = source.scaleY; button.rotationZ = source.rotation
-        button.elevation = source.z
+        if (fab != null) {
+            button.translationX = layoutX - x + source.translationX
+            button.translationY = layoutY - y + source.translationY
+            button.pivotX = source.pivotX; button.pivotY = source.pivotY
+            button.scaleX = source.scaleX; button.scaleY = source.scaleY; button.rotationZ = source.rotation
+            button.elevation = source.z
+        }
         button.setAmbientShadowColor(source.outlineAmbientShadowColor)
         button.setSpotShadowColor(source.outlineSpotShadowColor)
         val outline = Outline().apply { this.alpha = 1f }
@@ -214,17 +232,24 @@ internal class ParticleFabSurface private constructor(private val source: Floati
             3 -> canvas.translate(0f, width.toFloat())
         }
         canvas.rotate(90f * rotation)
+        if (fab == null) {
+            canvas.translate(layoutX - x, layoutY - y)
+            canvas.concat(legacy.matrix)
+            canvas.concat(source.matrix)
+        }
         canvas.enableZ(); canvas.drawRenderNode(button); canvas.disableZ()
         node.endRecording()
-        val lx = lighting.lightX + layoutX - x
-        val ly = lighting.lightY + layoutY - y
-        val lightX = when (rotation) { 1 -> height - ly; 2 -> width - lx; 3 -> ly; else -> lx }
-        val lightY = when (rotation) { 1 -> lx; 2 -> height - ly; 3 -> width - lx; else -> ly }
-        renderer.setLightSourceGeometry(lightX, lightY, lighting.lightZ, lighting.lightRadius)
-        renderer.setLightSourceAlpha(lighting.ambientAlpha, lighting.spotAlpha)
+        lighting?.let {
+            val lx = it.lightX + layoutX - x
+            val ly = it.lightY + layoutY - y
+            val lightX = when (rotation) { 1 -> height - ly; 2 -> width - lx; 3 -> ly; else -> lx }
+            val lightY = when (rotation) { 1 -> lx; 2 -> height - ly; 3 -> width - lx; else -> ly }
+            renderer.setLightSourceGeometry(lightX, lightY, it.lightZ, it.lightRadius)
+            renderer.setLightSourceAlpha(it.ambientAlpha, it.spotAlpha)
+        }
         rendering = true
         main.postDelayed(timeout, 1200)
-        if (BuildConfig.DEBUG) renderedFramesForTests++
+        if (BuildConfig.DEBUG && fab != null) renderedFramesForTests++
         val result = renderer.createRenderRequest().setWaitForPresent(false).syncAndDraw()
         if (result and (HardwareRenderer.SYNC_LOST_SURFACE_REWARD_IF_FOUND or
                 HardwareRenderer.SYNC_CONTEXT_IS_STOPPED) != 0) closeNow(failed = true)
@@ -298,7 +323,7 @@ internal class ParticleFabSurface private constructor(private val source: Floati
         }
         firstFrame?.image?.let { closeUnused(it) }; firstFrame = null
         val callbacks = readyCallbacks.toList(); readyCallbacks.clear()
-        callbacks.forEach { it(Result.failure(IllegalStateException("FAB 硬件层不可用"))) }
+        callbacks.forEach { it(Result.failure(IllegalStateException("前景硬件层不可用"))) }
         val failures = failureCallbacks.toList(); failureCallbacks.clear()
         if (failed) failures.forEach { main.post(it) }
         worker.post {
@@ -311,40 +336,59 @@ internal class ParticleFabSurface private constructor(private val source: Floati
 
     companion object {
         private val main = Handler(Looper.getMainLooper())
-        private val worker by lazy { Handler(HandlerThread("ParticleFabRelease").apply { start() }.looper) }
-        private val surfaces = WeakHashMap<View, ParticleFabSurface>()
+        private val worker by lazy { Handler(HandlerThread("ParticleForegroundRelease").apply { start() }.looper) }
+        private val surfaces = WeakHashMap<View, ParticleForegroundSurface>()
         var renderedFramesForTests = 0
 
         fun prepare(source: View, particleView: SurfaceView, onFailure: () -> Unit,
-                    done: (Result<ParticleFabSurface?>) -> Unit, retries: Int = 60) {
-            val fab = source.rootView.findViewById<View>(R.id.fab_create) as? FloatingActionButton
-            if (fab == null) { done(Result.success(null)); return }
-            if (!fab.isAttachedToWindow || fab.width <= 0 || fab.height <= 0 || !source.isAttachedToWindow) {
-                done(Result.failure(IllegalStateException("FAB 尚未布局或已离开窗口"))); return
+                    done: (Result<List<ParticleForegroundSurface>>) -> Unit) {
+            val targets = ParticleHomeForeground.views(source)
+            if (targets.isEmpty()) { done(Result.success(emptyList())); return }
+            val prepared = mutableListOf<ParticleForegroundSurface>()
+            var remaining = targets.size
+            var error: Throwable? = null
+            targets.forEachIndexed { index, view ->
+                prepareView(view, index + 1, particleView, onFailure, { result ->
+                    result.onSuccess { prepared += it }.onFailure { error = it }
+                    if (--remaining == 0) {
+                        val failure = error
+                        if (failure != null) {
+                            prepared.forEach { it.release(onFailure) }
+                            done(Result.failure(failure))
+                        } else done(Result.success(prepared))
+                    }
+                })
             }
-            if (surfaces[fab]?.closing == true) {
-                if (retries > 0) fab.postOnAnimation { prepare(source, particleView, onFailure, done, retries - 1) }
-                else done(Result.failure(IllegalStateException("FAB 交接尚未结束")))
+        }
+
+        private fun prepareView(view: View, layerOrder: Int, particleView: SurfaceView, onFailure: () -> Unit,
+                                done: (Result<ParticleForegroundSurface>) -> Unit, retries: Int = 60) {
+            if (!view.isAttachedToWindow || view.width <= 0 || view.height <= 0) {
+                done(Result.failure(IllegalStateException("前景尚未布局或已离开窗口"))); return
+            }
+            if (surfaces[view]?.closing == true) {
+                if (retries > 0) view.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1) }
+                else done(Result.failure(IllegalStateException("前景交接尚未结束")))
                 return
             }
             val parentSurface = particleView.surfaceControl
             if (parentSurface == null || !parentSurface.isValid) {
                 if (retries > 0 && particleView.isAttachedToWindow)
-                    particleView.postOnAnimation { prepare(source, particleView, onFailure, done, retries - 1) }
+                    particleView.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1) }
                 else done(Result.failure(IllegalStateException("粒子 Surface 不可用")))
                 return
             }
-            val existing = surfaces[fab]?.takeUnless { it.closing || it.disposed }
-            val target = existing ?: runCatching { ParticleFabSurface(fab, parentSurface) }
-                .getOrNull()?.also { surfaces[fab] = it }
-            if (target == null) { done(Result.failure(IllegalStateException("FAB 硬件层创建失败"))); return }
+            val existing = surfaces[view]?.takeUnless { it.closing || it.disposed }
+            val target = existing ?: runCatching { ParticleForegroundSurface(view, parentSurface, layerOrder) }
+                .getOrNull()?.also { surfaces[view] = it }
+            if (target == null) { done(Result.failure(IllegalStateException("前景硬件层创建失败"))); return }
             target.leases++
             target.failureCallbacks += onFailure
             if (target.active || target.firstFrame != null) done(Result.success(target))
             else { target.readyCallbacks += done; target.refreshSafely() }
         }
 
-        /** 离屏捕获包含 FAB 的祖先时，同步记录原控件；恢复发生在同一调用栈内。 */
+        /** 离屏捕获包含前景的祖先时，同步记录原控件；恢复发生在同一调用栈内。 */
         fun withNativeDrawing(root: View, draw: () -> Unit) {
             if (Build.VERSION.SDK_INT < 34) { draw(); return }
             val affected = surfaces.values.filter { surface ->

@@ -130,7 +130,7 @@ internal object ParticleHardwareSnapshot {
             val canvas = cardNode.beginRecording(if (shadow != null) view.width else width,
                 if (shadow != null) view.height else height)
             if (shadow == null && (clipLeft != 0 || clipTop != 0)) canvas.translate(-clipLeft.toFloat(), -clipTop.toFloat())
-            ParticleFabSurface.withNativeDrawing(view) { view.draw(canvas) }
+            ParticleForegroundSurface.withNativeDrawing(view) { view.draw(canvas) }
             cardNode.endRecording()
             if (shadow != null) {
                 val parentCanvas = node.beginRecording(renderWidth, renderHeight)

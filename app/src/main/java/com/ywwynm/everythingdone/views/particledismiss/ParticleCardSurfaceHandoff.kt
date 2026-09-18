@@ -23,10 +23,11 @@ internal class ParticleCardSurfaceHandoff private constructor(
     private val source: View,
     private val bitmap: Bitmap,
     private val layer: SurfaceControl,
-    private val onForegroundFailure: () -> Unit
+    private val onForegroundFailure: () -> Unit,
+    private val sources: List<View>
 ) {
     private val main = Handler(Looper.getMainLooper())
-    private var foreground: ParticleFabSurface? = null
+    private var foreground = emptyList<ParticleForegroundSurface>()
     private var entering = false
     private var sourceHidden = false
     private var closing = false
@@ -39,13 +40,12 @@ internal class ParticleCardSurfaceHandoff private constructor(
     fun enter(ready: (SurfaceControl.Transaction) -> Unit) {
         if (entering || closing || released) return
         val transaction = SurfaceControl.Transaction().setVisibility(layer, true)
-        if (foreground?.enter(transaction) == false) {
+        if (foreground.any { !it.enter(transaction) }) {
             transaction.close(); onForegroundFailure(); return
         }
         entering = true
         sourceHidden = true
-        (source as? InterceptTouchCardView)?.setParticleAlphaLock(0f)
-        source.alpha = 0f
+        hideSources()
         onWindowFrame(transaction) {
             if (!closing && !released) ready(SurfaceControl.Transaction().setVisibility(layer, false))
         }
@@ -55,13 +55,12 @@ internal class ParticleCardSurfaceHandoff private constructor(
     fun keepSourceHidden(ready: () -> Unit) {
         if (sourceHidden || closing || released) return
         val transaction = SurfaceControl.Transaction()
-        if (foreground?.enter(transaction) == false) {
+        if (foreground.any { !it.enter(transaction) }) {
             transaction.close(); onForegroundFailure(); return
         }
         sourceHidden = true
-        (source as? InterceptTouchCardView)?.setParticleAlphaLock(0f)
-        source.alpha = 0f
-        if (foreground == null) { transaction.close(); ready() }
+        hideSources()
+        if (foreground.isEmpty()) { transaction.close(); ready() }
         else onWindowFrame(transaction) {
             if (!closing && !released) ready()
         }
@@ -92,6 +91,13 @@ internal class ParticleCardSurfaceHandoff private constructor(
         }
     }
 
+    private fun hideSources() {
+        for (view in sources) {
+            (view as? InterceptTouchCardView)?.setParticleAlphaLock(0f)
+            view.alpha = 0f
+        }
+    }
+
     /** 在退出页面等没有下一帧的场合直接释放自有图层。 */
     fun dispose() {
         if (released) return
@@ -102,7 +108,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
         runCatching { SurfaceControl.Transaction().use { it.reparent(layer, null).apply() } }
         layer.release()
         bitmap.recycle()
-        foreground?.release(onForegroundFailure); foreground = null
+        foreground.forEach { it.release(onForegroundFailure) }; foreground = emptyList()
         val restore = restoration
         restoration = null
         restore?.invoke()
@@ -152,6 +158,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
 
         fun prepare(source: View, spec: ParticleDismissSpec, particleView: SurfaceView,
                     onForegroundFailure: () -> Unit,
+                    sources: List<View> = listOf(source),
                     done: (ParticleCardSurfaceHandoff?) -> Unit) {
             worker.execute {
                 val hardware = runCatching { spec.snapshot.copy(Bitmap.Config.HARDWARE, false) }.getOrNull()
@@ -173,14 +180,14 @@ internal class ParticleCardSurfaceHandoff private constructor(
                                 .setLayer(control, Int.MAX_VALUE - 1).setVisibility(control, false).apply()
                         }
                         attach.close()
-                        ParticleCardSurfaceHandoff(source, hardware, control, onForegroundFailure)
+                        ParticleCardSurfaceHandoff(source, hardware, control, onForegroundFailure, sources)
                     }.getOrElse {
                         layer?.release(); hardware.recycle(); null
                     }
                     if (handoff == null) done(null)
-                    else ParticleFabSurface.prepare(source, particleView, onForegroundFailure, { outcome ->
+                    else ParticleForegroundSurface.prepare(source, particleView, onForegroundFailure, { outcome ->
                         if (outcome.isFailure) { handoff.dispose(); done(null) }
-                        else { handoff.foreground = outcome.getOrNull(); done(handoff) }
+                        else { handoff.foreground = outcome.getOrThrow(); done(handoff) }
                     })
                 }
             }

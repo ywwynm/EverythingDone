@@ -18,16 +18,18 @@ import java.util.WeakHashMap
  * 关掉 [ParticlePerfTuning.overlayInDecorOverlay] 时退回普通 `addView`，行为与改动前相同。
  */
 internal object ParticleOverlayHost {
-    private data class BelowFab(val parent: ViewGroup, val sync: View.OnLayoutChangeListener)
-    private val belowFabParents = WeakHashMap<View, BelowFab>()
+    private data class BelowForeground(val parent: ViewGroup, val sync: View.OnLayoutChangeListener)
+    private val foregroundParents = WeakHashMap<View, BelowForeground>()
 
     fun attach(decor: ViewGroup, view: View) {
-        if (view is ParticleDismissOverlay && view.belowNativeFab) {
+        if (view is ParticleDismissOverlay && view.belowNativeForeground) {
             val fab = decor.findViewById<View>(R.id.fab_create)
-            val parent = fab?.parent as? ViewGroup
+            val home = ParticleHomeForeground.insertionPoint(view.nativeCardSource)
+            val parent = home?.first ?: fab?.parent as? ViewGroup
             if (parent != null) {
-                // TextureView 是窗口内容，直接插在 FAB 之前；仍使用 DecorView 坐标绘制卡片。
-                parent.addView(view, parent.indexOfChild(fab), ViewGroup.LayoutParams(decor.width, decor.height))
+                // 首页插在列表之后，保留顶栏、半透明阴影及 FAB 的原生前景关系。
+                val index = home?.let { parent.indexOfChild(it.second) + 1 } ?: parent.indexOfChild(fab)
+                parent.addView(view, index, ViewGroup.LayoutParams(decor.width, decor.height))
                 val sync = object : View.OnLayoutChangeListener {
                     override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int,
                                                 oldL: Int, oldT: Int, oldR: Int, oldB: Int) {
@@ -39,7 +41,7 @@ internal object ParticleOverlayHost {
                         layoutFullScreen(decor, view)
                     }
                 }
-                belowFabParents[view] = BelowFab(parent, sync)
+                foregroundParents[view] = BelowForeground(parent, sync)
                 parent.addOnLayoutChangeListener(sync)
                 sync.onLayoutChange(parent, 0, 0, 0, 0, 0, 0, 0, 0)
                 return
@@ -56,7 +58,7 @@ internal object ParticleOverlayHost {
     }
 
     fun detach(decor: ViewGroup?, view: View) {
-        belowFabParents.remove(view)?.let {
+        foregroundParents.remove(view)?.let {
             it.parent.removeOnLayoutChangeListener(it.sync)
             it.parent.removeView(view)
             return

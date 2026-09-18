@@ -104,7 +104,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
-    protected open fun getEntries(): List<ThingListEntry>? = mThingManager!!.getThingListEntries()
+    private var removalEntries: List<ThingListEntry>? = null
+
+    /** 粒子退场期间保留旧投影，避免业务重载使 RecyclerView 提前看到新位置。 */
+    internal fun holdRemovalEntries(entries: List<ThingListEntry>?) {
+        removalEntries = entries
+    }
+
+    protected open fun getEntries(): List<ThingListEntry>? = removalEntries ?: mThingManager!!.getThingListEntries()
 
     override fun getStickyThingParentFolderBackground(thing: Thing): ThingBackground? {
         val folderId = thing.folderId ?: return null

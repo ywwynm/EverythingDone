@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.ywwynm.everythingdone.Def
 
-/** 新建与左滑分别选择动画；旧的 Boolean 键只用于兼容读取。 */
+/** 新建单独选择动画；卡片滑动与菜单移除共用原滑动设置，保留已有用户选择。 */
 internal object ThingAnimationPreferences {
     const val CREATE_KEY = "thing_creation_animation"
     const val SWIPE_KEY = "swipe_complete_animation"

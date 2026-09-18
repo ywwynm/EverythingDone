@@ -22,6 +22,8 @@ internal data class ParticleCardSnapshot private constructor(
     val materialAreaScale: Float,
     val rotation: Int
 ) {
+    fun clippedTo(bounds: Rect): ParticleCardSnapshot = copy(bounds = Rect(bounds))
+
     companion object {
         @Suppress("DEPRECATION")
         fun of(view: View, elevation: Float = view.resources.getDimension(R.dimen.thing_card_normal_elevation)): ParticleCardSnapshot? {

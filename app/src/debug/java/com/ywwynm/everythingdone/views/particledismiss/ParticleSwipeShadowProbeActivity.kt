@@ -76,7 +76,7 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         probeOwner = this
         ParticleCardSurfaceHandoff.forceTextureForTests = intent.getBooleanExtra("force_texture", false)
         ParticleCardSurfaceHandoff.seedForTests = 42017
-        ParticleFabSurface.renderedFramesForTests = 0
+        ParticleForegroundSurface.renderedFramesForTests = 0
         pixelSampling = !intent.getBooleanExtra("performance_only", false)
         window.addOnFrameMetricsAvailableListener(metricsListener, main)
         val run = intent.getStringExtra("run_id") ?: "latest"
@@ -84,6 +84,7 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         output = File(getExternalFilesDir(null), "swipe-shadow-probe/$run").apply { mkdirs() }
         swipe = ParticleSwipeAnimator(this)
         list = StablerRecyclerView(this).apply {
+            id = R.id.rv_things
             layoutManager = LinearLayoutManager(this@ParticleSwipeShadowProbeActivity)
             setBackgroundColor(Color.rgb(244, 244, 244))
             setPadding(dp(48), dp(120), dp(48), dp(48))
@@ -138,6 +139,11 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         }).attachToRecyclerView(list)
         val root = FrameLayout(this)
         root.addView(list, FrameLayout.LayoutParams(-1, -1))
+        if (intent.getBooleanExtra("with_chrome", false)) {
+            if (intent.getBooleanExtra("normal_chrome", false))
+                ParticleChromeProbe.addNormal(root, "虚构顶栏，保留真实渐变阴影", 144)
+            else ParticleChromeProbe.add(root, "虚构顶栏，保留真实渐变阴影", 144)
+        }
         if (intent.getBooleanExtra("with_fab", false)) {
             fab = FloatingActionButton(this).apply {
                 id = R.id.fab_create
@@ -251,7 +257,7 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             stopped = true
             File(output, "result.json").writeText(JSONObject().put("frames", frames).put("inputs", inputs)
                 .put("windowFrames", windowFrames).put("particleFrames", particleFrames)
-                .put("fabFrames", fabFrames).put("fabRenderFrames", ParticleFabSurface.renderedFramesForTests)
+                .put("fabFrames", fabFrames).put("fabRenderFrames", ParticleForegroundSurface.renderedFramesForTests)
                 .put("fabClicks", fabClicks).put("delegatedFabClicks", delegatedFabClicks)
                 .put("startedAtNanos", startedAt * 1000000L)
                 .put("completions", completions).toString())

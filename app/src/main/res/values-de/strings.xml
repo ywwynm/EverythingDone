@@ -1352,7 +1352,7 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="spatial_segmentation_enabled">Aktiviert · %1$s</string>
     <string name="spatial_segmentation_disabled">Heruntergeladen, deaktiviert · %1$s</string>
     <string name="spatial_storage_summary_v2">Rechenkomponente: %1$s\nTiefen- und Ebenenmodelle: %2$s\nModell für verdeckten Hintergrund: %3$s\nErzeugte Effekte: %4$s</string>
-    <string name="settings_swipe_complete_animation">Animationsstil beim Wischen zum Abschließen</string>
+    <string name="settings_swipe_complete_animation">Animationsstil beim Wischen und Entfernen von Eintragskarten</string>
     <string name="thing_animation_ripple">Wellen</string>
     <string name="thing_animation_border">Randlicht</string>
     <string name="thing_animation_particle">Partikel</string>
