@@ -60,5 +60,7 @@ internal class ParticleDismissSpec(
     /** 卡片及半透明阴影需同步交接；Android 14 起走 Surface 事务，旧系统在窗口内合成。 */
     val inWindow: Boolean = false,
     /** 扩展阴影边界后的面积比例，用于保持卡片本体的粒子密度。 */
-    val materialAreaScale: Float = 1f
+    val materialAreaScale: Float = 1f,
+    /** 滑动时固定一个局部消逝起点；未提供时仍使用全部随机起点。 */
+    val releaseOrigin: ParticleReleaseOrigin? = null
 )

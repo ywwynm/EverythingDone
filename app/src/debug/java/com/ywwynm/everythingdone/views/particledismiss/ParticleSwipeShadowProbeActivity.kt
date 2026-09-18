@@ -82,7 +82,28 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         val run = intent.getStringExtra("run_id") ?: "latest"
         require(run.matches(Regex("[a-zA-Z0-9_-]{1,80}")))
         output = File(getExternalFilesDir(null), "swipe-shadow-probe/$run").apply { mkdirs() }
-        swipe = ParticleSwipeAnimator(this)
+        val allowRight = intent.getBooleanExtra("allow_right_swipe", false)
+        swipe = ParticleSwipeAnimator(this, allowRightSwipe = allowRight)
+        if (intent.getBooleanExtra("check_release_origin", false)) Thread {
+            val result = runCatching {
+                check(ParticleMaterialNative.enabled)
+                val rules = ParticleMicroflakeRenderer.sharedResources(assets).rules
+                val variation = ParticleMicroflakeVariation.fromSeed(42017L, rules)
+                var error = 0f
+                for (direction in listOf(0f, 180f)) for (point in listOf(null,
+                    ParticleReleaseOrigin(.25f, .25f), ParticleReleaseOrigin(.75f, .75f),
+                    ParticleReleaseOrigin(.98f, .02f))) {
+                    fun field() = ParticleMicroflakeModel.releaseField(72, 48, direction, rules,
+                        360f, 180f, variation, releaseOrigin = point)
+                    val native = field()
+                    val reference = ParticleMaterialNative.reference { field() }
+                    error = maxOf(error, native.indices.maxOf { kotlin.math.abs(native[it] - reference[it]) })
+                }
+                check(error < 2e-6f) { "JNI 与 Kotlin 释放场不一致：$error" }
+                JSONObject().put("cases", 8).put("maxError", error)
+            }.getOrElse { JSONObject().put("error", it.toString()) }
+            File(output, "origin-check.json").writeText(result.toString())
+        }.start()
         list = StablerRecyclerView(this).apply {
             id = R.id.rv_things
             layoutManager = LinearLayoutManager(this@ParticleSwipeShadowProbeActivity)
@@ -114,20 +135,21 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
         }
-        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+        val swipeFlags = ItemTouchHelper.LEFT or if (allowRight) ItemTouchHelper.RIGHT else 0
+        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, swipeFlags) {
             override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder) = false
             override fun onSwiped(holder: RecyclerView.ViewHolder, direction: Int) {
                 val done = {
                     completions++
                     list.adapter!!.notifyItemChanged(0)
-                    returning.start(0, particles = true)
+                    returning.start(0, particles = true, fromRight = direction == ItemTouchHelper.RIGHT)
                 }
                 if (!swipe.finishSwipe(holder.itemView, list.width, done)) done()
             }
             override fun onChildDraw(c: Canvas, rv: RecyclerView, holder: RecyclerView.ViewHolder,
                                      dx: Float, dy: Float, state: Int, active: Boolean) {
-                if (dx > 0f) swipe.reset(holder.itemView)
-                val particles = dx <= 0f && swipe.draw(holder.itemView, dx)
+                if (dx > 0f && !allowRight) swipe.reset(holder.itemView)
+                val particles = (allowRight || dx <= 0f) && swipe.draw(holder.itemView, dx)
                 super.onChildDraw(c, rv, holder, if (particles || dx > 0f) 0f else dx, dy, state, active)
                 if (!particles) holder.itemView.alpha = 1f
             }
@@ -246,9 +268,15 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
                 val field = ParticleDismissOverlay::class.java.getDeclaredField("session").apply { isAccessible = true }
                 val session = field.get(overlay) as? ParticleSession
                 if (session != null) {
+                    val spec = session.spec
+                    val decor = IntArray(2).also { window.decorView.getLocationOnScreen(it) }
                     fun rows(list: MutableList<LongArray>) = synchronized(list) { JSONArray(list.map { JSONArray(it.toList()) }) }
                     particleFrames.put(JSONObject().put("submitted", rows(session.submittedTimings))
                         .put("presented", rows(session.presentedTimings)).put("draws", rows(session.drawTimings))
+                        .put("origin", spec.releaseOrigin?.let { JSONArray(listOf(it.x, it.y)) })
+                        .put("snapshot", JSONArray(listOf(spec.originXPx + decor[0], spec.originYPx + decor[1],
+                            spec.snapshot.width.toFloat(), spec.snapshot.height.toFloat())))
+                        .put("flightDx", spec.virtualTouchXPx - spec.originXPx - spec.snapshot.width / 2f)
                         .put("startup", JSONArray(session.startupTimings.toList())))
                 }
             })

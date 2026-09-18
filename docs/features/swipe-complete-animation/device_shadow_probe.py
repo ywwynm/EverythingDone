@@ -12,6 +12,10 @@ p.add_argument('--run', required=True)
 p.add_argument('--mode', choices=['tap', 'short', 'cancel', 'reverse', 'fast', 'return', 'fling'], default='cancel')
 p.add_argument('--held', action='store_true')
 p.add_argument('--width-dp', type=int, default=0)
+p.add_argument('--touch-x', type=float, help='按下位置在卡片宽度内的比例')
+p.add_argument('--touch-y', type=float, default=.5, help='按下位置在卡片高度内的比例')
+p.add_argument('--right', action='store_true', help='启用 DoingActivity 同款双向完成并向右滑')
+p.add_argument('--check-origin', action='store_true', help='检查触点坐标和 JNI 释放场一致性')
 p.add_argument('--backend', choices=['surface', 'texture'], default='surface')
 p.add_argument('--video', action='store_true')
 p.add_argument('--performance-only', action='store_true')
@@ -51,6 +55,8 @@ launch = ['shell', 'am', 'start', '-W', '-n', package + '/.views.particledismiss
           '--ez', 'with_chrome', str(a.chrome or a.normal_chrome).lower(),
           '--ez', 'normal_chrome', str(a.normal_chrome).lower(),
           '--ez', 'fab_motion', str(a.fab_motion).lower(),
+          '--ez', 'allow_right_swipe', str(a.right).lower(),
+          '--ez', 'check_release_origin', str(a.check_origin).lower(),
           '--ez', 'performance_only', str(a.performance_only).lower()]
 status = adb(*launch)
 if b'intent has been delivered' in status:
@@ -69,16 +75,20 @@ if a.video:
         '--time-limit', '12', '--bit-rate', '32000000', f'{remote}/capture.mp4'],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     time.sleep(.4)
-x = round(b['x'] + b['width'] * .88)
-y = round(b['y'] + b['height'] * .5)
+touch_x = a.touch_x if a.touch_x is not None else (.12 if a.right else .88)
+assert 0 < touch_x < 1 and 0 < a.touch_y < 1
+x = round(b['x'] + b['width'] * touch_x)
+y = round(b['y'] + b['height'] * a.touch_y)
 distance = .78 if a.mode == 'return' else .12 if a.mode == 'short' else .42
-left = round(x - b['width'] * distance)
+left = round(x + (1 if a.right else -1) * b['width'] * distance)
 if a.mode == 'tap':
     steps = [x, y, 16]
 elif a.mode == 'fling':
+    assert not a.right, '右滑请用 return 验证完成路径'
     steps = [12, y, 48]
 elif a.mode == 'reverse':
-    steps = [left, y, 450, left, y, 350, x+24, y, 450, x+24, y, 200]
+    overshoot = x + (-24 if a.right else 24)
+    steps = [left, y, 450, left, y, 350, overshoot, y, 450, overshoot, y, 200]
 elif a.mode == 'fast':
     steps = [left, y, 48, left, y, 350]
 elif a.mode == 'return':
@@ -107,6 +117,15 @@ if a.fab_click:
     adb('shell', 'input', 'tap', round(fab['x'] + fab['width'] / 2), round(fab['y'] + fab['height'] / 2))
 data = wait_json('result')
 (out / 'result.json').write_text(json.dumps(data, indent=2))
+if a.check_origin:
+    parity = wait_json('origin-check')
+    (out / 'origin-check.json').write_text(json.dumps(parity))
+    assert 'error' not in parity, parity
+    session = data['particleFrames'][0]
+    u, v = session['origin']
+    sx, sy, sw, sh = session['snapshot']
+    assert abs(sx + u * sw - x) < 1 and abs(sy + v * sh - y) < 1, session
+    assert (session['flightDx'] > 0) == a.right, '触点改变了飞出方向'
 if recorder:
     _, error = recorder.communicate(timeout=16)
     assert recorder.returncode == 0, error.decode(errors='replace')

@@ -7,7 +7,7 @@ internal object ParticleReleaseTopology {
     private data class Patch(val x: Double, val y: Double, val delay: Double,
         val c: Double, val s: Double, val scale: Double)
 
-    private fun patches(width: Float, height: Float, seed: Long): Array<Patch> {
+    private fun patches(width: Float, height: Float, seed: Long, origin: ParticleReleaseOrigin?): Array<Patch> {
         val span = min(width, height).toDouble()
         val salt = (seed xor (seed ushr 32)).toInt() xor 0x243f6a88
         val count = max(2, ceil(max(width, height) / span * 1.4).toInt()) +
@@ -26,19 +26,24 @@ internal object ParticleReleaseTopology {
             }
             val inflate = 1.015 + .025 * random[j + 1]
             val angle = 2 * PI * random[j + 3]
-            Patch(width * .5 + (x - width * .5) * inflate, height * .5 + (y - height * .5) * inflate,
+            val patch = Patch(width * .5 + (x - width * .5) * inflate, height * .5 + (y - height * .5) * inflate,
                 .02 + .25 * random[j + 2] + .06 * i,
                 cos(angle), sin(angle), .65 + .50 * random[j])
+            // 固定其中一个起点，数量与其余起点的随机参数均不变。零延迟让触点属于首批消逝区域。
+            if (i == 0 && origin != null)
+                patch.copy(x = origin.x.toDouble() * width, y = origin.y.toDouble() * height, delay = 0.0)
+            else patch
         }
     }
 
-    internal fun nativePatches(width: Float, height: Float, seed: Long): DoubleArray =
-        patches(width, height, seed).flatMap { listOf(it.x, it.y, it.delay, it.c, it.s, it.scale) }.toDoubleArray()
+    internal fun nativePatches(width: Float, height: Float, seed: Long,
+                               origin: ParticleReleaseOrigin? = null): DoubleArray =
+        patches(width, height, seed, origin).flatMap { listOf(it.x, it.y, it.delay, it.c, it.s, it.scale) }.toDoubleArray()
 
     fun release(nx: Int, ny: Int, width: Float, height: Float, direction: Float,
-        seed: Long, detail: DoubleArray): DoubleArray {
+        seed: Long, detail: DoubleArray, origin: ParticleReleaseOrigin? = null): DoubleArray {
         val span = min(width, height).toDouble()
-        val patches = patches(width, height, seed)
+        val patches = patches(width, height, seed, origin)
         val angle = Math.toRadians(direction.toDouble()); val wx = cos(angle); val wy = -sin(angle)
         var low = Double.POSITIVE_INFINITY; var high = Double.NEGATIVE_INFINITY
         val result = DoubleArray(nx * ny)
@@ -59,7 +64,7 @@ internal object ParticleReleaseTopology {
             low = min(low, arrival); high = max(high, arrival)
         }
         val range = max(high - low, 1e-6)
-        val weight = locality(width, height, direction, seed)
+        val weight = locality(width, height, direction, seed, origin)
         for (i in result.indices) {
             val base = detail[i].coerceIn(.008, .78)
             val local = .024 + .72 * ((result[i] - low) / range).pow(1.45)
@@ -68,7 +73,8 @@ internal object ParticleReleaseTopology {
         return result
     }
 
-    internal fun locality(width: Float, height: Float, direction: Float, seed: Long): Double {
+    internal fun locality(width: Float, height: Float, direction: Float, seed: Long,
+                          origin: ParticleReleaseOrigin? = null): Double {
         val angle = Math.toRadians(direction.toDouble())
         val ux = abs(cos(angle)) / width; val uy = abs(sin(angle)) / height
         val corner = 2 * min(ux, uy) / max(ux + uy, 1e-8)
@@ -76,6 +82,8 @@ internal object ParticleReleaseTopology {
         val geometry = (1 - corner).pow(1.5) * (.42 + .14 * ParticleMicroflakeModel.randomValue(0, salt))
         val t = ((ParticleMicroflakeModel.randomValue(3, salt) - .30) / .55).coerceIn(0.0, 1.0)
         val randomLocality = .72 * t * t * (3 - 2 * t)
-        return geometry + (1 - geometry) * randomLocality
+        val weight = geometry + (1 - geometry) * randomLocality
+        // 有明确触点时以局部扩散为主，保留细节扰动；否则随机细节场可能把触点推迟到中段。
+        return if (origin == null) weight else max(weight, .90)
     }
 }

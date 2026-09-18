@@ -47,7 +47,7 @@ internal class ParticleSwipeAnimator(
         if (!ValueAnimator.areAnimatorsEnabled() || !view.isAttachedToWindow || sessions.containsKey(view)) return
         unavailable.remove(view)
         downX = event.rawX; downY = event.rawY
-        warming = Session(view, initiallyActive = false).also {
+        warming = Session(view, initiallyActive = false, touchDown = downX to downY).also {
             sessions[view] = it
             touching = it
             it.prepare()
@@ -120,7 +120,8 @@ internal class ParticleSwipeAnimator(
         }
     }
 
-    private inner class Session(private val view: View, initiallyActive: Boolean = true) {
+    private inner class Session(private val view: View, initiallyActive: Boolean = true,
+                                private val touchDown: Pair<Float, Float>? = null) {
         val gesture = ParticleGestureProgress(initiallyActive)
 
         /** 只允许左滑时构造即定向；左右都允许时等第一次横向位移（见 [aimAt]）。 */
@@ -228,7 +229,12 @@ internal class ParticleSwipeAnimator(
             val spec = ParticleDismissSpec(snapshot, x, y,
                 ParticleSwipeDirection.virtualTouchX(direction, x, snapshot.width, reach),
                 y + snapshot.height / 2f, 1f, ParticleCardSurfaceHandoff.seed(),
-                inWindow = true, materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f)
+                inWindow = true, materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f,
+                releaseOrigin = touchDown?.let { (touchX, touchY) ->
+                    ParticleReleaseOrigin.fromScreen(touchX, touchY,
+                        (origin[0] + clipOffsetX).toFloat(), (origin[1] + clipOffsetY).toFloat(),
+                        snapshot.width, snapshot.height)
+                })
             overlay = ParticleDismissOverlay(activity, spec,
                 onAnimationStarted = Runnable {
                     if (!closed && gesture.active) {

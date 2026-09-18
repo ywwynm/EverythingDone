@@ -62,7 +62,8 @@ class ParticleMicroflakeModelTest {
         val currentRules = rules
         val pixels = intArrayOf(-1, 0xff00ddaa.toInt(), 0xffe86520.toInt(), 0x00ffffff)
         fun build(seed: Long) = ParticleMicroflakeModel.build(120f, 170f, pixels, 2, 2,
-            (seed * 37 % 360).toFloat(), seed, currentRules)
+            (seed * 37 % 360).toFloat(), seed, currentRules,
+            ParticleReleaseOrigin((seed % 10) / 10f, (seed % 7) / 7f))
         val seeds = listOf(9L, 17L, 38L)
         val expected = seeds.map(::build)
         val executor = Executors.newFixedThreadPool(3)

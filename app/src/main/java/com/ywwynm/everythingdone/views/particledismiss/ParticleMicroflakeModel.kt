@@ -39,7 +39,8 @@ internal object ParticleMicroflakeModel {
         pixelHeight: Int,
         directionDegrees: Float,
         seed: Long,
-        rules: ParticleMicroflakeRules
+        rules: ParticleMicroflakeRules,
+        releaseOrigin: ParticleReleaseOrigin? = null
     ): Materials {
         val started = System.nanoTime()
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
@@ -72,7 +73,8 @@ internal object ParticleMicroflakeModel {
         val metrics = linkedMapOf("classificationMs" to (classified-started)/1e6)
         val variation = ParticleMicroflakeVariation.fromSeed(seed, rules)
         val offsetTimes = FloatArray(count)
-        val initialRelease = releaseField(nx, ny, directionDegrees, rules, width, height, variation, offsetTimes) { name, value -> metrics[name] = value }
+        val initialRelease = releaseField(nx, ny, directionDegrees, rules, width, height, variation,
+            offsetTimes, releaseOrigin) { name, value -> metrics[name] = value }
         val finishedField = if (ParticleMaterialNative.enabled) {
             val angle = Math.toRadians(directionDegrees.toDouble())
             ParticleMaterialNative.finishField(initialRelease, nx, ny, width, height, cos(angle), -sin(angle),
@@ -288,6 +290,7 @@ internal object ParticleMicroflakeModel {
         width: Float = nx.toFloat(), height: Float = ny.toFloat(),
         variation: ParticleMicroflakeVariation = ParticleMicroflakeVariation.fromSeed(0L, rules),
         offsetTimes: FloatArray? = null,
+        releaseOrigin: ParticleReleaseOrigin? = null,
         stage: ((String, Double) -> Unit)? = null
     ): FloatArray {
         val started = System.nanoTime()
@@ -304,8 +307,8 @@ internal object ParticleMicroflakeModel {
                 rules.release, low, size,
                 doubleArrayOf(geometry.width, geometry.height, geometry.blend, if (geometry.vertical) 1.0 else 0.0, c, s),
                 anchors, variation.values, variation.inverseSamples,
-                ParticleReleaseTopology.nativePatches(width, height, variation.seed), cos(wind), -sin(wind),
-                ParticleReleaseTopology.locality(width, height, directionDegrees, variation.seed), offsetTimes
+                ParticleReleaseTopology.nativePatches(width, height, variation.seed, releaseOrigin), cos(wind), -sin(wind),
+                ParticleReleaseTopology.locality(width, height, directionDegrees, variation.seed, releaseOrigin), offsetTimes
             ).also { stage?.invoke("fieldMs", (System.nanoTime()-started)/1e6) }
         }
         val result = FloatArray(nx * ny)
@@ -342,7 +345,8 @@ internal object ParticleMicroflakeModel {
             originalTimes[y * nx + x] = original
             detailTimes[y * nx + x] = original + delay
         }
-        val released = ParticleReleaseTopology.release(nx, ny, width, height, directionDegrees, variation.seed, detailTimes)
+        val released = ParticleReleaseTopology.release(nx, ny, width, height, directionDegrees,
+            variation.seed, detailTimes, releaseOrigin)
         for (i in result.indices) {
             result[i] = released[i].toFloat()
             offsetTimes?.set(i, (released[i] - originalTimes[i]).toFloat())
