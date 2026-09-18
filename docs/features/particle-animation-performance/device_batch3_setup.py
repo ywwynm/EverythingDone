@@ -23,7 +23,7 @@ import device_performance as perf  # noqa: E402
 # 华为 MatePad Pro 13.2 上 `input text` 的拉丁字母会被中文输入法改写
 # （"PerfB9-20260917-1" 打出来是 "P儿0260917－1"，连 `-` 都变成全角），而**输入法属于设备设置，
 # 不得代为切换**。数字实测原样进去，所以那台用纯数字标题。
-TEST_TITLE = re.compile(r'PerfB[0-9]-[0-9]{8}-[0-9]|PROBE-[A-Z]+-[0-9]{8}|909170[0-9]{2}')
+TEST_TITLE = re.compile(r'PerfB[0-9]+-[0-9]{8}-[0-9]|PROBE-[A-Z]+-[0-9]{8}|909170[0-9]{2}')
 
 # 高文本卡：`card_thing.xml` 里 `tv_thing_content` 的 maxLines 是 9，写满即为列表允许的最高文本卡。
 # 正文一律用数字：两台设备打出来的东西才一样，行数与行宽也不会被输入法改掉。

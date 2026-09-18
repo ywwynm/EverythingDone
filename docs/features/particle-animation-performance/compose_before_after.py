@@ -70,14 +70,56 @@ def pairs(folder, out, zoom):
     return made
 
 
+def options(folder, out, zoom):
+    """`ParticleOptionFrames` 的落盘：`<组>-<档>-<进度>-{full,zoom}.png`。
+
+    每组的**第一档是参照**（现状），其余各档与它并排。批 D 的三项（U7 / U8 / U10）
+    与第三批的 E12 / C7 共用这一套命名。
+    """
+    folder = Path(folder)
+    out.mkdir(parents=True, exist_ok=True)
+    report = json.loads((folder / 'report.json').read_text(encoding='utf-8'))
+    order = []
+    for row in report.get('options', []):
+        key = (row['group'], row['name'])
+        if key not in order:
+            order.append(key)
+    made = []
+    for group in dict.fromkeys(g for g, _ in order):
+        names = [n for g, n in order if g == group]
+        if len(names) < 2:
+            continue
+        base = names[0]
+        for name in names[1:]:
+            for kind in ('full', 'zoom'):
+                for src in sorted(folder.glob('%s-%s-*-%s.png' % (group, base, kind))):
+                    progress = src.stem.split('-')[-2]
+                    other = folder / ('%s-%s-%s-%s.png' % (group, name, progress, kind))
+                    if not other.is_file():
+                        continue
+                    target = out / ('%s-%s-vs-%s-%s-%s.png' % (group, base, name, progress, kind))
+                    # 标签一律 ASCII：PIL 的默认位图字体没有 CJK 字形。
+                    note = '%s  %s vs %s  at %s%%' % (group, base, name, progress)
+                    if kind == 'zoom':
+                        note += '  x%d zoom (frame centre)' % zoom
+                    compose(src, other, target, note)
+                    made.append(str(target))
+    return made
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--before', default='')
     parser.add_argument('--after', default='')
     parser.add_argument('--pairs', default='', help='离屏受控 A/B 的落盘目录')
+    parser.add_argument('--options', default='', help='ParticleOptionFrames 的 options 目录')
     parser.add_argument('--zoom', type=int, default=4)
     parser.add_argument('--out', required=True)
     args = parser.parse_args()
+    if args.options:
+        for path in options(args.options, Path(args.out), args.zoom):
+            print(path)
+        return
     if args.pairs:
         for path in pairs(args.pairs, Path(args.out), args.zoom):
             print(path)

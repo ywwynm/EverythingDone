@@ -218,6 +218,22 @@ Start-Sleep -Milliseconds 800
 `shared_prefs/fablesol_export_hlg_range.xml`、亮度统计的
 `shared_prefs/fablesol_export_luminance.xml`。
 
+### 整份**写回**一个 `shared_prefs` 文件：别用 PowerShell 的管道，会带上 BOM
+
+`Get-Content -Raw <本地xml> | & $adb -s <serial> shell "run-as <包名> sh -c 'cat > shared_prefs/x.xml'"`
+写出来的文件头是 **`ef bb bf`**（2026-09-18 实际踩到）。`cat` 打出来一切正常，
+`od` 一查才看得见，而 SharedPreferences 的解析器不认它——症状是「设置莫名其妙回到默认」。
+要写原文就用 Python 之类把 **UTF-8 原始字节**喂进标准输入：
+
+```python
+subprocess.run([ADB, '-s', SERIAL, 'shell', 'run-as', PKG, 'sh', '-c',
+                "'cat > shared_prefs/x.xml.tmp && mv shared_prefs/x.xml.tmp shared_prefs/x.xml'"],
+               input=text.encode('utf-8'), check=True)
+```
+
+写完一律 `run-as <包名> od -An -tx1 -N 8 shared_prefs/x.xml` 核一遍文件头，
+第一个字节必须是 `3c`（`<`）。
+
 ## 驱动脚本不要写中文字面量
 
 PS 5.1 按 ANSI 解析无 BOM 的 `.ps1`，脚本里的 `'导出完成'` 会变成乱码，匹配永远失败——
@@ -626,8 +642,19 @@ adb.md 上面已经写了「每次 dump 前先 `rm -f` 目标文件」。配套�
 ## `wm size` 有 Override size 时，输入坐标落在 override 的坐标系里
 
 华为 MatePad Pro 13.2 报的是 `Physical size: 2880x1920` + `Override size: 1920x2880`。
-`input tap` 与 `uiautomator dump` 的 bounds 都用 **override** 那一组。脚本里取 `wm size`
-输出的**最后**一个 `<数字>x<数字>` 即可。
+`input tap` 与 `uiautomator dump` 的 bounds 都用 **override** 那一组。
+
+**但 override 那一组不随朝向变**：同一台设备横屏时，实际可用的坐标系是 2880 宽 × 1920 高，
+而 `wm size` 仍然报 `Override size: 1920x2880`。按它算出的 y（比如「屏高的 78%」= 2246）
+落到屏幕外，`input swipe` 于是**静默地什么也不做**，症状是「页面滚不动、找不到目标行」
+（2026-09-17 实际浪费一轮）。
+
+可靠的做法是**从 `uiautomator dump` 的节点 bounds 取**——它一定是当前朝向下的真实坐标：
+
+```python
+width = max(x2 for 每个节点的 bounds)
+height = max(y2 for 每个节点的 bounds)
+```
 
 ## 不要代为授予运行时权限
 
@@ -794,3 +821,191 @@ Android 14 起这个权限只自动授予通话/闹钟类应用。OPD2515 上：
 而且重跑多少次都一样，很容易误判成「设备/应用出问题了」。
 `device_particle_perf.begin` 已改成**先写一份空配置、等过一个轮询周期（0.35 s）再写本轮的**。
 自己写新的驱动脚本时同一条纪律要照搬。
+
+## Git Bash 里 adb 的 `/sdcard/...` 会被 MSYS 改写成 Windows 路径
+
+2026-09-18 实际踩到：Bash 工具里 `adb push <本地> /sdcard/x.xml` 报
+`failed to copy ... to 'C:/Program Files/Git/sdcard/x.xml': remote secure_mkdirs() failed`。
+MSYS 把看起来像绝对路径的参数转成了 Windows 路径。三种解法：加 `MSYS_NO_PATHCONV=1`、
+写成 `//sdcard/...`，或者干脆走 `run-as <包名> sh -c 'cat > 私有路径'` 用标准输入喂内容
+（写应用私有目录本来就该走这条）。PowerShell 工具没有这个问题。
+
+## 平板的朝向不一定改得动：`settings put system user_rotation` 可能被 ROM 忽略
+
+华为 MatePad Pro 13.2（HarmonyOS）上 `settings put system accelerometer_rotation 0` +
+`user_rotation 1` 写完之后 `dumpsys window` 仍是 `mUserRotationMode=USER_ROTATION_FREE`、
+`mCurrentRotation=ROTATION_270`，截图还是横屏。设备物理上怎么放就是什么朝向，代为翻转做不到。
+需要「竖屏 + 横屏」两组截图时，按设备分工（手机出竖屏、平板出横屏），别在一台上死磕；
+改过的两个设置项验证完要写回去。
+
+
+## EMUI 会拦掉发给清单接收器的广播：改用导出的 Activity 中转
+
+adb.md 上面已经写了「`-a <action>` 发不到清单声明的接收器，必须 `-n` 指定组件」。补一条更狠的：
+**华为 MatePad Pro 13.2（EMUI，Android 12）上连 `-n` 指定组件也不行。**
+
+```powershell
+& $adb -s 5JB0224328002836 shell am broadcast -n <包>/<接收器> --ez someFlag true
+# Broadcasting: Intent { flg=0x400000 cmp=... }
+# Broadcast completed: result=0        <- 看起来成功
+```
+
+而系统日志里是
+
+```
+ActivityManager: App 10216/<包> targets O+, restricted
+BroadcastQueue: enter shouldPreventSendBroadcast second BroadcastRecord{...}
+```
+
+**接收器一次都没跑**，产物目录连建都没建。加 `--receiver-include-background --receiver-foreground`
+也没用。同一条命令在魅族 20 Infinity（Android 15）上正常。
+
+可用的替代是**在 debug source set 里加一个 `exported="true"` 的 Activity**，由它
+`sendBroadcast` 给同进程的接收器：
+
+```kotlin
+class XxxProbeActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        sendBroadcast(Intent(this, XxxProbeReceiver::class.java).putExtra("flag", true))
+        finish()
+    }
+}
+```
+
+`am start -n <包>/<Activity>` 不受这条限制。本项目的实例是
+`ParticleShaderMatrixActivity`（着色器变体的编译矩阵）。
+
+**判据**：广播发完之后**必须去看产物文件在不在**，不能看 `result=0`。凡是「探针没输出」
+先查这一条，再查探针本身。
+
+## `input swipe` 的**起点**离屏幕边缘太近会被判成系统手势
+
+2026-09-18 在三星 SM-S9180 上实测：驱动粒子动画设置页的示例卡左滑，卡片最宽 640 dp、
+在这台上几乎顶到屏幕右缘，起点取 `卡片右边界 − 24 px`（距屏幕右缘约 80 px）正好落进
+**系统返回手势区**——手势被系统吃掉，整个 Activity 被退回上一页，而驱动脚本毫不知情，
+后面每一步都在别的页面上瞎点。
+
+规则：任何横向手势的**起点**都要离左右屏幕边缘 **140 px 以上**（不是离控件边缘）。
+写成 `start = min(控件右边界 - 24, 屏宽 - 140)`。落点（终点）不受这条限制。
+
+## One UI 上「按住不放」会触发系统的拖放，别用它截按下态
+
+想截一个按钮的按下态 / 涟漪时，很自然会写 `input swipe x y x y 1800`（原地按住）。
+在三星 SM-S9180（One UI）上，长按 `TextView` 会触发系统的**拖放**功能，实测直接把
+`com.samsung.android.onetouch` 的引导页拉到前台，整轮驱动作废（2026-09-18）。
+
+魅族上同一条命令正常。做法：这一步只在不会中招的设备上跑，并给驱动脚本留一个跳过的开关；
+按下态的证据由那一台提供。真要在所有设备上拿到，改用 `screenrecord` + 逐帧取。
+
+## 只会往下滚的定位函数，每次调用前要先滚回顶部
+
+`find_rid` 这类「找不到就往下滚一点再找」的函数有个隐含前提：目标在当前位置**下方**。
+上一次为了找底部的控件滚下去之后，页面顶部的控件就落在屏幕外，再找它们会一路滚到底也找不到，
+报的是「页面上找不到 <id>」，看上去像控件不存在（2026-09-18 在三星上实际发生）。
+
+规则：定位之前先把滚动容器**滚回顶部**，再往下找。代价是几次多余的 swipe，换来与当前
+滚动位置无关的确定性。
+
+## 「开系统深色」在不同设备上不是同一件事
+
+应用如果有自己的深色开关（EverythingDone 是 `follow_system_dark_mode` / `force_dark_mode`），
+`cmd uimode night yes` 得到的结果取决于那个开关：
+
+- 应用跟随系统 ⇒ 真的进 `values-night`，资源全部换成夜间那一套；
+- 应用固定浅色 ⇒ 系统只能对它做**强制深色**（force-dark），那是渲染层的反色，
+  **不改任何资源值**，也**不反转 `ImageView` 的内容**。
+
+判据是量页面底色：本项目 `values-night` 的 `app_chrome_surface` 是 `#121212`，
+而强制反色把浅色的 `#EEEEEE` 变成 `#292929`——两者一眼可分。**不要代为改应用内的深色设置**
+（那是用户设置），改用一台本来就开着「跟随系统」的设备取深色证据。
+
+
+## 滑动手势：**两边**的边缘都是系统返回手势区
+
+adb.md 上面已经写了「左滑的起点必须离屏幕右边缘足够远」。镜像的那一条同样成立：
+**右滑（从左往右推）的起点也必须离左边缘足够远**。2026-09-18 在三星 SM-S9180（One UI）上实测：
+粒子动画设置页的示例卡最宽 640 dp、几乎顶满屏宽，从卡片左缘 `x1 + 24`（约 80 px）起手正好落进
+返回手势区，整页被直接退掉，后面每一步都在上一层页面上瞎点——而脚本本身不会报错，
+症状是几步之后才在某个 `find` 上抛「找不到控件」。两端一律留 **140 px**。
+
+魅族（Flyme）上同一串坐标不会触发，**这条只在某些 ROM 上暴露**，不要因为一台过了就当它安全。
+
+## 持续播动画的页面：`uiautomator dump` 会给出「缺了一支」的树
+
+adb.md 上面已经写了「带动画的 Dialog 返回陈旧缓存树」和「首页启动动画期间缺 actionbar 与 FAB
+那一支」。再补一处同类：粒子动画设置页上一直有 GL 动画在播，dump 等不到 idle，
+2026-09-18 在三星上实测**选项卡那一整行不在树里**，`node(tree, rid=…)` 直接抛「实际 0 个」。
+
+规则不变：**这类页面上的控件一律轮询到出现为止**，一次 dump 找不到不等于控件不存在。
+
+```python
+def poll_rid(rid, tries=40):
+    for _ in range(tries):
+        for n in dump().iter('node'):
+            if (n.get('resource-id') or '').endswith('/' + rid):
+                return n
+        time.sleep(.3)
+    raise RuntimeError('页面上找不到 ' + rid)
+```
+
+## `ImageView` 的着色：`SRC_ATOP` 会把 alpha 丢掉
+
+2026-09-18 定位「换色图标在亮色模式下仍是纯黑」时量出来的，属于取证方法而不只是这一处缺陷：
+
+- `ImageView.setColorFilter(int color)` 的模式是 **`SRC_ATOP`**，`android:tint` 在
+  `AppCompatImageView` 上走的也是它。`SRC_ATOP` 只做 `Sa×Sc + (1−Sa)×Dc`、**alpha 取 dst 的**，
+  于是「半透明黑」叠在「纯黑矢量」上仍然是**实黑**，看上去像没生效。
+- 真正压低亮度的是 `imageAlpha`（`setImageAlpha`），它乘的是整张图的 alpha。
+- 判据只能是**核心像素**：取图标区域里出现次数最多的那个非背景灰阶，换算成
+  `(底色 − 像素) / 底色` 即有效不透明度。本次三组：第 7 批 (0,0,0) = 1.00、
+  第 8 批 (74,74,74) = 0.689、参照页那枚按钮 (79,78,77) = 0.690。
+
+「照搬某个页面的同一份颜色」这种要求，**必须先把参照物量出来**——布局属性写着什么不代表
+渲染出来是什么。
+
+## `uiautomator` 的 bounds 被裁到可见区域内：贴屏幕边的节点高度是假的
+
+adb.md 上面已经写了「dump 只输出屏幕上真的可见的节点」。补一条更隐蔽的：**部分可见的节点会
+照常出现在树里，但它的 bounds 被裁到可见区域**。2026-09-18 在三星 SM-S9180 上实测：一段折行
+的说明文本底边正好压在屏幕下沿，报出来 41.87 dp，真值 67.6 dp——按它折算行数会多数一行，
+单行高算成 15.93 dp 而不是 19.27 dp，看上去就像「字号不对」。
+
+凡是按 bounds 量尺寸的采集，都要**丢掉贴住屏幕上下边的节点**（`y2 >= 屏高 - 2` 或 `y1 <= 0`），
+滚过去让它完整可见之后再收一次：
+
+```python
+box = bounds_of(node)
+if box[3] >= height - 2 or box[1] <= 0:
+    continue        # 这一份是被裁过的，等滚过去再收
+```
+
+同一条纪律的两个推论：
+
+- **别拿 `match_parent` 的 `TextView` 量字高或文本左缘**。它的 bounds 是整行，内边距都算在里面
+  （本项目的参照页里「清除全部已生成空间效果」就是这样一行）。要量字高就找 `wrap_content` 的
+  那一个。
+- **参照页上要量的那一行可能整块 `gone`**（按条件显示，例如「深度细节」只在选中某类模型时出现），
+  采集脚本要允许它缺席并换一个同档取值的行，不能死等。
+
+## 在截图上量控件：底色取单点会整块判反，bounds 与截图必须同一时刻
+
+2026-09-18 在粒子动画设置页量对齐时各踩一次，两条都会给出**看似合理但完全错误**的读数。
+
+**其一：底色不能取单点。** 「控件区域里不是底色的像素」这种判定，底色若取自某个坐标
+（例如「控件上沿那一行的中点」），一旦那一点落在抗锯齿边或字形上，整块就会反过来被判成墨迹，
+读数变成探测框自己的边。`Widget.Material.SeekBar` 的上下内边距是 **0**，滑块停在正中时
+「上沿中点」正好压在滑块圆顶上。底色一律取**区域里出现次数最多的颜色**，并断言它的占比：
+
+```python
+colors, counts = np.unique(patch.reshape(-1, 3), axis=0, return_counts=True)
+bg, share = colors[counts.argmax()], counts.max() / len(patch.reshape(-1, 3))
+assert share >= .5
+```
+
+**其二：`uiautomator` 的 bounds 与截图必须来自同一个滚动状态。** 「先把所有控件的 bounds 收齐 →
+缺的滚下去再收 → 最后截一张图」在需要滚动时必然错位：第一屏那几个控件的 y 已经变了。
+改成**逐屏**：每一屏先 dump、再截图、**再 dump 一次核对 bounds 没变过**，才认这一屏的读数。
+
+顺带一条口径：`bounds` 的右缘是**开区间**（`x2` 是第一个不属于控件的像素），而扫出来的墨迹
+`span[1]` 是**最后一个**墨迹像素，比较之前要 `+1`，否则恒差 1 px。

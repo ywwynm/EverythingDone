@@ -299,6 +299,16 @@ def main():
                         help='第三批任务二：E12 / C7 的受控对照（离屏，只出图与数字）')
     parser.add_argument('--per-frame-bench', action='store_true',
                         help='逐帧成本专项第一批的逐项 A/B（与 --segment-bench 同用）')
+    parser.add_argument('--phase2-bench', action='store_true',
+                        help='第二阶段的逐项墙钟 A/B（与 --segment-bench 同用）')
+    parser.add_argument('--phase2-conditions', default='',
+                        help='逗号分隔的条件名（见 ParticlePhase2Conditions），留空跑全部')
+    parser.add_argument('--gpu-check-phase2', default='',
+                        help='第二阶段逐位/逐通道对照的条件名；给了就只跑这几格（不跑第一批那几格）')
+    parser.add_argument('--gpu-check', action='store_true',
+                        help='开 G0/G1 逐位对照（ParticleTrajectoryCheck），产物 gpu-parity-*.json')
+    parser.add_argument('--gpu-seed', type=int, default=0,
+                        help='固定对照种子；非 0 时同时打开 diagnosticOnly')
     parser.add_argument('--bench-repeats', type=int, default=2)
     parser.add_argument('--tuning', default='',
                         help='整轮生效的 ParticlePerfTuning 覆盖（JSON）；收尾恢复默认')
@@ -330,6 +340,11 @@ def main():
         pp.probe(None)
     if args.segment_bench:
         pp.APPEARANCE_FRAMES = False
+    if args.gpu_check or args.gpu_check_phase2:
+        pp.GPU_CHECK = True
+        pp.APPEARANCE_FRAMES = False
+        if args.gpu_seed:
+            pp.GPU_SEED = args.gpu_seed
     bench = args.segment_bench
 
     original_begin = pp.begin
@@ -341,6 +356,14 @@ def main():
             extra['segmentBenchRepeats'] = args.bench_repeats
             if args.per_frame_bench:
                 extra['perFrameBench'] = True
+            if args.phase2_bench:
+                extra['phase2Bench'] = True
+                if args.phase2_conditions:
+                    extra['phase2Conditions'] = args.phase2_conditions.split(',')
+        if args.gpu_check_phase2:
+            extra['gpuCheck'] = True
+            extra['gpuCheckPhase2'] = args.gpu_check_phase2.split(',')
+            extra['gpuCheckPhase2Only'] = True
         if args.option_frames:
             extra['optionFrames'] = True
         original_begin(label, kind, extra)
@@ -438,7 +461,7 @@ def main():
         print('探针文件', pp.pull_probe(), flush=True)
     if bench:
         pull_bench(folder, '%s-%s' % (args.run, wanted[-1]),
-                   per_frame=args.per_frame_bench)
+                   per_frame=args.per_frame_bench, phase2=args.phase2_bench)
     if args.option_frames:
         pull_options(folder, args.run, wanted)
     pp.probe(None)
@@ -475,15 +498,19 @@ def pull_options(folder, run, scenes, seconds=1800):
     return False
 
 
-def pull_bench(folder, label, seconds=900, per_frame=False):
+def pull_bench(folder, label, seconds=900, per_frame=False, phase2=False):
     """离屏基准在动画层释放之后另起线程跑几十秒，必须轮询等它写完。
 
     **只看本轮那一个 run 目录**：设备上还留着上几轮的 `segment-bench.json`，扫全目录第一次
     轮询就会命中旧文件，整份结果是上一轮的却毫无察觉（2026-09-17 实际发生过一次）。
     """
     remote = perf.BASE + label + '/'
-    leaves = (('per-frame-bench.json', 'per-frame-bench-error.txt') if per_frame
-              else ('segment-bench.json', 'segment-bench-error.txt'))
+    if phase2:
+        leaves = ('phase2-bench.json', 'phase2-bench-error.txt')
+    elif per_frame:
+        leaves = ('per-frame-bench.json', 'per-frame-bench-error.txt')
+    else:
+        leaves = ('segment-bench.json', 'segment-bench-error.txt')
     until = time.time() + seconds
     while time.time() < until:
         for leaf in leaves:
