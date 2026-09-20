@@ -109,7 +109,9 @@
             android:maxLines="9"
             android:textColor="@color/white_76p"/>
 
-        <com.ywwynm.everythingdone.views.StablerRecyclerView
+        <!-- 清单用 LinearLayout 逐行铺，不用 RecyclerView：它的子行不跟随自身宽度重新
+             折行，在侧边封面下会把末尾条目与省略行挤出卡片。见 ThingCardChecklistView。 -->
+        <com.ywwynm.everythingdone.views.ThingCardChecklistView
             android:id="@+id/rv_check_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

@@ -51,6 +51,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.SystemNotificationUtil
 import com.ywwynm.everythingdone.views.DrawerNavigationView
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import java.util.Locale
 
@@ -1983,10 +1984,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
-    override fun onChecklistAdapterInitialized(
-        holder: BaseThingViewHolder, adapter: CheckListAdapter, thing: Thing
+    override fun onThingCardChecklistWillBind(
+        holder: BaseThingViewHolder, checklist: ThingCardChecklistView, thing: Thing
     ) {
-        super.onChecklistAdapterInitialized(holder, adapter, thing)
+        super.onThingCardChecklistWillBind(holder, checklist, thing)
         val toggleCliOtc = FrequentSettings.getBoolean(Def.Meta.KEY_TOGGLE_CLI_OTC)
         if (!toggleCliOtc
             || thing.type <= Thing.HEADER
@@ -1996,10 +1997,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             || App.getDoingThingId() == thing.id
         ) {
             holder.cv!!.setShouldInterceptTouchEvent(true)
-            adapter.setTvItemClickCallback(null)
+            checklist.itemClickCallback = null
         } else {
             holder.cv!!.setShouldInterceptTouchEvent(false)
-            adapter.setTvItemClickCallback(object : CheckListAdapter.TvItemClickCallback {
+            checklist.itemClickCallback = object : ThingCardChecklistView.ItemClickCallback {
                 override fun onItemClick(itemPos: Int) {
                     val simpleFCli = FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)
                     val content: String = thing.content!!
@@ -2037,7 +2038,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                         mOnItemTouchedListener!!.onItemClick(v, listPosition)
                     }
                 }
-            })
+            }
         }
     }
 
@@ -2188,14 +2189,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         override fun getThingCardMediaBitmapCache() =
             this@ThingsAdapter.getThingCardMediaBitmapCache()
 
-        override fun onChecklistAdapterInitialized(
+        override fun onThingCardChecklistWillBind(
             holder: BaseThingViewHolder,
-            adapter: CheckListAdapter,
+            checklist: ThingCardChecklistView,
             thing: Thing
         ) {
             holder.cv!!.setShouldInterceptTouchEvent(true)
-            adapter.setFixedIconScale(style.iconScale)
-            adapter.setTvItemClickCallback(null)
+            checklist.fixedIconScale = style.iconScale
+            checklist.itemClickCallback = null
         }
     }
 

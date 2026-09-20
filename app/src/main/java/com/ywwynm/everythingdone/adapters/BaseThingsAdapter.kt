@@ -72,6 +72,7 @@ import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.HabitRecordPresenter
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
+import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
@@ -96,7 +97,6 @@ abstract class BaseThingsAdapter(context: Context?) :
 
     private var mContext: Context? = context
 
-    private var mCheckListAdapters: LongSparseArray<CheckListAdapter?>? = LongSparseArray()
     private var mRecyclerView: RecyclerView? = null
 
     private var mReminderDAO: ReminderDAO? = ReminderDAO.getInstance(context)
@@ -671,7 +671,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.ivMediaBackground!!.alpha = adaptiveAlpha
         holder.ivPrivateThing!!.alpha = adaptiveAlpha
         holder.tvContent!!.alpha = adaptiveAlpha
-        holder.rvChecklist!!.alpha = adaptiveAlpha
+        holder.rvChecklist.alpha = adaptiveAlpha
         holder.llAudioAttachment!!.alpha = adaptiveAlpha
         holder.rlReminder!!.alpha = adaptiveAlpha
         holder.rlHabit!!.alpha = adaptiveAlpha
@@ -711,7 +711,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             holder.flImageAttachment!!.visibility = View.GONE
             hideThingCardMediaBackground(holder)
             holder.tvContent!!.visibility = View.GONE
-            holder.rvChecklist!!.visibility = View.GONE
+            holder.rvChecklist.visibility = View.GONE
             holder.llAudioAttachment!!.visibility = View.GONE
             holder.rlReminder!!.visibility = View.GONE
             holder.rlHabit!!.visibility = View.GONE
@@ -841,7 +841,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         val content: String = thing.content!!
         if (!content.isEmpty()) {
             if (!CheckListHelper.isCheckListStr(content)) {
-                holder.rvChecklist!!.visibility = View.GONE
+                holder.rvChecklist.visibility = View.GONE
                 holder.tvContent!!.visibility = View.VISIBLE
 
                 val length = content.length
@@ -863,37 +863,62 @@ abstract class BaseThingsAdapter(context: Context?) :
                 )
             } else {
                 holder.tvContent!!.visibility = View.GONE
-                holder.rvChecklist!!.visibility = View.VISIBLE
+                holder.rvChecklist.visibility = View.VISIBLE
 
-                val id = thing.id
-                val items: MutableList<String?> = CheckListHelper.toCheckListItems(content, false)
-                var adapter: CheckListAdapter? = mCheckListAdapters!!.get(id)
-                if (adapter == null) {
-                    adapter = CheckListAdapter(mContext,
-                        CheckListAdapter.TEXTVIEW, items)
-                    mCheckListAdapters!!.put(id, adapter)
-                } else {
-                    adapter.setItems(items)
-                }
-                adapter.setThingColor(getThingCardForegroundBaseColor(thing))
+                val items: MutableList<String?> = CheckListAdapter.prepareCardItems(
+                    mContext, CheckListHelper.toCheckListItems(content, false)
+                ) ?: ArrayList()
+                val checklist = holder.rvChecklist
                 val fullSpan = isFullSpanThingCard(thing)
-                adapter.setMaxItemCount(getThingCardChecklistMaxItemCount(thing, fullSpan))
-                adapter.setFixedTextSize(getThingCardChecklistTextSize(thing, fullSpan))
-                onChecklistAdapterInitialized(holder, adapter, thing)
-                holder.rvChecklist.adapter = adapter
-                holder.rvChecklist.layoutManager = LinearLayoutManager(mContext)
+                checklist.fixedIconScale = null
+                checklist.itemClickCallback = null
+                onThingCardChecklistWillBind(holder, checklist, thing)
+                checklist.bind(
+                    items,
+                    getThingCardChecklistMaxItemCount(thing, fullSpan),
+                    getThingCardForegroundBaseColor(thing),
+                    getThingCardChecklistTextSize(thing, fullSpan)
+                )
 
                 val rp = (mDensity * 6).toInt()
-                holder.rvChecklist.setPaddingRelative(rp, p, p, 0)
+                checklist.setPaddingRelative(rp, p, p, 0)
             }
         } else {
             holder.tvContent!!.visibility = View.GONE
-            holder.rvChecklist!!.visibility = View.GONE
+            holder.rvChecklist.visibility = View.GONE
         }
     }
 
-    protected open fun onChecklistAdapterInitialized(
-        holder: BaseThingViewHolder, adapter: CheckListAdapter, thing: Thing
+    /**
+     * 卡片清单绑定之前的钩子：子类在这里设 [ThingCardChecklistView.fixedIconScale] 与
+     * [ThingCardChecklistView.itemClickCallback]，以及卡片自身的触摸拦截。
+     */
+    /** 卡片前景色变化时按新颜色重绑一次清单（颜色影响状态图标与文字色）。 */
+    private fun rebindThingCardChecklistColor(
+        holder: BaseThingViewHolder,
+        thing: Thing,
+        foregroundBaseColor: Int
+    ) {
+        val checklist = holder.rvChecklist
+        if (!checklist.isVisible) return
+        val content = thing.content ?: return
+        if (!CheckListHelper.isCheckListStr(content)) return
+        val items: MutableList<String?> = CheckListAdapter.prepareCardItems(
+            mContext, CheckListHelper.toCheckListItems(content, false)
+        ) ?: return
+        val fullSpan = isFullSpanThingCard(thing)
+        checklist.bind(
+            items,
+            getThingCardChecklistMaxItemCount(thing, fullSpan),
+            foregroundBaseColor,
+            getThingCardChecklistTextSize(thing, fullSpan)
+        )
+    }
+
+    protected open fun onThingCardChecklistWillBind(
+        holder: BaseThingViewHolder,
+        checklist: ThingCardChecklistView,
+        thing: Thing
     ) {
         // do nothing here
     }
@@ -1071,7 +1096,7 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun hasMainContentAboveImage(holder: BaseThingViewHolder): Boolean {
         return holder.tvTitle!!.isVisible
                 || holder.tvContent!!.isVisible
-                || holder.rvChecklist!!.isVisible
+                || holder.rvChecklist.isVisible
                 || holder.llAudioAttachment!!.isVisible
                 || holder.rlReminder!!.isVisible
                 || holder.rlHabit!!.isVisible
@@ -1861,8 +1886,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         tintCardSeparator(holder.vHabitSeparator2, foregroundBaseColor)
         holder.habitRecordPresenter.setThingColor(foregroundBaseColor)
 
-        mCheckListAdapters!!.get(thing.id)?.setThingColor(foregroundBaseColor)
-        holder.rvChecklist!!.adapter?.notifyDataSetChanged()
+        rebindThingCardChecklistColor(holder, thing, foregroundBaseColor)
         val dark = BackgroundUtil.isLight(foregroundBaseColor)
         holder.ivAudioCount!!.setImageResource(
             if (dark) {
@@ -3143,7 +3167,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
             if (holder.tvTitle!!.isGone
                 && holder.tvContent!!.isGone
-                && holder.rvChecklist!!.isGone
+                && holder.rvChecklist.isGone
                 && holder.llAudioAttachment!!.isGone
                 && holder.rlReminder!!.isGone
                 && holder.rlHabit!!.isGone
@@ -3256,7 +3280,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (holder.flImageAttachment!!.isVisible
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
-            && holder.rvChecklist!!.isGone
+            && holder.rvChecklist.isGone
             && holder.llInlineMediaAttachment!!.isGone
             && holder.llAudioAttachment!!.isGone
         ) {
@@ -3286,7 +3310,7 @@ abstract class BaseThingsAdapter(context: Context?) :
             && holder.flImageAttachment!!.isGone
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
-            && holder.rvChecklist!!.isGone
+            && holder.rvChecklist.isGone
             && holder.llAudioAttachment!!.isGone
         ) {
             setThingCardMediaCountIconLayout(
@@ -3333,7 +3357,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (holder.flImageAttachment!!.isGone
             && holder.tvTitle!!.isGone
             && holder.tvContent!!.isGone
-            && holder.rvChecklist!!.isGone
+            && holder.rvChecklist.isGone
             && holder.llInlineMediaAttachment!!.isGone
         ) {
             setThingCardAttachmentCountIconLayout(
@@ -3417,7 +3441,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (holder.ivMediaBackground!!.isVisible) return
         if (holder.llInlineMediaAttachment!!.isVisible) return
         if (holder.flImageAttachment!!.isVisible
-            || holder.rvChecklist!!.isVisible
+            || holder.rvChecklist.isVisible
             || holder.rlReminder!!.isVisible
             || holder.rlHabit!!.isVisible
         ) {
@@ -3543,7 +3567,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         @JvmField val ivPrivateThing: ImageView? = f(R.id.iv_private_thing)
 
         @JvmField val tvContent: TextView?     = f(R.id.tv_thing_content)
-        @JvmField val rvChecklist: RecyclerView? = f(R.id.rv_check_list)
+        @JvmField val rvChecklist: ThingCardChecklistView = f(R.id.rv_check_list)!!
 
         @JvmField val vBottomStatusSpacer: View? = f(R.id.view_thing_bottom_status_spacer)
         @JvmField val llMediaCount: LinearLayout? = f(R.id.ll_thing_media_attachment_count)

@@ -186,18 +186,11 @@ open class CheckListAdapter(
     }
 
     /** True when the foreground should be drawn black-side rather than white-side. */
-    private fun dark(): Boolean {
-        if (mThingColor == 0) return false  // unset → keep legacy white behaviour
-        return BackgroundUtil.isLight(mThingColor)
-    }
+    private fun dark(): Boolean = isDarkForeground(mThingColor)
 
-    private fun textColorSecondary(): Int {
-        return if (dark()) black_76p else white_76p
-    }
+    private fun textColorSecondary(): Int = cardTextColorSecondary(mThingColor)
 
-    private fun textColorFinished(): Int {
-        return if (dark()) black_50p else white_50p
-    }
+    private fun textColorFinished(): Int = cardTextColorFinished(mThingColor)
 
     /**
      * Tint a checklist-row image so that the white-pixel PNGs become visible on a light card.
@@ -234,36 +227,8 @@ open class CheckListAdapter(
     }
 
     private fun removeItemsForTextView() {
-        if (mType == TEXTVIEW) {
-            mItems!!.remove("2")
-            mItems!!.remove("3")
-            mItems!!.remove("4")
-
-            if (FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) {
-                // 只折叠"分隔线以下"的底部已完成区，即从第一个已完成组根起。顶部就地完成的
-                // 深层项不折叠。见 decisions.md（SIMPLE_FCLI）。
-                var boundary = -1
-                val size = mItems!!.size
-                for (i in 0 until size) {
-                    if (CheckListHelper.isFinished(mItems!![i])
-                        && CheckListHelper.ownerIndexOf(mItems, i) == -1
-                    ) {
-                        boundary = i
-                        break
-                    }
-                }
-                if (boundary != -1) {
-                    val finishedCount = size - boundary
-                    for (i in boundary until size) {
-                        mItems!!.removeAt(boundary)
-                    }
-                    // 汇总行用新格式：状态位 '1'(已完成) + 层级位 '1' + 文本；否则渲染时 textOf 的
-                    // substring(2) 会吃掉文本首字符，且首字符若是 1/2/3 还会被误当层级。
-                    val newItem = "11" + getFinishedItemsCountStr(finishedCount)
-                    mItems!!.add(newItem)
-                }
-            }
-        }
+        if (mType != TEXTVIEW) return
+        prepareCardItems(mContext, mItems)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
@@ -335,19 +300,10 @@ open class CheckListAdapter(
                 // COMPACT_TEXT_SIZE_ITEM_COUNT 是纯排版常量，与用户设定的上限无关。
                 // 见 docs/features/thing-card-content-limits/decisions.md。
                 val visible = if (mMaxItemCount < 0) size else min(size, mMaxItemCount)
-                val fixedTextSize = mFixedTextSize
-                val baseSize: Float
-                if (fixedTextSize != null) {
-                    baseSize = fixedTextSize
-                    params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
-                } else if (visible >= COMPACT_TEXT_SIZE_ITEM_COUNT) {
-                    baseSize = 14f
-                    params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
-                } else {
-                    baseSize = -4 * visible / 7f + 130f / 7
-                    val mt = -2 * baseSize / 3 + 34f / 3
-                    params.setMargins(0, mt.toInt(), 0, params.bottomMargin)
-                }
+                val baseSize = cardBaseTextSizeSp(visible, mFixedTextSize)
+                params.setMargins(
+                    0, cardItemTopMarginPx(visible, mFixedTextSize, density), 0, params.bottomMargin
+                )
                 holder.tv.textSize = baseSize * CheckListHelper.sizeRatioForLevel(level)
 
                 holder.tv.text = CheckListHelper.textOf(stateContent)
@@ -484,11 +440,6 @@ open class CheckListAdapter(
      * 卡片各级在"图标相对基准"上的额外缩进(dp)，逐级独立、便于单独微调。
      * 想精细调首页卡片的 L2 / L3，直接改这里的 `2 -> Xf`（L2）和 `3 -> Yf`（L3）即可，互不影响。
      */
-    private fun cardIndentExtraDp(level: Int): Float = when (level) {
-        2 -> 4f
-        3 -> 7.5f
-        else -> 0f
-    }
 
     /** 卡片（TextView）行的按级左缩进：基准随图标宽，叠加每级独立的额外缩进。 */
     private fun setCardItemIndent(holder: TextViewHolder, level: Int) {
@@ -498,9 +449,7 @@ open class CheckListAdapter(
             val w = iv.layoutParams?.width ?: 0
             if (w > 0) w else (iv.drawable?.intrinsicWidth ?: 0)
         } ?: 0
-        val baseStep = if (iconW > 0) (iconW * 0.63f).toInt() else (12 * density).toInt()
-        lp.leftMargin = (level - 1).coerceAtLeast(0) * baseStep +
-                Math.round(cardIndentExtraDp(level) * density)
+        lp.leftMargin = cardItemIndentPx(level, iconW, density)
         ll.layoutParams = lp
     }
 
@@ -528,15 +477,7 @@ open class CheckListAdapter(
      * 在 y 方向对齐，二者至少留 [baseTop] 的上边距。返回 (图标上边距, 文字上边距)。
      */
     private fun firstLineAlign(tv: TextView, iconH: Int, baseTop: Int): Pair<Int, Int> {
-        val fm = tv.paint.fontMetrics
-        // 从文字内容顶端到首行字形视觉中心的距离。
-        val glyphCenter = tv.paddingTop + (-fm.top) + (fm.ascent + fm.descent) / 2f
-        val d = iconH / 2f - glyphCenter   // 文字需比图标多下移的量
-        return if (d >= 0) {
-            Pair(baseTop, baseTop + d.toInt())
-        } else {
-            Pair(baseTop + (-d).toInt(), baseTop)
-        }
+        return firstLineAlign(tv.paint.fontMetrics, tv.paddingTop, iconH, baseTop)
     }
 
     private fun getFinishedItemsCountStr(finishedCount: Int): String {
@@ -1066,12 +1007,148 @@ open class CheckListAdapter(
     companion object {
         const val TAG: String = "CheckListAdapter"
 
+        /**
+         * 只读展示形态。记事卡片上的清单已改用
+         * [com.ywwynm.everythingdone.views.ThingCardChecklistView]（RecyclerView 的子行不
+         * 跟随自身宽度重新折行，在侧边封面下会把末尾条目挤出卡片），因此这一形态目前**没有
+         * 使用点**，属于待清理的死代码；本类当前只服务详情页的 EDITTEXT 形态。
+         * 见 docs/features/thing-card-content-limits/followups.md。
+         */
         const val TEXTVIEW: Int            = 0
         const val EDITTEXT_EDITABLE: Int   = 1
         const val EDITTEXT_UNEDITABLE: Int = 2
 
         /** 卡片上渲染出这么多条及以上时，清单项字号收到最小的 14sp，不再随条数放大。 */
         private const val COMPACT_TEXT_SIZE_ITEM_COUNT = 8
+
+        /**
+         * 卡片上渲染 [visible] 条时的基准字号（sp）。
+         *
+         * 与行上边距、按级缩进、首行对齐一起构成卡片清单的排版规则，由
+         * [com.ywwynm.everythingdone.views.ThingCardChecklistView] 与本适配器共用——
+         * 两处各写一遍，迟早会在某次改动后不一致。
+         */
+        @JvmStatic
+        fun cardBaseTextSizeSp(visible: Int, fixedTextSize: Float?): Float {
+            if (fixedTextSize != null) return fixedTextSize
+            if (visible >= COMPACT_TEXT_SIZE_ITEM_COUNT) return 14f
+            return -4 * visible / 7f + 130f / 7
+        }
+
+        /** 与 [cardBaseTextSizeSp] 配套的行上边距（px）。 */
+        @JvmStatic
+        fun cardItemTopMarginPx(visible: Int, fixedTextSize: Float?, density: Float): Int {
+            if (fixedTextSize != null || visible >= COMPACT_TEXT_SIZE_ITEM_COUNT) {
+                return (2 * density).toInt()
+            }
+            val baseSize = cardBaseTextSizeSp(visible, null)
+            return (-2 * baseSize / 3 + 34f / 3).toInt()
+        }
+
+        /** 第 [level] 级行相对行首的左缩进（px）；[iconWidthPx] 为状态图标的实际宽度。 */
+        @JvmStatic
+        fun cardItemIndentPx(level: Int, iconWidthPx: Int, density: Float): Int {
+            val baseStep = if (iconWidthPx > 0) {
+                (iconWidthPx * 0.63f).toInt()
+            } else {
+                (12 * density).toInt()
+            }
+            return (level - 1).coerceAtLeast(0) * baseStep +
+                    Math.round(cardIndentExtraDp(level) * density)
+        }
+
+        private fun cardIndentExtraDp(level: Int): Float = when (level) {
+            2 -> 4f
+            3 -> 7.5f
+            else -> 0f
+        }
+
+        /**
+         * 让一个高 [iconH] 的图标与首行文字的视觉中心在 y 方向对齐，二者至少留 [baseTop]
+         * 的上边距。返回 (图标上边距, 文字上边距)。
+         */
+        @JvmStatic
+        fun firstLineAlign(
+            fm: Paint.FontMetrics,
+            textPaddingTop: Int,
+            iconH: Int,
+            baseTop: Int
+        ): Pair<Int, Int> {
+            val glyphCenter = textPaddingTop + (-fm.top) + (fm.ascent + fm.descent) / 2f
+            val d = iconH / 2f - glyphCenter   // 文字需比图标多下移的量
+            return if (d >= 0) {
+                Pair(baseTop, baseTop + d.toInt())
+            } else {
+                Pair(baseTop + (-d).toInt(), baseTop)
+            }
+        }
+
+        /**
+         * 卡片上清单的条目预处理：去掉控制行；开启「折叠已完成」时把底部已完成区收成一行
+         * 汇总。原地修改并返回同一个列表。
+         *
+         * 渲染卡片清单的 [com.ywwynm.everythingdone.views.ThingCardChecklistView] 与本适配器
+         * 共用这一份，避免两处各写一遍。
+         */
+        @JvmStatic
+        fun prepareCardItems(context: Context?, items: MutableList<String?>?): MutableList<String?>? {
+            if (items == null) return null
+            items.remove("2")
+            items.remove("3")
+            items.remove("4")
+            if (!FrequentSettings.getBoolean(Def.Meta.KEY_SIMPLE_FCLI)) return items
+            // 只折叠"分隔线以下"的底部已完成区，即从第一个已完成组根起。顶部就地完成的
+            // 深层项不折叠。见 decisions.md（SIMPLE_FCLI）。
+            var boundary = -1
+            val size = items.size
+            for (i in 0 until size) {
+                if (CheckListHelper.isFinished(items[i])
+                    && CheckListHelper.ownerIndexOf(items, i) == -1
+                ) {
+                    boundary = i
+                    break
+                }
+            }
+            if (boundary != -1) {
+                val finishedCount = size - boundary
+                for (i in boundary until size) {
+                    items.removeAt(boundary)
+                }
+                // 汇总行用新格式：状态位 '1'(已完成) + 层级位 '1' + 文本；否则渲染时 textOf 的
+                // substring(2) 会吃掉文本首字符，且首字符若是 1/2/3 还会被误当层级。
+                items.add("11" + finishedItemsCountStr(context, finishedCount))
+            }
+            return items
+        }
+
+        @JvmStatic
+        fun finishedItemsCountStr(context: Context?, finishedCount: Int): String {
+            if (context == null) return finishedCount.toString()
+            if (LocaleUtil.isChinese(context)) {
+                return String.format(context.getString(R.string.some_checklist_items_finished), finishedCount)
+            }
+            var str = "$finishedCount item"
+            if (finishedCount > 1) str += "s"
+            return "$str finished"
+        }
+
+        /** 卡片上未完成条目的文字色；[thingColor] 为 0 时沿用浅色卡片的白系前景。 */
+        @JvmStatic
+        fun cardTextColorSecondary(thingColor: Int): Int {
+            return if (isDarkForeground(thingColor)) black_76p else white_76p
+        }
+
+        /** 卡片上已完成条目的文字色。 */
+        @JvmStatic
+        fun cardTextColorFinished(thingColor: Int): Int {
+            return if (isDarkForeground(thingColor)) black_50p else white_50p
+        }
+
+        @JvmStatic
+        fun isDarkForeground(thingColor: Int): Boolean {
+            if (thingColor == 0) return false
+            return BackgroundUtil.isLight(thingColor)
+        }
 
         private var white_76p: Int = 0
         private var white_50p: Int = 0

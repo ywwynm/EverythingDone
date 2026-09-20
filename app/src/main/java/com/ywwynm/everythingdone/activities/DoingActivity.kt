@@ -37,6 +37,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
+import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
@@ -479,12 +480,12 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                 holder.flDoing!!.visibility = View.GONE
             }
 
-            override fun onChecklistAdapterInitialized(
-                holder: BaseThingViewHolder, adapter: CheckListAdapter, thing: Thing
+            override fun onThingCardChecklistWillBind(
+                holder: BaseThingViewHolder, checklist: ThingCardChecklistView, thing: Thing
             ) {
-                super.onChecklistAdapterInitialized(holder, adapter, thing)
+                super.onThingCardChecklistWillBind(holder, checklist, thing)
                 holder.cv!!.setShouldInterceptTouchEvent(false)
-                adapter.setTvItemClickCallback(object : CheckListAdapter.TvItemClickCallback {
+                checklist.itemClickCallback = object : ThingCardChecklistView.ItemClickCallback {
                     override fun onItemClick(itemPos: Int) {
                         val updatedContent: String = CheckListHelper.toggleChecklistItem(
                             thing.content, itemPos
@@ -496,7 +497,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                     }
 
                     override fun onItemSpaceClick(v: View?) {}
-                })
+                }
             }
         }
         adapter.setCardWidth(mCardWidth)
