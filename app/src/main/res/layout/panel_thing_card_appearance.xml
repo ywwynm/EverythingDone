@@ -135,18 +135,131 @@
         android:visibility="gone"
         tools:visibility="gone" />
 
-    <!-- 外观设置主体：进入颜色页时整体隐藏 -->
+    <!-- 外观设置主体：进入颜色页时整体隐藏。
+         包一层 NestedScrollView 是必需的——ScrollAwareColumn 只收缩「第一个可见的
+         NestedScrollView 子项」，主体页没有这样的子项时它走 total.coerceAtMost(avail)，
+         底部的取消/确定按钮行会被直接裁掉。 -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_tca_appearance_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/thing_card_appearance_slider_bleed"
+        android:layout_marginRight="@dimen/thing_card_appearance_slider_bleed"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:scrollbars="none">
+
     <LinearLayout
         android:id="@+id/ll_tca_appearance_body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/thing_card_appearance_slider_overhang"
+        android:paddingRight="@dimen/thing_card_appearance_slider_overhang">
+
+    <!-- 卡片宽度始终排在主体最上方 -->
+    <LinearLayout
+        android:id="@+id/ll_thing_card_appearance_span_controls"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_thing_card_appearance_card_width"
+            android:layout_width="76dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="@string/thing_card_appearance_card_width"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/bt_thing_card_appearance_span_normal"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/thing_card_appearance_span_normal"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/bt_thing_card_appearance_span_full"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/thing_card_appearance_span_full"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- 内容文本的最大显示行数 / 清单项的最大显示个数：二者互斥，同一组只出现一版 -->
+    <LinearLayout
+        android:id="@+id/ll_thing_card_appearance_content_limit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/thing_card_appearance_slider_bleed"
+        android:layout_marginRight="@dimen/thing_card_appearance_slider_bleed"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/thing_card_appearance_slider_overhang"
+        android:paddingRight="@dimen/thing_card_appearance_slider_overhang"
+        android:paddingTop="6dp">
+
+        <TextView
+            android:id="@+id/tv_thing_card_appearance_content_limit"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:maxLines="1"
+            android:textColor="@color/app_chrome_on_surface_hint"
+            android:textSize="13sp"
+            tools:text="Max content lines · 9 (default)" />
+
+        <!-- background 置空：主题 EverythingDoneTheme.Things 没覆盖 colorControlHighlight，
+             SeekBar 默认背景的 ripple 比设置页（app_chrome_ripple）明显得多，两处对不上。
+             两端的对齐由 ThingsActivity.alignThingCardAppearanceSliderToTextEdges 设内边距。 -->
+        <!-- 负边距抵消这一组的左右内边距，让 SeekBar 与组同宽（不超出父 bounds），
+             两端的 thumb 才有地方画；轨道的内缩由代码补的 padding 决定。 -->
+        <SeekBar
+            android:id="@+id/seek_thing_card_appearance_content_limit"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginLeft="@dimen/thing_card_appearance_slider_bleed"
+            android:layout_marginRight="@dimen/thing_card_appearance_slider_bleed"
+            android:background="@null" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/ll_thing_card_appearance_source"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -244,61 +357,6 @@
                 android:textSize="18sp" />
 
         </LinearLayout>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/ll_thing_card_appearance_span_controls"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="14dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tv_thing_card_appearance_card_width"
-            android:layout_width="76dp"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:text="@string/thing_card_appearance_card_width"
-            android:textColor="@color/app_chrome_on_surface_hint"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/bt_thing_card_appearance_span_normal"
-            android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_weight="1"
-            android:layout_gravity="center_vertical"
-            android:layout_marginLeft="2dp"
-            android:layout_marginRight="2dp"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="@string/thing_card_appearance_span_normal"
-            android:textColor="@color/app_chrome_on_surface_secondary"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/bt_thing_card_appearance_span_full"
-            android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_weight="1"
-            android:layout_gravity="center_vertical"
-            android:layout_marginLeft="2dp"
-            android:layout_marginRight="2dp"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="@string/thing_card_appearance_span_full"
-            android:textColor="@color/app_chrome_on_surface_secondary"
-            android:textSize="14sp" />
 
     </LinearLayout>
 
@@ -534,6 +592,8 @@
     </LinearLayout>
 
     </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
     <!-- /外观设置主体 -->
 
     <!-- 颜色页：纯色/渐变编辑器（可滚动），默认隐藏，进入颜色页时显示 -->

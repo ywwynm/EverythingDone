@@ -36,6 +36,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
+import com.ywwynm.everythingdone.helpers.ThingCardContentLimitsHelper
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
@@ -350,6 +351,21 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         return thing.type != Thing.HEADER
                 && thing.type < Thing.NOTIFICATION_UNDERWAY
                 && thing.thingCardAppearance.spanMode == Thing.THING_CARD_SPAN_FULL
+    }
+
+    // 内容文本行数 / 清单项个数：先取这条记事的覆盖，没有覆盖才用全局默认。覆写放在这里
+    // （而不是 BaseThingsAdapter）是刻意的：单一记事 widget 配置页的 ThingCardDelegateAdapter
+    // 继承自本类、应当跟随，而 DoingActivity 与提醒全屏页直接继承 BaseThingsAdapter、不跟随。
+    override fun getThingCardContentMaxLines(thing: Thing, fullSpan: Boolean): Int {
+        return ThingCardContentLimitsHelper.resolveContentMaxLines(
+            thing.thingCardAppearance, fullSpan
+        )
+    }
+
+    override fun getThingCardChecklistMaxItemCount(thing: Thing, fullSpan: Boolean): Int {
+        return ThingCardContentLimitsHelper.resolveChecklistMaxItems(
+            thing.thingCardAppearance, fullSpan
+        )
     }
 
     private fun distinguishHeaderAndOthers(thing: Thing, cv: CardView?) {

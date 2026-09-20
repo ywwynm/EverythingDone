@@ -119,6 +119,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.HomeActionWordingHelper
+import com.ywwynm.everythingdone.helpers.ThingCardContentLimitsHelper
 import com.ywwynm.everythingdone.helpers.ThingCardMediaHelper
 import com.ywwynm.everythingdone.helpers.SendInfoHelper
 import com.ywwynm.everythingdone.helpers.ThingDoingHelper
@@ -319,6 +320,9 @@ class ThingsActivity :
     private var mLlThingCardAppearanceSideWidth: View? = null
     private var mTvThingCardAppearanceSideWidth: TextView? = null
     private var mSeekThingCardAppearanceSideWidth: SeekBar? = null
+    private var mLlThingCardAppearanceContentLimit: View? = null
+    private var mTvThingCardAppearanceContentLimit: TextView? = null
+    private var mSeekThingCardAppearanceContentLimit: SeekBar? = null
     private var mBtThingCardAppearancePreciseCrop: TextView? = null
     private var mLlThingCardAppearanceThumbnailRatio: View? = null
     private var mThingCardAppearanceRatioSlider: RatioSlider? = null
@@ -2094,7 +2098,7 @@ class ThingsActivity :
         }
         mSepTcaTop = f(R.id.sep_tca_top)
         mSepTcaBottom = f(R.id.sep_tca_bottom)
-        mLlTcaAppearanceBody = f(R.id.ll_tca_appearance_body)
+        mLlTcaAppearanceBody = f(R.id.scroll_tca_appearance_body)
         mLlTcaTitleRow = f(R.id.ll_thing_card_appearance_title_row)
         mLlTcaColorPageTitle = f(R.id.ll_tca_color_page_title)
         mBtTcaColorPageBack = f(R.id.bt_tca_color_page_back)
@@ -2128,6 +2132,10 @@ class ThingsActivity :
         mLlThingCardAppearanceSideWidth = f(R.id.ll_thing_card_appearance_side_width)
         mTvThingCardAppearanceSideWidth = f(R.id.tv_thing_card_appearance_side_width)
         mSeekThingCardAppearanceSideWidth = f(R.id.seek_thing_card_appearance_side_width)
+        mLlThingCardAppearanceContentLimit = f(R.id.ll_thing_card_appearance_content_limit)
+        mTvThingCardAppearanceContentLimit = f(R.id.tv_thing_card_appearance_content_limit)
+        mSeekThingCardAppearanceContentLimit =
+                f(R.id.seek_thing_card_appearance_content_limit)
         mBtThingCardAppearancePreciseCrop = f(R.id.bt_thing_card_appearance_precise_crop)
         mLlThingCardAppearanceThumbnailRatio =
                 f(R.id.ll_thing_card_appearance_thumbnail_ratio)
@@ -3061,6 +3069,32 @@ class ThingsActivity :
                     }
                 }
         )
+        mSeekThingCardAppearanceContentLimit!!.setOnSeekBarChangeListener(
+                object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                            seekBar: SeekBar?,
+                            progress: Int,
+                            fromUser: Boolean
+                    ) {
+                        if (!fromUser || mBindingThingCardAppearancePanel) {
+                            return
+                        }
+                        updateThingCardAppearanceContentLimit(
+                                ThingCardContentLimitsHelper.MIN_LIMIT + progress
+                        )
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                        if (seekBar != null) {
+                            updateThingCardAppearanceContentLimit(
+                                    ThingCardContentLimitsHelper.MIN_LIMIT + seekBar.progress
+                            )
+                        }
+                    }
+                }
+        )
         mBtThingCardAppearancePreciseCrop!!.setOnClickListener {
             openThingCardCropEditor()
         }
@@ -3237,6 +3271,9 @@ class ThingsActivity :
         mBtThingCardAppearancePlacementRight!!.visibility = View.GONE
         mBtThingCardAppearancePlacementBackground!!.visibility = View.GONE
         mLlThingCardAppearanceSideWidth!!.visibility = View.GONE
+        // 文件夹卡片里的预览小卡片有自己的一套档位（FolderThingPreviewAdapter 的 style.*），
+        // 不受这两个上限影响，所以文件夹面板上不出现这一组。
+        mLlThingCardAppearanceContentLimit!!.visibility = View.GONE
         mBtThingCardAppearancePreciseCrop!!.visibility = View.GONE
         mLlThingCardAppearanceThumbnailRatio!!.visibility = View.GONE
         mLlThingCardAppearanceBackgroundControls!!.visibility = View.GONE
@@ -3353,6 +3390,7 @@ class ThingsActivity :
             }
         }
         bindThingCardAppearanceAccentControls()
+        bindThingCardAppearanceContentLimitControls(draft)
         if (!hasMediaSources || mediaSourceHidden) {
             bindThingCardAppearanceSpanControls(draft)
             bindThingCardAppearanceMediaDependentControls(true)
@@ -4020,6 +4058,120 @@ class ThingsActivity :
         setThingCardAppearancePlainTextColor(textView, foregroundColor)
     }
 
+    /**
+     * 面板上那一行现在编辑的是哪种上限：true 为清单项个数、false 为内容文本行数。
+     * null 表示这条记事没有内容文本也没有清单，整组不显示。二者互斥，永远只出现一版。
+     */
+    private fun thingCardAppearanceContentLimitIsChecklist(): Boolean? {
+        val thing = mThingCardAppearancePanelThing ?: return null
+        val content = thing.content
+        if (content.isNullOrEmpty()) return null
+        return CheckListHelper.isCheckListStr(content)
+    }
+
+    private fun bindThingCardAppearanceContentLimitControls(draft: ThingCardAppearance) {
+        val group = mLlThingCardAppearanceContentLimit ?: return
+        val isChecklist = thingCardAppearanceContentLimitIsChecklist()
+        if (isChecklist == null) {
+            group.visibility = View.GONE
+            return
+        }
+        group.visibility = View.VISIBLE
+        val fullSpan = draft.spanMode == Thing.THING_CARD_SPAN_FULL
+        val override = if (isChecklist) {
+            draft.checklistMaxItems(fullSpan)
+        } else {
+            draft.contentMaxLines(fullSpan)
+        }
+        val value = override
+                ?: getThingCardAppearanceContentLimitDefault(isChecklist, fullSpan)
+        mSeekThingCardAppearanceContentLimit?.let { seekBar ->
+            seekBar.max = ThingCardContentLimitsHelper.MAX_LIMIT -
+                    ThingCardContentLimitsHelper.MIN_LIMIT
+            seekBar.progress = value - ThingCardContentLimitsHelper.MIN_LIMIT
+            alignThingCardAppearanceSliderToTextEdges(seekBar)
+        }
+        bindThingCardAppearanceContentLimitLabel(isChecklist, value, override != null)
+    }
+
+    /**
+     * 让滑动条两端与面板里其它文本的左右缘对齐：轨道内缩与滑块外探之和恒等于滑块半径，
+     * 各让一半，与设置页、粒子动画设置页同一套。
+     *
+     * 面板这里比设置页多一层约束：滑块中心恒停在 `paddingStart` 与 `width - paddingEnd`
+     * 上，滑块外缘因此会超出 SeekBar 自身的 bounds 而被父容器削掉半个。布局里用
+     * `thing_card_appearance_slider_bleed` 这个负边距把 SeekBar 撑出内容区半个半径，
+     * 这里再把内边距补足整个半径——轨道相对内容边界内缩半个半径、滑块外探半个半径，
+     * 且滑块外缘正好落在自己的 bounds 上，不会被裁。对应的绘制空间由布局里那一串
+     * `clipChildren="false"` 与 NestedScrollView 的 `clipToPadding="false"` 让出。
+     *
+     * 负边距必须写在布局里：在这里改 `MarginLayoutParams` 不生效（实测 bounds 不变）。
+     */
+    private fun alignThingCardAppearanceSliderToTextEdges(bar: SeekBar) {
+        val radius = (bar.thumb?.intrinsicWidth ?: 0) / 2
+        if (radius <= 0) return
+        if (bar.paddingStart == radius && bar.paddingEnd == radius) return
+        bar.setPaddingRelative(radius, bar.paddingTop, radius, bar.paddingBottom)
+    }
+
+    private fun bindThingCardAppearanceContentLimitLabel(
+            isChecklist: Boolean,
+            value: Int,
+            overridden: Boolean
+    ) {
+        val label = getString(
+                if (isChecklist) {
+                    R.string.thing_card_appearance_checklist_max_items
+                } else {
+                    R.string.thing_card_appearance_content_max_lines
+                }
+        )
+        mTvThingCardAppearanceContentLimit?.text = getString(
+                if (overridden) {
+                    R.string.thing_card_appearance_limit_value_format
+                } else {
+                    R.string.thing_card_appearance_limit_value_default_format
+                },
+                label,
+                value
+        )
+    }
+
+    private fun getThingCardAppearanceContentLimitDefault(
+            isChecklist: Boolean,
+            fullSpan: Boolean
+    ): Int {
+        return if (isChecklist) {
+            ThingCardContentLimitsHelper.globalChecklistMaxItems(fullSpan)
+        } else {
+            ThingCardContentLimitsHelper.globalContentMaxLines(fullSpan)
+        }
+    }
+
+    /**
+     * 拖动即记录：拖到多少就存多少，即使恰好等于当前的全局默认值。只有从未拖动过的那一档
+     * 才是"未设定"（字段为 null），读数上标「（默认）」。
+     *
+     * 全程 `bindPanel = false`：整面板重绑会走
+     * [requestThingCardAppearancePanelSpaceUpdate] → 列表底部留白更新 →
+     * [ensureThingCardAppearanceSelectedCardVisible]，把选中卡片顶到列表最顶，并为此先撑大
+     * 底部留白——表现为改一次行数列表就来回滑一趟。这一组控件不改变面板自身的高度，也没有
+     * 别的控件依赖它的取值，不需要重绑，读数在这里自己更新。
+     */
+    private fun updateThingCardAppearanceContentLimit(value: Int) {
+        val draft = mThingCardAppearanceDraft ?: return
+        val isChecklist = thingCardAppearanceContentLimitIsChecklist() ?: return
+        val fullSpan = draft.spanMode == Thing.THING_CARD_SPAN_FULL
+        val clamped = ThingCardContentLimitsHelper.clamp(value)
+        val newDraft = if (isChecklist) {
+            draft.withChecklistMaxItems(fullSpan, clamped)
+        } else {
+            draft.withContentMaxLines(fullSpan, clamped)
+        }
+        updateThingCardAppearanceDraft(newDraft, bindPanel = false)
+        bindThingCardAppearanceContentLimitLabel(isChecklist, clamped, true)
+    }
+
     private fun bindThingCardAppearanceAccentControls() {
         val accentBackground = getThingCardAppearanceAccentBackground()
         val accentColor = getThingCardAppearanceAccentColor()
@@ -4040,6 +4192,7 @@ class ThingsActivity :
         listOf(
                 mSeekThingCardAppearanceVideoFrame,
                 mSeekThingCardAppearanceSideWidth,
+                mSeekThingCardAppearanceContentLimit,
                 mSeekThingCardAppearanceBackgroundMask,
                 mSeekThingCardAppearanceBackgroundHeight
         ).forEach { seekBar ->
@@ -12464,6 +12617,11 @@ class ThingsActivity :
         private const val FOLDER_CREATE_TARGET_SCALE = 0.92f
         private const val FOLDER_MOVE_TARGET_SCALE = 0.95f
         private const val FOLDER_CREATE_OUTLINE_GAP_DP = 6.0f
+        /**
+         * 面板里滑动条两端「轨道内缩」占滑块半径的比例，余下的那一份是「滑块外探」。与
+         * `ParticleTuningActivity.SLIDER_EDGE_BALANCE`、记事卡片外观设置页取同一个值。
+         */
+        private const val THING_CARD_APPEARANCE_SLIDER_EDGE_BALANCE = 0.5f
         private const val THING_CARD_APPEARANCE_PANEL_SPACE_SETTLE_DELAY_MS = 96L
         private const val THING_CARD_APPEARANCE_PANEL_SPACE_FINAL_DELAY_MS = 260L
         private const val THING_CARD_APPEARANCE_PANEL_ANIM_DURATION_MS = 190L

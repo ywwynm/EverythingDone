@@ -39,6 +39,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.KeyboardUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
+import kotlin.math.min
+
 /**
  * Created by ywwynm on 2015/9/17.
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
@@ -326,16 +328,23 @@ open class CheckListAdapter(
                 applyFixedIconScale(holder.iv)
 
                 val size = mItems!!.size
+                // 字号的自变量是"卡片上实际渲染出几条"，不是总条数，更不能把上限本身当输入。
+                // 上限变成可调项之后，原式在调大和调小两个方向上都会让字变小（5 项的卡片上限
+                // 由 8 调到 3：15.71sp → 14sp；10 项的卡片上限由 8 调到 16：14sp → 12.86sp），
+                // 而且它今天就已经让宽卡片上 10 项清单的字号小于同内容的普通卡片。
+                // COMPACT_TEXT_SIZE_ITEM_COUNT 是纯排版常量，与用户设定的上限无关。
+                // 见 docs/features/thing-card-content-limits/decisions.md。
+                val visible = if (mMaxItemCount < 0) size else min(size, mMaxItemCount)
                 val fixedTextSize = mFixedTextSize
                 val baseSize: Float
                 if (fixedTextSize != null) {
                     baseSize = fixedTextSize
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
-                } else if ((mMaxItemCount != -1 && size >= mMaxItemCount) || mMaxItemCount == -1) {
+                } else if (visible >= COMPACT_TEXT_SIZE_ITEM_COUNT) {
                     baseSize = 14f
                     params.setMargins(0, (2 * density).toInt(), 0, params.bottomMargin)
                 } else {
-                    baseSize = -4 * size / 7f + 130f / 7
+                    baseSize = -4 * visible / 7f + 130f / 7
                     val mt = -2 * baseSize / 3 + 34f / 3
                     params.setMargins(0, mt.toInt(), 0, params.bottomMargin)
                 }
@@ -1060,6 +1069,9 @@ open class CheckListAdapter(
         const val TEXTVIEW: Int            = 0
         const val EDITTEXT_EDITABLE: Int   = 1
         const val EDITTEXT_UNEDITABLE: Int = 2
+
+        /** 卡片上渲染出这么多条及以上时，清单项字号收到最小的 14sp，不再随条数放大。 */
+        private const val COMPACT_TEXT_SIZE_ITEM_COUNT = 8
 
         private var white_76p: Int = 0
         private var white_50p: Int = 0

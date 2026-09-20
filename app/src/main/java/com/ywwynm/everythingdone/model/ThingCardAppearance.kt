@@ -13,6 +13,14 @@ data class ThingCardAppearance(
     val appearanceUpdateTime: Long = 0L,
     val mediaSourceKey: String? = null,
     val mediaBackgroundEnabled: Boolean = false,
+    /** 内容文本最大显示行数的单条覆盖，null 表示未设定、取全局默认。普通宽度档。 */
+    val contentMaxLinesNormal: Int? = null,
+    /** 内容文本最大显示行数的单条覆盖，宽卡片档。 */
+    val contentMaxLinesFull: Int? = null,
+    /** 清单项最大显示个数的单条覆盖，普通宽度档。 */
+    val checklistMaxItemsNormal: Int? = null,
+    /** 清单项最大显示个数的单条覆盖，宽卡片档。 */
+    val checklistMaxItemsFull: Int? = null,
     val sources: Map<String, SourceAppearance> = emptyMap()
 ) {
 
@@ -29,6 +37,12 @@ data class ThingCardAppearance(
                 o.put(K_MEDIA_SOURCE_KEY, mediaSourceKey)
             }
             o.put(K_MEDIA_BACKGROUND_ENABLED, mediaBackgroundEnabled)
+            putNullableInt(o, K_CONTENT_MAX_LINES_NORMAL, normalizeLimit(contentMaxLinesNormal))
+            putNullableInt(o, K_CONTENT_MAX_LINES_FULL, normalizeLimit(contentMaxLinesFull))
+            putNullableInt(
+                o, K_CHECKLIST_MAX_ITEMS_NORMAL, normalizeLimit(checklistMaxItemsNormal)
+            )
+            putNullableInt(o, K_CHECKLIST_MAX_ITEMS_FULL, normalizeLimit(checklistMaxItemsFull))
             val sourcesJson = JSONObject()
             for ((key, value) in sources) {
                 sourcesJson.put(key, value.toJsonObject())
@@ -57,6 +71,34 @@ data class ThingCardAppearance(
         @Thing.ThingCardImagePlacement imagePlacement: Int
     ): ThingCardAppearance {
         return copy(imagePlacement = normalizeImagePlacement(imagePlacement))
+    }
+
+    /** 该档的内容文本最大行数覆盖；null 表示未设定，调用方应回退到全局默认。 */
+    fun contentMaxLines(fullSpan: Boolean): Int? {
+        return normalizeLimit(if (fullSpan) contentMaxLinesFull else contentMaxLinesNormal)
+    }
+
+    /** 该档的清单项最大个数覆盖；null 表示未设定，调用方应回退到全局默认。 */
+    fun checklistMaxItems(fullSpan: Boolean): Int? {
+        return normalizeLimit(if (fullSpan) checklistMaxItemsFull else checklistMaxItemsNormal)
+    }
+
+    fun withContentMaxLines(fullSpan: Boolean, maxLines: Int?): ThingCardAppearance {
+        val value = normalizeLimit(maxLines)
+        return if (fullSpan) {
+            copy(contentMaxLinesFull = value)
+        } else {
+            copy(contentMaxLinesNormal = value)
+        }
+    }
+
+    fun withChecklistMaxItems(fullSpan: Boolean, maxItems: Int?): ThingCardAppearance {
+        val value = normalizeLimit(maxItems)
+        return if (fullSpan) {
+            copy(checklistMaxItemsFull = value)
+        } else {
+            copy(checklistMaxItemsNormal = value)
+        }
     }
 
     fun removeSources(keysToRemove: Set<String>): ThingCardAppearance {
@@ -412,7 +454,9 @@ data class ThingCardAppearance(
     }
 
     companion object {
-        const val VERSION: Int = 2
+        const val VERSION: Int = 3
+        const val MIN_CONTENT_LIMIT: Int = 1
+        const val MAX_CONTENT_LIMIT: Int = 16
         const val DEFAULT_SIDE_MEDIA_WIDTH_PERCENT: Int = 42
         const val MIN_SIDE_MEDIA_WIDTH_PERCENT: Int = 30
         const val MAX_SIDE_MEDIA_WIDTH_PERCENT: Int = 60
@@ -431,6 +475,10 @@ data class ThingCardAppearance(
         private const val K_APPEARANCE_UPDATE_TIME = "appearanceUpdateTime"
         private const val K_MEDIA_SOURCE_KEY = "mediaSourceKey"
         private const val K_MEDIA_BACKGROUND_ENABLED = "mediaBackgroundEnabled"
+        private const val K_CONTENT_MAX_LINES_NORMAL = "contentMaxLinesNormal"
+        private const val K_CONTENT_MAX_LINES_FULL = "contentMaxLinesFull"
+        private const val K_CHECKLIST_MAX_ITEMS_NORMAL = "checklistMaxItemsNormal"
+        private const val K_CHECKLIST_MAX_ITEMS_FULL = "checklistMaxItemsFull"
         private const val K_SOURCES = "sources"
 
         private const val K_FILE_SIZE = "fileSize"
@@ -522,6 +570,18 @@ data class ThingCardAppearance(
                         K_MEDIA_BACKGROUND_ENABLED,
                         false
                     ),
+                    contentMaxLinesNormal = normalizeLimit(
+                        nullableInt(o, K_CONTENT_MAX_LINES_NORMAL)
+                    ),
+                    contentMaxLinesFull = normalizeLimit(
+                        nullableInt(o, K_CONTENT_MAX_LINES_FULL)
+                    ),
+                    checklistMaxItemsNormal = normalizeLimit(
+                        nullableInt(o, K_CHECKLIST_MAX_ITEMS_NORMAL)
+                    ),
+                    checklistMaxItemsFull = normalizeLimit(
+                        nullableInt(o, K_CHECKLIST_MAX_ITEMS_FULL)
+                    ),
                     sources = sources
                 )
             } catch (_: JSONException) {
@@ -550,6 +610,16 @@ data class ThingCardAppearance(
                 Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT -> imagePlacement
                 else -> Thing.THING_CARD_IMAGE_PLACEMENT_DEFAULT
             }
+        }
+
+        /**
+         * 内容文本行数 / 清单项个数的单条覆盖值。null 原样保留——它表示"未设定"，
+         * 与"设成了某个数"是两回事，调用方据此回退到全局默认。
+         */
+        @JvmStatic
+        fun normalizeLimit(value: Int?): Int? {
+            if (value == null) return null
+            return max(MIN_CONTENT_LIMIT, min(MAX_CONTENT_LIMIT, value))
         }
 
         @JvmStatic
@@ -586,11 +656,23 @@ data class ThingCardAppearance(
             return if (o.isNull(key)) null else o.optLong(key)
         }
 
+        private fun nullableInt(o: JSONObject, key: String): Int? {
+            return if (o.isNull(key)) null else o.optInt(key)
+        }
+
         private fun nullableDouble(o: JSONObject, key: String): Double? {
             return if (o.isNull(key)) null else o.optDouble(key)
         }
 
         private fun putNullableLong(o: JSONObject, key: String, value: Long?) {
+            if (value == null) {
+                o.put(key, JSONObject.NULL)
+            } else {
+                o.put(key, value)
+            }
+        }
+
+        private fun putNullableInt(o: JSONObject, key: String, value: Int?) {
             if (value == null) {
                 o.put(key, JSONObject.NULL)
             } else {

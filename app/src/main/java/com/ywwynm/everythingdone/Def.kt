@@ -51,6 +51,12 @@ object Def {
         // toggle checklist item on thing card
         const val KEY_TOGGLE_CLI_OTC: String           = "toggle_cli_otc"
         const val KEY_SIMPLE_FCLI: String              = "simple_fcli"
+        // 记事卡片上内容文本 / 清单项的最大显示量，按卡片宽度分两档。2026/9/19
+        const val KEY_CARD_CONTENT_MAX_LINES_NORMAL: String  = "card_content_max_lines_normal"
+        const val KEY_CARD_CONTENT_MAX_LINES_FULL: String    = "card_content_max_lines_full"
+        const val KEY_CARD_CHECKLIST_MAX_ITEMS_NORMAL: String =
+                "card_checklist_max_items_normal"
+        const val KEY_CARD_CHECKLIST_MAX_ITEMS_FULL: String  = "card_checklist_max_items_full"
         const val KEY_AUTO_LINK: String                = "auto_link" // 2016/11/11
         const val KEY_AUTOPLAY_COVER_DYNAMIC: String   = "autoplay_cover_dynamic" // 2026/6/30
         const val KEY_AUTOPLAY_DETAIL_DYNAMIC: String  = "autoplay_detail_dynamic" // 2026/7/25

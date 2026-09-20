@@ -26,6 +26,10 @@
     <dimen name="doing_thing_card_vertical_margin">32dp</dimen>
     <dimen name="app_chrome_dialog_popup_corner_radius">16dp</dimen>
     <dimen name="app_chrome_dialog_title_margin_horizontal">20dp</dimen>
+    <!-- 记事卡片外观面板里滑动条两端的「滑块外探」量：滑块半径(10dp)的一半。面板内容区
+         之外要留出这么多绘制空间，否则两端的 thumb 会被父容器削掉半个。 -->
+    <dimen name="thing_card_appearance_slider_overhang">5dp</dimen>
+    <dimen name="thing_card_appearance_slider_bleed">-5dp</dimen>
     <dimen name="app_chrome_dialog_title_margin_top">20dp</dimen>
     <dimen name="app_chrome_dialog_title_text_size">20sp</dimen>
     <dimen name="app_chrome_dialog_action_row_margin_horizontal">8dp</dimen>

@@ -363,6 +363,13 @@
     <string name="thing_card_appearance_span_normal">正常</string>
     <string name="thing_card_appearance_span_full">寬</string>
     <string name="thing_card_appearance_card_width">卡片寬度</string>
+    <string name="thing_card_appearance_content_max_lines">內容文字的最大顯示行數</string>
+    <string name="thing_card_appearance_checklist_max_items">清單項目的最大顯示個數</string>
+    <string name="thing_card_appearance_limit_value_format">%1$s · %2$d</string>
+    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d（預設）</string>
+    <string name="thing_card_appearance_settings_span_normal">卡片寬度為正常時</string>
+    <string name="thing_card_appearance_settings_span_full">卡片寬度為寬時</string>
+    <string name="settings_thing_card_appearance">記事卡片外觀設定</string>
     <string name="folder_card_appearance_name_hint">資料夾名稱</string>
     <string name="folder_card_appearance_display_mode">資料夾大小</string>
     <string name="folder_card_appearance_mode_summary">正常</string>

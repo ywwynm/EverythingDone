@@ -1063,6 +1063,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.rl_dialog_particle_animation_as_bt).setOnClickListener {
             showDialogParticleAnimationChooser()
         }
+        f<View>(R.id.rl_thing_card_appearance_settings_as_bt).setOnClickListener {
+            startActivity(Intent(this, ThingCardAppearanceSettingsActivity::class.java))
+        }
         f<View>(R.id.rl_spatial_photo_settings_as_bt).setOnClickListener {
             startActivity(Intent(this, SpatialPhotoSettingsActivity::class.java))
         }

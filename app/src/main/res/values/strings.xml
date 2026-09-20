@@ -540,6 +540,13 @@
     <string name="thing_card_appearance_span_normal">Normal</string>
     <string name="thing_card_appearance_span_full">Wide</string>
     <string name="thing_card_appearance_card_width">Card width</string>
+    <string name="thing_card_appearance_content_max_lines">Max content lines</string>
+    <string name="thing_card_appearance_checklist_max_items">Max checklist items</string>
+    <string name="thing_card_appearance_limit_value_format">%1$s · %2$d</string>
+    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (default)</string>
+    <string name="thing_card_appearance_settings_span_normal">When card width is normal</string>
+    <string name="thing_card_appearance_settings_span_full">When card width is wide</string>
+    <string name="settings_thing_card_appearance">Thing card appearance</string>
     <string name="folder_card_appearance_name_hint">Folder name</string>
     <string name="folder_card_appearance_display_mode">Folder size</string>
     <string name="folder_card_appearance_mode_summary">Normal</string>

@@ -203,6 +203,13 @@
             android:theme="@style/EverythingDoneTheme.Settings"/>
 
         <activity
+            android:name=".activities.ThingCardAppearanceSettingsActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
+            android:exported="false"
+            android:label="@string/settings_thing_card_appearance"
+            android:theme="@style/EverythingDoneTheme.Settings"/>
+
+        <activity
             android:name=".activities.ParticleTuningActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="false"
