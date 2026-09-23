@@ -1,0 +1,31 @@
+// 应用内碰一碰的真机可行性验证程序。
+// 独立包名，不依赖主应用，也不引入任何三方库 —— 只用 framework API，编译最快。
+// 验证结束后整个目录连同 settings.gradle 里的两行一起删掉。
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.ywwynm.nfcprobe'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.ywwynm.nfcprobe'
+        // 29：WifiP2pConfig.Builder（按 SSID + 密码直接入组，跳过发现与 GO 协商）
+        // 30：WindowInsets.getInsets(Type)，targetSdk 36 在 API 35+ 上强制 edge-to-edge，
+        //     内容必须自己避开状态栏与导航栏
+        minSdk 30
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

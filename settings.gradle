@@ -1,1 +1,5 @@
 include ':app', ':timelytextview', ':swirl'
+
+// 碰一碰可行性验证程序，与功能文档同目录。验证结束后连同 probe/ 目录一起删掉。
+include ':nfcprobe'
+project(':nfcprobe').projectDir = file('docs/features/thing-transfer/probe')

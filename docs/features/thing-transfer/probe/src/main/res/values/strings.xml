@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hce_service_desc">碰一碰可行性验证</string>
+    <string name="hce_aid_group_desc">记事传输握手</string>
+</resources>

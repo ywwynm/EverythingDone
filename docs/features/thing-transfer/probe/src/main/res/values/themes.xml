@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  用 DayNight 而不是 Light：Flyme 会对「只支持浅色」的应用做渲染层强制反色，
+  android:forceDarkAllowed="false" 在它上面不生效（2026-09-21 实测）。
+  应用自己声明支持深色之后，系统就不再强制反色，颜色由主题正常给出。
+-->
+<resources>
+    <style name="ProbeTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

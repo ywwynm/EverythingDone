@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  category 用 other 而不是 payment：payment 会进入系统的「默认付款应用」竞争，
+  可能被钱包抢走，也会打扰用户的支付设置。
+
+  AID F0454454524E53 = F0（专有 RID 前缀）+ ASCII "EDTRNS"，7 字节，
+  落在自定义范围内，不与支付、交通卡、门禁的已知 AID 冲突。
+-->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/hce_service_desc"
+    android:requireDeviceUnlock="false">
+    <aid-group
+        android:category="other"
+        android:description="@string/hce_aid_group_desc">
+        <aid-filter android:name="F0454454524E53"/>
+    </aid-group>
+</host-apdu-service>
