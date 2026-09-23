@@ -276,6 +276,10 @@ _Avoid_: 把邮箱当登录名、把本地无账号使用称为"账号"、user �
 两台设备并发修改同一条 Thing 的内容域（标题、正文/清单、附件列表）时，为落后一方生成的完整 Thing 副本，放入同一 Thing Folder、标题带冲突标记，由用户手动取舍；结构域（状态、文件夹归属、置顶、卡片外观）的并发修改按字段级最后写入赢静默收敛，不产生它。
 _Avoid_: 静默覆盖任何一方的内容、把结构域并发也当成冲突、conflict file
 
+**Thing File**:
+一份能被完事儿还原成 Thing 的交换产物，界面文案为「记事文件」；承载一条或多条 Thing 的类型、颜色、内容、附件、外观、完成状态、创建时间与提醒规则，接收方必须安装完事儿才能使用。它是给另一个人的一次性副本，接收方导入后与发送方那一条互不影响。
+_Avoid_: 把「导出到 SD 卡」产出的可阅读 txt 称为 Thing File、把纯文本分享与之混用、把它理解为设备间同步或迁移的手段
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
