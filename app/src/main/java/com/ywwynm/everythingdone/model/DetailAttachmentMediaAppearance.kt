@@ -58,6 +58,26 @@ data class DetailAttachmentMediaAppearance(
         return copy(sources = kept)
     }
 
+    /**
+     * 按 [mapping] 重写 sources 的 key，映射不到的条目直接丢掉。
+     *
+     * key 是附件的 typePathName（类型 + 绝对路径），因此一旦附件被搬到别的路径，
+     * 这些外观设置就会对不上。记事文件的导出与导入各需要重写一次：导出时换成与设备
+     * 无关的条目名，导入时换成本机的新路径。
+     *
+     * 空映射同样按这条规则处理，即全部丢掉：它表示这条记事一个附件也没带过去，留下的 key
+     * 只会是发送方设备上的绝对路径。
+     */
+    fun remapSources(mapping: Map<String, String>): DetailAttachmentMediaAppearance {
+        if (sources.isEmpty()) return this
+        val remapped = LinkedHashMap<String, SourceAppearance>()
+        for ((key, value) in sources) {
+            val newKey = mapping[key] ?: continue
+            remapped[newKey] = value
+        }
+        return copy(sources = remapped)
+    }
+
     data class SourceAppearance(
         val fileSize: Long? = null,
         val lastModified: Long? = null,

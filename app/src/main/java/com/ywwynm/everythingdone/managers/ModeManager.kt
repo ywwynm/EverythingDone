@@ -455,6 +455,8 @@ open class ModeManager(app: App?,
         setMenuItemVisible(R.id.act_move_to_thing_folder, underway && anySelected)
         // Export only handles Things; keep it for Thing-only selections.
         setMenuItemVisible(R.id.act_export, hasThing && !hasFolder)
+        // 记事文件同样只装记事、不含文件夹：只选文件夹时点了没反应，混选时文件夹会被静默丢掉。
+        setMenuItemVisible(R.id.act_share_thing_file, hasThing && !hasFolder)
 
         // Retired in selecting mode: the unified verbs above also cover the
         // single-folder content ops, so these dedicated items stay hidden.

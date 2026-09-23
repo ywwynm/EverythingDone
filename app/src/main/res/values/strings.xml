@@ -663,6 +663,45 @@
     <!--DetailActivity share-->
     <string name="act_share_thing_text_image"><![CDATA[Text & Image]]></string>
     <string name="act_share_thing_screenshot">Screenshot</string>
+    <!-- In the share dialog it sits beside "Text & Image" and "Screenshot", so it is a product name -->
+    <string name="act_share_thing_file">Thing File</string>
+    <!-- In the selection-mode menu it sits beside actions, so it has to read as one -->
+    <string name="act_share_selected_as_thing_file">Share as thing file</string>
+    <string name="generating_thing_file">Generating thing file…</string>
+    <string name="thing_file_share_hint">The recipient needs EverythingDone to open it</string>
+    <string name="thing_file_generate_failed">Could not generate the thing file: %1$s</string>
+
+    <!--Thing file import-->
+    <string name="thing_file_import_title">Import things</string>
+    <string name="thing_file_import_reading">Reading the thing file…</string>
+    <string name="thing_file_import_confirm">Import %1$d selected</string>
+    <string name="thing_file_import_confirm_none">Nothing selected</string>
+    <string name="thing_file_import_duplicate">You already have this</string>
+    <string name="thing_file_import_not_thing_file">This is not an EverythingDone thing file</string>
+    <string name="thing_file_import_too_new">This thing file comes from a newer EverythingDone. Please update first.</string>
+    <string name="thing_file_import_broken">Could not read the thing file: %1$s</string>
+    <string name="thing_file_import_done">Imported %1$d thing(s)</string>
+    <string name="thing_file_import_partial">Imported %1$d, failed %2$d</string>
+    <string name="thing_file_import_attachments">%1$d attachment(s)</string>
+    <string name="thing_file_import_reminder_at">Reminder: %1$s</string>
+    <string name="thing_file_import_no_title">(no title)</string>
+    <string name="thing_file_import_no_access">This file lives in another app\'s folder, so EverythingDone cannot read it directly.\nTap below and pick it in the file chooser to import it.</string>
+    <string name="thing_file_import_pick">Pick this file</string>
+    <string name="settings_import_thing_file">Import a thing file</string>
+    <string name="settings_import_thing_file_hint">Add things someone sent you</string>
+    <!-- Reasons shown after "Could not read / generate the thing file:". The system's own
+         message, if any, is appended in parentheses through thing_file_error_with_detail. -->
+    <string name="thing_file_error_with_detail">%1$s (%2$s)</string>
+    <string name="thing_file_error_temp_dir">could not create a temporary folder</string>
+    <string name="thing_file_error_unzip">the file is damaged and could not be unpacked</string>
+    <string name="thing_file_error_no_things">the file contains no things</string>
+    <string name="thing_file_error_no_valid_things">none of the things in the file could be recognized</string>
+    <string name="thing_file_error_manifest">the list of things in the file could not be read</string>
+    <string name="thing_file_error_attachment">attachment \"%1$s\" is missing or damaged</string>
+    <string name="thing_file_error_no_space">not enough storage space</string>
+    <string name="thing_file_error_cannot_open">the file could not be opened</string>
+    <string name="thing_file_error_output_file">could not create the output file</string>
+    <string name="thing_file_error_write">could not write the file</string>
 
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>

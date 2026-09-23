@@ -269,6 +269,14 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 return
             }
 
+            if (requestCode == Def.Communication.REQUEST_CHOOSE_THING_FILE) {
+                val importIntent = Intent(this, ThingFileImportActivity::class.java)
+                importIntent.setAction(Intent.ACTION_VIEW)
+                importIntent.setData(uri)
+                startActivity(importIntent)
+                return
+            }
+
             val root: View = f(R.id.rl_settings_root)!!
 
             if (requestCode == Def.Communication.REQUEST_CHOOSE_IMAGE_FILE) {
@@ -1278,6 +1286,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.tv_backup_as_bt).setOnClickListener {
             showBackupDialog()
         }
+        f<View>(R.id.ll_import_thing_file_as_bt).setOnClickListener {
+            startChooseThingFile()
+        }
         f<View>(R.id.ll_restore_as_bt).setOnClickListener {
             showRestoreDialog()
         }
@@ -1825,6 +1836,18 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 override fun onCancel() {}
             }
         )
+    }
+
+    /**
+     * 记事文件用的是自定义扩展名，系统的 MimeTypeMap 认不出，所以选择器不能按具体
+     * MIME 过滤（那样文件会被灰掉选不中），只能开成 * / * 由用户自己找。
+     * 选中之后交给 ThingFileImportActivity 校验，不是记事文件会明确提示。
+     */
+    private fun startChooseThingFile() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.setType("*/*")
+        startActivityForResult(intent, Def.Communication.REQUEST_CHOOSE_THING_FILE)
     }
 
     private fun startCreateBackupFile() {

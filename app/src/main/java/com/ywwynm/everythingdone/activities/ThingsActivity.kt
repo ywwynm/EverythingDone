@@ -145,6 +145,7 @@ import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.services.DoingService
+import com.ywwynm.everythingdone.thingfile.ThingFileSharer
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.BitmapUtil
@@ -12184,6 +12185,41 @@ class ThingsActivity :
         }
     }
 
+    /**
+     * 把选中的记事写成记事文件并交给系统分享面板。
+     *
+     * 私密鉴权在这里做而不在 [ThingFileSharer] 里（ADR-0011：集中入口在调用方），判定与
+     * [exportSelectedThingsWithPrivacyAuth] 相同：内容会明文离开本机，选中含有效私密记事时先鉴权
+     * 一次。鉴权通过后才退出选择模式，取消时选择保留。
+     */
+    private fun shareSelectedThingsAsThingFile() {
+        val selected = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
+        if (selected.isEmpty()) {
+            return
+        }
+        val share = {
+            ThingFileSharer.share(this, App.defaultAccentBackground, selected)
+            mModeManager!!.backNormalMode(0)
+        }
+        val hasPrivate = selected.any { ThingPrivacyResolver.isEffectivelyPrivate(this, it) }
+        if (!hasPrivate) {
+            share()
+            return
+        }
+        val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
+            .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
+        AuthenticationHelper.authenticate(
+            this, App.defaultAccentBackground,
+            getString(R.string.act_share_selected_as_thing_file), cp,
+            object : AuthenticationHelper.AuthenticationCallback {
+                override fun onAuthenticated() {
+                    share()
+                }
+
+                override fun onCancel() {}
+            })
+    }
+
     private fun exportSelectedThingsWithPrivacyAuth() {
         val selected = mThingManager!!.getSelectedThings() ?: emptyArray()
         val export = {
@@ -12331,6 +12367,8 @@ class ThingsActivity :
                 confirmDeleteSelectedStructural()
             } else if (itemId == R.id.act_export) {
                 exportSelectedThingsWithPrivacyAuth()
+            } else if (itemId == R.id.act_share_thing_file) {
+                shareSelectedThingsAsThingFile()
             }
             mModeManager!!.updateSelectedCount()
             return false

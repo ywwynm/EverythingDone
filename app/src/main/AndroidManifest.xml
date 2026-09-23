@@ -202,6 +202,52 @@
             android:label="@string/spatial_settings_title"
             android:theme="@style/EverythingDoneTheme.Settings"/>
 
+        <!--
+            记事文件的接收入口，两条路都注册。
+
+            SEND：接收方在文件管理器里选中文件、分享给完事儿。
+            octet-stream 一并注册是因为 .edthing 是自定义扩展名，MimeTypeMap 认不出，
+            分享时给的就是它（真机实测 MediaStore 对该扩展名的判定即为 octet-stream）。
+
+            VIEW：让文件管理器里「打开」这个文件时能选到完事儿。content:// URI 的路径
+            通常不含扩展名，pathPattern 匹配不上，所以 content 那条只能按 MIME 注册。
+            实测整台设备上注册 VIEW + octet-stream 的应用只有一个，不会把「打开方式」
+            列表撑乱；而 application/zip 的 VIEW 不注册——那会抢走所有 zip 的打开权。
+            file:// 那条能精确匹配扩展名，留着兜底。
+
+            两条路进来之后都会校验格式，不是记事文件会明确提示。
+        -->
+        <activity
+            android:name=".activities.ThingFileImportActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
+            android:exported="true"
+            android:label="@string/thing_file_import_title"
+            android:theme="@style/EverythingDoneTheme.Settings">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/zip"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="*/*"/>
+                <data android:pathPattern=".*\\.edthing"/>
+                <data android:pathPattern=".*\\..*\\.edthing"/>
+                <data android:pathPattern=".*\\..*\\..*\\.edthing"/>
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".activities.ThingCardAppearanceSettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"

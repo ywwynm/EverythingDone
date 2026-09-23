@@ -649,6 +649,45 @@
     <!--DetailActivity share-->
     <string name="act_share_thing_text_image">文本与图片</string>
     <string name="act_share_thing_screenshot">长截图</string>
+    <!-- 分享对话框里与「文本与图片」「长截图」并列，都是产物名 -->
+    <string name="act_share_thing_file">记事文件</string>
+    <!-- 选择模式菜单里与「完成所选记事」「移动到文件夹」这些动作并列，要用动作式 -->
+    <string name="act_share_selected_as_thing_file">分享为记事文件</string>
+    <string name="generating_thing_file">正在生成记事文件…</string>
+    <string name="thing_file_share_hint">对方需安装完事儿才能打开</string>
+    <string name="thing_file_generate_failed">生成记事文件失败：%1$s</string>
+
+    <!--导入记事文件-->
+    <string name="thing_file_import_title">导入记事</string>
+    <string name="thing_file_import_reading">正在读取记事文件…</string>
+    <string name="thing_file_import_confirm">导入选中的 %1$d 件记事</string>
+    <string name="thing_file_import_confirm_none">未选中任何记事</string>
+    <string name="thing_file_import_duplicate">已有相同内容</string>
+    <string name="thing_file_import_not_thing_file">这不是完事儿的记事文件</string>
+    <string name="thing_file_import_too_new">这份记事文件来自更新版本的完事儿，请先升级</string>
+    <string name="thing_file_import_broken">记事文件读不出来：%1$s</string>
+    <string name="thing_file_import_done">已导入 %1$d 件记事</string>
+    <string name="thing_file_import_partial">已导入 %1$d 件，%2$d 件失败</string>
+    <string name="thing_file_import_attachments">%1$d 个附件</string>
+    <string name="thing_file_import_reminder_at">提醒：%1$s</string>
+    <string name="thing_file_import_no_title">（无标题）</string>
+    <string name="thing_file_import_no_access">这个文件存放在其他应用的目录里，完事儿没有权限直接读取。\n点下方按钮，在文件选择器里选中它就能导入。</string>
+    <string name="thing_file_import_pick">去选择这个文件</string>
+    <string name="settings_import_thing_file">导入记事文件</string>
+    <string name="settings_import_thing_file_hint">把别人发来的记事添加进来</string>
+    <!-- 接在「记事文件读不出来：」「生成记事文件失败：」之后的原因。系统自带的消息若有，
+         经 thing_file_error_with_detail 补在括号里 -->
+    <string name="thing_file_error_with_detail">%1$s（%2$s）</string>
+    <string name="thing_file_error_temp_dir">无法创建临时目录</string>
+    <string name="thing_file_error_unzip">文件已损坏，无法解压</string>
+    <string name="thing_file_error_no_things">文件里没有记事</string>
+    <string name="thing_file_error_no_valid_things">文件里的记事都无法识别</string>
+    <string name="thing_file_error_manifest">文件里的记事清单无法读取</string>
+    <string name="thing_file_error_attachment">附件「%1$s」缺失或已损坏</string>
+    <string name="thing_file_error_no_space">存储空间不足</string>
+    <string name="thing_file_error_cannot_open">打不开这个文件</string>
+    <string name="thing_file_error_output_file">无法创建输出文件</string>
+    <string name="thing_file_error_write">写入文件失败</string>
 
     <!--SettingsActivity-->
     <string name="act_choose_image_as_drawer_header">选择抽屉顶部图片</string>

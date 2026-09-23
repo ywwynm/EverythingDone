@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_chrome_surface"
+    tools:context="com.ywwynm.everythingdone.activities.ThingFileImportActivity">
+
+    <View
+        android:id="@+id/view_status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@android:color/transparent"/>
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@id/view_status_bar"
+        android:background="@android:color/transparent"
+        android:theme="@style/EverythingDoneTheme.AppAccentToolbar"
+        app:contentInsetStart="72dp"
+        app:titleTextColor="@color/black_54p"/>
+
+    <!-- 确认按钮固定在底部：导入是不可撤销的（ADR-0005 已全局移除撤销机制），
+         用户必须在看过列表之后才按到它。 -->
+    <TextView
+        android:id="@+id/tv_import_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/selectable_item_background"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"/>
+
+    <ProgressBar
+        android:id="@+id/pb_import_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"/>
+
+    <TextView
+        android:id="@+id/tv_import_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="15sp"
+        android:visibility="gone"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_import_things"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/tv_import_confirm"
+        android:layout_below="@id/actionbar"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"/>
+
+</RelativeLayout>

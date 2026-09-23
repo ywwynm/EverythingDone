@@ -497,12 +497,20 @@ open class ThingManager private constructor(context: Context?) {
      *
      * @param thingToCreate the thing to create.
      * @param handleNotifyEmpty kept for older call sites; legacy empty placeholders are no longer created.
+     * @param inheritCurrentFolder `folderId` 为空时是否改成首页当前所在的文件夹。在文件夹里新建记事
+     *        需要它；导入记事文件不需要——导入不是在某个文件夹里发起的，此时的「当前文件夹」只是
+     *        用户上次停留的位置，可能是私密文件夹，也可能是回收站里的已删除文件夹。
      * @return always `false`; callers should refresh the list and empty-state UI normally.
      */
-    open fun create(thingToCreate: Thing?, handleNotifyEmpty: Boolean, addToThingsNow: Boolean): Boolean {
+    open fun create(
+        thingToCreate: Thing?, handleNotifyEmpty: Boolean, addToThingsNow: Boolean,
+        inheritCurrentFolder: Boolean = true
+    ): Boolean {
         // create in database at first
         thingToCreate!!.id = mHeaderId
-        if (Thing.isRealThingType(thingToCreate.type) && thingToCreate.folderId == null) {
+        if (inheritCurrentFolder && Thing.isRealThingType(thingToCreate.type)
+            && thingToCreate.folderId == null
+        ) {
             thingToCreate.folderId = mProjection.currentFolderId
         }
         mDao!!.create(thingToCreate, false, false)

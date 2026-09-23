@@ -113,7 +113,9 @@ import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment
+import com.ywwynm.everythingdone.fragments.ThreeOptionsDialogFragment
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment
+import com.ywwynm.everythingdone.thingfile.ThingFileSharer
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
@@ -2051,19 +2053,53 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             return
         }
 
-        val todf = TwoOptionsDialogFragment()
-        todf.setAccentBackground(getAccentBackground() ?: ThingBackground.pure(getAccentColor()))
+        // 三项的区别不是产物形态而是接收方是谁：前两项给任何人看，「记事文件」只有装了
+        // 完事儿的人能用，但它是唯一能还原成一条记事的产物。
+        val todf = ThreeOptionsDialogFragment()
+        val accentBackground = getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+        todf.setAccentBackground(accentBackground)
         todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image
         ) {
             todf.dismiss()
-            SendInfoHelper.shareThing(this@DetailActivity, mThing)
+            SendInfoHelper.shareThing(this@DetailActivity, buildShareSnapshot())
         }
-        todf.setEndAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot
+        todf.setMiddleAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot
         ) {
             todf.dismiss()
             shareThingInScreenshot()
         }
-        todf.show(supportFragmentManager, TwoOptionsDialogFragment.TAG)
+        todf.setEndAction(R.drawable.act_share_thing_file, R.string.act_share_thing_file
+        ) {
+            todf.dismiss()
+            if (mThing != null) {
+                // 不鉴权：能看到内容说明已通过鉴权（访问即信任），与另两项一致
+                ThingFileSharer.share(
+                    this@DetailActivity, accentBackground, listOf(buildShareSnapshot())
+                )
+            }
+        }
+        todf.show(supportFragmentManager, ThreeOptionsDialogFragment.TAG)
+    }
+
+    /**
+     * 分享用的快照：界面上当前的标题、正文、附件、外观与背景。
+     *
+     * 界面上的修改只在保存或 onPause 时才写回 [mThing]，而分享对话框不触发 onPause，直接用
+     * [mThing] 分享出去的是上次保存的版本。快照不写回 [mThing]、不落库、不登记待删除的附件。
+     *
+     * 提醒与习惯仍以数据库里的为准：它们的改动要经过类型判定与确认对话框，只在离开详情页时生效。
+     */
+    private fun buildShareSnapshot(): Thing {
+        val snapshot = Thing(mThing!!)
+        snapshot.title = getThingTitle()
+        snapshot.content = getThingContent()
+        val attachment = currentAttachmentStr()
+        snapshot.attachment = attachment
+        snapshot.thingCardSpanMode = mThingCardSpanMode
+        snapshot.thingCardImagePlacement = mThingCardImagePlacement
+        snapshot.detailAttachmentMediaAppearance = normalizedDetailAttachmentMediaAppearance(attachment)
+        getAccentBackground()?.let { snapshot.setBackground(it) }
+        return snapshot
     }
 
     private fun shareThingInScreenshot() {
@@ -3790,7 +3826,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         return content
     }
 
-    private fun getThingAttachment(): String {
+    /** 界面上当前的附件串。只读，不登记待删除的附件（分享时要用，不能有副作用）。 */
+    private fun currentAttachmentStr(): String {
         var imageItems: List<String?>? = null
         var audioItems: List<String?>? = null
         if (mRvImageAttachment!!.isVisible) {
@@ -3799,7 +3836,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mRvAudioAttachment!!.isVisible) {
             audioItems = mAudioAttachmentAdapter!!.getItems()
         }
-        val attachment: String = AttachmentHelper.toAttachmentStr(imageItems, audioItems)
+        return AttachmentHelper.toAttachmentStr(imageItems, audioItems)
+    }
+
+    private fun getThingAttachment(): String {
+        val attachment: String = currentAttachmentStr()
         val attachmentsToDelete: List<String?>? = AttachmentHelper
             .getAttachmentsToDelete(mThing!!.attachment, attachment)
         if (!attachmentsToDelete.isNullOrEmpty()) {

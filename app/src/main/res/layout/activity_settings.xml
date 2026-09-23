@@ -1017,6 +1017,35 @@
 
                     </LinearLayout>
 
+                    <!--
+                        导入别人发来的记事文件。与「恢复」不同：恢复是整份备份覆盖本机，
+                        这里是把别人的一条或几条记事添加进来。
+                    -->
+                    <LinearLayout
+                        android:id="@+id/ll_import_thing_file_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_import_thing_file"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_import_thing_file_hint"
+                            android:textSize="14sp"
+                            android:textColor="@color/app_chrome_on_surface_hint"/>
+
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>

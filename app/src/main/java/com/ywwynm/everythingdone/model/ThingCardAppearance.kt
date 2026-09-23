@@ -117,6 +117,28 @@ data class ThingCardAppearance(
         return copy(mediaSourceKey = newSourceKey, sources = kept)
     }
 
+    /**
+     * 按 [mapping] 重写 sources 与 [mediaSourceKey]，映射不到的条目直接丢掉。
+     * 用途与 `DetailAttachmentMediaAppearance.remapSources` 相同：key 里含附件绝对路径，
+     * 记事文件的导出与导入各需要重写一次。[MEDIA_SOURCE_NONE] 是哨兵值，原样保留。
+     *
+     * 空映射同样按这条规则处理，即全部丢掉：它表示这条记事一个附件也没带过去，留下的 key
+     * 只会是发送方设备上的绝对路径。
+     */
+    fun remapSources(mapping: Map<String, String>): ThingCardAppearance {
+        val remapped = LinkedHashMap<String, SourceAppearance>()
+        for ((key, value) in sources) {
+            val newKey = mapping[key] ?: continue
+            remapped[newKey] = value
+        }
+        val newSourceKey = if (isMediaSourceNone(mediaSourceKey) || mediaSourceKey == null) {
+            mediaSourceKey
+        } else {
+            mapping[mediaSourceKey]
+        }
+        return copy(mediaSourceKey = newSourceKey, sources = remapped)
+    }
+
     fun retainSources(availableKeys: Set<String>): ThingCardAppearance {
         val kept = LinkedHashMap<String, SourceAppearance>()
         for ((key, value) in sources) {

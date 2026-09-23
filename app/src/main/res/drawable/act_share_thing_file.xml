@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    分享对话框第三项「记事文件」的图标。
+    与「文本与图片」「长截图」并列，靠形状区分：这一项的产物是一个文件，
+    所以画带折角的文档轮廓 + 两条内容线。
+
+    规格必须与同排的两个 png 一致，否则 setCompoundDrawablesWithIntrinsicBounds
+    会按各自的固有尺寸摆放，三项高低不齐（2026-09-21 实际出过）：
+      画布 400×400（= 100dp），墨迹垂直居中
+      act_share_text_image     墨迹 130×120（30dp 高）
+      act_take_long_screenshot 墨迹 115×154（38.5dp 高）
+      本图标                   墨迹 105×140（35dp 高），取两者之间
+
+    颜色同理：两个 png 的主体墨迹实测都是 alpha=138、rgb=(0,0,0)，即约 54% 不透明度，
+    一个 alpha>=250 的像素都没有。tint 走 SRC_ATOP，alpha 取原图的，所以原图有多淡、
+    上屏就有多淡。本图标若用 #FF000000 会比同排两个深 85%（2026-09-21 实际出过），
+    必须写成 #8A000000（0x8A = 138）。
+
+    墨迹的 alpha 还必须处处等于 138，所以外框与折角写在同一个 path 里。VectorDrawable
+    逐个 path 绘制，两个半透明 path 重叠处按 SRC_OVER 叠到 201；而渐变着色
+    （BackgroundUtil.tintDrawable）先按整张图的最大 alpha 把墨迹拉伸到 255，最大值是
+    201 时主体只被拉到 175，整个图标比同排两个淡三成（2026-09-23 实测有效不透明度
+    0.69 对 1.00）。同一个 path 内的重叠按并集只画一次。两条内容线不与外框相交，
+    可以单独成 path。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="400"
+    android:viewportHeight="400">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M163,130h55l35,35v90a16,16 0 0 1 -16,16h-74a16,16 0 0 1 -16,-16v-109a16,16 0 0 1 16,-16z M218,130v35h35"
+        android:strokeColor="#8A000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="14" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M175,203h55M175,230h35"
+        android:strokeColor="#8A000000"
+        android:strokeLineCap="round"
+        android:strokeWidth="12" />
+</vector>
