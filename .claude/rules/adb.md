@@ -1040,3 +1040,150 @@ def stable_find(sub, tries=6):
 
 凡是用「控件消失」当成功判据的地方，都要先把浮层收掉（或改用别的正向判据，例如列表
 头部的「N 件记事」计数）。
+
+## PowerShell 工具的沙箱会把 adb 参数里的 `rm` 当成本地删除拦下来
+
+2026-09-21 实际踩到两次。下面这条命令直接被拒，连 adb 都没跑起来：
+
+```powershell
+& $adb -s $s shell "rm -f /sdcard/win.xml; uiautomator dump /sdcard/win.xml"
+# Remove-Item on system path '\d+' is blocked. This path is protected from removal.
+```
+
+`rm` 是 PowerShell 里 `Remove-Item` 的别名，沙箱做静态扫描时不区分它是 adb 的参数还是本地
+命令，报错里那个 `'\d+'` 还是从同一条命令**别处的正则**里抓来的，看上去与 adb 毫无关系。
+短命令有时能过、长命令就被拦，很容易误判成偶发。
+
+adb.md 上面写了「每次 dump 前先 `rm -f` 目标文件」，在 PowerShell 工具里改用**每次换一个
+随机文件名**，同样能保证读到的不是上一轮的残留：
+
+```powershell
+$n = Get-Random
+& $adb -s $s shell uiautomator dump "/sdcard/w$n.xml" | Out-Null
+& $adb -s $s pull "/sdcard/w$n.xml" "$env:TEMP\w$n.xml" 2>&1 | Out-Null
+```
+
+## 代码构建的界面没有 `resource-id`：按 `class` 顺序取第 N 个控件
+
+验证程序图省事用代码建 UI 时，`uiautomator dump` 里所有按钮的 `resource-id` 都是空的，
+只能按文案定位——而文案定位在别的语言/ROM 上会失效，PowerShell 里匹配中文还要过编码这关。
+
+改按 `class` 出现顺序取，与语言无关：
+
+```powershell
+$ms = [regex]::Matches($xml, 'class="android\.widget\.Button"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+$m = $ms[0]   # 布局里的第 1 个 Button
+```
+
+前提是布局顺序固定。改了布局要同步改索引，所以**索引含义必须写在驱动脚本的注释里**。
+
+## `targetSdk 35+` 的界面不处理 insets 就会被系统栏盖住
+
+2026-09-21 实际发生：验证程序用 `Theme.Material.Light`（带 ActionBar）+ 代码建的
+`LinearLayout`，在 SM-S9180（Android 16）上**第一行按钮整行被 ActionBar 盖死**，第二行也切掉
+上半截——用户根本看不到那两个按钮是干什么的。
+
+根因是 targetSdk 35 起强制 edge-to-edge，窗口内容从屏幕物理顶端开始，状态栏、导航栏、挖孔
+全压在上面。任何自己建的根布局都要主动让开：
+
+```java
+root.setOnApplyWindowInsetsListener((v, insets) -> {
+    Insets bars = insets.getInsets(
+            WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+    v.setPadding(bars.left + pad, bars.top + pad, bars.right + pad, bars.bottom + pad);
+    return WindowInsets.CONSUMED;
+});
+```
+
+顺带两条同批的：
+
+- **临时工具也要截图看一眼再交给用户**。这次是用户先看到的，而我本来就能自己跑。
+- **Flyme 不认 `android:forceDarkAllowed="false"`**：硬编码浅色背景配黑字会被渲染层整片反过来
+  （状态条设的浅绿显示成深紫）。可靠的做法是主题继承
+  `@android:style/Theme.DeviceDefault.DayNight`、颜色交给主题，应用自己声明支持深色之后
+  系统就不再强制反色。
+
+## 编译成功不等于设备上跑的是新代码
+
+2026-09-21 实际发生，代价是整整一轮「验证通过」的假结论：改完代码 `assembleDebug`
+成功，直接接着在设备上驱动 UI 做验证，**忘了 `adb install -r`**。那一轮跑的全是上一版
+APK，被测的新逻辑一行都没执行，而界面上完全看不出来——是逐字段核对数据库才发现导入结果
+里的键还是旧值。
+
+规则：**任何「改代码 → 真机验证」的循环，编译之后必须紧接着装**，并且把这两步写在同一条
+命令里，不要分开发：
+
+```powershell
+$out = & "E:\projects\EverythingDone\gradlew.bat" :app:assembleDebug 2>&1 | Out-String
+if ($out -match "BUILD SUCCESSFUL") {
+    & $adb -s <serial> install -r "E:\projects\EverythingDone\app\build\outputs\apk\debug\app-debug.apk"
+}
+```
+
+存疑时用 `dumpsys package <包名>` 的 `lastUpdateTime` 与 APK 的 `LastWriteTime` 对一遍。
+**多设备场景尤其容易漏**：这次就是只装了三星、忘了魅族，导致在魅族上查 `pm query-activities`
+时新 Activity 全部「未命中」，差点误判成 manifest 写错。
+
+## 界面看不出来的改动，验收要读数据层
+
+同一轮的另一条。被测的是「附件外观设置在导入后是否仍挂在正确的附件上」——这种键值映射
+在界面上完全看不出来（图片照样显示、裁剪差异肉眼难辨）。可靠的判据是把数据库拉出来逐字段
+核对。
+
+设备上通常没有 `sqlite3`，把库整个取出来在本机读：
+
+```powershell
+# 多数 ROM：run-as 复制到应用的外部目录，chmod 后 pull
+& $adb -s $s shell "run-as <包名> sh -c 'mkdir -p $ext && cp databases/X.db $ext/'"
+& $adb -s $s shell "run-as <包名> chmod 644 $ext/X.db"
+& $adb -s $s pull "$ext/X.db" <本地路径>
+```
+
+```bash
+# Flyme 上 run-as 写不了那个外部目录（Permission denied），改用 exec-out 直读。
+# 重定向必须在 Bash 工具里做，PowerShell 的 > 会把二进制转成 UTF-16。
+"$ADB" -s $S exec-out run-as <包名> cat databases/X.db > local.db
+od -c local.db | head -1   # 必须是 "SQLite format 3"
+```
+
+设计测试数据时要让「错位」可分辨：本次给三个附件中的**第 1 个和第 3 个**设外观、中间那个
+不设，映射一旦偏一格，外观就会落到中间那个上。全设或全不设都验不出 off-by-one。
+
+## 运行时权限：申请要放在 `onCreate`，不要等用户点按钮
+
+同一轮踩到的。把 `requestPermissions` 放在按钮的点击处理里，用户点一次只会弹框、什么也不
+发生，得再点一次才真的开始——而按钮被系统栏盖住时，连那一次都点不到，症状是「没有授权
+弹窗」。工具类程序一律在 `onCreate` 里先查再申请。
+
+至于**能不能代点「允许」**：adb.md 上面那条「不要代为授予运行时权限」针对的是用户的真实
+应用。对**本会话自己装的一次性验证程序**，在用户明确要求「你自己跑一跑」的前提下代点是
+合理的（验完卸载，权限随之消失），但要在报告里写明这一步是谁做的。设备级开关不在此列：
+**NFC 总开关、输入法、朝向、锁屏密码一律不代改**，查到是关的就停下来请用户开。
+
+## 首页进入选择模式、拖放生成文件夹：用 `input motionevent` 分段发手势
+
+2026-09-23 在三星 SM-S9180 上实测。「正在进行」列表里长按进入的是拖动排序，**要拖一下再回到
+原位松手**才进入选择模式（`ThingsActivity.enterSelectionMode`）。`input swipe x y x y 700`
+原地按住会被当成点击，直接打开详情页。多段手势要拆开发：
+
+```powershell
+& $adb -s $s shell input motionevent DOWN $cx $cy
+Start-Sleep -Milliseconds 800            # 超过 500 ms 的长按阈值，拖动已开始
+& $adb -s $s shell input motionevent MOVE $cx ($cy + 80)
+Start-Sleep -Milliseconds 250
+& $adb -s $s shell input motionevent MOVE $cx $cy
+Start-Sleep -Milliseconds 250
+& $adb -s $s shell input motionevent UP $cx $cy
+```
+
+总共按住约 1.5 秒，没有触发 One UI 长按 1.8 秒的系统拖放。
+
+**拖到另一张卡片上生成文件夹**：`ThingListOverlayDragController` 的命中判定看的是**拖动浮层的
+左上角**，不是手指位置；判定区还要在目标卡片四边各内缩 `folder_drop_target_inset`（16dp），
+在目标上停留至少 130 ms、两次移动。只有标题的矮卡片判定区只剩约 86 px 高，手指停在目标中心
+时浮层左上角会落在判定区上方，结果变成排序。终点要按「手指在源卡片里的偏移 + 放大 1.11 倍带来
+的偏移」去算，实测终点比目标中心右移 185 px、下移 108 px 才命中。生成后会弹「命名记事文件夹」，
+默认名处于选中状态，直接 `input text` 即可替换。
+
+测试文件夹用完用「解散文件夹」处理：文件夹本身直接删除、不进回收站，里面的记事移回上一级，
+再按测试记事的清理流程移入回收站。

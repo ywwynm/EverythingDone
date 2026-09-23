@@ -28,6 +28,13 @@ repository instruction, memory, planning, review, or analysis documents for
 this project workflow, write those updates in English unless the target file is
 explicitly a localisation resource or already requires another language.
 
+### 用词（2026-09-21）
+
+- **不要用比喻，也不要用黑话。** AGENTS.md 原文只禁了比喻，这里补上黑话：
+  「地基」「信封」「白嫖」「脉络」「打通」这类词一律不用，换成它们实际指的东西
+  （前置改造、外层结构、直接复用、同一条设计路径、能互相调用）。
+- 这条对**规划、评审、分析文档同样生效**。一份计划里堆满这种词，读的人要再翻译一遍。
+
 ## Workflow
 
 **Never commit unless explicitly asked.** Successful compile ≠ feature
