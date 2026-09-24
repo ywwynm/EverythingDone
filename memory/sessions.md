@@ -2,6 +2,15 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-09-24 - 真机驱动规则补充（碰一碰二期验证期间）
+
+- `.claude/rules/adb.md` 新增：崩溃后先弹的崩溃反馈框只点「取消」；Flyme 不认逐视图的
+  `setForceDarkAllowed(false)`；魅族上 motionevent 长按会被 Flyme 识屏浮层截走；选择模式的选中
+  状态读不到，批量删除前用顶栏计数 + 截图颜色双重核对；验证「切后台再回来」要从最近任务切回
+  （首页 singleTask，走启动器入口会清掉详情页）；演示录屏期间不截图、静帧事后按时间戳抽取；
+  screenrecord 可能整段不出帧；ElementTree 叶子节点为假也会让 `a or b` 取错；Flyme 不输出 `Log.d`。
+- 功能本身的记录见 `docs/features/thing-transfer/sessions.md` 同日两条。
+
 ## 2026-09-15 - 修复全新安装启动即闪退（things 表列序 insert）
 
 - 现象：魅族 20 Infinity（392QBFED2226B，Flyme，Android 16）装上 debug 包后每次启动都闪退。
