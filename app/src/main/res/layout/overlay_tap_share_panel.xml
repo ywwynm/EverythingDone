@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    分享界面下方的面板（决策 2026-09-24「卡片在上、面板在下」）：
+    上面是碰一碰区域（提示、进度、已发送；不支持碰一碰的设备整块隐藏），
+    下面是「文本与图片」「长截图」「记事文件」三项，与原来的三选一对话框同样的格子。
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ll_tap_share_panel"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:background="@drawable/bg_tap_share_panel"
+    android:clickable="true"
+    android:focusable="false"
+    android:orientation="vertical"
+    android:paddingTop="20dp">
+
+    <LinearLayout
+        android:id="@+id/ll_tap_area"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_tap_icon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_tap_transfer" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_tap_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/app_chrome_on_surface_primary"
+                    android:textSize="16sp"
+                    tools:text="@string/tap_share_ready" />
+
+                <!-- 固定占两行：各阶段的说明长短不一，面板高度不能跟着跳，否则上方的卡片会被压住 -->
+                <TextView
+                    android:id="@+id/tv_tap_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:minLines="2"
+                    android:textColor="@color/app_chrome_on_surface_secondary"
+                    android:textSize="13sp"
+                    tools:text="@string/tap_share_ready_hint" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_tap_action"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginLeft="12dp"
+                android:gravity="center"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:text="@string/tap_setup_turn_on"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/pb_tap"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="12dp"
+            android:max="1000"
+            android:visibility="invisible" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/app_chrome_divider" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_share_options"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_share_text_image"
+            android:layout_width="@dimen/app_chrome_action_picker_cell_width"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:paddingBottom="16dp"
+            android:text="@string/act_share_thing_text_image"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:drawableTop="@drawable/act_share_text_image" />
+
+        <TextView
+            android:id="@+id/tv_share_screenshot"
+            android:layout_width="@dimen/app_chrome_action_picker_cell_width"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:paddingBottom="16dp"
+            android:text="@string/act_share_thing_screenshot"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:drawableTop="@drawable/act_take_long_screenshot" />
+
+        <TextView
+            android:id="@+id/tv_share_thing_file"
+            android:layout_width="@dimen/app_chrome_action_picker_cell_width"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:paddingBottom="16dp"
+            android:text="@string/act_share_thing_file"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:drawableTop="@drawable/act_share_thing_file" />
+
+    </LinearLayout>
+
+</LinearLayout>

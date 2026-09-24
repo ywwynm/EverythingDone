@@ -665,8 +665,6 @@
     <string name="act_share_thing_screenshot">Screenshot</string>
     <!-- In the share dialog it sits beside "Text & Image" and "Screenshot", so it is a product name -->
     <string name="act_share_thing_file">Thing File</string>
-    <!-- In the selection-mode menu it sits beside actions, so it has to read as one -->
-    <string name="act_share_selected_as_thing_file">Share as thing file</string>
     <string name="generating_thing_file">Generating thing file…</string>
     <string name="thing_file_share_hint">The recipient needs EverythingDone to open it</string>
     <string name="thing_file_generate_failed">Could not generate the thing file: %1$s</string>
@@ -2037,4 +2035,40 @@
     <string name="thing_animation_border">Border light</string>
     <string name="thing_animation_particle">Particles</string>
     <string name="thing_animation_slide">Slide and fade</string>
+    <!--Tap Transfer (in-app tap to send / receive)-->
+    <string name="tap_share_ready">Hold the back of your phone to theirs</string>
+    <string name="tap_share_ready_hint">On their phone: pull down the EverythingDone home list and tap Receive things</string>
+    <string name="tap_share_preparing">Getting ready…</string>
+    <string name="tap_share_connecting">Connecting to %1$s…</string>
+    <string name="tap_share_sending">Sending to %1$s</string>
+    <string name="tap_share_sent">Sent to %1$s</string>
+    <string name="tap_share_sent_hint">You can tap another phone next</string>
+    <string name="tap_share_failed">Could not send. Tap again.</string>
+    <string name="tap_share_unavailable">Tap to send is unavailable right now</string>
+    <string name="tap_share_unavailable_hint">Use one of the options below instead</string>
+    <string name="tap_setup_permission_nearby">Tap to send needs the Nearby Wi-Fi devices permission</string>
+    <string name="tap_setup_permission_location">Tap to send needs the location permission on this Android version</string>
+    <string name="tap_setup_nfc">Turn on NFC first</string>
+    <string name="tap_setup_wifi">Turn on Wi-Fi first</string>
+    <string name="tap_setup_location">Turn on location first</string>
+    <string name="tap_setup_hint">Both phones need it</string>
+    <string name="tap_setup_hint_permission">Both phones need to allow it</string>
+    <string name="tap_setup_allow">Allow</string>
+    <string name="tap_setup_turn_on">Turn on</string>
+    <string name="tap_setup_still_missing">Cannot receive until this is ready: %1$s</string>
+    <string name="tap_receive_button">Receive things</string>
+    <string name="tap_receive_exit">Stop receiving</string>
+    <string name="tap_receive_hint">Hold the backs of the two phones together</string>
+    <string name="tap_receive_from">From %1$s</string>
+    <string name="tap_receive_progress">From %1$s · %2$d%%</string>
+    <string name="tap_receive_failed">Could not receive. Tap again.</string>
+    <plurals name="tap_receive_done">
+        <item quantity="one">Received %1$d thing</item>
+        <item quantity="other">Received %1$d things</item>
+    </plurals>
+    <string name="tap_simulated_peer_name">Simulated phone</string>
+    <string name="tap_simulated_thing_title">Tap simulation · sample %1$d</string>
+    <string name="tap_simulated_thing_content">Simulated data for previewing the receive animation. Feel free to delete it.</string>
+    <string name="settings_tap_transfer_simulate">Simulate Tap Transfer (debug build)</string>
+    <string name="tap_hce_service_description">EverythingDone Tap Transfer</string>
 </resources>

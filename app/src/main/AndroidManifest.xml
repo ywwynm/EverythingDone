@@ -8,6 +8,18 @@
         android:name="android.hardware.camera"
         android:required="false"/>
 
+    <!-- 应用内碰一碰（二期）：NFC 握手 + Wi-Fi Direct 传输。都不是必需的硬件，
+         不支持的设备上两个入口直接隐藏（docs/features/thing-transfer/decisions.md）。 -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.nfc.hce"
+        android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.wifi.direct"
+        android:required="false"/>
+
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"/>
@@ -41,6 +53,19 @@
         android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- 碰一碰：NFC 读取模式与卡模拟；Wi-Fi Direct 建组、入组。Android 12 及以下的 Wi-Fi Direct
+         走位置权限，13 起改走 NEARBY_WIFI_DEVICES，且声明不用于定位。 -->
+    <uses-permission android:name="android.permission.NFC"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="32"/>
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="33"/>
 
     <queries>
         <intent>
@@ -1003,6 +1028,21 @@
             android:enabled="true"
             android:exported="false">
         </receiver>
+
+        <!-- 碰一碰的发送方：分享界面打开时由它应答接收方的读取。门控在 TapSenderGate，
+             没打开分享界面时一律回「未就绪」，别人拿读卡设备碰一下读不到任何内容。 -->
+        <service
+            android:name=".taptransfer.transport.nfc.TapHceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/tap_transfer_apdu_service"/>
+        </service>
 
         <activity
             android:name=".activities.NoticeableNotificationActivity"

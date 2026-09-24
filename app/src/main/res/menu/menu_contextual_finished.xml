@@ -58,11 +58,11 @@
         android:title="@string/act_export_to_sdcard"
         app:showAsAction="never" />
 
-    <!-- 与「导出到 SD 卡」的区别：那个存在本机、产物是给人读的 txt；
-         这个发出去、产物可被对方的完事儿还原成记事 -->
+    <!-- 打开分享界面（决策 2026-09-24「选择模式的分享为记事文件换成分享」）：碰一碰、
+         文本与图片、长截图（只选一条时）、记事文件都在里面 -->
     <item
-        android:id="@+id/act_share_thing_file"
-        android:title="@string/act_share_selected_as_thing_file"
+        android:id="@+id/act_share_things"
+        android:title="@string/act_share"
         app:showAsAction="never" />
 
 </menu>

@@ -41,6 +41,8 @@ import android.widget.TextView
 import android.widget.Toast
 
 import com.google.android.material.snackbar.Snackbar
+import com.ywwynm.everythingdone.BuildConfig
+import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.Def
@@ -1289,6 +1291,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         f<View>(R.id.ll_import_thing_file_as_bt).setOnClickListener {
             startChooseThingFile()
         }
+        setTapTransferSimulateEvents()
         f<View>(R.id.ll_restore_as_bt).setOnClickListener {
             showRestoreDialog()
         }
@@ -1836,6 +1839,30 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 override fun onCancel() {}
             }
         )
+    }
+
+    /**
+     * 调试包里的「碰一碰模拟」（决策 2026-09-24「开发阶段用调试包里的模拟开关代替真的贴」）。
+     * 即时生效，不跟随设置页的保存：它只影响下一次打开分享界面或进入接收状态。
+     */
+    private fun setTapTransferSimulateEvents() {
+        if (!BuildConfig.DEBUG) {
+            return
+        }
+        val row = f<View>(R.id.rl_tap_transfer_simulate_as_bt)
+        val checkBox = f<CheckBox>(R.id.cb_tap_transfer_simulate)
+        row.visibility = View.VISIBLE
+        // 与整页其他勾选框同一种强调色样式（见 applyGradientCheckBoxes）
+        BackgroundUtil.applyCheckboxAccent(
+            checkBox, App.defaultAccentBackground,
+            footprintDp = BackgroundUtil.CHECKBOX_LABEL_ROW_FOOTPRINT_DP,
+            uncheckedGradient = true
+        )
+        checkBox.isChecked = TapTransfer.isSimulationEnabled(this)
+        row.setOnClickListener {
+            checkBox.isChecked = !checkBox.isChecked
+            TapTransfer.setSimulationEnabled(this, checkBox.isChecked)
+        }
     }
 
     /**

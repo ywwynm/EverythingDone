@@ -1046,6 +1046,44 @@
 
                     </LinearLayout>
 
+                    <!--
+                        调试包专用：打开后碰一碰不经过 NFC 与 Wi-Fi Direct，几秒后模拟对方碰上，
+                        用来在单台设备上预览接收与发送的动画。正式包里整行隐藏（代码里按 BuildConfig.DEBUG 显示）。
+                    -->
+                    <RelativeLayout
+                        android:id="@+id/rl_tap_transfer_simulate_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:visibility="gone"
+                        android:background="@drawable/selectable_item_background">
+
+                        <CheckBox
+                            android:id="@+id/cb_tap_transfer_simulate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:focusableInTouchMode="false"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cb_tap_transfer_simulate"
+                            android:layout_toLeftOf="@id/cb_tap_transfer_simulate"
+                            android:text="@string/settings_tap_transfer_simulate"
+                            android:textSize="16sp"
+                            tools:ignore="RelativeOverlap"/>
+
+                    </RelativeLayout>
+
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>

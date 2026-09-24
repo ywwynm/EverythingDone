@@ -7,6 +7,7 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import android.Manifest
 import androidx.activity.OnBackPressedCallback
@@ -113,9 +114,9 @@ import com.ywwynm.everythingdone.fragments.LongTextDialogFragment
 import com.ywwynm.everythingdone.fragments.MediaCropAppearanceDialogFragment
 import com.ywwynm.everythingdone.fragments.PatternLockDialogFragment
 import com.ywwynm.everythingdone.fragments.ThingDoingDialogFragment
-import com.ywwynm.everythingdone.fragments.ThreeOptionsDialogFragment
 import com.ywwynm.everythingdone.fragments.TwoOptionsDialogFragment
 import com.ywwynm.everythingdone.thingfile.ThingFileSharer
+import com.ywwynm.everythingdone.taptransfer.ui.share.TapShareOverlay
 import com.ywwynm.everythingdone.helpers.AppUpdateHelper
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.AuthenticationHelper
@@ -180,6 +181,8 @@ import java.util.concurrent.Executors
 import androidx.core.view.isVisible
 import androidx.core.view.size
 import androidx.core.view.get
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.content.edit
 import androidx.fragment.app.DialogFragment
 
@@ -254,6 +257,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mImageLayoutManager: GridLayoutManager? = null
 
     private var mScrollView: NestedScrollView? = null
+    private var mTapShareOverlay: TapShareOverlay? = null
     private var mEtTitle: EditText? = null
     private var mEtContent: EditText? = null
     private var mTvThingFolderPath: TextView? = null
@@ -2052,33 +2056,77 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mFlRoot!!.postDelayed(mShowNormalSnackbar, KeyboardUtil.HIDE_DELAY.toLong())
             return
         }
+        if (mTapShareOverlay != null) {
+            return
+        }
+        // 分享界面从页面上截取当前的内容抬升成卡片：键盘开着时先收起，等布局稳定再截
+        val imeVisible = ViewCompat.getRootWindowInsets(window.decorView)
+            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        if (imeVisible) {
+            KeyboardUtil.hideKeyboard(currentFocus)
+            mFlRoot!!.postDelayed({
+                // 等键盘收起的这段时间里页面可能退到了后台：那时窗口没有可截的画面，不打开
+                if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    openShareOverlay()
+                }
+            }, KeyboardUtil.HIDE_DELAY.toLong())
+        } else {
+            openShareOverlay()
+        }
+    }
 
-        // 三项的区别不是产物形态而是接收方是谁：前两项给任何人看，「记事文件」只有装了
-        // 完事儿的人能用，但它是唯一能还原成一条记事的产物。
-        val todf = ThreeOptionsDialogFragment()
+    /**
+     * 分享界面（决策 2026-09-24「卡片在上、面板在下」）：这条记事以首页卡片的样子从页面里升起，
+     * 页面内容保持显示；下方是碰一碰与三项。三项的区别不是产物形态而是接收方是谁：前两项给任何人
+     * 看，「记事文件」只有装了完事儿的人能用，但它是唯一能还原成一条记事的产物。
+     */
+    private fun openShareOverlay() {
+        if (mTapShareOverlay != null || mThing == null) {
+            return
+        }
         val accentBackground = getAccentBackground() ?: ThingBackground.pure(getAccentColor())
-        todf.setAccentBackground(accentBackground)
-        todf.setStartAction(R.drawable.act_share_text_image, R.string.act_share_thing_text_image
-        ) {
-            todf.dismiss()
-            SendInfoHelper.shareThing(this@DetailActivity, buildShareSnapshot())
-        }
-        todf.setMiddleAction(R.drawable.act_take_long_screenshot, R.string.act_share_thing_screenshot
-        ) {
-            todf.dismiss()
-            shareThingInScreenshot()
-        }
-        todf.setEndAction(R.drawable.act_share_thing_file, R.string.act_share_thing_file
-        ) {
-            todf.dismiss()
-            if (mThing != null) {
-                // 不鉴权：能看到内容说明已通过鉴权（访问即信任），与另两项一致
-                ThingFileSharer.share(
-                    this@DetailActivity, accentBackground, listOf(buildShareSnapshot())
-                )
+        val snapshot = buildShareSnapshot()
+        mTapShareOverlay = TapShareOverlay.show(this, TapShareOverlay.Request(
+            listOf(snapshot), emptyList(), accentBackground,
+            object : TapShareOverlay.Host {
+                override val longScreenshotAvailable: Boolean = true
+
+                override fun shareTextAndImages() {
+                    SendInfoHelper.shareThing(this@DetailActivity, buildShareSnapshot())
+                }
+
+                override fun shareLongScreenshot() {
+                    shareThingInScreenshot()
+                }
+
+                override fun shareThingFile() {
+                    // 不鉴权：能看到内容说明已通过鉴权（访问即信任），与另两项一致
+                    ThingFileSharer.share(
+                        this@DetailActivity, accentBackground, listOf(buildShareSnapshot())
+                    )
+                }
+
+                override fun onShareClosed(sentByTap: Boolean) {
+                    mTapShareOverlay = null
+                }
             }
+        ))
+    }
+
+    /**
+     * 首页选择模式里选一条点「长截图」时，打开这条记事并在这里生成（长截图要用详情页排好版的
+     * 视图）。只执行一次：旋转屏幕重建时不再生成。
+     */
+    private fun shareLongScreenshotIfRequested() {
+        if (!intent.getBooleanExtra(KEY_SHARE_LONG_SCREENSHOT, false)) {
+            return
         }
-        todf.show(supportFragmentManager, ThreeOptionsDialogFragment.TAG)
+        intent.removeExtra(KEY_SHARE_LONG_SCREENSHOT)
+        mFlRoot?.postDelayed({
+            if (!isFinishing && !isDestroyed && mThing != null) {
+                shareThingInScreenshot()
+            }
+        }, LONG_SCREENSHOT_DELAY_MS)
     }
 
     /**
@@ -2310,6 +2358,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         super.onResume()
         mark("detail-resume")
         refreshFromExternalUpdateIfNeeded()
+        shareLongScreenshotIfRequested()
         // 用户可能刚从设置页改了 Detail Autoplay 档位。
         mAttachmentPlaybackController?.onResume()
         openAudioRecordingDialogFromNotification(intent)
@@ -5843,6 +5892,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         const val CREATE: Int = 0
         const val UPDATE: Int = 1
+
+        /** 打开后直接生成长截图并分享（首页选择模式的分享界面里选了「长截图」）。 */
+        const val KEY_SHARE_LONG_SCREENSHOT: String = "share_long_screenshot"
+
+        /** 打开后等附件的缩略图加载出来再截，否则长截图里是空白的占位。 */
+        private const val LONG_SCREENSHOT_DELAY_MS: Long = 700L
 
         @JvmField var createActivitiesCount: Int = 0
 

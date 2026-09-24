@@ -44,6 +44,9 @@ object SendInfoHelper {
 
     private const val EXTRA_WX_SHARE_EXPLORE_CONTENT: String = "Kdescription"
 
+    /** 多条记事拼成一段文字时，条与条之间的分隔。 */
+    private const val THINGS_SEPARATOR: String = "———\n\n"
+
     @JvmStatic
     fun shareApp(context: Context?) {
         val title: String = context!!.getString(R.string.act_share_everythingdone)
@@ -70,6 +73,35 @@ object SendInfoHelper {
 
         startShare(context, title, content,
                 AttachmentHelper.toUriList(attachment), AttachmentHelper.isAllImage(attachment))
+    }
+
+    /**
+     * 选择模式里选了多条时的「文本与图片」：几条的文字按列表顺序拼成一段，附件全部带上
+     * （与单条一样，视频与录音也带）。选一条时与 [shareThing] 相同。
+     */
+    @JvmStatic
+    fun shareThings(context: Context, things: List<Thing>) {
+        if (things.isEmpty()) return
+        if (things.size == 1) {
+            shareThing(context, things[0])
+            return
+        }
+        val sb = StringBuilder()
+        val attachments = ArrayList<Uri?>()
+        var allImage = true
+        for (thing in things) {
+            getThingShareBody(context, thing)?.let {
+                if (sb.isNotEmpty()) sb.append(THINGS_SEPARATOR)
+                sb.append(it)
+            }
+            val attachment = thing.attachment
+            val uris = AttachmentHelper.toUriList(attachment) ?: continue
+            attachments.addAll(uris)
+            if (!AttachmentHelper.isAllImage(attachment)) allImage = false
+        }
+        sb.append(context.getString(R.string.from_everything_done))
+        startShare(context, context.getString(R.string.act_share), sb.toString(),
+                if (attachments.isEmpty()) null else attachments, allImage && attachments.isNotEmpty())
     }
 
     @JvmStatic
@@ -152,6 +184,12 @@ object SendInfoHelper {
 
     @JvmStatic
     fun getThingShareInfo(context: Context?, thing: Thing?): String? {
+        val body: String = getThingShareBody(context, thing) ?: return null
+        return body + context!!.getString(R.string.from_everything_done)
+    }
+
+    /** 一条记事的分享文字，不含末尾的「来自完事儿」：多条拼接时只在最后加一次。 */
+    private fun getThingShareBody(context: Context?, thing: Thing?): String? {
         val title: String = thing!!.getTitleToDisplay()!!
         val content: String = thing.content!!
         if (title.isEmpty() && content.isEmpty()) {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    首页下拉出来的「接收记事」按钮（决策 2026-09-24「按钮停在 actionbar 下方，进入后变成退出接收」）。
+    进入接收状态后下面多一行提示；背景、文字颜色与图标着色都在代码里按状态设置。
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ll_tap_receive"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_tap_receive"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:drawablePadding="8dp"
+        android:gravity="center"
+        android:paddingLeft="18dp"
+        android:paddingRight="20dp"
+        android:text="@string/tap_receive_button"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tv_tap_receive_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="13sp"
+        android:visibility="gone"
+        tools:text="@string/tap_receive_hint"
+        tools:visibility="visible" />
+
+</LinearLayout>

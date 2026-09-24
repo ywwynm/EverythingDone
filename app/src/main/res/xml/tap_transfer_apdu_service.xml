@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  碰一碰的卡模拟服务。
+
+  category 用 other 而不是 payment：payment 会进入系统的「默认付款应用」竞争，也会打扰用户的
+  支付设置。AID F0454454415031 = F0（专有 RID 前缀）+ ASCII "EDTAP1"，与 2026-09-21 验证程序的
+  F0454454524E53（"EDTRNS"）不同，两者同时装着也不会抢同一个 AID。
+
+  requireDeviceUnlock：锁屏时不应答。发送方本来就要在解锁后打开分享界面才会就绪。
+-->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/tap_hce_service_description"
+    android:requireDeviceUnlock="true">
+    <aid-group
+        android:category="other"
+        android:description="@string/tap_hce_service_description">
+        <aid-filter android:name="F0454454415031"/>
+    </aid-group>
+</host-apdu-service>

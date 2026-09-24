@@ -145,6 +145,10 @@ import com.ywwynm.everythingdone.permission.PermissionUtil
 import com.ywwynm.everythingdone.permission.SimplePermissionCallback
 import com.ywwynm.everythingdone.services.AudioRecordingService
 import com.ywwynm.everythingdone.services.DoingService
+import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.transport.TapPayloadWriter
+import com.ywwynm.everythingdone.taptransfer.ui.receive.TapReceiveController
+import com.ywwynm.everythingdone.taptransfer.ui.share.TapShareOverlay
 import com.ywwynm.everythingdone.thingfile.ThingFileSharer
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
@@ -266,6 +270,10 @@ class ThingsActivity :
 
     private var mRecyclerView: RecyclerView? = null
     private var mAdapter: ThingsAdapterWrapper? = null
+
+    // 应用内碰一碰（二期）：首页下拉接收，选择模式的分享界面
+    private var mTapReceive: TapReceiveController? = null
+    private var mTapShareOverlay: TapShareOverlay? = null
     private var mThingsTouchHelper: ItemTouchHelper? = null
     private var mThingsTouchCallback: ThingsTouchCallback? = null
     private var mOverlayDragController: ThingListOverlayDragController? = null
@@ -516,6 +524,7 @@ class ThingsActivity :
         )
 
         resumeActiveRecordingFromLauncher(intent)
+        TapPayloadWriter.cleanUpStale(this)
     }
 
     /**
@@ -2190,6 +2199,7 @@ class ThingsActivity :
         }
         mModeManager!!.setContextualToolbarVisibilityCallback { isShowing ->
             if (isShowing) {
+                mTapReceive?.closeSlot(true)
                 applyContextualStatusBarChrome()
             } else {
                 applyHomeStatusBarChrome()
@@ -2897,6 +2907,8 @@ class ThingsActivity :
         setRecyclerViewEvents()
         setSearchEvents()
         setThingCardAppearancePanelEvents()
+        // 最后注册：返回键回调后注册的优先，接收状态下返回键先退出接收
+        setupTapReceive()
     }
 
     private fun setThingCardAppearancePanelEvents() {
@@ -12186,38 +12198,202 @@ class ThingsActivity :
     }
 
     /**
-     * 把选中的记事写成记事文件并交给系统分享面板。
+     * 选择模式的「分享」：打开与详情页同一个分享界面（决策 2026-09-24）——选中的卡片叠在上方，
+     * 下方是碰一碰与「文本与图片」「长截图」「记事文件」。
      *
-     * 私密鉴权在这里做而不在 [ThingFileSharer] 里（ADR-0011：集中入口在调用方），判定与
+     * 私密鉴权在打开之前做（ADR-0011：集中入口在调用方），判定与
      * [exportSelectedThingsWithPrivacyAuth] 相同：内容会明文离开本机，选中含有效私密记事时先鉴权
-     * 一次。鉴权通过后才退出选择模式，取消时选择保留。
+     * 一次。取消时选择保留。
      */
-    private fun shareSelectedThingsAsThingFile() {
+    private fun shareSelectedThings() {
         val selected = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
-        if (selected.isEmpty()) {
+        if (selected.isEmpty() || mTapShareOverlay != null) {
             return
-        }
-        val share = {
-            ThingFileSharer.share(this, App.defaultAccentBackground, selected)
-            mModeManager!!.backNormalMode(0)
         }
         val hasPrivate = selected.any { ThingPrivacyResolver.isEffectivelyPrivate(this, it) }
         if (!hasPrivate) {
-            share()
+            openShareOverlayForSelection(selected)
             return
         }
         val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
             .getString(Def.Meta.KEY_PRIVATE_PASSWORD, null)
         AuthenticationHelper.authenticate(
             this, App.defaultAccentBackground,
-            getString(R.string.act_share_selected_as_thing_file), cp,
+            getString(R.string.act_share), cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
-                    share()
+                    openShareOverlayForSelection(selected)
                 }
 
                 override fun onCancel() {}
             })
+    }
+
+    private fun openShareOverlayForSelection(selected: List<Thing>) {
+        val manager = mThingManager!!
+        val rv = mRecyclerView!!
+        // 按列表里的先后排：叠放时最上面一张是列表里最靠前的那条
+        val ordered = selected.sortedBy {
+            manager.getListPositionForThingId(it.id).let { p -> if (p < 0) Int.MAX_VALUE else p }
+        }
+        // 抬升的起点是列表里那张卡片的完整位置；不在屏幕上的从叠放处直接淡入
+        val sources = ordered.map { thing ->
+            val position = manager.getListPositionForThingId(thing.id)
+            val card = if (position < 0) null else rv.findViewHolderForAdapterPosition(position)?.itemView
+            TapShareOverlay.Source(card?.let { cardRectInWindow(it) })
+        }
+        // 碰一碰的记事文件在后台线程写，交出去的是副本，列表里的对象照常由界面使用
+        val copies = ordered.map { Thing(it) }
+        val single = ordered.size == 1
+        mTapShareOverlay = TapShareOverlay.show(this, TapShareOverlay.Request(
+            copies, sources, App.defaultAccentBackground,
+            object : TapShareOverlay.Host {
+                override val longScreenshotAvailable: Boolean = single
+
+                override fun shareTextAndImages() {
+                    SendInfoHelper.shareThings(this@ThingsActivity, copies)
+                    mModeManager!!.backNormalMode(0)
+                }
+
+                override fun shareLongScreenshot() {
+                    // 长截图要用详情页排好版的视图，首页生成不了：打开这条记事，在详情页生成
+                    openDetailForLongScreenshot(ordered[0])
+                    mModeManager!!.backNormalMode(0)
+                }
+
+                override fun shareThingFile() {
+                    ThingFileSharer.share(this@ThingsActivity, App.defaultAccentBackground, copies)
+                    mModeManager!!.backNormalMode(0)
+                }
+
+                override fun onShareClosed(sentByTap: Boolean) {
+                    mTapShareOverlay = null
+                    if (sentByTap && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+                        mModeManager!!.backNormalMode(0)
+                    }
+                }
+            }
+        ))
+    }
+
+    /** 卡片在窗口里的完整位置；没挂在窗口上或还没布局时返回 null。 */
+    private fun cardRectInWindow(view: View): Rect? {
+        if (!view.isAttachedToWindow || view.width == 0 || view.height == 0) {
+            return null
+        }
+        val location = IntArray(2)
+        view.getLocationInWindow(location)
+        return Rect(location[0], location[1], location[0] + view.width, location[1] + view.height)
+    }
+
+    private fun openDetailForLongScreenshot(thing: Thing) {
+        val manager = mThingManager!!
+        val intent = DetailActivity.getOpenIntentForUpdate(
+            this, TAG, thing.id, manager.getPosition(thing.id),
+            manager.getListPositionForThingId(thing.id), manager.getProjection().key()
+        )
+        intent.putExtra(DetailActivity.KEY_SHARE_LONG_SCREENSHOT, true)
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, Def.Communication.REQUEST_ACTIVITY_DETAIL)
+    }
+
+    // ---------------------------------------------------------------- 碰一碰：下拉接收
+
+    private fun setupTapReceive() {
+        val flThings: FrameLayout = f(R.id.fl_things)!!
+        val controller = TapReceiveController(this, object : TapReceiveController.Host {
+            override val container: FrameLayout = flThings
+            override val recyclerView: RecyclerView = mRecyclerView!!
+            override val header: ActivityHeader = mActivityHeader!!
+            override val actionbar: View = mActionbar!!
+
+            override fun isReceiveEligible(): Boolean = isTapReceiveEligible()
+
+            override fun currentFolderId(): Long? = mThingManager!!.getProjection().currentFolderId
+
+            override fun onReceivingChanged(receiving: Boolean) = onTapReceivingChanged(receiving)
+
+            override fun insertReceivedThing(thing: Thing, hidden: Boolean): Int =
+                insertTapReceivedThing(thing, hidden)
+
+            override fun listPositionOf(id: Long): Int = mThingManager!!.getListPositionForThingId(id)
+
+            override fun findReceivedCard(id: Long): View? {
+                val position = mThingManager!!.getListPositionForThingId(id)
+                if (position < 0) return null
+                return mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView
+            }
+
+            override fun revealReceivedThings(ids: Collection<Long>) = revealTapReceivedThings(ids)
+
+            override fun onReceivedThingsCommitted() = onTapReceivedThingsCommitted()
+        })
+        controller.attach()
+        mTapReceive = controller
+    }
+
+    /** 下拉接收只在「正在进行」列表里可用（根目录与文件夹都行），且列表处于普通状态。 */
+    private fun isTapReceiveEligible(): Boolean {
+        val manager = mThingManager ?: return false
+        return TapTransfer.isEntryAvailable(this)
+            && mApp!!.getStatus() == Def.ThingStatus.UNDERWAY
+            && mModeManager?.getCurrentMode() == ModeManager.NORMAL
+            && !App.isSearching
+            && !manager.hasCustomTypeFilter()
+            && mListRemovalAnimator?.isRunning != true
+            && !mIsRevealAnimPlaying
+            && !isThingCardAppearancePanelShowing()
+            && !mDrawerLayout!!.isDrawerOpen(GravityCompat.START)
+    }
+
+    /** 接收状态下列表完全不动：锁住抽屉、收起新建按钮。屏幕常亮由接收舞台自己持有。 */
+    private fun onTapReceivingChanged(receiving: Boolean) {
+        mDrawerLayout!!.setDrawerLockMode(
+            if (receiving) DrawerLayout.LOCK_MODE_LOCKED_CLOSED else DrawerLayout.LOCK_MODE_UNLOCKED
+        )
+        if (receiving) {
+            mFab!!.shrink()
+        } else {
+            mFab!!.spread()
+        }
+    }
+
+    private fun insertTapReceivedThing(thing: Thing, hidden: Boolean): Int {
+        if (!mCanSeeUi) {
+            // 界面不可见时通知会被排队、只执行最后一个，逐条插入会让列表与数据对不上：整体重绑
+            mAdapter!!.notifyDataSetChanged()
+            return -1
+        }
+        val position = mThingManager!!.getListPositionForThingId(thing.id)
+        if (position < 0) {
+            return -1
+        }
+        if (hidden) {
+            mAdapter!!.setThingHidden(thing.id, true)
+        }
+        mAdapter!!.notifyItemInserted(position)
+        return position
+    }
+
+    private fun revealTapReceivedThings(ids: Collection<Long>) {
+        val manager = mThingManager!!
+        for (id in ids) {
+            mAdapter!!.setThingHidden(id, false)
+            val position = manager.getListPositionForThingId(id)
+            if (position < 0) continue
+            val card = mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView ?: continue
+            card.animate().cancel()
+            card.alpha = 1f
+            card.visibility = View.VISIBLE
+        }
+    }
+
+    private fun onTapReceivedThingsCommitted() {
+        mActivityHeader?.updateText()
+        clearOperationEmptyState()
+        updateHomeEmptyState()
+        mDrawerHeader?.updateTexts()
+        updateDrawerFolderItems()
     }
 
     private fun exportSelectedThingsWithPrivacyAuth() {
@@ -12367,8 +12543,8 @@ class ThingsActivity :
                 confirmDeleteSelectedStructural()
             } else if (itemId == R.id.act_export) {
                 exportSelectedThingsWithPrivacyAuth()
-            } else if (itemId == R.id.act_share_thing_file) {
-                shareSelectedThingsAsThingFile()
+            } else if (itemId == R.id.act_share_things) {
+                shareSelectedThings()
             }
             mModeManager!!.updateSelectedCount()
             return false

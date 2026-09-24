@@ -74,6 +74,11 @@ open class ActivityHeader(
     private var headerCollapseTranslationY: Float = 0f
     private var mRetractionAnimator: ValueAnimator? = null
 
+    // 碰一碰「接收记事」下拉（二期）：列表在顶部时再往下拉，列表与头部一起下移，在 actionbar 下方
+    // 让出按钮的位置。只作用于头部，actionbar 不动；任何 reset 都把它清零并通知下拉的控制方。
+    private var pullOffsetPx: Float = 0f
+    private var mPullResetListener: ((anim: Boolean) -> Unit)? = null
+
     private val mActionbarShadow: View = actionbarShadow
     private val mRelativeLayout: RelativeLayout = relativeLayout
     private val mTitle: TextView = title
@@ -442,6 +447,8 @@ open class ActivityHeader(
         mRetractionAnimator?.cancel()
         mRetractionAnimator = null
         retractionOffsetPx = 0f
+        val hadPullOffset = pullOffsetPx != 0f
+        pullOffsetPx = 0f
         updateTitleLayoutForProgress(0f)
         if (anim) {
             mRelativeLayout.animate()!!.translationY(0f)
@@ -462,6 +469,10 @@ open class ActivityHeader(
             mActionbar?.translationY = 0f
             mStatusBarView?.translationY = 0f
             mActionbarShadow.translationY = 0f
+        }
+        // 放在归零之后通知：接收状态下对方会把位移补回来，不能被上面的归零覆盖
+        if (hadPullOffset) {
+            mPullResetListener?.invoke(anim)
         }
         requestExpandedHeaderSpacerRefresh()
     }
@@ -499,7 +510,7 @@ open class ActivityHeader(
             // Retraction is 0 in every anim-path caller (mode changes / resets), so
             // the title animates to its plain collapse translation; actionbar/shadow
             // follow retraction directly.
-            mRelativeLayout.animate()!!.translationY(translationY - retractionOffsetPx)
+            mRelativeLayout.animate()!!.translationY(translationY - retractionOffsetPx + pullOffsetPx)
 
             /*
              * Changing scaleX and scaleY of title is better than changing its textSize.
@@ -567,8 +578,21 @@ open class ActivityHeader(
         animator.start()
     }
 
+    /** 碰一碰下拉的位移（像素，向下为正），由下拉的控制方逐帧设置。 */
+    fun setPullOffset(px: Float) {
+        if (pullOffsetPx == px) return
+        pullOffsetPx = px
+        mRelativeLayout.animate()!!.cancel()
+        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullOffsetPx
+    }
+
+    /** [reset]（换范围、换状态、退出搜索、旋转屏幕）时通知下拉的控制方收起按钮。 */
+    fun setOnPullResetListener(listener: ((anim: Boolean) -> Unit)?) {
+        mPullResetListener = listener
+    }
+
     private fun applyRetractionTransforms() {
-        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx
+        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullOffsetPx
         mActionbar?.translationY = -retractionOffsetPx
         mStatusBarView?.translationY = -retractionOffsetPx
         mActionbarShadow.translationY = -retractionOffsetPx

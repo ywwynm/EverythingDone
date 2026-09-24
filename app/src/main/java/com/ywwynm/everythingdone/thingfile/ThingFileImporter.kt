@@ -35,7 +35,8 @@ import java.util.concurrent.FutureTask
  * 逐条独立导入：某一条失败不影响其他条，最后报告成功与失败的条数。失败的那一条不留下任何
  * 数据——不能导入一条缺附件、缺提醒或缺习惯的记事却报成功。
  *
- * 导入的记事一律落在根目录（2026-09-23 用户确认；以后有了新的导入入口再定是否跟随文件夹）。
+ * 落点：记事文件导入（分享面板、「打开方式」、设置页）一律落在根目录（2026-09-23 用户确认）；
+ * 碰一碰收到的落在发起接收时所在的文件夹（2026-09-24），由调用方传入 `folderId`。
  */
 object ThingFileImporter {
 
@@ -61,10 +62,20 @@ object ThingFileImporter {
      * 为什么要切：内存列表由首页在主线程读（列表绑定；提醒到点时 `App.getThingAndPosition`
      * 也在主线程遍历它），详情页新建记事同样在主线程写它。在后台线程改它，首页在分屏里可见、
      * 或导入期间恰好有提醒触发时就是并发读写。每条记事单独切一次，几十条也不会长时间占住主线程。
+     *
+     * @param folderId 落在哪个文件夹，null 为根目录。
+     * @param onCommitted 每条记事写进数据库之后在主线程回调，与写入在同一条消息里：
+     *        碰一碰据此立刻把新卡片插进列表，列表不会在两次通知之间看到对不上的数据。
      */
     @JvmStatic
+    @JvmOverloads
     @WorkerThread
-    fun import(context: Context, pending: List<PendingThing>): Result {
+    fun import(
+        context: Context,
+        pending: List<PendingThing>,
+        folderId: Long? = null,
+        onCommitted: ((Thing) -> Unit)? = null
+    ): Result {
         check(Looper.myLooper() != Looper.getMainLooper()) { "ThingFileImporter.import 不能在主线程调用" }
         val appContext = context.applicationContext
         // 整次导入共用一个时间戳，文件名再带记事序号与附件序号，同一次导入里不会重名
@@ -79,7 +90,18 @@ object ThingFileImporter {
                 failed++
                 continue
             }
-            val ok = runOnMain { commit(appContext, p, moved) }
+            val ok = runOnMain {
+                val committed = commit(appContext, p, moved, folderId)
+                if (committed && onCommitted != null) {
+                    try {
+                        onCommitted(p.thing)
+                    } catch (e: Exception) {
+                        // 记事已经写进去了，界面上没插进列表只影响显示，不能因此报导入失败
+                        Log.e(TAG, "导入后通知界面失败", e)
+                    }
+                }
+                committed
+            }
             if (ok) {
                 imported++
             } else {
@@ -111,7 +133,7 @@ object ThingFileImporter {
      *         记事没建成时 headerId 不会前进，留着就会挂到下一条新建的记事上。
      */
     @MainThread
-    private fun commit(context: Context, p: PendingThing, moved: Moved): Boolean {
+    private fun commit(context: Context, p: PendingThing, moved: Moved, folderId: Long?): Boolean {
         val manager = ThingManager.getInstance(context) ?: return false
         val thing = p.thing
         // create() 内部会把 id 设成同一个 headerId；location 它不动，这里自己设（与详情页新建一致）
@@ -127,7 +149,7 @@ object ThingFileImporter {
             thing.thingCardAppearance = thing.thingCardAppearance.remapSources(moved.keyMapping)
             thing.detailAttachmentMediaAppearance =
                 thing.detailAttachmentMediaAppearance.remapSources(moved.keyMapping)
-            thing.folderId = null
+            thing.folderId = folderId
             // 一律以「未完成」写入：ThingsCounts.handleCreation 硬编码了 Thing.UNDERWAY，带着
             // 「已完成」直接建会让计数与数据库里的 state 对不上。
             thing.state = Thing.UNDERWAY
@@ -144,7 +166,7 @@ object ThingFileImporter {
                 habitCreated = true
             }
             manager.create(
-                thing, true, shouldShowInCurrentList(manager), inheritCurrentFolder = false
+                thing, true, shouldShowInCurrentList(manager, folderId), inheritCurrentFolder = false
             )
             return true
         } catch (e: Exception) {
@@ -181,14 +203,14 @@ object ThingFileImporter {
     }
 
     /**
-     * 导入的记事落在根目录、状态为未完成。只有首页当前正显示「根目录 · 未完成 · 不按类型筛选 ·
-     * 不在搜索」时才直接插进内存列表；其余情况插进去就是列错了地方，交给首页收到
-     * justNotifyAll 后从数据库重读。
+     * 导入的记事落在 [folderId]、状态为未完成。只有首页当前正显示「这个文件夹 · 未完成 ·
+     * 不按类型筛选 · 不在搜索」时才直接插进内存列表；其余情况插进去就是列错了地方，交给首页
+     * 收到 justNotifyAll 后从数据库重读。
      */
-    private fun shouldShowInCurrentList(manager: ThingManager): Boolean {
+    private fun shouldShowInCurrentList(manager: ThingManager, folderId: Long?): Boolean {
         val projection = manager.getProjection()
         return projection.status == Def.ThingStatus.UNDERWAY
-                && projection.isRoot()
+                && projection.currentFolderId == folderId
                 && !manager.hasCustomTypeFilter()
                 && !App.isSearching
     }

@@ -148,4 +148,8 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     open fun clearArmedNewItemAnimation() {
         mAdapter!!.clearArmedNewItemAnimation()
     }
+
+    open fun setThingHidden(thingId: Long, hidden: Boolean) {
+        mAdapter!!.setThingHidden(thingId, hidden)
+    }
 }

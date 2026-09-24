@@ -89,6 +89,10 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     private var mArmedNewItemId: Long = -1L
     private var mArmedNewItemListener: OnNewItemBoundListener? = null
 
+    // 碰一碰收到的记事：插进列表后先藏着，等接收动画的轮廓落到它的位置再显出来。
+    // 绑定时按 id 判断，列表在此期间重新绑定这张卡片也不会让它提前露出来。
+    private val mHiddenThingIds = HashSet<Long>()
+
     open fun setModeManager(modeManager: ModeManager?) {
         mModeManager = modeManager
     }
@@ -237,6 +241,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         mArmedNewItemListener = null
     }
 
+    open fun setThingHidden(thingId: Long, hidden: Boolean) {
+        if (hidden) {
+            mHiddenThingIds.add(thingId)
+        } else {
+            mHiddenThingIds.remove(thingId)
+        }
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
         return ThingViewHolder(mInflater!!.inflate(R.layout.card_thing, parent, false))
     }
@@ -295,11 +307,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             if (holder.cv!!.alpha != 1f)        holder.cv.alpha = 1f
         }
 
-        if (mShouldThingsAnimWhenAppearing && !armed) {
+        val hidden = mHiddenThingIds.contains(thing.id)
+        if (mShouldThingsAnimWhenAppearing && !armed && !hidden) {
             playAppearingAnimation(holder.cv!!, position)
         }
 
         maybeTriggerArmedNewItemAnimation(holder, position)
+        if (hidden) {
+            holder.cv!!.visibility = View.INVISIBLE
+        }
     }
 
     private fun isArmedFor(listPosition: Int): Boolean {

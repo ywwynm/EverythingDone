@@ -651,8 +651,6 @@
     <string name="act_share_thing_screenshot">长截图</string>
     <!-- 分享对话框里与「文本与图片」「长截图」并列，都是产物名 -->
     <string name="act_share_thing_file">记事文件</string>
-    <!-- 选择模式菜单里与「完成所选记事」「移动到文件夹」这些动作并列，要用动作式 -->
-    <string name="act_share_selected_as_thing_file">分享为记事文件</string>
     <string name="generating_thing_file">正在生成记事文件…</string>
     <string name="thing_file_share_hint">对方需安装完事儿才能打开</string>
     <string name="thing_file_generate_failed">生成记事文件失败：%1$s</string>
@@ -2027,4 +2025,39 @@
     <string name="thing_animation_border">边框光效</string>
     <string name="thing_animation_particle">粒子</string>
     <string name="thing_animation_slide">滑动渐隐</string>
+    <!--应用内碰一碰-->
+    <string name="tap_share_ready">把手机背面贴近对方的手机</string>
+    <string name="tap_share_ready_hint">对方在完事儿首页下拉，点「接收记事」</string>
+    <string name="tap_share_preparing">正在准备…</string>
+    <string name="tap_share_connecting">正在连接 %1$s…</string>
+    <string name="tap_share_sending">正在发送给 %1$s</string>
+    <string name="tap_share_sent">已发送给 %1$s</string>
+    <string name="tap_share_sent_hint">可以接着碰下一台</string>
+    <string name="tap_share_failed">发送失败，请再碰一次</string>
+    <string name="tap_share_unavailable">碰一碰暂时用不了</string>
+    <string name="tap_share_unavailable_hint">可以改用下面的方式分享</string>
+    <string name="tap_setup_permission_nearby">碰一碰需要「附近的 Wi-Fi 设备」权限</string>
+    <string name="tap_setup_permission_location">这个版本的系统要求碰一碰取得位置权限</string>
+    <string name="tap_setup_nfc">需要先打开 NFC</string>
+    <string name="tap_setup_wifi">需要先打开 Wi-Fi</string>
+    <string name="tap_setup_location">需要先打开位置信息</string>
+    <string name="tap_setup_hint">两台手机都需要打开</string>
+    <string name="tap_setup_hint_permission">两台手机都需要允许</string>
+    <string name="tap_setup_allow">允许</string>
+    <string name="tap_setup_turn_on">去打开</string>
+    <string name="tap_setup_still_missing">还不能接收：%1$s</string>
+    <string name="tap_receive_button">接收记事</string>
+    <string name="tap_receive_exit">退出接收</string>
+    <string name="tap_receive_hint">把两台手机背面贴在一起</string>
+    <string name="tap_receive_from">来自 %1$s</string>
+    <string name="tap_receive_progress">来自 %1$s · %2$d%%</string>
+    <string name="tap_receive_failed">接收失败，请再碰一次</string>
+    <plurals name="tap_receive_done">
+        <item quantity="other">已收到 %1$d 条记事</item>
+    </plurals>
+    <string name="tap_simulated_peer_name">模拟设备</string>
+    <string name="tap_simulated_thing_title">碰一碰模拟 · 样例记事 %1$d</string>
+    <string name="tap_simulated_thing_content">这是碰一碰的模拟数据，用来预览接收动画，可以直接删除。</string>
+    <string name="settings_tap_transfer_simulate">碰一碰模拟（调试包）</string>
+    <string name="tap_hce_service_description">完事儿碰一碰</string>
 </resources>
