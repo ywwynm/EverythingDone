@@ -223,7 +223,7 @@ internal class ParticleSession(
                     ParticleGpuWork.beginPlayback(); playbackRegistered = true
                     prepareStartedAt = System.nanoTime()
                     if (prepared == null || !adopt(prepared, shared)) {
-                        val created = ParticleMicroflakeRenderer(assets, shared)
+                        val created = ParticleMicroflakeRenderer(assets, shared, sinkMode = spec.sink != null)
                         renderer = created
                         created.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
                         created.prepareReversePipeline()
@@ -438,6 +438,9 @@ internal class ParticleSession(
     private fun drawPlayFrame(target: Long) {
         val active = checkNotNull(renderer)
         if (firstTarget == 0L) firstTarget = target
+        // 碰一碰（带吸入终点）的出现：首帧确认上屏之前时钟不走。几张卡片合成的快照很大，首帧要等
+        // 纹理上传，从首次出帧起算会把开头 0.4 秒整段跳过（2026-09-24 三星实测）。其余动画不经过这里
+        if (isReverse && spec.sink != null && !firstFrameReported) firstTarget = target
         if (isGesture) {
             val samples = active.reverseSamples
             val wanted = checkNotNull(gesture).framePosition(samples)

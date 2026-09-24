@@ -50,6 +50,29 @@ uniform float guide_gain,touch_gap,touch_strength;
 uniform vec4 field_geometry;
 uniform vec4 variation_affine,variation_bend,variation_wave;
 uniform vec2 variation_clock;
+#ifdef SINK
+// 碰一碰：消散的终点（NFC 天线位置），材料坐标。每片寿命已在 CPU 侧改成「出生到抵达终点」。
+uniform vec2 sink_point;
+uniform float sink_swirl;
+// 第二组终点：屏幕边框（left, top, right, bottom），一部分微片流向离它最近的那条边。
+// sink_frame_mix.x 是流向边框的占比（0 = 全部流向 sink_point），.y 是沿边错开的全幅。
+uniform vec4 sink_frame;
+uniform vec2 sink_frame_mix;
+// 与 ParticleSink.target 逐项对应（同样的随机数、同样的比较顺序），CPU 按它改写寿命。
+vec2 sink_target(Material m){
+    float pick=fract(m.random.x*7.31+m.random.w*3.17);
+    if(pick>=sink_frame_mix.x)return sink_point;
+    vec2 q=m.src.xy;
+    float jitter=(fract(m.random.y*5.13+m.random.z*1.91)-.5)*sink_frame_mix.y;
+    float left=q.x-sink_frame.x,right=sink_frame.z-q.x;
+    float top=q.y-sink_frame.y,bottom=sink_frame.w-q.y;
+    float nearest=min(min(left,right),min(top,bottom));
+    if(nearest==left)return vec2(sink_frame.x,clamp(q.y+jitter,sink_frame.y,sink_frame.w));
+    if(nearest==right)return vec2(sink_frame.z,clamp(q.y+jitter,sink_frame.y,sink_frame.w));
+    if(nearest==top)return vec2(clamp(q.x+jitter,sink_frame.x,sink_frame.z),sink_frame.y);
+    return vec2(clamp(q.x+jitter,sink_frame.x,sink_frame.z),sink_frame.w);
+}
+#endif
 
 // A1（第二阶段）：`curl()` 的**方向向量**那几步改 mediump；相位（a/b）留 highp，
 // 因为 dot(p,u)/scale*6.283 的量级由卡片尺寸决定，fp16 会把 sin 的自变量打散。
@@ -221,6 +244,20 @@ void main(){
     // 平滑下限不产生折线拐点，也不把粒子位置截到任何边界。
     float deficit=.16-axial;
     target+=wind*span*.5*(deficit+sqrt(deficit*deficit+.0064));
+#ifdef SINK
+    {
+        // 剥离初段仍按上面的剥离与流场走；随后逐渐转向终点，剩余时间越少拉得越紧，
+        // 在寿命末端恰好抵达（寿命的淡出同时发生），看上去就是整股流被吸进那一点。
+        float flight=max(m.physical.z,.06);
+        float journey=clamp(age/flight,0.,1.);
+        float remaining=max(m.src.z+m.physical.z-time,.016);
+        vec2 to_sink=sink_target(m)-p;
+        vec2 homing=to_sink/remaining;
+        // 绕终点的切向分量把流束弯成弧线汇入，越接近终点越弱，最后径直收进去
+        homing+=vec2(-to_sink.y,to_sink.x)/remaining*sink_swirl*(1.-journey);
+        target=mix(target,homing,smoothstep(.08,.50,journey));
+    }
+#endif
     // 共享速度场已向无有效观测的空间延拓。位置继续积分，
     // 控件轮廓、观测范围和屏幕边缘都不构成碰撞或速度归零条件。
     float response=1.-exp(-h/(.018+.036*m.random.z));

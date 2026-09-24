@@ -62,5 +62,10 @@ internal class ParticleDismissSpec(
     /** 扩展阴影边界后的面积比例，用于保持卡片本体的粒子密度。 */
     val materialAreaScale: Float = 1f,
     /** 滑动时固定一个局部消逝起点；未提供时仍使用全部随机起点。 */
-    val releaseOrigin: ParticleReleaseOrigin? = null
+    val releaseOrigin: ParticleReleaseOrigin? = null,
+    /**
+     * 消散的终点：非空时颗粒汇成流被吸进这一点，倒放时从这一点流出（碰一碰）。
+     * 为空（其余所有动画）时运动与改动前逐位相同：着色器不编进这一段。
+     */
+    val sink: ParticleSink? = null
 )

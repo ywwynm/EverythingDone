@@ -23,7 +23,12 @@ import kotlin.math.*
 internal class ParticleMicroflakeRenderer(
     private val assets: AssetManager,
     private val shared: Shared,
-    initialInput: Input? = null
+    initialInput: Input? = null,
+    /**
+     * 碰一碰的吸入模式（[ParticleSink]）。积分着色器多编进一段「转向终点」，程序缓存按宏
+     * 区分，与其余动画的程序互不相干。只能在建渲染器时决定：管线在拿到材料之前就要编译。
+     */
+    private val sinkMode: Boolean = false
 ) : Closeable {
     private lateinit var input: Input
     init { if (initialInput != null) input = initialInput }
@@ -50,7 +55,9 @@ internal class ParticleMicroflakeRenderer(
         val sourcePixels: IntArray? = null,
         val touchGap: Float = rules.number("touch_gap_default"),
         val confidence: ByteArray? = null,
-        val touchStrength: Float = .5f
+        val touchStrength: Float = .5f,
+        /** 吸入终点在材料坐标里的几何（与微片出生位置同一坐标系）；非吸入模式为 null。 */
+        val sink: ParticleSink.Geometry? = null
     )
 
     /**
@@ -320,7 +327,8 @@ internal class ParticleMicroflakeRenderer(
         (if (p2(ParticlePerfTuning.P2_PEEL_FIELD_HALF)) "#define PEEL_FIELD_HALF 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_MEDIUMP_ALU)) "#define MEDIUMP_ALU 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_HARDWARE_TRILINEAR)) "#define HARDWARE_TRILINEAR 1\n" else "") +
-        (if (p2(ParticlePerfTuning.P2_PROBE_SINGLE_CELL)) "#define PROBE_SINGLE_CELL 1\n" else "")
+        (if (p2(ParticlePerfTuning.P2_PROBE_SINGLE_CELL)) "#define PROBE_SINGLE_CELL 1\n" else "") +
+        (if (sinkMode) "#define SINK 1\n" else "")
 
     private fun materialDefines() = (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
@@ -601,6 +609,14 @@ internal class ParticleMicroflakeRenderer(
             GLES30.glUniform4f(GLES30.glGetUniformLocation(compute, name), variation[offset], variation[offset + 1], variation[offset + 2], variation[offset + 3])
         }
         two(compute, "variation_clock", variation[12], variation[13])
+        if (sinkMode) {
+            val sink = checkNotNull(input.sink) { "吸入模式缺少终点" }
+            two(compute, "sink_point", sink.x, sink.y)
+            one(compute, "sink_swirl", ParticleSink.SWIRL)
+            GLES30.glUniform4f(location(compute, "sink_frame"),
+                sink.frameLeft, sink.frameTop, sink.frameRight, sink.frameBottom)
+            two(compute, "sink_frame_mix", sink.frameShare, sink.frameJitter)
+        }
     }
 
     /** 调试验证也调用同一函数；时间按 240 Hz 累积，刷新率只决定展示采样。 */
@@ -1767,7 +1783,7 @@ internal class ParticleMicroflakeRenderer(
             return fromPixels(assets, width, height, density, pixels, bitmap.width, bitmap.height,
                 spec.originXPx, spec.originYPx, spec.virtualTouchXPx, spec.virtualTouchYPx,
                 spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap, spec.materialAreaScale,
-                spec.releaseOrigin)
+                spec.releaseOrigin, spec.sink)
         }
 
         /**
@@ -1781,7 +1797,8 @@ internal class ParticleMicroflakeRenderer(
                        originXPx: Float, originYPx: Float,
                        virtualTouchXPx: Float, virtualTouchYPx: Float, hashSeed: Int,
                        touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null,
-                       materialAreaScale: Float = 1f, releaseOrigin: ParticleReleaseOrigin? = null): Input {
+                       materialAreaScale: Float = 1f, releaseOrigin: ParticleReleaseOrigin? = null,
+                       sink: ParticleSink? = null): Input {
             // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
             val scale = (density / ParticleMicroflakeModel.DP_UNITS.toFloat()).coerceAtLeast(.5f)
             val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
@@ -1792,10 +1809,13 @@ internal class ParticleMicroflakeRenderer(
             val rules = resources.rules.withMaterialArea(materialAreaScale)
             val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, pixelWidth,
                 pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin)
+            // 吸入终点换到材料坐标（以快照左上角为原点、同一缩放）；寿命按到达终点重写
+            val sinkGeometry = sink?.toMaterial(originXPx, originYPx, scale)
+            if (sinkGeometry != null) ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight))
             return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,
                 originYPx / scale, direction, bitmap, materials,
                 resources.guide, rules, pixels, touchGap ?: rules.number("touch_gap_default"),
-                resources.confidence, touchStrength ?: .5f)
+                resources.confidence, touchStrength ?: .5f, sinkGeometry)
         }
     }
 }
