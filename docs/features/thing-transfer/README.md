@@ -1,6 +1,6 @@
 # Thing Transfer（记事传输）
 
-Status: 设计定稿、二期可行性已在真机验证通过（2026-09-21），一期待实施。
+Status: 一期（记事文件）已发布；二期（应用内碰一碰）2026-09-24 实现完成，经过一轮代码审查（16 条全部修复）与两轮动画返工，界面、动画与导入在模拟下经三星、魅族真机验证，两台手机实际互碰待测（检查顺序见 followups.md）。
 
 把一条或几条 Thing 当面交给另一个人。分两部分：
 
@@ -15,7 +15,9 @@ Status: 设计定稿、二期可行性已在真机验证通过（2026-09-21）�
 - [decisions.md](decisions.md) — 17 项决策记录（2026-09-21 逐项确认）
 - [probe-plan.md](probe-plan.md) — 二期可行性的真机验证方案：七个验证项、分段计时、否决线
 - [sessions.md](sessions.md) — 会话记录，含**真机验证的全部实测数据**
-- [followups.md](followups.md) — 二维码备选通道、文件类型关联、格式版本等未定项
+- [followups.md](followups.md) — 两台手机实际互碰的检查顺序、二维码备选通道、格式版本等未定项
+- [plan-phase2.md](plan-phase2.md) — 二期的代码结构、协议与验证方式
+- [preferences.md](preferences.md) — 用户对碰一碰动画的要求
 - `probe/` — 验证用的独立最小 APK。**验证已完成但按用户决定保留**：代码留在仓库
   （`settings.gradle` 里 include 了 `:nfcprobe`）、两台真机上也没卸载，二期实施时可直接参考或复跑。
 

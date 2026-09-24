@@ -280,6 +280,14 @@ _Avoid_: 静默覆盖任何一方的内容、把结构域并发也当成冲突�
 一份能被完事儿还原成 Thing 的交换产物，界面文案为「记事文件」；承载一条或多条 Thing 的类型、颜色、内容、附件、外观、完成状态、创建时间与提醒规则，接收方必须安装完事儿才能使用。它是给另一个人的一次性副本，接收方导入后与发送方那一条互不影响。
 _Avoid_: 把「导出到 SD 卡」产出的可阅读 txt 称为 Thing File、把纯文本分享与之混用、把它理解为设备间同步或迁移的手段
 
+**Tap Transfer**:
+两台都装了完事儿的手机在应用内贴近碰一下，由一方把一条或多条 Thing 直接交给另一方的传输方式，界面文案为「碰一碰」；接收方不经过确认，直接得到新的 Thing。
+_Avoid_: 与系统自带或互传联盟的「碰一碰互传」混称；把它说成发送 Thing File（传的内容相同，但不经过文件与系统分享面板）
+
+**Receiving Mode**:
+首页「正在进行」列表上由用户显式开启、等待别人通过 Tap Transfer 发来 Thing 的状态，界面文案为「接收记事」；收到的 Thing 加入开启时所在的 Thing Scope。
+_Avoid_: 接收模式、准备接收
+
 **App Chrome**:
 The surrounding interface outside a Thing Background, including home, settings, help, popups, dialogs, drawers, and other navigation or configuration surfaces.
 _Avoid_: thing UI
