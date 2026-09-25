@@ -1,0 +1,923 @@
+{
+ "title": "魅族 · 详情页发送一条 · 完整会话",
+ "source": "20260924-233338-422-send-session",
+ "kind": "send",
+ "device": "MEIZU 20 Inf",
+ "screen": [
+  1368,
+  3192
+ ],
+ "density": 3.5,
+ "cell_dp": 1.600000023841858,
+ "jacobi_iterations": 0,
+ "srgb_accumulation": true,
+ "params": {
+  "receive_appear_s": "1.3",
+  "receive_border_converge_s": "0.35",
+  "receive_border_fade_s": "0.6",
+  "receive_border_inset_dp": "3",
+  "receive_border_lane_dp": "14",
+  "receive_border_palette": "F66048,FFAE36,21A675,00B1C6,166096,665696",
+  "receive_border_palette_cycle_s": "22",
+  "receive_border_palette_fade_s": "0.5",
+  "receive_border_particle_fade_s": "0.8",
+  "receive_border_radius_dp": "1.0,2.6",
+  "receive_border_spacing_dp": "1.7",
+  "receive_border_speed_dp": "80",
+  "receive_border_trail_s": "0.2",
+  "receive_border_wobble_dp": "3.5",
+  "receive_dim_alpha": "0.78,0.72",
+  "receive_dim_fade_s": "0.35",
+  "receive_frame_share": "0.5",
+  "receive_glow_alpha": "0.3",
+  "receive_glow_ring_dp": "1.2",
+  "receive_glow_rings": "20",
+  "receive_hole_close_s": "0.45",
+  "send_close_ms": "300",
+  "send_detail_rise_dp": "56",
+  "send_detail_rise_scale": "0.94",
+  "send_dim_alpha": "0.5,0.62",
+  "send_drop_ease": "0.4,0,0.6,1",
+  "send_drop_ms": "320",
+  "send_elevation_dp": "10",
+  "send_glow_alpha": "0.7",
+  "send_glow_curve": "0.18,0.55,0.88,1",
+  "send_glow_radius_dp": "14,10",
+  "send_lift_ease": "0.2,0,0,1",
+  "send_lift_fade": "0.35",
+  "send_lift_ms": "460",
+  "send_open_ms": "360",
+  "send_outflow_ease": "0.30,0,0.60,1",
+  "send_outflow_ms": "1500",
+  "send_pulse_alpha": "0.6",
+  "send_pulse_period_s": "1.8",
+  "send_pulse_radius_dp": "10,34",
+  "send_pulse_rings": "2",
+  "send_reform_ease": "0.30,0,0.20,1",
+  "send_reform_ms": "1200",
+  "send_sent_hold_ms": "900",
+  "send_shadow_drop_ms": "140",
+  "send_shadow_restore_ms": "220",
+  "sink_arrival_end": "0.96",
+  "sink_flight_base": "0.30",
+  "sink_flight_jitter": "0.18",
+  "sink_flight_per_span": "0.11",
+  "sink_frame_jitter": "0.36",
+  "sink_homing": "0.08,0.50",
+  "sink_min_life": "0.14",
+  "sink_release_scale": "0.75",
+  "sink_swirl": "0.30"
+ },
+ "events": [
+  {
+   "t": 0,
+   "type": "capture",
+   "name": "page",
+   "captured": 0,
+   "window": true
+  },
+  {
+   "t": 24,
+   "type": "start",
+   "stage": [
+    0,
+    0,
+    1368,
+    3192
+   ],
+   "slots": [
+    {
+     "size": [
+      1200,
+      445
+     ],
+     "target": [
+      684,
+      1153.5,
+      1,
+      0
+     ],
+     "origin": null
+    }
+   ],
+   "antenna": [
+    684,
+    210
+   ],
+   "antenna_decor": [
+    684,
+    210
+   ],
+   "total": 1,
+   "pulse_start": -19,
+   "panel": [
+    0,
+    2181,
+    1368,
+    1011
+   ],
+   "dark": false
+  },
+  {
+   "t": 25,
+   "type": "lift",
+   "from": 0,
+   "to": 1,
+   "duration": 460
+  },
+  {
+   "t": 25,
+   "type": "elevation",
+   "from": 0,
+   "to": 1,
+   "duration": 460
+  },
+  {
+   "t": 25,
+   "type": "dim",
+   "from": 0,
+   "to": 0.5,
+   "duration": 360
+  },
+  {
+   "t": 25,
+   "type": "panel",
+   "from": 1011,
+   "to": 0,
+   "duration": 360,
+   "ease": "open"
+  },
+  {
+   "t": 26,
+   "type": "phase",
+   "name": "PREPARING"
+  },
+  {
+   "t": 42,
+   "type": "capture",
+   "name": "card-0",
+   "captured": 41,
+   "layout": [
+    0,
+    0,
+    1200,
+    445
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1200,
+    445
+   ]
+  },
+  {
+   "t": 99,
+   "type": "capture",
+   "name": "panel-0",
+   "captured": 98,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 200,
+   "type": "capture",
+   "name": "panel-1",
+   "captured": 199,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 478,
+   "type": "phase",
+   "name": "READY"
+  },
+  {
+   "t": 479,
+   "type": "pulse",
+   "on": true
+  },
+  {
+   "t": 510,
+   "type": "capture",
+   "name": "panel-2",
+   "captured": 506,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 606,
+   "type": "capture",
+   "name": "panel-3",
+   "captured": 605,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 3679,
+   "type": "phase",
+   "name": "CONNECTING"
+  },
+  {
+   "t": 3679,
+   "type": "pulse",
+   "on": false
+  },
+  {
+   "t": 3682,
+   "type": "elevation",
+   "from": 1,
+   "to": 0,
+   "duration": 140
+  },
+  {
+   "t": 3731,
+   "type": "capture",
+   "name": "panel-4",
+   "captured": 3707,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 3853,
+   "type": "capture",
+   "name": "panel-5",
+   "captured": 3850,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 3866,
+   "type": "flight",
+   "name": "flight-1"
+  },
+  {
+   "t": 3956,
+   "type": "capture",
+   "name": "panel-6",
+   "captured": 3955,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4052,
+   "type": "takeover"
+  },
+  {
+   "t": 4052,
+   "type": "cards",
+   "shown": false
+  },
+  {
+   "t": 4052,
+   "type": "progress",
+   "from": 0,
+   "to": 1,
+   "duration": 1500
+  },
+  {
+   "t": 4073,
+   "type": "capture",
+   "name": "panel-7",
+   "captured": 4067,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4170,
+   "type": "capture",
+   "name": "panel-8",
+   "captured": 4169,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4270,
+   "type": "capture",
+   "name": "panel-9",
+   "captured": 4269,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4374,
+   "type": "capture",
+   "name": "panel-10",
+   "captured": 4372,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4472,
+   "type": "capture",
+   "name": "panel-11",
+   "captured": 4470,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4570,
+   "type": "capture",
+   "name": "panel-12",
+   "captured": 4569,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4673,
+   "type": "capture",
+   "name": "panel-13",
+   "captured": 4671,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4771,
+   "type": "capture",
+   "name": "panel-14",
+   "captured": 4770,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4870,
+   "type": "capture",
+   "name": "panel-15",
+   "captured": 4868,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4971,
+   "type": "capture",
+   "name": "panel-16",
+   "captured": 4969,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 4982,
+   "type": "phase",
+   "name": "SENDING"
+  },
+  {
+   "t": 5070,
+   "type": "capture",
+   "name": "panel-17",
+   "captured": 5069,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5183,
+   "type": "capture",
+   "name": "panel-18",
+   "captured": 5182,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5286,
+   "type": "capture",
+   "name": "panel-19",
+   "captured": 5284,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5385,
+   "type": "capture",
+   "name": "panel-20",
+   "captured": 5383,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5484,
+   "type": "capture",
+   "name": "panel-21",
+   "captured": 5482,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5582,
+   "type": "capture",
+   "name": "panel-22",
+   "captured": 5580,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5684,
+   "type": "capture",
+   "name": "panel-23",
+   "captured": 5683,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5803,
+   "type": "capture",
+   "name": "panel-24",
+   "captured": 5801,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 5870,
+   "type": "phase",
+   "name": "SENT"
+  },
+  {
+   "t": 5915,
+   "type": "capture",
+   "name": "panel-25",
+   "captured": 5913,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 6014,
+   "type": "capture",
+   "name": "panel-26",
+   "captured": 6013,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 6771,
+   "type": "progress",
+   "from": 1,
+   "to": 0,
+   "duration": 1200
+  },
+  {
+   "t": 7991,
+   "type": "returned"
+  },
+  {
+   "t": 7991,
+   "type": "cards",
+   "shown": true
+  },
+  {
+   "t": 7991,
+   "type": "elevation",
+   "from": 0,
+   "to": 1,
+   "duration": 220
+  },
+  {
+   "t": 7991,
+   "type": "phase",
+   "name": "READY"
+  },
+  {
+   "t": 7991,
+   "type": "pulse",
+   "on": true
+  },
+  {
+   "t": 8029,
+   "type": "capture",
+   "name": "panel-27",
+   "captured": 8025,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 8134,
+   "type": "capture",
+   "name": "panel-28",
+   "captured": 8132,
+   "layout": [
+    0,
+    2181,
+    1368,
+    3192
+   ],
+   "parent": [
+    0,
+    0
+   ],
+   "size": [
+    1368,
+    1011
+   ],
+   "channel": "panel"
+  },
+  {
+   "t": 12090,
+   "type": "cards",
+   "shown": true
+  },
+  {
+   "t": 12090,
+   "type": "pulse",
+   "on": false
+  },
+  {
+   "t": 12090,
+   "type": "dim",
+   "from": 0.5,
+   "to": 0,
+   "duration": 300
+  },
+  {
+   "t": 12090,
+   "type": "close"
+  },
+  {
+   "t": 12090,
+   "type": "panel",
+   "from": 0,
+   "to": 1011,
+   "duration": 300,
+   "ease": "close"
+  },
+  {
+   "t": 12090,
+   "type": "lift",
+   "from": 1,
+   "to": 0,
+   "duration": 320
+  },
+  {
+   "t": 12091,
+   "type": "elevation",
+   "from": 1,
+   "to": 0,
+   "duration": 320
+  },
+  {
+   "t": 12444,
+   "type": "end"
+  }
+ ]
+}

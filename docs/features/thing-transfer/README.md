@@ -18,6 +18,8 @@ Status: 一期（记事文件）已发布；二期（应用内碰一碰）2026-0
 - [followups.md](followups.md) — 两台手机实际互碰的检查顺序、二维码备选通道、格式版本等未定项
 - [plan-phase2.md](plan-phase2.md) — 二期的代码结构、协议与验证方式
 - [preferences.md](preferences.md) — 用户对碰一碰动画的要求
+- [particle-sim/README.md](particle-sim/README.md) — 发送与接收动画的 PC 模拟器：真机录下的整段会话重放、调参并写回
+  `shared/tap-transfer/particles.properties`、与真机录屏逐帧对照
 - `probe/` — 验证用的独立最小 APK。**验证已完成但按用户决定保留**：代码留在仓库
   （`settings.gradle` 里 include 了 `:nfcprobe`）、两台真机上也没卸载，二期实施时可直接参考或复跑。
 

@@ -28,6 +28,9 @@ taptransfer/
     TapAntennaClearance.kt          卡片让开天线：天线落在卡片里时把卡片挪到它的上方或下方
     card/TapThingCards.kt           用首页卡片的布局画一条记事（继承首页适配器），装卡片的容器
     flight/TapParticleFlight.kt     碰一碰的粒子：流出（手势会话）、拼出（倒放，可多张卡片合成一张快照）
+    flight/TapParticleParams.kt     粒子参数（shared/tap-transfer/particles.properties）
+    flight/TapFixtureDump.kt        调试：飞行输入落盘给 PC 模拟器
+    flight/TapSessionRecorder.kt    调试：整段会话（事件时间线 + 各层截图）落盘给 PC 模拟器
     particles/                      只剩接收状态的屏幕边框在用
       FlowNoise.kt                  梯度噪声与旋度场
       ParticleSpriteBatch.kt        drawVertices 一次画完全部粒子，拖尾头亮尾淡
@@ -93,3 +96,13 @@ taptransfer/
 - `simulate_samples`：界面上没有入口，用 run-as 改。模拟接收发来哪几条样例，逗号分隔：`plain`、
   `top`、`bottom`、`left`、`right`、`background`（封面在左、右只对宽卡片有效，所以 `left`、`right` 是宽卡片）。
   不设时是两条纯文字。
+- `dump_fixtures`：界面上没有入口，用 run-as 改。每次打开分享界面、每次进入接收状态，把整段会话写到应用
+  外部私有目录的 `tap-fixtures/<时刻>-<send|receive>-session/`（`TapSessionRecorder`：事件时间线、各层截图，
+  粒子飞行的输入在其中的 `flight-<n>/`，由 `TapFixtureDump` 写），给 PC 模拟器重放，见 `particle-sim/README.md`。
+
+## 粒子参数
+
+碰一碰动画的全部可调量在 `shared/tap-transfer/particles.properties`（打进 assets），由
+`flight/TapParticleParams` 读取并校验；终点那一组以 `ParticleSink.Tuning` 传给粒子引擎，转向区间经
+uniform `sink_homing` 进着色器。除粒子之外还包括发送的打开阶段（罩层、面板开合、抬起与落回、投影、扩散圈、
+天线光）与接收舞台（罩层、屏幕边框粒子、调色板、那圈光、空洞合上）。PC 模拟器读写同一份文件。

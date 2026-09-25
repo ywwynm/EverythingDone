@@ -40,6 +40,12 @@ class ParticleDismissShaderCompileTest {
         // 碰一碰的吸入模式：正向积分与逆向准备都要编进 SINK 段
         compile(validator, "逆向准备积分器（吸入）",
             ParticleReverseShader.withDefines(ParticleReverseShader.integration(step, withHistory = true), SINK))
+        // 第三版的柔性终点（SINK_FIELD）：Android 尚未打开，先保证它在 GLES 3.1 下能编译
+        compile(validator, "逆向准备积分器（柔性终点）",
+            ParticleReverseShader.withDefines(ParticleReverseShader.integration(step, withHistory = true), SINK_FIELD))
+        // 第三版：接收时逐片指定终点（屏幕四周的光尘接手流向四边的颗粒）
+        compile(validator, "逆向准备积分器（柔性终点 + 交接）",
+            ParticleReverseShader.withDefines(ParticleReverseShader.integration(step, withHistory = true), SINK_TARGETS))
         // 第二阶段：每一项都是一组编译期宏，变体在设备上才会被编译到。本机先各编一遍，
         // 免得一个拼写错误要等装到真机上才发现（Maleoon 的链接检查最严，但 Adreno 的宽容
         // 会掩盖问题，两边都不该是第一道关）。
@@ -54,8 +60,16 @@ class ParticleDismissShaderCompileTest {
     }
 
     private val SINK = "#define SINK 1\n"
+    private val SINK_FIELD = "#define SINK 1\n#define SINK_FIELD 1\n"
+    private val SINK_TARGETS = SINK_FIELD + "#define SINK_TARGETS 1\n"
 
     private val MATERIAL_VARIANTS = listOf(
+        "#define SINK_FIELD 1\n",
+        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n",
+        "#define SINK_FIELD 1\n#define SINK_TARGETS 1\n",
+        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define SINK_TARGETS 1\n",
+        "#define SINK_FIELD 1\n#define HAND_UNTIL 1\n",
+        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define HAND_UNTIL 1\n",
         "#define DRAW_RECORDS 1\n",
         "#define DRAW_RECORDS 1\n#define MEDIUMP_VARYING 1\n",
         "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n",
@@ -81,7 +95,13 @@ class ParticleDismissShaderCompileTest {
                 "#define PEEL_FIELD_HALF 1\n#define MEDIUMP_ALU 1\n#define HARDWARE_TRILINEAR 1\n",
             SINK,
             "#define LINEAR_GROUP 64\n#define MEDIUMP_SAMPLER 1\n#define MERGED_FIELD 1\n" +
-                "#define PEEL_FIELD_HALF 1\n#define MEDIUMP_ALU 1\n#define HARDWARE_TRILINEAR 1\n" + SINK),
+                "#define PEEL_FIELD_HALF 1\n#define MEDIUMP_ALU 1\n#define HARDWARE_TRILINEAR 1\n" + SINK,
+            SINK_FIELD,
+            "#define LINEAR_GROUP 64\n#define MEDIUMP_SAMPLER 1\n#define MERGED_FIELD 1\n" +
+                "#define PEEL_FIELD_HALF 1\n#define MEDIUMP_ALU 1\n#define HARDWARE_TRILINEAR 1\n" + SINK_FIELD,
+            SINK_TARGETS,
+            "#define LINEAR_GROUP 64\n#define MEDIUMP_SAMPLER 1\n#define MERGED_FIELD 1\n" +
+                "#define PEEL_FIELD_HALF 1\n#define MEDIUMP_ALU 1\n#define HARDWARE_TRILINEAR 1\n" + SINK_TARGETS),
         "shared/particle-dismiss/peel-splat.comp" to listOf(
             "#define LINEAR_GROUP 64\n",
             "#define NEAREST_SPLAT 1\n",

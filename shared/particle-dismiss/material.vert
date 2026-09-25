@@ -65,6 +65,37 @@ flat out VOUT float trailing_out;
 flat out VOUT vec4 random_out;
 flat out VOUT float replica_out;
 #endif
+#ifdef SINK_FIELD
+// 碰一碰的柔性终点：流向天线的颗粒进入天线周围（sink_absorb.x → .y，材料单位）逐渐隐去。
+// 流向边框的颗粒不受影响；判据与 step.comp 的 sink_frame_bound 逐字相同。
+uniform vec2 sink_point,sink_frame_mix;
+uniform vec4 sink_absorb;
+// 与 step.comp 同一套分组：每组流向边框的占比不同（.z）
+uniform vec4 sink_groups[4];
+uniform vec4 sink_group_params[4];
+uniform int sink_group_count;
+out VOUT float absorb_out;
+#ifdef SINK_TARGETS
+// 交接：与 step.comp 的 sink_explicit 同一份（.z > 0 表示这一片由屏幕上已有的颗粒接手），以及接手那一片的
+// 颜色（.rgb，sRGB）与混合权重（.a）。接手的颗粒不在天线附近隐去、不缩小，倒放时以满不透明度出现。
+layout(location=6) in vec4 sink_explicit;
+layout(location=7) in vec4 sink_origin;
+flat out VOUT vec4 origin_out;
+#endif
+#ifdef HAND_UNTIL
+// 两层倒放之间的交接（倒放时时间轴递减）。.y > 0：在时间轴 [.x, .x + .y] 里淡去（交出去的一方），
+// .y < 0：在 [.x, .x − .y] 里淡入（接手的一方），.y = 0：时间轴小于 .x 之后不再画
+layout(location=8) in vec2 hand_until;
+#endif
+float sink_frame_share(vec2 source){
+    for(int g=0;g<4;g++){
+        if(g>=sink_group_count)break;
+        vec4 r=sink_groups[g];
+        if(source.x>=r.x&&source.y>=r.y&&source.x<r.z&&source.y<r.w)return sink_group_params[g].z;
+    }
+    return sink_frame_mix.x;
+}
+#endif
 const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));
 // 相邻微片共用顶点偏移；整数散列避免 GPU 三角函数近似改变颗粒覆盖。
 uint grid_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
@@ -169,6 +200,12 @@ void main(){
     life_out=m.physical.z;random_out=m.random;
     // 原边缘最后释放的一侧更多采用渐隐，面板内部保留颗粒层次。
     surface_out=mix(time<=m.src.z?1.:0.,surface_out,.85*(1.-.60*panel_weight));
+#ifdef SINK_FIELD
+    absorb_out=1.;
+#ifdef SINK_TARGETS
+    origin_out=sink_explicit.z>.5?sink_origin:vec4(0.);
+#endif
+#endif
     if(material_pass==0){
         if(surface_out<.001 || replica>0){gl_Position=vec4(2.,2.,2.,1.);return;}
         vec2 world=offset+source;
@@ -178,6 +215,28 @@ void main(){
     float loosen=smoothstep(.018,.18,age);
     float roll_phase=age*(11.5+1.7*sin(dot(m.src.xy,vec2(.009,.015))))*(.70+.60*m.random.z);
     vec2 move=s.pos.xy+s.vel.xy*extrapolate;
+#ifdef SINK_FIELD
+    // 靠近天线逐渐隐去并缩小（纵深上远去）；半径逐片错开，不在光点外留一圈整齐的环
+    float sink_near=1.;
+#ifdef SINK_TARGETS
+    bool handed=sink_explicit.z>.5;
+#else
+    bool handed=false;
+#endif
+    if(!handed&&fract(m.random.x*7.31+m.random.w*3.17)>=sink_frame_share(m.src.xy)){
+        float spread=.55+.9*fract(m.random.w*5.71+m.random.z*2.33);
+        float to_sink=length(move-sink_point);
+        absorb_out=smoothstep(sink_absorb.x*spread,sink_absorb.y*spread,to_sink);
+        sink_near=mix(sink_absorb.w,1.,smoothstep(sink_absorb.x*spread,sink_absorb.y*spread*2.2,to_sink));
+    }
+#ifdef HAND_UNTIL
+    float passed=hand_until.y>0.?smoothstep(hand_until.x,hand_until.x+hand_until.y,time)
+                :hand_until.y<0.?1.-smoothstep(hand_until.x,hand_until.x-hand_until.y,time)
+                :step(hand_until.x,time);
+    if(passed<=0.){gl_Position=vec4(2.,2.,2.,1.);return;}
+    absorb_out*=passed;
+#endif
+#endif
     float z=s.pos.z+span*.035*(1.-cos(roll_phase))*exp(-age/.30)*roll_gain;
     // 平均平方尺度接近 1；细粒与少量较大片共存，保留颗粒层次而不追加亮带。
     float scale=mix(1.,exp(0.4000000*sqrt(-2.*log(max(m.random.y,.004)))*cos(m.random.z*6.28318)-0.1600000),loosen);
@@ -207,6 +266,9 @@ void main(){
     scale*=1.-.18*forward_front*smoothstep(.002,.022,age)*(1.-smoothstep(.10,.24,age));
     scale*=1.+(0.9700000-1.)*smoothstep(.002,.025,age)*(1.-smoothstep(.10,.25,age));
     scale*=mix(1.,1.0012984,smoothstep(.0,.06,age));
+#ifdef SINK_FIELD
+    scale*=sink_near;
+#endif
     vec2 vertex=move+(rot*d)*scale*(1.+z/1000.);
     if(material_pass==0)vertex=source;
     vec2 world=offset+vertex;

@@ -28,6 +28,17 @@ flat in VOUT float trailing_out;
 flat in VOUT vec4 random_out;
 flat in VOUT float replica_out;
 #endif
+#ifdef SINK_FIELD
+in VOUT float absorb_out;
+// .z：寿命末端的淡出时长（秒）；弹窗是 0.075
+uniform vec4 sink_absorb;
+#ifdef SINK_TARGETS
+// 交接：接手那一片的颜色（sRGB）与方式。.a = 1：原位接手，寿命末端不淡出（倒放时以满不透明度出现，光尘接手
+// 用的就是这一种）；.a = 2：与别的颗粒共用一个来源，照常淡入（现在没有用到）。两种都从来源的颜色过渡到快照上
+// 的颜色
+flat in VOUT vec4 origin_out;
+#endif
+#endif
 out vec4 frag;
 // U7：累积目标换成 SRGB8_ALPHA8 时前景纹理也是 sRGB 格式，采样器已经给出线性值，
 // 这一段整段省掉（每片元一次 pow(vec3,2.4)）。
@@ -74,7 +85,14 @@ void main(){
     float age=age_out;
     if(age<=0. || diagnostic==3)discard;
     float life=life_out;
+#ifdef SINK_FIELD
+    float fade=(1.-smoothstep(max(life-sink_absorb.z,life*.35),life,age))*absorb_out;
+#ifdef SINK_TARGETS
+    if(origin_out.a>.5&&origin_out.a<1.5)fade=1.;
+#endif
+#else
     float fade=1.-smoothstep(max(life-.075,life*.55),life,age);
+#endif
     vec2 q=local_uv-.5;
     float radial=length(q*vec2(.85+random_out.z*.35,.87+random_out.w*.34));
     float cut=1.-smoothstep(.35,.58,radial);
@@ -93,6 +111,10 @@ void main(){
     // 几何变细与光照变化分开，避免刚出现的颗粒同时发白。
     float optical_loosen=smoothstep(.005,.095,age);
     vec3 color=linear(src.rgb);
+#if defined(SINK_FIELD) && defined(SINK_TARGETS)
+    // 倒放时先是接手那一片的颜色，飞到半路换成快照上的颜色
+    color=mix(color,linear(origin_out.rgb),min(origin_out.a,1.)*smoothstep(life*.45,life*.85,age));
+#endif
     // 微片转动后采用较柔和的材质明暗响应，保留源色，减轻暗部黑点聚集。
     color=mix(color,pow(color,vec3(.86)),optical_loosen*.85);
     float lighting=mix(1.,light_out,light_gain);

@@ -74,6 +74,71 @@ vec2 sink_target(Material m){
     if(nearest==top)return vec2(clamp(q.x+jitter,sink_frame.x,sink_frame.z),sink_frame.y);
     return vec2(clamp(q.x+jitter,sink_frame.x,sink_frame.z),sink_frame.w);
 }
+#ifdef SINK_FIELD
+// 柔性终点（2026-09-25 起的碰一碰）：不再让每一片都在寿命末端收进同一点。
+// 流向天线的颗粒只有 sink_flow.y 这一份被吸入：各自落在天线周围半径 sink_flow.z 的圆盘里，
+// 沿等角螺线旋入（sink_flow.x = 切向 / 径向）；其余按弹窗的方式随风消散，只朝天线漂移
+// （sink_flow.w，每秒若干短边）。流向边框的颗粒落在边框向内 sink_band.x 宽的带里，
+// 途中带一点螺旋（sink_band.y）与卷流（sink_band.z）。
+uniform vec4 sink_flow;
+uniform vec4 sink_band;
+// 涡旋核半径（材料单位）：切向分量乘 r²/(d²+r²)，远处基本直奔，靠近天线才旋入
+uniform float sink_vortex;
+// 整团滑行：牵引按绝对时间在 [.x, .y] 里渐入（不按各自的飞行进度），所以先剥离的颗粒不会先飞走，
+// 整团尘云一起动身；.z 是接近增益（>1 时先快后慢地落定）
+uniform vec3 sink_glide;
+// 多张卡片同时拼出时按卡片分组（快照里的矩形，材料坐标），每组各有：.x 牵引时间窗的平移（秒，
+// 与这一组的抵达时间窗同向平移）、.y 切向分量的倍数、.z 流向边框的占比。不分组时 count = 0。
+// 让几张卡片错开时间、走不同的弧、取不同的来源，不再左右对称。
+uniform vec4 sink_groups[4];
+uniform vec4 sink_group_params[4];
+uniform int sink_group_count;
+vec4 sink_group(Material m){
+    for(int g=0;g<4;g++){
+        if(g>=sink_group_count)break;
+        vec4 r=sink_groups[g];
+        if(m.src.x>=r.x&&m.src.y>=r.y&&m.src.x<r.z&&m.src.y<r.w)return sink_group_params[g];
+    }
+    return vec4(0.,1.,sink_frame_mix.x,0.);
+}
+bool sink_frame_bound(Material m){return fract(m.random.x*7.31+m.random.w*3.17)<sink_group(m).z;}
+bool sink_absorbed(Material m){return fract(m.random.z*4.73+m.random.y*8.21)<sink_flow.y;}
+vec2 sink_field_target(Material m){
+    if(sink_frame_bound(m)){
+        // 从快照中心沿「中心 → 这一片」的方向射到边框上：整圈边框都有颗粒流入，多张卡片时
+        // 左边的卡片取左半圈、右边的取右半圈；再沿边错开、在带宽内向里散开
+        vec2 c=card*.5;
+        vec2 u=m.src.xy-c;
+        float len=length(u);
+        u=len>.0001?u/len:vec2(0.,1.);
+        float tx=u.x>.0001?(sink_frame.z-c.x)/u.x:u.x<-.0001?(sink_frame.x-c.x)/u.x:1e9;
+        float ty=u.y>.0001?(sink_frame.w-c.y)/u.y:u.y<-.0001?(sink_frame.y-c.y)/u.y:1e9;
+        bool side=tx<ty;
+        vec2 hit=c+u*min(tx,ty);
+        float jitter=(fract(m.random.y*5.13+m.random.z*1.91)-.5)*sink_frame_mix.y;
+        hit+=(side?vec2(0.,1.):vec2(1.,0.))*jitter;
+        hit=clamp(hit,sink_frame.xy,sink_frame.zw);
+        vec2 inward=side?vec2(u.x>0.?-1.:1.,0.):vec2(0.,u.y>0.?-1.:1.);
+        // 带里外侧密、内侧疏（与光尘带的扩散分布一致）
+        return hit+inward*sink_band.x*pow(fract(m.random.y*3.93+m.random.x*6.11),1.6);
+    }
+    // 天线周围的落点：瑞利分布（二维高斯的半径），向外逐渐变稀，没有一圈整齐的边
+    float angle=fract(m.random.y*3.71+m.random.x*5.27)*6.28318;
+    float u=fract(m.random.z*9.13+m.random.w*2.39);
+    float radius=min(.55*sqrt(-2.*log(max(1.-u,.0001))),2.2)*sink_flow.z;
+    return sink_point+vec2(cos(angle),sin(angle))*radius;
+}
+#ifdef SINK_TARGETS
+// 交接（2026-09-25 第三版，模拟器先行）：逐片指定终点。接收时屏幕四周扩散进来的光尘就近接手一部分流向四边
+// 的颗粒，倒放时这些颗粒从那片光尘的位置出现（.z = 2，按流向边框的颗粒运动）；.z = 1 按流向天线的颗粒运动
+// （现在没有用到）；.z = 0 照旧按 sink_field_target。.xy 是材料坐标。绑定点用 2：GLES 3.1 只保证 4 个存储
+// 缓冲绑定点，积分器此外只用 0、1、3。
+layout(std430,binding=2) readonly buffer SinkTargets {vec4 sink_explicit[];};
+// 被接手的颗粒不按弹窗的风向先飞出去再折回：剥离之后牵引就按各自的年龄渐入（.x，粒子时间），
+// 直接滑向终点；途中卷流的倍数（.y）与取样频率（.z，1.37 即其余颗粒的尺度，越大卷得越碎）
+uniform vec4 sink_handoff;
+#endif
+#endif
 #endif
 
 // A1（第二阶段）：`curl()` 的**方向向量**那几步改 mediump；相位（a/b）留 highp，
@@ -246,7 +311,51 @@ void main(){
     // 平滑下限不产生折线拐点，也不把粒子位置截到任何边界。
     float deficit=.16-axial;
     target+=wind*span*.5*(deficit+sqrt(deficit*deficit+.0064));
-#ifdef SINK
+#if defined(SINK) && defined(SINK_FIELD)
+    {
+        float flight=max(m.physical.z,.06);
+        float journey=clamp(age/flight,0.,1.);
+        bool frame_bound=sink_frame_bound(m);
+        vec4 group=sink_group(m);
+#ifdef SINK_TARGETS
+        vec4 handed=sink_explicit[i];
+        bool explicit_goal=handed.z>.5;
+        if(explicit_goal)frame_bound=handed.z>1.5;
+        vec2 goal=explicit_goal?handed.xy:sink_field_target(m);
+#else
+        bool explicit_goal=false;
+        vec2 goal=sink_field_target(m);
+#endif
+        if(explicit_goal||frame_bound||sink_absorbed(m)){
+            // 等角螺线：径向分量恰好在寿命末端抵达各自的落点，切向分量使路径旋入而不是直线汇聚
+            float remaining=max(m.src.z+m.physical.z-time,.016);
+            vec2 to=goal-p;
+            float d=length(to);
+            vec2 dir=to/max(d,.0001);
+            // 切向比：远处是 sink_swirl（整团沿缓弧滑行），进入涡旋核（sink_vortex）之后换成 sink_flow.x；
+            // sink_flow.x 为 0 时贴近落点只剩径向分量，末段不绕着落点旋转。各组再乘自己的倍数
+            float core=sink_vortex*sink_vortex/(d*d+sink_vortex*sink_vortex);
+            float spin=(frame_bound?sink_band.y:mix(sink_swirl,sink_flow.x,core))*group.y;
+            vec2 home=(dir*sink_glide.z+vec2(-dir.y,dir.x)*spin)*(d/remaining);
+            // 途中的卷流随抵达减弱，最后平稳落定
+            float curl_gain=sink_band.z,curl_scale=1.37;
+#ifdef SINK_TARGETS
+            if(explicit_goal){curl_gain*=sink_handoff.y;curl_scale=sink_handoff.z;}
+#endif
+            home+=curl(p*curl_scale+vec2(17.,-9.),time*1.3)*span*curl_gain*(1.-journey);
+            // 刚剥离的颗粒先按弹窗的方式离面，再并入整团的滑行
+            float glide=smoothstep(sink_glide.x+group.x,sink_glide.y+group.x,time)*smoothstep(0.,.12,age);
+#ifdef SINK_TARGETS
+            if(explicit_goal)glide=smoothstep(0.,sink_handoff.x,age);
+#endif
+            target=mix(target,home,glide);
+        }else{
+            // 未被吸入的颗粒：弹窗的消散方式，只额外朝天线漂移
+            vec2 to=sink_point-p;
+            target+=to/max(length(to),.0001)*span*sink_flow.w*smoothstep(.04,.30,age);
+        }
+    }
+#elif defined(SINK)
     {
         // 剥离初段仍按上面的剥离与流场走；随后逐渐转向终点，剩余时间越少拉得越紧，
         // 在寿命末端恰好抵达（寿命的淡出同时发生），看上去就是整股流被吸进那一点。

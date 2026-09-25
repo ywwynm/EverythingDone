@@ -1,0 +1,8 @@
+# 出图与对照产物
+out/
+__pycache__/
+# 素材截图含设备上的真实列表内容，只留本地；scene.json 入库（粒子飞行的底图与快照同样只留本地）
+scenes/*/*.png
+scenes/*/flight-*/*.png
+# 合成的场景由 make_layout_scenes.py 从录下的会话生成（<设备>-receive-<场景>/），不入库
+scenes/*-receive-*/
