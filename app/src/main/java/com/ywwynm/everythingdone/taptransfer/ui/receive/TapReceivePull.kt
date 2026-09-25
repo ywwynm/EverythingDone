@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
 import com.ywwynm.everythingdone.views.ActivityHeader
 import kotlin.math.abs
 import kotlin.math.min
@@ -123,6 +124,7 @@ class TapReceivePull(
     }
 
     fun setHint(text: String?) {
+        TapSessionRecorder.current?.captureSoon("pull", button, 60L)
         buttonHeight = -1f
         if (text.isNullOrEmpty()) {
             hint.visibility = View.GONE
@@ -131,6 +133,10 @@ class TapReceivePull(
             hint.visibility = View.VISIBLE
         }
     }
+
+    /** 调试（会话记录）：列表当前的下移量与空位高度。 */
+    val currentOffset: Float get() = offset
+    val slotHeight: Float get() = slot()
 
     /** 按钮（含提示）打开后的下边缘，容器坐标：接收状态的轮廓从这里往下排。 */
     fun openBottom(): Float {
@@ -246,6 +252,7 @@ class TapReceivePull(
     }
 
     private fun applyOffset(px: Float) {
+        TapSessionRecorder.current?.event("offset") { put("px", px.toDouble()); put("slot", slot().toDouble()) }
         offset = px
         recyclerView.translationY = px
         header.setPullOffset(px)

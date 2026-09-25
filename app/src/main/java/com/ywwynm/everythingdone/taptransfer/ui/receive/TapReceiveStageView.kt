@@ -12,6 +12,9 @@ import android.graphics.RectF
 import android.graphics.SweepGradient
 import android.view.MotionEvent
 import android.view.View
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import org.json.JSONArray
 import com.ywwynm.everythingdone.taptransfer.ui.particles.FlowNoise
 import com.ywwynm.everythingdone.taptransfer.ui.particles.ParticleSpriteBatch
 import com.ywwynm.everythingdone.taptransfer.ui.particles.PerimeterParticles
@@ -43,6 +46,7 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
     private enum class Phase { IDLE, WAITING, BUSY, EXITING }
 
     private val density = resources.displayMetrics.density
+    private val params = TapParticleParams.get(context)
     private val clock = StageClock()
     private val random = Random(SEED.toLong())
     private val batch = ParticleSpriteBatch()
@@ -51,14 +55,14 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
     private var phase = Phase.IDLE
     private var borderAlpha = 0f
     private var borderTarget = 0f
-    private var borderFadeS = BORDER_FADE_S
+    private var borderFadeS = params.borderFadeS
     private var dimAlpha = 0f
     private var dimTarget = 0f
     private var screenCornerRadius = 24f * density
 
     /** 边框的调色板：从 [paletteFrom] 过渡到 [paletteTo]，[paletteT] 为过渡进度。 */
-    private var paletteFrom = DEFAULT_PALETTE
-    private var paletteTo = DEFAULT_PALETTE
+    private var paletteFrom = params.borderPalette
+    private var paletteTo = params.borderPalette
     private var paletteT = 1f
 
     /** 罩层上的空洞（刚收到的卡片），[holeOpen] 为 1 时完全透出，0 时与罩层一样深。 */
@@ -82,8 +86,8 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
 
     init {
         glowPaint.style = Paint.Style.STROKE
-        border.palette = DEFAULT_PALETTE
-        border.paletteCycleS = 22f
+        border.palette = params.borderPalette
+        border.paletteCycleS = params.borderPaletteCycleS
         dimPath.fillType = Path.FillType.EVEN_ODD
     }
 
@@ -93,17 +97,25 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
 
     /** 边框粒子流动的那条线（本视图坐标）：接收的颗粒从这里流出。 */
     fun ringFrame(out: RectF) {
-        val inset = (BORDER_INSET_DP + BORDER_LANE_DP / 2f) * density
+        val inset = (params.borderInsetDp + params.borderLaneDp / 2f) * density
         out.set(inset, inset, width - inset, height - inset)
     }
 
     // ---------------------------------------------------------------- 动作
 
     fun enter() {
+        TapSessionRecorder.current?.event("stage-enter") {
+            val at = IntArray(2).also { getLocationInWindow(it) }
+            val decorAt = IntArray(2).also { rootView.getLocationInWindow(it) }
+            put("rect", JSONArray().put(at[0] - decorAt[0]).put(at[1] - decorAt[1]).put(width).put(height))
+            put("corner", screenCornerRadius.toDouble())
+            put("dim_color", String.format("%08X", dimColor))
+            put("dim_alpha", dimMaxAlpha.toDouble())
+        }
         clock.tick()
         populateBorder(clock.now)
         borderTarget = 1f
-        borderFadeS = BORDER_FADE_S
+        borderFadeS = params.borderFadeS
         dimTarget = dimMaxAlpha
         setPhase(Phase.WAITING)
     }
@@ -113,21 +125,25 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
      * 上一批留下的空洞随之合上。
      */
     fun touched(colors: IntArray) {
+        TapSessionRecorder.current?.event("stage-touched") {
+            put("colors", JSONArray().also { list -> colors.forEach { list.put(String.format("%08X", it)) } })
+        }
         clearHighlights()
         // 取不到背景色的条目发来的是 0，不参与换色
         val usable = colors.filter { it != 0 }
         if (usable.isNotEmpty()) {
-            fadePaletteTo(spread(usable))
+            fadePaletteTo(spread(usable, params.borderPalette.size))
         }
         borderTarget = 1f
-        borderFadeS = BORDER_FADE_S
+        borderFadeS = params.borderFadeS
         setPhase(Phase.BUSY)
     }
 
     /** 颗粒开始从屏幕四边流向卡片：边框随之淡去。 */
     fun converge() {
+        TapSessionRecorder.current?.event("stage-converge")
         borderTarget = 0f
-        borderFadeS = CONVERGE_FADE_S
+        borderFadeS = params.borderConvergeS
     }
 
     /** 这一台收完（或失败）了：边框换回原色、重新出现，继续等下一台。 */
@@ -135,13 +151,14 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         if (phase != Phase.BUSY) {
             return
         }
+        TapSessionRecorder.current?.event("stage-resume")
         clock.tick()
         if (borderAlpha <= .01f) {
             populateBorder(clock.now)
         }
-        fadePaletteTo(DEFAULT_PALETTE)
+        fadePaletteTo(params.borderPalette)
         borderTarget = 1f
-        borderFadeS = BORDER_FADE_S
+        borderFadeS = params.borderFadeS
         setPhase(Phase.WAITING)
     }
 
@@ -150,6 +167,13 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
      * 粒子层的末帧是没有罩层的卡片，交接那一帧前后一样亮。
      */
     fun highlight(rects: List<RectF>, cornerRadius: Float) {
+        TapSessionRecorder.current?.event("stage-highlight") {
+            put("rects", JSONArray().also { list ->
+                rects.forEach { list.put(JSONArray().put(it.left.toDouble()).put(it.top.toDouble())
+                    .put(it.right.toDouble()).put(it.bottom.toDouble())) }
+            })
+            put("radius", cornerRadius.toDouble())
+        }
         holes.clear()
         rects.mapTo(holes) { RectF(it) }
         holeRadius = cornerRadius
@@ -161,14 +185,16 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
 
     /** 空洞慢慢合上：刚收到的卡片与列表里其余的卡片一起退到罩层后面。 */
     fun clearHighlights() {
+        TapSessionRecorder.current?.event("stage-clear-highlights")
         holeTarget = 0f
         postInvalidateOnAnimation()
     }
 
     fun exit() {
+        TapSessionRecorder.current?.event("stage-exit")
         clock.tick()
         borderTarget = 0f
-        borderFadeS = BORDER_FADE_S
+        borderFadeS = params.borderFadeS
         dimTarget = 0f
         setPhase(Phase.EXITING)
     }
@@ -207,11 +233,11 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         if (paletteT >= 1f) {
             return paletteTo
         }
-        return IntArray(PALETTE_SIZE) { PerimeterParticles.lerpColor(paletteFrom[it], paletteTo[it], paletteT) }
+        return IntArray(paletteTo.size) { PerimeterParticles.lerpColor(paletteFrom[it], paletteTo[it], paletteT) }
     }
 
     private fun insetBorder() {
-        val inset = BORDER_INSET_DP * density
+        val inset = params.borderInsetDp * density
         border.shape.set(inset, inset, width - inset, height - inset, (screenCornerRadius - inset).coerceAtLeast(8f * density))
     }
 
@@ -219,13 +245,13 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         insetBorder()
         // 与底下那圈光同一口径取色：按绕屏幕中心的角度
         border.angularPaletteCenter = PointF(width / 2f, height / 2f)
-        val n = (border.shape.length / (BORDER_SPACING_DP * density)).toInt().coerceIn(200, BORDER_CAPACITY)
+        val n = (border.shape.length / (params.borderSpacingDp * density)).toInt().coerceIn(200, BORDER_CAPACITY)
         border.populate(
             n,
-            laneWidth = BORDER_LANE_DP * density,
-            speedPx = BORDER_SPEED_DP * density,
-            minRadius = 1.0f * density,
-            maxRadius = 2.6f * density,
+            laneWidth = params.borderLaneDp * density,
+            speedPx = params.borderSpeedDp * density,
+            minRadius = params.borderRadiusDp[0] * density,
+            maxRadius = params.borderRadiusDp[1] * density,
             random = random,
             nowS = now
         )
@@ -244,10 +270,10 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         val now = clock.now
         val dt = clock.dt
         borderAlpha = approach(borderAlpha, borderTarget, dt / borderFadeS)
-        dimAlpha = approach(dimAlpha, dimTarget, dt / DIM_FADE_S)
-        holeOpen = approach(holeOpen, holeTarget, dt / HOLE_CLOSE_S)
+        dimAlpha = approach(dimAlpha, dimTarget, dt / params.receiveDimFadeS)
+        holeOpen = approach(holeOpen, holeTarget, dt / params.holeCloseS)
         if (paletteT < 1f) {
-            paletteT = min(1f, paletteT + dt / PALETTE_FADE_S)
+            paletteT = min(1f, paletteT + dt / params.borderPaletteFadeS)
             border.palette = currentPalette()
             glowShader = null
         }
@@ -263,10 +289,10 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         }
         if (borderAlpha > .01f && border.count > 0) {
             border.alpha = borderAlpha
-            border.update(dt, now, BORDER_WOBBLE_DP * density, 1f / (140f * density))
+            border.update(dt, now, params.borderWobbleDp * density, 1f / (140f * density))
             drawEdgeGlow(canvas, now)
             batch.begin(canvas)
-            border.draw(batch, now, clock.trailScale(BORDER_TRAIL_S), fadeInS = .8f)
+            border.draw(batch, now, clock.trailScale(params.borderTrailS), fadeInS = params.borderParticleFadeS)
             batch.end()
         }
         // 罩层与边框在淡入淡出、边框在流动：接收状态期间一直刷新
@@ -316,12 +342,12 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         shader.setLocalMatrix(glowMatrix)
         glowPaint.shader = shader
         // 由外向内一圈比一圈淡，叠出一道没有硬边的光
-        val ring = GLOW_RING_DP * density
+        val ring = params.glowRingDp * density
         glowPaint.strokeWidth = ring
-        for (k in 0 until GLOW_RINGS) {
+        for (k in 0 until params.glowRings) {
             val inset = ring * (k + .5f)
-            val falloff = 1f - k / GLOW_RINGS.toFloat()
-            glowPaint.alpha = (GLOW_ALPHA * falloff * falloff * borderAlpha * 255f).toInt()
+            val falloff = 1f - k / params.glowRings.toFloat()
+            glowPaint.alpha = (params.receiveGlowAlpha * falloff * falloff * borderAlpha * 255f).toInt()
             glowRect.set(inset, inset, width - inset, height - inset)
             val r = (screenCornerRadius - inset).coerceAtLeast(0f)
             canvas.drawRoundRect(glowRect, r, r, glowPaint)
@@ -332,41 +358,13 @@ class TapReceiveStageView(context: Context, private val listener: Listener) : Vi
         private const val SEED = 20260925
 
         private const val BORDER_CAPACITY = 2000
-        private const val BORDER_INSET_DP = 3f
-        private const val BORDER_SPACING_DP = 1.7f
-        private const val BORDER_LANE_DP = 14f
-        private const val BORDER_SPEED_DP = 80f
-        private const val BORDER_WOBBLE_DP = 3.5f
-        private const val BORDER_TRAIL_S = .2f
-        private const val BORDER_FADE_S = .6f
-        private const val DIM_FADE_S = .35f
 
-        /** 颗粒从四边流出时边框淡去的时长：与颗粒离开边缘的那一段对上。 */
-        private const val CONVERGE_FADE_S = .35f
-
-        /** 边框换色的时长。 */
-        private const val PALETTE_FADE_S = .5f
-
-        /** 刚收到的卡片退到罩层后面的时长。 */
-        private const val HOLE_CLOSE_S = .45f
-
-        /** 边框底下那层光：GLOW_RINGS 圈、每圈 GLOW_RING_DP 宽，透明度由外向内按平方衰减。 */
-        private const val GLOW_RINGS = 20
-        private const val GLOW_RING_DP = 1.2f
-        private const val GLOW_ALPHA = .3f
-
-        private const val PALETTE_SIZE = 6
-
-        /** 与应用的强调色、记事配色同源：珊瑚红、琥珀、松绿、青、深蓝、紫。 */
-        private val DEFAULT_PALETTE = intArrayOf(
-            0xFFF66048.toInt(), 0xFFFFAE36.toInt(), 0xFF21A675.toInt(),
-            0xFF00B1C6.toInt(), 0xFF166096.toInt(), 0xFF665696.toInt()
-        )
+        // 边框、罩层、光圈与调色板的取值见 shared/tap-transfer/particles.properties（receive_*）
 
         /** 把收到的记事的颜色铺成与默认调色板同样的长度，换色时逐项过渡。 */
-        private fun spread(colors: List<Int>): IntArray {
+        private fun spread(colors: List<Int>, size: Int): IntArray {
             val opaque = colors.map { it or 0xFF000000.toInt() }
-            return IntArray(PALETTE_SIZE) { opaque[it % opaque.size] }
+            return IntArray(size) { opaque[it % opaque.size] }
         }
 
         private fun approach(value: Float, target: Float, step: Float): Float {

@@ -149,7 +149,8 @@ internal object TapParticleFlight {
     }
 
     private fun spec(
-        snapshot: Bitmap, bounds: RectF, sink: PointF, reverse: Boolean, durationS: Float, frame: RectF? = null
+        params: TapParticleParams, snapshot: Bitmap, bounds: RectF, sink: PointF, reverse: Boolean, durationS: Float,
+        frame: RectF? = null
     ): ParticleDismissSpec {
         if (BuildConfig.DEBUG) {
             Log.i(TAG, "粒子飞行 reverse=$reverse sink=(${sink.x.toInt()},${sink.y.toInt()}) " +
@@ -167,7 +168,7 @@ internal object TapParticleFlight {
             // 触点强度取中值：运动幅度的缩放为 1，终点的坐标不必换算
             touchStrength = .5f,
             releaseOrigin = releaseOriginToward(bounds, sink.x, sink.y),
-            sink = ParticleSink(sink.x, sink.y, frame, if (frame != null) FRAME_SHARE else 0f)
+            sink = ParticleSink(sink.x, sink.y, frame, if (frame != null) params.frameShare else 0f, params.sink)
         )
     }
 
@@ -217,12 +218,18 @@ internal object TapParticleFlight {
                 snapshot.recycle()
                 main.post { listener.onLost() }
             } else {
+                val params = TapParticleParams.get(activity)
+                val spec = spec(params, snapshot, bounds, sink, reverse = false, durationS = 1f)
+                val dump = TapFixtureDump.begin(activity, "send", spec, bounds, sink, null, params)
                 val created = ParticleDismissOverlay(
-                    activity, spec(snapshot, bounds, sink, reverse = false, durationS = 1f),
+                    activity, spec,
                     onAnimationStarted = Runnable {
                         if (!released && !takenOver) {
                             takenOver = true
+                            TapSessionRecorder.current?.event("takeover")
                             listener.onTakenOver()
+                            // 卡片刚藏起：等这一帧提交之后的窗口就是粒子层底下的画面
+                            dump?.let { afterFrame(decor) { it.captureWindow("background") } }
                         }
                     },
                     onDone = Runnable {
@@ -258,6 +265,10 @@ internal object TapParticleFlight {
             animator = ValueAnimator.ofFloat(start, target).apply {
                 duration = (durationMs * span).toLong().coerceAtLeast(1L)
                 this.interpolator = interpolator
+                val actual = duration
+                TapSessionRecorder.current?.event("progress") {
+                    put("from", start.toDouble()); put("to", target.toDouble()); put("duration", actual)
+                }
                 addUpdateListener { seek(it.animatedValue as Float) }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
@@ -284,6 +295,7 @@ internal object TapParticleFlight {
             if (released || !returning || position > 0f || presented > RETURNED_EPSILON) return
             if (animator?.isRunning == true) return
             released = true
+            TapSessionRecorder.current?.event("returned")
             listener.onReturned()
             overlay?.release()
             overlay = null
@@ -342,12 +354,19 @@ internal object TapParticleFlight {
                 snapshot.recycle()
                 main.post { listener.onLost() }
             } else {
+                val params = TapParticleParams.get(activity)
+                val spec = spec(params, snapshot, bounds, sink, reverse = true, durationS = durationS, frame = frame)
+                val dump = TapFixtureDump.begin(activity, "receive", spec, bounds, sink, frame, params)
                 val created = ParticleDismissOverlay(
-                    activity, spec(snapshot, bounds, sink, reverse = true, durationS = durationS, frame = frame),
+                    activity, spec,
                     onAnimationStarted = Runnable {
                         if (!released && !started) {
                             started = true
+                            TapSessionRecorder.current?.event("inflow-start")
                             listener.onStarted()
+                            // 此刻边框还在；边框淡去之后再截一张，模拟器在两张之间按淡去的时长过渡
+                            dump?.captureWindow("background")
+                            dump?.captureWindow("background-settled", (params.borderFadeS * 1000f).toLong() + 250L)
                         }
                     },
                     onDone = Runnable {
@@ -355,6 +374,7 @@ internal object TapParticleFlight {
                         if (started) {
                             // 倒放播完：本层保持末帧，等调用方把真实卡片显示出来
                             assembled = true
+                            TapSessionRecorder.current?.event("assembled")
                             listener.onAssembled()
                         } else {
                             released = true
@@ -405,8 +425,5 @@ internal object TapParticleFlight {
     }
 
     private const val FRAME_FALLBACK_MS = 120L
-
-    /** 接收时流向屏幕边框（而不是天线）的颗粒占比。 */
-    private const val FRAME_SHARE = .5f
     private const val TAG = "TapFlight"
 }

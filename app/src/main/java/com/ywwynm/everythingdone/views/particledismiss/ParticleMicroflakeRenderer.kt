@@ -612,7 +612,8 @@ internal class ParticleMicroflakeRenderer(
         if (sinkMode) {
             val sink = checkNotNull(input.sink) { "吸入模式缺少终点" }
             two(compute, "sink_point", sink.x, sink.y)
-            one(compute, "sink_swirl", ParticleSink.SWIRL)
+            one(compute, "sink_swirl", sink.swirl)
+            two(compute, "sink_homing", sink.homingStart, sink.homingEnd)
             GLES30.glUniform4f(location(compute, "sink_frame"),
                 sink.frameLeft, sink.frameTop, sink.frameRight, sink.frameBottom)
             two(compute, "sink_frame_mix", sink.frameShare, sink.frameJitter)
@@ -1811,7 +1812,8 @@ internal class ParticleMicroflakeRenderer(
                 pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin)
             // 吸入终点换到材料坐标（以快照左上角为原点、同一缩放）；寿命按到达终点重写
             val sinkGeometry = sink?.toMaterial(originXPx, originYPx, scale)
-            if (sinkGeometry != null) ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight))
+            if (sink != null && sinkGeometry != null)
+                ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight), sink.tuning)
             return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,
                 originYPx / scale, direction, bitmap, materials,
                 resources.guide, rules, pixels, touchGap ?: rules.number("touch_gap_default"),

@@ -48,6 +48,7 @@ object TapTransfer {
     private const val KEY_SIMULATE = "simulate"
     private const val KEY_SIMULATE_FAILURE = "simulate_failure"
     private const val KEY_SIMULATE_SAMPLES = "simulate_samples"
+    private const val KEY_DUMP_FIXTURES = "dump_fixtures"
 
     private const val WORK_DIR = "/tap_transfer"
 
@@ -195,6 +196,19 @@ object TapTransfer {
         }
         return context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
             .getString(KEY_SIMULATE_SAMPLES, null)
+    }
+
+    /**
+     * 调试：每次粒子飞行把输入落盘给桌面模拟器（见 `TapFixtureDump`）。界面上没有入口，用 run-as 改
+     * `tap_transfer_debug.xml` 的 `dump_fixtures`。
+     */
+    @JvmStatic
+    fun isFixtureDumpEnabled(context: Context): Boolean {
+        if (!BuildConfig.DEBUG) {
+            return false
+        }
+        return context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_DUMP_FIXTURES, false)
     }
 
     @JvmStatic

@@ -34,6 +34,9 @@ import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
 import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
 import com.ywwynm.everythingdone.taptransfer.ui.TapSetupNavigator
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleFlight
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import org.json.JSONArray
 import com.ywwynm.everythingdone.thingfile.ThingFileImporter
 import com.ywwynm.everythingdone.thingfile.ThingFileReader
 import com.ywwynm.everythingdone.utils.AppearanceUtil
@@ -128,6 +131,10 @@ class TapReceiveController(
     private var landingGeneration = 0
     private var inflow: TapParticleFlight.Inflow? = null
     private val hiddenIds = LinkedHashSet<Long>()
+
+    /** 调试：整段会话的记录（落盘开关关着时为 null）；插入第一条之前抓过页面没有。 */
+    private var recorder: TapSessionRecorder? = null
+    private var recordedBeforeInsert = false
 
     private val backCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() = exit(immediate = false)
@@ -277,6 +284,19 @@ class TapReceiveController(
         }
         receiving = true
         folderId = host.currentFolderId()
+        recorder = TapSessionRecorder.start(activity, "receive")?.also { r ->
+            val at = IntArray(2).also { host.container.getLocationInWindow(it) }
+            val decorAt = IntArray(2).also { activity.window.decorView.getLocationInWindow(it) }
+            r.event("enter") {
+                put("container", JSONArray().put(at[0] - decorAt[0]).put(at[1] - decorAt[1])
+                    .put(host.container.width).put(host.container.height))
+                put("actionbar_bottom", host.actionbar.bottom)
+                put("offset", pull.currentOffset.toDouble())
+                put("antenna", JSONArray().also { a -> antennaInDecor().let { a.put(it.x.toDouble()).put(it.y.toDouble()) } })
+            }
+            r.captureView("page-enter", host.container, listOf(pull.button))
+        }
+        recordedBeforeInsert = false
         backCallback.isEnabled = true
         host.onReceivingChanged(true)
         pull.setReceiving(true)
@@ -286,7 +306,8 @@ class TapReceiveController(
         s.keepScreenOn = true
         val dark = AppearanceUtil.isDarkMode(activity)
         s.dimColor = ContextCompat.getColor(activity, R.color.app_chrome_surface)
-        s.dimMaxAlpha = if (dark) DIM_DARK else DIM_LIGHT
+        val dims = TapParticleParams.get(activity).receiveDimAlpha
+        s.dimMaxAlpha = if (dark) dims[1] else dims[0]
         // 叠在列表与顶栏之上、按钮之下：按钮始终可以点
         val match = FrameLayout.LayoutParams.MATCH_PARENT
         host.container.addView(s, host.container.indexOfChild(pull.button), FrameLayout.LayoutParams(match, match))
@@ -326,6 +347,7 @@ class TapReceiveController(
         }
         receiving = false
         backCallback.isEnabled = false
+        recorder?.event("exit")
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         main.removeCallbacksAndMessages(null)
         transport?.stop()
@@ -343,6 +365,8 @@ class TapReceiveController(
         if (s == null || immediate) {
             s?.let { removeStage(it) }
             host.onReceivingChanged(false)
+            recorder?.finish()
+            recorder = null
         } else {
             s.exit()
         }
@@ -350,6 +374,9 @@ class TapReceiveController(
 
     override fun onExitFinished(stage: TapReceiveStageView) {
         removeStage(stage)
+        // 退场淡出播完才收尾：按钮收回的那段位移也要记下来
+        recorder?.let { r -> host.recyclerView.postDelayed({ r.finish() }, 600L) }
+        recorder = null
         // 淡出期间又进入了接收：首页保持接收状态的样子
         if (!receiving) {
             host.onReceivingChanged(false)
@@ -445,6 +472,14 @@ class TapReceiveController(
                 ThingFileImporter.import(context, result.things, target) { thing ->
                     // 主线程，与写进数据库在同一条消息里
                     val hide = receiving
+                    recorder?.let { r ->
+                        if (hide && !recordedBeforeInsert) {
+                            recordedBeforeInsert = true
+                            r.captureView("page-before", host.container, listOfNotNull(stage, pull.button))
+                            r.trackItems(host.recyclerView)
+                        }
+                        r.event("insert")
+                    }
                     if (host.insertReceivedThing(thing, hide) >= 0 && hide) {
                         hiddenIds.add(thing.id)
                     }
@@ -510,6 +545,7 @@ class TapReceiveController(
      */
     private fun land(ids: List<Long>) {
         landingStarted = true
+        recorder?.event("land")
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         pull.setHint(activity.getString(R.string.tap_receive_progress, senderName, 100))
         val generation = ++landingGeneration
@@ -674,6 +710,7 @@ class TapReceiveController(
         }
         val offset = containerInDecor()
         val visibleInDecor = RectF(area).apply { offset(offset.x, offset.y) }
+        recorder?.captureView("page-slots", host.container, listOfNotNull(stage, pull.button))
         TapParticleFlight.captureComposite(activity, shown.map { it.second }, visibleInDecor) { bitmap, bounds ->
             if (generation != landingGeneration || !receiving) {
                 bitmap?.recycle()
@@ -688,9 +725,11 @@ class TapReceiveController(
                 stage?.ringFrame(rect)
                 rect.offset(offset.x, offset.y)
             }
-            inflow = TapParticleFlight.Inflow(activity, bitmap, bounds, antennaInDecor(), APPEAR_S,
+            inflow = TapParticleFlight.Inflow(activity, bitmap, bounds, antennaInDecor(),
+                TapParticleParams.get(activity).appearS,
                 object : TapParticleFlight.Inflow.Listener {
                     override fun onStarted() {
+                        recorder?.stopTracking()
                         stage?.converge()
                     }
 
@@ -718,6 +757,11 @@ class TapReceiveController(
         val radius = activity.resources.getDimension(R.dimen.thing_card_corner_radius)
         stage?.highlight(shown.map { inContainer(it.second) }, radius)
         revealOnly(shown.map { it.first })
+        recorder?.let { r ->
+            TapParticleFlight.afterFrame(host.recyclerView) {
+                r.captureView("page-done", host.container, listOfNotNull(stage, pull.button))
+            }
+        }
     }
 
     private fun revealOnly(ids: List<Long>) {
@@ -747,6 +791,7 @@ class TapReceiveController(
      * 请再碰一次」，随后接着等。
      */
     private fun failCurrent(message: String?) {
+        recorder?.event("failed")
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         receivedFile?.delete()
         cancelLanding()
@@ -817,19 +862,11 @@ class TapReceiveController(
     private companion object {
         const val TAG = "TapReceive"
 
-        /**
-         * 页面底色盖到多深：列表退到后面，拼出来的卡片与流过列表的颗粒浮在上面。颗粒很细，
-         * 列表里同色的卡片没压下去就会把它们吞掉（2026-09-24 三星上实测 0.55 不够）。
-         */
-        const val DIM_LIGHT = 0.78f
-        const val DIM_DARK = 0.72f
+        // 罩层的不透明度见 shared/tap-transfer/particles.properties（receive_dim_alpha）
         const val DEFAULT_CORNER_DP = 24f
 
         /** 需要滚动时，第一张新卡片的上沿离按钮（含提示）下沿多远。 */
         const val CARD_GAP_DP = 12f
-
-        /** 颗粒流出、拼成卡片的时长。 */
-        const val APPEAR_S = 1.3f
 
         /** 等卡片里的图片加载的上限：超过就按当时的样子截。 */
         const val IMAGE_WAIT_MS = 1500L

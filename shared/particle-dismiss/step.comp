@@ -54,6 +54,8 @@ uniform vec2 variation_clock;
 // 碰一碰：消散的终点（NFC 天线位置），材料坐标。每片寿命已在 CPU 侧改成「出生到抵达终点」。
 uniform vec2 sink_point;
 uniform float sink_swirl;
+// 转向终点的过渡区间（飞行进度）：smoothstep(.x, .y, 进度)。
+uniform vec2 sink_homing;
 // 第二组终点：屏幕边框（left, top, right, bottom），一部分微片流向离它最近的那条边。
 // sink_frame_mix.x 是流向边框的占比（0 = 全部流向 sink_point），.y 是沿边错开的全幅。
 uniform vec4 sink_frame;
@@ -255,7 +257,7 @@ void main(){
         vec2 homing=to_sink/remaining;
         // 绕终点的切向分量把流束弯成弧线汇入，越接近终点越弱，最后径直收进去
         homing+=vec2(-to_sink.y,to_sink.x)/remaining*sink_swirl*(1.-journey);
-        target=mix(target,homing,smoothstep(.08,.50,journey));
+        target=mix(target,homing,smoothstep(sink_homing.x,sink_homing.y,journey));
     }
 #endif
     // 共享速度场已向无有效观测的空间延拓。位置继续积分，

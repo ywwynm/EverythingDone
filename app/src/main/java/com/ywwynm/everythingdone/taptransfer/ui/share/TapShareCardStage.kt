@@ -23,6 +23,10 @@ import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
 import com.ywwynm.everythingdone.taptransfer.ui.TapAntennaClearance
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapCardHolderLayout
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -60,6 +64,9 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     }
 
     private val density = resources.displayMetrics.density
+    private val params = TapParticleParams.get(context)
+    private val liftInterpolator = params.liftInterpolator()
+    private val dropInterpolator = params.dropInterpolator()
     private val stack = TapCardHolderLayout(context)
     private val slots = ArrayList<Slot>()
     private var totalCount = 0
@@ -218,19 +225,24 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     // ---------------------------------------------------------------- 抬升与落回
 
     fun lift() {
-        animateLift(1f, LIFT_MS, LIFT_INTERPOLATOR) { listener.onLiftFinished() }
-        animateElevation(1f, LIFT_MS)
+        animateLift(1f, params.liftMs, liftInterpolator) { listener.onLiftFinished() }
+        animateElevation(1f, params.liftMs)
     }
 
     fun drop() {
-        animateLift(0f, DROP_MS, DROP_INTERPOLATOR) { listener.onDropFinished() }
-        animateElevation(0f, DROP_MS)
+        animateLift(0f, params.dropMs, dropInterpolator) { listener.onDropFinished() }
+        animateElevation(0f, params.dropMs)
     }
 
     private fun animateLift(to: Float, durationMs: Long, interpolator: PathInterpolator, onEnd: () -> Unit) {
         liftAnimator?.let { it.removeAllListeners(); it.cancel() }
+        val from = lift
         liftAnimator = ValueAnimator.ofFloat(lift, to).apply {
             duration = (durationMs * abs(to - lift)).toLong().coerceAtLeast(1L)
+            val actual = duration
+            TapSessionRecorder.current?.event("lift") {
+                put("from", from.toDouble()); put("to", to.toDouble()); put("duration", actual)
+            }
             this.interpolator = interpolator
             addUpdateListener { applyLift(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
@@ -242,7 +254,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     private fun applyLift(t: Float) {
         lift = t
-        val detailRiseDy = DETAIL_RISE_DP * density
+        val detailRiseDy = params.detailRiseDp * density
         for ((k, slot) in slots.withIndex()) {
             if (slot.width == 0) {
                 continue
@@ -264,7 +276,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
                 // 详情页：从页面里升起，页面内容保持显示
                 startCx = slot.targetCx
                 startCy = slot.targetCy + detailRiseDy
-                startScale = slot.targetScale * DETAIL_RISE_SCALE
+                startScale = slot.targetScale * params.detailRiseScale
                 startRotation = slot.targetRotation
             }
             val cx = lerp(startCx, slot.targetCx, local)
@@ -279,7 +291,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
             view.scaleY = scale
             view.rotation = lerp(startRotation, slot.targetRotation, local)
             // 列表里的原件一直在：抬起来的这张先淡入、盖在原件上
-            view.alpha = (local / FADE_IN_PORTION).coerceIn(0f, 1f)
+            view.alpha = (local / params.liftFade).coerceIn(0f, 1f)
         }
         stack.invalidate()
     }
@@ -288,6 +300,9 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     fun animateElevation(to: Float, durationMs: Long) {
         elevationAnimator?.cancel()
         val from = currentElevationFraction
+        TapSessionRecorder.current?.event("elevation") {
+            put("from", from.toDouble()); put("to", to.toDouble()); put("duration", durationMs)
+        }
         elevationAnimator = ValueAnimator.ofFloat(from, to).apply {
             duration = durationMs
             addUpdateListener { setElevationFraction(it.animatedValue as Float) }
@@ -299,7 +314,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     private fun setElevationFraction(fraction: Float) {
         currentElevationFraction = fraction
-        val elevation = LIFTED_ELEVATION_DP * density * fraction
+        val elevation = params.elevationDp * density * fraction
         for (slot in slots) {
             (slot.view as? CardView)?.cardElevation = elevation
         }
@@ -308,7 +323,29 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     /** 粒子层接管时藏起卡片，流回之后再显示。 */
     fun setCardsShown(shown: Boolean) {
         stack.alpha = if (shown) 1f else 0f
+        TapSessionRecorder.current?.event("cards") { put("shown", shown) }
     }
+
+    /** 调试（会话记录）：每张卡片的尺寸、起点与目标，舞台坐标。 */
+    fun describeSlots(): JSONArray = JSONArray().also { list ->
+        for (slot in slots) {
+            val origin = slot.origin
+            list.put(JSONObject()
+                .put("size", JSONArray().put(slot.width).put(slot.height))
+                .put("target", JSONArray().put(slot.targetCx.toDouble()).put(slot.targetCy.toDouble())
+                    .put(slot.targetScale.toDouble()).put(slot.targetRotation.toDouble()))
+                .put("origin", origin?.let { JSONArray().put(it.left.toDouble()).put(it.top.toDouble())
+                    .put(it.right.toDouble()).put(it.bottom.toDouble()) } ?: JSONObject.NULL))
+        }
+    }
+
+    /** 调试（会话记录）：卡片视图，第 0 张在最上面。 */
+    fun slotViews(): List<View> = slots.map { it.view }
+
+    /** 调试（会话记录）：等待圈的时钟起点（uptime 毫秒）与天线位置（舞台坐标）。 */
+    val pulseStartUptime: Long get() = pulseStart
+    val antennaInStage: FloatArray get() = floatArrayOf(antennaX, antennaY)
+    val stackCount: Int get() = totalCount
 
     /**
      * 卡片（含旋转与缩放）在 [stackView] 里占的范围，截粒子快照用；没有卡片时返回 false。
@@ -348,6 +385,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     /** 等待被碰时在天线位置画一圈圈向外扩散的提示。 */
     fun setWaitingPulse(on: Boolean) {
+        if (on != waitingPulse) TapSessionRecorder.current?.event("pulse") { put("on", on) }
         waitingPulse = on
         invalidate()
     }
@@ -362,14 +400,16 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         super.dispatchDraw(canvas)
         if (glow > .01f) {
             // 画成预先做好的白色位图：部分定制系统的强制深色会把画笔与渐变里的白色反成黑色
-            drawSprite(canvas, glowShader, GLOW_SPRITE_SIZE, (14f + 10f * glow) * density, glow * .7f)
+            drawSprite(canvas, glowShader, GLOW_SPRITE_SIZE,
+                (params.glowRadiusDp[0] + params.glowRadiusDp[1] * glow) * density, glow * params.glowAlpha)
         }
         if (waitingPulse) {
             val now = (SystemClock.uptimeMillis() - pulseStart) / 1000f
-            for (k in 0 until PULSE_RINGS) {
-                val phase = ((now / PULSE_PERIOD_S) + k.toFloat() / PULSE_RINGS) % 1f
+            for (k in 0 until params.pulseRings) {
+                val phase = ((now / params.pulsePeriodS) + k.toFloat() / params.pulseRings) % 1f
                 val eased = 1f - (1f - phase).pow(2)
-                drawSprite(canvas, ringShader, RING_SPRITE_SIZE, (10f + 34f * eased) * density, (1f - phase) * .6f)
+                drawSprite(canvas, ringShader, RING_SPRITE_SIZE,
+                    (params.pulseRadiusDp[0] + params.pulseRadiusDp[1] * eased) * density, (1f - phase) * params.pulseAlpha)
             }
             postInvalidateOnAnimation()
         }
@@ -415,17 +455,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     companion object {
         private const val MAX_STACK = 4
-        private const val LIFT_MS = 460L
-        private const val DROP_MS = 320L
-        private val LIFT_INTERPOLATOR = PathInterpolator(.2f, 0f, 0f, 1f)
-        private val DROP_INTERPOLATOR = PathInterpolator(.4f, 0f, .6f, 1f)
-
-        /** 抬起来的卡片在这段进度内淡入，盖住列表里的原件。 */
-        private const val FADE_IN_PORTION = .35f
-
-        /** 详情页里卡片从下方多远升起、从多小放大到原尺寸。 */
-        private const val DETAIL_RISE_DP = 56f
-        private const val DETAIL_RISE_SCALE = .94f
+        // 抬起、落回、淡入、升起的距离与缩放见 shared/tap-transfer/particles.properties（send_*）
 
         private const val AREA_MARGIN_DP = 20f
 
@@ -434,7 +464,6 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
         /** 为了让开天线，卡片最多缩到这么大；再小就不让了。 */
         private const val MIN_AVOID_SCALE = .75f
-        private const val LIFTED_ELEVATION_DP = 10f
 
         private val STACK_ROTATION = floatArrayOf(0f, -6f, 5f, -2.5f)
         private val STACK_OFFSET_X = floatArrayOf(0f, -10f, 12f, -4f)
@@ -444,8 +473,6 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
         private const val BADGE_COLOR = 0xE6202124.toInt()
 
-        private const val PULSE_RINGS = 2
-        private const val PULSE_PERIOD_S = 1.8f
         private const val GLOW_SPRITE_SIZE = 128
 
         /** 光点的高斯衰减系数：半径一半处剩约 30%。 */

@@ -44,9 +44,12 @@ import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
 import com.ywwynm.everythingdone.taptransfer.ui.TapSetupNavigator
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleFlight
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
+import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
+import org.json.JSONArray
 
 /**
  * 分享界面（决策 2026-09-24「分享界面改为卡片在上、面板在下，盖在当前页面上」）。
@@ -109,6 +112,9 @@ class TapShareOverlay private constructor(
     }
 
     private val density = activity.resources.displayMetrics.density
+    private val params = TapParticleParams.get(activity)
+    private val outflowEase = params.outflowInterpolator()
+    private val reformEase = params.reformInterpolator()
     private val main = Handler(Looper.getMainLooper())
     private val root = FrameLayout(activity)
     private val dim = View(activity)
@@ -142,6 +148,9 @@ class TapShareOverlay private constructor(
     private var drained = false
     private var pendingAfterClose: (() -> Unit)? = null
     private var dimAnimator: ValueAnimator? = null
+
+    /** 调试：整段会话的记录（落盘开关关着时为 null）。 */
+    private var recorder: TapSessionRecorder? = null
 
     /**
      * 打开之后窗口尺寸变了（旋转屏幕、调整分屏）：卡片的目标位置、原件的位置、天线的位置全都
@@ -177,9 +186,11 @@ class TapShareOverlay private constructor(
             lastFrameNanos = frameTimeNanos
             if (isTransferring()) {
                 val shown = smoother.step(controller.progress.target(SystemClock.uptimeMillis()), dt)
-                tapProgress.progress = (shown * 1000f).toInt()
+                val progress = (shown * 1000f).toInt()
+                if (progress != tapProgress.progress) recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
+                tapProgress.progress = progress
             }
-            stage.setGlow(glowAt(outflow?.presented ?: 0f))
+            stage.setGlow(params.glowAt(outflow?.presented ?: 0f))
             if (!closing && (isTransferring() || flow != Flow.NONE)) {
                 Choreographer.getInstance().postFrameCallback(this)
             } else {
@@ -191,6 +202,8 @@ class TapShareOverlay private constructor(
     // ---------------------------------------------------------------- 打开
 
     private fun buildViews() {
+        // 调试：分享界面盖上去之前的页面，模拟器在它上面重放整段
+        recorder = TapSessionRecorder.start(activity, "send")?.also { it.captureWindow("page") }
         val content = activity.findViewById<ViewGroup>(android.R.id.content)
         val match = FrameLayout.LayoutParams.MATCH_PARENT
         // 卡模拟只在亮屏时应答：分享界面开着就不熄屏。界面移除时自动撤销
@@ -272,18 +285,42 @@ class TapShareOverlay private constructor(
             }
         }
         stage.setCards(cards, origins, request.things.size)
+        recorder?.let { recordStart(it) }
         stage.visibility = View.VISIBLE
         stage.lift()
 
-        animateDim(if (AppearanceUtil.isDarkMode(activity)) DIM_DARK else DIM_LIGHT, OPEN_MS)
+        animateDim(if (AppearanceUtil.isDarkMode(activity)) params.sendDimAlpha[1] else params.sendDimAlpha[0], params.openMs)
         panel.translationY = panel.height.toFloat()
         panel.visibility = View.VISIBLE
-        panel.animate().translationY(0f).setDuration(OPEN_MS).setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f)).start()
+        recorder?.event("panel") {
+            put("from", panel.height.toDouble()); put("to", 0.0); put("duration", params.openMs); put("ease", "open")
+        }
+        panel.animate().translationY(0f).setDuration(params.openMs).setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f)).start()
 
         root.addOnLayoutChangeListener(sizeWatcher)
         controller.start()
         if (controller.phase != TapSendController.Phase.HIDDEN) {
             watcher.start()
+        }
+    }
+
+    /** 调试：抬起开始的那一刻，模拟器重放抬起与落回所需的几何。 */
+    private fun recordStart(r: TapSessionRecorder) {
+        val offset = stageOffsetInDecor()
+        val antenna = stage.antennaInStage
+        r.event("start") {
+            put("stage", JSONArray().put(offset.x.toDouble()).put(offset.y.toDouble()).put(stage.width).put(stage.height))
+            put("slots", stage.describeSlots())
+            put("antenna", JSONArray().put(antenna[0].toDouble()).put(antenna[1].toDouble()))
+            put("antenna_decor", JSONArray().put(antennaInDecor.x.toDouble()).put(antennaInDecor.y.toDouble()))
+            put("total", stage.stackCount)
+            put("pulse_start", r.at(stage.pulseStartUptime))
+            put("panel", JSONArray().put(panel.left).put(panel.top).put(panel.width).put(panel.height))
+            put("dark", AppearanceUtil.isDarkMode(activity))
+        }
+        TapParticleFlight.afterFrame(stage) {
+            stage.slotViews().forEachIndexed { k, view -> r.captureView("card-$k", view) }
+            r.captureSoon("panel", panel, PANEL_CAPTURE_MS)
         }
     }
 
@@ -372,6 +409,8 @@ class TapShareOverlay private constructor(
         if (closing) {
             return
         }
+        recorder?.event("phase") { put("name", phase.name) }
+        recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
         tapArea.visibility = if (phase == TapSendController.Phase.HIDDEN) View.GONE else View.VISIBLE
         tapAction.visibility = View.GONE
         stage.setWaitingPulse(phase == TapSendController.Phase.READY)
@@ -434,6 +473,7 @@ class TapShareOverlay private constructor(
 
     /** 标题与说明。说明为空时占位不收起，面板高度不跟着文案跳。 */
     private fun showText(title: String, hint: String?) {
+        recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
         tapTitle.text = title
         if (hint.isNullOrEmpty()) {
             tapHint.visibility = View.INVISIBLE
@@ -456,7 +496,7 @@ class TapShareOverlay private constructor(
                     controller.readyForNext()
                 }
             }
-        }, SENT_HOLD_MS)
+        }, params.sentHoldMs)
     }
 
     private fun isTransferring(): Boolean {
@@ -480,7 +520,7 @@ class TapShareOverlay private constructor(
         if (existing != null) {
             // 上一台刚发完、还在流回，就又碰上了：从当前位置接着流出
             flow = Flow.OUT
-            existing.animateTo(1f, OUTFLOW_MS, OUTFLOW_EASE) { onOutflowDrained() }
+            existing.animateTo(1f, params.outflowMs, outflowEase) { onOutflowDrained() }
             return
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
@@ -489,8 +529,8 @@ class TapShareOverlay private constructor(
         }
         flow = Flow.PREPARING
         // 投影压到 0 再截：粒子层接管的那一帧与真实卡片逐像素相同，投影不会突然消失
-        stage.animateElevation(0f, SHADOW_DROP_MS)
-        main.postDelayed({ captureForOutflow() }, SHADOW_DROP_MS)
+        stage.animateElevation(0f, params.shadowDropMs)
+        main.postDelayed({ captureForOutflow() }, params.shadowDropMs)
     }
 
     private fun captureForOutflow() {
@@ -521,7 +561,7 @@ class TapShareOverlay private constructor(
                     stage.setCardsShown(false)
                     if (flow == Flow.PREPARING) {
                         flow = Flow.OUT
-                        outflow?.animateTo(1f, OUTFLOW_MS, OUTFLOW_EASE) { onOutflowDrained() }
+                        outflow?.animateTo(1f, params.outflowMs, outflowEase) { onOutflowDrained() }
                     }
                 }
 
@@ -547,14 +587,14 @@ class TapShareOverlay private constructor(
     /** 截不到卡片或粒子层建不起来：不用粒子，只走文字与进度。 */
     private fun outflowUnavailable() {
         flow = Flow.NONE
-        stage.animateElevation(1f, SHADOW_DROP_MS)
+        stage.animateElevation(1f, params.shadowDropMs)
         onOutflowDrained()
     }
 
     private fun showCardsAgain() {
         flow = Flow.NONE
         stage.setCardsShown(true)
-        stage.animateElevation(1f, SHADOW_RESTORE_MS)
+        stage.animateElevation(1f, params.shadowRestoreMs)
     }
 
     private fun onOutflowDrained() {
@@ -574,13 +614,13 @@ class TapShareOverlay private constructor(
             Flow.PREPARING -> {
                 // 还没截图就结束了：直接恢复投影，截图回来时会被丢掉
                 flow = Flow.NONE
-                stage.animateElevation(1f, SHADOW_RESTORE_MS)
+                stage.animateElevation(1f, params.shadowRestoreMs)
                 false
             }
             Flow.OUT -> {
                 flow = Flow.RETURNING
                 startFrames()
-                outflow?.animateTo(0f, REFORM_MS, REFORM_EASE, null)
+                outflow?.animateTo(0f, params.reformMs, reformEase, null)
                 true
             }
             Flow.RETURNING -> true
@@ -591,15 +631,6 @@ class TapShareOverlay private constructor(
         if (!closing) {
             controller.readyForNext()
         }
-    }
-
-    /** 天线处的光：颗粒大量汇入的那一段最亮，开头与结尾都淡。 */
-    private fun glowAt(position: Float): Float {
-        fun smooth(a: Float, b: Float, x: Float): Float {
-            val t = ((x - a) / (b - a)).coerceIn(0f, 1f)
-            return t * t * (3f - 2f * t)
-        }
-        return smooth(.18f, .55f, position) * (1f - smooth(.88f, 1f, position))
     }
 
     // ---------------------------------------------------------------- 舞台回调
@@ -637,8 +668,13 @@ class TapShareOverlay private constructor(
         stage.setCardsShown(true)
         stage.setGlow(0f)
         stage.setWaitingPulse(false)
-        animateDim(0f, CLOSE_MS)
-        panel.animate().translationY(panel.height.toFloat()).setDuration(CLOSE_MS)
+        animateDim(0f, params.closeMs)
+        recorder?.event("close")
+        recorder?.event("panel") {
+            put("from", panel.translationY.toDouble()); put("to", panel.height.toDouble())
+            put("duration", params.closeMs); put("ease", "close")
+        }
+        panel.animate().translationY(panel.height.toFloat()).setDuration(params.closeMs)
             .setInterpolator(PathInterpolator(0.4f, 0f, 1f, 1f)).start()
         stage.drop()
     }
@@ -663,6 +699,8 @@ class TapShareOverlay private constructor(
     }
 
     private fun dispose() {
+        recorder?.finish()
+        recorder = null
         // 监听挂在窗口的观察者上，要在视图摘下来之前取消，摘下来之后就找不到那个观察者了
         startListener?.let {
             if (root.viewTreeObserver.isAlive) {
@@ -687,6 +725,7 @@ class TapShareOverlay private constructor(
 
     private fun animateDim(to: Float, duration: Long) {
         dimAnimator?.cancel()
+        recorder?.event("dim") { put("from", dim.alpha.toDouble()); put("to", to.toDouble()); put("duration", duration) }
         val animator = ValueAnimator.ofFloat(dim.alpha, to)
         animator.duration = duration
         animator.addUpdateListener { dim.alpha = it.animatedValue as Float }
@@ -696,35 +735,14 @@ class TapShareOverlay private constructor(
 
     companion object {
         private const val MAX_STACK = 4
-        private const val OPEN_MS = 360L
-        private const val CLOSE_MS = 300L
-        private const val SENT_HOLD_MS = 900L
-        private const val DIM_LIGHT = 0.5f
-        private const val DIM_DARK = 0.62f
-
-        /**
-         * 卡片化成颗粒流进天线的整段时长（进度 0 → 1）。进度与粒子时间轴一一对应，时长约为
-         * 时间轴的 1.5 倍，颗粒的速度与首页、弹窗的消散相近。
-         */
-        private const val OUTFLOW_MS = 1500L
-
-        /** 从天线流回、拼回卡片的整段时长（进度 1 → 0）。 */
-        private const val REFORM_MS = 1200L
-
-        /**
-         * 起步缓入、结束缓出（偏好「动画节奏不能匀速」）。流出的中段不能太陡：释放集中在进度的
-         * 前 0.6，中段一快，剥离就变成整张卡片同时散开；这条曲线中段最快只有平均速度的 1.5 倍，
-         * 剥离铺开约 0.8 秒。
-         */
-        private val OUTFLOW_EASE = PathInterpolator(.3f, 0f, .6f, 1f)
-        private val REFORM_EASE = PathInterpolator(.30f, 0f, .20f, 1f)
-
-        /** 截图之前把投影压下去的时长；流回之后投影恢复的时长。 */
-        private const val SHADOW_DROP_MS = 140L
-        private const val SHADOW_RESTORE_MS = 220L
+        // 罩层、打开与关闭的时长见 shared/tap-transfer/particles.properties（send_*）
+        // 流出、流回的时长与缓动，以及「已发送」的停留，见 shared/tap-transfer/particles.properties
 
         /** 取不到天线位置时流向屏幕顶部中间：状态栏下方这么远。 */
         private const val ANTENNA_FALLBACK_DP = 28f
+
+        /** 调试（会话记录）：面板文字与进度最多这么久抓一张。 */
+        private const val PANEL_CAPTURE_MS = 90L
 
         /** 打开分享界面。 */
         @JvmStatic
