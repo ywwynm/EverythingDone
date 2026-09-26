@@ -140,9 +140,9 @@ class TapRenderer:
     """一次飞行（一个种子、一组物理参数）的完整轨迹与出图。"""
 
     def __init__(self, scene: Scene, build: Build, ctx: moderngl.Context, output_scale: float = 1.,
-                 jacobi: int | None = None, hand_until: bool = False):
-        """[hand_until]：这一层的颗粒会被另一层逐片接手（接收时进度期间那一层），打开 HAND_UNTIL，
-        用 `set_hand_until` 给出每一片交出去的时间轴位置。"""
+                 jacobi: int | None = None, layer_alpha: bool = False):
+        """[layer_alpha]：这一层与另一层交叉淡化（接收时的两层），打开 LAYER_ALPHA，用 `set_layer_alpha`
+        给出每一帧整层的不透明度（光尘接手的颗粒不受它影响）。"""
         self.scene, self.build, self.ctx = scene, build, ctx
         started = clock.perf_counter()
         w, h = scene.screen
@@ -200,10 +200,10 @@ class TapRenderer:
             material_defines += '#define SINK_FIELD 1\n'
         if self.targets:
             material_defines += '#define SINK_TARGETS 1\n'
-        self.hand = None
-        if hand_until and flow_mode() == 'field':
-            material_defines += '#define HAND_UNTIL 1\n'
-            self.hand = ctx.buffer(np.tile(np.array([-1., 0.], 'float32'), (self.n, 1)).tobytes())
+        self.layer_alpha = layer_alpha and flow_mode() == 'field'
+        self.alpha = 1.
+        if self.layer_alpha:
+            material_defines += '#define LAYER_ALPHA 1\n'
         vert = desktop((SHARED / 'material.vert').read_text(encoding='utf-8'), material_defines)
         frag = desktop((SHARED / 'material.frag').read_text(encoding='utf-8'), material_defines)
         self.program = ctx.program(vertex_shader=vert, fragment_shader=frag)
@@ -214,8 +214,6 @@ class TapRenderer:
         ]
         if self.targets:
             attributes += [(self.handoff_target, '4f/i', 'sink_explicit'), (self.handoff_origin, '4f/i', 'sink_origin')]
-        if self.hand is not None:
-            attributes += [(self.hand, '2f/i', 'hand_until')]
         self.vao = ctx.vertex_array(self.program, attributes, skip_errors=True)
         self._setup_draw()
 
@@ -381,10 +379,9 @@ class TapRenderer:
         self.ctx.memory_barrier()
         return position / SAMPLES
 
-    def set_hand_until(self, values: np.ndarray):
-        """(n, 2)：每一片交出去的时间轴位置（0–1）与淡去的长度；从不交出的是 (-1, 0)。"""
-        if self.hand is not None:
-            self.hand.write(np.ascontiguousarray(values, dtype='float32').tobytes())
+    def set_layer_alpha(self, alpha: float):
+        """整层的不透明度（0–1），下一次 [accumulate] 起生效；没有打开 LAYER_ALPHA 时不起作用。"""
+        self.alpha = min(max(float(alpha), 0.), 1.)
 
     def read_positions(self, frame: int) -> np.ndarray:
         """第 [frame] 份采样里各片的位置（材料坐标，(n, 2)）。"""
@@ -406,6 +403,8 @@ class TapRenderer:
         if self.srgb:
             ctx.enable_direct(GL_FRAMEBUFFER_SRGB)
         self.program['time'] = float(t)
+        if self.layer_alpha:
+            self.program['layer_alpha'] = self.alpha
         self.fg_tex.use(0)
         for material_pass in ((0, 1) if surface else (1,)):
             # 与 Android 相同：表面按原像素覆盖（最近点），运动片线性过滤
@@ -470,7 +469,7 @@ class TapRenderer:
         if self.pressure is not None:
             self.pressure.close()
         for name in ('material', 'state', 'pigment', 'peel_compression', 'history', 'draw_state', 'fg_tex',
-                     'handoff_target', 'handoff_origin', 'hand',
+                     'handoff_target', 'handoff_origin',
                      'compute', 'restore', 'program', 'vao', 'accum', 'accum_fbo', 'out_tex', 'out_fbo', 'resolve',
                      'resolve_vao', 'bg_program', 'bg_vao', 'glow_program', 'glow_vao', 'flow_tex', 'confidence_tex'):
             obj = getattr(self, name, None)

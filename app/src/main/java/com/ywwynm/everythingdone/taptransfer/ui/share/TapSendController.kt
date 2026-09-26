@@ -8,10 +8,13 @@ import androidx.annotation.RequiresApi
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapPayloadWriter
 import com.ywwynm.everythingdone.taptransfer.transport.TapSenderTransport
+import com.ywwynm.everythingdone.taptransfer.transport.nfc.TapNfcDiscovery
 import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
+import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 
 /**
  * 分享界面里碰一碰那一块的状态：什么时候可以被碰、碰上了谁、传到哪了、成没成。
@@ -76,6 +79,12 @@ class TapSendController(
 
     private var transport: TapSenderTransport? = null
     private var payload: TapPayloadWriter? = null
+
+    /** 本机此刻是否停掉了 NFC 轮询、只做卡（[TapNfcDiscovery]）。 */
+    private var listenOnly = false
+
+    /** 前几条记事的卡片在本机列表里的形状，交给接收方预计落点。分享界面开着时不会变，量一次就留着。 */
+    private val shapes by lazy { TapThingCards.listShapes(activity, things, TapHandshake.MAX_COLORS) }
 
     fun start() {
         if (!isSupported(activity)) {
@@ -143,10 +152,15 @@ class TapSendController(
             TapPayloadWriter(activity, things).also { payload = it }
         }
         val colors = IntArray(things.size) { things[it].getBackground()?.representativeColor() ?: things[it].getColor() }
+        val (aspects, fullSpan) = shapes
         val t = TapTransfer.createSenderTransport(activity)
         transport = t
+        if (!TapTransfer.isSimulationEnabled(activity)) {
+            // 只做卡：本机不轮询，接收方的读取模式才读得到这边（见 TapNfcDiscovery）
+            listenOnly = TapNfcDiscovery.listenOnly(activity)
+        }
         t.start(
-            TapSenderTransport.Offer(TapTransfer.deviceName(activity), things.size, colors, writer),
+            TapSenderTransport.Offer(TapTransfer.deviceName(activity), things.size, colors, writer, aspects, fullSpan),
             this
         )
     }
@@ -154,6 +168,10 @@ class TapSendController(
     private fun stopTransport() {
         transport?.stop()
         transport = null
+        if (listenOnly) {
+            listenOnly = false
+            TapNfcDiscovery.reset(activity)
+        }
     }
 
     private fun setPhase(next: Phase) {
@@ -204,6 +222,14 @@ class TapSendController(
         Log.w(TAG, "发送失败：$reason")
         lastFailed = true
         setPhase(Phase.FAILED)
+    }
+
+    override fun onGroupLost() {
+        Log.i(TAG, "Wi-Fi Direct 组被拆掉了，重新准备")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            stopTransport()
+            arm()
+        }
     }
 
     companion object {

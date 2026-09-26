@@ -38,6 +38,15 @@ internal class TapFixtureDump private constructor(private val activity: Activity
 
     private val main = Handler(Looper.getMainLooper())
 
+    /**
+     * 提前建的那一层（占位快照）交进了真实快照：`snapshot.png` 换成真实的，模拟器重放时颜色才对。
+     * 写盘在同一条线程上排队，一定晚于 [begin] 里写的那一份。
+     */
+    fun replaceSnapshot(bitmap: Bitmap) {
+        val copy = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
+        write("snapshot", copy)
+    }
+
     /** 在 [delayMs] 之后截一张窗口画面存为 `<name>.png`。 */
     fun captureWindow(name: String, delayMs: Long = 0L) {
         main.postDelayed({ copyWindow(name) }, delayMs)

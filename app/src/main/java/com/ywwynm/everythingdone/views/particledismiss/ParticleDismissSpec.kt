@@ -67,5 +67,34 @@ internal class ParticleDismissSpec(
      * 消散的终点：非空时颗粒汇成流被吸进这一点，倒放时从这一点流出（碰一碰）。
      * 为空（其余所有动画）时运动与改动前逐位相同：着色器不编进这一段。
      */
-    val sink: ParticleSink? = null
+    val sink: ParticleSink? = null,
+    /**
+     * 算运动用的位图（与 [snapshot] 同尺寸）：非空时材料按它建，前景贴图仍是 [snapshot]。接收时拼卡那一层
+     * 用同样大小的代表色卡片算运动、只从真实卡片取颜色，与进度期间那一层（同样的代表色卡片）逐片重合。
+     */
+    val dynamics: Bitmap? = null,
+    /** 光尘接手（`SINK_TARGETS`）：建材整形之后按它给出逐片终点与接手颜色。 */
+    val handoff: ParticleHandoffSource? = null,
+    /** 整层的不透明度由会话每帧给出（`LAYER_ALPHA`，见 [ParticleGestureProgress.layerAlpha]）。 */
+    val layerAlpha: Boolean = false,
+    /**
+     * [snapshot] 只是占位（与真实快照同尺寸，材料按它建）：真实快照稍后由
+     * [ParticleGestureProgress.supplyForeground] 交进来，会话算完历史之后等它、换上前景贴图才出第一帧。
+     * 只用于按时间轴取帧的手势会话（碰一碰接收时拼卡那一层提前建）。
+     */
+    val deferForeground: Boolean = false
 )
+
+/** 光尘接手的结果：逐片终点（材料坐标 xy、种类、0）与接手颜色（sRGB、方式），各为每片 4 个 float。 */
+internal class ParticleHandoff(val targets: FloatArray, val origins: FloatArray)
+
+/**
+ * 按建好、整形好的材料（[values]，每片 12 个 float）算光尘接手：挑出被接手的颗粒、改写它们的寿命，给出逐片终点
+ * 与接手颜色。在建材线程调用；必须给出结果（没有一片被接手时两组全零），渲染器按规格编译了逐片终点。
+ *
+ * 材料坐标换到动画层像素：`x × scale + originXPx`。[visible] 标出出生处看得见的颗粒（为 null 时全部看得见）。
+ */
+internal fun interface ParticleHandoffSource {
+    fun compute(values: FloatArray, sink: ParticleSink.Geometry, scale: Float, originXPx: Float, originYPx: Float,
+                cardWidth: Float, cardHeight: Float, visible: BooleanArray?): ParticleHandoff
+}

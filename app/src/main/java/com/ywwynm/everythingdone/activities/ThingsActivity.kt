@@ -6962,7 +6962,11 @@ class ThingsActivity :
             val edgeColor: Int = EdgeEffectUtil.getEdgeColorDark()
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (mScrollCausedByFinger) {
+                if (mTapReceive?.isReceiving == true) {
+                    // 碰一碰接收状态下手指碰不到列表，滚动都是程序发起的（新卡片在置顶之下，先滚过去）。
+                    // 头部照常按滚动距离折叠；顶栏不跟着隐藏，「退出接收」按钮挂在它下面
+                    mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
+                } else if (mScrollCausedByFinger) {
                     dismissSnackbars()
                     mActivityHeader!!.updateAll(findFirstVisibleThingListPosition(), false)
                     // Home Chrome Retraction: only finger scrolls drive it, and only
@@ -7009,10 +7013,12 @@ class ThingsActivity :
     /**
      * Immersive Thing List 只在正常 / moving 模式、非搜索、且卡片外观编辑面板未打开时生效。
      * 外观面板是聚焦编辑浮层（会把目标卡片滚入视野、占据底部），其间挂起 Home Chrome Retraction。
+     * 碰一碰接收状态同样挂起：「退出接收」按钮挂在顶栏下方。
      */
     private fun immersiveEligible(): Boolean {
         if (App.isSearching) return false
         if (isThingCardAppearancePanelShowing()) return false
+        if (mTapReceive?.isReceiving == true) return false
         val mode = mModeManager?.getCurrentMode() ?: return false
         return mode == ModeManager.NORMAL || mode == ModeManager.MOVING
     }
@@ -12318,6 +12324,15 @@ class ThingsActivity :
 
             override fun listPositionOf(id: Long): Int = mThingManager!!.getListPositionForThingId(id)
 
+            override fun receivedInsertPosition(): Int {
+                // 新记事的 location 最大：排在置顶（location < 0）的记事与文件夹之后、其余各项之前
+                val entries = mThingManager!!.getThingListEntries() ?: return 1
+                for (i in 1 until entries.size) {
+                    if (entries[i].location >= 0) return i
+                }
+                return entries.size
+            }
+
             override fun findReceivedCard(id: Long): View? {
                 val position = mThingManager!!.getListPositionForThingId(id)
                 if (position < 0) return null
@@ -12390,6 +12405,8 @@ class ThingsActivity :
 
     private fun onTapReceivedThingsCommitted() {
         mActivityHeader?.updateText()
+        // updateText 把折叠进度归零、按展开态重排标题；列表此刻可能已经滚过（置顶多），画之前按实际滚动位置重算
+        requestActivityHeaderStateRefreshBeforeDraw(mThingManager?.getProjection()?.key())
         clearOperationEmptyState()
         updateHomeEmptyState()
         mDrawerHeader?.updateTexts()

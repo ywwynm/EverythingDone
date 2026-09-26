@@ -1,9 +1,37 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
+import android.graphics.Bitmap
 import java.util.TreeMap
 
-/** 手指与 ItemTouchHelper 的松手恢复动画共用绝对距离，不累加时间或位移。 */
-internal class ParticleGestureProgress(initiallyActive: Boolean = true) {
+/**
+ * 手指与 ItemTouchHelper 的松手恢复动画共用绝对距离，不累加时间或位移。
+ *
+ * 碰一碰也用它按外部给的位置取帧：发送的流出与重新抬起按进度动画 [seek]；接收的两层按倒放时间轴每帧
+ * [seek]，并且
+ * - [prepareAll]：整段历史先算完、之前一帧不画（接收的两层从时间轴的末端开始播，按需补档会先画出
+ *   还没散开的卡片）；
+ * - [layerAlpha]：整层的不透明度（两层交叉淡化），会话每次绘制前交给渲染器；
+ * - [drawSurface]：是否画「原表面」那一遍。进度期间那一层只画颗粒，代理卡片本身不能露出来；
+ * - [supplyForeground]：规格打开了 `deferForeground` 时，真实快照稍后交进来（拼卡那一层提前建）。
+ */
+internal class ParticleGestureProgress(
+    initiallyActive: Boolean = true,
+    val prepareAll: Boolean = false,
+    val drawSurface: Boolean = true
+) {
+    /** 整层的不透明度（0–1），主线程写、GL 线程读。只有规格打开了 `layerAlpha` 的会话才用它。 */
+    @Volatile var layerAlpha = 1f
+
+    /** 稍后交进来的真实快照（与占位快照同尺寸）；主线程写、GL 线程读。 */
+    @Volatile var foreground: Bitmap? = null
+        private set
+
+    /** 交进真实快照并唤醒 GL 线程：会话换上前景贴图之后出第一帧。 */
+    fun supplyForeground(bitmap: Bitmap) {
+        foreground = bitmap
+        ParticleGl.wake()
+    }
+
     @Volatile var active = initiallyActive
         private set
     @Volatile var activatedAtNanos = if (initiallyActive) System.nanoTime() else 0L

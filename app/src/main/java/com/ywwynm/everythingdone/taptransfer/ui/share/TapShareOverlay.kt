@@ -58,8 +58,9 @@ import org.json.JSONArray
  * 从列表里的卡片位置升起、叠成一叠；详情页里从页面中升起）；下方面板是碰一碰区域与「文本与
  * 图片」「长截图」「记事文件」三项。按返回或点暗处关闭，卡片落回。
  *
- * 碰上之后卡片交给首页与弹窗共用的粒子消散，颗粒汇成流被吸进 NFC 天线；发完或失败时再从天线
- * 流回来、拼回卡片（[TapParticleFlight.Outflow]，一份轨迹往前拖是流出、往回拖是流回）。
+ * 碰上之后卡片交给首页与弹窗共用的粒子消散，颗粒整团滑进 NFC 天线（[TapParticleFlight.Outflow]）。
+ * 发完之后「已发送」停留一会儿，卡片按打开时的那段抬起重新出现；发送失败、流出被打断时从天线流回来、
+ * 拼回卡片（一份轨迹往前拖是流出、往回拖是流回）。
  *
  * 界面直接挂在 Activity 的内容视图上，不开新窗口：卡片要从页面里连续地抬升出来、再落回去，
  * 跨窗口交接做不到连续。
@@ -178,7 +179,7 @@ class TapShareOverlay private constructor(
         }
     }
 
-    /** 逐帧：面板进度条跟着传输进度走，天线处的光跟着粒子的进度走。 */
+    /** 逐帧：面板进度条跟着传输进度走，天线处的扩散圈跟着粒子实际呈现的进度收缩。 */
     private var lastFrameNanos = 0L
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
@@ -190,11 +191,11 @@ class TapShareOverlay private constructor(
                 if (progress != tapProgress.progress) recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
                 tapProgress.progress = progress
             }
-            stage.setGlow(params.glowAt(outflow?.presented ?: 0f))
+            stage.setPulseShrink(outflow?.presented ?: 0f)
             if (!closing && (isTransferring() || flow != Flow.NONE)) {
                 Choreographer.getInstance().postFrameCallback(this)
             } else {
-                stage.setGlow(0f)
+                stage.setPulseShrink(0f)
             }
         }
     }
@@ -413,7 +414,10 @@ class TapShareOverlay private constructor(
         recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
         tapArea.visibility = if (phase == TapSendController.Phase.HIDDEN) View.GONE else View.VISIBLE
         tapAction.visibility = View.GONE
-        stage.setWaitingPulse(phase == TapSendController.Phase.READY)
+        // 第三版：从可以被碰一直播到关闭，碰上、发送、已发送期间都不断
+        stage.setPulse(phase == TapSendController.Phase.READY || phase == TapSendController.Phase.CONNECTING ||
+            phase == TapSendController.Phase.SENDING || phase == TapSendController.Phase.SENT ||
+            phase == TapSendController.Phase.FAILED)
         when (phase) {
             TapSendController.Phase.HIDDEN -> {}
             TapSendController.Phase.SETUP -> {
@@ -492,11 +496,29 @@ class TapShareOverlay private constructor(
         main.postDelayed({
             if (!closing) {
                 tapProgress.visibility = View.INVISIBLE
-                if (!reform()) {
-                    controller.readyForNext()
-                }
+                relift()
             }
         }, params.sentHoldMs)
+    }
+
+    /**
+     * 发完之后卡片重新抬起（与打开时同一段抬起），抬起走完再接下一台。颗粒此刻全在天线里、粒子层上
+     * 什么也没有，而卡片从透明开始淡入：撤粒子层与显示卡片之间没有可见的交接。
+     */
+    private fun relift() {
+        val current = outflow
+        if (current == null || flow != Flow.OUT) {
+            // 没用粒子（截不到卡片、粒子层没建起来）：卡片一直在
+            if (!reform()) {
+                controller.readyForNext()
+            }
+            return
+        }
+        outflow = null
+        flow = Flow.NONE
+        current.release()
+        recorder?.event("relift")
+        stage.relift { if (!closing) controller.readyForNext() }
     }
 
     private fun isTransferring(): Boolean {
@@ -666,8 +688,7 @@ class TapShareOverlay private constructor(
         outflow = null
         flow = Flow.NONE
         stage.setCardsShown(true)
-        stage.setGlow(0f)
-        stage.setWaitingPulse(false)
+        stage.setPulse(false)
         animateDim(0f, params.closeMs)
         recorder?.event("close")
         recorder?.event("panel") {

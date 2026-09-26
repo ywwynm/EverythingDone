@@ -19,7 +19,7 @@ import moderngl
 import numpy as np
 from PIL import Image, ImageDraw
 
-from sim_model import SAMPLES, Params, Scene, build_materials
+from sim_model import SAMPLES, Params, Scene, build_materials, smooth
 from sim_list import Grid, header_of, insertion_order, layout
 from sim_recolor import Background, rgb_of
 from sim_renderer import TapRenderer
@@ -104,8 +104,8 @@ def receive_params(params: Params) -> Params:
 
 class ProxyFlight:
     """进度期间的那一层：代理卡片的倒放。与真实卡片的倒放共用一条时间轴（`ReceivePlan.reverse_tau`），
-    流入开始时两层交叉淡化：这一层淡出，真实那层从同一个进度淡入。不逐片配对（逐片配对会把卡片上
-    连成一片的区域拆散，半路成一块块碎片）。"""
+    流入开始时两层交叉淡化（`LAYER_ALPHA`，整层的不透明度）：这一层淡出，真实那层从同一个进度淡入。不逐片
+    配对（逐片配对会把卡片上连成一片的区域拆散，半路成一块块碎片）。"""
 
     def __init__(self, ctx: moderngl.Context, session, plan, params: Params, real: Scene, scale: float = 1.,
                  seed: int = 20260925):
@@ -117,16 +117,20 @@ class ProxyFlight:
         self.colors = [backgrounds[k % len(backgrounds)].representative() for k in range(len(self.slots))]
         self.scene = proxy_scene(real, plan, self.slots, self.colors)
         self.build = build_materials(self.scene, params, seed)
-        self.renderer = TapRenderer(self.scene, self.build, ctx, scale, hand_until=True)
+        self.renderer = TapRenderer(self.scene, self.build, ctx, scale, layer_alpha=True)
         self.n = len(self.build.base)
         _, fade_start, fade_end = params['receive_crossfade']
-        self.fade_end = None
+        self.fade_start = self.fade_end = None
         if plan.t_inflow is not None:
-            # 流入开始之后在 [fade_start, fade_end] 里淡出（全部颗粒）
-            a = plan.forward_time(plan.t_inflow + fade_start)
-            b = plan.forward_time(plan.t_inflow + fade_end)
-            self.renderer.set_hand_until(np.tile(np.array([b, max(a - b, 1e-4)], 'float32'), (self.n, 1)))
+            # 流入开始之后在 [fade_start, fade_end] 里整层淡出
+            self.fade_start = plan.t_inflow + fade_start
             self.fade_end = plan.t_inflow + fade_end
+
+    def alpha(self, t: float) -> float:
+        """这一层此刻整层的不透明度。"""
+        if self.fade_end is None:
+            return 1.
+        return 1. - smooth(self.fade_start, self.fade_end, t)
 
     def position(self, t: float) -> float | None:
         """画这一层时取的采样位置（0–60，可带小数）；碰上之前、淡出之后返回 None。"""

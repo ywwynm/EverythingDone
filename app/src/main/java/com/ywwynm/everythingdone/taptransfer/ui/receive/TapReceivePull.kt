@@ -63,6 +63,12 @@ class TapReceivePull(
     private var lastY = 0f
     private var crossedThreshold = false
 
+    /**
+     * 这次手势按下时列表已经在顶部（或按钮已经拉出）。只有这样的手势才拉得出按钮：一路把列表滑回顶部、
+     * 手指不停接着往下拉，拉出来的会是列表的顶部，而不是按钮（2026-09-26 用户指出按钮不该这样出现）。
+     */
+    private var downAtTop = false
+
     private val scrollListener = object : RecyclerView.OnScrollListener() {
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             // 列表被别的原因滚动（新建记事后滚到新卡片等）时收起按钮
@@ -110,15 +116,21 @@ class TapReceivePull(
         }
     }
 
-    /** 进入 / 退出接收状态：按钮换成「退出接收」并多出一行提示，空位随之变高。 */
+    /**
+     * 进入 / 退出接收状态：按钮换成「退出接收」并多出一行提示，空位随之变高。
+     *
+     * 退出时列表若已不在顶部（新卡片在置顶之下，接收时滚过去了），按钮随之收起：「接收记事」只在列表
+     * 滑到顶、再往下拉时出现，停在滚过的列表上方会压住头部。
+     */
     fun setReceiving(receiving: Boolean) {
         this.receiving = receiving
         pill.setText(if (receiving) R.string.tap_receive_exit else R.string.tap_receive_button)
         setHint(if (receiving) context.getString(R.string.tap_receive_hint) else null)
         applyStyle()
         button.post {
-            if (offset > 0f || receiving) {
-                animateTo(slot())
+            when {
+                this.receiving -> animateTo(slot())
+                offset > 0f -> animateTo(if (recyclerView.canScrollVertically(-1)) 0f else slot())
             }
         }
     }
@@ -156,6 +168,7 @@ class TapReceivePull(
                 downY = e.rawY
                 lastY = e.rawY
                 dragging = false
+                downAtTop = offset > 0f || !rv.canScrollVertically(-1)
                 crossedThreshold = offset >= slot() * OPEN_THRESHOLD
                 if (animator != null && offset > 0f) {
                     // 回弹途中按住：从当前位置接着拉
@@ -168,7 +181,8 @@ class TapReceivePull(
                     val dy = e.rawY - downY
                     val dx = e.rawX - downX
                     if (abs(dy) > touchSlop && abs(dy) > abs(dx) * 1.2f) {
-                        val pullDown = dy > 0f && !rv.canScrollVertically(-1) && (offset > 0f || isEligible())
+                        val pullDown = dy > 0f && downAtTop && !rv.canScrollVertically(-1) &&
+                            (offset > 0f || isEligible())
                         val collapse = dy < 0f && offset > 0f
                         if (pullDown || collapse) {
                             dragging = true
@@ -194,6 +208,12 @@ class TapReceivePull(
                 lastY = e.rawY
                 val slot = slot()
                 if (dy > 0f) {
+                    if (offset <= 0f && rv.canScrollVertically(-1)) {
+                        // 同一次手势里先往上收起按钮、把列表滚了下去，又往回拉：先把列表滚回顶部，
+                        // 到顶之后才拉出按钮。否则按钮会停在滚过的列表上方，压住折叠了一半的头部
+                        rv.scrollBy(0, -dy.toInt())
+                        return
+                    }
                     val resistance = if (offset < slot) PULL_RESISTANCE else OVER_PULL_RESISTANCE
                     applyOffset(min(offset + dy * resistance, slot * MAX_PULL))
                 } else {

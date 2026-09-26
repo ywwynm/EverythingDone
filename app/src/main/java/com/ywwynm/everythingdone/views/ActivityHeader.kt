@@ -76,6 +76,8 @@ open class ActivityHeader(
 
     // 碰一碰「接收记事」下拉（二期）：列表在顶部时再往下拉，列表与头部一起下移，在 actionbar 下方
     // 让出按钮的位置。只作用于头部，actionbar 不动；任何 reset 都把它清零并通知下拉的控制方。
+    // 接收状态下列表会被程序滚动（置顶多、新卡片要先滚过去）：这段位移随折叠进度减到 0（见 pullShift），
+    // 折叠完成时标题照常停进 actionbar，而不是停在按钮所在的那一截空位里。
     private var pullOffsetPx: Float = 0f
     private var mPullResetListener: ((anim: Boolean) -> Unit)? = null
 
@@ -510,7 +512,7 @@ open class ActivityHeader(
             // Retraction is 0 in every anim-path caller (mode changes / resets), so
             // the title animates to its plain collapse translation; actionbar/shadow
             // follow retraction directly.
-            mRelativeLayout.animate()!!.translationY(translationY - retractionOffsetPx + pullOffsetPx)
+            mRelativeLayout.animate()!!.translationY(translationY - retractionOffsetPx + pullShift())
 
             /*
              * Changing scaleX and scaleY of title is better than changing its textSize.
@@ -583,8 +585,11 @@ open class ActivityHeader(
         if (pullOffsetPx == px) return
         pullOffsetPx = px
         mRelativeLayout.animate()!!.cancel()
-        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullOffsetPx
+        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullShift()
     }
+
+    /** 下拉位移在头部上实际生效的部分：未折叠时是全部，折叠完成时为 0。 */
+    private fun pullShift(): Float = pullOffsetPx * (1f - headerCollapseProgress)
 
     /** [reset]（换范围、换状态、退出搜索、旋转屏幕）时通知下拉的控制方收起按钮。 */
     fun setOnPullResetListener(listener: ((anim: Boolean) -> Unit)?) {
@@ -592,7 +597,7 @@ open class ActivityHeader(
     }
 
     private fun applyRetractionTransforms() {
-        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullOffsetPx
+        mRelativeLayout.translationY = headerCollapseTranslationY - retractionOffsetPx + pullShift()
         mActionbar?.translationY = -retractionOffsetPx
         mStatusBarView?.translationY = -retractionOffsetPx
         mActionbarShadow.translationY = -retractionOffsetPx

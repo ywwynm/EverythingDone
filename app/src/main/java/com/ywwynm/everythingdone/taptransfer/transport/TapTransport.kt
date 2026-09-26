@@ -24,7 +24,10 @@ enum class TapFailure {
 class TapIncomingOffer(
     val senderName: String,
     val thingCount: Int,
-    val colors: IntArray
+    val colors: IntArray,
+    /** 前几条记事的卡片高宽比（高 / 宽）与是否通栏（与 [colors] 同序）；旧版发送方没有，为空。 */
+    val aspects: FloatArray = FloatArray(0),
+    val fullSpan: BooleanArray = BooleanArray(0)
 )
 
 /**
@@ -43,7 +46,10 @@ interface TapSenderTransport {
         val senderName: String,
         val thingCount: Int,
         val colors: IntArray,
-        val payload: TapPayload
+        val payload: TapPayload,
+        /** 前几条记事的卡片高宽比（按本机列表里的样子量）与是否通栏，交给接收方预计落点。 */
+        val aspects: FloatArray = FloatArray(0),
+        val fullSpan: BooleanArray = BooleanArray(0)
     )
 
     interface Listener {
@@ -58,6 +64,13 @@ interface TapSenderTransport {
         fun onProgress(done: Long, total: Long)
         fun onSent(peerName: String)
         fun onFailed(reason: TapFailure)
+
+        /**
+         * 可以被碰之后，Wi-Fi Direct 组被系统或别的应用拆掉了（例如系统自己的碰一碰占了 Wi-Fi Direct）。
+         * 只在没有正在进行的一次时报；正在传的那一次先按失败走完，等界面回到可以被碰时再报。
+         * 调用方停掉这个传输、重新准备。
+         */
+        fun onGroupLost()
     }
 
     fun start(offer: Offer, listener: Listener)

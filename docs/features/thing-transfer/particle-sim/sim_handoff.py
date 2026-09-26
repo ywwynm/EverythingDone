@@ -55,14 +55,14 @@ class Handoff:
     origin: np.ndarray        # (n, 4) float32：接手那一片光尘的颜色（sRGB 0–1）与方式（1 = 原位接手）
     dust_until: np.ndarray    # 光尘逐片交出去的时刻（会话时间；没交出的是 inf）
     dust_keep: np.ndarray     # 光尘里被接手的那几片（它们不向外退）
-    fade_in: np.ndarray       # (n, 2) float32：拼卡那一层逐片的淡入（HAND_UNTIL，见 material.vert）
     stats: dict = field(default_factory=dict)
 
 
 def compute(build, plan, dust, clock, palette_at, turn_at, density: float, params, seed: int = 7) -> Handoff:
     """[clock](t) 是光尘的舞台时钟，[palette_at](t) / [turn_at](t) 是那一刻光尘的调色板与转过的圈数。
 
-    - 拼卡那一层与进度期间那一层共用倒放时间轴，流入开始时交叉淡化：这里给出它逐片的淡入；
+    - 拼卡那一层与进度期间那一层共用倒放时间轴，流入开始时交叉淡化（整层的不透明度，在 `sim_session` 里按
+      时刻给出；光尘接手的颗粒不受它影响）；
     - 屏幕四周扩散进来的光尘就近接手流向四边的那一份：这些颗粒改成在流入开始之后才出现（正向寿命的终点
       挪到交接之后那一小段里），出现的位置就是那片光尘此刻的位置，那片光尘同时不再画。只挑正向剥离得早的
       颗粒（飞行时间够长），否则它们要在一瞬间飞过半个屏幕。"""
@@ -75,11 +75,6 @@ def compute(build, plan, dust, clock, palette_at, turn_at, density: float, param
     t_in = plan.t_inflow
     tau_h = plan.reverse_tau(t_in)
     stats = {'tau_handoff': round(float(tau_h), 3)}
-
-    # ---- 拼卡那一层的淡入：流入开始之后 [0, fade] 秒里
-    fade = params['receive_crossfade'][0]
-    x = plan.forward_time(t_in + fade)
-    fade_in = np.tile(np.array([x, -max(plan.forward_time(t_in) - x, 1e-4)], 'float32'), (n, 1))
 
     # ---- 光尘接手：流向四边、剥离得早的那几片
     lo, hi, min_flight = params['receive_dust_join']
@@ -132,7 +127,5 @@ def compute(build, plan, dust, clock, palette_at, turn_at, density: float, param
         origin[f_dust, 3] = 1
         dust_until[d_dust] = t_h
         keep[d_dust] = True
-        # 光尘接手的那几片以满不透明度出现，不参与淡入
-        fade_in[f_dust] = (-1., 0.)
         stats['dust_after'] = (round(float(t_h.min() - t_in), 3), round(float(t_h.max() - t_in), 3))
-    return Handoff(target, origin, dust_until, keep, fade_in, stats)
+    return Handoff(target, origin, dust_until, keep, stats)

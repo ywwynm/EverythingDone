@@ -234,7 +234,7 @@ object TapTransfer {
     @RequiresApi(Build.VERSION_CODES.Q)
     fun createReceiverTransport(activity: Activity): TapReceiverTransport {
         return if (isSimulationEnabled(activity)) {
-            SimulatedReceiverTransport(activity.applicationContext)
+            SimulatedReceiverTransport(activity)
         } else {
             WifiDirectReceiverTransport(activity)
         }

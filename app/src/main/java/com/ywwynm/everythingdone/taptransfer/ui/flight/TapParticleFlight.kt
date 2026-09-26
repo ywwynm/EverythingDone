@@ -22,6 +22,7 @@ import com.ywwynm.everythingdone.views.particledismiss.ParticleCardSurfaceHandof
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissSpec
 import com.ywwynm.everythingdone.views.particledismiss.ParticleGestureProgress
+import com.ywwynm.everythingdone.views.particledismiss.ParticleHandoffSource
 import com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot
 import com.ywwynm.everythingdone.views.particledismiss.ParticleOverlayHost
 import com.ywwynm.everythingdone.views.particledismiss.ParticleReleaseOrigin
@@ -32,9 +33,10 @@ import kotlin.math.floor
 
 /**
  * 碰一碰的粒子：直接用首页与弹窗的粒子消散（`views/particledismiss`）——同一套微片、剥离与流场，
- * 只多一个终点（[ParticleSink]，NFC 天线的位置）：颗粒汇成流被吸进那一点，倒放时从那一点流出。
- * 接收方还多一组终点：屏幕边框，一部分颗粒从离它最近的那条边流出。
+ * 只多一个终点（[ParticleSink] 的第三版柔性终点，NFC 天线的位置）：颗粒整团滑进天线，倒放时从那里
+ * 浮现。接收方还多一组终点：屏幕四周的光尘带，一部分颗粒从离它最近的那一段流进来。
  *
+ * 两处都是手势会话，按外部给的位置取帧：发送按进度动画（[Outflow]），接收按倒放时间轴（[ReceiveLayer]）。
  * 坐标一律是 DecorView 里的像素（粒子层挂在 DecorView 上）。
  */
 internal object TapParticleFlight {
@@ -79,14 +81,21 @@ internal object TapParticleFlight {
      * 合成一张而不是每张卡片各起一个粒子层：一个会话的片数有上限，几张卡片共用这份预算；各起
      * 一层的话轨迹缓冲要成倍占用显存（三星上一张卡片约 35 MB）。
      */
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun captureComposite(activity: Activity, views: List<View>, visible: RectF, done: (Bitmap?, RectF) -> Unit) {
-        class Part(val view: View, val rect: RectF, val clip: Rect)
+    /** 合成快照里的一张：视图、它在 DecorView 里被截的那一块、视图坐标里的截取范围。 */
+    private class Part(val view: View, val rect: RectF, val clip: Rect)
+
+    /**
+     * 几张卡片在 [visible] 以内的部分与它们的外接矩形（取整）；一张也不在里面时外接矩形为空。[settled] 时按
+     * 布局位置算（去掉卡片自己的平移）：列表让位动画还在播时，这就是动画走完之后的位置。
+     */
+    private fun compositeParts(activity: Activity, views: List<View>, visible: RectF,
+                               settled: Boolean = false): Pair<List<Part>, RectF> {
         val parts = ArrayList<Part>()
         val full = RectF()
         for (view in views) {
             if (view.width <= 0 || view.height <= 0) continue
             boundsInDecor(activity, view, Rect(0, 0, view.width, view.height), full)
+            if (settled) full.offset(-view.translationX, -view.translationY)
             val shown = RectF(full)
             if (!shown.intersect(visible)) continue
             val clip = Rect(
@@ -99,12 +108,26 @@ internal object TapParticleFlight {
                 full.left + clip.right, full.top + clip.bottom), clip))
         }
         val union = RectF()
+        parts.forEach { union.union(it.rect) }
+        if (!union.isEmpty) union.set(floor(union.left), floor(union.top), ceil(union.right), ceil(union.bottom))
+        return parts to union
+    }
+
+    /**
+     * 列表让位动画走完之后 [captureComposite] 会截出的范围（DecorView 坐标，按布局位置、不含卡片自己的平移），
+     * 不截图。拼卡那一层提前建时按它画占位快照，之后截出的真实快照与它同尺寸、同原点；一张也不在 [visible]
+     * 里时返回 null。
+     */
+    fun compositeBounds(activity: Activity, views: List<View>, visible: RectF): RectF? =
+        compositeParts(activity, views, visible, settled = true).second.takeUnless { it.isEmpty }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun captureComposite(activity: Activity, views: List<View>, visible: RectF, done: (Bitmap?, RectF) -> Unit) {
+        val (parts, union) = compositeParts(activity, views, visible)
         if (parts.isEmpty()) {
             done(null, union)
             return
         }
-        parts.forEach { union.union(it.rect) }
-        union.set(floor(union.left), floor(union.top), ceil(union.right), ceil(union.bottom))
         val bitmaps = arrayOfNulls<Bitmap>(parts.size)
         var remaining = parts.size
         parts.forEachIndexed { index, part ->
@@ -148,27 +171,40 @@ internal object TapParticleFlight {
         return if (total == 0) 0f else opaque.toFloat() / total
     }
 
+    /**
+     * 碰一碰的粒子规格。两处都按外部给的位置取帧（手势会话），不按时长播：发送按进度动画，接收按倒放时间轴。
+     *
+     * @param field 第三版的柔性终点（发送 [TapParticleParams.sendField]，接收 [TapParticleParams.receiveField]）
+     * @param dynamics 算运动用的位图（与 [snapshot] 同尺寸），见 [ParticleDismissSpec.dynamics]
+     */
     private fun spec(
-        params: TapParticleParams, snapshot: Bitmap, bounds: RectF, sink: PointF, reverse: Boolean, durationS: Float,
-        frame: RectF? = null
+        snapshot: Bitmap, bounds: RectF, sink: PointF, frame: RectF?, frameShare: Float, params: TapParticleParams,
+        field: ParticleSink.Field, dynamics: Bitmap? = null, handoff: ParticleHandoffSource? = null,
+        layerAlpha: Boolean = false, deferForeground: Boolean = false,
+        seed: Int = ParticleCardSurfaceHandoff.seed()
     ): ParticleDismissSpec {
         if (BuildConfig.DEBUG) {
-            Log.i(TAG, "粒子飞行 reverse=$reverse sink=(${sink.x.toInt()},${sink.y.toInt()}) " +
+            Log.i(TAG, "粒子飞行 sink=(${sink.x.toInt()},${sink.y.toInt()}) " +
                 "bounds=(${bounds.left.toInt()},${bounds.top.toInt()})-(${bounds.right.toInt()},${bounds.bottom.toInt()}) " +
-                "frame=${frame?.toShortString()} duration=$durationS")
+                "frame=${frame?.toShortString()} cards=${field.cards.size} dynamics=${dynamics != null} " +
+                "handoff=${handoff != null} layerAlpha=$layerAlpha deferForeground=$deferForeground")
         }
         return ParticleDismissSpec(
             snapshot, bounds.left, bounds.top,
             // 消散方向按「截图中心 → 这一点」求：颗粒一开始就朝终点剥离
             sink.x, sink.y,
             durationScale = 1f,
-            hashSeed = ParticleCardSurfaceHandoff.seed(),
-            reverse = reverse,
-            playbackDurationS = durationS,
+            hashSeed = seed,
+            reverse = false,
+            playbackDurationS = 1f,
             // 触点强度取中值：运动幅度的缩放为 1，终点的坐标不必换算
             touchStrength = .5f,
             releaseOrigin = releaseOriginToward(bounds, sink.x, sink.y),
-            sink = ParticleSink(sink.x, sink.y, frame, if (frame != null) params.frameShare else 0f, params.sink)
+            sink = ParticleSink(sink.x, sink.y, frame, frameShare, params.sink, field),
+            dynamics = dynamics,
+            handoff = handoff,
+            layerAlpha = layerAlpha,
+            deferForeground = deferForeground
         )
     }
 
@@ -219,7 +255,8 @@ internal object TapParticleFlight {
                 main.post { listener.onLost() }
             } else {
                 val params = TapParticleParams.get(activity)
-                val spec = spec(params, snapshot, bounds, sink, reverse = false, durationS = 1f)
+                // 第三版：没有边框，整团滑进天线（末段不旋转）
+                val spec = spec(snapshot, bounds, sink, null, 0f, params, params.sendField)
                 val dump = TapFixtureDump.begin(activity, "send", spec, bounds, sink, null, params)
                 val created = ParticleDismissOverlay(
                     activity, spec,
@@ -318,91 +355,127 @@ internal object TapParticleFlight {
     }
 
     /**
-     * 接收方：颗粒从天线（以及 [frame] 的四条边）流出、在卡片自己的位置上拼成收到的卡片（倒放
-     * 一次完整的消散，先把轨迹算好再播），播完停在末帧（与真实卡片逐像素相同），等调用方显示
-     * 真实卡片后再撤。
+     * 接收方的一层（第三版）：一次消散的倒放，按外部给的正向位置取帧（[seek]：0 = 拼好，1 = 全部在终点），
+     * 整层的不透明度由 [alpha] 给出。颗粒从天线处浮现、从屏幕四周的光尘带流进来，在卡片的位置上拼成卡片。
+     *
+     * 接收用两层，共用一条倒放时间轴（`TapReceiveTimeline`），流入开始时交叉淡化：
+     * - 进度期间那一层：记事内容还没到，按预计落点上的代表色圆角矩形（[snapshot]）算，只画颗粒
+     *   （[drawSurface] 为 false），代理卡片本身不露出来；
+     * - 拼卡那一层：列表腾出位置之后按真实位置建，运动按同样大小的代表色卡片（[dynamics]）算、颜色取真实
+     *   快照（[snapshot]），与前一层逐片重合；光尘就近接手流向四周的一部分颗粒（[handoff]）。
+     *
+     * 整段历史先算完才出第一帧；不自己结束，由调用方撤。[dynamics] 在建材线程上读，之后交给垃圾回收
+     * （不在这里回收：撤下时建材可能还没读完）。
+     *
+     * [deferForeground] 时 [snapshot] 只是占位（代表色卡片，材料按它建），拼卡那一层可以在列表刚排好、图片还没
+     * 加载完的时候就开始建材与预算；真实快照截出来之后由 [supplyForeground] 交进来，换上前景贴图才出第一帧。
      */
-    class Inflow(
-        private val activity: Activity,
+    class ReceiveLayer(
+        activity: Activity,
         snapshot: Bitmap,
         bounds: RectF,
         sink: PointF,
-        durationS: Float,
+        frame: RectF,
+        cards: List<RectF>,
+        position: Float,
+        alpha: Float,
+        drawSurface: Boolean,
         private val listener: Listener,
-        frame: RectF? = null
+        dynamics: Bitmap? = null,
+        handoff: ParticleHandoffSource? = null,
+        dumpKind: String? = null,
+        private val deferForeground: Boolean = false,
+        /** 一次接收里两层用同一个种子：预计准确时两层逐片相同，交叉淡化只换颜色（与模拟器相同）。 */
+        seed: Int
     ) {
         interface Listener {
-            /** 第一帧上屏（颗粒开始流出）。 */
+            /** 整段算完、第一帧已经上屏。 */
             fun onStarted()
 
-            /** 拼完：画面停在末帧。此刻显示真实卡片，然后调用 [release]。 */
-            fun onAssembled()
+            /** 窗口实际呈现的正向位置（0–1）。 */
+            fun onPresented(position: Float)
 
-            /** 粒子层没能建起来：调用方直接显示卡片。 */
+            /** 粒子层没能建起来或中途失败。 */
             fun onLost()
         }
 
         private val main = Handler(Looper.getMainLooper())
+        private val gesture = ParticleGestureProgress(initiallyActive = true, prepareAll = true, drawSurface = drawSurface)
         private var overlay: ParticleDismissOverlay? = null
+        private var dump: TapFixtureDump? = null
         private var started = false
-        private var assembled = false
         private var released = false
 
+        /** 这一层建材时的终点几何与卡片矩形（动画层像素），光尘接手与会话记录用。 */
+        val cards: List<RectF> = cards.map { RectF(it) }
+
         init {
+            gesture.seek(position)
+            gesture.layerAlpha = alpha.coerceIn(0f, 1f)
             val decor = decorOf(activity)
             if (decor == null) {
                 snapshot.recycle()
                 main.post { listener.onLost() }
             } else {
                 val params = TapParticleParams.get(activity)
-                val spec = spec(params, snapshot, bounds, sink, reverse = true, durationS = durationS, frame = frame)
-                val dump = TapFixtureDump.begin(activity, "receive", spec, bounds, sink, frame, params)
+                val spec = spec(snapshot, bounds, sink, frame, params.frameShare, params, params.receiveField(cards),
+                    dynamics, handoff, layerAlpha = true, deferForeground = deferForeground, seed = seed)
+                val dump = dumpKind?.let { TapFixtureDump.begin(activity, it, spec, bounds, sink, frame, params) }
+                this.dump = dump
                 val created = ParticleDismissOverlay(
                     activity, spec,
                     onAnimationStarted = Runnable {
                         if (!released && !started) {
                             started = true
-                            TapSessionRecorder.current?.event("inflow-start")
                             listener.onStarted()
-                            // 此刻边框还在；边框淡去之后再截一张，模拟器在两张之间按淡去的时长过渡
                             dump?.captureWindow("background")
-                            dump?.captureWindow("background-settled", (params.borderFadeS * 1000f).toLong() + 250L)
                         }
                     },
                     onDone = Runnable {
-                        if (released || assembled) return@Runnable
-                        if (started) {
-                            // 倒放播完：本层保持末帧，等调用方把真实卡片显示出来
-                            assembled = true
-                            TapSessionRecorder.current?.event("assembled")
-                            listener.onAssembled()
-                        } else {
+                        // 不是我们主动撤的：会话失败或看门狗收尾
+                        if (!released) {
                             released = true
                             listener.onLost()
                         }
-                    }
+                    },
+                    onPresentedProgress = { presented -> if (!released) listener.onPresented(presented) },
+                    gesture = gesture
                 )
                 overlay = created
                 ParticleOverlayHost.attach(decor, created)
             }
         }
 
-        /** 真实卡片已经显示：等它画出一帧再撤粒子层，交接处不闪。 */
-        fun release(after: View) {
+        val isStarted: Boolean get() = started
+
+        fun seek(position: Float) {
+            gesture.seek(position)
+        }
+
+        /** 提前建的这一层交进真实快照（与占位快照同尺寸）：会话换上前景贴图之后出第一帧。 */
+        fun supplyForeground(bitmap: Bitmap) {
+            if (released || !deferForeground) return
+            dump?.replaceSnapshot(bitmap)
+            gesture.supplyForeground(bitmap)
+        }
+
+        var alpha: Float
+            get() = gesture.layerAlpha
+            set(value) {
+                gesture.layerAlpha = value.coerceIn(0f, 1f)
+            }
+
+        /** 等 [after] 所在窗口画出下一帧再撤（真实卡片刚显示出来，交接处不闪）；[after] 为空时立即撤。 */
+        fun release(after: View?) {
             if (released) return
             released = true
             val current = overlay
             overlay = null
-            if (current == null) return
+            if (current == null || after == null) {
+                current?.release()
+                return
+            }
             afterFrame(after) { current.release() }
-        }
-
-        /** 立即撤掉，不回调监听。 */
-        fun cancel() {
-            if (released) return
-            released = true
-            overlay?.release()
-            overlay = null
         }
     }
 

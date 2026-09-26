@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.taptransfer.transport.sim
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -17,9 +18,11 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
+import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.thingfile.ThingFileWriter
 import java.io.File
 import java.io.FileOutputStream
@@ -33,14 +36,17 @@ import java.util.concurrent.TimeUnit
  * （标题写明是模拟），走完整的导入与拼出（决策 2026-09-24）。
  *
  * 发来哪几条由调试配置 `simulate_samples` 决定（[TapTransfer.simulatedSamples]），每一项是一种
- * 卡片样式（[Variant]）：纯文字，或者带一张图片、封面在上 / 下 / 左 / 右 / 作为卡片背景。
- * 图片在本机现画，不依赖设备上已有的文件。
+ * 卡片样式（[Variant]）：纯文字（普通或通栏），或者带一张图片、封面在上 / 下 / 左 / 右 / 作为卡片背景。
+ * 图片在本机现画，不依赖设备上已有的文件。碰上时与真实发送方一样，把样例卡片按本机列表的列宽量出的
+ * 形状放进来件信息（接收方据此预计落点）。
  *
  * 样例记事真的写成记事文件、真的经 [com.ywwynm.everythingdone.thingfile.ThingFileReader] 读、
  * 经导入器写进数据库——除了 NFC 与 Wi-Fi Direct，走的都是真实的路径。每次进入接收状态只模拟
  * 一次，不会一直往列表里添样例。
  */
-class SimulatedReceiverTransport(private val context: Context) : TapReceiverTransport {
+class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTransport {
+
+    private val context: Context = activity.applicationContext
 
     /** 一条样例的卡片样式。 */
     enum class Variant(val key: String) {
@@ -53,7 +59,10 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
         RIGHT("right"),
 
         /** 图片作为卡片背景。 */
-        BACKGROUND("background");
+        BACKGROUND("background"),
+
+        /** 通栏的纯文字卡片。 */
+        WIDE("wide");
 
         companion object {
             fun parse(spec: String?): List<Variant> {
@@ -71,14 +80,17 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
     private var listener: TapReceiverTransport.Listener? = null
     private var generation = 0
     private var touched = false
-    private var sample: Future<File?>? = null
+    private var sample: Future<Sample>? = null
+
+    /** 样例记事与写好的记事文件（没写出来时为 null）。 */
+    private class Sample(val things: List<Thing>, val file: File?)
 
     override fun start(receiverName: String, listener: TapReceiverTransport.Listener) {
         this.listener = listener
         val g = ++generation
         val variants = Variant.parse(TapTransfer.simulatedSamples(context))
         val colors = IntArray(variants.size) { ContextCompat.getColor(context, PALETTE[it % PALETTE.size]) }
-        sample = io.submit<File?> { writeSample(sampleThings(variants, colors)) }
+        sample = io.submit<Sample> { sampleThings(variants, colors).let { Sample(it, writeSample(it)) } }
         main.postDelayed({
             if (g == generation && !touched) {
                 touch(g, colors)
@@ -99,8 +111,12 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
 
     private fun touch(g: Int, colors: IntArray) {
         touched = true
+        // 样例早在几秒前就写好了；万一还没写完就不带形状（与旧版发送方相同）
+        val things = sample?.takeIf { it.isDone }?.let { runCatching { it.get().things }.getOrNull() }.orEmpty()
+        val (aspects, fullSpan) = TapThingCards.listShapes(activity, things, TapHandshake.MAX_COLORS)
         listener?.onTouched(
-            TapIncomingOffer(context.getString(R.string.tap_simulated_peer_name), colors.size, colors)
+            TapIncomingOffer(context.getString(R.string.tap_simulated_peer_name), colors.size, colors, aspects,
+                fullSpan)
         )
         main.postDelayed({
             if (g != generation) {
@@ -109,7 +125,7 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
             val future = sample ?: return@postDelayed
             io.execute {
                 val file = try {
-                    future.get(SAMPLE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    future.get(SAMPLE_TIMEOUT_MS, TimeUnit.MILLISECONDS).file
                 } catch (e: Exception) {
                     Log.w(TAG, "样例记事文件没写出来", e)
                     null
@@ -152,7 +168,7 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
         val now = System.currentTimeMillis()
         val dir = TapTransfer.workDir(context, "sim")
         return variants.mapIndexed { k, variant ->
-            val attachment = if (variant == Variant.PLAIN) "" else {
+            val attachment = if (variant == Variant.PLAIN || variant == Variant.WIDE) "" else {
                 val image = File(dir, "sample-image-$now-$k.jpg")
                 drawSampleImage(image, variant, colors[k])
                 AttachmentHelper.SIGNAL + AttachmentHelper.IMAGE + image.absolutePath
@@ -175,6 +191,7 @@ class SimulatedReceiverTransport(private val context: Context) : TapReceiverTran
                     spanMode = Thing.THING_CARD_SPAN_FULL, imagePlacement = Thing.THING_CARD_IMAGE_PLACEMENT_RIGHT
                 )
                 Variant.BACKGROUND -> ThingCardAppearance(mediaBackgroundEnabled = true)
+                Variant.WIDE -> ThingCardAppearance(spanMode = Thing.THING_CARD_SPAN_FULL)
             }
             thing
         }

@@ -16,7 +16,9 @@ class TapProtocolException(message: String) : IOException(message)
  * 碰一碰时经 NFC 交给接收方的握手内容。
  *
  * 接收方据它按 SSID 与密码直接加入发送方的 Wi-Fi Direct 组、连上 [port]，再用 [token] 证明
- * 自己就是碰过的那一台。[colors] 让接收方在数据到达之前就把屏幕边框换成这几条记事的颜色。
+ * 自己就是碰过的那一台。[colors] 让接收方在数据到达之前就把屏幕边框换成这几条记事的颜色；
+ * [aspects] 与 [fullSpan] 让它在数据到达之前就能预计这几张卡片会落在列表的哪里、多大（粒子从天线处
+ * 朝那里飘）。
  *
  * 二进制布局，整数一律大端：
  *
@@ -31,6 +33,9 @@ class TapProtocolException(message: String) : IOException(message)
  * thingCount      u16
  * colorCount      u8，最多 MAX_COLORS
  * colors          i32 × colorCount（ARGB）
+ * —— 以下可选（2026-09-25 加，旧版发送方没有；读到末尾即当作没有，协议版本不变）——
+ * cardCount       u8，最多 MAX_COLORS
+ * cards           (aspect u16，高宽比 × 1000；fullSpan u8，1 = 通栏) × cardCount
  *
  * str = u16 字节数 + UTF-8 字节
  * ```
@@ -42,7 +47,11 @@ class TapHandshake(
     val passphrase: String,
     val senderName: String,
     val thingCount: Int,
-    val colors: IntArray
+    val colors: IntArray,
+    /** 前几条记事的卡片高宽比（高 / 宽，按发送方列表里的样子量），最多 [MAX_COLORS] 条；没有时为空。 */
+    val aspects: FloatArray = FloatArray(0),
+    /** 与 [aspects] 同序：这条记事的卡片是否通栏。 */
+    val fullSpan: BooleanArray = BooleanArray(0)
 ) {
 
     init {
@@ -50,6 +59,8 @@ class TapHandshake(
         require(port in 1..0xFFFF) { "端口越界：$port" }
         require(thingCount in 1..0xFFFF) { "条数越界：$thingCount" }
         require(colors.size <= MAX_COLORS) { "颜色最多 $MAX_COLORS 个" }
+        require(aspects.size <= MAX_COLORS && fullSpan.size == aspects.size) { "卡片形状最多 $MAX_COLORS 条，两项须同样多" }
+        require(aspects.all { it.isFinite() && it > 0f }) { "高宽比须为正" }
         // SSID 与密码截断之后就入不了组，不合规只能是调用方的错误，不能静默截掉
         credentialProblem(ssid, passphrase)?.let { throw IllegalArgumentException(it) }
     }
@@ -70,6 +81,13 @@ class TapHandshake(
             for (color in colors) {
                 out.writeInt(color)
             }
+            if (aspects.isNotEmpty()) {
+                out.writeByte(aspects.size)
+                for (k in aspects.indices) {
+                    out.writeShort((aspects[k] * ASPECT_SCALE + .5f).toInt().coerceIn(1, 0xFFFF))
+                    out.writeByte(if (fullSpan[k]) 1 else 0)
+                }
+            }
         }
         return bytes.toByteArray()
     }
@@ -82,6 +100,9 @@ class TapHandshake(
 
         /** 最多带这么多条记事的颜色（接收方给边框换色用）；更多的条数只影响计数。 */
         const val MAX_COLORS: Int = 12
+
+        /** 高宽比按千分之一存成 u16：最大 65.535，足够任何一张卡片。 */
+        private const val ASPECT_SCALE: Float = 1000f
 
         /** Wi-Fi Direct 的 SSID 最长 32 字节，密码 8 到 63 个字符（WPA2 口令的范围）。 */
         private const val MAX_SSID_BYTES: Int = 32
@@ -121,12 +142,30 @@ class TapHandshake(
                     throw TapProtocolException("颜色数越界：$colorCount")
                 }
                 val colors = IntArray(colorCount) { buffer.int }
+                var aspects = FloatArray(0)
+                var fullSpan = BooleanArray(0)
+                if (buffer.hasRemaining()) {
+                    val cardCount = buffer.get().toInt() and 0xFF
+                    if (cardCount > MAX_COLORS) {
+                        throw TapProtocolException("卡片形状数越界：$cardCount")
+                    }
+                    aspects = FloatArray(cardCount)
+                    fullSpan = BooleanArray(cardCount)
+                    for (k in 0 until cardCount) {
+                        val aspect = buffer.short.toInt() and 0xFFFF
+                        if (aspect == 0) {
+                            throw TapProtocolException("高宽比为 0")
+                        }
+                        aspects[k] = aspect / ASPECT_SCALE
+                        fullSpan[k] = (buffer.get().toInt() and 0xFF) == 1
+                    }
+                }
                 if (port == 0 || thingCount == 0) {
                     throw TapProtocolException("握手字段缺失")
                 }
                 // 这两项原样交给 WifiP2pConfig.Builder，不合规的值在那里会抛异常：在这里就拒绝
                 credentialProblem(ssid, passphrase)?.let { throw TapProtocolException(it) }
-                return TapHandshake(token, port, ssid, passphrase, senderName, thingCount, colors)
+                return TapHandshake(token, port, ssid, passphrase, senderName, thingCount, colors, aspects, fullSpan)
             } catch (e: BufferUnderflowException) {
                 throw TapProtocolException("握手不完整")
             }

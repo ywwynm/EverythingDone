@@ -74,6 +74,19 @@ internal class ParticleSession(
 
     /** 上一拍手指要的相位；速度与「手指停住」都按它判定。 */
     private var previousWanted = Float.NaN
+
+    /** 上一拍画出去的整层不透明度（`layerAlpha`）。 */
+    private var previousAlpha = Float.NaN
+
+    /** 规格打开了 `deferForeground` 时：真实快照已经换上。 */
+    private var foregroundSupplied = false
+
+    /** 历史算完、只差真实快照：这段时间不需要 pump（交进来时会唤醒），不必每 2 ms 轮询。 */
+    private fun awaitingForeground(): Boolean {
+        if (!spec.deferForeground || foregroundSupplied || stage != Stage.PRECOMPUTE) return false
+        val active = renderer ?: return false
+        return !active.reverseIncomplete && active.reverseSettled && checkNotNull(gesture).foreground == null
+    }
     private var gestureGoal = 0
     private var lastCreepAt = 0L
     private var firstFrameReported = false
@@ -138,8 +151,9 @@ internal class ParticleSession(
         if (!isGesture) return true
         val active = renderer ?: return false
         // 必须用「这一拍真的能画出来的相位」判定：追赶期内手指停着不动，画面仍要每拍往前挪，
-        // 用手指位置判定会让追赶整段冻住。
-        return !firstFrameReported || presentablePosition(active) != previousPosition
+        // 用手指位置判定会让追赶整段冻住。整层的不透明度变了同样要重画（两层交叉淡化）。
+        return !firstFrameReported || presentablePosition(active) != previousPosition ||
+            checkNotNull(gesture).layerAlpha != previousAlpha
     }
 
     /**
@@ -189,7 +203,7 @@ internal class ParticleSession(
                     !active.reverseSettled ||
                     (gesture?.active == true && active.submittedSamples < active.reverseSamples))
             }
-            else -> true
+            else -> !awaitingForeground()
         }
     }
 
@@ -223,7 +237,10 @@ internal class ParticleSession(
                     ParticleGpuWork.beginPlayback(); playbackRegistered = true
                     prepareStartedAt = System.nanoTime()
                     if (prepared == null || !adopt(prepared, shared)) {
-                        val created = ParticleMicroflakeRenderer(assets, shared, sinkMode = spec.sink != null)
+                        val created = ParticleMicroflakeRenderer(assets, shared, sinkMode = spec.sink != null,
+                            sinkField = spec.sink?.field != null, sinkTargets = spec.handoff != null,
+                            layerAlpha = spec.layerAlpha)
+                        created.drawSurface = gesture?.drawSurface ?: true
                         renderer = created
                         created.preparePipeline(ParticleMicroflakeRenderer.sharedResources(assets))
                         created.prepareReversePipeline()
@@ -355,6 +372,33 @@ internal class ParticleSession(
 
     private fun precomputeStep(): Boolean {
         val active = checkNotNull(renderer)
+        if (isGesture && checkNotNull(gesture).prepareAll) {
+            // 按时间轴取帧的会话（碰一碰接收的两层）：整段历史先算完，之前一帧不画
+            if (active.reverseIncomplete || !active.reverseSettled) {
+                return when (stepBackground(active)) {
+                    -1 -> { cancel(); false }
+                    0 -> false
+                    else -> true
+                }
+            }
+            if (spec.deferForeground && !foregroundSupplied) {
+                // 材料与历史按占位快照算好了：等真实快照交进来、换上前景贴图再出第一帧
+                val real = checkNotNull(gesture).foreground ?: return false
+                check(real.width == spec.snapshot.width && real.height == spec.snapshot.height) {
+                    "真实快照 ${real.width}×${real.height} 与占位 ${spec.snapshot.width}×${spec.snapshot.height} 不同"
+                }
+                val rgba = ParticleMicroflakePreparation.copyPixels(real)
+                    ?: ParticleMicroflakePreparation.packColors(IntArray(real.width * real.height).also {
+                        real.getPixels(it, 0, real.width, 0, 0, real.width, real.height)
+                    })
+                ParticleGl.useForeground()
+                active.replaceForeground(ParticleMicroflakePreparation.Pixels(real.width, real.height, rgba, null))
+                foregroundSupplied = true
+            }
+            gestureGoal = active.reverseSamples
+            stage = Stage.PLAY
+            return true
+        }
         if (isGesture) {
             // 3.1：按下准备完成、GPU 空闲时先备前几档，识别左滑之后的首个非零画面才可能
             // 落在一个节拍里。手指已经在拖、或者别的动画正在播时不抢它的 GPU。
@@ -474,6 +518,8 @@ internal class ParticleSession(
                         "手势画到了还没备好的档位 drawn=$drawn prepared=${active.preparedSamples}")
                 }
             }
+            active.layerAlphaValue = gesture.layerAlpha
+            previousAlpha = gesture.layerAlpha
             active.drawGestureFrame(drawn, active.gestureStateBuffer(), clearTarget = false)
             // 提交的进度必须是**实际呈现的相位**：ItemTouchHelper 的松手恢复与快速完成都从
             // presentedProgress 接着走，记成手指位置会让画面跳一下。
@@ -496,6 +542,7 @@ internal class ParticleSession(
     private fun drawHoldFrame() {
         val active = renderer ?: return
         if (isGesture) {
+            active.layerAlphaValue = checkNotNull(gesture).layerAlpha
             active.drawGestureFrame(presentablePosition(active), active.gestureStateBuffer(), clearTarget = false)
             return
         }
@@ -533,8 +580,17 @@ internal class ParticleSession(
             firstFrameReported = true
             gesture?.presented = true
             listener.onFirstFramePresented()
-            if (BuildConfig.DEBUG) Log.i(ParticleMicroflakeRenderer.TAG,
-                "首帧上屏 requestToVisibleMs=${(System.nanoTime() - spec.requestedAtNanos) / 1e6}")
+            if (BuildConfig.DEBUG) {
+                val now = System.nanoTime()
+                // 分段：请求 → 开始准备 → 管线就绪 → 材料建好 → 上传完 → 首帧上屏（手势会话的「上传完 → 首帧」
+                // 含整段预计算）
+                fun ms(from: Long, to: Long) = if (from == 0L || to == 0L) -1.0 else (to - from) / 1e6
+                Log.i(ParticleMicroflakeRenderer.TAG,
+                    "首帧上屏 requestToVisibleMs=${(now - spec.requestedAtNanos) / 1e6} " +
+                        "排队=${ms(spec.requestedAtNanos, prepareStartedAt)} 管线=${ms(prepareStartedAt, pipelineReadyAt)} " +
+                        "建材=${ms(pipelineReadyAt, inputReadyAt)} 上传=${ms(inputReadyAt, uploadsReadyAt)} " +
+                        "预算与首帧=${ms(uploadsReadyAt, now)} 片数=$particleCount")
+            }
         }
         listener.onPresented(target, progress)
         if (stage != Stage.HOLD || finishedReported) return

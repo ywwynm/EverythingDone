@@ -148,6 +148,7 @@ internal class TapSessionRecorder private constructor(
     // ---------------------------------------------------------------- 列表卡片的逐帧位置
 
     private var tracked: RecyclerView? = null
+    private var pinnedBefore = 1
     private var trackListener: ViewTreeObserver.OnPreDrawListener? = null
     private val holderIds = IdentityHashMap<RecyclerView.ViewHolder, Int>()
     private var lastFrame = ""
@@ -156,9 +157,14 @@ internal class TapSessionRecorder private constructor(
      * 逐帧记下 [recyclerView] 里每张卡片的位置（容器坐标，含列表与卡片自己的平移）与透明度，直到
      * [stopTracking]。卡片按 ViewHolder 编号：让位时同一张卡片始终是同一个 ViewHolder。
      */
-    fun trackItems(recyclerView: RecyclerView) {
+    /**
+     * 逐帧记列表里各项的位置（插入与让位）。[pinnedBefore] 是收到的记事插入的位置：它之前（头部占位项之后）
+     * 的几项是置顶的，记下它们的编号，模拟器据此预计落点。
+     */
+    fun trackItems(recyclerView: RecyclerView, pinnedBefore: Int) {
         if (finished || tracked != null) return
         tracked = recyclerView
+        this.pinnedBefore = pinnedBefore
         val listener = ViewTreeObserver.OnPreDrawListener {
             recordItems(recyclerView)
             true
@@ -178,11 +184,13 @@ internal class TapSessionRecorder private constructor(
 
     private fun recordItems(rv: RecyclerView) {
         val items = JSONArray()
+        val pinned = JSONArray()
         val keys = StringBuilder()
         for (k in 0 until rv.childCount) {
             val child = rv.getChildAt(k)
             val holder = rv.getChildViewHolder(child) ?: continue
             val id = holderIds.getOrPut(holder) { holderIds.size + 1 }
+            if (holder.bindingAdapterPosition in 1 until pinnedBefore) pinned.put(id)
             val left = rv.left + rv.translationX + child.left + child.translationX
             val top = rv.top + rv.translationY + child.top + child.translationY
             val visible = child.visibility == View.VISIBLE
@@ -198,6 +206,7 @@ internal class TapSessionRecorder private constructor(
             put("list", JSONArray().put(rv.left).put(rv.top + rv.translationY.toDouble()).put(rv.right)
                 .put(rv.bottom + rv.translationY.toDouble()))
             put("items", items)
+            if (pinned.length() > 0) put("pinned", pinned)
         }
     }
 

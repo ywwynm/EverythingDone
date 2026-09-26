@@ -10,7 +10,8 @@ import android.view.animation.AnimationUtils
  */
 class StageClock {
 
-    private val originMs = AnimationUtils.currentAnimationTimeMillis()
+    /** 时钟的起点（`AnimationUtils` 的毫秒，与 `SystemClock.uptimeMillis` 同一个时钟）。 */
+    val originMs = AnimationUtils.currentAnimationTimeMillis()
     private var lastS = -1f
 
     /** 当前时刻（秒）。 */

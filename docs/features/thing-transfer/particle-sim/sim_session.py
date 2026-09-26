@@ -18,7 +18,7 @@ from sim_dust import ROUNDING, DustBand
 from sim_emerge import ProxyFlight, note_backgrounds, proxy_scene, receive_params
 from sim_handoff import compute as compute_handoff
 from sim_layers import Layers, affine, card_shadow
-from sim_model import Params, build_materials, flow_mode
+from sim_model import Params, build_materials, flow_mode, smooth
 from sim_renderer import TapRenderer
 from sim_stage import ReceiveStage, StageConfig
 from sim_timeline import ReceivePlan, SendPlan, Session
@@ -99,9 +99,7 @@ def make_flight(session: Session, params: Params, ctx: moderngl.Context, scale: 
 
         build.handoff = compute_handoff(build, plan, Shifted(dust), lambda t: t - plan.t_stage, palette_at,
                                         lambda t: (t - plan.t_stage) / cycle, session.density, params, seed)
-    renderer = TapRenderer(scene, build, ctx, scale, hand_until=receive)
-    if receive:
-        renderer.set_hand_until(build.handoff.fade_in)
+    renderer = TapRenderer(scene, build, ctx, scale, layer_alpha=receive)
     return build, renderer, emergence
 
 
@@ -276,6 +274,10 @@ class SessionPlayer:
             position = state.flight_position
             label = state.label
         if self.flight is not None and position is not None:
+            if self.s.kind == 'receive' and self.plan.t_inflow is not None:
+                # 拼卡那一层在流入开始之后的 [0, 淡入时长] 里整层淡入（光尘接手的颗粒不受它影响）
+                fade = self.p['receive_crossfade'][0]
+                self.flight.set_layer_alpha(smooth(self.plan.t_inflow, self.plan.t_inflow + fade, t))
             self.flight.accumulate(position)
             self.flight.composite_onto(self.fbo)
         data = self.fbo.read(components=3, alignment=1)
@@ -401,6 +403,7 @@ class SessionPlayer:
         # 进度期间那一层：代理卡片的倒放（弹窗出现的前半段），按传输进度推进，流入开始后逐片交给真实卡片
         if self.emerge is not None:
             position = self.emerge.position(t)
+            self.emerge.renderer.set_layer_alpha(self.emerge.alpha(t))
             if position is not None and self.emerge.renderer.accumulate(position, surface=False):
                 self.emerge.renderer.composite_onto(self.fbo)
         if st.pull is not None:

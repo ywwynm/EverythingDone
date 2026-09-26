@@ -552,7 +552,8 @@ def frame_hit(values: np.ndarray, g: SinkGeometry, card: tuple[float, float]) ->
     L, T, R, B = (np.float64(v) for v in (g.left, g.top, g.right, g.bottom))
     cx, cy = card[0] * .5, card[1] * .5
     ux, uy = values[:, 0].astype(np.float64) - cx, values[:, 1].astype(np.float64) - cy
-    length = np.hypot(ux, uy)
+    # 平方和开方（正确舍入），Kotlin（`ParticleSink.frameHit`）逐位复现；hypot 两边的实现不保证相同
+    length = np.sqrt(ux * ux + uy * uy)
     ok = length > 1e-4
     ux = np.where(ok, ux / np.maximum(length, 1e-9), 0.)
     uy = np.where(ok, uy / np.maximum(length, 1e-9), 1.)
@@ -563,6 +564,19 @@ def frame_hit(values: np.ndarray, g: SinkGeometry, card: tuple[float, float]) ->
     return np.clip(cx + ux * reach, L, R), np.clip(cy + uy * reach, T, B)
 
 
+def hash_units(index: np.ndarray, salt: int) -> np.ndarray:
+    """逐元素的 [0, 1) 均匀数：与共同模型 `random_values` 同一个 32 位整数散列，Kotlin 端逐位复现。"""
+    x = index.astype(np.uint32) + np.uint32(int(salt) & 0xFFFFFFFF)
+    x = (x ^ (x >> np.uint32(16))) * np.uint32(0x7FEB352D)
+    x = (x ^ (x >> np.uint32(15))) * np.uint32(0x846CA68B)
+    x = x ^ (x >> np.uint32(16))
+    return (x >> np.uint32(8)).astype(np.float64) / 16777216.0
+
+
+# 扰动的散列盐：与随机向量（`random_values` 的盐是种子本身）错开
+SOURCE_SALT = 0x5EED5EED
+
+
 def assign_sources(values: np.ndarray, g: SinkGeometry, card: tuple[float, float], blend: float, seed: int,
                    visible: np.ndarray | None = None):
     """接收：按远近分配每一片的来源。离屏幕边缘近的那部分由屏幕四周的颗粒拼出，离天线近的由天线处的颗粒拼出
@@ -570,12 +584,16 @@ def assign_sources(values: np.ndarray, g: SinkGeometry, card: tuple[float, float
 
     一片是否流向边框由它的随机向量决定（`step.comp` 的 sink_frame_bound：散列 < 占比），这里不改着色器，
     只在各片之间重排随机向量：散列 < 占比的那些向量（个数不变，所以占比不变）交给「到天线的距离 − 到自己的
-    边框落点的距离」最大的那几片，其余向量交给其余各片。[blend]（材料单位）是加在这个差值上的高斯扰动的
-    标准差：两部分之间是一段混在一起的过渡，没有一条分界线。随机向量整个搬动，其余由它导出的量（是否被吸入、
-    落点角度与半径、抵达时刻等）的分布都不变。原地修改 values[:, 8:12]。
+    边框落点的距离」最大的那几片，其余向量交给其余各片。[blend]（材料单位）是加在这个差值上的扰动的标准差：
+    两部分之间是一段混在一起的过渡，没有一条分界线。随机向量整个搬动，其余由它导出的量（是否被吸入、落点角度
+    与半径、抵达时刻等）的分布都不变。原地修改 values[:, 8:12]。
 
     [visible]：出生在快照不透明处的各片。几张卡片合成的快照里，卡片之间的空隙与较短那张下方是透明的，那里的颗粒
-    看不见；只在看得见的颗粒里排，占比按它们算（看不见的分到剩下的向量），名额不浪费在看不见的颗粒上。"""
+    看不见；只在看得见的颗粒里排，占比按它们算（看不见的分到剩下的向量），名额不浪费在看不见的颗粒上。
+
+    每一步都能在 Kotlin（`ParticleSink.assignSources`）里逐位复现：扰动是四个整数散列均匀数之和（近似正态，
+    方差为 1），距离用平方和开方，排序按「差值从大到小、下标从小到大」，向量按原来的先后依次交给按下标排好的
+    接收方。"""
     n = len(values)
     if n == 0 or g.share <= 0:
         return
@@ -587,21 +605,25 @@ def assign_sources(values: np.ndarray, g: SinkGeometry, card: tuple[float, float
         return
     hx, hy = frame_hit(values, g, card)
     x, y = values[:, 0].astype(np.float64), values[:, 1].astype(np.float64)
-    score = np.hypot(x - g.x, y - g.y) - np.hypot(x - hx, y - hy)
-    rng = np.random.default_rng(int(seed) & 0xFFFFFFFF)
+    gx, gy = float(np.float32(g.x)), float(np.float32(g.y))
+    score = np.sqrt((x - gx) ** 2 + (y - gy) ** 2) - np.sqrt((x - hx) ** 2 + (y - hy) ** 2)
     if blend > 0:
-        score = score + rng.normal(0., blend, n)
+        i4 = np.arange(n, dtype=np.int64) * 4
+        salt = int(seed) ^ SOURCE_SALT
+        noise = (hash_units(i4, salt) + hash_units(i4 + 1, salt) + hash_units(i4 + 2, salt)
+                 + hash_units(i4 + 3, salt) - 2.0) * math.sqrt(3.0)
+        score = score + blend * noise
     seen = np.ones(n, dtype=bool) if visible is None else np.asarray(visible, dtype=bool)
     shown = np.flatnonzero(seen)
     hidden = np.flatnonzero(~seen)
     # 看得见的那些里占比 = share；剩下的流向边框的向量给看不见的（随它们去，画不出来）
-    k_shown = min(k, int(round(len(shown) * k / n)))
-    ranked = shown[np.argsort(-score[shown], kind='stable')]
-    to_frame = np.concatenate([ranked[:k_shown], rng.permutation(hidden)[:k - k_shown]])
+    k_shown = min(k, int(math.floor(len(shown) * k / n + .5)))
+    ranked = shown[np.lexsort((shown, -score[shown]))]
+    to_frame = np.sort(np.concatenate([ranked[:k_shown], hidden[:k - k_shown]]))
     to_other = np.setdiff1d(np.arange(n), to_frame, assume_unique=True)
     shuffled = np.empty_like(r)
-    shuffled[to_frame] = r[frame_vector][rng.permutation(k)]
-    shuffled[to_other] = r[~frame_vector][rng.permutation(n - k)]
+    shuffled[to_frame] = r[frame_vector]
+    shuffled[to_other] = r[~frame_vector]
     values[:, 8:12] = shuffled
 
 

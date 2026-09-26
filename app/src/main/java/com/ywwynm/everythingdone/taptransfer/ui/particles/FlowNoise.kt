@@ -8,7 +8,7 @@ import kotlin.math.sin
  * 碰一碰粒子用的流场：二维梯度噪声（带解析导数）与由它导出的旋度场。
  *
  * 粒子沿旋度场漂移时不会聚成团、也不会凭空散开（旋度场散度为零），看上去是在流，而不是在抖。
- * 这是「更强的流动感」在运动上的来源（preferences.md）；另一半来自拖尾绘制，见 [ParticleSpriteBatch]。
+ * 接收状态的光尘带（[TapDustBand]）沿边流动时的漂移就取自它。
  *
  * 纯 Kotlin，不依赖 Android，便于在 JVM 上核对导数与散度。
  */
@@ -92,6 +92,9 @@ class FlowNoise(seed: Int = 1) {
         out[0] = dy
         out[1] = -dx
     }
+
+    /** 排列表（512 项）的副本：GPU 端（[TapDustLayer]）按它求同一个流场。 */
+    internal fun permutation(): IntArray = perm.copyOf()
 
     /** 只要值、不要导数时用，例如给溶解边缘加起伏。 */
     fun value(x: Float, y: Float): Float = sample(x, y, scratch)

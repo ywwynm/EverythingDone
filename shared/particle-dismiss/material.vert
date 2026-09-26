@@ -82,10 +82,10 @@ layout(location=6) in vec4 sink_explicit;
 layout(location=7) in vec4 sink_origin;
 flat out VOUT vec4 origin_out;
 #endif
-#ifdef HAND_UNTIL
-// 两层倒放之间的交接（倒放时时间轴递减）。.y > 0：在时间轴 [.x, .x + .y] 里淡去（交出去的一方），
-// .y < 0：在 [.x, .x − .y] 里淡入（接手的一方），.y = 0：时间轴小于 .x 之后不再画
-layout(location=8) in vec2 hand_until;
+#ifdef LAYER_ALPHA
+// 两层倒放之间的交叉淡化：整层的不透明度（接收时进度期间那一层淡出、拼卡那一层淡入）。
+// 光尘接手的颗粒（SINK_TARGETS 的 .z > 0）不受它影响，以满不透明度出现。
+uniform float layer_alpha;
 #endif
 float sink_frame_share(vec2 source){
     for(int g=0;g<4;g++){
@@ -229,10 +229,8 @@ void main(){
         absorb_out=smoothstep(sink_absorb.x*spread,sink_absorb.y*spread,to_sink);
         sink_near=mix(sink_absorb.w,1.,smoothstep(sink_absorb.x*spread,sink_absorb.y*spread*2.2,to_sink));
     }
-#ifdef HAND_UNTIL
-    float passed=hand_until.y>0.?smoothstep(hand_until.x,hand_until.x+hand_until.y,time)
-                :hand_until.y<0.?1.-smoothstep(hand_until.x,hand_until.x-hand_until.y,time)
-                :step(hand_until.x,time);
+#ifdef LAYER_ALPHA
+    float passed=handed?1.:layer_alpha;
     if(passed<=0.){gl_Position=vec4(2.,2.,2.,1.);return;}
     absorb_out*=passed;
 #endif

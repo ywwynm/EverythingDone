@@ -30,7 +30,6 @@ import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
-import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -41,7 +40,7 @@ import kotlin.math.sqrt
 /**
  * 分享界面的上半部分：要分享的记事以首页卡片（宽版）的样子抬升起来，停在上半屏；选了多条时
  * 叠成一叠，最上面一张带条数。碰上之后画面交给粒子层（`TapParticleFlight.Outflow`），这里只管
- * 卡片本身的抬升、落回，以及天线处的等待提示与吸入时的光。
+ * 卡片本身的抬升、落回与发完之后的重新抬起，以及天线处的扩散圈（第三版起不再画光点）。
  *
  * 卡片是真实的视图（首页卡片布局），抬升、落回都是视图属性动画；位置一律用平移表达：卡片布局
  * 在左上角，平移到目标位置，轴心在卡片中心。触摸不消费，落到下面的面板与暗层。
@@ -80,14 +79,16 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     private var liftAnimator: ValueAnimator? = null
     private var elevationAnimator: ValueAnimator? = null
 
-    private var waitingPulse = false
-    private var glow = 0f
+    private var pulse = false
+
+    /** 扩散圈收缩的程度（0–1）：流出时随进度增加；重新抬起期间由本视图按 1 − 抬起进度给出。 */
+    private var pulseShrink = 0f
+    private var relifting = false
 
     private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val badgeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val spritePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val spriteMatrix = Matrix()
-    private val glowShader = BitmapShader(GLOW_SPRITE, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     private val ringShader = BitmapShader(RING_SPRITE, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     private val pulseStart = SystemClock.uptimeMillis()
 
@@ -230,8 +231,25 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     }
 
     fun drop() {
+        relifting = false
         animateLift(0f, params.dropMs, dropInterpolator) { listener.onDropFinished() }
         animateElevation(0f, params.dropMs)
+    }
+
+    /**
+     * 发完、「已发送」停留之后：卡片按打开时的那段抬起重新出现（此前已化成颗粒流走），投影随之恢复。
+     * 不再从天线处流回：流回读起来像发送失败、被撤回。扩散圈随抬起展开。
+     */
+    fun relift(onEnd: () -> Unit) {
+        relifting = true
+        applyLift(0f)
+        setCardsShown(true)
+        animateLift(1f, params.liftMs, liftInterpolator) {
+            relifting = false
+            pulseShrink = 0f
+            onEnd()
+        }
+        animateElevation(1f, params.liftMs)
     }
 
     private fun animateLift(to: Float, durationMs: Long, interpolator: PathInterpolator, onEnd: () -> Unit) {
@@ -383,33 +401,35 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     // ---------------------------------------------------------------- 天线提示
 
-    /** 等待被碰时在天线位置画一圈圈向外扩散的提示。 */
-    fun setWaitingPulse(on: Boolean) {
-        if (on != waitingPulse) TapSessionRecorder.current?.event("pulse") { put("on", on) }
-        waitingPulse = on
+    /**
+     * 天线处一圈圈向外扩散的提示：从可以被碰一直播到关闭，中途不断（第三版）。流出时随进度收缩
+     * （[setPulseShrink]），重新抬起时随抬起展开。
+     */
+    fun setPulse(on: Boolean) {
+        if (on != pulse) TapSessionRecorder.current?.event("pulse") { put("on", on) }
+        pulse = on
         invalidate()
     }
 
-    /** 吸入时天线处的光，由流出进度决定（0–1）。 */
-    fun setGlow(level: Float) {
-        glow = level.coerceIn(0f, 1f)
-        invalidate()
+    /** 扩散圈收缩的程度（0–1），流出期间按粒子层实际呈现的进度给。重新抬起期间不接受外部的值。 */
+    fun setPulseShrink(shrink: Float) {
+        if (relifting) return
+        pulseShrink = shrink.coerceIn(0f, 1f)
     }
 
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
-        if (glow > .01f) {
-            // 画成预先做好的白色位图：部分定制系统的强制深色会把画笔与渐变里的白色反成黑色
-            drawSprite(canvas, glowShader, GLOW_SPRITE_SIZE,
-                (params.glowRadiusDp[0] + params.glowRadiusDp[1] * glow) * density, glow * params.glowAlpha)
-        }
-        if (waitingPulse) {
+        if (pulse) {
             val now = (SystemClock.uptimeMillis() - pulseStart) / 1000f
+            val shrink = if (relifting) 1f - lift else pulseShrink
+            val scale = 1f - params.pulseShrink * shrink
+            // 画成预先做好的白色位图：部分定制系统的强制深色会把画笔里的白色反成黑色
             for (k in 0 until params.pulseRings) {
                 val phase = ((now / params.pulsePeriodS) + k.toFloat() / params.pulseRings) % 1f
                 val eased = 1f - (1f - phase).pow(2)
                 drawSprite(canvas, ringShader, RING_SPRITE_SIZE,
-                    (params.pulseRadiusDp[0] + params.pulseRadiusDp[1] * eased) * density, (1f - phase) * params.pulseAlpha)
+                    (params.pulseRadiusDp[0] + params.pulseRadiusDp[1] * eased) * density * scale,
+                    (1f - phase) * params.pulseAlpha)
             }
             postInvalidateOnAnimation()
         }
@@ -450,7 +470,8 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     fun release() {
         liftAnimator?.let { it.removeAllListeners(); it.cancel() }
         elevationAnimator?.cancel()
-        waitingPulse = false
+        pulse = false
+        relifting = false
     }
 
     companion object {
@@ -473,34 +494,11 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
         private const val BADGE_COLOR = 0xE6202124.toInt()
 
-        private const val GLOW_SPRITE_SIZE = 128
-
-        /** 光点的高斯衰减系数：半径一半处剩约 30%。 */
-        private const val GLOW_FALLOFF = 5f
         private const val RING_SPRITE_SIZE = 256
 
         private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
 
-        /**
-         * 天线处的光：白色，透明度按高斯衰减（中心亮、四周很快淡下去），读起来是一个光点而不是
-         * 一块圆斑；边缘处减去常数项归零，不留硬边。
-         */
-        private val GLOW_SPRITE: Bitmap by lazy {
-            val size = GLOW_SPRITE_SIZE
-            val pixels = IntArray(size * size)
-            val c = (size - 1) / 2f
-            val floor = exp(-GLOW_FALLOFF)
-            for (y in 0 until size) {
-                for (x in 0 until size) {
-                    val r = (sqrt((x - c) * (x - c) + (y - c) * (y - c)) / c).coerceAtMost(1f)
-                    val falloff = ((exp(-GLOW_FALLOFF * r * r) - floor) / (1f - floor)).coerceIn(0f, 1f)
-                    pixels[y * size + x] = ((falloff * 255f + .5f).toInt() shl 24) or 0xFFFFFF
-                }
-            }
-            Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
-        }
-
-        /** 等待时的扩散圈：一道细白环，环宽约为半径的 3%。 */
+        /** 扩散圈：一道细白环，环宽约为半径的 3%。接收方的舞台在 GPU 上画同一个形状（`TapDustLayer`）。 */
         private val RING_SPRITE: Bitmap by lazy {
             val size = RING_SPRITE_SIZE
             val pixels = IntArray(size * size)
@@ -516,5 +514,6 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
             }
             Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
         }
+
     }
 }

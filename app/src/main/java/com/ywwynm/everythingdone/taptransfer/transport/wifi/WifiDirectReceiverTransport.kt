@@ -120,7 +120,12 @@ class WifiDirectReceiverTransport(private val activity: Activity) :
         receiverRegistered = true
         val extras = Bundle()
         extras.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, PRESENCE_CHECK_MS)
-        nfc?.enableReaderMode(activity, this, READER_FLAGS, extras)
+        try {
+            nfc?.enableReaderMode(activity, this, READER_FLAGS, extras)
+        } catch (e: IllegalStateException) {
+            // 同一个页面上分享界面停掉的轮询还没恢复（TapNfcDiscovery）：两者互斥
+            Log.w(TAG, "开不了读取模式", e)
+        }
     }
 
     override fun resume() {
@@ -215,7 +220,8 @@ class WifiDirectReceiverTransport(private val activity: Activity) :
         pending = handshake
         deadline = SystemClock.uptimeMillis() + CONNECT_DEADLINE_MS
         listener?.onTouched(
-            TapIncomingOffer(handshake.senderName, handshake.thingCount, handshake.colors)
+            TapIncomingOffer(handshake.senderName, handshake.thingCount, handshake.colors, handshake.aspects,
+                handshake.fullSpan)
         )
         join(g, handshake)
     }

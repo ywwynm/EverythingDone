@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.managers.ModeManager
@@ -36,6 +37,32 @@ internal object TapThingCards {
         val density = activity.resources.displayMetrics.density
         val screen = DisplayUtil.getScreenSize(activity).x
         return min(screen - (2f * SHARE_SIDE_MARGIN_DP * density).toInt(), (SHARE_MAX_WIDTH_DP * density).toInt())
+    }
+
+    /**
+     * 这几条记事的卡片在本机首页列表里的形状：高宽比（高 / 宽）与是否通栏。普通卡片按列宽、通栏卡片按通栏宽度
+     * 排一次量出高度（与首页适配器同一套规则），私密记事按不显示内容的样子量（接收方就是这样显示的）。
+     * 握手把它交给接收方，接收方按自己的列宽乘回去预计落点。最多量 [limit] 条；在主线程调用。
+     */
+    fun listShapes(activity: Activity, things: List<Thing>, limit: Int): Pair<FloatArray, BooleanArray> {
+        val res = activity.resources
+        val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val normal = DisplayUtil.getThingCardWidth(activity).coerceAtLeast(1)
+        val full = (res.displayMetrics.widthPixels - spacing * 4).coerceAtLeast(1)
+        val count = min(things.size, limit)
+        val aspects = FloatArray(count)
+        val spans = BooleanArray(count)
+        for (k in 0 until count) {
+            val thing = things[k]
+            val wide = thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
+            val width = if (wide) full else normal
+            val card = create(activity, thing, width, revealPrivate = false)
+            card.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            aspects[k] = card.measuredHeight.coerceAtLeast(1).toFloat() / width
+            spans[k] = wide
+        }
+        return aspects to spans
     }
 
     /**

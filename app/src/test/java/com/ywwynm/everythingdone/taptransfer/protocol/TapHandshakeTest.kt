@@ -35,6 +35,35 @@ class TapHandshakeTest {
     }
 
     @Test
+    fun cardShapesSurviveTheRoundTrip() {
+        val original = TapHandshake(ByteArray(16) { it.toByte() }, 43210, "DIRECT-ab-Galaxy S23", "k3yP4ss!",
+            "Galaxy S23", 3, intArrayOf(0xFF00B1C6.toInt(), 0xFFD28656.toInt()),
+            aspects = floatArrayOf(2.106f, 1.357f), fullSpan = booleanArrayOf(false, true))
+        val decoded = TapHandshake.decode(original.encode())
+        assertArrayEquals(original.colors, decoded.colors)
+        assertEquals(2, decoded.aspects.size)
+        // 高宽比按千分之一存
+        assertEquals(2.106f, decoded.aspects[0], 5e-4f)
+        assertEquals(1.357f, decoded.aspects[1], 5e-4f)
+        assertEquals(listOf(false, true), decoded.fullSpan.toList())
+    }
+
+    @Test
+    fun handshakeWithoutCardShapesStillDecodes() {
+        // 旧版发送方没有卡片形状这一段：读到末尾即当作没有
+        val decoded = TapHandshake.decode(sample().encode())
+        assertEquals(0, decoded.aspects.size)
+        assertEquals(0, decoded.fullSpan.size)
+    }
+
+    @Test(expected = TapProtocolException::class)
+    fun truncatedCardShapesAreRejected() {
+        val bytes = TapHandshake(ByteArray(16), 43210, "DIRECT-ab-x", "k3yP4ss!", "n", 1, intArrayOf(0),
+            aspects = floatArrayOf(1.5f), fullSpan = booleanArrayOf(false)).encode()
+        TapHandshake.decode(bytes.copyOf(bytes.size - 1))
+    }
+
+    @Test
     fun longSenderNameIsTruncatedWithoutSplittingCodePoints() {
         // 每个 emoji 4 字节，96 字节上限正好放 24 个；第 25 个不能被切成半个
         val name = "😀".repeat(40)

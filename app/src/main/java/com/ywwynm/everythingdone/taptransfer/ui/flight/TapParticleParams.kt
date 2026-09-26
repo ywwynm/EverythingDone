@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.taptransfer.ui.flight
 
 import android.content.Context
+import android.graphics.RectF
 import android.view.animation.PathInterpolator
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSink
 import org.json.JSONObject
@@ -55,40 +56,26 @@ internal class TapParticleParams private constructor(private val values: Propert
     val reformMs: Long
     val reformEase: FloatArray
 
-    /** 天线处的光，亮度见 [glowAt]；半径 = [glowRadiusDp] 第一项 + 第二项 × 亮度（dp），不透明度 = [glowAlpha] × 亮度。 */
-    val glowCurve: FloatArray
-    val glowRadiusDp: FloatArray
-    val glowAlpha: Float
-
-    // ---- 接收：罩层与屏幕边框 ----
+    // ---- 接收：罩层与屏幕四周的光尘带 ----
 
     /** 页面底色的罩层在浅色 / 深色模式下的不透明度。 */
     val receiveDimAlpha: FloatArray
     val receiveDimFadeS: Float
 
-    /** 边框出现、退场的淡入淡出（秒）。 */
+    /** 光尘带出现、退场、拼好之后重新出现的淡入淡出（秒）；也是天线处扩散圈淡入淡出的时长。 */
     val borderFadeS: Float
 
-    /** 颗粒开始从四边流出时边框淡去的时长（秒）。 */
+    /** 拼卡那一层开始流入时整条带的不透明度收到 0 的时长（秒）。 */
     val borderConvergeS: Float
+
+    /** 光尘带外沿离屏幕边缘的距离（dp）；流向四周的颗粒的终点在它向里半条 [borderLaneDp] 处。 */
     val borderInsetDp: Float
-    val borderSpacingDp: Float
     val borderLaneDp: Float
-    val borderSpeedDp: Float
-    val borderWobbleDp: Float
-    val borderTrailS: Float
 
-    /** 边框粒子实心半径的范围（dp）。 */
-    val borderRadiusDp: FloatArray
-    val borderParticleFadeS: Float
-
-    /** 边框的默认调色板（ARGB，不透明）。 */
+    /** 光尘带的默认调色板（ARGB，不透明）、转一圈的秒数与换色的时长。 */
     val borderPalette: IntArray
     val borderPaletteCycleS: Float
     val borderPaletteFadeS: Float
-    val glowRings: Int
-    val glowRingDp: Float
-    val receiveGlowAlpha: Float
     val holeCloseS: Float
 
     // ---- 接收：颗粒流入 ----
@@ -98,6 +85,48 @@ internal class TapParticleParams private constructor(private val values: Propert
 
     /** 流向屏幕边框（而不是天线）的颗粒占比。 */
     val frameShare: Float
+
+    // ---- 第三版（2026-09-25，设计见 docs/features/thing-transfer/design-2026-09-25-particle-motion.md）
+
+    /** 发送用的柔性终点：没有边框，整团滑进天线。 */
+    val sendField: ParticleSink.Field
+
+    /** 扩散圈在流出时最多收缩到的比例（半径乘 1 − 这一项 × 收缩程度）。 */
+    val pulseShrink: Float
+
+    /** 倒放时间轴：传输进度的系数、最低速度（每秒）、数据到齐之后逼近的上限、进度的指数。 */
+    val emergePace: FloatArray
+
+    /** 两层交叉淡化：拼卡那层淡入的时长（秒）、进度期间那层淡出的起止（流入开始之后的秒数）。 */
+    val crossfade: FloatArray
+
+    /** 光尘接手：交接之后倒放的起、止（时间轴），只挑正向飞行时间不短于第三项的颗粒。 */
+    val dustJoin: FloatArray
+
+    // 光尘带（屏幕四周的微片）
+    val dustPerDp: Float
+    val dustBandDp: Float
+    val dustSizeDp: FloatArray
+    val dustSpeedDp: Float
+    val dustWanderDp: Float
+    val dustFlipHz: FloatArray
+    val dustRest: Float
+    val dustSpreadDp: Float
+    val dustInwardHz: FloatArray
+
+    /** 带底下的柔光：高斯宽度（dp）、峰值不透明度。 */
+    val dustGlow: FloatArray
+
+    /** 流入开始后没被接手的光尘向外退的距离（dp）与用时（秒）。 */
+    val dustRetreat: FloatArray
+
+    private val arrival: FloatArray
+    private val glide: FloatArray
+    private val absorbDp: FloatArray
+    private val groupStagger: FloatArray
+    private val handoffValues: FloatArray
+    private val emergeSink: FloatArray
+    private val frameBlendDp: Float
 
     init {
         val homing = numbers("sink_homing", 2)
@@ -135,30 +164,44 @@ internal class TapParticleParams private constructor(private val values: Propert
         sentHoldMs = number("send_sent_hold_ms").toLong()
         reformMs = number("send_reform_ms").toLong()
         reformEase = numbers("send_reform_ease", 4)
-        glowCurve = numbers("send_glow_curve", 4)
-        glowRadiusDp = numbers("send_glow_radius_dp", 2)
-        glowAlpha = number("send_glow_alpha")
         receiveDimAlpha = numbers("receive_dim_alpha", 2)
         receiveDimFadeS = number("receive_dim_fade_s")
         borderFadeS = number("receive_border_fade_s")
         borderConvergeS = number("receive_border_converge_s")
         borderInsetDp = number("receive_border_inset_dp")
-        borderSpacingDp = number("receive_border_spacing_dp")
         borderLaneDp = number("receive_border_lane_dp")
-        borderSpeedDp = number("receive_border_speed_dp")
-        borderWobbleDp = number("receive_border_wobble_dp")
-        borderTrailS = number("receive_border_trail_s")
-        borderRadiusDp = numbers("receive_border_radius_dp", 2)
-        borderParticleFadeS = number("receive_border_particle_fade_s")
         borderPalette = colors("receive_border_palette")
         borderPaletteCycleS = number("receive_border_palette_cycle_s")
         borderPaletteFadeS = number("receive_border_palette_fade_s")
-        glowRings = number("receive_glow_rings").toInt()
-        glowRingDp = number("receive_glow_ring_dp")
-        receiveGlowAlpha = number("receive_glow_alpha")
         holeCloseS = number("receive_hole_close_s")
         appearS = number("receive_appear_s")
         frameShare = number("receive_frame_share")
+
+        arrival = numbers("sink_arrival", 2)
+        glide = numbers("sink_glide", 3)
+        absorbDp = numbers("sink_absorb_dp", 2)
+        groupStagger = numbers("sink_group_stagger", 2)
+        handoffValues = numbers("receive_handoff", 3)
+        emergeSink = numbers("receive_emerge_sink", 4)
+        frameBlendDp = number("receive_frame_blend_dp")
+        sendField = field(spreadDp = number("sink_spread_dp"), absorbInnerDp = absorbDp[0],
+            absorbOuterDp = absorbDp[1], absorbShare = number("sink_absorb_share"), fadeS = number("sink_fade_s"),
+            bandDp = number("sink_band_dp"), cards = emptyList())
+        pulseShrink = number("send_pulse_shrink")
+        emergePace = numbers("receive_emerge_pace", 4)
+        crossfade = numbers("receive_crossfade", 3)
+        dustJoin = numbers("receive_dust_join", 3)
+        dustPerDp = number("receive_dust_per_dp")
+        dustBandDp = number("receive_dust_band_dp")
+        dustSizeDp = numbers("receive_dust_size_dp", 2)
+        dustSpeedDp = number("receive_dust_speed_dp")
+        dustWanderDp = number("receive_dust_wander_dp")
+        dustFlipHz = numbers("receive_dust_flip_hz", 2)
+        dustRest = number("receive_dust_rest")
+        dustSpreadDp = number("receive_dust_spread_dp")
+        dustInwardHz = numbers("receive_dust_inward_hz", 2)
+        dustGlow = numbers("receive_dust_glow", 2)
+        dustRetreat = numbers("receive_dust_retreat", 2)
 
         require(sink.releaseScale > 0f && sink.releaseScale <= 1f) { "sink_release_scale 须在 (0, 1]" }
         require(sink.arrivalEnd > 0f && sink.arrivalEnd <= 1f) { "sink_arrival_end 须在 (0, 1]" }
@@ -168,19 +211,68 @@ internal class TapParticleParams private constructor(private val values: Propert
         require(sink.homingStart >= 0f && sink.homingStart < sink.homingEnd) { "sink_homing 须满足 0 ≤ 起 < 止" }
         require(listOf(outflowMs, reformMs, openMs, closeMs, liftMs, dropMs, shadowDropMs, shadowRestoreMs).all { it > 0 } &&
             sentHoldMs >= 0) { "时长须为正" }
-        require(listOf(appearS, receiveDimFadeS, borderFadeS, borderConvergeS, borderTrailS, borderParticleFadeS,
+        require(listOf(appearS, receiveDimFadeS, borderFadeS, borderConvergeS,
             borderPaletteCycleS, borderPaletteFadeS, holeCloseS, pulsePeriodS).all { it > 0f }) { "时长须为正" }
         require(frameShare in 0f..1f) { "receive_frame_share 须在 [0, 1]" }
-        require(glowCurve[0] < glowCurve[1] && glowCurve[2] < glowCurve[3]) { "send_glow_curve 的两段须各自递增" }
         for (ease in listOf(outflowEase, reformEase, liftEase, dropEase)) {
             require(ease[0] in 0f..1f && ease[2] in 0f..1f) { "缓动控制点的 x 须在 [0, 1]" }
         }
         require((sendDimAlpha + receiveDimAlpha).all { it in 0f..1f }) { "罩层不透明度须在 [0, 1]" }
         require(liftFade > 0f && liftFade <= 1f) { "send_lift_fade 须在 (0, 1]" }
-        require(pulseRings in 0..8 && glowRings in 0..64) { "圈数越界" }
-        require(borderSpacingDp > 0f && borderRadiusDp[0] > 0f && borderRadiusDp[0] <= borderRadiusDp[1]) { "边框粒子尺寸不合法" }
+        require(pulseRings in 0..8) { "圈数越界" }
         require(borderPalette.isNotEmpty()) { "receive_border_palette 至少一个颜色" }
+        // 第三版：与模拟器 `Params.problems()` 逐条对应
+        require(arrival[0] > 0f && arrival[0] <= arrival[1] && arrival[1] <= 1f) { "sink_arrival 须满足 0 < 最早 ≤ 最晚 ≤ 1" }
+        require(glide[0] >= 0f && glide[0] < glide[1] && glide[1] <= 1f && glide[2] > 0f) {
+            "sink_glide 须满足 0 ≤ 起 < 止 ≤ 1，接近增益 > 0"
+        }
+        require(absorbDp[0] >= 0f && absorbDp[0] < absorbDp[1]) { "sink_absorb_dp 须满足 0 ≤ 内 < 外" }
+        require(sendField.absorbShare in 0f..1f && dustRest in 0f..1f) { "比例须在 [0, 1]" }
+        require(sendField.vortexDp > 0f && sendField.freeLife > 0f && sendField.fadeS > 0f) {
+            "sink_vortex_dp、sink_free_life、sink_fade_s 须为正"
+        }
+        require(sendField.nearScale > 0f && sendField.nearScale <= 1f) { "sink_near_scale 须在 (0, 1]" }
+        require(dustSizeDp[0] > 0f && dustSizeDp[0] <= dustSizeDp[1] && dustFlipHz[0] >= 0f &&
+            dustFlipHz[0] <= dustFlipHz[1]) { "光尘的尺寸与翻转频率须满足 最小 ≤ 最大" }
+        require(dustPerDp > 0f && dustBandDp > 0f) { "光尘的密度与带宽须为正" }
+        require(emergePace[0] >= 0f && emergePace[1] > 0f && emergePace[0] < emergePace[2] && emergePace[2] < 1f &&
+            emergePace[3] > 0f) { "receive_emerge_pace 须满足 系数不为负、最低速度为正、系数 < 上限 < 1、指数为正" }
+        require(crossfade[0] > 0f && crossfade[1] >= 0f && crossfade[1] < crossfade[2]) {
+            "receive_crossfade 须满足 淡入时长为正、淡出的起 < 止"
+        }
+        require(dustJoin[0] >= 0f && dustJoin[0] < dustJoin[1] && dustJoin[1] < 1f && dustJoin[2] > 0f) {
+            "receive_dust_join 须满足 0 ≤ 起 < 止 < 1、最短飞行为正"
+        }
+        require(emergeSink.all { it >= 0f } && emergeSink[2] <= 1f && emergeSink[3] > 0f) {
+            "天线处浮现的半径、占比与淡入须合法"
+        }
+        require(handoffValues[0] > 0f) { "交接的牵引渐入须为正" }
+        require(dustRetreat[1] > 0f) { "receive_dust_retreat 的用时须为正" }
+        require(frameBlendDp >= 0f) { "receive_frame_blend_dp 不能为负" }
     }
+
+    /**
+     * 接收用的柔性终点。两层（进度期间的代理卡片、拼卡的真实卡片）共用，与模拟器 `sim_emerge.receive_params`
+     * 相同：天线处浮现的那一份的散开半径、贴近天线时淡去的外半径（内半径 0）、占比与寿命末端的淡出（倒放里即
+     * 冒出时的淡入）取 receive_emerge_sink；流向边框的颗粒落在光尘带里（带宽 + 扩散距离 × 1.3，列表让位期间
+     * 光尘还在继续扩散）。[cards] 是几张卡片各自的矩形（动画层像素），两张以上时按卡片分组。
+     */
+    fun receiveField(cards: List<RectF>): ParticleSink.Field = field(
+        spreadDp = emergeSink[0], absorbInnerDp = 0f, absorbOuterDp = emergeSink[1], absorbShare = emergeSink[2],
+        fadeS = emergeSink[3], bandDp = dustBandDp + dustSpreadDp * 1.3f, cards = cards)
+
+    private fun field(spreadDp: Float, absorbInnerDp: Float, absorbOuterDp: Float, absorbShare: Float, fadeS: Float,
+                      bandDp: Float, cards: List<RectF>) = ParticleSink.Field(
+        arrivalFirst = arrival[0], arrivalLast = arrival[1],
+        glideStart = glide[0], glideEnd = glide[1], glideGain = glide[2],
+        spiral = number("sink_spiral"), absorbShare = absorbShare, spreadDp = spreadDp, drift = number("sink_drift"),
+        freeLife = number("sink_free_life"), absorbInnerDp = absorbInnerDp, absorbOuterDp = absorbOuterDp,
+        fadeS = fadeS, nearScale = number("sink_near_scale"),
+        bandDp = bandDp, bandSpiral = number("sink_band_spiral"), curl = number("sink_curl"),
+        vortexDp = number("sink_vortex_dp"),
+        groupBorn = groupStagger[0], groupArrive = groupStagger[1], groupSwirl = number("sink_group_swirl"),
+        handoffGlide = handoffValues[0], handoffCurl = handoffValues[1], handoffScale = handoffValues[2],
+        blendDp = frameBlendDp, cards = cards)
 
     /** 原始键值，调试落盘用（[TapFixtureDump]）。 */
     fun asJson(): JSONObject = JSONObject().apply {
@@ -194,10 +286,6 @@ internal class TapParticleParams private constructor(private val values: Propert
     fun liftInterpolator() = interpolator(liftEase)
 
     fun dropInterpolator() = interpolator(dropEase)
-
-    /** 天线处的光（0–1）：颗粒大量汇入的那一段最亮，开头与结尾都淡。[progress] 为流出进度。 */
-    fun glowAt(progress: Float): Float =
-        smooth(glowCurve[0], glowCurve[1], progress) * (1f - smooth(glowCurve[2], glowCurve[3], progress))
 
     private fun number(key: String): Float =
         values.getProperty(key)?.trim()?.toFloatOrNull()?.takeIf { it.isFinite() }

@@ -1251,3 +1251,35 @@ Flyme 的 Aicy 识屏浮层（一个「T」按钮和一个彩色圆球）弹出�
 `screencap` 与 `screenrecord` 同时跑会让录屏掉帧、动画看着一顿一顿。交付用的录屏一律只录不截，
 联系表从视频里按时间抽帧。录屏是变帧率的（见上文），**最后一帧的时间戳可能比容器时长早好几百毫秒**，
 按时间点抽帧要取「不晚于该时间点的最近一帧」的时间戳去 seek，否则超出最后一帧的时间点抽不出图。
+
+## 应用自己写进外部私有目录的文件：直接 `adb pull`，删除用 adb shell
+
+2026-09-24 在魅族 20 Infinity 上抓碰一碰模拟器素材时确认：应用自己写到
+`/sdcard/Android/data/<包名>/files/` 下的文件是 `-rw-rw---- u0_aXXX ext_data_rw`，adb shell 用户在
+`ext_data_rw` 组里，**`adb pull` 直接能读**，不必像上面那条（`run-as cp` 出来的 600 文件）那样先 chmod。
+删除时反过来：Flyme 上 `run-as <包名> rm -rf` 报 Permission denied，用 `adb shell rm -rf <目录>` 能删。
+Git Bash 里路径参数要加 `MSYS_NO_PATHCONV=1`，PowerShell 工具里命令带 `rm` 会被沙箱拦（见上文）。
+拉回之后照例逐个比 md5。
+
+## ColorOS / 一加上 `monkey` 与 `uiautomator dump` 会打开自动旋转
+
+2026-09-26 在 Find X9 Ultra（PMA110）与一加 15T（PLZ110）上被用户发现：驱动脚本跑过之后，手机的自动旋转被打开了。
+`dumpsys window displays` 里的 `RotationLockHistory` 记着调用方，两台都有：
+
+- `MonkeyRotationEven#injectEvent`：`monkey -p <包名> -c android.intent.category.LAUNCHER 1` 启动应用时注入了一次
+  旋转事件，锁定 → 解锁；
+- `UiAutomationConnection#restoreRotationStateLocked`：每次 `uiautomator dump` 断开连接时「恢复」旋转状态，
+  实际写成了 `USER_ROTATION_FREE`。
+
+**自动旋转属于用户的设置，这等于替用户改了设置**。在这两台（以及同系的 ColorOS / 一加设备）上：
+
+1. 启动应用改用 `am start -n com.ywwynm.everythingdone/.activities.ThingsActivity`，不用 `monkey`；
+2. 定位控件改用截图（on-device screencap + pull + md5 校验）按比例换算坐标，每一步点完再截图核对，不用 `uiautomator`；
+3. 跑之前、跑之后各读一次，确认没被动过：
+
+```powershell
+& $adb -s <serial> shell settings get system accelerometer_rotation
+& $adb -s <serial> shell "dumpsys window displays | grep -A12 RotationLockHistory"
+```
+
+别的品牌上没有核对过，用之前同样先读 `RotationLockHistory`。

@@ -68,8 +68,11 @@ class ParticleDismissShaderCompileTest {
         "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n",
         "#define SINK_FIELD 1\n#define SINK_TARGETS 1\n",
         "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define SINK_TARGETS 1\n",
-        "#define SINK_FIELD 1\n#define HAND_UNTIL 1\n",
-        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define HAND_UNTIL 1\n",
+        "#define SINK_FIELD 1\n#define LAYER_ALPHA 1\n",
+        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define LAYER_ALPHA 1\n",
+        // 接收时拼卡那一层：逐片终点（光尘接手）+ 整层淡入
+        "#define SINK_FIELD 1\n#define SINK_TARGETS 1\n#define LAYER_ALPHA 1\n",
+        "#define SRGB_TARGET 1\n#define SINK_FIELD 1\n#define SINK_TARGETS 1\n#define LAYER_ALPHA 1\n",
         "#define DRAW_RECORDS 1\n",
         "#define DRAW_RECORDS 1\n#define MEDIUMP_VARYING 1\n",
         "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n",

@@ -236,7 +236,8 @@ internal class ParticleDismissOverlay(
         // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
         // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
         // OPD2515 触点到首帧 1.64 s）。真正的时长看门狗在首帧到达时才开始走。
-        mainHandler.postDelayed(watchdog, logicalDurationMs() + STARTUP_SLACK_MS)
+        mainHandler.postDelayed(watchdog, logicalDurationMs() + STARTUP_SLACK_MS +
+            if (spec.deferForeground) DEFERRED_SLACK_MS else 0L)
     }
 
     override fun onDetachedFromWindow() {
@@ -430,6 +431,9 @@ internal class ParticleDismissOverlay(
 
         /** 首帧之前允许的额外等待：着色器首次编译在慢机上可能占掉一秒以上。 */
         const val STARTUP_SLACK_MS = 4000L
+
+        /** 真实快照稍后交进来的会话（碰一碰接收提前建的那一层）：还要等列表让位、图片加载与截图。 */
+        const val DEFERRED_SLACK_MS = 6000L
 
         /** 首帧之后允许的额外等待。 */
         const val RUNNING_SLACK_MS = 700L

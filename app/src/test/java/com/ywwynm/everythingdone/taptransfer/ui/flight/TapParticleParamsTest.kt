@@ -24,7 +24,11 @@ class TapParticleParamsTest {
         assertTrue(params.sink.homingStart < params.sink.homingEnd)
         assertEquals(4, params.outflowEase.size)
         assertEquals(4, params.reformEase.size)
-        assertEquals(2, params.glowRadiusDp.size)
+        // 第三版：两处共用抵达时间窗；接收的天线那一份没有内半径（倒放里从天线处浮现）
+        val receive = params.receiveField(emptyList())
+        assertEquals(params.sendField.arrivalLast, receive.arrivalLast, 0f)
+        assertEquals(0f, receive.absorbInnerDp, 0f)
+        assertTrue(receive.bandDp > params.dustBandDp)
     }
 
     @Test fun `缺项时报出键名`() {
@@ -43,11 +47,8 @@ class TapParticleParamsTest {
         assertThrows(IllegalArgumentException::class.java) { read(broken) }
     }
 
-    @Test fun `天线的光在流出两端为零、中段最亮`() {
-        val params = read(source)
-        assertEquals(0f, params.glowAt(0f), 1e-6f)
-        assertEquals(0f, params.glowAt(1f), 1e-6f)
-        val peak = (1..99).maxOf { params.glowAt(it / 100f) }
-        assertTrue(peak > .9f)
+    @Test fun `倒放时间轴的上限不小于系数时拒绝`() {
+        val broken = source.replace(Regex("(?m)^receive_emerge_pace=.*$"), "receive_emerge_pace=0.4,0.02,0.34,0.5")
+        assertThrows(IllegalArgumentException::class.java) { read(broken) }
     }
 }

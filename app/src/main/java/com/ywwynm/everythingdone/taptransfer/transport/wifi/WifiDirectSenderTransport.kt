@@ -1,6 +1,11 @@
 package com.ywwynm.everythingdone.taptransfer.transport.wifi
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.wifi.p2p.WifiP2pGroup
+import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Handler
@@ -8,6 +13,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.taptransfer.protocol.TapApdu
 import com.ywwynm.everythingdone.taptransfer.protocol.TapCardResponder
 import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
@@ -37,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * - 每条连接先核对令牌与接收方标识，只放行碰上来、说过 HELLO 的那一台（见 [TapStream]）；
  * - Wi-Fi Direct 组是整机共用的，投屏、打印等别的应用建的组不能拆。只拆自己建的组，
  *   包括上次进程被杀时没来得及拆的那个（靠 [KEY_GROUP_CREATED] 记着）；已有别人的组时这次不能碰。
+ *   反过来，自己的组也会被系统拆掉（系统自己的碰一碰、互传、设备互联），拆掉之后通知界面重新准备。
  *
  * 一次只服务一台接收方。某一台收完之后，同一次分享里它再碰上来会被告知「已经收过」
  * （决策 2026-09-24「同一次碰触不会收两遍」）。
@@ -85,6 +92,29 @@ class WifiDirectSenderTransport(private val context: Context) : TapSenderTranspo
     private val served = HashSet<String>()
     private var connectTimeout: Runnable? = null
 
+    /**
+     * 可以被碰之后盯着自己的组：Wi-Fi Direct 是整机共用的，系统自己的碰一碰、互传、手表与平板的互联都会
+     * 占用它，把这边的组拆掉（2026-09-26 Find X9 Ultra 上两次）。组没了还显示「可以碰」，对方读到握手之后
+     * 入不了组，要等 22 秒才判失败。以下只在主线程读写。
+     */
+    private var armedSsid: String? = null
+    private var groupSeen = false
+    private var groupLost = false
+    private var groupReceiverRegistered = false
+
+    private val groupReceiver = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, intent: Intent) {
+            if (intent.action != WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION) {
+                return
+            }
+            @Suppress("DEPRECATION")
+            val info: WifiP2pInfo? = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO)
+            @Suppress("DEPRECATION")
+            val group: WifiP2pGroup? = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP)
+            onGroupChanged(info, group)
+        }
+    }
+
     override fun start(offer: TapSenderTransport.Offer, listener: TapSenderTransport.Listener) {
         this.offer = offer
         this.listener = listener
@@ -124,10 +154,16 @@ class WifiDirectSenderTransport(private val context: Context) : TapSenderTranspo
 
     override fun setAccepting(accepting: Boolean) {
         this.accepting = accepting
+        if (accepting && groupLost && current == null) {
+            // 组是在上一次传输途中没的：那一次已经按失败走完，现在才让界面重新准备
+            val g = generation
+            main.post { if (g == generation) listener?.onGroupLost() }
+        }
     }
 
     override fun stop() {
         generation++
+        unwatchGroup()
         gateOffer?.let { TapSenderGate.close(it) }
         gateOffer = null
         connectTimeout?.let { main.removeCallbacks(it) }
@@ -288,9 +324,11 @@ class WifiDirectSenderTransport(private val context: Context) : TapSenderTranspo
     private fun arm(g: Int, ssid: String, passphrase: String, port: Int) {
         val o = offer ?: return
         val handshake = try {
+            val cards = minOf(o.aspects.size, TapHandshake.MAX_COLORS)
             TapHandshake(
                 token, port, ssid, passphrase, o.senderName, o.thingCount,
-                o.colors.copyOf(minOf(o.colors.size, TapHandshake.MAX_COLORS))
+                o.colors.copyOf(minOf(o.colors.size, TapHandshake.MAX_COLORS)),
+                o.aspects.copyOf(cards), o.fullSpan.copyOf(cards)
             ).encode()
         } catch (e: IllegalArgumentException) {
             // 系统给的组名或密码对方入不了组
@@ -306,7 +344,64 @@ class WifiDirectSenderTransport(private val context: Context) : TapSenderTranspo
         }
         gateOffer = gate
         TapSenderGate.open(gate)
+        watchGroup(ssid)
         listener?.onReady()
+    }
+
+    private fun watchGroup(ssid: String) {
+        armedSsid = ssid
+        groupSeen = false
+        groupLost = false
+        if (!groupReceiverRegistered) {
+            // 连接状态是粘性广播：注册时立刻收到当前状态（组已经建好），据此记下「见过自己的组」
+            ContextCompat.registerReceiver(
+                context, groupReceiver,
+                IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            groupReceiverRegistered = true
+        }
+    }
+
+    private fun unwatchGroup() {
+        armedSsid = null
+        if (groupReceiverRegistered) {
+            context.unregisterReceiver(groupReceiver)
+            groupReceiverRegistered = false
+        }
+    }
+
+    private fun onGroupChanged(info: WifiP2pInfo?, group: WifiP2pGroup?) {
+        val ssid = armedSsid ?: return
+        // 没有 EXTRA_WIFI_P2P_GROUP（旧系统、权限不全）时只看自己是不是组主：同一时刻设备上只能有一个组
+        val ours = info?.groupFormed == true && info.isGroupOwner && (group == null || group.networkName == ssid)
+        if (ours) {
+            groupSeen = true
+            return
+        }
+        if (!groupSeen || groupLost) {
+            return
+        }
+        groupLost = true
+        Log.i(TAG, "自己建的组没了，现在的组：${group?.networkName}")
+        // 已经不能被碰：摘掉握手，这时碰上来的会读到「未就绪」
+        gateOffer?.let { TapSenderGate.close(it) }
+        gateOffer = null
+        val peer = current
+        if (peer == null) {
+            if (accepting) {
+                listener?.onGroupLost()
+            }
+            return
+        }
+        // 对方读过握手、还没连上：入不了组了，不必等超时
+        if (peer.state.compareAndSet(WAITING, TIMED_OUT)) {
+            connectTimeout?.let { main.removeCallbacks(it) }
+            connectTimeout = null
+            current = null
+            listener?.onFailed(TapFailure.JOIN)
+        }
+        // 已经连上的那一次：连接随组断开，由服务线程按传输中断报失败
     }
 
     /** 卡模拟服务在主线程回调，必须立刻给出状态字；界面更新投递出去再做。 */

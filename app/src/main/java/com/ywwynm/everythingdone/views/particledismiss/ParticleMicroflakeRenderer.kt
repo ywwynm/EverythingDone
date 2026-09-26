@@ -28,7 +28,17 @@ internal class ParticleMicroflakeRenderer(
      * 碰一碰的吸入模式（[ParticleSink]）。积分着色器多编进一段「转向终点」，程序缓存按宏
      * 区分，与其余动画的程序互不相干。只能在建渲染器时决定：管线在拿到材料之前就要编译。
      */
-    private val sinkMode: Boolean = false
+    private val sinkMode: Boolean = false,
+    /**
+     * 第三版的柔性终点（[ParticleSink.field]，`SINK_FIELD`）。绘制改走 `material.vert` 的默认实例化
+     * 路径（桌面模拟器用的就是这条，贴近天线的隐去与缩小、交接都在上面）；绘制记录那条路径里没有
+     * 终点相关的处理，所以这类会话不用它。其余动画一概不受影响。
+     */
+    private val sinkField: Boolean = false,
+    /** 逐片指定终点（光尘接手，`SINK_TARGETS`）：终点在积分时绑到存储缓冲 2，接手颜色是顶点属性 7。 */
+    private val sinkTargets: Boolean = false,
+    /** 整层的不透明度（`LAYER_ALPHA`，接收时两层交叉淡化），每帧由 [layerAlphaValue] 给出。 */
+    private val layerAlpha: Boolean = false
 ) : Closeable {
     private lateinit var input: Input
     init { if (initialInput != null) input = initialInput }
@@ -57,7 +67,9 @@ internal class ParticleMicroflakeRenderer(
         val confidence: ByteArray? = null,
         val touchStrength: Float = .5f,
         /** 吸入终点在材料坐标里的几何（与微片出生位置同一坐标系）；非吸入模式为 null。 */
-        val sink: ParticleSink.Geometry? = null
+        val sink: ParticleSink.Geometry? = null,
+        /** 光尘接手的逐片终点与接手颜色（`SINK_TARGETS`）；不接手时为 null。 */
+        val handoff: ParticleHandoff? = null
     )
 
     /**
@@ -282,6 +294,15 @@ internal class ParticleMicroflakeRenderer(
 
     /** A1 的绘制记录缓冲：每片四个 vec4（位置流两个 + 外观流两个）。 */
     private val recordBuffer = IntArray(1)
+
+    /** 光尘接手（[sinkTargets]）：逐片终点与接手颜色，各为每片一个 vec4。 */
+    private val handoffBuffers = IntArray(2)
+
+    /** 整层的不透明度（[layerAlpha]），每次绘制前由会话写入。 */
+    @Volatile var layerAlphaValue = 1f
+
+    /** 是否画「原表面」那一遍（第 0 遍）。接收时进度期间那一层只画颗粒：代理卡片本身不能露出来。 */
+    @Volatile var drawSurface = true
     private var recordProgram = 0
 
     /**
@@ -328,13 +349,18 @@ internal class ParticleMicroflakeRenderer(
         (if (p2(ParticlePerfTuning.P2_MEDIUMP_ALU)) "#define MEDIUMP_ALU 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_HARDWARE_TRILINEAR)) "#define HARDWARE_TRILINEAR 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_PROBE_SINGLE_CELL)) "#define PROBE_SINGLE_CELL 1\n" else "") +
-        (if (sinkMode) "#define SINK 1\n" else "")
+        (if (sinkMode) "#define SINK 1\n" else "") +
+        (if (sinkMode && sinkField) "#define SINK_FIELD 1\n" else "") +
+        (if (sinkMode && sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "")
 
     private fun materialDefines() = (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "") +
-        (if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "")
+        (if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "") +
+        (if (sinkField) "#define SINK_FIELD 1\n" else "") +
+        (if (sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "") +
+        (if (sinkField && layerAlpha) "#define LAYER_ALPHA 1\n" else "")
 
     /** U4 与 U10a 都是绘制记录的扩展，绘制记录关掉时它们无从谈起。 */
     private val useFlakeConstants get() =
@@ -369,7 +395,8 @@ internal class ParticleMicroflakeRenderer(
     fun preparePipeline(sharedFields: SharedResources? = null) {
         if (pipelinePrepared) return
         ensurePhase2()
-        useDrawRecords = ParticlePerfTuning.drawRecords
+        // 第三版的终点只在默认实例化路径上实现（见 [sinkField]）
+        useDrawRecords = ParticlePerfTuning.drawRecords && !sinkField
         // C10 在 splat 里多绑一个 SSBO（区域/包围盒），ES 3.1 只保证 4 个 compute 存储块；
         // 目标设备都给 8 以上，但不满足时宁可整项退回整网格 dispatch。
         useActiveRegion = ParticlePerfTuning.pressureActiveRegion && storageBlocksAvailable()
@@ -456,6 +483,16 @@ internal class ParticleMicroflakeRenderer(
         uploadBytes(1,initial)
         uploadBuffer(2, input.materials.pigment)
         uploadBuffer(3, input.materials.peelCompression)
+        if (sinkTargets && handoffBuffers[0] == 0) {
+            val handoff = checkNotNull(input.handoff) { "逐片终点模式缺少交接数据" }
+            GLES30.glGenBuffers(2, handoffBuffers, 0)
+            for ((k, floats) in listOf(handoff.targets, handoff.origins).withIndex()) {
+                val bytes = ByteBuffer.allocateDirect(floats.size * 4).order(ByteOrder.nativeOrder())
+                bytes.asFloatBuffer().put(floats)
+                GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, handoffBuffers[k])
+                GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, bytes.capacity(), bytes, GLES30.GL_STATIC_DRAW)
+            }
+        }
         if (useDrawRecords && recordBuffer[0] == 0) {
             GLES30.glGenBuffers(1, recordBuffer, 0)
             GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, recordBuffer[0])
@@ -545,6 +582,13 @@ internal class ParticleMicroflakeRenderer(
         oneI(material, "nx", input.materials.columns); oneI(material, "foreground", 0)
         oneI(material, "grid_count", input.materials.columns * input.materials.rows)
         oneI(material, "diagnostic", 0)
+        if (sinkField) {
+            val sink = checkNotNull(input.sink) { "柔性终点缺少几何" }
+            two(material, "sink_point", sink.x, sink.y)
+            two(material, "sink_frame_mix", sink.frameShare, sink.frameJitter)
+            four(material, "sink_absorb", sink.absorb)
+            groups(material, sink)
+        }
         if (useDrawRecords) {
             GLES30.glUseProgram(recordProgram)
             two(recordProgram, "card", input.cardWidth, input.cardHeight)
@@ -613,10 +657,20 @@ internal class ParticleMicroflakeRenderer(
             val sink = checkNotNull(input.sink) { "吸入模式缺少终点" }
             two(compute, "sink_point", sink.x, sink.y)
             one(compute, "sink_swirl", sink.swirl)
-            two(compute, "sink_homing", sink.homingStart, sink.homingEnd)
             GLES30.glUniform4f(location(compute, "sink_frame"),
                 sink.frameLeft, sink.frameTop, sink.frameRight, sink.frameBottom)
             two(compute, "sink_frame_mix", sink.frameShare, sink.frameJitter)
+            if (sinkField) {
+                // 第三版：与桌面模拟器 `TapRenderer._setup_integration` 逐项对应
+                four(compute, "sink_flow", sink.flow)
+                four(compute, "sink_band", sink.band)
+                one(compute, "sink_vortex", sink.vortex)
+                GLES30.glUniform3f(location(compute, "sink_glide"), sink.glide[0], sink.glide[1], sink.glide[2])
+                groups(compute, sink)
+                if (sinkTargets) four(compute, "sink_handoff", sink.handoff)
+            } else {
+                two(compute, "sink_homing", sink.homingStart, sink.homingEnd)
+            }
         }
     }
 
@@ -652,7 +706,7 @@ internal class ParticleMicroflakeRenderer(
             if (skip > 0) step = skip
         }
         val merge = historyFrame >= 0 && reverseHasHistory && batchPressure && step < target
-        for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+        bindIntegrationBuffers()
         GLES30.glActiveTexture(GLES30.GL_TEXTURE3)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, shared.guideTexture)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE4)
@@ -698,13 +752,22 @@ internal class ParticleMicroflakeRenderer(
                     if (step < target) probe.mark("integrate", ParticlePerfProbe.LEVEL_SEGMENT)
                     else probe.stop(ParticlePerfProbe.LEVEL_SEGMENT)
                 }
-                for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+                bindIntegrationBuffers()
                 GLES30.glUseProgram(compute)
                 if (yielding) yieldToWindow()
             }
         }
         probe?.stop(ParticlePerfProbe.LEVEL_SEGMENT)
         return merge
+    }
+
+    /**
+     * 积分用的四个存储缓冲（材料、状态、色素、压缩）；逐片终点模式下 2 号换成逐片终点——积分着色器不读
+     * 色素，`step.comp` 的 `SinkTargets` 就绑在 2 号（GLES 3.1 只保证 4 个绑定点）。
+     */
+    private fun bindIntegrationBuffers() {
+        for (i in buffers.indices) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i, buffers[i])
+        if (sinkTargets) GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, handoffBuffers[0])
     }
 
     /**
@@ -776,6 +839,10 @@ internal class ParticleMicroflakeRenderer(
             attribute(3, 4, stateBuffer, STATE_STRIDE, 0)
             attribute(4, 4, stateBuffer, STATE_STRIDE, 16)
             attribute(5, 1, buffers[2], 4, 0)
+            if (sinkTargets) {
+                attribute(6, 4, handoffBuffers[0], 16, 0)
+                attribute(7, 4, handoffBuffers[1], 16, 0)
+            }
         }
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
     }
@@ -786,7 +853,7 @@ internal class ParticleMicroflakeRenderer(
      * VAO 的属性状态就会带着上一个会话的缓冲留给下一个用它的人。
      */
     private fun disableInstanceAttributes() {
-        for (location in 0..5) GLES30.glDisableVertexAttribArray(location)
+        for (location in 0..7) GLES30.glDisableVertexAttribArray(location)
     }
 
     /**
@@ -843,11 +910,13 @@ internal class ParticleMicroflakeRenderer(
         GLES30.glUseProgram(material)
         one(material, "time", t)
         one(material, "extrapolate", extrapolation)
+        if (sinkField && layerAlpha) one(material, "layer_alpha", layerAlphaValue.coerceIn(0f, 1f))
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
         val ablation = ParticleAblation.bits
         val passes = (0..1).filter {
-            ablation and (if (it == 0) ParticleAblation.PASS0 else ParticleAblation.PASS1) == 0
+            ablation and (if (it == 0) ParticleAblation.PASS0 else ParticleAblation.PASS1) == 0 &&
+                (it == 1 || drawSurface)
         }
         for (pass in passes) {
             probe?.mark("pass$pass", ParticlePerfProbe.LEVEL_SEGMENT)
@@ -1628,6 +1697,25 @@ internal class ParticleMicroflakeRenderer(
     private fun one(program: Int, name: String, value: Float) = GLES30.glUniform1f(location(program, name), value)
     private fun oneI(program: Int, name: String, value: Int) = GLES30.glUniform1i(location(program, name), value)
     private fun two(program: Int, name: String, x: Float, y: Float) = GLES30.glUniform2f(location(program, name), x, y)
+    private fun four(program: Int, name: String, v: FloatArray) =
+        GLES30.glUniform4f(location(program, name), v[0], v[1], v[2], v[3])
+
+    /** 按卡片分组的三个 uniform（`sink_groups[4]`、`sink_group_params[4]`、`sink_group_count`）；不分组时 count = 0。 */
+    private fun groups(program: Int, sink: ParticleSink.Geometry) {
+        val rects = FloatArray(16)
+        val params = FloatArray(16)
+        val count = min(sink.groups.size, 4)
+        for (g in 0 until count) {
+            val group = sink.groups[g]
+            rects[g * 4] = group.left; rects[g * 4 + 1] = group.top
+            rects[g * 4 + 2] = group.right; rects[g * 4 + 3] = group.bottom
+            params[g * 4] = group.shift; params[g * 4 + 1] = group.swirl
+            params[g * 4 + 2] = group.share; params[g * 4 + 3] = group.born
+        }
+        oneI(program, "sink_group_count", count)
+        GLES30.glUniform4fv(location(program, "sink_groups"), 4, rects, 0)
+        GLES30.glUniform4fv(location(program, "sink_group_params"), 4, params, 0)
+    }
 
     override fun close() {
         probe?.finish(probeStage)
@@ -1639,6 +1727,7 @@ internal class ParticleMicroflakeRenderer(
         if (::peelPressure.isInitialized) peelPressure.close()
         if (gestureState != 0) { GLES30.glDeleteBuffers(1, intArrayOf(gestureState), 0); gestureState = 0 }
         if (recordBuffer[0] != 0) { GLES30.glDeleteBuffers(1, recordBuffer, 0); recordBuffer[0] = 0 }
+        if (handoffBuffers[0] != 0) { GLES30.glDeleteBuffers(2, handoffBuffers, 0); handoffBuffers.fill(0) }
         if (pipelinePrepared) GLES30.glDeleteBuffers(buffers.size, buffers, 0)
         if (textures.isNotEmpty()) GLES30.glDeleteTextures(textures.size, textures.toIntArray(), 0)
         textures.clear()
@@ -1768,6 +1857,19 @@ internal class ParticleMicroflakeRenderer(
                 "纹理缓冲=${limit(GL_MAX_TEXTURE_BUFFER_SIZE)}")
         }
 
+        /**
+         * 各片出生处（材料坐标 × [scale] 取整）的像素是否不透明，与模拟器 `build_materials` 的 `visible`
+         * 相同。几张卡片合成的快照是外接矩形，卡片之间的空隙透明，那里的颗粒画不出来。
+         */
+        fun visibleMask(values: FloatArray, scale: Float, pixels: IntArray, width: Int, height: Int): BooleanArray {
+            val count = values.size / 12
+            return BooleanArray(count) { i ->
+                val px = (values[i * 12] * scale).toInt().coerceIn(0, width - 1)
+                val py = (values[i * 12 + 1] * scale).toInt().coerceIn(0, height - 1)
+                pixels[py * width + px] ushr 24 != 0
+            }
+        }
+
         /** 让路等待的上限；等不到也要往下走，预计算不能卡死。 */
         private const val YIELD_TIMEOUT_NANOS = 50_000_000L
 
@@ -1781,10 +1883,15 @@ internal class ParticleMicroflakeRenderer(
             val pixels = sourcePixels ?: IntArray(bitmap.width * bitmap.height).also {
                 bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             }
+            // 接收时拼卡那一层：运动按同样大小的代表色卡片算，颜色（前景贴图）仍取真实快照
+            val dynamics = spec.dynamics?.let { d ->
+                check(d.width == bitmap.width && d.height == bitmap.height) { "算运动用的位图与快照尺寸不同" }
+                IntArray(d.width * d.height).also { d.getPixels(it, 0, d.width, 0, 0, d.width, d.height) }
+            }
             return fromPixels(assets, width, height, density, pixels, bitmap.width, bitmap.height,
                 spec.originXPx, spec.originYPx, spec.virtualTouchXPx, spec.virtualTouchYPx,
                 spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap, spec.materialAreaScale,
-                spec.releaseOrigin, spec.sink)
+                spec.releaseOrigin, spec.sink, dynamics, spec.handoff)
         }
 
         /**
@@ -1799,7 +1906,8 @@ internal class ParticleMicroflakeRenderer(
                        virtualTouchXPx: Float, virtualTouchYPx: Float, hashSeed: Int,
                        touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null,
                        materialAreaScale: Float = 1f, releaseOrigin: ParticleReleaseOrigin? = null,
-                       sink: ParticleSink? = null): Input {
+                       sink: ParticleSink? = null, dynamicsPixels: IntArray? = null,
+                       handoff: ParticleHandoffSource? = null): Input {
             // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
             val scale = (density / ParticleMicroflakeModel.DP_UNITS.toFloat()).coerceAtLeast(.5f)
             val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
@@ -1808,16 +1916,32 @@ internal class ParticleMicroflakeRenderer(
             val direction = Math.toDegrees(atan2(-dy, dx).toDouble()).toFloat()
             val resources = sharedResources(assets)
             val rules = resources.rules.withMaterialArea(materialAreaScale)
-            val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, pixels, pixelWidth,
+            // 材料按「算运动用」的像素建（给了的话）；前景贴图与 [Input.sourcePixels] 仍是真实快照
+            val motion = dynamicsPixels ?: pixels
+            val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, motion, pixelWidth,
                 pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin)
             // 吸入终点换到材料坐标（以快照左上角为原点、同一缩放）；寿命按到达终点重写
             val sinkGeometry = sink?.toMaterial(originXPx, originYPx, scale)
-            if (sink != null && sinkGeometry != null)
-                ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight), sink.tuning)
+            val field = sink?.field
+            // 第三版：出生在快照透明处（几张卡片之间的空隙）的颗粒看不见，来源分配与光尘接手只在看得见的里挑
+            val visible = if (field != null && sinkGeometry != null)
+                visibleMask(materials.values, scale, motion, pixelWidth, pixelHeight) else null
+            if (sink != null && sinkGeometry != null) {
+                if (field != null) {
+                    ParticleSink.shapeForField(materials.values, sinkGeometry, field, sink.tuning, cardWidth,
+                        cardHeight, hashSeed, visible)
+                } else {
+                    ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight), sink.tuning)
+                }
+            }
+            val handed = if (sinkGeometry != null && handoff != null)
+                handoff.compute(materials.values, sinkGeometry, scale, originXPx, originYPx, cardWidth, cardHeight,
+                    visible)
+            else null
             return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,
                 originYPx / scale, direction, bitmap, materials,
                 resources.guide, rules, pixels, touchGap ?: rules.number("touch_gap_default"),
-                resources.confidence, touchStrength ?: .5f, sinkGeometry)
+                resources.confidence, touchStrength ?: .5f, sinkGeometry, handed)
         }
     }
 }
