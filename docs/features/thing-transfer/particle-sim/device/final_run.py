@@ -38,7 +38,8 @@ def relaunch():
     """重启应用：按钮收起、列表回到顶部，每段录像从同一个起点开始。"""
     dev.shell('am force-stop ' + dev.PKG)
     time.sleep(1.0)
-    dev.shell('monkey -p %s -c android.intent.category.LAUNCHER 1' % dev.PKG)
+    # 不用 monkey：它启动时注入旋转事件，会把用户的自动旋转打开（.claude/rules/adb.md）
+    dev.shell('am start -n %s/.activities.ThingsActivity' % dev.PKG)
     time.sleep(4.5)
     require_home()
 

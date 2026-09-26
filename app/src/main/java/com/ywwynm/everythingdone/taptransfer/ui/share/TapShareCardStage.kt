@@ -10,19 +10,24 @@ import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Outline
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.os.Build
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
 import com.ywwynm.everythingdone.taptransfer.ui.TapAntennaClearance
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapCardHolderLayout
+import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
 import org.json.JSONArray
@@ -38,9 +43,11 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * 分享界面的上半部分：要分享的记事以首页卡片（宽版）的样子抬升起来，停在上半屏；选了多条时
- * 叠成一叠，最上面一张带条数。碰上之后画面交给粒子层（`TapParticleFlight.Outflow`），这里只管
- * 卡片本身的抬升、落回与发完之后的重新抬起，以及天线处的扩散圈（第三版起不再画光点）。
+ * 分享界面的卡片区：要分享的记事以首页的卡片抬升起来（字号、封面与行数的规则按首页，宽度加宽，
+ * 见 `TapThingCards.LiftedCard`），放不下时先删减内容、压扁封面，仍放不下才整体缩小；选了多条时
+ * 按面积叠成一叠（最大的在最下面），最上面一张带条数，整叠共用一片投影。碰上之后画面交给粒子层
+ * （`TapParticleFlight.Outflow`），这里只管卡片本身的抬升、落回与发完之后的重新抬起，以及天线处的
+ * 扩散圈（第三版起不再画光点）。
  *
  * 卡片是真实的视图（首页卡片布局），抬升、落回都是视图属性动画；位置一律用平移表达：卡片布局
  * 在左上角，平移到目标位置，轴心在卡片中心。触摸不消费，落到下面的面板与暗层。
@@ -53,7 +60,8 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         fun onDropFinished()
     }
 
-    private class Slot(val view: View, val origin: RectF?) {
+    private class Slot(val card: TapThingCards.LiftedCard, val origin: RectF?) {
+        val view: View get() = card.view
         var width = 0
         var height = 0
         var targetCx = 0f
@@ -67,6 +75,15 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     private val liftInterpolator = params.liftInterpolator()
     private val dropInterpolator = params.dropInterpolator()
     private val stack = TapCardHolderLayout(context)
+
+    /**
+     * 整叠卡片的投影（决策 2026-09-26 第 6 条）：一个不画任何内容的视图，轮廓是几张卡片轮廓的并集，
+     * 投影的深浅由它的 Z 决定。卡片自己不投影，上面的卡片也就不会压暗下面的。
+     */
+    private val shadow = View(context)
+    private val shadowPath = Path()
+    private val cardPath = Path()
+    private val cardMatrix = Matrix()
     private val slots = ArrayList<Slot>()
     private var totalCount = 0
     private val cardArea = RectF()
@@ -95,7 +112,15 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     init {
         isClickable = false
         setWillNotDraw(false)
+        shadow.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) = buildShadowOutline(outline)
+        }
+        shadow.alpha = 0f
+        addView(shadow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         addView(stack, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        // 同一层里 Z 高的后画：卡片那一层始终高过投影（它自己没有轮廓，不投影），投影才在卡片底下
+        stack.outlineProvider = null
+        stack.translationZ = (params.elevationDp + 1f) * density
         stack.decoration = { canvas -> drawBadge(canvas) }
         badgePaint.color = BADGE_COLOR
         badgeTextPaint.color = Color.WHITE
@@ -107,9 +132,13 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     /** 装卡片的那一层；截粒子快照时截它。 */
     val stackView: View get() = stack
 
-    /** 卡片可以占的区域（状态栏之下、面板之上），本视图坐标。 */
+    /** 卡片可以占的区域（状态栏之下、面板之上，或手机横屏时面板左边），本视图坐标。 */
     fun setCardArea(area: RectF) {
+        if (area == cardArea) {
+            return
+        }
         cardArea.set(area)
+        fitCards()
         layoutTargets()
     }
 
@@ -123,55 +152,74 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     }
 
     /**
-     * 放上卡片。[views] 第 0 张在最上面；[origins] 与之同序，是抬升之前卡片在页面上的位置
+     * 放上卡片。[cards] 按选中的先后；[origins] 与之同序，是抬升之前卡片在页面上的位置
      * （本视图坐标），为 null 表示从页面里升起（详情页）。[total] 是要分享的条数（可能比卡片多）。
+     * 叠放的顺序按面积另排（[fitCards]）。
      */
-    fun setCards(views: List<View>, origins: List<RectF?>, total: Int) {
+    internal fun setCards(cards: List<TapThingCards.LiftedCard>, origins: List<RectF?>, total: Int) {
         stack.removeAllViews()
         slots.clear()
-        val count = min(views.size, MAX_STACK)
-        // 从最底下一张开始加，最上面一张最后画
-        for (k in count - 1 downTo 0) {
-            stack.addView(views[k])
-        }
-        for (k in 0 until count) {
-            slots.add(Slot(views[k], origins.getOrNull(k)))
+        for (k in 0 until min(cards.size, MAX_STACK)) {
+            slots.add(Slot(cards[k], origins.getOrNull(k)))
         }
         totalCount = total
-        measureCards()
+        fitCards()
         layoutTargets()
         applyLift(0f)
     }
 
-    private fun measureCards() {
+    /**
+     * 按卡片区排每一张：宽度、放不下时的删减（`TapThingCards.LiftedCard.fit`），高度上限是整块卡片区
+     * （可以压住天线）；叠放时再扣掉错位与旋转多出来的高度，每张都按最坏的那个位置扣，叠好之后整叠不会
+     * 超出。排完按面积从小到大自上而下叠：最大的在最下面，面积相同的先选的在上。
+     */
+    private fun fitCards() {
+        if (slots.isEmpty() || cardArea.isEmpty) {
+            return
+        }
+        val budget = cardArea.height() - 2f * AREA_MARGIN_DP * density
+        var drop = 0f
+        var tilt = 0f
+        if (slots.size > 1) {
+            for (k in slots.indices) {
+                drop = max(drop, STACK_OFFSET_Y[k] * density)
+                tilt = max(tilt, abs(STACK_ROTATION[k]))
+            }
+        }
+        val tiltSin = sin(Math.toRadians(tilt.toDouble())).toFloat()
+        val minCover = (cardArea.height() * MIN_COVER_FRACTION).toInt()
         for (slot in slots) {
-            val lp = slot.view.layoutParams
-            val widthSpec = MeasureSpec.makeMeasureSpec(lp.width, MeasureSpec.EXACTLY)
-            val heightSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-            slot.view.measure(widthSpec, heightSpec)
-            slot.width = slot.view.measuredWidth
-            slot.height = slot.view.measuredHeight
+            val width = slot.card.widthIn(cardArea.width().toInt())
+            val maxHeight = (budget - drop - width * tiltSin).toInt().coerceAtLeast(1)
+            slot.height = slot.card.fit(width, maxHeight, minCover)
+            slot.width = width
+        }
+        // sortBy 是稳定的：面积相同时保持选中的先后
+        slots.sortBy { it.width.toLong() * it.height }
+        stack.removeAllViews()
+        // 从最底下一张开始加，最上面一张最后画
+        for (k in slots.indices.reversed()) {
+            stack.addView(slots[k].view)
         }
     }
 
     /**
-     * 卡片区里的目标位置：整叠居中，放不下时整体缩小（不裁掉内容）。天线落在整叠卡片的范围里时，
-     * 整叠挪到天线的上方或下方（[TapAntennaClearance]）：颗粒要看得出是流向那一点。
+     * 卡片区里的目标位置：整叠居中，删减之后仍放不下才整体缩小。天线落在整叠卡片的范围里时，整叠不缩小
+     * 就能放在天线上方或下方的，挪过去（[TapAntennaClearance]），颗粒看得出是流向那一点；放不下就压着天线
+     * （决策 2026-09-26 第 1 条）。
      */
     private fun layoutTargets() {
         if (slots.isEmpty() || cardArea.isEmpty) {
             return
         }
         val margin = AREA_MARGIN_DP * density
-        val tallest = slots.maxOf { it.height }.coerceAtLeast(1)
-        var fit = min(1f, (cardArea.height() - 2f * margin) / tallest)
         val several = slots.size > 1
-        // 整叠的外框（相对最上面那张的中心）：每张按旋转之后的包围盒算，连同叠放的错位
+        // 整叠的外框（相对最上面那张的中心，原尺寸）：每张按旋转之后的包围盒算，连同叠放的错位
         var extentTop = 0f
         var extentBottom = 0f
         var halfWidth = 0f
         for ((k, slot) in slots.withIndex()) {
-            val scale = fit * STACK_SCALE.pow(k)
+            val scale = STACK_SCALE.pow(k)
             val angle = Math.toRadians((if (several) STACK_ROTATION[k] else 0f).toDouble())
             val c = abs(cos(angle)).toFloat()
             val s = abs(sin(angle)).toFloat()
@@ -183,26 +231,25 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
             extentBottom = max(extentBottom, dy + halfH)
             halfWidth = max(halfWidth, abs(dx) + halfW)
         }
-        // 外框在卡片区里居中；天线落在外框里时挪到它的上方或下方，必要时缩小
-        val height = extentBottom - extentTop
+        // 整体缩小是最后的办法：删减之后仍比卡片区高，或斜放的卡片角伸出卡片区
+        val fit = min(1f, min((cardArea.height() - 2f * margin) / (extentBottom - extentTop).coerceAtLeast(1f),
+            cardArea.width() / (2f * halfWidth).coerceAtLeast(1f)))
+        val height = (extentBottom - extentTop) * fit
         var boxTop = cardArea.centerY() - height / 2f
-        var boxScale = 1f
         if (antennaKnown) {
             val placement = TapAntennaClearance.place(
-                boxTop, height, cardArea.centerX() - halfWidth, cardArea.centerX() + halfWidth,
+                boxTop, height, cardArea.centerX() - halfWidth * fit, cardArea.centerX() + halfWidth * fit,
                 antennaX, antennaY, ANTENNA_CLEARANCE_DP * density,
-                cardArea.top + margin, cardArea.bottom - margin, MIN_AVOID_SCALE
+                cardArea.top + margin, cardArea.bottom - margin
             )
             boxTop = placement.top
-            boxScale = placement.scale
         }
-        fit *= boxScale
-        val anchorY = boxTop - extentTop * boxScale
+        val anchorY = boxTop - extentTop * fit
         for ((k, slot) in slots.withIndex()) {
             slot.targetScale = fit * STACK_SCALE.pow(k)
             slot.targetRotation = if (several) STACK_ROTATION[k] else 0f
-            slot.targetCx = cardArea.centerX() + (if (several) STACK_OFFSET_X[k] else 0f) * density
-            slot.targetCy = anchorY + (if (several) STACK_OFFSET_Y[k] else 0f) * density
+            slot.targetCx = cardArea.centerX() + (if (several) STACK_OFFSET_X[k] else 0f) * density * fit
+            slot.targetCy = anchorY + (if (several) STACK_OFFSET_Y[k] else 0f) * density * fit
         }
         applyLift(lift)
     }
@@ -312,6 +359,52 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
             view.alpha = (local / params.liftFade).coerceIn(0f, 1f)
         }
         stack.invalidate()
+        updateShadow()
+    }
+
+    /** 投影跟着卡片走：轮廓按卡片此刻的位置重算，透明度跟最先淡入的那张（与卡片自己投影时一样）。 */
+    private fun updateShadow() {
+        var alpha = 0f
+        for (slot in slots) {
+            alpha = max(alpha, slot.view.alpha)
+        }
+        shadow.alpha = alpha * stack.alpha
+        shadow.invalidateOutline()
+    }
+
+    /**
+     * 投影的轮廓：几张卡片（含平移、缩放、旋转）圆角矩形的并集。Android 11 以下的轮廓只能是凸的，
+     * 退回用最底下那张（最大的）。还没淡入的卡片不算。
+     */
+    private fun buildShadowOutline(outline: Outline) {
+        shadowPath.reset()
+        val union = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        val casters = if (union) slots else slots.takeLast(1)
+        for (slot in casters) {
+            val view = slot.view
+            if (slot.width == 0 || slot.height == 0 || view.alpha <= 0f) {
+                continue
+            }
+            val radius = (view as? CardView)?.radius ?: 0f
+            cardPath.reset()
+            cardPath.addRoundRect(0f, 0f, slot.width.toFloat(), slot.height.toFloat(), radius, radius, Path.Direction.CW)
+            cardMatrix.set(view.matrix)
+            cardMatrix.postTranslate(view.left.toFloat(), view.top.toFloat())
+            cardPath.transform(cardMatrix)
+            if (shadowPath.isEmpty) {
+                shadowPath.set(cardPath)
+            } else {
+                shadowPath.op(cardPath, Path.Op.UNION)
+            }
+        }
+        if (shadowPath.isEmpty) {
+            outline.setEmpty()
+        } else if (union) {
+            outline.setPath(shadowPath)
+        } else {
+            @Suppress("DEPRECATION")
+            outline.setConvexPath(shadowPath)
+        }
     }
 
     /** 卡片投影的强弱：1 为抬升后的高度，0 为贴在页面上。截粒子快照之前压到 0，交接处不闪。 */
@@ -332,15 +425,13 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
 
     private fun setElevationFraction(fraction: Float) {
         currentElevationFraction = fraction
-        val elevation = params.elevationDp * density * fraction
-        for (slot in slots) {
-            (slot.view as? CardView)?.cardElevation = elevation
-        }
+        shadow.elevation = params.elevationDp * density * fraction
     }
 
     /** 粒子层接管时藏起卡片，流回之后再显示。 */
     fun setCardsShown(shown: Boolean) {
         stack.alpha = if (shown) 1f else 0f
+        updateShadow()
         TapSessionRecorder.current?.event("cards") { put("shown", shown) }
     }
 
@@ -483,8 +574,8 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         /** 卡片边缘到天线至少留这么远，颗粒流进天线的那一段看得见；等待圈最大半径 44dp。 */
         private const val ANTENNA_CLEARANCE_DP = 64f
 
-        /** 为了让开天线，卡片最多缩到这么大；再小就不让了。 */
-        private const val MIN_AVOID_SCALE = .75f
+        /** 放不下时封面最矮压到卡片区高度的这么多。 */
+        private const val MIN_COVER_FRACTION = .25f
 
         private val STACK_ROTATION = floatArrayOf(0f, -6f, 5f, -2.5f)
         private val STACK_OFFSET_X = floatArrayOf(0f, -10f, 12f, -4f)

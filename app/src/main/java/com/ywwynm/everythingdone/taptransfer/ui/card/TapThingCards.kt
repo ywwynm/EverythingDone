@@ -3,14 +3,23 @@ package com.ywwynm.everythingdone.taptransfer.ui.card
 import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
+import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import androidx.cardview.widget.CardView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.managers.ModeManager
@@ -18,75 +27,252 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.utils.DisplayUtil
+import com.ywwynm.everythingdone.views.ThingCardChecklistView
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
- * 用首页的记事卡片渲染一条记事：布局、内容行数、清单条数、附件与背景的规则与首页逐项相同
- * （直接继承首页的适配器，只把数据换成这一条），宽度由调用方给。
+ * 用首页的记事卡片渲染一条记事：布局、字号、内容行数、清单条数、附件与封面的规则与首页逐项相同
+ * （直接继承首页的适配器，只把数据换成这一条）。
  *
- * 分享界面抬升的卡片、接收时拼出来的卡片都用它，看起来就是首页上的那张卡片。
+ * 握手里交给接收方的卡片形状按首页的尺寸量（[listShapes]）；分享界面抬起的卡片更宽，放不下时删减内容
+ * 而不缩小（[LiftedCard]）。
  */
 internal object TapThingCards {
 
-    /** 分享界面卡片的最大宽度：手机上接近满宽，平板上不再跟着屏幕变宽。 */
-    private const val SHARE_MAX_WIDTH_DP = 400f
-    private const val SHARE_SIDE_MARGIN_DP = 24f
+    /**
+     * 首页列表在这个窗口里给卡片的尺寸：普通卡片宽、通栏卡片宽，以及卡片可用高度（封面缩略图的最小与最大
+     * 高度、封面作背景时的最大高度都按它钳制）。首页适配器是从列表上读这三个量的，这里按同样的规则从窗口算：
+     * 列表铺满窗口，左右各留一个卡片外边距，上边让出状态栏与 actionbar、下边让出导航栏
+     * （`DisplayUtil.applyImmersiveListInsetPadding`）。
+     */
+    class ListMetrics(val normalWidth: Int, val fullWidth: Int, val surfaceHeight: Int) {
+        fun widthOf(fullSpan: Boolean): Int = if (fullSpan) fullWidth else normalWidth
+    }
 
-    /** 分享界面卡片的宽度：屏幕宽度减去两侧留白，且不超过 [SHARE_MAX_WIDTH_DP]。 */
-    fun shareCardWidth(activity: Activity): Int {
-        val density = activity.resources.displayMetrics.density
-        val screen = DisplayUtil.getScreenSize(activity).x
-        return min(screen - (2f * SHARE_SIDE_MARGIN_DP * density).toInt(), (SHARE_MAX_WIDTH_DP * density).toInt())
+    fun listMetrics(activity: Activity): ListMetrics {
+        val res = activity.resources
+        val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val decor = activity.window.decorView
+        val screen = DisplayUtil.getScreenSize(activity)
+        val width = if (decor.width > 0) decor.width else res.displayMetrics.widthPixels
+        val height = if (decor.height > 0) decor.height else screen.y
+        val span = DisplayUtil.homeListSpanCount(activity)
+        // 列表内容宽度：去掉列表左右的内边距；每张卡片左右各有一个外边距
+        val content = width - spacing * 2
+        val bars = ViewCompat.getRootWindowInsets(decor)
+            ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val top = (bars?.top ?: 0) + DisplayUtil.resolveActionBarSize(activity)
+        val bottom = bars?.bottom ?: 0
+        return ListMetrics(
+            normalWidth = ((content - spacing * 2 * span) / span).coerceAtLeast(1),
+            fullWidth = (content - spacing * 2).coerceAtLeast(1),
+            surfaceHeight = (height - top - bottom).coerceAtLeast(1)
+        )
     }
 
     /**
-     * 这几条记事的卡片在本机首页列表里的形状：高宽比（高 / 宽）与是否通栏。普通卡片按列宽、通栏卡片按通栏宽度
-     * 排一次量出高度（与首页适配器同一套规则），私密记事按不显示内容的样子量（接收方就是这样显示的）。
-     * 握手把它交给接收方，接收方按自己的列宽乘回去预计落点。最多量 [limit] 条；在主线程调用。
+     * 这几条记事的卡片在本机首页列表里的形状：高宽比（高 / 宽）与是否通栏，与首页排出来的一样（[create]），
+     * 私密记事按不显示内容的样子量（接收方就是这样显示的）。握手把它交给接收方，接收方按自己的列宽乘回去
+     * 预计落点。最多量 [limit] 条；在主线程调用。
      */
     fun listShapes(activity: Activity, things: List<Thing>, limit: Int): Pair<FloatArray, BooleanArray> {
-        val res = activity.resources
-        val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
-        val normal = DisplayUtil.getThingCardWidth(activity).coerceAtLeast(1)
-        val full = (res.displayMetrics.widthPixels - spacing * 4).coerceAtLeast(1)
+        val metrics = listMetrics(activity)
         val count = min(things.size, limit)
         val aspects = FloatArray(count)
         val spans = BooleanArray(count)
         for (k in 0 until count) {
-            val thing = things[k]
-            val wide = thing.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL
-            val width = if (wide) full else normal
-            val card = create(activity, thing, width, revealPrivate = false)
+            val card = create(activity, things[k], metrics, revealPrivate = false)
+            val width = card.layoutParams.width
             card.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
             aspects[k] = card.measuredHeight.coerceAtLeast(1).toFloat() / width
-            spans[k] = wide
+            // 首页至少两列，普通卡片总比通栏窄
+            spans[k] = width == metrics.fullWidth
         }
         return aspects to spans
     }
 
     /**
-     * 渲染一张卡片。返回的视图已绑定、可直接加进布局，宽度固定为 [widthPx]、高度随内容。
+     * 渲染一张卡片。返回的视图已绑定、可直接加进布局，宽度是这条记事在首页上的宽度（普通或通栏）、高度随内容。
      *
      * @param revealPrivate 私密记事是否显示内容。分享方在分享前已经验证过身份，显示；
      *        接收方按首页的规则，不显示。
      */
-    fun create(activity: Activity, thing: Thing, widthPx: Int, revealPrivate: Boolean): View {
+    fun create(activity: Activity, thing: Thing, metrics: ListMetrics, revealPrivate: Boolean): View {
+        val adapter = newAdapter(activity, thing, metrics, revealPrivate)
+        val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
+        bind(adapter, holder, metrics.widthOf(adapter.isFullSpan()))
+        return holder.itemView
+    }
+
+    private fun newAdapter(activity: Activity, thing: Thing, metrics: ListMetrics,
+                           revealPrivate: Boolean): SingleThingAdapter {
         val adapter = SingleThingAdapter(activity.application as App, thing, revealPrivate)
-        adapter.setCardWidth(widthPx)
-        adapter.setFullSpanCardWidth(widthPx)
+        adapter.setCardWidth(metrics.normalWidth)
+        adapter.setFullSpanCardWidth(metrics.fullWidth)
+        adapter.setThingCardSurfaceAvailableHeight(metrics.surfaceHeight)
         adapter.setShouldShowPrivateContent(revealPrivate)
         // 动图、视频封面只取静态的一帧：卡片会被截成粒子
         adapter.setAnimatedPlaybackEnabled(false)
-        val parent = FrameLayout(activity)
-        val holder = adapter.onCreateViewHolder(parent, adapter.getItemViewType(0))
+        return adapter
+    }
+
+    /** 绑定（或重新绑定）这张卡片，绑完宽度设为 [width]、高度随内容。 */
+    private fun bind(adapter: SingleThingAdapter, holder: BaseThingsAdapter.BaseThingViewHolder, width: Int) {
+        val card = holder.itemView
+        val previous = card.layoutParams as? FrameLayout.LayoutParams
         // 首页适配器绑定时按瀑布流的布局参数设外边距，先给它一份，绑完再换成普通的
-        holder.itemView.layoutParams = StaggeredGridLayoutManager.LayoutParams(
+        card.layoutParams = StaggeredGridLayoutManager.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         adapter.onBindViewHolder(holder, 0)
-        val card = holder.itemView
-        card.layoutParams = FrameLayout.LayoutParams(widthPx, ViewGroup.LayoutParams.WRAP_CONTENT)
-        return card
+        card.layoutParams = (previous ?: FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT))
+            .also { it.width = width }
+    }
+
+    /**
+     * 分享界面里抬起的一张卡片（决策 2026-09-26「抬起的卡片放大、按首页字号排」）。起初按首页的尺寸绑定；
+     * 舞台知道卡片区之后按 [widthIn] 加宽、按 [fit] 在高度上限里排版。字号、行数与条数的上限、封面的规则
+     * 都沿用首页。
+     *
+     * @param home 首页列表的尺寸：通栏宽是加宽的依据，卡片可用高度用来钳制封面（与首页相同）。
+     */
+    class LiftedCard(activity: Activity, private val thing: Thing, private val home: ListMetrics,
+                     revealPrivate: Boolean) {
+
+        private val adapter = newAdapter(activity, thing, home, revealPrivate)
+        private val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
+
+        val fullSpan: Boolean = adapter.isFullSpan()
+
+        val view: View get() = holder.itemView
+
+        init {
+            bind(adapter, holder, home.widthOf(fullSpan))
+        }
+
+        /**
+         * 在宽 [areaWidth] 的卡片区里抬起时的宽度：通栏按首页的通栏宽，最宽 [LIFT_MAX_WIDTH_DP]，也不超过卡片区
+         * 减去两侧与首页相同的留白（列表的内边距加卡片的外边距）；普通卡片取通栏的 [LIFT_NORMAL_RATIO]。
+         */
+        fun widthIn(areaWidth: Int): Int {
+            val res = view.resources
+            val side = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing) * 2
+            val full = minOf(home.fullWidth, (LIFT_MAX_WIDTH_DP * res.displayMetrics.density).toInt(),
+                areaWidth - side * 2).coerceAtLeast(1)
+            return if (fullSpan) full else (full * LIFT_NORMAL_RATIO).roundToInt().coerceAtLeast(1)
+        }
+
+        /**
+         * 按 [width] 重新排版，高度尽量不超过 [maxHeight]：先减正文行数或清单条数（末尾照首页带省略号，
+         * 最少留 [MIN_KEPT] 行或条，清单的字号仍按首页那张的条数算），还不够再把上下的缩略图、作背景的图
+         * 压扁（按更宽的比例裁切，最矮 [minCoverHeight]）。返回排好之后的高度，可能仍超过上限：剩下的
+         * 由舞台整体缩小。
+         *
+         * 会重新绑定卡片：视图的透明度、缩放要在这之后再设。
+         */
+        fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int {
+            val start = SystemClock.elapsedRealtimeNanos()
+            val height = fitWithin(width, maxHeight, minCoverHeight)
+            if (BuildConfig.DEBUG) {
+                // 魅族不输出 Log.d
+                Log.i(TAG, "fit ${thing.id} width=$width max=$maxHeight natural=$naturalHeight " +
+                    "textCap=${adapter.textCap.takeIf { it != Int.MAX_VALUE }} " +
+                    "coverCap=${adapter.coverCap.takeIf { it != Int.MAX_VALUE }} height=$height " +
+                    "ms=${(SystemClock.elapsedRealtimeNanos() - start) / 1_000_000}")
+            }
+            return height
+        }
+
+        /** 调试：这次排版里不删减时的高度。 */
+        private var naturalHeight = 0
+
+        private fun fitWithin(width: Int, maxHeight: Int, minCoverHeight: Int): Int {
+            adapter.textCap = Int.MAX_VALUE
+            adapter.coverCap = Int.MAX_VALUE
+            adapter.checklistSizeBasis = null
+            adapter.setCardWidth(width)
+            var height = rebind(width)
+            naturalHeight = height
+            if (height <= maxHeight) {
+                return height
+            }
+            // 正文行数或清单条数：找出放得下的最多那个
+            val checklist = holder.rvChecklist.isVisible
+            val shown = when {
+                checklist -> holder.rvChecklist.visibleItemCount
+                holder.tvContent?.isVisible == true -> holder.tvContent.lineCount
+                else -> 0
+            }
+            if (shown > MIN_KEPT) {
+                if (checklist) {
+                    adapter.checklistSizeBasis = shown
+                }
+                var low = MIN_KEPT
+                var high = shown - 1
+                var best = MIN_KEPT
+                var probed = -1
+                var probedHeight = 0
+                while (low <= high) {
+                    val mid = (low + high) ushr 1
+                    adapter.textCap = mid
+                    probed = mid
+                    probedHeight = rebind(width)
+                    if (probedHeight <= maxHeight) {
+                        best = mid
+                        low = mid + 1
+                    } else {
+                        high = mid - 1
+                    }
+                }
+                adapter.textCap = best
+                // 最后一次试的正好是结果时，卡片已经按它排好了
+                height = if (probed == best) probedHeight else rebind(width)
+                if (height <= maxHeight) {
+                    return height
+                }
+            }
+            // 封面压扁：作背景时卡片仍不低于文字，压了也未必全省得下来
+            val cover = squashableCoverHeight()
+            if (cover > minCoverHeight) {
+                adapter.coverCap = max(minCoverHeight, cover - (height - maxHeight))
+                height = rebind(width)
+            }
+            return height
+        }
+
+        private fun rebind(width: Int): Int {
+            bind(adapter, holder, width)
+            val card = holder.itemView
+            val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+            val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            card.measure(widthSpec, heightSpec)
+            // 首页在第一次布局之后才按实测的文字高度再排一次侧栏封面与作背景的封面（异步）；
+            // 这里先布局一次、同步排掉，量到的就是最后的高度
+            card.layout(0, 0, width, card.measuredHeight)
+            val side = adapter.resyncSideImage(holder)
+            val background = adapter.applyThingCardMediaBackgroundHeightToBoundHolder(holder, thing)
+            if (side || background) {
+                card.measure(widthSpec, heightSpec)
+            }
+            // 首页卡片自带的投影由舞台统一画（整叠一片），卡片自己不投
+            (card as? CardView)?.cardElevation = 0f
+            return card.measuredHeight
+        }
+
+        /** 可以压扁的封面此刻的高度：作背景的图，或在上、在下的缩略图；侧栏的封面高度跟着文字走，不算。 */
+        private fun squashableCoverHeight(): Int {
+            val background = holder.ivMediaBackground
+            if (background != null && background.isVisible) {
+                return background.layoutParams.height.coerceAtLeast(0)
+            }
+            val image = holder.flImageAttachment ?: return 0
+            if (!image.isVisible || holder.llContent?.orientation != LinearLayout.VERTICAL) {
+                return 0
+            }
+            return image.measuredHeight
+        }
     }
 
     private class SingleThingAdapter(
@@ -98,9 +284,40 @@ internal object TapThingCards {
         private val things: MutableList<Thing?> = mutableListOf(thing)
         private val folders = ThingFolderDAO.getInstance(app)
 
+        /** 正文行数、清单条数最多这么多（再与首页的上限取小）。 */
+        var textCap = Int.MAX_VALUE
+
+        /** 上下的缩略图、作背景的图最高这么高（再与首页的规则取小）。 */
+        var coverCap = Int.MAX_VALUE
+
+        /** 清单字号按这么多条算；null 表示按实际显示的条数（与首页相同）。 */
+        var checklistSizeBasis: Int? = null
+
         init {
             setShouldThingsAnimWhenAppearing(false)
         }
+
+        override fun getThingCardContentMaxLines(thing: Thing, fullSpan: Boolean): Int =
+            min(super.getThingCardContentMaxLines(thing, fullSpan), textCap)
+
+        override fun getThingCardChecklistMaxItemCount(thing: Thing, fullSpan: Boolean): Int =
+            min(super.getThingCardChecklistMaxItemCount(thing, fullSpan), textCap)
+
+        override fun onThingCardChecklistWillBind(
+            holder: BaseThingViewHolder, checklist: ThingCardChecklistView, thing: Thing
+        ) {
+            super.onThingCardChecklistWillBind(holder, checklist, thing)
+            checklist.sizeBasisItemCount = checklistSizeBasis
+        }
+
+        override fun getThingCardForegroundThumbnailHeight(thing: Thing, imageW: Int): Int =
+            min(super.getThingCardForegroundThumbnailHeight(thing, imageW), coverCap)
+
+        override fun getThingCardMediaBackgroundMaxHeight(thing: Thing): Int =
+            min(super.getThingCardMediaBackgroundMaxHeight(thing), coverCap)
+
+        /** 侧栏封面按当前的文字高度重新排一次；返回是否改动了。 */
+        fun resyncSideImage(holder: BaseThingViewHolder): Boolean = resyncSideImageProjection(holder, thing)
 
         override fun getCurrentMode(): Int = ModeManager.NORMAL
 
@@ -114,7 +331,21 @@ internal object TapThingCards {
         }
 
         override fun isThingEffectivelyPrivate(thing: Thing): Boolean = thing.isPrivate() && !revealPrivate
+
+        /** 首页上是不是通栏卡片（首页适配器自己的判断）。 */
+        fun isFullSpan(): Boolean = isFullSpanThingCard(thing)
     }
+
+    /** 抬起的通栏卡片最宽这么宽（dp），与粒子动画设置页的示例卡片同一个上限。 */
+    private const val LIFT_MAX_WIDTH_DP = 640
+
+    /** 抬起的普通卡片是通栏宽的这么多（手机、平板相同）。 */
+    private const val LIFT_NORMAL_RATIO = .75f
+
+    /** 放不下时正文最少留这么多行、清单最少留这么多条。 */
+    private const val MIN_KEPT = 3
+
+    private const val TAG = "TapLift"
 }
 
 /**

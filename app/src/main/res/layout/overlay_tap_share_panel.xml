@@ -25,7 +25,10 @@
         android:paddingLeft="24dp"
         android:paddingRight="24dp">
 
+        <!-- 最小高度在代码里按「标题一行 + 说明两行」补足：面板高度不随文案跳动，
+             图标与实际显示的文字一起居中（TapShareOverlay.lockTapRowHeight） -->
         <LinearLayout
+            android:id="@+id/ll_tap_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -57,7 +60,7 @@
                     android:textSize="16sp"
                     tools:text="@string/tap_share_ready" />
 
-                <!-- 固定占两行：各阶段的说明长短不一，面板高度不能跟着跳，否则上方的卡片会被压住 -->
+                <!-- 没有说明时收起（GONE），图标只与标题对齐 -->
                 <TextView
                     android:id="@+id/tv_tap_hint"
                     android:layout_width="wrap_content"
@@ -65,7 +68,6 @@
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="2"
-                    android:minLines="2"
                     android:textColor="@color/app_chrome_on_surface_secondary"
                     android:textSize="13sp"
                     tools:text="@string/tap_share_ready_hint" />

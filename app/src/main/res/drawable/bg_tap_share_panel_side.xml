@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手机横屏时分享界面的面板：贴右半边，只有左边两个角是圆的。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/app_chrome_surface_elevated" />
+    <corners
+        android:topLeftRadius="24dp"
+        android:bottomLeftRadius="24dp" />
+</shape>

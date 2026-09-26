@@ -27,7 +27,6 @@ import android.graphics.PointF
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PixelFormat
-import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
@@ -2814,18 +2813,7 @@ class ThingsActivity :
     }
 
     private fun computeSpanCount() {
-        mSpan = if (DisplayUtil.isTablet(this)) 3 else 2
-        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            if (DisplayUtil.isInMultiWindow(this)) {
-                val decor: View = window.decorView
-                val display: Point = DisplayUtil.getDisplaySize(this)
-                if (decor.width != display.x) {
-                    mSpan++
-                }
-            } else {
-                mSpan++
-            }
-        }
+        mSpan = DisplayUtil.homeListSpanCount(this)
     }
 
     override fun setActionbar() {

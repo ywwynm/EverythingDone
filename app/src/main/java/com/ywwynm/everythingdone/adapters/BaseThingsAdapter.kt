@@ -872,6 +872,7 @@ abstract class BaseThingsAdapter(context: Context?) :
                 val fullSpan = isFullSpanThingCard(thing)
                 checklist.fixedIconScale = null
                 checklist.itemClickCallback = null
+                checklist.sizeBasisItemCount = null
                 onThingCardChecklistWillBind(holder, checklist, thing)
                 checklist.bind(
                     items,
@@ -2614,11 +2615,18 @@ abstract class BaseThingsAdapter(context: Context?) :
         if (targetAspectRatio == null || targetAspectRatio <= 0.0) return 0
 
         val targetHeight = (getCardContentWidth(thing) / targetAspectRatio).toInt()
-        val maxHeight = getThingCardSurfaceAvailableHeight() *
+        return min(targetHeight, getThingCardMediaBackgroundMaxHeight(thing))
+    }
+
+    /**
+     * 封面作背景时图片的最大高度（卡片仍不低于文字内容）。默认按卡片可用高度的一个比例；
+     * 分享界面抬起的卡片放不下时往下压（`TapThingCards`）。
+     */
+    protected open fun getThingCardMediaBackgroundMaxHeight(thing: Thing): Int {
+        return getThingCardSurfaceAvailableHeight() *
                 mContext!!.resources.getInteger(
                         R.integer.thing_card_media_background_home_max_height_percent
                 ) / 100
-        return min(targetHeight, maxHeight)
     }
 
     private fun updateCardForMediaBackground(

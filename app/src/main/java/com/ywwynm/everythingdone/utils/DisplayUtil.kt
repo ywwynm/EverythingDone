@@ -742,6 +742,25 @@ object DisplayUtil {
     fun setSelectionHandlersColor(editText: EditText?, color: Int) {
     }
 
+    /**
+     * 首页列表（瀑布流）的列数：手机 2 列、平板 3 列，横屏再加 1 列（分屏时只有窗口比屏幕窄才加）。
+     * 首页与碰一碰分享时渲染首页卡片都按它算，两处必须一致。
+     */
+    @JvmStatic
+    fun homeListSpanCount(activity: Activity): Int {
+        var span = if (isTablet(activity)) 3 else 2
+        if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (isInMultiWindow(activity)) {
+                if (activity.window.decorView.width != getDisplaySize(activity).x) {
+                    span++
+                }
+            } else {
+                span++
+            }
+        }
+        return span
+    }
+
     @JvmStatic
     fun getThingCardWidth(context: Context?): Int {
         var span = 2

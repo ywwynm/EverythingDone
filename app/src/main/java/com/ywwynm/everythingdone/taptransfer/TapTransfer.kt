@@ -185,9 +185,9 @@ object TapTransfer {
     }
 
     /**
-     * 调试：模拟接收时发来哪几条样例，逗号分隔，每一项是一种卡片样式（见 `SimulatedReceiverTransport`
-     * 的 `Variant`）。没有设置时是两条纯文字的记事。界面上没有入口，用 run-as 改
-     * `tap_transfer_debug.xml` 的 `simulate_samples`，例如 `top,bottom,background`。
+     * 调试：模拟接收时发来哪几条样例，逗号分隔，每一项是一种卡片样式，可带封面比例、侧边宽度与通栏
+     * （见 `SimulatedReceiverTransport` 的 `Variant` 与 `Spec`）。没有设置时是两条纯文字的记事。界面上没有
+     * 入口，用 run-as 改 `tap_transfer_debug.xml` 的 `simulate_samples`，例如 `top,background@0.6,left@0.8/35,list!,top@0.8+text`。
      */
     @JvmStatic
     fun simulatedSamples(context: Context): String? {

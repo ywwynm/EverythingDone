@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
+import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
@@ -37,8 +38,8 @@ import java.util.concurrent.TimeUnit
  *
  * 发来哪几条由调试配置 `simulate_samples` 决定（[TapTransfer.simulatedSamples]），每一项是一种
  * 卡片样式（[Variant]）：纯文字（普通或通栏），或者带一张图片、封面在上 / 下 / 左 / 右 / 作为卡片背景。
- * 图片在本机现画，不依赖设备上已有的文件。碰上时与真实发送方一样，把样例卡片按本机列表的列宽量出的
- * 形状放进来件信息（接收方据此预计落点）。
+ * 每一项还可以带封面的比例与宽度（[Spec]），用来核对各种封面设置下的卡片。图片在本机现画，不依赖设备上
+ * 已有的文件。碰上时与真实发送方一样，把样例卡片按本机列表的列宽量出的形状放进来件信息（接收方据此预计落点）。
  *
  * 样例记事真的写成记事文件、真的经 [com.ywwynm.everythingdone.thingfile.ThingFileReader] 读、
  * 经导入器写进数据库——除了 NFC 与 Wi-Fi Direct，走的都是真实的路径。每次进入接收状态只模拟
@@ -62,14 +63,36 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
         BACKGROUND("background"),
 
         /** 通栏的纯文字卡片。 */
-        WIDE("wide");
+        WIDE("wide"),
 
+        /** 十几项的清单（有两级、有已完成的），看清单条数上限。 */
+        LIST("list"),
+
+        /** 二十来行的正文，看正文行数上限。 */
+        TEXT("text")
+    }
+
+    /**
+     * 一条样例：样式，加上可选的封面比例（宽 / 高）、侧边封面的宽度百分比、是否通栏与内容。写法是
+     * `样式[@比例][/宽度百分比][!][+内容]`，`!` 表示通栏，内容是 `text`（长正文）或 `list`（长清单），
+     * 例如 `background@0.6`、`background@1.8!`、`left@0.8/35`、`top@2`、`top@0.8+text`。比例按样式落到
+     * 对应的封面呈现上：上 / 下是缩略图、左 / 右是侧栏、背景是封面背景。
+     */
+    class Spec(val variant: Variant, val ratio: Double?, val sidePercent: Int?, val fullSpan: Boolean,
+               val content: Variant? = null) {
         companion object {
-            fun parse(spec: String?): List<Variant> {
-                val parsed = spec.orEmpty().split(',').mapNotNull { key ->
-                    values().firstOrNull { it.key == key.trim() }
+            private val PATTERN = Regex("([a-z]+)(?:@([0-9.]+))?(?:/([0-9]+))?(!)?(?:\\+(text|list))?")
+
+            fun parse(spec: String?): List<Spec> {
+                val parsed = spec.orEmpty().split(',').mapNotNull { token ->
+                    val m = PATTERN.matchEntire(token.trim()) ?: return@mapNotNull null
+                    val variant = Variant.values().firstOrNull { it.key == m.groupValues[1] }
+                        ?: return@mapNotNull null
+                    Spec(variant, m.groupValues[2].toDoubleOrNull()?.takeIf { it > 0.0 },
+                        m.groupValues[3].toIntOrNull(), m.groupValues[4] == "!",
+                        Variant.values().firstOrNull { it.key == m.groupValues[5] })
                 }
-                return parsed.ifEmpty { listOf(PLAIN, PLAIN) }
+                return parsed.ifEmpty { List(2) { Spec(Variant.PLAIN, null, null, false) } }
             }
         }
     }
@@ -88,9 +111,9 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
     override fun start(receiverName: String, listener: TapReceiverTransport.Listener) {
         this.listener = listener
         val g = ++generation
-        val variants = Variant.parse(TapTransfer.simulatedSamples(context))
-        val colors = IntArray(variants.size) { ContextCompat.getColor(context, PALETTE[it % PALETTE.size]) }
-        sample = io.submit<Sample> { sampleThings(variants, colors).let { Sample(it, writeSample(it)) } }
+        val specs = Spec.parse(TapTransfer.simulatedSamples(context))
+        val colors = IntArray(specs.size) { ContextCompat.getColor(context, PALETTE[it % PALETTE.size]) }
+        sample = io.submit<Sample> { sampleThings(specs, colors).let { Sample(it, writeSample(it)) } }
         main.postDelayed({
             if (g == generation && !touched) {
                 touch(g, colors)
@@ -164,19 +187,30 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
     }
 
     /** 在后台线程调用：带图片的样例要先把图片画出来、存成文件。 */
-    private fun sampleThings(variants: List<Variant>, colors: IntArray): List<Thing> {
+    private fun sampleThings(specs: List<Spec>, colors: IntArray): List<Thing> {
         val now = System.currentTimeMillis()
         val dir = TapTransfer.workDir(context, "sim")
-        return variants.mapIndexed { k, variant ->
-            val attachment = if (variant == Variant.PLAIN || variant == Variant.WIDE) "" else {
+        return specs.mapIndexed { k, spec ->
+            val variant = spec.variant
+            var sourceKey: String? = null
+            val textOnly = variant == Variant.PLAIN || variant == Variant.WIDE || variant == Variant.LIST ||
+                variant == Variant.TEXT
+            val attachment = if (textOnly) "" else {
                 val image = File(dir, "sample-image-$now-$k.jpg")
                 drawSampleImage(image, variant, colors[k])
-                AttachmentHelper.SIGNAL + AttachmentHelper.IMAGE + image.absolutePath
+                sourceKey = AttachmentHelper.IMAGE.toString() + image.absolutePath
+                AttachmentHelper.SIGNAL + sourceKey
             }
             val thing = Thing(
                 0L, Thing.NOTE, Thing.UNDERWAY, colors[k],
                 context.getString(R.string.tap_simulated_thing_title, k + 1),
-                context.getString(R.string.tap_simulated_thing_content),
+                when (spec.content ?: variant) {
+                    Variant.LIST -> sampleChecklist()
+                    Variant.TEXT -> List(SAMPLE_TEXT_LINES) { line ->
+                        context.getString(R.string.tap_simulated_thing_content) + " " + (line + 1)
+                    }.joinToString("\n")
+                    else -> context.getString(R.string.tap_simulated_thing_content)
+                },
                 attachment, 0L, now, now, 0L
             )
             thing.setBackground(ThingBackground.pure(colors[k]))
@@ -192,9 +226,42 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
                 )
                 Variant.BACKGROUND -> ThingCardAppearance(mediaBackgroundEnabled = true)
                 Variant.WIDE -> ThingCardAppearance(spanMode = Thing.THING_CARD_SPAN_FULL)
-            }
+                Variant.LIST, Variant.TEXT -> ThingCardAppearance()
+            }.let { base -> withSpec(base, spec, sourceKey) }
             thing
         }
+    }
+
+    /** 清单样例：一级、二级交替，其中几项已完成。 */
+    private fun sampleChecklist(): String {
+        val items = List(SAMPLE_CHECKLIST_ITEMS) { k ->
+            val state = if (k % 5 == 4) CheckListHelper.STATE_FINISHED else CheckListHelper.STATE_UNFINISHED
+            CheckListHelper.makeItem(state, if (k % 3 == 2) 2 else 1,
+                context.getString(R.string.tap_simulated_thing_title, k + 1))
+        }
+        return CheckListHelper.toCheckListStr(items)
+    }
+
+    /** 把 [spec] 里的通栏、侧边宽度与封面比例加到 [base] 上。 */
+    private fun withSpec(base: ThingCardAppearance, spec: Spec, sourceKey: String?): ThingCardAppearance {
+        var appearance = base
+        if (spec.fullSpan) {
+            appearance = appearance.copy(spanMode = Thing.THING_CARD_SPAN_FULL)
+        }
+        spec.sidePercent?.let { appearance = appearance.copy(sideMediaWidthPercent = it) }
+        val ratio = spec.ratio
+        if (ratio == null || sourceKey == null) {
+            return appearance
+        }
+        val presentation = when (spec.variant) {
+            Variant.TOP, Variant.BOTTOM -> ThingCardAppearance.PRESENTATION_THUMBNAIL
+            Variant.LEFT, Variant.RIGHT -> ThingCardAppearance.PRESENTATION_SIDE_PANEL
+            Variant.BACKGROUND -> ThingCardAppearance.PRESENTATION_MEDIA_BACKGROUND
+            else -> return appearance
+        }
+        val source = ThingCardAppearance.SourceAppearance()
+            .withPresentation(presentation, ThingCardAppearance.MediaPresentationAppearance(targetAspectRatio = ratio))
+        return appearance.copy(mediaSourceKey = sourceKey, sources = mapOf(sourceKey to source))
     }
 
     /**
@@ -259,6 +326,8 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
         const val TRANSFER_MS = 900L
         const val STEPS = 18
         const val SAMPLE_TIMEOUT_MS = 30_000L
+        const val SAMPLE_CHECKLIST_ITEMS = 14
+        const val SAMPLE_TEXT_LINES = 20
 
         /** 样例记事的颜色，按顺序循环取。 */
         val PALETTE = intArrayOf(

@@ -56,6 +56,12 @@ class ThingCardChecklistView @JvmOverloads constructor(
     /** 勾选与点击行尾空白的回调；绑定前设好，null 表示整份清单不可点。 */
     var itemClickCallback: ItemClickCallback? = null
 
+    /**
+     * 字号与行距按这么多条算，null 表示按实际显示的条数；绑定前设好。卡片放不下、条数被删减时
+     * （分享界面抬起的卡片），字号仍按首页那张卡片的条数，不因为条数变少而变大。
+     */
+    var sizeBasisItemCount: Int? = null
+
     fun bind(
         items: List<String?>,
         maxItemCount: Int,
@@ -79,8 +85,9 @@ class ThingCardChecklistView @JvmOverloads constructor(
         }
 
         val density = resources.displayMetrics.density
-        val baseSize = CheckListAdapter.cardBaseTextSizeSp(visible, fixedTextSize)
-        val baseTop = CheckListAdapter.cardItemTopMarginPx(visible, fixedTextSize, density)
+        val sizeBasis = sizeBasisItemCount ?: visible
+        val baseSize = CheckListAdapter.cardBaseTextSizeSp(sizeBasis, fixedTextSize)
+        val baseTop = CheckListAdapter.cardItemTopMarginPx(sizeBasis, fixedTextSize, density)
         val dark = CheckListAdapter.isDarkForeground(thingColor)
 
         for (i in 0 until rowCount) {

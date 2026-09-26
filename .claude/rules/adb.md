@@ -1234,7 +1234,9 @@ Flyme 的 Aicy 识屏浮层（一个「T」按钮和一个彩色圆球）弹出�
 `selected` / `checked`。批量删测试记事之前要确认选中的恰好是它们，两项同时成立才删：
 
 1. 顶栏的「N / M」里 N 等于刚才点过的样例数；
-2. 截图上这些样例卡片区域里出现最多的颜色饱和度都高于 0.45（实测选中 0.59 / 1.0，未选中 0.18 / 0.22）。
+2. 每张样例卡片区域里出现最多的颜色（底色），进入选择模式之后与之前逐通道相差不超过 6：选中的卡片保持原色，
+   未选中的换成浅色。**不要用固定的饱和度门槛**：2026-09-26 实测紫色样例（BGR 150,86,102 一类）选中时饱和度
+   只有 0.43，按「高于 0.45」判成了没选中，整轮中止。先在普通状态下逐条截图记下底色，再比。
 
 只看计数不够：一下点偏选中了别的卡片，计数照样对得上。删除还有一个确认框「将删除所选记事，共 N 件，
 可在回收站恢复」，件数也要核对。
@@ -1261,25 +1263,37 @@ Flyme 的 Aicy 识屏浮层（一个「T」按钮和一个彩色圆球）弹出�
 Git Bash 里路径参数要加 `MSYS_NO_PATHCONV=1`，PowerShell 工具里命令带 `rm` 会被沙箱拦（见上文）。
 拉回之后照例逐个比 md5。
 
-## ColorOS / 一加上 `monkey` 与 `uiautomator dump` 会打开自动旋转
+## `monkey` 启动应用会打开自动旋转：一律改用 `am start`
 
-2026-09-26 在 Find X9 Ultra（PMA110）与一加 15T（PLZ110）上被用户发现：驱动脚本跑过之后，手机的自动旋转被打开了。
-`dumpsys window displays` 里的 `RotationLockHistory` 记着调用方，两台都有：
+2026-09-26 用户在 Find X9 Ultra（PMA110）与一加 15T（PLZ110）上发现：驱动脚本跑过之后，手机的自动旋转被打开了。
+`dumpsys window displays` 里的 `RotationLockHistory` 记着调用方：
 
 - `MonkeyRotationEven#injectEvent`：`monkey -p <包名> -c android.intent.category.LAUNCHER 1` 启动应用时注入了一次
-  旋转事件，锁定 → 解锁；
-- `UiAutomationConnection#restoreRotationStateLocked`：每次 `uiautomator dump` 断开连接时「恢复」旋转状态，
-  实际写成了 `USER_ROTATION_FREE`。
+  旋转事件，锁定 → 解锁，**这一步把自动旋转打开了**。三星 SM-S9180 上同样有（2026-09-26 01:03 那一轮留下的）；
+- `UiAutomationConnection#restoreRotationStateLocked`：每次 `uiautomator dump` 断开时把旋转恢复成**连接时看到的**
+  状态，本身不改设置；monkey 打开之后它记下的就是「解锁」，于是一连串记录都是 `USER_ROTATION_FREE`。
 
-**自动旋转属于用户的设置，这等于替用户改了设置**。在这两台（以及同系的 ColorOS / 一加设备）上：
+**自动旋转属于用户的设置，这等于替用户改了设置**。规则：
 
-1. 启动应用改用 `am start -n com.ywwynm.everythingdone/.activities.ThingsActivity`，不用 `monkey`；
-2. 定位控件改用截图（on-device screencap + pull + md5 校验）按比例换算坐标，每一步点完再截图核对，不用 `uiautomator`；
-3. 跑之前、跑之后各读一次，确认没被动过：
+1. 启动应用一律 `am start -n com.ywwynm.everythingdone/.activities.ThingsActivity`，不用 `monkey`
+   （`particle-sim/device/share_card_check.py` 已按此写）；
+2. `uiautomator dump` 可以继续用，但跑之前、跑之后各读一次，确认没被动过：
 
 ```powershell
 & $adb -s <serial> shell settings get system accelerometer_rotation
 & $adb -s <serial> shell "dumpsys window displays | grep -A12 RotationLockHistory"
 ```
 
-别的品牌上没有核对过，用之前同样先读 `RotationLockHistory`。
+3. 发现被改了先如实告诉用户来源（记录里的调用方与时间），不要自作主张改回去——2026-09-26 用户明确要求先别管、
+   专心修功能。
+
+**测试需要固定朝向时（用户已同意由我来调）**：先读 `accelerometer_rotation` 与 `user_rotation` 的原值，
+`settings put system accelerometer_rotation 0` + `settings put system user_rotation 1`（或 3）固定横屏，跑完改回。
+**改回时先开自动旋转、再写 `user_rotation`，隔一秒再读回核对**：2026-09-26 在魅族上先写 `user_rotation 0`，
+朝向随之变回竖屏，`RotationButtonController#onRotationWatcherChanged` 紧接着又把旋转锁回
+（`RotationLockHistory` 里能看到），刚写的 `accelerometer_rotation 1` 读回来仍是 0，重设一次才生效。
+开着自动旋转的手机平放时朝向会跟着传感器来回变，不固定就跑横屏验证，结果不可信。
+
+**横屏下点列表里的标题要先确认它在状态栏之下**：列表滚动之后顶栏收起，一张比屏幕还高的卡片会把标题停在状态栏
+底下，点下去点的是状态栏（2026-09-26 魅族横屏实际发生，脚本报「没有打开详情页」）。可点范围的上沿取顶栏下沿与
+状态栏下沿（`dumpsys window` 里 `type=statusBars frame=[..][W,H]` 的 H）中更低的那个。

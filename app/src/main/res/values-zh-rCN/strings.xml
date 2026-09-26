@@ -2026,7 +2026,7 @@
     <string name="thing_animation_particle">粒子</string>
     <string name="thing_animation_slide">滑动渐隐</string>
     <!--应用内碰一碰-->
-    <string name="tap_share_ready">把手机背面贴近对方的手机</string>
+    <string name="tap_share_ready">两台设备的 NFC 区域轻碰一下</string>
     <string name="tap_share_ready_hint">对方在完事儿首页下拉，点「接收记事」</string>
     <string name="tap_share_preparing">正在准备…</string>
     <string name="tap_share_connecting">正在连接 %1$s…</string>
@@ -2041,14 +2041,14 @@
     <string name="tap_setup_nfc">需要先打开 NFC</string>
     <string name="tap_setup_wifi">需要先打开 Wi-Fi</string>
     <string name="tap_setup_location">需要先打开位置信息</string>
-    <string name="tap_setup_hint">两台手机都需要打开</string>
-    <string name="tap_setup_hint_permission">两台手机都需要允许</string>
+    <string name="tap_setup_hint">两台设备都需要打开</string>
+    <string name="tap_setup_hint_permission">两台设备都需要允许</string>
     <string name="tap_setup_allow">允许</string>
     <string name="tap_setup_turn_on">去打开</string>
     <string name="tap_setup_still_missing">还不能接收：%1$s</string>
     <string name="tap_receive_button">接收记事</string>
     <string name="tap_receive_exit">退出接收</string>
-    <string name="tap_receive_hint">把两台手机背面贴在一起</string>
+    <string name="tap_receive_hint">两台设备的 NFC 区域轻碰一下</string>
     <string name="tap_receive_from">来自 %1$s</string>
     <string name="tap_receive_progress">来自 %1$s · %2$d%%</string>
     <string name="tap_receive_failed">接收失败，请再碰一次</string>

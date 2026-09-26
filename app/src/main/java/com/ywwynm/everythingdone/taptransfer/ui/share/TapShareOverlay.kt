@@ -20,6 +20,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.Choreographer
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,6 +28,7 @@ import android.view.ViewTreeObserver
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
@@ -48,15 +50,18 @@ import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
+import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import org.json.JSONArray
+import kotlin.math.max
 
 /**
  * 分享界面（决策 2026-09-24「分享界面改为卡片在上、面板在下，盖在当前页面上」）。
  *
- * 当前页面变暗但保持显示；要分享的记事以首页卡片（宽版）的样子抬升起来停在上半屏（选择模式里
- * 从列表里的卡片位置升起、叠成一叠；详情页里从页面中升起）；下方面板是碰一碰区域与「文本与
- * 图片」「长截图」「记事文件」三项。按返回或点暗处关闭，卡片落回。
+ * 当前页面变暗但保持显示；要分享的记事以首页卡片的样子抬升起来停在上半屏（加宽、按首页的字号排，
+ * 放不下时删减内容；选择模式里从列表里的卡片位置升起、叠成一叠；详情页里从页面中升起）；下方面板
+ * 是碰一碰区域与「文本与图片」「长截图」「记事文件」三项。手机横屏时改成左右排：面板贴右半边、
+ * 从右侧滑入，卡片在左半边。按返回或点暗处关闭，卡片落回。
  *
  * 碰上之后卡片交给首页与弹窗共用的粒子消散，颗粒整团滑进 NFC 天线（[TapParticleFlight.Outflow]）。
  * 发完之后「已发送」停留一会儿，卡片按打开时的那段抬起重新出现；发送失败、流出被打断时从天线流回来、
@@ -122,6 +127,7 @@ class TapShareOverlay private constructor(
     private val stage = TapShareCardStage(activity, this)
     private val panel: View = LayoutInflater.from(activity).inflate(R.layout.overlay_tap_share_panel, root, false)
     private val tapArea: View = panel.findViewById(R.id.ll_tap_area)
+    private val tapRow: LinearLayout = panel.findViewById(R.id.ll_tap_row)
     private val tapIcon: ImageView = panel.findViewById(R.id.iv_tap_icon)
     private val tapTitle: TextView = panel.findViewById(R.id.tv_tap_title)
     private val tapHint: TextView = panel.findViewById(R.id.tv_tap_hint)
@@ -134,6 +140,12 @@ class TapShareOverlay private constructor(
     private val smoother = ProgressSmoother()
 
     private var closing = false
+
+    /**
+     * 手机横屏：面板贴右半边、从右侧滑入，卡片放在左半边，卡片区高度接近整屏（决策 2026-09-26 第 8 条）。
+     * 平板横屏仍是上下排。打开之后窗口尺寸变了就直接收起（[sizeWatcher]），不用中途切换。
+     */
+    private var sideBySide = false
 
     /** 卡片已经开始抬升（第一帧画出来之前关闭的话，没有要落回的东西）。 */
     private var started = false
@@ -213,7 +225,16 @@ class TapShareOverlay private constructor(
         dim.alpha = 0f
         dim.setOnClickListener { close(null) }
         root.addView(dim, FrameLayout.LayoutParams(match, match))
-        root.addView(panel)
+        val decor = activity.window.decorView
+        sideBySide = !DisplayUtil.isTablet(activity) && decor.width > decor.height
+        if (sideBySide) {
+            val lp = FrameLayout.LayoutParams(decor.width / 2, match, Gravity.END)
+            panel.setBackgroundResource(R.drawable.bg_tap_share_panel_side)
+            (panel as LinearLayout).gravity = Gravity.CENTER_VERTICAL
+            root.addView(panel, lp)
+        } else {
+            root.addView(panel)
+        }
         // 舞台叠在面板之上：天线常在面板那一片，等待圈与光要画得出来。舞台不消费触摸
         root.addView(stage, FrameLayout.LayoutParams(match, match))
         root.isClickable = false
@@ -226,18 +247,31 @@ class TapShareOverlay private constructor(
         stage.visibility = View.INVISIBLE
         content.addView(root, ViewGroup.LayoutParams(match, match))
 
-        val width = TapThingCards.shareCardWidth(activity)
-        val cards = request.things.take(MAX_STACK).map { TapThingCards.create(activity, it, width, revealPrivate = true) }
+        // 抬起的卡片按首页的卡片排，舞台知道卡片区之后再加宽、放不下时删减
+        val metrics = TapThingCards.listMetrics(activity)
+        val cards = request.things.take(MAX_STACK).map {
+            TapThingCards.LiftedCard(activity, it, metrics, revealPrivate = true)
+        }
 
         activity.onBackPressedDispatcher.addCallback(activity, backCallback)
         activity.lifecycle.addObserver(lifecycleObserver)
 
         // 分享界面在所有设备上都用（不支持碰一碰只是隐藏那一块），插图走兼容库，Android 8 起可用
+        val panelTopPadding = panel.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val nav = insets.getInsets(
                 WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            panel.setPadding(panel.paddingLeft, panel.paddingTop, panel.paddingRight, nav.bottom + (8f * density).toInt())
+            if (sideBySide) {
+                // 贴右半边、上下通顶：让开状态栏与右侧的导航栏、挖孔
+                val bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                panel.setPadding(panel.paddingLeft, bars.top + panelTopPadding, bars.right,
+                    bars.bottom + (8f * density).toInt())
+            } else {
+                panel.setPadding(panel.paddingLeft, panel.paddingTop, panel.paddingRight, nav.bottom + (8f * density).toInt())
+            }
             insets
         }
         ViewCompat.requestApplyInsets(root)
@@ -257,23 +291,35 @@ class TapShareOverlay private constructor(
         root.viewTreeObserver.addOnPreDrawListener(listener)
     }
 
-    private fun start(cards: List<View>) {
+    private fun start(cards: List<TapThingCards.LiftedCard>) {
         if (closing) {
             return
         }
         started = true
-        val top = ViewCompat.getRootWindowInsets(root)
+        val rootInsets = ViewCompat.getRootWindowInsets(root)
+        val top = rootInsets
             ?.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
             ?.top ?: 0
-        val panelTop = (root.height - panel.height).toFloat()
-        stage.setCardArea(RectF(0f, top + 12f * density, root.width.toFloat(), panelTop - 8f * density))
+        if (sideBySide) {
+            // 左半边：让开左侧的挖孔与底部的导航栏
+            val bars = rootInsets?.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            stage.setCardArea(RectF((bars?.left ?: 0).toFloat(), top + 12f * density,
+                (root.width - panel.width).toFloat(), root.height - (bars?.bottom ?: 0) - 12f * density))
+        } else {
+            val panelTop = (root.height - panel.height).toFloat()
+            stage.setCardArea(RectF(0f, top + 12f * density, root.width.toFloat(), panelTop - 8f * density))
+        }
 
         // 天线：先在 DecorView 里定位（粒子层的坐标系），再换到舞台里画等待圈
         val decor = activity.window.decorView
-        if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
-            antennaInDecor.set(decor.width / 2f, top + ANTENNA_FALLBACK_DP * density)
-        }
         val offset = stageOffsetInDecor()
+        if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
+            // 左右排时屏幕顶部中间正好是面板的左缘：改用卡片区顶部的中间
+            val centerX = if (sideBySide) offset.x + (root.width - panel.width) / 2f else decor.width / 2f
+            antennaInDecor.set(centerX, top + ANTENNA_FALLBACK_DP * density)
+        }
         stage.setAntenna(antennaInDecor.x - offset.x, antennaInDecor.y - offset.y)
 
         val stageAt = IntArray(2).also { stage.getLocationInWindow(it) }
@@ -291,12 +337,14 @@ class TapShareOverlay private constructor(
         stage.lift()
 
         animateDim(if (AppearanceUtil.isDarkMode(activity)) params.sendDimAlpha[1] else params.sendDimAlpha[0], params.openMs)
-        panel.translationY = panel.height.toFloat()
+        val slide = panelSlideDistance()
+        setPanelOffset(slide)
         panel.visibility = View.VISIBLE
         recorder?.event("panel") {
-            put("from", panel.height.toDouble()); put("to", 0.0); put("duration", params.openMs); put("ease", "open")
+            put("from", slide.toDouble()); put("to", 0.0); put("duration", params.openMs); put("ease", "open")
+            put("axis", if (sideBySide) "x" else "y")
         }
-        panel.animate().translationY(0f).setDuration(params.openMs).setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f)).start()
+        panelOffsetAnimator(0f).setDuration(params.openMs).setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f)).start()
 
         root.addOnLayoutChangeListener(sizeWatcher)
         controller.start()
@@ -325,6 +373,16 @@ class TapShareOverlay private constructor(
         }
     }
 
+    /** 面板收起时离开屏幕要走的距离：上下排时是面板高，左右排时是面板宽。 */
+    private fun panelSlideDistance(): Float = if (sideBySide) panel.width.toFloat() else panel.height.toFloat()
+
+    private fun setPanelOffset(offset: Float) {
+        if (sideBySide) panel.translationX = offset else panel.translationY = offset
+    }
+
+    private fun panelOffsetAnimator(to: Float) =
+        if (sideBySide) panel.animate().translationX(to) else panel.animate().translationY(to)
+
     private fun stageOffsetInDecor(): PointF {
         val stageAt = IntArray(2).also { stage.getLocationInWindow(it) }
         val decorAt = IntArray(2).also { activity.window.decorView.getLocationInWindow(it) }
@@ -352,6 +410,7 @@ class TapShareOverlay private constructor(
         bindOption(panel.findViewById(R.id.tv_share_thing_file)) { request.host.shareThingFile() }
 
         tapIcon.setImageDrawable(bakeTint(tapIcon.drawable, accent))
+        lockTapRowHeight()
         BackgroundUtil.applyProgressBarGradient(tapProgress, accent)
         val pill = GradientDrawable()
         pill.cornerRadius = 18f * density
@@ -365,6 +424,24 @@ class TapShareOverlay private constructor(
         tapAction.setOnClickListener {
             controller.missing.firstOrNull()?.let { navigator.open(it) }
         }
+    }
+
+    /**
+     * 碰一碰那一行的最小高度按「标题一行 + 说明两行」算：说明不再固定占两行，没有说明时收起，图标与实际
+     * 显示的文字一起居中；面板高度也不随文案跳动，上方的卡片不会被压住（决策 2026-09-26 第 9 条）。
+     */
+    private fun lockTapRowHeight() {
+        val unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        val title = tapTitle.text
+        val hint = tapHint.text
+        tapTitle.text = "A"
+        tapHint.text = "A\nA"
+        tapTitle.measure(unspecified, unspecified)
+        tapHint.measure(unspecified, unspecified)
+        val gap = (tapHint.layoutParams as ViewGroup.MarginLayoutParams).topMargin
+        tapRow.minimumHeight = max(tapRow.minimumHeight, tapTitle.measuredHeight + gap + tapHint.measuredHeight)
+        tapTitle.text = title
+        tapHint.text = hint
     }
 
     /**
@@ -475,12 +552,12 @@ class TapShareOverlay private constructor(
         }
     }
 
-    /** 标题与说明。说明为空时占位不收起，面板高度不跟着文案跳。 */
+    /** 标题与说明。说明为空时收起，图标只与标题对齐；面板高度由那一行的最小高度托住（[lockTapRowHeight]）。 */
     private fun showText(title: String, hint: String?) {
         recorder?.captureSoon("panel", panel, PANEL_CAPTURE_MS)
         tapTitle.text = title
         if (hint.isNullOrEmpty()) {
-            tapHint.visibility = View.INVISIBLE
+            tapHint.visibility = View.GONE
         } else {
             tapHint.text = hint
             tapHint.visibility = View.VISIBLE
@@ -691,11 +768,13 @@ class TapShareOverlay private constructor(
         stage.setPulse(false)
         animateDim(0f, params.closeMs)
         recorder?.event("close")
+        val slide = panelSlideDistance()
         recorder?.event("panel") {
-            put("from", panel.translationY.toDouble()); put("to", panel.height.toDouble())
-            put("duration", params.closeMs); put("ease", "close")
+            put("from", (if (sideBySide) panel.translationX else panel.translationY).toDouble())
+            put("to", slide.toDouble()); put("duration", params.closeMs); put("ease", "close")
+            put("axis", if (sideBySide) "x" else "y")
         }
-        panel.animate().translationY(panel.height.toFloat()).setDuration(params.closeMs)
+        panelOffsetAnimator(slide).setDuration(params.closeMs)
             .setInterpolator(PathInterpolator(0.4f, 0f, 1f, 1f)).start()
         stage.drop()
     }
@@ -759,7 +838,7 @@ class TapShareOverlay private constructor(
         // 罩层、打开与关闭的时长见 shared/tap-transfer/particles.properties（send_*）
         // 流出、流回的时长与缓动，以及「已发送」的停留，见 shared/tap-transfer/particles.properties
 
-        /** 取不到天线位置时流向屏幕顶部中间：状态栏下方这么远。 */
+        /** 取不到天线位置时流向卡片区顶部的中间（上下排时就是屏幕顶部中间）：状态栏下方这么远。 */
         private const val ANTENNA_FALLBACK_DP = 28f
 
         /** 调试（会话记录）：面板文字与进度最多这么久抓一张。 */
