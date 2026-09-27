@@ -13,6 +13,8 @@ import android.graphics.Matrix
 import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
@@ -25,11 +27,13 @@ import android.view.ViewOutlineProvider
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
+import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.taptransfer.ui.TapAntennaClearance
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapCardHolderLayout
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
@@ -109,6 +113,17 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
     private val ringShader = BitmapShader(RING_SPRITE, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     private val pulseStart = SystemClock.uptimeMillis()
 
+    /**
+     * 分享面板（与本视图同一个父视图、坐标系相同）。扩散圈落在面板上的那一段改用记事的颜色画：白圈在浅色面板上
+     * 看不见（决策 2026-09-27）；落在暗层与卡片上的仍是白色，卡片与圈同色时也看得见。
+     */
+    private var panel: View? = null
+    private var panelRadii = FloatArray(8)
+    private val panelRect = RectF()
+    private val panelPath = Path()
+    private var accentRing: Bitmap? = null
+    private var accentRingShader: BitmapShader? = null
+
     init {
         isClickable = false
         setWillNotDraw(false)
@@ -140,6 +155,19 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         cardArea.set(area)
         fitCards()
         layoutTargets()
+    }
+
+    /**
+     * 面板与记事的颜色：扩散圈落在 [panel] 上的那一段按 [accent] 画（纯色或渐变）。[radii] 是面板四角的圆角，
+     * 次序同 `Path.addRoundRect`（左上、右上、右下、左下，各 x、y）。
+     */
+    fun setPanel(panel: View, accent: ThingBackground, radii: FloatArray) {
+        this.panel = panel
+        panelRadii = radii.copyOf()
+        accentRing?.recycle()
+        val sprite = tintedRing(accent)
+        accentRing = sprite
+        accentRingShader = BitmapShader(sprite, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     }
 
     /** NFC 天线在本视图里的位置。卡片会让开它。 */
@@ -514,16 +542,50 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
             val now = (SystemClock.uptimeMillis() - pulseStart) / 1000f
             val shrink = if (relifting) 1f - lift else pulseShrink
             val scale = 1f - params.pulseShrink * shrink
-            // 画成预先做好的白色位图：部分定制系统的强制深色会把画笔里的白色反成黑色
+            val overPanel = panelPathNearRings((params.pulseRadiusDp[0] + params.pulseRadiusDp[1]) * density * scale)
+            val accentShader = accentRingShader
+            // 画成预先做好的位图：部分定制系统的强制深色会把画笔里的白色反成黑色、改掉画笔与颜色滤镜的颜色
             for (k in 0 until params.pulseRings) {
                 val phase = ((now / params.pulsePeriodS) + k.toFloat() / params.pulseRings) % 1f
                 val eased = 1f - (1f - phase).pow(2)
-                drawSprite(canvas, ringShader, RING_SPRITE_SIZE,
-                    (params.pulseRadiusDp[0] + params.pulseRadiusDp[1] * eased) * density * scale,
-                    (1f - phase) * params.pulseAlpha)
+                val radius = (params.pulseRadiusDp[0] + params.pulseRadiusDp[1] * eased) * density * scale
+                val alpha = (1f - phase) * params.pulseAlpha
+                if (overPanel == null || accentShader == null) {
+                    drawSprite(canvas, ringShader, RING_SPRITE_SIZE, radius, alpha)
+                } else {
+                    // 面板之外是白圈，面板上是记事颜色的圈。白圈压在暗层上本来就显眼，着色圈画在浅色面板上
+                    // 按同样的不透明度会淡得多（三星实测亮度差 37–71 对 86–116），所以面板上从完全不透明开始淡出，
+                    // 与面板上图标的颜色一样实
+                    canvas.save()
+                    canvas.clipOutPath(overPanel)
+                    drawSprite(canvas, ringShader, RING_SPRITE_SIZE, radius, alpha)
+                    canvas.restore()
+                    canvas.save()
+                    canvas.clipPath(overPanel)
+                    drawSprite(canvas, accentShader, RING_SPRITE_SIZE, radius, 1f - phase)
+                    canvas.restore()
+                }
             }
             postInvalidateOnAnimation()
         }
+    }
+
+    /**
+     * 面板此刻（含滑入、滑出的平移）的圆角轮廓，本视图坐标；面板不在、不可见或碰不到半径 [reach] 以内的圈时为 null。
+     */
+    private fun panelPathNearRings(reach: Float): Path? {
+        val view = panel ?: return null
+        if (view.visibility != View.VISIBLE || view.alpha <= 0f || view.width == 0) {
+            return null
+        }
+        panelRect.set(view.left + view.translationX - left, view.top + view.translationY - top,
+            view.right + view.translationX - left, view.bottom + view.translationY - top)
+        if (!panelRect.intersects(antennaX - reach, antennaY - reach, antennaX + reach, antennaY + reach)) {
+            return null
+        }
+        panelPath.reset()
+        panelPath.addRoundRect(panelRect, panelRadii, Path.Direction.CW)
+        return panelPath
     }
 
     private fun drawSprite(canvas: Canvas, shader: BitmapShader, size: Int, radius: Float, alpha: Float) {
@@ -563,6 +625,9 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         elevationAnimator?.cancel()
         pulse = false
         relifting = false
+        accentRingShader = null
+        accentRing?.recycle()
+        accentRing = null
     }
 
     companion object {
@@ -588,6 +653,23 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         private const val RING_SPRITE_SIZE = 256
 
         private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+
+        /** [RING_SPRITE] 换成 [accent] 的颜色（渐变按它的方向铺满整张位图），透明度不变。 */
+        private fun tintedRing(accent: ThingBackground): Bitmap {
+            val size = RING_SPRITE_SIZE
+            val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            canvas.drawBitmap(RING_SPRITE, 0f, 0f, null)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+            if (accent.mode == ThingBackground.Mode.GRADIENT) {
+                paint.shader = BackgroundUtil.linearGradientFor(accent, size.toFloat(), size.toFloat())
+            } else {
+                paint.color = accent.color or (0xFF shl 24)
+            }
+            canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), paint)
+            return out
+        }
 
         /** 扩散圈：一道细白环，环宽约为半径的 3%。接收方的舞台在 GPU 上画同一个形状（`TapDustLayer`）。 */
         private val RING_SPRITE: Bitmap by lazy {

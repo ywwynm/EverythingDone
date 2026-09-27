@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     分享界面下方的面板（决策 2026-09-24「卡片在上、面板在下」）：
-    上面是碰一碰区域（提示、进度、已发送；不支持碰一碰的设备整块隐藏），
-    下面是「文本与图片」「长截图」「记事文件」三项，与原来的三选一对话框同样的格子。
+    最上面是标题「分享记事」（记事的颜色），然后是碰一碰区域（提示、进度、已发送；不支持碰一碰的设备整块隐藏），
+    最下面是「文本与图片」「长截图」「记事文件」三项。
+    竖屏与平板上与「调整颜色」面板一样悬浮在底部、四角圆角、左右与底边留空、最宽 480dp；手机横屏贴右半边。
+    宽度、位置与背景在 TapShareOverlay 里按排法设（决策 2026-09-27）。
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -11,19 +13,34 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
-    android:background="@drawable/bg_tap_share_panel"
+    android:background="@drawable/bg_app_chrome_surface_elevated_rounded"
     android:clickable="true"
     android:focusable="false"
     android:orientation="vertical"
-    android:paddingTop="20dp">
+    android:paddingTop="@dimen/app_chrome_dialog_title_margin_top"
+    android:paddingBottom="12dp">
+
+    <!-- 颜色在代码里按记事的颜色设（纯色或渐变） -->
+    <TextView
+        android:id="@+id/tv_tap_share_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:layout_marginRight="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/app_chrome_on_surface_primary"
+        android:textSize="@dimen/app_chrome_dialog_title_text_size"
+        tools:text="分享记事" />
 
     <LinearLayout
         android:id="@+id/ll_tap_area"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:orientation="vertical"
-        android:paddingLeft="24dp"
-        android:paddingRight="24dp">
+        android:paddingLeft="@dimen/app_chrome_dialog_title_margin_horizontal"
+        android:paddingRight="@dimen/app_chrome_dialog_title_margin_horizontal">
 
         <!-- 最小高度在代码里按「标题一行 + 说明两行」补足：面板高度不随文案跳动，
              图标与实际显示的文字一起居中（TapShareOverlay.lockTapRowHeight） -->
@@ -108,6 +125,8 @@
 
     </LinearLayout>
 
+    <!-- 每一项整格可点；按下时的波纹是图标周围的圆（图标复制格子的按下状态，TapShareOverlay.bindOption）。
+         图标位图的画布是 100dp、墨迹 30–38.5dp，在 48dp 的格子里按 72dp 画（OPTION_ICON_CANVAS_DP） -->
     <LinearLayout
         android:id="@+id/ll_share_options"
         android:layout_width="match_parent"
@@ -116,41 +135,104 @@
         android:gravity="center_horizontal"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tv_share_text_image"
+        <LinearLayout
+            android:id="@+id/ll_share_text_image"
             android:layout_width="@dimen/app_chrome_action_picker_cell_width"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingBottom="16dp"
-            android:text="@string/act_share_thing_text_image"
-            android:textColor="@color/app_chrome_on_surface_secondary"
-            android:drawableTop="@drawable/act_share_text_image" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp">
 
-        <TextView
-            android:id="@+id/tv_share_screenshot"
-            android:layout_width="@dimen/app_chrome_action_picker_cell_width"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingBottom="16dp"
-            android:text="@string/act_share_thing_screenshot"
-            android:textColor="@color/app_chrome_on_surface_secondary"
-            android:drawableTop="@drawable/act_take_long_screenshot" />
+            <ImageView
+                android:id="@+id/iv_share_text_image"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:scaleType="matrix"
+                android:src="@drawable/act_share_text_image" />
 
-        <TextView
-            android:id="@+id/tv_share_thing_file"
+            <TextView
+                android:id="@+id/tv_share_text_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/act_share_thing_text_image"
+                android:textColor="@color/app_chrome_on_surface_secondary" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_share_screenshot"
             android:layout_width="@dimen/app_chrome_action_picker_cell_width"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingBottom="16dp"
-            android:text="@string/act_share_thing_file"
-            android:textColor="@color/app_chrome_on_surface_secondary"
-            android:drawableTop="@drawable/act_share_thing_file" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp">
+
+            <ImageView
+                android:id="@+id/iv_share_screenshot"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:scaleType="matrix"
+                android:src="@drawable/act_take_long_screenshot" />
+
+            <TextView
+                android:id="@+id/tv_share_screenshot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/act_share_thing_screenshot"
+                android:textColor="@color/app_chrome_on_surface_secondary" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_share_thing_file"
+            android:layout_width="@dimen/app_chrome_action_picker_cell_width"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp">
+
+            <ImageView
+                android:id="@+id/iv_share_thing_file"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:scaleType="matrix"
+                android:src="@drawable/act_share_thing_file" />
+
+            <TextView
+                android:id="@+id/tv_share_thing_file"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/act_share_thing_file"
+                android:textColor="@color/app_chrome_on_surface_secondary" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

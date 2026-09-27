@@ -2026,6 +2026,9 @@
     <string name="thing_animation_particle">粒子</string>
     <string name="thing_animation_slide">滑动渐隐</string>
     <!--应用内碰一碰-->
+    <plurals name="tap_share_title">
+        <item quantity="other">分享记事</item>
+    </plurals>
     <string name="tap_share_ready">两台设备的 NFC 区域轻碰一下</string>
     <string name="tap_share_ready_hint">对方在完事儿首页下拉，点「接收记事」</string>
     <string name="tap_share_preparing">正在准备…</string>

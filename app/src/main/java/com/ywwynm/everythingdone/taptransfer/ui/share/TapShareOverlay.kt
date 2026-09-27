@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.PorterDuff
@@ -54,6 +55,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import org.json.JSONArray
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * 分享界面（决策 2026-09-24「分享界面改为卡片在上、面板在下，盖在当前页面上」）。
@@ -126,6 +128,7 @@ class TapShareOverlay private constructor(
     private val dim = View(activity)
     private val stage = TapShareCardStage(activity, this)
     private val panel: View = LayoutInflater.from(activity).inflate(R.layout.overlay_tap_share_panel, root, false)
+    private val shareTitle: TextView = panel.findViewById(R.id.tv_tap_share_title)
     private val tapArea: View = panel.findViewById(R.id.ll_tap_area)
     private val tapRow: LinearLayout = panel.findViewById(R.id.ll_tap_row)
     private val tapIcon: ImageView = panel.findViewById(R.id.iv_tap_icon)
@@ -226,14 +229,27 @@ class TapShareOverlay private constructor(
         dim.setOnClickListener { close(null) }
         root.addView(dim, FrameLayout.LayoutParams(match, match))
         val decor = activity.window.decorView
+        val res = activity.resources
+        val decorWidth = if (decor.width > 0) decor.width else res.displayMetrics.widthPixels
         sideBySide = !DisplayUtil.isTablet(activity) && decor.width > decor.height
         if (sideBySide) {
-            val lp = FrameLayout.LayoutParams(decor.width / 2, match, Gravity.END)
+            val corner = SIDE_PANEL_CORNER_DP * density
+            val lp = FrameLayout.LayoutParams(decorWidth / 2, match, Gravity.END)
             panel.setBackgroundResource(R.drawable.bg_tap_share_panel_side)
             (panel as LinearLayout).gravity = Gravity.CENTER_VERTICAL
             root.addView(panel, lp)
+            stage.setPanel(panel, request.accent, floatArrayOf(corner, corner, 0f, 0f, 0f, 0f, corner, corner))
         } else {
-            root.addView(panel)
+            // 与「调整颜色」面板一样悬浮在底部：左右与底边各留一个卡片外边距，最宽 480dp（平板），四角圆角
+            // （决策 2026-09-27）。离底边的距离在插图回调里加上导航栏
+            val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+            val width = min(decorWidth - 2 * spacing, res.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width))
+            val lp = FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
+            lp.bottomMargin = spacing
+            root.addView(panel, lp)
+            val corner = res.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+            stage.setPanel(panel, request.accent, FloatArray(8) { corner })
         }
         // 舞台叠在面板之上：天线常在面板那一片，等待圈与光要画得出来。舞台不消费触摸
         root.addView(stage, FrameLayout.LayoutParams(match, match))
@@ -258,6 +274,7 @@ class TapShareOverlay private constructor(
 
         // 分享界面在所有设备上都用（不支持碰一碰只是隐藏那一块），插图走兼容库，Android 8 起可用
         val panelTopPadding = panel.paddingTop
+        val panelSpacing = activity.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val nav = insets.getInsets(
                 WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout()
@@ -270,7 +287,12 @@ class TapShareOverlay private constructor(
                 panel.setPadding(panel.paddingLeft, bars.top + panelTopPadding, bars.right,
                     bars.bottom + (8f * density).toInt())
             } else {
-                panel.setPadding(panel.paddingLeft, panel.paddingTop, panel.paddingRight, nav.bottom + (8f * density).toInt())
+                // 悬浮在导航栏之上，与底边隔一个卡片外边距
+                val lp = panel.layoutParams as FrameLayout.LayoutParams
+                if (lp.bottomMargin != nav.bottom + panelSpacing) {
+                    lp.bottomMargin = nav.bottom + panelSpacing
+                    panel.layoutParams = lp
+                }
             }
             insets
         }
@@ -308,19 +330,21 @@ class TapShareOverlay private constructor(
             stage.setCardArea(RectF((bars?.left ?: 0).toFloat(), top + 12f * density,
                 (root.width - panel.width).toFloat(), root.height - (bars?.bottom ?: 0) - 12f * density))
         } else {
-            val panelTop = (root.height - panel.height).toFloat()
-            stage.setCardArea(RectF(0f, top + 12f * density, root.width.toFloat(), panelTop - 8f * density))
+            stage.setCardArea(RectF(0f, top + 12f * density, root.width.toFloat(), panel.top - 8f * density))
         }
 
-        // 天线：先在 DecorView 里定位（粒子层的坐标系），再换到舞台里画等待圈
+        // 天线：先在 DecorView 里定位（粒子层的坐标系），再换到舞台里画等待圈。不能碰一碰的设备没有等待圈，
+        // 卡片也不必让开天线，在卡片区里居中
         val decor = activity.window.decorView
         val offset = stageOffsetInDecor()
-        if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
-            // 左右排时屏幕顶部中间正好是面板的左缘：改用卡片区顶部的中间
-            val centerX = if (sideBySide) offset.x + (root.width - panel.width) / 2f else decor.width / 2f
-            antennaInDecor.set(centerX, top + ANTENNA_FALLBACK_DP * density)
+        if (TapSendController.isSupported(activity)) {
+            if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
+                // 左右排时屏幕顶部中间正好是面板的左缘：改用卡片区顶部的中间
+                val centerX = if (sideBySide) offset.x + (root.width - panel.width) / 2f else decor.width / 2f
+                antennaInDecor.set(centerX, top + ANTENNA_FALLBACK_DP * density)
+            }
+            stage.setAntenna(antennaInDecor.x - offset.x, antennaInDecor.y - offset.y)
         }
-        stage.setAntenna(antennaInDecor.x - offset.x, antennaInDecor.y - offset.y)
 
         val stageAt = IntArray(2).also { stage.getLocationInWindow(it) }
         val origins = request.sources.take(cards.size).map { source ->
@@ -373,8 +397,9 @@ class TapShareOverlay private constructor(
         }
     }
 
-    /** 面板收起时离开屏幕要走的距离：上下排时是面板高，左右排时是面板宽。 */
-    private fun panelSlideDistance(): Float = if (sideBySide) panel.width.toFloat() else panel.height.toFloat()
+    /** 面板收起时离开屏幕要走的距离：上下排时从面板上沿到屏幕底边（含底下留的空），左右排时是面板宽。 */
+    private fun panelSlideDistance(): Float =
+        if (sideBySide) panel.width.toFloat() else (root.height - panel.top).toFloat()
 
     private fun setPanelOffset(offset: Float) {
         if (sideBySide) panel.translationX = offset else panel.translationY = offset
@@ -400,14 +425,21 @@ class TapShareOverlay private constructor(
 
     private fun bindPanel() {
         val accent = request.accent
-        bindOption(panel.findViewById(R.id.tv_share_text_image)) { request.host.shareTextAndImages() }
-        val screenshot = panel.findViewById<TextView>(R.id.tv_share_screenshot)
-        if (request.host.longScreenshotAvailable) {
-            bindOption(screenshot) { request.host.shareLongScreenshot() }
-        } else {
-            screenshot.visibility = View.GONE
+        shareTitle.text = activity.resources.getQuantityString(R.plurals.tap_share_title, request.things.size)
+        BackgroundUtil.applyTextBackground(shareTitle, accent)
+        bindOption(R.id.ll_share_text_image, R.id.iv_share_text_image, R.id.tv_share_text_image) {
+            request.host.shareTextAndImages()
         }
-        bindOption(panel.findViewById(R.id.tv_share_thing_file)) { request.host.shareThingFile() }
+        if (request.host.longScreenshotAvailable) {
+            bindOption(R.id.ll_share_screenshot, R.id.iv_share_screenshot, R.id.tv_share_screenshot) {
+                request.host.shareLongScreenshot()
+            }
+        } else {
+            panel.findViewById<View>(R.id.ll_share_screenshot).visibility = View.GONE
+        }
+        bindOption(R.id.ll_share_thing_file, R.id.iv_share_thing_file, R.id.tv_share_thing_file) {
+            request.host.shareThingFile()
+        }
 
         tapIcon.setImageDrawable(bakeTint(tapIcon.drawable, accent))
         lockTapRowHeight()
@@ -470,17 +502,36 @@ class TapShareOverlay private constructor(
         return BitmapDrawable(activity.resources, bitmap)
     }
 
-    /** 三项的样式与原来的三选一对话框一致：图标与文字按强调色着色，按下是强调色的波纹。 */
-    private fun bindOption(view: TextView, action: () -> Unit) {
+    /**
+     * 一项分享方式：整格可点，图标与文字按强调色着色；按下时的波纹是图标周围的圆（图标复制格子的按下状态，
+     * 波纹从按下处向圆心收拢，决策 2026-09-27）。
+     */
+    private fun bindOption(cellId: Int, iconId: Int, labelId: Int, action: () -> Unit) {
         val accent = request.accent
-        BackgroundUtil.applyTextBackground(view, accent)
-        val drawables = view.compoundDrawables
-        for (i in drawables.indices) {
-            drawables[i] = bakeTint(drawables[i], accent)
+        val cell = panel.findViewById<View>(cellId)
+        val icon = panel.findViewById<ImageView>(iconId)
+        BackgroundUtil.applyTextBackground(panel.findViewById(labelId), accent)
+        val drawable = bakeTint(icon.drawable, accent)
+        icon.setImageDrawable(drawable)
+        fitOptionIcon(icon, drawable)
+        icon.background = GradientRippleDrawable(accent, shapeOval = true, centered = true)
+        cell.setOnClickListener { close(action) }
+    }
+
+    /**
+     * 三个图标共用 100dp 的画布（墨迹 30–38.5dp、垂直居中，见 `act_share_thing_file.xml`）：按
+     * [OPTION_ICON_CANVAS_DP] 画在图标格子正中，墨迹缩小、画布四周的空白裁掉，图标与文字也就靠近了。
+     */
+    private fun fitOptionIcon(icon: ImageView, drawable: Drawable?) {
+        val w = drawable?.intrinsicWidth ?: return
+        val h = drawable.intrinsicHeight
+        if (w <= 0 || h <= 0) return
+        val canvas = OPTION_ICON_CANVAS_DP * density
+        val box = icon.layoutParams.width.toFloat()
+        icon.imageMatrix = Matrix().apply {
+            setScale(canvas / w, canvas / h)
+            postTranslate((box - canvas) / 2f, (box - canvas) / 2f)
         }
-        view.setCompoundDrawablesWithIntrinsicBounds(drawables[0], drawables[1], drawables[2], drawables[3])
-        view.background = GradientRippleDrawable(accent, shapeOval = false, cornerRadiusPx = 0f)
-        view.setOnClickListener { close(action) }
     }
 
     override fun onPhaseChanged(phase: TapSendController.Phase) {
@@ -837,6 +888,12 @@ class TapShareOverlay private constructor(
         private const val MAX_STACK = 4
         // 罩层、打开与关闭的时长见 shared/tap-transfer/particles.properties（send_*）
         // 流出、流回的时长与缓动，以及「已发送」的停留，见 shared/tap-transfer/particles.properties
+
+        /** 手机横屏贴右半边时面板左侧的圆角（dp），与 `bg_tap_share_panel_side` 相同。 */
+        private const val SIDE_PANEL_CORNER_DP = 24f
+
+        /** 分享方式的图标（100dp 的画布）在 48dp 的格子里按这么大画：墨迹约为原来的 0.72。 */
+        private const val OPTION_ICON_CANVAS_DP = 72f
 
         /** 取不到天线位置时流向卡片区顶部的中间（上下排时就是屏幕顶部中间）：状态栏下方这么远。 */
         private const val ANTENNA_FALLBACK_DP = 28f

@@ -723,7 +723,9 @@ object BackgroundUtil {
         return linearGradientFor(bg, width, height)
     }
 
-    private fun linearGradientFor(bg: ThingBackground, width: Float, height: Float): LinearGradient {
+    /** [bg] 的渐变铺满 [width] × [height] 的区域时的着色器（按 [ThingBackground.orientation] 定方向）。 */
+    @JvmStatic
+    fun linearGradientFor(bg: ThingBackground, width: Float, height: Float): LinearGradient {
         val x0: Float
         val y0: Float
         val x1: Float

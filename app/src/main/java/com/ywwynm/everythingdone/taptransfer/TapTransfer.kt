@@ -49,6 +49,7 @@ object TapTransfer {
     private const val KEY_SIMULATE_FAILURE = "simulate_failure"
     private const val KEY_SIMULATE_SAMPLES = "simulate_samples"
     private const val KEY_DUMP_FIXTURES = "dump_fixtures"
+    private const val KEY_SIMULATE_UNSUPPORTED = "simulate_unsupported"
 
     private const val WORK_DIR = "/tap_transfer"
 
@@ -59,7 +60,7 @@ object TapTransfer {
      */
     @JvmStatic
     fun isHardwareSupported(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || isUnsupportedSimulated(context)) {
             return false
         }
         val pm = context.packageManager
@@ -75,7 +76,7 @@ object TapTransfer {
      */
     @JvmStatic
     fun isEntryAvailable(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || isUnsupportedSimulated(context)) {
             return false
         }
         return isSimulationEnabled(context) || isHardwareSupported(context)
@@ -196,6 +197,19 @@ object TapTransfer {
         }
         return context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
             .getString(KEY_SIMULATE_SAMPLES, null)
+    }
+
+    /**
+     * 调试：当作这台设备不能碰一碰（没有 NFC、主机卡模拟或 Wi-Fi Direct），用来在有 NFC 的测试机上看这类设备的
+     * 首页与分享界面。优先于模拟开关。界面上没有入口，用 run-as 改 `tap_transfer_debug.xml` 的 `simulate_unsupported`。
+     */
+    @JvmStatic
+    fun isUnsupportedSimulated(context: Context): Boolean {
+        if (!BuildConfig.DEBUG) {
+            return false
+        }
+        return context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SIMULATE_UNSUPPORTED, false)
     }
 
     /**

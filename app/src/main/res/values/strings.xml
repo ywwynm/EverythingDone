@@ -2036,6 +2036,10 @@
     <string name="thing_animation_particle">Particles</string>
     <string name="thing_animation_slide">Slide and fade</string>
     <!--Tap Transfer (in-app tap to send / receive)-->
+    <plurals name="tap_share_title">
+        <item quantity="one">Share thing</item>
+        <item quantity="other">Share things</item>
+    </plurals>
     <string name="tap_share_ready">Tap the NFC areas of the two devices together</string>
     <string name="tap_share_ready_hint">On their device: pull down the EverythingDone home list and tap Receive things</string>
     <string name="tap_share_preparing">Getting ready…</string>
