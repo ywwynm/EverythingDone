@@ -147,14 +147,14 @@ NFC 握手做的事是把 Wi-Fi Direct 的 SSID、密码与一次性令牌交给
 已补上 `content` + `application/octet-stream` 与 `file` + `pathPattern` 两条 filter，
 真机验证通过（decisions.md「补回 ACTION_VIEW 文件关联」）。
 
-## Thing Folder 传输
+## ~~Thing Folder 传输~~（2026-09-28 已做，提交 16dceb209）
 
 一期范围只到单条与多条 Thing。文件夹需要带嵌套层级、决定导入后落到哪里、处理
 重名与 Projection Folder 语义，复杂度明显跳一档。
 
-2026-09-28 做了可行性分析：能做，要改文件格式、导入、多选分享入口、发送时的文件夹卡片与接收端的定位，
-待用户定 12 项（范围、入口、私密与外观、重名、旧版本兼容、导入预览、动画）。见
-[analysis-2026-09-28-folder-transfer.md](analysis-2026-09-28-folder-transfer.md)。
+2026-09-28 做了可行性分析（[analysis-2026-09-28-folder-transfer.md](analysis-2026-09-28-folder-transfer.md)），
+用户逐项定了 12 条（decisions.md 同日），同日实现并在三星、魅族上核对（sessions.md 同日两节）。还没在真机上看过的
+见本文末尾「文件夹的分享与传输：还没在真机上看过的」。
 
 ## 其他语言的文案
 
