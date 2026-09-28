@@ -41,6 +41,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.taptransfer.ui.ProgressSmoother
 import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
@@ -49,6 +50,7 @@ import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleFlight
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
+import com.ywwynm.everythingdone.thingfile.ThingShareContent
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -94,15 +96,37 @@ class TapShareOverlay private constructor(
     }
 
     /**
-     * @param things 要分享的记事，已在主线程复制好：碰一碰的记事文件在后台线程写。
-     * @param sources 与 [things] 同序。卡片从这些位置抬升（选择模式）；为空时卡片从页面里升起（详情页）。
+     * @param content 要分享的记事与文件夹，已在主线程复制好：碰一碰的记事文件在后台线程写。
+     * @param folderEntries 顶层的文件夹在列表里的那一项（按文件夹 id）：抬起的卡片照它画，计数、缩略图与列表
+     *        一致。缺的按 [content] 里的子树算计数、缩略图由首页适配器按当前的筛选取。
+     * @param sources 与 [ThingShareContent.items] 同序。卡片从这些位置抬升（选择模式）；为空时卡片从页面里升起
+     *        （详情页、文件夹里的「分享此文件夹」）。
      */
     class Request(
-        val things: List<Thing>,
+        val content: ThingShareContent,
+        val folderEntries: Map<Long, ThingListEntry.FolderEntry>,
         val sources: List<Source>,
         val accent: ThingBackground,
         val host: Host
-    )
+    ) {
+        /** 只分享记事（详情页）。 */
+        constructor(things: List<Thing>, sources: List<Source>, accent: ThingBackground, host: Host) :
+            this(ThingShareContent.ofThings(things), emptyMap(), sources, accent, host)
+
+        /** 顶层各项的卡片，与 [ThingShareContent.items] 同序。 */
+        internal val cardItems: List<TapThingCards.Item> = content.items.map { node ->
+            when (node) {
+                is ThingShareContent.ThingNode -> TapThingCards.Item.ThingItem(node.thing)
+                is ThingShareContent.FolderNode -> TapThingCards.Item.FolderItem(
+                    folderEntries[node.folder.id] ?: ThingListEntry.FolderEntry(
+                        folder = node.folder,
+                        recursiveThingCount = ThingShareContent(node.children).things.size,
+                        directFolderCount = node.children.count { it is ThingShareContent.FolderNode }
+                    )
+                )
+            }
+        }
+    }
 
     /** 碰上之后粒子的状态。 */
     private enum class Flow {
@@ -137,7 +161,7 @@ class TapShareOverlay private constructor(
     private val tapAction: TextView = panel.findViewById(R.id.tv_tap_action)
     private val tapProgress: ProgressBar = panel.findViewById(R.id.pb_tap)
 
-    private val controller = TapSendController(activity, request.things, this)
+    private val controller = TapSendController(activity, request.content, request.cardItems, this)
     private val navigator = TapSetupNavigator(activity) { controller.recheck() }
     private val watcher = TapPrerequisiteWatcher(activity) { onPrerequisitesChanged() }
     private val smoother = ProgressSmoother()
@@ -265,8 +289,8 @@ class TapShareOverlay private constructor(
 
         // 抬起的卡片按首页的卡片排，舞台知道卡片区之后再加宽、放不下时删减
         val metrics = TapThingCards.listMetrics(activity)
-        val cards = request.things.take(MAX_STACK).map {
-            TapThingCards.LiftedCard(activity, it, metrics, revealPrivate = true)
+        val cards = request.cardItems.take(MAX_STACK).map {
+            TapThingCards.LiftedCard.of(activity, it, metrics, revealPrivate = true)
         }
 
         activity.onBackPressedDispatcher.addCallback(activity, backCallback)
@@ -355,7 +379,7 @@ class TapShareOverlay private constructor(
                 )
             }
         }
-        stage.setCards(cards, origins, request.things.size)
+        stage.setCards(cards, origins, request.cardItems.size)
         recorder?.let { recordStart(it) }
         stage.visibility = View.VISIBLE
         stage.lift()
@@ -425,7 +449,13 @@ class TapShareOverlay private constructor(
 
     private fun bindPanel() {
         val accent = request.accent
-        shareTitle.text = activity.resources.getQuantityString(R.plurals.tap_share_title, request.things.size)
+        // 分享的都是文件夹时标题说「分享文件夹」，其余（含混选）仍是「分享记事」
+        val items = request.content.items
+        shareTitle.text = if (items.all { it is ThingShareContent.FolderNode }) {
+            activity.resources.getQuantityString(R.plurals.tap_share_title_folders, items.size)
+        } else {
+            activity.resources.getQuantityString(R.plurals.tap_share_title, items.size)
+        }
         BackgroundUtil.applyTextBackground(shareTitle, accent)
         bindOption(R.id.ll_share_text_image, R.id.iv_share_text_image, R.id.tv_share_text_image) {
             request.host.shareTextAndImages()

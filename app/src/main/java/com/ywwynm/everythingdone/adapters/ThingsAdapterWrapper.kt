@@ -152,4 +152,8 @@ open class ThingsAdapterWrapper(adapter: ThingsAdapter?) {
     open fun setThingHidden(thingId: Long, hidden: Boolean) {
         mAdapter!!.setThingHidden(thingId, hidden)
     }
+
+    open fun setFolderHidden(folderId: Long, hidden: Boolean) {
+        mAdapter!!.setFolderHidden(folderId, hidden)
+    }
 }

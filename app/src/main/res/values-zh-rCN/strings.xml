@@ -669,6 +669,12 @@
     <string name="thing_file_import_attachments">%1$d 个附件</string>
     <string name="thing_file_import_reminder_at">提醒：%1$s</string>
     <string name="thing_file_import_no_title">（无标题）</string>
+    <string name="thing_file_import_folder">文件夹</string>
+    <string name="thing_file_import_folder_things">%1$d 件记事</string>
+    <string name="thing_file_import_folder_subfolders">%1$d 个子文件夹</string>
+    <string name="thing_file_import_expand">展开</string>
+    <string name="thing_file_import_collapse">收起</string>
+    <string name="thing_file_import_done_folders">已导入 %1$d 个文件夹，共 %2$d 件记事</string>
     <string name="thing_file_import_no_access">这个文件存放在其他应用的目录里，完事儿没有权限直接读取。\n点下方按钮，在文件选择器里选中它就能导入。</string>
     <string name="thing_file_import_pick">去选择这个文件</string>
     <string name="settings_import_thing_file">导入记事文件</string>
@@ -2058,6 +2064,20 @@
     <plurals name="tap_receive_done">
         <item quantity="other">已收到 %1$d 条记事</item>
     </plurals>
+    <plurals name="tap_receive_folders">
+        <item quantity="other">%1$d 个文件夹</item>
+    </plurals>
+    <plurals name="tap_receive_things">
+        <item quantity="other">%1$d 条记事</item>
+    </plurals>
+    <string name="tap_receive_done_folders">已收到 %1$s，共 %2$s</string>
+    <string name="tap_receive_done_mixed">已收到 %1$s与 %2$s</string>
+    <plurals name="tap_share_title_folders">
+        <item quantity="other">分享文件夹</item>
+    </plurals>
+    <string name="act_share_this_folder">分享此文件夹</string>
+    <string name="share_folder_empty">这个文件夹里没有正在进行的记事</string>
+    <string name="tap_simulated_folder_title">碰一碰模拟 · 样例文件夹 %1$d</string>
     <string name="tap_simulated_peer_name">模拟设备</string>
     <string name="tap_simulated_thing_title">碰一碰模拟 · 样例记事 %1$d</string>
     <string name="tap_simulated_thing_content">这是碰一碰的模拟数据，用来预览接收动画，可以直接删除。</string>

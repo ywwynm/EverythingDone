@@ -59,6 +59,9 @@ import android.graphics.drawable.RippleDrawable
 import android.widget.ImageButton
 import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
+import com.ywwynm.everythingdone.database.ThingFolderDAO
+import com.ywwynm.everythingdone.thingfile.ThingShareContentBuilder
+import com.ywwynm.everythingdone.thingfile.ThingShareContent
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.text.Editable
@@ -994,6 +997,9 @@ class ThingsActivity :
         }
         menu.findItem(R.id.act_move_current_folder_to_folder)?.isVisible =
                 inFolder && limitIsUnderway
+        // 分享此文件夹：与选择模式里的分享一样只在「正在进行」列表里，带的是列表里看得到的内容
+        menu.findItem(R.id.act_share_current_folder)?.isVisible =
+                inFolder && limitIsUnderway && hasContent
         menu.findItem(R.id.act_dissolve_current_folder)?.isVisible =
                 inFolder && limitIsUnderway
         // "删除文件夹中所有记事" (content) in the underway view, where the toolbar has
@@ -1470,6 +1476,8 @@ class ThingsActivity :
                 toggleThingFolderPrivate(it)
                 invalidateOptionsMenu()
             }
+        } else if (itemId == R.id.act_share_current_folder) {
+            shareCurrentFolder()
         } else if (itemId == R.id.act_move_current_folder_to_folder) {
             mThingManager!!.getCurrentFolder()?.let {
                 showMoveThingFolderDialog(it)
@@ -12195,18 +12203,95 @@ class ThingsActivity :
      * 选择模式的「分享」：打开与详情页同一个分享界面（决策 2026-09-24）——选中的卡片叠在上方，
      * 下方是碰一碰与「文本与图片」「长截图」「记事文件」。
      *
+     * 选中项可以含文件夹（只在「正在进行」列表里，决策 2026-09-28）：文件夹连同子树里列表看得到的内容一起分享
+     * （[ThingShareContentBuilder]）。
+     *
      * 私密鉴权在打开之前做（ADR-0011：集中入口在调用方），判定与
-     * [exportSelectedThingsWithPrivacyAuth] 相同：内容会明文离开本机，选中含有效私密记事时先鉴权
-     * 一次。取消时选择保留。
+     * [exportSelectedThingsWithPrivacyAuth] 相同：内容会明文离开本机，要分享的内容里有有效私密的记事或文件夹
+     * （含子树）时先鉴权一次。取消时选择保留。
      */
     private fun shareSelectedThings() {
-        val selected = mThingManager!!.getSelectedThings()?.filterNotNull() ?: emptyList()
-        if (selected.isEmpty() || mTapShareOverlay != null) {
+        if (mTapShareOverlay != null) {
             return
         }
-        val hasPrivate = selected.any { ThingPrivacyResolver.isEffectivelyPrivate(this, it) }
-        if (!hasPrivate) {
-            openShareOverlayForSelection(selected)
+        val manager = mThingManager!!
+        val folderDao = ThingFolderDAO.getInstance(this)!!
+        val mask = manager.getActiveTypeFilterMask()
+        // 按列表里的先后排：叠放时最上面一张是列表里最靠前的那一项
+        val selected = manager.getThingListEntries().orEmpty().filter { entry ->
+            when (entry) {
+                is ThingListEntry.ThingEntry -> entry.thing.type != Thing.HEADER && entry.thing.isSelected()
+                is ThingListEntry.FolderEntry -> entry.folder.isSelected()
+            }
+        }
+        if (selected.isEmpty()) {
+            return
+        }
+        val nodes = ArrayList<ThingShareContent.Node>()
+        val sources = ArrayList<TapShareOverlay.Source>()
+        val folderEntries = HashMap<Long, ThingListEntry.FolderEntry>()
+        var hasPrivate = false
+        for (entry in selected) {
+            when (entry) {
+                is ThingListEntry.ThingEntry -> {
+                    // 碰一碰的记事文件在后台线程写，交出去的是副本，列表里的对象照常由界面使用
+                    nodes.add(ThingShareContent.ThingNode(Thing(entry.thing)))
+                    hasPrivate = hasPrivate || ThingPrivacyResolver.isEffectivelyPrivate(entry.thing, folderDao)
+                }
+                is ThingListEntry.FolderEntry -> {
+                    val node = ThingShareContentBuilder.folderNode(this, entry.folder.id, mask) ?: continue
+                    nodes.add(node)
+                    folderEntries[entry.folder.id] = entry
+                    hasPrivate = hasPrivate || folderDao.isEffectivelyPrivate(entry.folder.id) ||
+                        hasPrivateContent(node)
+                }
+            }
+            // 抬升的起点是列表里那张卡片的完整位置；不在屏幕上的从叠放处直接淡入
+            val position = manager.getListPositionForStableId(entry.stableId)
+            val card = if (position < 0) null else mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView
+            sources.add(TapShareOverlay.Source(card?.let { cardRectInWindow(it) }))
+        }
+        if (nodes.isEmpty()) {
+            Toast.makeText(this, R.string.share_folder_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val content = ThingShareContent(nodes)
+        authenticateForShare(hasPrivate) {
+            openShareOverlay(content, folderEntries, sources, App.defaultAccentBackground, fromSelection = true)
+        }
+    }
+
+    /**
+     * 文件夹里右上角的「分享此文件夹」（决策 2026-09-28 第 5 条）：卡片从页面里升起（与详情页相同），标题与
+     * 图标用文件夹的颜色。带的是列表里看得到的内容：正在进行、符合当前类型筛选的记事，以及有这样的记事的子文件夹。
+     */
+    private fun shareCurrentFolder() {
+        if (mTapShareOverlay != null) {
+            return
+        }
+        val manager = mThingManager!!
+        val folder = manager.getCurrentFolder() ?: return
+        val node = ThingShareContentBuilder.folderNode(this, folder.id, manager.getActiveTypeFilterMask())
+        if (node == null) {
+            Toast.makeText(this, R.string.share_folder_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val hasPrivate = ThingFolderDAO.getInstance(this)!!.isEffectivelyPrivate(folder.id) || hasPrivateContent(node)
+        val accent = folder.getBackground() ?: App.defaultAccentBackground
+        authenticateForShare(hasPrivate) {
+            openShareOverlay(ThingShareContent(listOf(node)), emptyMap(), emptyList(), accent, fromSelection = false)
+        }
+    }
+
+    /** 子树里有没有私密的文件夹或记事。祖先文件夹由调用方另外查。 */
+    private fun hasPrivateContent(node: ThingShareContent.Node): Boolean = when (node) {
+        is ThingShareContent.ThingNode -> node.thing.isPrivate()
+        is ThingShareContent.FolderNode -> node.folder.isPrivate || node.children.any { hasPrivateContent(it) }
+    }
+
+    private fun authenticateForShare(required: Boolean, then: () -> Unit) {
+        if (!required) {
+            then()
             return
         }
         val cp = getSharedPreferences(Def.Meta.PREFERENCES_NAME, MODE_PRIVATE)
@@ -12216,53 +12301,55 @@ class ThingsActivity :
             getString(R.string.act_share), cp,
             object : AuthenticationHelper.AuthenticationCallback {
                 override fun onAuthenticated() {
-                    openShareOverlayForSelection(selected)
+                    then()
                 }
 
                 override fun onCancel() {}
             })
     }
 
-    private fun openShareOverlayForSelection(selected: List<Thing>) {
-        val manager = mThingManager!!
-        val rv = mRecyclerView!!
-        // 按列表里的先后排：叠放时最上面一张是列表里最靠前的那条
-        val ordered = selected.sortedBy {
-            manager.getListPositionForThingId(it.id).let { p -> if (p < 0) Int.MAX_VALUE else p }
+    /**
+     * @param sources 与 [ThingShareContent.items] 同序；为空时卡片从页面里升起。
+     * @param fromSelection 从选择模式打开：分享出去之后回到普通模式。
+     */
+    private fun openShareOverlay(
+        content: ThingShareContent,
+        folderEntries: Map<Long, ThingListEntry.FolderEntry>,
+        sources: List<TapShareOverlay.Source>,
+        accent: ThingBackground,
+        fromSelection: Boolean
+    ) {
+        val leaveSelection = {
+            if (fromSelection) {
+                mModeManager!!.backNormalMode(0)
+            }
         }
-        // 抬升的起点是列表里那张卡片的完整位置；不在屏幕上的从叠放处直接淡入
-        val sources = ordered.map { thing ->
-            val position = manager.getListPositionForThingId(thing.id)
-            val card = if (position < 0) null else rv.findViewHolderForAdapterPosition(position)?.itemView
-            TapShareOverlay.Source(card?.let { cardRectInWindow(it) })
-        }
-        // 碰一碰的记事文件在后台线程写，交出去的是副本，列表里的对象照常由界面使用
-        val copies = ordered.map { Thing(it) }
-        val single = ordered.size == 1
+        // 长截图要用详情页排好版的视图：只有一条记事时提供（选多项、分享文件夹时不提供，决策 2026-09-24）
+        val only = (content.items.singleOrNull() as? ThingShareContent.ThingNode)?.thing
         mTapShareOverlay = TapShareOverlay.show(this, TapShareOverlay.Request(
-            copies, sources, App.defaultAccentBackground,
+            content, folderEntries, sources, accent,
             object : TapShareOverlay.Host {
-                override val longScreenshotAvailable: Boolean = single
+                override val longScreenshotAvailable: Boolean = only != null
 
                 override fun shareTextAndImages() {
-                    SendInfoHelper.shareThings(this@ThingsActivity, copies)
-                    mModeManager!!.backNormalMode(0)
+                    SendInfoHelper.shareThings(this@ThingsActivity, content.things)
+                    leaveSelection()
                 }
 
                 override fun shareLongScreenshot() {
-                    // 长截图要用详情页排好版的视图，首页生成不了：打开这条记事，在详情页生成
-                    openDetailForLongScreenshot(ordered[0])
-                    mModeManager!!.backNormalMode(0)
+                    // 首页生成不了：打开这条记事，在详情页生成
+                    only?.let { openDetailForLongScreenshot(it) }
+                    leaveSelection()
                 }
 
                 override fun shareThingFile() {
-                    ThingFileSharer.share(this@ThingsActivity, App.defaultAccentBackground, copies)
-                    mModeManager!!.backNormalMode(0)
+                    ThingFileSharer.share(this@ThingsActivity, accent, content)
+                    leaveSelection()
                 }
 
                 override fun onShareClosed(sentByTap: Boolean) {
                     mTapShareOverlay = null
-                    if (sentByTap && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
+                    if (sentByTap && fromSelection && mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
                         mModeManager!!.backNormalMode(0)
                     }
                 }
@@ -12310,7 +12397,10 @@ class ThingsActivity :
             override fun insertReceivedThing(thing: Thing, hidden: Boolean): Int =
                 insertTapReceivedThing(thing, hidden)
 
-            override fun listPositionOf(id: Long): Int = mThingManager!!.getListPositionForThingId(id)
+            override fun insertReceivedFolder(folder: ThingFolder, hidden: Boolean): Int =
+                insertTapReceivedFolder(folder, hidden)
+
+            override fun listPositionOf(stableId: Long): Int = mThingManager!!.getListPositionForStableId(stableId)
 
             override fun receivedInsertPosition(): Int {
                 // 新记事的 location 最大：排在置顶（location < 0）的记事与文件夹之后、其余各项之前
@@ -12321,13 +12411,13 @@ class ThingsActivity :
                 return entries.size
             }
 
-            override fun findReceivedCard(id: Long): View? {
-                val position = mThingManager!!.getListPositionForThingId(id)
+            override fun findReceivedCard(stableId: Long): View? {
+                val position = mThingManager!!.getListPositionForStableId(stableId)
                 if (position < 0) return null
                 return mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView
             }
 
-            override fun revealReceivedThings(ids: Collection<Long>) = revealTapReceivedThings(ids)
+            override fun revealReceivedThings(stableIds: Collection<Long>) = revealTapReceivedThings(stableIds)
 
             override fun onReceivedThingsCommitted() = onTapReceivedThingsCommitted()
         })
@@ -12378,11 +12468,33 @@ class ThingsActivity :
         return position
     }
 
-    private fun revealTapReceivedThings(ids: Collection<Long>) {
+    /** 碰一碰收到的文件夹（连同子树）刚写进数据库：与 [insertTapReceivedThing] 相同，按文件夹插进列表。 */
+    private fun insertTapReceivedFolder(folder: ThingFolder, hidden: Boolean): Int {
+        if (!mCanSeeUi) {
+            mAdapter!!.notifyDataSetChanged()
+            return -1
+        }
+        val position = mThingManager!!.getListPositionForFolderId(folder.id)
+        if (position < 0) {
+            return -1
+        }
+        if (hidden) {
+            mAdapter!!.setFolderHidden(folder.id, true)
+        }
+        mAdapter!!.notifyItemInserted(position)
+        return position
+    }
+
+    /** [stableIds] 按列表项的 stableId：记事是 id，文件夹是 −id。 */
+    private fun revealTapReceivedThings(stableIds: Collection<Long>) {
         val manager = mThingManager!!
-        for (id in ids) {
-            mAdapter!!.setThingHidden(id, false)
-            val position = manager.getListPositionForThingId(id)
+        for (id in stableIds) {
+            if (id < 0) {
+                mAdapter!!.setFolderHidden(-id, false)
+            } else {
+                mAdapter!!.setThingHidden(id, false)
+            }
+            val position = manager.getListPositionForStableId(id)
             if (position < 0) continue
             val card = mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView ?: continue
             card.animate().cancel()

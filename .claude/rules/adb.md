@@ -1297,3 +1297,23 @@ Git Bash 里路径参数要加 `MSYS_NO_PATHCONV=1`，PowerShell 工具里命令
 **横屏下点列表里的标题要先确认它在状态栏之下**：列表滚动之后顶栏收起，一张比屏幕还高的卡片会把标题停在状态栏
 底下，点下去点的是状态栏（2026-09-26 魅族横屏实际发生，脚本报「没有打开详情页」）。可点范围的上沿取顶栏下沿与
 状态栏下沿（`dumpsys window` 里 `type=statusBars frame=[..][W,H]` 的 H）中更低的那个。
+
+## 首页带类型筛选、文件夹打开：用列表小部件的入口，不点抽屉
+
+2026-09-28 核对「按类型筛选分享文件夹」时用到。`ThingsActivity` 是 `singleTask`，`onNewIntent` 里只要带了
+`type_filter_mask` 或 `folder_id` 就按小部件的外部入口处理（`openExternalProjectionFromIntent`）：
+
+```powershell
+& $adb -s <serial> shell am start -n com.ywwynm.everythingdone/.activities.ThingsActivity `
+    --ei com.ywwynm.everythingdone.key.type_filter_mask 2 --el com.ywwynm.everythingdone.key.folder_id <id>
+```
+
+掩码：记录 1、提醒 2、习惯 4、目标 8，0 为不筛选。文件夹 id 从拉回来的数据库里查。**跑完用掩码 0、不带文件夹再开一次
+恢复**（筛选只在内存里，`am force-stop` 之后也会复位，但别指望它）。
+
+## 应用生成的文件在外部目录：`run-as` 的 `files/` 是内部目录
+
+`Def.getAppFileDir` 是 `getExternalFilesDir(null)`，即 `/sdcard/Android/data/<包名>/files/`；记事文件（`thing_file/`）、
+碰一碰的工作目录（`tap_transfer/`）、会话记录（`tap-fixtures/`）都在这里。`run-as <包名> rm -rf files/thing_file` 删的是
+`/data/data/<包名>/files/` 下的同名目录，什么也没删到，而且不报错（2026-09-28 实际发生，清理脚本以为清干净了）。
+外部目录里的文件用 `adb shell rm` 删（Git Bash 里加 `MSYS_NO_PATHCONV=1`）。

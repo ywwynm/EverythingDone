@@ -15,9 +15,13 @@ import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
+import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
@@ -25,6 +29,7 @@ import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.thingfile.ThingFileWriter
+import com.ywwynm.everythingdone.thingfile.ThingShareContent
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
@@ -34,7 +39,9 @@ import java.util.concurrent.TimeUnit
 
 /**
  * 调试包里的模拟接收方：进入接收状态几秒后，模拟一台手机碰上来、发来几条样例记事
- * （标题写明是模拟），走完整的导入与拼出（决策 2026-09-24）。
+ * （标题写明是模拟），走完整的导入与拼出（决策 2026-09-24）。样例也可以是文件夹（[Variant.FOLDER]、
+ * [Variant.BIGFOLDER]），里面带一条置顶的记事与一个子文件夹（子文件夹里第二条是一条已过期的提醒，用来核对按类型
+ * 筛选分享），用来核对文件夹的传输（决策 2026-09-28）。
  *
  * 发来哪几条由调试配置 `simulate_samples` 决定（[TapTransfer.simulatedSamples]），每一项是一种
  * 卡片样式（[Variant]）：纯文字（普通或通栏），或者带一张图片、封面在上 / 下 / 左 / 右 / 作为卡片背景。
@@ -69,7 +76,16 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
         LIST("list"),
 
         /** 二十来行的正文，看正文行数上限。 */
-        TEXT("text")
+        TEXT("text"),
+
+        /**
+         * 文件夹（「正常」形态）：几条纯文字记事，第一条置顶，最后是一个带两条记事的子文件夹。
+         * `/N` 表示里面几条记事（默认 [SAMPLE_FOLDER_THINGS]），`!` 表示通栏。
+         */
+        FOLDER("folder"),
+
+        /** 同上，「大」形态（带缩略图）。 */
+        BIGFOLDER("bigfolder")
     }
 
     /**
@@ -105,15 +121,17 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
     private var touched = false
     private var sample: Future<Sample>? = null
 
-    /** 样例记事与写好的记事文件（没写出来时为 null）。 */
-    private class Sample(val things: List<Thing>, val file: File?)
+    /** 样例（每一项在首页上的样子，握手时量形状用）与写好的记事文件（没写出来时为 null）。 */
+    private class Sample(val items: List<TapThingCards.Item>, val file: File?)
 
     override fun start(receiverName: String, listener: TapReceiverTransport.Listener) {
         this.listener = listener
         val g = ++generation
         val specs = Spec.parse(TapTransfer.simulatedSamples(context))
         val colors = IntArray(specs.size) { ContextCompat.getColor(context, PALETTE[it % PALETTE.size]) }
-        sample = io.submit<Sample> { sampleThings(specs, colors).let { Sample(it, writeSample(it)) } }
+        sample = io.submit<Sample> {
+            sampleContent(specs, colors).let { Sample(itemsOf(it), writeSample(it)) }
+        }
         main.postDelayed({
             if (g == generation && !touched) {
                 touch(g, colors)
@@ -135,11 +153,15 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
     private fun touch(g: Int, colors: IntArray) {
         touched = true
         // 样例早在几秒前就写好了；万一还没写完就不带形状（与旧版发送方相同）
-        val things = sample?.takeIf { it.isDone }?.let { runCatching { it.get().things }.getOrNull() }.orEmpty()
-        val (aspects, fullSpan) = TapThingCards.listShapes(activity, things, TapHandshake.MAX_COLORS)
+        val items = sample?.takeIf { it.isDone }?.let { runCatching { it.get().items }.getOrNull() }.orEmpty()
+        val (aspects, fullSpan) = TapThingCards.listShapes(activity, items, TapHandshake.MAX_COLORS)
+        // 颜色与真实发送方一样取卡片的代表色：「大」文件夹是偏灰的底
+        val offerColors = if (items.size == colors.size) {
+            IntArray(items.size) { TapThingCards.representativeColor(activity, items[it]) }
+        } else colors
         listener?.onTouched(
-            TapIncomingOffer(context.getString(R.string.tap_simulated_peer_name), colors.size, colors, aspects,
-                fullSpan)
+            TapIncomingOffer(context.getString(R.string.tap_simulated_peer_name), offerColors.size, offerColors,
+                aspects, fullSpan)
         )
         main.postDelayed({
             if (g != generation) {
@@ -187,22 +209,98 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
     }
 
     /** 在后台线程调用：带图片的样例要先把图片画出来、存成文件。 */
-    private fun sampleThings(specs: List<Spec>, colors: IntArray): List<Thing> {
+    private fun sampleContent(specs: List<Spec>, colors: IntArray): ThingShareContent {
         val now = System.currentTimeMillis()
         val dir = TapTransfer.workDir(context, "sim")
-        return specs.mapIndexed { k, spec ->
+        return ThingShareContent(specs.mapIndexed { k, spec ->
+            when (spec.variant) {
+                Variant.FOLDER, Variant.BIGFOLDER -> sampleFolder(k, spec, colors[k], now)
+                else -> ThingShareContent.ThingNode(sampleThing(k, spec, colors[k], now, dir))
+            }
+        })
+    }
+
+    /**
+     * 一个样例文件夹：[Spec.sidePercent] 条纯文字记事（第一条置顶），最后是一个带两条记事的子文件夹。
+     * 颜色取调色板里的下几个，与文件夹自己的颜色分得开。
+     */
+    private fun sampleFolder(k: Int, spec: Spec, color: Int, now: Long): ThingShareContent.FolderNode {
+        val count = (spec.sidePercent ?: SAMPLE_FOLDER_THINGS).coerceIn(1, 12)
+        val children = ArrayList<ThingShareContent.Node>()
+        for (i in 0 until count) {
+            val tint = ContextCompat.getColor(context, PALETTE[(k + 1 + i) % PALETTE.size])
+            children.add(ThingShareContent.ThingNode(plainThing(i + 1, tint, now), sticky = i == 0))
+        }
+        val subColor = ContextCompat.getColor(context, PALETTE[(k + count + 1) % PALETTE.size])
+        val sub = ThingFolder(0L, null, context.getString(R.string.tap_simulated_folder_title, (k + 1) * 10 + 1),
+            Thing.UNDERWAY, subColor, 0L, false, now, now)
+        sub.setBackground(ThingBackground.pure(subColor))
+        // 子文件夹里第二条是提醒：时刻取一天之前，导入时按已过期处理、不设闹钟
+        val reminder = plainThing(count + 2, subColor, now).also { it.type = Thing.REMINDER }
+        children.add(ThingShareContent.FolderNode(sub, listOf(
+            ThingShareContent.ThingNode(plainThing(count + 1, subColor, now)),
+            ThingShareContent.ThingNode(reminder, reminder = Reminder(0L, now - DAY_MS))
+        )))
+        val presentation = ThingFolderCardPresentation(
+            mode = if (spec.variant == Variant.BIGFOLDER) ThingFolderCardPresentation.MODE_THUMBNAILS
+            else ThingFolderCardPresentation.MODE_SUMMARY,
+            spanMode = if (spec.fullSpan) ThingFolderCardPresentation.SPAN_FULL else ThingFolderCardPresentation.SPAN_NORMAL
+        )
+        val folder = ThingFolder(0L, null, context.getString(R.string.tap_simulated_folder_title, k + 1),
+            Thing.UNDERWAY, color, 0L, false, now, now, presentation)
+        folder.setBackground(ThingBackground.pure(color))
+        return ThingShareContent.FolderNode(folder, children)
+    }
+
+    private fun plainThing(n: Int, color: Int, now: Long): Thing {
+        val thing = Thing(0L, Thing.NOTE, Thing.UNDERWAY, color, context.getString(R.string.tap_simulated_thing_title, n),
+            context.getString(R.string.tap_simulated_thing_content), "", 0L, now, now, 0L)
+        thing.setBackground(ThingBackground.pure(color))
+        return thing
+    }
+
+    /**
+     * 每一项在首页上的样子：文件夹的计数与缩略图按样例的子树给（它还不在数据库里，首页适配器取不到）。
+     */
+    private fun itemsOf(content: ThingShareContent): List<TapThingCards.Item> = content.items.map { node ->
+        when (node) {
+            is ThingShareContent.ThingNode -> TapThingCards.Item.ThingItem(node.thing)
+            is ThingShareContent.FolderNode -> TapThingCards.Item.FolderItem(folderEntry(node))
+        }
+    }
+
+    private fun folderEntry(node: ThingShareContent.FolderNode): ThingListEntry.FolderEntry {
+        val previews = node.children.map { child ->
+            when (child) {
+                is ThingShareContent.ThingNode -> ThingListEntry.ThingEntry(child.thing)
+                is ThingShareContent.FolderNode -> folderEntry(child)
+            }
+        }
+        val limit = node.folder.cardPresentation.effectiveThumbnailPreviewLimit()
+        return ThingListEntry.FolderEntry(
+            folder = node.folder,
+            recursiveThingCount = ThingShareContent(node.children).things.size,
+            directFolderCount = node.children.count { it is ThingShareContent.FolderNode },
+            thumbnailEntries = if (node.folder.cardPresentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS)
+                previews.take(limit) else emptyList(),
+            thumbnailEntryCount = previews.size
+        )
+    }
+
+    private fun sampleThing(k: Int, spec: Spec, color: Int, now: Long, dir: File): Thing {
+        return run {
             val variant = spec.variant
             var sourceKey: String? = null
             val textOnly = variant == Variant.PLAIN || variant == Variant.WIDE || variant == Variant.LIST ||
                 variant == Variant.TEXT
             val attachment = if (textOnly) "" else {
                 val image = File(dir, "sample-image-$now-$k.jpg")
-                drawSampleImage(image, variant, colors[k])
+                drawSampleImage(image, variant, color)
                 sourceKey = AttachmentHelper.IMAGE.toString() + image.absolutePath
                 AttachmentHelper.SIGNAL + sourceKey
             }
             val thing = Thing(
-                0L, Thing.NOTE, Thing.UNDERWAY, colors[k],
+                0L, Thing.NOTE, Thing.UNDERWAY, color,
                 context.getString(R.string.tap_simulated_thing_title, k + 1),
                 when (spec.content ?: variant) {
                     Variant.LIST -> sampleChecklist()
@@ -213,7 +311,7 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
                 },
                 attachment, 0L, now, now, 0L
             )
-            thing.setBackground(ThingBackground.pure(colors[k]))
+            thing.setBackground(ThingBackground.pure(color))
             thing.thingCardAppearance = when (variant) {
                 Variant.PLAIN -> ThingCardAppearance()
                 Variant.TOP -> ThingCardAppearance(imagePlacement = Thing.THING_CARD_IMAGE_PLACEMENT_TOP)
@@ -226,7 +324,7 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
                 )
                 Variant.BACKGROUND -> ThingCardAppearance(mediaBackgroundEnabled = true)
                 Variant.WIDE -> ThingCardAppearance(spanMode = Thing.THING_CARD_SPAN_FULL)
-                Variant.LIST, Variant.TEXT -> ThingCardAppearance()
+                Variant.LIST, Variant.TEXT, Variant.FOLDER, Variant.BIGFOLDER -> ThingCardAppearance()
             }.let { base -> withSpec(base, spec, sourceKey) }
             thing
         }
@@ -305,11 +403,13 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
         return path
     }
 
-    private fun writeSample(things: List<Thing>): File? {
+    private fun writeSample(content: ThingShareContent): File? {
         val dst = File(TapTransfer.workDir(context, "sim"), "sample-${System.currentTimeMillis()}.edthing")
-        val result = ThingFileWriter.write(context, things, dst)
+        val result = ThingFileWriter.write(context, content, dst)
         // 图片已经打进记事文件，现画的原图不再需要
-        things.forEach { thing -> AttachmentHelper.getOriginalFiles(thing.attachment)?.forEach { it?.delete() } }
+        content.things.forEach { thing ->
+            AttachmentHelper.getOriginalFiles(thing.attachment)?.forEach { it?.delete() }
+        }
         return when (result) {
             is ThingFileWriter.Result.Ok -> result.file
             is ThingFileWriter.Result.Failed -> {
@@ -328,6 +428,8 @@ class SimulatedReceiverTransport(private val activity: Activity) : TapReceiverTr
         const val SAMPLE_TIMEOUT_MS = 30_000L
         const val SAMPLE_CHECKLIST_ITEMS = 14
         const val SAMPLE_TEXT_LINES = 20
+        const val SAMPLE_FOLDER_THINGS = 4
+        const val DAY_MS = 24L * 60 * 60 * 1000
 
         /** 样例记事的颜色，按顺序循环取。 */
         val PALETTE = intArrayOf(

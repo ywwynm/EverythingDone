@@ -54,4 +54,15 @@
 
     </LinearLayout>
 
+    <!-- 文件夹：展开、收起里面的内容（决策 2026-09-28 第 11 条） -->
+    <ImageView
+        android:id="@+id/iv_import_expand"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:visibility="gone"/>
+
 </LinearLayout>

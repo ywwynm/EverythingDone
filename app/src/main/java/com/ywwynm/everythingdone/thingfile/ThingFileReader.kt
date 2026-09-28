@@ -13,6 +13,7 @@ import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingCardAppearance
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 
 import org.json.JSONObject
 
@@ -25,7 +26,7 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
 /**
- * 读取记事文件，得到一组尚未写进数据库的 [PendingThing]。格式见 [ThingFile]。
+ * 读取记事文件，得到一组尚未写进数据库的 [PendingThing]（版本 2 起还有 [PendingFolder]）。格式见 [ThingFile]。
  *
  * 附件先解压到 [Def.getAppFileDir] 下的临时目录，真正导入（用户在预览列表里确认）时才挪进
  * 附件目录。调用方无论成功与否都应在用完后调用 [cleanUp]。
@@ -57,7 +58,15 @@ object ThingFileReader {
     private const val STALE_TEMP_DIR_MS: Long = 24L * 60 * 60 * 1000
 
     sealed class Result {
-        class Ok(val things: List<PendingThing>, val tempDir: File) : Result()
+        /**
+         * [folders] 按先父后子排（上一级总在前面）；只含记事的文件为空。每条记事的 [PendingThing.folderKey]
+         * 都指向 [folders] 里的一个，或为 null（顶层）。
+         */
+        class Ok(
+            val things: List<PendingThing>,
+            val tempDir: File,
+            val folders: List<PendingFolder> = emptyList()
+        ) : Result()
 
         /** 文件是本格式，但版本比本机新。 */
         class TooNew(val version: Int) : Result()
@@ -162,13 +171,15 @@ object ThingFileReader {
             cleanUp(tempDir)
             return Result.Broken(context.getString(R.string.thing_file_error_no_things))
         }
+        val folders = parseFolders(manifest)
+        val folderKeys = folders.mapTo(HashSet()) { it.key }
         val things = ArrayList<PendingThing>(arr.length())
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
             // 单条坏掉不影响其他条：逐条独立解析，解析不出来就跳过。
             // 附件缺失例外——那说明整个文件不完整，报出来，不能导入一条缺附件的记事却报成功。
             try {
-                toPendingThing(o, extracted)?.let { things.add(it) }
+                toPendingThing(o, extracted, folderKeys)?.let { things.add(it) }
             } catch (e: BrokenAttachmentException) {
                 cleanUp(tempDir)
                 return Result.Broken(
@@ -182,11 +193,68 @@ object ThingFileReader {
             cleanUp(tempDir)
             return Result.Broken(context.getString(R.string.thing_file_error_no_valid_things))
         }
-        return Result.Ok(things, tempDir)
+        return Result.Ok(things, tempDir, dropEmptyFolders(folders, things))
     }
 
-    /** 类型不认识时返回 null（整条跳过）；附件缺失或类型不认识时抛 [BrokenAttachmentException]。 */
-    private fun toPendingThing(o: JSONObject, extracted: Map<String, File>): PendingThing? {
+    /**
+     * 版本 2 的文件夹。上一级在它之前没有出现过（畸形文件：指向不存在的、或指向自己之后的文件夹）时
+     * 当作顶层：不丢内容，也不可能成环。编号重复的只认第一个。
+     */
+    private fun parseFolders(manifest: JSONObject): List<PendingFolder> {
+        val arr = manifest.optJSONArray(ThingFile.KEY_FOLDERS) ?: return emptyList()
+        val result = ArrayList<PendingFolder>(arr.length())
+        val seen = HashSet<Int>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            if (!o.has(ThingFile.KEY_FOLDER_KEY)) continue
+            val key = o.optInt(ThingFile.KEY_FOLDER_KEY)
+            if (!seen.add(key)) continue
+            val parent = if (o.has(ThingFile.KEY_IN_FOLDER)) o.optInt(ThingFile.KEY_IN_FOLDER) else null
+            val bg = o.optJSONObject(ThingFile.KEY_BACKGROUND)?.let { ThingBackground.fromJson(it.toString()) }
+            val presentation = o.optJSONObject(ThingFile.KEY_CARD_PRESENTATION)
+                ?.let { ThingFolderCardPresentation.fromJson(it.toString()) }
+            val now = System.currentTimeMillis()
+            val createTime = o.optLong(ThingFile.KEY_CREATE_TIME, now)
+            result.add(
+                PendingFolder(
+                    key = key,
+                    parentKey = parent?.takeIf { it != key && seen.contains(it) },
+                    title = o.optString(ThingFile.KEY_TITLE),
+                    background = bg ?: App.defaultAccentBackground,
+                    cardPresentation = presentation ?: ThingFolderCardPresentation.default(),
+                    createTime = createTime,
+                    updateTime = o.optLong(ThingFile.KEY_UPDATE_TIME, createTime),
+                    order = o.optInt(ThingFile.KEY_ORDER, i),
+                    sticky = o.optBoolean(ThingFile.KEY_STICKY, false)
+                )
+            )
+        }
+        return result
+    }
+
+    /**
+     * 去掉子树里一条记事也没有的文件夹：本机的「正在进行」列表不显示这样的文件夹，导进来就是看不见的空壳
+     * （记事因为解析失败被跳过时会出现）。
+     */
+    private fun dropEmptyFolders(folders: List<PendingFolder>, things: List<PendingThing>): List<PendingFolder> {
+        if (folders.isEmpty()) return folders
+        val parentOf = folders.associate { it.key to it.parentKey }
+        val nonEmpty = HashSet<Int>()
+        for (thing in things) {
+            var key = thing.folderKey
+            // 上一级总在前面，沿父链往上走必然终止
+            while (key != null && nonEmpty.add(key)) {
+                key = parentOf[key]
+            }
+        }
+        return folders.filter { it.key in nonEmpty }
+    }
+
+    /**
+     * 类型不认识时返回 null（整条跳过）；附件缺失或类型不认识时抛 [BrokenAttachmentException]。
+     * 所在的文件夹不在 [folderKeys] 里时当作顶层。
+     */
+    private fun toPendingThing(o: JSONObject, extracted: Map<String, File>, folderKeys: Set<Int>): PendingThing? {
         val files = ArrayList<File>()
         val types = ArrayList<Int>()
         val keys = ArrayList<String>()
@@ -279,8 +347,18 @@ object ThingFileReader {
         }
         val habit = if (type == Thing.HABIT) habitCandidate else null
 
+        val folderKey = if (o.has(ThingFile.KEY_IN_FOLDER)) {
+            o.optInt(ThingFile.KEY_IN_FOLDER).takeIf { it in folderKeys }
+        } else {
+            null
+        }
         // 两份外观设置此刻仍以条目名作键，由 ThingFileImporter 在挪完附件后换成新路径
-        return PendingThing(thing, reminder, habit, files, types, keys)
+        return PendingThing(
+            thing, reminder, habit, files, types, keys,
+            folderKey = folderKey,
+            order = o.optInt(ThingFile.KEY_ORDER, 0),
+            sticky = o.optBoolean(ThingFile.KEY_STICKY, false)
+        )
     }
 
     /**

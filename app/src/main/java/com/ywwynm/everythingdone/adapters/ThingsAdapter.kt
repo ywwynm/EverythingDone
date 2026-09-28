@@ -93,6 +93,9 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     // 绑定时按 id 判断，列表在此期间重新绑定这张卡片也不会让它提前露出来。
     private val mHiddenThingIds = HashSet<Long>()
 
+    // 碰一碰收到的文件夹，同上（按文件夹 id）
+    private val mHiddenFolderIds = HashSet<Long>()
+
     open fun setModeManager(modeManager: ModeManager?) {
         mModeManager = modeManager
     }
@@ -249,6 +252,14 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         }
     }
 
+    open fun setFolderHidden(folderId: Long, hidden: Boolean) {
+        if (hidden) {
+            mHiddenFolderIds.add(folderId)
+        } else {
+            mHiddenFolderIds.remove(folderId)
+        }
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
         return ThingViewHolder(mInflater!!.inflate(R.layout.card_thing, parent, false))
     }
@@ -282,8 +293,12 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         if (entry is ThingListEntry.FolderEntry) {
             bindFolderCard(holder, entry)
-            if (mShouldThingsAnimWhenAppearing) {
+            val hiddenFolder = mHiddenFolderIds.contains(entry.folder.id)
+            if (mShouldThingsAnimWhenAppearing && !hiddenFolder) {
                 playAppearingAnimation(holder.cv!!, position)
+            }
+            if (hiddenFolder) {
+                holder.cv!!.visibility = View.INVISIBLE
             }
             return
         }
@@ -1332,6 +1347,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         style: FolderThingPreviewStyle
     ): View {
         val view = mInflater!!.inflate(R.layout.card_thing, parent, false)
+        resolveDirectionForDetachedMeasure(view)
         val previewHolder = BaseThingViewHolder(view)
         val previewAdapter = FolderThingPreviewAdapter(thing, style)
         previewAdapter.onBindViewHolder(previewHolder, 0)
@@ -1355,6 +1371,16 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         return view
     }
 
+    /**
+     * 预览卡片在挂进缩略图容器之前就会被单独测量（瀑布流按实测高度选列、正在做的记事预先定好蒙层尺寸），
+     * 分享时抬起的文件夹卡片更是整张在挂上窗口之前测量。脱离窗口的视图树解析不了「继承」的布局方向，相对方向的
+     * 复合图标（已揭示私密记事标题前的开锁）落不到左侧，量出来的标题宽度不含图标；挂上之后若没有重新测量，
+     * 文字右移、末尾被裁掉且没有省略号。给预览卡片的根视图一个与应用相同的明确方向，单独测量时也能解析。
+     */
+    private fun resolveDirectionForDetachedMeasure(view: View) {
+        view.layoutDirection = view.resources.configuration.layoutDirection
+    }
+
     private fun preSizeDoingCoverForPreview(
         card: View,
         holder: BaseThingViewHolder,
@@ -1373,6 +1399,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         style: FolderThingPreviewStyle
     ): View {
         val view = mInflater!!.inflate(R.layout.card_thing, parent, false)
+        resolveDirectionForDetachedMeasure(view)
         val previewHolder = BaseThingViewHolder(view)
         val previewFolder = copyFolderForSummaryPreview(entry.folder)
         val previewEntry = entry.copy(

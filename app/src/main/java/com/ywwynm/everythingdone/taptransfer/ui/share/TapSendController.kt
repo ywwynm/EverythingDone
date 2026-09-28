@@ -5,7 +5,6 @@ import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresApi
-import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
@@ -15,16 +14,21 @@ import com.ywwynm.everythingdone.taptransfer.transport.TapSenderTransport
 import com.ywwynm.everythingdone.taptransfer.transport.nfc.TapNfcDiscovery
 import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
 import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
+import com.ywwynm.everythingdone.thingfile.ThingShareContent
 
 /**
  * 分享界面里碰一碰那一块的状态：什么时候可以被碰、碰上了谁、传到哪了、成没成。
  *
  * 只管状态，不管画面：[TapShareOverlay] 按 [Listener.onPhaseChanged] 换文案，按 [progress]
  * 推动粒子流出。所有方法与回调都在主线程。
+ *
+ * 握手里的「条数」、颜色与卡片形状都按顶层的项（[items]：一条记事或一个文件夹）给，文件夹里有多少条记事
+ * 不影响握手（决策 2026-09-28）。
  */
-class TapSendController(
+class TapSendController internal constructor(
     private val activity: Activity,
-    private val things: List<Thing>,
+    private val content: ThingShareContent,
+    private val items: List<TapThingCards.Item>,
     private val listener: Listener
 ) : TapSenderTransport.Listener {
 
@@ -83,8 +87,8 @@ class TapSendController(
     /** 本机此刻是否停掉了 NFC 轮询、只做卡（[TapNfcDiscovery]）。 */
     private var listenOnly = false
 
-    /** 前几条记事的卡片在本机列表里的形状，交给接收方预计落点。分享界面开着时不会变，量一次就留着。 */
-    private val shapes by lazy { TapThingCards.listShapes(activity, things, TapHandshake.MAX_COLORS) }
+    /** 前几项的卡片在本机列表里的形状，交给接收方预计落点。分享界面开着时不会变，量一次就留着。 */
+    private val shapes by lazy { TapThingCards.listShapes(activity, items, TapHandshake.MAX_COLORS) }
 
     fun start() {
         if (!isSupported(activity)) {
@@ -149,9 +153,9 @@ class TapSendController(
         // 离开前台再回来时沿用已经写好的记事文件；文件没了（被清理）就重写
         val writer = payload?.takeIf { it.isUsable() } ?: run {
             payload?.discard()
-            TapPayloadWriter(activity, things).also { payload = it }
+            TapPayloadWriter(activity, content).also { payload = it }
         }
-        val colors = IntArray(things.size) { things[it].getBackground()?.representativeColor() ?: things[it].getColor() }
+        val colors = IntArray(items.size) { TapThingCards.representativeColor(activity, items[it]) }
         val (aspects, fullSpan) = shapes
         val t = TapTransfer.createSenderTransport(activity)
         transport = t
@@ -160,7 +164,7 @@ class TapSendController(
             listenOnly = TapNfcDiscovery.listenOnly(activity)
         }
         t.start(
-            TapSenderTransport.Offer(TapTransfer.deviceName(activity), things.size, colors, writer, aspects, fullSpan),
+            TapSenderTransport.Offer(TapTransfer.deviceName(activity), items.size, colors, writer, aspects, fullSpan),
             this
         )
     }

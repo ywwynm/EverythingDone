@@ -57,18 +57,28 @@ object ThingFileSharer {
         accentBackground: ThingBackground?,
         things: List<Thing>,
         keptAttachments: Map<Long, Set<String>>? = null
+    ) = share(activity, accentBackground, ThingShareContent.ofThings(things), keptAttachments)
+
+    /** 带文件夹的分享（决策 2026-09-28）：文件夹连同子树写进同一个文件。 */
+    @JvmStatic
+    @JvmOverloads
+    fun share(
+        activity: FragmentActivity,
+        accentBackground: ThingBackground?,
+        content: ThingShareContent,
+        keptAttachments: Map<Long, Set<String>>? = null
     ) {
-        if (things.isEmpty()) {
+        if (content.things.isEmpty()) {
             return
         }
         val background = accentBackground ?: App.defaultAccentBackground
-        startGenerating(activity, background, things, keptAttachments)
+        startGenerating(activity, background, content, keptAttachments)
     }
 
     private fun startGenerating(
         activity: FragmentActivity,
         background: ThingBackground,
-        things: List<Thing>,
+        content: ThingShareContent,
         keptAttachments: Map<Long, Set<String>>?
     ) {
         val ldf = LoadingDialogFragment()
@@ -82,13 +92,13 @@ object ThingFileSharer {
         val appContext = activity.applicationContext
         // 附件全部内嵌，100 MB 的记事也照写不误，所以一定在后台线程做
         sExecutor.execute {
-            val dst = prepareOutputFile(appContext, things)
+            val dst = prepareOutputFile(appContext, content)
             val result = if (dst == null) {
                 ThingFileWriter.Result.Failed(
                     appContext.getString(R.string.thing_file_error_output_file)
                 )
             } else {
-                ThingFileWriter.write(appContext, things, dst, keptAttachments)
+                ThingFileWriter.write(appContext, content, dst, keptAttachments)
             }
             sMain.post {
                 wrLdf.get()?.dismiss()
@@ -136,21 +146,31 @@ object ThingFileSharer {
     /**
      * 产出目录每次只留当前这一个文件——附件内嵌后单个文件可能上百 MB，堆着会占满存储。
      */
-    private fun prepareOutputFile(context: Context, things: List<Thing>): File? {
+    private fun prepareOutputFile(context: Context, content: ThingShareContent): File? {
         val dir = File(Def.getAppFileDir(context) + OUTPUT_DIR)
         if (dir.exists()) {
             dir.listFiles()?.forEach { it.delete() }
         }
-        return FileUtil.createFile(dir.absolutePath, fileName(context, things))
+        return FileUtil.createFile(dir.absolutePath, fileName(context, content))
     }
 
-    private fun fileName(context: Context, things: List<Thing>): String {
+    /** 一项时取它的标题（记事没有标题时取正文，文件夹取文件夹名）；多项时是「完事儿-项数-时刻」。 */
+    private fun fileName(context: Context, content: ThingShareContent): String {
         val stamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.US).format(Date())
-        if (things.size > 1) {
+        val items = content.items
+        if (items.size > 1) {
             return context.getString(R.string.everythingdone) + "-" +
-                    things.size + "-" + stamp + "." + ThingFile.EXTENSION
+                    items.size + "-" + stamp + "." + ThingFile.EXTENSION
         }
-        val thing = things[0]
+        val only = items[0]
+        if (only is ThingShareContent.FolderNode) {
+            var folderName = ThingFile.fileNameStem(only.folder.title)
+            if (folderName.isEmpty() || !FileUtil.isAppropriateAsFileName(folderName)) {
+                folderName = context.getString(R.string.everythingdone)
+            }
+            return "$folderName-$stamp.${ThingFile.EXTENSION}"
+        }
+        val thing = (only as ThingShareContent.ThingNode).thing
         var name = ThingFile.fileNameStem(thing.getTitleToDisplay())
         if (name.isEmpty()) {
             var content = thing.content ?: ""

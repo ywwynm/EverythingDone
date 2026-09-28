@@ -23,6 +23,12 @@
           app:showAsAction="always"/>
 
       <item
+          android:id="@+id/act_share_current_folder"
+          android:title="@string/act_share_this_folder"
+          android:visible="false"
+          app:showAsAction="never" />
+
+      <item
           android:id="@+id/act_delete_current_folder"
           android:title="@string/delete_thing_folder"
           android:visible="false"

@@ -12,9 +12,11 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.BuildConfig
@@ -25,7 +27,10 @@ import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolder
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import com.ywwynm.everythingdone.model.ThingListEntry
+import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import kotlin.math.max
@@ -33,13 +38,22 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * 用首页的记事卡片渲染一条记事：布局、字号、内容行数、清单条数、附件与封面的规则与首页逐项相同
- * （直接继承首页的适配器，只把数据换成这一条）。
+ * 用首页的卡片渲染一条记事或一个文件夹：布局、字号、内容行数、清单条数、附件与封面、文件夹的计数与缩略图的规则
+ * 与首页逐项相同（直接继承首页的适配器，只把数据换成这一项）。
  *
  * 握手里交给接收方的卡片形状按首页的尺寸量（[listShapes]）；分享界面抬起的卡片更宽，放不下时删减内容
  * 而不缩小（[LiftedCard]）。
  */
 internal object TapThingCards {
+
+    /**
+     * 抬起或量形状的一项：一条记事，或一个文件夹在首页列表里的那一项（计数、缩略图与列表一致，
+     * 决策 2026-09-28 第 12 条）。
+     */
+    sealed class Item {
+        class ThingItem(val thing: Thing) : Item()
+        class FolderItem(val entry: ThingListEntry.FolderEntry) : Item()
+    }
 
     /**
      * 首页列表在这个窗口里给卡片的尺寸：普通卡片宽、通栏卡片宽，以及卡片可用高度（封面缩略图的最小与最大
@@ -73,17 +87,17 @@ internal object TapThingCards {
     }
 
     /**
-     * 这几条记事的卡片在本机首页列表里的形状：高宽比（高 / 宽）与是否通栏，与首页排出来的一样（[create]），
-     * 私密记事按不显示内容的样子量（接收方就是这样显示的）。握手把它交给接收方，接收方按自己的列宽乘回去
-     * 预计落点。最多量 [limit] 条；在主线程调用。
+     * 这几项的卡片在本机首页列表里的形状：高宽比（高 / 宽）与是否通栏，与首页排出来的一样（[create]），
+     * 私密记事按不显示内容的样子量（接收方就是这样显示的）；文件夹按显示内容的样子量（接收方收到的文件夹
+     * 不是私密的）。握手把它交给接收方，接收方按自己的列宽乘回去预计落点。最多量 [limit] 项；在主线程调用。
      */
-    fun listShapes(activity: Activity, things: List<Thing>, limit: Int): Pair<FloatArray, BooleanArray> {
+    fun listShapes(activity: Activity, items: List<Item>, limit: Int): Pair<FloatArray, BooleanArray> {
         val metrics = listMetrics(activity)
-        val count = min(things.size, limit)
+        val count = min(items.size, limit)
         val aspects = FloatArray(count)
         val spans = BooleanArray(count)
         for (k in 0 until count) {
-            val card = create(activity, things[k], metrics, revealPrivate = false)
+            val card = create(activity, items[k], metrics, revealPrivate = false)
             val width = card.layoutParams.width
             card.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -95,32 +109,51 @@ internal object TapThingCards {
     }
 
     /**
-     * 渲染一张卡片。返回的视图已绑定、可直接加进布局，宽度是这条记事在首页上的宽度（普通或通栏）、高度随内容。
+     * 渲染一张卡片。返回的视图已绑定、可直接加进布局，宽度是这一项在首页上的宽度（普通或通栏）、高度随内容。
      *
      * @param revealPrivate 私密记事是否显示内容。分享方在分享前已经验证过身份，显示；
-     *        接收方按首页的规则，不显示。
+     *        接收方按首页的规则，不显示。文件夹一律显示（收到的文件夹不是私密的）。
      */
-    fun create(activity: Activity, thing: Thing, metrics: ListMetrics, revealPrivate: Boolean): View {
-        val adapter = newAdapter(activity, thing, metrics, revealPrivate)
-        val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
-        bind(adapter, holder, metrics.widthOf(adapter.isFullSpan()))
-        return holder.itemView
+    fun create(activity: Activity, item: Item, metrics: ListMetrics, revealPrivate: Boolean): View =
+        LiftedCard.of(activity, item, metrics, revealPrivate).view
+
+    /**
+     * 这一项在首页上的代表色：接收方在记事内容到达之前按它画代理卡片。缩略图形态的文件夹卡片是一块偏灰的底
+     * （按文件夹颜色调过的列表底色），不是文件夹的颜色。
+     */
+    fun representativeColor(context: Context, item: Item): Int = when (item) {
+        is Item.ThingItem -> item.thing.getBackground()?.representativeColor() ?: item.thing.getColor()
+        is Item.FolderItem -> folderColor(context, item.entry.folder, item.entry.folder.cardPresentation)
+    }
+
+    /** 文件夹卡片在首页上的代表色（[presentation] 取实际显示的那份外观）。 */
+    fun folderColor(context: Context, folder: ThingFolder, presentation: ThingFolderCardPresentation): Int {
+        val background = folder.getBackground() ?: ThingBackground.pure(folder.getColor())
+        if (presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS) {
+            val list = ContextCompat.getColor(context, R.color.bg_activity_things)
+            return BackgroundUtil.mutedSurfaceBackground(background, list).representativeColor()
+        }
+        return background.representativeColor()
     }
 
     private fun newAdapter(activity: Activity, thing: Thing, metrics: ListMetrics,
                            revealPrivate: Boolean): SingleThingAdapter {
         val adapter = SingleThingAdapter(activity.application as App, thing, revealPrivate)
+        setUp(adapter, metrics, revealPrivate)
+        return adapter
+    }
+
+    private fun setUp(adapter: ThingsAdapter, metrics: ListMetrics, revealPrivate: Boolean) {
         adapter.setCardWidth(metrics.normalWidth)
         adapter.setFullSpanCardWidth(metrics.fullWidth)
         adapter.setThingCardSurfaceAvailableHeight(metrics.surfaceHeight)
         adapter.setShouldShowPrivateContent(revealPrivate)
         // 动图、视频封面只取静态的一帧：卡片会被截成粒子
         adapter.setAnimatedPlaybackEnabled(false)
-        return adapter
     }
 
     /** 绑定（或重新绑定）这张卡片，绑完宽度设为 [width]、高度随内容。 */
-    private fun bind(adapter: SingleThingAdapter, holder: BaseThingsAdapter.BaseThingViewHolder, width: Int) {
+    private fun bind(adapter: ThingsAdapter, holder: BaseThingsAdapter.BaseThingViewHolder, width: Int) {
         val card = holder.itemView
         val previous = card.layoutParams as? FrameLayout.LayoutParams
         // 首页适配器绑定时按瀑布流的布局参数设外边距，先给它一份，绑完再换成普通的
@@ -133,24 +166,15 @@ internal object TapThingCards {
 
     /**
      * 分享界面里抬起的一张卡片（决策 2026-09-26「抬起的卡片放大、按首页字号排」）。起初按首页的尺寸绑定；
-     * 舞台知道卡片区之后按 [widthIn] 加宽、按 [fit] 在高度上限里排版。字号、行数与条数的上限、封面的规则
-     * 都沿用首页。
+     * 舞台知道卡片区之后按 [widthIn] 加宽、按 [fit] 在高度上限里排版。
      *
      * @param home 首页列表的尺寸：通栏宽是加宽的依据，卡片可用高度用来钳制封面（与首页相同）。
      */
-    class LiftedCard(activity: Activity, private val thing: Thing, private val home: ListMetrics,
-                     revealPrivate: Boolean) {
+    abstract class LiftedCard(protected val home: ListMetrics) {
 
-        private val adapter = newAdapter(activity, thing, home, revealPrivate)
-        private val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
+        abstract val fullSpan: Boolean
 
-        val fullSpan: Boolean = adapter.isFullSpan()
-
-        val view: View get() = holder.itemView
-
-        init {
-            bind(adapter, holder, home.widthOf(fullSpan))
-        }
+        abstract val view: View
 
         /**
          * 在宽 [areaWidth] 的卡片区里抬起时的宽度：通栏按首页的通栏宽，最宽 [LIFT_MAX_WIDTH_DP]，也不超过卡片区
@@ -165,14 +189,42 @@ internal object TapThingCards {
         }
 
         /**
-         * 按 [width] 重新排版，高度尽量不超过 [maxHeight]：先减正文行数或清单条数（末尾照首页带省略号，
-         * 最少留 [MIN_KEPT] 行或条，清单的字号仍按首页那张的条数算），还不够再把上下的缩略图、作背景的图
-         * 压扁（按更宽的比例裁切，最矮 [minCoverHeight]）。返回排好之后的高度，可能仍超过上限：剩下的
-         * 由舞台整体缩小。
-         *
-         * 会重新绑定卡片：视图的透明度、缩放要在这之后再设。
+         * 按 [width] 重新排版，高度尽量不超过 [maxHeight]，返回排好之后的高度；可能仍超过上限，剩下的由舞台
+         * 整体缩小。会重新绑定卡片：视图的透明度、缩放要在这之后再设。
          */
-        fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int {
+        abstract fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int
+
+        companion object {
+            /** @param revealPrivate 见 [create]。 */
+            fun of(activity: Activity, item: Item, home: ListMetrics, revealPrivate: Boolean): LiftedCard =
+                when (item) {
+                    is Item.ThingItem -> LiftedThingCard(activity, item.thing, home, revealPrivate)
+                    is Item.FolderItem -> LiftedFolderCard(activity, item.entry, home)
+                }
+        }
+    }
+
+    /** 一条记事：字号、行数与条数的上限、封面的规则都沿用首页，放不下时删减内容。 */
+    private class LiftedThingCard(activity: Activity, private val thing: Thing, home: ListMetrics,
+                                  revealPrivate: Boolean) : LiftedCard(home) {
+
+        private val adapter = newAdapter(activity, thing, home, revealPrivate)
+        private val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
+            .also { resolveDirectionForDetachedMeasure(it.itemView) }
+
+        override val fullSpan: Boolean = adapter.isFullSpan()
+
+        override val view: View get() = holder.itemView
+
+        init {
+            bind(adapter, holder, home.widthOf(fullSpan))
+        }
+
+        /**
+         * 先减正文行数或清单条数（末尾照首页带省略号，最少留 [MIN_KEPT] 行或条，清单的字号仍按首页那张的条数算），
+         * 还不够再把上下的缩略图、作背景的图压扁（按更宽的比例裁切，最矮 [minCoverHeight]）。
+         */
+        override fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int {
             val start = SystemClock.elapsedRealtimeNanos()
             val height = fitWithin(width, maxHeight, minCoverHeight)
             if (BuildConfig.DEBUG) {
@@ -275,6 +327,50 @@ internal object TapThingCards {
         }
     }
 
+    /**
+     * 一个文件夹：与首页的文件夹卡片相同（「大」形态带缩略图）。没有可以删减的正文，放不下时只能由舞台整体
+     * 缩小。私密文件夹显示内容：分享方在分享前已经验证过身份，接收方收到的也不是私密的。
+     */
+    private class LiftedFolderCard(activity: Activity, entry: ThingListEntry.FolderEntry, home: ListMetrics) :
+        LiftedCard(home) {
+
+        private val adapter = SingleFolderAdapter(activity.application as App, entry).also {
+            setUp(it, home, revealPrivate = true)
+            // 缩略图的列数跟首页列表走（列数 + 1）：在首页上就借首页的列表读列数
+            activity.findViewById<RecyclerView>(R.id.rv_things)?.let { list ->
+                it.setHostRecyclerViewForDelegatedBinding(list)
+                it.setCardWidth(home.normalWidth)
+                it.setFullSpanCardWidth(home.fullWidth)
+            }
+        }
+        private val holder = adapter.onCreateViewHolder(FrameLayout(activity), adapter.getItemViewType(0))
+            .also { resolveDirectionForDetachedMeasure(it.itemView) }
+
+        override val fullSpan: Boolean =
+            entry.folder.cardPresentation.spanMode == ThingFolderCardPresentation.SPAN_FULL
+
+        override val view: View get() = holder.itemView
+
+        init {
+            rebind(home.widthOf(fullSpan))
+        }
+
+        override fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int {
+            adapter.setCardWidth(width)
+            return rebind(width)
+        }
+
+        private fun rebind(width: Int): Int {
+            bind(adapter, holder, width)
+            val card = holder.itemView
+            card.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            card.layout(0, 0, width, card.measuredHeight)
+            (card as? CardView)?.cardElevation = 0f
+            return card.measuredHeight
+        }
+    }
+
     private class SingleThingAdapter(
         app: App,
         private val thing: Thing,
@@ -334,6 +430,40 @@ internal object TapThingCards {
 
         /** 首页上是不是通栏卡片（首页适配器自己的判断）。 */
         fun isFullSpan(): Boolean = isFullSpanThingCard(thing)
+    }
+
+    /** 只有一个文件夹的首页适配器：绑定走首页的文件夹分支，私密的一律显示内容。 */
+    private class SingleFolderAdapter(
+        app: App,
+        entry: ThingListEntry.FolderEntry
+    ) : ThingsAdapter(app, null) {
+
+        private val entries: List<ThingListEntry> = listOf(entry)
+
+        init {
+            setShouldThingsAnimWhenAppearing(false)
+        }
+
+        override fun getCurrentMode(): Int = ModeManager.NORMAL
+
+        override fun getEntries(): List<ThingListEntry> = entries
+
+        override fun shouldShowFolderPrivateContent(): Boolean = true
+
+        override fun isFolderRevealedByAuth(folderId: Long): Boolean = true
+
+        override fun isThingRevealedByAuth(thingId: Long): Boolean = true
+    }
+
+    /**
+     * 卡片在挂上窗口之前就要量好（舞台按量出的尺寸排版、缩放）。脱离窗口的视图树解析不了「继承」的布局方向
+     * （根视图没有上一级），相对方向的复合图标（已揭示私密记事标题前的开锁）就落不到左侧，量出来的标题宽度不含
+     * 图标。挂上窗口之后图标出现，若标题没有被重新测量、或取回了测量缓存，文字就整体右移、末尾被裁掉，而且因为
+     * 排版时以为放得下而没有省略号（2026-09-28 用户截图；三星上实测脱离时量出 249 px、需要 314 px）。给根视图
+     * 一个与应用相同的明确方向，测量时就能解析。
+     */
+    private fun resolveDirectionForDetachedMeasure(view: View) {
+        view.layoutDirection = view.resources.configuration.layoutDirection
     }
 
     /** 抬起的通栏卡片最宽这么宽（dp），与粒子动画设置页的示例卡片同一个上限。 */

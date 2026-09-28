@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.thingfile
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingBackground
+import com.ywwynm.everythingdone.model.ThingFolderCardPresentation
 import java.io.File
 
 /**
@@ -14,6 +16,9 @@ import java.io.File
  * things.json                          清单
  * attachments/<i>/<n>_<原文件名>        第 i 条记事的第 n 个附件
  * ```
+ *
+ * 版本 2 起可以带文件夹（决策 2026-09-28）：清单多一个 [KEY_FOLDERS] 数组，记事与文件夹各自记着所在的
+ * 文件夹（[KEY_IN_FOLDER]，缺省为顶层）、在其中的先后（[KEY_ORDER]）与是否置顶（[KEY_STICKY]）。
  *
  * 它是给另一个人的一次性副本，接收方必须安装本应用才能用。与「导出到 SD 卡」
  * 产出的可阅读 txt 是两回事，后者不可还原。
@@ -28,8 +33,14 @@ object ThingFile {
     /**
      * 格式版本。读到比本机大的版本一律拒绝并提示升级；小于等于本机版本则接受，
      * 清单里不认识的字段直接忽略。
+     *
+     * 1：只有记事。2：带文件夹。只含记事的文件仍写 [VERSION_THINGS_ONLY]，还没升级的接收方照样能导入；
+     * 带文件夹的写 2，旧版本收到时提示升级，而不是把结构丢掉、把记事平铺进来（决策 2026-09-28 第 10 条）。
      */
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
+
+    /** 只含记事的文件写这个版本。 */
+    const val VERSION_THINGS_ONLY: Int = 1
 
     const val EXTENSION: String = "edthing"
 
@@ -48,6 +59,9 @@ object ThingFile {
     const val KEY_EXPORT_TIME: String = "exportTime"
     const val KEY_THINGS: String = "things"
 
+    /** 版本 2：文件夹，按先父后子排（上一级总在前面）。 */
+    const val KEY_FOLDERS: String = "folders"
+
     const val KEY_TYPE: String = "type"
     const val KEY_STATE: String = "state"
     const val KEY_TITLE: String = "title"
@@ -61,6 +75,19 @@ object ThingFile {
     const val KEY_ATTACHMENTS: String = "attachments"
     const val KEY_REMINDER: String = "reminder"
     const val KEY_HABIT: String = "habit"
+
+    /** 文件夹在这份文件里的编号，记事与子文件夹用 [KEY_IN_FOLDER] 指向它。 */
+    const val KEY_FOLDER_KEY: String = "key"
+    const val KEY_CARD_PRESENTATION: String = "cardPresentation"
+
+    /** 记事与文件夹共用：所在文件夹的 [KEY_FOLDER_KEY]，缺省表示顶层。 */
+    const val KEY_IN_FOLDER: String = "folder"
+
+    /** 记事与文件夹共用：在所在的一层里的先后，小的在前（列表顺序）。 */
+    const val KEY_ORDER: String = "order"
+
+    /** 记事与文件夹共用：在所在的文件夹里置顶。顶层的项不看它：收到的一律不置顶。 */
+    const val KEY_STICKY: String = "sticky"
 
     const val KEY_ATTACHMENT_TYPE: String = "type"
     const val KEY_ATTACHMENT_NAME: String = "name"
@@ -146,5 +173,31 @@ class PendingThing(
      */
     val attachmentKeys: List<String>,
     /** 与本机已有记事的内容指纹重复时为 true，预览列表据此默认不勾选。 */
-    var duplicate: Boolean = false
+    var duplicate: Boolean = false,
+    /** 所在文件夹的编号（[PendingFolder.key]）；null 表示顶层。 */
+    val folderKey: Int? = null,
+    /** 在所在的一层里的先后，小的在前。 */
+    val order: Int = 0,
+    /** 在所在的文件夹里置顶（顶层不看）。 */
+    val sticky: Boolean = false
+)
+
+/**
+ * 从记事文件里读出来、尚未写进数据库的一个文件夹（版本 2）。私密标记不随文件走（决策 2026-09-28 第 6 条），
+ * 导入的文件夹一律不是私密的。
+ */
+class PendingFolder(
+    /** 这份文件里的编号，只在这一份文件里有意义。 */
+    val key: Int,
+    /** 上一级文件夹的编号；null 表示顶层。 */
+    val parentKey: Int?,
+    val title: String,
+    val background: ThingBackground,
+    val cardPresentation: ThingFolderCardPresentation,
+    val createTime: Long,
+    val updateTime: Long,
+    /** 在所在的一层里的先后，小的在前。 */
+    val order: Int,
+    /** 在上一级文件夹里置顶（顶层不看）。 */
+    val sticky: Boolean
 )

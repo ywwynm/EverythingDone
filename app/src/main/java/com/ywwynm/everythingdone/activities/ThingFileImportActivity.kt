@@ -1,17 +1,21 @@
 package com.ywwynm.everythingdone.activities
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -20,10 +24,12 @@ import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.thingfile.PendingFolder
 import com.ywwynm.everythingdone.thingfile.PendingThing
 import com.ywwynm.everythingdone.thingfile.ThingFileImporter
 import com.ywwynm.everythingdone.thingfile.ThingFileMessages
 import com.ywwynm.everythingdone.thingfile.ThingFileReader
+import com.ywwynm.everythingdone.thingfile.ThingFileTree
 import com.ywwynm.everythingdone.thingfile.ThingFingerprint
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DateTimeUtil
@@ -41,11 +47,16 @@ import java.util.concurrent.Executors
  * 匹配匹配不上。
  *
  * 导入是不可撤销的（ADR-0005 已全局移除撤销机制），所以一律先列出来让用户逐条确认。
+ * 带文件夹的文件以顶层的项为单位勾选：文件夹连同子树整体导入，可以展开看里面有什么
+ * （决策 2026-09-28 第 11 条）。
  */
 class ThingFileImportActivity : EverythingDoneBaseActivity() {
 
     companion object {
         private const val REQUEST_PICK_THING_FILE: Int = 1
+
+        /** 展开后文件夹里的内容每深一层缩进这么多（dp）。 */
+        private const val INDENT_DP: Int = 24
     }
 
     private var toolbar: Toolbar? = null
@@ -58,7 +69,28 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
     private val main = Handler(Looper.getMainLooper())
 
     private val items = ArrayList<PendingThing>()
-    private val checked = HashSet<Int>()
+    private val folders = ArrayList<PendingFolder>()
+
+    /** 文件里的一项：[items] 里的一条记事，或一个文件夹。 */
+    private sealed class Node {
+        class ThingNode(val index: Int) : Node()
+        class FolderNode(val folder: PendingFolder) : Node()
+    }
+
+    /** 按所在的文件夹（null 为顶层）分组、每组按列表顺序排。 */
+    private var levels: Map<Int?, List<Node>> = emptyMap()
+
+    /** 列表的一行：[depth] 为 0 的是顶层的项（可以勾选），其余是展开后文件夹里的内容（只看）。 */
+    private class Row(val node: Node, val depth: Int)
+
+    private val rows = ArrayList<Row>()
+
+    /** 勾选的顶层记事（[items] 的下标）与顶层文件夹（编号）。 */
+    private val checkedThings = HashSet<Int>()
+    private val checkedFolders = HashSet<Int>()
+
+    /** 展开着的文件夹（编号）。 */
+    private val expanded = HashSet<Int>()
     private var tempDir: File? = null
     private var importing = false
 
@@ -180,12 +212,18 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
             is ThingFileReader.Result.Ok -> {
                 tempDir = result.tempDir
                 items.addAll(result.things)
-                // 与本机重复的默认不勾选，其余默认勾上
-                items.forEachIndexed { index, item ->
-                    if (!item.duplicate) {
-                        checked.add(index)
+                folders.addAll(result.folders)
+                buildLevels()
+                // 与本机重复的默认不勾选，其余默认勾上；文件夹里的全都重复时文件夹也不勾
+                for (node in levels[null].orEmpty()) {
+                    when (node) {
+                        is Node.ThingNode -> if (!items[node.index].duplicate) checkedThings.add(node.index)
+                        is Node.FolderNode -> if (subtreeThings(node.folder.key).any { !items[it].duplicate }) {
+                            checkedFolders.add(node.folder.key)
+                        }
                     }
                 }
+                rebuildRows()
                 message?.visibility = View.GONE
                 recyclerView?.visibility = View.VISIBLE
                 confirm?.visibility = View.VISIBLE
@@ -229,7 +267,12 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
         pickedUri = uri
         // 重置到初始状态再读一遍：上一次失败留下的提示与按钮都要清掉
         items.clear()
-        checked.clear()
+        folders.clear()
+        levels = emptyMap()
+        rows.clear()
+        checkedThings.clear()
+        checkedFolders.clear()
+        expanded.clear()
         confirm?.setOnClickListener { startImporting() }
         confirm?.visibility = View.GONE
         recyclerView?.adapter?.notifyDataSetChanged()
@@ -272,23 +315,34 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
     // ------------------------------------------------------------------ 导入
 
     private fun startImporting() {
-        if (importing || checked.isEmpty()) {
+        if (importing || selectedThingCount() == 0) {
             return
         }
         importing = true
         confirm?.isEnabled = false
-        val selected = checked.sorted().map { items[it] }
+        // 勾选的文件夹连同子树整体导入
+        val thingIndices = HashSet<Int>(checkedThings)
+        val folderKeys = HashSet<Int>()
+        for (key in checkedFolders) {
+            thingIndices.addAll(subtreeThings(key))
+            folderKeys.addAll(subtreeFolders(key))
+        }
+        val selected = thingIndices.sorted().map { items[it] }
+        // 保持文件里的先后：上一级总在前面
+        val selectedFolders = folders.filter { it.key in folderKeys }
         val dir = tempDir
         background.execute {
-            val result = ThingFileImporter.import(this, selected)
+            val result = ThingFileImporter.import(this, selected, selectedFolders, null, null)
             ThingFileReader.cleanUp(dir)
             main.post {
-                val text = if (result.failed == 0) {
-                    getString(R.string.thing_file_import_done, result.imported)
-                } else {
-                    getString(
+                val text = when {
+                    result.failed > 0 -> getString(
                         R.string.thing_file_import_partial, result.imported, result.failed
                     )
+                    result.topFolders > 0 -> getString(
+                        R.string.thing_file_import_done_folders, result.topFolders, result.imported
+                    )
+                    else -> getString(R.string.thing_file_import_done, result.imported)
                 }
                 Toast.makeText(applicationContext, text, Toast.LENGTH_LONG).show()
                 if (result.imported > 0) {
@@ -312,7 +366,7 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
     }
 
     private fun updateConfirm() {
-        val count = checked.size
+        val count = selectedThingCount()
         confirm?.text = if (count == 0) {
             getString(R.string.thing_file_import_confirm_none)
         } else {
@@ -323,6 +377,48 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
 
     // ------------------------------------------------------------------ 列表
 
+    private fun buildLevels() {
+        val known = folders.mapTo(HashSet()) { it.key }
+        val nodes = ArrayList<Pair<Node, ThingFileTree.Placement>>(items.size + folders.size)
+        items.forEachIndexed { i, p ->
+            nodes.add(Node.ThingNode(i) to ThingFileTree.Placement(p.folderKey?.takeIf { it in known }, p.order, i))
+        }
+        folders.forEachIndexed { i, f ->
+            val parent = f.parentKey?.takeIf { it in known && it != f.key }
+            nodes.add(Node.FolderNode(f) to ThingFileTree.Placement(parent, f.order, items.size + i))
+        }
+        levels = ThingFileTree.group(nodes) { it.second }.mapValues { (_, level) -> level.map { it.first } }
+    }
+
+    private fun rebuildRows() {
+        rows.clear()
+        fun add(parent: Int?, depth: Int) {
+            for (node in levels[parent].orEmpty()) {
+                rows.add(Row(node, depth))
+                if (node is Node.FolderNode && node.folder.key in expanded) {
+                    add(node.folder.key, depth + 1)
+                }
+            }
+        }
+        add(null, 0)
+    }
+
+    /** 文件夹 [key] 的子树里全部记事（[items] 的下标）。 */
+    private fun subtreeThings(key: Int): List<Int> = levels[key].orEmpty().flatMap { node ->
+        when (node) {
+            is Node.ThingNode -> listOf(node.index)
+            is Node.FolderNode -> subtreeThings(node.folder.key)
+        }
+    }
+
+    /** 文件夹 [key] 自己与子树里全部文件夹的编号。 */
+    private fun subtreeFolders(key: Int): List<Int> = listOf(key) + levels[key].orEmpty().flatMap { node ->
+        if (node is Node.FolderNode) subtreeFolders(node.folder.key) else emptyList()
+    }
+
+    /** 选中的记事条数：顶层勾选的记事，加上勾选的文件夹里的全部记事。 */
+    private fun selectedThingCount(): Int = checkedThings.size + checkedFolders.sumOf { subtreeThings(it).size }
+
     private inner class Adapter : RecyclerView.Adapter<Holder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -330,14 +426,31 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
             return Holder(view)
         }
 
-        override fun getItemCount(): Int = items.size
+        override fun getItemCount(): Int = rows.size
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val item = items[position]
+            val row = rows[position]
+            val top = row.depth == 0
+            // 文件夹里的内容不能单独勾选：勾选框的位置留着（不可见），再逐层往里缩进，子项总在上一级的标题之后
+            val density = resources.displayMetrics.density
+            holder.itemView.setPaddingRelative(
+                (16 * density + row.depth * INDENT_DP * density).toInt(), holder.itemView.paddingTop,
+                holder.itemView.paddingEnd, holder.itemView.paddingBottom
+            )
+            holder.checkBox.visibility = if (top) View.VISIBLE else View.INVISIBLE
+            when (val node = row.node) {
+                is Node.ThingNode -> bindThing(holder, node.index, top)
+                is Node.FolderNode -> bindFolder(holder, node.folder, top)
+            }
+        }
+
+        private fun bindThing(holder: Holder, index: Int, top: Boolean) {
+            val item = items[index]
             val thing = item.thing
 
-            holder.checkBox.isChecked = checked.contains(position)
+            holder.checkBox.isChecked = checkedThings.contains(index)
             BackgroundUtil.applyBackground(holder.colorBar, thing.getBackground())
+            holder.expand.visibility = View.GONE
 
             val title = thing.getTitleToDisplay()?.trim()
             holder.title.text = if (!title.isNullOrEmpty()) {
@@ -375,15 +488,66 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
             }
             holder.info.text = parts.filter { it.isNotEmpty() }.joinToString(" · ")
 
-            holder.itemView.setOnClickListener {
-                if (checked.contains(position)) {
-                    checked.remove(position)
-                } else {
-                    checked.add(position)
-                }
-                notifyItemChanged(position)
-                updateConfirm()
+            if (top) {
+                holder.itemView.setOnClickListener { toggle(checkedThings, index) }
+            } else {
+                holder.itemView.setOnClickListener(null)
+                holder.itemView.isClickable = false
             }
+        }
+
+        private fun bindFolder(holder: Holder, folder: PendingFolder, top: Boolean) {
+            holder.checkBox.isChecked = checkedFolders.contains(folder.key)
+            BackgroundUtil.applyBackground(holder.colorBar, folder.background)
+            holder.title.text = folder.title.trim().ifEmpty { getString(R.string.thing_file_import_no_title) }
+
+            val parts = ArrayList<String>()
+            parts.add(getString(R.string.thing_file_import_folder))
+            parts.add(getString(R.string.thing_file_import_folder_things, subtreeThings(folder.key).size))
+            val subfolders = levels[folder.key].orEmpty().count { it is Node.FolderNode }
+            if (subfolders > 0) {
+                parts.add(getString(R.string.thing_file_import_folder_subfolders, subfolders))
+            }
+            // 里面的记事全都与本机重复：说明为什么默认没勾
+            if (subtreeThings(folder.key).all { items[it].duplicate }) {
+                parts.add(getString(R.string.thing_file_import_duplicate))
+            }
+            holder.info.text = parts.joinToString(" · ")
+
+            val open = folder.key in expanded
+            holder.expand.visibility = View.VISIBLE
+            holder.expand.setImageResource(
+                if (open) R.drawable.act_shrink_checklist_finished_items
+                else R.drawable.act_expand_checklist_finished_items
+            )
+            ImageViewCompat.setImageTintList(holder.expand, ColorStateList.valueOf(
+                ContextCompat.getColor(this@ThingFileImportActivity, R.color.app_chrome_on_surface_secondary)))
+            holder.expand.contentDescription = getString(
+                if (open) R.string.thing_file_import_collapse else R.string.thing_file_import_expand
+            )
+            holder.expand.setOnClickListener { toggleExpanded(folder.key) }
+            // 顶层的文件夹点整行是勾选；里面的子文件夹只能展开
+            if (top) {
+                holder.itemView.setOnClickListener { toggle(checkedFolders, folder.key) }
+            } else {
+                holder.itemView.setOnClickListener { toggleExpanded(folder.key) }
+            }
+        }
+
+        private fun toggle(set: MutableSet<Int>, key: Int) {
+            if (!set.remove(key)) {
+                set.add(key)
+            }
+            notifyDataSetChanged()
+            updateConfirm()
+        }
+
+        private fun toggleExpanded(key: Int) {
+            if (!expanded.remove(key)) {
+                expanded.add(key)
+            }
+            rebuildRows()
+            notifyDataSetChanged()
         }
     }
 
@@ -392,5 +556,6 @@ class ThingFileImportActivity : EverythingDoneBaseActivity() {
         val colorBar: View = view.findViewById(R.id.v_import_thing_color)
         val title: TextView = view.findViewById(R.id.tv_import_thing_title)
         val info: TextView = view.findViewById(R.id.tv_import_thing_info)
+        val expand: ImageView = view.findViewById(R.id.iv_import_expand)
     }
 }

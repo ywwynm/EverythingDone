@@ -2,9 +2,9 @@ package com.ywwynm.everythingdone.taptransfer.transport
 
 import android.content.Context
 import android.util.Log
-import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.thingfile.ThingFileWriter
+import com.ywwynm.everythingdone.thingfile.ThingShareContent
 import java.io.File
 import java.util.Collections
 import java.util.concurrent.Executors
@@ -15,9 +15,9 @@ import java.util.concurrent.TimeUnit
  * 分享界面一打开就在后台把要发的记事写成记事文件（与「记事文件」那一项的产物相同），碰上时
  * 通常已经写好。分享界面关闭时调用 [discard] 删掉。
  *
- * @param things 在主线程上复制好的记事：写文件在后台线程，不能读列表里正被界面使用的那几个对象。
+ * @param content 在主线程上复制好的记事与文件夹：写文件在后台线程，不能读列表里正被界面使用的那几个对象。
  */
-class TapPayloadWriter(context: Context, things: List<Thing>) : TapPayload {
+class TapPayloadWriter(context: Context, content: ThingShareContent) : TapPayload {
 
     private val appContext = context.applicationContext
     private val dst = File(
@@ -25,7 +25,7 @@ class TapPayloadWriter(context: Context, things: List<Thing>) : TapPayload {
     )
 
     private val task = FutureTask<File?> {
-        when (val result = ThingFileWriter.write(appContext, things, dst)) {
+        when (val result = ThingFileWriter.write(appContext, content, dst)) {
             is ThingFileWriter.Result.Ok -> result.file
             is ThingFileWriter.Result.Failed -> {
                 Log.w(TAG, "写记事文件失败：${result.message}")

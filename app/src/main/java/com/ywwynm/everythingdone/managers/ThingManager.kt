@@ -1016,6 +1016,51 @@ open class ThingManager private constructor(context: Context?) {
         return folder
     }
 
+    /**
+     * 导入记事文件时建一个文件夹（决策 2026-09-28）：与记事共用 id 计数器，不是私密的，[location] 由调用方
+     * 按它在上一级里的位置给。不重建列表：此刻子树还没写进去，而「正在进行」列表不显示没有记事的文件夹，
+     * 调用方写完子树再调 [rebuildListEntries]。
+     */
+    open fun createImportedFolder(
+        parentFolderId: Long?,
+        title: String,
+        background: ThingBackground,
+        cardPresentation: ThingFolderCardPresentation,
+        location: Long,
+        createTime: Long,
+        updateTime: Long
+    ): ThingFolder {
+        val folder = ThingFolder(
+            id = mHeaderId,
+            parentFolderId = parentFolderId,
+            title = title,
+            state = Thing.UNDERWAY,
+            color = background.representativeColor(),
+            location = location,
+            isPrivate = false,
+            createTime = createTime,
+            updateTime = updateTime,
+            cardPresentation = cardPresentation
+        )
+        folder.setBackground(background)
+        mFolderDao!!.create(folder)
+        HomeEmptyStateHistory.markFolderCreated(mContext)
+        mDao!!.updateHeader(1)
+        updateHeader(1)
+        touchFolderUpdateTime(parentFolderId)
+        return folder
+    }
+
+    /** 撤掉导入时建的文件夹：它的子树里一条记事也没导成，留着就是列表里看不见的空壳。 */
+    open fun deleteImportedFolder(folderId: Long) {
+        mFolderDao!!.deleteRecord(folderId)
+    }
+
+    /** 列表的数据不变、只是文件夹的内容变了（例如导入了一个文件夹）：按当前的记事重新排一遍列表项。 */
+    open fun rebuildListEntries() {
+        rebuildThingListEntries()
+    }
+
     open fun cancelCreatedFolder(
         folder: ThingFolder?,
         thingIds: LongArray?,

@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
@@ -40,6 +41,7 @@ import com.ywwynm.everythingdone.taptransfer.ui.TapProgressModel
 import com.ywwynm.everythingdone.taptransfer.ui.TapSetupNavigator
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleFlight
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapParticleParams
+import com.ywwynm.everythingdone.taptransfer.ui.card.TapThingCards
 import com.ywwynm.everythingdone.taptransfer.ui.flight.TapSessionRecorder
 import com.ywwynm.everythingdone.thingfile.ThingFileImporter
 import com.ywwynm.everythingdone.thingfile.ThingFileReader
@@ -62,8 +64,9 @@ import kotlin.math.min
  * - 按钮与下拉手势由 [TapReceivePull] 负责；
  * - 接收状态下 [TapReceiveStageView] 盖住首页（按钮除外），列表完全不动；
  * - 收到的记事文件经 [ThingFileReader] 读、[ThingFileImporter] 写进发起接收时所在的文件夹，
- *   每写好一条就由 [Host] 插进列表并先藏起来，列表随之为它们腾出空位（有置顶记事、空位不在
- *   屏幕上时先滚过去）。
+ *   每写好顶层的一项（一条记事，或连同子树的一个文件夹）就由 [Host] 插进列表并先藏起来，列表随之为它们
+ *   腾出空位（有置顶记事、空位不在屏幕上时先滚过去）。列表里的项一律按 stableId 记：记事是 id，文件夹是 −id
+ *   （两者共用一个 id 计数器，不会重）。
  *
  * 粒子（第三版，设计见 `docs/features/thing-transfer/design-2026-09-25-particle-motion.md`）：两层共用一条
  * 倒放时间轴（[TapReceiveTimeline]），流入开始时交叉淡化——
@@ -99,16 +102,20 @@ class TapReceiveController(
         /** 一条收到的记事刚写进数据库：插进列表，[hidden] 时先藏起来。返回它在列表里的位置。 */
         fun insertReceivedThing(thing: Thing, hidden: Boolean): Int
 
-        /** 这条记事在列表里的位置，不在列表里时返回 -1。 */
-        fun listPositionOf(id: Long): Int
+        /** 一个收到的文件夹连同子树刚写进数据库：插进列表，[hidden] 时先藏起来。返回它在列表里的位置。 */
+        fun insertReceivedFolder(folder: ThingFolder, hidden: Boolean): Int
+
+        /** 这一项（按 stableId）在列表里的位置，不在列表里时返回 -1。 */
+        fun listPositionOf(stableId: Long): Int
 
         /** 收到的记事会插在列表的哪个位置：置顶的记事与文件夹之后（头部占位项是第 0 项）。 */
         fun receivedInsertPosition(): Int
 
-        /** 列表里这条记事的卡片（已布局好的），不在屏幕上时返回 null。 */
-        fun findReceivedCard(id: Long): View?
+        /** 列表里这一项（按 stableId）的卡片（已布局好的），不在屏幕上时返回 null。 */
+        fun findReceivedCard(stableId: Long): View?
 
-        fun revealReceivedThings(ids: Collection<Long>)
+        /** 显出藏着的卡片（按 stableId）。 */
+        fun revealReceivedThings(stableIds: Collection<Long>)
 
         /** 一批记事写完：刷新头部的条数、抽屉里的计数、空列表提示。 */
         fun onReceivedThingsCommitted()
@@ -145,14 +152,19 @@ class TapReceiveController(
     // 这一台的接收状态：碰上时建立，拼出、失败或退出时清掉
     private var busy = false
     private var receivedFile: File? = null
+
+    /** 收到的顶层各项（按 stableId），按写进数据库的先后。 */
     private var importedIds: MutableList<Long>? = null
+
+    /** 这一台导入的结果：完成提示按它措辞（有没有文件夹）。 */
+    private var importSummary: ThingFileImporter.Result? = null
     private var landingStarted = false
 
     /** 每一次碰触一个编号：等列表、等滚动、等图片的回调据此判断自己是不是已经过时。 */
     private var landingGeneration = 0
     private val hiddenIds = LinkedHashSet<Long>()
 
-    /** 收到的记事的代表色（按 id），拼卡那一层的代表色卡片按它上色。 */
+    /** 收到的各项的代表色（按 stableId），拼卡那一层的代表色卡片按它上色。 */
     private val colorsById = HashMap<Long, Int>()
 
     // ---- 粒子：两层与时间轴
@@ -451,6 +463,7 @@ class TapReceiveController(
         busy = false
         receivedFile = null
         importedIds = null
+        importSummary = null
         landingStarted = false
         lastFrameNanos = 0L
         shownPercent = -1
@@ -675,29 +688,46 @@ class TapReceiveController(
                 return@execute
             }
             val summary = try {
-                ThingFileImporter.import(context, result.things, target) { thing ->
-                    // 主线程，与写进数据库在同一条消息里
-                    val hide = receiving
-                    recorder?.let { r ->
-                        if (hide && !recordedBeforeInsert) {
-                            recordedBeforeInsert = true
-                            r.captureView("page-before", host.container, listOfNotNull(stage, pull.button))
-                            r.trackItems(host.recyclerView, host.receivedInsertPosition())
+                ThingFileImporter.import(context, result.things, result.folders, target,
+                    object : ThingFileImporter.Listener {
+                        // 主线程，与写进数据库在同一条消息里
+                        override fun onThingCommitted(thing: Thing) {
+                            onReceivedCommitted(thing.id, thing.getBackground()?.representativeColor() ?: thing.getColor(),
+                                ids) { hide -> host.insertReceivedThing(thing, hide) }
                         }
-                        r.event("insert")
-                    }
-                    colorsById[thing.id] = thing.getBackground()?.representativeColor() ?: thing.getColor()
-                    if (host.insertReceivedThing(thing, hide) >= 0 && hide) {
-                        hiddenIds.add(thing.id)
-                    }
-                    ids.add(thing.id)
-                }
+
+                        override fun onFolderCommitted(folder: ThingFolder) {
+                            onReceivedCommitted(-folder.id,
+                                TapThingCards.folderColor(activity, folder, folder.cardPresentation),
+                                ids) { hide -> host.insertReceivedFolder(folder, hide) }
+                        }
+                    })
             } finally {
                 ThingFileReader.cleanUp(result.tempDir)
                 file.delete()
             }
             main.post { onImported(summary) }
         }
+    }
+
+    /**
+     * 顶层的一项刚写进数据库（主线程）：插进列表，接收状态下先藏着。[stableId] 记事是 id，文件夹是 −id。
+     */
+    private fun onReceivedCommitted(stableId: Long, color: Int, ids: MutableList<Long>, insert: (Boolean) -> Int) {
+        val hide = receiving
+        recorder?.let { r ->
+            if (hide && !recordedBeforeInsert) {
+                recordedBeforeInsert = true
+                r.captureView("page-before", host.container, listOfNotNull(stage, pull.button))
+                r.trackItems(host.recyclerView, host.receivedInsertPosition())
+            }
+            r.event("insert")
+        }
+        colorsById[stableId] = color
+        if (insert(hide) >= 0 && hide) {
+            hiddenIds.add(stableId)
+        }
+        ids.add(stableId)
     }
 
     /** 不参与这次接收的状态与动画，只把记事写进去、显示在列表里。 */
@@ -716,9 +746,16 @@ class TapReceiveController(
                 return@execute
             }
             try {
-                ThingFileImporter.import(context, result.things, target) { thing ->
-                    host.insertReceivedThing(thing, false)
-                }
+                ThingFileImporter.import(context, result.things, result.folders, target,
+                    object : ThingFileImporter.Listener {
+                        override fun onThingCommitted(thing: Thing) {
+                            host.insertReceivedThing(thing, false)
+                        }
+
+                        override fun onFolderCommitted(folder: ThingFolder) {
+                            host.insertReceivedFolder(folder, false)
+                        }
+                    })
             } finally {
                 ThingFileReader.cleanUp(result.tempDir)
                 file.delete()
@@ -736,6 +773,7 @@ class TapReceiveController(
             failCurrent(null)
             return
         }
+        importSummary = summary
         model.finished()
         land(importedIds.orEmpty().toList())
     }
@@ -1147,7 +1185,7 @@ class TapReceiveController(
     private fun finishLanding(count: Int) {
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         revealHidden()
-        pull.setHint(activity.resources.getQuantityString(R.plurals.tap_receive_done, count, count))
+        pull.setHint(doneHint(count))
         // 传输马上恢复，这两秒里可能已经碰上了下一台：那时提示归它管
         main.postDelayed({
             if (receiving && !busy) {
@@ -1157,6 +1195,26 @@ class TapReceiveController(
         resetReceiveState()
         stage?.resumeWaiting()
         transport?.resume()
+    }
+
+    /**
+     * 收完的提示：只有记事时是「已收到 N 条记事」；带文件夹时说文件夹数，只有文件夹时再报一共多少条记事，
+     * 与散的记事混在一起时报散的那几条。
+     */
+    private fun doneHint(count: Int): String {
+        val res = activity.resources
+        val summary = importSummary
+        if (summary == null || summary.topFolders == 0) {
+            return res.getQuantityString(R.plurals.tap_receive_done, count, count)
+        }
+        val folders = res.getQuantityString(R.plurals.tap_receive_folders, summary.topFolders, summary.topFolders)
+        return if (summary.topThings == 0) {
+            activity.getString(R.string.tap_receive_done_folders, folders,
+                res.getQuantityString(R.plurals.tap_receive_things, summary.imported, summary.imported))
+        } else {
+            activity.getString(R.string.tap_receive_done_mixed, folders,
+                res.getQuantityString(R.plurals.tap_receive_things, summary.topThings, summary.topThings))
+        }
     }
 
     /**

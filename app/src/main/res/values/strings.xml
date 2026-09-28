@@ -683,6 +683,12 @@
     <string name="thing_file_import_attachments">%1$d attachment(s)</string>
     <string name="thing_file_import_reminder_at">Reminder: %1$s</string>
     <string name="thing_file_import_no_title">(no title)</string>
+    <string name="thing_file_import_folder">Folder</string>
+    <string name="thing_file_import_folder_things">%1$d thing(s)</string>
+    <string name="thing_file_import_folder_subfolders">%1$d subfolder(s)</string>
+    <string name="thing_file_import_expand">Show contents</string>
+    <string name="thing_file_import_collapse">Hide contents</string>
+    <string name="thing_file_import_done_folders">Imported %1$d folder(s), %2$d thing(s) in total</string>
     <string name="thing_file_import_no_access">This file lives in another app\'s folder, so EverythingDone cannot read it directly.\nTap below and pick it in the file chooser to import it.</string>
     <string name="thing_file_import_pick">Pick this file</string>
     <string name="settings_import_thing_file">Import a thing file</string>
@@ -2070,6 +2076,23 @@
         <item quantity="one">Received %1$d thing</item>
         <item quantity="other">Received %1$d things</item>
     </plurals>
+    <plurals name="tap_receive_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <plurals name="tap_receive_things">
+        <item quantity="one">%1$d thing</item>
+        <item quantity="other">%1$d things</item>
+    </plurals>
+    <string name="tap_receive_done_folders">Received %1$s with %2$s</string>
+    <string name="tap_receive_done_mixed">Received %1$s and %2$s</string>
+    <plurals name="tap_share_title_folders">
+        <item quantity="one">Share folder</item>
+        <item quantity="other">Share folders</item>
+    </plurals>
+    <string name="act_share_this_folder">Share this folder</string>
+    <string name="share_folder_empty">No things in progress in this folder</string>
+    <string name="tap_simulated_folder_title">Tap simulation · sample folder %1$d</string>
     <string name="tap_simulated_peer_name">Simulated device</string>
     <string name="tap_simulated_thing_title">Tap simulation · sample %1$d</string>
     <string name="tap_simulated_thing_content">Simulated data for previewing the receive animation. Feel free to delete it.</string>

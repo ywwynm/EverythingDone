@@ -10,6 +10,7 @@ import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.Reminder
 import com.ywwynm.everythingdone.model.Thing
+import com.ywwynm.everythingdone.model.ThingFolder
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,7 +25,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * 把一条或多条 [Thing] 写成记事文件。格式见 [ThingFile]。
+ * 把一条或多条 [Thing]（或带着子树的文件夹，[ThingShareContent]）写成记事文件。格式见 [ThingFile]。
  *
  * 附件全部内嵌，不设体积上限——体积只在界面上报数，不做阻挡也不降质。
  */
@@ -38,6 +39,7 @@ object ThingFileWriter {
         class Ok(
             val file: File,
             val thingCount: Int,
+            val folderCount: Int,
             val attachmentCount: Int,
             val bytes: Long
         ) : Result()
@@ -59,12 +61,26 @@ object ThingFileWriter {
         things: List<Thing>,
         dst: File,
         keptAttachments: Map<Long, Set<String>>? = null
+    ): Result = write(context, ThingShareContent.ofThings(things), dst, keptAttachments)
+
+    /**
+     * 带文件夹时写版本 2：文件夹按先父后子编号（上一级总在前面），记事与文件夹各自记着所在的文件夹、在那一层
+     * 里的先后与是否置顶；只含记事时与以前逐字段相同，写版本 1。
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun write(
+        context: Context,
+        content: ThingShareContent,
+        dst: File,
+        keptAttachments: Map<Long, Set<String>>? = null
     ): Result {
-        if (things.isEmpty()) {
+        if (content.things.isEmpty()) {
             return Result.Failed(context.getString(R.string.thing_file_error_no_things))
         }
         val reminderDao = ReminderDAO.getInstance(context)
         val habitDao = HabitDAO.getInstance(context)
+        val withFolders = content.hasFolders
 
         var attachmentCount = 0
         try {
@@ -74,25 +90,53 @@ object ThingFileWriter {
                     zos.setLevel(Deflater.BEST_SPEED)
 
                     val thingsJson = JSONArray()
-                    for ((index, thing) in things.withIndex()) {
-                        val kept = keptAttachments?.get(thing.id)
-                        val files = writeAttachments(zos, thing, index, kept)
-                        attachmentCount += files.size
-                        thingsJson.put(
-                            toJson(
-                                thing,
-                                files,
-                                reminderDao?.getReminderById(thing.id),
-                                habitDao?.getHabitById(thing.id)
-                            )
-                        )
+                    val foldersJson = JSONArray()
+                    var nextFolderKey = 0
+
+                    fun visit(nodes: List<ThingShareContent.Node>, parentKey: Int?) {
+                        for ((order, node) in nodes.withIndex()) {
+                            // 顶层的项不带置顶：收到的一律不置顶
+                            val sticky = parentKey != null && node.sticky
+                            when (node) {
+                                is ThingShareContent.ThingNode -> {
+                                    val thing = node.thing
+                                    val index = thingsJson.length()
+                                    val files = writeAttachments(zos, thing, index, keptAttachments?.get(thing.id))
+                                    attachmentCount += files.size
+                                    val o = toJson(
+                                        thing,
+                                        files,
+                                        node.reminder ?: reminderDao?.getReminderById(thing.id),
+                                        habitDao?.getHabitById(thing.id)
+                                    )
+                                    if (withFolders) {
+                                        putPlacement(o, parentKey, order, sticky)
+                                    }
+                                    thingsJson.put(o)
+                                }
+                                is ThingShareContent.FolderNode -> {
+                                    val key = nextFolderKey++
+                                    val o = toJson(node.folder, key)
+                                    putPlacement(o, parentKey, order, sticky)
+                                    foldersJson.put(o)
+                                    visit(node.children, key)
+                                }
+                            }
+                        }
                     }
+                    visit(content.items, null)
 
                     val manifest = JSONObject()
                     manifest.put(ThingFile.KEY_FORMAT, ThingFile.FORMAT)
-                    manifest.put(ThingFile.KEY_VERSION, ThingFile.VERSION)
+                    manifest.put(
+                        ThingFile.KEY_VERSION,
+                        if (withFolders) ThingFile.VERSION else ThingFile.VERSION_THINGS_ONLY
+                    )
                     manifest.put(ThingFile.KEY_APP_VERSION_CODE, appVersionCode(context))
                     manifest.put(ThingFile.KEY_EXPORT_TIME, System.currentTimeMillis())
+                    if (withFolders) {
+                        manifest.put(ThingFile.KEY_FOLDERS, foldersJson)
+                    }
                     manifest.put(ThingFile.KEY_THINGS, thingsJson)
 
                     zos.putNextEntry(ZipEntry(ThingFile.ENTRY_MANIFEST))
@@ -111,7 +155,33 @@ object ThingFileWriter {
                 ThingFileMessages.of(context, R.string.thing_file_error_write, e.message)
             )
         }
-        return Result.Ok(dst, things.size, attachmentCount, dst.length())
+        return Result.Ok(dst, content.things.size, content.folderCount, attachmentCount, dst.length())
+    }
+
+    /** 所在的文件夹（顶层不写）、在那一层里的先后、是否置顶（只写置顶的）。 */
+    private fun putPlacement(o: JSONObject, parentKey: Int?, order: Int, sticky: Boolean) {
+        if (parentKey != null) {
+            o.put(ThingFile.KEY_IN_FOLDER, parentKey)
+        }
+        o.put(ThingFile.KEY_ORDER, order)
+        if (sticky) {
+            o.put(ThingFile.KEY_STICKY, true)
+        }
+    }
+
+    /**
+     * 文件夹本身：标题、背景、卡片外观与时间。私密标记不写，接收方收到的文件夹一律不是私密的
+     * （决策 2026-09-28 第 6 条）；卡片外观取真实的那份，不是私密时遮蔽后的样子。
+     */
+    private fun toJson(folder: ThingFolder, key: Int): JSONObject {
+        val o = JSONObject()
+        o.put(ThingFile.KEY_FOLDER_KEY, key)
+        o.put(ThingFile.KEY_TITLE, folder.title)
+        folder.getBackground()?.let { o.put(ThingFile.KEY_BACKGROUND, JSONObject(it.toJson())) }
+        o.put(ThingFile.KEY_CARD_PRESENTATION, JSONObject(folder.cardPresentation.toJson()))
+        o.put(ThingFile.KEY_CREATE_TIME, folder.createTime)
+        o.put(ThingFile.KEY_UPDATE_TIME, folder.updateTime)
+        return o
     }
 
     /**
