@@ -80,7 +80,9 @@ def load_params(source, which: str) -> Params:
 
 
 def open_player(path: Path, params_choice: str = 'file', seed: int | None = None, scale: float = 1.,
-                ctx: moderngl.Context | None = None, stage_hz: float = 120., recolor_seed: int | None = None):
+                ctx: moderngl.Context | None = None, stage_hz: float = 120., recolor_seed: int | None = None,
+                accent: str | None = None):
+    """[accent]：分享面板的强调色（`sim_recolor.parse_accent` 的写法），只对发送的会话有用。"""
     ctx = ctx or moderngl.create_standalone_context(require=430)
     if (path / 'session.json').is_file():
         from sim_session import SessionPlayer
@@ -89,7 +91,8 @@ def open_player(path: Path, params_choice: str = 'file', seed: int | None = None
         if recolor_seed is not None:
             from sim_recolor import recolor
             session = recolor(session, recolor_seed)
-        return SessionPlayer(session, load_params(session, params_choice), ctx, scale, seed, stage_hz)
+        return SessionPlayer(session, load_params(session, params_choice), ctx, scale, seed, stage_hz,
+                             accent=accent)
     scene = Scene.load(path)
     return FlightPlayer(scene, load_params(scene, params_choice), seed, scale, ctx)
 
@@ -244,11 +247,13 @@ def main():
     p.add_argument('--scale', type=float, default=1., help='出图分辨率相对屏幕的比例')
     p.add_argument('--hz', type=float, default=120., help='接收舞台（边框粒子）按多少 Hz 推进，对应设备刷新率')
     p.add_argument('--recolor', type=int, help='按这个种子随机换记事颜色（纯色或渐变）')
+    p.add_argument('--accent', help='发送：分享面板的强调色，扩散圈落在面板上的那一段按它画。纯色 21A675，'
+                                    '渐变 21A675,665696,LT_RB；不给则取会话里记下的，没记按卡片的颜色')
     a = p.parse_args()
     path = Path(a.scene) if Path(a.scene).is_absolute() else HERE / a.scene
     ctx = moderngl.create_standalone_context(require=430)
-    player = open_player(path, a.params, a.seed, a.scale, ctx, a.hz, a.recolor)
-    other = open_player(path, a.compare, a.seed, a.scale, ctx, a.hz, a.recolor) if a.compare else None
+    player = open_player(path, a.params, a.seed, a.scale, ctx, a.hz, a.recolor, a.accent)
+    other = open_player(path, a.compare, a.seed, a.scale, ctx, a.hz, a.recolor, a.accent) if a.compare else None
     print(player.describe())
     try:
         if a.sheet:
@@ -259,7 +264,7 @@ def main():
             started = clock.perf_counter()
             if a.grid:
                 extra = [open_player(Path(g) if Path(g).is_absolute() else HERE / g, a.params, a.seed, a.scale, ctx,
-                                     a.hz, a.recolor) for g in a.grid]
+                                     a.hz, a.recolor, a.accent) for g in a.grid]
                 players = [player] + extra
                 try:
                     captions = [short_title(x) for x in players]

@@ -262,10 +262,42 @@ class ParticlePerFrameBatchNineUiTest {
             "restoreSourceOnRelease: Boolean = true" in overlay)
     }
 
+    /**
+     * 把 [code] 里对 [file] 自己成员函数的**无接收者**调用展开一层，拼上被调函数的声明体。
+     *
+     * 「把真实内容藏起来」可以内联写，也可以交给一个成员函数：cff0e9544（选择操作的列表移除，
+     * 一次交接接管几张卡片）就把它抽了出去。判据只认实际发生的写入，不认它写在哪个函数里。
+     * 带接收者的调用不展开：`it.enter(…)` 是前景层的同名方法，展开它等于把 enter 自己连同
+     * 提交之后的回调一起算进来。
+     */
+    private fun withMemberCallees(code: String, file: String): String =
+        Regex("""(?<![\w.])(\w+)\(""").findAll(code).map { it.groupValues[1] }.distinct()
+            .mapNotNull { name ->
+                Regex("""(?m)^    (?:private |internal )?fun $name\(""").find(file)
+                    ?.let { file.substring(it.range.last + 1).substringBefore("\n    }") }
+            }
+            .fold(code) { acc, callee -> "$acc\n$callee" }
+
     @Test fun `交接的两步各自绑在一帧上，这是不闪的全部依据`() {
+        // 第一步（消散起步）：快照图层显示、真实内容 alpha 归零，两件事都要在 enter 把事务交给
+        // 窗口绘制**之前**、同一轮主线程里做完，才落在同一次窗口绘制上。归零挪进提交之后的回调，
+        // 快照就会先上屏一帧，与真实投影叠成两份。
+        //
+        // 「源」是交接接管的全部真实内容，即构造参数里那份 View 列表：弹窗那条只有 decor 一个，
+        // 列表移除那条是几张卡片。cff0e9544 把单个 source 推广成这份列表，写法变了，契约没变。
         val enter = handoff.substringAfter("fun enter(").substringBefore("\n    }")
+        val queued = enter.indexOf("onWindowFrame(transaction)")
+        assertTrue("显示快照的那份事务交给窗口绘制", queued >= 0)
+        val beforeDraw = enter.substring(0, queued)
+        assertTrue("交出去的那份事务把快照图层显示出来",
+            Regex("""setVisibility\(\s*\w+\s*,\s*true\s*\)""").containsMatchIn(beforeDraw))
+        val hiding = withMemberCallees(beforeDraw, handoff)
+        val sources = Regex("""private val (\w+): List<View>""").find(handoff)?.groupValues?.get(1)
+            ?: throw AssertionError("交接要记着它接管的全部源 View（构造参数里的 List<View>）")
+        assertTrue("交出事务之前就要处理交接接管的那份源 View 列表，不能挪进提交之后的回调",
+            Regex("""\b$sources\b""").containsMatchIn(hiding))
         assertTrue("「快照显示 + 源置零透明度」绑在同一次窗口绘制上",
-            "onWindowFrame(transaction)" in enter && "source.alpha = 0f" in enter)
+            Regex("""\balpha\s*=\s*0f\b""").containsMatchIn(hiding))
         val onWindowFrame = handoff.substringAfter("private fun onWindowFrame(")
             .substringBefore("\n    }")
         assertTrue("窗口那一侧用 applyTransactionOnDraw",

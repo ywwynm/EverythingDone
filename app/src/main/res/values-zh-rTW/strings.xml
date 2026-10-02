@@ -1853,4 +1853,95 @@
     <string name="thing_animation_border">邊框光效</string>
     <string name="thing_animation_particle">粒子</string>
     <string name="thing_animation_slide">滑動淡出</string>
+    <!-- 记事文件：分享与导入 -->
+    <string name="act_share_thing_file">記事檔案</string>
+    <string name="generating_thing_file">正在產生記事檔案…</string>
+    <string name="thing_file_share_hint">對方需安裝完事兒才能開啟</string>
+    <string name="thing_file_generate_failed">產生記事檔案失敗：%1$s</string>
+    <string name="thing_file_import_title">匯入記事</string>
+    <string name="thing_file_import_reading">正在讀取記事檔案…</string>
+    <string name="thing_file_import_confirm">匯入選中的 %1$d 件記事</string>
+    <string name="thing_file_import_confirm_none">未選中任何記事</string>
+    <string name="thing_file_import_duplicate">已有相同內容</string>
+    <string name="thing_file_import_not_thing_file">這不是完事兒的記事檔案</string>
+    <string name="thing_file_import_too_new">這份記事檔案來自較新版本的完事兒，請先升級</string>
+    <string name="thing_file_import_broken">記事檔案讀不出來：%1$s</string>
+    <string name="thing_file_import_done">已匯入 %1$d 件記事</string>
+    <string name="thing_file_import_partial">已匯入 %1$d 件，%2$d 件失敗</string>
+    <string name="thing_file_import_attachments">%1$d 個附件</string>
+    <string name="thing_file_import_reminder_at">提醒：%1$s</string>
+    <string name="thing_file_import_no_title">（無標題）</string>
+    <string name="thing_file_import_folder">資料夾</string>
+    <string name="thing_file_import_folder_things">%1$d 件記事</string>
+    <string name="thing_file_import_folder_subfolders">%1$d 個子資料夾</string>
+    <string name="thing_file_import_expand">展開</string>
+    <string name="thing_file_import_collapse">收合</string>
+    <string name="thing_file_import_done_folders">已匯入 %1$d 個資料夾，共 %2$d 件記事</string>
+    <string name="thing_file_import_no_access">這個檔案存放在其他應用程式的目錄裡，完事兒沒有權限直接讀取。\n點下方按鈕，在檔案選擇器裡選中它就能匯入。</string>
+    <string name="thing_file_import_pick">去選擇這個檔案</string>
+    <string name="settings_import_thing_file">匯入記事檔案</string>
+    <string name="settings_import_thing_file_hint">把別人傳來的記事加進來</string>
+    <string name="thing_file_error_with_detail">%1$s（%2$s）</string>
+    <string name="thing_file_error_temp_dir">無法建立暫存目錄</string>
+    <string name="thing_file_error_unzip">檔案已損壞，無法解壓縮</string>
+    <string name="thing_file_error_no_things">檔案裡沒有記事</string>
+    <string name="thing_file_error_no_valid_things">檔案裡的記事都無法辨識</string>
+    <string name="thing_file_error_manifest">檔案裡的記事清單無法讀取</string>
+    <string name="thing_file_error_attachment">附件「%1$s」缺失或已損壞</string>
+    <string name="thing_file_error_no_space">儲存空間不足</string>
+    <string name="thing_file_error_cannot_open">打不開這個檔案</string>
+    <string name="thing_file_error_output_file">無法建立輸出檔案</string>
+    <string name="thing_file_error_write">寫入檔案失敗</string>
+    <!-- 应用内碰一碰 -->
+    <plurals name="tap_share_title">
+        <item quantity="other">分享記事</item>
+    </plurals>
+    <string name="tap_share_ready">兩部裝置的 NFC 區域輕碰一下</string>
+    <string name="tap_share_ready_hint">對方在完事兒首頁下拉，點「接收記事」</string>
+    <string name="tap_share_preparing">正在準備…</string>
+    <string name="tap_share_connecting">正在連線到 %1$s…</string>
+    <string name="tap_share_sending">正在傳送給 %1$s</string>
+    <string name="tap_share_sent">已傳送給 %1$s</string>
+    <string name="tap_share_sent_hint">可以接著碰下一部</string>
+    <string name="tap_share_failed">傳送失敗，請再碰一次</string>
+    <string name="tap_share_unavailable">碰一碰暫時用不了</string>
+    <string name="tap_share_unavailable_hint">可以改用下面的方式分享</string>
+    <string name="tap_setup_permission_nearby">碰一碰需要「鄰近的 Wi-Fi 裝置」權限</string>
+    <string name="tap_setup_permission_location">這個版本的系統要求碰一碰取得位置資訊權限</string>
+    <string name="tap_setup_nfc">需要先開啟 NFC</string>
+    <string name="tap_setup_wifi">需要先開啟 Wi-Fi</string>
+    <string name="tap_setup_location">需要先開啟位置資訊</string>
+    <string name="tap_setup_hint">兩部裝置都需要開啟</string>
+    <string name="tap_setup_hint_permission">兩部裝置都需要允許</string>
+    <string name="tap_setup_allow">允許</string>
+    <string name="tap_setup_turn_on">去開啟</string>
+    <string name="tap_setup_still_missing">還不能接收：%1$s</string>
+    <string name="tap_receive_button">接收記事</string>
+    <string name="tap_receive_exit">結束接收</string>
+    <string name="tap_receive_hint">兩部裝置的 NFC 區域輕碰一下</string>
+    <string name="tap_receive_from">來自 %1$s</string>
+    <string name="tap_receive_progress">來自 %1$s · %2$d%%</string>
+    <string name="tap_receive_failed">接收失敗，請再碰一次</string>
+    <plurals name="tap_receive_done">
+        <item quantity="other">已收到 %1$d 條記事</item>
+    </plurals>
+    <plurals name="tap_receive_folders">
+        <item quantity="other">%1$d 個資料夾</item>
+    </plurals>
+    <plurals name="tap_receive_things">
+        <item quantity="other">%1$d 條記事</item>
+    </plurals>
+    <string name="tap_receive_done_folders">已收到 %1$s，共 %2$s</string>
+    <string name="tap_receive_done_mixed">已收到 %1$s與 %2$s</string>
+    <plurals name="tap_share_title_folders">
+        <item quantity="other">分享資料夾</item>
+    </plurals>
+    <string name="act_share_this_folder">分享此資料夾</string>
+    <string name="share_folder_empty">這個資料夾裡沒有正在進行的記事</string>
+    <string name="tap_simulated_folder_title">碰一碰模擬 · 範例資料夾 %1$d</string>
+    <string name="tap_simulated_peer_name">模擬裝置</string>
+    <string name="tap_simulated_thing_title">碰一碰模擬 · 範例記事 %1$d</string>
+    <string name="tap_simulated_thing_content">這是碰一碰的模擬資料，用來預覽接收動畫，可以直接刪除。</string>
+    <string name="settings_tap_transfer_simulate">碰一碰模擬（偵錯版）</string>
+    <string name="tap_hce_service_description">完事兒碰一碰</string>
 </resources>

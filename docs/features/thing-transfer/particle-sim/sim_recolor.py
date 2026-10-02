@@ -6,6 +6,7 @@
 
 涉及的图：
 - 发送：详情页 `page`（整页都是记事颜色）、抬起的卡片 `card-<n>`、面板 `panel-<n>`、粒子飞行的快照；
+  扩散圈落在面板上的那一段按新颜色画（`accent`，渐变照原样铺在圈上）；
 - 接收：拼好之后的列表 `page-done` 里收到的那几张卡片、粒子飞行的快照（几张卡片合成一张）、
   碰上时光尘带换成的来件颜色。
 
@@ -14,6 +15,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -79,6 +81,41 @@ class Background:
         if not self.gradient:
             return f'纯色 #{self.color:06X}'
         return f'渐变 #{self.color:06X} → #{self.end:06X}（{self.orientation}）'
+
+
+def parse_accent(value) -> Background | None:
+    """强调色的几种写法 → `Background`；None 原样返回。
+
+    - `21A675`（纯色；可带 `#`，8 位时去掉透明度）；
+    - `21A675,665696,LT_RB`（渐变：起止色与方向，方向缺省为 L_R，取值同 `ThingBackground.Orientation`）；
+    - `ThingBackground.toJson()` 的 JSON（字典或字符串），如 `{"mode":"GRADIENT","color":-14571915,
+      "endColor":-10070378,"orientation":"LT_RB"}`：手机端若在会话记录里记下强调色，多半是这个样子。"""
+    if value is None or isinstance(value, Background):
+        return value
+    if isinstance(value, int):
+        return Background(value & 0xFFFFFF)
+    if isinstance(value, str) and value.strip().startswith('{'):
+        value = json.loads(value)
+    if isinstance(value, dict):
+        color = int(value.get('color', 0)) & 0xFFFFFF
+        if value.get('mode', 'PURE') != 'GRADIENT':
+            return Background(color)
+        end = int(value.get('endColor', color)) & 0xFFFFFF
+        orientation = value.get('orientation', 'L_R')
+        return Background(color, end, orientation if orientation in ORIENTATIONS else 'L_R')
+    parts = [x.strip().lstrip('#') for x in str(value).split(',') if x.strip()]
+    try:
+        if not 1 <= len(parts) <= 3:
+            raise ValueError
+        colors = [int(x, 16) & 0xFFFFFF for x in parts[:2]]
+    except ValueError:
+        raise ValueError(f'认不出的强调色写法：{value!r}（纯色 21A675，渐变 21A675,665696,LT_RB）') from None
+    if len(colors) == 1:
+        return Background(colors[0])
+    orientation = parts[2].upper() if len(parts) == 3 else 'L_R'
+    if orientation not in ORIENTATIONS:
+        raise ValueError(f'渐变方向须为 {"、".join(ORIENTATIONS)} 之一：{value!r}')
+    return Background(colors[0], colors[1], orientation)
 
 
 def random_background(rng: random.Random) -> Background:
@@ -210,6 +247,11 @@ class RecoloredSession:
     def note_backgrounds(self) -> list[Background]:
         """每条来件记事换成的底色（接收时从天线冒出的颗粒按它取色）。"""
         return self._per_card()
+
+    @property
+    def accent(self) -> Background | None:
+        """分享面板的强调色跟着记事换（面板上的图标同样换成了新颜色）：扩散圈落在面板上的那一段按它画。"""
+        return self._per_card()[0] if self.kind == 'send' else None
 
     def image(self, name: str) -> np.ndarray:
         if name not in self._images:

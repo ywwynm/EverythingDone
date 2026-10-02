@@ -147,6 +147,35 @@ internal class ParticleSink(
         val groups: List<Group> = emptyList()
     )
 
+    /**
+     * 这个终点的全部取值按固定顺序排成一列（有没有用 0 / 1 表示，不用 NaN）：材料整形与着色器用到的每一项都在里面。
+     * 两层沿用同一份材料之前逐位比较它（[ParticleMaterialShare.Key]），[signatureLabel] 给出某一位属于哪一项。
+     */
+    fun signature(): FloatArray {
+        val out = ArrayList<Float>(64)
+        out += xPx; out += yPx
+        val frame = framePx
+        out += if (frame != null) 1f else 0f
+        out += frame?.left ?: 0f; out += frame?.top ?: 0f; out += frame?.right ?: 0f; out += frame?.bottom ?: 0f
+        out += frameShare
+        with(tuning) {
+            out += releaseScale; out += arrivalEnd; out += flightBase; out += flightPerSpan; out += flightJitter
+            out += minLife; out += swirl; out += homingStart; out += homingEnd; out += frameJitter
+        }
+        val f = field
+        out += if (f != null) 1f else 0f
+        if (f != null) {
+            out += f.arrivalFirst; out += f.arrivalLast; out += f.glideStart; out += f.glideEnd; out += f.glideGain
+            out += f.spiral; out += f.absorbShare; out += f.spreadDp; out += f.drift; out += f.freeLife
+            out += f.absorbInnerDp; out += f.absorbOuterDp; out += f.fadeS; out += f.nearScale; out += f.bandDp
+            out += f.bandSpiral; out += f.curl; out += f.vortexDp; out += f.groupBorn; out += f.groupArrive
+            out += f.groupSwirl; out += f.handoffGlide; out += f.handoffCurl; out += f.handoffScale; out += f.blendDp
+            out += f.cards.size.toFloat()
+            for (r in f.cards) { out += r.left; out += r.top; out += r.right; out += r.bottom }
+        }
+        return out.toFloatArray()
+    }
+
     /** 以快照左上角为原点、按 [scale]（像素 / 材料单位）换到材料坐标。 */
     fun toMaterial(originXPx: Float, originYPx: Float, scale: Float): Geometry {
         val f = field
@@ -249,6 +278,18 @@ internal class ParticleSink(
 
         /** 来源扰动的散列盐：与随机向量（共同模型 `random_values` 的盐是种子本身）错开。 */
         const val SOURCE_SALT = 0x5EED5EED
+
+        /** [signature] 的第 [index] 位属于哪一项（与那里的顺序一一对应）。 */
+        fun signatureLabel(index: Int): String = when {
+            index < 2 -> "终点位置"
+            index < 7 -> "边框"
+            index < 8 -> "流向边框的占比"
+            index < 18 -> "剥离与飞行参数"
+            index < 19 -> "有没有柔性终点"
+            index < 44 -> "柔性终点参数"
+            index < 45 -> "卡片张数"
+            else -> "第 ${(index - 45) / 4 + 1} 张卡片的矩形"
+        }
 
         /**
          * 按终点改写材料的释放时刻与寿命。

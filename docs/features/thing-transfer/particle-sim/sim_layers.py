@@ -7,10 +7,13 @@
 from __future__ import annotations
 
 import math
+from collections import OrderedDict
 
 import moderngl
 import numpy as np
+from PIL import Image
 from scipy.ndimage import gaussian_filter
+from scipy.ndimage import shift as shift_image
 
 SCREEN_VS = r'''#version 430
 uniform vec2 screen;
@@ -56,6 +59,18 @@ float sd_round(vec2 p,vec4 r,float rad){
     vec2 c=(r.xy+r.zw)*.5;vec2 h=(r.zw-r.xy)*.5;
     rad=min(rad,min(h.x,h.y));
     vec2 q=abs(p-c)-h+rad;
+    return length(max(q,0.))+min(max(q.x,q.y),0.)-rad;
+}
+'''
+
+ROUND4 = r'''
+// 四角各自的圆角：radii 依次是左上、右上、右下、左下（y 向下），同 Path.addRoundRect(rect, radii)
+float sd_round4(vec2 p,vec4 r,vec4 radii){
+    vec2 c=(r.xy+r.zw)*.5;vec2 h=(r.zw-r.xy)*.5;
+    vec2 q0=p-c;
+    float rad=q0.x>0.?(q0.y>0.?radii.z:radii.y):(q0.y>0.?radii.w:radii.x);
+    rad=min(rad,min(h.x,h.y));
+    vec2 q=abs(q0)-h+rad;
     return length(max(q,0.))+min(max(q.x,q.y),0.)-rad;
 }
 '''
@@ -180,19 +195,42 @@ void main(){
 RING_FS = r'''#version 430
 uniform vec2 center;
 uniform float radius,alpha;
-uniform vec3 tint;
+uniform vec3 tint,tint_end;
+uniform int gradient;   // 1：从 tint 到 tint_end 的线性渐变，起止点 grad（精灵像素）
+uniform vec4 grad;
+uniform int clip;       // 0 不裁；1 只画 panel 之外（clipOutPath）；2 只画 panel 之内（clipPath）
+uniform vec4 panel;
+uniform vec4 radii;
 in vec2 p;
 out vec4 frag;
+''' + ROUND4 + r'''
 // TapShareCardStage.RING_SPRITE：256 像素的细环，环心半径 124.5、半宽 2.2（精灵像素）；发送画白色，
-// 接收在浅色罩层上画中性深灰
+// 接收在浅色罩层上画中性深灰。落在分享面板上的那一段是 tintedRing：同一个环换成强调色（纯色，或渐变按
+// linearGradientFor 铺满整张精灵），两段各按面板的圆角轮廓裁开，裁剪边抗锯齿（与 Canvas.clipPath 相同）
 void main(){
     float scale=256./(2.*radius);
     vec2 s=(p-(center-radius))*scale;
     float d=abs(length(s-127.5)-124.5);
     float a=floor((1.-clamp(d-2.2+1.,0.,1.))*255.+.5)/255.*alpha;
-    frag=vec4(tint*a,a);
+    vec3 col=tint;
+    if(gradient==1){
+        vec2 g=grad.zw-grad.xy;
+        col=mix(tint,tint_end,clamp(dot(s-grad.xy,g)/max(dot(g,g),1e-6),0.,1.));
+    }
+    if(clip!=0){
+        float cov=clamp(.5-sd_round4(p,panel,radii),0.,1.);
+        a*=clip==1?1.-cov:cov;
+    }
+    frag=vec4(col*a,a);
 }
 '''
+
+# BackgroundUtil.linearGradientFor(accent, 256, 256)：渐变的起点与终点（占精灵边长的比例），tintedRing 按它铺
+RING_GRADIENT = {
+    'L_R': (0, 0, 1, 0), 'T_B': (0, 0, 0, 1), 'LT_RB': (0, 0, 1, 1), 'RT_LB': (1, 0, 0, 1),
+    'LB_RT': (0, 1, 1, 0), 'RB_LT': (1, 1, 0, 0), 'R_L': (1, 0, 0, 0), 'B_T': (0, 1, 0, 0),
+}
+RING_SPRITE_SIZE = 256.0
 
 GLOW_FS = r'''#version 430
 uniform vec2 center;
@@ -294,22 +332,47 @@ class Layers:
         self.part_buf = None
         self.part_vao = None
         self.textures: dict = {}
+        # 整叠卡片的投影随抬起、落回逐帧变形：按轮廓缓存最近的几份，旧的释放
+        self.shadow_cache: OrderedDict = OrderedDict()
 
     # ---------------------------------------------------------------- 资源
+    def _upload(self, rgba: np.ndarray):
+        h, w = rgba.shape[:2]
+        tex = self.ctx.texture((w, h), 4, np.ascontiguousarray(rgba).tobytes())
+        tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        tex.repeat_x = tex.repeat_y = False
+        return tex
+
     def texture(self, key, rgba: np.ndarray):
         tex = self.textures.get(key)
         if tex is None:
-            h, w = rgba.shape[:2]
-            tex = self.ctx.texture((w, h), 4, np.ascontiguousarray(rgba).tobytes())
-            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
-            tex.repeat_x = tex.repeat_y = False
+            tex = self._upload(rgba)
             self.textures[key] = tex
         return tex
+
+    SHADOW_CACHE = 48
+
+    def stack_shadow(self, key, build):
+        """整叠卡片的投影：(贴图, 贴图左上角的屏幕坐标, 贴图覆盖的屏幕尺寸, 点光源的下移量)。按 [key] 缓存；
+        没有时调 [build]()（返回 `union_shadow` 的结果）现算。"""
+        entry = self.shadow_cache.get(key)
+        if entry is not None:
+            self.shadow_cache.move_to_end(key)
+            return entry
+        rgba, origin, size, spot = build()
+        entry = (self._upload(rgba), origin, size, spot)
+        self.shadow_cache[key] = entry
+        while len(self.shadow_cache) > self.SHADOW_CACHE:
+            self.shadow_cache.popitem(last=False)[1][0].release()
+        return entry
 
     def release(self):
         for tex in self.textures.values():
             tex.release()
         self.textures.clear()
+        for entry in self.shadow_cache.values():
+            entry[0].release()
+        self.shadow_cache.clear()
         for vao in self.vao.values():
             vao.release()
         for prog in (self.sprite, self.solid, self.dim_p, self.edge_p, self.ring_p, self.glow_p, self.part_p):
@@ -457,14 +520,34 @@ class Layers:
         self._blend()
         self.part_vao.render(mode=moderngl.TRIANGLE_STRIP, vertices=4, instances=n)
 
-    def ring(self, center, radius, alpha, tint=(1.0, 1.0, 1.0)):
+    def ring(self, center, radius, alpha, tint=(1.0, 1.0, 1.0), accent=None, clip=None):
+        """扩散圈。[accent]：换成强调色画（`sim_recolor.Background`：纯色，或渐变按 `linearGradientFor` 的方向
+        铺满圈的外接正方形），给了就不用 [tint]。[clip]：(方式, 矩形, 四角圆角)，方式 'out' 只画矩形之外、'in' 只画
+        之内；矩形是屏幕坐标 (左, 上, 右, 下)，圆角依次是左上、右上、右下、左下。"""
         if alpha <= 0.001 or radius <= 0:
             return
         self._blend()
-        self.ring_p['tint'] = tuple(float(v) for v in tint)
-        self.ring_p['center'] = tuple(float(v) for v in center)
-        self.ring_p['radius'] = float(radius)
-        self.ring_p['alpha'] = int(min(max(alpha, 0.0), 1.0) * 255) / 255.0
+        prog = self.ring_p
+        prog['gradient'] = 0
+        if accent is None:
+            prog['tint'] = tuple(float(v) for v in tint)
+        else:
+            prog['tint'] = _rgb(accent.color)
+            if accent.gradient:
+                x0, y0, x1, y1 = RING_GRADIENT[accent.orientation]
+                prog['tint_end'] = _rgb(accent.end)
+                prog['grad'] = tuple(v * RING_SPRITE_SIZE for v in (x0, y0, x1, y1))
+                prog['gradient'] = 1
+        if clip is None:
+            prog['clip'] = 0
+        else:
+            mode, rect, radii = clip
+            prog['clip'] = 1 if mode == 'out' else 2
+            prog['panel'] = tuple(float(v) for v in rect)
+            prog['radii'] = tuple(float(v) for v in radii)
+        prog['center'] = tuple(float(v) for v in center)
+        prog['radius'] = float(radius)
+        prog['alpha'] = int(min(max(alpha, 0.0), 1.0) * 255) / 255.0
         self.vao['ring'].render(mode=moderngl.TRIANGLES, vertices=3)
 
     def glow(self, center, radius, alpha):
@@ -477,28 +560,57 @@ class Layers:
         self.vao['glow'].render(mode=moderngl.TRIANGLES, vertices=3)
 
 
-def card_shadow(card_rgba: np.ndarray, elevation_px: float, card_cy: float, light_z_px: float,
-                light_radius_px: float, ambient_alpha=.039, spot_alpha=.19, pad=None):
-    """卡片的高度投影（近似 Android 的环境光 + 点光源两层），返回 (RGBA 贴图, 贴图相对卡片左上角的偏移)。
+def _rgb(color: int) -> tuple[float, float, float]:
+    return (((color >> 16) & 0xFF) / 255.0, ((color >> 8) & 0xFF) / 255.0, (color & 0xFF) / 255.0)
 
-    点光源在屏幕顶部正中、高度 lightZ：投影下移 ≈ 高度 × 卡片中心 y / lightZ，半影随光源半径变宽。
+
+# 卡片投影的光源：高 600 dp、半径 800 dp，点光源在屏幕顶部正中
+LIGHT_Z_DP = 600.0
+LIGHT_RADIUS_DP = 800.0
+
+
+def union_shadow(casters, elevation_px: float, light_z_px: float, light_radius_px: float,
+                 ambient_alpha=.039, spot_alpha=.19):
+    """整叠卡片共用的一片高度投影（近似 Android 的环境光 + 点光源两层），轮廓是几张卡片的并集
+    （`TapShareCardStage.buildShadowOutline`）。
+
+    [casters]：[(卡片截图的透明度（uint8）, 卡片本地像素 → 屏幕像素的 3×3 仿射)]。每张按自己的仿射（平移、缩放、
+    旋转）画到屏幕上，逐像素取最大值即并集。点光源在屏幕顶部正中、高度 lightZ：投影下移 ≈ 高度 × 并集外框中心 y /
+    (lightZ − 高度)，半影随光源半径变宽。两层都是很宽的高斯（三星上 σ 为 30 与 40 像素），并集按 4×4 取平均之后
+    再模糊（多出来的方差 4²/12 像素²，相对 σ² 可以忽略），贴图出图时按双线性放大。
+
+    返回 (RGBA 贴图, 贴图左上角的屏幕坐标, 贴图覆盖的屏幕尺寸（像素）, 点光源的下移量)。
     """
-    h, w = card_rgba.shape[:2]
-    mask = card_rgba[:, :, 3].astype(np.float32) / 255.0
-    spot_dy = elevation_px * card_cy / max(light_z_px - elevation_px, 1.0)
+    corners = []
+    for mask, xform in casters:
+        h, w = mask.shape[:2]
+        corners.append((xform @ np.array([[0, w, w, 0], [0, 0, h, h], [1, 1, 1, 1]], dtype=np.float64))[:2])
+    points = np.concatenate(corners, axis=1)
+    bx0, by0 = points.min(axis=1)
+    bx1, by1 = points.max(axis=1)
+    spot_dy = elevation_px * (by0 + by1) / 2 / max(light_z_px - elevation_px, 1.0)
     spot_sigma = max(elevation_px * light_radius_px / light_z_px * 0.5, 0.5)
     amb_sigma = max(elevation_px * 0.5, 0.5)
-    if pad is None:
-        pad = int(math.ceil(max(spot_sigma, amb_sigma) * 3 + abs(spot_dy))) + 2
-    big = np.zeros((h + 2 * pad, w + 2 * pad), dtype=np.float32)
-    big[pad:pad + h, pad:pad + w] = mask
-    ambient = gaussian_filter(big, amb_sigma) * ambient_alpha
-    spot = gaussian_filter(big, spot_sigma) * spot_alpha
-    shift = int(round(spot_dy))
-    spot = np.roll(spot, shift, axis=0)
-    if shift > 0:
-        spot[:shift] = 0
+    finest = min(spot_sigma, amb_sigma)
+    down = 4 if finest >= 16 else 2 if finest >= 8 else 1
+    pad = int(math.ceil(max(spot_sigma, amb_sigma) * 3 + abs(spot_dy))) + 2
+    x0 = math.floor((bx0 - pad) / down) * down
+    y0 = math.floor((by0 - pad) / down) * down
+    width = math.ceil((bx1 + pad) / down) * down - x0
+    height = math.ceil((by1 + pad) / down) * down - y0
+    union = np.zeros((height, width), dtype=np.uint8)
+    to_region = np.array([[1, 0, -x0], [0, 1, -y0], [0, 0, 1]], dtype=np.float64)
+    for mask, xform in casters:
+        # PIL 的仿射是「输出像素中心 → 输入坐标」，坐标以像素边为整数，与本地 → 屏幕的仿射同一约定
+        inverse = np.linalg.inv(to_region @ xform)
+        warped = Image.fromarray(np.ascontiguousarray(mask), 'L').transform(
+            (width, height), Image.Transform.AFFINE, tuple(inverse[:2].ravel()), resample=Image.Resampling.BILINEAR)
+        np.maximum(union, np.asarray(warped), out=union)
+    small = union.reshape(height // down, down, width // down, down).mean(axis=(1, 3), dtype=np.float32) / 255.0
+    ambient = gaussian_filter(small, amb_sigma / down) * ambient_alpha
+    spot = gaussian_filter(small, spot_sigma / down) * spot_alpha
+    spot = shift_image(spot, (spot_dy / down, 0.0), order=1, mode='constant', cval=0.0)
     a = np.clip(1 - (1 - ambient) * (1 - spot), 0, 1)
-    rgba = np.zeros(big.shape + (4,), dtype=np.uint8)
+    rgba = np.zeros(a.shape + (4,), dtype=np.uint8)
     rgba[:, :, 3] = np.clip(a * 255 + .5, 0, 255).astype(np.uint8)
-    return rgba, (-pad, -pad)
+    return rgba, (float(x0), float(y0)), (width, height), spot_dy

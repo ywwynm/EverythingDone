@@ -6,16 +6,21 @@ import android.animation.ValueAnimator
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.os.Bundle
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
@@ -32,6 +37,8 @@ import kotlin.math.min
  * 拉过一大半就停在打开的位置，否则收回。打开之后往上滑先收起按钮，收完再接着滚动列表。
  *
  * 列表整体用 `translationY` 下移而不是改内边距：每帧改内边距会让交错网格整体重新布局。
+ *
+ * 读屏用户做不了下拉手势：头部的大标题上另有一个「接收记事」无障碍动作（[installAccessibilityAction]）。
  */
 class TapReceivePull(
     private val container: FrameLayout,
@@ -100,6 +107,48 @@ class TapReceivePull(
         }
         actionbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionButton() }
         positionButton()
+        installAccessibilityAction()
+    }
+
+    /**
+     * 读屏的「接收记事」：挂在头部的大标题上（读屏焦点会停在它上面），界面上看不到。效果与拉出按钮再点它相同：
+     * 列表回到顶部、按钮拉出来，再与点按钮一样进入接收（缺什么先引导）。只在拉得出按钮、且不在接收状态时提供：
+     * 接收状态下按钮一直在，「退出接收」本身就能点。
+     */
+    private fun installAccessibilityAction() {
+        val label = context.getString(R.string.tap_receive_button)
+        ViewCompat.setAccessibilityDelegate(header.titleView, object : AccessibilityDelegateCompat() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                if (!receiving && isEligible()) {
+                    info.addAction(
+                        AccessibilityNodeInfoCompat.AccessibilityActionCompat(R.id.accessibility_action_tap_receive, label)
+                    )
+                }
+            }
+
+            override fun performAccessibilityAction(host: View, action: Int, args: Bundle?): Boolean {
+                if (action != R.id.accessibility_action_tap_receive) {
+                    return super.performAccessibilityAction(host, action, args)
+                }
+                if (receiving || !isEligible()) {
+                    return false
+                }
+                openForAccessibility()
+                return true
+            }
+        })
+    }
+
+    private fun openForAccessibility() {
+        recyclerView.stopScroll()
+        recyclerView.scrollToPosition(0)
+        animateTo(slot())
+        onClick()
+        if (receiving) {
+            // 进入了接收：读屏焦点移到「退出接收」上，读出按钮与下面的提示
+            pill.post { pill.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null) }
+        }
     }
 
     /** 收起按钮，列表回到原位。接收状态下不收。 */

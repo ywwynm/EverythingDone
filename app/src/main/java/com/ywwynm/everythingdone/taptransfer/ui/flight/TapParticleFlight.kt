@@ -24,6 +24,7 @@ import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissSpec
 import com.ywwynm.everythingdone.views.particledismiss.ParticleGestureProgress
 import com.ywwynm.everythingdone.views.particledismiss.ParticleHandoffSource
 import com.ywwynm.everythingdone.views.particledismiss.ParticleHardwareSnapshot
+import com.ywwynm.everythingdone.views.particledismiss.ParticleMaterialShare
 import com.ywwynm.everythingdone.views.particledismiss.ParticleOverlayHost
 import com.ywwynm.everythingdone.views.particledismiss.ParticleReleaseOrigin
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSink
@@ -52,6 +53,25 @@ internal object TapParticleFlight {
             (at[0] - decorAt[0] + local.left).toFloat(), (at[1] - decorAt[1] + local.top).toFloat(),
             (at[0] - decorAt[0] + local.right).toFloat(), (at[1] - decorAt[1] + local.bottom).toFloat()
         )
+    }
+
+    /**
+     * 视图的布局位置在 DecorView 里的范围：父视图此刻的位置加上视图自己的布局坐标，不含视图自己的平移。列表让位动画用
+     * 平移把卡片从旧位置挪到新位置，动画还在播时这就是走完之后的位置（祖先的平移照算）。
+     *
+     * 不用「当前位置减去平移」：`getLocationInWindow` 先把含平移的位置取了整，再减去带小数的平移，得到的位置带小数，
+     * 按它画的占位卡片边缘是半透明的，与进度期间那一层按整像素预计的代理卡片对不上（拼卡那一层沿用材料要求两层
+     * 逐像素相同，见 [ParticleMaterialShare]）。
+     */
+    fun layoutBoundsInDecor(activity: Activity, view: View, out: RectF) {
+        val parent = view.parent as? View
+        if (parent == null) {
+            boundsInDecor(activity, view, Rect(0, 0, view.width, view.height), out)
+            out.offset(-view.translationX, -view.translationY)
+            return
+        }
+        boundsInDecor(activity, parent, Rect(view.left - parent.scrollX, view.top - parent.scrollY,
+            view.right - parent.scrollX, view.bottom - parent.scrollY), out)
     }
 
     /** 截图上离终点最近的那一点（归一化），消散从这里开始、向远端推开。 */
@@ -86,7 +106,7 @@ internal object TapParticleFlight {
 
     /**
      * 几张卡片在 [visible] 以内的部分与它们的外接矩形（取整）；一张也不在里面时外接矩形为空。[settled] 时按
-     * 布局位置算（去掉卡片自己的平移）：列表让位动画还在播时，这就是动画走完之后的位置。
+     * 布局位置算（[layoutBoundsInDecor]，不含卡片自己的平移）：列表让位动画还在播时，这就是动画走完之后的位置。
      */
     private fun compositeParts(activity: Activity, views: List<View>, visible: RectF,
                                settled: Boolean = false): Pair<List<Part>, RectF> {
@@ -94,8 +114,8 @@ internal object TapParticleFlight {
         val full = RectF()
         for (view in views) {
             if (view.width <= 0 || view.height <= 0) continue
-            boundsInDecor(activity, view, Rect(0, 0, view.width, view.height), full)
-            if (settled) full.offset(-view.translationX, -view.translationY)
+            if (settled) layoutBoundsInDecor(activity, view, full)
+            else boundsInDecor(activity, view, Rect(0, 0, view.width, view.height), full)
             val shown = RectF(full)
             if (!shown.intersect(visible)) continue
             val clip = Rect(
@@ -176,18 +196,23 @@ internal object TapParticleFlight {
      *
      * @param field 第三版的柔性终点（发送 [TapParticleParams.sendField]，接收 [TapParticleParams.receiveField]）
      * @param dynamics 算运动用的位图（与 [snapshot] 同尺寸），见 [ParticleDismissSpec.dynamics]
+     * @param publishMaterials 接收时进度期间那一层把建好的材料放进这里，见 [ParticleMaterialShare]
+     * @param adoptMaterials 接收时拼卡那一层建材之前先核对能不能沿用
      */
     private fun spec(
         snapshot: Bitmap, bounds: RectF, sink: PointF, frame: RectF?, frameShare: Float, params: TapParticleParams,
         field: ParticleSink.Field, dynamics: Bitmap? = null, handoff: ParticleHandoffSource? = null,
         layerAlpha: Boolean = false, deferForeground: Boolean = false,
-        seed: Int = ParticleCardSurfaceHandoff.seed()
+        seed: Int = ParticleCardSurfaceHandoff.seed(),
+        publishMaterials: ParticleMaterialShare? = null,
+        adoptMaterials: ParticleMaterialShare.Adoption? = null
     ): ParticleDismissSpec {
         if (BuildConfig.DEBUG) {
             Log.i(TAG, "粒子飞行 sink=(${sink.x.toInt()},${sink.y.toInt()}) " +
                 "bounds=(${bounds.left.toInt()},${bounds.top.toInt()})-(${bounds.right.toInt()},${bounds.bottom.toInt()}) " +
                 "frame=${frame?.toShortString()} cards=${field.cards.size} dynamics=${dynamics != null} " +
-                "handoff=${handoff != null} layerAlpha=$layerAlpha deferForeground=$deferForeground")
+                "handoff=${handoff != null} layerAlpha=$layerAlpha deferForeground=$deferForeground " +
+                "materials=${if (publishMaterials != null) "publish" else if (adoptMaterials != null) "adopt" else "own"}")
         }
         return ParticleDismissSpec(
             snapshot, bounds.left, bounds.top,
@@ -204,7 +229,9 @@ internal object TapParticleFlight {
             dynamics = dynamics,
             handoff = handoff,
             layerAlpha = layerAlpha,
-            deferForeground = deferForeground
+            deferForeground = deferForeground,
+            publishMaterials = publishMaterials,
+            adoptMaterials = adoptMaterials
         )
     }
 
@@ -369,6 +396,9 @@ internal object TapParticleFlight {
      *
      * [deferForeground] 时 [snapshot] 只是占位（代表色卡片，材料按它建），拼卡那一层可以在列表刚排好、图片还没
      * 加载完的时候就开始建材与预算；真实快照截出来之后由 [supplyForeground] 交进来，换上前景贴图才出第一帧。
+     *
+     * 两层之间沿用材料（[ParticleMaterialShare]）：进度期间那一层给 [publishMaterials]，建好就放进去；拼卡那一层
+     * 提前建时给 [adoptMaterials]，占位快照与预计的代理卡片逐像素相同、其余输入也逐项相同时直接复制一份，省掉建材。
      */
     class ReceiveLayer(
         activity: Activity,
@@ -386,7 +416,9 @@ internal object TapParticleFlight {
         dumpKind: String? = null,
         private val deferForeground: Boolean = false,
         /** 一次接收里两层用同一个种子：预计准确时两层逐片相同，交叉淡化只换颜色（与模拟器相同）。 */
-        seed: Int
+        seed: Int,
+        publishMaterials: ParticleMaterialShare? = null,
+        adoptMaterials: ParticleMaterialShare.Adoption? = null
     ) {
         interface Listener {
             /** 整段算完、第一帧已经上屏。 */
@@ -419,7 +451,8 @@ internal object TapParticleFlight {
             } else {
                 val params = TapParticleParams.get(activity)
                 val spec = spec(snapshot, bounds, sink, frame, params.frameShare, params, params.receiveField(cards),
-                    dynamics, handoff, layerAlpha = true, deferForeground = deferForeground, seed = seed)
+                    dynamics, handoff, layerAlpha = true, deferForeground = deferForeground, seed = seed,
+                    publishMaterials = publishMaterials, adoptMaterials = adoptMaterials)
                 val dump = dumpKind?.let { TapFixtureDump.begin(activity, it, spec, bounds, sink, frame, params) }
                 this.dump = dump
                 val created = ParticleDismissOverlay(

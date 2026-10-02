@@ -1418,4 +1418,95 @@ Nevolution や 360 Notification Box のような通知管理アプリを入れ�
     <string name="thing_animation_border">エッジライト</string>
     <string name="thing_animation_particle">パーティクル</string>
     <string name="thing_animation_slide">スライドしてフェードアウト</string>
+    <!-- 记事文件：分享与导入 -->
+    <string name="act_share_thing_file">メモファイル</string>
+    <string name="generating_thing_file">メモファイルを作成しています…</string>
+    <string name="thing_file_share_hint">開くには、受け取る側に EverythingDone が必要です</string>
+    <string name="thing_file_generate_failed">メモファイルを作成できませんでした：%1$s</string>
+    <string name="thing_file_import_title">メモをインポート</string>
+    <string name="thing_file_import_reading">メモファイルを読み込んでいます…</string>
+    <string name="thing_file_import_confirm">選択した %1$d 件をインポート</string>
+    <string name="thing_file_import_confirm_none">何も選択されていません</string>
+    <string name="thing_file_import_duplicate">同じ内容がすでにあります</string>
+    <string name="thing_file_import_not_thing_file">EverythingDone のメモファイルではありません</string>
+    <string name="thing_file_import_too_new">このメモファイルは新しいバージョンの EverythingDone で作成されています。先にアップデートしてください。</string>
+    <string name="thing_file_import_broken">メモファイルを読み込めませんでした：%1$s</string>
+    <string name="thing_file_import_done">%1$d 件のメモをインポートしました</string>
+    <string name="thing_file_import_partial">%1$d 件をインポート、%2$d 件は失敗しました</string>
+    <string name="thing_file_import_attachments">添付ファイル %1$d 件</string>
+    <string name="thing_file_import_reminder_at">リマインダー：%1$s</string>
+    <string name="thing_file_import_no_title">（タイトルなし）</string>
+    <string name="thing_file_import_folder">フォルダー</string>
+    <string name="thing_file_import_folder_things">メモ %1$d 件</string>
+    <string name="thing_file_import_folder_subfolders">サブフォルダー %1$d 個</string>
+    <string name="thing_file_import_expand">展開する</string>
+    <string name="thing_file_import_collapse">折りたたむ</string>
+    <string name="thing_file_import_done_folders">%1$d 個のフォルダー（合計 %2$d 件のメモ）をインポートしました</string>
+    <string name="thing_file_import_no_access">このファイルは他のアプリのフォルダーにあるため、EverythingDone から直接読み込めません。\n下のボタンをタップし、ファイル選択画面でこのファイルを選ぶとインポートできます。</string>
+    <string name="thing_file_import_pick">このファイルを選択</string>
+    <string name="settings_import_thing_file">メモファイルをインポート</string>
+    <string name="settings_import_thing_file_hint">送られてきたメモを追加します</string>
+    <string name="thing_file_error_with_detail">%1$s（%2$s）</string>
+    <string name="thing_file_error_temp_dir">一時フォルダーを作成できません</string>
+    <string name="thing_file_error_unzip">ファイルが破損していて展開できません</string>
+    <string name="thing_file_error_no_things">ファイルにメモがありません</string>
+    <string name="thing_file_error_no_valid_things">ファイル内のメモをどれも認識できません</string>
+    <string name="thing_file_error_manifest">ファイル内のメモ一覧を読み込めません</string>
+    <string name="thing_file_error_attachment">添付ファイル「%1$s」がないか、破損しています</string>
+    <string name="thing_file_error_no_space">ストレージの空き容量が足りません</string>
+    <string name="thing_file_error_cannot_open">ファイルを開けません</string>
+    <string name="thing_file_error_output_file">出力ファイルを作成できません</string>
+    <string name="thing_file_error_write">ファイルに書き込めません</string>
+    <!-- 应用内碰一碰 -->
+    <plurals name="tap_share_title">
+        <item quantity="other">メモを共有</item>
+    </plurals>
+    <string name="tap_share_ready">2 台の端末の NFC 部分を軽く触れ合わせてください</string>
+    <string name="tap_share_ready_hint">相手の端末で EverythingDone のホームのリストを下に引き、「メモを受信」をタップしてください</string>
+    <string name="tap_share_preparing">準備しています…</string>
+    <string name="tap_share_connecting">%1$s に接続しています…</string>
+    <string name="tap_share_sending">%1$s に送信しています</string>
+    <string name="tap_share_sent">%1$s に送信しました</string>
+    <string name="tap_share_sent_hint">続けて別の端末にタッチできます</string>
+    <string name="tap_share_failed">送信できませんでした。もう一度タッチしてください。</string>
+    <string name="tap_share_unavailable">現在タッチ送信は使用できません</string>
+    <string name="tap_share_unavailable_hint">代わりに下の方法で共有できます</string>
+    <string name="tap_setup_permission_nearby">タッチ送信には「付近の Wi-Fi デバイス」の権限が必要です</string>
+    <string name="tap_setup_permission_location">この Android バージョンでは、タッチ送信に位置情報の権限が必要です</string>
+    <string name="tap_setup_nfc">先に NFC をオンにしてください</string>
+    <string name="tap_setup_wifi">先に Wi-Fi をオンにしてください</string>
+    <string name="tap_setup_location">先に位置情報をオンにしてください</string>
+    <string name="tap_setup_hint">両方の端末でオンにする必要があります</string>
+    <string name="tap_setup_hint_permission">両方の端末で許可する必要があります</string>
+    <string name="tap_setup_allow">許可</string>
+    <string name="tap_setup_turn_on">オンにする</string>
+    <string name="tap_setup_still_missing">まだ受信できません：%1$s</string>
+    <string name="tap_receive_button">メモを受信</string>
+    <string name="tap_receive_exit">受信を終了</string>
+    <string name="tap_receive_hint">2 台の端末の NFC 部分を軽く触れ合わせてください</string>
+    <string name="tap_receive_from">%1$s から</string>
+    <string name="tap_receive_progress">%1$s から · %2$d%%</string>
+    <string name="tap_receive_failed">受信できませんでした。もう一度タッチしてください。</string>
+    <plurals name="tap_receive_done">
+        <item quantity="other">%1$d 件のメモを受信しました</item>
+    </plurals>
+    <plurals name="tap_receive_folders">
+        <item quantity="other">%1$d 個のフォルダー</item>
+    </plurals>
+    <plurals name="tap_receive_things">
+        <item quantity="other">%1$d 件のメモ</item>
+    </plurals>
+    <string name="tap_receive_done_folders">%1$s（計 %2$s）を受信しました</string>
+    <string name="tap_receive_done_mixed">%1$sと%2$sを受信しました</string>
+    <plurals name="tap_share_title_folders">
+        <item quantity="other">フォルダーを共有</item>
+    </plurals>
+    <string name="act_share_this_folder">このフォルダーを共有</string>
+    <string name="share_folder_empty">このフォルダーに進行中のメモはありません</string>
+    <string name="tap_simulated_folder_title">タッチ転送のシミュレーション · サンプルフォルダー %1$d</string>
+    <string name="tap_simulated_peer_name">シミュレーション端末</string>
+    <string name="tap_simulated_thing_title">タッチ転送のシミュレーション · サンプルメモ %1$d</string>
+    <string name="tap_simulated_thing_content">受信アニメーションを確認するためのシミュレーションデータです。削除してかまいません。</string>
+    <string name="settings_tap_transfer_simulate">タッチ転送のシミュレーション（デバッグ版）</string>
+    <string name="tap_hce_service_description">EverythingDone タッチ転送</string>
 </resources>

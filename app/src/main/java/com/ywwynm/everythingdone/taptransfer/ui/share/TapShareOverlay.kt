@@ -56,6 +56,7 @@ import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.min
 
@@ -169,10 +170,13 @@ class TapShareOverlay private constructor(
     private var closing = false
 
     /**
-     * 手机横屏：面板贴右半边、从右侧滑入，卡片放在左半边，卡片区高度接近整屏（决策 2026-09-26 第 8 条）。
-     * 平板横屏仍是上下排。打开之后窗口尺寸变了就直接收起（[sizeWatcher]），不用中途切换。
+     * 手机横屏：面板悬浮在右侧、从右侧滑入，卡片放在它左边，卡片区高度接近整屏（决策 2026-09-26 第 8 条，面板的样子
+     * 2026-09-30 改成与竖屏相同的悬浮面板）。平板横屏仍是上下排。打开之后窗口变了按新的形状就地重排（[relayoutWatcher]）。
      */
     private var sideBySide = false
+
+    /** 抬起的卡片：窗口变了要按新的首页尺寸重新排版。 */
+    private var liftedCards: List<TapThingCards.LiftedCard> = emptyList()
 
     /** 卡片已经开始抬升（第一帧画出来之前关闭的话，没有要落回的东西）。 */
     private var started = false
@@ -192,13 +196,33 @@ class TapShareOverlay private constructor(
     /** 调试：整段会话的记录（落盘开关关着时为 null）。 */
     private var recorder: TapSessionRecorder? = null
 
+    /** 卡片区与天线是按哪一种窗口排的：宽、高与屏幕的方向（转 180 度时尺寸不变，天线换了位置）。 */
+    private var laidOutWidth = 0
+    private var laidOutHeight = 0
+    private var laidOutRotation = 0
+
+    /** 就地重排走了一半：面板已经换了形状，等它按新的形状量好、排好，再放卡片区与天线。 */
+    private var placementPending = false
+
     /**
-     * 打开之后窗口尺寸变了（旋转屏幕、调整分屏）：卡片的目标位置、原件的位置、天线的位置全都
-     * 变了，就地收起，不播落回动画。两个宿主页面都自己处理旋转，不会重建。
+     * 打开之后窗口变了（旋转屏幕、调整分屏）：面板、卡片区、天线与卡片的目标位置全都变了，就地重排（[relayout]），
+     * 不收起。放在绘制之前：发现窗口变了的那一帧不画，面板按新的形状排好之后放好卡片再画，旋转之后的第一帧就是
+     * 新的样子。两个宿主页面都自己处理旋转，不会重建。
      */
-    private val sizeWatcher = View.OnLayoutChangeListener { _, l, t, r, b, oldL, oldT, oldR, oldB ->
-        if (r - l != oldR - oldL || b - t != oldB - oldT) {
-            root.post { closeNow() }
+    private val relayoutWatcher = ViewTreeObserver.OnPreDrawListener {
+        if (closing || !started) {
+            true
+        } else if (placementPending) {
+            placementPending = false
+            placeCardAreaAndAntenna()
+            recorder?.let { recordLayout(it, "relayout") }
+            true
+        } else if (root.width == laidOutWidth && root.height == laidOutHeight &&
+            displayRotation() == laidOutRotation) {
+            true
+        } else {
+            relayout()
+            false
         }
     }
 
@@ -252,29 +276,8 @@ class TapShareOverlay private constructor(
         dim.alpha = 0f
         dim.setOnClickListener { close(null) }
         root.addView(dim, FrameLayout.LayoutParams(match, match))
-        val decor = activity.window.decorView
-        val res = activity.resources
-        val decorWidth = if (decor.width > 0) decor.width else res.displayMetrics.widthPixels
-        sideBySide = !DisplayUtil.isTablet(activity) && decor.width > decor.height
-        if (sideBySide) {
-            val corner = SIDE_PANEL_CORNER_DP * density
-            val lp = FrameLayout.LayoutParams(decorWidth / 2, match, Gravity.END)
-            panel.setBackgroundResource(R.drawable.bg_tap_share_panel_side)
-            (panel as LinearLayout).gravity = Gravity.CENTER_VERTICAL
-            root.addView(panel, lp)
-            stage.setPanel(panel, request.accent, floatArrayOf(corner, corner, 0f, 0f, 0f, 0f, corner, corner))
-        } else {
-            // 与「调整颜色」面板一样悬浮在底部：左右与底边各留一个卡片外边距，最宽 480dp（平板），四角圆角
-            // （决策 2026-09-27）。离底边的距离在插图回调里加上导航栏
-            val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
-            val width = min(decorWidth - 2 * spacing, res.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width))
-            val lp = FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
-            lp.bottomMargin = spacing
-            root.addView(panel, lp)
-            val corner = res.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
-            stage.setPanel(panel, request.accent, FloatArray(8) { corner })
-        }
+        root.addView(panel)
+        applyPanelLayout()
         // 舞台叠在面板之上：天线常在面板那一片，等待圈与光要画得出来。舞台不消费触摸
         root.addView(stage, FrameLayout.LayoutParams(match, match))
         root.isClickable = false
@@ -292,27 +295,33 @@ class TapShareOverlay private constructor(
         val cards = request.cardItems.take(MAX_STACK).map {
             TapThingCards.LiftedCard.of(activity, it, metrics, revealPrivate = true)
         }
+        liftedCards = cards
 
         activity.onBackPressedDispatcher.addCallback(activity, backCallback)
         activity.lifecycle.addObserver(lifecycleObserver)
 
         // 分享界面在所有设备上都用（不支持碰一碰只是隐藏那一块），插图走兼容库，Android 8 起可用
-        val panelTopPadding = panel.paddingTop
         val panelSpacing = activity.resources.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
-            val nav = insets.getInsets(
-                WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout()
-            )
+            val lp = panel.layoutParams as FrameLayout.LayoutParams
             if (sideBySide) {
-                // 贴右半边、上下通顶：让开状态栏与右侧的导航栏、挖孔
+                // 悬浮在右侧：在状态栏与导航栏之间上下居中（不压状态栏：首页、详情页上的状态栏图标是白色的），
+                // 右边让开导航栏、挖孔再留一个卡片外边距
                 val bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
                 )
-                panel.setPadding(panel.paddingLeft, bars.top + panelTopPadding, bars.right,
-                    bars.bottom + (8f * density).toInt())
+                val right = bars.right + panelSpacing
+                if (lp.topMargin != bars.top || lp.bottomMargin != bars.bottom || lp.rightMargin != right) {
+                    lp.topMargin = bars.top
+                    lp.bottomMargin = bars.bottom
+                    lp.rightMargin = right
+                    panel.layoutParams = lp
+                }
             } else {
                 // 悬浮在导航栏之上，与底边隔一个卡片外边距
-                val lp = panel.layoutParams as FrameLayout.LayoutParams
+                val nav = insets.getInsets(
+                    WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout()
+                )
                 if (lp.bottomMargin != nav.bottom + panelSpacing) {
                     lp.bottomMargin = nav.bottom + panelSpacing
                     panel.layoutParams = lp
@@ -342,33 +351,10 @@ class TapShareOverlay private constructor(
             return
         }
         started = true
-        val rootInsets = ViewCompat.getRootWindowInsets(root)
-        val top = rootInsets
-            ?.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
-            ?.top ?: 0
-        if (sideBySide) {
-            // 左半边：让开左侧的挖孔与底部的导航栏
-            val bars = rootInsets?.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
-            )
-            stage.setCardArea(RectF((bars?.left ?: 0).toFloat(), top + 12f * density,
-                (root.width - panel.width).toFloat(), root.height - (bars?.bottom ?: 0) - 12f * density))
-        } else {
-            stage.setCardArea(RectF(0f, top + 12f * density, root.width.toFloat(), panel.top - 8f * density))
-        }
-
-        // 天线：先在 DecorView 里定位（粒子层的坐标系），再换到舞台里画等待圈。不能碰一碰的设备没有等待圈，
-        // 卡片也不必让开天线，在卡片区里居中
-        val decor = activity.window.decorView
-        val offset = stageOffsetInDecor()
-        if (TapSendController.isSupported(activity)) {
-            if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
-                // 左右排时屏幕顶部中间正好是面板的左缘：改用卡片区顶部的中间
-                val centerX = if (sideBySide) offset.x + (root.width - panel.width) / 2f else decor.width / 2f
-                antennaInDecor.set(centerX, top + ANTENNA_FALLBACK_DP * density)
-            }
-            stage.setAntenna(antennaInDecor.x - offset.x, antennaInDecor.y - offset.y)
-        }
+        laidOutWidth = root.width
+        laidOutHeight = root.height
+        laidOutRotation = displayRotation()
+        placeCardAreaAndAntenna()
 
         val stageAt = IntArray(2).also { stage.getLocationInWindow(it) }
         val origins = request.sources.take(cards.size).map { source ->
@@ -394,18 +380,133 @@ class TapShareOverlay private constructor(
         }
         panelOffsetAnimator(0f).setDuration(params.openMs).setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f)).start()
 
-        root.addOnLayoutChangeListener(sizeWatcher)
+        root.viewTreeObserver.addOnPreDrawListener(relayoutWatcher)
         controller.start()
         if (controller.phase != TapSendController.Phase.HIDDEN) {
             watcher.start()
         }
     }
 
+    /**
+     * 按窗口此刻的形状排面板：与「调整颜色」面板一样悬浮（四角圆角，最宽 480dp，高度随内容，决策 2026-09-27）。竖屏与
+     * 平板在底部，左右与底边各留一个卡片外边距；手机横屏在右侧、上下居中，宽度与竖屏时相同（屏幕短边减两侧留白，也不超过
+     * 半屏），2026-09-30 取代原来的贴满右半边、上下通高（上下右都空着一大块）。离底边、状态栏与右边的距离在插图回调里
+     * 加上系统栏。打开时排一次，窗口变了再排一次（[relayout]）。
+     */
+    private fun applyPanelLayout() {
+        val decor = activity.window.decorView
+        val res = activity.resources
+        val decorWidth = if (decor.width > 0) decor.width else res.displayMetrics.widthPixels
+        val decorHeight = if (decor.height > 0) decor.height else res.displayMetrics.heightPixels
+        sideBySide = !DisplayUtil.isTablet(activity) && decorWidth > decorHeight
+        val spacing = res.getDimensionPixelSize(R.dimen.thing_card_outer_spacing)
+        val maxWidth = res.getDimensionPixelSize(R.dimen.thing_card_appearance_max_width)
+        panel.layoutParams = if (sideBySide) {
+            val width = minOf(decorHeight - 2 * spacing, decorWidth / 2 - 2 * spacing, maxWidth)
+            FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.END or Gravity.CENTER_VERTICAL).also { it.rightMargin = spacing }
+        } else {
+            FrameLayout.LayoutParams(min(decorWidth - 2 * spacing, maxWidth), FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).also { it.bottomMargin = spacing }
+        }
+        val corner = res.getDimension(R.dimen.app_chrome_dialog_popup_corner_radius)
+        stage.setPanel(panel, request.accent, FloatArray(8) { corner })
+    }
+
+    /**
+     * 卡片区与天线，按面板此刻的位置算：上下排时是状态栏之下、面板之上；左右排时是面板左边，让开左侧的挖孔与底部
+     * 的导航栏。天线先在 DecorView 里定位（粒子层的坐标系），再换到舞台里画等待圈；不能碰一碰的设备没有等待圈，
+     * 卡片也不必让开天线，在卡片区里居中。
+     */
+    private fun placeCardAreaAndAntenna() {
+        val rootInsets = ViewCompat.getRootWindowInsets(root)
+        val top = rootInsets
+            ?.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
+            ?.top ?: 0
+        val area = if (sideBySide) {
+            val bars = rootInsets?.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            RectF((bars?.left ?: 0).toFloat(), top + 12f * density, panel.left.toFloat(),
+                root.height - (bars?.bottom ?: 0) - 12f * density)
+        } else {
+            RectF(0f, top + 12f * density, root.width.toFloat(), panel.top - 8f * density)
+        }
+        stage.setCardArea(area)
+        val decor = activity.window.decorView
+        val offset = stageOffsetInDecor()
+        if (TapSendController.isSupported(activity)) {
+            if (!TapTransfer.antennaPosition(activity, decor.width, decor.height, antennaInDecor)) {
+                // 左右排时屏幕顶部中间落在面板附近：改用卡片区顶部的中间
+                val centerX = if (sideBySide) offset.x + area.centerX() else decor.width / 2f
+                antennaInDecor.set(centerX, top + ANTENNA_FALLBACK_DP * density)
+            }
+            stage.setAntenna(antennaInDecor.x - offset.x, antennaInDecor.y - offset.y)
+        }
+    }
+
+    /** 屏幕此刻的方向（天线的位置随它换）。Android 11 以下取不到，按不变算：那些版本也拿不到天线的位置。 */
+    private fun displayRotation(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) activity.display?.rotation ?: 0 else 0
+
+    /**
+     * 窗口变了（旋转屏幕、调整分屏）：就地重排，不收起（取代决策 2026-09-24 第 10 条的「直接收起」）。
+     *
+     * 面板按新的形状重排、直接停在打开的位置；卡片按新的首页尺寸重新排版，面板排好之后再按新的卡片区放
+     * （[relayoutWatcher]）。抬起时的原位已经不对了，之后落回改为沉回页面里。正在流出或流回的颗粒是按旧的屏幕
+     * 坐标算的，撤掉、卡片直接显示；传输本身不受影响，进度照走，发完照常显示「已发送」再接下一台。
+     */
+    private fun relayout() {
+        laidOutWidth = root.width
+        laidOutHeight = root.height
+        laidOutRotation = displayRotation()
+        dropParticlesForRelayout()
+        panel.animate().cancel()
+        panel.translationX = 0f
+        panel.translationY = 0f
+        applyPanelLayout()
+        stage.clearOrigins()
+        val metrics = TapThingCards.listMetrics(activity)
+        liftedCards.forEach { it.updateHome(metrics) }
+        // 插图回调按新的排法再走一遍：上下排的离底距离、左右排让开系统栏的内边距
+        ViewCompat.requestApplyInsets(root)
+        placementPending = true
+        recorder?.event("relayout-begin") { put("side_by_side", sideBySide) }
+    }
+
+    /** 就地重排时撤掉在飞的颗粒（按旧的屏幕坐标算的），卡片直接显示，按流出、流回各自走完的样子接着往下走。 */
+    private fun dropParticlesForRelayout() {
+        val was = flow
+        if (was == Flow.NONE) {
+            return
+        }
+        outflow?.release()
+        outflow = null
+        flow = Flow.NONE
+        stage.setCardsShown(true)
+        stage.animateElevation(1f, params.shadowRestoreMs)
+        when (was) {
+            // 流出还没走完：「已发送」不必再等颗粒进天线
+            Flow.PREPARING, Flow.OUT -> if (!drained) onOutflowDrained()
+            Flow.RETURNING -> onReformFinished()
+            Flow.NONE -> {}
+        }
+    }
+
     /** 调试：抬起开始的那一刻，模拟器重放抬起与落回所需的几何。 */
     private fun recordStart(r: TapSessionRecorder) {
+        recordLayout(r, "start")
+        TapParticleFlight.afterFrame(stage) {
+            stage.slotViews().forEachIndexed { k, view -> r.captureView("card-$k", view) }
+            r.captureSoon("panel", panel, PANEL_CAPTURE_MS)
+        }
+    }
+
+    /** 调试：此刻的几何（打开时、就地重排之后各记一次）。 */
+    private fun recordLayout(r: TapSessionRecorder, type: String) {
         val offset = stageOffsetInDecor()
         val antenna = stage.antennaInStage
-        r.event("start") {
+        r.event(type) {
             put("stage", JSONArray().put(offset.x.toDouble()).put(offset.y.toDouble()).put(stage.width).put(stage.height))
             put("slots", stage.describeSlots())
             put("antenna", JSONArray().put(antenna[0].toDouble()).put(antenna[1].toDouble()))
@@ -414,16 +515,15 @@ class TapShareOverlay private constructor(
             put("pulse_start", r.at(stage.pulseStartUptime))
             put("panel", JSONArray().put(panel.left).put(panel.top).put(panel.width).put(panel.height))
             put("dark", AppearanceUtil.isDarkMode(activity))
-        }
-        TapParticleFlight.afterFrame(stage) {
-            stage.slotViews().forEachIndexed { k, view -> r.captureView("card-$k", view) }
-            r.captureSoon("panel", panel, PANEL_CAPTURE_MS)
+            put("side_by_side", sideBySide)
+            // 强调色（面板上的扩散圈、标题与图标的颜色）：模拟器按它画面板上的那一段圈
+            put("accent", JSONObject(request.accent.toJson()))
         }
     }
 
-    /** 面板收起时离开屏幕要走的距离：上下排时从面板上沿到屏幕底边（含底下留的空），左右排时是面板宽。 */
+    /** 面板收起时离开屏幕要走的距离：上下排时从面板上沿到屏幕底边，左右排时从面板左缘到屏幕右边（都含外边的留空）。 */
     private fun panelSlideDistance(): Float =
-        if (sideBySide) panel.width.toFloat() else (root.height - panel.top).toFloat()
+        if (sideBySide) (root.width - panel.left).toFloat() else (root.height - panel.top).toFloat()
 
     private fun setPanelOffset(offset: Float) {
         if (sideBySide) panel.translationX = offset else panel.translationY = offset
@@ -860,16 +960,6 @@ class TapShareOverlay private constructor(
         stage.drop()
     }
 
-    /** 不播落回动画，立刻收起（窗口尺寸变了，原位置已经不对）。 */
-    private fun closeNow() {
-        if (closing) {
-            return
-        }
-        closing = true
-        dispose()
-        request.host.onShareClosed(controller.sentAtLeastOnce)
-    }
-
     private fun finishClose() {
         root.postOnAnimation {
             dispose()
@@ -889,7 +979,9 @@ class TapShareOverlay private constructor(
             }
         }
         startListener = null
-        root.removeOnLayoutChangeListener(sizeWatcher)
+        if (root.viewTreeObserver.isAlive) {
+            root.viewTreeObserver.removeOnPreDrawListener(relayoutWatcher)
+        }
         Choreographer.getInstance().removeFrameCallback(frameCallback)
         main.removeCallbacksAndMessages(null)
         outflow?.release()
@@ -918,9 +1010,6 @@ class TapShareOverlay private constructor(
         private const val MAX_STACK = 4
         // 罩层、打开与关闭的时长见 shared/tap-transfer/particles.properties（send_*）
         // 流出、流回的时长与缓动，以及「已发送」的停留，见 shared/tap-transfer/particles.properties
-
-        /** 手机横屏贴右半边时面板左侧的圆角（dp），与 `bg_tap_share_panel_side` 相同。 */
-        private const val SIDE_PANEL_CORNER_DP = 24f
 
         /** 分享方式的图标（100dp 的画布）在 48dp 的格子里按这么大画：墨迹约为原来的 0.72。 */
         private const val OPTION_ICON_CANVAS_DP = 72f

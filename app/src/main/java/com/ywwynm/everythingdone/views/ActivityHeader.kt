@@ -88,6 +88,9 @@ open class ActivityHeader(
 
     private val mBindingRecyclerView: RecyclerView = recyclerView
 
+    /** 头部的大标题：读屏焦点会停在它上面，碰一碰的「接收记事」无障碍动作挂在这里。 */
+    val titleView: View get() = mTitle
+
     private var mModeManager: ModeManager? = null
     private var mFolderPathClickListener: FolderPathClickListener? = null
     private var mHeaderSpacerHeightListener: ((Int) -> Unit)? = null

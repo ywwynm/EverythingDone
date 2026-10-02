@@ -64,7 +64,7 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         fun onDropFinished()
     }
 
-    private class Slot(val card: TapThingCards.LiftedCard, val origin: RectF?) {
+    private class Slot(val card: TapThingCards.LiftedCard, var origin: RectF?) {
         val view: View get() = card.view
         var width = 0
         var height = 0
@@ -168,6 +168,11 @@ class TapShareCardStage(context: Context, private val listener: Listener) : Fram
         val sprite = tintedRing(accent)
         accentRing = sprite
         accentRingShader = BitmapShader(sprite, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+    }
+
+    /** 窗口变了（旋转屏幕）：抬起时的原位已经不对，之后落回改为沉回页面里（与从页面里升起反过来）。 */
+    fun clearOrigins() {
+        slots.forEach { it.origin = null }
     }
 
     /** NFC 天线在本视图里的位置。卡片会让开它。 */

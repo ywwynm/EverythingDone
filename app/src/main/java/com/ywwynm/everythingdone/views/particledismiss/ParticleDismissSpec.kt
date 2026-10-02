@@ -82,7 +82,17 @@ internal class ParticleDismissSpec(
      * [ParticleGestureProgress.supplyForeground] 交进来，会话算完历史之后等它、换上前景贴图才出第一帧。
      * 只用于按时间轴取帧的手势会话（碰一碰接收时拼卡那一层提前建）。
      */
-    val deferForeground: Boolean = false
+    val deferForeground: Boolean = false,
+    /**
+     * 碰一碰接收：建完、按终点整形完的材料放进这里，供同一次接收的拼卡那一层沿用（进度期间那一层）。
+     * 见 [ParticleMaterialShare]；其余动画恒为 null。
+     */
+    val publishMaterials: ParticleMaterialShare? = null,
+    /**
+     * 碰一碰接收：建材之前先核对这里有没有输入逐项相同、已经建好的材料，有就复制一份沿用（拼卡那一层提前建的那一次），
+     * 结论记在里面。见 [ParticleMaterialShare]；其余动画恒为 null。
+     */
+    val adoptMaterials: ParticleMaterialShare.Adoption? = null
 )
 
 /** 光尘接手的结果：逐片终点（材料坐标 xy、种类、0）与接手颜色（sRGB、方式），各为每片 4 个 float。 */

@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.taptransfer.ui.receive
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.math.floor
 
 /**
  * 预计落点：与桌面模拟器 `sim_list.py` 的排法逐项相同。期望值由模拟器算出（两列、密度 3、列表宽 1080、
@@ -70,6 +71,18 @@ class TapListPredictionTest {
         assertEquals(three.columnLeft(2), slots[1][0], 0f)
         assertEquals(three.columnLeft(0), slots[0][0], 0f)
         assertEquals(424f + width + 2 * margin, slots[0][1], 1e-3f)
+    }
+
+    @Test fun `整像素时来件卡片的高度四舍五入，排法不变`() {
+        val pinned = listOf(TapListPrediction.Entry(300f, full = false))
+        val slots = TapListPrediction.predict(grid, pinned, floatArrayOf(.8f, 1.2f, .6f),
+            booleanArrayOf(false, true, false), 3, visibleTop = 300f, visibleBottom = 2300f, scrollTop = 336f,
+            wholePixels = true)
+        // 468 × 0.8 = 374.4 → 374，984 × 1.2 = 1180.8 → 1181，468 × 0.6 = 280.8 → 281
+        assertRect(floatArrayOf(48f, 2001f, 516f, 2375f), slots[0])
+        assertRect(floatArrayOf(48f, 772f, 1032f, 1953f), slots[1])
+        assertRect(floatArrayOf(564f, 424f, 1032f, 705f), slots[2])
+        for (slot in slots) for (v in slot) assertEquals("落点必须是整像素", floor(v), v, 0f)
     }
 
     @Test fun `发送方没告知形状时按默认高宽比`() {

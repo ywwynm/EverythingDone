@@ -40,7 +40,12 @@ internal object ParticleMicroflakeModel {
         directionDegrees: Float,
         seed: Long,
         rules: ParticleMicroflakeRules,
-        releaseOrigin: ParticleReleaseOrigin? = null
+        releaseOrigin: ParticleReleaseOrigin? = null,
+        /**
+         * 微片尺寸下限（dp），默认读当前设置。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
+         * 同一个值既进键又交给这里，两次读取之间设置被改掉也不会对不上。
+         */
+        cellDp: Float = ParticlePerfTuning.microflakeCellDpNow
     ): Materials {
         val started = System.nanoTime()
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
@@ -50,7 +55,7 @@ internal object ParticleMicroflakeModel {
         // 本函数在「720 逻辑像素 = 384 dp」的归一空间里工作（见 `fromSpec` 的 scale），
         // 所以一个 dp 是 [DP_UNITS] 个单位。E12 的下限与 `max_cells` 那条上限取较大者：
         // 既不小于指定的物理尺寸，也不会把片数顶过上限。
-        val requested = ParticlePerfTuning.microflakeCellDpNow
+        val requested = cellDp
         val cell = max(max(rules.decimal("cell"), requested.toDouble() * DP_UNITS),
             sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
         val nx = ceil(width / cell).toInt().coerceAtLeast(2)

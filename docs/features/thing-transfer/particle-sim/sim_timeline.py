@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 from sim_model import SAMPLES, Params, Scene, cubic_bezier, smooth
+from sim_recolor import Background, dominant, parse_accent
 
 
 def accel_decel(t: float) -> float:
@@ -25,21 +26,31 @@ def accel_decel(t: float) -> float:
     return math.cos((t + 1) * math.pi) / 2 + 0.5
 
 
-def ripple_rings(now: float, params: Params, density: float, scale: float = 1.0) -> list[tuple[float, float]]:
+def ripple_rings(now: float, params: Params, density: float,
+                 scale: float = 1.0) -> list[tuple[float, float, float]]:
     """`TapShareCardStage` 的扩散圈：rings 圈错开相位，半径 = 起始 + 扩展 × 缓出进度（再乘 scale），
-    不透明度随相位线性减到 0。返回 [(半径像素, 不透明度)]。"""
+    不透明度随相位线性减到 0。返回 [(半径像素, 不透明度, 相位)]；落在分享面板上的那一段按 1 − 相位画。"""
     rings = int(params['send_pulse_rings'])
     r0, r1 = params['send_pulse_radius_dp']
     out = []
     for k in range(rings):
         phase = ((now / params['send_pulse_period_s']) + k / max(rings, 1)) % 1.0
         eased = 1 - (1 - phase) ** 2
-        out.append(((r0 + r1 * eased) * density * scale, (1 - phase) * params['send_pulse_alpha']))
+        out.append(((r0 + r1 * eased) * density * scale, (1 - phase) * params['send_pulse_alpha'], phase))
     return out
 
 
 EASE_PANEL_OPEN = cubic_bezier(0.2, 0, 0, 1)
 EASE_PANEL_CLOSE = cubic_bezier(0.4, 0, 1, 1)
+
+# 分享面板四角的圆角（dp，`TapShareOverlay.buildViews` 交给 `TapShareCardStage.setPanel` 的那一组）：上下排时面板
+# 悬浮在底部，四角同「调整颜色」面板（`app_chrome_dialog_popup_corner_radius`）；手机横屏贴右半边时只有左侧两角
+# （`SIDE_PANEL_CORNER_DP`，与 `bg_tap_share_panel_side` 相同）
+PANEL_CORNER_DP = 16.0
+SIDE_PANEL_CORNER_DP = 24.0
+
+# 倒放时间轴在传输期间从上限的这个倍数起软着陆（`TapReceiveTimeline.KNEE`）
+SOFT_CAP_KNEE = 0.8
 
 
 class Session:
@@ -91,6 +102,23 @@ class Session:
     @property
     def params(self) -> Params:
         return Params.from_scene(self)
+
+    @property
+    def accent(self) -> Background | None:
+        """分享面板的强调色（`TapShareOverlay.Request.accent`）：扩散圈落在面板上的那一段按它画。
+
+        会话里记了就用（`start` 事件的 `accent`，或手动加在 `session.json` 顶层的 `accent`；写法见
+        `sim_recolor.parse_accent`）；没记就取最上面一张卡片里出现最多的颜色——详情页分享时强调色就是记事的颜色，
+        选择模式里分享时是应用的强调色，要另外给（`--accent`）。接收的会话没有面板，为 None。"""
+        if self.kind != 'send':
+            return None
+        if not hasattr(self, '_accent'):
+            start = self.first('start') or {}
+            accent = parse_accent(start.get('accent', self.meta.get('accent')))
+            if accent is None and (self.path / 'card-0.png').is_file():
+                accent = Background(dominant(self.image('card-0')))
+            self._accent = accent
+        return self._accent
 
 
 class Ramp:
@@ -144,6 +172,9 @@ class SendState:
     glow: float
     flight_position: float | None
     label: str
+    # 面板的横向平移（手机横屏时从右侧滑入）；扩散圈此刻的缩放（流出时收缩）
+    panel_tx: float = 0.0
+    pulse_scale: float = 1.0
 
 
 class SendPlan:
@@ -160,7 +191,18 @@ class SendPlan:
         self.antenna_decor = tuple(start.get('antenna_decor') or start['antenna'])
         self.total = int(start.get('total', len(self.slots)))
         self.pulse_start = start['pulse_start'] / 1000
+        # 面板在舞台里的位置 [left, top, width, height]（舞台与面板同一个父视图）；上下排时沿 y 滑入滑出，
+        # 手机横屏贴右半边时沿 x（panel 事件的 axis，2026-09-26 起才记；start 的 side_by_side 更晚才有）
         self.panel_rect = start['panel']
+        panel_events = session.of('panel')
+        axis = next((e['axis'] for e in panel_events if e.get('axis')), None)
+        side = start.get('side_by_side')
+        side = axis == 'x' if side is None else bool(side)
+        self.panel_axis = axis or ('x' if side else 'y')
+        slide = float(self.panel_rect[2] if side else self.panel_rect[3])
+        corner = (SIDE_PANEL_CORNER_DP if side else PANEL_CORNER_DP) * d
+        # 左上、右上、右下、左下
+        self.panel_radii = (corner, 0.0, 0.0, corner) if side else (corner,) * 4
         self.dark = bool(start.get('dark'))
         phases = [(e['t'] / 1000, e['name']) for e in session.of('phase')]
         self.phases = phases
@@ -191,7 +233,9 @@ class SendPlan:
         dims = params['send_dim_alpha']
         dim_target = dims[1] if self.dark else dims[0]
         self.dim = Ramp(0.0).to(self.t_start, dim_target, ms('send_open_ms'))
-        self.panel = Ramp(float(self.panel_rect[3])).to(self.t_start, 0.0, ms('send_open_ms'), EASE_PANEL_OPEN)
+        # 滑入的起点取录下的值（悬浮的面板要走到屏幕底边之外，比面板本身高）
+        open_from = next((e['from'] for e in panel_events if e.get('ease') == 'open'), slide)
+        self.panel = Ramp(float(open_from)).to(self.t_start, 0.0, ms('send_open_ms'), EASE_PANEL_OPEN)
         lift_ease = cubic_bezier(*params['send_lift_ease'])
         self.lift = Ramp(0.0).to(self.t_start, 1.0, ms('send_lift_ms'), lift_ease)
         self.elevation = Ramp(0.0).to(self.t_start, 1.0, ms('send_lift_ms'))
@@ -202,7 +246,7 @@ class SendPlan:
             self.lift.to(self.t_reform, 0.0, 1e-6).to(self.t_reform + 1e-6, 1.0, self.reform_s, lift_ease)
             self.elevation.to(self.t_reform, 1.0, self.reform_s)
         if self.t_close is not None:
-            close_to = next((e['to'] for e in session.of('panel') if e.get('ease') == 'close'), self.panel_rect[3])
+            close_to = next((e['to'] for e in panel_events if e.get('ease') == 'close'), slide)
             self.dim.to(self.t_close, 0.0, ms('send_close_ms'))
             self.panel.to(self.t_close, float(close_to), ms('send_close_ms'), EASE_PANEL_CLOSE)
             # 落回：ValueAnimator 的时长按剩余进度缩放
@@ -273,12 +317,14 @@ class SendPlan:
             return 1.0
         return 1.0 - self.lift.at(t)
 
-    def pulses(self, t: float) -> list[tuple[float, float]]:
+    def pulse_scale(self, t: float) -> float:
+        return 1 - self.p['send_pulse_shrink'] * self.shrink(t)
+
+    def pulses(self, t: float) -> list[tuple[float, float, float]]:
         """天线处的波纹：从等待被碰一直播到关闭，中途不断；流出时随进度收缩，重新抬起时再展开。"""
         if t < self.t_ready or (self.t_close is not None and t >= self.t_close):
             return []
-        scale = 1 - self.p['send_pulse_shrink'] * self.shrink(t)
-        return ripple_rings(t - self.pulse_start, self.p, self.s.density, scale)
+        return ripple_rings(t - self.pulse_start, self.p, self.s.density, self.pulse_scale(t))
 
     def label(self, t: float) -> str:
         name = '打开'
@@ -304,9 +350,11 @@ class SendPlan:
         for tt, name in self.panels:
             if tt <= t or panel is None:
                 panel = name
-        return SendState(self.dim.at(t), self.panel.at(t), panel, self.poses(t), self.elevation.at(t), shown,
+        offset = self.panel.at(t)
+        side = self.panel_axis == 'x'
+        return SendState(self.dim.at(t), 0.0 if side else offset, panel, self.poses(t), self.elevation.at(t), shown,
                          self.pulses(t), self.glow(progress), None if progress is None else progress * SAMPLES,
-                         self.label(t))
+                         self.label(t), panel_tx=offset if side else 0.0, pulse_scale=self.pulse_scale(t))
 
 
 # ---------------------------------------------------------------- 接收
@@ -466,7 +514,7 @@ class ReceivePlan:
         d = self.s.density
         return (chosen[1], chosen[2], chosen[3], f * f, 0.86 + 0.14 * f, (1 - f) * -10 * d)
 
-    def pulses(self, t: float) -> list[tuple[float, float]]:
+    def pulses(self, t: float) -> list[tuple[float, float, float]]:
         """接收时天线处的波纹（与发送同一套扩散圈）。等待时不显示（天线位置可能压着界面元素），开始接收、
         显示进度时才淡入，颗粒从这里冒出；流入时边收缩边淡去，卡片拼好时已经消失。"""
         if self.t_touched is None or t < self.t_touched:
@@ -483,14 +531,20 @@ class ReceivePlan:
         if envelope <= 0.003:
             return []
         scale = 1.0 - self.p['send_pulse_shrink'] * leave
-        return [(r, a * envelope) for r, a in ripple_rings(t - self.t_touched, self.p, self.s.density, scale)]
+        return [(r, a * envelope, phase)
+                for r, a, phase in ripple_rings(t - self.t_touched, self.p, self.s.density, scale)]
 
     # ---- 倒放的时间轴：进度期间那一层（代理卡片）与拼卡那一层（真实卡片）共用
     def reverse_tau(self, t: float) -> float | None:
-        """倒放走到哪儿（0–1；0 是正向时间轴的终点，1 是拼好）。
+        """倒放走到哪儿（0–1；0 是正向时间轴的终点，1 是拼好）。逐项对应 `TapReceiveTimeline`，差别只在传输
+        进度：这里按碰上到数据到齐的时间先慢后快地假设，手机上用界面显示的真实进度；到齐时的速度这里取解析的
+        斜率，手机上是逐帧速度按 0.1 秒平滑的结果。
 
         - 碰上之后随传输进度推进：scale × 进度^gamma + floor × 秒数（gamma < 1：起步快，颗粒一碰上就冒出来）；
-        - 数据到齐之后按指数逼近上限 cap：一直在动、越来越慢，不会先拼出代理卡片；速度在到齐那一刻连续；
+          越过上限的 SOFT_CAP_KNEE 倍之后按指数逼近上限（`softCap`，拐点处斜率连续）：传输很慢时「最低速度 ×
+          秒数」会一直涨，不软着陆就等于数据还没到先拼出了代理卡片。一两秒的传输落不到这一段；
+        - 数据到齐之后按指数逼近上限 cap：一直在动、越来越慢，不会先拼出代理卡片；速度在到齐那一刻连续、至少是
+          最低速度；到齐时已经贴着上限就停在那里；
         - 流入开始之后从当时的位置与速度出发，平滑加速（三次 Hermite），流入时长结束时正好到 1，
           末速度是正常速度（1 / 流入时长）。"""
         if self.t_touched is None or t < self.t_touched:
@@ -498,20 +552,36 @@ class ReceivePlan:
         scale, floor, cap, gamma = self.p['receive_emerge_pace']
         tt = self.t_touched
         tc = self.t_complete if self.t_complete is not None else tt + 1.
+        if self.t_inflow is not None:
+            # 流入开始时还没到齐：手机上 startInflow 先按此刻到齐（complete）
+            tc = min(tc, self.t_inflow)
         span = max(tc - tt, 1e-3)
+        knee = cap * SOFT_CAP_KNEE
+        knee_room = cap - knee
+
+        def soft_cap(raw):
+            if raw <= knee:
+                return raw
+            return knee + knee_room * (1 - math.exp(-(raw - knee) / knee_room))
+
         if t <= tc:
             # 传输进度：模拟器里按碰上到数据到齐的时间先慢后快（u^1.6，与 progress() 相同）
-            return scale * ((t - tt) / span) ** (1.6 * gamma) + floor * (t - tt)
-        tau_c = scale + floor * span
-        rate_c = scale * 1.6 * gamma / span + floor
-        room = max(cap - tau_c, 1e-3)
+            return soft_cap(scale * ((t - tt) / span) ** (1.6 * gamma) + floor * (t - tt))
+        raw_c = scale + floor * span
+        tau_c = soft_cap(raw_c)
+        # 到齐那一刻的速度：softCap 的斜率 × 未软着陆时的斜率，至少是最低速度（complete 里的 max(rate, floor)）
+        slope = 1.0 if raw_c <= knee else math.exp(-(raw_c - knee) / knee_room)
+        rate_c = max(slope * (scale * 1.6 * gamma / span + floor), floor)
+        room = cap - tau_c
 
         def wait(x):
-            return tau_c + room * (1 - math.exp(-rate_c * (x - tc) / room))
+            if room <= 1e-6:
+                return tau_c
+            return tau_c + room * (1 - math.exp(-rate_c * max(x - tc, 0.0) / room))
         if self.t_inflow is None or t <= self.t_inflow:
             return wait(t)
         tau_h = wait(self.t_inflow)
-        rate_h = rate_c * math.exp(-rate_c * (self.t_inflow - tc) / room)
+        rate_h = 0.0 if room <= 1e-6 else rate_c * math.exp(-rate_c * max(self.t_inflow - tc, 0.0) / room)
         d = self.appear_s
         u = (t - self.t_inflow) / d
         if u >= 1:

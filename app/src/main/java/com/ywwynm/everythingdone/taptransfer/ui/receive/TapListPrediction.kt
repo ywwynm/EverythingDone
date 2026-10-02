@@ -1,5 +1,6 @@
 package com.ywwynm.everythingdone.taptransfer.ui.receive
 
+import kotlin.math.floor
 import kotlin.math.max
 
 /**
@@ -73,16 +74,20 @@ internal object TapListPrediction {
      *        [DEFAULT_ASPECT] 估计
      * @param visibleTop 新卡片可以露出来的范围的上沿、[visibleBottom] 下沿：第一张卡片放不下时接收会把列表
      *        滚到它的上沿落在 [scrollTop]，预计的位置随之整体平移
+     * @param wholePixels 来件卡片的高度四舍五入到整像素（列表里的卡片高度是整数）。接收时打开：预计准确时代理卡片
+     *        与列表里的卡片逐像素相同，拼卡那一层才能沿用进度期间那一层建好的材料（`ParticleMaterialShare`）。
+     *        模拟器不取整，两边差不到半个像素；关掉时与模拟器逐项相同
      */
     fun predict(
         grid: Grid, pinned: List<Entry>?, aspects: FloatArray, fullSpan: BooleanArray, count: Int,
-        visibleTop: Float, visibleBottom: Float, scrollTop: Float
+        visibleTop: Float, visibleBottom: Float, scrollTop: Float, wholePixels: Boolean = false
     ): List<FloatArray> {
         if (count <= 0) return emptyList()
         val incoming = List(count) { k ->
             val full = k < fullSpan.size && fullSpan[k]
             val aspect = if (k < aspects.size && aspects[k] > 0f) aspects[k] else DEFAULT_ASPECT
-            Entry(grid.widthOf(full) * aspect, full)
+            val height = grid.widthOf(full) * aspect
+            Entry(if (wholePixels) floor(height + .5f) else height, full)
         }
         // 列表顺序：置顶的在前，然后是收到的（后收到的在前）
         val ordered = incoming.reversed()

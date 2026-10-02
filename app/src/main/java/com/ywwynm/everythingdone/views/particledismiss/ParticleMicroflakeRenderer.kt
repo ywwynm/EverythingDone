@@ -1891,7 +1891,7 @@ internal class ParticleMicroflakeRenderer(
             return fromPixels(assets, width, height, density, pixels, bitmap.width, bitmap.height,
                 spec.originXPx, spec.originYPx, spec.virtualTouchXPx, spec.virtualTouchYPx,
                 spec.hashSeed, spec.touchGap, spec.touchStrength, bitmap, spec.materialAreaScale,
-                spec.releaseOrigin, spec.sink, dynamics, spec.handoff)
+                spec.releaseOrigin, spec.sink, dynamics, spec.handoff, spec.publishMaterials, spec.adoptMaterials)
         }
 
         /**
@@ -1899,6 +1899,10 @@ internal class ParticleMicroflakeRenderer(
          *
          * 提前预算（[ParticleCreationPrewarm]）手上只有上一次真实创建页的像素数组；[fromSpec]
          * 现在就是它的一层包装，两条路径的几何、方向与随机完全同一套代码。
+         *
+         * [publish] / [adopt]（只有碰一碰接收的两层给）：建好并按终点整形之后、光尘接手之前的材料放进去，或者建材之前
+         * 按 [ParticleMaterialShare.Key] 逐项核对、输入相同就复制一份沿用，见 [ParticleMaterialShare]。沿用时跳过的只是
+         * 建材与整形；光尘接手照常在复制出来的那一份上算。
          */
         fun fromPixels(assets: AssetManager, width: Int, height: Int, density: Float,
                        pixels: IntArray, pixelWidth: Int, pixelHeight: Int,
@@ -1907,7 +1911,8 @@ internal class ParticleMicroflakeRenderer(
                        touchGap: Float?, touchStrength: Float?, bitmap: Bitmap? = null,
                        materialAreaScale: Float = 1f, releaseOrigin: ParticleReleaseOrigin? = null,
                        sink: ParticleSink? = null, dynamicsPixels: IntArray? = null,
-                       handoff: ParticleHandoffSource? = null): Input {
+                       handoff: ParticleHandoffSource? = null, publish: ParticleMaterialShare? = null,
+                       adopt: ParticleMaterialShare.Adoption? = null): Input {
             // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
             val scale = (density / ParticleMicroflakeModel.DP_UNITS.toFloat()).coerceAtLeast(.5f)
             val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
@@ -1918,26 +1923,45 @@ internal class ParticleMicroflakeRenderer(
             val rules = resources.rules.withMaterialArea(materialAreaScale)
             // 材料按「算运动用」的像素建（给了的话）；前景贴图与 [Input.sourcePixels] 仍是真实快照
             val motion = dynamicsPixels ?: pixels
-            val materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, motion, pixelWidth,
-                pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin)
             // 吸入终点换到材料坐标（以快照左上角为原点、同一缩放）；寿命按到达终点重写
             val sinkGeometry = sink?.toMaterial(originXPx, originYPx, scale)
             val field = sink?.field
-            // 第三版：出生在快照透明处（几张卡片之间的空隙）的颗粒看不见，来源分配与光尘接手只在看得见的里挑
-            val visible = if (field != null && sinkGeometry != null)
-                visibleMask(materials.values, scale, motion, pixelWidth, pixelHeight) else null
-            if (sink != null && sinkGeometry != null) {
-                if (field != null) {
-                    ParticleSink.shapeForField(materials.values, sinkGeometry, field, sink.tuning, cardWidth,
-                        cardHeight, hashSeed, visible)
-                } else {
-                    ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight), sink.tuning)
+            // 微片尺寸只读一次：同一个值既交给建材、又进沿用材料的键
+            val cellDp = ParticlePerfTuning.microflakeCellDpNow
+            val key = if (publish == null && adopt == null) null else ParticleMaterialShare.Key(motion, pixelWidth,
+                pixelHeight, density, originXPx, originYPx, virtualTouchXPx, virtualTouchYPx, hashSeed,
+                materialAreaScale, releaseOrigin, sink?.signature(), cellDp, ParticleMaterialNative.enabled)
+            val started = System.nanoTime()
+            val adopted = if (adopt != null && key != null) adopt.take(key) else null
+            val materials: ParticleMicroflakeModel.Materials
+            val visible: BooleanArray?
+            if (adopted != null) {
+                materials = adopted.materials
+                visible = adopted.visible
+            } else {
+                materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, motion, pixelWidth,
+                    pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin, cellDp)
+                // 第三版：出生在快照透明处（几张卡片之间的空隙）的颗粒看不见，来源分配与光尘接手只在看得见的里挑
+                visible = if (field != null && sinkGeometry != null)
+                    visibleMask(materials.values, scale, motion, pixelWidth, pixelHeight) else null
+                if (sink != null && sinkGeometry != null) {
+                    if (field != null) {
+                        ParticleSink.shapeForField(materials.values, sinkGeometry, field, sink.tuning, cardWidth,
+                            cardHeight, hashSeed, visible)
+                    } else {
+                        ParticleSink.shape(materials.values, sinkGeometry, min(cardWidth, cardHeight), sink.tuning)
+                    }
+                }
+                if (publish != null && key != null) {
+                    publish.publish(key, materials, visible, (System.nanoTime() - started) / 1e9)
                 }
             }
+            val shaped = System.nanoTime()
             val handed = if (sinkGeometry != null && handoff != null)
                 handoff.compute(materials.values, sinkGeometry, scale, originXPx, originYPx, cardWidth, cardHeight,
                     visible)
             else null
+            adopt?.finish(adopted != null, (shaped - started) / 1e9, (System.nanoTime() - shaped) / 1e9)
             return Input(width / scale, height / scale, cardWidth, cardHeight, originXPx / scale,
                 originYPx / scale, direction, bitmap, materials,
                 resources.guide, rules, pixels, touchGap ?: rules.number("touch_gap_default"),

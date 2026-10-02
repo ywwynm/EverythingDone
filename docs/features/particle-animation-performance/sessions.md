@@ -698,3 +698,21 @@
 按用户要求不连设备、不截图、不提交：`:app:assembleDebug` 通过，`*ParticlePerFrameBatch*`
 139 项 0 失败（第 8 批那条 `"90f - dialogDirection" in update` 的源码契约断言仍成立，
 新函数体里第一行就是它）。
+
+## 2026-09-28 第九批源码契约测试失效的修复
+
+`ParticlePerFrameBatchNineUiTest` 的「交接的两步各自绑在一帧上」从 cff0e9544（2026-09-18，
+选择操作的列表移除）起一直失败，报「快照显示 + 源置零透明度」绑在同一次窗口绘制上。那次提交为
+「一次交接接管多张卡片」把 `ParticleCardSurfaceHandoff` 的单个 `source` 推广成 `sources` 列表，
+`enter` 里的 `source.alpha = 0f` 抽成了 `hideSources()`（逐个置 alpha 0，卡片另加 alpha 锁）；
+断言按字面找 `source.alpha = 0f`，因此失效。生产代码没有回退：弹窗那条不传 `cardSources`，
+`ParticleDismissOverlay` 回落成只含 `cardSource`（即 decor）的列表，隐藏仍在把事务交给
+`applyTransactionOnDraw` 之前同步完成。依据见 `selection-removal-animation/analysis.md`
+（「批量交接允许多个源卡片」）。
+
+只改测试：切出 `enter` 里 `onWindowFrame(transaction)` 之前的那一段，把其中对本类成员函数的
+无接收者调用展开一层，再断言三件事：交出去的事务把快照图层显示出来；这一段处理了构造参数里的
+源 View 列表；这一段写了 `alpha = 0f`。原断言搜的是整个函数体，连提交之后的回调也算在内，
+对「归零挪进回调」这种真正会让阴影叠成两层的回退是失明的，新断言能拦住它；内联成 `forEach`、
+辅助函数改名则不受影响（用突变样本逐一核对过）。`particledismiss` 包 31 个类 289 项，
+0 失败 0 跳过，报告时间戳确认为本次执行。未提交。

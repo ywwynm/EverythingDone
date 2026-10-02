@@ -122,16 +122,26 @@ def parents(tree):
 
 
 def card_of(tree, text):
-    """标题正好是 [text] 的那张首页卡片（cv_thing）的 bounds；没有时返回 None。"""
+    """标题正好是 [text] 的那张首页卡片（cv_thing）的 bounds；没有时返回 None。
+
+    只认列表里最外层那张卡片上的文字：清单项的文字（tv_check_list）、文件夹卡片里缩略图的标题都可能与样例标题相同。
+    2026-09-28 清理时按文字找「样例记事 3」，命中了清单样例里同名的清单项，整张清单样例被当成它选中删掉（都是模拟
+    样例，没有碰到别的数据）。不能限定成 tv_thing_title：文件夹卡片的标题是一个没有 id 的 TextView（2026-09-30
+    三星上实测，限定之后横屏找不到样例文件夹）。"""
     up = parents(tree)
-    for n in tree.iter('node'):
-        if (n.get('text') or '') != text:
-            continue
-        p = n
+
+    def card_above(node):
+        p = up.get(node)
         while p is not None and not (p.get('resource-id') or '').endswith('/cv_thing'):
             p = up.get(p)
-        if p is not None:
-            return dev.bounds(p), dev.bounds(n)
+        return p
+
+    for n in tree.iter('node'):
+        if (n.get('text') or '') != text or (n.get('resource-id') or '').endswith('/tv_check_list'):
+            continue
+        card = card_above(n)
+        if card is not None and card_above(card) is None:
+            return dev.bounds(card), dev.bounds(n)
     return None
 
 

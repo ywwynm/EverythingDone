@@ -1,7 +1,8 @@
 """整段会话的出图：页面、罩层、舞台、按钮 / 面板、粒子层，按手机上的层次与时间线合成。
 
 层次（自下而上）：
-- 发送：页面（分享界面盖上之前的窗口）→ 黑色罩层 → 面板 → 舞台（投影、卡片、条数、扩散圈、光点）→ 粒子层
+- 发送：页面（分享界面盖上之前的窗口）→ 黑色罩层 → 面板 → 舞台（整叠卡片共用的一片投影、卡片、条数、扩散圈）
+        → 粒子层
 - 接收：页面（隐去舞台与按钮的列表，让位时逐张卡片移动）→ 舞台（罩层与空洞、那圈光、边框粒子）
         → 按钮与提示 → 粒子层
 """
@@ -17,8 +18,9 @@ from PIL import Image, ImageDraw, ImageFont
 from sim_dust import ROUNDING, DustBand
 from sim_emerge import ProxyFlight, note_backgrounds, proxy_scene, receive_params
 from sim_handoff import compute as compute_handoff
-from sim_layers import Layers, affine, card_shadow
+from sim_layers import LIGHT_RADIUS_DP, LIGHT_Z_DP, Layers, affine, union_shadow
 from sim_model import Params, build_materials, flow_mode, smooth
+from sim_recolor import parse_accent
 from sim_renderer import TapRenderer
 from sim_stage import ReceiveStage, StageConfig
 from sim_timeline import ReceivePlan, SendPlan, Session
@@ -115,15 +117,19 @@ class SessionPlayer:
     """一次会话、一组参数、一个种子 → 按时间取图。"""
 
     def __init__(self, session: Session, params: Params, ctx: moderngl.Context, output_scale: float = 1.,
-                 seed: int | None = None, stage_hz: float = 120.0, stage_track=None, flight=None, plan=None):
+                 seed: int | None = None, stage_hz: float = 120.0, stage_track=None, flight=None, plan=None,
+                 accent=None):
         """
         :param flight: `make_flight` 的结果（材料、渲染器、冒出的颗粒），由调用方缓存与释放；不给则自己建、
                        关闭时自己释放
         :param stage_track: 接收舞台（`simulate_stage` 的结果），由调用方缓存；不给则自己算
         :param plan: 时间线（`plan_for` 的结果，调用方可以先改再交进来）；不给则按参数建
+        :param accent: 分享面板的强调色（`sim_recolor.Background` 或 `parse_accent` 认得的写法），扩散圈落在面板上
+                       的那一段按它画；不给则取会话的（`Session.accent`：记了就用，没记按卡片的颜色）
         """
         started = clock.perf_counter()
         self.s, self.ctx = session, ctx
+        self.accent = parse_accent(accent) if accent is not None else getattr(session, 'accent', None)
         self.output_scale = output_scale
         w, h = session.screen
         self.out_w, self.out_h = max(1, round(w * output_scale)), max(1, round(h * output_scale))
@@ -297,42 +303,85 @@ class SessionPlayer:
             l, t = cap['layout'][:2]
             px, py = cap['parent']
             L.draw_image_region(L.texture(st.panel_image, img), (img.shape[1], img.shape[0]),
-                                (0, 0, img.shape[1], img.shape[0]), (px + l, py + t + st.panel_ty))
+                                (0, 0, img.shape[1], img.shape[0]), (px + l + st.panel_tx, py + t + st.panel_ty))
         ox, oy = plan.stage_offset
         if st.cards_shown:
-            # 从最底下一张开始画，最上面一张最后画
+            # 整叠共用一片投影，画在所有卡片底下；卡片从最底下一张开始画，最上面一张最后画
+            self._draw_stack_shadow(st, ox, oy)
             for pose in reversed(st.cards):
-                self._draw_card(pose, st.elevation, ox, oy)
+                self._draw_card(pose, ox, oy)
             if plan.total > 1 and st.cards:
                 self._draw_badge(st.cards[0], ox, oy)
-        # 天线处只有波纹（2026-09-25 起不再画光点）：从等待被碰一直播到关闭，流出时随进度收缩
+        # 天线处只有波纹（2026-09-25 起不再画光点）：从等待被碰一直播到关闭，流出时随进度收缩。
+        # 落在面板上的那一段换成强调色，从完全不透明开始随相位淡出（2026-09-27 起），其余仍是白色
         ax, ay = plan.antenna
-        for radius, alpha in st.pulses:
-            L.ring((ax + ox, ay + oy), radius, alpha)
+        center = (ax + ox, ay + oy)
+        panel = self._panel_near_rings(st, center) if self.accent is not None else None
+        for radius, alpha, phase in st.pulses:
+            if panel is None:
+                L.ring(center, radius, alpha)
+            else:
+                L.ring(center, radius, alpha, clip=('out',) + panel)
+                L.ring(center, radius, 1 - phase, accent=self.accent, clip=('in',) + panel)
 
-    def _draw_card(self, pose, elevation, ox, oy):
+    def _panel_near_rings(self, st, center):
+        """`TapShareCardStage.panelPathNearRings`：面板此刻（含滑入、滑出的平移）的圆角轮廓，屏幕坐标
+        (矩形, 四角圆角)；碰不到最大半径以内的圈时为 None，整圈画成白色。
+
+        手机上每帧读面板视图的位置，面板随文案变高时轮廓跟着变（三星那段录下的面板上沿从 2036 移到 2022）：
+        这里取此刻画出来的那张面板截图记下的布局，与画面上的面板一致；没有截图时用 `start` 事件里的面板矩形。"""
+        s, p, plan = self.s, self.p, self.plan
+        cap = s.capture(st.panel_image) if st.panel_image else None
+        if cap is not None and cap.get('layout') and cap.get('parent'):
+            l, t, r, b = cap['layout']
+            ox, oy = cap['parent']
+        else:
+            l, t, w, h = plan.panel_rect
+            r, b = l + w, t + h
+            ox, oy = plan.stage_offset
+        if r <= l or b <= t:
+            return None
+        r0, r1 = p['send_pulse_radius_dp']
+        reach = (r0 + r1) * s.density * st.pulse_scale
+        rect = (ox + l + st.panel_tx, oy + t + st.panel_ty, ox + r + st.panel_tx, oy + b + st.panel_ty)
+        cx, cy = center
+        # RectF.intersects：两边都是严格不等
+        if not (rect[0] < cx + reach and cx - reach < rect[2] and rect[1] < cy + reach and cy - reach < rect[3]):
+            return None
+        return rect, plan.panel_radii
+
+    def _draw_stack_shadow(self, st, ox, oy):
+        """整叠卡片共用的一片投影（`TapShareCardStage` 的 shadow 视图，决策 2026-09-26 第 6 条）：轮廓是此刻已经
+        淡入的几张卡片（含平移、缩放、旋转）的并集，卡片自己不投影，上面的卡片不会压暗下面的；不透明度跟最先
+        淡入的那张（`updateShadow`）。高度的升降沿用原来的近似：不透明度乘高度比例，点光源的下移随高度收回。"""
         L, s, p = self.layers, self.s, self.p
+        casters = [pose for pose in st.cards if pose.alpha > 0.0]
+        if st.elevation <= 0.001 or not casters:
+            return
+        e_px = p['send_elevation_dp'] * s.density
+        key = (round(e_px, 3),) + tuple((pose.index, round(pose.cx, 2), round(pose.cy, 2), round(pose.scale, 5),
+                                         round(pose.rotation, 4)) for pose in casters)
+
+        def build():
+            items = []
+            for pose in casters:
+                img = s.image(f'card-{pose.index}')
+                ch, cw = img.shape[:2]
+                items.append((img[:, :, 3], affine(ox + pose.cx - cw / 2, oy + pose.cy - ch / 2, pose.scale,
+                                                   pose.scale, pose.rotation, (cw / 2, ch / 2))))
+            return union_shadow(items, e_px, LIGHT_Z_DP * s.density, LIGHT_RADIUS_DP * s.density)
+
+        tex, (x0, y0), size, spot = L.stack_shadow(key, build)
+        lift = (1 - st.elevation) * spot   # 高度降下来时点光源的投影往回收
+        L.draw_texture(tex, size, affine(x0, y0 - lift), st.elevation * max(pose.alpha for pose in st.cards))
+
+    def _draw_card(self, pose, ox, oy):
+        L, s = self.layers, self.s
         name = f'card-{pose.index}'
         img = s.image(name)
         ch, cw = img.shape[:2]
-        tex = L.texture(name, img)
         xf = affine(ox + pose.cx - cw / 2, oy + pose.cy - ch / 2, pose.scale, pose.scale, pose.rotation, (cw / 2, ch / 2))
-        if elevation > 0.001 and pose.alpha > 0.001:
-            e_px = p['send_elevation_dp'] * s.density
-            key = (name, round(e_px, 3))
-            if key not in self.shadows:
-                # 投影按卡片抬起之后的位置算（与先画到哪一帧无关，来回拖动时间轴结果不变）
-                cy = oy + self.plan.slots[pose.index]['target'][1]
-                shadow, (dx, dy) = card_shadow(img, e_px, cy, 600 * s.density, 800 * s.density)
-                self.shadows[key] = (L.texture((name, 'shadow', key[1]), shadow), shadow.shape, dx, dy,
-                                     e_px * cy / max(600 * s.density - e_px, 1))
-            stex, shape, dx, dy, spot = self.shadows[key]
-            sh, sw = shape[:2]
-            lift = (1 - elevation) * spot   # 高度降下来时点光源的投影往回收
-            sxf = affine(ox + pose.cx - cw / 2 + dx, oy + pose.cy - ch / 2 + dy - lift, pose.scale, pose.scale,
-                         pose.rotation, (cw / 2 - dx, ch / 2 - dy))
-            L.draw_texture(stex, (sw, sh), sxf, elevation * pose.alpha)
-        L.draw_texture(tex, (cw, ch), xf, pose.alpha)
+        L.draw_texture(L.texture(name, img), (cw, ch), xf, pose.alpha)
 
     def _draw_badge(self, pose, ox, oy):
         s = self.s
@@ -398,7 +447,7 @@ class SessionPlayer:
         antenna = plan.antenna or (self.flight_scene.sink if self.flight_scene is not None else None)
         if antenna is not None:
             tint = (1.0, 1.0, 1.0) if plan.dark else RING_ON_LIGHT
-            for radius, alpha in plan.pulses(t):
+            for radius, alpha, _ in plan.pulses(t):
                 L.ring(antenna, radius, alpha, tint)
         # 进度期间那一层：代理卡片的倒放（弹窗出现的前半段），按传输进度推进，流入开始后逐片交给真实卡片
         if self.emerge is not None:

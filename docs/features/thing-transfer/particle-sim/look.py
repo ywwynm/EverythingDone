@@ -2,7 +2,7 @@
 
 python -X utf8 look.py --scene scenes/samsung-send --times 4.3 4.6 4.9 --out out/look/x.png
                        [--crop x0 y0 x1 y1] [--width 360] [--cols 6] [--params file|scene|<路径>] [--seed N]
-                       [--dark]（深色底，看颗粒的明暗）
+                       [--dark]（深色底，看颗粒的明暗）[--accent 21A675 | 21A675,665696,LT_RB]（发送：面板的强调色）
 裁剪坐标是屏幕像素。每格左上角标时刻与阶段。
 """
 from __future__ import annotations
@@ -67,6 +67,7 @@ def main():
     ap.add_argument('--hz', type=float, default=120.)
     ap.add_argument('--title')
     ap.add_argument('--recolor', type=int, help='按这个种子随机换记事颜色（纯色或渐变）')
+    ap.add_argument('--accent', help='发送：分享面板的强调色（纯色 21A675，渐变 21A675,665696,LT_RB）')
     a = ap.parse_args()
     ctx = moderngl.create_standalone_context(require=430)
     session = Session(HERE / a.scene)
@@ -74,7 +75,7 @@ def main():
         from sim_recolor import recolor
         session = recolor(session, a.recolor)
         print(session.title)
-    player = SessionPlayer(session, load_params(session, a.params), ctx, 1., a.seed, a.hz)
+    player = SessionPlayer(session, load_params(session, a.params), ctx, 1., a.seed, a.hz, accent=a.accent)
     try:
         print(render_sheet(player, a.times, Path(a.out), a.crop, a.width, a.cols, a.title))
     finally:

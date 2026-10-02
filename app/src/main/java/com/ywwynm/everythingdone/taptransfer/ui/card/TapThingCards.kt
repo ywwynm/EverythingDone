@@ -144,12 +144,17 @@ internal object TapThingCards {
     }
 
     private fun setUp(adapter: ThingsAdapter, metrics: ListMetrics, revealPrivate: Boolean) {
-        adapter.setCardWidth(metrics.normalWidth)
-        adapter.setFullSpanCardWidth(metrics.fullWidth)
-        adapter.setThingCardSurfaceAvailableHeight(metrics.surfaceHeight)
+        applyMetrics(adapter, metrics)
         adapter.setShouldShowPrivateContent(revealPrivate)
         // 动图、视频封面只取静态的一帧：卡片会被截成粒子
         adapter.setAnimatedPlaybackEnabled(false)
+    }
+
+    /** 首页列表的尺寸：普通与通栏卡片的宽度、卡片可用高度。 */
+    private fun applyMetrics(adapter: ThingsAdapter, metrics: ListMetrics) {
+        adapter.setCardWidth(metrics.normalWidth)
+        adapter.setFullSpanCardWidth(metrics.fullWidth)
+        adapter.setThingCardSurfaceAvailableHeight(metrics.surfaceHeight)
     }
 
     /** 绑定（或重新绑定）这张卡片，绑完宽度设为 [width]、高度随内容。 */
@@ -170,9 +175,18 @@ internal object TapThingCards {
      *
      * @param home 首页列表的尺寸：通栏宽是加宽的依据，卡片可用高度用来钳制封面（与首页相同）。
      */
-    abstract class LiftedCard(protected val home: ListMetrics) {
+    abstract class LiftedCard(home: ListMetrics) {
+
+        /** 首页列表的尺寸。窗口变了（旋转屏幕）由 [updateHome] 换成新的。 */
+        protected var home: ListMetrics = home
+            private set
 
         abstract val fullSpan: Boolean
+
+        /** 窗口变了：首页的尺寸跟着变，之后的 [widthIn] 与 [fit] 按新的算。 */
+        open fun updateHome(metrics: ListMetrics) {
+            home = metrics
+        }
 
         abstract val view: View
 
@@ -218,6 +232,12 @@ internal object TapThingCards {
 
         init {
             bind(adapter, holder, home.widthOf(fullSpan))
+        }
+
+        override fun updateHome(metrics: ListMetrics) {
+            super.updateHome(metrics)
+            // 封面的高度按首页的卡片可用高度钳制
+            applyMetrics(adapter, metrics)
         }
 
         /**
@@ -353,6 +373,11 @@ internal object TapThingCards {
 
         init {
             rebind(home.widthOf(fullSpan))
+        }
+
+        override fun updateHome(metrics: ListMetrics) {
+            super.updateHome(metrics)
+            applyMetrics(adapter, metrics)
         }
 
         override fun fit(width: Int, maxHeight: Int, minCoverHeight: Int): Int {

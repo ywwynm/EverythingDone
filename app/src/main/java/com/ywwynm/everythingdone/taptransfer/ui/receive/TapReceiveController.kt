@@ -48,6 +48,7 @@ import com.ywwynm.everythingdone.thingfile.ThingFileReader
 import com.ywwynm.everythingdone.utils.AppearanceUtil
 import com.ywwynm.everythingdone.views.ActivityHeader
 import com.ywwynm.everythingdone.views.particledismiss.ParticleCardSurfaceHandoff
+import com.ywwynm.everythingdone.views.particledismiss.ParticleMaterialShare
 import org.json.JSONArray
 import java.io.File
 import java.io.FileInputStream
@@ -74,7 +75,8 @@ import kotlin.math.min
  *   代理卡片，播它的倒放（进度期间那一层）：颗粒从天线处浮现、从四周的光尘带流进来，朝落点飘，随传输进度推进，
  *   数据到齐之后越来越慢但不停；
  * - 数据到齐、插进列表之后：拼卡那一层的运动只取决于新卡片的位置与大小（按同样大小的代表色卡片算），插入之后
- *   第一次布局就知道了，所以那时就开始建材与预算（占位快照）；列表让位、图片加载好、截出真实快照之后交进去换上
+ *   第一次布局就知道了，所以那时就开始建材与预算（占位快照；预计准确时直接沿用进度期间那一层建好的材料，
+ *   [ParticleMaterialShare]）；列表让位、图片加载好、截出真实快照之后交进去换上
  *   颜色。它的第一帧上屏即流入开始：从同一个进度淡入，进度期间那一层淡出，时间轴平滑加速到拼好；四周的光尘
  *   就近接手一部分流向四周的颗粒（[TapDustHandoff]）。拼好的那一刻列表里的卡片显出来。
  *
@@ -176,6 +178,21 @@ class TapReceiveController(
 
     /** 这一次接收两层共用的种子（碰上时取）：预计准确时两层逐片相同。 */
     private var particleSeed = 0
+
+    /**
+     * 这一次接收两层之间沿用材料的那一份（随进度期间那一层建立）：拼卡那一层提前建时逐项核对、输入相同就沿用。
+     * 拼卡那一层首帧上屏（它的材料早已建好）、接收结束、下一台碰上时清掉。只有 CPU 数组，没有显存要管
+     * （见 [ParticleMaterialShare]）。
+     */
+    private var materialShare: ParticleMaterialShare? = null
+
+    /** 调试：拼卡那一层这一次沿用材料的结论；没有核对时为 null，原因记在 [realAdoptionSkipped]。 */
+    private var realAdoption: ParticleMaterialShare.Adoption? = null
+    private var realAdoptionSkipped = ""
+
+    /** 调试：两层建材时的快照范围与卡片矩形（DecorView 坐标），没能沿用时打出来对照是哪里预计偏了。 */
+    private var proxyRects: Pair<RectF, List<RectF>>? = null
+    private var realRects: Pair<RectF, List<RectF>>? = null
 
     /** 进度期间那一层从建起到第一帧上屏用了多久（秒）：拼卡那一层按它估计流入开始的时刻。 */
     private var proxyCreatedS = Double.NaN
@@ -471,6 +488,11 @@ class TapReceiveController(
         assembling = emptyList()
         assembledCount = 0
         early = null
+        releaseMaterialShare()
+        realAdoption = null
+        realAdoptionSkipped = ""
+        proxyRects = null
+        realRects = null
     }
 
     /** 撤掉还在播的两层粒子，作废还在等的列表、滚动与图片。 */
@@ -482,6 +504,16 @@ class TapReceiveController(
         real = null
         handoff = null
         early = null
+        releaseMaterialShare()
+    }
+
+    /**
+     * 放掉两层之间沿用材料的那一份：只是 CPU 数组的引用，交给垃圾回收；进度期间那一层的建材要是这时才走完，
+     * 也不会再放进来。
+     */
+    private fun releaseMaterialShare() {
+        materialShare?.clear()
+        materialShare = null
     }
 
     // ---------------------------------------------------------------- 传输回调
@@ -562,6 +594,9 @@ class TapReceiveController(
         }
         proxyCreatedS = SystemClock.uptimeMillis() / 1000.0
         val generation = landingGeneration
+        // 建好的材料放进这一次接收共用的那一份：预计准确时，拼卡那一层提前建时直接沿用（见 startReal）
+        val share = ParticleMaterialShare().also { materialShare = it }
+        if (BuildConfig.DEBUG) proxyRects = RectF(bounds) to cards.map { RectF(it) }
         proxy = TapParticleFlight.ReceiveLayer(activity, bitmap, bounds, antennaInDecor(), ringFrameInDecor(), cards,
             position = 1f - timeline.tauAt(proxyCreatedS), alpha = 1f, drawSurface = false,
             listener = object : TapParticleFlight.ReceiveLayer.Listener {
@@ -579,7 +614,7 @@ class TapReceiveController(
                 override fun onLost() {
                     if (generation == landingGeneration) proxy = null
                 }
-            }, seed = particleSeed)
+            }, seed = particleSeed, publishMaterials = share)
     }
 
     /**
@@ -608,8 +643,9 @@ class TapReceiveController(
         }
         val top = header?.let { inContainer(it).bottom } ?: (scrollTop - margin)
         val grid = TapListPrediction.Grid(list.left + rv.paddingLeft, contentWidth, layoutManager.spanCount, margin, top)
+        // 卡片高度按整像素预计：预计准确时代理卡片与列表里的卡片逐像素相同，拼卡那一层才能沿用这一层建好的材料
         return TapListPrediction.predict(grid, pinned, offer.aspects, offer.fullSpan, count, area.top, area.bottom,
-            scrollTop).map { RectF(it[0], it[1], it[2], it[3]) }
+            scrollTop, wholePixels = true).map { RectF(it[0], it[1], it[2], it[3]) }
     }
 
     /**
@@ -898,6 +934,9 @@ class TapReceiveController(
      * 插入之后第一次布局一完成就建拼卡那一层：运动只取决于新卡片的位置与大小，占位快照是同样大小的代表色卡片，
      * 真实快照等让位、图片加载、截图之后再交进来（[captureAndFly]）。第一张新卡片要先滚过去时位置还会变，
      * 照旧等截图之后再建。
+     *
+     * 预计准确时占位快照与进度期间那一层的代理卡片逐像素相同、建材的其余输入（范围、终点、卡片矩形、种子、参数）也
+     * 逐项相同，这一层直接沿用那一层建好的材料（[ParticleMaterialShare]），省掉建材；有一项不同就照常建。
      */
     private fun startRealEarly(generation: Int, ids: List<Long>) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || real != null) return
@@ -1081,6 +1120,16 @@ class TapReceiveController(
             drawRects(snapshot.width, snapshot.height, bounds.left, bounds.top, cards, colorsOf(shown))
         val nowS = SystemClock.uptimeMillis() / 1000.0
         realCreatedS = nowS
+        // 提前建（占位快照）时先核对能不能沿用进度期间那一层建好的材料。截图之后按真实快照重建的那一次不核对：
+        // 算运动的位图是另画的，取像素的方式也不同（圆角处半透明的像素不会逐位相同）
+        val adoption = if (deferred) materialShare?.let { ParticleMaterialShare.Adoption(it) } else null
+        realAdoption = adoption
+        realAdoptionSkipped = when {
+            adoption != null -> ""
+            deferred -> "没有进度期间那一层"
+            else -> "截图之后按真实快照重建，算运动的位图另画"
+        }
+        if (BuildConfig.DEBUG) realRects = RectF(bounds) to cards.map { RectF(it) }
         val s = stage
         val band = s?.dustBand
         // 流入开始 = 算完历史且真实快照已经换上；提前建时还要等让位、图片与截图
@@ -1120,7 +1169,7 @@ class TapReceiveController(
                 }
             },
             dynamics = dynamics, handoff = handoff, dumpKind = "receive", deferForeground = deferred,
-            seed = particleSeed)
+            seed = particleSeed, adoptMaterials = adoption)
     }
 
     /** 拼卡那一层整段算完、第一帧上屏：流入开始，时间轴平滑加速到拼好，两层交叉淡化。 */
@@ -1131,13 +1180,47 @@ class TapReceiveController(
         if (BuildConfig.DEBUG) {
             Log.i(TAG, "拼卡那一层首帧上屏：准备 %.3f 秒（预计 %.3f），流入从 tau %.3f 开始".format(
                 nowS - realCreatedS, prepareEstimateS, inflow.tauH))
+            Log.i(TAG, reuseNote(nowS - realCreatedS))
         }
+        // 拼卡那一层的材料早已建好，沿用的那一份用不到了
+        releaseMaterialShare()
         recorder?.event("inflow-start")
         recorder?.stopTracking()
         stage?.let { s ->
             handoff?.let { s.setHandoff(it.hideTau) }
             s.inflow()
         }
+    }
+
+    /**
+     * 调试（真机核对用）：拼卡那一层这一次沿用了什么、没沿用的原因（第一处不同的那一项）、各步用了多久。
+     * 历史（倒放要的整段轨迹）一律重算，见 [ParticleMaterialShare]。
+     */
+    private fun reuseNote(prepareS: Double): String {
+        val adoption = realAdoption
+        val result = adoption?.result
+        val materials = when {
+            adoption == null -> "未核对（$realAdoptionSkipped）"
+            result == null -> "未知（建材那一步还没给出结论）"
+            result.adopted -> "沿用（${result.reason}；进度期间那一层建材 ${seconds(result.publishedSeconds)} 秒，" +
+                "这一层复制 ${seconds(result.materialSeconds)} 秒、光尘接手 ${seconds(result.handoffSeconds)} 秒）"
+            else -> "重建（${result.reason}；这一层建材 ${seconds(result.materialSeconds)} 秒、" +
+                "光尘接手 ${seconds(result.handoffSeconds)} 秒${rectsNote()}）"
+        }
+        val history = if (handoff != null) {
+            "重算（带光尘接手：配上的颗粒改了寿命与终点、积分着色器是另一个变体，各片又经压力场互相影响）"
+        } else {
+            "重算（两层的历史缓冲不跨会话共享）"
+        }
+        return "拼卡那一层沿用材料：$materials；历史：$history；准备 ${seconds(prepareS)} 秒"
+    }
+
+    /** 两层建材时的快照范围与卡片矩形，对照是哪里预计偏了。 */
+    private fun rectsNote(): String {
+        val (proxyBounds, proxyCards) = proxyRects ?: return ""
+        val (realBounds, realCards) = realRects ?: return ""
+        return "；代理卡片 ${proxyCards.joinToString { it.toShortString() }}（范围 ${proxyBounds.toShortString()}），" +
+            "这一层 ${realCards.joinToString { it.toShortString() }}（范围 ${realBounds.toShortString()}）"
     }
 
     /** 拼卡那一层呈现的位置：时间轴到头、末帧（完整的卡片）上屏即拼好。 */
@@ -1269,11 +1352,20 @@ class TapReceiveController(
     }
 
     /**
-     * 视图在容器里的布局位置：当前位置去掉它自己的平移。列表让位动画用平移把卡片从旧位置挪到新位置，
-     * 动画还在播时这就是走完之后的位置（祖先的平移照算：列表整体下移了按钮让出的那一截）。
+     * 视图在容器里的布局位置：父视图此刻的位置加上视图自己的布局坐标，不含它自己的平移。列表让位动画用平移把卡片
+     * 从旧位置挪到新位置，动画还在播时这就是走完之后的位置（祖先的平移照算：列表整体下移了按钮让出的那一截）。
+     *
+     * 不用「当前位置减去平移」：[inContainer] 先把含平移的位置取了整，再减去带小数的平移，结果带小数，按它画的占位
+     * 卡片边缘是半透明的，与按整像素预计的代理卡片对不上（与 [TapParticleFlight.layoutBoundsInDecor] 同一个口径）。
      */
-    private fun settledInContainer(view: View): RectF =
-        inContainer(view).apply { offset(-view.translationX, -view.translationY) }
+    private fun settledInContainer(view: View): RectF {
+        val parent = view.parent as? View
+            ?: return inContainer(view).apply { offset(-view.translationX, -view.translationY) }
+        val at = inContainer(parent)
+        val left = at.left + view.left - parent.scrollX
+        val top = at.top + view.top - parent.scrollY
+        return RectF(left, top, left + view.width, top + view.height)
+    }
 
     /** 视图在容器里的范围（含平移），与舞台的坐标一致。 */
     private fun inContainer(view: View): RectF {
@@ -1368,5 +1460,8 @@ class TapReceiveController(
             val t = ((x - edge0) / (edge1 - edge0)).coerceIn(0.0, 1.0)
             return (t * t * (3.0 - 2.0 * t)).toFloat()
         }
+
+        /** 调试日志里的秒数。 */
+        fun seconds(value: Double): String = "%.3f".format(value)
     }
 }
