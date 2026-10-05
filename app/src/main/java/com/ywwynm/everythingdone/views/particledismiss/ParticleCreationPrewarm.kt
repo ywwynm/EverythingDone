@@ -150,11 +150,15 @@ internal object ParticleCreationPrewarm {
     @Volatile private var lastPrecomputeMs = 0.0
     @Volatile private var lastTakeMs = 0.0
 
+    /** 只在流体样式下预热：飘散样式的任何时刻都能直接算，没有轨迹要预算。 */
+    private val enabled get() =
+        ParticlePerfTuning.creationPrewarm && ParticleStyle.current == ParticleStyle.FLOW
+
     // ---- 首页侧入口 ----
 
     /** 首页可见（`onResume`）。[keyProvider] 给出「如果现在点新建，键会是什么」。 */
     fun onHomeVisible(activity: Activity, keyProvider: () -> ParticleCreationKey?) {
-        if (!ParticlePerfTuning.creationPrewarm) return
+        if (!enabled) return
         homeActivity = WeakReference(activity)
         appContext = activity.applicationContext
         this.keyProvider = keyProvider
@@ -177,7 +181,7 @@ internal object ParticleCreationPrewarm {
 
     /** 任何触摸/按键都推迟开工，并暂停正在跑的预算。 */
     fun touched() {
-        if (!ParticlePerfTuning.creationPrewarm) return
+        if (!enabled) return
         lastInteractionAt = SystemClock.uptimeMillis()
         if (scheduled) main.removeCallbacks(schedule)
         scheduled = true
@@ -190,7 +194,7 @@ internal object ParticleCreationPrewarm {
     }
 
     private fun beginIfIdle() {
-        if (!ParticlePerfTuning.creationPrewarm) return
+        if (!enabled) return
         val activity = homeActivity?.get() ?: return
         if (activity.isFinishing || activity.isDestroyed) return
         val decor = activity.window?.decorView as? ViewGroup ?: return
@@ -305,7 +309,7 @@ internal object ParticleCreationPrewarm {
 
     private fun step() {
         val current = job ?: return
-        if (!ParticlePerfTuning.creationPrewarm) { cancelJob("开关已关"); return }
+        if (!enabled) { cancelJob("开关已关"); return }
         // 有触摸/有动画在播就停一拍，稍后接着算：历史只增不减，续算完全等价。
         if (ParticleGpuWork.busy ||
             SystemClock.uptimeMillis() - lastInteractionAt < ParticlePerfTuning.creationPrewarmIdleMs) {
@@ -385,7 +389,7 @@ internal object ParticleCreationPrewarm {
      * 要把快照解成 ARGB，这里只是多留一个引用，不复制像素）。
      */
     fun remember(spec: ParticleDismissSpec, pixels: IntArray?) {
-        if (!ParticlePerfTuning.creationPrewarm || !spec.creationPage || pixels == null) return
+        if (!enabled || !spec.creationPage || pixels == null) return
         val bitmap = spec.snapshot
         if (pixels.size != bitmap.width * bitmap.height) return
         source = Source(pixels, bitmap.width, bitmap.height, spec.originXPx, spec.originYPx,
@@ -412,7 +416,7 @@ internal object ParticleCreationPrewarm {
     fun take(key: ParticleCreationKey?, snapshotWidth: Int, snapshotHeight: Int,
              originX: Float, originY: Float): ParticlePreparedAppearance? {
         val started = System.nanoTime()
-        if (!ParticlePerfTuning.creationPrewarm) { record("miss", "预算开关已关"); return null }
+        if (!enabled) { record("miss", "预算开关已关或飘散样式"); return null }
         var busy = false
         val prepared = synchronized(lock) {
             busy = working
@@ -552,7 +556,7 @@ internal object ParticleCreationPrewarm {
         .put("precomputeMs", lastPrecomputeMs)
         .put("takeMs", lastTakeMs)
         .put("hasSource", source != null)
-        .put("enabled", ParticlePerfTuning.creationPrewarm)
+        .put("enabled", enabled)
         // 第五批：这一次的预测素材是内存里的上一屏、磁盘缓存，还是根本没有。
         .put("sourceKind", sourceKind)
         .put("disk", ParticlePrewarmStore.diagnostics())

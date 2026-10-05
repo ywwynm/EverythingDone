@@ -43,6 +43,7 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 import com.ywwynm.everythingdone.views.particledismiss.ParticleFrameStats
 import com.ywwynm.everythingdone.views.particledismiss.ParticlePanelAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ParticleStyle
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
 import com.ywwynm.everythingdone.views.particledismiss.ParticleTouchFeedback
 import com.ywwynm.everythingdone.views.particledismiss.ParticleTuning
@@ -91,6 +92,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     private var dialogMode: TextView? = null
     private var colorStandardTab: TextView? = null
     private var colorHighTab: TextView? = null
+    private var styleFlowTab: TextView? = null
+    private var styleDriftTab: TextView? = null
+    private var amountSlider: SeekBar? = null
+    private var amountValue: TextView? = null
     private var autoCheckBox: CheckBox? = null
     private var autoRow: View? = null
     private var resetButton: TextView? = null
@@ -236,6 +241,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         dialogMode = f(R.id.tv_particle_tuning_mode_dialog)
         colorStandardTab = f(R.id.tv_particle_tuning_color_standard)
         colorHighTab = f(R.id.tv_particle_tuning_color_high)
+        styleFlowTab = f(R.id.tv_particle_tuning_style_flow)
+        styleDriftTab = f(R.id.tv_particle_tuning_style_drift)
+        amountSlider = f(R.id.sb_particle_tuning_amount)
+        amountValue = f(R.id.tv_particle_tuning_amount_value)
         autoCheckBox = f(R.id.cb_particle_tuning_auto)
         autoRow = f(R.id.rl_particle_tuning_auto_row)
         resetButton = f(R.id.tv_particle_tuning_reset)
@@ -250,6 +259,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         DisplayUtil.expandStatusBarViewAboveKitkat(f<View>(R.id.view_status_bar))
         DisplayUtil.darkStatusBar(this)
 
+        f<TextView>(R.id.tv_particle_tuning_style_label).setText(R.string.particle_tuning_style)
+        f<TextView>(R.id.tv_particle_tuning_style_detail).setText(R.string.particle_tuning_style_detail)
+        f<TextView>(R.id.tv_particle_tuning_amount_label).setText(R.string.particle_tuning_amount)
+        f<TextView>(R.id.tv_particle_tuning_amount_detail).setText(R.string.particle_tuning_amount_detail)
         f<TextView>(R.id.tv_particle_tuning_cell_label).setText(R.string.particle_tuning_cell_size)
         f<TextView>(R.id.tv_particle_tuning_cell_detail).setText(R.string.particle_tuning_cell_size_detail)
         f<TextView>(R.id.tv_particle_tuning_flow_label).setText(R.string.particle_tuning_flow_detail)
@@ -265,10 +278,12 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         dialogMode?.setText(R.string.particle_tuning_preview_dialog)
         colorStandardTab?.setText(R.string.particle_tuning_color_precision_standard)
         colorHighTab?.setText(R.string.particle_tuning_color_precision_high)
+        styleFlowTab?.setText(R.string.particle_tuning_style_flow)
+        styleDriftTab?.setText(R.string.particle_tuning_style_drift)
         resetButton?.setText(R.string.particle_tuning_reset)
 
         listOf(cardMode, dialogMode).forEach { makeCapsule(it) }
-        listOf(colorStandardTab, colorHighTab).forEach { makeChoiceChip(it) }
+        listOf(colorStandardTab, colorHighTab, styleFlowTab, styleDriftTab).forEach { makeChoiceChip(it) }
         setUpSampleDialog()
         // 预览下方的两个图标按钮：不带底色，只有图标本身与一圈主题色涟漪。
         //
@@ -320,7 +335,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         cellSlider?.progress = ParticleTuning.cellIndex(this)
         flowSlider?.max = ParticleTuning.FLOW_MAX
         flowSlider?.progress = ParticleTuning.flowDetail(this)
+        amountSlider?.max = ParticleTuning.DRIFT_AMOUNT_LEVELS.lastIndex
+        amountSlider?.progress = ParticleTuning.driftAmountIndex(this)
         autoCheckBox?.isChecked = ParticleTuning.isAutoTuneOn(this)
+        updateStyleGroups()
 
         DisplayUtil.applyBottomInsetAsScrollPadding(f<ScrollView>(R.id.sv_particle_tuning_params))
         applyThemeColor(themeBackground, full = true)
@@ -346,6 +364,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         directionButton?.setOnClickListener { showDirectionPopup() }
         colorStandardTab?.setOnClickListener { setColorStandard(true) }
         colorHighTab?.setOnClickListener { setColorStandard(false) }
+        styleFlowTab?.setOnClickListener { setStyle(ParticleStyle.FLOW) }
+        styleDriftTab?.setOnClickListener { setStyle(ParticleStyle.DRIFT) }
         autoCheckBox?.setOnCheckedChangeListener { _, checked ->
             ParticleTuning.setAutoTune(this, checked)
             publishStats()
@@ -355,9 +375,12 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             cellExplicit = false
             cellSlider?.progress = ParticleTuning.DEFAULT_CELL_INDEX
             flowSlider?.progress = ParticleTuning.DEFAULT_FLOW
+            amountSlider?.progress = ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX
             autoCheckBox?.isChecked = false
             updateValueLabels()
             updateColorTabs()
+            updateStyleTabs()
+            updateStyleGroups()
             publishStats()
             scheduleRebuild()
         }
@@ -387,6 +410,19 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
 
             override fun onStopTrackingTouch(bar: SeekBar) {
                 ParticleTuning.setFlowDetail(this@ParticleTuningActivity, bar.progress)
+                updateValueLabels()
+                scheduleRebuild()
+            }
+        })
+        amountSlider?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                updateValueLabels()
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar) = Unit
+
+            override fun onStopTrackingTouch(bar: SeekBar) {
+                ParticleTuning.setDriftAmountIndex(this@ParticleTuningActivity, bar.progress)
                 updateValueLabels()
                 scheduleRebuild()
             }
@@ -662,6 +698,34 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         scheduleRebuild()
     }
 
+    private fun updateStyleTabs() {
+        val drift = ParticleTuning.style(this) == ParticleStyle.DRIFT
+        paintChoiceChip(styleFlowTab, !drift, themeBackground)
+        paintChoiceChip(styleDriftTab, drift, themeBackground)
+    }
+
+    /** 粒子样式。设置落盘后与改参数同一条路径重开预览：正在播的那一轮不打断，播完用新样式补一轮。 */
+    private fun setStyle(style: ParticleStyle) {
+        if (ParticleTuning.style(this) == style) return
+        ParticleTuning.setStyle(this, style)
+        updateStyleTabs()
+        updateStyleGroups()
+        scheduleRebuild()
+    }
+
+    /**
+     * 只属于流体样式的四项（粒子大小、流动细节、颜色精度、性能自动调节）在飘散样式下整组隐藏，
+     * 换成「粒子数量」（用户 2026-10-05 裁定）。
+     */
+    private fun updateStyleGroups() {
+        val drift = ParticleTuning.style(this) == ParticleStyle.DRIFT
+        f<View>(R.id.ll_particle_tuning_amount_group)?.visibility = if (drift) View.VISIBLE else View.GONE
+        listOf(R.id.ll_particle_tuning_cell_group, R.id.ll_particle_tuning_flow_group,
+            R.id.ll_particle_tuning_color_group, R.id.rl_particle_tuning_auto_row).forEach {
+            f<View>(it)?.visibility = if (drift) View.GONE else View.VISIBLE
+        }
+    }
+
     /**
      * 示例对话框按真实对话框取值：底色是常规 surface 色（跟随深浅色模式），
      * 只有标题与「确定」用主题色——与 `AlertDialogFragment` 的做法逐条对应。
@@ -830,6 +894,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         paintCapsule(cardMode, previewingCard, background)
         paintCapsule(dialogMode, !previewingCard, background)
         updateColorTabs()
+        updateStyleTabs()
         cellSlider?.let {
             DisplayUtil.setSeekBarBackground(it, background)
             alignSliderToTextEdges(it)
@@ -838,8 +903,13 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             DisplayUtil.setSeekBarBackground(it, background)
             alignSliderToTextEdges(it)
         }
+        amountSlider?.let {
+            DisplayUtil.setSeekBarBackground(it, background)
+            alignSliderToTextEdges(it)
+        }
         BackgroundUtil.applyTextBackground(cellValue, background)
         BackgroundUtil.applyTextBackground(flowValue, background)
+        BackgroundUtil.applyTextBackground(amountValue, background)
         resetButton?.let {
             BackgroundUtil.applyTextBackground(it, background)
             GradientRippleDrawable.applyAccentRipple(it, background, background.representativeColor())
@@ -1118,8 +1188,13 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         cellValue?.text = if (cellExplicit) size
             else getString(R.string.particle_tuning_value_default, size)
         flowValue?.text = flow.toString()
+        val amount = amountSlider?.progress ?: ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX
+        val amountLabel = ParticleTuning.driftAmountLabel(amount)
+        amountValue?.text = if (amount == ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX)
+            getString(R.string.particle_tuning_value_default, amountLabel) else amountLabel
         BackgroundUtil.applyTextBackground(cellValue, themeBackground)
         BackgroundUtil.applyTextBackground(flowValue, themeBackground)
+        BackgroundUtil.applyTextBackground(amountValue, themeBackground)
     }
 
     /** 本机密度下这一档折合多少像素；整数能表示时不写小数点。 */

@@ -3330,3 +3330,7 @@ grill 定案后新写的原型：三角网格 + numpy 逐帧平流（风 + 两�
   改两列，十二段重导、8653 重启、8666 已发布（replica 文档第 50 节）。
 - 晚（五续）：参考 3 人脸、手套周围的格点推迟（[1,1] 1.0、[2,1] 0.85、[0,1] 0.62），后段人脸、手套变透明的时机与原片接近；覆盖率量法在颗粒密集处不可信，
   以目视为准（replica 文档第 51 节）。重导、8653 重启、8666 已发布。
+- 夜（Android 移植口径）：`harmony_native.py` 加可选的 Android 口径（`android_extras()`：湍流换算与偏移、内容强调、任意方向的风、src-over 时 alpha 先截到 1），
+  缺省值下三段参考与改前逐位相同；新文件 `android_drift.py` 是 Android 飘散样式输入规则的逐项 Python 移植，加模型 `harmony-android`
+  「华为原生 · Android 移植口径」，同一输入下与 R5CW20BLNKL 离屏出帧逐帧一致、588 组输入逐位相同（`docs/features/harmony-particle-android-port/parity/`）。
+  `desktop_inputs.py`、`live/live_server.py`、`live/live.html` 接入新模型；8653 重启，8666 发布为最新版（审阅页沿用华为原生的参考对照）。

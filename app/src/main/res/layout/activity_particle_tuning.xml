@@ -203,11 +203,127 @@
                   * 滑动条用**全宽**：`Widget.Material.SeekBar` 自带左右 16dp 内边距，
                     轨道正好与 16dp 的标题左缘对齐。
                 -->
+                <!--
+                  粒子样式：流体（原有实现）/ 飘散（按源码移植的消蚀 + 风与湍流，缺省）。
+                  样式与下面的「颜色精度」一行相同。选中飘散时，只属于流体样式的四项
+                  （粒子大小、流动细节、颜色精度、性能自动调节）整组隐藏，换成「粒子数量」。
+                  见 `docs/features/harmony-particle-android-port/`。
+                -->
                 <LinearLayout
+                    android:id="@+id/ll_particle_tuning_style_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingTop="8dp">
+
+                    <LinearLayout
+                        android:id="@+id/ll_particle_tuning_style_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_style_label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_style_flow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:gravity="center"
+                            android:minWidth="64dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:textSize="14sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_style_drift"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginLeft="8dp"
+                            android:layout_marginStart="8dp"
+                            android:gravity="center"
+                            android:minWidth="64dp"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_style_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <!-- 粒子数量（只在飘散样式下显示）：按面积换算的粒子数再乘这一档倍率。 -->
+                <LinearLayout
+                    android:id="@+id/ll_particle_tuning_amount_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <RelativeLayout
+                        android:id="@+id/rl_particle_tuning_amount_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_amount_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_amount_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="14sp"/>
+
+                    </RelativeLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_particle_tuning_amount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_amount_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_particle_tuning_cell_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <RelativeLayout
                         android:id="@+id/rl_particle_tuning_cell_row"
@@ -254,6 +370,7 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/ll_particle_tuning_flow_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
@@ -307,6 +424,7 @@
                      「导出色彩设置」一致（第 7 批第 3 条）；行高与左右内边距按参照页取
                      56dp / 16dp（第 9 批）。 -->
                 <LinearLayout
+                    android:id="@+id/ll_particle_tuning_color_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">

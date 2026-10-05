@@ -137,7 +137,7 @@ def render_loop():
                                     source=inputs['source'] if model in ('candidate','material','harmony-origins') else '正式共同释放规则',
                                     origins=inputs['origins'] if model in ('candidate','material','harmony-origins') else [], tap=inputs['tap'],
                                     build_ms=round((time.perf_counter()-started)*1000), particles=renderer.n)
-                        if model in ('harmony-core','harmony-origins','harmony-native'):
+                        if model in ('harmony-core','harmony-origins','harmony-native','harmony-android'):
                             core = renderer.describe()
                             info.update(source=inputs['source'] if model=='harmony-origins' else core['source'],
                                         origins=core.get('origins',[]), core=core,
@@ -155,7 +155,7 @@ def render_loop():
                     last_tick = time.perf_counter()
                     info.update(progress=progress, playing=playing, speed=speed, status='播放' if playing else '暂停')
                     frame = renderer.render(progress)
-                    if model in ('harmony-core','harmony-origins','harmony-native'):
+                    if model in ('harmony-core','harmony-origins','harmony-native','harmony-android'):
                         info.update(renderer.diagnostics())
                     publish(compose(name, frame, progress), info, request_id)
                 elif playing and renderer is not None:
@@ -164,7 +164,7 @@ def render_loop():
                     progress = min(1., progress+delta*speed/getattr(renderer,'playback_duration',1.))
                     playing = progress < 1.
                     frame = compose(name, renderer.render(progress), progress)
-                    if model in ('harmony-core','harmony-origins','harmony-native'):
+                    if model in ('harmony-core','harmony-origins','harmony-native','harmony-android'):
                         info.update(renderer.diagnostics())
                     info.update(progress=round(progress, 4), playing=playing, speed=speed,
                                 fps=round(1/max(delta, 1e-6), 1), status='播放' if playing else '结束')

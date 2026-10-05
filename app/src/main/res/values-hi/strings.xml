@@ -556,6 +556,12 @@
     <string name="particle_tuning_color_precision_detail">मानक सटीकता हर रंग चैनल को 8-बिट पूर्णांक में रखती है और गणना का बोझ कम पड़ता है; उच्च सटीकता 16-बिट फ़्लोटिंग पॉइंट लेती है, जिससे बदलाव और महीन रहते हैं।</string>
     <string name="particle_tuning_auto_tune">प्रदर्शन का स्वतः समायोजन</string>
     <string name="particle_tuning_auto_tune_detail">लगातार फ़्रेम छूटने पर गणना का बोझ घटाने के लिए कण आकार और प्रवाह की बारीकी अपने आप समायोजित की जाती है।</string>
+    <string name="particle_tuning_style">कण शैली</string>
+    <string name="particle_tuning_style_flow">प्रवाह</string>
+    <string name="particle_tuning_style_drift">बिखराव</string>
+    <string name="particle_tuning_style_detail">प्रवाह: कण एक-दूसरे को धकेलते हुए साथ बह जाते हैं। बिखराव: सामग्री एक जगह से धीरे-धीरे घुलती है और कण हवा के साथ उड़ जाते हैं।</string>
+    <string name="particle_tuning_amount">कणों की मात्रा</string>
+    <string name="particle_tuning_amount_detail">कणों की संख्या सामग्री के आकार के अनुसार तय होती है और फिर इस गुणक से गुणा की जाती है। अधिक कण ज़्यादा घने दिखते हैं और लागत भी बढ़ती है।</string>
     <string name="direction_sensor_restricted">फ़िलहाल चित्र डिवाइस की दिशा पर प्रतिक्रिया नहीं दे सकता। %1$s में इस ऐप को डिवाइस की गति और दिशा की अनुमति दें।</string>
     <string name="direction_sensor_restricted_settings">सिस्टम सेटिंग</string>
     <string name="fablesol_tuning_hdr">HDR हाइलाइट्स</string>

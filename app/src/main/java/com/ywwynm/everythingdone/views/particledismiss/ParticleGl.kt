@@ -336,6 +336,13 @@ internal object ParticleGl {
         }
     }
 
+    /** 只要上下文（不建流体样式的共享资源）：飘散会话的准备阶段用。 */
+    fun ensureContextReady(): Boolean {
+        if (!ensureContext()) return false
+        useForeground()
+        return true
+    }
+
     fun bind(surface: EGLSurface): Boolean {
         useForeground()
         if (surface == bound && current === context) return true

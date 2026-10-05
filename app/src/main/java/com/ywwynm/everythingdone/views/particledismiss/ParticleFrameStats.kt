@@ -88,5 +88,13 @@ internal object ParticleFrameStats {
         return ParticleTuning.onRoundMeasured(context, summary.ratio)
     }
 
+    /**
+     * 飘散样式的一轮收尾。自动调档只调流体样式的参数，这一轮的采样不能交给它，直接丢掉；
+     * 设置页正开着时留给设置页自己汇总。
+     */
+    fun roundSkipped() {
+        synchronized(times) { if (!collecting) times.clear() }
+    }
+
     fun reportFlakes(count: Int) { flakes = count }
 }

@@ -222,6 +222,18 @@ uniform float u_density, u_dragBase, u_dragRange, u_accel;
 uniform float u_scale, u_evo, u_amp, u_comp, u_omult, u_oscale, u_evoMult, u_noiseOffsetX, u_noiseOffsetY, u_particlePhase;
 // 暗色下限：源码在快照颜色空间里取 0.1961；快照若为线性格式，换成 sRGB 编码值约为 0.4823（诊断用）
 uniform float u_darkClamp;
+// Android 移植口径（缺省与源码相同）：湍流取样位置 = (初始位置 × u_turbScale + u_turbShift) × 频率 + u_turbOffset
+uniform vec2 u_turbScale, u_turbShift, u_turbOffset;
+// Android 移植口径的内容强调（ParticleDriftContent / drift-update.comp）：use_content = 0 时不起作用
+uniform int use_content;
+uniform uint content_base;        // 前 content_base 颗是源码的颗粒，其后是按分布表追加的副本
+uniform ivec2 content_grid;
+uniform vec3 content_panel;
+uniform float content_panel_weight;
+uniform float content_total;      // 整段动画的设备时长（Android totalSeconds）：寿命加长不越过它
+uniform float frame_time;         // 本帧的设备时刻（出生帧的时刻）
+layout(std430,binding=1) readonly buffer Cells{float cumulative[];} cells;
+layout(std430,binding=2) buffer Emphasis{vec2 e[];} emphasis_buf;   // 每颗：强调量、本体色份额
 
 uint hash(uint x){
     x^=x>>15;x*=0x85ebca6bu;x^=x>>13;x*=0xc2b2ae35u;x^=x>>16;return x;
@@ -244,10 +256,28 @@ vec4 sampleImage(vec2 uv){vec4 c=texelFetch(image_full,halfTexel(uv),0);c.rgb*=c
 // pos_seed 为 x、y 两个随机数的种子偏移（源码 1、3）。
 uniform int pos_mode;
 uniform uvec2 pos_seed;
+int pickCell(float r){
+    int lo=0,hi=content_grid.x*content_grid.y-1;
+    while(lo<hi){int mid=(lo+hi)/2;if(cells.cumulative[mid]<r)lo=mid+1;else hi=mid;}
+    return lo;
+}
+float smoothUnit(float x){float t=clamp(x,0.0,1.0);return t*t*(3.0-2.0*t);}
+float contentWeight(vec3 c){
+    float chroma=smoothUnit((max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b))-0.30)/0.42);
+    vec3 d=abs(c-content_panel);
+    float contrast=smoothUnit((max(d.r,max(d.g,d.b))-0.06)/0.26);
+    return chroma+(contrast-chroma)*content_panel_weight;
+}
 vec2 calculateParticlePosition(uint index){
     vec2 pos=vec2(0.0);
     float minX=position_cfg.x,maxX=position_cfg.x+emitSize.x;
     float minY=position_cfg.y,maxY=position_cfg.y+emitSize.y;
+    if(use_content==1&&index>=content_base){
+        int cell=pickCell(getRandomValue(0.0,1.0,index*7u+5u));
+        vec2 inCell=vec2(getRandomValue(0.0,1.0,index+1u),getRandomValue(0.0,1.0,index+3u));
+        vec2 cellUv=(vec2(float(cell%content_grid.x),float(cell/content_grid.x))+inCell)/vec2(content_grid);
+        return position_cfg+min(cellUv,vec2(0.99999))*emitSize;
+    }
     if(pos_mode==0){
         pos.x=getRandomValue(minX,maxX,index+pos_seed.x);
         pos.y=getRandomValue(minY,maxY,index+pos_seed.y);
@@ -273,6 +303,14 @@ void createNewParticles(uint index){
     if(particles.v[index].color.a<1.0){
         particles.v[index].position=vec2(-1.0);
         return;
+    }
+    if(use_content==1){
+        // 内容权重取暗色下限之前的颜色（与 Android 相同）
+        float w=contentWeight(particles.v[index].color.rgb);
+        float em=content_panel_weight*w;
+        emphasis_buf.e[index]=vec2(em,content_panel_weight*(1.0-w));
+        float life=particles.v[index].lifeTime;
+        particles.v[index].lifeTime=min(life*(1.0+0.30*em),max(content_total-frame_time,life));
     }
     float randomAlpha=getRandomValue(0.6,1.0,index+13u);
     particles.v[index].color.a=randomAlpha;
@@ -307,7 +345,7 @@ void UpdatePosition(int index,float dT){
     float turbEvoTime=dt*u_evo*u_evoMult;
     float timeOffset=mod(getRandomValue(0.0,1.0,uint(index)+12u)*10000.0,100.0)/1000.0;
     float particlePhase=a_rand*u_particlePhase;
-    vec3 samplePos=vec3(p.initPosition*turbFreq,turbEvoTime+timeOffset+particlePhase);
+    vec3 samplePos=vec3((p.initPosition*u_turbScale+u_turbShift)*turbFreq+u_turbOffset,turbEvoTime+timeOffset+particlePhase);
     float noiseX=fbm(samplePos);
     float noiseY=fbm(samplePos+vec3(u_noiseOffsetX,u_noiseOffsetY,0.0));
     vec2 turbVec=vec2(noiseX,noiseY)*u_amp*dt;
@@ -350,6 +388,8 @@ void main(){
 PARTICLE_VERTEX = r'''#version 430
 struct Particle{vec2 position;vec2 initPosition;vec4 color;float lifeTime;float activeTime;float radius;float scale;};
 layout(std430,binding=0) readonly buffer Particles{Particle v[];} particles;
+layout(std430,binding=2) readonly buffer Emphasis{vec2 e[];} emphasis_buf;
+uniform int use_content;
 uniform vec2 work_size;
 uniform int idx_lo, idx_hi;   // 只画索引在 [idx_lo, idx_hi) 的颗粒（诊断用，默认全部）
 uniform float age_lo, age_hi; // 只画活动时间在 [age_lo, age_hi) 秒的颗粒（诊断用，默认全部）
@@ -385,6 +425,11 @@ void main(){
         fade_alpha=pow(gr,alpha_power)*pow(fd,fade_alpha_power);
         if(p.scale<=0.0)sz=0.0;
     }
+    if(use_content==1){
+        vec2 g=emphasis_buf.e[gl_InstanceID];
+        sz*=(1.0+0.20*g.x)*(1.0-0.26*g.y);
+        fade_alpha*=(1.0+0.25*g.x)*(1.0-0.35*g.y);
+    }
     fade_f=clamp((1.0-lr)/max(alpha_window,1e-4),0.0,1.0);   // 只取寿命末段 alpha_window 内的衰减（生长段不算）
     float h=max(sz,min_scale)*size_factor;
     float pad=h+feather;
@@ -408,6 +453,7 @@ uniform int linear_light;
 uniform int premul_as_is;
 uniform float alpha_mul;
 uniform float alpha_extra;   // 只乘在 alpha（遮挡背景的程度）上的额外衰减 f^alpha_extra，颜色不变
+uniform int clamp_alpha;     // 1：颗粒 alpha（随机 alpha × 生长衰减）先截到 1 再乘点纹理覆盖率（Android 移植口径，强调可使它超过 1）
 vec3 s2l(vec3 c){return mix(c/12.92,pow((c+0.055)/1.055,vec3(2.4)),step(0.04045,c));}
 void main(){
     float cover;
@@ -426,8 +472,10 @@ void main(){
         cover=clamp(0.5-e/max(feather,1e-3),0.0,1.0);
     }
     if(cover<=0.0)discard;
+    float sprite=cover;
     cover*=fade_alpha;
     float a=color.a*cover*opacity;
+    if(clamp_alpha==1)a=min(color.a*fade_alpha,1.0)*sprite*opacity;
     vec3 rgb=min(color.rgb*gain,vec3(1.0));
     if(linear_light==1)rgb=s2l(rgb);
     float ax=alpha_extra>0.0?pow(max(fade_f,0.0),alpha_extra):1.0;
@@ -726,6 +774,9 @@ class NativeRenderer:
         n = int(i.count)
         self.n = n
         self.state = own(self.ctx.buffer(reserve=n * 48))
+        # Android 移植口径的内容强调：每颗两个 float；分布表至少一项（着色器声明的缓冲始终有东西绑着）
+        self.emphasis = own(self.ctx.buffer(reserve=n * 8))
+        self.cells = own(self.ctx.buffer(np.ones(1, 'f4').tobytes()))
         self.compute = own(self.ctx.compute_shader(COMPUTE))
         self.mask_prog = own(self.ctx.program(vertex_shader=FULL_VERTEX, fragment_shader=MASK_FRAGMENT))
         self.mask_vao = own(self.ctx.vertex_array(self.mask_prog, []))
@@ -782,6 +833,15 @@ class NativeRenderer:
         c['u_darkClamp'] = q.dark_clamp
         c['pos_mode'] = 0
         c['pos_seed'] = (1, 3)
+        c['u_turbScale'] = (1.0, 1.0)
+        c['u_turbShift'] = (0.0, 0.0)
+        c['u_turbOffset'] = (0.0, 0.0)
+        c['use_content'] = 0
+        c['content_base'] = n
+        c['content_grid'] = (1, 1)
+        c['content_panel'] = (0.0, 0.0, 0.0)
+        c['content_panel_weight'] = 0.0
+        c['content_total'] = 0.0
         self.cu = c
         r = self.raster
         self.part_prog['work_size'] = self.work
@@ -806,6 +866,8 @@ class NativeRenderer:
         self.part_prog['min_scale'] = r.min_scale
         self.part_prog['alpha_mul'] = r.alpha_mul
         self.part_prog['alpha_extra'] = r.alpha_extra
+        _Uniforms(self.part_prog)['clamp_alpha'] = 0
+        _Uniforms(self.part_prog)['use_content'] = 0
         self.part_prog['alpha_window'] = r.alpha_window
         self.part_prog['use_radius'] = dict(scale=0, radius=1, radius_alpha=2, window=3, radius_alpha_fade=4,
                                             radius_alpha_win=5, radius_alpha_split=6)[r.size_source]
@@ -853,8 +915,37 @@ class NativeRenderer:
             return (math.floor(t1 * 1000 + 1e-9) - math.floor(t0 * 1000 + 1e-9)) / 1000.0
         return t1 - t0
 
+    def android_extras(self, turb_scale=(1.0, 1.0), turb_shift=(0.0, 0.0), turb_offset=(0.0, 0.0),
+                       content=None, base_count=None, total_seconds=0.0, clamp_alpha=False, wind=None):
+        """Android 移植口径的可选输入（缺省与源码相同）。
+
+        wind：Android 的 aeWind（工作面单位，y 向下）；宿主 aeWind = (u_wind.x, −u_wind.y)。
+        content：ParticleDriftContent 的结果 dict(panel, panelWeight, grid, cumulative, replicas)；
+        粒子数 n 须已含副本，base_count 为其中源码颗粒的个数。"""
+        c = self.cu
+        c['u_turbScale'] = tuple(float(v) for v in turb_scale)
+        c['u_turbShift'] = tuple(float(v) for v in turb_shift)
+        c['u_turbOffset'] = tuple(float(v) for v in turb_offset)
+        if wind is not None:
+            c['u_wind'] = (float(wind[0]), -float(wind[1]))
+        use = content is not None and float(content.get('panelWeight', 0.0)) > 0.0
+        c['use_content'] = int(use)
+        _Uniforms(self.part_prog)['use_content'] = int(use)
+        _Uniforms(self.part_prog)['clamp_alpha'] = int(bool(clamp_alpha))
+        if use:
+            cum = np.asarray(content['cumulative'] or [1.0], np.float32)
+            self.cells.orphan(cum.nbytes)
+            self.cells.write(cum.tobytes())
+            c['content_base'] = int(base_count)
+            c['content_grid'] = tuple(int(v) for v in content['grid'])
+            c['content_panel'] = tuple(float(v) for v in content['panel'])
+            c['content_panel_weight'] = float(content['panelWeight'])
+            c['content_total'] = float(total_seconds)
+        self.reset()
+
     def reset(self):
         self.state.clear()
+        self.emphasis.clear()
         self.k = 0
         self.mask_seconds = None
 
@@ -879,10 +970,13 @@ class NativeRenderer:
         q = self.params
         c = self.cu
         c['deltaT'] = float(self.frame_dt(k))
+        c['frame_time'] = float(T)
         c['lifeTime_cfg'] = ((1.0 - prog) * q.centers1[0], (1.0 - prog) * q.centers1[1])
         self.image_tex.use(0)
         self.mask_tex.use(1)
         self.state.bind_to_storage_buffer(0)
+        self.cells.bind_to_storage_buffer(1)
+        self.emphasis.bind_to_storage_buffer(2)
         self.compute.run(group_x=(self.n + 255) // 256)
         self.ctx.memory_barrier()
         self.mask_seconds = T
@@ -939,6 +1033,7 @@ class NativeRenderer:
             self.ctx.blend_func = ((moderngl.ONE, moderngl.ONE) if self.raster.blend == 'add'
                                    else (moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA))
             self.state.bind_to_storage_buffer(0)
+            self.emphasis.bind_to_storage_buffer(2)
             self.sprite_tex.use(8)
             self.part_vao.render(mode=moderngl.TRIANGLES, vertices=6, instances=self.n)
             self.ctx.disable(moderngl.BLEND)

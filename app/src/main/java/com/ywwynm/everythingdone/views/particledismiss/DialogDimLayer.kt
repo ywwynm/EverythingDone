@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.doOnLayout
+import java.util.WeakHashMap
 
 /**
  * Dialog 的背景暗层，从出现到消失全程由应用接管（主题已禁用系统
@@ -72,7 +73,10 @@ internal class DialogDimLayer private constructor(
         if (interpolator != null) {
             animator.interpolator = interpolator
         }
-        animator.withEndAction { ParticleOverlayHost.detach(decor, view) }
+        animator.withEndAction {
+            synchronized(attached) { attached.remove(view) }
+            ParticleOverlayHost.detach(decor, view)
+        }
         animator.start()
     }
 
@@ -101,7 +105,25 @@ internal class DialogDimLayer private constructor(
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             ParticleOverlayHost.attach(decor, view)
+            synchronized(attached) { attached[view] = decor }
             return DialogDimLayer(view, decor).also { if (animateIn) it.fadeIn() }
+        }
+
+        /** 挂着的暗层 → 宿主 decor（弱引用键，层被回收即自动移除）。 */
+        private val attached = WeakHashMap<View, ViewGroup>()
+
+        /**
+         * [decor] 上暗层此刻的总遮盖度：叠了几层时为 1 − 各层透过率之积。主线程调用。
+         *
+         * 飘散样式按背景亮度选合成方式时要把暗层折算掉（[ParticleDriftBackground]）：暗层挂在 Activity 窗口里，
+         * PixelCopy 读得到它，而它在消散的前半段就淡掉了。
+         */
+        fun coverage(decor: View): Float {
+            var pass = 1f
+            synchronized(attached) {
+                for ((view, host) in attached) if (host === decor && view.isAttachedToWindow) pass *= 1f - view.alpha
+            }
+            return 1f - pass
         }
 
         /**

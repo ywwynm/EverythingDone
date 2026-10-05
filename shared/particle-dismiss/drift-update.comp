@@ -1,0 +1,261 @@
+#version 310 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+layout(local_size_x = 256) in;
+
+// 飘散样式：每帧按粒子索引闭式算出位置、尺寸与颜色（源码 createNewParticles / UpdatePosition / UpdateScale）。
+// 源码的粒子状态逐帧累加，但位置每帧都从 initPosition 按活动时长重算、出生时刻只取决于消蚀遮罩，
+// 所以任意时刻都能直接求：出现动画按时间倒放、左滑按手指进度取帧都不需要历史。
+// 坐标一律是工作面像素（源码的工作面是设备像素的一半），y 向下。
+
+#include "drift-common.glsl"
+
+struct DriftParticle {
+    vec4 geometry;   // 工作面位置 xy、半宽（0 表示不画）、保留
+    vec4 color;      // 预乘颜色与 alpha，已含生长 / 衰减与合成方式；片元再乘点纹理覆盖率
+};
+layout(std430, binding = 0) writeonly buffer Particles { DriftParticle v[]; } particles;
+// 内容强调的副本落在哪个格子：按格子的累积分布（行优先，最后一项为 1）
+layout(std430, binding = 1) readonly buffer Cells { float cumulative[]; } cells;
+
+uniform sampler2D u_image;    // 快照（RGBA8，预乘）
+uniform int u_count;
+uniform vec2 u_emitPos;       // 源码 ParticleSystemConfig.position（工作面像素）
+uniform vec2 u_emitSize;      // 源码 emitSize = 快照尺寸 × 0.5
+uniform ivec2 u_half;         // trunc(快照尺寸 / 2)
+uniform ivec2 u_full;         // 快照尺寸
+uniform float u_time;         // 源码设备时刻 T（秒）；状态只在设备帧上更新，取不晚于 T 的最后一帧
+uniform float u_hz;           // 源码设备帧率（出生按帧量化）
+uniform vec2 u_wind;          // 风（工作面单位，已含方向与大小；源码 aeWind = (wind.x, −wind.y) × 0.5）
+uniform int u_add;            // 1：加光（颜色按已预乘直接累加）；0：标准 src-over
+uniform float u_alphaMul;     // 标准 src-over 时 alpha 的倍数
+uniform float u_fadeSizePower;   // 寿命末段衰减进尺寸的幂（源码分配下为 0.5）
+uniform float u_fadeAlphaPower;  // 寿命末段衰减进不透明度的幂（源码分配下为 0.5；旧钢铁侠参考为 0：只缩小、不变淡）
+uniform vec2 u_turbOffset;       // 湍流取样位置的偏移（噪声空间）：随机生成的动画每次不同，参考样式为 0
+uniform vec2 u_turbScale;        // 选用参考样式时把湍流取样换算到参考卡片的发射区：lookup = pos0 × scale + shift
+uniform vec2 u_turbShift;
+uniform int u_baseCount;         // 前 u_baseCount 颗是源码的颗粒，其后是内容强调追加的副本
+uniform ivec2 u_grid;            // 副本分布表的格子数
+uniform vec3 u_panel;            // 本体色（直通 RGB）
+uniform float u_panelWeight;     // 本体色的置信度；0 表示没有明确本体色，不做强调
+uniform float u_total;           // 整段动画的设备时长：寿命加长不越过它
+
+// 源码常量（FormParticleConfig 与宿主写死的值）
+const float RADIUS = 3.5;             // centers0 = (7, 1) → radius = 3.5，radiusRange = 0.5
+const float RADIUS_RANGE = 0.5;
+const float LIFE_MIN = 0.5;           // centers1 = (0.5, 0.8)，乘 (1 − 出生时的进度)
+const float LIFE_MAX = 0.8;
+const float ACCEL = 0.05;             // u_accel × u_density
+const float DRAG_BASE = 0.7;
+const float DRAG_RANGE = 0.6;
+const float TURB_SCALE = 150000.0;    // turbScale 300000 × 0.5
+const float TURB_EVO = 20.0;
+const float TURB_EVO_MULT = 0.005;
+const float TURB_AMP = 200.0;         // turbAmp 400 × 0.5
+const float TURB_OMULT = 0.5;
+const float TURB_OSCALE = 1.5;
+const float PARTICLE_PHASE = 0.5;
+const float FIRST_DT = 0.0167;        // 宿主首帧的 deltaT（FormParams.first_dt）；其后按毫秒取整（system_clock 毫秒差）
+const float DARK_CLAMP = 0.1961;
+// 栅格化（缺失的绘制后端，桌面复刻按画面定）：半宽 0.7 × 尺寸，生长 / 衰减一半进尺寸、一半进不透明度，
+// 加光时寿命最后 20% 遮挡减弱。
+const float SIZE_MUL = 0.7;
+const float ALPHA_WINDOW = 0.2;
+// 内容强调（与流体样式同口径，见 ParticleDriftContent）：有色颗粒更大、更不透明、寿命略长；本体色颗粒更细、更通透。
+const float CONTENT_DISTANCE_START = 0.06;
+const float CONTENT_DISTANCE_SPAN = 0.26;
+const float CONTENT_SIZE_GAIN = 0.20;
+const float CONTENT_ALPHA_GAIN = 0.25;
+const float CONTENT_LIFE_GAIN = 0.30;
+const float BODY_SIZE_CUT = 0.26;
+const float BODY_ALPHA_CUT = 0.35;
+
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+// 源码运动着色器的 snoise（三维单纯形噪声），逐行相同。
+float snoise(vec3 v) {
+    const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+        i.z + vec4(0.0, i1.z, i2.z, 1.0))
+        + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+        + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ * ns.x + ns.yyyy;
+    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0) * 2.0 + 1.0;
+    vec4 s1 = floor(b1) * 2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+}
+
+// 源码 fbm，u_comp = 2：两个倍频。
+float fbm(vec3 p) {
+    return snoise(p) + TURB_OMULT * snoise(p * TURB_OSCALE);
+}
+
+float smoothUnit(float x) {
+    float t = clamp(x, 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
+// 内容权重：与 ParticleDriftContent.weight / 流体样式的 ParticleMicroflakeContent.weight 同一公式（不乘 alpha）。
+float contentWeight(vec3 c) {
+    float chroma = smoothUnit((max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b)) - 0.30) / 0.42);
+    vec3 d = abs(c - u_panel);
+    float contrast = smoothUnit((max(d.r, max(d.g, d.b)) - CONTENT_DISTANCE_START) / CONTENT_DISTANCE_SPAN);
+    return chroma + (contrast - chroma) * u_panelWeight;
+}
+
+// 设备帧 k（k / hz 秒）对应的整毫秒数：宿主的 deltaT 是相邻两帧毫秒数之差。
+float msFloor(float k) {
+    return floor(k * 1000.0 / u_hz + 1e-3);
+}
+
+// 第 b 帧出生、到第 k 帧（含）为止累计的 activeTime（秒）：出生那一帧先加一次 deltaT，此后每帧再加一次。
+float activeSeconds(float b, float k) {
+    if (b < 1.5) return FIRST_DT + (msFloor(k) - msFloor(1.0)) / 1000.0;
+    return (msFloor(k) - msFloor(b - 1.0)) / 1000.0;
+}
+
+// 第 k 帧的消蚀遮罩是否已降到出生线：桌面实现每帧按 iTime = min(k / hz / 2, 1) 画遮罩，
+// alpha = (n − iTime × 2.1) / 0.15（≤ 0 取 0、≥ 0.15 取 1），计算着色器在 alpha > 0.9 时不建颗粒。
+bool bornBy(float n, float k) {
+    float diff = n - min(k / u_hz * 0.5, 1.0) * 2.1;
+    if (diff <= 0.0) return true;
+    if (diff >= 0.15) return false;
+    return diff / 0.15 <= 0.9;
+}
+
+// 副本按累积分布挑格子（二分查找第一个不小于 r 的项）。
+int pickCell(float r) {
+    int lo = 0;
+    int hi = u_grid.x * u_grid.y - 1;
+    while (lo < hi) {
+        int mid = (lo + hi) / 2;
+        if (cells.cumulative[mid] < r) lo = mid + 1; else hi = mid;
+    }
+    return lo;
+}
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= uint(u_count)) return;
+    particles.v[index].geometry = vec4(0.0);
+    particles.v[index].color = vec4(0.0);
+
+    // createNewParticles：出生位置只由索引决定。副本（索引 ≥ u_baseCount）先按分布表挑格子，再在格内均匀取点。
+    vec2 pos0;
+    if (index < uint(u_baseCount)) {
+        pos0 = vec2(driftRandom(u_emitPos.x, u_emitPos.x + u_emitSize.x, index + 1u),
+                    driftRandom(u_emitPos.y, u_emitPos.y + u_emitSize.y, index + 3u));
+    } else {
+        int cell = pickCell(driftRandom(0.0, 1.0, index * 7u + 5u));
+        vec2 inCell = vec2(driftRandom(0.0, 1.0, index + 1u), driftRandom(0.0, 1.0, index + 3u));
+        vec2 cellUv = (vec2(float(cell % u_grid.x), float(cell / u_grid.x)) + inCell) / vec2(u_grid);
+        pos0 = u_emitPos + min(cellUv, vec2(0.99999)) * u_emitSize;
+    }
+    vec2 uv = (pos0 - u_emitPos) / u_emitSize;
+    // 宿主把遮罩与快照最近邻缩半后交给计算着色器：半分辨率纹素 t 对应原图像素 2t+1
+    ivec2 t = clamp(ivec2(floor(uv * vec2(u_half))), ivec2(0), u_half - 1);
+    ivec2 px = min(2 * t + 1, u_full - 1);
+    vec4 color = texelFetch(u_image, px, 0);
+    // 源码：颜色 alpha < 1 的位置（圆角外、半透明阴影）不产生可见颗粒
+    if (color.a < 1.0) return;
+
+    // 设备帧：第 k 帧在 k / hz 秒，与桌面实现的 seek_time 相同（取不晚于 T 的最后一帧）
+    float frame = floor(u_time * u_hz + 1e-3);
+    // 出生：遮罩 alpha 降到 0.9 及以下的第一个设备帧。闭式估计之后按桌面的逐帧判据核对相邻一帧，
+    // 卡在出生线上的颗粒与桌面落在同一帧。
+    float n = driftMaskValue(px);
+    float bornFrame = max(1.0, ceil(u_hz * (n - 0.135) / 1.05));
+    if (bornFrame > 1.0 && bornBy(n, bornFrame - 1.0)) bornFrame -= 1.0;
+    else if (!bornBy(n, bornFrame)) bornFrame += 1.0;
+    float bornTime = bornFrame / u_hz;
+    // 出生那一帧只建立、不画（scale = 0）；下一帧起按宿主的逐帧 deltaT 累计活动时长
+    if (frame < bornFrame + 1.0) return;
+    float elapsed = activeSeconds(bornFrame, frame);
+    // 强调量：只在有明确本体色时生效（照片类卡片 u_panelWeight ≈ 0，与源码相同）
+    float weight = contentWeight(color.rgb);
+    float emphasis = u_panelWeight * weight;
+    float bodyShare = u_panelWeight * (1.0 - weight);
+    // 宿主：lifeTime_cfg = (1 − 进度) × (0.5, 0.8)，再按索引取随机值
+    float bornProgress = min(bornTime * 0.5, 1.0);
+    float life = max(driftRandom((1.0 - bornProgress) * LIFE_MIN, (1.0 - bornProgress) * LIFE_MAX, index + 8u), 0.001);
+    life = min(life * (1.0 + CONTENT_LIFE_GAIN * emphasis), max(u_total - bornTime, life));
+    if (elapsed >= life) return;
+
+    float randomAlpha = driftRandom(0.6, 1.0, index + 13u);
+    if (color.r < DARK_CLAMP && color.g < DARK_CLAMP && color.b < DARK_CLAMP) {
+        color.rgb = vec3(DARK_CLAMP);
+    }
+    float radius = driftRandom(RADIUS - RADIUS_RANGE, RADIUS + RADIUS_RANGE, index);
+
+    // UpdatePosition：风（随时长平方）+ 湍流（随时长线性），每帧从出生位置重算
+    float aRand = driftRandom(0.0, 1.0, index + 11u);
+    float randFactor = DRAG_BASE + aRand * DRAG_RANGE;
+    vec2 windVec = u_wind * ACCEL * elapsed * elapsed * 0.5 * randFactor;
+    float turbFreq = 500.0 / (TURB_SCALE + 50.0);
+    float turbEvoTime = elapsed * TURB_EVO * TURB_EVO_MULT;
+    float timeOffset = mod(driftRandom(0.0, 1.0, index + 12u) * 10000.0, 100.0) / 1000.0;
+    float particlePhase = aRand * PARTICLE_PHASE;
+    vec2 lookup = pos0 * u_turbScale + u_turbShift;
+    vec3 samplePos = vec3(lookup * turbFreq + u_turbOffset, turbEvoTime + timeOffset + particlePhase);
+    vec2 turbNoise = vec2(fbm(samplePos), fbm(samplePos + vec3(100.0, 100.0, 0.0)));
+    vec2 pos = pos0 + turbNoise * TURB_AMP * elapsed + windVec;
+
+    // UpdateScale：前 20% 寿命长大、后 40% 缩小。生长段按 √ 一半进尺寸、一半进不透明度；
+    // 衰减段按两个幂分配（源码分配下都是 0.5，与生长段相同）。
+    float lifeRatio = elapsed / life;
+    float grow = clamp(lifeRatio / 0.2, 0.0, 1.0);
+    float fade = clamp((1.0 - lifeRatio) / 0.4, 0.0, 1.0);
+    if (grow * fade <= 0.0) return;
+    float rootGrow = sqrt(grow);
+    float halfExtent = radius * rootGrow * pow(fade, u_fadeSizePower) * SIZE_MUL *
+        (1.0 + CONTENT_SIZE_GAIN * emphasis) * (1.0 - BODY_SIZE_CUT * bodyShare);
+    float opacity = rootGrow * pow(fade, u_fadeAlphaPower) *
+        (1.0 + CONTENT_ALPHA_GAIN * emphasis) * (1.0 - BODY_ALPHA_CUT * bodyShare);
+
+    vec3 rgb = min(color.rgb, vec3(1.0));
+    vec4 shade;
+    if (u_add == 1) {
+        float window = clamp((1.0 - lifeRatio) / ALPHA_WINDOW, 0.0, 1.0);
+        shade = vec4(rgb * opacity, randomAlpha * opacity * window);
+    } else {
+        float a = min(randomAlpha * opacity, 1.0);
+        shade = vec4(rgb * a, a * u_alphaMul);
+    }
+    particles.v[index].geometry = vec4(pos, halfExtent, 1.0);
+    particles.v[index].color = shade;
+}

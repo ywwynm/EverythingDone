@@ -35,6 +35,11 @@ explicitly a localisation resource or already requires another language.
   （前置改造、外层结构、直接复用、同一条设计路径、能互相调用）。
 - 这条对**规划、评审、分析文档同样生效**。一份计划里堆满这种词，读的人要再翻译一遍。
 
+### 提问（2026-10-05）
+
+- **需要用户裁定的问题一次只问一个**，等回答后再问下一个。用户原话：「一个问题一个问题问」。
+  一次列出七个问题让用户逐条回复是错的；每个问题附上背景与建议，用户回答后再进入下一个。
+
 ## Workflow
 
 **Never commit unless explicitly asked.** Successful compile ≠ feature

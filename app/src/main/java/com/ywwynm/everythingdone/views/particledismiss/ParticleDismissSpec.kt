@@ -92,7 +92,14 @@ internal class ParticleDismissSpec(
      * 碰一碰接收：建材之前先核对这里有没有输入逐项相同、已经建好的材料，有就复制一份沿用（拼卡那一层提前建的那一次），
      * 结论记在里面。见 [ParticleMaterialShare]；其余动画恒为 null。
      */
-    val adoptMaterials: ParticleMaterialShare.Adoption? = null
+    val adoptMaterials: ParticleMaterialShare.Adoption? = null,
+    /**
+     * 粒子样式（设置 → 粒子动画设置）。碰一碰用到的终点、接手、材料共享、整层不透明度、稍后交进的快照、
+     * 单独的运动位图都是流体样式专有的，带了其中任何一项的规格固定流体。
+     */
+    val style: ParticleStyle = if (sink != null || handoff != null || publishMaterials != null ||
+        adoptMaterials != null || deferForeground || layerAlpha || dynamics != null) ParticleStyle.FLOW
+        else ParticleStyle.current
 )
 
 /** 光尘接手的结果：逐片终点（材料坐标 xy、种类、0）与接手颜色（sRGB、方式），各为每片 4 个 float。 */

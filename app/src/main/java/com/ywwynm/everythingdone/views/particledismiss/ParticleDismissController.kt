@@ -50,6 +50,7 @@ internal object ParticleDismissController {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val warmupStarted = AtomicBoolean()
+    private val driftWarmupStarted = AtomicBoolean()
     private val finishingHosts = WeakHashMap<Activity, Boolean>()
     private val pendingDismissCaptures = WeakHashMap<Activity, Int>()
 
@@ -87,9 +88,17 @@ internal object ParticleDismissController {
         return true
     }
 
-    /** 首个可见界面或弹窗展示后异步预热数值代码与驱动首用编译，不保存用户快照。 */
+    /**
+     * 首个可见界面或弹窗展示后异步预热数值代码与驱动首用编译，不保存用户快照。按当前粒子样式只热那一种：
+     * 飘散样式没有材料要建，只在常驻 GL 线程上先把着色器编好（首个动画省掉编译）；流体样式建两次材料、热一遍流体着色器。
+     */
     fun warmDismissModel(context: Context) {
-        if (!ValueAnimator.areAnimatorsEnabled() || !warmupStarted.compareAndSet(false, true)) return
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        if (ParticleStyle.current == ParticleStyle.DRIFT) {
+            if (driftWarmupStarted.compareAndSet(false, true)) ParticleDriftRenderer.warm(context.applicationContext.assets)
+            return
+        }
+        if (!warmupStarted.compareAndSet(false, true)) return
         Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             runCatching {

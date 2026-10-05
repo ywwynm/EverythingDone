@@ -1097,6 +1097,12 @@
     <string name="particle_tuning_color_precision_detail">Standard precision stores each colour channel as an 8-bit integer, which is lighter to compute; high precision uses 16-bit floating point, so transitions stay finer.</string>
     <string name="particle_tuning_auto_tune">Automatic performance adjustment</string>
     <string name="particle_tuning_auto_tune_detail">When frames are dropped repeatedly, particle size and flow detail are adjusted to ease the computing load.</string>
+    <string name="particle_tuning_style">Particle style</string>
+    <string name="particle_tuning_style_flow">Flow</string>
+    <string name="particle_tuning_style_drift">Drift</string>
+    <string name="particle_tuning_style_detail">Flow: particles push against one another and stream away together. Drift: the content dissolves from one spot outward, and the particles are carried off by the wind.</string>
+    <string name="particle_tuning_amount">Particle amount</string>
+    <string name="particle_tuning_amount_detail">The number of particles follows the size of the content and is then multiplied by this factor. More particles look denser and cost more.</string>
     <string name="fablesol_tuning_hdr">HDR highlights</string>
     <string name="fablesol_tuning_hdr_unsupported">(not supported on this device)</string>
     <string name="fablesol_tuning_hdr_off">off</string>

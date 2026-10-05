@@ -29,6 +29,16 @@
             android:exported="true" android:excludeFromRecents="true"
             android:theme="@style/EverythingDoneTheme.Things" />
 
+        <!-- 飘散样式：旧钢铁侠与原片的对照（docs/features/harmony-particle-android-port/device/ironman_parity.py） -->
+        <activity android:name=".views.particledismiss.DriftParityProbeActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
+
+        <!-- 飘散样式：离屏逐帧导出，与桌面实现逐帧对照（docs/features/harmony-particle-android-port/parity/） -->
+        <activity android:name=".views.particledismiss.DriftParityRenderActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <activity
             android:name=".views.particledismiss.ParticleRepeatProbeActivity"
             android:exported="true" android:excludeFromRecents="true"

@@ -21,43 +21,33 @@ import kotlin.math.min
 internal class ParticleSession(
     private val assets: AssetManager,
     private val density: Float,
-    val spec: ParticleDismissSpec,
+    override val spec: ParticleDismissSpec,
     private val preparation: ParticleMicroflakePreparation?,
     private val touchFeedback: ParticleTouchFeedback?,
     val gesture: ParticleGestureProgress?,
     private val refreshRate: Float,
-    private val listener: Listener,
+    private val listener: ParticleLayerSession.Listener,
     /**
      * 第四批 ②：首页空闲时提前算好的轨迹。非空时本会话不建材、不预计算，只把**真实快照**
      * 换成前景贴图就开播；GL 线程上再核对一次共享资源与快照尺寸，对不上就丢掉它走原路径。
      */
     private val prepared: ParticlePreparedAppearance? = null
-) {
-
-    /** 回调都在 GL 线程触发，实现方自己切主线程。 */
-    interface Listener {
-        /** 第一帧确认上屏：撤真实弹窗、撤快照、启动暗层都挂在这一刻。 */
-        fun onFirstFramePresented()
-        /** 每一帧确认上屏：目标呈现时刻 + 该帧进度，用于暗层跟随与手势完成判定。 */
-        fun onPresented(target: Long, progress: Float)
-        /** 正常播完（true）或失败/中止（false）。 */
-        fun onFinished(completed: Boolean)
-    }
+) : ParticleLayerSession {
 
     private enum class Stage { PIPELINE, FOREGROUND, MATERIAL, FEEDBACK, PRECOMPUTE, PLAY, HOLD, DONE }
 
-    @Volatile var cancelled = false
+    @Volatile override var cancelled = false
         private set
 
     /** 左滑在识别之前不显示粒子；手势收尾时先恢复真实卡片再撤本层。 */
-    @Volatile var visible = true
+    @Volatile override var visible = true
         private set
 
     /** 可见性刚变过，窗口需要重画一次才能反映。 */
     @Volatile var dirty = false
 
     /** 快照像素已全部进入 GPU 与材料模型，主线程可以回收它。 */
-    @Volatile var snapshotConsumed = false
+    @Volatile override var snapshotConsumed = false
         private set
 
     private var stage = Stage.PIPELINE
@@ -66,7 +56,7 @@ internal class ParticleSession(
     private var firstTarget = 0L
     private var lastProgress = 0f
     private val submittedProgress = java.util.HashMap<Long, Float>()
-    @Volatile var bodyGoneProgress = 1f
+    @Volatile override var bodyGoneProgress = 1f
         private set
 
     /** 上一拍真正画出去的相位（追赶期内比手指落后）。 */
@@ -97,10 +87,12 @@ internal class ParticleSession(
     private val isGesture get() = gesture != null
 
     /** 已经开始占用 GPU 资源；共享资源尺寸只在没有会话开工时才允许变。 */
-    val started get() = stage != Stage.PIPELINE
+    override val started get() = stage != Stage.PIPELINE
+
+    override val needsMicroflakeShared get() = true
 
     /** 正在逐帧出画（含末帧驻留）：这一条决定预算要不要给出帧让路。 */
-    val presenting get() = !cancelled && visible && (stage == Stage.PLAY || stage == Stage.HOLD)
+    override val presenting get() = !cancelled && visible && (stage == Stage.PLAY || stage == Stage.HOLD)
 
     /** 逻辑时长（秒），已含系统时长缩放。 */
     private val durationSeconds =
@@ -117,7 +109,7 @@ internal class ParticleSession(
     @Volatile internal var prewarmAdopted = false
         private set
 
-    fun setVisible(value: Boolean) {
+    override fun setVisible(value: Boolean) {
         if (visible == value) return
         visible = value
         dirty = true
@@ -132,7 +124,7 @@ internal class ParticleSession(
      * （2026-09-15 实测：三星慢拖整段掉到 30 fps，快拖在补档结束后节拍再没起来过，
      * 一次左滑只提交 2–3 帧）。
      */
-    fun needsBeat(): Boolean {
+    override fun needsBeat(): Boolean {
         if (cancelled || !visible) return false
         if (stage == Stage.PLAY) return true
         // 3b：预计算与等触摸反馈这两段都可能走几百毫秒，节拍停在这里意味着它们结束时还要
@@ -143,7 +135,7 @@ internal class ParticleSession(
     }
 
     /** 本拍是否需要窗口出一帧。 */
-    fun wantsFrame(): Boolean {
+    override fun wantsFrame(): Boolean {
         if (cancelled) return false
         if (dirty) return true
         if (!visible) return false
@@ -162,7 +154,7 @@ internal class ParticleSession(
      * 「左滑只有 38 fps」有两种完全不同的成因——**我们没提交**与**提交了没上屏**，
      * 既有产物里只有提交成功的那些帧，分不开。这一条补上「没提交的那些拍」。
      */
-    fun traceSkip(target: Long) {
+    override fun traceSkip(target: Long) {
         val reason = when {
             cancelled -> ParticleBeatTrace.SKIP_CANCELLED
             !visible -> ParticleBeatTrace.SKIP_INVISIBLE
@@ -192,7 +184,7 @@ internal class ParticleSession(
             active.preparedSamples, ParticlePerfTuning.gestureCreepToFinger)
 
     /** 会话还需要 pump 推进（准备、预计算、手势预读）。 */
-    fun needsWork(): Boolean {
+    override fun needsWork(): Boolean {
         if (cancelled) return false
         return when (stage) {
             Stage.DONE, Stage.HOLD -> false
@@ -211,26 +203,27 @@ internal class ParticleSession(
      * 首帧可以不等下一次节拍：本会话刚进入出帧态、一帧都还没提交过。
      * 粒子层是独立 SurfaceView，它的提交不经过宿主窗口的 traversal，最多省一整拍（研究第 10 节）。
      */
-    fun wantsFirstFrame(): Boolean = !firstFrameSubmitted && wantsFrame()
+    override fun wantsFirstFrame(): Boolean = !firstFrameSubmitted && wantsFrame()
 
     private var firstFrameSubmitted = false
 
     /** 已提交但还没确认上屏的帧数。 */
     val awaitingPresentation get() = pendingFrames > 0
 
-    fun cancel() {
+    override fun cancel() {
         if (cancelled) return
         cancelled = true
         ParticleGl.wake()
     }
 
     /** 宿主确认真实内容上屏后调用：退出并让窗口把这一层抹掉。 */
-    fun release() = cancel()
+    override fun release() = cancel()
 
     // ---- 准备与预计算：每次推进一步，返回是否有进展 ----
 
-    fun advanceOnce(shared: ParticleMicroflakeRenderer.Shared): Boolean {
+    override fun advanceOnce(shared: ParticleMicroflakeRenderer.Shared?): Boolean {
         if (cancelled) return false
+        checkNotNull(shared) { "流体会话需要共享资源" }
         return try {
             when (stage) {
                 Stage.PIPELINE -> {
@@ -461,7 +454,7 @@ internal class ParticleSession(
      * 把本会话这一拍的画面叠加到已经清空的默认帧缓冲上。
      * 返回 false 表示本会话这一拍没有内容（准备中或已结束）。
      */
-    fun drawInto(target: Long): Boolean {
+    override fun drawInto(target: Long): Boolean {
         dirty = false
         if (cancelled || !visible) return false
         val drawStart = if (BuildConfig.DEBUG) System.nanoTime() else 0L
@@ -551,7 +544,7 @@ internal class ParticleSession(
     }
 
     /** 窗口 `eglSwapBuffers` 返回之后调用；口径与第一批的「请求→首个粒子提交」一致。 */
-    fun frameSubmitted(target: Long) {
+    override fun frameSubmitted(target: Long) {
         pendingFrames++
         firstFrameSubmitted = true
         if (!isGesture) submittedProgress[target] = lastProgress
@@ -567,7 +560,7 @@ internal class ParticleSession(
     }
 
     /** 该帧确认上屏；[displayedAt] 是驱动报的真实呈现时刻，拿不到时为 null。 */
-    fun framePresented(target: Long, displayedAt: Long? = null) {
+    override fun framePresented(target: Long, displayedAt: Long?) {
         if (pendingFrames > 0) pendingFrames--
         // 前三位沿用既有形状（既有脚本按下标 0/1/2 读）；3b 在**末尾追加**真实呈现时刻
         // （拿不到写 0），用来把「画面真的晚上屏」与「我们晚知道」分开。
@@ -636,7 +629,7 @@ internal class ParticleSession(
     }
 
     /** 释放本会话的 GPU 对象；共享资源不动。只在 GL 线程调用。 */
-    fun dispose() {
+    override fun dispose() {
         stage = Stage.DONE
         cancelled = true
         runCatching { renderer?.close() }

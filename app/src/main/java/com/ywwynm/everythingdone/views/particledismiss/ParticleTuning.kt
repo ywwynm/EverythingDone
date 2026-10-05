@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.ywwynm.everythingdone.BuildConfig
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -43,6 +44,19 @@ internal object ParticleTuning {
 
     /** 性能自动调节：连续掉帧时自动降低粒子大小与流动精细度。默认关。 */
     const val KEY_AUTO_TUNE = "auto_performance_tuning"
+
+    /** 粒子样式：`flow`（流体，原有实现）或 `drift`（飘散，缺省）。见 [ParticleStyle]。 */
+    const val KEY_STYLE = "particle_style"
+
+    /** 飘散样式的「粒子数量」倍率，乘在按面积换算出的粒子数上（再截到 1～5 万）。 */
+    const val KEY_DRIFT_AMOUNT = "drift_particle_amount"
+
+    /** 仅调试包：钉住某段参考样式的名字，或 `random`（一律随机生成）。见 [ParticleDriftStyles.forcedForTests]。 */
+    const val KEY_DEBUG_FORCE_DRIFT_STYLE = "debug_drift_force_style"
+
+    /** 「粒子数量」的档位（倍率）：0.5×～1.5×，每档 0.1。 */
+    val DRIFT_AMOUNT_LEVELS = floatArrayOf(.5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
+    const val DEFAULT_DRIFT_AMOUNT_INDEX = 5
 
     /** 更早那一版的粒子大小键与它的九档梯度，只用于迁移。 */
     private const val LEGACY_KEY_CELL_INDEX = "microflake_cell_dp_index"
@@ -116,6 +130,27 @@ internal object ParticleTuning {
     fun isAutoTuneOn(context: Context): Boolean =
         preferences(context).getBoolean(KEY_AUTO_TUNE, false)
 
+    fun style(context: Context): ParticleStyle =
+        ParticleStyle.of(preferences(context).getString(KEY_STYLE, null))
+
+    fun setStyle(context: Context, style: ParticleStyle) {
+        preferences(context).edit().putString(KEY_STYLE, style.key).apply()
+        apply(context)
+    }
+
+    fun driftAmountIndex(context: Context): Int = preferences(context)
+        .getInt(KEY_DRIFT_AMOUNT, DEFAULT_DRIFT_AMOUNT_INDEX).coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)
+
+    fun setDriftAmountIndex(context: Context, index: Int) {
+        preferences(context).edit()
+            .putInt(KEY_DRIFT_AMOUNT, index.coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)).apply()
+        apply(context)
+    }
+
+    /** 「粒子数量」档位的文案，例如 0.5× / 1.0× / 1.5×。 */
+    fun driftAmountLabel(index: Int): String =
+        String.format("%.1f×", DRIFT_AMOUNT_LEVELS[index.coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)])
+
     fun setCellIndex(context: Context, index: Int) {
         markUserChanged(context)
         preferences(context).edit()
@@ -140,13 +175,15 @@ internal object ParticleTuning {
         apply(context)
     }
 
-    /** 恢复默认：四项全部退回「未设置」，也就是加入本设置之前的行为。 */
+    /** 恢复默认：全部设置项退回「未设置」（粒子样式回到缺省的飘散），也就是各项的默认行为。 */
     fun restoreDefaults(context: Context) {
         preferences(context).edit()
             .remove(KEY_CELL_INDEX)
             .remove(KEY_FLOW_DETAIL)
             .remove(KEY_COLOR_STANDARD)
             .remove(KEY_AUTO_TUNE)
+            .remove(KEY_STYLE)
+            .remove(KEY_DRIFT_AMOUNT)
             .remove(KEY_AUTO_STEPS)
             .remove(KEY_AUTO_ROUNDS)
             .remove(KEY_USER_CHANGED)
@@ -250,6 +287,11 @@ internal object ParticleTuning {
             // 磁盘写入异步进行，不占主线程。
             editor.apply()
         }
+        ParticleStyle.current = style(context)
+        ParticleStyle.driftAmount = DRIFT_AMOUNT_LEVELS[driftAmountIndex(context)]
+        // 仅调试包：验收时把某段参考样式钉住（键由 adb 经 run-as 写入，正式包不读）。
+        ParticleDriftStyles.forcedForTests =
+            if (BuildConfig.DEBUG) preferences.getString(KEY_DEBUG_FORCE_DRIFT_STYLE, null) else null
         ParticlePerfTuning.applyUserTuning(
             cellDpFloor(cellIndex(context), isCellExplicit(context)),
             flowDetail(context),

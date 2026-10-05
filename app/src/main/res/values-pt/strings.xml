@@ -556,6 +556,12 @@
     <string name="particle_tuning_color_precision_detail">A precisão padrão guarda cada canal de cor como um inteiro de 8 bits e pesa menos no cálculo; a alta usa ponto flutuante de 16 bits, deixando as transições mais finas.</string>
     <string name="particle_tuning_auto_tune">Ajuste automático de desempenho</string>
     <string name="particle_tuning_auto_tune_detail">Quando quadros são perdidos repetidamente, o tamanho das partículas e o detalhe do fluxo são ajustados para aliviar a carga de cálculo.</string>
+    <string name="particle_tuning_style">Estilo das partículas</string>
+    <string name="particle_tuning_style_flow">Fluxo</string>
+    <string name="particle_tuning_style_drift">Deriva</string>
+    <string name="particle_tuning_style_detail">Fluxo: as partículas se empurram e escoam juntas. Deriva: o conteúdo se desfaz a partir de um ponto e o vento leva as partículas.</string>
+    <string name="particle_tuning_amount">Quantidade de partículas</string>
+    <string name="particle_tuning_amount_detail">O número de partículas depende do tamanho do conteúdo e é multiplicado por este fator. Mais partículas parecem mais densas e custam mais.</string>
     <string name="direction_sensor_restricted">A imagem não pode responder à orientação do dispositivo neste momento. Permita que este aplicativo acesse o movimento e a orientação do dispositivo nas %1$s.</string>
     <string name="direction_sensor_restricted_settings">configurações do sistema</string>
     <string name="fablesol_tuning_hdr">Realces HDR</string>

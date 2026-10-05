@@ -556,6 +556,12 @@
     <string name="particle_tuning_color_precision_detail">Standard speichert jeden Farbkanal als 8-Bit-Ganzzahl und rechnet sich leichter; hoch nutzt 16-Bit-Gleitkomma, dadurch bleiben Übergänge feiner.</string>
     <string name="particle_tuning_auto_tune">Automatische Leistungsanpassung</string>
     <string name="particle_tuning_auto_tune_detail">Werden wiederholt Frames ausgelassen, werden Partikelgröße und Strömungsfeinheit angepasst, um die Rechenlast zu senken.</string>
+    <string name="particle_tuning_style">Partikelstil</string>
+    <string name="particle_tuning_style_flow">Fließen</string>
+    <string name="particle_tuning_style_drift">Verwehen</string>
+    <string name="particle_tuning_style_detail">Fließen: Die Partikel drängen sich gegenseitig und strömen gemeinsam davon. Verwehen: Der Inhalt löst sich von einer Stelle aus auf, und die Partikel werden vom Wind fortgetragen.</string>
+    <string name="particle_tuning_amount">Partikelmenge</string>
+    <string name="particle_tuning_amount_detail">Die Anzahl der Partikel richtet sich nach der Größe des Inhalts und wird mit diesem Faktor multipliziert. Mehr Partikel wirken dichter und kosten mehr.</string>
     <string name="direction_sensor_restricted">Das Bild kann derzeit nicht auf die Geräteausrichtung reagieren. Erlauben Sie dieser App in den %1$s den Zugriff auf Bewegung und Ausrichtung des Geräts.</string>
     <string name="direction_sensor_restricted_settings">Systemeinstellungen</string>
     <string name="fablesol_tuning_hdr">HDR-Glanzlichter</string>

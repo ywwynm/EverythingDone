@@ -1081,6 +1081,12 @@
     <string name="particle_tuning_color_precision_detail">标准精度使用 8 位整数表示颜色，计算压力更轻；高精度使用 16 位浮点数，过渡更细腻。</string>
     <string name="particle_tuning_auto_tune">性能自动调节</string>
     <string name="particle_tuning_auto_tune_detail">连续掉帧时自动调整粒子大小与流动精细度，以减轻计算压力。</string>
+    <string name="particle_tuning_style">粒子样式</string>
+    <string name="particle_tuning_style_flow">流体</string>
+    <string name="particle_tuning_style_drift">飘散</string>
+    <string name="particle_tuning_style_detail">流体：粒子相互推挤，汇成一股流走。飘散：内容从一处开始逐渐化开，粒子随风飘走。</string>
+    <string name="particle_tuning_amount">粒子数量</string>
+    <string name="particle_tuning_amount_detail">粒子数按内容面积换算，再乘这一倍率。数量越多，画面越细密，开销也越大。</string>
     <string name="fablesol_tuning_hdr">HDR 高光增强</string>
     <string name="fablesol_tuning_hdr_unsupported">（设备不支持）</string>
     <string name="fablesol_tuning_hdr_off">关闭</string>

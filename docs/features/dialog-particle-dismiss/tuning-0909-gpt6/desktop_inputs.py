@@ -12,6 +12,7 @@ from reference_initial_conditions import SITES,NOTES
 from harmony_core import HarmonyCoreRenderer
 from harmony_origins import HarmonyOriginsRenderer
 from harmony_native import NativeLive, live_inputs
+from android_drift import AndroidDriftLive, build_android_renderer, BACK_KEY_DEGREES
 
 ROOT = Path(__file__).resolve().parent
 OWN = ['attachment', 'attachment-image', 'language', 'color']
@@ -23,7 +24,8 @@ MODELS = {'baseline': ('Android 同规则基准', Renderer), 'sparse': ('基准 
           'material': ('材质实验 · 保色颗粒（未验收）', MaterialCandidate),
           'harmony-core': ('HarmonyOS 7 原生公式对照', HarmonyCoreRenderer),
           'harmony-origins': ('华为核心 · 起点与方向核对', HarmonyOriginsRenderer),
-          'harmony-native': ('华为原生 · 逐项等价', NativeLive)}
+          'harmony-native': ('华为原生 · 逐项等价', NativeLive),
+          'harmony-android': ('华为原生 · Android 移植口径', AndroidDriftLive)}
 GAP = 12
 
 
@@ -62,6 +64,16 @@ def animation_inputs(name, kind, seed, tap=None):
 
 def make_renderer(inputs, model, ctx, quality=2):
     _, cls = MODELS[model]
+    if cls is AndroidDriftLive:
+        # 输入按 Android 的规则生成（与设备逐位相同）：参考样式按方向与概率出现（左上更常是旧钢铁侠一族）、风转到消散方向、
+        # 粒子数按面积、内容强调、背景亮度定加光或 src-over；随机播放即返回键关闭（左上 135°），点击按触点方向。
+        # 参考复刻仍按原片估计的输入播放华为原生实现（Android 用同一份输入时逐帧一致，见 harmony-particle-android-port/parity）。
+        kind = inputs['kind']
+        if kind == 'ref':
+            native, entry = live_inputs(inputs['scene'], META[inputs['scene']], kind, inputs['seed'], None)
+            return NativeLive(inputs['scene'], native, entry=entry, ctx=ctx, dim_alpha=META[inputs['scene']].get('dim_alpha', 0.0))
+        direction = inputs['direction'] if kind == 'tap' else BACK_KEY_DEGREES
+        return build_android_renderer(inputs['scene'], META[inputs['scene']], inputs['seed'], direction, ctx=ctx)
     if cls is NativeLive:
         # 参考序列用原片估计的一次动画输入；随机与点击按种子生成，点击只决定横风。
         kind = inputs['kind']

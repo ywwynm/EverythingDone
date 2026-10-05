@@ -24,7 +24,13 @@ class ParticleDismissShaderCompileTest {
         for (dir in listOf("shared/particle-dismiss", "app/src/main/assets/particle-playback")) {
             for (file in File(root, dir).listFiles()!!.filter { it.extension in listOf("comp", "vert", "frag") }) {
                 val variants = parametrised[file.name]
-                if (variants == null) {
+                val text = file.readText()
+                if (DRIFT_INCLUDE in text) {
+                    // 飘散样式的着色器在运行时把公共段按文本拼进来（ParticleDriftRenderer.ensurePrograms），这里照做。
+                    compile(validator!!, file.name,
+                        text.replace(DRIFT_INCLUDE, File(file.parentFile, "drift-common.glsl").readText()),
+                        "." + file.extension)
+                } else if (variants == null) {
                     val process = ProcessBuilder(validator!!.path, file.path).redirectErrorStream(true).start()
                     val output = process.inputStream.bufferedReader().readText()
                     assertEquals("${file.name}\n$output", 0, process.waitFor())
@@ -58,6 +64,8 @@ class ParticleDismissShaderCompileTest {
             }
         }
     }
+
+    private val DRIFT_INCLUDE = "#include \"drift-common.glsl\""
 
     private val SINK = "#define SINK 1\n"
     private val SINK_FIELD = "#define SINK 1\n#define SINK_FIELD 1\n"

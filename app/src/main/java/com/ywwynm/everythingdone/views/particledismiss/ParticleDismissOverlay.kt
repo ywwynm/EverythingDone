@@ -59,7 +59,7 @@ internal class ParticleDismissOverlay(
     private val host: Activity = activity
     private val mainHandler = Handler(Looper.getMainLooper())
     private val snapshotView: ImageView?
-    private var session: ParticleSession? = null
+    private var session: ParticleLayerSession? = null
     private val synchronizedCard = spec.inWindow && cardSource != null && ParticleCardSurfaceHandoff.supported()
     private val sourceViews = (cardSources ?: listOfNotNull(cardSource)).toMutableList()
     private var bodyReleased = false
@@ -95,15 +95,20 @@ internal class ParticleDismissOverlay(
         if (releaseNotified) return
         releaseNotified = true
         // U9：一轮动画收尾时把这一轮的呈现比例交给自动调档的规则（默认关闭）。
-        runCatching { ParticleFrameStats.roundFinished(context) }
+        runCatching {
+            if (isDrift) ParticleFrameStats.roundSkipped() else ParticleFrameStats.roundFinished(context)
+        }
         val callbacks = releaseListeners.toList()
         releaseListeners.clear()
         callbacks.forEach { it.run() }
     }
 
+    private val isDrift = spec.style == ParticleStyle.DRIFT
+
     // 命中预算时只解像素、不建材：材料与轨迹都是现成的，那 40–70 ms 直接省掉。
+    // 飘散样式没有材料要建，同样只解像素（与圆角遮罩）。
     private val preparation = ParticleMicroflakePreparation(
-        context.assets, resources.displayMetrics.density, spec, deferred = prepared != null)
+        context.assets, resources.displayMetrics.density, spec, deferred = prepared != null || isDrift)
 
     private val isCondense get() = spec.reverse
 
@@ -171,7 +176,7 @@ internal class ParticleDismissOverlay(
         }
     }
 
-    private val listener = object : ParticleSession.Listener {
+    private val listener = object : ParticleLayerSession.Listener {
         override fun onFirstFramePresented() {
             mainHandler.post { onFirstFrame() }
         }
@@ -202,7 +207,17 @@ internal class ParticleDismissOverlay(
             mainHandler.post { onSessionFinished(false) }
             return
         }
-        val created = ParticleSession(
+        if (isDrift && prepared != null) ParticleCreationPrewarm.rejected(prepared, "飘散样式不用预算的轨迹")
+        val created: ParticleLayerSession = if (isDrift) ParticleDriftSession(
+            assets = context.assets,
+            spec = spec,
+            model = ParticleDriftInputs.model(context, spec),
+            background = ParticleDriftBackground.request(host, this, spec),
+            preparation = preparation,
+            touchFeedback = touchFeedback,
+            gesture = gesture,
+            listener = listener
+        ) else ParticleSession(
             assets = context.assets,
             density = resources.displayMetrics.density,
             spec = spec,

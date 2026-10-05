@@ -66,7 +66,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
         }
     }
 
-    fun leave(window: ParticleWindowSurface, session: ParticleSession,
+    fun leave(window: ParticleWindowSurface, session: ParticleLayerSession,
               showCard: Boolean, restore: () -> Unit, done: () -> Unit) {
         if (closing || released) return
         closing = true

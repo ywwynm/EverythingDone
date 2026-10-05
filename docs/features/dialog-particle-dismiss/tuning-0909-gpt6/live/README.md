@@ -4,7 +4,15 @@
 
 用户始终使用 **<http://localhost:8666/latest.html>**。默认选择最新已发布到预览的模型，顶部显示版本、更新时间和验收状态；「打开最新版预渲染对照」从同一端口进入对应成片。「切回最新版」可从基准对照返回。
 
-## 华为原生逐项等价实现（2026-10-05 起为最新版）
+## Android 移植口径（2026-10-05 夜起为最新版）
+
+模型 `harmony-android`（`../android_drift.py`）：Android「飘散」样式在模拟器里的样子。输入按 Android 的规则生成（参考样式按方向与概率、
+左上更常是旧钢铁侠一族、风转到消散方向、粒子数按面积、内容强调、背景亮度定加光或 src-over），是 Kotlin 源码的逐项移植，与设备上的正式代码
+逐位相同；渲染仍是 `harmony_native.NativeRenderer`（`android_extras()` 接上湍流换算、内容强调与风向），同一输入下与 Android 离屏出帧逐帧一致。
+播放按 Android：设备时刻 startSeconds → totalSeconds 压进 1 秒，弹窗暗层按 Android 的曲线淡出；随机播放即返回键关闭（左上 135°），
+点击按触点方向；参考复刻仍按原片输入播放华为原生实现。核对脚本与结果见 `docs/features/harmony-particle-android-port/parity/`。
+
+## 华为原生逐项等价实现（2026-10-05 起；同日夜改为对照）
 
 模型 `harmony-native`（`../harmony_native.py`）按镜像宿主机器码逐项实现粒子消蚀；“复刻华为参考”使用 `../native_reference_inputs.json`
 里按原片估计的一次动画输入（消蚀格点值、横风、设备比例、扩展尺寸、进度跨度与偏移）。该表在每次建渲染器时重新读取，

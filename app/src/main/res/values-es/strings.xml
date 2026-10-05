@@ -556,6 +556,12 @@
     <string name="particle_tuning_color_precision_detail">La precisión estándar guarda cada canal de color como un entero de 8 bits y cuesta menos calcular; la alta usa coma flotante de 16 bits, así las transiciones quedan más finas.</string>
     <string name="particle_tuning_auto_tune">Ajuste automático de rendimiento</string>
     <string name="particle_tuning_auto_tune_detail">Cuando se pierden fotogramas de forma repetida, el tamaño de partícula y el detalle del flujo se ajustan para aliviar la carga de cálculo.</string>
+    <string name="particle_tuning_style">Estilo de partículas</string>
+    <string name="particle_tuning_style_flow">Flujo</string>
+    <string name="particle_tuning_style_drift">Deriva</string>
+    <string name="particle_tuning_style_detail">Flujo: las partículas se empujan entre sí y se alejan juntas. Deriva: el contenido se deshace a partir de un punto y el viento se lleva las partículas.</string>
+    <string name="particle_tuning_amount">Cantidad de partículas</string>
+    <string name="particle_tuning_amount_detail">El número de partículas depende del tamaño del contenido y se multiplica por este factor. Más partículas se ven más densas y cuestan más.</string>
     <string name="direction_sensor_restricted">La imagen no puede responder a la orientación del dispositivo por ahora. Permite que esta aplicación acceda al movimiento y a la orientación del dispositivo en los %1$s.</string>
     <string name="direction_sensor_restricted_settings">ajustes del sistema</string>
     <string name="fablesol_tuning_hdr">Brillos HDR</string>

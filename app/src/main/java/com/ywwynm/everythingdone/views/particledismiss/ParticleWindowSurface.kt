@@ -70,8 +70,8 @@ internal class ParticleWindowSurface private constructor(
         private set
 
     // ---- 只在 GL 线程访问 ----
-    private val sessions = ArrayList<ParticleSession>()
-    private val incoming = ConcurrentLinkedQueue<ParticleSession>()
+    private val sessions = ArrayList<ParticleLayerSession>()
+    private val incoming = ConcurrentLinkedQueue<ParticleLayerSession>()
     private var eglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
     private var boundSurface: Surface? = null
     private var timestamps = false
@@ -79,7 +79,7 @@ internal class ParticleWindowSurface private constructor(
     private var surfaceDirty = false
     private var recomposite = false
     private val pending = ArrayDeque<Frame>()
-    private val firstCardFrames = java.util.IdentityHashMap<ParticleSession, SurfaceControl.Transaction>()
+    private val firstCardFrames = java.util.IdentityHashMap<ParticleLayerSession, SurfaceControl.Transaction>()
     private val frameTransactions = ArrayDeque<SurfaceControl.Transaction>()
     private val assets: AssetManager =
         activity.applicationContext.assets
@@ -88,7 +88,7 @@ internal class ParticleWindowSurface private constructor(
         private set
 
     private class Frame(val frameId: Long, val target: Long, val submittedAt: Long,
-                        val drawn: List<ParticleSession>)
+                        val drawn: List<ParticleLayerSession>)
 
     private val attachment = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) = Unit
@@ -141,13 +141,13 @@ internal class ParticleWindowSurface private constructor(
 
     val busy get() = sessions.isNotEmpty()
 
-    fun add(session: ParticleSession) {
+    fun add(session: ParticleLayerSession) {
         incoming += session
         ParticleGl.wake()
     }
 
     /** 与该会话第一次实际画入共享 Surface 的缓冲一起撤下交接快照。 */
-    fun startCardFrame(session: ParticleSession, transaction: SurfaceControl.Transaction) {
+    fun startCardFrame(session: ParticleLayerSession, transaction: SurfaceControl.Transaction) {
         ParticleGl.post {
             if (session.cancelled || detached) { transaction.close(); return@post }
             firstCardFrames.put(session, transaction)?.close()
@@ -156,7 +156,7 @@ internal class ParticleWindowSurface private constructor(
     }
 
     /** 下一张缓冲不再包含该卡片，同时将自有快照图层显示出来。 */
-    fun endCardFrame(session: ParticleSession, transaction: SurfaceControl.Transaction) {
+    fun endCardFrame(session: ParticleLayerSession, transaction: SurfaceControl.Transaction) {
         ParticleGl.post {
             firstCardFrames.remove(session)?.close()
             session.setVisible(false)
@@ -263,8 +263,11 @@ internal class ParticleWindowSurface private constructor(
         val width = targetWidth()
         val height = targetHeight()
         if (width <= 0 || height <= 0) return false
-        val shared = ParticleGl.ensureShared(assets, width, height,
-            allowResize = sessions.none { it.started }) ?: run { failAll(); return false }
+        // 流体样式的共享资源（全屏累积缓冲、流场、程序）只在有流体会话时才建；飘散会话自带所需的一切。
+        val shared = if (sessions.any { it.needsMicroflakeShared })
+            ParticleGl.ensureShared(assets, width, height,
+                allowResize = sessions.none { it.started && it.needsMicroflakeShared }) ?: run { failAll(); return false }
+        else if (ParticleGl.ensureContextReady()) null else run { failAll(); return false }
         var progressed = false
         for (session in sessions.toList()) if (session.advanceOnce(shared)) progressed = true
         return progressed
@@ -321,7 +324,7 @@ internal class ParticleWindowSurface private constructor(
         GLES30.glDisable(GLES30.GL_BLEND)
         GLES30.glClearColor(0f, 0f, 0f, 0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
-        val drawn = ArrayList<ParticleSession>(sessions.size)
+        val drawn = ArrayList<ParticleLayerSession>(sessions.size)
         // 创建顺序即叠放顺序：先创建的在下。
         for (session in sessions.toList()) if (session.drawInto(target)) drawn += session
         if (Build.VERSION.SDK_INT >= 34 && view is SurfaceView &&
