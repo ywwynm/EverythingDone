@@ -26,13 +26,26 @@ class Canvas(QLabel):
             if 0<=x<w and 0<=y<h:self.on_click(x,y)
 
 class Viewer(QWidget):
-    def __init__(self,fixed=False):
+    def __init__(self,fixed=False,fronts=False,v2=None,shared=False):
         super().__init__();self.setWindowTitle('完事儿 · 粒子消散统一规则');self.resize(1280,1060)
         self.setStyleSheet('QWidget{background:#131a24;color:#e7edf5;font-family:Microsoft YaHei;font-size:14px;} QPushButton,QComboBox,QDoubleSpinBox{padding:7px 13px;background:#243349;border:1px solid #3c516d;border-radius:6px;} QPushButton:hover{background:#304c69;} QSlider{min-height:25px;}')
         self.metas=json.loads((HERE/'assets/scenes.json').read_text(encoding='utf-8'));self.renderer=None;self.playing=False;self.progress=0.;self.last=time.perf_counter();self.elapsed=0.;self.speed=1.
+        self.fronts=fronts or v2 is not None or shared;self.v2=v2;self.shared=shared
+        if shared:
+            from learned_release import load_weights
+            from conditional_material import ConditionalRules
+            from shared_transport import load_transport
+            self.shared_weights=load_weights(HERE/'conditional-release-weights.json')
+            self.shared_rules=ConditionalRules(**json.loads((HERE/'conditional-material-rules.json').read_text('utf-8'))['rules'])
+            self.transport_weights=load_transport(HERE/'conditional-transport-weights.json')
+        if self.fronts:
+            added=[json.loads(p.read_text('utf-8')) for p in sorted((HERE/'assets').glob('reference-0926-*/scene.json'))]
+            added.append(json.loads((HERE/'assets/spiderman-original/scene.json').read_text('utf-8')))
+            self.metas=added+self.metas
+            self.setWindowTitle('完事儿 · 共同条件场桌面候选' if shared else '完事儿 · 第二版共同模型' if v2 is not None else '完事儿 · 多起点共同模型桌面候选')
         self.seed=0
         layout=QVBoxLayout(self);head=QHBoxLayout();layout.addLayout(head)
-        title=QLabel('粒子消散 · 统一参数验证');title.setStyleSheet('font-size:22px;font-weight:600;');head.addWidget(title);head.addStretch()
+        title=QLabel('共同条件场 · 桌面候选' if shared else '第二版共同模型 · 桌面候选' if v2 is not None else '多起点共同模型 · 桌面候选' if fronts else '粒子消散 · 统一参数验证');title.setStyleSheet('font-size:22px;font-weight:600;');head.addWidget(title);head.addStretch()
         self.scenes=QComboBox();self.scenes.addItems([m['title'] for m in self.metas]);head.addWidget(self.scenes)
         labels=QHBoxLayout();labels.addWidget(QLabel('华为参考 / 静态源素材'));labels.addWidget(QLabel('统一规则 · 点击画面设置触点位置'));layout.addLayout(labels)
         views=QHBoxLayout();self.left=Canvas();self.right=Canvas(self.touch);views.addWidget(self.left);views.addWidget(self.right);layout.addLayout(views,1)
@@ -50,7 +63,7 @@ class Viewer(QWidget):
         direction=QHBoxLayout();layout.addLayout(direction);direction.addWidget(QLabel('方向'))
         self.angle=QSlider(Qt.Horizontal);self.angle.setRange(0,359);direction.addWidget(self.angle,1)
         self.angle_label=QLabel();direction.addWidget(self.angle_label)
-        restore=QPushButton('恢复参考方向');restore.clicked.connect(lambda:self.angle.setValue(self.meta['direction']));direction.addWidget(restore)
+        restore=QPushButton('恢复参考输入');restore.clicked.connect(self.restore_reference);direction.addWidget(restore)
         direction.addWidget(QLabel('边缘外距离'))
         self.gap=QDoubleSpinBox();self.gap.setRange(0,10);self.gap.setSingleStep(.1);self.gap.setValue(RULES['touch_gap_default']);self.gap.setSuffix(' × 短边');direction.addWidget(self.gap)
         self.explicit_distance=False
@@ -59,21 +72,87 @@ class Viewer(QWidget):
         self.timer=QTimer(self);self.timer.timeout.connect(self.tick);self.timer.start(16)
         self.shortcut=QShortcut(QKeySequence('Space'),self);self.shortcut.activated.connect(self.toggle)
         self.select(0)
+    def reference_inputs(self):
+        """第二版的参考重放输入（方向、触点远近、起点）；没有记录时返回 None。"""
+        if self.shared:
+            from v2_inputs import OBSERVED_SITES
+            from dissolve_v2 import Site
+            sites=OBSERVED_SITES.get(self.meta['name'])
+            if sites:return dict(direction=self.meta['direction'],sites=[Site(*s) for s in sites])
+            return None
+        if self.v2 is None:return None
+        from v2_inputs import SITES
+        if self.meta['name'] not in SITES:return None
+        from dissolve_v2 import reference_inputs
+        return reference_inputs(self.meta['name'])
     def select(self,index):
         self.explicit_distance=False
-        self.playing=False;self.meta=self.metas[index];self.angle.blockSignals(True);self.angle.setValue(self.meta['direction']);self.angle.blockSignals(False)
+        self.playing=False;self.meta=self.metas[index]
+        q=self.reference_inputs()
+        self.angle.blockSignals(True);self.angle.setValue(round(q['direction'] if q else self.meta['direction']));self.angle.blockSignals(False)
         self.seed=self.meta['seed'] if self.lock.isChecked() else secrets.randbits(31)
         self.gap.blockSignals(True);self.gap.setValue(RULES['touch_gap_default']);self.gap.blockSignals(False)
         p=HERE/'assets'/self.meta['name']
         self.original=np.array(Image.open(p/'source.png').convert('RGB'))
         self.ref=np.load(p/'reference.npy',mmap_mode='r') if self.meta['reference'] else None
         self.ref_times=np.load(p/'reference-times.npy') if self.ref is not None else None
-        self.note.setText(('参考按进度对齐；不代表录屏文件原速。' if self.ref is not None else '左侧为静态源素材；没有同内容华为运动参考。')+'  '+self.meta['background_note'])
+        self.ref_index=None
+        cache=HERE/'analysis/match-cache'/self.meta['name']
+        if (self.v2 is not None or self.shared) and self.ref is not None and (cache/'frames.npy').exists():
+            # 按独立画面顺序对齐进度；无法据此确认原视频的实机时长。
+            self.ref_index=(np.load(cache/'frames.npy',mmap_mode='r'),np.load(cache/'progress.npy'))
+        self.note.setText(('候选尚未达到逐像素一致。' if self.fronts else '')+('参考按进度对齐；不代表录屏文件原速。' if self.ref is not None else '左侧为静态源素材；没有同内容华为运动参考。')+'  '+self.meta['background_note'])
         self.rebuild();self.progress=0.;self.elapsed=.32;self.draw()
     def rebuild(self):
         if self.renderer:self.renderer.close()
-        self.renderer=Renderer(self.meta['name'],direction=self.angle.value(),seed=self.seed,touch_gap=self.gap.value() if self.explicit_distance else None)
+        cls=Renderer;options={}
+        if self.shared:
+            from shared_transport import SharedTransportRenderer
+            from dissolve_v2 import sample_sites
+            cls=SharedTransportRenderer;options.update(weights=self.shared_weights,rules=self.shared_rules,transport_weights=self.transport_weights)
+            if (HERE/'surface-transfer-rules.json').is_file():
+                from surface_transfer import TransferRenderer,load_transfer
+                cls=TransferRenderer;options['transfer']=load_transfer(HERE/'surface-transfer-rules.json')
+            if (HERE/'particle-coverage-rules.json').is_file():
+                from particle_coverage import CoverageRenderer,load_coverage
+                cls=CoverageRenderer;options['coverage']=load_coverage(HERE/'particle-coverage-rules.json')
+            if (HERE/'particle-cohort-weights.json').is_file():
+                from particle_cohorts import CohortRenderer,load_cohorts
+                cls=CohortRenderer;options['cohorts']=load_cohorts(HERE/'particle-cohort-weights.json')
+            if (HERE/'surface-coherence-weights.json').is_file():
+                from surface_coherence import CoherenceRenderer,load_coherence
+                cls=CoherenceRenderer;options['coherence']=load_coherence(HERE/'surface-coherence-weights.json')
+            if (HERE/'particle-scatter-weights.json').is_file():
+                from scatter_material import ScatterRenderer,load_scatter
+                cls=ScatterRenderer;options['scatter']=load_scatter(HERE/'particle-scatter-weights.json')
+            q=self.reference_inputs()
+            if self.seed==self.meta['seed']:
+                options['sites']=q['sites'] if q else None
+            else:
+                x,y,x1,y1=self.meta['rect'];options['sites']=sample_sites(x1-x,y1-y,self.seed,self.angle.value())
+        elif self.v2 is not None:
+            from dissolve_v2 import V2Renderer,sample_sites
+            cls=V2Renderer;options['rules']=self.v2
+            q=self.reference_inputs()
+            if self.seed==self.meta['seed'] and q:
+                # 固定参考输入：记录的起点与触点远近；方向仍由滑杆决定（初值为记录值）。
+                options['sites']=q['sites']
+                if not self.explicit_distance and q.get('touch_strength') is not None:options['touch_strength']=q['touch_strength']
+            else:
+                x,y,x1,y1=self.meta['rect'];options['sites']=sample_sites(x1-x,y1-y,self.seed,self.angle.value())
+        elif self.fronts:
+            from front_transport import FrontRenderer,ReleaseSite,sample_sites
+            cls=FrontRenderer
+            if self.seed==self.meta['seed']:
+                observed=self.meta.get('release_sites')
+                options['sites']=[ReleaseSite(**p) for p in observed] if observed else None
+            else:
+                x,y,x1,y1=self.meta['rect'];options['sites']=sample_sites(x1-x,y1-y,self.seed)
+        if self.v2 is not None and self.explicit_distance:options.pop('touch_strength',None)
+        self.renderer=cls(self.meta['name'],direction=self.angle.value(),seed=self.seed,touch_gap=self.gap.value() if self.explicit_distance else None,**options)
         self.angle_label.setText(f'{self.angle.value()}°（0° 右 / 90° 上）')
+    def restore_reference(self):
+        self.lock.setChecked(True);self.select(self.scenes.currentIndex())
     def change_direction(self,a):
         self.rebuild();self.draw()
     def change_distance(self,a):
@@ -112,7 +191,16 @@ class Viewer(QWidget):
     def draw(self,update_slider=True):
         self.right.display(self.renderer.render(self.progress))
         if self.ref is not None:
-            r=self.meta['reference'];t=r['start']+self.progress*(r['end']-r['start']);self.left.display(np.asarray(self.ref[np.argmin(abs(self.ref_times-t))]))
+            r=self.meta['reference']
+            if self.progress>r.get('valid_progress',1):
+                # 不把截断录像的最后一帧冻结后冒充后续参考。
+                from export_reference_placeholder import ended_reference
+                self.left.display(ended_reference(self.meta['frame']))
+            elif self.ref_index is not None:
+                frames,progress=self.ref_index;self.left.display(np.asarray(frames[int(np.argmin(abs(progress-self.progress)))]))
+            else:
+                t=r['start']+self.progress*(r['end']-r['start'])
+                self.left.display(np.asarray(self.ref[np.argmin(abs(self.ref_times-t))]))
         else:self.left.display(self.original)
         if update_slider:self.position.blockSignals(True);self.position.setValue(round(self.progress*1000));self.position.blockSignals(False)
         self.status.setText(f'进度 {self.progress:.3f} · 种子 {self.seed}')
@@ -120,14 +208,24 @@ class Viewer(QWidget):
         self.renderer.close();super().closeEvent(event)
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--capture',action='store_true');args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--capture',action='store_true');p.add_argument('--fronts',action='store_true')
+    p.add_argument('--v2',action='store_true');p.add_argument('--shared-field',action='store_true',help='共同条件场候选；使用同一份权重和材料规则')
+    p.add_argument('--rules',help='第二版规则 JSON；缺省用 dissolve_v2 当前采用的规则');args=p.parse_args()
+    if sum([args.v2,args.fronts,args.shared_field])>1:p.error('--v2、--fronts、--shared-field 只能选择一个')
+    v2=None
+    if args.v2:
+        import dataclasses
+        from dissolve_v2 import RULES as V2_RULES
+        v2=V2_RULES
+        if args.rules:
+            data=json.loads(Path(args.rules).read_text('utf-8'));v2=dataclasses.replace(V2_RULES,**data.get('best',data).get('rules',data))
     app=QApplication(['viewer']+(['-platform','offscreen'] if args.capture else []))
     font_id=QFontDatabase.addApplicationFont('C:/Windows/Fonts/msyh.ttc')
     families=QFontDatabase.applicationFontFamilies(font_id)
     if families:app.setFont(QFont(families[0],10))
-    v=Viewer(fixed=args.capture);v.show()
+    v=Viewer(fixed=args.capture or args.fronts or args.v2 or args.shared_field,fronts=args.fronts,v2=v2,shared=args.shared_field);v.show()
     if args.capture:
-        app.processEvents();v.progress=.48;v.draw();app.processEvents();v.grab().save(str(HERE/'analysis/viewer.png'))
+        app.processEvents();v.progress=.48;v.draw();app.processEvents();v.grab().save(str(HERE/'analysis'/('shared-viewer.png' if args.shared_field else 'v2-viewer.png' if args.v2 else 'front-viewer.png' if args.fronts else 'viewer.png')))
         print('桌面预览已离屏渲染验证');v.close();return
     sys.exit(app.exec())
 if __name__=='__main__':

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>弹窗消散 · 最新预览</title>
+<style>
+:root{color-scheme:dark;--bg:#10151d;--panel:#18212c;--line:#304052;--text:#e6edf5;--dim:#9baec3;--accent:#83bfff}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif}
+header{max-width:1480px;margin:auto;padding:24px 28px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+h1{font-size:22px;margin:0;font-weight:600}header p{margin:2px 0;color:var(--dim);font-size:13px}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1480px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:24px;padding:24px 28px;align-items:start}
+.viewer{min-width:0}.captions{display:flex;justify-content:space-around;color:var(--dim);font-size:13px;margin-bottom:8px}
+.stage{position:relative;height:min(78vh,900px);min-height:340px;border:1px solid var(--line);border-radius:12px;background:#0a0e14;overflow:hidden}
+.stage img{display:block;width:100%;height:100%;object-fit:contain;cursor:crosshair;user-select:none;-webkit-user-drag:none}
+.overlay{position:absolute;inset:0;pointer-events:none}.box{position:absolute;border:1px dashed #83bfff}.box.dialog{border-color:#ffd07e}.point{position:absolute;width:10px;height:10px;margin:-5px;border:2px solid #ffd07e;border-radius:50%}
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:#10151dee;color:var(--dim)}.loading[hidden]{display:none}
+.timeline{display:flex;align-items:center;gap:12px;margin-top:12px}.timeline input{flex:1;min-width:0;accent-color:var(--accent)}.timeline button{flex-shrink:0;white-space:nowrap}output{font-variant-numeric:tabular-nums;min-width:42px;color:var(--dim)}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}.card{padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.row:first-child{margin-top:0}.field{display:block;margin-bottom:12px}.field>span{display:block;color:var(--dim);font-size:12px;margin-bottom:5px}
+.play-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.play-actions button{font-size:13px;padding:9px 4px;min-height:42px}.play-actions button[aria-pressed="true"]{background:#8ac4ff;color:#102033;border-color:#8ac4ff}.direction-overlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.target-label{position:absolute;padding:1px 6px;border-radius:4px;background:#10151de8;color:#9bf3cf;font-size:12px;white-space:nowrap}.mode-note{min-height:42px}
+select,button,input[type=number]{font:inherit;color:var(--text);background:#223146;border:1px solid #40546c;border-radius:7px;padding:7px 10px}select{width:100%;min-width:0}button{cursor:pointer}button:hover{background:#30465f}button:disabled{opacity:.45;cursor:default}button.primary{background:#8ac4ff;color:#102033;border-color:#8ac4ff}button.on{border-color:var(--accent);color:var(--accent)}input[type=checkbox]{accent-color:var(--accent)}input[type=number]{width:132px;font-variant-numeric:tabular-nums}label{color:var(--dim)}
+.note{font-size:12px;color:var(--dim);line-height:1.8;margin:10px 0 0}.note strong{color:var(--text);font-weight:500}.status{color:#b3d9ff;font-size:13px;margin-bottom:8px;min-height:22px}.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:12px;font-variant-numeric:tabular-nums}.kv dt{color:var(--dim)}.kv dd{margin:0;text-align:right}.error{color:#ffb3a7}.footer{font-size:12px;color:var(--dim);margin:10px 0 0}
+@media(max-width:950px){header{padding:16px 18px 0}.wrap{grid-template-columns:1fr;padding:16px 18px;gap:18px}.stage{height:60vh;min-height:280px}.side{display:grid;grid-template-columns:1fr 1fr;align-items:start}.side .notes{grid-column:1/-1}}
+@media(max-width:580px){header{align-items:flex-start}h1{font-size:18px}header a{font-size:12px;white-space:nowrap}.side{display:flex}.stage{height:54vh;min-height:240px}}
+</style>
+</head>
+<body>
+<header><div><h1>弹窗消散 · 最新预览</h1><p id="releaseNote">桌面实验 · <a href="http://localhost:8666/latest.html">前往固定的最新预览入口 ↗</a></p></div><a id="reviewLink" href="/review/" target="_blank">打开预渲染对照 ↗</a></header>
+<main class="wrap">
+<section class="viewer" aria-label="动画预览">
+  <div class="captions"><span id="leftCaption">华为原片</span><span id="rightCaption">多起点候选</span></div>
+  <div class="stage" id="stage" aria-busy="true"><img id="view" alt="实时画面"><div class="overlay" id="overlay"></div><div class="loading" id="loading">正在载入所选序列…</div></div>
+  <div class="timeline"><button id="pause" title="暂停或继续">继续</button><input id="progress" type="range" min="0" max="120" step="1" value="0" aria-label="动画进度"><output id="progressText">0.00</output></div>
+  <p class="footer" id="howto">点击右侧画面中弹窗外的区域，试验不同消逝终点。</p>
+</section>
+<aside class="side">
+  <div class="card">
+    <label class="field"><span>序列</span><select id="scene" aria-label="序列"></select></label>
+    <label class="field"><span>模型</span><select id="model" aria-label="模型"><option value="candidate">10 月 4 日 · 多起点候选</option><option value="material">材质实验 · 保色颗粒（未验收）</option><option value="sparse">基准 · 仅减少粒子</option><option value="baseline">Android 同规则基准</option></select></label>
+    <div class="row" id="latestControls" hidden><button id="useLatest">切回最新版</button><span class="note" id="versionNote"></span></div>
+    <div class="row play-actions" role="group" aria-label="播放方式"><button id="asref" aria-pressed="false">复刻华为参考</button><button id="fixed" aria-pressed="false">固定种子对照</button><button id="back" aria-pressed="false">随机播放</button></div>
+    <p class="note mode-note" id="modeNote">选择播放方式，或点击右侧控件外的背景。</p>
+    <div class="row"><button id="replay">重放上一次</button><button id="reset">回到首帧</button></div>
+    <div class="row" id="speeds"><label>速度</label><button data-speed="1">1×</button><button data-speed="0.5" class="on">0.5×</button><button data-speed="0.25">0.25×</button></div>
+    <div class="row"><label><input type="checkbox" id="lock"> 锁定种子</label><input id="seed" type="number" min="0" max="2147483647" step="1" aria-label="随机种子" placeholder="自动生成"></div>
+    <div class="row"><label><input type="checkbox" id="boxes" checked> 显示起点、方向与可点击区域</label></div>
+  </div>
+  <div class="card"><div id="status" class="status" role="status">就绪</div><dl class="kv" id="info"></dl><p class="note" id="inputNote"></p></div>
+  <details class="card notes"><summary>参考复刻进度</summary><p class="note">“复刻华为参考”向起点核对版传入本序列的起点数量、位置、启动时序和参考方向。左侧是原片，右侧由同一模型实时计算；黄色编号标出本次输入。<strong>先核对初始条件，卷曲、传播时序和材质仍需继续调校。</strong></p><p class="note">“固定种子对照”按种子重复同一组随机起点和方向；“随机播放”生成新的输入，勾选锁定种子后保持该输入。点击控件外背景沿实际点击方向消逝。</p><p class="note">起点核对版保留华为粒子运动和寿命公式，加入共同的显式起点传播及初期尺寸交接规则；这项扩展并非从镜像恢复出的接口。原生公式及 Android 基准均保留为对照。<a href="/review/latest.html" target="_blank">最新十二段对照 ↗</a></p><p class="note">参考起点由原片早段观测，部分启动时刻受确认框遮挡；方向表示观测主方向，不代表知道原机真实触点。参考 2、3 的背景重建区和截断尾段不计入相似度验收。</p></details>
+</aside>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), view=$('view'), sceneSel=$('scene'), modelSel=$('model');
+let scenes=[],referenceLimits={},referenceInputs={},playMode='idle',previewTarget=null,speed=.5,latest={},intent=0,ackIntent=0,wantedRequest=0,displayedRequest=0,after=-1,currentURL=null,frameController=null,queue=Promise.resolve(),pending=false;
+const latestEntry=location.pathname==='/latest.html';
+let release=null;
+const current=()=>scenes.find(s=>s.name===sceneSel.value);
+function busy(value){pending=value;$('stage').setAttribute('aria-busy',String(value));$('loading').hidden=!value;}
+function fail(error){$('status').textContent=error.message||String(error);$('status').classList.add('error');busy(false);}
+function command(kind,extra={},hide=false){
+  const ticket=++intent;
+  if(hide)busy(true);
+  const seed=$('lock').checked&&$('seed').value!==''?Number($('seed').value):null;
+  const body={kind,scene:sceneSel.value,model:modelSel.value,speed,seed,...extra};
+  queue=queue.catch(()=>{}).then(async()=>{
+    const headers={'Content-Type':'application/json'};if(release)headers['X-Preview-Revision']=release.revision;
+    const response=await fetch('/api/cmd',{method:'POST',headers,body:JSON.stringify(body)});
+    if(response.status===409){location.reload();return;}
+    const ack=await response.json();if(!response.ok)throw Error(ack.error||'命令失败');
+    if(ticket===intent){ackIntent=ticket;wantedRequest=ack.request_id;after=-1;if(frameController)frameController.abort();}
+    return{...ack,ticket};
+  }).catch(fail);
+  return queue;
+}
+function referenceCaption(progress=0){const limit=referenceLimits[sceneSel.value]??1;$('leftCaption').textContent=limit<1?(progress>limit?'原片已截断 · 停留在 '+limit.toFixed(2):'华为原片 · 仅录到 '+limit.toFixed(2)):'华为原片';}
+function labels(){const s=current();if(!s)return;$('asref').disabled=!s.ref||!referenceInputs[s.name];$('leftCaption').hidden=!s.ref;referenceCaption();$('rightCaption').textContent=modelSel.selectedOptions[0].textContent;
+  if(release){$('useLatest').disabled=modelSel.value===release.model;$('versionNote').textContent=modelSel.value===release.model?'正在查看最新版':'正在查看对照模型';}
+  $('howto').textContent=s.ref?'左侧为华为原片，右侧为实时效果。点击右侧控件外的手机背景，按点击方向消逝。':'点击控件外的背景，按点击方向消逝。';modeLabel();drawOverlay();}
+function modeLabel(){for(const[id,mode]of[['asref','reference'],['fixed','fixed'],['back','random']])$(id).setAttribute('aria-pressed',String(playMode===mode));const notes={idle:'选择播放方式，或点击控件外的背景。',reference:modelSel.value==='harmony-native'?'参考复刻：按原片估计的这一次动画输入（消蚀格点值、横风、设备比例、扩展尺寸、时间口径）播放华为原生实现。':'参考复刻：固定观测起点、启动时序和方向，先核对初始条件。',fixed:'固定种子：重复同一组随机起点和方向，便于逐帧检查。',random:'随机播放：生成新的随机输入；锁定种子时保持该输入。',tap:'点击消逝：绿色标记为触点，箭头表示消逝方向。'};$('modeNote').textContent=notes[playMode];}
+function setMode(mode,target=null){playMode=mode;previewTarget=target;modeLabel();drawOverlay();}
+function referenceTarget(s,direction){const a=direction*Math.PI/180,dx=Math.cos(a),dy=-Math.sin(a),[l,t,r,b]=s.touch_rect,[cl,ct,cr,cb]=s.rect,cx=(cl+cr)/2,cy=(ct+cb)/2;const hit=(lo,hi,c,v)=>Math.abs(v)<1e-8?Infinity:((v>0?hi:lo)-c)/v;const outer=Math.min(hit(l,r,cx,dx),hit(t,b,cy,dy)),inner=Math.min(hit(cl,cr,cx,dx),hit(ct,cb,cy,dy));if(!Number.isFinite(outer)||outer<=inner)throw Error('参考方向没有可用的背景区域');const d=(inner+outer)/2;return[cx+dx*d,cy+dy*d];}
+sceneSel.onchange=()=>{sessionStorage.setItem('dialogPreviewScene',sceneSel.value);latest={};setMode('idle');labels();command('scene',{},true);};
+modelSel.onchange=()=>{labels();if(playMode==='reference')playReference(latest.progress||0);else command('seek',{progress:latest.progress||0},true);};
+$('useLatest').onclick=()=>{if(release){modelSel.value=release.model;modelSel.onchange();}};
+async function playReference(progress=null){const s=current(),preset=referenceInputs[s.name];if(!preset)return;try{setMode('reference');let ack;if(modelSel.value==='harmony-core'){const[x,y]=referenceTarget(s,preset.direction);ack=await command('tap',{x,y,seed:preset.seed},progress!=null);}else ack=await command('ref',{seed:preset.seed},progress!=null);
+  // 先等待新输入的画面，防止后台“最新命令优先”覆盖重建；切换模型仍保留比较进度。
+  if(progress!=null&&ack){const started=Date.now();while(displayedRequest<ack.request_id&&intent===ack.ticket&&Date.now()-started<10000)await new Promise(resolve=>setTimeout(resolve,16));if(intent===ack.ticket){if(displayedRequest<ack.request_id)throw Error('参考输入准备超时，请重试');command('seek',{progress},true);}}}catch(error){fail(error);}}
+$('asref').onclick=()=>playReference();
+$('fixed').onclick=()=>{const preset=referenceInputs[sceneSel.value],seed=$('seed').value===''?(preset?.seed??0):Number($('seed').value);setMode('fixed');command('back',{seed});};
+$('back').onclick=()=>{setMode('random');command('back');};$('replay').onclick=()=>command('replay');$('reset').onclick=()=>{setMode('idle');command('scene',{},true);};
+$('pause').onclick=()=>command(latest.playing?'pause':'resume');
+$('progress').oninput=()=>{$('progressText').textContent=(Number($('progress').value)/120).toFixed(2);};
+$('progress').onchange=()=>command('seek',{progress:Number($('progress').value)/120});
+document.querySelectorAll('[data-speed]').forEach(button=>button.onclick=()=>{speed=Number(button.dataset.speed);document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('on',b===button));if(latest.playing)command('resume');});
+$('boxes').onchange=drawOverlay;window.addEventListener('resize',drawOverlay);view.onload=drawOverlay;
+function imageRect(){const s=current(),r=view.getBoundingClientRect();if(!s)return null;let width=r.width,height=r.height,ratio=s.view[0]/s.view[1];if(width/height>ratio)width=height*ratio;else height=width/ratio;return{left:r.left+(r.width-width)/2,top:r.top+(r.height-height)/2,width,height};}
+function drawOverlay(){const overlay=$('overlay');overlay.replaceChildren();const s=current(),r=imageRect();if(!s||!r||view.dataset.scene!==s.name)return;const st=$('stage').getBoundingClientRect();
+  const point=(x,y)=>[r.left-st.left+x/s.view[0]*r.width,r.top-st.top+y/s.view[1]*r.height];
+  if($('boxes').checked){for(const [rect,cls]of[[s.touch_rect,'box'],[s.rect,'box dialog']]){const[x,y]=point(rect[0]+s.panel_x,rect[1]),el=document.createElement('div');el.className=cls;Object.assign(el.style,{left:x+'px',top:y+'px',width:(rect[2]-rect[0])/s.view[0]*r.width+'px',height:(rect[3]-rect[1])/s.view[1]*r.height+'px'});overlay.append(el);}
+  const groups=[{sites:latest.origins||[],offset:s.panel_x}];if(s.ref&&modelSel.value!=='harmony-native')groups.unshift({sites:referenceInputs[s.name]?.origins||[],offset:0});
+  for(const group of groups)for(const [i,o] of group.sites.entries()){const[x,y]=point(group.offset+s.rect[0]+o.x*(s.rect[2]-s.rect[0]),s.rect[1]+o.y*(s.rect[3]-s.rect[1]));const el=document.createElement('div');el.className='point';el.style.left=x+'px';el.style.top=y+'px';overlay.append(el);const label=document.createElement('div');label.className='target-label';label.style.color='#ffd07e';label.textContent=(i+1)+' · '+o.start.toFixed(2);label.style.left=(x+9)+'px';label.style.top=(y-12)+'px';overlay.append(label);}}
+  let directionTarget=playMode==='tap'?previewTarget:null;if(playMode==='reference'&&latest.direction!=null&&$('boxes').checked&&modelSel.value!=='harmony-native'){try{directionTarget=referenceTarget(s,latest.direction);}catch{}}
+  if(directionTarget){const[tx,ty]=directionTarget,[l,t,rr,b]=s.rect,cx=(l+rr)/2,cy=(t+b)/2,dx=tx-cx,dy=ty-cy,exit=Math.min((rr-l)/(2*Math.max(Math.abs(dx),1e-8)),(b-t)/(2*Math.max(Math.abs(dy),1e-8)));const[x0,y0]=point(s.panel_x+cx+dx*exit,cy+dy*exit),[x1,y1]=point(s.panel_x+tx,ty),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.classList.add('direction-overlay');svg.setAttribute('aria-label','本次消逝方向与触点');svg.setAttribute('role','img');
+    const make=(tag,attrs)=>{const el=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))el.setAttribute(k,String(v));return el;},defs=make('defs',{}),marker=make('marker',{id:'directionArrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto'});marker.append(make('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#8ff0c8'}));defs.append(marker);svg.append(defs,make('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'#8ff0c8','stroke-width':2,'stroke-dasharray':'5 4','marker-end':'url(#directionArrow)'}));if(playMode==='tap')svg.append(make('circle',{cx:x1,cy:y1,r:6,fill:'#10151d',stroke:'#8ff0c8','stroke-width':2}));overlay.append(svg);const text=document.createElement('div');text.className='target-label';text.textContent=playMode==='reference'?'参考方向 '+latest.direction+'°':'消逝方向';text.style.left=Math.min(Math.max(5,x1-28),st.width-100)+'px';text.style.top=Math.min(Math.max(4,y1+10),st.height-26)+'px';overlay.append(text);}
+}
+view.onclick=event=>{const s=current(),r=imageRect();if(!s||pending||view.dataset.scene!==s.name)return;const x=(event.clientX-r.left)/r.width*s.view[0]-s.panel_x,y=(event.clientY-r.top)/r.height*s.view[1];const[l,t,rr,b]=s.touch_rect,[dl,dt,dr,db]=s.rect;if(x<l||x>rr||y<t||y>b||(x>=dl&&x<=dr&&y>=dt&&y<=db))return;setMode('tap',[x,y]);command('tap',{x,y});};
+async function receiveFrames(){while(true){try{frameController=new AbortController();const response=await fetch('/api/frame?after='+after,{signal:frameController.signal});if(response.status===204)continue;if(!response.ok)throw Error('画面连接失败');
+  if(release&&response.headers.get('X-Preview-Revision')!==release.revision){location.reload();return;}
+  const frameId=Number(response.headers.get('X-Frame-Id')),requestId=Number(response.headers.get('X-Request-Id')),scene=response.headers.get('X-Scene'),progress=response.headers.get('X-Progress');after=frameId;
+  const blob=await response.blob();if(ackIntent!==intent||requestId<wantedRequest||scene!==sceneSel.value)continue;
+  const ticket=intent,url=URL.createObjectURL(blob),decoded=new Image();decoded.src=url;await decoded.decode();
+  if(ticket!==intent||requestId<wantedRequest||scene!==sceneSel.value){URL.revokeObjectURL(url);continue;}
+  const previous=currentURL;currentURL=url;view.src=url;view.dataset.scene=scene;view.dataset.frameId=String(frameId);view.dataset.progress=progress;displayedRequest=requestId;busy(false);if(previous)URL.revokeObjectURL(previous);drawOverlay();
+}catch(error){if(error.name!=='AbortError'){fail(error);await new Promise(resolve=>setTimeout(resolve,700));}}}}
+function showStatus(s){latest=s;$('status').textContent=s.status||'就绪';$('status').classList.toggle('error',String(s.status).startsWith('错误'));$('pause').textContent=s.playing?'暂停':'继续';
+  referenceCaption(s.progress||0);
+  if(document.activeElement!==$('progress')){$('progress').value=Math.round((s.progress||0)*120);$('progressText').textContent=Number(s.progress||0).toFixed(2);}
+  if(s.seed!=null&&document.activeElement!==$('seed'))$('seed').value=s.seed;
+  const fields=[['候选粒子数',s.particles?.toLocaleString()||'播放后显示'],...(s.active_count!=null?[['当前活动粒子',s.active_count.toLocaleString()]]:[]),['消逝起点',s.origins?.length?s.origins.length+' 个':(s.particles==null?'播放后显示':'由模型内部决定')],['准备耗时',s.build_ms!=null?s.build_ms+' ms':'—'],['渲染帧率',s.fps!=null?s.fps+' fps':'—'],['方向',s.direction!=null?s.direction+'°':'—'],['终点距离',s.core?'仅控制风向':(s.touch_gap!=null?s.touch_gap.toFixed(2)+' × 短边':'默认')],...(s.origins||[]).map((o,i)=>['起点 '+(i+1),`${Math.round(o.x*100)}%, ${Math.round(o.y*100)}% · ${o.start.toFixed(2)}`])];
+  $('info').replaceChildren(...fields.flatMap(([key,value])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=key;dd.textContent=value;return[dt,dd];}));$('inputNote').textContent=playMode==='reference'?(s.particles==null?'正在载入本序列的参考输入…':s.origins?.length?'左侧标记为参考观测，右侧为实际输入；坐标相对控件，末项为启动进度。'+(referenceInputs[s.scene]?.note||''):'当前对照模型不使用显式参考起点；请选择起点与方向核对版。'):(s.source||'选择序列即可显示首帧，无需播放。');drawOverlay();
+}
+async function pollStatus(){try{const response=await fetch('/api/status'),s=await response.json();if(s.scene===sceneSel.value&&s.model===modelSel.value&&s.request_id>=wantedRequest&&s.request_id<=displayedRequest)showStatus(s);}catch(error){$('status').textContent='正在重新连接…';}setTimeout(pollStatus,200);}
+async function readRelease(){const response=await fetch('/api/release');if(!response.ok)throw Error('最新版本信息暂时不可用');return response.json();}
+async function watchRelease(){try{const next=await readRelease();if(next.revision!==release.revision){location.reload();return;}$('releaseNote').textContent=releaseLabel();}catch(error){$('releaseNote').textContent='正在重新连接最新预览…';}setTimeout(watchRelease,3000);}
+function releaseLabel(){return '最新版本：'+release.title+' · '+release.status+' · 更新于 '+new Date(release.updated_at).toLocaleString('zh-CN',{hour12:false});}
+async function start(){
+  if(latestEntry){release=await readRelease();$('releaseNote').textContent=releaseLabel();$('reviewLink').href='/review/latest.html';$('reviewLink').textContent='打开最新版预渲染对照 ↗';$('latestControls').hidden=false;}
+  const response=await fetch('/api/scenes');if(!response.ok)throw Error('预览服务正在启动');scenes=await response.json();
+  const available=scenes[0]?.models||['baseline','sparse','candidate'];
+  if(release&&!available.includes(release.model))throw Error('后台尚未提供最新模型');
+  for(const option of [...modelSel.options])if(!available.includes(option.value))option.remove();
+  for(const value of available)if(![...modelSel.options].some(option=>option.value===value)){const option=document.createElement('option');option.value=value;option.textContent=scenes[0]?.model_titles?.[value]||(value===release?.model?release.title:value);modelSel.append(option);}
+  for(const[ref,label]of[[true,'华为参考'],[false,'自有弹窗']]){const group=document.createElement('optgroup');group.label=label;for(const s of scenes.filter(s=>s.ref===ref)){const option=document.createElement('option');option.value=s.name;option.textContent=s.title;group.append(option);}sceneSel.append(group);}
+  const status=await(await fetch('/api/status')).json(),saved=sessionStorage.getItem('dialogPreviewScene');
+  sceneSel.value=latestEntry&&scenes.some(s=>s.name===saved)?saved:(status.scene||'reference-0926-5');modelSel.value=release?.model||status.model||'candidate';
+  labels();await command('scene',{},true);receiveFrames();pollStatus();if(release)watchRelease();
+}
+async function initialize(){try{const responses=await Promise.all([fetch('/review/reference-limits.json'),fetch('/review/reference-inputs.json')]);if(responses.some(r=>!r.ok))throw Error('预览服务正在连接…');[referenceLimits,referenceInputs]=await Promise.all(responses.map(r=>r.json()));await start();}catch(error){fail(error);setTimeout(()=>location.reload(),3000);}}
+initialize();
+</script>
+</body>
+</html>

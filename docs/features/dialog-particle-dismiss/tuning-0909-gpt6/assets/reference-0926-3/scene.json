@@ -1,0 +1,49 @@
+{
+  "name": "reference-0926-3",
+  "title": "蜘蛛侠 · 红色手套",
+  "frame": [
+    720,
+    1280
+  ],
+  "rect": [
+    120,
+    220,
+    600,
+    700
+  ],
+  "radius": 31,
+  "duration": 1.0,
+  "seed": 1460,
+  "direction": 138.0,
+  "dim_alpha": 0.0,
+  "background_truth": false,
+  "background_note": "屏摄按手机平面配准；片尾不完整，背景重建，仅有效区间参与分析",
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\new-references-0926\\3-第7秒开始.mp4",
+    "start": 7.333333,
+    "end": 9.15,
+    "valid_progress": 0.7522936234323622,
+    "sha256": "499ae71d2f9029aeb68d4f47b975fee2a18a8c1d75e68d9efef0f7227f5e1261"
+  },
+  "research_input": true,
+  "direction_note": "根据前后向光流一致区域测量主方向，原片准确触点未知。",
+  "seed_note": "未知原始种子；仅用前 0.20 进度的解除观测选择共同随机模型的初始条件，后段不参与选取。",
+  "release_sites": [
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "start": 0.0
+    },
+    {
+      "x": 0.0,
+      "y": 0.63,
+      "start": 0.035
+    },
+    {
+      "x": 1.0,
+      "y": 0.66,
+      "start": 0.04
+    }
+  ],
+  "input_note": "起点位置和启动顺序来自前段观测；方向由整体流动估计，准确触点与原始随机种子未知。"
+}

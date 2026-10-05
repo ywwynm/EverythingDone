@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "area": 1.0,
+    "grain": 1.1,
+    "count_share": 1.0,
+    "survival": 0.0,
+    "footprint": 1.25
+  },
+  "selection": "全参考共用数量／面积密度和温和足迹；不延长寿命，不增加白色项，不按素材切换规则。"
+}

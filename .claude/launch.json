@@ -10,6 +10,33 @@
         "E:\\projects\\EverythingDone\\tmp\\spatial-desktop-tuning"
       ],
       "port": 8642
+    },
+    {
+      "name": "particle-videos",
+      "runtimeExecutable": "C:\\Users\\ywwynm\\miniconda3\\envs\\everythingdone\\python.exe",
+      "runtimeArgs": [
+        "E:\\projects\\EverythingDone\\tmp\\spatial-desktop-tuning\\serve_threaded.py",
+        "8651",
+        "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\videos"
+      ],
+      "port": 8651
+    },
+    {
+      "name": "dialog-dismiss-live",
+      "runtimeExecutable": "C:\\Users\\ywwynm\\miniconda3\\envs\\everythingdone\\python.exe",
+      "runtimeArgs": [
+        "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\live\\preview_gateway.py"
+      ],
+      "port": 8666
+    },
+    {
+      "name": "dialog-dismiss-renderer",
+      "runtimeExecutable": "C:\\Users\\ywwynm\\miniconda3\\envs\\everythingdone\\python.exe",
+      "runtimeArgs": [
+        "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\live\\live_server.py",
+        "8653"
+      ],
+      "port": 8653
     }
   ]
 }

@@ -104,7 +104,7 @@ class PressureGrid:
         self.accum=self.ctx.buffer(reserve=count*16);self.temp=self.ctx.buffer(reserve=count*16);self.velocity=self.ctx.buffer(reserve=count*16)
         self.pressures=[self.ctx.buffer(reserve=count*4),self.ctx.buffer(reserve=count*4)]
         self.texture=self.ctx.texture(self.shape,4,dtype='f4');self.texture.filter=(moderngl.LINEAR,moderngl.LINEAR);self.texture.repeat_x=False;self.texture.repeat_y=False
-        self.splat=self.ctx.compute_shader(SPLAT);self.blur=self.ctx.compute_shader(BLUR);self.project=self.ctx.compute_shader(PROJECT)
+        self.splat=self.ctx.compute_shader(getattr(r,'pressure_splat_source',SPLAT));self.blur=self.ctx.compute_shader(BLUR);self.project=self.ctx.compute_shader(PROJECT)
         for p in [self.splat,self.blur,self.project]:p['grid_shape']=self.shape
         for key,value in dict(count=r.n,grid_count=r.nx*r.ny,card=(r.cw,r.ch),wind=r.wind,grid_bounds=self.bounds,span=r.span,touch_strength=r.touch_strength,foreground=0).items():self.splat[key]=value
         self.blur['occupancy_scale']=r.cell[0]*r.cell[1]/self.cell**2

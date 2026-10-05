@@ -1,0 +1,9 @@
+{
+  "backend_port": 8653,
+  "model": "harmony-native",
+  "title": "华为原生 · 逐项等价",
+  "status": "审阅页两列：原片 / 模型干净渲染（不模拟原片编码失真）。本轮：参考 5 颗粒按标准 src-over、2 万颗；钢铁侠末段颗粒只缩小不变暗；向上钢铁侠开场头发一带格点推迟；参考 3 人脸与手套周围格点推迟，后段人脸、手套变透明的时机与原片接近。原片颗粒偏白是 4:2:0 色度采样所致，不模拟。",
+  "review_path": "/review/harmony-native/index.html",
+  "revision": "6da5e9b24fe04c7e8d2cd3e6216f382a",
+  "updated_at": "2026-10-05T17:03:34+08:00"
+}

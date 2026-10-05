@@ -1,0 +1,50 @@
+{
+  "name": "spiderman-original",
+  "title": "蜘蛛侠 · 旧参考",
+  "frame": [
+    592,
+    1280
+  ],
+  "rect": [
+    37,
+    115,
+    551,
+    684
+  ],
+  "radius": 33,
+  "duration": 1.0,
+  "seed": 487,
+  "direction": 144.0,
+  "dim_alpha": 0.0,
+  "background_truth": true,
+  "background_note": "屏幕参考原像素",
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\tmp\\particle-dismiss-tuning\\ref-videos-all\\8-第三秒开始.mp4",
+    "start": 3.1,
+    "end": 8.45,
+    "valid_progress": 1.0,
+    "sha256": "4dc60c0aba66f5c689800257ac8f08b7c88c7d815a027941d31005c49f756338"
+  },
+  "research_input": true,
+  "direction_note": "根据前后向光流一致区域测量主方向，原片准确触点未知。",
+  "seed_note": "未知原始种子；仅用前 0.20 进度的解除观测选择共同随机模型的初始条件，后段不参与选取。",
+  "release_sites": [
+    {
+      "x": 0.72,
+      "y": 0.0,
+      "start": 0.0
+    },
+    {
+      "x": 0.0,
+      "y": 0.36,
+      "start": 0.07
+    },
+    {
+      "x": 1.0,
+      "y": 0.65,
+      "start": 0.2
+    }
+  ],
+  "input_note": "起点位置和启动顺序来自前段观测；方向由整体流动估计，准确触点与原始随机种子未知。",
+  "rect_note": "动画开始时原片的卡片比 source.png 里高 11 像素（顶部多一条与卡片内容相连的深色区域，人脸等内容位置不变）；矩形与卡片图按原片 p≈−0.03 帧补齐（2026-10-05，replica 文档第 38 节）"
+}

@@ -1,4 +1,123 @@
-# 粒子消散：修正共同剥离场的内部孤立细缕
+# 粒子动画桌面模拟器与参考对照
+
+**当前统一入口：[最新实时预览](http://localhost:8666/latest.html)。** 默认展示最新已发布的算法，版本更新后自动刷新；页面内可打开对应预渲染对照。后续不再让用户辨认开发端口或实验目录，发布流程见 [live/README.md](live/README.md)。下文的 8652／8653 是后台及历史地址。
+
+## 2026-10-04 历史缓存清理
+
+按用户要求删除约 1.21 TB 的可重建数组，本目录降至约 44.46 GB。原始参考、素材、全部代码／参数／视频、当前 `analysis/match-cache/takeover-20261004/` 及实时预览依赖均保留；8652／8653 已复核正常。
+
+`handoff-review` 仅保留 V104m、V130、V134 的完整帧，其他变体保留参数、测量与缩略图；`codec` 保留 MP4 和 JSON，移除重复解码数组。归档保留 `observed-approved`、`before-rim-flow` 和交接基准，其余顶层渲染帧已清理，源码／输入资源未删。历史文档中的缓存路径不保证仍有完整数组，需按保存的脚本和参数重算；详细清单见[清理记录](../cache-cleanup-2026-10-04.md)。
+
+后续实验优先保存成片、关键帧和轻量结果，仅让当前实验与少量必要基准保留完整数组；不要批量重建全部历史缓存。本次没有安装自动清理任务，也没有修改算法。
+
+## 2026-10-04：接手后的桌面对照与实时预览
+
+当前入口：[实时预览](http://localhost:8652/)；[预渲染三栏对照](http://localhost:8652/review/)。启动方式仍为 `python live/live_server.py 8652`，使用仓库约定的 `everythingdone` 环境；完整命令和测试见 [live/README.md](live/README.md)。
+
+- 三项可选模型：Android 同规则基准、只减少粒子的消融、多起点候选。候选粒子总数约减少 62.5%，新参考布局改善，但尚未通过旧钢铁侠弧边等全部回归，不能作为已验收的正式替代版。
+- 预渲染与实时共用 `desktop_inputs.make_renderer()`，共十二段参考、四个自有弹窗。参考输入使用早期人工起点，随机输入由共同分布生成，不再读取逐段拟合速度、前沿或样本段。
+- 序列选择无需播放即显示首帧；页面居中、响应式布局。支持暂停、拖动进度、锁定种子、重放和保持输入切换模型。
+- `python analysis/export_takeover_review.py` 生成原片／基准／候选的 121 帧三栏视频、关键帧及连续性图，输出在 `analysis/match-cache/takeover-20261004/`。算法结论见[接手复核](../takeover-2026-10-04.md)；外部资料见[调研](../research-2026-10-04-unified-model.md)。
+- 下节为接手前历史入口说明。`live_inputs.py`、`spec-live.txt` 仍保留，但当前实时服务不执行它们。
+
+## 2026-10-04 接手前：Claude 实时预览（历史记录）
+
+`python live/live_server.py 8652`（或 `.claude/launch.json` 的 `dialog-dismiss-live`），浏览器打开 http://localhost:8652/ 。
+在本机 GPU 上实时渲染当前的真机等价版本（`live/spec-live.txt`，算法有进展即同步更新），MJPEG 推流到网页。画面分两组：
+
+- **自有弹窗**（添加附件 · 纯色 / 图片背景、更改应用语言、调整颜色）：点击弹窗外、手机屏幕内的任意位置关闭，方向 = 弹窗中心指向触点，触点离边缘越远位移越大；
+  「返回键关闭」没有触点，方向固定左上。起点布局与整体运动从十段参考里随机抽一段（页面上可固定），旋转到本次方向。
+- **华为参考序列**（钢铁侠、灭霸、白衣人物等十段）：左边原片、右边实时渲染，两边按同一进度播放。三种播放：
+  · 点击右栏任意位置：真机等价（这一段的起点布局与整体快慢旋转到触点方向，统一风，前沿起伏随机）；
+  · 「按原片的方向播放」：原片那一次的方向、起点与这一段逐段拟合的湍流样子（10-02 允许作为这一次的随机实现），前沿起伏随机；
+  · 「逐段拟合对照」：前沿起伏也用这一段拟合出的值，只用来验证模型结构（两层目标的第 1 层）。
+  状态栏的「运动」「消融前沿起伏」两行写明当前用的是哪一种。各段整体快慢都按颗粒云 PIV 速度比校正（`analysis/speed-cal-v1.json`、`speed-cal-fit-v1.json`）。
+- 逐次输入（`live/live_inputs.py`，不读华为原片的画面）：旋转量按样本段颗粒在出生后 0.3 进度内的位移方向对齐触点；所有颗粒共用整体初速与加速度（统一风），
+  只有逐颗快慢离散；前沿起伏按 `analysis/field-stats-v53-f31.json` 的十段统计随机生成。每次点击覆盖 `analysis/` 下的保留版本表
+  `kin-uvt-v900`、`release-param-v900`、`release-oracle2-v900`。
+- 变体文件每次点击重读（改了不用重启）；改了 `live_server.py` / `live_inputs.py` 要重启。渲染超采样 2 倍（与离线对照相同），灭霸约 30～40 帧 / 秒。
+- 播完停 0.8 秒后回到弹窗显示时的画面；静止时每 0.25 秒重发当前帧（浏览器的 MJPEG 要等到下一段才显示上一段，只发一帧时画面是空的）。
+- 重叠提亮在 GPU 上合成（与 `handoff_variants` 的 CPU 版逐像素相差 ≤ 1 灰阶）。
+- 离线复现预览页的画面：scratchpad 的 `live_sheet.py`（联系表）、`live_crop.py`（原分辨率局部），用 901 号表，不影响预览页。
+
+## 2026-09-27：接手后的共同条件场研究
+
+入口：[共同模型与华为原片](http://127.0.0.1:13070/shared-field.html)，[逐段测量及限制](http://127.0.0.1:13070/shared-field-report.html)。本轮只针对华为十二段参考；自有弹窗暂不调参，Android 保持现状。
+
+- `python viewer.py --shared-field`：当前候选的可交互桌面预览。加 `--capture` 可检查离屏界面。
+- `python analysis/export_shared_candidate.py --details --differences --previous analysis/match-cache/proportional-curl-before`：十二段原片、此次调整前和本轮候选的三栏对比，另有原尺寸局部及十段有效背景的固定色阶差异，合计 68 个视频，全部平铺在 `videos/`，各有 1 倍和 0.5 倍。省略 `--previous` 时中间列采用 Claude 接手候选。
+- `python analysis/report_shared_candidate.py`：从导出清单生成测量报告；`python analysis/check_shared_candidate.py --huawei-only` 检查起点顺序不变性、微扰连续性和共同流场先验；`python analysis/check_surface_transfer.py --gpu` 检查实际候选的空间索引、有限状态、结束残留和随机访问回放。
+- 实现：`learned_release.py`、`coupled_transport.py`、`conditional_material.py`、`shared_transport.py`、`surface_transfer.py`，三份 `conditional-*.json` 及 `surface-transfer-rules.json`。所有序列共用函数及权重，输入采用 `OBSERVED_SITES`，不采用 Claude 后续逐段细化的起点速率／线段长度。
+- 方法和拒绝的候选见[接手实验记录](../takeover-method-2026-09-27.md)。释放采用渲染后同口径的闭环校准；输运采用可微粗粒化实验，再由实际 GPU 完整颗粒验证。颗粒粗化与数量反比处理，避免用整体加白补覆盖。
+- `origin_volume.py`、`analysis/study_origin_volume.py` 是未采用的深度隆起和边缘抑制消融；不能把它们当作正式候选已经启用了 Z 轴云团。起点边界外覆盖已加入共同校准，鼓起形态仍有差距。
+- 本轮柔和度改动根据传播梯度计算交接宽度，原表面与颗粒逐渐交接；共同释放时序、输运重新校准，颗粒尺度和明暗沿用上轮。旧钢铁侠流场先验保留，但最终覆盖与出生时刻也受新交接影响，不再声称最终图像与旧版逐像素相同。
+- 后续共同输运采用固定的多尺度几何特征及速度场积分；释放增加共用的有界时间曲线。旧钢铁侠标准布局同样允许校准，不再被严格锁定为旧实现。`analysis/check_integrated_transport.py` 检查训练／渲染两端的积分单位、一致性及采样雅可比；正值仅表明该修正场在检查范围内未穿插，不代表视觉上不会形成致密细缕。
+- `analysis/fit_shared_transport.py --teacher` 只输出离线对应诊断，不能用于运行；`--distill` 将其投影回不含素材身份的共同函数。`cloud_material.py` 的数量、寿命和提亮消融未通过，不接入默认模型。
+- 2026-09-28：`particle_coverage.py` 把同一密度修正分配给颗粒数量和面积，并以足迹／不透明度互补柔化颗粒。`particle-coverage-rules.json` 为共同规则；`analysis/check_particle_coverage.py` 验证零配置等价、结束残留、有限状态及回放。
+- `particle_cohorts.py` 与 `particle-cohort-weights.json` 分别处理同一位置的新生、成熟、末期颗粒覆盖，仍是所有参考共用的几何与时空条件函数。`analysis/check_particle_cohorts.py --candidate particle-cohort-weights.json` 验证关闭时的像素等价、运动状态不变、首尾帧、回放和起点连续性；`analysis/verify_shared_exports.py` 同时核对当前代码／权重、成片身份、速度和解码。
+- `surface_coherence.py` 与 `surface-coherence-weights.json` 联合校准局部的原表面／运动片交接时刻和过渡宽度，不改变粒子运动、颜色或采样数量。所有输入共用一份双输出函数，仍兼容旧单输出权重。交接时钟的解析导数受正值约束；实际表面覆盖另用 GPU 逐实例回读检查，不能把时钟单调直接当作覆盖单调的证明。`analysis/check_surface_coherence.py --candidate surface-coherence-weights.json` 检查零配置、原状态、首尾、回放和输入连续性。
+- `analysis/fit_surface_handoff.py` 用真实 GPU 图像的局部响应联合校准时刻和宽度；`analysis/check_surface_handoff.py --candidate <权重文件>` 检查实际表面覆盖。`surface_handoff.py` 保留实验入口，其被采用的运行规则已并入 `surface_coherence.py`。颗粒数量／面积／反射联合拟合虽进一步降低部分 RGB 误差，但部分序列的颗粒指标退步，未接入默认模型；`particle_population.py`、`analysis/fit_particle_distribution.py`、`analysis/study_fine_reflection.py` 仅供研究。
+- 早期共同空间释放基、固定阈值微片细分、曝光积分和多频段颗粒统计的实验没有通过联合验收，未启用。`analysis/study_particle_exposure.py`、`analysis/fit_grain_statistics.py` 只作诊断；后者降低部分纹理差却损伤结构，不能直接将其输出作为默认配置。
+- `analysis/study_particle_sampling.py` 区分固定输运下的绘制细分与局部散布；`analysis/study_material_resolution.py` 检查真实材料网格加密，`--motion` 检查共同携带速度；`analysis/study_shared_compositing.py` 只检验合成空间。均为未采用消融，默认预览与导出不读取这些结果。
+- 连续形态复核使用 `analysis/check_cloud_evolution.py` 的云团占用、质心、前后沿与展宽时序，并直接查看原片；PIV 的颗粒真实位移标定已失败，相关消融只保留为诊断记录，不作为验收。`analysis/review_shared_exports.py` 从最终编码成片取整幅手机画面复看。
+- `analysis/anchor_transport.py` 用真实 GPU 图像校准输运拟合的展开点；`--refinement` 约束相对既有形变的变化。只降低近似拟合损失不构成采用依据，需另渲未采样时刻及完整动画。`particle_optics.py`、`particle_footprint.py` 及对应研究脚本保留为消融工具，不是按素材切换的模型。
+- 2026-09-28：`particle_fission.py` 与 `scatter_material.py` 将投影偏大的运动片连续细分，并联合校准局部光学覆盖、反射与色度；共同权重为 `particle-scatter-weights.json`。原有模拟运动不变，细粒绘制包含共同的小范围散布。十段 733 帧的结构、颗粒差与云团占用差均改善，另外两段只作可观测区目视对照。复核命令为 `python analysis/check_scatter_material.py --weights particle-scatter-weights.json --baseline analysis/match-cache/fine-material-before`；不能把误差下降当作近像素级一致。残差输运因局部负雅可比未采用。
+
+- 2026-09-28 早期连续运动修正：固定材料的 GPU 路径证实，后置时变位置修正造成了额外同步侧摆。`analysis/diagnose_motion_continuity.py` 直接追踪实际中心，`--fine` 另查细分颗粒；`analysis/fit_fine_transport_response.py` 将十二段的加速度、逆风速度与多余横向往返纳入共同校准。当次只替换 `conditional-transport-weights.json`，密度函数及基础状态保持一致；后续比例修正已允许基础积分场变化，需使用 `analysis/check_joint_refinement.py --allow-flow-change` 检查。原片形状与静态误差仍须同时检查，不能以运动指标减少代替视觉验收。详见[连续运动记录](../motion-continuity-2026-09-28.md)。
+
+- 2026-09-28 材质连续性修正：共同的 `particle-scatter-weights.json` 限制实际材料沿途覆盖、反射和色度的重复起伏，几何输入与三项输出不变，粒子位置不变。`analysis/check_material_paths.py` 按完整三维纹理复核独立抽样；统计的是控制量，不是最终像素亮度。逐格容量诊断不进入运行时。拟合、未采用结果和完整误差见 [材质诊断记录](../material-contrast-2026-09-28.md)。
+
+这是桌面研究路径，小型条件函数尚未提炼成最终移动端允许的实现。参考已参与校准，不再称留出；目前仍未达到逐像素一致，不能只用整体误差下降验收局部粒子运动。
+
+- 2026-09-28 最新共同细化：`analysis/fit_motion_material_joint.py` 联合校准现有位置与材质函数；`--native-path-clock --cohort-synchrony-guard` 直接使用 120 Hz 实际轨迹及足量的持续可见材料。最终仍由独立的 GPU 全路径、细分颗粒和完整原片验证，不能把拟合器约束通过当作动画正确。
+- `analysis/prepare_uncertain_grain_cache.py` 仅为背景未知的新 2／3 加入可观测高频纹理，不启用其 RGB 损失。`analysis/prepare_grain_responses.py` 用真实 GPU 小扰动校准材质响应，`analysis/check_grain_responses.py` 核实近似，`analysis/check_joint_path_proxy.py` 核实位置增量与真实路径；它们都只生成忽略目录下的研究缓存，不进入运行模型。
+- 最新比例修正位于 `conditional_material.py`：`curl_balance=1` 使附加卷动与引导采用同一个布局缩放系数，0 为原行为。当前更新这一共同规则及运动／材质两份权重，其余五份不变。围绕新流场生成缓存时，准备、微扰和联合拟合均须传同一 `--root`／`--base-root`，不能沿用旧流场缓存。`analysis/check_image_evolution.py` 另比较排除训练帧后的原片画面变化，报告实际独立帧间距；这不是原片粒子速度测量。
+
+## 2026-09-27：第二版共同模型与逐帧对齐（桌面候选）
+
+审阅入口：[第二版 · 华为原片逐帧对照](http://127.0.0.1:13070/v2-review.html)（`videos/v2-review.html`）。视频文件名以 `v2-` 开头，
+与此前的成片平铺在同一目录；每组都有 1 倍和 0.5 倍。类型包括原片对照、完整动画、像素差、原片／此前认可版／第二版三栏、
+八方向、六个随机种子。方法、证据与未解决的问题见[逐帧对齐记录](../huawei-match-2026-09-26.md)。
+
+- 模型：`dissolve_v2.py`（`V2Rules` 为所有素材共用的一套常数，默认值即当前采用值）；参考重放的输入在 `v2_inputs.py` 与
+  `v2_inputs.json`（起点、方向、触点远近的测量值及其有界细化）。
+- 实时预览：`python viewer.py --v2`（可加 `--rules <规则 JSON>`）。固定参考输入时左侧原片按独立画面序号对齐。
+- 成片：`python analysis/export_v2_suite.py --extra`；数值检查：`python analysis/verify_v2.py`（只证明运行约束）。
+- 测量与拟合：`analysis/match_refs.py`（原片独立画面帧库）、`match_observe.py`（同口径观测）、`match_compare.py`（逐帧对照与联系表）、
+  `match_fit.py`（CMA-ES 联合拟合全局常数，离线数值搜索）、`match_inputs.py`（逐段输入有界细化）、`match_eval.py`（结构性改动的并行对照）、
+  `match_streaks.py`（运动拖影方向）、`review_v2.py` / `review_all_v2.py` / `review_dialogs_v2.py`（目视审阅图）。
+  中间产物在被 Git 忽略的 `analysis/match-cache/`。
+- 解除时刻（前沿形状与先后）单独测量与拟合：`analysis/release_integrity.py`（紧容差的原图完整度，原片与模型同口径；
+  `--sheet <标签>` 出对照图，`--fit <标签>` 拟合前沿规则与起点，`--refine` 只细化留出素材的起点）。
+  另有 `material_tracks.py`（按颜色追踪材料去向）与 `subject_masks.py`（主体图，只作假设检验）。
+- 致密带位置：`analysis/structure_bands.py --label <标签>`（原片与模型各自取成带的高密度颗粒区，比较双向平均最近距离；
+  红＝只有原片有、青＝只有模型有、白＝重合）。块级误差对“有没有弧形亮带、成股的流”不敏感，这一项补上。
+- 渲染进循环的起点细化：`analysis/site_render_fit.py --label <标签> --rules <规则 JSON> --inputs <起点 JSON>`
+  （全局规则固定，逐段只细化起点；`MATCH_FIT_BAND` 加致密带项，`SITE_RI_WEIGHT` 加解除时刻实测约束）。
+  同口径比较几套配置：`analysis/compare_configs.py --configs 名称=规则JSON[::起点JSON] ...`（起点 JSON 可带 `touch`）。
+- 颗粒运动：`analysis/activity.py`（窗口内亮度变化面积与颗粒面积之比，反映颗粒走了多远）、
+  `analysis/speed_age.py`（32 像素块相位相关位移，按「解除后经过的时间」分档的颗粒速度），原片与模型同口径。
+  `match_fit.py` 可用 `MATCH_FIT_ACT` 加活跃度项；`release_integrity.py` 可用 `RELEASE_WINDOW` 改为窗口完整度。
+- 损失的离散噪声：单段约 3、九段平均约 0.6（解除场在粗网格上求，起点挪动跨格时结构会变），比较配置时按这个量级判断。
+- 调试用环境变量：`V2_SITES=<拟合结果 JSON>` 临时替换参考重放的起点，不改 `v2_inputs.json`；
+  `RELEASE_LAG_SCALE=0` 让解除时刻拟合不用滞后图，`RELEASE_LINE=1` 细化线段起点的沿边长度。
+- 手机上运行的仍是一组常数与三段着色器，没有模型权重或推理；Android 本轮未改。
+
+
+## 2026-09-26：新增七段参考的桌面候选
+
+当前入口是 [新增参考对照](http://127.0.0.1:13070/new-references.html)，对应 `videos/new-references.html`。七段新增、旧钢铁侠／灭霸／科比／蜘蛛侠及白底弹窗共 15 个素材放在同一页；96 个视频平铺在 `videos/`，包含 1 倍、0.5 倍、原片对照、像素差、代表素材八方向和相同起点迁移。
+
+**当前尚未达到逐像素一致。** 这是未替换 Android 正式模型的桌面候选；新参考中后段的形状、颗粒覆盖和流动仍有明显差距。详细输入、采用与否的试验、测量限制见[新增参考建模记录](../new-reference-model-2026-09-26.md)。下方保留的是 9 月 12 日历史状态，不应理解为此次复刻已验收。
+
+- 实时预览：`python viewer.py --fronts`。固定输入用于原片对照；“换一种效果”采样新起点；点击背景可改触点。未加此参数仍进入此前预览。
+- 导出：`python analysis/export_reference_suite_0926.py --extra`。
+- 回归检查：`python analysis/verify_reference_model_0926.py`。
+- 成片检查：`python analysis/verify_reference_exports_0926.py`。容器／数值通过不等于视觉通过。
+
+这次的源码和小型场景描述可以跟踪；`videos/`、参考 MP4、PNG、逐帧数组和研究缓存继续由 Git 忽略。
+
+## 历史记录：修正共同剥离场的内部孤立细缕
 
 最新诊断和实现见[内部细缕定位记录](../filament-localization-2026-09-12.md)。上次扩大随机响应没有消除宽材料带被压成窄线的共同机制，本轮加入连续的局部压缩反馈；`videos/peel-compression.html` 包含原录像准确定位图及 12 组完整画面修复对照。固定材料来源回归脚本为 `analysis/verify_peel_compression.py`，实际双设备检查入口为 `analysis/run_peel_device_checks.py`。
 
@@ -99,8 +218,8 @@ analysis/final_frame_calibration.py --analysis-dir device-filament-origins --dev
 - `assets/` 的场景 JSON 入库；图片、参考帧、`inputs/`、`cache/`、`videos/`、`device-*/`、`android-*-fixtures/` 和诊断产物仅保留本地。干净克隆需要恢复素材才能运行全部桌面对照。
 - `shared/particle-dismiss/` 是正式运行资源，规则、996 KiB 共同场与可信度、着色器和字节散列清单必须入库。
 - `archive/before-rim-flow/` 保留本轮调整前代码、共享资源和八素材帧，供相同种子前后对照；不能覆盖。`archive/before-curve-split/` 为上一轮基线，`archive/before-targeted-release/` 是加入向上参考之前的基线；`archive/rejected-target-attraction/` 保存被否决的过强汇聚候选；均为历史记录。
-- `archive/before-motion-continuity/` 保存停滞修复前已发布模型的七场景无损帧，`archive/rejected-low-speed/` 保存被否决候选的四个对照输入。
-- `archive/observed-approved/` 冻结认可控制组，`archive/transport-before-variation/` 保存随机化前已提交模型的七场景无损帧；更早归档继续保留。内部目录名只用于追溯。
+- `archive/before-motion-continuity/`、`archive/rejected-low-speed/` 保留停滞修复前与被否决候选的历史记录，其顶层无损帧已在 2026-10-04 清理。
+- `archive/observed-approved/` 仍保留完整认可控制组；`archive/transport-before-variation/` 及更早归档保留代码、资源和已有成片，顶层逐帧缓存已清理。内部目录名只用于追溯。
 - `research/` 保留此前 107 条来源研究，原始九段视频仍在仓库 `tmp/particle-dismiss-tuning/ref-videos-all/`。无需重新下载或拟合才能预览。
 - `prepare.py`、`fit_*`、`experiment_*` 及 `analysis/apply_*`、`update_*`、`retire_*`、`finalize_*`、`refine_*` 是历史准备／实验脚本，可能覆盖素材或旧参数，不能批量当作当前验证命令运行。`analysis/prepare_holdouts.py` 和 `prepare_streams_holdouts.py` 只用于首次建立对应留出集，不能重复用于覆盖验证输入。
 - `analysis/distill_transport.py` 记录共同场的离线提炼过程；`promote_transport_model.py`、`port_transport_android.py`、`update_transport_gallery.py` 是已完成的一次性迁移，不能重复执行。`review_distilled_transport.py` 和原控制组脚本针对迁移前接口，当前对照直接读取冻结帧。`prepare_transport_holdouts.py` 只用于首次建立相应留出集。`archive_before_variation.py` 已完成本轮基线归档，不能重跑覆盖。

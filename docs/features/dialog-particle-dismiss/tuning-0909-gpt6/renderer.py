@@ -366,6 +366,15 @@ void main(){frag=vec4(srgb(texture(screen,vec2(uv.x,1.-uv.y)).rgb),1);}
 '''
 
 class Renderer:
+    # 扩展共同输入的桌面实验可复用同一绘制、时钟与压力求解器。
+    # 正式默认仍使用共享资源，实验不能悄悄覆盖 Android 数据。
+    material_builder=staticmethod(materials)
+    compute_source=COMPUTE
+    vertex_source=VERTEX
+    fragment_source=FRAGMENT
+    # 绘制顺序：0 = 原表面，1 = 运动颗粒。缺省先表面后颗粒（颗粒盖在未释放的表面上）；桌面实验可改成 (1,0) 让表面盖住颗粒。
+    pass_order=(0,1)
+
     def __init__(self,name='ironman',direction=None,cell_px=None,quality=2,settings=None,ctx=None,seed=None,touch_gap=None,view_bounds=None):
         self.ctx=ctx or moderngl.create_standalone_context(require=430)
         self.directory=HERE/'assets'/name
@@ -394,7 +403,7 @@ class Renderer:
             left,top=max(0,vx),max(0,vy);right,bottom=min(self.w,vx1),min(self.h,vy1)
             if right>left and bottom>top:expanded[top-vy:bottom-vy,left-vx:right-vx]=bg[top:bottom,left:right]
             bg=expanded;self.w,self.h=vw,vh;x-=vx;y-=vy
-        built=materials(self.cw,self.ch,fg,self.direction,self.meta['seed'] if seed is None else seed,cell_px)
+        built=self.material_builder(self.cw,self.ch,fg,self.direction,self.meta['seed'] if seed is None else seed,cell_px)
         self.nx,self.ny=built['nx'],built['ny'];self.cell=built['cell'];self.n=len(built['base'])
         self.material_info={k:built[k] for k in ['panel_color','panel_weight','replica_count']}
         self.white_fraction=built['white_fraction'];self.body_weight=built['body_weight'];self.release_spread=built['release_spread']
@@ -403,8 +412,8 @@ class Renderer:
         self.material=self.ctx.buffer(base.tobytes());self.state=self.ctx.buffer(reserve=self.n*8*4)
         self.pigment=self.ctx.buffer(content.astype('float32').tobytes())
         self.peel_compression=self.ctx.buffer(built['peel_compression'].tobytes())
-        self.compute=self.ctx.compute_shader(COMPUTE)
-        self.program=self.ctx.program(vertex_shader=VERTEX,fragment_shader=FRAGMENT)
+        self.compute=self.ctx.compute_shader(self.compute_source)
+        self.program=self.ctx.program(vertex_shader=self.vertex_source,fragment_shader=self.fragment_source)
         self.vao=self.ctx.vertex_array(self.program,[])
         self.bg_program=self.ctx.program(vertex_shader=FULLVERT,fragment_shader=BACKGROUND)
         self.bg_vao=self.ctx.vertex_array(self.bg_program,[])
@@ -479,7 +488,7 @@ class Renderer:
         self.ctx.enable(moderngl.BLEND);self.ctx.blend_func=(moderngl.ONE,moderngl.ONE_MINUS_SRC_ALPHA)
         self.program['time']=time;self.program['extrapolate']=max(0,time-self.step*STEP);self.program['diagnostic']=diagnostic
         self.fg_tex.use(0)
-        for material_pass in [0,1]:
+        for material_pass in self.pass_order:
             # 静态纹理按原像素覆盖，防止超采样的双重过滤模糊文字；运动纹理仍线性过滤。
             self.fg_tex.filter=(moderngl.NEAREST,moderngl.NEAREST) if material_pass==0 else (moderngl.LINEAR,moderngl.LINEAR)
             self.program['material_pass']=material_pass
@@ -488,6 +497,10 @@ class Renderer:
         return np.frombuffer(self.out_fbo.read(components=3,alignment=1),dtype='uint8').reshape(self.h,self.w,3)[::-1].copy()
 
     def close(self):
+        # 批量切换素材时先解除当前帧缓冲绑定，防止 ModernGL 在下一次创建
+        # 帧缓冲时恢复已经删除的对象，产生 GL_INVALID_OPERATION。
+        if self.ctx.fbo in (self.fbo,self.out_fbo):
+            self.ctx.detect_framebuffer(0).use()
         self.pressure_grid.close()
         for key in ['material','pigment','peel_compression','state','compute','program','vao','bg_program','bg_vao','out_program','out_vao','fg_tex','bg_tex','fbo','tex','out_fbo','out_tex','flow_tex','confidence_tex']:
             getattr(self,key).release()

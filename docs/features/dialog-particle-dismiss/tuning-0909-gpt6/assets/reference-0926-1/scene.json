@@ -1,0 +1,48 @@
+{
+  "name": "reference-0926-1",
+  "title": "白衣人物",
+  "frame": [
+    720,
+    1280
+  ],
+  "rect": [
+    120,
+    220,
+    600,
+    700
+  ],
+  "radius": 31,
+  "duration": 1.0,
+  "seed": 2008,
+  "direction": 89.0,
+  "dim_alpha": 0.0,
+  "background_truth": false,
+  "background_note": "屏摄按手机平面配准",
+  "reference": {
+    "path": "E:\\projects\\EverythingDone\\docs\\features\\dialog-particle-dismiss\\tuning-0909-gpt6\\new-references-0926\\1-第7秒开始.mp4",
+    "start": 7.15,
+    "end": 9.1,
+    "valid_progress": 1.0,
+    "sha256": "745b196bdaa2313b6c60928e3d47b6e4c87731db7b6c8d6dc708052eee585994"
+  },
+  "research_input": true,
+  "seed_note": "未知原始种子；仅用前 0.20 进度的解除观测选择共同随机模型的初始条件，后段不参与选取。",
+  "release_sites": [
+    {
+      "x": 0.49,
+      "y": -0.02,
+      "start": 0.0
+    },
+    {
+      "x": 1.0,
+      "y": 0.82,
+      "start": 0.035
+    },
+    {
+      "x": 0.0,
+      "y": 0.78,
+      "start": 0.17
+    }
+  ],
+  "input_note": "起点位置和启动顺序来自前段观测；方向由整体流动估计，准确触点与原始随机种子未知。"
+}

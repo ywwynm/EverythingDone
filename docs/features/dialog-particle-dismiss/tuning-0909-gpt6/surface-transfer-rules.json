@@ -1,0 +1,13 @@
+{
+  "description": "全序列共用的表面与颗粒渐进交接；桌面研究候选。",
+  "rules": {
+    "spatial": 0.035,
+    "temporal": 0.015,
+    "stochastic": 0.25,
+    "broaden": 1.0,
+    "delay": 0.0,
+    "pairing": 0.2,
+    "coverage": 0.75,
+    "origin_lead": 0.0
+  }
+}
