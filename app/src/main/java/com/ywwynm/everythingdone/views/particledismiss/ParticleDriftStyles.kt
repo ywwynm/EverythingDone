@@ -16,6 +16,11 @@ import kotlin.math.abs
  * 同日用户补充：最喜欢旧钢铁侠（[FAVORITE]），左上方向（含触摸与返回键退出）要更常出现它和它的变体。落在它的方向范围里时，
  * 先以 [FAVORITE_PROBABILITY] 的概率选这一族：其中 [FAVORITE_ORIGINAL_SHARE] 是原样，其余是 [variantOf] 生成的变体；
  * 没选中这一族才按上面的规则在**其余**参考与随机之间选。
+ *
+ * 2026-10-06 用户补充：消逝方向是上方、上方偏左、上方偏右（不是左上、右上）的那几段参考，也要更常出现它们和它们的变体。
+ * 风向离正上方不超过 [UP_FAMILY_HALF_SPAN] 度的参考是「朝上一组」（参考 5、4、7、1、向上钢铁侠、参考 2，63°～118°）；
+ * 本次方向对得上其中几段时，先以 [UP_FAMILY_PROBABILITY] 的概率从对得上的这几段里等概率选一段，原样与变体的比例同上。
+ * 旧钢铁侠与朝上一组都对得上时（本次方向在两者之间），看哪一组离本次方向最近的那一段更近；一样近时算旧钢铁侠。
  */
 internal object ParticleDriftStyles {
 
@@ -36,6 +41,15 @@ internal object ParticleDriftStyles {
 
     /** 这一族里原样所占的份额，其余是变体。 */
     const val FAVORITE_ORIGINAL_SHARE = 0.4f
+
+    /** 「朝上一组」：风向离正上方（90°）不超过这么多度的参考。 */
+    const val UP_FAMILY_HALF_SPAN = 35f
+
+    /**
+     * 方向落在朝上一组里时，选这一组（原样或变体）的概率。正上方向只有朝上一组的参考对得上，没选中时只剩随机生成；
+     * 取 0.75 使参考与随机的比例与左上方向相同（旧钢铁侠一族 0.5 + 其余参考 0.25）。
+     */
+    const val UP_FAMILY_PROBABILITY = 0.75f
 
     /** 格点值低于它算一处初始消逝点（最先化开的地方）。 */
     const val START_POINT_VALUE = 0.12f
@@ -107,24 +121,45 @@ internal object ParticleDriftStyles {
     /** 两个方向角之差，折进 [−180, 180)。 */
     fun angleDifference(a: Float, b: Float): Float = ((a - b + 540f) % 360f) - 180f
 
+    /** 本次方向 [angleDegrees] 与参考 [style] 的风向相差不超过 [MATCH_DEGREES]。 */
+    private fun matches(style: Style, angleDegrees: Float): Boolean =
+        abs(angleDifference(style.angle, angleDegrees)) <= MATCH_DEGREES
+
+    /** 朝上一组的成员（风向离正上方不超过 [UP_FAMILY_HALF_SPAN]）。 */
+    fun isUpFamily(style: Style): Boolean = style.name != FAVORITE && abs(angleDifference(style.angle, 90f)) <= UP_FAMILY_HALF_SPAN
+
     /** 按本次方向 [angleDegrees]（度，y 向上）挑参考样式；不选时返回 null。 */
     fun pick(styles: List<Style>, angleDegrees: Float, random: Random): Style? {
         forcedForTests?.let { name ->
-            if (name == FAVORITE + VARIANT_SUFFIX) return styles.firstOrNull { it.name == FAVORITE }?.let { variantOf(it, random) }
+            // 「<样式名>-variant」钉住该样式的变体
+            if (name.endsWith(VARIANT_SUFFIX)) {
+                val base = name.removeSuffix(VARIANT_SUFFIX)
+                return styles.firstOrNull { it.name == base }?.let { variantOf(it, random) }
+            }
             return styles.firstOrNull { it.name == name }
         }
-        val favorite = styles.firstOrNull { it.name == FAVORITE }
-        if (favorite != null && abs(angleDifference(favorite.angle, angleDegrees)) <= MATCH_DEGREES &&
-            random.nextFloat() < FAVORITE_PROBABILITY) {
-            return if (random.nextFloat() < FAVORITE_ORIGINAL_SHARE) favorite else variantOf(favorite, random)
+        val favorite = styles.firstOrNull { it.name == FAVORITE }?.takeIf { matches(it, angleDegrees) }
+        val up = styles.filter { isUpFamily(it) && matches(it, angleDegrees) }
+        val upNearer = up.isNotEmpty() && (favorite == null ||
+            up.minOf { abs(angleDifference(it.angle, angleDegrees)) } < abs(angleDifference(favorite.angle, angleDegrees)))
+        val family = when {
+            upNearer -> up
+            favorite != null -> listOf(favorite)
+            else -> emptyList()
         }
-        val candidates = styles.filter { it !== favorite && abs(angleDifference(it.angle, angleDegrees)) <= MATCH_DEGREES }
+        if (family.isNotEmpty() && random.nextFloat() < (if (upNearer) UP_FAMILY_PROBABILITY else FAVORITE_PROBABILITY)) {
+            val member = if (family.size == 1) family[0] else family[random.nextInt(family.size)]
+            return if (random.nextFloat() < FAVORITE_ORIGINAL_SHARE) member else variantOf(member, random)
+        }
+        // 没选中时其余对得上的参考（不含这一组）与随机各占一半；只有旧钢铁侠一族时与此前逐位相同
+        val candidates = styles.filter { it !in family && matches(it, angleDegrees) }
         if (candidates.isEmpty() || random.nextFloat() >= REFERENCE_PROBABILITY) return null
         return candidates[random.nextInt(candidates.size)]
     }
 
     /**
-     * 在 [base] 的基础上生成一个变体：格点值整体抖一点（[VARIANT_JITTER]）；初始消逝点（格点值低于 [START_POINT_VALUE]
+     * 在 [base] 的基础上生成一个变体（任意一段参考都可以，旧钢铁侠一族与朝上一组用到）：
+     * 格点值整体抖一点（[VARIANT_JITTER]）；初始消逝点（格点值低于 [START_POINT_VALUE]
      * 的格点）去掉一处、不变、加一处或加两处；风力上下浮动 [VARIANT_WIND_RANGE]。颗粒的衰减方式与湍流场不变，
      * 飘走的轨迹仍是原来那一类。
      *

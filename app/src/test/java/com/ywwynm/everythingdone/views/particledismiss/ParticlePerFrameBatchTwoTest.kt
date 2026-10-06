@@ -141,9 +141,10 @@ class ParticlePerFrameBatchTwoTest {
     @Test fun `提前出的首帧是把一拍挪前，不是多出一帧`() {
         val present = body(main("ParticleGl.kt"), "private fun presentFirstFrames", "private fun ensureContext")
         assertTrue("呈现时刻写当前时刻，即尽快；写到未来会加深流水线", "System.nanoTime()" in present)
+        // 吃掉的是「当前节拍」的一拍：飘散高帧率时节拍约 8.3 ms（ParticleClock.intervalNanos）
         assertTrue("要替掉的那一拍必须真的吃掉，否则两张缓冲落在同一个显示周期里，"
             + "先提交的会被丢掉、永远等不到呈现时刻",
-            "consumedTarget = maxOf(consumedTarget, now + ParticleClock.INTERVAL_NANOS)" in present)
+            "consumedTarget = maxOf(consumedTarget, now + ParticleClock.intervalNanos)" in present)
         assertTrue("所有窗口一起合成，别的会话不会因为这次提前而少一帧",
             "for (window in live) window.composite(now)" in present)
     }

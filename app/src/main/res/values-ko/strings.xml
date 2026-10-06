@@ -562,6 +562,7 @@
     <string name="particle_tuning_style_detail">유체: 파티클이 서로 밀어내며 하나의 흐름으로 빠져나갑니다. 흩날림: 내용이 한 지점부터 서서히 풀리고 파티클이 바람에 실려 갑니다.</string>
     <string name="particle_tuning_amount">파티클 양</string>
     <string name="particle_tuning_amount_detail">파티클 수는 내용의 면적에 따라 정해지고 이 배율이 곱해집니다. 많을수록 촘촘해 보이고 비용도 커집니다.</string>
+    <string name="particle_tuning_drift_size_detail">파티클 크기를 원래 크기에 대한 배율로 바꿉니다. 기본값은 원래 크기이며 파티클 수에는 영향을 주지 않습니다. 클수록 하나하나 알아보기 쉽습니다.</string>
     <string name="direction_sensor_restricted">현재 화면이 기기 방향에 반응할 수 없습니다. %1$s에서 이 앱의 기기 동작 및 방향 접근을 허용해 주세요.</string>
     <string name="direction_sensor_restricted_settings">시스템 설정</string>
     <string name="fablesol_tuning_hdr">HDR 하이라이트</string>

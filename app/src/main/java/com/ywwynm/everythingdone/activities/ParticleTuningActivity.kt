@@ -96,6 +96,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     private var styleDriftTab: TextView? = null
     private var amountSlider: SeekBar? = null
     private var amountValue: TextView? = null
+    private var driftSizeSlider: SeekBar? = null
+    private var driftSizeValue: TextView? = null
     private var autoCheckBox: CheckBox? = null
     private var autoRow: View? = null
     private var resetButton: TextView? = null
@@ -245,6 +247,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         styleDriftTab = f(R.id.tv_particle_tuning_style_drift)
         amountSlider = f(R.id.sb_particle_tuning_amount)
         amountValue = f(R.id.tv_particle_tuning_amount_value)
+        driftSizeSlider = f(R.id.sb_particle_tuning_drift_size)
+        driftSizeValue = f(R.id.tv_particle_tuning_drift_size_value)
         autoCheckBox = f(R.id.cb_particle_tuning_auto)
         autoRow = f(R.id.rl_particle_tuning_auto_row)
         resetButton = f(R.id.tv_particle_tuning_reset)
@@ -263,6 +267,9 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         f<TextView>(R.id.tv_particle_tuning_style_detail).setText(R.string.particle_tuning_style_detail)
         f<TextView>(R.id.tv_particle_tuning_amount_label).setText(R.string.particle_tuning_amount)
         f<TextView>(R.id.tv_particle_tuning_amount_detail).setText(R.string.particle_tuning_amount_detail)
+        // 标题与流体的「粒子大小」用同一条文案
+        f<TextView>(R.id.tv_particle_tuning_drift_size_label).setText(R.string.particle_tuning_cell_size)
+        f<TextView>(R.id.tv_particle_tuning_drift_size_detail).setText(R.string.particle_tuning_drift_size_detail)
         f<TextView>(R.id.tv_particle_tuning_cell_label).setText(R.string.particle_tuning_cell_size)
         f<TextView>(R.id.tv_particle_tuning_cell_detail).setText(R.string.particle_tuning_cell_size_detail)
         f<TextView>(R.id.tv_particle_tuning_flow_label).setText(R.string.particle_tuning_flow_detail)
@@ -337,6 +344,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         flowSlider?.progress = ParticleTuning.flowDetail(this)
         amountSlider?.max = ParticleTuning.DRIFT_AMOUNT_LEVELS.lastIndex
         amountSlider?.progress = ParticleTuning.driftAmountIndex(this)
+        driftSizeSlider?.max = ParticleTuning.DRIFT_SIZE_LEVELS.lastIndex
+        driftSizeSlider?.progress = ParticleTuning.driftSizeIndex(this)
         autoCheckBox?.isChecked = ParticleTuning.isAutoTuneOn(this)
         updateStyleGroups()
 
@@ -376,6 +385,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             cellSlider?.progress = ParticleTuning.DEFAULT_CELL_INDEX
             flowSlider?.progress = ParticleTuning.DEFAULT_FLOW
             amountSlider?.progress = ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX
+            driftSizeSlider?.progress = ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
             autoCheckBox?.isChecked = false
             updateValueLabels()
             updateColorTabs()
@@ -423,6 +433,19 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
 
             override fun onStopTrackingTouch(bar: SeekBar) {
                 ParticleTuning.setDriftAmountIndex(this@ParticleTuningActivity, bar.progress)
+                updateValueLabels()
+                scheduleRebuild()
+            }
+        })
+        driftSizeSlider?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                updateValueLabels()
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar) = Unit
+
+            override fun onStopTrackingTouch(bar: SeekBar) {
+                ParticleTuning.setDriftSizeIndex(this@ParticleTuningActivity, bar.progress)
                 updateValueLabels()
                 scheduleRebuild()
             }
@@ -715,7 +738,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
 
     /**
      * 只属于流体样式的四项（粒子大小、流动细节、颜色精度、性能自动调节）在飘散样式下整组隐藏，
-     * 换成「粒子数量」（用户 2026-10-05 裁定）。
+     * 换成「粒子数量」（用户 2026-10-05 裁定）与飘散自己的「粒子大小」（2026-10-06）。
      */
     private fun updateStyleGroups() {
         val drift = ParticleTuning.style(this) == ParticleStyle.DRIFT
@@ -907,9 +930,14 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             DisplayUtil.setSeekBarBackground(it, background)
             alignSliderToTextEdges(it)
         }
+        driftSizeSlider?.let {
+            DisplayUtil.setSeekBarBackground(it, background)
+            alignSliderToTextEdges(it)
+        }
         BackgroundUtil.applyTextBackground(cellValue, background)
         BackgroundUtil.applyTextBackground(flowValue, background)
         BackgroundUtil.applyTextBackground(amountValue, background)
+        BackgroundUtil.applyTextBackground(driftSizeValue, background)
         resetButton?.let {
             BackgroundUtil.applyTextBackground(it, background)
             GradientRippleDrawable.applyAccentRipple(it, background, background.representativeColor())
@@ -1192,9 +1220,14 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         val amountLabel = ParticleTuning.driftAmountLabel(amount)
         amountValue?.text = if (amount == ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX)
             getString(R.string.particle_tuning_value_default, amountLabel) else amountLabel
+        val driftSize = driftSizeSlider?.progress ?: ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
+        val driftSizeLabel = ParticleTuning.driftSizeLabel(driftSize)
+        driftSizeValue?.text = if (driftSize == ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX)
+            getString(R.string.particle_tuning_value_default, driftSizeLabel) else driftSizeLabel
         BackgroundUtil.applyTextBackground(cellValue, themeBackground)
         BackgroundUtil.applyTextBackground(flowValue, themeBackground)
         BackgroundUtil.applyTextBackground(amountValue, themeBackground)
+        BackgroundUtil.applyTextBackground(driftSizeValue, themeBackground)
     }
 
     /** 本机密度下这一档折合多少像素；整数能表示时不写小数点。 */

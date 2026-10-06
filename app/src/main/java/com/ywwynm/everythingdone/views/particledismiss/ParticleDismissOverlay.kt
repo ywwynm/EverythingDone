@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.app.Activity
+import android.graphics.Bitmap
 import android.graphics.Outline
 import android.os.Build
 import android.os.Handler
@@ -108,7 +109,9 @@ internal class ParticleDismissOverlay(
     // 命中预算时只解像素、不建材：材料与轨迹都是现成的，那 40–70 ms 直接省掉。
     // 飘散样式没有材料要建，同样只解像素（与圆角遮罩）。
     private val preparation = ParticleMicroflakePreparation(
-        context.assets, resources.displayMetrics.density, spec, deferred = prepared != null || isDrift)
+        context.assets, resources.displayMetrics.density, spec, deferred = prepared != null || isDrift,
+        // 飘散的零拷贝快照：GPU 直接用那块缓冲，只在零拷贝失败时才把像素拷回内存
+        startLazily = isDrift && spec.snapshot.config == Bitmap.Config.HARDWARE)
 
     private val isCondense get() = spec.reverse
 

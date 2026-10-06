@@ -562,6 +562,7 @@
     <string name="particle_tuning_style_detail">流体：パーティクル同士が押し合い、ひとつの流れになって去っていきます。飛散：内容が一か所から少しずつほどけ、パーティクルが風に運ばれていきます。</string>
     <string name="particle_tuning_amount">パーティクルの量</string>
     <string name="particle_tuning_amount_detail">パーティクルの数は内容の面積から決まり、さらにこの倍率がかかります。多いほど細かく見え、負荷も大きくなります。</string>
+    <string name="particle_tuning_drift_size_detail">パーティクルの大きさを元のサイズに対する倍率で変えます。既定値は元のサイズで、数には影響しません。大きいほど一粒ずつ見分けやすくなります。</string>
     <string name="direction_sensor_restricted">現在、画面は端末の向きに反応できません。%1$sでこのアプリの「端末の動きと向き」へのアクセスを許可してください。</string>
     <string name="direction_sensor_restricted_settings">システム設定</string>
     <string name="fablesol_tuning_hdr">HDR ハイライト</string>

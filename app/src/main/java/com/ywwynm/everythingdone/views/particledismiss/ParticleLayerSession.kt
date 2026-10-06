@@ -37,6 +37,15 @@ internal interface ParticleLayerSession {
     /** 本会话是否需要节拍继续跑（与「这一拍出不出帧」分开）。 */
     fun needsBeat(): Boolean
 
+    /** 本会话可以按高帧率出（每个 vsync 一帧）；轨迹按 60 Hz 预算的流体不行。见 [ParticleClock.setHighRate]。 */
+    val prefersHighFrameRate: Boolean get() = false
+
+    /**
+     * 已经出过帧的手势会话，这一拍读位置时新位置还没到、现在到了：要补画这一拍（目前只有飘散的左滑）。
+     * 首帧不走这里，仍按节拍出。见 ParticleGl 的 lateFrames。
+     */
+    fun wantsLateFrame(): Boolean = false
+
     /** 本拍是否需要窗口出一帧。 */
     fun wantsFrame(): Boolean
 

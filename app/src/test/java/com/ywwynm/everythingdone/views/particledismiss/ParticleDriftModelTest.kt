@@ -38,6 +38,33 @@ class ParticleDriftModelTest {
         assertTrue(model.startSeconds < model.bodyGoneSeconds)
     }
 
+    @Test fun `噪声值域只算各单元角上的样点，与逐点扫描相同`() {
+        fun scan(lattice: FloatArray, w: Int, h: Int, width: Int, height: Int, u: Float): FloatArray {
+            var low = Float.MAX_VALUE
+            var high = -Float.MAX_VALUE
+            for (y in 0 until height step 8) for (x in 0 until width step 8) {
+                val value = ParticleDriftModel.noise(lattice, w, h, (x + .5f) * u, (y + .5f) * u)
+                low = minOf(low, value)
+                high = maxOf(high, value)
+            }
+            return floatArrayOf(low, high)
+        }
+        val random = Random(20261006)
+        val sizes = listOf(1440 to 3088, 1300 to 900, 1300 to 300, 2520 to 1680, 360 to 240, 1440 to 220) +
+            List(60) { (120 + random.nextInt(2480)) to (120 + random.nextInt(2980)) }
+        for ((width, height) in sizes) {
+            val size = ParticleDriftModel.latticeSize(width, height)
+            val u = ParticleDriftModel.latticeScale(width, height)
+            repeat(5) {
+                val lattice = FloatArray(size[0] * size[1]) { random.nextFloat() * 2f - .5f }
+                val expected = scan(lattice, size[0], size[1], width, height, u)
+                val actual = ParticleDriftModel.noiseRange(lattice, size[0], size[1], width, height, u)
+                assertEquals("$width × $height 最小", expected[0], actual[0], 0f)
+                assertEquals("$width × $height 最大", expected[1], actual[1], 0f)
+            }
+        }
+    }
+
     @Test fun `粒子数与桌面实现同一公式`() {
         // 桌面 area_particle_count：round(4 万 × 面积 / 1.3M / 1000) × 1000，截在 [1 万, 5 万]
         fun desktop(w: Int, h: Int): Int {
@@ -54,9 +81,61 @@ class ParticleDriftModelTest {
         assertEquals(38000, ParticleDriftModel.count(1218750, 1, 1f))
         assertEquals(38000, ParticleDriftModel.count(1251250, 1, 1f))
         assertEquals(ParticleDriftModel.MIN_COUNT, ParticleDriftModel.count(100, 100, 1f))
-        assertEquals(ParticleDriftModel.MAX_COUNT, ParticleDriftModel.count(1440, 3088, 1.5f))
-        // 倍率乘在面积上
-        assertEquals(ParticleDriftModel.count(1200, 600, 1f), ParticleDriftModel.count(1200, 1200, .5f))
+        assertEquals(ParticleDriftModel.MAX_COUNT, ParticleDriftModel.count(1440, 3088, 1f))
+    }
+
+    @Test fun `粒子数量倍率乘在截好的粒子数上`() {
+        // 小卡片截到 1 万、整屏截到 5 万之后再乘：0.2 与 1.6 在两头都起作用
+        assertEquals(2000, ParticleDriftModel.count(100, 100, .2f))
+        assertEquals(80000, ParticleDriftModel.count(1440, 3088, 1.6f))
+        for ((w, h) in listOf(1225 to 760, 917 to 915, 600 to 420)) {
+            val base = ParticleDriftModel.count(w, h, 1f)
+            for (amount in ParticleTuning.DRIFT_AMOUNT_LEVELS) {
+                assertEquals("$w × $h × $amount", Math.round(base * amount.toDouble()).toInt(),
+                    ParticleDriftModel.count(w, h, amount))
+            }
+        }
+    }
+
+    @Test fun `粒子数量与粒子大小的档位`() {
+        val amount = ParticleTuning.DRIFT_AMOUNT_LEVELS
+        assertEquals(.2f, amount.first(), 1e-6f)
+        assertEquals(1.6f, amount.last(), 1e-6f)
+        assertEquals(1f, amount[ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX], 0f)
+        val size = ParticleTuning.DRIFT_SIZE_LEVELS
+        assertEquals(16, size.size)
+        assertEquals(.5f, size.first(), 1e-6f)
+        assertEquals(2f, size.last(), 1e-6f)
+        assertEquals(1f, size[ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX], 0f)
+        for (levels in listOf(amount, size)) for (k in 1 until levels.size) {
+            assertEquals(.1f, levels[k] - levels[k - 1], 1e-5f)
+        }
+    }
+
+    @Test fun `触点越远风越强且只在有真实触点时偏向终点`() {
+        fun wind(strength: Float?, gap: Float?): Pair<Float, Float?> {
+            val model = ParticleDriftModel.random(1200, 680, 1f, -1f, 1f, Random(3), touchGap = gap, touchStrength = strength)
+            return hypot(model.windX, model.windY) to model.touchGap
+        }
+        val (plain, noGap) = wind(null, null)
+        assertNull(noGap)
+        // 没有真实触点（返回键）：与此前完全相同
+        val before = ParticleDriftModel.random(1200, 680, 1f, -1f, 1f, Random(3))
+        assertEquals(hypot(before.windX, before.windY), plain, 0f)
+        assertEquals(plain, wind(.5f, null).first, plain * 1e-6f)
+        assertEquals(plain * .55f, wind(0f, .2f).first, plain * 1e-5f)
+        assertEquals(plain * 1.45f, wind(1f, 2f).first, plain * 1e-5f)
+        assertEquals(.2f, wind(0f, .2f).second!!, 0f)
+    }
+
+    @Test fun `粒子大小倍率进入模型`() {
+        val styles = listOf(style("ironman", 135f, ironmanLattice), style("ref1", 100.6f))
+        for (seed in 0 until 40) {
+            val model = ParticleDriftModel.random(1200, 680, -1f, -1f, 1f, ParticleDriftModel.seededRandom(seed), styles,
+                size = 1.6f)
+            assertEquals(1.6f, model.sizeScale, 0f)
+        }
+        assertEquals(1f, ParticleDriftModel.random(1200, 680, 0f, -1f, 1f, Random(3)).sizeScale, 0f)
     }
 
     @Test fun `方向角之差折进正负180`() {
@@ -123,7 +202,101 @@ class ParticleDriftModelTest {
         val random = Random(9)
         repeat(1000) {
             val picked = ParticleDriftStyles.pick(styles, 90f, random)
-            assertTrue(picked == null || picked.name == "ref1")
+            assertTrue(picked == null || picked.name.startsWith("ref1"))
+        }
+    }
+
+    /** 十二段参考的风向（`drift-styles.json`）；朝上一组是 63°～118° 那六段。 */
+    private fun allStyles() = listOf(
+        style("reference-0926-5", 63.1f), style("reference-0926-4", 73.8f), style("reference-0926-7", 84.7f),
+        style("reference-0926-1", 100.6f), style("ironman-up-reference", 103.8f), style("reference-0926-2", 118.3f),
+        style("thanos", 134.4f), style("ironman", 135f, ironmanLattice), style("kobe", 135.1f),
+        style("reference-0926-6", 135.4f), style("reference-0926-3", 138.7f), style("spiderman-original", 141.4f))
+
+    @Test fun `朝上一组是风向离正上方三十五度以内的六段`() {
+        val up = allStyles().filter { ParticleDriftStyles.isUpFamily(it) }.map { it.name }
+        assertEquals(listOf("reference-0926-5", "reference-0926-4", "reference-0926-7", "reference-0926-1",
+            "ironman-up-reference", "reference-0926-2"), up)
+    }
+
+    /** 按名字（去掉变体后缀）统计一种方向下的选取结果。 */
+    private fun tally(angle: Float, seed: Long, trials: Int): Map<String, IntArray> {
+        val random = Random(seed)
+        val counts = HashMap<String, IntArray>()
+        repeat(trials) {
+            val picked = ParticleDriftStyles.pick(allStyles(), angle, random)
+            val name = picked?.name?.substringBefore(ParticleDriftStyles.VARIANT_SUFFIX) ?: "随机"
+            val slot = counts.getOrPut(name) { IntArray(2) }
+            if (picked != null && picked.name.contains(ParticleDriftStyles.VARIANT_SUFFIX)) slot[1]++ else slot[0]++
+        }
+        return counts
+    }
+
+    @Test fun `正上方向朝上一组约占四分之三其中四成是原样`() {
+        val trials = 8000
+        val counts = tally(90f, 31, trials)
+        // 90° 对得上的是参考 4、7、1 与向上钢铁侠
+        val family = listOf("reference-0926-4", "reference-0926-7", "reference-0926-1", "ironman-up-reference")
+        assertEquals(family.toSet() + "随机", counts.keys)
+        val original = family.sumOf { counts.getValue(it)[0] }
+        val variants = family.sumOf { counts.getValue(it)[1] }
+        assertEquals(ParticleDriftStyles.UP_FAMILY_PROBABILITY * trials, (original + variants).toFloat(), 240f)
+        assertEquals(ParticleDriftStyles.FAVORITE_ORIGINAL_SHARE, original.toFloat() / (original + variants), .03f)
+        // 组内等概率
+        for (name in family) assertEquals(.25f, counts.getValue(name).sum().toFloat() / (original + variants), .03f)
+        assertEquals((1 - ParticleDriftStyles.UP_FAMILY_PROBABILITY) * trials, counts.getValue("随机")[0].toFloat(), 240f)
+    }
+
+    @Test fun `上方偏左时离哪一组近就偏向哪一组`() {
+        val trials = 8000
+        // 120°：参考 2（118.3°）比旧钢铁侠（135°）近，偏向朝上一组；旧钢铁侠只作为普通候选、不出变体
+        val near = tally(120f, 37, trials)
+        val family = listOf("reference-0926-1", "ironman-up-reference", "reference-0926-2")
+        val inFamily = family.sumOf { near[it]?.sum() ?: 0 }
+        assertEquals(ParticleDriftStyles.UP_FAMILY_PROBABILITY * trials, inFamily.toFloat(), 240f)
+        assertEquals(0, near["ironman"]?.get(1) ?: 0)
+        // 135°（返回键）：旧钢铁侠最近，与此前一样是旧钢铁侠一族一半
+        val back = tally(135f, 41, trials)
+        val ironman = back.getValue("ironman").sum()
+        assertEquals(ParticleDriftStyles.FAVORITE_PROBABILITY * trials, ironman.toFloat(), 240f)
+        assertTrue(back.keys.none { it in family.take(2) })
+    }
+
+    @Test fun `只有旧钢铁侠一族时选取结果与此前逐位相同`() {
+        // 此前的写法：先抽旧钢铁侠一族，再在其余候选与随机之间抽
+        fun previous(styles: List<ParticleDriftStyles.Style>, angle: Float, random: Random): String? {
+            val favorite = styles.firstOrNull { it.name == "ironman" }
+            val matches = { s: ParticleDriftStyles.Style ->
+                abs(ParticleDriftStyles.angleDifference(s.angle, angle)) <= ParticleDriftStyles.MATCH_DEGREES }
+            if (favorite != null && matches(favorite) && random.nextFloat() < ParticleDriftStyles.FAVORITE_PROBABILITY) {
+                return if (random.nextFloat() < ParticleDriftStyles.FAVORITE_ORIGINAL_SHARE) favorite.name
+                else ParticleDriftStyles.variantOf(favorite, random).name
+            }
+            val candidates = styles.filter { it !== favorite && matches(it) }
+            if (candidates.isEmpty() || random.nextFloat() >= ParticleDriftStyles.REFERENCE_PROBABILITY) return null
+            return candidates[random.nextInt(candidates.size)].name
+        }
+        val styles = allStyles().filter { !ParticleDriftStyles.isUpFamily(it) }
+        for (angle in listOf(135f, 140f, 150f, 125f, 160f, 90f)) {
+            val a = Random(77)
+            val b = Random(77)
+            repeat(500) {
+                assertEquals(previous(styles, angle, a), ParticleDriftStyles.pick(styles, angle, b)?.name)
+            }
+        }
+    }
+
+    @Test fun `任意一段参考都能生成变体并可在调试包里钉住`() {
+        val base = style("reference-0926-1", 100.6f)
+        val variant = ParticleDriftStyles.variantOf(base, Random(5))
+        assertTrue(variant.name.startsWith("reference-0926-1-variant（"))
+        ParticleDriftStyles.forcedForTests = "reference-0926-1-variant"
+        try {
+            val picked = ParticleDriftStyles.pick(allStyles(), 270f, Random(1))
+            assertNotNull(picked)
+            assertTrue(picked!!.name.startsWith("reference-0926-1-variant"))
+        } finally {
+            ParticleDriftStyles.forcedForTests = null
         }
     }
 

@@ -191,7 +191,7 @@ internal object ParticleGl {
             useForeground()
             lastCompositeAt = System.nanoTime()
             for (window in live) window.composite(target)
-        }
+        } else lateFrames(live)
         for (window in live) window.resolvePresented()
 
         // 准备与预计算：只要还没到下一拍就一直推进，超出预算就让出一轮。
@@ -216,6 +216,7 @@ internal object ParticleGl {
         for (window in windows.toList()) if (window.detached) { windows -= window; window.releaseGl() }
         if (windows.isEmpty()) { stopClock(); return }
 
+        updateFrameRate()
         if (windows.any { it.needsBeat() }) startClock() else stopClock()
         val pending = windows.any { it.needsWork() }
         if (beatTarget > consumedTarget) wake()
@@ -265,15 +266,60 @@ internal object ParticleGl {
         val now = System.nanoTime()
         // 保险：会话可能「想出帧」却画不出内容（例如可见性刚变过、阶段还没到 PLAY）。
         // 那一次合成不会把它记成已提交，条件因此还成立；限一拍最多提前一次，别绕成连续交换。
-        if (now - lastCompositeAt < ParticleClock.INTERVAL_NANOS / 2) return false
+        if (now - lastCompositeAt < ParticleClock.intervalNanos / 2) return false
         useForeground()
         lastCompositeAt = now
         for (window in live) window.composite(now)
-        consumedTarget = maxOf(consumedTarget, now + ParticleClock.INTERVAL_NANOS)
+        consumedTarget = maxOf(consumedTarget, now + ParticleClock.intervalNanos)
         return true
     }
 
     private var lastCompositeAt = 0L
+
+    /**
+     * 高帧率下补画「位置晚到」的那一拍（[ParticlePerfTuning.lateGestureFrames]）。
+     *
+     * 节拍到时手势会话的位置还没变（主线程的输入阶段与这条线程在同一个 vsync 之后抢先后），本窗口那一拍就没有合成；
+     * 主线程写完位置经 [gestureMoved] 唤醒这里，本窗口这一拍还没出过帧、离节拍目标不到半个节拍间隔，就按这一拍的
+     * 目标补画。每个窗口每拍最多一帧，补出来的帧与下一拍的帧至少隔半拍。只补出过帧的手势会话
+     * （[ParticleLayerSession.wantsLateFrame]），各会话的首帧仍按节拍出。首帧提前（[presentFirstFrames]）把已消费的
+     * 节拍推到了未来时不补，那一拍已经吃掉了。60 Hz（有流体会话）时不做，不改流体的出帧时刻。
+     */
+    private fun lateFrames(live: List<ParticleWindowSurface>) {
+        if (!ParticlePerfTuning.lateGestureFrames) return
+        if (ParticleClock.intervalNanos != ParticleClock.HIGH_INTERVAL_NANOS) return
+        val target = consumedTarget
+        if (target == 0L || target != beatTarget) return
+        val now = System.nanoTime()
+        if (now - target > ParticleClock.intervalNanos / 2) return
+        var drawn = false
+        for (window in live) {
+            if (window.compositedTarget == target || !window.wantsLateFrame()) continue
+            if (!drawn) { useForeground(); drawn = true }
+            window.composite(target)
+        }
+        if (drawn) lastCompositeAt = now
+    }
+
+    /** 主线程写完手势位置时调用：高帧率下节拍可能先于这次写入到达，唤醒 GL 线程补画这一拍（见 [lateFrames]）。 */
+    fun gestureMoved() {
+        if (ParticlePerfTuning.lateGestureFrames && ParticleClock.intervalNanos == ParticleClock.HIGH_INTERVAL_NANOS) wake()
+    }
+
+    /**
+     * 有会话的窗口里会话全是飘散时，节拍切到每个 vsync 一拍，这些窗口的 Surface 投 120 Hz；
+     * 只要有一个流体会话（轨迹按 60 Hz 预算）就整体回到 60 Hz、投 60。没有会话的窗口不投（见 [ParticleWindowSurface.voteFrameRate]）。
+     */
+    private fun updateFrameRate() {
+        val busy = windows.filter { it.busy }
+        val high = ParticlePerfTuning.driftHighFrameRate && busy.isNotEmpty() && busy.all { it.prefersHighFrameRate }
+        ParticleClock.setHighRate(high)
+        for (window in windows) window.voteFrameRate(when {
+            !window.busy -> 0f
+            high -> ParticleWindowSurface.HIGH_FRAME_RATE
+            else -> ParticleWindowSurface.VOTED_FRAME_RATE
+        })
+    }
 
     private fun ensureContext(): Boolean {
         if (broken) return false

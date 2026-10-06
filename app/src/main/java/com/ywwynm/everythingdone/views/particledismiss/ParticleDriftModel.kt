@@ -19,7 +19,14 @@ import kotlin.math.roundToInt
  * - 风的方向按现有方向规则（规格里的虚拟触点方向），大小仍取源码范围；选用参考样式时风力取参考的、风向仍按本次方向；
  * - 合成方式（加光 / 标准 src-over）不在这里定：按背景亮度取样（[ParticleDriftBackground]），由会话在开画之前交给渲染器；
  * - 粒子数与桌面实现同一公式：按设备像素面积保持 4×4 卡片 4 万颗 / 1.3M 设备像素²的密度，取整到千颗，截在 1～5 万；
- *   设置里的「粒子数量」倍率乘在面积上。颗粒的尺寸以设备像素计、不随屏幕密度缩放，所以密度按设备像素算才与源码画面一致。
+ *   颗粒的尺寸以设备像素计、不随屏幕密度缩放，所以密度按设备像素算才与源码画面一致。设置里的「粒子数量」倍率（0.2～1.6）
+ *   乘在截好的粒子数上，任何尺寸的内容都按这个倍率变；「粒子大小」倍率（0.5～2.0）乘在颗粒的半宽上。两者缺省都是 1，与桌面相同。
+ *
+ * - 触点远近（用户 2026-10-06：「消逝终点位置和消逝终点方向是两码事，位置离控件距离的不同会让动画也出现不同才对」）
+ *   与流体样式同口径（`step.comp` 的 `distance_gain` 与 `destination`）：触点在该方向可用背景里越远，风越强
+ *   （[TOUCH_GAIN_BASE] + [TOUCH_GAIN_RANGE] × 远近，0.55～1.45 倍），颗粒飞得越远；有真实触点时每颗颗粒的风向
+ *   按「出生位置 → 终点」的方位温和偏转（着色器 `TOUCH_TURN`），终点越近越往那一点收拢。没有真实触点（返回键）时
+ *   风力倍数为 1、不偏转，与源码相同。
  *
  * 时间一律是源码的设备时刻（秒）：HDS 进度动画 2 秒，消蚀阈值 = 进度 × 2.1。
  */
@@ -52,7 +59,11 @@ internal class ParticleDriftModel(
      * → 参考卡片上同一处」取样，每颗粒子取到的湍流与原片里对应的那颗相同，卷曲与翻折的形状于是跟着参考走；
      * 位移仍加在本卡片上。随机生成时为 null（按本卡片自己的位置取样，与源码相同）。
      */
-    val turbulenceFrame: FloatArray? = null
+    val turbulenceFrame: FloatArray? = null,
+    /** 设置里的「粒子大小」倍率，乘在颗粒的半宽上（1 = 源码大小）。 */
+    val sizeScale: Float = 1f,
+    /** 真实触点到控件边缘的距离（以短边为单位，[ParticleDismissSpec.touchGap]）；null 表示没有真实触点，颗粒不向终点偏转。 */
+    val touchGap: Float? = null
 ) {
     /** 源码消蚀着色器的 `u_Scale`。 */
     val scaleU: Float = latticeScale(snapshotWidth, snapshotHeight)
@@ -105,11 +116,18 @@ internal class ParticleDriftModel(
         const val MIN_COUNT = 10000
         const val MAX_COUNT = 50000
 
+        /** 风力随触点远近的倍数：0.55 + 0.90 × 远近（远近 0～1，缺省 0.5 即 1 倍），与流体样式的 `distance_gain` 相同。 */
+        const val TOUCH_GAIN_BASE = .55f
+        const val TOUCH_GAIN_RANGE = .90f
+
         /** 随机湍流偏移的范围（噪声空间单位；湍流噪声的一个起伏约 1 个单位，取几十个单位即互不相关）。 */
         const val TURBULENCE_OFFSET_RANGE = 64f
 
         /** 格点数上限（着色器里 uniform 数组的长度）。 */
         const val MAX_LATTICE = 8
+
+        /** 求噪声值域时的取样间距（快照像素）。 */
+        private const val NOISE_RANGE_STEP = 8
 
         fun latticeScale(width: Int, height: Int): Float =
             (205.0 / (width.toDouble() * height.toDouble()) + 0.002).toFloat()
@@ -154,12 +172,14 @@ internal class ParticleDriftModel(
 
         /**
          * 与桌面实现的 `area_particle_count` 逐项相同：4 万 × 面积 / 1.3M，按千颗取整（Python 的 round，四舍六入五成双），
-         * 截在 [1 万, 5 万]。[amount] 是设置里的倍率，乘在面积上（缺省 1 时与桌面完全相同）。
+         * 截在 [1 万, 5 万]；再乘设置里的倍率 [amount]（四舍五入到整数）。倍率乘在截好之后，0.2～1.6 在小卡片与整屏内容上都起作用；
+         * 缺省 1 时与桌面完全相同。
          */
         fun count(widthPx: Int, heightPx: Int, amount: Float): Int {
-            val area = widthPx.toDouble() * heightPx * amount
+            val area = widthPx.toDouble() * heightPx
             val thousands = Math.rint(REFERENCE_CARD_COUNT * area / REFERENCE_CARD_AREA / 1000.0)
-            return (thousands * 1000.0).toInt().coerceIn(MIN_COUNT, MAX_COUNT)
+            val base = (thousands * 1000.0).toInt().coerceIn(MIN_COUNT, MAX_COUNT)
+            return (base * amount.toDouble()).roundToInt().coerceAtLeast(1)
         }
 
         /** 与着色器 `driftNoise` 相同的平滑插值值噪声。 */
@@ -174,23 +194,43 @@ internal class ParticleDriftModel(
             return top + (bottom - top) * fy
         }
 
-        /** 在快照上按 8 像素的格子取样，求噪声值（未乘 0.8、未加 0.2）的最小、最大值。 */
+        /**
+         * 在快照上按 8 像素的格子取样，求噪声值（未乘 0.8、未加 0.2）的最小、最大值。
+         *
+         * 一个格点单元里噪声是平滑插值后的双线性函数：固定一个方向，沿另一个方向是单调的，所以单元里所有样点的极值
+         * 都落在这个单元样点子网格的四个角上。只算各单元首末两行、首末两列交出的样点，与逐点扫描在精确算术下相同
+         * （浮点上至多差 1 ulp，只在各格点值相差几个 ulp 的人造格点上出现过）；全屏快照从 6.9 万次取样降到几十次。
+         */
         fun noiseRange(lattice: FloatArray, w: Int, h: Int, width: Int, height: Int, u: Float): FloatArray {
+            val xs = cellEnds(width, u)
+            val ys = cellEnds(height, u)
             var low = Float.MAX_VALUE
             var high = -Float.MAX_VALUE
-            val step = 8
-            var y = 0
-            while (y < height) {
-                var x = 0
-                while (x < width) {
-                    val value = noise(lattice, w, h, (x + .5f) * u, (y + .5f) * u)
-                    low = min(low, value)
-                    high = max(high, value)
-                    x += step
-                }
-                y += step
+            for (y in ys) for (x in xs) {
+                val value = noise(lattice, w, h, x, y)
+                low = min(low, value)
+                high = max(high, value)
             }
             return floatArrayOf(low, high)
+        }
+
+        /** 沿一个方向每 8 像素取一个样点（取样坐标 (像素 + 0.5) × [u]），返回每个格点单元里首、末两个样点的坐标。 */
+        private fun cellEnds(length: Int, u: Float): FloatArray {
+            val ends = FloatArray(2 * ((length + NOISE_RANGE_STEP - 1) / NOISE_RANGE_STEP))
+            var size = 0
+            var cell = Int.MIN_VALUE
+            var x = 0
+            while (x < length) {
+                val at = (x + .5f) * u
+                val k = floor(at).toInt()
+                if (k != cell) {
+                    ends[size] = at; ends[size + 1] = at; size += 2; cell = k
+                } else {
+                    ends[size - 1] = at
+                }
+                x += NOISE_RANGE_STEP
+            }
+            return ends.copyOf(size)
         }
 
         /**
@@ -202,35 +242,39 @@ internal class ParticleDriftModel(
          */
         fun random(width: Int, height: Int, directionX: Float, directionY: Float,
                    amount: Float, random: Random, styles: List<ParticleDriftStyles.Style> = emptyList(),
-                   releaseX: Float? = null, releaseY: Float? = null): ParticleDriftModel {
-            val size = latticeSize(width, height)
+                   releaseX: Float? = null, releaseY: Float? = null, size: Float = 1f,
+                   touchGap: Float? = null, touchStrength: Float? = null): ParticleDriftModel {
+            val grid = latticeSize(width, height)
             val length = hypot(directionX, directionY)
             val ux = if (length > 1e-6f) directionX / length else 0f
             val uy = if (length > 1e-6f) directionY / length else -1f
             val angle = Math.toDegrees(atan2(-uy.toDouble(), ux.toDouble())).toFloat()
             val style = ParticleDriftStyles.pick(styles, angle, random)
             val lattice = style?.let { ParticleDriftStyles.resample(it, width, height) }
-                ?: FloatArray(size[0] * size[1]) { random.nextFloat() }
+                ?: FloatArray(grid[0] * grid[1]) { random.nextFloat() }
             if (releaseX != null && releaseY != null) {
                 val u = latticeScale(width, height)
-                val i = (releaseX * u).roundToInt().coerceIn(0, size[0] - 1)
-                val j = (releaseY * u).roundToInt().coerceIn(0, size[1] - 1)
-                lattice[j * size[0] + i] = random.nextFloat() * .1f
+                val i = (releaseX * u).roundToInt().coerceIn(0, grid[0] - 1)
+                val j = (releaseY * u).roundToInt().coerceIn(0, grid[1] - 1)
+                lattice[j * grid[0] + i] = random.nextFloat() * .1f
             }
             val count = count(width, height, amount)
+            val gain = TOUCH_GAIN_BASE + TOUCH_GAIN_RANGE * (touchStrength ?: .5f)
             if (style != null) {
                 // 风向转到本次方向（与参考相差不超过 MATCH_DEGREES），大小取参考的。
-                return ParticleDriftModel(width, height, lattice, size[0], size[1],
-                    ux * style.wind, uy * style.wind, count,
+                return ParticleDriftModel(width, height, lattice, grid[0], grid[1],
+                    ux * style.wind * gain, uy * style.wind * gain, count,
                     style.fadeSizePower, style.fadeAlphaPower, style.overAlphaMul, style.name,
-                    turbulenceFrame = emitFrame(style.width, style.height, style.expansionWidth, style.expansionHeight))
+                    turbulenceFrame = emitFrame(style.width, style.height, style.expansionWidth, style.expansionHeight),
+                    sizeScale = size, touchGap = touchGap)
             }
             val windSource = (random.nextFloat() * 2f - 1f) * WIND_X_RANGE
             val magnitude = .5f * hypot(windSource, WIND_Y)
-            return ParticleDriftModel(width, height, lattice, size[0], size[1],
-                ux * magnitude, uy * magnitude, count,
+            return ParticleDriftModel(width, height, lattice, grid[0], grid[1],
+                ux * magnitude * gain, uy * magnitude * gain, count,
                 turbulenceOffsetX = random.nextFloat() * TURBULENCE_OFFSET_RANGE,
-                turbulenceOffsetY = random.nextFloat() * TURBULENCE_OFFSET_RANGE)
+                turbulenceOffsetY = random.nextFloat() * TURBULENCE_OFFSET_RANGE,
+                sizeScale = size, touchGap = touchGap)
         }
     }
 }

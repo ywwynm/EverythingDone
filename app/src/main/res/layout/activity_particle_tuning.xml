@@ -268,7 +268,7 @@
 
                 </LinearLayout>
 
-                <!-- 粒子数量（只在飘散样式下显示）：按面积换算的粒子数再乘这一档倍率。 -->
+                <!-- 粒子数量与粒子大小（只在飘散样式下显示）：按面积换算的粒子数再乘倍率；颗粒半宽乘大小倍率。 -->
                 <LinearLayout
                     android:id="@+id/ll_particle_tuning_amount_group"
                     android:layout_width="match_parent"
@@ -309,6 +309,48 @@
 
                     <TextView
                         android:id="@+id/tv_particle_tuning_amount_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="10dp"
+                        android:textColor="@color/app_chrome_on_surface_hint"
+                        android:textSize="12sp"/>
+
+                    <RelativeLayout
+                        android:id="@+id/rl_particle_tuning_drift_size_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_drift_size_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_particle_tuning_drift_size_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:textSize="14sp"/>
+
+                    </RelativeLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_particle_tuning_drift_size"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/tv_particle_tuning_drift_size_detail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingLeft="16dp"

@@ -562,6 +562,7 @@
     <string name="particle_tuning_style_detail">Fluxo: as partículas se empurram e escoam juntas. Deriva: o conteúdo se desfaz a partir de um ponto e o vento leva as partículas.</string>
     <string name="particle_tuning_amount">Quantidade de partículas</string>
     <string name="particle_tuning_amount_detail">O número de partículas depende do tamanho do conteúdo e é multiplicado por este fator. Mais partículas parecem mais densas e custam mais.</string>
+    <string name="particle_tuning_drift_size_detail">Ajusta o tamanho das partículas em relação ao tamanho original, que é o padrão. Não altera o número de partículas. Partículas maiores são mais fáceis de distinguir uma a uma.</string>
     <string name="direction_sensor_restricted">A imagem não pode responder à orientação do dispositivo neste momento. Permita que este aplicativo acesse o movimento e a orientação do dispositivo nas %1$s.</string>
     <string name="direction_sensor_restricted_settings">configurações do sistema</string>
     <string name="fablesol_tuning_hdr">Realces HDR</string>

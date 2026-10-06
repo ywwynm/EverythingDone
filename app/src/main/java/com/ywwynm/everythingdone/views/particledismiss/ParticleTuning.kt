@@ -48,15 +48,39 @@ internal object ParticleTuning {
     /** 粒子样式：`flow`（流体，原有实现）或 `drift`（飘散，缺省）。见 [ParticleStyle]。 */
     const val KEY_STYLE = "particle_style"
 
-    /** 飘散样式的「粒子数量」倍率，乘在按面积换算出的粒子数上（再截到 1～5 万）。 */
-    const val KEY_DRIFT_AMOUNT = "drift_particle_amount"
+    /**
+     * 飘散样式的「粒子数量」档位下标，倍率乘在按面积换算、截到 1～5 万之后的粒子数上。
+     *
+     * 键名与上一版（`drift_particle_amount`，0.5×～1.5× 的十一档）不同是**有意的**：两版的下标含义不同，
+     * 沿用同一个键会把旧的「1.2×」读成新梯度上的 0.9×。迁移见 [migrateLegacyDriftAmount]。
+     */
+    const val KEY_DRIFT_AMOUNT = "drift_amount_index"
+
+    /** 飘散样式的「粒子大小」档位下标（倍率乘在颗粒半宽上，1× 即源码大小）。 */
+    const val KEY_DRIFT_SIZE = "drift_size_index"
 
     /** 仅调试包：钉住某段参考样式的名字，或 `random`（一律随机生成）。见 [ParticleDriftStyles.forcedForTests]。 */
     const val KEY_DEBUG_FORCE_DRIFT_STYLE = "debug_drift_force_style"
 
-    /** 「粒子数量」的档位（倍率）：0.5×～1.5×，每档 0.1。 */
-    val DRIFT_AMOUNT_LEVELS = floatArrayOf(.5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
-    const val DEFAULT_DRIFT_AMOUNT_INDEX = 5
+    /** 仅调试包：飘散零拷贝时把导入的纹理与样本逐字节核对一遍（慢）。见 [ParticleDriftHardwareImport.verifyForTests]。 */
+    const val KEY_DEBUG_VERIFY_ZERO_COPY = "debug_drift_verify_zero_copy"
+
+    /** 「粒子数量」的档位（倍率）：0.2×～1.6×，每档 0.1（用户 2026-10-06 定的范围）。 */
+    val DRIFT_AMOUNT_LEVELS = floatArrayOf(
+        .2f, .3f, .4f, .5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f)
+    const val DEFAULT_DRIFT_AMOUNT_INDEX = 8
+
+    /**
+     * 「粒子大小」的档位（倍率）：0.5×～2.0×，每档 0.1，与流体的粒子大小一样是十六档。
+     * 源码的颗粒半径是定值（工作面 3.5 ± 0.5 像素），没有按面积自动计算的环节，所以缺省就是源码大小 1.0×。
+     */
+    val DRIFT_SIZE_LEVELS = floatArrayOf(
+        .5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f, 1.8f, 1.9f, 2f)
+    const val DEFAULT_DRIFT_SIZE_INDEX = 5
+
+    /** 上一版「粒子数量」的键与它的十一档梯度，只用于迁移。 */
+    private const val LEGACY_KEY_DRIFT_AMOUNT = "drift_particle_amount"
+    private val LEGACY_DRIFT_AMOUNT_LEVELS = floatArrayOf(.5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
 
     /** 更早那一版的粒子大小键与它的九档梯度，只用于迁移。 */
     private const val LEGACY_KEY_CELL_INDEX = "microflake_cell_dp_index"
@@ -147,9 +171,22 @@ internal object ParticleTuning {
         apply(context)
     }
 
-    /** 「粒子数量」档位的文案，例如 0.5× / 1.0× / 1.5×。 */
+    /** 「粒子数量」档位的文案，例如 0.2× / 1.0× / 1.6×。 */
     fun driftAmountLabel(index: Int): String =
         String.format("%.1f×", DRIFT_AMOUNT_LEVELS[index.coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)])
+
+    fun driftSizeIndex(context: Context): Int = preferences(context)
+        .getInt(KEY_DRIFT_SIZE, DEFAULT_DRIFT_SIZE_INDEX).coerceIn(0, DRIFT_SIZE_LEVELS.lastIndex)
+
+    fun setDriftSizeIndex(context: Context, index: Int) {
+        preferences(context).edit()
+            .putInt(KEY_DRIFT_SIZE, index.coerceIn(0, DRIFT_SIZE_LEVELS.lastIndex)).apply()
+        apply(context)
+    }
+
+    /** 「粒子大小」档位的文案，例如 0.5× / 1.0× / 2.0×。 */
+    fun driftSizeLabel(index: Int): String =
+        String.format("%.1f×", DRIFT_SIZE_LEVELS[index.coerceIn(0, DRIFT_SIZE_LEVELS.lastIndex)])
 
     fun setCellIndex(context: Context, index: Int) {
         markUserChanged(context)
@@ -184,6 +221,8 @@ internal object ParticleTuning {
             .remove(KEY_AUTO_TUNE)
             .remove(KEY_STYLE)
             .remove(KEY_DRIFT_AMOUNT)
+            .remove(KEY_DRIFT_SIZE)
+            .remove(LEGACY_KEY_DRIFT_AMOUNT)
             .remove(KEY_AUTO_STEPS)
             .remove(KEY_AUTO_ROUNDS)
             .remove(KEY_USER_CHANGED)
@@ -276,22 +315,42 @@ internal object ParticleTuning {
         }
     }
 
+    /**
+     * 把上一版「粒子数量」（0.5×～1.5×）里选过的倍率按取值搬到新梯度（0.2×～1.6×）上：新梯度包含旧梯度的每一档，
+     * 倍率不变。旧值是 1.0× 时与「未设置」等价，只删旧键。
+     */
+    private fun migrateLegacyDriftAmount(preferences: SharedPreferences, editor: SharedPreferences.Editor) {
+        if (!preferences.contains(LEGACY_KEY_DRIFT_AMOUNT)) return
+        val legacy = preferences.getInt(LEGACY_KEY_DRIFT_AMOUNT, 5)
+        editor.remove(LEGACY_KEY_DRIFT_AMOUNT)
+        if (legacy in LEGACY_DRIFT_AMOUNT_LEVELS.indices && !preferences.contains(KEY_DRIFT_AMOUNT)) {
+            val amount = LEGACY_DRIFT_AMOUNT_LEVELS[legacy]
+            val nearest = DRIFT_AMOUNT_LEVELS.indices.minByOrNull { abs(DRIFT_AMOUNT_LEVELS[it] - amount) }
+            if (nearest != null && nearest != DEFAULT_DRIFT_AMOUNT_INDEX) editor.putInt(KEY_DRIFT_AMOUNT, nearest)
+        }
+    }
+
     /** 进程启动时与每次改动之后各调一次。 */
     fun apply(context: Context) {
         val preferences = preferences(context)
-        if (preferences.contains(LEGACY_KEY_CELL_INDEX) || preferences.contains(LEGACY_KEY_FLOW_INDEX)) {
+        if (preferences.contains(LEGACY_KEY_CELL_INDEX) || preferences.contains(LEGACY_KEY_FLOW_INDEX) ||
+            preferences.contains(LEGACY_KEY_DRIFT_AMOUNT)) {
             val editor = preferences.edit()
             migrateLegacyCellIndex(preferences, editor)
             migrateLegacyFlow(preferences, editor)
+            migrateLegacyDriftAmount(preferences, editor)
             // `apply()` 对内存里的那份映射是同步生效的，紧接着的读取拿到的就是迁移后的值；
             // 磁盘写入异步进行，不占主线程。
             editor.apply()
         }
         ParticleStyle.current = style(context)
         ParticleStyle.driftAmount = DRIFT_AMOUNT_LEVELS[driftAmountIndex(context)]
+        ParticleStyle.driftSize = DRIFT_SIZE_LEVELS[driftSizeIndex(context)]
         // 仅调试包：验收时把某段参考样式钉住（键由 adb 经 run-as 写入，正式包不读）。
         ParticleDriftStyles.forcedForTests =
             if (BuildConfig.DEBUG) preferences.getString(KEY_DEBUG_FORCE_DRIFT_STYLE, null) else null
+        ParticleDriftHardwareImport.verifyForTests =
+            BuildConfig.DEBUG && preferences.getBoolean(KEY_DEBUG_VERIFY_ZERO_COPY, false)
         ParticlePerfTuning.applyUserTuning(
             cellDpFloor(cellIndex(context), isCellExplicit(context)),
             flowDetail(context),

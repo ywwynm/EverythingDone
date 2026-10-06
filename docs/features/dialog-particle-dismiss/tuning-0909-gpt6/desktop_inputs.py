@@ -73,7 +73,18 @@ def make_renderer(inputs, model, ctx, quality=2):
             native, entry = live_inputs(inputs['scene'], META[inputs['scene']], kind, inputs['seed'], None)
             return NativeLive(inputs['scene'], native, entry=entry, ctx=ctx, dim_alpha=META[inputs['scene']].get('dim_alpha', 0.0))
         direction = inputs['direction'] if kind == 'tap' else BACK_KEY_DEGREES
-        return build_android_renderer(inputs['scene'], META[inputs['scene']], inputs['seed'], direction, ctx=ctx)
+        gap = strength = None
+        if kind == 'tap':
+            # 触点远近与 Android 同一公式：边缘外距离（短边为单位）与该方向可用背景里的相对位置（画面即可用背景）
+            from unified_model import touch_strength_from_point
+            m = META[inputs['scene']]
+            x0, y0, x1, y1 = m['rect']
+            fw, fh = m['frame']
+            tx, ty = inputs['tap']
+            gap = inputs['touch_gap']
+            strength = touch_strength_from_point(tx - x0, ty - y0, x1 - x0, y1 - y0, (-x0, -y0, fw - x0, fh - y0))
+        return build_android_renderer(inputs['scene'], META[inputs['scene']], inputs['seed'], direction, ctx=ctx,
+                                      touch_gap=gap, touch_strength=strength)
     if cls is NativeLive:
         # 参考序列用原片估计的一次动画输入；随机与点击按种子生成，点击只决定横风。
         kind = inputs['kind']

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[4]
 TUNING = ROOT / 'docs/features/dialog-particle-dismiss/tuning-0909-gpt6'
 sys.path.insert(0, str(TUNING))
 import harmony_native as hn  # noqa: E402
+import android_drift as ad  # noqa: E402
 
 ADB = r'E:\AndroidSDK\platform-tools\adb.exe'
 SERIAL = 'R5CW20BLNKL'
@@ -129,8 +130,8 @@ def case_inputs(name):
                     background=[236, 236, 236] if over else [0, 0, 0], style=scene)
         return img, spec
     rng = np.random.RandomState(20261005 + sum(map(ord, name)))
-    if name in ('dialog-light', 'dialog-dark'):
-        dark = name == 'dialog-dark'
+    if name in ('dialog-light', 'dialog-dark', 'dialog-dark-size', 'dialog-light-near'):
+        dark = name not in ('dialog-light', 'dialog-light-near')
         w, h = 1225, 760
         img = dialog_snapshot(w, h, dark)
         lw, lh = lattice_size(w, h)
@@ -143,6 +144,12 @@ def case_inputs(name):
                     turbulenceOffset=[float(rng.uniform(0, 64)), float(rng.uniform(0, 64))],
                     expansion=[1440.0, min(3088 * 0.85, 2400.0)],
                     background=[24, 24, 24] if dark else [244, 244, 244], style=name)
+        if name == 'dialog-dark-size':
+            # 设置里的「粒子大小」1.6×、「粒子数量」0.4×（数量按 Android 的公式：截好之后再乘）
+            spec.update(sizeScale=1.6, count=ad.count(w, h, np.float32(0.4)))
+        if name == 'dialog-light-near':
+            # 点在弹窗外很近处：终点离边缘 0.1 个短边，颗粒往那一点收拢（风力倍数由输入核对覆盖，这里只看偏转）
+            spec.update(touchGap=0.1)
         return img, spec
     if name == 'ironman-style-dialog':
         # 旧钢铁侠样式用在另一尺寸的卡片上：格点按样式（直接用参考的 4×4）、湍流换算到参考的发射区、风转到 150°
@@ -251,7 +258,8 @@ def run_desktop(folder, spec, result, ctx):
     content = result['content'] if spec.get('content') else None
     r.android_extras(turb_scale=turb_scale, turb_shift=turb_shift, turb_offset=spec.get('turbulenceOffset', (0, 0)),
                      content=content, base_count=int(result['count']), total_seconds=result['totalSeconds'],
-                     clamp_alpha=not spec['additive'], wind=spec['wind'])
+                     clamp_alpha=not spec['additive'], wind=spec['wind'], size_scale=spec.get('sizeScale', 1.0),
+                     touch_gap=spec.get('touchGap'))
     desk = folder / 'desktop'
     desk.mkdir(exist_ok=True)
     frames = []

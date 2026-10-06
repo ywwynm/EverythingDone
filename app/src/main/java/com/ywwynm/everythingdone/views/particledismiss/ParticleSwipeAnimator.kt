@@ -273,6 +273,7 @@ internal class ParticleSwipeAnimator(
         /** 会话内部一律按「向前推进」记进度；右滑把位移镜像过来，其余逻辑完全共用。 */
         fun track(displacement: Float) {
             gesture.update(ParticleSwipeDirection.progressDisplacement(direction, displacement), view.width)
+            if (gesture.active) ParticleGl.gestureMoved()
         }
 
         fun activate() {

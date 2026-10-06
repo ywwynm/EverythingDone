@@ -84,6 +84,7 @@ internal class ParticleSession(
     private var pendingFrames = 0
 
     private val isReverse get() = spec.reverse
+    private val pacing = ParticleFramePacing("流体")
     private val isGesture get() = gesture != null
 
     /** 已经开始占用 GPU 资源；共享资源尺寸只在没有会话开工时才允许变。 */
@@ -567,6 +568,7 @@ internal class ParticleSession(
         if (BuildConfig.DEBUG) presentedTimings += longArrayOf(
             target, System.nanoTime(), System.nanoTime(), displayedAt ?: 0L)
         if (cancelled) return
+        pacing.onPresented(displayedAt)
         val progress = if (isGesture) checkNotNull(gesture).progressAt(target)
             else submittedProgress.remove(target) ?: 0f
         if (!firstFrameReported) {
@@ -630,6 +632,7 @@ internal class ParticleSession(
 
     /** 释放本会话的 GPU 对象；共享资源不动。只在 GL 线程调用。 */
     override fun dispose() {
+        pacing.log(if (isReverse) "出现" else if (isGesture) "跟手" else "消散", spec.requestedAtNanos, particleCount)
         stage = Stage.DONE
         cancelled = true
         runCatching { renderer?.close() }

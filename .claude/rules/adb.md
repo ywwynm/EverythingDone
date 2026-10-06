@@ -234,6 +234,9 @@ subprocess.run([ADB, '-s', SERIAL, 'shell', 'run-as', PKG, 'sh', '-c',
 写完一律 `run-as <包名> od -An -tx1 -N 8 shared_prefs/x.xml` 核一遍文件头，
 第一个字节必须是 `3c`（`<`）。
 
+`cat > tmp && mv` 新建的文件沿用 shell 的 umask，权限是 **666**，应用自己写的偏好文件是 660
+（2026-10-06 实际发生）。写完再 `run-as <包名> chmod 660 shared_prefs/x.xml`，恢复原文时同样要做。
+
 ## 驱动脚本不要写中文字面量
 
 PS 5.1 按 ANSI 解析无 BOM 的 `.ps1`，脚本里的 `'导出完成'` 会变成乱码，匹配永远失败——
@@ -1354,3 +1357,43 @@ resource-id 的 TextView，2026-09-30 这样限定之后横屏找不到样例文
 2026-10-05 在三星 SM-S9180 上实测：调试 Activity 把 GL 工作投给常驻线程后立刻 `finish()`，进程转入缓存状态，One UI 的冻结机制随即停住
 GL 线程——27 帧只写出 5 帧半（最后一个 PNG 写到一半），也没有报错，驱动脚本只看到超时。要在后台线程上跑完的导出，Activity 留在前台
 （透明主题即可），等工作结束再从工作线程 `runOnUiThread { finish() }`。本项目的实例是 `DriftParityRenderActivity`。
+
+## 量左滑跟手的出帧：用连续注入，不用 `input swipe`
+
+2026-10-06 对比两种粒子样式时实测：`adb shell input swipe` 的 MOVE 事件很稀疏，而跟手会话只在手指位置变化时出帧，
+两种样式都只有正常帧数的一半左右，比出来的是注入器而不是应用。改用 `docs/features/swipe-complete-animation/ParticleGestureInput.java`
+（约 8 ms 一个 MOVE，经 InputDispatcher），推到 `/data/local/tmp/thing-animation-input.jar` 后：
+
+```bash
+"$ADB" -s <serial> shell CLASSPATH=/data/local/tmp/thing-animation-input.jar app_process /system/bin ParticleGestureInput <起点x> <y> UP <中点x> <y> 900 <终点x> <y> 200
+```
+
+## 点弹窗外关闭：离弹窗窗口边缘要超过触摸容差
+
+`Dialog` 判定「点在外面」时带窗口触摸容差（`ViewConfiguration.getScaledWindowTouchSlop`，16 dp）。三星 SM-S9180 上点在弹窗窗口
+上沿外 60 px 处不会关闭弹窗（2026-10-06 实际发生），130 px 可以。弹窗窗口的边界取 `uiautomator dump` 里「确定」按钮的最外层祖先
+（`android:id/content` 的父节点），不要按面板里的子控件算。
+
+## 首页点新建可能被静默放弃：点完要确认 `DetailActivity` 到了前台
+
+`ThingCreationTransition.launch` 先离屏抓首页，抓完那一刻首页**没有窗口焦点**就放弃打开新建页（`onLaunched(false)`），
+不报错、不弹提示。2026-10-06 在三星 SM-S9180 上连续多轮「点新建 → 返回」时偶发：脚本以为新建页开了，接着按返回，
+在首页上把应用退到了桌面，之后每一步都找不到 `fab_create`，看上去像应用坏了（装回旧版对照才确认不是回归）。
+
+规则：点新建之后轮询 `dumpsys activity activities` 的 `ResumedActivity`，等到 `DetailActivity` 才往下走，没等到就重取 FAB 再点；
+返回也按前台 Activity 判断（等回到 `ThingsActivity`），不靠 `uiautomator dump`——返回动画期间它常拿到不完整的树。
+`docs/features/harmony-particle-android-port/device/perf_compare.py` 的 `creation_round` 已按此写。
+
+## 量 120 Hz 下的跟手：注入器要用异步模式
+
+`ParticleGestureInput` 缺省用 `WAIT_FOR_FINISH`（mode 2）注入：每个事件都要等应用在下一帧把它消费掉才返回，再睡 8 ms，
+注入节奏就被拴在应用帧率上，每秒约 60 个 MOVE。2026-10-06 实测：应用已经能跑 120 Hz，手势位置却仍是 16.7 ms 更新一次，
+看上去像应用被限帧。加环境变量 `PARTICLE_INPUT_ASYNC=1` 改成异步注入（mode 0）、每 4 ms 一个 MOVE（相当于 240 Hz 上报的
+触摸屏），位置更新立刻变成 8.3 ms 一次。`perf_compare.py --async-input` 已接上；jar 重新 `javac` + `d8 --output input.jar` 打过
+（原来的同步版留作 `input-sync-only.jar`）。
+
+## 判断应用有没有被限帧：看 `mFrameRateOverrides`
+
+面板跑 120 Hz（`dumpsys gfxinfo <包名> framestats` 里 `FrameDeadline − IntendedVsync` 是 8.33 ms）而应用的帧间隔是 16.7 ms 时，
+先查 `adb shell dumpsys display | grep mFrameRateOverrides`：SurfaceFlinger 会按应用所有图层的投票给整个 uid 设帧率覆盖。
+本项目的粒子 Surface 原来常驻投 60 Hz，整个应用因此一直是 `{uid=10193 frameRateHz=60}`（2026-10-06 改成空闲不投，覆盖消失）。

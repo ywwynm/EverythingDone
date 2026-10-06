@@ -1087,6 +1087,7 @@
     <string name="particle_tuning_style_detail">流体：粒子相互推挤，汇成一股流走。飘散：内容从一处开始逐渐化开，粒子随风飘走。</string>
     <string name="particle_tuning_amount">粒子数量</string>
     <string name="particle_tuning_amount_detail">粒子数按内容面积换算，再乘这一倍率。数量越多，画面越细密，开销也越大。</string>
+    <string name="particle_tuning_drift_size_detail">按颗粒的原始大小缩放，默认就是原始大小，与粒子数量互不影响。数值越大，单颗颗粒越大，也越容易看清。</string>
     <string name="fablesol_tuning_hdr">HDR 高光增强</string>
     <string name="fablesol_tuning_hdr_unsupported">（设备不支持）</string>
     <string name="fablesol_tuning_hdr_off">关闭</string>

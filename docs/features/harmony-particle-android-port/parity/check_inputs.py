@@ -21,8 +21,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import drift_parity as dp  # noqa: E402
 import android_drift as ad  # noqa: E402  （drift_parity 已把 tuning 目录加进 sys.path）
 
-SIZES = [(1225, 760), (917, 915), (980, 1580), (1260, 700), (1048, 1061), (1440, 2400), (600, 420)]
-ANGLES = [135, 125, 145, 157, 112, 90, 63, 45, 30, 0, -45, -90, 180, 200]
+SIZES = [(1225, 760), (917, 915), (980, 1580), (1260, 700), (1048, 1061), (1440, 2400), (600, 420), (1440, 3088), (1300, 300)]
+ANGLES = [135, 125, 145, 157, 112, 90, 63, 45, 30, 0, -45, -90, 180, 200,
+          60, 75, 84, 95, 100, 105, 115, 118, 120, 122, 127, 130]   # 后一行：朝上一组与两组交界
+AMOUNTS = [0.2, 0.4, 0.7, 1.0, 1.0, 1.3, 1.6]
+SIZE_SCALES = [0.5, 0.8, 1.0, 1.0, 1.4, 2.0]
 
 
 def cases():
@@ -34,7 +37,14 @@ def cases():
                 reach = 800.0
                 out.append(dict(width=w, height=h, dx=math.cos(math.radians(a)) * reach,
                                 dy=-math.sin(math.radians(a)) * reach,
-                                seed=int(rng.randint(-2**31, 2**31 - 1)), amount=1.0))
+                                seed=int(rng.randint(-2**31, 2**31 - 1)),
+                                amount=float(AMOUNTS[rng.randint(len(AMOUNTS))]),
+                                size=float(SIZE_SCALES[rng.randint(len(SIZE_SCALES))]),
+                                # 三分之一按返回键（没有真实触点），其余是点在弹窗外不同远近处
+                                touchGap=None if rng.rand() < 1 / 3 else float(rng.uniform(0, 3)),
+                                touchStrength=None))
+                if out[-1]['touchGap'] is not None:
+                    out[-1]['touchStrength'] = float(rng.uniform(0, 1))
     return out
 
 
@@ -79,14 +89,18 @@ def check_models(run):
     bad = []
     picked = {}
     for c, d in zip(items, device):
-        m = ad.random_model(c['width'], c['height'], np.float32(c['dx']), np.float32(c['dy']), c['amount'],
-                            ad.seeded_random(c['seed']), styles)
+        m = ad.random_model(c['width'], c['height'], np.float32(c['dx']), np.float32(c['dy']), np.float32(c['amount']),
+                            ad.seeded_random(c['seed']), styles, size=np.float32(c['size']),
+                            touch_gap=c['touchGap'], touch_strength=c['touchStrength'])
         picked[m.style_name or '随机'] = picked.get(m.style_name or '随机', 0) + 1
         checks = dict(
             style=(m.style_name or None) == d['style'],
             lattice=(m.lattice_width, m.lattice_height) == (d['latticeWidth'], d['latticeHeight']) and same(m.lattice, d['lattice']),
             wind=same([m.wind_x, m.wind_y], [d['windX'], d['windY']]),
             count=m.count == d['count'],
+            size=same([m.size_scale], [d['sizeScale']]),
+            touch=(m.touch_gap is None) == (d['touchGap'] is None) and
+                  (m.touch_gap is None or same([m.touch_gap], [d['touchGap']])),
             fade=same([m.fade_size_power, m.fade_alpha_power, m.over_alpha_mul],
                       [d['fadeSizePower'], d['fadeAlphaPower'], d['overAlphaMul']]),
             offset=same(m.turbulence_offset, d['turbulenceOffset']),

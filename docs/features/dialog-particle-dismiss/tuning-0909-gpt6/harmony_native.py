@@ -234,6 +234,7 @@ uniform float content_total;      // 整段动画的设备时长（Android total
 uniform float frame_time;         // 本帧的设备时刻（出生帧的时刻）
 layout(std430,binding=1) readonly buffer Cells{float cumulative[];} cells;
 layout(std430,binding=2) buffer Emphasis{vec2 e[];} emphasis_buf;   // 每颗：强调量、本体色份额
+uniform float u_touchGap;         // Android 口径：真实触点到边缘的距离（短边为单位）；< 0 时不偏转（源码）
 
 uint hash(uint x){
     x^=x>>15;x*=0x85ebca6bu;x^=x>>13;x*=0xc2b2ae35u;x^=x>>16;return x;
@@ -341,6 +342,16 @@ void UpdatePosition(int index,float dT){
     float aspectScale=min(u_aspect,1.0);
     vec2 windVec=aeWind*accel*dt*dt*0.5*randFactor;
     windVec.x*=aspectScale;
+    if(u_touchGap>=0.0){
+        // Android 口径：风向按「出生位置 → 终点」的方位偏转 0.13（与 drift-update.comp 相同）
+        vec2 dir=normalize(aeWind);
+        vec2 center=position_cfg+emitSize*0.5;
+        float edge=min(emitSize.x/(2.0*max(abs(dir.x),1e-6)),emitSize.y/(2.0*max(abs(dir.y),1e-6)));
+        vec2 destination=center+dir*(edge+min(emitSize.x,emitSize.y)*u_touchGap);
+        vec2 bearing=normalize(destination-p.initPosition);
+        float turn=0.13*atan(dot(bearing,vec2(-dir.y,dir.x)),dot(bearing,dir));
+        windVec=mat2(cos(turn),sin(turn),-sin(turn),cos(turn))*windVec;
+    }
     float turbFreq=500.0/(u_scale+50.0);
     float turbEvoTime=dt*u_evo*u_evoMult;
     float timeOffset=mod(getRandomValue(0.0,1.0,uint(index)+12u)*10000.0,100.0)/1000.0;
@@ -842,6 +853,7 @@ class NativeRenderer:
         c['content_panel'] = (0.0, 0.0, 0.0)
         c['content_panel_weight'] = 0.0
         c['content_total'] = 0.0
+        c['u_touchGap'] = -1.0
         self.cu = c
         r = self.raster
         self.part_prog['work_size'] = self.work
@@ -916,22 +928,28 @@ class NativeRenderer:
         return t1 - t0
 
     def android_extras(self, turb_scale=(1.0, 1.0), turb_shift=(0.0, 0.0), turb_offset=(0.0, 0.0),
-                       content=None, base_count=None, total_seconds=0.0, clamp_alpha=False, wind=None):
+                       content=None, base_count=None, total_seconds=0.0, clamp_alpha=False, wind=None, size_scale=1.0,
+                       touch_gap=None):
         """Android 移植口径的可选输入（缺省与源码相同）。
 
         wind：Android 的 aeWind（工作面单位，y 向下）；宿主 aeWind = (u_wind.x, −u_wind.y)。
         content：ParticleDriftContent 的结果 dict(panel, panelWeight, grid, cumulative, replicas)；
-        粒子数 n 须已含副本，base_count 为其中源码颗粒的个数。"""
+        粒子数 n 须已含副本，base_count 为其中源码颗粒的个数。
+        size_scale：Android 设置里的「粒子大小」倍率，乘在颗粒半宽上（1 时与源码相同）。
+        touch_gap：真实触点到边缘的距离（短边为单位）；给出时风向按出生位置到终点的方位偏转。"""
         c = self.cu
         c['u_turbScale'] = tuple(float(v) for v in turb_scale)
         c['u_turbShift'] = tuple(float(v) for v in turb_shift)
         c['u_turbOffset'] = tuple(float(v) for v in turb_offset)
+        c['u_touchGap'] = -1.0 if touch_gap is None else float(touch_gap)
         if wind is not None:
             c['u_wind'] = (float(wind[0]), -float(wind[1]))
         use = content is not None and float(content.get('panelWeight', 0.0)) > 0.0
         c['use_content'] = int(use)
         _Uniforms(self.part_prog)['use_content'] = int(use)
         _Uniforms(self.part_prog)['clamp_alpha'] = int(bool(clamp_alpha))
+        r = self.raster
+        self.part_prog['size_factor'] = (0.5 if r.size_is == 'diameter' else 1.0) * r.size_mul * float(size_scale)
         if use:
             cum = np.asarray(content['cumulative'] or [1.0], np.float32)
             self.cells.orphan(cum.nbytes)

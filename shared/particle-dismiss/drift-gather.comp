@@ -1,0 +1,22 @@
+#version 310 es
+// 飘散零拷贝快照的内容取样：按像素下标（行优先）从快照纹理逐个取值，打包成 R 在低字节的 uint，
+// 读回给 CPU 做内容分析（ParticleDriftContent.analyseSamples）。texelFetch 不过滤，packUnorm4x8 按
+// round(c × 255) 打包，8 位通道原样还原，与读字节的老路逐位相同。
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 64) in;
+
+uniform highp sampler2D u_image;
+uniform int u_width;
+uniform int u_count;
+
+layout(std430, binding = 0) readonly buffer Positions { uint v[]; } positions;
+layout(std430, binding = 1) writeonly buffer Samples { uint v[]; } samples;
+
+void main() {
+    int k = int(gl_GlobalInvocationID.x);
+    if (k >= u_count) return;
+    int index = int(positions.v[k]);
+    samples.v[k] = packUnorm4x8(texelFetch(u_image, ivec2(index % u_width, index / u_width), 0));
+}

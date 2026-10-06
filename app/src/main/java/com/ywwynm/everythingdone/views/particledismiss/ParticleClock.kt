@@ -30,6 +30,20 @@ internal object ParticleClock {
     /** 60 Hz 的节拍间隔；高刷屏采样到 60 Hz，避免额外提交重复的缓存帧。 */
     const val INTERVAL_NANOS = 16_666_666L
 
+    /** 高帧率节拍的间隔（约 120 Hz）：门限按它算时，120 / 90 / 60 Hz 面板都是每个 vsync 一拍。 */
+    const val HIGH_INTERVAL_NANOS = 8_333_333L
+
+    /**
+     * 当前的节拍间隔：缺省 [INTERVAL_NANOS]；在出帧的会话全是飘散时由 [ParticleGl] 切到 [HIGH_INTERVAL_NANOS]
+     * （[setHighRate]）。门限、首帧提前的「吃掉一拍」都按它算。
+     */
+    @Volatile var intervalNanos = INTERVAL_NANOS
+        private set
+
+    fun setHighRate(high: Boolean) {
+        intervalNanos = if (high) HIGH_INTERVAL_NANOS else INTERVAL_NANOS
+    }
+
     /** 判定「这一拍属于当前目标」的容差：小于半个 120 Hz 周期，够吸收 vsync 抖动。 */
     const val TOLERANCE_NANOS = 4_000_000L
 
@@ -117,15 +131,16 @@ internal object ParticleClock {
     /**
      * 「距上一拍多久才出下一拍」的门限。
      *
-     * 取 [INTERVAL_NANOS] 减去半个 vsync 再减一点余量，语义是「离 60 Hz 最近、且不低于它的
+     * 取当前节拍间隔（缺省 [INTERVAL_NANOS]）减去半个 vsync 再减一点余量，语义是「离 60 Hz 最近、且不低于它的
      * 那一次 vsync」：120 Hz（8.28 ms）门限 12.0 ms，第一次 vsync 不到、第二次 16.55 ms 到，
      * 即 60 Hz；144 Hz（6.94 ms）门限 12.7 ms，第二次 13.89 ms 到，即 72 Hz；90 Hz
      * （11.11 ms）门限 10.6 ms，每次都到，即 90 Hz；60 Hz 每次都到。**不能只减半个 vsync**：
      * 90 Hz 时 11.11 恰好压在门限上，浮点与抖动会让它一半时候掉到 45 Hz。
+     * 高帧率（[HIGH_INTERVAL_NANOS]）时门限不到 5 ms，60–144 Hz 的面板都是每个 vsync 一拍。
      */
-    internal fun beatThreshold(vsyncNanos: Long): Long {
+    internal fun beatThreshold(vsyncNanos: Long, interval: Long = intervalNanos): Long {
         if (vsyncNanos <= 0L) return 0L
-        return (INTERVAL_NANOS - vsyncNanos / 2 - THRESHOLD_SLACK_NANOS).coerceAtLeast(0L)
+        return (interval - vsyncNanos / 2 - THRESHOLD_SLACK_NANOS).coerceAtLeast(0L)
     }
 
     /** 第二批之前的自由计时；留作对照（[ParticlePerfTuning.beatPhaseLock] 关掉时走这条）。 */

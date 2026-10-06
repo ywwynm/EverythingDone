@@ -607,6 +607,12 @@ internal object ParticleDismissController {
                             if (cardSnapshot != null && Build.VERSION.SDK_INT >= 29)
                                 ParticleHardwareSnapshot.capture(decor, cardSnapshot.bounds, cardSnapshot, done = done)
                             else if (roundSnapshot) captureSnapshotAsync(decor, activity, done)
+                            // 飘散的新建页（API 31+）：截图原样留在 HardwareBuffer 里，不拷回内存（零拷贝）。
+                            // 带独立 Surface 的页面要在截图上叠画，仍拷回内存。
+                            else if (creationPage && ParticleStyle.current == ParticleStyle.DRIFT &&
+                                Build.VERSION.SDK_INT >= 31 && ParticleHardwareTexture.available &&
+                                decor.width > 0 && decor.height > 0 && !ParticleSnapshot.hasVisibleSurface(decor))
+                                ParticleHardwareSnapshot.captureKeepingHardware(decor, done)
                             else captureContent(decor, done = done)
                         }) copy@{ snapshot ->
                         if (handled) { snapshot?.recycle(); return@copy }

@@ -57,3 +57,82 @@
     弹窗消散改由 `style_rounds.py` 覆盖。粒子相关 33 个测试类 314 条单测全部通过（报告文件为本次运行写出）。
 - 2026-10-05 夜：按用户要求发布阿里云调试版 202610051555（逐帧一致与内容强调；APK SHA-256 `c3ea4953…db98`，27,729,616 字节），
   发布日志 `debug-updates/update-20261005235515.md`，服务器上的 `latest.json` 读回与本地一致、`releaseNotes` 598 字。代码仍未提交。
+- 2026-10-06：按用户要求提交，分两次：`3a4dc2c9` 桌面复刻（GPT-6 从鸿蒙 7 模拟器镜像提取的着色器与宿主代码、核心公式验证、
+  逐项等价实现与十二段输入估计、实时预览，以及 9 月 26 日至 10 月 5 日的候选与分析脚本）；`35fd5464` Android 飘散移植（含逐帧对照、
+  模拟器的 Android 移植口径、三次发布的日志）。图片、视频、缓存、差异截图、两份约 2 MB 的拟合权重与探针参考帧都没有提交
+  （后两者已写进忽略规则）。`.claude/rules/adb.md` 里首页滚动性能那一节、空间照片与首页滚动性能的文档按原样留在工作区。
+- 2026-10-06：用户要求「朝上的参考及其变体更常出现」「粒子数量 0.2–1.6 倍、加粒子大小」「触点远近要影响动画」「性能至少与流体持平」，
+  做完发布阿里云（决定与原话见 decisions.md、preferences.md 同日条目）。
+  - 朝上一组、全部参考可出变体、数量与大小两档设置、触点远近（风力倍数与朝终点偏转）：Kotlin 与 Python 移植两边同改；`parity/check_inputs.py --run i9`
+    1404 组输入（加了全屏 1440×3088 与左滑 1300×300 两种尺寸）逐位相同；七组离屏出帧对照 p99.9 ≤ 2/255（p2–p4）。
+  - 真机触点远近：`device/touch_distance_demo.py --run t2` 钉住参考 7，在弹窗正上方近 / 中 / 远各点一次，触点距离 0.22 / 0.94 / 1.66、
+    风力 13073 / 19680 / 26272，0.9 秒时颗粒最高处离弹窗上沿 434 / 614 / 816 px；对照表 `tmp/harmony-particle-android-port/t2/touch-distance-zoom.png`。
+  - 朝上的抽样：6 次点在弹窗正上方关闭，5 次是朝上一组（参考 4 原样 2、参考 1 变体 2、参考 7 变体 1），1 次随机。
+  - 性能：两种会话加了同口径的出帧统计（`ParticleFramePacing`），脚本 `device/perf_compare.py` + `device/perf_table.py`。修了三处：噪声值域只算角点
+    （主线程建输入 23–67 → 0.2–2.7 ms）、确认上屏不再被丢帧压到 250 ms 超时（弹窗出现交接提前约 180 ms，`device/appear_tail_check.py` 的录屏里
+    末帧原来停了约 230 ms）、准备阶段重排（先上传、分析挪到后台线程）；预热加了样式表、输入与内容分析。最终一轮（流体 q10、飘散 q14，
+    首帧为热态中位，单位 ms）：
+
+    | 场景 | 流体首帧 | 飘散首帧 | 流体上屏 / 应有 | 飘散上屏 / 应有 |
+    |---|---|---|---|---|
+    | 弹窗出现 | 370 | 85 | 198/197 | 209/216 |
+    | 点弹窗外消散 | 113 | 97 | 368/368 | 366/358 |
+    | 左滑跟手 | 205 | 127 | 192/228 | 216/250 |
+    | 卡片回位 | 375 | 91 | 132/132 | 141/141 |
+    | 多选移除：确认弹窗出现 | 465 | 95 | 97/94 | 105/111 |
+    | 多选移除：卡片 | 192 | 81 | 120/180 | 183/181 |
+    | 多选移除：确认弹窗消散 | 419 | 427 | 238/306 | 193/193 |
+    | 新建页 | 165 | 209 | 98/124 | 137/137 |
+
+    左滑跟手的「应有」按 60 Hz 节拍算，手指停顿时本来就不出帧，两种样式比例相同（84–86%）。只有新建页起播仍比流体慢，原因与后续做法见 followups.md。
+  - 粒子相关 33 个测试类 324 条单测全部通过（报告文件为本次运行写出）。每轮真机测试后 `particle_tuning.xml` 恢复为原文（`<map>\n</map>`），
+    权限改回 660（`cat > tmp && mv` 写回会变成 666，`perf_compare.write_prefs` 已补 chmod）；旋转设置前后都是 1 / 0，未变。
+  - 桌面模拟器：重启 8653 后台并重新发布 8666 固定入口（新规则），内置浏览器里随机播放与点击都能播。
+  - 发布阿里云调试版 202610051901（APK SHA-256 `b8087d95…fa40`，27,733,220 字节），发布日志 `debug-updates/update-20261006030135.md`；
+    服务器上的 `latest.json` 读回与本地一致、`releaseNotes` 979 字，服务器上的 APK 大小一致。代码未提交。
+- 2026-10-06（发布之后）：用户问「飘散是否也可以提前计算」。飘散没有轨迹要预算；试了预先分配 GPU 资源（复用快照纹理、工作面、颗粒缓冲，
+  `perf_compare.py --run q15`，新建页 6 轮），GL 侧中位仍约 78 ms，无收益，已撤回。会话日志加了「提交到上屏」一项（第一帧 39–51 ms）。
+- 2026-10-06（上午）：用户「做吧，做完在手机上测试后发布阿里云」——新建页零拷贝快照（决定见 decisions.md 同日条目）。
+  - 新增 `ParticleDriftHardwareImport`、`ParticleHardwareTexture` + `app/src/main/cpp/particle_hardware_texture.cpp`（CMake 加链 `android`）、
+    `shared/particle-dismiss/drift-gather.comp`；`ParticleDriftContent` 拆成 `samplePositions` / `samplesFrom` / `analyseSamples`；
+    `ParticleHardwareSnapshot.captureKeepingHardware`；`ParticleMicroflakePreparation.startLazily`；调试键 `debug_drift_verify_zero_copy`。
+  - 单测：新增 `ParticleDriftContentSamplesTest`（拆分前后逐位相同、取样位置），粒子相关 34 个测试类 326 条全部通过（报告文件为本次运行写出）。
+  - 真机：`device/zero_copy_check.py --run z2` 逐字节核对三轮全部 0 差异；`perf_compare.py --run q16`（新建页 6 轮）首帧中位 152 ms；
+    `q17` 飘散全场景回归（弹窗 86 / 99、左滑 110、回位 92、多选移除卡片 79、新建页 156 ms，帧数完整，4 次新建页都走零拷贝、无回退）；
+    `parity/check_inputs.py --run i10` 1404 组输入 0 条不一致、内容强调逐位相同；`device/creation_record.py --run c1` 录屏两轮，联系表在
+    `tmp/harmony-particle-android-port/c1/creation-*-appear-sheet.png`。
+  - 流体抽查（q18、q19）两次中止在新建页：点新建那一下偶尔被「首页截图完成时没有窗口焦点」挡掉（`ThingCreationTransition` 会静默放弃），
+    驱动脚本没察觉、接着按返回把应用退到了桌面。装回上一版 APK（202610051901）与新版各跑 3 轮流体新建页都全部成功，确认不是回归；
+    `perf_compare.creation_round` 与 `creation_record.py` 已改成点新建后等 `DetailActivity` 到前台、返回按前台 Activity 判断。
+    改过之后流体全场景抽查（q22）正常。每轮之后 `particle_tuning.xml` 恢复为原文、权限 660，旋转设置未变。
+  - 发布阿里云调试版 202610060158（APK SHA-256 `6275b653…8ec7`，27,733,307 字节），发布日志 `debug-updates/update-20261006095743.md`；
+    服务器上的 `latest.json` 读回与本地一致、`releaseNotes` 665 字，服务器上的 APK 大小一致。代码未提交。
+- 2026-10-06（上午，续）：用户「可以继续优化下性能，不只是从交互到动画开始播放的延迟，还有本身的渲染性能」（决定见 decisions.md 同日条目）。
+  - GPU 基准 `device/gpu_bench.py --run g1`：每帧 0.87–1.53 ms，渲染开销不是瓶颈。
+  - 飘散 120 Hz（`ParticleClock.setHighRate`、`ParticleLayerSession.prefersHighFrameRate`、`ParticleWindowSurface.voteFrameRate`）；粒子 Surface
+    空闲不投、流体投 60、只有飘散投 120（之前常驻 60 Hz 把整个应用压在 60 fps）。左滑卡片 / 列表的 HIGH 投票经对照无效，已删除。
+  - 测试工具：`ParticleGestureInput` 加异步 240 Hz 模式（环境变量 `PARTICLE_INPUT_ASYNC=1`，jar 重打，旧的留作 `input-sync-only.jar`）；
+    `perf_compare.py --async-input`；`cadence_record.py` 录屏看屏幕上的实际帧间隔。
+  - 真机（R5CW20BLNKL）：飘散全场景 q30、流体抽查 q29（与改动前一致）；录屏 r1 / r2；源码契约测试 `ParticlePerFrameBatchTwoTest` 改为断言
+    「吃掉当前节拍的一拍」（`ParticleClock.intervalNanos`）；粒子相关 34 个测试类 326 条全部通过（报告文件为本次运行写出）。每轮之后偏好恢复原文、
+    权限 660，旋转设置未变。未发布、未提交。
+- 2026-10-06（上午，续 2）：左滑补帧（决定见 decisions.md 同日「左滑补帧」）。调试包「飘散跟手」日志加了位置更新与读取的相位取证；
+  `ParticlePerfTuning.lateGestureFrames`、`ParticleGl.lateFrames` / `gestureMoved`、`ParticleWindowSurface.compositedTarget` / `wantsLateFrame`、
+  `ParticleLayerSession.wantsLateFrame`、`ParticleSwipeAnimator.Session.track` 唤醒。新增 `ParticleDriftFrameRateTest`（高帧率分频、刷新率投票、
+  补帧的结构约束，7 条）；粒子相关 35 个测试类 333 条全部通过（报告文件为本次运行写出）。真机 q32（取证）、q33（补帧后左滑三轮）、
+  q34（飘散 + 流体全场景）。每轮之后偏好恢复原文、权限 660，旋转设置未变。未发布、未提交。
+- 2026-10-06：按用户要求跟进 Claude 的性能优化进度，只检查会话、工作区差异和已有测试产物。确认新建页零拷贝已发布，120 Hz 调度与左滑补帧已实现、
+  35 个测试类 333 条通过、`q34` 全场景回归完成；但 `s2` 左滑录屏的内容变化频率仍待核对，Claude 在北京时间 11:10 的认证失败前尚未完成这项分析。
+  核对结果、改动范围、分场景首帧数据与未完成事项见 [进度核对](progress-review-2026-10-06.md)。仅更新分析文档，未改应用代码、运行 adb、构建或发布。
+## 2026-10-06：接续优化并发布 202610060447
+
+- 用户要求继续 Claude 的工作，重点优化从交互开始的起播延迟和渲染耗时，完成后发布阿里云、详细写日志。先保留接手时 APK 与源码建立对照，再分别实施、验证。
+- 新增 RGBA 权重精确缓存与整字取样、相同模拟帧工作面复用、飘散新建首页截图保留硬件位图；同步发布此前尚未上线的高帧率调度、空闲刷新率投票修正及左滑补帧。
+- 三星完整新建点击到首帧热运行中位 237.3 → 187.9 ms；按下到首帧 274.4 → 213.3 ms；首页截图 42.7 → 9.4 ms。弹窗外点击到首帧约 55.9 → 47.2 ms，重复模拟状态 GPU 完整开销下降 19%–32%。
+- 核实左滑历史首帧日志不含按下、识别和截图；完整按下到交接约 100 ms，未测到稳定下降。多选确认弹窗自身约 398 ms 的既有等待未改。
+- 35 类 335 条粒子单测通过；5 类输入 40 帧逐字节无差异；双样式全场景回归及 2 轮新建录屏完成，偏好、诊断文件和旋转设置已核对。详见 [专项记录](performance-continuation-2026-10-06.md)。
+- 调试版 `202610060447` 已发布阿里云，远端元数据、完整 2194 字日志、APK 大小及 SHA-256 均校验一致。发布日志见 [本次更新](debug-updates/update-20261006124424.md)。未创建 Git 提交。
+## 2026-10-06：整理 Android 后续改动提交
+
+- 按用户要求，将接续性能优化与 Claude Opus 5.5 此前完成的 Android 改动合并为一次提交：朝上参考及变体的抽取、粒子数量范围与大小设置、触点远近响应、零拷贝快照、高帧率调度、左滑补帧和重复模拟帧复用；包含对应测试、桌面对照与发布记录。
+- 提交说明使用中英文，英文在前；共同作者按 Claude Opus 5.5、GPT-6 的顺序排列。正在进行的桌面视觉外观实验及其它功能改动保留在工作区，不纳入本次提交。

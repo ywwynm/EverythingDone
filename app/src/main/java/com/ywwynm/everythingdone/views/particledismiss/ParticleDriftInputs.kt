@@ -1,6 +1,8 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.content.Context
+import android.util.Log
+import com.ywwynm.everythingdone.BuildConfig
 
 /**
  * 主线程上为一次飘散动画定输入：方向、参考样式或随机格点值、风、粒子数。
@@ -14,6 +16,14 @@ import android.content.Context
 internal object ParticleDriftInputs {
 
     fun model(context: Context, spec: ParticleDismissSpec): ParticleDriftModel {
+        val started = System.nanoTime()
+        return build(context, spec).also {
+            if (BuildConfig.DEBUG) Log.i(ParticleDriftRenderer.TAG,
+                "飘散输入用时Ms=${"%.1f".format((System.nanoTime() - started) / 1e6)} 快照=${spec.snapshot.width}×${spec.snapshot.height}")
+        }
+    }
+
+    private fun build(context: Context, spec: ParticleDismissSpec): ParticleDriftModel {
         val width = spec.snapshot.width
         val height = spec.snapshot.height
         val centerX = spec.originXPx + width * .5f
@@ -25,6 +35,9 @@ internal object ParticleDriftInputs {
             directionX = spec.virtualTouchXPx - centerX,
             directionY = spec.virtualTouchYPx - centerY,
             amount = ParticleStyle.driftAmount,
+            size = ParticleStyle.driftSize,
+            touchGap = spec.touchGap,
+            touchStrength = spec.touchStrength,
             random = ParticleDriftModel.seededRandom(spec.hashSeed),
             styles = ParticleDriftStyles.all(context.assets),
             releaseX = origin?.let { it.x * width },

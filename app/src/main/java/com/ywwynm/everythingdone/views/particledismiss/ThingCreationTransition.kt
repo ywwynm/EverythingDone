@@ -8,6 +8,7 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.PointF
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -235,7 +236,20 @@ internal class ThingCreationTransition private constructor(
             }
             ParticleLaunchTrace.mark("home-capture-request")
             if (!ValueAnimator.areAnimatorsEnabled()) open(null)
-            else ParticleDismissController.captureContent(activity.window.decorView, done = ::open)
+            else {
+                val decor = activity.window.decorView
+                // 承接首页的图片只由硬件 ImageView 显示，不读取像素、不再画进软件 Canvas。
+                // 飘散档直接保留离屏缓冲，省去全屏读回；特殊 Surface 内容与失败路径沿用原捕获。
+                if (Build.VERSION.SDK_INT >= 31 && decor.isHardwareAccelerated &&
+                    decor.width > 0 && decor.height > 0 &&
+                    ThingAnimationPreferences.creation(activity) == ThingAnimationPreferences.PARTICLE &&
+                    ParticleStyle.current == ParticleStyle.DRIFT && !ParticleSnapshot.hasVisibleSurface(decor)) {
+                    ParticleHardwareSnapshot.captureKeepingHardware(decor) { bitmap ->
+                        if (bitmap != null) open(bitmap)
+                        else ParticleDismissController.captureContent(decor, done = ::open)
+                    }
+                } else ParticleDismissController.captureContent(decor, done = ::open)
+            }
         }
 
         fun attach(activity: Activity, content: View, background: ThingBackground): ThingCreationTransition? {

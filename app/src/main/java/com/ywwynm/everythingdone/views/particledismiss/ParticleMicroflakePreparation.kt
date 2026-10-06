@@ -1,6 +1,7 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.content.res.AssetManager
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.Executors
 import java.util.concurrent.FutureTask
 import java.util.concurrent.CompletableFuture
@@ -20,7 +21,12 @@ internal class ParticleMicroflakePreparation(
     private val assets: AssetManager,
     private val density: Float,
     private val spec: ParticleDismissSpec,
-    private val deferred: Boolean = false
+    private val deferred: Boolean = false,
+    /**
+     * 为 true 时构造不开工，等 [start]。飘散的零拷贝快照（硬件位图）用它：GPU 直接用那块缓冲，只在零拷贝失败、
+     * 要退回拷贝上传时才把像素拷回内存。
+     */
+    startLazily: Boolean = false
 ) {
     private val started = System.nanoTime()
 
@@ -50,8 +56,11 @@ internal class ParticleMicroflakePreparation(
         // L3：建材是突发负载，发生在左滑识别**之前**。优先级只改 nice 值，改不了核心放置
         // 与频率；这里立刻给调速器报一个明显大于一拍的工作量，让它在识别发生前就升上去。
         ParticlePerformanceHint.burst()
+        // 硬件位图（飘散零拷贝失败才会走到这里）先拷一份到内存；可变，圆角遮罩要在上面建 Canvas。
+        val copied = if (spec.snapshot.config == Bitmap.Config.HARDWARE)
+            spec.snapshot.copy(Bitmap.Config.ARGB_8888, true) else null
         try {
-            val bitmap = spec.snapshot
+            val bitmap = copied ?: spec.snapshot
             // 圆角遮罩是一遍全图软件绘制（创建页是整屏 4 Mpx），放在材料线程里、取像素之前做：
             // 动画输入与之前逐位相同，主线程少一次同量级的阻塞绘制。
             if (ParticlePerfTuning.maskOnMaterialThread && spec.roundedCornerRadiusPx > 0f) {
@@ -79,8 +88,21 @@ internal class ParticleMicroflakePreparation(
         } catch (error: Throwable) {
             pixelsReady.completeExceptionally(error)
             throw error
+        } finally {
+            copied?.recycle()
         }
-    }.also { executor.execute(it) }
+    }
+
+    private val launched = AtomicBoolean(!startLazily)
+
+    init {
+        if (!startLazily) executor.execute(task)
+    }
+
+    /** 惰性模式下开工（只开一次）；非惰性时什么也不做。 */
+    fun start() {
+        if (launched.compareAndSet(false, true)) executor.execute(task)
+    }
 
     @Volatile private var modelTask: FutureTask<ParticleMicroflakeRenderer.Input>? = null
 
@@ -111,7 +133,8 @@ internal class ParticleMicroflakePreparation(
         }
     }
 
-    val isFinished get() = task.isDone && modelTask?.isDone != false
+    /** 惰性模式下从没开工也算完成：快照可以回收。 */
+    val isFinished get() = !launched.get() || (task.isDone && modelTask?.isDone != false)
 
     /** 非阻塞：尚未就绪时返回 null。取走之后本对象不再持有那份字节。 */
     fun pollPixels(): Pixels? {

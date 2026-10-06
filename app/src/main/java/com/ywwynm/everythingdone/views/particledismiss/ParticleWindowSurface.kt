@@ -141,6 +141,31 @@ internal class ParticleWindowSurface private constructor(
 
     val busy get() = sessions.isNotEmpty()
 
+    /** 本窗口在出帧的会话全都可以按高帧率出（目前只有飘散）。 */
+    val prefersHighFrameRate get() = sessions.isNotEmpty() && sessions.all { it.prefersHighFrameRate }
+
+    /** 当前投给 Surface 的刷新率（0 = 不投）；GL 线程改，Surface 重建时主线程重置为 0。 */
+    @Volatile private var votedRate = 0f
+
+    /**
+     * GL 线程：按本窗口的状态给 Surface 投票——没有会话不投（0），有流体会话投 [VOTED_FRAME_RATE]，
+     * 只有飘散会话投 [HIGH_FRAME_RATE]。只在变化时发一次。
+     *
+     * **空闲时必须不投**：SurfaceFlinger 按应用所有图层的投票给整个 uid 设帧率覆盖，粒子 Surface 常驻投 60 Hz 时
+     * 整个应用（首页滚动、左滑时的手指位置）都被压在 60 fps，面板却在 120 Hz（`dumpsys display` 的
+     * `mFrameRateOverrides`，2026-09-26 首页滚动分析与 2026-10-06 左滑实测）。
+     */
+    fun voteFrameRate(rate: Float) {
+        if (rate == votedRate) return
+        val target = surface ?: return
+        votedRate = rate
+        applyFrameRate(target, rate)
+    }
+
+    /** 本窗口最近一次真的合成出帧的节拍目标；只在 GL 线程读写。补帧（[ParticleGl] 的 lateFrames）靠它判断这一拍画过没有。 */
+    var compositedTarget = 0L
+        private set
+
     fun add(session: ParticleLayerSession) {
         incoming += session
         ParticleGl.wake()
@@ -171,7 +196,8 @@ internal class ParticleWindowSurface private constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         surface = holder.surface
-        applyFrameRate(holder.surface)
+        applyFrameRate(holder.surface, 0f)
+        votedRate = 0f
         ParticleGl.post { prime() }
         ParticleGl.wake()
     }
@@ -180,7 +206,8 @@ internal class ParticleWindowSurface private constructor(
         surface = holder.surface
         surfaceWidth = width
         surfaceHeight = height
-        applyFrameRate(holder.surface)
+        applyFrameRate(holder.surface, 0f)
+        votedRate = 0f
         ParticleGl.post { prime() }
         ParticleGl.wake()
     }
@@ -198,17 +225,16 @@ internal class ParticleWindowSurface private constructor(
     }
 
     /**
-     * 1.2：不再改任何窗口属性，只在自己的 Surface 上投一次无缝 60 Hz。
-     * 120 Hz 面板上 SurfaceFlinger 会留在 120（60 的倍数），节拍仍每隔一拍提交一次，
-     * 每帧的 `eglPresentationTimeANDROID` 负责钉住呈现时刻。
+     * 1.2：不改任何窗口属性，只在自己的 Surface 上投无缝的刷新率；每帧的 `eglPresentationTimeANDROID` 负责钉住
+     * 呈现时刻。投什么由 [voteFrameRate] 按会话决定，[rate] 为 0 表示撤掉投票（不表达偏好）。
      */
-    private fun applyFrameRate(target: Surface) {
+    private fun applyFrameRate(target: Surface, rate: Float) {
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                target.setFrameRate(VOTED_FRAME_RATE, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
+                target.setFrameRate(rate, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
                     Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                target.setFrameRate(VOTED_FRAME_RATE, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                target.setFrameRate(rate, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
             }
         }
     }
@@ -290,6 +316,9 @@ internal class ParticleWindowSurface private constructor(
 
     fun needsWork(): Boolean = incoming.isNotEmpty() || sessions.any { it.needsWork() }
 
+    /** 有手势会话要补画这一拍（见 [ParticleLayerSession.wantsLateFrame]）。 */
+    fun wantsLateFrame(): Boolean = surface != null && sessions.any { it.wantsLateFrame() }
+
     /** 有会话的首帧已经备好、还没提交过：这一帧不必等下一次节拍。 */
     fun needsFirstFrame(): Boolean {
         if (surface == null) return false
@@ -312,6 +341,7 @@ internal class ParticleWindowSurface private constructor(
         }
         if (!ensureEglSurface()) return
         if (!ParticleGl.bind(eglSurface)) { failAll(); return }
+        compositedTarget = target
         // L3：ADPF 要每拍报一次真实耗时，所以这个时刻在取证关掉时也要取。
         val enteredAt = System.nanoTime()
         awaitFence()
@@ -380,11 +410,28 @@ internal class ParticleWindowSurface private constructor(
             }
             val presentTime = if (head.frameId >= 0 && now - head.submittedAt <= PRESENT_TIMEOUT_NANOS)
                 ParticleFrameTimestamps.presentTime(ParticleGl.display, eglSurface, head.frameId) else null
-            if (!shouldRelease(now - head.submittedAt, presentTime)) return
+            if (!shouldRelease(now - head.submittedAt, presentTime)) {
+                // 合成器丢掉的帧一直报 PENDING。它后面已经有帧真的上屏，说明它不会再上屏了，直接放行；
+                // 否则它会把后面已上屏的帧一起压到超时（飘散的弹窗出现因此晚 200 多毫秒才交接给真实面板）。
+                if (!laterFramePresented(now)) return
+                releaseFrame(pending.removeFirst())
+                continue
+            }
             if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PRESENT,
                 head.target, head.frameId, presentTime ?: 0L, now, now - head.submittedAt)
             releaseFrame(pending.removeFirst(), presentTime)
         }
+    }
+
+    /** 队首之后有没有帧已经报了真实呈现时刻（缓冲按顺序上屏，排在后面的帧上屏了，前面的就不会再上屏）。 */
+    private fun laterFramePresented(now: Long): Boolean {
+        for (k in 1 until pending.size) {
+            val frame = pending[k]
+            if (frame.frameId < 0 || now - frame.submittedAt > PRESENT_TIMEOUT_NANOS) continue
+            val time = ParticleFrameTimestamps.presentTime(ParticleGl.display, eglSurface, frame.frameId)
+            if (time > 0) return true
+        }
+        return false
     }
 
     /**
@@ -514,6 +561,9 @@ internal class ParticleWindowSurface private constructor(
          */
         const val VOTED_FRAME_RATE = 60f
 
+        /** 飘散高帧率期间投给粒子 Surface 的刷新率（[ParticleGl] 切换，见 [ParticlePerfTuning.driftHighFrameRate]）。 */
+        const val HIGH_FRAME_RATE = 120f
+
         /** 卡片专用，生命周期跟随动画层；每张卡片可以独立与原 View 同帧交接。 */
         fun inWindow(activity: Activity, parent: ViewGroup, onReady: () -> Unit): ParticleWindowSurface =
             ParticleWindowSurface(activity, parent, onReady)
@@ -542,8 +592,11 @@ internal class ParticleWindowSurface private constructor(
             }
         }
 
-        /** 最多保留的未确认帧；再多说明呈现时间戳一直没回来，按提交顺序强制放行。 */
-        private const val MAX_PENDING_FRAMES = 6
+        /**
+         * 最多保留的未确认帧；再多说明呈现时间戳一直没回来，按提交顺序强制放行。飘散高帧率（每 8.3 ms 一帧）时首帧上屏
+         * 延迟 40 ms 上下就有 5 帧在途，所以留到 10。
+         */
+        private const val MAX_PENDING_FRAMES = 10
 
         /** 单帧的呈现判定上限：超过就按已显示处理，交接不能卡死。 */
         internal const val PRESENT_TIMEOUT_NANOS = 250_000_000L

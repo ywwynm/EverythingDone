@@ -37,6 +37,8 @@ REFERENCE_CARD_AREA = 1.3e6
 MIN_COUNT, MAX_COUNT = 10000, 50000
 TURBULENCE_OFFSET_RANGE = f32(64.0)
 MAX_LATTICE = 8
+TOUCH_GAIN_BASE = f32(0.55)          # 风力随触点远近：0.55 + 0.90 × 远近（缺省 0.5 即 1 倍）
+TOUCH_GAIN_RANGE = f32(0.90)
 # ParticleDriftStyles
 MATCH_DEGREES = f32(22.5)
 REFERENCE_PROBABILITY = f32(0.5)
@@ -44,6 +46,8 @@ FAVORITE = 'ironman'
 VARIANT_SUFFIX = '-variant'
 FAVORITE_PROBABILITY = f32(0.5)
 FAVORITE_ORIGINAL_SHARE = f32(0.4)
+UP_FAMILY_HALF_SPAN = f32(35.0)       # 朝上一组：风向离正上方不超过 35°（参考 5、4、7、1、向上钢铁侠、参考 2）
+UP_FAMILY_PROBABILITY = f32(0.75)
 START_POINT_VALUE = f32(0.12)
 VARIANT_JITTER = f32(0.06)
 VARIANT_WIND_RANGE = f32(0.15)
@@ -139,11 +143,21 @@ def noise(lattice, w, h, x, y):
     return (top + (bottom - top) * fy).astype(np.float32)
 
 
+def cell_ends(length, u):
+    """与 ParticleDriftModel.cellEnds 相同：每 8 像素一个样点，返回每个格点单元里首、末两个样点的坐标。"""
+    at = (np.arange(0, length, 8, dtype=np.int64).astype(np.float32) + f32(0.5)) * f32(u)
+    cells = np.floor(at).astype(np.int64)
+    first = np.flatnonzero(np.r_[True, cells[1:] != cells[:-1]])
+    last = np.r_[first[1:] - 1, len(at) - 1]
+    return np.stack([at[first], at[last]], 1).reshape(-1)
+
+
 def noise_range(lattice, w, h, width, height, u):
-    """在快照上按 8 像素的格子取样，求噪声值（未乘 0.8、未加 0.2）的最小、最大值。"""
-    xs = (np.arange(0, width, 8, dtype=np.int64).astype(np.float32) + f32(0.5)) * f32(u)
-    ys = (np.arange(0, height, 8, dtype=np.int64).astype(np.float32) + f32(0.5)) * f32(u)
-    gx, gy = np.meshgrid(xs, ys)
+    """在快照上按 8 像素的格子取样，求噪声值（未乘 0.8、未加 0.2）的最小、最大值。
+
+    与 ParticleDriftModel.noiseRange 相同：单元里噪声是双线性的，极值在单元样点子网格的四个角上，只算各单元首末行列交出的样点。
+    """
+    gx, gy = np.meshgrid(cell_ends(width, u), cell_ends(height, u))
     v = noise(lattice, w, h, gx, gy)
     return f32(v.min()), f32(v.max())
 
@@ -157,9 +171,11 @@ def life_at(born):
 
 
 def count(width, height, amount=1.0):
-    area = float(width) * float(height) * float(f32(amount))
+    """桌面 area_particle_count 截到 [1 万, 5 万] 之后再乘「粒子数量」倍率（Kotlin 的 roundToInt：floor(x + 0.5)）。"""
+    area = float(width) * float(height)
     thousands = round(REFERENCE_CARD_COUNT * area / REFERENCE_CARD_AREA / 1000.0)   # Python round 与 Math.rint 都是五成双
-    return int(min(max(int(thousands * 1000.0), MIN_COUNT), MAX_COUNT))
+    base = int(min(max(int(thousands * 1000.0), MIN_COUNT), MAX_COUNT))
+    return max(int(math.floor(base * float(f32(amount)) + 0.5)), 1)
 
 
 def emit_frame(sw, sh, ew, eh):
@@ -238,17 +254,33 @@ def variant_of(base, rnd):
                  base.fade_size_power, base.fade_alpha_power, base.over_alpha_mul)
 
 
+def matches(style, angle):
+    return abs(angle_difference(style.angle, angle)) <= MATCH_DEGREES
+
+
+def is_up_family(style):
+    return style.name != FAVORITE and abs(angle_difference(style.angle, f32(90.0))) <= UP_FAMILY_HALF_SPAN
+
+
 def pick(styles, angle, rnd, forced=None):
+    """ParticleDriftStyles.pick：旧钢铁侠一族（左上）与朝上一组（上方、上方偏左 / 偏右）优先，其余参考与随机各半。"""
     if forced is not None:
-        if forced == FAVORITE + VARIANT_SUFFIX:
-            fav = next((s for s in styles if s.name == FAVORITE), None)
-            return variant_of(fav, rnd) if fav else None
+        if forced.endswith(VARIANT_SUFFIX):
+            base = next((s for s in styles if s.name == forced[:-len(VARIANT_SUFFIX)]), None)
+            return variant_of(base, rnd) if base else None
         return next((s for s in styles if s.name == forced), None)
     favorite = next((s for s in styles if s.name == FAVORITE), None)
-    if favorite is not None and abs(angle_difference(favorite.angle, angle)) <= MATCH_DEGREES and \
-            rnd.next_float() < FAVORITE_PROBABILITY:
-        return favorite if rnd.next_float() < FAVORITE_ORIGINAL_SHARE else variant_of(favorite, rnd)
-    candidates = [s for s in styles if s is not favorite and abs(angle_difference(s.angle, angle)) <= MATCH_DEGREES]
+    if favorite is not None and not matches(favorite, angle):
+        favorite = None
+    up = [s for s in styles if is_up_family(s) and matches(s, angle)]
+    up_nearer = bool(up) and (favorite is None or
+                              min(abs(angle_difference(s.angle, angle)) for s in up) <
+                              abs(angle_difference(favorite.angle, angle)))
+    family = up if up_nearer else ([favorite] if favorite is not None else [])
+    if family and rnd.next_float() < (UP_FAMILY_PROBABILITY if up_nearer else FAVORITE_PROBABILITY):
+        member = family[0] if len(family) == 1 else family[rnd.next_int(len(family))]
+        return member if rnd.next_float() < FAVORITE_ORIGINAL_SHARE else variant_of(member, rnd)
+    candidates = [s for s in styles if all(s is not m for m in family) and matches(s, angle)]
     if not candidates or rnd.next_float() >= REFERENCE_PROBABILITY:
         return None
     return candidates[rnd.next_int(len(candidates))]
@@ -290,6 +322,8 @@ class DriftModel:
     style_name: str = None
     turbulence_offset: tuple = (f32(0.0), f32(0.0))
     turbulence_frame: list = None
+    size_scale: np.float32 = f32(1.0)    # 设置里的「粒子大小」倍率
+    touch_gap: np.float32 = None         # 真实触点到边缘的距离（短边为单位）；None 表示没有真实触点
     derived: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -310,9 +344,10 @@ class DriftModel:
         return float(self.derived['totalSeconds'])
 
 
-def random_model(width, height, direction_x, direction_y, amount, rnd, styles, forced=None):
+def random_model(width, height, direction_x, direction_y, amount, rnd, styles, forced=None, size=1.0,
+                 touch_gap=None, touch_strength=None):
     """ParticleDriftModel.random（弹窗没有左滑的按下点，不含 release 那一步）。方向在叠加层像素里，y 向下。"""
-    size = lattice_size(width, height)
+    grid = lattice_size(width, height)
     dx, dy = f32(direction_x), f32(direction_y)
     length = f32(math.hypot(float(dx), float(dy)))
     ux = f32(dx / length) if length > f32(1e-6) else f32(0.0)
@@ -322,18 +357,22 @@ def random_model(width, height, direction_x, direction_y, amount, rnd, styles, f
     if style is not None:
         lattice = resample(style, width, height)
     else:
-        lattice = np.asarray([rnd.next_float() for _ in range(size[0] * size[1])], np.float32)
+        lattice = np.asarray([rnd.next_float() for _ in range(grid[0] * grid[1])], np.float32)
     n = count(width, height, amount)
+    gain = f32(TOUCH_GAIN_BASE + TOUCH_GAIN_RANGE * f32(0.5 if touch_strength is None else touch_strength))
+    gap = None if touch_gap is None else f32(touch_gap)
     if style is not None:
-        return DriftModel(width, height, lattice, size[0], size[1], f32(ux * style.wind), f32(uy * style.wind), n,
+        return DriftModel(width, height, lattice, grid[0], grid[1], f32(f32(ux * style.wind) * gain),
+                          f32(f32(uy * style.wind) * gain), n,
                           style.fade_size_power, style.fade_alpha_power, style.over_alpha_mul, style.name,
-                          turbulence_frame=emit_frame(style.width, style.height, style.expansion_width, style.expansion_height))
+                          turbulence_frame=emit_frame(style.width, style.height, style.expansion_width, style.expansion_height),
+                          size_scale=f32(size), touch_gap=gap)
     wind_source = f32((rnd.next_float() * f32(2.0) - f32(1.0)) * WIND_X_RANGE)
     magnitude = f32(f32(0.5) * f32(math.hypot(float(wind_source), float(WIND_Y))))
     ox = f32(rnd.next_float() * TURBULENCE_OFFSET_RANGE)
     oy = f32(rnd.next_float() * TURBULENCE_OFFSET_RANGE)
-    return DriftModel(width, height, lattice, size[0], size[1], f32(ux * magnitude), f32(uy * magnitude), n,
-                      turbulence_offset=(ox, oy))
+    return DriftModel(width, height, lattice, grid[0], grid[1], f32(f32(ux * magnitude) * gain),
+                      f32(f32(uy * magnitude) * gain), n, turbulence_offset=(ox, oy), size_scale=f32(size), touch_gap=gap)
 
 
 # ---------------------------------------------------------------- 内容强调（ParticleDriftContent）
@@ -491,17 +530,20 @@ def _snapshot(scene, meta, scale):
     return premultiply(np.asarray(image.resize(snap, Image.BICUBIC)))
 
 
-def build_android_renderer(scene, meta, seed, direction, ctx=None, ss=2, forced=None):
+def build_android_renderer(scene, meta, seed, direction, ctx=None, ss=2, forced=None, amount=1.0, size=1.0,
+                           touch_gap=None, touch_strength=None):
     """按 Android 的规则生成这一次动画的输入，交给逐帧推进的 NativeRenderer。
 
-    direction：消散方向（度，0 向右、90 向上）；返回键关闭传 BACK_KEY_DEGREES。"""
+    direction：消散方向（度，0 向右、90 向上）；返回键关闭传 BACK_KEY_DEGREES。
+    amount / size：设置里的「粒子数量」「粒子大小」倍率（缺省 1）。
+    touch_gap / touch_strength：点击弹窗外时的触点远近（与 Android 的 ParticleFlowGeometry 同一公式）；返回键为 None。"""
     import harmony_native as hn
     scale, expansion = _frame_inputs(scene, meta)
     premul = _snapshot(scene, meta, scale)
     h, w = premul.shape[:2]
     a = math.radians(direction)
-    model = random_model(w, h, f32(math.cos(a) * 1000.0), f32(-math.sin(a) * 1000.0), 1.0, seeded_random(seed),
-                         load_styles(), forced)
+    model = random_model(w, h, f32(math.cos(a) * 1000.0), f32(-math.sin(a) * 1000.0), amount, seeded_random(seed),
+                         load_styles(), forced, size, touch_gap, touch_strength)
     content = analyse(premul, model.count)
     from PIL import Image
     background = np.asarray(Image.open(HERE / 'assets' / scene / 'background.png').convert('RGB'))
@@ -540,7 +582,9 @@ def build_android_renderer(scene, meta, seed, direction, ctx=None, ss=2, forced=
     r.android_extras(turb_scale=turb_scale, turb_shift=turb_shift,
                      turb_offset=tuple(float(v) for v in model.turbulence_offset),
                      content=content if content['panelWeight'] > 0 else None, base_count=model.count,
-                     total_seconds=total, clamp_alpha=not additive, wind=(float(model.wind_x), float(model.wind_y)))
+                     total_seconds=total, clamp_alpha=not additive, wind=(float(model.wind_x), float(model.wind_y)),
+                     size_scale=float(model.size_scale),
+                     touch_gap=None if model.touch_gap is None else float(model.touch_gap))
     r.android = dict(model=model, content=content, additive=additive, lightness=l_star, direction=direction)
     return r
 

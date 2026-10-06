@@ -23,6 +23,11 @@ public final class ParticleGestureInput {
             manager = type.getMethod("getInstance").invoke(null);
             inject = type.getMethod("injectInputEvent", InputEvent.class, int.class);
         }
+        // PARTICLE_INPUT_ASYNC=1：异步注入（不等应用处理完）、每 4 ms 一个 MOVE，相当于 240 Hz 上报的触摸屏。
+        // 缺省的同步注入每个事件都要等应用在下一帧消费掉才返回，注入节奏会被拴在应用帧率上（约 60 个 MOVE / 秒）。
+        boolean async = "1".equals(System.getenv("PARTICLE_INPUT_ASYNC"));
+        mode = async ? 0 : 2;
+        long step = async ? 4 : 8;
         float x = Float.parseFloat(args[0]), y = Float.parseFloat(args[1]);
         long down = SystemClock.uptimeMillis();
         send(manager, inject, down, MotionEvent.ACTION_DOWN, x, y);
@@ -39,7 +44,7 @@ public final class ParticleGestureInput {
                     send(manager, inject, down, MotionEvent.ACTION_MOVE,
                             x+(endX-x)*phase, y+(endY-y)*phase);
                     if (now >= deadline) break;
-                    SystemClock.sleep(Math.min(8, deadline-now));
+                    SystemClock.sleep(Math.min(step, deadline-now));
                 }
                 x = endX; y = endY;
             }
@@ -48,12 +53,14 @@ public final class ParticleGestureInput {
         }
     }
 
+    private static int mode = 2;
+
     private static void send(Object manager, Method inject, long down, int action, float x, float y) throws Exception {
         MotionEvent event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0);
         event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
         try {
-            // WAIT_FOR_FINISH，与系统 input 一样经 InputDispatcher 派发。
-            if (!((Boolean)inject.invoke(manager, event, 2))) throw new IllegalStateException("Input rejected");
+            // 缺省 WAIT_FOR_FINISH（2），异步为 ASYNC（0）；都与系统 input 一样经 InputDispatcher 派发。
+            if (!((Boolean)inject.invoke(manager, event, mode))) throw new IllegalStateException("Input rejected");
         } finally { event.recycle(); }
     }
 }

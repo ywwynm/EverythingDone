@@ -12,6 +12,10 @@
 播放按 Android：设备时刻 startSeconds → totalSeconds 压进 1 秒，弹窗暗层按 Android 的曲线淡出；随机播放即返回键关闭（左上 135°），
 点击按触点方向；参考复刻仍按原片输入播放华为原生实现。核对脚本与结果见 `docs/features/harmony-particle-android-port/parity/`。
 
+2026-10-06 同步：朝上（竖直 ±35° 以内）更常出现朝上的几段参考及其变体；点击时风力按触点远近取 0.55–1.45 倍，颗粒朝终点偏转
+（与流体同口径）；噪声值域改为只算格点单元的角点；粒子数量与大小按 Android 默认取 1 倍（`android_drift.random_model(amount=…, size=…)`
+可改）。重启了 8653 后台并重新发布，与设备 1404 组输入逐位相同。
+
 ## 华为原生逐项等价实现（2026-10-05 起；同日夜改为对照）
 
 模型 `harmony-native`（`../harmony_native.py`）按镜像宿主机器码逐项实现粒子消蚀；“复刻华为参考”使用 `../native_reference_inputs.json`

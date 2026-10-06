@@ -1,7 +1,11 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import android.graphics.Bitmap
+import android.view.animation.AnimationUtils
+import com.ywwynm.everythingdone.BuildConfig
 import java.util.TreeMap
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * 手指与 ItemTouchHelper 的松手恢复动画共用绝对距离，不累加时间或位移。
@@ -61,9 +65,67 @@ internal class ParticleGestureProgress(
         seek(if (width > 0 && displacement.isFinite()) -displacement / width else 0f)
     }
 
-    fun seek(value: Float) { progress = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f }
+    fun seek(value: Float) {
+        val next = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f
+        if (BuildConfig.DEBUG && next != progress) synchronized(changes) {
+            if (changes.size < 2048) {
+                changes += System.nanoTime()
+                // 在主线程的一帧之内（输入、动画、绘制阶段）这是本帧的 vsync 时刻（毫秒）；JVM 单测里没有实现，记 -1
+                changeFrames += runCatching { AnimationUtils.currentAnimationTimeMillis() }.getOrDefault(-1L)
+            }
+        }
+        progress = next
+    }
+
+    /** 仅调试包：位置真的变了的时刻与它所属的主线程帧，用来判断跟手出帧受不受位置更新的频率与相位限制。 */
+    private val changes = ArrayList<Long>()
+    private val changeFrames = ArrayList<Long>()
+
+    /** 仅调试包：每次取位置出帧的节拍目标、取位置的时刻、取到的是第几次变化。 */
+    private val reads = ArrayList<LongArray>()
+
+    /**
+     * 仅调试包：位置变化次数与间隔；出帧取到的位置落后几拍（0/1/2/3+）；漏掉的节拍里那一帧主线程有没有更新
+     * （有、但晚于 GL 读取，即两条线程在同一个 vsync 之后抢先后）；一次跨过两次以上更新的帧数；
+     * 主线程更新距本帧 vsync、GL 读取距节拍目标的中位 / p90（毫秒）。
+     */
+    fun changeSummary(): String = synchronized(changes) {
+        if (changes.size < 2) return "位置变化=${changes.size}"
+        val gaps = (1 until changes.size).map { (changes[it] - changes[it - 1]) / 1e6 }.sorted()
+        val base = "位置变化=${changes.size} 间隔中位Ms=${"%.1f".format(gaps[gaps.size / 2])} " +
+            "用时Ms=${(changes.last() - changes.first()) / 1_000_000}"
+        if (reads.size < 2) return base
+        val period = ParticleClock.outputPeriodNanos.toDouble()
+        val lags = IntArray(4)
+        for (read in reads) {
+            val index = read[2].toInt()
+            if (index < 0) continue
+            lags[((read[0] - changeFrames[index] * 1_000_000L) / period).roundToInt().coerceIn(0, 3)]++
+        }
+        var skipped = 0; var lateUpdate = 0; var noUpdate = 0; var jumps = 0
+        for (k in 1 until reads.size) {
+            if (reads[k][2] - reads[k - 1][2] >= 2) jumps++
+            val missing = ((reads[k][0] - reads[k - 1][0]) / period).roundToInt() - 1
+            for (m in 1..missing) {
+                skipped++
+                val vsyncMs = (reads[k - 1][0] + (m * period).toLong()) / 1_000_000L
+                if (changeFrames.any { abs(it - vsyncMs) <= 1 }) lateUpdate++ else noUpdate++
+            }
+        }
+        val updateOffsets = changes.indices.map { (changes[it] - changeFrames[it] * 1_000_000L) / 1e6 }.sorted()
+        val readOffsets = reads.map { (it[1] - it[0]) / 1e6 }.sorted()
+        "$base 出帧=${reads.size} 取位落后拍数=${lags.joinToString("/")} 漏拍=$skipped（本拍有更新但晚于读取=$lateUpdate " +
+            "本拍无更新=$noUpdate） 一次跨两次以上更新=$jumps 更新距本帧vsyncMs=${spread(updateOffsets)} " +
+            "读取距节拍Ms=${spread(readOffsets)}"
+    }
+
+    private fun spread(sorted: List<Double>) =
+        if (sorted.isEmpty()) "-" else "%.1f/%.1f".format(sorted[sorted.size / 2], sorted[sorted.size * 9 / 10])
 
     @Synchronized fun submitted(timestamp: Long, value: Float) {
+        if (BuildConfig.DEBUG) synchronized(changes) {
+            if (reads.size < 2048) reads += longArrayOf(timestamp, System.nanoTime(), (changes.size - 1).toLong())
+        }
         lastSubmittedProgress = value
         if (completing) completionFloor = maxOf(completionFloor, value)
         submissions[timestamp] = value

@@ -1,6 +1,10 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -20,7 +24,7 @@ import kotlin.math.sqrt
  * 强调的四种手段与流体相同：有色区域多出颗粒（最多 [COPIES] 倍，见 [Analysis.replicas]）、更大、更不透明、寿命略长；
  * 本体色颗粒更细、更通透。后三者在 `drift-update.comp` 里按每颗粒子的颜色算。
  *
- * 只在 GL 线程上、拿到快照字节之后调用一次；取样上限约 6.5 万个像素，耗时在毫秒量级。
+ * 每次动画分析一次（后台线程）；两遍合计读至多约 13 万个像素（整屏快照约 8.6 万个），耗时在毫秒量级。
  */
 internal object ParticleDriftContent {
 
@@ -58,34 +62,62 @@ internal object ParticleDriftContent {
         }
     }
 
+    /** 后台单线程：内容分析只读快照字节，与 GL 线程上的上传同时进行。 */
+    private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "ParticleDriftContent").apply { isDaemon = true }
+    }
+
+    /** 在后台线程上分析；[rgba] 复制一份独立的读写位置，GL 线程同时拿原缓冲上传也互不影响。 */
+    fun analyseAsync(width: Int, height: Int, rgba: ByteBuffer, baseCount: Int): Future<Analysis> {
+        val view = rgba.duplicate()
+        return worker.submit<Analysis> { analyse(width, height, view, baseCount) }
+    }
+
     /**
      * [rgba]：预乘 RGBA8（R 在低字节，`Bitmap.copyPixelsToBuffer` 的输出），与上传给着色器的是同一份。
      * 本体色只取不透明像素（预乘与直通相同）；格子取样处半透明时先除以 alpha 还原直通颜色，再按 alpha 加权。
      */
     fun analyse(width: Int, height: Int, rgba: ByteBuffer, baseCount: Int): Analysis {
         if (width <= 0 || height <= 0) return Analysis.NONE
-        fun channel(index: Int, k: Int) = rgba.get(index * 4 + k).toInt() and 255
+        return analyseSamples(width, height, samplesFrom(rgba, samplePositions(width, height)), baseCount)
+    }
+
+    /** 零拷贝快照那条路：样本由 GPU 按 [samplePositions] 取好（`drift-gather.comp`），在后台线程上分析。 */
+    fun analyseSamplesAsync(width: Int, height: Int, samples: IntArray, baseCount: Int): Future<Analysis> =
+        worker.submit<Analysis> { analyseSamples(width, height, samples, baseCount) }
+
+    /**
+     * 分析要读的全部像素（行优先下标），按读取顺序排：先是第 1 遍的步长网格（行优先），再是第 2 遍各格子里的
+     * [CELL_SAMPLES]² 个点（格子行优先、格内行优先）。只取决于尺寸，可以先交给 GPU 去取（整屏快照约 8.6 万个）。
+     */
+    fun samplePositions(width: Int, height: Int): IntArray = layout(width, height).positions
+
+    /** [rgba] 里 [positions] 处的像素，R 在低字节打包成 Int（与 `drift-gather.comp` 的 `packUnorm4x8` 同一排法）。 */
+    fun samplesFrom(rgba: ByteBuffer, positions: IntArray): IntArray {
+        // 一次整字读取替代四次逐字节读取；独立视图不改变上传方的字节序、位置或上限。
+        val words = rgba.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        return IntArray(positions.size) { words.getInt(positions[it] * 4) }
+    }
+
+    /** [samples] 与 [samplePositions] 一一对应；无论样本从字节还是从 GPU 取来，结果逐位相同。 */
+    fun analyseSamples(width: Int, height: Int, samples: IntArray, baseCount: Int): Analysis {
+        if (width <= 0 || height <= 0) return Analysis.NONE
+        val layout = layout(width, height)
+        require(samples.size == layout.positions.size) { "样本数 ${samples.size} ≠ 取样点数 ${layout.positions.size}" }
+        fun channel(k: Int, c: Int) = (samples[k] ushr (8 * c)) and 255
 
         // 1. 本体色：16 级量化的众数
-        val stride = ceil(sqrt(width.toDouble() * height / 65536.0)).toInt().coerceAtLeast(1)
         val counts = IntArray(4096)
         val sums = Array(3) { LongArray(4096) }
         var opaque = 0
-        var y = 0
-        while (y < height) {
-            var x = 0
-            while (x < width) {
-                val i = y * width + x
-                if (channel(i, 3) == 255) {
-                    val r = channel(i, 0); val g = channel(i, 1); val b = channel(i, 2)
-                    val key = (r / 16) * 256 + (g / 16) * 16 + b / 16
-                    counts[key]++
-                    sums[0][key] += r.toLong(); sums[1][key] += g.toLong(); sums[2][key] += b.toLong()
-                    opaque++
-                }
-                x += stride
+        for (k in 0 until layout.first) {
+            if (channel(k, 3) == 255) {
+                val r = channel(k, 0); val g = channel(k, 1); val b = channel(k, 2)
+                val key = (r / 16) * 256 + (g / 16) * 16 + b / 16
+                counts[key]++
+                sums[0][key] += r.toLong(); sums[1][key] += g.toLong(); sums[2][key] += b.toLong()
+                opaque++
             }
-            y += stride
         }
         if (opaque == 0) return Analysis.NONE
         var best = 0
@@ -96,22 +128,34 @@ internal object ParticleDriftContent {
         if (panelWeight <= .01f) return Analysis(panel, 0f, 1, 1, FloatArray(0), 0)
 
         // 2. 每个格子的强调量 = COPIES × 置信度 × 平均内容权重（透明处为 0）
-        val cellPx = max(1f, max(width, height).toFloat() / GRID)
-        val gridWidth = ceil(width / cellPx).toInt().coerceIn(1, GRID)
-        val gridHeight = ceil(height / cellPx).toInt().coerceIn(1, GRID)
+        val gridWidth = layout.gridWidth
+        val gridHeight = layout.gridHeight
         val density = FloatArray(gridWidth * gridHeight)
+        // 面板、文字与按钮的大量样本颜色完全相同。只缓存本次分析内完整 RGBA 的权重，
+        // 不量化颜色；槽位冲突时重算并覆盖，因此仍与逐样本计算逐位相同。
+        val weightColors = IntArray(256)
+        val weightValues = FloatArray(256)
+        val weightValid = BooleanArray(256)
         var total = 0.0
+        var k = layout.first
         for (j in 0 until gridHeight) for (i in 0 until gridWidth) {
             var sum = 0f
-            for (sy in 0 until CELL_SAMPLES) for (sx in 0 until CELL_SAMPLES) {
-                val px = (((i + (sx + .5f) / CELL_SAMPLES) / gridWidth) * width).toInt().coerceIn(0, width - 1)
-                val py = (((j + (sy + .5f) / CELL_SAMPLES) / gridHeight) * height).toInt().coerceIn(0, height - 1)
-                val index = py * width + px
-                val a = channel(index, 3)
-                if (a == 0) continue
-                val alpha = a.toFloat()
-                sum += weight(min(channel(index, 0) / alpha, 1f), min(channel(index, 1) / alpha, 1f),
-                    min(channel(index, 2) / alpha, 1f), panel, panelWeight) * (a / 255f)
+            repeat(CELL_SAMPLES * CELL_SAMPLES) {
+                val pixel = samples[k]
+                val a = pixel ushr 24
+                if (a != 0) {
+                    val slot = (pixel * -1640531527) ushr 24
+                    if (!weightValid[slot] || weightColors[slot] != pixel) {
+                        val alpha = a.toFloat()
+                        weightValues[slot] = weight(min((pixel and 255) / alpha, 1f),
+                            min(((pixel ushr 8) and 255) / alpha, 1f), min(((pixel ushr 16) and 255) / alpha, 1f),
+                            panel, panelWeight) * (a / 255f)
+                        weightColors[slot] = pixel
+                        weightValid[slot] = true
+                    }
+                    sum += weightValues[slot]
+                }
+                k++
             }
             val d = COPIES * panelWeight * sum / (CELL_SAMPLES * CELL_SAMPLES)
             density[j * gridWidth + i] = d
@@ -122,12 +166,47 @@ internal object ParticleDriftContent {
         if (replicas == 0 || total <= 0.0) return Analysis(panel, panelWeight, gridWidth, gridHeight, FloatArray(0), 0)
         val cumulative = FloatArray(cells)
         var running = 0.0
-        for (k in 0 until cells) {
-            running += density[k]
-            cumulative[k] = (running / total).toFloat()
+        for (c in 0 until cells) {
+            running += density[c]
+            cumulative[c] = (running / total).toFloat()
         }
         cumulative[cells - 1] = 1f
         return Analysis(panel, panelWeight, gridWidth, gridHeight, cumulative, replicas)
+    }
+
+    /** 取样布局：只取决于尺寸。最近一次的留着，同一尺寸（例如新建页）反复用。 */
+    private class Layout(val width: Int, val height: Int, val first: Int, val gridWidth: Int, val gridHeight: Int,
+                         val positions: IntArray)
+
+    @Volatile private var lastLayout: Layout? = null
+
+    private fun layout(width: Int, height: Int): Layout {
+        lastLayout?.let { if (it.width == width && it.height == height) return it }
+        val stride = ceil(sqrt(width.toDouble() * height / 65536.0)).toInt().coerceAtLeast(1)
+        val first = ((width + stride - 1) / stride) * ((height + stride - 1) / stride)
+        val cellPx = max(1f, max(width, height).toFloat() / GRID)
+        val gridWidth = ceil(width / cellPx).toInt().coerceIn(1, GRID)
+        val gridHeight = ceil(height / cellPx).toInt().coerceIn(1, GRID)
+        val positions = IntArray(first + gridWidth * gridHeight * CELL_SAMPLES * CELL_SAMPLES)
+        var k = 0
+        var y = 0
+        while (y < height) {
+            var x = 0
+            while (x < width) {
+                positions[k++] = y * width + x
+                x += stride
+            }
+            y += stride
+        }
+        for (j in 0 until gridHeight) for (i in 0 until gridWidth) {
+            for (sy in 0 until CELL_SAMPLES) for (sx in 0 until CELL_SAMPLES) {
+                val px = (((i + (sx + .5f) / CELL_SAMPLES) / gridWidth) * width).toInt().coerceIn(0, width - 1)
+                val py = (((j + (sy + .5f) / CELL_SAMPLES) / gridHeight) * height).toInt().coerceIn(0, height - 1)
+                positions[k++] = py * width + px
+            }
+        }
+        check(k == positions.size)
+        return Layout(width, height, first, gridWidth, gridHeight, positions).also { lastLayout = it }
     }
 
     /** 与 `drift-update.comp` 的 `contentWeight` 同一公式（不乘 alpha）。 */

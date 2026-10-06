@@ -562,6 +562,7 @@
     <string name="particle_tuning_style_detail">Flux : les particules se repoussent et s’écoulent ensemble. Dérive : le contenu se défait à partir d’un point et le vent emporte les particules.</string>
     <string name="particle_tuning_amount">Quantité de particules</string>
     <string name="particle_tuning_amount_detail">Le nombre de particules dépend de la taille du contenu, puis il est multiplié par ce facteur. Plus il y a de particules, plus le rendu est dense et plus il coûte cher.</string>
+    <string name="particle_tuning_drift_size_detail">Met les particules à l’échelle par rapport à leur taille d’origine, qui est la valeur par défaut. Le nombre de particules ne change pas. Des particules plus grandes se distinguent mieux une à une.</string>
     <string name="direction_sensor_restricted">L\'image ne peut pas réagir à l\'orientation de l\'appareil pour le moment. Autorisez cette application à accéder aux mouvements et à l\'orientation de l\'appareil dans les %1$s.</string>
     <string name="direction_sensor_restricted_settings">réglages système</string>
     <string name="fablesol_tuning_hdr">Hautes lumières HDR</string>

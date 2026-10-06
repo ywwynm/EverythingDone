@@ -302,6 +302,20 @@ internal object ParticlePerfTuning {
     @Volatile var beatPhaseLock = true
 
     /**
+     * 飘散在高刷屏上每个 vsync 出一帧（120 Hz 面板即 120 帧），见 [ParticleClock.setHighRate]。飘散每帧是闭式公式，
+     * 任意时刻都能直接画（三星 SM-S9180 上整屏每帧 GPU 约 1.5 ms）；流体的轨迹按 60 Hz 预算，窗口里只要有流体会话就仍是 60 Hz。
+     */
+    @Volatile var driftHighFrameRate = true
+
+    /**
+     * 高帧率下的左滑：主线程在输入阶段写手指位置、GL 线程在同一个 vsync 之后读，两边都落在 vsync 后 1.3–1.6 ms，
+     * 约六分之一的拍里读在写之前，这一拍没有新位置、下一拍一次走两步（2026-10-06 三星实测每轮 19–21 拍）。
+     * 打开时这样的一拍不跳过：位置一到（[ParticleSwipeAnimator] 写完唤醒 GL 线程）就按这一拍的目标补画，
+     * 只在本拍前半个节拍间隔之内补。见 [ParticleGl] 的 lateFrames。
+     */
+    @Volatile var lateGestureFrames = true
+
+    /**
      * E12 的调参口（**V 级，默认 0 = 现状**）：把微片尺寸按 dp 定死，而不是按像素分格、
      * 顶到 `max_cells` 为止。
      *
@@ -624,6 +638,8 @@ internal object ParticlePerfTuning {
         yieldWorkBeforeBeat = config.optBoolean("yieldWorkBeforeBeat", yieldWorkBeforeBeat)
         immediateFirstFrame = config.optBoolean("immediateFirstFrame", immediateFirstFrame)
         beatPhaseLock = config.optBoolean("beatPhaseLock", beatPhaseLock)
+        driftHighFrameRate = config.optBoolean("driftHighFrameRate", driftHighFrameRate)
+        lateGestureFrames = config.optBoolean("lateGestureFrames", lateGestureFrames)
         cellDpFromFile = config.has("microflakeCellDp")
         jacobiFromFile = config.has("jacobiIterations")
         colorPrecisionFromFile = config.has("srgb8Accumulation")

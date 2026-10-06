@@ -29,9 +29,22 @@ internal object ParticleHardwareSnapshot {
     /**
      * [clip] 非空时只画卡片露出来的那一块（坐标以卡片左上角为原点）。离屏节点连同
      * outline、阴影光源一起按它平移，得到的就是屏幕上那一块的像素，不必抓完再拷一次。
+     *
      */
-    fun capture(view: View, clip: Rect? = null, shadow: ParticleCardSnapshot? = null, done: (Bitmap?) -> Unit) {
-        ParticleCaptureDiagnostics.begin("硬件离屏")
+    fun capture(view: View, clip: Rect? = null, shadow: ParticleCardSnapshot? = null, done: (Bitmap?) -> Unit) =
+        capture(view, clip, shadow, keepHardware = false, done = done)
+
+    /**
+     * 飘散的新建页（API 31+）：不拷回内存，把 ImageReader 缓冲包成硬件位图，供
+     * [ParticleDriftHardwareImport] 直接绑定纹理，或供首页承接层的硬件 ImageView 显示。
+     * 调用方要保证不读取其像素，也不向软件 Canvas 绘制。
+     */
+    fun captureKeepingHardware(view: View, done: (Bitmap?) -> Unit) =
+        capture(view, null, null, keepHardware = true, done = done)
+
+    private fun capture(view: View, clip: Rect?, shadow: ParticleCardSnapshot?, keepHardware: Boolean,
+                        done: (Bitmap?) -> Unit) {
+        ParticleCaptureDiagnostics.begin(if (keepHardware) "硬件离屏（零拷贝）" else "硬件离屏")
         val clipLeft = clip?.left ?: 0
         val clipTop = clip?.top ?: 0
         val width = clip?.width() ?: view.width
@@ -88,7 +101,8 @@ internal object ParticleHardwareSnapshot {
                         val hardware = Bitmap.wrapHardwareBuffer(buffer, null)
                         buffer.close()
                         if (hardware == null) ParticleCaptureDiagnostics.note("硬件离屏 wrapHardwareBuffer 为空")
-                        try { hardware?.copy(Bitmap.Config.ARGB_8888, true) } finally { hardware?.recycle() }
+                        if (keepHardware && rotation == 0) hardware
+                        else try { hardware?.copy(Bitmap.Config.ARGB_8888, true) } finally { hardware?.recycle() }
                     } finally { image.close() }
                 }.onFailure {
                     ParticleCaptureDiagnostics.note("硬件离屏读回异常=${it.javaClass.simpleName}")

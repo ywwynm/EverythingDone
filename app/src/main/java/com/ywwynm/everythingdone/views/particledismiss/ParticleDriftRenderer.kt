@@ -31,6 +31,9 @@ internal class ParticleDriftRenderer(
 ) : Closeable {
 
     private var imageTexture = 0
+
+    /** 零拷贝快照的 EGLImage（[ParticleDriftHardwareImport]）；字节上传的快照为 0。纹理删掉之后再销毁它。 */
+    private var imageEgl = 0L
     private var particleBuffer = 0
     private var particleVao = 0
     private var quadVao = 0
@@ -42,6 +45,12 @@ internal class ParticleDriftRenderer(
     private var canvasHeight = 0
     private var targetWidth = 0
     private var targetHeight = 0
+    private val viewport = IntArray(4)
+    private var particleFrame = Int.MIN_VALUE
+    private var particleSkip = -1
+
+    /** 同一模拟帧复用颗粒工作面；离屏基准可关闭以逐像素核对和量开销。 */
+    internal var reuseParticleFrames = true
     private val lattice = FloatArray(LATTICE_UNIFORMS).also { model.lattice.copyInto(it) }
     private var cellBuffer = 0
     private var content = ParticleDriftContent.Analysis.NONE
@@ -49,20 +58,23 @@ internal class ParticleDriftRenderer(
     /** 颗粒总数：按面积换算的原有颗粒，加上内容强调追加的副本。 */
     val total get() = model.count + content.replicas
 
-    /** 上传快照、建颗粒缓冲与副本分布表（可共享对象，不依赖上下文）。 */
-    fun prepare(pixels: ParticleMicroflakePreparation.Pixels, analysis: ParticleDriftContent.Analysis) {
+    /**
+     * 上传快照、建颗粒缓冲与副本分布表（可共享对象，不依赖上下文）。[image] 是先行上传好的快照纹理（[uploadImage]），
+     * 交给本渲染器管理；0 表示在这里上传。
+     */
+    fun prepare(pixels: ParticleMicroflakePreparation.Pixels, analysis: ParticleDriftContent.Analysis, image: Int = 0) =
+        prepare(analysis, if (image != 0) image else uploadImage(pixels), 0L)
+
+    /**
+     * 快照纹理已经备好（字节上传，或零拷贝绑上的 [eglImage]），交给本渲染器管理；这里只建颗粒缓冲与副本分布表。
+     */
+    fun prepare(analysis: ParticleDriftContent.Analysis, image: Int, eglImage: Long) {
         content = analysis
         drainErrors()
         ensurePrograms(assets)
+        imageTexture = image
+        imageEgl = eglImage
         val ids = IntArray(1)
-        GLES30.glGenTextures(1, ids, 0)
-        imageTexture = ids[0]
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
-        nearestClamp()
-        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
-        pixels.rgba.position(0)
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.width, pixels.height, 0,
-            GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, pixels.rgba)
         GLES30.glGenBuffers(1, ids, 0)
         particleBuffer = ids[0]
         GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, particleBuffer)
@@ -88,14 +100,14 @@ internal class ParticleDriftRenderer(
      */
     fun draw(deviceTime: Float, originX: Float, originY: Float, target: Int = 0, expansion: FloatArray? = null) {
         drainErrors()
-        val viewport = IntArray(4)
         GLES30.glGetIntegerv(GLES30.GL_VIEWPORT, viewport, 0)
         ensureTargets(viewport[2], viewport[3], expansion)
         val programs = checkNotNull(programs)
         val width = model.snapshotWidth.toFloat()
         val height = model.snapshotHeight.toFloat()
         // 状态只在设备帧上更新（第 k 帧在 k / hz 秒）：卡片残留也取同一帧的时刻
-        val frameTime = floor(deviceTime * ParticleDriftModel.HZ + 1e-3f) / ParticleDriftModel.HZ
+        val frameIndex = floor(deviceTime * ParticleDriftModel.HZ + 1e-3f).toInt()
+        val frameTime = frameIndex / ParticleDriftModel.HZ
         // 扩展画布（设备像素）以卡片中心为中心；源码按 cvttps2dq 取整。工作面与发射区都在它的半分辨率坐标里。
         val canvasW = canvasWidth.toFloat()
         val canvasH = canvasHeight.toFloat()
@@ -113,66 +125,75 @@ internal class ParticleDriftRenderer(
         GLES30.glDisable(GLES30.GL_CULL_FACE)
         GLES30.glColorMask(true, true, true, true)
 
-        // 1. 颗粒
-        val update = programs.update
-        GLES30.glUseProgram(update.id)
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
-        GLES30.glUniform1i(update["u_image"], 0)
-        GLES30.glUniform1i(update["u_count"], total)
-        GLES30.glUniform1i(update["u_baseCount"], model.count)
-        GLES30.glUniform2i(update["u_grid"], content.gridWidth, content.gridHeight)
-        GLES30.glUniform3f(update["u_panel"], content.panel[0], content.panel[1], content.panel[2])
-        GLES30.glUniform1f(update["u_panelWeight"], content.panelWeight)
-        GLES30.glUniform1f(update["u_total"], model.totalSeconds)
-        GLES30.glUniform2f(update["u_emitPos"], emitX, emitY)
-        GLES30.glUniform2f(update["u_emitSize"], emitW, emitH)
-        GLES30.glUniform2i(update["u_half"], (width * .5f).toInt(), (height * .5f).toInt())
-        GLES30.glUniform2i(update["u_full"], model.snapshotWidth, model.snapshotHeight)
-        GLES30.glUniform1f(update["u_time"], deviceTime)
-        GLES30.glUniform1f(update["u_hz"], ParticleDriftModel.HZ)
-        GLES30.glUniform2f(update["u_wind"], model.windX, model.windY)
-        GLES30.glUniform1i(update["u_add"], if (additive) 1 else 0)
-        GLES30.glUniform1f(update["u_alphaMul"], model.overAlphaMul)
-        GLES30.glUniform1f(update["u_fadeSizePower"], model.fadeSizePower)
-        GLES30.glUniform1f(update["u_fadeAlphaPower"], model.fadeAlphaPower)
-        GLES30.glUniform2f(update["u_turbOffset"], model.turbulenceOffsetX, model.turbulenceOffsetY)
-        // 选用参考样式时，湍流取样换算到参考卡片自己的发射区：lookup = pos0 × scale + shift
-        val frame = model.turbulenceFrame
-        if (frame != null) {
-            val scaleX = frame[2] / emitW
-            val scaleY = frame[3] / emitH
-            GLES30.glUniform2f(update["u_turbScale"], scaleX, scaleY)
-            GLES30.glUniform2f(update["u_turbShift"], frame[0] - emitX * scaleX, frame[1] - emitY * scaleY)
-        } else {
-            GLES30.glUniform2f(update["u_turbScale"], 1f, 1f)
-            GLES30.glUniform2f(update["u_turbShift"], 0f, 0f)
-        }
-        latticeUniforms(update)
-        GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, particleBuffer)
-        GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, cellBuffer)
-        GLES31.glDispatchCompute((total + 255) / 256, 1, 1)
-        GLES31.glMemoryBarrier(GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
-        GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, 0)
-        GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, 0)
-
-        // 2. 颗粒画进工作面
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, workFramebuffer)
-        GLES30.glViewport(0, 0, workWidth, workHeight)
-        GLES30.glClearColor(0f, 0f, 0f, 0f)
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        val skip = debugSkip
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendEquation(GLES30.GL_FUNC_ADD)
-        if (additive) GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE)
-        else GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
-        val particle = programs.particle
-        GLES30.glUseProgram(particle.id)
-        GLES30.glUniform2f(particle["u_work"], workWidth.toFloat(), workHeight.toFloat())
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, programs.sprite)
-        GLES30.glUniform1i(particle["u_sprite"], 1)
-        GLES30.glBindVertexArray(particleVao)
-        GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, total)
+        // 慢滑、回退与末帧交接可能反复请求同一个设备帧；模型与快照在会话内不变，
+        // 颗粒计算和半分辨率工作面可以直接复用。窗口合成与卡片残留仍正常绘制。
+        if (!reuseParticleFrames || particleFrame != frameIndex || particleSkip != skip) {
+            // 1. 颗粒
+            val update = programs.update
+            GLES30.glUseProgram(update.id)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
+            GLES30.glUniform1i(update["u_image"], 0)
+            GLES30.glUniform1i(update["u_count"], total)
+            GLES30.glUniform1i(update["u_baseCount"], model.count)
+            GLES30.glUniform2i(update["u_grid"], content.gridWidth, content.gridHeight)
+            GLES30.glUniform3f(update["u_panel"], content.panel[0], content.panel[1], content.panel[2])
+            GLES30.glUniform1f(update["u_panelWeight"], content.panelWeight)
+            GLES30.glUniform1f(update["u_total"], model.totalSeconds)
+            GLES30.glUniform2f(update["u_emitPos"], emitX, emitY)
+            GLES30.glUniform2f(update["u_emitSize"], emitW, emitH)
+            GLES30.glUniform2i(update["u_half"], (width * .5f).toInt(), (height * .5f).toInt())
+            GLES30.glUniform2i(update["u_full"], model.snapshotWidth, model.snapshotHeight)
+            GLES30.glUniform1f(update["u_time"], deviceTime)
+            GLES30.glUniform1f(update["u_hz"], ParticleDriftModel.HZ)
+            GLES30.glUniform2f(update["u_wind"], model.windX, model.windY)
+            GLES30.glUniform1i(update["u_add"], if (additive) 1 else 0)
+            GLES30.glUniform1f(update["u_alphaMul"], model.overAlphaMul)
+            GLES30.glUniform1f(update["u_fadeSizePower"], model.fadeSizePower)
+            GLES30.glUniform1f(update["u_fadeAlphaPower"], model.fadeAlphaPower)
+            GLES30.glUniform1f(update["u_sizeScale"], model.sizeScale)
+            GLES30.glUniform1f(update["u_touchGap"], model.touchGap ?: -1f)
+            GLES30.glUniform2f(update["u_turbOffset"], model.turbulenceOffsetX, model.turbulenceOffsetY)
+            // 选用参考样式时，湍流取样换算到参考卡片自己的发射区：lookup = pos0 × scale + shift
+            val frame = model.turbulenceFrame
+            if (frame != null) {
+                val scaleX = frame[2] / emitW
+                val scaleY = frame[3] / emitH
+                GLES30.glUniform2f(update["u_turbScale"], scaleX, scaleY)
+                GLES30.glUniform2f(update["u_turbShift"], frame[0] - emitX * scaleX, frame[1] - emitY * scaleY)
+            } else {
+                GLES30.glUniform2f(update["u_turbScale"], 1f, 1f)
+                GLES30.glUniform2f(update["u_turbShift"], 0f, 0f)
+            }
+            latticeUniforms(update)
+            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, particleBuffer)
+            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, cellBuffer)
+            if (skip and SKIP_COMPUTE == 0) GLES31.glDispatchCompute((total + 255) / 256, 1, 1)
+            GLES31.glMemoryBarrier(GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
+            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, 0)
+            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, 0)
+
+            // 2. 颗粒画进工作面
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, workFramebuffer)
+            GLES30.glViewport(0, 0, workWidth, workHeight)
+            GLES30.glClearColor(0f, 0f, 0f, 0f)
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+            if (additive) GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE)
+            else GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+            val particle = programs.particle
+            GLES30.glUseProgram(particle.id)
+            GLES30.glUniform2f(particle["u_work"], workWidth.toFloat(), workHeight.toFloat())
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, programs.sprite)
+            GLES30.glUniform1i(particle["u_sprite"], 1)
+            GLES30.glBindVertexArray(particleVao)
+            if (skip and SKIP_PARTICLES == 0) GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, total)
+            particleFrame = frameIndex
+            particleSkip = skip
+        }
 
         // 3. 工作面叠到窗口表面（或离屏帧缓冲）
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, target)
@@ -188,10 +209,10 @@ internal class ParticleDriftRenderer(
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, workTexture)
         GLES30.glUniform1i(composite["u_work"], 2)
         GLES30.glUniform2i(composite["u_workSize"], workWidth, workHeight)
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        if (skip and SKIP_COMPOSITE == 0) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
 
         // 4. 卡片残留盖在最上面
-        if (frameTime < model.bodyGoneSeconds + 1f / ParticleDriftModel.HZ) {
+        if (skip and SKIP_CARD == 0 && frameTime < model.bodyGoneSeconds + 1f / ParticleDriftModel.HZ) {
             val card = programs.card
             GLES30.glUseProgram(card.id)
             GLES30.glUniform4f(card["u_rect"], originX, originY, originX + width, originY + height)
@@ -244,6 +265,7 @@ internal class ParticleDriftRenderer(
             ?: max(min(height * EXPANSION_HEIGHT_FRACTION, EXPANSION_CAP_H), model.snapshotHeight.toFloat())
         val nextWorkW = max(1, (expansionW * .5f).toInt())
         val nextWorkH = max(1, (expansionH * .5f).toInt())
+        if (canvasWidth != expansionW.toInt() || canvasHeight != expansionH.toInt()) particleFrame = Int.MIN_VALUE
         canvasWidth = expansionW.toInt()
         canvasHeight = expansionH.toInt()
         if (width == targetWidth && height == targetHeight && nextWorkW == workWidth && nextWorkH == workHeight &&
@@ -277,6 +299,7 @@ internal class ParticleDriftRenderer(
     }
 
     private fun releaseWork() {
+        particleFrame = Int.MIN_VALUE
         if (workFramebuffer != 0) GLES30.glDeleteFramebuffers(1, intArrayOf(workFramebuffer), 0)
         if (workTexture != 0) GLES30.glDeleteTextures(1, intArrayOf(workTexture), 0)
         workFramebuffer = 0
@@ -290,7 +313,8 @@ internal class ParticleDriftRenderer(
         if (particleBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(particleBuffer), 0)
         if (cellBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(cellBuffer), 0)
         if (imageTexture != 0) GLES30.glDeleteTextures(1, intArrayOf(imageTexture), 0)
-        particleVao = 0; quadVao = 0; particleBuffer = 0; imageTexture = 0; cellBuffer = 0
+        if (imageEgl != 0L) ParticleHardwareTexture.destroy(ParticleGl.display.nativeHandle, imageEgl)
+        particleVao = 0; quadVao = 0; particleBuffer = 0; imageTexture = 0; cellBuffer = 0; imageEgl = 0L
     }
 
     internal class Program(val id: Int) {
@@ -300,10 +324,20 @@ internal class ParticleDriftRenderer(
     }
 
     private class Programs(val update: Program, val particle: Program, val composite: Program,
-                           val card: Program, val sprite: Int)
+                           val card: Program, val sprite: Int, val gather: Program)
 
     internal companion object {
         const val TAG = "ParticleDrift"
+
+        /**
+         * 仅调试包的 GPU 基准（`DriftParityRender.bench`）：逐项去掉某一遍，量各遍在整段时间轴里的份额。正式路径恒为 0。
+         * 只在 GL 线程上读写。
+         */
+        var debugSkip = 0
+        const val SKIP_COMPUTE = 1
+        const val SKIP_PARTICLES = 2
+        const val SKIP_COMPOSITE = 4
+        const val SKIP_CARD = 8
 
         /** 每颗粒子在缓冲里两个 vec4：位置与半宽、预乘颜色。 */
         const val PARTICLE_BYTES = 32
@@ -337,12 +371,58 @@ internal class ParticleDriftRenderer(
         /** 进程内只编译一次（上下文常驻）；只在 GL 线程访问。 */
         private var programs: Programs? = null
 
-        /** 在常驻 GL 线程上先把着色器编好；失败不要紧，首个动画会再编一次。 */
+        /**
+         * 在常驻 GL 线程上先把着色器编好；失败不要紧，首个动画会再编一次。参考样式表与输入算式也先走一遍
+         * （类加载、JSON 解析），首个动画在主线程上定输入时只剩真正的计算。内容分析拿一张合成的小图连跑几次：
+         * 进程里第一次飘散的分析没经过编译，实测 55–70 ms，热了之后 13–26 ms。
+         */
         fun warm(assets: AssetManager) {
             ParticleGl.post {
+                runCatching {
+                    ParticleDriftModel.random(1080, 1920, 0f, -1f, 1f, ParticleDriftModel.seededRandom(0),
+                        ParticleDriftStyles.all(assets))
+                }
+                runCatching {
+                    val sample = warmSample()
+                    repeat(3) { ParticleDriftContent.analyse(WARM_WIDTH, WARM_HEIGHT, sample, 20000) }
+                }
                 runCatching { if (ParticleGl.ensureContextReady()) ensurePrograms(assets) }
                     .onFailure { Log.w(TAG, "飘散着色器预热未完成，首个动画时再编译", it) }
             }
+        }
+
+        /**
+         * 把快照传成纹理（最近邻、边缘截断），返回纹理名；交给随后的 [prepare]，或由调用方自己删除。
+         * 直接从内存上传：经像素缓冲对象上传在三星 SM-S9180 上实测更慢（整屏快照 18–27 ms，直接上传 9–17 ms）。
+         */
+        fun uploadImage(pixels: ParticleMicroflakePreparation.Pixels): Int {
+            val ids = IntArray(1)
+            GLES30.glGenTextures(1, ids, 0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, ids[0])
+            nearestClamp()
+            GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
+            pixels.rgba.position(0)
+            GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, pixels.width, pixels.height, 0,
+                GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, pixels.rgba)
+            return ids[0]
+        }
+
+        private const val WARM_WIDTH = 512
+        private const val WARM_HEIGHT = 256
+
+        /** 预热用的合成快照（预乘 RGBA）：白色面板，上方一条彩色标题、右下一块彩色按钮，内容分析的各条分支都会走到。 */
+        private fun warmSample(): ByteBuffer {
+            val buffer = ByteBuffer.allocateDirect(WARM_WIDTH * WARM_HEIGHT * 4).order(ByteOrder.nativeOrder())
+            for (y in 0 until WARM_HEIGHT) for (x in 0 until WARM_WIDTH) {
+                val title = y in 24 until 56 && x in 32 until 320
+                val button = y in 196 until 232 && x in 380 until 488
+                buffer.put(if (title) 0x21.toByte() else if (button) 0xE9.toByte() else 0xFF.toByte())
+                buffer.put(if (title) 0x96.toByte() else if (button) 0x1E.toByte() else 0xFF.toByte())
+                buffer.put(if (title) 0xF3.toByte() else if (button) 0x63.toByte() else 0xFF.toByte())
+                buffer.put(0xFF.toByte())
+            }
+            buffer.rewind()
+            return buffer
         }
 
         fun ensurePrograms(assets: AssetManager) {
@@ -356,7 +436,15 @@ internal class ParticleDriftRenderer(
             val composite = link(quad(),
                 compile(GLES30.GL_FRAGMENT_SHADER, source("drift-composite.frag"), "drift-composite.frag"))
             val card = link(quad(), compile(GLES30.GL_FRAGMENT_SHADER, source("drift-card.frag"), "drift-card.frag"))
-            programs = Programs(Program(update), Program(particle), Program(composite), Program(card), spriteTexture())
+            val gather = link(compile(GLES31.GL_COMPUTE_SHADER, source("drift-gather.comp"), "drift-gather.comp"))
+            programs = Programs(Program(update), Program(particle), Program(composite), Program(card), spriteTexture(),
+                Program(gather))
+        }
+
+        /** 零拷贝快照的内容取样程序（`drift-gather.comp`）。 */
+        fun gatherProgram(assets: AssetManager): Program {
+            ensurePrograms(assets)
+            return checkNotNull(programs).gather
         }
 
         private fun spriteTexture(): Int {
@@ -380,7 +468,7 @@ internal class ParticleDriftRenderer(
             return ids[0]
         }
 
-        private fun nearestClamp() {
+        fun nearestClamp() {
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
