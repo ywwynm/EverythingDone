@@ -272,6 +272,9 @@ internal class ParticleMicroflakeRenderer(
     private var compute = 0
     private var reverseCompute = 0
     private var material = 0
+    private var surface = 0
+    private var surfaceClock = 0
+    private var surfaceClockTexture = 0
     private var resolve = 0
     private var foregroundTexture = 0
     private var step = 0
@@ -353,7 +356,7 @@ internal class ParticleMicroflakeRenderer(
         (if (sinkMode && sinkField) "#define SINK_FIELD 1\n" else "") +
         (if (sinkMode && sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "")
 
-    private fun materialDefines() = "#define PARTICLE_AMOUNT 1\n" +
+    private fun materialDefines() = "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
         (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
@@ -379,7 +382,7 @@ internal class ParticleMicroflakeRenderer(
     private val recordStride get() = if (useSingleInstanceBuffer) RECORD_STRIDE_WIDE else RECORD_STRIDE
 
     /** `draw-record.comp` 的宏：U4 让它多算四个逐片量。 */
-    private fun recordDefines() = groupDefines() + "#define PARTICLE_AMOUNT 1\n" +
+    private fun recordDefines() = groupDefines() + "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "")
 
@@ -403,6 +406,9 @@ internal class ParticleMicroflakeRenderer(
         useActiveRegion = ParticlePerfTuning.pressureActiveRegion && storageBlocksAvailable()
         compute = program("step.comp", defines = stepDefines())
         material = program("material.vert", "material.frag", defines = materialDefines())
+        surface = program("surface.vert", "surface.frag",
+            defines = if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "")
+        surfaceClock = program("surface-clock.comp")
         resolve = program("resolve.vert", "resolve.frag",
             defines = if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "")
         program("peel-splat.comp", defines = regionDefines())
@@ -484,6 +490,7 @@ internal class ParticleMicroflakeRenderer(
         uploadBytes(1,initial)
         uploadBuffer(2, input.materials.pigment)
         uploadBuffer(3, input.materials.peelCompression)
+        prepareSurfaceClock()
         if (sinkTargets && handoffBuffers[0] == 0) {
             val handoff = checkNotNull(input.handoff) { "逐片终点模式缺少交接数据" }
             GLES30.glGenBuffers(2, handoffBuffers, 0)
@@ -518,6 +525,29 @@ internal class ParticleMicroflakeRenderer(
         checkGl("准备")
     }
 
+    /** 只准备一次连续的表面释放时间；原图的消失精度不再受飞出粒子网格限制。 */
+    private fun prepareSurfaceClock() {
+        check(surfaceClockTexture == 0)
+        surfaceClockTexture = newTexture(GLES30.GL_TEXTURE_2D, textures)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_R32F,
+            input.materials.columns, input.materials.rows)
+        GLES31.glBindImageTexture(0, surfaceClockTexture, 0, false, 0, GLES31.GL_WRITE_ONLY, GLES30.GL_R32F)
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, buffers[0])
+        GLES30.glUseProgram(surfaceClock)
+        two(surfaceClock, "card", input.cardWidth, input.cardHeight)
+        one(surfaceClock, "span", min(input.cardWidth, input.cardHeight))
+        one(surfaceClock, "release_spread", input.rules.number("release_spread") +
+            input.rules.number("white_spread") * input.materials.bodyWeight)
+        oneI(surfaceClock, "nx", input.materials.columns)
+        oneI(surfaceClock, "grid_count", input.materials.columns * input.materials.rows)
+        oneI(surfaceClock, "count", input.materials.count)
+        GLES31.glDispatchCompute((input.materials.count + 63) / 64, 1, 1)
+        GLES31.glMemoryBarrier(GLES31.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT or GLES31.GL_TEXTURE_FETCH_BARRIER_BIT)
+        GLES31.glBindImageTexture(0, 0, 0, false, 0, GLES31.GL_WRITE_ONLY, GLES30.GL_R32F)
+    }
+
     /** 前景颜色不依赖材料模型；GPU 上传可与后台建材同时进行。 */
     fun prepareForeground(pixels: ParticleMicroflakePreparation.Pixels) {
         check(foregroundTexture == 0)
@@ -529,7 +559,7 @@ internal class ParticleMicroflakeRenderer(
     /**
      * 第四批 ②：把前景贴图换成另一张同尺寸的图，材料与轨迹一个字节不动。
      *
-     * `material.vert` 的第 0 遍按 `uv = source / card` 采样、画在 `world = offset + source`——
+     * `surface.vert` 按 `uv = source / card` 采样、画在 `world = offset + source`——
      * 采样位置与屏幕位置是同一个恒等仿射映射，所以末帧（t = 0，全部格子 surface = 1）就是
      * 这张贴图的一次逐像素拷贝，**与格子分辨率无关**。提前预算用的是预测快照，真正开播前
      * 换成真实快照，末帧仍与真实页面逐像素相同。
@@ -566,6 +596,12 @@ internal class ParticleMicroflakeRenderer(
      */
     private fun applyUniforms() {
         configureIntegration(compute)
+        GLES30.glUseProgram(surface)
+        two(surface, "frame", input.frameWidth, input.frameHeight)
+        two(surface, "card", input.cardWidth, input.cardHeight)
+        two(surface, "offset", input.originX, input.originY)
+        oneI(surface, "foreground", 0)
+        oneI(surface, "release_times", 1)
         GLES30.glUseProgram(material)
         two(material, "frame", input.frameWidth, input.frameHeight)
         two(material, "card", input.cardWidth, input.cardHeight)
@@ -906,14 +942,6 @@ internal class ParticleMicroflakeRenderer(
         }
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
-        // material.vert 按实例读材料/状态/色素；顶点阶段不能用 SSBO（见着色器内注释），
-        // 同一批缓冲对象在这里绑成实例化顶点属性。共享上下文里上一个会话可能换过它们，
-        // 而 stateBuffer 本身也逐路径不同，所以每次绘制都要重设。
-        bindInstanceAttributes(stateBuffer)
-        GLES30.glUseProgram(material)
-        one(material, "time", t)
-        one(material, "extrapolate", extrapolation)
-        if (sinkField && layerAlpha) one(material, "layer_alpha", layerAlphaValue.coerceIn(0f, 1f))
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
         val ablation = ParticleAblation.bits
@@ -923,11 +951,27 @@ internal class ParticleMicroflakeRenderer(
         }
         for (pass in passes) {
             probe?.mark("pass$pass", ParticlePerfProbe.LEVEL_SEGMENT)
-            oneI(material, "material_pass", pass)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
             val filter = if (pass == 0) GLES30.GL_NEAREST else GLES30.GL_LINEAR
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, filter)
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, filter)
-            GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
+            if (pass == 0) {
+                // 原表面用完整快照与连续释放时间绘制，不随粒子数量逐大格退出。
+                disableInstanceAttributes()
+                GLES30.glUseProgram(surface)
+                one(surface, "time", t)
+                GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+                GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, surfaceClockTexture)
+                GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+            } else {
+                bindInstanceAttributes(stateBuffer)
+                GLES30.glUseProgram(material)
+                one(material, "time", t)
+                one(material, "extrapolate", extrapolation)
+                oneI(material, "material_pass", 1)
+                if (sinkField && layerAlpha) one(material, "layer_alpha", layerAlphaValue.coerceIn(0f, 1f))
+                GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
+            }
             probe?.submit("pass$pass")
         }
         probe?.mark("resolve", ParticlePerfProbe.LEVEL_SEGMENT)

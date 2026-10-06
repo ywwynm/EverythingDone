@@ -70,6 +70,7 @@ class ParticleDismissShaderCompileTest {
     private val SINK = "#define SINK 1\n"
     private val SINK_FIELD = "#define SINK 1\n#define SINK_FIELD 1\n"
     private val SINK_TARGETS = SINK_FIELD + "#define SINK_TARGETS 1\n"
+    private val ROUND_PARTICLES = "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n"
 
     private val MATERIAL_VARIANTS = listOf(
         "#define SINK_FIELD 1\n",
@@ -133,8 +134,16 @@ class ParticleDismissShaderCompileTest {
         "app/src/main/assets/particle-playback/history.comp" to listOf(
             "#define LINEAR_GROUP 64\n"),
         // 材料着色器的变体：DRAW_RECORDS 是现行生产路径，无宏那一份是基线路径。
-        "shared/particle-dismiss/material.vert" to MATERIAL_VARIANTS,
-        "shared/particle-dismiss/material.frag" to MATERIAL_VARIANTS)
+        "shared/particle-dismiss/material.vert" to MATERIAL_VARIANTS +
+            (listOf("") + MATERIAL_VARIANTS).map { it + ROUND_PARTICLES },
+        "shared/particle-dismiss/material.frag" to MATERIAL_VARIANTS +
+            (listOf("") + MATERIAL_VARIANTS).map { it + ROUND_PARTICLES },
+        "shared/particle-dismiss/draw-record.comp" to listOf(
+            ROUND_PARTICLES,
+            ROUND_PARTICLES + "#define FLAKE_CONSTANTS 1\n",
+            ROUND_PARTICLES + "#define FLAKE_CONSTANTS 1\n#define SINGLE_INSTANCE 1\n",
+            ROUND_PARTICLES + "#define LINEAR_GROUP 64\n#define FLAKE_CONSTANTS 1\n"),
+        "shared/particle-dismiss/surface.frag" to listOf("#define SRGB_TARGET 1\n"))
 
     /** [suffix] 决定 glslangValidator 按哪一个阶段编译，必须与原文件一致。 */
     private fun compile(validator: File, label: String, source: String, suffix: String = ".comp") {

@@ -128,6 +128,9 @@ void main(){
     vec2 c=corners[gl_VertexID];
     vec2 vertex_grid=grid+c;
     vec2 j=jitter(vertex_grid);
+#ifdef ROUND_PARTICLES
+    if(material_pass==1)j=vec2(0.);
+#endif
     if(vertex_grid.x==0. || vertex_grid.x*cell.x>=card.x-.01)j.x=0.;
     if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
     vec2 source=(vertex_grid+j)*cell;
@@ -139,6 +142,16 @@ void main(){
     if(replica>.5)uv=mix(source,material_src.xy,.80)/card;
 #endif
 
+#ifdef ROUND_PARTICLES
+    // 原表面独立绘制；移动粒子取来源中心的颜色，避免纹理透明边缘重新切出碎片轮廓。
+    if(material_pass==1){
+#ifdef SINGLE_INSTANCE
+        uv=record_extra.xy/card;
+#else
+        uv=material_src.xy/card;
+#endif
+    }
+#endif
     local_uv=c;
     surface_out=surface;
 #ifdef FLAKE_CONSTANTS
@@ -185,11 +198,17 @@ void main(){
     vec2 c=corners[gl_VertexID];
     vec2 vertex_grid=grid+c;
     vec2 j=jitter(vertex_grid);
+#ifdef ROUND_PARTICLES
+    if(material_pass==1)j=vec2(0.);
+#endif
     if(vertex_grid.x==0. || vertex_grid.x*cell.x>=card.x-.01)j.x=0.;
     if(vertex_grid.y==0. || vertex_grid.y*cell.y>=card.y-.01)j.y=0.;
     vec2 source=(vertex_grid+j)*cell;
     uv=source/card;
     if(replica>0)uv=mix(source,m.src.xy,.80)/card;
+#ifdef ROUND_PARTICLES
+    if(material_pass==1)uv=m.src.xy/card;
+#endif
     local_uv=c;
     float age=max(0.,time-m.src.z);
     age_out=time-m.src.z;
@@ -202,7 +221,9 @@ void main(){
     surface_out=1.-smoothstep(max(.001,source_clock-.025),max(.018,source_clock+.060),time);
     life_out=m.physical.z;random_out=m.random;
     // 原边缘最后释放的一侧更多采用渐隐，面板内部保留颗粒层次。
+#ifndef ROUND_PARTICLES
     surface_out=mix(time<=m.src.z?1.:0.,surface_out,.85*(1.-.60*panel_weight));
+#endif
 #ifdef SINK_FIELD
     absorb_out=1.;
 #ifdef SINK_TARGETS
@@ -255,13 +276,26 @@ void main(){
     float facing_angle=atan(m.physical.y,m.physical.x);
     float angle=facing_angle*.35*smoothstep(.02,.08,age)+(m.random.z-.5)*6.28*smoothstep(.08,.28,age)+sin(age*12.+m.random.w*6.28)*.28*loosen;
     vec2 d=source-m.src.xy;
+#ifdef ROUND_PARTICLES
+    // 出生时就使用设定尺寸；数量只改变间距，不再先出现较大的密铺碎片。
+    vec2 diameter=cell;
+#ifdef PARTICLE_AMOUNT
+    diameter*=particle_scale;
+#endif
+    d=(c-.5)*sqrt(diameter.x*diameter.y);
+#else
 #ifdef PARTICLE_AMOUNT
     // 数量调整只改变密度；从完整覆盖平滑过渡回粒子大小设置对应的尺寸。
     d*=mix(vec2(1.),particle_scale,loosen);
 #endif
+#endif
     // 释放初段保留局部姿态关联，随后转为独立的细粒转动。
     float tilt=(.5+.5*sin(roll_phase+dot(m.src.xy,vec2(.009,.014))+m.random.w*1.2));
+#ifdef ROUND_PARTICLES
+    d.x*=mix(1.,.96+.04*tilt,loosen);
+#else
     d.x*=mix(1.,.50+.50*tilt,loosen);
+#endif
     mat2 rot=mat2(cos(angle),sin(angle),-sin(angle),cos(angle));
     scale*=mix(1.,mix(.84,.98,panel_weight),smoothstep(.0,.018,age));
     // 少量、宽时间范围的覆盖变化；亮度来自源色和运动颗粒，不添加轮廓线。

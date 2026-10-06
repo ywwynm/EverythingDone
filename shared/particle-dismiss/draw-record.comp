@@ -54,7 +54,9 @@ void main(){
     source_clock-=.065*trailing;
     float surface=1.-smoothstep(max(.001,source_clock-.025),max(.018,source_clock+.060),time);
     // 原边缘最后释放的一侧更多采用渐隐，面板内部保留颗粒层次。
+#ifndef ROUND_PARTICLES
     surface=mix(time<=m.src.z?1.:0.,surface,.85*(1.-.60*panel_weight));
+#endif
     // 原片段着色器里那条按 trailing 丢片的判据，两个操作数**都是逐片量**，对一片的所有
     // 像素给出同一个答案——等价于整片不画，所以并进这里的可见判定，顺带省掉每像素一次 fract。
     bool alive=age_out>0.&&age_out<life&&
@@ -86,7 +88,11 @@ void main(){
         float angle=facing_angle*.35*smoothstep(.02,.08,age)+(m.random.z-.5)*6.28*smoothstep(.08,.28,age)+sin(age*12.+m.random.w*6.28)*.28*loosen;
         // 释放初段保留局部姿态关联，随后转为独立的细粒转动。
         float tilt=(.5+.5*sin(roll_phase+dot(m.src.xy,vec2(.009,.014))+m.random.w*1.2));
+#ifdef ROUND_PARTICLES
+        float squash=mix(1.,.96+.04*tilt,loosen);
+#else
         float squash=mix(1.,.50+.50*tilt,loosen);
+#endif
         scale*=mix(1.,mix(.84,.98,panel_weight),smoothstep(.0,.018,age));
         // 少量、宽时间范围的覆盖变化；亮度来自源色和运动颗粒，不添加轮廓线。
         scale*=1.+.20*(1.-panel_weight)*smoothstep(.010,.050,age)*(1.-smoothstep(.10,.24,age));
@@ -103,6 +109,16 @@ void main(){
         float total=scale*(1.+z/1000.);
         vec2 column0=vec2(total*ca*squash,total*sa*squash);
         vec2 column1=vec2(-total*sa,total*ca);
+#ifdef ROUND_PARTICLES
+        // 与直接路径一致：规则近圆载体，中心跟随状态，出生尺寸不受数量倍率影响。
+        vec2 diameter=cell;
+#ifdef PARTICLE_AMOUNT
+        diameter*=particle_scale;
+#endif
+        float size=sqrt(diameter.x*diameter.y);
+        xform=vec4(column0*size,column1*size);
+        origin=move-(column0+column1)*(.5*size);
+#else
 #ifdef PARTICLE_AMOUNT
         // 与 material.vert 的直接绘制路径保持相同的数量／大小解耦。
         vec2 size_adjust=mix(vec2(1.),particle_scale,loosen);
@@ -113,6 +129,7 @@ void main(){
         vec2 d0=grid*cell-m.src.xy;
         origin=move+column0*d0.x+column1*d0.y;
         xform=vec4(column0*cell.x,column1*cell.y);
+#endif
         float face=sin(dot(m.src.xy,vec2(.014,.021))+age*11.);
         light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
         shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);

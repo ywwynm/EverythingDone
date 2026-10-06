@@ -55,6 +55,12 @@ vec3 linear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.
 #define BODY_LO 0.80
 #define BODY_HI 0.98
 #endif
+#ifdef ROUND_PARTICLES
+float round_shape(){
+    // 从出生起完整裁去四角，保留柔和边缘；不再按年龄从四边形渐变。
+    return 1.-smoothstep(.40,.50,length(local_uv-.5));
+}
+#endif
 void main(){
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
@@ -71,10 +77,14 @@ void main(){
     // U4：下面用到的逐片量全部由 `draw-record.comp` 每片每帧算一次。
     // 「复制片在极早期整片丢弃」与「age<=0」两条判据都已折进 alpha_scale / alive。
     if(diagnostic==3)discard;
+#ifdef ROUND_PARTICLES
+    float shape=round_shape();
+#else
     vec2 q=local_uv-.5;
     float radial=length(q*radial_scale);
     float cut=1.-smoothstep(.35,.58,radial);
     float shape=mix(1.,cut,shape_out*.92);
+#endif
     float alpha=src.a*shape*alpha_scale;
     if(alpha<.001)discard;
     float optical_loosen=loosen_out;
@@ -93,10 +103,14 @@ void main(){
 #else
     float fade=1.-smoothstep(max(life-.075,life*.55),life,age);
 #endif
+#ifdef ROUND_PARTICLES
+    float shape=round_shape();
+#else
     vec2 q=local_uv-.5;
     float radial=length(q*vec2(.85+random_out.z*.35,.87+random_out.w*.34));
     float cut=1.-smoothstep(.35,.58,radial);
     float shape=mix(1.,cut,shape_out*.92);
+#endif
     // 原表面尚在淡出时，运动片按对应材料已经交出的覆盖量显现。
     float alpha=src.a*fade*shape*(1.-surface_out)*smoothstep(.001,.022,age);
     if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
