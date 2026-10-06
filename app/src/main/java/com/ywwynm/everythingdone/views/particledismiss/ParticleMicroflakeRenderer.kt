@@ -353,7 +353,8 @@ internal class ParticleMicroflakeRenderer(
         (if (sinkMode && sinkField) "#define SINK_FIELD 1\n" else "") +
         (if (sinkMode && sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "")
 
-    private fun materialDefines() = (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
+    private fun materialDefines() = "#define PARTICLE_AMOUNT 1\n" +
+        (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "") +
@@ -378,7 +379,7 @@ internal class ParticleMicroflakeRenderer(
     private val recordStride get() = if (useSingleInstanceBuffer) RECORD_STRIDE_WIDE else RECORD_STRIDE
 
     /** `draw-record.comp` 的宏：U4 让它多算四个逐片量。 */
-    private fun recordDefines() = groupDefines() +
+    private fun recordDefines() = groupDefines() + "#define PARTICLE_AMOUNT 1\n" +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "")
 
@@ -570,6 +571,7 @@ internal class ParticleMicroflakeRenderer(
         two(material, "card", input.cardWidth, input.cardHeight)
         two(material, "offset", input.originX, input.originY)
         two(material, "cell", input.materials.cellX, input.materials.cellY)
+        two(material, "particle_scale", input.materials.particleScaleX, input.materials.particleScaleY)
         val angle = Math.toRadians(input.direction.toDouble())
         two(material, "wind", cos(angle).toFloat(), -sin(angle).toFloat())
         one(material, "span", min(input.cardWidth, input.cardHeight))
@@ -593,6 +595,7 @@ internal class ParticleMicroflakeRenderer(
             GLES30.glUseProgram(recordProgram)
             two(recordProgram, "card", input.cardWidth, input.cardHeight)
             two(recordProgram, "cell", input.materials.cellX, input.materials.cellY)
+            two(recordProgram, "particle_scale", input.materials.particleScaleX, input.materials.particleScaleY)
             two(recordProgram, "wind", cos(angle).toFloat(), -sin(angle).toFloat())
             one(recordProgram, "span", min(input.cardWidth, input.cardHeight))
             one(recordProgram, "roll_gain", input.rules.number("roll_gain"))
@@ -1928,9 +1931,11 @@ internal class ParticleMicroflakeRenderer(
             val field = sink?.field
             // 微片尺寸只读一次：同一个值既交给建材、又进沿用材料的键
             val cellDp = ParticlePerfTuning.microflakeCellDpNow
+            val particleAmount = ParticleStyle.flowAmount
             val key = if (publish == null && adopt == null) null else ParticleMaterialShare.Key(motion, pixelWidth,
                 pixelHeight, density, originXPx, originYPx, virtualTouchXPx, virtualTouchYPx, hashSeed,
-                materialAreaScale, releaseOrigin, sink?.signature(), cellDp, ParticleMaterialNative.enabled)
+                materialAreaScale, releaseOrigin, sink?.signature(), cellDp, ParticleMaterialNative.enabled,
+                particleAmount)
             val started = System.nanoTime()
             val adopted = if (adopt != null && key != null) adopt.take(key) else null
             val materials: ParticleMicroflakeModel.Materials
@@ -1940,7 +1945,7 @@ internal class ParticleMicroflakeRenderer(
                 visible = adopted.visible
             } else {
                 materials = ParticleMicroflakeModel.build(cardWidth, cardHeight, motion, pixelWidth,
-                    pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin, cellDp)
+                    pixelHeight, direction, hashSeed.toLong(), rules, releaseOrigin, cellDp, particleAmount)
                 // 第三版：出生在快照透明处（几张卡片之间的空隙）的颗粒看不见，来源分配与光尘接手只在看得见的里挑
                 visible = if (field != null && sinkGeometry != null)
                     visibleMask(materials.values, scale, motion, pixelWidth, pixelHeight) else null

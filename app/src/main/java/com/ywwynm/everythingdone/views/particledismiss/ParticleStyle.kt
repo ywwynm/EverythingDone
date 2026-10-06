@@ -24,6 +24,9 @@ internal enum class ParticleStyle(val key: String) {
         /** 飘散样式的「粒子数量」倍率；由 [ParticleTuning.apply] 写入。 */
         @Volatile var driftAmount: Float = 1f
 
+        /** 流体样式的「粒子数量」倍率；与飘散独立，由 [ParticleTuning.apply] 写入。 */
+        @Volatile var flowAmount: Float = 1f
+
         /** 飘散样式的「粒子大小」倍率（1 = 源码大小）；由 [ParticleTuning.apply] 写入。 */
         @Volatile var driftSize: Float = 1f
     }

@@ -26,7 +26,10 @@ internal object ParticleMicroflakeModel {
         val pigment: FloatArray,
         val peelCompression: FloatArray,
         val variation: ParticleMicroflakeVariation,
-        val statistics: Map<String, Double> = emptyMap()
+        val statistics: Map<String, Double> = emptyMap(),
+        /** 数量改变了网格间距，释放后的尺寸仍按 1 倍数量时的网格取值。 */
+        val particleScaleX: Float = 1f,
+        val particleScaleY: Float = 1f
     ) {
         val count get() = pigment.size
     }
@@ -45,7 +48,8 @@ internal object ParticleMicroflakeModel {
          * 微片尺寸下限（dp），默认读当前设置。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
          * 同一个值既进键又交给这里，两次读取之间设置被改掉也不会对不上。
          */
-        cellDp: Float = ParticlePerfTuning.microflakeCellDpNow
+        cellDp: Float = ParticlePerfTuning.microflakeCellDpNow,
+        particleAmount: Float = ParticleStyle.flowAmount
     ): Materials {
         val started = System.nanoTime()
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
@@ -56,10 +60,17 @@ internal object ParticleMicroflakeModel {
         // 所以一个 dp 是 [DP_UNITS] 个单位。E12 的下限与 `max_cells` 那条上限取较大者：
         // 既不小于指定的物理尺寸，也不会把片数顶过上限。
         val requested = cellDp
-        val cell = max(max(rules.decimal("cell"), requested.toDouble() * DP_UNITS),
+        val baseCell = max(max(rules.decimal("cell"), requested.toDouble() * DP_UNITS),
             sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
+        require(particleAmount.isFinite() && particleAmount in .2f..1.6f)
+        val maxCells = (rules.number("max_cells") * particleAmount).roundToInt()
+        // 数量倍率作用于密度与预算，留出取整余量；1 倍直接沿用原式，默认材料逐位不变。
+        val cell = if (particleAmount == 1f) baseCell else max(baseCell / sqrt(particleAmount.toDouble()),
+            sqrt(width.toDouble() * height * budget / (maxCells - 1000)))
         val nx = ceil(width / cell).toInt().coerceAtLeast(2)
         val ny = ceil(height / cell).toInt().coerceAtLeast(2)
+        val particleScaleX = nx.toFloat() / ceil(width / baseCell).toInt().coerceAtLeast(2)
+        val particleScaleY = ny.toFloat() / ceil(height / baseCell).toInt().coerceAtLeast(2)
         val count = nx * ny
         val cellX = width / nx
         val cellY = height / ny
@@ -107,11 +118,12 @@ internal object ParticleMicroflakeModel {
                 pixelHeight, randomSeed, release, offsetTimes, normals.x, normals.y, compression,
                 floatArrayOf(panel.color[0], panel.color[1], panel.color[2], panel.weight),
                 floatArrayOf(releaseSpread, lifeGain, earlyLifeGain, lifeBirthStart, lifeBirthSpan,
-                    distanceStart, distanceSpan), copyLimit, rules.number("max_cells").toInt())
+                    distanceStart, distanceSpan), copyLimit, maxCells)
             return report(Materials(nx, ny, cellX, cellY, body, result[0], result[1], result[2], variation,
                 metrics + mapOf("releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
                     "populationMs" to (System.nanoTime()-normalsReady)/1e6, "sortMs" to 0.0,
-                    "panelWeight" to panel.weight.toDouble(), "replicaCount" to (result[1].size-count).toDouble())))
+                    "panelWeight" to panel.weight.toDouble(), "replicaCount" to (result[1].size-count).toDouble()),
+                particleScaleX, particleScaleY))
         }
         val values = FloatArray(count * 12)
         val pigment = FloatArray(count)
@@ -148,7 +160,7 @@ internal object ParticleMicroflakeModel {
             val amount = pigment[i] * (copyLimit * panel.weight)
             if (colors[i] ushr 24 == 255 && randomValue(id * 4, randomSeed) < amount - (layer - 1)) candidates.add(id)
         }
-        val capacity = (rules.number("max_cells").toInt() - count).coerceAtLeast(0)
+        val capacity = (maxCells - count).coerceAtLeast(0)
         if (candidates.size > capacity) {
             candidates.sortWith(compareBy<Int> { randomValue(it * 4 + 1, randomSeed) }.thenBy { it })
             candidates.subList(capacity, candidates.size).clear()
@@ -195,7 +207,8 @@ internal object ParticleMicroflakeModel {
         return report(Materials(nx, ny, cellX, cellY, body, sorted, sortedPigment, sortedCompression, variation, metrics + mapOf(
             "releaseMs" to (released-started)/1e6, "normalsMs" to normals.milliseconds,
             "populationMs" to (populated-normalsReady)/1e6, "sortMs" to (System.nanoTime()-populated)/1e6,
-            "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble())))
+            "panelWeight" to panel.weight.toDouble(), "replicaCount" to candidates.size.toDouble()),
+            particleScaleX, particleScaleY))
     }
 
     /** 调参页要显示「本机这一档建出来多少片」，建材的两条出口各报一次。 */

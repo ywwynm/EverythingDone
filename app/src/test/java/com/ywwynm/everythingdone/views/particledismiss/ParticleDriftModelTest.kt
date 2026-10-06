@@ -90,7 +90,7 @@ class ParticleDriftModelTest {
         assertEquals(80000, ParticleDriftModel.count(1440, 3088, 1.6f))
         for ((w, h) in listOf(1225 to 760, 917 to 915, 600 to 420)) {
             val base = ParticleDriftModel.count(w, h, 1f)
-            for (amount in ParticleTuning.DRIFT_AMOUNT_LEVELS) {
+            for (amount in ParticleTuning.AMOUNT_LEVELS) {
                 assertEquals("$w × $h × $amount", Math.round(base * amount.toDouble()).toInt(),
                     ParticleDriftModel.count(w, h, amount))
             }
@@ -98,10 +98,10 @@ class ParticleDriftModelTest {
     }
 
     @Test fun `粒子数量与粒子大小的档位`() {
-        val amount = ParticleTuning.DRIFT_AMOUNT_LEVELS
+        val amount = ParticleTuning.AMOUNT_LEVELS
         assertEquals(.2f, amount.first(), 1e-6f)
         assertEquals(1.6f, amount.last(), 1e-6f)
-        assertEquals(1f, amount[ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX], 0f)
+        assertEquals(1f, amount[ParticleTuning.DEFAULT_AMOUNT_INDEX], 0f)
         val size = ParticleTuning.DRIFT_SIZE_LEVELS
         assertEquals(16, size.size)
         assertEquals(.5f, size.first(), 1e-6f)

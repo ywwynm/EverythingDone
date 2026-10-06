@@ -206,7 +206,8 @@
                 <!--
                   粒子样式：流体（原有实现）/ 飘散（按源码移植的消蚀 + 风与湍流，缺省）。
                   样式与下面的「颜色精度」一行相同。选中飘散时，只属于流体样式的四项
-                  （粒子大小、流动细节、颜色精度、性能自动调节）整组隐藏，换成「粒子数量」。
+                  （粒子大小、流动细节、颜色精度、性能自动调节）整组隐藏，换成飘散的粒子大小。
+                  两种样式都显示粒子数量，分别保存倍率。
                   见 `docs/features/harmony-particle-android-port/`。
                 -->
                 <LinearLayout
@@ -316,6 +317,14 @@
                         android:paddingBottom="10dp"
                         android:textColor="@color/app_chrome_on_surface_hint"
                         android:textSize="12sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_particle_tuning_drift_size_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                     <RelativeLayout
                         android:id="@+id/rl_particle_tuning_drift_size_row"

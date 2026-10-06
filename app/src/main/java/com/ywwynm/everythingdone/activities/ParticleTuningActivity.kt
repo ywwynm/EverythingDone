@@ -342,8 +342,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         cellSlider?.progress = ParticleTuning.cellIndex(this)
         flowSlider?.max = ParticleTuning.FLOW_MAX
         flowSlider?.progress = ParticleTuning.flowDetail(this)
-        amountSlider?.max = ParticleTuning.DRIFT_AMOUNT_LEVELS.lastIndex
-        amountSlider?.progress = ParticleTuning.driftAmountIndex(this)
+        amountSlider?.max = ParticleTuning.AMOUNT_LEVELS.lastIndex
+        amountSlider?.progress = ParticleTuning.amountIndex(this)
         driftSizeSlider?.max = ParticleTuning.DRIFT_SIZE_LEVELS.lastIndex
         driftSizeSlider?.progress = ParticleTuning.driftSizeIndex(this)
         autoCheckBox?.isChecked = ParticleTuning.isAutoTuneOn(this)
@@ -384,7 +384,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             cellExplicit = false
             cellSlider?.progress = ParticleTuning.DEFAULT_CELL_INDEX
             flowSlider?.progress = ParticleTuning.DEFAULT_FLOW
-            amountSlider?.progress = ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX
+            amountSlider?.progress = ParticleTuning.DEFAULT_AMOUNT_INDEX
             driftSizeSlider?.progress = ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
             autoCheckBox?.isChecked = false
             updateValueLabels()
@@ -432,7 +432,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             override fun onStartTrackingTouch(bar: SeekBar) = Unit
 
             override fun onStopTrackingTouch(bar: SeekBar) {
-                ParticleTuning.setDriftAmountIndex(this@ParticleTuningActivity, bar.progress)
+                ParticleTuning.setAmountIndex(this@ParticleTuningActivity, bar.progress)
                 updateValueLabels()
                 scheduleRebuild()
             }
@@ -731,6 +731,8 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     private fun setStyle(style: ParticleStyle) {
         if (ParticleTuning.style(this) == style) return
         ParticleTuning.setStyle(this, style)
+        amountSlider?.progress = ParticleTuning.amountIndex(this)
+        updateValueLabels()
         updateStyleTabs()
         updateStyleGroups()
         scheduleRebuild()
@@ -738,11 +740,11 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
 
     /**
      * 只属于流体样式的四项（粒子大小、流动细节、颜色精度、性能自动调节）在飘散样式下整组隐藏，
-     * 换成「粒子数量」（用户 2026-10-05 裁定）与飘散自己的「粒子大小」（2026-10-06）。
+     * 换成飘散自己的「粒子大小」。两种样式都显示数量滑杆，按当前样式读取各自保存的值。
      */
     private fun updateStyleGroups() {
         val drift = ParticleTuning.style(this) == ParticleStyle.DRIFT
-        f<View>(R.id.ll_particle_tuning_amount_group)?.visibility = if (drift) View.VISIBLE else View.GONE
+        f<View>(R.id.ll_particle_tuning_drift_size_group)?.visibility = if (drift) View.VISIBLE else View.GONE
         listOf(R.id.ll_particle_tuning_cell_group, R.id.ll_particle_tuning_flow_group,
             R.id.ll_particle_tuning_color_group, R.id.rl_particle_tuning_auto_row).forEach {
             f<View>(it)?.visibility = if (drift) View.GONE else View.VISIBLE
@@ -1216,9 +1218,9 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         cellValue?.text = if (cellExplicit) size
             else getString(R.string.particle_tuning_value_default, size)
         flowValue?.text = flow.toString()
-        val amount = amountSlider?.progress ?: ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX
-        val amountLabel = ParticleTuning.driftAmountLabel(amount)
-        amountValue?.text = if (amount == ParticleTuning.DEFAULT_DRIFT_AMOUNT_INDEX)
+        val amount = amountSlider?.progress ?: ParticleTuning.DEFAULT_AMOUNT_INDEX
+        val amountLabel = ParticleTuning.amountLabel(amount)
+        amountValue?.text = if (amount == ParticleTuning.DEFAULT_AMOUNT_INDEX)
             getString(R.string.particle_tuning_value_default, amountLabel) else amountLabel
         val driftSize = driftSizeSlider?.progress ?: ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
         val driftSizeLabel = ParticleTuning.driftSizeLabel(driftSize)

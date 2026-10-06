@@ -38,6 +38,9 @@ layout(location=4) in vec4 state_vel;
 layout(location=5) in float pigment;
 #endif
 uniform vec2 frame,card,offset,cell,wind;
+#ifdef PARTICLE_AMOUNT
+uniform vec2 particle_scale;
+#endif
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform int nx,grid_count;
 uniform int material_pass;
@@ -252,6 +255,10 @@ void main(){
     float facing_angle=atan(m.physical.y,m.physical.x);
     float angle=facing_angle*.35*smoothstep(.02,.08,age)+(m.random.z-.5)*6.28*smoothstep(.08,.28,age)+sin(age*12.+m.random.w*6.28)*.28*loosen;
     vec2 d=source-m.src.xy;
+#ifdef PARTICLE_AMOUNT
+    // 数量调整只改变密度；从完整覆盖平滑过渡回粒子大小设置对应的尺寸。
+    d*=mix(vec2(1.),particle_scale,loosen);
+#endif
     // 释放初段保留局部姿态关联，随后转为独立的细粒转动。
     float tilt=(.5+.5*sin(roll_phase+dot(m.src.xy,vec2(.009,.014))+m.random.w*1.2));
     d.x*=mix(1.,.50+.50*tilt,loosen);

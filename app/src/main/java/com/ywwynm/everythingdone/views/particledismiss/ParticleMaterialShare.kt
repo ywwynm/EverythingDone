@@ -43,7 +43,8 @@ internal class ParticleMaterialShare {
         val sink: FloatArray?,
         /** 建材时用的微片尺寸下限（[ParticlePerfTuning.microflakeCellDpNow]）与是否走本地库。 */
         val cellDp: Float,
-        val native: Boolean
+        val native: Boolean,
+        val particleAmount: Float = 1f
     ) {
         /**
          * 与 [built]（已经建好的那一份）第一处不同的那一项；逐项相同时返回 null。浮点逐位比较，像素放在最后（最贵）。
@@ -68,6 +69,7 @@ internal class ParticleMaterialShare {
                 return "剥离起点 $origin，建好的是 $builtOrigin"
             }
             if (!same(cellDp, built.cellDp)) return "微片尺寸设置 $cellDp dp，建好的是 ${built.cellDp} dp"
+            if (!same(particleAmount, built.particleAmount)) return "粒子数量倍率 $particleAmount，建好的是 ${built.particleAmount}"
             if (native != built.native) return "建材实现不同（本地库 $native，建好的 ${built.native}）"
             sinkDifference(sink, built.sink)?.let { return it }
             return pixelDifference(pixels, built.pixels, pixelWidth)

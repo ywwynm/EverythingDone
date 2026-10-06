@@ -7,9 +7,9 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * 粒子动画的四项全局设置：**粒子大小**、**流动精细度**、**颜色精度**与**性能自动调节**。
+ * 粒子动画设置：样式、各样式独立的数量与大小，以及流体的精细度、颜色精度与性能自动调节。
  *
- * 四项都作用于全部粒子路径（弹窗、页内对话框、创建页、左滑卡片），存在自己的
+ * 设置作用于所选样式的全部粒子路径（弹窗、页内对话框、创建页、左滑卡片），存在自己的
  * SharedPreferences 文件里。粒子大小存的是**档位下标**（档位以后要调整时，旧值不会变成一个
  * 不在档位表里的数）；流动精细度存的是**取值本身**（它是 [FLOW_MIN]–[FLOW_MAX] 的连续整数，
  * 没有档位表）。
@@ -56,6 +56,9 @@ internal object ParticleTuning {
      */
     const val KEY_DRIFT_AMOUNT = "drift_amount_index"
 
+    /** 流体样式的「粒子数量」档位下标，与飘散独立保存。 */
+    const val KEY_FLOW_AMOUNT = "flow_amount_index"
+
     /** 飘散样式的「粒子大小」档位下标（倍率乘在颗粒半宽上，1× 即源码大小）。 */
     const val KEY_DRIFT_SIZE = "drift_size_index"
 
@@ -66,9 +69,9 @@ internal object ParticleTuning {
     const val KEY_DEBUG_VERIFY_ZERO_COPY = "debug_drift_verify_zero_copy"
 
     /** 「粒子数量」的档位（倍率）：0.2×～1.6×，每档 0.1（用户 2026-10-06 定的范围）。 */
-    val DRIFT_AMOUNT_LEVELS = floatArrayOf(
+    val AMOUNT_LEVELS = floatArrayOf(
         .2f, .3f, .4f, .5f, .6f, .7f, .8f, .9f, 1f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f)
-    const val DEFAULT_DRIFT_AMOUNT_INDEX = 8
+    const val DEFAULT_AMOUNT_INDEX = 8
 
     /**
      * 「粒子大小」的档位（倍率）：0.5×～2.0×，每档 0.1，与流体的粒子大小一样是十六档。
@@ -162,18 +165,23 @@ internal object ParticleTuning {
         apply(context)
     }
 
-    fun driftAmountIndex(context: Context): Int = preferences(context)
-        .getInt(KEY_DRIFT_AMOUNT, DEFAULT_DRIFT_AMOUNT_INDEX).coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)
+    private fun amountKey(style: ParticleStyle): String =
+        if (style == ParticleStyle.FLOW) KEY_FLOW_AMOUNT else KEY_DRIFT_AMOUNT
 
-    fun setDriftAmountIndex(context: Context, index: Int) {
+    fun amountIndex(context: Context, style: ParticleStyle = style(context)): Int = preferences(context)
+        .getInt(amountKey(style), DEFAULT_AMOUNT_INDEX).coerceIn(0, AMOUNT_LEVELS.lastIndex)
+
+    fun setAmountIndex(context: Context, index: Int) {
+        val style = style(context)
+        if (style == ParticleStyle.FLOW) markUserChanged(context)
         preferences(context).edit()
-            .putInt(KEY_DRIFT_AMOUNT, index.coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)).apply()
+            .putInt(amountKey(style), index.coerceIn(0, AMOUNT_LEVELS.lastIndex)).apply()
         apply(context)
     }
 
     /** 「粒子数量」档位的文案，例如 0.2× / 1.0× / 1.6×。 */
-    fun driftAmountLabel(index: Int): String =
-        String.format("%.1f×", DRIFT_AMOUNT_LEVELS[index.coerceIn(0, DRIFT_AMOUNT_LEVELS.lastIndex)])
+    fun amountLabel(index: Int): String =
+        String.format("%.1f×", AMOUNT_LEVELS[index.coerceIn(0, AMOUNT_LEVELS.lastIndex)])
 
     fun driftSizeIndex(context: Context): Int = preferences(context)
         .getInt(KEY_DRIFT_SIZE, DEFAULT_DRIFT_SIZE_INDEX).coerceIn(0, DRIFT_SIZE_LEVELS.lastIndex)
@@ -221,6 +229,7 @@ internal object ParticleTuning {
             .remove(KEY_AUTO_TUNE)
             .remove(KEY_STYLE)
             .remove(KEY_DRIFT_AMOUNT)
+            .remove(KEY_FLOW_AMOUNT)
             .remove(KEY_DRIFT_SIZE)
             .remove(LEGACY_KEY_DRIFT_AMOUNT)
             .remove(KEY_AUTO_STEPS)
@@ -239,7 +248,7 @@ internal object ParticleTuning {
     /** 已经自动调低过几档；界面用它决定要不要显示那条提示。 */
     fun autoEasedSteps(context: Context): Int = preferences(context).getInt(KEY_AUTO_STEPS, 0)
 
-    /** 用户自己动过设置之后就不再自动调整；由 [setCellIndex] / [setFlowDetail] 记下。 */
+    /** 用户自己动过数量、大小或精细度之后就不再自动调整。 */
     private fun markUserChanged(context: Context) {
         if (autoEasedSteps(context) <= 0) return
         preferences(context).edit().putBoolean(KEY_USER_CHANGED, true).apply()
@@ -325,8 +334,8 @@ internal object ParticleTuning {
         editor.remove(LEGACY_KEY_DRIFT_AMOUNT)
         if (legacy in LEGACY_DRIFT_AMOUNT_LEVELS.indices && !preferences.contains(KEY_DRIFT_AMOUNT)) {
             val amount = LEGACY_DRIFT_AMOUNT_LEVELS[legacy]
-            val nearest = DRIFT_AMOUNT_LEVELS.indices.minByOrNull { abs(DRIFT_AMOUNT_LEVELS[it] - amount) }
-            if (nearest != null && nearest != DEFAULT_DRIFT_AMOUNT_INDEX) editor.putInt(KEY_DRIFT_AMOUNT, nearest)
+            val nearest = AMOUNT_LEVELS.indices.minByOrNull { abs(AMOUNT_LEVELS[it] - amount) }
+            if (nearest != null && nearest != DEFAULT_AMOUNT_INDEX) editor.putInt(KEY_DRIFT_AMOUNT, nearest)
         }
     }
 
@@ -344,7 +353,8 @@ internal object ParticleTuning {
             editor.apply()
         }
         ParticleStyle.current = style(context)
-        ParticleStyle.driftAmount = DRIFT_AMOUNT_LEVELS[driftAmountIndex(context)]
+        ParticleStyle.driftAmount = AMOUNT_LEVELS[amountIndex(context, ParticleStyle.DRIFT)]
+        ParticleStyle.flowAmount = AMOUNT_LEVELS[amountIndex(context, ParticleStyle.FLOW)]
         ParticleStyle.driftSize = DRIFT_SIZE_LEVELS[driftSizeIndex(context)]
         // 仅调试包：验收时把某段参考样式钉住（键由 adb 经 run-as 写入，正式包不读）。
         ParticleDriftStyles.forcedForTests =

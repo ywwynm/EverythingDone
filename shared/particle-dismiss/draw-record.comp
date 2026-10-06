@@ -24,6 +24,9 @@ layout(std430,binding=1) readonly buffer B {State states[];};
 layout(std430,binding=2) readonly buffer C {float pigments[];};
 layout(std430,binding=6) writeonly buffer D {vec4 records[];};
 uniform vec2 card,cell,wind;
+#ifdef PARTICLE_AMOUNT
+uniform vec2 particle_scale;
+#endif
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform float panel_weight,release_spread;
 uniform int nx,grid_count,count;
@@ -100,6 +103,12 @@ void main(){
         float total=scale*(1.+z/1000.);
         vec2 column0=vec2(total*ca*squash,total*sa*squash);
         vec2 column1=vec2(-total*sa,total*ca);
+#ifdef PARTICLE_AMOUNT
+        // 与 material.vert 的直接绘制路径保持相同的数量／大小解耦。
+        vec2 size_adjust=mix(vec2(1.),particle_scale,loosen);
+        column0*=size_adjust.x;
+        column1*=size_adjust.y;
+#endif
         // d0 = grid*cell - src.xy，量级只有半个格子，不存在大数相减。
         vec2 d0=grid*cell-m.src.xy;
         origin=move+column0*d0.x+column1*d0.y;

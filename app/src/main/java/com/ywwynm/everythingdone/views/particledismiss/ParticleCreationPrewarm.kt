@@ -538,6 +538,7 @@ internal object ParticleCreationPrewarm {
         // 取的是**设置值**而不是 `…Now`：那两个读点带线程局部覆盖，是离屏受控对照临时切的
         // 瞬时状态，写进指纹会让预算必然判废（见 cache-keys-must-use-stable-values）。
         append(',').append(ParticlePerfTuning.microflakeCellDp)
+        append(',').append(ParticleStyle.flowAmount)
         append(',').append(ParticlePerfTuning.jacobiIterations)
     }
 

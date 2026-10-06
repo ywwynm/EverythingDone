@@ -14,6 +14,30 @@ class ParticleMicroflakeModelTest {
         .first { File(it, "shared/particle-dismiss/rules.properties").isFile }
     private val rules get() = ParticleMicroflakeRules.read(File(root, "shared/particle-dismiss/rules.properties").inputStream(), File(root, "shared/particle-dismiss/common-release.f32").inputStream())
 
+    @Test fun `数量倍率改变实际粒子数且释放后的大小保持不变`() {
+        val currentRules = rules
+        val pixels = IntArray(20 * 12) { 0xffedaa60.toInt() }
+        // 小面板由尺寸限制数量，大面板由预算限制；两种路径都必须响应倍率。
+        for ((width, height) in listOf(240f to 144f, 2000f to 1200f)) {
+            fun build(amount: Float) = ParticleMicroflakeModel.build(width, height, pixels,
+                20, 12, 135f, 129L, currentRules, cellDp = 1.5f, particleAmount = amount)
+            val base = build(1f)
+            assertEquals(1f, base.particleScaleX, 0f)
+            assertEquals(1f, base.particleScaleY, 0f)
+            for (amount in listOf(.2f, .6f, 1.6f)) {
+                val changed = build(amount)
+                assertEquals("$width × $height，倍率 $amount", amount,
+                    changed.count.toFloat() / base.count, amount * .05f)
+                assertTrue(changed.count <= (currentRules.number("max_cells") * amount).toInt())
+                assertEquals(base.cellX, changed.cellX * changed.particleScaleX, 1e-5f)
+                assertEquals(base.cellY, changed.cellY * changed.particleScaleY, 1e-5f)
+                assertEquals(width, changed.columns * changed.cellX, 1e-3f)
+                assertEquals(height, changed.rows * changed.cellY, 1e-3f)
+                assertTrue(changed.values.all { it.isFinite() })
+            }
+        }
+    }
+
     @Test fun `加入阴影外圈后保持卡片本体粒径且不改变其它会话预算`() {
         val originalRules = rules
         val color = 0xffedaa60.toInt()
