@@ -31,11 +31,16 @@ def main():
     p.add_argument('--repeats', type=int, default=7)
     p.add_argument('--frames', type=int, default=60)
     p.add_argument('--verify-reuse', action='store_true')
+    p.add_argument('--width', type=int, default=1440)
+    p.add_argument('--height', type=int, default=3088)
     a = p.parse_args()
     folder = d.OUT / a.run
     folder.mkdir(parents=True, exist_ok=True)
-    width, height = 1440, 3088
-    cases = list(CASES)
+    width, height = a.width, a.height
+    cases = [dict(c, width=round(c['width'] * width / 1440),
+                  height=round(c['height'] * height / 3088)) for c in CASES]
+    for c in cases:
+        c['name'] = c['name'].split()[0] + ' %d×%d' % (c['width'], c['height'])
     if a.verify_reuse:
         cases.append(dict(name='加光／奇数尺寸／非默认大小', width=901, height=347, pattern='dialog',
                           seed=42, dx=-1, dy=-1, additive=True, size=.8, amount=1.6))

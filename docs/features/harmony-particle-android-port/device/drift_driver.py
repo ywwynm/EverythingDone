@@ -3,7 +3,8 @@
 只经真实系统输入操作；启动应用一律 `am start`（`monkey` 会打开自动旋转，见 .claude/rules/adb.md）。
 截图一律「设备端 screencap + md5 校验 + pull」；dump 每次换随机文件名，避免读到上一轮的残留。
 
-设备：由用户在 2026-10-05 为本功能授权 R5CW20BLNKL（三星 SM-S9180）。其他设备要先问。
+设备：已授权三星 R5CW20BLNKL，以及 2026-10-07 本轮的魅族 392QBFED2226B。
+无线地址由 DRIFT_SERIAL 传入，并核对真实序列号，避免误用其他在线设备。
 """
 import hashlib
 import os
@@ -16,8 +17,12 @@ from pathlib import Path
 
 ADB = 'E:/AndroidSDK/platform-tools/adb.exe'
 SERIAL = os.environ.get('DRIFT_SERIAL', 'R5CW20BLNKL')
-if SERIAL not in ('R5CW20BLNKL',):
-    raise ValueError('本功能只授权了 R5CW20BLNKL')
+AUTHORIZED = ('R5CW20BLNKL', '392QBFED2226B')
+if SERIAL not in AUTHORIZED:
+    identity = subprocess.run([ADB, '-s', SERIAL, 'shell', 'getprop', 'ro.serialno'],
+                              capture_output=True, check=True, timeout=10).stdout.decode().strip()
+    if identity not in AUTHORIZED:
+        raise ValueError('目标设备不在本功能的授权名单内：' + identity)
 PACKAGE = 'com.ywwynm.everythingdone'
 HOME_ACTIVITY = PACKAGE + '/.activities.ThingsActivity'
 REPO = Path(__file__).resolve().parents[4]

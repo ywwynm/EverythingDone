@@ -47,6 +47,7 @@ internal class ParticleWindowSurface private constructor(
 ) : SurfaceHolder.Callback {
 
     private val inWindow get() = onTextureReady != null
+    private val frameRateOwner = Any()
     @Volatile private var textureSubmitted = false
     @Volatile private var texturePresentedAt = 0L
     private var textureRevealed = false
@@ -125,6 +126,7 @@ internal class ParticleWindowSurface private constructor(
             override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
                 val previous = surface
                 surface = null
+                ParticleWindowFrameRate.vote(activity.window, frameRateOwner, 0f)
                 // 框架立即释放消费者以唤醒可能等缓冲的 eglSwapBuffers；GL 随后释放生产端。
                 ParticleGl.post {
                     releaseEglSurface()
@@ -160,6 +162,10 @@ internal class ParticleWindowSurface private constructor(
         val target = surface ?: return
         votedRate = rate
         applyFrameRate(target, rate)
+        activity.runOnUiThread {
+            ParticleWindowFrameRate.vote(activity.window, frameRateOwner,
+                if (detached || surface == null || !ParticlePerfTuning.driftWindowFrameRate) 0f else rate)
+        }
     }
 
     /** 本窗口最近一次真的合成出帧的节拍目标；只在 GL 线程读写。补帧（[ParticleGl] 的 lateFrames）靠它判断这一拍画过没有。 */
@@ -214,6 +220,7 @@ internal class ParticleWindowSurface private constructor(
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         surface = null
+        ParticleWindowFrameRate.vote(activity.window, frameRateOwner, 0f)
         // 回调返回之后这个 Surface 就不再有效，必须先等 GL 线程放手。
         val latch = CountDownLatch(1)
         ParticleGl.post {
@@ -225,8 +232,8 @@ internal class ParticleWindowSurface private constructor(
     }
 
     /**
-     * 1.2：不改任何窗口属性，只在自己的 Surface 上投无缝的刷新率；每帧的 `eglPresentationTimeANDROID` 负责钉住
-     * 呈现时刻。投什么由 [voteFrameRate] 按会话决定，[rate] 为 0 表示撤掉投票（不表达偏好）。
+     * Surface 上只请求无缝刷新率切换；宿主窗口的高刷需求由 [ParticleWindowFrameRate] 单独维护。
+     * 投什么由 [voteFrameRate] 按会话决定，[rate] 为 0 表示撤掉投票（不表达偏好）。
      */
     private fun applyFrameRate(target: Surface, rate: Float) {
         runCatching {
@@ -523,6 +530,7 @@ internal class ParticleWindowSurface private constructor(
 
     /** GL 线程：窗口整体退出。 */
     fun releaseGl() {
+        activity.runOnUiThread { ParticleWindowFrameRate.vote(activity.window, frameRateOwner, 0f) }
         firstCardFrames.values.forEach { it.close() }
         firstCardFrames.clear()
         while (frameTransactions.isNotEmpty()) frameTransactions.removeFirst().let {
@@ -545,6 +553,7 @@ internal class ParticleWindowSurface private constructor(
     private fun dispose() {
         if (detached) return
         detached = true
+        ParticleWindowFrameRate.vote(activity.window, frameRateOwner, 0f)
         synchronized(hosts) { if (hosts[decor]?.get() === this) hosts.remove(decor) }
         view.removeOnAttachStateChangeListener(attachment)
         ParticleGl.unregister(this)

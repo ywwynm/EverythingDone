@@ -307,6 +307,9 @@ internal object ParticlePerfTuning {
      */
     @Volatile var driftHighFrameRate = true
 
+    /** 飘散期间为宿主窗口请求同分辨率的高刷模式；魅族忽略单独的 Surface／窗口帧率提示。 */
+    @Volatile var driftWindowFrameRate = true
+
     /**
      * 高帧率下的左滑：主线程在输入阶段写手指位置、GL 线程在同一个 vsync 之后读，两边都落在 vsync 后 1.3–1.6 ms，
      * 约六分之一的拍里读在写之前，这一拍没有新位置、下一拍一次走两步（2026-10-06 三星实测每轮 19–21 拍）。
@@ -639,6 +642,7 @@ internal object ParticlePerfTuning {
         immediateFirstFrame = config.optBoolean("immediateFirstFrame", immediateFirstFrame)
         beatPhaseLock = config.optBoolean("beatPhaseLock", beatPhaseLock)
         driftHighFrameRate = config.optBoolean("driftHighFrameRate", driftHighFrameRate)
+        driftWindowFrameRate = config.optBoolean("driftWindowFrameRate", driftWindowFrameRate)
         lateGestureFrames = config.optBoolean("lateGestureFrames", lateGestureFrames)
         cellDpFromFile = config.has("microflakeCellDp")
         jacobiFromFile = config.has("jacobiIterations")
