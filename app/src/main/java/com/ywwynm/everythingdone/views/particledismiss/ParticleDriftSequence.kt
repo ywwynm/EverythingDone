@@ -9,17 +9,20 @@ internal class ParticleDriftSequence {
     private var lastReference: String? = null
     private val lastByDirection = arrayOfNulls<String>(2)
 
-    fun prepare(reverse: Boolean, create: (Set<String>) -> ParticleDriftModel): Playback =
-        Playback(this, reverse, create)
+    private fun exclusions(reverse: Boolean): Set<String> =
+        setOfNotNull(lastReference, lastByDirection[if (reverse) 1 else 0])
+
+    @Synchronized fun prepare(reverse: Boolean, create: (Set<String>) -> ParticleDriftModel): Playback =
+        Playback(this, reverse, exclusions(reverse), create)
 
     @Synchronized private fun begin(playback: Playback): ParticleDriftModel {
         // 显式钉住样式的调试对照仍须可重复，也不影响正常播放记录。
         if (ParticleDriftStyles.forcedForTests != null) return playback.model
         val lane = if (playback.reverse) 1 else 0
-        val excluded = setOfNotNull(lastReference, lastByDirection[lane])
-        val candidate = playback.model
-        val selected = if (ParticleDriftStyles.referenceName(candidate.styleName) in excluded)
-            playback.create(excluded) else candidate
+        val excluded = exclusions(playback.reverse)
+        // 候选数量决定总参考概率。历史变化时连随机候选也要重算，不能只剔除已抽中的重复参考。
+        val selected = if (excluded != playback.preparedExclusions)
+            playback.create(excluded) else playback.model
         val reference = ParticleDriftStyles.referenceName(selected.styleName)
         check(reference == null || reference !in excluded)
         lastReference = reference
@@ -30,9 +33,10 @@ internal class ParticleDriftSequence {
     class Playback internal constructor(
         private val sequence: ParticleDriftSequence,
         internal val reverse: Boolean,
+        internal val preparedExclusions: Set<String>,
         internal val create: (Set<String>) -> ParticleDriftModel
     ) {
-        var model = create(emptySet())
+        var model = create(preparedExclusions)
             private set
         private var started = false
 

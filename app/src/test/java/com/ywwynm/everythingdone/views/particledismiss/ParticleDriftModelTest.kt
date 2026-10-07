@@ -162,7 +162,7 @@ class ParticleDriftModelTest {
         repeat(2000) {
             ParticleDriftStyles.pick(styles, 130f, random)?.let { picked++; names += it.name }
         }
-        assertEquals(ParticleDriftStyles.REFERENCE_PROBABILITY * 2000, picked.toFloat(), 120f)
+        assertEquals(.12f * 2000, picked.toFloat(), 120f)
         assertEquals(setOf("kobe"), names)
     }
 
@@ -173,7 +173,7 @@ class ParticleDriftModelTest {
         .77373f, 0f, .2553f, .64142f,
         .47323f, .99335f, .22922f, .0992f)
 
-    @Test fun `左上方向旧钢铁侠一族约占一半其中四成是原样`() {
+    @Test fun `先按两个候选决定总概率再均分参考且变体不增加份额`() {
         val styles = listOf(style("ironman", 135f, ironmanLattice), style("kobe", 135.1f), style("thanos", 134.4f))
         val random = Random(5)
         var original = 0
@@ -190,12 +190,10 @@ class ParticleDriftModelTest {
                 else -> others++
             }
         }
-        val family = ParticleDriftStyles.FAVORITE_PROBABILITY
-        assertEquals(family * trials, (original + variants).toFloat(), 160f)
-        assertEquals(ParticleDriftStyles.FAVORITE_ORIGINAL_SHARE, original.toFloat() / (original + variants), .04f)
-        // 没选中这一族的那一半，按原来的规则在其余参考与随机之间各占一半
-        assertEquals((1 - family) * ParticleDriftStyles.REFERENCE_PROBABILITY * trials, others.toFloat(), 160f)
-        assertEquals((1 - family) * (1 - ParticleDriftStyles.REFERENCE_PROBABILITY) * trials, none.toFloat(), 160f)
+        assertEquals(.12f * trials, (original + variants).toFloat(), 80f)
+        assertEquals(.4f, original.toFloat() / (original + variants), .06f)
+        assertEquals(.12f * trials, others.toFloat(), 80f)
+        assertEquals(.76f * trials, none.toFloat(), 120f)
     }
 
     @Test fun `正上方向不会选到旧钢铁侠`() {
@@ -233,7 +231,7 @@ class ParticleDriftModelTest {
         return counts
     }
 
-    @Test fun `正上方向朝上一组约占四分之三其中四成是原样`() {
+    @Test fun `正上四条参考总共占百分之三十六且各来源均分`() {
         val trials = 8000
         val counts = tally(90f, 31, trials)
         // 90° 对得上的是参考 4、7、1 与向上钢铁侠
@@ -241,50 +239,81 @@ class ParticleDriftModelTest {
         assertEquals(family.toSet() + "随机", counts.keys)
         val original = family.sumOf { counts.getValue(it)[0] }
         val variants = family.sumOf { counts.getValue(it)[1] }
-        assertEquals(ParticleDriftStyles.UP_FAMILY_PROBABILITY * trials, (original + variants).toFloat(), 240f)
-        assertEquals(ParticleDriftStyles.FAVORITE_ORIGINAL_SHARE, original.toFloat() / (original + variants), .03f)
+        assertEquals(.36f * trials, (original + variants).toFloat(), 240f)
+        assertEquals(ParticleDriftStyles.ORIGINAL_SHARE, original.toFloat() / (original + variants), .03f)
         // 组内等概率
         for (name in family) assertEquals(.25f, counts.getValue(name).sum().toFloat() / (original + variants), .03f)
-        assertEquals((1 - ParticleDriftStyles.UP_FAMILY_PROBABILITY) * trials, counts.getValue("随机")[0].toFloat(), 240f)
+        assertEquals(.64f * trials, counts.getValue("随机")[0].toFloat(), 240f)
     }
 
-    @Test fun `上方偏左时离哪一组近就偏向哪一组`() {
-        val trials = 8000
-        // 120°：参考 2（118.3°）比旧钢铁侠（135°）近，偏向朝上一组；旧钢铁侠只作为普通候选、不出变体
-        val near = tally(120f, 37, trials)
-        val family = listOf("reference-0926-1", "ironman-up-reference", "reference-0926-2")
-        val inFamily = family.sumOf { near[it]?.sum() ?: 0 }
-        assertEquals(ParticleDriftStyles.UP_FAMILY_PROBABILITY * trials, inFamily.toFloat(), 240f)
-        assertEquals(0, near["ironman"]?.get(1) ?: 0)
-        // 135°（返回键）：旧钢铁侠最近，与此前一样是旧钢铁侠一族一半
-        val back = tally(135f, 41, trials)
-        val ironman = back.getValue("ironman").sum()
-        assertEquals(ParticleDriftStyles.FAVORITE_PROBABILITY * trials, ironman.toFloat(), 240f)
-        assertTrue(back.keys.none { it in family.take(2) })
+    @Test fun `同方向参考多时只细分总份额不会再次抽取偏爱组`() {
+        val trials = 60000
+        for ((angle, count) in listOf(120f to 8, 135f to 6)) {
+            val counts = tally(angle, 41, trials)
+            println("参考概率统计：方向=$angle，样本=$trials，参考次数=${trials - counts.getValue("随机").sum()}，各来源=" +
+                counts.toSortedMap().mapValues { it.value.sum() })
+            assertEquals(count + 1, counts.size)
+            val references = counts.filterKeys { it != "随机" }
+            assertEquals(.36f, references.values.sumOf { it.sum() }.toFloat() / trials, .008f)
+            for ((name, parts) in references) {
+                assertEquals("$angle $name", .36f / count, parts.sum().toFloat() / trials, .004f)
+            }
+            // 原版和变体共享来源份额，旧钢铁侠不再先占额外的一次抽取机会。
+            val ironman = references.getValue("ironman")
+            assertTrue(ironman[0] > 0 && ironman[1] > 0)
+        }
     }
 
-    @Test fun `只有旧钢铁侠一族时选取结果与此前逐位相同`() {
-        // 此前的写法：先抽旧钢铁侠一族，再在其余候选与随机之间抽
-        fun previous(styles: List<ParticleDriftStyles.Style>, angle: Float, random: Random): String? {
-            val favorite = styles.firstOrNull { it.name == "ironman" }
-            val matches = { s: ParticleDriftStyles.Style ->
-                abs(ParticleDriftStyles.angleDifference(s.angle, angle)) <= ParticleDriftStyles.MATCH_DEGREES }
-            if (favorite != null && matches(favorite) && random.nextFloat() < ParticleDriftStyles.FAVORITE_PROBABILITY) {
-                return if (random.nextFloat() < ParticleDriftStyles.FAVORITE_ORIGINAL_SHARE) favorite.name
-                else ParticleDriftStyles.variantOf(favorite, random).name
-            }
-            val candidates = styles.filter { it !== favorite && matches(it) }
-            if (candidates.isEmpty() || random.nextFloat() >= ParticleDriftStyles.REFERENCE_PROBABILITY) return null
-            return candidates[random.nextInt(candidates.size)].name
+    @Test fun `只有一条参考时总概率降到百分之十二且不保留旧偏爱概率`() {
+        val styles = listOf(style("ironman", 135f, ironmanLattice))
+        val random = Random(77)
+        var selected = 0
+        repeat(12000) {
+            if (ParticleDriftStyles.pick(styles, 135f, random) != null) selected++
         }
-        val styles = allStyles().filter { !ParticleDriftStyles.isUpFamily(it) && it.name != "thanos" }
-        for (angle in listOf(135f, 140f, 150f, 125f, 160f, 90f)) {
-            val a = Random(77)
-            val b = Random(77)
-            repeat(500) {
-                assertEquals(previous(styles, angle, a), ParticleDriftStyles.pick(styles, angle, b)?.name)
-            }
+        assertEquals(.12f, selected / 12000f, .012f)
+    }
+
+    @Test fun `总参考概率依赖可用数量且最多百分之三十六`() {
+        for ((count, probability) in listOf(0 to 0f, 1 to .12f, 2 to .24f, 3 to .36f,
+            4 to .36f, 8 to .36f, 100 to .36f)) {
+            assertEquals("N=$count", probability, ParticleDriftStyles.referenceProbability(count), 1e-7f)
         }
+    }
+
+    @Test fun `先过滤方向灭霸和近期来源再计数且变体不重复计数`() {
+        val styles = listOf(style("first", 135f), style("second", 135f), style("third", 135f),
+            style("first-variant", 135f), style("thanos", 135f), style("down", 270f))
+        val random = Random(129)
+        val counts = HashMap<String, Int>()
+        val trials = 24000
+        repeat(trials) {
+            val selected = ParticleDriftStyles.pick(styles, 135f, random, setOf("third"))?.name ?: "随机"
+            counts[selected] = counts.getOrDefault(selected, 0) + 1
+        }
+        assertEquals(setOf("first", "second", "随机"), counts.keys)
+        assertEquals(.12f, counts.getValue("first").toFloat() / trials, .009f)
+        assertEquals(.12f, counts.getValue("second").toFloat() / trials, .009f)
+        assertEquals(.76f, counts.getValue("随机").toFloat() / trials, .009f)
+        assertNull(ParticleDriftStyles.pick(styles, 135f, random, setOf("first", "second", "third")))
+    }
+
+    @Test fun `总概率门槛未命中时直接随机而命中后只均匀选择一个来源`() {
+        val styles = (0 until 8).map { style("plain-$it", 135f) }
+        var floatCalls = 0
+        var indexCalls = 0
+        val random = object : Random(1) {
+            var draw = .36f
+            override fun nextFloat(): Float { floatCalls++; return draw }
+            override fun nextInt(bound: Int): Int { indexCalls++; assertEquals(8, bound); return 6 }
+        }
+        assertNull(ParticleDriftStyles.pick(styles, 135f, random))
+        assertEquals(1, floatCalls)
+        assertEquals(0, indexCalls)
+        random.draw = .35f
+        assertEquals("plain-6", ParticleDriftStyles.pick(styles, 135f, random)?.name)
+        assertEquals(2, floatCalls)
+        assertEquals(1, indexCalls)
     }
 
     @Test fun `任意一段参考都能生成变体并可在调试包里钉住`() {
@@ -360,14 +389,13 @@ class ParticleDriftModelTest {
 
     @Test fun `选用参考样式时风力取参考的而风向仍是本次方向`() {
         val styles = listOf(style("ironman", 145f))
-        var model: ParticleDriftModel? = null
-        for (seed in 0 until 64) {
-            val candidate = ParticleDriftModel.random(1200, 680, -1f, -1f, 1f,
-                ParticleDriftModel.seededRandom(seed), styles)
-            if (candidate.styleName != null) { model = candidate; break }
+        // 此处验证原版的风力；概率与变体风力另测，避免依赖恰好首先抽到原版的种子。
+        val random = object : Random(1) {
+            override fun nextFloat() = 0f
+            override fun nextInt(bound: Int) = 0
         }
-        assertNotNull(model)
-        val wind = checkNotNull(model)
+        val wind = ParticleDriftModel.random(1200, 680, -1f, -1f, 1f, random, styles)
+        assertEquals("ironman", wind.styleName)
         // y 向下：左上是 (−, −)。参考的风向是 145°，本次方向 135°，风向取本次的
         val angle = Math.toDegrees(atan2(-wind.windY.toDouble(), wind.windX.toDouble()))
         assertEquals(135.0, angle, 1e-3)

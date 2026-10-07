@@ -1,7 +1,9 @@
 package com.ywwynm.everythingdone.views.particledismiss
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
@@ -66,5 +68,43 @@ class ParticleDriftSelectionTest {
         assertNotEquals(family(first.model), family(second.start()))
         assertSame(first.model, first.start()) // 回退、重复绘制不能再次抽取。
         assertSame(second.model, second.start())
+    }
+
+    @Test fun `已有播放记录时预热直接使用过滤后的候选数量`() {
+        val seed = (0 until 256).first { family(prepare(it, false).model) != null }
+        val first = next(seed, false)
+        var prepared: Set<String>? = null
+        val pending = sequence.prepare(false) { excluded ->
+            prepared = excluded
+            ParticleDriftModel.random(400, 400, -1f, -1f, 1f, ParticleDriftModel.seededRandom(129),
+                styles, excludedReferences = excluded)
+        }
+        assertEquals(setOf(family(first)), prepared)
+        assertSame(pending.model, pending.start())
+    }
+
+    @Test fun `历史变化时即使预备来源没有重复也必须按新数量重新判断概率`() {
+        // U 在 0.24 和 0.36 之间，三个候选时选参考，排掉任何一条后都应改为随机。
+        val seed = (0 until 4096).first { candidate ->
+            ParticleDriftModel.seededRandom(candidate).nextFloat() in 0.25f..0.35f &&
+                family(prepare(candidate, false).model) == "kobe"
+        }
+        val pending = prepare(seed, false)
+        val otherSeed = (0 until 4096).first { family(prepare(it, false).model) == "ironman" }
+        next(otherSeed, false)
+        assertEquals("kobe", family(pending.model))
+        assertNull(family(pending.start()))
+    }
+
+    @Test fun `预备随机候选也随最新历史重算以免候选增加后概率偏低`() {
+        val firstSeed = (0 until 4096).first { family(prepare(it, false).model) == "ironman" }
+        next(firstSeed, false)
+        val seed = (0 until 4096).first { ParticleDriftModel.seededRandom(it).nextFloat() in 0.25f..0.35f }
+        val pending = prepare(seed, false)
+        assertNull(family(pending.model)) // 当前排除旧钢铁侠，只剩两个候选。
+        val randomSeed = (0 until 4096).first { ParticleDriftModel.seededRandom(it).nextFloat() > .9f }
+        assertNull(family(next(randomSeed, false))) // 最近一轮随机，恢复三个可用候选。
+        assertNotEquals(null, family(pending.start()))
+        assertSame(pending.model, pending.start())
     }
 }

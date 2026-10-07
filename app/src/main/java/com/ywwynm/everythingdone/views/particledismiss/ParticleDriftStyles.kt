@@ -6,31 +6,22 @@ import java.util.Random
 import kotlin.math.abs
 
 /**
- * 飘散样式的参考样式库：十二段参考录像逐段估计出的格点值、风与颗粒衰减方式
- * （`shared/particle-dismiss/drift-styles.json`，由 `docs/features/harmony-particle-android-port/export_styles.py` 生成）。
- *
- * 用户 2026-10-05 裁定：参考样子要在方向合适时**按概率**真的出现，但不能每次都出现。本次方向与某段参考的风向
- * 相差不超过 [MATCH_DEGREES] 时它才是候选；有候选时以 [REFERENCE_PROBABILITY] 的概率从候选里等概率选一段，
- * 否则随机生成格点值与风力。参考的风都朝上（左上、正上、右上），向下或水平的方向只会随机生成。
- *
- * 同日用户补充：最喜欢旧钢铁侠（[FAVORITE]），左上方向（含触摸与返回键退出）要更常出现它和它的变体。落在它的方向范围里时，
- * 先以 [FAVORITE_PROBABILITY] 的概率选这一族：其中 [FAVORITE_ORIGINAL_SHARE] 是原样，其余是 [variantOf] 生成的变体；
- * 没选中这一族才按上面的规则在**其余**参考与随机之间选。
- *
- * 2026-10-06 用户补充：消逝方向是上方、上方偏左、上方偏右（不是左上、右上）的那几段参考，也要更常出现它们和它们的变体。
- * 风向离正上方不超过 [UP_FAMILY_HALF_SPAN] 度的参考是「朝上一组」（参考 5、4、7、1、向上钢铁侠、参考 2，63°～118°）；
- * 本次方向对得上其中几段时，先以 [UP_FAMILY_PROBABILITY] 的概率从对得上的这几段里等概率选一段，原样与变体的比例同上。
- * 旧钢铁侠与朝上一组都对得上时（本次方向在两者之间），看哪一组离本次方向最近的那一段更近；一样近时算旧钢铁侠。
- *
- * 2026-10-07：普通候选移除灭霸；[ParticleDriftSequence] 在实际开播时排除上一段及同类上一段的参考来源。
+ * 飘散参考库：十二段录像估计出的格点值、风力与颗粒衰减方式。
+ * 正常播放先筛方向、去掉灭霸和近期重复来源，再按 [referenceProbability] 决定是否用参考；
+ * 命中后从候选里等概率选一条。原版与变体共用一个来源份额，不额外增加总参考概率。
+ * [ParticleDriftSequence] 负责让候选与计数反映实际开播时的播放记录。
  */
 internal object ParticleDriftStyles {
 
     /** 本次方向与参考风向的夹角上限（度）：八个方向扇区的一半。 */
     const val MATCH_DEGREES = 22.5f
 
-    /** 有候选时选用参考样式的概率。 */
-    const val REFERENCE_PROBABILITY = 0.5f
+    /** 每增加一个可用参考来源，总概率增加 12 个百分点，最多 36%。 */
+    const val REFERENCE_PROBABILITY_PER_SOURCE = 0.12f
+    const val MAX_REFERENCE_PROBABILITY = 0.36f
+
+    fun referenceProbability(sourceCount: Int): Float =
+        (sourceCount.coerceAtLeast(0) * REFERENCE_PROBABILITY_PER_SOURCE).coerceAtMost(MAX_REFERENCE_PROBABILITY)
 
     /** 用户最喜欢的那段参考：旧钢铁侠。 */
     const val FAVORITE = "ironman"
@@ -38,20 +29,11 @@ internal object ParticleDriftStyles {
     /** 变体的名字（日志与调试键用）：`ironman-variant`。 */
     const val VARIANT_SUFFIX = "-variant"
 
-    /** 方向落在旧钢铁侠的范围里时，选这一族（原样或变体）的概率。 */
-    const val FAVORITE_PROBABILITY = 0.5f
-
-    /** 这一族里原样所占的份额，其余是变体。 */
-    const val FAVORITE_ORIGINAL_SHARE = 0.4f
+    /** 支持变体的来源里，原版占 40%，其余为变体；在选定参考来源之后才判断。 */
+    const val ORIGINAL_SHARE = 0.4f
 
     /** 「朝上一组」：风向离正上方（90°）不超过这么多度的参考。 */
     const val UP_FAMILY_HALF_SPAN = 35f
-
-    /**
-     * 方向落在朝上一组里时，选这一组（原样或变体）的概率。正上方向只有朝上一组的参考对得上，没选中时只剩随机生成；
-     * 取 0.75 使参考与随机的比例与左上方向相同（旧钢铁侠一族 0.5 + 其余参考 0.25）。
-     */
-    const val UP_FAMILY_PROBABILITY = 0.75f
 
     /** 格点值低于它算一处初始消逝点（最先化开的地方）。 */
     const val START_POINT_VALUE = 0.12f
@@ -144,24 +126,14 @@ internal object ParticleDriftStyles {
             }
             return styles.firstOrNull { it.name == name }
         }
-        val eligible = styles.filter { referenceName(it.name) != "thanos" && referenceName(it.name) !in excludedReferences }
-        val favorite = eligible.firstOrNull { it.name == FAVORITE }?.takeIf { matches(it, angleDegrees) }
-        val up = eligible.filter { isUpFamily(it) && matches(it, angleDegrees) }
-        val upNearer = up.isNotEmpty() && (favorite == null ||
-            up.minOf { abs(angleDifference(it.angle, angleDegrees)) } < abs(angleDifference(favorite.angle, angleDegrees)))
-        val family = when {
-            upNearer -> up
-            favorite != null -> listOf(favorite)
-            else -> emptyList()
-        }
-        if (family.isNotEmpty() && random.nextFloat() < (if (upNearer) UP_FAMILY_PROBABILITY else FAVORITE_PROBABILITY)) {
-            val member = if (family.size == 1) family[0] else family[random.nextInt(family.size)]
-            return if (random.nextFloat() < FAVORITE_ORIGINAL_SHARE) member else variantOf(member, random)
-        }
-        // 没选中时其余对得上的参考（不含这一组）与随机各占一半；只有旧钢铁侠一族时与此前逐位相同
-        val candidates = eligible.filter { it !in family && matches(it, angleDegrees) }
-        if (candidates.isEmpty() || random.nextFloat() >= REFERENCE_PROBABILITY) return null
-        return candidates[random.nextInt(candidates.size)]
+        val candidates = styles.filter {
+            val source = referenceName(it.name)
+            source != "thanos" && source !in excludedReferences && matches(it, angleDegrees)
+        }.distinctBy { referenceName(it.name) }
+        if (candidates.isEmpty() || random.nextFloat() >= referenceProbability(candidates.size)) return null
+        val selected = candidates[random.nextInt(candidates.size)]
+        return if ((selected.name == FAVORITE || isUpFamily(selected)) && random.nextFloat() >= ORIGINAL_SHARE)
+            variantOf(selected, random) else selected
     }
 
     /**
