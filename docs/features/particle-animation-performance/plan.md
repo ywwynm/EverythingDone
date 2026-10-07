@@ -66,7 +66,7 @@
 - 61 帧散列两台设备一致（G0）；`:app:testDebugUnitTest` 除既有的 `FableSolCurveFairnessTest` 失败外全部通过。
 - 既有功能回归：新建保存三阶段顺序、左滑回拖跨原点不崩、弹窗与海浪窗口交接像素检查、连开关 10 次无残留线程。
 - 性能：阶段 0 四个场景两台各三轮，加列到基线表；重点看录音行消散首帧、出现预计算墙钟、每帧间隔 P90/P95、主线程有活停顿。
-- 发布一次阿里云 debug 更新，日志写在 `debug-updates/update-<时间戳>.md`（单个 `## ` 节），回填 `memory/debug-update-notes.md`，不提交。
+- 发布一次阿里云 debug 更新，日志写在 `debug-updates/update-<时间戳>.md`（单个 `## ` 节），回填 `memory/debug-update-notes.md`。发布阶段不自动创建 Git 提交；用户确认提交后，发布日志随对应代码和文档一起提交。
 
 ## 第二批：SurfaceView 与刷新率（D3、D5）
 
