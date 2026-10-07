@@ -6015,7 +6015,8 @@ class ThingsActivity :
         updateThingCardAppearancePanelMaxHeight()
         if (!wasVisible) {
             panel.visibility = View.VISIBLE
-            if (mAppearancePanelAnimator.appear(panel)) return
+            // 本体和阴影按同一帧交接；窗口提交回调不能保证真实面板已经呈现。
+            if (mAppearancePanelAnimator.appear(panel, shadowElevationPx = panel.elevation)) return
         }
         if (!wasVisible) {
             panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
@@ -6084,7 +6085,7 @@ class ThingsActivity :
         onHidden: () -> Unit
     ) {
         if (token != mThingCardAppearancePanelVisibilityToken) return
-        if (mAppearancePanelAnimator.dismiss(panel) {
+        if (mAppearancePanelAnimator.dismiss(panel, shadowElevationPx = panel.elevation) {
                 completeThingCardAppearancePanelHidden(panel, token, onHidden)
             }) return
         val hiddenTranslationY = getThingCardAppearancePanelHiddenTranslationY(panel)
