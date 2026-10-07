@@ -8,8 +8,6 @@ import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.floor
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * 飘散样式的 GL 部分。只在 GL 线程调用；容器对象（VAO / FBO）只在出帧上下文里建与用
@@ -17,7 +15,7 @@ import kotlin.math.min
  *
  * 每帧四步，与桌面实现 `harmony_native.py` 的合成顺序一致：
  * 1. compute（`drift-update.comp`）按粒子索引闭式算出全部颗粒；
- * 2. 颗粒画进半分辨率工作面（源码工作面 = 扩展尺寸 × 0.5）：加光时 ONE / ONE，标准 src-over 时 ONE / ONE_MINUS_SRC_ALPHA；
+ * 2. 颗粒画进覆盖完整窗口的半分辨率工作面：加光时 ONE / ONE，标准 src-over 时 ONE / ONE_MINUS_SRC_ALPHA；
  * 3. 工作面最近邻放大、逐通道截到 1，按预乘 over 叠到窗口表面；
  * 4. 卡片残留（快照 × 消蚀遮罩）按预乘 over 盖在最上面。
  *
@@ -46,6 +44,8 @@ internal class ParticleDriftRenderer(
     private var targetWidth = 0
     private var targetHeight = 0
     private val viewport = IntArray(4)
+    private var workOffsetX = Float.NaN
+    private var workOffsetY = Float.NaN
     private var particleFrame = Int.MIN_VALUE
     private var particleSkip = -1
 
@@ -106,13 +106,15 @@ internal class ParticleDriftRenderer(
      * 画源码设备时刻 [deviceTime] 的那一帧。快照左上角在叠加层里的位置是 ([originX], [originY])；
      * 目标尺寸取当前视口（窗口表面或离屏帧缓冲 [target] 在调用前已经设好）。
      *
-     * [expansion]：扩展画布（设备像素）。缺省按桌面实现的自有界面口径取 min(视口宽, 2100) × min(视口高 × 0.85, 2400)，
-     * 至少盖住快照；与桌面逐帧对照时传参考自己的扩展尺寸。
+     * [expansion]：模拟基准尺寸（设备像素），保留桌面参考的出生和湍流坐标。
+     * 实际绘制工作面始终覆盖整个视口，粒子离开面板后不会被内部画布截断。
      */
     fun draw(deviceTime: Float, originX: Float, originY: Float, target: Int = 0, expansion: FloatArray? = null) {
         drainErrors()
         GLES30.glGetIntegerv(GLES30.GL_VIEWPORT, viewport, 0)
-        ensureTargets(viewport[2], viewport[3], expansion)
+        val canvas = ParticleDriftCanvas.layout(viewport[2], viewport[3], model.snapshotWidth,
+            model.snapshotHeight, originX, originY, expansion)
+        ensureTargets(viewport[2], viewport[3], canvas)
         val programs = checkNotNull(programs)
         val width = model.snapshotWidth.toFloat()
         val height = model.snapshotHeight.toFloat()
@@ -126,10 +128,6 @@ internal class ParticleDriftRenderer(
         val emitH = height * .5f
         val emitX = (canvasW * .5f - emitW) * .5f
         val emitY = (canvasH * .5f - emitH) * .5f
-        val centerX = originX + width * .5f
-        val centerY = originY + height * .5f
-        val canvasLeft = centerX - canvasW * .5f
-        val canvasTop = centerY - canvasH * .5f
 
         GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
         GLES30.glDisable(GLES30.GL_DEPTH_TEST)
@@ -197,6 +195,7 @@ internal class ParticleDriftRenderer(
             val particle = programs.particle
             GLES30.glUseProgram(particle.id)
             GLES30.glUniform2f(particle["u_work"], workWidth.toFloat(), workHeight.toFloat())
+            GLES30.glUniform2f(particle["u_workOffset"], canvas.particleOffsetX, canvas.particleOffsetY)
             GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
             GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, programs.sprite)
             GLES30.glUniform1i(particle["u_sprite"], 1)
@@ -213,7 +212,7 @@ internal class ParticleDriftRenderer(
         GLES30.glBindVertexArray(quadVao)
         val composite = programs.composite
         GLES30.glUseProgram(composite.id)
-        GLES30.glUniform4f(composite["u_rect"], canvasLeft, canvasTop, canvasLeft + canvasW, canvasTop + canvasH)
+        GLES30.glUniform4f(composite["u_rect"], canvas.workLeft, canvas.workTop, canvas.workRight, canvas.workBottom)
         GLES30.glUniform4f(composite["u_viewport"], viewport[0].toFloat(), viewport[1].toFloat(),
             viewport[2].toFloat(), viewport[3].toFloat())
         GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
@@ -249,8 +248,8 @@ internal class ParticleDriftRenderer(
         GLES30.glUniform1f(program["u_scaleU"], model.scaleU)
     }
 
-    /** 容器对象与工作面：只在出帧上下文里建；目标尺寸或指定的扩展画布变了就重建工作面。 */
-    private fun ensureTargets(width: Int, height: Int, expansion: FloatArray?) {
+    /** 工作面只在出帧上下文里建；尺寸变化时重建，坐标平移变化时丢弃已绘制的颗粒帧。 */
+    private fun ensureTargets(width: Int, height: Int, canvas: ParticleDriftCanvas.Layout) {
         val ids = IntArray(1)
         if (particleVao == 0) {
             GLES30.glGenVertexArrays(1, ids, 0)
@@ -267,18 +266,14 @@ internal class ParticleDriftRenderer(
             GLES30.glGenVertexArrays(1, ids, 0)
             quadVao = ids[0]
         }
-        // 桌面实现（harmony_native.py 的 live_inputs）：自有界面的扩展尺寸 = (min(画面宽, 2100), min(画面高 × 0.85, 2400))；
-        // 画布 = 扩展尺寸取整，工作面 = 扩展尺寸 × 0.5 取整（两者分别取整）。多张卡片一起移除时快照可能比这个上限还大，
-        // 扩展尺寸至少要盖住快照，否则边上那几行出生在画布外、整片不见。
-        val expansionW = expansion?.get(0)
-            ?: max(min(width.toFloat(), EXPANSION_CAP_W), model.snapshotWidth.toFloat())
-        val expansionH = expansion?.get(1)
-            ?: max(min(height * EXPANSION_HEIGHT_FRACTION, EXPANSION_CAP_H), model.snapshotHeight.toFloat())
-        val nextWorkW = max(1, (expansionW * .5f).toInt())
-        val nextWorkH = max(1, (expansionH * .5f).toInt())
-        if (canvasWidth != expansionW.toInt() || canvasHeight != expansionH.toInt()) particleFrame = Int.MIN_VALUE
-        canvasWidth = expansionW.toInt()
-        canvasHeight = expansionH.toInt()
+        val nextWorkW = canvas.workWidth
+        val nextWorkH = canvas.workHeight
+        if (canvasWidth != canvas.simulationWidth || canvasHeight != canvas.simulationHeight ||
+            workOffsetX != canvas.particleOffsetX || workOffsetY != canvas.particleOffsetY) particleFrame = Int.MIN_VALUE
+        workOffsetX = canvas.particleOffsetX
+        workOffsetY = canvas.particleOffsetY
+        canvasWidth = canvas.simulationWidth
+        canvasHeight = canvas.simulationHeight
         if (width == targetWidth && height == targetHeight && nextWorkW == workWidth && nextWorkH == workHeight &&
             workFramebuffer != 0) return
         targetWidth = width
@@ -355,12 +350,6 @@ internal class ParticleDriftRenderer(
 
         /** 标准 src-over 时颗粒层 alpha 的倍数（桌面复刻参考 5 按暗点数、暗点深度与整体压暗量定）。 */
         const val OVER_ALPHA_MUL = 1.15f
-
-        const val EXPANSION_CAP_W = 2100f
-        const val EXPANSION_CAP_H = 2400f
-
-        /** 桌面实现自有界面的扩展高度取画面高的 0.85（harmony_native.py 的 live_inputs）。 */
-        const val EXPANSION_HEIGHT_FRACTION = .85f
 
         const val LATTICE_UNIFORMS = 64
 

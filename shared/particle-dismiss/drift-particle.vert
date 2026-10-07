@@ -7,6 +7,7 @@ precision highp int;
 layout(location = 0) in vec4 a_geometry;
 layout(location = 1) in vec4 a_color;
 uniform vec2 u_work;          // 工作面尺寸（像素）
+uniform vec2 u_workOffset;    // 模拟坐标平移到覆盖完整窗口的工作面；不改变出生与运动计算
 out vec2 v_q;
 out vec4 v_color;
 
@@ -22,7 +23,7 @@ void main() {
     }
     vec2 local = CORNERS[gl_VertexID] * (h + 1.0);
     v_q = local / h;
-    vec2 p = a_geometry.xy + local;
+    vec2 p = a_geometry.xy + u_workOffset + local;
     // 工作面纹理按自上而下的行号存放：第 r 行 = 工作面 y ∈ [r, r + 1)
     gl_Position = vec4(p.x / u_work.x * 2.0 - 1.0, p.y / u_work.y * 2.0 - 1.0, 0.0, 1.0);
 }
