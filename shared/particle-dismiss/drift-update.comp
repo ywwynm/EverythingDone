@@ -64,9 +64,12 @@ const float DARK_CLAMP = 0.1961;
 // 加光时寿命最后 20% 遮挡减弱。
 const float SIZE_MUL = 0.7;
 const float ALPHA_WINDOW = 0.2;
-// 内容强调（与流体样式同口径，见 ParticleDriftContent）：有色颗粒更大、更不透明、寿命略长；本体色颗粒更细、更通透。
+// 内容强调：彩色颗粒更大、更不透明、寿命略长；黑白灰只保留基础颗粒，本体色颗粒更细、更通透。
 const float CONTENT_DISTANCE_START = 0.06;
 const float CONTENT_DISTANCE_SPAN = 0.26;
+// 与桌面 neutral 选项一致：按 RGB 通道差平滑撤去低彩度内容的额外强调，深浅主题共用。
+const float NEUTRAL_CHROMA_START = 0.04;
+const float NEUTRAL_CHROMA_END = 0.20;
 const float CONTENT_SIZE_GAIN = 0.20;
 const float CONTENT_ALPHA_GAIN = 0.25;
 const float CONTENT_LIFE_GAIN = 0.30;
@@ -213,6 +216,15 @@ void main() {
     // 强调量：只在有明确本体色时生效（照片类卡片 u_panelWeight ≈ 0，与源码相同）
     float weight = contentWeight(color.rgb);
     float emphasis = u_panelWeight * weight;
+    if (u_panelWeight > 0.0) {
+        float low = min(color.r, min(color.g, color.b));
+        float high = max(color.r, max(color.g, color.b));
+        float neutral = 1.0 - smoothstep(NEUTRAL_CHROMA_START, NEUTRAL_CHROMA_END, high - low);
+        // 保留原副本分布与索引，不把黑白灰副本的预算转给彩色区域；倒放及手势回退使用相同筛选。
+        if (index >= uint(u_baseCount) && driftRandom(0.0, 1.0, index + 81u) < neutral) return;
+        emphasis *= 1.0 - neutral;
+    }
+    // 本体权重仍取原值，避免把撤去强调的文字归为本体并额外缩小、变淡。
     float bodyShare = u_panelWeight * (1.0 - weight);
     // 宿主：lifeTime_cfg = (1 − 进度) × (0.5, 0.8)，再按索引取随机值
     float bornProgress = min(bornTime * 0.5, 1.0);
