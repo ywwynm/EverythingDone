@@ -125,14 +125,14 @@ class ParticlePerFrameBatchTenUiTest {
 
     // ---- 第 3 条：半角括号与右缘对齐 ----
 
-    @Test fun `粒子大小读数在 13 个语言目录里都用半角括号并留一个空格`() {
+    @Test fun `粒子大小读数在所有语言中只展示倍率`() {
         val files = stringFiles.filter { "particle_tuning_cell_size_value" in it.readText(Charsets.UTF_8) }
         assertEquals("13 个语言目录都要有这一条", 13, files.size)
         files.forEach { file ->
             val value = Regex(
                 """<string name="particle_tuning_cell_size_value">([^<]*)</string>"""
             ).find(file.readText(Charsets.UTF_8))!!.groupValues[1]
-            assertEquals("${file.parentFile.name} 的写法", "%1\$s dp (%2\$s px)", value)
+            assertEquals("${file.parentFile.name} 的写法", "%1\$s", value)
         }
     }
 

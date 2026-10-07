@@ -99,16 +99,17 @@ class ParticleDriftModelTest {
 
     @Test fun `粒子数量与粒子大小的档位`() {
         val amount = ParticleTuning.AMOUNT_LEVELS
-        assertEquals(.2f, amount.first(), 1e-6f)
+        assertEquals(.1f, amount.first(), 1e-6f)
         assertEquals(1.6f, amount.last(), 1e-6f)
         assertEquals(1f, amount[ParticleTuning.DEFAULT_AMOUNT_INDEX], 0f)
         val size = ParticleTuning.DRIFT_SIZE_LEVELS
-        assertEquals(16, size.size)
+        assertEquals(31, size.size)
         assertEquals(.5f, size.first(), 1e-6f)
-        assertEquals(2f, size.last(), 1e-6f)
-        assertEquals(1f, size[ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX], 0f)
-        for (levels in listOf(amount, size)) for (k in 1 until levels.size) {
-            assertEquals(.1f, levels[k] - levels[k - 1], 1e-5f)
+        assertEquals(6f, size.last(), 1e-6f)
+        assertTrue(size.contentEquals(ParticleTuning.FLOW_SIZE_LEVELS))
+        assertEquals(1f, size[ParticleTuning.DEFAULT_SIZE_INDEX], 0f)
+        for (k in 1 until amount.size) {
+            assertEquals(.1f, amount[k] - amount[k - 1], 1e-5f)
         }
     }
 
@@ -162,7 +163,7 @@ class ParticleDriftModelTest {
             ParticleDriftStyles.pick(styles, 130f, random)?.let { picked++; names += it.name }
         }
         assertEquals(ParticleDriftStyles.REFERENCE_PROBABILITY * 2000, picked.toFloat(), 120f)
-        assertEquals(setOf("kobe", "thanos"), names)
+        assertEquals(setOf("kobe"), names)
     }
 
     /** 旧钢铁侠的格点值（`drift-styles.json`）：卡片内一处起点，右边那排卡片外的格点上三处。 */
@@ -276,7 +277,7 @@ class ParticleDriftModelTest {
             if (candidates.isEmpty() || random.nextFloat() >= ParticleDriftStyles.REFERENCE_PROBABILITY) return null
             return candidates[random.nextInt(candidates.size)].name
         }
-        val styles = allStyles().filter { !ParticleDriftStyles.isUpFamily(it) }
+        val styles = allStyles().filter { !ParticleDriftStyles.isUpFamily(it) && it.name != "thanos" }
         for (angle in listOf(135f, 140f, 150f, 125f, 160f, 90f)) {
             val a = Random(77)
             val b = Random(77)

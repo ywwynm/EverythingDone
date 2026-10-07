@@ -44,9 +44,9 @@ class ParticleMaterialShareTest {
         pixels: IntArray, pixelWidth: Int = width, seed: Int = 129, originX: Float = 48f,
         releaseOrigin: ParticleReleaseOrigin? = ParticleReleaseOrigin(.5f, 0f),
         sink: FloatArray? = ParticleSink(540f, 60f).signature(), cellDp: Float = 0f, native: Boolean = false,
-        particleAmount: Float = 1f
+        particleAmount: Float = 1f, particleSizeScale: Float = 1f
     ) = ParticleMaterialShare.Key(pixels, pixelWidth, height, 3f, originX, 400f, 540f, 60f, seed, 1f,
-        releaseOrigin, sink, cellDp, native, particleAmount)
+        releaseOrigin, sink, cellDp, native, particleAmount, particleSizeScale)
 
     @Test fun `输入逐项相同时沿用，值数组是复制的一份`() {
         val pixels = cardPixels()
@@ -117,6 +117,7 @@ class ParticleMaterialShareTest {
         assertTrue(reason(key(pixels, releaseOrigin = null)).contains("剥离起点"))
         assertTrue(reason(key(pixels, cellDp = 1.08f)).contains("微片尺寸"))
         assertTrue(reason(key(pixels, particleAmount = .2f)).contains("粒子数量"))
+        assertTrue(reason(key(pixels, particleSizeScale = 2f)).contains("粒子大小"))
         assertTrue(reason(key(pixels, native = true)).contains("建材实现"))
         assertTrue(reason(key(pixels, sink = null)).contains("有没有终点"))
         assertTrue(reason(key(pixels, sink = ParticleSink(541f, 60f).signature())).contains("终点位置"))

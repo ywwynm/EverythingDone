@@ -26,7 +26,7 @@ private const val BEAT_NANOS = 1_000_000_000L / 60
 internal class ParticleDriftSession(
     private val assets: AssetManager,
     override val spec: ParticleDismissSpec,
-    private val model: ParticleDriftModel,
+    private val playback: ParticleDriftSequence.Playback,
     private val background: ParticleDriftBackground,
     private val preparation: ParticleMicroflakePreparation,
     private val touchFeedback: ParticleTouchFeedback?,
@@ -45,6 +45,8 @@ internal class ParticleDriftSession(
     @Volatile private var dirty = false
 
     private var stage = Stage.PIPELINE
+    @Volatile private var model = playback.model
+    private var trajectoryStarted = false
     private var renderer: ParticleDriftRenderer? = null
 
     /**
@@ -97,8 +99,11 @@ internal class ParticleDriftSession(
         (if (spec.reverse) spec.playbackDurationS else ParticleMicroflakeModel.DURATION) *
             spec.durationScale.coerceAtLeast(.1f)
 
-    override val bodyGoneProgress: Float =
-        ((model.bodyGoneSeconds - model.startSeconds) / (model.totalSeconds - model.startSeconds)).coerceIn(0f, 1f)
+    override val bodyGoneProgress: Float get() {
+        val current = model
+        return ((current.bodyGoneSeconds - current.startSeconds) /
+            (current.totalSeconds - current.startSeconds)).coerceIn(0f, 1f)
+    }
 
     override val started get() = stage != Stage.PIPELINE
     override val presenting get() = !cancelled && visible && (stage == Stage.PLAY || stage == Stage.HOLD)
@@ -237,6 +242,12 @@ internal class ParticleDriftSession(
         return try {
             when (stage) {
                 Stage.PLAY -> {
+                    // 按下卡片的预热可以先画静止帧，但不算播放。真正开播再按全局记录确认参考。
+                    if (!trajectoryStarted && (gesture == null || gesture.active)) {
+                        model = playback.start()
+                        active.useModel(model)
+                        trajectoryStarted = true
+                    }
                     if (firstTarget == 0L) firstTarget = target
                     val progress = if (isGesture) {
                         gesturePosition().also {

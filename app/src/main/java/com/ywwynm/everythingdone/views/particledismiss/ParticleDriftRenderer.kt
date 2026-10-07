@@ -25,7 +25,7 @@ import kotlin.math.min
  */
 internal class ParticleDriftRenderer(
     private val assets: AssetManager,
-    private val model: ParticleDriftModel,
+    private var model: ParticleDriftModel,
     /** true：加光（颗粒颜色按已预乘直接累加）；false：标准 src-over。按背景亮度定（[ParticleDriftBackground]）。 */
     val additive: Boolean
 ) : Closeable {
@@ -57,6 +57,17 @@ internal class ParticleDriftRenderer(
 
     /** 颗粒总数：按面积换算的原有颗粒，加上内容强调追加的副本。 */
     val total get() = model.count + content.replicas
+
+    /** 开播前替换预热候选；快照、颗粒数与 GPU 缓冲不变，丢弃旧轨迹的工作面缓存。 */
+    fun useModel(next: ParticleDriftModel) {
+        if (model === next) return
+        require(next.count == model.count && next.snapshotWidth == model.snapshotWidth &&
+            next.snapshotHeight == model.snapshotHeight)
+        model = next
+        lattice.fill(0f)
+        next.lattice.copyInto(lattice)
+        particleFrame = Int.MIN_VALUE
+    }
 
     /**
      * 上传快照、建颗粒缓冲与副本分布表（可共享对象，不依赖上下文）。[image] 是先行上传好的快照纹理（[uploadImage]），

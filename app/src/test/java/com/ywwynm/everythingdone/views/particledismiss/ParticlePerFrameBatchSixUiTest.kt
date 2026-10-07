@@ -86,7 +86,7 @@ class ParticlePerFrameBatchSixUiTest {
         assertEquals("color_precision_standard", ParticleTuning.KEY_COLOR_STANDARD)
         assertEquals("auto_performance_tuning", ParticleTuning.KEY_AUTO_TUNE)
         val restore = tuning.substringAfter("fun restoreDefaults").substringBefore("\n    }")
-        for (key in listOf("KEY_CELL_INDEX", "KEY_FLOW_DETAIL",
+        for (key in listOf("KEY_FLOW_SIZE", "KEY_FLOW_DETAIL",
             "KEY_COLOR_STANDARD", "KEY_AUTO_TUNE")) {
             assertTrue("恢复默认要把 $key 退回未设置", "remove($key)" in restore)
         }
@@ -102,8 +102,8 @@ class ParticlePerFrameBatchSixUiTest {
         assertFalse("刻度文案不该再出现在页面代码里", "setLabels(" in pageCode)
         assertTrue("轨道与滑块仍走应用自己的渐变着色",
             "DisplayUtil.setSeekBarBackground(it, background)" in pageCode)
-        assertTrue("粒子大小的量程仍是十六档（滑动天然吸附）",
-            "cellSlider?.max = ParticleTuning.CELL_DP_LEVELS.lastIndex" in pageCode)
+        assertTrue("粒子大小的使用统一倍率档位（滑动天然吸附）",
+            "cellSlider?.max = ParticleTuning.FLOW_SIZE_LEVELS.lastIndex" in pageCode)
     }
 
     // ---- 第 3 条：流动精细度 0–100 ----

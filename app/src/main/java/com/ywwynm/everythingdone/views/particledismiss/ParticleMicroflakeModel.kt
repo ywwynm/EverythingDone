@@ -27,7 +27,7 @@ internal object ParticleMicroflakeModel {
         val peelCompression: FloatArray,
         val variation: ParticleMicroflakeVariation,
         val statistics: Map<String, Double> = emptyMap(),
-        /** 数量改变了网格间距，释放后的尺寸仍按 1 倍数量时的网格取值。 */
+        /** 将发射网格间距换算为单颗粒子的绘制尺寸，包含数量补偿与用户大小倍率。 */
         val particleScaleX: Float = 1f,
         val particleScaleY: Float = 1f
     ) {
@@ -45,35 +45,43 @@ internal object ParticleMicroflakeModel {
         rules: ParticleMicroflakeRules,
         releaseOrigin: ParticleReleaseOrigin? = null,
         /**
-         * 微片尺寸下限（dp），默认读当前设置。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
+         * 调试用基准粒径（dp），0 表示默认自动尺寸。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
          * 同一个值既进键又交给这里，两次读取之间设置被改掉也不会对不上。
          */
         cellDp: Float = ParticlePerfTuning.microflakeCellDpNow,
-        particleAmount: Float = ParticleStyle.flowAmount
+        particleAmount: Float = ParticleStyle.flowAmount,
+        particleSizeScale: Float = ParticleStyle.flowSizeScale
     ): Materials {
         val started = System.nanoTime()
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
+        require(particleSizeScale.isFinite() && particleSizeScale > 0f)
         val panel = ParticleMicroflakeContent.panel(pixels, pixelWidth, pixelHeight, rules)
         val copyLimit = rules.number("content_copies").toInt()
         val budget = 1.0 + copyLimit * panel.weight.toDouble() * (1.0 - panel.fraction)
         // 本函数在「720 逻辑像素 = 384 dp」的归一空间里工作（见 `fromSpec` 的 scale），
-        // 所以一个 dp 是 [DP_UNITS] 个单位。E12 的下限与 `max_cells` 那条上限取较大者：
-        // 既不小于指定的物理尺寸，也不会把片数顶过上限。
+        // 所以一个 dp 是 [DP_UNITS] 个单位。网格仍受 max_cells 的数量预算约束，
+        // 实际绘制尺寸另由 particleScale 补偿，不能让低档粒径被预算放大。
         val requested = cellDp
-        val baseCell = max(max(rules.decimal("cell"), requested.toDouble() * DP_UNITS),
+        val requestedCell = if (requested > 0f) requested.toDouble() * DP_UNITS else rules.decimal("cell")
+        val baseCell = max(requestedCell,
             sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
-        require(particleAmount.isFinite() && particleAmount in .2f..1.6f)
+        require(particleAmount.isFinite() && particleAmount in .1f..1.6f)
         val maxCells = (rules.number("max_cells") * particleAmount).roundToInt()
+        // 最低数量时固定扣 1000 会吃掉过多预算；取整余量最多占 5%，0.2 倍及以上沿用原值。
+        val roundingMargin = min(1000.0, maxCells * .05)
         // 数量倍率作用于密度与预算，留出取整余量；1 倍直接沿用原式，默认材料逐位不变。
         val cell = if (particleAmount == 1f) baseCell else max(baseCell / sqrt(particleAmount.toDouble()),
-            sqrt(width.toDouble() * height * budget / (maxCells - 1000)))
+            sqrt(width.toDouble() * height * budget / (maxCells - roundingMargin)))
         val nx = ceil(width / cell).toInt().coerceAtLeast(2)
         val ny = ceil(height / cell).toInt().coerceAtLeast(2)
-        val particleScaleX = nx.toFloat() / ceil(width / baseCell).toInt().coerceAtLeast(2)
-        val particleScaleY = ny.toFloat() / ceil(height / baseCell).toInt().coerceAtLeast(2)
         val count = nx * ny
         val cellX = width / nx
         val cellY = height / ny
+        // 数量只决定发射密度；补偿网格间距后，大小倍率只缩放单颗粒子。
+        val particleScaleX = (if (requested > 0f) (requestedCell / cellX).toFloat()
+            else nx.toFloat() / ceil(width / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
+        val particleScaleY = (if (requested > 0f) (requestedCell / cellY).toFloat()
+            else ny.toFloat() / ceil(height / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
         var opaque = 0
         var white = 0
         val sampleStep = ceil(sqrt(pixels.size / 65536.0)).toInt().coerceAtLeast(1)

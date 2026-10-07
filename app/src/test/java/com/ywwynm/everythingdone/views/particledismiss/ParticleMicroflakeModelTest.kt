@@ -14,6 +14,24 @@ class ParticleMicroflakeModelTest {
         .first { File(it, "shared/particle-dismiss/rules.properties").isFile }
     private val rules get() = ParticleMicroflakeRules.read(File(root, "shared/particle-dismiss/rules.properties").inputStream(), File(root, "shared/particle-dismiss/common-release.f32").inputStream())
 
+    @Test fun `大小倍率按比例缩放单颗粒子且数量和轨迹输入不变`() {
+        val currentRules = rules
+        for ((width,height) in listOf(72f to 48f,1200f to 2000f)) {
+            val scales = if(width<100) ParticleTuning.SIZE_LEVELS else floatArrayOf(.5f,1f,6f)
+            val base = ParticleMicroflakeModel.build(width,height,intArrayOf(-1),1,1,135f,129L,
+                currentRules,cellDp=0f,particleAmount=.1f,particleSizeScale=1f)
+            for (scale in scales) {
+                val changed = ParticleMicroflakeModel.build(width,height,intArrayOf(-1),1,1,135f,129L,
+                    currentRules,cellDp=0f,particleAmount=.1f,particleSizeScale=scale)
+                assertEquals(base.count,changed.count)
+                assertArrayEquals(base.values,changed.values,0f)
+                assertArrayEquals(base.pigment,changed.pigment,0f)
+                assertEquals(base.particleScaleX*scale,changed.particleScaleX,1e-6f)
+                assertEquals(base.particleScaleY*scale,changed.particleScaleY,1e-6f)
+            }
+        }
+    }
+
     @Test fun `数量倍率改变实际粒子数且释放后的大小保持不变`() {
         val currentRules = rules
         val pixels = IntArray(20 * 12) { 0xffedaa60.toInt() }
@@ -22,19 +40,39 @@ class ParticleMicroflakeModelTest {
             fun build(amount: Float) = ParticleMicroflakeModel.build(width, height, pixels,
                 20, 12, 135f, 129L, currentRules, cellDp = 1.5f, particleAmount = amount)
             val base = build(1f)
-            assertEquals(1f, base.particleScaleX, 0f)
-            assertEquals(1f, base.particleScaleY, 0f)
-            for (amount in listOf(.2f, .6f, 1.6f)) {
+            val diameter = (1.5 * ParticleMicroflakeModel.DP_UNITS).toFloat()
+            assertEquals(diameter, base.cellX * base.particleScaleX, 1e-5f)
+            assertEquals(diameter, base.cellY * base.particleScaleY, 1e-5f)
+            for (amount in listOf(.1f, .2f, .6f, 1.6f)) {
                 val changed = build(amount)
                 assertEquals("$width × $height，倍率 $amount", amount,
                     changed.count.toFloat() / base.count, amount * .05f)
                 assertTrue(changed.count <= (currentRules.number("max_cells") * amount).toInt())
-                assertEquals(base.cellX, changed.cellX * changed.particleScaleX, 1e-5f)
-                assertEquals(base.cellY, changed.cellY * changed.particleScaleY, 1e-5f)
+                assertEquals(diameter, changed.cellX * changed.particleScaleX, 1e-5f)
+                assertEquals(diameter, changed.cellY * changed.particleScaleY, 1e-5f)
                 assertEquals(width, changed.columns * changed.cellX, 1e-3f)
                 assertEquals(height, changed.rows * changed.cellY, 1e-3f)
                 assertTrue(changed.values.all { it.isFinite() })
             }
+        }
+    }
+
+    @Test fun `全部绝对尺寸档位生效且粒子预算不会放大低档粒径`() {
+        val currentRules = rules
+        for (dp in ParticleTuning.SIZE_LEVELS) {
+            val material = ParticleMicroflakeModel.build(72f, 48f, intArrayOf(-1), 1, 1, 135f, 129L,
+                currentRules, cellDp = dp, particleAmount = .1f)
+            val expected = (dp * ParticleMicroflakeModel.DP_UNITS).toFloat()
+            assertEquals(expected, material.cellX * material.particleScaleX, 1e-5f)
+            assertEquals(expected, material.cellY * material.particleScaleY, 1e-5f)
+        }
+        // 整屏命中数量上限时仍画 0.5 dp；不会变回预算推算出的更大网格。
+        for (amount in listOf(.1f, 1f)) {
+            val material = ParticleMicroflakeModel.build(2000f, 1200f, intArrayOf(-1), 1, 1, 135f, 129L,
+                currentRules, cellDp = .5f, particleAmount = amount)
+            assertEquals((.5 * ParticleMicroflakeModel.DP_UNITS).toFloat(),
+                material.cellX * material.particleScaleX, 1e-5f)
+            assertTrue(material.count <= (currentRules.number("max_cells") * amount).toInt())
         }
     }
 

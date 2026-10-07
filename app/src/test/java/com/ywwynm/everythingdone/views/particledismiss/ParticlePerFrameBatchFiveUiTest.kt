@@ -48,79 +48,34 @@ class ParticlePerFrameBatchFiveUiTest {
 
     @Test fun `粒子大小的档位逐位等于用户裁定的那一组`() {
         val expected = floatArrayOf(
-            .64f, .72f, .84f, .96f, 1.08f, 1.29f, 1.5f, 1.6f,
-            1.8f, 2f, 2.1f, 2.4f, 2.56f, 2.7f, 3f, 3.2f
+            .5f, .54f, .56f, .6f, .64f, .72f, .84f, .96f, 1f, 1.08f, 1.29f, 1.5f, 1.6f,
+            1.8f, 2f, 2.1f, 2.4f, 2.56f, 2.7f, 3f, 3.2f,
+            3.6f, 4f, 4.2f, 4.5f, 4.8f, 5f, 5.1f, 5.4f, 5.6f, 6f
         )
-        assertEquals("档位数", expected.size, ParticleTuning.CELL_DP_LEVELS.size)
+        assertEquals("档位数", expected.size, ParticleTuning.FLOW_SIZE_LEVELS.size)
         for (i in expected.indices) {
-            assertEquals("第 $i 档", expected[i], ParticleTuning.CELL_DP_LEVELS[i], 1e-6f)
+            assertEquals("第 $i 档", expected[i], ParticleTuning.FLOW_SIZE_LEVELS[i], 1e-6f)
         }
     }
 
-    @Test fun `未设置时不写 dp 下限，默认值因此与加入本设置之前逐位相同`() {
-        for (index in ParticleTuning.CELL_DP_LEVELS.indices) {
-            assertEquals("未设置时任何档位都不许往模型里写下限",
-                0f, ParticleTuning.cellDpFloor(index, explicit = false), 0f)
-        }
-        // 模型取的是「规则里的下限」与「设置里的下限」的较大者，所以写 0 等于沿用规则。
-        val model = stripComments(
-            text("app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/" +
-                "ParticleMicroflakeModel.kt"))
-        assertTrue("模型要按 max(规则下限, 设置下限) 取值",
-            Regex("""max\(\s*max\(rules\.decimal\("cell"\),\s*requested""").containsMatchIn(model))
-        val rules = text("shared/particle-dismiss/rules.properties")
-        assertTrue("规则里的下限还是 1.65，整条等价关系建立在它之上",
-            rules.lineSequence().any { it.trim() == "cell=1.65" })
+    @Test fun `两种样式的默认大小倍率都是一倍`() {
+        assertEquals(1f,ParticleTuning.sizeScale(ParticleTuning.DEFAULT_SIZE_INDEX),0f)
+        assertEquals(ParticleTuning.DEFAULT_SIZE_INDEX,ParticleTuning.DEFAULT_CELL_INDEX)
+        assertTrue(ParticleTuning.FLOW_SIZE_LEVELS.contentEquals(ParticleTuning.DRIFT_SIZE_LEVELS))
     }
 
-    @Test fun `滑杆停在最接近规则下限的那一档`() {
-        // 归一空间里一个 dp 是 1.875 个单位，规则里的 1.65 个单位 = 0.88 dp。
-        val rulesDp = (ParticleTuning.RULES_CELL_FLOOR_UNITS / ParticleMicroflakeModel.DP_UNITS)
-            .toFloat()
-        assertEquals(.88f, rulesDp, 1e-3f)
-        val nearest = ParticleTuning.CELL_DP_LEVELS.indices
-            .minByOrNull { abs(ParticleTuning.CELL_DP_LEVELS[it] - rulesDp) }
-        assertEquals("默认停的那一档要是梯度上最接近 0.88 dp 的",
-            nearest, ParticleTuning.DEFAULT_CELL_INDEX)
-        assertEquals(.84f, ParticleTuning.cellDpValue(ParticleTuning.DEFAULT_CELL_INDEX), 1e-6f)
-    }
-
-    @Test fun `低于规则下限的几档被规则吃掉，显式选中它们同样不改画面`() {
-        val absorbed = ParticleTuning.CELL_DP_LEVELS.indices.filter {
-            ParticleTuning.CELL_DP_LEVELS[it] * ParticleMicroflakeModel.DP_UNITS <=
-                ParticleTuning.RULES_CELL_FLOOR_UNITS
-        }
-        assertEquals("0.64 / 0.72 / 0.84 三档都在规则下限之内", listOf(0, 1, 2), absorbed)
-        assertTrue("再往上必须真的抬高下限",
-            (3 until ParticleTuning.CELL_DP_LEVELS.size).all {
-                ParticleTuning.CELL_DP_LEVELS[it] * ParticleMicroflakeModel.DP_UNITS >
-                    ParticleTuning.RULES_CELL_FLOOR_UNITS
-            })
-    }
-
-    @Test fun `档位键换过名字，旧下标不会被读成新梯度上的另一档`() {
-        assertEquals("particle_size_dp_index", ParticleTuning.KEY_CELL_INDEX)
-        val tuning = stripComments(
-            text("app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/" +
-                "ParticleTuning.kt"))
-        assertTrue("恢复默认要把粒子大小退回「未设置」",
-            "remove(KEY_CELL_INDEX)" in tuning)
-        assertTrue("「未设置」由键在不在决定", "contains(KEY_CELL_INDEX)" in tuning)
-        // 旧键只在迁移里出现：用户在上一版显式选过的那一档要搬到新梯度上最接近的一档，
-        // 而上一版的最低一档本来就等于「未设置」，因此只删键、不写值。
-        assertTrue("旧键要有迁移", "LEGACY_KEY_CELL_INDEX = \"microflake_cell_dp_index\"" in tuning)
-        val migrate = tuning.substringAfter("private fun migrateLegacyCellIndex")
-            .substringBefore("\n    }")
-        assertTrue("迁移之后要把旧键删掉", "remove(LEGACY_KEY_CELL_INDEX)" in migrate)
-        assertTrue("上一版的最低一档等于未设置，不许写成新梯度的第 0 档",
-            "legacy in 1 until LEGACY_CELL_DP_LEVELS.size" in migrate)
-        assertTrue("按 dp 取值找最接近的一档", "minByOrNull" in migrate)
+    @Test fun `倍率键与旧dp键不同且恢复默认清除两种大小`() {
+        assertEquals("flow_size_hundredths",ParticleTuning.KEY_FLOW_SIZE)
+        assertEquals("drift_size_hundredths",ParticleTuning.KEY_DRIFT_SIZE)
+        val tuning=text("app/src/main/java/com/ywwynm/everythingdone/views/particledismiss/ParticleTuning.kt")
+        assertTrue("remove(KEY_FLOW_SIZE)" in tuning)
+        assertTrue("remove(KEY_DRIFT_SIZE)" in tuning)
     }
 
     @Test fun `档位文案按定义时的小数位显示`() {
-        for (index in ParticleTuning.CELL_DP_LEVELS.indices) {
-            val label = ParticleTuning.cellDpLabel(index)
-            val value = ParticleTuning.CELL_DP_LEVELS[index]
+        for (index in ParticleTuning.FLOW_SIZE_LEVELS.indices) {
+            val label = ParticleTuning.sizeLabel(index).removeSuffix("×")
+            val value = ParticleTuning.FLOW_SIZE_LEVELS[index]
             assertEquals("第 $index 档的文案要能还原成取值",
                 value, label.replace(',', '.').toFloat(), 1e-6f)
             val decimals = label.length - label.indexOfFirst { it == '.' || it == ',' } - 1
@@ -248,13 +203,12 @@ class ParticlePerFrameBatchFiveUiTest {
     // 滑动条那一条契约在第六批整体换过（自研档位滑条 → 与海浪设置页同款的普通滑动条），
     // 见 ParticlePerFrameBatchSixUiTest。
 
-    @Test fun `当前值旁边标出本机像素`() {
+    @Test fun `当前值只显示倍率并标注默认`() {
         val value = Regex("""<string name="particle_tuning_cell_size_value">(.*?)</string>""")
             .find(text("app/src/main/res/values/strings.xml"))!!.groupValues[1]
-        assertTrue("文案要同时给出 dp 与 px", "dp" in value && "px" in value)
-        val pixel = pageCode.substringAfter("private fun pixelLabel").substringBefore("\n    }")
-        assertTrue("像素按本机密度换算", "displayMetrics.density" in pixel)
-        assertTrue("未显式选过时要标注默认",
+        assertEquals("%1\$s", value)
+        assertFalse("不再把倍率展示为像素", "pixelLabel" in pageCode)
+        assertTrue("一倍时要标注默认",
             "particle_tuning_value_default" in pageCode)
     }
 

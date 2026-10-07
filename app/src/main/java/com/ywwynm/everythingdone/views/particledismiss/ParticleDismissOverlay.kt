@@ -214,7 +214,7 @@ internal class ParticleDismissOverlay(
         val created: ParticleLayerSession = if (isDrift) ParticleDriftSession(
             assets = context.assets,
             spec = spec,
-            model = ParticleDriftInputs.model(context, spec),
+            playback = ParticleDriftInputs.prepare(context, spec),
             background = ParticleDriftBackground.request(host, this, spec),
             preparation = preparation,
             touchFeedback = touchFeedback,

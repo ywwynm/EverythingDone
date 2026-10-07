@@ -112,7 +112,7 @@ def main():
                 for mode in ('records', 'constants', 'single')}
     rows, images, failures = [], {}, []
     for size in (24., 48.):
-        for amount in (.2, 1., 1.6):
+        for amount in (.1, .2, 1., 1.6):
             for age in (.012, .035, .10, .25):
                 cell = size / math.sqrt(amount)
                 centre = cell * 10.5
@@ -182,9 +182,9 @@ def main():
             samples = [r['diameter'] for r in rows if r['size'] == size and r['age'] == age and r['mode'] == 'constants']
             if max(samples) / min(samples) > 1.03:
                 failures.append(dict(reason='amount_changed_size', size=size, age=age, diameters=samples))
-    # 将三个数量档位的出生期轮廓并列，便于人工核查；测试执行前后都可保存。
+    # 将四个数量档位的出生期轮廓并列，便于人工核查；测试执行前后都可保存。
     strips = []
-    for amount in (.2, 1., 1.6):
+    for amount in (.1, .2, 1., 1.6):
         alpha = images[(48., amount, .012)]
         image = np.uint8(np.clip(alpha / alpha.max(), 0, 1) * 255)
         strips.append(cv2.resize(image, (256, 256), interpolation=cv2.INTER_AREA))

@@ -21,6 +21,8 @@ import kotlin.math.abs
  * 风向离正上方不超过 [UP_FAMILY_HALF_SPAN] 度的参考是「朝上一组」（参考 5、4、7、1、向上钢铁侠、参考 2，63°～118°）；
  * 本次方向对得上其中几段时，先以 [UP_FAMILY_PROBABILITY] 的概率从对得上的这几段里等概率选一段，原样与变体的比例同上。
  * 旧钢铁侠与朝上一组都对得上时（本次方向在两者之间），看哪一组离本次方向最近的那一段更近；一样近时算旧钢铁侠。
+ *
+ * 2026-10-07：普通候选移除灭霸；[ParticleDriftSequence] 在实际开播时排除上一段及同类上一段的参考来源。
  */
 internal object ParticleDriftStyles {
 
@@ -128,8 +130,12 @@ internal object ParticleDriftStyles {
     /** 朝上一组的成员（风向离正上方不超过 [UP_FAMILY_HALF_SPAN]）。 */
     fun isUpFamily(style: Style): Boolean = style.name != FAVORITE && abs(angleDifference(style.angle, 90f)) <= UP_FAMILY_HALF_SPAN
 
-    /** 按本次方向 [angleDegrees]（度，y 向上）挑参考样式；不选时返回 null。 */
-    fun pick(styles: List<Style>, angleDegrees: Float, random: Random): Style? {
+    /** 变体与原样属于同一参考来源；显示名字中附带的起点说明不参与去重。 */
+    fun referenceName(name: String?): String? = name?.substringBefore(VARIANT_SUFFIX)
+
+    /** 按本次方向挑参考；排除灭霸与近期播放过的来源，没有合适候选时随机生成。 */
+    fun pick(styles: List<Style>, angleDegrees: Float, random: Random,
+             excludedReferences: Set<String> = emptySet()): Style? {
         forcedForTests?.let { name ->
             // 「<样式名>-variant」钉住该样式的变体
             if (name.endsWith(VARIANT_SUFFIX)) {
@@ -138,8 +144,9 @@ internal object ParticleDriftStyles {
             }
             return styles.firstOrNull { it.name == name }
         }
-        val favorite = styles.firstOrNull { it.name == FAVORITE }?.takeIf { matches(it, angleDegrees) }
-        val up = styles.filter { isUpFamily(it) && matches(it, angleDegrees) }
+        val eligible = styles.filter { referenceName(it.name) != "thanos" && referenceName(it.name) !in excludedReferences }
+        val favorite = eligible.firstOrNull { it.name == FAVORITE }?.takeIf { matches(it, angleDegrees) }
+        val up = eligible.filter { isUpFamily(it) && matches(it, angleDegrees) }
         val upNearer = up.isNotEmpty() && (favorite == null ||
             up.minOf { abs(angleDifference(it.angle, angleDegrees)) } < abs(angleDifference(favorite.angle, angleDegrees)))
         val family = when {
@@ -152,7 +159,7 @@ internal object ParticleDriftStyles {
             return if (random.nextFloat() < FAVORITE_ORIGINAL_SHARE) member else variantOf(member, random)
         }
         // 没选中时其余对得上的参考（不含这一组）与随机各占一半；只有旧钢铁侠一族时与此前逐位相同
-        val candidates = styles.filter { it !in family && matches(it, angleDegrees) }
+        val candidates = eligible.filter { it !in family && matches(it, angleDegrees) }
         if (candidates.isEmpty() || random.nextFloat() >= REFERENCE_PROBABILITY) return null
         return candidates[random.nextInt(candidates.size)]
     }

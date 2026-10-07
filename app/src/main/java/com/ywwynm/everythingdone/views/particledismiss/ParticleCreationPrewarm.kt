@@ -539,6 +539,7 @@ internal object ParticleCreationPrewarm {
         // 瞬时状态，写进指纹会让预算必然判废（见 cache-keys-must-use-stable-values）。
         append(',').append(ParticlePerfTuning.microflakeCellDp)
         append(',').append(ParticleStyle.flowAmount)
+        append(',').append(ParticleStyle.flowSizeScale)
         append(',').append(ParticlePerfTuning.jacobiIterations)
     }
 

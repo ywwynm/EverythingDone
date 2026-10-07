@@ -180,9 +180,6 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
      */
     private var pendingRound = false
 
-    /** 用户是否显式选过粒子大小；未选过时滑杆停在最接近规则下限的那一档并标注「默认」。 */
-    private var cellExplicit = false
-
     /** 松手之后的收尾动画正在播：这段时间里不接受新的滑动（第 5 条）。 */
     private var returning = false
 
@@ -201,7 +198,6 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     override fun getLayoutResource(): Int = R.layout.activity_particle_tuning
 
     override fun initMembers() {
-        cellExplicit = ParticleTuning.isCellExplicit(this)
         nightModeMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     }
 
@@ -338,7 +334,7 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
             if (right - left != oldRight - oldLeft) main.post { applyPreviewWidths() }
         }
 
-        cellSlider?.max = ParticleTuning.CELL_DP_LEVELS.lastIndex
+        cellSlider?.max = ParticleTuning.FLOW_SIZE_LEVELS.lastIndex
         cellSlider?.progress = ParticleTuning.cellIndex(this)
         flowSlider?.max = ParticleTuning.FLOW_MAX
         flowSlider?.progress = ParticleTuning.flowDetail(this)
@@ -381,11 +377,10 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         }
         resetButton?.setOnClickListener {
             ParticleTuning.restoreDefaults(this)
-            cellExplicit = false
             cellSlider?.progress = ParticleTuning.DEFAULT_CELL_INDEX
             flowSlider?.progress = ParticleTuning.DEFAULT_FLOW
             amountSlider?.progress = ParticleTuning.DEFAULT_AMOUNT_INDEX
-            driftSizeSlider?.progress = ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
+            driftSizeSlider?.progress = ParticleTuning.driftSizeIndex(this)
             autoCheckBox?.isChecked = false
             updateValueLabels()
             updateColorTabs()
@@ -398,14 +393,12 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         // 会把正在播的那一轮反复打断。
         cellSlider?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) cellExplicit = true
                 updateValueLabels()
             }
 
             override fun onStartTrackingTouch(bar: SeekBar) = Unit
 
             override fun onStopTrackingTouch(bar: SeekBar) {
-                cellExplicit = true
                 ParticleTuning.setCellIndex(this@ParticleTuningActivity, bar.progress)
                 updateValueLabels()
                 scheduleRebuild()
@@ -1213,29 +1206,22 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
     private fun updateValueLabels() {
         val cell = cellSlider?.progress ?: ParticleTuning.DEFAULT_CELL_INDEX
         val flow = flowSlider?.progress ?: ParticleTuning.DEFAULT_FLOW
-        val size = getString(R.string.particle_tuning_cell_size_value,
-            ParticleTuning.cellDpLabel(cell), pixelLabel(ParticleTuning.cellDpValue(cell)))
-        cellValue?.text = if (cellExplicit) size
-            else getString(R.string.particle_tuning_value_default, size)
+        val size = getString(R.string.particle_tuning_cell_size_value, ParticleTuning.sizeLabel(cell))
+        cellValue?.text = if (cell == ParticleTuning.DEFAULT_SIZE_INDEX)
+            getString(R.string.particle_tuning_value_default, size) else size
         flowValue?.text = flow.toString()
         val amount = amountSlider?.progress ?: ParticleTuning.DEFAULT_AMOUNT_INDEX
         val amountLabel = ParticleTuning.amountLabel(amount)
         amountValue?.text = if (amount == ParticleTuning.DEFAULT_AMOUNT_INDEX)
             getString(R.string.particle_tuning_value_default, amountLabel) else amountLabel
-        val driftSize = driftSizeSlider?.progress ?: ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX
-        val driftSizeLabel = ParticleTuning.driftSizeLabel(driftSize)
-        driftSizeValue?.text = if (driftSize == ParticleTuning.DEFAULT_DRIFT_SIZE_INDEX)
+        val driftSize = driftSizeSlider?.progress ?: ParticleTuning.driftSizeIndex(this)
+        val driftSizeLabel = getString(R.string.particle_tuning_cell_size_value, ParticleTuning.sizeLabel(driftSize))
+        driftSizeValue?.text = if (driftSize == ParticleTuning.DEFAULT_SIZE_INDEX)
             getString(R.string.particle_tuning_value_default, driftSizeLabel) else driftSizeLabel
         BackgroundUtil.applyTextBackground(cellValue, themeBackground)
         BackgroundUtil.applyTextBackground(flowValue, themeBackground)
         BackgroundUtil.applyTextBackground(amountValue, themeBackground)
         BackgroundUtil.applyTextBackground(driftSizeValue, themeBackground)
-    }
-
-    /** 本机密度下这一档折合多少像素；整数能表示时不写小数点。 */
-    private fun pixelLabel(dp: Float): String {
-        val px = (dp * resources.displayMetrics.density * 10f).roundToInt() / 10f
-        return if (px == px.toInt().toFloat()) px.toInt().toString() else String.format("%.1f", px)
     }
 
     private fun scheduleRebuild() {

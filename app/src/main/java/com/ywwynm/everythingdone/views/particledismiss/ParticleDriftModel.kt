@@ -19,8 +19,8 @@ import kotlin.math.roundToInt
  * - 风的方向按现有方向规则（规格里的虚拟触点方向），大小仍取源码范围；选用参考样式时风力取参考的、风向仍按本次方向；
  * - 合成方式（加光 / 标准 src-over）不在这里定：按背景亮度取样（[ParticleDriftBackground]），由会话在开画之前交给渲染器；
  * - 粒子数与桌面实现同一公式：按设备像素面积保持 4×4 卡片 4 万颗 / 1.3M 设备像素²的密度，取整到千颗，截在 1～5 万；
- *   颗粒的尺寸以设备像素计、不随屏幕密度缩放，所以密度按设备像素算才与源码画面一致。设置里的「粒子数量」倍率（0.2～1.6）
- *   乘在截好的粒子数上，任何尺寸的内容都按这个倍率变；「粒子大小」倍率（0.5～2.0）乘在颗粒的半宽上。两者缺省都是 1，与桌面相同。
+ *   颗粒的尺寸以设备像素计、不随屏幕密度缩放，所以密度按设备像素算才与源码画面一致。设置里的「粒子数量」倍率（0.1～1.6）
+ *   乘在截好的粒子数上，任何尺寸的内容都按这个倍率变；大小设置为 0.5～6 倍，直接缩放每颗粒子。
  *
  * - 触点远近（用户 2026-10-06：「消逝终点位置和消逝终点方向是两码事，位置离控件距离的不同会让动画也出现不同才对」）
  *   与流体样式同口径（`step.comp` 的 `distance_gain` 与 `destination`）：触点在该方向可用背景里越远，风越强
@@ -116,6 +116,14 @@ internal class ParticleDriftModel(
         const val MIN_COUNT = 10000
         const val MAX_COUNT = 50000
 
+        /** 原贴图外框宽度（屏幕像素），只用于迁移旧 dp 设置，不代表软点可见直径。 */
+        const val BASE_DIAMETER_PX = 3.5f * .7f * 4f
+
+        fun sizeScaleForDp(dp: Float, density: Float): Float {
+            require(dp.isFinite() && dp > 0f && density.isFinite() && density > 0f)
+            return dp * density / BASE_DIAMETER_PX
+        }
+
         /** 风力随触点远近的倍数：0.55 + 0.90 × 远近（远近 0～1，缺省 0.5 即 1 倍），与流体样式的 `distance_gain` 相同。 */
         const val TOUCH_GAIN_BASE = .55f
         const val TOUCH_GAIN_RANGE = .90f
@@ -172,7 +180,7 @@ internal class ParticleDriftModel(
 
         /**
          * 与桌面实现的 `area_particle_count` 逐项相同：4 万 × 面积 / 1.3M，按千颗取整（Python 的 round，四舍六入五成双），
-         * 截在 [1 万, 5 万]；再乘设置里的倍率 [amount]（四舍五入到整数）。倍率乘在截好之后，0.2～1.6 在小卡片与整屏内容上都起作用；
+         * 截在 [1 万, 5 万]；再乘设置里的倍率 [amount]（四舍五入到整数）。倍率乘在截好之后，0.1～1.6 在小卡片与整屏内容上都起作用；
          * 缺省 1 时与桌面完全相同。
          */
         fun count(widthPx: Int, heightPx: Int, amount: Float): Int {
@@ -243,13 +251,14 @@ internal class ParticleDriftModel(
         fun random(width: Int, height: Int, directionX: Float, directionY: Float,
                    amount: Float, random: Random, styles: List<ParticleDriftStyles.Style> = emptyList(),
                    releaseX: Float? = null, releaseY: Float? = null, size: Float = 1f,
-                   touchGap: Float? = null, touchStrength: Float? = null): ParticleDriftModel {
+                   touchGap: Float? = null, touchStrength: Float? = null,
+                   excludedReferences: Set<String> = emptySet()): ParticleDriftModel {
             val grid = latticeSize(width, height)
             val length = hypot(directionX, directionY)
             val ux = if (length > 1e-6f) directionX / length else 0f
             val uy = if (length > 1e-6f) directionY / length else -1f
             val angle = Math.toDegrees(atan2(-uy.toDouble(), ux.toDouble())).toFloat()
-            val style = ParticleDriftStyles.pick(styles, angle, random)
+            val style = ParticleDriftStyles.pick(styles, angle, random, excludedReferences)
             val lattice = style?.let { ParticleDriftStyles.resample(it, width, height) }
                 ?: FloatArray(grid[0] * grid[1]) { random.nextFloat() }
             if (releaseX != null && releaseY != null) {

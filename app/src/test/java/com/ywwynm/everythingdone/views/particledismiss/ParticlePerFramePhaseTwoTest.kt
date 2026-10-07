@@ -253,46 +253,46 @@ class ParticlePerFramePhaseTwoTest {
 
     @Test fun `自动降档要连续两轮掉帧才动手`() {
         fun state(ratio: Float, rounds: Int) = ParticleAutoDowngrade.State(
-            ratio, rounds, ParticleTuning.DEFAULT_CELL_INDEX, ParticleTuning.DEFAULT_FLOW,
-            cellExplicit = false, appliedSteps = 0, userChanged = false)
+            ratio, rounds, ParticleTuning.DEFAULT_AMOUNT_INDEX, ParticleTuning.DEFAULT_FLOW,
+            appliedSteps = 0, userChanged = false)
         val first = ParticleAutoDowngrade.decide(state(.19f, 0))
         assertFalse("第一轮不该降", first.downgrade)
         assertEquals(1, first.poorRounds)
         val second = ParticleAutoDowngrade.decide(state(.19f, first.poorRounds))
         assertTrue("连续第二轮才降", second.downgrade)
-        assertEquals("粒子大小往粗里走一档",
-            ParticleTuning.DEFAULT_CELL_INDEX + 1, second.cellIndex)
+        assertEquals("粒子数量降低一档",
+            ParticleTuning.DEFAULT_AMOUNT_INDEX - 1, second.amountIndex)
         assertEquals("流动精细度往省里走一档",
             ParticleTuning.DEFAULT_FLOW - ParticleTuning.FLOW_EASE_STEP, second.flowDetail)
     }
 
     @Test fun `一轮不掉帧就把连续计数清零`() {
         val good = ParticleAutoDowngrade.decide(ParticleAutoDowngrade.State(
-            1.01f, 1, 3, 60, cellExplicit = true, appliedSteps = 0, userChanged = false))
+            1.01f, 1, 3, 60, appliedSteps = 0, userChanged = false))
         assertEquals(0, good.poorRounds)
         assertFalse(good.downgrade)
     }
 
     @Test fun `没采到的那一轮既不算好也不算坏`() {
         val none = ParticleAutoDowngrade.decide(ParticleAutoDowngrade.State(
-            -1f, 1, 3, 60, cellExplicit = true, appliedSteps = 0, userChanged = false))
+            -1f, 1, 3, 60, appliedSteps = 0, userChanged = false))
         assertEquals("连续计数不动", 1, none.poorRounds)
         assertFalse(none.downgrade)
     }
 
     @Test fun `只降一档而且用户改过之后不再自动降`() {
         val again = ParticleAutoDowngrade.decide(ParticleAutoDowngrade.State(
-            .2f, 1, 3, 40, cellExplicit = true, appliedSteps = 1, userChanged = false))
+            .2f, 1, 3, 40, appliedSteps = 1, userChanged = false))
         assertFalse("已经降过一档就不再降", again.downgrade)
         val changed = ParticleAutoDowngrade.decide(ParticleAutoDowngrade.State(
-            .2f, 1, 3, 40, cellExplicit = true, appliedSteps = 0, userChanged = true))
+            .2f, 1, 3, 40, appliedSteps = 0, userChanged = true))
         assertFalse("用户自己改过之后不再自动降", changed.downgrade)
     }
 
     @Test fun `两项都到头就不再写设置`() {
         val bottom = ParticleAutoDowngrade.decide(ParticleAutoDowngrade.State(
-            .2f, 1, ParticleTuning.CELL_DP_LEVELS.lastIndex, ParticleTuning.FLOW_MIN,
-            cellExplicit = true, appliedSteps = 0, userChanged = false))
+            .2f, 1, 0, ParticleTuning.FLOW_MIN,
+            appliedSteps = 0, userChanged = false))
         assertFalse("最省的一档上不再降", bottom.downgrade)
         assertEquals("连续计数保留", 2, bottom.poorRounds)
     }
