@@ -109,6 +109,15 @@ duplicate their authority.
 
 ## Commit messages
 
+### 格式与详细程度（2026-10-09 再次确认）
+
+- 提交标题以小写类型前缀开头，如 `fix`、`feat`、`docs`，需要时附功能范围：
+  `fix(ui): English summary / 中文摘要`。
+- 正文使用英文在前、中文在后的对应段落，详细交代具体问题、原因、主要实现、兼容边界和验证证据；
+  不能把实质改动压缩成几句泛泛的概述。
+- 末尾必须保留实际协作模型的 `Co-authored-by`，不替换仓库原有作者身份；
+  本轮使用 `Co-authored-by: GPT-6 <noreply@openai.com>`。
+
 When writing bilingual commit messages, do not prefix paragraphs with language
 labels such as `English:`, `EN:`, `中文：`, or `Chinese:`. Do not include Gradle
 command output or APK verification details in the commit message body. Keep the
