@@ -43,8 +43,8 @@ internal object ParticleDriftContent {
     /** 每个格子里取样的点数（每边）。 */
     private const val CELL_SAMPLES = 4
 
-    /** 副本连同原有颗粒的总数上限。 */
-    const val MAX_TOTAL = 75000
+    /** 副本与基础颗粒一同按 1.6 dp 新基准减量：原 75,000 × 49/64，取最近整数。 */
+    const val MAX_TOTAL = 57422
 
     class Analysis(
         /** 本体色（0–1，直通）。 */

@@ -11,7 +11,7 @@ class ParticleDriftVisualSizeTest {
             for (multiplier in ParticleTuning.DRIFT_SIZE_LEVELS) {
                 val scale = ParticleDriftModel.sizeScaleForDisplay(multiplier, density)
                 val diameterDp = 3.5f * .7f * 4f * .5f * scale / density
-                assertEquals("density=$density size=$multiplier", 1.4f * multiplier, diameterDp, 2e-6f)
+                assertEquals("density=$density size=$multiplier", 1.6f * multiplier, diameterDp, 2e-6f)
             }
         }
     }

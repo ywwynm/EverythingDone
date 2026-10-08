@@ -65,29 +65,29 @@ class ParticleDriftModelTest {
         }
     }
 
-    @Test fun `粒子数与桌面实现同一公式`() {
-        // 桌面 area_particle_count：round(4 万 × 面积 / 1.3M / 1000) × 1000，截在 [1 万, 5 万]
+    @Test fun `粒子数保留面积分档并补偿一倍可见面积`() {
+        // 保留桌面面积分档，1.4 → 1.6 dp 后乘 49/64，避免默认画面变厚。
         fun desktop(w: Int, h: Int): Int {
             val thousands = Math.rint(40000.0 * (w.toDouble() * h) / 1.3e6 / 1000.0)
             return (thousands * 1000).toInt().coerceIn(10000, 50000)
         }
         for ((w, h) in listOf(1048 to 1061, 1225 to 1240, 1225 to 760, 980 to 520, 1440 to 3088, 300 to 200)) {
-            assertEquals("$w × $h", desktop(w, h), ParticleDriftModel.count(w, h, 1f))
+            assertEquals("$w × $h", Math.round(desktop(w, h) * 49.0 / 64.0).toInt(),
+                ParticleDriftModel.count(w, h, 1f))
         }
-        // 1.3M 设备像素² 恰好 4 万；按千颗取整
-        assertEquals(40000, ParticleDriftModel.count(1300, 1000, 1f))
-        assertEquals(0, ParticleDriftModel.count(1225, 1240, 1f) % 1000)
+        // 1.3M 设备像素² 从 40,000 调为 30,625。
+        assertEquals(30625, ParticleDriftModel.count(1300, 1000, 1f))
         // 五成双：40000 × 面积 / 1.3e9 = 37.5 时取 38，38.5 时取 38
-        assertEquals(38000, ParticleDriftModel.count(1218750, 1, 1f))
-        assertEquals(38000, ParticleDriftModel.count(1251250, 1, 1f))
-        assertEquals(ParticleDriftModel.MIN_COUNT, ParticleDriftModel.count(100, 100, 1f))
-        assertEquals(ParticleDriftModel.MAX_COUNT, ParticleDriftModel.count(1440, 3088, 1f))
+        assertEquals(29094, ParticleDriftModel.count(1218750, 1, 1f))
+        assertEquals(29094, ParticleDriftModel.count(1251250, 1, 1f))
+        assertEquals(7656, ParticleDriftModel.count(100, 100, 1f))
+        assertEquals(38281, ParticleDriftModel.count(1440, 3088, 1f))
     }
 
     @Test fun `粒子数量倍率乘在截好的粒子数上`() {
-        // 小卡片截到 1 万、整屏截到 5 万之后再乘：0.2 与 1.6 在两头都起作用
-        assertEquals(2000, ParticleDriftModel.count(100, 100, .2f))
-        assertEquals(80000, ParticleDriftModel.count(1440, 3088, 1.6f))
+        // 小卡片与整屏内容的基准都已减量，用户数量倍率继续单独生效。
+        assertEquals(1531, ParticleDriftModel.count(100, 100, .2f))
+        assertEquals(61250, ParticleDriftModel.count(1440, 3088, 1.6f))
         for ((w, h) in listOf(1225 to 760, 917 to 915, 600 to 420)) {
             val base = ParticleDriftModel.count(w, h, 1f)
             for (amount in ParticleTuning.AMOUNT_LEVELS) {

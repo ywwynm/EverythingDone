@@ -193,7 +193,9 @@ class ParticleMicroflakeModelTest {
             }
             val expected = floats("materials"); val pigment = floats("pigment")
             val compression = floats("peel-compression")
-            val actual = ParticleMicroflakeModel.build(input[0].toFloat(), input[1].toFloat(), pixels, 3, 2, input[2].toFloat(), input[3].toLong(), rules)
+            // 冻结文件来自原密铺网格，继续核对该网格下跨端随机、时序和法线算法。
+            val actual = ParticleMicroflakeModel.build(input[0].toFloat(), input[1].toFloat(), pixels, 3, 2,
+                input[2].toFloat(), input[3].toLong(), rules, matchDriftDefaults = false)
             assertEquals(expected.size, actual.values.size)
             val offsets = (expected.indices step 12).associateBy { expected[it + 3].toInt() }
             for (i in 0 until actual.count) {

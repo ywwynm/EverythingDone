@@ -18,7 +18,7 @@ import kotlin.math.roundToInt
  * - 格点值在 CPU 上直接给出（参考样式库 [ParticleDriftStyles] 或随机），着色器不用源码的 sin 哈希；
  * - 风的方向按现有方向规则（规格里的虚拟触点方向），大小仍取源码范围；选用参考样式时风力取参考的、风向仍按本次方向；
  * - 合成方式（加光 / 标准 src-over）不在这里定：按背景亮度取样（[ParticleDriftBackground]），由会话在开画之前交给渲染器；
- * - 粒子数与桌面实现同一公式：按设备像素面积保持 4×4 卡片 4 万颗 / 1.3M 设备像素²的密度，取整到千颗，截在 1～5 万；
+ * - 粒子数沿用桌面面积分档，再按 1.4 → 1.6 dp 的可见面积比减量为 49/64，保持整体疏密；
  *   数量仍按原设备像素面积换算；绘制尺寸另作显示密度补偿。设置里的「粒子数量」倍率（0.1～1.6）
  *   乘在截好的粒子数上，任何尺寸的内容都按这个倍率变；大小设置为 0.5～6 倍，直接缩放每颗粒子。
  *
@@ -116,15 +116,19 @@ internal class ParticleDriftModel(
         const val MIN_COUNT = 10000
         const val MAX_COUNT = 50000
 
-        /** 原贴图外框宽度（屏幕像素），只用于迁移旧 dp 设置，不代表软点可见直径。 */
+        /** 1× 从 1.4 增至 1.6 dp 后的固定密度校准；用户大小倍率不参与数量计算。 */
+        const val DEFAULT_COUNT_SCALE = 49.0 / 64.0
+
+        /** 原贴图外框宽度（屏幕像素），用于尺寸换算和旧 dp 设置迁移，不代表可见直径。 */
         const val BASE_DIAMETER_PX = 3.5f * .7f * 4f
 
-        /** 新轮廓普通粒子的稳定半峰值直径约 1.4 dp；不是华为设备的已知密度。 */
-        private const val SIZE_REFERENCE_DENSITY = 3.5f
+        /** 两种样式 1× 的圆边半峰值直径基准；生命周期与内容缩放仍各自保留。 */
+        const val DEFAULT_VISIBLE_DIAMETER_DP = 1.6f
 
         fun sizeScaleForDisplay(multiplier: Float, density: Float): Float {
             require(multiplier.isFinite() && multiplier > 0f && density.isFinite() && density > 0f)
-            return multiplier * (density / SIZE_REFERENCE_DENSITY)
+            // 普通粒子平均外框为 BASE_DIAMETER_PX，现行片元的半峰值直径占外框一半。
+            return multiplier * density * DEFAULT_VISIBLE_DIAMETER_DP / (BASE_DIAMETER_PX * .5f)
         }
 
         fun sizeScaleForDp(dp: Float, density: Float): Float {
@@ -187,14 +191,19 @@ internal class ParticleDriftModel(
         fun lifeAt(bornSeconds: Float): Float = 1f - min(bornSeconds * .5f, 1f)
 
         /**
-         * 与桌面实现的 `area_particle_count` 逐项相同：4 万 × 面积 / 1.3M，按千颗取整（Python 的 round，四舍六入五成双），
-         * 截在 [1 万, 5 万]；再乘设置里的倍率 [amount]（四舍五入到整数）。倍率乘在截好之后，0.1～1.6 在小卡片与整屏内容上都起作用；
-         * 缺省 1 时与桌面完全相同。
+         * 沿用桌面面积分档：4 万 × 面积 / 1.3M，按千颗取整（Python 的 round，四舍六入五成双），
+         * 截在 [1 万, 5 万]，再按 [DEFAULT_COUNT_SCALE] 校准为约 7,656～38,281。
+         * 设置倍率 [amount] 最后乘到新基准上，0.1～1.6 在小卡片与整屏内容上都起作用。
          */
         fun count(widthPx: Int, heightPx: Int, amount: Float): Int {
-            val area = widthPx.toDouble() * heightPx
+            return countForArea(widthPx.toDouble() * heightPx, amount)
+        }
+
+        /** 两种样式共用基准预算；流体的阴影外圈先还原本体面积，再保持原发射密度扩展。 */
+        internal fun countForArea(area: Double, amount: Float): Int {
             val thousands = Math.rint(REFERENCE_CARD_COUNT * area / REFERENCE_CARD_AREA / 1000.0)
-            val base = (thousands * 1000.0).toInt().coerceIn(MIN_COUNT, MAX_COUNT)
+            val reference = (thousands * 1000.0).toInt().coerceIn(MIN_COUNT, MAX_COUNT)
+            val base = (reference * DEFAULT_COUNT_SCALE).roundToInt()
             return (base * amount.toDouble()).roundToInt().coerceAtLeast(1)
         }
 

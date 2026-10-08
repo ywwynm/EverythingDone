@@ -6,7 +6,12 @@ import java.nio.ByteOrder
 import java.util.Properties
 
 /** 素材无关的规则；生产渲染与调试建材都从同一打包资源读取。 */
-internal class ParticleMicroflakeRules private constructor(private val values: Properties, val release: FloatArray) {
+internal class ParticleMicroflakeRules private constructor(
+    private val values: Properties,
+    val release: FloatArray,
+    /** 快照相对卡片本体增加的阴影面积，只补发射网格，不改变可见粒径。 */
+    val materialAreaScale: Float = 1f
+) {
     /** 阴影扩大取景面积时只增加格子预算，粒径与其它场参数保持原值。 */
     fun withMaterialArea(scale: Float): ParticleMicroflakeRules {
         if (!scale.isFinite() || scale <= 1f) return this
@@ -14,7 +19,7 @@ internal class ParticleMicroflakeRules private constructor(private val values: P
             putAll(this@ParticleMicroflakeRules.values)
             setProperty("max_cells", (1000 + (number("max_cells") - 1000) * scale).toInt().toString())
         }
-        return ParticleMicroflakeRules(adjusted, release)
+        return ParticleMicroflakeRules(adjusted, release, materialAreaScale * scale)
     }
 
     fun decimal(key: String): Double = values.getProperty(key)?.toDouble()

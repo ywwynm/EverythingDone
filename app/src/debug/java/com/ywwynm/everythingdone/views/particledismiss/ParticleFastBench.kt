@@ -296,10 +296,10 @@ internal object ParticleFastBench {
             .put("cacheInvalidation",invalidation)
     }
 
-    private fun readPixels(w: Int,h: Int): ByteBuffer = ByteBuffer.allocateDirect(w*h*4).also {
+    internal fun readPixels(w: Int,h: Int): ByteBuffer = ByteBuffer.allocateDirect(w*h*4).also {
         GLES30.glReadPixels(0,0,w,h,GLES30.GL_RGBA,GLES30.GL_UNSIGNED_BYTE,it)
     }
-    private fun pixelDifference(a: ByteBuffer,b: ByteBuffer): JSONObject {
+    internal fun pixelDifference(a: ByteBuffer,b: ByteBuffer): JSONObject {
         var total=0L;var maximum=0;var changed=0
         for(i in 0 until a.capacity()){
             val d=abs((a.get(i).toInt() and 255)-(b.get(i).toInt() and 255))
@@ -308,7 +308,7 @@ internal object ParticleFastBench {
         return JSONObject().put("meanChannel255",total.toDouble()/a.capacity()).put("maxChannel255",maximum)
             .put("channelOver2Ratio",changed.toDouble()/a.capacity())
     }
-    private fun save(folder: File,name: String,bytes: ByteBuffer,w: Int,h: Int){
+    internal fun save(folder: File,name: String,bytes: ByteBuffer,w: Int,h: Int){
         val colors=IntArray(w*h)
         for(y in 0 until h)for(x in 0 until w){
             val i=(y*w+x)*4

@@ -29,7 +29,8 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             Thread({
                 val out = File(app.getExternalFilesDir(null), "particle-fast/$id").apply { mkdirs() }
                 runCatching {
-                    val check = { ParticleFastBench.flow(app, out, intent.getBooleanExtra("highRefresh", false),
+                    val check = { if (intent.getBooleanExtra("defaultScaleCheck", false)) ParticleDefaultScaleBench.run(app, out)
+                    else ParticleFastBench.flow(app, out, intent.getBooleanExtra("highRefresh", false),
                         intent.getBooleanExtra("compactCheck", false), intent.getBooleanExtra("orderCheck", false),
                         intent.getBooleanExtra("reuseCheck", false), intent.getBooleanExtra("drawingCheck", false)) }
                     if (intent.hasExtra("iterations")) ParticlePerfTuning.withOptions(

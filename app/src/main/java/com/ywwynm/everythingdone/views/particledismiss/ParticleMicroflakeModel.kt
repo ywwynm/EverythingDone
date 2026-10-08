@@ -14,6 +14,8 @@ internal object ParticleMicroflakeModel {
      * 除以 `density / 1.875`），横屏与平板因此保持同样的界面粒径。720/384 = 1.875。
      */
     const val DP_UNITS = 1.875
+    /** 圆边半峰值直径为几何直径的 90%；补偿后与飘散同为 1.6 dp。 */
+    const val DEFAULT_DIAMETER_DP = ParticleDriftModel.DEFAULT_VISIBLE_DIAMETER_DP / .9f
     private data class Normals(val x: FloatArray, val y: FloatArray, val milliseconds: Double)
 
     data class Materials(
@@ -45,42 +47,51 @@ internal object ParticleMicroflakeModel {
         rules: ParticleMicroflakeRules,
         releaseOrigin: ParticleReleaseOrigin? = null,
         /**
-         * 调试用基准粒径（dp），0 表示默认自动尺寸。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
+         * 调试用基准粒径（dp），0 表示对齐飘散的默认尺寸。沿用建好的材料要核对它（[ParticleMaterialShare.Key]），调用方读一次、
          * 同一个值既进键又交给这里，两次读取之间设置被改掉也不会对不上。
          */
         cellDp: Float = ParticlePerfTuning.microflakeCellDpNow,
         particleAmount: Float = ParticleStyle.flowAmount,
-        particleSizeScale: Float = ParticleStyle.flowSizeScale
+        particleSizeScale: Float = ParticleStyle.flowSizeScale,
+        /** 仅供同输入性能对照与旧冻结材料验证；正式入口始终使用新基准。 */
+        matchDriftDefaults: Boolean = true
     ): Materials {
         val started = System.nanoTime()
         require(width > 0 && height > 0 && pixels.size == pixelWidth * pixelHeight)
         require(particleSizeScale.isFinite() && particleSizeScale > 0f)
+        require(particleAmount.isFinite() && particleAmount in .1f..1.6f)
         val panel = ParticleMicroflakeContent.panel(pixels, pixelWidth, pixelHeight, rules)
         val copyLimit = rules.number("content_copies").toInt()
         val budget = 1.0 + copyLimit * panel.weight.toDouble() * (1.0 - panel.fraction)
-        // 本函数在「720 逻辑像素 = 384 dp」的归一空间里工作（见 `fromSpec` 的 scale），
-        // 所以一个 dp 是 [DP_UNITS] 个单位。网格仍受 max_cells 的数量预算约束，
-        // 实际绘制尺寸另由 particleScale 补偿，不能让低档粒径被预算放大。
+        // 基础颗粒预算按与飘散相同的设备像素面积确定；大小在逻辑坐标中独立校准。
+        // 内容副本仍按原规则追加。显式 dp 调试和旧冻结材料继续使用原密铺网格。
         val requested = cellDp
+        val aligned = matchDriftDefaults && requested <= 0f
+        val areaScale = rules.materialAreaScale.toDouble()
+        val targetCount = if (aligned) ParticleDriftModel.countForArea(
+            pixelWidth.toDouble() * pixelHeight / areaScale, particleAmount) * areaScale else 0.0
         val requestedCell = if (requested > 0f) requested.toDouble() * DP_UNITS else rules.decimal("cell")
         val baseCell = max(requestedCell,
             sqrt(width.toDouble() * height * budget / (rules.number("max_cells") - 1000)))
-        require(particleAmount.isFinite() && particleAmount in .1f..1.6f)
-        val maxCells = (rules.number("max_cells") * particleAmount).roundToInt()
+        var maxCells = if (aligned) max(ceil(ParticleDriftContent.MAX_TOTAL * areaScale).toInt(), ceil(targetCount).toInt())
+            else (rules.number("max_cells") * particleAmount).roundToInt()
         // 最低数量时固定扣 1000 会吃掉过多预算；取整余量最多占 5%，0.2 倍及以上沿用原值。
         val roundingMargin = min(1000.0, maxCells * .05)
-        // 数量倍率作用于密度与预算，留出取整余量；1 倍直接沿用原式，默认材料逐位不变。
-        val cell = if (particleAmount == 1f) baseCell else max(baseCell / sqrt(particleAmount.toDouble()),
-            sqrt(width.toDouble() * height * budget / (maxCells - roundingMargin)))
-        val nx = ceil(width / cell).toInt().coerceAtLeast(2)
-        val ny = ceil(height / cell).toInt().coerceAtLeast(2)
+        val cell = if (aligned) sqrt(width.toDouble() * height / targetCount)
+            else if (particleAmount == 1f) baseCell else max(baseCell / sqrt(particleAmount.toDouble()),
+                sqrt(width.toDouble() * height * budget / (maxCells - roundingMargin)))
+        val nx = (if (aligned) (width / cell).roundToInt() else ceil(width / cell).toInt()).coerceAtLeast(2)
+        val ny = (if (aligned) (height / cell).roundToInt() else ceil(height / cell).toInt()).coerceAtLeast(2)
         val count = nx * ny
+        // 最接近预算的规则网格仍铺满整个表面；最高数量档基础数可超过副本预算上限。
+        if (aligned) maxCells = max(maxCells, count)
         val cellX = width / nx
         val cellY = height / ny
         // 数量只决定发射密度；补偿网格间距后，大小倍率只缩放单颗粒子。
-        val particleScaleX = (if (requested > 0f) (requestedCell / cellX).toFloat()
+        val diameter = if (aligned) DEFAULT_DIAMETER_DP * DP_UNITS else requestedCell
+        val particleScaleX = (if (aligned || requested > 0f) (diameter / cellX).toFloat()
             else nx.toFloat() / ceil(width / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
-        val particleScaleY = (if (requested > 0f) (requestedCell / cellY).toFloat()
+        val particleScaleY = (if (aligned || requested > 0f) (diameter / cellY).toFloat()
             else ny.toFloat() / ceil(height / baseCell).toInt().coerceAtLeast(2)) * particleSizeScale
         var opaque = 0
         var white = 0

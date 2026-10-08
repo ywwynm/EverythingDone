@@ -2103,7 +2103,7 @@ internal class ParticleMicroflakeRenderer(
                        sink: ParticleSink? = null, dynamicsPixels: IntArray? = null,
                        handoff: ParticleHandoffSource? = null, publish: ParticleMaterialShare? = null,
                        adopt: ParticleMaterialShare.Adoption? = null): Input {
-            // 720 逻辑像素对应 384 dp 手机宽度，微片约 1.25 dp；横屏和平板也保持相同界面粒径。
+            // 720 逻辑像素对应 384 dp 手机宽度；可见粒径由模型的独立大小基准控制。
             val scale = (density / ParticleMicroflakeModel.DP_UNITS.toFloat()).coerceAtLeast(.5f)
             val cardWidth = pixelWidth / scale; val cardHeight = pixelHeight / scale
             val dx = virtualTouchXPx - originXPx - pixelWidth / 2f
