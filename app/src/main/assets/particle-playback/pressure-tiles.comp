@@ -4,6 +4,9 @@ precision highp int;
 layout(local_size_x=16,local_size_y=16) in;
 layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
 layout(std430,binding=2) writeonly buffer B { float next_pressure[]; };
+#ifdef PRESSURE_INPUT_REUSE
+layout(std430,binding=3) writeonly buffer Inputs { vec2 pressure_inputs[]; };
+#endif
 layout(std430,binding=7) buffer Work {
     // 间接分发参数；必须是**标量**成员：Maleoon 910 上对向量分量做原子操作
     // 不按下标寻址（见 peel-splat.comp 的同一条）。
@@ -15,17 +18,42 @@ layout(std430,binding=7) buffer Work {
 };
 uniform ivec2 grid_shape;
 uniform int pass;
+#ifdef ADAPTIVE_PRESSURE
+layout(std430,binding=6) buffer Convergence { uint defects[32]; uint updates,executed; };
+#endif
 shared uint occupied_tile;
+int at(ivec2 q) { q=clamp(q,ivec2(0),grid_shape-1); return q.y*grid_shape.x+q.x; }
 void main() {
     uint lane=gl_LocalInvocationIndex;
-    if(pass==0) { if(lane==0u){group_count=0u;group_y=1u;group_z=1u;group_pad=0u;} return; }
+    if(pass==0) {
+        if(lane==0u){group_count=0u;group_y=1u;group_z=1u;group_pad=0u;}
+#ifdef ADAPTIVE_PRESSURE
+        if(lane<32u)defects[lane]=0u;
+        if(lane==0u)atomicAdd(updates,1u);
+#endif
+        return;
+    }
     ivec2 q=ivec2(gl_GlobalInvocationID.xy);
+    bool valid=all(lessThan(q,grid_shape));
+#ifdef PRESSURE_INPUT_REUSE
+    // 散度在一次压力更新的全部批次中不变。只准备活动输出及八格边带，覆盖求解器的每次读取。
+    // 必须放在活动区域早退之前；第二遍仅清压力，不重复求散度。
+    bool input_needed=valid;
+#ifdef ACTIVE_REGION
+    input_needed=input_needed && all(greaterThanEqual(q,region.xy-8)) && all(lessThanEqual(q,region.zw+8));
+#endif
+    if(pass==1 && input_needed) {
+        ivec2 X=ivec2(1,0),Y=ivec2(0,1);
+        float divergence=(velocity[at(q+X)].x-velocity[at(q-X)].x+
+                          velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
+        pressure_inputs[at(q)]=vec2(divergence,velocity[at(q)].z);
+    }
+#endif
 #ifdef ACTIVE_REGION
     // C10：活动区域之外三个缓冲恒为零，整组直接退出。区域按 16 格对齐，所以这个判定在
     // 组内是一致的——`barrier()` 要求一致的控制流，逐线程早退会是未定义行为。
     if(any(lessThan(q,region.xy))||any(greaterThan(q,region.zw)))return;
 #endif
-    bool valid=all(lessThan(q,grid_shape));
     if(valid)next_pressure[q.y*grid_shape.x+q.x]=0.;
     if(pass==2)return;
     if(lane==0u)occupied_tile=0u;

@@ -13,7 +13,7 @@ layout(local_size_x = 256) in;
 
 struct DriftParticle {
     vec4 geometry;   // 工作面位置 xy、半宽（0 表示不画）、保留
-    vec4 color;      // 预乘颜色与 alpha，已含生长 / 衰减与合成方式；片元再乘点纹理覆盖率
+    vec4 color;      // 预乘颜色与 alpha，已含生长 / 衰减与合成方式；片元再乘解析圆形覆盖率
 };
 layout(std430, binding = 0) writeonly buffer Particles { DriftParticle v[]; } particles;
 // 内容强调的副本落在哪个格子：按格子的累积分布（行优先，最后一项为 1）
@@ -176,6 +176,148 @@ int pickCell(float r) {
     return lo;
 }
 
+#ifdef DRIFT_CACHE
+// 每粒子 96 字节。静态参数和两条三次时间曲线分开；无效来源用 life=-1 标记。
+struct DriftCached {
+    vec4 originLife; // pos0.xy、bornFrame、life
+    vec4 shade;      // RGB、randomAlpha
+    vec4 motion;     // 风的二次项 xy、基础半宽、基础 opacity
+    vec4 noise;      // 原噪声坐标 xyz、曲线是否通过初始化误差检查
+    vec4 curveX;
+    vec4 curveY;
+};
+layout(std430, binding=2) buffer Cache { DriftCached v[]; } cached;
+
+vec2 driftNoiseAt(vec3 p, float elapsed) {
+    p.z += elapsed * TURB_EVO * TURB_EVO_MULT;
+    return vec2(fbm(p), fbm(p + vec3(100.0, 100.0, 0.0)));
+}
+vec2 driftCurveAt(DriftCached d, float u) {
+    return vec2(((d.curveX.w*u+d.curveX.z)*u+d.curveX.y)*u+d.curveX.x,
+                ((d.curveY.w*u+d.curveY.z)*u+d.curveY.y)*u+d.curveY.x);
+}
+
+#ifdef DRIFT_INITIALIZE
+void main() {
+    uint index=gl_GlobalInvocationID.x;
+    if(index>=uint(u_count))return;
+    cached.v[index].originLife=vec4(0.,0.,0.,-1.);
+    vec2 pos0;
+    if(index<uint(u_baseCount)){
+        pos0=vec2(driftRandom(u_emitPos.x,u_emitPos.x+u_emitSize.x,index+1u),
+                  driftRandom(u_emitPos.y,u_emitPos.y+u_emitSize.y,index+3u));
+    }else{
+        int cell=pickCell(driftRandom(0.,1.,index*7u+5u));
+        vec2 inCell=vec2(driftRandom(0.,1.,index+1u),driftRandom(0.,1.,index+3u));
+        vec2 cellUv=(vec2(float(cell%u_grid.x),float(cell/u_grid.x))+inCell)/vec2(u_grid);
+        pos0=u_emitPos+min(cellUv,vec2(.99999))*u_emitSize;
+    }
+    vec2 uv=(pos0-u_emitPos)/u_emitSize;
+    ivec2 t=clamp(ivec2(floor(uv*vec2(u_half))),ivec2(0),u_half-1);
+    ivec2 px=min(2*t+1,u_full-1);
+    vec4 color=texelFetch(u_image,px,0);
+    if(color.a<1.)return;
+    float n=driftMaskValue(px);
+    float bornFrame=max(1.,ceil(u_hz*(n-.135)/1.05));
+    if(bornFrame>1. && bornBy(n,bornFrame-1.))bornFrame-=1.;
+    else if(!bornBy(n,bornFrame))bornFrame+=1.;
+    float bornTime=bornFrame/u_hz;
+    float weight=contentWeight(color.rgb);
+    float emphasis=u_panelWeight*weight;
+    if(u_panelWeight>0.){
+        float low=min(color.r,min(color.g,color.b));
+        float high=max(color.r,max(color.g,color.b));
+        float neutral=1.-smoothstep(NEUTRAL_CHROMA_START,NEUTRAL_CHROMA_END,high-low);
+        if(index>=uint(u_baseCount) && driftRandom(0.,1.,index+81u)<neutral)return;
+        emphasis*=1.-neutral;
+    }
+    float bodyShare=u_panelWeight*(1.-weight);
+    float bornProgress=min(bornTime*.5,1.);
+    float life=max(driftRandom((1.-bornProgress)*LIFE_MIN,(1.-bornProgress)*LIFE_MAX,index+8u),.001);
+    life=min(life*(1.+CONTENT_LIFE_GAIN*emphasis),max(u_total-bornTime,life));
+    float randomAlpha=driftRandom(.6,1.,index+13u);
+    if(color.r<DARK_CLAMP && color.g<DARK_CLAMP && color.b<DARK_CLAMP)color.rgb=vec3(DARK_CLAMP);
+    float radius=driftRandom(RADIUS-RADIUS_RANGE,RADIUS+RADIUS_RANGE,index);
+    float aRand=driftRandom(0.,1.,index+11u);
+    float randFactor=DRAG_BASE+aRand*DRAG_RANGE;
+    vec2 wind=u_wind*ACCEL*.5*randFactor;
+    if(u_touchGap>=0.){
+        vec2 dir=normalize(u_wind);
+        vec2 center=u_emitPos+u_emitSize*.5;
+        float edge=min(u_emitSize.x/(2.*max(abs(dir.x),1e-6)),u_emitSize.y/(2.*max(abs(dir.y),1e-6)));
+        vec2 destination=center+dir*(edge+min(u_emitSize.x,u_emitSize.y)*u_touchGap);
+        vec2 bearing=normalize(destination-pos0);
+        float turn=TOUCH_TURN*atan(dot(bearing,vec2(-dir.y,dir.x)),dot(bearing,dir));
+        wind=mat2(cos(turn),sin(turn),-sin(turn),cos(turn))*wind;
+    }
+    float timeOffset=mod(driftRandom(0.,1.,index+12u)*10000.,100.)/1000.;
+    vec2 lookup=pos0*u_turbScale+u_turbShift;
+    DriftCached d;
+    d.originLife=vec4(pos0,bornFrame,life);
+    d.shade=vec4(min(color.rgb,vec3(1.)),randomAlpha);
+    d.motion=vec4(wind,radius*SIZE_MUL*(1.+CONTENT_SIZE_GAIN*emphasis)*(1.-BODY_SIZE_CUT*bodyShare)*u_sizeScale,
+                  (1.+CONTENT_ALPHA_GAIN*emphasis)*(1.-BODY_ALPHA_CUT*bodyShare));
+    d.noise=vec4(lookup*(500./(TURB_SCALE+50.))+u_turbOffset,timeOffset+aRand*PARTICLE_PHASE,0.);
+    d.curveX=vec4(0.);d.curveY=vec4(0.);
+#ifdef DRIFT_CURVE
+    vec2 a=driftNoiseAt(d.noise.xyz,0.);
+    vec2 b=driftNoiseAt(d.noise.xyz,life/3.);
+    vec2 c=driftNoiseAt(d.noise.xyz,life*(2./3.));
+    vec2 e=driftNoiseAt(d.noise.xyz,life);
+    vec2 c1=(-11.*a+18.*b-9.*c+2.*e)*.5;
+    vec2 c2=(18.*a-45.*b+36.*c-9.*e)*.5;
+    vec2 c3=(-9.*a+27.*b-27.*c+9.*e)*.5;
+    d.curveX=vec4(a.x,c1.x,c2.x,c3.x);
+    d.curveY=vec4(a.y,c1.y,c2.y,c3.y);
+    d.noise.w=1.;
+    // 用屏幕像素计误差；不合格的粒子仍走原噪声。完整时间轴另由固定输入对照验收。
+    for(int k=0;k<3;k++){
+        float u=(float(k)*2.+1.)/6.;
+        vec2 delta=abs(driftCurveAt(d,u)-driftNoiseAt(d.noise.xyz,life*u))*(400.*life*u);
+        if(max(delta.x,delta.y)>.16)d.noise.w=0.;
+    }
+#endif
+    cached.v[index]=d;
+}
+#else
+void main(){
+    uint index=gl_GlobalInvocationID.x;
+    if(index>=uint(u_count))return;
+    particles.v[index].geometry=vec4(0.);
+    particles.v[index].color=vec4(0.);
+    vec4 originLife=cached.v[index].originLife;
+    float frame=floor(u_time*u_hz+1e-3);
+    if(originLife.w<=0. || frame<originLife.z+1.)return;
+    float elapsed=activeSeconds(originLife.z,frame);
+    if(elapsed>=originLife.w)return;
+    DriftCached d=cached.v[index];
+    float lifeRatio=elapsed/originLife.w;
+    vec2 noise;
+#ifdef DRIFT_CURVE
+    if(d.noise.w>.5)noise=driftCurveAt(d,lifeRatio);
+    else
+#endif
+    noise=driftNoiseAt(d.noise.xyz,elapsed);
+    vec2 pos=originLife.xy+noise*TURB_AMP*elapsed+d.motion.xy*elapsed*elapsed;
+    float grow=clamp(lifeRatio/.2,0.,1.);
+    float fade=clamp((1.-lifeRatio)/.4,0.,1.);
+    if(grow*fade<=0.)return;
+    float rootGrow=sqrt(grow);
+    float halfExtent=d.motion.z*rootGrow*pow(fade,u_fadeSizePower);
+    float opacity=rootGrow*pow(fade,u_fadeAlphaPower)*d.motion.w;
+    vec4 shade;
+    if(u_add==1){
+        float window=clamp((1.-lifeRatio)/ALPHA_WINDOW,0.,1.);
+        shade=vec4(d.shade.rgb*opacity,d.shade.a*opacity*window);
+    }else{
+        float a=min(d.shade.a*opacity,1.);
+        shade=vec4(d.shade.rgb*a,a*u_alphaMul);
+    }
+    particles.v[index].geometry=vec4(pos,halfExtent,1.);
+    particles.v[index].color=shade;
+}
+#endif
+#else
 void main() {
     uint index = gl_GlobalInvocationID.x;
     if (index >= uint(u_count)) return;
@@ -285,3 +427,4 @@ void main() {
     particles.v[index].geometry = vec4(pos, halfExtent, 1.0);
     particles.v[index].color = shade;
 }
+#endif

@@ -5,6 +5,9 @@ layout(local_size_x=16, local_size_y=16) in;
 layout(std430,binding=0) readonly buffer A { vec4 velocity[]; };
 layout(std430,binding=1) readonly buffer B { float old_pressure[]; };
 layout(std430,binding=2) writeonly buffer C { float new_pressure[]; };
+#ifdef PRESSURE_INPUT_REUSE
+layout(std430,binding=3) readonly buffer Inputs { vec2 pressure_inputs[]; };
+#endif
 layout(std430,binding=7) readonly buffer Work {
     // 间接分发参数；必须是**标量**成员：Maleoon 910 上对向量分量做原子操作
     // 不按下标寻址（见 peel-splat.comp 的同一条）。
@@ -17,6 +20,12 @@ layout(std430,binding=7) readonly buffer Work {
 uniform ivec2 grid_shape;
 uniform int first_iteration;
 uniform int iterations;
+#ifdef ADAPTIVE_PRESSURE
+// 每次压力更新清零独立的批次槽位，避免跨工作组的清零／归约竞争。
+layout(std430,binding=6) buffer Convergence { uint defects[32]; uint updates,executed; };
+uniform float tolerance;
+shared uint max_defect;
+#endif
 
 // 16×16 输出加八格边带，一次 dispatch 完成八次原始 Jacobi 迭代。
 // 边带逐次缩小；每个输出依赖的全部邻格均包含在当前工作组内。
@@ -40,6 +49,19 @@ int local_at(ivec2 q, ivec2 origin) {
 void main() {
     ivec2 origin=tiles[gl_WorkGroupID.x]*16-8;
     int lane=int(gl_LocalInvocationIndex);
+#ifdef ADAPTIVE_PRESSURE
+    int batch_index=first_iteration/8;
+    // 最少 32 次；全网格统一停止，随后复制以保持双缓冲和 current 一致。
+    if(first_iteration>=32 && uintBitsToFloat(defects[batch_index-1])<=tolerance) {
+        ivec2 q=origin+8+ivec2(gl_LocalInvocationID.xy);
+        if(all(lessThan(q,grid_shape)))new_pressure[at(q)]=old_pressure[at(q)];
+        return;
+    }
+    if(lane==0) {
+        max_defect=0u;
+        if(gl_WorkGroupID.x==0u)atomicAdd(executed,uint(iterations));
+    }
+#endif
     ivec2 X=ivec2(1,0), Y=ivec2(0,1);
 #ifdef REGISTER_BANDS
     float divergence[CELLS];
@@ -48,17 +70,29 @@ void main() {
         int k=lane+c*256;
         ivec2 q=clamp(origin+ivec2(k%32,k/32),ivec2(0),grid_shape-1);
         p0[k]=old_pressure[at(q)];
+#ifdef PRESSURE_INPUT_REUSE
+        vec2 input_value=pressure_inputs[at(q)];
+        divergence[c]=input_value.x;
+        occupied[c]=input_value.y;
+#else
         divergence[c]=(velocity[at(q+X)].x-velocity[at(q-X)].x+
                        velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
         occupied[c]=velocity[at(q)].z;
+#endif
     }
 #else
     for(int k=lane;k<1024;k+=256) {
         ivec2 q=clamp(origin+ivec2(k%32,k/32),ivec2(0),grid_shape-1);
         p0[k]=old_pressure[at(q)];
+#ifdef PRESSURE_INPUT_REUSE
+        vec2 input_value=pressure_inputs[at(q)];
+        divergence[k]=input_value.x;
+        occupied[k]=input_value.y;
+#else
         divergence[k]=(velocity[at(q+X)].x-velocity[at(q-X)].x+
                        velocity[at(q+Y)].y-velocity[at(q-Y)].y)*.5;
         occupied[k]=velocity[at(q)].z;
+#endif
     }
 #endif
     barrier();
@@ -98,5 +132,14 @@ void main() {
         ivec2 l=ivec2(gl_LocalInvocationID.xy)+8;
         int k=l.y*32+l.x;
         new_pressure[at(q)]=(iterations%2==0)?p0[k]:p1[k];
+#ifdef ADAPTIVE_PRESSURE
+        // 最后两次投影 Jacobi 的差；NaN/Inf 不允许提前停止。
+        float defect=abs(p0[k]-p1[k]);
+        atomicMax(max_defect,(isnan(defect)||isinf(defect))?0x7f800000u:floatBitsToUint(defect));
+#endif
     }
+#ifdef ADAPTIVE_PRESSURE
+    barrier();
+    if(lane==0)atomicMax(defects[batch_index],max_defect);
+#endif
 }

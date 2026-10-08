@@ -37,7 +37,7 @@ internal interface ParticleLayerSession {
     /** 本会话是否需要节拍继续跑（与「这一拍出不出帧」分开）。 */
     fun needsBeat(): Boolean
 
-    /** 本会话可以按高帧率出（每个 vsync 一帧）；轨迹按 60 Hz 预算的流体不行。见 [ParticleClock.setHighRate]。 */
+    /** 本会话是否启用高刷显示，独立于历史采样密度。见 [ParticleClock.setHighRate]。 */
     val prefersHighFrameRate: Boolean get() = false
 
     /**

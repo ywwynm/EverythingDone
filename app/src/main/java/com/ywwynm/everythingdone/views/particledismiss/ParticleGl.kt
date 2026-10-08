@@ -307,12 +307,12 @@ internal object ParticleGl {
     }
 
     /**
-     * 有会话的窗口里会话全是飘散时，节拍切到每个 vsync 一拍，这些窗口的 Surface 投 120 Hz；
-     * 只要有一个流体会话（轨迹按 60 Hz 预算）就整体回到 60 Hz、投 60。没有会话的窗口不投（见 [ParticleWindowSurface.voteFrameRate]）。
+     * 按各样式的显示开关选择节拍；历史采样密度保持独立，不随高刷投票变化。
+     * 没有会话的窗口撤掉投票（见 [ParticleWindowSurface.voteFrameRate]）。
      */
     private fun updateFrameRate() {
         val busy = windows.filter { it.busy }
-        val high = ParticlePerfTuning.driftHighFrameRate && busy.isNotEmpty() && busy.all { it.prefersHighFrameRate }
+        val high = busy.isNotEmpty() && busy.all { it.prefersHighFrameRate }
         ParticleClock.setHighRate(high)
         for (window in windows) window.voteFrameRate(when {
             !window.busy -> 0f

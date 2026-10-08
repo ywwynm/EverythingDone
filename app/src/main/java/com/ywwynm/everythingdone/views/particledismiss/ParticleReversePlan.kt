@@ -37,7 +37,11 @@ internal class ParticleReversePlan(values: FloatArray, val samples: Int = sample
      * 所以保留下来的每一帧与不跳过时逐位相同。
      */
     fun frame(progress: Float, start: Int = samples): Int =
-        ((1f - progress.coerceIn(0f, 1f)) * start.coerceIn(0, samples)).roundToInt()
+        position(progress, start).roundToInt()
+
+    /** 显示频率与缓存密度分开；高刷播放读取相邻采样，历史内存不随刷新率翻倍。 */
+    fun position(progress: Float, start: Int = samples): Float =
+        (1f - progress.coerceIn(0f, 1f)) * start.coerceIn(0, samples)
 
     companion object {
         const val APPEARANCE_SECONDS = .6f

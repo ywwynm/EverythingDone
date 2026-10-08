@@ -1,0 +1,69 @@
+#version 310 es
+precision highp float;
+precision highp int;
+layout(local_size_x=256) in;
+layout(std430,binding=0) readonly buffer Records { vec4 records[]; };
+layout(std430,binding=1) writeonly buffer Compacted { vec4 compacted[]; };
+#ifndef FUSED_RECORDS
+layout(std430,binding=2) buffer Offsets { uint offsets[]; };
+#endif
+layout(std430,binding=3) buffer Groups {
+    uint vertex_count,instance_count,first_vertex,base_instance;
+    uint groups[];
+};
+uniform uint count,group_count;
+uniform int pass;
+uniform vec2 frame,offset;
+shared uint scan[256];
+
+void main(){
+    uint lane=gl_LocalInvocationIndex;
+    uint i=gl_GlobalInvocationID.x;
+    if(pass==1){
+        // 组数小于粒子数约 256 倍；一个线程完成全局前缀，保持原实例顺序。
+        if(lane==0u){
+            uint total=0u;
+            for(uint g=0u;g<group_count;g++){
+                uint n=groups[g];groups[g]=total;total+=n;
+            }
+#ifdef FUSED_RECORDS
+            groups[group_count]=total;
+#endif
+            vertex_count=4u;instance_count=total;first_vertex=0u;base_instance=0u;
+        }
+        return;
+    }
+    if(pass==2){
+#ifdef FUSED_RECORDS
+        uint base=groups[gl_WorkGroupID.x];
+        if(lane>=groups[gl_WorkGroupID.x+1u]-base)return;
+        uint target=base+lane;
+#else
+        if(i>=count||offsets[i]==0xffffffffu)return;
+        uint target=groups[gl_WorkGroupID.x]+offsets[i];
+#endif
+        compacted[2u*target]=records[2u*i];
+        compacted[2u*target+1u]=records[2u*i+1u];
+        return;
+    }
+#ifndef FUSED_RECORDS
+    bool visible=false;
+    if(i<count){
+        vec4 geometry=records[2u*i];
+        vec2 center=geometry.xy+offset;
+        // 保守方框剔除：只省绘制，完整模拟和历史仍按原粒子 ID 保存。
+        float radius=abs(geometry.z)*.5+1.;
+        visible=records[2u*i+1u].a>=.001 &&
+            all(greaterThanEqual(center+radius,vec2(0.))) && all(lessThanEqual(center-radius,frame));
+    }
+    scan[lane]=visible?1u:0u;
+    barrier();
+    // 工作组内包含式前缀和，读与写之间各有一道屏障。
+    for(uint distance=1u;distance<256u;distance*=2u){
+        uint previous=lane>=distance?scan[lane-distance]:0u;
+        barrier();scan[lane]+=previous;barrier();
+    }
+    if(i<count)offsets[i]=visible?scan[lane]-1u:0xffffffffu;
+    if(lane==255u)groups[gl_WorkGroupID.x]=scan[lane];
+#endif
+}

@@ -40,6 +40,7 @@ internal class ParticleMicroflakeRenderer(
     /** 整层的不透明度（`LAYER_ALPHA`，接收时两层交叉淡化），每帧由 [layerAlphaValue] 给出。 */
     private val layerAlpha: Boolean = false
 ) : Closeable {
+    private val fast = ParticleFastOptions.current
     private lateinit var input: Input
     init { if (initialInput != null) input = initialInput }
 
@@ -297,6 +298,12 @@ internal class ParticleMicroflakeRenderer(
 
     /** A1 的绘制记录缓冲：每片四个 vec4（位置流两个 + 外观流两个）。 */
     private val recordBuffer = IntArray(1)
+    private val compactBuffers = IntArray(3)
+    private var compactProgram = 0
+    private val compactGroups get() = (input.materials.count + 255) / 256
+    private val useCompactCircles get() = useDrawRecords && useTrueCircle && fast.compactCircles && adreno()
+    private val useFusedRecords get() = useCompactCircles && fast.fusedCircleRecords
+    private fun compactDefines() = if (useFusedRecords) "#define FUSED_RECORDS 1\n" else ""
 
     /** 光尘接手（[sinkTargets]）：逐片终点与接手颜色，各为每片一个 vec4。 */
     private val handoffBuffers = IntArray(2)
@@ -338,6 +345,7 @@ internal class ParticleMicroflakeRenderer(
 
     /** 编译期宏：压力着色器一套，材料着色器一套。 */
     private fun regionDefines() = (if (useActiveRegion) "#define ACTIVE_REGION 1\n" else "") +
+        (if (fast.pressureResolution == 72 && !sinkMode) "#define PRESSURE_GRID_72 1\n" else "") +
         groupDefines() +
         (if (p2(ParticlePerfTuning.P2_CLEAR_ACTIVE_REGION)) "#define CLEAR_ACTIVE_REGION 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_NEAREST_SPLAT)) "#define NEAREST_SPLAT 1\n" else "") +
@@ -346,6 +354,7 @@ internal class ParticleMicroflakeRenderer(
 
     /** 积分着色器的宏：流场取样与精度那几项。 */
     private fun stepDefines() = groupDefines() +
+        (if (batchIntegration) "#define INTEGRATION_BATCH 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_MERGED_FIELD)) "#define MERGED_FIELD 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_MEDIUMP_SAMPLER)) "#define MEDIUMP_SAMPLER 1\n" else "") +
         (if (p2(ParticlePerfTuning.P2_PEEL_FIELD_HALF)) "#define PEEL_FIELD_HALF 1\n" else "") +
@@ -357,6 +366,7 @@ internal class ParticleMicroflakeRenderer(
         (if (sinkMode && sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "")
 
     private fun materialDefines() = "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
+        fastMaterialDefines() +
         (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
@@ -377,12 +387,27 @@ internal class ParticleMicroflakeRenderer(
 
     /**
      * 绘制记录的每片字节数。**U4 不改变它**：逐片外观常量换掉了 age/life/light，多出来的量
-     * 靠打包塞进同样四段。只有 U10a 会多一段（复制片的采样中心）。
+     * 靠打包塞进同样四段。U10a 会多一段（复制片的采样中心）；完整颜色下沉以后，
+     * 椭圆路径缩到三段，真圆路径缩到两段。
      */
-    private val recordStride get() = if (useSingleInstanceBuffer) RECORD_STRIDE_WIDE else RECORD_STRIDE
+    private val useParticleColor get() = fast.flowColors && useFlakeConstants && !sinkMode
+    /** 已在三星 Adreno 上确认净收益；其他驱动继续原分发方式。 */
+    private val batchIntegration get() = fast.integrationBatch && !sinkMode && adreno()
+    private val useTrueCircle get() = useParticleColor && fast.flowCircle
+    private fun fastMaterialDefines() =
+        (if (useParticleColor) "#define PARTICLE_COLOR 1\n" else "") +
+        (if (useTrueCircle) "#define TRUE_CIRCLE 1\n" else "")
+    private val recordStride get() = when {
+        useTrueCircle -> 32
+        useParticleColor -> 48
+        useSingleInstanceBuffer -> RECORD_STRIDE_WIDE
+        else -> RECORD_STRIDE
+    }
 
     /** `draw-record.comp` 的宏：U4 让它多算四个逐片量。 */
     private fun recordDefines() = groupDefines() + "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
+        fastMaterialDefines() + compactDefines() +
+        (if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "")
 
@@ -416,6 +441,7 @@ internal class ParticleMicroflakeRenderer(
         program("peel-project.comp", defines = regionDefines())
         if (useActiveRegion) program("peel-region.comp")
         if (useDrawRecords) recordProgram = program("draw-record.comp", defines = recordDefines())
+        if (useCompactCircles) compactProgram = program("particle-playback/compact-circles.comp", defines = compactDefines())
         shared.ensureAccumulationFormat(p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION))
         GLES30.glGenBuffers(buffers.size, buffers, 0)
         if (sharedFields != null) {
@@ -441,7 +467,7 @@ internal class ParticleMicroflakeRenderer(
             program("particle-playback/pressure-tiles-large.comp")
         } else if (!plainJacobi) {
             program("particle-playback/pressure-batched.comp", defines = batchedDefines())
-            program("particle-playback/pressure-tiles.comp", defines = regionDefines())
+            program("particle-playback/pressure-tiles.comp", defines = regionDefines() + adaptiveDefines() + pressureInputDefines())
         }
         program("particle-playback/history.comp", defines = groupDefines())
     }
@@ -456,7 +482,16 @@ internal class ParticleMicroflakeRenderer(
 
     /** U6：批处理 Jacobi 的散度与占据度移出 shared（16 → 8 KiB），逐位恒等。 */
     private fun batchedDefines() =
-        if (p2(ParticlePerfTuning.P2_SHARED_HALF)) "#define REGISTER_BANDS 1\n" else ""
+        (if (p2(ParticlePerfTuning.P2_SHARED_HALF)) "#define REGISTER_BANDS 1\n" else "") + adaptiveDefines() + pressureInputDefines()
+
+    private val adaptivePressure get() = fast.pressureTolerance > 0f && !sinkMode && adreno() &&
+        !reverseLargeTile
+
+    private fun adaptiveDefines() = if (adaptivePressure) "#define ADAPTIVE_PRESSURE 1\n" else ""
+
+    // 仅作为下一轮求解器研究的调试对照；正式包不编译此变体、不分配缓存。
+    private val usePressureInputs get() = BuildConfig.DEBUG && fast.pressureInputReuse && !sinkMode && adreno() && !reverseLargeTile
+    private fun pressureInputDefines() = if (usePressureInputs) "#define PRESSURE_INPUT_REUSE 1\n" else ""
 
     /**
      * 2.2 的大 tile 路径只在 Adreno 上启用：它把两份压力放进片上 shared memory，
@@ -506,6 +541,16 @@ internal class ParticleMicroflakeRenderer(
             GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, recordBuffer[0])
             GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER,
                 input.materials.count * recordStride, null, GLES30.GL_DYNAMIC_DRAW)
+        }
+        if (useCompactCircles && compactBuffers[0] == 0) {
+            GLES30.glGenBuffers(3, compactBuffers, 0)
+            val sizes = intArrayOf(input.materials.count * 32,
+                if (useFusedRecords) 4 else input.materials.count * 4,
+                16 + (compactGroups + if (useFusedRecords) 1 else 0) * 4)
+            for (i in compactBuffers.indices) {
+                GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, compactBuffers[i])
+                GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, sizes[i], null, GLES30.GL_DYNAMIC_DRAW)
+            }
         }
         if (foregroundTexture == 0) {
             val bitmap = checkNotNull(input.foreground) { "没有前景位图时必须先 prepareForeground" }
@@ -629,6 +674,7 @@ internal class ParticleMicroflakeRenderer(
         }
         if (useDrawRecords) {
             GLES30.glUseProgram(recordProgram)
+            if (useParticleColor) oneI(recordProgram, "foreground", 0)
             two(recordProgram, "card", input.cardWidth, input.cardHeight)
             two(recordProgram, "cell", input.materials.cellX, input.materials.cellY)
             two(recordProgram, "particle_scale", input.materials.particleScaleX, input.materials.particleScaleY)
@@ -714,11 +760,23 @@ internal class ParticleMicroflakeRenderer(
     }
 
     /** 调试验证也调用同一函数；时间按 240 Hz 累积，刷新率只决定展示采样。 */
-    fun draw(time: Float, batchPressure: Boolean = false, clearTarget: Boolean = true) {
+    fun draw(time: Float, batchPressure: Boolean = false, clearTarget: Boolean = true,
+             deferFinalPressure: Boolean = false) {
         val t = time.coerceIn(0f, 1f)
         if (batchPressure) prepareOptimizedIntegration()
-        advance(t, batchPressure)
+        advance(t, batchPressure, deferFinalPressure = deferFinalPressure)
         render(t, clearTarget = clearTarget)
+    }
+
+    private var deferredPressure = false
+
+    /** 当前帧不读取末步刚求出的压力；交换缓冲之后提交，下一次积分之前仍严格完成。 */
+    fun finishDeferredPressure() {
+        if (!deferredPressure) return
+        activate()
+        peelPressure.update(step / 240f, true)
+        deferredPressure = false
+        GLES30.glFlush()
     }
 
     private fun prepareOptimizedIntegration() {
@@ -733,8 +791,10 @@ internal class ParticleMicroflakeRenderer(
      * @param historyFrame ≥0 且历史合并生效时，本次采样的最后一步积分顺带写五分量历史。
      * @return 是否已经把 [historyFrame] 写进历史（为 false 时调用方仍需单独转存）。
      */
-    private fun advance(t: Float, batchPressure: Boolean = false, historyFrame: Int = -1): Boolean {
+    private fun advance(t: Float, batchPressure: Boolean = false, historyFrame: Int = -1,
+                        deferFinalPressure: Boolean = false): Boolean {
         activate()
+        finishDeferredPressure()
         val compute = if (batchPressure) reverseCompute else this.compute
         val target = floor(t.toDouble() * 240 + 1e-6).toInt()
         check(target >= step) { "运行时不能倒放材料状态" }
@@ -771,8 +831,20 @@ internal class ParticleMicroflakeRenderer(
         // 后者仍会 splat / 模糊 / 收集 tile，还会让压力缓冲里留下没被求解过的散度。
         val skipPressure = ParticleAblation.bits and ParticleAblation.PRESSURE == ParticleAblation.PRESSURE ||
             ParticlePerfTuning.jacobiIterationsNow <= 0
+        var lastStride = 0
         while (step < target) {
-            step++
+            // 仅实验变体：后半段采用 120 Hz 积分；历史边界与压力更新边界仍精确落在原 240 Hz 格点。
+            val stride = if (fast.flowLateSteps && !sinkMode && step >= 120)
+                min(2 - step % 2, target - step) else 1
+            if (stride != lastStride) { one(compute, "dt", stride / 240f); lastStride = stride }
+            val first = step + stride
+            val ticks = if (batchIntegration && batchPressure && stride == 1)
+                min(target - step, 4 - step % 4) else 1
+            step += stride * ticks
+            if (batchIntegration && batchPressure) {
+                oneI(compute, "integration_first", first)
+                oneI(compute, "integration_count", ticks)
+            }
             one(compute, "time", step / 240f)
             if (merge && step == target) {
                 // 压力更新占用了绑定 4/5/6，最后一步写历史前必须重新绑定范围表与历史缓冲。
@@ -784,7 +856,12 @@ internal class ParticleMicroflakeRenderer(
                 GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
                 probe?.submit("integrate")
             }
-            if (step % 4 == 0 && !skipPressure) {
+            val pressureStride = if (fast.pressureLateStride && !sinkMode && step > 120) 8 else 4
+            if (step % pressureStride == 0 && !skipPressure) {
+                if (deferFinalPressure && batchPressure && step == target) {
+                    deferredPressure = true
+                    continue
+                }
                 probe?.mark("pressure", ParticlePerfProbe.LEVEL_SEGMENT)
                 peelPressure.update(step / 240f, batchPressure)
                 if (probe != null) {
@@ -864,8 +941,9 @@ internal class ParticleMicroflakeRenderer(
             // A1：位置只看 0/1 两个属性（共 32 字节，来自同一块紧凑缓冲），4/5 是外观侧仍然
             // 需要的两份原始材料分量（片段着色器的 random 与复制片的采样中心）。
             val slots = recordStride / 16
-            for (i in 0 until slots) attribute(i, 4, recordBuffer[0], recordStride, i * 16)
-            if (!useSingleInstanceBuffer) {
+            val records = if (useCompactCircles) compactBuffers[0] else recordBuffer[0]
+            for (i in 0 until slots) attribute(i, 4, records, recordStride, i * 16)
+            if (!useSingleInstanceBuffer && !useParticleColor) {
                 // 4/5 是外观侧仍然需要的两份原始材料分量（片段着色器的 random 与复制片的
                 // 采样中心）。U4 之后 random 一个分量都不用了，只剩复制片的采样中心；
                 // U10a 再把它并进绘制记录，一次绘制就只剩一个实例化缓冲（Arm 5.9 的 Don't）。
@@ -917,12 +995,40 @@ internal class ParticleMicroflakeRenderer(
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, buffers[2])
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 6, recordBuffer[0])
         GLES30.glUseProgram(recordProgram)
+        if (useFusedRecords) {
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 4, compactBuffers[2])
+            two(recordProgram, "frame", input.frameWidth, input.frameHeight)
+            two(recordProgram, "offset", input.originX, input.originY)
+        }
+        if (useParticleColor) {
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, foregroundTexture)
+        }
         one(recordProgram, "time", t)
         one(recordProgram, "extrapolate", extrapolation)
         GLES31.glDispatchCompute(linearGroups(input.materials.count), 1, 1)
         GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT or
             GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
         probe?.submit("records")
+        if (useCompactCircles) compactCircles()
+    }
+
+    /** 保持透明混合顺序，GPU 直接生成绘制数量，不逐帧回读到 CPU。 */
+    private fun compactCircles() {
+        GLES30.glUseProgram(compactProgram)
+        GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, recordBuffer[0])
+        for (i in compactBuffers.indices)
+            GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, i + 1, compactBuffers[i])
+        GLES30.glUniform1ui(location(compactProgram, "count"), input.materials.count)
+        GLES30.glUniform1ui(location(compactProgram, "group_count"), compactGroups)
+        two(compactProgram, "frame", input.frameWidth, input.frameHeight)
+        two(compactProgram, "offset", input.originX, input.originY)
+        for (pass in (if (useFusedRecords) 1 else 0)..2) {
+            oneI(compactProgram, "pass", pass)
+            GLES31.glDispatchCompute(if (pass == 1) 1 else compactGroups, 1, 1)
+            GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
+        }
+        GLES31.glMemoryBarrier(GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT or GLES31.GL_COMMAND_BARRIER_BIT)
     }
 
     private fun render(t: Float, extrapolation: Float = max(0f, t - step / 240f),
@@ -970,7 +1076,11 @@ internal class ParticleMicroflakeRenderer(
                 one(material, "extrapolate", extrapolation)
                 oneI(material, "material_pass", 1)
                 if (sinkField && layerAlpha) one(material, "layer_alpha", layerAlphaValue.coerceIn(0f, 1f))
-                GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
+                if (useCompactCircles) {
+                    GLES30.glBindBuffer(GLES31.GL_DRAW_INDIRECT_BUFFER, compactBuffers[2])
+                    GLES31.glDrawArraysIndirect(GLES30.GL_TRIANGLE_STRIP, 0)
+                    GLES30.glBindBuffer(GLES31.GL_DRAW_INDIRECT_BUFFER, 0)
+                } else GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, input.materials.count)
             }
             probe?.submit("pass$pass")
         }
@@ -1249,7 +1359,14 @@ internal class ParticleMicroflakeRenderer(
         render(t, max(0f, t - frameStep / 240f), stateBuffer, clearTarget)
     }
 
-    fun drawGestureFrame(position: Float, stateBuffer: Int, clearTarget: Boolean = true) {
+    fun drawReverseProgress(progress: Float, start: Int, clearTarget: Boolean = true) {
+        val plan = checkNotNull(reverseHistory).plan
+        drawGestureFrame(plan.position(progress, if (start < 0) plan.samples else start),
+            buffers[1], clearTarget, alignSampleTime = true)
+    }
+
+    fun drawGestureFrame(position: Float, stateBuffer: Int, clearTarget: Boolean = true,
+                         alignSampleTime: Boolean = false) {
         activate()
         val frame = position.toInt()
         val fraction = position - frame
@@ -1262,7 +1379,7 @@ internal class ParticleMicroflakeRenderer(
         GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, stateBuffer)
         val restoreProbe = probe()
         restoreProbe?.mark("restore", ParticlePerfProbe.LEVEL_SEGMENT)
-        history.transfer(frame, restore = true, fraction = fraction)
+        history.transfer(frame, restore = true, fraction = fraction, alignSampleTime = alignSampleTime)
         restoreProbe?.submit("restore")
         // 相邻缓存已经插值得到此时刻的位置，不能再叠加积分步长的速度外推。
         render(position / history.plan.samples, extrapolation = 0f,
@@ -1360,9 +1477,10 @@ internal class ParticleMicroflakeRenderer(
     /** 从当前分布抵消剥离汇聚；不删除材料，也不替换每片已有的流动速度。 */
     private inner class PeelPressure(private val span: Float,
                                      private val windX: Float, private val windY: Float) : Closeable {
-        private val gridCell = span.toDouble() / 96.0
-        val columns = ceil(input.cardWidth / gridCell).toInt() + 192
-        val rows = ceil(input.cardHeight / gridCell).toInt() + 192
+        private val resolution = if (sinkMode) 96 else fast.pressureResolution
+        private val gridCell = span.toDouble() / resolution
+        val columns = ceil(input.cardWidth / gridCell).toInt() + resolution * 2
+        val rows = ceil(input.cardHeight / gridCell).toInt() + resolution * 2
         val cells = columns * rows
         // `pressure-tiles.comp` 的 16×16 与 tile 粒度、活动区域的 16 格对齐绑死，**不随 M1 变**；
         // 只有 `peel-blur` / `peel-project` 这两个纯二维核跟着工作组变体走（方案 1.3）。
@@ -1378,6 +1496,8 @@ internal class ParticleMicroflakeRenderer(
         private val project = program("peel-project.comp", defines = regionDefines())
         private var current = 0
         private val tileBuffer = IntArray(1)
+        private val convergence = IntArray(1)
+        private val pressureInputs = IntArray(1)
 
         /** C10：0 = 还没初始化，1 = 整网格，2 = 按包围盒驱动。切换两种形态都要先复位一次。 */
         private var regionState = 0
@@ -1386,6 +1506,13 @@ internal class ParticleMicroflakeRenderer(
         val texture = newTexture(GLES30.GL_TEXTURE_2D, textures)
 
         init {
+            if (adaptivePressure) {
+                GLES30.glGenBuffers(1, convergence, 0)
+                GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, convergence[0])
+                // 32 个八步批次槽位，覆盖用户可选的最多 200 次迭代，另带两个诊断计数。
+                GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, 136,
+                    ByteBuffer.allocateDirect(136), GLES30.GL_DYNAMIC_DRAW)
+            }
             // U3：半精度时 `sample_peel` 换成一次硬件双线性，采样器必须是 LINEAR；
             // RGBA32F 那条路径仍是显式 4 点 `texelFetch`，过滤器取值不参与结果。
             // **格式只能是 RGBA16F**：GLES 3.1 的存储图像格式表里没有 RG16F（Adreno 740 实测拒编）。
@@ -1551,9 +1678,12 @@ internal class ParticleMicroflakeRenderer(
                 else if (large) program("particle-playback/pressure-batched-large.comp", defines = jacobiDefines())
                 else program("particle-playback/pressure-batched.comp", defines = batchedDefines())
             probe?.mark("tiles", ParticlePerfProbe.LEVEL_SEGMENT)
+            if (adaptivePressure && useBatched && !large)
+                GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 6, convergence[0])
             if (useBatched) { prepareTiles(large); probe?.submit("tiles", 2) }
             GLES30.glUseProgram(solver)
             GLES30.glUniform2i(location(solver, "grid_shape"), columns, rows)
+            if (adaptivePressure) one(solver, "tolerance", fast.pressureTolerance)
             val batch = if (!useBatched) 1 else if (large) reverseJacobiBatch else 8
             probe?.mark("jacobi", ParticlePerfProbe.LEVEL_SEGMENT)
             if (ablation and ParticleAblation.JACOBI == 0) {
@@ -1589,11 +1719,20 @@ internal class ParticleMicroflakeRenderer(
 
         private fun tilesProgram(large: Boolean) =
             if (large) program("particle-playback/pressure-tiles-large.comp")
-            else program("particle-playback/pressure-tiles.comp", defines = regionDefines())
+            else program("particle-playback/pressure-tiles.comp", defines = regionDefines() + adaptiveDefines() + pressureInputDefines())
 
         private fun prepareTiles(large: Boolean) {
             ensureTileBuffer()
             bindWork()
+            if (usePressureInputs && !large) {
+                if (pressureInputs[0] == 0) {
+                    GLES30.glGenBuffers(1, pressureInputs, 0)
+                    GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, pressureInputs[0])
+                    GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, cells * 8, null, GLES30.GL_DYNAMIC_DRAW)
+                }
+                // splat 已读取完绑定 3 的材料压缩量；下一次积分会重新绑定自己的缓冲。
+                GLES31.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 3, pressureInputs[0])
+            }
             val tiles = tilesProgram(large)
             GLES30.glUseProgram(tiles)
             GLES30.glUniform2i(location(tiles, "grid_shape"), columns, rows)
@@ -1688,6 +1827,8 @@ internal class ParticleMicroflakeRenderer(
         override fun close() {
             GLES30.glDeleteBuffers(pressureBuffers.size, pressureBuffers, 0)
             GLES30.glDeleteBuffers(1, tileBuffer, 0)
+            GLES30.glDeleteBuffers(1, convergence, 0)
+            GLES30.glDeleteBuffers(1, pressureInputs, 0)
         }
     }
 
@@ -1709,7 +1850,8 @@ internal class ParticleMicroflakeRenderer(
                 val shader = GLES30.glCreateShader(type)
                 shaders.add(shader)
                 val raw = assets.open(if ('/' in path) path else "particle-dismiss/$path").bufferedReader().use { it.readText() }
-                val transformed = if (reverseIntegration) ParticleReverseShader.integration(raw, reverseHistory) else raw
+                val transformed = if (reverseIntegration) ParticleReverseShader.integration(raw, reverseHistory,
+                    batchSteps = "#define INTEGRATION_BATCH 1" in defines) else raw
                 GLES30.glShaderSource(shader, ParticleReverseShader.withDefines(transformed, defines))
                 GLES30.glCompileShader(shader)
                 val status = IntArray(1)
@@ -1774,6 +1916,7 @@ internal class ParticleMicroflakeRenderer(
         if (::peelPressure.isInitialized) peelPressure.close()
         if (gestureState != 0) { GLES30.glDeleteBuffers(1, intArrayOf(gestureState), 0); gestureState = 0 }
         if (recordBuffer[0] != 0) { GLES30.glDeleteBuffers(1, recordBuffer, 0); recordBuffer[0] = 0 }
+        if (compactBuffers[0] != 0) { GLES30.glDeleteBuffers(3, compactBuffers, 0); compactBuffers.fill(0) }
         if (handoffBuffers[0] != 0) { GLES30.glDeleteBuffers(2, handoffBuffers, 0); handoffBuffers.fill(0) }
         if (pipelinePrepared) GLES30.glDeleteBuffers(buffers.size, buffers, 0)
         if (textures.isNotEmpty()) GLES30.glDeleteTextures(textures.size, textures.toIntArray(), 0)

@@ -27,6 +27,9 @@ internal class ParticleDriftRenderer(
     /** true：加光（颗粒颜色按已预乘直接累加）；false：标准 src-over。按背景亮度定（[ParticleDriftBackground]）。 */
     val additive: Boolean
 ) : Closeable {
+    private val fast = ParticleFastOptions.current
+    private var cacheBuffer = 0
+    private var cacheReady = false
 
     private var imageTexture = 0
 
@@ -64,6 +67,7 @@ internal class ParticleDriftRenderer(
         require(next.count == model.count && next.snapshotWidth == model.snapshotWidth &&
             next.snapshotHeight == model.snapshotHeight)
         model = next
+        cacheReady = false
         lattice.fill(0f)
         next.lattice.copyInto(lattice)
         particleFrame = Int.MIN_VALUE
@@ -82,7 +86,7 @@ internal class ParticleDriftRenderer(
     fun prepare(analysis: ParticleDriftContent.Analysis, image: Int, eglImage: Long) {
         content = analysis
         drainErrors()
-        ensurePrograms(assets)
+        ensurePrograms(assets, fast)
         imageTexture = image
         imageEgl = eglImage
         val ids = IntArray(1)
@@ -90,6 +94,12 @@ internal class ParticleDriftRenderer(
         particleBuffer = ids[0]
         GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, particleBuffer)
         GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, total * PARTICLE_BYTES, null, GLES30.GL_DYNAMIC_COPY)
+        if (fast.driftCache) {
+            GLES30.glGenBuffers(1, ids, 0)
+            cacheBuffer = ids[0]
+            GLES30.glBindBuffer(GLES31.GL_SHADER_STORAGE_BUFFER, cacheBuffer)
+            GLES30.glBufferData(GLES31.GL_SHADER_STORAGE_BUFFER, total * CACHE_BYTES, null, GLES30.GL_STATIC_COPY)
+        }
         // 副本分布表：没有副本时也建一项，着色器声明的缓冲始终有东西绑着
         val cumulative = analysis.cumulative.takeIf { it.isNotEmpty() } ?: floatArrayOf(1f)
         val cells = ByteBuffer.allocateDirect(cumulative.size * 4).order(ByteOrder.nativeOrder())
@@ -141,49 +151,62 @@ internal class ParticleDriftRenderer(
         // 颗粒计算和半分辨率工作面可以直接复用。窗口合成与卡片残留仍正常绘制。
         if (!reuseParticleFrames || particleFrame != frameIndex || particleSkip != skip) {
             // 1. 颗粒
-            val update = programs.update
-            GLES30.glUseProgram(update.id)
-            GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
-            GLES30.glUniform1i(update["u_image"], 0)
-            GLES30.glUniform1i(update["u_count"], total)
-            GLES30.glUniform1i(update["u_baseCount"], model.count)
-            GLES30.glUniform2i(update["u_grid"], content.gridWidth, content.gridHeight)
-            GLES30.glUniform3f(update["u_panel"], content.panel[0], content.panel[1], content.panel[2])
-            GLES30.glUniform1f(update["u_panelWeight"], content.panelWeight)
-            GLES30.glUniform1f(update["u_total"], model.totalSeconds)
-            GLES30.glUniform2f(update["u_emitPos"], emitX, emitY)
-            GLES30.glUniform2f(update["u_emitSize"], emitW, emitH)
-            GLES30.glUniform2i(update["u_half"], (width * .5f).toInt(), (height * .5f).toInt())
-            GLES30.glUniform2i(update["u_full"], model.snapshotWidth, model.snapshotHeight)
-            GLES30.glUniform1f(update["u_time"], deviceTime)
-            GLES30.glUniform1f(update["u_hz"], ParticleDriftModel.HZ)
-            GLES30.glUniform2f(update["u_wind"], model.windX, model.windY)
-            GLES30.glUniform1i(update["u_add"], if (additive) 1 else 0)
-            GLES30.glUniform1f(update["u_alphaMul"], model.overAlphaMul)
-            GLES30.glUniform1f(update["u_fadeSizePower"], model.fadeSizePower)
-            GLES30.glUniform1f(update["u_fadeAlphaPower"], model.fadeAlphaPower)
-            GLES30.glUniform1f(update["u_sizeScale"], model.sizeScale)
-            GLES30.glUniform1f(update["u_touchGap"], model.touchGap ?: -1f)
-            GLES30.glUniform2f(update["u_turbOffset"], model.turbulenceOffsetX, model.turbulenceOffsetY)
-            // 选用参考样式时，湍流取样换算到参考卡片自己的发射区：lookup = pos0 × scale + shift
-            val frame = model.turbulenceFrame
-            if (frame != null) {
-                val scaleX = frame[2] / emitW
-                val scaleY = frame[3] / emitH
-                GLES30.glUniform2f(update["u_turbScale"], scaleX, scaleY)
-                GLES30.glUniform2f(update["u_turbShift"], frame[0] - emitX * scaleX, frame[1] - emitY * scaleY)
-            } else {
-                GLES30.glUniform2f(update["u_turbScale"], 1f, 1f)
-                GLES30.glUniform2f(update["u_turbShift"], 0f, 0f)
+            val initializeCache = fast.driftCache && !cacheReady
+            repeat(if (initializeCache) 2 else 1) { pass ->
+                val initializing = initializeCache && pass == 0
+                val update = if (!fast.driftCache) programs.update else
+                    checkNotNull(cachePrograms[fast.driftCurve]).let { if (initializing) it.first else it.second }
+                GLES30.glUseProgram(update.id)
+                if (!fast.driftCache || initializing) {
+                    GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+                    GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
+                    GLES30.glUniform1i(update["u_image"], 0)
+                    GLES30.glUniform1i(update["u_baseCount"], model.count)
+                    GLES30.glUniform2i(update["u_grid"], content.gridWidth, content.gridHeight)
+                    GLES30.glUniform3f(update["u_panel"], content.panel[0], content.panel[1], content.panel[2])
+                    GLES30.glUniform1f(update["u_panelWeight"], content.panelWeight)
+                    GLES30.glUniform1f(update["u_total"], model.totalSeconds)
+                    GLES30.glUniform2f(update["u_emitPos"], emitX, emitY)
+                    GLES30.glUniform2f(update["u_emitSize"], emitW, emitH)
+                    GLES30.glUniform2i(update["u_half"], (width * .5f).toInt(), (height * .5f).toInt())
+                    GLES30.glUniform2i(update["u_full"], model.snapshotWidth, model.snapshotHeight)
+                }
+                GLES30.glUniform1i(update["u_count"], total)
+                GLES30.glUniform1f(update["u_time"], deviceTime)
+                GLES30.glUniform1f(update["u_hz"], ParticleDriftModel.HZ)
+                GLES30.glUniform2f(update["u_wind"], model.windX, model.windY)
+                GLES30.glUniform1i(update["u_add"], if (additive) 1 else 0)
+                GLES30.glUniform1f(update["u_alphaMul"], model.overAlphaMul)
+                GLES30.glUniform1f(update["u_fadeSizePower"], model.fadeSizePower)
+                GLES30.glUniform1f(update["u_fadeAlphaPower"], model.fadeAlphaPower)
+                GLES30.glUniform1f(update["u_sizeScale"], model.sizeScale)
+                if (!fast.driftCache || initializing) {
+                    GLES30.glUniform1f(update["u_touchGap"], model.touchGap ?: -1f)
+                    GLES30.glUniform2f(update["u_turbOffset"], model.turbulenceOffsetX, model.turbulenceOffsetY)
+                    // 选用参考样式时，湍流取样换算到参考卡片自己的发射区：lookup = pos0 × scale + shift
+                    val frame = model.turbulenceFrame
+                    if (frame != null) {
+                        val scaleX = frame[2] / emitW
+                        val scaleY = frame[3] / emitH
+                        GLES30.glUniform2f(update["u_turbScale"], scaleX, scaleY)
+                        GLES30.glUniform2f(update["u_turbShift"], frame[0] - emitX * scaleX, frame[1] - emitY * scaleY)
+                    } else {
+                        GLES30.glUniform2f(update["u_turbScale"], 1f, 1f)
+                        GLES30.glUniform2f(update["u_turbShift"], 0f, 0f)
+                    }
+                    latticeUniforms(update)
+                }
+                GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, particleBuffer)
+                GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, cellBuffer)
+                if (fast.driftCache) GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, cacheBuffer)
+                if (initializing || skip and SKIP_COMPUTE == 0) GLES31.glDispatchCompute((total + 255) / 256, 1, 1)
+                GLES31.glMemoryBarrier(if (initializing) GLES31.GL_SHADER_STORAGE_BARRIER_BIT else
+                    GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
+                if (initializing) cacheReady = true
+                GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, 0)
+                GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, 0)
+                if (fast.driftCache) GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 2, 0)
             }
-            latticeUniforms(update)
-            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, particleBuffer)
-            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, cellBuffer)
-            if (skip and SKIP_COMPUTE == 0) GLES31.glDispatchCompute((total + 255) / 256, 1, 1)
-            GLES31.glMemoryBarrier(GLES31.GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
-            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 0, 0)
-            GLES30.glBindBufferBase(GLES31.GL_SHADER_STORAGE_BUFFER, 1, 0)
 
             // 2. 颗粒画进工作面
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, workFramebuffer)
@@ -196,6 +219,7 @@ internal class ParticleDriftRenderer(
             GLES30.glUseProgram(particle.id)
             GLES30.glUniform2f(particle["u_work"], workWidth.toFloat(), workHeight.toFloat())
             GLES30.glUniform2f(particle["u_workOffset"], canvas.particleOffsetX, canvas.particleOffsetY)
+            GLES30.glUniform1i(particle["u_tightQuad"], if (fast.driftTightQuad) 1 else 0)
             GLES30.glBindVertexArray(particleVao)
             if (skip and SKIP_PARTICLES == 0) GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, total)
             particleFrame = frameIndex
@@ -265,6 +289,7 @@ internal class ParticleDriftRenderer(
         }
         val nextWorkW = canvas.workWidth
         val nextWorkH = canvas.workHeight
+        if (canvasWidth != canvas.simulationWidth || canvasHeight != canvas.simulationHeight) cacheReady = false
         if (canvasWidth != canvas.simulationWidth || canvasHeight != canvas.simulationHeight ||
             workOffsetX != canvas.particleOffsetX || workOffsetY != canvas.particleOffsetY) particleFrame = Int.MIN_VALUE
         workOffsetX = canvas.particleOffsetX
@@ -315,9 +340,11 @@ internal class ParticleDriftRenderer(
         if (quadVao != 0) GLES30.glDeleteVertexArrays(1, intArrayOf(quadVao), 0)
         if (particleBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(particleBuffer), 0)
         if (cellBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(cellBuffer), 0)
+        if (cacheBuffer != 0) GLES30.glDeleteBuffers(1, intArrayOf(cacheBuffer), 0)
         if (imageTexture != 0) GLES30.glDeleteTextures(1, intArrayOf(imageTexture), 0)
         if (imageEgl != 0L) ParticleHardwareTexture.destroy(ParticleGl.display.nativeHandle, imageEgl)
         particleVao = 0; quadVao = 0; particleBuffer = 0; imageTexture = 0; cellBuffer = 0; imageEgl = 0L
+        cacheBuffer = 0; cacheReady = false
     }
 
     internal class Program(val id: Int) {
@@ -352,6 +379,8 @@ internal class ParticleDriftRenderer(
 
         /** 进程内只编译一次（上下文常驻）；只在 GL 线程访问。 */
         private var programs: Programs? = null
+        private const val CACHE_BYTES = 96
+        private val cachePrograms = HashMap<Boolean, Pair<Program, Program>>()
 
         /**
          * 在常驻 GL 线程上先把着色器编好；失败不要紧，首个动画会再编一次。参考样式表与输入算式也先走一遍
@@ -407,7 +436,17 @@ internal class ParticleDriftRenderer(
             return buffer
         }
 
-        fun ensurePrograms(assets: AssetManager) {
+        fun ensurePrograms(assets: AssetManager, fast: ParticleFastOptions = ParticleFastOptions.current) {
+            if (fast.driftCache && fast.driftCurve !in cachePrograms) {
+                val body = read(assets, "drift-update.comp").replace("#include \"drift-common.glsl\"",
+                    read(assets, "drift-common.glsl"))
+                val defines = "#define DRIFT_CACHE 1\n" + (if (fast.driftCurve) "#define DRIFT_CURVE 1\n" else "")
+                fun cached(extra: String): Program {
+                    val source = ParticleReverseShader.withDefines(body, defines + extra)
+                    return Program(link(compile(GLES31.GL_COMPUTE_SHADER, source, "drift cached $extra")))
+                }
+                cachePrograms[fast.driftCurve] = cached("#define DRIFT_INITIALIZE 1\n") to cached("")
+            }
             if (programs != null) return
             val common = read(assets, "drift-common.glsl")
             val coverage = read(assets, "drift-coverage.glsl")

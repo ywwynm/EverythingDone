@@ -117,7 +117,7 @@ internal class ParticleDriftSession(
     }
 
     /** 飘散每帧是设备时刻的闭式函数，任意时刻都能直接画。 */
-    override val prefersHighFrameRate get() = true
+    override val prefersHighFrameRate get() = ParticlePerfTuning.driftHighFrameRate
 
     override fun needsBeat(): Boolean {
         if (cancelled || !visible) return false

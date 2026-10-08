@@ -80,7 +80,7 @@ class ParticleDriftFrameRateTest {
 
     // ---- 刷新率投票 ----
 
-    @Test fun `空闲窗口不投票，只有飘散时投 120，有流体时投 60`() {
+    @Test fun `空闲窗口不投票，活动会话均启用高刷时投120`() {
         val update = body(main("ParticleGl.kt"), "private fun updateFrameRate()", "\n    }")
         assertTrue("有会话的窗口全是飘散才切高帧率", "busy.all { it.prefersHighFrameRate }" in update)
         assertTrue("节拍间隔跟着切", "ParticleClock.setHighRate(high)" in update)
@@ -90,13 +90,13 @@ class ParticleDriftFrameRateTest {
         assertTrue("其余投 60", "ParticleWindowSurface.VOTED_FRAME_RATE" in update)
     }
 
-    @Test fun `流体会话不按高帧率出`() {
-        assertFalse("轨迹按 60 Hz 预算，不能覆盖成高帧率",
-            "prefersHighFrameRate" in code(main("ParticleSession.kt")))
+    @Test fun `两种会话分别控制高刷而流体保持历史密度`() {
+        assertTrue("流体有独立高刷开关",
+            "override val prefersHighFrameRate get() = ParticlePerfTuning.flowHighFrameRate" in code(main("ParticleSession.kt")))
         val layer = code(main("ParticleLayerSession.kt"))
         assertTrue("接口缺省是 false", "val prefersHighFrameRate: Boolean get() = false" in layer)
         assertTrue("飘散每帧是闭式函数，任意时刻都能画",
-            "override val prefersHighFrameRate get() = true" in code(main("ParticleDriftSession.kt")))
+            "override val prefersHighFrameRate get() = ParticlePerfTuning.driftHighFrameRate" in code(main("ParticleDriftSession.kt")))
     }
 
     // ---- 左滑补帧 ----

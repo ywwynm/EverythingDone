@@ -7,6 +7,7 @@
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -31,9 +32,12 @@ def main():
     p.add_argument('--repeats', type=int, default=7)
     p.add_argument('--frames', type=int, default=60)
     p.add_argument('--verify-reuse', action='store_true')
+    p.add_argument('--fast', action='store_true', help='同包交错比较原式、静态缓存与噪声拟合')
     p.add_argument('--width', type=int, default=1440)
     p.add_argument('--height', type=int, default=3088)
     a = p.parse_args()
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', a.run):
+        p.error('--run 只能包含字母、数字、下划线和连字符')
     folder = d.OUT / a.run
     folder.mkdir(parents=True, exist_ok=True)
     width, height = a.width, a.height
@@ -44,7 +48,12 @@ def main():
     if a.verify_reuse:
         cases.append(dict(name='加光／奇数尺寸／非默认大小', width=901, height=347, pattern='dialog',
                           seed=42, dx=-1, dy=-1, additive=True, size=.8, amount=1.6))
-    spec = dict(output=[width, height], frames=a.frames, repeats=a.repeats, cases=cases, verifyReuse=a.verify_reuse)
+    if a.fast:
+        cases.append(dict(name='颜色大弹窗／高数量／大粒子', width=round(1200*width/1440),
+                          height=round(1400*height/3088), pattern='dialog', seed=25,
+                          dx=0, dy=-1, amount=1.6, size=3))
+    spec = dict(output=[width, height], frames=a.frames, repeats=a.repeats, cases=cases,
+                verifyReuse=a.verify_reuse, fast=a.fast)
     (folder / 'bench.json').write_text(json.dumps(spec, ensure_ascii=False), 'utf-8')
     remote = '%s/%s' % (REMOTE, a.run)
     d.soft('shell', 'rm', '-rf', remote)
@@ -65,6 +74,9 @@ def main():
     d.adb('pull', remote + '/bench-result.json', str(folder / 'bench-result.json'))
     result = json.loads((folder / 'bench-result.json').read_text('utf-8'))
     for case in result['cases']:
+        if a.fast:
+            print(case['name'], case['count'], json.dumps(case['costs'], ensure_ascii=False))
+            continue
         print('  重复帧', case.get('repeatedFrame'), '逐字节核对', case.get('reuseVerification'))
         f = case['perFrame']
         full = f['full']['ms']

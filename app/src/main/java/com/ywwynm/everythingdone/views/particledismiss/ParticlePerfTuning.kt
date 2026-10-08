@@ -303,9 +303,18 @@ internal object ParticlePerfTuning {
 
     /**
      * 飘散在高刷屏上每个 vsync 出一帧（120 Hz 面板即 120 帧），见 [ParticleClock.setHighRate]。飘散每帧是闭式公式，
-     * 任意时刻都能直接画（三星 SM-S9180 上整屏每帧 GPU 约 1.5 ms）；流体的轨迹按 60 Hz 预算，窗口里只要有流体会话就仍是 60 Hz。
+     * 任意时刻都能直接画。流体通过独立开关控制，出现动画在既有历史之间连续插值。
      */
     @Volatile var driftHighFrameRate = true
+
+    @Volatile var flowHighFrameRate = true
+
+    /** 把当前帧不读取的末步压力计算放到交换缓冲之后，保持模拟结果不变。 */
+    @Volatile var flowPressureAfterPresent = true
+
+    /** 仅调试文件覆盖；null 使用 ParticleFastOptions 中的生产默认值。 */
+    @Volatile var flowPressureInputReuse: Boolean? = null
+    @Volatile var flowFusedCircleRecords: Boolean? = null
 
     /** 飘散期间为宿主窗口请求同分辨率的高刷模式；魅族忽略单独的 Surface／窗口帧率提示。 */
     @Volatile var driftWindowFrameRate = true
@@ -642,6 +651,10 @@ internal object ParticlePerfTuning {
         immediateFirstFrame = config.optBoolean("immediateFirstFrame", immediateFirstFrame)
         beatPhaseLock = config.optBoolean("beatPhaseLock", beatPhaseLock)
         driftHighFrameRate = config.optBoolean("driftHighFrameRate", driftHighFrameRate)
+        flowHighFrameRate = config.optBoolean("flowHighFrameRate", flowHighFrameRate)
+        flowPressureAfterPresent = config.optBoolean("flowPressureAfterPresent", flowPressureAfterPresent)
+        if (config.has("flowPressureInputReuse")) flowPressureInputReuse = config.getBoolean("flowPressureInputReuse")
+        if (config.has("flowFusedCircleRecords")) flowFusedCircleRecords = config.getBoolean("flowFusedCircleRecords")
         driftWindowFrameRate = config.optBoolean("driftWindowFrameRate", driftWindowFrameRate)
         lateGestureFrames = config.optBoolean("lateGestureFrames", lateGestureFrames)
         cellDpFromFile = config.has("microflakeCellDp")

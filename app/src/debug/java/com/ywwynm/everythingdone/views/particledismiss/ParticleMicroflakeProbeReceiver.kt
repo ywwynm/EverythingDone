@@ -21,6 +21,26 @@ import kotlin.math.*
 /** 只读 adb 预先放入专用目录的测试素材，不访问记事或应用设置。 */
 class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.getBooleanExtra("fastBench", false)) {
+            if (!running.compareAndSet(false, true)) return
+            val app = context.applicationContext
+            val id = intent.getStringExtra("checkId") ?: "fast"
+            require(id.matches(Regex("[A-Za-z0-9_-]+")))
+            Thread({
+                val out = File(app.getExternalFilesDir(null), "particle-fast/$id").apply { mkdirs() }
+                runCatching {
+                    val check = { ParticleFastBench.flow(app, out, intent.getBooleanExtra("highRefresh", false),
+                        intent.getBooleanExtra("compactCheck", false), intent.getBooleanExtra("orderCheck", false),
+                        intent.getBooleanExtra("reuseCheck", false)) }
+                    if (intent.hasExtra("iterations")) ParticlePerfTuning.withOptions(
+                        ParticlePerfTuning.microflakeCellDpNow, intent.getIntExtra("iterations", 100).coerceIn(0,200), check)
+                    else check()
+                }
+                    .onFailure { File(out, "error.txt").writeText(it.stackTraceToString()) }
+                running.set(false)
+            }, "ParticleFastBench").start()
+            return
+        }
         if (intent.getBooleanExtra("shaderMatrix", false)) {
             // 逐帧成本专项第二阶段的纪律：**每一项都要先在华为上编译一次**
             // （Maleoon 910 的链接检查最严，Adreno 的宽容会掩盖问题）。这里把条件表里

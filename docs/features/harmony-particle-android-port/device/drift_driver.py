@@ -30,7 +30,11 @@ OUT = REPO / 'tmp/harmony-particle-android-port'
 
 
 def adb(*args, check=True):
-    return subprocess.run([ADB, '-s', SERIAL, *map(str, args)], capture_output=True, check=check).stdout
+    result = subprocess.run([ADB, '-s', SERIAL, *map(str, args)], capture_output=True)
+    if check and result.returncode:
+        raise RuntimeError('ADB 命令失败：' + ' '.join(map(str, args)) + '\n' +
+                           result.stderr.decode('utf-8', 'replace') + result.stdout.decode('utf-8', 'replace'))
+    return result.stdout
 
 
 def soft(*args):

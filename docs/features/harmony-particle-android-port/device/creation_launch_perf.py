@@ -30,8 +30,8 @@ def control(value):
     write_private(CONTROL, json.dumps(value).encode())
 
 
-def await_json(path, accept=lambda value: True):
-    deadline = time.monotonic() + 20
+def await_json(path, accept=lambda value: True, timeout=20):
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         result = d.soft('shell', 'cat', path)
         if result.returncode == 0:

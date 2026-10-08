@@ -2,11 +2,22 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 /** 从当前共同积分器派生准备路径，不复制或改写运动公式。 */
 internal object ParticleReverseShader {
-    fun integration(source: String, withHistory: Boolean = false): String {
+    fun integration(source: String, withHistory: Boolean = false, batchSteps: Boolean = false): String {
         val marker = "    float h=min(dt,age);"
         check(source.indexOf(marker) == source.lastIndexOf(marker) && marker in source)
         // 材质与压力采样均不再读取超过寿命的颗粒，后续状态不影响任何可见帧。
-        val integrated = source.replace(marker, "    if(age>=m.physical.z)return;\n$marker")
+        var integrated = source.replace(marker, "    if(age>=m.physical.z)return;\n$marker")
+        if (batchSteps) {
+            // 压力更新之间各粒子相互独立；合并分发，仍逐次执行原来的 240 Hz 公式。
+            integrated = integrated.replace("void main(){", "void integrate_tick(float time){") + """
+
+uniform int integration_first,integration_count;
+void main(){
+    for(int tick=0;tick<integration_count;tick++)
+        integrate_tick(float(integration_first+tick)/240.);
+}
+"""
+        }
         if (!withHistory) return integrated
         val mainMarker = "void main(){"
         check(integrated.indexOf(mainMarker) == integrated.lastIndexOf(mainMarker) && mainMarker in integrated)

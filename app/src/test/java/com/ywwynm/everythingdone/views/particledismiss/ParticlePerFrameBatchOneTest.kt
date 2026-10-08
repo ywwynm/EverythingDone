@@ -177,7 +177,7 @@ class ParticlePerFrameBatchOneTest {
         for (line in listOf("""program("peel-splat.comp", defines = regionDefines())""",
             """program("peel-blur.comp", defines = regionDefines())""",
             """program("peel-project.comp", defines = regionDefines())""",
-            """program("particle-playback/pressure-tiles.comp", defines = regionDefines())""")) {
+            """program("particle-playback/pressure-tiles.comp", defines = regionDefines() + adaptiveDefines() + pressureInputDefines())""")) {
             assertTrue("缓存键必须带宏，否则拿到的是另一份没有区域分支的程序：$line", line in peel)
         }
     }

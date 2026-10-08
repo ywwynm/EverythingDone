@@ -15,6 +15,9 @@ uniform int material_pass;
 #endif
 in highp vec2 uv;
 in VOUT vec2 local_uv;
+#ifdef PARTICLE_COLOR
+flat in highp vec4 particle_color;
+#endif
 #ifdef FLAKE_CONSTANTS
 flat in VOUT float shape_out,surface_out;
 flat in VOUT float alpha_scale,loosen_out,light_scale,add_term,age_beat;
@@ -62,6 +65,12 @@ float round_shape(){
 }
 #endif
 void main(){
+#ifdef PARTICLE_COLOR
+    float alpha=particle_color.a*round_shape();
+    if(alpha<.001 || diagnostic==3)discard;
+    vec3 color=diagnostic==1?vec3(1.,.20,.07):particle_color.rgb;
+    frag=vec4(color*alpha,alpha);
+#else
     vec4 src=texture(foreground,uv);
     if(src.a<.001)discard;
 #ifndef FLAKE_CONSTANTS
@@ -151,4 +160,5 @@ void main(){
     color=mix(color,min(color,vec3(mix(1.,facet,optical_loosen))),body);
     if(diagnostic==1)color=vec3(1.,.20,.07);
     frag=vec4(color*alpha,alpha);
+#endif
 }

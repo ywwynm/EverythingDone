@@ -26,6 +26,7 @@ internal class ParticleReverseHistory(
     private var frameLocation = 0
     private var restoreLocation = 0
     private var fractionLocation = 0
+    private var extrapolationLocation = 0
 
     /** 历史缓冲那一次 glBufferData 的实际耗时（毫秒），供性能记录使用；命中池时为 0。 */
     var allocMs = 0.0
@@ -50,6 +51,7 @@ internal class ParticleReverseHistory(
             frameLocation = location("frame")
             restoreLocation = location("restore")
             fractionLocation = location("fraction")
+            extrapolationLocation = location("sample_extrapolation")
             applyUniforms()
             check(GLES30.glGetError() == GLES30.GL_NO_ERROR) { "无法分配逆向轨迹缓存" }
         } catch (error: Throwable) {
@@ -74,13 +76,20 @@ internal class ParticleReverseHistory(
     }
 
     /** 调用方先绑定原材料和当前状态，缓存操作只改变绑定 4、5。 */
-    fun transfer(frame: Int, restore: Boolean, fraction: Float = 0f) {
+    fun transfer(frame: Int, restore: Boolean, fraction: Float = 0f, alignSampleTime: Boolean = false) {
         bindTargets()
         GLES30.glUseProgram(program)
         GLES30.glUniform1i(countLocation, plan.count)
         GLES30.glUniform1i(frameLocation, frame)
         GLES30.glUniform1i(restoreLocation, if (restore) 1 else 0)
         GLES30.glUniform1f(fractionLocation, fraction)
+        fun offset(sample: Int): Float {
+            if (!alignSampleTime) return 0f
+            val t = plan.time(sample)
+            val tick = kotlin.math.floor(t.toDouble() * 240 + 1e-6).toInt()
+            return (t - tick / 240f).coerceAtLeast(0f)
+        }
+        GLES30.glUniform2f(extrapolationLocation, offset(frame), offset(frame + 1))
         GLES31.glDispatchCompute((plan.count + groupSize - 1) / groupSize, 1, 1)
         GLES31.glMemoryBarrier(GLES31.GL_SHADER_STORAGE_BARRIER_BIT)
     }

@@ -5,6 +5,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ParticleReversePlanTest {
+    @Test fun `120Hz播放进度连续递减且不增加历史缓存`() {
+        val plan = ParticleReversePlan(FloatArray(12).apply { this[6] = 1f }, 36)
+        val bytes = plan.bytes
+        val positions = (0..72).map { plan.position(it / 72f) }
+        assertEquals(73, positions.distinct().size)
+        assertEquals(36f, positions.first(), 0f)
+        assertEquals(0f, positions.last(), 0f)
+        assertTrue(positions.zipWithNext().all { (a, b) -> a > b })
+        assertEquals(32f, plan.position(-1f, 32), 0f)
+        assertEquals(0f, plan.position(2f, 32), 0f)
+        assertEquals(bytes, plan.bytes)
+    }
     @Test fun `所有可见采样必须落入各自独立的历史范围`() {
         val values = FloatArray(1200)
         for (i in 0 until 100) {

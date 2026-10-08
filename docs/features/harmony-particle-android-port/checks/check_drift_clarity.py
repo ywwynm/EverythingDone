@@ -102,7 +102,8 @@ class Renderer:
         ctx,s = self.ctx,self.spec
         self.data.bind_to_storage_buffer(0); self.cells.bind_to_storage_buffer(1); self.image.use(0)
         uniforms(self.compute,{**self.values,'u_time':time,'u_sizeScale':self.base_size*size})
-        self.compute['u_lattice'].write(self.lattice.tobytes())
+        if 'u_lattice' in self.compute:
+            self.compute['u_lattice'].write(self.lattice.tobytes())
         self.compute.run((self.result['total']+255)//256); ctx.memory_barrier()
         if data_only:
             return np.frombuffer(self.data.read(),np.float32).reshape(-1,8).copy()

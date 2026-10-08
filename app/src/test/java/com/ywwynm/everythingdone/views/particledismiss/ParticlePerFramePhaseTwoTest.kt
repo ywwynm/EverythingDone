@@ -223,8 +223,8 @@ class ParticlePerFramePhaseTwoTest {
         assertTrue("记录里要把 replica 与 alive 合成一个标志位",
             "float flags=(alive?1.:0.)+(replica>0?2.:0.);" in record)
         // 注释里也会出现这个名字，所以只数真正的调用（后面紧跟左括号的那些）。
-        assertEquals("radial 与 loosen/age 都要打包成半精度", 2,
-            Regex("packHalf2x16\\(").findAll(record).count())
+        assertEquals("旧记录的两次打包，加上逐粒子颜色路径保持 loosen/age 原精度的一次", 3,
+            Regex("\\bpackHalf2x16\\(").findAll(record).count())
         val vert = shader("material.vert")
         assertTrue("U10a 打开时第五段在 location 4",
             "layout(location=4) in vec4 record_extra;" in vert)

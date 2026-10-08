@@ -55,6 +55,9 @@ uniform float panel_weight,release_spread;
 #endif
 out highp vec2 uv;
 out VOUT vec2 local_uv;
+#ifdef PARTICLE_COLOR
+flat out highp vec4 particle_color;
+#endif
 #ifdef FLAKE_CONSTANTS
 flat out VOUT float shape_out,surface_out;
 flat out VOUT float alpha_scale,loosen_out,light_scale,add_term,age_beat;
@@ -107,6 +110,21 @@ vec2 jitter(vec2 g){uint s=uint(g.x)*0x9e3779b9u^uint(g.y)*0x85ebca6bu;
     return (vec2(grid_unit(s),grid_unit(s^0x68bc21ebu))-.5)*.60;}
 #ifdef DRAW_RECORDS
 void main(){
+#ifdef PARTICLE_COLOR
+    // 近圆粒子的来源 UV 恒定，颜色已在 compute 中逐粒子计算。
+    vec2 c=corners[gl_VertexID];
+    local_uv=c;
+#ifdef TRUE_CIRCLE
+    particle_color=record_place;
+    vec2 vertex=record_xform.xy+(c-.5)*record_xform.z;
+#else
+    particle_color=record_shade;
+    vec2 vertex=record_place.xy+mat2(record_xform.xy,record_xform.zw)*c;
+#endif
+    if(particle_color.a<.001){gl_Position=vec4(2.,2.,2.,1.);return;}
+    vec2 world=offset+vertex;
+    gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
+#else
     float surface=record_mask.x;
 #ifdef FLAKE_CONSTANTS
     // U4 把「是不是复制片」与「这一帧活不活着」合成一个标志位（取值 0/1/2/3，浮点精确），
@@ -179,6 +197,7 @@ void main(){
     gl_Position=vec4(world.x/frame.x*2.-1.,1.-world.y/frame.y*2.,0,1);
 #ifndef FLAKE_CONSTANTS
     light_out=record_shade.z;shape_out=record_shade.w;
+#endif
 #endif
 }
 #else

@@ -92,6 +92,8 @@ internal class ParticleSession(
 
     override val needsMicroflakeShared get() = true
 
+    override val prefersHighFrameRate get() = ParticlePerfTuning.flowHighFrameRate && spec.sink == null
+
     /** 正在逐帧出画（含末帧驻留）：这一条决定预算要不要给出帧让路。 */
     override val presenting get() = !cancelled && visible && (stage == Stage.PLAY || stage == Stage.HOLD)
 
@@ -523,8 +525,9 @@ internal class ParticleSession(
             return
         }
         val progress = ((target - firstTarget) / 1e9 / playbackSeconds).toFloat().coerceIn(0f, 1f)
-        if (isReverse) active.drawReverseFrame(active.reverseFrameFor(progress, appearanceStart), clearTarget = false)
-        else active.draw(progress, batchPressure = true, clearTarget = false)
+        if (isReverse) active.drawReverseProgress(progress, appearanceStart, clearTarget = false)
+        else active.draw(progress, batchPressure = true, clearTarget = false,
+            deferFinalPressure = ParticlePerfTuning.flowPressureAfterPresent && spec.sink == null)
         lastProgress = progress
         if (progress >= 1f) stage = Stage.HOLD
     }
@@ -540,8 +543,9 @@ internal class ParticleSession(
             active.drawGestureFrame(presentablePosition(active), active.gestureStateBuffer(), clearTarget = false)
             return
         }
-        if (isReverse) active.drawReverseFrame(active.reverseFrameFor(lastProgress, appearanceStart), clearTarget = false)
-        else active.draw(lastProgress, batchPressure = true, clearTarget = false)
+        if (isReverse) active.drawReverseProgress(lastProgress, appearanceStart, clearTarget = false)
+        else active.draw(lastProgress, batchPressure = true, clearTarget = false,
+            deferFinalPressure = ParticlePerfTuning.flowPressureAfterPresent && spec.sink == null)
     }
 
     /** 窗口 `eglSwapBuffers` 返回之后调用；口径与第一批的「请求→首个粒子提交」一致。 */
@@ -549,8 +553,12 @@ internal class ParticleSession(
         pendingFrames++
         firstFrameSubmitted = true
         if (!isGesture) submittedProgress[target] = lastProgress
+        val now = if (BuildConfig.DEBUG) System.nanoTime() else 0L
+        if (!isReverse && !isGesture) {
+            try { renderer?.finishDeferredPressure() }
+            catch (error: Throwable) { fail(error) }
+        }
         if (!BuildConfig.DEBUG) return
-        val now = System.nanoTime()
         submittedTimings += longArrayOf(target, now, lastProgress.toRawBits().toLong())
         pendingDraw?.let { drawTimings += longArrayOf(it[0], it[1], it[2], it[2], now) }
         pendingDraw = null

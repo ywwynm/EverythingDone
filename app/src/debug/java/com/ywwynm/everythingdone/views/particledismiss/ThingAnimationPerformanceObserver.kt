@@ -317,12 +317,14 @@ private class PerformanceCollector(val app: Application, val config: JSONObject)
             val width = overlay.width
             val height = overlay.height
             val perFrame = config.optBoolean("perFrameBench")
+            val reuseTimeline = config.optBoolean("reuseTimeline")
             // 第二阶段：逐项墙钟 A/B。条件可以只给一部分（`phase2Conditions`），真机要省着跑。
             val phase2 = config.optBoolean("phase2Bench")
             val names = config.optJSONArray("phase2Conditions")
             val wanted = (0 until (names?.length() ?: 0)).map { names!!.getString(it) }
             overlay.afterRelease {
-                if (phase2) ParticleSegmentBench.runPhase2(context, copied, width, height, output, repeats,
+                if (reuseTimeline) ParticleSegmentBench.runReuseTimeline(context, copied, width, height, output)
+                else if (phase2) ParticleSegmentBench.runPhase2(context, copied, width, height, output, repeats,
                     names = wanted)
                 else if (perFrame) ParticleSegmentBench.runPerFrame(context, copied, width, height, output, repeats)
                 else ParticleSegmentBench.run(context, copied, width, height, output, repeats)

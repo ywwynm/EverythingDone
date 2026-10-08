@@ -158,6 +158,11 @@ internal object DriftParityRender {
                 ParticleDriftModel.seededRandom(case.optInt("seed", 1)), ParticleDriftStyles.all(assets),
                 size = case.optDouble("size", 1.0).toFloat())
             val content = ParticleDriftContent.analyse(width, height, rgba, model.count)
+            if (spec.optBoolean("fast", false)) {
+                results.put(ParticleFastBench.drift(assets, model, content, rgba, case,
+                    outW, outH, framebuffer, frames, repeats, folder))
+                continue
+            }
             val renderer = ParticleDriftRenderer(assets, model, case.optBoolean("additive", false))
             renderer.prepare(ParticleMicroflakePreparation.Pixels(width, height, rgba, null), content)
             val originX = (outW - width) / 2f

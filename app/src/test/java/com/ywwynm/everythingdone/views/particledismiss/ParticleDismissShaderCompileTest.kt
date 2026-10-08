@@ -42,8 +42,51 @@ class ParticleDismissShaderCompileTest {
             }
         }
         val step = File(root, "shared/particle-dismiss/step.comp").readText()
+        for (name in listOf("pressure-batched.comp", "pressure-tiles.comp")) {
+            for (extra in listOf("", "#define REGISTER_BANDS 1\n#define ACTIVE_REGION 1\n",
+                "#define PRESSURE_INPUT_REUSE 1\n",
+                "#define REGISTER_BANDS 1\n#define ACTIVE_REGION 1\n#define PRESSURE_INPUT_REUSE 1\n")) {
+                compile(validator!!, "压力批间停止 $name $extra", ParticleReverseShader.withDefines(
+                    File(root, "app/src/main/assets/particle-playback/$name").readText(),
+                    "#define ADAPTIVE_PRESSURE 1\n" + extra))
+            }
+        }
+        compile(validator!!, "合并记录的稳定组间压缩", ParticleReverseShader.withDefines(
+            File(root, "app/src/main/assets/particle-playback/compact-circles.comp").readText(),
+            "#define FUSED_RECORDS 1\n"))
+        for (srgb in listOf("", "#define SRGB_TARGET 1\n")) {
+            compile(validator, "合并记录与扫描 $srgb", ParticleReverseShader.withDefines(
+                File(root, "shared/particle-dismiss/draw-record.comp").readText(), ROUND_PARTICLES +
+                "#define TRUE_CIRCLE 1\n#define FLAKE_CONSTANTS 1\n#define PARTICLE_COLOR 1\n" +
+                "#define FUSED_RECORDS 1\n" + srgb))
+        }
+        val drift = File(root, "shared/particle-dismiss/drift-update.comp").readText()
+            .replace(DRIFT_INCLUDE, File(root, "shared/particle-dismiss/drift-common.glsl").readText())
+        for (init in listOf("", "#define DRIFT_INITIALIZE 1\n")) {
+            for (curve in listOf("", "#define DRIFT_CURVE 1\n")) {
+                compile(validator!!, "飘散缓存 $init $curve", ParticleReverseShader.withDefines(drift,
+                    "#define DRIFT_CACHE 1\n" + init + curve))
+            }
+        }
+        for (name in listOf("draw-record.comp", "material.vert", "material.frag")) {
+            val source = File(root, "shared/particle-dismiss/$name")
+            for (circle in listOf("", "#define TRUE_CIRCLE 1\n")) {
+                for (srgb in listOf("", "#define SRGB_TARGET 1\n#define MEDIUMP_VARYING 1\n")) {
+                    compile(validator!!, "逐粒子颜色 $name $circle $srgb",
+                        ParticleReverseShader.withDefines(source.readText(), ROUND_PARTICLES +
+                            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n#define PARTICLE_COLOR 1\n" +
+                            circle + srgb), "." + source.extension)
+                }
+            }
+        }
+        compile(validator!!, "粗压力网格模糊", ParticleReverseShader.withDefines(
+            File(root, "shared/particle-dismiss/peel-blur.comp").readText(),
+            "#define PRESSURE_GRID_72 1\n#define ACTIVE_REGION 1\n"))
         compile(validator!!, "逆向准备积分器", ParticleReverseShader.integration(step))
         compile(validator, "逆向准备积分器（历史合并）", ParticleReverseShader.integration(step, withHistory = true))
+        compile(validator, "合并积分分发", ParticleReverseShader.integration(step, batchSteps = true))
+        compile(validator, "合并积分分发与历史保存", ParticleReverseShader.integration(step,
+            withHistory = true, batchSteps = true))
         // 碰一碰的吸入模式：正向积分与逆向准备都要编进 SINK 段
         compile(validator, "逆向准备积分器（吸入）",
             ParticleReverseShader.withDefines(ParticleReverseShader.integration(step, withHistory = true), SINK))

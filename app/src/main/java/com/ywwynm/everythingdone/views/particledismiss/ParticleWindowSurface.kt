@@ -561,16 +561,14 @@ internal class ParticleWindowSurface private constructor(
 
     companion object {
         /**
-         * 粒子层投给 SurfaceFlinger 的帧率，也是**采样计划唯一该用的那个值**。
+         * 低刷回退值，也是历史采样计划的固定基准。
          *
-         * 粒子层自己按这个节拍出帧（[applyFrameRate]），与面板此刻在跑 60 还是 120 Hz 无关：
-         * 120 Hz 面板上 SurfaceFlinger 留在 120，我们每隔一拍提交一次。用面板的瞬时刷新率去
-         * 算采样数，只会让「预算时」与「播放时」读到两个值——阶段 0' 实测的创建页预算必然
-         * 未命中就是这么来的（缓存键里放了瞬时读数）。
+         * 高刷显示在相邻历史之间插值，缓存密度仍用此值；避免预算与播放时的瞬时显示模式
+         * 不同导致缓存键不一致，也避免 120 Hz 时把轨迹缓存翻倍。
          */
         const val VOTED_FRAME_RATE = 60f
 
-        /** 飘散高帧率期间投给粒子 Surface 的刷新率（[ParticleGl] 切换，见 [ParticlePerfTuning.driftHighFrameRate]）。 */
+        /** 两类普通粒子会话的高刷目标；由 [ParticleGl] 按会话开关切换。 */
         const val HIGH_FRAME_RATE = 120f
 
         /** 卡片专用，生命周期跟随动画层；每张卡片可以独立与原 View 同帧交接。 */

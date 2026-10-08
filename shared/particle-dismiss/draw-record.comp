@@ -23,6 +23,14 @@ layout(std430,binding=0) readonly buffer A {Material particles[];};
 layout(std430,binding=1) readonly buffer B {State states[];};
 layout(std430,binding=2) readonly buffer C {float pigments[];};
 layout(std430,binding=6) writeonly buffer D {vec4 records[];};
+#ifdef FUSED_RECORDS
+layout(std430,binding=4) buffer Groups {
+    uint vertex_count,instance_count,first_vertex,base_instance;
+    uint groups[];
+};
+uniform vec2 frame,offset;
+shared uint record_scan[LINEAR_GROUP];
+#endif
 uniform vec2 card,cell,wind;
 #ifdef PARTICLE_AMOUNT
 uniform vec2 particle_scale;
@@ -30,13 +38,29 @@ uniform vec2 particle_scale;
 uniform float time,extrapolate,span,roll_gain,body_weight;
 uniform float panel_weight,release_spread;
 uniform int nx,grid_count,count;
+#ifdef PARTICLE_COLOR
+uniform sampler2D foreground;
+vec3 source_linear(vec3 c){
+#ifdef SRGB_TARGET
+    return c;
+#else
+    return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));
+#endif
+}
+#endif
 #ifdef FLAKE_CONSTANTS
 // U4：`material.frag` 里只依赖 age / life / random / surface 的量全是**逐片常量**，
 // 对一片的所有像素给出同一个答案。搬到这里每片每帧算一次，片元侧省掉四个 smoothstep、
 // 一个 sin 与一个 pow(x,12)，varying 也从 14 个分量降到 13 个且除 uv 外都能 mediump。
 uniform float light_gain;
 #endif
+#ifdef FUSED_RECORDS
+// 所有线程都要参与外层扫描；逐粒子的提前返回只退出此函数。
+void make_record(out vec4 geometry,out vec4 tint){
+    geometry=vec4(0.);tint=vec4(0.);
+#else
 void main(){
+#endif
     uint i=gl_GlobalInvocationID.x;if(i>=uint(count))return;
     Material m=particles[i];
     int id=int(m.src.w+.1);
@@ -45,6 +69,9 @@ void main(){
     vec2 grid=vec2(id%nx,id/nx);
     float age_out=time-m.src.z;
     float life=m.physical.z;
+#ifdef FUSED_RECORDS
+    if(age_out<=0. || age_out>=life)return;
+#endif
     // ---- 第 0 遍（原表面）需要的量 ----
     // 同一释放规则的平均时序用于表面交接；运动仍按每片实际出生时间开始。
     float source_clock=m.src.z-release_spread*(m.random.w-.5);
@@ -61,6 +88,9 @@ void main(){
     // 像素给出同一个答案——等价于整片不画，所以并进这里的可见判定，顺带省掉每像素一次 fract。
     bool alive=age_out>0.&&age_out<life&&
         fract(m.random.y*13.731+m.random.z*17.371)>=.64*trailing;
+#ifdef FUSED_RECORDS
+    if(!alive)return;
+#endif
     vec4 xform=vec4(0.);
     vec2 origin=vec2(0.);
     float light_out=1.,shape_out=0.;
@@ -118,6 +148,10 @@ void main(){
         float size=sqrt(diameter.x*diameter.y);
         xform=vec4(column0*size,column1*size);
         origin=move-(column0+column1)*(.5*size);
+#ifdef TRUE_CIRCLE
+        // 保留深度、年龄与大小变化，仅取消 0.96～1.00 的压扁及圆形无须使用的平面旋转。
+        xform=vec4(move,size*total,0.);
+#endif
 #else
 #ifdef PARTICLE_AMOUNT
         // 与 material.vert 的直接绘制路径保持相同的数量／大小解耦。
@@ -134,6 +168,12 @@ void main(){
         light_out=1.+(.17*face+.09)*smoothstep(.015,.09,age)*exp(-max(age-.25,0.)*2.);
         shape_out=mix(smoothstep(.004,.060,age),loosen,.85*panel_weight);
     }
+#ifdef FUSED_RECORDS
+    // 与旧压缩核使用同一保守方框；屏外粒子不再生成颜色，几何只算一次。
+    vec2 center=xform.xy+offset;
+    float radius=abs(xform.z)*.5+1.;
+    if(any(lessThan(center+radius,vec2(0.))) || any(greaterThan(center-radius,frame)))return;
+#endif
 #ifdef FLAKE_CONSTANTS
     // **记录仍是四段 64 字节**：逐片外观常量换掉了 age/life/light，多出来的 radial、loosen
     // 与 age_beat 靠 `packHalf2x16` 挤进两个槽，`replica` 与 `alive` 合成一个标志位。
@@ -161,6 +201,47 @@ void main(){
     }
     // 标志位：0/1/2/3 在浮点里是精确的，`fract(flags*.5)` 取奇偶、`>=1.5` 取复制片。
     float flags=(alive?1.:0.)+(replica>0?2.:0.);
+#ifdef PARTICLE_COLOR
+    vec4 shade=vec4(0.);
+    if(alive && alpha_scale>0.){
+        vec2 uv=m.src.xy/card;
+        // 快照无 mipmap，与片元的中心双线性采样保持相同 LOD。
+        vec4 src=textureLod(foreground,uv,0.);
+        if(src.a>=.001){
+            // 保留旧记录对这两个有界量的 half 量化，避免外移时同时改变明暗曲线。
+            vec2 optical=unpackHalf2x16(packHalf2x16(vec2(loosen_optical,age_beat)));
+            float loosen=optical.x;
+            vec3 color=source_linear(src.rgb);
+            color=mix(color,pow(color,vec3(.86)),loosen*.85);
+            color=color*light_scale+vec3(add_term);
+            float low=min(min(color.r,color.g),color.b);
+            float high=max(max(color.r,color.g),color.b);
+            color=max(vec3(0),color-vec3(low)*.44*smoothstep(.15,.65,high-low)*loosen);
+#ifdef SRGB_TARGET
+            float body=smoothstep(.6038,.9559,min(src.r,min(src.g,src.b)));
+#else
+            float body=smoothstep(.80,.98,min(src.r,min(src.g,src.b)));
+#endif
+            float facet=.80+.20*(.5+.5*sin(optical.y+dot(uv,vec2(7.,11.))));
+            color=mix(color,min(color,vec3(mix(1.,facet,loosen))),body);
+            shade=vec4(color,src.a*alpha_scale);
+        }
+    }
+#ifdef TRUE_CIRCLE
+#ifdef FUSED_RECORDS
+    geometry=xform;tint=shade;
+#else
+    uint o=i*2u;
+    records[o]=xform;
+    records[o+1u]=shade;
+#endif
+#else
+    uint o=i*3u;
+    records[o]=xform;
+    records[o+1u]=vec4(origin,0.,0.);
+    records[o+2u]=shade;
+#endif
+#else
 #ifdef SINGLE_INSTANCE
     uint stride=5u;
 #else
@@ -178,6 +259,7 @@ void main(){
     // U10a：复制片的采样中心并进记录，一次绘制只剩一个实例化缓冲。
     records[o+4u]=vec4(m.src.xy,0.,0.);
 #endif
+#endif
 #else
     uint o=i*4u;
     records[o]=xform;
@@ -186,3 +268,22 @@ void main(){
     records[o+3u]=vec4(surface,float(replica),alive?1.:0.,0.);
 #endif
 }
+#ifdef FUSED_RECORDS
+void main(){
+    vec4 geometry,tint;
+    make_record(geometry,tint);
+    uint lane=gl_LocalInvocationIndex;
+    bool visible=tint.a>=.001;
+    record_scan[lane]=visible?1u:0u;
+    barrier();
+    for(uint distance=1u;distance<uint(LINEAR_GROUP);distance*=2u){
+        uint previous=lane>=distance?record_scan[lane-distance]:0u;
+        barrier();record_scan[lane]+=previous;barrier();
+    }
+    if(visible){
+        uint target=gl_WorkGroupID.x*uint(LINEAR_GROUP)+record_scan[lane]-1u;
+        records[2u*target]=geometry;records[2u*target+1u]=tint;
+    }
+    if(lane==uint(LINEAR_GROUP-1))groups[gl_WorkGroupID.x]=record_scan[lane];
+}
+#endif

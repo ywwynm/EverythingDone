@@ -28,6 +28,61 @@ internal object ParticleSegmentBench {
 
     private val lock = Any()
 
+    /** 同一真实材料逐帧交替 A/B；glFinish 会串行化流水线，仅判断相对成本和长帧。 */
+    fun runReuseTimeline(context: Context, spec: ParticleDismissSpec, width: Int, height: Int,
+                         output: File) {
+        Thread({
+            synchronized(lock) {
+                val report = JSONObject().put("width", width).put("height", height)
+                    .put("snapshotWidth", spec.snapshot.width).put("snapshotHeight", spec.snapshot.height)
+                    .put("seed", spec.hashSeed)
+                runCatching {
+                    val input = ParticleMicroflakeRenderer.fromSpec(context.assets, width, height,
+                        context.resources.displayMetrics.density, spec)
+                    val options = ParticleFastOptions(pressureInputReuse = false, fusedCircleRecords = false)
+                    withEgl(context.assets, width, height) { shared ->
+                        report.put("renderer", GLES30.glGetString(GLES30.GL_RENDERER))
+                            .put("count", input.materials.count)
+                        fun renderer(enabled: Boolean) = ParticleFastOptions.withOptions(options.copy(fusedCircleRecords = enabled)) {
+                            ParticleMicroflakeRenderer(context.assets, shared, input)
+                        }
+                        val trials = JSONArray()
+                        for (repeat in -1..2) {
+                            renderer(false).use { baseline -> renderer(true).use { fused ->
+                                baseline.prepare(); fused.prepare()
+                                baseline.draw(0f, batchPressure = true); fused.draw(0f, batchPressure = true)
+                                GLES30.glFinish()
+                                val rows = JSONArray()
+                                for (frame in 1..120) {
+                                    val row = JSONObject().put("frame", frame)
+                                    val order = if ((frame + repeat) % 2 == 0)
+                                        listOf("baseline" to baseline, "fused" to fused)
+                                    else listOf("fused" to fused, "baseline" to baseline)
+                                    for ((name, r) in order) {
+                                        val start = System.nanoTime()
+                                        r.draw(frame / 120f, batchPressure = true)
+                                        GLES30.glFinish()
+                                        val advanced = System.nanoTime()
+                                        // 同一时刻再绘制，不推进模拟，单独检查记录与绘制阶段。
+                                        r.draw(frame / 120f, batchPressure = true)
+                                        GLES30.glFinish()
+                                        row.put(name, JSONObject().put("wholeMs", (advanced - start) / 1e6)
+                                            .put("renderMs", (System.nanoTime() - advanced) / 1e6))
+                                    }
+                                    if (repeat >= 0) rows.put(row)
+                                }
+                                if (repeat >= 0) trials.put(rows)
+                            } }
+                        }
+                        report.put("trials", trials)
+                        check(GLES30.glGetError() == GLES30.GL_NO_ERROR)
+                    }
+                }.onFailure { report.put("error", it.stackTraceToString()) }
+                File(output, "reuse-timeline.json").writeText(report.toString())
+            }
+        }, "ParticleReuseTimeline").start()
+    }
+
     fun run(context: Context, spec: ParticleDismissSpec, width: Int, height: Int, output: File,
             repeats: Int = 2, forwardFrames: Int = 60) {
         Thread({
@@ -360,7 +415,7 @@ internal object ParticleSegmentBench {
 
     private fun round2(v: Double) = Math.round(v * 100) / 100.0
 
-    private fun withEgl(assets: android.content.res.AssetManager, width: Int, height: Int,
+    internal fun withEgl(assets: android.content.res.AssetManager, width: Int, height: Int,
                         action: (ParticleMicroflakeRenderer.Shared) -> Unit) {
         val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         val version = IntArray(2)

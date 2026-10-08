@@ -4,6 +4,7 @@ import json
 import re
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 import drift_driver as d
 import perf_compare as pc
@@ -34,13 +35,21 @@ def main():
     parser.add_argument('--home-only', action='store_true', help='仍往返空白新建页，只测回到首页后的面板')
     parser.add_argument('--home-color-page', action='store_true', help='展开首页颜色页后再测大面板消散')
     parser.add_argument('--no-system-snapshot', action='store_true')
+    parser.add_argument('--style', choices=('drift', 'flow'))
+    parser.add_argument('--amount', type=float)
+    parser.add_argument('--size', type=float)
+    parser.add_argument('--pressure-after-present', choices=('on', 'off'))
+    parser.add_argument('--pressure-input-reuse', choices=('on', 'off'))
+    parser.add_argument('--fused-circle-records', choices=('on', 'off'))
+    parser.add_argument('--reuse-timeline', action='store_true', help='消散结束后，对同一真实材料交替测量逐帧成本')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-zA-Z0-9_-]{1,50}', args.run)
     folder = d.OUT / args.run
     folder.mkdir(parents=True, exist_ok=True)
     original = {}
     tuning_path = 'files/particle-perf-tuning.json'
-    for path in (observer.ENABLED, observer.CONTROL, tuning_path):
+    preferences_path = 'shared_prefs/particle_tuning.xml'
+    for path in (observer.ENABLED, observer.CONTROL, tuning_path, preferences_path):
         result = d.soft('shell', 'run-as', d.PACKAGE, 'cat', path)
         original[path] = result.stdout if result.returncode == 0 else None
     rotation = d.rotation_state()
@@ -50,7 +59,9 @@ def main():
 
     def measure(name, action, snapshot=False):
         run = args.run + '-' + name
-        observer.control(dict(run_id=run, kind='dialog', beatTrace=True, stallSampling=False))
+        timeline = args.reuse_timeline and name.endswith('-dismiss')
+        observer.control(dict(run_id=run, kind='dialog', beatTrace=True, stallSampling=False,
+                              segmentBench=timeline, reuseTimeline=timeline))
         observer.await_json(observer.REMOTE + run + '/progress.json', lambda value: value.get('ready'))
         action()
         if snapshot and not args.no_system_snapshot:
@@ -66,13 +77,45 @@ def main():
         row = dict(name=name, beats=analyze_beats.report(path), animation=animation_presentations(result))
         rows.append(row)
         print(json.dumps(row, ensure_ascii=False), flush=True)
+        if timeline:
+            # 等离屏对照结束，再开始下一项 UI 操作，避免同时争用 GPU。
+            value = observer.await_json(observer.REMOTE + run + '/reuse-timeline.json', timeout=90)
+            (folder / (name + '-timeline.json')).write_text(json.dumps(value), 'utf-8')
+            assert 'error' not in value, value.get('error')
 
     tracing = False
     try:
         d.adb('shell', 'am', 'force-stop', d.PACKAGE)
-        if args.window_mode is not None:
+        if args.style:
+            preferences = ET.fromstring(original[preferences_path] or b'<map/>')
+            updates = {'particle_style': ('string', args.style)}
+            if args.amount is not None:
+                assert .1 <= args.amount <= 1.6
+                updates[args.style + '_amount_tenths'] = ('int', str(round(args.amount*10)))
+            if args.size is not None:
+                assert .5 <= args.size <= 6
+                updates[args.style + '_size_hundredths'] = ('int', str(round(args.size*100)))
+            for key, (tag, value) in updates.items():
+                for node in list(preferences):
+                    if node.get('name') == key:
+                        preferences.remove(node)
+                node = ET.SubElement(preferences, tag, {'name': key})
+                if tag == 'string':
+                    node.text = value
+                else:
+                    node.set('value', value)
+            observer.write_private(preferences_path, ET.tostring(preferences, encoding='utf-8', xml_declaration=True))
+        if any(value is not None for value in (args.window_mode, args.pressure_after_present,
+                                              args.pressure_input_reuse, args.fused_circle_records)):
             tuning = json.loads(original[tuning_path]) if original[tuning_path] else {}
-            tuning['driftWindowFrameRate'] = args.window_mode == 'on'
+            if args.window_mode is not None:
+                tuning['driftWindowFrameRate'] = args.window_mode == 'on'
+            if args.pressure_after_present is not None:
+                tuning['flowPressureAfterPresent'] = args.pressure_after_present == 'on'
+            if args.pressure_input_reuse is not None:
+                tuning['flowPressureInputReuse'] = args.pressure_input_reuse == 'on'
+            if args.fused_circle_records is not None:
+                tuning['flowFusedCircleRecords'] = args.fused_circle_records == 'on'
             observer.write_private(tuning_path, json.dumps(tuning).encode())
         observer.write_private(observer.ENABLED, b'1')
         observer.control({})
@@ -145,7 +188,8 @@ def main():
         d.adb('shell', 'am', 'force-stop', d.PACKAGE)
         for path, value in original.items():
             observer.write_private(path, value)
-    result = dict(rows=rows, windowMode=args.window_mode, rotationBefore=rotation, rotationAfter=d.rotation_state())
+    result = dict(rows=rows, windowMode=args.window_mode, style=args.style, amount=args.amount, size=args.size,
+                  rotationBefore=rotation, rotationAfter=d.rotation_state())
     (folder / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), 'utf-8')
 
 
