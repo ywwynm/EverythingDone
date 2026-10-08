@@ -103,6 +103,12 @@ float sink_frame_share(vec2 source){
 }
 #endif
 const vec2 corners[4]=vec2[4](vec2(0,0),vec2(1,0),vec2(0,1),vec2(1,1));
+#ifdef SOFT_PARTICLES
+float flow_quad_scale(float diameter){
+    // 原几何只够画到半径 0.5；扩出柔边并为四点覆盖采样留半像素余量。
+    return 1.28+1./max(abs(diameter),.001);
+}
+#endif
 // 相邻微片共用顶点偏移；整数散列避免 GPU 三角函数近似改变颗粒覆盖。
 uint grid_hash(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;return x^(x>>16u);}
 float grid_unit(uint x){return float(grid_hash(x)>>8u)*(1./16777216.);}
@@ -113,6 +119,14 @@ void main(){
 #ifdef PARTICLE_COLOR
     // 近圆粒子的来源 UV 恒定，颜色已在 compute 中逐粒子计算。
     vec2 c=corners[gl_VertexID];
+#ifdef SOFT_PARTICLES
+#ifdef TRUE_CIRCLE
+    float extent=record_xform.z;
+#else
+    float extent=min(length(record_xform.xy),length(record_xform.zw));
+#endif
+    c=.5+(c-.5)*flow_quad_scale(extent);
+#endif
     local_uv=c;
 #ifdef TRUE_CIRCLE
     particle_color=record_place;
@@ -144,6 +158,10 @@ void main(){
     }
     vec2 grid=record_place.zw;
     vec2 c=corners[gl_VertexID];
+#ifdef SOFT_PARTICLES
+    if(material_pass==1)c=.5+(c-.5)*flow_quad_scale(
+        min(length(record_xform.xy),length(record_xform.zw)));
+#endif
     vec2 vertex_grid=grid+c;
     vec2 j=jitter(vertex_grid);
 #ifdef ROUND_PARTICLES
@@ -326,6 +344,15 @@ void main(){
     scale*=mix(1.,1.0012984,smoothstep(.0,.06,age));
 #ifdef SINK_FIELD
     scale*=sink_near;
+#endif
+#ifdef SOFT_PARTICLES
+    vec2 soft_diameter=cell;
+#ifdef PARTICLE_AMOUNT
+    soft_diameter*=particle_scale;
+#endif
+    float quad_scale=flow_quad_scale(sqrt(soft_diameter.x*soft_diameter.y)*scale*(1.+z/1000.));
+    d*=quad_scale;
+    local_uv=.5+(c-.5)*quad_scale;
 #endif
     vec2 vertex=move+(rot*d)*scale*(1.+z/1000.);
     if(material_pass==0)vertex=source;

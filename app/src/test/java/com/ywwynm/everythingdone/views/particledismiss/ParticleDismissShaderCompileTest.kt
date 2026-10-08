@@ -42,6 +42,25 @@ class ParticleDismissShaderCompileTest {
             }
         }
         val step = File(root, "shared/particle-dismiss/step.comp").readText()
+        // 流体软边覆盖直接绘制、旧记录、逐粒子颜色与合并扫描；碰一碰不打开该宏。
+        val softVariants = listOf("", "#define DRAW_RECORDS 1\n",
+            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n",
+            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n#define SINGLE_INSTANCE 1\n",
+            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n#define PARTICLE_COLOR 1\n",
+            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n#define PARTICLE_COLOR 1\n#define TRUE_CIRCLE 1\n",
+            "#define DRAW_RECORDS 1\n#define FLAKE_CONSTANTS 1\n#define PARTICLE_COLOR 1\n#define TRUE_CIRCLE 1\n#define FUSED_RECORDS 1\n")
+        for (name in listOf("material.vert", "material.frag", "draw-record.comp")) {
+            val file = File(root, "shared/particle-dismiss/$name")
+            for (variant in softVariants) for (color in listOf("", "#define SRGB_TARGET 1\n#define MEDIUMP_VARYING 1\n")) {
+                compile(validator!!, "流体柔边 $name $variant $color", ParticleReverseShader.withDefines(
+                    file.readText(), ROUND_PARTICLES + "#define SOFT_PARTICLES 1\n" + variant + color), "." + file.extension)
+            }
+        }
+        for (fused in listOf("", "#define FUSED_RECORDS 1\n")) {
+            compile(validator!!, "流体柔边剔除 $fused", ParticleReverseShader.withDefines(
+                File(root, "app/src/main/assets/particle-playback/compact-circles.comp").readText(),
+                "#define SOFT_PARTICLES 1\n" + fused))
+        }
         for (name in listOf("pressure-batched.comp", "pressure-tiles.comp")) {
             for (extra in listOf("", "#define REGISTER_BANDS 1\n#define ACTIVE_REGION 1\n",
                 "#define PRESSURE_INPUT_REUSE 1\n",

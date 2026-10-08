@@ -23,7 +23,9 @@ internal data class ParticleFastOptions(
     val pressureInputReuse: Boolean = false,
     /** 已验证的 Adreno 路径合并记录生成与稳定扫描，保持原粒子顺序。 */
     val fusedCircleRecords: Boolean = true,
-    val driftStandardColor: Boolean = false
+    val driftStandardColor: Boolean = false,
+    /** 正式流体材质；线程局部对照可关闭，不写入用户偏好。 */
+    val flowSoftMaterial: Boolean = true
 ) {
     init {
         require(pressureResolution == 96 || pressureResolution == 72)

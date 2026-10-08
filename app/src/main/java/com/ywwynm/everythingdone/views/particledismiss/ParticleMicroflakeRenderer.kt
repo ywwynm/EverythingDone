@@ -366,6 +366,7 @@ internal class ParticleMicroflakeRenderer(
         (if (sinkMode && sinkField && sinkTargets) "#define SINK_TARGETS 1\n" else "")
 
     private fun materialDefines() = "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
+        appearanceDefines() +
         fastMaterialDefines() +
         (if (useDrawRecords) "#define DRAW_RECORDS 1\n" else "") +
         (if (useDrawRecords && p2(ParticlePerfTuning.P2_MEDIUMP_VARYING)) "#define MEDIUMP_VARYING 1\n" else "") +
@@ -406,10 +407,14 @@ internal class ParticleMicroflakeRenderer(
 
     /** `draw-record.comp` 的宏：U4 让它多算四个逐片量。 */
     private fun recordDefines() = groupDefines() + "#define PARTICLE_AMOUNT 1\n#define ROUND_PARTICLES 1\n" +
+        appearanceDefines() +
         fastMaterialDefines() + compactDefines() +
         (if (p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION)) "#define SRGB_TARGET 1\n" else "") +
         (if (useFlakeConstants) "#define FLAKE_CONSTANTS 1\n" else "") +
         (if (useSingleInstanceBuffer) "#define SINGLE_INSTANCE 1\n" else "")
+
+    /** 流体的柔边与明暗层次；碰一碰有独立的交接材质，保持原规则。 */
+    private fun appearanceDefines() = if (sinkMode || !fast.flowSoftMaterial) "" else "#define SOFT_PARTICLES 1\n"
 
     /** 仅 debug 且显式开启诊断文件时非空；release 恒为 null。 */
     private var probe: ParticlePerfProbe.Session? = null
@@ -441,7 +446,8 @@ internal class ParticleMicroflakeRenderer(
         program("peel-project.comp", defines = regionDefines())
         if (useActiveRegion) program("peel-region.comp")
         if (useDrawRecords) recordProgram = program("draw-record.comp", defines = recordDefines())
-        if (useCompactCircles) compactProgram = program("particle-playback/compact-circles.comp", defines = compactDefines())
+        if (useCompactCircles) compactProgram = program("particle-playback/compact-circles.comp",
+            defines = compactDefines() + appearanceDefines())
         shared.ensureAccumulationFormat(p2(ParticlePerfTuning.P2_SRGB8_ACCUMULATION))
         GLES30.glGenBuffers(buffers.size, buffers, 0)
         if (sharedFields != null) {

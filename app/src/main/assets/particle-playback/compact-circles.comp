@@ -52,7 +52,11 @@ void main(){
         vec4 geometry=records[2u*i];
         vec2 center=geometry.xy+offset;
         // 保守方框剔除：只省绘制，完整模拟和历史仍按原粒子 ID 保存。
+#ifdef SOFT_PARTICLES
+        float radius=abs(geometry.z)*.64+1.;
+#else
         float radius=abs(geometry.z)*.5+1.;
+#endif
         visible=records[2u*i+1u].a>=.001 &&
             all(greaterThanEqual(center+radius,vec2(0.))) && all(lessThanEqual(center-radius,frame));
     }

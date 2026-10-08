@@ -171,7 +171,12 @@ void main(){
 #ifdef FUSED_RECORDS
     // 与旧压缩核使用同一保守方框；屏外粒子不再生成颜色，几何只算一次。
     vec2 center=xform.xy+offset;
+    // 柔边扩到名义半径外；剔除范围须同时覆盖像素内采样的余量。
+#ifdef SOFT_PARTICLES
+    float radius=abs(xform.z)*.64+1.;
+#else
     float radius=abs(xform.z)*.5+1.;
+#endif
     if(any(lessThan(center+radius,vec2(0.))) || any(greaterThan(center-radius,frame)))return;
 #endif
 #ifdef FLAKE_CONSTANTS
@@ -185,6 +190,9 @@ void main(){
         float age=age_out;
         float fade=1.-smoothstep(max(life-.075,life*.55),life,age);
         alpha_scale=fade*(1.-surface)*smoothstep(.001,.022,age)*mix(1.,.92,smoothstep(.018,.12,age));
+#ifdef SOFT_PARTICLES
+        alpha_scale*=mix(1.,mix(.68,1.,m.random.x),smoothstep(.010,.10,age));
+#endif
         if(replica>0)alpha_scale*=smoothstep(.008,.055,age);
         // 原片元里那条「复制片在极早期整片丢弃」的判据同样是逐片量。
         if(replica>0&&age<=.001)alpha_scale=0.;
@@ -192,7 +200,11 @@ void main(){
         float lighting=mix(1.,light_out,light_gain);
         lighting*=1.+.32*light_gain*smoothstep(.006,.045,age)*(1.-smoothstep(.11,.28,age));
         float facing=.5+.5*sin(age*16.+m.random.z*6.28318);
+#ifdef SOFT_PARTICLES
+        float glint=.06*pow(facing,4.);
+#else
         float glint=0.1800000*pow(facing,12.);
+#endif
         light_scale=lighting*(1.+0.2493839*loosen_optical*light_gain);
         add_term=(0.0120000+glint)*loosen_optical*light_gain;
         radial_scale=vec2(.85+m.random.z*.35,.87+m.random.w*.34);

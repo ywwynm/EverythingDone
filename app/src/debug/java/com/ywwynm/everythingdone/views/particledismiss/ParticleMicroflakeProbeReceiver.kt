@@ -189,7 +189,15 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
             val out = File(root, "generated").apply { mkdirs() }
             try {
                 fun renderSelected() { for (scene in selected) run(app, root, out, scene, scale, reverseCheck, saveReverseFrames, checkId, direction, seed, reverseIntervals) }
-                if (referenceMaterial) ParticleMaterialNative.reference { renderSelected() } else renderSelected()
+                // 图像逐位倒放核对使用相同积分口径；积分合并与近似压力阈值另有性能测试，
+                // 不能在这里把它们与旧逐步解算器的差异误报为材质或倒放错误。
+                val current = ParticleFastOptions.current
+                val options = current.copy(flowSoftMaterial = !intent.getBooleanExtra("legacyMaterial", false),
+                    integrationBatch = if (reverseCheck) false else current.integrationBatch,
+                    pressureTolerance = if (reverseCheck) 0f else current.pressureTolerance)
+                ParticleFastOptions.withOptions(options) {
+                    if (referenceMaterial) ParticleMaterialNative.reference { renderSelected() } else renderSelected()
+                }
                 File(out, "done.json").writeText(JSONObject().put("scenes", JSONArray(selected)).put("ok", true).toString())
             } catch (error: Throwable) {
                 File(out, "error.txt").writeText(error.stackTraceToString())
@@ -344,7 +352,8 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
         val material = context.assets.open("particle-dismiss/material.vert").bufferedReader().use { it.readText() }
         val start = material.indexOf("uint grid_hash").takeIf { it >= 0 } ?: material.indexOf("float hash(vec2")
         check(start >= 0) { "材质中缺少网格随机函数" }
-        val functions = material.substring(start, material.indexOf("void main()"))
+        // 只提取随机函数；其后的 DRAW_RECORDS 分支不属于这段独立 compute。
+        val functions = material.substring(start, material.indexOf("#ifdef DRAW_RECORDS", start))
         val count = columns * rows
         val source = """#version 310 es
             precision highp float;

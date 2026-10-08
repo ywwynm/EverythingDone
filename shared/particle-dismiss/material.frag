@@ -59,9 +59,22 @@ vec3 linear(vec3 c){return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.
 #define BODY_HI 0.98
 #endif
 #ifdef ROUND_PARTICLES
+#ifdef SOFT_PARTICLES
+float flow_coverage(vec2 q){
+    // 保留半峰值半径 0.45；扩大有限软边，总覆盖量与原圆点接近。
+    return 1.-smoothstep(.28,.62,length(q));
+}
+#endif
 float round_shape(){
+#ifdef SOFT_PARTICLES
+    vec2 q=local_uv-.5;
+    vec2 dx=dFdx(local_uv)*.25,dy=dFdy(local_uv)*.25;
+    return .25*(flow_coverage(q-dx-dy)+flow_coverage(q+dx-dy)+
+        flow_coverage(q-dx+dy)+flow_coverage(q+dx+dy));
+#else
     // 从出生起完整裁去四角，保留柔和边缘；不再按年龄从四边形渐变。
     return 1.-smoothstep(.40,.50,length(local_uv-.5));
+#endif
 }
 #endif
 void main(){
@@ -124,6 +137,10 @@ void main(){
     float alpha=src.a*fade*shape*(1.-surface_out)*smoothstep(.001,.022,age);
     if(replica_out>.5)alpha*=smoothstep(.008,.055,age);
     alpha*=mix(1.,.92,smoothstep(.018,.12,age));
+#ifdef SOFT_PARTICLES
+    // 出生交接后逐渐显出透明度层次，不改来源颜色、粒径或寿命。
+    alpha*=mix(1.,mix(.68,1.,random_out.x),smoothstep(.010,.10,age));
+#endif
     // 开放侧减少实际颗粒份额；避免保留大量半透明灰片勾出原轮廓。
 #ifndef DRAW_RECORDS
     // A1 之后这条判据在 `draw-record.comp` 里逐片算一次：两个操作数都是逐片量，
@@ -143,7 +160,11 @@ void main(){
     float lighting=mix(1.,light_out,light_gain);
     lighting*=1.+.32*light_gain*smoothstep(.006,.045,age)*(1.-smoothstep(.11,.28,age));
     float facing=.5+.5*sin(age*16.+random_out.z*6.28318);
+#ifdef SOFT_PARTICLES
+    float glint=.06*pow(facing,4.);
+#else
     float glint=0.1800000*pow(facing,12.);
+#endif
     color=color*lighting*(1.+0.2493839*optical_loosen*light_gain)+vec3(0.0120000+glint)*optical_loosen*light_gain;
 #endif
     // 彩色材料避免被漫反射中的白色项冲淡；灰白本体和未释放纹理不变。
