@@ -52,6 +52,12 @@ START_POINT_VALUE = f32(0.12)
 VARIANT_JITTER = f32(0.06)
 VARIANT_WIND_RANGE = f32(0.15)
 OVER_ALPHA_MUL = f32(1.15)
+SIZE_REFERENCE_DENSITY = f32(3.5)
+
+
+def size_scale_for_display(multiplier, density):
+    """与 ParticleDriftModel.sizeScaleForDisplay 相同；只缩放绘制，不改变轨迹。"""
+    return f32(f32(multiplier) * f32(f32(density) / SIZE_REFERENCE_DENSITY))
 # ParticleDriftContent
 PANEL_MIN_FRACTION = f32(0.24)
 PANEL_FULL_FRACTION = f32(0.60)
@@ -531,11 +537,12 @@ def _snapshot(scene, meta, scale):
 
 
 def build_android_renderer(scene, meta, seed, direction, ctx=None, ss=2, forced=None, amount=1.0, size=1.0,
-                           touch_gap=None, touch_strength=None):
+                           touch_gap=None, touch_strength=None, display_density=3.5):
     """按 Android 的规则生成这一次动画的输入，交给逐帧推进的 NativeRenderer。
 
     direction：消散方向（度，0 向右、90 向上）；返回键关闭传 BACK_KEY_DEGREES。
     amount / size：设置里的「粒子数量」「粒子大小」倍率（缺省 1）。
+    display_density：目标设备逻辑密度；默认取校准基准 3.5，复核具体设备时传其实际值。
     touch_gap / touch_strength：点击弹窗外时的触点远近（与 Android 的 ParticleFlowGeometry 同一公式）；返回键为 None。"""
     import harmony_native as hn
     scale, expansion = _frame_inputs(scene, meta)
@@ -543,7 +550,7 @@ def build_android_renderer(scene, meta, seed, direction, ctx=None, ss=2, forced=
     h, w = premul.shape[:2]
     a = math.radians(direction)
     model = random_model(w, h, f32(math.cos(a) * 1000.0), f32(-math.sin(a) * 1000.0), amount, seeded_random(seed),
-                         load_styles(), forced, size, touch_gap, touch_strength)
+                         load_styles(), forced, size_scale_for_display(size, display_density), touch_gap, touch_strength)
     content = analyse(premul, model.count)
     from PIL import Image
     background = np.asarray(Image.open(HERE / 'assets' / scene / 'background.png').convert('RGB'))

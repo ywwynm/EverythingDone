@@ -258,7 +258,8 @@ def run_desktop(folder, spec, result, ctx):
     content = result['content'] if spec.get('content') else None
     r.android_extras(turb_scale=turb_scale, turb_shift=turb_shift, turb_offset=spec.get('turbulenceOffset', (0, 0)),
                      content=content, base_count=int(result['count']), total_seconds=result['totalSeconds'],
-                     clamp_alpha=not spec['additive'], wind=spec['wind'], size_scale=spec.get('sizeScale', 1.0),
+                     clamp_alpha=not spec['additive'], wind=spec['wind'],
+                     size_scale=result.get('sizeScale', spec.get('sizeScale', 1.0)),
                      touch_gap=spec.get('touchGap'))
     desk = folder / 'desktop'
     desk.mkdir(exist_ok=True)

@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
  * - 风的方向按现有方向规则（规格里的虚拟触点方向），大小仍取源码范围；选用参考样式时风力取参考的、风向仍按本次方向；
  * - 合成方式（加光 / 标准 src-over）不在这里定：按背景亮度取样（[ParticleDriftBackground]），由会话在开画之前交给渲染器；
  * - 粒子数与桌面实现同一公式：按设备像素面积保持 4×4 卡片 4 万颗 / 1.3M 设备像素²的密度，取整到千颗，截在 1～5 万；
- *   颗粒的尺寸以设备像素计、不随屏幕密度缩放，所以密度按设备像素算才与源码画面一致。设置里的「粒子数量」倍率（0.1～1.6）
+ *   数量仍按原设备像素面积换算；绘制尺寸另作显示密度补偿。设置里的「粒子数量」倍率（0.1～1.6）
  *   乘在截好的粒子数上，任何尺寸的内容都按这个倍率变；大小设置为 0.5～6 倍，直接缩放每颗粒子。
  *
  * - 触点远近（用户 2026-10-06：「消逝终点位置和消逝终点方向是两码事，位置离控件距离的不同会让动画也出现不同才对」）
@@ -60,7 +60,7 @@ internal class ParticleDriftModel(
      * 位移仍加在本卡片上。随机生成时为 null（按本卡片自己的位置取样，与源码相同）。
      */
     val turbulenceFrame: FloatArray? = null,
-    /** 设置里的「粒子大小」倍率，乘在颗粒的半宽上（1 = 源码大小）。 */
+    /** 用户大小倍率与显示密度补偿的乘积；只影响颗粒的绘制半宽。 */
     val sizeScale: Float = 1f,
     /** 真实触点到控件边缘的距离（以短边为单位，[ParticleDismissSpec.touchGap]）；null 表示没有真实触点，颗粒不向终点偏转。 */
     val touchGap: Float? = null
@@ -118,6 +118,14 @@ internal class ParticleDriftModel(
 
         /** 原贴图外框宽度（屏幕像素），只用于迁移旧 dp 设置，不代表软点可见直径。 */
         const val BASE_DIAMETER_PX = 3.5f * .7f * 4f
+
+        /** 新轮廓普通粒子的稳定半峰值直径约 1.4 dp；不是华为设备的已知密度。 */
+        private const val SIZE_REFERENCE_DENSITY = 3.5f
+
+        fun sizeScaleForDisplay(multiplier: Float, density: Float): Float {
+            require(multiplier.isFinite() && multiplier > 0f && density.isFinite() && density > 0f)
+            return multiplier * (density / SIZE_REFERENCE_DENSITY)
+        }
 
         fun sizeScaleForDp(dp: Float, density: Float): Float {
             require(dp.isFinite() && dp > 0f && density.isFinite() && density > 0f)

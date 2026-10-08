@@ -226,6 +226,7 @@ uniform float u_darkClamp;
 uniform vec2 u_turbScale, u_turbShift, u_turbOffset;
 // Android 移植口径的内容强调（ParticleDriftContent / drift-update.comp）：use_content = 0 时不起作用
 uniform int use_content;
+uniform int neutral_content;     // Android 现行口径：黑白灰不追加强调；参考复刻缺省为 0
 uniform uint content_base;        // 前 content_base 颗是源码的颗粒，其后是按分布表追加的副本
 uniform ivec2 content_grid;
 uniform vec3 content_panel;
@@ -309,6 +310,15 @@ void createNewParticles(uint index){
         // 内容权重取暗色下限之前的颜色（与 Android 相同）
         float w=contentWeight(particles.v[index].color.rgb);
         float em=content_panel_weight*w;
+        if(neutral_content==1){
+            vec3 rgb=particles.v[index].color.rgb;
+            float neutral=1.0-smoothstep(0.04,0.20,max(rgb.r,max(rgb.g,rgb.b))-min(rgb.r,min(rgb.g,rgb.b)));
+            if(index>=content_base&&getRandomValue(0.0,1.0,index+81u)<neutral){
+                particles.v[index].position=vec2(-1.0);
+                return;
+            }
+            em*=1.0-neutral;
+        }
         emphasis_buf.e[index]=vec2(em,content_panel_weight*(1.0-w));
         float life=particles.v[index].lifeTime;
         particles.v[index].lifeTime=min(life*(1.0+0.30*em),max(content_total-frame_time,life));
@@ -405,6 +415,7 @@ uniform vec2 work_size;
 uniform int idx_lo, idx_hi;   // 只画索引在 [idx_lo, idx_hi) 的颗粒（诊断用，默认全部）
 uniform float age_lo, age_hi; // 只画活动时间在 [age_lo, age_hi) 秒的颗粒（诊断用，默认全部）
 uniform float size_factor;     // 半宽 = scale * size_factor
+uniform float body_size_cut;
 uniform float min_scale;       // 绘制时的最小 scale
 uniform int use_radius;        // 1：尺寸取 radius（诊断用）；2：按 radius 画、scale/radius 进不透明度；3：按窗口重算；
                                // 4：同 2，但只取衰减段（出生即满尺寸，生长段不进尺寸与不透明度）；5：同 2，生长衰减按窗口重算
@@ -438,7 +449,7 @@ void main(){
     }
     if(use_content==1){
         vec2 g=emphasis_buf.e[gl_InstanceID];
-        sz*=(1.0+0.20*g.x)*(1.0-0.26*g.y);
+        sz*=(1.0+0.20*g.x)*(1.0-body_size_cut*g.y);
         fade_alpha*=(1.0+0.25*g.x)*(1.0-0.35*g.y);
     }
     fade_f=clamp((1.0-lr)/max(alpha_window,1e-4),0.0,1.0);   // 只取寿命末段 alpha_window 内的衰减（生长段不算）
@@ -465,6 +476,7 @@ uniform int premul_as_is;
 uniform float alpha_mul;
 uniform float alpha_extra;   // 只乘在 alpha（遮挡背景的程度）上的额外衰减 f^alpha_extra，颜色不变
 uniform int clamp_alpha;     // 1：颗粒 alpha（随机 alpha × 生长衰减）先截到 1 再乘点纹理覆盖率（Android 移植口径，强调可使它超过 1）
+#include "drift-coverage.glsl"
 vec3 s2l(vec3 c){return mix(c/12.92,pow((c+0.055)/1.055,vec3(2.4)),step(0.04045,c));}
 void main(){
     float cover;
@@ -475,6 +487,9 @@ void main(){
     }else if(shape==2){
         float r=length(local)/max(half_extent,1e-3);
         cover=exp(-2.5*r*r);
+    }else if(shape==4){
+        vec2 q=local/max(half_extent,1e-6);
+        cover=driftParticleCoverage(q,dFdx(q),dFdy(q));
     }else if(shape==3){
         vec2 q=local/max(half_extent,1e-3);
         cover=(abs(q.x)<=1.0&&abs(q.y)<=1.0)?texture(sprite_tex,q*0.5+0.5).a:0.0;
@@ -493,6 +508,9 @@ void main(){
     result=vec4(rgb*(premul_as_is==1?cover*opacity:a),a*alpha_mul*ax);      // 预乘；alpha_mul、alpha_extra 只改遮挡背景的程度
 }
 '''
+
+PARTICLE_FRAGMENT = PARTICLE_FRAGMENT.replace('#include "drift-coverage.glsl"',
+    (HERE.parents[3] / 'shared/particle-dismiss/drift-coverage.glsl').read_text('utf-8'))
 
 # 每个场景像素在设备像素里超采样合成：粒子工作面 ×2 最近邻放大，剩余快照 1:1 居中叠在上面。
 COMPOSITE_FRAGMENT = r'''#version 430
@@ -862,6 +880,7 @@ class NativeRenderer:
         self.part_prog['age_lo'] = 0.0
         self.part_prog['age_hi'] = 1e9
         self.part_prog['size_factor'] = (0.5 if r.size_is == 'diameter' else 1.0) * r.size_mul
+        self.part_prog['body_size_cut'] = 0.26
         self.part_prog['feather'] = r.feather
         self.part_prog['shape'] = dict(disc=0, square=1, soft=2, sprite=3)[r.shape]
         # 系统镜像 scene_board/particle/dot01.png（9×9 白色软点，只用 alpha），双线性取样
@@ -929,7 +948,7 @@ class NativeRenderer:
 
     def android_extras(self, turb_scale=(1.0, 1.0), turb_shift=(0.0, 0.0), turb_offset=(0.0, 0.0),
                        content=None, base_count=None, total_seconds=0.0, clamp_alpha=False, wind=None, size_scale=1.0,
-                       touch_gap=None):
+                       touch_gap=None, current_visuals=True):
         """Android 移植口径的可选输入（缺省与源码相同）。
 
         wind：Android 的 aeWind（工作面单位，y 向下）；宿主 aeWind = (u_wind.x, −u_wind.y)。
@@ -948,6 +967,9 @@ class NativeRenderer:
         c['use_content'] = int(use)
         _Uniforms(self.part_prog)['use_content'] = int(use)
         _Uniforms(self.part_prog)['clamp_alpha'] = int(bool(clamp_alpha))
+        c['neutral_content'] = int(current_visuals)
+        self.part_prog['body_size_cut'] = 0.16 if current_visuals else 0.26
+        self.part_prog['shape'] = 4 if current_visuals else dict(disc=0, square=1, soft=2, sprite=3)[self.raster.shape]
         r = self.raster
         self.part_prog['size_factor'] = (0.5 if r.size_is == 'diameter' else 1.0) * r.size_mul * float(size_scale)
         if use:

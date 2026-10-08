@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import moderngl
 import numpy as np
-from measure_drift_visible_size import source, uniforms, KOTLIN
+from measure_drift_visible_size import source, uniforms, KOTLIN, legacy_sprite_alpha
 
 
 def main():
@@ -34,7 +34,8 @@ def main():
     text = (KOTLIN/'ParticleDriftRenderer.kt').read_text('utf-8')
     match = re.search(r'SPRITE_ALPHA = intArrayOf\((.*?)\)', text, re.S)
     sprite_rgba = np.full((9,9,4),255,np.uint8)
-    sprite_rgba[:,:,3] = np.array([int(v) for v in re.findall(r'\d+', match.group(1))],np.uint8).reshape(9,9)[::-1]
+    sprite_rgba[:,:,3] = (np.array([int(v) for v in re.findall(r'\d+', match.group(1))],np.uint8).reshape(9,9)
+                          if match else legacy_sprite_alpha())[::-1]
     sprite = ctx.texture((9,9),4,sprite_rgba.tobytes())
     sprite.filter = moderngl.LINEAR, moderngl.LINEAR
     sprite.repeat_x = sprite.repeat_y = False

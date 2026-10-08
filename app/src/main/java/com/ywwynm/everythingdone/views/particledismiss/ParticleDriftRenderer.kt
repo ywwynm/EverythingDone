@@ -196,9 +196,6 @@ internal class ParticleDriftRenderer(
             GLES30.glUseProgram(particle.id)
             GLES30.glUniform2f(particle["u_work"], workWidth.toFloat(), workHeight.toFloat())
             GLES30.glUniform2f(particle["u_workOffset"], canvas.particleOffsetX, canvas.particleOffsetY)
-            GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, programs.sprite)
-            GLES30.glUniform1i(particle["u_sprite"], 1)
             GLES30.glBindVertexArray(particleVao)
             if (skip and SKIP_PARTICLES == 0) GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLE_STRIP, 0, 4, total)
             particleFrame = frameIndex
@@ -330,7 +327,7 @@ internal class ParticleDriftRenderer(
     }
 
     private class Programs(val update: Program, val particle: Program, val composite: Program,
-                           val card: Program, val sprite: Int, val gather: Program)
+                           val card: Program, val gather: Program)
 
     internal companion object {
         const val TAG = "ParticleDrift"
@@ -352,21 +349,6 @@ internal class ParticleDriftRenderer(
         const val OVER_ALPHA_MUL = 1.15f
 
         const val LATTICE_UNIFORMS = 64
-
-        /**
-         * 9×9 软点的 alpha（与桌面复刻所用点纹理相同的径向分布），双线性取样。
-         * 只用 alpha；颜色取自快照。
-         */
-        private val SPRITE_ALPHA = intArrayOf(
-            0, 0, 1, 5, 7, 4, 1, 0, 0,
-            0, 3, 14, 29, 36, 29, 14, 3, 0,
-            2, 14, 46, 83, 100, 83, 46, 14, 1,
-            4, 30, 82, 149, 183, 149, 82, 29, 5,
-            6, 37, 100, 184, 255, 184, 100, 36, 6,
-            4, 29, 83, 149, 184, 148, 83, 30, 4,
-            1, 14, 46, 83, 100, 82, 45, 14, 0,
-            0, 3, 15, 30, 37, 29, 15, 2, 0,
-            0, 0, 1, 5, 6, 3, 0, 0, 0)
 
         /** 进程内只编译一次（上下文常驻）；只在 GL 线程访问。 */
         private var programs: Programs? = null
@@ -428,7 +410,10 @@ internal class ParticleDriftRenderer(
         fun ensurePrograms(assets: AssetManager) {
             if (programs != null) return
             val common = read(assets, "drift-common.glsl")
-            fun source(name: String) = read(assets, name).replace("#include \"drift-common.glsl\"", common)
+            val coverage = read(assets, "drift-coverage.glsl")
+            fun source(name: String) = read(assets, name)
+                .replace("#include \"drift-common.glsl\"", common)
+                .replace("#include \"drift-coverage.glsl\"", coverage)
             val update = link(compile(GLES31.GL_COMPUTE_SHADER, source("drift-update.comp"), "drift-update.comp"))
             val quad = { compile(GLES30.GL_VERTEX_SHADER, source("drift-quad.vert"), "drift-quad.vert") }
             val particle = link(compile(GLES30.GL_VERTEX_SHADER, source("drift-particle.vert"), "drift-particle.vert"),
@@ -437,7 +422,7 @@ internal class ParticleDriftRenderer(
                 compile(GLES30.GL_FRAGMENT_SHADER, source("drift-composite.frag"), "drift-composite.frag"))
             val card = link(quad(), compile(GLES30.GL_FRAGMENT_SHADER, source("drift-card.frag"), "drift-card.frag"))
             val gather = link(compile(GLES31.GL_COMPUTE_SHADER, source("drift-gather.comp"), "drift-gather.comp"))
-            programs = Programs(Program(update), Program(particle), Program(composite), Program(card), spriteTexture(),
+            programs = Programs(Program(update), Program(particle), Program(composite), Program(card),
                 Program(gather))
         }
 
@@ -445,27 +430,6 @@ internal class ParticleDriftRenderer(
         fun gatherProgram(assets: AssetManager): Program {
             ensurePrograms(assets)
             return checkNotNull(programs).gather
-        }
-
-        private fun spriteTexture(): Int {
-            val ids = IntArray(1)
-            GLES30.glGenTextures(1, ids, 0)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, ids[0])
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
-            val bytes = ByteBuffer.allocateDirect(SPRITE_ALPHA.size * 4).order(ByteOrder.nativeOrder())
-            // 桌面实现把 dot01.png 上下翻转后上传（纹理第 0 行是图片最下面一行），这里照做：先放最后一行
-            for (row in 8 downTo 0) for (column in 0 until 9) {
-                bytes.put(255.toByte()).put(255.toByte()).put(255.toByte()).put(SPRITE_ALPHA[row * 9 + column].toByte())
-            }
-            bytes.flip()
-            GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1)
-            GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, 9, 9, 0,
-                GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, bytes)
-            GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
-            return ids[0]
         }
 
         fun nearestClamp() {

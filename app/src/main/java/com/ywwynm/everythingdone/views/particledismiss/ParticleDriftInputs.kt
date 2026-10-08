@@ -33,7 +33,8 @@ internal object ParticleDriftInputs {
         val origin = spec.releaseOrigin
         // 同一会话的数量和尺寸固定；开播时若需换参考，只重建轨迹输入，不重传纹理与内容分析。
         val amount = ParticleStyle.driftAmount
-        val size = ParticleStyle.driftSizeScale
+        val size = ParticleDriftModel.sizeScaleForDisplay(
+            ParticleStyle.driftSizeScale, context.resources.displayMetrics.density)
         val styles = ParticleDriftStyles.all(context.assets)
         return sequence.prepare(spec.reverse) { excluded ->
             ParticleDriftModel.random(

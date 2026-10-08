@@ -32,7 +32,7 @@ uniform int u_add;            // 1：加光（颜色按已预乘直接累加）�
 uniform float u_alphaMul;     // 标准 src-over 时 alpha 的倍数
 uniform float u_fadeSizePower;   // 寿命末段衰减进尺寸的幂（源码分配下为 0.5）
 uniform float u_fadeAlphaPower;  // 寿命末段衰减进不透明度的幂（源码分配下为 0.5；旧钢铁侠参考为 0：只缩小、不变淡）
-uniform float u_sizeScale;       // 设置里的「粒子大小」倍率，乘在半宽上（1 = 源码大小）
+uniform float u_sizeScale;       // 用户倍率 × 显示密度补偿，只影响绘制半宽
 uniform float u_touchGap;        // 真实触点到控件边缘的距离（短边为单位）；< 0 表示没有真实触点，颗粒按源码平行飘走
 uniform vec2 u_turbOffset;       // 湍流取样位置的偏移（噪声空间）：随机生成的动画每次不同，参考样式为 0
 uniform vec2 u_turbScale;        // 选用参考样式时把湍流取样换算到参考卡片的发射区：lookup = pos0 × scale + shift
@@ -73,7 +73,7 @@ const float NEUTRAL_CHROMA_END = 0.20;
 const float CONTENT_SIZE_GAIN = 0.20;
 const float CONTENT_ALPHA_GAIN = 0.25;
 const float CONTENT_LIFE_GAIN = 0.30;
-const float BODY_SIZE_CUT = 0.26;
+const float BODY_SIZE_CUT = 0.16;
 const float BODY_ALPHA_CUT = 0.35;
 // 有真实触点时，风向按「出生位置 → 终点」的方位偏转这么多（与流体样式 step.comp 的 0.13 相同）
 const float TOUCH_TURN = 0.13;

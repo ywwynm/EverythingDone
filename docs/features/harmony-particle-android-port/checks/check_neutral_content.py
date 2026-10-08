@@ -115,12 +115,13 @@ def main():
                                                old_copies=visible(before[BASE:]), new_copies=0))
                 cases += 1
 
-        # 本体的原缩小、变淡规则不变；饱和彩色的副本、尺寸、颜色、寿命和轨迹全部不变。
+        # 2026-10-08 仅把本体尺寸衰减 26% 减为 16%；其余状态及彩色强调保持。
         for rgb in (panel, (234, 49, 75), (32, 130, 240)):
             for time in times:
                 after = h.run(rgb, panel, time=time)
                 before = h.run(rgb, panel, old=True, time=time)
                 if rgb == panel:
+                    before[:BASE, 2] *= .84 / .74
                     same(after[:BASE], before[:BASE], f'{theme}: 本体基础颗粒')
                 else:
                     same(after, before, f'{theme}: 彩色强调')

@@ -346,7 +346,10 @@ internal object DriftParityRender {
             turbulenceOffsetX = offset?.getDouble(0)?.toFloat() ?: 0f,
             turbulenceOffsetY = offset?.getDouble(1)?.toFloat() ?: 0f,
             turbulenceFrame = frame?.let { FloatArray(4) { i -> it.getDouble(i).toFloat() } },
-            sizeScale = spec.optDouble("sizeScale", 1.0).toFloat(),
+            sizeScale = spec.optDouble("sizeScale", 1.0).toFloat().let { scale ->
+                if (spec.has("displayDensity")) ParticleDriftModel.sizeScaleForDisplay(
+                    scale, spec.getDouble("displayDensity").toFloat()) else scale
+            },
             touchGap = if (spec.isNull("touchGap")) null else spec.getDouble("touchGap").toFloat())
         val content = if (spec.optBoolean("content", false)) ParticleDriftContent.analyse(width, height, rgba, model.count)
             else ParticleDriftContent.Analysis.NONE
@@ -415,6 +418,7 @@ internal object DriftParityRender {
 
         val result = JSONObject()
             .put("width", width).put("height", height)
+            .put("sizeScale", model.sizeScale.toDouble())
             .put("count", model.count).put("total", model.count + content.replicas)
             .put("scaleU", model.scaleU.toDouble())
             .put("startSeconds", model.startSeconds.toDouble())

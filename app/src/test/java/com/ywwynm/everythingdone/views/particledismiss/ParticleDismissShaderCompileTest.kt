@@ -25,10 +25,11 @@ class ParticleDismissShaderCompileTest {
             for (file in File(root, dir).listFiles()!!.filter { it.extension in listOf("comp", "vert", "frag") }) {
                 val variants = parametrised[file.name]
                 val text = file.readText()
-                if (DRIFT_INCLUDE in text) {
+                if (DRIFT_INCLUDE in text || COVERAGE_INCLUDE in text) {
                     // 飘散样式的着色器在运行时把公共段按文本拼进来（ParticleDriftRenderer.ensurePrograms），这里照做。
                     compile(validator!!, file.name,
-                        text.replace(DRIFT_INCLUDE, File(file.parentFile, "drift-common.glsl").readText()),
+                        text.replace(DRIFT_INCLUDE, File(file.parentFile, "drift-common.glsl").readText())
+                            .replace(COVERAGE_INCLUDE, File(file.parentFile, "drift-coverage.glsl").readText()),
                         "." + file.extension)
                 } else if (variants == null) {
                     val process = ProcessBuilder(validator!!.path, file.path).redirectErrorStream(true).start()
@@ -66,6 +67,7 @@ class ParticleDismissShaderCompileTest {
     }
 
     private val DRIFT_INCLUDE = "#include \"drift-common.glsl\""
+    private val COVERAGE_INCLUDE = "#include \"drift-coverage.glsl\""
 
     private val SINK = "#define SINK 1\n"
     private val SINK_FIELD = "#define SINK 1\n#define SINK_FIELD 1\n"

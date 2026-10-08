@@ -1,11 +1,13 @@
-"""测量飘散大小读数与可见软点的区别；直接执行生产 GLSL，不连接设备。
+"""复现 2026-10-08 修正前的软点尺寸问题；执行固定历史版本的 GLSL，不连接设备。
 
 报告采用峰值覆盖率 50% 的横截面直径，另列 10% 边界；它们是可复核的
-软边尺寸指标，不等同于任意背景下的人眼绝对可见边界。此脚本是诊断工具。
+软边尺寸指标，不等同于任意背景下的人眼绝对可见边界。现行轮廓回归见
+docs/features/harmony-particle-android-port/checks/check_drift_coverage.py。
 """
 import argparse
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import moderngl
@@ -14,12 +16,26 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[4]
 SHADERS = ROOT / 'shared/particle-dismiss'
 KOTLIN = ROOT / 'app/src/main/java/com/ywwynm/everythingdone/views/particledismiss'
+LEGACY_REVISION = '3b9b3d59018d72f74d94173a65e4055bfeb9ce44'
 
 
-def source(name):
-    text = (SHADERS / name).read_text('utf-8')
-    text = text.replace('#include "drift-common.glsl"',
-                        (SHADERS / 'drift-common.glsl').read_text('utf-8'))
+def legacy_sprite_alpha():
+    """历史软点，只供旧版测量／回归对照；生产已改用解析轮廓。"""
+    return np.array([
+        0,0,1,5,7,4,1,0,0,0,3,14,29,36,29,14,3,0,2,14,46,83,100,83,46,14,1,
+        4,30,82,149,183,149,82,29,5,6,37,100,184,255,184,100,36,6,
+        4,29,83,149,184,148,83,30,4,1,14,46,83,100,82,45,14,0,
+        0,3,15,30,37,29,15,2,0,0,0,1,5,6,3,0,0,0],np.uint8).reshape(9,9)
+
+
+def source(name, revision=None):
+    # 画布裁剪回归仍读取现行文件；本脚本主程序明确传入历史版本。
+    def read(filename):
+        if revision is None:
+            return (SHADERS/filename).read_text('utf-8')
+        return subprocess.run(['git','show',f'{revision}:shared/particle-dismiss/{filename}'],
+                              cwd=ROOT,capture_output=True,check=True).stdout.decode('utf-8')
+    text = re.sub(r'#include "([^"/]+)"', lambda m: read(m[1]), read(name))
     return text.replace('#version 310 es', '#version 430')
 
 
@@ -53,18 +69,17 @@ def main():
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     ctx = moderngl.create_standalone_context(require=430)
-    # 从正式 Android 渲染器读取同一张 9×9 软点，保持其翻转和线性过滤。
-    text = (KOTLIN / 'ParticleDriftRenderer.kt').read_text('utf-8')
-    match = re.search(r'SPRITE_ALPHA = intArrayOf\((.*?)\)', text, re.S)
-    alpha = np.array([int(v) for v in re.findall(r'\d+', match.group(1))], np.uint8).reshape(9, 9)
+    shader = lambda name: source(name, LEGACY_REVISION)
+    # 只测修正前的 9×9 软点；现行片元不再读取此纹理。
+    alpha = legacy_sprite_alpha()
     rgba = np.full((9, 9, 4), 255, np.uint8)
     rgba[:, :, 3] = alpha[::-1]
     sprite = ctx.texture((9, 9), 4, rgba.tobytes())
     sprite.filter = moderngl.LINEAR, moderngl.LINEAR
     sprite.repeat_x = sprite.repeat_y = False
     sprite.use(0)
-    program = ctx.program(vertex_shader=source('drift-particle.vert'),
-                          fragment_shader=source('drift-particle.frag'))
+    program = ctx.program(vertex_shader=shader('drift-particle.vert'),
+                          fragment_shader=shader('drift-particle.frag'))
     particle = ctx.buffer(reserve=32)
     vao = ctx.vertex_array(program, [(particle, '4f 4f /i', 'a_geometry', 'a_color')])
     target = ctx.texture((1024, 1024), 4, dtype='f4')
@@ -112,7 +127,7 @@ def main():
 
     # 正式半分辨率工作面与合成着色器：穷举一格内的亚像素位置，量化实际小点的取整波动。
     sprite.use(0)
-    composite = ctx.program(vertex_shader=source('drift-quad.vert'), fragment_shader=source('drift-composite.frag'))
+    composite = ctx.program(vertex_shader=shader('drift-quad.vert'), fragment_shader=shader('drift-composite.frag'))
     quad = ctx.vertex_array(composite, [])
     work = ctx.texture((16, 16), 4, dtype='f4')
     work_fbo = ctx.framebuffer([work])
@@ -133,7 +148,7 @@ def main():
             device_widths.append(float((hit[-1]-hit[0]+1)/density))
 
     # 生产计算着色器：让所有粒子同时出生，测稳定阶段及早晚时刻的实际四边形尺寸分布。
-    compute = ctx.compute_shader(source('drift-update.comp'))
+    compute = ctx.compute_shader(shader('drift-update.comp'))
     count = 4096
     output = ctx.buffer(reserve=count*32)
     output.bind_to_storage_buffer(0)
@@ -158,8 +173,8 @@ def main():
             diameters = data[data[:, 2] > 0, 2] * 4 / density
             distributions.append(dict(panel_weight=panel_weight, time=time, alive=len(diameters),
                 geometry_dp_percentiles=np.percentile(diameters, [0, 50, 100]).tolist()))
-    result = dict(setting_dp=setting_dp, density=density,
-                  method='production GLSL; supersampled isolated dot; relative peak coverage thresholds',
+    result = dict(setting_dp=setting_dp, density=density, shader_revision=LEGACY_REVISION,
+                  method='historical production GLSL; supersampled isolated dot; relative peak coverage thresholds',
                   measurements=measurements, compute_distributions=distributions,
                   opaque_texture_width_dp=opaque_width, density_checks=density_checks,
                   actual_half_resolution_width_50_dp_range=[min(device_widths), max(device_widths)],
