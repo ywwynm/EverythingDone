@@ -13,7 +13,7 @@ class ParticleTuningMigrationTest {
             return Proxy.newProxyInstance(SharedPreferences.Editor::class.java.classLoader,
                 arrayOf(SharedPreferences.Editor::class.java)) { proxy, method, args ->
                 when (method.name) {
-                    "putInt" -> { changes[args[0] as String] = args[1]; proxy }
+                    "putInt", "putBoolean" -> { changes[args[0] as String] = args[1]; proxy }
                     "remove" -> { changes[args[0] as String] = null; proxy }
                     "apply" -> {
                         changes.forEach { (key, value) -> if (value == null) values.remove(key) else values[key] = value }
@@ -27,7 +27,7 @@ class ParticleTuningMigrationTest {
             arrayOf(SharedPreferences::class.java)) { _, method, args ->
             when (method.name) {
                 "contains" -> values.containsKey(args[0])
-                "getInt" -> values[args[0]] ?: args[1]
+                "getInt", "getBoolean" -> values[args[0]] ?: args[1]
                 "edit" -> editor()
                 else -> error("未预期的偏好操作：${method.name}")
             }
@@ -36,6 +36,28 @@ class ParticleTuningMigrationTest {
 
     private fun amount(prefs: SharedPreferences, style: ParticleStyle) =
         ParticleTuning.AMOUNT_LEVELS[ParticleTuning.amountIndex(prefs, style)]
+
+    @Test fun `颜色精度继承流体旧值并与飘散独立保存`() {
+        val values = mutableMapOf<String, Any>(ParticleTuning.KEY_COLOR_STANDARD to true)
+        val prefs = preferences(values)
+        ParticleTuning.migrate(prefs, 3.75f)
+        assertTrue(ParticleTuning.isColorStandard(prefs, ParticleStyle.FLOW))
+        assertFalse(ParticleTuning.isColorStandard(prefs, ParticleStyle.DRIFT))
+        ParticleTuning.setColorStandard(prefs, ParticleStyle.DRIFT, true)
+        ParticleTuning.setColorStandard(prefs, ParticleStyle.FLOW, false)
+        val reopened = preferences(values)
+        assertTrue(ParticleTuning.isColorStandard(reopened, ParticleStyle.DRIFT))
+        assertFalse(ParticleTuning.isColorStandard(reopened, ParticleStyle.FLOW))
+        ParticleTuning.setColorStandard(reopened, ParticleStyle.FLOW, true)
+        ParticleTuning.setColorStandard(reopened, ParticleStyle.DRIFT, false)
+        assertTrue(ParticleTuning.isColorStandard(prefs, ParticleStyle.FLOW))
+        assertFalse(ParticleTuning.isColorStandard(prefs, ParticleStyle.DRIFT))
+    }
+
+    @Test fun `两种样式未设置颜色精度时都保持高精度`() {
+        val prefs = preferences(mutableMapOf())
+        for (style in ParticleStyle.values()) assertFalse(ParticleTuning.isColorStandard(prefs, style))
+    }
 
     @Test fun `两种样式全部旧档位迁移后倍率独立且不变`() {
         for (drift in 0..14) for (flow in 0..14) {

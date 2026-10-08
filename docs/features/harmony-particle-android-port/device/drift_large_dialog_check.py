@@ -38,6 +38,7 @@ def main():
     parser.add_argument('--style', choices=('drift', 'flow'))
     parser.add_argument('--amount', type=float)
     parser.add_argument('--size', type=float)
+    parser.add_argument('--color-precision', choices=('high', 'standard'))
     parser.add_argument('--pressure-after-present', choices=('on', 'off'))
     parser.add_argument('--pressure-input-reuse', choices=('on', 'off'))
     parser.add_argument('--fused-circle-records', choices=('on', 'off'))
@@ -89,6 +90,9 @@ def main():
         if args.style:
             preferences = ET.fromstring(original[preferences_path] or b'<map/>')
             updates = {'particle_style': ('string', args.style)}
+            if args.color_precision:
+                key = 'drift_color_precision_standard' if args.style == 'drift' else 'color_precision_standard'
+                updates[key] = ('boolean', str(args.color_precision == 'standard').lower())
             if args.amount is not None:
                 assert .1 <= args.amount <= 1.6
                 updates[args.style + '_amount_tenths'] = ('int', str(round(args.amount*10)))
@@ -189,6 +193,7 @@ def main():
         for path, value in original.items():
             observer.write_private(path, value)
     result = dict(rows=rows, windowMode=args.window_mode, style=args.style, amount=args.amount, size=args.size,
+                  colorPrecision=args.color_precision,
                   rotationBefore=rotation, rotationAfter=d.rotation_state())
     (folder / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), 'utf-8')
 

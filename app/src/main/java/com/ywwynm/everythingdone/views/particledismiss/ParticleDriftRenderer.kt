@@ -4,6 +4,7 @@ import android.content.res.AssetManager
 import android.opengl.GLES30
 import android.opengl.GLES31
 import android.util.Log
+import com.ywwynm.everythingdone.BuildConfig
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -309,10 +310,13 @@ internal class ParticleDriftRenderer(
         nearestClamp()
         GLES30.glGenFramebuffers(1, ids, 0)
         workFramebuffer = ids[0]
-        // 桌面实现的工作面是浮点（叠加时不截断，合成时逐通道截到 1）；不支持浮点渲染目标时退回 8 位
-        if (!attachWork(GLES30.GL_RGBA16F, GLES30.GL_HALF_FLOAT)) {
+        // 保持原 sRGB 数值上的混合方式；标准档仅改为 8 位归一化存储，不额外转换色彩空间。
+        val floating = !fast.driftStandardColor && attachWork(GLES30.GL_RGBA16F, GLES30.GL_HALF_FLOAT)
+        if (!floating) {
             check(attachWork(GLES30.GL_RGBA8, GLES30.GL_UNSIGNED_BYTE)) { "飘散工作面帧缓冲不完整" }
         }
+        if (BuildConfig.DEBUG) Log.i(TAG,
+            "accumulation=" + (if (floating) "RGBA16F" else "RGBA8") + " ${workWidth}x${workHeight}")
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
     }
 

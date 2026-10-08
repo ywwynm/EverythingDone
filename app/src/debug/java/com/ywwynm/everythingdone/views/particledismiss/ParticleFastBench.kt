@@ -20,14 +20,16 @@ internal object ParticleFastBench {
     private val baseline = ParticleFastOptions.BASELINE
 
     fun flow(context: Context, folder: File, highRefresh: Boolean = false, compactCheck: Boolean = false,
-             orderCheck: Boolean = false, reuseCheck: Boolean = false) {
+             orderCheck: Boolean = false, reuseCheck: Boolean = false, drawingCheck: Boolean = false) {
         val assets = context.assets
         val resources = ParticleMicroflakeRenderer.sharedResources(assets)
         val rows = JSONArray()
-        val reference = if (reuseCheck) ParticleFastOptions(pressureInputReuse = false, fusedCircleRecords = false)
+        val reference = if (drawingCheck) ParticleFastOptions()
+        else if (reuseCheck) ParticleFastOptions(pressureInputReuse = false, fusedCircleRecords = false)
         else if (orderCheck) ParticleFastOptions() else if (highRefresh) ParticleFastOptions(pressureTolerance = 0f,
             integrationBatch = false, compactCircles = false, fusedCircleRecords = false) else baseline
-        val variants = if (reuseCheck) linkedMapOf("baseline" to reference,
+        val variants = if (drawingCheck) linkedMapOf("baseline" to reference, "standard" to reference.copy())
+        else if (reuseCheck) linkedMapOf("baseline" to reference,
             "pressureInput" to reference.copy(pressureInputReuse = true),
             "fusedRecords" to reference.copy(fusedCircleRecords = true),
             "combined" to reference.copy(pressureInputReuse = true, fusedCircleRecords = true))
@@ -48,10 +50,13 @@ internal object ParticleFastBench {
             "combined72" to baseline.copy(flowColors = true, flowCircle = true, pressureResolution = 72))
         val fw = 1440; val fh = 3088
         ParticleSegmentBench.withEgl(assets, fw, fh) { shared ->
-            val scenes = listOf("attachment" to 600, "color" to 1400) +
+            val scenes = (if (drawingCheck) listOf("attachment" to 1047, "color" to 1582)
+                else listOf("attachment" to 600, "color" to 1400)) +
                 if (reuseCheck) listOf("small" to 240) else emptyList()
             for ((scene, height) in scenes) {
-                val width = if (scene == "small") 600 else 1200
+                val width = if (scene == "small") 600 else if (drawingCheck) {
+                    if (scene == "attachment") 1050 else 1380
+                } else 1200
                 val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bitmap); canvas.drawColor(Color.rgb(245, 243, 240))
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -75,9 +80,19 @@ internal object ParticleFastBench {
                     fun renderer(options: ParticleFastOptions) = ParticleFastOptions.withOptions(options) {
                         ParticleMicroflakeRenderer(assets,shared,input)
                     }
+                    fun standard(options: ParticleFastOptions) = options === variants["standard"]
+                    fun prepare(r: ParticleMicroflakeRenderer, options: ParticleFastOptions) {
+                        if (!drawingCheck) { r.prepare(); return }
+                        val bit = ParticlePerfTuning.P2_SRGB8_ACCUMULATION
+                        ParticlePerfTuning.withPhase2(on = if (standard(options)) bit else 0,
+                            off = if (standard(options)) 0 else bit) { r.prepare() }
+                    }
+                    fun selectFormat(options: ParticleFastOptions) {
+                        if (drawingCheck) shared.ensureAccumulationFormat(standard(options))
+                    }
                     fun run(options: ParticleFastOptions, path: String): Double {
                         renderer(options).use { r ->
-                            r.prepare()
+                            prepare(r, options)
                             if (path == "replay") check(r.prepareReverse(samples))
                             if (path == "forward") r.draw(0f,batchPressure = true)
                             if (path == "prepare") r.beginReverse(samples,samples,precomputeProbe = false)
@@ -85,7 +100,7 @@ internal object ParticleFastBench {
                             val start = System.nanoTime()
                             when(path) {
                                 "forward" -> for (f in 1..120) r.draw(f/120f,batchPressure = true)
-                                "replay" -> if (highRefresh || reuseCheck) {
+                                "replay" -> if (highRefresh || reuseCheck || drawingCheck) {
                                     for(f in 0..72) r.drawReverseProgress(f/72f,samples)
                                 } else for (f in samples downTo 0) r.drawReverseFrame(f)
                                 else -> { while(r.reverseIncomplete) check(r.stepReverse { false });r.endReverse() }
@@ -95,7 +110,8 @@ internal object ParticleFastBench {
                         }
                     }
                     val costs = variants.keys.associateWith { JSONObject() }
-                    for (path in if (orderCheck) emptyList() else listOf("forward","replay","prepare")) {
+                    for (path in if (orderCheck) emptyList() else if (drawingCheck) listOf("forward","replay")
+                        else listOf("forward","replay","prepare")) {
                         for (options in variants.values) run(options,path)
                         val measured = variants.keys.associateWith { ArrayList<Double>() }
                         val names = variants.keys.toList()
@@ -108,15 +124,18 @@ internal object ParticleFastBench {
                                 .put("samplesMs",JSONArray(measured.getValue(name))))
                     }
                     val row = JSONObject().put("scene",scene).put("size",size.toDouble()).put("count",materials.count)
+                        .put("width",width).put("height",height)
                         .put("costs",JSONObject(costs))
                     val checks = JSONArray()
                     for (variant in variants.keys.filter { it != "baseline" && it != "combined72" }) {
                         renderer(reference).use { a -> renderer(variants.getValue(variant)).use { b ->
-                            a.prepare();b.prepare()
+                            prepare(a, reference);prepare(b, variants.getValue(variant))
                             for (f in listOf(12,24,40,60,80)) {
                                 val t=f/100f
+                                selectFormat(reference)
                                 a.draw(t,batchPressure = true);val pa=readPixels(fw,fh)
                                 val sa=a.readState().asFloatBuffer()
+                                selectFormat(variants.getValue(variant))
                                 b.draw(t,batchPressure = true,deferFinalPressure = variant=="deferred")
                                 val pb=readPixels(fw,fh)
                                 val sb=b.readState().asFloatBuffer()
@@ -181,7 +200,11 @@ internal object ParticleFastBench {
     fun drift(assets: AssetManager, model: ParticleDriftModel, content: ParticleDriftContent.Analysis,
               rgba: ByteBuffer, spec: JSONObject, width: Int, height: Int, target: Int,
               frames: Int, repeats: Int, folder: File): JSONObject {
-        val variants=linkedMapOf("baseline" to baseline,"tight" to baseline.copy(driftTightQuad=true),"cache" to baseline.copy(driftCache=true),
+        val colorCheck = spec.optBoolean("colorCheck")
+        val reference = if (colorCheck) ParticleFastOptions() else baseline
+        val variants=if(colorCheck) linkedMapOf("baseline" to reference,
+            "standard" to reference.copy(driftStandardColor=true))
+        else linkedMapOf("baseline" to baseline,"tight" to baseline.copy(driftTightQuad=true),"cache" to baseline.copy(driftCache=true),
             "curve" to baseline.copy(driftCache=true,driftCurve=true))
         val ox=(width-model.snapshotWidth)/2f;val oy=(height-model.snapshotHeight)/2f
         fun renderer(options: ParticleFastOptions, selected: ParticleDriftModel = model) = ParticleFastOptions.withOptions(options) {
@@ -222,7 +245,7 @@ internal object ParticleFastBench {
         // 跳过三段绘制后仍保留 compute 和清屏；与全部跳过的条件配对量级。
         val onlyCompute = ParticleDriftRenderer.SKIP_PARTICLES or ParticleDriftRenderer.SKIP_COMPOSITE or
             ParticleDriftRenderer.SKIP_CARD
-        val splitNames = names + "none"
+        val splitNames = if (colorCheck) emptyList() else names + "none"
         val split = splitNames.associateWith { ArrayList<Double>() }
         for (rep in 0 until repeats + 1) for (k in splitNames.indices) {
             val name = splitNames[(k+rep)%splitNames.size]
@@ -234,8 +257,8 @@ internal object ParticleFastBench {
         for ((name, samples) in split) separated.put(name, JSONObject()
             .put("medianMs",samples.sorted()[repeats/2]).put("samplesMs",JSONArray(samples)))
         val checks=JSONArray()
-        for(variant in listOf("tight","curve")) renderer(baseline).use { a -> renderer(variants.getValue(variant)).use { b ->
-            for(f in listOf(15,30,45,60,75)){
+        for(variant in if(colorCheck)listOf("standard") else listOf("tight","curve")) renderer(reference).use { a -> renderer(variants.getValue(variant)).use { b ->
+            for(f in listOf(15,30,45,60,75,90)){
                 val t=model.startSeconds+(model.totalSeconds-model.startSeconds)*f/100f
                 draw(a,t);val pa=readPixels(width,height)
                 draw(b,t);val pb=readPixels(width,height)
@@ -250,7 +273,7 @@ internal object ParticleFastBench {
             model.latticeWidth, model.latticeHeight, -model.windX, -model.windY, model.count,
             sizeScale = model.sizeScale*.8f, turbulenceOffsetX = .37f, touchGap = .2f)
         val invalidation = JSONArray()
-        renderer(variants.getValue("curve")).use { reused ->
+        if (!colorCheck) renderer(variants.getValue("curve")).use { reused ->
             draw(reused, .5f)
             reused.useModel(changed)
             renderer(variants.getValue("curve"), changed).use { fresh ->

@@ -7,7 +7,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * 粒子动画设置：样式、各样式独立的数量与大小，以及流体的精细度、颜色精度与性能自动调节。
+ * 粒子动画设置：样式、各样式独立的数量、大小和颜色精度，以及流体的精细度与性能自动调节。
  *
  * 设置作用于所选样式的全部粒子路径（弹窗、页内对话框、创建页、左滑卡片），存在自己的
  * SharedPreferences 文件里。粒子大小保存倍率的百分位整数，旧档位按原取值迁移；
@@ -35,6 +35,7 @@ internal object ParticleTuning {
 
     /** 颜色精度：true = 标准（8 位定点），false = 高精度（16 位浮点，默认）。 */
     const val KEY_COLOR_STANDARD = "color_precision_standard"
+    const val KEY_DRIFT_COLOR_STANDARD = "drift_color_precision_standard"
 
     /** 性能自动调节：连续掉帧时自动降低粒子数量与流动精细度。默认关。 */
     const val KEY_AUTO_TUNE = "auto_performance_tuning"
@@ -145,8 +146,18 @@ internal object ParticleTuning {
         .getInt(KEY_FLOW_DETAIL, DEFAULT_FLOW).coerceIn(FLOW_MIN, FLOW_MAX)
 
     /** 颜色精度是不是「标准」（8 位定点）；默认 false，即高精度的 16 位浮点。 */
-    fun isColorStandard(context: Context): Boolean =
-        preferences(context).getBoolean(KEY_COLOR_STANDARD, false)
+    fun isColorStandard(context: Context, style: ParticleStyle = style(context)): Boolean =
+        isColorStandard(preferences(context), style)
+
+    private fun colorKey(style: ParticleStyle) =
+        if (style == ParticleStyle.FLOW) KEY_COLOR_STANDARD else KEY_DRIFT_COLOR_STANDARD
+
+    internal fun isColorStandard(preferences: SharedPreferences, style: ParticleStyle): Boolean =
+        preferences.getBoolean(colorKey(style), false)
+
+    internal fun setColorStandard(preferences: SharedPreferences, style: ParticleStyle, standard: Boolean) {
+        preferences.edit().putBoolean(colorKey(style), standard).apply()
+    }
 
     /** 性能自动调节是否打开；默认关。 */
     fun isAutoTuneOn(context: Context): Boolean =
@@ -204,7 +215,7 @@ internal object ParticleTuning {
     }
 
     fun setColorStandard(context: Context, standard: Boolean) {
-        preferences(context).edit().putBoolean(KEY_COLOR_STANDARD, standard).apply()
+        setColorStandard(preferences(context), style(context), standard)
         apply(context)
     }
 
@@ -219,6 +230,7 @@ internal object ParticleTuning {
             .remove(KEY_FLOW_SIZE)
             .remove(KEY_FLOW_DETAIL)
             .remove(KEY_COLOR_STANDARD)
+            .remove(KEY_DRIFT_COLOR_STANDARD)
             .remove(KEY_AUTO_TUNE)
             .remove(KEY_STYLE)
             .remove(KEY_DRIFT_AMOUNT)
@@ -371,6 +383,7 @@ internal object ParticleTuning {
         ParticleStyle.flowAmount = AMOUNT_LEVELS[amountIndex(context, ParticleStyle.FLOW)]
         ParticleStyle.driftSizeScale = sizeScale(driftSizeIndex(context))
         ParticleStyle.flowSizeScale = sizeScale(cellIndex(context))
+        ParticleStyle.driftColorStandard = isColorStandard(preferences, ParticleStyle.DRIFT)
         // 仅调试包：验收时把某段参考样式钉住（键由 adb 经 run-as 写入，正式包不读）。
         ParticleDriftStyles.forcedForTests =
             if (BuildConfig.DEBUG) preferences.getString(KEY_DEBUG_FORCE_DRIFT_STYLE, null) else null
@@ -379,7 +392,7 @@ internal object ParticleTuning {
         ParticlePerfTuning.applyUserTuning(
             0f,
             flowDetail(context),
-            isColorStandard(context),
+            isColorStandard(preferences, ParticleStyle.FLOW),
             isAutoTuneOn(context)
         )
     }

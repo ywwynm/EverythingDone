@@ -728,18 +728,19 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         updateValueLabels()
         updateStyleTabs()
         updateStyleGroups()
+        updateColorTabs()
         scheduleRebuild()
     }
 
     /**
-     * 只属于流体样式的四项（粒子大小、流动细节、颜色精度、性能自动调节）在飘散样式下整组隐藏，
-     * 换成飘散自己的「粒子大小」。两种样式都显示数量滑杆，按当前样式读取各自保存的值。
+     * 飘散使用自己的大小选项，隐藏流动精细度与性能自动调节。
+     * 两种样式共用数量和颜色精度控件，读取各自保存的值。
      */
     private fun updateStyleGroups() {
         val drift = ParticleTuning.style(this) == ParticleStyle.DRIFT
         f<View>(R.id.ll_particle_tuning_drift_size_group)?.visibility = if (drift) View.VISIBLE else View.GONE
         listOf(R.id.ll_particle_tuning_cell_group, R.id.ll_particle_tuning_flow_group,
-            R.id.ll_particle_tuning_color_group, R.id.rl_particle_tuning_auto_row).forEach {
+            R.id.rl_particle_tuning_auto_row).forEach {
             f<View>(it)?.visibility = if (drift) View.GONE else View.VISIBLE
         }
     }

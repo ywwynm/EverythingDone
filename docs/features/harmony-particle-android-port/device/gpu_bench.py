@@ -33,9 +33,12 @@ def main():
     p.add_argument('--frames', type=int, default=60)
     p.add_argument('--verify-reuse', action='store_true')
     p.add_argument('--fast', action='store_true', help='同包交错比较原式、静态缓存与噪声拟合')
+    p.add_argument('--colors', action='store_true', help='比较当前高精度与标准颜色工作面')
     p.add_argument('--width', type=int, default=1440)
     p.add_argument('--height', type=int, default=3088)
     a = p.parse_args()
+    if a.colors:
+        a.fast = True
     if not re.fullmatch(r'[A-Za-z0-9_-]+', a.run):
         p.error('--run 只能包含字母、数字、下划线和连字符')
     folder = d.OUT / a.run
@@ -52,6 +55,13 @@ def main():
         cases.append(dict(name='颜色大弹窗／高数量／大粒子', width=round(1200*width/1440),
                           height=round(1400*height/3088), pattern='dialog', seed=25,
                           dx=0, dy=-1, amount=1.6, size=3))
+    if a.colors:
+        cases = [dict(name='附件大弹窗', width=1050, height=1047, pattern='dialog',
+                      seed=129, dx=0, dy=-1, amount=1.6, size=3, colorCheck=True),
+                 dict(name='颜色大弹窗', width=1380, height=1582, pattern='dialog',
+                      seed=144, dx=-1, dy=0, amount=1.6, size=3, colorCheck=True),
+                 dict(name='加光大弹窗', width=1380, height=1582, pattern='dialog',
+                      seed=144, dx=-1, dy=0, amount=1.6, size=3, additive=True, colorCheck=True)]
     spec = dict(output=[width, height], frames=a.frames, repeats=a.repeats, cases=cases,
                 verifyReuse=a.verify_reuse, fast=a.fast)
     (folder / 'bench.json').write_text(json.dumps(spec, ensure_ascii=False), 'utf-8')

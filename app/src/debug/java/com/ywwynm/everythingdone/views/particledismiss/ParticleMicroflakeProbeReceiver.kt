@@ -31,7 +31,7 @@ class ParticleMicroflakeProbeReceiver : BroadcastReceiver() {
                 runCatching {
                     val check = { ParticleFastBench.flow(app, out, intent.getBooleanExtra("highRefresh", false),
                         intent.getBooleanExtra("compactCheck", false), intent.getBooleanExtra("orderCheck", false),
-                        intent.getBooleanExtra("reuseCheck", false)) }
+                        intent.getBooleanExtra("reuseCheck", false), intent.getBooleanExtra("drawingCheck", false)) }
                     if (intent.hasExtra("iterations")) ParticlePerfTuning.withOptions(
                         ParticlePerfTuning.microflakeCellDpNow, intent.getIntExtra("iterations", 100).coerceIn(0,200), check)
                     else check()

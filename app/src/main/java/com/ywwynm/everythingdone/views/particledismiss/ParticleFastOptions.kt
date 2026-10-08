@@ -22,7 +22,8 @@ internal data class ParticleFastOptions(
     /** 散度复用仅保留调试对照：三星现场收益未稳定超出噪声。 */
     val pressureInputReuse: Boolean = false,
     /** 已验证的 Adreno 路径合并记录生成与稳定扫描，保持原粒子顺序。 */
-    val fusedCircleRecords: Boolean = true
+    val fusedCircleRecords: Boolean = true,
+    val driftStandardColor: Boolean = false
 ) {
     init {
         require(pressureResolution == 96 || pressureResolution == 72)
@@ -36,7 +37,8 @@ internal data class ParticleFastOptions(
         private val override = ThreadLocal<ParticleFastOptions?>()
         val current: ParticleFastOptions get() = override.get() ?: ParticleFastOptions().let {
             it.copy(pressureInputReuse = ParticlePerfTuning.flowPressureInputReuse ?: it.pressureInputReuse,
-                fusedCircleRecords = ParticlePerfTuning.flowFusedCircleRecords ?: it.fusedCircleRecords)
+                fusedCircleRecords = ParticlePerfTuning.flowFusedCircleRecords ?: it.fusedCircleRecords,
+                driftStandardColor = ParticleStyle.driftColorStandard)
         }
 
         fun <T> withOptions(options: ParticleFastOptions, block: () -> T): T {

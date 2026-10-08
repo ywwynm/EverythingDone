@@ -30,5 +30,8 @@ internal enum class ParticleStyle(val key: String) {
         /** 大小相对各自原始默认效果的倍率，不与绝对直径等同。 */
         @Volatile var driftSizeScale: Float = 1f
         @Volatile var flowSizeScale: Float = 1f
+
+        /** 飘散独立保存的颜色精度；默认高精度，渲染器创建时固定本轮取值。 */
+        @Volatile var driftColorStandard: Boolean = false
     }
 }
