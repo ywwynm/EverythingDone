@@ -5,12 +5,11 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import androidx.appcompat.app.AppCompatActivity
 import com.ywwynm.everythingdone.fragments.ActivityContentDialogFragment
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 
 /** 浮动配置／通知保留 Activity 业务入口，用薄 DialogFragment 承载原有内容。 */
-abstract class ParticleDialogContentActivity : AppCompatActivity() {
+abstract class ParticleDialogContentActivity : UiInteractionActivity() {
     protected open val useParticleContentDialog: Boolean = false
     internal open val particleDialogCanceledOnTouchOutside: Boolean = true
     private var dialogContent: View? = null

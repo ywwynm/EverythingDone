@@ -1,0 +1,22 @@
+{
+  "mode": "suite",
+  "cases": [
+    {
+      "name": "permission-after-confirm-granted-0",
+      "passed": true
+    },
+    {
+      "name": "permission-after-confirm-denied-0",
+      "passed": true
+    },
+    {
+      "name": "permission-after-confirm-granted-3",
+      "passed": true
+    },
+    {
+      "name": "permission-after-confirm-denied-3",
+      "passed": true
+    }
+  ],
+  "permission_result_source": "ActivityCompat.PermissionCompatDelegate"
+}

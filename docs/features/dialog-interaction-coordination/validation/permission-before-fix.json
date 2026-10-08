@@ -1,0 +1,11 @@
+{
+  "mode": "suite",
+  "cases": [
+    {
+      "name": "permission-after-confirm-granted-0",
+      "passed": false
+    }
+  ],
+  "permission_result_source": "ActivityCompat.PermissionCompatDelegate",
+  "error": "java.lang.AssertionError: permission-after-confirm-granted-0\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite.case(UiInteractionSuite.kt:87)\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite.run(UiInteractionSuite.kt:57)\n\tat com.ywwynm.everythingdone.interaction.UiInteractionInputProbe.onStart(UiInteractionInputProbe.kt:50)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2620)\nCaused by: java.lang.IllegalStateException: 确认框关闭后权限回调丢失：allow=true granted=0 denied=0\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite.permissionAfterConfirm$lambda$91(UiInteractionSuite.kt:306)\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite$$ExternalSyntheticLambda55.invoke(D8$$SyntheticClass:0)\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite.main$lambda$118(UiInteractionSuite.kt:390)\n\tat com.ywwynm.everythingdone.interaction.UiInteractionSuite$$ExternalSyntheticLambda74.run(D8$$SyntheticClass:0)\n\tat android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2638)\n\tat android.os.Handler.handleCallback(Handler.java:959)\n\tat android.os.Handler.dispatchMessage(Handler.java:100)\n\tat android.os.Looper.loopOnce(Looper.java:232)\n\tat android.os.Looper.loop(Looper.java:317)\n\tat android.app.ActivityThread.main(ActivityThread.java:9011)\n\tat java.lang.reflect.Method.invoke(Native Method)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:580)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:892)\n"
+}

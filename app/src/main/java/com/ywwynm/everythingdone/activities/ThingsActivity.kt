@@ -100,6 +100,7 @@ import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapterWrapper
@@ -287,6 +288,7 @@ class ThingsActivity :
     private var mOverlayDragActive: Boolean = false
     private var mPendingOverlayDragModeExitRebindReason: String? = null
     private var mThingCardAppearancePanel: View? = null
+    private var mAppearancePanelInteraction: UiInteractions.Modal? = null
     private val mAppearancePanelAnimator by lazy {
         ParticlePanelAnimator(this)
     }
@@ -3196,6 +3198,7 @@ class ThingsActivity :
     }
 
     private fun openFolderCardAppearancePanel(folder: ThingFolder) {
+        if (!beginAppearancePanelTransition()) return
         hideThingCardAppearanceKeyboard()
         mThingCardAppearancePanelThing = null
         mThingCardAppearanceOriginal = null
@@ -3215,6 +3218,7 @@ class ThingsActivity :
                 mThingManager!!.getListPositionForFolderId(folder.id)
         if (mThingCardAppearanceSelectedListPosition < 0) {
             clearThingCardAppearanceDraft()
+            finishAppearancePanelTransition()
             return
         }
 
@@ -3326,6 +3330,7 @@ class ThingsActivity :
 
     private fun openThingCardAppearancePanel() {
         val thing: Thing = getSingleSelectedThingForAppearance() ?: return
+        if (!beginAppearancePanelTransition()) return
 
         hideThingCardAppearanceKeyboard()
         clearFolderCardAppearanceDraft()
@@ -3340,6 +3345,7 @@ class ThingsActivity :
         mThingCardAppearanceSelectedListPosition =
             mThingManager!!.getListPositionForThingId(thing.id)
         if (mThingCardAppearanceSelectedListPosition < 0) {
+            finishAppearancePanelTransition()
             return
         }
 
@@ -6007,8 +6013,20 @@ class ThingsActivity :
         )
     }
 
+    private fun beginAppearancePanelTransition(): Boolean {
+        if (mAppearancePanelInteraction != null) return false
+        mAppearancePanelInteraction = UiInteractions.open(this, "appearance-panel") ?: return false
+        return true
+    }
+
+    private fun finishAppearancePanelTransition() {
+        mAppearancePanelInteraction?.release()
+        mAppearancePanelInteraction = null
+    }
+
     private fun showThingCardAppearancePanelAnimated(panel: View) {
         val token = ++mThingCardAppearancePanelVisibilityToken
+        val interaction = mAppearancePanelInteraction
         val wasVisible = panel.visibility == View.VISIBLE
         panel.animate().cancel()
         updateThingCardAppearancePanelWidth()
@@ -6016,7 +6034,20 @@ class ThingsActivity :
         if (!wasVisible) {
             panel.visibility = View.VISIBLE
             // 本体和阴影按同一帧交接；窗口提交回调不能保证真实面板已经呈现。
-            if (mAppearancePanelAnimator.appear(panel, shadowElevationPx = panel.elevation)) return
+            var startResolved = false
+            var settled = false
+            val started = mAppearancePanelAnimator.appear(panel, shadowElevationPx = panel.elevation) {
+                settled = true
+                if (startResolved) {
+                    interaction?.release()
+                    if (mAppearancePanelInteraction === interaction) mAppearancePanelInteraction = null
+                }
+            }
+            if (started) {
+                startResolved = true
+                if (settled && mAppearancePanelInteraction === interaction) finishAppearancePanelTransition()
+                return
+            }
         }
         if (!wasVisible) {
             panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
@@ -6045,6 +6076,7 @@ class ThingsActivity :
             panel.translationY = getThingCardAppearancePanelHiddenTranslationY(panel)
         } else if (abs(panel.translationY) <= 0.5f) {
             panel.translationY = 0f
+            finishAppearancePanelTransition()
             return
         }
         panel.animate()
@@ -6054,6 +6086,7 @@ class ThingsActivity :
                 .withEndAction {
                     if (token == mThingCardAppearancePanelVisibilityToken) {
                         panel.translationY = 0f
+                        finishAppearancePanelTransition()
                     }
                 }
                 .start()
@@ -6129,6 +6162,8 @@ class ThingsActivity :
     }
 
     private fun hideThingCardAppearancePanel() {
+        // 页内面板可与列表共同操作，只在出现过渡期间独占输入。
+        finishAppearancePanelTransition()
         mThingCardAppearancePanelSpaceUpdateToken++
         mThingCardAppearanceVisibilityScrollToken++
         mThingCardAppearanceVisibilityCheckToken++

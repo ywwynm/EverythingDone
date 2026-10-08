@@ -9,10 +9,20 @@
     <instrumentation android:name=".views.particledismiss.AppearancePanelInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="外观面板交接回归" />
 
+    <instrumentation android:name=".interaction.UiInteractionInputProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="界面交互互斥回归" />
+
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".interaction.InteractionProbeActivity"
+            android:exported="false" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Settings" />
+        <activity android:name=".interaction.InteractionResultActivity"
+            android:exported="false" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Settings" />
 
         <activity android:name=".views.particledismiss.ThingListRemovalProbeActivity"
             android:exported="true" android:excludeFromRecents="true"

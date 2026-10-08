@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 嵌套及动态创建的 ViewGroup 均读取此策略；完整多指事件仍交给同一个子 View。 -->
+    <style name="UiInteractionPolicy">
+        <item name="android:splitMotionEvents">false</item>
+    </style>
+</resources>

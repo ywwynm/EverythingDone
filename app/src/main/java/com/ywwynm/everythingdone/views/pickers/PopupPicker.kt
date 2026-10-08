@@ -7,8 +7,10 @@ import android.app.Activity
 import android.graphics.Outline
 import android.os.Build
 import android.transition.TransitionValues
+import android.transition.Transition
 import android.transition.Visibility
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnPreDraw
 import androidx.recyclerview.widget.RecyclerView
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -20,6 +22,8 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.PopupWindow
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.interaction.InteractionLinearLayout
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.utils.DisplayUtil
 
 /**
@@ -28,6 +32,7 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
  * Simple Picker for EverythingDone using a PopupWindow to show contents.
  */
 abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int) {
+    private var interaction: UiInteractions.Modal? = null
 
     @JvmField protected var mActivity: Activity = activity
     @JvmField protected var mScreenDensity: Float = DisplayUtil.getScreenDensity(activity)
@@ -84,6 +89,14 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
         // drops, popup auto-dismisses mid-show). Matches the pre-edge-to-
         // edge behaviour where the IME and these pickers happily coexisted.
         mPopupWindow.inputMethodMode = PopupWindow.INPUT_METHOD_NOT_NEEDED
+        mPopupWindow.setOnDismissListener {
+            interaction?.closing()
+            if (!mContentView.isAttachedToWindow) releaseInteraction()
+        }
+        mContentView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) {}
+            override fun onViewDetachedFromWindow(view: View) { releaseInteraction() }
+        })
     }
 
     private fun installRoundedOutline(view: View) {
@@ -132,6 +145,21 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
                 pivotXFraction, pivotYFraction, appearing = true)
         mPopupWindow.exitTransition = PopupSurfaceScaleTransition(
                 pivotXFraction, pivotYFraction, appearing = false)
+        observeEnterTransition()
+    }
+
+    private fun observeEnterTransition() {
+        val owner = interaction ?: return
+        mPopupWindow.enterTransition?.addListener(object : Transition.TransitionListener {
+            override fun onTransitionStart(transition: Transition) {}
+            override fun onTransitionEnd(transition: Transition) {
+                transition.removeListener(this)
+                owner.ready()
+            }
+            override fun onTransitionCancel(transition: Transition) { onTransitionEnd(transition) }
+            override fun onTransitionPause(transition: Transition) {}
+            override fun onTransitionResume(transition: Transition) {}
+        })
     }
 
     fun setAnchor(anchor: View) {
@@ -140,7 +168,32 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
 
     abstract fun updateAnchor()
 
-    abstract fun show()
+    fun show() {
+        if (interaction != null || mPopupWindow.isShowing) return
+        val owner = UiInteractions.open(mActivity, javaClass.name) ?: return
+        interaction = owner
+        owner.attach(mContentView)
+        (mContentView as InteractionLinearLayout).inputDispatcher = owner.inputDispatcher()
+        try {
+            observeEnterTransition()
+            showPopup()
+            if (mPopupWindow.isShowing) {
+                if (mPopupWindow.enterTransition == null) mContentView.doOnPreDraw { owner.ready() }
+            }
+            else releaseInteraction()
+        } catch (failure: Throwable) {
+            releaseInteraction()
+            throw failure
+        }
+    }
+
+    protected abstract fun showPopup()
+
+    private fun releaseInteraction() {
+        interaction?.finish()
+        interaction = null
+        (mContentView as InteractionLinearLayout).inputDispatcher = null
+    }
 
     abstract fun pickForUI(index: Int)
 
@@ -148,6 +201,7 @@ abstract class PopupPicker(activity: Activity, parent: View, popupAnimStyle: Int
 
     fun dismiss() {
         if (mPopupWindow.isShowing) {
+            interaction?.closing()
             mPopupWindow.dismiss()
         }
     }

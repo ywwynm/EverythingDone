@@ -79,7 +79,7 @@ class AudioInputPicker(
 
     override fun updateAnchor() = Unit
 
-    override fun show() {
+    override fun showPopup() {
         val anchor = mAnchor ?: return
         if (items.isEmpty()) return
         val picked = getPickedIndex()

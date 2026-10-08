@@ -11,6 +11,7 @@ import android.util.SparseArray
 import android.view.View
 
 import com.ywwynm.everythingdone.permission.PermissionCallback
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.utils.LocaleUtil
 
 /**
@@ -84,9 +85,26 @@ abstract class EverythingDoneBaseActivity : ParticleDialogContentActivity() {
         for (permission in permissions) {
             val pg = ContextCompat.checkSelfPermission(this, permission!!)
             if (pg != PackageManager.PERMISSION_GRANTED) {
-                mCallbacks!!.put(requestCode, permissionCallback)
-                @Suppress("UNCHECKED_CAST")
-                ActivityCompat.requestPermissions(this, permissions as Array<String>, requestCode)
+                val release = UiInteractions.permission(this) ?: return
+                mCallbacks!!.put(requestCode, object : PermissionCallback {
+                    // 确认框可在请求权限后主动关闭；已受理的后续操作由宿主生命周期决定。
+                    override fun onGranted() {
+                        release()
+                        if (!isFinishing && !isDestroyed) permissionCallback.onGranted()
+                    }
+                    override fun onDenied() {
+                        release()
+                        if (!isFinishing && !isDestroyed) permissionCallback.onDenied()
+                    }
+                })
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    ActivityCompat.requestPermissions(this, permissions as Array<String>, requestCode)
+                } catch (failure: Throwable) {
+                    mCallbacks!!.remove(requestCode)
+                    release()
+                    throw failure
+                }
                 return
             }
         }
@@ -100,6 +118,8 @@ abstract class EverythingDoneBaseActivity : ParticleDialogContentActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (mCallbacks == null) return
         val callback: PermissionCallback = mCallbacks!!.get(requestCode) ?: return
+        mCallbacks!!.remove(requestCode)
+        if (grantResults.isEmpty()) { callback.onDenied(); return }
         for (grantResult in grantResults) {
             if (grantResult != PackageManager.PERMISSION_GRANTED) {
                 callback.onDenied()

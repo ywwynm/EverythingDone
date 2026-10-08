@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.doOnAttach
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentTransaction
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -32,6 +33,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.views.particledismiss.DialogDimLayer
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDialogStack
@@ -65,6 +67,8 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     @JvmField
     protected var mContentView: View? = null
+
+    private var interaction: UiInteractions.Modal? = null
 
     /** 进程/配置重建恢复的实例不重播凝聚出现动画。 */
     private var recreatedFromSavedState = false
@@ -107,9 +111,13 @@ abstract class BaseDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // 与 super.onCreateDialog 唯一的差别是 dialog 实现类，主题、样式仍由 setStyle 决定
+        val owner = interaction ?: UiInteractions.restore(requireActivity(), "${javaClass.name}:$tag").also {
+            interaction = it
+        }
         val dialog = GestureAnchoredDialog(requireContext(), theme, useParticleDismiss(),
-            javaClass.simpleName)
+            javaClass.simpleName, owner)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.window?.let(owner::attach)
         return dialog
     }
 
@@ -192,6 +200,7 @@ abstract class BaseDialogFragment : DialogFragment() {
     private fun settleAppearance() {
         if (appearanceSettled) return
         appearanceSettled = true
+        interaction?.ready()
         val actions = afterAppearanceActions.toList()
         afterAppearanceActions.clear()
         actions.forEach { it() }
@@ -245,16 +254,42 @@ abstract class BaseDialogFragment : DialogFragment() {
     }
 
     override fun show(manager: FragmentManager, tag: String?) {
-        if (!isAdded) {
-            try {
-                super.show(manager, tag)
-            } catch (_: IllegalStateException) {
-                // ignore this
-            }
+        tryShow(manager, tag)
+    }
+
+    /** 有页面字段或初始化副作用时，在受理之后执行，避免被拒绝的弹窗覆盖当前状态。 */
+    fun tryShow(manager: FragmentManager, tag: String?, onAccepted: () -> Unit = {}): Boolean =
+        present(manager, tag, onAccepted) { super.show(manager, tag) }
+
+    override fun showNow(manager: FragmentManager, tag: String?) {
+        present(manager, tag, {}) { super.showNow(manager, tag) }
+    }
+
+    @Deprecated("请使用带 FragmentManager 的 show / tryShow", level = DeprecationLevel.ERROR)
+    override fun show(transaction: FragmentTransaction, tag: String?): Int =
+        error("展示弹窗必须通过 FragmentManager 同步登记交互状态")
+
+    private fun present(
+        manager: FragmentManager, tag: String?, onAccepted: () -> Unit, commit: () -> Unit
+    ): Boolean {
+        if (isAdded || interaction != null) return false
+        val owner = UiInteractions.open(manager, "${javaClass.name}:$tag") ?: return false
+        interaction = owner
+        appearanceSettled = false
+        try {
+            onAccepted()
+            commit()
+        } catch (failure: Throwable) {
+            interaction = null
+            owner.release()
+            throw failure
         }
+        return true
     }
 
     override fun onDismiss(dialog: DialogInterface) {
+        (dialog as? GestureAnchoredDialog)?.onRealDismissed()
+        interaction = null
         super.onDismiss(dialog)
         (dialog as? Dialog)?.let { ParticleDialogStack.onDismissed(it) }
     }
@@ -288,6 +323,8 @@ abstract class BaseDialogFragment : DialogFragment() {
         if (d != null && d.isShowing) {
             d.dismiss()
         } else {
+            interaction?.release()
+            interaction = null
             super.dismissAllowingStateLoss()
         }
     }
@@ -314,7 +351,8 @@ private class GestureAnchoredDialog(
     context: Context, themeResId: Int,
     private val particleDismissEnabled: Boolean,
     /** 仅用于 debug 日志：出问题时要能一眼看出是哪个弹窗。 */
-    private val ownerLabel: String
+    private val ownerLabel: String,
+    private val interaction: UiInteractions.Modal
 ) : ComponentDialog(context, themeResId) {
 
     /** 当前手势的起点是否在 dialog 之外。收不到 ACTION_DOWN 时保持系统默认行为 */
@@ -345,6 +383,7 @@ private class GestureAnchoredDialog(
     private var dismissFromBack = false
 
     init {
+        context.theme.applyStyle(R.style.UiInteractionPolicy, true)
         onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 dismissFromBack = true
@@ -382,8 +421,20 @@ private class GestureAnchoredDialog(
      */
     /** 粒子流程已接管、真实 dismiss 等待异步回调统一执行 */
     private var particleFlowPending = false
+    private var animationFinished = true
+    private var reallyDismissed = false
+
+    fun onRealDismissed() {
+        reallyDismissed = true
+        releaseInteractionIfFinished()
+    }
+
+    private fun releaseInteractionIfFinished() {
+        if (reallyDismissed && animationFinished) interaction.finish()
+    }
 
     override fun dismiss() {
+        interaction.closing()
         // 凝聚尚未收尾就 dismiss（如检查更新的 loading 快速完成）：先释放凝聚
         // 动画层，否则它的末帧会残留在界面上（"Dialog 凝固"）
         condenseOverlay?.release()
@@ -400,6 +451,7 @@ private class GestureAnchoredDialog(
             BaseDialogFragment.PARTICLE_ANIMATION_DISMISS_BIT != 0
         if (particleDismissEnabled && modeAllows && !particleDismissAttempted) {
             particleDismissAttempted = true
+            animationFinished = false
             val startGate = ParticleDismissStartGate {
                 particleFlowPending = false
                 completeParticleDismiss()
@@ -420,6 +472,10 @@ private class GestureAnchoredDialog(
                 },
                 onOverlayShown = Runnable {
                     startGate.markOverlayShown()
+                },
+                onDone = Runnable {
+                    animationFinished = true
+                    releaseInteractionIfFinished()
                 }
             )
             if (started) {
@@ -431,6 +487,7 @@ private class GestureAnchoredDialog(
                 window?.setWindowAnimations(0)
                 return
             }
+            animationFinished = true
             if (BuildConfig.DEBUG) Log.w(ParticleMicroflakeRenderer.TAG,
                 "消散未接管：$ownerLabel 起播返回 false（具体原因见上一行「消散未受理」）")
         } else if (BuildConfig.DEBUG && !particleFlowTookOver) {
@@ -442,10 +499,12 @@ private class GestureAnchoredDialog(
         }
         dimLayer?.fadeOutAndDetach(DialogDimLayer.FADE_OUT_MS)
         super.dismiss()
+        onRealDismissed()
     }
 
     private fun completeParticleDismiss() {
         super.dismiss()
+        onRealDismissed()
     }
 
     private var particleDismissAttempted = false

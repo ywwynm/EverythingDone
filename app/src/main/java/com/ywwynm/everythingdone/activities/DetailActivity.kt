@@ -3100,9 +3100,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun showThingBackgroundEditor() {
         val sheet = ThingBackgroundEditorBottomSheet()
-        mBgEditorSheet = sheet
-        // 打开时快照 bgFrom；编辑过程实时预览、不记 undo；关闭时若有变化只记一条。
-        mColorEditorBgFrom = getAccentBackground()
         sheet.setInitialBackground(getAccentBackground())
         sheet.setOnBackgroundChangedListener { bg -> previewColorEditorBackground(bg) }
         sheet.setOnPickFromWorldListener { slot ->
@@ -3123,7 +3120,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
             mBgEditorSheet = null
         }
-        sheet.show(supportFragmentManager, ThingBackgroundEditorBottomSheet.TAG)
+        sheet.tryShow(supportFragmentManager, ThingBackgroundEditorBottomSheet.TAG) {
+            mBgEditorSheet = sheet
+            // 被受理后才保存会话快照；重复请求不得覆盖仍在使用的编辑器。
+            mColorEditorBgFrom = getAccentBackground()
+        }
     }
 
     /** 编辑器实时预览：立即套用到屏幕背景（不带动画、不记 undo），由会话结束统一记一条。 */

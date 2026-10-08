@@ -3,6 +3,7 @@
 package com.ywwynm.everythingdone
 
 import android.app.Activity
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import android.app.AlarmManager
 import android.app.Application
 import android.app.NotificationChannel
@@ -153,8 +154,11 @@ open class App : Application() {
                     mThingManager?.clearAuthenticatedPrivateThings()
                 }
             }
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                UiInteractions.attach(activity)
+            }
             override fun onActivityResumed(activity: Activity) {
+                UiInteractions.resumed(activity)
                 // 回到前台（含从外部选图/拍照/查看器返回）：解除抑制，之后真正切后台照常清空认证。
                 sSuppressAuthClearOnBackground = false
                 // 首个可见界面绘制后异步预热，不等到用户打开首个弹窗才加载共同资源。
@@ -177,9 +181,13 @@ open class App : Application() {
                     }
                 }
             }
-            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {
+                UiInteractions.paused(activity)
+            }
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityDestroyed(activity: Activity) {
+                UiInteractions.destroyed(activity)
+            }
         })
 
         SystemNotificationUtil.tryToCreateQuickCreateNotification(this)

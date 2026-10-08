@@ -161,7 +161,7 @@ open class DateTimePicker(
         }
     }
 
-    override fun show() {
+    override fun showPopup() {
         if (mAnchor == null) {
             return
         }

@@ -128,7 +128,8 @@ internal object ParticleDismissController {
      */
     fun start(
         dialog: Dialog, touchInWindow: PointF?, onAnimationStarted: Runnable,
-        onOverlayShown: Runnable, useDefaultTouchDistance: Boolean = false
+        onOverlayShown: Runnable, useDefaultTouchDistance: Boolean = false,
+        onDone: Runnable? = null
     ): Boolean {
         val window = dialog.window ?: return false
         val activity = activityFrom(dialog.context) ?: return false
@@ -136,7 +137,7 @@ internal object ParticleDismissController {
         val elevated = acquireElevated(activity, dialog)
         val started = startContent(activity, window, window.decorView, touchInWindow,
             onAnimationStarted, onOverlayShown, useDefaultTouchDistance,
-            elevatedDecor = elevated)
+            onDone = onDone, elevatedDecor = elevated)
         if (!started && elevated != null) ParticleElevatedHost.release(activity)
         return started
     }

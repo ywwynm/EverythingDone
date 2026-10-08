@@ -70,7 +70,7 @@ class ThingCardAppearanceSourcePicker(
     override fun updateAnchor() {
     }
 
-    override fun show() {
+    override fun showPopup() {
         if (mAnchor == null || items.isEmpty()) return
 
         val pickedIndex = getPickedIndex()

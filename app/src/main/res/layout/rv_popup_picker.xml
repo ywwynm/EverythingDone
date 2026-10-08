@@ -5,7 +5,7 @@
      LinearLayout. The button stays GONE unless the picker explicitly enables
      it (DateTimePicker / hue-bucket / non-edit colour pickers never touch it,
      so no behavioural change there). -->
-<LinearLayout
+<com.ywwynm.everythingdone.interaction.InteractionLinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -63,4 +63,4 @@
         android:background="@drawable/selectable_item_background"
         android:visibility="gone"/>
 
-</LinearLayout>
+</com.ywwynm.everythingdone.interaction.InteractionLinearLayout>

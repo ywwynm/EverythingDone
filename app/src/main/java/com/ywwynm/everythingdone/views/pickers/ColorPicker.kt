@@ -241,7 +241,7 @@ open class ColorPicker(
         divider.layoutParams = lp
     }
 
-    override fun show() {
+    override fun showPopup() {
         val popupWidth = getPopupContentWidthForPositioning()
         val popupHeight = getPopupContentHeightForPositioning()
         mPopupWindow.width = popupWidth

@@ -1,0 +1,57 @@
+{
+  "mode": "suite",
+  "cases": [
+    {
+      "name": "settings-queued-0",
+      "passed": true
+    },
+    {
+      "name": "settings-reverse-0",
+      "passed": true
+    },
+    {
+      "name": "settings-multitouch-0",
+      "passed": true
+    },
+    {
+      "name": "detail-attachment-0",
+      "passed": true
+    },
+    {
+      "name": "child-replacement-popup-0",
+      "passed": true
+    },
+    {
+      "name": "settings-queued-3",
+      "passed": true
+    },
+    {
+      "name": "settings-reverse-3",
+      "passed": true
+    },
+    {
+      "name": "settings-multitouch-3",
+      "passed": true
+    },
+    {
+      "name": "detail-attachment-3",
+      "passed": true
+    },
+    {
+      "name": "child-replacement-popup-3",
+      "passed": true
+    },
+    {
+      "name": "ordinary-multitouch-and-pinch",
+      "passed": true
+    },
+    {
+      "name": "launch-failure-and-recreation",
+      "passed": true
+    },
+    {
+      "name": "activity-result-continuation",
+      "passed": true
+    }
+  ]
+}

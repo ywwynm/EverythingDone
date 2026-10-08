@@ -3,7 +3,6 @@ package com.ywwynm.everythingdone.activities
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
 
 import com.ywwynm.everythingdone.App
@@ -26,7 +25,7 @@ import java.util.Collections
  * Translated to Kotlin by ywwynm and Claude Opus 4.7 on 2026/5/20.
  * Used to handle shortcut actions.
  */
-open class ShortcutActivity : AppCompatActivity() {
+open class ShortcutActivity : UiInteractionActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleUtil.attachBaseContext(newBase))
