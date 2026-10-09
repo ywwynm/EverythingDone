@@ -2,6 +2,15 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-10-09 — 首页滚动专项的实际进展
+
+- 保留共用清单解析的线性优化；方向预判与后台准备取消按用户要求撤回。389 项回归通过，撤回版三机复测完成；横滑等待恢复，魅族仍有明显长帧，未证实整页滚动稳定改善。
+- 当前状态、历史方案及测量边界统一见 `docs/features/home-list-scroll-performance/README.md`，详细会话见同目录 `sessions.md`。
+
+## 2026-09-26 — Fable 的首页滚动诊断
+
+- 完成源码分析、三星实测与采集工具，定位当时的按下预热、动态封面和 60 Hz 请求问题；没有实施滚动修复。完整证据保留在 `docs/features/home-list-scroll-performance/analysis-2026-09-26.md` 和 `findings-2026-09-26-device.md`，60 Hz 结论不适用于后续版本。
+
 ## 2026-09-24 - 真机驱动规则补充（碰一碰二期验证期间）
 
 - `.claude/rules/adb.md` 新增：崩溃后先弹的崩溃反馈框只点「取消」；Flyme 不认逐视图的
@@ -118,6 +127,7 @@ Global startup session index only. Detailed feature history lives in `docs/featu
 - `detail-attachment-media-appearance`: `docs/features/detail-attachment-media-appearance/sessions.md`
 - `detail-color-sampling`: `docs/features/detail-color-sampling/sessions.md`
 - `documentation-organization`: `docs/features/documentation-organization/sessions.md`
+- `home-list-scroll-performance`: `docs/features/home-list-scroll-performance/sessions.md`
 - `home-card-span-mode`: `docs/features/home-card-span-mode/sessions.md`
 - `home-contextual-toolbar`: `docs/features/home-contextual-toolbar/sessions.md`
 - `home-new-item-animation`: `docs/features/home-new-item-animation/sessions.md`

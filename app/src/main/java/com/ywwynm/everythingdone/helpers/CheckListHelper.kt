@@ -2,9 +2,6 @@ package com.ywwynm.everythingdone.helpers
 
 import android.graphics.Color
 
-import com.ywwynm.everythingdone.App
-import com.ywwynm.everythingdone.R
-
 import java.util.ArrayList
 import java.util.Locale
 
@@ -64,9 +61,8 @@ object CheckListHelper {
         return (color and 0x00FFFFFF) or (a shl 24)
     }
 
-    // cannot write hardcoded signal after updated to Jack compiler with Java 8
-    @JvmField
-    val SIGNAL: String = App.getApp()!!.getString(R.string.base_signal_upper)
+    // 持久化格式的固定分隔符，与原 base_signal_upper 资源逐字符一致；解析不依赖 App 初始化。
+    const val SIGNAL: String = "`启Q琼"
 
     // ---------------------------------------------------------------------
     // 单项字段访问：所有界面都应通过这些方法读写清单项，而不是直接 substring。
@@ -150,7 +146,8 @@ object CheckListHelper {
         var boundary: Int = -1
         val size: Int = items.size
         for (i in 0 until size) {
-            if (isFinished(items[i]) && ownerIndexOf(items, i) == -1) {
+            // 层级已归一化，组根必为一级；避免对大量已完成的同级子项反复查找 owner。
+            if (isFinished(items[i]) && levelOf(items[i]) == 1) {
                 boundary = i
                 break
             }
@@ -247,13 +244,14 @@ object CheckListHelper {
 
     /**
      * 第 [index] 个真实项的归属（owner）下标 —— 它上方最近的、层级严格更浅的真实项；
-     * 没有则返回 -1（该项是组根，即一级项）。会跳过控制标记。
+     * 没有则返回 -1（一级项或孤儿项）。不会跨越控制标记。
      */
     @JvmStatic
     fun ownerIndexOf(items: List<String?>?, index: Int): Int {
         val list = items!!
         if (index < 0 || index >= list.size || !isItem(list[index])) return -1
         val level = levelOf(list[index])
+        if (level == 1) return -1
         for (i in index - 1 downTo 0) {
             // 控制标记（分隔/已完成头部/添加行）是区域边界：归属不跨越它，
             // 否则底部已完成区第一项会"认领"到上方未完成区的项上。
@@ -336,17 +334,26 @@ object CheckListHelper {
     /**
      * 归一化层级：自上而下把每个真实项的层级钳到"它的 owner 层级 + 1"以内（owner 不存在则钳到一级）。
      * 消除"层级跳空 / 孤儿"——反缩进父项、删除中间项、或历史遗留数据里出现的没有直接上一级父项的深层项，
-     * 会被自动提升到合法层级。原地修改 [items]，会跳过控制标记。
+     * 会被自动提升到合法层级。原地修改 [items]，控制标记保留并重置归属边界。
      */
     @JvmStatic
     fun normalizeLevels(items: MutableList<String?>) {
-        for (i in items.indices) {
-            if (!isItem(items[i])) continue
-            val owner = ownerIndexOf(items, i)
-            val maxLevel = if (owner == -1) 1 else levelOf(items[owner]) + 1
-            if (levelOf(items[i]) > maxLevel) {
-                items[i] = withLevel(items[i]!!, maxLevel)
+        var previousLevel = 0
+        val iterator = items.listIterator()
+        while (iterator.hasNext()) {
+            val item = iterator.next()
+            if (!isItem(item)) {
+                previousLevel = 0
+                continue
             }
+            val level = levelOf(item)
+            // 前缀已合法：同级或回退无需修正，向下最多比前一项深一级。
+            // 只读取一次每个项，避免逐项向前找 owner 造成 O(n²) 扫描。
+            val normalizedLevel = minOf(level, previousLevel + 1)
+            if (level != normalizedLevel) {
+                iterator.set(withLevel(item!!, normalizedLevel))
+            }
+            previousLevel = normalizedLevel
         }
     }
 
