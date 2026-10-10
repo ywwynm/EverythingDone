@@ -70,7 +70,7 @@ class ThingCardCropEditorView @JvmOverloads constructor(
     )
 
     fun setCropBitmap(
-        bitmap: Bitmap,
+        bitmap: Bitmap?,
         targetAspectRatio: Double,
         centerX: Double,
         centerY: Double,

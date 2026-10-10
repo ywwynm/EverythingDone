@@ -4,7 +4,7 @@ import android.graphics.Rect
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
-import androidx.core.widget.NestedScrollView
+import android.view.ViewTreeObserver
 import androidx.recyclerview.widget.RecyclerView
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import com.ywwynm.everythingdone.model.DetailAutoplayMode
@@ -18,16 +18,13 @@ import java.util.TreeSet
  * [ImageAttachmentAdapter]；两者之间只有 [ImageAttachmentAdapter.refreshPlayback] 与
  * [shouldPlay] / [shouldLoop] / [wantsDerivedPreview] 三个查询。
  *
- * 为什么需要自己算可见性：详情附件 RecyclerView 的高度按总行数写死、
- * `isNestedScrollingEnabled = false`，**所有项一次性全量布局并 attach**，因此 Glide
- * 依赖 View 可见性的屏外自动暂停在这里完全失效——滚出屏幕的 GIF 照样在解码。
+ * 与统一 RecyclerView 配合：只处理图片分区，离屏或回收后清理播放集合。
  *
  * 可见性用 [View.getGlobalVisibleRect] 直接量"这一项有多少真的露在屏幕上"，
  * 而不是按行高做算术：前者天然吃掉 full-span、定制尺寸、软键盘、系统栏等所有情况。
  * 进入/离开用不同阈值做**滞回**，否则手指停在边界上会反复触发重播。
  */
 class DetailAttachmentPlaybackController(
-    private val scrollView: NestedScrollView,
     private val recyclerView: RecyclerView
 ) {
 
@@ -77,7 +74,9 @@ class DetailAttachmentPlaybackController(
         object : GestureDetector.SimpleOnGestureListener() {
             override fun onLongPress(e: MotionEvent) {
                 val child = recyclerView.findChildViewUnder(e.x, e.y) ?: return
-                val position = recyclerView.getChildAdapterPosition(child)
+                val holder = recyclerView.getChildViewHolder(child)
+                if (holder.bindingAdapter !== adapter) return
+                val position = holder.bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onManualPlay(position)
                 }
@@ -92,12 +91,38 @@ class DetailAttachmentPlaybackController(
         }
     }
 
+    private var disposed = false
+    private val evaluateLater = Runnable { if (!disposed) evaluate() }
+    private fun scheduleEvaluation() {
+        recyclerView.removeCallbacks(evaluateLater)
+        recyclerView.post(evaluateLater)
+    }
+    private val scrollListener = object : RecyclerView.OnScrollListener() {
+        override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) = scheduleEvaluation()
+    }
+    private val layoutListener = ViewTreeObserver.OnGlobalLayoutListener { scheduleEvaluation() }
+    private val attachmentListener = object : RecyclerView.OnChildAttachStateChangeListener {
+        override fun onChildViewAttachedToWindow(view: View) = scheduleEvaluation()
+        override fun onChildViewDetachedFromWindow(view: View) = scheduleEvaluation()
+    }
+
     init {
-        // 用 ViewTreeObserver 而非 setOnScrollChangeListener：后者是单例 setter，
-        // DetailActivity 已经用它做 action bar 阴影/着色，不能被顶掉。
-        scrollView.viewTreeObserver.addOnScrollChangedListener { evaluate() }
-        recyclerView.viewTreeObserver.addOnGlobalLayoutListener { evaluate() }
+        recyclerView.addOnScrollListener(scrollListener)
+        recyclerView.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+        recyclerView.addOnChildAttachStateChangeListener(attachmentListener)
         recyclerView.addOnItemTouchListener(touchListener)
+    }
+
+    fun dispose() {
+        disposed = true
+        recyclerView.removeCallbacks(evaluateLater)
+        recyclerView.removeCallbacks(applyItemsChanged)
+        recyclerView.removeOnScrollListener(scrollListener)
+        recyclerView.viewTreeObserver.takeIf { it.isAlive }?.removeOnGlobalLayoutListener(layoutListener)
+        recyclerView.removeOnChildAttachStateChangeListener(attachmentListener)
+        recyclerView.removeOnItemTouchListener(touchListener)
+        adapter?.setPlaybackController(null)
+        adapter = null
     }
 
     fun setAdapter(adapter: ImageAttachmentAdapter?) {
@@ -180,16 +205,20 @@ class DetailAttachmentPlaybackController(
     private fun evaluate() {
         if (adapter == null) return
         if (recyclerView.visibility != View.VISIBLE) return
+        val nowVisible = linkedSetOf<Int>()
         for (i in 0 until recyclerView.childCount) {
             val child = recyclerView.getChildAt(i) ?: continue
-            val position = recyclerView.getChildAdapterPosition(child)
+            val holder = recyclerView.getChildViewHolder(child)
+            if (holder.bindingAdapter !== adapter) continue
+            val position = holder.bindingAdapterPosition
             if (position == RecyclerView.NO_POSITION) continue
             val fraction = visibleFractionOf(child)
-            val was = visible.contains(position)
-            val now = if (was) fraction > LEAVE_FRACTION else fraction >= ENTER_FRACTION
-            if (now == was) continue
-            if (now) onEnterViewport(position) else onLeaveViewport(position)
+            val now = if (visible.contains(position)) fraction > LEAVE_FRACTION else fraction >= ENTER_FRACTION
+            if (now) nowVisible.add(position)
         }
+        // 回收的项已不在 childCount 中，必须显式从播放集合移除。
+        (visible - nowVisible).forEach { onLeaveViewport(it) }
+        (nowVisible - visible).forEach { onEnterViewport(it) }
     }
 
     private fun onEnterViewport(position: Int) {
@@ -210,6 +239,9 @@ class DetailAttachmentPlaybackController(
 
     private fun startForVisible(position: Int) {
         if (!DetailAutoplayMode.autoPlays(mode)) return
+        // 可见性/档位先确定，再让 Adapter 为尚未就绪的视频发起派生请求；只等待
+        // isPlayableNow 会让首次进入视口的视频永远没有生成预览的机会。
+        adapter?.refreshPlayback(position)
         if (DetailAutoplayMode.sequential(mode)) {
             queue.add(position)
             pumpQueue()

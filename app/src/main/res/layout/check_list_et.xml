@@ -29,7 +29,6 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:scaleType="center"
-        android:background="@drawable/selectable_item_background_light"
         tools:ignore="ContentDescription"/>
 
     <!-- 反缩进按钮：锚定父起点与顶部，运行时由 applyLevelStyle 设置 marginStart/topMargin。 -->
@@ -43,7 +42,6 @@
         android:padding="4dp"
         android:scaleType="fitCenter"
         android:src="@drawable/ic_checklist_outdent"
-        android:background="@drawable/selectable_item_background_light"
         android:contentDescription="@string/cd_checklist_outdent"
         android:visibility="invisible"
         android:clickable="false"/>
@@ -58,7 +56,6 @@
         android:padding="4dp"
         android:scaleType="fitCenter"
         android:src="@drawable/ic_checklist_indent"
-        android:background="@drawable/selectable_item_background_light"
         android:contentDescription="@string/cd_checklist_indent"
         android:visibility="invisible"
         android:clickable="false"/>
@@ -93,7 +90,6 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:scaleType="center"
-            android:background="@drawable/selectable_item_background_light"
             android:src="@drawable/act_add_attachment"
             android:visibility="gone"
             android:alpha="0.56"

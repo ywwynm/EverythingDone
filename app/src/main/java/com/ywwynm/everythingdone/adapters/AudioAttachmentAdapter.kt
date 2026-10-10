@@ -56,6 +56,14 @@ open class AudioAttachmentAdapter(
     private var mPlayer: MediaPlayer? = null
 
     private var mTakingScreenshot: Boolean = false
+    private var mItemBorders: IntArray? = null
+    private val durationCache = mutableMapOf<String, Pair<String, Long>>()
+
+    fun setLayoutSpan(columns: Int, availableWidth: Int) {
+        val padding = Math.round(12 * mActivity!!.resources.displayMetrics.density) * 2
+        mItemBorders = com.ywwynm.everythingdone.helpers.DetailGridGeometry.borders(
+            (availableWidth - padding).coerceAtLeast(1), columns)
+    }
 
     interface RemoveCallback {
         fun onRemoved(pos: Int)
@@ -78,6 +86,13 @@ open class AudioAttachmentAdapter(
         notifyDataSetChanged()
     }
 
+    fun stopPlaybackForScreenshot() {
+        if (mPlayer?.isPlaying != true) return
+        val position = mPlayingIndex
+        stopPlaying()
+        if (position in 0 until itemCount) notifyItemChanged(position)
+    }
+
     open fun getItems(): List<String?>? = mItems
 
     open fun getPlayingIndex(): Int = mPlayingIndex
@@ -91,12 +106,21 @@ open class AudioAttachmentAdapter(
     }
 
     override fun onBindViewHolder(holder: AudioCardViewHolder, position: Int) {
+        mItemBorders?.let {
+            val column = position % (it.size - 1)
+            val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
+            params.width = (it[column + 1] - it[column] - params.leftMargin - params.rightMargin).coerceAtLeast(1)
+        }
         val typePathName = mItems!![position]
         val pathName = typePathName!!.substring(1, typePathName.length)
         val file = File(pathName)
 
         holder.tvName!!.text = file.name
-        val duration = FileUtil.getMediaDuration(pathName)
+        val signature = "${file.length()}:${file.lastModified()}"
+        val cached = durationCache[pathName]
+        val duration = if (cached?.first == signature) cached.second else {
+            FileUtil.getMediaDuration(pathName).also { durationCache[pathName] = signature to it }
+        }
         holder.tvSize!!.text = DateTimeUtil.getDurationBriefStr(duration)
         holder.cv!!.setCardBackgroundColor(
             ContextCompat.getColor(mActivity!!, R.color.app_chrome_surface_elevated)
@@ -206,28 +230,57 @@ open class AudioAttachmentAdapter(
     }
 
     private fun startPlaying(index: Int) {
-        mPlayingIndex = index
         val typePathName = mItems!![index]
         val file = File(typePathName!!.substring(1, typePathName.length))
 
-        mPlayer = MediaPlayer.create(
-            mActivity,
-            FileProvider.getUriForFile(mActivity!!, "com.ywwynm.everythingdone", file)
-        )
-        mPlayer!!.setOnCompletionListener {
+        val player = try {
+            MediaPlayer.create(mActivity,
+                FileProvider.getUriForFile(mActivity!!, "com.ywwynm.everythingdone", file))
+        } catch (error: Exception) {
+            android.util.Log.w(TAG, "无法读取音频附件", error)
+            null
+        }
+        if (player == null) {
+            stopPlaying()
+            showPlaybackError()
+            return
+        }
+        mPlayer = player
+        mPlayingIndex = index
+        player.setOnCompletionListener {
             val index1 = mPlayingIndex
             stopPlaying()
-            notifyItemChanged(index1)
+            if (index1 in 0 until itemCount) notifyItemChanged(index1)
         }
-        mPlayer!!.start()
+        player.setOnErrorListener { failed, _, _ ->
+            if (mPlayer === failed) {
+                val position = mPlayingIndex
+                stopPlaying()
+                if (position in 0 until itemCount) notifyItemChanged(position)
+                showPlaybackError()
+            }
+            true
+        }
+        try {
+            player.start()
+        } catch (error: IllegalStateException) {
+            android.util.Log.w(TAG, "音频附件无法开始播放", error)
+            stopPlaying()
+            showPlaybackError()
+        }
+    }
+
+    private fun showPlaybackError() {
+        android.widget.Toast.makeText(mActivity, R.string.error_play_audio_attachment,
+            android.widget.Toast.LENGTH_SHORT).show()
     }
 
     open fun stopPlaying() {
         mPlayingIndex = -1
-        mPlayer!!.stop()
-        mPlayer!!.reset()
-        mPlayer!!.release()
+        val player = mPlayer
         mPlayer = null
+        // release 本身会停止播放；失败或已释放状态不应再调用 stop/reset。
+        player?.release()
     }
 
     inner class AudioCardViewHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
@@ -243,11 +296,11 @@ open class AudioAttachmentAdapter(
             setAudioIcon(ivThird, R.drawable.act_show_attachment_info)
 
             cv!!.setOnClickListener {
-                openFableSolPlayer(adapterPosition)
+                openFableSolPlayer(bindingAdapterPosition)
             }
 
             ivThird!!.setOnClickListener {
-                val item = mItems!![this@AudioCardViewHolder.adapterPosition]
+                val item = mItems?.getOrNull(bindingAdapterPosition) ?: return@setOnClickListener
                 val pathName = item!!.substring(1, item.length)
                 AttachmentHelper.showAttachmentInfoDialog(mActivity, mAccentBackground, pathName)
             }
@@ -265,7 +318,8 @@ open class AudioAttachmentAdapter(
             }
 
             ivSecond!!.setOnClickListener {
-                val pos = adapterPosition
+                val pos = bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                 if (mPlayingIndex == pos) {
                     stopPlaying()
                     notifyItemChanged(pos)
@@ -278,7 +332,8 @@ open class AudioAttachmentAdapter(
         }
 
         private fun togglePlay() {
-            val pos = adapterPosition
+            val pos = bindingAdapterPosition
+            if (pos == RecyclerView.NO_POSITION) return
             if (mPlayingIndex == pos) {
                 if (mPlayer!!.isPlaying) {
                     mPlayer!!.pause()
@@ -303,11 +358,12 @@ open class AudioAttachmentAdapter(
                 } else {
                     mPlayer!!.start()
                 }
-                notifyItemChanged(adapterPosition)
+                notifyItemChanged(bindingAdapterPosition)
             }
 
             ivSecond!!.setOnClickListener {
-                val pos = adapterPosition
+                val pos = bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                 if (mPlayingIndex == pos) {
                     stopPlaying()
                 } else {

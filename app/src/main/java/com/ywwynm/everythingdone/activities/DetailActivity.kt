@@ -47,7 +47,6 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.util.Pair
 import androidx.core.widget.ImageViewCompat
-import androidx.core.widget.NestedScrollView
 import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -91,6 +90,8 @@ import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
+import com.ywwynm.everythingdone.helpers.DetailContentLayout
+import com.ywwynm.everythingdone.helpers.DetailScreenshotRenderer
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.appwidgets.CreateWidget
 import com.ywwynm.everythingdone.collections.ThingActionsList
@@ -178,6 +179,8 @@ import java.util.Collections
 import java.util.HashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import com.ywwynm.everythingdone.helpers.DetailCropPreviewLoader
+import com.ywwynm.everythingdone.interaction.UiInteractions
 import androidx.core.view.isVisible
 import androidx.core.view.size
 import androidx.core.view.get
@@ -249,35 +252,37 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mActionBarShadow: View? = null
     private var mImageCover: View? = null
 
-    private var mRvImageAttachment: RecyclerView? = null
     private var mImageAttachmentAdapter: ImageAttachmentAdapter? = null
 
     /** 详情附件网格的 Detail Autoplay 调度器，见 ADR-0017。 */
     private var mAttachmentPlaybackController: DetailAttachmentPlaybackController? = null
-    private var mImageLayoutManager: GridLayoutManager? = null
 
-    private var mScrollView: NestedScrollView? = null
+    private var mDetailList: RecyclerView? = null
+    private lateinit var mDetailContent: DetailContentLayout
+    private var mChecklistVisible = false
+    private var mChecklistFocusRequest = 0
+    private var mLastChecklistDragPosition = RecyclerView.NO_POSITION
+    private val hasImageAttachments: Boolean get() = (mImageAttachmentAdapter?.itemCount ?: 0) > 0
+    private val hasAudioAttachments: Boolean get() = (mAudioAttachmentAdapter?.itemCount ?: 0) > 0
     private var mTapShareOverlay: TapShareOverlay? = null
     private var mEtTitle: EditText? = null
     private var mEtContent: EditText? = null
     private var mTvThingFolderPath: TextView? = null
     private var mTvUpdateTime: TextView? = null
 
-    private var mRvCheckList: RecyclerView? = null
     private var mCheckListAdapter: CheckListAdapter? = null
-    private var mLlmCheckList: CannotScrollLinearLayoutManager? = null
     private var mLlMoveChecklist: LinearLayout? = null
     private var mTvMoveChecklistAsBt: TextView? = null
     private var mChecklistTouchHelper: ItemTouchHelper? = null
+    private var mTouchSection: RecyclerView.Adapter<*>? = null
 
-    // 拖拽时的自定义自动滚动（清单 RecyclerView 在 NestedScrollView 内、自身不滚动，需手动滚父容器）。
+    // 清单拖拽沿用恒速边缘滚动，并按同级兄弟边界停止。
     private var mDraggedChecklistVH: RecyclerView.ViewHolder? = null
     private var mDragScrollRunnable: Runnable? = null
     private var mLastTouchScreenY: Int = 0  // 实时手指屏幕 Y，用于自动滚动的边缘判定（不受补偿平移影响）
     // 上一次触摸事件发生时父容器的 scrollY。补偿量 = 当前 scrollY − 该值，即“自上次手指事件以来父容器
     // 又滚动了多少”。ItemTouchHelper 的 dY 已在每次 MOVE 时把当时的滚动量算进去，故只需补这段增量，
     // 不能像之前那样无脑累加（否则与 dY 双重计数，被拖项会以两倍速度飞出屏幕而“消失”）。
-    private var mScrollYAtDragTouch: Int = 0
     // 拖拽“子树收束”：拖拽开始时把被拖项的子树从列表临时移除（收束动画，拖拽中只剩父项作代理跟手），
     // 暂存于此，松手时再插回代理下方（展开动画）。整段拖拽只记一次 UPDATE_CHECKLIST 撤销动作。
     private var mCollapsedChildren: MutableList<String?>? = null
@@ -288,9 +293,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mCapsuleHostView: View? = null
     private var mCapsuleDrawable: GradientDrawable? = null
 
-    private var mRvAudioAttachment: RecyclerView? = null
     private var mAudioAttachmentAdapter: AudioAttachmentAdapter? = null
-    private var mAudioLayoutManager: GridLayoutManager? = null
 
     private var mFlQuickRemindAsBt: FrameLayout? = null
 
@@ -403,6 +406,20 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (savedInstanceState != null) intent.removeExtra(key)
         if (intent.hasExtra(key)) mark("detail-create")
         super.onCreate(savedInstanceState)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::mDetailContent.isInitialized) {
+            outState.putBundle("detail_fixed_views", mDetailContent.saveFixedViewState())
+        }
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        if (::mDetailContent.isInitialized) {
+            savedInstanceState.getBundle("detail_fixed_views")?.let(mDetailContent::restoreFixedViewState)
+        }
     }
 
     /** 2a 的链路分段：只记新建这条路径；release 包里是空调用。 */
@@ -886,27 +903,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mActionBarShadow = f(R.id.actionbar_shadow)
         mImageCover      = f(R.id.view_image_cover)
 
-        mRvImageAttachment = f(R.id.rv_image_attachment)
-        mRvImageAttachment!!.isNestedScrollingEnabled = false
-
-        mScrollView   = f(R.id.sv_detail)
-        // Detail Autoplay 调度器只建一次：它把监听挂在 ScrollView / RecyclerView 的
-        // ViewTreeObserver 上，随附件适配器反复重建会不断累积监听。见 ADR-0017。
-        mAttachmentPlaybackController = DetailAttachmentPlaybackController(
-            mScrollView!!, mRvImageAttachment!!
-        )
-        mEtTitle      = f(R.id.et_title)
-        mEtContent    = f(R.id.et_content)
-        mTvThingFolderPath = f(R.id.tv_thing_folder_path)
-        mTvUpdateTime = f(R.id.tv_update_time)
-
-        mRvCheckList = f(R.id.rv_check_list)
-        mRvCheckList!!.itemAnimator = null
-        mRvCheckList!!.isNestedScrollingEnabled = false
-
-        mRvAudioAttachment = f(R.id.rv_audio_attachment)
-        mRvAudioAttachment!!.isNestedScrollingEnabled = false
-        (mRvAudioAttachment!!.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+        mDetailList = f(R.id.sv_detail)
+        mDetailContent = DetailContentLayout(mDetailList!!)
+        mAttachmentPlaybackController = DetailAttachmentPlaybackController(mDetailList!!)
+        mEtTitle = mDetailContent.view(R.id.et_title)
+        mEtContent = mDetailContent.view(R.id.et_content)
+        mTvThingFolderPath = mDetailContent.view(R.id.tv_thing_folder_path)
+        mTvUpdateTime = mDetailContent.view(R.id.tv_update_time)
+        mLlMoveChecklist = mDetailContent.view(R.id.ll_move_checklist)
+        mTvMoveChecklistAsBt = mDetailContent.view(R.id.tv_move_checklist_as_bt)
 
         mFlQuickRemindAsBt = f(R.id.fl_quick_remind_as_bt)
         cbQuickRemind      = f(R.id.cb_quick_remind)
@@ -915,9 +920,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mNormalSnackbar = Snackbar(mApp!!, Snackbar.NORMAL, mFlRoot!!, null)
         if (mEditable) {
-            mLlMoveChecklist     = f(R.id.ll_move_checklist)
-            mTvMoveChecklistAsBt = f(R.id.tv_move_checklist_as_bt)
-
             createEditablePickers()
         }
     }
@@ -1065,7 +1067,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         } else {
             if (CheckListHelper.isCheckListStr(content)) {
                 mEtContent!!.visibility = View.GONE
-                mRvCheckList!!.visibility = View.VISIBLE
+                mChecklistVisible = true
                 if (mEditable) {
                     mLlMoveChecklist!!.visibility = View.VISIBLE
                 }
@@ -1102,27 +1104,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
                 setMoveChecklistEvent()
 
-                mLlmCheckList = CannotScrollLinearLayoutManager(this)
-                if (mEditable) {
-                    mCheckListAdapter!!.setExpanded(false)
-                }
-                mRvCheckList!!.adapter = mCheckListAdapter
-                mRvCheckList!!.layoutManager = mLlmCheckList
-                if (mEditable) {
-                    mRvCheckList!!.viewTreeObserver.addOnPreDrawListener(
-                        object : ViewTreeObserver.OnPreDrawListener {
-                            override fun onPreDraw(): Boolean {
-                                expandOrShrinkChecklistFinishedItems(
-                                    false, mCheckListAdapter!!.getItems(), false
-                                )
-                                val observer: ViewTreeObserver = mRvCheckList!!.viewTreeObserver
-                                if (observer.isAlive) {
-                                    observer.removeOnPreDrawListener(this)
-                                }
-                                return true
-                            }
-                        })
-                }
+                if (mEditable) mCheckListAdapter!!.setExpanded(false)
+                syncDetailContent()
             } else {
                 mEtContent!!.visibility = View.VISIBLE
                 mEtContent!!.setText(content)
@@ -1170,7 +1153,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun initUiTvUpdateFinish(thingType: Int, thingState: Int) {
         mTvUpdateTime!!.paint.textSkewX = -0.25f
-        val tvFinishTime: TextView = f(R.id.tv_finish_time)!!
+        val tvFinishTime: TextView = mDetailContent.view(R.id.tv_finish_time)!!
         tvFinishTime.paint.textSkewX = -0.25f
         if (mType == CREATE) {
             mTvUpdateTime!!.text = ""
@@ -1265,7 +1248,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     rhParams.reminderAfterTime = quickRemindPicker!!.getPickedTimeAfter()
                 } else {
                     f<View>(R.id.ll_bottom_bar_detail).visibility = View.GONE
-                    val params = mScrollView!!.layoutParams as FrameLayout.LayoutParams
+                    val params = mDetailList!!.layoutParams as FrameLayout.LayoutParams
                     params.setMargins(0, params.topMargin, 0, 0)
                 }
             }
@@ -1343,6 +1326,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     override fun setEvents() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (mDetailCropPreviewModal != null) {
+                    cancelDetailCropPreview()
+                    return
+                }
                 // 处于清单项移动模式时，返回键先完成并退出移动模式，而不是退出详情界面。
                 if (isChecklistMoveMode()) {
                     exitChecklistMoveMode()
@@ -1370,26 +1357,21 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             })
             KeyboardUtil.addKeyboardCallback(window, object : KeyboardUtil.KeyboardCallback {
 
-                val screenHeightDivide6: Int = DisplayUtil.getScreenSize(mApp).y / 6
-
                 override fun onKeyboardShow(keyboardHeight: Int) {
-                    if (mRvCheckList == null || mRvCheckList!!.visibility != View.VISIBLE) {
-                        var toScroll = DisplayUtil.getCursorY(mEtContent)
-                        toScroll += mEtTitle!!.height
-                        if (mRvImageAttachment != null && mRvImageAttachment!!.isVisible) {
-                            toScroll += mRvImageAttachment!!.height
-                        }
-                        val fToScroll = toScroll
-                        mScrollView!!.post {
-                            mScrollView!!.scrollTo(0, fToScroll - screenHeightDivide6)
-                        }
-                    }
+                    mDetailList!!.post { revealFocusedEditor() }
                 }
 
                 override fun onKeyboardHide() {
                     // No-op — padding restoration is handled by the inset chain.
                 }
             })
+            // 输入法动画会在“已显示”回调之后继续缩小列表视口；按最终布局再次避让光标。
+            mDetailList!!.addOnLayoutChangeListener { view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+                if ((right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) &&
+                    ViewCompat.getRootWindowInsets(view)?.isVisible(WindowInsetsCompat.Type.ime()) == true) {
+                    view.post { revealFocusedEditor() }
+                }
+            }
         }
 
         if (mShouldAutoLink) {
@@ -1439,17 +1421,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             val focus: View? = currentFocus
             focus?.clearFocus()
         }
-        val vlp: ViewGroup.LayoutParams = mRvCheckList!!.layoutParams
-        vlp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-        mRvCheckList!!.requestLayout()
+        mDetailList!!.requestLayout()
     }
 
     private fun setMoveChecklistEvent() {
         if (!mEditable) return
-
-        if (mChecklistTouchHelper == null) {
-            mChecklistTouchHelper = ItemTouchHelper(CheckListTouchCallback())
-        }
+        ensureDetailTouchHelper()
 
         mTvMoveChecklistAsBt!!.setOnClickListener {
             if (!mCheckListAdapter!!.isDragging()) {
@@ -1461,9 +1438,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         mCheckListAdapter!!.setIvStateTouchCallback(object : CheckListAdapter.IvStateTouchCallback {
             override fun onTouch(pos: Int) {
-                mChecklistTouchHelper!!.startDrag(
-                    mRvCheckList!!.findViewHolderForAdapterPosition(pos)!!
-                )
+                mDetailContent.holder(mCheckListAdapter!!, pos)?.let {
+                    mChecklistTouchHelper!!.startDrag(it)
+                }
             }
         })
     }
@@ -1479,11 +1456,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mCheckListAdapter!!.setDragging(true)
         // 移动模式期间挂自定义 ItemAnimator（做收束/展开动画 + 门控重排）；平时为 null（编辑输入不闪动）。
         if (mChecklistDragAnimator == null) mChecklistDragAnimator = ChecklistDragItemAnimator()
-        mRvCheckList!!.itemAnimator = mChecklistDragAnimator
+        mDetailList!!.itemAnimator = mChecklistDragAnimator
         // 不裁剪子项，让被拖项的轮廓可在 itemView 下方溢出一点（多行文字时给文字底与轮廓底留白用），不被裁掉。
-        mRvCheckList!!.clipChildren = false
-        mRvCheckList!!.clipToPadding = false
-        mChecklistTouchHelper!!.attachToRecyclerView(mRvCheckList)
+        mDetailList!!.clipChildren = false
+        mDetailList!!.clipToPadding = false
         mCheckListAdapter!!.notifyDataSetChanged()
     }
 
@@ -1494,10 +1470,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         )
         mCheckListAdapter!!.setDragging(false)
         removeChecklistCapsule()                 // 兜底：移动模式结束清掉可能残留的轮廓
-        mRvCheckList!!.itemAnimator = null
-        mRvCheckList!!.clipChildren = true       // 恢复默认裁剪
-        mRvCheckList!!.clipToPadding = true
-        mChecklistTouchHelper!!.attachToRecyclerView(null)
+        mDetailList!!.itemAnimator = null
+        mDetailList!!.clipChildren = true       // 恢复默认裁剪
+        mDetailList!!.clipToPadding = false
         mCheckListAdapter!!.notifyDataSetChanged()
     }
 
@@ -1753,16 +1728,17 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun toggleCheckList() {
         val before: String
-        if (mRvCheckList!!.isVisible) {
+        if (mChecklistVisible) {
             before = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())
             toggleCheckListActionItem(mActionbar!!.menu, false)
             mEtContent!!.visibility = View.VISIBLE
-            mRvCheckList!!.visibility = View.GONE
+            mChecklistVisible = false
+            syncDetailContent()
             if (mLlMoveChecklist != null) {
                 // don't know why this is possible but some user's log showed that this can happen
                 mLlMoveChecklist!!.visibility = View.GONE
             }
-            mChecklistTouchHelper!!.attachToRecyclerView(null)
+            if (mCheckListAdapter!!.isDragging()) exitChecklistMoveMode()
 
             val contentStr: String = CheckListHelper.toContentStr(mCheckListAdapter!!.getItems())
             val temp = shouldAddToActionList
@@ -1777,11 +1753,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         } else {
             toggleCheckListActionItem(mActionbar!!.menu, true)
-            mRvCheckList!!.visibility = View.VISIBLE
+            mChecklistVisible = true
             mEtContent!!.visibility = View.GONE
-            if (mLlmCheckList != null) {
-                mLlMoveChecklist!!.visibility = View.VISIBLE
-            }
+            mLlMoveChecklist!!.visibility = View.VISIBLE
 
             val content: String = mEtContent!!.text.toString()
             before = content
@@ -1801,7 +1775,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     mCheckListAdapter!!.setEtClickListener(mEtContentClickListener)
                     mCheckListAdapter!!.setEtLongClickListener(mEtContentLongClickListener)
                 }
-                mLlmCheckList = CannotScrollLinearLayoutManager(this)
                 mCheckListAdapter!!.setItemsChangeCallback(CheckListItemsChangeCallback())
                 mCheckListAdapter!!.setActionCallback(CheckListActionCallback())
             } else {
@@ -1810,16 +1783,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mCheckListAdapter!!.setShouldAutoLink(mShouldAutoLink)
             mCheckListAdapter!!.setThingColor(mThing!!.getColor())
             setChecklistExpandShrinkEvent()
-            mRvCheckList!!.adapter = mCheckListAdapter
-            mRvCheckList!!.layoutManager = mLlmCheckList
+            syncDetailContent()
 
             setMoveChecklistEvent()
 
             if (focusFirst) {
-                mRvCheckList!!.post {
-                    val holder = mRvCheckList!!.findViewHolderForAdapterPosition(0) as CheckListAdapter.EditTextHolder
-                    KeyboardUtil.showKeyboard(holder.et)
-                }
+                focusChecklistItem(0, null, true)
             } else {
                 KeyboardUtil.hideKeyboard(currentFocus)
             }
@@ -1921,7 +1890,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             ThingAction.UPDATE_CHECKLIST -> {
                 mCheckListAdapter!!.setItems(CheckListHelper.toCheckListItems(to as String?, false))
                 if (!mCheckListAdapter!!.isExpanded()) {
-                    mRvCheckList!!.post {
+                    mDetailList!!.post {
                         expandOrShrinkChecklistFinishedItems(
                             false, mCheckListAdapter!!.getItems(), false
                         )
@@ -2158,50 +2127,40 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         ldf.setContent(getString(R.string.generating_screenshot))
         ldf.show(supportFragmentManager, LoadingDialogFragment.TAG)
 
-        val typeInfoLayout: View = f(R.id.ll_type_info_screenshot)!!
-        val didList: List<Int?> = prepareForScreenshot(typeInfoLayout)
-        ScreenshotHelper.startScreenshot(mScrollView, color,
-            object : ScreenshotHelper.ShareCallback(
+        mAudioAttachmentAdapter?.stopPlaybackForScreenshot()
+        val renderer = DetailScreenshotRenderer(
+            this, mDetailContent, getAccentBackground() ?: ThingBackground.pure(color), mEditable,
+            mCheckListAdapter.takeIf { mChecklistVisible }, mImageAttachmentAdapter?.getItems(),
+            mDetailAttachmentMediaAppearance, mMaxSpanImage, mAudioAttachmentAdapter?.getItems(),
+            mSpanAudio, mShouldAutoLink
+        )
+        ScreenshotHelper.showTypeInfo(renderer.typeInfo, mThing!!.id, mThing!!.type,
+            getThingTypeAfter(), mThing!!.state, rhParams)
+        renderer.render { bitmap ->
+            ScreenshotHelper.saveScreenshot(this, bitmap, object : ScreenshotHelper.ShareCallback(
                 this, ldf, SendInfoHelper.getShareThingTitle(this, mThing)
             ) {
                 override fun onTaskDone(file: File?) {
+                    if (isFinishing || isDestroyed) return
                     super.onTaskDone(file)
-                    ScreenshotHelper.hideTypeInfo(typeInfoLayout)
-                    ScreenshotHelper.updateThingUiAfterScreenshot(
-                        didList,
-                        mEtTitle, mEtContent,
-                        mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
-                        mImageAttachmentAdapter,
-                        mRvAudioAttachment, mAudioAttachmentAdapter
-                    )
+                    if (file == null) Toast.makeText(this@DetailActivity,
+                        R.string.error_generating_screenshot, Toast.LENGTH_SHORT).show()
                 }
             })
-    }
-
-    private fun prepareForScreenshot(typeInfoLayout: View): List<Int?> {
-        ScreenshotHelper.showTypeInfo(
-            typeInfoLayout, mThing!!.id, mThing!!.type,
-            getThingTypeAfter(), mThing!!.state, rhParams
-        )
-        return ScreenshotHelper.updateThingUiBeforeScreenshot(
-            mEditable, mEtTitle, mEtContent,
-            mRvCheckList, mCheckListAdapter, mLlMoveChecklist,
-            mRvImageAttachment, mImageAttachmentAdapter,
-            mRvAudioAttachment, mAudioAttachmentAdapter
-        )
+        }
     }
 
     private fun canShareThing(): Boolean {
         var canShare = true
         if (mEtTitle!!.text.toString().isEmpty()
-            && mRvImageAttachment!!.visibility != View.VISIBLE
-            && mRvAudioAttachment!!.visibility != View.VISIBLE
+            && !hasImageAttachments
+            && !hasAudioAttachments
         ) {
             if (mEtContent!!.isVisible) {
                 if (mEtContent!!.text.toString().isEmpty()) {
                     canShare = false
                 }
-            } else if (mRvCheckList!!.isVisible) {
+            } else if (mChecklistVisible) {
                 if (mEditable && mCheckListAdapter!!.itemCount == 1) {
                     canShare = false
                 }
@@ -2214,7 +2173,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         var content = ""
         if (mEtContent!!.isVisible) {
             content = mEtContent!!.text.toString()
-        } else if (mRvCheckList != null && mRvCheckList!!.isVisible
+        } else if (mChecklistVisible
             && mCheckListAdapter != null
         ) {
             content = CheckListHelper.toContentStr(
@@ -2247,18 +2206,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
         setSpans()
 
-        if (mRvImageAttachment!!.isVisible) {
-            refreshImageAttachmentLayout(true)
-        }
-
-        if (mRvAudioAttachment!!.isVisible) {
-            AttachmentHelper.setAudioRecyclerViewHeight(
-                mRvAudioAttachment,
-                mAudioAttachmentAdapter!!.itemCount, mSpanAudio
-            )
-            mAudioLayoutManager!!.spanCount = mSpanAudio
-            mAudioAttachmentAdapter!!.notifyDataSetChanged()
-        }
+        syncDetailContent()
+        if (hasImageAttachments) refreshImageAttachmentLayout(true)
+        if (hasAudioAttachments) mAudioAttachmentAdapter!!.notifyDataSetChanged()
     }
 
     private fun handleAppearanceModeChanged() {
@@ -2317,6 +2267,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun dismissDetailDialogFragmentsForAppearance() {
+        cancelDetailCropPreview()
         // 录音 Dialog 不参与通用 dismiss：它背后的会话可能正在录音，dismiss 会当作用户
         // 取消而丢弃录音（系统定时深浅色切换时静默发生）。它对深浅色的适配走原地换肤。
         (supportFragmentManager.findFragmentByTag(AudioRecordDialogFragment.TAG)
@@ -2446,8 +2397,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onPause() {
+        cancelDetailCropPreview()
         creationTransition?.finish()
         creationTransition = null
+        settleChecklistDragBeforePause()
         super.onPause()
         if (mEditable && mExecutor != null && !dontSaveAfterOnPause
             && FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_SAVE_EDITS)
@@ -2548,6 +2501,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onDestroy() {
+        mDetailCropPreviewLoader?.close()
+        mDetailCropPreviewLoader = null
+        mAttachmentPlaybackController?.dispose()
+        stopChecklistDragAutoScroll()
         super.onDestroy()
         if (mThing == null) {
             return
@@ -2633,13 +2590,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 Def.Communication.KEY_TYPE_PATH_NAME
             )!! as List<String?>
             mImageAttachmentAdapter!!.setItems(items)
-            val sizeAfter = items.size
-            if (sizeAfter == 0) {
-                mRvImageAttachment!!.visibility = View.GONE
-                setScrollViewMarginTop(true)
-            } else {
-                refreshImageAttachmentLayout(true)
-            }
+            refreshImageAttachmentLayout(true)
         }
     }
 
@@ -2779,7 +2730,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun applyScrollViewMarginTop() {
-        val params = mScrollView!!.layoutParams as FrameLayout.LayoutParams
+        val params = mDetailList!!.layoutParams as FrameLayout.LayoutParams
         if (mScrollViewHasStatusBarMarginTop) {
             val mt: Int = (screenDensity * 56).toInt() + mStatusBarTopInset
             params.setMargins(0, mt, 0, params.bottomMargin)
@@ -2789,113 +2740,40 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun initImageAttachmentUI(items: List<String?>) {
-        setImageCover()
-
-        val size = items.size
-        mRvImageAttachment!!.visibility = View.VISIBLE
-        setScrollViewMarginTop(false)
-
         mImageAttachmentAdapter = ImageAttachmentAdapter(
-            this, mEditable, items,
-            ImageAttachmentClickCallback(),
+            this, mEditable, items, ImageAttachmentClickCallback(),
             if (mEditable) ImageAttachmentRemoveCallback() else null,
             if (mEditable) ImageAttachmentAppearanceCallback() else null,
-            mMaxSpanImage,
-            mDetailAttachmentMediaAppearance
+            mMaxSpanImage, mDetailAttachmentMediaAppearance
         )
         mImageAttachmentAdapter!!.setAccentBackground(getAccentBackground())
         mAttachmentPlaybackController?.setAdapter(mImageAttachmentAdapter)
-        mImageLayoutManager = GridLayoutManager(this, getImageAttachmentSpanCount(size))
-        mRvImageAttachment!!.adapter = mImageAttachmentAdapter
-        mRvImageAttachment!!.layoutManager = mImageLayoutManager
         refreshImageAttachmentLayout(false)
-
-        if (mEditable) {
-            ItemTouchHelper(AttachmentTouchCallback(true))
-                .attachToRecyclerView(mRvImageAttachment)
-        }
+        if (mEditable) ensureDetailTouchHelper()
     }
 
     private fun notifyImageAttachmentsChanged(add: Boolean, position: Int) {
-        val items: MutableList<String?> = mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
-
-        val sizeAfter = if (add) items.size + 1 else items.size - 1
-
-        if (add) {
-            if (mRvImageAttachment!!.visibility != View.VISIBLE) {
-                setImageCover()
-                mRvImageAttachment!!.visibility = View.VISIBLE
-                setScrollViewMarginTop(false)
-            }
-            items.add(position, attachmentTypePathName)
-            refreshImageAttachmentLayout(true)
-        } else {
-            items.removeAt(position)
-            if (sizeAfter == 0) {
-                mImageCover!!.visibility = View.GONE
-                mRvImageAttachment!!.visibility = View.GONE
-                setScrollViewMarginTop(true)
-                return
-            }
-            refreshImageAttachmentLayout(true)
-        }
-    }
-
-    private fun getImageAttachmentSpanCount(itemCount: Int): Int {
-        return max(1, if (itemCount < mMaxSpanImage) itemCount else mMaxSpanImage)
+        val items = mImageAttachmentAdapter!!.getItems()!! as MutableList<String?>
+        if (add) items.add(position, attachmentTypePathName) else items.removeAt(position)
+        refreshImageAttachmentLayout(true)
     }
 
     private fun refreshImageAttachmentLayout(notify: Boolean) {
         val adapter = mImageAttachmentAdapter ?: return
-        val layoutManager = mImageLayoutManager ?: return
-        val itemCount = adapter.itemCount
-        if (itemCount <= 0) return
-
         adapter.setMaxSpan(mMaxSpanImage)
         adapter.setDetailAttachmentMediaAppearance(mDetailAttachmentMediaAppearance)
-        val spanCount = getImageAttachmentSpanCount(itemCount)
-        layoutManager.spanCount = spanCount
-        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-            override fun getSpanSize(position: Int): Int {
-                return if (adapter.isFullSpanPosition(position)) spanCount else 1
-            }
-        }
-
-        if (adapter.isCustomizedMode()) {
-            setCustomizedImageRecyclerViewHeight(adapter, spanCount)
-        } else {
-            AttachmentHelper.setImageRecyclerViewHeight(mRvImageAttachment, itemCount, mMaxSpanImage)
-        }
-
-        if (notify) {
-            adapter.notifyDataSetChanged()
-            // 附件增删/重排后 position 全部作废，播放调度必须整体重来。
-            mAttachmentPlaybackController?.onItemsChanged()
-        }
+        if (hasImageAttachments) setImageCover() else mImageCover!!.visibility = View.GONE
+        setScrollViewMarginTop(!hasImageAttachments)
+        // 先发送数量变化通知，再让 ConcatAdapter 重算分区和 span。
+        if (notify) adapter.notifyDataSetChanged()
+        syncDetailContent()
+        if (notify) mAttachmentPlaybackController?.onItemsChanged()
     }
 
-    private fun setCustomizedImageRecyclerViewHeight(
-        adapter: ImageAttachmentAdapter,
-        spanCount: Int
-    ) {
-        val itemCount = adapter.itemCount
-        var totalHeight = 0
-        var gridStartPosition = 0
-        if (adapter.isFullSpanPosition(0)) {
-            totalHeight += adapter.getItemTargetSize(0)[1]
-            gridStartPosition = 1
-        }
-
-        val remaining = itemCount - gridStartPosition
-        if (remaining > 0) {
-            val gridHeight = adapter.getItemTargetSize(gridStartPosition)[1]
-            val rows = (remaining + spanCount - 1) / spanCount
-            totalHeight += rows * gridHeight
-        }
-
-        val params = mRvImageAttachment!!.layoutParams as LinearLayout.LayoutParams
-        params.height = max(1, totalHeight)
-        mRvImageAttachment!!.requestLayout()
+    private fun syncDetailContent() {
+        mAudioAttachmentAdapter?.setLayoutSpan(mSpanAudio, resources.displayMetrics.widthPixels)
+        mDetailContent.update(mImageAttachmentAdapter, mCheckListAdapter, mChecklistVisible,
+            mAudioAttachmentAdapter, mSpanAudio)
     }
 
     private fun setDetailAttachmentMediaAppearanceFromJson(
@@ -2931,54 +2809,30 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun initAudioAttachmentUI(items: List<String?>) {
-        mRvAudioAttachment!!.visibility = View.VISIBLE
-        AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, items.size, mSpanAudio)
         mAudioAttachmentAdapter = AudioAttachmentAdapter(
             this, getAccentColor(), mEditable, items,
             if (mEditable) AudioAttachmentRemoveCallback() else null
         )
         mAudioAttachmentAdapter!!.setAccentBackground(getAccentBackground())
-        mAudioLayoutManager = GridLayoutManager(this, mSpanAudio)
-        mRvAudioAttachment!!.adapter = mAudioAttachmentAdapter
-        mRvAudioAttachment!!.layoutManager = mAudioLayoutManager
-
-        if (mEditable) {
-            ItemTouchHelper(AttachmentTouchCallback(false))
-                .attachToRecyclerView(mRvAudioAttachment)
-        }
+        syncDetailContent()
+        if (mEditable) ensureDetailTouchHelper()
     }
 
     private fun notifyAudioAttachmentsChanged(add: Boolean, position: Int) {
-        val items: MutableList<String?> = mAudioAttachmentAdapter!!.getItems()!! as MutableList<String?>
-        val sizeBefore = items.size
-        val sizeAfter = if (add) sizeBefore + 1 else sizeBefore - 1
-
+        val adapter = mAudioAttachmentAdapter!!
+        val items = adapter.getItems()!! as MutableList<String?>
+        val playing = adapter.getPlayingIndex()
         if (add) {
-            if (mRvAudioAttachment!!.visibility != View.VISIBLE) {
-                mRvAudioAttachment!!.visibility = View.VISIBLE
-            }
-
-            val index = mAudioAttachmentAdapter!!.getPlayingIndex()
-            if (index != -1 && index > position) {
-                mAudioAttachmentAdapter!!.setPlayingIndex(index + 1)
-            }
-
+            if (playing >= position) adapter.setPlayingIndex(playing + 1)
             items.add(position, attachmentTypePathName)
-            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio)
-            if (sizeAfter == 1) {
-                mAudioAttachmentAdapter!!.notifyDataSetChanged()
-            } else {
-                mAudioAttachmentAdapter!!.notifyItemInserted(position)
-            }
+            adapter.notifyItemInserted(position)
         } else {
+            if (playing == position) adapter.stopPlaying()
+            else if (playing > position) adapter.setPlayingIndex(playing - 1)
             items.removeAt(position)
-            if (sizeAfter == 0) {
-                mRvAudioAttachment!!.visibility = View.GONE
-                return
-            }
-            AttachmentHelper.setAudioRecyclerViewHeight(mRvAudioAttachment, sizeAfter, mSpanAudio)
-            mAudioAttachmentAdapter!!.notifyItemRemoved(position)
+            adapter.notifyItemRemoved(position)
         }
+        syncDetailContent()
     }
 
     private fun setImageCover() {
@@ -3008,94 +2862,85 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun setScrollEvents() {
-        mActionbar!!.setOnClickListener {
-            mScrollView!!.smoothScrollTo(0, 0)
-        }
-
-        val barsHeight = (screenDensity * 56).toInt()
-
-        mScrollView!!.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener {
-                _, _, scrollY, _, _ ->
-            var imageHeight = 0
-            if (mRvImageAttachment!!.isVisible) {
-                imageHeight = mRvImageAttachment!!.height
-            }
-
-            // the scrollY that action bar shadow should begin to appear
-            // the scrollY that action bar shadow should totally appear
-            val shadowAY: Float = if (imageHeight == 0) {
-                screenDensity * 14
-            } else {
-                imageHeight -
-                        barsHeight - mStatusBarTopInset + screenDensity * 20
-            }
-            val shadowTY: Float = shadowAY + screenDensity * 20
-            if (scrollY >= shadowTY) {
-                mActionBarShadow!!.alpha = 1.0f
-            } else if (scrollY <= shadowAY) {
-                mActionBarShadow!!.alpha = 0f
-            } else {
-                val progress: Float = scrollY - shadowAY
-                mActionBarShadow!!.alpha = progress / (shadowTY - shadowAY)
-            }
-
-            if (imageHeight != 0) {
-                val abAY: Float = shadowAY - screenDensity * 12
-                val abTY: Float = abAY + screenDensity * 16
-                val abAlpha: Int = if (scrollY <= abAY) {
-                    0
-                } else if (scrollY >= abTY) {
-                    255
-                } else {
-                    val progress: Float = (scrollY - abAY) / (abTY - abAY)
-                    (progress * 255).toInt()
-                }
-
-                var color = getAccentColor()
-                color = DisplayUtil.getTransparentColor(color, abAlpha)
-                mStatusBar!!.setBackgroundColor(color)
-                mActionbar!!.setBackgroundColor(color)
+        mActionbar!!.setOnClickListener { mDetailList!!.smoothScrollToPosition(0) }
+        mDetailList!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateScrollChrome()
             }
         })
+        mDetailList!!.viewTreeObserver.addOnGlobalLayoutListener { updateScrollChrome() }
+    }
 
-        if (f<View>(R.id.ll_bottom_bar_detail).isVisible) {
-            val observer: ViewTreeObserver = mScrollView!!.viewTreeObserver
-            observer.addOnScrollChangedListener {
-                updateBottomBarShadow()
-            }
-            observer.addOnGlobalLayoutListener {
-                updateBottomBarShadow()
-            }
+    private fun updateScrollChrome() {
+        val list = mDetailList ?: return
+        val titlePosition = mDetailContent.positionOf(R.id.et_title)
+        val title = mDetailContent.layoutManager.findViewByPosition(titlePosition)
+        val pastTitle = mDetailContent.layoutManager.findFirstVisibleItemPosition() > titlePosition
+        if (hasImageAttachments) {
+            // 标题前沿就是媒体区末沿 + 原来的 12dp 间距，避免用变高行的估计滚动距离。
+            val imageBottom = title?.let { it.top - 12 * screenDensity }
+                ?: if (pastTitle) Float.NEGATIVE_INFINITY else Float.POSITIVE_INFINITY
+            val toolbarBottom = 56 * screenDensity + mStatusBarTopInset
+            mActionBarShadow!!.alpha = ((toolbarBottom - 20 * screenDensity - imageBottom) /
+                (20 * screenDensity)).coerceIn(0f, 1f)
+            val alpha = (((toolbarBottom - 8 * screenDensity - imageBottom) /
+                (16 * screenDensity)).coerceIn(0f, 1f) * 255).toInt()
+            val color = DisplayUtil.getTransparentColor(getAccentColor(), alpha)
+            mStatusBar!!.setBackgroundColor(color)
+            mActionbar!!.setBackgroundColor(color)
+        } else {
+            val offset = title?.let { -it.top.toFloat() }
+                ?: if (pastTitle) Float.POSITIVE_INFINITY else 0f
+            mActionBarShadow!!.alpha = ((offset - 14 * screenDensity) /
+                (20 * screenDensity)).coerceIn(0f, 1f)
         }
+        updateBottomBarShadow()
     }
 
     private fun updateBottomBarShadow() {
-        val windowRect = Rect()
-        window.decorView.getWindowVisibleDisplayFrame(windowRect)
-
-        val bottomBarShadow: View = f(R.id.bottom_bar_shadow)!!
-        val bottomBarHeight = (screenDensity * 56).toInt()
-
-        val scrollY = mScrollView!!.scrollY
-        val childHeight = mScrollView!!.getChildAt(0).height
-        var marginTop = mStatusBarTopInset
-        if (mRvImageAttachment!!.visibility != View.VISIBLE) {
-            marginTop += bottomBarHeight
-        } else {
-            marginTop -= mStatusBarTopInset
+        val list = mDetailList ?: return
+        if (!f<View>(R.id.ll_bottom_bar_detail).isVisible) {
+            f<View>(R.id.bottom_bar_shadow)!!.alpha = 0f
+            return
         }
+        val last = mDetailContent.layoutManager.findViewByPosition(mDetailContent.adapter.itemCount - 1)
+        val remaining = last?.let { it.bottom + list.paddingBottom - list.height }
+            ?: if (list.canScrollVertically(1)) Int.MAX_VALUE else 0
+        f<View>(R.id.bottom_bar_shadow)!!.alpha =
+            ((remaining - 16 * screenDensity) / (24 * screenDensity)).coerceIn(0f, 1f)
+    }
 
-        val aY: Float = childHeight - windowRect.bottom +
-                bottomBarHeight + marginTop - screenDensity * 40
-        val tY: Float = aY + screenDensity * 24
-        if (scrollY <= aY) {
-            bottomBarShadow.alpha = 1.0f
-        } else if (scrollY >= tY) {
-            bottomBarShadow.alpha = 0f
-        } else {
-            val progress: Float = tY - scrollY
-            bottomBarShadow.alpha = progress / (tY - aY)
+    private fun revealFocusedEditor() {
+        val editor = currentFocus as? EditText ?: return
+        val layout = editor.layout ?: return
+        val line = layout.getLineForOffset(editor.selectionEnd.coerceIn(0, editor.length()))
+        val rect = Rect(0, layout.getLineTop(line) + editor.totalPaddingTop,
+            editor.width, layout.getLineBottom(line) + editor.totalPaddingTop)
+        rect.inset(0, -(16 * screenDensity).toInt())
+        editor.requestRectangleOnScreen(rect, false)
+    }
+
+    private fun focusChecklistItem(position: Int, cursor: Int?, keyboard: Boolean) {
+        val adapter = mCheckListAdapter ?: return
+        val global = mDetailContent.globalPosition(adapter, position)
+        if (global == RecyclerView.NO_POSITION) return
+        val request = ++mChecklistFocusRequest
+        val list = mDetailList!!
+        if (mDetailContent.holder(adapter, position) == null) list.scrollToPosition(global)
+        fun apply(attempt: Int) {
+            if (request != mChecklistFocusRequest || !mChecklistVisible || adapter !== mCheckListAdapter) return
+            val holder = mDetailContent.holder(adapter, position) as? CheckListAdapter.EditTextHolder
+            if (holder == null) {
+                if (attempt < 4) list.postOnAnimation { apply(attempt + 1) }
+                return
+            }
+            val editor = holder.et ?: return
+            editor.requestFocus()
+            if (cursor != null) editor.setSelection(cursor.coerceIn(0, editor.length()))
+            if (keyboard) KeyboardUtil.showKeyboard(editor)
+            revealFocusedEditor()
         }
+        list.post { apply(0) }
     }
 
     private fun showThingBackgroundEditor() {
@@ -3339,9 +3184,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         mTvThingFolderPath!!.setTextColor(tertiary)
         mTvUpdateTime!!.setTextColor(tertiary)
 
-        val tvFinishTime: TextView? = f(R.id.tv_finish_time)
+        val tvFinishTime: TextView? = mDetailContent.view(R.id.tv_finish_time)
         tvFinishTime?.setTextColor(tertiary)
-        val tvTypeInfo: TextView? = f(R.id.tv_type_info)
+        val tvTypeInfo: TextView? = mDetailContent.view(R.id.tv_type_info)
         tvTypeInfo?.setTextColor(tertiary)
         if (mTvMoveChecklistAsBt != null) {
             mTvMoveChecklistAsBt!!.setTextColor(tertiary)
@@ -3392,7 +3237,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mIbBack != null) {
             ImageViewCompat.setImageTintList(mIbBack!!, iconTint)
         }
-        val ivIconTypeInfo: ImageView? = f(R.id.iv_icon_type_info)
+        val ivIconTypeInfo: ImageView? = mDetailContent.view(R.id.iv_icon_type_info)
         if (ivIconTypeInfo != null) {
             ImageViewCompat.setImageTintList(ivIconTypeInfo, iconTint)
         }
@@ -3864,7 +3709,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun getThingContent(): String {
         var content: String
-        if (mRvCheckList!!.isVisible) {
+        if (mChecklistVisible) {
             content = CheckListHelper.toCheckListStr(mCheckListAdapter!!.getItems())
             if (mHabitFinishedThisTime) {
                 content = content.replace((CheckListHelper.SIGNAL + "1").toRegex(),
@@ -3880,10 +3725,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private fun currentAttachmentStr(): String {
         var imageItems: List<String?>? = null
         var audioItems: List<String?>? = null
-        if (mRvImageAttachment!!.isVisible) {
+        if (hasImageAttachments) {
             imageItems = mImageAttachmentAdapter!!.getItems()
         }
-        if (mRvAudioAttachment!!.isVisible) {
+        if (hasAudioAttachments) {
             audioItems = mAudioAttachmentAdapter!!.getItems()
         }
         return AttachmentHelper.toAttachmentStr(imageItems, audioItems)
@@ -4279,26 +4124,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private inner class CheckListItemsChangeCallback : CheckListAdapter.ItemsChangeCallback {
 
         override fun onInsert(position: Int) {
-            val holder = mRvCheckList!!.findViewHolderForAdapterPosition(position) as CheckListAdapter.EditTextHolder?
-            if (holder != null) {
-                KeyboardUtil.showKeyboard(holder.et)
-            }
+            focusChecklistItem(position, null, true)
         }
 
         override fun onRemove(position: Int, item: String?, cursorPos: Int) {
-            if (item == null) {
-                if (position == -1) {
-                    KeyboardUtil.hideKeyboard(currentFocus)
-                    return
-                }
-                val holder =
-                    mRvCheckList!!.findViewHolderForAdapterPosition(position) as? CheckListAdapter.EditTextHolder?
-                        ?: return
-                holder.et!!.requestFocus()
-                holder.et.setSelection(cursorPos)
-            } else {
-                KeyboardUtil.hideKeyboard(currentFocus)
-            }
+            if (item == null && position >= 0) focusChecklistItem(position, cursorPos, false)
+            else KeyboardUtil.hideKeyboard(currentFocus)
         }
     }
 
@@ -4310,16 +4141,54 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
+    private var mDetailCropPreviewLoader: DetailCropPreviewLoader? = null
+    private var mDetailCropPreviewModal: UiInteractions.Modal? = null
+
+    private fun cancelDetailCropPreview() {
+        if (mDetailCropPreviewModal != null) mDetailCropPreviewLoader?.cancel()
+        mDetailCropPreviewModal?.release()
+        mDetailCropPreviewModal = null
+    }
+
     private fun showDetailAttachmentMediaAppearanceEditor(position: Int) {
-        (supportFragmentManager.findFragmentByTag(MediaCropAppearanceDialogFragment.TAG)
-                as? DialogFragment)?.dismissAllowingStateLoss()
-        MediaCropAppearanceDialogFragment.newInstance(
-            MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT,
-            position
-        ).show(
-            supportFragmentManager,
-            MediaCropAppearanceDialogFragment.TAG
-        )
+        val key = mImageAttachmentAdapter?.getItems()?.getOrNull(position) ?: return
+        val source = ThingCardMediaHelper.toMediaSource(key) ?: return
+        val owner = UiInteractions.open(this, "detail-attachment-preview") ?: return
+        mDetailCropPreviewModal = owner
+        val frameMs = mDetailAttachmentMediaAppearance.source(key)?.videoFrameMs ?: 0L
+        val loader = mDetailCropPreviewLoader ?: DetailCropPreviewLoader().also { mDetailCropPreviewLoader = it }
+        fun show(metadata: DetailCropPreviewLoader.Metadata, preview: DetailCropPreviewLoader.Preview? = null) {
+            if (mDetailCropPreviewModal !== owner) return
+            mDetailCropPreviewModal = null
+            owner.release()
+            if (isFinishing || isDestroyed || supportFragmentManager.isStateSaved ||
+                mImageAttachmentAdapter?.getItems()?.getOrNull(position) != key) return
+            MediaCropAppearanceDialogFragment.newInstance(
+                MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT, position
+            ).apply {
+                detailPreviewMetadata = metadata
+                preparedDetailPreview = preview
+            }.show(
+                supportFragmentManager, MediaCropAppearanceDialogFragment.TAG
+            )
+        }
+        loader.loadMetadata(source) { result ->
+            if (mDetailCropPreviewModal !== owner) return@loadMetadata
+            val metadata = result.getOrNull()
+            if (metadata != null) show(metadata, loader.preparedPreview(key, frameMs)) else {
+                // 少数来源不能单独读取尺寸时，仍用原解码器兜底，且不回到主线程解码。
+                loader.load(source, frameMs, { loadDetailAttachmentCropPreview(source, frameMs) }) { decoded ->
+                    if (mDetailCropPreviewModal !== owner) return@load
+                    val preview = decoded.getOrNull()
+                    if (preview != null) show(DetailCropPreviewLoader.Metadata(key,
+                        preview.bitmap.width, preview.bitmap.height, preview.durationMs), preview)
+                    else {
+                        cancelDetailCropPreview()
+                        Toast.makeText(this, R.string.detail_media_preview_load_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     override fun getMediaCropAppearanceDialogWidthPx(
@@ -4341,7 +4210,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DETAIL_ATTACHMENT) return null
         val typePathName = mImageAttachmentAdapter?.getItems()?.getOrNull(position) ?: return null
         val source = ThingCardMediaHelper.toMediaSource(typePathName) ?: return null
-        val bitmap = loadDetailAttachmentCropEditorBitmap(source) ?: return null
+        val frameMs = mDetailAttachmentMediaAppearance.source(source.typePathName)?.videoFrameMs ?: 0L
+        var preview = fragment.preparedDetailPreview?.takeIf {
+            it.typePathName == source.typePathName && it.frameMs == frameMs
+        }
+        // 新窗口把尺寸写入 Fragment 参数；仅兼容升级前留下的旧窗口恢复状态。
+        val metadata = fragment.detailPreviewMetadata?.takeIf { it.typePathName == source.typePathName }
+            ?: (preview ?: loadDetailAttachmentCropPreview(source, frameMs)?.also { preview = it })?.let {
+                DetailCropPreviewLoader.Metadata(it.typePathName, it.bitmap.width, it.bitmap.height, it.durationMs)
+            } ?: return null
+        var bitmap = preview?.bitmap
+        var previewReady = bitmap != null
+        var disposed = false
+        var actionRow: View? = null
         val isFirst = position == 0
         val isSingle = mImageAttachmentAdapter?.itemCount == 1
         val canToggleFullSpan = isFirst && !isSingle
@@ -4368,7 +4249,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             R.dimen.app_chrome_dialog_title_margin_horizontal
         )
 
-        val root = LinearLayout(this)
+        val root = object : LinearLayout(this) {
+            override fun onInterceptTouchEvent(event: MotionEvent): Boolean =
+                (!previewReady && event.y < (actionRow?.top ?: height)) || super.onInterceptTouchEvent(event)
+            override fun onTouchEvent(event: MotionEvent): Boolean = !previewReady || super.onTouchEvent(event)
+        }
         root.orientation = LinearLayout.VERTICAL
         root.clipChildren = false
         root.clipToPadding = false
@@ -4443,8 +4328,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 initialPresentation.crop.scale,
                 draftSource.videoFrameMs ?: 0L,
                 bitmap,
-                bitmap.width,
-                bitmap.height
+                metadata.width,
+                metadata.height
             )
             videoCropView = view
             cropEditor = view
@@ -4467,12 +4352,25 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             false
         }
 
+        val previewContainer = FrameLayout(this)
+        previewContainer.addView(cropEditorView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        val loadingIndicator = android.widget.ProgressBar(this).apply {
+            BackgroundUtil.applyProgressBarGradient(
+                this, getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+            )
+            contentDescription = getString(R.string.detail_media_preview_loading)
+            visibility = if (!previewReady && !source.isVideo) View.VISIBLE else View.GONE
+        }
+        previewContainer.addView(loadingIndicator, FrameLayout.LayoutParams(
+            (density * 28).toInt(), (density * 28).toInt(), Gravity.CENTER))
         root.addView(
-            cropEditorView,
+            previewContainer,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 getDetailAttachmentCropEditorPreviewHeight(
-                    bitmap,
+                    metadata.width,
+                    metadata.height,
                     dialogWidth,
                     contentHorizontalMargin
                 )
@@ -4489,8 +4387,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (source.isVideo && videoCropView != null) {
             videoFrameControls = createDetailAttachmentVideoFrameControls(
                 videoCropView,
-                source,
-                draftSource.videoFrameMs ?: 0L
+                draftSource.videoFrameMs ?: 0L,
+                metadata.durationMs
             )
             if (videoFrameControls != null) {
                 root.addView(
@@ -4510,18 +4408,18 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
 
-        val ratioControls = createDetailAttachmentRatioControls(
-            cropEditor,
-            initialPresentation.targetAspectRatio,
+        // 后续附件固定为网格裁剪，不创建永远不可见的比例滑杆及其渐变资源。
+        val ratioControls = if (isFirst) createDetailAttachmentRatioControls(
+            cropEditor, initialPresentation.targetAspectRatio,
             getDetailAttachmentAppearanceRatioLabelRes(source)
-        )
-        ratioControls.view.visibility =
+        ) else null
+        ratioControls?.view?.visibility =
             if (activePresentationKey == DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN) {
                 View.VISIBLE
             } else {
                 View.GONE
             }
-        root.addView(
+        if (ratioControls != null) root.addView(
             ratioControls.view,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -4571,8 +4469,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     presentation.crop.scale,
                     selectedVideoFrameMs(),
                     bitmap,
-                    bitmap.width,
-                    bitmap.height
+                    metadata.width,
+                    metadata.height
                 )
             } else if (cropEditorView is ThingCardCropEditorView) {
                 cropEditorView.setCropBitmap(
@@ -4583,8 +4481,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                     presentation.crop.scale
                 )
             }
-            ratioControls.setRatio(presentation.targetAspectRatio)
-            ratioControls.view.visibility =
+            ratioControls?.setRatio(presentation.targetAspectRatio)
+            ratioControls?.view?.visibility =
                 if (activePresentationKey ==
                     DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN
                 ) {
@@ -4610,6 +4508,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
 
         val buttons = LinearLayout(this)
+        actionRow = buttons
         buttons.gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
         buttons.orientation = LinearLayout.HORIZONTAL
         buttons.clipChildren = false
@@ -4617,7 +4516,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         buttons.addView(createDetailAttachmentAppearanceButton(R.string.cancel, false) {
             fragment.dismiss()
         })
-        buttons.addView(createDetailAttachmentAppearanceButton(R.string.confirm) {
+        val confirmButton = createDetailAttachmentAppearanceButton(R.string.confirm) {
+            if (!previewReady) return@createDetailAttachmentAppearanceButton
             saveCurrentPresentationToDraft()
             if (isFirst) {
                 draftSource = draftSource.withFullSpanEnabled(
@@ -4631,7 +4531,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 mDetailAttachmentMediaAppearance.withSource(source.typePathName, draftSource)
             )
             fragment.dismiss()
-        })
+        }
+        confirmButton.isEnabled = previewReady
+        confirmButton.alpha = if (previewReady) 1f else 0.38f
+        buttons.addView(confirmButton)
         root.addView(
             buttons,
             LinearLayout.LayoutParams(
@@ -4655,7 +4558,39 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         )
 
+        val waitingControls = listOfNotNull(cropEditorView, widthControls?.view,
+            ratioControls?.view, videoFrameControls?.view)
+        val enabledStates = mutableListOf<kotlin.Pair<View, Boolean>>()
+        fun disableWhileLoading(view: View) {
+            enabledStates += view to view.isEnabled
+            view.isEnabled = false
+            if (view is ViewGroup) for (i in 0 until view.childCount) disableWhileLoading(view.getChildAt(i))
+        }
+        var cancelPreview: (() -> Unit)? = null
+        if (!previewReady) {
+            waitingControls.forEach(::disableWhileLoading)
+            val loader = mDetailCropPreviewLoader ?: DetailCropPreviewLoader().also { mDetailCropPreviewLoader = it }
+            cancelPreview = loader.load(source, frameMs, { loadDetailAttachmentCropPreview(source, frameMs, metadata.durationMs) }) { result ->
+                if (disposed || isFinishing || isDestroyed || fragment.isRemoving) return@load
+                val loaded = result.getOrNull()
+                if (loaded == null) {
+                    Toast.makeText(this, R.string.detail_media_preview_load_failed, Toast.LENGTH_SHORT).show()
+                    fragment.dismiss()
+                    return@load
+                }
+                bitmap = loaded.bitmap
+                if (videoCropView != null) videoCropView.setFallbackBitmap(loaded.bitmap)
+                else loadActivePresentationIntoEditor()
+                loadingIndicator.visibility = View.GONE
+                previewReady = true
+                enabledStates.forEach { (view, enabled) -> view.isEnabled = enabled }
+                confirmButton.isEnabled = true
+                confirmButton.alpha = 1f
+            }
+        }
         return MediaCropAppearanceDialogFragment.Content(root) {
+            disposed = true
+            cancelPreview?.invoke()
             videoFrameControls?.stopPlayback?.invoke()
             videoCropView?.release()
         }
@@ -4712,14 +4647,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun getDetailAttachmentCropEditorPreviewHeight(
-        bitmap: Bitmap,
+        sourceWidth: Int,
+        sourceHeight: Int,
         dialogWidth: Int,
         contentHorizontalMargin: Int
     ): Int {
         val screenSize = DisplayUtil.getScreenSize(this)
         val contentWidth = max(1, dialogWidth - contentHorizontalMargin * 2)
-        val rawHeight = (contentWidth * bitmap.height.toDouble() /
-            max(1, bitmap.width).toDouble()).toInt()
+        val rawHeight = (contentWidth * sourceHeight.toDouble() /
+            max(1, sourceWidth).toDouble()).toInt()
         val minHeight = (resources.displayMetrics.density * 160).toInt()
         val maxHeight = (screenSize.y * 0.52f).toInt()
         return max(minHeight, min(maxHeight, rawHeight))
@@ -4733,10 +4669,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun createDetailAttachmentVideoFrameControls(
         cropView: ThingCardVideoCropEditorView,
-        source: ThingCardMediaHelper.MediaSource,
-        initialFrameMs: Long
+        initialFrameMs: Long,
+        durationMs: Long
     ): DetailAttachmentVideoFrameControls? {
-        val durationMs = AttachmentHelper.getVideoDurationMs(source.pathName)
         if (durationMs <= 0L) return null
         val maxFrameMs = getDetailAttachmentVideoFrameMaxMs(durationMs)
         val density = resources.displayMetrics.density
@@ -5154,22 +5089,25 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         return button
     }
 
-    private fun loadDetailAttachmentCropEditorBitmap(
-        source: ThingCardMediaHelper.MediaSource
-    ): Bitmap? {
-        return if (source.isVideo) {
-            loadDetailAttachmentCropEditorVideoFrame(source)
+    private fun loadDetailAttachmentCropPreview(
+        source: ThingCardMediaHelper.MediaSource,
+        frameMs: Long,
+        knownDurationMs: Long? = null
+    ): DetailCropPreviewLoader.Preview? {
+        val durationMs = knownDurationMs ?: if (source.isVideo) AttachmentHelper.getVideoDurationMs(source.pathName) else 0L
+        val bitmap = if (source.isVideo) {
+            loadDetailAttachmentCropEditorVideoFrame(source, frameMs, durationMs)
         } else {
             decodeDetailAttachmentCropEditorImage(source.pathName)
-        }
+        } ?: return null
+        return DetailCropPreviewLoader.Preview(source.typePathName, frameMs, bitmap, durationMs)
     }
 
     private fun loadDetailAttachmentCropEditorVideoFrame(
-        source: ThingCardMediaHelper.MediaSource
+        source: ThingCardMediaHelper.MediaSource,
+        frameMs: Long,
+        durationMs: Long
     ): Bitmap? {
-        val frameMs = mDetailAttachmentMediaAppearance.source(source.typePathName)
-            ?.videoFrameMs ?: 0L
-        val durationMs = AttachmentHelper.getVideoDurationMs(source.pathName)
         val clampedFrameMs = clampDetailAttachmentVideoFrameMs(frameMs, durationMs)
         val retriever = MediaMetadataRetriever()
         return try {
@@ -5315,11 +5253,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
             KeyboardUtil.hideKeyboard(currentFocus)
 
-            val index = mAudioAttachmentAdapter!!.getPlayingIndex()
-            if (pos < index) {
-                mAudioAttachmentAdapter!!.setPlayingIndex(index - 1)
-            }
-
             if (shouldAddToActionList) {
                 mActionList!!.addAction(ThingAction(
                     ThingAction.DELETE_ATTACHMENT, pos, item
@@ -5353,11 +5286,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         // 被拖拽的视图，导致 ItemTouchHelper 脱手、根节点自己跳到新位置）。
         if (to < from) {
             // 上移：把块内各项依次移到目标兄弟之前（块整体上移）。
-            for (i in 0 until blockSize) moveChecklistItem(items, from + i, to + i)
+            for (i in 0 until blockSize) moveChecklistItem(from + i, to + i)
         } else {
             // 下移：把目标兄弟整棵子树的各项依次上移到块之前，等价于块整体下移到该兄弟子树之后。
             val count = CheckListHelper.subtreeEndIndexOf(items, to) - fromEnd
-            for (i in 0 until count) moveChecklistItem(items, fromEnd + 1 + i, from + i)
+            for (i in 0 until count) moveChecklistItem(fromEnd + 1 + i, from + i)
         }
 
         val after: String = CheckListHelper.toCheckListStr(items)
@@ -5369,10 +5302,9 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     /** 单步移动一项并用 notifyItemMoved 通知（不回收任何视图，拖拽不脱手）。 */
-    private fun moveChecklistItem(items: MutableList<String?>, from: Int, to: Int) {
-        val item: String? = items.removeAt(from)
-        items.add(to, item)
-        mCheckListAdapter!!.notifyItemMoved(from, to)
+    private fun moveChecklistItem(from: Int, to: Int) {
+        mCheckListAdapter!!.moveItem(from, to)
+        mLastChecklistDragPosition = mDraggedChecklistVH?.bindingAdapterPosition ?: to
     }
 
     /**
@@ -5383,7 +5315,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val items = mCheckListAdapter?.getItems() ?: return
         mDragBeforeContent = CheckListHelper.toCheckListStr(items)
         startChecklistCapsule(vh)                       // 被拖项渐显胶囊轮廓
-        val from = vh.adapterPosition
+        val from = vh.bindingAdapterPosition
+        mLastChecklistDragPosition = from
         if (from == RecyclerView.NO_POSITION || from !in items.indices) return
         if (!CheckListHelper.isItem(items[from])) return
         val end = CheckListHelper.subtreeEndIndexOf(items, from)
@@ -5396,14 +5329,14 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         // 收束期间放开 move 动画，让被收子项下方的兄弟平滑上滑填补；短延时后关掉，使拖拽 onMove 重排仍瞬时。
         mChecklistDragAnimator?.allowMoveAnimation = true
         mCheckListAdapter!!.notifyItemRangeRemoved(from + 1, childCount)
-        mRvCheckList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
+        mDetailList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
     }
 
     /**
      * 拖拽结束：把收束的子树插回代理（被拖项）落点之后，触发插入动画形成“子项展开”的观感；
      * 子树各项层级随父项一并平移，owner/层级不变，无需归一化。最后把整段拖拽记成一次 UPDATE_CHECKLIST。
      */
-    private fun endChecklistDrag(vh: RecyclerView.ViewHolder) {
+    private fun endChecklistDrag(vh: RecyclerView.ViewHolder?) {
         val items = mCheckListAdapter?.getItems()
         val before = mDragBeforeContent
         mDragBeforeContent = null
@@ -5412,15 +5345,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val children = mCollapsedChildren
         mCollapsedChildren = null
         if (children != null && children.isNotEmpty()) {
-            var pos = vh.adapterPosition
-            if (pos == RecyclerView.NO_POSITION) pos = vh.layoutPosition
+            var pos = vh?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
+            if (pos == RecyclerView.NO_POSITION) pos = mLastChecklistDragPosition
             if (pos in items.indices) {
                 val insertAt = pos + 1
                 items.addAll(insertAt, children)
                 // 展开期间放开 move 动画，让下方兄弟平滑下移让位、子项向下展开。
                 mChecklistDragAnimator?.allowMoveAnimation = true
                 mCheckListAdapter!!.notifyItemRangeInserted(insertAt, children.size)
-                mRvCheckList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
+                mDetailList?.postDelayed({ mChecklistDragAnimator?.allowMoveAnimation = false }, 260L)
             }
         }
         if (before != null && shouldAddToActionList) {
@@ -5430,7 +5363,21 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         }
         // 收束/展开等动画结束后，复位可能残留的变换，兜底消除"项停在两行间重叠"。
-        mRvCheckList?.postDelayed({ resetChecklistChildTransforms() }, 300L)
+        mDetailList?.postDelayed({ resetChecklistChildTransforms() }, 300L)
+    }
+
+    /** 自动保存必须读取完整子树；不能等失焦后的拖拽落位动画才把子项插回。 */
+    private fun settleChecklistDragBeforePause() {
+        if (mDragBeforeContent == null) return
+        val holder = mDraggedChecklistVH
+        val now = android.os.SystemClock.uptimeMillis()
+        val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
+        try { mDetailList?.dispatchTouchEvent(cancel) } finally { cancel.recycle() }
+        stopChecklistDragAutoScroll()
+        endChecklistDrag(holder)
+        mDetailList?.itemAnimator?.endAnimations()
+        removeChecklistCapsule()
+        resetChecklistChildTransforms()
     }
 
     /**
@@ -5455,7 +5402,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             // 滞后：手指越过目标兄弟"整棵子树"的中线才跨越，否则刚一接触就跨越、跨完手指仍落在它身上会被
             // 反向再次触发，造成目标项上下反复横跳。
             if (!fingerPastSubtreeMid(nextStart, nextEnd, down = true)) return false
-            moveChecklistItem(items, from, nextEnd)
+            moveChecklistItem(from, nextEnd)
             return true
         } else {
             // 上移：跨过上一个同级兄弟的整棵子树，落到该兄弟之前。
@@ -5463,7 +5410,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             while (s > 0 && CheckListHelper.isItem(items[s]) && CheckListHelper.levelOf(items[s]) > level) s--
             if (s < 0 || !CheckListHelper.isItem(items[s]) || CheckListHelper.levelOf(items[s]) != level) return false
             if (!fingerPastSubtreeMid(s, from - 1, down = false)) return false   // 同上：滞后消抖
-            moveChecklistItem(items, from, s)
+            moveChecklistItem(from, s)
             return true
         }
     }
@@ -5471,12 +5418,21 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     /**
      * 手指当前屏幕 Y 是否越过了 [startIdx, endIdx] 这棵子树的中线（按拖拽方向）。用于拖拽跨越的滞后消抖：
      * 往下需手指越过中线偏下、往上需越过中线偏上才跨越，跨越后手指自然落在子树另一侧、不会立即反向触发。
-     * 边界项未布局（看不全）时返回 true，避免卡住无法移动。
+     * 子树比视口更长时，等滚动方向的远端可见再跨越，避免误判离屏高度。
      */
     private fun fingerPastSubtreeMid(startIdx: Int, endIdx: Int, down: Boolean): Boolean {
-        val rv = mRvCheckList ?: return true
-        val sVH = rv.findViewHolderForAdapterPosition(startIdx) ?: return true
-        val eVH = rv.findViewHolderForAdapterPosition(endIdx) ?: return true
+        val rv = mDetailList ?: return true
+        val adapter = mCheckListAdapter ?: return false
+        val sVH = mDetailContent.holder(adapter, startIdx)
+        val eVH = mDetailContent.holder(adapter, endIdx)
+        // 长子树无法同时呈现两端时，等滚动方向的远端进入视口再跨越，不估计离屏高度。
+        val edge = if (down) eVH else sVH
+        if (sVH == null || eVH == null) {
+            val view = edge?.itemView ?: return false
+            val loc = IntArray(2); view.getLocationOnScreen(loc)
+            val mid = loc[1] + view.height / 2
+            return if (down) mLastTouchScreenY >= mid else mLastTouchScreenY <= mid
+        }
         val sLoc = IntArray(2); sVH.itemView.getLocationOnScreen(sLoc)
         val eLoc = IntArray(2); eVH.itemView.getLocationOnScreen(eLoc)
         val mid = (sLoc[1] + eLoc[1] + eVH.itemView.height) / 2
@@ -5594,9 +5550,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      */
     private fun resetChecklistChildTransforms() {
         if (mDraggedChecklistVH != null) return
-        val rv = mRvCheckList ?: return
+        val rv = mDetailList ?: return
         for (i in 0 until rv.childCount) {
             val c = rv.getChildAt(i) ?: continue
+            if (rv.getChildViewHolder(c).bindingAdapter !== mCheckListAdapter) continue
             c.translationX = 0f
             c.translationY = 0f
             c.scaleX = 1f
@@ -5700,16 +5657,19 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         override fun getMovementFlags(
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder
         ): Int {
-            val dragFlags = ItemTouchHelper.UP or ItemTouchHelper.DOWN
-            return makeMovementFlags(dragFlags, 0)
+            if (viewHolder.bindingAdapter !== mCheckListAdapter || !isChecklistMoveMode()) return 0
+            val item = mCheckListAdapter?.getItems()?.getOrNull(viewHolder.bindingAdapterPosition)
+            if (!CheckListHelper.isItem(item)) return 0
+            return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
         }
 
         override fun onMove(
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
             target: RecyclerView.ViewHolder
         ): Boolean {
+            if (viewHolder.bindingAdapter !== mCheckListAdapter || target.bindingAdapter !== mCheckListAdapter) return false
             // 子树已收束，被拖项是单行代理：在“同 owner 同级兄弟”之间整段跨越目标兄弟的子树。
-            return moveChecklistDragProxy(viewHolder.adapterPosition, target.adapterPosition)
+            return moveChecklistDragProxy(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) { }
@@ -5723,46 +5683,100 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
                 beginChecklistDrag(viewHolder)   // 收束子树（只剩父项代理跟手）
                 startChecklistDragAutoScroll(viewHolder)
+            } else if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
+                // 松手即停止滚动；不能等落位动画结束，否则恢复动画中的行会被继续滚出并回收。
+                stopChecklistDragAutoScroll()
             }
         }
 
         override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
             super.clearView(recyclerView, viewHolder)
             stopChecklistDragAutoScroll()
-            endChecklistDrag(viewHolder)         // 在代理落点处展开子树，记一次撤销动作
+            if (recyclerView.isComputingLayout) {
+                // 离屏回收也可能触发 clearView，布局期间不能插回子树并通知 Adapter。
+                val position = viewHolder.bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) mLastChecklistDragPosition = position
+                recyclerView.post { endChecklistDrag(viewHolder) }
+            } else {
+                endChecklistDrag(viewHolder)
+            }
         }
 
-        override fun onChildDraw(
-            c: Canvas, recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
-            dX: Float, dY: Float, actionState: Int, isCurrentlyActive: Boolean
-        ) {
-            // 自动滚动父容器后，给被拖项补偿一个平移量，使它始终贴在手指处、不脱手。
-            // 补偿 = 自上次手指事件以来父容器又滚动的量；这段尚未被 ItemTouchHelper 的 dY 反映。
-            // 不可累加历史滚动——dY 在每次 MOVE 时已重算进全部滚动量，累加会双重计数。
-            val adjustedDy = if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
-                dY + ((mScrollView?.scrollY ?: mScrollYAtDragTouch) - mScrollYAtDragTouch)
-            } else dY
-            super.onChildDraw(c, recyclerView, viewHolder, dX, adjustedDy, actionState, isCurrentlyActive)
-        }
+        // 由现有边缘触发器保持恒速，避免与 ItemTouchHelper 默认加速滚动叠加。
+        override fun interpolateOutOfBoundsScroll(recyclerView: RecyclerView, viewSize: Int,
+            viewSizeOutOfBounds: Int, totalSize: Int, msSinceStartScroll: Long): Int = 0
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         mLastTouchScreenY = ev.rawY.toInt()  // 记录实时手指屏幕 Y，供拖拽自动滚动边缘判定
-        // dispatchTouchEvent 在事件下发到 RecyclerView/ItemTouchHelper 之前触发，此刻的 scrollY 正是
-        // ItemTouchHelper 处理本次 MOVE 时所依据的滚动量；记下它，作为补偿量的基准。
-        mScrollYAtDragTouch = mScrollView?.scrollY ?: 0
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            val list = mDetailList
+            val origin = IntArray(2)
+            list?.getLocationOnScreen(origin)
+            mTouchSection = list?.findChildViewUnder(ev.rawX - origin[0], ev.rawY - origin[1])
+                ?.let { list.getChildViewHolder(it).bindingAdapter }
+        }
         return super.dispatchTouchEvent(ev)
     }
 
+    private fun ensureDetailTouchHelper() {
+        if (mChecklistTouchHelper != null) return
+        mChecklistTouchHelper = ItemTouchHelper(DetailTouchCallback()).also {
+            it.attachToRecyclerView(mDetailList)
+        }
+    }
+
+    /** 同一滚动列表注册一个拖拽协调器，按实际所属分区分发清单与附件原有的不同规则。 */
+    private inner class DetailTouchCallback : ItemTouchHelper.Callback() {
+        private val checklist = CheckListTouchCallback()
+        private val images = AttachmentTouchCallback(true)
+        private val audios = AttachmentTouchCallback(false)
+        private var active: ItemTouchHelper.Callback? = null
+
+        private fun callback(holder: RecyclerView.ViewHolder): ItemTouchHelper.Callback? = when (holder.bindingAdapter ?: return null) {
+            mCheckListAdapter -> checklist
+            mImageAttachmentAdapter -> images
+            mAudioAttachmentAdapter -> audios
+            else -> null
+        }
+
+        override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int =
+            callback(viewHolder)?.getMovementFlags(recyclerView, viewHolder) ?: 0
+
+        override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder): Boolean = callback(viewHolder)?.onMove(recyclerView, viewHolder, target) ?: false
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) { }
+        override fun isItemViewSwipeEnabled() = false
+        override fun isLongPressDragEnabled(): Boolean = when (mTouchSection) {
+            mImageAttachmentAdapter -> (mImageAttachmentAdapter?.itemCount ?: 0) > 1
+            mAudioAttachmentAdapter -> (mAudioAttachmentAdapter?.itemCount ?: 0) > 1
+            else -> false
+        }
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            if (viewHolder != null) active = callback(viewHolder)
+            active?.onSelectedChanged(viewHolder, actionState)
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            (callback(viewHolder) ?: active)?.clearView(recyclerView, viewHolder)
+        }
+
+        override fun interpolateOutOfBoundsScroll(recyclerView: RecyclerView, viewSize: Int,
+            viewSizeOutOfBounds: Int, totalSize: Int, msSinceStartScroll: Long): Int =
+            if (active === checklist) 0 else super.interpolateOutOfBoundsScroll(recyclerView, viewSize,
+                viewSizeOutOfBounds, totalSize, msSinceStartScroll)
+    }
+
     /**
-     * 拖拽自动滚动：手指靠近视口上/下边缘时，以**恒定速度**滚动父 NestedScrollView；
+     * 拖拽自动滚动：手指靠近视口上/下边缘时，以恒定速度滚动统一内容列表；
      * 拖未完成项往下滚到未完成/已完成分割线即停，拖已完成项往上滚到分割线即停；全程不脱手。
      */
     private fun startChecklistDragAutoScroll(vh: RecyclerView.ViewHolder) {
         mDraggedChecklistVH = vh
-        val sv = mScrollView ?: return
-        mScrollYAtDragTouch = sv.scrollY  // 起点对齐，首帧补偿为 0，避免进入拖拽即跳变
-        val rv = mRvCheckList ?: return
+        val sv = mDetailList ?: return
+        val rv = mDetailList ?: return
         if (mDragScrollRunnable != null) return
         val density = DisplayUtil.getScreenDensity(mApp)
         val edge = (110 * density).toInt()
@@ -5785,7 +5799,12 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 dy = clampChecklistAutoScroll(dy)
                 if (dy != 0) {
                     sv.scrollBy(0, dy)
-                    // 补偿量在 onChildDraw 里按"当前 scrollY − 上次触摸时 scrollY"实时计算，这里只需触发重绘。
+                    // ItemTouchHelper 默认滚动已禁用；手指静止时没有 MOVE 事件，需在滚动后
+                    // 使用同一套子树中线与边界规则推进代理，不能只滚内容却不改变落点。
+                    val dragged = mDraggedChecklistVH?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
+                    if (dragged != RecyclerView.NO_POSITION) {
+                        moveChecklistDragProxy(dragged, dragged + if (dy > 0) 1 else -1)
+                    }
                     rv.invalidate()
                 }
                 sv.postOnAnimation(this)
@@ -5796,7 +5815,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun stopChecklistDragAutoScroll() {
-        mDragScrollRunnable?.let { mScrollView?.removeCallbacks(it) }
+        mDragScrollRunnable?.let { mDetailList?.removeCallbacks(it) }
         mDragScrollRunnable = null
         mDraggedChecklistVH = null
     }
@@ -5809,7 +5828,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
      */
     private fun clampChecklistAutoScroll(dy: Int): Int {
         if (dy == 0) return 0
-        val draggedPos = mDraggedChecklistVH?.adapterPosition ?: return dy
+        val draggedPos = mDraggedChecklistVH?.bindingAdapterPosition ?: return dy
         if (draggedPos == RecyclerView.NO_POSITION) return dy
         if (dy > 0 && !canChecklistProxyMove(draggedPos, down = true)) return 0
         if (dy < 0 && !canChecklistProxyMove(draggedPos, down = false)) return 0
@@ -5833,9 +5852,13 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             mAttachmentPlaybackController?.onItemsChanged()
         } else {
             mAudioAttachmentAdapter!!.notifyItemMoved(from, to)
-            if (mAudioAttachmentAdapter!!.getPlayingIndex() != -1) {
-                mAudioAttachmentAdapter!!.setPlayingIndex(items.indexOf(typePathName))
-            }
+            val playing = mAudioAttachmentAdapter!!.getPlayingIndex()
+            mAudioAttachmentAdapter!!.setPlayingIndex(when {
+                playing == from -> to
+                from < playing && playing <= to -> playing - 1
+                to <= playing && playing < from -> playing + 1
+                else -> playing
+            })
         }
 
         if (shouldAddToActionList) {
@@ -5852,6 +5875,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         override fun getMovementFlags(
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder
         ): Int {
+            val adapter = if (isImageAttachmentAdapter) mImageAttachmentAdapter else mAudioAttachmentAdapter
+            if (viewHolder.bindingAdapter !== adapter || (adapter?.itemCount ?: 0) <= 1) return 0
             val dragFlags = ItemTouchHelper.UP or ItemTouchHelper.DOWN or
                 ItemTouchHelper.START or ItemTouchHelper.END
             return makeMovementFlags(dragFlags, 0)
@@ -5861,8 +5886,11 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
             target: RecyclerView.ViewHolder
         ): Boolean {
-            val from = viewHolder.adapterPosition
-            val to = target.adapterPosition
+            val adapter = if (isImageAttachmentAdapter) mImageAttachmentAdapter else mAudioAttachmentAdapter
+            if (viewHolder.bindingAdapter !== adapter || target.bindingAdapter !== adapter) return false
+            val from = viewHolder.bindingAdapterPosition
+            val to = target.bindingAdapterPosition
+            if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
 
             moveAttachment(from, to, isImageAttachmentAdapter)
             return true
@@ -5881,10 +5909,6 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
     }
 
-    private class CannotScrollLinearLayoutManager(context: Context?) : LinearLayoutManager(context) {
-
-        override fun canScrollVertically(): Boolean = false
-    }
 
     companion object {
         const val TAG: String = "DetailActivity"

@@ -1,5 +1,11 @@
 # Detail Attachment Media Appearance Preferences
 
+## 2026-10-10 — 先展示弹窗，再异步填入媒体
+
+- 用户确认触摸 ripple 延迟已改善，要求继续缩短弹窗出现等待。
+- 优先读取尺寸等轻量信息，按正确宽高显示外观编辑弹窗并开始既有粒子动画，同时异步加载图片/视频；最终裁剪、宽度/比例、选帧及确认/取消行为保持一致。
+- 用户进一步要求：弹窗图片加载过程使用首页记事卡片相同的进度样式，颜色跟随记事背景并完整支持渐变，不能只取渐变的单一代表色。
+
 ## 2026-06-08 - Desired Detail media display freedom
 
 The user wants image and video attachments displayed in `DetailActivity` to gain

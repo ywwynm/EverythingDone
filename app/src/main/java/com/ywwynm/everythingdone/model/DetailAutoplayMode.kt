@@ -11,7 +11,7 @@ import com.ywwynm.everythingdone.R
  *
  * 与 Cover Autoplay（[Def.Meta.KEY_AUTOPLAY_COVER_DYNAMIC]，布尔、只管 Thing Card 面）
  * 互相独立：两者任意组合都合法。全部档位只对当前在滚动视口内的附件生效——详情附件
- * RecyclerView 一次性全量布局、不按视口回收，Glide 的屏外自动暂停在那里是失效的。
+ * 区域与清单共用有界 RecyclerView，播放调度仍按实际可见比例及所选档位控制。
  */
 object DetailAutoplayMode {
 

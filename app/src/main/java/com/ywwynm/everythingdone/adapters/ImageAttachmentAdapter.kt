@@ -201,7 +201,10 @@ open class ImageAttachmentAdapter(
      */
     open fun refreshPlayback(position: Int) {
         val rv = mRecyclerView ?: return
-        val holder = rv.findViewHolderForAdapterPosition(position) as? ImageViewHolder ?: return
+        val holder = (0 until rv.childCount).asSequence()
+            .map { rv.getChildViewHolder(rv.getChildAt(it)) }
+            .filterIsInstance<ImageViewHolder>()
+            .firstOrNull { it.bindingAdapter === this && it.bindingAdapterPosition == position } ?: return
         bindAttachmentImage(holder, position)
     }
 
@@ -213,7 +216,9 @@ open class ImageAttachmentAdapter(
         val rv = mRecyclerView ?: return
         for (index in 0 until rv.childCount) {
             val child = rv.getChildAt(index) ?: continue
-            val position = rv.getChildAdapterPosition(child)
+            val bound = rv.getChildViewHolder(child)
+            if (bound.bindingAdapter !== this) continue
+            val position = bound.bindingAdapterPosition
             if (position == RecyclerView.NO_POSITION) continue
             val holder = rv.getChildViewHolder(child) as? ImageViewHolder ?: continue
             bindAttachmentImage(holder, position)
@@ -364,6 +369,10 @@ open class ImageAttachmentAdapter(
 
         var request = Glide.with(imageView.context)
             .load(loadSource)
+        if (mTakingScreenshot) {
+            // 离屏导出不会收到窗口 pre-draw，不能让 Glide 等待 ImageView 的布局回调。
+            request = request.override(size[0], size[1])
+        }
         if (videoCandidate && derivedGifPath == null && videoFrameMs != null) {
             request = request.apply(
                 RequestOptions.frameOf(videoFrameMs * 1000L)
@@ -381,7 +390,6 @@ open class ImageAttachmentAdapter(
             } else {
                 request.dontTransform().disallowHardwareConfig().dontAnimate()
             }
-            request = request.signature(ObjectKey(loadKey))
         } else {
             request = request.centerCrop()
             if (!animatedPlayback) {
@@ -389,6 +397,8 @@ open class ImageAttachmentAdapter(
                 request = request.dontAnimate()
             }
         }
+        // 静态首帧与动态解码必须使用不同的磁盘缓存身份；仅修改 View tag 不足以隔离 Glide 缓存。
+        request = request.signature(ObjectKey(loadKey))
         if (transitionPlaceholder != null) {
             request = request.placeholder(transitionPlaceholder)
         }
@@ -412,7 +422,7 @@ open class ImageAttachmentAdapter(
                         VideoCoverPreviewManager.onPreviewLoadFailed(File(boundDerivedGifPath))
                     }
                     // 加载失败同样等不到 onAnimationEnd，放行队列。
-                    if (animatedPlayback) notifyPlaybackUnavailable(imageView, position)
+                    if (animatedPlayback) notifyPlaybackUnavailable(imageView, typePathName)
                     return false
                 }
 
@@ -455,14 +465,20 @@ open class ImageAttachmentAdapter(
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
                         imageView.imageMatrix = null
                     }
-                    applyGifPlaybackState(imageView, resource, position, animatedPlayback, loop)
+                    val current = holder.bindingAdapterPosition
+                    val playNow = animatedPlayback && imageView.isAttachedToWindow &&
+                        current != RecyclerView.NO_POSITION && mItems?.getOrNull(current) == typePathName &&
+                        mPlaybackController?.shouldPlay(current) == true
                     imageView.setTag(R.id.tag_detail_attachment_image_load_key, loadKey)
-                    if (!animatedPlayback && resource is GifDrawable) {
-                        // RequestListener 先于 ImageViewTarget.onResourceReady 执行。若返回 false，
-                        // stock target 会在这里之后再次 start()；静态代表帧必须自行接管并返回 true。
+                    if (resource is GifDrawable) {
+                        // 请求完成时可能已离屏或重排。按此刻的位置决定播放，并接管 target，
+                        // 防止 Glide 在本回调之后无条件 start() 使离屏资源重新播放。
                         imageView.setImageDrawable(resource)
+                        applyGifPlaybackState(imageView, resource, current, playNow,
+                            mPlaybackController?.shouldLoop(current) == true)
                         return true
                     }
+                    if (playNow) notifyPlaybackUnavailable(imageView, typePathName)
                     return false
                 }
             })
@@ -547,7 +563,7 @@ open class ImageAttachmentAdapter(
         if (gif == null) {
             // 说好要播、拿回来的却不是动图（解码退化成单帧、或 isPlayableNow 与实际不符）。
             // 此时永远等不到 onAnimationEnd，必须主动放行，否则逐一播放的队列会卡在这一项。
-            if (animatedPlayback) notifyPlaybackUnavailable(imageView, position)
+            if (animatedPlayback) notifyPlaybackUnavailable(imageView, mItems?.getOrNull(position))
             return
         }
         gif.clearAnimationCallbacks()
@@ -564,8 +580,9 @@ open class ImageAttachmentAdapter(
         val boundTypePathName = mItems?.getOrNull(position)
         gif.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
             override fun onAnimationEnd(drawable: Drawable?) {
-                if (mItems?.getOrNull(position) != boundTypePathName) return
-                mPlaybackController?.onPlaybackFinished(position)
+                val current = currentPosition(imageView, boundTypePathName)
+                if (current == RecyclerView.NO_POSITION || imageView.drawable !== drawable) return
+                mPlaybackController?.onPlaybackFinished(current)
             }
         })
         // 内存缓存里取回且已停止的 GifDrawable 要从首帧开始；但附件重排会重算播放决策，
@@ -581,11 +598,18 @@ open class ImageAttachmentAdapter(
      * Glide 的回调里，同步回调会触发对同一个 ImageView 的重新绑定，而外层回调返回后
      * Glide 还要把**旧**资源塞进这个 View，把刚绑好的画面顶掉。
      */
-    private fun notifyPlaybackUnavailable(imageView: ImageView, position: Int) {
+    private fun currentPosition(imageView: ImageView, source: String?): Int {
+        val holder = mRecyclerView?.findContainingViewHolder(imageView) ?: return RecyclerView.NO_POSITION
+        val position = holder.bindingAdapterPosition
+        return if (holder.bindingAdapter === this && position != RecyclerView.NO_POSITION &&
+            mItems?.getOrNull(position) == source) position else RecyclerView.NO_POSITION
+    }
+
+    private fun notifyPlaybackUnavailable(imageView: ImageView, source: String?) {
         val controller = mPlaybackController ?: return
-        val boundTypePathName = mItems?.getOrNull(position)
         imageView.post {
-            if (mItems?.getOrNull(position) == boundTypePathName) {
+            val position = currentPosition(imageView, source)
+            if (position != RecyclerView.NO_POSITION) {
                 controller.onPlaybackFinished(position)
             }
         }
@@ -792,6 +816,18 @@ open class ImageAttachmentAdapter(
 
     override fun getItemCount(): Int = mItems!!.size
 
+    override fun onViewDetachedFromWindow(holder: ImageViewHolder) {
+        super.onViewDetachedFromWindow(holder)
+        // RecyclerView 的缓存项可能暂不回收，离开窗口时就停止解码。
+        holder.ivImage?.let { stopExistingGif(it) }
+    }
+
+    override fun onViewAttachedToWindow(holder: ImageViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        val position = holder.bindingAdapterPosition
+        if (position != RecyclerView.NO_POSITION) bindAttachmentImage(holder, position)
+    }
+
     override fun onViewRecycled(holder: ImageViewHolder) {
         super.onViewRecycled(holder)
         holder.ivImage?.let { imageView ->
@@ -839,23 +875,25 @@ open class ImageAttachmentAdapter(
             }
 
             fl!!.setOnClickListener { v ->
-                if (mClickCallback != null) {
-                    mClickCallback!!.onClick(v, adapterPosition)
+                if (mClickCallback != null && bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                    mClickCallback!!.onClick(v, bindingAdapterPosition)
                 }
             }
+            // 长按播放由 RecyclerView 的手势监听器处理；松手不应再触发点击进入查看器。
+            fl.setOnLongClickListener { true }
 
             if (mEditable) {
                 ivDelete!!.visibility = View.VISIBLE
                 ivDelete.setOnClickListener {
-                    if (mRemoveCallback != null) {
-                        mRemoveCallback!!.onRemove(adapterPosition)
+                    if (mRemoveCallback != null && bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                        mRemoveCallback!!.onRemove(bindingAdapterPosition)
                     }
                 }
                 ivEditAppearance!!.visibility =
                     if (mAppearanceCallback != null) View.VISIBLE else View.GONE
                 ivEditAppearance.setOnClickListener {
-                    if (mAppearanceCallback != null) {
-                        mAppearanceCallback!!.onEditAppearance(adapterPosition)
+                    if (mAppearanceCallback != null && bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                        mAppearanceCallback!!.onEditAppearance(bindingAdapterPosition)
                     }
                 }
             } else {

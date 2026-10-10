@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 仅供长图离屏导出，不参与详情滚动布局。 -->
+    <androidx.core.widget.NestedScrollView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/sv_detail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        android:scrollbars="vertical"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbarSize="4dp"
+        android:scrollbarThumbVertical="@color/control_highlight_light">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
+
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
+                android:id="@+id/rv_image_attachment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:overScrollMode="never"
+                android:visibility="gone"/>
+
+            <EditText
+                android:id="@+id/et_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:hint="@string/hint_title"
+                android:imeOptions="actionNext"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingTop="12dp"
+                android:drawablePadding="16dp"
+                android:textColor="@color/white_86p"
+                android:textColorHint="@color/white_86p"
+                android:textCursorDrawable="@drawable/cursor_et_title"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:theme="@style/EverythingDoneTheme.Detail.EditText"/>
+
+            <EditText
+                android:id="@+id/et_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:autoLink="all"
+                android:background="@null"
+                android:lineSpacingExtra="4dp"
+                android:hint="@string/hint_content"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_76p"
+                android:textColorHint="@color/white_76p"
+                android:textSize="20dp"
+                android:theme="@style/EverythingDoneTheme.Detail.EditText"
+                tools:ignore="SpUsage"/>
+
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
+                android:id="@+id/rv_check_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:overScrollMode="never"
+                android:isScrollContainer="false"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/ll_move_checklist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <View
+                    android:layout_width="@dimen/move_checklist_dashed_line_length"
+                    android:layout_height="2dp"
+                    android:layout_marginLeft="18dp"
+                    android:layout_marginRight="18dp"
+                    android:background="@drawable/dashed_line_check_list_separator"
+                    android:layerType="software"/>
+
+                <TextView
+                    android:id="@+id/tv_move_checklist_as_bt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="8dp"
+                    android:paddingStart="4dp"
+                    android:paddingLeft="4dp"
+                    android:paddingEnd="10dp"
+                    android:paddingRight="10dp"
+                    android:gravity="center_vertical"
+                    android:drawableStart="@drawable/act_move_checklist"
+                    android:drawableLeft="@drawable/act_move_checklist"
+                    android:drawablePadding="14dp"
+                    android:text="@string/act_move_check_list"
+                    android:textSize="16sp"
+                    android:textColor="@color/white_66p"
+                    android:background="@drawable/selectable_item_background_light"/>
+
+            </LinearLayout>
+
+            <com.ywwynm.everythingdone.views.StablerRecyclerView
+                android:id="@+id/rv_audio_attachment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:overScrollMode="never"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/ll_type_info_screenshot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:paddingStart="18dp"
+                android:paddingLeft="18dp"
+                android:paddingEnd="20dp"
+                android:paddingRight="20dp"
+                android:visibility="gone"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/iv_icon_type_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:maxWidth="20dp"
+                    android:maxHeight="20dp"
+                    android:src="@drawable/ic_reminder_white_large"
+                    tools:ignore="ContentDescription"/>
+
+                <TextView
+                    android:id="@+id/tv_type_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginLeft="6dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/white_66p"/>
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_update_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"/>
+
+            <TextView
+                android:id="@+id/tv_finish_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/tv_thing_folder_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:textColor="@color/white_66p"
+                android:textSize="14sp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>

@@ -1,6 +1,6 @@
 # Detail Attachment Media Appearance
 
-Status: planning and design grilling.
+状态：功能已实现。2026-10-10 先修复主线程解码阻塞，随后改为先根据尺寸展示弹窗，再异步填入媒体，图片加载环复用首页样式并支持记事渐变色；已随 debug `202610100704` 发布，验证与限制见[分阶段展示记录](../detail-checklist-performance/staged-preview-2026-10-10.md)。
 
 ## Scope
 

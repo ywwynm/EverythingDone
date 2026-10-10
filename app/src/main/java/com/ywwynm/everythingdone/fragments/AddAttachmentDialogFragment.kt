@@ -121,7 +121,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
                 dismiss()
                 return@setOnClickListener
             }
-            startTakePhoto()
+            requestCameraPermission(Def.Communication.REQUEST_PERMISSION_TAKE_PHOTO) { startTakePhoto() }
         }
 
         mTvShootVideoAsBt!!.setOnClickListener {
@@ -131,7 +131,7 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
                 dismiss()
                 return@setOnClickListener
             }
-            startShootVideo()
+            requestCameraPermission(Def.Communication.REQUEST_PERMISSION_SHOOT_VIDEO) { startShootVideo() }
         }
 
         mTvRecordAudioAsBt!!.setOnClickListener {
@@ -167,6 +167,14 @@ open class AddAttachmentDialogFragment : BaseDialogFragment() {
         mTvChooseMediaFilesAsBt!!.setOnClickListener {
             startChooseMediaFile()
         }
+    }
+
+    private fun requestCameraPermission(requestCode: Int, action: () -> Unit) {
+        val host = mActivity ?: return
+        // 应用同时用相机取色而声明了 CAMERA；系统拍摄 Intent 在该权限未授权时也会被拒绝。
+        host.doWithPermissionChecked(object : SimplePermissionCallback(host) {
+            override fun onGranted() = action()
+        }, requestCode, Manifest.permission.CAMERA)
     }
 
     open fun startTakePhoto() {

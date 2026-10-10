@@ -2,6 +2,7 @@
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
+    <string name="error_generating_screenshot">Could not generate the screenshot. Please try again.</string>
 
     <string name="base_signal" translatable="false">`启q琼</string>
     <string name="qq_my_love" translatable="false">琼，我的女神</string>
@@ -2104,4 +2105,6 @@
     <string name="tap_simulated_thing_content">Simulated data for previewing the receive animation. Feel free to delete it.</string>
     <string name="settings_tap_transfer_simulate">Simulate Tap Transfer (debug build)</string>
     <string name="tap_hce_service_description">EverythingDone Tap Transfer</string>
+    <string name="detail_media_preview_loading">Loading preview</string>
+    <string name="detail_media_preview_load_failed">Could not load the media preview</string>
 </resources>

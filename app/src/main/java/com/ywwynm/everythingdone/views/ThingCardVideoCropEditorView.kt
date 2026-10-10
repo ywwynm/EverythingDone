@@ -260,6 +260,12 @@ class ThingCardVideoCropEditorView @JvmOverloads constructor(
         loadingView.setAccentBackground(background)
     }
 
+    /** 后台首帧到达时只补充后备图像，不重置已经准备好的播放器及其选帧位置。 */
+    fun setFallbackBitmap(bitmap: Bitmap) {
+        fallbackView.setFallbackBitmap(bitmap)
+        invalidateCrop()
+    }
+
     override fun getCropCenterX(): Double = centerX.toDouble()
 
     override fun getCropCenterY(): Double = centerY.toDouble()

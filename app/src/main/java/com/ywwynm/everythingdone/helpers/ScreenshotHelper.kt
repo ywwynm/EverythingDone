@@ -109,6 +109,43 @@ object ScreenshotHelper {
         ScreenshotTask(callback).execute(view, color)
     }
 
+    /** 详情离屏渲染在主线程完成，文件编码在工作线程完成。 */
+    fun saveScreenshot(context: Context, bitmap: Bitmap?, callback: ScreenshotCallback) {
+        if (bitmap == null) {
+            callback.onTaskDone(null)
+            return
+        }
+        Thread {
+            var target: File? = null
+            val file = try {
+                val root = context.getExternalFilesDir(null) ?: throw java.io.IOException("外部文件目录不可用")
+                val directory = File(root, "temp")
+                if (!directory.isDirectory && !directory.mkdirs()) throw java.io.IOException("无法创建长图目录")
+                val output = File.createTempFile("screenshot_", ".jpeg", directory)
+                target = output
+                output.outputStream().use { stream ->
+                    if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)) throw java.io.IOException("长图 JPEG 编码失败")
+                }
+                output
+            } catch (error: Exception) {
+                android.util.Log.e(TAG, "长图保存失败", error)
+                target?.delete()
+                null
+            } catch (error: OutOfMemoryError) {
+                android.util.Log.e(TAG, "长图编码内存不足", error)
+                target?.delete()
+                null
+            } finally {
+                bitmap.recycle()
+            }
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                if (sScreenshotFiles == null) sScreenshotFiles = ArrayList()
+                if (file != null) sScreenshotFiles!!.add(file)
+                callback.onTaskDone(file)
+            }
+        }.start()
+    }
+
     @JvmStatic
     fun clearGeneratedScreenshots() {
         if (sScreenshotFiles != null) {

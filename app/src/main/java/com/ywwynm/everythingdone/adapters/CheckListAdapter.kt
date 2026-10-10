@@ -8,17 +8,21 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.RippleDrawable
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
 import android.text.util.Linkify
+import android.view.inputmethod.BaseInputConnection
+import android.view.inputmethod.EditorInfo
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -32,6 +36,7 @@ import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.ChecklistCompletion
+import com.ywwynm.everythingdone.helpers.ChecklistEditorItems
 import com.ywwynm.everythingdone.helpers.LineSpacingHelper
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DeviceUtil
@@ -96,7 +101,39 @@ open class CheckListAdapter(
 
     private var mType: Int = type
 
-    private var mItems: MutableList<String?>? = items
+    private var mItems: MutableList<String?>? = editableItems(items)
+    private var mFocusedEntry: ChecklistEditorItems.Entry? = null
+    private var mEditorRecyclerView: RecyclerView? = null
+    private val mEditorFocusListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, focus ->
+        if (focus is EditText && mEditorRecyclerView?.findContainingViewHolder(focus)?.bindingAdapter !== this) {
+            mFocusedEntry?.finishComposition()
+            mFocusedEntry = null
+        }
+    }
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        if (mType == EDITTEXT_EDITABLE) {
+            mEditorRecyclerView = recyclerView
+            recyclerView.viewTreeObserver.addOnGlobalFocusChangeListener(mEditorFocusListener)
+        }
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        recyclerView.viewTreeObserver.takeIf { it.isAlive }?.removeOnGlobalFocusChangeListener(mEditorFocusListener)
+        mEditorRecyclerView = null
+        super.onDetachedFromRecyclerView(recyclerView)
+    }
+
+    private fun editableItems(items: MutableList<String?>?): MutableList<String?>? =
+        if (mType == EDITTEXT_EDITABLE && items != null) ChecklistEditorItems(items) else items
+
+    /** 拖拽使用同一行身份移动，文字重复也不会交换光标状态。 */
+    fun moveItem(from: Int, to: Int) {
+        val items = mItems ?: return
+        if (items is ChecklistEditorItems) items.move(from, to) else items.add(to, items.removeAt(from))
+        notifyItemMoved(from, to)
+    }
 
     private var mShouldAutoLink: Boolean = false
 
@@ -158,7 +195,8 @@ open class CheckListAdapter(
     }
 
     open fun setItems(items: MutableList<String?>?) {
-        mItems = items
+        mFocusedEntry = null
+        mItems = editableItems(items)
         removeItemsForTextView()
         notifyDataSetChanged()
     }
@@ -197,12 +235,13 @@ open class CheckListAdapter(
      */
     private fun tintRowIcon(iv: ImageView?) {
         if (iv == null) return
-        if (dark()) {
-            ImageViewCompat.setImageTintList(
-                iv, ColorStateList.valueOf(Color.BLACK)
-            )
-        } else {
-            ImageViewCompat.setImageTintList(iv, null)
+        setIconTint(iv, if (dark()) Color.BLACK else null)
+    }
+
+    private fun setIconTint(iv: ImageView, color: Int?) {
+        val current = ImageViewCompat.getImageTintList(iv)
+        if (current?.defaultColor != color) {
+            ImageViewCompat.setImageTintList(iv, color?.let(ColorStateList::valueOf))
         }
     }
 
@@ -217,13 +256,19 @@ open class CheckListAdapter(
         iv.scaleType = ImageView.ScaleType.FIT_CENTER
     }
 
-    private fun installIconRipple(iv: ImageView?) {
+    private fun updateIconRipples(holder: EditTextHolder) {
         val rippleColor = if (mThingColor == 0) {
             BackgroundUtil.RIPPLE_LIGHT
         } else {
             BackgroundUtil.thingRippleColor(mThingColor)
         }
-        BackgroundUtil.installCircleRipple(iv, rippleColor)
+        if (holder.rippleColor == rippleColor) return
+        for (iv in arrayOf(holder.ivState, holder.ivIndent, holder.ivOutdent, holder.ivExpandShrink)) {
+            val ripple = iv?.foreground as? RippleDrawable
+            if (ripple == null) BackgroundUtil.installCircleRipple(iv, rippleColor)
+            else ripple.setColor(ColorStateList.valueOf(rippleColor))
+        }
+        holder.rippleColor = rippleColor
     }
 
     private fun removeItemsForTextView() {
@@ -314,41 +359,62 @@ open class CheckListAdapter(
             }
         } else {
             val holder = viewHolder as EditTextHolder
-            holder.flSeparator!!.visibility = View.GONE
-            holder.ivState!!.visibility = View.VISIBLE
-            holder.ivState.isClickable = true
-            holder.ivIndent!!.visibility = View.INVISIBLE
-            holder.ivIndent.isClickable = false
-            holder.ivOutdent!!.visibility = View.INVISIBLE
-            holder.ivOutdent.isClickable = false
-            holder.ivExpandShrink!!.visibility = View.GONE
+            val entry = (mItems as? ChecklistEditorItems)?.entry(position)
+            holder.saveEditorState()
+            if (holder.boundEntry !== entry) {
+                holder.detaching = true
+                holder.et!!.clearFocus()
+                holder.detaching = false
+                holder.boundEntry = entry
+            }
+            val stateContent: String = mItems!![position]!!
+            val state = stateContent[0]
+            val realItem = state == '0' || state == '1'
+            holder.flSeparator!!.visibility = if (state == '3') View.VISIBLE else View.GONE
+            holder.ivState!!.visibility = if (state == '3') View.GONE else View.VISIBLE
+            holder.ivState.isClickable = state != '3' && state != '4'
+            holder.ivExpandShrink!!.visibility = if (state == '4') View.VISIBLE else View.GONE
+            if (!realItem) {
+                holder.hideIndentOutdent()
+                holder.resetIndent()
+            }
 
-            holder.et!!.isEnabled = true
-            holder.et.visibility = View.VISIBLE
-            holder.et.paint.textSkewX = 0f
+            holder.et!!.isEnabled = state != '4'
+            holder.et.visibility = if (state == '3') View.GONE else View.VISIBLE
+            holder.et.paint.textSkewX = if (state == '4') -0.20f else 0f
 
             val flags = holder.et.paintFlags
-            holder.et.paintFlags = flags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
-
-            holder.et.textSize = 20f
-            holder.et.hint = ""
-            holder.resetIndent()
+            val finalFlags = if (state == '1') flags or Paint.STRIKE_THRU_TEXT_FLAG
+                else flags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+            if (flags != finalFlags) holder.et.paintFlags = finalFlags
+            if (!realItem) {
+                holder.et.textSize = if (state == '4') 16f else 20f
+                holder.et.setTextColor(if (state == '4') textColorFinished() else textColorSecondary())
+            }
+            if (state != '2' && !holder.et.hint.isNullOrEmpty()) holder.et.hint = ""
 
             val params = holder.et.layoutParams as LinearLayout.LayoutParams
-            params.width = LinearLayout.LayoutParams.MATCH_PARENT
-            params.topMargin = 0
+            val finalWidth = if (state == '4') LinearLayout.LayoutParams.WRAP_CONTENT
+                else LinearLayout.LayoutParams.MATCH_PARENT
+            val finalTop = if (realItem) params.topMargin else when (state) {
+                '2' -> (density * 4).toInt()
+                '4' -> (density * 6).toInt()
+                else -> 0
+            }
+            if (params.width != finalWidth || params.topMargin != finalTop) {
+                params.width = finalWidth
+                params.topMargin = finalTop
+                holder.et.layoutParams = params
+            }
 
             mWatchEditTextChange = false
             tintRowIcon(holder.ivState)
-            tintRowIcon(holder.ivIndent)
-            tintRowIcon(holder.ivOutdent)
+            if (!realItem) {
+                tintRowIcon(holder.ivIndent)
+                tintRowIcon(holder.ivOutdent)
+            }
             tintRowIcon(holder.ivExpandShrink)
-            installIconRipple(holder.ivState)
-            installIconRipple(holder.ivIndent)
-            installIconRipple(holder.ivOutdent)
-            installIconRipple(holder.ivExpandShrink)
-            val stateContent: String = mItems!![position]!!
-            val state = stateContent[0]
+            updateIconRipples(holder)
             if (state == '0') {
                 if (!mDragging) {
                     holder.ivState.setImageResource(R.drawable.checklist_unchecked_detail)
@@ -359,7 +425,9 @@ open class CheckListAdapter(
                     holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et.setText(CheckListHelper.textOf(stateContent))
+                if (holder.et.text.toString() != CheckListHelper.textOf(stateContent)) {
+                    holder.et.setText(CheckListHelper.textOf(stateContent))
+                }
                 holder.applyLevelStyle(stateContent)
             } else if (state == '1') {
                 if (!mDragging) {
@@ -371,21 +439,21 @@ open class CheckListAdapter(
                     holder.ivState.contentDescription =
                         mContext!!.getString(R.string.cd_checklist_move)
                 }
-                holder.et.paintFlags = flags or Paint.STRIKE_THRU_TEXT_FLAG
-                holder.et.setText(CheckListHelper.textOf(stateContent))
+                if (holder.et.text.toString() != CheckListHelper.textOf(stateContent)) {
+                    holder.et.setText(CheckListHelper.textOf(stateContent))
+                }
                 holder.applyLevelStyle(stateContent)
             } else if (state == '2') {
-                params.topMargin = (density * 4).toInt()
                 holder.ivState.setImageResource(R.drawable.checklist_add)
                 val newItem = mContext!!.getString(R.string.hint_new_item)
                 holder.ivState.contentDescription = newItem
                 holder.et.hint = newItem
                 holder.et.setHintTextColor(textColorFinished())
-                holder.et.setText("")
+                if (holder.et.length() != 0) holder.et.setText("")
             } else if (state == '3') {
                 holder.ivState.visibility = View.GONE
-                holder.ivIndent.visibility = View.GONE
-                holder.ivOutdent.visibility = View.GONE
+                holder.ivIndent!!.visibility = View.GONE
+                holder.ivOutdent!!.visibility = View.GONE
                 holder.et.visibility = View.GONE
                 holder.flSeparator.visibility = View.VISIBLE
                 val sep: View? = holder.flSeparator.getChildAt(0)
@@ -397,7 +465,6 @@ open class CheckListAdapter(
                     }
                 }
             } else if (state == '4') {
-                params.topMargin = (density * 6).toInt()
                 holder.ivState.setImageResource(R.drawable.checklist_finished)
                 holder.ivState.isClickable = false
 
@@ -412,7 +479,6 @@ open class CheckListAdapter(
                 }
                 val finishedItemsCountStr = getFinishedItemsCountStr(finishedCount) + " "
                 holder.ivState.contentDescription = finishedItemsCountStr
-                params.width = LinearLayout.LayoutParams.WRAP_CONTENT
 
                 holder.ivExpandShrink.rotation = 0f
                 if (mExpanded) {
@@ -426,14 +492,58 @@ open class CheckListAdapter(
                 }
                 holder.ivExpandShrink.visibility = View.VISIBLE
 
-                holder.et.isEnabled = false
                 holder.et.setText(finishedItemsCountStr)
-                holder.et.setTextColor(textColorFinished())
-                holder.et.textSize = 16f
-                holder.et.paint.textSkewX = -0.20f
+            }
+            entry?.let {
+                if (it.selectionStart >= 0 && it.selectionEnd >= 0) {
+                    holder.et.setSelection(it.selectionStart.coerceAtMost(holder.et.length()),
+                        it.selectionEnd.coerceAtMost(holder.et.length()))
+                }
             }
             mWatchEditTextChange = true
         }
+    }
+
+    override fun onViewDetachedFromWindow(holder: BaseViewHolder) {
+        (holder as? EditTextHolder)?.let {
+            it.saveEditorState()
+            it.detaching = true
+        }
+        super.onViewDetachedFromWindow(holder)
+    }
+
+    override fun onViewAttachedToWindow(holder: BaseViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        (holder as? EditTextHolder)?.let {
+            it.detaching = false
+            if (it.boundEntry != null && it.boundEntry === mFocusedEntry) {
+                val focus = it.itemView.rootView.findFocus()
+                // 用户已经进入另一个编辑框时，旧行重新出现不能抢回焦点。
+                if (focus !is EditText || focus === it.et) {
+                    val entry = it.boundEntry!!
+                    it.et!!.requestFocus()
+                    if (entry.selectionStart >= 0 && entry.selectionEnd >= 0) {
+                        it.et.setSelection(entry.selectionStart.coerceAtMost(it.et.length()),
+                            entry.selectionEnd.coerceAtMost(it.et.length()))
+                    }
+                    if (entry.composingStart >= 0 && entry.composingEnd <= it.et.length()) {
+                        // Android 的组合标记是 NoCopySpan，复制 Editable 不会保留，必须经输入连接恢复范围。
+                        it.et.onCreateInputConnection(EditorInfo())?.setComposingRegion(
+                            entry.composingStart, entry.composingEnd)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onViewRecycled(holder: BaseViewHolder) {
+        (holder as? EditTextHolder)?.let {
+            it.saveEditorState()
+            it.detaching = true
+            it.et!!.clearFocus()
+            it.boundEntry = null
+        }
+        super.onViewRecycled(holder)
     }
 
     /**
@@ -500,7 +610,7 @@ open class CheckListAdapter(
             holder.llClickable!!.isClickable = true
             holder.llClickable.setBackgroundResource(R.drawable.selectable_item_background_light)
             holder.llClickable.setOnClickListener {
-                mTvItemClickCallback!!.onItemClick(holder.adapterPosition)
+                mTvItemClickCallback!!.onItemClick(holder.bindingAdapterPosition)
             }
             holder.spaceClickable!!.isClickable = true
             holder.spaceClickable.setOnClickListener { v ->
@@ -555,6 +665,20 @@ open class CheckListAdapter(
 
     open inner class EditTextHolder internal constructor(itemView: View?) : BaseViewHolder(itemView) {
 
+        internal var boundEntry: ChecklistEditorItems.Entry? = null
+        internal var detaching = false
+        internal var rippleColor: Int? = null
+
+        internal fun saveEditorState() {
+            if (detaching) return
+            val entry = boundEntry ?: return
+            val editor = et ?: return
+            entry.selectionStart = editor.selectionStart
+            entry.selectionEnd = editor.selectionEnd
+            entry.composingStart = BaseInputConnection.getComposingSpanStart(editor.text)
+            entry.composingEnd = BaseInputConnection.getComposingSpanEnd(editor.text)
+        }
+
         val flSeparator: FrameLayout? = f(R.id.fl_check_list_separator)
         val ivState: ImageView?       = f(R.id.iv_check_list_state)
         @JvmField val et: EditText?   = f(R.id.et_check_list)
@@ -589,10 +713,19 @@ open class CheckListAdapter(
 
         /** 把状态图标的左缩进清零（控制标记行用）。 */
         fun resetIndent() {
-            val lp = ivState!!.layoutParams as RelativeLayout.LayoutParams
-            lp.marginStart = 0
-            lp.leftMargin = 0
-            ivState.layoutParams = lp
+            updateIconPosition(ivState!!, 0, 0)
+            updateIconPosition(ivIndent!!, 0, 0)
+            updateIconPosition(ivOutdent!!, 0, 0)
+        }
+
+        private fun updateIconPosition(view: ImageView, start: Int, top: Int) {
+            val lp = view.layoutParams as RelativeLayout.LayoutParams
+            if (lp.marginStart != start || lp.leftMargin != start || lp.topMargin != top) {
+                lp.marginStart = start
+                lp.leftMargin = start
+                lp.topMargin = top
+                view.layoutParams = lp
+            }
         }
 
         /** 对一个真实项应用按级缩进、字号、颜色、与首行垂直居中。 */
@@ -603,7 +736,8 @@ open class CheckListAdapter(
             // 字号 / 颜色（按级）。先设字号，lineHeight 才反映新字号。
             et!!.textSize = 20f * CheckListHelper.sizeRatioForLevel(level)
             val base = if (finished) textColorFinished() else textColorSecondary()
-            et.setTextColor(CheckListHelper.colorForLevel(base, level, finished))
+            val textColor = CheckListHelper.colorForLevel(base, level, finished)
+            if (et.currentTextColor != textColor) et.setTextColor(textColor)
 
             val stateMargin = Math.round(detailIndentDp(level) * density)
             val stateH = ivState!!.layoutParams.height.takeIf { it > 0 } ?: (36 * density).toInt()
@@ -615,15 +749,13 @@ open class CheckListAdapter(
             val iconNudgeDp = if (level >= 3) -0.5f else 0f
             val stateTop = (stateTopRaw + Math.round(iconNudgeDp * density)).coerceAtLeast(0)
 
-            val sLp = ivState.layoutParams as RelativeLayout.LayoutParams
-            sLp.marginStart = stateMargin
-            sLp.leftMargin = stateMargin
-            sLp.topMargin = stateTop
-            ivState.layoutParams = sLp
+            updateIconPosition(ivState, stateMargin, stateTop)
 
             val etLp = et.layoutParams as LinearLayout.LayoutParams
-            etLp.topMargin = textTop
-            et.layoutParams = etLp
+            if (etLp.topMargin != textTop) {
+                etLp.topMargin = textTop
+                et.layoutParams = etLp
+            }
 
             // 缩进 / 反缩进箭头：跟随该级"清单项"颜色（已完成用已完成色，含分级透明度），与状态图标垂直居中。
             val arrowTint = CheckListHelper.colorForLevel(
@@ -631,28 +763,23 @@ open class CheckListAdapter(
             )
             val stateCenter = stateTop + stateH / 2
 
-            val outLp = ivOutdent!!.layoutParams as RelativeLayout.LayoutParams
-            val outW = ivOutdent.layoutParams.width.takeIf { it > 0 } ?: (28 * density).toInt()
+            val outW = ivOutdent!!.layoutParams.width.takeIf { it > 0 } ?: (28 * density).toInt()
             val outH = ivOutdent.layoutParams.height.takeIf { it > 0 } ?: (28 * density).toInt()
             val stateW = ivState.layoutParams.width.takeIf { it > 0 } ?: (36 * density).toInt()
             // 反缩进箭头与"上一级"状态图标列在 x 方向对齐：把箭头控件居中到父级状态图标控件列。
             val parentStateMargin = Math.round(detailIndentDp(level - 1) * density)
             val outMargin = (parentStateMargin + (stateW - outW) / 2).coerceAtLeast(0)
-            outLp.marginStart = outMargin
-            outLp.leftMargin = outMargin
-            outLp.topMargin = (stateCenter - outH / 2).coerceAtLeast(0)
-            ivOutdent.layoutParams = outLp
-            ImageViewCompat.setImageTintList(
-                ivOutdent, ColorStateList.valueOf(arrowTint)
-            )
+            updateIconPosition(ivOutdent, outMargin, (stateCenter - outH / 2).coerceAtLeast(0))
+            setIconTint(ivOutdent, arrowTint)
 
             val inLp = ivIndent!!.layoutParams as RelativeLayout.LayoutParams
             val inH = ivIndent.layoutParams.height.takeIf { it > 0 } ?: (28 * density).toInt()
-            inLp.topMargin = (stateCenter - inH / 2).coerceAtLeast(0)
-            ivIndent.layoutParams = inLp
-            ImageViewCompat.setImageTintList(
-                ivIndent, ColorStateList.valueOf(arrowTint)
-            )
+            val inTop = (stateCenter - inH / 2).coerceAtLeast(0)
+            if (inLp.topMargin != inTop) {
+                inLp.topMargin = inTop
+                ivIndent.layoutParams = inLp
+            }
+            setIconTint(ivIndent, arrowTint)
 
             // 聚焦中的行（含缩进后保持焦点、或重新绑定时）刷新缩进/反缩进按钮的可见性。
             if (et.isFocused) refreshIndentOutdent() else hideIndentOutdent()
@@ -667,7 +794,7 @@ open class CheckListAdapter(
 
         /** 聚焦时按层级/边界刷新缩进、反缩进按钮的可见性。 */
         fun refreshIndentOutdent() {
-            val pos = adapterPosition
+            val pos = bindingAdapterPosition
             if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size
                 || !CheckListHelper.isItem(mItems!![pos]) || mDragging
             ) {
@@ -690,7 +817,7 @@ open class CheckListAdapter(
         }
 
         private fun changeLevel(delta: Int) {
-            val pos = adapterPosition
+            val pos = bindingAdapterPosition
             if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return
             val item = mItems!![pos] ?: return
             if (!CheckListHelper.isItem(item)) return
@@ -724,7 +851,7 @@ open class CheckListAdapter(
 
         private fun setupIvListeners() {
             ivState!!.setOnTouchListener { _, event ->
-                val pos = adapterPosition
+                val pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@setOnTouchListener false
                 val item: String = mItems!![pos]!!
                 if (event.action == MotionEvent.ACTION_DOWN && mDragging
@@ -739,7 +866,7 @@ open class CheckListAdapter(
             }
 
             ivState.setOnClickListener {
-                var pos = adapterPosition
+                var pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@setOnClickListener
 
                 val item: String = mItems!![pos]!!
@@ -815,6 +942,10 @@ open class CheckListAdapter(
             et!!.addTextChangedListener(object : TextWatcher {
                 private var mBefore: String? = null
                 override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+                    if (!mWatchEditTextChange || bindingAdapterPosition == RecyclerView.NO_POSITION) {
+                        mBefore = null
+                        return
+                    }
                     mBefore = CheckListHelper.toCheckListStr(mItems)
                 }
 
@@ -823,13 +954,13 @@ open class CheckListAdapter(
 
                 override fun afterTextChanged(s: Editable) {
                     if (!mWatchEditTextChange) return
-                    val pos = adapterPosition
+                    val pos = bindingAdapterPosition
                     if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return
                     val item = mItems!![pos] ?: return
                     if (CheckListHelper.isItem(item)) {
                         mItems!![pos] = CheckListHelper.withText(item, s.toString())
                     }
-                    if (mActionCallback != null) {
+                    if (mActionCallback != null && mBefore != null) {
                         mActionCallback!!.onAction(
                             mBefore, CheckListHelper.toCheckListStr(mItems)
                         )
@@ -845,7 +976,9 @@ open class CheckListAdapter(
 
             et.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    val pos = adapterPosition
+                    mFocusedEntry?.takeIf { it !== boundEntry }?.finishComposition()
+                    mFocusedEntry = boundEntry
+                    val pos = bindingAdapterPosition
                     if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size && mItems!![pos]!![0] == '2') {
                         insertItem(CheckListHelper.toCheckListStr(mItems), v, pos, "")
                     } else if (pos != RecyclerView.NO_POSITION && pos < mItems!!.size) {
@@ -854,13 +987,17 @@ open class CheckListAdapter(
                         }
                     }
                 } else {
+                    saveEditorState()
+                    if (!detaching && et.isAttachedToWindow && mFocusedEntry === boundEntry) {
+                        mFocusedEntry = null
+                    }
                     hideIndentOutdent()
                 }
             }
 
             et.setOnKeyListener listener@ { v, keyCode, event ->
                 val action = event.action
-                val pos = adapterPosition
+                val pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size) return@listener false
                 if (action == KeyEvent.ACTION_DOWN) {
                     if (keyCode == KeyEvent.KEYCODE_ENTER) {

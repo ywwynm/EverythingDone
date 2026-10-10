@@ -12,10 +12,29 @@
     <instrumentation android:name=".interaction.UiInteractionInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="界面交互互斥回归" />
 
+    <instrumentation android:name=".detail.DetailLayoutRegressionProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="详情布局迁移回归" />
+    <instrumentation android:name=".detail.DetailPerformanceProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="指定长清单性能对照" />
+    <instrumentation android:name=".detail.DetailAppearanceLatencyProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="指定附件外观入口延迟诊断" />
+    <instrumentation android:name=".detail.DetailRecreationProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="详情重建状态差分" />
+
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".detail.DetailProcessProbeActivity" android:exported="true"
+            android:taskAffinity="com.ywwynm.everythingdone.detailregression"
+            android:theme="@style/EverythingDoneTheme.TotallyTransparent" />
+        <provider android:name=".detail.DetailProcessObserver" android:exported="false"
+            android:authorities="${applicationId}.detail-process-observer" />
+
+        <activity android:name=".detail.DetailRegressionCoverActivity"
+            android:exported="false" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Settings" />
 
         <activity android:name=".interaction.InteractionProbeActivity"
             android:exported="false" android:excludeFromRecents="true"

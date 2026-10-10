@@ -64,8 +64,10 @@ object UriPathConverter {
                 }
             } else if (isDownloadsDocument(uri)) {
                 val id: String = DocumentsContract.getDocumentId(uri)
+                // 下载提供方也会返回 msf:、raw: 等非数字标识；交给调用方通过授权 URI 读取。
+                val downloadId = id.toLongOrNull() ?: return null
                 val contentUri: Uri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), java.lang.Long.valueOf(id))
+                        Uri.parse("content://downloads/public_downloads"), downloadId)
 
                 return getDataColumn(context, contentUri, null, null)
             } else if (isMediaDocument(uri)) {

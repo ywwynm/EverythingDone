@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.helpers.DetailCropPreviewLoader
 
 open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
 
@@ -32,6 +33,25 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
     )
 
     private var mContentCleanup: (() -> Unit)? = null
+    /** 常规点击路径在后台准备；重建恢复仍可由 Host 按原来源重新加载。 */
+    var preparedDetailPreview: DetailCropPreviewLoader.Preview? = null
+    /** 轻量尺寸写入参数，旋转或进程恢复后仍可先显示正确大小的窗口。 */
+    var detailPreviewMetadata: DetailCropPreviewLoader.Metadata?
+        get() = arguments?.getBundle("detail_preview_metadata")?.let {
+            DetailCropPreviewLoader.Metadata(it.getString("source").orEmpty(),
+                it.getInt("width"), it.getInt("height"), it.getLong("duration"))
+        }
+        set(value) {
+            val args = arguments ?: Bundle().also { arguments = it }
+            args.putBundle("detail_preview_metadata", value?.let {
+                Bundle().apply {
+                    putString("source", it.typePathName)
+                    putInt("width", it.width)
+                    putInt("height", it.height)
+                    putLong("duration", it.durationMs)
+                }
+            })
+        }
 
     override fun getLayoutResource(): Int = R.layout.fragment_media_crop_appearance_dialog
 
@@ -77,6 +97,7 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
         val cleanup = mContentCleanup
         mContentCleanup = null
         cleanup?.invoke()
+        preparedDetailPreview = null
         super.onDestroyView()
     }
 

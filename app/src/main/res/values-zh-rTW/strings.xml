@@ -2,6 +2,7 @@
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
+    <string name="error_generating_screenshot">無法產生長截圖，請重試。</string>
 
     <!-- Phase 8 gradient orientation picker -->
     <string name="gradient_orientation_title">漸變方向</string>
@@ -1951,4 +1952,6 @@
     <string name="tap_simulated_thing_content">這是碰一碰的模擬資料，用來預覽接收動畫，可以直接刪除。</string>
     <string name="settings_tap_transfer_simulate">碰一碰模擬（偵錯版）</string>
     <string name="tap_hce_service_description">完事兒碰一碰</string>
+    <string name="detail_media_preview_loading">正在載入預覽</string>
+    <string name="detail_media_preview_load_failed">無法載入媒體預覽</string>
 </resources>

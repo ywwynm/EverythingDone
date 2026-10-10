@@ -2,6 +2,7 @@
 <resources
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="TypographyEllipsis">
+    <string name="error_generating_screenshot">无法生成长截图，请重试。</string>
 
     <!-- Phase 8 gradient orientation picker -->
     <string name="gradient_orientation_title">渐变方向</string>
@@ -2090,4 +2091,6 @@
     <string name="tap_simulated_thing_content">这是碰一碰的模拟数据，用来预览接收动画，可以直接删除。</string>
     <string name="settings_tap_transfer_simulate">碰一碰模拟（调试包）</string>
     <string name="tap_hce_service_description">完事儿碰一碰</string>
+    <string name="detail_media_preview_loading">正在加载预览</string>
+    <string name="detail_media_preview_load_failed">无法加载媒体预览</string>
 </resources>
