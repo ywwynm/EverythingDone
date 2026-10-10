@@ -550,10 +550,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         // after 1760ms, background blur animation will finish
         val intent: Intent = getIntent()
         val resume: Boolean = intent.getBooleanExtra(KEY_RESUME, false)
-        mRecyclerView!!.postDelayed({
+        mRecyclerView!!.postDelayed(start@{
+            // 用户可能在入场等待结束前取消计时；此时服务已停止，旧 Binder 不再可用。
+            if (isFinishing || isDestroyed || mServiceUnbind) return@start
+            val binder = mDoingBinder ?: return@start
             playEnterAnimations()
 
-            mDoingBinder!!.setCountdownListener(object : DoingService.DoingListener {
+            binder.setCountdownListener(object : DoingService.DoingListener {
 
                 override fun onLeftTimeChanged(
                     numbersFrom: IntArray?, numbersTo: IntArray?,
@@ -573,16 +576,17 @@ open class DoingActivity : EverythingDoneBaseActivity() {
                 override fun onCountdownEnd() {
                 }
             })
-            mDoingBinder!!.startCountdown(resume)
+            binder.startCountdown(resume)
 
-            if (mDoingBinder!!.getTimeInMillis() == -1L && mInfinityHandler != null) {
+            if (binder.getTimeInMillis() == -1L && mInfinityHandler != null) {
                 mInfinityHandler!!.sendEmptyMessageDelayed(96, 1760)
             }
         }, 1000)
     }
 
     private fun playEnterAnimations() {
-        mRecyclerView!!.postDelayed({
+        mRecyclerView!!.postDelayed(enter@{
+            if (isFinishing || isDestroyed || mServiceUnbind) return@enter
             if (mDoingBinder!!.getTimeInMillis() == -1L) {
                 mClockView!!.animate().setDuration(1600).alpha(INFINITE_CLOCK_ALPHA_HIGH)
             } else {
@@ -592,7 +596,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             mRecyclerView!!.animate().setDuration(1600).alpha(THING_CARD_CONTAINER_ALPHA)
             mRecyclerView!!.scrollBy(0, Int.MAX_VALUE)
         }, 160) // executed after 1160ms, animation ends at 2760ms
-        mRecyclerView!!.postDelayed({
+        mRecyclerView!!.postDelayed(enter@{
+            if (isFinishing || isDestroyed || mServiceUnbind) return@enter
             mRecyclerView!!.smoothScrollToPosition(0)
 
             val oi = OvershootInterpolator()
