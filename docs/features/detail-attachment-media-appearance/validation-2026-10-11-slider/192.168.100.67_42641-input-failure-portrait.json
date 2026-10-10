@@ -1,0 +1,6 @@
+{
+  "error": "java.lang.IllegalStateException: Check failed.\n\tat com.ywwynm.everythingdone.detail.DetailMediaSliderChecks.swipe$send(DetailMediaSliderChecks.kt:250)\n\tat com.ywwynm.everythingdone.detail.DetailMediaSliderChecks.swipe(DetailMediaSliderChecks.kt:253)\n\tat com.ywwynm.everythingdone.detail.DetailMediaSliderChecks.drag(DetailMediaSliderChecks.kt:241)\n\tat com.ywwynm.everythingdone.detail.DetailMediaSliderChecks.runCase(DetailMediaSliderChecks.kt:141)\n\tat com.ywwynm.everythingdone.detail.DetailMediaSliderChecks.run(DetailMediaSliderChecks.kt:55)\n\tat com.ywwynm.everythingdone.detail.DetailMediaGeometryProbe.onStart(DetailMediaGeometryProbe.kt:57)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2620)\n",
+  "failures": 1,
+  "samples": [],
+  "fixture_rows_removed": 1
+}

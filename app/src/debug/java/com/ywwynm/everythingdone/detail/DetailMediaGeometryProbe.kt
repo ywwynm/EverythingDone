@@ -53,8 +53,12 @@ class DetailMediaGeometryProbe : Instrumentation() {
         output = File(targetContext.getExternalFilesDir(null), "detail-media-geometry/$run").apply { mkdirs() }
         val result = JSONObject()
         try {
-            configurationMatrix()
-            if (args.getString("suite") != "matrix") screenMatrix()
+            if (args.getString("suite") == "slider") {
+                DetailMediaSliderChecks(this, output, ::createFixture, ::record) { current = it }.run()
+            } else {
+                configurationMatrix()
+                if (args.getString("suite") != "matrix") screenMatrix()
+            }
         } catch (failure: Throwable) {
             failures++
             result.put("error", failure.stackTraceToString())

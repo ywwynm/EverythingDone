@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory = $true)][string]$DeviceSerial,
     [Parameter(Mandatory = $true)][ValidatePattern('^[A-Za-z0-9_-]{1,48}$')][string]$RunId,
     [switch]$Install,
+    [ValidateSet('geometry', 'slider')][string]$Suite = 'geometry',
     [ValidateSet('portrait', 'landscape')][string[]]$Orientations = @('portrait', 'landscape')
 )
 
@@ -27,7 +28,7 @@ try {
         & $adbPath -s $DeviceSerial shell wm user-rotation lock $rotationValue
         if ($LASTEXITCODE -ne 0) { throw '设置测试旋转状态失败' }
         $deviceRun = "$RunId-$orientation"
-        $instrumentOutput = (& $adbPath -s $DeviceSerial shell am instrument -w -e run_id $deviceRun -e orientation $orientation com.ywwynm.everythingdone/.detail.DetailMediaGeometryProbe 2>&1 | Out-String)
+        $instrumentOutput = (& $adbPath -s $DeviceSerial shell am instrument -w -e run_id $deviceRun -e orientation $orientation -e suite $Suite com.ywwynm.everythingdone/.detail.DetailMediaGeometryProbe 2>&1 | Out-String)
         Write-Output $instrumentOutput
         if ($LASTEXITCODE -ne 0 -or $instrumentOutput -notmatch 'INSTRUMENTATION_RESULT: result=failures=') {
             throw '回归入口未正常返回，不能读取之前运行遗留的结果。'
@@ -44,4 +45,4 @@ try {
     if ($rotation -eq 'free') { & $adbPath -s $DeviceSerial shell wm user-rotation free }
     else { & $adbPath -s $DeviceSerial shell wm user-rotation lock $rotation.Substring(5) }
 }
-if ($totalFailures -gt 0) { throw "媒体比例回归有 $totalFailures 项失败，详见 $localDirectory" }
+if ($totalFailures -gt 0) { throw "媒体外观回归有 $totalFailures 项失败，详见 $localDirectory" }

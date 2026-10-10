@@ -72,6 +72,7 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.widget.CheckBox
@@ -81,6 +82,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
@@ -4487,6 +4489,46 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
         )
 
+        fun createScrollSeparator() = View(this).apply {
+            setBackgroundResource(R.color.app_chrome_divider)
+            visibility = View.INVISIBLE
+        }
+        val topSeparator = createScrollSeparator().apply { id = R.id.view_separator_1 }
+        val bottomSeparator = createScrollSeparator().apply { id = R.id.view_separator_2 }
+        val separatorHeight = max(1, density.roundToInt())
+        root.addView(topSeparator, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, separatorHeight
+        ).apply { topMargin = (density * 12).toInt() })
+        val scroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            // 外层为按钮波纹允许越界绘制；滚动区必须单独裁剪，防止预览覆盖标题与按钮。
+            clipToOutline = true
+            outlineProvider = ViewOutlineProvider.BOUNDS
+        }
+        val editorContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, (density * 6).toInt())
+        }
+        scroll.addView(editorContent, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+        // 内容较少时保持紧凑；窗口高度不足时只收缩中间区域，标题与按钮始终可见。
+        root.addView(scroll, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        ))
+        root.addView(bottomSeparator, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, separatorHeight
+        ))
+        fun updateScrollSeparators() {
+            topSeparator.visibility = if (scroll.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
+            bottomSeparator.visibility = if (scroll.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
+        }
+        val scrollListener = ViewTreeObserver.OnScrollChangedListener { updateScrollSeparators() }
+        val layoutListener = ViewTreeObserver.OnGlobalLayoutListener { updateScrollSeparators() }
+        scroll.viewTreeObserver.addOnScrollChangedListener(scrollListener)
+        scroll.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+
         var onWidthModeChanged: ((Boolean) -> Unit)? = null
         val widthControls = if (canToggleFullSpan) {
             createDetailAttachmentWidthControls(
@@ -4499,7 +4541,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             null
         }
         if (widthControls != null) {
-            root.addView(
+            editorContent.addView(
                 widthControls.view,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -4507,7 +4549,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 ).apply {
                     setMargins(
                         contentHorizontalMargin,
-                        (density * 12).toInt(),
+                        (density * 6).toInt(),
                         contentHorizontalMargin,
                         0
                     )
@@ -4568,7 +4610,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
         previewContainer.addView(loadingIndicator, FrameLayout.LayoutParams(
             (density * 28).toInt(), (density * 28).toInt(), Gravity.CENTER))
-        root.addView(
+        editorContent.addView(
             previewContainer,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -4595,7 +4637,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 metadata.durationMs
             )
             if (videoFrameControls != null) {
-                root.addView(
+                editorContent.addView(
                     videoFrameControls.view,
                     LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -4623,7 +4665,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             } else {
                 View.GONE
             }
-        if (ratioControls != null) root.addView(
+        if (ratioControls != null) editorContent.addView(
             ratioControls.view,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -4750,7 +4792,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                         R.dimen.app_chrome_dialog_action_row_margin_horizontal
                     ),
                     resources.getDimensionPixelSize(
-                        R.dimen.app_chrome_dialog_action_row_margin_top
+                        R.dimen.app_chrome_dialog_divided_action_row_margin_top
                     ),
                     resources.getDimensionPixelSize(
                         R.dimen.app_chrome_dialog_action_row_margin_horizontal
@@ -4765,14 +4807,16 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         val waitingControls = listOfNotNull(cropEditorView, widthControls?.view,
             ratioControls?.view, videoFrameControls?.view)
         val enabledStates = mutableListOf<kotlin.Pair<View, Boolean>>()
-        fun disableWhileLoading(view: View) {
+        fun rememberEnabledStates(view: View) {
             enabledStates += view to view.isEnabled
-            view.isEnabled = false
-            if (view is ViewGroup) for (i in 0 until view.childCount) disableWhileLoading(view.getChildAt(i))
+            if (view is ViewGroup) for (i in 0 until view.childCount) rememberEnabledStates(view.getChildAt(i))
         }
         var cancelPreview: (() -> Unit)? = null
         if (!previewReady) {
-            waitingControls.forEach(::disableWhileLoading)
+            // 先保存整棵控件树的状态，再统一禁用。RatioSlider.setEnabled 会同步改动
+            // 内部 SeekBar，边保存边禁用会误把子控件的临时禁用状态当作原状态。
+            waitingControls.forEach(::rememberEnabledStates)
+            enabledStates.forEach { (view, _) -> view.isEnabled = false }
             val loader = mDetailCropPreviewLoader ?: DetailCropPreviewLoader().also { mDetailCropPreviewLoader = it }
             cancelPreview = loader.load(source, frameMs, { loadDetailAttachmentCropPreview(source, frameMs, metadata.durationMs) }) { result ->
                 if (disposed || isFinishing || isDestroyed || fragment.isRemoving) return@load
@@ -4794,6 +4838,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         }
         return MediaCropAppearanceDialogFragment.Content(root) {
             disposed = true
+            if (scroll.viewTreeObserver.isAlive) {
+                scroll.viewTreeObserver.removeOnScrollChangedListener(scrollListener)
+                scroll.viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
+            }
             cancelPreview?.invoke()
             videoFrameControls?.stopPlayback?.invoke()
             videoCropView?.release()
