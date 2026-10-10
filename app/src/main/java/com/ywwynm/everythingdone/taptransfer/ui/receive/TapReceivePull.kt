@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
@@ -43,9 +44,12 @@ import kotlin.math.min
 class TapReceivePull(
     private val container: FrameLayout,
     private val recyclerView: RecyclerView,
-    private val header: ActivityHeader,
+    private val header: ActivityHeader?,
     private val actionbar: View,
     private val isEligible: () -> Boolean,
+    /** 详情页通过菜单进入，共用位移、按钮和提示，不安装首页下拉手势。 */
+    private val allowPullGesture: Boolean = true,
+    private val onOffsetChanged: (Float) -> Unit = {},
     private val onClick: () -> Unit
 ) : RecyclerView.OnItemTouchListener {
 
@@ -95,19 +99,21 @@ class TapReceivePull(
         button.setOnClickListener(null)
         pill.setOnClickListener { onClick() }
         applyStyle()
-        recyclerView.addOnItemTouchListener(this)
-        recyclerView.addOnScrollListener(scrollListener)
-        header.setOnPullResetListener {
+        if (allowPullGesture) {
+            recyclerView.addOnItemTouchListener(this)
+            recyclerView.addOnScrollListener(scrollListener)
+        }
+        header?.setOnPullResetListener {
             if (receiving) {
                 // 旋转屏幕等情况下头部会复位；接收状态下按钮不收，头部的位移补回来
-                header.setPullOffset(offset)
+                header?.setPullOffset(offset)
             } else {
                 closeSlot(false)
             }
         }
         actionbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> positionButton() }
         positionButton()
-        installAccessibilityAction()
+        if (allowPullGesture) installAccessibilityAction()
     }
 
     /**
@@ -116,6 +122,7 @@ class TapReceivePull(
      * 接收状态下按钮一直在，「退出接收」本身就能点。
      */
     private fun installAccessibilityAction() {
+        val header = header ?: return
         val label = context.getString(R.string.tap_receive_button)
         ViewCompat.setAccessibilityDelegate(header.titleView, object : AccessibilityDelegateCompat() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
@@ -171,14 +178,21 @@ class TapReceivePull(
      * 退出时列表若已不在顶部（新卡片在置顶之下，接收时滚过去了），按钮随之收起：「接收记事」只在列表
      * 滑到顶、再往下拉时出现，停在滚过的列表上方会压住头部。
      */
-    fun setReceiving(receiving: Boolean) {
+    fun setReceiving(receiving: Boolean, animate: Boolean = true) {
         this.receiving = receiving
         pill.setText(if (receiving) R.string.tap_receive_exit else R.string.tap_receive_button)
         setHint(if (receiving) context.getString(R.string.tap_receive_hint) else null)
         applyStyle()
+        if (!animate) {
+            animator?.cancel()
+            animator = null
+            applyOffset(if (receiving) slot() else 0f)
+            return
+        }
         button.post {
             when {
                 this.receiving -> animateTo(slot())
+                !allowPullGesture -> animateTo(0f)
                 offset > 0f -> animateTo(if (recyclerView.canScrollVertically(-1)) 0f else slot())
             }
         }
@@ -195,9 +209,13 @@ class TapReceivePull(
         }
     }
 
+    /** 详情页使用记事的前景色，保证彩色背景上的提示可读。 */
+    fun setHintTextColor(color: Int) { hint.setTextColor(color) }
+
     /** 调试（会话记录）：列表当前的下移量与空位高度。 */
     val currentOffset: Float get() = offset
     val slotHeight: Float get() = slot()
+    val isMoving: Boolean get() = animator != null
 
     /** 按钮（含提示）打开后的下边缘，容器坐标：接收状态的轮廓从这里往下排。 */
     fun openBottom(): Float {
@@ -324,7 +342,7 @@ class TapReceivePull(
         TapSessionRecorder.current?.event("offset") { put("px", px.toDouble()); put("slot", slot().toDouble()) }
         offset = px
         recyclerView.translationY = px
-        header.setPullOffset(px)
+        header?.setPullOffset(px)
         val f = (px / slot()).coerceIn(0f, 1f)
         button.visibility = if (px > 0.5f) View.VISIBLE else View.INVISIBLE
         button.alpha = f * f
@@ -332,6 +350,7 @@ class TapReceivePull(
         button.scaleX = scale
         button.scaleY = scale
         button.translationY = (1f - f) * -APPEAR_SHIFT_DP * density
+        onOffsetChanged(px)
     }
 
     /** 空位高度：按钮（含提示行）加上下留白。 */
@@ -350,11 +369,15 @@ class TapReceivePull(
         return buttonHeight
     }
 
-    private fun buttonTop(): Float = actionbar.bottom + TOP_GAP_DP * density
+    private fun buttonTop(): Float {
+        val rect = Rect(0, 0, actionbar.width, actionbar.height)
+        container.offsetDescendantRectToMyCoords(actionbar, rect)
+        return rect.bottom + TOP_GAP_DP * density
+    }
 
     private fun positionButton() {
         val lp = button.layoutParams as FrameLayout.LayoutParams
-        val top = buttonTop().toInt()
+        val top = buttonTop().toInt() - container.paddingTop
         if (lp.topMargin != top) {
             lp.topMargin = top
             button.layoutParams = lp

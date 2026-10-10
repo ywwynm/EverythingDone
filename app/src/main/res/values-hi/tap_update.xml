@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">टैप करके अपडेट करें</string>
+    <string name="tap_update_single_only">अपडेट करने के लिए केवल एक चीज़ साझा करें</string>
+    <string name="tap_update_failed">अपडेट नहीं किया जा सका। फिर से कोशिश करें।</string>
+    <string name="tap_update_done">अपडेट हो गया</string>
+    <string name="tap_update_choose_settings">प्राप्त हो गया। रिमाइंडर और आदत की सेटिंग चुनें।</string>
+    <string name="tap_update_settings_title">रिमाइंडर और आदत की सेटिंग</string>
+    <string name="tap_update_settings_description">इस चीज़ की सामग्री को प्राप्त संस्करण से अपडेट किया जाएगा। आप मौजूदा रिमाइंडर और आदत की सेटिंग तथा पूरा करने के रिकॉर्ड रख सकते हैं, या मिली सेटिंग इस्तेमाल कर सकते हैं (इससे आदत पूरी करने के रिकॉर्ड मिट जाएँगे)।</string>
+    <string name="tap_update_keep_settings">मौजूदा सेटिंग रखें</string>
+    <string name="tap_update_use_received_settings">मिली सेटिंग इस्तेमाल करें</string>
+</resources>

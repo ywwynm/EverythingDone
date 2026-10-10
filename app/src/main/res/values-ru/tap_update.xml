@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Обновить касанием</string>
+    <string name="tap_update_single_only">Для обновления этой записи отправьте только одну запись</string>
+    <string name="tap_update_failed">Не удалось обновить запись. Попробуйте ещё раз.</string>
+    <string name="tap_update_done">Запись обновлена</string>
+    <string name="tap_update_choose_settings">Получено. Выберите настройки напоминаний и привычек.</string>
+    <string name="tap_update_settings_title">Напоминания и привычки</string>
+    <string name="tap_update_settings_description">Содержимое этой записи будет обновлено до полученной версии. Вы можете сохранить текущие настройки напоминаний и привычек вместе с историей выполнения или использовать полученные настройки (это очистит историю выполнения привычек).</string>
+    <string name="tap_update_keep_settings">Сохранить текущие</string>
+    <string name="tap_update_use_received_settings">Использовать полученные</string>
+</resources>

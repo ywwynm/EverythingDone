@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Atualizar por toque</string>
+    <string name="tap_update_single_only">Compartilhe apenas um item para atualizar este</string>
+    <string name="tap_update_failed">Não foi possível atualizar este item. Tente novamente.</string>
+    <string name="tap_update_done">Item atualizado</string>
+    <string name="tap_update_choose_settings">Recebido. Escolha as configurações de lembretes e hábitos.</string>
+    <string name="tap_update_settings_title">Lembretes e hábitos</string>
+    <string name="tap_update_settings_description">O conteúdo deste item será atualizado para a versão recebida. Você pode manter as configurações atuais de lembretes e hábitos e o histórico de conclusão, ou usar as configurações recebidas (isso apagará o histórico de conclusão dos hábitos).</string>
+    <string name="tap_update_keep_settings">Manter configurações atuais</string>
+    <string name="tap_update_use_received_settings">Usar configurações recebidas</string>
+</resources>

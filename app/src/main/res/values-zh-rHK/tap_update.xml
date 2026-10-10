@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">碰一碰以更新記事</string>
+    <string name="tap_update_single_only">更新記事時，請只分享一則記事</string>
+    <string name="tap_update_failed">更新記事失敗，請重試</string>
+    <string name="tap_update_done">記事已更新</string>
+    <string name="tap_update_choose_settings">已收到，請選擇提醒和習慣設定</string>
+    <string name="tap_update_settings_title">提醒和習慣設定</string>
+    <string name="tap_update_settings_description">記事內容將更新為接收到的版本。您可以保留目前的提醒、習慣設定和完成記錄，也可以使用接收到的設定（這會使習慣完成記錄歸零）。</string>
+    <string name="tap_update_keep_settings">保留目前設定</string>
+    <string name="tap_update_use_received_settings">使用接收到的設定</string>
+</resources>

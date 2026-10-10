@@ -336,9 +336,8 @@ open class App : Application() {
                             val attachments: Array<String> = attachment.split(AttachmentHelper.SIGNAL.toRegex()).toTypedArray()
                             for (i in 1 until attachments.size) {
                                 val pathName: String = attachments[i].substring(1, attachments[i].length)
-                                if ((pathName.startsWith(appDir) || pathName.startsWith(oldAppDir))
-                                        && !mAttachmentsToDeleteFile!!.contains(pathName)) {
-                                    mAttachmentsToDeleteFile!!.add(pathName)
+                                if (pathName.startsWith(appDir) || pathName.startsWith(oldAppDir)) {
+                                    addAttachmentsToDeleteFile(listOf(pathName))
                                 }
                             }
                         }
@@ -351,16 +350,35 @@ open class App : Application() {
     }
 
     open fun addAttachmentsToDeleteFile(attachments: List<String?>?) {
-        for (attachment in attachments!!) {
-            if (!mAttachmentsToDeleteFile!!.contains(attachment)) {
-                mAttachmentsToDeleteFile!!.add(attachment)
+        synchronized(mAttachmentsToDeleteFile!!) {
+            for (attachment in attachments.orEmpty()) {
+                if (!mAttachmentsToDeleteFile!!.contains(attachment)) {
+                    mAttachmentsToDeleteFile!!.add(attachment)
+                }
             }
         }
     }
 
+    private val attachmentHistoryOwners = java.util.concurrent.ConcurrentHashMap<Any, Set<String>>()
+
+    /** 详情页的整次接收撤销仍可能引用旧附件；后台清理不得提前删除。 */
+    fun retainAttachmentsForHistory(owner: Any, paths: Set<String>) {
+        attachmentHistoryOwners[owner] = paths.toSet()
+    }
+
+    fun releaseAttachmentsForHistory(owner: Any) {
+        val paths = attachmentHistoryOwners.remove(owner) ?: return
+        addAttachmentsToDeleteFile(paths.toList())
+    }
+
     open fun deleteAttachmentFiles() {
-        if (!mAttachmentsToDeleteFile!!.isEmpty()) {
+        if (synchronized(mAttachmentsToDeleteFile!!) { mAttachmentsToDeleteFile!!.isNotEmpty() }) {
             val r = Runnable {
+                val candidates = synchronized(mAttachmentsToDeleteFile!!) {
+                    mAttachmentsToDeleteFile!!.toList().also { mAttachmentsToDeleteFile!!.clear() }
+                }
+                // 本轮查询期间可能发生撤销并关闭详情；查询前仍被历史持有的文件留到下一轮再判定。
+                val historyAttachments = attachmentHistoryOwners.values.flatMap { it }.toSet()
                 val appDir: String = Def.getAppFileDir(this@App)!!
                 val oldAppDir: String = Environment.getExternalStorageDirectory().absolutePath + "/EverythingDone"
                 val usedAttachments: MutableList<String?> = ArrayList()
@@ -382,12 +400,12 @@ open class App : Application() {
                         }
                     }
                     cursor.close()
-                    for (path in mAttachmentsToDeleteFile!!) {
-                        if (!usedAttachments.contains(path)) {
+                    for (path in candidates) {
+                        if (!usedAttachments.contains(path) && !historyAttachments.contains(path) &&
+                            attachmentHistoryOwners.values.none { it.contains(path) }) {
                             FileUtil.deleteFile(path)
                         }
                     }
-                    mAttachmentsToDeleteFile!!.clear()
             }
             mExecutor!!.execute(r)
         }

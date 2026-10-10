@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">タッチしてメモを更新</string>
+    <string name="tap_update_single_only">更新するには、メモを1件だけ共有してください</string>
+    <string name="tap_update_failed">メモを更新できませんでした。もう一度お試しください。</string>
+    <string name="tap_update_done">メモを更新しました</string>
+    <string name="tap_update_choose_settings">受信しました。リマインダーと習慣の設定を選んでください。</string>
+    <string name="tap_update_settings_title">リマインダーと習慣の設定</string>
+    <string name="tap_update_settings_description">このメモの内容を受信した内容に更新します。現在のリマインダー・習慣の設定と達成記録を保持することも、受信した設定を使用することもできます（後者の場合、習慣の達成記録はリセットされます）。</string>
+    <string name="tap_update_keep_settings">現在の設定を保持</string>
+    <string name="tap_update_use_received_settings">受信した設定を使用</string>
+</resources>

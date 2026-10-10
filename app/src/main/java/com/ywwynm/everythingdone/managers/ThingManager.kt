@@ -132,6 +132,14 @@ open class ThingManager private constructor(context: Context?) {
         rebuildThingListEntries()
     }
 
+    /** 内容已在接收更新事务中提交，只刷新投影与计数，不再异步回写一次旧快照。 */
+    fun onContentUpdateCommitted(before: Thing, after: Thing) {
+        mThingsCounts!!.handleUpdate(before.type, before.state, after.type, after.state, 1)
+        HomeEmptyStateHistory.markThingCreated(mContext, after.type)
+        mThings = getThingsForCurrentProjection(mEntryFilterKeyword, mEntryFilterColor).toMutableList()
+        rebuildThingListEntries()
+    }
+
     private fun getThingsForCurrentProjection(keyword: String?, color: Int): List<Thing?> {
         val currentFolderId = mProjection.currentFolderId
         if (mStatus == Def.ThingStatus.DELETED

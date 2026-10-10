@@ -77,7 +77,7 @@ object ThingFileImporter {
     }
 
     /** 一条记事挪好之后的附件：新的 attachment 串、外观键的映射、挪到的文件。 */
-    private class Moved(
+    internal class Moved(
         val attachment: String,
         val keyMapping: Map<String, String>,
         val files: List<File>
@@ -385,7 +385,7 @@ object ThingFileImporter {
      * 不用 [AttachmentHelper.createAttachmentFile]：它的文件名只到秒，同一秒里建多个附件会重名，
      * 而且扩展名固定成 .jpg/.mp4/.wav，对 png、gif、m4a 这些附件是错的。
      */
-    private fun moveAttachments(p: PendingThing, stamp: Long, thingIndex: Int): Moved {
+    internal fun moveAttachments(p: PendingThing, stamp: Long, thingIndex: Int): Moved {
         val sb = StringBuilder()
         val mapping = HashMap<String, String>(p.attachmentFiles.size)
         val done = ArrayList<File>(p.attachmentFiles.size)

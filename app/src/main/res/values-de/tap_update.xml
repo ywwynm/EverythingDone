@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Per Antippen aktualisieren</string>
+    <string name="tap_update_single_only">Teile zum Aktualisieren nur einen Eintrag</string>
+    <string name="tap_update_failed">Der Eintrag konnte nicht aktualisiert werden. Versuche es erneut.</string>
+    <string name="tap_update_done">Eintrag aktualisiert</string>
+    <string name="tap_update_choose_settings">Empfangen. Wähle die Erinnerungs- und Gewohnheitseinstellungen.</string>
+    <string name="tap_update_settings_title">Erinnerungen und Gewohnheiten</string>
+    <string name="tap_update_settings_description">Der Inhalt dieses Eintrags wird durch die empfangene Version ersetzt. Du kannst die aktuellen Erinnerungs- und Gewohnheitseinstellungen samt Erledigungsprotokoll behalten oder die empfangenen Einstellungen verwenden (dadurch wird das Erledigungsprotokoll der Gewohnheit gelöscht).</string>
+    <string name="tap_update_keep_settings">Einstellungen behalten</string>
+    <string name="tap_update_use_received_settings">Empfangene verwenden</string>
+</resources>

@@ -41,6 +41,9 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import com.ywwynm.everythingdone.taptransfer.ui.receive.TapDetailReceiveController
+import com.ywwynm.everythingdone.thingfile.PendingThing
+import com.ywwynm.everythingdone.thingfile.ThingFileUpdate
 import androidx.annotation.StringRes
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
@@ -342,8 +345,23 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     private var mActionList: ThingActionsList? = null
     @JvmField var shouldAddToActionList: Boolean = false
 
+    private var tapUpdateReceiver: TapDetailReceiveController? = null
+    private val tapHistoryOwner = Any()
+    private val tapHistoryAttachments = LinkedHashSet<String>()
+    private val tapUpdateOrigin = java.util.UUID.randomUUID().toString()
+
+    private data class ReceivedEditState(
+        val thing: Thing,
+        val alarms: ThingFileUpdate.Alarms?,
+        val draftParams: ReminderHabitParams? = null,
+        val draftChecked: Boolean = false,
+        val draftPicked: Int = -1,
+        val draftDescription: String = ""
+    )
+
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (intent.getStringExtra("tap_update_origin") == tapUpdateOrigin) return
             val action: String? = intent.action
             if (Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI == action) {
                 val resultCode = intent.getIntExtra(
@@ -1581,6 +1599,15 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
             }
         }
+        menu.findItem(R.id.act_tap_update)?.isVisible = canTapUpdate()
+        if (canTapUpdate()) {
+            if (menu.findItem(R.id.act_undo) == null) {
+                menu.add(Menu.NONE, R.id.act_undo, Menu.NONE, R.string.act_undo)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+                menu.add(Menu.NONE, R.id.act_redo, Menu.NONE, R.string.act_redo)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+            }
+        }
         updateUndoRedoActionButtonState()
         val menuAccentBg = getAccentBackground()
         tintMenuIcons(
@@ -1624,6 +1651,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 hrdf.setEditable(mEditable)
                 hrdf.show(supportFragmentManager, HabitRecordDialogFragment.TAG)
             }
+        } else if (itemId == R.id.act_tap_update) {
+            startTapUpdate()
         } else if (itemId == R.id.act_share) {
             chooseHowToShareThing()
         } else if (itemId == R.id.act_finish_this_time_habit) {
@@ -1873,6 +1902,25 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
 
     private fun undoOrRedo(action: ThingAction?, undo: Boolean) {
         if (action == null) return
+        if (action.getType() == ThingAction.RECEIVE_CONTENT_UPDATE) {
+            val state = (if (undo) action.getBefore() else action.getAfter()) as ReceivedEditState
+            val written = try {
+                ThingFileUpdate.write(this, state.thing, state.alarms)
+            } catch (e: Exception) {
+                Log.e("TapDetailReceive", "撤销或重做接收更新失败", e)
+                // 历史游标已由菜单移动，失败时退回，不能把未执行的动作当作成功。
+                if (undo) mActionList!!.redo() else mActionList!!.undo()
+                Toast.makeText(this, R.string.tap_update_failed, Toast.LENGTH_LONG).show()
+                updateUndoRedoActionButtonState()
+                return
+            }
+            ThingFileUpdate.synchronizeAlarms(this, written)
+            ThingManager.getInstance(this)!!.onContentUpdateCommitted(written.before, written.after)
+            renderReceivedState(state.copy(thing = written.after))
+            publishReceivedUpdate(written.before.type)
+            updateUndoRedoActionButtonState()
+            return
+        }
         shouldAddToActionList = false
         val to: Any? = if (undo) action.getBefore() else action.getAfter()
         when (action.getType()) {
@@ -2117,6 +2165,160 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         snapshot.detailAttachmentMediaAppearance = normalizedDetailAttachmentMediaAppearance(attachment)
         getAccentBackground()?.let { snapshot.setBackground(it) }
         return snapshot
+    }
+
+    private fun canTapUpdate(): Boolean {
+        val thing = mThing ?: return false
+        return mType == UPDATE && Thing.isRealThingType(thing.type) &&
+            (thing.state == Thing.UNDERWAY || thing.state == Thing.FINISHED) &&
+            ThingFolderDAO.getInstance(this)?.isEffectivelyDeleted(thing.folderId) != true &&
+            com.ywwynm.everythingdone.taptransfer.TapTransfer.isEntryAvailable(this)
+    }
+
+    private fun startTapUpdate() {
+        if (!canTapUpdate()) return
+        val controller = tapUpdateReceiver ?: TapDetailReceiveController(this,
+            object : TapDetailReceiveController.Host {
+                override val container: FrameLayout get() = mFlRoot!!
+                override val recyclerView: RecyclerView get() = mDetailList!!
+                override val actionbar: View get() = mActionbar!!
+                override val foregroundColor: Int get() = mEtTitle!!.currentTextColor
+                override val accentBackground: ThingBackground get() =
+                    getAccentBackground() ?: ThingBackground.pure(getAccentColor())
+                override fun canReceive() = canTapUpdate()
+                override fun prepareForReceive() {
+                    KeyboardUtil.hideKeyboard(window)
+                    mEtTitle?.clearFocus()
+                    mEtContent?.clearFocus()
+                    mDetailList?.stopScroll()
+                    mAudioAttachmentAdapter?.stopPlaying()
+                    cancelDetailCropPreview()
+                    settleChecklistDragBeforePause()
+                }
+                override fun needsSettingsChoice(pending: PendingThing): Boolean =
+                    mThing?.type != Thing.NOTE || getThingTypeAfter() != Thing.NOTE ||
+                        pending.thing.type != Thing.NOTE
+                override fun isContentReadyForSnapshot(): Boolean {
+                    val list = mDetailList!!
+                    if (list.isLayoutRequested || list.isComputingLayout) return false
+                    return (0 until list.childCount).none { index ->
+                        val row = list.getChildAt(index)
+                        row.bottom > 0 && row.top < list.height &&
+                            row.findViewById<View>(R.id.pb_image_attachment)?.visibility == View.VISIBLE
+                    }
+                }
+                override fun apply(prepared: ThingFileUpdate.Prepared, settings: ThingFileUpdate.Settings) {
+                    applyReceivedContent(prepared, settings)
+                }
+            }).also { tapUpdateReceiver = it }
+        controller.start()
+    }
+
+    private fun captureReceivedState(includeAlarms: Boolean): ReceivedEditState {
+        val thing = if (mEditable) buildShareSnapshot() else Thing(mThing!!)
+        return ReceivedEditState(thing,
+            if (includeAlarms) ThingFileUpdate.captureAlarms(this, thing.id) else null,
+            if (mEditable) ReminderHabitParams(rhParams) else null,
+            cbQuickRemind!!.isChecked,
+            if (mEditable) getQuickRemindPickedIndexForRecreate() else -1,
+            tvQuickRemind!!.text.toString())
+    }
+
+    private fun retainReceivedAttachments(vararg things: Thing) {
+        things.forEach { thing ->
+            thing.attachment.orEmpty().split(AttachmentHelper.SIGNAL).drop(1)
+                .filter { it.length > 1 }.forEach { tapHistoryAttachments.add(it.substring(1)) }
+        }
+        mApp!!.retainAttachmentsForHistory(tapHistoryOwner, tapHistoryAttachments)
+    }
+
+    private fun applyReceivedContent(prepared: ThingFileUpdate.Prepared, settings: ThingFileUpdate.Settings) {
+        check(canTapUpdate())
+        val replaceSettings = settings == ThingFileUpdate.Settings.USE_RECEIVED
+        val before = captureReceivedState(replaceSettings)
+        val desired = ThingFileUpdate.merge(before.thing, prepared.content, settings)
+        retainReceivedAttachments(before.thing, desired)
+        val selectedAlarms = if (replaceSettings)
+            ThingFileUpdate.receivedAlarms(prepared.pending, desired.id) else null
+        val written = ThingFileUpdate.write(this, desired, selectedAlarms)
+        prepared.markCommitted()
+        val after = if (replaceSettings) ReceivedEditState(written.after, written.alarms)
+            else before.copy(thing = written.after)
+        mActionList!!.addAction(ThingAction(ThingAction.RECEIVE_CONTENT_UPDATE, before, after))
+        ThingFileUpdate.synchronizeAlarms(this, written)
+        ThingManager.getInstance(this)!!.onContentUpdateCommitted(written.before, written.after)
+        renderReceivedState(after)
+        publishReceivedUpdate(written.before.type)
+    }
+
+    /** 重建当前详情的分区，不重建 Activity，也不清空已有编辑历史。 */
+    private fun renderReceivedState(state: ReceivedEditState) {
+        val recordActions = shouldAddToActionList
+        shouldAddToActionList = false
+        try {
+            mAudioAttachmentAdapter?.stopPlaying()
+            mAttachmentPlaybackController?.dispose()
+            mAttachmentPlaybackController = DetailAttachmentPlaybackController(mDetailList!!)
+            mImageAttachmentAdapter = null
+            mAudioAttachmentAdapter = null
+            mCheckListAdapter = null
+            mChecklistVisible = false
+            mLlMoveChecklist!!.visibility = View.GONE
+            mImageCover!!.visibility = View.GONE
+            mEtTitle!!.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+            mThing = Thing(state.thing)
+            mThingIndex = ThingManager.getInstance(this)!!.getPosition(mThing!!.id)
+            mReminder = ReminderDAO.getInstance(this)!!.getReminderById(mThing!!.id)
+            mHabit = if (mThing!!.type == Thing.HABIT) HabitDAO.getInstance(this)!!.getHabitById(mThing!!.id) else null
+            mThingCardSpanMode = mThing!!.thingCardSpanMode
+            mThingCardImagePlacement = mThing!!.thingCardImagePlacement
+            mDetailAttachmentMediaAppearance = mThing!!.detailAttachmentMediaAppearance
+            mChangeBackgroundTo = mThing!!.getBackground()
+            mChangeColorTo = mThing!!.getColor()
+            cbQuickRemind!!.isChecked = false
+            rhParams = ReminderHabitParams()
+            f<View>(R.id.ll_bottom_bar_detail).visibility = View.VISIBLE
+            val listParams = mDetailList!!.layoutParams as ViewGroup.MarginLayoutParams
+            listParams.bottomMargin = (56 * resources.displayMetrics.density).toInt()
+            mDetailList!!.layoutParams = listParams
+            initUI()
+            syncDetailContent()
+            if (mEditable) createDateTimeDialogFragment()
+            state.draftParams?.let {
+                rhParams = ReminderHabitParams(it)
+                if (state.draftPicked >= 0) quickRemindPicker?.pickForUI(state.draftPicked)
+                tvQuickRemind!!.text = state.draftDescription
+                cbQuickRemind!!.isChecked = state.draftChecked
+            }
+            // 初始化控件时读到的是已保存设置，类型提示与无障碍说明须按恢复后的草稿刷新。
+            if (mEditable) updateBackButton()
+            cbQuickRemind!!.contentDescription = getString(R.string.remind_me) + tvQuickRemind!!.text
+            mDetailList!!.scrollToPosition(0)
+            mActionbar!!.menu.clear()
+            onCreateOptionsMenu(mActionbar!!.menu)
+            updateDescriptions(getAccentColor())
+            recordRenderedThingSnapshot()
+        } finally { shouldAddToActionList = recordActions }
+    }
+
+    private fun publishReceivedUpdate(typeBefore: Int) {
+        val result = if (typeBefore == mThing!!.type) Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_SAME
+            else Def.Communication.RESULT_UPDATE_THING_DONE_TYPE_DIFFERENT
+        val update = Intent(Def.Communication.BROADCAST_ACTION_UPDATE_MAIN_UI).apply {
+            setPackage(packageName)
+            putExtra("tap_update_origin", tapUpdateOrigin)
+            putExtra(Def.Communication.KEY_RESULT_CODE, result)
+            putExtra(Def.Communication.KEY_TYPE_BEFORE, typeBefore)
+            putExtra(Def.Communication.KEY_THING, mThing)
+        }
+        App.setJustNotifyAll(true)
+        App.setLastUpdateUiIntent(update)
+        setResult(result, update)
+        sendBroadcast(update)
+        AppWidgetHelper.updateSingleThingAppWidgets(this, mThing!!.id)
+        AppWidgetHelper.updateThingsListAppWidgetsForType(this, typeBefore)
+        if (typeBefore != mThing!!.type) AppWidgetHelper.updateThingsListAppWidgetsForType(this, mThing!!.type)
+        SystemNotificationUtil.tryToCreateThingOngoingNotification(this)
     }
 
     private fun shareThingInScreenshot() {
@@ -2501,6 +2703,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     override fun onDestroy() {
+        tapUpdateReceiver?.exit()
+        mApp?.releaseAttachmentsForHistory(tapHistoryOwner)
         mDetailCropPreviewLoader?.close()
         mDetailCropPreviewLoader = null
         mAttachmentPlaybackController?.dispose()

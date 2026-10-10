@@ -9,6 +9,9 @@
     <instrumentation android:name=".taptransfer.TapReceiveVisibilityProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="碰一碰接收卡片显示回归" />
 
+    <instrumentation android:name=".taptransfer.TapDetailUpdateProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="碰一碰更新详情回归" />
+
     <instrumentation android:name=".views.particledismiss.AppearancePanelInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="外观面板交接回归" />
 

@@ -53,6 +53,9 @@ open class HabitDAO private constructor(context: Context?) {
         c2.close()
     }
 
+    /** 整条记事的接收更新在独立事务中恢复了记录，随后同步本 DAO 的分配位置。 */
+    internal fun refreshIdsAfterContentUpdate() = updateMaxHabitReminderRecordId()
+
     open fun getAllHabits(): List<Habit?>? {
         val habits: MutableList<Habit?> = ArrayList()
         val cursor: Cursor = db!!.query(Def.Database.TABLE_HABITS, null, null, null, null, null, null)

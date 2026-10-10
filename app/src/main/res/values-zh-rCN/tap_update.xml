@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">碰一碰以更新记事</string>
+    <string name="tap_update_single_only">更新记事时，请只分享一条记事</string>
+    <string name="tap_update_failed">更新记事失败，请重试</string>
+    <string name="tap_update_done">记事已更新</string>
+    <string name="tap_update_choose_settings">已收到，请选择提醒和习惯设置</string>
+    <string name="tap_update_settings_title">提醒和习惯设置</string>
+    <string name="tap_update_settings_description">记事内容将更新为接收到的版本。您可以保留当前的提醒、习惯设置和完成记录，也可以使用接收到的设置（这会使得习惯完成记录清零）。</string>
+    <string name="tap_update_keep_settings">保留当前设置</string>
+    <string name="tap_update_use_received_settings">使用接收到的设置</string>
+</resources>

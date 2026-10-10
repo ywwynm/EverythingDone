@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Mettre à jour par contact</string>
+    <string name="tap_update_single_only">Partagez un seul élément pour mettre celui-ci à jour</string>
+    <string name="tap_update_failed">Impossible de mettre à jour cet élément. Réessayez.</string>
+    <string name="tap_update_done">Élément mis à jour</string>
+    <string name="tap_update_choose_settings">Reçu. Choisissez les réglages des rappels et des habitudes.</string>
+    <string name="tap_update_settings_title">Rappels et habitudes</string>
+    <string name="tap_update_settings_description">Le contenu de cet élément sera mis à jour avec la version reçue. Vous pouvez garder vos réglages actuels de rappels et d\'habitudes ainsi que l\'historique de réalisation, ou utiliser les réglages reçus (cela effacera l\'historique de réalisation des habitudes).</string>
+    <string name="tap_update_keep_settings">Garder les réglages actuels</string>
+    <string name="tap_update_use_received_settings">Utiliser les réglages reçus</string>
+</resources>

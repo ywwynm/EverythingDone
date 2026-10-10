@@ -65,7 +65,9 @@ object ThingFileReader {
         class Ok(
             val things: List<PendingThing>,
             val tempDir: File,
-            val folders: List<PendingFolder> = emptyList()
+            val folders: List<PendingFolder> = emptyList(),
+            /** 更新当前记事时按原始清单判断，不能把过滤后的单条误当作独立单条分享。 */
+            val singleStandaloneThing: Boolean = false
         ) : Result()
 
         /** 文件是本格式，但版本比本机新。 */
@@ -193,7 +195,10 @@ object ThingFileReader {
             cleanUp(tempDir)
             return Result.Broken(context.getString(R.string.thing_file_error_no_valid_things))
         }
-        return Result.Ok(things, tempDir, dropEmptyFolders(folders, things))
+        val singleStandalone = arr.length() == 1 && things.size == 1 &&
+            (manifest.optJSONArray(ThingFile.KEY_FOLDERS)?.length() ?: 0) == 0 &&
+            arr.getJSONObject(0).isNull(ThingFile.KEY_IN_FOLDER)
+        return Result.Ok(things, tempDir, dropEmptyFolders(folders, things), singleStandalone)
     }
 
     /**

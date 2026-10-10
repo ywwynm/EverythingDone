@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Aggiorna al tocco</string>
+    <string name="tap_update_single_only">Condividi un solo elemento per aggiornare questo</string>
+    <string name="tap_update_failed">Impossibile aggiornare questo elemento. Riprova.</string>
+    <string name="tap_update_done">Elemento aggiornato</string>
+    <string name="tap_update_choose_settings">Ricevuto. Scegli le impostazioni di promemoria e abitudini.</string>
+    <string name="tap_update_settings_title">Promemoria e abitudini</string>
+    <string name="tap_update_settings_description">Il contenuto di questo elemento verrà aggiornato alla versione ricevuta. Puoi conservare le impostazioni attuali di promemoria e abitudini e la cronologia dei completamenti, oppure usare le impostazioni ricevute (questo cancellerà la cronologia dei completamenti delle abitudini).</string>
+    <string name="tap_update_keep_settings">Mantieni le impostazioni</string>
+    <string name="tap_update_use_received_settings">Usa le impostazioni ricevute</string>
+</resources>

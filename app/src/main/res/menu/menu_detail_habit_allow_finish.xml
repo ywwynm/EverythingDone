@@ -68,6 +68,11 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@id/act_tap_update"
+        android:title="@string/act_tap_update"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_finish_this_time_habit"
         android:title="@string/act_finish_this_time_habit"
         app:showAsAction="never"/>

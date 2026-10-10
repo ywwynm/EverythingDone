@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="act_tap_update" type="id" />
+    <string name="act_tap_update">Tap to update this thing</string>
+    <string name="tap_update_single_only">Share only one thing to update this thing</string>
+    <string name="tap_update_failed">Could not update this thing. Please try again.</string>
+    <string name="tap_update_done">Thing updated</string>
+    <string name="tap_update_choose_settings">Received. Choose reminder and habit settings.</string>
+    <string name="tap_update_settings_title">Reminder and habit settings</string>
+    <string name="tap_update_settings_description">The content of this thing will be updated to the received version. You can keep your current reminder and habit settings and completion history, or use the received settings (this will clear the habit completion history).</string>
+    <string name="tap_update_keep_settings">Keep current settings</string>
+    <string name="tap_update_use_received_settings">Use received settings</string>
+</resources>

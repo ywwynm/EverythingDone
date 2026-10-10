@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">터치하여 항목 업데이트</string>
+    <string name="tap_update_single_only">이 항목을 업데이트하려면 항목 하나만 공유하세요</string>
+    <string name="tap_update_failed">항목을 업데이트하지 못했습니다. 다시 시도하세요.</string>
+    <string name="tap_update_done">항목이 업데이트되었습니다</string>
+    <string name="tap_update_choose_settings">받았습니다. 알림 및 습관 설정을 선택하세요.</string>
+    <string name="tap_update_settings_title">알림 및 습관 설정</string>
+    <string name="tap_update_settings_description">이 항목의 내용을 받은 버전으로 업데이트합니다. 현재 알림 및 습관 설정과 완료 기록을 유지하거나, 받은 설정을 사용할 수 있습니다(이 경우 습관 완료 기록이 초기화됩니다).</string>
+    <string name="tap_update_keep_settings">현재 설정 유지</string>
+    <string name="tap_update_use_received_settings">받은 설정 사용</string>
+</resources>

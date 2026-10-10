@@ -11,6 +11,11 @@
         app:showAsAction="always"/>
 
     <item
+        android:id="@id/act_tap_update"
+        android:title="@string/act_tap_update"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/act_restore"
         android:title="@string/act_restore"
         android:icon="@drawable/act_restore"

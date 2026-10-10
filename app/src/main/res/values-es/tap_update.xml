@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="act_tap_update">Actualizar por toque</string>
+    <string name="tap_update_single_only">Comparte solo una cosa para actualizar esta</string>
+    <string name="tap_update_failed">No se pudo actualizar. Inténtalo de nuevo.</string>
+    <string name="tap_update_done">Actualizado</string>
+    <string name="tap_update_choose_settings">Recibido. Elige los ajustes de recordatorios y hábitos.</string>
+    <string name="tap_update_settings_title">Recordatorios y hábitos</string>
+    <string name="tap_update_settings_description">El contenido actual se actualizará a la versión recibida. Puedes conservar los ajustes actuales de recordatorios y hábitos y el historial de cumplimiento, o usar los ajustes recibidos (esto borrará el historial de cumplimiento de hábitos).</string>
+    <string name="tap_update_keep_settings">Conservar ajustes actuales</string>
+    <string name="tap_update_use_received_settings">Usar ajustes recibidos</string>
+</resources>

@@ -1,0 +1,623 @@
+package com.ywwynm.everythingdone.taptransfer
+
+import android.app.Instrumentation
+import android.content.ContentValues
+import android.content.Intent
+import android.database.DatabaseUtils
+import android.database.sqlite.SQLiteDatabase
+import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.MotionEvent
+import android.widget.EditText
+import android.widget.TextView
+import androidx.activity.ComponentDialog
+import androidx.appcompat.widget.Toolbar
+import androidx.recyclerview.widget.RecyclerView
+import com.ywwynm.everythingdone.App
+import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.activities.DetailActivity
+import com.ywwynm.everythingdone.database.DBHelper
+import com.ywwynm.everythingdone.database.HabitDAO
+import com.ywwynm.everythingdone.helpers.AlarmHelper
+import com.ywwynm.everythingdone.helpers.AttachmentHelper
+import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.model.*
+import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
+import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
+import com.ywwynm.everythingdone.taptransfer.ui.receive.TapDetailReceiveController
+import com.ywwynm.everythingdone.taptransfer.ui.receive.TapReceivePull
+import com.ywwynm.everythingdone.taptransfer.ui.receive.TapUpdateSettingsDialog
+import com.ywwynm.everythingdone.thingfile.*
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
+/** 只建立并清理本次临时行；驱动脚本另对原有各表做前后核对。传输回调可控，渲染与业务路径均为生产代码。 */
+class TapDetailUpdateProbe : Instrumentation() {
+    private var args = Bundle()
+    private val ids = mutableListOf<Long>()
+    private val folders = mutableListOf<Long>()
+    private val files = mutableListOf<File>()
+    private val cases = JSONArray()
+    private val mediaEntryMeasurements = JSONArray()
+    private var current: DetailActivity? = null
+    private lateinit var helper: DBHelper
+    private lateinit var db: SQLiteDatabase
+    private lateinit var dir: File
+    private val epoch = 1780272000000L
+    private val future = 1924905600000L
+
+    override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); args = arguments ?: Bundle(); start() }
+
+    override fun onStart() {
+        waitForIdleSync()
+        val prefs = targetContext.getSharedPreferences("tap_transfer_debug", 0)
+        val hadSimulation = prefs.contains("simulate")
+        val simulation = prefs.getBoolean("simulate", false)
+        val report = JSONObject()
+        try {
+            helper = DBHelper(targetContext); db = helper.writableDatabase
+            dir = File(targetContext.cacheDir, "tap-update-probe-${System.currentTimeMillis()}").apply { mkdirs() }
+            prefs.edit().putBoolean("simulate", true).commit()
+            if (args.getString("suite") == "media-entry") mediaEntryCases()
+            else if (args.getString("suite") == "review") reviewCases()
+            else {
+                if (args.getString("suite") != "animation") { storageCases(); readerCases() }
+                detailCases()
+                if (args.getString("suite") != "animation") cancellationCases()
+            }
+            report.put("passed", true)
+        } catch (e: Throwable) {
+            android.util.Log.e("TapDetailUpdateProbe", "回归失败", e)
+            report.put("passed", false).put("error", e.stackTraceToString())
+        } finally {
+            main { current?.finish() }; waitForIdleSync()
+            if (::db.isInitialized) {
+                ids.forEach { id ->
+                    AlarmHelper.deleteReminderAlarm(targetContext, id)
+                    db.query("habit_reminders", arrayOf("id"), "habit_id=?", arrayOf("$id"), null, null, null).use {
+                        while (it.moveToNext()) AlarmHelper.deleteHabitReminderAlarm(targetContext, it.getLong(0))
+                    }
+                    for (table in listOf("reminders", "habits", "habit_reminders", "habit_records", "things")) {
+                        val column = if (table == "habit_reminders" || table == "habit_records") "habit_id" else "id"
+                        db.delete(table, "$column=?", arrayOf("$id"))
+                    }
+                }
+                folders.forEach { db.delete("thing_folders", "id=?", arrayOf("$it")) }
+                HabitDAO.getInstance(targetContext)!!.refreshIdsAfterContentUpdate()
+                helper.close()
+            }
+            files.forEach { it.delete() }
+            if (::dir.isInitialized) dir.deleteRecursively()
+            prefs.edit().apply { if (hadSimulation) putBoolean("simulate", simulation) else remove("simulate") }.commit()
+            report.put("cases", cases).put("fixtures_removed", JSONArray(ids))
+                .put("media_entry_measurements", mediaEntryMeasurements)
+            finish(if (report.optBoolean("passed")) 0 else 1, Bundle().apply { putString("result", report.toString()) })
+        }
+    }
+
+    private fun fixture(type: Int = Thing.NOTE, state: Int = Thing.UNDERWAY, private: Boolean = false): Thing {
+        val id = next("things")
+        val title = (if (private) Thing.PRIVATE_THING_PREFIX else "") + "更新前 · 临时测试记事"
+        db.insertOrThrow("things", null, ContentValues().apply {
+            put("id", id); put("type", type); put("state", state); put("color", Color.rgb(40, 102, 114))
+            put("title", title); put("content", "这是更新前的内容。\n" + "旧内容保留显示，直到新内容覆盖完成。\n".repeat(16))
+            put("attachment", ""); put("location", 1000000000L + id); put("create_time", epoch)
+            put("update_time", epoch); put("finish_time", if (state == Thing.FINISHED) epoch + 1 else 0L)
+        })
+        ids += id
+        return read(id)
+    }
+
+    /** 通过生产详情与菜单验证：接收让位不能删掉顶部附件的一段像素。 */
+    private fun mediaEntryCases() {
+        var failures = 0
+        for (video in listOf(false, true)) {
+            val source = File(dir, if (video) "entry.mp4" else "entry.png")
+            if (video) targetContext.assets.open("detail-regression/video.mp4").use { input ->
+                source.outputStream().use(input::copyTo)
+            } else {
+                val bitmap = Bitmap.createBitmap(800, 600, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+                val colors = intArrayOf(0xFFE85D5D.toInt(), 0xFFFFD166.toInt(), 0xFF57CC99.toInt(), 0xFF48BFE3.toInt())
+                repeat(4) { row ->
+                    paint.color = colors[row]; canvas.drawRect(0f, row * 150f, 800f, (row + 1) * 150f, paint)
+                    paint.color = Color.BLACK; paint.textSize = 54f
+                    canvas.drawText(if (row == 0) "TOP - 1" else "ROW - ${row + 1}", 60f, row * 150f + 98, paint)
+                }
+                source.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                bitmap.recycle()
+            }
+            files += source
+            val original = fixture().apply {
+                val key = "${if (video) AttachmentHelper.VIDEO else AttachmentHelper.IMAGE}${source.path}"
+                attachment = AttachmentHelper.toAttachmentStr(listOf(key), emptyList())
+                detailAttachmentMediaAppearance = DetailAttachmentMediaAppearance().withSource(key,
+                    DetailAttachmentMediaAppearance.SourceAppearance(fullSpanEnabled = true))
+            }
+            ThingFileUpdate.write(targetContext, original, null)
+            val activity = open(original.id)
+            val list = activity.findViewById<RecyclerView>(R.id.sv_detail)
+            await { list.findViewById<View>(R.id.iv_image_attachment)?.height?.let { it > 0 } == true &&
+                list.findViewById<View>(R.id.pb_image_attachment)?.visibility != View.VISIBLE }
+            val beforeHeight = main { list.findViewById<View>(R.id.iv_image_attachment).height }
+            SystemClock.sleep(900)
+            repeat(2) { attempt ->
+                val receiver = begin(activity)
+                await { !field<TapReceivePull>(receiver, "pull").isMoving && list.translationY > 0 }
+                SystemClock.sleep(900)
+                val valid = main {
+                    val media = list.findViewById<View>(R.id.iv_image_attachment)
+                    val mediaRect = Rect(0, 0, media.width, media.height)
+                    list.offsetDescendantRectToMyCoords(media, mediaRect)
+                    val mediaAt = IntArray(2).also(media::getLocationOnScreen)
+                    val panel = activity.findViewById<View>(R.id.ll_tap_receive)
+                    val panelAt = IntArray(2).also(panel::getLocationOnScreen)
+                    val clippedTop = maxOf(0, (list.clipBounds?.top ?: 0) - maxOf(0, mediaRect.top))
+                    val clearOfPanel = mediaAt[1] >= panelAt[1] + panel.height
+                    val intact = clippedTop == 0 && clearOfPanel && media.height == beforeHeight
+                    mediaEntryMeasurements.put(JSONObject().put("kind", if (video) "video" else "image")
+                        .put("attempt", attempt).put("media_top", mediaAt[1]).put("media_height", media.height)
+                        .put("panel_bottom", panelAt[1] + panel.height).put("translation", list.translationY.toDouble())
+                        .put("clipped_top", clippedTop).put("intact", intact))
+                    intact
+                }
+                if (!valid) failures++
+                main { receiver.exit() }
+                await { list.translationY == 0f }
+                check(main { list.clipBounds == null })
+                SystemClock.sleep(600)
+            }
+            check(read(original.id).attachment == original.attachment)
+            main { activity.finish() }; await { activity.isDestroyed }; current = null
+        }
+        check(failures == 0) { "接收时顶部附件裁切或与接收控件重叠：$mediaEntryMeasurements" }
+        cases.put("静态图片和视频封面两次进入／退出接收，顶部完整、原尺寸保留、控件不重叠且退出复位")
+    }
+
+    private fun incoming(type: Int = Thing.NOTE, video: Boolean = false): PendingThing {
+        val thing = Thing(0, type, Thing.UNDERWAY, Color.rgb(130, 42, 85), "接收到的旅行清单", "新内容较短。", "", 0, epoch, epoch, 0)
+        thing.setBackground(ThingBackground.gradient(Color.rgb(48, 56, 126), Color.rgb(164, 48, 89), ThingBackground.Orientation.LT_RB))
+        thing.thingCardSpanMode = Thing.THING_CARD_SPAN_FULL
+        val attachments = if (video) listOf(File(dir, "incoming.mp4").also { file ->
+            targetContext.assets.open("detail-regression/video.mp4").use { input -> file.outputStream().use(input::copyTo) }
+            thing.content = CheckListHelper.toCheckListStr((1..24).map {
+                CheckListHelper.makeItem(if (it > 16) '1' else '0', 1, "旅行清单第 $it 项")
+            })
+            thing.attachment = AttachmentHelper.toAttachmentStr(listOf("1${file.path}"), emptyList())
+            thing.detailAttachmentMediaAppearance = DetailAttachmentMediaAppearance().withSource(
+                "attachments/0/clip.mp4", DetailAttachmentMediaAppearance.SourceAppearance(fullSpanEnabled = true))
+        }) else emptyList()
+        return PendingThing(thing, if (Thing.isReminderType(type)) Reminder(0, future) else null,
+            if (type == Thing.HABIT) Habit(0, java.util.Calendar.DATE, 0, "12:30", "", "", epoch, 0) else null,
+            attachments, if (video) listOf(AttachmentHelper.VIDEO) else emptyList(),
+            if (video) listOf("attachments/0/clip.mp4") else emptyList())
+    }
+
+    private fun storageCases() {
+        val old = fixture(Thing.HABIT, Thing.FINISHED, true)
+        val folder = next("thing_folders")
+        db.insertOrThrow("thing_folders", null, ContentValues().apply {
+            put("id", folder); put("title", "更新测试临时私密文件夹"); put("state", Thing.UNDERWAY)
+            put("color", Color.BLUE); put("location", folder); put("is_private", 1); put("create_time", epoch); put("update_time", epoch)
+        }); folders += folder
+        db.update("things", ContentValues().apply { put("folder_id", folder) }, "id=?", arrayOf("${old.id}"))
+        val target = read(old.id)
+        val definition = incoming(Thing.HABIT)
+        ThingFileUpdate.write(targetContext, target, ThingFileUpdate.receivedAlarms(definition, target.id))
+        db.update("habits", ContentValues().apply { put("record", "10"); put("reminded_times", 2); put("interval_info", "${epoch},") }, "id=?", arrayOf("${target.id}"))
+        val reminderId = ThingFileUpdate.captureAlarms(targetContext, target.id).rows.getValue("habit_reminders").single().getAsLong("id")
+        repeat(4) { kind ->
+            db.insertOrThrow("habit_records", null, ContentValues().apply {
+                put("id", next("habit_records")); put("habit_id", target.id); put("habit_reminder_id", reminderId)
+                put("record_time", epoch + kind); put("record_year", 2026); put("record_month", 6); put("record_week", 23); put("record_day", 1); put("type", kind)
+            })
+        }
+        val original = ThingFileUpdate.captureAlarms(targetContext, target.id)
+        val payload = incoming(Thing.REMINDER, true)
+        val prepared = ThingFileUpdate.prepare(payload); files += prepared.files
+        val merged = ThingFileUpdate.merge(target, prepared.content, ThingFileUpdate.Settings.KEEP_CURRENT)
+        val kept = ThingFileUpdate.write(targetContext, merged, null).after
+        assertSameIdentity(target, kept)
+        check(kept.type == Thing.HABIT && kept.isPrivate() && kept.content == payload.thing.content)
+        check(kept.thingCardSpanMode == Thing.THING_CARD_SPAN_FULL)
+        check(kept.detailAttachmentMediaAppearance.sources.keys.single().contains(prepared.files.single().path))
+        check(rows(original) == rows(ThingFileUpdate.captureAlarms(targetContext, target.id)))
+        cases.put("保留身份、私密、文件夹、置顶、完成状态、外观、所有设置和四种打卡记录")
+
+        val replaced = ThingFileUpdate.write(targetContext,
+            ThingFileUpdate.merge(kept, prepared.content, ThingFileUpdate.Settings.USE_RECEIVED),
+            ThingFileUpdate.receivedAlarms(payload, target.id))
+        prepared.markCommitted(); prepared.discard(); check(prepared.files.all { it.exists() })
+        ThingFileUpdate.synchronizeAlarms(targetContext, replaced)
+        check(replaced.after.type == Thing.REMINDER)
+        check(ThingFileUpdate.captureAlarms(targetContext, target.id).rows.getValue("habit_records").isEmpty())
+        val neighbour = fixture(Thing.HABIT, Thing.FINISHED)
+        ThingFileUpdate.write(targetContext, neighbour, ThingFileUpdate.receivedAlarms(definition, neighbour.id))
+        val neighbourRows = rows(ThingFileUpdate.captureAlarms(targetContext, neighbour.id))
+        val undo = ThingFileUpdate.write(targetContext, target, original)
+        ThingFileUpdate.synchronizeAlarms(targetContext, undo)
+        val restored = ThingFileUpdate.captureAlarms(targetContext, target.id)
+        check(rows(original, true) == rows(restored, true))
+        check(restored.rows.getValue("habit_records").all { it.getAsLong("habit_reminder_id") == restored.rows.getValue("habit_reminders").single().getAsLong("id") })
+        check(neighbourRows == rows(ThingFileUpdate.captureAlarms(targetContext, neighbour.id)))
+        ThingFileUpdate.write(targetContext, replaced.after, replaced.alarms)
+        cases.put("采用来件设置、撤销恢复完整记录、主键冲突重映射、重做复用决定、已提交附件不误删")
+
+        val newHabit = incoming(Thing.HABIT)
+        ThingFileUpdate.write(targetContext, ThingFileUpdate.merge(target, newHabit.thing, ThingFileUpdate.Settings.USE_RECEIVED),
+            ThingFileUpdate.receivedAlarms(newHabit, target.id))
+        val freshHabit = ThingFileUpdate.captureAlarms(targetContext, target.id)
+        check(freshHabit.rows.getValue("habit_records").isEmpty())
+        check(freshHabit.rows.getValue("habits").single().getAsString("record").isEmpty())
+        check(freshHabit.rows.getValue("habits").single().getAsInteger("reminded_times") == 0)
+        val previous = read(target.id)
+        check(runCatching { ThingFileUpdate.write(targetContext, Thing(previous).apply { state = Thing.UNDERWAY }, null) }.isFailure)
+        check(read(target.id).title == previous.title)
+        cases.put("来件习惯从零开始，状态冲突时事务不修改原行")
+    }
+
+    private fun readerCases() {
+        val one = incoming().thing
+        val root = JSONObject().put(ThingFile.KEY_FORMAT, ThingFile.FORMAT).put(ThingFile.KEY_VERSION, 2)
+        val item = JSONObject().put("type", Thing.NOTE).put("title", one.title).put("content", one.content)
+        fun parse(things: JSONArray, folders: JSONArray? = null): ThingFileReader.Result.Ok {
+            root.put("things", things); if (folders != null) root.put("folders", folders) else root.remove("folders")
+            val file = File(dir, "manifest.edthing")
+            ZipOutputStream(file.outputStream()).use { zip -> zip.putNextEntry(ZipEntry("things.json")); zip.write(root.toString().toByteArray()); zip.closeEntry() }
+            return (file.inputStream().use { ThingFileReader.read(targetContext, it) } as ThingFileReader.Result.Ok).also { ThingFileReader.cleanUp(it.tempDir) }
+        }
+        check(parse(JSONArray().put(item)).singleStandaloneThing)
+        check(!parse(JSONArray().put(item).put(JSONObject().put("type", 999))).singleStandaloneThing)
+        check(!parse(JSONArray().put(item), JSONArray().put(JSONObject().put("key", 0).put("title", "文件夹"))).singleStandaloneThing)
+        cases.put("原始来件单条限制，包括过滤后剩单条和空文件夹")
+    }
+
+    private fun detailCases() {
+        val old = fixture(private = true)
+        val activity = open(old.id)
+        main { field<EditText>(activity, "mEtTitle").append("【未保存草稿】") }
+        val draft = main { invoke(activity, "buildShareSnapshot") as Thing }
+        val prepared = ThingFileUpdate.prepare(incoming(Thing.REMINDER, true)); files += prepared.files
+        // 实际分享文件的附件键由 writer 统一映射。
+        val source = ThingShareContent(listOf(ThingShareContent.ThingNode(prepared.content, reminder = prepared.pending.reminder)))
+        val file = File(dir, "received.edthing")
+        check(ThingFileWriter.write(targetContext, source, file) is ThingFileWriter.Result.Ok)
+        val toolbar = activity.findViewById<Toolbar>(R.id.actionbar)
+        main { toolbar.showOverflowMenu() }
+        SystemClock.sleep(1200)
+        main { toolbar.hideOverflowMenu(); activity.onOptionsItemSelected(toolbar.menu.findItem(R.id.act_tap_update)) }
+        await { field<TapDetailReceiveController?>(activity, "tapUpdateReceiver")?.isReceiving == true }
+        val receiver = main { field<TapDetailReceiveController>(activity, "tapUpdateReceiver") }
+        main { field<TapReceiverTransport?>(receiver, "transport")?.stop() }
+        SystemClock.sleep(1200)
+        main {
+            check(activity.findViewById<View>(R.id.sv_detail).translationY > 0f)
+            check(activity.findViewById<TextView>(R.id.tv_tap_receive).text == activity.getString(R.string.tap_receive_exit))
+            check(activity.findViewById<TextView>(R.id.tv_tap_receive_hint).text == activity.getString(R.string.tap_receive_hint))
+            check(activity.findViewById<TextView>(R.id.tv_tap_receive_hint).currentTextColor == field<EditText>(activity, "mEtTitle").currentTextColor)
+            val list = activity.findViewById<View>(R.id.sv_detail)
+            check(list.clipBounds!!.bottom + list.translationY <= list.height + 1f)
+            check(field<View>(receiver, "stage").height == activity.findViewById<View>(R.id.fl_root_detail).height)
+        }
+        main { receiver.onTouched(TapIncomingOffer("另一台测试设备", 1, intArrayOf(prepared.content.getColor()), floatArrayOf(1f), booleanArrayOf(false))) }
+        repeat(8) { step ->
+            main { if (step == 0) receiver.onConnected(file.length()); receiver.onProgress(file.length() * (step + 1) / 8, file.length()) }
+            SystemClock.sleep(180)
+        }
+        check(main { activity.findViewById<TextView>(R.id.tv_tap_receive_hint).text.contains("%") })
+        main { receiver.onReceived(file) }
+        await { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)?.view != null }
+        SystemClock.sleep(1200)
+        main { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)!!.requireView().findViewById<View>(R.id.tap_update_keep).performClick() }
+        await(25000) { !receiver.isReceiving }
+        check(read(old.id).getTitleToDisplay() == prepared.content.title)
+        check(read(old.id).type == Thing.NOTE && read(old.id).isPrivate())
+        check(main { (invoke(activity, "buildShareSnapshot") as Thing).content } == prepared.content.content)
+        val attachment = read(old.id).attachment
+        files += attachment.orEmpty().split(AttachmentHelper.SIGNAL).drop(1).filter { it.length > 1 }.map { File(it.substring(1)) }
+        SystemClock.sleep(1500)
+        check(main { activity.findViewById<View>(R.id.sv_detail).translationY == 0f })
+        check(main { activity.findViewById<View>(R.id.sv_detail).clipBounds == null })
+        cases.put("接收入口紧接分享，共用首页下移、退出按钮和百分比，粒子舞台覆盖四周，完成后页面复位")
+        menu(activity, R.id.act_undo)
+        check(read(old.id).title == draft.title && read(old.id).content == draft.content)
+        SystemClock.sleep(1200)
+        menu(activity, R.id.act_redo)
+        check(read(old.id).attachment == attachment)
+        SystemClock.sleep(1200)
+        cases.put("真实详情菜单与覆盖动画、选择保留、撤销恢复未保存草稿、重做视频和清单")
+
+        val short = ThingFileUpdate.prepare(incoming(Thing.REMINDER)); files += short.files
+        val shorterFile = File(dir, "shorter.edthing")
+        check(ThingFileWriter.write(targetContext, ThingShareContent(listOf(ThingShareContent.ThingNode(
+            short.content, reminder = short.pending.reminder))), shorterFile) is ThingFileWriter.Result.Ok)
+        val shorterReceiver = begin(activity)
+        main {
+            shorterReceiver.onTouched(TapIncomingOffer("另一台测试设备", 1, intArrayOf(short.content.getColor()), floatArrayOf(1f), booleanArrayOf(false)))
+            shorterReceiver.onConnected(shorterFile.length()); shorterReceiver.onProgress(shorterFile.length(), shorterFile.length())
+            shorterReceiver.onReceived(shorterFile)
+        }
+        await { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)?.view != null }
+        SystemClock.sleep(600)
+        main { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)!!.requireView().findViewById<View>(R.id.tap_update_replace).performClick() }
+        await(25000) { !shorterReceiver.isReceiving }
+        SystemClock.sleep(1200)
+        check(read(old.id).type == Thing.REMINDER && read(old.id).attachment!!.isEmpty())
+        val historyFiles = attachment.orEmpty().split(AttachmentHelper.SIGNAL).drop(1).map { File(it.substring(1)) }
+        main { App.getApp()!!.addAttachmentsToDeleteFile(historyFiles.map { it.path }); App.getApp()!!.deleteAttachmentFiles() }
+        field<java.util.concurrent.ExecutorService>(App.getApp()!!, "mExecutor").submit {}.get()
+        check(historyFiles.all { it.exists() })
+        menu(activity, R.id.act_undo)
+        check(read(old.id).type == Thing.NOTE && read(old.id).attachment == attachment)
+        menu(activity, R.id.act_redo)
+        check(read(old.id).type == Thing.REMINDER)
+        cases.put("详情内类型与附件多次替换、撤销／重做与已有编辑历史共同工作")
+        main { activity.finish() }; await { activity.isDestroyed }; current = null
+        main { App.getApp()!!.deleteAttachmentFiles() }
+        field<java.util.concurrent.ExecutorService>(App.getApp()!!, "mExecutor").submit {}.get()
+        check(historyFiles.none { it.exists() })
+        cases.put("后台清理保留历史引用附件，退出详情后回收未使用附件")
+
+        val finished = fixture(state = Thing.FINISHED)
+        val completed = open(finished.id)
+        val replacement = ThingFileUpdate.prepare(incoming(Thing.REMINDER))
+        main { invoke(completed, "applyReceivedContent", replacement, ThingFileUpdate.Settings.USE_RECEIVED) }
+        assertSameIdentity(finished, read(finished.id))
+        menu(completed, R.id.act_undo); check(read(finished.id).type == Thing.NOTE)
+        menu(completed, R.id.act_redo); check(read(finished.id).type == Thing.REMINDER)
+        cases.put("已完成详情提供入口与撤销／重做，原完成时间不变")
+        main { completed.finish() }; waitForIdleSync(); current = null
+    }
+
+    private fun begin(activity: DetailActivity): TapDetailReceiveController {
+        menu(activity, R.id.act_tap_update)
+        await { field<TapDetailReceiveController?>(activity, "tapUpdateReceiver")?.isReceiving == true }
+        return main { field<TapDetailReceiveController>(activity, "tapUpdateReceiver").also {
+            field<TapReceiverTransport?>(it, "transport")?.stop()
+        } }
+    }
+
+    /** 复查专用：通过生产传输监听器与详情编辑入口检查跨轮回调和未保存设置。 */
+    private fun reviewCases() {
+        val failures = mutableListOf<String>()
+        fun verify(name: String, block: () -> Unit) {
+            try { block(); cases.put(name) }
+            catch (e: Throwable) { failures += "$name：${e.stackTraceToString()}" }
+            finally {
+                val activity = current
+                main { activity?.finish() }
+                if (activity != null) await { activity.isDestroyed }
+                current = null
+            }
+        }
+        verify("退出再进入接收后，旧监听器的迟到文件不能进入新一轮") {
+            val old = fixture()
+            val activity = open(old.id)
+            menu(activity, R.id.act_tap_update)
+            await { field<TapDetailReceiveController?>(activity, "tapUpdateReceiver")?.isReceiving == true }
+            val receiver = main { field<TapDetailReceiveController>(activity, "tapUpdateReceiver") }
+            val lateListener = main {
+                val transport = field<TapReceiverTransport>(receiver, "transport")
+                field<TapReceiverTransport.Listener>(transport, "listener").also { receiver.exit(immediate = true) }
+            }
+            menu(activity, R.id.act_tap_update)
+            await { receiver.isReceiving }
+            val currentListener = main {
+                val transport = field<TapReceiverTransport>(receiver, "transport")
+                field<TapReceiverTransport.Listener>(transport, "listener").also { transport.stop() }
+            }
+            val pending = incoming(Thing.REMINDER)
+            val late = File(dir, "previous-session.edthing")
+            check(ThingFileWriter.write(targetContext, ThingShareContent(listOf(
+                ThingShareContent.ThingNode(pending.thing, reminder = pending.reminder))), late) is ThingFileWriter.Result.Ok)
+            main { lateListener.onReceived(late) }
+            field<java.util.concurrent.ExecutorService>(receiver, "worker").submit {}.get()
+            waitForIdleSync()
+            main {
+                activity.supportFragmentManager.executePendingTransactions()
+                check(activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG) == null) {
+                    "上一轮的来件弹出了新一轮的设置选择框"
+                }
+                check(field<ThingFileUpdate.Prepared?>(receiver, "prepared") == null)
+                check(receiver.isReceiving)
+            }
+            check(!late.exists())
+            check(read(old.id).title == old.title && read(old.id).content == old.content)
+            val fresh = File(dir, "current-session.edthing")
+            val content = incoming().thing
+            check(ThingFileWriter.write(targetContext, listOf(content), fresh) is ThingFileWriter.Result.Ok)
+            main {
+                currentListener.onTouched(TapIncomingOffer("当前接收测试", 1, intArrayOf(Color.BLUE)))
+                currentListener.onReceived(fresh)
+            }
+            await(25000) { !receiver.isReceiving }
+            check(read(old.id).content == content.content)
+            menu(activity, R.id.act_undo)
+            check(read(old.id).content == old.content)
+        }
+        verify("保留未保存的习惯设置，更新、撤销和重做后的类型提示与参数一致") {
+            val old = fixture()
+            val activity = open(old.id)
+            main {
+                activity.rhParams = ReminderHabitParams().apply {
+                    habitType = java.util.Calendar.DATE; habitDetail = "12:30"
+                }
+                activity.cbQuickRemind!!.isChecked = true
+                activity.tvQuickRemind!!.text = activity.rhParams.getDateTimeStr()
+                activity.updateBackButton()
+            }
+            val replacement = ThingFileUpdate.prepare(incoming())
+            main { invoke(activity, "applyReceivedContent", replacement, ThingFileUpdate.Settings.KEEP_CURRENT) }
+            fun assertDraft() = main {
+                check(activity.rhParams.habitDetail == "12:30" && activity.cbQuickRemind!!.isChecked)
+                check(invoke(activity, "getThingTypeAfter") == Thing.HABIT)
+                check(field<View>(activity, "mIbBack").contentDescription == activity.getString(R.string.cd_back_habit)) {
+                    "习惯草稿保留了，但返回图标仍显示其它记事类型"
+                }
+            }
+            assertDraft()
+            menu(activity, R.id.act_undo); assertDraft()
+            menu(activity, R.id.act_redo); assertDraft()
+            main { invoke(activity, "returnToThingsActivity", false, false) }
+            await { activity.isDestroyed }
+            check(read(old.id).type == Thing.HABIT)
+            check(ThingFileUpdate.captureAlarms(targetContext, old.id).rows.getValue("habits").single().getAsString("detail") == "12:30")
+        }
+        verify("32 种类型与设置选择组合：旧编辑历史、接收撤销／重做、退出保存一致") {
+            val types = listOf(Thing.NOTE, Thing.REMINDER, Thing.GOAL, Thing.HABIT)
+            for (oldType in types) for (newType in types) for (choice in ThingFileUpdate.Settings.entries) {
+                val original = fixture(type = oldType, private = oldType % 2 == 0)
+                val oldSettings = incoming(oldType)
+                val initial = ThingFileUpdate.write(targetContext, original,
+                    ThingFileUpdate.receivedAlarms(oldSettings, original.id))
+                main { ThingFileUpdate.synchronizeAlarms(targetContext, initial) }
+                val oldAlarms = ThingFileUpdate.captureAlarms(targetContext, original.id)
+                val activity = open(original.id)
+                main { field<EditText>(activity, "mEtTitle").append("（接收前编辑）") }
+                val draft = main { invoke(activity, "buildShareSnapshot") as Thing }
+                val prepared = ThingFileUpdate.prepare(incoming(newType))
+                main { invoke(activity, "applyReceivedContent", prepared, choice) }
+                val expectedType = if (choice == ThingFileUpdate.Settings.KEEP_CURRENT) oldType else newType
+                val after = read(original.id)
+                val afterAlarms = ThingFileUpdate.captureAlarms(targetContext, original.id)
+                check(after.type == expectedType && after.content == prepared.content.content)
+                check(after.isPrivate() == original.isPrivate())
+                assertSameIdentity(original, after)
+                if (choice == ThingFileUpdate.Settings.KEEP_CURRENT) check(rows(afterAlarms) == rows(oldAlarms))
+                menu(activity, R.id.act_undo)
+                check(read(original.id).title == draft.title && read(original.id).type == oldType)
+                check(rows(ThingFileUpdate.captureAlarms(targetContext, original.id), true) == rows(oldAlarms, true))
+                menu(activity, R.id.act_undo)
+                check(main { (invoke(activity, "buildShareSnapshot") as Thing).title } == original.title)
+                menu(activity, R.id.act_redo)
+                check(main { (invoke(activity, "buildShareSnapshot") as Thing).title } == draft.title)
+                menu(activity, R.id.act_redo)
+                check(read(original.id).type == expectedType)
+                check(rows(ThingFileUpdate.captureAlarms(targetContext, original.id), true) == rows(afterAlarms, true))
+                main { invoke(activity, "returnToThingsActivity", false, false) }
+                await { activity.isDestroyed }; current = null
+                check(read(original.id).type == expectedType && read(original.id).content == after.content) {
+                    "退出保存改变了接收结果：$oldType → $newType / $choice"
+                }
+            }
+        }
+        check(failures.isEmpty()) { failures.joinToString("\n\n") }
+    }
+
+    private fun cancellationCases() {
+        val old = fixture()
+        val activity = open(old.id)
+        // 键盘收起完成后才启用接收，不被窗口高度变化立即退出。
+        main { com.ywwynm.everythingdone.utils.KeyboardUtil.showKeyboard(activity.window, field<EditText>(activity, "mEtTitle")) }
+        await { androidx.core.view.ViewCompat.getRootWindowInsets(activity.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) == true }
+        val receiver = begin(activity)
+        SystemClock.sleep(500)
+        check(main { receiver.isReceiving })
+        val multiple = File(dir, "multiple.edthing")
+        check(ThingFileWriter.write(targetContext, listOf(incoming().thing, incoming().thing), multiple) is ThingFileWriter.Result.Ok)
+        main { receiver.onTouched(TapIncomingOffer("无效批量测试", 2, intArrayOf(Color.BLUE, Color.RED), floatArrayOf(1f, 1f), booleanArrayOf(false, false))); receiver.onReceived(multiple) }
+        await { !field<Boolean>(receiver, "busy") }
+        check(main { receiver.isReceiving })
+        check(read(old.id).title == old.title && read(old.id).content == old.content)
+        cases.put("软键盘打开时进入接收，拒绝多条后仍等待且原记事不变")
+
+        val cancelled = File(dir, "cancelled.edthing")
+        check(ThingFileWriter.write(targetContext, listOf(incoming().thing), cancelled) is ThingFileWriter.Result.Ok)
+        main { receiver.onTouched(TapIncomingOffer("取消测试", 1, intArrayOf(Color.BLUE), floatArrayOf(1f), booleanArrayOf(false))); receiver.onReceived(cancelled); receiver.exit() }
+        field<java.util.concurrent.ExecutorService>(receiver, "worker").submit {}.get()
+        waitForIdleSync()
+        check(read(old.id).title == old.title && read(old.id).content == old.content)
+        val late = File(dir, "late.edthing").apply { writeText("迟到文件") }
+        main { receiver.onReceived(late) }; check(!late.exists())
+        cases.put("解析中取消与退出后迟到来件不修改当前记事")
+
+        val fast = File(dir, "fast.edthing")
+        val fastContent = incoming().thing
+        check(ThingFileWriter.write(targetContext, listOf(fastContent), fast) is ThingFileWriter.Result.Ok)
+        val fastReceiver = begin(activity)
+        main {
+            fastReceiver.onTouched(TapIncomingOffer("快速来件测试", 1, intArrayOf(Color.BLUE), floatArrayOf(1f), booleanArrayOf(false)))
+            fastReceiver.onReceived(fast)
+        }
+        await(25000) { !fastReceiver.isReceiving }
+        check(read(old.id).content == fastContent.content)
+        SystemClock.sleep(400)
+        check(main { activity.findViewById<View>(R.id.sv_detail).translationY == 0f })
+        menu(activity, R.id.act_undo)
+        check(read(old.id).title == old.title && read(old.id).content == old.content)
+        cases.put("普通记事快速来件等待进场位移结束后覆盖，无设置弹窗，完成后复位并可撤销")
+
+        val dialogReceiver = begin(activity)
+        val choice = File(dir, "choice.edthing")
+        val received = incoming(Thing.REMINDER)
+        check(ThingFileWriter.write(targetContext, ThingShareContent(listOf(ThingShareContent.ThingNode(received.thing, reminder = received.reminder))), choice) is ThingFileWriter.Result.Ok)
+        main { dialogReceiver.onTouched(TapIncomingOffer("设置必选测试", 1, intArrayOf(Color.BLUE), floatArrayOf(1f), booleanArrayOf(false))); dialogReceiver.onReceived(choice) }
+        await { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG)?.view != null }
+        SystemClock.sleep(1000)
+        val dialog = main { activity.supportFragmentManager.findFragmentByTag(TapUpdateSettingsDialog.TAG) as TapUpdateSettingsDialog }
+        main {
+            check(!dialog.isCancelable)
+            val view = dialog.requireView()
+            val description = view.findViewById<TextView>(R.id.tap_update_settings_description)
+            val keep = view.findViewById<TextView>(R.id.tap_update_keep)
+            val replace = view.findViewById<TextView>(R.id.tap_update_replace)
+            check(description.bottom <= keep.top && keep.bottom <= replace.top)
+            check(keep.lineCount == 1 && replace.lineCount == 1)
+            check(keep.width == view.width && replace.width == view.width)
+            val window = dialog.requireDialog() as ComponentDialog
+            window.onBackPressedDispatcher.onBackPressed()
+            val time = SystemClock.uptimeMillis()
+            for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
+                MotionEvent.obtain(time, time, action, -20f, -20f, 0).also {
+                    window.dispatchTouchEvent(it); it.recycle()
+                }
+            }
+        }
+        SystemClock.sleep(500)
+        check(main { dialog.dialog?.isShowing == true && dialogReceiver.isReceiving })
+        check(read(old.id).title == old.title && read(old.id).content == old.content)
+        main { activity.finish() }; await { activity.isDestroyed }; current = null
+        check(read(old.id).title == old.title && read(old.id).content == old.content)
+        cases.put("设置说明独立、选项单行整行，返回与点击外部不能取消；生命周期中断保留原内容")
+    }
+
+    private fun open(id: Long): DetailActivity = (startActivitySync(DetailActivity.getOpenIntentForUpdate(
+        targetContext, "tap-update-regression", id, -1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as DetailActivity).also {
+        current = it; waitForIdleSync(); await { it.findViewById<Toolbar>(R.id.actionbar)?.menu?.findItem(R.id.act_tap_update) != null }
+        main {
+            val menu = it.findViewById<Toolbar>(R.id.actionbar).menu
+            val shareIndex = (0 until menu.size()).first { index -> menu.getItem(index).itemId == R.id.act_share }
+            check(menu.getItem(shareIndex + 1).itemId == R.id.act_tap_update)
+        }
+    }
+
+    private fun menu(activity: DetailActivity, id: Int) {
+        main { val toolbar = activity.findViewById<Toolbar>(R.id.actionbar); check(toolbar.menu.findItem(id).isEnabled); activity.onOptionsItemSelected(toolbar.menu.findItem(id)) }
+        waitForIdleSync()
+    }
+    private fun assertSameIdentity(a: Thing, b: Thing) {
+        check(a.id == b.id && a.folderId == b.folderId && a.location == b.location && a.createTime == b.createTime && a.state == b.state && a.finishTime == b.finishTime)
+    }
+    private fun rows(snapshot: ThingFileUpdate.Alarms, ignoreIds: Boolean = false): String = snapshot.rows.toSortedMap().map { (table, rows) ->
+        table to rows.map { row -> row.keySet().sorted().filterNot { ignoreIds && table.startsWith("habit_") && (it == "id" || it == "habit_reminder_id") }.map { it to row.getAsString(it) } }
+    }.toString()
+    private fun read(id: Long): Thing = db.query("things", null, "id=?", arrayOf("$id"), null, null, null).use { check(it.moveToFirst()); Thing(it) }
+    private fun next(table: String) = DatabaseUtils.longForQuery(db, "SELECT COALESCE(MAX(id),0)+1 FROM $table", null)
+    private fun await(timeout: Long = 10000, condition: () -> Boolean) {
+        val until = SystemClock.uptimeMillis() + timeout
+        while (!main(condition)) { check(SystemClock.uptimeMillis() < until) { "等待界面超时" }; SystemClock.sleep(32) }
+    }
+    private fun <T> main(block: () -> T): T { var result: Result<T>? = null; runOnMainSync { result = runCatching(block) }; return result!!.getOrThrow() }
+    @Suppress("UNCHECKED_CAST") private fun <T> field(target: Any, name: String): T = target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target) as T
+    private fun invoke(target: Any, name: String, vararg args: Any): Any? = target.javaClass.declaredMethods.first { it.name == name && it.parameterTypes.size == args.size }.apply { isAccessible = true }.invoke(target, *args)
+}
