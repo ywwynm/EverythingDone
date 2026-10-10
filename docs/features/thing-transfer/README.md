@@ -12,6 +12,8 @@ Status: 一期（记事文件）已发布；二期（应用内碰一碰）2026-0
 
 ## Documents
 
+- [receive-blank-card-2026-10-10.md](receive-blank-card-2026-10-10.md) — 批量接收后滚动出现空白卡片：缓存视图漏恢复的复现、修复及两机回归
+
 - [decisions.md](decisions.md) — 17 项决策记录（2026-09-21 逐项确认）
 - [probe-plan.md](probe-plan.md) — 二期可行性的真机验证方案：七个验证项、分段计时、否决线
 - [sessions.md](sessions.md) — 会话记录，含**真机验证的全部实测数据**

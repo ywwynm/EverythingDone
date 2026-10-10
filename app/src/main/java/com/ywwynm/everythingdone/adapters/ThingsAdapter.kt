@@ -54,6 +54,7 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.views.ThingCardChecklistView
 import com.ywwynm.everythingdone.views.InterceptTouchCardView
 import java.util.Locale
+import java.util.WeakHashMap
 
 /**
  * Created by ywwynm on 2015/5/28.
@@ -95,6 +96,11 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
     // 碰一碰收到的文件夹，同上（按文件夹 id）
     private val mHiddenFolderIds = HashSet<Long>()
+
+    // 接收动画实际藏起的视图（记事 stableId 为 id，文件夹为 -id）。RecyclerView 会缓存已绑定
+    // 的屏外 holder，重新挂回时不一定再次绑定；揭示时必须连同缓存中的视图一起恢复。
+    // 弱引用不延长卡片寿命；改绑或真正回收时取消旧归属，避免揭示旧 id 干扰别的卡片／动画。
+    private val mHiddenReceivedCards = WeakHashMap<View, Long>()
 
     open fun setModeManager(modeManager: ModeManager?) {
         mModeManager = modeManager
@@ -249,6 +255,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             mHiddenThingIds.add(thingId)
         } else {
             mHiddenThingIds.remove(thingId)
+            revealReceivedCards(thingId)
         }
     }
 
@@ -257,6 +264,25 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             mHiddenFolderIds.add(folderId)
         } else {
             mHiddenFolderIds.remove(folderId)
+            revealReceivedCards(-folderId)
+        }
+    }
+
+    private fun hideReceivedCard(card: View, stableId: Long) {
+        mHiddenReceivedCards[card] = stableId
+        card.visibility = View.INVISIBLE
+    }
+
+    private fun revealReceivedCards(stableId: Long) {
+        val iterator = mHiddenReceivedCards.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.value != stableId) continue
+            val card = entry.key
+            iterator.remove()
+            card.animate().cancel()
+            card.alpha = 1f
+            card.visibility = View.VISIBLE
         }
     }
 
@@ -271,6 +297,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     override fun onViewRecycled(holder: BaseThingViewHolder) {
+        mHiddenReceivedCards.remove(holder.itemView)
         super.onViewRecycled(holder)
         // holder 被回收进 RecycledViewPool 时，把它挂着的缩略图树从视图层级摘下（树本身仍按 folderId 留在
         // mFolderThumbnailCache 中）。否则该树的 parent 仍指向这个待命 holder，等同一文件夹换到另一个 holder
@@ -280,6 +307,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
+        mHiddenReceivedCards.remove(holder.itemView)
         val entry = getEntries()?.getOrNull(position)
         holder.itemView.setTag(
             R.id.tag_thing_card_bound_stable_id,
@@ -298,7 +326,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
                 playAppearingAnimation(holder.cv!!, position)
             }
             if (hiddenFolder) {
-                holder.cv!!.visibility = View.INVISIBLE
+                hideReceivedCard(holder.cv!!, entry.stableId)
             }
             return
         }
@@ -329,7 +357,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
 
         maybeTriggerArmedNewItemAnimation(holder, position)
         if (hidden) {
-            holder.cv!!.visibility = View.INVISIBLE
+            hideReceivedCard(holder.cv!!, thing.id)
         }
     }
 

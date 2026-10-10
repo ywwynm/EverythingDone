@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <instrumentation android:name=".taptransfer.TapReceiveVisibilityProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="碰一碰接收卡片显示回归" />
+
     <instrumentation android:name=".views.particledismiss.AppearancePanelInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="外观面板交接回归" />
 
@@ -25,6 +28,10 @@
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".taptransfer.TapReceiveVisibilityActivity"
+            android:exported="false" android:excludeFromRecents="true"
+            android:theme="@style/EverythingDoneTheme.Things" />
 
         <activity android:name=".detail.DetailProcessProbeActivity" android:exported="true"
             android:taskAffinity="com.ywwynm.everythingdone.detailregression"

@@ -12523,19 +12523,12 @@ class ThingsActivity :
 
     /** [stableIds] 按列表项的 stableId：记事是 id，文件夹是 −id。 */
     private fun revealTapReceivedThings(stableIds: Collection<Long>) {
-        val manager = mThingManager!!
         for (id in stableIds) {
             if (id < 0) {
                 mAdapter!!.setFolderHidden(-id, false)
             } else {
                 mAdapter!!.setThingHidden(id, false)
             }
-            val position = manager.getListPositionForStableId(id)
-            if (position < 0) continue
-            val card = mRecyclerView!!.findViewHolderForAdapterPosition(position)?.itemView ?: continue
-            card.animate().cancel()
-            card.alpha = 1f
-            card.visibility = View.VISIBLE
         }
     }
 
