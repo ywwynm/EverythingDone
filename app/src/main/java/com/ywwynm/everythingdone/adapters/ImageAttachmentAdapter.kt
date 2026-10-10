@@ -35,6 +35,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.helpers.AttachmentHelper
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.helpers.DetailAttachmentPlaybackController
+import com.ywwynm.everythingdone.helpers.DetailMediaOverlayColors
 import com.ywwynm.everythingdone.helpers.MediaCropBitmapRenderer
 import com.ywwynm.everythingdone.helpers.MediaCropTransformation
 import com.ywwynm.everythingdone.helpers.HdrImageDetector
@@ -328,6 +329,8 @@ open class ImageAttachmentAdapter(
             "$pathName|${size[0]}|${size[1]}|${videoFrameMs ?: -1L}|default"
         }
         val loadKey = baseLoadKey + playbackKeySuffix(animatedPlayback, derivedGifPath)
+        holder.overlayColors.bind(baseLoadKey, pathName, videoCandidate, videoFrameMs,
+            size[0], size[1], presentation?.crop?.let(::getDetailAttachmentBitmapCrop))
         if (customized && presentation != null) {
             imageView.setTag(
                 R.id.tag_detail_attachment_image_render_request,
@@ -369,6 +372,7 @@ open class ImageAttachmentAdapter(
 
         var request = Glide.with(imageView.context)
             .load(loadSource)
+            .disallowHardwareConfig()
         if (mTakingScreenshot) {
             // 离屏导出不会收到窗口 pre-draw，不能让 Glide 等待 ImageView 的布局回调。
             request = request.override(size[0], size[1])
@@ -454,6 +458,7 @@ open class ImageAttachmentAdapter(
                             getDetailAttachmentBitmapCrop(renderRequest.crop)
                         )
                         if (bakedBitmap != null) {
+                            holder.overlayColors.onMediaReady(baseLoadKey, bakedBitmap)
                             imageView.setTag(
                                 R.id.tag_detail_attachment_image_load_key, loadKey
                             )
@@ -470,6 +475,12 @@ open class ImageAttachmentAdapter(
                         current != RecyclerView.NO_POSITION && mItems?.getOrNull(current) == typePathName &&
                         mPlaybackController?.shouldPlay(current) == true
                     imageView.setTag(R.id.tag_detail_attachment_image_load_key, loadKey)
+                    val staticBitmap = if (boundDerivedGifPath == null) when (resource) {
+                        is BitmapDrawable -> resource.bitmap
+                        is GifDrawable -> resource.firstFrame
+                        else -> null
+                    } else null
+                    holder.overlayColors.onMediaReady(baseLoadKey, staticBitmap)
                     if (resource is GifDrawable) {
                         // 请求完成时可能已离屏或重排。按此刻的位置决定播放，并接管 target，
                         // 防止 Glide 在本回调之后无条件 start() 使离屏资源重新播放。
@@ -761,6 +772,7 @@ open class ImageAttachmentAdapter(
                 holder.tvBadgeHdr?.visibility == View.VISIBLE ||
                 holder.tvBadgeGif?.visibility == View.VISIBLE
         holder.llMediaBadges?.visibility = if (any) View.VISIBLE else View.GONE
+        holder.overlayColors.schedule()
     }
 
     private fun getPresentationForPosition(
@@ -802,6 +814,7 @@ open class ImageAttachmentAdapter(
         holder.ivDelete!!.visibility = if (visible) View.VISIBLE else View.GONE
         holder.ivEditAppearance!!.visibility =
             if (visible && mAppearanceCallback != null) View.VISIBLE else View.GONE
+        holder.overlayColors.schedule()
     }
 
     private fun getDetailAttachmentBitmapCrop(
@@ -820,6 +833,7 @@ open class ImageAttachmentAdapter(
         super.onViewDetachedFromWindow(holder)
         // RecyclerView 的缓存项可能暂不回收，离开窗口时就停止解码。
         holder.ivImage?.let { stopExistingGif(it) }
+        holder.overlayColors.detach()
     }
 
     override fun onViewAttachedToWindow(holder: ImageViewHolder) {
@@ -830,6 +844,7 @@ open class ImageAttachmentAdapter(
 
     override fun onViewRecycled(holder: ImageViewHolder) {
         super.onViewRecycled(holder)
+        holder.overlayColors.clear()
         holder.ivImage?.let { imageView ->
             stopExistingGif(imageView)
             Glide.with(imageView.context).clear(imageView)
@@ -866,6 +881,7 @@ open class ImageAttachmentAdapter(
         val ivBadgeSpatial: ImageView? = f(R.id.iv_badge_spatial)
         val tvBadgeHdr: View? = f(R.id.tv_badge_hdr)
         val tvBadgeGif: View? = f(R.id.tv_badge_gif)
+        val overlayColors = DetailMediaOverlayColors(fl!!, ivImage!!)
 
         init {
             pbLoading!!.post {

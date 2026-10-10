@@ -1,0 +1,260 @@
+[
+  {
+    "device": "192.168.100.67_42641",
+    "orientation": "landscape",
+    "checks": 33,
+    "existing_notes_opened": 0,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 210.0,
+        "p95": 577,
+        "max": 966
+      },
+      "apply_us": {
+        "median": 381.5,
+        "p95": 1875,
+        "max": 4858
+      },
+      "worker_us": {
+        "median": 6525.0,
+        "p95": 22977,
+        "max": 180513
+      },
+      "after_media_ms": {
+        "median": 0.0,
+        "p95": 33,
+        "max": 34
+      },
+      "ready_ms": {
+        "median": 56.0,
+        "p95": 340,
+        "max": 845
+      },
+      "main_total_us": {
+        "median": 584.0,
+        "p95": 2748,
+        "max": 5162
+      }
+    },
+    "opaque_warm_ready_ms": [
+      5,
+      6
+    ]
+  },
+  {
+    "device": "192.168.100.67_42641",
+    "orientation": "portrait",
+    "checks": 53,
+    "existing_notes_opened": 7,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 267.0,
+        "p95": 457,
+        "max": 1729
+      },
+      "apply_us": {
+        "median": 176.5,
+        "p95": 1308,
+        "max": 4822
+      },
+      "worker_us": {
+        "median": 3075.0,
+        "p95": 19245,
+        "max": 78158
+      },
+      "after_media_ms": {
+        "median": 0.0,
+        "p95": 30,
+        "max": 82
+      },
+      "ready_ms": {
+        "median": 65.5,
+        "p95": 254,
+        "max": 780
+      },
+      "main_total_us": {
+        "median": 455.0,
+        "p95": 1884,
+        "max": 5082
+      }
+    },
+    "opaque_warm_ready_ms": [
+      10,
+      4
+    ]
+  },
+  {
+    "device": "9018f404",
+    "orientation": "landscape",
+    "checks": 30,
+    "existing_notes_opened": 0,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 115.5,
+        "p95": 154,
+        "max": 467
+      },
+      "apply_us": {
+        "median": 290.0,
+        "p95": 852,
+        "max": 1807
+      },
+      "worker_us": {
+        "median": 3041.5,
+        "p95": 20813,
+        "max": 49860
+      },
+      "after_media_ms": {
+        "median": 5.5,
+        "p95": 94,
+        "max": 94
+      },
+      "ready_ms": {
+        "median": 140.0,
+        "p95": 307,
+        "max": 334
+      },
+      "main_total_us": {
+        "median": 414.0,
+        "p95": 1006,
+        "max": 1943
+      }
+    },
+    "opaque_warm_ready_ms": [
+      3,
+      2
+    ]
+  },
+  {
+    "device": "9018f404",
+    "orientation": "portrait",
+    "checks": 36,
+    "existing_notes_opened": 4,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 121.0,
+        "p95": 178,
+        "max": 404
+      },
+      "apply_us": {
+        "median": 131.0,
+        "p95": 882,
+        "max": 1729
+      },
+      "worker_us": {
+        "median": 2167.5,
+        "p95": 18989,
+        "max": 20599
+      },
+      "after_media_ms": {
+        "median": 30.0,
+        "p95": 114,
+        "max": 126
+      },
+      "ready_ms": {
+        "median": 163.0,
+        "p95": 308,
+        "max": 341
+      },
+      "main_total_us": {
+        "median": 239.5,
+        "p95": 1215,
+        "max": 1861
+      }
+    },
+    "opaque_warm_ready_ms": [
+      5,
+      3
+    ]
+  },
+  {
+    "device": "R5CW20BLNKL",
+    "orientation": "landscape",
+    "checks": 34,
+    "existing_notes_opened": 0,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 193.0,
+        "p95": 408,
+        "max": 840
+      },
+      "apply_us": {
+        "median": 301.5,
+        "p95": 1598,
+        "max": 2393
+      },
+      "worker_us": {
+        "median": 3336.0,
+        "p95": 21448,
+        "max": 22858
+      },
+      "after_media_ms": {
+        "median": 0.0,
+        "p95": 21,
+        "max": 23
+      },
+      "ready_ms": {
+        "median": 43.0,
+        "p95": 140,
+        "max": 146
+      },
+      "main_total_us": {
+        "median": 599.0,
+        "p95": 1814,
+        "max": 2542
+      }
+    },
+    "opaque_warm_ready_ms": [
+      3,
+      4
+    ]
+  },
+  {
+    "device": "R5CW20BLNKL",
+    "orientation": "portrait",
+    "checks": 52,
+    "existing_notes_opened": 8,
+    "fixture_rows_removed": 7,
+    "timings": {
+      "capture_us": {
+        "median": 208.5,
+        "p95": 359,
+        "max": 862
+      },
+      "apply_us": {
+        "median": 82.5,
+        "p95": 1011,
+        "max": 1492
+      },
+      "worker_us": {
+        "median": 1418.0,
+        "p95": 13379,
+        "max": 33286
+      },
+      "after_media_ms": {
+        "median": 12.5,
+        "p95": 40,
+        "max": 98
+      },
+      "ready_ms": {
+        "median": 55.5,
+        "p95": 136,
+        "max": 201
+      },
+      "main_total_us": {
+        "median": 384.5,
+        "p95": 1239,
+        "max": 1651
+      }
+    },
+    "opaque_warm_ready_ms": [
+      5,
+      5
+    ]
+  }
+]

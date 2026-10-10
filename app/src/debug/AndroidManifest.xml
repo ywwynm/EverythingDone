@@ -28,6 +28,8 @@
         android:targetPackage="com.ywwynm.everythingdone" android:label="详情重建状态差分" />
     <instrumentation android:name=".detail.DetailMediaGeometryProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="详情媒体默认比例回归" />
+    <instrumentation android:name=".detail.DetailMediaOverlayProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="详情附件自适应配色及速度验证" />
 
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
