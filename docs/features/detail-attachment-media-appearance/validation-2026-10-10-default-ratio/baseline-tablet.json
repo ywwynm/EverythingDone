@@ -1,0 +1,167 @@
+{
+  "error": "java.lang.IllegalStateException: 等待界面超时\n\tat com.ywwynm.everythingdone.detail.DetailMediaGeometryProbe.await(DetailMediaGeometryProbe.kt:232)\n\tat com.ywwynm.everythingdone.detail.DetailMediaGeometryProbe.screenMatrix(DetailMediaGeometryProbe.kt:153)\n\tat com.ywwynm.everythingdone.detail.DetailMediaGeometryProbe.onStart(DetailMediaGeometryProbe.kt:57)\n\tat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2632)\n",
+  "failures": 9,
+  "samples": [
+    {
+      "before": [
+        2520,
+        1890
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-false-false-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        1890
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-false-false-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        840
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-false-true-0-default",
+      "passed": false
+    },
+    {
+      "name": "matrix-false-true-0-remove",
+      "passed": false
+    },
+    {
+      "name": "matrix-false-true-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        840
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-false-true-1-default",
+      "passed": false
+    },
+    {
+      "name": "matrix-false-true-1-remove",
+      "passed": false
+    },
+    {
+      "name": "matrix-false-true-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        1890
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-true-false-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        1890
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-true-false-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        840
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-true-true-0-default",
+      "passed": false
+    },
+    {
+      "name": "matrix-true-true-0-remove",
+      "passed": false
+    },
+    {
+      "name": "matrix-true-true-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        2520,
+        840
+      ],
+      "confirmed": [
+        2520,
+        1890
+      ],
+      "name": "matrix-true-true-1-default",
+      "passed": false
+    },
+    {
+      "name": "matrix-true-true-1-remove",
+      "passed": false
+    },
+    {
+      "name": "matrix-true-true-1-saved",
+      "passed": true
+    }
+  ],
+  "fixture_rows_removed": 1
+}

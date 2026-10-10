@@ -1,0 +1,236 @@
+{
+  "failures": 0,
+  "samples": [
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-false-false-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-false-false-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-false-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-false-true-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-true-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-true-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-false-true-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-true-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-false-true-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-true-false-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-true-false-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-false-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-true-true-0-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-true-0-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-true-0-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "name": "matrix-true-true-1-default",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-true-1-remove",
+      "passed": true
+    },
+    {
+      "name": "matrix-true-true-1-saved",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "editor_ratio": 1.3333333730697632,
+      "tablet": false,
+      "name": "screen-portrait-landscape",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "editor_ratio": 1.3333333730697632,
+      "tablet": false,
+      "name": "screen-portrait-portrait",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "editor_ratio": 1.3333333730697632,
+      "tablet": false,
+      "name": "screen-portrait-square",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "editor_ratio": 1.3333333730697632,
+      "tablet": false,
+      "name": "screen-portrait-ultrawide",
+      "passed": true
+    },
+    {
+      "before": [
+        1440,
+        1080
+      ],
+      "confirmed": [
+        1440,
+        1080
+      ],
+      "editor_ratio": 1.3333333730697632,
+      "tablet": false,
+      "name": "screen-portrait-video",
+      "passed": true
+    }
+  ],
+  "fixture_rows_removed": 5
+}

@@ -20,6 +20,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
+import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -34,6 +35,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
+import kotlin.math.roundToInt
 
 /**
  * Created by ywwynm on 2015/9/23.
@@ -227,9 +229,17 @@ object AttachmentHelper {
     fun calculateImageSize(context: Context?, itemSize: Int): IntArray {
         val size = IntArray(2)
         val res: Resources = context!!.resources
+        val displayWidth: Int = res.displayMetrics.widthPixels
+        // 单媒体的运行时默认必须与外观编辑器一致，横屏也不能落入旧网格的 3:1 分支。
+        // 只计算展示尺寸，不把默认外观写入记事；添加第二个媒体后仍走原网格规则。
+        if (itemSize == 1) {
+            val ratio = DetailAttachmentMediaAppearance.defaultTargetAspectRatio(
+                DetailAttachmentMediaAppearance.PRESENTATION_FULL_SPAN
+            )
+            return intArrayOf(displayWidth, (displayWidth / ratio).roundToInt().coerceAtLeast(1))
+        }
         val isTablet: Boolean = DisplayUtil.isTablet(context)
         val orientation: Int = res.configuration.orientation
-        val displayWidth: Int = res.displayMetrics.widthPixels
 
         if (isTablet) {
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -242,10 +252,6 @@ object AttachmentHelper {
                 }
             } else {
                 when (itemSize) {
-                    1 -> {
-                        size[0] = displayWidth
-                        size[1] = displayWidth * 3 / 4
-                    }
                     2 -> {
                         size[0] = displayWidth / 2
                         size[1] = displayWidth * 3 / 4
@@ -266,13 +272,8 @@ object AttachmentHelper {
                     size[1] = size[0]
                 }
             } else {
-                if (itemSize == 1) {
-                    size[0] = displayWidth
-                    size[1] = size[0] * 3 / 4
-                } else {
-                    size[0] = displayWidth / 2
-                    size[1] = size[0]
-                }
+                size[0] = displayWidth / 2
+                size[1] = size[0]
             }
         }
         return size
