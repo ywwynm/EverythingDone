@@ -28,6 +28,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.activities.AuthenticationActivity
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.activities.ShortcutActivity
@@ -877,16 +878,7 @@ object AppWidgetHelper {
         context: Context,
         entry: ThingListEntry.FolderEntry
     ): String {
-        val folderCount = entry.directFolderCount
-        val thingCount = entry.recursiveThingCount
-        return when {
-            folderCount > 0 && thingCount > 0 ->
-                context.getString(R.string.thing_folder_count_folders_things, folderCount, thingCount)
-            folderCount > 0 ->
-                context.getString(R.string.thing_folder_count_folders, folderCount)
-            else ->
-                context.getString(R.string.thing_folder_count, thingCount)
-        }
+        return LocalizedText.folderCount(context, entry.directFolderCount, entry.recursiveThingCount)
     }
 
     @JvmStatic

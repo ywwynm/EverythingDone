@@ -324,7 +324,7 @@
 
     <!--ordinary empty states-->
     <string name="home_empty_underway">这里还没有进行中的记事</string>
-    <string name="home_empty_note">这里还没有笔记</string>
+    <string name="home_empty_note">这里还没有记录</string>
     <string name="home_empty_reminder">这里还没有提醒</string>
     <string name="home_empty_habit">这里还没有习惯</string>
     <string name="home_empty_goal">这里还没有目标</string>
@@ -2093,4 +2093,15 @@
     <string name="tap_hce_service_description">完事儿碰一碰</string>
     <string name="detail_media_preview_loading">正在加载预览</string>
     <string name="detail_media_preview_load_failed">无法加载媒体预览</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">%1$s要做的事情</string>
+    <string name="l10n_amount">数量</string>
+    <string name="l10n_time_unit">时间单位</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">月末</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">@string/remind_me</string>
 </resources>

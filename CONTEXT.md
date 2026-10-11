@@ -8,6 +8,11 @@ EverythingDone is a personal task and note application where each thing carries 
 A user-created note, task, reminder, habit, goal, or related item whose own background colour is part of its identity.
 _Avoid_: note as the blanket term for all things
 
+**Finish a Thing / Finished Thing**:
+将 Thing 标记为已完成的操作及对应状态。2026-10-11 用户明确要求英语产品文案使用 `finish` / `finished`，按钮、确认、状态、统计与帮助保持一致。
+`completion rate` 可保留为统计名词；导出等技术流程、图案锁的 `Done` 和产品名 `EverythingDone` 不属于此术语替换范围。
+_Avoid_: 用 complete / completed / done 替换同一产品动作或状态；把完成记事与停止计时、文件处理结束混为一谈
+
 **Trashed Thing**:
 已进入回收站、可恢复或永久删除的 Thing。
 _Avoid_: completed Thing

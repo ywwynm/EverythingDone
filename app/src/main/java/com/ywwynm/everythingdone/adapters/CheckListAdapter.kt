@@ -34,6 +34,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.ChecklistCompletion
 import com.ywwynm.everythingdone.helpers.ChecklistEditorItems
@@ -591,14 +592,7 @@ open class CheckListAdapter(
     }
 
     private fun getFinishedItemsCountStr(finishedCount: Int): String {
-        if (LocaleUtil.isChinese(mContext)) {
-            val str = mContext!!.getString(R.string.some_checklist_items_finished)
-            return String.format(str, finishedCount)
-        } else {
-            var str = "$finishedCount item"
-            if (finishedCount > 1) str += "s"
-            return "$str finished"
-        }
+        return finishedItemsCountStr(mContext, finishedCount)
     }
 
     private fun setEventForTextViewItem(holder: TextViewHolder) {
@@ -1261,12 +1255,7 @@ open class CheckListAdapter(
         @JvmStatic
         fun finishedItemsCountStr(context: Context?, finishedCount: Int): String {
             if (context == null) return finishedCount.toString()
-            if (LocaleUtil.isChinese(context)) {
-                return String.format(context.getString(R.string.some_checklist_items_finished), finishedCount)
-            }
-            var str = "$finishedCount item"
-            if (finishedCount > 1) str += "s"
-            return "$str finished"
+            return LocalizedText.quantity(context, R.plurals.l10n_checklist_finished, finishedCount)
         }
 
         /** 卡片上未完成条目的文字色；[thingColor] 为 0 时沿用浅色卡片的白系前景。 */

@@ -1,0 +1,275 @@
+{
+  "debugUpdateCode": 202610110644,
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610110644.apk",
+  "sha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+  "sizeBytes": 28800341,
+  "publishedAt": "2026-10-11T06:44:12.101837900Z",
+  "public_metadata_matches": true,
+  "local_and_remote_apk_match": true,
+  "devices": [
+    {
+      "serial": "9018f404",
+      "model": "OPD2515",
+      "checks": 5896,
+      "failures": 0,
+      "installed_sha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "en",
+          "mixed_attachments": "2 images, 1 video",
+          "folder_summary": "2 folders, 5 things",
+          "folder_operation_counts": "2 subfolders,5 things"
+        },
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "folder_summary": "2个文件夹，5件记事",
+          "folder_operation_counts": "2个子文件夹、5件记事"
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "de",
+          "mixed_attachments": "2 Bilder, 1 Video",
+          "folder_summary": "2 Ordner · 5 Dinge",
+          "folder_operation_counts": "2 Unterordner, 5 Dinge"
+        },
+        {
+          "locale": "es",
+          "mixed_attachments": "2 imágenes, 1 vídeo",
+          "folder_summary": "2 carpetas · 5 cosas",
+          "folder_operation_counts": "2 subcarpetas, 5 cosas"
+        },
+        {
+          "locale": "fr",
+          "mixed_attachments": "2 images, 1 vidéo",
+          "folder_summary": "2 dossiers · 5 éléments",
+          "folder_operation_counts": "2 sous-dossiers, 5 éléments"
+        },
+        {
+          "locale": "hi",
+          "mixed_attachments": "2 चित्र, 1 वीडियो",
+          "folder_summary": "2 फ़ोल्डर · 5 चीज़ें",
+          "folder_operation_counts": "2 उपफ़ोल्डर, 5 चीज़ें"
+        },
+        {
+          "locale": "it",
+          "mixed_attachments": "2 immagini, 1 video",
+          "folder_summary": "2 cartelle · 5 elementi",
+          "folder_operation_counts": "2 sottocartelle, 5 elementi"
+        },
+        {
+          "locale": "ja",
+          "mixed_attachments": "画像2枚, 動画1本",
+          "folder_summary": "フォルダー2個、メモ5件",
+          "folder_operation_counts": "サブフォルダー2個、メモ5件"
+        },
+        {
+          "locale": "ko",
+          "mixed_attachments": "이미지 2개, 동영상 1개",
+          "folder_summary": "폴더 2개, 항목 5개",
+          "folder_operation_counts": "하위 폴더 2개, 항목 5개"
+        },
+        {
+          "locale": "pt",
+          "mixed_attachments": "2 imagens, 1 vídeo",
+          "folder_summary": "2 pastas · 5 itens",
+          "folder_operation_counts": "2 subpastas, 5 itens"
+        },
+        {
+          "locale": "ru",
+          "mixed_attachments": "2 изображения, 1 видео",
+          "folder_summary": "2 папки · 5 записей",
+          "folder_operation_counts": "2 подпапки, 5 записей"
+        }
+      ]
+    },
+    {
+      "serial": "R5CW20BLNKL",
+      "model": "SM-S9180",
+      "checks": 5896,
+      "failures": 0,
+      "installed_sha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "en",
+          "mixed_attachments": "2 images, 1 video",
+          "folder_summary": "2 folders, 5 things",
+          "folder_operation_counts": "2 subfolders,5 things"
+        },
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "folder_summary": "2个文件夹，5件记事",
+          "folder_operation_counts": "2个子文件夹、5件记事"
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "de",
+          "mixed_attachments": "2 Bilder, 1 Video",
+          "folder_summary": "2 Ordner · 5 Dinge",
+          "folder_operation_counts": "2 Unterordner, 5 Dinge"
+        },
+        {
+          "locale": "es",
+          "mixed_attachments": "2 imágenes, 1 vídeo",
+          "folder_summary": "2 carpetas · 5 cosas",
+          "folder_operation_counts": "2 subcarpetas, 5 cosas"
+        },
+        {
+          "locale": "fr",
+          "mixed_attachments": "2 images, 1 vidéo",
+          "folder_summary": "2 dossiers · 5 éléments",
+          "folder_operation_counts": "2 sous-dossiers, 5 éléments"
+        },
+        {
+          "locale": "hi",
+          "mixed_attachments": "2 चित्र, 1 वीडियो",
+          "folder_summary": "2 फ़ोल्डर · 5 चीज़ें",
+          "folder_operation_counts": "2 उपफ़ोल्डर, 5 चीज़ें"
+        },
+        {
+          "locale": "it",
+          "mixed_attachments": "2 immagini, 1 video",
+          "folder_summary": "2 cartelle · 5 elementi",
+          "folder_operation_counts": "2 sottocartelle, 5 elementi"
+        },
+        {
+          "locale": "ja",
+          "mixed_attachments": "画像2枚, 動画1本",
+          "folder_summary": "フォルダー2個、メモ5件",
+          "folder_operation_counts": "サブフォルダー2個、メモ5件"
+        },
+        {
+          "locale": "ko",
+          "mixed_attachments": "이미지 2개, 동영상 1개",
+          "folder_summary": "폴더 2개, 항목 5개",
+          "folder_operation_counts": "하위 폴더 2개, 항목 5개"
+        },
+        {
+          "locale": "pt",
+          "mixed_attachments": "2 imagens, 1 vídeo",
+          "folder_summary": "2 pastas · 5 itens",
+          "folder_operation_counts": "2 subpastas, 5 itens"
+        },
+        {
+          "locale": "ru",
+          "mixed_attachments": "2 изображения, 1 видео",
+          "folder_summary": "2 папки · 5 записей",
+          "folder_operation_counts": "2 подпапки, 5 записей"
+        }
+      ]
+    },
+    {
+      "serial": "192.168.100.67:42641",
+      "model": "MEIZU 20 Inf",
+      "checks": 5896,
+      "failures": 0,
+      "installed_sha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "en",
+          "mixed_attachments": "2 images, 1 video",
+          "folder_summary": "2 folders, 5 things",
+          "folder_operation_counts": "2 subfolders,5 things"
+        },
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "folder_summary": "2个文件夹，5件记事",
+          "folder_operation_counts": "2个子文件夹、5件记事"
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "folder_summary": "2個資料夾，5件記事",
+          "folder_operation_counts": "2個子資料夾、5件記事"
+        },
+        {
+          "locale": "de",
+          "mixed_attachments": "2 Bilder, 1 Video",
+          "folder_summary": "2 Ordner · 5 Dinge",
+          "folder_operation_counts": "2 Unterordner, 5 Dinge"
+        },
+        {
+          "locale": "es",
+          "mixed_attachments": "2 imágenes, 1 vídeo",
+          "folder_summary": "2 carpetas · 5 cosas",
+          "folder_operation_counts": "2 subcarpetas, 5 cosas"
+        },
+        {
+          "locale": "fr",
+          "mixed_attachments": "2 images, 1 vidéo",
+          "folder_summary": "2 dossiers · 5 éléments",
+          "folder_operation_counts": "2 sous-dossiers, 5 éléments"
+        },
+        {
+          "locale": "hi",
+          "mixed_attachments": "2 चित्र, 1 वीडियो",
+          "folder_summary": "2 फ़ोल्डर · 5 चीज़ें",
+          "folder_operation_counts": "2 उपफ़ोल्डर, 5 चीज़ें"
+        },
+        {
+          "locale": "it",
+          "mixed_attachments": "2 immagini, 1 video",
+          "folder_summary": "2 cartelle · 5 elementi",
+          "folder_operation_counts": "2 sottocartelle, 5 elementi"
+        },
+        {
+          "locale": "ja",
+          "mixed_attachments": "画像2枚, 動画1本",
+          "folder_summary": "フォルダー2個、メモ5件",
+          "folder_operation_counts": "サブフォルダー2個、メモ5件"
+        },
+        {
+          "locale": "ko",
+          "mixed_attachments": "이미지 2개, 동영상 1개",
+          "folder_summary": "폴더 2개, 항목 5개",
+          "folder_operation_counts": "하위 폴더 2개, 항목 5개"
+        },
+        {
+          "locale": "pt",
+          "mixed_attachments": "2 imagens, 1 vídeo",
+          "folder_summary": "2 pastas · 5 itens",
+          "folder_operation_counts": "2 subpastas, 5 itens"
+        },
+        {
+          "locale": "ru",
+          "mixed_attachments": "2 изображения, 1 видео",
+          "folder_summary": "2 папки · 5 записей",
+          "folder_operation_counts": "2 подпапки, 5 записей"
+        }
+      ]
+    }
+  ]
+}

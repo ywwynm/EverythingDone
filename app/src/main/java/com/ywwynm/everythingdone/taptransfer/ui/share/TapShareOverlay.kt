@@ -551,11 +551,8 @@ class TapShareOverlay private constructor(
         val accent = request.accent
         // 分享的都是文件夹时标题说「分享文件夹」，其余（含混选）仍是「分享记事」
         val items = request.content.items
-        shareTitle.text = if (items.all { it is ThingShareContent.FolderNode }) {
-            activity.resources.getQuantityString(R.plurals.tap_share_title_folders, items.size)
-        } else {
-            activity.resources.getQuantityString(R.plurals.tap_share_title, items.size)
-        }
+        shareTitle.text = com.ywwynm.everythingdone.utils.LocalizedText.selectionShareTitle(
+            activity, items.all { it is ThingShareContent.FolderNode }, items.size)
         BackgroundUtil.applyTextBackground(shareTitle, accent)
         bindOption(R.id.ll_share_text_image, R.id.iv_share_text_image, R.id.tv_share_text_image) {
             request.host.shareTextAndImages()

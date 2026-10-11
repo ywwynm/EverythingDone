@@ -100,6 +100,7 @@ import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.interaction.UiInteractions
 import com.ywwynm.everythingdone.adapters.BaseThingsAdapter
 import com.ywwynm.everythingdone.adapters.ThingsAdapter
@@ -9238,11 +9239,7 @@ class ThingsActivity :
     }
 
     private fun folderImpactPhrase(folders: Int, things: Int): String {
-        val parts = ArrayList<String>()
-        if (folders > 0) parts.add(getString(R.string.folder_count_segment, folders))
-        if (things > 0) parts.add(getString(R.string.thing_count_segment, things))
-        if (parts.isEmpty()) return getString(R.string.folder_impact_empty)
-        return parts.joinToString(getString(R.string.folder_impact_separator))
+        return LocalizedText.folderImpact(this, folders, things)
     }
 
     private fun statusNameRes(status: Int): Int = when (status) {

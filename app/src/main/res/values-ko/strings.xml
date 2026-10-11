@@ -10,7 +10,7 @@
     <string name="enable">활성화</string>
     <string name="disable">비활성화</string>
     <string name="enabled">활성화됨</string>
-    <string name="disabled">장애인</string>
+    <string name="disabled">사용 안 함</string>
     <string-array name="time_type">
         <item>@string/minute</item>
         <item>@string/hour</item>
@@ -19,7 +19,7 @@
         <item>@string/month</item>
         <item>@string/year</item>
     </string-array>
-    <string name="second">두 번째</string>
+    <string name="second">초</string>
     <string name="minute">분</string>
     <string name="hour">시간</string>
     <string name="day">일</string>
@@ -69,39 +69,39 @@
     <string name="later">나중에</string>
     <string name="description_a">a</string>
     <string name="every">모든</string>
-    <string name="times">시간</string>
+    <string name="times">회</string>
     <string name="hours">시간</string>
     <string name="days">일</string>
     <string name="weeks">주</string>
     <string name="months">달</string>
     <string name="from_everything_done">Android 앱 EverythingDone에서</string>
-    <string name="title_create_thing">새로운 것을 창조하세요</string>
+    <string name="title_create_thing">항목 만들기</string>
     <string name="title_edit_thing">편집</string>
-    <string name="title_activity_things_all">모든 것</string>
+    <string name="title_activity_things_all">@string/all_things</string>
     <string name="image_or_video_attachment">이미지 또는 비디오 첨부</string>
     <string name="title_activity_settings">설정</string>
     <string name="title_activity_about">소개</string>
     <string name="title_activity_statistic">통계</string>
-    <string name="title_activity_thing_widget_configure">한 가지를 선택하세요.</string>
-    <string name="title_activity_things_list_widget_configuration">진행 중인 항목을 선택하세요.</string>
-    <string name="title_widget_things_list">진행중인 일들</string>
-    <string name="title_activity_doing">현재 하고 있는</string>
+    <string name="title_activity_thing_widget_configure">항목 선택</string>
+    <string name="title_activity_things_list_widget_configuration">진행 중인 항목 선택</string>
+    <string name="title_widget_things_list">@string/underway</string>
+    <string name="title_activity_doing">지금 하고 있는 항목</string>
     <string name="underway">진행 중</string>
-    <string name="thing">것</string>
-    <string name="all_things">모든 것</string>
-    <string name="note">참고</string>
+    <string name="thing">항목</string>
+    <string name="all_things">모든 항목</string>
+    <string name="note">메모</string>
     <string name="reminder">알림</string>
     <string name="habit">습관</string>
     <string name="goal">목표</string>
-    <string name="finished">완료</string>
+    <string name="finished">완료됨</string>
     <string name="deleted">삭제됨</string>
     <string name="drawer_deleted">삭제됨</string>
     <string name="settings">설정</string>
     <string name="help">도움말</string>
     <string name="about">소개</string>
-    <string name="private_thing">사적인 것</string>
-    <string name="sticky_thing">끈적한 것</string>
-    <string name="ongoing_thing">진행중인 일</string>
+    <string name="private_thing">비공개 항목</string>
+    <string name="sticky_thing">상단에 고정된 항목</string>
+    <string name="ongoing_thing">알림창에 표시된 항목</string>
     <string name="welcome_underway_title">환영합니다</string>
     <string name="welcome_underway_content">완료하려면 왼쪽으로 스와이프하고 시작하려면 오른쪽으로 스와이프하세요.</string>
     <string name="welcome_note_content">글을 쓰면 영원히 기억할 거예요</string>
@@ -112,12 +112,12 @@
     <string name="empty_note">지나간 날이 그리워도 다가올 미래가 더 좋아</string>
     <string name="empty_reminder">도와주셔서 정말 기뻐요</string>
     <string name="empty_habit">나는 당신이 더 나은 것을 본다</string>
-    <string name="empty_goal">모든 목표가 완료되었습니다! 정말 놀라운 날입니다! 내 생각엔 우리가 함께 휴가를 보낼 수 있을 것 같아. \'들 햇빛 즐기러 가세요~</string>
+    <string name="empty_goal">모든 목표를 달성했어요. 축하합니다! 너무 무리하지 말고 잠시 쉬어 가세요.</string>
     <string name="empty_finished">이런! 아무것도 끝나지 않았나요?</string>
     <string name="empty_deleted">휴지통 청소를 즐기시나요? 저도요!</string>
     <string name="reminder_expired">만료됨</string>
     <string name="reminder_needless">필요하지 않음</string>
-    <string name="reminder_reminded">생각나게 하다</string>
+    <string name="reminder_reminded">알림 보냄</string>
     <string name="reminder_unavailable">이용할 수 없음</string>
     <string name="habit_paused">일시중지됨</string>
     <string name="habit_last_five">지난 5번:</string>
@@ -182,12 +182,12 @@
     <string name="this_gai">이</string>
     <string name="will_remind">상기시켜드립니다</string>
     <string name="daily_todo_title_rest_part">할 일</string>
-    <string name="completion_rate_all">전체\' 완료율</string>
-    <string name="completion_rate_things">완료율</string>
-    <string name="completion_rate_reminder">Reminder\'s 완료율</string>
-    <string name="completion_rate_note">참고\'의 완료율</string>
-    <string name="completion_rate_habit">Habit\'s 완료율</string>
-    <string name="completion_rate_goal">Goal\'s 완료율</string>
+    <string name="completion_rate_all">모든 항목의 완료율</string>
+    <string name="completion_rate_things">항목 완료율</string>
+    <string name="completion_rate_reminder">알림 완료율</string>
+    <string name="completion_rate_note">메모 완료율</string>
+    <string name="completion_rate_habit">습관 완료율</string>
+    <string name="completion_rate_goal">목표 완료율</string>
     <string name="act_share">공유</string>
     <string name="act_get_it">그것을 얻으십시오</string>
     <string name="confirm">확인</string>
@@ -206,8 +206,8 @@
     <string name="act_export_to_sdcard">sd카드로 내보내기</string>
     <string name="act_restore_selected">선택한 복원</string>
     <string name="act_delete_selected_forever">선택한 항목을 완전히 삭제합니다.</string>
-    <string name="act_sticky_on_top">위에 끈적끈적</string>
-    <string name="act_cancel_sticky">고정 취소</string>
+    <string name="act_sticky_on_top">상단에 고정</string>
+    <string name="act_cancel_sticky">고정 해제</string>
     <string name="act_add_attachment">첨부파일 추가</string>
     <string name="act_enable_check_list">체크리스트 활성화</string>
     <string name="act_disable_check_list">체크리스트 비활성화</string>
@@ -216,52 +216,52 @@
     <string name="act_redo">다시 실행</string>
     <string name="act_abandon_new_thing">포기하다</string>
     <string name="act_set_as_private_thing">비공개 항목으로 설정</string>
-    <string name="act_cancel_private_thing">취소 비공개 항목 설정</string>
+    <string name="act_cancel_private_thing">비공개 설정 해제</string>
     <string name="act_customize_card_appearance">카드 모양 조정</string>
     <string name="thing_card_appearance_panel_title">카드 모양 조정</string>
-    <string name="thing_card_appearance_media_image">Image</string>
-    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_media_image">이미지</string>
+    <string name="thing_card_appearance_media_video">동영상</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
-    <string name="thing_card_appearance_source_default">Auto select</string>
-    <string name="thing_card_appearance_cover_media">Cover image</string>
-    <string name="thing_card_appearance_span_normal">Normal</string>
-    <string name="thing_card_appearance_span_full">Wide</string>
-    <string name="thing_card_appearance_card_width">Card width</string>
-    <string name="thing_card_appearance_content_max_lines">Max content lines</string>
-    <string name="thing_card_appearance_checklist_max_items">Max checklist items</string>
+    <string name="thing_card_appearance_source_default">기본값</string>
+    <string name="thing_card_appearance_cover_media">표지 미디어</string>
+    <string name="thing_card_appearance_span_normal">기본</string>
+    <string name="thing_card_appearance_span_full">전체 너비</string>
+    <string name="thing_card_appearance_card_width">카드 너비</string>
+    <string name="thing_card_appearance_content_max_lines">내용 최대 줄 수</string>
+    <string name="thing_card_appearance_checklist_max_items">체크리스트 최대 항목 수</string>
     <string name="thing_card_appearance_limit_value_format">%1$s · %2$d</string>
-    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (default)</string>
-    <string name="thing_card_appearance_settings_span_normal">When card width is normal</string>
-    <string name="thing_card_appearance_settings_span_full">When card width is wide</string>
-    <string name="settings_thing_card_appearance">Thing card appearance</string>
-    <string name="thing_card_appearance_placement_default">Default placement</string>
-    <string name="thing_card_appearance_placement_top">Top</string>
-    <string name="thing_card_appearance_placement_bottom">Bottom</string>
-    <string name="thing_card_appearance_placement_left">Left</string>
-    <string name="thing_card_appearance_placement_right">Right</string>
-    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
-    <string name="thing_card_appearance_media_position">Image/video position</string>
-    <string name="thing_card_appearance_mode_background">Background</string>
-    <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
-    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
-    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d(기본값)</string>
+    <string name="thing_card_appearance_settings_span_normal">기본 너비 카드</string>
+    <string name="thing_card_appearance_settings_span_full">전체 너비 카드</string>
+    <string name="settings_thing_card_appearance">항목 카드 모양</string>
+    <string name="thing_card_appearance_placement_default">기본 위치</string>
+    <string name="thing_card_appearance_placement_top">위</string>
+    <string name="thing_card_appearance_placement_bottom">아래</string>
+    <string name="thing_card_appearance_placement_left">왼쪽</string>
+    <string name="thing_card_appearance_placement_right">오른쪽</string>
+    <string name="thing_card_appearance_mode_thumbnail">썸네일</string>
+    <string name="thing_card_appearance_media_position">미디어 위치</string>
+    <string name="thing_card_appearance_mode_background">배경</string>
+    <string name="thing_card_appearance_cover_image_width_format">표지 이미지 너비: %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">정밀 자르기</string>
+    <string name="thing_card_appearance_thumbnail_shape">썸네일 모양</string>
     <string name="thing_card_appearance_thumbnail_video_shape">커버 동영상 비율</string>
-    <string name="thing_card_appearance_background_mask">Background mask</string>
-    <string name="thing_card_appearance_background_height">Card height</string>
-    <string name="thing_card_appearance_video_frame">Video frame</string>
-    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
-    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
-    <string name="thing_card_appearance_video_frame_next">Next frame</string>
+    <string name="thing_card_appearance_background_mask">배경 마스크</string>
+    <string name="thing_card_appearance_background_height">배경 높이</string>
+    <string name="thing_card_appearance_video_frame">동영상 프레임</string>
+    <string name="thing_card_appearance_video_frame_preview">동영상 프레임 미리보기</string>
+    <string name="thing_card_appearance_video_frame_previous">이전 프레임</string>
+    <string name="thing_card_appearance_video_frame_next">다음 프레임</string>
     <string name="act_set_thing_as_ongoing">알림에 표시</string>
     <string name="act_cancel_set_thing_as_ongoing">알림 표시 취소</string>
-    <string name="act_finish">마침</string>
+    <string name="act_finish">완료</string>
     <string name="act_delete">삭제</string>
-    <string name="act_pause_habit">습관\'s 알림 일시중지</string>
-    <string name="act_resume_habit">이력서 습관\'s 알림</string>
+    <string name="act_pause_habit">습관 알림 일시 중지</string>
+    <string name="act_resume_habit">습관 알림 다시 시작</string>
     <string name="act_check_habit_detail">습관 세부정보 확인</string>
-    <string name="act_finish_once_habit">한 번 끝내기</string>
-    <string name="act_finish_this_time_habit">이번에는 마무리</string>
-    <string name="act_habit_developed">I\'이 습관이 생겼습니다</string>
+    <string name="act_finish_once_habit">한 번 완료</string>
+    <string name="act_finish_this_time_habit">이번 회차 완료</string>
+    <string name="act_habit_developed">이 습관을 들였어요</string>
     <string name="act_restore">복원</string>
     <string name="act_copy_content">콘텐츠 복사</string>
     <string name="act_feedback">피드백 보내기</string>
@@ -281,35 +281,35 @@
     <string name="act_open_in_browser">찾아보기</string>
     <string name="act_dial">다이얼</string>
     <string name="act_send_email">이메일 보내기</string>
-    <string name="act_open_in_map">방문</string>
+    <string name="act_open_in_map">지도에서 열기</string>
     <string name="act_edit">편집</string>
     <string name="act_share_thing_text_image">텍스트 및 이미지</string>
     <string name="act_share_thing_screenshot">스크린샷</string>
     <string name="act_choose_image_as_drawer_header">이미지를 서랍 헤더로 선택</string>
-    <string name="act_support">지원 개발자</string>
+    <string name="act_support">개발자 후원</string>
     <string name="act_sb_undo">실행 취소</string>
     <string name="act_sb_undo_finish">아직은 아니다</string>
     <string name="act_sb_undo_underway">완료</string>
-    <string name="act_shortcut_check_upcoming">다가오는 일</string>
-    <string name="act_shortcut_check_sticky">끈적 끈적한 것</string>
+    <string name="act_shortcut_check_upcoming">알림 예정 항목</string>
+    <string name="act_shortcut_check_sticky">상단에 고정된 항목</string>
     <string name="success_clipboard">클립보드에 복사되었습니다.</string>
     <string name="error_permission_denied">권한이 부여되지 않았습니다. 계속할 수 없습니다.</string>
     <string name="please_wait">잠시만 기다려주세요</string>
     <string name="generating_screenshot">스크린샷을 찍는 중...</string>
     <string name="error_activity_not_found">작업을 계속하려면 애플리케이션을 찾을 수 없습니다.</string>
-    <string name="a_thing">것</string>
+    <string name="a_thing">개 항목</string>
     <string name="empty">비어 있음</string>
     <string name="sb_finish_habit">이 습관을 끝냈어</string>
     <string name="press_again_to_exit">한 번 더 누르면 종료됩니다</string>
-    <string name="title_incorrect_reminder_habit">잘못된 사물 상태 감지</string>
-    <string name="content_incorrect_reminder_habit">EverythingDone에서 알림, 습관 또는 목표 중 일부가 잘못된 상태에 있음을 발견했습니다. 즉, 마땅히 받아야 할 정확한 시간에 알림을 받지 못한 것입니다. \nEverythingDone이(가) 백그라운드에서 정상적으로 실행되는지 확인하세요. 작업 관리자에서 앱 프로세스를 잠그고, 배터리 최적화 앱의 화이트리스트에 추가하고, 앱이 종료되거나 작업 알림 기능이 상실되는 것을 방지하기 위해 요청한 권한을 허용할 수 있습니다. \n자세한 내용은 도움말을 방문하여 해당 FAQ를 확인하세요. \n알람 재설정 버튼을 클릭하면 사물의 오류 상태를 수정하고 습관을 다시 활성화할 수 있습니다.</string>
+    <string name="title_incorrect_reminder_habit">알림이 있는 항목의 상태 오류</string>
+    <string name="content_incorrect_reminder_habit">EverythingDone에서 알림, 습관 또는 목표 중 일부가 잘못된 상태에 있음을 발견했습니다. 즉, 마땅히 받아야 할 정확한 시간에 알림을 받지 못한 것입니다. \nEverythingDone이(가) 백그라운드에서 정상적으로 실행되는지 확인하세요. 작업 관리자에서 앱 프로세스를 잠그고, 배터리 최적화 앱의 화이트리스트에 추가하고, 앱이 종료되거나 작업 알림 기능이 상실되는 것을 방지하기 위해 요청한 권한을 허용할 수 있습니다. \n자세한 내용은 도움말을 방문하여 해당 FAQ를 확인하세요. \n알람 재설정 버튼을 클릭하면 항목의 오류 상태를 수정하고 습관을 다시 활성화할 수 있습니다.</string>
     <string name="act_reset_alarms">알람 재설정</string>
     <string name="alert_continue">계속하시겠습니까?</string>
     <string name="alert_find_habit_goal">이러한 것에는 습관이나 목표가 포함되어 있습니다. 나중에 또는 별도로 끝내거나 포기할 수도 있습니다.</string>
     <string name="continue_get_rid_of_habit_goal">습관/목표를 제거하고 계속하세요</string>
     <string name="continue_for_alert">계속</string>
-    <string name="sb_cannot_be_blank">빈 것이 버려졌다</string>
-    <string name="sb_abandon_new_thing">새로운 것은 버려졌다</string>
+    <string name="sb_cannot_be_blank">빈 항목을 버렸습니다</string>
+    <string name="sb_abandon_new_thing">새 항목을 버렸습니다</string>
     <string name="sb_delete">삭제됨</string>
     <string name="sb_delete_forever">영원히 삭제됨</string>
     <string name="sb_finish">완료</string>
@@ -352,16 +352,16 @@
     <string name="error_unsupported_file_type">지원되지 않는 파일 형식</string>
     <string name="error_play_audio_attachment">이 오디오 파일을 재생할 수 없습니다</string>
     <string name="error_cannot_add_from_network">인터넷에서 첨부파일을 추가할 수 없습니다.</string>
-    <string name="alert_cannot_share_empty_thing">빈 것을 공유할 수 없습니다</string>
-    <string name="alert_shortcut_no_upcoming">예정된 내용 없음</string>
-    <string name="alert_shortcut_no_sticky">끈적이는거 없음</string>
-    <string name="thing_doing_dialog_title">이 항목에 대한 자동 시작 설정을 변경하세요.</string>
+    <string name="alert_cannot_share_empty_thing">빈 항목은 공유할 수 없습니다</string>
+    <string name="alert_shortcut_no_upcoming">알림 예정 항목이 없습니다</string>
+    <string name="alert_shortcut_no_sticky">고정된 항목이 없습니다</string>
+    <string name="thing_doing_dialog_title">이 항목의 자동 시작 설정 변경</string>
     <string name="auto_start_doing_time_title">자동 시작 시간</string>
     <string name="auto_start_doing_follow_general">일반 설정을 따르세요</string>
     <string name="input_file_name">파일 이름을 입력하세요.</string>
-    <string name="quick_remind_title_after">이후</string>
-    <string name="quick_remind_title_at">에</string>
-    <string name="quick_remind_title_recurrence">재발</string>
+    <string name="quick_remind_title_after">일정 시간 후</string>
+    <string name="quick_remind_title_at">날짜와 시간</string>
+    <string name="quick_remind_title_recurrence">반복</string>
     <string name="new_reminder_time_rec">새로운 알림 시간</string>
     <string name="error_complete_time">시간 정보를 작성해 주세요.</string>
     <string name="error_later">미래의 시간으로 설정해주세요</string>
@@ -369,10 +369,10 @@
     <string name="error_too_late">그 날을 기다릴 수 없어</string>
     <string name="error_different">다른 시간을 설정해 주세요</string>
     <string name="habit_detail_completion_rate">완료율</string>
-    <string name="habit_detail_persist_in">지속주기</string>
-    <string name="habit_detail_total_t">총주기</string>
+    <string name="habit_detail_persist_in">실천 기간</string>
+    <string name="habit_detail_total_t">전체 주기 수</string>
     <string name="habit_detail_record_count">레코드 수</string>
-    <string name="habit_detail_times">완료 시간</string>
+    <string name="habit_detail_times">완료 횟수</string>
     <string name="habit_detail_title">습관 세부 사항</string>
     <string name="habit_record_last_30_change_6">최근 30개 기록 중 최신 6개(최근 6개 항목)를 변경할 수 있습니다.</string>
     <string name="attachment_info_title">첨부파일 세부정보</string>
@@ -406,8 +406,8 @@
     <string name="start_doing_time_long_alarm">예상 시간이 너무 길어서 다음 알람이 울릴 때까지 이 시간 동안 습관을 완료할 수 없습니다.</string>
     <string name="start_doing_time_long_t">예상 시간이 너무 길어서 이번 주기에 습관을 한 번도 완료할 수 없습니다.</string>
     <string name="start_doing_confirm">시작하다</string>
-    <string name="start_doing_notification_toast_doing_this">EverythingDone: \'의 알람이 방금 왔지만 당신은 이미 그 일을 하고 있었습니다</string>
-    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Habit\' 알람이 방금 왔지만 그 시간 동안 이미 알람을 하고 계셨습니다.</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: 이 항목의 알림 시각이 방금 지났습니다. 이미 이 항목에 대해 작업 중입니다.</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: 이 습관의 알림 시각이 방금 지났습니다. 이미 해당 회차를 수행 중입니다.</string>
     <string name="start_doing_stop_another_title">다른 일을 하고 계시군요</string>
     <string name="start_doing_stop_another_content">그 일을 그만두고 이 일을 시작하시겠습니까?</string>
     <string name="doing_swipe_to_finish">스와이프하여 완료</string>
@@ -419,7 +419,7 @@
     <string name="doing_failed_restore">데이터를 복원하여 EverythingDone이 상태 수행을 취소했습니다.</string>
     <string name="doing_click_to_dismiss">이 알림을 닫으려면 클릭하세요.</string>
     <string name="doing_alert_first_strict_mode_title">엄격 모드</string>
-    <string name="doing_alert_first_strict_mode_content">이제 엄격 모드에 있습니다. EverythingDone은 귀하가 휴대전화를 사용하여 다른 작업을 하는지 감지합니다. 이 페이지에서 3회 이상(알림 확인 및 화면 잠금만 허용) 또는 총 5분 이상 나가면 카운트다운이 중지되고 해당 항목이 완료되지 않은 상태로 유지됩니다.</string>
+    <string name="doing_alert_first_strict_mode_content">엄격 모드가 켜졌습니다. EverythingDone이 휴대전화를 다른 용도로 사용하는지 확인합니다. 이 화면을 세 번 나가거나 화면 밖에서 보낸 시간이 총 5분을 넘으면 이 항목의 타이머가 중지됩니다. 알림 창을 보거나 화면을 잠그는 것은 허용됩니다.</string>
     <string name="doing_alert_close_strict_twice_title">엄격 모드를 다시 끌 수 없습니다</string>
     <string name="doing_alert_close_strict_twice_content">엄격 모드는 한 번만 끌 수 있습니다. 한 번에 한 가지 일을 신중하게 하는 것이\'좋은 습관이니 계속해서 진행하시기 바랍니다.</string>
     <string name="doing_alert_stop_doing_content">정말 이 일을 그만두시겠어요?</string>
@@ -429,8 +429,8 @@
     <string name="doing_toast_pass_data_error">앱 구성요소 간 데이터 전달 중 문제가 발생하여 작업을 시작할 수 없습니다.</string>
     <string name="doing_toast_already_strict_mode">현재 엄격 모드에 있습니다.</string>
     <string name="auto_start_doing_start">자동 시작</string>
-    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: 방금 \' 알람이 울렸습니다. 그 일을 자동으로 시작하려고 했지만 다른 일을 하고 있어서 실패했습니다.</string>
-    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: 방금 Habit\' 알람이 울렸습니다. 이번에는 해당 습관을 자동으로 시작하려고 했으나 지난 번에 했기 때문에 실패했습니다.</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: 이 항목의 알림 시각이 방금 지났습니다. 다른 항목에 대해 작업 중이므로 자동으로 시작할 수 없습니다.</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: 이 습관의 알림 시각이 방금 지났습니다. 아직 이전 회차를 수행 중이므로 이번 회차를 자동으로 시작할 수 없습니다.</string>
     <string name="alert_delete_attachment">이 첨부파일을 삭제하시겠습니까?</string>
     <string name="settings_group_ui">UI</string>
     <string name="settings_group_ringtone">벨소리</string>
@@ -498,9 +498,9 @@
     <string name="settings_channels_some_off">%2$d 중 %1$d이(가) 귀하에 의해 비활성화되었습니다. 수정하려면 탭하세요.</string>
     <string name="post_notifications_rationale_title">알림 허용</string>
     <string name="post_notifications_rationale_content">EverythingDone에서 알림, 습관, 목표 알람을 실행하려면 알림 권한이 필요합니다. 그렇지 않으면 알람이 발생하지만 아무 것도 나타나지 않습니다.</string>
-    <string name="settings_toggle_checklist_thing_card">사물 카드의 체크리스트 항목 전환</string>
-    <string name="settings_simple_finished_checklist">진행 중인 물건 카드에 완성된 체크리스트 항목을 접습니다.</string>
-    <string name="settings_auto_link">물건 확인 시 전화번호, 웹페이지 등을 자동으로 연결</string>
+    <string name="settings_toggle_checklist_thing_card">항목 카드에서 목록에 체크 표시</string>
+    <string name="settings_simple_finished_checklist">진행 중인 항목 카드에서 완료된 목록 접기</string>
+    <string name="settings_auto_link">항목을 볼 때 전화번호와 웹 주소에 자동으로 링크 추가</string>
     <string name="settings_autoplay_cover_dynamic">기록 목록에서 표지의 동적 콘텐츠(동영상, 모션 포토, GIF)를 자동으로 재생</string>
     <string name="settings_autoplay_detail_dynamic">기록 상세 화면에서 동적 콘텐츠(동영상, 모션 포토, GIF)를 자동으로 재생</string>
     <string name="detail_autoplay_title">상세 화면 자동 재생</string>
@@ -649,11 +649,10 @@
     <string name="cd_random_gradient_background">무작위 그라데이션 색상</string>
     <string name="chooser_ringtone">벨소리 선택</string>
     <string name="ringtone_loading">벨소리 로드 중...</string>
-    <string name="auto_save_edits_title">사물 편집 시 자동으로 데이터 저장</string>
-    <string name="auto_save_edits_help_info">\'사물을 생성하거나 업데이트하는 중 인터페이스를 종료하면 EverythingDone은 Thing\' 콘텐츠에 대한 편집 내용을 자동으로 저장합니다.
-        \n\n알림: EverythingDone은 알림, 습관 또는 목표에 대한 편집 내용을 저장하지 않습니다. 예를 들어 Thing\'의 알람 시간을 변경하면 자동으로 저장되지 않습니다\'.</string>
+    <string name="auto_save_edits_title">항목을 편집할 때 자동 저장</string>
+    <string name="auto_save_edits_help_info">항목을 만들거나 수정하다가 편집 화면을 나가면 EverythingDone이 변경된 내용을 자동으로 저장합니다.\n\n참고: 알림, 습관 또는 목표를 만들거나 해당 설정을 변경한 내용은 자동으로 저장되지 않습니다. 예를 들어 항목의 알림 시간을 바꿔도 그 변경은 자동으로 저장되지 않습니다.</string>
     <string name="backup">백업</string>
-    <string name="backup_content">귀하의 항목과 기본 설정이 백업됩니다. 백업 후 EverythingDone은 모든 알림, 습관 및 목표를 계속 상기시켜줍니다. 그러나 첨부 파일은 백업되지 않습니다. 꼭 필요한 경우에는 직접 백업하시기 바랍니다. 첨부 파일은 sdcard/EverythingDone에 있습니다.</string>
+    <string name="backup_content">EverythingDone은 만든 항목과 앱 설정을 모두 백업합니다. 복원한 뒤에도 알림, 습관, 목표는 정상적으로 작동합니다. 항목에 추가한 첨부 파일은 백업에 포함되지 않습니다. 필요하면 SD 카드/EverythingDone 폴더의 파일을 다른 방법으로 백업하세요.</string>
     <string name="backup_failed_content">다시 시도하거나 개발자에게 의견을 보내주세요.</string>
     <string name="backup_failed_title">백업 실패</string>
     <string name="backup_loading_content">잠시만 기다려 주십시오. 어쩌면 뭔가를 마실 수도 있습니다.</string>
@@ -689,7 +688,7 @@
     <string name="not_support_fgprt">귀하의 장치는 표준 Android 지문 모듈을 지원하지 않습니다.</string>
     <string name="system_fgprt_not_set">시스템 지문 모듈이 활성화되지 않았습니다. 설정 -&gt; 보안 -&gt; 지문으로 이동하여 활성화하세요.</string>
     <string name="fgprt_not_enrolled">지문을 사용할 수 없습니다. 설정 -&gt; 보안 -&gt; 지문으로 이동하여 지문을 1개 이상 등록해 주세요.</string>
-    <string name="check_private_thing">비공개 항목 확인</string>
+    <string name="check_private_thing">비공개 항목 보기</string>
     <string name="confirm_fingerprint">계속하려면 지문을 확인하세요.</string>
     <string name="touch_sensor">터치 지문 센서</string>
     <string name="use_fingerprint_to_verify">미리 정해진 지문을 이용해 본인 확인을 더욱 쉽게 하세요</string>
@@ -697,9 +696,9 @@
     <string name="fingerprint_error_part_1">아직 시도해 볼 수 있습니다.</string>
     <string name="fingerprint_cannot_use_to_verify">이제 지문을 사용하여 신원을 확인할 수 없습니다.</string>
     <string name="fingerprint_verify_success">본인 인증에 성공했습니다!</string>
-    <string name="warning_title_should_not_be_empty">이 항목을 비공개 항목으로 설정하려면 먼저 제목을 설정하세요.</string>
+    <string name="warning_title_should_not_be_empty">비공개로 설정하려면 항목의 제목을 입력하세요</string>
     <string name="warning_should_set_password_first">EverythingDone에 대한 비밀번호를 설정하지 않았습니다. 설정 -&gt; 개인정보 보호 -&gt; EverythingDone 비밀번호 설정으로 이동하여 먼저 패턴을 설정하세요.</string>
-    <string name="cannot_set_as_private_thing_title">비공개 항목으로 설정할 수 없습니다.</string>
+    <string name="cannot_set_as_private_thing_title">비공개 항목으로 설정할 수 없습니다</string>
     <string name="auto_start_doing_title">알람이 울리면 시작하세요</string>
     <string-array name="auto_start_doing_options">
         <item>비활성화</item>
@@ -708,25 +707,24 @@
         <item>둘 다 활성화</item>
     </string-array>
     <string-array name="auto_start_doing_states">
-        <item>장애인</item>
+        <item>@string/disabled</item>
         <item>알림이 활성화됨</item>
         <item>습관에 대해 활성화됨</item>
         <item>둘 다 활성화됨</item>
     </string-array>
-    <string name="auto_start_doing_time_reminder_title">알림 시간 자동 시작</string>
-    <string name="auto_start_doing_time_habit_title">습관을 위한 시간 자동 시작</string>
+    <string name="auto_start_doing_time_reminder_title">자동 시작 타이머 시간 — 알림</string>
+    <string name="auto_start_doing_time_habit_title">자동 시작 타이머 시간 — 습관</string>
     <string name="auto_strict_mode_title">작업을 시작할 때 엄격 모드를 입력하세요.</string>
-    <string name="auto_strict_mode_help_content">어떤 일을 시작하고 엄격 모드를 활성화하면 EverythingDone은 귀하가 다른 일을 하기 위해 휴대폰을 사용하고 있는지 감지합니다. 카운트다운 페이지(알림 확인 및 화면 잠금만 허용)에서 3회 또는 전체 5분 이상 나가면 카운트다운이 중지되고 미완료 상태로 유지됩니다.</string>
-    <string name="quick_create_title">빠르게 새로운 것을 만들어 보세요</string>
+    <string name="auto_strict_mode_help_content">엄격 모드에서 항목에 대한 작업을 시작하면 EverythingDone이 휴대전화를 다른 용도로 사용하는지 확인합니다. 타이머 화면을 세 번 나가거나 화면 밖에서 보낸 시간이 총 5분을 넘으면 해당 항목의 타이머가 중지됩니다. 알림 창을 보거나 화면을 잠그는 것은 허용됩니다.</string>
+    <string name="quick_create_title">항목 빠르게 만들기</string>
     <string name="quick_create_description">빠른 생성 액세스를 제공하기 위해 지속적인 알림 표시</string>
-    <string name="ongoing_lockscreen">잠금 화면에도 thing\'의 지속적인 알림 표시</string>
+    <string name="ongoing_lockscreen">알림창에 고정된 항목을 잠금 화면에도 표시</string>
     <string name="close_notification_later">Don\'표시된 후 2초가 될 때까지 눈에 띄는 알림을 닫는 것을 허용하지 마세요.</string>
     <string name="create_daily_todo_automatically">매일 아침 매일 TODO를 생성하세요</string>
     <string name="daily_todo_set_time_title">자동 생성 시간 설정</string>
-    <string name="create_daily_todo_help_info">EverythingDone은 매일 아침 자동으로 제목이 \"Things to do on MM d, yyyy\"인 항목을 생성하고 내용을 결정할 수 있습니다. (\'t를 사용하지 않고 콘텐츠와 첨부 파일을 모두 비워두면 해당 항목이 생성되지 않습니다.)
-        \n\n또한 계획과 TODO 완료에 대해 알림을 받고 싶으실 수 있으므로 오후 2시에 이 알림을 설정하겠습니다.</string>
+    <string name="create_daily_todo_help_info">매일 아침 지정한 시각에 EverythingDone이 ‘%1$s’ 같은 제목으로 편집 화면을 엽니다. 여기에 오늘 할 일을 입력할 수 있습니다. 내용과 첨부 파일을 모두 비워 두면 항목이 만들어지지 않습니다.\n\n하루의 할 일을 마칠 수 있도록 기본 알림 시각이 14:00로 설정됩니다.</string>
     <string name="auto_notify">자동 알림</string>
-    <string name="auto_notify_help_info">EverythingDone은 새로운 것이 생성되면 자동으로 알려줍니다. \'기록을 생성하지 않은 경우 EverythingDone은 \'의 알림 시간에 따라 자동 알림을 설정해야 하는지 여부를 결정합니다.</string>
+    <string name="auto_notify_help_info">시간 간격을 설정하면 각 항목을 만든 뒤 해당 시간이 지났을 때 EverythingDone이 알려 줍니다. 메모가 아닌 항목은 해당 항목의 알림 시간에 따라 자동 알림이 필요한지 판단합니다.</string>
     <string name="auto_notify_set_time">자동 알림 시간 설정</string>
     <string name="auto_notify_ringtone">자동 알림\n벨소리</string>
     <string name="statistic_start_from_part_1">나는 그 이후로 EverythingDone을 사용해 왔습니다.</string>
@@ -736,8 +734,8 @@
     <string name="statistic_note_char_count">캐릭터</string>
     <string name="statistic_note_image_count">이미지</string>
     <string name="statistic_note_video_count">비디오</string>
-    <string name="statistic_note_record">나는 Note에 다음과 같은 내용을 기록했습니다.</string>
-    <string name="statistic_reminder_completion_rate">알림\'s \n완료율</string>
+    <string name="statistic_note_record">메모에 기록한 내용</string>
+    <string name="statistic_reminder_completion_rate">알림\n완료율</string>
     <string name="statistic_reminder_finish_time">평균 \n완료 시간</string>
     <string name="statistic_reminder_in_advance">\n미리 완료됨</string>
     <string name="statistic_reminder_notify_time">평균 \n알림 시간</string>
@@ -747,14 +745,14 @@
     <string name="statistic_hour">h</string>
     <string name="statistic_minute">m</string>
     <string name="statistic_day">d</string>
-    <string name="statistic_habit_completion_rate">완료율</string>
-    <string name="statistic_habit_longest_pit">가장 긴\n지속 주기</string>
+    <string name="statistic_habit_completion_rate">@string/habit_detail_completion_rate</string>
+    <string name="statistic_habit_longest_pit">최장 연속\n실천 주기 수</string>
     <string name="statistic_habit_record">나는 몇 가지 습관을 기르기로 결정했습니다. 내 작품은 다음과 같습니다.</string>
-    <string name="statistic_habit_longest_finish_times">가장 긴 연속\n완료 시간</string>
-    <string name="statistic_habit_developed_rate">습관\'s\n육성율</string>
-    <string name="statistic_habit_finished_all">완료 시간\n/ 총 시간</string>
+    <string name="statistic_habit_longest_finish_times">최장 연속\n완료 횟수</string>
+    <string name="statistic_habit_developed_rate">습관\n형성률</string>
+    <string name="statistic_habit_finished_all">완료 횟수\n/ 전체 횟수</string>
     <string name="statistic_goal_record">나는 몇 가지 목표를 세웠습니다. \'s가 내 성과를 보도록 하세요:</string>
-    <string name="statistic_goal_completion_rate">목표\'s\n완료율</string>
+    <string name="statistic_goal_completion_rate">목표\n완료율</string>
     <string name="statistic_goal_notify_time">평균 기간</string>
     <string name="share_statistic">내 사용 사례를 공유하세요</string>
     <string name="send_feedback_to_developer">피드백을 위해 개발자에게 이메일을 보내세요.</string>
@@ -805,11 +803,11 @@
     <string name="all">모두</string>
     <string name="app_widget_config_alpha">알파:</string>
     <string name="things_list_config_alpha_header">투명한 상단 바</string>
-    <string name="things_list_config_simple_view">더 간단한 사물 보기 사용</string>
+    <string name="things_list_config_simple_view">간단한 항목 보기 사용</string>
     <string name="notification_has_attachment">[첨부]</string>
-    <string name="notification_private_thing_content">[사적인 것]</string>
+    <string name="notification_private_thing_content">[비공개 항목]</string>
     <string name="notification_toast_checking_when_alarm_comes">EverythingDone: 지금 확인하는 동안 \'의 알람이 울렸습니다.</string>
-    <string name="notification_toast_checking_action">이것저것 확인 중이시군요</string>
+    <string name="notification_toast_checking_action">이 항목을 보거나 편집하고 있습니다</string>
     <string name="app_crash_title">충돌이 감지되었습니다.</string>
     <string name="app_crash_content">지금 당장 개발자에게 피드백을 보내면 개발자가 점심을 못 먹거나 잠을 자지 못하더라도 가능한 한 빨리 버그를 수정할 수 있습니다.\n또한 정보 페이지에서 원하는 다른 시간에 피드백을 보낼 수도 있습니다. 이때 관련 로그 파일(sdcard/EverythingDone/log에서 생성 시간에 따라 가장 관련성이 높은 파일을 선택할 수 있으며 이름으로 표시됨)을 피드백 이메일 첨부 파일로 추가하기만 하면 됩니다.</string>
     <string name="app_crash_send_now">지금 피드백</string>
@@ -835,16 +833,16 @@
     <string name="cd_habit_unknown">알 수 없음</string>
     <string name="cd_drawer_header">클릭하시면 나의 이용내역을 확인하실 수 있습니다. 간략한 통계:</string>
     <string name="cd_statistic_header">내 사용량 통계</string>
-    <string name="cd_back_note">문제는 메모야, 뒤로</string>
-    <string name="cd_back_reminder">중요한 건 알림이야, 뒤로</string>
-    <string name="cd_back_habit">문제는 습관이다, 뒤로</string>
-    <string name="cd_back_goal">문제는 목표야, 뒤로</string>
+    <string name="cd_back_note">유형: 메모. 뒤로</string>
+    <string name="cd_back_reminder">유형: 알림. 뒤로</string>
+    <string name="cd_back_habit">유형: 습관. 뒤로</string>
+    <string name="cd_back_goal">유형: 목표. 뒤로</string>
     <string name="cd_day">일</string>
-    <string name="cd_checklist_unfinished_item">미완성 항목</string>
-    <string name="cd_checklist_finished_item">완제품</string>
+    <string name="cd_checklist_unfinished_item">미완료 목록 항목</string>
+    <string name="cd_checklist_finished_item">완료된 목록 항목</string>
     <string name="cd_checklist_more_items">더 많은 체크리스트 항목</string>
-    <string name="cd_checklist_unfinished_item_clickable">완료되지 않은 항목입니다. 완료하려면 클릭하세요.</string>
-    <string name="cd_checklist_finished_item_clickable">완료된 항목입니다. 완료를 취소하려면 클릭하세요.</string>
+    <string name="cd_checklist_unfinished_item_clickable">미완료 항목. 탭하면 완료로 표시합니다</string>
+    <string name="cd_checklist_finished_item_clickable">완료된 항목. 탭하면 미완료로 되돌립니다</string>
     <string name="cd_checklist_move">이 항목을 이동하려면 클릭하고 드래그하세요.</string>
     <string name="cd_checklist_expand_finished_items">완료된 체크리스트 항목 확장</string>
     <string name="cd_checklist_shrink_finished_items">완료된 체크리스트 항목 축소</string>
@@ -889,12 +887,12 @@
     <string name="act_change_gradient_orientation">그라데이션 방향</string>
     <string name="act_pick_color_from_camera">세상에서 색 가져오기</string>
     <string name="cd_app_widget_preview_background">앱 위젯 미리보기 배경</string>
-    <string name="cd_things_list_widget_setting">사물 목록 앱 위젯 설정</string>
+    <string name="cd_things_list_widget_setting">항목 목록 위젯 설정 열기</string>
     <string name="cd_doing">현재\n수행 중</string>
     <string name="cd_doing_add_5_min">5분 추가</string>
     <string name="cd_doing_strict_mode_off">엄격 모드로 전환</string>
     <string name="cd_doing_strict_mode_on">엄격 모드 종료</string>
-    <string name="cd_doing_cancel_doing">이 일을 취소하세요</string>
+    <string name="cd_doing_cancel_doing">이 항목에 대한 작업 중지</string>
     <string name="cd_cancel_noticeable_notification">이 알림 취소</string>
     <string name="help_detail">도움말 세부정보</string>
     <string-array name="help_titles">
@@ -908,7 +906,7 @@
         <item>알림과 습관에 관한 통계를 볼 수 있나요?</item>
         <item>항목을 삭제했는데 완료율이 변하지 않는 이유는 무엇인가요?</item>
         <item>습관 알림은 왜 하루 최대 4번인가요? 몇 주기마다 몇 번 같은 방식은 왜 설정할 수 없나요?</item>
-        <item>왜 ‘기록’의 완료 수와 생성 수는 완료율 계산에 들어가지만, 각 주기의 ‘습관’ 완료 횟수는 들어가지 않나요?</item>
+        <item>왜 ‘메모’의 완료 수와 생성 수는 완료율 계산에 들어가지만, 각 주기의 ‘습관’ 완료 횟수는 들어가지 않나요?</item>
         <item>왜 아직 동기화 기능이 없나요?</item>
         <item>항목 색상이 더 추가되나요?</item>
         <item>왜 음력을 지원하지 않나요?</item>
@@ -928,7 +926,7 @@
 2. Coolapk의 EverythingDone 페이지에 댓글을 남길 수 있습니다. 질문이나 제안에 대해 다른 사람들의 의견도 듣고 싶을 때 좋습니다.
 
 3. 후원하면서 하고 싶은 말을 함께 남길 수 있습니다. 이 앱을 좋아해서 꼭 고마움을 전하고 싶을 때 사용하세요 ^_^.</item>
-        <item>기록: 어떤 사람, 어떤 일, 어떤 풍경처럼 삶의 작은 순간을 적어 둡니다. 별도의 알림은 필요하지 않습니다.
+        <item>메모: 어떤 사람, 어떤 일, 어떤 풍경처럼 삶의 작은 순간을 적어 둡니다. 별도의 알림은 필요하지 않습니다.
 
 알림: EverythingDone이 그 항목의 내용을 알려 줍니다. 이 알림은 항목 생성 후 4주, 즉 28일 이내에 발생해야 합니다.
 
@@ -980,7 +978,7 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
 후자라면 저는 적절한 시간을 지능적으로 결정할 수 없습니다. 게다가 Android의 제한 때문에 반복 알림의 간격은 같은 길이로만 설정할 수 있습니다. 즉 균등하게 나누는 방식밖에 없고, 그 시간이 매번 가장 적절하다고 할 수 없습니다. 반복 알림을 쓰지 않고 알림마다 다음 시간을 동적으로 계산해도, 어떤 시간이 적절한지 결정하기는 여전히 어렵습니다.
 
 그래서 현재는 하루, 한 주, 한 달, 1년에 몇 번이라는 방식만 제공합니다. 비교적 유연한 ‘매일’ 유형에서도 최대 4번으로 제한합니다. 왜 4번이냐면, 당시에는 약을 하루에 많아야 4번 먹는다고 생각했기 때문입니다…… 충분한 이유는 아닐 수 있지만, 말씀드린 것처럼 이것도 EverythingDone만의 모습이며 가까운 미래에는 바뀌지 않을 것입니다.</item>
-        <item>가끔 우리는 해야 할 일을 그냥 적어 두지만, 언제 끝내야 할지는 모를 때가 있습니다. 그래서 ‘기록’의 수를 완료율 계산식에 넣기로 했습니다.
+        <item>가끔 우리는 해야 할 일을 그냥 적어 두지만, 언제 끝내야 할지는 모를 때가 있습니다. 그래서 ‘메모’의 수를 완료율 계산식에 넣기로 했습니다.
 
 두 번째 문제는 항목이 하나뿐이고 그것이 ‘습관’일 때입니다. 그 습관을 몇 번 완료하더라도 ‘그 습관을 형성’하기 전에는 전체 완료율이 올라가지 않습니다. 사실 처음 설정에서는 각 주기의 습관 완료 횟수를 완료율 계산에 넣었습니다. 하지만 그렇게 하면 습관을 완전히 형성하는 중요한 작업이 완료율에 그만큼의 영향을 주지 못하게 됩니다. 그래서 나중에 현재 계산식으로 바꿨습니다.
 
@@ -1000,11 +998,11 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
 음, 하지만 전부 찾는 건 불가능할 겁니다. 하하하하하.</item>
     </string-array>
     <string name="title_important_alert">이것은 중요한 알림입니다</string>
-    <string name="content_important_reminder_permission">Android 시스템을 개선할 수 있는 일부 앱을 사용 중이거나 휴대폰에 이러한 종류의 사전 설치된 앱이 있는 경우 화이트리스트에 EverythingDone을 추가하세요. 그렇지 않으면 EverythingDone에서 알림을 받지 못할 수도 있습니다.\n\n또한 권한 관리자에서 EverythingDone이 요청한 권한을 부여해 주세요. 이러한 권한은 다음과 같습니다.\n(1) 미리 알림, 습관 및 목표에 대한 알림을 생성하는 데 사용되는 전화 부팅 후 자동 부팅, \n(2) 사물에 대한 첨부 파일로 파일을 삽입하는 데 사용되는 읽기/쓰기 외부 저장소,\n(3) 사물에 대한 첨부 파일로 오디오를 녹음하는 데 사용되는 오디오 녹음,\n(4) 진동, 작업을 완료할 수 있도록 더 나은 알림을 생성하는 데 도움이 됩니다.\nEverythingDone는 이러한 권한을 사용하지 않도록\'하지 않을 것을 약속합니다. 나쁜 짓을 하세요. 감사합니다.</string>
+    <string name="content_important_reminder_permission">360 Mobile Security 같은 시스템 최적화 앱이나 Huawei 절전 도우미 같은 기본 앱을 사용한다면 허용 목록에 EverythingDone을 추가하세요. 알림이 정상적으로 작동하는 데 필요합니다.\n\n시스템의 권한 관리에서 EverythingDone이 요청하는 다음 권한도 허용해 주세요.\n(1) 휴대전화 부팅 시 자동 시작: 알람을 설정하는 데 사용합니다. 허용하지 않으면 휴대전화를 다시 켠 뒤 일정, 습관, 목표 알림을 재개할 수 없습니다.\n(2) 저장 공간 읽기 및 쓰기: 첨부 파일을 추가하거나 사용 통계를 공유할 때 화면 캡처를 저장하는 데 사용합니다.\n(3) 오디오 녹음: 항목에 첨부할 음성 파일을 녹음하는 데 사용합니다.\n(4) 진동: 항목을 완료하도록 알리는 알림을 더 잘 알아차릴 수 있게 합니다.\nEverythingDone은 이 권한을 악용하지 않으니 안심하세요.</string>
     <string name="from_1_1_4_to_1_1_5_title">이제 실행 취소/다시 실행이 지원됩니다.</string>
     <string name="from_1_1_4_to_1_1_5_content">메뉴 버튼을 클릭하면 실행 취소(Undo)와 다시 실행(Redo)이 표시됩니다. 이제 원한다면 언제든지 과거나 미래로 물건을 되돌릴 수 있습니다.</string>
     <string name="from_1_2_7_to_1_3_0_title">토도? 하다!</string>
-    <string name="from_1_2_7_to_1_3_0_content">things\' 알람에 대한 알림이 더 눈에 띄게 표시됩니다. 준비가 되었다면 알림 후 바로 작업을 시작할 수 있으며, EverythingDone이 신중하게 완료할 수 있도록 도와드립니다.</string>
+    <string name="from_1_2_7_to_1_3_0_content">이제 항목의 알림 시각이 되면 더 눈에 띄는 알림이 표시됩니다. 준비가 되었다면 알림에서 바로 작업을 시작할 수 있습니다. EverythingDone이 집중해서 완료할 수 있도록 도와드립니다.</string>
     <string name="from_1_3_0_to_1_3_1_title">언제든지 또는 자동으로 작업을 시작하세요.</string>
     <string name="from_1_3_0_to_1_3_1_content">이제 항목 카드를 오른쪽으로 스와이프하여 언제든지 해당 작업을 시작할 수 있습니다.\n\n게다가 이제 알림이 올 때 작업 자동 시작을 활성화할 수도 있습니다. 또 다른 새로운 기능인 자동으로 엄격 모드로 들어가는 기능인 EverythingDone을 사용하면 더 이상 \"나중에 하세요\"라고 말하는 것을 중지할 수 있습니다.</string>
     <string name="from_1_3_3_to_1_3_4_title">편집 내용을 자동으로 저장하고 습관 기록을 변경합니다.</string>
@@ -1516,4 +1514,275 @@ Nevolution, 360 Notification Box 같은 알림 관리 앱을 설치했다면 알
     <string name="tap_simulated_thing_content">받기 애니메이션을 미리 보기 위한 시뮬레이션 데이터입니다. 삭제해도 됩니다.</string>
     <string name="settings_tap_transfer_simulate">터치 전송 시뮬레이션(디버그 빌드)</string>
     <string name="tap_hce_service_description">EverythingDone 터치 전송</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="all_content">모든 콘텐츠</string>
+    <string name="thing_folder">항목 폴더</string>
+    <string name="private_thing_folder">비공개 항목 폴더</string>
+    <string name="thing_folder_count">항목 %1$d개</string>
+    <string name="thing_folder_count_folders">폴더 %1$d개</string>
+    <string name="thing_folder_count_folders_things">폴더 %1$d개, 항목 %2$d개</string>
+    <string name="cannot_set_as_private_thing_folder_title">비공개 항목 폴더로 설정할 수 없음</string>
+    <string name="thing_folder_location">위치: %1$s</string>
+    <string name="create_thing_folder_title">항목 폴더 이름 지정</string>
+    <string name="thing_folder_name_hint">폴더 이름</string>
+    <string name="default_thing_folder_name">새 폴더</string>
+    <string name="rename_thing_folder">폴더 이름 변경</string>
+    <string name="show_thing_folder_summary">요약 카드 표시</string>
+    <string name="show_thing_folder_thumbnails">썸네일 표시</string>
+    <string name="make_thing_folder_wide">넓은 카드로 설정</string>
+    <string name="make_thing_folder_normal_width">기본 너비 사용</string>
+    <string name="set_thing_folder_private">비공개 폴더로 설정</string>
+    <string name="cancel_thing_folder_private">폴더 비공개 해제</string>
+    <string name="dissolve_thing_folder">폴더 해체</string>
+    <string name="dissolve_thing_folder_confirm">선택한 폴더를 해체합니다. 폴더 자체는 휴지통을 거치지 않고 영구 삭제됩니다. 모든 내용(%1$s)은 현재 상태를 유지하며 상위 폴더로 이동합니다.</string>
+    <string name="folder_count_segment">하위 폴더 %1$d개</string>
+    <string name="thing_count_segment">항목 %1$d개</string>
+    <string name="folder_impact_separator">", "</string>
+    <string name="folder_impact_empty">내용 없음</string>
+    <string name="finish_all_things_in_folder">폴더의 모든 항목 완료</string>
+    <string name="scope_excludes_doing">" (현재 실행 중인 항목 제외)"</string>
+    <string name="scope_includes_subfolders_and_excludes_doing">" (모든 하위 폴더 포함, 현재 실행 중인 항목 제외)"</string>
+    <string name="scope_selected_things">선택한</string>
+    <string name="scope_selected_folders">선택한 폴더</string>
+    <string name="scope_selected_items">선택한 항목</string>
+    <string name="thing_status_deleted">삭제됨</string>
+    <string name="no_underway_things_to_finish">완료할 진행 중인 항목이 없음</string>
+    <string name="restore_all_things">모든 항목 복원</string>
+    <string name="restore_all_things_in_folder">폴더의 모든 항목 복원</string>
+    <string name="no_finished_things_to_delete">삭제할 완료된 항목이 없음</string>
+    <string name="no_trashed_things_to_delete_forever">휴지통에 영구 삭제할 항목이 없음</string>
+    <string name="no_finished_things_to_restore">복원할 완료된 항목이 없음</string>
+    <string name="no_trashed_things_to_restore">휴지통에 복원할 항목이 없음</string>
+    <string name="delete_thing_folder">폴더의 모든 항목 삭제</string>
+    <string name="no_things_to_delete_in_folder">선택한 폴더에 삭제할 항목이 없음</string>
+    <string name="delete_all_things_in_folder_forever">폴더의 모든 항목 영구 삭제</string>
+    <string name="delete_thing_folder_forever">폴더 영구 삭제</string>
+    <string name="delete_thing_folder_forever_confirm">선택한 폴더와 모든 내용(%1$s)을 영구 삭제합니다. 복구할 수 없습니다.</string>
+    <string name="folder_op_scope_only_search">이 작업은 현재 검색 범위의 항목에만 적용됩니다. 다른 항목에는 영향을 주지 않습니다.</string>
+    <string name="folder_op_scope_type_and_search">이 작업은 현재 유형 필터(%1$s) 및 검색 범위에 해당하는 항목에만 적용됩니다. 다른 유형과 검색 범위 밖의 항목에는 영향을 주지 않습니다.</string>
+    <string name="folder_op_scope_search">검색 범위</string>
+    <string name="folder_op_scope_status_search">상태 필터(%1$s) 및 검색 범위</string>
+    <string name="folder_op_scope_type_filter_search">유형 필터(%1$s) 및 검색 범위</string>
+    <string name="folder_op_scope_status_type_search">상태 및 유형 필터(%1$s, %2$s)와 검색 범위</string>
+    <string name="move_thing_folder_card">카드 순서 변경</string>
+    <string name="move_thing_folder_to">폴더로 이동</string>
+    <string name="all_things_scope">모든 항목</string>
+    <string name="thing_folder_root">최상위 폴더</string>
+    <string name="thing_folder_child_count">내용 %1$d개</string>
+    <string name="no_matching_things_in_selection">선택 범위에 작업할 수 있는 항목이 없음</string>
+    <string name="private_batch_skipped">현재 실행 중인 항목은 비공개로 설정되지 않음</string>
+    <string name="act_delete_all_forever">모든 항목 영구 삭제</string>
+    <string name="act_move_to_thing_folder">폴더로 이동</string>
+    <string name="act_set_as_private_items">선택 항목 비공개 설정</string>
+    <string name="act_cancel_private_items">선택 항목 비공개 해제</string>
+    <string name="delete_selected_folders_forever">선택한 폴더 영구 삭제</string>
+    <string name="delete_selected_items_forever_structural">선택 항목 영구 삭제</string>
+    <string name="title_widget_thing_1x1">항목 1x1</string>
+    <string name="title_widget_thing_2x2">항목 2x2</string>
+    <string name="title_widget_thing_3x3">항목 3x3</string>
+    <string name="title_widget_thing_4x4">항목 4x4</string>
+    <string name="title_widget_thing_4x2">항목 4x2</string>
+    <string name="title_widget_thing_2x4">항목 2x4</string>
+    <string name="title_widget_thing_4x3">항목 4x3</string>
+    <string name="title_widget_thing_3x4">항목 3x4</string>
+    <string name="title_widget_thing_5x2">항목 5x2</string>
+    <string name="title_widget_thing_2x5">항목 2x5</string>
+    <string name="title_widget_thing_5x3">항목 5x3</string>
+    <string name="title_widget_thing_3x5">항목 3x5</string>
+    <string name="title_widget_thing_5x4">항목 5x4</string>
+    <string name="title_widget_thing_4x5">항목 4x5</string>
+    <string name="title_widget_thing_5x5">항목 5x5</string>
+    <string name="title_widget_thing_6x2">항목 6x2</string>
+    <string name="title_widget_thing_2x6">항목 2x6</string>
+    <string name="title_widget_thing_6x3">항목 6x3</string>
+    <string name="title_widget_thing_3x6">항목 3x6</string>
+    <string name="title_widget_thing_6x4">항목 6x4</string>
+    <string name="title_widget_thing_4x6">항목 4x6</string>
+    <string name="title_widget_thing_6x5">항목 6x5</string>
+    <string name="title_widget_thing_5x6">항목 5x6</string>
+    <string name="title_widget_thing_6x6">항목 6x6</string>
+    <string name="title_widget_things_list_3x3">항목 목록 3x3</string>
+    <string name="title_widget_things_list_4x4">항목 목록 4x4</string>
+    <string name="title_widget_things_list_5x4">항목 목록 5x4</string>
+    <string name="title_widget_things_list_4x5">항목 목록 4x5</string>
+    <string name="title_widget_things_list_5x5">항목 목록 5x5</string>
+    <string name="title_widget_things_list_6x4">항목 목록 6x4</string>
+    <string name="title_widget_things_list_4x6">항목 목록 4x6</string>
+    <string name="title_widget_things_list_6x5">항목 목록 6x5</string>
+    <string name="title_widget_things_list_5x6">항목 목록 5x6</string>
+    <string name="title_widget_things_list_6x6">항목 목록 6x6</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+    <string name="fablesol_export_hdr_format_name_hdr10">HDR10</string>
+    <string name="fablesol_export_hdr_format_name_hdr10_plus">HDR10+</string>
+    <string name="fablesol_export_hdr_format_name_hlg">HLG</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="error_generating_screenshot">긴 스크린샷을 생성할 수 없습니다. 다시 시도하세요.</string>
+    <string name="home_empty_underway">아직 진행 중인 항목이 없습니다</string>
+    <string name="home_empty_note">아직 노트가 없습니다</string>
+    <string name="home_empty_reminder">아직 알림이 없습니다</string>
+    <string name="home_empty_habit">아직 습관이 없습니다</string>
+    <string name="home_empty_goal">아직 목표가 없습니다</string>
+    <string name="home_empty_finished">아직 완료된 항목이 없습니다</string>
+    <string name="home_empty_deleted">아직 삭제된 항목이 없습니다</string>
+    <string name="home_empty_folder">이 폴더는 아직 비어 있습니다</string>
+    <string name="act_color_info">색상 정보</string>
+    <string name="act_use_color">색상 사용</string>
+    <string name="color_info_title">색상 정보</string>
+    <string name="color_info_current">현재 색상</string>
+    <string name="color_info_gradient_start">그라데이션 시작</string>
+    <string name="color_info_gradient_end">그라데이션 끝</string>
+    <string name="color_editor_tab_pure">단색</string>
+    <string name="color_editor_tab_gradient">그라데이션</string>
+    <string name="cd_random_color">임의 색상</string>
+    <string name="color_editor_back">뒤로</string>
+    <string name="color_info_representative">대표 색상</string>
+    <string name="color_info_name">이름</string>
+    <string name="color_info_english_name">영문 이름</string>
+    <string name="color_info_matched_entry">일치 항목</string>
+    <string name="color_info_source">이름 출처</string>
+    <string name="color_info_match">일치 방식</string>
+    <string name="color_info_match_value">CIEDE2000 ΔE 기준 가장 가까운 색상, 거리 %1$s</string>
+    <string name="color_info_translation_pending">색상 이름의 중국어 번역이 아직 없습니다. 영어 원본 이름이 표시됩니다.</string>
+    <string name="camera_color_title">카메라로 색상 추출</string>
+    <string name="camera_color_waiting">중앙점을 색상에 맞추세요</string>
+    <string name="camera_color_unavailable">카메라를 사용할 수 없음</string>
+    <string name="act_customize_folder_card_appearance">폴더 모양 조정</string>
+    <string name="thing_card_appearance_source_none">없음</string>
+    <string name="folder_card_appearance_name_hint">폴더 이름</string>
+    <string name="folder_card_appearance_display_mode">폴더 크기</string>
+    <string name="folder_card_appearance_mode_summary">기본</string>
+    <string name="folder_card_appearance_mode_large">크게</string>
+    <string name="thing_card_appearance_precise_crop_video">표지 동영상 자르기</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">표지 이미지 비율의 조정 범위는 항목 카드 높이에 따라 제한됩니다. 현재 카드가 높아 이미지가 카드 크기에 맞춰 표시됩니다.</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">표지 동영상 비율의 조정 범위는 항목 카드 높이에 따라 제한됩니다. 현재 카드가 높아 동영상이 카드 크기에 맞춰 표시됩니다.</string>
+    <string name="thing_card_appearance_video_frame_play">동영상 프레임 미리보기 재생</string>
+    <string name="thing_card_appearance_video_frame_pause">동영상 프레임 미리보기 일시 정지</string>
+    <string name="thing_card_appearance_video_frame_stop">동영상 프레임 미리보기 중지</string>
+    <string name="settings_drawer_header_choose_image">이미지 선택</string>
+    <string name="settings_drawer_header_adjust_crop">자르기 조정</string>
+    <string name="drawer_header_ratio">헤더 이미지 비율</string>
+    <string name="cd_fablesol_tuning_pause">미리보기 일시 정지 또는 재개</string>
+    <string name="cd_fablesol_tuning_switch_color">물 색상 전환</string>
+    <string name="open_private_thing_folder">비공개 폴더 열기</string>
+    <string name="expand_private_thing_folder">비공개 폴더 펼치기</string>
+    <string name="manage_private_thing_folder">비공개 폴더 관리</string>
+    <string name="customize_private_thing_folder_card">비공개 폴더 카드 모양 조정</string>
+    <string name="customize_private_thing_card">비공개 항목 카드 모양 조정</string>
+    <string name="move_private_thing_or_folder">비공개 콘텐츠 이동</string>
+    <string name="finish_private_thing_by_swipe">비공개 항목 완료</string>
+    <string name="set_password_first_title">먼저 비밀번호를 설정하세요</string>
+    <string name="all_types">모든 유형</string>
+    <string name="widget_type_filter_summary">항목 유형: %1$s</string>
+    <string name="widget_display_mode_label">표시 모드</string>
+    <string name="widget_status_label">항목 상태</string>
+    <string name="widget_display_mode_list">목록</string>
+    <string name="widget_display_mode_grid">격자</string>
+    <string name="cd_back_parent_folder">상위 폴더로 돌아가기</string>
+    <string name="cd_checklist_indent">체크리스트 항목을 한 단계 오른쪽으로 이동</string>
+    <string name="cd_checklist_outdent">체크리스트 항목을 한 단계 왼쪽으로 이동</string>
+    <string name="cd_expand_thing_folder">폴더 펼치기</string>
+    <string name="cd_collapse_thing_folder">폴더 접기</string>
+    <string name="cd_motion_photo">모션 포토, 길게 눌러 재생</string>
+    <string name="motion_photo_live_badge">라이브</string>
+    <string name="cd_edit_image_attachment_appearance">이 첨부 이미지 모양 편집</string>
+    <string name="cd_edit_video_attachment_appearance">이 첨부 동영상 모양 편집</string>
+    <string name="cd_hdr_badge_on">HDR 켜짐. 탭하여 표준 다이내믹 레인지로 표시하세요.</string>
+    <string name="cd_hdr_badge_off">HDR 꺼짐. 탭하여 HDR 표시를 켜세요.</string>
+    <string name="image_viewer_no_video_player">이 동영상을 재생할 수 있는 앱이 없음</string>
+    <string name="fablesol_export_hdr_brand_dolby_vision">Dolby Vision</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_84">Dolby Vision 8.4</string>
+    <string name="detail_media_preview_loading">미리보기 불러오는 중</string>
+    <string name="detail_media_preview_load_failed">미디어 미리보기를 불러올 수 없음</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="audio_input_label">오디오 입력</string>
+    <string name="audio_input_microphone">마이크</string>
+    <string name="audio_input_system">시스템</string>
+    <string name="audio_input_system_and_microphone">마이크 + 시스템</string>
+    <string name="audio_input_microphone_summary">기기 마이크의 소리를 녹음합니다. 본 녹음은 다른 앱으로 전환해도 계속됩니다. 알림에서 중지하고 보관할 수 있습니다.</string>
+    <string name="audio_input_system_summary">캡처를 허용하는 다른 앱의 재생 오디오를 녹음합니다. Android 10 이상, 마이크 권한 및 전체 화면 범위의 시스템 승인이 필요하지만 이 앱은 화면을 읽거나 저장하지 않습니다. 일부 앱은 캡처를 차단할 수 있습니다. 본 녹음은 앱을 전환해도 계속됩니다. 녹음을 중지하면 승인도 종료됩니다. 시스템 화면 공유 표시에서 승인을 철회할 수도 있으며, 이 경우 녹음이 중지되고 지금까지의 녹음은 보관됩니다.</string>
+    <string name="audio_input_system_and_microphone_summary">시스템 재생 오디오와 기기 마이크를 동시에 녹음합니다. Android 10 이상, 마이크 권한 및 전체 화면 범위의 시스템 승인이 필요하지만 이 앱은 화면을 읽거나 저장하지 않습니다. 에코를 줄이려면 이어폰을 사용하세요. 본 녹음은 앱을 전환해도 계속됩니다. 녹음을 중지하면 승인도 종료됩니다. 시스템 화면 공유 표시에서 승인을 철회할 수도 있으며, 이 경우 녹음이 중지되고 지금까지의 녹음은 보관됩니다.</string>
+    <string name="cd_choose_audio_input">오디오 입력 선택</string>
+    <string name="audio_input_projection_denied">시스템 승인이 취소되어 오디오 입력이 마이크로 돌아갔습니다.</string>
+    <string name="audio_recording_size_limit_reached">파일 크기 한도에 도달하여 녹음이 자동으로 중지되고 보관되었습니다.</string>
+    <string name="audio_recording_storage_full">저장 공간이 부족하여 녹음을 저장하지 못했습니다.</string>
+    <string name="audio_recording_finalize_failed">녹음 파일 마무리 처리에 실패하여 저장하지 못했습니다.</string>
+    <string name="audio_recording_stop_not_kept_notification_title">녹음 중지됨, 저장 실패</string>
+    <string name="audio_recording_busy_other_thing">다른 항목에서 녹음 중입니다</string>
+    <string name="audio_recording_go_to">이동</string>
+    <string name="audio_input_system_initialization_failed">시스템 오디오를 시작할 수 없어 입력이 마이크로 돌아갔습니다.</string>
+    <string name="audio_input_projection_revoked">시스템 오디오 승인이 종료되었습니다. 지금까지의 녹음은 보관되었습니다.</string>
+    <string name="audio_input_system_capture_ended">시스템 오디오 승인이 종료되어 입력이 마이크로 돌아갔습니다.</string>
+    <string name="audio_input_recording_start_failed">녹음을 시작할 수 없음</string>
+    <string name="audio_recording_finalizing">녹음 저장 중…</string>
+    <string name="audio_recording_finalizing_notification_title">녹음 저장 중</string>
+    <string name="audio_recording_file_output_failed">녹음 파일 쓰기 실패</string>
+    <string name="audio_recording_file_write_interrupted">녹음 파일 쓰기가 중단되었습니다. 지금까지의 녹음은 보관되었습니다.</string>
+    <string name="cd_save_unavailable_not_kept">녹음이 보관되지 않아 저장할 수 없음</string>
+    <string name="audio_input_capture_failed">필수 오디오 입력이 중지되었습니다. 지금까지의 녹음은 보관되었습니다.</string>
+    <string name="audio_input_microphone_unavailable">마이크를 시작할 수 없음</string>
+    <string name="audio_input_system_silent">캡처 가능한 시스템 오디오가 감지되지 않았습니다. 일부 앱은 캡처를 차단할 수 있습니다.</string>
+    <string name="audio_input_aec_unavailable">이 기기에서는 에코 제거를 켤 수 없습니다. 에코를 줄이려면 이어폰을 사용하세요.</string>
+    <string name="audio_recording_notification_channel">오디오 녹음</string>
+    <string name="audio_input_preview_notification_title">시스템 오디오 미리보기 중</string>
+    <string name="audio_input_authorization_notification_title">시스템 오디오 승인 활성화됨</string>
+    <string name="audio_recording_notification_title">녹음 중</string>
+    <string name="audio_recording_notification_stop_keep">중지하고 보관</string>
+    <string name="audio_recording_notification_permission_missing">알림 권한이 꺼져 있습니다. 녹음은 가능하지만 Android 13 이상에서는 시스템의 \'활성 앱\'에서만 포그라운드 서비스 상태가 표시됩니다. 알림창에 입력 소스와 \'중지하고 보관\' 작업이 표시되지 않습니다.</string>
+    <string name="audio_recording_stopped_notification_title">녹음 중지 및 보관 완료</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="act_finish_selected_items">선택 범위의 항목 완료</string>
+    <string name="act_delete_selected_items">선택 범위의 항목 삭제</string>
+    <string name="act_restore_selected_items">선택 범위의 항목 복원</string>
+    <string name="act_delete_selected_items_forever">선택 범위의 항목 영구 삭제</string>
+    <string name="act_finish_selected_folders">선택한 폴더의 모든 항목 완료</string>
+    <string name="act_delete_selected_folders">선택한 폴더의 모든 항목 삭제</string>
+    <string name="act_restore_selected_folders">선택한 폴더의 모든 항목 복원</string>
+    <string name="act_delete_selected_folders_forever">선택한 폴더의 모든 항목 영구 삭제</string>
+    <string name="delete_selected_items_forever_structural_confirm">선택한 항목(선택한 폴더와 모든 내용, 선택한 개별 항목)을 영구 삭제합니다. 총 %1$s. 복구할 수 없습니다.</string>
+    <string name="finish_all_things_in_folder_confirm">%1$s 내 진행 중인 모든 항목을 완료합니다. 총 %2$d개%3$s.</string>
+    <string name="finish_all_things_root_confirm">진행 중인 모든 항목을 완료합니다. 총 %1$d개%2$s.</string>
+    <string name="restore_all_finished_in_folder_confirm">%1$s 내 완료된 모든 항목을 진행 중 상태로 복원합니다. 총 %2$d개%3$s.</string>
+    <string name="restore_all_finished_root_confirm">완료된 모든 항목을 진행 중 상태로 복원합니다. 총 %1$d개%2$s.</string>
+    <string name="delete_all_finished_in_folder_confirm">%1$s 내 완료된 모든 항목을 휴지통으로 이동합니다. 총 %2$d개%3$s. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="delete_all_finished_root_confirm">완료된 모든 항목을 휴지통으로 이동합니다. 총 %1$d개%2$s. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="delete_forever_all_in_folder_confirm">%1$s 내 삭제된 모든 항목을 영구 삭제합니다. 총 %2$d개%3$s. 복구할 수 없습니다.</string>
+    <string name="delete_forever_all_root_confirm">삭제된 모든 항목을 영구 삭제합니다. 총 %1$d개%2$s. 복구할 수 없습니다.</string>
+    <string name="restore_all_trashed_in_folder_confirm">%1$s 내 삭제된 모든 항목을 삭제 전 상태로 복원합니다. 총 %2$d개%3$s.</string>
+    <string name="restore_all_trashed_root_confirm">삭제된 모든 항목을 삭제 전 상태로 복원합니다. 총 %1$d개%2$s.</string>
+    <string name="delete_thing_folder_confirm">%1$s 내 진행 중인 모든 항목을 휴지통으로 이동합니다. 총 %2$d개%3$s. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="confirm_finish_selected_things">선택한 항목을 완료합니다. 총 %1$d개.</string>
+    <string name="confirm_delete_selected_things">선택한 항목을 휴지통으로 이동합니다. 총 %1$d개. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="confirm_restore_selected_things">선택한 항목을 복원합니다. 총 %1$d개.</string>
+    <string name="confirm_delete_selected_things_forever">선택한 항목을 영구 삭제합니다. 총 %1$d개. 복구할 수 없습니다.</string>
+    <string name="confirm_finish_selected_items">선택 범위에 포함된 항목을 완료합니다. 총 %1$d개%2$s.</string>
+    <string name="confirm_delete_selected_items">선택 범위에 포함된 항목을 휴지통으로 이동합니다. 총 %1$d개%2$s. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="confirm_restore_selected_items">선택 범위에 포함된 항목을 복원합니다. 총 %1$d개%2$s.</string>
+    <string name="confirm_delete_selected_items_forever">선택 범위에 포함된 항목을 영구 삭제합니다. 총 %1$d개%2$s. 복구할 수 없습니다.</string>
+    <string name="confirm_finish_selected_folders">선택한 폴더의 모든 항목을 완료합니다. 총 %1$d개%2$s.</string>
+    <string name="confirm_delete_selected_folders">선택한 폴더의 모든 항목을 휴지통으로 이동합니다. 총 %1$d개%2$s. 휴지통에서 복원할 수 있습니다.</string>
+    <string name="confirm_restore_selected_folders">선택한 폴더의 모든 항목을 복원합니다. 총 %1$d개%2$s.</string>
+    <string name="confirm_delete_selected_folders_forever">선택한 폴더의 휴지통에 있는 모든 항목을 영구 삭제합니다. 총 %1$d개%2$s. 복구할 수 없습니다.</string>
+    <string name="delete_selected_folders_forever_confirm">선택한 폴더와 모든 내용(%1$s)을 영구 삭제합니다. 복구할 수 없습니다.</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">%1$s 할 일</string>
+    <string name="l10n_amount">수량</string>
+    <string name="l10n_time_unit">시간 단위</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">말일</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">알림:</string>
 </resources>

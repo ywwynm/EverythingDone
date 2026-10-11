@@ -1,0 +1,110 @@
+{
+  "debugUpdateCode": 202610110559,
+  "checked_at": "2026-10-11T14:01:02.035835+08:00",
+  "sha256": "37d124cdd5e7ba6976e262b6b0d205ae81bcdf5cac9c6348b505760515001c63",
+  "devices": [
+    {
+      "serial": "9018f404",
+      "model": "OPD2515",
+      "run_id": "wording-hints-20261011-oppo",
+      "checks": 5153,
+      "failures": 0,
+      "languages": [
+        "en",
+        "zh-CN",
+        "zh-TW",
+        "zh-HK",
+        "de",
+        "es",
+        "fr",
+        "hi",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru"
+      ],
+      "ui_languages": [
+        "de",
+        "es",
+        "fr"
+      ],
+      "database_unchanged": true,
+      "language_preference_check": "included in passing probe checks",
+      "installed_sha256": "37d124cdd5e7ba6976e262b6b0d205ae81bcdf5cac9c6348b505760515001c63",
+      "matches_published_apk": true,
+      "result": "9018f404.json",
+      "screenshots": [
+        "screenshots/oppo-de-controls.png",
+        "screenshots/oppo-es-controls.png",
+        "screenshots/oppo-fr-controls.png"
+      ]
+    },
+    {
+      "serial": "R5CW20BLNKL",
+      "model": "SM-S9180",
+      "run_id": "wording-hints-20261011-samsung",
+      "checks": 5067,
+      "failures": 0,
+      "languages": [
+        "en",
+        "zh-CN",
+        "zh-TW",
+        "zh-HK",
+        "de",
+        "es",
+        "fr",
+        "hi",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru"
+      ],
+      "ui_languages": [
+        "ru"
+      ],
+      "database_unchanged": true,
+      "language_preference_check": "included in passing probe checks",
+      "installed_sha256": "37d124cdd5e7ba6976e262b6b0d205ae81bcdf5cac9c6348b505760515001c63",
+      "matches_published_apk": true,
+      "result": "R5CW20BLNKL.json",
+      "screenshots": [
+        "screenshots/samsung-ru-controls.png"
+      ]
+    },
+    {
+      "serial": "192.168.100.67:42641",
+      "model": "MEIZU 20 Inf",
+      "run_id": "wording-hints-20261011-meizu",
+      "checks": 5067,
+      "failures": 0,
+      "languages": [
+        "en",
+        "zh-CN",
+        "zh-TW",
+        "zh-HK",
+        "de",
+        "es",
+        "fr",
+        "hi",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru"
+      ],
+      "ui_languages": [
+        "ru"
+      ],
+      "database_unchanged": true,
+      "language_preference_check": "included in passing probe checks",
+      "installed_sha256": "37d124cdd5e7ba6976e262b6b0d205ae81bcdf5cac9c6348b505760515001c63",
+      "matches_published_apk": true,
+      "result": "192.168.100.67_42641.json",
+      "screenshots": [
+        "screenshots/meizu-ru-controls.png"
+      ]
+    }
+  ]
+}

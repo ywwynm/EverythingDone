@@ -40,49 +40,27 @@ object DateTimeUtil {
 
     @JvmStatic
     fun getGeneralDateStr(context: Context?, time: Long): String? {
-        return formatMillis(time, getGeneralDateFormatPattern(context))
+        return LocalizedText.date(context!!, time)
     }
 
     @JvmStatic
     fun getGeneralDateTimeStr(context: Context?, time: Long): String? {
-        return formatMillis(time, getGeneralDateTimeFormatPattern(context))
+        return LocalizedText.date(context!!, time, "yMMMEdHms")
     }
 
     @JvmStatic
     fun getGeneralDateFormatPattern(context: Context?): String {
-        if (LocaleUtil.isChinese(context)) {
-            val year: String  = context!!.getString(R.string.year)
-            val month: String = context.getString(R.string.month)
-            val day: String   = context.getString(R.string.day)
-            return "yyyy" + year + "M" + month + "d" + day
-        } else {
-            return "MMM d, yyyy"
-        }
+        return LocalizedText.datePattern(context!!, "yMMMd")
     }
 
     @JvmStatic
     fun getGeneralDateTimeFormatPattern(context: Context?): String {
-        if (LocaleUtil.isChinese(context)) {
-            val year: String  = context!!.getString(R.string.year)
-            val month: String = context.getString(R.string.month)
-            val day: String   = context.getString(R.string.day)
-            return "yyyy" + year + "M" + month + "d" + day + "EEEE H:mm:ss"
-        } else {
-            return "H:mm:ss, MMM d, yyyy, EEEE"
-        }
+        return LocalizedText.datePattern(context!!, "yMMMEdHms")
     }
 
     @JvmStatic
     fun getDateTimeStr(type: Int, time: Int, context: Context?): String {
-        var typeStr: String = getTimeTypeStr(type, context)
-        if (LocaleUtil.isChinese(context)) {
-            return time.toString() + typeStr
-        } else {
-            if (time > 1) {
-                typeStr += "s"
-            }
-            return time.toString() + " " + typeStr.lowercase(Locale.getDefault())
-        }
+        return LocalizedText.duration(context!!, type, time)
     }
 
     @JvmStatic
@@ -187,9 +165,6 @@ object DateTimeUtil {
             context: Context?, notifyTime: Long, @Thing.State thingState: Int, reminderState: Int,
             timePeriod: Boolean): String {
         var timeStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)
-        if (timeStr.startsWith("on ")) {
-            timeStr = timeStr.substring(3, timeStr.length)
-        }
         var ret: String = timeStr
         if (thingState != Thing.UNDERWAY || reminderState != Reminder.UNDERWAY) {
             ret += ", " + Reminder.getStateDescription(thingState, reminderState, context)
@@ -239,59 +214,32 @@ object DateTimeUtil {
     fun getDateTimeStrGoal(
             context: Context?, notifyTime: Long, goalCreateTime: Long, thingFinishTime: Long,
             @Thing.State thingState: Int, goalState: Int): String {
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
+        val ctx = context!!
+        if (LocaleUtil.isChinese(ctx)) return ChineseText.goalStatus(ctx, notifyTime, goalCreateTime, thingFinishTime, thingState, goalState)
         if (thingState == Thing.UNDERWAY) {
-            val curTime: Long = System.currentTimeMillis()
-            val days: Int = abs(calculateTimeGap(curTime, notifyTime, Calendar.DATE))
-            if (days == 0) { // the alarm will ring today
-                if (curTime <= notifyTime) {
-                    val shouldBefore: String = context!!.getString(R.string.goal_should_finish_before)
-                    return String.format(shouldBefore, formatMillis(notifyTime, "H:mm"))
-                } else {
-                    if (isChinese) {
-                        val overdue: String = context!!.getString(R.string.goal_overdue)
-                        return overdue.substring(0, 3) // "已逾期"
-                    } else {
-                        return "overdue"
-                    }
-                }
-            } else if (curTime < notifyTime) { // days >= 1
-                var shouldFinishIn: String = context!!.getString(R.string.goal_should_finish_in)
-                shouldFinishIn = String.format(shouldFinishIn, days)
-                if (days == 1 && !isChinese) {
-                    shouldFinishIn = shouldFinishIn.replace("days", "day")
-                }
-                return shouldFinishIn
-            } else { // later than deadline while the thing isn't finished
-                var overdue: String = context!!.getString(R.string.goal_overdue)
-                overdue = String.format(overdue, days)
-                if (days == 1 && !isChinese) {
-                    overdue = overdue.replace("days", "day")
-                }
-                return overdue
+            val now = System.currentTimeMillis()
+            val days = abs(calculateTimeGap(now, notifyTime, Calendar.DATE))
+            return when {
+                days == 0 && now <= notifyTime -> ctx.getString(R.string.goal_should_finish_before,
+                    LocalizedText.time(ctx, notifyTime))
+                days == 0 -> ctx.getString(R.string.l10n_goal_overdue)
+                now < notifyTime -> ctx.getString(R.string.l10n_goal_remaining,
+                    LocalizedText.duration(ctx, Calendar.DATE, days))
+                else -> ctx.getString(R.string.l10n_goal_overdue_duration,
+                    LocalizedText.duration(ctx, Calendar.DATE, days))
             }
-        } else if (thingState == Thing.FINISHED) {
-            val finishDays: Int = calculateTimeGap(goalCreateTime, thingFinishTime, Calendar.DATE)
-            val goalDays: Int = calculateTimeGap(goalCreateTime, notifyTime, Calendar.DATE)
-            var finishedIn: String = context!!.getString(R.string.goal_finished_normal)
-            if (finishDays < goalDays) {
-                finishedIn = context.getString(R.string.goal_finished_in_advance)
-            } else if (finishDays > goalDays) {
-                finishedIn = context.getString(R.string.goal_finished_overdue)
-            }
-            val daysStr: String = if (finishDays == 0) {
-                "<1"
-            } else {
-                finishDays.toString()
-            }
-            finishedIn = String.format(finishedIn, daysStr)
-            if (finishDays <= 1 && !isChinese) {
-                finishedIn = finishedIn.replace("days", "day")
-            }
-            return finishedIn
-        } else {
-            return Reminder.getStateDescription(thingState, goalState, context)
         }
+        if (thingState == Thing.FINISHED) {
+            val finishDays = calculateTimeGap(goalCreateTime, thingFinishTime, Calendar.DATE)
+            val goalDays = calculateTimeGap(goalCreateTime, notifyTime, Calendar.DATE)
+            val key = when {
+                finishDays < goalDays -> R.string.l10n_goal_finished_early
+                finishDays > goalDays -> R.string.l10n_goal_finished_late
+                else -> R.string.l10n_goal_finished
+            }
+            return ctx.getString(key, LocalizedText.elapsed(ctx, Calendar.DATE, finishDays))
+        }
+        return Reminder.getStateDescription(thingState, goalState, ctx)
     }
 
     /**
@@ -312,9 +260,6 @@ object DateTimeUtil {
             context: Context?, notifyTime: Long, timePeriod: Boolean): String {
         val shouldBefore: String = context!!.getString(R.string.goal_should_finish_before)
         var dateTimeAtStr: String = getDateTimeStrAt(notifyTime, context, timePeriod)
-        if (dateTimeAtStr.startsWith("on ")) {
-            dateTimeAtStr = dateTimeAtStr.substring(3, dateTimeAtStr.length)
-        }
         return String.format(shouldBefore, dateTimeAtStr)
     }
 
@@ -328,16 +273,8 @@ object DateTimeUtil {
      */
     @JvmStatic
     fun getDateTimeStrAfter(type: Int, time: Int, context: Context?): String? {
-        if (time == 0) {
-            return getThisTStr(type, context)
-        }
-        val str: String = getDateTimeStr(type, time, context)
-        val after: String = context!!.getString(R.string.after)
-        return if (LocaleUtil.isChinese(context)) {
-            str + after
-        } else {
-            "$after $str"
-        }
+        return if (time == 0) getThisTStr(type, context)
+        else LocalizedText.after(context!!, type, time)
     }
 
     @JvmStatic
@@ -362,61 +299,25 @@ object DateTimeUtil {
      */
     @JvmStatic
     fun getDateTimeStrAt(zdt: ZonedDateTime?, context: Context?, timePeriod: Boolean): String {
-        val cur: ZonedDateTime = ZonedDateTime.now()
-        val year: Int = zdt!!.year
-        val curYear: Int = cur.year
-        val month: Int = zdt.monthValue
-        val day: Int = zdt.dayOfMonth
-        var dayOfWeek: Int = zdt.dayOfWeek.value
-        dayOfWeek = if (dayOfWeek == 7) 1 else dayOfWeek + 1
-        var curDayOfWeek: Int = cur.dayOfWeek.value
-        curDayOfWeek = if (curDayOfWeek == 7) 1 else curDayOfWeek + 1
-        val hour: Int = zdt.hour
-        val minute: Int = zdt.minute
-
-        val res: Resources = context!!.resources
-        val date: Date = Date.from(zdt.toInstant())
-        val sb: StringBuilder = StringBuilder()
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-
-        val days: Int = calculateTimeGap(cur.toInstant().toEpochMilli(),
-                zdt.toInstant().toEpochMilli(), Calendar.DATE)
-        if (days < 0) {
-            if (days == -1) {
-                sb.append(res.getString(R.string.yesterday))
-            } else if (days >= -getEarlyWeekLimitDays(curDayOfWeek)) {
-                if (!isChinese) {
-                    sb.append("on ")
-                }
-                sb.append(res.getStringArray(R.array.day_of_week)[dayOfWeek - 1])
-            } else {
-                appendYearMonthDayStr(year, month, day, curYear, date, context, sb, isChinese)
-            }
-        } else if (days == 0) {
-            sb.append(res.getString(R.string.today))
-        } else {
-            if (days == 1) {
-                sb.append(res.getString(R.string.tomorrow))
-            } else if (days <= getLateWeekLimitDays(curDayOfWeek)) {
-                if (!isChinese) {
-                    sb.append("on ")
-                }
-                sb.append(res.getStringArray(R.array.day_of_week)[dayOfWeek - 1])
-            } else {
-                appendYearMonthDayStr(year, month, day, curYear, date, context, sb, isChinese)
-            }
+        val ctx = context!!
+        val value = zdt!!
+        if (LocaleUtil.isChinese(ctx)) return ChineseText.dateAt(ctx, value)
+        val now = ZonedDateTime.now()
+        val millis = value.toInstant().toEpochMilli()
+        val days = calculateTimeGap(now.toInstant().toEpochMilli(), millis, Calendar.DATE)
+        val weekday = if (now.dayOfWeek.value == 7) 1 else now.dayOfWeek.value + 1
+        val label = when {
+            days == -1 -> ctx.getString(R.string.yesterday)
+            days == 0 -> ctx.getString(R.string.today)
+            days == 1 -> ctx.getString(R.string.tomorrow)
+            days in -getEarlyWeekLimitDays(weekday)..getLateWeekLimitDays(weekday) ->
+                LocalizedText.date(ctx, millis, "EEEE")
+            else -> LocalizedText.date(ctx, millis, if (value.year == now.year) "MMMd" else "yMMMd")
         }
-        if (isChinese) {
-            sb.append(getTimePeriodStr(hour, res))
-            appendHourMinute(hour, minute, sb)
-        } else {
-            sb.append(", ")
-            appendHourMinute(hour, minute, sb)
-            if (timePeriod) {
-                sb.append(" ").append(getTimePeriodStr(hour, res))
-            }
-        }
-        return sb.toString()
+        return if (timePeriod || LocaleUtil.isChinese(ctx)) {
+            ctx.getString(R.string.l10n_date_time_period, label, LocalizedText.time(ctx, millis),
+                getTimePeriodStr(value.hour, ctx.resources))
+        } else ctx.getString(R.string.l10n_date_time, label, LocalizedText.time(ctx, millis))
     }
 
     /**
@@ -478,188 +379,8 @@ object DateTimeUtil {
      */
     @JvmStatic
     fun getDateTimeStrRec(context: Context?, type: Int, detail: String?): String? {
-        return when (type) {
-            Calendar.DATE -> getDateTimeStrRecTimeOfDay(context, detail)
-            Calendar.WEEK_OF_YEAR -> getDateTimeStrRecDayOfWeek(context, detail)
-            Calendar.MONTH -> getDateTimeStrRecDayOfMonth(context, detail)
-            Calendar.YEAR -> getDateTimeStrRecMonthOfYear(context, detail)
-            else -> null
-        }
-    }
-
-    private fun getDateTimeStrRecTimeOfDay(context: Context?, detail: String?): String {
-        val sb: StringBuilder = StringBuilder()
-        val every: String = context!!.getString(R.string.every)
-        val day: String = context.getString(days) // 天
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        if (isChinese) {
-            sb.append(every).append(day)
-        } else {
-            sb.append("at ")
-        }
-        val times: Array<String> = detail!!.split(",".toRegex()).toTypedArray()
-        for (time in times) {
-            sb.append(time).append(", ")
-        }
-        sb.deleteCharAt(sb.length - 1)
-        sb.deleteCharAt(sb.length - 1)
-        if (!isChinese) {
-            sb.append(every).append(" ").append(day)
-        }
-        return sb.toString()
-    }
-
-    private fun getDateTimeStrRecDayOfWeek(context: Context?, detail: String?): String {
-        val sb: StringBuilder = StringBuilder()
-        val dateTimes: Array<String> = detail!!.split(" ".toRegex()).toTypedArray()
-        val days: Array<String> = dateTimes[0].split(",".toRegex()).toTypedArray()
-        val times: Array<String> = dateTimes[1].split(":".toRegex()).toTypedArray()
-        val every: String = context!!.getString(R.string.every)
-        val dayOfWeek: Array<String?> = context.resources.getStringArray(R.array.day_of_week)
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        if (isChinese) {
-            sb.append(every)
-            sb.append(dayOfWeek[0]!!.substring(0, 1))
-            for (day in days) {
-                sb.append(dayOfWeek[day.toInt()]!!.substring(1, 2)).append(",")
-            }
-            sb.deleteCharAt(sb.length - 1)
-            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
-                    .append(dateTimes[1])
-        } else {
-            sb.append("at ")
-            sb.append(dateTimes[1]).append(every).append(" ")
-            for (day in days) {
-                sb.append(dayOfWeek[day.toInt()]).append(", ")
-            }
-            sb.deleteCharAt(sb.length - 1)
-            sb.deleteCharAt(sb.length - 1)
-        }
-        return sb.toString()
-    }
-
-    private fun getDateTimeStrRecDayOfMonth(context: Context?, detail: String?): String {
-        val sb: StringBuilder = StringBuilder()
-        val dateTimes: Array<String> = detail!!.split(" ".toRegex()).toTypedArray()
-        val days: Array<String> = dateTimes[0].split(",".toRegex()).toTypedArray()
-        val times: Array<String> = dateTimes[1].split(":".toRegex()).toTypedArray()
-        val every: String = context!!.getString(R.string.every)
-        val monthStr: String = context.getString(R.string.months)
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        if (isChinese) { // 每个月1号,6号,16号,26号早晨6:30
-            sb.append(every).append(monthStr)
-            val monthDay: String = context.getString(R.string.month_day)
-            for (day in days) {
-                if ("27" == day) { // different from 28 in method below, but is correct.
-                    sb.append(context.getString(R.string.end_of_month)).append(",")
-                } else {
-                    sb.append(day.toInt() + 1).append(monthDay).append(",")
-                }
-            }
-            sb.deleteCharAt(sb.length - 1)
-            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
-                    .append(dateTimes[1])
-        } else { // at 6:30 on the 1st, 6th, 16th, 26th day of every month
-            sb.append("at ")
-            sb.append(dateTimes[1]).append(" on the ")
-            for (day in days) {
-                if ("27" == day) {
-                    sb.append("last, ")
-                } else {
-                    sb.append(getDayOfMonthStrInEnglish(day)).append(", ")
-                }
-            }
-            sb.deleteCharAt(sb.length - 2)
-            sb.append("day of").append(every).append(" ").append(monthStr)
-        }
-        return sb.toString()
-    }
-
-    private fun getDateTimeStrRecMonthOfYear(context: Context?, detail: String?): String {
-        val sb: StringBuilder = StringBuilder()
-        val dateTimes: Array<String> = detail!!.split(" ".toRegex()).toTypedArray()
-        val months: Array<String> = dateTimes[0].split(",".toRegex()).toTypedArray()
-        val day: String = dateTimes[1]
-        val times: Array<String> = dateTimes[2].split(":".toRegex()).toTypedArray()
-        val every: String = context!!.getString(R.string.every)
-        val yearStr: String = context.getString(R.string.year).lowercase(Locale.getDefault())
-        val monthOfYear: Array<String?> = context.resources.getStringArray(R.array.month_of_year)
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        if (isChinese) { // 每年六月,十二月月末傍晚18:00
-            sb.append(every).append(yearStr)
-            for (month in months) {
-                sb.append(monthOfYear[month.toInt()]).append(",")
-            }
-            sb.deleteCharAt(sb.length - 1)
-            if ("28" == day) {
-                sb.append(context.getString(R.string.end_of_month))
-            } else {
-                sb.append(day.toInt()).append(context.getString(R.string.month_day))
-            }
-            sb.append(getTimePeriodStr(times[0].toInt(), context.resources))
-                    .append(dateTimes[2])
-        } else { // at 18:00 on the last day of June, December in every year
-            sb.append("at ")
-            sb.append(dateTimes[2]).append(" on the ")
-            if ("28" == day) {
-                sb.append("last")
-            } else {
-                sb.append(getDayOfMonthStrInEnglish(day))
-            }
-            sb.append(" day of ")
-            for (month in months) {
-                sb.append(monthOfYear[month.toInt()]).append(", ")
-            }
-            sb.deleteCharAt(sb.length - 1)
-            sb.deleteCharAt(sb.length - 1)
-            sb.append(" in").append(every).append(" ").append(yearStr)
-        }
-        return sb.toString()
-    }
-
-    private fun getDayOfMonthStrInEnglish(dayStr: String?): String {
-        val day: Int = dayStr!!.toInt()
-        val postfix: String = if (day % 10 == 0) {
-            "st"
-        } else if (day % 10 == 1) {
-            "nd"
-        } else if (day % 11 == 2) {
-            "rd"
-        } else {
-            "th"
-        }
-        return (day + 1).toString() + postfix
-    }
-
-    private fun appendYearMonthDayStr(year: Int, month: Int, day: Int, curYear: Int,
-                                      date: Date, context: Context?, sb: StringBuilder, isChinese: Boolean) {
-        val res: Resources = context!!.resources
-        if (isChinese) {
-            if (year != curYear) {
-                sb.append(year)
-                        .append(res.getString(R.string.year))
-            }
-            sb.append(month)
-                    .append(res.getString(R.string.month))
-                    .append(day)
-                    .append(res.getString(R.string.day))
-        } else {
-            sb.append("on ")
-            val sdf: SimpleDateFormat = if (year != curYear) {
-                SimpleDateFormat("MMM d, yyyy")
-            } else {
-                SimpleDateFormat("MMM d")
-            }
-            sb.append(sdf.format(date))
-        }
-    }
-
-    private fun appendHourMinute(hour: Int, minute: Int, sb: StringBuilder) {
-        sb.append(hour).append(":")
-        if (minute < 10) {
-            sb.append(0)
-        }
-        sb.append(minute)
+        if (type !in listOf(Calendar.DATE, Calendar.WEEK_OF_YEAR, Calendar.MONTH, Calendar.YEAR)) return null
+        return LocalizedText.recurrence(context!!, type, detail!!)
     }
 
     private fun getEarlyWeekLimitDays(dayOfWeek: Int): Int {
@@ -700,83 +421,57 @@ object DateTimeUtil {
 
     @JvmStatic
     fun getDurationBriefStr(time: Long): String? {
-        val second: Float = time / 1000f
-        return if (second < 1) {
-            "< 1s"
-        } else if (second < 3600) {
-            SimpleDateFormat("mm:ss").format(Date(time))
-        } else SimpleDateFormat("HH:mm:ss").format(Date(time))
+        val context = App.getApp()!!
+        val seconds = time / 1000
+        return if (seconds < 1) {
+            if (LocaleUtil.isChinese(context)) "< 1s"
+            else "< " + LocalizedText.duration(context, Calendar.SECOND, 1, android.icu.text.MeasureFormat.FormatWidth.NARROW)
+        } else if (seconds < 3600) {
+            String.format(LocalizedText.locale(context), "%02d:%02d", seconds / 60, seconds % 60)
+        } else {
+            String.format(LocalizedText.locale(context), "%02d:%02d:%02d",
+                seconds / 3600, seconds / 60 % 60, seconds % 60)
+        }
     }
 
     @JvmStatic
     fun getTimeLengthStr(time: Long, context: Context?): String? {
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        val BLK: String = if (isChinese) " " else ""
-
-        val second: Long = time / 1000
-        val secStr: String = context!!.getString(R.string.statistic_second)
-        var minStr: String = context.getString(R.string.statistic_minute)
-        val hourStr: String = context.getString(R.string.statistic_hour)
-        val dayStr: String = context.getString(R.string.statistic_day)
-        val yearStr: String = context.getString(R.string.statistic_year)
+        val ctx = context!!
+        val second = time / 1000
+        val parts = mutableListOf<kotlin.Pair<Int, Number>>()
         if (second < 1) {
-            return "< 1$BLK$secStr"
+            return "< " + LocalizedText.duration(ctx, Calendar.SECOND, 1,
+                android.icu.text.MeasureFormat.FormatWidth.SHORT)
         } else if (second < 60) {
-            return second.toString() + BLK + secStr
+            parts += Calendar.SECOND to second
         } else if (second < 3600) {
-            val min: Long = second / 60
-            val sec: Long = second % 60
-            if (sec == 0L) {
-                return min.toString() + BLK + minStr
-            } else {
-                if (isChinese) {
-                    minStr = minStr.substring(0, minStr.length - 1)
-                }
-                return "$min$BLK$minStr $sec$BLK$secStr"
-            }
+            parts += Calendar.MINUTE to second / 60
+            if (second % 60 != 0L) parts += Calendar.SECOND to second % 60
         } else if (second < 86400) {
-            val hour: Long = second / 3600
-            val min: Long = (second % 3600) / 60
-            return if (min == 0L) {
-                "$hour$BLK$hourStr"
-            } else {
-                "$hour$BLK$hourStr $min$BLK$minStr"
-            }
-        } else if (second < 86400 * 365) {
-            val day: Long  =   second / 86400
-            val hour: Long =  (second % 86400) / 3600
-            val min: Long  = ((second % 86400) % 3600) / 60
-            return if (hour == 0L) {
-                "$day$BLK$dayStr"
-            } else if (min == 0L) {
-                "$day$BLK$dayStr $hour$BLK$hourStr"
-            } else {
-                "$day$BLK$dayStr $hour$BLK$hourStr $min$BLK$minStr"
-            }
+            parts += Calendar.HOUR_OF_DAY to second / 3600
+            if (second % 3600 / 60 != 0L) parts += Calendar.MINUTE to second % 3600 / 60
+        } else if (second < 31536000) {
+            parts += Calendar.DATE to second / 86400
+            val hour = second % 86400 / 3600
+            val minute = second % 3600 / 60
+            if (hour != 0L) parts += Calendar.HOUR_OF_DAY to hour
+            if (minute != 0L) parts += Calendar.MINUTE to minute
         } else {
-            val year: Long =   second / 31536000
-            var day: Long  =  (second % 31536000) / 86400
-            val hour: Long = ((second % 31536000) % 86400) / 3600
-            if (hour > 12) day++
-            return if (day == 0L) {
-                "$year$BLK$yearStr"
-            } else {
-                "$year$BLK$yearStr $day$BLK$dayStr"
-            }
+            parts += Calendar.YEAR to second / 31536000
+            var day = second % 31536000 / 86400
+            if (second % 86400 / 3600 > 12) day++
+            if (day != 0L) parts += Calendar.DATE to day
         }
+        return LocalizedText.durationParts(ctx, *parts.toTypedArray())
     }
 
     @JvmStatic
     fun getTimeLengthStrOnlyDay(time: Long, context: Context?): String? {
-        var day: Long = time / 86400000L
-        val hour: Long = (time % 86400000) / 3600
+        var day = time / 86400000L
+        val hour = (time % 86400000L) / 3600000L
         if (hour > 12) day++
-        val dayStr: String = context!!.getString(days)
-        return when (day) {
-            0L -> "< 1 $dayStr"
-            1L -> "$day $dayStr"
-            else -> "$day $dayStr" + (if (LocaleUtil.isChinese(context)) "" else "s")
-        }
+        if (LocaleUtil.isChinese(context)) return (if (day == 0L) "< 1" else day.toString()) + " " + context!!.getString(days)
+        return LocalizedText.elapsed(context!!, Calendar.DATE, day.toInt())
     }
 
     @JvmStatic

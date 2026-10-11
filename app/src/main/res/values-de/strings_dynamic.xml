@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 动态文案使用完整句式；数量短语由系统按语言选择复数形式。 -->
+    <string name="l10n_less_than">weniger als %1$s</string>
+    <string name="l10n_goal_overdue">Überfällig</string>
+    <string name="l10n_goal_remaining">Verbleibende Zeit: %1$s</string>
+    <string name="l10n_goal_overdue_duration">Frist um %1$s überschritten</string>
+    <string name="l10n_goal_finished_early">Vorzeitig erledigt · Dauer: %1$s</string>
+    <string name="l10n_goal_finished_late">Verspätet erledigt · Dauer: %1$s</string>
+    <string name="l10n_goal_finished">Erledigt · Dauer: %1$s</string>
+    <string name="l10n_frequency_day">%1$s pro Tag</string>
+    <string name="l10n_frequency_week">%1$s pro Woche</string>
+    <string name="l10n_frequency_month">%1$s pro Monat</string>
+    <string name="l10n_frequency_year">%1$s pro Jahr</string>
+    <string name="l10n_recurrence_daily">Täglich %1$s</string>
+    <string name="l10n_recurrence_weekly">Wöchentlich: %1$s %2$s</string>
+    <string name="l10n_recurrence_monthly">Monatlich: %1$s %2$s</string>
+    <string name="l10n_recurrence_yearly">Jährlich: %1$s · %2$s %3$s</string>
+    <string name="l10n_month_day">Tag %1$d</string>
+    <string name="l10n_habit_finished_period">%1$s · %2$s erledigt</string>
+    <string name="l10n_habit_celebration">Sie haben %1$s durchgehalten und die Tätigkeit %2$s abgeschlossen. Jetzt ist diese Gewohnheit gefestigt – eine schwierige, aber schöne Erfahrung!\nWir freuen uns über Ihre Fortschritte. EverythingDone wird Sie weiterhin dabei unterstützen.</string>
+    <string name="l10n_habit_progress">Ich habe %1$s durchgehalten und die Tätigkeit %2$s abgeschlossen.</string>
+    <string name="l10n_share_reminder">Erinnerung: %1$s</string>
+    <string name="l10n_share_goal_finished">Ich habe mich %1$s lang angestrengt und dieses Ziel schließlich erreicht.</string>
+    <string name="l10n_statistic_since">EverythingDone in Benutzung seit %1$s · vergangene Zeit: %2$s</string>
+    <string name="l10n_export_success">Export abgeschlossen: %1$s, gespeichert als %2$s.</string>
+    <string name="l10n_created_at">Erstellt: %1$s</string>
+    <string name="l10n_updated_at">Aktualisiert: %1$s</string>
+    <string name="l10n_habit_developed_at">Gewohnheit entwickelt: %1$s</string>
+    <string name="l10n_share_note">Diese Notiz teilen</string>
+    <string name="l10n_share_reminder_title">Diese Erinnerung teilen</string>
+    <string name="l10n_share_habit">Diese Gewohnheit teilen</string>
+    <string name="l10n_share_goal">Dieses Ziel teilen</string>
+    <string name="l10n_edit_note">Notiz bearbeiten</string>
+    <string name="l10n_edit_reminder">Erinnerung bearbeiten</string>
+    <string name="l10n_edit_habit">Gewohnheit bearbeiten</string>
+    <string name="l10n_edit_goal">Ziel bearbeiten</string>
+    <string name="l10n_share_folder">Ordner teilen</string>
+    <string name="l10n_share_folders">Ordner teilen</string>
+    <string name="l10n_share_thing">Ding teilen</string>
+    <string name="l10n_share_things">Dinge teilen</string>
+    <string name="l10n_date_time">%1$s · %2$s</string>
+    <string name="l10n_date_time_period">%1$s · %2$s (%3$s)</string>
+    <string name="l10n_count_unit_spaced">%1$s %2$s</string>
+    <plurals name="l10n_images">
+        <item quantity="one">%1$d Bild</item>
+        <item quantity="other">%1$d Bilder</item>
+    </plurals>
+    <plurals name="l10n_videos">
+        <item quantity="one">%1$d Video</item>
+        <item quantity="other">%1$d Videos</item>
+    </plurals>
+    <plurals name="l10n_audios">
+        <item quantity="one">%1$d Audioaufnahme</item>
+        <item quantity="other">%1$d Audioaufnahmen</item>
+    </plurals>
+    <plurals name="l10n_things">
+        <item quantity="one">%1$d Ding</item>
+        <item quantity="other">%1$d Dinge</item>
+    </plurals>
+    <plurals name="l10n_folders">
+        <item quantity="other">%1$d Ordner</item>
+    </plurals>
+    <plurals name="l10n_subfolders">
+        <item quantity="other">%1$d Unterordner</item>
+    </plurals>
+    <plurals name="l10n_times">
+        <item quantity="other">%1$d Mal</item>
+    </plurals>
+    <plurals name="l10n_files">
+        <item quantity="one">%1$d Datei</item>
+        <item quantity="other">%1$d Dateien</item>
+    </plurals>
+    <plurals name="l10n_checklist_finished">
+        <item quantity="one">%1$d Punkt erledigt</item>
+        <item quantity="other">%1$d Punkte erledigt</item>
+    </plurals>
+    <string name="l10n_goal_celebration">Sie haben %1$s gebraucht, um dieses Ziel zu erreichen. Jetzt ist es Zeit zu feiern!</string>
+    <string name="l10n_recurrence_at_time">um %1$s</string>
+    <string name="l10n_recurrence_at_one">um %1$s</string>
+    <plurals name="l10n_effort_weeks">
+        <item quantity="one">%1$d Woche</item>
+        <item quantity="other">%1$d Wochen</item>
+    </plurals>
+</resources>

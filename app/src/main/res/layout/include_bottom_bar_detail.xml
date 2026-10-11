@@ -30,17 +30,14 @@
             android:gravity="center_vertical"
             android:textSize="14sp"
             android:textColor="@android:color/white"
-            android:text="@string/remind_me"/>
+            android:text="@string/l10n_reminder_label"/>
 
         <!-- Phase 8: ripple shape + colour are installed programmatically in
              DetailActivity (setupQuickRemindRipple / applyForegroundColors)
              so the corner radius matches the laid-out height (pill =
              height/2) and the ripple tint adapts to the thing's luminance. -->
-        <!-- Negative marginStart slides the FrameLayout back 8dp so its
-             visible "left edge" (after the inner paddingLeft=8dp) lands right
-             where "提醒我于" ends — no visual gap between the two texts.
-             paddingLeft=8dp is kept so the pill ripple still extends 8dp to
-             the left of the "15分钟后" text. -->
+        <!-- 提醒标签和时间值独立展示，避免固定动词位置限制不同语言的语序。
+             负边距抵消部分内边距，让时间按钮贴近标签，同时保留点击涟漪。 -->
         <FrameLayout
             android:id="@+id/fl_quick_remind_as_bt"
             android:layout_width="wrap_content"

@@ -19,6 +19,7 @@ import android.widget.TextView
 
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.utils.BackgroundUtil
 import com.ywwynm.everythingdone.utils.DisplayUtil
@@ -79,14 +80,10 @@ open class RecurrencePickerAdapter(
         if (type == Def.PickerType.DAY_OF_WEEK) {
             mItems = mContext!!.resources.getStringArray(R.array.day_of_week) as Array<String?>
             mCds = mContext!!.resources.getStringArray(R.array.day_of_week) as Array<String?>
-            if (LocaleUtil.isChinese(mContext)) {
-                for (i in mItems!!.indices) {
-                    mItems!![i] = mItems!![i]!!.substring(1, 2)
-                }
-            } else {
-                for (i in mItems!!.indices) {
-                    mItems!![i] = mItems!![i]!!.substring(0, 3)
-                }
+            for (i in mItems!!.indices) {
+                val day = java.time.DayOfWeek.of(if (i == 0) 7 else i)
+                mItems!![i] = if (LocaleUtil.isChinese(mContext)) mItems!![i]!!.substring(1, 2)
+                    else day.getDisplayName(java.time.format.TextStyle.SHORT, LocalizedText.locale(mContext!!))
             }
         } else if (type == Def.PickerType.DAY_OF_MONTH) {
             mItems = arrayOfNulls(28)
@@ -94,25 +91,18 @@ open class RecurrencePickerAdapter(
             for (i in 0 until 27) {
                 mItems!![i] = (i + 1).toString()
             }
-            val day = mContext!!.getString(R.string.cd_day)
-            if (LocaleUtil.isChinese(mContext)) {
-                for (i in 0 until 27) {
-                    mCds!![i] = (i + 1).toString() + day
-                }
-            } else {
-                for (i in 0 until 27) {
-                    mCds!![i] = day + (i + 1).toString()
-                }
+            for (i in 0 until 27) {
+                mCds!![i] = if (LocaleUtil.isChinese(mContext)) (i + 1).toString() + mContext!!.getString(R.string.cd_day)
+                    else mContext!!.getString(R.string.l10n_month_day, i + 1)
             }
             mItems!![27] = mContext!!.getString(R.string.end_of_month)
             mCds!![27] = mItems!![27]
         } else {
             mItems = mContext!!.resources.getStringArray(R.array.month_of_year) as Array<String?>
             mCds = mContext!!.resources.getStringArray(R.array.month_of_year) as Array<String?>
-            if (!LocaleUtil.isChinese(mContext)) {
-                for (i in mItems!!.indices) {
-                    mItems!![i] = mItems!![i]!!.substring(0, 3)
-                }
+            if (!LocaleUtil.isChinese(mContext)) for (i in mItems!!.indices) {
+                mItems!![i] = java.time.Month.of(i + 1).getDisplayName(
+                    java.time.format.TextStyle.SHORT_STANDALONE, LocalizedText.locale(mContext!!))
             }
         }
         mPicked = BooleanArray(mItems!!.size)

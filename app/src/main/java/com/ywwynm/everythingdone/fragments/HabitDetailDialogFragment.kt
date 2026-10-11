@@ -12,6 +12,7 @@ import android.widget.TextView
 
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.model.Habit
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -87,19 +88,8 @@ open class HabitDetailDialogFragment : BaseDialogFragment() {
 
         val context: Context = App.getApp()!!
 
-        val totalT = mHabit!!.getTotalT()
-        mTvTotalT!!.text = (if (totalT < 1) "<1" else totalT.toString()) + " " +
-                DateTimeUtil.getTimeTypeStr(mHabit!!.type, context)
-        if (totalT > 1 && !LocaleUtil.isChinese(context)) {
-            mTvTotalT!!.append("s")
-        }
-
-        val piT = mHabit!!.getPersistInT()
-        mTvPiTs!!.text = (if (piT < 1) "<1" else piT.toString()) + " " +
-                DateTimeUtil.getTimeTypeStr(mHabit!!.type, context)
-        if (piT > 1 && !LocaleUtil.isChinese(context)) {
-            mTvPiTs!!.append("s")
-        }
+        mTvTotalT!!.text = LocalizedText.elapsed(context, mHabit!!.type, mHabit!!.getTotalT())
+        mTvPiTs!!.text = LocalizedText.elapsed(context, mHabit!!.type, mHabit!!.getPersistInT())
 
         mTvRecordCount!!.text = mHabit!!.record!!.length.toString()
         mTvFinishedTimes!!.text = "" + mHabit!!.getFinishedTimes()

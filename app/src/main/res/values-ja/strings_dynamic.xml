@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 动态文案使用完整句式；数量短语由系统按语言选择复数形式。 -->
+    <string name="l10n_less_than">%1$s未満</string>
+    <string name="l10n_goal_overdue">期限切れ</string>
+    <string name="l10n_goal_remaining">完了期限まであと%1$s</string>
+    <string name="l10n_goal_overdue_duration">期限超過：%1$s</string>
+    <string name="l10n_goal_finished_early">期限前に完了・所要時間：%1$s</string>
+    <string name="l10n_goal_finished_late">期限後に完了・所要時間：%1$s</string>
+    <string name="l10n_goal_finished">完了・所要時間：%1$s</string>
+    <string name="l10n_frequency_day">1日あたり%1$s</string>
+    <string name="l10n_frequency_week">1週間あたり%1$s</string>
+    <string name="l10n_frequency_month">1か月あたり%1$s</string>
+    <string name="l10n_frequency_year">1年あたり%1$s</string>
+    <string name="l10n_recurrence_daily">毎日%1$s</string>
+    <string name="l10n_recurrence_weekly">毎週：%1$s %2$s</string>
+    <string name="l10n_recurrence_monthly">毎月%1$s %2$s</string>
+    <string name="l10n_recurrence_yearly">毎年%1$s・%2$s %3$s</string>
+    <string name="l10n_month_day">%1$d日</string>
+    <string name="l10n_habit_finished_period">%1$sの完了回数：%2$s</string>
+    <string name="l10n_habit_celebration">%1$s続け、%2$s達成して、ついにこの習慣が身につきました。大変でしたが、すばらしい経験になりましたね！\n成長したあなたの姿を見られてうれしく思います。EverythingDoneはこれからもあなたの成長を応援します。</string>
+    <string name="l10n_habit_progress">%1$s続けて、%2$s達成しました。</string>
+    <string name="l10n_share_reminder">通知：%1$s</string>
+    <string name="l10n_share_goal_finished">%1$s努力して、ついにこの目標を達成しました。</string>
+    <string name="l10n_statistic_since">%1$sからEverythingDoneを利用・経過時間：%2$s</string>
+    <string name="l10n_export_success">%1$sを%2$sとしてエクスポートしました。</string>
+    <string name="l10n_created_at">作成日時：%1$s</string>
+    <string name="l10n_updated_at">更新日時：%1$s</string>
+    <string name="l10n_habit_developed_at">習慣の達成日時：%1$s</string>
+    <string name="l10n_share_note">このノートを共有</string>
+    <string name="l10n_share_reminder_title">このリマインダーを共有</string>
+    <string name="l10n_share_habit">この習慣を共有</string>
+    <string name="l10n_share_goal">この目標を共有</string>
+    <string name="l10n_edit_note">ノートを編集</string>
+    <string name="l10n_edit_reminder">リマインダーを編集</string>
+    <string name="l10n_edit_habit">習慣を編集</string>
+    <string name="l10n_edit_goal">目標を編集</string>
+    <string name="l10n_share_folder">フォルダーを共有</string>
+    <string name="l10n_share_folders">フォルダーを共有</string>
+    <string name="l10n_share_thing">メモを共有</string>
+    <string name="l10n_share_things">メモを共有</string>
+    <string name="l10n_date_time">%1$s · %2$s</string>
+    <string name="l10n_date_time_period">%1$s · %2$s (%3$s)</string>
+    <string name="l10n_count_unit_spaced">%1$s %2$s</string>
+    <plurals name="l10n_images">
+        <item quantity="other">画像%1$d枚</item>
+    </plurals>
+    <plurals name="l10n_videos">
+        <item quantity="other">動画%1$d本</item>
+    </plurals>
+    <plurals name="l10n_audios">
+        <item quantity="other">音声%1$d件</item>
+    </plurals>
+    <plurals name="l10n_things">
+        <item quantity="other">メモ%1$d件</item>
+    </plurals>
+    <plurals name="l10n_folders">
+        <item quantity="other">フォルダー%1$d個</item>
+    </plurals>
+    <plurals name="l10n_subfolders">
+        <item quantity="other">サブフォルダー%1$d個</item>
+    </plurals>
+    <plurals name="l10n_times">
+        <item quantity="other">%1$d回</item>
+    </plurals>
+    <plurals name="l10n_files">
+        <item quantity="other">ファイル%1$d個</item>
+    </plurals>
+    <plurals name="l10n_checklist_finished">
+        <item quantity="other">%1$d項目完了</item>
+    </plurals>
+    <string name="l10n_goal_celebration">%1$sかけてこの目標を達成しました。さあ、お祝いしましょう！</string>
+    <string name="l10n_recurrence_at_time">%1$s</string>
+    <string name="l10n_recurrence_at_one">%1$s</string>
+    <plurals name="l10n_effort_weeks">
+        <item quantity="other">%1$d週間</item>
+    </plurals>
+</resources>

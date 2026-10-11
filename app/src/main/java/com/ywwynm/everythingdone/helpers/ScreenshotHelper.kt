@@ -288,7 +288,7 @@ object ScreenshotHelper {
                     }
                 }
             }
-            tvInfo.append(StringUtil.lowerFirst(info))
+            tvInfo.append(info)
             if (typeAfter == Thing.REMINDER) {
                 llp.topMargin = (density * 0.5).toInt()
             } else {
@@ -305,13 +305,10 @@ object ScreenshotHelper {
                             || !habit.detail.equals(rhHabitDetail)))) {
                 info = DateTimeUtil.getDateTimeStrRec(
                     context, rhHabitType, rhHabitDetail)
-                if (info != null && info.startsWith("at ")) {
-                    info = info.substring(3, info.length)
-                }
             } else {
                 info = SendInfoHelper.getHabitShareInfo(context, thingId, thingState)
             }
-            tvInfo.append(StringUtil.lowerFirst(info))
+            tvInfo.append(info)
             llp.topMargin = (density * 0.5).toInt()
         } else { // other types
             layout.visibility = View.GONE

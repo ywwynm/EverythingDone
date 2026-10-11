@@ -193,12 +193,12 @@
     <string name="set_thing_folder_private">設為私密資料夾</string>
     <string name="cancel_thing_folder_private">取消私密資料夾</string>
     <string name="dissolve_thing_folder">解散資料夾</string>
-    <string name="dissolve_thing_folder_confirm">將此資料夾中的內容移動到上一層，並删除此資料夾？</string>
+    <string name="dissolve_thing_folder_confirm">將解散所選資料夾：資料夾本身將被刪除（不移至資源回收筒，無法復原），全部內容（共%1$s）會依各自原有狀態移到上一層目錄。</string>
     <string name="delete_thing_folder">删除資料夾</string>
-    <string name="delete_thing_folder_confirm">將此資料夾及其中的所有內容移動到回收站？</string>
+    <string name="delete_thing_folder_confirm">將把%1$s中所有進行中的記事移至資源回收筒，共%2$d件%3$s，可從資源回收筒復原。</string>
     <string name="restore_thing_folder">還原資料夾</string>
     <string name="delete_thing_folder_forever">永久删除資料夾</string>
-    <string name="delete_thing_folder_forever_confirm">永久删除此資料夾及其中的所有記事？</string>
+    <string name="delete_thing_folder_forever_confirm">將永久刪除所選資料夾及其全部內容，共%1$s，無法復原。</string>
     <string name="sticky_thing">置頂的記事</string>
     <string name="ongoing_thing">在通知欄中顯示的記事</string>
 
@@ -221,7 +221,7 @@
 
     <!--ordinary empty states-->
     <string name="home_empty_underway">這裏還沒有進行中的記事</string>
-    <string name="home_empty_note">這裏還沒有筆記</string>
+    <string name="home_empty_note">這裏還沒有記錄</string>
     <string name="home_empty_reminder">這裏還沒有提醒</string>
     <string name="home_empty_habit">這裏還沒有習慣</string>
     <string name="home_empty_goal">這裏還沒有目標</string>
@@ -1956,4 +1956,157 @@
     <string name="tap_hce_service_description">完事兒碰一碰</string>
     <string name="detail_media_preview_loading">正在載入預覽</string>
     <string name="detail_media_preview_load_failed">無法載入媒體預覽</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="thing_folder">記事資料夾</string>
+    <string name="private_thing_folder">私密記事資料夾</string>
+    <string name="thing_folder_count">%1$d件記事</string>
+    <string name="thing_folder_count_folders">%1$d個資料夾</string>
+    <string name="thing_folder_count_folders_things">%1$d個資料夾，%2$d件記事</string>
+    <string name="cannot_set_as_private_thing_folder_title">無法設為私密記事資料夾</string>
+    <string name="thing_folder_location">位於 %1$s</string>
+    <string name="create_thing_folder_title">命名記事資料夾</string>
+    <string name="thing_folder_name_hint">資料夾名稱</string>
+    <string name="default_thing_folder_name">新資料夾</string>
+    <string name="rename_thing_folder">重新命名資料夾</string>
+    <string name="show_thing_folder_summary">顯示摘要卡片</string>
+    <string name="show_thing_folder_thumbnails">顯示縮圖</string>
+    <string name="make_thing_folder_wide">設為寬卡片</string>
+    <string name="make_thing_folder_normal_width">使用一般寬度</string>
+    <string name="folder_count_segment">%1$d個子資料夾</string>
+    <string name="thing_count_segment">%1$d件記事</string>
+    <string name="folder_impact_separator">、</string>
+    <string name="folder_impact_empty">無內容</string>
+    <string name="finish_all_things_in_folder">完成資料夾中所有記事</string>
+    <string name="scope_excludes_doing">（不含正在做的記事）</string>
+    <string name="scope_includes_subfolders_and_excludes_doing">（包含所有子資料夾中的記事，不含正在做的記事）</string>
+    <string name="scope_selected_things">所選</string>
+    <string name="scope_selected_folders">所選資料夾</string>
+    <string name="scope_selected_items">所選項</string>
+    <string name="thing_status_deleted">已刪除</string>
+    <string name="no_underway_things_to_finish">沒有進行中的記事可完成</string>
+    <string name="restore_all_things">復原所有記事</string>
+    <string name="restore_all_things_in_folder">復原資料夾中所有記事</string>
+    <string name="no_finished_things_to_delete">沒有已完成的記事可刪除</string>
+    <string name="no_trashed_things_to_delete_forever">資源回收筒中沒有記事可永久刪除</string>
+    <string name="no_finished_things_to_restore">沒有已完成的記事可復原</string>
+    <string name="no_trashed_things_to_restore">資源回收筒中沒有記事可復原</string>
+    <string name="no_things_to_delete_in_folder">所選資料夾中沒有可刪除的記事</string>
+    <string name="delete_all_things_in_folder_forever">永久刪除資料夾中所有記事</string>
+    <string name="move_thing_folder_card">調整卡片順序</string>
+    <string name="move_thing_folder_to">移至資料夾</string>
+    <string name="all_things_scope">全部記事</string>
+    <string name="thing_folder_root">根目錄</string>
+    <string name="thing_folder_child_count">%1$d項內容</string>
+    <string name="no_matching_things_in_selection">所選範圍內沒有可操作的記事</string>
+    <string name="private_batch_skipped">正在做的記事未設為私密</string>
+    <string name="act_delete_all_forever">永久刪除所有記事</string>
+    <string name="act_move_to_thing_folder">移至資料夾</string>
+    <string name="act_set_as_private_items">設為私密項</string>
+    <string name="act_cancel_private_items">取消私密項</string>
+    <string name="delete_selected_folders_forever">永久刪除所選資料夾</string>
+    <string name="delete_selected_items_forever_structural">永久刪除所選項</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="act_color_info">顏色資訊</string>
+    <string name="act_use_color">使用顏色</string>
+    <string name="color_info_title">顏色資訊</string>
+    <string name="color_info_current">目前顏色</string>
+    <string name="color_info_gradient_start">漸層起點</string>
+    <string name="color_info_gradient_end">漸層終點</string>
+    <string name="color_editor_tab_pure">純色</string>
+    <string name="color_editor_tab_gradient">漸層</string>
+    <string name="cd_random_color">隨機取色</string>
+    <string name="color_editor_back">返回</string>
+    <string name="color_info_representative">代表色</string>
+    <string name="color_info_name">名稱</string>
+    <string name="color_info_english_name">英文名稱</string>
+    <string name="color_info_matched_entry">符合的項目</string>
+    <string name="color_info_source">名稱來源</string>
+    <string name="color_info_match">比對方式</string>
+    <string name="color_info_match_value">CIEDE2000 ΔE 最近比對，距離 %1$s</string>
+    <string name="color_info_translation_pending">中文顏色名稱翻譯尚未產生，目前顯示英文原始名稱。</string>
+    <string name="camera_color_title">相機取色</string>
+    <string name="camera_color_waiting">將中心點對準顏色</string>
+    <string name="camera_color_unavailable">相機無法使用</string>
+    <string name="thing_card_appearance_precise_crop_video">裁切封面影片</string>
+    <string name="thing_card_appearance_video_frame_play">播放影片影格預覽</string>
+    <string name="thing_card_appearance_video_frame_pause">暫停影片影格預覽</string>
+    <string name="thing_card_appearance_video_frame_stop">停止影片影格預覽</string>
+    <string name="cd_fablesol_tuning_pause">暫停或繼續預覽</string>
+    <string name="cd_fablesol_tuning_switch_color">切換水體顏色</string>
+    <string name="open_private_thing_folder">開啟私密資料夾</string>
+    <string name="expand_private_thing_folder">展開私密資料夾</string>
+    <string name="manage_private_thing_folder">管理私密資料夾</string>
+    <string name="customize_private_thing_folder_card">調整私密資料夾卡片外觀</string>
+    <string name="customize_private_thing_card">調整私密記事卡片外觀</string>
+    <string name="move_private_thing_or_folder">移動私密內容</string>
+    <string name="finish_private_thing_by_swipe">完成私密記事</string>
+    <string name="widget_status_label">記事狀態</string>
+    <string name="cd_checklist_indent">將此清單項向右移動一個層級</string>
+    <string name="cd_checklist_outdent">將此清單項向左移動一個層級</string>
+    <string name="cd_motion_photo">動態照片，按住播放</string>
+    <string name="motion_photo_live_badge">實況</string>
+    <string name="cd_edit_image_attachment_appearance">編輯此圖片附件外觀</string>
+    <string name="cd_edit_video_attachment_appearance">編輯此影片附件外觀</string>
+    <string name="act_spatial_photo">空間照片效果</string>
+    <string name="act_exit_spatial_photo">離開空間照片效果</string>
+    <string name="act_regenerate_spatial_photo">重新生成空間效果</string>
+    <string name="act_remove_spatial_photo">移除空間效果</string>
+    <string name="cd_spatial_photo_view">可互動的空間照片</string>
+    <string name="unknown_error">未知錯誤</string>
+    <string name="cd_spatial_effect_ready">已產生空間照片效果</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="act_finish_selected_items">完成所選項中的記事</string>
+    <string name="act_delete_selected_items">刪除所選項中的記事</string>
+    <string name="act_restore_selected_items">復原所選項中的記事</string>
+    <string name="act_delete_selected_items_forever">永久刪除所選項中的記事</string>
+    <string name="act_finish_selected_folders">完成所選資料夾中的所有記事</string>
+    <string name="act_delete_selected_folders">刪除所選資料夾中的所有記事</string>
+    <string name="act_restore_selected_folders">復原所選資料夾中的所有記事</string>
+    <string name="act_delete_selected_folders_forever">永久刪除所選資料夾中的所有記事</string>
+    <string name="delete_selected_items_forever_structural_confirm">將永久刪除所選項（所選資料夾及其全部內容，以及所選記事），共%1$s，無法復原。</string>
+    <string name="finish_all_things_in_folder_confirm">將完成%1$s中所有進行中的記事，共%2$d件%3$s。</string>
+    <string name="finish_all_things_root_confirm">將完成所有進行中的記事，共%1$d件%2$s。</string>
+    <string name="restore_all_finished_in_folder_confirm">將把%1$s中所有已完成的記事復原為進行中，共%2$d件%3$s。</string>
+    <string name="restore_all_finished_root_confirm">將把所有已完成的記事復原為進行中，共%1$d件%2$s。</string>
+    <string name="delete_all_finished_in_folder_confirm">將把%1$s中所有已完成的記事移至資源回收筒，共%2$d件%3$s，可從資源回收筒復原。</string>
+    <string name="delete_all_finished_root_confirm">將把所有已完成的記事移至資源回收筒，共%1$d件%2$s，可從資源回收筒復原。</string>
+    <string name="delete_forever_all_in_folder_confirm">將永久刪除%1$s中所有已刪除的記事，共%2$d件%3$s，無法復原。</string>
+    <string name="delete_forever_all_root_confirm">將永久刪除所有已刪除的記事，共%1$d件%2$s，無法復原。</string>
+    <string name="restore_all_trashed_in_folder_confirm">將把%1$s中所有已刪除的記事復原到刪除前的狀態，共%2$d件%3$s。</string>
+    <string name="restore_all_trashed_root_confirm">將把所有已刪除的記事復原到刪除前的狀態，共%1$d件%2$s。</string>
+    <string name="confirm_finish_selected_things">將完成所選記事，共%1$d件。</string>
+    <string name="confirm_delete_selected_things">將把所選記事移至資源回收筒，共%1$d件，可從資源回收筒復原。</string>
+    <string name="confirm_restore_selected_things">將復原所選記事，共%1$d件。</string>
+    <string name="confirm_delete_selected_things_forever">將永久刪除所選記事，共%1$d件，無法復原。</string>
+    <string name="confirm_finish_selected_items">將完成所選項中的記事，共%1$d件%2$s。</string>
+    <string name="confirm_delete_selected_items">將把所選項中的記事移至資源回收筒，共%1$d件%2$s，可從資源回收筒復原。</string>
+    <string name="confirm_restore_selected_items">將復原所選項中的記事，共%1$d件%2$s。</string>
+    <string name="confirm_delete_selected_items_forever">將永久刪除所選項中的記事，共%1$d件%2$s，無法復原。</string>
+    <string name="confirm_finish_selected_folders">將完成所選資料夾中的所有記事，共%1$d件%2$s。</string>
+    <string name="confirm_delete_selected_folders">將把所選資料夾中的所有記事移至資源回收筒，共%1$d件%2$s，可從資源回收筒復原。</string>
+    <string name="confirm_restore_selected_folders">將復原所選資料夾中的所有記事，共%1$d件%2$s。</string>
+    <string name="confirm_delete_selected_folders_forever">將永久刪除所選資料夾資源回收筒中的所有記事，共%1$d件%2$s，無法復原。</string>
+    <string name="delete_selected_folders_forever_confirm">將永久刪除所選資料夾及其全部內容，共%1$s，無法復原。</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">%1$s要做的事情</string>
+    <string name="l10n_amount">數量</string>
+    <string name="l10n_time_unit">時間單位</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">月末</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">@string/remind_me</string>
 </resources>

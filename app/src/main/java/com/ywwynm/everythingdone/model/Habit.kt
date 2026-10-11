@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.model
 import android.content.Context
 import android.database.Cursor
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
+import com.ywwynm.everythingdone.utils.ChineseText
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
@@ -205,15 +207,13 @@ open class Habit(
     }
 
     open fun getFinishedTimesThisTStr(context: Context?): String? {
-        val timeTypeThisT = DateTimeUtil.getThisTStr(type, context)
-        val finished = context!!.getString(R.string.finished)
-        val timesThisT = HabitDAO.getInstance(context)!!.getFinishedTimesThisT(this)
         if (LocaleUtil.isChinese(context)) {
-            val timesStr = context.getString(R.string.times)
-            return "$timeTypeThisT$finished $timesThisT $timesStr"
-        } else {
-            return finished + " " + LocaleUtil.getTimesStr(context, timesThisT) + " " + timeTypeThisT
+            val times = HabitDAO.getInstance(context)!!.getFinishedTimesThisT(this)
+            return DateTimeUtil.getThisTStr(type, context) + context!!.getString(R.string.finished) + " $times " + context.getString(R.string.times)
         }
+        return context!!.getString(R.string.l10n_habit_finished_period,
+            DateTimeUtil.getThisTStr(type, context),
+            LocaleUtil.getTimesStr(context, HabitDAO.getInstance(context)!!.getFinishedTimesThisT(this)))
     }
 
     open fun getNextReminderDescription(context: Context?): String? {
@@ -222,15 +222,7 @@ open class Habit(
     }
 
     open fun getSummary(context: Context?): String? {
-        val timeTypeEveryT = DateTimeUtil.getTimeTypeStr(type, context)
-        val timesEveryT = habitReminders!!.size
-        if (LocaleUtil.isChinese(context)) {
-            val every = context!!.getString(R.string.every)
-            val timesStr = context.getString(R.string.times)
-            return "$every$timeTypeEveryT $timesEveryT $timesStr"
-        } else {
-            return LocaleUtil.getTimesStr(context, timesEveryT) + " a " + timeTypeEveryT
-        }
+        return LocalizedText.frequency(context!!, type, habitReminders!!.size)
     }
 
     /**
@@ -243,22 +235,10 @@ open class Habit(
     }
 
     open fun getCelebrationText(context: Context?): String? {
-        val sb = StringBuilder()
-        val part1 = context!!.getString(R.string.celebration_habit_part_1)
-        val piT = getPersistInT()
-        sb.append(part1).append(" ").append(if (piT < 1) "<1" else piT.toString()).append(" ")
-                .append(DateTimeUtil.getTimeTypeStr(type, context))
-        if (piT > 1 && !LocaleUtil.isChinese(context)) {
-            sb.append("s")
-        }
-        sb.append(context.getString(R.string.celebration_habit_part_2))
-                .append(" ")
-                .append(LocaleUtil.getTimesStr(context, getFinishedTimes()))
-                .append(if (LocaleUtil.isChinese(context)) "" else " ")
-                .append(context.getString(R.string.celebration_habit_part_3))
-                .append("\n")
-                .append(context.getString(R.string.celebration_habit_part_4))
-        return sb.toString()
+        if (LocaleUtil.isChinese(context)) return ChineseText.habitCelebration(context!!, type, getPersistInT(), getFinishedTimes())
+        return context!!.getString(R.string.l10n_habit_celebration,
+            LocalizedText.effortElapsed(context, type, getPersistInT()),
+            LocaleUtil.getTimesStr(context, getFinishedTimes()))
     }
 
     open fun getDoingEndLimitTime(): Long {

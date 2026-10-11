@@ -23,6 +23,7 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.adapters.BaseViewHolder
 import com.ywwynm.everythingdone.adapters.SingleChoiceAdapter
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -66,7 +67,8 @@ open class DateTimePicker(
             params.width = (mScreenDensity * 168).toInt()
             mItems = mActivity.resources!!.getStringArray(R.array.quick_remind)
             if (BuildConfig.DEBUG) {
-                mItems[0] = "6 " + activity.getString(R.string.second)
+                mItems[0] = if (LocaleUtil.isChinese(activity)) "6 " + activity.getString(R.string.second)
+                    else LocalizedText.duration(activity, Calendar.SECOND, 6)
             }
         } else if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
             params.width = (mScreenDensity * 120).toInt()
@@ -128,34 +130,17 @@ open class DateTimePicker(
         val anchor: TextView = mAnchor as TextView
         if (index != 9) {
             if (mType == Def.PickerType.AFTER_TIME) {
-                val after: String = mActivity.getString(R.string.after)
-                if (LocaleUtil.isChinese(mActivity)) {
-                    anchor.text = mItems[index]
-                    anchor.append(after)
-                } else {
-                    anchor.text = "$after "
-                    anchor.append(mItems[index])
-                }
+                val selection = getPickedTimeAfter()!!
+                anchor.text = if (LocaleUtil.isChinese(mActivity)) mItems[index] + mActivity.getString(R.string.after)
+                    else LocalizedText.after(mActivity, selection[0], selection[1])
             } else {
-                val offset: Int = if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) 0 else 1
-                if (!LocaleUtil.isChinese(mActivity)) {
-                    anchor.text = mItems[index].lowercase()
-                    if (offset == 0) {
-                        anchor.append(" ")
-                    }
-                } else {
-                    val b1: Boolean = mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE
-                            && (index == 1 || index == 3 || index == 4)
-                    val b2: Boolean = mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE
-                            && (index == 1 || index == 2)
-                    if (b1 || b2) {
-                        anchor.text = mActivity.getString(R.string.description_a) + mItems[index]
-                    } else {
-                        anchor.text = mItems[index]
-                    }
-                }
-                if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) {
-                    anchor.append(mActivity.getString(R.string.later))
+                // 单位选择是独立字段，完整的“多久后”和频率句式由使用方展示。
+                anchor.text = mItems[index]
+                if (LocaleUtil.isChinese(mActivity)) {
+                    val withArticle = (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE && index in listOf(1, 3, 4)) ||
+                        (mType == Def.PickerType.TIME_TYPE_NO_HOUR_MINUTE && index in listOf(1, 2))
+                    if (withArticle) anchor.text = mActivity.getString(R.string.description_a) + mItems[index]
+                    if (mType == Def.PickerType.TIME_TYPE_HAVE_HOUR_MINUTE) anchor.append(mActivity.getString(R.string.later))
                 }
             }
         }

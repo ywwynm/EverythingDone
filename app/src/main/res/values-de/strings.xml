@@ -19,7 +19,7 @@
         <item>@string/month</item>
         <item>@string/year</item>
     </string-array>
-    <string name="second">Zweitens</string>
+    <string name="second">Sekunde</string>
     <string name="minute">Minute</string>
     <string name="hour">Stunde</string>
     <string name="day">Tag</string>
@@ -69,39 +69,39 @@
     <string name="later">später</string>
     <string name="description_a">a</string>
     <string name="every">jeder</string>
-    <string name="times">Zeit</string>
+    <string name="times">Mal</string>
     <string name="hours">Stunde</string>
     <string name="days">Tag</string>
     <string name="weeks">Woche</string>
     <string name="months">Monat</string>
     <string name="from_everything_done">von der Android-App EverythingDone</string>
-    <string name="title_create_thing">Erschaffe etwas Neues</string>
+    <string name="title_create_thing">Neues Ding erstellen</string>
     <string name="title_edit_thing">Bearbeiten</string>
-    <string name="title_activity_things_all">Alle Dinge</string>
+    <string name="title_activity_things_all">@string/all_things</string>
     <string name="image_or_video_attachment">Bild- oder Videoanhang</string>
     <string name="title_activity_settings">Einstellungen</string>
     <string name="title_activity_about">Über</string>
     <string name="title_activity_statistic">Statistik</string>
-    <string name="title_activity_thing_widget_configure">Wählen Sie eine einzelne Sache aus</string>
-    <string name="title_activity_things_list_widget_configuration">Wählen Sie laufende Dinge aus</string>
-    <string name="title_widget_things_list">Unterwegs</string>
-    <string name="title_activity_doing">Mache ich gerade</string>
-    <string name="underway">Unterwegs</string>
-    <string name="thing">Sache</string>
+    <string name="title_activity_thing_widget_configure">Ein Ding auswählen</string>
+    <string name="title_activity_things_list_widget_configuration">Dinge in Bearbeitung auswählen</string>
+    <string name="title_widget_things_list">@string/underway</string>
+    <string name="title_activity_doing">Gerade in Arbeit</string>
+    <string name="underway">In Bearbeitung</string>
+    <string name="thing">Ding</string>
     <string name="all_things">Alle Dinge</string>
-    <string name="note">Hinweis</string>
+    <string name="note">Notiz</string>
     <string name="reminder">Erinnerung</string>
     <string name="habit">Gewohnheit</string>
     <string name="goal">Ziel</string>
-    <string name="finished">Fertig</string>
+    <string name="finished">Erledigt</string>
     <string name="deleted">Gelöscht</string>
     <string name="drawer_deleted">Gelöscht</string>
     <string name="settings">Einstellungen</string>
     <string name="help">Hilfe</string>
     <string name="about">Über</string>
-    <string name="private_thing">private Sache</string>
-    <string name="sticky_thing">Klebriges Ding</string>
-    <string name="ongoing_thing">Laufende Sache</string>
+    <string name="private_thing">Privates Ding</string>
+    <string name="sticky_thing">Angeheftetes Ding</string>
+    <string name="ongoing_thing">Ding in der Benachrichtigungsleiste</string>
     <string name="welcome_underway_title">Willkommen</string>
     <string name="welcome_underway_content">Wischen Sie nach links, um den Vorgang abzuschließen, und nach rechts, um mit der Arbeit zu beginnen</string>
     <string name="welcome_note_content">Schreiben Sie etwas und ich werde mich für immer daran erinnern</string>
@@ -112,12 +112,12 @@
     <string name="empty_note">Ich vermisse die vergangenen Tage, aber ich bevorzuge die kommende Zukunft</string>
     <string name="empty_reminder">Ich freue mich, Ihnen helfen zu können</string>
     <string name="empty_habit">Ich sehe ein besseres Du</string>
-    <string name="empty_goal">Alle Ziele erreicht! Was für ein toller Tag! Ich denke, wir können einen gemeinsamen Urlaub verbringen. Lasst\'s gehen, um die Sonne zu genießen~</string>
+    <string name="empty_goal">Glückwunsch, Sie haben alle Ziele erreicht! Gönnen Sie sich eine Pause.</string>
     <string name="empty_finished">Ups! Nichts fertig?</string>
     <string name="empty_deleted">Macht es Ihnen Spaß, den Papierkorb zu reinigen? Ich auch!</string>
     <string name="reminder_expired">abgelaufen</string>
     <string name="reminder_needless">nicht nötig</string>
-    <string name="reminder_reminded">erinnert</string>
+    <string name="reminder_reminded">Benachrichtigung gesendet</string>
     <string name="reminder_unavailable">nicht verfügbar</string>
     <string name="habit_paused">pausierte</string>
     <string name="habit_last_five">Die letzten fünf Male:</string>
@@ -182,12 +182,12 @@
     <string name="this_gai">das</string>
     <string name="will_remind">Werde daran erinnert</string>
     <string name="daily_todo_title_rest_part">Dinge zu tun</string>
-    <string name="completion_rate_all">Abschlussrate aller\'s</string>
-    <string name="completion_rate_things">Abschlussrate</string>
-    <string name="completion_rate_reminder">Erinnerung\'s Abschlussrate</string>
-    <string name="completion_rate_note">Hinweis\'s Abschlussrate</string>
-    <string name="completion_rate_habit">Gewohnheit\'s Abschlussrate</string>
-    <string name="completion_rate_goal">Ziel\'s Abschlussrate</string>
+    <string name="completion_rate_all">Abschlussrate aller Dinge</string>
+    <string name="completion_rate_things">Abschlussrate der Dinge</string>
+    <string name="completion_rate_reminder">Abschlussrate der Erinnerungen</string>
+    <string name="completion_rate_note">Abschlussrate der Notizen</string>
+    <string name="completion_rate_habit">Abschlussrate der Gewohnheiten</string>
+    <string name="completion_rate_goal">Abschlussrate der Ziele</string>
     <string name="act_share">Teilen</string>
     <string name="act_get_it">Hol es dir</string>
     <string name="confirm">BESTÄTIGEN</string>
@@ -206,8 +206,8 @@
     <string name="act_export_to_sdcard">Auf SD-Karte exportieren</string>
     <string name="act_restore_selected">Ausgewählte wiederherstellen</string>
     <string name="act_delete_selected_forever">Ausgewählte endgültig löschen</string>
-    <string name="act_sticky_on_top">Oben klebrig</string>
-    <string name="act_cancel_sticky">Sticky abbrechen</string>
+    <string name="act_sticky_on_top">Anheften</string>
+    <string name="act_cancel_sticky">Lösen</string>
     <string name="act_add_attachment">Anhang hinzufügen</string>
     <string name="act_enable_check_list">Checkliste aktivieren</string>
     <string name="act_disable_check_list">Checkliste deaktivieren</string>
@@ -215,53 +215,53 @@
     <string name="act_undo">Rückgängig machen</string>
     <string name="act_redo">Wiederholen</string>
     <string name="act_abandon_new_thing">Aufgeben</string>
-    <string name="act_set_as_private_thing">Als private Sache festlegen</string>
-    <string name="act_cancel_private_thing">Abbrechen „Private Sache festlegen“.</string>
+    <string name="act_set_as_private_thing">Als privates Ding markieren</string>
+    <string name="act_cancel_private_thing">Privaten Status aufheben</string>
     <string name="act_customize_card_appearance">Kartenansicht anpassen</string>
     <string name="thing_card_appearance_panel_title">Kartenansicht anpassen</string>
-    <string name="thing_card_appearance_media_image">Image</string>
+    <string name="thing_card_appearance_media_image">Bild</string>
     <string name="thing_card_appearance_media_video">Video</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
-    <string name="thing_card_appearance_source_default">Auto select</string>
-    <string name="thing_card_appearance_cover_media">Cover image</string>
+    <string name="thing_card_appearance_source_default">Standard</string>
+    <string name="thing_card_appearance_cover_media">Titelmedium</string>
     <string name="thing_card_appearance_span_normal">Normal</string>
-    <string name="thing_card_appearance_span_full">Wide</string>
-    <string name="thing_card_appearance_card_width">Card width</string>
-    <string name="thing_card_appearance_content_max_lines">Max content lines</string>
-    <string name="thing_card_appearance_checklist_max_items">Max checklist items</string>
+    <string name="thing_card_appearance_span_full">Volle Breite</string>
+    <string name="thing_card_appearance_card_width">Kartenbreite</string>
+    <string name="thing_card_appearance_content_max_lines">Maximale Textzeilen</string>
+    <string name="thing_card_appearance_checklist_max_items">Maximale Checklistenpunkte</string>
     <string name="thing_card_appearance_limit_value_format">%1$s · %2$d</string>
-    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (default)</string>
-    <string name="thing_card_appearance_settings_span_normal">When card width is normal</string>
-    <string name="thing_card_appearance_settings_span_full">When card width is wide</string>
-    <string name="settings_thing_card_appearance">Thing card appearance</string>
-    <string name="thing_card_appearance_placement_default">Default placement</string>
-    <string name="thing_card_appearance_placement_top">Top</string>
-    <string name="thing_card_appearance_placement_bottom">Bottom</string>
-    <string name="thing_card_appearance_placement_left">Left</string>
-    <string name="thing_card_appearance_placement_right">Right</string>
-    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
-    <string name="thing_card_appearance_media_position">Image/video position</string>
-    <string name="thing_card_appearance_mode_background">Background</string>
-    <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
-    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
-    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (Standard)</string>
+    <string name="thing_card_appearance_settings_span_normal">Karten mit normaler Breite</string>
+    <string name="thing_card_appearance_settings_span_full">Karten mit voller Breite</string>
+    <string name="settings_thing_card_appearance">Darstellung der Dingkarten</string>
+    <string name="thing_card_appearance_placement_default">Standardposition</string>
+    <string name="thing_card_appearance_placement_top">Oben</string>
+    <string name="thing_card_appearance_placement_bottom">Unten</string>
+    <string name="thing_card_appearance_placement_left">Links</string>
+    <string name="thing_card_appearance_placement_right">Rechts</string>
+    <string name="thing_card_appearance_mode_thumbnail">Vorschaubild</string>
+    <string name="thing_card_appearance_media_position">Medienposition</string>
+    <string name="thing_card_appearance_mode_background">Hintergrund</string>
+    <string name="thing_card_appearance_cover_image_width_format">Breite des Titelbilds: %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Präzise zuschneiden</string>
+    <string name="thing_card_appearance_thumbnail_shape">Vorschaubildform</string>
     <string name="thing_card_appearance_thumbnail_video_shape">Cover-Video-Verhältnis</string>
-    <string name="thing_card_appearance_background_mask">Background mask</string>
-    <string name="thing_card_appearance_background_height">Card height</string>
-    <string name="thing_card_appearance_video_frame">Video frame</string>
-    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
-    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
-    <string name="thing_card_appearance_video_frame_next">Next frame</string>
+    <string name="thing_card_appearance_background_mask">Hintergrundüberlagerung</string>
+    <string name="thing_card_appearance_background_height">Hintergrundhöhe</string>
+    <string name="thing_card_appearance_video_frame">Videobild</string>
+    <string name="thing_card_appearance_video_frame_preview">Videobildvorschau</string>
+    <string name="thing_card_appearance_video_frame_previous">Vorheriges Bild</string>
+    <string name="thing_card_appearance_video_frame_next">Nächstes Bild</string>
     <string name="act_set_thing_as_ongoing">In Benachrichtigungen anzeigen</string>
     <string name="act_cancel_set_thing_as_ongoing">Anzeige in Benachrichtigungen abbrechen</string>
-    <string name="act_finish">Fertig</string>
+    <string name="act_finish">Abschließen</string>
     <string name="act_delete">Löschen</string>
-    <string name="act_pause_habit">Pausieren Sie die Erinnerungen von habit\'s</string>
-    <string name="act_resume_habit">Setzen Sie die Erinnerungen von habit\'s fort</string>
+    <string name="act_pause_habit">Erinnerungen für diese Gewohnheit pausieren</string>
+    <string name="act_resume_habit">Erinnerungen für diese Gewohnheit fortsetzen</string>
     <string name="act_check_habit_detail">Überprüfen Sie die Gewohnheitsdetails</string>
-    <string name="act_finish_once_habit">Einmal fertig</string>
-    <string name="act_finish_this_time_habit">Beenden Sie dieses Mal</string>
-    <string name="act_habit_developed">Ich habe diese Angewohnheit entwickelt</string>
+    <string name="act_finish_once_habit">Einmal abschließen</string>
+    <string name="act_finish_this_time_habit">Diesmal abschließen</string>
+    <string name="act_habit_developed">Ich habe diese Gewohnheit entwickelt</string>
     <string name="act_restore">Wiederherstellen</string>
     <string name="act_copy_content">Inhalte kopieren</string>
     <string name="act_feedback">Feedback senden</string>
@@ -281,35 +281,35 @@
     <string name="act_open_in_browser">Durchsuchen</string>
     <string name="act_dial">Wählen</string>
     <string name="act_send_email">E-Mail senden</string>
-    <string name="act_open_in_map">Besuchen Sie</string>
+    <string name="act_open_in_map">In Karten öffnen</string>
     <string name="act_edit">Bearbeiten</string>
     <string name="act_share_thing_text_image">Text &amp; Bild</string>
     <string name="act_share_thing_screenshot">Screenshot</string>
     <string name="act_choose_image_as_drawer_header">Wählen Sie ein Bild als Schubladenkopf</string>
-    <string name="act_support">Support-Entwickler</string>
+    <string name="act_support">Entwickler unterstützen</string>
     <string name="act_sb_undo">RÜCKGENOMMEN</string>
     <string name="act_sb_undo_finish">NOCH NICHT</string>
     <string name="act_sb_undo_underway">FERTIG</string>
-    <string name="act_shortcut_check_upcoming">Kommende Sache</string>
-    <string name="act_shortcut_check_sticky">Top klebrige Sache</string>
+    <string name="act_shortcut_check_upcoming">Ding mit bevorstehender Erinnerung</string>
+    <string name="act_shortcut_check_sticky">Angeheftetes Ding</string>
     <string name="success_clipboard">Erfolgreich in die Zwischenablage kopiert</string>
     <string name="error_permission_denied">Erlaubnis nicht erteilt. Kann nicht fortgesetzt werden.</string>
     <string name="please_wait">Bitte warten</string>
     <string name="generating_screenshot">Screenshot machen...</string>
     <string name="error_activity_not_found">Die Anwendung konnte nicht gefunden werden, um den Betrieb fortzusetzen</string>
-    <string name="a_thing">Sache</string>
+    <string name="a_thing">Ding</string>
     <string name="empty">leer</string>
     <string name="sb_finish_habit">habe diese Gewohnheit beendet</string>
     <string name="press_again_to_exit">Drücken Sie noch einmal, um den Vorgang zu beenden</string>
-    <string name="title_incorrect_reminder_habit">Falscher Sachverhalt erkannt</string>
+    <string name="title_incorrect_reminder_habit">Fehlerhafter Status bei Dingen mit Erinnerung</string>
     <string name="content_incorrect_reminder_habit">EverythingDone hat festgestellt, dass einige Ihrer Erinnerungen, Gewohnheiten oder Ziele im falschen Zustand waren. Das heißt, sie wurden nicht rechtzeitig benachrichtigt, wie es hätte sein sollen. \nBitte stellen Sie sicher, dass EverythingDone normal im Hintergrund ausgeführt werden kann. Sie können den App-Prozess im Task-Manager sperren, ihn zur Whitelist in Apps zur Batterieoptimierung hinzufügen und die angeforderten Berechtigungen zulassen, um zu verhindern, dass er abgebrochen wird und die Möglichkeit, Sie über bestimmte Aktionen zu benachrichtigen, verloren geht. \nWeitere Informationen finden Sie in der Hilfe und dort in den entsprechenden FAQ. \nKlicken Sie auf die Schaltfläche „Alarme zurücksetzen“, um den Fehlerstatus für Dinge zu beheben und Gewohnheiten erneut zu aktivieren.</string>
     <string name="act_reset_alarms">Alarme zurücksetzen</string>
     <string name="alert_continue">Sind Sie sicher, dass Sie fortfahren?</string>
     <string name="alert_find_habit_goal">Diese Dinge beinhalten einige Gewohnheiten oder Ziele. Möglicherweise möchten Sie sie zu einem anderen Zeitpunkt oder separat beenden oder aufgeben.</string>
     <string name="continue_get_rid_of_habit_goal">ENTFERNEN SIE GEWOHNHEITEN/ZIELE UND FAHREN SIE WEITER</string>
     <string name="continue_for_alert">WEITER</string>
-    <string name="sb_cannot_be_blank">Das leere Ding wurde aufgegeben</string>
-    <string name="sb_abandon_new_thing">Neues wurde aufgegeben</string>
+    <string name="sb_cannot_be_blank">Leeres Ding verworfen</string>
+    <string name="sb_abandon_new_thing">Neues Ding verworfen</string>
     <string name="sb_delete">gelöscht</string>
     <string name="sb_delete_forever">für immer gelöscht</string>
     <string name="sb_finish">fertig</string>
@@ -318,7 +318,7 @@
     <string name="no_result">Kein Ergebnis</string>
     <string name="hint_title">Titel</string>
     <string name="hint_content">Inhalt</string>
-    <string name="hint_new_item">Neuer Artikel</string>
+    <string name="hint_new_item">Neuer Eintrag</string>
     <string name="create_at">Erstellt</string>
     <string name="update_at">Zuletzt aktualisiert</string>
     <string name="finish_at_normal">Fertig %1$s</string>
@@ -353,15 +353,15 @@
     <string name="error_play_audio_attachment">Diese Audiodatei kann nicht abgespielt werden</string>
     <string name="error_cannot_add_from_network">Anhang aus dem Internet kann nicht hinzugefügt werden</string>
     <string name="alert_cannot_share_empty_thing">Ein leeres Ding kann nicht geteilt werden</string>
-    <string name="alert_shortcut_no_upcoming">Keine bevorstehende Sache</string>
-    <string name="alert_shortcut_no_sticky">Kein klebriges Ding</string>
-    <string name="thing_doing_dialog_title">Ändern Sie die Autostart-Einstellungen für dieses Ding</string>
+    <string name="alert_shortcut_no_upcoming">Keine bevorstehenden Erinnerungen</string>
+    <string name="alert_shortcut_no_sticky">Kein angeheftetes Ding</string>
+    <string name="thing_doing_dialog_title">Automatischen Arbeitsbeginn für dieses Ding ändern</string>
     <string name="auto_start_doing_time_title">Beginnen Sie automatisch mit der Zeiterfassung</string>
     <string name="auto_start_doing_follow_general">Befolgen Sie die allgemeinen Einstellungen</string>
     <string name="input_file_name">Bitte geben Sie den Dateinamen ein</string>
-    <string name="quick_remind_title_after">NACHHER</string>
-    <string name="quick_remind_title_at">AT</string>
-    <string name="quick_remind_title_recurrence">WIEDERHOLUNG</string>
+    <string name="quick_remind_title_after">Später</string>
+    <string name="quick_remind_title_at">Zeit</string>
+    <string name="quick_remind_title_recurrence">Wiederholen</string>
     <string name="new_reminder_time_rec">neue Erinnerungszeit</string>
     <string name="error_complete_time">Bitte füllen Sie die Zeitangaben aus</string>
     <string name="error_later">Bitte stellen Sie eine zukünftige Zeit ein</string>
@@ -369,10 +369,10 @@
     <string name="error_too_late">Ich kann diesen Tag kaum erwarten</string>
     <string name="error_different">Bitte stellen Sie eine andere Zeit ein</string>
     <string name="habit_detail_completion_rate">Abschlussrate</string>
-    <string name="habit_detail_persist_in">Anhaltender Zyklus</string>
-    <string name="habit_detail_total_t">Gesamtzyklus</string>
+    <string name="habit_detail_persist_in">Dauer des Durchhaltens</string>
+    <string name="habit_detail_total_t">Gesamte Zeiträume</string>
     <string name="habit_detail_record_count">Datensatzanzahl</string>
-    <string name="habit_detail_times">Fertige Zeiten</string>
+    <string name="habit_detail_times">Anzahl der Abschlüsse</string>
     <string name="habit_detail_title">Gewohnheitsdetail</string>
     <string name="habit_record_last_30_change_6">Letzte 30 Datensätze, Sie können die letzten 6 davon ändern (letzte 6 Elemente)</string>
     <string name="attachment_info_title">Anhangsdetails</string>
@@ -406,8 +406,8 @@
     <string name="start_doing_time_long_alarm">Die geschätzte Zeit ist so lang, dass Sie die Gewohnheit für diese Zeit nicht beenden können, bevor der nächste Alarm ertönt</string>
     <string name="start_doing_time_long_t">Die geschätzte Zeit ist so lang, dass Sie die Gewohnheit in diesem Zyklus nicht einmal beenden können</string>
     <string name="start_doing_confirm">Fangen Sie an zu tun</string>
-    <string name="start_doing_notification_toast_doing_this">EverythingDone: Der Alarm von \' ist gerade gekommen, aber Sie haben das bereits getan</string>
-    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Ein Habit\'s-Alarm ist gerade gekommen, aber Sie haben es bereits zu diesem Zeitpunkt getan</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: Die Erinnerungszeit für dieses Ding ist gerade verstrichen. Sie arbeiten bereits daran.</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Die Erinnerungszeit für diese Gewohnheit ist gerade verstrichen. Sie arbeiten bereits an dieser Wiederholung.</string>
     <string name="start_doing_stop_another_title">Du tust etwas anderes</string>
     <string name="start_doing_stop_another_content">Möchten Sie mit dieser Sache aufhören und mit dieser Sache beginnen?</string>
     <string name="doing_swipe_to_finish">Zum Beenden wischen</string>
@@ -419,7 +419,7 @@
     <string name="doing_failed_restore">Sie haben die Daten wiederhergestellt, daher hat EverythingDone die Ausführung des Status abgebrochen</string>
     <string name="doing_click_to_dismiss">Klicken Sie hier, um diese Benachrichtigung zu schließen</string>
     <string name="doing_alert_first_strict_mode_title">Strenger Modus</string>
-    <string name="doing_alert_first_strict_mode_content">Sie befinden sich jetzt im strengen Modus. EverythingDone erkennt, ob Sie Ihr Telefon für andere Dinge verwenden. Wenn Sie diese Seite (nur das Überprüfen von Benachrichtigungen und das Sperren des Bildschirms sind zulässig) dreimal oder insgesamt länger als 5 Minuten verlassen haben, stoppt der Countdown und die Sache verbleibt im unvollendeten Zustand.</string>
+    <string name="doing_alert_first_strict_mode_content">Der strenge Modus ist jetzt aktiv. EverythingDone prüft, ob Sie Ihr Handy für etwas anderes nutzen. Wenn Sie diese Ansicht dreimal oder insgesamt länger als fünf Minuten verlassen, wird der Timer für dieses Ding beendet. Die Benachrichtigungsleiste dürfen Sie öffnen und den Bildschirm dürfen Sie sperren.</string>
     <string name="doing_alert_close_strict_twice_title">Der strikte Modus kann nicht wieder deaktiviert werden</string>
     <string name="doing_alert_close_strict_twice_content">Sie dürfen den strengen Modus nur einmal deaktivieren. Es ist eine gute Angewohnheit, immer nur eine Sache sorgfältig zu erledigen, also machen Sie bitte weiter.</string>
     <string name="doing_alert_stop_doing_content">Bist du sicher, dass du damit aufhörst?</string>
@@ -429,8 +429,8 @@
     <string name="doing_toast_pass_data_error">Der Vorgang kann nicht gestartet werden, da beim Übertragen von Daten zwischen App-Komponenten ein Fehler aufgetreten ist</string>
     <string name="doing_toast_already_strict_mode">Sie befinden sich im strengen Modus</string>
     <string name="auto_start_doing_start">Automatisch starten</string>
-    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: Der Alarm eines Dings\' ist gerade gekommen. Versuchen Sie, das Ding automatisch zu starten, aber es ist fehlgeschlagen, weil Sie gerade etwas anderes tun</string>
-    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: Der Alarm einer Gewohnheit\'s ist gerade aufgetreten. Versuchen Sie, diese Gewohnheit für dieses Mal automatisch auszuführen, aber es ist fehlgeschlagen, weil Sie sie zum letzten Mal ausführen</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: Die Erinnerungszeit für dieses Ding ist gerade verstrichen. Die Arbeit daran konnte nicht automatisch gestartet werden, weil Sie an einem anderen Ding arbeiten.</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: Die Erinnerungszeit für diese Gewohnheit ist gerade verstrichen. Diese Wiederholung konnte nicht automatisch gestartet werden, weil Sie noch an der vorherigen arbeiten.</string>
     <string name="alert_delete_attachment">Möchten Sie diesen Anhang wirklich löschen?</string>
     <string name="settings_group_ui">Benutzeroberfläche</string>
     <string name="settings_group_ringtone">Klingelton</string>
@@ -498,8 +498,8 @@
     <string name="settings_channels_some_off">%1$d von %2$d wurde von Ihnen deaktiviert. Zum Korrigieren tippen.</string>
     <string name="post_notifications_rationale_title">Benachrichtigungen zulassen</string>
     <string name="post_notifications_rationale_content">EverythingDone benötigt eine Benachrichtigungsberechtigung, um Ihre Erinnerungs-, Gewohnheits- und Zielalarme auszulösen. Ohne diese Angabe wird der Alarm ausgelöst, es wird jedoch nichts angezeigt.</string>
-    <string name="settings_toggle_checklist_thing_card">Checklistenelement auf der Thing-Karte umschalten</string>
-    <string name="settings_simple_finished_checklist">Falten Sie die fertigen Punkte der Checkliste auf die Karte „Unterwegs“.</string>
+    <string name="settings_toggle_checklist_thing_card">Listenpunkte direkt auf der Karte eines Dings abhaken</string>
+    <string name="settings_simple_finished_checklist">Erledigte Listenpunkte auf Karten von Dingen in Bearbeitung einklappen</string>
     <string name="settings_auto_link">Verknüpfen Sie automatisch Telefonnummer, Webseite und mehr, wenn Sie etwas überprüfen</string>
     <string name="settings_autoplay_cover_dynamic">Dynamische Titelbilder (Video, Bewegungsfoto, GIF) in der Notizliste automatisch abspielen</string>
     <string name="settings_autoplay_detail_dynamic">Dynamische Inhalte (Video, Bewegungsfoto, GIF) in der Notizansicht automatisch abspielen</string>
@@ -649,11 +649,10 @@
     <string name="cd_random_gradient_background">Zufällige Farbverlaufsfarbe</string>
     <string name="chooser_ringtone">Wählen Sie Klingelton</string>
     <string name="ringtone_loading">Klingelton wird geladen...</string>
-    <string name="auto_save_edits_title">Speichern Sie Daten automatisch, wenn Sie ein Ding bearbeiten</string>
-    <string name="auto_save_edits_help_info">Wenn Sie ein Ding erstellen oder aktualisieren und die Benutzeroberfläche verlassen, speichert EverythingDone Ihre Änderungen am Inhalt des Dings automatisch.
-        \n\nHinweis: EverythingDone speichert keine Änderungen an Erinnerung, Gewohnheit oder Ziel. Wenn Sie beispielsweise die Alarmzeit eines Dings ändern, wird diese nicht automatisch gespeichert.</string>
+    <string name="auto_save_edits_title">Änderungen an Dingen automatisch speichern</string>
+    <string name="auto_save_edits_help_info">Wenn Sie ein Ding erstellen oder bearbeiten, speichert EverythingDone seinen Inhalt automatisch, sobald Sie den Editor verlassen.\n\nHinweis: Das Erstellen oder Ändern einer Erinnerung, Gewohnheit oder eines Ziels wird nicht automatisch gespeichert. Wenn Sie zum Beispiel die Erinnerungszeit eines Dings ändern, wird diese Änderung nicht automatisch gespeichert.</string>
     <string name="backup">Sichern</string>
-    <string name="backup_content">Ihre Dinge und Vorlieben werden gesichert. Nach der Sicherung erinnert Sie EverythingDone weiterhin an alle Erinnerungen, Gewohnheiten und Ziele. Wir werden jedoch keine Anhänge sichern. Wenn sie erforderlich sind, sichern Sie sie bitte selbst. Die Anhangsdateien befinden sich in sdcard/EverythingDone.</string>
+    <string name="backup_content">EverythingDone sichert alle Ihre Dinge und die App-Einstellungen. Nach dem Wiederherstellen funktionieren Erinnerungen, Gewohnheiten und Ziele wie gewohnt. Anhänge werden nicht mitgesichert. Sichern Sie diese bei Bedarf separat; sie liegen im Ordner SD-Karte/EverythingDone.</string>
     <string name="backup_failed_content">Bitte versuchen Sie es erneut oder senden Sie Feedback an den Entwickler</string>
     <string name="backup_failed_title">Die Sicherung ist fehlgeschlagen</string>
     <string name="backup_loading_content">Bitte warten Sie eine Weile. Vielleicht kannst du etwas trinken.</string>
@@ -689,7 +688,7 @@
     <string name="not_support_fgprt">Ihr Gerät unterstützt kein standardmäßiges Android-Fingerabdruckmodul</string>
     <string name="system_fgprt_not_set">Das System-Fingerabdruckmodul wurde nicht aktiviert. Bitte gehen Sie zu Einstellungen -&gt; Sicherheit -&gt; Fingerabdruck, um es zu aktivieren.</string>
     <string name="fgprt_not_enrolled">Kein Fingerabdruck verfügbar. Gehen Sie bitte zu Einstellungen -&gt; Sicherheit -&gt; Fingerabdruck und registrieren Sie mindestens einen Fingerabdruck.</string>
-    <string name="check_private_thing">Überprüfen Sie „Private Sache“.</string>
+    <string name="check_private_thing">Privates Ding ansehen</string>
     <string name="confirm_fingerprint">Bestätigen Sie den Fingerabdruck, um fortzufahren</string>
     <string name="touch_sensor">Berühren Sie den Fingerabdrucksensor</string>
     <string name="use_fingerprint_to_verify">Verwenden Sie einen vorgegebenen Fingerabdruck, um Ihre Identität einfacher zu überprüfen</string>
@@ -697,9 +696,9 @@
     <string name="fingerprint_error_part_1">Sie können es immer noch versuchen</string>
     <string name="fingerprint_cannot_use_to_verify">Sie können Ihre Identität derzeit nicht per Fingerabdruck überprüfen</string>
     <string name="fingerprint_verify_success">Verifizieren Sie Ihre Identität erfolgreich!</string>
-    <string name="warning_title_should_not_be_empty">Wenn Sie dieses Ding als privates Ding festlegen möchten, legen Sie bitte zunächst einen Titel dafür fest.</string>
+    <string name="warning_title_should_not_be_empty">Geben Sie dem Ding einen Titel, bevor Sie es als privat markieren</string>
     <string name="warning_should_set_password_first">Sie haben kein Passwort für EverythingDone festgelegt. Bitte gehen Sie zu Einstellungen -&gt; Datenschutz -&gt; Passwort für EverythingDone festlegen und legen Sie zunächst ein Muster fest.</string>
-    <string name="cannot_set_as_private_thing_title">Kann nicht als private Sache festgelegt werden</string>
+    <string name="cannot_set_as_private_thing_title">Ding kann nicht als privat markiert werden</string>
     <string name="auto_start_doing_title">Beginnen Sie damit, wenn der Wecker klingelt</string>
     <string-array name="auto_start_doing_options">
         <item>Deaktivieren</item>
@@ -708,25 +707,24 @@
         <item>Für beide aktivieren</item>
     </string-array>
     <string-array name="auto_start_doing_states">
-        <item>Deaktiviert</item>
+        <item>@string/disabled</item>
         <item>Für Erinnerung aktiviert</item>
         <item>Für Gewohnheit aktiviert</item>
         <item>Für beide aktiviert</item>
     </string-array>
-    <string name="auto_start_doing_time_reminder_title">Automatischer Start der Zeit für die Erinnerung</string>
-    <string name="auto_start_doing_time_habit_title">Beginnen Sie automatisch damit, sich Zeit für die Gewohnheit zu nehmen</string>
+    <string name="auto_start_doing_time_reminder_title">Automatische Timerdauer — Erinnerungen</string>
+    <string name="auto_start_doing_time_habit_title">Automatische Timerdauer — Gewohnheiten</string>
     <string name="auto_strict_mode_title">Wechseln Sie zu Beginn in den strikten Modus</string>
-    <string name="auto_strict_mode_help_content">Wenn Sie anfangen, etwas zu tun und den strikten Modus aktivieren, erkennt EverythingDone, ob Sie Ihr Telefon für andere Dinge verwenden. Wenn Sie die Countdown-Seite (nur das Überprüfen von Benachrichtigungen und das Sperren des Bildschirms sind zulässig) dreimal oder insgesamt länger als 5 Minuten verlassen haben, stoppt der Countdown und das Ding bleibt im unvollendeten Zustand.</string>
-    <string name="quick_create_title">Erstellen Sie schnell etwas Neues</string>
+    <string name="auto_strict_mode_help_content">Wenn Sie mit aktiviertem strengem Modus an einem Ding arbeiten, prüft EverythingDone, ob Sie Ihr Handy für etwas anderes nutzen. Wenn Sie die Timeransicht dreimal oder insgesamt länger als fünf Minuten verlassen, wird der Timer für dieses Ding beendet. Die Benachrichtigungsleiste dürfen Sie öffnen und den Bildschirm dürfen Sie sperren.</string>
+    <string name="quick_create_title">Ding schnell erstellen</string>
     <string name="quick_create_description">Zeigen Sie eine fortlaufende Benachrichtigung an, um einen schnellen Zugriff zu ermöglichen</string>
-    <string name="ongoing_lockscreen">Zeigen Sie die laufende Benachrichtigung von thing\' auch auf dem Sperrbildschirm an</string>
+    <string name="ongoing_lockscreen">Angezeigte Dinge aus der Benachrichtigungsleiste auch auf dem Sperrbildschirm anzeigen</string>
     <string name="close_notification_later">Don\'t das Schließen einer auffälligen Benachrichtigung erst 2 Sekunden nach der Anzeige zulassen</string>
     <string name="create_daily_todo_automatically">Erstellen Sie jeden Morgen ein tägliches TODO</string>
     <string name="daily_todo_set_time_title">Automatische Erstellzeit festlegen</string>
-    <string name="create_daily_todo_help_info">EverythingDone erstellt jeden Morgen automatisch ein Ding mit dem Titel \"Things to do on MM d, yyyy\", und Sie können den Inhalt festlegen (Wenn Sie nicht \'t und sowohl den Inhalt als auch den Anhang leer lassen, wird das Ding nicht erstellt).
-        \n\nWir werden auch um 14:00 Uhr nachmittags eine Erinnerung an diese Sache einrichten, weil Sie vielleicht daran erinnert werden möchten, Ihre Pläne und TODOs zu erledigen.</string>
+    <string name="create_daily_todo_help_info">Jeden Morgen öffnet EverythingDone zur festgelegten Zeit den Editor mit einem Titel wie „%1$s“. Dort können Sie eintragen, was Sie vorhaben. Wenn Inhalt und Anhänge leer bleiben, wird das Ding nicht erstellt.\n\nStandardmäßig wird eine Erinnerung für 14:00 eingestellt, damit Sie Ihre täglichen Aufgaben erledigen können.</string>
     <string name="auto_notify">Automatische Erinnerung</string>
-    <string name="auto_notify_help_info">EverythingDone erinnert Sie automatisch daran, nachdem eine neue Sache erstellt wurde. Wenn Sie\'keinen Datensatz erstellt haben, entscheidet EverythingDone, ob eine automatische Erinnerung entsprechend der Erinnerungszeit von thing\' eingestellt werden soll.</string>
+    <string name="auto_notify_help_info">Legen Sie einen zeitlichen Abstand fest. EverythingDone erinnert Sie nach Ablauf dieser Zeit an jedes neu erstellte Ding. Bei Dingen, die keine Notizen sind, entscheidet die App anhand der Erinnerungszeit, ob eine automatische Erinnerung nötig ist.</string>
     <string name="auto_notify_set_time">Stellen Sie die automatische Erinnerungszeit ein</string>
     <string name="auto_notify_ringtone">Automatische Erinnerung\nRingtone</string>
     <string name="statistic_start_from_part_1">Seitdem verwende ich EverythingDone</string>
@@ -736,8 +734,8 @@
     <string name="statistic_note_char_count">Charakter</string>
     <string name="statistic_note_image_count">Bild</string>
     <string name="statistic_note_video_count">Video</string>
-    <string name="statistic_note_record">Ich habe diese Dinge im Hinweis notiert:</string>
-    <string name="statistic_reminder_completion_rate">Erinnerung\'s \nAbschlussrate</string>
+    <string name="statistic_note_record">Das habe ich in Notizen festgehalten</string>
+    <string name="statistic_reminder_completion_rate">Abschlussrate\nder Erinnerungen</string>
     <string name="statistic_reminder_finish_time">Durchschnittliche \nEndzeit</string>
     <string name="statistic_reminder_in_advance">Abgeschlossen \nIm Voraus</string>
     <string name="statistic_reminder_notify_time">Durchschnittliche \nReminder-Zeit</string>
@@ -747,14 +745,14 @@
     <string name="statistic_hour">h</string>
     <string name="statistic_minute">m</string>
     <string name="statistic_day">d</string>
-    <string name="statistic_habit_completion_rate">Abschlussrate</string>
-    <string name="statistic_habit_longest_pit">Längster\nPersistenter Zyklus</string>
+    <string name="statistic_habit_completion_rate">@string/habit_detail_completion_rate</string>
+    <string name="statistic_habit_longest_pit">Längste Folge\nerfüllter Zeiträume</string>
     <string name="statistic_habit_record">Ich beschloss, einige Gewohnheiten zu entwickeln. Meine Arbeiten sind wie folgt:</string>
-    <string name="statistic_habit_longest_finish_times">Längste fortlaufende\nEndzeiten</string>
-    <string name="statistic_habit_developed_rate">Gewohnheit\'s\nPflegerate</string>
-    <string name="statistic_habit_finished_all">Fertige Zeiten\n/Gesamtzeiten</string>
+    <string name="statistic_habit_longest_finish_times">Längste Folge\nabgeschlossener Wiederholungen</string>
+    <string name="statistic_habit_developed_rate">Anteil entwickelter\nGewohnheiten</string>
+    <string name="statistic_habit_finished_all">Abschlüsse\n/ insgesamt vorgesehen</string>
     <string name="statistic_goal_record">Ich habe mir einige Ziele gesetzt. Lassen Sie\'s meine Leistung sehen:</string>
-    <string name="statistic_goal_completion_rate">Ziel\'s\nAbschlussrate</string>
+    <string name="statistic_goal_completion_rate">Abschlussrate\nder Ziele</string>
     <string name="statistic_goal_notify_time">Durchschnittliche Laufzeit</string>
     <string name="share_statistic">Teilen Sie meine Anwendungsgeschichte</string>
     <string name="send_feedback_to_developer">E-Mail an den Entwickler für Feedback</string>
@@ -805,11 +803,11 @@
     <string name="all">Alle</string>
     <string name="app_widget_config_alpha">Alpha:</string>
     <string name="things_list_config_alpha_header">Transparente obere Leiste</string>
-    <string name="things_list_config_simple_view">Verwenden Sie eine einfachere Dingansicht</string>
+    <string name="things_list_config_simple_view">Vereinfachte Ansicht für Dinge verwenden</string>
     <string name="notification_has_attachment">[Anhang]</string>
-    <string name="notification_private_thing_content">[Private Sache]</string>
+    <string name="notification_private_thing_content">[Privates Ding]</string>
     <string name="notification_toast_checking_when_alarm_comes">EverythingDone: Gerade ist ein Ding\'s-Alarm aufgetreten, während Sie es überprüfen</string>
-    <string name="notification_toast_checking_action">Sie überprüfen dieses Ding</string>
+    <string name="notification_toast_checking_action">Sie sehen sich dieses Ding gerade an oder bearbeiten es</string>
     <string name="app_crash_title">Absturz erkannt</string>
     <string name="app_crash_content">Sie können dem Entwickler sofort Feedback senden, damit er den Fehler so schnell wie möglich behebt, auch wenn er weder zu Mittag gegessen noch geschlafen hat.\nSie können Feedback auch jederzeit auf der Seite „Info“ senden. Zu diesem Zeitpunkt müssen Sie lediglich die zugehörige Protokolldatei als Anhang der Feedback-E-Mail hinzufügen (in sdcard/EverythingDone/log können Sie die Datei auswählen, die der Erstellungszeit am nächsten kommt und in deren Namen angezeigt wird).</string>
     <string name="app_crash_send_now">Feedback jetzt</string>
@@ -835,16 +833,16 @@
     <string name="cd_habit_unknown">Unbekannt</string>
     <string name="cd_drawer_header">Klicken Sie hier, um meine Nutzungsdetails zu überprüfen. Kurzstatistik:</string>
     <string name="cd_statistic_header">Statistiken meiner Nutzung</string>
-    <string name="cd_back_note">Das Ding ist eine Notiz, zurück</string>
-    <string name="cd_back_reminder">Das Ding ist eine Erinnerung, zurück</string>
-    <string name="cd_back_habit">Die Sache ist eine Gewohnheit, zurück</string>
-    <string name="cd_back_goal">Das Ding ist ein Tor, zurück</string>
+    <string name="cd_back_note">Typ: Notiz. Zurück</string>
+    <string name="cd_back_reminder">Typ: Erinnerung. Zurück</string>
+    <string name="cd_back_habit">Typ: Gewohnheit. Zurück</string>
+    <string name="cd_back_goal">Typ: Ziel. Zurück</string>
     <string name="cd_day">Tag</string>
-    <string name="cd_checklist_unfinished_item">Unfertiger Artikel</string>
-    <string name="cd_checklist_finished_item">Fertiger Artikel</string>
+    <string name="cd_checklist_unfinished_item">Unerledigter Listenpunkt</string>
+    <string name="cd_checklist_finished_item">Erledigter Listenpunkt</string>
     <string name="cd_checklist_more_items">Weitere Checklistenpunkte</string>
-    <string name="cd_checklist_unfinished_item_clickable">Unvollendeter Artikel, klicken Sie zum Fertigstellen</string>
-    <string name="cd_checklist_finished_item_clickable">Fertiggestelltes Element. Klicken Sie hier, um die Fertigstellung aufzuheben</string>
+    <string name="cd_checklist_unfinished_item_clickable">Unerledigter Listenpunkt. Antippen, um ihn als erledigt zu markieren</string>
+    <string name="cd_checklist_finished_item_clickable">Erledigter Listenpunkt. Antippen, um ihn wieder als unerledigt zu markieren</string>
     <string name="cd_checklist_move">Klicken und ziehen Sie, um dieses Element zu verschieben</string>
     <string name="cd_checklist_expand_finished_items">Erweitern Sie fertige Checklistenpunkte</string>
     <string name="cd_checklist_shrink_finished_items">Verkleinern Sie fertige Checklistenpunkte</string>
@@ -889,28 +887,28 @@
     <string name="act_change_gradient_orientation">Farbverlaufsrichtung</string>
     <string name="act_pick_color_from_camera">Aus der Welt wählen</string>
     <string name="cd_app_widget_preview_background">Hintergrund der App-Widget-Vorschau</string>
-    <string name="cd_things_list_widget_setting">Einstellungen für das App-Widget „Dingeliste“.</string>
+    <string name="cd_things_list_widget_setting">Einstellungen des Dinglisten-Widgets öffnen</string>
     <string name="cd_doing">Derzeit\nIn Arbeit</string>
     <string name="cd_doing_add_5_min">Fügen Sie 5 Minuten hinzu</string>
     <string name="cd_doing_strict_mode_off">Wechseln Sie in den strengen Modus</string>
     <string name="cd_doing_strict_mode_on">Verlassen Sie den strengen Modus</string>
-    <string name="cd_doing_cancel_doing">Brechen Sie diese Sache ab</string>
+    <string name="cd_doing_cancel_doing">Arbeit an diesem Ding beenden</string>
     <string name="cd_cancel_noticeable_notification">Brechen Sie diese Benachrichtigung ab</string>
     <string name="help_detail">Hilfedetails</string>
     <string-array name="help_titles">
         <item>Warum gibt es diese Seite?</item>
         <item>Wie kann ich dem Entwickler meine Meinung mitteilen?</item>
         <item>Wie werden Notizen, Erinnerungen, Gewohnheiten und Ziele eingeteilt?</item>
-        <item>Warum kann ich eine Sache nicht manuell als Erinnerung, Gewohnheit oder Ziel festlegen?</item>
+        <item>Warum kann ich den Typ eines Dings nicht selbst auf Erinnerung, Gewohnheit oder Ziel setzen?</item>
         <item>Warum erhalte ich keine Erinnerungen?</item>
         <item>Welche Berechtigungen braucht EverythingDone und warum?</item>
-        <item>Warum erscheint nach dem Erledigen aller Dinge eine neue Sache, die sich nicht wegwischen lässt? Mein Zwang ist kurz vorm Weinen.</item>
+        <item>Warum erscheint nach dem Erledigen aller Dinge ein neues Ding, das ich nicht wegwischen kann? Das macht mich ganz unruhig.</item>
         <item>Kann ich Statistiken zu Erinnerungen und Gewohnheiten sehen?</item>
-        <item>Warum hat sich meine Abschlussrate nach dem Löschen einer Sache nicht geändert?</item>
+        <item>Warum ändert sich die Abschlussrate nicht, wenn ich ein Ding lösche?</item>
         <item>Warum können Gewohnheiten höchstens 4 Mal pro Tag erinnern? Warum kann ich nicht mehrere Erinnerungen alle paar Zyklen festlegen?</item>
         <item>Warum zählen abgeschlossene und erstellte Notizen zur Abschlussrate, die Abschlüsse von Gewohnheiten in jedem Zyklus aber nicht?</item>
         <item>Warum gibt es noch keine Synchronisierung?</item>
-        <item>Wird es mehr Farben für Dinge geben?</item>
+        <item>Wird es weitere Farben für Dinge geben?</item>
         <item>Warum wird der Mondkalender nicht unterstützt?</item>
         <item>Warum sind Bildminiaturen ungünstig zugeschnitten und große Bilder nicht klar genug?</item>
         <item>Gibt es Easter Eggs in EverythingDone? (,,• ₃ •,,)</item>
@@ -930,11 +928,11 @@ Ziel: EverythingDone erinnert mindestens 4 Wochen nach der Erstellung; normalerw
 Manuelle Typänderungen würden jetzt viele Fehler erzeugen und eine große Umgestaltung erfordern, vermutlich nicht vor EverythingDone 2.0.</item>
         <item>Auf Systemen wie MIUI, flyme oder EMUI gib EverythingDone die nötigen Rechte für Autostart, Hintergrundausführung, Start aus dem Hintergrund und Benachrichtigungen. Setze es außerdem auf Whitelists von Energiespar-, Reinigungs-, Optimierungs- oder Benachrichtigungsapps. Wenn Erinnerungen weiterhin fehlen, sende Telefonmodell, Systemtyp und Version.</item>
         <item>EverythingDone braucht Autostart für Erinnerungen, Speicherzugriff für Anhänge und Screenshots, Audioaufnahme für Sprachanhänge, Vibration für bessere Hinweise, Fingerabdruck ab Android 6.0 für private Dinge und Wachhalten des Geräts für den Countdown. Es fordert keine unnötigen Rechte an und nutzt sie nicht falsch.</item>
-        <item>Nachdem alle Dinge eines Typs abgeschlossen sind, zeigt die App eine Gratulation, indem sie automatisch eine neue Sache erstellt. Ohne sie sähe die Seite leer und unausgewogen aus; gute Leerzustände zu gestalten braucht Zeit. Dieses Verhalten jetzt zu ändern würde viel Code erfordern.
+        <item>Nachdem alle Dinge eines Typs abgeschlossen sind, zeigt die App eine Gratulation, indem sie automatisch ein neues Ding erstellt. Ohne dieses Ding sähe die Seite leer und unausgewogen aus; gute Leerzustände zu gestalten braucht Zeit. Dieses Verhalten jetzt zu ändern würde viel Code erfordern.
 
 Tatsächlich habe ich selbst ein wenig Zwang.</item>
         <item>Ja. Öffne die App-Schublade und tippe oben auf das Bild, um Statistiken zu sehen: Nutzungszeit, geschriebene Wörter, durchschnittliche Erinnerungszeit, Gewohnheitsbildungsrate und mehr.</item>
-        <item>Die allgemeine Formel lautet: erledigte Dinge, ohne Gewohnheitsabschlüsse innerhalb einzelner Zyklen, geteilt durch erstellte Dinge. Löschen ändert nicht, dass eine Sache erstellt wurde, also ändert sich die Rate nicht.</item>
+        <item>Normalerweise wird die Abschlussrate so berechnet: Anzahl der erledigten Dinge (ohne die einzelnen Wiederholungen einer Gewohnheit pro Zeitraum) geteilt durch die Anzahl aller je erstellten Dinge. Wenn Sie ein Ding löschen, ändert das nichts daran, dass es erstellt wurde. Deshalb bleibt die Abschlussrate unverändert.</item>
         <item>Erinnerungen wie mehrmals alle paar Zyklen würden eine genaue Uhrzeit für jede Erinnerung verlangen. Das einzugeben wäre kompliziert; die App könnte sie nicht klug genug wählen; und Android erzwingt gleiche Wiederholungsintervalle. Deshalb gibt es nur Häufigkeiten pro Tag, Woche, Monat oder Jahr, maximal 4 Mal pro Tag.</item>
         <item>Manchmal notieren wir Dinge, ohne zu wissen, wann sie fertig sein sollen, deshalb zählen Notizen in die Formel. Gewohnheiten erhöhen die Rate nicht bei jedem Abschluss, sondern erst wenn die Gewohnheit entwickelt ist. Gewohnheitsstatistiken bleiben in Statistik und im Detail der Gewohnheit sichtbar.</item>
         <item>Für eine Notiz- und Erinnerungsapp ist Synchronisierung wichtig, aber der Entwickler braucht noch Zeit, um sie fertigzustellen.</item>
@@ -946,13 +944,13 @@ Tatsächlich habe ich selbst ein wenig Zwang.</item>
 Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     </string-array>
     <string name="title_important_alert">DIES IST EINE WICHTIGE MITTEILUNG</string>
-    <string name="content_important_reminder_permission">Wenn Sie einige Apps verwenden, die Ihr Android-System verbessern können, oder solche Apps auf Ihrem Telefon vorinstalliert sind, fügen Sie bitte EverythingDone zu ihrer Whitelist hinzu. Andernfalls können Sie möglicherweise keine Benachrichtigungen von EverythingDone erhalten.\n\nErteilen Sie außerdem Berechtigungen, die EverythingDone im Berechtigungsmanager angefordert hat. Diese Berechtigungen sind:\n(1) Automatischer Start nach dem Hochfahren des Telefons, wird zum Erstellen von Benachrichtigungen für Erinnerungen, Gewohnheiten und Ziele verwendet;\n(2) Externer Speicher lesen/schreiben, wird zum Einfügen von Dateien als Anhang für Dinge verwendet;\n(3) Audio aufnehmen, wird zum Aufzeichnen von Audio als Anhang für Dinge verwendet;\n(4) Vibrieren, um bessere Benachrichtigungen zu generieren, damit Sie Dinge erledigen können.\nEverythingDone verspricht, dass es\'t verwendet wird diese Erlaubnis, schlechte Dinge zu tun. Danke schön.</string>
+    <string name="content_important_reminder_permission">Wenn Sie eine App zur Systemoptimierung verwenden, etwa 360 Mobile Security oder den vorinstallierten Energiesparassistenten von Huawei, nehmen Sie EverythingDone in deren Ausnahmeliste auf. So können Erinnerungen zuverlässig funktionieren.\n\nErteilen Sie EverythingDone außerdem die angeforderten Berechtigungen in der Berechtigungsverwaltung des Systems:\n(1) Automatischer Start nach dem Einschalten: wird zum Einrichten von Alarmen benötigt. Ohne diese Berechtigung kann EverythingDone Sie nach einem Neustart nicht weiter an Termine, Gewohnheiten oder Ziele erinnern.\n(2) Speicher lesen und beschreiben: zum Hinzufügen von Anhängen und zum Speichern von Bildschirmfotos beim Teilen Ihrer Nutzungsstatistik.\n(3) Audio aufnehmen: zum Erstellen von Audioanhängen für Dinge.\n(4) Vibrieren: um Sie deutlicher daran zu erinnern, Dinge abzuschließen.\nEverythingDone wird diese Berechtigungen niemals missbrauchen.</string>
     <string name="from_1_1_4_to_1_1_5_title">Rückgängig/Wiederherstellen werden jetzt unterstützt</string>
-    <string name="from_1_1_4_to_1_1_5_content">Klicken Sie auf die Menüschaltfläche. Dort werden die Optionen „Rückgängig“ und „Wiederherstellen“ angezeigt. Jetzt können Sie Ihre Sachen jederzeit in die Vergangenheit oder Zukunft zurückgeben, wenn Sie möchten.</string>
+    <string name="from_1_1_4_to_1_1_5_content">Im Menü oben rechts finden Sie Rückgängig und Wiederholen. Damit können Sie ein Ding jederzeit in einen früheren oder späteren Bearbeitungszustand versetzen.</string>
     <string name="from_1_2_7_to_1_3_0_title">Todo? Tun!</string>
-    <string name="from_1_2_7_to_1_3_0_content">Es wird eine auffälligere Benachrichtigung für „things\'“-Alarme geben. Wenn Sie bereit sind, können Sie direkt nach der Benachrichtigung mit der Arbeit beginnen. EverythingDone hilft Ihnen dabei, sie sorgfältig abzuschließen.</string>
+    <string name="from_1_2_7_to_1_3_0_content">Wenn die Erinnerungszeit eines Dings erreicht ist, erscheint jetzt eine auffälligere Benachrichtigung. Wenn Sie bereit sind, können Sie direkt dort die Arbeit starten. EverythingDone hilft Ihnen, konzentriert daran zu arbeiten.</string>
     <string name="from_1_3_0_to_1_3_1_title">Beginnen Sie jederzeit oder automatisch damit, etwas zu tun</string>
-    <string name="from_1_3_0_to_1_3_1_content">Jetzt können Sie eine Ding-Karte nach rechts wischen, um jederzeit mit der Ausführung dieser Sache zu beginnen.\n\nAußerdem können Sie jetzt auch das automatische Starten der Ausführung der Sache aktivieren, wenn die Erinnerung kommt. Mit einer weiteren neuen Funktion, dem automatischen Wechsel in den strengen Modus, kann EverythingDone Ihnen dabei helfen, nicht mehr zu sagen: \"erledige es später\".</string>
+    <string name="from_1_3_0_to_1_3_1_content">Sie können jetzt in der Hauptansicht eine Ding-Karte nach rechts wischen, um jederzeit mit der Arbeit daran zu beginnen.\n\nAußerdem lässt sich die Arbeit automatisch starten, sobald die Erinnerung erscheint. Zusammen mit dem ebenfalls neuen automatischen Wechsel in den strengen Modus soll Ihnen das helfen, Dinge weniger aufzuschieben.</string>
     <string name="from_1_3_3_to_1_3_4_title">Speichern Sie Änderungen automatisch und ändern Sie Gewohnheitsdatensätze</string>
     <string name="from_1_3_3_to_1_3_4_content">Jetzt können Sie das automatische Speichern von Änderungen aktivieren, wenn Sie ein Ding erstellen oder aktualisieren.
     \n\nSie können auch Ihre neuesten Gewohnheitsaufzeichnungen ändern, um Fehler zu korrigieren oder verlorene Erinnerungen hervorzuheben. Überprüfen Sie eine Gewohnheit, öffnen Sie das Menü, klicken Sie auf \"Details zur Gewohnheit prüfen\" und Sie werden diese Aktion sehen.</string>
@@ -1467,4 +1465,275 @@ Nun, du wirst sie sowieso nie alle finden. Hahahahaha.</item>
     <string name="tap_simulated_thing_content">Simulierte Daten zur Vorschau der Empfangsanimation. Kann gelöscht werden.</string>
     <string name="settings_tap_transfer_simulate">Übertragung per Antippen simulieren (Debug-Build)</string>
     <string name="tap_hce_service_description">EverythingDone – Übertragung per Antippen</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="all_content">Alle Inhalte</string>
+    <string name="thing_folder">Dingordner</string>
+    <string name="private_thing_folder">Privater Dingordner</string>
+    <string name="thing_folder_count">Dinge: %1$d</string>
+    <string name="thing_folder_count_folders">Ordner: %1$d</string>
+    <string name="thing_folder_count_folders_things">Ordner: %1$d · Dinge: %2$d</string>
+    <string name="cannot_set_as_private_thing_folder_title">Privater Dingordner nicht möglich</string>
+    <string name="thing_folder_location">In %1$s</string>
+    <string name="create_thing_folder_title">Dingordner benennen</string>
+    <string name="thing_folder_name_hint">Ordnername</string>
+    <string name="default_thing_folder_name">Neuer Ordner</string>
+    <string name="rename_thing_folder">Ordner umbenennen</string>
+    <string name="show_thing_folder_summary">Zusammenfassungskarte anzeigen</string>
+    <string name="show_thing_folder_thumbnails">Vorschaubilder anzeigen</string>
+    <string name="make_thing_folder_wide">Breite Karte verwenden</string>
+    <string name="make_thing_folder_normal_width">Normale Breite verwenden</string>
+    <string name="set_thing_folder_private">Ordner privat machen</string>
+    <string name="cancel_thing_folder_private">Ordner nicht mehr privat machen</string>
+    <string name="dissolve_thing_folder">Ordner auflösen</string>
+    <string name="dissolve_thing_folder_confirm">Die ausgewählten Ordner werden unwiderruflich entfernt, ohne in den Papierkorb zu gelangen. Ihr gesamter Inhalt (%1$s) wird mit unverändertem Status eine Ebene nach oben verschoben.</string>
+    <string name="folder_count_segment">Unterordner: %1$d</string>
+    <string name="thing_count_segment">Dinge: %1$d</string>
+    <string name="folder_impact_separator">", "</string>
+    <string name="folder_impact_empty">Kein Inhalt</string>
+    <string name="finish_all_things_in_folder">Alle Dinge im Ordner erledigen</string>
+    <string name="scope_excludes_doing">" (ohne Dinge, die gerade bearbeitet werden)"</string>
+    <string name="scope_includes_subfolders_and_excludes_doing">" (einschließlich aller Unterordner, ohne Dinge, die gerade bearbeitet werden)"</string>
+    <string name="scope_selected_things">ausgewählt</string>
+    <string name="scope_selected_folders">ausgewählte Ordner</string>
+    <string name="scope_selected_items">ausgewählte Einträge</string>
+    <string name="thing_status_deleted">Gelöscht</string>
+    <string name="no_underway_things_to_finish">Keine laufenden Dinge zum Erledigen</string>
+    <string name="restore_all_things">Alle Dinge wiederherstellen</string>
+    <string name="restore_all_things_in_folder">Alle Dinge im Ordner wiederherstellen</string>
+    <string name="no_finished_things_to_delete">Keine erledigten Dinge zum Löschen</string>
+    <string name="no_trashed_things_to_delete_forever">Keine Dinge im Papierkorb zum endgültigen Löschen</string>
+    <string name="no_finished_things_to_restore">Keine erledigten Dinge zum Wiederherstellen</string>
+    <string name="no_trashed_things_to_restore">Keine Dinge im Papierkorb zum Wiederherstellen</string>
+    <string name="delete_thing_folder">Alle Dinge im Ordner löschen</string>
+    <string name="no_things_to_delete_in_folder">Keine löschbaren Dinge in den ausgewählten Ordnern</string>
+    <string name="delete_all_things_in_folder_forever">Alle Dinge im Ordner endgültig löschen</string>
+    <string name="delete_thing_folder_forever">Ordner endgültig löschen</string>
+    <string name="delete_thing_folder_forever_confirm">Die ausgewählten Ordner und ihr gesamter Inhalt (%1$s) werden unwiderruflich gelöscht.</string>
+    <string name="folder_op_scope_only_search">Dieser Vorgang betrifft nur Dinge im aktuellen Suchbereich. Andere Dinge bleiben unverändert.</string>
+    <string name="folder_op_scope_type_and_search">Dieser Vorgang betrifft nur Dinge im aktuellen Typfilter (%1$s) und Suchbereich. Andere Typen und Dinge außerhalb der Suche bleiben unverändert.</string>
+    <string name="folder_op_scope_search">Suchbereich</string>
+    <string name="folder_op_scope_status_search">Statusfilter (%1$s) und Suchbereich</string>
+    <string name="folder_op_scope_type_filter_search">Typfilter (%1$s) und Suchbereich</string>
+    <string name="folder_op_scope_status_type_search">Status- und Typfilter (%1$s, %2$s) sowie Suchbereich</string>
+    <string name="move_thing_folder_card">Kartenreihenfolge ändern</string>
+    <string name="move_thing_folder_to">In Ordner verschieben</string>
+    <string name="all_things_scope">Alle Dinge</string>
+    <string name="thing_folder_root">Stammverzeichnis</string>
+    <string name="thing_folder_child_count">Inhalte: %1$d</string>
+    <string name="no_matching_things_in_selection">Keine passenden Dinge in der Auswahl</string>
+    <string name="private_batch_skipped">Dinge in Bearbeitung wurden nicht privat gemacht</string>
+    <string name="act_delete_all_forever">Alle Dinge endgültig löschen</string>
+    <string name="act_move_to_thing_folder">In Ordner verschieben</string>
+    <string name="act_set_as_private_items">Auswahl privat machen</string>
+    <string name="act_cancel_private_items">Privatstatus der Auswahl aufheben</string>
+    <string name="delete_selected_folders_forever">Ausgewählte Ordner endgültig löschen</string>
+    <string name="delete_selected_items_forever_structural">Auswahl endgültig löschen</string>
+    <string name="title_widget_thing_1x1">Ding 1x1</string>
+    <string name="title_widget_thing_2x2">Ding 2x2</string>
+    <string name="title_widget_thing_3x3">Ding 3x3</string>
+    <string name="title_widget_thing_4x4">Ding 4x4</string>
+    <string name="title_widget_thing_4x2">Ding 4x2</string>
+    <string name="title_widget_thing_2x4">Ding 2x4</string>
+    <string name="title_widget_thing_4x3">Ding 4x3</string>
+    <string name="title_widget_thing_3x4">Ding 3x4</string>
+    <string name="title_widget_thing_5x2">Ding 5x2</string>
+    <string name="title_widget_thing_2x5">Ding 2x5</string>
+    <string name="title_widget_thing_5x3">Ding 5x3</string>
+    <string name="title_widget_thing_3x5">Ding 3x5</string>
+    <string name="title_widget_thing_5x4">Ding 5x4</string>
+    <string name="title_widget_thing_4x5">Ding 4x5</string>
+    <string name="title_widget_thing_5x5">Ding 5x5</string>
+    <string name="title_widget_thing_6x2">Ding 6x2</string>
+    <string name="title_widget_thing_2x6">Ding 2x6</string>
+    <string name="title_widget_thing_6x3">Ding 6x3</string>
+    <string name="title_widget_thing_3x6">Ding 3x6</string>
+    <string name="title_widget_thing_6x4">Ding 6x4</string>
+    <string name="title_widget_thing_4x6">Ding 4x6</string>
+    <string name="title_widget_thing_6x5">Ding 6x5</string>
+    <string name="title_widget_thing_5x6">Ding 5x6</string>
+    <string name="title_widget_thing_6x6">Ding 6x6</string>
+    <string name="title_widget_things_list_3x3">Dingliste 3x3</string>
+    <string name="title_widget_things_list_4x4">Dingliste 4x4</string>
+    <string name="title_widget_things_list_5x4">Dingliste 5x4</string>
+    <string name="title_widget_things_list_4x5">Dingliste 4x5</string>
+    <string name="title_widget_things_list_5x5">Dingliste 5x5</string>
+    <string name="title_widget_things_list_6x4">Dingliste 6x4</string>
+    <string name="title_widget_things_list_4x6">Dingliste 4x6</string>
+    <string name="title_widget_things_list_6x5">Dingliste 6x5</string>
+    <string name="title_widget_things_list_5x6">Dingliste 5x6</string>
+    <string name="title_widget_things_list_6x6">Dingliste 6x6</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+    <string name="fablesol_export_hdr_format_name_hdr10">HDR10</string>
+    <string name="fablesol_export_hdr_format_name_hdr10_plus">HDR10+</string>
+    <string name="fablesol_export_hdr_format_name_hlg">HLG</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="error_generating_screenshot">Langer Screenshot konnte nicht erstellt werden. Bitte erneut versuchen.</string>
+    <string name="home_empty_underway">Hier gibt es noch keine laufenden Dinge</string>
+    <string name="home_empty_note">Hier gibt es noch keine Notizen</string>
+    <string name="home_empty_reminder">Hier gibt es noch keine Erinnerungen</string>
+    <string name="home_empty_habit">Hier gibt es noch keine Gewohnheiten</string>
+    <string name="home_empty_goal">Hier gibt es noch keine Ziele</string>
+    <string name="home_empty_finished">Hier gibt es noch keine erledigten Dinge</string>
+    <string name="home_empty_deleted">Hier gibt es noch keine gelöschten Dinge</string>
+    <string name="home_empty_folder">Dieser Ordner ist noch leer</string>
+    <string name="act_color_info">Farbinformationen</string>
+    <string name="act_use_color">Farbe verwenden</string>
+    <string name="color_info_title">Farbinformationen</string>
+    <string name="color_info_current">Aktuelle Farbe</string>
+    <string name="color_info_gradient_start">Verlaufsanfang</string>
+    <string name="color_info_gradient_end">Verlaufsende</string>
+    <string name="color_editor_tab_pure">Einfarbig</string>
+    <string name="color_editor_tab_gradient">Farbverlauf</string>
+    <string name="cd_random_color">Zufällige Farbe</string>
+    <string name="color_editor_back">Zurück</string>
+    <string name="color_info_representative">Repräsentative Farbe</string>
+    <string name="color_info_name">Name</string>
+    <string name="color_info_english_name">Englischer Name</string>
+    <string name="color_info_matched_entry">Passender Eintrag</string>
+    <string name="color_info_source">Namensquelle</string>
+    <string name="color_info_match">Abgleichmethode</string>
+    <string name="color_info_match_value">Nächster Treffer nach CIEDE2000 ΔE, Abstand %1$s</string>
+    <string name="color_info_translation_pending">Die chinesische Übersetzung des Farbnamens steht noch aus. Angezeigt wird der englische Originalname.</string>
+    <string name="camera_color_title">Farbe mit Kamera erfassen</string>
+    <string name="camera_color_waiting">Mittelpunkt auf die Farbe richten</string>
+    <string name="camera_color_unavailable">Kamera nicht verfügbar</string>
+    <string name="act_customize_folder_card_appearance">Ordnerdarstellung anpassen</string>
+    <string name="thing_card_appearance_source_none">Keine</string>
+    <string name="folder_card_appearance_name_hint">Ordnername</string>
+    <string name="folder_card_appearance_display_mode">Ordnergröße</string>
+    <string name="folder_card_appearance_mode_summary">Normal</string>
+    <string name="folder_card_appearance_mode_large">Groß</string>
+    <string name="thing_card_appearance_precise_crop_video">Titelvideo zuschneiden</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">Die Kartenhöhe begrenzt das Seitenverhältnis des Titelbilds. Bei der aktuellen hohen Karte folgt das Bild den Kartenabmessungen.</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">Die Kartenhöhe begrenzt das Seitenverhältnis des Titelvideos. Bei der aktuellen hohen Karte folgt das Video den Kartenabmessungen.</string>
+    <string name="thing_card_appearance_video_frame_play">Videobildvorschau abspielen</string>
+    <string name="thing_card_appearance_video_frame_pause">Videobildvorschau pausieren</string>
+    <string name="thing_card_appearance_video_frame_stop">Videobildvorschau stoppen</string>
+    <string name="settings_drawer_header_choose_image">Bild auswählen</string>
+    <string name="settings_drawer_header_adjust_crop">Zuschnitt anpassen</string>
+    <string name="drawer_header_ratio">Seitenverhältnis des Kopfbilds</string>
+    <string name="cd_fablesol_tuning_pause">Vorschau pausieren oder fortsetzen</string>
+    <string name="cd_fablesol_tuning_switch_color">Wasserfarbe wechseln</string>
+    <string name="open_private_thing_folder">Privaten Ordner öffnen</string>
+    <string name="expand_private_thing_folder">Privaten Ordner aufklappen</string>
+    <string name="manage_private_thing_folder">Privaten Ordner verwalten</string>
+    <string name="customize_private_thing_folder_card">Karte des privaten Ordners anpassen</string>
+    <string name="customize_private_thing_card">Karte des privaten Dings anpassen</string>
+    <string name="move_private_thing_or_folder">Private Inhalte verschieben</string>
+    <string name="finish_private_thing_by_swipe">Privates Ding erledigen</string>
+    <string name="set_password_first_title">Zuerst Passwort festlegen</string>
+    <string name="all_types">Alle Typen</string>
+    <string name="widget_type_filter_summary">Dingtypen: %1$s</string>
+    <string name="widget_display_mode_label">Anzeigemodus</string>
+    <string name="widget_status_label">Dingstatus</string>
+    <string name="widget_display_mode_list">Liste</string>
+    <string name="widget_display_mode_grid">Raster</string>
+    <string name="cd_back_parent_folder">Zum übergeordneten Ordner</string>
+    <string name="cd_checklist_indent">Listeneintrag eine Ebene einrücken</string>
+    <string name="cd_checklist_outdent">Listeneintrag eine Ebene ausrücken</string>
+    <string name="cd_expand_thing_folder">Ordner aufklappen</string>
+    <string name="cd_collapse_thing_folder">Ordner zuklappen</string>
+    <string name="cd_motion_photo">Bewegungsfoto, zum Abspielen gedrückt halten</string>
+    <string name="motion_photo_live_badge">LIVE</string>
+    <string name="cd_edit_image_attachment_appearance">Darstellung dieses Bildanhangs bearbeiten</string>
+    <string name="cd_edit_video_attachment_appearance">Darstellung dieses Videoanhangs bearbeiten</string>
+    <string name="cd_hdr_badge_on">HDR aktiviert. Tippen für Standard-Dynamikumfang.</string>
+    <string name="cd_hdr_badge_off">HDR deaktiviert. Tippen zum Aktivieren.</string>
+    <string name="image_viewer_no_video_player">Keine App zum Abspielen dieses Videos vorhanden</string>
+    <string name="fablesol_export_hdr_brand_dolby_vision">Dolby Vision</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_84">Dolby Vision 8.4</string>
+    <string name="detail_media_preview_loading">Vorschau wird geladen</string>
+    <string name="detail_media_preview_load_failed">Medienvorschau konnte nicht geladen werden</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="audio_input_label">Audioeingang</string>
+    <string name="audio_input_microphone">Mikrofon</string>
+    <string name="audio_input_system">System</string>
+    <string name="audio_input_system_and_microphone">Mikrofon + System</string>
+    <string name="audio_input_microphone_summary">Nimmt das Gerätemikrofon auf. Die eigentliche Aufnahme läuft beim Wechsel zu anderen Apps weiter. Sie kann über die Benachrichtigung gestoppt und behalten werden.</string>
+    <string name="audio_input_system_summary">Nimmt die Wiedergabe anderer Apps auf, sofern diese es erlauben. Erfordert Android 10+, Mikrofonberechtigung und eine Systemfreigabe für den gesamten Bildschirm. Diese App liest oder speichert keine Bildschirminhalte. Manche Apps verhindern die Aufnahme. Die eigentliche Aufnahme läuft beim App-Wechsel weiter. Beim Stoppen endet die Freigabe. Sie kann auch über die Bildschirmfreigabe-Anzeige des Systems widerrufen werden; die bisherige Aufnahme wird dann gestoppt und behalten.</string>
+    <string name="audio_input_system_and_microphone_summary">Nimmt Systemwiedergabe und Gerätemikrofon gleichzeitig auf. Erfordert Android 10+, Mikrofonberechtigung und eine Systemfreigabe für den gesamten Bildschirm. Diese App liest oder speichert keine Bildschirminhalte. Kopfhörer reduzieren Rückkopplungen. Die eigentliche Aufnahme läuft beim App-Wechsel weiter. Beim Stoppen endet die Freigabe. Sie kann auch über die Bildschirmfreigabe-Anzeige des Systems widerrufen werden; die bisherige Aufnahme wird dann gestoppt und behalten.</string>
+    <string name="cd_choose_audio_input">Audioeingang auswählen</string>
+    <string name="audio_input_projection_denied">Systemfreigabe abgebrochen. Audioeingang auf Mikrofon zurückgesetzt.</string>
+    <string name="audio_recording_size_limit_reached">Dateigrößenlimit erreicht. Aufnahme automatisch gestoppt und behalten.</string>
+    <string name="audio_recording_storage_full">Zu wenig Speicherplatz. Aufnahme konnte nicht gespeichert werden.</string>
+    <string name="audio_recording_finalize_failed">Abschluss der Audiodatei fehlgeschlagen. Aufnahme nicht gespeichert.</string>
+    <string name="audio_recording_stop_not_kept_notification_title">Aufnahme gestoppt, aber nicht gespeichert</string>
+    <string name="audio_recording_busy_other_thing">Aufnahme für ein anderes Ding läuft</string>
+    <string name="audio_recording_go_to">Öffnen</string>
+    <string name="audio_input_system_initialization_failed">Systemaudio konnte nicht gestartet werden. Audioeingang auf Mikrofon zurückgesetzt.</string>
+    <string name="audio_input_projection_revoked">Freigabe für Systemaudio beendet. Bisherige Aufnahme behalten.</string>
+    <string name="audio_input_system_capture_ended">Freigabe für Systemaudio beendet. Audioeingang auf Mikrofon zurückgesetzt.</string>
+    <string name="audio_input_recording_start_failed">Aufnahme konnte nicht gestartet werden</string>
+    <string name="audio_recording_finalizing">Aufnahme wird gespeichert…</string>
+    <string name="audio_recording_finalizing_notification_title">Aufnahme wird gespeichert</string>
+    <string name="audio_recording_file_output_failed">Schreiben der Audiodatei fehlgeschlagen</string>
+    <string name="audio_recording_file_write_interrupted">Schreiben unterbrochen. Bisherige Aufnahme behalten.</string>
+    <string name="cd_save_unavailable_not_kept">Aufnahme nicht behalten. Speichern nicht möglich.</string>
+    <string name="audio_input_capture_failed">Erforderlicher Audioeingang gestoppt. Bisherige Aufnahme behalten.</string>
+    <string name="audio_input_microphone_unavailable">Mikrofon konnte nicht gestartet werden</string>
+    <string name="audio_input_system_silent">Kein erfassbares Systemaudio erkannt. Manche Apps verhindern die Aufnahme.</string>
+    <string name="audio_input_aec_unavailable">Echounterdrückung auf diesem Gerät nicht verfügbar. Kopfhörer werden empfohlen.</string>
+    <string name="audio_recording_notification_channel">Audioaufnahme</string>
+    <string name="audio_input_preview_notification_title">Systemaudio-Vorschau läuft</string>
+    <string name="audio_input_authorization_notification_title">Freigabe für Systemaudio aktiv</string>
+    <string name="audio_recording_notification_title">Aufnahme läuft</string>
+    <string name="audio_recording_notification_stop_keep">Stoppen und behalten</string>
+    <string name="audio_recording_notification_permission_missing">Benachrichtigungen sind nicht erlaubt. Aufnahmen sind weiterhin möglich. Ab Android 13 erscheint der Dienststatus nur unter „Aktive Apps“ im System. Die Benachrichtigungsleiste zeigt weder die Quelle noch „Stoppen und behalten“.</string>
+    <string name="audio_recording_stopped_notification_title">Aufnahme gestoppt und behalten</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="act_finish_selected_items">Dinge in der Auswahl erledigen</string>
+    <string name="act_delete_selected_items">Dinge in der Auswahl löschen</string>
+    <string name="act_restore_selected_items">Dinge in der Auswahl wiederherstellen</string>
+    <string name="act_delete_selected_items_forever">Dinge in der Auswahl endgültig löschen</string>
+    <string name="act_finish_selected_folders">Alle Dinge in ausgewählten Ordnern erledigen</string>
+    <string name="act_delete_selected_folders">Alle Dinge in ausgewählten Ordnern löschen</string>
+    <string name="act_restore_selected_folders">Alle Dinge in ausgewählten Ordnern wiederherstellen</string>
+    <string name="act_delete_selected_folders_forever">Alle Dinge in ausgewählten Ordnern endgültig löschen</string>
+    <string name="delete_selected_items_forever_structural_confirm">Die Auswahl wird unwiderruflich gelöscht: ausgewählte Ordner mit ihrem gesamten Inhalt sowie ausgewählte Dinge. Gesamt: %1$s.</string>
+    <string name="finish_all_things_in_folder_confirm">Es werden alle laufenden Dinge in %1$s erledigt. Gesamt: %2$d%3$s.</string>
+    <string name="finish_all_things_root_confirm">Es werden alle laufenden Dinge erledigt. Gesamt: %1$d%2$s.</string>
+    <string name="restore_all_finished_in_folder_confirm">Es werden alle erledigten Dinge in %1$s wieder auf laufend gesetzt. Gesamt: %2$d%3$s.</string>
+    <string name="restore_all_finished_root_confirm">Es werden alle erledigten Dinge wieder auf laufend gesetzt. Gesamt: %1$d%2$s.</string>
+    <string name="delete_all_finished_in_folder_confirm">Es werden alle erledigten Dinge in %1$s in den Papierkorb verschoben. Gesamt: %2$d%3$s. Sie können dort wiederhergestellt werden.</string>
+    <string name="delete_all_finished_root_confirm">Es werden alle erledigten Dinge in den Papierkorb verschoben. Gesamt: %1$d%2$s. Sie können dort wiederhergestellt werden.</string>
+    <string name="delete_forever_all_in_folder_confirm">Es werden alle gelöschten Dinge in %1$s unwiderruflich gelöscht. Gesamt: %2$d%3$s.</string>
+    <string name="delete_forever_all_root_confirm">Es werden alle gelöschten Dinge unwiderruflich gelöscht. Gesamt: %1$d%2$s.</string>
+    <string name="restore_all_trashed_in_folder_confirm">Es werden alle gelöschten Dinge in %1$s in ihrem Zustand vor dem Löschen wiederhergestellt. Gesamt: %2$d%3$s.</string>
+    <string name="restore_all_trashed_root_confirm">Es werden alle gelöschten Dinge in ihrem Zustand vor dem Löschen wiederhergestellt. Gesamt: %1$d%2$s.</string>
+    <string name="delete_thing_folder_confirm">Es werden alle laufenden Dinge in %1$s in den Papierkorb verschoben. Gesamt: %2$d%3$s. Sie können dort wiederhergestellt werden.</string>
+    <string name="confirm_finish_selected_things">Es werden die ausgewählten Dinge erledigt. Gesamt: %1$d.</string>
+    <string name="confirm_delete_selected_things">Es werden die ausgewählten Dinge in den Papierkorb verschoben. Gesamt: %1$d. Sie können dort wiederhergestellt werden.</string>
+    <string name="confirm_restore_selected_things">Es werden die ausgewählten Dinge wiederhergestellt. Gesamt: %1$d.</string>
+    <string name="confirm_delete_selected_things_forever">Es werden die ausgewählten Dinge unwiderruflich gelöscht. Gesamt: %1$d.</string>
+    <string name="confirm_finish_selected_items">Es werden die Dinge in den ausgewählten Einträgen erledigt. Gesamt: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_items">Es werden die Dinge in den ausgewählten Einträgen in den Papierkorb verschoben. Gesamt: %1$d%2$s. Sie können dort wiederhergestellt werden.</string>
+    <string name="confirm_restore_selected_items">Es werden die Dinge in den ausgewählten Einträgen wiederhergestellt. Gesamt: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_items_forever">Es werden die Dinge in den ausgewählten Einträgen unwiderruflich gelöscht. Gesamt: %1$d%2$s.</string>
+    <string name="confirm_finish_selected_folders">Es werden alle Dinge in den ausgewählten Ordnern erledigt. Gesamt: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_folders">Es werden alle Dinge in den ausgewählten Ordnern in den Papierkorb verschoben. Gesamt: %1$d%2$s. Sie können dort wiederhergestellt werden.</string>
+    <string name="confirm_restore_selected_folders">Es werden alle Dinge in den ausgewählten Ordnern wiederhergestellt. Gesamt: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_folders_forever">Es werden alle Dinge im Papierkorb der ausgewählten Ordner unwiderruflich gelöscht. Gesamt: %1$d%2$s.</string>
+    <string name="delete_selected_folders_forever_confirm">Die ausgewählten Ordner und ihr gesamter Inhalt (%1$s) werden unwiderruflich gelöscht.</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">Tagesaufgaben · %1$s</string>
+    <string name="l10n_amount">Anzahl</string>
+    <string name="l10n_time_unit">Zeiteinheit</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">letzter Tag</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">Erinnerung:</string>
 </resources>

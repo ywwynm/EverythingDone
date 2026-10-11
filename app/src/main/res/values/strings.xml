@@ -109,7 +109,7 @@
 
 
     <!--——————————————————————Activity titles————————————————————————-->
-    <string name="title_activity_things_all">All things</string>
+    <string name="title_activity_things_all">@string/all_things</string>
     <string name="image_or_video_attachment">Image or Video Attachment</string> <!--for ImageViewerActivity and more-->
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_about">About</string>
@@ -295,8 +295,8 @@
     <string name="move_thing_folder_to">Move to folder</string>
     <string name="thing_folder_root">Root</string>
     <string name="thing_folder_child_count">%1$d items</string>
-    <string name="sticky_thing">Sticky thing</string>
-    <string name="ongoing_thing">Ongoing thing</string>
+    <string name="sticky_thing">Pinned thing</string>
+    <string name="ongoing_thing">Thing shown in notifications</string>
 
     <!--welcomes-->
     <string name="welcome_underway_title">Welcome </string>
@@ -311,7 +311,7 @@
     <string name="empty_note">I miss the passed days but I prefer the coming future</string>
     <string name="empty_reminder">So glad to help you</string>
     <string name="empty_habit">I see a better you</string>
-    <string name="empty_goal">All goals finished! What an amazing day! I think we can have a holiday together. Let\'s go to enjoy sunshine~</string>
+    <string name="empty_goal">You have finished all your goals! Take a break and give yourself some time off.</string>
     <string name="empty_finished">Oops! Nothing finished?</string>
     <string name="empty_deleted">Do you enjoy cleaning recycle bin? Me too!</string>
 
@@ -450,12 +450,12 @@
 
 
     <!--——————————————————————Drawer headers——————————————————————-->
-    <string name="completion_rate_all">All\'s completion rate</string>
-    <string name="completion_rate_things">Things completion rate</string>
-    <string name="completion_rate_reminder">Reminder\'s completion rate</string>
-    <string name="completion_rate_note">Note\'s completion rate</string>
-    <string name="completion_rate_habit">Habit\'s completion rate</string>
-    <string name="completion_rate_goal">Goal\'s completion rate</string>
+    <string name="completion_rate_all">Overall completion rate</string>
+    <string name="completion_rate_things">Thing completion rate</string>
+    <string name="completion_rate_reminder">Reminder completion rate</string>
+    <string name="completion_rate_note">Note completion rate</string>
+    <string name="completion_rate_habit">Habit completion rate</string>
+    <string name="completion_rate_goal">Goal completion rate</string>
 
 
 
@@ -527,8 +527,8 @@
     <string name="act_customize_card_appearance">Adjust thing appearance</string>
     <string name="act_customize_folder_card_appearance">Adjust folder appearance</string>
 
-    <string name="act_sticky_on_top">Sticky on top</string>
-    <string name="act_cancel_sticky">Cancel sticky</string>
+    <string name="act_sticky_on_top">Pin to top</string>
+    <string name="act_cancel_sticky">Unpin</string>
 
     <string name="thing_card_appearance_panel_title">Adjust thing appearance</string>
     <string name="thing_card_appearance_media_image">Image</string>
@@ -606,8 +606,8 @@
     <string name="act_delete">Delete</string>
 
     <!--DetailActivity habit normal-->
-    <string name="act_pause_habit">Pause habit\'s reminders</string>
-    <string name="act_resume_habit">Resume habit\'s reminders</string>
+    <string name="act_pause_habit">Pause habit reminders</string>
+    <string name="act_resume_habit">Resume habit reminders</string>
     <string name="act_check_habit_detail">Check habit detail</string>
     <string name="act_finish_once_habit">Finish once</string>
     <string name="act_finish_this_time_habit">Finish this time</string>
@@ -657,7 +657,7 @@
     <string name="act_open_in_browser">Browse</string>
     <string name="act_dial">Dial</string>
     <string name="act_send_email">Send Email</string>
-    <string name="act_open_in_map">Visit</string>
+    <string name="act_open_in_map">Open in maps</string>
     <string name="act_edit">Edit</string>
 
     <!--DetailActivity share-->
@@ -711,7 +711,7 @@
     <string name="act_choose_image_as_drawer_header">Choose image as drawer header</string>
 
     <!--AboutActivity-->
-    <string name="act_support">Support Developer</string>
+    <string name="act_support">Support the developer</string>
 
     <!--Snackbars-->
     <string name="act_sb_undo">UNDO</string>
@@ -720,7 +720,7 @@
 
     <!--Shortcut-->
     <string name="act_shortcut_check_upcoming">Upcoming thing</string>
-    <string name="act_shortcut_check_sticky">Top sticky thing</string>
+    <string name="act_shortcut_check_sticky">Pinned thing</string>
 
 
 
@@ -820,7 +820,7 @@
     <string name="alert_cannot_share_empty_thing">Cannot share an empty thing</string>
 
     <string name="alert_shortcut_no_upcoming">No upcoming thing</string>
-    <string name="alert_shortcut_no_sticky">No sticky thing</string>
+    <string name="alert_shortcut_no_sticky">No pinned thing</string>
 
     <!--ThingDoingDialogFragment-->
     <string name="thing_doing_dialog_title">Change auto start doing settings for this thing</string>
@@ -868,9 +868,9 @@
     <string name="audio_recording_stopped_notification_title">Recording stopped and kept</string>
 
     <!--DateTimeDialogFragment-->
-    <string name="quick_remind_title_after">AFTER</string>
-    <string name="quick_remind_title_at">AT</string>
-    <string name="quick_remind_title_recurrence">RECURRENCE</string>
+    <string name="quick_remind_title_after">Delay</string>
+    <string name="quick_remind_title_at">Date &amp; time</string>
+    <string name="quick_remind_title_recurrence">Repeat</string>
 
     <string name="new_reminder_time_rec">new reminder time</string>
 
@@ -882,10 +882,10 @@
 
     <!--HabitDetailDialogFragment-->
     <string name="habit_detail_completion_rate">Completion Rate</string>
-    <string name="habit_detail_persist_in">Persistent Cycle</string>
-    <string name="habit_detail_total_t">Total Cycle</string>
+    <string name="habit_detail_persist_in">Time kept up</string>
+    <string name="habit_detail_total_t">Total periods</string>
     <string name="habit_detail_record_count">Record Count</string>
-    <string name="habit_detail_times">Finished Times</string>
+    <string name="habit_detail_times">Times finished</string>
     <string name="habit_detail_title">Habit detail</string>
 
     <!--HabitRecordDialogFragment-->
@@ -931,8 +931,8 @@
     <string name="start_doing_time_long_t">Estimated time is so long that you cannot finish the Habit once in this cycle</string>
     <string name="start_doing_confirm">Start doing</string>
 
-    <string name="start_doing_notification_toast_doing_this">EverythingDone: A thing\'s alarm has come just now but you have already been doing that thing</string>
-    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: A Habit\'s alarm has come just now but you have already been doing for that time</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: This thing’s reminder time has just passed. You are already working on it.</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: This habit’s reminder time has just passed. You are already working on that repetition.</string>
 
     <string name="start_doing_stop_another_title">You are doing another thing</string>
     <string name="start_doing_stop_another_content">Would you want to stop doing that thing and start doing this thing?</string>
@@ -948,7 +948,7 @@
     <string name="doing_failed_restore">You restored data so EverythingDone cancelled doing state</string>
     <string name="doing_click_to_dismiss">Click to dismiss this notification</string>
     <string name="doing_alert_first_strict_mode_title">Strict Mode</string>
-    <string name="doing_alert_first_strict_mode_content">You are in strict mode now. EverythingDone will detect if you are using your phone to do other stuff. If you left this page(only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
+    <string name="doing_alert_first_strict_mode_content">Strict mode is now on. EverythingDone will check whether you use your phone for anything else. If you leave this screen three times or for more than five minutes in total, it will stop the timer for this thing. Checking the notification shade and locking the screen are allowed.</string>
     <string name="doing_alert_close_strict_twice_title">Cannot turn Strict Mode off again</string>
     <string name="doing_alert_close_strict_twice_content">You are only allowed to turn Strict Mode off once. It\'s a good habit to do one thing at one time carefully so please keep going.</string>
     <string name="doing_alert_stop_doing_content">Are you sure to stop doing this thing?</string>
@@ -959,8 +959,8 @@
     <string name="doing_toast_already_strict_mode">You are in strict mode</string>
 
     <string name="auto_start_doing_start">Auto start doing</string>
-    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: A thing\'s alarm has come just now, try to auto start doing that thing but failed because you are doing another thing</string>
-    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: A Habit\'s alarm has come just now, try to auto start doing that Habit for this time but failed because you are doing it for last time</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: This thing’s reminder time has just passed. It could not start automatically because you are working on another thing.</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: This habit’s reminder time has just passed. This repetition could not start automatically because you are still working on the previous one.</string>
 
 
     <!--ImageViewerActivity-->
@@ -1197,11 +1197,10 @@
 
     <!--group data-->
     <string name="auto_save_edits_title">Save data automatically when editing a Thing</string>
-    <string name="auto_save_edits_help_info">If you\'re creating or updating a Thing and you leave the interface, EverythingDone will save your edits about Thing\'s content automatically.
-        \n\nNotice: EverythingDone will not save edits about Reminder, Habit or Goal. For example, if you change a Thing\'s alarm time, it won\'t be saved automatically.</string>
+    <string name="auto_save_edits_help_info">When you create or edit a thing, EverythingDone automatically saves its content when you leave the editor.\n\nNote: creating or changing a reminder, habit or goal is not saved automatically. For example, a change to a thing\'s reminder time will not be saved automatically.</string>
     <!--backup-->
     <string name="backup">Back up</string>
-    <string name="backup_content">Your things and preferences will be backed up. After backup, EverythingDone will keep reminding you every reminders, habits and goals. However, we will not backup attachments. If they are necessary, please backup them by yourself. The attachment files are located in sdcard/EverythingDone.</string>
+    <string name="backup_content">EverythingDone will back up all your things and app settings. After you restore the backup, reminders, habits and goals will continue to work normally. Attachments added to things are not included. If you need them, back them up separately; they are stored in SD card/EverythingDone.</string>
     <string name="backup_failed_content">Please try again or send feedback to developer</string>
     <string name="backup_failed_title">Back up failed</string>
     <string name="backup_loading_content">Please wait for a while. Maybe you can drink something.</string>
@@ -1266,7 +1265,7 @@
     <string name="set_password_first_title">Set a password first</string>
 
     <!--group start doing-->
-    <string name="auto_start_doing_title">Start doing when alarm ring</string>
+    <string name="auto_start_doing_title">Start doing when a reminder arrives</string>
     <string-array name="auto_start_doing_options">
         <item>Disable</item>
         <item>Enable for Reminder</item>
@@ -1279,26 +1278,25 @@
         <item>Enabled for Habit</item>
         <item>Enabled for both</item>
     </string-array>
-    <string name="auto_start_doing_time_reminder_title">Auto start doing time for Reminder</string>
-    <string name="auto_start_doing_time_habit_title">Auto start doing time for Habit</string>
+    <string name="auto_start_doing_time_reminder_title">Automatic timer duration — Reminders</string>
+    <string name="auto_start_doing_time_habit_title">Automatic timer duration — Habits</string>
     <string name="auto_strict_mode_title">Enter strict mode when start doing</string>
-    <string name="auto_strict_mode_help_content">When you start doing a thing and enable strict mode, EverythingDone will detect if you are using your phone to do other stuff. If you left the countdown page (only checking notifications and locking screen are allowed) for 3 times or totally for more than 5 minutes, the countdown will stop and the thing will remain unfinished state.</string>
+    <string name="auto_strict_mode_help_content">When you start working on a thing with strict mode on, EverythingDone will check whether you use your phone for anything else. If you leave the timer screen three times or for more than five minutes in total, it will stop the timer for this thing. Checking the notification shade and locking the screen are allowed.</string>
 
     <!--group advanced-->
     <!--quick create-->
     <string name="quick_create_title">Create new thing quickly</string>
     <string name="quick_create_description">Show an ongoing notification to provide quick-create access</string>
-    <string name="ongoing_lockscreen">Show thing\'s ongoing notification also on lockscreen</string>
+    <string name="ongoing_lockscreen">Also show things kept in notifications on the lock screen</string>
     <!--noticeable notification-->
     <string name="close_notification_later">Don\'t allow closing noticeable notification until 2 seconds after it showed</string>
     <!--create daily to-do-->
     <string name="create_daily_todo_automatically">Create daily TODO in every morning</string>
     <string name="daily_todo_set_time_title">Set Auto-Create Time</string>
-    <string name="create_daily_todo_help_info">EverythingDone will create a thing of which title will be \"Things to do on MM d, yyyy\" automatically in every morning, and you can decide its content(If you don\'t and leave both content and attachment empty, then the thing will not be created).
-        \n\nWe will also set a reminder to this thing at 2:00 in the afternoon because you may want to be reminded of finishing your plans and TODOs.</string>
+    <string name="create_daily_todo_help_info">At the time you choose each morning, EverythingDone will open the editor with a title such as “%1$s” so you can enter what you plan to do. If you leave both the content and attachments empty, the thing will not be created.\n\nA reminder is set for 14:00 by default to help you finish your daily tasks.</string>
     <!--automatic reminder-->
     <string name="auto_notify">Automatic Reminder</string>
-    <string name="auto_notify_help_info">EverythingDone will automatically remind you after a new thing is created. If you didn\'t create a Record, EverythingDone will decide if automatic reminder should be set according to the thing\'s remind time.</string>
+    <string name="auto_notify_help_info">Choose a delay. EverythingDone will remind you that long after you create each thing. For things other than notes, it will use their reminder times to decide whether an automatic reminder is needed.</string>
     <string name="auto_notify_set_time">Set Automatic Reminder Time</string>
     <string name="auto_notify_ringtone">Automatic Reminder\nRingtone</string>
 
@@ -1312,7 +1310,7 @@
     <string name="statistic_note_image_count">Image</string>
     <string name="statistic_note_video_count">Video</string>
     <string name="statistic_note_record">I recorded these things in Note:</string>
-    <string name="statistic_reminder_completion_rate">Reminder\'s \nCompletion Rate</string>
+    <string name="statistic_reminder_completion_rate">Reminder\ncompletion rate</string>
     <string name="statistic_reminder_finish_time">Average \nFinish Time</string>
     <string name="statistic_reminder_in_advance">Finished \nIn Advance</string>
     <string name="statistic_reminder_notify_time">Average \nReminder Time</string>
@@ -1322,14 +1320,14 @@
     <string name="statistic_hour">h</string>
     <string name="statistic_minute">m</string>
     <string name="statistic_day">d</string>
-    <string name="statistic_habit_completion_rate">Completion Rate</string>
-    <string name="statistic_habit_longest_pit">Longest\nPersistent Cycle</string>
-    <string name="statistic_habit_record">I decided to develop some habits. My works are as bellow:</string>
-    <string name="statistic_habit_longest_finish_times">Longest Continuous\nFinish times</string>
-    <string name="statistic_habit_developed_rate">Habit\'s\nNurturance Rate</string>
-    <string name="statistic_habit_finished_all">Finished times\n/ Total Times</string>
+    <string name="statistic_habit_completion_rate">@string/habit_detail_completion_rate</string>
+    <string name="statistic_habit_longest_pit">Most consecutive\nperiods kept up</string>
+    <string name="statistic_habit_record">I have set out to develop some habits. Here is my progress:</string>
+    <string name="statistic_habit_longest_finish_times">Longest run of\nconsecutive finishes</string>
+    <string name="statistic_habit_developed_rate">Habit development\nrate</string>
+    <string name="statistic_habit_finished_all">Times finished\n/ total expected</string>
     <string name="statistic_goal_record">I have set some goals. Let\'s see my performance:</string>
-    <string name="statistic_goal_completion_rate">Goal\'s\nCompletion Rate</string>
+    <string name="statistic_goal_completion_rate">Goal\ncompletion rate</string>
     <string name="statistic_goal_notify_time">Average Term</string>
     <string name="share_statistic">Share my use story</string>
 
@@ -1579,7 +1577,7 @@
         <item>Can I see statistics about reminders and habits?</item>
         <item>Why didn\'t my completion rate change after I deleted a thing?</item>
         <item>Why can habits remind me at most 4 times per day? Why can\'t I set reminders like several times every few cycles?</item>
-        <item>Why do completed and created notes count toward the completion-rate formula, while habit completions in each cycle do not?</item>
+        <item>Why do finished and created notes count toward the completion-rate formula, while the number of times a habit is finished in each cycle do not?</item>
         <item>Why is there no sync feature yet?</item>
         <item>Will there be more thing colours?</item>
         <item>Why is the lunar calendar not supported?</item>
@@ -1600,7 +1598,7 @@
         <item>Note: record moments in life, such as a person, an event, or a scene, without setting any reminder.
             \n\nReminder: EverythingDone reminds you of the thing, and that reminder should happen within 4 weeks (28 days) after the thing is created.
             \n\nHabit: EverythingDone repeatedly reminds you of the thing. The repeat cycle can be a day, a week, a month, or a year, and the number of repeats depends on the cycle type.
-            \n\nGoal: EverythingDone reminds you of the thing, and that reminder should happen at least 4 weeks after the thing is created. This kind of thing usually requires long-term effort to complete.</item>
+            \n\nGoal: EverythingDone reminds you of the thing, and that reminder should happen at least 4 weeks after the thing is created. This kind of thing usually requires long-term effort to finish.</item>
 
         <item>The main reason is that I want you to focus only on the thing itself, not spend extra time and energy deciding what type it should be. You only need to tell EverythingDone when you want to be reminded (whether that means when to start doing it or when it should be finished; I do not distinguish those two cases, and that should not affect the nature of the thing) and whether the reminder should be one-time or repeated. EverythingDone will then decide the type from that information: reminders are short-term, habits are repetitive, and goals are long-term.
             \n\nAnother reason is that if manual type changes were allowed now, many errors would appear throughout the app. So even if users ask for this feature, I would need to redesign the whole app structure and rewrite a lot of code. Before EverythingDone 2.0, I probably will not want to do that.</item>
@@ -1621,14 +1619,14 @@
             \n\nYour phone\'s permission manager or optimisation app may also say that EverythingDone needs permission to start in the background. This is also used to keep reminders working normally.
             \n\nI promise: I will never request unrelated permissions, and I will never use granted permissions to do wrong things.</item>
 
-        <item>After all things of a certain type are completed, there should be a congratulation prompt. In my design, this feature is implemented by automatically creating a new thing.
-            \n\nWithout this thing, the interface would look very empty. Also, because text such as \"Underway\" sits near the vertical centre of the screen instead of at the top, it would be harder to balance the interface. Designing an empty-state prompt is difficult too: it has to match the app\'s style, feel fresh and pleasant, and fit the specific empty state, such as everything being completed on the Underway page or no thing being completed on the Finished page. That is challenging and takes quite a bit of time.
+        <item>After all things of a certain type are finished, there should be a congratulation prompt. In my design, this feature is implemented by automatically creating a new thing.
+            \n\nWithout this thing, the interface would look very empty. Also, because text such as \"Underway\" sits near the vertical centre of the screen instead of at the top, it would be harder to balance the interface. Designing an empty-state prompt is difficult too: it has to match the app\'s style, feel fresh and pleasant, and fit the specific empty state, such as everything being finished on the Underway page or no thing being finished on the Finished page. That is challenging and takes quite a bit of time.
             \n\nFinally, changing this design now would also require many changes to the app code, which is another laborious task. So I can only ask everyone with OCD to understand...
             \n\nActually, I have OCD too!</item>
 
         <item>Yes. Open the app drawer and tap the image at the top to enter the statistics screen. There you can see how long you have used EverythingDone, how many words you have written, the average reminder time, the habit development rate, and more.</item>
 
-        <item>In general, the completion-rate formula is: completed things (not including habit completions inside each cycle) / created things. Even if you delete a thing, the fact that it was created does not change, so the completion rate does not change.</item>
+        <item>In general, the completion-rate formula is: finished things (not including the number of times a habit is finished within each cycle) / created things. Even if you delete a thing, the fact that it was created does not change, so the completion rate does not change.</item>
 
         <item>At first I imagined letting you enter how many reminders should happen every few cycles, but that introduces an important question: exactly when should the reminders happen? Should you enter the exact time of every reminder, or should EverythingDone decide when to remind you?
             \n\nIn the first case, you would need to enter a lot of information, and it is hard to make that input standard. For example, if you want a reminder once every 3 days, on which day and at what time within those 3 days should the reminder happen? How should you express that expectation to EverythingDone?
@@ -1636,7 +1634,7 @@
             \n\nSo for now I only provide reminder forms such as several times per day, week, month, or year. For the more flexible Daily type, I also limit you to at most 4 reminders. Why 4? Because at the time I thought people take medicine at most 4 times a day... This reason may not be very strong, but as I said, it forms part of EverythingDone\'s unique shape and probably will not change in the foreseeable future.</item>
 
         <item>Sometimes we casually write down things we need to do, but do not know when they should be finished. That is why I decided to include the number of notes in the completion-rate formula.
-            \n\nThe second issue is this: if you only have one thing, and that thing is a habit, then no matter how many times you complete it, your overall completion rate will not increase unless you develop that habit. In fact, in my original design, habit completions in each cycle were counted in the completion-rate formula. But then fully developing a habit, which is a very important action, would not have a matching effect on the completion rate, so I later changed it to the current formula.
+            \n\nThe second issue is this: if you only have one thing, and that thing is a habit, then no matter how many times you finish it, your overall completion rate will not increase unless you develop that habit. In fact, in my original design, the number of times a habit was finished in each cycle was counted in the completion-rate formula. But then fully developing a habit, which is a very important action, would not have a matching effect on the completion rate, so I later changed it to the current formula.
             \n\nOf course, if you want to know the real completion rate of habits, you can check the statistics screen; if you want to know the completion rate of a specific habit, you can also see it on that habit\'s detail screen.</item>
 
         <item>For a note and reminder app, synchronising notes is indeed very important. But because the developer is still not strong enough, it will take some time to finish. I hope you can understand.</item>
@@ -1662,7 +1660,7 @@
 
     <!--App update information-->
     <string name="title_important_alert">THIS IS AN IMPORTANT NOTIFICATION</string>
-    <string name="content_important_reminder_permission">If you are using some apps that can improve your Android system, or there are such kind of pre-installed apps in your phone, please add EverythingDone to their white-list, otherwise maybe you cannot receive notifications from EverythingDone.\n\nIn addition, please grant permissions that EverythingDone requested in permission manager. These permissions are:\n(1) Auto boot after phone boots, used to create notifications for Reminder,Habit and Goals;\n(2) Read/Write external storage, used to insert file as attachment for things;\n(3) Record audio, used to record audio as attachment for things;\n(4) Vibrate, help generate better notifications for you to finish things.\nEverythingDone promises that it won\'t use these permissions to do bad things. Thank you.</string>
+    <string name="content_important_reminder_permission">If you use a system optimization app, such as 360 Mobile Security, or one that came with your phone, such as Huawei’s power-saving assistant, add EverythingDone to its allowlist so reminders can work normally.\n\nPlease also grant the permissions requested by EverythingDone in your system’s permission manager:\n(1) Start automatically after boot: used to set alarms. Without it, EverythingDone cannot resume reminders for your schedules, habits or goals after you restart your phone.\n(2) Read and write storage: used to add attachments and save screenshots when sharing your usage statistics.\n(3) Record audio: used to record audio attachments for things.\n(4) Vibrate: used to make reminders to finish things more noticeable.\nEverythingDone will never misuse these permissions.</string>
 
     <string name="from_1_1_4_to_1_1_5_title">Undo/Redo are now supported</string>
     <string name="from_1_1_4_to_1_1_5_content">Click menu button, you will see Undo and Redo there. Now you can let your things back to past or future at any time if you want.</string>
@@ -2107,4 +2105,15 @@
     <string name="tap_hce_service_description">EverythingDone Tap Transfer</string>
     <string name="detail_media_preview_loading">Loading preview</string>
     <string name="detail_media_preview_load_failed">Could not load the media preview</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">Daily to-do · %1$s</string>
+    <string name="l10n_amount">Amount</string>
+    <string name="l10n_time_unit">Time unit</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">last day</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">Reminder:</string>
 </resources>

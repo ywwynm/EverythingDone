@@ -1,0 +1,58 @@
+{
+  "baseline": 1597,
+  "locales": {
+    "values": {
+      "resources": 1613,
+      "missing": 0
+    },
+    "values-zh-rCN": {
+      "resources": 1601,
+      "missing": 0
+    },
+    "values-zh-rTW": {
+      "resources": 1602,
+      "missing": 0
+    },
+    "values-zh-rHK": {
+      "resources": 1602,
+      "missing": 0
+    },
+    "values-de": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-es": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-fr": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-hi": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-it": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-ja": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-ko": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-pt": {
+      "resources": 1599,
+      "missing": 0
+    },
+    "values-ru": {
+      "resources": 1599,
+      "missing": 0
+    }
+  },
+  "errors": []
+}

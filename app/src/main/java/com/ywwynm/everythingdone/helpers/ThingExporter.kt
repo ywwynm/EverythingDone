@@ -9,6 +9,7 @@ import android.os.AsyncTask
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.fragments.LoadingDialogFragment
 import com.ywwynm.everythingdone.model.Thing
@@ -104,16 +105,11 @@ object ThingExporter {
 
             if (count >= 1) {
                 adf.setTitle(activity.getString(R.string.export_success_title))
-                val content1: String = activity.getString(R.string.export_success_content_part_1)
-                var content: String = String.format(content1, count)
-                if (count > 1 && !LocaleUtil.isChinese(activity)) {
-                    content += "s"
-                }
-                content += activity.getString(R.string.export_success_content_part_2)
-                if (count > 1 && !LocaleUtil.isChinese(activity)) {
-                    content += "s."
-                }
-                adf.setContent(content)
+                adf.setContent(if (LocaleUtil.isChinese(activity)) {
+                    activity.getString(R.string.export_success_content_part_1, count) + activity.getString(R.string.export_success_content_part_2)
+                } else activity.getString(R.string.l10n_export_success,
+                    LocalizedText.quantity(activity, R.plurals.l10n_things, count),
+                    LocalizedText.quantity(activity, R.plurals.l10n_files, count)))
             } else {
                 adf.setTitle(activity.getString(R.string.export_failed_title))
                 adf.setContent(activity.getString(R.string.export_failed_content))

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 动态文案使用完整句式；数量短语由系统按语言选择复数形式。 -->
+    <string name="l10n_less_than">&lt;%1$s</string>
+    <string name="l10n_goal_overdue">已逾期</string>
+    <string name="l10n_goal_remaining">应于%1$s内达成</string>
+    <string name="l10n_goal_overdue_duration">已逾期%1$s</string>
+    <string name="l10n_goal_finished_early">已用%1$s提前达成</string>
+    <string name="l10n_goal_finished_late">已用%1$s逾期达成</string>
+    <string name="l10n_goal_finished">已用%1$s达成</string>
+    <string name="l10n_frequency_day">每天 %1$s</string>
+    <string name="l10n_frequency_week">每个星期 %1$s</string>
+    <string name="l10n_frequency_month">每个月 %1$s</string>
+    <string name="l10n_frequency_year">每年 %1$s</string>
+    <string name="l10n_recurrence_daily">每天%1$s</string>
+    <string name="l10n_recurrence_weekly">每周%1$s%2$s</string>
+    <string name="l10n_recurrence_monthly">每个月%1$s%2$s</string>
+    <string name="l10n_recurrence_yearly">每年%1$s%2$s%3$s</string>
+    <string name="l10n_month_day">%1$d号</string>
+    <string name="l10n_habit_finished_period">%1$s已完成 %2$s</string>
+    <string name="l10n_habit_celebration">您坚持了 %1$s，完成了 %2$s，终于养成了这个习惯，真是一段艰难却美好的经历！\n很高兴能看到一个更好的您，完事儿将始终帮您进步。</string>
+    <string name="l10n_habit_progress">我已经坚持了%1$s, 完成了%2$s</string>
+    <string name="l10n_share_reminder">提醒我于%1$s</string>
+    <string name="l10n_share_goal_finished">我努力了%1$s, 最终达成了这个目标</string>
+    <string name="l10n_statistic_since">我从 %1$s开始使用完事儿。在这 %2$s里，我完成、创建了：</string>
+    <string name="l10n_export_success">已导出 %1$s，请前往 SD卡/EverythingDone/export 目录下查看相应的 %2$s</string>
+    <string name="l10n_created_at">创建于%1$s</string>
+    <string name="l10n_updated_at">最后更新于%1$s</string>
+    <string name="l10n_habit_developed_at">习惯养成于%1$s</string>
+    <string name="l10n_share_note">分享该记录</string>
+    <string name="l10n_share_reminder_title">分享该提醒</string>
+    <string name="l10n_share_habit">分享该习惯</string>
+    <string name="l10n_share_goal">分享该目标</string>
+    <string name="l10n_edit_note">编辑记录</string>
+    <string name="l10n_edit_reminder">编辑提醒</string>
+    <string name="l10n_edit_habit">编辑习惯</string>
+    <string name="l10n_edit_goal">编辑目标</string>
+    <string name="l10n_share_folder">分享文件夹</string>
+    <string name="l10n_share_folders">分享文件夹</string>
+    <string name="l10n_share_thing">分享记事</string>
+    <string name="l10n_share_things">分享记事</string>
+    <string name="l10n_date_time">%1$s %2$s</string>
+    <string name="l10n_date_time_period">%1$s%3$s%2$s</string>
+    <string name="l10n_count_unit_spaced">%1$s %2$s</string>
+    <plurals name="l10n_images">
+        <item quantity="other">%1$d 张图片</item>
+    </plurals>
+    <plurals name="l10n_videos">
+        <item quantity="other">%1$d 个视频</item>
+    </plurals>
+    <plurals name="l10n_audios">
+        <item quantity="other">%1$d 段音频</item>
+    </plurals>
+    <plurals name="l10n_things">
+        <item quantity="other">%1$d件记事</item>
+    </plurals>
+    <plurals name="l10n_folders">
+        <item quantity="other">%1$d个文件夹</item>
+    </plurals>
+    <plurals name="l10n_subfolders">
+        <item quantity="other">%1$d个子文件夹</item>
+    </plurals>
+    <plurals name="l10n_times">
+        <item quantity="other">%1$d次</item>
+    </plurals>
+    <plurals name="l10n_files">
+        <item quantity="other">%1$d个文件</item>
+    </plurals>
+    <plurals name="l10n_checklist_finished">
+        <item quantity="other">已完成%1$d项</item>
+    </plurals>
+    <string name="l10n_goal_celebration">您花了 %1$s实现该目标，现在是时候庆祝了！</string>
+    <string name="l10n_recurrence_at_time">%1$s</string>
+    <string name="l10n_recurrence_at_one">%1$s</string>
+    <plurals name="l10n_effort_weeks">
+        <item quantity="other">%1$d周</item>
+    </plurals>
+</resources>

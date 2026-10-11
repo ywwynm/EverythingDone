@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 动态文案使用完整句式；数量短语由系统按语言选择复数形式。 -->
+    <string name="l10n_less_than">%1$s 미만</string>
+    <string name="l10n_goal_overdue">기한 지남</string>
+    <string name="l10n_goal_remaining">남은 시간: %1$s</string>
+    <string name="l10n_goal_overdue_duration">기한 초과: %1$s</string>
+    <string name="l10n_goal_finished_early">기한 전에 완료 · 소요 시간: %1$s</string>
+    <string name="l10n_goal_finished_late">기한 후에 완료 · 소요 시간: %1$s</string>
+    <string name="l10n_goal_finished">완료 · 소요 시간: %1$s</string>
+    <string name="l10n_frequency_day">매일 %1$s</string>
+    <string name="l10n_frequency_week">매주 %1$s</string>
+    <string name="l10n_frequency_month">매월 %1$s</string>
+    <string name="l10n_frequency_year">매년 %1$s</string>
+    <string name="l10n_recurrence_daily">매일 %1$s</string>
+    <string name="l10n_recurrence_weekly">매주: %1$s %2$s</string>
+    <string name="l10n_recurrence_monthly">매월 %1$s %2$s</string>
+    <string name="l10n_recurrence_yearly">매년 %1$s · %2$s %3$s</string>
+    <string name="l10n_month_day">%1$d일</string>
+    <string name="l10n_habit_finished_period">%1$s · %2$s 완료</string>
+    <string name="l10n_habit_celebration">%1$s 동안 꾸준히 실천하고 %2$s 완료하여 마침내 이 습관을 들였습니다. 힘들지만 보람찬 경험이었네요!\n발전한 모습을 보니 기쁩니다. EverythingDone은 앞으로도 여러분의 성장을 돕겠습니다.</string>
+    <string name="l10n_habit_progress">%1$s 동안 꾸준히 실천하고 %2$s 완료했습니다.</string>
+    <string name="l10n_share_reminder">알림: %1$s</string>
+    <string name="l10n_share_goal_finished">%1$s 동안 노력하여 마침내 이 목표를 달성했습니다.</string>
+    <string name="l10n_statistic_since">%1$s부터 EverythingDone 사용 · 경과 시간: %2$s</string>
+    <string name="l10n_export_success">내보내기 완료: %1$s · 저장된 파일: %2$s.</string>
+    <string name="l10n_created_at">생성: %1$s</string>
+    <string name="l10n_updated_at">수정: %1$s</string>
+    <string name="l10n_habit_developed_at">습관 형성: %1$s</string>
+    <string name="l10n_share_note">이 노트 공유</string>
+    <string name="l10n_share_reminder_title">이 알림 공유</string>
+    <string name="l10n_share_habit">이 습관 공유</string>
+    <string name="l10n_share_goal">이 목표 공유</string>
+    <string name="l10n_edit_note">노트 편집</string>
+    <string name="l10n_edit_reminder">알림 편집</string>
+    <string name="l10n_edit_habit">습관 편집</string>
+    <string name="l10n_edit_goal">목표 편집</string>
+    <string name="l10n_share_folder">폴더 공유</string>
+    <string name="l10n_share_folders">폴더 공유</string>
+    <string name="l10n_share_thing">항목 공유</string>
+    <string name="l10n_share_things">항목 공유</string>
+    <string name="l10n_date_time">%1$s · %2$s</string>
+    <string name="l10n_date_time_period">%1$s · %2$s (%3$s)</string>
+    <string name="l10n_count_unit_spaced">%1$s %2$s</string>
+    <plurals name="l10n_images">
+        <item quantity="other">이미지 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_videos">
+        <item quantity="other">동영상 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_audios">
+        <item quantity="other">오디오 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_things">
+        <item quantity="other">항목 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_folders">
+        <item quantity="other">폴더 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_subfolders">
+        <item quantity="other">하위 폴더 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_times">
+        <item quantity="other">%1$d회</item>
+    </plurals>
+    <plurals name="l10n_files">
+        <item quantity="other">파일 %1$d개</item>
+    </plurals>
+    <plurals name="l10n_checklist_finished">
+        <item quantity="other">%1$d개 항목 완료</item>
+    </plurals>
+    <string name="l10n_goal_celebration">%1$s 만에 이 목표를 달성했습니다. 이제 축하할 시간입니다!</string>
+    <string name="l10n_recurrence_at_time">%1$s</string>
+    <string name="l10n_recurrence_at_one">%1$s</string>
+    <plurals name="l10n_effort_weeks">
+        <item quantity="other">%1$d주</item>
+    </plurals>
+</resources>

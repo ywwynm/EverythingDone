@@ -1,0 +1,78 @@
+{
+  "baseline_commit": "51b71df3c6898fcddb7160ccc3b0171b5b03fc26",
+  "locales": {
+    "zh-rCN": {
+      "original_entries_checked": 1536,
+      "new_entries_kept": 5,
+      "retained_changes": [
+        {
+          "key": "home_empty_note",
+          "reason": "明确统一记录／記錄术语",
+          "before": "这里还没有笔记",
+          "after": "这里还没有记录"
+        }
+      ]
+    },
+    "zh-rTW": {
+      "original_entries_checked": 1401,
+      "new_entries_kept": 141,
+      "retained_changes": [
+        {
+          "key": "dissolve_thing_folder_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "將此資料夾中的內容移動到上一層，並刪除此資料夾？",
+          "after": "將解散所選資料夾：資料夾本身將被刪除（不移至資源回收筒，無法復原），全部內容（共%1$s）會依各自原有狀態移到上一層目錄。"
+        },
+        {
+          "key": "delete_thing_folder_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "將此資料夾及其中的所有內容移動到回收桶？",
+          "after": "將把%1$s中所有進行中的記事移至資源回收筒，共%2$d件%3$s，可從資源回收筒復原。"
+        },
+        {
+          "key": "delete_thing_folder_forever_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "永久刪除此資料夾及其中的所有記事？",
+          "after": "將永久刪除所選資料夾及其全部內容，共%1$s，無法復原。"
+        },
+        {
+          "key": "home_empty_note",
+          "reason": "明确统一记录／記錄术语",
+          "before": "這裡還沒有筆記",
+          "after": "這裡還沒有記錄"
+        }
+      ]
+    },
+    "zh-rHK": {
+      "original_entries_checked": 1401,
+      "new_entries_kept": 141,
+      "retained_changes": [
+        {
+          "key": "dissolve_thing_folder_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "將此資料夾中的內容移動到上一層，並删除此資料夾？",
+          "after": "將解散所選資料夾：資料夾本身將被刪除（不移至資源回收筒，無法復原），全部內容（共%1$s）會依各自原有狀態移到上一層目錄。"
+        },
+        {
+          "key": "delete_thing_folder_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "將此資料夾及其中的所有內容移動到回收站？",
+          "after": "將把%1$s中所有進行中的記事移至資源回收筒，共%2$d件%3$s，可從資源回收筒復原。"
+        },
+        {
+          "key": "delete_thing_folder_forever_confirm",
+          "reason": "补齐已确认的繁体参数和功能含义",
+          "before": "永久删除此資料夾及其中的所有記事？",
+          "after": "將永久刪除所選資料夾及其全部內容，共%1$s，無法復原。"
+        },
+        {
+          "key": "home_empty_note",
+          "reason": "明确统一记录／記錄术语",
+          "before": "這裏還沒有筆記",
+          "after": "這裏還沒有記錄"
+        }
+      ]
+    }
+  },
+  "errors": []
+}

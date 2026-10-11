@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 动态文案使用完整句式；数量短语由系统按语言选择复数形式。 -->
+    <string name="l10n_less_than">%1$s से कम</string>
+    <string name="l10n_goal_overdue">समय सीमा बीत गई</string>
+    <string name="l10n_goal_remaining">बाकी समय: %1$s</string>
+    <string name="l10n_goal_overdue_duration">देरी: %1$s</string>
+    <string name="l10n_goal_finished_early">समय से पहले पूरा हुआ · लगा समय: %1$s</string>
+    <string name="l10n_goal_finished_late">देरी से पूरा हुआ · लगा समय: %1$s</string>
+    <string name="l10n_goal_finished">पूरा हुआ · लगा समय: %1$s</string>
+    <string name="l10n_frequency_day">प्रतिदिन %1$s</string>
+    <string name="l10n_frequency_week">प्रति सप्ताह %1$s</string>
+    <string name="l10n_frequency_month">प्रति माह %1$s</string>
+    <string name="l10n_frequency_year">प्रति वर्ष %1$s</string>
+    <string name="l10n_recurrence_daily">हर दिन %1$s</string>
+    <string name="l10n_recurrence_weekly">हर सप्ताह: %1$s, %2$s</string>
+    <string name="l10n_recurrence_monthly">हर महीने: %1$s, %2$s</string>
+    <string name="l10n_recurrence_yearly">हर वर्ष: %1$s · %2$s, %3$s</string>
+    <string name="l10n_month_day">%1$d तारीख</string>
+    <string name="l10n_habit_finished_period">%1$s · %2$s पूरा किया</string>
+    <string name="l10n_habit_celebration">आपने %1$s तक प्रयास जारी रखा और यह गतिविधि %2$s पूरी की। आखिरकार यह आदत बन गई—यह सफ़र कठिन, लेकिन सुखद रहा!\nआपकी प्रगति देखकर खुशी हुई। EverythingDone आगे भी बेहतर बनने में आपकी मदद करता रहेगा।</string>
+    <string name="l10n_habit_progress">मैंने %1$s तक प्रयास जारी रखा और यह गतिविधि %2$s पूरी की।</string>
+    <string name="l10n_share_reminder">याद दिलाएँ: %1$s</string>
+    <string name="l10n_share_goal_finished">मैंने %1$s तक मेहनत की और आखिरकार यह लक्ष्य हासिल कर लिया।</string>
+    <string name="l10n_statistic_since">%1$s से EverythingDone का उपयोग · बीता समय: %2$s</string>
+    <string name="l10n_export_success">निर्यात पूरा हुआ: %1$s · सहेजी गई फ़ाइलें: %2$s।</string>
+    <string name="l10n_created_at">बनाया गया: %1$s</string>
+    <string name="l10n_updated_at">अपडेट किया गया: %1$s</string>
+    <string name="l10n_habit_developed_at">आदत बनी: %1$s</string>
+    <string name="l10n_share_note">यह नोट साझा करें</string>
+    <string name="l10n_share_reminder_title">यह रिमाइंडर साझा करें</string>
+    <string name="l10n_share_habit">यह आदत साझा करें</string>
+    <string name="l10n_share_goal">यह लक्ष्य साझा करें</string>
+    <string name="l10n_edit_note">नोट संपादित करें</string>
+    <string name="l10n_edit_reminder">रिमाइंडर संपादित करें</string>
+    <string name="l10n_edit_habit">आदत संपादित करें</string>
+    <string name="l10n_edit_goal">लक्ष्य संपादित करें</string>
+    <string name="l10n_share_folder">फ़ोल्डर साझा करें</string>
+    <string name="l10n_share_folders">फ़ोल्डर साझा करें</string>
+    <string name="l10n_share_thing">चीज़ साझा करें</string>
+    <string name="l10n_share_things">चीज़ें साझा करें</string>
+    <string name="l10n_date_time">%1$s · %2$s</string>
+    <string name="l10n_date_time_period">%1$s · %2$s (%3$s)</string>
+    <string name="l10n_count_unit_spaced">%1$s %2$s</string>
+    <plurals name="l10n_images">
+        <item quantity="other">%1$d चित्र</item>
+    </plurals>
+    <plurals name="l10n_videos">
+        <item quantity="other">%1$d वीडियो</item>
+    </plurals>
+    <plurals name="l10n_audios">
+        <item quantity="other">%1$d ऑडियो रिकॉर्डिंग</item>
+    </plurals>
+    <plurals name="l10n_things">
+        <item quantity="one">%1$d चीज़</item>
+        <item quantity="other">%1$d चीज़ें</item>
+    </plurals>
+    <plurals name="l10n_folders">
+        <item quantity="other">%1$d फ़ोल्डर</item>
+    </plurals>
+    <plurals name="l10n_subfolders">
+        <item quantity="other">%1$d उपफ़ोल्डर</item>
+    </plurals>
+    <plurals name="l10n_times">
+        <item quantity="other">%1$d बार</item>
+    </plurals>
+    <plurals name="l10n_files">
+        <item quantity="one">%1$d फ़ाइल</item>
+        <item quantity="other">%1$d फ़ाइलें</item>
+    </plurals>
+    <plurals name="l10n_checklist_finished">
+        <item quantity="one">%1$d मद पूरी हुई</item>
+        <item quantity="other">%1$d मदें पूरी हुईं</item>
+    </plurals>
+    <string name="l10n_goal_celebration">आपने %1$s में यह लक्ष्य हासिल कर लिया। अब जश्न मनाने का समय है!</string>
+    <string name="l10n_recurrence_at_time">%1$s बजे</string>
+    <string name="l10n_recurrence_at_one">%1$s बजे</string>
+    <plurals name="l10n_effort_weeks">
+        <item quantity="one">%1$d सप्ताह</item>
+        <item quantity="other">%1$d सप्ताह</item>
+    </plurals>
+</resources>

@@ -21,6 +21,8 @@ import android.widget.TextView
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
+import com.ywwynm.everythingdone.utils.ChineseText
 import com.ywwynm.everythingdone.model.ThingWidgetInfo
 import com.ywwynm.everythingdone.adapters.StatisticAdapter
 import com.ywwynm.everythingdone.database.HabitDAO
@@ -166,32 +168,14 @@ open class StatisticActivity : EverythingDoneBaseActivity() {
             Def.Meta.META_DATA_NAME, MODE_PRIVATE
         )
         val time = metaData.getLong(Def.Meta.KEY_START_USING_TIME, 0)
-        val dt: ZonedDateTime = Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault())
-        val gap = DateTimeUtil.calculateTimeGap(
-            time, System.currentTimeMillis(), Calendar.DATE
-        ) + 1
-        val sb = StringBuilder()
-        sb.append(getString(R.string.statistic_start_from_part_1))
-        if (LocaleUtil.isChinese(mApp)) {
-            val year  = mApp!!.getString(R.string.year)
-            val month = mApp!!.getString(R.string.month)
-            val day   = mApp!!.getString(R.string.day)
-            sb.append(dt.format(DateTimeFormatter.ofPattern(" yyyy $year M $month d $day")))
-                .append(getString(R.string.statistic_start_from_part_2))
-                .append(" ").append(gap).append(" ")
-        } else {
-            sb.append(dt.format(DateTimeFormatter.ofPattern(" MMM d, yyyy")))
-                .append(getString(R.string.statistic_start_from_part_2))
-            if (gap <= 1) {
-                sb.append(" this day")
-            } else {
-                sb.append(" these ").append(gap).append(" days ")
-            }
-        }
-        sb.append(getString(R.string.statistic_start_from_part_3))
-
+        val gap = DateTimeUtil.calculateTimeGap(time, System.currentTimeMillis(), Calendar.DATE) + 1
         val tv: TextView = f(R.id.tv_start_from_statistic)!!
-        tv.text = sb.toString()
+        if (LocaleUtil.isChinese(this)) {
+            tv.text = ChineseText.statisticSince(this, time, gap)
+            return
+        }
+        tv.text = getString(R.string.l10n_statistic_since, LocalizedText.date(this, time),
+            LocalizedText.duration(this, Calendar.DATE, gap))
     }
 
     private fun applyStatisticSectionTitleAccents() {

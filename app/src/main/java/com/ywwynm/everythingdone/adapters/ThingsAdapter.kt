@@ -33,6 +33,7 @@ import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.helpers.CheckListHelper
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
@@ -897,21 +898,8 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     }
 
     private fun getFolderCardCountText(entry: ThingListEntry.FolderEntry): String {
-        val folderCount = entry.directFolderCount
-        val thingCount = entry.recursiveThingCount
-        return when {
-            folderCount > 0 && thingCount > 0 -> mApp!!.getString(
-                R.string.thing_folder_count_folders_things,
-                folderCount,
-                thingCount
-            )
-            folderCount > 0 -> mApp!!.getString(
-                R.string.thing_folder_count_folders,
-                folderCount
-            )
-            thingCount > 0 -> mApp!!.getString(R.string.thing_folder_count, thingCount)
-            else -> ""
-        }
+        if (entry.directFolderCount == 0 && entry.recursiveThingCount == 0) return ""
+        return LocalizedText.folderCount(mApp!!, entry.directFolderCount, entry.recursiveThingCount)
     }
 
     /**

@@ -1,15 +1,30 @@
-# Localization
+# 本地化
 
-Status: feature-scoped memory archive created during documentation cleanup.
+保存应用语言、翻译规范和资源完整性检查记录。
 
-## Documents
+## 当前实现与验证
 
-This directory may contain feature plans, reviews, execution notes, and migrated
-memory files such as `preferences.md`, `decisions.md`, `followups.md`, and
-`sessions.md`.
+- [2026-10-11 中文原文与列表标点复核](chinese-original-and-punctuation-2026-10-11.md)：全面恢复未经要求的中文改写，保留明确术语和缺项补齐；英文及所有语言的数量摘要恢复标点连接。
+- [2026-10-11 恢复中文数量摘要](chinese-count-format-restoration-2026-10-11.md)：按用户纠正，恢复首页、附件和文件夹操作中原有的中文分隔符、空格与量词。
+- [2026-10-11 术语与表达修订](wording-fix-2026-10-11.md)：按审查报告处理 30 组、333 个条目，统一产品术语、保留中文含义，修正动态词形及统计行布局，记录三机验证和发布结果。
+- [2026-10-11 多语言术语与表达审查](wording-audit-2026-10-11.md)及[逐条证据](wording-audit-evidence-2026-10-11.json)：保留修订前的问题快照和引用依据，处理结果见上述修订记录。
+- [2026-10-11 实施与三机验证](execution-2026-10-11.md)：原有 2,540 处语言缺项已补齐；保留 24 小时制，日期顺序跟随应用语言；覆盖数量、周期、分享、导出及动态语序。
+- [2026-10-11 补译与动态文案实现风险](implementation-review-2026-10-11.md)：实施前发现的问题与调用依据。
+- [2026-10-10 多语言文案完整性报告](coverage-audit-2026-10-10.md)：初始缺项基线和完整清单，保留当时检查结果。
+- [资源检查脚本](validate-resources.py)：读取全部语言资源，检查缺项、空值、参数、数组及复数。
+- [中文原文检查脚本](validate-chinese-original.py)：对照固定的改造前版本，检查全部既有中文资源，防止未授权的改写再次进入。
+- [术语检查脚本](validate-wording.py)：核对审查清单的处理覆盖率、明确术语约束与损坏占位残留；不以机器检查代替语言判断。
+- [设备验证脚本](run-device-validation.ps1)：仅支持本次授权的三台设备；覆盖安装、不保存的界面验证、语言恢复和逐表摘要检查。
 
-## Related Global Records
+## 功能记录
 
-- `CONTEXT.md` remains the global domain-language source.
-- `docs/adr/` remains the global durable decision source.
-- `memory/*.md` remains the lightweight startup index.
+- [翻译偏好与繁体用词](preferences.md)
+- [实现决策与术语](decisions.md)
+- [待办](followups.md)
+- [会话记录](sessions.md)
+
+## 全局记录
+
+- 根目录 `CONTEXT.md`：领域术语。
+- 根目录 `docs/adr/`：跨功能的长期决策。
+- 根目录 `memory/*.md`：轻量启动索引。

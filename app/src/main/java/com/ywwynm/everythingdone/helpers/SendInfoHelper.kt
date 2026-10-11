@@ -14,6 +14,8 @@ import android.widget.Toast
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
+import com.ywwynm.everythingdone.utils.ChineseText
 import com.ywwynm.everythingdone.R.string.days
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ReminderDAO
@@ -106,17 +108,7 @@ object SendInfoHelper {
 
     @JvmStatic
     fun getShareThingTitle(context: Context?, thing: Thing?): String? {
-        if (thing == null) return null
-
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        var title: String = context!!.getString(R.string.act_share)
-        val thisStr: String = context.getString(R.string.this_gai)
-        if (!isChinese) {
-            title = "$title $thisStr "
-        } else {
-            title += thisStr
-        }
-        return title + Thing.getTypeStr(thing.type, context)
+        return thing?.let { LocalizedText.typeTitle(context!!, it.type, share = true) }
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -214,10 +206,10 @@ object SendInfoHelper {
         if (type == Thing.REMINDER) {
             val reminder: Reminder? = ReminderDAO.getInstance(context)!!.getReminderById(id)
             if (reminder != null) {
-                val reminderMe: String = context!!.getString(R.string.remind_me)
+                val ctx = context!!
                 val reminderInfoStr: String = DateTimeUtil.getDateTimeStrReminder(
                         context, thing, reminder, true)
-                sb.append(StringUtil.upperFirst(reminderMe)).append(reminderInfoStr).append("\n\n")
+                sb.append(ctx.getString(R.string.l10n_share_reminder, reminderInfoStr)).append("\n\n")
             }
         } else if (type == Thing.HABIT) {
             val habit: Habit? = HabitDAO.getInstance(context)!!.getHabitById(id)
@@ -244,86 +236,34 @@ object SendInfoHelper {
 
     @JvmStatic
     fun getHabitShareInfo(context: Context?, id: Long, thingState: Int): String {
-        val habit: Habit = HabitDAO.getInstance(context)!!.getHabitById(id) ?: return ""
-
-        val type: Int = habit.type
-        val piT: Int = habit.getPersistInT()
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        val sb: StringBuilder = StringBuilder()
-
-        val remindMe: String = context!!.getString(R.string.remind_me)
-        var habitStr: String? = DateTimeUtil.getDateTimeStrRec(context, habit.type, habit.detail)
-        if (habitStr == null) {
-            habitStr = habit.getSummary(context)
-        } else if (habitStr.startsWith("at ")) {
-            habitStr = habitStr.substring(3, habitStr.length)
+        val habit = HabitDAO.getInstance(context)!!.getHabitById(id) ?: return ""
+        val ctx = context!!
+        var schedule = DateTimeUtil.getDateTimeStrRec(ctx, habit.type, habit.detail) ?: habit.getSummary(ctx)
+        if (habit.isPaused()) schedule += ", " + habit.getStateDescription(ctx)
+        if (LocaleUtil.isChinese(ctx)) {
+            val text = ctx.getString(R.string.remind_me) + schedule + "\n" +
+                ChineseText.habitProgress(ctx, habit.type, habit.getPersistInT(), habit.getFinishedTimes())
+            return if (thingState == Thing.FINISHED) text + ", " + ctx.getString(R.string.share_habit_developed) else text
         }
-        if (habit.isPaused()) {
-            habitStr += ", " + habit.getStateDescription(context)
-        }
-        val GAP = if (isChinese) {
-            ""
-        } else " "
-        sb.append(remindMe).append(habitStr).append("\n")
-                .append(context.getString(R.string.share_i_persist_in_for)).append(GAP)
-                .append(if (piT < 1) "<1" else piT.toString()).append(GAP)
-                .append(DateTimeUtil.getTimeTypeStr(type, context))
-        if (!isChinese && piT > 1) {
-            sb.append("s")
-        }
-        sb.append(", ")
-                .append(context.getString(R.string.act_finish))
-        if (isChinese) {
-            sb.append("了")
-        }
-        val finishedTimes: Int = habit.getFinishedTimes()
-        sb.append(GAP).append(LocaleUtil.getTimesStr(context, finishedTimes, false))
-
-        if (thingState == Thing.FINISHED) {
-            sb.append(", ").append(context.getString(R.string.share_habit_developed))
-        }
-
-        return sb.toString()
+        val text = ctx.getString(R.string.l10n_share_reminder, schedule) + "\n" +
+            ctx.getString(R.string.l10n_habit_progress,
+                LocalizedText.effortElapsed(ctx, habit.type, habit.getPersistInT()),
+                LocaleUtil.getTimesStr(ctx, habit.getFinishedTimes(), false))
+        return if (thingState == Thing.FINISHED) text + "\n" + ctx.getString(R.string.share_habit_developed)
+        else text
     }
 
     private fun getFinishedThingInfo(context: Context?, thing: Thing): String {
-        val isChinese: Boolean = LocaleUtil.isChinese(context)
-        val sb: StringBuilder = StringBuilder()
-        @Thing.Type val type: Int = thing.type
-
-        if (type == Thing.GOAL) {
-            val goal: Reminder = ReminderDAO.getInstance(context)!!.getReminderById(thing.id)!!
-            val gap: Int = DateTimeUtil.calculateTimeGap(
-                    goal.updateTime, thing.finishTime, Calendar.DATE)
-            val gapStr = if (gap == 0) {
-                "<1"
-            } else {
-                gap.toString()
-            }
-
-            val STRGAP = if (isChinese) {
-                ""
-            } else " "
-            sb.append(context!!.getString(R.string.share_i_work_hard_for)).append(STRGAP)
-                    .append(gapStr).append(STRGAP).append(context.getString(days))
-            if (!isChinese && gap > 1) {
-                sb.append("s")
-            }
-
-            val achieve: String = context.getString(R.string.share_goal_finished)
-            if (isChinese) {
-                sb.append(", ").append(achieve)
-            } else {
-                sb.append(" ").append(achieve)
-            }
-            return sb.toString()
+        val ctx = context!!
+        if (thing.type == Thing.GOAL) {
+            val goal = ReminderDAO.getInstance(ctx)!!.getReminderById(thing.id)!!
+            val gap = DateTimeUtil.calculateTimeGap(goal.updateTime, thing.finishTime, Calendar.DATE)
+            if (LocaleUtil.isChinese(ctx)) return ChineseText.goalShare(ctx, gap)
+            return ctx.getString(R.string.l10n_share_goal_finished,
+                LocalizedText.effortElapsed(ctx, Calendar.DATE, gap))
         }
-
-        // else : type isn't GOAL
-        sb.append(String.format(context!!.getString(R.string.finish_at_normal),
-                DateTimeUtil.getDateTimeStrAt(thing.finishTime, context, true)))
-
-        return sb.toString()
+        return ctx.getString(R.string.finish_at_normal,
+            DateTimeUtil.getDateTimeStrAt(thing.finishTime, ctx, true))
     }
 
     private fun startShare(

@@ -28,6 +28,8 @@ import android.widget.TextView
 
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
+import androidx.core.widget.doAfterTextChanged
 import com.ywwynm.everythingdone.activities.DetailActivity
 import com.ywwynm.everythingdone.adapters.DateTimePagerAdapter
 import com.ywwynm.everythingdone.adapters.RecurrencePickerAdapter
@@ -279,6 +281,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             return
         }
         mTabInitiated[page] = true
+        improveComplex()
     }
 
     @SuppressLint("InflateParams")
@@ -336,6 +339,24 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
 
         mTvSummaryAt = f(tab0, R.id.tv_summary_at)
 
+        val dateOrder = LocalizedText.dateFieldOrder(mActivity!!)
+        val dateFrames = intArrayOf(R.id.fl_year_at, R.id.fl_month_at, R.id.fl_day_at)
+        var previous = 0
+        for (index in dateOrder) {
+            val frame: View = f(tab0, dateFrames[index])!!
+            val params = frame.layoutParams as android.widget.RelativeLayout.LayoutParams
+            params.removeRule(android.widget.RelativeLayout.RIGHT_OF)
+            params.removeRule(android.widget.RelativeLayout.END_OF)
+            if (previous != 0) params.addRule(android.widget.RelativeLayout.END_OF, previous)
+            frame.layoutParams = params
+            previous = frame.id
+        }
+        val focusOrder = dateOrder.toList() + listOf(3, 4)
+        focusOrder.zipWithNext().forEach { (from, to) ->
+            mEtsAt!![from]!!.nextFocusForwardId = mEtsAt!![to]!!.id
+        }
+
+
         for (i in mIlsAt!!.indices) {
             mIlsAt!![i] = InputLayout(mActivity!!, mTvsAt!![i]!!, mEtsAt!![i]!!, mAccentColor)
             mIlsAt!![i]!!.setAccentBackground(mAccentBackground)
@@ -354,6 +375,17 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
             mDtpAfter!!.setAccentBackground(mAccentBackground)
         }
         mTvErrorAfter = f(tab1, R.id.tv_error_after)
+        if (LocaleUtil.isChinese(mActivity)) {
+            // 中文仍用原来的“数量 + 单位后”，不增加重复标签或预览句。
+            for (id in intArrayOf(R.id.tv_amount_label_after, R.id.tv_unit_label_after, R.id.tv_summary_after)) {
+                tab1.findViewById<View>(id).visibility = View.GONE
+            }
+            for (view in listOf(mEtTimeAfter!!, mTvTimeAsBtAfter!!)) {
+                val params = view.layoutParams as android.widget.RelativeLayout.LayoutParams
+                params.removeRule(android.widget.RelativeLayout.BELOW)
+                view.layoutParams = params
+            }
+        }
     }
 
     private fun findViewsRec() {
@@ -856,6 +888,7 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
     }
 
     private fun setEventsAfter() {
+        mEtTimeAfter!!.doAfterTextChanged { improveComplex() }
         mTvTimeAsBtAfter!!.setOnClickListener(mTvTimeAsBtClickListener)
         mDtpAfter!!.setPickedListener { improveComplex() }
         mEtTimeAfter!!.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
@@ -1087,39 +1120,12 @@ open class DateTimeDialogFragment : BaseDialogFragment() {
         val page = mVpDateTime!!.currentItem
         if (page < 0 || page >= mTabInitiated.size || !mTabInitiated[page]) return
         if (page == 1) {
-            val timeStr: String = mEtTimeAfter!!.text.toString()
-            if (timeStr.isEmpty()) return
-
-            val strs: Array<String> = mTvTimeAsBtAfter!!.text.toString().split(" ".toRegex()).toTypedArray()
-            val time: Int
-            try {
-                time = Integer.parseInt(timeStr)
-            } catch (e: NumberFormatException) {
-                e.printStackTrace()
-                return
-            }
-            val length = strs[0].length
-            if (time > 1 && strs[0][length - 1] != 's') {
-                mTvTimeAsBtAfter!!.text = strs[0] + "s " + strs[1]
-            } else if (time <= 1 && strs[0][length - 1] == 's') {
-                mTvTimeAsBtAfter!!.text = strs[0].substring(0, length - 1) + " " + strs[1]
-            }
+            val amount = mEtTimeAfter!!.text.toString().toIntOrNull() ?: return
+            val preview: TextView = f(mTabs!![1], R.id.tv_summary_after)!!
+            preview.text = LocalizedText.after(mActivity!!, mDtpAfter!!.getPickedTimeType(), amount)
         } else if (page == 2) {
-            val timesStr: String = mTvTimesLRec!!.text.toString()
-            improveComplex(Integer.parseInt(timesStr), mTvTimesRRec)
-        }
-    }
-
-    private fun improveComplex(num: Int, tv: TextView?) {
-        if (tv == null) {
-            return
-        }
-        val str: String = tv.text.toString()
-        val length: Int = str.length
-        if (num > 1 && str[length - 1] != 's') {
-            tv.append("s")
-        } else if (num <= 1 && str[length - 1] == 's') {
-            tv.text = str.substring(0, length - 1)
+            val count = mTvTimesLRec!!.text.toString().toIntOrNull() ?: return
+            mTvTimeAsBtRec!!.text = LocalizedText.frequency(mActivity!!, mDtpRec!!.getPickedTimeType(), count)
         }
     }
 

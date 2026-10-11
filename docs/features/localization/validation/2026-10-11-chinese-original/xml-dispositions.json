@@ -1,0 +1,372 @@
+[
+  {
+    "locale": "zh-rCN",
+    "key": "title_activity_things_all",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rCN",
+    "key": "home_empty_note",
+    "action": "保留明确的记录术语统一"
+  },
+  {
+    "locale": "zh-rCN",
+    "key": "create_daily_todo_help_info",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rCN",
+    "key": "statistic_habit_completion_rate",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "title_activity_things_all",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "dissolve_thing_folder_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "delete_thing_folder_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "delete_thing_folder_forever_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "home_empty_note",
+    "action": "保留明确的记录术语统一"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "audio_recording_storage_full",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "audio_recording_finalize_failed",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "audio_recording_stop_not_kept_notification_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "audio_recording_finalizing",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "audio_recording_finalizing_notification_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "cd_save_unavailable_not_kept",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "settings_dialog_particle_animation",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "particle_tuning_preview_dialog",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "particle_tuning_hint_dialog",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "particle_tuning_stats_waiting",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "particle_tuning_stats_idle",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "create_daily_todo_help_info",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rTW",
+    "key": "statistic_habit_completion_rate",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "error_generating_screenshot",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "title_activity_things_all",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "dissolve_thing_folder_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "delete_thing_folder_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "delete_thing_folder_forever_confirm",
+    "action": "保留已授权的繁体缺失参数及功能含义补齐"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "home_empty_note",
+    "action": "保留明确的记录术语统一"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "audio_recording_storage_full",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "audio_recording_finalize_failed",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "audio_recording_stop_not_kept_notification_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "audio_recording_finalizing",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "audio_recording_finalizing_notification_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "cd_save_unavailable_not_kept",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "settings_dialog_particle_animation",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "particle_tuning_preview_dialog",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "particle_tuning_hint_dialog",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "particle_tuning_stats_waiting",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "particle_tuning_stats_idle",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "create_daily_todo_help_info",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "statistic_habit_completion_rate",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_inpainting_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_remove_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_generation_saving",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_model_not_ready",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_model_device_ineligible",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_derivative_invalid",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_tilt_unavailable",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_first_use_hint",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_qnn_restart_required",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_qnn_downloading",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_npu_runtime_pending",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_qnn_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_qnn_ready",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_qnn_needs_runtime",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_zipdepth_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_moge2_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_matting_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_segmentation_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_device_tilt",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_device_tilt_description",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_model_memory_required",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_runtime_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_depth_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_matting_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_segmentation_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_qnn_runtime_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_delete_legacy_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_missing_components_title",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_missing_components_message",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_notification_denied",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_storage_summary",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_storage_summary_v2",
+    "action": "恢复原文"
+  },
+  {
+    "locale": "zh-rHK",
+    "key": "spatial_clear_derivatives_confirm",
+    "action": "恢复原文"
+  }
+]

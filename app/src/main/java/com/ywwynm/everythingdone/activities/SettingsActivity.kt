@@ -48,6 +48,7 @@ import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.appwidgets.AppWidgetHelper
 import com.ywwynm.everythingdone.database.HabitDAO
 import com.ywwynm.everythingdone.database.ThingDAO
@@ -1457,6 +1458,8 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 false, R.string.create_daily_todo_automatically,
                 R.string.create_daily_todo_help_info, R.string.act_get_it
             )
+            if (!LocaleUtil.isChinese(this)) adf.setContent(getString(R.string.create_daily_todo_help_info,
+                LocalizedText.dailyTodoTitle(this)))
             adf.show(supportFragmentManager, AlertDialogFragment.TAG)
         }
 

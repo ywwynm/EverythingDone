@@ -91,6 +91,7 @@ import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.FrequentSettings
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.adapters.AudioAttachmentAdapter
 import com.ywwynm.everythingdone.adapters.CheckListAdapter
 import com.ywwynm.everythingdone.adapters.ImageAttachmentAdapter
@@ -696,13 +697,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
     }
 
     private fun getDailyTodoTitle(): String {
-        val dateStr: String = DateTimeUtil.getGeneralDateStr(mApp, System.currentTimeMillis())!!
-        val restPart: String = getString(R.string.daily_todo_title_rest_part)
-        return if (LocaleUtil.isChinese(mApp)) {
-            dateStr + restPart
-        } else {
-            "$restPart $dateStr"
-        }
+        return LocalizedText.dailyTodoTitle(this)
     }
 
     private fun updateThingAndItsPosition(oriId: Long) {
@@ -1180,15 +1175,10 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             tvFinishTime.visibility = View.GONE
         } else {
             val isChinese = LocaleUtil.isChinese(this)
-            if (mThing!!.createTime == mThing!!.updateTime) {
-                mTvUpdateTime!!.setText(R.string.create_at)
-            } else {
-                mTvUpdateTime!!.setText(R.string.update_at)
-            }
-            if (!isChinese) {
-                mTvUpdateTime!!.append(" ")
-            }
-            mTvUpdateTime!!.append(DateTimeUtil.getDateTimeStrAt(mThing!!.updateTime, mApp, true))
+            val timestampKey = if (mThing!!.createTime == mThing!!.updateTime)
+                R.string.l10n_created_at else R.string.l10n_updated_at
+            mTvUpdateTime!!.text = getString(timestampKey,
+                DateTimeUtil.getDateTimeStrAt(mThing!!.updateTime, mApp, true))
 
             // finish time
             if (thingState == Thing.FINISHED) {
@@ -1201,11 +1191,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         tvFinishTime.visibility = View.VISIBLE
         when (thingType) {
             Thing.HABIT -> {
-                tvFinishTime.setText(R.string.finish_at_habit)
-                if (!isChinese) {
-                    tvFinishTime.append(" ")
-                }
-                tvFinishTime.append(DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true))
+                tvFinishTime.text = getString(R.string.l10n_habit_developed_at,
+                    DateTimeUtil.getDateTimeStrAt(mThing!!.finishTime, mApp, true))
             }
             Thing.GOAL -> {
                 val actionStr: String
@@ -1273,7 +1260,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
                 }
             }
             cbQuickRemind!!.contentDescription =
-                getString(R.string.remind_me) + tvQuickRemind!!.text
+                getString(R.string.l10n_share_reminder, tvQuickRemind!!.text)
         }
 
         initUiStartDoing()
@@ -1501,15 +1488,8 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
         if (mType == CREATE) {
             title = getString(R.string.title_create_thing)
         } else {
-            title = if (mEditable) {
-                getString(R.string.title_edit_thing)
-            } else {
-                ""
-            }
-            if (!LocaleUtil.isChinese(mApp)) {
-                title += " "
-            }
-            title += Thing.getTypeStr(getThingTypeAfter(), mApp)
+            title = if (mEditable) LocalizedText.typeTitle(this, getThingTypeAfter(), share = false)
+                else Thing.getTypeStr(getThingTypeAfter(), mApp)!!
         }
         mFlRoot!!.contentDescription = title
         val bmd: BitmapDrawable? = AppCompatResources.getDrawable(this, R.mipmap.ic_launcher) as BitmapDrawable?
@@ -2294,7 +2274,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             }
             // 初始化控件时读到的是已保存设置，类型提示与无障碍说明须按恢复后的草稿刷新。
             if (mEditable) updateBackButton()
-            cbQuickRemind!!.contentDescription = getString(R.string.remind_me) + tvQuickRemind!!.text
+            cbQuickRemind!!.contentDescription = getString(R.string.l10n_share_reminder, tvQuickRemind!!.text)
             mDetailList!!.scrollToPosition(0)
             mActionbar!!.menu.clear()
             onCreateOptionsMenu(mActionbar!!.menu)
@@ -3469,7 +3449,7 @@ class DetailActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFr
             updateDescriptions(getAccentColor())
             updateBackButton()
             cbQuickRemind!!.contentDescription =
-                getString(R.string.remind_me) + tvQuickRemind!!.text
+                getString(R.string.l10n_share_reminder, tvQuickRemind!!.text)
             if (shouldAddToActionList) {
                 mActionList!!.addAction(
                     ThingAction(

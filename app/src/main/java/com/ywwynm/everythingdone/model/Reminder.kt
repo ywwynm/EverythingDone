@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.model
 import android.content.Context
 import android.database.Cursor
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
+import com.ywwynm.everythingdone.utils.ChineseText
 import com.ywwynm.everythingdone.utils.DateTimeUtil
 import com.ywwynm.everythingdone.utils.LocaleUtil
 import java.util.Calendar
@@ -67,22 +69,12 @@ open class Reminder(
     }
 
     open fun getCelebrationText(context: Context?): String? {
-        val part1 = context!!.getString(R.string.celebration_goal_part_1)
-        var day = context.getString(R.string.days)
-        val part2 = context.getString(R.string.celebration_goal_part_2)
-        val part3 = context.getString(R.string.celebration_goal_part_3)
+        val ctx = context!!
         val gap = DateTimeUtil.calculateTimeGap(updateTime, System.currentTimeMillis(), Calendar.DATE)
-        val gapStr = if (gap == 0) {
-            "<1"
-        } else {
-            gap.toString()
-        }
-
-        val isChinese = LocaleUtil.isChinese(context)
-        if (gap > 1 && !isChinese) {
-            day += "s"
-        }
-        return part1 + " " + gapStr + " " + day + (if (isChinese) "" else " ") + part2 + "\n" + part3
+        if (LocaleUtil.isChinese(ctx)) return ChineseText.goalCelebration(ctx, gap)
+        return ctx.getString(R.string.l10n_goal_celebration,
+            LocalizedText.elapsed(ctx, Calendar.DATE, gap)) + "\n" +
+            ctx.getString(R.string.celebration_goal_part_3)
     }
 
     companion object {

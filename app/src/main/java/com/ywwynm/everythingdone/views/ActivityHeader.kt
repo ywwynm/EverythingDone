@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.managers.ThingManager
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -391,16 +392,8 @@ open class ActivityHeader(
     }
 
     private fun getFolderChildCountText(folderCount: Int, thingCount: Int): String {
-        return when {
-            folderCount > 0 && thingCount > 0 -> mApp.getString(
-                R.string.thing_folder_count_folders_things,
-                folderCount,
-                thingCount
-            )
-            folderCount > 0 -> mApp.getString(R.string.thing_folder_count_folders, folderCount)
-            thingCount > 0 -> mApp.getString(R.string.thing_folder_count, thingCount)
-            else -> mApp.getString(R.string.empty)
-        }
+        if (folderCount == 0 && thingCount == 0) return mApp.getString(R.string.empty)
+        return LocalizedText.folderCount(mApp, folderCount, thingCount)
     }
 
     fun hideActionbarShadow(anim: Boolean = true) {

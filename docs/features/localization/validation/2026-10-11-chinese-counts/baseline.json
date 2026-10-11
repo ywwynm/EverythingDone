@@ -1,0 +1,23 @@
+[
+  {
+    "locale": "zh-rCN",
+    "attachment_templates_match_original": true,
+    "folder_templates_match_existing_chinese": true,
+    "impact_separator": "、",
+    "folder_baseline": "HEAD"
+  },
+  {
+    "locale": "zh-rTW",
+    "attachment_templates_match_original": true,
+    "folder_templates_match_existing_chinese": true,
+    "impact_separator": "、",
+    "folder_baseline": "此前补齐繁体资源的留存快照"
+  },
+  {
+    "locale": "zh-rHK",
+    "attachment_templates_match_original": true,
+    "folder_templates_match_existing_chinese": true,
+    "impact_separator": "、",
+    "folder_baseline": "此前补齐繁体资源的留存快照"
+  }
+]

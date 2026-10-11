@@ -19,6 +19,7 @@ import android.widget.LinearLayout
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.Def
 import com.ywwynm.everythingdone.R
+import com.ywwynm.everythingdone.utils.LocalizedText
 import com.ywwynm.everythingdone.fragments.AttachmentInfoDialogFragment
 import com.ywwynm.everythingdone.model.DetailAttachmentMediaAppearance
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -156,24 +157,12 @@ object AttachmentHelper {
         if (imageCount == 0 && videoCount == 0) {
             return null
         } else {
-            var images: String = context!!.getString(R.string.images)
-            var videos: String = context.getString(R.string.videos)
-            if (!LocaleUtil.isChinese(context)) {
-                if (imageCount > 1) {
-                    images += "s"
-                }
-                if (videoCount > 1) {
-                    videos += "s"
-                }
-            }
-
-            return if (imageCount != 0 && videoCount == 0) {
-                "$imageCount $images"
-            } else if (imageCount == 0) {
-                "$videoCount $videos"
-            } else {
-                "$imageCount $images, $videoCount $videos"
-            }
+            val ctx = context!!
+            val parts = mutableListOf<String>()
+            if (imageCount > 0) parts += LocalizedText.quantity(ctx, R.plurals.l10n_images, imageCount)
+            if (videoCount > 0) parts += LocalizedText.quantity(ctx, R.plurals.l10n_videos, videoCount)
+            // 数量摘要保留标点连接；复数只影响各个数量短语。
+            return parts.joinToString(", ")
         }
     }
 
@@ -194,11 +183,7 @@ object AttachmentHelper {
         if (count == 0) {
             return null
         } else {
-            var audios: String = context!!.getString(R.string.audios)
-            if (!LocaleUtil.isChinese(context) && count > 1) {
-                audios += "s"
-            }
-            return "$count $audios"
+            return LocalizedText.quantity(context!!, R.plurals.l10n_audios, count)
         }
     }
 
@@ -411,7 +396,7 @@ object AttachmentHelper {
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified())!!
         } else {
             fst = context.getString(R.string.image_create_time)
-            sec = dateTime.format(DateTimeFormatter.ofPattern(DateTimeUtil.getGeneralDateTimeFormatPattern(context)))
+            sec = LocalizedText.date(context, dateTime.toInstant().toEpochMilli(), "yMMMEdHms")
         }
         list.add(Pair(fst, sec))
 
@@ -438,7 +423,7 @@ object AttachmentHelper {
             val file = File(pathName)
             sec = DateTimeUtil.getGeneralDateTimeStr(context, file.lastModified())!!
         } else {
-            sec = dateTime.format(DateTimeFormatter.ofPattern(DateTimeUtil.getGeneralDateTimeFormatPattern(context)))
+            sec = LocalizedText.date(context, dateTime.toInstant().toEpochMilli(), "yMMMEdHms")
         }
         list.add(Pair(fst, sec))
 

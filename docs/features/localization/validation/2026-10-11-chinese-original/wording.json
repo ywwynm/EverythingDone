@@ -1,0 +1,3863 @@
+{
+  "说明": "逐条译文已由代理按中文与调用语境修订。此脚本只检查覆盖率与明确约束，语法边界另由设备探针核验。",
+  "group_count": 30,
+  "entry_count": 333,
+  "changed_count": 277,
+  "retained_count": 56,
+  "groups": [
+    {
+      "id": "W01",
+      "title": "英语完成动作与状态未统一为 finish / finished",
+      "entries": [
+        {
+          "locale": "en",
+          "entry": "l10n_habit_finished_period"
+        },
+        {
+          "locale": "en",
+          "entry": "l10n_habit_celebration"
+        },
+        {
+          "locale": "en",
+          "entry": "l10n_habit_progress"
+        },
+        {
+          "locale": "en",
+          "entry": "l10n_checklist_finished[one]"
+        },
+        {
+          "locale": "en",
+          "entry": "l10n_checklist_finished[other]"
+        },
+        {
+          "locale": "en",
+          "entry": "help_titles[10]"
+        },
+        {
+          "locale": "en",
+          "entry": "help_contents[2]"
+        },
+        {
+          "locale": "en",
+          "entry": "help_contents[6]"
+        },
+        {
+          "locale": "en",
+          "entry": "help_contents[8]"
+        },
+        {
+          "locale": "en",
+          "entry": "help_contents[10]"
+        }
+      ]
+    },
+    {
+      "id": "W02",
+      "title": "中文 Note 类型混用记录与笔记",
+      "entries": [
+        {
+          "locale": "zh-CN",
+          "entry": "home_empty_note"
+        },
+        {
+          "locale": "zh-CN",
+          "entry": "l10n_share_note"
+        },
+        {
+          "locale": "zh-CN",
+          "entry": "l10n_edit_note"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "home_empty_note"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "l10n_share_note"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "l10n_edit_note"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "home_empty_note"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "l10n_share_note"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "l10n_edit_note"
+        }
+      ]
+    },
+    {
+      "id": "W03",
+      "title": "外语 Note 类型名称与新模板不一致",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "note"
+        },
+        {
+          "locale": "fr",
+          "entry": "note"
+        },
+        {
+          "locale": "ja",
+          "entry": "note"
+        },
+        {
+          "locale": "ko",
+          "entry": "note"
+        },
+        {
+          "locale": "ru",
+          "entry": "note"
+        }
+      ]
+    },
+    {
+      "id": "W04",
+      "title": "Thing 总称与既有术语约定不一致",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "thing"
+        },
+        {
+          "locale": "de",
+          "entry": "all_things"
+        },
+        {
+          "locale": "fr",
+          "entry": "thing"
+        },
+        {
+          "locale": "fr",
+          "entry": "all_things"
+        },
+        {
+          "locale": "hi",
+          "entry": "thing"
+        },
+        {
+          "locale": "hi",
+          "entry": "all_things"
+        },
+        {
+          "locale": "it",
+          "entry": "thing"
+        },
+        {
+          "locale": "it",
+          "entry": "all_things"
+        },
+        {
+          "locale": "ja",
+          "entry": "thing"
+        },
+        {
+          "locale": "ja",
+          "entry": "all_things"
+        },
+        {
+          "locale": "ko",
+          "entry": "thing"
+        },
+        {
+          "locale": "ko",
+          "entry": "all_things"
+        },
+        {
+          "locale": "pt",
+          "entry": "thing"
+        },
+        {
+          "locale": "pt",
+          "entry": "all_things"
+        },
+        {
+          "locale": "ru",
+          "entry": "thing"
+        },
+        {
+          "locale": "ru",
+          "entry": "all_things"
+        }
+      ]
+    },
+    {
+      "id": "W05",
+      "title": "已停用被译成残障或缺陷",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "disabled"
+        },
+        {
+          "locale": "es",
+          "entry": "auto_start_doing_states[0]"
+        },
+        {
+          "locale": "hi",
+          "entry": "disabled"
+        },
+        {
+          "locale": "hi",
+          "entry": "auto_start_doing_states[0]"
+        },
+        {
+          "locale": "ja",
+          "entry": "disabled"
+        },
+        {
+          "locale": "ja",
+          "entry": "auto_start_doing_states[0]"
+        },
+        {
+          "locale": "ko",
+          "entry": "disabled"
+        },
+        {
+          "locale": "ko",
+          "entry": "auto_start_doing_states[0]"
+        },
+        {
+          "locale": "ru",
+          "entry": "disabled"
+        },
+        {
+          "locale": "ru",
+          "entry": "auto_start_doing_states[0]"
+        }
+      ]
+    },
+    {
+      "id": "W06",
+      "title": "置顶按黏性翻译",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "de",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "de",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "de",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "es",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "es",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "es",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "es",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "fr",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "fr",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "hi",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "hi",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "it",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "it",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "it",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "it",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "ja",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "ja",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "ko",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "ko",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "pt",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "pt",
+          "entry": "alert_shortcut_no_sticky"
+        },
+        {
+          "locale": "ru",
+          "entry": "sticky_thing"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_sticky_on_top"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_shortcut_check_sticky"
+        },
+        {
+          "locale": "ru",
+          "entry": "alert_shortcut_no_sticky"
+        }
+      ]
+    },
+    {
+      "id": "W07",
+      "title": "取消置顶仍使用黏性或英语残留",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "act_cancel_sticky"
+        },
+        {
+          "locale": "es",
+          "entry": "act_cancel_sticky"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_cancel_sticky"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_cancel_sticky"
+        },
+        {
+          "locale": "it",
+          "entry": "act_cancel_sticky"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_cancel_sticky"
+        }
+      ]
+    },
+    {
+      "id": "W08",
+      "title": "常驻通知记事被混同于进行中",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "de",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "es",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "es",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "fr",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "fr",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "hi",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "hi",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "it",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "it",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "ja",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "ja",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "ko",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "ko",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "pt",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "pt",
+          "entry": "ongoing_lockscreen"
+        },
+        {
+          "locale": "ru",
+          "entry": "ongoing_thing"
+        },
+        {
+          "locale": "ru",
+          "entry": "ongoing_lockscreen"
+        }
+      ]
+    },
+    {
+      "id": "W09",
+      "title": "习惯暂停和恢复混入英语所有格",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "de",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "es",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "es",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "it",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "it",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_resume_habit"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_pause_habit"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_resume_habit"
+        }
+      ]
+    },
+    {
+      "id": "W10",
+      "title": "养成习惯按钮残留英语缩写结构",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "it",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_habit_developed"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_habit_developed"
+        }
+      ]
+    },
+    {
+      "id": "W11",
+      "title": "取消完成的无障碍提示方向相反",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "cd_checklist_finished_item_clickable"
+        },
+        {
+          "locale": "fr",
+          "entry": "cd_checklist_finished_item_clickable"
+        },
+        {
+          "locale": "hi",
+          "entry": "cd_checklist_finished_item_clickable"
+        },
+        {
+          "locale": "ja",
+          "entry": "cd_checklist_finished_item_clickable"
+        },
+        {
+          "locale": "pt",
+          "entry": "cd_checklist_finished_item_clickable"
+        }
+      ]
+    },
+    {
+      "id": "W12",
+      "title": "完成次数被译成完成时间",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "de",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "de",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "es",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "es",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "es",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "fr",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "fr",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "fr",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "hi",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "it",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "it",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "it",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "ja",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "ja",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "ja",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "ko",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "ko",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "ko",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "pt",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "pt",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "pt",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "ru",
+          "entry": "habit_detail_times"
+        },
+        {
+          "locale": "ru",
+          "entry": "statistic_habit_finished_all"
+        },
+        {
+          "locale": "ru",
+          "entry": "statistic_habit_longest_finish_times"
+        }
+      ]
+    },
+    {
+      "id": "W13",
+      "title": "习惯养成率被译成养护或营养率",
+      "entries": [
+        {
+          "locale": "en",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "de",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "es",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "fr",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "it",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "pt",
+          "entry": "statistic_habit_developed_rate"
+        },
+        {
+          "locale": "ru",
+          "entry": "statistic_habit_developed_rate"
+        }
+      ]
+    },
+    {
+      "id": "W14",
+      "title": "Goal 被当作足球进球或球门",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "cd_back_goal"
+        },
+        {
+          "locale": "es",
+          "entry": "cd_back_goal"
+        },
+        {
+          "locale": "it",
+          "entry": "cd_back_goal"
+        },
+        {
+          "locale": "pt",
+          "entry": "cd_back_goal"
+        }
+      ]
+    },
+    {
+      "id": "W15",
+      "title": "清单项被当作制成品",
+      "entries": [
+        {
+          "locale": "ja",
+          "entry": "cd_checklist_unfinished_item"
+        },
+        {
+          "locale": "ja",
+          "entry": "cd_checklist_finished_item"
+        },
+        {
+          "locale": "ko",
+          "entry": "cd_checklist_finished_item"
+        }
+      ]
+    },
+    {
+      "id": "W16",
+      "title": "返回按钮将 Thing 误解为问题或要点",
+      "entries": [
+        {
+          "locale": "ko",
+          "entry": "cd_back_note"
+        },
+        {
+          "locale": "ko",
+          "entry": "cd_back_reminder"
+        },
+        {
+          "locale": "ko",
+          "entry": "cd_back_habit"
+        },
+        {
+          "locale": "ko",
+          "entry": "cd_back_goal"
+        },
+        {
+          "locale": "ru",
+          "entry": "cd_back_note"
+        },
+        {
+          "locale": "ru",
+          "entry": "cd_back_reminder"
+        },
+        {
+          "locale": "ru",
+          "entry": "cd_back_habit"
+        },
+        {
+          "locale": "ru",
+          "entry": "cd_back_goal"
+        }
+      ]
+    },
+    {
+      "id": "W17",
+      "title": "德语进行中被译成在路上",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "underway"
+        },
+        {
+          "locale": "de",
+          "entry": "title_widget_things_list"
+        },
+        {
+          "locale": "de",
+          "entry": "settings_simple_finished_checklist"
+        }
+      ]
+    },
+    {
+      "id": "W18",
+      "title": "已提醒状态被译成想起来或提醒的原形",
+      "entries": [
+        {
+          "locale": "ja",
+          "entry": "reminder_reminded"
+        },
+        {
+          "locale": "ko",
+          "entry": "reminder_reminded"
+        }
+      ]
+    },
+    {
+      "id": "W19",
+      "title": "打开地图被写成访问",
+      "entries": [
+        {
+          "locale": "en",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "de",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "es",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "it",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_open_in_map"
+        },
+        {
+          "locale": "ru",
+          "entry": "act_open_in_map"
+        }
+      ]
+    },
+    {
+      "id": "W20",
+      "title": "支持开发者被译成支持工程师一类名词",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "act_support"
+        },
+        {
+          "locale": "es",
+          "entry": "act_support"
+        },
+        {
+          "locale": "fr",
+          "entry": "act_support"
+        },
+        {
+          "locale": "hi",
+          "entry": "act_support"
+        },
+        {
+          "locale": "ja",
+          "entry": "act_support"
+        },
+        {
+          "locale": "ko",
+          "entry": "act_support"
+        },
+        {
+          "locale": "pt",
+          "entry": "act_support"
+        }
+      ]
+    },
+    {
+      "id": "W21",
+      "title": "自动保存说明有残留并混淆类型",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "fr",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "hi",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "it",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "ja",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "ko",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "pt",
+          "entry": "auto_save_edits_help_info"
+        },
+        {
+          "locale": "ru",
+          "entry": "auto_save_edits_help_info"
+        }
+      ]
+    },
+    {
+      "id": "W22",
+      "title": "自动提醒说明遗漏延迟设置并错用 Note 名称",
+      "entries": [
+        {
+          "locale": "en",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "de",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "es",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "fr",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "hi",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "it",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "ja",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "ko",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "pt",
+          "entry": "auto_notify_help_info"
+        },
+        {
+          "locale": "ru",
+          "entry": "auto_notify_help_info"
+        }
+      ]
+    },
+    {
+      "id": "W23",
+      "title": "可见翻译占位残留",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "start_doing_notification_toast_doing_this"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_longest_pit"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_longest_finish_times"
+        },
+        {
+          "locale": "hi",
+          "entry": "statistic_habit_finished_all"
+        }
+      ]
+    },
+    {
+      "id": "W24",
+      "title": "目标空态擅自加入共同度假和晒太阳",
+      "entries": [
+        {
+          "locale": "en",
+          "entry": "empty_goal"
+        },
+        {
+          "locale": "de",
+          "entry": "empty_goal"
+        },
+        {
+          "locale": "it",
+          "entry": "empty_goal"
+        },
+        {
+          "locale": "ko",
+          "entry": "empty_goal"
+        },
+        {
+          "locale": "pt",
+          "entry": "empty_goal"
+        },
+        {
+          "locale": "ru",
+          "entry": "empty_goal"
+        }
+      ]
+    },
+    {
+      "id": "W25",
+      "title": "印地语帮助的普通产品词保留为英文",
+      "entries": [
+        {
+          "locale": "hi",
+          "entry": "help_contents[5]"
+        },
+        {
+          "locale": "hi",
+          "entry": "help_contents[7]"
+        },
+        {
+          "locale": "hi",
+          "entry": "help_contents[8]"
+        },
+        {
+          "locale": "hi",
+          "entry": "help_contents[10]"
+        },
+        {
+          "locale": "hi",
+          "entry": "help_contents[11]"
+        }
+      ]
+    },
+    {
+      "id": "W26",
+      "title": "繁体用词未遵守项目对照表",
+      "entries": [
+        {
+          "locale": "zh-TW",
+          "entry": "audio_recording_storage_full"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "audio_recording_finalize_failed"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "audio_recording_stop_not_kept_notification_title"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "audio_recording_finalizing"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "audio_recording_finalizing_notification_title"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "cd_save_unavailable_not_kept"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "settings_dialog_particle_animation"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "particle_tuning_preview_dialog"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "particle_tuning_hint_dialog"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "particle_tuning_stats_waiting"
+        },
+        {
+          "locale": "zh-TW",
+          "entry": "particle_tuning_stats_idle"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "audio_recording_storage_full"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "audio_recording_finalize_failed"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "audio_recording_stop_not_kept_notification_title"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "audio_recording_finalizing"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "audio_recording_finalizing_notification_title"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "cd_save_unavailable_not_kept"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "settings_dialog_particle_animation"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "particle_tuning_preview_dialog"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "particle_tuning_hint_dialog"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "particle_tuning_stats_waiting"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "particle_tuning_stats_idle"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_inpainting_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_remove_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_generation_saving"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_model_not_ready"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_model_device_ineligible"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_derivative_invalid"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_tilt_unavailable"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_first_use_hint"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_qnn_restart_required"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_qnn_downloading"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_npu_runtime_pending"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_qnn_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_qnn_ready"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_qnn_needs_runtime"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_zipdepth_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_moge2_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_matting_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_segmentation_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_device_tilt"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_device_tilt_description"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_model_memory_required"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_runtime_title"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_depth_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_matting_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_segmentation_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_qnn_runtime_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_delete_legacy_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_missing_components_title"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_missing_components_message"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_notification_denied"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_storage_summary"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_storage_summary_v2"
+        },
+        {
+          "locale": "zh-HK",
+          "entry": "spatial_clear_derivatives_confirm"
+        }
+      ]
+    },
+    {
+      "id": "W27",
+      "title": "1:00 的时间介词不能使用固定复数形式",
+      "entries": [
+        {
+          "locale": "es",
+          "entry": "l10n_recurrence_daily"
+        },
+        {
+          "locale": "es",
+          "entry": "l10n_recurrence_weekly"
+        },
+        {
+          "locale": "es",
+          "entry": "l10n_recurrence_monthly"
+        },
+        {
+          "locale": "es",
+          "entry": "l10n_recurrence_yearly"
+        },
+        {
+          "locale": "it",
+          "entry": "l10n_recurrence_daily"
+        },
+        {
+          "locale": "it",
+          "entry": "l10n_recurrence_weekly"
+        },
+        {
+          "locale": "it",
+          "entry": "l10n_recurrence_monthly"
+        },
+        {
+          "locale": "it",
+          "entry": "l10n_recurrence_yearly"
+        },
+        {
+          "locale": "pt",
+          "entry": "l10n_recurrence_daily"
+        },
+        {
+          "locale": "pt",
+          "entry": "l10n_recurrence_weekly"
+        },
+        {
+          "locale": "pt",
+          "entry": "l10n_recurrence_monthly"
+        },
+        {
+          "locale": "pt",
+          "entry": "l10n_recurrence_yearly"
+        }
+      ]
+    },
+    {
+      "id": "W28",
+      "title": "德语独立天数短语缺少句内变格",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "l10n_goal_overdue_duration"
+        },
+        {
+          "locale": "de",
+          "entry": "l10n_goal_celebration"
+        }
+      ]
+    },
+    {
+      "id": "W29",
+      "title": "新增俄语分享和周期文案过于机械",
+      "entries": [
+        {
+          "locale": "ru",
+          "entry": "l10n_habit_progress"
+        },
+        {
+          "locale": "ru",
+          "entry": "l10n_habit_celebration"
+        },
+        {
+          "locale": "ru",
+          "entry": "l10n_share_goal_finished"
+        },
+        {
+          "locale": "ru",
+          "entry": "l10n_month_day"
+        }
+      ]
+    },
+    {
+      "id": "W30",
+      "title": "旧时间和庆祝片段仍有错义",
+      "entries": [
+        {
+          "locale": "de",
+          "entry": "second"
+        },
+        {
+          "locale": "fr",
+          "entry": "second"
+        },
+        {
+          "locale": "hi",
+          "entry": "second"
+        },
+        {
+          "locale": "ja",
+          "entry": "second"
+        },
+        {
+          "locale": "ko",
+          "entry": "second"
+        },
+        {
+          "locale": "ru",
+          "entry": "second"
+        },
+        {
+          "locale": "de",
+          "entry": "times"
+        },
+        {
+          "locale": "es",
+          "entry": "times"
+        },
+        {
+          "locale": "fr",
+          "entry": "times"
+        },
+        {
+          "locale": "hi",
+          "entry": "times"
+        },
+        {
+          "locale": "it",
+          "entry": "times"
+        },
+        {
+          "locale": "ja",
+          "entry": "times"
+        },
+        {
+          "locale": "ko",
+          "entry": "times"
+        },
+        {
+          "locale": "pt",
+          "entry": "times"
+        },
+        {
+          "locale": "ru",
+          "entry": "times"
+        },
+        {
+          "locale": "pt",
+          "entry": "celebration_goal_part_2"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "locale": "en",
+      "entry": "l10n_habit_finished_period",
+      "status": "已修订",
+      "current_text": "%1$s · finished %2$s",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "l10n_habit_celebration",
+      "status": "已修订",
+      "current_text": "You kept at it for %1$s, finished it %2$s. You have finally developed this habit—a challenging but rewarding experience!\\nWe are glad to see your progress. EverythingDone will keep helping you improve.",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "l10n_habit_progress",
+      "status": "已修订",
+      "current_text": "I have kept at it for %1$s, finished it %2$s.",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "l10n_checklist_finished[one]",
+      "status": "已修订",
+      "current_text": "%1$d item finished",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "l10n_checklist_finished[other]",
+      "status": "已修订",
+      "current_text": "%1$d items finished",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "help_titles[10]",
+      "status": "已修订",
+      "current_text": "Why do finished and created notes count toward the completion-rate formula, while the number of times a habit is finished in each cycle do not?",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "help_contents[2]",
+      "status": "已修订",
+      "current_text": "Note: record moments in life, such as a person, an event, or a scene, without setting any reminder.\n            \\n\\nReminder: EverythingDone reminds you of the thing, and that reminder should happen within 4 weeks (28 days) after the thing is created.\n            \\n\\nHabit: EverythingDone repeatedly reminds you of the thing. The repeat cycle can be a day, a week, a month, or a year, and the number of repeats depends on the cycle type.\n            \\n\\nGoal: EverythingDone reminds you of the thing, and that reminder should happen at least 4 weeks after the thing is created. This kind of thing usually requires long-term effort to finish.",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "help_contents[6]",
+      "status": "已修订",
+      "current_text": "After all things of a certain type are finished, there should be a congratulation prompt. In my design, this feature is implemented by automatically creating a new thing.\n            \\n\\nWithout this thing, the interface would look very empty. Also, because text such as \\\"Underway\\\" sits near the vertical centre of the screen instead of at the top, it would be harder to balance the interface. Designing an empty-state prompt is difficult too: it has to match the app\\'s style, feel fresh and pleasant, and fit the specific empty state, such as everything being finished on the Underway page or no thing being finished on the Finished page. That is challenging and takes quite a bit of time.\n            \\n\\nFinally, changing this design now would also require many changes to the app code, which is another laborious task. So I can only ask everyone with OCD to understand...\n            \\n\\nActually, I have OCD too!",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "help_contents[8]",
+      "status": "已修订",
+      "current_text": "In general, the completion-rate formula is: finished things (not including the number of times a habit is finished within each cycle) / created things. Even if you delete a thing, the fact that it was created does not change, so the completion rate does not change.",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "help_contents[10]",
+      "status": "已修订",
+      "current_text": "Sometimes we casually write down things we need to do, but do not know when they should be finished. That is why I decided to include the number of notes in the completion-rate formula.\n            \\n\\nThe second issue is this: if you only have one thing, and that thing is a habit, then no matter how many times you finish it, your overall completion rate will not increase unless you develop that habit. In fact, in my original design, the number of times a habit was finished in each cycle was counted in the completion-rate formula. But then fully developing a habit, which is a very important action, would not have a matching effect on the completion rate, so I later changed it to the current formula.\n            \\n\\nOf course, if you want to know the real completion rate of habits, you can check the statistics screen; if you want to know the completion rate of a specific habit, you can also see it on that habit\\'s detail screen.",
+      "note": ""
+    },
+    {
+      "locale": "zh-CN",
+      "entry": "home_empty_note",
+      "status": "已修订",
+      "current_text": "这里还没有记录",
+      "note": ""
+    },
+    {
+      "locale": "zh-CN",
+      "entry": "l10n_share_note",
+      "status": "已修订",
+      "current_text": "分享该记录",
+      "note": ""
+    },
+    {
+      "locale": "zh-CN",
+      "entry": "l10n_edit_note",
+      "status": "已修订",
+      "current_text": "编辑记录",
+      "note": ""
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "home_empty_note",
+      "status": "已修订",
+      "current_text": "這裡還沒有記錄",
+      "note": ""
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "l10n_share_note",
+      "status": "已修订",
+      "current_text": "分享該記錄",
+      "note": ""
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "l10n_edit_note",
+      "status": "已修订",
+      "current_text": "編輯記錄",
+      "note": ""
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "home_empty_note",
+      "status": "已修订",
+      "current_text": "這裏還沒有記錄",
+      "note": ""
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "l10n_share_note",
+      "status": "已修订",
+      "current_text": "分享該記錄",
+      "note": ""
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "l10n_edit_note",
+      "status": "已修订",
+      "current_text": "編輯記錄",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "note",
+      "status": "已修订",
+      "current_text": "Notiz",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "note",
+      "status": "已修订",
+      "current_text": "Note",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "note",
+      "status": "已修订",
+      "current_text": "ノート",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "note",
+      "status": "已修订",
+      "current_text": "메모",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "note",
+      "status": "已修订",
+      "current_text": "Заметка",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "Ding",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "all_things",
+      "status": "复核后保留",
+      "current_text": "Alle Dinge",
+      "note": "原文 Alle Dinge 已符合 Ding / Dinge 术语，保留。"
+    },
+    {
+      "locale": "fr",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "Élément",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "Tous les éléments",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "चीज़",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "सभी चीज़ें",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "Elemento",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "Tutti gli elementi",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "メモ",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "すべてのメモ",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "항목",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "모든 항목",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "Item",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "Todos os itens",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "thing",
+      "status": "已修订",
+      "current_text": "Запись",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "all_things",
+      "status": "已修订",
+      "current_text": "Все записи",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "disabled",
+      "status": "已修订",
+      "current_text": "Desactivado",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "auto_start_doing_states[0]",
+      "status": "已修订",
+      "current_text": "@string/disabled",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "disabled",
+      "status": "已修订",
+      "current_text": "बंद",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "auto_start_doing_states[0]",
+      "status": "已修订",
+      "current_text": "@string/disabled",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "disabled",
+      "status": "已修订",
+      "current_text": "無効",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "auto_start_doing_states[0]",
+      "status": "已修订",
+      "current_text": "@string/disabled",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "disabled",
+      "status": "已修订",
+      "current_text": "사용 안 함",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "auto_start_doing_states[0]",
+      "status": "已修订",
+      "current_text": "@string/disabled",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "disabled",
+      "status": "已修订",
+      "current_text": "Отключено",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "auto_start_doing_states[0]",
+      "status": "已修订",
+      "current_text": "@string/disabled",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Angeheftetes Ding",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Anheften",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Angeheftetes Ding",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "Kein angeheftetes Ding",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Cosa fijada",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Fijar arriba",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Cosa fijada",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "No hay cosas fijadas",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Élément épinglé",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Épingler en haut",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Élément épinglé",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "Aucun élément épinglé",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "पिन की गई चीज़",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "सबसे ऊपर पिन करें",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "पिन की गई चीज़",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "कोई चीज़ पिन नहीं की गई है",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Elemento fissato",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Fissa in alto",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Elemento fissato",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "Nessun elemento fissato",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "上部に固定されたメモ",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "上部に固定",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "上部に固定されたメモ",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "固定されたメモはありません",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "상단에 고정된 항목",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "상단에 고정",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "상단에 고정된 항목",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "고정된 항목이 없습니다",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Item fixado",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Fixar no topo",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Item fixado",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "Nenhum item fixado",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "sticky_thing",
+      "status": "已修订",
+      "current_text": "Закреплённая запись",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_sticky_on_top",
+      "status": "已修订",
+      "current_text": "Закрепить вверху",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_shortcut_check_sticky",
+      "status": "已修订",
+      "current_text": "Закреплённая запись",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "alert_shortcut_no_sticky",
+      "status": "已修订",
+      "current_text": "Нет закреплённых записей",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "Lösen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "Dejar de fijar",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "Désépingler",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "पिन हटाएँ",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "Non fissare più",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_cancel_sticky",
+      "status": "已修订",
+      "current_text": "固定を解除",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Ding in der Benachrichtigungsleiste",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Angezeigte Dinge aus der Benachrichtigungsleiste auch auf dem Sperrbildschirm anzeigen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Cosa visible en las notificaciones",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Mostrar también en la pantalla de bloqueo las cosas fijadas en las notificaciones",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Élément affiché dans les notifications",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Afficher aussi sur l\\'écran de verrouillage les éléments maintenus dans les notifications",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "सूचना पैनल में दिखाई जाने वाली चीज़",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "सूचना पैनल में रखी गई चीज़ों को लॉक स्क्रीन पर भी दिखाएँ",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Elemento mostrato nelle notifiche",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Mostra anche nella schermata di blocco gli elementi mantenuti nelle notifiche",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "通知欄に表示されているメモ",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "通知欄に常駐するメモをロック画面にも表示",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "알림창에 표시된 항목",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "알림창에 고정된 항목을 잠금 화면에도 표시",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Item exibido nas notificações",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Mostrar também na tela de bloqueio os itens mantidos nas notificações",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "ongoing_thing",
+      "status": "已修订",
+      "current_text": "Запись в панели уведомлений",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "ongoing_lockscreen",
+      "status": "已修订",
+      "current_text": "Показывать записи из панели уведомлений также на экране блокировки",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Erinnerungen für diese Gewohnheit pausieren",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Erinnerungen für diese Gewohnheit fortsetzen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Pausar los recordatorios del hábito",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Reanudar los recordatorios del hábito",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Mettre en pause les rappels de cette habitude",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Reprendre les rappels de cette habitude",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "आदत के रिमाइंडर रोकें",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "आदत के रिमाइंडर फिर शुरू करें",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Sospendi i promemoria dell\\'abitudine",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Riprendi i promemoria dell\\'abitudine",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "習慣のリマインダーを一時停止",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "習慣のリマインダーを再開",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "습관 알림 일시 중지",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "습관 알림 다시 시작",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Pausar os lembretes deste hábito",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Retomar os lembretes deste hábito",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_pause_habit",
+      "status": "已修订",
+      "current_text": "Приостановить напоминания о привычке",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_resume_habit",
+      "status": "已修订",
+      "current_text": "Возобновить напоминания о привычке",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "He adquirido este hábito",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "J\\'ai acquis cette habitude",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "मैंने यह आदत अपना ली है",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "Ho acquisito questa abitudine",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "この習慣が身につきました",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "이 습관을 들였어요",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "Adquiri este hábito",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_habit_developed",
+      "status": "已修订",
+      "current_text": "Мне удалось сформировать эту привычку",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "cd_checklist_finished_item_clickable",
+      "status": "已修订",
+      "current_text": "Elemento completado. Toca para marcarlo como pendiente",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "cd_checklist_finished_item_clickable",
+      "status": "已修订",
+      "current_text": "Élément terminé. Appuyez pour le marquer comme non terminé",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "cd_checklist_finished_item_clickable",
+      "status": "已修订",
+      "current_text": "पूरा किया गया आइटम। इसे अधूरा चिह्नित करने के लिए टैप करें",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "cd_checklist_finished_item_clickable",
+      "status": "已修订",
+      "current_text": "完了済みの項目。タップして未完了に戻します",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "cd_checklist_finished_item_clickable",
+      "status": "已修订",
+      "current_text": "Item concluído. Toque para marcá-lo como pendente",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Anzahl der Abschlüsse",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Abschlüsse\\n/ insgesamt vorgesehen",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Längste Folge\\nabgeschlossener Wiederholungen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Veces completado",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Veces completado\\n/ total previsto",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Mayor número de veces\\ncompletadas consecutivamente",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Nombre de réalisations",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Réalisations\\n/ total prévu",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Plus grand nombre de\\nréalisations consécutives",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "कितनी बार पूरा किया",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "पूरा करने की संख्या\\n/ कुल निर्धारित संख्या",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "लगातार पूरा करने की\\nसबसे अधिक संख्या",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Numero di completamenti",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Completamenti\\n/ totale previsto",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Numero massimo di\\ncompletamenti consecutivi",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "完了回数",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "完了回数\\n/ 合計回数",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "最長連続\\n完了回数",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "완료 횟수",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "완료 횟수\\n/ 전체 횟수",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "최장 연속\\n완료 횟수",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Número de conclusões",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Conclusões\\n/ total previsto",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Maior número de\\nconclusões consecutivas",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "habit_detail_times",
+      "status": "已修订",
+      "current_text": "Количество выполнений",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "statistic_habit_finished_all",
+      "status": "已修订",
+      "current_text": "Количество выполнений\\n/ всего запланировано",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "statistic_habit_longest_finish_times",
+      "status": "已修订",
+      "current_text": "Наибольшее число\\nвыполнений подряд",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Habit development\\nrate",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Anteil entwickelter\\nGewohnheiten",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Porcentaje de\\nhábitos adquiridos",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Proportion\\nd\\'habitudes acquises",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "अपनाई गई\\nआदतों का प्रतिशत",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Percentuale di\\nabitudini acquisite",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Percentual de\\nhábitos adquiridos",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "statistic_habit_developed_rate",
+      "status": "已修订",
+      "current_text": "Доля сформированных\\nпривычек",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "Typ: Ziel. Zurück",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "Tipo: objetivo. Volver",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "Tipo: obiettivo. Indietro",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "Tipo: objetivo. Voltar",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "cd_checklist_unfinished_item",
+      "status": "已修订",
+      "current_text": "未完了の項目",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "cd_checklist_finished_item",
+      "status": "已修订",
+      "current_text": "完了済みの項目",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "cd_checklist_finished_item",
+      "status": "已修订",
+      "current_text": "완료된 목록 항목",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "cd_back_note",
+      "status": "已修订",
+      "current_text": "유형: 메모. 뒤로",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "cd_back_reminder",
+      "status": "已修订",
+      "current_text": "유형: 알림. 뒤로",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "cd_back_habit",
+      "status": "已修订",
+      "current_text": "유형: 습관. 뒤로",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "유형: 목표. 뒤로",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "cd_back_note",
+      "status": "已修订",
+      "current_text": "Тип: заметка. Назад",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "cd_back_reminder",
+      "status": "已修订",
+      "current_text": "Тип: напоминание. Назад",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "cd_back_habit",
+      "status": "已修订",
+      "current_text": "Тип: привычка. Назад",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "cd_back_goal",
+      "status": "已修订",
+      "current_text": "Тип: цель. Назад",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "underway",
+      "status": "已修订",
+      "current_text": "In Bearbeitung",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "title_widget_things_list",
+      "status": "已修订",
+      "current_text": "@string/underway",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "settings_simple_finished_checklist",
+      "status": "已修订",
+      "current_text": "Erledigte Listenpunkte auf Karten von Dingen in Bearbeitung einklappen",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "reminder_reminded",
+      "status": "已修订",
+      "current_text": "通知済み",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "reminder_reminded",
+      "status": "已修订",
+      "current_text": "알림 보냄",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Open in maps",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "In Karten öffnen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Abrir en mapas",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Ouvrir dans une carte",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "मानचित्र में खोलें",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Apri nella mappa",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "地図で開く",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "지도에서 열기",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Abrir no mapa",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "act_open_in_map",
+      "status": "已修订",
+      "current_text": "Открыть на карте",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "Entwickler unterstützen",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "Apoyar al desarrollador",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "Soutenir le développeur",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "डेवलपर का समर्थन करें",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "開発者を支援",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "개발자 후원",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "act_support",
+      "status": "已修订",
+      "current_text": "Apoiar o desenvolvedor",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "Al crear o editar una cosa, EverythingDone guarda automáticamente su contenido cuando sales del editor.\\n\\nNota: la creación o modificación de un recordatorio, hábito u objetivo no se guarda automáticamente. Por ejemplo, si cambias la hora del recordatorio de una cosa, ese cambio no se guardará automáticamente.",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "Lorsque vous créez ou modifiez un élément, EverythingDone enregistre automatiquement son contenu dès que vous quittez l\\'éditeur.\\n\\nRemarque : la création ou la modification d\\'un rappel, d\\'une habitude ou d\\'un objectif n\\'est pas enregistrée automatiquement. Par exemple, si vous modifiez l\\'heure de rappel d\\'un élément, ce changement ne sera pas enregistré automatiquement.",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "कोई चीज़ बनाते या संपादित करते समय, संपादन स्क्रीन से बाहर निकलने पर EverythingDone उसकी सामग्री अपने-आप सहेज लेता है।\\n\\nध्यान दें: रिमाइंडर, आदत या लक्ष्य बनाने या बदलने की सेटिंग अपने-आप नहीं सहेजी जाती। उदाहरण के लिए, किसी चीज़ के रिमाइंडर का समय बदलने पर वह बदलाव अपने-आप नहीं सहेजा जाएगा।",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "Quando crei o modifichi un elemento, EverythingDone ne salva automaticamente il contenuto appena esci dall\\'editor.\\n\\nNota: la creazione o la modifica di un promemoria, un\\'abitudine o un obiettivo non viene salvata automaticamente. Ad esempio, se cambi l\\'orario del promemoria di un elemento, questa modifica non verrà salvata automaticamente.",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "メモを作成・編集しているときに編集画面を離れると、EverythingDoneは変更後の内容を自動保存します。\\n\\n注意：リマインダー、習慣、目標の作成や設定変更は自動保存されません。たとえば、メモの通知時刻を変更しても、その変更は自動保存されません。",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "항목을 만들거나 수정하다가 편집 화면을 나가면 EverythingDone이 변경된 내용을 자동으로 저장합니다.\\n\\n참고: 알림, 습관 또는 목표를 만들거나 해당 설정을 변경한 내용은 자동으로 저장되지 않습니다. 예를 들어 항목의 알림 시간을 바꿔도 그 변경은 자동으로 저장되지 않습니다.",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "Ao criar ou editar um item, o EverythingDone salva automaticamente o conteúdo quando você sai do editor.\\n\\nObservação: a criação ou alteração de um lembrete, hábito ou objetivo não é salva automaticamente. Por exemplo, se você mudar o horário do lembrete de um item, essa alteração não será salva automaticamente.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "auto_save_edits_help_info",
+      "status": "已修订",
+      "current_text": "При создании или редактировании записи EverythingDone автоматически сохраняет её содержимое, когда вы выходите из редактора.\\n\\nПримечание: создание и изменение настроек напоминания, привычки или цели не сохраняются автоматически. Например, изменение времени напоминания записи не будет сохранено автоматически.",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Choose a delay. EverythingDone will remind you that long after you create each thing. For things other than notes, it will use their reminder times to decide whether an automatic reminder is needed.",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Legen Sie einen zeitlichen Abstand fest. EverythingDone erinnert Sie nach Ablauf dieser Zeit an jedes neu erstellte Ding. Bei Dingen, die keine Notizen sind, entscheidet die App anhand der Erinnerungszeit, ob eine automatische Erinnerung nötig ist.",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Elige un intervalo de tiempo. EverythingDone te avisará cuando haya pasado ese intervalo desde la creación de cada cosa. Si no es una nota, la aplicación decidirá si hace falta un aviso automático según la hora de su recordatorio.",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Choisissez un délai. EverythingDone vous avertira une fois ce délai écoulé après la création de chaque élément. Pour les éléments autres que les notes, l\\'application décide si un rappel automatique est nécessaire en fonction de leur heure de rappel.",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "एक समयांतराल चुनें। हर चीज़ बनाने के बाद उतना समय बीतने पर EverythingDone आपको याद दिलाएगा। नोट के अलावा अन्य चीज़ों के लिए, ऐप उनके रिमाइंडर के समय के आधार पर तय करेगा कि अपने-आप याद दिलाना ज़रूरी है या नहीं।",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Scegli un intervallo di tempo. EverythingDone ti avviserà dopo che sarà trascorso dalla creazione di ogni elemento. Per gli elementi diversi dalle note, l\\'app decide se serve un avviso automatico in base all\\'orario del loro promemoria.",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "通知までの時間を設定すると、メモを作成してからその時間が経過したときにEverythingDoneが通知します。ノート以外の場合は、そのメモの通知時刻に応じて自動通知が必要かどうかを判断します。",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "시간 간격을 설정하면 각 항목을 만든 뒤 해당 시간이 지났을 때 EverythingDone이 알려 줍니다. 메모가 아닌 항목은 해당 항목의 알림 시간에 따라 자동 알림이 필요한지 판단합니다.",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Escolha um intervalo de tempo. O EverythingDone avisará você quando esse intervalo tiver passado desde a criação de cada item. Para itens que não sejam notas, o aplicativo decidirá se é necessário um aviso automático com base no horário do lembrete.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "auto_notify_help_info",
+      "status": "已修订",
+      "current_text": "Задайте интервал времени. EverythingDone напомнит о каждой новой записи, когда после её создания пройдёт этот интервал. Для записей, которые не являются заметками, приложение решает, нужно ли автоматическое напоминание, с учётом уже заданного времени уведомления.",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "start_doing_notification_toast_doing_this",
+      "status": "已修订",
+      "current_text": "EverythingDone: Acaba de pasar la hora del recordatorio de esta cosa. Ya estás trabajando en ella.",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "statistic_habit_longest_pit",
+      "status": "已修订",
+      "current_text": "लगातार निभाई गई\\nअवधियों की अधिकतम संख्या",
+      "note": ""
+    },
+    {
+      "locale": "en",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "You have finished all your goals! Take a break and give yourself some time off.",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "Glückwunsch, Sie haben alle Ziele erreicht! Gönnen Sie sich eine Pause.",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "Congratulazioni, hai raggiunto tutti gli obiettivi! Non stancarti troppo: concediti una pausa.",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "모든 목표를 달성했어요. 축하합니다! 너무 무리하지 말고 잠시 쉬어 가세요.",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "Parabéns, você alcançou todos os objetivos! Não se esgote; faça uma pausa.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "empty_goal",
+      "status": "已修订",
+      "current_text": "Поздравляем, все цели достигнуты! Не переутомляйтесь, сделайте перерыв.",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "help_contents[5]",
+      "status": "已修订",
+      "current_text": "फ़िलहाल (संस्करण 1.3.8), EverythingDone को इन अनुमतियों की ज़रूरत है:\\n\\n1. फ़ोन चालू होने पर अपने-आप शुरू होना, ताकि रिमाइंडर सेट किए जा सकें। यह अनुमति न मिलने पर फ़ोन दोबारा चालू करने के बाद ऐप आपके कार्यक्रमों, आदतों या लक्ष्यों की याद नहीं दिला पाएगा।\\n\\n2. स्टोरेज पढ़ना और उसमें लिखना, ताकि अटैचमेंट जोड़े जा सकें और उपयोग के आँकड़े साझा करते समय स्क्रीनशॉट सहेजे जा सकें।\\n\\n3. ऑडियो रिकॉर्ड करना, ताकि रिकॉर्ड की गई फ़ाइलें चीज़ों के अटैचमेंट के रूप में जोड़ी जा सकें।\\n\\n4. फ़ोन में कंपन करना, ताकि चीज़ें पूरी करने के लिए आपको बेहतर ढंग से सूचित किया जा सके।\\n\\n5. Android 6.0 या उसके बाद के संस्करणों में फ़िंगरप्रिंट की अनुमति, ताकि निजी चीज़ों को फ़िंगरप्रिंट से अनलॉक किया जा सके।\\n\\n6. डिवाइस को चालू रखना, ताकि किसी चीज़ को करना शुरू करने के बाद उलटी गिनती सही चलती रहे।\\n\\nफ़ोन के अनुमति प्रबंधक या अनुकूलन ऐप में पृष्ठभूमि में अपने-आप शुरू होने की अनुमति भी दिख सकती है। यह भी रिमाइंडर सही ढंग से काम करते रहने के लिए है।\\n\\nमेरा वादा है: ऐप कभी अनावश्यक अनुमतियाँ नहीं माँगेगा और मिली हुई अनुमतियों का दुरुपयोग नहीं करेगा।",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "help_contents[7]",
+      "status": "已修订",
+      "current_text": "बिल्कुल। ऐप का नेविगेशन मेन्यू खोलें और सबसे ऊपर की तस्वीर पर टैप करें। इससे आँकड़ों की स्क्रीन खुलेगी। वहाँ आप देख सकते हैं कि आप कितने समय से EverythingDone इस्तेमाल कर रहे हैं, आपने कितना लिखा है, रिमाइंडर का औसत समय क्या है और कितनी आदतें अपना चुके हैं।",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "help_contents[8]",
+      "status": "已修订",
+      "current_text": "आम तौर पर पूर्णता दर का सूत्र है: पूरी की गई चीज़ों की संख्या (हर अवधि में आदत को पूरा करने की संख्या को छोड़कर) / अब तक बनाई गई चीज़ों की संख्या। किसी चीज़ को हटाने से यह तथ्य नहीं बदलता कि उसे बनाया गया था, इसलिए पूर्णता दर नहीं बदलती।",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "help_contents[10]",
+      "status": "已修订",
+      "current_text": "कभी-कभी हम कोई काम लिख लेते हैं, लेकिन उस समय यह नहीं जानते कि उसे कब तक पूरा करना है। इसलिए मैंने पूर्णता दर की गणना में नोट की संख्या को भी शामिल किया है।\\n\\nदूसरा सवाल तब उठता है जब आपकी एक ही चीज़ हो और वह एक आदत हो। आप उसे चाहे जितनी बार पूरा करें, कुल पूर्णता दर तब तक नहीं बढ़ेगी जब तक आप उस आदत को अपना नहीं लेते। शुरुआती डिज़ाइन में हर अवधि के दौरान आदत को पूरा करने की संख्या भी गणना में शामिल थी। लेकिन इससे किसी आदत को पूरी तरह अपना लेने जैसे महत्वपूर्ण काम का पूर्णता दर पर उतना असर नहीं पड़ता था। इसलिए बाद में मैंने मौजूदा सूत्र अपनाया।\\n\\nआदतों की वास्तविक पूर्णता दर आप आँकड़ों की स्क्रीन पर देख सकते हैं। किसी एक आदत की पूर्णता दर जानने के लिए उस आदत की विवरण स्क्रीन खोलें।",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "help_contents[11]",
+      "status": "已修订",
+      "current_text": "नोट और रिमाइंडर वाले ऐप में चीज़ों को अलग-अलग डिवाइस पर सिंक करना बहुत महत्वपूर्ण है। लेकिन डेवलपर अभी सीख रहा है, इसलिए इस सुविधा को पूरा करने में कुछ समय और लगेगा। उम्मीद है आप समझेंगे।",
+      "note": ""
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "audio_recording_storage_full",
+      "status": "复核后保留",
+      "current_text": "儲存空間不足，錄音未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "audio_recording_finalize_failed",
+      "status": "复核后保留",
+      "current_text": "錄音封裝失敗，未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "audio_recording_stop_not_kept_notification_title",
+      "status": "复核后保留",
+      "current_text": "錄音已停止但未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "audio_recording_finalizing",
+      "status": "复核后保留",
+      "current_text": "正在保存錄音…",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "audio_recording_finalizing_notification_title",
+      "status": "复核后保留",
+      "current_text": "正在保存錄音",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "cd_save_unavailable_not_kept",
+      "status": "复核后保留",
+      "current_text": "錄音未能保留，無法保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "settings_dialog_particle_animation",
+      "status": "复核后保留",
+      "current_text": "對話框粒子動畫效果",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "particle_tuning_preview_dialog",
+      "status": "复核后保留",
+      "current_text": "對話框",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "particle_tuning_hint_dialog",
+      "status": "复核后保留",
+      "current_text": "點按對話框中的按鈕可再播放一輪",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "particle_tuning_stats_waiting",
+      "status": "复核后保留",
+      "current_text": "粒子總數 %1$s · 播放一次動畫即可量出本機數據",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-TW",
+      "entry": "particle_tuning_stats_idle",
+      "status": "复核后保留",
+      "current_text": "播放一次動畫即可量出本機數據",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "audio_recording_storage_full",
+      "status": "复核后保留",
+      "current_text": "儲存空間不足，錄音未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "audio_recording_finalize_failed",
+      "status": "复核后保留",
+      "current_text": "錄音封裝失敗，未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "audio_recording_stop_not_kept_notification_title",
+      "status": "复核后保留",
+      "current_text": "錄音已停止但未能保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "audio_recording_finalizing",
+      "status": "复核后保留",
+      "current_text": "正在保存錄音…",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "audio_recording_finalizing_notification_title",
+      "status": "复核后保留",
+      "current_text": "正在保存錄音",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "cd_save_unavailable_not_kept",
+      "status": "复核后保留",
+      "current_text": "錄音未能保留，無法保存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "settings_dialog_particle_animation",
+      "status": "复核后保留",
+      "current_text": "對話框粒子動畫效果",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "particle_tuning_preview_dialog",
+      "status": "复核后保留",
+      "current_text": "對話框",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "particle_tuning_hint_dialog",
+      "status": "复核后保留",
+      "current_text": "點按對話框中的按鈕可再播放一輪",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "particle_tuning_stats_waiting",
+      "status": "复核后保留",
+      "current_text": "粒子總數 %1$s · 播放一次動畫即可量出本機數據",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "particle_tuning_stats_idle",
+      "status": "复核后保留",
+      "current_text": "播放一次動畫即可量出本機數據",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_inpainting_message",
+      "status": "复核后保留",
+      "current_text": "背景補全模型用於補全視角移動時露出的被遮擋區域，是生成完整空間效果的必需組件。刪除後如無其它已安裝的補全模型，新的生成只能使用單層效果；已生成的空間效果仍可查看。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_remove_message",
+      "status": "复核后保留",
+      "current_text": "只會刪除本機生成的深度數據，不會改變原始圖片。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_generation_saving",
+      "status": "复核后保留",
+      "current_text": "正在保存空間效果…",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_model_not_ready",
+      "status": "复核后保留",
+      "current_text": "請先在設置中下載空間深度模型",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_model_device_ineligible",
+      "status": "复核后保留",
+      "current_text": "本設備無法為該模型安全提供足夠內存",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_derivative_invalid",
+      "status": "复核后保留",
+      "current_text": "已保存的空間效果不完整，請重新生成",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_tilt_unavailable",
+      "status": "复核后保留",
+      "current_text": "本設備沒有兼容的傾斜傳感器；可拖動圖片控制視點",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_first_use_hint",
+      "status": "复核后保留",
+      "current_text": "傾斜設備或拖動圖片即可改變視點",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_qnn_restart_required",
+      "status": "复核后保留",
+      "current_text": "運行組件已切換，生成前請重啓應用。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_qnn_downloading",
+      "status": "复核后保留",
+      "current_text": "已啓用 · 正在下載運行組件…",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_npu_runtime_pending",
+      "status": "复核后保留",
+      "current_text": "等待 NPU 運行組件就緒…",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_qnn_description",
+      "status": "复核后保留",
+      "current_text": "讓支持的模型在驍龍 NPU 上推理。需要單獨的運行組件；每個模型首次使用時在本機編譯計算圖，編譯結果會緩存複用。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_qnn_ready",
+      "status": "复核后保留",
+      "current_text": "已啓用 · 運行組件已安裝",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_qnn_needs_runtime",
+      "status": "复核后保留",
+      "current_text": "已啓用 · 下次生成時下載運行組件",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_zipdepth_description",
+      "status": "复核后保留",
+      "current_text": "MIT。體積更小，適合作為默認模型。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_moge2_description",
+      "status": "复核后保留",
+      "current_text": "四個模型裏唯一能恢復米制深度與相機內參的一檔，因此視角移動是真正的透視重投影，而不是屏幕空間的整體形變。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_matting_description",
+      "status": "复核后保留",
+      "current_text": "可選組件。為新生成的人像空間效果細化髮絲邊緣；安裝後重新生成效果即可生效。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_segmentation_description",
+      "status": "复核后保留",
+      "current_text": "可選組件。RF-DETR 只阻止同一人物內部被錯誤切斷，不會把檢測實例作為獨立剛性層移動；EdgeTAM 仍不參與 vNext。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_device_tilt",
+      "status": "复核后保留",
+      "current_text": "通過傾斜設備控制視點",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_device_tilt_description",
+      "status": "复核后保留",
+      "current_text": "默認開啓。關閉後不會註冊姿態傳感器，仍可拖動圖片控制視點。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_model_memory_required",
+      "status": "复核后保留",
+      "current_text": "該模型要求設備總內存至少為 %1$d GB",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_runtime_title",
+      "status": "复核后保留",
+      "current_text": "刪除空間計算組件？",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_depth_message",
+      "status": "复核后保留",
+      "current_text": "深度模型用於從照片推算三維幾何，是生成空間效果的必需組件。刪除後如無其它已安裝的深度模型，將無法生成新的空間效果；已生成的效果仍可查看。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_matting_message",
+      "status": "复核后保留",
+      "current_text": "髮絲邊緣細化模型用於細化人像髮絲等精細邊緣，屬於可選組件。刪除後新生成的效果不再應用此細化；已生成的效果仍可查看。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_segmentation_message",
+      "status": "复核后保留",
+      "current_text": "人物連續性模型用於在視角變化中保持人物完整連續，屬於可選組件。刪除後新生成的效果退回純深度分層；已生成的效果仍可查看。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_qnn_runtime_message",
+      "status": "复核后保留",
+      "current_text": "驍龍 NPU 運行組件用於讓支援的模型在本機 NPU 上推理。刪除後 NPU 加速不可用，相關模型改在 CPU 上運行；可隨時重新下載。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_delete_legacy_message",
+      "status": "复核后保留",
+      "current_text": "該組件已不再被空間渲染使用，刪除可釋放儲存空間，不影響任何功能。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_missing_components_title",
+      "status": "复核后保留",
+      "current_text": "下載所需組件",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_missing_components_message",
+      "status": "复核后保留",
+      "current_text": "生成空間照片需要以下組件：\\n\\n%1$s\\n\\n可在設定頁一次性下載安裝。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_notification_denied",
+      "status": "复核后保留",
+      "current_text": "通知權限已關閉。下載仍會繼續，但離開設置後可能無法看到進度。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_storage_summary",
+      "status": "复核后保留",
+      "current_text": "計算組件：%1$s\\n模型包：%2$s\\n已生成效果：%3$s",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_storage_summary_v2",
+      "status": "复核后保留",
+      "current_text": "計算組件：%1$s\\n深度與分層模型：%2$s\\n隱藏背景模型：%3$s\\n已生成效果：%4$s",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "zh-HK",
+      "entry": "spatial_clear_derivatives_confirm",
+      "status": "复核后保留",
+      "current_text": "這會移除本機生成的全部深度數據，不改變原始附件和已下載模型。",
+      "note": "按用户最新要求恢复已有中文原文，撤销本轮非必要润色；另由中文基线检查验证。"
+    },
+    {
+      "locale": "es",
+      "entry": "l10n_recurrence_daily",
+      "status": "已修订",
+      "current_text": "Cada día %1$s",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "l10n_recurrence_weekly",
+      "status": "已修订",
+      "current_text": "Cada semana: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "l10n_recurrence_monthly",
+      "status": "已修订",
+      "current_text": "Cada mes: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "l10n_recurrence_yearly",
+      "status": "已修订",
+      "current_text": "Cada año: %1$s · %2$s %3$s",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "l10n_recurrence_daily",
+      "status": "已修订",
+      "current_text": "Ogni giorno %1$s",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "l10n_recurrence_weekly",
+      "status": "已修订",
+      "current_text": "Ogni settimana: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "l10n_recurrence_monthly",
+      "status": "已修订",
+      "current_text": "Ogni mese: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "l10n_recurrence_yearly",
+      "status": "已修订",
+      "current_text": "Ogni anno: %1$s · %2$s %3$s",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "l10n_recurrence_daily",
+      "status": "已修订",
+      "current_text": "Todos os dias %1$s",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "l10n_recurrence_weekly",
+      "status": "已修订",
+      "current_text": "Todas as semanas: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "l10n_recurrence_monthly",
+      "status": "已修订",
+      "current_text": "Todos os meses: %1$s %2$s",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "l10n_recurrence_yearly",
+      "status": "已修订",
+      "current_text": "Todos os anos: %1$s · %2$s %3$s",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "l10n_goal_overdue_duration",
+      "status": "已修订",
+      "current_text": "Frist um %1$s überschritten",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "l10n_goal_celebration",
+      "status": "已修订",
+      "current_text": "Sie haben %1$s gebraucht, um dieses Ziel zu erreichen. Jetzt ist es Zeit zu feiern!",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "l10n_habit_progress",
+      "status": "已修订",
+      "current_text": "Я продолжаю заниматься этим %1$s. Выполнено %2$s.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "l10n_habit_celebration",
+      "status": "已修订",
+      "current_text": "Вы упорно занимались этим %1$s и выполнили нужное действие %2$s. Теперь эта привычка сформирована — путь был трудным, но прекрасным!\\nРады видеть ваш прогресс. EverythingDone и дальше будет помогать вам становиться лучше.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "l10n_share_goal_finished",
+      "status": "已修订",
+      "current_text": "Мне удалось достичь этой цели, упорно работая %1$s.",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "l10n_month_day",
+      "status": "已修订",
+      "current_text": "%1$d-го",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "Sekunde",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "seconde",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "सेकंड",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "秒",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "초",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "second",
+      "status": "已修订",
+      "current_text": "секунда",
+      "note": ""
+    },
+    {
+      "locale": "de",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "Mal",
+      "note": ""
+    },
+    {
+      "locale": "es",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "veces",
+      "note": ""
+    },
+    {
+      "locale": "fr",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "fois",
+      "note": ""
+    },
+    {
+      "locale": "hi",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "बार",
+      "note": ""
+    },
+    {
+      "locale": "it",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "volte",
+      "note": ""
+    },
+    {
+      "locale": "ja",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "回",
+      "note": ""
+    },
+    {
+      "locale": "ko",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "회",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "vezes",
+      "note": ""
+    },
+    {
+      "locale": "ru",
+      "entry": "times",
+      "status": "已修订",
+      "current_text": "раз",
+      "note": ""
+    },
+    {
+      "locale": "pt",
+      "entry": "celebration_goal_part_2",
+      "status": "已修订",
+      "current_text": "alcançar este objetivo. Agora é hora de comemorar!",
+      "note": ""
+    }
+  ],
+  "errors": []
+}

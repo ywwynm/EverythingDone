@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <instrumentation android:name=".localization.LocalizationProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="多语言文案与日期数量回归" />
+
     <instrumentation android:name=".taptransfer.TapReceiveVisibilityProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="碰一碰接收卡片显示回归" />
 

@@ -190,29 +190,25 @@ object LocaleUtil {
 
     @JvmStatic
     fun getTimesStr(context: Context?, times: Int, shouldHasGapStr: Boolean): String? {
-        val timesStr: String = context!!.getString(R.string.times)
-        return if (isChinese(context)) {
-            times.toString() + (if (shouldHasGapStr) " " else "") + timesStr
-        } else {
-            when (times) {
-                0 -> "0 time"
-                1 -> "once"
-                2 -> "twice"
-                else -> times.toString() + " " + timesStr + "s"
-            }
-        }
+        if (isChinese(context)) return times.toString() + (if (shouldHasGapStr) " " else "") + context!!.getString(R.string.times)
+        val text = LocalizedText.quantity(context!!, R.plurals.l10n_times, times)
+        return text
     }
 
     @JvmStatic
     fun getPercentStr(num1: Int, num2: Int): String {
-        if (num2 == 0) {
-            return "0 %"
-        } else {
-            val nf: NumberFormat = NumberFormat.getPercentInstance()
-            nf.setMaximumFractionDigits(2)
-            val str: String = nf.format((num1.toFloat() / num2).toDouble())
-            return str.substring(0, str.length - 1) + " %"
+        // Application 的包装资源可能仍保留启动时的语言，切换后读取实际应用设置。
+        val locale = getStoredLocale(App.getApp()!!) ?: Resources.getSystem().configuration.locales[0]
+        if (locale.language == "zh") {
+            if (num2 == 0) return "0 %"
+            val text = NumberFormat.getPercentInstance(locale).apply {
+                maximumFractionDigits = 2
+            }.format((num1.toFloat() / num2).toDouble())
+            return text.dropLast(1) + " %"
         }
+        return NumberFormat.getPercentInstance(locale).apply {
+            maximumFractionDigits = 2
+        }.format(if (num2 == 0) 0.0 else num1.toDouble() / num2)
     }
 
 }

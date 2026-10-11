@@ -1,0 +1,10 @@
+--------- beginning of crash
+05-10 16:44:36.818  1183  1183 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 1183 (init), pid 1183 (init)
+05-10 16:44:36.832  1183  1183 F libc    : Crash due to signal: crash_dump helper failed to exec, or was killed
+10-11 04:03:40.639  6849  6849 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 6849 (init), pid 6849 (init)
+10-11 04:03:40.690  6849  6849 F libc    : Crash due to signal: crash_dump helper failed to exec, or was killed
+10-11 14:11:40.354 28349 28691 E AndroidRuntime: FATAL EXCEPTION: Instr: com.ywwynm.everythingdone.localization.LocalizationProbe
+10-11 14:11:40.354 28349 28691 E AndroidRuntime: Process: com.ywwynm.everythingdone, PID: 28349
+10-11 14:11:40.354 28349 28691 E AndroidRuntime: java.lang.NullPointerException
+10-11 14:11:40.354 28349 28691 E AndroidRuntime: 	at com.ywwynm.everythingdone.localization.LocalizationProbe.onStart(LocalizationProbe.kt:70)
+10-11 14:11:40.354 28349 28691 E AndroidRuntime: 	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2632)

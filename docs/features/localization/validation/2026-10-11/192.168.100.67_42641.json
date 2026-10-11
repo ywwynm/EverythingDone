@@ -1,0 +1,864 @@
+{
+  "checks": 4379,
+  "failures": [],
+  "samples": [
+    {
+      "locale": "en",
+      "mixed_attachments": "2 images and 1 video",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 times per day",
+          "checklist": "0 items completed",
+          "folders": "0 things"
+        },
+        {
+          "count": 1,
+          "images": "1 image",
+          "audios": "1 audio recording",
+          "frequency": "1 time per day",
+          "checklist": "1 item completed",
+          "folders": "1 folder and 1 thing"
+        },
+        {
+          "count": 2,
+          "images": "2 images",
+          "audios": "2 audio recordings",
+          "frequency": "2 times per day",
+          "checklist": "2 items completed",
+          "folders": "2 folders and 2 things"
+        },
+        {
+          "count": 5,
+          "images": "5 images",
+          "audios": "5 audio recordings",
+          "frequency": "5 times per day",
+          "checklist": "5 items completed",
+          "folders": "5 folders and 5 things"
+        },
+        {
+          "count": 11,
+          "images": "11 images",
+          "audios": "11 audio recordings",
+          "frequency": "11 times per day",
+          "checklist": "11 items completed",
+          "folders": "11 folders and 11 things"
+        },
+        {
+          "count": 21,
+          "images": "21 images",
+          "audios": "21 audio recordings",
+          "frequency": "21 times per day",
+          "checklist": "21 items completed",
+          "folders": "21 folders and 21 things"
+        }
+      ],
+      "date": "Apr 23, 2026",
+      "datetime": "Thu, Apr 23, 2026, 17:08:06",
+      "recurrence": [
+        "Every day at 6:30 and 17:08",
+        "Every week: Sunday and Saturday at 17:08",
+        "Every month: day 1, day 11, day 21, day 27, and last day at 17:08",
+        "Every year: January and December · day 1 at 17:08",
+        "Every year: January and December · last day at 17:08"
+      ],
+      "after_21_minutes": "in 21 minutes",
+      "duration": "1 hr, 1 min"
+    },
+    {
+      "locale": "zh-CN",
+      "mixed_attachments": "2张图片和1段视频",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "每天0次",
+          "checklist": "已完成0项",
+          "folders": "0件记事"
+        },
+        {
+          "count": 1,
+          "images": "1张图片",
+          "audios": "1段音频",
+          "frequency": "每天1次",
+          "checklist": "已完成1项",
+          "folders": "1个文件夹和1件记事"
+        },
+        {
+          "count": 2,
+          "images": "2张图片",
+          "audios": "2段音频",
+          "frequency": "每天2次",
+          "checklist": "已完成2项",
+          "folders": "2个文件夹和2件记事"
+        },
+        {
+          "count": 5,
+          "images": "5张图片",
+          "audios": "5段音频",
+          "frequency": "每天5次",
+          "checklist": "已完成5项",
+          "folders": "5个文件夹和5件记事"
+        },
+        {
+          "count": 11,
+          "images": "11张图片",
+          "audios": "11段音频",
+          "frequency": "每天11次",
+          "checklist": "已完成11项",
+          "folders": "11个文件夹和11件记事"
+        },
+        {
+          "count": 21,
+          "images": "21张图片",
+          "audios": "21段音频",
+          "frequency": "每天21次",
+          "checklist": "已完成21项",
+          "folders": "21个文件夹和21件记事"
+        }
+      ],
+      "date": "2026年4月23日",
+      "datetime": "2026年4月23日周四 17:08:06",
+      "recurrence": [
+        "每天6:30和17:08",
+        "每周：周日和周六 17:08",
+        "每月1号、11号、21号、27号和月末 17:08",
+        "每年一月和十二月，1号 17:08",
+        "每年一月和十二月，月末 17:08"
+      ],
+      "after_21_minutes": "21分钟后",
+      "duration": "1小时1分钟"
+    },
+    {
+      "locale": "zh-TW",
+      "mixed_attachments": "2張圖片和1段影片",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "每天0次",
+          "checklist": "已完成0項",
+          "folders": "0件記事"
+        },
+        {
+          "count": 1,
+          "images": "1張圖片",
+          "audios": "1段音訊",
+          "frequency": "每天1次",
+          "checklist": "已完成1項",
+          "folders": "1個資料夾和1件記事"
+        },
+        {
+          "count": 2,
+          "images": "2張圖片",
+          "audios": "2段音訊",
+          "frequency": "每天2次",
+          "checklist": "已完成2項",
+          "folders": "2個資料夾和2件記事"
+        },
+        {
+          "count": 5,
+          "images": "5張圖片",
+          "audios": "5段音訊",
+          "frequency": "每天5次",
+          "checklist": "已完成5項",
+          "folders": "5個資料夾和5件記事"
+        },
+        {
+          "count": 11,
+          "images": "11張圖片",
+          "audios": "11段音訊",
+          "frequency": "每天11次",
+          "checklist": "已完成11項",
+          "folders": "11個資料夾和11件記事"
+        },
+        {
+          "count": 21,
+          "images": "21張圖片",
+          "audios": "21段音訊",
+          "frequency": "每天21次",
+          "checklist": "已完成21項",
+          "folders": "21個資料夾和21件記事"
+        }
+      ],
+      "date": "2026年4月23日",
+      "datetime": "2026年4月23日 週四 17:08:06",
+      "recurrence": [
+        "每天6:30和17:08",
+        "每週：周日和周六 17:08",
+        "每月1號、11號、21號、27號和月末 17:08",
+        "每年一月和十二月，1號 17:08",
+        "每年一月和十二月，月末 17:08"
+      ],
+      "after_21_minutes": "21 分鐘後",
+      "duration": "1 小時 1 分鐘"
+    },
+    {
+      "locale": "zh-HK",
+      "mixed_attachments": "2張圖片及1段影片",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "每天0次",
+          "checklist": "已完成0項",
+          "folders": "0件記事"
+        },
+        {
+          "count": 1,
+          "images": "1張圖片",
+          "audios": "1段音訊",
+          "frequency": "每天1次",
+          "checklist": "已完成1項",
+          "folders": "1個資料夾及1件記事"
+        },
+        {
+          "count": 2,
+          "images": "2張圖片",
+          "audios": "2段音訊",
+          "frequency": "每天2次",
+          "checklist": "已完成2項",
+          "folders": "2個資料夾及2件記事"
+        },
+        {
+          "count": 5,
+          "images": "5張圖片",
+          "audios": "5段音訊",
+          "frequency": "每天5次",
+          "checklist": "已完成5項",
+          "folders": "5個資料夾及5件記事"
+        },
+        {
+          "count": 11,
+          "images": "11張圖片",
+          "audios": "11段音訊",
+          "frequency": "每天11次",
+          "checklist": "已完成11項",
+          "folders": "11個資料夾及11件記事"
+        },
+        {
+          "count": 21,
+          "images": "21張圖片",
+          "audios": "21段音訊",
+          "frequency": "每天21次",
+          "checklist": "已完成21項",
+          "folders": "21個資料夾及21件記事"
+        }
+      ],
+      "date": "2026年4月23日",
+      "datetime": "2026年4月23日週四 17:08:06",
+      "recurrence": [
+        "每天6:30及17:08",
+        "每週：周日及周六 17:08",
+        "每月1號、11號、21號、27號及月末 17:08",
+        "每年一月及十二月，1號 17:08",
+        "每年一月及十二月，月末 17:08"
+      ],
+      "after_21_minutes": "21 分鐘後",
+      "duration": "1 小時 1 分鐘"
+    },
+    {
+      "locale": "de",
+      "mixed_attachments": "2 Bilder und 1 Video",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 Mal pro Tag",
+          "checklist": "0 Punkte erledigt",
+          "folders": "0 Dinge"
+        },
+        {
+          "count": 1,
+          "images": "1 Bild",
+          "audios": "1 Audioaufnahme",
+          "frequency": "1 Mal pro Tag",
+          "checklist": "1 Punkt erledigt",
+          "folders": "1 Ordner und 1 Ding"
+        },
+        {
+          "count": 2,
+          "images": "2 Bilder",
+          "audios": "2 Audioaufnahmen",
+          "frequency": "2 Mal pro Tag",
+          "checklist": "2 Punkte erledigt",
+          "folders": "2 Ordner und 2 Dinge"
+        },
+        {
+          "count": 5,
+          "images": "5 Bilder",
+          "audios": "5 Audioaufnahmen",
+          "frequency": "5 Mal pro Tag",
+          "checklist": "5 Punkte erledigt",
+          "folders": "5 Ordner und 5 Dinge"
+        },
+        {
+          "count": 11,
+          "images": "11 Bilder",
+          "audios": "11 Audioaufnahmen",
+          "frequency": "11 Mal pro Tag",
+          "checklist": "11 Punkte erledigt",
+          "folders": "11 Ordner und 11 Dinge"
+        },
+        {
+          "count": 21,
+          "images": "21 Bilder",
+          "audios": "21 Audioaufnahmen",
+          "frequency": "21 Mal pro Tag",
+          "checklist": "21 Punkte erledigt",
+          "folders": "21 Ordner und 21 Dinge"
+        }
+      ],
+      "date": "23. Apr. 2026",
+      "datetime": "Do., 23. Apr. 2026, 17:08:06",
+      "recurrence": [
+        "Täglich um 6:30 und 17:08",
+        "Wöchentlich: Sonntag und Samstag um 17:08",
+        "Monatlich: Tag 1, Tag 11, Tag 21, Tag 27 und letzter Tag um 17:08",
+        "Jährlich: Januar und Dezember · Tag 1 um 17:08",
+        "Jährlich: Januar und Dezember · letzter Tag um 17:08"
+      ],
+      "after_21_minutes": "in 21 Minuten",
+      "duration": "1 Std., 1 Min."
+    },
+    {
+      "locale": "es",
+      "mixed_attachments": "2 imágenes y 1 vídeo",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 veces al día",
+          "checklist": "0 elementos completados",
+          "folders": "0 cosas"
+        },
+        {
+          "count": 1,
+          "images": "1 imagen",
+          "audios": "1 grabación de audio",
+          "frequency": "1 vez al día",
+          "checklist": "1 elemento completado",
+          "folders": "1 carpeta y 1 cosa"
+        },
+        {
+          "count": 2,
+          "images": "2 imágenes",
+          "audios": "2 grabaciones de audio",
+          "frequency": "2 veces al día",
+          "checklist": "2 elementos completados",
+          "folders": "2 carpetas y 2 cosas"
+        },
+        {
+          "count": 5,
+          "images": "5 imágenes",
+          "audios": "5 grabaciones de audio",
+          "frequency": "5 veces al día",
+          "checklist": "5 elementos completados",
+          "folders": "5 carpetas y 5 cosas"
+        },
+        {
+          "count": 11,
+          "images": "11 imágenes",
+          "audios": "11 grabaciones de audio",
+          "frequency": "11 veces al día",
+          "checklist": "11 elementos completados",
+          "folders": "11 carpetas y 11 cosas"
+        },
+        {
+          "count": 21,
+          "images": "21 imágenes",
+          "audios": "21 grabaciones de audio",
+          "frequency": "21 veces al día",
+          "checklist": "21 elementos completados",
+          "folders": "21 carpetas y 21 cosas"
+        }
+      ],
+      "date": "23 abr 2026",
+      "datetime": "jue, 23 abr 2026, 17:08:06",
+      "recurrence": [
+        "Cada día a las 6:30 y 17:08",
+        "Cada semana: domingo y sábado a las 17:08",
+        "Cada mes: día 1, día 11, día 21, día 27 y último día a las 17:08",
+        "Cada año: enero y diciembre · día 1 a las 17:08",
+        "Cada año: enero y diciembre · último día a las 17:08"
+      ],
+      "after_21_minutes": "dentro de 21 minutos",
+      "duration": "1 h y 1 min"
+    },
+    {
+      "locale": "fr",
+      "mixed_attachments": "2 images et 1 vidéo",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 fois par jour",
+          "checklist": "0 élément terminé",
+          "folders": "0 élément"
+        },
+        {
+          "count": 1,
+          "images": "1 image",
+          "audios": "1 enregistrement audio",
+          "frequency": "1 fois par jour",
+          "checklist": "1 élément terminé",
+          "folders": "1 dossier et 1 élément"
+        },
+        {
+          "count": 2,
+          "images": "2 images",
+          "audios": "2 enregistrements audio",
+          "frequency": "2 fois par jour",
+          "checklist": "2 éléments terminés",
+          "folders": "2 dossiers et 2 éléments"
+        },
+        {
+          "count": 5,
+          "images": "5 images",
+          "audios": "5 enregistrements audio",
+          "frequency": "5 fois par jour",
+          "checklist": "5 éléments terminés",
+          "folders": "5 dossiers et 5 éléments"
+        },
+        {
+          "count": 11,
+          "images": "11 images",
+          "audios": "11 enregistrements audio",
+          "frequency": "11 fois par jour",
+          "checklist": "11 éléments terminés",
+          "folders": "11 dossiers et 11 éléments"
+        },
+        {
+          "count": 21,
+          "images": "21 images",
+          "audios": "21 enregistrements audio",
+          "frequency": "21 fois par jour",
+          "checklist": "21 éléments terminés",
+          "folders": "21 dossiers et 21 éléments"
+        }
+      ],
+      "date": "23 avr. 2026",
+      "datetime": "jeu. 23 avr. 2026, 17:08:06",
+      "recurrence": [
+        "Chaque jour à 6:30 et 17:08",
+        "Chaque semaine : dimanche et samedi à 17:08",
+        "Chaque mois : jour 1, jour 11, jour 21, jour 27 et dernier jour à 17:08",
+        "Chaque année : janvier et décembre · jour 1 à 17:08",
+        "Chaque année : janvier et décembre · dernier jour à 17:08"
+      ],
+      "after_21_minutes": "dans 21 minutes",
+      "duration": "1 h et 1 min"
+    },
+    {
+      "locale": "hi",
+      "mixed_attachments": "2 चित्र और 1 वीडियो",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "प्रतिदिन 0 बार",
+          "checklist": "0 मद पूरी हुई",
+          "folders": "0 चीज़"
+        },
+        {
+          "count": 1,
+          "images": "1 चित्र",
+          "audios": "1 ऑडियो रिकॉर्डिंग",
+          "frequency": "प्रतिदिन 1 बार",
+          "checklist": "1 मद पूरी हुई",
+          "folders": "1 फ़ोल्डर और 1 चीज़"
+        },
+        {
+          "count": 2,
+          "images": "2 चित्र",
+          "audios": "2 ऑडियो रिकॉर्डिंग",
+          "frequency": "प्रतिदिन 2 बार",
+          "checklist": "2 मदें पूरी हुईं",
+          "folders": "2 फ़ोल्डर और 2 चीज़ें"
+        },
+        {
+          "count": 5,
+          "images": "5 चित्र",
+          "audios": "5 ऑडियो रिकॉर्डिंग",
+          "frequency": "प्रतिदिन 5 बार",
+          "checklist": "5 मदें पूरी हुईं",
+          "folders": "5 फ़ोल्डर और 5 चीज़ें"
+        },
+        {
+          "count": 11,
+          "images": "11 चित्र",
+          "audios": "11 ऑडियो रिकॉर्डिंग",
+          "frequency": "प्रतिदिन 11 बार",
+          "checklist": "11 मदें पूरी हुईं",
+          "folders": "11 फ़ोल्डर और 11 चीज़ें"
+        },
+        {
+          "count": 21,
+          "images": "21 चित्र",
+          "audios": "21 ऑडियो रिकॉर्डिंग",
+          "frequency": "प्रतिदिन 21 बार",
+          "checklist": "21 मदें पूरी हुईं",
+          "folders": "21 फ़ोल्डर और 21 चीज़ें"
+        }
+      ],
+      "date": "23 अप्रैल 2026",
+      "datetime": "गुरु, 23 अप्रैल 2026, 17:08:06",
+      "recurrence": [
+        "हर दिन 6:30 और 17:08 बजे",
+        "हर सप्ताह: रविवार और शनिवार, 17:08 बजे",
+        "हर महीने: 1 तारीख, 11 तारीख, 21 तारीख, 27 तारीख, और महीने का आखिरी दिन, 17:08 बजे",
+        "हर वर्ष: जनवरी और दिसंबर · 1 तारीख, 17:08 बजे",
+        "हर वर्ष: जनवरी और दिसंबर · महीने का आखिरी दिन, 17:08 बजे"
+      ],
+      "after_21_minutes": "21 मिनट में",
+      "duration": "1 घं॰, 1 मि॰"
+    },
+    {
+      "locale": "it",
+      "mixed_attachments": "2 immagini e 1 video",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 volte al giorno",
+          "checklist": "0 voci completate",
+          "folders": "0 elementi"
+        },
+        {
+          "count": 1,
+          "images": "1 immagine",
+          "audios": "1 registrazione audio",
+          "frequency": "1 volta al giorno",
+          "checklist": "1 voce completata",
+          "folders": "1 cartella e 1 elemento"
+        },
+        {
+          "count": 2,
+          "images": "2 immagini",
+          "audios": "2 registrazioni audio",
+          "frequency": "2 volte al giorno",
+          "checklist": "2 voci completate",
+          "folders": "2 cartelle e 2 elementi"
+        },
+        {
+          "count": 5,
+          "images": "5 immagini",
+          "audios": "5 registrazioni audio",
+          "frequency": "5 volte al giorno",
+          "checklist": "5 voci completate",
+          "folders": "5 cartelle e 5 elementi"
+        },
+        {
+          "count": 11,
+          "images": "11 immagini",
+          "audios": "11 registrazioni audio",
+          "frequency": "11 volte al giorno",
+          "checklist": "11 voci completate",
+          "folders": "11 cartelle e 11 elementi"
+        },
+        {
+          "count": 21,
+          "images": "21 immagini",
+          "audios": "21 registrazioni audio",
+          "frequency": "21 volte al giorno",
+          "checklist": "21 voci completate",
+          "folders": "21 cartelle e 21 elementi"
+        }
+      ],
+      "date": "23 apr 2026",
+      "datetime": "gio 23 apr 2026, 17:08:06",
+      "recurrence": [
+        "Ogni giorno alle 6:30 e 17:08",
+        "Ogni settimana: Domenica e Sabato alle 17:08",
+        "Ogni mese: giorno 1, giorno 11, giorno 21, giorno 27 e ultimo giorno alle 17:08",
+        "Ogni anno: Gennaio e Dicembre · giorno 1 alle 17:08",
+        "Ogni anno: Gennaio e Dicembre · ultimo giorno alle 17:08"
+      ],
+      "after_21_minutes": "tra 21 minuti",
+      "duration": "1 h e 1 min"
+    },
+    {
+      "locale": "ja",
+      "mixed_attachments": "画像2枚、動画1本",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "1日あたり0回",
+          "checklist": "0項目完了",
+          "folders": "メモ0件"
+        },
+        {
+          "count": 1,
+          "images": "画像1枚",
+          "audios": "音声1件",
+          "frequency": "1日あたり1回",
+          "checklist": "1項目完了",
+          "folders": "フォルダー1個、メモ1件"
+        },
+        {
+          "count": 2,
+          "images": "画像2枚",
+          "audios": "音声2件",
+          "frequency": "1日あたり2回",
+          "checklist": "2項目完了",
+          "folders": "フォルダー2個、メモ2件"
+        },
+        {
+          "count": 5,
+          "images": "画像5枚",
+          "audios": "音声5件",
+          "frequency": "1日あたり5回",
+          "checklist": "5項目完了",
+          "folders": "フォルダー5個、メモ5件"
+        },
+        {
+          "count": 11,
+          "images": "画像11枚",
+          "audios": "音声11件",
+          "frequency": "1日あたり11回",
+          "checklist": "11項目完了",
+          "folders": "フォルダー11個、メモ11件"
+        },
+        {
+          "count": 21,
+          "images": "画像21枚",
+          "audios": "音声21件",
+          "frequency": "1日あたり21回",
+          "checklist": "21項目完了",
+          "folders": "フォルダー21個、メモ21件"
+        }
+      ],
+      "date": "2026年4月23日",
+      "datetime": "2026年4月23日(木) 17:08:06",
+      "recurrence": [
+        "毎日6:30、17:08",
+        "毎週：日曜日、土曜日 17:08",
+        "毎月1日、11日、21日、27日、月末 17:08",
+        "毎年1月、12月・1日 17:08",
+        "毎年1月、12月・月末 17:08"
+      ],
+      "after_21_minutes": "21 分後",
+      "duration": "1 時間 1 分"
+    },
+    {
+      "locale": "ko",
+      "mixed_attachments": "이미지 2개 및 동영상 1개",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "매일 0회",
+          "checklist": "0개 항목 완료",
+          "folders": "항목 0개"
+        },
+        {
+          "count": 1,
+          "images": "이미지 1개",
+          "audios": "오디오 1개",
+          "frequency": "매일 1회",
+          "checklist": "1개 항목 완료",
+          "folders": "폴더 1개 및 항목 1개"
+        },
+        {
+          "count": 2,
+          "images": "이미지 2개",
+          "audios": "오디오 2개",
+          "frequency": "매일 2회",
+          "checklist": "2개 항목 완료",
+          "folders": "폴더 2개 및 항목 2개"
+        },
+        {
+          "count": 5,
+          "images": "이미지 5개",
+          "audios": "오디오 5개",
+          "frequency": "매일 5회",
+          "checklist": "5개 항목 완료",
+          "folders": "폴더 5개 및 항목 5개"
+        },
+        {
+          "count": 11,
+          "images": "이미지 11개",
+          "audios": "오디오 11개",
+          "frequency": "매일 11회",
+          "checklist": "11개 항목 완료",
+          "folders": "폴더 11개 및 항목 11개"
+        },
+        {
+          "count": 21,
+          "images": "이미지 21개",
+          "audios": "오디오 21개",
+          "frequency": "매일 21회",
+          "checklist": "21개 항목 완료",
+          "folders": "폴더 21개 및 항목 21개"
+        }
+      ],
+      "date": "2026년 4월 23일",
+      "datetime": "2026년 4월 23일 (목) 17시 8분 6초",
+      "recurrence": [
+        "매일 6:30 및 17:08",
+        "매주: 일요일 및 토요일 17:08",
+        "매월 1일, 11일, 21일, 27일 및 말일 17:08",
+        "매년 1월 및 12월 · 1일 17:08",
+        "매년 1월 및 12월 · 말일 17:08"
+      ],
+      "after_21_minutes": "21분 후",
+      "duration": "1시간 1분"
+    },
+    {
+      "locale": "pt",
+      "mixed_attachments": "2 imagens e 1 vídeo",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 vez por dia",
+          "checklist": "0 item concluído",
+          "folders": "0 item"
+        },
+        {
+          "count": 1,
+          "images": "1 imagem",
+          "audios": "1 gravação de áudio",
+          "frequency": "1 vez por dia",
+          "checklist": "1 item concluído",
+          "folders": "1 pasta e 1 item"
+        },
+        {
+          "count": 2,
+          "images": "2 imagens",
+          "audios": "2 gravações de áudio",
+          "frequency": "2 vezes por dia",
+          "checklist": "2 itens concluídos",
+          "folders": "2 pastas e 2 itens"
+        },
+        {
+          "count": 5,
+          "images": "5 imagens",
+          "audios": "5 gravações de áudio",
+          "frequency": "5 vezes por dia",
+          "checklist": "5 itens concluídos",
+          "folders": "5 pastas e 5 itens"
+        },
+        {
+          "count": 11,
+          "images": "11 imagens",
+          "audios": "11 gravações de áudio",
+          "frequency": "11 vezes por dia",
+          "checklist": "11 itens concluídos",
+          "folders": "11 pastas e 11 itens"
+        },
+        {
+          "count": 21,
+          "images": "21 imagens",
+          "audios": "21 gravações de áudio",
+          "frequency": "21 vezes por dia",
+          "checklist": "21 itens concluídos",
+          "folders": "21 pastas e 21 itens"
+        }
+      ],
+      "date": "23 de abr. de 2026",
+      "datetime": "qui., 23 de abr. de 2026, 17:08:06",
+      "recurrence": [
+        "Todos os dias às 6:30 e 17:08",
+        "Todas as semanas: domingo e Sábado às 17:08",
+        "Todos os meses: dia 1, dia 11, dia 21, dia 27 e último dia às 17:08",
+        "Todos os anos: Janeiro e Dezembro · dia 1 às 17:08",
+        "Todos os anos: Janeiro e Dezembro · último dia às 17:08"
+      ],
+      "after_21_minutes": "em 21 minutos",
+      "duration": "1 h e 1 min"
+    },
+    {
+      "locale": "ru",
+      "mixed_attachments": "2 изображения и 1 видео",
+      "quantities": [
+        {
+          "count": 0,
+          "frequency": "0 раз в день",
+          "checklist": "Завершено 0 пунктов",
+          "folders": "0 записей"
+        },
+        {
+          "count": 1,
+          "images": "1 изображение",
+          "audios": "1 аудиозапись",
+          "frequency": "1 раз в день",
+          "checklist": "Завершён 1 пункт",
+          "folders": "1 папка и 1 запись"
+        },
+        {
+          "count": 2,
+          "images": "2 изображения",
+          "audios": "2 аудиозаписи",
+          "frequency": "2 раза в день",
+          "checklist": "Завершено 2 пункта",
+          "folders": "2 папки и 2 записи"
+        },
+        {
+          "count": 5,
+          "images": "5 изображений",
+          "audios": "5 аудиозаписей",
+          "frequency": "5 раз в день",
+          "checklist": "Завершено 5 пунктов",
+          "folders": "5 папок и 5 записей"
+        },
+        {
+          "count": 11,
+          "images": "11 изображений",
+          "audios": "11 аудиозаписей",
+          "frequency": "11 раз в день",
+          "checklist": "Завершено 11 пунктов",
+          "folders": "11 папок и 11 записей"
+        },
+        {
+          "count": 21,
+          "images": "21 изображение",
+          "audios": "21 аудиозапись",
+          "frequency": "21 раз в день",
+          "checklist": "Завершён 21 пункт",
+          "folders": "21 папка и 21 запись"
+        }
+      ],
+      "date": "23 апр. 2026 г.",
+      "datetime": "чт, 23 апр. 2026 г., 17:08:06",
+      "recurrence": [
+        "Ежедневно в 6:30 и 17:08",
+        "Еженедельно: Воскресенье и Суббота, в 17:08",
+        "Ежемесячно: число: 1, число: 11, число: 21, число: 27 и последний день, в 17:08",
+        "Ежегодно: январь и декабрь · число: 1, в 17:08",
+        "Ежегодно: январь и декабрь · последний день, в 17:08"
+      ],
+      "after_21_minutes": "через 21 минуту",
+      "duration": "1 ч 1 мин"
+    }
+  ],
+  "languages": [
+    "en",
+    "zh-CN",
+    "zh-TW",
+    "zh-HK",
+    "de",
+    "es",
+    "fr",
+    "hi",
+    "it",
+    "ja",
+    "ko",
+    "pt",
+    "ru"
+  ],
+  "sdk": 35,
+  "model": "MEIZU 20 Inf",
+  "database_before": {
+    "android_metadata": "b8783c71ee443b59c06c10a3db257f652a4adaad12cafbc70826974de5b4f158",
+    "app_widget": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doing_records": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "habit_records": "205898b9ddf531269731982d09b7f612956c60fb4f4cc8844d1b5802c2304c81",
+    "habit_reminders": "d8011d8e448fb66d3d93fbed8454f1e7774eae885e33af72f3c87fa62c2f49f5",
+    "habits": "53883e6f1d51a7fd5d3e83cacb683c76e6d4695799894035ee2e6d8a0a3610cd",
+    "reminders": "d5290935065499a085e1fa77deeae90c130f781effbdf43081dbc6268c6af5bc",
+    "thing_folders": "fc5245a543409a6c2b8a8191b9c66b722206cf6a36a8725223f43cb750469a1e",
+    "things": "c911318b239c20ba986dbd2729ad885a471f7dfacfc4070684f21195520f51f4"
+  },
+  "database_after": {
+    "android_metadata": "b8783c71ee443b59c06c10a3db257f652a4adaad12cafbc70826974de5b4f158",
+    "app_widget": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doing_records": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "habit_records": "205898b9ddf531269731982d09b7f612956c60fb4f4cc8844d1b5802c2304c81",
+    "habit_reminders": "d8011d8e448fb66d3d93fbed8454f1e7774eae885e33af72f3c87fa62c2f49f5",
+    "habits": "53883e6f1d51a7fd5d3e83cacb683c76e6d4695799894035ee2e6d8a0a3610cd",
+    "reminders": "d5290935065499a085e1fa77deeae90c130f781effbdf43081dbc6268c6af5bc",
+    "thing_folders": "fc5245a543409a6c2b8a8191b9c66b722206cf6a36a8725223f43cb750469a1e",
+    "things": "c911318b239c20ba986dbd2729ad885a471f7dfacfc4070684f21195520f51f4"
+  }
+}

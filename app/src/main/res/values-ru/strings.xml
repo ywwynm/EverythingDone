@@ -10,7 +10,7 @@
     <string name="enable">Давать возможность</string>
     <string name="disable">Запрещать</string>
     <string name="enabled">Включено</string>
-    <string name="disabled">Неполноценный</string>
+    <string name="disabled">Отключено</string>
     <string-array name="time_type">
         <item>@string/minute</item>
         <item>@string/hour</item>
@@ -19,7 +19,7 @@
         <item>@string/month</item>
         <item>@string/year</item>
     </string-array>
-    <string name="second">Второй</string>
+    <string name="second">секунда</string>
     <string name="minute">минута</string>
     <string name="hour">Час</string>
     <string name="day">День</string>
@@ -69,39 +69,39 @@
     <string name="later">позже</string>
     <string name="description_a">a</string>
     <string name="every">каждый</string>
-    <string name="times">время</string>
+    <string name="times">раз</string>
     <string name="hours">час</string>
     <string name="days">день</string>
     <string name="weeks">неделя</string>
     <string name="months">месяц</string>
     <string name="from_everything_done">из приложения для Android EverythingDone</string>
-    <string name="title_create_thing">Создать новую вещь</string>
+    <string name="title_create_thing">Создать запись</string>
     <string name="title_edit_thing">Редактировать</string>
-    <string name="title_activity_things_all">Все вещи</string>
+    <string name="title_activity_things_all">@string/all_things</string>
     <string name="image_or_video_attachment">Изображение или видео вложение</string>
     <string name="title_activity_settings">Настройки</string>
     <string name="title_activity_about">О</string>
     <string name="title_activity_statistic">Статистика</string>
-    <string name="title_activity_thing_widget_configure">Выберите одну вещь</string>
-    <string name="title_activity_things_list_widget_configuration">Выберите текущие дела</string>
-    <string name="title_widget_things_list">В процессе</string>
-    <string name="title_activity_doing">В настоящее время делаю</string>
+    <string name="title_activity_thing_widget_configure">Выберите запись</string>
+    <string name="title_activity_things_list_widget_configuration">Выберите незавершённые записи</string>
+    <string name="title_widget_things_list">@string/underway</string>
+    <string name="title_activity_doing">Текущая работа</string>
     <string name="underway">В процессе</string>
-    <string name="thing">Вещь</string>
-    <string name="all_things">Все вещи</string>
-    <string name="note">Примечание</string>
+    <string name="thing">Запись</string>
+    <string name="all_things">Все записи</string>
+    <string name="note">Заметка</string>
     <string name="reminder">Напоминания</string>
     <string name="habit">Привычка</string>
     <string name="goal">Цель</string>
-    <string name="finished">Законченный</string>
+    <string name="finished">Завершено</string>
     <string name="deleted">Удалено</string>
     <string name="drawer_deleted">Удалено</string>
     <string name="settings">Настройки</string>
     <string name="help">Помощь</string>
     <string name="about">О</string>
-    <string name="private_thing">личное дело</string>
-    <string name="sticky_thing">Липкая вещь</string>
-    <string name="ongoing_thing">Текущее дело</string>
+    <string name="private_thing">Личная запись</string>
+    <string name="sticky_thing">Закреплённая запись</string>
+    <string name="ongoing_thing">Запись в панели уведомлений</string>
     <string name="welcome_underway_title">Добро пожаловать</string>
     <string name="welcome_underway_content">Проведите пальцем влево, чтобы закончить, или вправо, чтобы начать делать.</string>
     <string name="welcome_note_content">Напиши что-нибудь и я запомню это навсегда</string>
@@ -112,12 +112,12 @@
     <string name="empty_note">Я скучаю по прошедшим дням, но предпочитаю грядущее будущее</string>
     <string name="empty_reminder">Так рада помочь вам</string>
     <string name="empty_habit">Я вижу тебя лучше</string>
-    <string name="empty_goal">Все цели достигнуты! Какой удивительный день! Я думаю, мы сможем провести отпуск вместе. Пусть \' пойдут наслаждаться солнышком~</string>
+    <string name="empty_goal">Поздравляем, все цели достигнуты! Не переутомляйтесь, сделайте перерыв.</string>
     <string name="empty_finished">Упс! Ничего не закончено?</string>
     <string name="empty_deleted">Вам нравится чистить мусорную корзину? Я тоже!</string>
     <string name="reminder_expired">истекший</string>
     <string name="reminder_needless">не нужен</string>
-    <string name="reminder_reminded">напомнил</string>
+    <string name="reminder_reminded">Уведомление отправлено</string>
     <string name="reminder_unavailable">недоступен</string>
     <string name="habit_paused">остановился</string>
     <string name="habit_last_five">Последние пять раз:</string>
@@ -182,12 +182,12 @@
     <string name="this_gai">это</string>
     <string name="will_remind">будет напоминать</string>
     <string name="daily_todo_title_rest_part">Чем заняться на</string>
-    <string name="completion_rate_all">Уровень завершения всех\'s</string>
-    <string name="completion_rate_things">Уровень завершения</string>
-    <string name="completion_rate_reminder">Напоминание\', процент завершения</string>
-    <string name="completion_rate_note">Примечание\'s процент завершения</string>
-    <string name="completion_rate_habit">Коэффициент выполнения привычки\'s</string>
-    <string name="completion_rate_goal">Коэффициент выполнения цели\'</string>
+    <string name="completion_rate_all">Процент завершения всех записей</string>
+    <string name="completion_rate_things">Процент завершения записей</string>
+    <string name="completion_rate_reminder">Процент завершения напоминаний</string>
+    <string name="completion_rate_note">Процент завершения заметок</string>
+    <string name="completion_rate_habit">Процент выполнения привычек</string>
+    <string name="completion_rate_goal">Процент завершения целей</string>
     <string name="act_share">Поделиться</string>
     <string name="act_get_it">Получите это</string>
     <string name="confirm">ПОДТВЕРДИТЬ</string>
@@ -206,8 +206,8 @@
     <string name="act_export_to_sdcard">Экспорт на SD-карту</string>
     <string name="act_restore_selected">Восстановить выбранное</string>
     <string name="act_delete_selected_forever">Удалить выбранное навсегда</string>
-    <string name="act_sticky_on_top">Липкий сверху</string>
-    <string name="act_cancel_sticky">Отменить прикрепление</string>
+    <string name="act_sticky_on_top">Закрепить вверху</string>
+    <string name="act_cancel_sticky">Открепить</string>
     <string name="act_add_attachment">Добавить вложение</string>
     <string name="act_enable_check_list">Включить контрольный список</string>
     <string name="act_disable_check_list">Отключить контрольный список</string>
@@ -215,53 +215,53 @@
     <string name="act_undo">Отменить</string>
     <string name="act_redo">Повторить</string>
     <string name="act_abandon_new_thing">Отказаться</string>
-    <string name="act_set_as_private_thing">Установить как личное</string>
-    <string name="act_cancel_private_thing">Отменить Установить личное</string>
+    <string name="act_set_as_private_thing">Сделать запись личной</string>
+    <string name="act_cancel_private_thing">Снять статус личной записи</string>
     <string name="act_customize_card_appearance">Настроить вид карточки</string>
     <string name="thing_card_appearance_panel_title">Настроить вид карточки</string>
-    <string name="thing_card_appearance_media_image">Image</string>
-    <string name="thing_card_appearance_media_video">Video</string>
+    <string name="thing_card_appearance_media_image">Изображение</string>
+    <string name="thing_card_appearance_media_video">Видео</string>
     <string name="thing_card_appearance_source_format">%1$s · %2$s</string>
-    <string name="thing_card_appearance_source_default">Auto select</string>
-    <string name="thing_card_appearance_cover_media">Cover image</string>
-    <string name="thing_card_appearance_span_normal">Normal</string>
-    <string name="thing_card_appearance_span_full">Wide</string>
-    <string name="thing_card_appearance_card_width">Card width</string>
-    <string name="thing_card_appearance_content_max_lines">Max content lines</string>
-    <string name="thing_card_appearance_checklist_max_items">Max checklist items</string>
+    <string name="thing_card_appearance_source_default">По умолчанию</string>
+    <string name="thing_card_appearance_cover_media">Медиа обложки</string>
+    <string name="thing_card_appearance_span_normal">Обычная</string>
+    <string name="thing_card_appearance_span_full">Полная ширина</string>
+    <string name="thing_card_appearance_card_width">Ширина карточки</string>
+    <string name="thing_card_appearance_content_max_lines">Максимум строк текста</string>
+    <string name="thing_card_appearance_checklist_max_items">Максимум пунктов списка</string>
     <string name="thing_card_appearance_limit_value_format">%1$s · %2$d</string>
-    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (default)</string>
-    <string name="thing_card_appearance_settings_span_normal">When card width is normal</string>
-    <string name="thing_card_appearance_settings_span_full">When card width is wide</string>
-    <string name="settings_thing_card_appearance">Thing card appearance</string>
-    <string name="thing_card_appearance_placement_default">Default placement</string>
-    <string name="thing_card_appearance_placement_top">Top</string>
-    <string name="thing_card_appearance_placement_bottom">Bottom</string>
-    <string name="thing_card_appearance_placement_left">Left</string>
-    <string name="thing_card_appearance_placement_right">Right</string>
-    <string name="thing_card_appearance_mode_thumbnail">Thumbnail</string>
-    <string name="thing_card_appearance_media_position">Image/video position</string>
-    <string name="thing_card_appearance_mode_background">Background</string>
-    <string name="thing_card_appearance_cover_image_width_format">Cover image width · %1$d%%</string>
-    <string name="thing_card_appearance_precise_crop">Crop cover image</string>
-    <string name="thing_card_appearance_thumbnail_shape">Cover image ratio</string>
+    <string name="thing_card_appearance_limit_value_default_format">%1$s · %2$d (по умолчанию)</string>
+    <string name="thing_card_appearance_settings_span_normal">Карточки обычной ширины</string>
+    <string name="thing_card_appearance_settings_span_full">Карточки полной ширины</string>
+    <string name="settings_thing_card_appearance">Вид карточек записей</string>
+    <string name="thing_card_appearance_placement_default">Положение по умолчанию</string>
+    <string name="thing_card_appearance_placement_top">Сверху</string>
+    <string name="thing_card_appearance_placement_bottom">Снизу</string>
+    <string name="thing_card_appearance_placement_left">Слева</string>
+    <string name="thing_card_appearance_placement_right">Справа</string>
+    <string name="thing_card_appearance_mode_thumbnail">Миниатюра</string>
+    <string name="thing_card_appearance_media_position">Положение медиа</string>
+    <string name="thing_card_appearance_mode_background">Фон</string>
+    <string name="thing_card_appearance_cover_image_width_format">Ширина изображения обложки: %1$d%%</string>
+    <string name="thing_card_appearance_precise_crop">Точная обрезка</string>
+    <string name="thing_card_appearance_thumbnail_shape">Форма миниатюры</string>
     <string name="thing_card_appearance_thumbnail_video_shape">Соотношение видео обложки</string>
-    <string name="thing_card_appearance_background_mask">Background mask</string>
-    <string name="thing_card_appearance_background_height">Card height</string>
-    <string name="thing_card_appearance_video_frame">Video frame</string>
-    <string name="thing_card_appearance_video_frame_preview">Video frame preview</string>
-    <string name="thing_card_appearance_video_frame_previous">Previous frame</string>
-    <string name="thing_card_appearance_video_frame_next">Next frame</string>
+    <string name="thing_card_appearance_background_mask">Маска фона</string>
+    <string name="thing_card_appearance_background_height">Высота фона</string>
+    <string name="thing_card_appearance_video_frame">Кадр видео</string>
+    <string name="thing_card_appearance_video_frame_preview">Предпросмотр кадров видео</string>
+    <string name="thing_card_appearance_video_frame_previous">Предыдущий кадр</string>
+    <string name="thing_card_appearance_video_frame_next">Следующий кадр</string>
     <string name="act_set_thing_as_ongoing">Показать в уведомлениях</string>
     <string name="act_cancel_set_thing_as_ongoing">Отменить показ в уведомлениях</string>
-    <string name="act_finish">Готово</string>
+    <string name="act_finish">Завершить</string>
     <string name="act_delete">Удалить</string>
-    <string name="act_pause_habit">Приостановить напоминания о привычке\'</string>
-    <string name="act_resume_habit">Возобновить напоминания о привычке\'</string>
+    <string name="act_pause_habit">Приостановить напоминания о привычке</string>
+    <string name="act_resume_habit">Возобновить напоминания о привычке</string>
     <string name="act_check_habit_detail">Проверьте детали привычки</string>
-    <string name="act_finish_once_habit">Закончить один раз</string>
-    <string name="act_finish_this_time_habit">Закончи на этот раз</string>
-    <string name="act_habit_developed">У меня\' появилась эта привычка</string>
+    <string name="act_finish_once_habit">Отметить одно выполнение</string>
+    <string name="act_finish_this_time_habit">Отметить текущее выполнение</string>
+    <string name="act_habit_developed">Мне удалось сформировать эту привычку</string>
     <string name="act_restore">Восстановить</string>
     <string name="act_copy_content">Копировать контент</string>
     <string name="act_feedback">Отправить отзыв</string>
@@ -281,44 +281,44 @@
     <string name="act_open_in_browser">Обзор</string>
     <string name="act_dial">Циферблат</string>
     <string name="act_send_email">Отправить электронное письмо</string>
-    <string name="act_open_in_map">Посетите</string>
+    <string name="act_open_in_map">Открыть на карте</string>
     <string name="act_edit">Редактировать</string>
     <string name="act_share_thing_text_image">Текст и изображение</string>
     <string name="act_share_thing_screenshot">Скриншот</string>
     <string name="act_choose_image_as_drawer_header">Выберите изображение в качестве заголовка ящика</string>
-    <string name="act_support">Поддержка разработчика</string>
+    <string name="act_support">Поддержать разработчика</string>
     <string name="act_sb_undo">ОТМЕНИТЬ</string>
     <string name="act_sb_undo_finish">ЕЩЕ НЕ</string>
     <string name="act_sb_undo_underway">ЗАВЕРШЕНО</string>
-    <string name="act_shortcut_check_upcoming">Предстоящая вещь</string>
-    <string name="act_shortcut_check_sticky">Самая липкая вещь</string>
+    <string name="act_shortcut_check_upcoming">Запись с ближайшим напоминанием</string>
+    <string name="act_shortcut_check_sticky">Закреплённая запись</string>
     <string name="success_clipboard">Копировано в буфер обмена успешно.</string>
     <string name="error_permission_denied">Разрешение не предоставлено. Невозможно продолжить.</string>
     <string name="please_wait">Пожалуйста, подождите</string>
     <string name="generating_screenshot">Делаем скриншот...</string>
     <string name="error_activity_not_found">Приложение не найдено для продолжения работы</string>
-    <string name="a_thing">вещь</string>
+    <string name="a_thing">запись</string>
     <string name="empty">пустой</string>
     <string name="sb_finish_habit">покончил с этой привычкой</string>
     <string name="press_again_to_exit">Нажмите еще раз, чтобы выйти</string>
-    <string name="title_incorrect_reminder_habit">Обнаружено неправильное положение вещей</string>
+    <string name="title_incorrect_reminder_habit">Неверный статус записей с напоминанием</string>
     <string name="content_incorrect_reminder_habit">EverythingDone обнаружил, что некоторые из ваших напоминаний, привычек или целей находятся в неправильном состоянии. То есть они не были уведомлены в нужное время, как должно быть. \nУбедитесь, что EverythingDone может нормально работать в фоновом режиме. Вы можете заблокировать процесс приложения в диспетчере задач, добавить его в белый список в приложениях для оптимизации заряда батареи и разрешить запрошенные им разрешения, чтобы предотвратить его завершение и потерю возможности уведомлять вас о каких-либо действиях. \nДля получения дополнительной информации посетите раздел «Справка» и ознакомьтесь с соответствующими часто задаваемыми вопросами. \nНажмите кнопку «Сбросить сигналы тревоги», чтобы исправить состояние ошибки и повторно активировать привычки.</string>
     <string name="act_reset_alarms">Сбросить сигналы тревоги</string>
     <string name="alert_continue">Вы уверены, что продолжите?</string>
     <string name="alert_find_habit_goal">Эти вещи содержат в себе какие-то привычки или цели. Возможно, вы захотите закончить или отказаться от них в другое время или отдельно.</string>
     <string name="continue_get_rid_of_habit_goal">УДАЛИТЬ ПРИВЫЧКИ/ЦЕЛИ И ПРОДОЛЖИТЬ</string>
     <string name="continue_for_alert">ПРОДОЛЖИТЬ</string>
-    <string name="sb_cannot_be_blank">Пустая вещь была заброшена</string>
-    <string name="sb_abandon_new_thing">Новая вещь была заброшена</string>
+    <string name="sb_cannot_be_blank">Пустая запись отброшена</string>
+    <string name="sb_abandon_new_thing">Новая запись отброшена</string>
     <string name="sb_delete">удалено</string>
     <string name="sb_delete_forever">удален навсегда</string>
     <string name="sb_finish">закончено</string>
     <string name="sb_underway">восстановлен</string>
     <string name="all_color">ВСЕ ЦВЕТА</string>
     <string name="no_result">Нет результата</string>
-    <string name="hint_title">титул</string>
+    <string name="hint_title">заголовок</string>
     <string name="hint_content">содержание</string>
-    <string name="hint_new_item">новый предмет</string>
+    <string name="hint_new_item">новый пункт</string>
     <string name="create_at">Создано</string>
     <string name="update_at">Последнее обновление</string>
     <string name="finish_at_normal">Завершено %1$s</string>
@@ -352,27 +352,27 @@
     <string name="error_unsupported_file_type">Неподдерживаемый тип файла</string>
     <string name="error_play_audio_attachment">Не удалось воспроизвести этот аудиофайл</string>
     <string name="error_cannot_add_from_network">Невозможно добавить вложение из Интернета</string>
-    <string name="alert_cannot_share_empty_thing">Не могу поделиться пустой вещью</string>
-    <string name="alert_shortcut_no_upcoming">Ничего предстоящего</string>
-    <string name="alert_shortcut_no_sticky">Нет липкой вещи</string>
-    <string name="thing_doing_dialog_title">Изменить настройки автозапуска для этой штуки</string>
+    <string name="alert_cannot_share_empty_thing">Нельзя поделиться пустой записью</string>
+    <string name="alert_shortcut_no_upcoming">Нет предстоящих напоминаний</string>
+    <string name="alert_shortcut_no_sticky">Нет закреплённых записей</string>
+    <string name="thing_doing_dialog_title">Изменить автоматическое начало работы над этой записью</string>
     <string name="auto_start_doing_time_title">Автоматическое начало отсчета времени</string>
     <string name="auto_start_doing_follow_general">Следуйте общим настройкам</string>
     <string name="input_file_name">Пожалуйста, введите имя файла</string>
-    <string name="quick_remind_title_after">ПОСЛЕ</string>
-    <string name="quick_remind_title_at">АТ</string>
-    <string name="quick_remind_title_recurrence">ПОВТОРЕНИЕ</string>
+    <string name="quick_remind_title_after">Через</string>
+    <string name="quick_remind_title_at">Дата</string>
+    <string name="quick_remind_title_recurrence">Повтор</string>
     <string name="new_reminder_time_rec">новое время напоминания</string>
     <string name="error_complete_time">Пожалуйста, заполните информацию о времени</string>
     <string name="error_later">Пожалуйста, установите будущее время</string>
     <string name="error_number_too_big">Число слишком велико!</string>
     <string name="error_too_late">Не могу дождаться этого дня</string>
     <string name="error_different">Пожалуйста, установите другое время</string>
-    <string name="habit_detail_completion_rate">Скорость завершения</string>
-    <string name="habit_detail_persist_in">Постоянный цикл</string>
-    <string name="habit_detail_total_t">Общий цикл</string>
+    <string name="habit_detail_completion_rate">Процент выполнения</string>
+    <string name="habit_detail_persist_in">Длительность соблюдения</string>
+    <string name="habit_detail_total_t">Всего периодов</string>
     <string name="habit_detail_record_count">Количество записей</string>
-    <string name="habit_detail_times">Завершенное время</string>
+    <string name="habit_detail_times">Количество выполнений</string>
     <string name="habit_detail_title">Детали привычки</string>
     <string name="habit_record_last_30_change_6">Последние 30 записей, вы можете изменить последние 6 из них (последние 6 позиций)</string>
     <string name="attachment_info_title">Подробности вложения</string>
@@ -406,8 +406,8 @@
     <string name="start_doing_time_long_alarm">Расчетное время настолько велико, что вы не сможете завершить выполнение привычки за это время до следующего сигнала тревоги.</string>
     <string name="start_doing_time_long_t">Предполагаемое время настолько велико, что вы не сможете выполнить Привычку ни разу за этот цикл.</string>
     <string name="start_doing_confirm">Начни делать</string>
-    <string name="start_doing_notification_toast_doing_this">EverythingDone: Только что прозвучал сигнал тревоги \', но вы уже делали это</string>
-    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Тревога привычки\' прозвучала только сейчас, но вы уже все сделали за это время.</string>
+    <string name="start_doing_notification_toast_doing_this">EverythingDone: Время напоминания об этой записи только что прошло. Вы уже работаете над ней.</string>
+    <string name="start_doing_notification_toast_doing_this_habit">EverythingDone: Время напоминания об этой привычке только что прошло. Вы уже выполняете её в этот раз.</string>
     <string name="start_doing_stop_another_title">Ты делаешь другое дело</string>
     <string name="start_doing_stop_another_content">Хотели бы вы перестать делать это и начать делать это?</string>
     <string name="doing_swipe_to_finish">Проведите пальцем, чтобы закончить</string>
@@ -419,7 +419,7 @@
     <string name="doing_failed_restore">Вы восстановили данные, поэтому EverythingDone отменил состояние выполнения.</string>
     <string name="doing_click_to_dismiss">Нажмите, чтобы закрыть это уведомление</string>
     <string name="doing_alert_first_strict_mode_title">Строгий режим</string>
-    <string name="doing_alert_first_strict_mode_content">У вас сейчас строгий режим. EverythingDone определит, используете ли вы свой телефон для других дел. Если вы покинули эту страницу (разрешена только проверка уведомлений и блокировка экрана) 3 раза или суммарно более 5 минут, обратный отсчет остановится и дело останется незавершенным.</string>
+    <string name="doing_alert_first_strict_mode_content">Строгий режим включён. EverythingDone проверит, используете ли вы телефон для других дел. Если вы покинете этот экран три раза или проведёте вне его больше пяти минут суммарно, таймер этой записи остановится. Открывать панель уведомлений и блокировать экран разрешено.</string>
     <string name="doing_alert_close_strict_twice_title">Невозможно снова отключить строгий режим</string>
     <string name="doing_alert_close_strict_twice_content">Вы можете выключить строгий режим только один раз. Это \' — хорошая привычка тщательно делать одно дело за раз, поэтому продолжайте в том же духе.</string>
     <string name="doing_alert_stop_doing_content">Вы уверены, что перестанете это делать?</string>
@@ -429,8 +429,8 @@
     <string name="doing_toast_pass_data_error">Невозможно начать делать, потому что во время передачи данных между компонентами приложения произошло что-то плохое.</string>
     <string name="doing_toast_already_strict_mode">У вас строгий режим</string>
     <string name="auto_start_doing_start">Автоматически начать делать</string>
-    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: Только что прозвучал сигнал тревоги \', попытайтесь автоматически начать делать это, но не удалось, потому что вы делаете другое дело</string>
-    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: Только что поступил сигнал тревоги по привычке\'. Попробуйте автоматически начать выполнять эту привычку в этот раз, но это не удалось, потому что вы делаете это в последний раз.</string>
+    <string name="auto_start_doing_notification_toast_doing_another">EverythingDone: Время напоминания об этой записи только что прошло. Не удалось начать работу автоматически, так как вы работаете над другой записью.</string>
+    <string name="auto_start_doing_notification_toast_doing_habit_this">EverythingDone: Время напоминания об этой привычке только что прошло. Не удалось автоматически начать выполнение в этот раз, так как вы ещё не закончили предыдущий.</string>
     <string name="alert_delete_attachment">Вы уверены, что удалите это вложение?</string>
     <string name="settings_group_ui">пользовательский интерфейс</string>
     <string name="settings_group_ringtone">Рингтон</string>
@@ -498,8 +498,8 @@
     <string name="settings_channels_some_off">%1$d из %2$d отключен вами. Нажмите, чтобы исправить.</string>
     <string name="post_notifications_rationale_title">Разрешить уведомления</string>
     <string name="post_notifications_rationale_content">EverythingDone требуется разрешение на уведомления, чтобы активировать сигналы напоминаний, привычек и целей. Без него сработает сигнализация, но ничего не появится.</string>
-    <string name="settings_toggle_checklist_thing_card">Переключить элемент контрольного списка на карточке вещи</string>
-    <string name="settings_simple_finished_checklist">Сложите готовые пункты контрольного списка на карточке текущих дел</string>
+    <string name="settings_toggle_checklist_thing_card">Отмечать пункты списка прямо на карточке записи</string>
+    <string name="settings_simple_finished_checklist">Сворачивать выполненные пункты списка на карточках незавершённых записей</string>
     <string name="settings_auto_link">Автоматически связывать номер телефона, веб-страницу и многое другое при проверке чего-либо</string>
     <string name="settings_autoplay_cover_dynamic">Автоматически воспроизводить динамические обложки (видео, движущееся фото, GIF) в списке записей</string>
     <string name="settings_autoplay_detail_dynamic">Автоматически воспроизводить динамическое содержимое (видео, движущееся фото, GIF) на экране записи</string>
@@ -649,11 +649,10 @@
     <string name="cd_random_gradient_background">Случайный цвет градиента</string>
     <string name="chooser_ringtone">Выберите рингтон</string>
     <string name="ringtone_loading">Загрузка мелодии...</string>
-    <string name="auto_save_edits_title">Автоматически сохранять данные при редактировании вещи</string>
-    <string name="auto_save_edits_help_info">Если вы\'создаете или обновляете вещь и выходите из интерфейса, EverythingDone автоматически сохранит ваши изменения в содержимом Thing\'.
-        \n\nПримечание: EverythingDone не сохраняет изменения, связанные с напоминанием, привычкой или целью. Например, если вы измените время будильника Thing\'s, оно\' не будет сохранено автоматически.</string>
+    <string name="auto_save_edits_title">Автоматически сохранять изменения в записях</string>
+    <string name="auto_save_edits_help_info">При создании или редактировании записи EverythingDone автоматически сохраняет её содержимое, когда вы выходите из редактора.\n\nПримечание: создание и изменение настроек напоминания, привычки или цели не сохраняются автоматически. Например, изменение времени напоминания записи не будет сохранено автоматически.</string>
     <string name="backup">Резервное копирование</string>
-    <string name="backup_content">Ваши вещи и предпочтения будут сохранены. После резервного копирования EverythingDone будет продолжать напоминать вам обо всех напоминаниях, привычках и целях. Однако мы не будем создавать резервные копии вложений. Если они необходимы, сделайте их резервную копию самостоятельно. Файлы вложений находятся в папке sdcard/EverythingDone.</string>
+    <string name="backup_content">EverythingDone сохранит резервную копию всех ваших записей и настроек приложения. После восстановления напоминания, привычки и цели будут работать как обычно. Вложения в резервную копию не входят. При необходимости сохраните их отдельно: они находятся в папке SD-карта/EverythingDone.</string>
     <string name="backup_failed_content">Пожалуйста, попробуйте еще раз или отправьте отзыв разработчику.</string>
     <string name="backup_failed_title">Резервное копирование не удалось</string>
     <string name="backup_loading_content">Пожалуйста, подождите некоторое время. Может быть, ты можешь выпить что-нибудь.</string>
@@ -689,7 +688,7 @@
     <string name="not_support_fgprt">Ваше устройство не поддерживает стандартный модуль отпечатков пальцев Android.</string>
     <string name="system_fgprt_not_set">Системный модуль отпечатков пальцев не включен. Пожалуйста, перейдите в «Настройки» -&gt; «Безопасность» -&gt; «Отпечаток пальца», чтобы включить его.</string>
     <string name="fgprt_not_enrolled">Отпечаток пальца отсутствует. Пожалуйста, перейдите в «Настройки» -&gt; «Безопасность» -&gt; «Отпечаток пальца» и зарегистрируйте хотя бы один отпечаток пальца.</string>
-    <string name="check_private_thing">Проверить личную вещь</string>
+    <string name="check_private_thing">Просмотреть личную запись</string>
     <string name="confirm_fingerprint">Подтвердите отпечаток пальца, чтобы продолжить</string>
     <string name="touch_sensor">Сенсорный датчик отпечатков пальцев</string>
     <string name="use_fingerprint_to_verify">Используйте заранее заданный отпечаток пальца как более простой способ подтвердить свою личность.</string>
@@ -697,9 +696,9 @@
     <string name="fingerprint_error_part_1">Вы все еще можете попробовать</string>
     <string name="fingerprint_cannot_use_to_verify">Сейчас вы не можете использовать отпечаток пальца для подтверждения своей личности.</string>
     <string name="fingerprint_verify_success">Подтвердите свою личность успешно!</string>
-    <string name="warning_title_should_not_be_empty">Если вы хотите сделать эту вещь частной, сначала задайте для нее название.</string>
+    <string name="warning_title_should_not_be_empty">Добавьте заголовок, прежде чем сделать запись личной</string>
     <string name="warning_should_set_password_first">Вы не установили пароль для EverythingDone. Пожалуйста, перейдите в «Настройки» -&gt; «Конфиденциальность» -&gt; «Установить пароль для EverythingDone» и сначала установите шаблон.</string>
-    <string name="cannot_set_as_private_thing_title">Невозможно установить как личное</string>
+    <string name="cannot_set_as_private_thing_title">Не удалось сделать запись личной</string>
     <string name="auto_start_doing_title">Начни делать, когда зазвенит будильник</string>
     <string-array name="auto_start_doing_options">
         <item>Запрещать</item>
@@ -708,25 +707,24 @@
         <item>Включить для обоих</item>
     </string-array>
     <string-array name="auto_start_doing_states">
-        <item>Неполноценный</item>
+        <item>@string/disabled</item>
         <item>Включено для напоминания</item>
         <item>Включено по привычке</item>
         <item>Включено для обоих</item>
     </string-array>
-    <string name="auto_start_doing_time_reminder_title">Автоматическое начало отсчета времени для напоминания</string>
-    <string name="auto_start_doing_time_habit_title">Автоматический запуск времени для привычки</string>
+    <string name="auto_start_doing_time_reminder_title">Длительность автоматического таймера — Напоминания</string>
+    <string name="auto_start_doing_time_habit_title">Длительность автоматического таймера — Привычки</string>
     <string name="auto_strict_mode_title">Войдите в строгий режим, когда начнете делать</string>
-    <string name="auto_strict_mode_help_content">Когда вы начнете что-то делать и включите строгий режим, EverythingDone определит, используете ли вы свой телефон для других дел. Если вы покинули страницу обратного отсчета (разрешены только проверка уведомлений и блокировка экрана) 3 раза или суммарно более чем на 5 минут, обратный отсчет остановится и дело останется незавершенным.</string>
-    <string name="quick_create_title">Создавайте новое быстро</string>
+    <string name="auto_strict_mode_help_content">Когда вы начинаете работу над записью в строгом режиме, EverythingDone проверяет, используете ли вы телефон для других дел. Если вы покинете экран таймера три раза или проведёте вне его больше пяти минут суммарно, таймер этой записи остановится. Открывать панель уведомлений и блокировать экран разрешено.</string>
+    <string name="quick_create_title">Быстро создать запись</string>
     <string name="quick_create_description">Показывать постоянное уведомление, чтобы обеспечить доступ к быстрому созданию.</string>
-    <string name="ongoing_lockscreen">Показывать постоянное уведомлениеthing\' также на экране блокировки</string>
+    <string name="ongoing_lockscreen">Показывать записи из панели уведомлений также на экране блокировки</string>
     <string name="close_notification_later">Не разрешайте \' закрывать заметное уведомление в течение 2 секунд после его появления.</string>
     <string name="create_daily_todo_automatically">Создавайте ежедневные TODO каждое утро</string>
     <string name="daily_todo_set_time_title">Настроить время автосоздания</string>
-    <string name="create_daily_todo_help_info">EverythingDone каждое утро автоматически создаст объект с заголовком \"Things to do на MM d, yyyy\", и вы сможете определить его содержание (если вы не сделаете \'t и оставите содержимое и вложение пустыми, объект не будет создан).
-        \n\nМы также установим напоминание об этом в 14:00, потому что вы, возможно, захотите получать напоминание о завершении своих планов и задач.</string>
+    <string name="create_daily_todo_help_info">Каждое утро в выбранное время EverythingDone откроет редактор с заголовком вида «%1$s», чтобы вы могли записать планы на день. Если оставить содержимое и вложения пустыми, запись не будет создана.\n\nПо умолчанию напоминание назначено на 14:00, чтобы помочь вам выполнить намеченное за день.</string>
     <string name="auto_notify">Автоматическое напоминание</string>
-    <string name="auto_notify_help_info">EverythingDone автоматически напомнит вам после создания новой вещи. Если вы не \' не создавали запись, EverythingDone решит, следует ли устанавливать автоматическое напоминание в соответствии со временем напоминания вещи\'.</string>
+    <string name="auto_notify_help_info">Задайте интервал времени. EverythingDone напомнит о каждой новой записи, когда после её создания пройдёт этот интервал. Для записей, которые не являются заметками, приложение решает, нужно ли автоматическое напоминание, с учётом уже заданного времени уведомления.</string>
     <string name="auto_notify_set_time">Установите время автоматического напоминания</string>
     <string name="auto_notify_ringtone">Автоматическое напоминание\nРингтон</string>
     <string name="statistic_start_from_part_1">Я использую EverythingDone с тех пор</string>
@@ -736,8 +734,8 @@
     <string name="statistic_note_char_count">Персонаж</string>
     <string name="statistic_note_image_count">Изображение</string>
     <string name="statistic_note_video_count">Видео</string>
-    <string name="statistic_note_record">Я записал эти вещи в Note:</string>
-    <string name="statistic_reminder_completion_rate">Напоминание\'s \nПроцент выполнения</string>
+    <string name="statistic_note_record">Что я сохранил в заметках</string>
+    <string name="statistic_reminder_completion_rate">Процент завершения\nнапоминаний</string>
     <string name="statistic_reminder_finish_time">Среднее \nвремя окончания</string>
     <string name="statistic_reminder_in_advance">Завершено \n заранее</string>
     <string name="statistic_reminder_notify_time">Среднее время напоминания \n</string>
@@ -747,14 +745,14 @@
     <string name="statistic_hour">h</string>
     <string name="statistic_minute">m</string>
     <string name="statistic_day">d</string>
-    <string name="statistic_habit_completion_rate">Скорость завершения</string>
-    <string name="statistic_habit_longest_pit">Самый длинный\nПостоянный цикл</string>
+    <string name="statistic_habit_completion_rate">@string/habit_detail_completion_rate</string>
+    <string name="statistic_habit_longest_pit">Наибольшее число\nуспешных периодов подряд</string>
     <string name="statistic_habit_record">Я решил выработать некоторые привычки. Мои работы следующие:</string>
-    <string name="statistic_habit_longest_finish_times">Самый длинный непрерывный\nВремя окончания</string>
-    <string name="statistic_habit_developed_rate">Привычка\'s\nУровень заботы</string>
-    <string name="statistic_habit_finished_all">Время завершения\n/Общее время</string>
+    <string name="statistic_habit_longest_finish_times">Наибольшее число\nвыполнений подряд</string>
+    <string name="statistic_habit_developed_rate">Доля сформированных\nпривычек</string>
+    <string name="statistic_habit_finished_all">Количество выполнений\n/ всего запланировано</string>
     <string name="statistic_goal_record">Я поставил перед собой некоторые цели. Пусть \'s увидит мое выступление:</string>
-    <string name="statistic_goal_completion_rate">Цель\'s\nПроцент выполнения</string>
+    <string name="statistic_goal_completion_rate">Процент завершения\nцелей</string>
     <string name="statistic_goal_notify_time">Средний срок</string>
     <string name="share_statistic">Поделюсь своей историей использования</string>
     <string name="send_feedback_to_developer">Отправьте письмо разработчику для обратной связи</string>
@@ -805,11 +803,11 @@
     <string name="all">Все</string>
     <string name="app_widget_config_alpha">Альфа:</string>
     <string name="things_list_config_alpha_header">Прозрачная верхняя панель</string>
-    <string name="things_list_config_simple_view">Используйте более простой вид вещей</string>
+    <string name="things_list_config_simple_view">Использовать упрощённый вид записей</string>
     <string name="notification_has_attachment">[Вложение]</string>
-    <string name="notification_private_thing_content">[Личное дело]</string>
+    <string name="notification_private_thing_content">[Личная запись]</string>
     <string name="notification_toast_checking_when_alarm_comes">EverythingDone: Только что поступил сигнал тревоги от вещи\', пока вы ее проверяли.</string>
-    <string name="notification_toast_checking_action">Вы проверяете эту вещь</string>
+    <string name="notification_toast_checking_action">Вы просматриваете или редактируете эту запись</string>
     <string name="app_crash_title">Обнаружен сбой</string>
     <string name="app_crash_content">Вы можете отправить отзыв разработчику прямо сейчас, чтобы он исправил ошибку как можно скорее, даже если он еще не обедал и не спал.\nВы также можете отправить отзыв в любое другое удобное для вас время на странице «О программе». В этот момент вам просто нужно добавить связанный файл журнала (в sdcard/EverythingDone/log вы можете выбрать наиболее связанный файл в соответствии со временем их создания, которое будет указано в их именах) в качестве вложения к электронному письму с отзывом.</string>
     <string name="app_crash_send_now">Отправьте отзыв сейчас</string>
@@ -823,7 +821,7 @@
     <string name="export_loading_title">Экспорт на SD-карту...</string>
     <string name="export_loading_content">Пожалуйста, подождите некоторое время. Пусть \'s поиграют ОЙ!!!</string>
     <string name="export_success_title">Экспортировать успешно</string>
-    <string name="export_success_content_part_1">Экспортированная вещь %1$d</string>
+    <string name="export_success_content_part_1">Экспортировано записей: %1$d</string>
     <string name="export_success_content_part_2">. Перейдите в sdcard/EverythingDone/export и проверьте соответствующий zip-файл.</string>
     <string name="export_failed_title">Экспорт не выполнен</string>
     <string name="export_failed_content">Пожалуйста, повторите попытку позже</string>
@@ -835,16 +833,16 @@
     <string name="cd_habit_unknown">Неизвестно</string>
     <string name="cd_drawer_header">Нажмите, чтобы проверить мои данные об использовании. Краткая статистика:</string>
     <string name="cd_statistic_header">Статистика моего использования</string>
-    <string name="cd_back_note">Дело в записке, назад</string>
-    <string name="cd_back_reminder">Дело в напоминании, назад</string>
-    <string name="cd_back_habit">Дело в привычке, назад</string>
-    <string name="cd_back_goal">Дело в том, что цель, назад</string>
+    <string name="cd_back_note">Тип: заметка. Назад</string>
+    <string name="cd_back_reminder">Тип: напоминание. Назад</string>
+    <string name="cd_back_habit">Тип: привычка. Назад</string>
+    <string name="cd_back_goal">Тип: цель. Назад</string>
     <string name="cd_day">День</string>
-    <string name="cd_checklist_unfinished_item">Незавершенная вещь</string>
-    <string name="cd_checklist_finished_item">Готовая вещь</string>
+    <string name="cd_checklist_unfinished_item">Незавершённый пункт списка</string>
+    <string name="cd_checklist_finished_item">Завершённый пункт списка</string>
     <string name="cd_checklist_more_items">Больше пунктов контрольного списка</string>
-    <string name="cd_checklist_unfinished_item_clickable">Незаконченный элемент, нажмите, чтобы закончить</string>
-    <string name="cd_checklist_finished_item_clickable">Готовая вещь, нажмите, чтобы отменить завершение</string>
+    <string name="cd_checklist_unfinished_item_clickable">Незавершённый пункт. Нажмите, чтобы отметить его как завершённый</string>
+    <string name="cd_checklist_finished_item_clickable">Завершённый пункт. Нажмите, чтобы отметить его как незавершённый</string>
     <string name="cd_checklist_move">нажмите и перетащите, чтобы переместить этот элемент</string>
     <string name="cd_checklist_expand_finished_items">Развернуть готовые элементы чек-листа</string>
     <string name="cd_checklist_shrink_finished_items">Уменьшите готовые элементы контрольного списка</string>
@@ -889,12 +887,12 @@
     <string name="act_change_gradient_orientation">Направление градиента</string>
     <string name="act_pick_color_from_camera">Взять из мира</string>
     <string name="cd_app_widget_preview_background">Фон предварительного просмотра виджета приложения</string>
-    <string name="cd_things_list_widget_setting">настройки виджета приложения списка вещей</string>
+    <string name="cd_things_list_widget_setting">Открыть настройки виджета со списком записей</string>
     <string name="cd_doing">В настоящее время\nВ работе</string>
     <string name="cd_doing_add_5_min">Добавьте 5 минут</string>
     <string name="cd_doing_strict_mode_off">Войдите в строгий режим</string>
     <string name="cd_doing_strict_mode_on">Выйти из строгого режима</string>
-    <string name="cd_doing_cancel_doing">Отменить выполнение этого действия</string>
+    <string name="cd_doing_cancel_doing">Остановить работу над этой записью</string>
     <string name="cd_cancel_noticeable_notification">Отменить это уведомление</string>
     <string name="help_detail">Подробности помощи</string>
     <string-array name="help_titles">
@@ -918,13 +916,7 @@
     <string-array name="help_contents" formatted="false">
         <item>Эта страница отвечает на вопросы, которые могут возникнуть при использовании EverythingDone, и объясняет некоторые идеи за настройками. Мысли разработчика могут отличаться от мыслей пользователя, но именно эти отличия формируют характер приложения. Страница будет обновляться.</item>
         <item>Можно отправить письмо через кнопку обратной связи в разделе помощи или о приложении, оставить комментарий на странице EverythingDone в Coolapk или приложить сообщение к пожертвованию, если вы хотите поблагодарить разработчика.</item>
-        <item>Запись: фиксирует людей, события или сцены из жизни без напоминаний.
-
-Напоминание: EverythingDone уведомляет в течение 4 недель, то есть 28 дней, после создания.
-
-Привычка: EverythingDone повторяет уведомления с дневным, недельным, месячным или годовым циклом.
-
-Цель: EverythingDone уведомляет минимум через 4 недели после создания; обычно это требует долгосрочных усилий.</item>
+        <item>Заметка: позволяет записать что-то о человеке, событии, пейзаже или другом моменте жизни без напоминания.\n\nНапоминание: EverythingDone напоминает о содержимом записи в течение 4 недель (28 дней) после её создания.\n\nПривычка: EverythingDone напоминает о содержимом записи многократно. Периодом может быть день, неделя, месяц или год, а допустимое число повторений зависит от выбранного периода.\n\nЦель: EverythingDone напоминает о содержимом записи не ранее чем через 4 недели после её создания. Обычно такая запись предполагает длительную работу.</item>
         <item>Главная причина в том, что вы должны сосредоточиться на самой задаче, а не на выборе её типа. Укажите, когда напомнить и должно ли напоминание быть разовым или повторяющимся; EverythingDone сам определит тип: краткосрочное напоминание, повторяющаяся привычка или долгосрочная цель.
 
 Ручное изменение типа сейчас создало бы много ошибок и потребовало бы серьёзной переработки, вероятно не раньше EverythingDone 2.0.</item>
@@ -936,7 +928,7 @@
         <item>Да. Откройте боковое меню и нажмите верхнее изображение, чтобы перейти к статистике: время использования, число написанных слов, среднее время напоминаний, показатель формирования привычек и другое.</item>
         <item>Обычная формула: завершённые записи, без учёта выполнений привычек внутри циклов, делятся на созданные записи. Удаление записи не отменяет факт её создания, поэтому процент не меняется.</item>
         <item>Напоминания вроде несколько раз каждые несколько циклов требуют точного времени каждого уведомления. Пользователю вводить это сложно, приложение не сможет выбрать время достаточно умно, а Android требует равные интервалы повторения. Поэтому сейчас доступны частоты по дням, неделям, месяцам или годам, максимум 4 раза в день.</item>
-        <item>Иногда мы записываем дела, не зная, когда они должны быть завершены, поэтому записи входят в формулу. Привычки же не увеличивают общий процент при каждом выполнении; он меняется, когда привычка сформирована. Подробная статистика привычек доступна в статистике и на странице привычки.</item>
+        <item>Иногда мы записываем, что нужно сделать, но ещё не знаем, когда это должно быть закончено. Поэтому я решил учитывать заметки в формуле общего процента завершения.\n\nВторой вопрос возникает, если у вас всего одна запись и это привычка. Сколько бы раз вы ни выполнили её, общий процент не увеличится, пока привычка не будет сформирована. В первоначальном варианте я учитывал каждое выполнение привычки в каждом периоде. Но тогда такое важное действие, как окончательное формирование привычки, не оказывало соответствующего влияния на общий процент. Поэтому я перешёл к нынешней формуле.\n\nФактический процент выполнения привычек можно посмотреть на экране статистики. Показатель отдельной привычки также доступен на её экране подробностей.</item>
         <item>Для приложения заметок и напоминаний синхронизация важна, но разработчику ещё нужно время, чтобы её завершить.</item>
         <item>В макете были мягкая и спокойная палитры, но выбор спокойных цветов занял почти неделю. Новые цвета нужно согласовать с существующими цветами, текстом и диалогами. Зелёный и фиолетовый появились в 1.2.2, оранжевый и красный в 1.3.5; позже возможны дополнительные темы.</item>
         <item>Вычислять лунную дату сложно, а вводить её пользователю неудобно. Это редкая функция, с которой я пока не знаю, с чего начать; возможно, она появится в течение 10 лет.</item>
@@ -946,16 +938,15 @@
 Хотя все вы всё равно не найдёте. Хахахаха.</item>
     </string-array>
     <string name="title_important_alert">ЭТО ВАЖНОЕ УВЕДОМЛЕНИЕ</string>
-    <string name="content_important_reminder_permission">Если вы используете приложения, которые могут улучшить вашу систему Android, или на вашем телефоне есть такие предустановленные приложения, добавьте EverythingDone в их белый список, в противном случае вы не сможете получать уведомления от EverythingDone.\n\n Кроме того, предоставьте разрешения, которые EverythingDone запрашивает в диспетчере разрешений. Эти разрешения: \n (1) Автоматическая загрузка после загрузки телефона, используется для создания уведомлений для напоминаний, привычек и целей; \n (2) Чтение/запись внешнего хранилища, используется для вставки файла в качестве вложения к вещам; \n (3) Запись звука, используется для записи звука в качестве вложения к вещам; \n (4) Вибрация, помогает генерировать более качественные уведомления, чтобы вы могли закончить дела. \nEverythingDone обещает, что это не сможет\' использовать эти разрешения для совершения плохих поступков. Спасибо.</string>
+    <string name="content_important_reminder_permission">Если вы пользуетесь приложением для оптимизации системы, например 360 Mobile Security, или предустановленным приложением, например помощником энергосбережения Huawei, добавьте EverythingDone в список исключений. Это нужно для нормальной работы напоминаний.\n\nТакже предоставьте EverythingDone запрошенные разрешения в системном управлении разрешениями:\n(1) Автозапуск при включении телефона: нужен для установки сигналов. Без него EverythingDone не сможет возобновить напоминания о планах, привычках и целях после перезагрузки телефона.\n(2) Чтение и запись в хранилище: нужны для добавления вложений и сохранения снимков экрана при отправке статистики использования.\n(3) Запись звука: нужна для создания аудиовложений к записям.\n(4) Вибрация: помогает заметить напоминание о завершении записи.\nEverythingDone никогда не будет использовать эти разрешения во вред вам.</string>
     <string name="from_1_1_4_to_1_1_5_title">Отмена/Повтор теперь поддерживаются.</string>
-    <string name="from_1_1_4_to_1_1_5_content">Нажмите кнопку меню, вы увидите там «Отменить» и «Повторить». Теперь вы можете в любой момент вернуть свои вещи в прошлое или будущее, если захотите.</string>
+    <string name="from_1_1_4_to_1_1_5_content">В меню в правом верхнем углу доступны действия «Отменить» и «Повторить». С их помощью можно вернуть запись к более раннему или более позднему состоянию.</string>
     <string name="from_1_2_7_to_1_3_0_title">Дела? Делать!</string>
-    <string name="from_1_2_7_to_1_3_0_content">Будет более заметное уведомление о сигналах тревоги Things\'. Если вы готовы, можете приступить к делу сразу после уведомления, EverythingDone поможет вам аккуратно его завершить.</string>
+    <string name="from_1_2_7_to_1_3_0_content">Теперь в назначенное время напоминания о записи появляется более заметное уведомление. Если вы готовы, можно начать работу прямо из него. EverythingDone поможет вам сосредоточиться и завершить её.</string>
     <string name="from_1_3_0_to_1_3_1_title">Начните делать что-то в любой момент или автоматически</string>
-    <string name="from_1_3_0_to_1_3_1_content">Теперь вы можете смахнуть карточку предмета вправо, чтобы начать делать это в любой момент.\n\nКроме того, теперь вы также можете включить автоматическое начало выполнения дела, когда приходит напоминание, с помощью еще одной новой функции, автоматического перехода в строгий режим, EverythingDone может помочь вам больше не говорить \"сделать это позже\".</string>
+    <string name="from_1_3_0_to_1_3_1_content">Теперь на главном экране можно смахнуть карточку записи вправо, чтобы в любой момент начать работу над ней.\n\nТакже появилась возможность начинать работу автоматически при срабатывании напоминания. Вместе с новым автоматическим включением строгого режима это поможет вам меньше откладывать дела.</string>
     <string name="from_1_3_3_to_1_3_4_title">Автоматически сохраняйте изменения и меняйте записи о привычках</string>
-    <string name="from_1_3_3_to_1_3_4_content">Теперь вы можете включить автоматическое сохранение правок при создании или обновлении вещи.
-    \n\nВы также можете изменить свои последние записи о привычках, чтобы исправить ошибки или восстановить потерянные воспоминания. Проверьте привычку, откройте меню, нажмите \"проверить подробности привычки\", и вы увидите это действие.</string>
+    <string name="from_1_3_3_to_1_3_4_content">Теперь можно включить автоматическое сохранение изменений при создании и редактировании записи.\n\nТакже можно исправить недавние отметки о выполнении привычки, если вы забыли отметить её вовремя. Откройте запись, затем её меню и подробности привычки — там находится нужное действие.</string>
     <string name="channel_reminder">Напоминания</string>
     <string name="channel_habit">Привычки</string>
     <string name="channel_goal">Цели</string>
@@ -1477,4 +1468,275 @@
     <string name="tap_simulated_thing_content">Тестовые данные для предпросмотра анимации получения. Их можно удалить.</string>
     <string name="settings_tap_transfer_simulate">Имитация передачи касанием (отладочная сборка)</string>
     <string name="tap_hce_service_description">Передача касанием EverythingDone</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="all_content">Всё содержимое</string>
+    <string name="thing_folder">Папка записей</string>
+    <string name="private_thing_folder">Личная папка записей</string>
+    <string name="thing_folder_count">Записи: %1$d</string>
+    <string name="thing_folder_count_folders">Папки: %1$d</string>
+    <string name="thing_folder_count_folders_things">Папки: %1$d · записи: %2$d</string>
+    <string name="cannot_set_as_private_thing_folder_title">Не удалось сделать папку записей личной</string>
+    <string name="thing_folder_location">Расположение: %1$s</string>
+    <string name="create_thing_folder_title">Название папки записей</string>
+    <string name="thing_folder_name_hint">Название папки</string>
+    <string name="default_thing_folder_name">Новая папка</string>
+    <string name="rename_thing_folder">Переименовать папку</string>
+    <string name="show_thing_folder_summary">Показать карточку со сводкой</string>
+    <string name="show_thing_folder_thumbnails">Показать миниатюры</string>
+    <string name="make_thing_folder_wide">Сделать карточку широкой</string>
+    <string name="make_thing_folder_normal_width">Использовать обычную ширину</string>
+    <string name="set_thing_folder_private">Сделать папку личной</string>
+    <string name="cancel_thing_folder_private">Снять приватность папки</string>
+    <string name="dissolve_thing_folder">Расформировать папку</string>
+    <string name="dissolve_thing_folder_confirm">Выбранные папки будут удалены безвозвратно, минуя корзину. Всё содержимое (%1$s) переместится на уровень выше с сохранением текущего состояния.</string>
+    <string name="folder_count_segment">Подпапки: %1$d</string>
+    <string name="thing_count_segment">Записи: %1$d</string>
+    <string name="folder_impact_separator">", "</string>
+    <string name="folder_impact_empty">Нет содержимого</string>
+    <string name="finish_all_things_in_folder">Завершить все записи в папке</string>
+    <string name="scope_excludes_doing">" (кроме записей, выполняемых прямо сейчас)"</string>
+    <string name="scope_includes_subfolders_and_excludes_doing">" (включая все подпапки, кроме записей, выполняемых прямо сейчас)"</string>
+    <string name="scope_selected_things">выбранные</string>
+    <string name="scope_selected_folders">выбранные папки</string>
+    <string name="scope_selected_items">выбранные объекты</string>
+    <string name="thing_status_deleted">Удалено</string>
+    <string name="no_underway_things_to_finish">Нет текущих записей для завершения</string>
+    <string name="restore_all_things">Восстановить все записи</string>
+    <string name="restore_all_things_in_folder">Восстановить все записи в папке</string>
+    <string name="no_finished_things_to_delete">Нет завершённых записей для удаления</string>
+    <string name="no_trashed_things_to_delete_forever">В корзине нет записей для безвозвратного удаления</string>
+    <string name="no_finished_things_to_restore">Нет завершённых записей для восстановления</string>
+    <string name="no_trashed_things_to_restore">В корзине нет записей для восстановления</string>
+    <string name="delete_thing_folder">Удалить все записи в папке</string>
+    <string name="no_things_to_delete_in_folder">В выбранных папках нет записей для удаления</string>
+    <string name="delete_all_things_in_folder_forever">Удалить все записи в папке безвозвратно</string>
+    <string name="delete_thing_folder_forever">Удалить папку безвозвратно</string>
+    <string name="delete_thing_folder_forever_confirm">Выбранные папки и всё содержимое (%1$s) будут удалены безвозвратно. Отменить действие нельзя.</string>
+    <string name="folder_op_scope_only_search">Действие затронет только записи в текущей области поиска. Остальные записи не изменятся.</string>
+    <string name="folder_op_scope_type_and_search">Действие затронет только записи выбранного типа (%1$s) в текущей области поиска. Другие типы и записи вне поиска не изменятся.</string>
+    <string name="folder_op_scope_search">Область поиска</string>
+    <string name="folder_op_scope_status_search">Фильтр состояния (%1$s) и область поиска</string>
+    <string name="folder_op_scope_type_filter_search">Фильтр типа (%1$s) и область поиска</string>
+    <string name="folder_op_scope_status_type_search">Фильтры состояния и типа (%1$s, %2$s) и область поиска</string>
+    <string name="move_thing_folder_card">Изменить порядок карточек</string>
+    <string name="move_thing_folder_to">Переместить в папку</string>
+    <string name="all_things_scope">Все записи</string>
+    <string name="thing_folder_root">Корневая папка</string>
+    <string name="thing_folder_child_count">Объекты: %1$d</string>
+    <string name="no_matching_things_in_selection">В выбранной области нет подходящих записей</string>
+    <string name="private_batch_skipped">Выполняемые сейчас записи не стали личными</string>
+    <string name="act_delete_all_forever">Удалить все записи безвозвратно</string>
+    <string name="act_move_to_thing_folder">Переместить в папку</string>
+    <string name="act_set_as_private_items">Сделать выбранное личным</string>
+    <string name="act_cancel_private_items">Снять приватность выбранного</string>
+    <string name="delete_selected_folders_forever">Удалить выбранные папки безвозвратно</string>
+    <string name="delete_selected_items_forever_structural">Удалить выбранные объекты безвозвратно</string>
+    <string name="title_widget_thing_1x1">Запись 1x1</string>
+    <string name="title_widget_thing_2x2">Запись 2x2</string>
+    <string name="title_widget_thing_3x3">Запись 3x3</string>
+    <string name="title_widget_thing_4x4">Запись 4x4</string>
+    <string name="title_widget_thing_4x2">Запись 4x2</string>
+    <string name="title_widget_thing_2x4">Запись 2x4</string>
+    <string name="title_widget_thing_4x3">Запись 4x3</string>
+    <string name="title_widget_thing_3x4">Запись 3x4</string>
+    <string name="title_widget_thing_5x2">Запись 5x2</string>
+    <string name="title_widget_thing_2x5">Запись 2x5</string>
+    <string name="title_widget_thing_5x3">Запись 5x3</string>
+    <string name="title_widget_thing_3x5">Запись 3x5</string>
+    <string name="title_widget_thing_5x4">Запись 5x4</string>
+    <string name="title_widget_thing_4x5">Запись 4x5</string>
+    <string name="title_widget_thing_5x5">Запись 5x5</string>
+    <string name="title_widget_thing_6x2">Запись 6x2</string>
+    <string name="title_widget_thing_2x6">Запись 2x6</string>
+    <string name="title_widget_thing_6x3">Запись 6x3</string>
+    <string name="title_widget_thing_3x6">Запись 3x6</string>
+    <string name="title_widget_thing_6x4">Запись 6x4</string>
+    <string name="title_widget_thing_4x6">Запись 4x6</string>
+    <string name="title_widget_thing_6x5">Запись 6x5</string>
+    <string name="title_widget_thing_5x6">Запись 5x6</string>
+    <string name="title_widget_thing_6x6">Запись 6x6</string>
+    <string name="title_widget_things_list_3x3">Список записей 3x3</string>
+    <string name="title_widget_things_list_4x4">Список записей 4x4</string>
+    <string name="title_widget_things_list_5x4">Список записей 5x4</string>
+    <string name="title_widget_things_list_4x5">Список записей 4x5</string>
+    <string name="title_widget_things_list_5x5">Список записей 5x5</string>
+    <string name="title_widget_things_list_6x4">Список записей 6x4</string>
+    <string name="title_widget_things_list_4x6">Список записей 4x6</string>
+    <string name="title_widget_things_list_6x5">Список записей 6x5</string>
+    <string name="title_widget_things_list_5x6">Список записей 5x6</string>
+    <string name="title_widget_things_list_6x6">Список записей 6x6</string>
+    <string name="color_channel_r">R</string>
+    <string name="color_channel_g">G</string>
+    <string name="color_channel_b">B</string>
+    <string name="color_channel_hex">Hex</string>
+    <string name="color_info_rgb">RGB</string>
+    <string name="color_info_hex">Hex</string>
+    <string name="color_info_hsl">HSL</string>
+    <string name="color_info_source_value">meodai/color-names full list v14.38.0 (MIT)</string>
+    <string name="fablesol_export_hdr_format_name_hdr10">HDR10</string>
+    <string name="fablesol_export_hdr_format_name_hdr10_plus">HDR10+</string>
+    <string name="fablesol_export_hdr_format_name_hlg">HLG</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="error_generating_screenshot">Не удалось создать длинный снимок экрана. Повторите попытку.</string>
+    <string name="home_empty_underway">Здесь пока нет текущих записей</string>
+    <string name="home_empty_note">Здесь пока нет заметок</string>
+    <string name="home_empty_reminder">Здесь пока нет напоминаний</string>
+    <string name="home_empty_habit">Здесь пока нет привычек</string>
+    <string name="home_empty_goal">Здесь пока нет целей</string>
+    <string name="home_empty_finished">Здесь пока нет завершённых записей</string>
+    <string name="home_empty_deleted">Здесь пока нет удалённых записей</string>
+    <string name="home_empty_folder">Эта папка пока пуста</string>
+    <string name="act_color_info">Информация о цвете</string>
+    <string name="act_use_color">Использовать цвет</string>
+    <string name="color_info_title">Информация о цвете</string>
+    <string name="color_info_current">Текущий цвет</string>
+    <string name="color_info_gradient_start">Начало градиента</string>
+    <string name="color_info_gradient_end">Конец градиента</string>
+    <string name="color_editor_tab_pure">Сплошной цвет</string>
+    <string name="color_editor_tab_gradient">Градиент</string>
+    <string name="cd_random_color">Случайный цвет</string>
+    <string name="color_editor_back">Назад</string>
+    <string name="color_info_representative">Характерный цвет</string>
+    <string name="color_info_name">Название</string>
+    <string name="color_info_english_name">Название на английском</string>
+    <string name="color_info_matched_entry">Совпадающая запись</string>
+    <string name="color_info_source">Источник названия</string>
+    <string name="color_info_match">Способ сопоставления</string>
+    <string name="color_info_match_value">Ближайшее совпадение по CIEDE2000 ΔE, расстояние %1$s</string>
+    <string name="color_info_translation_pending">Перевод названия цвета на китайский ещё не готов. Показано исходное название на английском.</string>
+    <string name="camera_color_title">Выбор цвета камерой</string>
+    <string name="camera_color_waiting">Наведите центральную точку на цвет</string>
+    <string name="camera_color_unavailable">Камера недоступна</string>
+    <string name="act_customize_folder_card_appearance">Настроить вид папки</string>
+    <string name="thing_card_appearance_source_none">Нет</string>
+    <string name="folder_card_appearance_name_hint">Название папки</string>
+    <string name="folder_card_appearance_display_mode">Размер папки</string>
+    <string name="folder_card_appearance_mode_summary">Обычный</string>
+    <string name="folder_card_appearance_mode_large">Большой</string>
+    <string name="thing_card_appearance_precise_crop_video">Обрезать обложку видео</string>
+    <string name="thing_card_appearance_ratio_overridden_hint">Высота карточки ограничивает пропорции изображения обложки. Сейчас карточка высокая, поэтому изображение подстраивается под её размеры.</string>
+    <string name="thing_card_appearance_ratio_overridden_hint_video">Высота карточки ограничивает пропорции видеообложки. Сейчас карточка высокая, поэтому видео подстраивается под её размеры.</string>
+    <string name="thing_card_appearance_video_frame_play">Воспроизвести предпросмотр кадров</string>
+    <string name="thing_card_appearance_video_frame_pause">Приостановить предпросмотр кадров</string>
+    <string name="thing_card_appearance_video_frame_stop">Остановить предпросмотр кадров</string>
+    <string name="settings_drawer_header_choose_image">Выбрать изображение</string>
+    <string name="settings_drawer_header_adjust_crop">Настроить обрезку</string>
+    <string name="drawer_header_ratio">Пропорции изображения в шапке</string>
+    <string name="cd_fablesol_tuning_pause">Приостановить или продолжить предпросмотр</string>
+    <string name="cd_fablesol_tuning_switch_color">Изменить цвет воды</string>
+    <string name="open_private_thing_folder">Открыть личную папку</string>
+    <string name="expand_private_thing_folder">Развернуть личную папку</string>
+    <string name="manage_private_thing_folder">Управление личной папкой</string>
+    <string name="customize_private_thing_folder_card">Настроить карточку личной папки</string>
+    <string name="customize_private_thing_card">Настроить карточку личной записи</string>
+    <string name="move_private_thing_or_folder">Переместить личное содержимое</string>
+    <string name="finish_private_thing_by_swipe">Завершить личную запись</string>
+    <string name="set_password_first_title">Сначала задайте пароль</string>
+    <string name="all_types">Все типы</string>
+    <string name="widget_type_filter_summary">Типы записей: %1$s</string>
+    <string name="widget_display_mode_label">Режим отображения</string>
+    <string name="widget_status_label">Состояние записей</string>
+    <string name="widget_display_mode_list">Список</string>
+    <string name="widget_display_mode_grid">Сетка</string>
+    <string name="cd_back_parent_folder">Вернуться в родительскую папку</string>
+    <string name="cd_checklist_indent">Увеличить отступ пункта на один уровень</string>
+    <string name="cd_checklist_outdent">Уменьшить отступ пункта на один уровень</string>
+    <string name="cd_expand_thing_folder">Развернуть папку</string>
+    <string name="cd_collapse_thing_folder">Свернуть папку</string>
+    <string name="cd_motion_photo">Живое фото, удерживайте для воспроизведения</string>
+    <string name="motion_photo_live_badge">ЖИВОЕ</string>
+    <string name="cd_edit_image_attachment_appearance">Изменить вид вложенного изображения</string>
+    <string name="cd_edit_video_attachment_appearance">Изменить вид вложенного видео</string>
+    <string name="cd_hdr_badge_on">HDR включён. Нажмите для отображения в стандартном динамическом диапазоне.</string>
+    <string name="cd_hdr_badge_off">HDR выключен. Нажмите для включения HDR.</string>
+    <string name="image_viewer_no_video_player">Нет приложения для воспроизведения этого видео</string>
+    <string name="fablesol_export_hdr_brand_dolby_vision">Dolby Vision</string>
+    <string name="fablesol_export_hdr_format_name_dolby_vision_84">Dolby Vision 8.4</string>
+    <string name="detail_media_preview_loading">Загрузка предпросмотра</string>
+    <string name="detail_media_preview_load_failed">Не удалось загрузить предпросмотр медиа</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="audio_input_label">Аудиовход</string>
+    <string name="audio_input_microphone">Микрофон</string>
+    <string name="audio_input_system">Система</string>
+    <string name="audio_input_system_and_microphone">Микрофон + система</string>
+    <string name="audio_input_microphone_summary">Записывает звук с микрофона устройства. Основная запись продолжается при переходе в другие приложения. Её можно остановить и сохранить через уведомление.</string>
+    <string name="audio_input_system_summary">Записывает воспроизводимый звук других приложений, если они разрешают захват. Требуются Android 10+, доступ к микрофону и системное разрешение на захват всего экрана, но это приложение не считывает и не сохраняет изображение экрана. Некоторые приложения запрещают захват. Основная запись продолжается при переключении приложений. Остановка записи завершает разрешение. Его также можно отозвать через системный индикатор трансляции экрана; запись остановится, а уже записанное сохранится.</string>
+    <string name="audio_input_system_and_microphone_summary">Одновременно записывает системный звук и микрофон устройства. Требуются Android 10+, доступ к микрофону и системное разрешение на захват всего экрана, но это приложение не считывает и не сохраняет изображение экрана. Для уменьшения эха используйте наушники. Основная запись продолжается при переключении приложений. Остановка записи завершает разрешение. Его также можно отозвать через системный индикатор трансляции экрана; запись остановится, а уже записанное сохранится.</string>
+    <string name="cd_choose_audio_input">Выбрать аудиовход</string>
+    <string name="audio_input_projection_denied">Системное разрешение отменено. Аудиовход переключён обратно на микрофон.</string>
+    <string name="audio_recording_size_limit_reached">Достигнут предел размера файла. Запись автоматически остановлена и сохранена.</string>
+    <string name="audio_recording_storage_full">Недостаточно места. Не удалось сохранить запись.</string>
+    <string name="audio_recording_finalize_failed">Ошибка завершения аудиофайла. Запись не сохранена.</string>
+    <string name="audio_recording_stop_not_kept_notification_title">Запись остановлена, но не сохранена</string>
+    <string name="audio_recording_busy_other_thing">Идёт запись для другой записи</string>
+    <string name="audio_recording_go_to">Перейти</string>
+    <string name="audio_input_system_initialization_failed">Не удалось запустить системный звук. Аудиовход переключён обратно на микрофон.</string>
+    <string name="audio_input_projection_revoked">Разрешение на системный звук завершено. Уже записанное сохранено.</string>
+    <string name="audio_input_system_capture_ended">Разрешение на системный звук завершено. Аудиовход переключён обратно на микрофон.</string>
+    <string name="audio_input_recording_start_failed">Не удалось начать запись</string>
+    <string name="audio_recording_finalizing">Сохранение записи…</string>
+    <string name="audio_recording_finalizing_notification_title">Сохранение записи</string>
+    <string name="audio_recording_file_output_failed">Ошибка записи аудиофайла</string>
+    <string name="audio_recording_file_write_interrupted">Запись файла прервана. Уже записанное сохранено.</string>
+    <string name="cd_save_unavailable_not_kept">Запись не сохранилась. Сохранение недоступно.</string>
+    <string name="audio_input_capture_failed">Необходимый аудиовход остановился. Уже записанное сохранено.</string>
+    <string name="audio_input_microphone_unavailable">Не удалось включить микрофон</string>
+    <string name="audio_input_system_silent">Не обнаружен доступный для захвата системный звук. Некоторые приложения могут запрещать захват.</string>
+    <string name="audio_input_aec_unavailable">На этом устройстве недоступно эхоподавление. Для уменьшения эха используйте наушники.</string>
+    <string name="audio_recording_notification_channel">Запись звука</string>
+    <string name="audio_input_preview_notification_title">Предпрослушивание системного звука</string>
+    <string name="audio_input_authorization_notification_title">Разрешение на системный звук активно</string>
+    <string name="audio_recording_notification_title">Идёт запись</string>
+    <string name="audio_recording_notification_stop_keep">Остановить и сохранить</string>
+    <string name="audio_recording_notification_permission_missing">Уведомления не разрешены. Запись возможна, но в Android 13+ состояние фоновой службы отображается только в системном разделе активных приложений. В панели уведомлений не будет источника звука и действия «Остановить и сохранить».</string>
+    <string name="audio_recording_stopped_notification_title">Запись остановлена и сохранена</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="act_finish_selected_items">Завершить записи в выбранных объектах</string>
+    <string name="act_delete_selected_items">Удалить записи в выбранных объектах</string>
+    <string name="act_restore_selected_items">Восстановить записи в выбранных объектах</string>
+    <string name="act_delete_selected_items_forever">Удалить записи в выбранных объектах безвозвратно</string>
+    <string name="act_finish_selected_folders">Завершить все записи в выбранных папках</string>
+    <string name="act_delete_selected_folders">Удалить все записи в выбранных папках</string>
+    <string name="act_restore_selected_folders">Восстановить все записи в выбранных папках</string>
+    <string name="act_delete_selected_folders_forever">Удалить все записи в выбранных папках безвозвратно</string>
+    <string name="delete_selected_items_forever_structural_confirm">Выбранные объекты будут удалены безвозвратно: папки со всем содержимым и выбранные записи. Всего: %1$s. Отменить действие нельзя.</string>
+    <string name="finish_all_things_in_folder_confirm">Завершить все текущие записи в %1$s. Всего: %2$d%3$s.</string>
+    <string name="finish_all_things_root_confirm">Завершить все текущие записи. Всего: %1$d%2$s.</string>
+    <string name="restore_all_finished_in_folder_confirm">Вернуть все завершённые записи в %1$s в состояние «В процессе». Всего: %2$d%3$s.</string>
+    <string name="restore_all_finished_root_confirm">Вернуть все завершённые записи в состояние «В процессе». Всего: %1$d%2$s.</string>
+    <string name="delete_all_finished_in_folder_confirm">Переместить все завершённые записи в %1$s в корзину. Всего: %2$d%3$s. Их можно будет восстановить из корзины.</string>
+    <string name="delete_all_finished_root_confirm">Переместить все завершённые записи в корзину. Всего: %1$d%2$s. Их можно будет восстановить из корзины.</string>
+    <string name="delete_forever_all_in_folder_confirm">Удалить все удалённые записи в %1$s безвозвратно. Всего: %2$d%3$s. Отменить действие нельзя.</string>
+    <string name="delete_forever_all_root_confirm">Удалить все удалённые записи безвозвратно. Всего: %1$d%2$s. Отменить действие нельзя.</string>
+    <string name="restore_all_trashed_in_folder_confirm">Восстановить все удалённые записи в %1$s в состоянии до удаления. Всего: %2$d%3$s.</string>
+    <string name="restore_all_trashed_root_confirm">Восстановить все удалённые записи в состоянии до удаления. Всего: %1$d%2$s.</string>
+    <string name="delete_thing_folder_confirm">Переместить все текущие записи в %1$s в корзину. Всего: %2$d%3$s. Их можно будет восстановить из корзины.</string>
+    <string name="confirm_finish_selected_things">Завершить выбранные записи. Всего: %1$d.</string>
+    <string name="confirm_delete_selected_things">Переместить выбранные записи в корзину. Всего: %1$d. Их можно будет восстановить из корзины.</string>
+    <string name="confirm_restore_selected_things">Восстановить выбранные записи. Всего: %1$d.</string>
+    <string name="confirm_delete_selected_things_forever">Удалить выбранные записи безвозвратно. Всего: %1$d. Отменить действие нельзя.</string>
+    <string name="confirm_finish_selected_items">Завершить записи в выбранных объектах. Всего: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_items">Переместить записи в выбранных объектах в корзину. Всего: %1$d%2$s. Их можно будет восстановить из корзины.</string>
+    <string name="confirm_restore_selected_items">Восстановить записи в выбранных объектах. Всего: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_items_forever">Удалить записи в выбранных объектах безвозвратно. Всего: %1$d%2$s. Отменить действие нельзя.</string>
+    <string name="confirm_finish_selected_folders">Завершить все записи в выбранных папках. Всего: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_folders">Переместить все записи в выбранных папках в корзину. Всего: %1$d%2$s. Их можно будет восстановить из корзины.</string>
+    <string name="confirm_restore_selected_folders">Восстановить все записи в выбранных папках. Всего: %1$d%2$s.</string>
+    <string name="confirm_delete_selected_folders_forever">Удалить все записи в корзине выбранных папок безвозвратно. Всего: %1$d%2$s. Отменить действие нельзя.</string>
+    <string name="delete_selected_folders_forever_confirm">Выбранные папки и всё содержимое (%1$s) будут удалены безвозвратно. Отменить действие нельзя.</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_daily_todo_title">Дела на день · %1$s</string>
+    <string name="l10n_amount">Количество</string>
+    <string name="l10n_time_unit">Единица времени</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_month_last_day">в последний день</string>
+
+    <!-- 本地化补齐：完整句式与新增功能文案。 -->
+    <string name="l10n_reminder_label">Напоминание:</string>
 </resources>

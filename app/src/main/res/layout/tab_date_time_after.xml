@@ -7,10 +7,32 @@
     android:focusable="true"
     android:focusableInTouchMode="true">
 
+    <TextView
+        android:id="@+id/tv_amount_label_after"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/l10n_amount"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="12sp"/>
+
+    <TextView
+        android:id="@+id/tv_unit_label_after"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/tv_amount_label_after"
+        android:layout_toEndOf="@id/et_time_after"
+        android:layout_marginStart="4dp"
+        android:text="@string/l10n_time_unit"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="12sp"/>
+
     <EditText
         android:id="@+id/et_time_after"
         android:layout_width="60dp"
         android:layout_height="wrap_content"
+        android:layout_below="@id/tv_amount_label_after"
         android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
@@ -28,6 +50,7 @@
         android:id="@+id/tv_time_as_bt_after"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
+        android:layout_below="@id/tv_unit_label_after"
         android:layout_marginTop="@dimen/tv_as_bt_datetime_tab_after_margin_top"
         android:layout_toEndOf="@id/et_time_after"
         android:layout_toRightOf="@id/et_time_after"
@@ -41,6 +64,16 @@
         android:drawableTint="@color/app_chrome_control_unchecked"
         android:textColor="@color/app_chrome_on_surface_secondary"
         android:background="@drawable/selectable_item_background"/>
+
+    <TextView
+        android:id="@+id/tv_summary_after"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_time_as_bt_after"
+        android:layout_marginTop="12dp"
+        android:layout_marginHorizontal="8dp"
+        android:textSize="16sp"
+        android:textColor="@color/app_chrome_on_surface_secondary"/>
 
     <TextView
         android:id="@+id/tv_error_after"

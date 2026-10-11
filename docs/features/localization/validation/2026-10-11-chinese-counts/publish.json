@@ -1,0 +1,131 @@
+{
+  "debugUpdateCode": 202610110612,
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610110612.apk",
+  "sha256": "f4a8b276aae3a5af3bd7f2c8e1f7d2fdca69ccb5d8aa6330a0a7d259ca136bd1",
+  "sizeBytes": 28798697,
+  "publishedAt": "2026-10-11T06:12:50.262182400Z",
+  "public_metadata_matches": true,
+  "local_and_remote_apk_match": true,
+  "devices": [
+    {
+      "serial": "9018f404",
+      "model": "OPD2515",
+      "checks": 5101,
+      "failures": 0,
+      "installed_sha256": "f4a8b276aae3a5af3bd7f2c8e1f7d2fdca69ccb5d8aa6330a0a7d259ca136bd1",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "original_folder_summaries": [
+            "0件记事",
+            "1个文件夹",
+            "1件记事",
+            "2个文件夹，5件记事"
+          ]
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        }
+      ]
+    },
+    {
+      "serial": "R5CW20BLNKL",
+      "model": "SM-S9180",
+      "checks": 5101,
+      "failures": 0,
+      "installed_sha256": "f4a8b276aae3a5af3bd7f2c8e1f7d2fdca69ccb5d8aa6330a0a7d259ca136bd1",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "original_folder_summaries": [
+            "0件记事",
+            "1个文件夹",
+            "1件记事",
+            "2个文件夹，5件记事"
+          ]
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        }
+      ]
+    },
+    {
+      "serial": "192.168.100.67:42641",
+      "model": "MEIZU 20 Inf",
+      "checks": 5101,
+      "failures": 0,
+      "installed_sha256": "f4a8b276aae3a5af3bd7f2c8e1f7d2fdca69ccb5d8aa6330a0a7d259ca136bd1",
+      "database_unchanged": true,
+      "samples": [
+        {
+          "locale": "zh-CN",
+          "mixed_attachments": "2 张图片, 1 个视频",
+          "original_folder_summaries": [
+            "0件记事",
+            "1个文件夹",
+            "1件记事",
+            "2个文件夹，5件记事"
+          ]
+        },
+        {
+          "locale": "zh-TW",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        },
+        {
+          "locale": "zh-HK",
+          "mixed_attachments": "2 張圖片, 1 個影片",
+          "original_folder_summaries": [
+            "0件記事",
+            "1個資料夾",
+            "1件記事",
+            "2個資料夾，5件記事"
+          ]
+        }
+      ]
+    }
+  ]
+}
