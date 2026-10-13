@@ -1,3 +1,17 @@
+## 隐藏显示兼容性检查，隔离调试诊断实现
+
+用户确认此前粒子动画修复后，要求隐藏“显示兼容性检查”入口，并确保未来 release 不包含这些诊断实现。本次不是发布 release 的请求，只更新 debug 包。
+
+删除 `ParticleTuningActivity` 中添加菜单和打开诊断页面的代码。将 `ParticlePresentationDiagnostics` 的会话注册与图像采样、`ParticlePresentationPolicy` 的原实现对照开关迁至 `debug` 源集；诊断页面、探针和报告导出继续仅存在于 `debug`。四组语言资源中的诊断专用文案也迁至 `debug`。
+
+release 仅提供空诊断接口和固定正式策略，不注册诊断会话、不复制诊断图像、不提供对照开关。正式策略参数与修改前一致，保留现有 SurfaceView、动态背景、阴影和动画交接实现。
+
+本地 debug 构建及 release Kotlin／Java 编译通过，已核对菜单代码删除、资源归属和正式参数一致性。本轮没有连接设备，不增加画面或性能测试结论；未发布 release。
+
+本次发布日志：`docs/features/particle-animation-performance/debug-updates/update-20261014001626.md`。
+
+仅发布阿里云 debug `202610131617`，公开元数据、发布说明和下载 APK 大小／SHA-256 核验一致。release 编译、manifest、链接资源及字节码检查通过，未发布 release；发布阶段未连接设备或创建提交，随后用户明确授权提交本轮改动与记录。
+
 ## 隐藏碰一碰诊断入口，默认关闭日志采集
 
 用户决定暂时结束卓易通兼容性排查，整理会话修改并提交；提交前要求诊断 UI 使用 GONE 隐藏，相应日志增加总开关。`TapDiagnostics.ENABLE_DIAGNOSTICS` 默认 false，统一关闭设置与收发入口、会话采集、环境和 P2P 附加查询、历史读写、重试摘要及文本导出；诊断线程按需创建，已有本地历史保留。

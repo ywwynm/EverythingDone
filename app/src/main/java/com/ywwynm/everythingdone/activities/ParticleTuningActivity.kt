@@ -362,21 +362,6 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         applyToolbarColor(themeBackground)
     }
 
-    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
-        val created = super.onCreateOptionsMenu(menu)
-        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
-            menu.add(R.string.particle_presentation_diagnostics).apply {
-                setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
-                setOnMenuItemClickListener {
-                    startActivity(android.content.Intent().setClassName(this@ParticleTuningActivity,
-                        "com.ywwynm.everythingdone.views.particledismiss.ParticlePresentationDiagnosticsActivity"))
-                    true
-                }
-            }
-        }
-        return created || com.ywwynm.everythingdone.BuildConfig.DEBUG
-    }
-
     override fun setEvents() {
         cardMode?.setOnClickListener { switchPreview(card = true) }
         dialogMode?.setOnClickListener { switchPreview(card = false) }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="particle_presentation_diagnostics">显示兼容性检查</string>
+    <string name="particle_doing_scene_probe">Doing：整页绘制与动态色条</string>
+    <string name="particle_doing_long_scene_probe">Doing：长卡片滚动与模拟计时</string>
+    <string name="particle_doing_scene_probe_description">支持的系统上，粒子动画已默认使用整页绘制，长短卡片共用同一实现。长卡片入口可上下滚动、左右滑动，顶部演示真实数字变形；只使用虚构记事，不启动计时服务。分别测试关闭按钮与系统返回，检查残留控件及上一页滑动。下拉选择原实现可作对照。</string>
+</resources>

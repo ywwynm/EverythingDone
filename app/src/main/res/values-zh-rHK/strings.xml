@@ -2109,8 +2109,4 @@
 
     <!-- 本地化补齐：完整句式与新增功能文案。 -->
     <string name="l10n_reminder_label">@string/remind_me</string>
-    <string name="particle_presentation_diagnostics">顯示相容性檢查</string>
-    <string name="particle_doing_scene_probe">Doing：整頁繪製與動態色條</string>
-    <string name="particle_doing_long_scene_probe">Doing：長卡片捲動與模擬計時</string>
-    <string name="particle_doing_scene_probe_description">支援的系統上，粒子動畫已預設使用整頁繪製，長短卡片共用同一實作。長卡片入口可上下捲動、左右滑動，頂部示範真實數字變形；只使用虛構記事，不啟動計時服務。分別測試關閉按鈕與系統返回，檢查殘留控制項及上一頁捲動。下拉選擇原實作可作對照。</string>
 </resources>

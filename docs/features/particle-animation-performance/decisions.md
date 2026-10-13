@@ -1,5 +1,11 @@
 # 实现决策
 
+## 2026-10-14：在源集边界隔离显示诊断
+
+- 删除 ParticleTuningActivity 的诊断菜单和跳转代码，不仅通过 BuildConfig.DEBUG 隐藏。
+- ParticlePresentationDiagnostics 的注册／采样实现与 ParticlePresentationPolicy 的对照开关移入 debug；release 仅提供相同调用签名的空诊断接口和数值不变的正式策略，不进行诊断会话注册或图像采集。
+- 页面、探针和报告导出原已位于 debug，专用资源同步移出 main。正式渲染算法、交接时序及 SurfaceView 后端不变。
+
 ## 2026-10-12：只为反馈输入调整整页提交，复用真实卡片姿态
 
 - Doing 原生反馈刚被触摸／按键改变时，离屏提交放到当前原窗口遍历后；普通动态帧保留原节拍。弃用所有帧持续后移的候选，实测它导致魅族流体回退。末帧由真实续帧触发有界窗口提交后的清理，退出后不恢复生产。

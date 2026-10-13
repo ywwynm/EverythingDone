@@ -5,10 +5,9 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.view.View
-import com.ywwynm.everythingdone.BuildConfig
 import java.util.WeakHashMap
 
-/** debug 页面或用户主动开启的实际页面诊断；不读取设备品牌、不持久化开关。 */
+/** 仅 debug 源集提供诊断注册和图像采样；正式包不包含这些实现。 */
 internal object ParticlePresentationDiagnostics {
     enum class DialogMode { ORIGINAL, EARLY_WINDOW, CONTENT }
     data class Options(val rootForeground: Boolean = false,
@@ -34,11 +33,11 @@ internal object ParticlePresentationDiagnostics {
     private val runs = java.util.Collections.synchronizedMap(WeakHashMap<Activity, Run>())
     private val roots = java.util.Collections.synchronizedMap(WeakHashMap<View, Run>())
     fun bind(activity: Activity, run: Run) {
-        if (BuildConfig.DEBUG) { runs[activity] = run; roots[activity.window.decorView] = run }
+        runs[activity] = run
+        roots[activity.window.decorView] = run
     }
     fun unbind(activity: Activity) { runs.remove(activity); roots.remove(activity.window.decorView) }
     fun of(context: Context?): Run? {
-        if (!BuildConfig.DEBUG) return null
         var next = context
         while (next is ContextWrapper) {
             if (next is Activity) return runs[next]
@@ -49,7 +48,7 @@ internal object ParticlePresentationDiagnostics {
         return null
     }
     // 记事卡片使用独立的主题 Context；宿主 DecorView 提供实际页面的诊断归属。
-    fun of(view: View): Run? = of(view.context) ?: if (BuildConfig.DEBUG) roots[view.rootView] else null
+    fun of(view: View): Run? = of(view.context) ?: roots[view.rootView]
 
     fun sample(run: Run?, name: String, bitmap: Bitmap) {
         if (run == null || !run.options.images || !run.claimImage(name)) return
