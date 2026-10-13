@@ -1,0 +1,18 @@
+# 更突出的记事提醒通知
+
+本目录记录通知弹窗的内容展示与交互回归。
+
+## 当前排查（2026-10-13）
+
+- 用户反馈弹窗中的记事不能上下滑动，早期版本可以滚动。
+- 正式入口为 `NoticeableNotificationActivity`，内容通过 `StablerRecyclerView` 与 `BaseThingsAdapter` 展示；标题、内容文本和清单已显式取消数量上限。
+- 2026-09-13 接入粒子动画后，由 `ParticleDialogContentActivity` 和 `ActivityContentDialogFragment` 承载原有布局；本次没有修改粒子动画。
+- 回归使用虚构长文本、长清单与短内容，检查上下滑动、首尾内容可达以及标题／操作栏完整可见；不修改用户记事或设置。
+
+相关记录：`../dialog-particle-dismiss/dialog-coverage-2026-09-13.md`、`../thing-card-content-limits/README.md`。
+
+## 已确认的问题
+
+- 宽卡片使用基类固定 12 项清单上限，遗漏通知的不限数量设置，导致后续清单无法通过滚动看到。
+- 窗口高度不足时列表占满剩余空间，底部操作栏被裁掉。
+- 修复分别在通知适配器中统一清单数量策略、在布局中为列表增加收缩权重。证据见 `diagnosis-2026-10-13.md`；修复后三台授权设备各 39 项、共 117 项真实窗口回归通过。

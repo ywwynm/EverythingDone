@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".notification.NoticeableNotificationScrollProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="通知弹窗真实窗口滚动回归" />
     <instrumentation android:name=".views.particledismiss.SelectionBatchTransitionProbe"
         android:targetPackage="${applicationId}" android:label="隔离数据的真实首页批量转场回归" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -60,6 +62,10 @@
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".notification.NoticeableNotificationLandscapeProbeActivity"
+            android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape"
+            android:theme="@style/EverythingDoneTheme.NoticeableNotification" />
 
         <activity android:name=".views.particledismiss.ParticleRippleProbeActivity"
             android:exported="true" android:theme="@style/EverythingDoneTheme.Settings" />

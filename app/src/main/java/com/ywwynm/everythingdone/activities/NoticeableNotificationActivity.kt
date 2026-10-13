@@ -430,6 +430,9 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
                 return this@NoticeableNotificationActivity.isFullSpanThingCard(thing)
             }
 
+            // 通知展示完整清单；普通宽度的 setter 不会覆盖基类的宽卡片上限。
+            override fun getThingCardChecklistMaxItemCount(thing: Thing, fullSpan: Boolean): Int = -1
+
             override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
 
@@ -464,7 +467,6 @@ open class NoticeableNotificationActivity : EverythingDoneBaseActivity() {
             }
         }
         adapter.setCardWidth(mDialogWidth)
-        adapter.setChecklistMaxItemCount(-1)
         mRvThing!!.layoutManager = LinearLayoutManager(this)
         mRvThing!!.adapter = adapter
         updateThingCardSurfaceAvailableHeight(adapter)
