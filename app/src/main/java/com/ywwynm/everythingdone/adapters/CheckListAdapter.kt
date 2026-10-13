@@ -517,20 +517,26 @@ open class CheckListAdapter(
         super.onViewAttachedToWindow(holder)
         (holder as? EditTextHolder)?.let {
             it.detaching = false
-            if (it.boundEntry != null && it.boundEntry === mFocusedEntry) {
-                val focus = it.itemView.rootView.findFocus()
-                // 用户已经进入另一个编辑框时，旧行重新出现不能抢回焦点。
-                if (focus !is EditText || focus === it.et) {
-                    val entry = it.boundEntry!!
-                    it.et!!.requestFocus()
-                    if (entry.selectionStart >= 0 && entry.selectionEnd >= 0) {
-                        it.et.setSelection(entry.selectionStart.coerceAtMost(it.et.length()),
-                            entry.selectionEnd.coerceAtMost(it.et.length()))
-                    }
-                    if (entry.composingStart >= 0 && entry.composingEnd <= it.et.length()) {
-                        // Android 的组合标记是 NoCopySpan，复制 Editable 不会保留，必须经输入连接恢复范围。
-                        it.et.onCreateInputConnection(EditorInfo())?.setComposingRegion(
-                            entry.composingStart, entry.composingEnd)
+            val entry = it.boundEntry
+            if (entry != null && entry === mFocusedEntry) {
+                // attach 发生在 RecyclerView 布局内部，holder 此时可能仍保留复用前的坐标。
+                // TextView 获焦会立即请求滚动；等本轮布局结束后再恢复，避免按旧位置滚走。
+                it.itemView.post restore@{
+                    if (!it.itemView.isAttachedToWindow || it.bindingAdapter !== this ||
+                        it.boundEntry !== entry || mFocusedEntry !== entry) return@restore
+                    val focus = it.itemView.rootView.findFocus()
+                    // 用户已经进入另一个编辑框时，旧行重新出现不能抢回焦点。
+                    if (focus !is EditText || focus === it.et) {
+                        it.et!!.requestFocus()
+                        if (entry.selectionStart >= 0 && entry.selectionEnd >= 0) {
+                            it.et.setSelection(entry.selectionStart.coerceAtMost(it.et.length()),
+                                entry.selectionEnd.coerceAtMost(it.et.length()))
+                        }
+                        if (entry.composingStart >= 0 && entry.composingEnd <= it.et.length()) {
+                            // Android 的组合标记是 NoCopySpan，复制 Editable 不会保留，必须经输入连接恢复范围。
+                            it.et.onCreateInputConnection(EditorInfo())?.setComposingRegion(
+                                entry.composingStart, entry.composingEnd)
+                        }
                     }
                 }
             }
@@ -789,7 +795,8 @@ open class CheckListAdapter(
         /** 聚焦时按层级/边界刷新缩进、反缩进按钮的可见性。 */
         fun refreshIndentOutdent() {
             val pos = bindingAdapterPosition
-            if (pos == RecyclerView.NO_POSITION || pos >= mItems!!.size
+            // 获焦时投递的刷新可能在插入新行、焦点已转移后执行，不能重新显示旧行按钮。
+            if (et?.isFocused != true || pos == RecyclerView.NO_POSITION || pos >= mItems!!.size
                 || !CheckListHelper.isItem(mItems!![pos]) || mDragging
             ) {
                 hideIndentOutdent()

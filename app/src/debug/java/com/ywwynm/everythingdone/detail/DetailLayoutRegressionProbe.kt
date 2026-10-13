@@ -62,6 +62,7 @@ class DetailLayoutRegressionProbe : Instrumentation() {
     }
 
     override fun onStart() {
+        waitForIdleSync()
         val run = args.getString("run_id") ?: "baseline"
         require(run.matches(Regex("[A-Za-z0-9_-]{1,64}")))
         output = File(targetContext.getExternalFilesDir(null), "detail-layout-regression/$run")
@@ -69,6 +70,12 @@ class DetailLayoutRegressionProbe : Instrumentation() {
         val oldMode = AppCompatDelegate.getDefaultNightMode()
         val oldAutoLink = FrequentSettings.getBoolean(Def.Meta.KEY_AUTO_LINK)
         try {
+            if (args.getString("test_case") in listOf("keyboard_enter", "keyboard_enter_complex", "keyboard_enter_arrows")) {
+                DetailChecklistFocusChecks(this, output).run(args.getString("test_case") == "keyboard_enter_complex",
+                    args.getString("test_case") == "keyboard_enter_arrows")
+                result.put("completed", true)
+                return
+            }
             if (args.getString("test_case") == "preview_loader") {
                 DetailCropPreviewChecks(this, output).run()
                 result.put("completed", true)
