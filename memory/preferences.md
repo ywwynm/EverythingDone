@@ -8,8 +8,9 @@
   什么、为什么、数据证据，中英双语，不得几句带过。
 - 提交标题和正文面向不了解会话过程的读者，直接描述具体问题、行为变化与验证；不要使用
   `r33` 这类内部迭代代号代替功能说明（2026-09-10 补充）。
-- 发布回填（memory/debug-update-notes.md、debug-updates/update-*.md）只写文件，
-  不为其创建提交。
+- 仅发布或回填日志不自动授权 Git 提交；用户要求提交功能改动时，应将相关 debug 发布日志
+  及汇总记录一并纳入，共享文件只选取对应功能的部分。用户明确要求补交日志时可单独提交
+  （2026-10-13 澄清，与下文“发布日志纳入版本控制”保持一致）。
 - 文档归属：`.claude/rules/` 只放跨功能的工具链通用规范；某功能专用的测试/测量
   方法写 `docs/features/<slug>/`（例：FableSol 实机测量在
   docs/features/audio-visualization-fable-sol/on-device-perf-testing.md）。

@@ -2,6 +2,10 @@
 
 Global startup session index only. Detailed feature history lives in `docs/features/<kebab-case-feature-slug>/sessions.md`.
 
+## 2026-10-13 — 澄清发布日志的提交规则
+
+- 发布本身不自动授权提交；用户要求提交功能改动时，应包含对应发布日志及汇总。已按用户要求补交本地化遗漏日志，详见 `docs/features/localization/sessions.md`。
+
 ## 2026-10-09 — 首页滚动专项的实际进展
 
 - 保留共用清单解析的线性优化；方向预判与后台准备取消按用户要求撤回。389 项回归通过，撤回版三机复测完成；横滑等待恢复，魅族仍有明显长帧，未证实整页滚动稳定改善。
