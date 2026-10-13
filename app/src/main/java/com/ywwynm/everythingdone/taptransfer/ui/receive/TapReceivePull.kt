@@ -23,6 +23,8 @@ import androidx.core.view.AccessibilityDelegateCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.recyclerview.widget.RecyclerView
+import androidx.fragment.app.FragmentActivity
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnosticsDialog
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
@@ -98,6 +100,9 @@ class TapReceivePull(
         button.visibility = View.INVISIBLE
         button.setOnClickListener(null)
         pill.setOnClickListener { onClick() }
+        (context as? FragmentActivity)?.let {
+            TapDiagnosticsDialog.bind(button.findViewById(R.id.tap_diagnostic_open), it)
+        }
         applyStyle()
         if (allowPullGesture) {
             recyclerView.addOnItemTouchListener(this)
@@ -198,7 +203,22 @@ class TapReceivePull(
         }
     }
 
+    private var preparing = false
+    private var requestedHint: String? = null
+
+    fun setPreparing(preparing: Boolean) {
+        this.preparing = preparing
+        renderHint()
+    }
+
     fun setHint(text: String?) {
+        requestedHint = text
+        if (text == null) preparing = false
+        renderHint()
+    }
+
+    private fun renderHint() {
+        val text = if (preparing) context.getString(R.string.tap_receive_preparing) else requestedHint
         TapSessionRecorder.current?.captureSoon("pull", button, 60L)
         buttonHeight = -1f
         if (text.isNullOrEmpty()) {
@@ -210,7 +230,10 @@ class TapReceivePull(
     }
 
     /** 详情页使用记事的前景色，保证彩色背景上的提示可读。 */
-    fun setHintTextColor(color: Int) { hint.setTextColor(color) }
+    fun setHintTextColor(color: Int) {
+        hint.setTextColor(color)
+        button.findViewById<TextView>(R.id.tap_diagnostic_open).setTextColor(color)
+    }
 
     /** 调试（会话记录）：列表当前的下移量与空位高度。 */
     val currentOffset: Float get() = offset

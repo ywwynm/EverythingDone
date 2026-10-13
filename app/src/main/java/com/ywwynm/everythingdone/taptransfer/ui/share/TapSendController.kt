@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.protocol.TapHandshake
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapPayloadWriter
@@ -83,6 +84,7 @@ class TapSendController internal constructor(
 
     private var transport: TapSenderTransport? = null
     private var payload: TapPayloadWriter? = null
+    private var diagnostics = TapDiagnostics.NONE
 
     /** 本机此刻是否停掉了 NFC 轮询、只做卡（[TapNfcDiscovery]）。 */
     private var listenOnly = false
@@ -91,6 +93,8 @@ class TapSendController internal constructor(
     private val shapes by lazy { TapThingCards.listShapes(activity, items, TapHandshake.MAX_COLORS) }
 
     fun start() {
+        diagnostics = TapDiagnostics.begin(activity, "发送")
+        diagnostics.event("分享内容", "顶层项=${items.size}, 记事=${content.things.size}")
         if (!isSupported(activity)) {
             setPhase(Phase.HIDDEN)
             return
@@ -115,6 +119,7 @@ class TapSendController internal constructor(
 
     /** 离开前台时拆掉 Wi-Fi Direct 组，回来再建；正在传的这一次按失败处理。 */
     fun pause() {
+        diagnostics.event("发送界面离开前台")
         if (transport == null) {
             return
         }
@@ -131,6 +136,7 @@ class TapSendController internal constructor(
     }
 
     fun stop() {
+        diagnostics.event("关闭分享界面")
         stopTransport()
         payload?.discard()
         payload = null
@@ -138,6 +144,7 @@ class TapSendController internal constructor(
 
     private fun evaluate() {
         missing = TapTransfer.missingPrerequisites(activity)
+        diagnostics.event("发送前提检查", "missing=$missing")
         if (missing.isNotEmpty()) {
             setPhase(Phase.SETUP)
             return
@@ -153,15 +160,15 @@ class TapSendController internal constructor(
         // 离开前台再回来时沿用已经写好的记事文件；文件没了（被清理）就重写
         val writer = payload?.takeIf { it.isUsable() } ?: run {
             payload?.discard()
-            TapPayloadWriter(activity, content).also { payload = it }
+            TapPayloadWriter(activity, content, diagnostics).also { payload = it }
         }
         val colors = IntArray(items.size) { TapThingCards.representativeColor(activity, items[it]) }
         val (aspects, fullSpan) = shapes
-        val t = TapTransfer.createSenderTransport(activity)
+        val t = TapTransfer.createSenderTransport(activity, diagnostics)
         transport = t
         if (!TapTransfer.isSimulationEnabled(activity)) {
             // 只做卡：本机不轮询，接收方的读取模式才读得到这边（见 TapNfcDiscovery）
-            listenOnly = TapNfcDiscovery.listenOnly(activity)
+            listenOnly = TapNfcDiscovery.listenOnly(activity, diagnostics)
         }
         t.start(
             TapSenderTransport.Offer(TapTransfer.deviceName(activity), items.size, colors, writer, aspects, fullSpan),
@@ -179,6 +186,7 @@ class TapSendController internal constructor(
     }
 
     private fun setPhase(next: Phase) {
+        diagnostics.event("发送界面", "phase=$next")
         phase = next
         listener.onPhaseChanged(next)
     }
@@ -190,7 +198,10 @@ class TapSendController internal constructor(
         transport?.setAccepting(true)
     }
 
+    override fun onPreparing() { setPhase(Phase.PREPARING) }
+
     override fun onUnavailable(reason: TapFailure) {
+        diagnostics.failure("发送准备失败", "reason=$reason")
         Log.w(TAG, "碰一碰准备失败：$reason")
         stopTransport()
         setPhase(Phase.UNAVAILABLE)
@@ -223,6 +234,7 @@ class TapSendController internal constructor(
     }
 
     override fun onFailed(reason: TapFailure) {
+        diagnostics.failure("发送失败提示", "reason=$reason")
         Log.w(TAG, "发送失败：$reason")
         lastFailed = true
         setPhase(Phase.FAILED)

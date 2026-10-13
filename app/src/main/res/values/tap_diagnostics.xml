@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tap_receive_preparing">正在准备接收，请稍候</string>
+    <string name="tap_diagnostic_receiver_group">接收时由本机建组（下次进入接收时生效）</string>
+    <!-- 仅调试包入口；诊断报告统一中文，便于跨设备对照。 -->
+    <string name="tap_diagnostic_title" translatable="false">传输诊断</string>
+    <string name="tap_diagnostic_open" translatable="false">查看／复制传输诊断</string>
+    <string name="tap_diagnostic_hint" translatable="false">成功或失败均会保留。退出收发后可在设置中查看；记录较长时可直接分享文件。</string>
+    <string name="settings_tap_diagnostic_title" translatable="false">碰一碰传输诊断</string>
+    <string name="settings_tap_diagnostic_hint" translatable="false">查看、复制或分享最近三次收发记录</string>
+    <string name="tap_diagnostic_copy" translatable="false">复制全部</string>
+    <string name="tap_diagnostic_copied" translatable="false">已复制传输诊断</string>
+    <string name="tap_diagnostic_close" translatable="false">关闭</string>
+    <string name="tap_diagnostic_share" translatable="false">分享文件</string>
+    <string name="tap_diagnostic_share_failed" translatable="false">无法分享诊断文件，请使用“复制全部”</string>
+    <string name="tap_receive_wifi_confirmation" translatable="false">请在系统提示中选择发送设备并允许连接</string>
+</resources>

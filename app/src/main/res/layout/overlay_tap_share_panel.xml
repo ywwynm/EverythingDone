@@ -118,6 +118,18 @@
             android:max="1000"
             android:visibility="invisible" />
 
+        <TextView
+            android:id="@+id/tap_diagnostic_open"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
+            android:text="@string/tap_diagnostic_open"
+            android:textColor="@color/app_chrome_on_surface_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

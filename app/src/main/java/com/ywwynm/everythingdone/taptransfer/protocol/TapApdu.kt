@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets
  * SELECT  00 A4 04 00 Lc AID 00         → version u8 | 握手字节数 u16 | 9000
  * GET     80 20 offHi offLo Le          → 握手的 [off, off+Le) 段 | 9000
  * HELLO   80 10 00 00 Lc id(16) name 00 → 9000：发送方就此认定碰上了这一台
+ * RECEIVE 80 11 00 00 Lc 接收组信息 00  → 9000：改由接收方建组；须先看到 SELECT 能力位
  * ```
  *
  * GET 按段读，每段不超过 [MAX_CHUNK]，不依赖扩展长度 APDU——验证程序量到的两台都支持
@@ -32,6 +33,7 @@ object TapApdu {
     const val CLA_PROPRIETARY: Int = 0x80
     const val INS_SELECT: Int = 0xA4
     const val INS_HELLO: Int = 0x10
+    const val INS_RECEIVER_GROUP: Int = 0x11
     const val INS_GET: Int = 0x20
 
     /** 单段 GET 的最大长度，留在短 APDU 的 256 字节以内。 */
@@ -117,6 +119,12 @@ object TapApdu {
         return out
     }
 
+    fun receiverGroup(offer: TapReceiverGroupOffer): ByteArray {
+        val data = offer.encode()
+        require(data.size <= 255)
+        return byteArrayOf(CLA_PROPRIETARY.toByte(), INS_RECEIVER_GROUP.toByte(), 0, 0, data.size.toByte()) + data + byteArrayOf(0)
+    }
+
     @JvmStatic
     fun statusWord(response: ByteArray?): Int {
         if (response == null || response.size < 2) {
@@ -135,6 +143,8 @@ object TapApdu {
         class Select(val ours: Boolean) : Command()
         class Get(val offset: Int, val length: Int) : Command()
         class Hello(val receiverId: ByteArray, val receiverName: String) : Command()
+        class ReceiverGroup(val offer: TapReceiverGroupOffer) : Command()
+        object Invalid : Command()
         object Unknown : Command()
     }
 
@@ -160,6 +170,16 @@ object TapApdu {
             return Command.Unknown
         }
         return when (ins) {
+            INS_RECEIVER_GROUP -> {
+                if (apdu.size < 6 || apdu[2] != 0.toByte() || apdu[3] != 0.toByte()) return Command.Invalid
+                val lc = apdu[4].toInt() and 0xff
+                if (apdu.size != 6 + lc || apdu.last() != 0.toByte()) return Command.Invalid
+                try {
+                    Command.ReceiverGroup(TapReceiverGroupOffer.decode(apdu.copyOfRange(5, 5 + lc)))
+                } catch (e: TapProtocolException) {
+                    Command.Invalid
+                }
+            }
             INS_GET -> {
                 if (apdu.size < 5) {
                     return Command.Unknown

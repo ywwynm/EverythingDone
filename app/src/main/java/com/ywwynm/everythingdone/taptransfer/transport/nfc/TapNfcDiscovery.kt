@@ -4,6 +4,7 @@ import android.app.Activity
 import android.nfc.NfcAdapter
 import android.os.Build
 import android.util.Log
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 
 /**
  * 分享界面开着时，发送方只做卡、不读卡（决策 2026-09-26「发送方只做卡」）。
@@ -23,15 +24,18 @@ object TapNfcDiscovery {
     private const val TAG = "TapNfcDiscovery"
 
     /** 停掉 [activity] 在前台期间的轮询，只做卡。返回是否设上了。 */
-    fun listenOnly(activity: Activity): Boolean {
+    fun listenOnly(activity: Activity, diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            diagnostics.event("NFC 发送模式", "API < 35，保留系统默认轮询")
             return false
         }
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return false
         return try {
             adapter.setDiscoveryTechnology(activity, NfcAdapter.FLAG_READER_DISABLE, NfcAdapter.FLAG_LISTEN_KEEP)
+            diagnostics.event("NFC 发送模式", "已请求停止轮询，仅保留卡模拟")
             true
         } catch (e: RuntimeException) {
+            diagnostics.failure("NFC 发送模式设置失败", error = e)
             // 不支持（UnsupportedOperationException）、同一个页面开着读取模式（IllegalStateException）等
             Log.w(TAG, "停不掉轮询：$e")
             false

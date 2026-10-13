@@ -16,12 +16,14 @@ import android.view.View
 import androidx.annotation.RequiresApi
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.Def
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
 import com.ywwynm.everythingdone.taptransfer.transport.TapSenderTransport
 import com.ywwynm.everythingdone.taptransfer.transport.sim.SimulatedReceiverTransport
 import com.ywwynm.everythingdone.taptransfer.transport.sim.SimulatedSenderTransport
 import com.ywwynm.everythingdone.taptransfer.transport.wifi.WifiDirectReceiverTransport
 import com.ywwynm.everythingdone.taptransfer.transport.wifi.WifiDirectSenderTransport
+import com.ywwynm.everythingdone.taptransfer.transport.wifi.TapGroupRolePolicy
 import java.io.File
 
 /** 碰一碰开始之前必须就绪、但应用自己不能替用户打开的几项（决策 2026-09-24「逐项引导」）。 */
@@ -50,6 +52,18 @@ object TapTransfer {
     private const val KEY_SIMULATE_SAMPLES = "simulate_samples"
     private const val KEY_DUMP_FIXTURES = "dump_fixtures"
     private const val KEY_SIMULATE_UNSUPPORTED = "simulate_unsupported"
+    private const val KEY_RECEIVER_GROUP = "receiver_group"
+
+    fun preferReceiverGroup(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
+        val override = if (prefs.contains(KEY_RECEIVER_GROUP)) prefs.getBoolean(KEY_RECEIVER_GROUP, false) else null
+        return TapGroupRolePolicy.preferReceiverGroup(BuildConfig.DEBUG, Build.MANUFACTURER, Build.DISPLAY, override)
+    }
+
+    fun setPreferReceiverGroup(context: Context, enabled: Boolean) {
+        if (BuildConfig.DEBUG) context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_RECEIVER_GROUP, enabled).apply()
+    }
 
     private const val WORK_DIR = "/tap_transfer"
 
@@ -236,21 +250,21 @@ object TapTransfer {
 
     @JvmStatic
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun createSenderTransport(context: Context): TapSenderTransport {
+    fun createSenderTransport(context: Context, diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE): TapSenderTransport {
         return if (isSimulationEnabled(context)) {
             SimulatedSenderTransport(context.applicationContext)
         } else {
-            WifiDirectSenderTransport(context.applicationContext)
+            WifiDirectSenderTransport(context.applicationContext, diagnostics)
         }
     }
 
     @JvmStatic
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun createReceiverTransport(activity: Activity): TapReceiverTransport {
+    fun createReceiverTransport(activity: Activity, diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE): TapReceiverTransport {
         return if (isSimulationEnabled(activity)) {
             SimulatedReceiverTransport(activity)
         } else {
-            WifiDirectReceiverTransport(activity)
+            WifiDirectReceiverTransport(activity, diagnostics)
         }
     }
 

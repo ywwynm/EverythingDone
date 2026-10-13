@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <instrumentation android:name=".notification.NoticeableNotificationScrollProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="通知弹窗真实窗口滚动回归" />
+    <!-- 碰一碰快速入组失败后的普通 Wi-Fi 兼容试验，仅调试包启用。 -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <instrumentation android:name=".views.particledismiss.SelectionBatchTransitionProbe"
         android:targetPackage="${applicationId}" android:label="隔离数据的真实首页批量转场回归" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

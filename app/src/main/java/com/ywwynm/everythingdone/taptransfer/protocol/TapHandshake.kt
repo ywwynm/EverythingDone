@@ -36,6 +36,12 @@ class TapProtocolException(message: String) : IOException(message)
  * —— 以下可选（2026-09-25 加，旧版发送方没有；读到末尾即当作没有，协议版本不变）——
  * cardCount       u8，最多 MAX_COLORS
  * cards           (aspect u16，高宽比 × 1000；fullSpan u8，1 = 通栏) × cardCount
+ * —— 以下可选（调试兼容接收；旧读取器读完 cards 后忽略尾部）——
+ * "WFIP"          4 字节扩展标识
+ * groupOwnerIpv4  str，发送组的实际本地 IPv4；没有 cards 时先写 cardCount=0
+ * —— 以下可选（2026-10-13 系统连接确认等待；旧读取器忽略尾部）——
+ * "WFWT"          4 字节扩展标识
+ * wifiWaitMs      i32，发送端从 HELLO 起保留连接的毫秒数；缺省 25000
  *
  * str = u16 字节数 + UTF-8 字节
  * ```
@@ -51,7 +57,11 @@ class TapHandshake(
     /** 前几条记事的卡片高宽比（高 / 宽，按发送方列表里的样子量），最多 [MAX_COLORS] 条；没有时为空。 */
     val aspects: FloatArray = FloatArray(0),
     /** 与 [aspects] 同序：这条记事的卡片是否通栏。 */
-    val fullSpan: BooleanArray = BooleanArray(0)
+    val fullSpan: BooleanArray = BooleanArray(0),
+    /** 普通 Wi-Fi 兼容接收使用；旧握手没有此字段，不能据此猜测组地址。 */
+    val groupOwnerIpv4: String? = null,
+    /** 只在普通 Wi-Fi 兼容连接时延长接收等待；发送方必须兑现所声明的期限。 */
+    val wifiConnectionTimeoutMs: Int = DEFAULT_CONNECTION_WAIT_MS
 ) {
 
     init {
@@ -61,6 +71,9 @@ class TapHandshake(
         require(colors.size <= MAX_COLORS) { "颜色最多 $MAX_COLORS 个" }
         require(aspects.size <= MAX_COLORS && fullSpan.size == aspects.size) { "卡片形状最多 $MAX_COLORS 条，两项须同样多" }
         require(aspects.all { it.isFinite() && it > 0f }) { "高宽比须为正" }
+        require(groupOwnerIpv4 == null || isLocalIpv4(groupOwnerIpv4)) { "组地址须为本地 IPv4 地址" }
+        require(wifiConnectionTimeoutMs in DEFAULT_CONNECTION_WAIT_MS..MAX_CONNECTION_WAIT_MS) { "连接等待期限越界" }
+        require(groupOwnerIpv4 != null || wifiConnectionTimeoutMs == DEFAULT_CONNECTION_WAIT_MS) { "扩展等待需要兼容组地址" }
         // SSID 与密码截断之后就入不了组，不合规只能是调用方的错误，不能静默截掉
         credentialProblem(ssid, passphrase)?.let { throw IllegalArgumentException(it) }
     }
@@ -81,11 +94,19 @@ class TapHandshake(
             for (color in colors) {
                 out.writeInt(color)
             }
-            if (aspects.isNotEmpty()) {
+            if (aspects.isNotEmpty() || groupOwnerIpv4 != null) {
                 out.writeByte(aspects.size)
                 for (k in aspects.indices) {
                     out.writeShort((aspects[k] * ASPECT_SCALE + .5f).toInt().coerceIn(1, 0xFFFF))
                     out.writeByte(if (fullSpan[k]) 1 else 0)
+                }
+            }
+            if (groupOwnerIpv4 != null) {
+                out.writeInt(WIFI_ENDPOINT_MAGIC)
+                writeString(out, groupOwnerIpv4, MAX_IPV4_BYTES)
+                if (wifiConnectionTimeoutMs != DEFAULT_CONNECTION_WAIT_MS) {
+                    out.writeInt(WIFI_WAIT_MAGIC)
+                    out.writeInt(wifiConnectionTimeoutMs)
                 }
             }
         }
@@ -97,17 +118,22 @@ class TapHandshake(
         const val VERSION: Int = 1
 
         const val TOKEN_BYTES: Int = 16
+        const val DEFAULT_CONNECTION_WAIT_MS = 25_000
+        const val MAX_CONNECTION_WAIT_MS = 90_000
 
         /** 最多带这么多条记事的颜色（接收方给边框换色用）；更多的条数只影响计数。 */
         const val MAX_COLORS: Int = 12
 
         /** 高宽比按千分之一存成 u16：最大 65.535，足够任何一张卡片。 */
         private const val ASPECT_SCALE: Float = 1000f
+        private const val WIFI_ENDPOINT_MAGIC: Int = 0x57464950 // WFIP
+        private const val WIFI_WAIT_MAGIC: Int = 0x57465754 // WFWT
+        private const val MAX_IPV4_BYTES: Int = 15
 
         /** Wi-Fi Direct 的 SSID 最长 32 字节，密码 8 到 63 个字符（WPA2 口令的范围）。 */
-        private const val MAX_SSID_BYTES: Int = 32
+        internal const val MAX_SSID_BYTES: Int = 32
         private const val MIN_PASSPHRASE_CHARS: Int = 8
-        private const val MAX_PASSPHRASE_BYTES: Int = 63
+        internal const val MAX_PASSPHRASE_BYTES: Int = 63
 
         /** 与 `WifiP2pConfig.Builder.setNetworkName` 的校验一致：必须以 `DIRECT-xy` 开头。 */
         private val GROUP_NAME = Regex("^DIRECT-[a-zA-Z0-9]{2}.*")
@@ -165,10 +191,36 @@ class TapHandshake(
                 }
                 // 这两项原样交给 WifiP2pConfig.Builder，不合规的值在那里会抛异常：在这里就拒绝
                 credentialProblem(ssid, passphrase)?.let { throw TapProtocolException(it) }
-                return TapHandshake(token, port, ssid, passphrase, senderName, thingCount, colors, aspects, fullSpan)
+                var groupOwnerIpv4: String? = null
+                var wifiWaitMs = DEFAULT_CONNECTION_WAIT_MS
+                if (buffer.remaining() >= 4 && buffer.int == WIFI_ENDPOINT_MAGIC) {
+                    groupOwnerIpv4 = readString(buffer, MAX_IPV4_BYTES)
+                    if (!isLocalIpv4(groupOwnerIpv4)) throw TapProtocolException("组地址不是本地 IPv4 地址")
+                    if (buffer.remaining() >= 4 && buffer.int == WIFI_WAIT_MAGIC) {
+                        wifiWaitMs = buffer.int
+                        if (wifiWaitMs !in DEFAULT_CONNECTION_WAIT_MS..MAX_CONNECTION_WAIT_MS) {
+                            throw TapProtocolException("连接等待期限越界")
+                        }
+                    }
+                }
+                return TapHandshake(token, port, ssid, passphrase, senderName, thingCount, colors,
+                    aspects, fullSpan, groupOwnerIpv4, wifiWaitMs)
             } catch (e: BufferUnderflowException) {
                 throw TapProtocolException("握手不完整")
             }
+        }
+
+        /** 只允许字面形式的本地单播地址，不做 DNS 解析，也不接受环回／公网／多播目标。 */
+        fun isLocalIpv4(address: String): Boolean {
+            val parts = address.split('.')
+            if (parts.size != 4 || parts.any { it.isEmpty() || it.length > 3 ||
+                    (it.length > 1 && it[0] == '0') || it.any { c -> c !in '0'..'9' } }) return false
+            val octets = parts.map { it.toInt() }
+            if (octets.any { it !in 0..255 }) return false
+            return octets[0] == 10 ||
+                (octets[0] == 172 && octets[1] in 16..31) ||
+                (octets[0] == 192 && octets[1] == 168) ||
+                (octets[0] == 169 && octets[1] == 254)
         }
 
         /**

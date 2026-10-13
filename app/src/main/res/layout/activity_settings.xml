@@ -1084,6 +1084,36 @@
 
                     </RelativeLayout>
 
+                    <!-- 调试包内的固定入口：查看历史不会新建收发会话，成功后也能复制。 -->
+                    <LinearLayout
+                        android:id="@+id/ll_tap_transfer_diagnostics_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="72dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_tap_diagnostic_title"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_tap_diagnostic_hint"
+                            android:textSize="14sp"
+                            android:textColor="@color/app_chrome_on_surface_hint" />
+
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>

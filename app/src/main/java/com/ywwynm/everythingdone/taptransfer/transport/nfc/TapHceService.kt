@@ -3,6 +3,8 @@ package com.ywwynm.everythingdone.taptransfer.transport.nfc
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import com.ywwynm.everythingdone.taptransfer.protocol.TapCardResponder
+import com.ywwynm.everythingdone.taptransfer.protocol.TapApdu
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 
 /**
  * 发送方的卡模拟服务：接收方的手机开着读取模式碰过来时，系统把选中我们 AID 的命令交到这里。
@@ -13,10 +15,16 @@ import com.ywwynm.everythingdone.taptransfer.protocol.TapCardResponder
 class TapHceService : HostApduService() {
 
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray {
-        return TapSenderGate.responder.process(commandApdu)
+        return TapSenderGate.responder.process(commandApdu).also { response ->
+            TapSenderGate.diagnostics.event("HCE 命令应答",
+                "ins=${commandApdu?.getOrNull(1)?.toInt()?.and(0xff)}, " +
+                    "requestBytes=${commandApdu?.size}, responseBytes=${response.size}, " +
+                    "sw=${Integer.toHexString(TapApdu.statusWord(response))}")
+        }
     }
 
     override fun onDeactivated(reason: Int) {
+        TapSenderGate.diagnostics.event("HCE 链路断开", "reason=$reason；握手后分开属正常情况")
         // 链路断开（两台手机分开）不需要处理：握手在一次连接里就读完了
     }
 }
@@ -28,11 +36,16 @@ class TapHceService : HostApduService() {
 object TapSenderGate {
 
     @Volatile
+    var diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE
+        private set
+
+    @Volatile
     private var offer: TapCardResponder.Offer? = null
 
     val responder = TapCardResponder { offer }
 
-    fun open(offer: TapCardResponder.Offer) {
+    fun open(offer: TapCardResponder.Offer, diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE) {
+        this.diagnostics = diagnostics
         this.offer = offer
     }
 

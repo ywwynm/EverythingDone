@@ -53,6 +53,8 @@ interface TapSenderTransport {
     )
 
     interface Listener {
+        /** 反向组网结束后重建本机发送组。 */
+        fun onPreparing() {}
         /** 可以被碰了。 */
         fun onReady()
 
@@ -88,7 +90,11 @@ interface TapSenderTransport {
 interface TapReceiverTransport {
 
     interface Listener {
+        /** 预建接收组期间先提示准备，完成后才开放 NFC。 */
+        fun onPreparingChanged(preparing: Boolean) {}
         fun onTouched(offer: TapIncomingOffer)
+        /** 兼容连接交由系统确认；界面提示用户选择发送设备，模拟及普通 P2P 不触发。 */
+        fun onWifiConfirmationChanged(waiting: Boolean) {}
         fun onConnected(totalBytes: Long)
         fun onProgress(done: Long, total: Long)
 

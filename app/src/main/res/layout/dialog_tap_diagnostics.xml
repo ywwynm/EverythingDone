@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="16dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/tap_diagnostic_title" android:textSize="20sp" android:textStyle="bold"
+        android:textColor="@color/app_chrome_on_surface_primary" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="@string/tap_diagnostic_hint" android:textSize="13sp"
+        android:textColor="@color/app_chrome_on_surface_secondary" />
+    <CheckBox android:id="@+id/tap_diagnostic_receiver_group" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/tap_diagnostic_receiver_group"
+        android:textSize="13sp" android:textColor="@color/app_chrome_on_surface_primary" />
+    <ScrollView android:id="@+id/tap_diagnostic_scroll" android:layout_width="match_parent"
+        android:layout_height="240dp" android:layout_marginTop="12dp" android:fillViewport="true">
+        <TextView android:id="@+id/tap_diagnostic_report" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textIsSelectable="true"
+            android:fontFamily="monospace" android:textSize="12sp"
+            android:textColor="@color/app_chrome_on_surface_primary" />
+    </ScrollView>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="end">
+        <Button android:id="@+id/tap_diagnostic_close" android:layout_width="0dp"
+            android:layout_weight="1" android:minWidth="0dp" android:paddingStart="4dp" android:paddingEnd="4dp"
+            android:layout_height="wrap_content" android:text="@string/tap_diagnostic_close" />
+        <Button android:id="@+id/tap_diagnostic_copy" android:layout_width="0dp"
+            android:layout_weight="1" android:minWidth="0dp" android:paddingStart="4dp" android:paddingEnd="4dp"
+            android:layout_height="wrap_content" android:text="@string/tap_diagnostic_copy" />
+        <Button android:id="@+id/tap_diagnostic_share" android:layout_width="0dp"
+            android:layout_weight="1" android:minWidth="0dp" android:paddingStart="4dp" android:paddingEnd="4dp"
+            android:layout_height="wrap_content" android:text="@string/tap_diagnostic_share" />
+    </LinearLayout>
+</LinearLayout>

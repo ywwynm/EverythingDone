@@ -32,6 +32,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingFolder
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
@@ -141,6 +142,7 @@ class TapReceiveController(
     private var receiving = false
     private var stage: TapReceiveStageView? = null
     private var transport: TapReceiverTransport? = null
+    private var diagnostics = TapDiagnostics.NONE
     private var folderId: Long? = null
 
     /** 正在引导用户打开的那一项；从系统界面回来时据此判断有没有打开。 */
@@ -149,6 +151,7 @@ class TapReceiveController(
     private val model = TapProgressModel()
     private val smoother = ProgressSmoother(minDurationS = 1.2f)
     private var shownPercent = -1
+    private var waitingForWifiConfirmation = false
     private var senderName = ""
 
     // 这一台的接收状态：碰上时建立，拼出、失败或退出时清掉
@@ -245,7 +248,7 @@ class TapReceiveController(
             val dt = if (lastFrameNanos == 0L) 1f / 60f else (frameTimeNanos - lastFrameNanos) / 1e9f
             lastFrameNanos = frameTimeNanos
             val shown = smoother.step(model.target(SystemClock.uptimeMillis()), dt)
-            if (!landingStarted) {
+            if (!landingStarted && !waitingForWifiConfirmation) {
                 val percent = (shown * 100f).toInt().coerceIn(0, 100)
                 if (percent != shownPercent) {
                     shownPercent = percent
@@ -281,6 +284,7 @@ class TapReceiveController(
         if (!TapTransfer.isEntryAvailable(activity)) {
             return
         }
+        diagnostics = TapDiagnostics.begin(activity, "首页接收")
         guideOrEnter()
     }
 
@@ -288,6 +292,7 @@ class TapReceiveController(
     private fun guideOrEnter() {
         main.removeCallbacks(settleCheck)
         val missing = TapTransfer.missingPrerequisites(activity)
+        diagnostics.event("接收前提检查", "missing=$missing")
         if (missing.isEmpty()) {
             stopGuiding()
             enter()
@@ -409,7 +414,7 @@ class TapReceiveController(
             s.enter()
         }
 
-        val t = TapTransfer.createReceiverTransport(activity)
+        val t = TapTransfer.createReceiverTransport(activity, diagnostics)
         transport = t
         t.start(TapTransfer.deviceName(activity), this)
     }
@@ -435,6 +440,7 @@ class TapReceiveController(
             return
         }
         receiving = false
+        diagnostics.event("退出接收界面", "immediate=$immediate")
         backCallback.isEnabled = false
         recorder?.event("exit")
         Choreographer.getInstance().removeFrameCallback(frameCallback)
@@ -477,6 +483,7 @@ class TapReceiveController(
     }
 
     private fun resetReceiveState() {
+        waitingForWifiConfirmation = false
         busy = false
         receivedFile = null
         importedIds = null
@@ -518,6 +525,10 @@ class TapReceiveController(
 
     // ---------------------------------------------------------------- 传输回调
 
+    override fun onPreparingChanged(preparing: Boolean) {
+        if (receiving) pull.setPreparing(preparing)
+    }
+
     override fun onTouched(offer: TapIncomingOffer) {
         val s = stage
         if (s == null) {
@@ -542,7 +553,15 @@ class TapReceiveController(
         Choreographer.getInstance().postFrameCallback(frameCallback)
     }
 
+    override fun onWifiConfirmationChanged(waiting: Boolean) {
+        waitingForWifiConfirmation = waiting
+        pull.setHint(if (waiting) activity.getString(R.string.tap_receive_wifi_confirmation)
+            else activity.getString(R.string.tap_receive_from, senderName))
+    }
+
     override fun onConnected(totalBytes: Long) {
+        waitingForWifiConfirmation = false
+        pull.setHint(activity.getString(R.string.tap_receive_from, senderName))
         model.connected(SystemClock.uptimeMillis())
     }
 
@@ -551,6 +570,7 @@ class TapReceiveController(
     }
 
     override fun onReceived(file: File) {
+        diagnostics.event("收到完整文件", "bytes=${file.length()}, receiving=$receiving")
         if (!receiving) {
             // 确认字节发出之后才退出的接收：发送方已经显示已发送，文件照样导入，只是不播动画
             importQuietly(file)
@@ -563,6 +583,7 @@ class TapReceiveController(
     }
 
     override fun onFailed(reason: TapFailure) {
+        diagnostics.failure("接收失败提示", "reason=$reason")
         Log.w(TAG, "接收失败：$reason")
         failCurrent(null)
     }
@@ -706,6 +727,8 @@ class TapReceiveController(
     // ---------------------------------------------------------------- 导入
 
     private fun importInBackground(file: File) {
+        val diagnostic = diagnostics
+        diagnostic.event("开始解析和导入")
         val context = activity.applicationContext
         val target = folderId
         val ids = ArrayList<Long>()
@@ -718,6 +741,7 @@ class TapReceiveController(
                 null
             }
             if (result !is ThingFileReader.Result.Ok) {
+                diagnostic.failure("记事文件解析失败", "result=${result?.javaClass?.simpleName}")
                 file.delete()
                 val message = (result as? ThingFileReader.Result.Broken)?.message
                 main.post { failCurrent(message) }
@@ -743,6 +767,7 @@ class TapReceiveController(
                 file.delete()
             }
             main.post { onImported(summary) }
+            diagnostic.event("导入完成", "imported=${summary.imported}")
         }
     }
 

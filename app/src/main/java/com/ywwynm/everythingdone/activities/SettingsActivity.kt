@@ -43,6 +43,7 @@ import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnosticsDialog
 import com.ywwynm.everythingdone.App
 import com.ywwynm.everythingdone.views.GradientRippleDrawable
 import com.ywwynm.everythingdone.Def
@@ -1293,6 +1294,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
             startChooseThingFile()
         }
         setTapTransferSimulateEvents()
+        TapDiagnosticsDialog.bind(f<View>(R.id.ll_tap_transfer_diagnostics_as_bt), this)
         f<View>(R.id.ll_restore_as_bt).setOnClickListener {
             showRestoreDialog()
         }

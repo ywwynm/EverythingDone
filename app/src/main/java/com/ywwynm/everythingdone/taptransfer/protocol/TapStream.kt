@@ -8,7 +8,8 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * Wi-Fi Direct 组内那条 TCP 连接上的帧格式。接收方是客户端，发送方是服务端：
+ * Wi-Fi Direct 组内那条 TCP 连接上的帧格式。默认接收方主动连接发送方。
+ * 接收方建组时，发送方主动连接并先写 EDTR 身份前导，随后两端沿用下列逻辑方向：
  *
  * ```
  * 接收方 → 发送方   "EDTS" | version u8 | token 16 字节 | receiverId 16 字节
@@ -45,16 +46,26 @@ object TapStream {
     private const val BUFFER: Int = 64 * 1024
 
     private val MAGIC = byteArrayOf('E'.code.toByte(), 'D'.code.toByte(), 'T'.code.toByte(), 'S'.code.toByte())
+    private val SENDER_MAGIC = byteArrayOf('E'.code.toByte(), 'D'.code.toByte(), 'T'.code.toByte(), 'R'.code.toByte())
 
     /** 接收方连上来时报的身份：碰上时读到的令牌，与 HELLO 里报过的接收方标识。 */
     class ClientHello(val token: ByteArray, val receiverId: ByteArray)
 
     @JvmStatic
     fun writeClientHello(out: OutputStream, token: ByteArray, receiverId: ByteArray) {
+        writeHello(out, token, receiverId, MAGIC)
+    }
+
+    /** 反向组网先由发送方证明自己持有本次 NFC 令牌，再沿用原文件协议。 */
+    fun writeSenderHello(out: OutputStream, token: ByteArray, receiverId: ByteArray) {
+        writeHello(out, token, receiverId, SENDER_MAGIC)
+    }
+
+    private fun writeHello(out: OutputStream, token: ByteArray, receiverId: ByteArray, magic: ByteArray) {
         require(token.size == TapHandshake.TOKEN_BYTES)
         require(receiverId.size == TapApdu.RECEIVER_ID_BYTES)
         val data = DataOutputStream(out)
-        data.write(MAGIC)
+        data.write(magic)
         data.writeByte(VERSION)
         data.write(token)
         data.write(receiverId)
@@ -63,10 +74,16 @@ object TapStream {
 
     @JvmStatic
     fun readClientHello(input: InputStream): ClientHello {
+        return readHello(input, MAGIC)
+    }
+
+    fun readSenderHello(input: InputStream): ClientHello = readHello(input, SENDER_MAGIC)
+
+    private fun readHello(input: InputStream, expectedMagic: ByteArray): ClientHello {
         val data = DataInputStream(input)
         val magic = ByteArray(MAGIC.size)
         data.readFully(magic)
-        if (!magic.contentEquals(MAGIC)) {
+        if (!magic.contentEquals(expectedMagic)) {
             throw TapProtocolException("不是碰一碰连接")
         }
         val version = data.readUnsignedByte()
@@ -138,5 +155,10 @@ object TapStream {
         if (b != ACK) {
             throw IOException(if (b < 0) "对方没有确认就断开了" else "确认字节不对：$b")
         }
+    }
+
+    /** 已回 ACK 的接收方保留网络，直到发送方关闭 TCP；调用方必须设置有界读超时。 */
+    fun awaitSenderClose(input: InputStream) {
+        if (input.read() != -1) throw TapProtocolException("文件完成后出现额外数据")
     }
 }

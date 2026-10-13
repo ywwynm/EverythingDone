@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.taptransfer.transport
 import android.content.Context
 import android.util.Log
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.thingfile.ThingFileWriter
 import com.ywwynm.everythingdone.thingfile.ThingShareContent
 import java.io.File
@@ -17,7 +18,8 @@ import java.util.concurrent.TimeUnit
  *
  * @param content 在主线程上复制好的记事与文件夹：写文件在后台线程，不能读列表里正被界面使用的那几个对象。
  */
-class TapPayloadWriter(context: Context, content: ThingShareContent) : TapPayload {
+class TapPayloadWriter(context: Context, content: ThingShareContent,
+                       private val diagnostics: TapDiagnostics.Session = TapDiagnostics.NONE) : TapPayload {
 
     private val appContext = context.applicationContext
     private val dst = File(
@@ -25,9 +27,13 @@ class TapPayloadWriter(context: Context, content: ThingShareContent) : TapPayloa
     )
 
     private val task = FutureTask<File?> {
+        diagnostics.event("准备记事文件")
         when (val result = ThingFileWriter.write(appContext, content, dst)) {
-            is ThingFileWriter.Result.Ok -> result.file
+            is ThingFileWriter.Result.Ok -> result.file.also {
+                diagnostics.event("记事文件就绪", "bytes=${it.length()}")
+            }
             is ThingFileWriter.Result.Failed -> {
+                diagnostics.failure("记事文件生成失败")
                 Log.w(TAG, "写记事文件失败：${result.message}")
                 null
             }
@@ -44,6 +50,7 @@ class TapPayloadWriter(context: Context, content: ThingShareContent) : TapPayloa
         val file = try {
             task.get(timeoutMs, TimeUnit.MILLISECONDS)
         } catch (e: Exception) {
+            diagnostics.failure("等待记事文件失败", "exception=${e.javaClass.name}")
             Log.w(TAG, "等记事文件失败", e)
             null
         }

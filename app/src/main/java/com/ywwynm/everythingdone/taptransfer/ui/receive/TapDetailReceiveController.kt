@@ -26,6 +26,7 @@ import com.ywwynm.everythingdone.R
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.taptransfer.TapPrerequisite
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnostics
 import com.ywwynm.everythingdone.taptransfer.transport.TapFailure
 import com.ywwynm.everythingdone.taptransfer.transport.TapIncomingOffer
 import com.ywwynm.everythingdone.taptransfer.transport.TapReceiverTransport
@@ -78,6 +79,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     private var frozenBitmap: Bitmap? = null
     private var receiveClipToPadding: Boolean? = null
     private var transport: TapReceiverTransport? = null
+    private var diagnostics = TapDiagnostics.NONE
     private var prepared: ThingFileUpdate.Prepared? = null
     private var proxy: TapParticleFlight.ReceiveLayer? = null
     private var real: TapParticleFlight.ReceiveLayer? = null
@@ -88,6 +90,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     private var senderName = ""
     private var lastFrame = 0L
     private var shownPercent = -1
+    private var waitingForWifiConfirmation = false
     private var applying = false
     private var guiding: TapPrerequisite? = null
     private val settleCheck = Runnable { finishGuidance() }
@@ -133,6 +136,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
 
     fun start() {
         if (isReceiving || !host.canReceive() || !TapTransfer.isEntryAvailable(activity)) return
+        diagnostics = TapDiagnostics.begin(activity, "更新当前记事")
         host.prepareForReceive()
         guideOrEnter()
     }
@@ -140,6 +144,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     private fun guideOrEnter() {
         main.removeCallbacks(settleCheck)
         val missing = TapTransfer.missingPrerequisites(activity)
+        diagnostics.event("接收前提检查", "missing=$missing")
         if (missing.isEmpty()) { stopGuiding(); enterWhenKeyboardHidden(); return }
         guiding = missing.first()
         watcher.start()
@@ -202,7 +207,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
             surface.setAntenna(antenna.x - bounds.left, antenna.y - bounds.top)
             surface.enter()
         }
-        val receiver = TapTransfer.createReceiverTransport(activity)
+        val receiver = TapTransfer.createReceiverTransport(activity, diagnostics)
         transport = receiver
         receiver.start(TapTransfer.deviceName(activity), listenerFor(receiver))
     }
@@ -210,11 +215,17 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
     /** 真实传输在 stop 后仍可能交付已收齐的文件；重进接收不能接管上一轮的回调。 */
     private fun listenerFor(receiver: TapReceiverTransport) = object : TapReceiverTransport.Listener {
         private fun isCurrent() = isReceiving && transport === receiver
+        override fun onPreparingChanged(preparing: Boolean) {
+            if (isCurrent()) this@TapDetailReceiveController.onPreparingChanged(preparing)
+        }
         override fun onTouched(offer: TapIncomingOffer) {
             if (isCurrent()) this@TapDetailReceiveController.onTouched(offer)
         }
         override fun onConnected(totalBytes: Long) {
             if (isCurrent()) this@TapDetailReceiveController.onConnected(totalBytes)
+        }
+        override fun onWifiConfirmationChanged(waiting: Boolean) {
+            if (isCurrent()) this@TapDetailReceiveController.onWifiConfirmationChanged(waiting)
         }
         override fun onProgress(done: Long, total: Long) {
             if (isCurrent()) this@TapDetailReceiveController.onProgress(done, total)
@@ -227,12 +238,17 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         }
     }
 
+    override fun onPreparingChanged(preparing: Boolean) {
+        if (isReceiving) pull.setPreparing(preparing)
+    }
+
     override fun onTouched(offer: TapIncomingOffer) {
         if (!isReceiving || busy) return
         busy = true
         generation++
         senderName = offer.senderName
         shownPercent = -1
+        waitingForWifiConfirmation = false
         pull.setHint(activity.getString(R.string.tap_receive_from, senderName))
         color = (offer.colors.firstOrNull() ?: 0xFF607D8B.toInt()) or 0xFF000000.toInt()
         seed = ParticleCardSurfaceHandoff.seed()
@@ -249,10 +265,20 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         Choreographer.getInstance().postFrameCallback(frame)
     }
 
-    override fun onConnected(totalBytes: Long) { model.connected(SystemClock.uptimeMillis()) }
+    override fun onWifiConfirmationChanged(waiting: Boolean) {
+        waitingForWifiConfirmation = waiting
+        pull.setHint(if (waiting) activity.getString(R.string.tap_receive_wifi_confirmation)
+            else activity.getString(R.string.tap_receive_from, senderName))
+    }
+    override fun onConnected(totalBytes: Long) {
+        waitingForWifiConfirmation = false
+        pull.setHint(activity.getString(R.string.tap_receive_from, senderName))
+        model.connected(SystemClock.uptimeMillis())
+    }
     override fun onProgress(done: Long, total: Long) { model.progress(done, total) }
 
     override fun onReceived(file: File) {
+        diagnostics.event("收到更新文件", "bytes=${file.length()}")
         // 更新模式退出意味着取消更新，不再把迟到的来件应用到已离开的目标记事。
         if (!isReceiving) { file.delete(); return }
         val token = generation
@@ -414,7 +440,7 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
             timeline.advance(seconds, shown)
             val tau = timeline.tauAt(seconds)
             val inflow = timeline.inflow
-            if (!timeline.isComplete) {
+            if (!timeline.isComplete && !waitingForWifiConfirmation) {
                 val percent = (shown * 100).toInt().coerceIn(0, 100)
                 if (percent != shownPercent) {
                     shownPercent = percent
@@ -436,7 +462,10 @@ class TapDetailReceiveController(private val activity: FragmentActivity, private
         }
     }
 
-    override fun onFailed(reason: TapFailure) { if (isReceiving) fail(R.string.tap_receive_failed) }
+    override fun onFailed(reason: TapFailure) {
+        diagnostics.failure("更新接收失败提示", "reason=$reason")
+        if (isReceiving) fail(R.string.tap_receive_failed)
+    }
 
     private fun fail(message: Int) {
         Toast.makeText(activity, message, Toast.LENGTH_LONG).show()

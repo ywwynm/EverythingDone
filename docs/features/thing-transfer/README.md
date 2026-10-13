@@ -12,6 +12,16 @@ Status: 一期（记事文件）已发布；二期（应用内碰一碰）2026-0
 
 ## Documents
 
+2026-10-14：按用户决定暂缓卓易通网络兼容排查。诊断总开关 `TapDiagnostics.ENABLE_DIAGNOSTICS` 默认关闭，入口统一 GONE；采集和额外查询停用，已有兼容传输实现继续保留。重新采集需改开关并构建 debug，详见 [诊断记录](diagnostics-2026-10-13.md)。
+
+- [tcp-refusal-2026-10-13.md](tcp-refusal-2026-10-13.md) — v5 至 v7 双端 TCP 拒绝排查；已排除应用提前关闭，v7 明确绑定 IPv4 仍失败，继续核对卓易通 P2P 可达性与角色切换路由
+
+- [compatibility-detection-research-2026-10-13.md](compatibility-detection-research-2026-10-13.md) — 卓易通识别调研：`anco` 系统属性、开源实现、普通华为样本对照及应用读取限制；尚未改代码
+
+- [receiver-group-2026-10-13.md](receiver-group-2026-10-13.md) — 卓易通优先建组的双向传输，NFC 协商、连接恢复与本地验证范围
+
+- [diagnostics-2026-10-13.md](diagnostics-2026-10-13.md) — 鸿蒙 7／卓易通两端反馈：用户确认 v3 在系统选设备并允许后可以接收；debug `202610130937` 延长兼容确认等待、增加操作提示和诊断文本文件分享，原 P2P 拒绝及旧反向 ACK 超时仍分别追踪
+
 - [receive-blank-card-2026-10-10.md](receive-blank-card-2026-10-10.md) — 批量接收后滚动出现空白卡片：缓存视图漏恢复的复现、修复及两机回归
 
 - [decisions.md](decisions.md) — 17 项决策记录（2026-09-21 逐项确认）

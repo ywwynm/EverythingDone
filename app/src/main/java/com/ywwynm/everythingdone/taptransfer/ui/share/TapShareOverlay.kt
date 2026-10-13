@@ -43,6 +43,7 @@ import com.ywwynm.everythingdone.model.Thing
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.model.ThingListEntry
 import com.ywwynm.everythingdone.taptransfer.TapTransfer
+import com.ywwynm.everythingdone.taptransfer.diagnostics.TapDiagnosticsDialog
 import com.ywwynm.everythingdone.taptransfer.ui.ProgressSmoother
 import com.ywwynm.everythingdone.taptransfer.ui.TapPrerequisiteWatcher
 import com.ywwynm.everythingdone.taptransfer.ui.TapSetupNavigator
@@ -548,6 +549,7 @@ class TapShareOverlay private constructor(
     // ---------------------------------------------------------------- 面板
 
     private fun bindPanel() {
+        TapDiagnosticsDialog.bind(panel.findViewById(R.id.tap_diagnostic_open), activity)
         val accent = request.accent
         // 分享的都是文件夹时标题说「分享文件夹」，其余（含混选）仍是「分享记事」
         val items = request.content.items

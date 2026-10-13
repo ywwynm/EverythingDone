@@ -35,4 +35,17 @@
         tools:text="@string/tap_receive_hint"
         tools:visibility="visible" />
 
+    <TextView
+        android:id="@+id/tap_diagnostic_open"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:text="@string/tap_diagnostic_open"
+        android:textColor="@color/app_chrome_on_surface_secondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
 </LinearLayout>

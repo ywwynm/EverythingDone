@@ -14,6 +14,8 @@ class TapCardResponder(private val offerProvider: () -> Offer?) {
     interface Offer {
         /** 已编码好的 [TapHandshake]。 */
         val handshake: ByteArray
+        val supportsReceiverGroup: Boolean get() = false
+        fun onReceiverGroup(offer: TapReceiverGroupOffer): Int = TapApdu.SW_UNKNOWN_INS
 
         /**
          * 接收方读完握手、确认要收之后发来 HELLO。返回状态字：[TapApdu.SW_OK] 表示发送方认定
@@ -31,7 +33,8 @@ class TapCardResponder(private val offerProvider: () -> Offer?) {
                 val offer = offerProvider() ?: return TapApdu.response(null, TapApdu.SW_NOT_READY)
                 val size = offer.handshake.size
                 TapApdu.response(
-                    byteArrayOf(TapHandshake.VERSION.toByte(), (size shr 8).toByte(), size.toByte()),
+                    byteArrayOf(TapHandshake.VERSION.toByte(), (size shr 8).toByte(), size.toByte()) +
+                        if (offer.supportsReceiverGroup) byteArrayOf(1) else byteArrayOf(),
                     TapApdu.SW_OK
                 )
             }
@@ -48,6 +51,12 @@ class TapCardResponder(private val offerProvider: () -> Offer?) {
                 val offer = offerProvider() ?: return TapApdu.response(null, TapApdu.SW_NOT_READY)
                 TapApdu.response(null, offer.onHello(command.receiverId, command.receiverName))
             }
+            is TapApdu.Command.ReceiverGroup -> {
+                val offer = offerProvider() ?: return TapApdu.response(null, TapApdu.SW_NOT_READY)
+                TapApdu.response(null, if (offer.supportsReceiverGroup) offer.onReceiverGroup(command.offer)
+                    else TapApdu.SW_UNKNOWN_INS)
+            }
+            TapApdu.Command.Invalid -> TapApdu.response(null, TapApdu.SW_WRONG_LENGTH)
             TapApdu.Command.Unknown -> TapApdu.response(null, TapApdu.SW_UNKNOWN_INS)
         }
     }
@@ -63,7 +72,7 @@ class TapReaderExchange(private val transceive: (ByteArray) -> ByteArray) {
         /** 对方没打开分享界面，或者碰到的根本不是完事儿。 */
         object NotOffering : Outcome()
 
-        class Offered(val handshake: TapHandshake) : Outcome()
+        class Offered(val handshake: TapHandshake, val supportsReceiverGroup: Boolean = false) : Outcome()
     }
 
     /** 选中我们的 AID 并按段读完握手。IO 失败照常抛出，由调用方当作这次碰触没碰好。 */
@@ -105,7 +114,7 @@ class TapReaderExchange(private val transceive: (ByteArray) -> ByteArray) {
             System.arraycopy(chunk, 0, handshake, offset, chunk.size)
             offset += chunk.size
         }
-        return Outcome.Offered(TapHandshake.decode(handshake))
+        return Outcome.Offered(TapHandshake.decode(handshake), (info.getOrNull(3)?.toInt() ?: 0) and 1 != 0)
     }
 
     /** 返回发送方给的状态字。 */
@@ -113,4 +122,7 @@ class TapReaderExchange(private val transceive: (ByteArray) -> ByteArray) {
     fun hello(receiverId: ByteArray, receiverName: String): Int {
         return TapApdu.statusWord(transceive(TapApdu.hello(receiverId, receiverName)))
     }
+
+    fun receiverGroup(offer: TapReceiverGroupOffer): Int =
+        TapApdu.statusWord(transceive(TapApdu.receiverGroup(offer)))
 }
