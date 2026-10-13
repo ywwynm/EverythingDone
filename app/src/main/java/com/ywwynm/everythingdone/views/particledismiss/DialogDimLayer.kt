@@ -104,9 +104,13 @@ internal class DialogDimLayer private constructor(
                 isFocusable = false
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
-            ParticleOverlayHost.attach(decor, view)
+            // Doing 的整页 GL 也必须包含 Dialog 暗层；单独留在 Decor overlay 会被
+            // on-top Surface 遮住，背景控件无法按原有 0.6 浓度一起变暗。
+            val drawingHost = if (android.os.Build.VERSION.SDK_INT >= 34)
+                ParticleDoingPage.contentOf(activity) ?: decor else decor
+            ParticleOverlayHost.attach(drawingHost, view)
             synchronized(attached) { attached[view] = decor }
-            return DialogDimLayer(view, decor).also { if (animateIn) it.fadeIn() }
+            return DialogDimLayer(view, drawingHost).also { if (animateIn) it.fadeIn() }
         }
 
         /** 挂着的暗层 → 宿主 decor（弱引用键，层被回收即自动移除）。 */

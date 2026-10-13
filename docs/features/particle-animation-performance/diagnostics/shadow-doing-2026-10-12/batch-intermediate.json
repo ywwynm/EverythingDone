@@ -1,0 +1,115 @@
+[
+  {
+    "device": "samsung",
+    "run": "unified-tuning-1791766513",
+    "scene": "实际页面 ParticleTuningActivity",
+    "eventCount": 1866,
+    "maxSessions": 1,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "opaque_return_without_entry",
+        "values": {
+          "cardShown": false,
+          "reason": "native_view_kept_during_preparation"
+        }
+      }
+    ],
+    "shadowPrepared": 0,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 5,
+    "zipCount": 1
+  },
+  {
+    "device": "samsung",
+    "run": "unified-removal-1791766823",
+    "scene": "批量移除虚构列表",
+    "eventCount": 1104,
+    "maxSessions": 2,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "particle_watchdog_timeout",
+        "values": {
+          "overlay": 83289611,
+          "reverse": false,
+          "firstFrame": true,
+          "progress": 1
+        }
+      }
+    ],
+    "shadowPrepared": 2,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 1,
+    "zipCount": 1,
+    "removal": {
+      "reflowMs": 1946,
+      "remaining": [
+        2,
+        -4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        -12,
+        13,
+        14,
+        15,
+        -16,
+        17
+      ],
+      "suppressed": false
+    }
+  },
+  {
+    "device": "oppo",
+    "run": "unified-removal-1791766823",
+    "scene": "批量移除虚构列表",
+    "eventCount": 1076,
+    "maxSessions": 2,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "particle_watchdog_timeout",
+        "values": {
+          "overlay": 216094900,
+          "reverse": false,
+          "firstFrame": true,
+          "progress": 1
+        }
+      }
+    ],
+    "shadowPrepared": 2,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 1,
+    "zipCount": 1,
+    "removal": {
+      "reflowMs": 1760,
+      "remaining": [
+        2,
+        -4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        -12,
+        13,
+        14,
+        15,
+        -16,
+        17
+      ],
+      "suppressed": false
+    }
+  }
+]

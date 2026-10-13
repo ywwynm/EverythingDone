@@ -65,8 +65,14 @@ open class ModeManager(app: App?,
 
     private var showContextualToolbar: Animation? = AnimationUtils.loadAnimation(mApp,
             R.anim.contextual_toolbar_show)
-    private var hideContextualToolbar: Animation? = AnimationUtils.loadAnimation(mApp,
-            R.anim.contextual_toolbar_hide)
+    private var contextualExit: android.animation.ValueAnimator? = null
+    val hasContextualStatusBar get() = currentMode == SELECTING || contextualExit != null
+    val isTransitionRunning get() = contextualExit != null || mAdapter?.isSelectionExitAnimating == true
+
+    fun finishTransition() {
+        contextualExit?.end()
+        mAdapter?.finishSelectionExit()
+    }
 
     private var mRecyclerView: RecyclerView? = recyclerView
     //private WeakReference<RecyclerView> mWrRecyclerView;
@@ -126,6 +132,7 @@ open class ModeManager(app: App?,
         if (position < 0) {
             return
         }
+        finishTransition()
         val contextualCanCoverHomeChrome = mHeader?.canContextualToolbarCoverHomeChrome() == true
         updateSelectedCount()
         showContextualToolbar(true, contextualCanCoverHomeChrome)
@@ -192,6 +199,7 @@ open class ModeManager(app: App?,
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
         }
         beforeMode = currentMode
+        if (beforeMode == SELECTING) mAdapter?.beginSelectionExit(mRecyclerView!!)
         currentMode = NORMAL
         if (beforeMode == SELECTING) {
             hideContextualToolbar()
@@ -234,6 +242,7 @@ open class ModeManager(app: App?,
             mDrawerLayout!!.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
         }
         val previousMode = currentMode
+        if (previousMode == SELECTING) mAdapter?.beginSelectionExit(mRecyclerView!!)
         beforeMode = currentMode
         currentMode = NORMAL
         if (previousMode == SELECTING) {
@@ -286,18 +295,38 @@ open class ModeManager(app: App?,
     }
 
     private fun hideContextualToolbar() {
-        mHeader!!.showActionbarShadow()
-
         val tb: Toolbar = mContextualToolbar!!
-        tb.setNavigationOnClickListener(mNavigationListener)
+        tb.setNavigationOnClickListener(null)
         tb.setOnMenuItemClickListener(null)
-
         val rl: RelativeLayout = mRlContextualToolbar!!
-        rl.setAnimation(hideContextualToolbar)
-        hideContextualToolbar!!.start()
-        rl.visibility = View.INVISIBLE
-        contextualToolbarVisibilityCallback?.invoke(false)
-        tb.getMenu().clear()
+        rl.clearAnimation()
+        val animator = android.animation.ValueAnimator.ofFloat(0f, -rl.height.toFloat())
+        contextualExit = animator
+        mHeader?.setContextualExitShadowReveal(0f)
+        animator.duration = 300L
+        animator.addUpdateListener {
+            rl.translationY = it.animatedValue as Float
+            // 移走旧阴影后再显露普通阴影；避免两份半透明阴影重叠。
+            val density = rl.resources.displayMetrics.density
+            mHeader?.setContextualExitShadowReveal(((-rl.translationY - 4f * density) / (16f * density)).coerceIn(0f, 1f))
+        }
+        animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                if (contextualExit !== animation) return
+                contextualExit = null
+                rl.visibility = View.INVISIBLE
+                rl.translationY = 0f
+                tb.menu.clear()
+                tb.setNavigationOnClickListener(mNavigationListener)
+                mHeader?.setContextualExitShadowReveal(1f)
+                contextualToolbarVisibilityCallback?.invoke(false)
+            }
+        })
+        // 差分后的新 holder 可能需要测量／加载字体。布局完成后才启动时钟，不能把准备时间算进退场。
+        androidx.core.view.OneShotPreDrawListener.add(rl) {
+            if (contextualExit === animator) animator.start()
+        }
+        rl.invalidate()
     }
 
     open fun updateSelectedCount() {

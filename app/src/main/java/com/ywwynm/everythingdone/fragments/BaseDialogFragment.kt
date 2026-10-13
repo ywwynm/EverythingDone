@@ -41,6 +41,8 @@ import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissController
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissOverlay
 import com.ywwynm.everythingdone.views.particledismiss.ParticleDismissStartGate
 import com.ywwynm.everythingdone.views.particledismiss.ParticleMicroflakeRenderer
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePresentationDiagnostics
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDialogVisibility
 
 /**
  * Created by ywwynm on 2015/9/29.
@@ -61,7 +63,8 @@ abstract class BaseDialogFragment : DialogFragment() {
 
         /** 读用户设置的粒子动画档位（设置页实时写入，此处实时读取）。 */
         fun particleAnimationMode(context: Context): Int =
-            context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
+            if (ParticlePresentationDiagnostics.of(context)?.options?.fixture == true) PARTICLE_ANIMATION_DEFAULT
+            else context.getSharedPreferences(Def.Meta.PREFERENCES_NAME, Context.MODE_PRIVATE)
                 .getInt(Def.Meta.KEY_DIALOG_PARTICLE_ANIMATION, PARTICLE_ANIMATION_DEFAULT)
     }
 
@@ -130,6 +133,13 @@ abstract class BaseDialogFragment : DialogFragment() {
     protected open fun useParticleDismiss(): Boolean = true
 
     override fun onStart() {
+        // D1 只在明确受理出现动画的诊断实例上，早于 DialogFragment.show 建立窗口透明度。
+        val pendingDialog = dialog as? GestureAnchoredDialog
+        if (pendingDialog != null && ParticlePresentationDiagnostics.of(pendingDialog.context)
+                ?.options?.dialogMode == ParticlePresentationDiagnostics.DialogMode.EARLY_WINDOW &&
+            shouldAnimateAppearance(pendingDialog)) {
+            pendingDialog.window?.let(ParticleDialogVisibility::prepareEarly)
+        }
         super.onStart()
         val dialog = dialog ?: return
         dialog.window?.setBackgroundDrawable(
@@ -150,9 +160,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         val gestureDialog = dialog as? GestureAnchoredDialog ?: return
         // 登记到弹窗栈：决定「在别的弹窗之上打开的弹窗」要不要把粒子抬到独立窗口上。
         activity?.let { ParticleDialogStack.onShown(gestureDialog, it) }
-        val animateAppearance = useParticleDismiss() && !recreatedFromSavedState &&
-            !gestureDialog.condenseAttempted && ValueAnimator.areAnimatorsEnabled() &&
-            particleAnimationMode(gestureDialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
+        val animateAppearance = shouldAnimateAppearance(gestureDialog)
         if (useParticleDismiss() && particleAnimationMode(gestureDialog.context) and (PARTICLE_ANIMATION_SHOW_BIT or PARTICLE_ANIMATION_DISMISS_BIT) != 0) {
             ParticleDismissController.warmDismissModel(gestureDialog.context)
         }
@@ -187,11 +195,20 @@ abstract class BaseDialogFragment : DialogFragment() {
                 gestureDialog.condenseOverlay = overlay
             }
             if (!started) {
+                ParticleDialogVisibility.restore(gestureDialog.window, "start_rejected")
                 gestureDialog.dimLayer?.setAppearanceProgress(1f)
                 settleAppearance()
             }
-        } else settleAppearance()
+        } else {
+            ParticleDialogVisibility.restore(gestureDialog.window, "appearance_disabled")
+            settleAppearance()
+        }
     }
+
+    private fun shouldAnimateAppearance(dialog: GestureAnchoredDialog): Boolean =
+        useParticleDismiss() && !recreatedFromSavedState && !dialog.condenseAttempted &&
+            ValueAnimator.areAnimatorsEnabled() &&
+            particleAnimationMode(dialog.context) and PARTICLE_ANIMATION_SHOW_BIT != 0
 
     /** 出现动画是否已经结束（或本次根本没有出现动画）。 */
     private var appearanceSettled = false
@@ -288,6 +305,7 @@ abstract class BaseDialogFragment : DialogFragment() {
     }
 
     override fun onDismiss(dialog: DialogInterface) {
+        ParticleDialogVisibility.restore((dialog as? Dialog)?.window, "dismissed")
         (dialog as? GestureAnchoredDialog)?.onRealDismissed()
         interaction = null
         super.onDismiss(dialog)
@@ -440,6 +458,7 @@ private class GestureAnchoredDialog(
         condenseOverlay?.release()
         condenseOverlay = null
         window?.decorView?.let(ParticleDismissController::cancelAppearance)
+        ParticleDialogVisibility.restore(window, "dismiss_requested")
 
         // fragment 的关闭链会两次调到 Dialog.dismiss()（dismissInternal 与
         // onDestroyView 各一次）：粒子流程接管期间的重入必须忽略，否则重入的

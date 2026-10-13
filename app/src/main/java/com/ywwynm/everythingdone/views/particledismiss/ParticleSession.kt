@@ -457,14 +457,14 @@ internal class ParticleSession(
      * 把本会话这一拍的画面叠加到已经清空的默认帧缓冲上。
      * 返回 false 表示本会话这一拍没有内容（准备中或已结束）。
      */
-    override fun drawInto(target: Long): Boolean {
+    override fun drawInto(target: Long, beforeComposite: (Boolean) -> ParticleGlBitmapLayer?): Boolean {
         dirty = false
         if (cancelled || !visible) return false
         val drawStart = if (BuildConfig.DEBUG) System.nanoTime() else 0L
         return try {
             val drew = when (stage) {
-                Stage.PLAY -> { drawPlayFrame(target); !cancelled }
-                Stage.HOLD -> { drawHoldFrame(); true }
+                Stage.PLAY -> { beforeComposite(false); drawPlayFrame(target); !cancelled }
+                Stage.HOLD -> { beforeComposite(false); drawHoldFrame(); true }
                 else -> false
             }
             if (drew && BuildConfig.DEBUG) pendingDraw = longArrayOf(target, drawStart, System.nanoTime())
@@ -596,11 +596,12 @@ internal class ParticleSession(
             }
         }
         listener.onPresented(target, progress)
-        if (stage != Stage.HOLD || finishedReported) return
+        if (stage != Stage.HOLD || finishedReported || progress < 1f) return
         // 消散播完、末帧（全透明）也确认上屏之后收尾；出现的末帧要一直留到宿主确认
         // 真实面板上屏（release），所以只报完成、不退出。
-        if (isReverse) finish(true)
-        else if (pendingFrames == 0) finish(true)
+        // 重叠会话会带着 HOLD 层继续出帧，不能等待整个在途队列清空。
+        // 只需确认本会话的末帧，出现动画仍由 finish 保留末态直到 release。
+        finish(true)
     }
 
     /**

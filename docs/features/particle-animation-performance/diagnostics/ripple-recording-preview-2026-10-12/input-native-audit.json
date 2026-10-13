@@ -1,0 +1,353 @@
+[
+  {
+    "device": "samsung",
+    "run": "input-hold-native-doing-control-drift-unified-1791819773",
+    "first": [
+      [
+        4,
+        74.0
+      ],
+      [
+        12,
+        74.0
+      ],
+      [
+        20,
+        74.0
+      ],
+      [
+        29,
+        74.0
+      ],
+      [
+        37,
+        74.0
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-hold-native-doing-control-drift-unified-1791819782",
+    "first": [
+      [
+        4,
+        74.0
+      ],
+      [
+        12,
+        74.0
+      ],
+      [
+        21,
+        74.0
+      ],
+      [
+        29,
+        74.0
+      ],
+      [
+        38,
+        66.0
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-hold-native-doing-control-drift-unified-1791819792",
+    "first": [
+      [
+        1,
+        74.0
+      ],
+      [
+        16,
+        74.0
+      ],
+      [
+        25,
+        74.0
+      ],
+      [
+        33,
+        74.0
+      ],
+      [
+        41,
+        65.0
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-tap-native-doing-control-drift-unified-1791819737",
+    "first": [
+      [
+        34,
+        4.73
+      ],
+      [
+        42,
+        10.13
+      ],
+      [
+        50,
+        10.13
+      ],
+      [
+        59,
+        16.38
+      ],
+      [
+        67,
+        26.95
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-tap-native-doing-control-drift-unified-1791819746",
+    "first": [
+      [
+        31,
+        4.73
+      ],
+      [
+        39,
+        10.13
+      ],
+      [
+        47,
+        10.13
+      ],
+      [
+        56,
+        15.13
+      ],
+      [
+        64,
+        26.19
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-tap-native-doing-control-drift-unified-1791819755",
+    "first": [
+      [
+        40,
+        15.13
+      ],
+      [
+        49,
+        15.13
+      ],
+      [
+        57,
+        15.13
+      ],
+      [
+        65,
+        21.02
+      ],
+      [
+        74,
+        33.44
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "samsung",
+    "run": "input-tap-native-doing-control-drift-unified-1791819764",
+    "first": [
+      [
+        41,
+        4.73
+      ],
+      [
+        49,
+        14.5
+      ],
+      [
+        57,
+        14.5
+      ],
+      [
+        65,
+        20.34
+      ],
+      [
+        74,
+        32.58
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "meizu",
+    "run": "input-hold-native-doing-control-drift-unified-1791819756",
+    "first": [
+      [
+        1,
+        59.08
+      ],
+      [
+        6,
+        59.08
+      ],
+      [
+        22,
+        59.08
+      ],
+      [
+        30,
+        59.06
+      ],
+      [
+        38,
+        59.05
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "meizu",
+    "run": "input-tap-native-doing-control-drift-unified-1791819737",
+    "first": [
+      [
+        96,
+        2.37
+      ],
+      [
+        104,
+        4.56
+      ],
+      [
+        112,
+        4.56
+      ],
+      [
+        121,
+        7.89
+      ],
+      [
+        129,
+        20.03
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "meizu",
+    "run": "input-tap-native-doing-control-drift-unified-1791819746",
+    "first": [
+      [
+        106,
+        1.76
+      ],
+      [
+        114,
+        6.37
+      ],
+      [
+        123,
+        11.52
+      ],
+      [
+        131,
+        11.52
+      ],
+      [
+        139,
+        17.32
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "oppo",
+    "run": "input-hold-native-doing-control-drift-unified-1791819754",
+    "first": [
+      [
+        2,
+        58.93
+      ],
+      [
+        19,
+        58.93
+      ],
+      [
+        27,
+        58.93
+      ],
+      [
+        35,
+        58.3
+      ],
+      [
+        44,
+        58.3
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "oppo",
+    "run": "input-tap-native-doing-control-drift-unified-1791819737",
+    "first": [
+      [
+        37,
+        2.11
+      ],
+      [
+        45,
+        4.75
+      ],
+      [
+        54,
+        9.64
+      ],
+      [
+        62,
+        15.63
+      ],
+      [
+        71,
+        22.33
+      ]
+    ],
+    "tailMax": 0.0
+  },
+  {
+    "device": "oppo",
+    "run": "input-tap-native-doing-control-drift-unified-1791819745",
+    "first": [
+      [
+        31,
+        1.55
+      ],
+      [
+        39,
+        1.55
+      ],
+      [
+        47,
+        9.07
+      ],
+      [
+        55,
+        9.07
+      ],
+      [
+        64,
+        22.35
+      ]
+    ],
+    "tailMax": 0.0
+  }
+]

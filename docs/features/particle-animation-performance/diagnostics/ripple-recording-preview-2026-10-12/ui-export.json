@@ -1,0 +1,11 @@
+[
+  {
+    "run": "20261013-000315-066",
+    "observation": "正常",
+    "samples": true,
+    "materials": [
+      "20261013-000315-066/material-1-false.png"
+    ],
+    "observationActionAutomated": true
+  }
+]

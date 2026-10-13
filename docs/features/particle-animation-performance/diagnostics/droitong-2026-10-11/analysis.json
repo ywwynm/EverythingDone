@@ -1,0 +1,2813 @@
+{
+  "source_filename": "particle-display-1791709671916.zip",
+  "source_bytes": 1003630,
+  "source_sha256": "4763cfbd75b0cddc82dbde7f62aebcf24e3473e1b161bf6419d1ff70b92d7a89",
+  "archive_entries": 54,
+  "uncompressed_bytes": 4367768,
+  "run_count": 12,
+  "image_count": 41,
+  "metadata": [
+    {
+      "versionName": "2.0.0",
+      "versionCode": 43,
+      "build": "202610110851",
+      "visibleAndroidApi": 36,
+      "visibleAndroidRelease": "16",
+      "visibleManufacturer": "HUAWEI",
+      "visibleModel": "VOL-AL00",
+      "visibleBuild": "System 104.3.5.001(00HP)",
+      "testerEnvironmentNote": "",
+      "buildInfoMeaning": "应用可见信息，不能证明宿主设备与卓易通版本",
+      "particleStyle": "DRIFT",
+      "fixedSeed": 42017,
+      "systemAnimationsEnabled": true,
+      "screenEvidence": "用户观察；缓冲抓图与提交回调不能证明最终合成正确"
+    }
+  ],
+  "presentation_basis_counts": {
+    "driver_invalid_estimate": 2934
+  },
+  "meaning": "源图像及应用事件统计；不能证明最终屏幕合成或真实呈现帧率",
+  "runs": [
+    {
+      "id": "20261011-165628-976",
+      "scene": "独立Surface",
+      "label": "原实现",
+      "observation": "面板提前出现",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "ORIGINAL",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 496,
+        "dialog_hidden": 4,
+        "appearance_requested": 4,
+        "dialog_before_capture": 4,
+        "appearance_capture": 4,
+        "appearance_snapshot_ready": 4,
+        "particle_backend": 8,
+        "gl_environment": 1,
+        "image_saved": 4,
+        "particle_buffer_submitted": 520,
+        "particle_presentation_decision": 520,
+        "particle_first_frame_callback": 8,
+        "particle_progress_callback": 512,
+        "particle_session_finished": 8,
+        "particle_done": 8,
+        "dialog_before_restore": 4,
+        "dialog_restored:controller": 4,
+        "particle_detached": 8,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 520
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 301,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 1089.250313,
+          "values": {
+            "window": 59674713,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 1119.290313,
+          "values": {
+            "window": 59674713,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1784.960782,
+          "values": {
+            "window": 59674713,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1786.096094,
+          "values": {
+            "window": 59674713,
+            "mode": "ORIGINAL",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 4778.846719,
+          "values": {
+            "window": 44716861,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 4803.30875,
+          "values": {
+            "window": 44716861,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 5457.047657,
+          "values": {
+            "window": 44716861,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 5458.658282,
+          "values": {
+            "window": 44716861,
+            "mode": "ORIGINAL",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 8774.201563,
+          "values": {
+            "window": 54654266,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 8797.906563,
+          "values": {
+            "window": 54654266,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 9437.800313,
+          "values": {
+            "window": 54654266,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 9439.185157,
+          "values": {
+            "window": 54654266,
+            "mode": "ORIGINAL",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 18045.78375,
+          "values": {
+            "window": 263613581,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 18067.398594,
+          "values": {
+            "window": 263613581,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 18738.823282,
+          "values": {
+            "window": 263613581,
+            "mode": "ORIGINAL",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 18740.020625,
+          "values": {
+            "window": 263613581,
+            "mode": "ORIGINAL",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 1141.254532,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "窗口PixelCopy+独立Surface×1",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 4822.477032,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "窗口PixelCopy+独立Surface×1",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 8804.839532,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "窗口PixelCopy+独立Surface×1",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 18097.361875,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "窗口PixelCopy+独立Surface×1",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-19430548-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 4,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-194625955-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 4,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-217770276-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 4,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-75736165-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 4,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165654-599",
+      "scene": "挂载色块",
+      "label": "原实现",
+      "observation": "前景消失",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "ORIGINAL",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 173,
+        "marker_submitted": 2,
+        "particle_backend": 2,
+        "marker_committed": 2,
+        "marker_closed": 2,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {},
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [
+        {
+          "submitted_ms": 1131.732969,
+          "parent": "particle_surface",
+          "x": 372,
+          "y": 1116,
+          "size": 288,
+          "surfaceValid": true,
+          "committed_delay_ms": 33.490625000000136,
+          "lifetime_ms": 3694.2200000000003
+        },
+        {
+          "submitted_ms": 4829.527969,
+          "parent": "particle_surface",
+          "x": 372,
+          "y": 1116,
+          "size": 288,
+          "surfaceValid": true,
+          "committed_delay_ms": 25.67140600000039,
+          "lifetime_ms": 3024.2153120000003
+        }
+      ],
+      "dialog_states": [],
+      "snapshots": [],
+      "gl_environments": [],
+      "problems": [],
+      "image_metrics": [],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165720-629",
+      "scene": "卡片",
+      "label": "只改前景挂载",
+      "observation": "前景消失",
+      "options": {
+        "rootForeground": true,
+        "dialogMode": "ORIGINAL",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "card_fixture_ready": 1,
+        "card_layout": 1,
+        "window_frame": 304,
+        "input": 8,
+        "particle_backend": 5,
+        "gl_environment": 1,
+        "foreground_created": 25,
+        "particle_buffer_submitted": 238,
+        "image_saved": 12,
+        "particle_presentation_decision": 238,
+        "foreground_hidden": 25,
+        "foreground_buffer_submitted": 25,
+        "card_window_transaction": 10,
+        "card_transaction_committed": 10,
+        "particle_first_frame_callback": 5,
+        "particle_progress_callback": 228,
+        "appearance_requested": 2,
+        "foreground_restored": 25,
+        "appearance_capture": 2,
+        "particle_done": 5,
+        "particle_detached": 5,
+        "particle_session_finished": 5,
+        "appearance_snapshot_ready": 2,
+        "foreground_closed": 25,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 238
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {
+        "foreground-actionbar-263585475": {
+          "foreground_created": 5,
+          "foreground_hidden": 5,
+          "foreground_buffer_submitted": 5,
+          "foreground_restored": 5,
+          "foreground_closed": 5
+        },
+        "foreground-rl_header-217320024": {
+          "foreground_created": 5,
+          "foreground_hidden": 5,
+          "foreground_buffer_submitted": 5,
+          "foreground_restored": 5,
+          "foreground_closed": 5
+        },
+        "foreground-actionbar_shadow-59624560": {
+          "foreground_created": 5,
+          "foreground_hidden": 5,
+          "foreground_buffer_submitted": 5,
+          "foreground_restored": 5,
+          "foreground_closed": 5
+        },
+        "foreground-view_status_bar-216707371": {
+          "foreground_created": 5,
+          "foreground_hidden": 5,
+          "foreground_buffer_submitted": 5,
+          "foreground_restored": 5,
+          "foreground_closed": 5
+        },
+        "foreground-fab_create-228248018": {
+          "foreground_created": 5,
+          "foreground_hidden": 5,
+          "foreground_buffer_submitted": 5,
+          "foreground_restored": 5,
+          "foreground_closed": 5
+        }
+      },
+      "foreground_hidden_duration_ms": {
+        "min": 360.8874999999989,
+        "max": 915.5385940000001
+      },
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [
+        {
+          "view": "foreground-actionbar-263585475",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-217320024",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-59624560",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-216707371",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-228248018",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar-263585475",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-217320024",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-59624560",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-216707371",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-228248018",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar-263585475",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-217320024",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-59624560",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-216707371",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-228248018",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar-263585475",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-217320024",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-59624560",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-216707371",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-228248018",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar-263585475",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-217320024",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-59624560",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-216707371",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-228248018",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        }
+      ],
+      "card_window_queued": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "card_committed_delays_ms": [
+        23.109375,
+        32.30734400000006,
+        24.727499999999964,
+        32.357031000000006,
+        24.265468000000055,
+        32.22187500000018,
+        26.90109399999892,
+        34.44984400000067,
+        26.79968700000063,
+        32.969843000000765
+      ],
+      "markers": [],
+      "dialog_states": [],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 1900.894063,
+          "values": {
+            "width": 1230,
+            "height": 638,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 8972.481406,
+          "values": {
+            "width": 1230,
+            "height": 638,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-13157645-snapshot.png",
+          "width": 512,
+          "height": 265,
+          "nontransparent_fraction": 0.9526311910377359,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-230908746-snapshot.png",
+          "width": 512,
+          "height": 265,
+          "nontransparent_fraction": 0.9526311910377359,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar-263585475-cpu-prepared.png",
+          "width": 511,
+          "height": 65,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar-263585475-hardware-prepared.png",
+          "width": 511,
+          "height": 65,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar_shadow-59624560-cpu-prepared.png",
+          "width": 511,
+          "height": 4,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 8,
+          "alpha_max": 56
+        },
+        {
+          "filename": "foreground-actionbar_shadow-59624560-hardware-prepared.png",
+          "width": 511,
+          "height": 4,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 8,
+          "alpha_max": 56
+        },
+        {
+          "filename": "foreground-fab_create-228248018-cpu-prepared.png",
+          "width": 168,
+          "height": 168,
+          "nontransparent_fraction": 0.7945011337868481,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-fab_create-228248018-hardware-prepared.png",
+          "width": 492,
+          "height": 492,
+          "nontransparent_fraction": 0.16028818824773614,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-rl_header-217320024-cpu-prepared.png",
+          "width": 512,
+          "height": 140,
+          "nontransparent_fraction": 0.28719308035714286,
+          "alpha_min": 0,
+          "alpha_max": 176
+        },
+        {
+          "filename": "foreground-rl_header-217320024-hardware-prepared.png",
+          "width": 512,
+          "height": 140,
+          "nontransparent_fraction": 0.28719308035714286,
+          "alpha_min": 0,
+          "alpha_max": 176
+        },
+        {
+          "filename": "foreground-view_status_bar-216707371-cpu-prepared.png",
+          "width": 511,
+          "height": 27,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-view_status_bar-216707371-hardware-prepared.png",
+          "width": 511,
+          "height": 27,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": [
+        {
+          "cpu": "foreground-actionbar-263585475-cpu-prepared.png",
+          "hardware": "foreground-actionbar-263585475-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-actionbar_shadow-59624560-cpu-prepared.png",
+          "hardware": "foreground-actionbar_shadow-59624560-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-fab_create-228248018-cpu-prepared.png",
+          "hardware": "foreground-fab_create-228248018-hardware-prepared.png",
+          "same_shape": false,
+          "hardware_center_body": {
+            "same_shape": true,
+            "equal_rgba": false,
+            "different_pixel_fraction": 0.20372732426303855,
+            "max_channel_difference": 249,
+            "max_alpha_difference": 44
+          },
+          "body_offset_xy": [
+            162,
+            162
+          ]
+        },
+        {
+          "cpu": "foreground-rl_header-217320024-cpu-prepared.png",
+          "hardware": "foreground-rl_header-217320024-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-view_status_bar-216707371-cpu-prepared.png",
+          "hardware": "foreground-view_status_bar-216707371-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        }
+      ]
+    },
+    {
+      "id": "20261011-165755-815",
+      "scene": "普通弹窗",
+      "label": "只改 Dialog / 提前设置窗口透明度",
+      "observation": "面板提前出现",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "EARLY_WINDOW",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 154,
+        "dialog_hidden": 2,
+        "appearance_requested": 1,
+        "dialog_before_capture": 1,
+        "appearance_capture": 1,
+        "appearance_snapshot_ready": 1,
+        "particle_backend": 2,
+        "image_saved": 1,
+        "gl_environment": 1,
+        "particle_buffer_submitted": 150,
+        "particle_presentation_decision": 150,
+        "particle_first_frame_callback": 2,
+        "particle_progress_callback": 148,
+        "particle_session_finished": 2,
+        "particle_done": 2,
+        "dialog_before_restore": 1,
+        "dialog_restored:controller": 1,
+        "particle_detached": 2,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 150
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 843.537969,
+          "values": {
+            "window": 116635319,
+            "mode": "EARLY_WINDOW",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 851.350781,
+          "values": {
+            "window": 116635319,
+            "mode": "EARLY_WINDOW",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 873.88375,
+          "values": {
+            "window": 116635319,
+            "mode": "EARLY_WINDOW",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1541.715781,
+          "values": {
+            "window": 116635319,
+            "mode": "EARLY_WINDOW",
+            "windowAlpha": 0,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1542.734844,
+          "values": {
+            "window": 116635319,
+            "mode": "EARLY_WINDOW",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 901.261406,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-130773146-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165808-421",
+      "scene": "普通弹窗",
+      "label": "只改 Dialog / 额外隐藏普通内容",
+      "observation": "正常",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 424,
+        "dialog_hidden": 3,
+        "appearance_requested": 3,
+        "dialog_before_capture": 3,
+        "appearance_capture": 3,
+        "appearance_snapshot_ready": 3,
+        "particle_backend": 6,
+        "gl_environment": 1,
+        "image_saved": 3,
+        "particle_buffer_submitted": 450,
+        "particle_presentation_decision": 450,
+        "particle_first_frame_callback": 6,
+        "particle_progress_callback": 444,
+        "particle_session_finished": 6,
+        "particle_done": 6,
+        "dialog_before_restore": 3,
+        "dialog_restored:controller": 3,
+        "particle_detached": 6,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 450
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 815.855781,
+          "values": {
+            "window": 197145441,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 837.70375,
+          "values": {
+            "window": 197145441,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1481.881406,
+          "values": {
+            "window": 197145441,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1482.580937,
+          "values": {
+            "window": 197145441,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 4051.707343,
+          "values": {
+            "window": 192240069,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 4065.598281,
+          "values": {
+            "window": 192240069,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 4713.696406,
+          "values": {
+            "window": 192240069,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 4714.174531,
+          "values": {
+            "window": 192240069,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 6903.491406,
+          "values": {
+            "window": 248089604,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 6918.115156,
+          "values": {
+            "window": 248089604,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 7575.506093,
+          "values": {
+            "window": 248089604,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 7575.864062,
+          "values": {
+            "window": 248089604,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 848.925781,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 4076.960312,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 6935.788437,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-149986155-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-208113687-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-8972348-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165821-835",
+      "scene": "叠层弹窗",
+      "label": "只改 Dialog / 额外隐藏普通内容",
+      "observation": "正常",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 451,
+        "dialog_hidden": 4,
+        "appearance_requested": 4,
+        "dialog_before_capture": 4,
+        "appearance_capture": 4,
+        "appearance_snapshot_ready": 4,
+        "particle_backend": 8,
+        "gl_environment": 2,
+        "particle_buffer_submitted": 535,
+        "image_saved": 4,
+        "particle_presentation_decision": 535,
+        "particle_first_frame_callback": 8,
+        "particle_progress_callback": 527,
+        "particle_session_finished": 8,
+        "particle_done": 8,
+        "dialog_before_restore": 4,
+        "dialog_restored:controller": 4,
+        "particle_detached": 8,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 535
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 249,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 884.425937,
+          "values": {
+            "window": 259073867,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 908.407969,
+          "values": {
+            "window": 259073867,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1577.804219,
+          "values": {
+            "window": 259073867,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1578.435156,
+          "values": {
+            "window": 259073867,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 2242.947812,
+          "values": {
+            "window": 125448353,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 2276.28375,
+          "values": {
+            "window": 125448353,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 2938.671719,
+          "values": {
+            "window": 125448353,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 2940.196562,
+          "values": {
+            "window": 125448353,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 5485.047812,
+          "values": {
+            "window": 183018245,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 5502.617031,
+          "values": {
+            "window": 183018245,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 6150.909531,
+          "values": {
+            "window": 183018245,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 6152.217344,
+          "values": {
+            "window": 183018245,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 8417.709687,
+          "values": {
+            "window": 150829746,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 8435.488437,
+          "values": {
+            "window": 150829746,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 9078.882031,
+          "values": {
+            "window": 150829746,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 9080.114531,
+          "values": {
+            "window": 150829746,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 936.037969,
+          "values": {
+            "width": 960,
+            "height": 646,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 2293.560469,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 5512.906875,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 8447.112812,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-111054533-snapshot.png",
+          "width": 512,
+          "height": 344,
+          "nontransparent_fraction": 0.9972860646802325,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-209882748-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-212443400-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-247231677-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165837-508",
+      "scene": "底部面板",
+      "label": "只改 Dialog / 额外隐藏普通内容",
+      "observation": "尚未判断",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 151,
+        "dialog_hidden": 1,
+        "appearance_requested": 1,
+        "dialog_before_capture": 1,
+        "appearance_capture": 1,
+        "appearance_snapshot_ready": 1,
+        "particle_backend": 2,
+        "image_saved": 1,
+        "gl_environment": 1,
+        "particle_buffer_submitted": 149,
+        "particle_presentation_decision": 149,
+        "particle_first_frame_callback": 2,
+        "particle_progress_callback": 147,
+        "particle_session_finished": 2,
+        "particle_done": 2,
+        "dialog_before_restore": 1,
+        "dialog_restored:controller": 1,
+        "particle_detached": 2,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 149
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 851.4525,
+          "values": {
+            "window": 162370356,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 882.400469,
+          "values": {
+            "window": 162370356,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886376,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1537.125938,
+          "values": {
+            "window": 162370356,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886376,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1538.473907,
+          "values": {
+            "window": 162370356,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886376,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 897.694375,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-15770694-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165842-585",
+      "scene": "独立Surface",
+      "label": "只改 Dialog / 额外隐藏普通内容",
+      "observation": "正常",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 289,
+        "dialog_hidden": 2,
+        "appearance_requested": 2,
+        "dialog_before_capture": 2,
+        "appearance_capture": 2,
+        "appearance_snapshot_ready": 2,
+        "particle_backend": 4,
+        "gl_environment": 1,
+        "image_saved": 2,
+        "particle_buffer_submitted": 300,
+        "particle_presentation_decision": 300,
+        "particle_first_frame_callback": 4,
+        "particle_progress_callback": 296,
+        "particle_session_finished": 4,
+        "particle_done": 4,
+        "dialog_before_restore": 2,
+        "dialog_restored:controller": 2,
+        "particle_detached": 4,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 300
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 783.609219,
+          "values": {
+            "window": 218086413,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 815.471094,
+          "values": {
+            "window": 218086413,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1472.100782,
+          "values": {
+            "window": 218086413,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1473.527188,
+          "values": {
+            "window": 218086413,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 3395.036719,
+          "values": {
+            "window": 68473375,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 3412.205157,
+          "values": {
+            "window": 68473375,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 4060.617188,
+          "values": {
+            "window": 68473375,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 4062.14875,
+          "values": {
+            "window": 68473375,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 827.009375,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "离屏软件绘制",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 3421.637188,
+          "values": {
+            "width": 960,
+            "height": 790,
+            "route": "离屏软件绘制",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-182948151-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 0.9977777983966746,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-267911614-snapshot.png",
+          "width": 512,
+          "height": 421,
+          "nontransparent_fraction": 0.9977777983966746,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165852-786",
+      "scene": "挂载色块",
+      "label": "只改 Dialog / 额外隐藏普通内容",
+      "observation": "前景消失",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 91,
+        "marker_submitted": 1,
+        "particle_backend": 1,
+        "marker_committed": 1,
+        "marker_closed": 1,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {},
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [
+        {
+          "submitted_ms": 1090.806406,
+          "parent": "particle_surface",
+          "x": 372,
+          "y": 1116,
+          "size": 288,
+          "surfaceValid": true,
+          "committed_delay_ms": 22.754061999999976,
+          "lifetime_ms": 7305.937812
+        }
+      ],
+      "dialog_states": [],
+      "snapshots": [],
+      "gl_environments": [],
+      "problems": [],
+      "image_metrics": [],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-165951-273",
+      "scene": "卡片",
+      "label": "两项候选一起验证 / 额外隐藏普通内容",
+      "observation": "前景消失",
+      "options": {
+        "rootForeground": true,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "card_fixture_ready": 1,
+        "card_layout": 1,
+        "window_frame": 135,
+        "input": 2,
+        "particle_backend": 2,
+        "foreground_created": 10,
+        "gl_environment": 1,
+        "image_saved": 11,
+        "particle_buffer_submitted": 142,
+        "particle_presentation_decision": 142,
+        "foreground_hidden": 10,
+        "foreground_buffer_submitted": 10,
+        "card_window_transaction": 4,
+        "card_transaction_committed": 4,
+        "particle_first_frame_callback": 2,
+        "particle_progress_callback": 138,
+        "appearance_requested": 1,
+        "foreground_restored": 10,
+        "appearance_capture": 1,
+        "particle_done": 2,
+        "particle_detached": 2,
+        "particle_session_finished": 2,
+        "appearance_snapshot_ready": 1,
+        "foreground_closed": 10,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 142
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {
+        "foreground-actionbar-29710830": {
+          "foreground_created": 2,
+          "foreground_hidden": 2,
+          "foreground_buffer_submitted": 2,
+          "foreground_restored": 2,
+          "foreground_closed": 2
+        },
+        "foreground-rl_header-185675911": {
+          "foreground_created": 2,
+          "foreground_hidden": 2,
+          "foreground_buffer_submitted": 2,
+          "foreground_restored": 2,
+          "foreground_closed": 2
+        },
+        "foreground-actionbar_shadow-19245439": {
+          "foreground_created": 2,
+          "foreground_hidden": 2,
+          "foreground_buffer_submitted": 2,
+          "foreground_restored": 2,
+          "foreground_closed": 2
+        },
+        "foreground-view_status_bar-111730550": {
+          "foreground_created": 2,
+          "foreground_hidden": 2,
+          "foreground_buffer_submitted": 2,
+          "foreground_restored": 2,
+          "foreground_closed": 2
+        },
+        "foreground-fab_create-237986172": {
+          "foreground_created": 2,
+          "foreground_hidden": 2,
+          "foreground_buffer_submitted": 2,
+          "foreground_restored": 2,
+          "foreground_closed": 2
+        }
+      },
+      "foreground_hidden_duration_ms": {
+        "min": 709.5796870000001,
+        "max": 1057.9921880000002
+      },
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [
+        {
+          "view": "foreground-actionbar-29710830",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-185675911",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-19245439",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-111730550",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-237986172",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar-29710830",
+          "x": 0,
+          "y": 72,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-rl_header-185675911",
+          "x": 216,
+          "y": 246,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-actionbar_shadow-19245439",
+          "x": 0,
+          "y": 240,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-view_status_bar-111730550",
+          "x": 0,
+          "y": 0,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        },
+        {
+          "view": "foreground-fab_create-237986172",
+          "x": 942,
+          "y": 798,
+          "alpha": 1,
+          "valid": true,
+          "active": true,
+          "meaning": "submitted_not_screen_verified"
+        }
+      ],
+      "card_window_queued": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "card_committed_delays_ms": [
+        13.185625000000073,
+        33.460781,
+        32.45406200000002,
+        32.293906000000334
+      ],
+      "markers": [],
+      "dialog_states": [],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 1814.337656,
+          "values": {
+            "width": 1230,
+            "height": 638,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-106511942-snapshot.png",
+          "width": 512,
+          "height": 265,
+          "nontransparent_fraction": 0.9526311910377359,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar-29710830-cpu-prepared.png",
+          "width": 511,
+          "height": 65,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar-29710830-hardware-prepared.png",
+          "width": 511,
+          "height": 65,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-actionbar_shadow-19245439-cpu-prepared.png",
+          "width": 511,
+          "height": 4,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 8,
+          "alpha_max": 56
+        },
+        {
+          "filename": "foreground-actionbar_shadow-19245439-hardware-prepared.png",
+          "width": 511,
+          "height": 4,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 8,
+          "alpha_max": 56
+        },
+        {
+          "filename": "foreground-fab_create-237986172-cpu-prepared.png",
+          "width": 168,
+          "height": 168,
+          "nontransparent_fraction": 0.7945011337868481,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-fab_create-237986172-hardware-prepared.png",
+          "width": 492,
+          "height": 492,
+          "nontransparent_fraction": 0.16028818824773614,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-rl_header-185675911-cpu-prepared.png",
+          "width": 512,
+          "height": 140,
+          "nontransparent_fraction": 0.28719308035714286,
+          "alpha_min": 0,
+          "alpha_max": 176
+        },
+        {
+          "filename": "foreground-rl_header-185675911-hardware-prepared.png",
+          "width": 512,
+          "height": 140,
+          "nontransparent_fraction": 0.28719308035714286,
+          "alpha_min": 0,
+          "alpha_max": 176
+        },
+        {
+          "filename": "foreground-view_status_bar-111730550-cpu-prepared.png",
+          "width": 511,
+          "height": 27,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        },
+        {
+          "filename": "foreground-view_status_bar-111730550-hardware-prepared.png",
+          "width": 511,
+          "height": 27,
+          "nontransparent_fraction": 1.0,
+          "alpha_min": 255,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": [
+        {
+          "cpu": "foreground-actionbar-29710830-cpu-prepared.png",
+          "hardware": "foreground-actionbar-29710830-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-actionbar_shadow-19245439-cpu-prepared.png",
+          "hardware": "foreground-actionbar_shadow-19245439-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-fab_create-237986172-cpu-prepared.png",
+          "hardware": "foreground-fab_create-237986172-hardware-prepared.png",
+          "same_shape": false,
+          "hardware_center_body": {
+            "same_shape": true,
+            "equal_rgba": false,
+            "different_pixel_fraction": 0.20372732426303855,
+            "max_channel_difference": 249,
+            "max_alpha_difference": 44
+          },
+          "body_offset_xy": [
+            162,
+            162
+          ]
+        },
+        {
+          "cpu": "foreground-rl_header-185675911-cpu-prepared.png",
+          "hardware": "foreground-rl_header-185675911-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        },
+        {
+          "cpu": "foreground-view_status_bar-111730550-cpu-prepared.png",
+          "hardware": "foreground-view_status_bar-111730550-hardware-prepared.png",
+          "same_shape": true,
+          "equal_rgba": true,
+          "different_pixel_fraction": 0.0,
+          "max_channel_difference": 0,
+          "max_alpha_difference": 0
+        }
+      ]
+    },
+    {
+      "id": "20261011-170011-244",
+      "scene": "普通弹窗",
+      "label": "两项候选一起验证 / 额外隐藏普通内容",
+      "observation": "正常",
+      "options": {
+        "rootForeground": true,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 154,
+        "dialog_hidden": 1,
+        "appearance_requested": 1,
+        "dialog_before_capture": 1,
+        "appearance_capture": 1,
+        "appearance_snapshot_ready": 1,
+        "particle_backend": 2,
+        "image_saved": 1,
+        "gl_environment": 1,
+        "particle_buffer_submitted": 150,
+        "particle_presentation_decision": 150,
+        "particle_first_frame_callback": 2,
+        "particle_progress_callback": 148,
+        "particle_session_finished": 2,
+        "particle_done": 2,
+        "dialog_before_restore": 1,
+        "dialog_restored:controller": 1,
+        "particle_detached": 2,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 150
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 833.141406,
+          "values": {
+            "window": 3677448,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 857.992187,
+          "values": {
+            "window": 3677448,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1507.624375,
+          "values": {
+            "window": 3677448,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1508.944531,
+          "values": {
+            "window": 3677448,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 873.861562,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-67624186-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    },
+    {
+      "id": "20261011-170019-142",
+      "scene": "叠层弹窗",
+      "label": "两项候选一起验证 / 额外隐藏普通内容",
+      "observation": "正常",
+      "options": {
+        "rootForeground": true,
+        "dialogMode": "CONTENT",
+        "images": true
+      },
+      "event_counts": {
+        "run_created": 1,
+        "activity_bound": 1,
+        "window_frame": 271,
+        "dialog_hidden": 2,
+        "appearance_requested": 2,
+        "dialog_before_capture": 2,
+        "appearance_capture": 2,
+        "appearance_snapshot_ready": 2,
+        "particle_backend": 4,
+        "gl_environment": 2,
+        "particle_buffer_submitted": 300,
+        "image_saved": 2,
+        "particle_presentation_decision": 300,
+        "particle_first_frame_callback": 4,
+        "particle_progress_callback": 296,
+        "particle_session_finished": 4,
+        "particle_done": 4,
+        "dialog_before_restore": 2,
+        "dialog_restored:controller": 2,
+        "particle_detached": 4,
+        "activity_stopped": 1,
+        "activity_destroyed": 1
+      },
+      "presentation_basis_counts": {
+        "driver_invalid_estimate": 300
+      },
+      "positive_driver_present_count": 0,
+      "dropped_frame_events": 0,
+      "dropped_lifecycle_events": 0,
+      "foreground_sources": {},
+      "foreground_hidden_duration_ms": null,
+      "foreground_unrestored_views": [],
+      "foreground_submissions": [],
+      "card_window_queued": [],
+      "card_committed_delays_ms": [],
+      "markers": [],
+      "dialog_states": [
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 697.119531,
+          "values": {
+            "window": 94933809,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 719.801719,
+          "values": {
+            "window": 94933809,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 1373.11375,
+          "values": {
+            "window": 94933809,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 1374.484688,
+          "values": {
+            "window": 94933809,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_hidden",
+          "elapsedMs": 1894.678125,
+          "values": {
+            "window": 128247652,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": false
+          }
+        },
+        {
+          "event": "dialog_before_capture",
+          "elapsedMs": 1925.696406,
+          "values": {
+            "window": 128247652,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_before_restore",
+          "elapsedMs": 2590.254688,
+          "values": {
+            "window": 128247652,
+            "mode": "CONTENT",
+            "windowAlpha": 0,
+            "decorAlpha": 0,
+            "elevation": 0,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        },
+        {
+          "event": "dialog_restored:controller",
+          "elapsedMs": 2591.459063,
+          "values": {
+            "window": 128247652,
+            "mode": "CONTENT",
+            "windowAlpha": 1,
+            "decorAlpha": 1,
+            "elevation": 48,
+            "windowAnimations": 2131886082,
+            "attached": true
+          }
+        }
+      ],
+      "snapshots": [
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 738.4875,
+          "values": {
+            "width": 960,
+            "height": 646,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        },
+        {
+          "event": "appearance_snapshot_ready",
+          "elapsedMs": 1946.207344,
+          "values": {
+            "width": 960,
+            "height": 502,
+            "route": "硬件离屏",
+            "failure": null
+          }
+        }
+      ],
+      "gl_environments": [
+        {
+          "vendor": "HUAWEI",
+          "renderer": "Maleoon 935F",
+          "version": "OpenGL ES 3.2 B312.8601f453f1f2da05f9e41beb0d606b7178dd6a38",
+          "presentationTimestamps": true
+        }
+      ],
+      "problems": [],
+      "image_metrics": [
+        {
+          "filename": "dialog-174973627-snapshot.png",
+          "width": 512,
+          "height": 344,
+          "nontransparent_fraction": 0.9972860646802325,
+          "alpha_min": 0,
+          "alpha_max": 255
+        },
+        {
+          "filename": "dialog-3390711-snapshot.png",
+          "width": 512,
+          "height": 267,
+          "nontransparent_fraction": 0.9965033941947565,
+          "alpha_min": 0,
+          "alpha_max": 255
+        }
+      ],
+      "cpu_hardware_comparisons": []
+    }
+  ]
+}

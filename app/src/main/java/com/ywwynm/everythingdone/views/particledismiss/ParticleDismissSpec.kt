@@ -61,6 +61,8 @@ internal class ParticleDismissSpec(
     val inWindow: Boolean = false,
     /** 扩展阴影边界后的面积比例，用于保持卡片本体的粒子密度。 */
     val materialAreaScale: Float = 1f,
+    /** 容器整体浓度与材料 alpha 分开，不能让半透明容器把全部飘散粒子判为空。 */
+    val sourceAlpha: Float = 1f,
     /** 滑动时固定一个局部消逝起点；未提供时仍使用全部随机起点。 */
     val releaseOrigin: ParticleReleaseOrigin? = null,
     /**

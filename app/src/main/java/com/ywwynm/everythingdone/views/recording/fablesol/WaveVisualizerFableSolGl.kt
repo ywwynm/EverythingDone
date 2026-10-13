@@ -17,6 +17,7 @@ import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.helpers.DebugFileLogger
 import com.ywwynm.everythingdone.model.ThingBackground
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSnapshotParticipant
+import com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceRedrawParticipant
 import kotlin.math.max
 import kotlin.math.min
 
@@ -25,7 +26,7 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : SurfaceView(context, attrs), SurfaceHolder.Callback, FableSolFrameReceiver,
-    ParticleSnapshotParticipant {
+    ParticleSnapshotParticipant, ParticleSurfaceRedrawParticipant {
 
     private val density = resources.displayMetrics.density.toDouble()
     private val renderThread = FableSolGlRenderThread(
@@ -236,6 +237,13 @@ class WaveVisualizerFableSolGl @JvmOverloads constructor(
             }
         }
     }
+
+    override fun redrawForParticleRecovery(beforeSubmit: () -> Unit, submitted: (Boolean) -> Unit) {
+        renderThread.renderParticleRecoveryFrame(beforeSubmit, submitted)
+    }
+
+    override fun acceptsParticleRecoveryBuffer(bitmap: Bitmap): Boolean =
+        surfaceReady && bitmap.width > 0 && bitmap.height > 0
 
     private fun applyFrozenState() {
         val target = hostFrozen || particleHolds > 0

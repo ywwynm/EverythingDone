@@ -1,0 +1,41 @@
+[
+  {
+    "run": "long-production-default-default-repeat-drift-1791800596",
+    "ready": {
+      "run": "long-production-default-default-repeat-drift-1791800596",
+      "scene": "Doing",
+      "mode": "unified",
+      "style": "DRIFT",
+      "report": "20261012-182317-199",
+      "pageSelection": "business_default",
+      "expectPage": true,
+      "reportFolder": "/data/user/0/com.ywwynm.everythingdone/files/presentation-diagnostics/20261012-182317-199"
+    }
+  },
+  {
+    "run": "long-production-default-default-cancel-flow-1791800614",
+    "ready": {
+      "run": "long-production-default-default-cancel-flow-1791800614",
+      "scene": "Doing",
+      "mode": "unified",
+      "style": "FLOW",
+      "report": "20261012-182335-448",
+      "pageSelection": "business_default",
+      "expectPage": true,
+      "reportFolder": "/data/user/0/com.ywwynm.everythingdone/files/presentation-diagnostics/20261012-182335-448"
+    }
+  },
+  {
+    "run": "long-production-default-default-cancel-drift-1791800628",
+    "ready": {
+      "run": "long-production-default-default-cancel-drift-1791800628",
+      "scene": "Doing",
+      "mode": "native",
+      "style": "DRIFT",
+      "report": "20261012-182349-100",
+      "pageSelection": "business_default",
+      "expectPage": false,
+      "reportFolder": "/data/user/0/com.ywwynm.everythingdone/files/presentation-diagnostics/20261012-182349-100"
+    }
+  }
+]

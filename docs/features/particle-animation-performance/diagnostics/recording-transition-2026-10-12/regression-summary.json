@@ -1,0 +1,275 @@
+[
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-drift-doing-fastcomplete200-360-false-1791806590",
+    "scene": "Doing",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791806502",
+    "scene": "独立Surface",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-drift-transition-complete-180-false-1791806549",
+    "scene": "连续弹窗",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806574",
+    "scene": "Doing",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791806525",
+    "scene": "独立Surface",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "oppo",
+    "run": "glscenetrue-unified-drift-doing-fastcomplete200-360-false-1791806562",
+    "scene": "Doing",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "oppo",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791806475",
+    "scene": "独立Surface",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "oppo",
+    "run": "glscenetrue-unified-drift-transition-complete-180-false-1791806517",
+    "scene": "连续弹窗",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "oppo",
+    "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806545",
+    "scene": "Doing",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "oppo",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791806496",
+    "scene": "独立Surface",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-drift-doing-fastcomplete200-360-false-1791806605",
+    "scene": "Doing",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791806502",
+    "scene": "独立Surface",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-drift-transition-complete-180-false-1791806557",
+    "scene": "连续弹窗",
+    "style": "DRIFT",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806585",
+    "scene": "Doing",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView"
+    ],
+    "recovery": [],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791806529",
+    "scene": "独立Surface",
+    "style": "FLOW",
+    "backends": [
+      "SurfaceView",
+      "SurfaceView",
+      "SurfaceView"
+    ],
+    "recovery": [
+      {
+        "reason": "buffers_ready"
+      },
+      {
+        "reason": "buffers_ready"
+      }
+    ],
+    "failures": [],
+    "droppedFrameEvents": 0,
+    "droppedLifecycleEvents": 0
+  }
+]

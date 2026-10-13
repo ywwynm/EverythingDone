@@ -1,0 +1,938 @@
+[
+  {
+    "device": "samsung",
+    "run": "baseline-custom-transition-drift-unified-1791809726",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 66884
+      }
+    ],
+    "peakBlue": 42.252,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 382,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 151.22
+      },
+      {
+        "reverse": false,
+        "delayMs": 401.0
+      }
+    ],
+    "bad": [],
+    "passed": false
+  },
+  {
+    "device": "samsung",
+    "run": "baseline2-native-doing-control-drift-unified-1791809921",
+    "materials": [],
+    "peakBlue": 43.642,
+    "tailMaxBlue": 10.130955687830689,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": null,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": false
+  },
+  {
+    "device": "samsung",
+    "run": "candidate-custom-dismiss-drift-unified-1791810683",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.067,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 380,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 407.62
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "candidate-custom-transition-drift-unified-1791810700",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 45.507,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 398,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 151.28
+      },
+      {
+        "reverse": false,
+        "delayMs": 417.22
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "candidate3-custom-doing-control-drift-unified-1791811134",
+    "materials": [],
+    "peakBlue": 42.049,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 389,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "candidate3-native-doing-control-drift-unified-1791811100",
+    "materials": [],
+    "peakBlue": 73.999,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 393,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "candidate3-native-doing-control-drift-unified-1791811117",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 397,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813365",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 384,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813374",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 390,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813383",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 388,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813393",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 390,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813403",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 390,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813414",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 389,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813424",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 390,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813435",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 383,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813445",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 390,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "drain-native-doing-control-drift-unified-1791813456",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 397,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "final-custom-dismiss-flow-unified-1791812206",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 67.0,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 310,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 328.32
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "final-custom-transition-flow-unified-1791812222",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 67.0,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 337,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 155.61
+      },
+      {
+        "reverse": false,
+        "delayMs": 357.93
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "final-native-doing-control-drift-unified-1791812240",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 398,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "published-custom-dismiss-drift-unified-1791812859",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.257,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 382,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 407.18
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "published-final-custom-dismiss-drift-unified-1791814365",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 40.991,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 375,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 392.47
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "published-final-native-doing-control-drift-unified-1791814372",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 387,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "samsung",
+    "run": "published-native-doing-control-drift-unified-1791812876",
+    "materials": [],
+    "peakBlue": 74.0,
+    "tailMaxBlue": 8.000003306878307,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": null,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": false
+  },
+  {
+    "device": "meizu",
+    "run": "candidate-custom-dismiss-drift-unified-1791810683",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.158,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 384,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 411.93
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "candidate-custom-transition-drift-unified-1791810696",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 43.29,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 391,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 329.36
+      },
+      {
+        "reverse": false,
+        "delayMs": 409.97
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "candidate3-custom-dismiss-flow-unified-1791811231",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.879,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 386,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 403.93
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "candidate3-custom-doing-control-drift-unified-1791811219",
+    "materials": [],
+    "peakBlue": 41.908,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 392,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "candidate3-custom-transition-flow-unified-1791811245",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 43.49,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 391,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 286.33
+      },
+      {
+        "reverse": false,
+        "delayMs": 409.33
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "candidate3-native-doing-control-drift-unified-1791811206",
+    "materials": [],
+    "peakBlue": 64.692,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 844,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "drain-native-doing-control-drift-unified-1791813365",
+    "materials": [],
+    "peakBlue": 64.154,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 859,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "drain-native-doing-control-drift-unified-1791813375",
+    "materials": [],
+    "peakBlue": 64.688,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 845,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "drain-native-doing-control-drift-unified-1791813384",
+    "materials": [],
+    "peakBlue": 64.009,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 861,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "drain-native-doing-control-drift-unified-1791813394",
+    "materials": [],
+    "peakBlue": 63.967,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 841,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "final-custom-dismiss-drift-unified-1791812226",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.492,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 382,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 400.39
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "final-native-doing-control-drift-unified-1791812239",
+    "materials": [],
+    "peakBlue": 64.663,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 862,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "published-custom-dismiss-drift-unified-1791812859",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.158,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 384,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 410.5
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "published-final-custom-dismiss-drift-unified-1791814365",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.492,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 384,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 393.32
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "published-final-native-doing-control-drift-unified-1791814375",
+    "materials": [],
+    "peakBlue": 64.675,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 861,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "meizu",
+    "run": "published-native-doing-control-drift-unified-1791812873",
+    "materials": [],
+    "peakBlue": 63.98,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 858,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate-custom-dismiss-drift-unified-1791810683",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.15,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 381,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 398.96
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate-custom-transition-drift-unified-1791810690",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.15,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 380,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 113.17
+      },
+      {
+        "reverse": false,
+        "delayMs": 399.88
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate3-custom-dismiss-flow-unified-1791811222",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.15,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 381,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 407.45
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate3-custom-doing-control-drift-unified-1791811214",
+    "materials": [],
+    "peakBlue": 41.374,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 383,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate3-custom-transition-flow-unified-1791811229",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.959,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 379,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 92.47
+      },
+      {
+        "reverse": false,
+        "delayMs": 402.71
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "candidate3-native-doing-control-drift-unified-1791811205",
+    "materials": [],
+    "peakBlue": 63.504,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 461,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "drain-native-doing-control-drift-unified-1791813365",
+    "materials": [],
+    "peakBlue": 63.984,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 463,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "drain-native-doing-control-drift-unified-1791813373",
+    "materials": [],
+    "peakBlue": 64.032,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 460,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "drain-native-doing-control-drift-unified-1791813382",
+    "materials": [],
+    "peakBlue": 64.082,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 458,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "drain-native-doing-control-drift-unified-1791813390",
+    "materials": [],
+    "peakBlue": 64.085,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 467,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "final-custom-dismiss-drift-unified-1791812033",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.959,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 380,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 406.76
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "final-custom-transition-drift-unified-1791812040",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.959,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 379,
+    "firstParticleCallback": [
+      {
+        "reverse": true,
+        "delayMs": 136.26
+      },
+      {
+        "reverse": false,
+        "delayMs": 410.63
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "final-native-doing-control-drift-unified-1791812048",
+    "materials": [],
+    "peakBlue": 63.522,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 458,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "published-custom-dismiss-drift-unified-1791812990",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 41.959,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 380,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 403.92
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "published-final-custom-dismiss-drift-unified-1791814365",
+    "materials": [
+      {
+        "file": "material-1-false.png",
+        "bluePixels": 0
+      }
+    ],
+    "peakBlue": 42.15,
+    "tailMaxBlue": null,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 379,
+    "firstParticleCallback": [
+      {
+        "reverse": false,
+        "delayMs": 404.29
+      }
+    ],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "published-final-native-doing-control-drift-unified-1791814372",
+    "materials": [],
+    "peakBlue": 64.042,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 455,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  },
+  {
+    "device": "oppo",
+    "run": "published-native-doing-control-drift-unified-1791812997",
+    "materials": [],
+    "peakBlue": 63.502,
+    "tailMaxBlue": 0.0,
+    "latePageFrameEvents": 0,
+    "zeroAfterMs": 476,
+    "firstParticleCallback": [],
+    "bad": [],
+    "passed": true
+  }
+]

@@ -1,0 +1,983 @@
+{
+  "candidateApkSha256": "3ab742660fb37ffb4ef2a2ccf2302d5dd5b5e8528f716038f5be18cace3d2119",
+  "runs": [
+    {
+      "device": "meizu",
+      "run": "unified-DRIFT-card-cancel-360-false-1791771764",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "卡片",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 122,
+      "startToCallbackMs": 281.84025999999994,
+      "steadyDriverTiming": {
+        "frames": 90,
+        "fps": 105.36235689644731,
+        "intervalP90Ms": 16.563093199999997,
+        "intervalMaxMs": 24.846405
+      },
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-DRIFT-doing-cancel-180-false-1791771582",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 125,
+      "startToCallbackMs": 249.53494799999999,
+      "steadyDriverTiming": {
+        "frames": 99,
+        "fps": 114.8908522425104,
+        "intervalP90Ms": 8.283713599999999,
+        "intervalMaxMs": 16.562708
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0,
+      "video": {
+        "frames": 197,
+        "beforeBgr": [
+          105.0,
+          169.0,
+          218.0
+        ],
+        "afterBgr": [
+          105.0,
+          170.0,
+          219.0
+        ],
+        "brightnessDelta": [
+          0.0,
+          1.0,
+          1.0
+        ],
+        "zeroCardFrames": []
+      }
+    },
+    {
+      "device": "meizu",
+      "run": "unified-DRIFT-doing-fastcomplete200-180-false-1791771737",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 54,
+      "startToCallbackMs": 225.21583299999975,
+      "steadyDriverTiming": {
+        "frames": 34,
+        "fps": 120.74942405543462,
+        "intervalP90Ms": 8.2834688,
+        "intervalMaxMs": 8.285157
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-DRIFT-transition-complete-180-false-1791771777",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "连续弹窗",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 2,
+      "particleFrames": 373,
+      "startToCallbackMs": null,
+      "steadyDriverTiming": null,
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-flow-doing-cancel-180-false-1791772019",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 90,
+      "startToCallbackMs": 257.09182299999975,
+      "steadyDriverTiming": {
+        "frames": 73,
+        "fps": 85.24290220712628,
+        "intervalP90Ms": 16.560286,
+        "intervalMaxMs": 16.608178
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1,
+      "video": {
+        "frames": 199,
+        "beforeBgr": [
+          105.0,
+          169.0,
+          218.0
+        ],
+        "afterBgr": [
+          105.0,
+          170.0,
+          218.0
+        ],
+        "brightnessDelta": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "zeroCardFrames": []
+      }
+    },
+    {
+      "device": "meizu",
+      "run": "unified-flow-doing-rightcomplete-180-false-1791772033",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 34,
+      "startToCallbackMs": 264.40072899999996,
+      "steadyDriverTiming": {
+        "frames": 20,
+        "fps": 79.10814246287264,
+        "intervalP90Ms": 16.5674782,
+        "intervalMaxMs": 24.851041
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2736,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1
+    },
+    {
+      "device": "oppo",
+      "run": "unified-DRIFT-card-cancel-360-false-1791771769",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "卡片",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 227,
+      "startToCallbackMs": 92.9676559999998,
+      "steadyDriverTiming": {
+        "frames": 132,
+        "fps": 118.35040662773986,
+        "intervalP90Ms": 8.322812,
+        "intervalMaxMs": 16.645416
+      },
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-DRIFT-doing-cancel-180-false-1791771582",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 142,
+      "startToCallbackMs": 93.05052100000012,
+      "steadyDriverTiming": {
+        "frames": 121,
+        "fps": 119.1275951458924,
+        "intervalP90Ms": 8.325209,
+        "intervalMaxMs": 16.650312
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-DRIFT-doing-fastcomplete200-180-false-1791771739",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 8,
+      "startToCallbackMs": 100.38140600000042,
+      "steadyDriverTiming": null,
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-DRIFT-transition-complete-180-false-1791771782",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "连续弹窗",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 2,
+      "particleFrames": 392,
+      "startToCallbackMs": null,
+      "steadyDriverTiming": null,
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-flow-doing-cancel-180-false-1791772019",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 97,
+      "startToCallbackMs": 141.97286499999973,
+      "steadyDriverTiming": {
+        "frames": 82,
+        "fps": 85.37291646145766,
+        "intervalP90Ms": 16.645573,
+        "intervalMaxMs": 24.968281
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1
+    },
+    {
+      "device": "oppo",
+      "run": "unified-flow-doing-rightcomplete-180-false-1791772035",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 57,
+      "startToCallbackMs": 112.85453099999995,
+      "steadyDriverTiming": {
+        "frames": 39,
+        "fps": 99.2645362510155,
+        "intervalP90Ms": 16.6443691,
+        "intervalMaxMs": 16.644948
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 5040,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1
+    },
+    {
+      "device": "samsung",
+      "run": "unified-DRIFT-card-cancel-360-false-1791771779",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "卡片",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 153,
+      "startToCallbackMs": 33.963906999999836,
+      "steadyDriverTiming": {
+        "frames": 132,
+        "fps": 119.07331871428084,
+        "intervalP90Ms": 8.336093,
+        "intervalMaxMs": 16.671927
+      },
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-DRIFT-doing-cancel-180-false-1791771390",
+      "baseline": true,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 136,
+      "startToCallbackMs": 134.02161499999966,
+      "steadyDriverTiming": {
+        "frames": 114,
+        "fps": 117.88356614925577,
+        "intervalP90Ms": 8.3376238,
+        "intervalMaxMs": 16.669948
+      },
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0,
+      "video": {
+        "frames": 160,
+        "beforeBgr": [
+          113.0,
+          170.0,
+          214.0
+        ],
+        "afterBgr": [
+          115.0,
+          187.0,
+          237.0
+        ],
+        "brightnessDelta": [
+          2.0,
+          17.0,
+          23.0
+        ],
+        "zeroCardFrames": []
+      }
+    },
+    {
+      "device": "samsung",
+      "run": "unified-DRIFT-doing-cancel-180-false-1791771582",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 137,
+      "startToCallbackMs": 132.455156,
+      "steadyDriverTiming": {
+        "frames": 117,
+        "fps": 118.9507468241117,
+        "intervalP90Ms": 8.335547,
+        "intervalMaxMs": 16.669271
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0,
+      "video": {
+        "frames": 161,
+        "beforeBgr": [
+          113.0,
+          170.0,
+          214.0
+        ],
+        "afterBgr": [
+          112.0,
+          171.0,
+          214.0
+        ],
+        "brightnessDelta": [
+          -1.0,
+          1.0,
+          0.0
+        ],
+        "zeroCardFrames": []
+      }
+    },
+    {
+      "device": "samsung",
+      "run": "unified-DRIFT-doing-fastcomplete200-180-false-1791771742",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 7,
+      "startToCallbackMs": 118.2725519999999,
+      "steadyDriverTiming": null,
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-DRIFT-transition-complete-180-false-1791771798",
+      "baseline": false,
+      "actualStyle": "DRIFT",
+      "scene": "连续弹窗",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 2,
+      "particleFrames": 388,
+      "startToCallbackMs": null,
+      "steadyDriverTiming": null,
+      "finalState": null,
+      "completionCallbacks": 0,
+      "geometrySwitches": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-flow-doing-cancel-180-false-1791772019",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 126,
+      "startToCallbackMs": 142.60640600000033,
+      "steadyDriverTiming": {
+        "frames": 108,
+        "fps": 111.62918692025251,
+        "intervalP90Ms": 8.338177,
+        "intervalMaxMs": 16.671719
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 0,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1,
+      "video": {
+        "frames": 161,
+        "beforeBgr": [
+          113.0,
+          170.0,
+          214.0
+        ],
+        "afterBgr": [
+          112.0,
+          171.0,
+          214.0
+        ],
+        "brightnessDelta": [
+          -1.0,
+          1.0,
+          0.0
+        ],
+        "zeroCardFrames": []
+      }
+    },
+    {
+      "device": "samsung",
+      "run": "unified-flow-doing-rightcomplete-180-false-1791772038",
+      "baseline": false,
+      "actualStyle": "FLOW",
+      "scene": "Doing",
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "maxSessions": 1,
+      "particleFrames": 45,
+      "startToCallbackMs": 176.98484400000007,
+      "steadyDriverTiming": {
+        "frames": 34,
+        "fps": 62.84451170880855,
+        "intervalP90Ms": 16.6707402,
+        "intervalMaxMs": 50.0375
+      },
+      "finalState": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completionCallbacks": 1,
+      "geometrySwitches": [
+        {
+          "stage": "gl_prepare_hidden",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "gl_show_native_hide",
+          "visible": true,
+          "translationX": 0,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 0,
+          "sourceParentAlpha": 0.84
+        },
+        {
+          "stage": "native_show_gl_hide",
+          "visible": false,
+          "translationX": 2880,
+          "surfaceAlpha": 1,
+          "sourceAlpha": 1,
+          "sourceParentAlpha": 0.84
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "exportedZips": 1
+    }
+  ],
+  "unitTests": [
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapLayerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlHandoffStateTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleOnceResultTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeDirectionTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ]
+}

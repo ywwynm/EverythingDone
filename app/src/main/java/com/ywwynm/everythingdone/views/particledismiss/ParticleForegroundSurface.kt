@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.PixelFormat
 import android.graphics.RenderNode
+import android.graphics.Matrix
 import android.hardware.DataSpace
 import android.hardware.HardwareBuffer
 import android.media.Image
@@ -25,6 +26,7 @@ import androidx.annotation.RequiresApi
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.ywwynm.everythingdone.BuildConfig
 import java.util.WeakHashMap
+import java.time.Duration
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -37,9 +39,22 @@ import kotlin.math.max
 @RequiresApi(34)
 internal class ParticleForegroundSurface private constructor(private val source: View,
                                                              parentSurface: SurfaceControl,
-                                                             private val layerOrder: Int) {
+                                                             private val layerOrder: Int,
+                                                             private val glWindow: ParticleWindowSurface? = null) {
     private val root = checkNotNull(source.rootSurfaceControl)
+    private val diagnostic = ParticlePresentationDiagnostics.of(source)
+    private val rootForeground = diagnostic?.options?.rootForeground == true
+    private val diagnosticName = if (diagnostic == null) "" else "foreground-${runCatching {
+        source.resources.getResourceEntryName(source.id)
+    }.getOrDefault(source.id.toString())}-${System.identityHashCode(source)}"
+    private var submittedDiagnosticFrames = 0
+    internal val glLayer = glWindow?.let { ParticleGlBitmapLayer(diagnosticName, layerOrder, foreground = true).apply {
+        copyHardwareToOwned = ParticlePresentationPolicy.of(source).unified
+    } }
+    private var copyingGlImage = false
+    private var copiedGlFrames = 0
     private val originalTransitionAlpha = source.transitionAlpha
+    private var nativeHidden = false
     private val fab = source as? FloatingActionButton
     private val lighting = if (fab != null) checkNotNull(ParticleCardSnapshot.of(source, source.z)) else null
     private val padding = if (fab != null && lighting != null) {
@@ -67,6 +82,8 @@ internal class ParticleForegroundSurface private constructor(private val source:
     private var drawing = false
     private var rendering = false
     private var acquiredImages = 0
+    private val glRetainedImages = java.util.concurrent.atomic.AtomicInteger()
+    @Volatile private var readerClosing = false
     private var previousPose: List<Float>? = null
     private var pendingFrame: Frame? = null
     private var firstFrame: Frame? = null
@@ -96,11 +113,22 @@ internal class ParticleForegroundSurface private constructor(private val source:
                 HardwareBuffer.USAGE_COMPOSER_OVERLAY)
         renderer = HardwareRenderer()
         // SurfaceView 公开允许挂接自有子层；不修改框架管理的 Surface 本身。
-        layer = SurfaceControl.Builder().setName(if (fab != null) "ParticleFabForeground" else "ParticleHomeForeground-${source.id}").setParent(parentSurface)
-            .setFormat(PixelFormat.RGBA_8888).setOpaque(false).setBufferSize(renderWidth, renderHeight).build()
-        SurfaceControl.Transaction().use {
-            it.setLayer(layer, layerOrder).setVisibility(layer, false).apply()
+        if (glWindow == null) {
+            val builder = SurfaceControl.Builder().setName(if (fab != null) "ParticleFabForeground" else "ParticleHomeForeground-${source.id}")
+                .setFormat(PixelFormat.RGBA_8888).setOpaque(false).setBufferSize(renderWidth, renderHeight)
+            if (!rootForeground) builder.setParent(parentSurface)
+            layer = builder.build()
+            (if (rootForeground) checkNotNull(root.buildReparentTransaction(layer))
+                else SurfaceControl.Transaction()).use {
+                it.setLayer(layer, if (rootForeground) ParticlePresentationDiagnostics.rootForegroundLayer(layerOrder) else layerOrder)
+                    .setVisibility(layer, false).apply()
+            }
         }
+        diagnostic?.event("foreground_created", mapOf("view" to diagnosticName,
+            "parent" to if (glWindow != null) "shared_gl" else if (rootForeground) "window_root" else "particle_surface",
+            "width" to renderWidth, "height" to renderHeight, "rotation" to rotation,
+            "parentValid" to parentSurface.isValid, "originalTransitionAlpha" to originalTransitionAlpha,
+            "layer" to if (rootForeground) ParticlePresentationDiagnostics.rootForegroundLayer(layerOrder) else layerOrder))
         renderer.setName("particleForeground")
         renderer.isOpaque = false
         renderer.setSurface(reader.surface)
@@ -117,6 +145,11 @@ internal class ParticleForegroundSurface private constructor(private val source:
             pendingFrame = null
             if (disposed || closing || frame == null) { closeUnused(image); return@setOnImageAvailableListener }
             frame.image = image
+            if (glWindow != null) {
+                copyToGl(frame, image)
+                return@setOnImageAvailableListener
+            }
+            sampleHardware(image)
             if (!active) {
                 firstFrame?.image?.let { closeUnused(it) }
                 firstFrame = frame
@@ -140,18 +173,116 @@ internal class ParticleForegroundSurface private constructor(private val source:
         firstFrame = null
         active = true
         main.removeCallbacks(timeout)
+        nativeHidden = true
         source.transitionAlpha = 0f
+        diagnostic?.event("foreground_hidden", mapOf("view" to diagnosticName,
+            "alpha" to source.alpha, "transitionAlpha" to source.transitionAlpha, "leases" to leases))
         putFrame(transaction, frame)
         return true
     }
 
-    fun release(onFailure: () -> Unit) {
+    /** GL 纹理已在窗口中提交之后才隐藏原 View；首轮 prepared 图像不再经 SurfaceControl 提交。 */
+    fun enterGl(hideNative: Boolean = true): Boolean {
+        if (disposed || closing || glLayer?.closed != false) return false
+        if (active) return true
+        if (firstFrame == null) return false
+        firstFrame = null; active = true
+        nativeHidden = hideNative
+        if (hideNative) source.transitionAlpha = 0f
+        diagnostic?.event("foreground_hidden", mapOf("view" to diagnosticName,
+            "alpha" to source.alpha, "transitionAlpha" to source.transitionAlpha, "leases" to leases,
+            "backend" to "shared_gl", "nativeHidden" to hideNative))
+        return true
+    }
+
+    /** 完整底图候选捕获时排除此 View；只在主线程同步记录期间使用。 */
+    fun nativeViewForBackdrop(): View = source
+
+    /** 完整 GL 画面已显示后隐藏真实前景；此时半透明像素不会重复叠加。 */
+    fun hideNativeForGl() {
+        if (disposed || closing || glWindow == null) return
+        nativeHidden = true
+        source.transitionAlpha = 0f
+    }
+
+    /** 首尾交接中的完整 GL 画面仍在，先恢复宿主，再撤下整组 GL。 */
+    fun restoreNativeForGl() {
+        if (glWindow == null) return
+        nativeHidden = false
+        source.transitionAlpha = originalTransitionAlpha
+    }
+
+    private fun copyToGl(frame: Frame, image: Image) {
+        copyingGlImage = true
+        val phase = if (active) "active" else "prepared"
+        // Image 必须在复制结束前保持持有；同一 worker 随后才销毁 renderer / reader。
+        worker.post {
+            val result = runCatching {
+                image.fence.use { check(!it.isValid || it.await(Duration.ofMillis(1000))) { "前景缓冲未就绪" } }
+                val buffer = checkNotNull(image.hardwareBuffer)
+                if (copiedGlFrames++ < 4) diagnostic?.event("foreground_buffer_usage", mapOf("view" to diagnosticName, "usage" to buffer.usage))
+                val hardware = try { checkNotNull(Bitmap.wrapHardwareBuffer(buffer, null)) } finally { buffer.close() }
+                if (ParticlePresentationPolicy.of(source).fastOpaqueHandoff == true && rotation == 0 && ParticleHardwareTexture.available) {
+                    // 保持 Image 租用直到 GL 不再读取，避免生产者改写仍显示的缓冲。
+                    return@runCatching hardware
+                }
+                val pixels = try { checkNotNull(hardware.copy(Bitmap.Config.ARGB_8888, false)) } finally { hardware.recycle() }
+                ParticlePresentationDiagnostics.sample(diagnostic, "$diagnosticName-hardware-$phase", pixels)
+                if (rotation == 0) pixels else try {
+                    Bitmap.createBitmap(pixels, 0, 0, pixels.width, pixels.height,
+                        Matrix().apply { setRotate(-90f * rotation) }, false)
+                } finally { pixels.recycle() }
+            }
+            val retained = result.getOrNull()?.config == Bitmap.Config.HARDWARE
+            if (retained) glRetainedImages.incrementAndGet() else image.close()
+            frame.image = null
+            main.post {
+                if (!retained) acquiredImages--
+                copyingGlImage = false
+                val release = {
+                    if (retained) {
+                        image.close()
+                        if (glRetainedImages.decrementAndGet() == 0 && readerClosing) worker.post { reader.close() }
+                        main.post { acquiredImages-- }
+                    }
+                    Unit
+                }
+                val pixels = result.getOrNull()
+                if (disposed || closing) { pixels?.recycle(); release(); return@post }
+                if (pixels == null) {
+                    diagnostic?.event("gl_foreground_copy_failed", mapOf("view" to diagnosticName,
+                        "error" to result.exceptionOrNull().toString()))
+                    closeNow(failed = true); return@post
+                }
+                val ready: (Boolean) -> Unit = ready@{ valid ->
+                    if (disposed || closing) return@ready
+                    if (!valid) { closeNow(failed = true); return@ready }
+                    if (!active) {
+                        firstFrame = frame
+                        val callbacks = readyCallbacks.toList(); readyCallbacks.clear()
+                        callbacks.forEach { it(Result.success(this)) }
+                    }
+                }
+                if (retained) checkNotNull(glWindow).uploadGlImage(checkNotNull(glLayer), pixels,
+                    frame.x, frame.y, frame.alpha, release, done = ready)
+                else checkNotNull(glWindow).uploadGlBitmap(checkNotNull(glLayer), pixels,
+                    frame.x, frame.y, frame.alpha, ready)
+            }
+        }
+    }
+
+    fun release(onFailure: () -> Unit, synchronizedGlRestore: Boolean = false) {
         failureCallbacks.remove(onFailure)
         if (disposed || --leases > 0) return
         closing = true
         main.removeCallbacks(timeout)
         source.transitionAlpha = originalTransitionAlpha
-        if (active && source.isAttachedToWindow) {
+        diagnostic?.event("foreground_restored", mapOf("view" to diagnosticName,
+            "transitionAlpha" to source.transitionAlpha, "leases" to leases))
+        if (glWindow != null) {
+            if (active && !synchronizedGlRestore) ParticleHostFrame.after(source, diagnostic, "foreground_restore") { closeNow() }
+            else closeNow()
+        } else if (active && source.isAttachedToWindow) {
             val transaction = SurfaceControl.Transaction().setBuffer(layer, null)
                 .setVisibility(layer, false).reparent(layer, null)
                 .addTransactionCommittedListener({ main.post(it) }) { closeNow() }
@@ -165,7 +296,7 @@ internal class ParticleForegroundSurface private constructor(private val source:
     }
 
     private fun refresh() {
-        if (disposed || closing || rendering || drawing || acquiredImages >= reader.maxImages) return
+        if (disposed || closing || rendering || drawing || copyingGlImage || acquiredImages >= reader.maxImages) return
         if (!source.isAttachedToWindow) { closeNow(failed = true); return }
         val parent = source.parent as? View ?: return
         val parentAt = IntArray(2).also { parent.getLocationOnScreen(it) }
@@ -221,6 +352,8 @@ internal class ParticleForegroundSurface private constructor(private val source:
             // 共用 RenderThread。软件 Canvas 只记录这个小按钮，波纹留在 UI 时钟驱动；阴影不栅格化。
             pixels.eraseColor(Color.TRANSPARENT)
             source.draw(Canvas(pixels))
+            ParticlePresentationDiagnostics.sample(diagnostic,
+                "$diagnosticName-cpu-${if (active) "active" else "prepared"}", pixels)
             val canvas = button.beginRecording(source.width, source.height)
             try { canvas.drawBitmap(pixels, 0f, 0f, null) } finally { button.endRecording() }
         } finally { drawing = false }
@@ -261,6 +394,9 @@ internal class ParticleForegroundSurface private constructor(private val source:
     }
 
     private fun putFrame(transaction: SurfaceControl.Transaction, frame: Frame) {
+        if (submittedDiagnosticFrames++ < 4) diagnostic?.event("foreground_buffer_submitted", mapOf(
+            "view" to diagnosticName, "x" to frame.x, "y" to frame.y, "alpha" to frame.alpha,
+            "valid" to layer.isValid, "active" to active, "meaning" to "submitted_not_screen_verified"))
         val image = checkNotNull(frame.image)
         image.hardwareBuffer.use { buffer ->
             image.fence.use { acquireFence ->
@@ -300,6 +436,28 @@ internal class ParticleForegroundSurface private constructor(private val source:
         }
     }
 
+    /** 关键图像模式才读回；只读已完成的帧，并在 Image 仍归本方持有时完成拷贝。 */
+    private fun sampleHardware(image: Image) {
+        val run = diagnostic ?: return
+        val name = "$diagnosticName-hardware-${if (active) "active" else "prepared"}"
+        if (!run.options.images || !run.claimImage(name)) return
+        try {
+            // 不等待尚未完成的生产帧；读回有额外成本，只用于图像取证，PNG 在后台编码。
+            val ready = image.fence.use { !it.isValid || it.await(Duration.ZERO) }
+            if (!ready) {
+                run.event("image_unavailable", mapOf("image" to name, "reason" to "acquire_fence_pending"))
+                return
+            }
+            val buffer = image.hardwareBuffer
+            if (buffer == null) { run.event("image_unavailable", mapOf("image" to name)); return }
+            val bitmap = try { Bitmap.wrapHardwareBuffer(buffer, null) } finally { buffer.close() }
+            val copy = try { bitmap?.copy(Bitmap.Config.ARGB_8888, false) } finally { bitmap?.recycle() }
+            run.image(name) { copy }
+        } catch (failure: Exception) {
+            run.event("image_failed", mapOf("image" to name, "error" to failure.toString()))
+        }
+    }
+
     private fun closeUnused(image: Image) {
         image.close()
         acquiredImages--
@@ -313,6 +471,9 @@ internal class ParticleForegroundSurface private constructor(private val source:
         if (source.viewTreeObserver.isAlive) source.viewTreeObserver.removeOnPreDrawListener(preDraw)
         source.removeOnAttachStateChangeListener(attachment)
         source.transitionAlpha = originalTransitionAlpha
+        diagnostic?.event("foreground_closed", mapOf("view" to diagnosticName,
+            "failed" to failed, "transitionAlpha" to source.transitionAlpha, "leases" to leases))
+        glLayer?.let { glWindow?.closeGlLayer(it) }
         if (::layer.isInitialized) {
             runCatching {
                 SurfaceControl.Transaction().use {
@@ -327,8 +488,10 @@ internal class ParticleForegroundSurface private constructor(private val source:
         val failures = failureCallbacks.toList(); failureCallbacks.clear()
         if (failed) failures.forEach { main.post(it) }
         worker.post {
+            // 此树只记录私有的软件位图，不借用真实 View 的 RenderNode。
             if (::renderer.isInitialized) runCatching { renderer.destroy() }
-            if (::reader.isInitialized) runCatching { reader.close() }
+            readerClosing = true
+            if (::reader.isInitialized && glRetainedImages.get() == 0) runCatching { reader.close() }
             node.discardDisplayList(); button.discardDisplayList()
             content?.recycle(); content = null
         }
@@ -341,7 +504,8 @@ internal class ParticleForegroundSurface private constructor(private val source:
         var renderedFramesForTests = 0
 
         fun prepare(source: View, particleView: SurfaceView, onFailure: () -> Unit,
-                    done: (Result<List<ParticleForegroundSurface>>) -> Unit) {
+                    done: (Result<List<ParticleForegroundSurface>>) -> Unit,
+                    glWindow: ParticleWindowSurface? = null) {
             val targets = ParticleHomeForeground.views(source)
             if (targets.isEmpty()) { done(Result.success(emptyList())); return }
             val prepared = mutableListOf<ParticleForegroundSurface>()
@@ -357,29 +521,35 @@ internal class ParticleForegroundSurface private constructor(private val source:
                             done(Result.failure(failure))
                         } else done(Result.success(prepared))
                     }
-                })
+                }, glWindow = glWindow)
             }
         }
 
         private fun prepareView(view: View, layerOrder: Int, particleView: SurfaceView, onFailure: () -> Unit,
-                                done: (Result<ParticleForegroundSurface>) -> Unit, retries: Int = 60) {
+                                done: (Result<ParticleForegroundSurface>) -> Unit, retries: Int = 60,
+                                glWindow: ParticleWindowSurface? = null) {
             if (!view.isAttachedToWindow || view.width <= 0 || view.height <= 0) {
                 done(Result.failure(IllegalStateException("前景尚未布局或已离开窗口"))); return
             }
-            if (surfaces[view]?.closing == true) {
-                if (retries > 0) view.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1) }
+            val previous = surfaces[view]
+            val exclusiveGroup = glWindow != null &&
+                ParticlePresentationPolicy.of(view).opaqueGlHandoff == true
+            // 回聚可能在上一组的撤除回调之前预热。完整画面不能共享同一个前景成员，
+            // 否则上一组退出会撤掉新组的 FAB；只对该诊断候选等待旧租约归还。
+            if (previous?.closing == true || (exclusiveGroup && previous != null && previous.leases > 0)) {
+                if (retries > 0) view.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1, glWindow) }
                 else done(Result.failure(IllegalStateException("前景交接尚未结束")))
                 return
             }
             val parentSurface = particleView.surfaceControl
             if (parentSurface == null || !parentSurface.isValid) {
                 if (retries > 0 && particleView.isAttachedToWindow)
-                    particleView.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1) }
+                    particleView.postOnAnimation { prepareView(view, layerOrder, particleView, onFailure, done, retries - 1, glWindow) }
                 else done(Result.failure(IllegalStateException("粒子 Surface 不可用")))
                 return
             }
             val existing = surfaces[view]?.takeUnless { it.closing || it.disposed }
-            val target = existing ?: runCatching { ParticleForegroundSurface(view, parentSurface, layerOrder) }
+            val target = existing ?: runCatching { ParticleForegroundSurface(view, parentSurface, layerOrder, glWindow) }
                 .getOrNull()?.also { surfaces[view] = it }
             if (target == null) { done(Result.failure(IllegalStateException("前景硬件层创建失败"))); return }
             target.leases++
@@ -394,7 +564,7 @@ internal class ParticleForegroundSurface private constructor(private val source:
             val affected = surfaces.values.filter { surface ->
                 var parent: View? = surface.source
                 while (parent != null && parent !== root) parent = parent.parent as? View
-                parent === root && surface.active && !surface.drawing
+                parent === root && surface.active && surface.nativeHidden && !surface.drawing
             }
             affected.forEach { it.source.transitionAlpha = it.originalTransitionAlpha }
             try { draw() } finally { affected.forEach { if (!it.disposed && !it.closing) it.source.transitionAlpha = 0f } }

@@ -1,0 +1,86 @@
+[
+  {
+    "device": "samsung",
+    "style": "DRIFT",
+    "baseline": {
+      "fps": 117.09,
+      "delayMs": 69.13,
+      "samples": 3
+    },
+    "input": {
+      "fps": 118.03,
+      "delayMs": 73.82,
+      "samples": 3
+    }
+  },
+  {
+    "device": "samsung",
+    "style": "FLOW",
+    "baseline": {
+      "fps": 105.36,
+      "delayMs": 116.94,
+      "samples": 3
+    },
+    "input": {
+      "fps": 106.36,
+      "delayMs": 117.83,
+      "samples": 3
+    }
+  },
+  {
+    "device": "meizu",
+    "style": "DRIFT",
+    "baseline": {
+      "fps": 118.62,
+      "delayMs": 166.74,
+      "samples": 3
+    },
+    "input": {
+      "fps": 118.72,
+      "delayMs": 154.66,
+      "samples": 3
+    }
+  },
+  {
+    "device": "meizu",
+    "style": "FLOW",
+    "baseline": {
+      "fps": 103.9,
+      "delayMs": 142.11,
+      "samples": 6
+    },
+    "input": {
+      "fps": 105.92,
+      "delayMs": 151.02,
+      "samples": 6
+    }
+  },
+  {
+    "device": "oppo",
+    "style": "DRIFT",
+    "baseline": {
+      "fps": 118.63,
+      "delayMs": 45.3,
+      "samples": 3
+    },
+    "input": {
+      "fps": 118.93,
+      "delayMs": 50.12,
+      "samples": 3
+    }
+  },
+  {
+    "device": "oppo",
+    "style": "FLOW",
+    "baseline": {
+      "fps": 111.41,
+      "delayMs": 74.42,
+      "samples": 3
+    },
+    "input": {
+      "fps": 110.43,
+      "delayMs": 76.15,
+      "samples": 3
+    }
+  }
+]

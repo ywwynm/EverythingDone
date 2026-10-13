@@ -4,12 +4,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.PixelFormat
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.opengl.EGL14
 import android.opengl.EGLExt
 import android.opengl.EGLSurface
 import android.opengl.GLES30
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
@@ -24,6 +28,7 @@ import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.nio.ByteBuffer
 
 /** 粒子叠加层专用的 SurfaceView；快照合成等遍历要能一眼把它认出来并跳过。 */
 internal class ParticleOverlaySurfaceView(context: Context) : SurfaceView(context)
@@ -47,6 +52,8 @@ internal class ParticleWindowSurface private constructor(
 ) : SurfaceHolder.Callback {
 
     private val inWindow get() = onTextureReady != null
+    private val diagnostic get() = ParticlePresentationDiagnostics.of(activity)
+    private var diagnosticGlRecorded = false
     private val frameRateOwner = Any()
     @Volatile private var textureSubmitted = false
     @Volatile private var texturePresentedAt = 0L
@@ -76,12 +83,21 @@ internal class ParticleWindowSurface private constructor(
     private var eglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
     private var boundSurface: Surface? = null
     private var timestamps = false
+    private var timestampsAttempted = false
     private var fence = 0L
     private var surfaceDirty = false
     private var recomposite = false
     private val pending = ArrayDeque<Frame>()
     private val firstCardFrames = java.util.IdentityHashMap<ParticleLayerSession, SurfaceControl.Transaction>()
     private val frameTransactions = ArrayDeque<SurfaceControl.Transaction>()
+    private val frameSubmissionCallbacks = ArrayList<(Boolean) -> Unit>()
+    private val bitmapLayers = ArrayList<ParticleGlBitmapLayer>()
+    private var bitmapRenderer: ParticleGlBitmapRenderer? = null
+    private var bitmapDirty = false
+    private val bitmapFrameCallbacks = ArrayList<(Boolean) -> Unit>()
+    private val bitmapCaptures = linkedSetOf<String>()
+    private val redrawCallbacks = ArrayList<Runnable>()
+    private var visibilityOwner: Any? = null
     private val assets: AssetManager =
         activity.applicationContext.assets
 
@@ -89,7 +105,8 @@ internal class ParticleWindowSurface private constructor(
         private set
 
     private class Frame(val frameId: Long, val target: Long, val submittedAt: Long,
-                        val drawn: List<ParticleLayerSession>)
+                        val drawn: List<ParticleLayerSession>,
+                        val bitmapCallbacks: List<(Boolean) -> Unit> = emptyList())
 
     private val attachment = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) = Unit
@@ -97,7 +114,16 @@ internal class ParticleWindowSurface private constructor(
     }
 
     init {
-        if (view is SurfaceView) view.holder.addCallback(this)
+        if (view is SurfaceView) {
+            // 只有保留作对照的旧 alpha 候选需要 Callback2；原生默认路径保持原回调契约。
+            val callback = if (diagnostic?.options?.synchronizedGlHandoff == true)
+                object : SurfaceHolder.Callback2, SurfaceHolder.Callback by this {
+                    override fun surfaceRedrawNeeded(holder: SurfaceHolder) = requestSurfaceRedraw(null)
+                    override fun surfaceRedrawNeededAsync(holder: SurfaceHolder, drawingFinished: Runnable) =
+                        requestSurfaceRedraw(drawingFinished)
+                } else this
+            view.holder.addCallback(callback)
+        }
         else (view as TextureView).surfaceTextureListener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
                 surface = Surface(texture)
@@ -143,8 +169,11 @@ internal class ParticleWindowSurface private constructor(
 
     val busy get() = sessions.isNotEmpty()
 
+    /** 整页内容也承载滚动与计时变形；无粒子会话时仍需允许原生高刷更新。 */
+    @Volatile var pageContentActive = false
+
     /** 本窗口在出帧的会话全都可以按高帧率出（目前只有飘散）。 */
-    val prefersHighFrameRate get() = sessions.isNotEmpty() && sessions.all { it.prefersHighFrameRate }
+    val prefersHighFrameRate get() = (sessions.isNotEmpty() || pageContentActive) && sessions.all { it.prefersHighFrameRate }
 
     /** 当前投给 Surface 的刷新率（0 = 不投）；GL 线程改，Surface 重建时主线程重置为 0。 */
     @Volatile private var votedRate = 0f
@@ -175,6 +204,190 @@ internal class ParticleWindowSurface private constructor(
     fun add(session: ParticleLayerSession) {
         incoming += session
         ParticleGl.wake()
+    }
+
+    /** 接管 bitmap 所有权；上传完成只表示可绘制，回调在主线程，并不表示已上屏。 */
+    fun uploadGlBitmap(layer: ParticleGlBitmapLayer, bitmap: Bitmap, x: Float, y: Float, alpha: Float,
+                       done: (Boolean) -> Unit) = uploadGlPixels(layer, bitmap, x, y, alpha, null, done)
+
+    fun uploadGlImage(layer: ParticleGlBitmapLayer, bitmap: Bitmap, x: Float, y: Float, alpha: Float,
+                      releaseSource: () -> Unit, onUploaded: (() -> Unit)? = null, done: (Boolean) -> Unit) =
+        uploadGlPixels(layer, bitmap, x, y, alpha, releaseSource, done, onUploaded)
+
+    /** 仅在 changeGlLayers 的 GL 任务内调用；退下的页面缓冲等最后一次 GPU 读取再归还。 */
+    fun retireGlImage(layer: ParticleGlBitmapLayer) {
+        layer.visible = false
+        bitmapLayers.remove(layer)
+        bitmapRenderer?.release(layer)
+    }
+
+    private fun uploadGlPixels(layer: ParticleGlBitmapLayer, bitmap: Bitmap, x: Float, y: Float, alpha: Float,
+                               releaseSource: (() -> Unit)?, done: (Boolean) -> Unit,
+                               onUploaded: (() -> Unit)? = null) {
+        ParticleGl.post {
+            if (detached || layer.closed || layer.group?.closing == true) {
+                bitmap.recycle()
+                releaseSource?.invoke()
+                diagnostic?.event("gl_layer_upload_cancelled", mapOf("layer" to layer.name))
+                activity.runOnUiThread { done(false) }
+                return@post
+            }
+            var sourceHandled = false
+            val result = runCatching {
+                check(ParticleGl.ensureContextReady())
+                val renderer = bitmapRenderer ?: ParticleGl.presentationRenderer(assets).also { bitmapRenderer = it }
+                val uploadBegan = System.nanoTime()
+                renderer.upload(layer, bitmap)
+                val uploadMs = (System.nanoTime() - uploadBegan) / 1e6
+                if (releaseSource != null && layer.eglImage == 0L) {
+                    ParticleGlImageLease.releaseAfterReading(releaseSource, if (pageContentActive) 1 else 4)
+                    sourceHandled = true
+                } else { layer.releaseSource = releaseSource; sourceHandled = true }
+                layer.x = x; layer.y = y; layer.alpha = alpha
+                if (!bitmapLayers.contains(layer)) bitmapLayers += layer
+                onUploaded?.invoke()
+                if (layer.visible) bitmapDirty = true
+                if (layer.uploadedFrames++ < 4 || layer.uploadedFrames % 30 == 0) diagnostic?.event("gl_layer_uploaded", mapOf("layer" to layer.name, "width" to layer.width,
+                    "height" to layer.height, "x" to x, "y" to y, "alpha" to alpha, "hardwareImported" to (layer.eglImage != 0L),
+                    "uploadMs" to uploadMs,
+                    "ownedHardwareCopy" to (layer.copyHardwareToOwned && layer.eglImage == 0L),
+                    "meaning" to "texture_ready_not_screen_verified"))
+            }
+            bitmap.recycle()
+            result.exceptionOrNull()?.let {
+                if (!sourceHandled) releaseSource?.invoke()
+                diagnostic?.event("gl_layer_upload_failed", mapOf("layer" to layer.name, "error" to it.toString()))
+            }
+            activity.runOnUiThread { done(result.isSuccess && !layer.closed && !detached) }
+            ParticleGl.wake()
+        }
+    }
+
+    /** 同一 GL 任务修改整组层；afterFrame 沿用呈现判定，并单独导出推定依据。 */
+    fun changeGlLayers(capture: String? = null, afterFrame: ((Boolean) -> Unit)? = null,
+                       change: () -> Unit) {
+        ParticleGl.post {
+            if (detached) { afterFrame?.let { activity.runOnUiThread { it(false) } }; return@post }
+            change()
+            bitmapDirty = true
+            capture?.let { bitmapCaptures += it }
+            afterFrame?.let { bitmapFrameCallbacks += it }
+            ParticleGl.wake()
+        }
+    }
+
+    /** 隐藏表面中的交接缓冲必须等其事务提交，不能借用无效驱动时间戳的推定回调。 */
+    fun changeGlLayersCommitted(capture: String? = null, done: (Boolean) -> Unit, change: () -> Unit) {
+        val main = Handler(Looper.getMainLooper())
+        val once = ParticleOnceResult(done)
+        // 两个信号都切回主线程。事务因表面销毁而被直接 apply 时，不能冒充有效 GL 帧。
+        var submitted = false
+        var committed = false
+        var failed = false
+        val completeIfReady = {
+            if (submitted && committed && !failed) once.finish(!detached && surface?.isValid == true)
+        }
+        val timeout = Runnable {
+            failed = true
+            diagnostic?.event("gl_commit_timeout", mapOf("capture" to capture))
+            once.finish(false)
+        }
+        main.postDelayed(timeout, 1200)
+        ParticleGl.post {
+            if (detached || surface?.isValid != true || view !is SurfaceView || !ensureEglSurface()) {
+                main.post { main.removeCallbacks(timeout); once.finish(false) }; return@post
+            }
+            try {
+                change()
+                val transaction = SurfaceControl.Transaction()
+                    .addTransactionCommittedListener({ main.post(it) }) {
+                        committed = true
+                        if (submitted) main.removeCallbacks(timeout)
+                        diagnostic?.event("gl_buffer_committed", mapOf("capture" to capture,
+                            "meaning" to "buffer_transaction_not_screen_verified"))
+                        completeIfReady()
+                    }
+                frameTransactions.addLast(transaction)
+                frameSubmissionCallbacks += { valid ->
+                    main.post {
+                        if (!valid) { failed = true; main.removeCallbacks(timeout); once.finish(false) }
+                        else {
+                            submitted = true
+                            if (committed) main.removeCallbacks(timeout)
+                            completeIfReady()
+                        }
+                    }
+                }
+                bitmapDirty = true
+                capture?.let { bitmapCaptures += it }
+                ParticleGl.wake()
+            } catch (failure: Exception) {
+                diagnostic?.event("gl_commit_failed", mapOf("capture" to capture, "error" to failure.toString()))
+                main.post { main.removeCallbacks(timeout); once.finish(false) }
+            }
+        }
+    }
+
+    /** 切换整个 Surface 必须独占；只合成 GL 图层时可与弹窗剩余颗粒共同绘制。 */
+    fun claimGlVisibility(owner: Any, session: ParticleLayerSession,
+                          exclusiveSurface: Boolean = true, done: (Boolean) -> Unit) {
+        ParticleGl.post {
+            intake()
+            val otherSessions = sessions.count { it !== session && !it.cancelled }
+            val accepted = !detached && visibilityOwner == null && view is SurfaceView &&
+                (!exclusiveSurface || otherSessions == 0) &&
+                bitmapLayers.none { it.visible && !it.closed }
+            if (accepted) visibilityOwner = owner
+            diagnostic?.event("gl_visibility_claim", mapOf("accepted" to accepted,
+                "exclusiveSurface" to exclusiveSurface, "otherSessions" to otherSessions))
+            activity.runOnUiThread { done(accepted) }
+        }
+    }
+
+    fun releaseGlVisibility(owner: Any, done: () -> Unit) {
+        ParticleGl.post {
+            if (visibilityOwner === owner) visibilityOwner = null
+            activity.runOnUiThread(done)
+        }
+    }
+
+    fun closeGlLayer(layer: ParticleGlBitmapLayer) {
+        layer.group?.let { closeGlGroup(it); return }
+        if (layer.closed) return
+        layer.closed = true
+        ParticleGl.post {
+            bitmapLayers.remove(layer)
+            bitmapRenderer?.release(layer)
+            bitmapDirty = true
+            diagnostic?.event("gl_layer_closed", mapOf("layer" to layer.name))
+            ParticleGl.wake()
+        }
+    }
+
+    /** 仅 GL 队列能撤除成员；一个在途帧要么含完整画面，要么已整组撤下。 */
+    fun closeGlGroup(group: ParticleGlBitmapGroup, done: ((Boolean) -> Unit)? = null) {
+        group.closing = true
+        val remove = {
+            if (group.layers.any { !it.closed }) {
+                group.beforeClose()
+                group.layers.forEach { layer ->
+                    layer.closed = true; bitmapLayers.remove(layer); bitmapRenderer?.release(layer)
+                }
+                diagnostic?.event("gl_group_closed", mapOf("layers" to group.layers.map { it.name },
+                    "meaning" to "one_gl_queue_operation"))
+            }
+            Unit
+        }
+        val cleanupWithoutSurface = {
+            ParticleGl.post {
+                remove(); bitmapDirty = true; ParticleGl.wake()
+                done?.let { activity.runOnUiThread { it(false) } }
+            }
+        }
+        if (done == null) cleanupWithoutSurface()
+        else changeGlLayersCommitted("gl-window-group-cleanup", { submitted ->
+            if (submitted) done(true) else cleanupWithoutSurface()
+        }, remove)
     }
 
     /** 与该会话第一次实际画入共享 Surface 的缓冲一起撤下交接快照。 */
@@ -229,6 +442,15 @@ internal class ParticleWindowSurface private constructor(
         }
         ParticleGl.wake()
         runCatching { latch.await(500, TimeUnit.MILLISECONDS) }
+    }
+
+    private fun requestSurfaceRedraw(drawingFinished: Runnable?) {
+        ParticleGl.post {
+            if (detached || surface == null) { drawingFinished?.run(); return@post }
+            drawingFinished?.let { redrawCallbacks += it }
+            bitmapDirty = true
+            ParticleGl.wake()
+        }
     }
 
     /**
@@ -309,16 +531,18 @@ internal class ParticleWindowSurface private constructor(
     /** 节拍要不要继续跑；与「这一拍出不出帧」分开，否则手势停顿一下节拍就断（见 needsBeat）。 */
     fun needsBeat(): Boolean {
         if (surface == null) return false
-        return sessions.any { it.needsBeat() } || needsFrame()
+        return pageContentActive || sessions.any { it.needsBeat() } || needsFrame()
     }
 
     fun needsFrame(): Boolean {
         if (surface == null) return false
+        if (bitmapDirty) return true
         if (frameTransactions.isNotEmpty()) return true
         if (sessions.any { it.wantsFrame() }) return true
         // 有会话退出或改变了可见性时要再交换一次，否则它的最后一帧会留在 Surface 上；
         // 全部退完之后那一次把 Surface 抹成全透明。
-        return surfaceDirty && (recomposite || sessions.none { it.visible && !it.cancelled })
+        return surfaceDirty && (recomposite || (sessions.none { it.visible && !it.cancelled } &&
+            bitmapLayers.none { it.visible && !it.closed }))
     }
 
     fun needsWork(): Boolean = incoming.isNotEmpty() || sessions.any { it.needsWork() }
@@ -333,7 +557,8 @@ internal class ParticleWindowSurface private constructor(
     }
 
     /** 本窗口已经有会话在逐帧出画；预算与预读要给它让出每一拍（见 ParticleGl.workDeadline）。 */
-    val presenting get() = surface != null && sessions.any { it.presenting }
+    val presenting get() = surface != null && (sessions.any { it.presenting } ||
+        (pageContentActive && bitmapLayers.any { it.visible && !it.closed }))
 
     val awaitingPresentation get() = pending.isNotEmpty()
 
@@ -348,6 +573,13 @@ internal class ParticleWindowSurface private constructor(
         }
         if (!ensureEglSurface()) return
         if (!ParticleGl.bind(eglSurface)) { failAll(); return }
+        val frameDiagnostic = diagnostic
+        if (frameDiagnostic != null && !diagnosticGlRecorded) {
+            diagnosticGlRecorded = true
+            frameDiagnostic.event("gl_environment", mapOf("vendor" to GLES30.glGetString(GLES30.GL_VENDOR),
+                "renderer" to GLES30.glGetString(GLES30.GL_RENDERER), "version" to GLES30.glGetString(GLES30.GL_VERSION),
+                "presentationTimestamps" to timestamps))
+        }
         compositedTarget = target
         // L3：ADPF 要每拍报一次真实耗时，所以这个时刻在取证关掉时也要取。
         val enteredAt = System.nanoTime()
@@ -358,12 +590,57 @@ internal class ParticleWindowSurface private constructor(
         GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glViewport(0, 0, width, height)
-        GLES30.glDisable(GLES30.GL_BLEND)
-        GLES30.glClearColor(0f, 0f, 0f, 0f)
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        val underlays = if (bitmapLayers.isEmpty()) emptyList() else
+            bitmapLayers.filter { it.underlay && it.drawThisFrame(false) }
+        var baseDrawn = false
+        val drawBase: (Boolean) -> ParticleGlBitmapLayer? = { merge ->
+            if (baseDrawn) null
+            else {
+                baseDrawn = true
+                val base = underlays.singleOrNull()?.takeIf { merge && pageContentActive &&
+                    it.hardwareImages != null && it.alpha == 1f && it.x == it.x.toInt().toFloat() &&
+                    it.y == it.y.toInt().toFloat() }
+                if (base != null) base else {
+                    GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+                    GLES30.glViewport(0, 0, width, height)
+                    GLES30.glDisable(GLES30.GL_BLEND)
+                    GLES30.glClearColor(0f, 0f, 0f, 0f)
+                    GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+                    bitmapRenderer?.draw(underlays, width, height, emptyTarget = true)
+                    null
+                }
+            }
+        }
         val drawn = ArrayList<ParticleLayerSession>(sessions.size)
         // 创建顺序即叠放顺序：先创建的在下。
-        for (session in sessions.toList()) if (session.drawInto(target)) drawn += session
+        for (session in sessions.toList()) if (session.drawInto(target, drawBase)) drawn += session
+        try { drawBase(false) } catch (_: Exception) { failAll(); return }
+        val bitmaps = if (bitmapLayers.isEmpty()) emptyList() else {
+            bitmapLayers.filter { it.replacedBy in drawn && !it.replacementCaptured }.forEach {
+                it.replacementCaptured = true
+                bitmapCaptures += "gl-window-particles-${it.name}"
+                diagnostic?.event("gl_card_replaced_by_particles", mapOf("layer" to it.name,
+                    "meaning" to "same_gl_buffer_not_screen_verified"))
+            }
+            bitmapLayers.filter {
+                // 首次替代后保持撤下；会话结束不能让整张静态卡片闪回。
+                !it.underlay && it.drawThisFrame(it.replacedBy != null && it.replacedBy in drawn)
+            }.sortedWith(compareBy<ParticleGlBitmapLayer> { it.foreground }.thenBy { it.order })
+        }
+        try {
+            bitmapRenderer?.draw(bitmaps, width, height)
+        } catch (failure: Exception) {
+            diagnostic?.event("gl_composite_failed", mapOf("error" to failure.toString()))
+            failAll(); return
+        }
+        if (bitmapCaptures.isNotEmpty()) {
+            diagnostic?.event("gl_frame_layers", mapOf("layers" to (underlays + bitmaps).map { it.name },
+                "particleSessions" to drawn.size, "captures" to bitmapCaptures.toList(),
+                "meaning" to "gl_output_not_final_screen"))
+            bitmapCaptures.forEach { captureGlBuffer(it, width, height) }
+            bitmapCaptures.clear()
+        }
+        var frameTransactionAttached = false
         if (Build.VERSION.SDK_INT >= 34 && view is SurfaceView &&
             (frameTransactions.isNotEmpty() || drawn.any { firstCardFrames.containsKey(it) })) {
             val transaction = SurfaceControl.Transaction()
@@ -374,7 +651,7 @@ internal class ParticleWindowSurface private constructor(
                 val next = frameTransactions.removeFirst()
                 transaction.merge(next); next.close()
             }
-            try { view.applyTransactionToFrame(transaction) }
+            try { view.applyTransactionToFrame(transaction); frameTransactionAttached = true }
             catch (_: IllegalStateException) {
                 // 主线程刚销毁了表面，此时已经没有可同步显示的粒子帧。
                 transaction.apply(); transaction.close()
@@ -391,16 +668,24 @@ internal class ParticleWindowSurface private constructor(
             failAll()
             return
         }
+        finishFrameSubmissions(frameTransactionAttached)
+        // SurfaceView 的窗口同步正在等生产者，必须在 swap 后报告，不能等最终呈现回调。
+        finishSurfaceRedraws()
+        diagnostic?.event("particle_buffer_submitted", mapOf("targetNanos" to target,
+            "submittedNanos" to System.nanoTime(), "cpuStartNanos" to enteredAt,
+            "frameId" to frameId, "sessions" to drawn.size, "meaning" to "not_screen_verified"))
         if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.COMPOSITE,
             target, enteredAt, fenceDoneAt - enteredAt, drawnAt, System.nanoTime(),
             frameId, drawn.size.toLong())
         // L3：本拍真正做了多少工作。目标是一拍；报得比目标大即为升频请求。
         if (drawn.isNotEmpty()) ParticlePerformanceHint.frame(activity, System.nanoTime() - enteredAt)
-        surfaceDirty = drawn.isNotEmpty()
+        surfaceDirty = drawn.isNotEmpty() || bitmaps.isNotEmpty()
+        bitmapDirty = false
         if (inWindow && drawn.isNotEmpty()) textureSubmitted = true
         recomposite = false
         drawn.forEach { it.frameSubmitted(target) }
-        pending += Frame(frameId, target, System.nanoTime(), drawn)
+        pending += Frame(frameId, target, System.nanoTime(), drawn, bitmapFrameCallbacks.toList())
+        bitmapFrameCallbacks.clear()
         // 呈现判定要有上限：一直 PENDING 的帧不能把交接卡死。
         while (pending.size > MAX_PENDING_FRAMES) releaseFrame(pending.removeFirst())
     }
@@ -421,7 +706,7 @@ internal class ParticleWindowSurface private constructor(
                 // 合成器丢掉的帧一直报 PENDING。它后面已经有帧真的上屏，说明它不会再上屏了，直接放行；
                 // 否则它会把后面已上屏的帧一起压到超时（飘散的弹窗出现因此晚 200 多毫秒才交接给真实面板）。
                 if (!laterFramePresented(now)) return
-                releaseFrame(pending.removeFirst())
+                releaseFrame(pending.removeFirst(), reason = "later_frame_presented")
                 continue
             }
             if (ParticleBeatTrace.enabled) ParticleBeatTrace.record(ParticleBeatTrace.PRESENT,
@@ -445,12 +730,51 @@ internal class ParticleWindowSurface private constructor(
      * [presentTime] 是驱动报的真实呈现时刻（PENDING / INVALID / 无时间戳时为 null）。
      * 它与「我们什么时候问出来」是两件事，3b 的空档归因必须把两者分开看。
      */
-    private fun releaseFrame(frame: Frame, presentTime: Long? = null) {
+    private fun releaseFrame(frame: Frame, presentTime: Long? = null, reason: String? = null,
+                             surfaceAvailable: Boolean = true) {
         val displayed = presentTime?.takeIf { it > 0 && it != ParticleFrameTimestamps.PENDING }
+        if (ParticleBeatTrace.enabled && surfaceAvailable && timestamps) ParticleBeatTrace.record(
+            ParticleBeatTrace.RENDER_COMPLETE, frame.frameId, frame.target, frame.submittedAt,
+            ParticleFrameTimestamps.renderingCompleteTime(ParticleGl.display, eglSurface, frame.frameId),
+            displayed ?: -1L)
+        diagnostic?.event("particle_presentation_decision", mapOf("frameId" to frame.frameId,
+            "targetNanos" to frame.target, "submittedNanos" to frame.submittedAt,
+            "driverPresentNanos" to displayed, "decisionNanos" to System.nanoTime(),
+            "driverRawPresentNanos" to presentTime, "surfaceAvailable" to surfaceAvailable,
+            "basis" to (reason ?: when {
+                displayed != null -> "driver_timestamp"
+                System.nanoTime() - frame.submittedAt > PRESENT_TIMEOUT_NANOS -> "timeout_estimate"
+                inWindow -> "texture_window_callback"
+                presentTime != null -> "driver_invalid_estimate"
+                else -> "timestamp_unavailable_estimate"
+            })))
         // 调参页开着的时候才记；拿不到驱动的呈现时刻（TextureView 那条路）就退回本拍的
         // 目标时刻，此时读数是「我们按节拍出了几帧」而不是「上屏了几帧」。
         if (frame.drawn.isNotEmpty()) ParticleFrameStats.onPresented(displayed ?: frame.target)
         frame.drawn.forEach { runCatching { it.framePresented(frame.target, displayed) } }
+        frame.bitmapCallbacks.forEach { callback -> activity.runOnUiThread { callback(surfaceAvailable && !detached) } }
+    }
+
+    /** 仅关键图像模式读回；此图证明 GL 输出内容，仍不能证明最终合成器的画面。 */
+    private fun captureGlBuffer(name: String, width: Int, height: Int) {
+        val run = diagnostic ?: return
+        if (!run.options.images || !run.claimImage(name)) return
+        try {
+            require(width > 0 && height > 0 && width.toLong() * height <= 8_000_000)
+            val bytes = ByteBuffer.allocateDirect(width * height * 4)
+            GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 4)
+            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, bytes)
+            check(GLES30.glGetError() == GLES30.GL_NO_ERROR)
+            run.image(name) {
+                val raw = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                try {
+                    bytes.rewind(); raw.copyPixelsFromBuffer(bytes)
+                    Bitmap.createBitmap(raw, 0, 0, width, height, Matrix().apply { setScale(1f, -1f) }, false)
+                } finally { raw.recycle() }
+            }
+        } catch (failure: Exception) {
+            run.event("image_failed", mapOf("image" to name, "error" to failure.toString()))
+        }
     }
 
     private fun purge() {
@@ -468,15 +792,20 @@ internal class ParticleWindowSurface private constructor(
         while (pending.isNotEmpty()) {
             val frame = pending.removeFirst()
             val alive = frame.drawn.filter { !finished.contains(it) }
-            remaining += Frame(frame.frameId, frame.target, frame.submittedAt, alive)
+            remaining += Frame(frame.frameId, frame.target, frame.submittedAt, alive, frame.bitmapCallbacks)
         }
         remaining.forEach { pending.addLast(it) }
     }
 
     private fun ensureEglSurface(): Boolean {
         val target = surface ?: return false
-        if (eglSurface != EGL14.EGL_NO_SURFACE && boundSurface === target && target.isValid) return true
-        releaseEglSurface()
+        if (eglSurface != EGL14.EGL_NO_SURFACE && boundSurface === target && target.isValid) {
+            enableTimestampsWhenReady()
+            return true
+        }
+        // 初次建立 EGL 时不能提前完成刚收到的 Callback2；它仍须等真正的缓冲提交。
+        if (diagnostic?.options?.synchronizedGlHandoff != true ||
+            eglSurface != EGL14.EGL_NO_SURFACE || boundSurface != null) releaseEglSurface()
         if (!target.isValid) return false
         val config = ParticleGl.config ?: return false
         val created = EGL14.eglCreateWindowSurface(ParticleGl.display, config, target,
@@ -490,10 +819,22 @@ internal class ParticleWindowSurface private constructor(
         lastEglSurface = created
         boundSurface = target
         surfaceDirty = false
-        timestamps = !inWindow && ParticleFrameTimestamps.enable(ParticleGl.display, created)
+        timestamps = false
+        timestampsAttempted = false
+        enableTimestampsWhenReady()
         if (BuildConfig.DEBUG) Log.i(
             ParticleMicroflakeRenderer.TAG, "粒子 Surface 就绪 帧时间戳=$timestamps")
         return true
+    }
+
+    private fun enableTimestampsWhenReady() {
+        if (inWindow || timestampsAttempted) return
+        // Doing 的静态页面也依赖此 Surface；可选时间戳能力不能阻塞页面首次显示。
+        if (pageContentActive && !ParticleFrameTimestamps.preloadComplete) return
+        timestampsAttempted = true
+        timestamps = ParticleFrameTimestamps.enable(ParticleGl.display, eglSurface)
+        diagnostic?.event("gl_frame_timestamps_checked", mapOf("available" to timestamps,
+            "pageContentActive" to pageContentActive))
     }
 
     private fun awaitFence() {
@@ -511,9 +852,11 @@ internal class ParticleWindowSurface private constructor(
     // （= 尽快呈现）。结论写进 per-frame-batch3 第 3 节。
 
     private fun releaseEglSurface() {
+        finishFrameSubmissions(false)
+        finishSurfaceRedraws()
         // 表面没了就问不出呈现时刻了。把在途帧按「已上屏」放行，否则等着它的会话会一直
         // 停在末帧、只能靠看门狗收尾。
-        while (pending.isNotEmpty()) releaseFrame(pending.removeFirst())
+        while (pending.isNotEmpty()) releaseFrame(pending.removeFirst(), surfaceAvailable = false)
         if (fence != 0L) { GLES30.glDeleteSync(fence); fence = 0L }
         if (eglSurface != EGL14.EGL_NO_SURFACE) {
             ParticleGl.unbindIfCurrent(eglSurface)
@@ -539,14 +882,41 @@ internal class ParticleWindowSurface private constructor(
         sessions.toList().forEach { runCatching { it.dispose() } }
         sessions.clear()
         incoming.clear()
+        releaseBitmapLayers()
         releaseEglSurface()
     }
 
     fun failAll() {
+        finishFrameSubmissions(false)
+        finishSurfaceRedraws()
         sessions.toList().forEach { runCatching { it.dispose() } }
         sessions.clear()
-        pending.clear()
+        while (pending.isNotEmpty()) {
+            pending.removeFirst().bitmapCallbacks.forEach { callback -> activity.runOnUiThread { callback(false) } }
+        }
+        releaseBitmapLayers()
         recomposite = true
+    }
+
+    private fun releaseBitmapLayers() {
+        bitmapLayers.forEach { it.closed = true; bitmapRenderer?.release(it) }
+        bitmapLayers.clear()
+        bitmapRenderer = null // 程序与 VAO 归常驻 GL 上下文；窗口只释放自己的位图层。
+        bitmapFrameCallbacks.toList().forEach { callback -> activity.runOnUiThread { callback(false) } }
+        bitmapFrameCallbacks.clear(); bitmapCaptures.clear()
+        bitmapDirty = false
+    }
+
+    private fun finishFrameSubmissions(valid: Boolean) {
+        val callbacks = frameSubmissionCallbacks.toList()
+        frameSubmissionCallbacks.clear()
+        callbacks.forEach { it(valid) }
+    }
+
+    private fun finishSurfaceRedraws() {
+        val callbacks = redrawCallbacks.toList()
+        redrawCallbacks.clear()
+        callbacks.forEach { runCatching { it.run() } }
     }
 
     /** 主线程：Activity 销毁或配置变化。 */

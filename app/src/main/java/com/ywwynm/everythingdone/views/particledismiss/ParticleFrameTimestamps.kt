@@ -14,6 +14,18 @@ import android.opengl.EGLSurface
  * 调用方退回保守判定：**缓冲入队 + 下一次 vsync 即视为已显示**。
  */
 internal object ParticleFrameTimestamps {
+    private val loading = java.util.concurrent.atomic.AtomicBoolean(false)
+    @Volatile var preloadComplete = false
+        private set
+
+    /** 整页首帧不等待 APK 中本地库的首次查找；加载期间沿用无时间戳的呈现判定。 */
+    fun preload() {
+        if (!loading.compareAndSet(false, true)) return
+        Thread({
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            try { ParticleMaterialNative.available } finally { preloadComplete = true }
+        }, "ParticleNativeWarmup").start()
+    }
 
     /** 尚未确定，需要下一拍再问。 */
     const val PENDING = -2L
@@ -44,6 +56,12 @@ internal object ParticleFrameTimestamps {
     }
 
     @JvmStatic private external fun nEnable(display: Long, surface: Long): Boolean
+    fun renderingCompleteTime(display: EGLDisplay, surface: EGLSurface, frameId: Long): Long =
+        if (!available || frameId < 0) FAILED else runCatching {
+            nRenderingCompleteTime(display.nativeHandle, surface.nativeHandle, frameId)
+        }.getOrDefault(FAILED)
+
+    @JvmStatic private external fun nRenderingCompleteTime(display: Long, surface: Long, frameId: Long): Long
     @JvmStatic private external fun nNextFrameId(display: Long, surface: Long): Long
     @JvmStatic private external fun nPresentTime(display: Long, surface: Long, frameId: Long): Long
 }

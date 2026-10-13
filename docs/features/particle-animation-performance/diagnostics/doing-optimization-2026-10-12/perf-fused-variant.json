@@ -1,0 +1,320 @@
+[
+  [
+    {
+      "device": "samsung",
+      "style": "drift",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\samsung\\long-fused-variant-false-repeat-drift-1791798157",
+      "samples": [
+        {
+          "callbackMs": 150.109688,
+          "fps": 116.843269182449,
+          "frames": 113,
+          "intervalP90Ms": 8.3364069
+        },
+        {
+          "callbackMs": 100.22307300000011,
+          "fps": 116.01596706931396,
+          "frames": 118,
+          "intervalP90Ms": 8.336823
+        },
+        {
+          "callbackMs": 129.7020309999989,
+          "fps": 118.94932386266473,
+          "frames": 117,
+          "intervalP90Ms": 8.337553
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "style": "drift",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\samsung\\long-fused-variant-true-repeat-drift-1791798172",
+      "samples": [
+        {
+          "callbackMs": 70.3361460000001,
+          "fps": 117.077784516803,
+          "frames": 122,
+          "intervalP90Ms": 8.336407
+        },
+        {
+          "callbackMs": 69.43067699999938,
+          "fps": 115.13426515364182,
+          "frames": 120,
+          "intervalP90Ms": 8.338499599999999
+        },
+        {
+          "callbackMs": 72.34281199999896,
+          "fps": 118.98746663368334,
+          "frames": 123,
+          "intervalP90Ms": 8.3373916
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "style": "flow",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\samsung\\long-fused-variant-true-repeat-flow-1791798188",
+      "samples": [
+        {
+          "callbackMs": 150.6930199999997,
+          "fps": 105.23063110666178,
+          "frames": 101,
+          "intervalP90Ms": 16.671198
+        },
+        {
+          "callbackMs": 118.29406299999937,
+          "fps": 107.77416482965518,
+          "frames": 107,
+          "intervalP90Ms": 16.666146
+        },
+        {
+          "callbackMs": 110.07197900000028,
+          "fps": 108.6973183013884,
+          "frames": 107,
+          "intervalP90Ms": 8.336432
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "style": "flow",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\samsung\\long-fused-variant-false-repeat-flow-1791798204",
+      "samples": [
+        {
+          "callbackMs": 218.11604100000022,
+          "fps": 98.27792225045015,
+          "frames": 87,
+          "intervalP90Ms": 16.6682555
+        },
+        {
+          "callbackMs": 141.22114500000043,
+          "fps": 97.21484435096743,
+          "frames": 95,
+          "intervalP90Ms": 16.6710164
+        },
+        {
+          "callbackMs": 134.82364600000074,
+          "fps": 100.32774592256922,
+          "frames": 98,
+          "intervalP90Ms": 16.6696572
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "device": "meizu",
+      "style": "drift",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\meizu\\long-fused-variant-false-repeat-drift-1791798157",
+      "samples": [
+        {
+          "callbackMs": 191.6676040000002,
+          "fps": 117.44546519981378,
+          "frames": 108,
+          "intervalP90Ms": 8.2847494
+        },
+        {
+          "callbackMs": 174.0426040000002,
+          "fps": 116.42052044909734,
+          "frames": 109,
+          "intervalP90Ms": 8.2844263
+        },
+        {
+          "callbackMs": 183.20104100000026,
+          "fps": 119.62633233484672,
+          "frames": 110,
+          "intervalP90Ms": 8.286103599999999
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "style": "drift",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\meizu\\long-fused-variant-true-repeat-drift-1791798175",
+      "samples": [
+        {
+          "callbackMs": 184.03281200000038,
+          "fps": 120.72023355080721,
+          "frames": 111,
+          "intervalP90Ms": 8.2860004
+        },
+        {
+          "callbackMs": 193.3292190000002,
+          "fps": 115.22324877004367,
+          "frames": 106,
+          "intervalP90Ms": 8.2869166
+        },
+        {
+          "callbackMs": 119.33900999999969,
+          "fps": 120.70711488161767,
+          "frames": 119,
+          "intervalP90Ms": 8.2861408
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "style": "flow",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\meizu\\long-fused-variant-true-repeat-flow-1791798194",
+      "samples": [
+        {
+          "callbackMs": 259.29312500000015,
+          "fps": 44.437849110547155,
+          "frames": 61,
+          "intervalP90Ms": 16.5608175
+        },
+        {
+          "callbackMs": 267.0,
+          "fps": 113.44479909192796,
+          "frames": 95,
+          "intervalP90Ms": 8.2889795
+        },
+        {
+          "callbackMs": 141.01208299999962,
+          "fps": 112.31691907880573,
+          "frames": 108,
+          "intervalP90Ms": 8.2877084
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "style": "flow",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\meizu\\long-fused-variant-false-repeat-flow-1791798216",
+      "samples": [
+        {
+          "callbackMs": 331.0846870000005,
+          "fps": 77.86374331568152,
+          "frames": 61,
+          "intervalP90Ms": 16.5802142
+        },
+        {
+          "callbackMs": 224.12093800000002,
+          "fps": 80.8329158446054,
+          "frames": 72,
+          "intervalP90Ms": 16.575989
+        },
+        {
+          "callbackMs": 159.45328100000006,
+          "fps": 99.33066405849264,
+          "frames": 94,
+          "intervalP90Ms": 16.574219
+        }
+      ]
+    }
+  ],
+  [
+    {
+      "device": "oppo",
+      "style": "drift",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\oppo\\long-fused-variant-false-repeat-drift-1791798157",
+      "samples": [
+        {
+          "callbackMs": 124.51567699999941,
+          "fps": 118.04888639033473,
+          "frames": 115,
+          "intervalP90Ms": 8.3252447
+        },
+        {
+          "callbackMs": 109.2733330000001,
+          "fps": 119.09844007764302,
+          "frames": 118,
+          "intervalP90Ms": 8.325541999999999
+        },
+        {
+          "callbackMs": 107.35020900000018,
+          "fps": 118.11404773541403,
+          "frames": 119,
+          "intervalP90Ms": 8.325573
+        }
+      ]
+    },
+    {
+      "device": "oppo",
+      "style": "drift",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\oppo\\long-fused-variant-true-repeat-drift-1791798175",
+      "samples": [
+        {
+          "callbackMs": 60.56322899999941,
+          "fps": 118.19732270033549,
+          "frames": 124,
+          "intervalP90Ms": 8.325312
+        },
+        {
+          "callbackMs": 61.738593999999466,
+          "fps": 115.31078477189556,
+          "frames": 121,
+          "intervalP90Ms": 8.3256251
+        },
+        {
+          "callbackMs": 61.25869799999964,
+          "fps": 120.12090170678722,
+          "frames": 126,
+          "intervalP90Ms": 8.3251876
+        }
+      ]
+    },
+    {
+      "device": "oppo",
+      "style": "flow",
+      "wholePage": true,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\oppo\\long-fused-variant-true-repeat-flow-1791798193",
+      "samples": [
+        {
+          "callbackMs": 83.02770799999962,
+          "fps": 107.31750196046431,
+          "frames": 110,
+          "intervalP90Ms": 16.6498752
+        },
+        {
+          "callbackMs": 103.16916700000002,
+          "fps": 102.10136235269198,
+          "frames": 103,
+          "intervalP90Ms": 16.6500477
+        },
+        {
+          "callbackMs": 65.21578100000079,
+          "fps": 110.51228614094825,
+          "frames": 116,
+          "intervalP90Ms": 8.3251872
+        }
+      ]
+    },
+    {
+      "device": "oppo",
+      "style": "flow",
+      "wholePage": false,
+      "folder": "E:\\projects\\EverythingDone\\tmp\\particle-doing-optimization-20261012\\oppo\\long-fused-variant-false-repeat-flow-1791798211",
+      "samples": [
+        {
+          "callbackMs": 135.24729099999968,
+          "fps": 75.20346799622833,
+          "frames": 73,
+          "intervalP90Ms": 16.6509319
+        },
+        {
+          "callbackMs": 115.42416599999979,
+          "fps": 81.7580289677478,
+          "frames": 82,
+          "intervalP90Ms": 16.651146
+        },
+        {
+          "callbackMs": 101.0805730000011,
+          "fps": 95.09040035162548,
+          "frames": 96,
+          "intervalP90Ms": 16.65099
+        }
+      ]
+    }
+  ]
+]

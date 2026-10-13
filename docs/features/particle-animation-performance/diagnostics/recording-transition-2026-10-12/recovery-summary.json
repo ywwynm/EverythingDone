@@ -1,0 +1,108 @@
+[
+  {
+    "device": "samsung",
+    "run": "no_capture_before-unified-drift-1791805165",
+    "report": "20261012-193926-168",
+    "coverMs": [
+      311.92
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "samsung",
+    "run": "prime_only-unified-drift-1791805309",
+    "report": "20261012-194150-861",
+    "coverMs": [
+      272.44
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "samsung",
+    "run": "prime_verified-unified-drift-1791805471",
+    "report": "20261012-194432-283",
+    "coverMs": [
+      65.23
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "meizu",
+    "run": "final1-unified-drift-1791805917",
+    "report": "20261012-195157-715",
+    "coverMs": [
+      61.95
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "oppo",
+    "run": "final1-unified-drift-1791805917",
+    "report": "20261012-195158-536",
+    "coverMs": [
+      36.44
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "samsung",
+    "run": "final1-unified-drift-1791805917",
+    "report": "20261012-195158-304",
+    "coverMs": [
+      77.64
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "samsung",
+    "run": "final2-unified-flow-1791806395",
+    "report": "20261012-195956-537",
+    "coverMs": [
+      55.21
+    ],
+    "preparationAborted": 0,
+    "surfaceRecovery": [
+      {
+        "reason": "buffers_ready"
+      }
+    ]
+  },
+  {
+    "device": "meizu",
+    "run": "complex_retry-unified-drift-1791806405",
+    "report": "20261012-200006-432",
+    "coverMs": [],
+    "preparationAborted": 1,
+    "surfaceRecovery": []
+  }
+]

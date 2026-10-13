@@ -84,6 +84,9 @@ internal object ParticleMaterialNative {
     /** [packColors] 的逆（也是同一个 R↔B 对调）：直接从上传字节还原 Android ARGB。 */
     external fun unpackColors(rgba: ByteBuffer, pixels: IntArray)
 
+    /** 按既定下标批量提取原始 RGBA 整字；不执行颜色或权重计算。 */
+    external fun gatherRgba(rgba: ByteBuffer, byteLimit: Int, positions: IntArray): IntArray
+
     external fun packState(material: FloatArray, count: Int, state: ByteBuffer)
 
     external fun populate(nx: Int, ny: Int, width: Float, height: Float, pixels: IntArray,

@@ -1,0 +1,210 @@
+[
+  {
+    "device": "meizu",
+    "run": "20261011-baseline-cancel",
+    "videoFrames": 213,
+    "maxRoiError": {
+      "fabInnerMAE": 4.76541469750988,
+      "toolbarTextMAE": 8.942625435804153,
+      "toolbarShadowMAE": 2.4237379162191193
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.896704,
+      "toolbar_text": 3.3484160201442768,
+      "toolbar_shadow": 2.0153956319369852,
+      "card_bottom_shadow": 1.4190476190476191
+    },
+    "completions": 0,
+    "finalState": {
+      "at": 7392,
+      "alpha": 1,
+      "tx": 0,
+      "z": 28,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "meizu",
+    "run": "20261011-baseline-complete",
+    "videoFrames": 227,
+    "maxRoiError": {
+      "fabInnerMAE": 4.354033662217064,
+      "toolbarTextMAE": 8.078747915719266,
+      "toolbarShadowMAE": 13.532223415682063
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.5565866666666666,
+      "toolbar_text": 3.14822376480196,
+      "toolbar_shadow": 2.685105621195847,
+      "card_bottom_shadow": 1.6095238095238096
+    },
+    "completions": 1,
+    "finalState": {
+      "at": 6368,
+      "alpha": 1,
+      "tx": 0,
+      "z": 28,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "meizu",
+    "run": "20261011-published-cancel",
+    "videoFrames": 212,
+    "maxRoiError": {
+      "fabInnerMAE": 4.7565707652765115,
+      "toolbarTextMAE": 8.933928300742762,
+      "toolbarShadowMAE": 2.370032223415682
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.878144,
+      "toolbar_text": 3.3498877092690895,
+      "toolbar_shadow": 1.8417472252058718,
+      "card_bottom_shadow": 1.3044858523119394
+    },
+    "completions": 0,
+    "finalState": {
+      "at": 7191,
+      "alpha": 1,
+      "tx": 0,
+      "z": 28,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "meizu",
+    "run": "20261011-published-complete",
+    "videoFrames": 225,
+    "maxRoiError": {
+      "fabInnerMAE": 4.360030953762816,
+      "toolbarTextMAE": 8.065237986963771,
+      "toolbarShadowMAE": 13.624955245255997
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.5722666666666667,
+      "toolbar_text": 3.1342441359284967,
+      "toolbar_shadow": 2.7366630862871464,
+      "card_bottom_shadow": 2.0357948010121922
+    },
+    "completions": 1,
+    "finalState": {
+      "at": 6693,
+      "alpha": 1,
+      "tx": 0,
+      "z": 28,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "samsung",
+    "run": "20261011-baseline-cancel",
+    "videoFrames": 169,
+    "maxRoiError": {
+      "fabInnerMAE": 5.620099954996565,
+      "toolbarTextMAE": 13.094574913526307,
+      "toolbarShadowMAE": 3.447969348659004
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 4.580320073159579,
+      "toolbar_text": 3.911418918918919,
+      "toolbar_shadow": 3.2006130268199233,
+      "card_bottom_shadow": 1.3693693693693694
+    },
+    "completions": 0,
+    "finalState": {
+      "at": 7292,
+      "alpha": 1,
+      "tx": 0,
+      "z": 30,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "samsung",
+    "run": "20261011-baseline-complete",
+    "videoFrames": 190,
+    "maxRoiError": {
+      "fabInnerMAE": 4.589142329283024,
+      "toolbarTextMAE": 10.311606313834726,
+      "toolbarShadowMAE": 16.30712643678161
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.717018747142204,
+      "toolbar_text": 3.3768168168168167,
+      "toolbar_shadow": 2.2179310344827585,
+      "card_bottom_shadow": 1.2882882882882882
+    },
+    "completions": 1,
+    "finalState": {
+      "at": 6300,
+      "alpha": 1,
+      "tx": 0,
+      "z": 30,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "samsung",
+    "run": "20261011-published-cancel",
+    "videoFrames": 173,
+    "maxRoiError": {
+      "fabInnerMAE": 5.620099954996565,
+      "toolbarTextMAE": 13.093118514472966,
+      "toolbarShadowMAE": 3.447969348659004
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 4.576808413351623,
+      "toolbar_text": 3.9097397397397398,
+      "toolbar_shadow": 3.2352490421455937,
+      "card_bottom_shadow": 1.3688688688688688
+    },
+    "completions": 0,
+    "finalState": {
+      "at": 7002,
+      "alpha": 1,
+      "tx": 0,
+      "z": 30,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  },
+  {
+    "device": "samsung",
+    "run": "20261011-published-complete",
+    "videoFrames": 191,
+    "maxRoiError": {
+      "fabInnerMAE": 4.592008337478386,
+      "toolbarTextMAE": 10.307335190343547,
+      "toolbarShadowMAE": 17.258850574712643
+    },
+    "finalVsInitial": {
+      "fab_inner_box": 3.7164517604023777,
+      "toolbar_text": 3.3707032032032034,
+      "toolbar_shadow": 2.3782375478927205,
+      "card_bottom_shadow": 1.3063063063063063
+    },
+    "completions": 1,
+    "finalState": {
+      "at": 6322,
+      "alpha": 1,
+      "tx": 0,
+      "z": 30,
+      "contentHidden": false
+    },
+    "backend": "surface",
+    "meaning": "有损录屏的指定区域与静止参考比较；不代表完整逐像素一致或帧率测量"
+  }
+]

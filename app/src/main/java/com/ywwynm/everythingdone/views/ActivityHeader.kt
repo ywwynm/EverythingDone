@@ -267,10 +267,10 @@ open class ActivityHeader(
         actionbarShadowAlpha = actionbarShadowAlphaAfter
         if (mModeManager!!.getCurrentMode() != ModeManager.SELECTING) {
             if (anim) {
-                mActionbarShadow.animate()!!.alpha(actionbarShadowAlphaAfter).withLayer().setDuration(160)
+                mActionbarShadow.animate()!!.alpha(actionbarShadowAlphaAfter * contextualExitShadowReveal).withLayer().setDuration(160)
             } else {
                 mActionbarShadow.animate()!!.cancel()
-                mActionbarShadow.setAlpha(actionbarShadowAlphaAfter)
+                mActionbarShadow.setAlpha(actionbarShadowAlphaAfter * contextualExitShadowReveal)
             }
         }
     }
@@ -385,7 +385,7 @@ open class ActivityHeader(
         mTitle.text = if (shouldShow) lockedTitle else mFolderPlainTitle
     }
 
-    private fun updateSubtitle() {
+    fun updateSubtitle() {
         val manager = ThingManager.getInstance(mApp)!!
         val childCounts = manager.getVisibleChildCountsForActivityHeader()
         mSubtitle.text = getFolderChildCountText(childCounts[0], childCounts[1])
@@ -412,6 +412,14 @@ open class ActivityHeader(
 
     fun showActionbarShadow(alpha: Float) {
         mActionbarShadow.animate()!!.alpha(alpha).withLayer()
+    }
+
+    private var contextualExitShadowReveal = 1f
+
+    fun setContextualExitShadowReveal(fraction: Float) {
+        contextualExitShadowReveal = fraction
+        mActionbarShadow.animate().cancel()
+        mActionbarShadow.alpha = actionbarShadowAlpha * fraction
     }
 
     fun canContextualToolbarCoverHomeChrome(): Boolean {

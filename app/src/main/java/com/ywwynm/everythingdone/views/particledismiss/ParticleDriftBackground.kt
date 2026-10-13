@@ -66,11 +66,16 @@ internal class ParticleDriftBackground private constructor(private val fallback:
             ((left + width - outer.left) * sx).toInt() + 1, ((top + height - outer.top) * sy).toInt() + 1)
         val dim = DialogDimLayer.coverage(decor)
         val bitmap = Bitmap.createBitmap(SAMPLE, SAMPLE, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(window, outer, bitmap, { result ->
+        val copied: (Int) -> Unit = { result ->
             if (result == PixelCopy.SUCCESS) decide(bitmap, inner, dim)
             else if (BuildConfig.DEBUG) Log.i(ParticleDriftRenderer.TAG, "飘散背景取样失败 result=$result，按主题")
             bitmap.recycle()
-        }, Handler(Looper.getMainLooper()))
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            val content = ParticleDoingPage.contentOf(activity)
+            if (content != null && ParticleDoingPage.of(content)?.copyFrame(outer, bitmap, copied) == true) return
+        }
+        PixelCopy.request(window, outer, bitmap, copied, Handler(Looper.getMainLooper()))
     }
 
     private fun decide(bitmap: Bitmap, inner: Rect, dim: Float) {

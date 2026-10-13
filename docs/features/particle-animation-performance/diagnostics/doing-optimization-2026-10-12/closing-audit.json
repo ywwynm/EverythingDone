@@ -1,0 +1,76 @@
+{
+  "stallRetests": [
+    {
+      "run": "glscenetrue-native-drift-card-fastcomplete-180-true-1791799184",
+      "callbacks": {
+        "104940489": {
+          "count": 4,
+          "largestGapMs": 5.5577079999998205
+        },
+        "144140991": {
+          "count": 74,
+          "largestGapMs": 16.716457999999875
+        }
+      },
+      "badEvents": []
+    },
+    {
+      "run": "glscenetrue-unified-drift-card-fastcomplete-180-true-1791799211",
+      "callbacks": {
+        "104940489": {
+          "count": 55,
+          "largestGapMs": 17.0627599999998
+        },
+        "106300013": {
+          "count": 68,
+          "largestGapMs": 17.808594000000085
+        }
+      },
+      "badEvents": []
+    },
+    {
+      "run": "glscenetrue-unified-drift-card-fastcomplete-180-true-1791799238",
+      "callbacks": {
+        "48712398": {
+          "count": 54,
+          "largestGapMs": 21.27838500000007
+        },
+        "209655959": {
+          "count": 73,
+          "largestGapMs": 17.415312000000085
+        }
+      },
+      "badEvents": []
+    }
+  ],
+  "media": [
+    {
+      "device": "samsung",
+      "run": "long-final-readonly-native-false-scrolltimer-drift-1791799955",
+      "comparedFrames": 326,
+      "changedOver1": 190,
+      "largestMeanChange": 41.21583130699088
+    },
+    {
+      "device": "samsung",
+      "run": "long-final-readonly-true-scrolltimer-drift-1791799194",
+      "comparedFrames": 647,
+      "changedOver1": 0,
+      "largestMeanChange": 0.017854103343465044
+    },
+    {
+      "device": "samsung",
+      "run": "long-media-recheck-true-scrolltimer-drift-1791800361",
+      "comparedFrames": 534,
+      "changedOver1": 133,
+      "largestMeanChange": 41.0898085106383
+    },
+    {
+      "device": "meizu",
+      "run": "long-final-readonly-true-scrolltimer-drift-1791799332",
+      "comparedFrames": 275,
+      "changedOver1": 134,
+      "largestMeanChange": 41.156095050004204
+    }
+  ]
+}

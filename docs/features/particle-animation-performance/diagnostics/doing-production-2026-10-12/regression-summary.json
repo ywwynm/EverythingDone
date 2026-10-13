@@ -1,0 +1,1495 @@
+{
+  "productionEnabled": false,
+  "reason": "固定种子配对仍有三星 FLOW 与魅族 DRIFT 性能回退",
+  "method": "驱动呈现时间戳，首回调后 150ms 至释放前；首回调不是外部测得的最终屏幕响应",
+  "runs": [
+    {
+      "device": "meizu",
+      "run": "long-pacing-false-cancel-drift-1791788349",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 323.7311460000001,
+      "driverFps": 118.09029941645836,
+      "intervalP90Ms": 8.2858851,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.018335564,
+        "requested": 0.0006816387,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-pacing-false-cancel-flow-1791788379",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 357.3161460000001,
+      "driverFps": 87.16932497614283,
+      "intervalP90Ms": 16.573438,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.03433958,
+        "requested": 0.00068499363,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-pacing-true-cancel-drift-1791788335",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 356.9638019999993,
+      "driverFps": 111.3024898569471,
+      "intervalP90Ms": 8.289104400000001,
+      "pageUpdateHz": 87.2355504362878,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.034255777,
+        "requested": 0.0006833247,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 1031.303489,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-pacing-true-cancel-flow-1791788364",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 282.7842179999998,
+      "driverFps": 101.01401552095871,
+      "intervalP90Ms": 16.5672188,
+      "pageUpdateHz": 94.35550701093074,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.03433958,
+        "requested": 0.00068499363,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 1097.238541,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-pacing-true-scrolltimer-drift-1791788394",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 223.17786399999932,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 10,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.01671333,
+        "requested": 0.0006833928,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 1536.53,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [
+        {
+          "state": 1,
+          "offset": 0,
+          "range": 21232,
+          "extent": 1528
+        },
+        {
+          "state": 2,
+          "offset": 888,
+          "range": 21232,
+          "extent": 1528
+        },
+        {
+          "state": 0,
+          "offset": 962,
+          "range": 21232,
+          "extent": 1528
+        },
+        {
+          "state": 1,
+          "offset": 962,
+          "range": 21232,
+          "extent": 1528
+        },
+        {
+          "state": 2,
+          "offset": 78,
+          "range": 21232,
+          "extent": 1528
+        },
+        {
+          "state": 0,
+          "offset": 4,
+          "range": 21232,
+          "extent": 1528
+        }
+      ],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-pacing-true-home-drift-1791788350",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 677,
+        "clockTicks": 4,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [],
+      "firstPageMs": 335.769635,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-pacing-true-resize-drift-1791788361",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 525,
+        "clockTicks": 3,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [],
+      "firstPageMs": 325.775625,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": [
+        {
+          "width": 2520,
+          "height": 1470
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "run": "long-pacing-false-cancel-drift-1791788345",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 125.61364500000036,
+      "driverFps": 116.87955513953284,
+      "intervalP90Ms": 8.3373854,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.01669356,
+        "requested": 0.0006825924,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-pacing-false-cancel-flow-1791788367",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 175.3643750000001,
+      "driverFps": 98.35719510951857,
+      "intervalP90Ms": 16.671509,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016691446,
+        "requested": 0.00068249705,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-pacing-true-cancel-drift-1791788335",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 85.42093699999987,
+      "driverFps": 118.99091900838648,
+      "intervalP90Ms": 8.337187,
+      "pageUpdateHz": 80.53919434277636,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016721837,
+        "requested": 0.00038475991,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 364.214427,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-pacing-true-cancel-flow-1791788356",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 150.23265599999968,
+      "driverFps": 89.45282663618086,
+      "intervalP90Ms": 16.6730314,
+      "pageUpdateHz": 79.1778092053458,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.006121842,
+        "requested": 0.0006851991,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 360.779844,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-seeded0-false-cancel-drift-1791788177",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 315.9268229999998,
+      "driverFps": 114.29198240292321,
+      "intervalP90Ms": 8.2866142,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016725829,
+        "requested": 0.0006839037,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-seeded0-true-cancel-drift-1791788191",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 339.06119800000033,
+      "driverFps": 114.13431618354903,
+      "intervalP90Ms": 8.2885628,
+      "pageUpdateHz": 88.30112648599416,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.03204867,
+        "requested": 0.000683529,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 1120.200365,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-seeded1-false-cancel-drift-1791788221",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 388.681458,
+      "driverFps": 114.97848544857368,
+      "intervalP90Ms": 8.286146,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.018351555,
+        "requested": 0.0006822177,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "meizu",
+      "run": "long-seeded1-true-cancel-drift-1791788206",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 415.5430729999998,
+      "driverFps": 110.3924867685994,
+      "intervalP90Ms": 8.288989599999999,
+      "pageUpdateHz": 90.71527250148215,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 21232,
+        "scrollExtent": 1528,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.034374304,
+        "requested": 0.00107084,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 1125.528125,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-seeded-false-cancel-drift-1791788176",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 116.54374999999982,
+      "driverFps": 119.12429652584832,
+      "intervalP90Ms": 8.3238748,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 677,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.034303255,
+        "requested": 0.0006842613,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-seeded-false-cancel-flow-1791788201",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 117.9796350000006,
+      "driverFps": 65.72210751061615,
+      "intervalP90Ms": 16.6465627,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 677,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016761553,
+        "requested": 0.00068537396,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-seeded-true-cancel-drift-1791788162",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 58.00770900000043,
+      "driverFps": 118.22861344276387,
+      "intervalP90Ms": 8.3232716,
+      "pageUpdateHz": 98.54735250914351,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 677,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.0061010406,
+        "requested": 0.00038426262,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 355.348541,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-seeded-true-cancel-flow-1791788188",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 83.36182200000076,
+      "driverFps": 110.29734789229306,
+      "intervalP90Ms": 8.3237508,
+      "pageUpdateHz": 95.19015742771992,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 677,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016757261,
+        "requested": 0.0006851923,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 359.8025,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-seeded-false-cancel-drift-1791788162",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 128.98208299999988,
+      "driverFps": 116.90240665918111,
+      "intervalP90Ms": 8.3365315,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016751146,
+        "requested": 0.00038542747,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-seeded-false-cancel-flow-1791788184",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 201.56286499999987,
+      "driverFps": 100.9129351047886,
+      "intervalP90Ms": 16.670083199999997,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016705148,
+        "requested": 0.00068306923,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 3,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-seeded-true-cancel-drift-1791788173",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 75.07572900000014,
+      "driverFps": 117.996015844859,
+      "intervalP90Ms": 8.337709,
+      "pageUpdateHz": 81.76374876518562,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.005129894,
+        "requested": 0.00038401285,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 357.584062,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-seeded-true-cancel-flow-1791788195",
+      "style": "FLOW",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 153.21447899999976,
+      "driverFps": 89.18694060218876,
+      "intervalP90Ms": 16.6718074,
+      "pageUpdateHz": 82.88608340889603,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 6,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.016715162,
+        "requested": 0.00038460095,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 359.213802,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-releasecheck-true-business-drift-1791788214",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 659,
+        "clockTicks": 8,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 388.414687,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [
+        {
+          "enabled": true
+        },
+        {
+          "enabled": true
+        }
+      ],
+      "scrolls": [
+        {
+          "state": 2,
+          "offset": 8352,
+          "range": 9011,
+          "extent": 659
+        },
+        {
+          "state": 0,
+          "offset": 0,
+          "range": 9011,
+          "extent": 659
+        }
+      ],
+      "resizes": []
+    },
+    {
+      "device": "samsung",
+      "run": "long-releasecheck-true-scrolltimer-drift-1791788205",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": 77.40682299999935,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1425,
+        "clockTicks": 9,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": {
+        "presented": true,
+        "progress": 0.032106385,
+        "requested": 0.0003853162,
+        "active": true,
+        "finishing": false
+      },
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 361.963958,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 69,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [
+        {
+          "state": 1,
+          "offset": 0,
+          "range": 25655,
+          "extent": 1425
+        },
+        {
+          "state": 2,
+          "offset": 821,
+          "range": 25655,
+          "extent": 1425
+        },
+        {
+          "state": 0,
+          "offset": 1012,
+          "range": 25655,
+          "extent": 1425
+        },
+        {
+          "state": 1,
+          "offset": 1012,
+          "range": 25655,
+          "extent": 1425
+        },
+        {
+          "state": 2,
+          "offset": 185,
+          "range": 25655,
+          "extent": 1425
+        },
+        {
+          "state": 0,
+          "offset": 0,
+          "range": 25655,
+          "extent": 1425
+        }
+      ],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-warmup-retry-false-business-drift-1791787569",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 659,
+        "clockTicks": 8,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": null,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [
+        {
+          "enabled": true
+        },
+        {
+          "enabled": true
+        }
+      ],
+      "scrolls": [
+        {
+          "state": 2,
+          "offset": 8352,
+          "range": 9011,
+          "extent": 659
+        },
+        {
+          "state": 0,
+          "offset": 0,
+          "range": 9011,
+          "extent": 659
+        }
+      ],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-warmup-retry-true-business-drift-1791787585",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 659,
+        "clockTicks": 8,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [
+        "SurfaceView"
+      ],
+      "firstPageMs": 458.513646,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [
+        {
+          "enabled": true
+        },
+        {
+          "enabled": true
+        }
+      ],
+      "scrolls": [
+        {
+          "state": 2,
+          "offset": 8352,
+          "range": 9011,
+          "extent": 659
+        },
+        {
+          "state": 0,
+          "offset": 0,
+          "range": 9011,
+          "extent": 659
+        }
+      ],
+      "resizes": []
+    },
+    {
+      "device": "oppo",
+      "run": "long-warmup-retry-true-resize-drift-1791787601",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 9011,
+        "scrollExtent": 525,
+        "clockTicks": 3,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [],
+      "firstPageMs": 492.921979,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": [
+        {
+          "width": 2520,
+          "height": 1470
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "run": "long-warmup-retry-true-resize-drift-1791787568",
+      "style": "DRIFT",
+      "scene": "Doing",
+      "bad": [],
+      "gestureToParticleCallbackMs": null,
+      "driverFps": null,
+      "intervalP90Ms": null,
+      "pageUpdateHz": null,
+      "final": {
+        "containerAlpha": 0.84,
+        "cardAlpha": 1,
+        "cardTranslationX": 0,
+        "cardAttached": true,
+        "scrollOffset": 0,
+        "scrollRange": 25655,
+        "scrollExtent": 1207,
+        "clockTicks": 3,
+        "expectedRestingAlpha": 0.84,
+        "meaning": "view_properties_not_screen_verified"
+      },
+      "completions": 0,
+      "disposed": null,
+      "backends": [],
+      "firstPageMs": 417.135833,
+      "geometrySwitches": 0,
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0,
+      "strictStates": [],
+      "scrolls": [],
+      "resizes": [
+        {
+          "width": 1440,
+          "height": 2788
+        }
+      ]
+    }
+  ],
+  "exits": [
+    {
+      "device": "meizu",
+      "run": "exit-pacing-back-true-1791788714",
+      "firstParentScrollMs": 397.4039580000008,
+      "captureReleased": true
+    },
+    {
+      "device": "meizu",
+      "run": "exit-pacing-close-true-1791788698",
+      "firstParentScrollMs": 341.2820839999995,
+      "captureReleased": true
+    },
+    {
+      "device": "meizu",
+      "run": "exit-pacing-swipeback-true-1791788733",
+      "firstParentScrollMs": 372.7667189999993,
+      "captureReleased": true
+    },
+    {
+      "device": "oppo",
+      "run": "exit-pacing-back-true-1791788340",
+      "firstParentScrollMs": 251.86166600000024,
+      "captureReleased": true
+    },
+    {
+      "device": "oppo",
+      "run": "exit-pacing-close-true-1791788335",
+      "firstParentScrollMs": 236.7171870000002,
+      "captureReleased": true
+    },
+    {
+      "device": "oppo",
+      "run": "exit-pacing-swipeback-true-1791788345",
+      "firstParentScrollMs": 258.31864499999983,
+      "captureReleased": true
+    },
+    {
+      "device": "samsung",
+      "run": "exit-pacing-back-true-1791788714",
+      "firstParentScrollMs": 279.1484379999997,
+      "captureReleased": true
+    },
+    {
+      "device": "samsung",
+      "run": "exit-pacing-close-true-1791788698",
+      "firstParentScrollMs": 282.31525999999985,
+      "captureReleased": true
+    },
+    {
+      "device": "samsung",
+      "run": "exit-pacing-swipeback-true-1791788730",
+      "firstParentScrollMs": 272.0671349999998,
+      "captureReleased": true
+    }
+  ],
+  "unitTests": [
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapLayerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlHandoffStateTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleOnceResultTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceReadyBarrierTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeDirectionTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0"
+    }
+  ],
+  "pixels": [
+    {
+      "device": "samsung",
+      "region": "clock_time_doing",
+      "mean": 3.766532674270254e-05,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "samsung",
+      "region": "rv_thing_doing",
+      "mean": 0.0005306944758743809,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "samsung",
+      "region": "fab_cancel_doing",
+      "mean": 0.0004907557638763697,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "samsung",
+      "region": "fab_strict_mode",
+      "mean": 0.0017076297498147147,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "samsung",
+      "region": "fab_add_5_min",
+      "mean": 0.006344770947258779,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "meizu",
+      "region": "clock_time_doing",
+      "mean": 0.00012286324786324788,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "meizu",
+      "region": "rv_thing_doing",
+      "mean": 0.0005643250116266413,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "meizu",
+      "region": "fab_cancel_doing",
+      "mean": 0.014898548777210427,
+      "p99": 1.0,
+      "above2": 0.0
+    },
+    {
+      "device": "meizu",
+      "region": "fab_strict_mode",
+      "mean": 0.013896354026695333,
+      "p99": 1.0,
+      "above2": 0.0
+    },
+    {
+      "device": "meizu",
+      "region": "fab_add_5_min",
+      "mean": 0.01415950013437248,
+      "p99": 1.0,
+      "above2": 0.0
+    },
+    {
+      "device": "oppo",
+      "region": "clock_time_doing",
+      "mean": 0.05397918056145904,
+      "p99": 0.0,
+      "above2": 0.002083786893913476
+    },
+    {
+      "device": "oppo",
+      "region": "rv_thing_doing",
+      "mean": 0.0003147235905856596,
+      "p99": 0.0,
+      "above2": 0.0
+    },
+    {
+      "device": "oppo",
+      "region": "fab_cancel_doing",
+      "mean": 0.03764190225728687,
+      "p99": 1.0,
+      "above2": 0.0
+    },
+    {
+      "device": "oppo",
+      "region": "fab_strict_mode",
+      "mean": 0.04294543063773833,
+      "p99": 1.0,
+      "above2": 7.889546351084812e-05
+    },
+    {
+      "device": "oppo",
+      "region": "fab_add_5_min",
+      "mean": 0.09726934034626342,
+      "p99": 2.0,
+      "above2": 0.002200306815691431
+    }
+  ],
+  "limits": [
+    "OPPO 无系统录屏权限",
+    "真实服务由 debug 内存 Binder 替代，不完成已有记事",
+    "不外推为所有主题与内容的等价证明"
+  ]
+}

@@ -10,6 +10,7 @@ uniform vec4 u_viewport;      // 视口：x, y, 宽, 高（窗口坐标，左下
 uniform sampler2D u_image;    // 快照（预乘）
 uniform ivec2 u_full;
 uniform float u_time;
+uniform float u_containerFade;
 out vec4 o_color;
 
 #include "drift-common.glsl"
@@ -20,5 +21,5 @@ void main() {
     if (any(lessThan(px, ivec2(0))) || any(greaterThanEqual(px, u_full))) discard;
     float alpha = driftMaskAlpha(driftMaskValue(px), u_time);
     if (alpha <= 0.0) discard;
-    o_color = texelFetch(u_image, px, 0) * alpha;
+    o_color = texelFetch(u_image, px, 0) * alpha * (1.0 - u_containerFade);
 }

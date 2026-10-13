@@ -1,5 +1,11 @@
 # Sessions — Timely Digit Typography
 
+## 2026-10-12 - 复用相同计时轮廓以减少 Doing 绘制开销
+
+- 配合 Doing 整页性能优化，TimelyClockView 按字形引用、插值版本、坐标和缩放复用每位数字的 Path，去除轮廓光／字形两遍及静态数字的重复装配。插值原地修改时递增版本，不改变任何轮廓点、外观参数或动画采样。
+- 三台 Android 各 792 组像素对照全部一致，包含 33 种字体、实心／描边、原地插值、缩放及重复绘制。三星、魅族录像核对真实计时变形和无限计时呼吸，OPPO 核对截图与状态。
+- 已随粒子性能 debug `202610121039` 发布并校验公开 APK；见 [性能记录](../particle-animation-performance/doing-scene-performance-2026-10-12.md)。未创建 Git 提交。
+
 ## 2026-07-06 - 计时数字风格多语言文案修正
 
 - 用户指出设置界面“计时数字风格”的英文不应限定为 `Countdown digit style`，因为该设置同时影响 DoingActivity 倒计时和录音 dialog 等计时读数。

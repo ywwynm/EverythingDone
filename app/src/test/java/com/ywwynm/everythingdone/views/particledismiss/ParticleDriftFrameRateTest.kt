@@ -85,7 +85,7 @@ class ParticleDriftFrameRateTest {
         assertTrue("有会话的窗口全是飘散才切高帧率", "busy.all { it.prefersHighFrameRate }" in update)
         assertTrue("节拍间隔跟着切", "ParticleClock.setHighRate(high)" in update)
         // 粒子 Surface 常驻投 60 时，SurfaceFlinger 给整个 uid 设 60 Hz 的帧率覆盖，首页滚动也被压住
-        assertTrue("没有会话的窗口不投", "!window.busy -> 0f" in update)
+        assertTrue("既没有会话、也没有动态整页的窗口不投", "!window.busy && !window.pageContentActive -> 0f" in update)
         assertTrue("只有飘散投高帧率", "high -> ParticleWindowSurface.HIGH_FRAME_RATE" in update)
         assertTrue("其余投 60", "ParticleWindowSurface.VOTED_FRAME_RATE" in update)
     }

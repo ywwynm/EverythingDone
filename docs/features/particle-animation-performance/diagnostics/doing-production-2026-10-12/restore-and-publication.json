@@ -1,0 +1,81 @@
+{
+  "restored": [
+    {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true,
+      "device": "samsung"
+    },
+    {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true,
+      "device": "meizu"
+    },
+    {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true,
+      "device": "oppo"
+    }
+  ],
+  "data": [
+    {
+      "userNoteCount": 371,
+      "userNotesUnchanged": true,
+      "changedTables": [],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false,
+      "device": "samsung"
+    },
+    {
+      "userNoteCount": 180,
+      "userNotesUnchanged": true,
+      "changedTables": [
+        "habits",
+        "habit_reminders"
+      ],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false,
+      "reviewedDifferences": [
+        {
+          "table": "habits",
+          "id": 783,
+          "column": "reminded_times",
+          "before": 3,
+          "after": 4
+        },
+        {
+          "table": "habit_reminders",
+          "id": 0,
+          "column": "notify_time",
+          "beforeLocal": "2026-10-12 14:30:00",
+          "afterLocal": "2026-10-13 14:30:00"
+        }
+      ],
+      "assessment": "变化仅为一次到期习惯提醒推进，与现有 HabitReceiver/HabitDAO 行为一致；没有新增／删除行，习惯 record 和记事内容均未变化。不回写旧快照，以免倒退提醒。",
+      "device": "meizu"
+    },
+    {
+      "userNoteCount": 72,
+      "userNotesUnchanged": true,
+      "changedTables": [],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false,
+      "device": "oppo"
+    }
+  ],
+  "publication": {
+    "debugUpdateCode": 202610120709,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610120709.apk",
+    "sizeBytes": 28801021,
+    "sha256": "77017d5bb41274c62864d125eae4970f104647d89d6c556b497de7e4829011dd",
+    "publishedAt": "2026-10-12T07:09:00.813367700Z",
+    "metadataMatches": true,
+    "downloadMatches": true,
+    "zipCRC": true,
+    "newClassesAndShaders": true,
+    "testOnly": false,
+    "embeddedBuildCode": true
+  }
+}

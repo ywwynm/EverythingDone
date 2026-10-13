@@ -1,0 +1,103 @@
+{
+  "attachment": {
+    "source": "c604c58ac2250afe17e360b175df6263.mp4",
+    "sha256": "e93002ffed0c932c8ba72c9d17b20c66c1a7e4253535f0bf24648f91e58dec7a",
+    "bytes": 1618632,
+    "frames": 143,
+    "firstPts": 0.0,
+    "lastPts": 3.839011111111111
+  },
+  "frameNumbering": "zero_based",
+  "method": "sequential_VFR_decode; RGB median of orange pixels in [180,530,950,1110]",
+  "entry": {
+    "lastNativeFrame": 83,
+    "emptyFrame": 84,
+    "staticReturnFrame": 85,
+    "firstParticleFrame": 88,
+    "emptyStartsSeconds": 1.9471555555555558,
+    "emptyDurationMs": 18.299999999999983,
+    "counts": [
+      {
+        "frame": 83,
+        "time": 1.9286111111111113,
+        "orangePixels": 262571,
+        "rgb": [
+          202.0,
+          157.0,
+          93.0
+        ]
+      },
+      {
+        "frame": 84,
+        "time": 1.9471555555555558,
+        "orangePixels": 0,
+        "rgb": null
+      },
+      {
+        "frame": 85,
+        "time": 1.9654555555555557,
+        "orangePixels": 262561,
+        "rgb": [
+          202.0,
+          157.0,
+          93.0
+        ]
+      },
+      {
+        "frame": 87,
+        "time": 1.9962333333333335,
+        "orangePixels": 262632,
+        "rgb": [
+          202.0,
+          157.0,
+          93.0
+        ]
+      },
+      {
+        "frame": 88,
+        "time": 2.0130666666666666,
+        "orangePixels": 96594,
+        "rgb": [
+          200.0,
+          156.0,
+          93.0
+        ]
+      }
+    ]
+  },
+  "return": {
+    "flashFrame": 134,
+    "normalFrame": 135,
+    "flashStartsSeconds": 2.893177777777778,
+    "flashDurationMs": 18.711111111111123,
+    "beforeRGB": [
+      202.0,
+      157.0,
+      93.0
+    ],
+    "flashRGB": [
+      234.0,
+      183.0,
+      107.0
+    ],
+    "afterRGB": [
+      202.0,
+      157.0,
+      93.0
+    ],
+    "expectedSourceOverDuplicateRGB": [
+      234.32000000000002,
+      182.12000000000003,
+      107.88000000000001
+    ],
+    "duplicateRMSE": 0.7418894796396501,
+    "expectedNativeAlphaOneRGB": [
+      240.47619047619048,
+      186.9047619047619,
+      110.71428571428572
+    ],
+    "nativeAlphaOneRMSE": 4.864296008815221
+  },
+  "interpretation": "开头为空档，结尾更符合两份 alpha=0.84 卡片叠加；尚无同次 ZIP 对齐，不能证明框架内部时序。",
+  "scope": "仅录像最终画面证据；不将此前 Android 回归、提交回调视为卓易通验收通过。"
+}

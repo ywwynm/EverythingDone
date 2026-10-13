@@ -25,7 +25,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
     private val layer: SurfaceControl,
     private val onForegroundFailure: () -> Unit,
     private val sources: List<View>
-) {
+) : ParticleCardHandoff {
     private val main = Handler(Looper.getMainLooper())
     private var foreground = emptyList<ParticleForegroundSurface>()
     private var entering = false
@@ -36,6 +36,11 @@ internal class ParticleCardSurfaceHandoff private constructor(
     private var completed: (() -> Unit)? = null
     private val rescue = Runnable { restoreInWindow() }
     private val windowCallbacks = mutableSetOf<Runnable>()
+
+    override fun start(window: ParticleWindowSurface, session: ParticleLayerSession, reverse: Boolean) {
+        if (reverse) keepSourceHidden { session.setVisible(true) }
+        else enter { transaction -> window.startCardFrame(session, transaction) }
+    }
 
     fun enter(ready: (SurfaceControl.Transaction) -> Unit) {
         if (entering || closing || released) return
@@ -66,7 +71,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
         }
     }
 
-    fun leave(window: ParticleWindowSurface, session: ParticleLayerSession,
+    override fun leave(window: ParticleWindowSurface, session: ParticleLayerSession,
               showCard: Boolean, restore: () -> Unit, done: () -> Unit) {
         if (closing || released) return
         closing = true
@@ -99,7 +104,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
     }
 
     /** 在退出页面等没有下一帧的场合直接释放自有图层。 */
-    fun dispose() {
+    override fun dispose() {
         if (released) return
         released = true
         main.removeCallbacks(rescue)
@@ -130,7 +135,11 @@ internal class ParticleCardSurfaceHandoff private constructor(
             }
         }
         windowCallbacks += finish
-        transaction.addTransactionCommittedListener({ main.post(it) }) { finish.run() }
+        transaction.addTransactionCommittedListener({ main.post(it) }) {
+            ParticlePresentationDiagnostics.of(source)?.event("card_transaction_committed",
+                mapOf("meaning" to "ready_to_present_not_screen_verified"))
+            finish.run()
+        }
         val root = source.rootSurfaceControl
         val queued = transaction.use {
             if (source.isAttachedToWindow && root != null && root.applyTransactionOnDraw(it)) true
@@ -141,6 +150,7 @@ internal class ParticleCardSurfaceHandoff private constructor(
             // 只用于窗口停止绘制后的资源回收，不作为正常交接时钟。
             main.postDelayed(finish, 1000)
         } else finish.run()
+        ParticlePresentationDiagnostics.of(source)?.event("card_window_transaction", mapOf("queuedOnDraw" to queued))
     }
 
     companion object {
@@ -176,8 +186,10 @@ internal class ParticleCardSurfaceHandoff private constructor(
                         val attach = checkNotNull(root.buildReparentTransaction(control))
                         hardware.hardwareBuffer.use { buffer ->
                             attach.setBuffer(control, buffer).setDataSpace(control, DataSpace.DATASPACE_SRGB)
-                                .setPosition(control, spec.originXPx, spec.originYPx)
-                                .setLayer(control, Int.MAX_VALUE - 1).setVisibility(control, false).apply()
+                                .setPosition(control, spec.originXPx, spec.originYPx).setAlpha(control, spec.sourceAlpha)
+                                .setLayer(control, if (ParticlePresentationDiagnostics.of(source)?.options?.rootForeground == true)
+                                    ParticlePresentationDiagnostics.ROOT_CARD_LAYER else Int.MAX_VALUE - 1)
+                                .setVisibility(control, false).apply()
                         }
                         attach.close()
                         ParticleCardSurfaceHandoff(source, hardware, control, onForegroundFailure, sources)

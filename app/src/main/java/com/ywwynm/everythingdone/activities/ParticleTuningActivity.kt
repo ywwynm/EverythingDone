@@ -362,6 +362,21 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
         applyToolbarColor(themeBackground)
     }
 
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        val created = super.onCreateOptionsMenu(menu)
+        if (com.ywwynm.everythingdone.BuildConfig.DEBUG) {
+            menu.add(R.string.particle_presentation_diagnostics).apply {
+                setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+                setOnMenuItemClickListener {
+                    startActivity(android.content.Intent().setClassName(this@ParticleTuningActivity,
+                        "com.ywwynm.everythingdone.views.particledismiss.ParticlePresentationDiagnosticsActivity"))
+                    true
+                }
+            }
+        }
+        return created || com.ywwynm.everythingdone.BuildConfig.DEBUG
+    }
+
     override fun setEvents() {
         cardMode?.setOnClickListener { switchPreview(card = true) }
         dialogMode?.setOnClickListener { switchPreview(card = false) }
@@ -1318,6 +1333,12 @@ class ParticleTuningActivity : EverythingDoneBaseActivity() {
      */
     private inner class SwipeCallback :
         ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.START or ItemTouchHelper.END) {
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && viewHolder != null)
+                swipeAnimator.onSwipeSelected(viewHolder.itemView)
+        }
 
         override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder,
                             target: RecyclerView.ViewHolder): Boolean = false

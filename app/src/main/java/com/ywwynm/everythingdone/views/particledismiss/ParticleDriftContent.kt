@@ -71,7 +71,20 @@ internal object ParticleDriftContent {
     /** 在后台线程上分析；[rgba] 复制一份独立的读写位置，GL 线程同时拿原缓冲上传也互不影响。 */
     fun analyseAsync(width: Int, height: Int, rgba: ByteBuffer, baseCount: Int): Future<Analysis> {
         val view = rgba.duplicate()
-        return worker.submit<Analysis> { analyse(width, height, view, baseCount) }
+        val queued = if (ParticleBeatTrace.enabled) System.nanoTime() else 0L
+        return worker.submit<Analysis> {
+            if (queued == 0L || width <= 0 || height <= 0) analyse(width, height, view, baseCount)
+            else {
+                val began = System.nanoTime()
+                val cpu = android.os.Debug.threadCpuTimeNanos()
+                val samples = samplesFrom(view, samplePositions(width, height))
+                val sampled = System.nanoTime()
+                val result = analyseSamples(width, height, samples, baseCount)
+                ParticleBeatTrace.record(ParticleBeatTrace.CONTENT_ANALYSIS, queued, began, sampled,
+                    System.nanoTime(), android.os.Debug.threadCpuTimeNanos() - cpu)
+                result
+            }
+        }
     }
 
     /**
@@ -95,9 +108,16 @@ internal object ParticleDriftContent {
 
     /** [rgba] 里 [positions] 处的像素，R 在低字节打包成 Int（与 `drift-gather.comp` 的 `packUnorm4x8` 同一排法）。 */
     fun samplesFrom(rgba: ByteBuffer, positions: IntArray): IntArray {
-        // 一次整字读取替代四次逐字节读取；独立视图不改变上传方的字节序、位置或上限。
+        if (positions.isEmpty()) return IntArray(0)
+        if (rgba.isDirect && ParticleMaterialNative.enabled)
+            return ParticleMaterialNative.gatherRgba(rgba, rgba.limit(), positions)
+        // Android 冷启动时逐点 DirectByteBuffer.getInt 可占约 180ms；一次批量读取后
+        // 按完全相同的下标取样。保留字节序、预乘值与取样顺序，不改变分析输入。
         val words = rgba.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-        return IntArray(positions.size) { words.getInt(positions[it] * 4) }
+        words.position(0)
+        val pixels = IntArray(words.limit() / 4)
+        words.asIntBuffer().get(pixels)
+        return IntArray(positions.size) { pixels[positions[it]] }
     }
 
     /** [samples] 与 [samplePositions] 一一对应；无论样本从字节还是从 GPU 取来，结果逐位相同。 */

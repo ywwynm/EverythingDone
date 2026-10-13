@@ -1,0 +1,62 @@
+{
+  "samsung": {
+    "notes": {
+      "userNoteCount": 371,
+      "userNotesUnchanged": true,
+      "allTablesUnchanged": false,
+      "changedTables": [
+        "doing_records",
+        "sqlite_sequence"
+      ],
+      "reviewedNonTestDifferences": [
+        "23:54 两条取消记录；早于无服务探针，聊天工具记录该时段无三星输入，保留现状"
+      ],
+      "unexplainedChanges": [],
+      "databaseWritesByVerification": false,
+      "excluded": "Thing.HEADER (-1), existing initialization"
+    },
+    "restore": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    }
+  },
+  "meizu": {
+    "notes": {
+      "userNoteCount": 180,
+      "userNotesUnchanged": true,
+      "allTablesUnchanged": false,
+      "changedTables": [
+        "habits"
+      ],
+      "reviewedNonTestDifferences": [
+        "习惯跨午夜仅补一个未完成标记；符合 dailyUpdate 既有路径，保留现状"
+      ],
+      "unexplainedChanges": [],
+      "databaseWritesByVerification": false,
+      "excluded": "Thing.HEADER (-1), existing initialization"
+    },
+    "restore": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    }
+  },
+  "oppo": {
+    "notes": {
+      "userNoteCount": 72,
+      "userNotesUnchanged": true,
+      "allTablesUnchanged": true,
+      "changedTables": [],
+      "reviewedNonTestDifferences": [],
+      "unexplainedChanges": [],
+      "databaseWritesByVerification": false,
+      "excluded": "Thing.HEADER (-1), existing initialization"
+    },
+    "restore": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    }
+  }
+}

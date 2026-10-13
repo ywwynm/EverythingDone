@@ -1,0 +1,1951 @@
+{
+  "scope": "原生虚构场景；OPPO 无录屏，不代替卓易通验收",
+  "runs": [
+    {
+      "device": "meizu",
+      "case": "opaque-drift-card-cancel-180",
+      "run": "opaque-drift-card-cancel-180-1791719128",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "opaque_return_without_entry",
+          "elapsedMs": 4827.120935,
+          "values": {
+            "cardShown": false,
+            "reason": "native_view_kept_during_preparation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4836.459998,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-241225501"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4885.706873,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4886.981456,
+          "values": {
+            "layers": [
+              "backdrop-241225501",
+              "card-62685217-2059345016354729",
+              "foreground-actionbar-42655976",
+              "foreground-rl_header-27757543",
+              "foreground-actionbar_shadow-173473667",
+              "foreground-view_status_bar-220332926",
+              "foreground-fab_create-254224373"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4893.245571,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4910.058904,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 5230.442862,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 1625.020989,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "meizu",
+      "case": "opaque-drift-card-complete-180",
+      "run": "opaque-drift-card-complete-180-1791718707",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 5189.837394,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 1648.643489,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5215.094686,
+          "values": {
+            "layers": [
+              "backdrop-197211538",
+              "card-13814854-2058923510484005",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-197211538"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 5247.493488,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5268.365519,
+          "values": {
+            "layers": [
+              "backdrop-197211538",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-13814854-2058923510484005"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5796.568435,
+          "values": {
+            "layers": [
+              "backdrop-197211538",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-197211538"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 5879.824685,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 5880.365779,
+          "values": {
+            "layers": [
+              "backdrop-197211538",
+              "card-13814854-2058923510484005",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5894.838904,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 5945.606821,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 7520.499737,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 1507.88099,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7548.943695,
+          "values": {
+            "layers": [
+              "backdrop-158171820",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-158171820"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 7581.38807,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": true
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7601.546976,
+          "values": {
+            "layers": [
+              "backdrop-158171820",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-265522090-2058925921812337"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7880.96031,
+          "values": {
+            "layers": [
+              "backdrop-158171820",
+              "card-265522090-2058925921812337",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-158171820"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 7961.785935,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 7965.424633,
+          "values": {
+            "layers": [
+              "backdrop-158171820",
+              "card-265522090-2058925921812337",
+              "foreground-actionbar-18391809",
+              "foreground-rl_header-32206397",
+              "foreground-actionbar_shadow-188146944",
+              "foreground-view_status_bar-100667615",
+              "foreground-fab_create-240572810"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7979.666195,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 7998.475778,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "meizu",
+      "case": "opaque-drift-card-exit-180",
+      "run": "opaque-drift-card-exit-180-1791718882",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 5273.244425,
+          "values": {
+            "layers": [
+              "backdrop-197211538",
+              "card-136478215-2059099243927219",
+              "foreground-actionbar-216917414",
+              "foreground-rl_header-218281522",
+              "foreground-actionbar_shadow-237351225",
+              "foreground-view_status_bar-245715244",
+              "foreground-fab_create-201251835"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 5293.554738,
+          "values": {
+            "groupCleared": false,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 5375.075519,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 1816.793385,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "meizu",
+      "case": "opaque-flow-card-complete-360",
+      "run": "opaque-flow-card-complete-360-1791719142",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 5115.219112,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 1415.379323,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5136.763748,
+          "values": {
+            "layers": [
+              "backdrop-237373932",
+              "card-172293674-2059358225309620",
+              "foreground-actionbar-204823900",
+              "foreground-rl_header-255506923",
+              "foreground-actionbar_shadow-17369543",
+              "foreground-view_status_bar-197211538",
+              "foreground-fab_create-37765145"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-237373932"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 5169.162185,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5192.769425,
+          "values": {
+            "layers": [
+              "backdrop-237373932",
+              "foreground-actionbar-204823900",
+              "foreground-rl_header-255506923",
+              "foreground-actionbar_shadow-17369543",
+              "foreground-view_status_bar-197211538",
+              "foreground-fab_create-37765145"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-172293674-2059358225309620"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5733.032393,
+          "values": {
+            "layers": [
+              "backdrop-237373932",
+              "foreground-actionbar-204823900",
+              "foreground-rl_header-255506923",
+              "foreground-actionbar_shadow-17369543",
+              "foreground-view_status_bar-197211538",
+              "foreground-fab_create-37765145"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-237373932"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 5802.282133,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 5802.882862,
+          "values": {
+            "layers": [
+              "backdrop-237373932",
+              "card-172293674-2059358225309620",
+              "foreground-actionbar-204823900",
+              "foreground-rl_header-255506923",
+              "foreground-actionbar_shadow-17369543",
+              "foreground-view_status_bar-197211538",
+              "foreground-fab_create-37765145"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5816.675935,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 5877.870727,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "opaque_return_without_entry",
+          "elapsedMs": 7802.669945,
+          "values": {
+            "cardShown": false,
+            "reason": "native_view_kept_during_preparation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7821.191663,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-212538130"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 7885.194788,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 7886.69609,
+          "values": {
+            "layers": [
+              "backdrop-212538130",
+              "card-95195581-2059360758189411",
+              "foreground-actionbar-204823900",
+              "foreground-rl_header-255506923",
+              "foreground-actionbar_shadow-17369543",
+              "foreground-view_status_bar-197211538",
+              "foreground-fab_create-37765145"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 7903.124528,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 7922.955049,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 8662.48484,
+          "values": {
+            "opaque": true,
+            "width": 1368,
+            "height": 3192,
+            "error": null,
+            "elapsedMs": 2727.246197,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "meizu",
+      "case": "opaque-flow-surface-complete-180",
+      "run": "opaque-flow-surface-complete-180-1791718861",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 3424.302603,
+          "values": {
+            "stage": "prepare",
+            "global": "[70,419][1050,755]",
+            "windowScreen": [
+              124,
+              1125
+            ],
+            "rootScreen": [
+              124,
+              1125
+            ],
+            "local": "[70,419][1050,755]",
+            "clipped": "[70,419][1050,755]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4578.963801,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 4579.634582,
+          "values": {
+            "stage": "restore",
+            "global": "[70,419][1050,755]",
+            "windowScreen": [
+              124,
+              1125
+            ],
+            "rootScreen": [
+              124,
+              1125
+            ],
+            "local": "[70,419][1050,755]",
+            "clipped": "[70,419][1050,755]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 4623.996144,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 12081.675777,
+          "values": {
+            "stage": "prepare",
+            "global": "[70,419][1050,755]",
+            "windowScreen": [
+              124,
+              1125
+            ],
+            "rootScreen": [
+              124,
+              1125
+            ],
+            "local": "[70,419][1050,755]",
+            "clipped": "[70,419][1050,755]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 13065.039527,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 13065.212964,
+          "values": {
+            "stage": "restore",
+            "global": "[70,419][1050,755]",
+            "windowScreen": [
+              124,
+              1125
+            ],
+            "rootScreen": [
+              124,
+              1125
+            ],
+            "local": "[70,419][1050,755]",
+            "clipped": "[70,419][1050,755]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 13097.958745,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "oppo",
+      "case": "opaque-drift-card-complete-180",
+      "run": "opaque-drift-card-complete-180-1791718804",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 3782.012707,
+          "values": {
+            "opaque": true,
+            "width": 2520,
+            "height": 1680,
+            "error": null,
+            "elapsedMs": 62.050885,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3798.105051,
+          "values": {
+            "layers": [
+              "backdrop-22623535",
+              "card-9876018-37985458959831",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-22623535"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 3827.691301,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3835.385884,
+          "values": {
+            "layers": [
+              "backdrop-22623535",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-9876018-37985458959831"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4396.607655,
+          "values": {
+            "layers": [
+              "backdrop-22623535",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-22623535"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4453.1063,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4453.299165,
+          "values": {
+            "layers": [
+              "backdrop-22623535",
+              "card-9876018-37985458959831",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4454.170884,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4479.469842,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 4588.292811,
+          "values": {
+            "opaque": true,
+            "width": 2520,
+            "height": 1680,
+            "error": null,
+            "elapsedMs": 58.104375,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4621.17979,
+          "values": {
+            "layers": [
+              "backdrop-18340788",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-18340788"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 4662.904842,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": true
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4675.132082,
+          "values": {
+            "layers": [
+              "backdrop-18340788",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-81721540-37986266612174"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5295.602186,
+          "values": {
+            "layers": [
+              "backdrop-18340788",
+              "card-81721540-37986266612174",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-18340788"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 5351.646508,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 5352.098956,
+          "values": {
+            "layers": [
+              "backdrop-18340788",
+              "card-81721540-37986266612174",
+              "foreground-actionbar-200916862",
+              "foreground-rl_header-40251416",
+              "foreground-actionbar_shadow-149837194",
+              "foreground-view_status_bar-8470784",
+              "foreground-fab_create-227950469"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5361.688956,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 5368.425102,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "oppo",
+      "case": "opaque-drift-surface-complete-180",
+      "run": "opaque-drift-surface-complete-180-1791718815",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 3743.638905,
+          "values": {
+            "stage": "prepare",
+            "global": "[52,227][1470,479]",
+            "windowScreen": [
+              499,
+              565
+            ],
+            "rootScreen": [
+              499,
+              565
+            ],
+            "local": "[52,227][1470,479]",
+            "clipped": "[52,227][1470,479]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4430.544477,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 4430.660102,
+          "values": {
+            "stage": "restore",
+            "global": "[52,227][1470,479]",
+            "windowScreen": [
+              499,
+              565
+            ],
+            "rootScreen": [
+              499,
+              565
+            ],
+            "local": "[52,227][1470,479]",
+            "clipped": "[52,227][1470,479]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 4448.148696,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 10640.699162,
+          "values": {
+            "stage": "prepare",
+            "global": "[52,227][1470,479]",
+            "windowScreen": [
+              499,
+              565
+            ],
+            "rootScreen": [
+              499,
+              565
+            ],
+            "local": "[52,227][1470,479]",
+            "clipped": "[52,227][1470,479]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 11301.512131,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 11301.760829,
+          "values": {
+            "stage": "restore",
+            "global": "[52,227][1470,479]",
+            "windowScreen": [
+              499,
+              565
+            ],
+            "rootScreen": [
+              499,
+              565
+            ],
+            "local": "[52,227][1470,479]",
+            "clipped": "[52,227][1470,479]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 11316.560933,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "samsung",
+      "case": "opaque-drift-card-cancel-180",
+      "run": "opaque-drift-card-cancel-180-1791719128",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 3421.025728,
+          "values": {
+            "opaque": true,
+            "width": 1440,
+            "height": 3088,
+            "error": null,
+            "elapsedMs": 76.518334,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3442.809478,
+          "values": {
+            "layers": [
+              "backdrop-106665404",
+              "card-220752883-5721039681565",
+              "foreground-actionbar-89379919",
+              "foreground-rl_header-246642273",
+              "foreground-actionbar_shadow-52651627",
+              "foreground-view_status_bar-2525993",
+              "foreground-fab_create-27510794"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-106665404"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 3470.690259,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3483.992134,
+          "values": {
+            "layers": [
+              "backdrop-106665404",
+              "foreground-actionbar-89379919",
+              "foreground-rl_header-246642273",
+              "foreground-actionbar_shadow-52651627",
+              "foreground-view_status_bar-2525993",
+              "foreground-fab_create-27510794"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-220752883-5721039681565"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4642.597394,
+          "values": {
+            "layers": [
+              "backdrop-106665404",
+              "card-220752883-5721039681565",
+              "foreground-actionbar-89379919",
+              "foreground-rl_header-246642273",
+              "foreground-actionbar_shadow-52651627",
+              "foreground-view_status_bar-2525993",
+              "foreground-fab_create-27510794"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-106665404"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4690.959686,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4691.389165,
+          "values": {
+            "layers": [
+              "backdrop-106665404",
+              "card-220752883-5721039681565",
+              "foreground-actionbar-89379919",
+              "foreground-rl_header-246642273",
+              "foreground-actionbar_shadow-52651627",
+              "foreground-view_status_bar-2525993",
+              "foreground-fab_create-27510794"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4699.531717,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4709.278748,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "samsung",
+      "case": "opaque-drift-card-complete-180",
+      "run": "opaque-drift-card-complete-180-1791718361",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 3454.42953,
+          "values": {
+            "opaque": true,
+            "width": 1440,
+            "height": 3088,
+            "error": null,
+            "elapsedMs": 89.37526,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3478.351093,
+          "values": {
+            "layers": [
+              "backdrop-66012071",
+              "card-147687725-4953848877691",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-66012071"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 3513.598436,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3525.902915,
+          "values": {
+            "layers": [
+              "backdrop-66012071",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-147687725-4953848877691"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4027.017655,
+          "values": {
+            "layers": [
+              "backdrop-66012071",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-66012071"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4072.585311,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4073.107394,
+          "values": {
+            "layers": [
+              "backdrop-66012071",
+              "card-147687725-4953848877691",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4079.337655,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4139.126978,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 4227.358749,
+          "values": {
+            "opaque": true,
+            "width": 1440,
+            "height": 3088,
+            "error": null,
+            "elapsedMs": 49.69802,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4252.496821,
+          "values": {
+            "layers": [
+              "backdrop-196517539",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-196517539"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 4277.689634,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": true
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4290.284686,
+          "values": {
+            "layers": [
+              "backdrop-196517539",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-42377914-4954651945607"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4895.341196,
+          "values": {
+            "layers": [
+              "backdrop-196517539",
+              "card-42377914-4954651945607",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-196517539"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4943.446352,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4943.732602,
+          "values": {
+            "layers": [
+              "backdrop-196517539",
+              "card-42377914-4954651945607",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4952.041925,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4961.461977,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "samsung",
+      "case": "opaque-drift-nested-complete-180",
+      "run": "opaque-drift-nested-complete-180-1791718889",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "samsung",
+      "case": "opaque-drift-surface-complete-180",
+      "run": "opaque-drift-surface-complete-180-1791718707",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 3268.204374,
+          "values": {
+            "stage": "prepare",
+            "global": "[75,495][1125,855]",
+            "windowScreen": [
+              120,
+              1038
+            ],
+            "rootScreen": [
+              120,
+              1038
+            ],
+            "local": "[75,495][1125,855]",
+            "clipped": "[75,495][1125,855]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 3951.621561,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 3951.831197,
+          "values": {
+            "stage": "restore",
+            "global": "[75,495][1125,855]",
+            "windowScreen": [
+              120,
+              1038
+            ],
+            "rootScreen": [
+              120,
+              1038
+            ],
+            "local": "[75,495][1125,855]",
+            "clipped": "[75,495][1125,855]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 3971.54328,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 10190.229944,
+          "values": {
+            "stage": "prepare",
+            "global": "[75,495][1125,855]",
+            "windowScreen": [
+              120,
+              1038
+            ],
+            "rootScreen": [
+              120,
+              1038
+            ],
+            "local": "[75,495][1125,855]",
+            "clipped": "[75,495][1125,855]"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 10865.00333,
+          "values": {
+            "stage": "dialog_restore_covered",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "surface_recovery_geometry",
+          "elapsedMs": 10865.207652,
+          "values": {
+            "stage": "restore",
+            "global": "[75,495][1125,855]",
+            "windowScreen": [
+              120,
+              1038
+            ],
+            "rootScreen": [
+              120,
+              1038
+            ],
+            "local": "[75,495][1125,855]",
+            "clipped": "[75,495][1125,855]"
+          }
+        },
+        {
+          "event": "surface_recovery_ready",
+          "elapsedMs": 10896.331402,
+          "values": {
+            "reason": "buffers_ready",
+            "verifiedBuffers": true
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    },
+    {
+      "device": "samsung",
+      "case": "opaque-flow-card-complete-360",
+      "run": "opaque-flow-card-complete-360-1791719146",
+      "options": {
+        "rootForeground": false,
+        "dialogMode": "CONTENT",
+        "images": true,
+        "glForeground": true,
+        "synchronizedGlHandoff": false,
+        "surfaceRecovery": true,
+        "opaqueGlHandoff": true
+      },
+      "events": [
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 3488.540207,
+          "values": {
+            "opaque": true,
+            "width": 1440,
+            "height": 3088,
+            "error": null,
+            "elapsedMs": 93.771042,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3514.101509,
+          "values": {
+            "layers": [
+              "backdrop-34040826",
+              "card-147687725-5739341875621",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-34040826"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 3538.04427,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": false
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 3560.941353,
+          "values": {
+            "layers": [
+              "backdrop-34040826",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-147687725-5739341875621"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4228.776301,
+          "values": {
+            "layers": [
+              "backdrop-34040826",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-34040826"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 4279.314061,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 4280.430832,
+          "values": {
+            "layers": [
+              "backdrop-34040826",
+              "card-147687725-5739341875621",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4286.826926,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 4303.43604,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        },
+        {
+          "event": "gl_backdrop_ready",
+          "elapsedMs": 4475.558957,
+          "values": {
+            "opaque": true,
+            "width": 1440,
+            "height": 3088,
+            "error": null,
+            "elapsedMs": 53.068021,
+            "scope": "static_background_for_diagnostic_single_card"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4512.546613,
+          "values": {
+            "layers": [
+              "backdrop-51204072",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-enter-51204072"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_started",
+          "elapsedMs": 4537.38854,
+          "values": {
+            "nativeForegroundHidden": false,
+            "surfaceAlpha": 1,
+            "reverse": true
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 4563.665884,
+          "values": {
+            "layers": [
+              "backdrop-51204072",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 1,
+            "captures": [
+              "gl-window-particles-card-61553168-5740429540881"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5112.692915,
+          "values": {
+            "layers": [
+              "backdrop-51204072",
+              "card-61553168-5740429540881",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-opaque-return-51204072"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "host_present_fence",
+          "elapsedMs": 5161.257654,
+          "values": {
+            "stage": "opaque_return",
+            "validAndSignaled": true
+          }
+        },
+        {
+          "event": "gl_group_closed",
+          "elapsedMs": 5161.572707,
+          "values": {
+            "layers": [
+              "backdrop-51204072",
+              "card-61553168-5740429540881",
+              "foreground-actionbar-2525993",
+              "foreground-rl_header-52651627",
+              "foreground-actionbar_shadow-150188261",
+              "foreground-view_status_bar-220752883",
+              "foreground-fab_create-262929324"
+            ],
+            "meaning": "one_gl_queue_operation"
+          }
+        },
+        {
+          "event": "gl_frame_layers",
+          "elapsedMs": 5169.891144,
+          "values": {
+            "layers": [],
+            "particleSessions": 0,
+            "captures": [
+              "gl-window-group-cleanup"
+            ],
+            "meaning": "gl_output_not_final_screen"
+          }
+        },
+        {
+          "event": "opaque_handoff_closed",
+          "elapsedMs": 5179.005154,
+          "values": {
+            "groupCleared": true,
+            "surfaceAlpha": 1
+          }
+        }
+      ],
+      "droppedFrameEvents": 0,
+      "droppedLifecycleEvents": 0
+    }
+  ]
+}

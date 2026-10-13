@@ -1,0 +1,409 @@
+{
+  "coreCaseCount": 36,
+  "supplementaryNormalCases": 6,
+  "realPackageTouched": false,
+  "unitTests": {
+    "tests": 1448,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "cases": [
+    {
+      "run": "matrix-samsung-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 10,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 15,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 10,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 20,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 15,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-06",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 12,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-07",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 13,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-09",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-10",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 10,
+      "jumps": []
+    },
+    {
+      "run": "matrix-samsung-11",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 11,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 28,
+      "maxToolbarFrameGap": 16,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-06",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-07",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 36,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 12,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-09",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-10",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 36,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 12,
+      "jumps": []
+    },
+    {
+      "run": "matrix-oppo-11",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 36,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 11,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-06",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-07",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-09",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-10",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    },
+    {
+      "run": "matrix-meizu-final-11",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 15,
+      "colorIntermediateFrames": 13,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "final-samsung",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 14,
+      "jumps": []
+    },
+    {
+      "run": "final-samsung-night",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "final-oppo",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "final-oppo-night",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 36,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 15,
+      "jumps": []
+    },
+    {
+      "run": "final-meizu-night",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "colors-meizu-owned",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    }
+  ],
+  "interruptions": [
+    {
+      "run": "interrupt-samsung",
+      "ok": true
+    },
+    {
+      "run": "interrupt-oppo",
+      "ok": true
+    },
+    {
+      "run": "final-meizu-interrupt",
+      "ok": true
+    },
+    {
+      "run": "disabled-samsung",
+      "ok": true
+    }
+  ]
+}

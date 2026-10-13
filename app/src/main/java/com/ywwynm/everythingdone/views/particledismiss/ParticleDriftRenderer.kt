@@ -26,7 +26,8 @@ internal class ParticleDriftRenderer(
     private val assets: AssetManager,
     private var model: ParticleDriftModel,
     /** true：加光（颗粒颜色按已预乘直接累加）；false：标准 src-over。按背景亮度定（[ParticleDriftBackground]）。 */
-    val additive: Boolean
+    val additive: Boolean,
+    private val sourceAlpha: Float = 1f
 ) : Closeable {
     private val fast = ParticleFastOptions.current
     private var cacheBuffer = 0
@@ -120,7 +121,8 @@ internal class ParticleDriftRenderer(
      * [expansion]：模拟基准尺寸（设备像素），保留桌面参考的出生和湍流坐标。
      * 实际绘制工作面始终覆盖整个视口，粒子离开面板后不会被内部画布截断。
      */
-    fun draw(deviceTime: Float, originX: Float, originY: Float, target: Int = 0, expansion: FloatArray? = null) {
+    fun draw(deviceTime: Float, originX: Float, originY: Float, target: Int = 0, expansion: FloatArray? = null,
+             beforeComposite: ((Boolean) -> ParticleGlBitmapLayer?)? = null) {
         drainErrors()
         GLES30.glGetIntegerv(GLES30.GL_VIEWPORT, viewport, 0)
         val canvas = ParticleDriftCanvas.layout(viewport[2], viewport[3], model.snapshotWidth,
@@ -228,20 +230,33 @@ internal class ParticleDriftRenderer(
         }
 
         // 3. 工作面叠到窗口表面（或离屏帧缓冲）
+        // 先完成离屏颗粒，再绘制窗口底图，避免已画好的整页在切换 FBO 时被迫存回、重新载入。
+        val base = beforeComposite?.invoke(skip and SKIP_COMPOSITE == 0)
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, target)
         GLES30.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
+        if (base == null) GLES30.glEnable(GLES30.GL_BLEND) else GLES30.glDisable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
         GLES30.glBindVertexArray(quadVao)
-        val composite = programs.composite
+        val composite = if (base == null) programs.composite else programs.compositeWithBase
         GLES30.glUseProgram(composite.id)
-        GLES30.glUniform4f(composite["u_rect"], canvas.workLeft, canvas.workTop, canvas.workRight, canvas.workBottom)
+        if (base == null) GLES30.glUniform4f(composite["u_rect"], canvas.workLeft, canvas.workTop, canvas.workRight, canvas.workBottom)
+        else GLES30.glUniform4f(composite["u_rect"], 0f, 0f, viewport[2].toFloat(), viewport[3].toFloat())
+        if (base != null) {
+            GLES30.glUniform4f(composite["u_workRect"], canvas.workLeft, canvas.workTop, canvas.workRight, canvas.workBottom)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE3)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, base.texture)
+            GLES30.glUniform1i(composite["u_base"], 3)
+            GLES30.glUniform4f(composite["u_baseRect"], base.x, base.y, base.width.toFloat(), base.height.toFloat())
+        }
         GLES30.glUniform4f(composite["u_viewport"], viewport[0].toFloat(), viewport[1].toFloat(),
             viewport[2].toFloat(), viewport[3].toFloat())
         GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, workTexture)
         GLES30.glUniform1i(composite["u_work"], 2)
+        GLES30.glUniform1f(composite["u_containerFade"], 1f - sourceAlpha)
         GLES30.glUniform2i(composite["u_workSize"], workWidth, workHeight)
         if (skip and SKIP_COMPOSITE == 0) GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glEnable(GLES30.GL_BLEND)
 
         // 4. 卡片残留盖在最上面
         if (skip and SKIP_CARD == 0 && frameTime < model.bodyGoneSeconds + 1f / ParticleDriftModel.HZ) {
@@ -255,6 +270,7 @@ internal class ParticleDriftRenderer(
             GLES30.glUniform1i(card["u_image"], 0)
             GLES30.glUniform2i(card["u_full"], model.snapshotWidth, model.snapshotHeight)
             GLES30.glUniform1f(card["u_time"], frameTime)
+            GLES30.glUniform1f(card["u_containerFade"], 1f - sourceAlpha)
             latticeUniforms(card)
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         }
@@ -357,7 +373,7 @@ internal class ParticleDriftRenderer(
             locations.getOrPut(name) { GLES30.glGetUniformLocation(id, name) }
     }
 
-    private class Programs(val update: Program, val particle: Program, val composite: Program,
+    private class Programs(val update: Program, val particle: Program, val composite: Program, val compositeWithBase: Program,
                            val card: Program, val gather: Program)
 
     internal companion object {
@@ -392,7 +408,10 @@ internal class ParticleDriftRenderer(
          * 进程里第一次飘散的分析没经过编译，实测 55–70 ms，热了之后 13–26 ms。
          */
         fun warm(assets: AssetManager) {
-            ParticleGl.post {
+            // 合成样本与内容分析不使用 GL。冷启动、媒体加载时可能尚未经过 JIT，
+            // 不能排在整页首帧的上传之前占住唯一渲染线程。
+            Thread({
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
                 runCatching {
                     ParticleDriftModel.random(1080, 1920, 0f, -1f, 1f, ParticleDriftModel.seededRandom(0),
                         ParticleDriftStyles.all(assets))
@@ -401,6 +420,8 @@ internal class ParticleDriftRenderer(
                     val sample = warmSample()
                     repeat(3) { ParticleDriftContent.analyse(WARM_WIDTH, WARM_HEIGHT, sample, 20000) }
                 }
+            }, "ParticleDriftModelWarmup").start()
+            ParticleGl.post {
                 runCatching { if (ParticleGl.ensureContextReady()) ensurePrograms(assets) }
                     .onFailure { Log.w(TAG, "飘散着色器预热未完成，首个动画时再编译", it) }
             }
@@ -463,9 +484,12 @@ internal class ParticleDriftRenderer(
                 compile(GLES30.GL_FRAGMENT_SHADER, source("drift-particle.frag"), "drift-particle.frag"))
             val composite = link(quad(),
                 compile(GLES30.GL_FRAGMENT_SHADER, source("drift-composite.frag"), "drift-composite.frag"))
+            val compositeWithBase = link(quad(), compile(GLES30.GL_FRAGMENT_SHADER,
+                source("drift-composite.frag").replace("#version 310 es", "#version 310 es\n#define PAGE_BASE 1"),
+                "drift-composite-page.frag"))
             val card = link(quad(), compile(GLES30.GL_FRAGMENT_SHADER, source("drift-card.frag"), "drift-card.frag"))
             val gather = link(compile(GLES31.GL_COMPUTE_SHADER, source("drift-gather.comp"), "drift-gather.comp"))
-            programs = Programs(Program(update), Program(particle), Program(composite), Program(card),
+            programs = Programs(Program(update), Program(particle), Program(composite), Program(compositeWithBase), Program(card),
                 Program(gather))
         }
 

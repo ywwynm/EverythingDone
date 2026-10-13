@@ -121,6 +121,56 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
     override fun getThings(): List<Thing?>? = mThingManager!!.getThings()
 
     private var removalEntries: List<ThingListEntry>? = null
+    private var selectionExitEntries = emptyMap<Long, ThingListEntry>()
+    private var selectionExitAmount = 0f
+    private var selectionExitAnimator: android.animation.ValueAnimator? = null
+    internal val isSelectionExitAnimating get() = selectionExitAnimator != null
+
+    internal fun beginSelectionExit(recycler: androidx.recyclerview.widget.RecyclerView) {
+        finishSelectionExit()
+        if (!android.animation.ValueAnimator.areAnimatorsEnabled()) return
+        selectionExitEntries = getEntries().orEmpty().filter {
+            when (it) {
+                is ThingListEntry.ThingEntry -> it.thing.type != Thing.HEADER && !it.thing.isSelected()
+                is ThingListEntry.FolderEntry -> !it.folder.isSelected()
+            }
+        }.associateBy { it.stableId }
+        selectionExitAmount = 1f
+        val animator = android.animation.ValueAnimator.ofFloat(1f, 0f)
+        selectionExitAnimator = animator
+        animator.duration = 300L
+        animator.addUpdateListener {
+            selectionExitAmount = it.animatedValue as Float
+            for (i in 0 until recycler.childCount) {
+                val view = recycler.getChildAt(i)
+                val id = view.getTag(R.id.tag_thing_card_bound_stable_id) as? Long ?: continue
+                val holder = recycler.getChildViewHolder(view) as? BaseThingViewHolder ?: continue
+                when (val entry = selectionExitEntries[id]) {
+                    is ThingListEntry.ThingEntry -> applySelectionAppearance(holder, entry.thing)
+                    is ThingListEntry.FolderEntry -> applyFolderSelectionColors(holder, entry.folder)
+                    null -> Unit
+                }
+            }
+        }
+        animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                if (selectionExitAnimator === animation) {
+                    selectionExitAnimator = null
+                    selectionExitEntries = emptyMap()
+                    selectionExitAmount = 0f
+                }
+            }
+        })
+        androidx.core.view.OneShotPreDrawListener.add(recycler) {
+            if (selectionExitAnimator === animator) animator.start()
+        }
+        recycler.invalidate()
+    }
+
+    internal fun finishSelectionExit() { selectionExitAnimator?.end() }
+
+    override fun selectionDimAmount(thing: Thing): Float =
+        if (thing.id in selectionExitEntries) selectionExitAmount else super.selectionDimAmount(thing)
 
     /** 粒子退场期间保留旧投影，避免业务重载使 RecyclerView 提前看到新位置。 */
     internal fun holdRemovalEntries(entries: List<ThingListEntry>?) {
@@ -307,6 +357,20 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         removeFolderThumbnailViews(holder)
     }
 
+    override fun onViewAttachedToWindow(holder: BaseThingViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        val entry = getEntries()?.getOrNull(holder.bindingAdapterPosition) ?: return
+        if (holder.itemView.getTag(R.id.tag_thing_card_bound_stable_id) != entry.stableId) return
+        // RecyclerView 缓存的已绑定 holder 重新出现时不保证再次 bind。
+        // 它可能在恢复动画中途离屏，必须在本次绘制前同步当前进度或最终正常状态。
+        when (entry) {
+            is ThingListEntry.ThingEntry -> if (entry.thing.type != Thing.HEADER) {
+                applyRetainedThingAppearance(holder, entry.thing)
+            }
+            is ThingListEntry.FolderEntry -> applyFolderSelectionColors(holder, entry.folder)
+        }
+    }
+
     override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int) {
         mHiddenReceivedCards.remove(holder.itemView)
         val entry = getEntries()?.getOrNull(position)
@@ -360,6 +424,21 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         if (hidden) {
             hideReceivedCard(holder.cv!!, thing.id)
         }
+    }
+
+    override fun onBindViewHolder(holder: BaseThingViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.all {
+                it === com.ywwynm.everythingdone.views.particledismiss.ThingListRemovalDiff.Companion.Rebind
+            }) {
+            val entry = getEntries()?.getOrNull(position) as? ThingListEntry.ThingEntry
+            val oldId = holder.itemView.getTag(R.id.tag_thing_card_bound_stable_id)
+            if (entry != null && (entry.thing.type == Thing.HEADER || oldId == entry.stableId)) {
+                holder.itemView.setTag(R.id.tag_thing_card_bound_stable_id, entry.stableId)
+                if (entry.thing.type != Thing.HEADER) applyRetainedThingAppearance(holder, entry.thing)
+                return
+            }
+        }
+        super.onBindViewHolder(holder, position, payloads)
     }
 
     private fun isArmedFor(listPosition: Int): Boolean {
@@ -589,19 +668,7 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
         val card = holder.cv ?: return
         val selected = folder.isSelected()
         val currentMode = getCurrentMode()
-        val background = folder.getBackground()
-        val presentation = presentationFor(folder)
-        val thumbnailMode =
-            presentation.mode == ThingFolderCardPresentation.MODE_THUMBNAILS
-        val dimUnselected = shouldDimUnselectedContent(currentMode) && !selected
-        holder.llContent!!.alpha = if (dimUnselected) 0.42f else 1.0f
-
-        if (!thumbnailMode) {
-            BackgroundUtil.applyCardBackground(
-                card,
-                if (dimUnselected) lightVariant(background) else background
-            )
-        }
+        applyFolderSelectionColors(holder, folder)
 
         if (currentMode == ModeManager.MOVING && selected) {
             scheduleMovingCardScaleRecoveryIfReleased(card, "folder")
@@ -629,6 +696,15 @@ open class ThingsAdapter(app: App?, listener: OnItemTouchedListener?) : BaseThin
             card.scaleX = 1.0f
             card.scaleY = 1.0f
             card.cardElevation = mApp!!.resources.getDimension(R.dimen.thing_card_normal_elevation)
+        }
+    }
+
+    private fun applyFolderSelectionColors(holder: BaseThingViewHolder, folder: ThingFolder) {
+        val amount = if (-folder.id in selectionExitEntries) selectionExitAmount
+            else if (shouldDimUnselectedContent(getCurrentMode()) && !folder.isSelected()) 1f else 0f
+        holder.llContent!!.alpha = 1f - 0.58f * amount
+        if (presentationFor(folder).mode != ThingFolderCardPresentation.MODE_THUMBNAILS) {
+            BackgroundUtil.applyCardBackground(holder.cv, selectionBackground(folder.getBackground(), amount))
         }
     }
 

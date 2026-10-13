@@ -1,0 +1,3 @@
+INSTRUMENTATION_RESULT: result=通过 20 组逐位对照及 2 组边界检查
+
+INSTRUMENTATION_CODE: 0

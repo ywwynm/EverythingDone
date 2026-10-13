@@ -14,6 +14,7 @@ using EGLnsecsANDROID = khronos_stime_nanoseconds_t;
 
 constexpr EGLint kTimestampsAndroid = 0x3430;
 constexpr EGLint kDisplayPresentTimeAndroid = 0x343A;
+constexpr EGLint kRenderingCompleteTimeAndroid = 0x3435;
 
 using PFNEGLGETNEXTFRAMEIDANDROID =
         EGLBoolean (*)(EGLDisplay, EGLSurface, khronos_uint64_t *);
@@ -95,6 +96,17 @@ Java_com_ywwynm_everythingdone_views_particledismiss_ParticleFrameTimestamps_nPr
         return -3;
     }
     return static_cast<jlong>(values[0]);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_ywwynm_everythingdone_views_particledismiss_ParticleFrameTimestamps_nRenderingCompleteTime(
+        JNIEnv *, jclass, jlong dpy, jlong surf, jlong frameId) {
+    Entries &e = entries();
+    if (!e.ok || e.supported(display(dpy), surface(surf), kRenderingCompleteTimeAndroid) != EGL_TRUE) return -3;
+    const EGLint name = kRenderingCompleteTimeAndroid;
+    EGLnsecsANDROID value = 0;
+    if (e.timestamps(display(dpy), surface(surf), static_cast<khronos_uint64_t>(frameId), 1, &name, &value) != EGL_TRUE) return -3;
+    return static_cast<jlong>(value);
 }
 
 }  // extern "C"

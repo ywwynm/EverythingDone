@@ -1,0 +1,78 @@
+{
+  "samsung": [
+    {
+      "case": "long-business",
+      "frames": 2664,
+      "duration": 23.927455555555557,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "exit-close",
+      "frames": 485,
+      "duration": 5.316855555555556,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "card-drift",
+      "frames": 717,
+      "duration": 8.930333333333333,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "transition-drift",
+      "frames": 561,
+      "duration": 16.588866666666668,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "surface-flow",
+      "frames": 470,
+      "duration": 16.428800000000003,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "complex-drift",
+      "frames": 420,
+      "duration": 15.578222222222223,
+      "isolatedColorDips": []
+    }
+  ],
+  "meizu": [
+    {
+      "case": "long-business",
+      "frames": 1663,
+      "duration": 23.952433333333335,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "exit-close",
+      "frames": 393,
+      "duration": 6.8224,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "card-drift",
+      "frames": 546,
+      "duration": 8.933211111111111,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "transition-drift",
+      "frames": 567,
+      "duration": 16.86851111111111,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "surface-flow",
+      "frames": 579,
+      "duration": 16.72427777777778,
+      "isolatedColorDips": []
+    },
+    {
+      "case": "complex-drift",
+      "frames": 560,
+      "duration": 16.7864,
+      "isolatedColorDips": []
+    }
+  ]
+}

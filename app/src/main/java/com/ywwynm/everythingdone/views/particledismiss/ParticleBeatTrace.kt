@@ -31,6 +31,12 @@ internal object ParticleBeatTrace {
     const val COMPOSITE = 2L
     const val PRESENT = 3L
     const val SKIP = 4L
+    /** 整页捕获：开始、记录开始、记录完成、同步完成、HardwareRenderer 状态。 */
+    const val PAGE_CAPTURE = 5L
+    /** 飘散内容分析：入队、开工、取样完成、分析完成、线程 CPU 纳秒。 */
+    const val CONTENT_ANALYSIS = 6L
+    /** 驱动绘制完成：帧号、目标、提交、绘制完成、呈现；负值表示不支持或未发生。 */
+    const val RENDER_COMPLETE = 7L
 
     /** [SKIP] 的原因码。 */
     const val SKIP_CANCELLED = 0L

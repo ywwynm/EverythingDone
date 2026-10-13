@@ -1,0 +1,11 @@
+{
+  "allUserNotesUnchanged": true,
+  "otherTablesUnchanged": true,
+  "changedTable": "habits",
+  "changedField": "record",
+  "oldRecordLength": 3,
+  "newRecordLength": 4,
+  "change": "补一位未完成 0，reminded_times 与其它字段未变",
+  "assessment": "与 DailyUpdateHabitReceiver → HabitDAO.dailyUpdate 的跨日自动补记录逻辑一致；核对跨越 10 月 12 日至 13 日零点。未回写数据库或覆盖该变更。",
+  "restoredDatabase": false
+}

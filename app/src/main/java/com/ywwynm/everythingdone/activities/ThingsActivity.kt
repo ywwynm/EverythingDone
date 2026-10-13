@@ -2578,7 +2578,7 @@ class ThingsActivity :
     }
 
     private fun refreshActivitySurfaceAndHeader(resetRetraction: Boolean = true) {
-        if (mModeManager?.getCurrentMode() == ModeManager.SELECTING) {
+        if (mModeManager?.hasContextualStatusBar == true) {
             applyThingsActivitySurfaceBackground()
         } else {
             applyHomeStatusBarChrome()
@@ -7844,13 +7844,16 @@ class ThingsActivity :
             diff.dispatchUpdatesTo(adapter)
             if (App.isSearching) updateEmptyStateForCurrentSearchState()
             else markOperationEmptyStateIfCurrentProjectionEmpty()
-            refreshActivitySurfaceAndHeader(resetRetraction = false)
+            // 投影／标题未变，只更新计数。重建标题约束会在补位中再次改变顶部占位高度。
+            mActivityHeader?.updateSubtitle()
+            requestActivityHeaderStateRefreshBeforeDraw(mThingManager?.getProjection()?.key())
             mDrawerHeader!!.updateTexts()
             updateDrawerFolderItems()
             invalidateOptionsMenu()
             AppWidgetHelper.updateAllThingsListAppWidgets(this)
             mApp!!.releaseResourcesAfterDeleteForever()
-        })
+        }, isUiAnimating = { mModeManager?.isTransitionRunning == true },
+            finishUi = { mModeManager?.finishTransition() })
     }
 
     private fun updateUIAfterStateUpdated(stateAfter: Int, timeDelay: Long, shouldForceBackNormalMode: Boolean) {
@@ -10456,6 +10459,12 @@ class ThingsActivity :
     }
 
     internal inner class ThingsTouchCallback : ItemTouchHelper.Callback() {
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && viewHolder != null)
+                mSwipeParticleAnimator.onSwipeSelected(viewHolder.itemView)
+        }
 
         private var swiped: Boolean = false
         private var moved: Boolean = false

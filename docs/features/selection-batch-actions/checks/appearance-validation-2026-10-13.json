@@ -1,0 +1,1024 @@
+{
+  "date": "2026-10-13",
+  "description": "批量动画后的媒体、状态子控件、缓存及补位恢复回归",
+  "package": "com.ywwynm.everythingdone.batchvalidation",
+  "allPassed": true,
+  "cases": [
+    {
+      "run": "appearance-complete-samsung-final-00",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "DRIFT",
+        "select_doing": "true"
+      },
+      "frameCount": 345,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 23,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-01",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "visible",
+        "style": "FLOW"
+      },
+      "frameCount": 492,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 29,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-02",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 1,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "restore",
+        "scope": "folder",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "DRIFT"
+      },
+      "frameCount": 488,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 12,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-03",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 3,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "forever",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "FLOW"
+      },
+      "frameCount": 344,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 23,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-04",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "untrash",
+        "scope": "folder",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "DRIFT"
+      },
+      "frameCount": 494,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 21,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-05",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "FLOW",
+        "particles": "false",
+        "checklist_taps": "false"
+      },
+      "frameCount": 376,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 12,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-06",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "doingDuringExit": {
+        "alpha": 0.80951726,
+        "visible": 0,
+        "view": 249995214
+      },
+      "doingDetached": true,
+      "doingReattached": true,
+      "doingFinalAlpha": 1,
+      "ok": true,
+      "cacheExit": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "cache_exit": "true"
+      },
+      "frameCount": 0,
+      "appearanceReports": [
+        {
+          "file": "appearance-cache.json",
+          "visits": 22,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 34
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-07",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "interrupted": true,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "FLOW",
+        "interrupt": "back"
+      },
+      "frameCount": 286,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 22,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-samsung-final-08",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "false",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "all",
+        "style": "DRIFT"
+      },
+      "frameCount": 483,
+      "appearanceReports": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-00",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "DRIFT",
+        "select_doing": "true"
+      },
+      "frameCount": 277,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 19,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-01",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "visible",
+        "style": "FLOW"
+      },
+      "frameCount": 343,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 25,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-02",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 1,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "restore",
+        "scope": "folder",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "DRIFT"
+      },
+      "frameCount": 347,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 10,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-03",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 3,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "forever",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "FLOW"
+      },
+      "frameCount": 262,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 19,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-04",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "untrash",
+        "scope": "folder",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "DRIFT"
+      },
+      "frameCount": 347,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 18,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-05",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "FLOW",
+        "particles": "false",
+        "checklist_taps": "false"
+      },
+      "frameCount": 276,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 10,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-06",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "doingDuringExit": {
+        "alpha": 0.8,
+        "visible": 0,
+        "view": 229111616
+      },
+      "doingDetached": true,
+      "doingReattached": true,
+      "doingFinalAlpha": 1,
+      "ok": true,
+      "cacheExit": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "cache_exit": "true"
+      },
+      "frameCount": 0,
+      "appearanceReports": [
+        {
+          "file": "appearance-cache.json",
+          "visits": 18,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 34
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-07",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "interrupted": true,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "FLOW",
+        "interrupt": "back"
+      },
+      "frameCount": 211,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 18,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-meizu-final-08",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "false",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "all",
+        "style": "DRIFT"
+      },
+      "frameCount": 327,
+      "appearanceReports": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-00",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "DRIFT",
+        "select_doing": "true"
+      },
+      "frameCount": 323,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 19,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-01",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "visible",
+        "style": "FLOW"
+      },
+      "frameCount": 410,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 25,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-02",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 1,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "restore",
+        "scope": "folder",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "DRIFT"
+      },
+      "frameCount": 410,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 9,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-03",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 3,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "forever",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "offscreen",
+        "style": "FLOW"
+      },
+      "frameCount": 322,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 20,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-04",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 2,
+      "after": 0,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "untrash",
+        "scope": "folder",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "DRIFT"
+      },
+      "frameCount": 415,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 19,
+          "mismatches": 0,
+          "doingId": -1,
+          "uniqueCardIds": 31
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-05",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "root",
+        "scroll": "bottom",
+        "selection": "mixed",
+        "style": "FLOW",
+        "particles": "false",
+        "checklist_taps": "false"
+      },
+      "frameCount": 338,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 6,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 27
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-06",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "doingDuringExit": {
+        "alpha": 0.8015804,
+        "visible": 0,
+        "view": 251470713
+      },
+      "doingDetached": true,
+      "doingReattached": true,
+      "doingFinalAlpha": 1,
+      "ok": true,
+      "cacheExit": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "cache_exit": "true"
+      },
+      "frameCount": 0,
+      "appearanceReports": [
+        {
+          "file": "appearance-cache.json",
+          "visits": 15,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 34
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-07",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 2,
+      "interrupted": true,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "checklistActualTap": 8000023,
+      "ok": true,
+      "case": {
+        "audit_appearance": "true",
+        "complex": "true",
+        "record_video": "false",
+        "action": "delete",
+        "scope": "root",
+        "scroll": "middle",
+        "selection": "visible",
+        "style": "FLOW",
+        "interrupt": "back"
+      },
+      "frameCount": 267,
+      "appearanceReports": [
+        {
+          "file": "appearance-after.json",
+          "visits": 18,
+          "mismatches": 0,
+          "doingId": 8000017,
+          "uniqueCardIds": 30
+        }
+      ]
+    },
+    {
+      "run": "appearance-complete-oppo-final-08",
+      "isolatedPackage": "com.ywwynm.everythingdone.batchvalidation",
+      "status": 0,
+      "after": 1,
+      "selectedRemaining": 0,
+      "restoredItemAnimator": true,
+      "ok": true,
+      "case": {
+        "audit_appearance": "false",
+        "complex": "true",
+        "record_video": "false",
+        "action": "finish",
+        "scope": "folder",
+        "scroll": "top",
+        "selection": "all",
+        "style": "DRIFT"
+      },
+      "frameCount": 406,
+      "appearanceReports": []
+    }
+  ],
+  "normalTransitionChecks": [
+    {
+      "run": "appearance-complete-samsung-final-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 10,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 14,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 15,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-samsung-final-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 32,
+      "colorIntermediateFrames": 28,
+      "maxToolbarFrameGap": 42,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 14,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-meizu-final-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-00",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 35,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-01",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 17,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-02",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-03",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 11,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-04",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-05",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 9,
+      "jumps": []
+    },
+    {
+      "run": "appearance-complete-oppo-final-08",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 0,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    }
+  ],
+  "unitTests": {
+    "tests": 1448,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "limitations": [
+    "仅三台已授权 Android 设备；用户另一台 OPPO 手机和卓易通由用户复测",
+    "截图和 View 属性采样不能替代所有屏幕逐帧录像；本轮不宣称全面帧率一致",
+    "原应用及既有记事未修改；批量业务只操作隔离包的虚构数据"
+  ],
+  "publication": {
+    "debugUpdateCode": 202610130134,
+    "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610130134.apk",
+    "sha256": "647be1e293352f1a65328c2f9e6be816b8bc9c3a26615564c3b10ee8ff02f2f3",
+    "sizeBytes": 30564894,
+    "matchesLocalApk": true,
+    "zipCrcValid": true,
+    "package": "package: name='com.ywwynm.everythingdone' versionCode='43' versionName='2.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+    "testOnly": false,
+    "dexSymbols": {
+      "ThingListRetainedItemAnimator": true,
+      "refreshItemClickTargets": true,
+      "ParticlePresentationDiagnosticsActivity": true,
+      "ParticlePresentationReports": true
+    },
+    "releaseNotesMatch": true
+  },
+  "isolatedPackageCleanup": {
+    "samsung": "Success",
+    "meizu": "Success",
+    "oppo": "Success"
+  }
+}

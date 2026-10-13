@@ -386,7 +386,11 @@ open class ThingDAO private constructor(context: Context?) {
                 // 删到回收站走上面的 update 分支、folderId 不变，不经此处。
                 val folderId = thing.folderId
                 if (folderId != null) {
-                    ThingFolderDAO.getInstance(mContext)?.touchUpdateTime(folderId)
+                    // 批量删除正在本连接的写事务中，不能再用 FolderDAO 的另一连接写同一数据库。
+                    // 否则 SQLITE_BUSY 会使整批删除回滚；容器时间也应与删除一起提交或回滚。
+                    val folderValues = ContentValues(1)
+                    folderValues.put(Def.Database.COLUMN_UPDATE_TIME_THING_FOLDERS, System.currentTimeMillis())
+                    db!!.update(Def.Database.TABLE_THING_FOLDERS, folderValues, "id=?", arrayOf(folderId.toString()))
                 }
             }
         }

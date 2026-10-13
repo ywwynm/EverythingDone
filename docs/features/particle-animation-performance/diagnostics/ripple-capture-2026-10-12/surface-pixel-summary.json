@@ -1,0 +1,38 @@
+[
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791811357",
+    "frames": 509,
+    "isolatedGrayDips": [],
+    "fullyColoredFrames": 177,
+    "source": "screenrecord",
+    "criteria": "fully colored before and after isolated dark-gray frame"
+  },
+  {
+    "device": "meizu",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791811380",
+    "frames": 539,
+    "isolatedGrayDips": [],
+    "fullyColoredFrames": 200,
+    "source": "screenrecord",
+    "criteria": "fully colored before and after isolated dark-gray frame"
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791811357",
+    "frames": 407,
+    "isolatedGrayDips": [],
+    "fullyColoredFrames": 127,
+    "source": "screenrecord",
+    "criteria": "fully colored before and after isolated dark-gray frame"
+  },
+  {
+    "device": "samsung",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791811385",
+    "frames": 456,
+    "isolatedGrayDips": [],
+    "fullyColoredFrames": 168,
+    "source": "screenrecord",
+    "criteria": "fully colored before and after isolated dark-gray frame"
+  }
+]

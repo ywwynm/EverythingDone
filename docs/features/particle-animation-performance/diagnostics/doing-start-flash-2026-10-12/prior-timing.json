@@ -1,0 +1,29 @@
+[
+  {
+    "device": "meizu",
+    "run": "unified-flow-doing-cancel-180-false-1791735405",
+    "style": "FLOW",
+    "firstCallbackMs": 273.971094,
+    "frames": 61,
+    "fps": 72.38557089289718,
+    "note": "历史记录，同场景非本轮配对，不单独证明性能等价"
+  },
+  {
+    "device": "oppo",
+    "run": "unified-flow-doing-cancel-180-false-1791735408",
+    "style": "FLOW",
+    "firstCallbackMs": 131.6064580000002,
+    "frames": 85,
+    "fps": 86.30956764624618,
+    "note": "历史记录，同场景非本轮配对，不单独证明性能等价"
+  },
+  {
+    "device": "samsung",
+    "run": "unified-flow-doing-cancel-180-false-1791735415",
+    "style": "FLOW",
+    "firstCallbackMs": 150.47130199999992,
+    "frames": 104,
+    "fps": 108.41695743778874,
+    "note": "历史记录，同场景非本轮配对，不单独证明性能等价"
+  }
+]

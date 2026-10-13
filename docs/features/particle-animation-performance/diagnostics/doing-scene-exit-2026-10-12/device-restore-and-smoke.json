@@ -1,0 +1,51 @@
+{
+  "samsung": {
+    "package": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    },
+    "data": {
+      "userNoteCount": 371,
+      "userNotesUnchanged": true,
+      "changedTables": [],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false
+    }
+  },
+  "meizu": {
+    "package": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    },
+    "data": {
+      "userNoteCount": 180,
+      "userNotesUnchanged": true,
+      "changedTables": [],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false
+    }
+  },
+  "oppo": {
+    "package": {
+      "originalSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "installedSha256": "d01ac1464b0454fa5eda806119fb8e31ba2266d3f72eb382739eb7700835c2d6",
+      "matched": true
+    },
+    "data": {
+      "userNoteCount": 72,
+      "userNotesUnchanged": true,
+      "changedTables": [],
+      "excluded": "Thing.HEADER (-1), existing initialization",
+      "verificationWritesDatabase": false
+    }
+  },
+  "publishedSmoke": {
+    "build": "202610120511",
+    "images": true,
+    "passed": true,
+    "firstScrollAfterFinishMs": 282.5213020000001,
+    "resourcesReleased": true
+  }
+}

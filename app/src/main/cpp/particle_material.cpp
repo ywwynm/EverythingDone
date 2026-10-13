@@ -202,6 +202,34 @@ extern "C" JNIEXPORT void JNICALL JNI_NAME(packState)(JNIEnv* e,jobject,jfloatAr
     for(int i=0;i<count;++i){state[i*8]=material.p[i*12];state[i*8+1]=material.p[i*12+1];}
 }
 
+// 只移动取样循环到本地代码，避免冷启动时上万次 DirectByteBuffer 整字访问。
+// 逐字节组合保证任意切片对齐及 LITTLE_ENDIAN 契约，位置和上限均由调用方原样保留。
+extern "C" JNIEXPORT jintArray JNICALL JNI_NAME(gatherRgba)(JNIEnv* e,jobject,jobject rgbaBuffer,
+    jint byteLimit,jintArray positionsArray) try {
+    auto rgba=static_cast<const uint8_t*>(e->GetDirectBufferAddress(rgbaBuffer));
+    const jlong capacity=e->GetDirectBufferCapacity(rgbaBuffer);
+    if(!rgba || byteLimit<0 || byteLimit>capacity){
+        e->ThrowNew(e->FindClass("java/lang/IllegalArgumentException"),"Invalid RGBA buffer limit");
+        return nullptr;
+    }
+    Ints positions(e,positionsArray);
+    if(!positions.p)return nullptr;
+    const int count=e->GetArrayLength(positionsArray);
+    std::vector<jint> values(count);
+    for(int i=0;i<count;++i){
+        const int64_t offset=int64_t(positions.p[i])*4;
+        if(offset<0 || offset+4>byteLimit){
+            e->ThrowNew(e->FindClass("java/lang/IndexOutOfBoundsException"),"RGBA sample outside buffer limit");
+            return nullptr;
+        }
+        const uint8_t* p=rgba+offset;
+        values[i]=jint(uint32_t(p[0])|(uint32_t(p[1])<<8)|(uint32_t(p[2])<<16)|(uint32_t(p[3])<<24));
+    }
+    auto result=e->NewIntArray(count);
+    if(result)e->SetIntArrayRegion(result,0,count,values.data());
+    return result;
+} JNI_FAILURE
+
 extern "C" JNIEXPORT jfloatArray JNICALL JNI_NAME(release)(JNIEnv* e,jobject,
     jint nx,jint ny,jfloat width,jfloat height,jint gw,jint gh,jfloatArray gridArray,
     jdouble low,jdouble size,jdoubleArray geometryArray,jdoubleArray anchorArray,

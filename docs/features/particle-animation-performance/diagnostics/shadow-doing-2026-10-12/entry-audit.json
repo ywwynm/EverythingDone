@@ -1,0 +1,1619 @@
+{
+  "runs": [
+    {
+      "device": "samsung",
+      "run": "unified-drift-doing-complete-180-false-1791735378",
+      "scene": "Doing",
+      "eventCount": 242,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-doing-fastcomplete-180-false-1791768133",
+      "scene": "Doing",
+      "eventCount": 213,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-doing-rightcomplete-180-false-1791766423",
+      "scene": "Doing",
+      "eventCount": 239,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-doing-fastcancel-180-false-1791766442",
+      "scene": "Doing",
+      "eventCount": 96,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-flow-doing-cancel-180-false-1791735415",
+      "scene": "Doing",
+      "eventCount": 408,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-dialog-complete-180-false-1791735434",
+      "scene": "普通弹窗",
+      "eventCount": 1129,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-flow-surface-complete-180-false-1791767108",
+      "scene": "独立Surface",
+      "eventCount": 1157,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        },
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-flow-bottom-complete-180-false-1791735515",
+      "scene": "底部面板",
+      "eventCount": 1098,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-nested-complete-180-false-1791735542",
+      "scene": "叠层弹窗",
+      "eventCount": 1909,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-transition-complete-180-false-1791735488",
+      "scene": "连续弹窗",
+      "eventCount": 1712,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-complex-complete-180-false-1791735569",
+      "scene": "复杂控件",
+      "eventCount": 1177,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        },
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-drift-card-fastcomplete200-180-false-1791768114",
+      "scene": "卡片",
+      "eventCount": 1715,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 2,
+      "zipCount": 0
+    },
+    {
+      "device": "samsung",
+      "run": "unified-home-settled-1791735615",
+      "scene": "实际页面 ThingsActivity",
+      "eventCount": 1755,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1
+    },
+    {
+      "device": "samsung",
+      "run": "unified-business-1791767135",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 2129,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 6,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "samsung",
+      "run": "unified-creation-1791766345",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 285,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "samsung",
+      "run": "unified-tuning-drift-1791768088",
+      "scene": "实际页面 ParticleTuningActivity",
+      "eventCount": 2100,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 6,
+      "zipCount": 1
+    },
+    {
+      "device": "samsung",
+      "run": "unified-removal-drift-1791767083",
+      "scene": "批量移除虚构列表",
+      "eventCount": 1017,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 1959,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2467,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 412,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 412,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 804,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 887,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 1362,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 1477,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1936,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 2150,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 2411,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 2724,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 14,
+              "top": 3084,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "device": "samsung",
+      "run": "unified-removal-flow-1791767435",
+      "scene": "批量移除虚构列表",
+      "eventCount": 1025,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 2128,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2634,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 412,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 412,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 804,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 887,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 1362,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 1477,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1936,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 2150,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 2411,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 2724,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 14,
+              "top": 3084,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-doing-complete-180-false-1791735378",
+      "scene": "Doing",
+      "eventCount": 175,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-doing-fastcomplete200-180-false-1791768368",
+      "scene": "Doing",
+      "eventCount": 215,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-doing-rightcomplete-180-false-1791766423",
+      "scene": "Doing",
+      "eventCount": 169,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-doing-fastcancel-180-false-1791766437",
+      "scene": "Doing",
+      "eventCount": 63,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-flow-doing-cancel-180-false-1791735405",
+      "scene": "Doing",
+      "eventCount": 285,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-dialog-complete-180-false-1791735419",
+      "scene": "普通弹窗",
+      "eventCount": 1196,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-flow-surface-complete-180-false-1791767104",
+      "scene": "独立Surface",
+      "eventCount": 1509,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "timeout_unverified"
+        },
+        {
+          "reason": "timeout_unverified"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-flow-bottom-complete-180-false-1791735486",
+      "scene": "底部面板",
+      "eventCount": 1143,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-nested-complete-180-false-1791735508",
+      "scene": "叠层弹窗",
+      "eventCount": 1969,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-transition-complete-180-false-1791735462",
+      "scene": "连续弹窗",
+      "eventCount": 1880,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [
+        {
+          "reason": "timeout_unverified"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-complex-complete-180-false-1791735534",
+      "scene": "复杂控件",
+      "eventCount": 1534,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "timeout_unverified"
+        },
+        {
+          "reason": "timeout_unverified"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-drift-card-fastcomplete200-180-false-1791768109",
+      "scene": "卡片",
+      "eventCount": 1513,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 2,
+      "zipCount": 0
+    },
+    {
+      "device": "meizu",
+      "run": "unified-home-settled-1791735569",
+      "scene": "实际页面 ThingsActivity",
+      "eventCount": 1502,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1
+    },
+    {
+      "device": "meizu",
+      "run": "unified-business-1791767126",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 2129,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 6,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "meizu",
+      "run": "unified-creation-1791766345",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 242,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "meizu",
+      "run": "unified-tuning-drift-1791768088",
+      "scene": "实际页面 ParticleTuningActivity",
+      "eventCount": 1650,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 6,
+      "zipCount": 1
+    },
+    {
+      "device": "meizu",
+      "run": "unified-removal-drift-1791767083",
+      "scene": "批量移除虚构列表",
+      "eventCount": 886,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 2267,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2782,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 385,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 385,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 734,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 817,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 1249,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 1332,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1764,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 1930,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 2196,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 2445,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 14,
+              "top": 2794,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 15,
+              "top": 2877,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "device": "meizu",
+      "run": "unified-removal-flow-1791767435",
+      "scene": "批量移除虚构列表",
+      "eventCount": 859,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 2222,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2749,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 385,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 385,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 734,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 817,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 1249,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 1332,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1764,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 1930,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 2196,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 2445,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 14,
+              "top": 2794,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 15,
+              "top": 2877,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-doing-complete-180-false-1791735378",
+      "scene": "Doing",
+      "eventCount": 239,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-doing-fastcomplete-180-false-1791768100",
+      "scene": "Doing",
+      "eventCount": 210,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-flow-doing-cancel-180-false-1791735408",
+      "scene": "Doing",
+      "eventCount": 345,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-dialog-complete-180-false-1791735423",
+      "scene": "普通弹窗",
+      "eventCount": 1137,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-flow-surface-complete-180-false-1791767490",
+      "scene": "独立Surface",
+      "eventCount": 1163,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        },
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-flow-bottom-complete-180-true-1791735660",
+      "scene": "底部面板",
+      "eventCount": 1091,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-nested-complete-180-false-1791735733",
+      "scene": "叠层弹窗",
+      "eventCount": 1893,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-transition-complete-180-false-1791735464",
+      "scene": "连续弹窗",
+      "eventCount": 1719,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 5,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-complex-complete-180-false-1791735763",
+      "scene": "复杂控件",
+      "eventCount": 1187,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 3,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        },
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-drift-card-fastcomplete200-180-false-1791768088",
+      "scene": "卡片",
+      "eventCount": 1225,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 2,
+      "zipCount": 0
+    },
+    {
+      "device": "oppo",
+      "run": "unified-home-settled-1791735795",
+      "scene": "实际页面 ThingsActivity",
+      "eventCount": 2048,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1
+    },
+    {
+      "device": "oppo",
+      "run": "unified-business-1791767510",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 1792,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 6,
+      "surfaceRecovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "oppo",
+      "run": "unified-creation-1791766399",
+      "scene": "实际页面 DetailActivity",
+      "eventCount": 291,
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 0,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 0,
+      "zipCount": 1
+    },
+    {
+      "device": "oppo",
+      "run": "unified-removal-drift-1791767464",
+      "scene": "批量移除虚构列表",
+      "eventCount": 1009,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 1833,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2337,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 288,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 288,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 535,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 587,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 886,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 938,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1237,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 1341,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 1536,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 1692,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "device": "oppo",
+      "run": "unified-removal-flow-1791767477",
+      "scene": "批量移除虚构列表",
+      "eventCount": 990,
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "shadowPrepared": 2,
+      "surfaceRecovery": [],
+      "nativeBackgroundEvents": 1,
+      "zipCount": 1,
+      "removal": {
+        "reflowMs": 1970,
+        "remaining": [
+          2,
+          -4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          -12,
+          13,
+          14,
+          15,
+          -16,
+          17
+        ],
+        "suppressed": false,
+        "finalState": {
+          "at": 2477,
+          "layers": 0,
+          "cards": [
+            {
+              "id": 2,
+              "top": 288,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -4,
+              "top": 288,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 5,
+              "top": 535,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 6,
+              "top": 587,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 7,
+              "top": 886,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 9,
+              "top": 938,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 10,
+              "top": 1237,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 11,
+              "top": 1341,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": -12,
+              "top": 1536,
+              "alpha": 1,
+              "visible": 0
+            },
+            {
+              "id": 13,
+              "top": 1692,
+              "alpha": 1,
+              "visible": 0
+            }
+          ],
+          "chrome": [
+            {
+              "id": 2131297734,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296377,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131296378,
+              "alpha": 1,
+              "transitionAlpha": 1
+            },
+            {
+              "id": 2131297117,
+              "alpha": 1,
+              "transitionAlpha": 1
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "name": "com.ywwynm.everythingdone.taptransfer.ui.particles.ParticleGeometryTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleAppearanceDirectionTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleCaptureRouteTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleDismissShaderCompileTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleDismissTimelineTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleDisplayModesTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGestureProgressTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapLayerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlHandoffStateTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleOnceResultTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleReleaseOriginTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSinkCrossLanguageTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceReadyBarrierTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeDirectionTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "jvm": {
+    "tests": 1447,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "devices": {
+    "samsung": {
+      "defaultChecks": 3,
+      "data": {
+        "userNoteCount": 371,
+        "userNotesUnchanged": true,
+        "changedTables": [],
+        "excluded": "Thing.HEADER (-1), existing initialization",
+        "verificationWritesDatabase": false
+      },
+      "originalApkRestored": true,
+      "pixelProbesPassed": true
+    },
+    "meizu": {
+      "defaultChecks": 3,
+      "data": {
+        "userNoteCount": 180,
+        "userNotesUnchanged": true,
+        "changedTables": [],
+        "excluded": "Thing.HEADER (-1), existing initialization",
+        "verificationWritesDatabase": false
+      },
+      "originalApkRestored": true,
+      "pixelProbesPassed": true
+    },
+    "oppo": {
+      "defaultChecks": 3,
+      "data": {
+        "userNoteCount": 72,
+        "userNotesUnchanged": true,
+        "changedTables": [],
+        "excluded": "Thing.HEADER (-1), existing initialization",
+        "verificationWritesDatabase": false
+      },
+      "originalApkRestored": true,
+      "pixelProbesPassed": true
+    }
+  }
+}

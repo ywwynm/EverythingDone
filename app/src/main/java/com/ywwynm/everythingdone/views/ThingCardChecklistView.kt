@@ -56,6 +56,15 @@ class ThingCardChecklistView @JvmOverloads constructor(
     /** 勾选与点击行尾空白的回调；绑定前设好，null 表示整份清单不可点。 */
     var itemClickCallback: ItemClickCallback? = null
 
+    /** 模式改变后仅恢复现有行的交互，不重新排版、换图标或重建子视图。 */
+    fun refreshItemClickTargets() {
+        for (i in 0 until childCount) {
+            val holder = RowViews(getChildAt(i))
+            if (i < visibleItemCount) setItemEvents(holder, i, itemClickCallback)
+            else setMoreEvents(holder, itemClickCallback)
+        }
+    }
+
     /**
      * 字号与行距按这么多条算，null 表示按实际显示的条数；绑定前设好。卡片放不下、条数被删减时
      * （分享界面抬起的卡片），字号仍按首页那张卡片的条数，不因为条数变少而变大。

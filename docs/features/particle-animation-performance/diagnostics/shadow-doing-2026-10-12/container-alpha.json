@@ -1,0 +1,16 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5090/PCIe/SSE2",
+  "checks": [
+    {
+      "shader": "drift-composite.frag",
+      "defaultVsGitMaxError": 0.0,
+      "opacity084MaxError": 5.960464477539063e-08
+    },
+    {
+      "shader": "drift-card.frag",
+      "defaultVsGitMaxError": 0.0,
+      "opacity084MaxError": 5.960464477539063e-08
+    }
+  ],
+  "meaning": "实际 GLSL 离屏验证；屏幕交接另用真机录屏验证"
+}

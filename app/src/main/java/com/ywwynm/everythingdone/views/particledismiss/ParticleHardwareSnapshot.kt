@@ -14,6 +14,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
 import android.view.View
+import android.view.SurfaceView
 import androidx.annotation.RequiresApi
 import java.time.Duration
 
@@ -34,6 +35,10 @@ internal object ParticleHardwareSnapshot {
     fun capture(view: View, clip: Rect? = null, shadow: ParticleCardSnapshot? = null, done: (Bitmap?) -> Unit) =
         capture(view, clip, shadow, keepHardware = false, done = done)
 
+    /** 粒子材料排除瞬态反馈；动态背景、恢复画面对照仍用完整 capture。 */
+    fun captureMaterial(view: View, clip: Rect? = null, shadow: ParticleCardSnapshot? = null, done: (Bitmap?) -> Unit) =
+        capture(view, clip, shadow, keepHardware = false, omitFeedback = true, done = done)
+
     /**
      * 飘散的新建页（API 31+）：不拷回内存，把 ImageReader 缓冲包成硬件位图，供
      * [ParticleDriftHardwareImport] 直接绑定纹理，或供首页承接层的硬件 ImageView 显示。
@@ -42,9 +47,64 @@ internal object ParticleHardwareSnapshot {
     fun captureKeepingHardware(view: View, done: (Bitmap?) -> Unit) =
         capture(view, null, null, keepHardware = true, done = done)
 
+    /** 安全重建普通控件投影；软件内容不会携带活 SurfaceView 或 Ripple 的 RenderNode。 */
+    fun captureSoftwareShadow(view: View, shadow: ParticleCardSnapshot, done: (Bitmap?) -> Unit) {
+        val pixels = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val restoreFeedback = ParticleTouchFeedback.omitFromSnapshot(view)
+        val drawn = try { view.draw(android.graphics.Canvas(pixels)); true }
+        catch (_: Exception) { false }
+        finally { restoreFeedback() }
+        if (!drawn) { pixels.recycle(); done(null); return }
+        capture(view, shadow.bounds, shadow, keepHardware = false, softwareContent = pixels) {
+            pixels.recycle(); done(it)
+        }
+    }
+
+    /** 只渲染窗口根节点的投影，不重绘 Dialog 内容或独立 Surface。 */
+    fun captureOuterShadow(view: View, shadow: ParticleCardSnapshot, done: (Bitmap?) -> Unit) {
+        val began = System.nanoTime()
+        val empty = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val outline = Outline().apply { alpha = 1f; view.outlineProvider?.getOutline(view, this) }
+        ParticlePresentationDiagnostics.of(view)?.event("outer_shadow_allocation", mapOf(
+            "elapsedMs" to (System.nanoTime() - began) / 1e6))
+        capture(view, shadow.bounds, shadow, keepHardware = false, softwareContent = empty) { result ->
+            empty.recycle()
+            if (result != null) {
+                val rect = Rect()
+                if (!outline.getRect(rect)) rect.set(0, 0, view.width, view.height)
+                val canvas = android.graphics.Canvas(result)
+                canvas.translate(-shadow.bounds.left.toFloat(), -shadow.bounds.top.toFloat())
+                val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
+                }
+                canvas.drawRoundRect(android.graphics.RectF(rect), outline.radius.coerceAtLeast(0f),
+                    outline.radius.coerceAtLeast(0f), paint)
+            }
+            done(result)
+        }
+    }
+
     private fun capture(view: View, clip: Rect?, shadow: ParticleCardSnapshot?, keepHardware: Boolean,
+                        softwareContent: Bitmap? = null,
+                        surfaceFrames: Map<SurfaceView, Bitmap>? = null,
+                        omitFeedback: Boolean = false,
                         done: (Bitmap?) -> Unit) {
+        if (softwareContent == null && surfaceFrames == null && ParticlePresentationPolicy.of(view).unified &&
+            ParticleSnapshot.hasVisibleSurface(view)) {
+            ParticleSurfaceFrames.capture(view) { frames ->
+                if (frames == null) done(null)
+                else capture(view, clip, shadow, keepHardware, surfaceFrames = frames, omitFeedback = omitFeedback) { result ->
+                    frames.values.forEach { it.recycle() }; done(result)
+                }
+            }
+            return
+        }
         ParticleCaptureDiagnostics.begin(if (keepHardware) "硬件离屏（零拷贝）" else "硬件离屏")
+        val diagnostic = ParticlePresentationDiagnostics.of(view)
+        val startedAt = System.nanoTime()
+        var submittedAt = 0L
+        var acquiredAt = 0L
+        var copiedAt = 0L
         val clipLeft = clip?.left ?: 0
         val clipTop = clip?.top ?: 0
         val width = clip?.width() ?: view.width
@@ -54,21 +114,39 @@ internal object ParticleHardwareSnapshot {
         val renderHeight = if (rotation % 2 != 0) width else height
         val node = RenderNode("particleSnapshot")
         val cardNode = if (shadow != null) RenderNode("particleCardWithShadow") else node
+        var capturedNodes = emptyList<RenderNode>()
+        val borrowedViews = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<View, Boolean>())
         var reader: ImageReader? = null
         var renderer: HardwareRenderer? = null
         var completed = false // 只在主线程读写。
         lateinit var timeout: Runnable
+        var restoreFeedback: (() -> Unit)? = null
+        fun restoreFeedbackNow() {
+            val restore = restoreFeedback
+            restoreFeedback = null
+            restore?.invoke()
+        }
         fun complete(bitmap: Bitmap?) {
+            restoreFeedbackNow()
             if (completed) { bitmap?.recycle(); return }
             completed = true
             main.removeCallbacks(timeout)
-            // destroy 同样可能等待 RenderThread；与读回在同一后台队列串行释放。
-            worker.post {
-                runCatching { renderer?.destroy() }
-                runCatching { node.discardDisplayList() }
-                if (cardNode !== node) runCatching { cardNode.discardDisplayList() }
-                runCatching { reader?.close() }
-            }
+            diagnostic?.event("hardware_snapshot_timing", mapOf("shadow" to (shadow != null),
+                "content" to (softwareContent == null), "ready" to (bitmap != null),
+                "submitMs" to submittedAt.takeIf { it != 0L }?.let { (it - startedAt) / 1e6 },
+                "acquireMs" to acquiredAt.takeIf { it != 0L }?.let { (it - startedAt) / 1e6 },
+                "copyMs" to copiedAt.takeIf { it != 0L && acquiredAt != 0L }?.let { (it - acquiredAt) / 1e6 },
+                "totalMs" to (System.nanoTime() - startedAt) / 1e6))
+            val retireBegan = System.nanoTime()
+            // 与 View.draw 的记录串行；释放后让原 View 检查被借用的子显示列表。
+            runCatching { renderer?.destroy() }
+            runCatching { node.discardDisplayList() }
+            if (cardNode !== node) runCatching { cardNode.discardDisplayList() }
+            capturedNodes.forEach { it.discardDisplayList() }
+            borrowedViews.forEach(View::invalidate)
+            borrowedViews.clear()
+            diagnostic?.event("hardware_snapshot_retired", mapOf("elapsedMs" to (System.nanoTime() - retireBegan) / 1e6))
+            worker.post { runCatching { reader?.close() } }
             done(bitmap)
         }
         // 失败也恢复真实内容；未发生提交时不能永久持有硬件缓冲。
@@ -81,6 +159,7 @@ internal object ParticleHardwareSnapshot {
                 HardwareBuffer.USAGE_GPU_COLOR_OUTPUT or HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE)
             reader = target
             target.setOnImageAvailableListener({ available ->
+                acquiredAt = System.nanoTime()
                 val bitmap = runCatching {
                     val image = available.acquireNextImage()
                     if (image == null) {
@@ -116,6 +195,7 @@ internal object ParticleHardwareSnapshot {
                     bitmap.recycle()
                     ParticleCaptureDiagnostics.note("硬件离屏转回窗口方向异常=${it.javaClass.simpleName}")
                 }.getOrNull() else bitmap
+                copiedAt = System.nanoTime()
                 main.post { complete(oriented) }
             }, worker)
             val hardware = HardwareRenderer().also { renderer = it }
@@ -141,10 +221,17 @@ internal object ParticleHardwareSnapshot {
                 cardNode.setOutline(outline)
                 cardNode.setClipToOutline(view.clipToOutline)
             }
+            if (omitFeedback) restoreFeedback = ParticleTouchFeedback.omitFromSnapshot(view)
             val canvas = cardNode.beginRecording(if (shadow != null) view.width else width,
                 if (shadow != null) view.height else height)
             if (shadow == null && (clipLeft != 0 || clipTop != 0)) canvas.translate(-clipLeft.toFloat(), -clipTop.toFloat())
-            ParticleForegroundSurface.withNativeDrawing(view) { view.draw(canvas) }
+            if (softwareContent != null) canvas.drawBitmap(softwareContent, 0f, 0f, null)
+            else if (surfaceFrames != null) capturedNodes = ParticleViewCaptureTree.record(canvas, view, surfaceFrames,
+                borrowedViews = borrowedViews)
+            else {
+                borrowedViews.add(view)
+                ParticleForegroundSurface.withNativeDrawing(view) { view.draw(canvas) }
+            }
             cardNode.endRecording()
             if (shadow != null) {
                 val parentCanvas = node.beginRecording(renderWidth, renderHeight)
@@ -160,8 +247,6 @@ internal object ParticleHardwareSnapshot {
                 node.endRecording()
             }
             hardware.setContentRoot(node)
-            val location = IntArray(2); view.getLocationOnScreen(location)
-            val metrics = view.resources.displayMetrics
             // 光源位置相对节点原点，而节点原点在屏幕上的位置是卡片左上角加上可见区偏移。
             if (shadow != null) {
                 val lx = shadow.lightX - clipLeft
@@ -172,15 +257,13 @@ internal object ParticleHardwareSnapshot {
                     shadow.lightZ, shadow.lightRadius)
                 hardware.setLightSourceAlpha(shadow.ambientAlpha, shadow.spotAlpha)
             } else {
-                hardware.setLightSourceGeometry(
-                    metrics.widthPixels / 2f - (location[0] + clipLeft),
-                    -(location[1] + clipTop).toFloat(), 600f * metrics.density, 800f * metrics.density)
-                hardware.setLightSourceAlpha(.039f, .19f)
+                ParticleWindowLighting.apply(hardware, view, clipLeft, clipTop)
             }
             hardware.start()
             main.postDelayed(timeout, 1200)
             // sync 完成后节点已交给 RenderThread，之后恢复真实 ripple 不会改变本次提交。
             val status = hardware.createRenderRequest().setWaitForPresent(false).syncAndDraw()
+            submittedAt = System.nanoTime()
             if (status != HardwareRenderer.SYNC_OK && status != HardwareRenderer.SYNC_REDRAW_REQUESTED) {
                 ParticleCaptureDiagnostics.note("硬件离屏 syncAndDraw=$status")
                 complete(null)
@@ -188,6 +271,9 @@ internal object ParticleHardwareSnapshot {
         } catch (error: Throwable) {
             ParticleCaptureDiagnostics.note("硬件离屏异常=${error.javaClass.simpleName}")
             complete(null)
+        } finally {
+            // 包含上面的 sync，但不跨越 Surface PixelCopy、阴影准备或 GPU 读回回调。
+            restoreFeedbackNow()
         }
     }
 }

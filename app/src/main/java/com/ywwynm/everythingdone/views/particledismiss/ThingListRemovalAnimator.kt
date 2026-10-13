@@ -18,7 +18,7 @@ import com.ywwynm.everythingdone.BuildConfig
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 
 /**
- * 一次业务变更对应一次退场：先比较真实投影，再合成可见卡片；主体消失后派发差分补位。
+ * 一次业务变更对应一次退场：先比较真实投影，再合成可见卡片；粒子与前景完全释放后补位。
  * 宿主在 before 中固定旧 adapter 数据，在 publish 中解除固定并派发传入的差分。
  */
 internal class ThingListRemovalAnimator(
@@ -29,9 +29,10 @@ internal class ThingListRemovalAnimator(
     private var current: Removal? = null
     val isRunning get() = current != null
 
-    fun start(before: () -> List<Long>, change: () -> List<Long>, publish: (DiffUtil.DiffResult) -> Unit) {
+    fun start(before: () -> List<Long>, change: () -> List<Long>, publish: (DiffUtil.DiffResult) -> Unit,
+              isUiAnimating: () -> Boolean = { false }, finishUi: () -> Unit = {}) {
         if (isRunning) return
-        Removal(before, change, publish).also { current = it }.waitForDialogs()
+        Removal(before, change, publish, isUiAnimating, finishUi).also { current = it }.waitForDialogs()
     }
 
     /** 页面离开时仍提交已确认的动作，立即归还 holder、布局和动画资源。 */
@@ -40,7 +41,9 @@ internal class ThingListRemovalAnimator(
     private inner class Removal(
         val before: () -> List<Long>,
         val change: () -> List<Long>,
-        val publish: (DiffUtil.DiffResult) -> Unit
+        val publish: (DiffUtil.DiffResult) -> Unit,
+        val isUiAnimating: () -> Boolean,
+        val finishUi: () -> Unit
     ) {
         var diff: DiffUtil.DiffResult? = null
         var oldIds = emptyList<Long>()
@@ -52,7 +55,19 @@ internal class ThingListRemovalAnimator(
         val sources = mutableListOf<View>()
         val releases = mutableListOf<() -> Unit>()
         val wait = Runnable { waitForDialogs() }
-        val animator = list.itemAnimator
+        var settledFrames = 0
+        val settle = object : Runnable {
+            override fun run() {
+                if (closed) return
+                if (!list.isAttachedToWindow) { finishImmediately(); return }
+                if (list.isLayoutRequested || list.isComputingLayout || animator?.isRunning == true || isUiAnimating())
+                    settledFrames = 0
+                else settledFrames++
+                if (settledFrames >= 2) close() else list.postOnAnimation(this)
+            }
+        }
+        val originalAnimator = list.itemAnimator
+        var animator = originalAnimator
         val removeDuration = animator?.removeDuration ?: 0L
 
         fun waitForDialogs() {
@@ -64,14 +79,14 @@ internal class ThingListRemovalAnimator(
             val dialogVisible = activity.supportFragmentManager.fragments.any {
                 it is DialogFragment && it.dialog?.isShowing == true
             }
-            val dialogBody = ParticleDismissOverlay.activeIn(activity).any { it.hasVisibleBody }
-            if (dialogVisible || dialogBody) {
+            val dialogLayer = ParticleDismissOverlay.activeIn(activity).any { it.parent != null }
+            if (dialogVisible || dialogLayer) {
                 main.postDelayed(wait, 32L)
                 return
             }
             applyChange()
             if (!ValueAnimator.areAnimatorsEnabled() || removed.isEmpty()) {
-                finishImmediately(); return
+                publishOnce(); return
             }
             for (i in 0 until list.childCount) {
                 val view = list.getChildAt(i)
@@ -79,7 +94,7 @@ internal class ThingListRemovalAnimator(
                 if (oldIds.getOrNull(position) in removed && view.isShown && view.alpha > 0f &&
                     visibleBounds(view) != null) sources += view
             }
-            if (sources.isEmpty()) { finishImmediately(); return }
+            if (sources.isEmpty()) { publishOnce(); return }
             if (ThingAnimationPreferences.swipe(activity) != ThingAnimationPreferences.SWIPE_PARTICLE) {
                 fade(); return
             }
@@ -97,6 +112,18 @@ internal class ThingListRemovalAnimator(
                 val comparison = ThingListRemovalDiff(oldIds, change().toList())
                 removed = comparison.removed
                 diff = DiffUtil.calculateDiff(comparison)
+                if (originalAnimator is androidx.recyclerview.widget.DefaultItemAnimator) {
+                    val positions = mutableMapOf<Long, android.graphics.Point>()
+                    for (i in 0 until list.childCount) {
+                        val view = list.getChildAt(i)
+                        val id = oldIds.getOrNull(list.getChildAdapterPosition(view)) ?: continue
+                        if (id !in removed && view.isShown && view.alpha > 0f && visibleBounds(view) != null) {
+                            positions[id] = android.graphics.Point(view.x.toInt(), view.y.toInt())
+                        }
+                    }
+                    animator = ThingListRetainedItemAnimator(originalAnimator, positions)
+                    list.itemAnimator = animator
+                }
             } catch (error: Throwable) {
                 list.suppressLayout(false)
                 current = null
@@ -177,10 +204,10 @@ internal class ThingListRemovalAnimator(
                 ParticleCardSurfaceHandoff.seed(), inWindow = true,
                 materialAreaScale = maxOf(1f, (bitmap.width.toDouble() * bitmap.height / bodyArea).toFloat()))
             val layer = ParticleDismissOverlay(activity, spec,
-                onDone = Runnable { publishOnce(); close() },
-                onBodyReleased = Runnable { publishOnce() },
+                onSourcesRestored = Runnable { if (!published) sources.forEach { it.visibility = View.INVISIBLE } },
                 cardSource = list, cardSources = sources.toList(), restoreSourceOnRelease = false)
             overlay = layer
+            layer.afterRelease(Runnable { if (!closed) publishOnce() })
             ParticleOverlayHost.attach(decor, layer)
             if (!ParticleCardSurfaceHandoff.supported()) sources.forEach { it.alpha = 0f }
             if (BuildConfig.DEBUG) android.util.Log.i("ThingListRemoval",
@@ -196,7 +223,7 @@ internal class ThingListRemovalAnimator(
                 view.animate().translationX(-view.width * .12f).alpha(0f).setDuration(180L)
                     .withEndAction {
                         remaining--
-                        if (remaining == 0) { publishOnce(); close() }
+                        if (remaining == 0) publishOnce()
                     }.start()
             }
         }
@@ -217,11 +244,7 @@ internal class ThingListRemovalAnimator(
             animator?.removeDuration = 0L
             publish(checkNotNull(diff))
             list.suppressLayout(false)
-            list.postOnAnimation {
-                list.post {
-                    if (animator != null) animator.isRunning { animator.removeDuration = removeDuration }
-                }
-            }
+            list.postOnAnimation(settle)
             if (BuildConfig.DEBUG) android.util.Log.i("ThingListRemoval", "reflow removed=${removed.size}")
         }
 
@@ -235,6 +258,8 @@ internal class ThingListRemovalAnimator(
             if (closed) return
             publishOnce()
             overlay?.release()
+            finishUi()
+            animator?.endAnimations()
             close()
         }
 
@@ -242,6 +267,16 @@ internal class ThingListRemovalAnimator(
             if (closed) return
             closed = true
             main.removeCallbacks(wait)
+            list.removeCallbacks(settle)
+            animator?.removeDuration = removeDuration
+            if (animator !== originalAnimator && list.itemAnimator === animator) {
+                if (originalAnimator is androidx.recyclerview.widget.SimpleItemAnimator &&
+                    animator is androidx.recyclerview.widget.SimpleItemAnimator) {
+                    originalAnimator.supportsChangeAnimations =
+                        (animator as androidx.recyclerview.widget.SimpleItemAnimator).supportsChangeAnimations
+                }
+                list.itemAnimator = originalAnimator
+            }
             releaseSnapshots()
             if (current === this) current = null
         }

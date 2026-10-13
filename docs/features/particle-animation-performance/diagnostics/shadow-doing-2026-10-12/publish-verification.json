@@ -1,0 +1,13 @@
+{
+  "debugUpdateCode": 202610120131,
+  "apkUrl": "http://120.25.194.207/everythingdone-updates/debug/apk/app-debug-202610120131.apk",
+  "sizeBytes": 29811961,
+  "sha256": "756c9cfc92f9c51ea8eca70e062e8ff8e75ddd412e902206962687a8231cf363",
+  "publishedAt": "2026-10-12T01:31:14.923327Z",
+  "metadataMatches": true,
+  "downloadMatches": true,
+  "zipCRC": true,
+  "newClassesAndShaders": true,
+  "testOnly": false,
+  "embeddedBuildCode": true
+}

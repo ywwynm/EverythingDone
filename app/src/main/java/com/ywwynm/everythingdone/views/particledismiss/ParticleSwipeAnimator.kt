@@ -59,6 +59,7 @@ internal class ParticleSwipeAnimator(
         val session = touching ?: return
         when (event.actionMasked) {
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                if (event.actionMasked == MotionEvent.ACTION_UP) session.releaseFinger()
                 touching = null
                 cancelPending()
             }
@@ -109,6 +110,12 @@ internal class ParticleSwipeAnimator(
         return true
     }
 
+    /** ItemTouchHelper 确认横滑时激活；方向排除已经在 Activity 的输入阶段处理。 */
+    fun onSwipeSelected(view: View) {
+        if (ParticlePresentationPolicy.of(view).fastOpaqueHandoff == true)
+            sessions[view]?.takeUnless { it.closed }?.activate()
+    }
+
     fun reset(view: View? = null) {
         cancelPending()
         if (view == null) {
@@ -137,6 +144,10 @@ internal class ParticleSwipeAnimator(
         private var capturedBitmap: Bitmap? = null
         private var cardSnapshot: ParticleCardSnapshot? = null
         private var pixelsVisible = false
+        private val diagnostic = ParticlePresentationDiagnostics.of(view)
+        private val fastPreparation = ParticlePresentationPolicy.of(view).fastOpaqueHandoff == true
+        private var releasedBeforeFirstFrame = false
+        private var captureStartedNanos = 0L
         /**
          * 卡片被容器截断时，快照只抓露出来的那一块，这里是它相对卡片左上角的偏移。
          * 正在做事界面的列表比卡片矮，截断线以下的内容不在屏幕上（见 [ParticleCardClip]）。
@@ -171,6 +182,8 @@ internal class ParticleSwipeAnimator(
         }
 
         fun prepare() {
+            captureStartedNanos = System.nanoTime()
+            diagnostic?.event("swipe_capture_begin", mapOf("active" to gesture.active))
             if (gesture.active) holdCard()
             originalPosition(origin)
             view.addOnAttachStateChangeListener(attachmentObserver)
@@ -181,12 +194,15 @@ internal class ParticleSwipeAnimator(
             clipOffsetX = clip?.left ?: 0
             clipOffsetY = clip?.top ?: 0
             val captured: (Bitmap?) -> Unit = captured@{ snapshot ->
+                diagnostic?.event("swipe_capture_ready", mapOf("ready" to (snapshot != null),
+                    "closed" to closed, "elapsedMs" to (System.nanoTime() - captureStartedNanos) / 1e6,
+                    "failure" to if (snapshot == null) ParticleCaptureDiagnostics.describe() else null))
                 if (closed) { snapshot?.recycle(); return@captured }
                 val host = activity.window.decorView as? ViewGroup
                 if (snapshot == null || host == null || !view.isAttachedToWindow || activity.isFinishing) {
                     snapshot?.recycle(); dispose(); return@captured
                 }
-                bakeAncestorAlpha(snapshot)
+                if (ParticleStyle.current != ParticleStyle.DRIFT) bakeAncestorAlpha(snapshot)
                 capturedBitmap = snapshot
                 buildOverlay(host)
             }
@@ -199,15 +215,18 @@ internal class ParticleSwipeAnimator(
         private fun holdCard() {
             ParticleCardPose.hold(view)
             view.translationX = 0f
-            view.alpha = if (pixelsVisible) 0f else originalAlpha * originalAncestorAlpha
+            // 真实 View 仍在原容器内，祖先浓度已由窗口合成；不能再乘到子 View，
+            // 更不能要求宿主临时改成不透明，否则取消后的恢复顺序会改变卡片亮度。
+            view.alpha = if (pixelsVisible) 0f else originalAlpha
         }
 
         /**
          * 粒子画在窗口的叠加层内，拿不到卡片各级容器的透明度——正在做事
          * 界面的列表常驻 0.84，快照却是满浓度的，直接播会在接管的那一帧整体提亮。把容器
-         * 的透明度之积烤进快照即可；首页各级容器都是不透明的，这里是空操作。
+         * 的透明度之积用于最终合成；流体沿用烤进快照的路径，飘散保留原材料 alpha，
+         * 避免把实心材料误判为半透明阴影。首页容器不透明，这里是空操作。
          *
-         * 准备期保留真实卡片并乘同一透明度；宿主在接管期间把容器还原成不透明。
+         * 准备期原 View 保留自己的 alpha 和祖先浓度；只有窗口外的粒子需要额外合成祖先浓度。
          */
         private fun bakeAncestorAlpha(snapshot: Bitmap) {
             val alpha = originalAncestorAlpha
@@ -230,6 +249,7 @@ internal class ParticleSwipeAnimator(
                 ParticleSwipeDirection.virtualTouchX(direction, x, snapshot.width, reach),
                 y + snapshot.height / 2f, 1f, ParticleCardSurfaceHandoff.seed(),
                 inWindow = true, materialAreaScale = cardSnapshot?.materialAreaScale ?: 1f,
+                sourceAlpha = if (ParticleStyle.current == ParticleStyle.DRIFT) originalAncestorAlpha else 1f,
                 releaseOrigin = touchDown?.let { (touchX, touchY) ->
                     ParticleReleaseOrigin.fromScreen(touchX, touchY,
                         (origin[0] + clipOffsetX).toFloat(), (origin[1] + clipOffsetY).toFloat(),
@@ -239,6 +259,8 @@ internal class ParticleSwipeAnimator(
                 onAnimationStarted = Runnable {
                     if (!closed && gesture.active) {
                         pixelsVisible = true
+                        diagnostic?.event("swipe_pixels_visible", mapOf("progress" to gesture.presentedProgress,
+                            "finishing" to finishing))
                         view.alpha = 0f
                         if (finishing) animateCompletion()
                     }
@@ -272,6 +294,7 @@ internal class ParticleSwipeAnimator(
 
         /** 会话内部一律按「向前推进」记进度；右滑把位移镜像过来，其余逻辑完全共用。 */
         fun track(displacement: Float) {
+            if (releasedBeforeFirstFrame) return
             gesture.update(ParticleSwipeDirection.progressDisplacement(direction, displacement), view.width)
             if (gesture.active) ParticleGl.gestureMoved()
         }
@@ -281,6 +304,7 @@ internal class ParticleSwipeAnimator(
             warming = null
             main.removeCallbacks(cancelWarmup)
             gesture.activate()
+            diagnostic?.event("swipe_activated", mapOf("progress" to gesture.progress))
             overlay?.setParticleVisible(true)
             holdCard()
             // 识别的那一刻就唤醒 GL 线程：首个非零画面要落在这一拍里（3.1）。
@@ -289,6 +313,16 @@ internal class ParticleSwipeAnimator(
 
         fun moveFinger(displacement: Float) {
             if (!closed && !finishing) track(displacement)
+        }
+
+        fun releaseFinger() {
+            if (!fastPreparation || !gesture.active || gesture.presented || closed) return
+            releasedBeforeFirstFrame = true
+            diagnostic?.event("swipe_release_before_first_frame", mapOf("requested" to gesture.progress,
+                "action" to "await_completion_from_visible_progress"))
+            // ItemTouchHelper 松手后仍会把位移推进到屏外，随后才调用 onSwiped。
+            // 尚未呈现时不能把这段位移当成已播过；保留零进度，完成回调会从真实首帧继续。
+            gesture.seek(0f)
         }
 
         private fun originalPosition(out: IntArray) {
@@ -301,8 +335,11 @@ internal class ParticleSwipeAnimator(
         }
 
         fun finish(width: Int, onComplete: () -> Unit) {
+            diagnostic?.event("swipe_finish", mapOf("presented" to gesture.presented,
+                "progress" to gesture.presentedProgress, "requested" to gesture.progress))
             completionWidth = width
             completion = onComplete
+            releasedBeforeFirstFrame = false
             gesture.beginCompletion()
             gesture.seek(gesture.presentedProgress)
             if (gesture.presentedProgress >= 1f) dispose()
@@ -328,6 +365,9 @@ internal class ParticleSwipeAnimator(
 
         fun dispose(markUnavailable: Boolean = true) {
             if (closed) return
+            diagnostic?.event("swipe_dispose", mapOf("presented" to gesture.presented,
+                "progress" to gesture.presentedProgress, "requested" to gesture.progress,
+                "active" to gesture.active, "finishing" to finishing))
             closed = true
             if (touching === this) touching = null
             // 已完成的 holder 在 ItemTouchHelper 清理前仍可能被绘制，不能再次创建粒子。
@@ -352,11 +392,17 @@ internal class ParticleSwipeAnimator(
                 ParticleCardPose.release(view)
                 view.alpha = originalAlpha
                 if (sessions[view] === this) sessions.remove(view)
-                main.post { done?.invoke() }
                 Unit
             }
-            if (old != null) old.releaseToSource(showCard = done == null, restore = restore)
-            else restore()
+            if (old != null) {
+                // 完成回调可能立刻启动同一卡片的回聚。真实属性恢复时 GL 首尾层仍在撤除，
+                // 必须等整组释放后再通知业务，否则下一轮会因上一轮仍占用前景而漏播。
+                if (done != null) old.afterRelease(Runnable { main.post { done() } })
+                old.releaseToSource(showCard = done == null, restore = restore)
+            } else {
+                restore()
+                main.post { done?.invoke() }
+            }
         }
     }
 }

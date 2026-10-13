@@ -39,6 +39,7 @@ internal class FableSolGlRenderThread(
     private var renderHeight = 0
     // 仅 GL 线程读写：同一 surface 周期内的瞬态 swap 失败计数，成功一帧即清零。
     private var transientSwapFailures = 0
+    private var submittedFrames = 0L
     // 帧节拍由 GL 线程自己的 Choreographer 驱动。原先在 UI 线程收 vsync、再
     // `handler.post` 到 GL 线程，每帧要多付一次跨线程唤醒与调度延迟；真机实测
     // 分段合计只有 6.4ms、120Hz 预算 8.33ms 仍系统性稳定在两个 vsync，
@@ -201,6 +202,7 @@ internal class FableSolGlRenderThread(
                     return
                 }
                 transientSwapFailures = 0
+                submittedFrames++
                 presentedOnce()
                 val swapNs = System.nanoTime() - swapStart
                 monitor?.recordGlStages(
@@ -383,6 +385,25 @@ internal class FableSolGlRenderThread(
             if (animating || !acceptingFrames) return@post
             renderFrame(System.nanoTime())
         }) singleFramePending.set(false)
+    }
+
+    /** 在生产者自己的队列内绑定恢复事务并提交同一帧，不覆盖 HDR 等已有首帧监听器。 */
+    fun renderParticleRecoveryFrame(beforeSubmit: () -> Unit, submitted: (Boolean) -> Unit) {
+        val current = handler
+        if (current == null) { mainHandler.post { submitted(false) }; return }
+        val accepted = current.post {
+            val result = runCatching {
+                if (!acceptingFrames || egl == null) false
+                else {
+                    beforeSubmit()
+                    val previous = submittedFrames
+                    renderFrame(System.nanoTime())
+                    submittedFrames > previous
+                }
+            }.onFailure { Log.w("FableSolSurfProbe", "粒子转场恢复帧提交失败", it) }.getOrDefault(false)
+            mainHandler.post { submitted(result) }
+        }
+        if (!accepted) mainHandler.post { submitted(false) }
     }
 
     fun setThingBackground(background: ThingBackground) {

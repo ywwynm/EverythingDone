@@ -7,7 +7,7 @@
   标题与正文的颜色不写在这里：它随卡片底色的明暗自适应，由 ParticleTuningActivity 的
   applyCardColor 按 BackgroundUtil.onColor 给出，与首页列表里的记事卡同一套档位。
 -->
-<androidx.cardview.widget.CardView
+<com.ywwynm.everythingdone.views.InterceptTouchCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cv_particle_tuning_card"
@@ -49,4 +49,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.ywwynm.everythingdone.views.InterceptTouchCardView>

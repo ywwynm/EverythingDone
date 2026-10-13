@@ -3,6 +3,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 import android.app.Activity
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -74,11 +75,6 @@ internal class ParticleTouchFeedback private constructor(
         return !cancelled()
     }
 
-    fun <T> withoutRipple(action: () -> T): T {
-        ripples.forEach { it.omitFromSnapshot = true }
-        return try { action() } finally { ripples.forEach { it.omitFromSnapshot = false } }
-    }
-
     companion object {
         // 懒初始化：settleTimeoutMs 是纯算术，JVM 单测会直接调它，不能在类初始化时碰主线程 Looper。
         private val handler: Handler by lazy { Handler(Looper.getMainLooper()) }
@@ -95,7 +91,30 @@ internal class ParticleTouchFeedback private constructor(
 
         fun current(activity: Activity): ParticleTouchFeedback? = pending.lastOrNull { it.activity === activity }
 
-        fun begin(activity: Activity, root: View): ParticleTouchFeedback? {
+        /** 只在实际记录材料的同步区间使用；异步准备阶段不能隐藏真实反馈。 */
+        fun omitFromSnapshot(root: View): () -> Unit {
+            val saved = findRipples(root).map { it to it.omitFromSnapshot }
+            saved.forEach { (ripple, _) -> ripple.omitFromSnapshot = true }
+            return { saved.forEach { (ripple, previous) -> ripple.omitFromSnapshot = previous } }
+        }
+
+        /** 整页离屏渲染收到原生续帧后，更新按钮本身的显示列表，包含波纹结束清理。 */
+        fun invalidateNativeRipples(root: View) {
+            fun containsRipple(value: Drawable?): Boolean = when (value) {
+                is RippleDrawable -> true
+                is LayerDrawable -> (0 until value.numberOfLayers).any { containsRipple(value.getDrawable(it)) }
+                is android.graphics.drawable.DrawableWrapper -> containsRipple(value.drawable)
+                else -> value?.current?.let { it !== value && containsRipple(it) } == true
+            }
+            fun visit(view: View) {
+                if (view.visibility != View.VISIBLE) return
+                if (containsRipple(view.background) || containsRipple(view.foreground)) view.invalidate()
+                if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
+            }
+            visit(root)
+        }
+
+        private fun findRipples(root: View): List<GradientRippleDrawable> {
             val found = mutableSetOf<GradientRippleDrawable>()
             fun drawable(value: Drawable?) {
                 when (value) {
@@ -110,6 +129,11 @@ internal class ParticleTouchFeedback private constructor(
                 if (view is ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
             }
             visit(root)
+            return found.toList()
+        }
+
+        fun begin(activity: Activity, root: View): ParticleTouchFeedback? {
+            val found = findRipples(root)
             if (found.isEmpty()) return null
             return ParticleTouchFeedback(activity, root, found.toList()).also {
                 pending += it

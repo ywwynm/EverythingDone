@@ -1,0 +1,199 @@
+{
+  "initial": [
+    {
+      "device": "samsung",
+      "style": "flow",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-flow-doing-cancel-360-false-1791806954",
+          "validFrames": 93,
+          "submittedFrames": 93,
+          "fps": 92.8,
+          "p95Ms": 16.7,
+          "maxMs": 25.0
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806968",
+          "validFrames": 113,
+          "submittedFrames": 113,
+          "fps": 112.0,
+          "p95Ms": 16.7,
+          "maxMs": 25.0
+        }
+      ]
+    },
+    {
+      "device": "samsung",
+      "style": "drift",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-drift-doing-cancel-360-false-1791806984",
+          "validFrames": 121,
+          "submittedFrames": 121,
+          "fps": 117.0,
+          "p95Ms": 8.3,
+          "maxMs": 16.7
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-drift-doing-cancel-360-false-1791807000",
+          "validFrames": 121,
+          "submittedFrames": 121,
+          "fps": 119.0,
+          "p95Ms": 8.3,
+          "maxMs": 16.7
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "style": "flow",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-flow-doing-cancel-360-false-1791806954",
+          "validFrames": 104,
+          "submittedFrames": 104,
+          "fps": 112.1,
+          "p95Ms": 16.6,
+          "maxMs": 16.6
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806970",
+          "validFrames": 94,
+          "submittedFrames": 100,
+          "fps": 102.1,
+          "p95Ms": 16.6,
+          "maxMs": 16.6
+        }
+      ]
+    },
+    {
+      "device": "meizu",
+      "style": "drift",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-drift-doing-cancel-360-false-1791806987",
+          "validFrames": 113,
+          "submittedFrames": 113,
+          "fps": 119.6,
+          "p95Ms": 8.3,
+          "maxMs": 16.6
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-drift-doing-cancel-360-false-1791807004",
+          "validFrames": 109,
+          "submittedFrames": 110,
+          "fps": 119.6,
+          "p95Ms": 8.3,
+          "maxMs": 16.6
+        }
+      ]
+    },
+    {
+      "device": "oppo",
+      "style": "flow",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-flow-doing-cancel-360-false-1791806954",
+          "validFrames": 76,
+          "submittedFrames": 76,
+          "fps": 72.7,
+          "p95Ms": 16.6,
+          "maxMs": 16.6
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791806970",
+          "validFrames": 111,
+          "submittedFrames": 111,
+          "fps": 106.6,
+          "p95Ms": 16.6,
+          "maxMs": 16.6
+        }
+      ]
+    },
+    {
+      "device": "oppo",
+      "style": "drift",
+      "samples": [
+        {
+          "mode": "native",
+          "run": "glscenefalse-native-drift-doing-cancel-360-false-1791806987",
+          "validFrames": 123,
+          "submittedFrames": 123,
+          "fps": 118.2,
+          "p95Ms": 8.3,
+          "maxMs": 16.6
+        },
+        {
+          "mode": "unified",
+          "run": "glscenetrue-unified-drift-doing-cancel-360-false-1791807003",
+          "validFrames": 126,
+          "submittedFrames": 126,
+          "fps": 119.2,
+          "p95Ms": 8.3,
+          "maxMs": 16.6
+        }
+      ]
+    }
+  ],
+  "meizuFlowRepeated": [
+    {
+      "run": "glscenefalse-native-flow-doing-cancel-360-false-1791807248",
+      "mode": "native",
+      "fps": 88.9,
+      "p95Ms": 16.6,
+      "validFrames": 82,
+      "submittedFrames": 82
+    },
+    {
+      "run": "glscenefalse-native-flow-doing-cancel-360-false-1791807283",
+      "mode": "native",
+      "fps": 80.9,
+      "p95Ms": 16.6,
+      "validFrames": 74,
+      "submittedFrames": 74
+    },
+    {
+      "run": "glscenefalse-native-flow-doing-cancel-360-false-1791807318",
+      "mode": "native",
+      "fps": 86.7,
+      "p95Ms": 16.6,
+      "validFrames": 80,
+      "submittedFrames": 80
+    },
+    {
+      "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791807265",
+      "mode": "unified",
+      "fps": 105.4,
+      "p95Ms": 16.6,
+      "validFrames": 97,
+      "submittedFrames": 104
+    },
+    {
+      "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791807300",
+      "mode": "unified",
+      "fps": 104.1,
+      "p95Ms": 16.6,
+      "validFrames": 95,
+      "submittedFrames": 104
+    },
+    {
+      "run": "glscenetrue-unified-flow-doing-cancel-360-false-1791807334",
+      "mode": "unified",
+      "fps": 105.4,
+      "p95Ms": 16.6,
+      "validFrames": 97,
+      "submittedFrames": 107
+    }
+  ],
+  "method": "按手势开始可见后150ms至清理，统计驱动已呈现时间戳；原实现关闭整页覆盖，无录屏；短样本不外推所有业务页面。"
+}

@@ -2,6 +2,7 @@ package com.ywwynm.everythingdone.views.particledismiss
 
 import android.animation.LayoutTransition
 import android.graphics.Bitmap
+import android.os.Build
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Paint
@@ -185,6 +186,12 @@ internal object ParticleSnapshot {
                 asyncOffscreen: (((Bitmap?) -> Unit) -> Unit)? = null,
                 dismissal: Boolean = false, forceOffscreen: Boolean = false,
                 done: (Bitmap?) -> Unit) {
+        // 统一硬件捕获已经按控件原层级合成独立生产者，不能再把同一缓冲叠一次。
+        if (Build.VERSION.SDK_INT >= 29 && ParticlePresentationPolicy.of(root).unified && asyncOffscreen != null) {
+            ParticleCaptureDiagnostics.begin("硬件层级捕获与独立表面")
+            asyncOffscreen(done)
+            return
+        }
         val surfaces = mutableListOf<SurfaceView>()
         visit(root) { if (it is SurfaceView && it.width > 0 && it.height > 0 && it.getGlobalVisibleRect(Rect())) surfaces += it }
         // 同属窗口下方的 Surface 按前到后合成，避免后画的底层盖住高层。

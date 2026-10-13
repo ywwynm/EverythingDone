@@ -1,0 +1,44 @@
+[
+  {
+    "device": "samsung",
+    "case": "unified-drift-doing-complete-180-false-1791735378",
+    "decodedFrames": 103,
+    "backgroundMeanErrorMax": 1.4037293644683946,
+    "backgroundMeanErrorP95": 1.3041570438799075
+  },
+  {
+    "device": "samsung",
+    "case": "unified-drift-doing-fastcomplete-180-false-1791735397",
+    "decodedFrames": 87,
+    "backgroundMeanErrorMax": 1.2971650201009324,
+    "backgroundMeanErrorP95": 1.239585471730391
+  },
+  {
+    "device": "samsung",
+    "case": "unified-flow-doing-cancel-180-false-1791735415",
+    "decodedFrames": 158,
+    "backgroundMeanErrorMax": 1.2851525746300574,
+    "backgroundMeanErrorP95": 1.2825143272602857
+  },
+  {
+    "device": "meizu",
+    "case": "unified-drift-doing-complete-180-false-1791735378",
+    "decodedFrames": 132,
+    "backgroundMeanErrorMax": 1.6446409423188926,
+    "backgroundMeanErrorP95": 1.642787548239956
+  },
+  {
+    "device": "meizu",
+    "case": "unified-drift-doing-fastcomplete-180-false-1791735392",
+    "decodedFrames": 59,
+    "backgroundMeanErrorMax": 1.7348122383883908,
+    "backgroundMeanErrorP95": 1.6972403207106581
+  },
+  {
+    "device": "meizu",
+    "case": "unified-flow-doing-cancel-180-false-1791735405",
+    "decodedFrames": 200,
+    "backgroundMeanErrorMax": 1.7328363733350751,
+    "backgroundMeanErrorP95": 1.6931938797171737
+  }
+]

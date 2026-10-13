@@ -1,5 +1,41 @@
 # 后续验证
 
+## 2026-10-13：滚动复用修复与性能尾部
+
+- 三台 Android 的空白卡片原复现、342 次最终输入和其它入口回归通过；用户随后确认当前整体效果可接受并授权提交，未细分此次反馈的设备与场景。见 [本轮诊断](scroll-reuse-2026-10-13.md) 和 [会话汇总](../particle-animation-performance/session-consolidation-2026-10-13.md)。
+- 魅族首次性能对照记录过一次 424 ms 首帧回调及 1031 ms GL 提交停顿；六次重复未复现该长停顿，旧包／新版的冷暖准备趋势与持续提交间隔接近。保留原始数据，后续若再次出现长停顿，应在该场景采集 GL 调用耗时与系统调度证据；本轮不将其宣布为已定位或已解决，也不为它改变粒子轨迹／交接时序。
+
+## 2026-10-12：Doing 和同卡回聚
+
+透明窗口、容器浓度与同卡 GL 释放时序已修复；新增应用内无计时 Doing 场景，三机快速滑动与取消、三星／魅族实际设置页回聚完成回归。卓易通重点验收左右滑动的真实飞行颗粒、透明壁纸背景、页面按钮与取消恢复；不将未识别为滑动的输入算作动画通过。详见 [本轮记录](../particle-animation-performance/media-dialog-shadow-2026-10-11.md)。
+
+## 2026-10-11：共同业务实现（最新）
+
+- 首尾完整组交接与动态原生背景已接入实际首页、Doing 页面；三机只读复杂卡片、虚构快速完成、飘散／流体回归完成。下列静态候选和仅诊断范围为历史记录。
+- 卓易通仍需用户验收实际页面背景、快速消散／回聚及各前景阴影。魅族复杂卡片准备延迟仍有波动；OPPO 缺少录像、Android 14 缺少真机。见 [统一实现及性能](../particle-animation-performance/unified-presentation-implementation-2026-10-11.md)。
+
+## 2026-10-11：完整画面候选（当前）
+
+- 完整不透明底图与卡片／前景同组撤除，前景租约仅在该候选独占；准备未完成就松手时保留真实 View，迟到回调不再单独显示卡片。三星、魅族原输入重跑已排除本轮抓到的 FAB 遮挡；原生默认保持既有路线。
+- 等用户在卓易通验证阴影／文字及取消／回聚。固定背景、准备开销及未覆盖真实多卡列表的边界见 [本轮实施](../particle-animation-performance/droitong-complete-frame-implementation-2026-10-11.md)；以下条目为之前版本的状态。
+
+## 2026-10-11 鸿蒙 7／卓易通前景交接
+
+- **第三轮 ZIP 已核对**：完整卡片报告证实前景比整层隐藏 committed 提前约 32～36 ms 关闭；首段窗口／缓冲回调全部成功仍出现空白，不能靠延时或单次回调验收。下一轮须将完整 GL 画面作为一组撤除，并隔离原生默认回调协议。授权三星和魅族的旧包／当前包共 8 段飘散虚构卡片录屏暂未发现新增前景丢失或 FAB 遮挡，测试后恢复原包；第三台离线，完整业务与流体尚未覆盖。见 [最新分析](../particle-animation-performance/droitong-handoff-zip-feedback-2026-10-11.md)。
+
+- **第三轮视频未通过**：本轮组合起滑时前景与卡片一起消失约 34 毫秒，收尾卡片短暂遮住 FAB。源码发现 `finishReturn` 请求隐藏 Surface 后立即关闭 GL 前景，但 GL 卡片留到窗口回调，允许不完整的 GL 帧先被提交；需同次日志确认，并先纠正这一中间状态。起滑跨层切换仍待分辨回调与实际缓冲。见 [视频分析](../particle-animation-performance/droitong-handoff-video-feedback-2026-10-11.md)。
+
+- 第三轮已实施隐藏 Surface 中准备 GL 缓冲、同次窗口更新交换真实 View 与 SurfaceView、隐藏期间清理旧 GL 前景，保留原透明度和 SurfaceView；旧 GL 组合及单项候选留作对照。40 项单测及 8 项桌面合成检查通过，debug `202610111028` 已发布并核验；最终阴影与副标题、取消和退出恢复等待用户验收。见 [第三轮实施](../particle-animation-performance/droitong-handoff-implementation-2026-10-11.md)。
+
+- 第二轮用户实测：GL 默认组合已使前景全程可见，但各处阴影及副标题短暂变深／变粗。静态核对发现真实 View 与 GL 在首尾分步交接时存在重叠窗口，优先修正重复绘制，不统一降低 alpha。尚未实施这一轮修正，见 [最新反馈分析](../particle-animation-performance/droitong-gl-feedback-2026-10-11.md)。
+
+- 最新进展：共享 GL 前景与卡片首尾交接已随 debug `202610110948` 发布，本地 32 项相关测试和 5 项着色器检查通过，公开 APK 核验一致。仅测试页启用，普通首页不变；由用户验收前景可见性、卡片首尾及阴影重叠，不用 ADB。见 [第二轮实施](../particle-animation-performance/droitong-gl-implementation-2026-10-11.md)。以下首轮记录保留为历史。
+
+- 首轮用户实测及 ZIP 已核对：API 36／DRIFT／SurfaceView，前景根节点候选单独与组合均失败；CPU／硬件源预览正常，35 次控件交接均完成隐藏与恢复，14 次窗口事务均 committed，仍不可见。优先评估将前景和静态交接合入共享 SurfaceView 的 GL 输出，保留现有捕获、更新和 FAB 阴影。固定色块的硬件 Bitmap 用途需同时修正，不能单凭探针失败认定容器不支持自有图层。见 [结果与核对](../particle-animation-performance/droitong-results-2026-10-11.md)。
+- 粒子滑动期间顶栏、标题及 FAB 消失，动画结束恢复；优先核对 SurfaceControl 前景接管是否在原 View 隐藏后正确呈现。
+- 当前状态：应用内前景图像／固定色块对照、窗口根节点挂载候选及诊断导出已随 debug `202610110851` 发布，保留 SurfaceView 和同步交接，仅诊断 Activity 启用。构建及相关测试通过，用户已反馈候选仍失败；不能按构建通过推广业务页。不使用 ADB，下一轮候选尚未实现。见 [实施记录](../particle-animation-performance/droitong-implementation-2026-10-11.md)。此前 Texture 对照只保留为历史备选。
+- 用户要求核对替换历史后补充：Texture 仅先作诊断对照，继续优先寻找保留 SurfaceView 的局部修正，不直接改变默认后端；需考虑历史 Texture 销毁停顿与额外合成成本。见 [提交核对](../particle-animation-performance/surface-texture-history-2026-10-11.md)。
+
 ## 2026-09-17 SurfaceView 同步方案的当前边界
 
 - 用户已确认 FAB 始终在卡片动画上方。本轮增加 FAB 自有绘制层，带真实 FAB 的虚构页面已覆盖快照、粒子、短滑、回弹、回聚、移动及接管期间实际点击。此前无 FAB 的验收不再作为该问题的证据，详见 [本轮诊断](fab-occlusion-2026-09-17.md)。

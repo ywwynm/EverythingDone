@@ -70,6 +70,14 @@ import kotlin.system.exitProcess
  */
 open class App : Application() {
 
+    /**
+     * Flyme 的 Context 扩展回调：0 表示由应用处理深色配色。
+     * 应用已有完整深色资源；系统二次反色会让选择淡化的背景在动画首帧突然变色，
+     * 并改写离屏 Canvas。该回调不在标准 SDK 中，因此不能写 override；保留 JVM 方法名。
+     */
+    @androidx.annotation.Keep
+    fun mzNightModeUseOf(): Int = 0
+
     private var mThingManager: ThingManager? = null
 
     private var mThingsToDeleteForever: MutableList<Thing?>? = null

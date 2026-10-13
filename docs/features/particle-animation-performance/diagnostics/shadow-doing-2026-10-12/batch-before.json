@@ -1,0 +1,154 @@
+[
+  {
+    "device": "samsung",
+    "run": "unified-tuning-1791766513",
+    "scene": "实际页面 ParticleTuningActivity",
+    "eventCount": 1866,
+    "maxSessions": 1,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "opaque_return_without_entry",
+        "values": {
+          "cardShown": false,
+          "reason": "native_view_kept_during_preparation"
+        }
+      }
+    ],
+    "shadowPrepared": 0,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 5,
+    "zipCount": 1
+  },
+  {
+    "device": "samsung",
+    "run": "unified-removal-1791766372",
+    "scene": "批量移除虚构列表",
+    "eventCount": 651,
+    "maxSessions": 1,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "opaque_return_without_entry",
+        "values": {
+          "cardShown": false,
+          "reason": "native_view_kept_during_preparation"
+        }
+      }
+    ],
+    "shadowPrepared": 2,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 0,
+    "zipCount": 1,
+    "removal": {
+      "reflowMs": 1454,
+      "remaining": [
+        2,
+        -4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        -12,
+        13,
+        14,
+        15,
+        -16,
+        17
+      ],
+      "suppressed": false
+    }
+  },
+  {
+    "device": "meizu",
+    "run": "unified-removal-1791766371",
+    "scene": "批量移除虚构列表",
+    "eventCount": 653,
+    "maxSessions": 1,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "opaque_return_without_entry",
+        "values": {
+          "cardShown": false,
+          "reason": "native_view_kept_during_preparation"
+        }
+      }
+    ],
+    "shadowPrepared": 2,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 0,
+    "zipCount": 1,
+    "removal": {
+      "reflowMs": 1312,
+      "remaining": [
+        2,
+        -4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        -12,
+        13,
+        14,
+        15,
+        -16,
+        17
+      ],
+      "suppressed": false
+    }
+  },
+  {
+    "device": "oppo",
+    "run": "unified-removal-1791766415",
+    "scene": "批量移除虚构列表",
+    "eventCount": 659,
+    "maxSessions": 1,
+    "backends": [
+      "SurfaceView"
+    ],
+    "failures": [
+      {
+        "event": "opaque_return_without_entry",
+        "values": {
+          "cardShown": false,
+          "reason": "native_view_kept_during_preparation"
+        }
+      }
+    ],
+    "shadowPrepared": 2,
+    "surfaceRecovery": [],
+    "nativeBackgroundEvents": 0,
+    "zipCount": 1,
+    "removal": {
+      "reflowMs": 1477,
+      "remaining": [
+        2,
+        -4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        -12,
+        13,
+        14,
+        15,
+        -16,
+        17
+      ],
+      "suppressed": false
+    }
+  }
+]

@@ -646,23 +646,26 @@ abstract class BaseThingsAdapter(context: Context?) :
     private fun applyUnselectedContentAlpha(
         holder: BaseThingViewHolder,
         background: ThingBackground?,
-        dim: Boolean
+        dim: Float
     ) {
         holder.llContent!!.alpha = 1.0f
         holder.flImageAttachment!!.alpha = 1.0f
         holder.ivImageAttachment!!.alpha = 1.0f
-        holder.vImageCover!!.alpha = 1.0f
         holder.pbLoading!!.alpha = 1.0f
 
-        val adaptiveAlpha = if (dim) {
+        // 媒体的白色选择遮罩也属于选择外观；局部绑定不能依赖完整媒体绑定来清除它。
+        // 与媒体背景的用户遮罩分开，只淡出这层，不重新加载图片或改变媒体几何。
+        holder.vImageCover!!.alpha = dim
+        holder.vImageCover.visibility =
+            if (dim > 0f && holder.flImageAttachment.visibility == View.VISIBLE) View.VISIBLE else View.GONE
+
+        val dimmedAlpha =
             if (background != null && BackgroundUtil.isLight(background)) {
                 UNSELECTED_DARK_CONTENT_ALPHA
             } else {
                 UNSELECTED_LIGHT_CONTENT_ALPHA
             }
-        } else {
-            1.0f
-        }
+        val adaptiveAlpha = 1f + (dimmedAlpha - 1f) * dim
 
         holder.tvTitle!!.alpha = adaptiveAlpha
         holder.tvImageCount!!.alpha = adaptiveAlpha
@@ -678,7 +681,7 @@ abstract class BaseThingsAdapter(context: Context?) :
         holder.ivStickyOngoing!!.alpha = adaptiveAlpha
         // "正在做"蒙层（含其内图标 / 文字）在未选中态做轻微淡化以区分选中态；但只能轻微淡，
         // 否则蒙层会盖不住下层内容，故用比普通内容弱得多的专用透明度。
-        holder.flDoing!!.alpha = if (dim) UNSELECTED_DOING_COVER_ALPHA else 1.0f
+        holder.flDoing!!.alpha = 1f + (UNSELECTED_DOING_COVER_ALPHA - 1f) * dim
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseThingViewHolder {
@@ -690,7 +693,7 @@ abstract class BaseThingsAdapter(context: Context?) :
 
         val thing: Thing = getThingAt(position)!!
         setContentViewAppearance(holder, thing)
-        setCardAppearance(holder, thing.getBackground(), thing.isSelected())
+        setCardAppearance(holder, thing)
     }
 
     private fun setContentViewAppearance(holder: BaseThingViewHolder, thing: Thing) {
@@ -3195,12 +3198,8 @@ abstract class BaseThingsAdapter(context: Context?) :
             )
             updateThingCardImageCountLayout(holder, placement)
 
-            if (getCurrentMode() == ModeManager.NORMAL) {
-                holder.vImageCover!!.visibility = View.GONE
-            } else {
-                holder.vImageCover!!.visibility =
-                    if (thing.isSelected()) View.GONE else View.VISIBLE
-            }
+            // 选择遮罩统一由 setCardAppearance / applySelectionAppearance 更新，
+            // 保证完整绑定与退出动画中的局部绑定采用同一份恢复进度。
         } else {
             hideThingCardMediaBackground(holder)
             setThingCardMediaDebugInfo(holder, null)
@@ -3486,14 +3485,43 @@ abstract class BaseThingsAdapter(context: Context?) :
         }
     }
 
-    private fun setCardAppearance(
-        holder: BaseThingViewHolder,
-        background: ThingBackground?, selected: Boolean
-    ) {
+    protected open fun selectionDimAmount(thing: Thing): Float =
+        if (shouldDimUnselectedContent(getCurrentMode()) && !thing.isSelected()) 1f else 0f
+
+    /** 只更新选择外观；不得取消 RecyclerView 正在执行的位置动画或重新加载媒体。 */
+    protected fun applySelectionAppearance(holder: BaseThingViewHolder, thing: Thing) {
+        val amount = selectionDimAmount(thing)
+        applyUnselectedContentAlpha(holder, thing.getBackground(), amount)
+        BackgroundUtil.applyCardBackground(holder.cv, selectionBackground(thing.getBackground(), amount))
+    }
+
+    /** 已绑定卡片重新挂载或局部刷新：恢复动态标识，保留媒体、布局及位置动画。 */
+    protected fun applyRetainedThingAppearance(holder: BaseThingViewHolder, thing: Thing) {
+        applySelectionAppearance(holder, thing)
+        updateCardForStickyOrOngoingNotification(holder, thing)
+        updateCardForDoing(holder, thing)
+        if (holder.rvChecklist.visibility == View.VISIBLE) {
+            onThingCardChecklistWillBind(holder, holder.rvChecklist, thing)
+            holder.rvChecklist.refreshItemClickTargets()
+        }
+    }
+
+    protected fun selectionBackground(background: ThingBackground?, amount: Float): ThingBackground? {
+        if (background == null || amount <= 0f) return background
+        val dimmed = lightVariant(background)
+        if (amount >= 1f) return dimmed
+        val start = androidx.core.graphics.ColorUtils.blendARGB(background.color, dimmed.color, amount)
+        val end = androidx.core.graphics.ColorUtils.blendARGB(background.endColor, dimmed.endColor, amount)
+        return if (background.mode == ThingBackground.Mode.PURE) ThingBackground.pure(start)
+            else ThingBackground.gradient(start, end, background.orientation)
+    }
+
+    private fun setCardAppearance(holder: BaseThingViewHolder, thing: Thing) {
+        val background = thing.getBackground()
+        val selected = thing.isSelected()
         val cv: CardView = holder.cv!!
         val currentMode = getCurrentMode()
-        val dimUnselectedContent = shouldDimUnselectedContent(currentMode) && !selected
-        applyUnselectedContentAlpha(holder, background, dimUnselectedContent)
+        applySelectionAppearance(holder, thing)
 
         if (currentMode == ModeManager.MOVING) {
             if (selected) {
@@ -3505,21 +3533,13 @@ abstract class BaseThingsAdapter(context: Context?) :
                     mContext!!.resources.getDimension(R.dimen.thing_card_dragging_elevation)
                 )
                     .setDuration(96).start()
-                BackgroundUtil.applyCardBackground(cv, background)
             } else {
                 setNormalCardGeometry(cv)
-                BackgroundUtil.applyCardBackground(cv, lightVariant(background))
             }
         } else if (currentMode == ModeManager.SELECTING) {
             setNormalCardGeometry(cv)
-            if (selected) {
-                BackgroundUtil.applyCardBackground(cv, background)
-            } else {
-                BackgroundUtil.applyCardBackground(cv, lightVariant(background))
-            }
         } else {
             setNormalCardGeometry(cv)
-            BackgroundUtil.applyCardBackground(cv, background)
         }
 
         val cardIsLight = background != null

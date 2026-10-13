@@ -4,7 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".views.particledismiss.SelectionBatchTransitionProbe"
+        android:targetPackage="${applicationId}" android:label="隔离数据的真实首页批量转场回归" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <instrumentation android:name=".views.particledismiss.ParticleTuningShadowProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="设置页卡片阴影回归" />
 
     <instrumentation android:name=".localization.LocalizationProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="多语言文案与日期数量回归" />
@@ -17,6 +22,21 @@
 
     <instrumentation android:name=".views.particledismiss.AppearancePanelInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="外观面板交接回归" />
+
+    <instrumentation android:name=".views.particledismiss.ParticlePresentationRegressionProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="粒子显示虚构场景回归" />
+
+    <instrumentation android:name=".views.particledismiss.ParticleContentSamplesProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="粒子内容原始像素逐位对照" />
+
+    <instrumentation android:name=".views.particledismiss.ParticlePageCompositeProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="整页合成像素对照" />
+
+    <instrumentation android:name=".views.particledismiss.ParticleClockPathProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="计时路径缓存像素对照" />
+
+    <instrumentation android:name=".views.particledismiss.ParticleBusinessRegressionProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="已有记事粒子显示只读验证" />
 
     <instrumentation android:name=".interaction.UiInteractionInputProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="界面交互互斥回归" />
@@ -34,10 +54,24 @@
     <instrumentation android:name=".detail.DetailMediaOverlayProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="详情附件自适应配色及速度验证" />
 
+    <instrumentation android:name=".views.particledismiss.ParticleRecordingAppearanceProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="录音准备页粒子交接验证" />
     <application
         android:networkSecurityConfig="@xml/debug_network_security_config"
         android:usesCleartextTraffic="true"
         tools:replace="android:networkSecurityConfig">
+
+        <activity android:name=".views.particledismiss.ParticleRippleProbeActivity"
+            android:exported="true" android:theme="@style/EverythingDoneTheme.Settings" />
+
+        <activity android:name=".views.particledismiss.ParticlePresentationDiagnosticsActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
+        <activity android:name=".views.particledismiss.ParticlePresentationCaseActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
+        <activity android:name=".views.particledismiss.ParticlePresentationImagesActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
+        <activity android:name=".views.particledismiss.ParticleDoingProbeActivity"
+            android:exported="false" android:theme="@style/EverythingDoneTheme.Doing" />
 
         <activity android:name=".taptransfer.TapReceiveVisibilityActivity"
             android:exported="false" android:excludeFromRecents="true"

@@ -1,0 +1,2 @@
+INSTRUMENTATION_RESULT: result=通过 792 组逐像素对照，覆盖全部字体、两种描画模式、原地插值、尺寸改变及重复绘制
+INSTRUMENTATION_CODE: 0

@@ -1,0 +1,34 @@
+[
+  {
+    "device": "samsung",
+    "style": "drift",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791819196",
+    "frames": 392,
+    "colorPeak": 23670,
+    "shortColorLoss": []
+  },
+  {
+    "device": "samsung",
+    "style": "flow",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791819221",
+    "frames": 444,
+    "colorPeak": 23670,
+    "shortColorLoss": []
+  },
+  {
+    "device": "meizu",
+    "style": "drift",
+    "run": "glscenetrue-unified-drift-surface-complete-180-false-1791819196",
+    "frames": 508,
+    "colorPeak": 20580,
+    "shortColorLoss": []
+  },
+  {
+    "device": "meizu",
+    "style": "flow",
+    "run": "glscenetrue-unified-flow-surface-complete-180-false-1791819218",
+    "frames": 530,
+    "colorPeak": 20580,
+    "shortColorLoss": []
+  }
+]

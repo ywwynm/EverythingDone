@@ -203,7 +203,7 @@ internal class ParticleDriftSession(
                     // 合成方式要在开画之前定下来：背景取样还没回来就再等一会儿（有上限，过了按主题）。
                     val additive = background.poll() ?: return false
                     if (BuildConfig.DEBUG && backgroundAt == 0L) backgroundAt = System.nanoTime()
-                    renderer = ParticleDriftRenderer(assets, model, additive).also {
+                    renderer = ParticleDriftRenderer(assets, model, additive, spec.sourceAlpha).also {
                         it.prepare(content, pendingImage, pendingEglImage)
                     }
                     pendingImage = 0
@@ -235,7 +235,7 @@ internal class ParticleDriftSession(
     private fun deviceTime(progress: Float): Float = model.startSeconds +
         (if (isReverse) 1f - progress else progress) * (model.totalSeconds - model.startSeconds)
 
-    override fun drawInto(target: Long): Boolean {
+    override fun drawInto(target: Long, beforeComposite: (Boolean) -> ParticleGlBitmapLayer?): Boolean {
         dirty = false
         if (cancelled || !visible) return false
         val active = renderer ?: return false
@@ -255,13 +255,13 @@ internal class ParticleDriftSession(
                             previousPosition = it
                         }
                     } else ((target - firstTarget) / 1e9 / durationSeconds).toFloat().coerceIn(0f, 1f)
-                    active.draw(deviceTime(progress), spec.originXPx, spec.originYPx)
+                    active.draw(deviceTime(progress), spec.originXPx, spec.originYPx, beforeComposite = beforeComposite)
                     lastProgress = progress
                     if (!isGesture && progress >= 1f) stage = Stage.HOLD
                     true
                 }
                 Stage.HOLD -> {
-                    active.draw(deviceTime(lastProgress), spec.originXPx, spec.originYPx)
+                    active.draw(deviceTime(lastProgress), spec.originXPx, spec.originYPx, beforeComposite = beforeComposite)
                     true
                 }
                 else -> false
@@ -313,13 +313,14 @@ internal class ParticleDriftSession(
                     "大小=${model.sizeScale}")
         }
         listener.onPresented(target, progress)
-        if (stage != Stage.HOLD || finishedReported) return
+        if (stage != Stage.HOLD || finishedReported || progress < 1f) return
         // 消散播完、末帧（全透明）也确认上屏之后收尾；出现的末帧要一直留到宿主确认真实面板上屏（release）。
         if (BuildConfig.DEBUG && isReverse) Log.i(ParticleDriftRenderer.TAG,
             "飘散出现收尾 末帧提交到确认Ms=${stageMs(holdSubmittedAt, System.nanoTime())} " +
                 "呈现时刻=${if (displayedAt != null) "有" else "无"} 待确认=$pendingFrames")
-        if (isReverse) finish(true)
-        else if (pendingFrames == 0) finish(true)
+        // 其它会话仍播放时，窗口会持续重画本会话的 HOLD 帧，pendingFrames 不会归零。
+        // 当前已确认的是进度 1 的末帧；后续重复末帧不应阻止本会话自然结束。
+        finish(true)
     }
 
     private fun finish(completed: Boolean) {

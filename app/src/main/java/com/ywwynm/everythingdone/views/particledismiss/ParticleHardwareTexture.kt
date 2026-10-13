@@ -22,7 +22,11 @@ internal object ParticleHardwareTexture {
         if (available && image != 0L) runCatching { nDestroy(display, image) }
     }
 
+    /** 生产者再次写入同一缓冲后重绑图像，不重复创建 EGLImage。调用前仍须等待生产者 fence。 */
+    fun rebind(image: Long) { check(available); nRebind(image) }
+
     @JvmStatic private external fun nAvailable(): Boolean
     @JvmStatic private external fun nBind(display: Long, buffer: HardwareBuffer): Long
     @JvmStatic private external fun nDestroy(display: Long, image: Long)
+    @JvmStatic private external fun nRebind(image: Long)
 }

@@ -61,8 +61,12 @@ internal interface ParticleLayerSession {
     /** 推进一步准备；返回是否有进展。[shared] 只在 [needsMicroflakeShared] 为真时保证非空。 */
     fun advanceOnce(shared: ParticleMicroflakeRenderer.Shared?): Boolean
 
-    /** 把本会话这一拍的画面叠加到已经清空的默认帧缓冲上；返回 false 表示这一拍没有内容。 */
-    fun drawInto(target: Long): Boolean
+    /**
+     * 把本会话叠入窗口；返回 false 表示这一拍没有内容。
+     * 首次合成前调用 beforeComposite：false 由窗口绘制底图，true 允许接收唯一底图并一次输出完整视口。
+     * 底图只交付一次，后续会话始终叠在前一个会话之上。
+     */
+    fun drawInto(target: Long, beforeComposite: (Boolean) -> ParticleGlBitmapLayer?): Boolean
 
     /** 窗口 `eglSwapBuffers` 返回之后调用。 */
     fun frameSubmitted(target: Long)

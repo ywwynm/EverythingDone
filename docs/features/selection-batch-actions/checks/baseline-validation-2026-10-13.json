@@ -1,0 +1,30 @@
+[
+  {
+    "run": "baseline-samsung-top5",
+    "pass_": false,
+    "failures": [
+      "exit_before_particle_release",
+      "toolbar_animation_not_visible",
+      "input_unlocked_early",
+      "selection_color_snapped"
+    ],
+    "toolbarFrames": 0,
+    "colorIntermediateFrames": 0,
+    "maxToolbarFrameGap": 0,
+    "jumps": []
+  },
+  {
+    "run": "baseline-meizu-middle",
+    "pass_": false,
+    "failures": [
+      "exit_before_particle_release",
+      "toolbar_animation_not_visible",
+      "input_unlocked_early",
+      "selection_color_snapped"
+    ],
+    "toolbarFrames": 0,
+    "colorIntermediateFrames": 0,
+    "maxToolbarFrameGap": 0,
+    "jumps": []
+  }
+]

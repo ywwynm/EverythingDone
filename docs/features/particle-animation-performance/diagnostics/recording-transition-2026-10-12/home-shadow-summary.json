@@ -1,0 +1,163 @@
+[
+  {
+    "device": "samsung",
+    "run": "unified-home-1791806174",
+    "regions": [
+      {
+        "cardIndex": 1,
+        "screenRegion": [
+          60,
+          2804,
+          690,
+          2824
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 2,
+        "screenRegion": [
+          750,
+          2141,
+          1380,
+          2161
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 4,
+        "screenRegion": [
+          750,
+          3051,
+          1380,
+          3071
+        ],
+        "maxChannelDelta": 0.0
+      }
+    ],
+    "excluded": "手势目标卡片、超出屏幕的阴影、与FAB及其阴影重叠区域；已有记事只读，手势回到原位。"
+  },
+  {
+    "device": "meizu",
+    "run": "unified-home-1791806096",
+    "regions": [
+      {
+        "cardIndex": 1,
+        "screenRegion": [
+          712,
+          1913,
+          1312,
+          1933
+        ],
+        "maxChannelDelta": 0.0
+      }
+    ],
+    "excluded": "手势目标卡片、超出屏幕的阴影、与FAB及其阴影重叠区域；已有记事只读，手势回到原位。"
+  },
+  {
+    "device": "oppo",
+    "run": "unified-home-1791806246",
+    "regions": [
+      {
+        "cardIndex": 0,
+        "screenRegion": [
+          42,
+          732,
+          619,
+          752
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 2,
+        "screenRegion": [
+          1280,
+          729,
+          1857,
+          749
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 3,
+        "screenRegion": [
+          42,
+          941,
+          619,
+          961
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 4,
+        "screenRegion": [
+          1280,
+          937,
+          1857,
+          957
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 5,
+        "screenRegion": [
+          1899,
+          837,
+          2476,
+          857
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 6,
+        "screenRegion": [
+          42,
+          1476,
+          619,
+          1496
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 7,
+        "screenRegion": [
+          84,
+          1434,
+          577,
+          1454
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 9,
+        "screenRegion": [
+          1280,
+          1411,
+          1857,
+          1431
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 10,
+        "screenRegion": [
+          1899,
+          1046,
+          2476,
+          1066
+        ],
+        "maxChannelDelta": 0.0
+      },
+      {
+        "cardIndex": 11,
+        "screenRegion": [
+          1899,
+          1254,
+          2476,
+          1274
+        ],
+        "maxChannelDelta": 0.0
+      }
+    ],
+    "excluded": "手势目标卡片、超出屏幕的阴影、与FAB及其阴影重叠区域；已有记事只读，手势回到原位。"
+  }
+]

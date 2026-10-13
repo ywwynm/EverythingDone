@@ -77,6 +77,13 @@ Java_com_ywwynm_everythingdone_views_particledismiss_ParticleHardwareTexture_nBi
 }
 
 JNIEXPORT void JNICALL
+Java_com_ywwynm_everythingdone_views_particledismiss_ParticleHardwareTexture_nRebind(
+        JNIEnv *, jclass, jlong image) {
+    Entries &e = entries();
+    if (e.ok && image != 0) e.targetTexture(kTexture2D, reinterpret_cast<void *>(image));
+}
+
+JNIEXPORT void JNICALL
 Java_com_ywwynm_everythingdone_views_particledismiss_ParticleHardwareTexture_nDestroy(
         JNIEnv *, jclass, jlong dpy, jlong image) {
     Entries &e = entries();

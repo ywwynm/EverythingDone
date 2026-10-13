@@ -54,7 +54,9 @@ internal class ParticleDismissOverlay(
      */
     private val restoreSourceOnRelease: Boolean = true,
     cardSources: List<View>? = null,
-    private val onBodyReleased: Runnable? = null
+    private val onBodyReleased: Runnable? = null,
+    /** 与真实来源恢复处于同一次窗口交接；批量移除可在此隐藏已消散的旧 holder。 */
+    private val onSourcesRestored: Runnable? = null
 ) : FrameLayout(activity) {
 
     private val host: Activity = activity
@@ -62,10 +64,11 @@ internal class ParticleDismissOverlay(
     private val snapshotView: ImageView?
     private var session: ParticleLayerSession? = null
     private val synchronizedCard = spec.inWindow && cardSource != null && ParticleCardSurfaceHandoff.supported()
+    private val glCard = synchronizedCard && ParticlePresentationPolicy.of(activity).glForeground == true
     private val sourceViews = (cardSources ?: listOfNotNull(cardSource)).toMutableList()
     private var bodyReleased = false
     private var windowSurface: ParticleWindowSurface? = null
-    private var cardHandoff: ParticleCardSurfaceHandoff? = null
+    private var cardHandoff: ParticleCardHandoff? = null
     private var handoffPreparing = false
     private var returningToSource = false
     private var sourceRestored = false
@@ -126,6 +129,7 @@ internal class ParticleDismissOverlay(
         snapshotView = if (isCondense || gesture != null || synchronizedCard) null
             else ImageView(activity).apply {
             setImageBitmap(spec.snapshot)
+            alpha = spec.sourceAlpha
             scaleType = ImageView.ScaleType.FIT_XY
             // 圆角遮罩改在材料线程完成（1.6），本层可能早它一两帧上屏；按同一半径裁自己的轮廓，
             // 遮罩落到位之前也不会露出直角。遮罩到位后二者重合，是幂等的。
@@ -149,7 +153,19 @@ internal class ParticleDismissOverlay(
     }
 
     /** 兜底移除自己的那个任务，首帧到达后要换成新的一份，所以留着引用。 */
-    private val watchdog = Runnable { removeSelf() }
+    private val watchdog = Runnable {
+        ParticlePresentationDiagnostics.of(host)?.event("particle_watchdog_timeout", mapOf(
+            "overlay" to System.identityHashCode(this), "reverse" to spec.reverse,
+            "firstFrame" to firstFramePresented, "progress" to presentedProgress))
+        removeSelf()
+    }
+
+    /** 诊断候选的恢复遮盖另有有界等待，不能被播放阶段的旧看门狗提前撤除。 */
+    internal fun awaitSurfaceRecovery() {
+        if (ParticlePresentationPolicy.of(host).surfaceRecovery != true) return
+        mainHandler.removeCallbacks(watchdog)
+        mainHandler.postDelayed(watchdog, 3000)
+    }
 
     private fun logicalDurationMs(): Long {
         val logicalDuration =
@@ -169,28 +185,34 @@ internal class ParticleDismissOverlay(
         val current = session ?: return
         val window = windowSurface ?: return
         if (finished || returningToSource || !particleVisible) return
-        if (isCondense) {
-            handoff.keepSourceHidden {
-                if (!finished && !returningToSource) current.setVisible(true)
-            }
-        } else handoff.enter { transaction ->
-            if (finished || returningToSource) transaction.close()
-            else window.startCardFrame(current, transaction)
-        }
+        handoff.start(window, current, isCondense)
     }
 
     private val listener = object : ParticleLayerSession.Listener {
         override fun onFirstFramePresented() {
-            mainHandler.post { onFirstFrame() }
+            mainHandler.post {
+                ParticlePresentationDiagnostics.of(host)?.event("particle_first_frame_callback",
+                    mapOf("reverse" to spec.reverse, "overlay" to System.identityHashCode(this@ParticleDismissOverlay)))
+                onFirstFrame()
+            }
         }
 
         override fun onPresented(target: Long, progress: Float) {
             val at = System.nanoTime()
-            mainHandler.post { onPresented(progress, target, at) }
+            mainHandler.post {
+                ParticlePresentationDiagnostics.of(host)?.event("particle_progress_callback", mapOf(
+                    "overlay" to System.identityHashCode(this@ParticleDismissOverlay),
+                    "targetNanos" to target, "callbackNanos" to at, "progress" to progress))
+                onPresented(progress, target, at)
+            }
         }
 
         override fun onFinished(completed: Boolean) {
-            mainHandler.post { onSessionFinished(completed) }
+            mainHandler.post {
+                ParticlePresentationDiagnostics.of(host)?.event("particle_session_finished", mapOf(
+                    "overlay" to System.identityHashCode(this@ParticleDismissOverlay), "completed" to completed))
+                onSessionFinished(completed)
+            }
         }
     }
 
@@ -207,6 +229,7 @@ internal class ParticleDismissOverlay(
             // GPU 资源（历史缓冲 + 前景纹理）会一直挂着。
             prepared?.let { ParticleCreationPrewarm.rejected(it, "宿主窗口没有粒子 Surface") }
             noParticleSurface = true
+            ParticlePresentationDiagnostics.of(host)?.event("particle_surface_failed")
             mainHandler.post { onSessionFinished(false) }
             return
         }
@@ -235,14 +258,16 @@ internal class ParticleDismissOverlay(
         )
         session = created
         windowSurface = window
+        ParticlePresentationDiagnostics.of(host)?.event("particle_backend", mapOf(
+            "backend" to if (window.view is android.view.SurfaceView) "SurfaceView" else "TextureView",
+            "cardHandoff" to if (glCard) "shared_gl" else if (synchronizedCard) "surface_control" else "window",
+            "synchronizedCard" to synchronizedCard, "style" to ParticleStyle.current.name,
+            "overlay" to System.identityHashCode(this), "reverse" to spec.reverse))
         created.setVisible(particleVisible && !synchronizedCard)
         window.add(created)
         if (synchronizedCard) {
             handoffPreparing = true
-            ParticleCardSurfaceHandoff.prepare(checkNotNull(cardSource), spec,
-                window.view as android.view.SurfaceView,
-                onForegroundFailure = { if (!finished) onSessionFinished(false) },
-                sources = sourceViews) { handoff ->
+            val ready: (ParticleCardHandoff?) -> Unit = { handoff ->
                 handoffPreparing = false
                 if (finished) {
                     handoff?.dispose()
@@ -250,6 +275,11 @@ internal class ParticleDismissOverlay(
                 } else if (handoff == null) onSessionFinished(false)
                 else { cardHandoff = handoff; startCardWhenReady() }
             }
+            val failure = { if (!finished) onSessionFinished(false) }
+            if (glCard) ParticleGlCardHandoff.prepare(checkNotNull(cardSource), spec, window,
+                sourceViews, failure, ready)
+            else ParticleCardSurfaceHandoff.prepare(checkNotNull(cardSource), spec,
+                window.view as android.view.SurfaceView, failure, sourceViews, ready)
         }
         // 兜底：GL 线程异常卡住时强制收尾，叠加层绝不常驻。
         // 起步这一段要留够余量：着色器首次编译在慢机上要一秒以上（2026-09-03 实测
@@ -259,6 +289,8 @@ internal class ParticleDismissOverlay(
     }
 
     override fun onDetachedFromWindow() {
+        ParticlePresentationDiagnostics.of(host)?.event("particle_detached",
+            mapOf("overlay" to System.identityHashCode(this)))
         finished = true
         cardHandoff?.dispose()
         if (synchronizedCard && cardSource != null && !returningToSource) {
@@ -277,6 +309,9 @@ internal class ParticleDismissOverlay(
     private fun fireDone() {
         if (doneFired) return
         doneFired = true
+        ParticlePresentationDiagnostics.of(host)?.event("particle_done", mapOf(
+            "overlay" to System.identityHashCode(this), "reverse" to spec.reverse,
+            "progress" to presentedProgress))
         onDone?.run()
     }
 
@@ -339,6 +374,7 @@ internal class ParticleDismissOverlay(
 
     private fun restoreSources() {
         sourceViews.forEach { ParticleCardPose.release(it); it.alpha = 1f }
+        onSourcesRestored?.run()
     }
 
     /** 批量退场已开始补位，解除旧 holder 的所有权，避免收尾改到被复用的新卡片。 */

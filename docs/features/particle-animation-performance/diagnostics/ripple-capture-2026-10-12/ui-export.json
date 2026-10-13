@@ -1,0 +1,11 @@
+{
+  "run": "20261012-220513-508",
+  "observation": "正常",
+  "samples": true,
+  "materials": [
+    "20261012-220513-508/material-1-false.png"
+  ],
+  "zipCRC": true,
+  "observationActionAutomated": true,
+  "meaning": "验证实际应用内入口和导出，不代表用户目视判断"
+}

@@ -1,0 +1,658 @@
+{
+  "samsung": [
+    {
+      "case": "short-drift",
+      "badEvents": [],
+      "events": 5685,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 775,
+          "scrollExtent": 775,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 145
+    },
+    {
+      "case": "short-flow",
+      "badEvents": [],
+      "events": 5648,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 775,
+          "scrollExtent": 775,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 135
+    },
+    {
+      "case": "long-complete",
+      "badEvents": [],
+      "events": 5542,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 25655,
+          "scrollExtent": 1425,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 30
+    },
+    {
+      "case": "long-right",
+      "badEvents": [],
+      "events": 5672,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 25655,
+          "scrollExtent": 1425,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 114
+    },
+    {
+      "case": "long-home",
+      "badEvents": [],
+      "events": 5597,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 25655,
+          "scrollExtent": 1425,
+          "clockTicks": 4,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-resize",
+      "badEvents": [],
+      "events": 5681,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 25655,
+          "scrollExtent": 1207,
+          "clockTicks": 3,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-business",
+      "badEvents": [],
+      "events": 8093,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 25655,
+          "scrollExtent": 1369,
+          "clockTicks": 8,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 375
+    },
+    {
+      "case": "exit-close",
+      "badEvents": [],
+      "events": 341,
+      "parentScrollAfterFinishMs": 287.73588500000005,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-back",
+      "badEvents": [],
+      "events": 349,
+      "parentScrollAfterFinishMs": 292.88645799999995,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-swipeback",
+      "badEvents": [],
+      "events": 592,
+      "parentScrollAfterFinishMs": 282.850469,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "card-drift",
+      "badEvents": [],
+      "events": 1956,
+      "finalState": [],
+      "glFramesWithParticles": 127
+    },
+    {
+      "case": "card-flow",
+      "badEvents": [],
+      "events": 1962,
+      "finalState": [],
+      "glFramesWithParticles": 133
+    },
+    {
+      "case": "transition-drift",
+      "badEvents": [],
+      "events": 1716,
+      "finalState": [],
+      "glFramesWithParticles": 387
+    },
+    {
+      "case": "transition-flow",
+      "badEvents": [],
+      "events": 1866,
+      "finalState": [],
+      "glFramesWithParticles": 433
+    },
+    {
+      "case": "surface-drift",
+      "badEvents": [],
+      "events": 1181,
+      "finalState": [],
+      "glFramesWithParticles": 267
+    },
+    {
+      "case": "surface-flow",
+      "badEvents": [],
+      "events": 1168,
+      "finalState": [],
+      "glFramesWithParticles": 254
+    },
+    {
+      "case": "complex-drift",
+      "badEvents": [],
+      "events": 1184,
+      "finalState": [],
+      "glFramesWithParticles": 267
+    }
+  ],
+  "meizu": [
+    {
+      "case": "short-drift",
+      "badEvents": [],
+      "events": 2853,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 665,
+          "scrollExtent": 665,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 132
+    },
+    {
+      "case": "short-flow",
+      "badEvents": [],
+      "events": 2847,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 665,
+          "scrollExtent": 665,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 115
+    },
+    {
+      "case": "long-complete",
+      "badEvents": [],
+      "events": 2624,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 21232,
+          "scrollExtent": 1528,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 61
+    },
+    {
+      "case": "long-right",
+      "badEvents": [],
+      "events": 2621,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 21232,
+          "scrollExtent": 1528,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 104
+    },
+    {
+      "case": "long-home",
+      "badEvents": [],
+      "events": 2467,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 21232,
+          "scrollExtent": 1528,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-resize",
+      "badEvents": [],
+      "events": 2489,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 21232,
+          "scrollExtent": 1324,
+          "clockTicks": 3,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-business",
+      "badEvents": [],
+      "events": 4794,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 21232,
+          "scrollExtent": 1440,
+          "clockTicks": 9,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 358
+    },
+    {
+      "case": "exit-close",
+      "badEvents": [],
+      "events": 200,
+      "parentScrollAfterFinishMs": 415.5738540000002,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-back",
+      "badEvents": [],
+      "events": 190,
+      "parentScrollAfterFinishMs": 388.0489580000012,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-swipeback",
+      "badEvents": [],
+      "events": 399,
+      "parentScrollAfterFinishMs": 388.28708299999926,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "card-drift",
+      "badEvents": [
+        {
+          "event": "particle_watchdog_timeout",
+          "elapsedMs": 6704.537184,
+          "values": {
+            "overlay": 231104062,
+            "reverse": true,
+            "firstFrame": true,
+            "progress": 0.6630211
+          }
+        }
+      ],
+      "events": 1426,
+      "finalState": [],
+      "glFramesWithParticles": 102
+    },
+    {
+      "case": "card-flow",
+      "badEvents": [],
+      "events": 1340,
+      "finalState": [],
+      "glFramesWithParticles": 73
+    },
+    {
+      "case": "transition-drift",
+      "badEvents": [],
+      "events": 1675,
+      "finalState": [],
+      "glFramesWithParticles": 362
+    },
+    {
+      "case": "transition-flow",
+      "badEvents": [],
+      "events": 1625,
+      "finalState": [],
+      "glFramesWithParticles": 351
+    },
+    {
+      "case": "surface-drift",
+      "badEvents": [],
+      "events": 1234,
+      "finalState": [],
+      "glFramesWithParticles": 256
+    },
+    {
+      "case": "surface-flow",
+      "badEvents": [],
+      "events": 1173,
+      "finalState": [],
+      "glFramesWithParticles": 232
+    },
+    {
+      "case": "complex-drift",
+      "badEvents": [],
+      "events": 1221,
+      "finalState": [],
+      "glFramesWithParticles": 260
+    }
+  ],
+  "oppo": [
+    {
+      "case": "short-drift",
+      "badEvents": [],
+      "events": 2216,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 456,
+          "scrollExtent": 456,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 148
+    },
+    {
+      "case": "short-flow",
+      "badEvents": [],
+      "events": 2131,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 456,
+          "scrollExtent": 456,
+          "clockTicks": 6,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 134
+    },
+    {
+      "case": "long-complete",
+      "badEvents": [],
+      "events": 1719,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 9011,
+          "scrollExtent": 677,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 33
+    },
+    {
+      "case": "long-right",
+      "badEvents": [],
+      "events": 1799,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 9011,
+          "scrollExtent": 677,
+          "clockTicks": 5,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 53
+    },
+    {
+      "case": "long-home",
+      "badEvents": [],
+      "events": 1270,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 9011,
+          "scrollExtent": 677,
+          "clockTicks": 4,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-resize",
+      "badEvents": [],
+      "events": 1167,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 9011,
+          "scrollExtent": 525,
+          "clockTicks": 3,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 0
+    },
+    {
+      "case": "long-business",
+      "badEvents": [],
+      "events": 2876,
+      "finalState": [
+        {
+          "containerAlpha": 0.84,
+          "cardAlpha": 1,
+          "cardTranslationX": 0,
+          "cardAttached": true,
+          "scrollOffset": 0,
+          "scrollRange": 9011,
+          "scrollExtent": 659,
+          "clockTicks": 8,
+          "expectedRestingAlpha": 0.84,
+          "meaning": "view_properties_not_screen_verified"
+        }
+      ],
+      "glFramesWithParticles": 381
+    },
+    {
+      "case": "exit-close",
+      "badEvents": [],
+      "events": 168,
+      "parentScrollAfterFinishMs": 262.55338500000016,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-back",
+      "badEvents": [],
+      "events": 162,
+      "parentScrollAfterFinishMs": 271.26151000000004,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "exit-swipeback",
+      "badEvents": [],
+      "events": 359,
+      "parentScrollAfterFinishMs": 249.9825520000004,
+      "windowDetached": true,
+      "resourcesReleased": true
+    },
+    {
+      "case": "card-drift",
+      "badEvents": [],
+      "events": 1497,
+      "finalState": [],
+      "glFramesWithParticles": 126
+    },
+    {
+      "case": "card-flow",
+      "badEvents": [],
+      "events": 1728,
+      "finalState": [],
+      "glFramesWithParticles": 195
+    },
+    {
+      "case": "transition-drift",
+      "badEvents": [],
+      "events": 1726,
+      "finalState": [],
+      "glFramesWithParticles": 391
+    },
+    {
+      "case": "transition-flow",
+      "badEvents": [],
+      "events": 1849,
+      "finalState": [],
+      "glFramesWithParticles": 437
+    },
+    {
+      "case": "surface-drift",
+      "badEvents": [],
+      "events": 1186,
+      "finalState": [],
+      "glFramesWithParticles": 270
+    },
+    {
+      "case": "surface-flow",
+      "badEvents": [],
+      "events": 1173,
+      "finalState": [],
+      "glFramesWithParticles": 258
+    },
+    {
+      "case": "complex-drift",
+      "badEvents": [],
+      "events": 1192,
+      "finalState": [],
+      "glFramesWithParticles": 270
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "fixed": [
+    {
+      "run": "20261012-195157-715",
+      "device": "MEIZU 20 Inf",
+      "images": {
+        "appearance-1.png": {
+          "meanChannelError": 0.0,
+          "inkMeanChannelError": 0.0,
+          "maxChannelError": 0.0,
+          "identical": true
+        },
+        "settled-capture.png": {
+          "meanChannelError": 0.0,
+          "inkMeanChannelError": 0.0,
+          "maxChannelError": 0.0,
+          "identical": true
+        }
+      }
+    },
+    {
+      "run": "20261012-195158-536",
+      "device": "OPD2515",
+      "images": {
+        "appearance-1.png": {
+          "meanChannelError": 0.34677494770518025,
+          "inkMeanChannelError": 1.3871372664845307,
+          "maxChannelError": 8.0,
+          "identical": false
+        },
+        "settled-capture.png": {
+          "meanChannelError": 0.34677494770518025,
+          "inkMeanChannelError": 1.3871372664845307,
+          "maxChannelError": 8.0,
+          "identical": false
+        }
+      }
+    },
+    {
+      "run": "20261012-195158-304",
+      "device": "SM-S9180",
+      "images": {
+        "appearance-1.png": {
+          "meanChannelError": 0.0,
+          "inkMeanChannelError": 0.0,
+          "maxChannelError": 0.0,
+          "identical": true
+        },
+        "settled-capture.png": {
+          "meanChannelError": 0.0,
+          "inkMeanChannelError": 0.0,
+          "maxChannelError": 0.0,
+          "identical": true
+        }
+      }
+    }
+  ],
+  "beforeRejected": true
+}

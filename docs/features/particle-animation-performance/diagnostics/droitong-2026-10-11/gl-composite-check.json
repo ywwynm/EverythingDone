@@ -1,0 +1,7 @@
+{
+  "renderer": "NVIDIA GeForce RTX 5090/PCIe/SSE2",
+  "checks": 5,
+  "orientation_and_position": "passed",
+  "premultiplied_blending_max_error": 0.0,
+  "meaning": "桌面实际 GLSL 绘制，未验证 Android GLUtils 上传及卓易通屏幕合成"
+}

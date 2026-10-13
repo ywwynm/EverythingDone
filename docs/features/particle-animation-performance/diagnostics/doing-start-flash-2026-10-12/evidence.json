@@ -1,0 +1,250 @@
+{
+  "sourceSha256": "60a7da17d66c4afadbf4c9e963e82b9b60ec0a01205f2b12b095ca9cdf7f26e7",
+  "bytes": 3868008,
+  "reportsInExport": 12,
+  "selectedRun": "20261012-094258-815",
+  "options": {
+    "rootForeground": false,
+    "dialogMode": "CONTENT",
+    "images": true,
+    "glForeground": true,
+    "synchronizedGlHandoff": false,
+    "surfaceRecovery": true,
+    "opaqueGlHandoff": true,
+    "fastOpaqueHandoff": true,
+    "unified": true,
+    "fixture": true
+  },
+  "metadata": {
+    "versionName": "2.0.0",
+    "versionCode": 43,
+    "build": "202610120131",
+    "visibleAndroidApi": 36,
+    "visibleAndroidRelease": "16",
+    "visibleManufacturer": "HUAWEI",
+    "visibleModel": "VOL-AL00",
+    "visibleBuild": "System 104.3.5.001(00HP)",
+    "testerEnvironmentNote": "",
+    "buildInfoMeaning": "应用可见信息，不能证明宿主设备与卓易通版本",
+    "particleStyle": "DRIFT",
+    "fixedSeed": 42017,
+    "systemAnimationsEnabled": true,
+    "screenEvidence": "用户观察；缓冲抓图与提交回调不能证明最终合成正确"
+  },
+  "observation": "闪烁或残影",
+  "images": {
+    "gl-window-cleanup-103033939.png": {
+      "size": [
+        302,
+        512
+      ],
+      "nonzeroAlphaPixels": 0,
+      "alphaMax": 0,
+      "opaquePixels": 0
+    },
+    "gl-window-enter-103033939.png": {
+      "size": [
+        302,
+        512
+      ],
+      "nonzeroAlphaPixels": 23254,
+      "alphaMax": 214,
+      "opaquePixels": 0
+    },
+    "gl-window-particles-card-119559554-54833340413599.png": {
+      "size": [
+        302,
+        512
+      ],
+      "nonzeroAlphaPixels": 23216,
+      "alphaMax": 234,
+      "opaquePixels": 0
+    },
+    "gl-window-return-103033939.png": {
+      "size": [
+        302,
+        512
+      ],
+      "nonzeroAlphaPixels": 23254,
+      "alphaMax": 214,
+      "opaquePixels": 0
+    }
+  },
+  "staticEntryReturnMaxError": 0,
+  "presentationBasisCounts": {
+    "driver_invalid_estimate": 52
+  },
+  "lifecycle": [
+    {
+      "event": "swipe_activated",
+      "elapsedMs": 1457.089063,
+      "values": {
+        "progress": 0.03457896
+      }
+    },
+    {
+      "event": "surface_alpha_transaction",
+      "elapsedMs": 1497.256563,
+      "values": {
+        "stage": "gl_prepare_hidden",
+        "alpha": 0
+      }
+    },
+    {
+      "event": "window_switch_requested",
+      "elapsedMs": 1497.4825,
+      "values": {
+        "stage": "gl_prepare_hidden",
+        "groupAdded": true,
+        "changed": true,
+        "queuedOnDraw": true
+      }
+    },
+    {
+      "event": "window_switch_committed",
+      "elapsedMs": 1531.361563,
+      "values": {
+        "stage": "gl_prepare_hidden",
+        "meaning": "transaction_committed_not_screen_verified"
+      }
+    },
+    {
+      "event": "gl_frame_layers",
+      "elapsedMs": 1541.6225,
+      "values": {
+        "layers": [
+          "card-119559554-54833340413599"
+        ],
+        "particleSessions": 0,
+        "captures": [
+          "gl-window-enter-103033939"
+        ],
+        "meaning": "gl_output_not_final_screen"
+      }
+    },
+    {
+      "event": "gl_card_source_hidden",
+      "elapsedMs": 1573.924844,
+      "values": {
+        "handoff": "103033939",
+        "reverse": false
+      }
+    },
+    {
+      "event": "surface_alpha_transaction",
+      "elapsedMs": 1574.082188,
+      "values": {
+        "stage": "gl_show_native_hide",
+        "alpha": 1
+      }
+    },
+    {
+      "event": "window_switch_requested",
+      "elapsedMs": 1574.575938,
+      "values": {
+        "stage": "gl_show_native_hide",
+        "groupAdded": true,
+        "changed": true,
+        "queuedOnDraw": true
+      }
+    },
+    {
+      "event": "window_switch_committed",
+      "elapsedMs": 1597.910313,
+      "values": {
+        "stage": "gl_show_native_hide",
+        "meaning": "transaction_committed_not_screen_verified"
+      }
+    },
+    {
+      "event": "gl_frame_layers",
+      "elapsedMs": 1611.008125,
+      "values": {
+        "layers": [],
+        "particleSessions": 1,
+        "captures": [
+          "gl-window-particles-card-119559554-54833340413599"
+        ],
+        "meaning": "gl_output_not_final_screen"
+      }
+    },
+    {
+      "event": "particle_first_frame_callback",
+      "elapsedMs": 1638.194219,
+      "values": {
+        "reverse": false,
+        "overlay": 220164586
+      }
+    },
+    {
+      "event": "swipe_dispose",
+      "elapsedMs": 3175.334688,
+      "values": {
+        "presented": true,
+        "progress": 0.012576322,
+        "requested": 0.0025936563,
+        "active": true,
+        "finishing": false
+      }
+    },
+    {
+      "event": "gl_frame_layers",
+      "elapsedMs": 3183.190938,
+      "values": {
+        "layers": [
+          "card-119559554-54833340413599"
+        ],
+        "particleSessions": 0,
+        "captures": [
+          "gl-window-return-103033939"
+        ],
+        "meaning": "gl_output_not_final_screen"
+      }
+    },
+    {
+      "event": "gl_card_source_restored",
+      "elapsedMs": 3223.602344,
+      "values": {
+        "handoff": "103033939"
+      }
+    },
+    {
+      "event": "surface_alpha_transaction",
+      "elapsedMs": 3223.749531,
+      "values": {
+        "stage": "native_show_gl_hide",
+        "alpha": 0
+      }
+    },
+    {
+      "event": "window_switch_requested",
+      "elapsedMs": 3224.171094,
+      "values": {
+        "stage": "native_show_gl_hide",
+        "groupAdded": true,
+        "changed": true,
+        "queuedOnDraw": true
+      }
+    },
+    {
+      "event": "window_switch_committed",
+      "elapsedMs": 3257.487344,
+      "values": {
+        "stage": "native_show_gl_hide",
+        "meaning": "transaction_committed_not_screen_verified"
+      }
+    },
+    {
+      "event": "gl_frame_layers",
+      "elapsedMs": 3268.854688,
+      "values": {
+        "layers": [],
+        "particleSessions": 0,
+        "captures": [
+          "gl-window-cleanup-103033939"
+        ],
+        "meaning": "gl_output_not_final_screen"
+      }
+    }
+  ]
+}

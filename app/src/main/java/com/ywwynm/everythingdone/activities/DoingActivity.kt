@@ -54,6 +54,8 @@ import com.ywwynm.everythingdone.utils.DisplayUtil
 import com.ywwynm.everythingdone.utils.ThingAnimationPreferences
 import com.ywwynm.everythingdone.views.FloatingActionButton
 import com.ywwynm.everythingdone.views.particledismiss.ParticleSwipeAnimator
+import com.ywwynm.everythingdone.views.particledismiss.ParticleDoingPage
+import com.ywwynm.everythingdone.views.particledismiss.ParticlePresentationPolicy
 
 import java.util.Collections
 
@@ -119,17 +121,40 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private var mInfinityHandler: Handler? = null
 
     private var mServiceUnbind: Boolean = false
+    private var mParticlePage: ParticleDoingPage? = null
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 34 && !isFinishing && useParticlePageContent())
+            mParticlePage = ParticleDoingPage(this)
+    }
+
+    /** 长短卡片共用动态整页绘制；未选择粒子时不增加捕获工作。 */
+    protected open fun useParticlePageContent(): Boolean =
+        useSwipeParticle() && ParticlePresentationPolicy.of(this).unified
+
+    override fun finish() {
+        mParticlePage?.beginExit()
+        super.finish()
+    }
+
+    override fun onPause() {
+        if (isFinishing) mParticlePage?.beginExit()
+        super.onPause()
+    }
 
     override fun getLayoutResource(): Int = R.layout.activity_doing
 
     override fun onStart() {
         super.onStart()
+        mParticlePage?.setWindowVisible(true)
         if (mDoingBinder != null) {
             mDoingBinder!!.setStartPlayTime(-1L)
         }
     }
 
     override fun onStop() {
+        mParticlePage?.setWindowVisible(false)
         super.onStop()
         Log.i(TAG, "onStop")
         if (!DeviceUtil.isScreenOn(this)) {
@@ -141,6 +166,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onDestroy() {
+        mParticlePage?.close()
+        mParticlePage = null
         super.onDestroy()
         unregisterReceiver(mReceiver)
         if (mInfinityHandler != null) {
@@ -288,7 +315,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         })
     }
 
-    private fun useSwipeParticle(): Boolean =
+    protected open fun useSwipeParticle(): Boolean =
         ThingAnimationPreferences.swipe(this) ==
             ThingAnimationPreferences.SWIPE_PARTICLE
 
@@ -701,6 +728,12 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private inner class CardTouchCallback : ItemTouchHelper.Callback() {
 
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && viewHolder != null && useSwipeParticle())
+                mSwipeParticleAnimator.onSwipeSelected(viewHolder.itemView)
+        }
+
         override fun getMovementFlags(
             recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder
         ): Int {
@@ -727,7 +760,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             actionState: Int, isCurrentlyActive: Boolean
         ) {
             var particleSwipe = false
-            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && useSwipeParticle()) {
+            val particleEnabled = useSwipeParticle()
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && particleEnabled) {
                 // 先接管卡片姿态，准备期间保留原位真实卡片，首个粒子帧与它同帧切换。
                 particleSwipe = mSwipeParticleAnimator.draw(viewHolder.itemView, dX)
             }
@@ -736,16 +770,18 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             if (actionState != ItemTouchHelper.ACTION_STATE_SWIPE) return
             val v: View = mRecyclerView!!
             if (particleSwipe) {
-                // 列表的常驻浓度已经烤进快照，这一层还原成不透明；否则准备期补画的那一两帧
-                // 会被乘两次，粒子层又完全乘不到。
-                v.alpha = 1f
+                // 真实卡片继续由原容器控制浓度；GL 在最终合成时使用同一祖先浓度。
+                // 准备期、回弹及恢复时都不把透明度临时转移到子 View。
                 return
             }
             val displayWidth = DisplayUtil.getDisplaySize(mApp).x
+            // 取消后 ItemTouchHelper 仍可能以 dX=0 绘制恢复帧，晚于 clearView。
+            // 粒子路径的回退也必须回到常驻浓度，不能再把列表写成完全不透明。
+            val restingAlpha = if (particleEnabled) THING_CARD_CONTAINER_ALPHA else 1f
             if (dX < 0) {
-                v.alpha = 1.0f + dX / v.right
+                v.alpha = restingAlpha * (1.0f + dX / v.right)
             } else {
-                v.alpha = 1.0f - dX / (displayWidth - v.left)
+                v.alpha = restingAlpha * (1.0f - dX / (displayWidth - v.left))
             }
         }
 
@@ -758,7 +794,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         }
     }
 
-    private fun finishThingBySwipe() {
+    protected open fun finishThingBySwipe() {
         val pair: Pair<Thing, Int> = App.getThingAndPosition(mApp, mThing!!.id, -1)
         DoingService.sStopReason = DoingRecord.STOP_REASON_FINISH
         if (mThing!!.type == Thing.HABIT) {

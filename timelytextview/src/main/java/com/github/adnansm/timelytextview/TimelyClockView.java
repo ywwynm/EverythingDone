@@ -82,6 +82,7 @@ public class TimelyClockView extends View {
     static final class Shape {
         float[][] outer;
         float[][][] holes;
+        int revision;
     }
 
     static final class RawGlyph {
@@ -98,7 +99,6 @@ public class TimelyClockView extends View {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path path = new Path();
     private final RectF layerBounds = new RectF();
     private final RectF stableInkBounds = new RectF();
     private final DigitSlot[] slots = new DigitSlot[DIGIT_COUNT];
@@ -643,15 +643,25 @@ public class TimelyClockView extends View {
 
     private void drawDigit(int slotIndex, Canvas canvas, float cx, float top,
                            float contentH, boolean glow) {
-        Shape shape = slots[slotIndex].shape;
+        DigitSlot slot = slots[slotIndex];
+        Shape shape = slot.shape;
         if (shape == null || shape.outer == null) return;
         float glyphH = contentH * GLYPH_HEIGHT_FRACTION;
         float oy = top + contentH * 0.86f - glyphH;
-        path.reset();
-        path.setFillType(Path.FillType.EVEN_ODD);
-        addRing(path, shape.outer, cx, oy, glyphH);
-        if (shape.holes != null) {
-            for (float[][] hole : shape.holes) addRing(path, hole, cx, oy, glyphH);
+        // 轮廓光和字形使用相同路径；没有发生形变的数字也沿用已有轮廓。
+        // 插值器原地更新 Shape，因此同时核对版本，不能只比较对象引用。
+        Path path = slot.path;
+        if (slot.pathShape != shape || slot.pathRevision != shape.revision ||
+                slot.pathX != cx || slot.pathY != oy || slot.pathScale != glyphH) {
+            path.reset();
+            path.setFillType(Path.FillType.EVEN_ODD);
+            addRing(path, shape.outer, cx, oy, glyphH);
+            if (shape.holes != null) {
+                for (float[][] hole : shape.holes) addRing(path, hole, cx, oy, glyphH);
+            }
+            slot.pathShape = shape;
+            slot.pathRevision = shape.revision;
+            slot.pathX = cx; slot.pathY = oy; slot.pathScale = glyphH;
         }
         if (glow) {
             paint.setStyle(Paint.Style.STROKE);
@@ -899,6 +909,7 @@ public class TimelyClockView extends View {
                     hc[i][1] = ha[i][1] + t * (hb[i][1] - ha[i][1]);
                 }
             }
+            cache.revision++;
             return cache;
         }
     }
@@ -961,5 +972,9 @@ public class TimelyClockView extends View {
     private static final class DigitSlot {
         Shape shape;
         ValueAnimator animator;
+        final Path path = new Path();
+        Shape pathShape;
+        int pathRevision;
+        float pathX, pathY, pathScale;
     }
 }

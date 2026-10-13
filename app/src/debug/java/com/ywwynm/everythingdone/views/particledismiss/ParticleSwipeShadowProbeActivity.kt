@@ -32,6 +32,8 @@ import java.io.File
 
 /** 虚构列表复用生产手势和回位管线；不访问记事 DAO、不修改任何偏好。 */
 class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
+    private var presentationReport: ParticlePresentationReports.Report? = null
+    private var metricsAttached = false
     private companion object {
         var probeOwner: ParticleSwipeShadowProbeActivity? = null
     }
@@ -59,7 +61,11 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
     private var delegatedFabClicks = 0
     private var gestureEnded = false
     private val metricsListener = Window.OnFrameMetricsAvailableListener { _, frame, dropped ->
-        windowFrames.put(JSONArray(listOf(frame.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP),
+        val report = presentationReport
+        if (report != null) report.event("window_frame", mapOf("intendedVsync" to frame.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP),
+            "durationNanos" to frame.getMetric(FrameMetrics.TOTAL_DURATION), "droppedCallbacks" to dropped,
+            "meaning" to "window_only_not_particle_surface"))
+        else windowFrames.put(JSONArray(listOf(frame.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP),
             frame.getMetric(FrameMetrics.TOTAL_DURATION), frame.getMetric(FrameMetrics.GPU_DURATION),
             frame.getMetric(FrameMetrics.DEADLINE), dropped.toLong())))
     }
@@ -73,12 +79,16 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        presentationReport = ParticlePresentationReports.bind(this)
+        if (intent.hasExtra(ParticlePresentationReports.EXTRA_RUN) &&
+            (presentationReport == null || android.os.Build.VERSION.SDK_INT < 34)) { finish(); return }
         probeOwner = this
-        ParticleCardSurfaceHandoff.forceTextureForTests = intent.getBooleanExtra("force_texture", false)
+        ParticleCardSurfaceHandoff.forceTextureForTests = presentationReport == null && intent.getBooleanExtra("force_texture", false)
         ParticleCardSurfaceHandoff.seedForTests = 42017
         ParticleForegroundSurface.renderedFramesForTests = 0
         pixelSampling = !intent.getBooleanExtra("performance_only", false)
         window.addOnFrameMetricsAvailableListener(metricsListener, main)
+        metricsAttached = true
         val run = intent.getStringExtra("run_id") ?: "latest"
         require(run.matches(Regex("[a-zA-Z0-9_-]{1,80}")))
         output = File(getExternalFilesDir(null), "swipe-shadow-probe/$run").apply { mkdirs() }
@@ -111,14 +121,17 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
             setPadding(dp(48), dp(120), dp(48), dp(48))
             clipToPadding = false
         }
-        returning = ThingSwipeReturn(this, list)
+        returning = ThingSwipeReturn(this, list, alwaysParticles = presentationReport != null)
         list.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun getItemCount() = 1
+            override fun getItemCount() = intent.getIntExtra("card_count", 1).coerceIn(1, 3)
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
                 val card = InterceptTouchCardView(parent.context).apply {
                     val requestedWidth = intent.getIntExtra("card_width_dp", 0)
                     layoutParams = RecyclerView.LayoutParams(
-                        if (requestedWidth > 0) dp(requestedWidth) else ViewGroup.LayoutParams.MATCH_PARENT, dp(180))
+                        if (requestedWidth > 0) dp(requestedWidth) else ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(intent.getIntExtra("card_height_dp", 180).coerceIn(120, 540))).apply {
+                            if (itemCount > 1) bottomMargin = dp(24)
+                        }
                     radius = dp(12).toFloat()
                     cardElevation = resources.getDimension(R.dimen.thing_card_normal_elevation)
                     setCardBackgroundColor(Color.rgb(243, 189, 112))
@@ -133,10 +146,20 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
                 }
                 return object : RecyclerView.ViewHolder(card) {}
             }
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                holder.itemView.contentDescription = if (position == 0) "虚构阴影测试卡片" else "背景阴影测试卡片 $position"
+                ((holder.itemView as ViewGroup).getChildAt(0) as TextView).text = if (position == 0)
+                    "虚构阴影测试卡片\n左滑后仍留在列表\n不读取或修改现有记事" else "保持静止的背景卡片 $position\n观察动画首尾的阴影强度"
+            }
         }
         val swipeFlags = ItemTouchHelper.LEFT or if (allowRight) ItemTouchHelper.RIGHT else 0
         ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, swipeFlags) {
+            override fun onSelectedChanged(holder: RecyclerView.ViewHolder?, state: Int) {
+                super.onSelectedChanged(holder, state)
+                presentationReport?.event("swipe_selected", mapOf("state" to state))
+                if (holder != null && state == ItemTouchHelper.ACTION_STATE_SWIPE)
+                    swipe.onSwipeSelected(holder.itemView)
+            }
             override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder) = false
             override fun onSwiped(holder: RecyclerView.ViewHolder, direction: Int) {
                 val done = {
@@ -161,9 +184,13 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         }).attachToRecyclerView(list)
         val root = FrameLayout(this)
         root.addView(list, FrameLayout.LayoutParams(-1, -1))
+        if (intent.getBooleanExtra("dynamic_background", false)) {
+            root.addView(ParticleDynamicBackdropProbe(this), FrameLayout.LayoutParams(-1, dp(64),
+                android.view.Gravity.BOTTOM).apply { bottomMargin = dp(112) })
+        }
         if (intent.getBooleanExtra("with_chrome", false)) {
             if (intent.getBooleanExtra("normal_chrome", false))
-                ParticleChromeProbe.addNormal(root, "虚构顶栏，保留真实渐变阴影", 144)
+                ParticleChromeProbe.addNormal(root, "虚构顶栏，保留真实渐变阴影", if (presentationReport != null) 80 else 144)
             else ParticleChromeProbe.add(root, "虚构顶栏，保留真实渐变阴影", 144)
         }
         if (intent.getBooleanExtra("with_fab", false)) {
@@ -180,14 +207,45 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
                 }
             }.also { root.addView(it, FrameLayout.LayoutParams(dp(56), dp(56))) }
         }
+        presentationReport?.let { report ->
+            list.setPadding(dp(32), dp(180), dp(32), dp(100))
+            val header = layoutInflater.inflate(R.layout.include_activity_header_things, root, false)
+            header.findViewById<TextView>(R.id.tv_header_title).text = "虚构首页标题"
+            header.findViewById<TextView>(R.id.tv_header_subtitle).text = "观察标题、图标和 FAB"
+            root.addView(header)
+            root.findViewById<androidx.appcompat.widget.Toolbar>(R.id.actionbar)?.apply {
+                title = "前景交接对照"
+                setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
+                setNavigationOnClickListener { android.widget.Toast.makeText(context, "示例菜单仍可响应", 0).show() }
+                menu.add("示例搜索").setIcon(android.R.drawable.ic_menu_search).apply {
+                    setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS)
+                    setOnMenuItemClickListener { report.event("toolbar_clicked"); true }
+                }
+            }
+            root.addView(android.widget.Button(this).apply {
+                text = "${report.label}\n返回检查页记录结果"
+                contentDescription = "${report.id} ${report.label}"
+                setOnClickListener { finish() }
+            }, FrameLayout.LayoutParams(-1, -2, android.view.Gravity.BOTTOM))
+            report.event("card_fixture_ready", mapOf("api" to android.os.Build.VERSION.SDK_INT,
+                "includes" to "actionbar,rl_header,actionbar_shadow,view_status_bar,fab_create"))
+        }
         setContentView(root)
         list.post {
             startedAt = SystemClock.uptimeMillis()
-            val card = list.findViewHolderForAdapterPosition(0)!!.itemView
+            val card = list.findViewHolderForAdapterPosition(0)?.itemView ?: return@post
             val at = IntArray(2).also { card.getLocationOnScreen(it) }
+            val rootAt = IntArray(2)
+            if (presentationReport != null) root.getLocationOnScreen(rootAt)
             fab?.let {
-                it.x = (at[0] + card.width - dp(40)).toFloat()
-                it.y = (at[1] + card.height - dp(40)).toFloat()
+                it.x = (at[0] - rootAt[0] + card.width - dp(40)).toFloat()
+                it.y = (at[1] - rootAt[1] + card.height - dp(40)).toFloat()
+            }
+            if (presentationReport != null) {
+                presentationReport?.event("card_layout", mapOf("x" to at[0], "y" to at[1],
+                    "width" to card.width, "height" to card.height,
+                    "backend" to if (ParticleCardSurfaceHandoff.supported()) "SurfaceView" else "TextureView"))
+                return@post
             }
             val parents = JSONArray()
             var ancestor: View? = card
@@ -220,8 +278,10 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (::swipe.isInitialized && ::list.isInitialized) {
-            inputs.put(JSONArray(listOf(SystemClock.uptimeMillis() - startedAt,
+            if (presentationReport == null) inputs.put(JSONArray(listOf(SystemClock.uptimeMillis() - startedAt,
                 event.actionMasked, event.rawX, event.rawY)))
+            else if (event.actionMasked != MotionEvent.ACTION_MOVE) presentationReport?.event("input",
+                mapOf("action" to event.actionMasked, "x" to event.rawX, "y" to event.rawY))
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 gestureEnded = false
                 val card = list.findViewHolderForAdapterPosition(0)?.itemView
@@ -229,7 +289,10 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
                     val bounds = Rect()
                     it.getGlobalVisibleRect(bounds) && bounds.contains(event.rawX.toInt(), event.rawY.toInt())
                 } ?: false
-                if (card != null && !overFab) swipe.warm(card, event)
+                val cardBounds = Rect()
+                val overCard = presentationReport == null || (card?.getGlobalVisibleRect(cardBounds) == true &&
+                    cardBounds.contains(event.rawX.toInt(), event.rawY.toInt()))
+                if (card != null && !overFab && overCard) swipe.warm(card, event)
                 finishAt = Long.MAX_VALUE
                 if (fab != null && !fabMotionStarted && intent.getBooleanExtra("fab_motion", false)) {
                     fabMotionStarted = true
@@ -338,9 +401,19 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         list.postOnAnimation { sample() }
     }
 
+    override fun onStop() {
+        if (presentationReport != null) {
+            if (::swipe.isInitialized) swipe.reset()
+            if (::returning.isInitialized) returning.cancel()
+            ParticleDismissOverlay.activeIn(this).toList().forEach { it.release() }
+            presentationReport?.event("activity_stopped"); presentationReport?.save()
+        }
+        super.onStop()
+    }
+
     override fun onDestroy() {
         stopped = true
-        window.removeOnFrameMetricsAvailableListener(metricsListener)
+        if (metricsAttached) window.removeOnFrameMetricsAvailableListener(metricsListener)
         if (probeOwner === this) {
             probeOwner = null
             ParticleCardSurfaceHandoff.forceTextureForTests = false
@@ -351,5 +424,7 @@ class ParticleSwipeShadowProbeActivity : AppCompatActivity() {
         if (::swipe.isInitialized) swipe.reset()
         if (::returning.isInitialized) returning.cancel()
         super.onDestroy()
+        presentationReport?.event("activity_destroyed"); presentationReport?.save()
+        ParticlePresentationDiagnostics.unbind(this)
     }
 }

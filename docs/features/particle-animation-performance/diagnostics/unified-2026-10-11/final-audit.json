@@ -1,0 +1,414 @@
+{
+  "runs": [
+    {
+      "device": "samsung",
+      "folder": "unified-drift-card-cancel-180-false-1791732062",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 1
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-flow-card-complete-180-false-1791732081",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-drift-card-fastcomplete200-180-false-1791732100",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-drift-complex-complete-180-true-1791732118",
+      "scene": "复杂控件",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-drift-transition-complete-180-true-1791732145",
+      "scene": "连续弹窗",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-drift-marker-complete-180-true-1791732173",
+      "scene": "挂载色块",
+      "maxSessions": 0,
+      "backends": [
+        "SurfaceView / GL 色块"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "harness\\diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-business-1791732319",
+      "scene": "实际页面 DetailActivity",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "samsung",
+      "folder": "unified-home-1791732301",
+      "scene": "实际页面 ThingsActivity",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 1
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-drift-card-cancel-180-false-1791732259",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 1
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-flow-card-complete-180-false-1791732272",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-drift-card-fastcomplete200-180-false-1791732285",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-drift-complex-complete-180-true-1791732299",
+      "scene": "复杂控件",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-drift-transition-complete-180-true-1791732321",
+      "scene": "连续弹窗",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-drift-marker-complete-180-true-1791732345",
+      "scene": "挂载色块",
+      "maxSessions": 0,
+      "backends": [
+        "SurfaceView / GL 色块"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "harness\\diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-business-1791732753",
+      "scene": "实际页面 DetailActivity",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "meizu",
+      "folder": "unified-home-1791732242",
+      "scene": "实际页面 ThingsActivity",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 1
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-drift-card-cancel-180-false-1791732046",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-flow-card-complete-180-false-1791732058",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-drift-card-fastcomplete200-180-false-1791732069",
+      "scene": "卡片",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 2
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-drift-complex-complete-180-true-1791732080",
+      "scene": "复杂控件",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-drift-transition-complete-180-true-1791732101",
+      "scene": "连续弹窗",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-drift-marker-complete-180-true-1791732128",
+      "scene": "挂载色块",
+      "maxSessions": 0,
+      "backends": [
+        "SurfaceView / GL 色块"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "harness\\diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-business-1791732355",
+      "scene": "实际页面 DetailActivity",
+      "maxSessions": 2,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [
+        {
+          "reason": "buffers_ready"
+        }
+      ],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 0
+    },
+    {
+      "device": "oppo",
+      "folder": "unified-home-1791732744",
+      "scene": "实际页面 ThingsActivity",
+      "maxSessions": 1,
+      "backends": [
+        "SurfaceView"
+      ],
+      "failures": [],
+      "recovery": [],
+      "validZips": [
+        "diagnostics.zip"
+      ],
+      "nativeDynamicBackgroundEvents": 1
+    }
+  ],
+  "tests": [
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleCaptureRouteTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleGestureProgressTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlBitmapLayerTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleGlHandoffStateTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleOnceResultTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.ParticleSurfaceReadyBarrierTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "class": "com.ywwynm.everythingdone.views.particledismiss.PresentationEventBufferTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0
+    }
+  ]
+}

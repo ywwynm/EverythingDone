@@ -1,0 +1,17 @@
+{
+  "renderer": "NVIDIA GeForce RTX 5090/PCIe/SSE2",
+  "checks": 8,
+  "old_overlap_rgb_darkening": [
+    41,
+    63
+  ],
+  "stage_max_pixel_errors": {
+    "隐藏 Surface 准备缓冲": 0,
+    "GL 显示且原 View 隐藏": 0,
+    "原 View 恢复且 Surface 隐藏": 0,
+    "清空后恢复空 Surface": 0,
+    "恢复期间局部覆盖": 0,
+    "有效色块提交后撤盖": 0
+  },
+  "meaning": "执行实际 GLSL，验证给定可见性与覆盖状态的像素；未验证 Android 同步事务或卓易通屏幕"
+}

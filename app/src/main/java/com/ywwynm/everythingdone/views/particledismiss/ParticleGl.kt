@@ -87,6 +87,13 @@ internal object ParticleGl {
 
     var shared: ParticleMicroflakeRenderer.Shared? = null
         private set
+    private var presentation: ParticleGlBitmapRenderer? = null
+
+    /** 与 EGL 上下文一起常驻，各窗口只持有自己的纹理，不在第一次交接时反复编译。 */
+    fun presentationRenderer(assets: AssetManager): ParticleGlBitmapRenderer {
+        check(ensureContextReady())
+        return presentation ?: ParticleGlBitmapRenderer(assets).also { presentation = it }
+    }
 
     @Volatile private var clockAttached = false
 
@@ -311,11 +318,11 @@ internal object ParticleGl {
      * 没有会话的窗口撤掉投票（见 [ParticleWindowSurface.voteFrameRate]）。
      */
     private fun updateFrameRate() {
-        val busy = windows.filter { it.busy }
+        val busy = windows.filter { it.busy || it.pageContentActive }
         val high = busy.isNotEmpty() && busy.all { it.prefersHighFrameRate }
         ParticleClock.setHighRate(high)
         for (window in windows) window.voteFrameRate(when {
-            !window.busy -> 0f
+            !window.busy && !window.pageContentActive -> 0f
             high -> ParticleWindowSurface.HIGH_FRAME_RATE
             else -> ParticleWindowSurface.VOTED_FRAME_RATE
         })

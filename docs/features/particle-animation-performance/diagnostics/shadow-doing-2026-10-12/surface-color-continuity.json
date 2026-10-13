@@ -1,0 +1,16 @@
+[
+  {
+    "video": "tmp/particle-shadow-media-20261011/meizu/unified-flow-surface-complete-180-false-1791735440",
+    "decodedFrames": 542,
+    "stableColorFrames": 44,
+    "possibleBriefGaps": [],
+    "method": "顺序解码；检查两端稳定色块之间小于150ms且色区减至60%以下的中断，不代表所有像素无闪烁"
+  },
+  {
+    "video": "tmp/particle-shadow-media-20261011/samsung/unified-flow-surface-complete-180-false-1791735461",
+    "decodedFrames": 466,
+    "stableColorFrames": 180,
+    "possibleBriefGaps": [],
+    "method": "顺序解码；检查两端稳定色块之间小于150ms且色区减至60%以下的中断，不代表所有像素无闪烁"
+  }
+]
