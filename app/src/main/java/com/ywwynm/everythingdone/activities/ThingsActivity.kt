@@ -9028,14 +9028,7 @@ class ThingsActivity :
     }
 
     private fun applyFinishScope(things: List<Thing>) {
-        if (things.isEmpty()) return
-        if (mModeManager!!.getCurrentMode() == ModeManager.SELECTING) {
-            applyUnionStateChange(things, mApp!!.getStatus(), Thing.FINISHED)
-            return
-        }
-        finishNewItemShiningBorderAnimationIfNeeded()
-        mThingManager!!.finishThings(things, reload = false)
-        refreshHomeAfterScopeStateChange()
+        applyUnionStateChange(things, mApp!!.getStatus(), Thing.FINISHED)
     }
 
     private fun refreshHomeAfterScopeStateChange() {
@@ -9079,8 +9072,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.unfinishThings(things, reload = false)
-                refreshHomeAfterScopeStateChange()
+                applyUnionStateChange(things, Def.ThingStatus.FINISHED, Thing.UNDERWAY)
             }
         })
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)
@@ -9114,8 +9106,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.restoreTrashedThings(things, reload = false)
-                refreshHomeAfterScopeStateChange()
+                applyUnionStateChange(things, Def.ThingStatus.DELETED, Thing.UNDERWAY)
             }
         })
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)
@@ -9153,8 +9144,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.trashThings(things, reload = false)
-                refreshHomeAfterScopeStateChange()
+                applyUnionStateChange(things, Def.ThingStatus.FINISHED, Thing.DELETED)
             }
         })
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)
@@ -9196,8 +9186,7 @@ class ThingsActivity :
         adf.setConfirmText(wording.confirmText)
         adf.setConfirmListener(object : AlertDialogFragment.ConfirmListener {
             override fun onConfirm() {
-                mThingManager!!.deleteThingsForever(things, reload = false)
-                refreshHomeAfterScopeStateChange()
+                applyUnionStateChange(things, Def.ThingStatus.DELETED, Thing.DELETED_FOREVER)
             }
         })
         adf.show(supportFragmentManager, AlertDialogFragment.TAG)

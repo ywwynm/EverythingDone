@@ -1,11 +1,12 @@
 from pathlib import Path
 import subprocess, time, sys, json, threading
+sys.stdout.reconfigure(encoding='utf-8')
 
 ADB = 'E:/AndroidSDK/platform-tools/adb.exe'
 PKG = 'com.ywwynm.everythingdone.batchvalidation'
 ROOT = next(p for p in Path(__file__).resolve().parents if (p / 'gradlew.bat').is_file()) / 'tmp/selection-transition-20261013'
 serial, run = sys.argv[1:3]
-assert serial in ['R5CW20BLNKL', '9018f404', '192.168.100.67:42641']
+assert serial in ['R5CW20BLNKL', '3B1629006YC00000', '192.168.100.67:40807']
 options = dict(arg.split('=', 1) for arg in sys.argv[3:])
 out = ROOT / run
 out.mkdir(exist_ok=True)
@@ -14,11 +15,11 @@ def adb(*args, **kw):
     return subprocess.run([ADB, '-s', serial, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw)
 
 # 唯一允许清数据的包为此脚本常量，不接受用户包名参数。
-if serial == '9018f404':
+if serial == '3B1629006YC00000':
     assert adb('shell', 'am', 'force-stop', PKG).returncode == 0
 else:
     assert adb('shell', 'pm', 'clear', PKG).stdout.strip() == b'Success'
-if options.get('audit_appearance') == 'true' and serial != '9018f404':
+if options.get('audit_appearance') == 'true' and serial != '3B1629006YC00000':
     for permission in ['READ_MEDIA_IMAGES', 'READ_MEDIA_VIDEO', 'READ_MEDIA_AUDIO']:
         granted = adb('shell', 'pm', 'grant', PKG, 'android.permission.' + permission)
         assert granted.returncode == 0, granted.stderr.decode(errors='replace')
@@ -73,8 +74,10 @@ with (out / 'instrument.log').open('wb') as log:
         adb('pull', f'/sdcard/{run}.mp4', str(out/'screen.mp4'))
         adb('shell', 'rm', f'/sdcard/{run}.mp4')
 adb('pull', remote + '/.', str(out))
-print((out/'instrument.log').read_text(errors='replace'))
+print((out/'instrument.log').read_text(encoding='utf-8', errors='replace'))
 if (out/'result.json').exists():
     data = json.loads((out/'result.json').read_text())
     print({k:v for k,v in data.items() if k!='frames'})
     print('frames',len(data.get('frames',[])))
+    sys.exit(0 if data.get('ok') else 1)
+raise RuntimeError('探针没有生成 result.json')

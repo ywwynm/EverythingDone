@@ -1,0 +1,497 @@
+{
+  "date": "2026-10-15",
+  "package": "com.ywwynm.everythingdone.batchvalidation",
+  "baselineFailed": "toolbar_baseline_asserted_1015",
+  "baselineError": "普通工具栏未播放卡片粒子",
+  "passed": 36,
+  "unitTests": {
+    "tests": 1496,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "styleCorrection": "首轮大写 FLOW 被旧探针回退为 drift；补跑九例 flow，并检查实际 spec.style。",
+  "devices": [
+    {
+      "serial": "R5CW20BLNKL",
+      "model": "SM-S9180",
+      "api": 36,
+      "passed": 12,
+      "runs": [
+        {
+          "run": "toolbar_samsung_1015_finish_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_restore_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_untrash_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_fade",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 0,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_1015_selection_control",
+          "pass": true,
+          "entry": "selection",
+          "affectedCount": 4,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_flow_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 138,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_flow_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_flow_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_samsung_postcondition_1015",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": true
+        }
+      ]
+    },
+    {
+      "serial": "3B1629006YC00000",
+      "model": "PLZ110",
+      "api": 37,
+      "passed": 12,
+      "runs": [
+        {
+          "run": "toolbar_oppo_1015_finish_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_restore_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_untrash_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 138,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_fade",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 0,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_1015_selection_control",
+          "pass": true,
+          "entry": "selection",
+          "affectedCount": 4,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_flow_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_flow_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 137,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_flow_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_oppo_postcondition_1015",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 136,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": true
+        }
+      ]
+    },
+    {
+      "serial": "192.168.100.67:40807",
+      "model": "MEIZU 20 Inf",
+      "api": 35,
+      "passed": 12,
+      "runs": [
+        {
+          "run": "toolbar_meizu_1015_finish_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 77,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 76,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_restore_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 78,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 77,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_untrash_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 77,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 76,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_fade",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 6,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 0,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_1015_selection_control",
+          "pass": true,
+          "entry": "selection",
+          "affectedCount": 4,
+          "protectedCount": 0,
+          "restoredItemAnimator": true,
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_flow_1015_finish_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 76,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_flow_1015_delete_root",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 34,
+          "protectedCount": 1,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 80,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_flow_1015_forever_folder",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 33,
+          "protectedCount": 2,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 76,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": false
+        },
+        {
+          "run": "toolbar_meizu_postcondition_1015",
+          "pass": true,
+          "entry": "toolbar",
+          "affectedCount": 32,
+          "protectedCount": 3,
+          "restoredItemAnimator": true,
+          "cardParticleFrames": 76,
+          "requestedStyle": "flow",
+          "observedCardStyles": [
+            "flow"
+          ],
+          "protectedFieldsCheckedAfterAction": true
+        }
+      ]
+    }
+  ],
+  "originalDatabaseVerification": [
+    {
+      "serial": "3B1629006YC00000",
+      "before": "2078d2daf985d4c69c65169fcbaa2b15059871882f13ed732b5daeb13f353500  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "after": "2078d2daf985d4c69c65169fcbaa2b15059871882f13ed732b5daeb13f353500  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "unchanged": true
+    },
+    {
+      "serial": "R5CW20BLNKL",
+      "before": "df8e66e03de5ff31e98b4e96aaf3ef002ff1b0493d7f8266f53352492180c7d9  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "after": "df8e66e03de5ff31e98b4e96aaf3ef002ff1b0493d7f8266f53352492180c7d9  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "unchanged": true
+    },
+    {
+      "serial": "192.168.100.67:40807",
+      "before": "0e5d8e532805557d439dc939ca276211fd0c6e83c8ae97f9429a553d1e7ee2b4  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "after": "0e5d8e532805557d439dc939ca276211fd0c6e83c8ae97f9429a553d1e7ee2b4  databases/EverythingDoneData.db\r\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  databases/EverythingDoneData.db-journal\r\n",
+      "unchanged": true
+    }
+  ],
+  "isolatedPackagesUninstalled": true,
+  "selectionTransitionChecks": [
+    {
+      "run": "toolbar_samsung_1015_selection_control",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 34,
+      "colorIntermediateFrames": 29,
+      "maxToolbarFrameGap": 19,
+      "jumps": []
+    },
+    {
+      "run": "toolbar_oppo_1015_selection_control",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 17,
+      "jumps": []
+    },
+    {
+      "run": "toolbar_meizu_1015_selection_control",
+      "pass_": true,
+      "failures": [],
+      "toolbarFrames": 18,
+      "colorIntermediateFrames": 15,
+      "maxToolbarFrameGap": 18,
+      "jumps": []
+    }
+  ],
+  "postconditionCorrection": "提交前将范围外夹具的状态、标题、内容和归属比较移至操作后；三机各补验一次通过。早先保护字段计数不代表操作后比较，原应用数据库哈希及 Doing 专项断言仍有效。",
+  "postconditionOriginalDatabaseHashesUnchanged": true
+}

@@ -87,13 +87,18 @@ class SelectionBatchTransitionProbe : Instrumentation() {
         }
         try {
             val action = args.getString("action") ?: "finish"
-            val status = when (action) { "restore" -> Def.ThingStatus.FINISHED
-                "untrash", "forever" -> Def.ThingStatus.DELETED; else -> Def.ThingStatus.UNDERWAY }
+            val toolbarEntry = args.getString("entry") == "toolbar"
+            val requestedStyle = ParticleStyle.of((args.getString("style") ?: "drift").lowercase(java.util.Locale.ROOT))
+            val observedCardStyles = mutableSetOf<ParticleStyle>()
+            val status = when { action == "restore" || toolbarEntry && action == "delete" -> Def.ThingStatus.FINISHED
+                action == "untrash" || action == "forever" -> Def.ThingStatus.DELETED; else -> Def.ThingStatus.UNDERWAY }
             val after = when (action) { "finish" -> Thing.FINISHED; "delete" -> Thing.DELETED
                 "forever" -> Thing.DELETED_FOREVER; else -> Thing.UNDERWAY }
             val inFolder = args.getString("scope") == "folder"
             val auditAppearance = args.getString("audit_appearance") == "true"
             val count = if (args.getString("selection") == "all") 6 else 32
+            val fixtureIds = (1..count).map { 8_000_000L + it } +
+                if (args.getString("selection") == "all") emptyList() else (1..3).map { 8_100_000L + it }
             mainSync {
                 args.getString("appearance")?.let {
                     com.ywwynm.everythingdone.FrequentSettings.put(Def.Meta.KEY_FOLLOW_SYSTEM_DARK_MODE, false)
@@ -107,7 +112,7 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 File(targetContext.filesDir, Def.Meta.FEEDBACK_ERROR_FILE_NAME).delete()
                 ThingAnimationPreferences.preferences(targetContext).edit()
                     .putInt(ThingAnimationPreferences.SWIPE_KEY, if (args.getString("particles") == "false") 0 else 1).commit()
-                ParticleStyle.current = ParticleStyle.of(args.getString("style") ?: "DRIFT")
+                ParticleTuning.setStyle(targetContext, requestedStyle)
                 ParticleCardSurfaceHandoff.seedForTests = 42017
                 val dao = ThingDAO.getInstance(targetContext)!!
                 // OPPO 限制 shell 清应用数据；由隔离测试应用正常重置自己的固定编号虚构数据。
@@ -139,6 +144,8 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                     }
                     thing.state = when (status) { Def.ThingStatus.FINISHED -> Thing.FINISHED
                         Def.ThingStatus.DELETED -> Thing.DELETED; else -> Thing.UNDERWAY }
+                    if (toolbarEntry && count > 6 && i == count) thing.state =
+                        if (status == Def.ThingStatus.UNDERWAY) Thing.FINISHED else Thing.UNDERWAY
                     thing.finishTime = 1_791_000_000_000L + i
                     thing.folderId = if (inFolder) 9_000_000 else null
                     if (args.getString("gradients") == "true" && i % 2 == 1) thing.setBackground(
@@ -151,15 +158,20 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 if (args.getString("selection") != "all") for (i in 1..3) {
                     check(!dao.create(Thing(8_100_000L + i, Thing.NOTE, 0xff996666.toInt(), i.toLong()).apply {
                         title = "文件夹内虚构记事 $i"; content = "验证计数、缩略图和混合卡片"; folderId = 9_000_001
+                        if (toolbarEntry && inFolder && i == 3) folderId = null
                         state = when (status) { Def.ThingStatus.FINISHED -> Thing.FINISHED
                             Def.ThingStatus.DELETED -> Thing.DELETED; else -> Thing.UNDERWAY }
                     }, false, false))
+                }
+                if (toolbarEntry && action == "untrash") com.ywwynm.everythingdone.database.DBHelper(targetContext).use {
+                    it.writableDatabase.execSQL("UPDATE things SET state_before_delete=CASE WHEN id % 2 = 0 THEN ${Thing.FINISHED} ELSE ${Thing.UNDERWAY} END WHERE id BETWEEN 8000001 AND 8100003")
                 }
                 App.getApp()!!.setStatus(status, true)
                 if (auditAppearance && status == Def.ThingStatus.UNDERWAY) {
                     App.setDoingThingId(SelectionCardAppearanceAudit.DOING_ID)
                     com.ywwynm.everythingdone.FrequentSettings.put(Def.Meta.KEY_ONGOING_THING_ID, 8_000_022L)
                 }
+                if (args.getString("protect_doing") == "true") App.setDoingThingId(8_000_001L)
                 if (auditAppearance) com.ywwynm.everythingdone.FrequentSettings.put(Def.Meta.KEY_TOGGLE_CLI_OTC,
                     args.getString("checklist_taps") != "false")
             }
@@ -232,6 +244,9 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 return
             }
             val chosen = mutableListOf<Long>()
+            val expectedStates = mutableMapOf<Long, Int>()
+            val untouched = mutableMapOf<Long, List<Any?>>()
+            fun persistedFields(thing: Thing) = listOf(thing.state, thing.title, thing.content, thing.folderId)
             mainSync {
                 val position = when (args.getString("scroll")) { "middle" -> 15; "bottom" -> count - 1; else -> 0 }
                 (list.layoutManager as StaggeredGridLayoutManager).scrollToPositionWithOffset(position, 0)
@@ -261,14 +276,25 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                         it.stableId == App.getDoingThingId()
                     }.takeIf { it >= 0 }.let { listOfNotNull(it) }).distinct() else positions
                 }
-                check(selected.isNotEmpty())
-                selected.forEach { chosen += entries[it].stableId }
-                mode.toSelectingMode(selected.first())
-                selected.forEach { manager.setListEntrySelected(it, true) }
-                mode.updateSelectedCount(); mode.updateMenuItems()
-                list.adapter!!.notifyDataSetChanged()
+                if (toolbarEntry) {
+                    fixtureIds.forEach { id ->
+                        val thing = ThingDAO.getInstance(activity)!!.getThingById(id)!!
+                        val inScope = !inFolder || thing.folderId in listOf(9_000_000L, 9_000_001L)
+                        if (inScope && Thing.getStatusForState(thing.state) == status && id != App.getDoingThingId()) chosen += id
+                        else untouched[id] = persistedFields(thing)
+                    }
+                    check(chosen.isNotEmpty())
+                } else {
+                    check(selected.isNotEmpty())
+                    selected.forEach { chosen += entries[it].stableId }
+                    mode.toSelectingMode(selected.first())
+                    selected.forEach { manager.setListEntrySelected(it, true) }
+                    mode.updateSelectedCount(); mode.updateMenuItems()
+                    list.adapter!!.notifyDataSetChanged()
+                }
+                chosen.forEach { expectedStates[it] = if (toolbarEntry && action == "untrash" && it % 2 == 0L) Thing.FINISHED else after }
                 result.put("selectedIds", JSONArray(chosen)).put("visiblePositions", JSONArray(visible))
-                    .put("status", status).put("after", after)
+                    .put("status", status).put("after", after).put("entry", if (toolbarEntry) "toolbar" else "selection")
             }
             waitForIdleSync()
             SystemClock.sleep(650)
@@ -298,7 +324,21 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 }
                 result.put("beforeColors", colors)
             }
-            mainSync { invoke(activity, "confirmSelectedStateChange", after) }
+            mainSync {
+                if (toolbarEntry) {
+                    check(mode.getCurrentMode() == ModeManager.NORMAL)
+                    val menuId = when (action) {
+                        "finish" -> R.id.act_finish_all
+                        "delete" -> R.id.act_delete_all
+                        "forever" -> R.id.act_delete_all_forever
+                        else -> R.id.act_restore_all
+                    }
+                    val toolbar = field(activity, "mActionbar") as Toolbar
+                    check(toolbar.menu.findItem(menuId)?.isVisible == true) { "普通工具栏动作不可见" }
+                    // 经过 Toolbar 的真实菜单分发，不能直接调用范围操作或动画 helper。
+                    toolbar.menu.performIdentifierAction(menuId, 0)
+                } else invoke(activity, "confirmSelectedStateChange", after)
+            }
             val appearance = com.ywwynm.everythingdone.fragments.BaseDialogFragment::class.java
                 .getDeclaredField("appearanceSettled").apply { isAccessible = true }
             waitUntil("确认按钮") {
@@ -328,6 +368,9 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                         chrome.animation?.getTransformation(SystemClock.uptimeMillis(), transform)
                         val matrix = FloatArray(9); transform.matrix.getValues(matrix)
                         val items = JSONArray()
+                        if (list.isLayoutSuppressed) ParticleDismissOverlay.activeIn(activity).forEach {
+                            observedCardStyles += (field(it, "spec") as ParticleDismissSpec).style
+                        }
                         for (i in 0 until list.childCount) {
                             val view = list.getChildAt(i)
                             val holder = list.getChildViewHolder(view)
@@ -412,7 +455,29 @@ class SelectionBatchTransitionProbe : Instrumentation() {
                 chosen.forEach { id ->
                     val actual = ThingDAO.getInstance(activity)!!.getThingById(id)
                     check(if (id == App.getDoingThingId()) actual?.state == Thing.UNDERWAY
-                        else if (after == Thing.DELETED_FOREVER) actual == null else actual?.state == after)
+                        else if (after == Thing.DELETED_FOREVER) actual == null else actual?.state == expectedStates[id])
+                }
+                if (toolbarEntry) {
+                    untouched.forEach { (id, expected) ->
+                        check(ThingDAO.getInstance(activity)!!.getThingById(id)?.let(::persistedFields) == expected) { "范围外或受保护记事改变：$id" }
+                    }
+                    result.put("unchangedIds", JSONArray(untouched.keys.toList()))
+                    if (inFolder) check(manager.getFolderById(9_000_000L) != null) { "范围操作删除了当前容器" }
+                    if (args.getString("selection") != "all") check(manager.getFolderById(9_000_001L) != null) { "范围操作删除了子文件夹" }
+                    if (args.getString("protect_doing") == "true")
+                        check(ThingDAO.getInstance(activity)!!.getThingById(8_000_001L)?.state == Thing.UNDERWAY)
+                    val cardParticleFrames = (0 until frames.length()).count {
+                        val frame = frames.getJSONObject(it)
+                        frame.getBoolean("removal") && frame.getBoolean("suppressed") && frame.getInt("overlays") > 0
+                    }
+                    result.put("cardParticleFrames", cardParticleFrames)
+                    result.put("requestedStyle", requestedStyle.key)
+                        .put("observedCardStyles", JSONArray(observedCardStyles.map { it.key }))
+                    if (args.getString("particles") != "false") {
+                        check(cardParticleFrames > 0) { "普通工具栏未播放卡片粒子" }
+                        check(observedCardStyles == setOf(requestedStyle)) { "实际卡片粒子样式与请求不符" }
+                    }
+                    check(!list.isLayoutSuppressed) { "批量收尾未解除布局封锁" }
                 }
                 result.put("restoredItemAnimator", list.itemAnimator === originalItemAnimator)
                 check(list.itemAnimator === originalItemAnimator) { "批量收尾未恢复原 ItemAnimator" }

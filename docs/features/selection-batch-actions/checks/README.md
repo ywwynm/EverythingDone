@@ -8,6 +8,10 @@
 
 `run_case.py <设备序列号> <唯一 run_id> key=value ...` 可单独回放。支持：
 
+- `entry=toolbar` 经普通 Toolbar 菜单执行五种范围动作，校验业务状态、退场粒子、Doing／范围外／其它状态记事和文件夹容器；回收站夹具混合删除前状态。默认仍走选择入口。`protect_doing=true` 为范围完成加入受保护记事。
+- `toolbar_matrix.py <序列号> <唯一名称>` 为 2026-10-15 合并回归，每机八例：五种动作、根目录／文件夹、两种粒子、普通淡出和既有多选；代表性场景录屏。当前脚本仅接受该轮明确授权的 OPPO `3B1629006YC00000`、三星 `R5CW20BLNKL`、魅族 `192.168.100.67:40807`。其它设备必须先取得授权再更新白名单。
+- 样式参数统一转小写后写入正式设置，并从实际卡片动画的 `spec.style` 核验。追加 `--flow-only` 可只跑三个流体场景，用于修正旧脚本大写参数导致的回退；不得将旧结果直接标记为流体验证。
+
 - `action=finish/restore/delete/forever/untrash`；`scope=root/folder`。
 - `scroll=top/middle/bottom`；`selection=visible/mixed/offscreen/all`。
 - `style=DRIFT/FLOW`；`particles=false` 检查普通淡出。
