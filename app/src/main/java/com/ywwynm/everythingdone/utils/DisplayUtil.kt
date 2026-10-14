@@ -407,7 +407,8 @@ object DisplayUtil {
      * pushes the list contents up by twice the expected amount.
      */
     @JvmStatic
-    fun applyBottomInsetAsScrollPadding(view: View?) {
+    @JvmOverloads
+    fun applyBottomInsetAsScrollPadding(view: View?, preserveHorizontalPadding: Boolean = false) {
         val target = view!!
         if (target.getTag(TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL) == null) {
             target.setTag(TAG_BOTTOM_INSET_SCROLL_PADDING_ORIGINAL, intArrayOf(
@@ -424,7 +425,10 @@ object DisplayUtil {
         chainDecorInsetsCallback(target, callbackKey(target, TAG_BOTTOM_INSET_SCROLL_PADDING_CALLBACK)) {
             insets ->
             val bars: Insets = computeBarsInset(insets)
-            target.setPadding(original[0], original[1], original[2], original[3] + bars.bottom)
+            // Doing 的左右间距随窗口宽度居中，旋转后的 inset 分发不能写回旧宽度的间距。
+            target.setPadding(if (preserveHorizontalPadding) target.paddingLeft else original[0],
+                original[1], if (preserveHorizontalPadding) target.paddingRight else original[2],
+                original[3] + bars.bottom)
         }
     }
 

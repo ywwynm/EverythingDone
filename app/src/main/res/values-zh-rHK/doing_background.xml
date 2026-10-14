@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">正在做事介面背景</string>
+    <string name="doing_background_default">預設背景</string>
+    <string name="doing_background_portrait">直向</string>
+    <string name="doing_background_landscape">橫向</string>
+    <string name="doing_background_crop_hint">拖動選擇區域，雙指縮放。橫直方向分別儲存裁切。</string>
+    <string name="doing_background_image_unavailable">無法讀取這張圖片，請重新選擇。</string>
+</resources>

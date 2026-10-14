@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Hintergrund beim Erledigen</string>
+    <string name="doing_background_default">Standardhintergrund</string>
+    <string name="doing_background_portrait">Hochformat</string>
+    <string name="doing_background_landscape">Querformat</string>
+    <string name="doing_background_crop_hint">Ziehen zum Verschieben, zwei Finger zum Zoomen. Jedes Format hat einen eigenen Zuschnitt.</string>
+    <string name="doing_background_image_unavailable">Dieses Bild kann nicht gelesen werden. Bitte ein anderes auswählen.</string>
+</resources>

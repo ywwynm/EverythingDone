@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">चल रहे काम की स्क्रीन की पृष्ठभूमि</string>
+    <string name="doing_background_default">डिफ़ॉल्ट पृष्ठभूमि</string>
+    <string name="doing_background_portrait">पोर्ट्रेट</string>
+    <string name="doing_background_landscape">लैंडस्केप</string>
+    <string name="doing_background_crop_hint">खिसकाने के लिए खींचें, ज़ूम के लिए दो उँगलियाँ इस्तेमाल करें। दोनों दिशाओं की क्रॉपिंग अलग सहेजी जाती है।</string>
+    <string name="doing_background_image_unavailable">यह चित्र पढ़ा नहीं जा सका। कृपया दूसरा चित्र चुनें।</string>
+</resources>

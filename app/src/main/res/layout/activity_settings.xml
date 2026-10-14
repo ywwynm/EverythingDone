@@ -1258,6 +1258,31 @@
                         android:text="@string/settings_group_start_doing"/>
 
                     <LinearLayout
+                        android:id="@+id/ll_doing_background_as_bt"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/selectable_item_background">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_doing_background"
+                            android:textSize="16sp"/>
+
+                        <TextView
+                            android:id="@+id/tv_doing_background_path"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/app_chrome_on_surface_hint"
+                            android:textSize="14sp"/>
+
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:id="@+id/ll_auto_start_doing_as_bt"
                         android:layout_width="match_parent"
                         android:layout_height="72dp"

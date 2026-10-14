@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Fondo de la pantalla de tarea en curso</string>
+    <string name="doing_background_default">Fondo predeterminado</string>
+    <string name="doing_background_portrait">Vertical</string>
+    <string name="doing_background_landscape">Horizontal</string>
+    <string name="doing_background_crop_hint">Arrastra para mover y pellizca para ampliar. Cada orientación tiene su propio recorte.</string>
+    <string name="doing_background_image_unavailable">No se puede leer esta imagen. Selecciona otra.</string>
+</resources>

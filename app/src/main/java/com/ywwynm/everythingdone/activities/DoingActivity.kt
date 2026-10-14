@@ -9,6 +9,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.os.Build
@@ -22,6 +25,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -43,6 +47,7 @@ import com.ywwynm.everythingdone.database.ThingDAO
 import com.ywwynm.everythingdone.database.ThingFolderDAO
 import com.ywwynm.everythingdone.fragments.AlertDialogFragment
 import com.ywwynm.everythingdone.helpers.CheckListHelper
+import com.ywwynm.everythingdone.helpers.DoingBackgroundDisplay
 import com.ywwynm.everythingdone.helpers.RemoteActionHelper
 import com.ywwynm.everythingdone.managers.ModeManager
 import com.ywwynm.everythingdone.model.DoingRecord
@@ -98,6 +103,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private var mThing: Thing? = null
 
     private var mIvBg: ImageView? = null
+    private var mBackgroundDisplay: DoingBackgroundDisplay? = null
 
     private var mClockView: TimelyClockView? = null
 
@@ -117,6 +123,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     private var mFlStrictMode: FrameLayout? = null
     private var mFabStrictMode: FloatingActionButton? = null
     private var mFlCancel: FrameLayout? = null
+    private var mButtonsOnSide = false
+    private var mSystemInsets = Insets.NONE
 
     private var mInfinityHandler: Handler? = null
 
@@ -153,6 +161,11 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        mBackgroundDisplay?.refresh()
+    }
+
     override fun onStop() {
         mParticlePage?.setWindowVisible(false)
         super.onStop()
@@ -166,6 +179,8 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     override fun onDestroy() {
+        mBackgroundDisplay?.close()
+        mBackgroundDisplay = null
         mParticlePage?.close()
         mParticlePage = null
         super.onDestroy()
@@ -227,7 +242,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         val horizontalMargin = resources.getDimensionPixelSize(
             R.dimen.thing_card_single_surface_horizontal_margin
         )
-        val maxWidth = max(1, DisplayUtil.getScreenSize(mApp).x - horizontalMargin * 2)
+        val maxWidth = max(1, doingContentWidth() - horizontalMargin * 2)
         return min(maxWidth, configuredWidth)
     }
 
@@ -273,10 +288,20 @@ open class DoingActivity : EverythingDoneBaseActivity() {
             window.attributes.setWallpaperTouchEventsEnabled(false)
         }
         mIvBg!!.setBackgroundColor(0x66000000)
+        mBackgroundDisplay = DoingBackgroundDisplay(this, findViewById(R.id.iv_custom_bg_doing))
     }
 
     private fun initBottomButtons() {
-        DisplayUtil.applyBottomInsetAsMargin(mLlBottom)
+        ViewCompat.setOnApplyWindowInsetsListener(mLlBottom!!) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            if (mSystemInsets != bars) {
+                mSystemInsets = bars
+                updateDoingControlsLayout()
+                updateDoingLayoutForWindow()
+            }
+            insets
+        }
+        mLlBottom!!.post { ViewCompat.requestApplyInsets(mLlBottom!!) }
 
         mFlAdd5Min!!.scaleX = 0f
         mFlAdd5Min!!.scaleY = 0f
@@ -293,6 +318,13 @@ open class DoingActivity : EverythingDoneBaseActivity() {
     }
 
     private fun setRecyclerViewEvent() {
+        // 方向和窗口尺寸变化只更新几何，保留服务、数字动画与整页粒子场景。
+        f<View>(R.id.iv_custom_bg_doing)!!.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+            if (r - l != or - ol || b - t != ob - ot) updateDoingControlsLayout()
+        }
+        f<View>(R.id.ll_doing_content)!!.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+            if (r - l != or - ol || b - t != ob - ot) updateDoingLayoutForWindow()
+        }
         mRecyclerView!!.viewTreeObserver.addOnGlobalLayoutListener {
             val maxHeight = getThingCardRegionMaxHeight()
             if (maxHeight > 0 && mRecyclerView!!.height > maxHeight) {
@@ -326,11 +358,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun getThingCardRegionMaxHeight(): Int {
         val rvLocation = IntArray(2)
-        val bottomLocation = IntArray(2)
         mRecyclerView!!.getLocationOnScreen(rvLocation)
-        mLlBottom!!.getLocationOnScreen(bottomLocation)
 
-        val bottomLimit = bottomLocation[1]
+        val bottomLimit = getDoingCardBottomLimit()
         if (bottomLimit <= rvLocation[1]) return 0
 
         val verticalMargin = resources.getDimensionPixelSize(
@@ -386,7 +416,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         updateTimeViews()
 
         initRecyclerView()
-        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView)
+        DisplayUtil.applyBottomInsetAsScrollPadding(mRecyclerView, preserveHorizontalPadding = true)
         updateBottomButtons()
 
         if (mDoingBinder!!.getTimeInMillis() == -1L) {
@@ -472,7 +502,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun initRecyclerView() {
         mCardWidth = getDoingThingCardWidth(mThing!!)
-        val p = max(0, (DisplayUtil.getScreenSize(mApp).x - mCardWidth) / 2)
+        val p = max(0, (doingContentWidth() - mCardWidth) / 2)
         mRecyclerView!!.setPadding(
             p, mRecyclerView!!.paddingTop, p, mRecyclerView!!.paddingBottom
         )
@@ -535,6 +565,59 @@ open class DoingActivity : EverythingDoneBaseActivity() {
         updateThingCardSurfaceAvailableHeight(adapter)
     }
 
+    private fun doingContentWidth(): Int = f<View>(R.id.ll_doing_content)?.width
+        ?.takeIf { it > 0 } ?: DisplayUtil.getScreenSize(this).x
+
+    /** 手机横屏把原有按钮移至右侧；主体始终按整页宽度居中，不重新创建计时控件或粒子内容树。 */
+    private fun updateDoingControlsLayout() {
+        val window = f<View>(R.id.iv_custom_bg_doing) ?: return
+        if (window.width <= 0 || window.height <= 0) return
+        val buttons = mLlBottom ?: return
+        mButtonsOnSide = !DisplayUtil.isTablet(this) && window.width > window.height
+        val sideMargin = resources.getDimensionPixelSize(R.dimen.doing_side_controls_margin)
+        val width = if (mButtonsOnSide) ViewGroup.LayoutParams.WRAP_CONTENT else ViewGroup.LayoutParams.MATCH_PARENT
+        val gravity = if (mButtonsOnSide) Gravity.RIGHT or Gravity.CENTER_VERTICAL else Gravity.BOTTOM
+        val top = if (mButtonsOnSide) mSystemInsets.top + sideMargin else 0
+        val right = if (mButtonsOnSide) mSystemInsets.right + sideMargin else 0
+        val bottom = mSystemInsets.bottom + if (mButtonsOnSide) sideMargin
+            else resources.getDimensionPixelSize(R.dimen.doing_bottom_controls_margin)
+        buttons.orientation = if (mButtonsOnSide) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
+        val buttonsLp = buttons.layoutParams as FrameLayout.LayoutParams
+        if (buttonsLp.width != width || buttonsLp.gravity != gravity || buttonsLp.topMargin != top ||
+            buttonsLp.rightMargin != right || buttonsLp.bottomMargin != bottom) {
+            buttonsLp.width = width
+            buttonsLp.gravity = gravity
+            buttonsLp.topMargin = top
+            buttonsLp.rightMargin = right
+            buttonsLp.bottomMargin = bottom
+            buttons.layoutParams = buttonsLp
+        }
+    }
+
+    private fun getDoingCardBottomLimit(): Int {
+        val edge = if (mButtonsOnSide) f<View>(R.id.ll_doing_content)!! else mLlBottom!!
+        val location = IntArray(2)
+        edge.getLocationOnScreen(location)
+        return location[1] + if (mButtonsOnSide) edge.height - mSystemInsets.bottom else 0
+    }
+
+    private fun updateDoingLayoutForWindow() {
+        val thing = mThing ?: return
+        val rv = mRecyclerView ?: return
+        val adapter = rv.adapter as? BaseThingsAdapter ?: return
+        rv.post {
+            if (isFinishing || isDestroyed || rv.adapter !== adapter) return@post
+            mCardWidth = getDoingThingCardWidth(thing)
+            val padding = max(0, (doingContentWidth() - mCardWidth) / 2)
+            rv.setPadding(padding, rv.paddingTop, padding, rv.paddingBottom)
+            // 横屏的高度上限不能留到旋回竖屏后，否则长卡片会一直被截短。
+            rv.layoutParams = rv.layoutParams.apply { height = ViewGroup.LayoutParams.WRAP_CONTENT }
+            adapter.setCardWidth(mCardWidth)
+            adapter.setThingCardSurfaceAvailableHeight(getDoingThingCardAvailableHeight())
+            adapter.notifyDataSetChanged()
+        }
+    }
+
     private fun updateThingCardSurfaceAvailableHeight(adapter: BaseThingsAdapter) {
         mRecyclerView!!.post {
             adapter.setThingCardSurfaceAvailableHeight(getDoingThingCardAvailableHeight())
@@ -544,12 +627,9 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun getDoingThingCardAvailableHeight(): Int {
         val recyclerView = mRecyclerView ?: return DisplayUtil.getScreenSize(mApp).y
-        val bottomButtons = mLlBottom ?: return DisplayUtil.getScreenSize(mApp).y
         val recyclerLocation = IntArray(2)
-        val bottomLocation = IntArray(2)
         recyclerView.getLocationOnScreen(recyclerLocation)
-        bottomButtons.getLocationOnScreen(bottomLocation)
-        val height = bottomLocation[1] - recyclerLocation[1]
+        val height = getDoingCardBottomLimit() - recyclerLocation[1]
         if (height > 0) return height
 
         val parent = recyclerView.parent as? View

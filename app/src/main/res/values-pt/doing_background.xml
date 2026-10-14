@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Fundo do ecrã da tarefa em curso</string>
+    <string name="doing_background_default">Fundo predefinido</string>
+    <string name="doing_background_portrait">Vertical</string>
+    <string name="doing_background_landscape">Horizontal</string>
+    <string name="doing_background_crop_hint">Arraste para mover e use dois dedos para ampliar. Cada orientação tem o seu próprio recorte.</string>
+    <string name="doing_background_image_unavailable">Não foi possível ler esta imagem. Escolha outra.</string>
+</resources>

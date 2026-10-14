@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Doing screen background</string>
+    <string name="doing_background_default">Default background</string>
+    <string name="doing_background_portrait">Portrait</string>
+    <string name="doing_background_landscape">Landscape</string>
+    <string name="doing_background_crop_hint">Drag to move, pinch to zoom. Each orientation has its own crop.</string>
+    <string name="doing_background_image_unavailable">Unable to read this image. Please choose another image.</string>
+</resources>

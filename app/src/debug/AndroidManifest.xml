@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name=".views.particledismiss.DoingBackgroundRegressionProbe"
+        android:targetPackage="com.ywwynm.everythingdone" android:label="做事背景、横竖屏和动画回归" />
     <instrumentation android:name=".notification.NoticeableNotificationScrollProbe"
         android:targetPackage="com.ywwynm.everythingdone" android:label="通知弹窗真实窗口滚动回归" />
     <!-- 碰一碰快速入组失败后的普通 Wi-Fi 兼容试验，仅调试包启用。 -->
@@ -79,6 +81,8 @@
         <activity android:name=".views.particledismiss.ParticlePresentationImagesActivity"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Settings" />
         <activity android:name=".views.particledismiss.ParticleDoingProbeActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|uiMode"
+            android:screenOrientation="user" android:resizeableActivity="true"
             android:exported="false" android:theme="@style/EverythingDoneTheme.Doing" />
 
         <activity android:name=".taptransfer.TapReceiveVisibilityActivity"

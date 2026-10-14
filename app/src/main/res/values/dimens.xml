@@ -24,6 +24,8 @@
     <dimen name="thing_card_appearance_max_width">480dp</dimen>
     <dimen name="thing_card_appearance_panel_card_peek_height">36dp</dimen>
     <dimen name="doing_thing_card_vertical_margin">32dp</dimen>
+    <dimen name="doing_side_controls_margin">16dp</dimen>
+    <dimen name="doing_bottom_controls_margin">15dp</dimen>
     <dimen name="app_chrome_dialog_popup_corner_radius">16dp</dimen>
     <dimen name="app_chrome_dialog_title_margin_horizontal">20dp</dimen>
     <!-- 记事卡片外观面板里滑动条两端的「滑块外探」量：滑块半径(10dp)的一半。面板内容区

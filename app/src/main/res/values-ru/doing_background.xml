@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Фон экрана текущего дела</string>
+    <string name="doing_background_default">Фон по умолчанию</string>
+    <string name="doing_background_portrait">Вертикально</string>
+    <string name="doing_background_landscape">Горизонтально</string>
+    <string name="doing_background_crop_hint">Перетаскивайте для перемещения, сводите и разводите пальцы для масштаба. Кадрирование сохраняется отдельно для каждой ориентации.</string>
+    <string name="doing_background_image_unavailable">Не удалось прочитать изображение. Выберите другое.</string>
+</resources>

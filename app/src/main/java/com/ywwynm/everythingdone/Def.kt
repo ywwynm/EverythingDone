@@ -47,6 +47,8 @@ object Def {
 
         const val KEY_DRAWER_HEADER: String            = "drawer_header"
         const val KEY_DRAWER_HEADER_CROP: String       = "drawer_header_crop" // 2026/6/25
+        const val KEY_DOING_BACKGROUND: String         = "doing_background"
+        const val KEY_DOING_BACKGROUND_CROPS: String   = "doing_background_crops"
         const val KEY_NOTICEABLE_NOTIFICATION: String  = "noticeable_notification" // 2016/11/9
         // toggle checklist item on thing card
         const val KEY_TOGGLE_CLI_OTC: String           = "toggle_cli_otc"

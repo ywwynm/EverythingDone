@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">実行中の画面の背景</string>
+    <string name="doing_background_default">デフォルトの背景</string>
+    <string name="doing_background_portrait">縦向き</string>
+    <string name="doing_background_landscape">横向き</string>
+    <string name="doing_background_crop_hint">ドラッグで移動、ピンチで拡大縮小。縦向きと横向きの切り抜きは別々に保存されます。</string>
+    <string name="doing_background_image_unavailable">この画像を読み込めません。別の画像を選んでください。</string>
+</resources>

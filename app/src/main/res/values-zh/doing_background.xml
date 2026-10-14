@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">正在做事界面背景</string>
+    <string name="doing_background_default">默认背景</string>
+    <string name="doing_background_portrait">竖屏</string>
+    <string name="doing_background_landscape">横屏</string>
+    <string name="doing_background_crop_hint">拖动选择区域，双指缩放。横竖屏分别保存裁切。</string>
+    <string name="doing_background_image_unavailable">无法读取这张图片，请重新选择。</string>
+</resources>

@@ -23,6 +23,7 @@ import android.os.Looper
 import android.graphics.drawable.Drawable
 import androidx.annotation.StringRes
 import androidx.appcompat.app.ActionBar
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -67,6 +68,7 @@ import com.ywwynm.everythingdone.helpers.AuthenticationHelper
 import com.ywwynm.everythingdone.helpers.AutoNotifyHelper
 import com.ywwynm.everythingdone.helpers.BackupHelper
 import com.ywwynm.everythingdone.helpers.DailyTodoHelper
+import com.ywwynm.everythingdone.helpers.DoingBackgroundSettingsController
 import com.ywwynm.everythingdone.helpers.FingerprintHelper
 import com.ywwynm.everythingdone.helpers.NotificationReliabilityHelper
 import com.ywwynm.everythingdone.model.DetailAutoplayMode
@@ -115,6 +117,14 @@ import java.util.ArrayList
 class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialogFragment.Host {
 
     private var mPreferences: SharedPreferences? = null
+
+    private val doingBackgroundPicker: androidx.activity.result.ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.GetContent()) {
+            doingBackgroundSettings.onImagePicked(it)
+        }
+    private val doingBackgroundSettings: DoingBackgroundSettingsController by lazy {
+        DoingBackgroundSettingsController(this) { doingBackgroundPicker.launch("image/*") }
+    }
 
     private var mNightModeMask: Int = 0
 
@@ -306,6 +316,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
                 onDrawerHeaderImagePicked(imagePath)
                 return
             }
+
+            // 其余旧式文件校验只属于铃声选择；新式选择器已由 super 分发，不能再校验一次。
+            if (requestCode != Def.Communication.REQUEST_CHOOSE_AUDIO_FILE) return
 
             val pathName: String? = UriPathConverter.getLocalPathName(this, uri)
             if (pathName == null) {
@@ -582,6 +595,7 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         initUiRingtone()
         initUiData()
         initUiStartDoing()
+        doingBackgroundSettings.bind()
         initUiAdvanced()
     }
 
@@ -1592,6 +1606,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         requestKey: String,
         position: Int
     ): Int {
+        if (requestKey == MediaCropAppearanceDialogFragment.REQUEST_DOING_BACKGROUND) {
+            return doingBackgroundSettings.dialogWidth()
+        }
         if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER) {
             return ViewGroup.LayoutParams.WRAP_CONTENT
         }
@@ -1606,6 +1623,9 @@ class SettingsActivity : EverythingDoneBaseActivity(), MediaCropAppearanceDialog
         requestKey: String,
         position: Int
     ): MediaCropAppearanceDialogFragment.Content? {
+        if (requestKey == MediaCropAppearanceDialogFragment.REQUEST_DOING_BACKGROUND) {
+            return doingBackgroundSettings.createContent(fragment)
+        }
         if (requestKey != MediaCropAppearanceDialogFragment.REQUEST_DRAWER_HEADER) return null
         val path = currentDrawerHeaderPath() ?: return null
 

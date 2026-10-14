@@ -3,6 +3,7 @@
 package com.ywwynm.everythingdone.fragments
 
 import android.os.Bundle
+import android.content.res.Configuration
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -29,10 +30,16 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
 
     data class Content(
         val view: View,
-        val onDestroyView: () -> Unit = {}
+        val onDestroyView: () -> Unit = {},
+        val onSaveInstanceState: (Bundle) -> Unit = {},
+        val onConfigurationChanged: (() -> Unit)? = null
     )
 
     private var mContentCleanup: (() -> Unit)? = null
+    private var mContentSaveState: ((Bundle) -> Unit)? = null
+    private var mContentConfigurationChanged: (() -> Unit)? = null
+    var restoredContentState: Bundle? = null
+        private set
     /** 常规点击路径在后台准备；重建恢复仍可由 Host 按原来源重新加载。 */
     var preparedDetailPreview: DetailCropPreviewLoader.Preview? = null
     /** 轻量尺寸写入参数，旋转或进程恢复后仍可先显示正确大小的窗口。 */
@@ -69,6 +76,8 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
 
+        restoredContentState = savedInstanceState?.getBundle("crop_content_state")
+
         val host = activity as? Host
         val content = host?.createMediaCropAppearanceDialogContent(
             this,
@@ -90,12 +99,31 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
             )
         )
         mContentCleanup = content.onDestroyView
+        mContentSaveState = content.onSaveInstanceState
+        mContentConfigurationChanged = content.onConfigurationChanged
         return mContentView
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val state = Bundle()
+        mContentSaveState?.invoke(state)
+        outState.putBundle("crop_content_state", state)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        mContentConfigurationChanged?.let {
+            it()
+            dialog?.window?.setLayout(getDialogWindowWidthPx(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
     }
 
     override fun onDestroyView() {
         val cleanup = mContentCleanup
         mContentCleanup = null
+        mContentSaveState = null
+        mContentConfigurationChanged = null
         cleanup?.invoke()
         preparedDetailPreview = null
         super.onDestroyView()
@@ -114,6 +142,7 @@ open class MediaCropAppearanceDialogFragment : BaseDialogFragment() {
         const val REQUEST_DETAIL_ATTACHMENT: String = "detail_attachment"
         const val REQUEST_THING_CARD_CROP: String = "thing_card_crop"
         const val REQUEST_DRAWER_HEADER: String = "drawer_header"
+        const val REQUEST_DOING_BACKGROUND: String = "doing_background"
 
         private const val ARG_REQUEST_KEY = "request_key"
         private const val ARG_POSITION = "position"

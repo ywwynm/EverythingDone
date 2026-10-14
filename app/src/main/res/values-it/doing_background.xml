@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Sfondo della schermata attività in corso</string>
+    <string name="doing_background_default">Sfondo predefinito</string>
+    <string name="doing_background_portrait">Verticale</string>
+    <string name="doing_background_landscape">Orizzontale</string>
+    <string name="doing_background_crop_hint">Trascina per spostare, pizzica per ingrandire. Ogni orientamento ha un ritaglio indipendente.</string>
+    <string name="doing_background_image_unavailable">Impossibile leggere questa immagine. Scegline un’altra.</string>
+</resources>

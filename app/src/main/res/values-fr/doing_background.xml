@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">Fond de l’écran de tâche en cours</string>
+    <string name="doing_background_default">Fond par défaut</string>
+    <string name="doing_background_portrait">Portrait</string>
+    <string name="doing_background_landscape">Paysage</string>
+    <string name="doing_background_crop_hint">Faites glisser pour déplacer, pincez pour zoomer. Chaque orientation a son propre cadrage.</string>
+    <string name="doing_background_image_unavailable">Impossible de lire cette image. Veuillez en choisir une autre.</string>
+</resources>

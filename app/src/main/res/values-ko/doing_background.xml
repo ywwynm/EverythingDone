@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_doing_background">진행 중 화면 배경</string>
+    <string name="doing_background_default">기본 배경</string>
+    <string name="doing_background_portrait">세로</string>
+    <string name="doing_background_landscape">가로</string>
+    <string name="doing_background_crop_hint">드래그하여 이동하고 두 손가락으로 확대하거나 축소하세요. 방향별로 자르기 영역이 저장됩니다.</string>
+    <string name="doing_background_image_unavailable">이미지를 읽을 수 없습니다. 다른 이미지를 선택하세요.</string>
+</resources>
