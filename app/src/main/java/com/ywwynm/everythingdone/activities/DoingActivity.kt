@@ -284,7 +284,7 @@ open class DoingActivity : EverythingDoneBaseActivity() {
 
     private fun initBackground() {
         clearOpaqueAncestorBackgrounds()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             window.attributes.setWallpaperTouchEventsEnabled(false)
         }
         mIvBg!!.setBackgroundColor(0x66000000)
